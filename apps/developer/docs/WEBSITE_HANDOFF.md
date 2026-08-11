@@ -14,8 +14,8 @@ Website owner: `28-website`
 
 ## Source and release truth
 
-- Current full YNX Code macOS source: `89286b8a6e302c75bd398dd9bf8f2f26160248a6`
-- Current Windows hosted-workspace client source: `90da333dc98ccb9b98d49d17187d4ea5c47c5050`
+- Current full YNX Code macOS source: `76322af5e8c26a64fb6425c51d96c67d2b3df65f`
+- Current Windows hosted-workspace client source: `76322af5e8c26a64fb6425c51d96c67d2b3df65f`
 - Browser-evidence source: `98fcbe3cff68b4b01ebfd94df2d1476b41ecf2b5`
 - Product metadata: `apps/developer/public-product-metadata.json`
 - Product release truth: `apps/developer/product-release.json`
@@ -49,7 +49,7 @@ Exact hashes are authoritative in `evidence/ui/current-accessibility/accessibili
 
 ## Download boundary
 
-Direct public URLs for exact ZIPs are served from `https://developer.ynxweb4.com/downloads/`. The current full macOS package is `ynx-developer-0.2.0-testnet-preview-89286b8a-macos-arm64-unsigned.zip`. The current Windows hosted-workspace client is `ynx-developer-0.2.0-testnet-preview-90da333d-windows-x64-unsigned.zip`; its Actions artifact (`9046377906`) expires and must not be used as the public download. Every CTA must state platform, delivery mode and unsigned Testnet Preview status; production signing remains unavailable.
+Direct public URLs for exact ZIPs are served from `https://developer.ynxweb4.com/downloads/`. The current full macOS package is `ynx-developer-0.2.0-testnet-preview-76322af5-macos-arm64-unsigned.zip`. The current Windows hosted-workspace client is `ynx-developer-0.2.0-testnet-preview-76322af5-windows-x64-unsigned.zip`; its Actions artifact (`9110259455`) expires and must not be used as the public download. Every CTA must state platform, delivery mode and unsigned Testnet Preview status; production signing remains unavailable.
 
 ## Acceptance gates for Website owner
 

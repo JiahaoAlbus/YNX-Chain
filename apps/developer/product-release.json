@@ -35,12 +35,12 @@
     "https://developer.ynxweb4.com/runtime/health"
   ],
   "artifactUrls": [
-    "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-89286b8a-macos-arm64-unsigned.zip",
-    "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-90da333d-windows-x64-unsigned.zip",
+    "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-76322af5-macos-arm64-unsigned.zip",
+    "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-76322af5-windows-x64-unsigned.zip",
     "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-SHA256SUMS.txt",
     "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-PROVENANCE.json",
-    "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-sbom.cdx.json",
-    "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-90da333d-windows-x64-sbom.cdx.json"
+    "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-76322af5-macos-arm64-sbom.cdx.json",
+    "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-76322af5-windows-x64-sbom.cdx.json"
   ],
   "featureStatus": {
     "ynxCodePlatform": {
@@ -85,8 +85,8 @@
         "sameOriginProxy": "passed",
         "placeholderGate": "passed with grep fallback because rg was unavailable",
         "credentialLeakGate": "passed with grep fallback because rg was unavailable",
-        "macosCurrentSourcePackage": "source 89286b8a6e302c75bd398dd9bf8f2f26160248a6: full YNX Code resources, 267-component SBOM, extracted self-test, ad-hoc classification, cold launch, JavaScript/C++ toolchains, real bounded C++ compilation, workspace save, child cleanup and persistent second launch passed",
-        "windowsCurrentSourcePackage": "GitHub Actions run 31342901937 for source 90da333dc98ccb9b98d49d17187d4ea5c47c5050: client and Web tests, build, precise runtime inventory, portable extraction, Authenticode NotSigned classification, WPF cold launch, public workspace connection, real remote C++ compile, second GUI launch and artifact upload passed",
+        "macosCurrentSourcePackage": "source 76322af5e8c26a64fb6425c51d96c67d2b3df65f: full YNX Code resources, 267-component SBOM, extracted self-test, ad-hoc classification, cold launch, JavaScript/C++ toolchains, real bounded C++ compilation, workspace save, child cleanup and persistent second launch passed",
+        "windowsCurrentSourcePackage": "GitHub Actions run 31513885748 for source 76322af5e8c26a64fb6425c51d96c67d2b3df65f: client and Web tests, build, precise runtime inventory, portable extraction, Authenticode NotSigned classification, WPF cold launch, public workspace connection, real remote C++ compile, second GUI launch and artifact upload passed",
         "browserAccessibilityAudit": "15/15 checks and six hashed screenshots passed on Chrome 151 from clean source 98fcbe3cff68b4b01ebfd94df2d1476b41ecf2b5"
       },
       "capabilities": [
@@ -137,20 +137,20 @@
     "currentFullPlatformComputerControlRecapture": false
   },
   "sha256": {
-    "macosArm64UnsignedZip": "14564fd3a62f21ceb9ac90282a5e2fb41d7b0e2deb70c8d0f6d7e63abd317448",
-    "windowsX64UnsignedZip": "890f4e4bb331934a81fb9269aec552b3f55e147cd7cc7c04bcef4166e9c61886"
+    "macosArm64UnsignedZip": "a7254bf0a4ecf3054d761a28d410ad956753a8ec0ff459ec7ba16192dff4449b",
+    "windowsX64UnsignedZip": "289a1f48ed0fa37ec1027fc746ce283a407daba8e2544618eb42c50dfd39d57c"
   },
   "bytes": {
-    "macosArm64UnsignedZip": 177937024,
-    "windowsX64UnsignedZip": 72538896
+    "macosArm64UnsignedZip": 177942906,
+    "windowsX64UnsignedZip": 72538906
   },
   "artifactSourceCommits": {
-    "macosArm64UnsignedZip": "89286b8a6e302c75bd398dd9bf8f2f26160248a6",
-    "windowsX64UnsignedZip": "90da333dc98ccb9b98d49d17187d4ea5c47c5050"
+    "macosArm64UnsignedZip": "76322af5e8c26a64fb6425c51d96c67d2b3df65f",
+    "windowsX64UnsignedZip": "76322af5e8c26a64fb6425c51d96c67d2b3df65f"
   },
   "artifactRuntimeCheckpoints": {
-    "macosArm64UnsignedZip": "89286b8a6e302c75bd398dd9bf8f2f26160248a6",
-    "windowsX64UnsignedZip": "89286b8a6e302c75bd398dd9bf8f2f26160248a6"
+    "macosArm64UnsignedZip": "17ee9ae5bf50677a3316b0838884dd135de80599",
+    "windowsX64UnsignedZip": "17ee9ae5bf50677a3316b0838884dd135de80599"
   },
   "signingClass": {
     "macos": "adhoc-no-team-id",
@@ -165,31 +165,31 @@
     {
       "surface": "macos-arm64-testnet-preview",
       "class": "local-extracted-zip",
-      "sourceCommit": "89286b8a6e302c75bd398dd9bf8f2f26160248a6",
-      "sourceTree": "c6d83999d4da084784e3990bd23b3b320ed0c567",
-      "runtimeCheckpoint": "89286b8a6e302c75bd398dd9bf8f2f26160248a6",
-      "artifactSha256": "14564fd3a62f21ceb9ac90282a5e2fb41d7b0e2deb70c8d0f6d7e63abd317448",
-      "artifactBytes": 177937024,
-      "sbomSha256": "26c03adeea1121319cf73b1eea402fdba0a718dd31c2e188d6168610c7146bff",
+      "sourceCommit": "76322af5e8c26a64fb6425c51d96c67d2b3df65f",
+      "sourceTree": "dc7e76e917da31ac27f5fe45fac1513a0e26d0bc",
+      "runtimeCheckpoint": "17ee9ae5bf50677a3316b0838884dd135de80599",
+      "artifactSha256": "a7254bf0a4ecf3054d761a28d410ad956753a8ec0ff459ec7ba16192dff4449b",
+      "artifactBytes": 177942906,
+      "sbomSha256": "1ce156c73e3c9b1bd6543111d387ecb31bb05a3db92295574644c8390daaba8c",
       "provenanceEmbedded": true,
       "result": "full YNX Code resources, embedded source/tree/runtime/SBOM provenance, 267-component SBOM, resource self-test, strict ad-hoc classification, real GUI cold launch, JavaScript/C++ toolchain discovery, real bounded C++ compilation, workspace save, second runtime launch, workspace persistence and child cleanup passed"
     },
     {
       "surface": "windows-x64-testnet-preview",
       "class": "windows-ci-portable-extract",
-      "sourceCommit": "90da333dc98ccb9b98d49d17187d4ea5c47c5050",
-      "sourceTree": "f0fc50ac0ce1f94120f66bf811a4b9579c815027",
-      "runtimeCheckpoint": "89286b8a6e302c75bd398dd9bf8f2f26160248a6",
-      "artifactSha256": "890f4e4bb331934a81fb9269aec552b3f55e147cd7cc7c04bcef4166e9c61886",
-      "artifactBytes": 72538896,
-      "sbomSha256": "d47f774c89c5097aff5c50ca8b14983463726eca5d29d60376634a4aaf8925e2",
+      "sourceCommit": "76322af5e8c26a64fb6425c51d96c67d2b3df65f",
+      "sourceTree": "dc7e76e917da31ac27f5fe45fac1513a0e26d0bc",
+      "runtimeCheckpoint": "17ee9ae5bf50677a3316b0838884dd135de80599",
+      "artifactSha256": "289a1f48ed0fa37ec1027fc746ce283a407daba8e2544618eb42c50dfd39d57c",
+      "artifactBytes": 72538906,
+      "sbomSha256": "1365778910b256c988d6553ff9b76876f9eb4965fcd965fb9d2e40424bd5f189",
       "provenanceEmbedded": true,
       "authenticodeStatus": "NotSigned",
-      "runId": 31342901937,
-      "jobId": 93319490655,
-      "artifactId": 9046377906,
-      "artifactOuterDigest": "sha256:3ba7a4307897a239fc2ebec4081676bc9022c5d70c763ecc4bbae55842d9115d",
-      "artifactExpiresAt": "2026-08-23T23:52:14Z",
+      "runId": 31513885748,
+      "jobId": 93854111720,
+      "artifactId": 9110259455,
+      "artifactOuterDigest": "sha256:7daec768b13c0871f2cc13fef5ba1f845938288827233733f40bba6c14c5f715",
+      "artifactExpiresAt": "2026-08-25T16:44:45Z",
       "deliveryMode": "hosted-workspace-client",
       "result": "portable extraction, exact resource inventory, Authenticode NotSigned classification, WPF cold launch, public workspace connection, real remote C++ compile, second GUI launch and transient artifact upload passed"
     }
@@ -213,5 +213,5 @@
     "The optional official Grok Build source was audited and pinned but not built locally because Rust 1.92, Cargo and DotSlash were absent; no upstream binary is bundled.",
     "The Web IDE now executes pinned solc 0.8.24 in isolated workers and returns real ABI and EVM bytecode. Compilation does not imply that arbitrary EVM deployment is supported by YNX Testnet; deployment requires Wallet authorization and an authoritative receipt."
   ],
-  "generatedAt": "2026-08-10T07:06:50+08:00"
+  "generatedAt": "2026-08-12T01:00:00+08:00"
 }
