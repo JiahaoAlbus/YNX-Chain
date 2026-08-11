@@ -64,7 +64,7 @@ for attempt in $(seq 1 20); do
   if version_json="$(curl -fsS --max-time 3 http://127.0.0.1:17439/version)" && \
     VERSION_JSON="$version_json" EXPECTED_COMMIT="$source_commit" EXPECTED_RELEASE="$release" EXPECTED_REGISTRY="$registry_runtime_sha" node <<'NODE'
 const value=JSON.parse(process.env.VERSION_JSON);
-if(!value.ok||value.service!=="ynx-wallet-gatewayd"||value.build?.sourceCommit!==process.env.EXPECTED_COMMIT||value.build?.release!==process.env.EXPECTED_RELEASE||value.registrySha256!==process.env.EXPECTED_REGISTRY||!value.enabledProductClientIds?.includes("ynx-bridge-web-v1")||!value.enabledProductClientIds?.includes("ynx-creator-studio-web-v1"))process.exit(1);
+if(!value.ok||value.service!=="ynx-wallet-gatewayd"||value.build?.sourceCommit!==process.env.EXPECTED_COMMIT||value.build?.release!==process.env.EXPECTED_RELEASE||value.registrySha256!==process.env.EXPECTED_REGISTRY||!value.enabledProductClientIds?.includes("ynx-bridge-web-v1")||!value.enabledProductClientIds?.includes("ynx-creator-studio-web-v1")||!value.enabledProductClientIds?.includes("ynx-dex-web-v1"))process.exit(1);
 NODE
   then
     preflight_ok=1
@@ -126,7 +126,7 @@ for attempt in $(seq 1 30); do
     HEALTH_JSON="$health_json" VERSION_JSON="$version_json" APP_HEALTH_JSON="$app_health_json" EXPECTED_COMMIT="$source_commit" EXPECTED_RELEASE="$release" EXPECTED_REGISTRY="$registry_runtime_sha" node <<'NODE'
 const health=JSON.parse(process.env.HEALTH_JSON),version=JSON.parse(process.env.VERSION_JSON),app=JSON.parse(process.env.APP_HEALTH_JSON);
 if(!health.ok||health.truthfulStatus!=="remote-canonical-wallet-gateway")process.exit(1);
-if(!version.ok||version.build?.sourceCommit!==process.env.EXPECTED_COMMIT||version.build?.release!==process.env.EXPECTED_RELEASE||version.registrySha256!==process.env.EXPECTED_REGISTRY||!version.enabledProductClientIds?.includes("ynx-bridge-web-v1")||!version.enabledProductClientIds?.includes("ynx-creator-studio-web-v1"))process.exit(1);
+if(!version.ok||version.build?.sourceCommit!==process.env.EXPECTED_COMMIT||version.build?.release!==process.env.EXPECTED_RELEASE||version.registrySha256!==process.env.EXPECTED_REGISTRY||!version.enabledProductClientIds?.includes("ynx-bridge-web-v1")||!version.enabledProductClientIds?.includes("ynx-creator-studio-web-v1")||!version.enabledProductClientIds?.includes("ynx-dex-web-v1"))process.exit(1);
 if(!app.ok||!app.upstreams?.wallet?.ok||app.walletBoundary!=="p256-product-session-proof")process.exit(1);
 NODE
   then
