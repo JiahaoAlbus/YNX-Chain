@@ -2,17 +2,11 @@
 
 ## Status
 
-`finance-source-read-envelope-v1` is a Finance-owned consumer proposal. It is not an Exchange, DEX, Quant or Economics owner contract, and it does not mark any dependency as centrally integrated. Integration must freeze each owner payload schema and version before Finance can add an `AcceptedReadSourceContract` in runtime code.
+`finance-source-read-envelope-v1` remains the Finance-owned common envelope. Exchange has now frozen and Finance has accepted the first owner contract: `exchange-finance-read-v1` with payload schema `ynx-exchange-finance-account-v1`. Its canonical contract is `release/integration/exchange-finance-read-contract.json`.
 
-Until that happens, `/api/portfolio` and `/api/sources` return all four sources with:
+When both Exchange and Finance receive the same secret-managed integration key and Finance has a reviewed Exchange endpoint, `/api/portfolio` and `/api/sources` load only the Wallet-authorized account's persisted Exchange evidence. Without that runtime configuration, Exchange reports `ownerContractAccepted: true`, `available: false`, and `syncStatus: integration-unconfigured`.
 
-- `ownerContractAccepted: false`;
-- `available: false`;
-- `syncStatus: owner-contract-pending`;
-- no balances, positions, PnL, APY, supply or fee figures;
-- no owner action URL unless an operator supplies a reviewed HTTPS route.
-
-This pending state is production behavior, not a fixture or placeholder success.
+DEX, Quant and Economics still report `ownerContractAccepted: false`, `available: false`, and `syncStatus: owner-contract-pending`. No missing balance, position, PnL, APY, supply, price or fee value is inferred. The current public deployment predates this Exchange adapter; local candidate verification is not public-deployment evidence.
 
 ## Envelope boundary
 
@@ -26,6 +20,12 @@ The common envelope binds an immutable owner payload to:
 - an explicit list of read-only capabilities.
 
 The envelope does not interpret the owner payload. Exchange owns subaccounts, positions, fills and venue fees. DEX owns vault, LP, swap and exit records. Quant Lab owns strategy, mandate, capital, PnL, risk and fee analytics. Tokenomics owns supply, issuance, burn, reward-source, treasury and reserve evidence.
+
+## Exchange owner credential
+
+Finance never forwards a Wallet Product Session proof after consuming it. Instead it signs an exact `GET /v1/integrations/finance/account` owner request using `YNX_READ_INTEGRATION_V1` HMAC-SHA-256. The credential binds consumer, owner, method, escaped path, normalized account, timestamp and a 128-bit random nonce. Exchange permits 30 seconds of skew and consumes each nonce once. Query strings, wrong paths, wrong accounts, tampering, expiry and replay fail closed.
+
+The shared secret is injected separately as `YNX_FINANCE_EXCHANGE_READ_KEY` and `YNX_EXCHANGE_FINANCE_READ_KEY`; it is never returned to either client. Exchange strips Wallet keys, session data, authorization digests, other-account-only orders, fill counterparties, support/AI content and withdrawal credentials before creating the payload.
 
 ## Fail-closed rules
 
@@ -61,4 +61,4 @@ Sensitive actions remain in their owner flows:
 5. Wrong owner/account/network/asset/version/capability and outage tests pass.
 6. Shared Testnet evidence proves the owner payload and Finance display refer to the same account and source commit.
 
-No source may move from `owner-contract-pending` to available based on an environment variable, a mock server or a generic JSON response.
+No source may move from pending to available based only on an environment variable, test harness or generic JSON response. Availability requires the exact frozen owner contract, authenticated account-bound response, strict envelope validation and a matching runtime endpoint. The Exchange adapter passes the local implementation and test gates; shared Testnet and public deployment evidence remain outstanding.

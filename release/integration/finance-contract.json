@@ -4,8 +4,8 @@
   "product": "YNX Finance",
   "productSlug": "finance",
   "owner": "24-finance",
-  "sourceBranch": "codex/final-finance",
-  "sourceCommit": "307273b93df29bf064cb64324109571c00a63dc2",
+  "sourceBranch": "codex/integrate-finance-suite",
+  "sourceCommit": "90df7c7a5212930a9be6889452fe3c99ad6d2f2d",
   "network": {
     "cosmosChainId": "ynx_6423-1",
     "evmChainId": 6423,
@@ -57,7 +57,9 @@
       "YNX_FINANCE_EXCHANGE_ACTION_URL",
       "YNX_FINANCE_DEX_ACTION_URL",
       "YNX_FINANCE_QUANT_ACTION_URL",
-      "YNX_FINANCE_ECONOMICS_ACTION_URL"
+      "YNX_FINANCE_ECONOMICS_ACTION_URL",
+      "YNX_FINANCE_EXCHANGE_READ_URL",
+      "YNX_FINANCE_EXCHANGE_READ_KEY"
     ],
     "publicEvidence": "artifacts/finance/remote-public-probe-20260809.json"
   },
@@ -164,7 +166,7 @@
     "endpoint": "/api/sources",
     "envelopeVersion": "finance-source-read-envelope-v1",
     "schema": "release/integration/finance-source-read-envelope.schema.json",
-    "contractStatus": "consumer-proposal",
+    "contractStatus": "exchange-owner-contract-accepted-locally; remaining owners pending",
     "integratedCentral": false,
     "readOnly": true,
     "maximumEnvelopeBytes": 2097152,
@@ -192,15 +194,27 @@
       "capability not accepted",
       "mutation capability"
     ],
-    "actionLinks": "Optional reviewed HTTPS navigation only; they do not configure an adapter, grant capability or make a source available."
+    "actionLinks": "Optional reviewed HTTPS navigation only; they do not configure an adapter, grant capability or make a source available.",
+    "acceptedOwnerContracts": {
+      "exchange": {
+        "contract": "release/integration/exchange-finance-read-contract.json",
+        "ownerContractVersion": "exchange-finance-read-v1",
+        "payloadSchema": "ynx-exchange-finance-account-v1",
+        "authentication": "account-bound, timestamped, nonce-single-use HMAC-SHA-256",
+        "implementedLocal": true,
+        "testedLocal": true,
+        "configuredPublic": false,
+        "deployedPublic": false
+      }
+    }
   },
   "futureReadDependencies": [
     {
       "sourceId": "exchange",
       "owner": "07-exchange",
       "capability": "owned subaccounts, positions, orders, fills, fees, funding and PnL",
-      "ownerContractAccepted": false,
-      "status": "owner-contract-pending"
+      "ownerContractAccepted": true,
+      "status": "accepted-local-runtime-unconfigured"
     },
     {
       "sourceId": "dex",
@@ -247,6 +261,15 @@
     "deployedPublic": true,
     "downloadHosted": true,
     "productionSigned": false,
-    "storeReleased": false
+    "storeReleased": false,
+    "publicRuntimeSourceCommit": "307273b93df29bf064cb64324109571c00a63dc2",
+    "nextCandidate": {
+      "sourceCommit": "90df7c7a5212930a9be6889452fe3c99ad6d2f2d",
+      "implementedLocal": true,
+      "testedLocal": true,
+      "deployedStaging": false,
+      "deployedPublic": false,
+      "exchangeReadIntegrationConfiguredPublic": false
+    }
   }
 }

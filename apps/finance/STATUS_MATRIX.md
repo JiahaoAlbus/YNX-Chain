@@ -16,6 +16,7 @@
 | iOS build/install/cold launch | target ready | Hermes bundle passed | CI Simulator pending; no device/IPA signature |
 | Web Wallet client | yes | bundled P-256 device flow, exact callback, proof and revoke tests | public redeployment pending; no fallback identity |
 | Owner-product navigation | yes | strict reviewed-HTTPS URL validation | public Exchange, DEX and Quant links configured; navigation grants no trading or read capability |
+| Exchange account evidence | yes | account/path/timestamp/nonce HMAC binding, replay and tamper rejection, strict envelope validation, Web/native rendering, Go race tests | accepted local candidate; public Exchange/Finance runtimes are not yet configured or redeployed with this adapter |
 | Public Testnet/store release | Testnet only | public health, concurrency and official APK digest verified | `deployedPublic=true`, `storeReleased=false` |
 
 Amounts are integer YNXT units returned by the current Testnet services; the product does not display invented fiat conversions, yields, custody balances, credit, cards or insurance.

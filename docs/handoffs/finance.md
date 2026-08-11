@@ -2,7 +2,7 @@
 
 ## Scope
 
-- Branch: `codex/final-finance`
+- Branch: `codex/integrate-finance-suite`
 - Version: `1.2.0`
 - Native identity: `com.ynxweb4.finance`
 - Scheme/callback: `ynxfinance`, `ynxfinance://wallet-auth/callback`
@@ -12,7 +12,7 @@
 
 ## Delivered
 
-The branch now contains an Android/iOS React Native product, Go Finance API, Web feasibility companion and a canonical Finance edge Gateway. The native app covers Wallet entry, real-source YNXT overview/activity, authorized Pay receipts and dispute links, categories, private notes, user/approved-AI classification, monthly budgets and progress, recurring reminders, reports, CSV/JSON export, versioned planning import, privacy, account deletion, support, recovery and account audit.
+The branch contains Android/iOS React Native and Web products, the Go Finance API and a bounded Finance edge Gateway. It covers Wallet entry, real-source YNXT overview/activity, authorized Pay receipts and dispute links, account-bound Exchange balances/trading evidence, categories, private notes, user/approved-AI classification, monthly budgets and progress, recurring reminders, reports, CSV/JSON export, versioned planning import, privacy, account deletion, support, recovery and account audit.
 
 AI accepts only explicitly selected owned evidence after privacy permission and per-request consent. Categorization, fee explanation and budget output remain review drafts until Apply; Reject, Cancel and Delete are visible. No provider failure fallback invents advice or money.
 
@@ -20,15 +20,7 @@ Twelve locale packs are present: English, 简体中文, 繁體中文, 日本語,
 
 ## Canonical Wallet integration
 
-Legacy Finance HMAC/local session routes were removed. Native code delegates request/deep-link/callback verification/digest/device proof to `@ynx-chain/wallet-auth`. The edge Gateway invokes the exact central verifier, binds product/bundle/account/device/scopes/expiry, prevents replay and exposes introspection/revocation behind an internal key. The Go API introspects every bearer token and accepts no caller-provided address identity.
-
-Exact merge input and deterministic vector live in `apps/finance/integration/wallet-auth/`. Their manifest deliberately says:
-
-- `registryMerged=false`
-- `gatewayDeployed=false`
-- `walletApprovalTestedOnInstalledBuild=false`
-
-Therefore `integratedCentral=false`. The current central Wallet branch registers Social only; Finance correctly fails closed. Local Gateway replay/revocation state is memory-backed and must become persistent/shared before deployment.
+Legacy Finance HMAC/local identity sessions were removed. Native and Web code delegate request/deep-link/callback verification, digest and device proof to `@ynx-chain/wallet-auth`. Each private API call carries a fresh method/path/body/scope-bound P-256 Product Session proof, which the Go API introspects at the central Gateway. No Bearer session, address login or caller-provided identity is accepted. Exact registry input and deterministic vectors live in `apps/finance/integration/wallet-auth/`; the central registry and public Gateway are live, while final installed approval/callback remains unverified because the Android emulator had no enrolled strong biometric and correctly failed closed.
 
 ## Source truth
 
@@ -36,6 +28,7 @@ Therefore `integratedCentral=false`. The current central Wallet branch registers
 |---|---|---|
 | YNXT balance/activity | real Explorer account endpoint | account match, source/as-of/block/tx; latest 100 indexed records; complete history/opening balance not claimed |
 | Pay receipt | authenticated real `/pay/events` | owned-party filter, event/status/amount/tx/time/dispute; unavailable without key; no placeholders |
+| Exchange account | `exchange-finance-read-v1` owner endpoint | Wallet-account/path/time/nonce-bound HMAC; sanitized persisted balances, spot/perpetual orders and fills, fees, margin, positions, funding and risk status; current public runtime is not configured with the candidate |
 | Category/note/budget/reminder | explicit user, import or applied AI draft | `source` plus account-scoped audit; planning only |
 | Statement/monthly review/export | current Explorer/Pay evidence plus planning state | YNXT/Testnet/coverage markers; not a bank, tax or legal statement |
 | Offline view | last accepted encrypted-platform cache | visible saved-at and not-live labeling |
@@ -47,9 +40,9 @@ Remote smoke on 2026-07-18 proved Explorer health and public transaction access,
 - `go test ./internal/finance ./apps/finance/cmd/server` — passed.
 - Shared Wallet package — 21/21 passed.
 - Finance edge Gateway — 2/2 passed, including canonical completion, revoke, tamper and replay.
-- Finance contract suite — 6/6 passed; smoke passed.
+- Finance Web/product contract suite — 10/10 passed; smoke and the 143-file security gate passed.
 - Native TypeScript — typecheck passed; 6/6 tests passed for workflows, AI approval, exact Wallet delegation, 12 locales, formats and Arabic RTL.
-- Android/iOS Hermes bundle export — passed (2,523/2,521 modules in the current native build).
+- Android/iOS Hermes bundle export — passed (current Exchange-evidence native candidate included).
 - Android `assembleRelease` — passed (352 tasks). Final APK size 77,371,822 bytes; SHA-256 `37208e56e96357371b19afc290d82d68adf1f0596213dbcd777341a949915f4e`.
 - Final Android APK install — `com.ynxweb4.finance`, version 1.2.0/code 3, exact callback registered. Independent launch without Metro on `emulator-5580` returned `Status: ok`, `LaunchState: COLD`, `Activity: com.ynxweb4.finance/.MainActivity`, `TotalTime: 16313`, `WaitTime: 17320`.
 - Android light/dark screenshots were visually inspected. A shared System UI ANR dialog was excluded from accepted evidence and is not attributed to Finance.
@@ -78,17 +71,17 @@ Remote smoke on 2026-07-18 proved Explorer health and public transaction access,
 
 ## Exact release state
 
-`implementedLocal=true`, `testedLocal=true`, Android `installedLocal=true`. iOS local install, central integration, functional staging API, public deployment, production signing and store release are false. The APK is local-test-signed only. A Web preview attempt was not counted as deployment unless a reachable URL and `/api/health` evidence are later recorded. See `apps/finance/product-release.json` for machine-readable status.
+The published 1.2.0 Testnet release remains reachable and its historical evidence remains recorded. The newer Exchange-read candidate at source commit `90df7c7a5212930a9be6889452fe3c99ad6d2f2d` is `implementedLocal=true` and `testedLocal=true`, but `deployedStaging=false` and `deployedPublic=false`. Android remains test-signed; iOS install, production signing and store release are false. See `apps/finance/product-release.json` for the split public-versus-next-candidate state.
 
 ## Remaining external gates
 
-1. Merge the exact Finance registry v2 entry into the canonical central Wallet branch; deploy the persistent Gateway; pass installed Finance → Wallet approval → device proof → introspection → scoped Finance API → revoke on both Android and iOS.
+1. Pass installed Finance → Wallet approval → device proof → introspection → scoped Finance API → revoke on both Android and iOS using devices with strong biometrics.
 2. Provide a secret-managed Finance Pay read key and pass an owned receipt/dispute smoke. Never place the key in the client or repository.
-3. Deploy the Go API behind TLS with persistent backed-up storage, source credentials, rate monitoring and reviewed support/privacy/dispute destinations; run backup/restore evidence.
+3. Inject the paired Finance/Exchange owner-read key through shared secret management, deploy both source commit candidates behind TLS, prove the same Wallet account and Exchange source commit on shared Testnet, then run backup/restore evidence.
 4. Run the macOS CI Simulator build/install/cold launch, then obtain owner-controlled iOS and Android production signing. No TestFlight, App Store or Play claim until actual console evidence exists.
 5. Resolve or accept with owner sign-off the current moderate Expo tooling advisories, and professionally review legal/privacy translations.
 6. Add Explorer cursor history before changing the latest-100 coverage or claiming complete statements.
 
 ## Acceptance recommendation
 
-Accept as a locally implemented and Android-installed Testnet candidate. Do not describe it as centrally integrated, production deployed, production signed, publicly downloadable or store released until the corresponding evidence changes the status manifest.
+Accept the Exchange-read slice as a locally implemented and tested candidate only. Do not describe that slice as publicly deployed until both owner and consumer runtimes expose matching source-commit and account-bound shared-Testnet evidence. The older 1.2.0 public Testnet release and direct test-signed APK remain separate historical facts; neither proves deployment of this candidate.

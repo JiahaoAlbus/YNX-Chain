@@ -3,7 +3,7 @@
   "contractVersion": "1.0.0-testnet",
   "product": "ynx-exchange",
   "owner": "07-exchange",
-  "sourceCommit": "e8a70cbfbb07a5467d17251c3680dc01801c63b2",
+  "sourceCommit": "90df7c7a5212930a9be6889452fe3c99ad6d2f2d",
   "stateSchemaVersion": 10,
   "authority": {
     "exchangeOwned": [
@@ -32,9 +32,9 @@
     "bundleId": "com.ynxweb4.exchange",
     "callback": "ynxexchange://wallet-auth/callback",
     "chainId": "ynx_6423-1",
-    "sessionVerifier": "wallet-auth-v1",
-    "registryState": "pending-review",
-    "enabled": false
+    "sessionVerifier": "Wallet Auth v2 one-time sender-constrained P-256 Product Session proof",
+    "registryState": "approved",
+    "enabled": true
   },
   "authScopes": [
     "exchange:ai",
@@ -44,12 +44,12 @@
     "exchange:withdrawal-review"
   ],
   "sessionRules": {
-    "transport": "Authorization: Bearer header only",
+    "transport": "X-YNX-Product-Session-Proof carrying a fresh method/path/body/scope-bound P-256 proof",
     "queryTokenAccepted": false,
     "longLivedBrowserTokenAccepted": false,
     "gatewayIntrospectionRequired": true,
     "wrongProductDeviceBundleScopeExpiryOrRevoke": "fail-closed",
-    "centralAccepted": false
+    "centralAccepted": true
   },
   "signedIntentDomains": [
     "ynx-exchange-order-v1",
@@ -123,6 +123,9 @@
       "GET /v1/streams/user/snapshot",
       "GET /v1/ws/user",
       "GET /v1/ws/drop-copy"
+    ],
+    "financeRead": [
+      "GET /v1/integrations/finance/account; server-to-server only; exchange-finance-read-v1; account-bound HMAC; no query"
     ],
     "quantNamespace": "/v1/quant-adapter/",
     "adminTestCredit": "POST /v1/admin/test-credits; admin-key testnet-only"
@@ -209,6 +212,9 @@
     "rate_limited",
     "concurrency_limit",
     "internal_error"
+    ,"integration_unavailable"
+    ,"invalid_read_credential"
+    ,"invalid_read_account"
   ],
   "healthVersion": {
     "liveness": "GET /health",
@@ -220,7 +226,7 @@
     "publicRuntimeCommit": "3cf00aeea07b23c9a5e7aa6aad168db502dc4744"
   },
   "migration": {
-    "current": 9,
+    "current": 10,
     "verifiedGeneratedVectors": [1, 8],
     "historicalByteFixturesMissing": [2, 3, 4, 5, 6, 7, 8],
     "futureSchema": "fail-closed",
@@ -257,12 +263,20 @@
     "implementedLocal": true,
     "testedLocal": true,
     "installedLocal": false,
-    "integratedCentral": false,
+    "integratedCentral": true,
     "deployedStaging": false,
     "deployedPublic": true,
     "downloadHosted": false,
     "productionSigned": false,
-    "storeReleased": false
+    "storeReleased": false,
+    "publicRuntimeSourceCommit": "3cf00aeea07b23c9a5e7aa6aad168db502dc4744",
+    "nextCandidate": {
+      "sourceCommit": "90df7c7a5212930a9be6889452fe3c99ad6d2f2d",
+      "implementedLocal": true,
+      "testedLocal": true,
+      "financeReadContract": "release/integration/exchange-finance-read-contract.json",
+      "deployedPublic": false
+    }
   },
   "generatedAt": "2026-08-10T00:30:00Z"
 }

@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 1,
+  "contractVersion": "exchange-finance-read-v1",
+  "payloadSchema": "ynx-exchange-finance-account-v1",
+  "envelopeVersion": "finance-source-read-envelope-v1",
+  "sourceId": "exchange",
+  "owner": "07-exchange",
+  "consumer": "24-finance",
+  "sourceCommit": "90df7c7a5212930a9be6889452fe3c99ad6d2f2d",
+  "network": "ynx_6423-1",
+  "nativeAsset": "YNXT",
+  "route": {
+    "method": "GET",
+    "path": "/v1/integrations/finance/account",
+    "queryAllowed": false,
+    "maximumResponseBytes": 2097152
+  },
+  "authentication": {
+    "scheme": "YNX_READ_INTEGRATION_V1",
+    "algorithm": "HMAC-SHA-256",
+    "secretMinimumCharacters": 32,
+    "secretEnvironments": {
+      "exchange": "YNX_EXCHANGE_FINANCE_READ_KEY",
+      "finance": "YNX_FINANCE_EXCHANGE_READ_KEY"
+    },
+    "canonicalBindings": [
+      "consumer",
+      "owner",
+      "method",
+      "escapedPath",
+      "authorizedAccount",
+      "RFC3339Nano timestamp",
+      "128-bit random nonce"
+    ],
+    "maximumClockSkewSeconds": 30,
+    "nonceSingleUse": true,
+    "replayCapacityPerProcess": 100000,
+    "credentialTransport": [
+      "X-YNX-Read-Consumer",
+      "X-YNX-Read-Account",
+      "X-YNX-Read-Timestamp",
+      "X-YNX-Read-Nonce",
+      "X-YNX-Read-Signature"
+    ],
+    "walletProductSessionForwarded": false,
+    "reason": "Finance consumes the one-time Wallet Product Session proof itself; the owner read is a separately authenticated, account-bound server-to-server request."
+  },
+  "capabilities": [
+    "exchange.subaccount.read",
+    "exchange.orders.read",
+    "exchange.fills.read",
+    "exchange.fees.read",
+    "exchange.margin.read",
+    "exchange.funding.read",
+    "exchange.risk.read"
+  ],
+  "payload": {
+    "included": [
+      "authorized account available and reserved YNXT/YUSD_TEST balances",
+      "sanitized spot orders and account-side fills",
+      "account fee records",
+      "margin equity and free collateral",
+      "perpetual positions, sanitized orders and account-side fills",
+      "funding settlements and oracle status",
+      "Exchange product version and build commit"
+    ],
+    "excluded": [
+      "Wallet public keys or signatures",
+      "session or Product Session material",
+      "authorization digests",
+      "API keys or integration secrets",
+      "deposit destinations or withdrawal credentials",
+      "support messages, AI prompts or private audit records",
+      "orders owned only by other accounts",
+      "counterparty addresses in sanitized fills"
+    ]
+  },
+  "provenance": {
+    "asOfKind": "exchange-state-observed-at",
+    "syncStatus": "authoritative-persisted-exchange-state",
+    "coverage": "authorized balances, spot and perpetual orders and fills, fees, margin, positions, funding and risk status"
+  },
+  "errors": {
+    "integration_unavailable": 503,
+    "invalid_read_credential": 401,
+    "invalid_read_account": 401,
+    "rate_limited": 429,
+    "capacity_exhausted": 503
+  },
+  "runtimeState": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "financeAccepted": true,
+    "configuredStaging": false,
+    "deployedPublic": false,
+    "sharedTestnetEvidence": false
+  }
+}
