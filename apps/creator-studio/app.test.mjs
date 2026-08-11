@@ -105,6 +105,9 @@ test("Creator Studio completes the canonical Wallet callback and signs per-reque
   for(const term of ["ynx-creator-studio","ynx-creator-studio-web-v1","com.ynxweb4.creator-studio.web","https://web4.ynxweb4.com/video/studio/wallet-auth/callback","YNX_PRODUCT_SESSION_CHALLENGE_V1","YNX_PRODUCT_SESSION_HTTP_PROOF_V1","/v1/wallet/sessions/complete","indexedDB","requestDigest","sessionBinding"])assert.ok(wallet.includes(term),term);
   assert.match(server,/wallet-auth\/callback/);
   assert.match(server,/gateway\/v1\/wallet\/sessions\/complete/);
-  assert.match(html,/Wallet not installed\? Open the official install page/);
+  assert.match(html,/Download official YNX Wallet/);
+  assert.match(html,/ynx-wallet-1\.0\.1-testnet-preview-dc31c9a8-test-signed\.apk/);
+  assert.match(html,/Connect MetaMask/);
+  assert.match(await load("app.js"),/wallet_addEthereumChain/);
   assert.doesNotMatch(wallet,/localStorage|accountSecret|recovery/i);
 });

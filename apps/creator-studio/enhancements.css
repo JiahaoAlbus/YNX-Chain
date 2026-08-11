@@ -8,6 +8,10 @@ header>div:first-child{margin:0}
 .locale-controls{grid-column:1/-1;grid-row:2;display:grid;grid-template-columns:1fr 1fr}
 .locale-controls select{min-width:0}
 #signin{grid-column:2;grid-row:1;padding:8px 10px;font-size:.75rem;max-width:130px}
+.wallet-actions{display:grid;gap:5px;max-width:260px}
+.wallet-actions a,.wallet-actions small{font-size:.7rem;line-height:1.35;color:var(--muted)}
+.wallet-actions a{color:var(--blue);font-weight:650}
+.wallet-actions .secondary{background:var(--surface);color:var(--blue);padding:7px 9px;font-size:.72rem}
 main{padding:24px 16px 42px}
 .metrics{grid-template-columns:1fr 1fr}
 .metrics article:nth-child(2){border-inline-end:0}

@@ -16,6 +16,7 @@ main{padding:24px 16px 40px}
 .grid{grid-template-columns:1fr;gap:24px}
 .empty{min-height:230px;padding:24px}
 dialog{padding:14px}
+.wallet-options{grid-template-columns:1fr}
 .actions button{flex:1 1 42%}
 }
 @media(max-width:760px){html[dir="rtl"] .topbar{grid-template-areas:"actions brand" "search search"}}

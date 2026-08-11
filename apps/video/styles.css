@@ -52,6 +52,13 @@ dialog::backdrop{background:#10131acc}
 .dialog-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
 .dialog-bar p{margin:0;color:var(--muted);font-size:.82rem}
 dialog video{width:100%;aspect-ratio:16/9;background:#080b10;border-radius:10px}
+.wallet-intro{color:var(--muted);line-height:1.5}
+.wallet-options{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:18px 0}
+.wallet-option{display:flex;flex-direction:column;align-items:flex-start;gap:5px;min-height:92px;text-align:start;text-decoration:none;padding:15px}
+.wallet-option span{font-size:.78rem;line-height:1.45;font-weight:500;opacity:.82}
+.wallet-details{display:inline-block;margin-top:8px;color:var(--blue);font-weight:650}
+#wallet-choice{width:min(660px,calc(100vw - 32px))}
+#wallet-state{min-height:22px}
 .actions{display:flex;gap:8px;flex-wrap:wrap}
 .danger{background:var(--surface);color:var(--danger);border-color:var(--danger)}
 .comments{margin-top:24px;border-top:1px solid var(--line);padding-top:16px}
