@@ -95,7 +95,8 @@ func (c *HTTPPayAPI) CreateRefund(ctx context.Context, intent string, amount int
 }
 func (c *HTTPPayAPI) CreateAuthorizedRefund(ctx context.Context, input AuthorizedRefundSubmission) (chain.RefundRecord, error) {
 	var created chain.RefundRecord
-	if err := c.do(ctx, http.MethodPost, "/pay/refunds", input, &created); err != nil {
+	createBody := map[string]any{"intentId": input.IntentID, "amount": input.Amount, "reason": input.Reason, "idempotencyKey": input.IdempotencyKey}
+	if err := c.do(ctx, http.MethodPost, "/pay/refunds", createBody, &created); err != nil {
 		return chain.RefundRecord{}, err
 	}
 	completionDigest := sha256.Sum256([]byte("YNX_PAY_REFUND_COMPLETION_V1\n" + input.IdempotencyKey + "\n" + input.TransactionHash))

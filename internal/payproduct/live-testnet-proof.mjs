@@ -141,6 +141,38 @@ const refund = await payProductRequest("pay:case:create", `/v1/invoices/${invoic
 const dispute = await payProductRequest("pay:case:create", `/v1/invoices/${invoice.id}/disputes`, { reason: "Live Testnet dispute and Trust review workflow proof", trustEvidence: [`tx:${signedTransfer.hash}`], idempotencyKey: `dispute-${runID}` });
 assert(refund.status === "requested" && dispute.status === "open", "refund/dispute states are not human-review boundaries");
 
+const merchantAccount = await eventually(async () => {
+  const account = await fetchNativeAccount(merchantWallet.account, { rpcURL });
+  return account.balance >= refund.amount + 1 ? account : null;
+}, "merchant payout did not become available for the Wallet-authorized refund");
+const signedRefundTransfer = signNativeTransfer({ secret: merchantSecret, identity: merchantWallet, to: payer.account, amount: refund.amount, nonce: merchantAccount.nonce + 1, balance: merchantAccount.balance });
+const refundBroadcast = await broadcastNativeTransfer(signedRefundTransfer, { rpcURL });
+assert(refundBroadcast.transaction.hash === signedRefundTransfer.hash, "refund broadcast substituted the merchant Wallet transaction");
+const refundFinality = await trackNativeTransferFinality(signedRefundTransfer.hash, { rpcURL, attempts: 30, intervalMs: 1000 });
+assert(refundFinality.status === "confirmed" && refundFinality.transaction.blockNumber > 0, "refund transaction was not committed in a block");
+const refundAuthorizationUnsigned = {
+  version: "1",
+  requestId: randomBytes(24).toString("base64url"),
+  invoiceId: invoice.id,
+  chainId: "ynx_6423-1",
+  merchantId: merchantID,
+  account: merchantWallet.account,
+  accountPublicKey: merchantWallet.accountPublicKey,
+  payer: payer.account,
+  amount: refund.amount,
+  asset: invoice.asset,
+  transactionHash: signedRefundTransfer.hash,
+  issuedAt: new Date().toISOString(),
+};
+const refundAuthorization = { ...refundAuthorizationUnsigned, walletSignature: compactWalletSignature("YNX_PAY_REFUND_AUTHORIZATION_V1", refundAuthorizationUnsigned, merchantSecret) };
+const submittedRefund = await merchantRequest("POST", `/v1/merchant/refunds/${refund.id}/submit`, { authorization: refundAuthorization, idempotencyKey: `refund-submit-${runID}` });
+assert(submittedRefund.status === "submitted" && submittedRefund.refundTransactionHash === signedRefundTransfer.hash, "merchant refund authorization was not bound to the reverse transaction");
+const committedRefund = await eventually(async () => {
+  const current = await merchantRequest("POST", `/v1/merchant/refunds/${refund.id}/refresh`, {});
+  return current.status === "refunded" ? current : null;
+}, "authoritative refund evidence did not commit", 30, 1000);
+assert(committedRefund.evidence?.transactionHash === signedRefundTransfer.hash && committedRefund.evidence?.blockNumber === refundFinality.transaction.blockNumber && committedRefund.evidence?.finality === "committed", "authoritative refund evidence is incomplete or mismatched");
+
 let state = await merchantRequest("GET", "/v1/merchant/state");
 const queuedDelivery = Object.values(state.deliveries || {})[0];
 assert(queuedDelivery?.id && queuedDelivery.payloadHash?.length === 64 && queuedDelivery.signature?.length === 64, "webhook delivery lacks signed replay-safe evidence");
@@ -175,9 +207,11 @@ const analytics = await merchantRequest("GET", "/v1/merchant/analytics");
 const csv = await merchantRequest("GET", "/v1/merchant/reconciliation.csv", undefined, true);
 state = await merchantRequest("GET", "/v1/merchant/state");
 assert(analytics.committedCount === 1 && analytics.grossYnxt === invoice.amount, "merchant analytics are not derived from the committed invoice");
+assert(analytics.refundedYnxt === refund.amount && analytics.netYnxt === invoice.amount - refund.amount, "merchant analytics did not reconcile the authoritative refund");
 assert(csv.includes(invoice.id) && csv.includes(signedTransfer.hash), "reconciliation export omitted authoritative transaction evidence");
 if (reviewed.status === "applied") assert(state.audit?.some((entry) => entry.action === "ai.review" && entry.outcome === "applied"), "AI approval audit entry is missing");
 assert(state.audit?.some((entry) => entry.action === "webhook.deliver"), "webhook delivery audit entry is missing");
+assert(state.audit?.some((entry) => entry.action === "refund.committed" && entry.target === refund.id), "authoritative refund audit entry is missing");
 
 assert(merchantSession.replayRejected === true && walletSessionReplayRejected === true, "Gateway challenge/session replay was not rejected");
 
@@ -195,11 +229,11 @@ const proof = {
   payer: payer.account,
   invoice: { id: invoice.id, centralInvoiceId: invoice.centralInvoiceId, intentId: invoice.intentId, amount: invoice.amount, fee: invoice.fee, status: receipt.status },
   settlement: receipt.settlement,
-  refund: { id: refund.id, amount: refund.amount, status: refund.status },
+  refund: { id: committedRefund.id, amount: committedRefund.amount, status: committedRefund.status, transactionHash: signedRefundTransfer.hash, blockNumber: refundFinality.transaction.blockNumber, centralRefundId: committedRefund.centralRefundId, receiptId: committedRefund.evidence.receiptId, auditHash: committedRefund.evidence.auditHash, source: committedRefund.evidence.source, confidence: committedRefund.evidence.confidence },
   dispute: { id: dispute.id, status: dispute.status, trustEvidence: dispute.trustEvidence },
   webhook: { id: retried.id, attempt: retried.attempt, status: retried.status, payloadHash: retried.payloadHash, secretVersion: retried.secretVersion },
   ai: { id: reviewed.id, workflow: reviewed.workflow, outputLanguage: reviewed.outputLanguage, status: reviewed.status, decision: reviewed.decision, provider: reviewed.provider, model: reviewed.model, externalBlocker: aiExternalBlocker || undefined },
-  reconciliation: { committedCount: analytics.committedCount, grossYnxt: analytics.grossYnxt, csvIncludesInvoice: true, csvIncludesTransaction: true },
+  reconciliation: { committedCount: analytics.committedCount, grossYnxt: analytics.grossYnxt, refundedYnxt: analytics.refundedYnxt, netYnxt: analytics.netYnxt, csvIncludesInvoice: true, csvIncludesTransaction: true },
   auditCount: state.audit.length,
   replayRejected: merchantSession.replayRejected && walletSessionReplayRejected,
   truthfulBoundary: "paid only after authoritative central Pay API matched a committed YNX Testnet YNXT transaction",

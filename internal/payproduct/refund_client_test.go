@@ -25,6 +25,11 @@ func TestHTTPPayAPICompletesAndAdaptsAuthoritativeRefund(t *testing.T) {
 		switch {
 		case r.Method == http.MethodPost && r.URL.Path == "/pay/refunds":
 			createSeen = true
+			var body map[string]any
+			_ = json.NewDecoder(r.Body).Decode(&body)
+			if len(body) != 4 || body["intentId"] != input.IntentID || body["amount"] != float64(input.Amount) || body["reason"] != input.Reason || body["idempotencyKey"] != input.IdempotencyKey {
+				t.Fatalf("central refund create body is not the strict public contract: %+v", body)
+			}
 			_ = json.NewEncoder(w).Encode(chain.RefundRecord{ID: completed.ID, IntentID: input.IntentID, Amount: input.Amount, Currency: input.Asset, Status: "recorded", IdempotencyKey: input.IdempotencyKey})
 		case r.Method == http.MethodPost && r.URL.Path == "/pay/refunds/"+completed.ID+"/complete":
 			completeSeen = true
