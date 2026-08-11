@@ -28,8 +28,9 @@ Legacy Finance HMAC/local identity sessions were removed. Native and Web code de
 |---|---|---|
 | YNXT balance/activity | real Explorer account endpoint | account match, source/as-of/block/tx; latest 100 indexed records; complete history/opening balance not claimed |
 | Pay receipt | authenticated real `/pay/events` | owned-party filter, event/status/amount/tx/time/dispute; unavailable without key; no placeholders |
-| Exchange account | `exchange-finance-read-v1` owner endpoint | Wallet-account/path/time/nonce-bound HMAC; sanitized persisted balances, spot/perpetual orders and fills, fees, margin, positions, funding and risk status; current public runtime is not configured with the candidate |
+| Exchange account | `exchange-finance-read-v1` owner endpoint | deployed Wallet-account/path/time/nonce-bound HMAC; sanitized persisted balances, spot/perpetual orders and fills, fees, margin, positions, funding and risk status |
 | DEX account | `dex-finance-read-v1` owner endpoint | deployed account/path/time/nonce-bound HMAC; raw indexed LP positions, swaps, liquidity actions, fees and referenced pools only; public owner adapter is configured, while a fresh installed-Wallet `/api/sources` end-to-end probe remains pending |
+| Quant account | `quant-finance-read-v1` owner endpoint | deployed account/path/time/nonce-bound HMAC; strategies, experiments, mandates, bounded executions, paper PnL and risk state; public owner adapter is configured, while a fresh installed-Wallet `/api/sources` end-to-end probe remains pending |
 | Category/note/budget/reminder | explicit user, import or applied AI draft | `source` plus account-scoped audit; planning only |
 | Statement/monthly review/export | current Explorer/Pay evidence plus planning state | YNXT/Testnet/coverage markers; not a bank, tax or legal statement |
 | Offline view | last accepted encrypted-platform cache | visible saved-at and not-live labeling |
@@ -72,17 +73,17 @@ Remote smoke on 2026-07-18 proved Explorer health and public transaction access,
 
 ## Exact release state
 
-The Web/API and DEX owner-read adapter at source commit `4f6546e0823c5063a99c7d84e2ed13ba3c014866` are publicly deployed on Testnet. Exact `/version` bindings, binary/Web hashes and a server-side account-bound owner probe are recorded in `docs/evidence/finance/dex-read-public-runtime-2026-08-11.json`. This does not prove the installed-Wallet approval → Finance `/api/sources` path, production signing, or a store release. Android remains test-signed; iOS install, production signing and store release are false.
+Finance Web/API at `7262eb5c45eb06b44b8713b9160eec66ffcba04c` and Exchange/Quant owner runtimes at `ea474e0d46051ced79eb5b64c6a9887e26e77885` are publicly deployed on Testnet. Finance health reports configured sources `dex`, `exchange` and `quant`; exact versions, binary hashes and server-side account-bound probes are recorded under `docs/evidence/finance/`. This does not prove the installed-Wallet approval → Finance `/api/sources` path, production signing, or a store release. Android remains test-signed; iOS install, production signing and store release are false.
 
 ## Remaining external gates
 
 1. Pass installed Finance → Wallet approval → device proof → introspection → scoped Finance API → revoke on both Android and iOS using devices with strong biometrics.
 2. Provide a secret-managed Finance Pay read key and pass an owned receipt/dispute smoke. Never place the key in the client or repository.
-3. Configure and deploy the Exchange and Quant owner-read pairs, then prove Exchange/DEX/Quant through one fresh installed-Wallet Product Session and Finance `/api/sources`; retain same-account and exact-source evidence and run backup/restore evidence.
+3. Prove the already deployed Exchange/DEX/Quant owner-read pairs through one fresh installed-Wallet Product Session and Finance `/api/sources`; retain same-account and exact-source evidence and run backup/restore evidence.
 4. Run the macOS CI Simulator build/install/cold launch, then obtain owner-controlled iOS and Android production signing. No TestFlight, App Store or Play claim until actual console evidence exists.
 5. Resolve or accept with owner sign-off the current moderate Expo tooling advisories, and professionally review legal/privacy translations.
 6. Add Explorer cursor history before changing the latest-100 coverage or claiming complete statements.
 
 ## Acceptance recommendation
 
-Accept the DEX owner-read adapter as publicly deployed and server-side account-bound on Testnet. Keep `integratedCentral=false` until a fresh installed-Wallet Product Session proves the complete Wallet → Finance `/api/sources` path. Exchange and Quant remain locally accepted but publicly unconfigured. Native download and store-release claims remain separate from the Web/API release.
+Accept Exchange, DEX and Quant owner-read adapters as publicly deployed, configured in Finance and server-side account-bound on Testnet. Keep `integratedCentral=false` until a fresh installed-Wallet Product Session proves the complete Wallet → Finance `/api/sources` path. Native download and store-release claims remain separate from the Web/API release.

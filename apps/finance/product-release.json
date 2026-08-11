@@ -31,7 +31,7 @@
     "storeReleased": false
   },
   "nextCandidate": {
-    "sourceCommit": "4f6546e0823c5063a99c7d84e2ed13ba3c014866",
+    "sourceCommit": "7262eb5c45eb06b44b8713b9160eec66ffcba04c",
     "branch": "codex/integrate-finance-suite",
     "implementedLocal": true,
     "testedLocal": true,
@@ -44,15 +44,15 @@
     "dexPayloadSchema": "ynx-dex-finance-account-v1",
     "quantOwnerContract": "quant-finance-read-v1",
     "quantPayloadSchema": "ynx-quant-finance-account-v1",
-    "quantReadConfiguredPublic": false,
+    "quantReadConfiguredPublic": true,
     "dexReadConfiguredPublic": true,
-    "exchangeReadConfiguredPublic": false,
+    "exchangeReadConfiguredPublic": true,
     "deployedStaging": false,
     "deployedPublic": true,
     "publicRuntimeStillUsesReleaseAbove": false,
-    "deploymentScope": "Web/API and DEX owner-read adapter only; native downloads retain their separately recorded build",
+    "deploymentScope": "Web/API plus Exchange, DEX and Quant owner-read adapters; native downloads retain their separately recorded build",
     "walletAuthorizedSourcesEndToEndTested": false,
-    "publicEvidence": "docs/evidence/finance/dex-read-public-runtime-2026-08-11.json"
+    "publicEvidence": ["docs/evidence/finance/dex-read-public-runtime-2026-08-11.json", "docs/evidence/finance/exchange-quant-owner-reads-public-2026-08-11.json"]
   },
   "signingClass": {
     "android": "android-test-signed-testnet-preview",
@@ -124,7 +124,7 @@
     "endpoint": "/api/sources",
     "envelopeVersion": "finance-source-read-envelope-v1",
     "schema": "release/integration/finance-source-read-envelope.schema.json",
-    "contractStatus": "exchange-dex-and-quant-owner-contracts-accepted-locally; Economics owner pending",
+    "contractStatus": "exchange-dex-and-quant-owner-contracts-accepted-and-publicly-configured; Economics owner pending",
     "ownerContractsAccepted": {
       "exchange": true,
       "dex": true,
@@ -137,9 +137,11 @@
     "mutationCapabilitiesRejected": true,
     "unsafeActionUrlsRejected": true,
     "pendingSourcesAvailable": false,
-    "exchangeConfiguredPublic": false,
-    "exchangeDeployedPublic": false,
-    "sourceCommit": "4f6546e0823c5063a99c7d84e2ed13ba3c014866",
+    "exchangeConfiguredPublic": true,
+    "exchangeDeployedPublic": true,
+    "quantConfiguredPublic": true,
+    "quantOwnerEndpointDeployedPublic": true,
+    "sourceCommit": "7262eb5c45eb06b44b8713b9160eec66ffcba04c",
     "dexConfiguredPublic": true,
     "dexOwnerEndpointDeployedPublic": true,
     "walletAuthorizedSourcesEndToEndTested": false

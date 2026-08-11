@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-08-11T13:17:30Z",
+  "network": "ynx_6423-1",
+  "ownerRuntimeSourceCommit": "ea474e0d46051ced79eb5b64c6a9887e26e77885",
+  "financeRuntimeSourceCommit": "7262eb5c45eb06b44b8713b9160eec66ffcba04c",
+  "exchange": {
+    "url": "https://exchange.ynxweb4.com",
+    "version": "0.1.0-testnet",
+    "binarySha256": "c04b68037044f20ab6212f86eeeea65e42f5840047d252c56b7e4761918ccf8e",
+    "health": "live",
+    "ready": "ready_public_testnet",
+    "ownerContract": "exchange-finance-read-v1",
+    "ownerProbe": {
+      "httpStatus": 200,
+      "authorizedAccount": "ynx100f25pex4saeuaftzgx7s45wjzcyywhyl48mjt",
+      "balances": 2,
+      "orders": 30,
+      "trades": 30,
+      "fees": 30,
+      "positions": 0,
+      "perpetualTrades": 0
+    }
+  },
+  "quant": {
+    "url": "https://quant.ynxweb4.com",
+    "version": "0.2.0-testnet",
+    "binarySha256": "b9423a3149c8b539dae0370c3c28ee068c12992e18ce2bf1688cf725c672058d",
+    "health": "ok",
+    "ready": true,
+    "mode": "simulated_testnet_only",
+    "liveFundsEnabled": false,
+    "ownerContract": "quant-finance-read-v1",
+    "ownerProbes": [
+      {
+        "authorizedAccount": "ynx1460p24qv00hqpw6f0ts6nlastxkcjgmqc48hrk",
+        "mandates": 1,
+        "executions": 1,
+        "paperStates": 1,
+        "tenantStates": 1
+      },
+      {
+        "authorizedAccount": "ynx1psgjezpnwukjeajp4ujwaf64rakay860e77pp0",
+        "mandates": 1,
+        "executions": 1,
+        "paperStates": 1,
+        "tenantStates": 1
+      }
+    ]
+  },
+  "finance": {
+    "url": "https://finance.ynxweb4.com",
+    "release": "ynx-finance-7262eb5c45eb",
+    "buildTime": "2026-08-11T13:16:12.536Z",
+    "binarySha256": "42eebe5f7fb97fc6db2c02a792bcfc51a58d39c1a9369a4510bc122fc9c1b729",
+    "configuredReadSources": ["dex", "exchange", "quant"],
+    "custody": "none",
+    "portfolio": "read-only"
+  },
+  "verification": {
+    "ownerCredential": "separate server-managed HMAC per owner; values not recorded",
+    "canonicalUnprefixedRoute": "/v1/integrations/finance/account",
+    "prefixedSignatureMismatchFixed": true,
+    "historicalQuantTenantIntegrityMigrationTested": true,
+    "historicalStateTamperRejected": true,
+    "goRace": "passed Exchange, Quant, Finance and application servers",
+    "exchangeWeb": "9/9 passed",
+    "quantWeb": "4/4 passed",
+    "quantSDK": "TypeScript 2/2 and Python tests passed",
+    "atomicRollbackBackup": "/var/backups/ynx-financial-owner-reads/20260811T131442Z-ea474e0d4605"
+  },
+  "boundaries": {
+    "walletAuthorizedFinanceSourcesProbe": false,
+    "reason": "Owner endpoints and Finance runtime configuration are proven, but the installed-Wallet Product Session required for a public /api/sources request was not available.",
+    "productionFunds": false,
+    "externalBTCTrading": false,
+    "productionClaim": false
+  }
+}
