@@ -67,7 +67,7 @@ describe("YNX DEX consensus product shell", () => {
       ).toBeInTheDocument(),
     );
   });
-  it("offers a real Wallet authorization handoff while transaction signing remains separately gated", async () => {
+  it("offers YNX Wallet, its official download and MetaMask while native signing remains separately gated", async () => {
     render(<App />);
     fireEvent.click(screen.getByRole("button", { name: "Connect Wallet" }));
     expect(
@@ -78,6 +78,15 @@ describe("YNX DEX consensus product shell", () => {
     ).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Continue in YNX Wallet" }),
+    ).toBeEnabled();
+    expect(
+      screen.getByRole("link", { name: "Download YNX Wallet" }),
+    ).toHaveAttribute(
+      "href",
+      "https://www.ynxweb4.com/downloads/ynx-wallet-1.0.1-testnet-preview-dc31c9a8-test-signed.apk",
+    );
+    expect(
+      screen.getByRole("button", { name: "Connect MetaMask" }),
     ).toBeEnabled();
   });
   it("persists Arabic RTL and dark appearance", async () => {

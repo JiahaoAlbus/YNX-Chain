@@ -37,6 +37,65 @@ export const DEX_WALLET_SCOPES = [
   "dex:positions:read",
   "dex:transaction:request",
 ] as const;
+export const WALLET_INSTALL_URL =
+  "https://www.ynxweb4.com/downloads/ynx-wallet-1.0.1-testnet-preview-dc31c9a8-test-signed.apk";
+export const WALLET_PRODUCT_URL = "https://www.ynxweb4.com/dapp/wallet";
+export const YNX_EVM_CHAIN = Object.freeze({
+  chainId: "0x1917",
+  chainName: "YNX Testnet",
+  nativeCurrency: Object.freeze({
+    name: "YNX Testnet",
+    symbol: "YNXT",
+    decimals: 18,
+  }),
+  rpcUrls: Object.freeze(["https://rpc.ynxweb4.com/"]),
+  blockExplorerUrls: Object.freeze(["https://explorer.ynxweb4.com/"]),
+});
+
+type Eip1193Provider = {
+  request(input: {
+    method: string;
+    params?: readonly unknown[] | Record<string, unknown>;
+  }): Promise<unknown>;
+};
+
+export async function connectMetaMask(
+  provider: Eip1193Provider | undefined = (
+    globalThis as typeof globalThis & { ethereum?: Eip1193Provider }
+  ).ethereum,
+): Promise<string> {
+  if (!provider)
+    throw new Error(
+      "MetaMask was not detected. Download YNX Wallet or install MetaMask, then retry.",
+    );
+  try {
+    await provider.request({
+      method: "wallet_switchEthereumChain",
+      params: [{ chainId: YNX_EVM_CHAIN.chainId }],
+    });
+  } catch (reason) {
+    if ((reason as { code?: number })?.code !== 4902) throw reason;
+    await provider.request({
+      method: "wallet_addEthereumChain",
+      params: [YNX_EVM_CHAIN],
+    });
+    await provider.request({
+      method: "wallet_switchEthereumChain",
+      params: [{ chainId: YNX_EVM_CHAIN.chainId }],
+    });
+  }
+  const chainId = await provider.request({ method: "eth_chainId" });
+  if (chainId !== YNX_EVM_CHAIN.chainId)
+    throw new Error("MetaMask did not switch to YNX Testnet (chain 6423).");
+  const accounts = await provider.request({ method: "eth_requestAccounts" });
+  if (
+    !Array.isArray(accounts) ||
+    typeof accounts[0] !== "string" ||
+    !/^0x[0-9a-fA-F]{40}$/.test(accounts[0])
+  )
+    throw new Error("MetaMask did not return a valid EVM account.");
+  return accounts[0].toLowerCase();
+}
 const PENDING_AUTH = "ynx-dex-wallet-pending-v1",
   PENDING_ACTION = "ynx-dex-action-pending-v1";
 const DB = "ynx-dex-device-v2",

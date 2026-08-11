@@ -16,8 +16,11 @@ import {
   beginDexAction,
   beginWalletAuthorization,
   completeWalletCallback,
+  connectMetaMask,
   consumeDexActionCallback,
   restoreWalletSession,
+  WALLET_INSTALL_URL,
+  WALLET_PRODUCT_URL,
   type DexWalletSession,
 } from "./wallet";
 import type {
@@ -202,7 +205,7 @@ export default function App() {
   );
   const [walletBusy, setWalletBusy] = useState(false);
   const [walletError, setWalletError] = useState("");
-  const [walletInstall, setWalletInstall] = useState(false);
+  const [metamaskAccount, setMetamaskAccount] = useState("");
   const [transactionState, setTransactionState] = useState<{
     busy: boolean;
     error: string;
@@ -298,14 +301,27 @@ export default function App() {
   const connectWallet = async () => {
     setWalletBusy(true);
     setWalletError("");
-    setWalletInstall(false);
     try {
       const { url } = await beginWalletAuthorization();
-      setTimeout(() => setWalletInstall(true), 1600);
       location.href = url;
     } catch (reason) {
       setWalletError(
         reason instanceof Error ? reason.message : "Unable to open YNX Wallet.",
+      );
+    } finally {
+      setWalletBusy(false);
+    }
+  };
+  const connectEvm = async () => {
+    setWalletBusy(true);
+    setWalletError("");
+    try {
+      setMetamaskAccount(await connectMetaMask());
+    } catch (reason) {
+      setWalletError(
+        reason instanceof Error
+          ? reason.message
+          : "Unable to connect MetaMask.",
       );
     } finally {
       setWalletBusy(false);
@@ -584,12 +600,16 @@ export default function App() {
             <h3>
               {walletSession
                 ? "Central Wallet Product Session active"
-                : "Authorize in YNX Wallet"}
+                : metamaskAccount
+                  ? `MetaMask ${short(metamaskAccount)}`
+                  : "Choose a wallet"}
             </h3>
             <p>
               {walletSession
                 ? "The Wallet approval, protected browser device and central Product Session are bound to this DEX identity. Every transaction still requires a separate exact Wallet review."
-                : "YNX Wallet will show the exact DEX identity and permissions before you approve. DEX never receives your recovery key or signing key."}
+                : metamaskAccount
+                  ? "MetaMask is connected for the EVM compatibility surface. Private DEX positions and every chain-native trade still require a proof-bound YNX Wallet session."
+                  : "YNX Wallet will show the exact DEX identity and permissions before you approve. DEX never receives your recovery key or signing key. MetaMask can connect only to the EVM compatibility surface."}
             </p>
             <dl>
               <div>
@@ -624,24 +644,32 @@ export default function App() {
                 {walletError}
               </p>
             )}
-            {!walletSession && (
+            <div className="wallet-options">
               <button
                 className="primary"
                 disabled={walletBusy}
                 onClick={() => void connectWallet()}
               >
-                {walletBusy ? "Preparing protected device…" : t.confirmWallet}
+                {walletBusy
+                  ? "Preparing protected device…"
+                  : walletSession
+                    ? "Reconnect YNX Wallet"
+                    : t.confirmWallet}
               </button>
-            )}
-            {walletInstall && !walletSession && (
-              <p className="review-blocker">
-                Wallet did not open?{" "}
-                <a href="https://ynxweb4.com/ecosystem?product=wallet">
-                  Install YNX Wallet
-                </a>
-                , then return and try again.
-              </p>
-            )}
+              <a className="secondary" href={WALLET_INSTALL_URL}>
+                Download YNX Wallet
+              </a>
+              <button
+                className="secondary"
+                disabled={walletBusy}
+                onClick={() => void connectEvm()}
+              >
+                Connect MetaMask
+              </button>
+            </div>
+            <a className="wallet-product-link" href={WALLET_PRODUCT_URL}>
+              Version, signature and installation details
+            </a>
           </div>
         </Modal>
       )}

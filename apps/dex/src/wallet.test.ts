@@ -6,12 +6,14 @@ import {
   signDexAction,
   walletIdentity,
 } from "@ynx-chain/wallet-auth";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   buildWalletRequest,
+  connectMetaMask,
   consumeDexActionCallback,
   consumeWalletCallback,
   DEX_WALLET_CALLBACK,
+  YNX_EVM_CHAIN,
   walletDeepLink,
   WalletRequestError,
 } from "./wallet";
@@ -47,6 +49,35 @@ class MemoryStorage implements Storage {
 }
 
 describe("canonical Wallet request adapter", () => {
+  it("adds YNX Testnet when needed and returns a validated MetaMask account", async () => {
+    const calls: string[] = [];
+    const account = `0x${"A".repeat(40)}`;
+    const provider = {
+      request: vi.fn(async ({ method }: { method: string }) => {
+        calls.push(method);
+        if (method === "wallet_switchEthereumChain" && calls.length === 1)
+          throw Object.assign(new Error("unknown chain"), { code: 4902 });
+        if (method === "eth_chainId") return YNX_EVM_CHAIN.chainId;
+        if (method === "eth_requestAccounts") return [account];
+        return null;
+      }),
+    };
+    await expect(connectMetaMask(provider)).resolves.toBe(
+      account.toLowerCase(),
+    );
+    expect(calls).toEqual([
+      "wallet_switchEthereumChain",
+      "wallet_addEthereumChain",
+      "wallet_switchEthereumChain",
+      "eth_chainId",
+      "eth_requestAccounts",
+    ]);
+  });
+  it("fails clearly when MetaMask is unavailable", async () => {
+    await expect(connectMetaMask(undefined)).rejects.toThrow(
+      /MetaMask was not detected/,
+    );
+  });
   it("binds the exact reviewed web product, callback, scopes and five-minute expiry", () => {
     const value = build();
     expect(value.chainId).toBe("ynx_6423-1");
