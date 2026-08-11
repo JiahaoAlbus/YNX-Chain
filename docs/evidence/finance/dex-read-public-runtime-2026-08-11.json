@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-08-11T12:54:27Z",
+  "network": "ynx_6423-1",
+  "sourceCommit": "4f6546e0823c5063a99c7d84e2ed13ba3c014866",
+  "dex": {
+    "url": "https://dex.ynxweb4.com",
+    "release": "ynx-dex-4f6546e0823c",
+    "buildTime": "2026-08-11T12:53:21.252Z",
+    "binarySha256": "2fd5e939cb6f94354fa5bceb66c4396ee2f9115be4e74b95a95319a6e0dc6663",
+    "webTreeSha256": "c0cc78d2e81e811ee57c29bffd19c03e9a5cd956d4f7579ca21018d01e5c10b0",
+    "marketSourceConfigured": true,
+    "marketAvailable": true,
+    "executionAvailable": true,
+    "indexedPools": 1,
+    "latestBlockAtProbe": 956758
+  },
+  "finance": {
+    "url": "https://finance.ynxweb4.com",
+    "release": "ynx-finance-4f6546e0823c",
+    "buildTime": "2026-08-11T12:53:46.107Z",
+    "binarySha256": "4d4d2fa95bd98107224490f5f1e5d4f00b9e46cf11e19f38106c6f74034af0ca",
+    "webTreeSha256": "6a6e8223ad2c9926a650675beb3d673046c98044060c22aa68537b9a00eda4c6",
+    "health": "ok",
+    "custody": "none",
+    "portfolio": "read-only"
+  },
+  "ownerReadProbe": {
+    "transport": "primary-node loopback against the deployed DEX process",
+    "httpStatus": 200,
+    "contractVersion": "dex-finance-read-v1",
+    "payloadSchema": "ynx-dex-finance-account-v1",
+    "authorizedAccount": "0x3ae45f0c106390bb4651a92546f65a913cd3545b",
+    "readOnly": true,
+    "positions": 1,
+    "swaps": 0,
+    "liquidityActions": 2,
+    "referencedPools": 1,
+    "credential": "server-managed HMAC; value not recorded",
+    "replayProtection": "passed local negative test",
+    "otherAccountIsolation": "passed local negative test"
+  },
+  "verification": {
+    "goRace": "passed internal/dex internal/finance cmd/ynx-dex-indexerd apps/finance/cmd/server",
+    "financeWeb": "13/13 passed",
+    "financeMobile": "6/6 passed plus TypeScript noEmit",
+    "financeSecuritySmoke": "passed across 146 text files",
+    "linuxBuilds": "passed for DEX and Finance amd64 binaries",
+    "publicVersionBinding": true
+  },
+  "boundaries": {
+    "walletAuthorizedFinanceSourcesProbe": false,
+    "reason": "The deployed owner adapter and exact runtime configuration are proven, but a fresh installed-Wallet Product Session approval was not available for an end-to-end /api/sources probe.",
+    "fiatValueInferred": false,
+    "apyInferred": false,
+    "impermanentLossInferred": false,
+    "productionClaim": false
+  }
+}

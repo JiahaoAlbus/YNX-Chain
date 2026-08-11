@@ -6,7 +6,7 @@
   "version": "1.2.0",
   "branch": "codex/finance-release-evidence",
   "sourceCommit": "307273b93df29bf064cb64324109571c00a63dc2",
-  "generatedAt": "2026-08-03T23:28:38Z",
+  "generatedAt": "2026-08-11T12:54:27Z",
   "implementedLocal": true,
   "testedLocal": true,
   "installedLocal": {
@@ -31,7 +31,7 @@
     "storeReleased": false
   },
   "nextCandidate": {
-    "sourceCommit": "017a3c7583fcf5e1560142f295cc1ca7d7caf07f",
+    "sourceCommit": "4f6546e0823c5063a99c7d84e2ed13ba3c014866",
     "branch": "codex/integrate-finance-suite",
     "implementedLocal": true,
     "testedLocal": true,
@@ -45,11 +45,14 @@
     "quantOwnerContract": "quant-finance-read-v1",
     "quantPayloadSchema": "ynx-quant-finance-account-v1",
     "quantReadConfiguredPublic": false,
-    "dexReadConfiguredPublic": false,
+    "dexReadConfiguredPublic": true,
     "exchangeReadConfiguredPublic": false,
     "deployedStaging": false,
-    "deployedPublic": false,
-    "publicRuntimeStillUsesReleaseAbove": true
+    "deployedPublic": true,
+    "publicRuntimeStillUsesReleaseAbove": false,
+    "deploymentScope": "Web/API and DEX owner-read adapter only; native downloads retain their separately recorded build",
+    "walletAuthorizedSourcesEndToEndTested": false,
+    "publicEvidence": "docs/evidence/finance/dex-read-public-runtime-2026-08-11.json"
   },
   "signingClass": {
     "android": "android-test-signed-testnet-preview",
@@ -136,7 +139,10 @@
     "pendingSourcesAvailable": false,
     "exchangeConfiguredPublic": false,
     "exchangeDeployedPublic": false,
-    "sourceCommit": "017a3c7583fcf5e1560142f295cc1ca7d7caf07f"
+    "sourceCommit": "4f6546e0823c5063a99c7d84e2ed13ba3c014866",
+    "dexConfiguredPublic": true,
+    "dexOwnerEndpointDeployedPublic": true,
+    "walletAuthorizedSourcesEndToEndTested": false
   },
   "publicOwnerProductNavigation": {
     "deployedAt": "2026-08-10T01:29:24Z",

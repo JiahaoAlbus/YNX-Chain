@@ -12,7 +12,7 @@
 
 ## Delivered
 
-The branch contains Android/iOS React Native and Web products, the Go Finance API and a bounded Finance edge Gateway. It covers Wallet entry, real-source YNXT overview/activity, authorized Pay receipts and dispute links, account-bound Exchange balances/trading evidence, categories, private notes, user/approved-AI classification, monthly budgets and progress, recurring reminders, reports, CSV/JSON export, versioned planning import, privacy, account deletion, support, recovery and account audit.
+The branch contains Android/iOS React Native and Web products, the Go Finance API and a bounded Finance edge Gateway. It covers Wallet entry, real-source YNXT overview/activity, authorized Pay receipts and dispute links, account-bound Exchange balances/trading evidence, account-bound DEX LP/swap/liquidity/fee evidence, categories, private notes, user/approved-AI classification, monthly budgets and progress, recurring reminders, reports, CSV/JSON export, versioned planning import, privacy, account deletion, support, recovery and account audit.
 
 AI accepts only explicitly selected owned evidence after privacy permission and per-request consent. Categorization, fee explanation and budget output remain review drafts until Apply; Reject, Cancel and Delete are visible. No provider failure fallback invents advice or money.
 
@@ -29,6 +29,7 @@ Legacy Finance HMAC/local identity sessions were removed. Native and Web code de
 | YNXT balance/activity | real Explorer account endpoint | account match, source/as-of/block/tx; latest 100 indexed records; complete history/opening balance not claimed |
 | Pay receipt | authenticated real `/pay/events` | owned-party filter, event/status/amount/tx/time/dispute; unavailable without key; no placeholders |
 | Exchange account | `exchange-finance-read-v1` owner endpoint | Wallet-account/path/time/nonce-bound HMAC; sanitized persisted balances, spot/perpetual orders and fills, fees, margin, positions, funding and risk status; current public runtime is not configured with the candidate |
+| DEX account | `dex-finance-read-v1` owner endpoint | deployed account/path/time/nonce-bound HMAC; raw indexed LP positions, swaps, liquidity actions, fees and referenced pools only; public owner adapter is configured, while a fresh installed-Wallet `/api/sources` end-to-end probe remains pending |
 | Category/note/budget/reminder | explicit user, import or applied AI draft | `source` plus account-scoped audit; planning only |
 | Statement/monthly review/export | current Explorer/Pay evidence plus planning state | YNXT/Testnet/coverage markers; not a bank, tax or legal statement |
 | Offline view | last accepted encrypted-platform cache | visible saved-at and not-live labeling |
@@ -40,7 +41,7 @@ Remote smoke on 2026-07-18 proved Explorer health and public transaction access,
 - `go test ./internal/finance ./apps/finance/cmd/server` — passed.
 - Shared Wallet package — 21/21 passed.
 - Finance edge Gateway — 2/2 passed, including canonical completion, revoke, tamper and replay.
-- Finance Web/product contract suite — 10/10 passed; smoke and the 143-file security gate passed.
+- Finance Web/product contract suite — 13/13 passed; smoke and the 146-file security gate passed.
 - Native TypeScript — typecheck passed; 6/6 tests passed for workflows, AI approval, exact Wallet delegation, 12 locales, formats and Arabic RTL.
 - Android/iOS Hermes bundle export — passed (current Exchange-evidence native candidate included).
 - Android `assembleRelease` — passed (352 tasks). Final APK size 77,371,822 bytes; SHA-256 `37208e56e96357371b19afc290d82d68adf1f0596213dbcd777341a949915f4e`.
@@ -71,17 +72,17 @@ Remote smoke on 2026-07-18 proved Explorer health and public transaction access,
 
 ## Exact release state
 
-The published 1.2.0 Testnet release remains reachable and its historical evidence remains recorded. The newer Exchange-read candidate at source commit `90df7c7a5212930a9be6889452fe3c99ad6d2f2d` is `implementedLocal=true` and `testedLocal=true`, but `deployedStaging=false` and `deployedPublic=false`. Android remains test-signed; iOS install, production signing and store release are false. See `apps/finance/product-release.json` for the split public-versus-next-candidate state.
+The Web/API and DEX owner-read adapter at source commit `4f6546e0823c5063a99c7d84e2ed13ba3c014866` are publicly deployed on Testnet. Exact `/version` bindings, binary/Web hashes and a server-side account-bound owner probe are recorded in `docs/evidence/finance/dex-read-public-runtime-2026-08-11.json`. This does not prove the installed-Wallet approval → Finance `/api/sources` path, production signing, or a store release. Android remains test-signed; iOS install, production signing and store release are false.
 
 ## Remaining external gates
 
 1. Pass installed Finance → Wallet approval → device proof → introspection → scoped Finance API → revoke on both Android and iOS using devices with strong biometrics.
 2. Provide a secret-managed Finance Pay read key and pass an owned receipt/dispute smoke. Never place the key in the client or repository.
-3. Inject the paired Finance/Exchange owner-read key through shared secret management, deploy both source commit candidates behind TLS, prove the same Wallet account and Exchange source commit on shared Testnet, then run backup/restore evidence.
+3. Configure and deploy the Exchange and Quant owner-read pairs, then prove Exchange/DEX/Quant through one fresh installed-Wallet Product Session and Finance `/api/sources`; retain same-account and exact-source evidence and run backup/restore evidence.
 4. Run the macOS CI Simulator build/install/cold launch, then obtain owner-controlled iOS and Android production signing. No TestFlight, App Store or Play claim until actual console evidence exists.
 5. Resolve or accept with owner sign-off the current moderate Expo tooling advisories, and professionally review legal/privacy translations.
 6. Add Explorer cursor history before changing the latest-100 coverage or claiming complete statements.
 
 ## Acceptance recommendation
 
-Accept the Exchange-read slice as a locally implemented and tested candidate only. Do not describe that slice as publicly deployed until both owner and consumer runtimes expose matching source-commit and account-bound shared-Testnet evidence. The older 1.2.0 public Testnet release and direct test-signed APK remain separate historical facts; neither proves deployment of this candidate.
+Accept the DEX owner-read adapter as publicly deployed and server-side account-bound on Testnet. Keep `integratedCentral=false` until a fresh installed-Wallet Product Session proves the complete Wallet → Finance `/api/sources` path. Exchange and Quant remain locally accepted but publicly unconfigured. Native download and store-release claims remain separate from the Web/API release.

@@ -60,7 +60,9 @@
     "testedLocal": true,
     "financeAccepted": true,
     "configuredStaging": false,
-    "deployedPublic": false,
-    "sharedTestnetEvidence": false
+    "deployedPublic": true,
+    "sharedTestnetEvidence": true,
+    "walletAuthorizedEndToEndEvidence": false,
+    "evidence": "docs/evidence/finance/dex-read-public-runtime-2026-08-11.json"
   }
 }

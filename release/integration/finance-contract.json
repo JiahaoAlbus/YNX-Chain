@@ -217,8 +217,10 @@
         "authentication": "account-bound, timestamped, nonce-single-use HMAC-SHA-256",
         "implementedLocal": true,
         "testedLocal": true,
-        "configuredPublic": false,
-        "deployedPublic": false
+        "configuredPublic": true,
+        "deployedPublic": true,
+        "walletAuthorizedEndToEndEvidence": false,
+        "evidence": "docs/evidence/finance/dex-read-public-runtime-2026-08-11.json"
       },
       "quant": {
         "contract": "release/integration/quant-finance-read-contract.json",
@@ -243,9 +245,9 @@
     {
       "sourceId": "dex",
       "owner": "27-dex",
-      "capability": "owned vault, pool, LP, swap, fees, impermanent loss and redemption evidence",
+      "capability": "owned pool, LP position, swap, raw fee and liquidity-action evidence without inferred impermanent loss",
       "ownerContractAccepted": true,
-      "status": "accepted-local-runtime-unconfigured"
+      "status": "accepted-public-owner-runtime-configured-wallet-session-e2e-pending"
     },
     {
       "sourceId": "quant",
@@ -286,15 +288,18 @@
     "downloadHosted": true,
     "productionSigned": false,
     "storeReleased": false,
-    "publicRuntimeSourceCommit": "307273b93df29bf064cb64324109571c00a63dc2",
+    "publicRuntimeSourceCommit": "4f6546e0823c5063a99c7d84e2ed13ba3c014866",
     "nextCandidate": {
-      "sourceCommit": "017a3c7583fcf5e1560142f295cc1ca7d7caf07f",
+      "sourceCommit": "4f6546e0823c5063a99c7d84e2ed13ba3c014866",
       "implementedLocal": true,
       "testedLocal": true,
       "deployedStaging": false,
-      "deployedPublic": false,
+      "deployedPublic": true,
       "exchangeReadIntegrationConfiguredPublic": false,
-      "quantReadIntegrationConfiguredPublic": false
+      "quantReadIntegrationConfiguredPublic": false,
+      "dexReadIntegrationConfiguredPublic": true,
+      "walletAuthorizedSourcesEndToEndTested": false,
+      "publicEvidence": "docs/evidence/finance/dex-read-public-runtime-2026-08-11.json"
     }
   }
 }
