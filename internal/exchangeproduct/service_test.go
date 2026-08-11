@@ -226,7 +226,7 @@ func TestOrderLifecycleBalanceReservationAndFees(t *testing.T) {
 		t.Fatalf("buy1=%+v err=%v", buy1, err)
 	}
 	sell = s.Book().Asks[0]
-	if sell.Status != "partially_filled" || sell.AmountMicro != 6*AmountScale || sell.FilledMicro != 0 || sell.Account != "" || sell.ReservedMicro != 0 || sell.AuthorizationDigest != "" {
+	if sell.Status != "partially_filled" || sell.AmountMicro != 6*AmountScale || sell.FilledMicro != 0 || sell.Account != "" || sell.ReservedMicro != 0 || sell.AuthorizationDigest != "" || !sell.WalletAuthorized {
 		t.Fatalf("partial sell=%+v", sell)
 	}
 	buy2, err := place(t, s, buyer, "buy", 2*AmountScale, 6*AmountScale, "order-buy-0002")

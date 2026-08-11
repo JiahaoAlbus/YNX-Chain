@@ -2474,7 +2474,6 @@ func publicBookOrder(order Order) Order {
 	order.FilledMicro = 0
 	order.VisibleUntilMicro = 0
 	order.ReservedMicro = 0
-	order.WalletAuthorized = false
 	order.AuthorizationDigest = ""
 	return order
 }
