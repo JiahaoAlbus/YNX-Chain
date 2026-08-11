@@ -3,7 +3,9 @@ import { WalletAuthError } from "./canonical.js";
 const ALPHABET="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
 export function encodeBase64url(bytes){
-  if(!(bytes instanceof Uint8Array))throw new WalletAuthError("INVALID_ENCODING","Base64url input must be bytes");
+  // Byte arrays can legitimately cross browser realms during a Wallet
+  // callback. `instanceof Uint8Array` rejects those byte-identical views.
+  if(!ArrayBuffer.isView(bytes)||bytes.BYTES_PER_ELEMENT!==1)throw new WalletAuthError("INVALID_ENCODING","Base64url input must be bytes");
   let output="";
   for(let index=0;index<bytes.length;index+=3){
     const a=bytes[index]??0,b=bytes[index+1]??0,c=bytes[index+2]??0;

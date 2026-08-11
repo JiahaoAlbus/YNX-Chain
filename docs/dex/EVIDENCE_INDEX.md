@@ -1,0 +1,60 @@
+# YNX DEX evidence index
+
+The final-objective requirement matrix and 2026-07-29 revalidation record are in `FEATURE_COMPLETION_EVIDENCE.md`. The current machine-readable full objective matrix is `.ai-bridge/full-goal-coverage.json`. Both distinguish locally tested components from the incomplete expanded DEX objective.
+
+Packaged contract/SDK source base: `4d9f9c807efb2529836a1324b17c697e91a23421`. Current Indexer/recovery runtime source: `7d61369e02ab4d50a9fc36c927dc487e47ce9814`. Protected evidence checkpoint observed during recovery: `f933440d5cb791044476eb69c58c522d5c91d8a1`.
+
+## Source and tests
+
+- Protocol source revision: `contracts/dex/SOURCE_REV`
+- Engine evaluation: `docs/dex/DEX_ENGINE_EVALUATION.md`
+- Contract integration runner: `scripts/dex/contract-test.mjs`
+- Strategy Vault security boundary and adversarial/property runner: `docs/dex/STRATEGY_VAULT_SECURITY.md`, `scripts/dex/vault-test.mjs`
+- FairFlow contract, lifecycle and economic boundary: `docs/dex/FAIRFLOW_SECURITY.md`, `scripts/dex/fairflow-test.mjs`
+- LP Protection contract and economic boundary: `docs/dex/LP_PROTECTION_SECURITY.md`, `scripts/dex/lp-protection-test.mjs`
+- StableSwap contract and economic boundary: `docs/dex/STABLESWAP_SECURITY.md`, `scripts/dex/stable-test.mjs`
+- SDK deterministic/property tests: `sdk/dex/test/sdk.test.mjs`
+- Direct StableSwap Vault SDK approval/submission/reconciliation tests: `sdk/dex/test/stable-vault.test.mjs`
+- Indexer recovery/security tests, including typed Stable pools, FairFlow and LP Protection persistence/API/migration: `internal/dex/store_test.go`
+- Immutable authenticated state/cursor backup, verification, isolated restore and local recovery drill: `internal/dex/recovery.go`, `internal/dex/recovery_test.go`, `cmd/ynx-dex-recovery/main.go`
+- Confirmed EVM polling/reorg, typed Stable discovery/fee attribution, direct StableSwap Vault selectors, all-stage FairFlow ABI and all-shape LP Protection tests: `internal/dex/evm_ingester_test.go`, `internal/dex/stable_vault_methods_test.go`
+- State/cursor migration and old-client boundary: `MIGRATION_COMPATIBILITY.md`
+- Web/Wallet/RTL tests: `apps/dex/src/*.test.ts*`
+- Desktop/mobile/offline E2E: `apps/dex/e2e/dex.spec.ts`
+- Deployment guard: `scripts/dex/deploy-testnet.mjs`
+- Release/registry validation: `scripts/dex/check-manifests.mjs`
+- Deterministic PWA/SDK/contract-evidence packaging: `scripts/dex/package-web.mjs`, `scripts/dex/package-all.mjs`
+- Artifact integrity verifier: `scripts/dex/verify-artifacts.mjs`
+- Release source-binding guard and regression test: `scripts/dex/source-base.mjs`, `scripts/dex/source-base.test.mjs`
+
+## Visual evidence
+
+- `docs/evidence/dex/ui/desktop-light-1440x900.png`
+- `docs/evidence/dex/ui/desktop-dark-1440x900.png`
+- `docs/evidence/dex/ui/mobile-light-390x844.png`
+- `docs/evidence/dex/ui/mobile-arabic-dark-390x844.png`
+- `docs/evidence/dex/ui/wallet-central-unavailable-1440x900.png`
+- `docs/evidence/dex/ui/tablet-live-fixture-1024x768.png`
+- `docs/evidence/dex/ui/large-text-fixture-1440x900.png`
+- `docs/evidence/dex/ui/loading-1440x900.png`
+- `docs/evidence/dex/ui/api-failure-1440x900.png`
+- `docs/evidence/dex/ui/success-indexed-fixture-1440x900.png`
+
+The first five images are local real-runtime captures against an empty persistent Testnet index. Files containing `fixture` use explicitly mocked, schema-valid indexed data; they prove layout, quote/review rendering and responsive behavior only. No screenshot proves deployed availability, real liquidity or successful Wallet execution.
+
+## Network and artifacts
+
+- Timestamped public RPC identity/block observation: `docs/evidence/dex/testnet/rpc-probe.json`
+- Upload-ready PWA bundle: `release/dex/ynx-dex-web-pwa-0.1.0-testnet-preview.1.tar.gz`
+- Bundle and per-file SHA-256 manifest: `release/dex/web-pwa-artifact.json`
+- SDK and contract-source/build aggregate manifest: `release/dex/artifact-manifest.json`, SHA-256 `80beb665aca3f49c55951e96acf63d2e1f1b10308e0c93f4208ae4f1c1934b5e`, 6162 bytes
+- PWA upload bundle: SHA-256 `dba64322521d52faa0ef5e66e297a7911bc1204dd2c7f1a75d986527bd57c669`, 331755 bytes
+- JavaScript SDK package: SHA-256 `fae8db1d106e7c82ddad2c030c207551155fe3075b4ccedabead23efd17603a5`, 21765 bytes
+- Integration freeze contract and vectors: `release/integration/ynx-dex-contract.json`, `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json`
+- Website/SEO handoff: `public-product-metadata.json`
+
+The RPC observation explicitly records `dexDeploymentObserved=false`. The artifact manifest explicitly records unsigned, unhosted and undeployed status. The packaged artifacts bind to source commit `4d9f9c807efb2529836a1324b17c697e91a23421`; the later recovery runtime is not represented as a hosted artifact.
+
+## Missing evidence
+
+Testnet contract/bytecode verification, populated owner-reviewed token list, pool/liquidity creation, Wallet swap, Wallet add/remove LP, Quant template receipts, profit/loss and fee attribution, Explorer/Finance/Monitor/Trust proofs, real-node Indexer/frontend consistency, down-schema rollback, provisioned-Testnet operational RPO, concentrated liquidity, weighted pool, liquidity bootstrapping, complete 12-language/a11y evidence, measured capacity/unit economics, staging/public URL, remote smoke, immutable hosted artifact, production signature and independent audit are absent.

@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "productId": "ynx-dex",
+  "observedAt": "2026-07-18T13:30:33.656Z",
+  "endpoint": "https://evm.ynxweb4.com",
+  "network": "YNX Testnet",
+  "chainIdHex": "0x1917",
+  "chainIdDecimal": 6423,
+  "latestBlockHex": "0x4a9a2",
+  "latestBlockDecimal": 305570,
+  "rpcReachable": true,
+  "dexDeploymentObserved": false,
+  "deploymentManifest": "dex/ynx-testnet.integration.json",
+  "reason": "Factory, router, wrapped YNXT, reviewed test tokens, deployer authority, governance owner, and verifier evidence are not configured. RPC reachability is not deployment evidence.",
+  "claims": {
+    "implementedLocal": false,
+    "testedLocal": false,
+    "installedLocal": false,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false,
+    "mainnet": false,
+    "audited": false,
+    "productionLiquidity": false
+  }
+}

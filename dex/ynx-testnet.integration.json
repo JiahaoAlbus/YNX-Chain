@@ -1,4 +1,10 @@
 {
+  "schemaVersion": 2,
+  "productId": "ynx-dex",
+  "mainnet": false,
+  "audited": false,
+  "productionLiquidity": false,
+  "deploymentStatus": "not-deployed",
   "network": {
     "name": "YNX Testnet",
     "chainId": 6423,
@@ -15,25 +21,81 @@
   "deployments": {
     "wrappedYNXT": {
       "addressEnv": "WRAPPED_YNXT_ADDRESS",
+      "address": null,
       "status": "required before liquidity pool launch"
     },
     "factory": {
       "addressEnv": "DEX_FACTORY_ADDRESS",
+      "address": null,
       "status": "required before DEX indexing"
     },
     "router": {
       "addressEnv": "DEX_ROUTER_ADDRESS",
+      "address": null,
       "status": "required before swap UI integration"
+    },
+    "quoter": {
+      "addressEnv": "DEX_QUOTER_ADDRESS",
+      "address": null,
+      "status": "required before independent quote verification"
+    },
+    "stableFactory": {
+      "addressEnv": "DEX_STABLE_FACTORY_ADDRESS",
+      "address": null,
+      "status": "required before typed StableSwap indexing; source and immutable pool parameters must be verified"
+    },
+    "stableRouter": {
+      "addressEnv": "DEX_STABLE_ROUTER_ADDRESS",
+      "address": null,
+      "status": "required before StableSwap transaction review"
+    },
+    "stableQuoter": {
+      "addressEnv": "DEX_STABLE_QUOTER_ADDRESS",
+      "address": null,
+      "status": "required before independent StableSwap quote verification"
+    },
+    "strategyVault": {
+      "addressEnv": "DEX_STRATEGY_VAULT_ADDRESS",
+      "address": null,
+      "status": "required before Quant execution; owner must configure mandate on-chain after deployment"
+    },
+    "fairFlow": {
+      "addressEnv": "DEX_FAIRFLOW_ADDRESS",
+      "address": null,
+      "status": "required before Intent or Solver activation; treasury and minimum native bond must match the verified deployment manifest"
+    },
+    "lpProtection": {
+      "addressEnv": "DEX_LP_PROTECTION_ADDRESS",
+      "address": null,
+      "status": "required protected-factory child contract; must match factory.lpProtection() and verified source"
+    },
+    "lpProtectionOracle": {
+      "addressEnv": "DEX_LP_PROTECTION_ORACLE_ADDRESS",
+      "address": null,
+      "status": "owner-reviewed on-chain adapter required; upstream source, heartbeat and depeg semantics must be published"
     },
     "multicall": {
       "addressEnv": "MULTICALL_ADDRESS",
+      "address": null,
       "status": "required before portfolio and analytics indexing"
     }
   },
   "indexing": {
-    "eventCoverage": ["Transfer", "Approval", "PairCreated", "Swap", "Mint", "Burn", "Sync"],
+    "eventCoverage": ["PoolCreated", "Swap", "Mint", "Burn", "Sync", "ProtocolFeesClaimed", "LP Transfer correlation", "Strategy Vault ActionExecuted", "FairFlow Intent/Commit/Reveal/Winner/Settlement/Slash", "LP Protection PoolRegistered/Config/ProtectionAssessed"],
     "logSource": "YNX Testnet EVM JSON-RPC",
-    "startBlockEnv": "DEX_INDEXER_START_BLOCK"
+    "startBlockEnv": "DEX_INDEXER_START_BLOCK",
+    "confirmationsEnv": "DEX_INDEXER_CONFIRMATIONS",
+    "cursorIntegrity": "HMAC-SHA-256",
+    "reorgRecovery": "rewind confirmed CPMM/StableSwap pool, Vault, FairFlow and LP Protection events plus typed pool discovery, then rescan",
+    "stateSchemaVersion": 5,
+    "cursorSchemaVersion": 6,
+    "vaultAddressEnv": "DEX_STRATEGY_VAULT_ADDRESS",
+    "fairFlowAddressEnv": "DEX_FAIRFLOW_ADDRESS",
+    "fairFlowIndexerStatus": "implemented and tested locally; requires a verified deployed address before live ingestion",
+    "lpProtectionAddressEnv": "DEX_LP_PROTECTION_ADDRESS",
+    "lpProtectionIndexerStatus": "implemented and tested locally; address must equal factory.lpProtection() in the verified deployment before live ingestion",
+    "stableFactoryAddressEnv": "DEX_STABLE_FACTORY_ADDRESS",
+    "stableIndexerStatus": "implemented and tested locally; reads immutable per-pool fee at the creation block and labels events ynx-stableswap-v1"
   },
   "verification": {
     "contractVerifierUrlEnv": "YNX_CONTRACT_VERIFIER_URL",

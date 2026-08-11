@@ -10,6 +10,19 @@ const CREATE_FIELDS=["method","path","bodyDigest","nonce","issuedAt","expiresAt"
 const EXPECTED_FIELDS=["method","path","bodyDigest"];
 const DOMAIN="YNX_PRODUCT_SESSION_HTTP_PROOF_V1";
 
+export function createProductDeviceIdentity(secretInput){
+  let secret;
+  if(secretInput===undefined){
+    do{secret=globalThis.crypto.getRandomValues(new Uint8Array(32))}while(!p256.utils.isValidSecretKey(secret));
+  }else secret=decodeBase64url(secretInput,"product device secret");
+  if(secret.length!==32||!p256.utils.isValidSecretKey(secret))fail("INVALID_SECRET","Product device secret is invalid");
+  return Object.freeze({productDeviceSecret:encodeBase64url(secret),productDeviceKey:encodeBase64url(p256.getPublicKey(secret,true))});
+}
+
+export function encodeProductSessionProofHeader(proofInput){
+  return encodeBase64url(new TextEncoder().encode(canonicalJSON(parseProductSessionProof(proofInput))));
+}
+
 export function createProductSessionProof(sessionInput,input,productDeviceSecret){
   const session=parseCentralWalletSession(sessionInput);exactFields(input,CREATE_FIELDS,"Product Session proof input");
   const secret=decodeBase64url(productDeviceSecret,"product device secret");

@@ -1,0 +1,42 @@
+# YNX DEX feature completion evidence
+
+Updated 2026-07-29 for `codex/final-dex`. A checked local subset is not evidence that the final DEX objective is complete.
+
+## Current release truth
+
+| Scope | Status | Direct evidence | Missing final evidence |
+| --- | --- | --- | --- |
+| Recovery | complete | Original source branch remains recoverable at `1614ffb7fa4983a182405fe3fa118fa448f87b4b`; the final worktree and `origin/codex/final-dex` matched at protected checkpoint `f933440d5cb791044476eb69c58c522d5c91d8a1` with ahead/behind `0/0`, a clean worktree and no stash. | Preserve this invariant after every slice. |
+| Constant-product contracts/router/quoter | recovered, extended and locally tested | Legacy immutable CPMM regression: `npm run dex:contracts:test`. Separate protected CPMM integration: `npm run dex:lp-protection:test`. | Independent audit, verified Testnet bytecode, real-node chaos and public transactions. |
+| Indexer and recovery | recovered, extended and locally tested | Runtime source `7d61369e02ab4d50a9fc36c927dc487e47ce9814`; `go test -race ./internal/dex ./cmd/ynx-dex-indexerd ./cmd/ynx-dex-recovery` passes confirmed typed CPMM/Stable/Vault/FairFlow/LP Protection polling, cursor v6 source binding, schema migration, restart/reorg, immutable HMAC-authenticated state/cursor bundles, isolated restore and tamper/wrong-binding rejection. | Real deployed factories/Vault/FairFlow/LP Protection scan, remote restart/reorg drill, down-schema rollback and provisioned-Testnet operational RPO/SLO evidence. |
+| JavaScript SDK | recovered, extended and locally tested | `npm test --prefix sdk/dex` passes 21 deterministic, property, Stable route/state, Vault/FairFlow approval, LP Protection quote/reconciliation, preflight risk, fee-semantics and receipt/event-reconciliation tests. | Concentrated/weighted surface, live central integration and compatibility evidence. |
+| Web/PWA | recovered and locally tested | Build and 17 Vitest tests pass; Playwright reports 10 passed and 2 project-inapplicable skipped; offline cold reload passes. | Final feature UI, central Wallet acceptance, installed/public evidence. |
+| Release integrity | recovered and repaired | `npm run dex:release:test`, manifest check and artifact verification pass. Source binding rejects committed or uncommitted drift after the declared release source SHA. | Hosted immutable artifact, signing, remote install/cold-start evidence. |
+| StableSwap | local contract, Indexer, SDK and direct Strategy Vault candidate implemented and tested; not integrated, deployed or audited | Packaged source base `4d9f9c807efb2529836a1324b17c697e91a23421`; `YNXStableFactory` creates immutable reviewed two-asset pools with decimal normalization, A/fee bounds and proportional LP shares. `npm run dex:stable:test` passes 64 differential and 32 stateful invariant vectors plus multi-hop, exact-output, reentrancy, taxed-token, negative-rebase, overflow and delayed-governance cases. The Strategy Vault and `@ynx-chain/dex-sdk/stable-vault` add exact-input, exact-output, add and remove actions under exact pool-kind and approval bounds. | Dedicated PWA Stable transaction submission, reviewed stable assets/rate providers, accepted external depeg Oracle/pause, independent audit, verified Testnet bytecode, labelled pools/liquidity and public receipts. |
+| Concentrated liquidity / weighted candidate | not implemented | No authoritative source or tests found. | Contracts, SDK/indexer/UI integration, invariant/fuzz/differential/chaos evidence. |
+| FairFlow / solver competition / batch auction | local contract, Indexer and SDK candidate implemented and tested; not integrated, deployed or audited | `YNXFairFlow.sol` contract source remains bound in `contracts/dex/SOURCE_REV`; release source commit `6acd42669c8982625a706bfd3bd6b5b7ea991dda` adds ten-stage confirmed indexing plus fresh-state, nonce-domain and exact canonical Wallet-approved submit/cancel SDK requests. `npm run dex:fairflow:test` passes 32 score differential vectors plus uniform-price settlement, verified surplus competition, CoW netting, exact external inventory, atomic rollback, cancellation, bond/reputation and objective slashing cases. Local observed deployment gas is 3825894 and two-Intent settlement gas is 252191. | UI, Sybil/collusion controls, partial fills, attributable MEV evidence, external-route proof, cross-chain settlement, independent Solver, audit, verified Testnet bytecode and public batch receipts. |
+| Strategy Vault | implemented and locally tested; not deployed or audited | `YNXStrategyVault.sol` at source commit `8a793b4562790834a67c3e4ee491ce089341d549`; `npm run dex:vault:test` passes integration/adversarial/property coverage with 32 stateful vectors and a local maximum observed swap gas of 265341. | Independent audit, formal invariant campaign, verified Testnet bytecode, Wallet-reviewed mandate, real Quant session and Explorer/indexer reconciliation. |
+| Quant execution adapter | partially implemented and locally tested | `sdk/dex` parses authoritative Vault state; builds typed CPMM and direct StableSwap swap/add/remove/pause/emergency requests; requires an exact canonical Wallet approval digest before invoking an injected limited-engine transport; reconciles confirmed actions; validates source-labelled gas/fee/oracle/risk snapshots; and refuses fabricated collect behavior. Indexer state v5/cursor v6 binds all current sources. SDK tests pass 21 cases; Go Race tests pass. | Concentrated/weighted execution, live canonical Wallet introspection and end-to-end DCA/TWAP/LP receipts remain absent; multi-hop Vault execution remains intentionally split into separately approved direct actions. |
+| LP protection | local protected-CPMM contract, Indexer and SDK candidate implemented and tested; not integrated, deployed or audited | Integrated source commit `575e7406885dc662d6b4aa3004fd172738bd5ba1`; `YNXProtectedDexFactory` creates pools with immutable `YNXLPProtection`. `npm run dex:lp-protection:test` passes 32 fee differential/property vectors, 16 stateful invariant vectors and chaos cases. Indexer state schema v5/cursor schema v6 persists all four event shapes and now requires exact assessment-to-swap fee binding; the SDK binds fresh authoritative component quotes and separates realized fee from incentive. | UI, reviewed live Oracle adapter, LVR-aware auction, inventory/range guidance, independent audit, verified Testnet bytecode and public receipts. |
+| Launch auction / protocol-owned liquidity | not implemented | No authoritative source or tests found. | Uniform allocation/anti-sniping/anti-Sybil contracts, public treasury accounting, migration, risk and adversarial evidence. |
+| Real YNX Testnet | not deployed | The retained RPC probe proves chain identity only and records `dexDeploymentObserved=false`. | Deploy/verify, reviewed tokens, pools, liquidity, swaps/LP/Vault receipts, Explorer/indexer/UI consistency, public micro-site. |
+
+## Boolean status
+
+The authoritative machine-readable status is `product-release.json`. The final objective currently has `implementedLocal=false`, `testedLocal=false`, and every integration/deployment/distribution boolean false. The recovered 0.1 constant-product candidate is recorded separately under `recoveredCandidate` so its passing tests cannot be mistaken for completion of the expanded final objective.
+
+## Revalidation performed
+
+- Solidity 0.8.24 compilation: pass.
+- Contract integration and arithmetic differential vectors: pass.
+- FairFlow uniform-batch integration/adversarial test and 32 score differential vectors: pass.
+- LP Protection integration, 32 fee differential vectors and 16 stateful invariant vectors: pass.
+- StableSwap integration, 64 differential vectors and 32 stateful invariant vectors: pass.
+- SDK deterministic/property/security tests: 21 pass.
+- Indexer race/restart/tamper/reorg and authenticated recovery tests: pass.
+- Web build and component/integration tests: 17 pass.
+- Chromium desktop/mobile E2E: 10 pass, 2 skipped because the cases are project-inapplicable.
+- Production dependency audit: zero vulnerabilities at the configured threshold.
+- Release source-binding regression, manifest validation and artifact digest validation: pass.
+
+No item above proves deployment, public availability, production signing, audit completion, real liquidity, TVL, APY, volume or revenue.

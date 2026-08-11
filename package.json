@@ -9,7 +9,20 @@
     "hardhat:build": "hardhat build",
     "hardhat:test:wallet": "hardhat run ./scripts/contracts/test-smart-account-hardhat.js",
     "hardhat:deploy:wallet-smart-account": "hardhat run ./scripts/contracts/deploy-wallet-smart-account.js --network ynxTestnet",
-    "hardhat:deploy:ynx-testnet": "hardhat run ./scripts/contracts/deploy-samples-hardhat.js --network ynxTestnet"
+    "hardhat:deploy:ynx-testnet": "hardhat run ./scripts/contracts/deploy-samples-hardhat.js --network ynxTestnet",
+    "dex:contracts:test": "hardhat run ./scripts/dex/contract-test.mjs --network dexTest",
+    "dex:vault:test": "hardhat run ./scripts/dex/vault-test.mjs --network dexTest",
+    "dex:fairflow:test": "hardhat run ./scripts/dex/fairflow-test.mjs --network dexTest",
+    "dex:lp-protection:test": "hardhat run ./scripts/dex/lp-protection-test.mjs --network dexTest",
+    "dex:stable:test": "hardhat run ./scripts/dex/stable-test.mjs --network dexTest",
+    "dex:concentrated:test": "hardhat run ./scripts/dex/concentrated-test.mjs --network dexTest",
+    "dex:release:test": "node --test ./scripts/dex/source-base.test.mjs",
+    "dex:deploy:testnet": "hardhat run ./scripts/dex/deploy-testnet.mjs --network ynxTestnet",
+    "dex:deploy:public-testnet": "hardhat run ./scripts/dex/deploy-public-testnet.mjs --network ynxTestnet",
+    "dex:manifests:check": "node ./scripts/dex/check-manifests.mjs",
+    "dex:testnet:probe": "node ./scripts/dex/probe-testnet.mjs",
+    "dex:package:all": "npm run hardhat:build && npm run package:pwa --prefix apps/dex && node ./scripts/dex/package-all.mjs",
+    "dex:artifacts:verify": "node ./scripts/dex/verify-artifacts.mjs"
   },
   "devDependencies": {
     "@account-abstraction/contracts": "0.8.0",

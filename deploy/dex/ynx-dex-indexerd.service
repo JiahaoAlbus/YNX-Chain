@@ -1,0 +1,25 @@
+[Unit]
+Description=YNX DEX public Testnet preview and indexer API
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ynx
+Group=ynx
+EnvironmentFile=/etc/ynx/dex.env
+WorkingDirectory=/opt/ynx/dex-current
+ExecStart=/opt/ynx/dex-current/ynx-dex-indexerd
+Restart=on-failure
+RestartSec=2
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/ynx/dex
+MemoryMax=512M
+TasksMax=256
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

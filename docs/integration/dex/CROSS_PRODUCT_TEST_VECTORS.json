@@ -1,0 +1,147 @@
+{
+  "schemaVersion": 1,
+  "productId": "ynx-dex",
+  "sourceCommit": "4d9f9c807efb2529836a1324b17c697e91a23421",
+  "network": { "chainId": 6423, "name": "YNX Testnet" },
+  "status": "candidate-not-executed-against-central-owners",
+  "vectors": [
+    {
+      "id": "wallet.valid-vault-approval",
+      "owners": ["YNX 02", "YNX 27"],
+      "preconditions": ["registered product client", "active product session", "reviewed request digest", "exact dex:vault:execute scope"],
+      "input": { "productClientId": "ynx-dex-web-v1", "bundleId": "com.ynxweb4.dex.web", "scope": ["dex:vault:execute"], "chainId": 6423 },
+      "expected": ["approval=true", "vault/engine/nonceDomain/actionNonce/requestDigest match", "expiry is future", "submission remains submitted-unconfirmed until indexed"],
+      "negative": ["additional scope", "wrong bundle", "wrong product", "wrong device", "wrong chain", "wrong vault", "wrong nonce", "wrong digest", "expired", "revoked"],
+      "localEvidence": ["sdk/dex/test/sdk.test.mjs", "sdk/dex/test/stable-vault.test.mjs"],
+      "centralStatus": "pending"
+    },
+    {
+      "id": "wallet.scope-widening-rejected",
+      "owners": ["YNX 02", "YNX 27"],
+      "preconditions": ["otherwise valid Vault request"],
+      "input": { "scopes": ["dex:vault:execute", "dex:transaction:request"] },
+      "expected": ["APPROVAL_SCOPE", "no transport call", "no nonce consumption"],
+      "localEvidence": ["sdk/dex/test/sdk.test.mjs", "sdk/dex/test/stable-vault.test.mjs"],
+      "centralStatus": "pending"
+    },
+    {
+      "id": "vault.stable-exact-input",
+      "owners": ["YNX 08", "YNX 19", "YNX 27"],
+      "preconditions": ["owner-approved ynx-stableswap-v1 pool", "fresh Oracle", "active mandate", "exact action nonce", "bounded deadline"],
+      "input": { "method": "stableSwapExactInput", "routeShape": "single-direct-pool", "standingApproval": false },
+      "expected": ["quoted minimum respected", "token input transferred exactly", "output remains in Vault", "ActionExecuted emitted", "nonce increments once"],
+      "negative": ["wrong poolKind", "unapproved pool", "wrong token", "stale Oracle", "depeg", "slippage widening", "impact breach", "capital breach", "paused", "revoked", "killed"],
+      "localEvidence": ["scripts/dex/vault-test.mjs", "sdk/dex/test/stable-vault.test.mjs"],
+      "centralStatus": "pending"
+    },
+    {
+      "id": "vault.stable-exact-output",
+      "owners": ["YNX 08", "YNX 19", "YNX 27"],
+      "preconditions": ["same as stable exact input"],
+      "input": { "method": "stableSwapExactOutput", "routeShape": "single-direct-pool" },
+      "expected": ["required input is quoted before transfer", "amountIn does not exceed approved maximum", "minimum output delivered", "ActionExecuted reconciles"],
+      "negative": ["input maximum widened beyond mandate tolerance", "quote inverse failure", "receipt mismatch"],
+      "localEvidence": ["scripts/dex/vault-test.mjs", "sdk/dex/test/stable-vault.test.mjs"],
+      "centralStatus": "pending"
+    },
+    {
+      "id": "vault.stable-liquidity-lifecycle",
+      "owners": ["YNX 08", "YNX 27", "YNX 24"],
+      "preconditions": ["approved Stable pool and LP asset", "fresh pool LP value"],
+      "input": { "methods": ["stableAddLiquidity", "stableRemoveLiquidity"] },
+      "expected": ["LP minted to user Vault", "LP tracked in portfolio value", "remove burns only Vault LP", "withdrawal remains owner-only", "Finance attribution separates principal and realized fee"],
+      "negative": ["minimum LP not met", "minimum assets not met", "LP value stale", "engine tries arbitrary recipient"],
+      "localEvidence": ["scripts/dex/vault-test.mjs"],
+      "centralStatus": "pending"
+    },
+    {
+      "id": "vault.taxed-token-ingress",
+      "owners": ["YNX 27", "YNX 15"],
+      "preconditions": ["fee-on-transfer token allowed only for adversarial test"],
+      "input": { "operation": "deposit", "amount": "positive" },
+      "expected": ["TransferFailed", "Vault balance remains zero", "owner balance restored", "nonce unchanged"],
+      "localEvidence": ["scripts/dex/vault-test.mjs"],
+      "centralStatus": "local-pass"
+    },
+    {
+      "id": "oracle.stale-depeg-fail-closed",
+      "owners": ["YNX 19", "YNX 27"],
+      "preconditions": ["Vault or LP protection action"],
+      "input": { "source": "canonical Oracle", "asOf": "older-than-policy-or-depeg" },
+      "expected": ["ORACLE_STALE or DEPEG_DETECTED", "no swap/liquidity state change", "no action nonce consumption", "source metadata preserved"],
+      "localEvidence": ["scripts/dex/vault-test.mjs", "scripts/dex/lp-protection-test.mjs"],
+      "centralStatus": "pending"
+    },
+    {
+      "id": "data-fabric.action-event",
+      "owners": ["YNX 26", "YNX 27"],
+      "preconditions": ["confirmed ActionExecuted log"],
+      "input": { "eventVersion": "ynx-vault-action-v1", "methods": ["stableSwapExactInput", "stableSwapExactOutput", "stableAddLiquidity", "stableRemoveLiquidity"] },
+      "expected": ["canonical event id is chain/blockHash/txHash/logIndex", "idempotent replay", "source/asOf/version/confidence/coverage present", "fee attribution does not invent revenue"],
+      "negative": ["unknown selector", "wrong nonce domain", "removed reorg log", "duplicate billing record"],
+      "localEvidence": ["internal/dex/evm_ingester_test.go", "internal/dex/stable_vault_methods_test.go"],
+      "centralStatus": "pending"
+    },
+    {
+      "id": "explorer.receipt-reconciliation",
+      "owners": ["YNX 12", "YNX 27"],
+      "preconditions": ["confirmed Testnet transaction and indexed event"],
+      "input": { "identity": ["transactionHash", "blockHash", "blockNumber", "logIndex", "methodSelector", "actionNonce", "nonceDomain"] },
+      "expected": ["Explorer proof and Indexer projection match exactly", "removed/reorged proof is not shown as final", "source commit and deployed bytecode are linked"],
+      "negative": ["wrong method selector", "wrong Vault", "wrong block hash", "unconfirmed transaction"],
+      "localEvidence": ["sdk/dex/src/stable-vault.js", "internal/dex/evm_ingester.go"],
+      "centralStatus": "blocked-by-testnet-deployment"
+    },
+    {
+      "id": "monitor.health-version-alert",
+      "owners": ["YNX 13", "YNX 27", "YNX 30"],
+      "preconditions": ["deployed Indexer API"],
+      "input": { "endpoints": ["health", "ready", "version"], "failureModes": ["RPC unavailable", "cursor stalled", "reorg recovery", "schema mismatch"] },
+      "expected": ["health is not static green", "ready=false when dependencies fail", "version returns source/build/schema", "alert contains request/error/audit identifiers"],
+      "negative": ["secret or stack exposure", "stale green status", "missing source timestamp"],
+      "localEvidence": ["internal/dex", "docs/dex/OPERATIONS.md"],
+      "centralStatus": "pending"
+    },
+    {
+      "id": "trust.risk-proof",
+      "owners": ["YNX 15", "YNX 27", "YNX 30"],
+      "preconditions": ["reviewed release candidate"],
+      "input": { "proofs": ["source commit", "artifact hash", "test gates", "audit status", "deployment status", "known limitations"] },
+      "expected": ["unaudited and undeployed remain explicit", "local tests are not public proof", "no fabricated APY/TVL/volume", "Critical/High findings block release"],
+      "negative": ["candidate described as production", "unsigned artifact described as signed", "website page described as runtime deployment"],
+      "localEvidence": ["product-release.json", "public-product-metadata.json", "release/dex/artifact-manifest.json"],
+      "centralStatus": "pending"
+    },
+    {
+      "id": "finance.fee-attribution",
+      "owners": ["YNX 24", "YNX 26", "YNX 27"],
+      "preconditions": ["confirmed swap/liquidity/Vault events"],
+      "input": { "feeClasses": ["gas", "venue fee", "protocol fee", "provider cost", "management fee", "performance fee"] },
+      "expected": ["principal is not revenue", "unrealized profit is not charged", "performance fee is zero in current Vault candidate", "realized pool fee is separated from incentives", "all amounts bind transaction/event identity"],
+      "negative": ["hidden spread", "duplicate billing", "fee without prior user approval", "fabricated revenue"],
+      "localEvidence": ["scripts/dex/vault-test.mjs", "scripts/dex/lp-protection-test.mjs"],
+      "centralStatus": "pending"
+    },
+    {
+      "id": "quant.limited-session",
+      "owners": ["YNX 08", "YNX 27"],
+      "preconditions": ["active Wallet-approved limited engine session"],
+      "input": { "allowedActions": ["quote", "swap", "add/remove liquidity", "collect", "rebalance", "compound", "pause Vault", "emergency exit"], "forbiddenActions": ["arbitrary transfer", "owner change", "unlimited approval", "withdraw to engine", "backtest or capital allocation inside DEX"] },
+      "expected": ["DEX adapter accepts only typed bounded actions", "every on-chain action needs exact approval and Vault mandate", "user can revoke immediately"],
+      "negative": ["method widening", "recipient widening", "nonce replay", "action after expiry/revoke"],
+      "localEvidence": ["sdk/dex/test/sdk.test.mjs", "sdk/dex/test/stable-vault.test.mjs", "scripts/dex/vault-test.mjs"],
+      "centralStatus": "pending"
+    },
+    {
+      "id": "website.truthful-status",
+      "owners": ["YNX 28", "YNX 27", "YNX 30"],
+      "preconditions": ["Website consumes public-product-metadata.json"],
+      "input": { "canonicalRoute": "/dex", "websitePublished": false, "deployedPublic": false },
+      "expected": ["website and runtime flags remain independent", "no download link before immutable hosting", "no public URL without probe", "FAQ and risk disclosures render", "structured data says Testnet preview candidate"],
+      "negative": ["internal path or branch exposed", "local screenshot treated as public runtime proof", "candidate called audited or Mainnet"],
+      "localEvidence": ["public-product-metadata.json", "product-release.json"],
+      "centralStatus": "pending"
+    }
+  ],
+  "generatedAt": "2026-07-27T14:58:32.000Z"
+}
