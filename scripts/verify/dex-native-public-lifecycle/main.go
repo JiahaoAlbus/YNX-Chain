@@ -29,7 +29,7 @@ type actionEvidence struct {
 	Action          string `json:"action"`
 	Route           string `json:"route"`
 	TransactionHash string `json:"transactionHash"`
-	HTTPStatus      int    `json:"httpStatus"`
+	HTTPStatus      int    `json:"httpStatus,omitempty"`
 }
 
 type nodeEvidence struct {
@@ -51,30 +51,38 @@ type indexerEvidence struct {
 }
 
 type evidence struct {
-	SchemaVersion int                 `json:"schemaVersion"`
-	ProductID     string              `json:"productId"`
-	Network       string              `json:"network"`
-	ChainID       uint64              `json:"chainId"`
-	Mainnet       bool                `json:"mainnet"`
-	RecordedAt    time.Time           `json:"recordedAt"`
-	Issuer        string              `json:"issuer"`
-	Trader        string              `json:"trader"`
-	AssetID       string              `json:"assetId"`
-	PoolID        string              `json:"poolId"`
-	Actions       []actionEvidence    `json:"actions"`
-	Pool          chain.NativeDexPool `json:"pool"`
-	EventCount    int                 `json:"eventCount"`
-	Node          nodeEvidence        `json:"node"`
-	Indexer       indexerEvidence     `json:"indexer"`
-	SecretsStored bool                `json:"secretsStored"`
+	SchemaVersion   int                 `json:"schemaVersion"`
+	ProductID       string              `json:"productId"`
+	Network         string              `json:"network"`
+	ChainID         uint64              `json:"chainId"`
+	Mainnet         bool                `json:"mainnet"`
+	RecordedAt      time.Time           `json:"recordedAt"`
+	Issuer          string              `json:"issuer"`
+	Trader          string              `json:"trader"`
+	AssetID         string              `json:"assetId"`
+	PoolID          string              `json:"poolId"`
+	Actions         []actionEvidence    `json:"actions"`
+	Pool            chain.NativeDexPool `json:"pool"`
+	EventCount      int                 `json:"eventCount"`
+	Node            nodeEvidence        `json:"node"`
+	Indexer         indexerEvidence     `json:"indexer"`
+	SecretsStored   bool                `json:"secretsStored"`
+	ObservationMode string              `json:"observationMode"`
 }
 
 func main() {
 	rest := flag.String("rest", "http://127.0.0.1:6420", "authoritative YNX REST origin")
 	indexer := flag.String("indexer", "http://127.0.0.1:6482", "DEX indexer origin")
 	output := flag.String("output", "", "new JSON evidence path")
+	observeExisting := flag.Bool("observe-existing", false, "observe and verify the existing canonical Testnet lifecycle without signing new actions")
 	flag.Parse()
-	if err := run(*rest, *indexer, *output); err != nil {
+	var err error
+	if *observeExisting {
+		err = observe(*rest, *indexer, *output)
+	} else {
+		err = run(*rest, *indexer, *output)
+	}
+	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
@@ -138,7 +146,7 @@ func run(restOrigin, indexerOrigin, output string) error {
 		{traderKey, consensus.ActionDexSwapExactOutput, consensus.DexSwapExactOutputPayload{PoolID: poolID, AssetOut: assetID, AmountOut: 2_000, MaxAmountIn: 2, DeadlineUnix: deadline}, 2, "/dex/pools/" + poolID + "/swaps/exact-output", http.StatusOK},
 		{issuerKey, consensus.ActionDexLiquidityRemove, consensus.DexLiquidityRemovePayload{PoolID: poolID, Shares: 100, MinAmount0: 1, MinAmount1: 1, DeadlineUnix: deadline}, 5, "/dex/pools/" + poolID + "/liquidity/remove", http.StatusOK},
 	}
-	result := evidence{SchemaVersion: 1, ProductID: "ynx-dex", Network: "YNX Testnet", ChainID: 6423, Mainnet: false, RecordedAt: time.Now().UTC(), Issuer: issuer, Trader: trader, AssetID: assetID, PoolID: poolID, SecretsStored: false}
+	result := evidence{SchemaVersion: 1, ProductID: "ynx-dex", Network: "YNX Testnet", ChainID: 6423, Mainnet: false, RecordedAt: time.Now().UTC(), Issuer: issuer, Trader: trader, AssetID: assetID, PoolID: poolID, SecretsStored: false, ObservationMode: "signed-live-lifecycle"}
 	for _, item := range actions {
 		signed, err := consensus.NewSignedApplicationAction(item.key, 6423, item.action, item.payload, item.nonce)
 		if err != nil {
@@ -240,6 +248,106 @@ func run(restOrigin, indexerOrigin, output string) error {
 		return err
 	}
 	fmt.Printf("public native DEX lifecycle passed: actions=%d swaps=%d pool=%s height=%d\n", len(result.Actions), result.Indexer.SwapCount, poolID, result.Node.Height)
+	return nil
+}
+
+func observe(restOrigin, indexerOrigin, output string) error {
+	if output == "" {
+		return errors.New("-output is required")
+	}
+	if _, err := os.Stat(output); !errors.Is(err, os.ErrNotExist) {
+		return errors.New("evidence output must not already exist")
+	}
+	rest, err := newClient(restOrigin, 30*time.Second)
+	if err != nil {
+		return err
+	}
+	indexer, err := newClient(indexerOrigin, 15*time.Second)
+	if err != nil {
+		return err
+	}
+	const assetID, poolID = "ynx-usd-test", "dex_ynxt_yusdt"
+	var envelope struct {
+		Items []chain.NativeDexEvent `json:"items"`
+	}
+	if err := rest.get("/dex/events", &envelope); err != nil {
+		return err
+	}
+	expected := []struct{ action, route string }{
+		{consensus.ActionDexAssetCreate, "/dex/assets"},
+		{consensus.ActionDexAssetTransfer, "/dex/assets/" + assetID + "/transfer"},
+		{consensus.ActionDexPoolCreate, "/dex/pools"},
+		{consensus.ActionDexLiquidityAdd, "/dex/pools/" + poolID + "/liquidity/add"},
+		{consensus.ActionDexSwapExactInput, "/dex/pools/" + poolID + "/swaps/exact-input"},
+		{consensus.ActionDexSwapExactOutput, "/dex/pools/" + poolID + "/swaps/exact-output"},
+		{consensus.ActionDexLiquidityRemove, "/dex/pools/" + poolID + "/liquidity/remove"},
+	}
+	if len(envelope.Items) != len(expected) {
+		return fmt.Errorf("canonical lifecycle event count is %d, want %d", len(envelope.Items), len(expected))
+	}
+	result := evidence{SchemaVersion: 1, ProductID: "ynx-dex", Network: "YNX Testnet", ChainID: 6423, Mainnet: false, RecordedAt: time.Now().UTC(), AssetID: assetID, PoolID: poolID, SecretsStored: false, ObservationMode: "authoritative-post-commit"}
+	for index, event := range envelope.Items {
+		if event.Type != expected[index].action || event.TxHash == "" || event.BlockHeight == 0 || event.BlockHash == "" || event.AuditHash == "" {
+			return fmt.Errorf("canonical lifecycle event %d is incomplete: %+v", index, event)
+		}
+		result.Actions = append(result.Actions, actionEvidence{Action: event.Type, Route: expected[index].route, TransactionHash: event.TxHash})
+	}
+	result.Issuer, result.Trader, result.EventCount = envelope.Items[0].Signer, envelope.Items[4].Signer, len(envelope.Items)
+	if result.Issuer == "" || result.Trader == "" || result.Issuer == result.Trader {
+		return errors.New("canonical issuer and trader identities are invalid")
+	}
+	if err := rest.get("/dex/pools/"+poolID, &result.Pool); err != nil {
+		return err
+	}
+	if result.Pool.Reserve0 <= 0 || result.Pool.Reserve1 <= 0 || result.Pool.TotalShares <= 0 || result.Pool.BlockHeight == 0 || result.Pool.BlockHash == "" {
+		return fmt.Errorf("committed pool is incomplete: %+v", result.Pool)
+	}
+	var status struct {
+		Height           uint64 `json:"height"`
+		LatestBlockHash  string `json:"latestBlockHash"`
+		Persistence      bool   `json:"persistence"`
+		PersistenceError string `json:"persistenceError"`
+		Build            struct {
+			Commit string `json:"commit"`
+		} `json:"build"`
+	}
+	if err := rest.get("/status", &status); err != nil || !status.Persistence || status.PersistenceError != "" || status.Height == 0 || status.LatestBlockHash == "" {
+		return fmt.Errorf("authoritative node is not durable: %+v: %w", status, err)
+	}
+	result.Node = nodeEvidence{Height: status.Height, LatestBlockHash: status.LatestBlockHash, BuildCommit: status.Build.Commit, Persistence: status.Persistence}
+	if err := waitFor(90*time.Second, 2*time.Second, func() (bool, error) {
+		var health struct {
+			MarketSourceConfigured bool   `json:"marketSourceConfigured"`
+			MarketAvailable        bool   `json:"marketAvailable"`
+			ExecutionAvailable     bool   `json:"executionAvailable"`
+			IndexedPools           int    `json:"indexedPools"`
+			Source                 string `json:"source"`
+		}
+		if err := indexer.get("/health", &health); err != nil {
+			return false, nil
+		}
+		var transactions, swaps, candles struct {
+			Items []json.RawMessage `json:"items"`
+		}
+		if indexer.get("/v1/transactions?limit=100", &transactions) != nil || indexer.get("/v1/swaps?limit=100", &swaps) != nil || indexer.get("/v1/candles?pool="+poolID+"&interval=60&limit=100", &candles) != nil {
+			return false, nil
+		}
+		if !health.MarketSourceConfigured || !health.MarketAvailable || !health.ExecutionAvailable || health.IndexedPools != 1 || len(transactions.Items) != 6 || len(swaps.Items) != 2 || len(candles.Items) == 0 {
+			return false, nil
+		}
+		result.Indexer = indexerEvidence{MarketSourceConfigured: true, MarketAvailable: true, ExecutionAvailable: true, IndexedPools: 1, IndexedTransactions: len(transactions.Items), SwapCount: len(swaps.Items), CandleCount: len(candles.Items), Source: health.Source}
+		return true, nil
+	}); err != nil {
+		return fmt.Errorf("wait for complete market index: %w", err)
+	}
+	payload, err := json.MarshalIndent(result, "", "  ")
+	if err != nil {
+		return err
+	}
+	if err := os.WriteFile(output, append(payload, '\n'), 0o600); err != nil {
+		return err
+	}
+	fmt.Printf("public native DEX observation passed: actions=%d swaps=%d pool=%s height=%d\n", len(result.Actions), result.Indexer.SwapCount, poolID, result.Node.Height)
 	return nil
 }
 
