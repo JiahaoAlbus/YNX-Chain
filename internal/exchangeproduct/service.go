@@ -292,7 +292,8 @@ func (s *Service) PublicPerpetualTrades(limit int) []PerpetualTrade {
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	items := append([]PerpetualTrade(nil), s.state.PerpetualTrades...)
+	items := make([]PerpetualTrade, 0, len(s.state.PerpetualTrades))
+	items = append(items, s.state.PerpetualTrades...)
 	sort.Slice(items, func(i, j int) bool {
 		if items[i].CreatedAt.Equal(items[j].CreatedAt) {
 			return items[i].ID < items[j].ID

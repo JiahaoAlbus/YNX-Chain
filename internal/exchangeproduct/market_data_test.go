@@ -122,3 +122,25 @@ func TestMarketTradesEndpointBoundsAndSeparatesVenueTapes(t *testing.T) {
 		}
 	}
 }
+
+func TestMarketTradesEndpointReturnsEmptyArrayForEmptyPerpetualTape(t *testing.T) {
+	service, err := New(Config{StatePath: t.TempDir() + "/state.json", APIKey: "test-admin-key-123456", WalletCallback: "ynxexchange://wallet/callback"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	server := httptest.NewServer(NewServer(service))
+	defer server.Close()
+
+	response, err := http.Get(server.URL + "/v1/market-data/trades?market=" + DefaultPerpetualMarket + "&limit=2")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer response.Body.Close()
+	var body map[string]json.RawMessage
+	if err := json.NewDecoder(response.Body).Decode(&body); err != nil {
+		t.Fatal(err)
+	}
+	if response.StatusCode != http.StatusOK || string(body["trades"]) != "[]" {
+		t.Fatalf("empty tape must be a stable JSON array: status=%d trades=%s", response.StatusCode, body["trades"])
+	}
+}
