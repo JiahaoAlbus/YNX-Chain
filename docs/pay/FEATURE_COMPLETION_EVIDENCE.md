@@ -4,7 +4,7 @@ Status is evidence-based: `verified`, `partial`, `missing`, or `unavailable`.
 
 | Requirement | Status | Evidence or gap |
 |---|---|---|
-| Canonical Wallet/Gateway client bindings | partial | package and fail-closed tests pass locally; central registry is not integrated |
+| Canonical Wallet/Gateway client bindings | partial | central registry is integrated and the public App Gateway enforces exact Pay identity/scopes, consumes one-use Product Session proofs and replaces them with a body/path-bound server HMAC assertion. Public real-session mutation evidence is still pending |
 | Invoice/payment link/QR and review | verified locally | Pay client tests and production exports; no current install proof |
 | Authoritative committed receipt | verified locally | Go settlement matching and replay tests; fresh public transaction proof missing |
 | Refund request and dispute | partial | refund request, aggregate partial limit, owner/finance plus merchant-Wallet authorization, central submission and authoritative committed refund evidence pass local tests; no fresh public refund transaction. Dispute review remains Trust-owned |
@@ -21,4 +21,5 @@ Status is evidence-based: `verified`, `partial`, `missing`, or `unavailable`.
 | Observability/SLO | verified locally / deployed evidence missing | dependency-aware readiness, version, bounded Prometheus metrics, JSON logs, request/trace/error correlation, trace propagation and panic/private-value redaction pass local and Race tests; 1,000 local loopback reads at concurrency 25 completed with 0 failures, 32,067.0 req/s, p50 0.633 ms, p95 1.495 ms and p99 2.888 ms. Staging workloads, production RTO/RPO, real unit economics, dashboards and alert delivery remain unverified |
 | Security/supply chain | verified local candidate / external acceptance missing | secret scan, module verification, called-code `govulncheck`, high/critical npm audit gate, deterministic double build, SHA-256 provenance and Go/client CycloneDX SBOMs are source-bound at `0600d5ab87a9062ccc5b757affe30e234f1b7730`; candidates remain unsigned, unhosted and independently unreviewed |
 | Web/PWA accessibility/i18n | verified local functional gate / manual review missing | Android/iOS/Web exports, 12 complete catalogs, Chromium keyboard/accessibility-name checks, Arabic RTL and 390×844 overflow tests pass; complete dark-theme, 200% large-text and manual screen-reader review remain open |
-| Public `/pay`, hosted artifacts | missing | no direct deployment or immutable download evidence |
+| Public Pay backend | verified | exact-source `9ab6be2562bd782e4310b3fcf988a200920ac782` TLS health, systemd activity, required dependency readiness and unauthenticated protected-route rejection are recorded in `apps/pay/evidence/pay-product-public-2026-08-11.json` |
+| Public Pay client, hosted artifacts | missing | backend availability is not a Web/native product release; no current immutable production-signed download or store evidence |

@@ -6,7 +6,7 @@
     "name": "YNX Pay",
     "owner": "04-pay",
     "branch": "codex/integrate-finance-suite",
-    "sourceCommit": "ef9712a5a4f9a5c15d3716aee1d9aef1a3d633fb"
+    "sourceCommit": "9ab6be2562bd782e4310b3fcf988a200920ac782"
   },
   "network": {
     "cosmosChainId": "ynx_6423-1",
@@ -164,6 +164,16 @@
     "downloadHosted": false,
     "productionSigned": false,
     "storeReleased": false
+  },
+  "backendDeployment": {
+    "deployedPublic": true,
+    "release": "ynx-pay-product-9ab6be2562bd",
+    "sourceCommit": "9ab6be2562bd782e4310b3fcf988a200920ac782",
+    "baseUrl": "https://rest.ynxweb4.com/app/pay-product",
+    "healthUrl": "https://rest.ynxweb4.com/app/pay-product/health",
+    "walletProductSessionRequiredForWrites": true,
+    "evidence": "apps/pay/evidence/pay-product-public-2026-08-11.json",
+    "nativeClientsDeployedPublic": false
   },
   "externalInputs": [
     "deployed central Wallet/Gateway and Pay product routes",

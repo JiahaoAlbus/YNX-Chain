@@ -3,8 +3,8 @@
   "productId": "pay",
   "name": "YNX Pay",
   "branch": "codex/integrate-finance-suite",
-  "sourceCommit": "ef9712a5a4f9a5c15d3716aee1d9aef1a3d633fb",
-  "commit": "ef9712a5a4f9a5c15d3716aee1d9aef1a3d633fb",
+  "sourceCommit": "9ab6be2562bd782e4310b3fcf988a200920ac782",
+  "commit": "9ab6be2562bd782e4310b3fcf988a200920ac782",
   "version": "1.5.0",
   "releaseClass": "integration-candidate",
   "phase": "INTEGRATE",
@@ -26,7 +26,9 @@
     "observabilityRuntime": "testedLocal",
     "webPwa": "testedLocal-functional",
     "securitySupplyChain": "testedLocal-central-product-session-unsigned-unhosted",
-    "localReadCapacity": "testedLocal-loopback-only"
+    "localReadCapacity": "testedLocal-loopback-only",
+    "canonicalProductSessionRouting": "deployedPublic-one-use-wallet-proof",
+    "payProductBackend": "deployedPublic-current-source"
   },
   "contracts": {
     "canonical": "release/integration/pay-contract.json",
@@ -57,8 +59,19 @@
     "productionSigned": false,
     "storeReleased": false
   },
+  "backendDeployment": {
+    "deployedPublic": true,
+    "release": "ynx-pay-product-9ab6be2562bd",
+    "sourceCommit": "9ab6be2562bd782e4310b3fcf988a200920ac782",
+    "baseUrl": "https://rest.ynxweb4.com/app/pay-product",
+    "healthUrl": "https://rest.ynxweb4.com/app/pay-product/health",
+    "remoteDeployed": true,
+    "truthfulStatus": "remote-canonical-pay-product",
+    "nativeClientReleasedPublicly": false,
+    "evidence": "apps/pay/evidence/pay-product-public-2026-08-11.json"
+  },
   "publicUrls": [],
-  "healthUrls": [],
+  "healthUrls": ["https://rest.ynxweb4.com/app/pay-product/health"],
   "artifactUrls": [],
   "sha256": {
     "androidDebugApk": "018cc4b968f3a8286a9b05bc603b5880fcbc088b51d0d430b6acd3dfd40c10d2",
@@ -89,6 +102,18 @@
     }
   ],
   "localVerification": [
+    {
+      "command": "go test ./internal/appgateway ./internal/payproduct ./cmd/ynx-app-gatewayd && go test -race ./internal/appgateway ./internal/payproduct && go vet ./internal/appgateway ./internal/payproduct ./cmd/ynx-app-gatewayd",
+      "result": "pass",
+      "verifiedAt": "2026-08-11",
+      "details": "Canonical Pay Product routes, exact one-use Wallet Product Session introspection, server-only HMAC assertion binding, route allowlist, wrong-product/replay rejection, Pay state machine, race checks and static checks passed. The known macOS LC_DYSYMTAB warning was non-fatal."
+    },
+    {
+      "command": "public HTTPS health plus primary-node systemd/readiness/auth-boundary verification",
+      "result": "pass",
+      "verifiedAt": "2026-08-11",
+      "details": "The public Pay Product health route reports the exact 9ab6be2562bd source and remote-canonical-pay-product. Pay Product and App Gateway are active; required store and central Pay dependencies are ready; a protected refund route without a Product Session fails closed with HTTP 401."
+    },
     {
       "command": "npm test && npm run typecheck && npm run bundle-check && npm run test:web",
       "cwd": "apps/pay",
@@ -184,7 +209,7 @@
       "details": "Run 30575350364 passed the exact SHA identity gate, the full test job, Xcode 26.2 unsigned YNX Pay and YNX Card Simulator builds, and Pay bundle-ID/install/cold-launch/app-container/URL-scheme-resolution checks."
     }
   ],
-  "centralIntegration": "The exact Pay source is integrated on the central integration branch. Pay is approved and enabled in the central Wallet registry with five reviewed scopes; Pay, Wallet and Wallet Auth tests pass together. Public Gateway/Testnet deployment and current-source install evidence remain separate release gates.",
+  "centralIntegration": "The exact Pay source is integrated on the central integration branch. Pay is approved and enabled in the central Wallet registry with five reviewed scopes; Pay, Wallet and Wallet Auth tests pass together. The current-source Pay Product backend and canonical App Gateway route are publicly deployed. Native-client publication, current-source device install evidence and fresh authoritative payment evidence remain separate release gates.",
   "historicalEvidence": {
     "androidApkSha256": "14698734aef4d1d5b4b33eedae328d3fcfd37c161a949bd2a89ff3419bc15a44",
     "androidApkBytes": 102623957,
@@ -193,14 +218,14 @@
     "installFailureEvidence": "evidence/android/anr-emulator-failure.png"
   },
   "knownLimitations": [
-    "Fresh authoritative Testnet payment, two-account Split flow, sponsorship receipt and refund proof are blocked on accepted central Gateway/Testnet deployment.",
+    "Fresh authoritative Testnet payment, two-account Split flow, sponsorship receipt and committed refund proof are still missing; public backend deployment alone is not transaction evidence.",
     "Historical unsigned iOS Simulator install and cold-launch evidence exists for an older source. Current-source Android Debug and unsigned Release APKs build, but current-source install/cold-launch, production-signed device and store evidence remain absent.",
-    "The public health endpoint is online but reports build 98a18815d4ee rather than the current Pay candidate; there is no current-source public service URL, hosted immutable artifact, production signature or store release.",
+    "The current-source Pay Product backend is public at the recorded health URL, but the native clients have no hosted immutable production-signed download or store release.",
     "Quant verification is implemented locally, but no Quant/Data Fabric verifier key, staging evidence stream, or fresh Testnet service-fee payment has been accepted by the integration owner.",
     "Local fixture migration, backup, restore, rollback and corruption recovery are verified; production-volume RTO/RPO and remote backup retention remain incomplete.",
     "Observability and a 1,000-request local loopback capacity gate are tested, but deployed dashboards/alerts, staging workload capacity and invoice-backed unit economics remain incomplete.",
     "Web/PWA export and functional keyboard/RTL/390px checks pass; complete dark-theme, 200% large-text and manual screen-reader acceptance remain incomplete.",
     "Stablecoin and Bridge production-capable providers remain unavailable until approved owner/provider contracts exist."
   ],
-  "generatedAt": "2026-08-11T10:45:00+08:00"
+  "generatedAt": "2026-08-11T12:56:00+08:00"
 }

@@ -19,6 +19,7 @@
 - Supply-chain candidate at `0600d5ab87a9062ccc5b757affe30e234f1b7730`: 0 called Go vulnerabilities after upgrading gRPC to 1.82.1, 0 high/critical npm findings, deterministic Linux/amd64 server and store builds, SHA-256 provenance, and Go/client CycloneDX SBOMs in `apps/pay/evidence/supply-chain/`.
 - Canonical Pay contract and cross-product vectors: `release/integration/pay-contract.json`, `docs/pay/INTEGRATION_HANDOFF.md`, `docs/pay/CROSS_PRODUCT_TEST_VECTORS.json`, `docs/pay/DEPENDENCY_ACCEPTANCE.md`, `docs/integration/pay-quant-billing.json`.
 - Exact-source CI, unsigned iOS Simulator install, artifact-retention and URL-scheme evidence: `release/evidence/pay-exact-source-ci-2026-07-30.json`.
+- Current-source public Pay Product backend and canonical App Gateway evidence: `apps/pay/evidence/pay-product-public-2026-08-11.json`. Public TLS health reports release `ynx-pay-product-9ab6be2562bd`, exact source `9ab6be2562bd782e4310b3fcf988a200920ac782`, YNX Testnet 6423 and authoritative central Pay evidence. Both server units are active; required store/central-Pay readiness is green; protected mutation without a one-use Wallet Product Session fails closed with HTTP 401.
 - Full-goal machine coverage: `.ai-bridge/full-goal-coverage.json`.
 
 ## Historical-only evidence
@@ -27,4 +28,4 @@
 
 ## Missing direct evidence
 
-Fresh Testnet transaction/receipt, sponsored UserOperation, authoritative refund transaction, bridge destination confirmation, accepted Quant/Data Fabric verifier key and live evidence stream, Quant Invoice v5 Testnet payment, central integration, staging/public URLs, hosted immutable artifacts, current Android/iOS install and cold launch, production signatures, store releases, CI run URLs, production-volume RTO/RPO and remote backup retention, staging load measurements, deployed telemetry, dashboards/alerts, complete dark/manual assistive-technology review and public `/pay` remain unproven.
+Fresh Testnet transaction/receipt, sponsored UserOperation, authoritative refund transaction, bridge destination confirmation, accepted Quant/Data Fabric verifier key and live evidence stream, Quant Invoice v5 Testnet payment, hosted immutable native artifacts, current Android/iOS install and cold launch, production signatures, store releases, production-volume RTO/RPO and remote backup retention, staging payment-load measurements, deployed dashboards/alerts, complete dark/manual assistive-technology review and a public native/Web Pay client remain unproven. The backend route is public; that must not be confused with publishing the complete Pay product.

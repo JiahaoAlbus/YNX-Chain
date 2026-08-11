@@ -3,13 +3,13 @@
 ## Ownership and source
 
 - Product owner: `04-pay`
-- Branch: `codex/final-pay`
-- Source commit: `6cbac9f4654b5715d32f1e561819e593c868a6f1`
+- Branch: `codex/integrate-finance-suite`
+- Source commit: `9ab6be2562bd782e4310b3fcf988a200920ac782`
 - Owner validation PR: `#29` (draft; exact-source CI and unsigned Simulator evidence)
 - Canonical machine contract: `release/integration/pay-contract.json`
 - Central freeze owner: `29-integration`
 
-This handoff describes implemented and locally tested Pay contracts. It does not claim that central Wallet/Gateway routes, Testnet deployment, public artifacts, production signing, or stores are complete.
+This handoff describes the integrated Pay contracts and the current-source public Pay Product backend. It does not claim a fresh authoritative payment/refund, native-client publication, production signing, or store release.
 
 ## Canonical dependencies
 
@@ -90,10 +90,10 @@ The mobile evidence is deliberately bounded: the iOS package is unsigned, Simula
 
 ## Integration acceptance required
 
-`integratedCentral` stays false until `29-integration` verifies all of the following against the exact source commit:
+Central integration and the public backend route are now verified against the exact source commit. Complete Pay-product acceptance still requires:
 
-1. Central Wallet registry contains the accepted Pay product tuple and ordered scopes.
-2. App Gateway exposes the Pay product routes and emits the exact server assertion.
+1. Preserve the accepted central Wallet registry Pay tuple and ordered scopes.
+2. Preserve the public App Gateway allowlist, one-use proof introspection and exact server assertion; add a public real-session mutation proof.
 3. Replay, wrong product, wrong bundle, wrong device, scope widening, expiry and revoke vectors fail closed.
 4. Split claim reaches the Pay service through the product-scoped route without exposing server keys.
 5. `08-quant-lab` and `26-data-fabric-billing-ledger` sign the exact Quant evidence schema with a frozen, rotatable Ed25519 verifier key; stale, tampered, deposit-only and wrong-payer vectors behave as specified.

@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "product": "pay",
+  "evidenceClass": "public-backend-deployment",
+  "verifiedAt": "2026-08-11T12:56:00+08:00",
+  "sourceCommit": "9ab6be2562bd782e4310b3fcf988a200920ac782",
+  "release": "ynx-pay-product-9ab6be2562bd",
+  "public": {
+    "baseUrl": "https://rest.ynxweb4.com/app/pay-product",
+    "healthUrl": "https://rest.ynxweb4.com/app/pay-product/health",
+    "tlsVerified": true,
+    "healthOk": true,
+    "remoteDeployed": true,
+    "truthfulStatus": "remote-canonical-pay-product",
+    "network": "ynx_6423-1",
+    "evmChainId": 6423,
+    "nativeAsset": "YNXT",
+    "paidEvidenceAuthority": "authoritative-central-pay-api"
+  },
+  "runtime": {
+    "payProductServiceActive": true,
+    "appGatewayServiceActive": true,
+    "storeRequiredAndReady": true,
+    "centralPayRequiredAndReady": true,
+    "appGatewayPayProductUpstreamHealthy": true,
+    "unauthenticatedProtectedRouteHttpStatus": 401,
+    "walletBoundary": "one-use-canonical-product-session-proof",
+    "browserProofForwardedUpstream": false,
+    "serverAssertion": "YNX_PRODUCT_GATEWAY_ASSERTION_V1"
+  },
+  "optionalDependencies": {
+    "aiGatewayConfigured": false,
+    "paymasterConfigured": false,
+    "bridgeConfigured": false,
+    "stableSettlementConfigured": false,
+    "quantVerifierConfigured": false
+  },
+  "releaseBoundary": {
+    "backendDeployedPublic": true,
+    "nativeClientsDeployedPublic": false,
+    "freshAuthoritativePaymentProven": false,
+    "freshAuthoritativeRefundProven": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}
