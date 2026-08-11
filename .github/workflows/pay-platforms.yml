@@ -1,0 +1,119 @@
+name: YNX Pay platforms
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [codex/final-pay, codex/integrate-finance-suite]
+    paths:
+      - "apps/pay/**"
+      - "apps/wallet/src/protocol/**"
+      - "internal/payproduct/**"
+      - "packages/wallet-auth/**"
+      - ".github/workflows/pay-platforms.yml"
+  pull_request:
+    paths:
+      - "apps/pay/**"
+      - "apps/wallet/src/protocol/**"
+      - "internal/payproduct/**"
+      - "packages/wallet-auth/**"
+      - ".github/workflows/pay-platforms.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  protocol-and-service:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with: {go-version-file: go.mod}
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with: {node-version: "24"}
+      - run: go test ./internal/payproduct && go test -race ./internal/payproduct && go vet ./internal/payproduct
+      - run: npm ci && npm test
+        working-directory: packages/wallet-auth
+      - run: npm ci && npm test && npm run typecheck
+        working-directory: apps/wallet
+      - run: npm ci && npx playwright install --with-deps chromium && npm test && npm run typecheck && npm run bundle-check && npm run test:web
+        working-directory: apps/pay
+      - run: make pay-api-check
+
+  android-candidates:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with: {node-version: "24"}
+      - uses: actions/setup-java@d7793b545071e98d581d3bf084a51c3213318a07
+        with: {distribution: temurin, java-version: "17"}
+      - uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407
+      - run: npm ci
+        working-directory: apps/pay
+      - name: Create test-only Debug signing identity
+        run: |
+          keytool -genkeypair -storetype JKS -keystore "$RUNNER_TEMP/ynx-pay-debug.jks" -alias androiddebugkey -storepass android -keypass android -dname "CN=YNX Pay CI,O=YNX Testnet,C=US" -keyalg RSA -keysize 2048 -validity 10000
+          echo "YNX_ANDROID_DEBUG_KEYSTORE_PATH=$RUNNER_TEMP/ynx-pay-debug.jks" >> "$GITHUB_ENV"
+      - run: ./gradlew --no-daemon assembleDebug assembleRelease
+        working-directory: apps/pay/android
+      - name: Record exact candidate identity
+        run: |
+          shasum -a 256 apps/pay/android/app/build/outputs/apk/debug/app-debug.apk apps/pay/android/app/build/outputs/apk/release/app-release-unsigned.apk | tee "$RUNNER_TEMP/sha256.txt"
+          stat -c '%n bytes=%s' apps/pay/android/app/build/outputs/apk/debug/app-debug.apk apps/pay/android/app/build/outputs/apk/release/app-release-unsigned.apk | tee "$RUNNER_TEMP/bytes.txt"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: ynx-pay-android-candidates-${{ github.sha }}
+          if-no-files-found: error
+          retention-days: 14
+          path: |
+            apps/pay/android/app/build/outputs/apk/debug/app-debug.apk
+            apps/pay/android/app/build/outputs/apk/release/app-release-unsigned.apk
+            ${{ runner.temp }}/sha256.txt
+            ${{ runner.temp }}/bytes.txt
+
+  ios-simulator:
+    runs-on: macos-15
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with: {node-version: "24"}
+      - run: npm ci
+        working-directory: apps/pay
+      - run: pod install
+        working-directory: apps/pay/ios
+      - name: Build unsigned Simulator application
+        run: xcodebuild -workspace YNXPay.xcworkspace -scheme YNXPay -configuration Release -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath "$RUNNER_TEMP/YNXPayDerived" CODE_SIGNING_ALLOWED=NO clean build
+        working-directory: apps/pay/ios
+      - name: Install, cold launch, resolve Pay link, and restart
+        run: |
+          set -euo pipefail
+          app="$RUNNER_TEMP/YNXPayDerived/Build/Products/Release-iphonesimulator/YNXPay.app"
+          test -d "$app"
+          udid="$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin)["devices"]; print(next(x["udid"] for values in d.values() for x in values if x.get("isAvailable") and "iPhone" in x["name"]))')"
+          xcrun simctl boot "$udid" 2>/dev/null || true
+          open -a Simulator
+          xcrun simctl bootstatus "$udid" -b
+          xcrun simctl uninstall "$udid" com.ynxweb4.pay 2>/dev/null || true
+          xcrun simctl install "$udid" "$app"
+          xcrun simctl launch "$udid" com.ynxweb4.pay | tee "$RUNNER_TEMP/cold-launch.txt"
+          xcrun simctl openurl "$udid" 'ynxpay://invoice/inv_0123456789abcdef0123'
+          sleep 2
+          xcrun simctl io "$udid" screenshot "$RUNNER_TEMP/pay-link.png"
+          xcrun simctl terminate "$udid" com.ynxweb4.pay
+          xcrun simctl launch "$udid" com.ynxweb4.pay | tee "$RUNNER_TEMP/restart.txt"
+          ditto -c -k --sequesterRsrc --keepParent "$app" "$RUNNER_TEMP/YNXPay-simulator.zip"
+          shasum -a 256 "$RUNNER_TEMP/YNXPay-simulator.zip" | tee "$RUNNER_TEMP/sha256.txt"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: ynx-pay-ios-simulator-evidence-${{ github.sha }}
+          if-no-files-found: error
+          retention-days: 14
+          path: |
+            ${{ runner.temp }}/YNXPay-simulator.zip
+            ${{ runner.temp }}/cold-launch.txt
+            ${{ runner.temp }}/restart.txt
+            ${{ runner.temp }}/pay-link.png
+            ${{ runner.temp }}/sha256.txt
