@@ -15,44 +15,48 @@ import (
 )
 
 type Config struct {
-	ChatURL          string
-	ChatAPIKey       string
-	SquareURL        string
-	SquareAPIKey     string
-	SocialURL        string
-	SocialAPIKey     string
-	PayURL           string
-	PayAPIKey        string
-	BridgeURL        string
-	BridgeAPIKey     string
-	WalletURL        string
-	AllowedOrigins   []string
-	MaxBodyBytes     int64
-	MaxResponseBytes int64
-	RateLimitMax     int
-	RateLimitWindow  time.Duration
-	StatePath        string
-	ChainID          int64
-	ChallengeTTL     time.Duration
-	SessionTTL       time.Duration
-	RemoteDeployed   bool
-	Now              func() time.Time
-	Random           io.Reader
+	ChatURL                string
+	ChatAPIKey             string
+	SquareURL              string
+	SquareAPIKey           string
+	SocialURL              string
+	SocialAPIKey           string
+	PayURL                 string
+	PayAPIKey              string
+	PayProductURL          string
+	PayProductAssertionKey []byte
+	BridgeURL              string
+	BridgeAPIKey           string
+	WalletURL              string
+	AllowedOrigins         []string
+	MaxBodyBytes           int64
+	MaxResponseBytes       int64
+	RateLimitMax           int
+	RateLimitWindow        time.Duration
+	StatePath              string
+	ChainID                int64
+	ChallengeTTL           time.Duration
+	SessionTTL             time.Duration
+	RemoteDeployed         bool
+	Now                    func() time.Time
+	Random                 io.Reader
 }
 
 type Gateway struct {
-	cfg       Config
-	chatURL   *url.URL
-	squareURL *url.URL
-	socialURL *url.URL
-	payURL    *url.URL
-	bridgeURL *url.URL
-	walletURL *url.URL
-	origins   map[string]struct{}
-	mu        sync.Mutex
-	visitors  map[string]visitor
-	stateMu   sync.Mutex
-	state     persistentState
+	cfg                    Config
+	chatURL                *url.URL
+	squareURL              *url.URL
+	socialURL              *url.URL
+	payURL                 *url.URL
+	payProductURL          *url.URL
+	payProductAssertionKey []byte
+	bridgeURL              *url.URL
+	walletURL              *url.URL
+	origins                map[string]struct{}
+	mu                     sync.Mutex
+	visitors               map[string]visitor
+	stateMu                sync.Mutex
+	state                  persistentState
 }
 
 type visitor struct {
@@ -83,6 +87,10 @@ func New(cfg Config) (*Gateway, error) {
 	squareURL, _ := url.Parse(cfg.SquareURL)
 	socialURL, _ := url.Parse(cfg.SocialURL)
 	payURL, _ := url.Parse(cfg.PayURL)
+	var payProductURL *url.URL
+	if cfg.PayProductURL != "" {
+		payProductURL, _ = url.Parse(cfg.PayProductURL)
+	}
 	bridgeURL, _ := url.Parse(cfg.BridgeURL)
 	walletURL, _ := url.Parse(cfg.WalletURL)
 	origins := make(map[string]struct{}, len(cfg.AllowedOrigins))
@@ -99,7 +107,7 @@ func New(cfg Config) (*Gateway, error) {
 	if err != nil {
 		return nil, err
 	}
-	gateway := &Gateway{cfg: cfg, chatURL: chatURL, squareURL: squareURL, socialURL: socialURL, payURL: payURL, bridgeURL: bridgeURL, walletURL: walletURL, origins: origins, visitors: map[string]visitor{}, state: state}
+	gateway := &Gateway{cfg: cfg, chatURL: chatURL, squareURL: squareURL, socialURL: socialURL, payURL: payURL, payProductURL: payProductURL, payProductAssertionKey: append([]byte(nil), cfg.PayProductAssertionKey...), bridgeURL: bridgeURL, walletURL: walletURL, origins: origins, visitors: map[string]visitor{}, state: state}
 	if !exists {
 		if err := saveState(cfg.StatePath, &gateway.state); err != nil {
 			return nil, err
@@ -125,6 +133,14 @@ func ValidateConfig(cfg Config) error {
 	}
 	if err := validateLoopbackURL("YNX_APP_GATEWAY_PAY_URL", cfg.PayURL); err != nil {
 		return err
+	}
+	if cfg.PayProductURL != "" || len(cfg.PayProductAssertionKey) != 0 {
+		if err := validateLoopbackURL("YNX_APP_GATEWAY_PAY_PRODUCT_URL", cfg.PayProductURL); err != nil {
+			return err
+		}
+		if len(cfg.PayProductAssertionKey) < 32 {
+			return errors.New("YNX_APP_GATEWAY_PAY_PRODUCT_ASSERTION_KEY must contain at least 32 bytes")
+		}
 	}
 	if err := validateLoopbackURL("YNX_APP_GATEWAY_BRIDGE_URL", cfg.BridgeURL); err != nil {
 		return err
@@ -269,6 +285,11 @@ func (g *Gateway) upstream(service string) (*url.URL, string, string, bool) {
 		return g.squareURL, g.cfg.SquareAPIKey, "X-YNX-Square-Key", true
 	case "pay":
 		return g.payURL, g.cfg.PayAPIKey, "X-YNX-Pay-Key", true
+	case "pay-product":
+		if g.payProductURL == nil {
+			return nil, "", "", false
+		}
+		return g.payProductURL, "", "", true
 	case "bridge":
 		return g.bridgeURL, g.cfg.BridgeAPIKey, "X-YNX-Bridge-Gateway-Key", true
 	case "social":

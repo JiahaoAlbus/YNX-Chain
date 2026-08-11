@@ -2,6 +2,7 @@ package appgateway
 
 import (
 	"bytes"
+	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -9,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"sort"
 	"strings"
 	"time"
 
@@ -82,7 +84,11 @@ func (s *Server) health(w http.ResponseWriter, r *http.Request) {
 	}
 	upstreams := map[string]upstreamHealth{}
 	ok := true
-	for _, service := range []string{"chat", "square", "pay", "social", "bridge", "wallet"} {
+	services := []string{"chat", "square", "pay", "social", "bridge", "wallet"}
+	if s.gateway.payProductURL != nil {
+		services = append(services, "pay-product")
+	}
+	for _, service := range services {
 		base, _, _, _ := s.gateway.upstream(service)
 		if base == nil {
 			ok = false
@@ -214,6 +220,10 @@ func (s *Server) app(w http.ResponseWriter, r *http.Request) {
 		s.session(w, r, binding)
 		return
 	}
+	if strings.HasPrefix(r.URL.EscapedPath(), "/app/pay-product/") {
+		s.payProduct(w, r)
+		return
+	}
 	service, upstreamPath, ok := resolveAppPath(r.URL.EscapedPath())
 	if !ok {
 		writeError(w, http.StatusNotFound, "app route not found")
@@ -321,6 +331,227 @@ func (s *Server) app(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-store")
 	w.WriteHeader(response.StatusCode)
 	_, _ = w.Write(responseBody)
+}
+
+type payProductSession struct {
+	Account        string
+	SessionID      string
+	DeviceID       string
+	SessionBinding string
+	RequestDigest  string
+	Scopes         []string
+	IssuedAt       time.Time
+	ExpiresAt      time.Time
+}
+
+var payProductScopes = []string{"account:read", "pay:case:create", "pay:route:select", "pay:settlement:submit", "pay:sponsorship:request"}
+
+func (s *Server) payProduct(w http.ResponseWriter, r *http.Request) {
+	if s.gateway.payProductURL == nil || len(s.gateway.payProductAssertionKey) < 32 {
+		writeError(w, http.StatusServiceUnavailable, "YNX Pay product service is unavailable")
+		return
+	}
+	upstreamPath, scope, public, ok := payProductRoute(r.Method, r.URL.EscapedPath())
+	if !ok {
+		writeError(w, http.StatusNotFound, "Pay product route not found")
+		return
+	}
+	body, err := io.ReadAll(io.LimitReader(r.Body, s.gateway.cfg.MaxBodyBytes+1))
+	if err != nil || int64(len(body)) > s.gateway.cfg.MaxBodyBytes {
+		writeError(w, http.StatusRequestEntityTooLarge, "Pay product request exceeds gateway policy")
+		return
+	}
+	var session payProductSession
+	if !public {
+		session, err = s.authenticatePayProductSession(r, scope)
+		if err != nil {
+			writeError(w, http.StatusUnauthorized, "active YNX Pay Product Session proof required")
+			return
+		}
+	}
+	upstreamURL := *s.gateway.payProductURL
+	upstreamURL.Path, upstreamURL.RawPath, upstreamURL.RawQuery = upstreamPath, "", r.URL.RawQuery
+	request, err := http.NewRequestWithContext(r.Context(), r.Method, upstreamURL.String(), bytes.NewReader(body))
+	if err != nil {
+		writeError(w, http.StatusBadGateway, "unable to construct Pay product request")
+		return
+	}
+	for _, header := range []string{"Accept", "Content-Type"} {
+		if value := strings.TrimSpace(r.Header.Get(header)); value != "" {
+			request.Header.Set(header, value)
+		}
+	}
+	if !public {
+		if err := s.signPayProductAssertion(request, body, session); err != nil {
+			writeError(w, http.StatusServiceUnavailable, "unable to create bounded Pay Gateway assertion")
+			return
+		}
+	}
+	response, err := s.client.Do(request)
+	if err != nil {
+		writeError(w, http.StatusBadGateway, "YNX Pay product service unavailable")
+		return
+	}
+	defer response.Body.Close()
+	responseBody, err := io.ReadAll(io.LimitReader(response.Body, s.gateway.cfg.MaxResponseBytes+1))
+	if err != nil || int64(len(responseBody)) > s.gateway.cfg.MaxResponseBytes {
+		writeError(w, http.StatusBadGateway, "Pay product response exceeds gateway policy")
+		return
+	}
+	if contentType := response.Header.Get("Content-Type"); contentType != "" {
+		w.Header().Set("Content-Type", contentType)
+	}
+	w.Header().Set("Cache-Control", "no-store")
+	w.WriteHeader(response.StatusCode)
+	_, _ = w.Write(responseBody)
+}
+
+func payProductRoute(method, escapedPath string) (string, string, bool, bool) {
+	if !strings.HasPrefix(escapedPath, "/app/pay-product/") {
+		return "", "", false, false
+	}
+	path := "/" + strings.TrimPrefix(escapedPath, "/app/pay-product/")
+	parts := strings.Split(strings.Trim(path, "/"), "/")
+	if method == http.MethodGet {
+		switch {
+		case path == "/health" || path == "/v1/settlement-assets":
+			return path, "", true, true
+		case len(parts) == 3 && parts[0] == "v1" && (parts[1] == "invoices" || parts[1] == "split-payments" || parts[1] == "quant-bills") && validSegment(parts[2]):
+			return path, "", true, true
+		}
+	}
+	if method != http.MethodPost {
+		return "", "", false, false
+	}
+	switch {
+	case len(parts) == 4 && parts[0] == "v1" && parts[1] == "invoices" && validSegment(parts[2]) && parts[3] == "settlements":
+		return path, "pay:settlement:submit", false, true
+	case len(parts) == 4 && parts[0] == "v1" && parts[1] == "invoices" && validSegment(parts[2]) && (parts[3] == "refund-requests" || parts[3] == "disputes"):
+		return path, "pay:case:create", false, true
+	case len(parts) == 4 && parts[0] == "v1" && parts[1] == "invoices" && validSegment(parts[2]) && parts[3] == "sponsorship-quotes":
+		return path, "pay:sponsorship:request", false, true
+	case len(parts) == 4 && parts[0] == "v1" && parts[1] == "sponsorships" && validSegment(parts[2]) && parts[3] == "receipts":
+		return path, "pay:sponsorship:request", false, true
+	case len(parts) == 4 && parts[0] == "v1" && parts[1] == "invoices" && validSegment(parts[2]) && parts[3] == "route-quotes":
+		return path, "pay:route:select", false, true
+	case len(parts) == 4 && parts[0] == "v1" && parts[1] == "route-quotes" && validSegment(parts[2]) && parts[3] == "select":
+		return path, "pay:route:select", false, true
+	case len(parts) == 4 && parts[0] == "v1" && parts[1] == "bridge-transfers" && validSegment(parts[2]) && parts[3] == "refresh":
+		return path, "pay:route:select", false, true
+	case len(parts) == 6 && parts[0] == "v1" && parts[1] == "split-payments" && validSegment(parts[2]) && parts[3] == "shares" && validSegment(parts[4]) && parts[5] == "claim":
+		return path, "pay:settlement:submit", false, true
+	}
+	return "", "", false, false
+}
+
+func (s *Server) authenticatePayProductSession(r *http.Request, scope string) (payProductSession, error) {
+	proof := strings.TrimSpace(r.Header.Get("X-YNX-Product-Session-Proof"))
+	if proof == "" || len(proof) > 16<<10 || !containsText(payProductScopes, scope) {
+		return payProductSession{}, errors.New("invalid Pay Product Session proof")
+	}
+	body, err := json.Marshal(map[string][]string{"requiredScopes": {scope}})
+	if err != nil {
+		return payProductSession{}, err
+	}
+	upstreamURL := *s.gateway.walletURL
+	upstreamURL.Path, upstreamURL.RawPath, upstreamURL.RawQuery = "/v1/wallet/sessions/introspect", "", ""
+	request, err := http.NewRequestWithContext(r.Context(), http.MethodPost, upstreamURL.String(), bytes.NewReader(body))
+	if err != nil {
+		return payProductSession{}, err
+	}
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("Accept", "application/json")
+	request.Header.Set("X-YNX-Product-Session-Proof", proof)
+	response, err := s.client.Do(request)
+	if err != nil {
+		return payProductSession{}, err
+	}
+	defer response.Body.Close()
+	raw, err := io.ReadAll(io.LimitReader(response.Body, 64<<10))
+	if err != nil || response.StatusCode != http.StatusOK {
+		return payProductSession{}, errors.New("canonical Wallet Gateway rejected Pay proof")
+	}
+	var envelope struct {
+		OK     bool `json:"ok"`
+		Result struct {
+			Active  bool `json:"active"`
+			Session struct {
+				RequestingProduct string   `json:"requestingProduct"`
+				ProductClientID   string   `json:"productClientId"`
+				BundleID          string   `json:"bundleId"`
+				Account           string   `json:"account"`
+				ProductDeviceKey  string   `json:"productDeviceKey"`
+				SessionBinding    string   `json:"sessionBinding"`
+				RequestDigest     string   `json:"requestDigest"`
+				Scopes            []string `json:"scopes"`
+				IssuedAt          string   `json:"issuedAt"`
+				ExpiresAt         string   `json:"expiresAt"`
+			} `json:"session"`
+		} `json:"result"`
+	}
+	if json.Unmarshal(raw, &envelope) != nil || !envelope.OK || !envelope.Result.Active {
+		return payProductSession{}, errors.New("canonical Wallet Gateway returned an invalid Pay session")
+	}
+	session := envelope.Result.Session
+	if session.RequestingProduct != "pay" || session.ProductClientID != "ynx-pay-v1" || session.BundleID != "com.ynxweb4.pay" || !containsText(session.Scopes, scope) || !sameTextSet(session.Scopes, payProductScopes) {
+		return payProductSession{}, errors.New("Pay Product Session binding mismatch")
+	}
+	issuedAt, issuedErr := time.Parse(time.RFC3339Nano, session.IssuedAt)
+	expiresAt, expiresErr := time.Parse(time.RFC3339Nano, session.ExpiresAt)
+	now := s.gateway.cfg.Now().UTC()
+	if issuedErr != nil || expiresErr != nil || issuedAt.After(now.Add(time.Minute)) || !expiresAt.After(now) || !digestPattern(session.SessionBinding) || !digestPattern(session.RequestDigest) || len(session.ProductDeviceKey) != 44 {
+		return payProductSession{}, errors.New("Pay Product Session is invalid or expired")
+	}
+	account, accountErr := nativewallet.NormalizeNativeAddress(session.Account)
+	if accountErr != nil {
+		return payProductSession{}, errors.New("Pay Product Session account is invalid")
+	}
+	deviceDigest := sha256.Sum256([]byte(session.ProductDeviceKey))
+	return payProductSession{Account: account, SessionID: session.SessionBinding, DeviceID: hex.EncodeToString(deviceDigest[:]), SessionBinding: session.SessionBinding, RequestDigest: session.RequestDigest, Scopes: append([]string(nil), session.Scopes...), IssuedAt: issuedAt, ExpiresAt: expiresAt}, nil
+}
+
+func (s *Server) signPayProductAssertion(request *http.Request, body []byte, session payProductSession) error {
+	now := s.gateway.cfg.Now().UTC()
+	expiresAt := now.Add(3 * time.Minute)
+	if session.ExpiresAt.Before(expiresAt) {
+		expiresAt = session.ExpiresAt
+	}
+	if !expiresAt.After(now) {
+		return errors.New("Pay Product Session expired")
+	}
+	nonceBytes := make([]byte, 24)
+	if _, err := io.ReadFull(s.gateway.cfg.Random, nonceBytes); err != nil {
+		return err
+	}
+	nonce := hex.EncodeToString(nonceBytes)
+	scopes := append([]string(nil), session.Scopes...)
+	sort.Strings(scopes)
+	headers := map[string]string{
+		"X-YNX-Account": session.Account, "X-YNX-Session-ID": session.SessionID, "X-YNX-Device-ID": session.DeviceID,
+		"X-YNX-Product": "pay", "X-YNX-Client": "ynx-pay-v1", "X-YNX-Bundle": "com.ynxweb4.pay",
+		"X-YNX-Callback": "ynxpay://wallet-auth/callback", "X-YNX-Chain": "ynx_6423-1", "X-YNX-Scopes": strings.Join(scopes, " "),
+		"X-YNX-Session-Binding": session.SessionBinding, "X-YNX-Request-Digest": session.RequestDigest,
+		"X-YNX-Issued-At": now.Format(time.RFC3339Nano), "X-YNX-Expires-At": expiresAt.Format(time.RFC3339Nano), "X-YNX-Nonce": nonce,
+	}
+	for key, value := range headers {
+		request.Header.Set(key, value)
+	}
+	bodyHash := sha256.Sum256(body)
+	material := strings.Join([]string{"YNX_PRODUCT_GATEWAY_ASSERTION_V1", request.Method, request.URL.EscapedPath(), hex.EncodeToString(bodyHash[:]), session.Account, session.SessionID, session.DeviceID, "pay", "ynx-pay-v1", "com.ynxweb4.pay", "ynxpay://wallet-auth/callback", "ynx_6423-1", strings.Join(scopes, " "), session.SessionBinding, session.RequestDigest, headers["X-YNX-Issued-At"], headers["X-YNX-Expires-At"], nonce}, "\n")
+	mac := hmac.New(sha256.New, s.gateway.payProductAssertionKey)
+	_, _ = mac.Write([]byte(material))
+	request.Header.Set("X-YNX-Gateway-Signature", hex.EncodeToString(mac.Sum(nil)))
+	return nil
+}
+
+func sameTextSet(left, right []string) bool {
+	if len(left) != len(right) {
+		return false
+	}
+	a, b := append([]string(nil), left...), append([]string(nil), right...)
+	sort.Strings(a)
+	sort.Strings(b)
+	return strings.Join(a, "\n") == strings.Join(b, "\n")
 }
 
 // authenticateBridgeProductSession consumes one exact, sender-constrained
@@ -480,6 +711,11 @@ func (s *Server) preflight(w http.ResponseWriter, r *http.Request) {
 	if strings.HasPrefix(r.URL.EscapedPath(), "/app/session/") {
 		if !sessionRouteAllowed(method, r.URL.EscapedPath()) {
 			writeError(w, http.StatusNotFound, "app session route not found")
+			return
+		}
+	} else if strings.HasPrefix(r.URL.EscapedPath(), "/app/pay-product/") {
+		if _, _, _, ok := payProductRoute(method, r.URL.EscapedPath()); !ok {
+			writeError(w, http.StatusNotFound, "Pay product route not found")
 			return
 		}
 	} else {

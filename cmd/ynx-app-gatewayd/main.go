@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"encoding/base64"
+	"encoding/hex"
 	"flag"
 	"fmt"
 	"log"
@@ -59,6 +61,7 @@ func main() {
 		SquareURL: envOrDefault("YNX_APP_GATEWAY_SQUARE_URL", "http://127.0.0.1:6436"), SquareAPIKey: os.Getenv("YNX_APP_GATEWAY_SQUARE_API_KEY"),
 		SocialURL: envOrDefault("YNX_APP_GATEWAY_SOCIAL_URL", "http://127.0.0.1:6491"), SocialAPIKey: os.Getenv("YNX_APP_GATEWAY_SOCIAL_API_KEY"),
 		PayURL: envOrDefault("YNX_APP_GATEWAY_PAY_URL", "http://127.0.0.1:6430"), PayAPIKey: os.Getenv("YNX_APP_GATEWAY_PAY_API_KEY"),
+		PayProductURL: strings.TrimSpace(os.Getenv("YNX_APP_GATEWAY_PAY_PRODUCT_URL")), PayProductAssertionKey: optionalKey("YNX_APP_GATEWAY_PAY_PRODUCT_ASSERTION_KEY"),
 		BridgeURL: envOrDefault("YNX_APP_GATEWAY_BRIDGE_URL", "http://127.0.0.1:6433"), BridgeAPIKey: os.Getenv("YNX_APP_GATEWAY_BRIDGE_API_KEY"),
 		WalletURL:      envOrDefault("YNX_APP_GATEWAY_WALLET_URL", "http://127.0.0.1:6439"),
 		AllowedOrigins: splitCSV(os.Getenv("YNX_APP_GATEWAY_ALLOWED_ORIGINS")), MaxBodyBytes: maxBody, MaxResponseBytes: maxResponse,
@@ -89,6 +92,22 @@ func main() {
 	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		log.Fatal(err)
 	}
+}
+
+func optionalKey(name string) []byte {
+	value := strings.TrimSpace(os.Getenv(name))
+	if value == "" {
+		return nil
+	}
+	hexValue := strings.TrimPrefix(value, "0x")
+	if decoded, err := hex.DecodeString(hexValue); err == nil && len(decoded) >= 32 {
+		return decoded
+	}
+	if decoded, err := base64.RawStdEncoding.DecodeString(value); err == nil && len(decoded) >= 32 {
+		return decoded
+	}
+	log.Fatalf("%s must contain at least 32 bytes encoded as hex or unpadded base64", name)
+	return nil
 }
 
 func currentBuildInfo() buildinfo.Info {
