@@ -3,7 +3,7 @@
   "productId": "ynx-exchange",
   "name": "YNX Exchange",
   "aliases": ["YNX Exchange Pro", "YNX Exchange Mobile"],
-  "sourceCommit": "00972cf25d583d975b9c9dd9c1df1ddba8491df9",
+  "sourceCommit": "bdc88190ec1bfca2d308a58c4c2626fd2d75ac46",
   "canonicalRoute": "/products/exchange",
   "seo": {
     "title": "YNX Exchange — Deterministic Testnet Trading",
@@ -17,6 +17,7 @@
     "Deterministic fixed-point Spot CLOB with price-time priority",
     "Limit, protected Market IOC, Post-only, IOC, FOK, amend, stop, take-profit, trailing, OCO, TWAP, iceberg and scale execution",
     "Persistent Market, User and Drop Copy event streams",
+    "Persisted-fill Spot and Perpetual trade tapes with bounded queries and real OHLC candlesticks",
     "Merkle-committed account liabilities with Wallet-scoped inclusion proofs and fail-closed committed custody evidence",
     "UltraLiquidity quote comparison plus Wallet-signed protected FOK execution on the Native CLOB; committed DEX execution remains fail-closed until its adapter is accepted",
     "Isolated YUSD_TEST margin with Wallet-signed transfers, Oracle-gated perpetual CLOB, positions, zero-sum funding and liquidation waterfall",
@@ -47,7 +48,7 @@
   ],
   "availability": {
     "runtimePublicUrl": "https://exchange.ynxweb4.com/",
-    "runtimeSourceCommit": "00972cf25d583d975b9c9dd9c1df1ddba8491df9",
+    "runtimeSourceCommit": "bdc88190ec1bfca2d308a58c4c2626fd2d75ac46",
     "healthUrls": ["https://exchange.ynxweb4.com/api/health", "https://exchange.ynxweb4.com/api/ready", "https://exchange.ynxweb4.com/api/version"],
     "downloadUrls": [],
     "artifactManifest": "apps/exchange/product-release.json",
@@ -93,5 +94,5 @@
     "securityVerifier": "30-security-sre",
     "publishCondition": "Consume this metadata, preserve status booleans, attach accepted brand assets and verify public URLs against the same source commit"
   },
-  "generatedAt": "2026-08-10T06:26:37Z"
+  "generatedAt": "2026-08-11T10:13:31Z"
 }

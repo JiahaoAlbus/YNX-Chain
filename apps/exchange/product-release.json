@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "productId": "ynx-exchange-pro",
   "name": "YNX Exchange Pro",
-  "branch": "codex/exchange-brace-expansion-5-0-8",
-  "sourceCommit": "00972cf25d583d975b9c9dd9c1df1ddba8491df9",
-  "commit": "00972cf25d583d975b9c9dd9c1df1ddba8491df9",
+  "branch": "codex/integrate-finance-suite",
+  "sourceCommit": "bdc88190ec1bfca2d308a58c4c2626fd2d75ac46",
+  "commit": "bdc88190ec1bfca2d308a58c4c2626fd2d75ac46",
   "version": "0.1.0-testnet",
   "stateSchemaVersion": 10,
   "surfaces": [
@@ -80,8 +80,8 @@
     "Repository-wide tests are blocked outside Exchange ownership by missing generated contract artifacts and key-permission assumptions"
   ],
   "publicRuntimeEvidence": {
-    "sourceCommit": "00972cf25d583d975b9c9dd9c1df1ddba8491df9",
-    "binarySha256": "a61990c4058c2f5d0458fd131dd0f4c2c34eecd7d64dfd1a82a0f4741260b243",
+    "sourceCommit": "bdc88190ec1bfca2d308a58c4c2626fd2d75ac46",
+    "binarySha256": "4d9a0274cc795cfca4d867aa39fd22f10e052e8569e0ed5e1a7265424832434f",
     "stateSchemaVersion": 10,
     "stateIntegrity": true,
     "restartStateHashStable": true,
@@ -93,8 +93,15 @@
     "productionE2EReplayStatus": 401,
     "multiRegionConcurrentRequests": 600,
     "multiRegionHTTP200": 600,
-    "evidence": "evidence/capacity/exchange-wallet-public-2026-08-10.txt",
-    "verifiedAt": "2026-08-10T06:26:37Z"
+    "latestMultiClientRequests": 1000,
+    "latestMultiClientHTTP200": 1000,
+    "latestMultiRegionRequests": 60,
+    "latestMultiRegionHTTP200": 60,
+    "spotCandleEndpoint": "deployed_persisted_fills_only",
+    "boundedSpotAndPerpetualTapes": true,
+    "evidence": "evidence/capacity/exchange-market-data-public-2026-08-11.txt",
+    "priorWalletEvidence": "evidence/capacity/exchange-wallet-public-2026-08-10.txt",
+    "verifiedAt": "2026-08-11T10:13:31Z"
   },
-  "generatedAt": "2026-08-10T06:26:37Z"
+  "generatedAt": "2026-08-11T10:13:31Z"
 }

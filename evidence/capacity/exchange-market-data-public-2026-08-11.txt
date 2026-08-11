@@ -1,0 +1,29 @@
+YNX Exchange public market-data and multi-client release evidence
+Verified at: 2026-08-11T10:13:31Z
+
+Exact public runtime:
+- Source commit: bdc88190ec1bfca2d308a58c4c2626fd2d75ac46
+- Linux AMD64 binary SHA-256: 4d9a0274cc795cfca4d867aa39fd22f10e052e8569e0ed5e1a7265424832434f
+- Release target: /opt/ynx/releases/exchange/ynx-exchange-bdc88190ec1b
+- Rollback backup: /var/backups/ynx-exchange/20260811T101205Z-pre-bdc88190ec1b
+- Public URL: https://exchange.ynxweb4.com/
+- Readiness: ready_public_testnet; schema 10; stateIntegrity true
+
+Public market-data closure:
+- The persisted Spot tape accepts market and a validated 1..1000 limit and returned exactly two newest fills for limit=2.
+- The persisted Perpetual tape is independently selectable and returns a stable empty JSON array when no real fills exist.
+- Spot and Perpetual candle endpoints accept 1m, 5m, 15m, 1h, 4h and 1d intervals, omit empty intervals and never synthesize price or volume.
+- The public Spot one-minute request returned one non-empty candle aggregated from the retained 30 matching-engine fills.
+- The public Web release contains both Spot candlestick and Perpetual candlestick workspaces.
+
+Multi-client and regional reads:
+- Candidate isolation: client A 300/300 HTTP 200 and client B 300/300 HTTP 200; A request 301 returned HTTP 429 while a fresh client C returned HTTP 200.
+- Deployed runtime: 1,000 distinct simulated direct-client addresses at concurrency 64 returned 1,000/1,000 HTTP 200.
+- Runtime counters after that cycle reported 1,005 requests, zero server errors and an active service; no Exchange warning/error journal entry was present.
+- Singapore: 20/20 public TLS health responses were HTTP 200 and version was the exact source commit.
+- Silicon Valley: 20/20 public TLS health responses were HTTP 200 and version was the exact source commit.
+- Seoul: 20/20 public TLS health responses were HTTP 200 and version was the exact source commit.
+
+Boundary:
+- The workstation's VPN-routed public path returned 89/100 HTTP 200 with 11 client-side 12-second connection timeouts. The three server-region probes and primary loopback/Caddy layers did not reproduce a service error. This release therefore proves the exact runtime and bounded multi-client service behavior, but not guaranteed global availability or an independent third-party vantage.
+- This is a public Testnet venue. It does not prove Mainnet, production custody, external liquidity, real BTC custody/trading, cross-chain execution, production signing, legal approval or store release.

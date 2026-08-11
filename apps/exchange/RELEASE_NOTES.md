@@ -1,5 +1,13 @@
 # YNX Exchange 0.1.0-testnet
 
+Public market-data and multi-client checkpoint (2026-08-11):
+
+- Published exact source `bdc88190ec1bfca2d308a58c4c2626fd2d75ac46` and Linux AMD64 binary SHA-256 `4d9a0274cc795cfca4d867aa39fd22f10e052e8569e0ed5e1a7265424832434f` at `https://exchange.ynxweb4.com/` with a retained atomic rollback release.
+- Added bounded, venue-selectable persisted Spot and Perpetual trade tapes; an empty tape is always `[]`, never `null`, and unsupported markets or invalid limits fail closed.
+- Deployed real persisted-fill OHLC candlesticks for Spot and Perpetual across 1m, 5m, 15m, 1h, 4h and 1d intervals; empty intervals and synthetic prices remain omitted.
+- Corrected both admission layers to isolate quotas by the direct client address appended by loopback Caddy while rejecting caller-prepended spoofed addresses.
+- The deployed service returned 1,000/1,000 HTTP 200 for distinct simulated clients at concurrency 64 and 60/60 public TLS health responses across Singapore, Silicon Valley and Seoul. Exact evidence and the workstation path limitation are recorded in `evidence/capacity/exchange-market-data-public-2026-08-11.txt`.
+
 Public Testnet checkpoint (2026-08-10):
 
 - Added the domain-separated `ynx-quant-strategy-control-v1` contract. Pause atomically cancels open execution, persists across restart and blocks new exposure; resume requires a distinct Wallet signature; a killed nonce domain cannot be resumed.
@@ -27,7 +35,7 @@ Final-worktree additions:
 - Added schema v6 native TWAP schedules with Wallet-signed fixed-price protection, upfront reservation, deterministic IOC child slices, persisted restart continuation, explicit cancellation and full Mass Cancel/Quant Kill/Dead-man coverage; exposed the same bounded primitive through Quant Adapter v1.
 - Replaced static health semantics with separate liveness and integrity-backed local readiness, added validated/generated request IDs and basic Prometheus HTTP counters, and added a SHA-verified backup/restore drill that reconciles balances, orders, fills and chained evidence.
 - Added correlated Error IDs and low-cardinality error codes with internal-error redaction, plus JSON runtime logs limited to request/error ID, normalized route, method, status and duration.
-- Added a bounded direct-peer fixed-window request limiter and 128-slot process concurrency gate with explicit correlated 429/503 responses; forwarded client-address headers are not trusted.
+- Added a bounded direct-client fixed-window request limiter and 128-slot process concurrency gate with explicit correlated 429/503 responses; only the rightmost address appended by the loopback Caddy proxy is trusted.
 - Added schema v7 native iceberg orders with full signed reservation, display-only book/market-stream quantity, deterministic replenishment behind queued liquidity, restart-stable priority, ordinary/mass/dead-man/Quant-kill cancellation and Quant Adapter submission.
 - Sanitized every public book order to remove account, reserved balance, Wallet authorization digest and cumulative private fill state.
 - Added schema v8 native scale plans with one Wallet authorization, deterministic exact price levels, aggregate atomic reservation/creation, persisted parent-child reconciliation, partial-fill status, whole-plan cancel, Mass Cancel/Dead-man one-plan counting and Quant Adapter submit/cancel/kill.
