@@ -2,7 +2,7 @@ name: music-platforms
 
 on:
   push:
-    branches: [codex/ecosystem-music, codex/final-music]
+    branches: [codex/ecosystem-music, codex/final-music, codex/integrate-finance-suite]
     paths: ["apps/music/**", "internal/music/**", "internal/accountaddress/**", "internal/buildinfo/**", "internal/nativewallet/**", "go.mod", "go.sum", ".github/workflows/music-platforms.yml"]
   pull_request:
     paths: ["apps/music/**", "internal/music/**", "internal/accountaddress/**", "internal/buildinfo/**", "internal/nativewallet/**", "go.mod", "go.sum", ".github/workflows/music-platforms.yml"]
