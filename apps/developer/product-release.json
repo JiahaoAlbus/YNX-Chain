@@ -2,9 +2,9 @@
   "productId": "ynx-developer-v1",
   "name": "YNX Developer / YNX AI Build",
   "branch": "codex/ynx-code-platform-v1",
-  "commit": "89286b8a6e302c75bd398dd9bf8f2f26160248a6",
+  "commit": "17ee9ae5bf50677a3316b0838884dd135de80599",
   "version": "0.2.0",
-  "sourceCheckpoint": "full-ynx-code-macos-package-with-complete-sbom-2026-08-10",
+  "sourceCheckpoint": "ynx-code-reconnect-and-ai-cancellation-runtime-2026-08-12",
   "surfaces": [
     "web-ide",
     "api-studio",
@@ -47,7 +47,7 @@
       "macosArm64Current": true,
       "webCurrent": true,
       "windowsCurrent": true,
-      "sourceCommit": "89286b8a6e302c75bd398dd9bf8f2f26160248a6",
+      "sourceCommit": "17ee9ae5bf50677a3316b0838884dd135de80599",
       "capabilities": [
         "React, TypeScript and Monaco multi-file workbench with tabs, split and diff views, search, replace, command palette, shortcuts and themes",
         "JavaScript, TypeScript, Python, Rust, Go, C++ and Solidity compile or test runtimes with bounded process execution",
