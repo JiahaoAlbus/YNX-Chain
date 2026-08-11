@@ -5,7 +5,24 @@ import (
 	"net/http/httptest"
 	"testing"
 	"time"
+
+	"github.com/JiahaoAlbus/YNX-Chain/internal/exchangeproduct"
 )
+
+func TestFinanceOwnerReadRoutePreservesCanonicalSignedPath(t *testing.T) {
+	mux := http.NewServeMux()
+	registerFinanceOwnerRead(mux, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != exchangeproduct.FinanceReadRoute {
+			t.Fatalf("route was rewritten to %q", r.URL.Path)
+		}
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	recorder := httptest.NewRecorder()
+	mux.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, exchangeproduct.FinanceReadRoute, nil))
+	if recorder.Code != http.StatusNoContent {
+		t.Fatalf("status=%d", recorder.Code)
+	}
+}
 
 func TestWalletGatewayProxyAllowsOnlyCanonicalSessionCompletion(t *testing.T) {
 	if got := httptest.NewRecorder(); func() bool {

@@ -72,6 +72,7 @@ func main() {
 	}()
 	api := exchangeproduct.NewServer(service)
 	mux := http.NewServeMux()
+	registerFinanceOwnerRead(mux, api)
 	mux.Handle("/api/", http.StripPrefix("/api", api))
 	mux.Handle("/wallet-gateway/", walletGatewayProxy(gatewayURL))
 	mux.Handle("/", spa(http.Dir("apps/exchange/web")))
@@ -80,6 +81,10 @@ func main() {
 	if err := server.ListenAndServe(); err != nil {
 		fatal("exchange_server_stopped", "error", err)
 	}
+}
+
+func registerFinanceOwnerRead(mux *http.ServeMux, api http.Handler) {
+	mux.Handle(exchangeproduct.FinanceReadRoute, api)
 }
 
 func walletGatewayProxy(rawURL string) http.Handler {

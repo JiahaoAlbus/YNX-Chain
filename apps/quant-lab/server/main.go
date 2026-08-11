@@ -28,6 +28,7 @@ func main() {
 		log.Fatal(e)
 	}
 	mux := http.NewServeMux()
+	registerFinanceOwnerRead(mux, s)
 	mux.Handle("/api/", http.StripPrefix("/api", s))
 	mux.HandleFunc("/wallet-auth/callback", func(w http.ResponseWriter, r *http.Request) { http.ServeFile(w, r, "apps/quant-lab/web/index.html") })
 	mux.HandleFunc("/wallet-action/callback", func(w http.ResponseWriter, r *http.Request) { http.ServeFile(w, r, "apps/quant-lab/web/index.html") })
@@ -35,6 +36,9 @@ func main() {
 	srv := http.Server{Addr: addr, Handler: headers(mux), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, WriteTimeout: 20 * time.Second}
 	log.Printf("YNX Quant Lab simulated/testnet preview on %s", addr)
 	log.Fatal(srv.ListenAndServe())
+}
+func registerFinanceOwnerRead(mux *http.ServeMux, api http.Handler) {
+	mux.Handle(quantlab.FinanceReadRoute, api)
 }
 func env(k, v string) string {
 	if x := strings.TrimSpace(os.Getenv(k)); x != "" {

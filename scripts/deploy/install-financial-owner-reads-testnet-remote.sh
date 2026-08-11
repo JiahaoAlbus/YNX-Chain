@@ -30,6 +30,19 @@ set -a
 set +a
 for key in YNX_EXCHANGE_ADMIN_API_KEY YNX_EXCHANGE_FINANCE_READ_KEY YNX_QUANT_FINANCE_READ_KEY; do [[ -n "${!key:-}" ]] || { echo "$key is missing" >&2; exit 1; }; done
 
+verify_owner_read() {
+  OWNER="$1" PORT="$2" KEY="$3" COMMIT="$source_commit" node <<'NODE'
+const http=require('http'),crypto=require('crypto');
+const owner=process.env.OWNER,path='/v1/integrations/finance/account';
+const account='0x1111111111111111111111111111111111111111';
+const timestamp=new Date().toISOString(),nonce=crypto.randomBytes(16).toString('hex');
+const canonical=['YNX_READ_INTEGRATION_V1','finance',owner,'GET',path,account,timestamp,nonce].join('\n');
+const signature=crypto.createHmac('sha256',process.env.KEY).update(canonical).digest('hex');
+const req=http.get({hostname:'127.0.0.1',port:Number(process.env.PORT),path,headers:{'X-YNX-Read-Consumer':'finance','X-YNX-Read-Account':account,'X-YNX-Read-Timestamp':timestamp,'X-YNX-Read-Nonce':nonce,'X-YNX-Read-Signature':signature}},res=>{let body='';res.on('data',c=>body+=c);res.on('end',()=>{try{const value=JSON.parse(body);if(res.statusCode!==200||value.sourceId!==owner||value.authorizedAccount!==account||value.readOnly!==true||value.payload?.buildCommit!==process.env.COMMIT)process.exit(1)}catch{process.exit(1)}})});
+req.setTimeout(5000,()=>req.destroy(new Error('timeout')));req.on('error',()=>process.exit(1));
+NODE
+}
+
 preflight_dir="$(mktemp -d /var/lib/ynx-exchange/.financial-preflight.XXXXXX)"
 exchange_log=/tmp/ynx-exchange-financial-preflight.log
 quant_log=/tmp/ynx-quant-financial-preflight.log
@@ -53,6 +66,7 @@ for _ in $(seq 1 30); do
   sleep 1
 done
 [[ "$exchange_ok" == 1 ]] || { tail -80 "$exchange_log" >&2; exit 1; }
+verify_owner_read exchange 17446 "$YNX_EXCHANGE_FINANCE_READ_KEY"
 
 export YNX_QUANT_HTTP_ADDR=127.0.0.1:17444 YNX_QUANT_STATE_PATH="$quant_state" YNX_QUANT_EXCHANGE_URL=http://127.0.0.1:17446/api
 runuser -u ynx --preserve-environment -- bash -c 'cd "$1" && exec "$2"' _ "$release_root/quant" "$release_root/quant/ynx-quant" >"$quant_log" 2>&1 &
@@ -63,6 +77,7 @@ for _ in $(seq 1 30); do
   sleep 1
 done
 [[ "$quant_ok" == 1 ]] || { tail -80 "$quant_log" >&2; exit 1; }
+verify_owner_read quant 17444 "$YNX_QUANT_FINANCE_READ_KEY"
 cleanup
 trap - EXIT
 
@@ -110,6 +125,8 @@ for _ in $(seq 1 40); do
   sleep 1
 done
 [[ "$runtime_ok" == 1 ]] || { systemctl status ynx-exchange.service ynx-quant.service ynx-finance.service --no-pager -l >&2 || true; exit 1; }
+verify_owner_read exchange 18446 "$YNX_EXCHANGE_FINANCE_READ_KEY"
+verify_owner_read quant 18444 "$YNX_QUANT_FINANCE_READ_KEY"
 rollback_required=0
 trap - EXIT
 printf 'financialOwnerReadDeploy=passed\nsourceCommit=%s\nexchangeSha256=%s\nquantSha256=%s\nbackup=%s\n' "$source_commit" "$exchange_sha" "$quant_sha" "$backup"
