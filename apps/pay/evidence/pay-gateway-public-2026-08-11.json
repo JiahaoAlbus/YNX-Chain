@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "service": "ynx-payd",
+  "verifiedAt": "2026-08-11",
+  "sourceCommit": "9cd787de3e70e9d9bfa6a67aec9cacfef3014e72",
+  "release": "ynx-payd-9cd787de3e70",
+  "network": "ynx_6423-1",
+  "evmChainId": 6423,
+  "asset": "YNXT",
+  "health": {
+    "ok": true,
+    "upstreamOk": true
+  },
+  "refundCompletionRoute": {
+    "method": "POST",
+    "path": "/pay/refunds/{id}/complete",
+    "unauthenticatedMethodProbeStatus": 405,
+    "available": true
+  },
+  "deployment": {
+    "strategy": "isolated candidate preflight, exact-source health and route check, root-only backup, atomic binary install, bounded restart, automatic rollback",
+    "backup": "/var/backups/ynx-chain/pay-gateway-predeploy-ynx-payd-9cd787de3e70"
+  },
+  "secretMaterialRecorded": false
+}

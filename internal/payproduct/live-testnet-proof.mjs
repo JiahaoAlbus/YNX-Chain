@@ -211,7 +211,7 @@ assert(analytics.refundedYnxt === refund.amount && analytics.netYnxt === invoice
 assert(csv.includes(invoice.id) && csv.includes(signedTransfer.hash), "reconciliation export omitted authoritative transaction evidence");
 if (reviewed.status === "applied") assert(state.audit?.some((entry) => entry.action === "ai.review" && entry.outcome === "applied"), "AI approval audit entry is missing");
 assert(state.audit?.some((entry) => entry.action === "webhook.deliver"), "webhook delivery audit entry is missing");
-assert(state.audit?.some((entry) => entry.action === "refund.committed" && entry.target === refund.id), "authoritative refund audit entry is missing");
+assert(state.audit?.some((entry) => entry.action === "refund.committed" && entry.objectId === refund.id), "authoritative refund audit entry is missing");
 
 assert(merchantSession.replayRejected === true && walletSessionReplayRejected === true, "Gateway challenge/session replay was not rejected");
 

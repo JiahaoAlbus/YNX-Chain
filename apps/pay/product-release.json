@@ -3,8 +3,8 @@
   "productId": "pay",
   "name": "YNX Pay",
   "branch": "codex/integrate-finance-suite",
-  "sourceCommit": "7ab9bd9f7fe35718908378bb48de3cdf3053aa0b",
-  "commit": "7ab9bd9f7fe35718908378bb48de3cdf3053aa0b",
+  "sourceCommit": "63582190fdff2a74460073f8b7ce79f37ec9e7f7",
+  "commit": "63582190fdff2a74460073f8b7ce79f37ec9e7f7",
   "version": "1.5.0",
   "releaseClass": "integration-candidate",
   "phase": "INTEGRATE",
@@ -15,7 +15,7 @@
     "tip": "testedLocal",
     "splitPayment": "testedLocal-consumer-flow",
     "recurringDraft": "testedLocal-non-executing",
-    "refund": "testedLocal",
+    "refund": "verifiedPublicTestnet",
     "dispute": "implementedLocal",
     "webhookRetryAndDeadLetter": "testedLocal",
     "sponsorship": "testedLocal-provider-unconfigured",
@@ -61,8 +61,8 @@
   },
   "backendDeployment": {
     "deployedPublic": true,
-    "release": "ynx-pay-product-7ab9bd9f7fe3",
-    "sourceCommit": "7ab9bd9f7fe35718908378bb48de3cdf3053aa0b",
+    "release": "ynx-pay-product-63582190fdff",
+    "sourceCommit": "63582190fdff2a74460073f8b7ce79f37ec9e7f7",
     "baseUrl": "https://rest.ynxweb4.com/app/pay-product",
     "healthUrl": "https://rest.ynxweb4.com/app/pay-product/health",
     "remoteDeployed": true,
@@ -112,7 +112,7 @@
       "command": "public HTTPS health plus primary-node systemd/readiness/auth-boundary verification",
       "result": "pass",
       "verifiedAt": "2026-08-11",
-      "details": "The public Pay Product health route reports the exact 7ab9bd9f7fe3 source and remote-canonical-pay-product. Pay Product and App Gateway are active; required store and central Pay dependencies are ready; a protected refund route without a Product Session fails closed with HTTP 401."
+      "details": "The public Pay Product health route reports the exact 63582190fdff source and remote-canonical-pay-product. Pay Product and App Gateway are active; required store and central Pay dependencies are ready; a protected refund route without a Product Session fails closed with HTTP 401."
     },
     {
       "command": "node scripts/verify/pay-product-public-session.mjs",
@@ -125,6 +125,12 @@
       "result": "pass",
       "verifiedAt": "2026-08-11",
       "details": "A Wallet-signed 7 YNXT transfer committed in block 951118. The invoice became committed only after exact authoritative central Pay matching. Receipt, requested-only refund, open dispute, delivered webhook, reconciliation, audit and replay rejection were verified; unavailable AI remained fail-closed."
+    },
+    {
+      "command": "apps/pay/node_modules/.bin/tsx internal/payproduct/live-testnet-proof.mjs",
+      "result": "pass",
+      "verifiedAt": "2026-08-11",
+      "details": "A fresh 7 YNXT payment committed in block 951654 and a merchant-Wallet-authorized 2 YNXT reverse transfer committed in block 951663. Central Pay two-phase refund completion, independent RPC matching, gross/refunded/net reconciliation, audit, webhook and replay rejection passed; unavailable AI remained fail-closed."
     },
     {
       "command": "npm test && npm run typecheck && npm run bundle-check && npm run test:web",
@@ -230,7 +236,7 @@
     "installFailureEvidence": "evidence/android/anr-emulator-failure.png"
   },
   "knownLimitations": [
-    "One current authoritative Testnet payment is proven. A two-account Split flow, sponsorship receipt and committed refund transaction are still missing; a requested refund is not completion.",
+    "Current authoritative Testnet payment and committed refund transactions are proven. A two-account Split flow and sponsorship receipt are still missing.",
     "Historical unsigned iOS Simulator install and cold-launch evidence exists for an older source. Current-source Android Debug and unsigned Release APKs build, but current-source install/cold-launch, production-signed device and store evidence remain absent.",
     "The current-source Pay Product backend is public at the recorded health URL, but the native clients have no hosted immutable production-signed download or store release.",
     "Quant verification is implemented locally, but no Quant/Data Fabric verifier key, staging evidence stream, or fresh Testnet service-fee payment has been accepted by the integration owner.",

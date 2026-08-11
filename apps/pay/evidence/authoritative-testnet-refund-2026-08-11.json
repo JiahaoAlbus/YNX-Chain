@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "proofType": "ynx-pay-authoritative-testnet-payment-and-refund",
+  "generatedAt": "2026-08-11T06:07:40.157Z",
+  "backend": {
+    "payProductSourceCommit": "63582190fdff2a74460073f8b7ce79f37ec9e7f7",
+    "payProductRelease": "ynx-pay-product-63582190fdff",
+    "payProductArchiveSha256": "631f7cc9b284112b6e1a47d3ad11e6de79a9109b95b426e76074d0d768cdc344",
+    "centralPayGatewaySourceCommit": "9cd787de3e70e9d9bfa6a67aec9cacfef3014e72",
+    "centralPayGatewayRelease": "ynx-payd-9cd787de3e70"
+  },
+  "network": "ynx_6423-1",
+  "evmChainId": 6423,
+  "asset": "YNXT",
+  "transport": "operator SSH tunnel to the public Testnet backend; canonical Wallet, App Gateway, Pay Product and central Pay services",
+  "merchant": {
+    "id": "mrc_eb0d5fee481c75980522",
+    "payoutAddress": "ynx1aceylznppsszljrlvrhw3ky0q4az6agma978mx"
+  },
+  "payer": "ynx1lzpkt48k88g90mxl690zph5pacps3kgnr2wtaj",
+  "invoice": {
+    "id": "inv_1de69595e676573625ef",
+    "centralInvoiceId": "d78b83f724c6a9add4d01eb5",
+    "intentId": "6f5700e3305462a78c6fd3d4",
+    "amount": 7,
+    "fee": 1,
+    "status": "committed"
+  },
+  "payment": {
+    "transactionHash": "0xf94a77286732cf0246c87282dad82b55a9ba78084149a20d25f8447eb32f3a0a",
+    "blockNumber": 951654,
+    "blockHash": "fcbdf4fbaa9ddcc9e83beb690253d034747c606e2b7a152dd1d038d476536ccb",
+    "amount": 7,
+    "fee": 1,
+    "receiptId": "161ad8c92cf438fe8dbee7d2",
+    "auditHash": "57d12bbe607b9f66b0b29b97f4e121814ea144086145be2c5ac003662e902172",
+    "auditId": "aud_9f831d73a0007f916f0b",
+    "finality": "committed",
+    "source": "authoritative-central-pay-api",
+    "confidence": "authoritative"
+  },
+  "refund": {
+    "id": "rfr_294cec5cb6ea93051d40",
+    "centralRefundId": "7133f803989ee1029c814807",
+    "transactionHash": "0x6c7180b3b0e0ec4973145215e7340141087805c06f25a4a574b9a5bc52dd7a7d",
+    "blockNumber": 951663,
+    "blockHash": "900e9a5b4d3d0dbe254e7238e579de6366f57a8a424db33bdeeebc434e81f691",
+    "amount": 2,
+    "fee": 1,
+    "status": "refunded",
+    "receiptId": "7133f803989ee1029c814807",
+    "auditHash": "accec1ca190e45300b742e39f076a86c0ff7af156d32b8b2325aa5f3eaf8f34f",
+    "finality": "committed",
+    "source": "authoritative-central-pay-api",
+    "confidence": "authoritative"
+  },
+  "independentRpcVerification": {
+    "paymentTransactionMatched": true,
+    "paymentBlockContainsTransaction": true,
+    "refundTransactionMatched": true,
+    "refundBlockContainsTransaction": true,
+    "paymentBlockTransactionCount": 1,
+    "refundBlockTransactionCount": 1,
+    "verifiedAt": "2026-08-11"
+  },
+  "dispute": {
+    "id": "dsp_ba636c43c7f907ef9d42",
+    "status": "open"
+  },
+  "webhook": {
+    "id": "whd_cd5f556ba9727a178488",
+    "attempt": 1,
+    "status": "delivered",
+    "payloadHash": "c6cf4c945df04e1d0c5610666b25edd1b1664bf2d372bd3ac30000042c59bebd"
+  },
+  "ai": {
+    "workflow": "anomaly_review",
+    "status": "provider_unavailable",
+    "fabricatedFallback": false
+  },
+  "reconciliation": {
+    "committedCount": 1,
+    "grossYnxt": 7,
+    "refundedYnxt": 2,
+    "netYnxt": 5,
+    "csvIncludesInvoice": true,
+    "csvIncludesPaymentTransaction": true
+  },
+  "auditCount": 14,
+  "walletCompletionReplayRejected": true,
+  "truthfulBoundary": "payment and refund reached product terminal states only after exact committed central Pay records matched their respective YNX Testnet transactions",
+  "secretMaterialRecorded": false
+}

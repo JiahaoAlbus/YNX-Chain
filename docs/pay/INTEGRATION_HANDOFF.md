@@ -4,7 +4,7 @@
 
 - Product owner: `04-pay`
 - Branch: `codex/integrate-finance-suite`
-- Source commit: `7ab9bd9f7fe35718908378bb48de3cdf3053aa0b`
+- Source commit: `63582190fdff2a74460073f8b7ce79f37ec9e7f7`
 - Owner validation PR: `#29` (draft; exact-source CI and unsigned Simulator evidence)
 - Canonical machine contract: `release/integration/pay-contract.json`
 - Central freeze owner: `29-integration`
