@@ -173,13 +173,18 @@ func TestOverviewPersistenceExportAndAIReview(t *testing.T) {
 		source := readSources[id].(map[string]any)
 		status := source["status"].(map[string]any)
 		action := source["action"].(map[string]any)
-		if source["ownerContractAccepted"] != false || source["readOnly"] != true || status["available"] != false || status["syncStatus"] != "owner-contract-pending" || action["configured"] != false {
+		wantAccepted := id == "exchange"
+		wantStatus := "owner-contract-pending"
+		if wantAccepted {
+			wantStatus = "integration-unconfigured"
+		}
+		if source["ownerContractAccepted"] != wantAccepted || source["readOnly"] != true || status["available"] != false || status["syncStatus"] != wantStatus || action["configured"] != false {
 			t.Fatalf("source %s did not remain fail-closed: %#v", id, source)
 		}
 	}
 	var sourceRegistry map[string]any
 	requestJSON(t, ts.URL+"/api/sources", http.MethodGet, nil, session.Token, "", 200, &sourceRegistry)
-	if sourceRegistry["consumerEnvelopeVersion"] != ReadSourceEnvelopeVersion || sourceRegistry["readOnly"] != true || sourceRegistry["integrationState"] != "owner-contracts-pending" {
+	if sourceRegistry["consumerEnvelopeVersion"] != ReadSourceEnvelopeVersion || sourceRegistry["readOnly"] != true || sourceRegistry["integrationState"] != "exchange-accepted-unavailable-other-owner-contracts-pending" {
 		t.Fatalf("source registry endpoint is not truthful: %#v", sourceRegistry)
 	}
 	var category Category

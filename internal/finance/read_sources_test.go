@@ -1,10 +1,15 @@
 package finance
 
 import (
+	"context"
 	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/JiahaoAlbus/YNX-Chain/internal/readintegration"
 )
 
 func TestReadSourcesStayPendingWithoutOwnerContracts(t *testing.T) {
@@ -19,7 +24,12 @@ func TestReadSourcesStayPendingWithoutOwnerContracts(t *testing.T) {
 		if !ok {
 			t.Fatalf("read-source %s is missing", id)
 		}
-		if source.OwnerContractAccepted || !source.ReadOnly || source.Status.Available || source.Status.SyncStatus != "owner-contract-pending" || source.Status.AsOf == nil || !source.Status.AsOf.Equal(observedAt) {
+		wantAccepted := id == "exchange"
+		wantStatus := "owner-contract-pending"
+		if wantAccepted {
+			wantStatus = "integration-unconfigured"
+		}
+		if source.OwnerContractAccepted != wantAccepted || !source.ReadOnly || source.Status.Available || source.Status.SyncStatus != wantStatus || source.Status.AsOf == nil || !source.Status.AsOf.Equal(observedAt) {
 			t.Fatalf("read-source %s does not fail closed: %+v", id, source)
 		}
 		if source.Action.Configured || source.Action.URL != "" || !source.Action.OpensOwnerProduct || !source.Action.RequiresOwnerApproval {
@@ -43,6 +53,58 @@ func TestReadSourcesStayPendingWithoutOwnerContracts(t *testing.T) {
 	for _, invalid := range []string{"http://exchange.ynx.example", "javascript:alert(1)", "https://user:pass@exchange.ynx.example"} {
 		if err := upstreams.ConfigureReadSourceActions(ReadSourceActionConfig{ExchangeURL: invalid}); err == nil {
 			t.Fatalf("unsafe action URL %q was accepted", invalid)
+		}
+	}
+}
+
+func TestExchangeReadSourceLoadsBoundAccountEvidence(t *testing.T) {
+	now := time.Date(2026, 8, 11, 9, 30, 0, 0, time.UTC)
+	secret := strings.Repeat("x", 32)
+	verifier, err := readintegration.NewVerifier(secret, "finance", "exchange", func() time.Time { return now })
+	if err != nil {
+		t.Fatal(err)
+	}
+	owner := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		account, verifyErr := verifier.Verify(r, "/v1/integrations/finance/account")
+		if verifyErr != nil {
+			http.Error(w, verifyErr.Error(), http.StatusUnauthorized)
+			return
+		}
+		_ = json.NewEncoder(w).Encode(ReadSourceEnvelope{
+			EnvelopeVersion: ReadSourceEnvelopeVersion, SourceID: "exchange", Owner: "07-exchange",
+			Network: ChainID, NativeAsset: "YNXT", AuthorizedAccount: account,
+			OwnerContractVersion: "exchange-finance-read-v1", PayloadSchema: "ynx-exchange-finance-account-v1",
+			AsOf: now, AsOfKind: "exchange-state-observed-at", Coverage: "authorized account state",
+			SyncStatus: "authoritative-persisted-exchange-state", ReadOnly: true,
+			Capabilities: append([]string(nil), acceptedReadSourceContracts["exchange"].AllowedCapabilities...),
+			Payload:      json.RawMessage(`{"balances":[{"asset":"YNXT","availableMicro":9000000}]}`),
+		})
+	}))
+	defer owner.Close()
+	upstreams := &Upstreams{client: owner.Client()}
+	if err := upstreams.ConfigureReadSourceIntegrations(ReadSourceIntegrationConfig{ExchangeURL: owner.URL, ExchangeKey: secret}); err != nil {
+		t.Fatal(err)
+	}
+	sources := upstreams.ReadSourcesForAccount(context.Background(), testAccount, now)
+	exchange := sources["exchange"]
+	if !exchange.OwnerContractAccepted || !exchange.Status.Available || exchange.Envelope == nil || exchange.Envelope.AuthorizedAccount != testAccount || !strings.Contains(string(exchange.Envelope.Payload), `"availableMicro":9000000`) {
+		t.Fatalf("Exchange evidence was not accepted: %+v", exchange)
+	}
+	if exchange.Status.Version != "exchange-finance-read-v1" || exchange.Status.SyncStatus != "authoritative-persisted-exchange-state" {
+		t.Fatalf("Exchange provenance is incomplete: %+v", exchange.Status)
+	}
+}
+
+func TestExchangeReadSourceConfigurationFailsClosed(t *testing.T) {
+	upstreams := &Upstreams{}
+	for _, config := range []ReadSourceIntegrationConfig{
+		{ExchangeURL: "https://exchange.example"},
+		{ExchangeKey: strings.Repeat("x", 32)},
+		{ExchangeURL: "not-a-url", ExchangeKey: strings.Repeat("x", 32)},
+		{ExchangeURL: "https://exchange.example", ExchangeKey: "short"},
+	} {
+		if err := upstreams.ConfigureReadSourceIntegrations(config); err == nil {
+			t.Fatalf("invalid integration config accepted: %+v", config)
 		}
 	}
 }

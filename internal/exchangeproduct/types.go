@@ -60,6 +60,7 @@ type Config struct {
 	DEXFinalitySeconds             int64
 	OracleURL                      string
 	Oracle                         RiskOracle
+	FinanceReadKey                 string
 }
 
 type GatewayAuthorizer interface {

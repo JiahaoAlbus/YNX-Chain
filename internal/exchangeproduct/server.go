@@ -19,6 +19,7 @@ import (
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/accountaddress"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/nativewallet"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/readintegration"
 	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 	"github.com/gorilla/websocket"
 	"golang.org/x/crypto/sha3"
@@ -35,6 +36,7 @@ type Server struct {
 	concurrency   chan struct{}
 	rateMu        sync.Mutex
 	rateByPeer    map[string]rateWindow
+	financeRead   *readintegration.Verifier
 }
 
 type rateWindow struct {
@@ -44,6 +46,9 @@ type rateWindow struct {
 
 func NewServer(service *Service) *Server {
 	s := &Server{service: service, quant: NewQuantExecutionAdapter(service), mux: http.NewServeMux(), concurrency: make(chan struct{}, 128), rateByPeer: map[string]rateWindow{}}
+	if service.cfg.FinanceReadKey != "" {
+		s.financeRead, _ = readintegration.NewVerifier(service.cfg.FinanceReadKey, "finance", "exchange", service.cfg.Now)
+	}
 	s.mux.HandleFunc("GET /health", s.health)
 	s.mux.HandleFunc("GET /ready", s.ready)
 	s.mux.HandleFunc("GET /metrics", s.metrics)
@@ -65,6 +70,7 @@ func NewServer(service *Service) *Server {
 	s.mux.HandleFunc("GET /v1/ws/user", s.userWebSocket)
 	s.mux.HandleFunc("GET /v1/ws/drop-copy", s.dropCopyWebSocket)
 	s.mux.HandleFunc("GET /v1/account", s.account)
+	s.mux.HandleFunc("GET "+FinanceReadRoute, s.financeAccount)
 	s.mux.HandleFunc("GET /v1/margin/account", s.marginAccount)
 	s.mux.HandleFunc("POST /v1/margin/transfer", s.marginTransfer)
 	s.mux.HandleFunc("GET /v1/perpetual/orderbook", s.perpetualBook)

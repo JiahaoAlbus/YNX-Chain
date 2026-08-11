@@ -1,6 +1,13 @@
 export type SourceStatus={available:boolean;source:string;version?:string;asOf?:string;asOfKind?:string;coverage?:string;syncStatus:string;error?:string};
 export type ReadSourceAction={label:string;url?:string;configured:boolean;owner:string;opensOwnerProduct:boolean;requiresOwnerApproval:boolean};
-export type ReadSource={id:string;name:string;owner:string;capability:string;consumerEnvelopeVersion:string;ownerContractAccepted:boolean;readOnly:boolean;status:SourceStatus;action:ReadSourceAction;forbiddenCapabilities:string[]};
+export type ExchangeBalance={asset:string;availableMicro:number;reservedMicro:number};
+export type ExchangeOrder={id:string;market:string;side:string;type:string;timeInForce:string;priceMicro:number;amountMicro:number;filledMicro:number;status:string;createdAt:string;updatedAt:string};
+export type ExchangeFill={id:string;market:string;side:string;priceMicro:number;amountMicro:number;feeMicro:number;createdAt:string};
+export type ExchangePosition={market:string;sizeMicro:number;entryPriceMicro:number;markPriceMicro:number;unrealizedPnlMicro:number;realizedPnlMicro:number;leverage:number;status:string;updatedAt:string};
+export type ExchangeFunding={id:string;market:string;positionSizeMicro:number;rateBps:number;paymentMicro:number;settledAt:string};
+export type ExchangeFinancePayload={product:string;productVersion:string;buildCommit:string;balances:ExchangeBalance[];orders:ExchangeOrder[];trades:ExchangeFill[];fees:Array<{asset:string;amountMicro:number;kind:string;createdAt:string}>;equityMicro:number;freeCollateralMicro:number;positions:ExchangePosition[];perpetualOrders:ExchangeOrder[];perpetualTrades:ExchangeFill[];funding:ExchangeFunding[];oracleStatus:string};
+export type ReadSourceEnvelope={envelopeVersion:string;sourceId:string;owner:string;network:string;nativeAsset:string;authorizedAccount:string;ownerContractVersion:string;payloadSchema:string;asOf:string;asOfKind:string;coverage:string;syncStatus:string;readOnly:boolean;capabilities:string[];payload:ExchangeFinancePayload};
+export type ReadSource={id:string;name:string;owner:string;capability:string;consumerEnvelopeVersion:string;ownerContractAccepted:boolean;readOnly:boolean;status:SourceStatus;action:ReadSourceAction;forbiddenCapabilities:string[];envelope?:ReadSourceEnvelope};
 export type Activity={id:string;type:string;direction:string;from?:string;to?:string;amountYnxt:number;feeYnxt:number;timestamp:string;blockNumber:number;categoryId?:string;source:string};
 export type PayReceipt={id:string;status:string;payer?:string;merchant?:string;amountYnxt:number;transactionHash?:string;createdAt:string;disputeUrl?:string;truthfulStatus:string};
 export type Category={id:string;name:string;color:string};

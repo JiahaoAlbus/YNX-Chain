@@ -37,3 +37,19 @@ test('Web companion exposes reviewed HTTPS actions only',()=>{
   assert.match(reviewed.target.innerHTML,/href="https:\/\/quant\.ynx\.example\/strategies"/);
   assert.match(reviewed.target.innerHTML,/noreferrer noopener/);
 });
+
+test('Web companion renders real bound Exchange evidence without inventing values',()=>{
+  const {target}=run({exchange:{id:'exchange',name:'YNX Exchange',owner:'07-exchange',ownerContractAccepted:true,status:{available:true,syncStatus:'authoritative-persisted-exchange-state',version:'exchange-finance-read-v1'},action:{configured:true,url:'https://exchange.ynx.example',label:'Open Exchange'},envelope:{asOf:'2026-08-11T09:00:00Z',coverage:'Authorized account only',payload:{productVersion:'0.1.0-testnet',balances:[{asset:'YNXT',availableMicro:9000000,reservedMicro:1000000}],orders:[{id:'order-1',market:'YNXT-YUSD_TEST',side:'buy',status:'open',amountMicro:2000000,priceMicro:3000000}],trades:[{id:'fill-1',market:'YNXT-YUSD_TEST',side:'buy',amountMicro:1000000,priceMicro:2500000}],fees:[{amountMicro:2000}],positions:[{market:'YNXT-PERP',sizeMicro:3000000,unrealizedPnlMicro:400000,status:'open'}],funding:[{id:'funding-1'}]}}}});
+  assert.match(target.innerHTML,/Live Exchange account evidence/);
+  assert.match(target.innerHTML,/9 YNXT/);
+  assert.match(target.innerHTML,/1 open · 1 fills/);
+  assert.match(target.innerHTML,/YNXT-PERP/);
+  assert.match(target.innerHTML,/1 funding records/);
+  assert.doesNotMatch(target.innerHTML,/UNAVAILABLE/);
+});
+
+test('Web companion escapes owner payload labels',()=>{
+  const {target}=run({exchange:{id:'exchange',name:'YNX Exchange',owner:'07-exchange',ownerContractAccepted:true,status:{available:true},action:{configured:false},envelope:{payload:{balances:[{asset:'<img src=x onerror=alert(1)>',availableMicro:1,reservedMicro:0}],orders:[],trades:[],fees:[],positions:[],funding:[]}}}});
+  assert.doesNotMatch(target.innerHTML,/<img/);
+  assert.match(target.innerHTML,/&lt;img/);
+});

@@ -22,6 +22,7 @@ type Upstreams struct {
 	DisputeBase       string
 	client            *http.Client
 	readSourceActions map[string]string
+	readIntegrations  map[string]readSourceIntegration
 }
 
 func NewUpstreams(explorerURL, payURL, payAPIKey, disputeBase string) (*Upstreams, error) {
@@ -60,7 +61,7 @@ func (u *Upstreams) Portfolio(ctx context.Context, account string, classificatio
 			Coverage:   "Pay events returned by the configured authorized Pay API, filtered to the authorized account",
 			SyncStatus: "unavailable",
 		},
-		ReadSources: u.ReadSources(observedAt),
+		ReadSources: u.ReadSourcesForAccount(ctx, account, observedAt),
 	}
 	var health struct {
 		OK             bool      `json:"ok"`

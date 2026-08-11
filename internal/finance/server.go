@@ -258,14 +258,20 @@ func (s *Server) portfolio(w http.ResponseWriter, r *http.Request, session Sessi
 	writeJSON(w, http.StatusOK, s.observedPortfolio(r.Context(), session.Account, state.Classifications))
 }
 
-func (s *Server) sources(w http.ResponseWriter, _ *http.Request, _ Session) {
-	sources := s.service.Upstreams.ReadSources(s.now().UTC())
+func (s *Server) sources(w http.ResponseWriter, r *http.Request, session Session) {
+	sources := s.service.Upstreams.ReadSourcesForAccount(r.Context(), session.Account, s.now().UTC())
 	s.observeReadSources(sources)
+	integrationState := "owner-contracts-pending"
+	if exchange := sources["exchange"]; exchange.Status.Available {
+		integrationState = "exchange-live-other-owner-contracts-pending"
+	} else if exchange.OwnerContractAccepted {
+		integrationState = "exchange-accepted-unavailable-other-owner-contracts-pending"
+	}
 	writeJSON(w, http.StatusOK, map[string]any{
 		"consumerEnvelopeVersion": ReadSourceEnvelopeVersion,
 		"readOnly":                true,
 		"sources":                 sources,
-		"integrationState":        "owner-contracts-pending",
+		"integrationState":        integrationState,
 	})
 }
 
