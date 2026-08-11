@@ -111,6 +111,49 @@ func TestServerRequiresCanonicalCentralSessionAndSecurityHeaders(t *testing.T) {
 	}
 }
 
+func TestGuestCanDiscoverAndRangeStreamOnlyPublishedNonExplicitTracks(t *testing.T) {
+	service := testService(t)
+	creator := testAccount(t, 41)
+	if _, err := service.UpsertProfile(creator, Profile{DisplayName: "Guest Trial Artist", ExplicitAllowed: true}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.OnboardCreator(creator, "Guest Trial Artist", "Owned test media"); err != nil {
+		t.Fatal(err)
+	}
+	published := publishTrack(t, service, creator, false)
+	draft, err := service.UploadTrack(creator, TrackUpload{Title: "Private Draft", ArtistName: "Guest Trial Artist", Audio: Upload{Reader: bytes.NewReader(toneWAV(1000))}, AudioProvenance: "repository-generated test tone", RightsBasis: "owned", Territories: []string{"TEST"}, EvidenceRef: "repository fixture"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	explicit := publishTrack(t, service, creator, true)
+	handler := NewServer(service, "https://music.ynx.test", nil).Handler()
+
+	catalog := httptest.NewRecorder()
+	handler.ServeHTTP(catalog, httptest.NewRequest(http.MethodGet, "/api/catalog", nil))
+	if catalog.Code != http.StatusOK || !strings.Contains(catalog.Body.String(), published.ID) || strings.Contains(catalog.Body.String(), draft.ID) || strings.Contains(catalog.Body.String(), explicit.ID) {
+		t.Fatalf("guest catalog boundary failed: %d %s", catalog.Code, catalog.Body.String())
+	}
+
+	mediaRequest := httptest.NewRequest(http.MethodGet, "/api/tracks/"+published.ID+"/media", nil)
+	mediaRequest.Header.Set("Range", "bytes=0-31")
+	media := httptest.NewRecorder()
+	handler.ServeHTTP(media, mediaRequest)
+	if media.Code != http.StatusPartialContent || media.Header().Get("Accept-Ranges") != "bytes" || media.Header().Get("Cache-Control") != "public, max-age=300" || media.Body.Len() != 32 {
+		t.Fatalf("guest range playback failed: %d headers=%v bytes=%d", media.Code, media.Header(), media.Body.Len())
+	}
+
+	privateTrack := httptest.NewRecorder()
+	handler.ServeHTTP(privateTrack, httptest.NewRequest(http.MethodGet, "/api/tracks/"+draft.ID, nil))
+	if privateTrack.Code != http.StatusNotFound {
+		t.Fatalf("guest accessed private draft: %d %s", privateTrack.Code, privateTrack.Body.String())
+	}
+	privateMedia := httptest.NewRecorder()
+	handler.ServeHTTP(privateMedia, httptest.NewRequest(http.MethodGet, "/api/tracks/"+explicit.ID+"/media", nil))
+	if privateMedia.Code != http.StatusForbidden {
+		t.Fatalf("guest accessed explicit media: %d %s", privateMedia.Code, privateMedia.Body.String())
+	}
+}
+
 func TestWalletCentralChallengeCompletionUnavailableReplayAndExactJSON(t *testing.T) {
 	service := testService(t)
 	handler := NewServer(service, "https://music.ynx.test", nil).Handler()

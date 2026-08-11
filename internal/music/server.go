@@ -54,10 +54,13 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /api/creator/onboarding", s.api("music.creator", s.creator))
 	s.mux.HandleFunc("POST /api/creator/tracks", s.api("music.creator", s.upload))
 	s.mux.HandleFunc("POST /api/creator/tracks/{id}/release", s.api("music.creator", s.release))
-	s.mux.HandleFunc("GET /api/catalog", s.api("music.library", s.catalog))
-	s.mux.HandleFunc("GET /api/tracks/{id}", s.api("music.library", s.track))
-	s.mux.HandleFunc("GET /api/tracks/{id}/media", s.api("music.playback", s.media))
-	s.mux.HandleFunc("GET /api/tracks/{id}/artwork", s.api("music.library", s.artwork))
+	// Published, non-explicit catalog media is a real guest trial surface. The
+	// Service still hides drafts and explicit releases without an account, while
+	// every library, history and creator mutation remains Wallet-authenticated.
+	s.mux.HandleFunc("GET /api/catalog", func(w http.ResponseWriter, r *http.Request) { s.catalog(w, r, "") })
+	s.mux.HandleFunc("GET /api/tracks/{id}", func(w http.ResponseWriter, r *http.Request) { s.track(w, r, "") })
+	s.mux.HandleFunc("GET /api/tracks/{id}/media", func(w http.ResponseWriter, r *http.Request) { s.media(w, r, "") })
+	s.mux.HandleFunc("GET /api/tracks/{id}/artwork", func(w http.ResponseWriter, r *http.Request) { s.artwork(w, r, "") })
 	s.mux.HandleFunc("PUT /api/library", s.api("music.library", s.library))
 	s.mux.HandleFunc("POST /api/playback/{id}/position", s.api("music.playback", s.position))
 	s.mux.HandleFunc("POST /api/playlists", s.api("music.library", s.playlist))
@@ -282,7 +285,7 @@ func (s *Server) serveMedia(w http.ResponseWriter, r *http.Request, a, kind stri
 	}
 	w.Header().Set("Content-Type", mime)
 	w.Header().Set("Accept-Ranges", "bytes")
-	w.Header().Set("Cache-Control", "private, no-store")
+	w.Header().Set("Cache-Control", "public, max-age=300")
 	http.ServeContent(w, r, path.Base(file), st.ModTime(), f)
 }
 func (s *Server) library(w http.ResponseWriter, r *http.Request, a string) {
