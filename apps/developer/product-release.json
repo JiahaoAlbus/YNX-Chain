@@ -57,11 +57,11 @@
       "verification": "Extracted official ZIP passed embedded provenance, 267-component CycloneDX SBOM, strict ad-hoc signing, cold launch, JavaScript/C++ toolchain detection, real bounded C++ compilation, workspace save, child cleanup and persisted second launch.",
       "publicBoundary": "The public Web IDE and macOS arm64 package run the full YNX Code workbench. The Windows x64 package is the current WebView2 hosted-workspace client: it opens the same public YNX Code service and passed a real remote C++ compile, but it does not claim a local Windows compiler sandbox.",
       "publicDeployment": {
-        "sourceCommit": "17ba15d6617ec83d7befe7cba4f064f0edecccf6",
+        "sourceCommit": "17ee9ae5bf50677a3316b0838884dd135de80599",
         "service": "ynx-code-candidate.service",
         "upstream": "127.0.0.1:18113",
         "rollbackService": "ynx-developer-web.service on 127.0.0.1:18111",
-        "verified": "7 runtimes, 6 LSPs, 12 concurrent tenants, tenant isolation, restart persistence, YNX Chain, hosted qwen3:4b Planner and fail-closed Wallet/BFT gate"
+        "verified": "7 runtimes, 6 LSPs, 12 concurrent tenants, tenant isolation, YNX Chain height 960400, hosted qwen3:4b Planner, disconnected-request cancellation and fail-closed Wallet/BFT gate"
       }
     },
     "apiStudio": {
