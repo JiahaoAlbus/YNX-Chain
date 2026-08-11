@@ -173,6 +173,29 @@ const committedRefund = await eventually(async () => {
 }, "authoritative refund evidence did not commit", 30, 1000);
 assert(committedRefund.evidence?.transactionHash === signedRefundTransfer.hash && committedRefund.evidence?.blockNumber === refundFinality.transaction.blockNumber && committedRefund.evidence?.finality === "committed", "authoritative refund evidence is incomplete or mismatched");
 
+const secondPayerSecret = validSecret();
+const secondPayer = accountIdentity(secondPayerSecret);
+const secondFaucet = await jsonRequest(`${faucetURL}/request`, { method: "POST", body: { address: secondPayer.evmAddress, amount: 100 } });
+assert(/^0x[0-9a-f]{64}$/.test(transactionHash(secondFaucet)), "second split payer faucet request did not return a transaction hash");
+await eventually(async () => (await fetchNativeAccount(secondPayer.account, { rpcURL })).balance >= 100, "second split payer funding did not become authoritative");
+const firstSplitPayBundle = await completePayWalletGateway(payer);
+const split = await merchantRequest("POST", "/v1/merchant/split-payments", { description: "Two-account authoritative YNX Testnet split", shares: [{ label: "Primary payer", amount: 3 }, { label: "Second payer", amount: 4 }], expiresInMinutes: 20, idempotencyKey: `split-${runID}` });
+assert(split.status === "open" && split.totalAmount === 7 && split.shares?.length === 2, "merchant split plan is invalid");
+const firstClaim = await payProductRequest("pay:settlement:submit", `/v1/split-payments/${split.id}/shares/${split.shares[0].id}/claim`, { idempotencyKey: `split-first-${runID}` }, firstSplitPayBundle);
+const firstShare = firstClaim.shares.find((share) => share.id === split.shares[0].id);
+assert(firstShare?.invoiceId && firstShare.status === "pending" && !firstShare.payerAccount, "first split share did not create a payer-private child invoice");
+const firstChildInvoice = await jsonRequest(`${gatewayURL}/app/pay-product/v1/invoices/${firstShare.invoiceId}`);
+const firstSplitSettlement = await settleClaimedInvoice(firstChildInvoice, payer, firstSplitPayBundle, `split-first-${runID}`);
+
+const secondPayBundle = await completePayWalletGateway(secondPayer);
+const secondClaim = await payProductRequest("pay:settlement:submit", `/v1/split-payments/${split.id}/shares/${split.shares[1].id}/claim`, { idempotencyKey: `split-second-${runID}` }, secondPayBundle);
+const secondShare = secondClaim.shares.find((share) => share.id === split.shares[1].id);
+assert(secondShare?.invoiceId && secondShare.status === "pending" && !secondShare.payerAccount, "second split share did not create a payer-private child invoice");
+const secondChildInvoice = await jsonRequest(`${gatewayURL}/app/pay-product/v1/invoices/${secondShare.invoiceId}`);
+const secondSplitSettlement = await settleClaimedInvoice(secondChildInvoice, secondPayer, secondPayBundle, `split-second-${runID}`);
+const committedSplit = await jsonRequest(`${gatewayURL}/app/pay-product/v1/split-payments/${split.id}`);
+assert(committedSplit.status === "committed" && committedSplit.shares.every((share) => share.status === "committed" && !share.payerAccount), "two-account split did not reach a public payer-redacted committed state");
+
 let state = await merchantRequest("GET", "/v1/merchant/state");
 const queuedDelivery = Object.values(state.deliveries || {})[0];
 assert(queuedDelivery?.id && queuedDelivery.payloadHash?.length === 64 && queuedDelivery.signature?.length === 64, "webhook delivery lacks signed replay-safe evidence");
@@ -206,14 +229,14 @@ if (reviewable.status === "review") {
 const analytics = await merchantRequest("GET", "/v1/merchant/analytics");
 const csv = await merchantRequest("GET", "/v1/merchant/reconciliation.csv", undefined, true);
 state = await merchantRequest("GET", "/v1/merchant/state");
-assert(analytics.committedCount === 1 && analytics.grossYnxt === invoice.amount, "merchant analytics are not derived from the committed invoice");
-assert(analytics.refundedYnxt === refund.amount && analytics.netYnxt === invoice.amount - refund.amount, "merchant analytics did not reconcile the authoritative refund");
-assert(csv.includes(invoice.id) && csv.includes(signedTransfer.hash), "reconciliation export omitted authoritative transaction evidence");
+assert(analytics.committedCount === 3 && analytics.grossYnxt === invoice.amount + split.totalAmount, "merchant analytics are not derived from the committed invoice and both split shares");
+assert(analytics.refundedYnxt === refund.amount && analytics.netYnxt === invoice.amount + split.totalAmount - refund.amount, "merchant analytics did not reconcile payment, Split and authoritative refund");
+assert(csv.includes(invoice.id) && csv.includes(signedTransfer.hash) && csv.includes(firstSplitSettlement.signedTransfer.hash) && csv.includes(secondSplitSettlement.signedTransfer.hash), "reconciliation export omitted authoritative payment or Split transaction evidence");
 if (reviewed.status === "applied") assert(state.audit?.some((entry) => entry.action === "ai.review" && entry.outcome === "applied"), "AI approval audit entry is missing");
 assert(state.audit?.some((entry) => entry.action === "webhook.deliver"), "webhook delivery audit entry is missing");
 assert(state.audit?.some((entry) => entry.action === "refund.committed" && entry.objectId === refund.id), "authoritative refund audit entry is missing");
 
-assert(merchantSession.replayRejected === true && walletSessionReplayRejected === true, "Gateway challenge/session replay was not rejected");
+assert(merchantSession.replayRejected === true && walletSessionReplayRejected === true && firstSplitPayBundle.replayRejected === true && secondPayBundle.replayRejected === true, "Gateway challenge/session replay was not rejected");
 
 const proof = {
   proofType: "ynx-pay-authoritative-testnet-payment",
@@ -230,12 +253,13 @@ const proof = {
   invoice: { id: invoice.id, centralInvoiceId: invoice.centralInvoiceId, intentId: invoice.intentId, amount: invoice.amount, fee: invoice.fee, status: receipt.status },
   settlement: receipt.settlement,
   refund: { id: committedRefund.id, amount: committedRefund.amount, status: committedRefund.status, transactionHash: signedRefundTransfer.hash, blockNumber: refundFinality.transaction.blockNumber, centralRefundId: committedRefund.centralRefundId, receiptId: committedRefund.evidence.receiptId, auditHash: committedRefund.evidence.auditHash, source: committedRefund.evidence.source, confidence: committedRefund.evidence.confidence },
+  split: { id: committedSplit.id, totalAmount: committedSplit.totalAmount, status: committedSplit.status, shares: [{ id: committedSplit.shares[0].id, amount: committedSplit.shares[0].amount, invoiceId: committedSplit.shares[0].invoiceId, transactionHash: firstSplitSettlement.signedTransfer.hash, blockNumber: firstSplitSettlement.finality.transaction.blockNumber, payer: payer.account }, { id: committedSplit.shares[1].id, amount: committedSplit.shares[1].amount, invoiceId: committedSplit.shares[1].invoiceId, transactionHash: secondSplitSettlement.signedTransfer.hash, blockNumber: secondSplitSettlement.finality.transaction.blockNumber, payer: secondPayer.account }], publicPayerAccountsRedacted: true },
   dispute: { id: dispute.id, status: dispute.status, trustEvidence: dispute.trustEvidence },
   webhook: { id: retried.id, attempt: retried.attempt, status: retried.status, payloadHash: retried.payloadHash, secretVersion: retried.secretVersion },
   ai: { id: reviewed.id, workflow: reviewed.workflow, outputLanguage: reviewed.outputLanguage, status: reviewed.status, decision: reviewed.decision, provider: reviewed.provider, model: reviewed.model, externalBlocker: aiExternalBlocker || undefined },
   reconciliation: { committedCount: analytics.committedCount, grossYnxt: analytics.grossYnxt, refundedYnxt: analytics.refundedYnxt, netYnxt: analytics.netYnxt, csvIncludesInvoice: true, csvIncludesTransaction: true },
   auditCount: state.audit.length,
-  replayRejected: merchantSession.replayRejected && walletSessionReplayRejected,
+  replayRejected: merchantSession.replayRejected && walletSessionReplayRejected && firstSplitPayBundle.replayRejected && secondPayBundle.replayRejected,
   truthfulBoundary: "paid only after authoritative central Pay API matched a committed YNX Testnet YNXT transaction",
 };
 await mkdir(dirname(outputPath), { recursive: true });
@@ -249,22 +273,59 @@ async function merchantRequest(method, path, body, raw = false) {
   return raw ? text : JSON.parse(text);
 }
 
-async function payProductRequest(scope, path, body) {
+async function payProductRequest(scope, path, body, bundle = { walletSession, deviceText }) {
+  const activeSession = bundle.walletSession;
+  const activeDevice = bundle.deviceText;
   const productBody = canonicalJSON(body);
   const introspectionBody = canonicalJSON({ requiredScopes: [scope] });
   const issuedAt = new Date();
-  const proof = encodeGatewayProofHeader(createProductSessionProof(walletSession, {
+  const proof = encodeGatewayProofHeader(createProductSessionProof(activeSession, {
     method: "POST",
     path: "/v1/wallet/sessions/introspect",
     bodyDigest: httpBodyDigest(introspectionBody),
     nonce: randomBytes(24).toString("base64url"),
     issuedAt: issuedAt.toISOString(),
-    expiresAt: new Date(Math.min(Date.parse(walletSession.expiresAt), issuedAt.getTime() + 60_000)).toISOString(),
-  }, deviceText));
+    expiresAt: new Date(Math.min(Date.parse(activeSession.expiresAt), issuedAt.getTime() + 60_000)).toISOString(),
+  }, activeDevice));
   const response = await fetch(gatewayURL + "/app/pay-product" + path, { method: "POST", headers: { "Content-Type": "application/json", "X-YNX-Product-Session-Proof": proof }, body: productBody, signal: AbortSignal.timeout(65_000) });
   const text = await response.text();
   if (!response.ok) throw new Error(`Pay Product request ${path} failed (${response.status}): ${text}`);
   return JSON.parse(text);
+}
+
+async function completePayWalletGateway(identity) {
+  const secret = validP256Secret();
+  const secretText = deviceSecret(secret);
+  const auth = createAuthorizationRequest(secretText, randomBytes(24));
+  const unsigned = { version: auth.version, requestDigest: requestDigest(auth), nonce: auth.nonce, chainId: auth.chainId, requestingProduct: auth.requestingProduct, productClientId: auth.productClientId, bundleId: auth.bundleId, productDeviceAlgorithm: auth.productDeviceAlgorithm, productDeviceKey: auth.productDeviceKey, callback: auth.callback, account: identity.account, accountPublicKey: identity.accountPublicKey, grantedScopes: [...auth.scopes], purpose: auth.purpose, issuedAt: auth.issuedAt, expiresAt: auth.expiresAt };
+  const approval = { ...unsigned, walletSignature: compactWalletSignature("YNX_WALLET_AUTH_APPROVAL_V1", unsigned, identity.secret) };
+  const now = new Date();
+  const challenge = createGatewayChallenge(approval, { challenge: randomBytes(24).toString("base64url"), expiresAt: new Date(Math.min(Date.parse(approval.expiresAt), now.getTime() + 60_000)).toISOString() }, now);
+  const body = { authorizationRequest: auth, walletApproval: approval, gatewayCompletion: createGatewayCompletion(challenge, secretText) };
+  const envelope = await jsonRequest(`${gatewayURL}/v1/wallet/sessions/complete`, { method: "POST", body });
+  assert(envelope.ok === true && envelope.result?.account === identity.account, "second payer Wallet/Gateway session binding failed");
+  const replay = await fetch(`${gatewayURL}/v1/wallet/sessions/complete`, { method: "POST", headers: { "Content-Type": "application/json" }, body: canonicalJSON(body) });
+  await replay.text();
+  assert(!replay.ok, "Gateway accepted a replayed second-payer completion");
+  return { walletSession: envelope.result, deviceText: secretText, replayRejected: true };
+}
+
+async function settleClaimedInvoice(childInvoice, identity, bundle, idempotencyPrefix) {
+  assert(childInvoice.version === 4 && childInvoice.expectedPayerHash?.length === 64, "split child invoice lacks expected-payer binding");
+  const quoteIssuedAt = new Date().toISOString();
+  const quoteExpiresAt = new Date(Math.min(Date.parse(childInvoice.expiresAt), Date.now() + 4 * 60_000)).toISOString();
+  const childIntent = paymentIntent({ requestId: randomBytes(24).toString("base64url"), sessionBinding: bundle.walletSession.sessionBinding, invoiceId: childInvoice.id, centralInvoiceId: childInvoice.centralInvoiceId, merchantId: childInvoice.merchantId, merchantName: childInvoice.merchantName, payoutAddress: childInvoice.payoutAddress, amount: childInvoice.amount, asset: childInvoice.asset, fee: childInvoice.fee, total: childInvoice.amount + childInvoice.fee, quoteIssuedAt, quoteExpiresAt, invoiceSignature: childInvoice.signature });
+  const account = await fetchNativeAccount(identity.account, { rpcURL });
+  const signedTransfer = signNativeTransfer({ secret: identity.secret, identity, to: childInvoice.payoutAddress, amount: childInvoice.amount, nonce: account.nonce + 1, balance: account.balance });
+  const broadcast = await broadcastNativeTransfer(signedTransfer, { rpcURL });
+  assert(broadcast.transaction.hash === signedTransfer.hash, "split broadcast substituted the Wallet transaction");
+  const finality = await trackNativeTransferFinality(signedTransfer.hash, { rpcURL, attempts: 30, intervalMs: 1000 });
+  assert(finality.status === "confirmed" && finality.transaction.blockNumber > 0, "split share transaction was not committed");
+  const resultUnsigned = { version: "1", intentDigest: paymentIntentDigest(childIntent), requestId: childIntent.requestId, invoiceId: childIntent.invoiceId, chainId: childIntent.chainId, account: identity.account, accountPublicKey: identity.accountPublicKey, transactionHash: signedTransfer.hash, issuedAt: new Date().toISOString() };
+  const result = { ...resultUnsigned, walletSignature: compactWalletSignature("YNX_PAY_WALLET_RESULT_V1", resultUnsigned, identity.secret) };
+  const committed = await payProductRequest("pay:settlement:submit", `/v1/invoices/${childInvoice.id}/settlements`, { intent: childIntent, result, idempotencyKey: `${idempotencyPrefix}-settlement` }, bundle);
+  assertCommitted(committed, signedTransfer.hash);
+  return { committed, signedTransfer, finality };
 }
 
 async function completeWalletGateway({ kind, identity, merchantId }) {

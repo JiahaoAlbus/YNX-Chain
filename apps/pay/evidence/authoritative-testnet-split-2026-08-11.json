@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "proofType": "ynx-pay-authoritative-two-account-split",
+  "generatedAt": "2026-08-11T06:29:10.463Z",
+  "backend": {
+    "payProductSourceCommit": "63582190fdff2a74460073f8b7ce79f37ec9e7f7",
+    "payProductRelease": "ynx-pay-product-63582190fdff",
+    "centralPayGatewaySourceCommit": "9cd787de3e70e9d9bfa6a67aec9cacfef3014e72"
+  },
+  "network": "ynx_6423-1",
+  "asset": "YNXT",
+  "merchant": {
+    "id": "mrc_635c49aa88e12e0f8468",
+    "payoutAddress": "ynx1au2a5yvjeehafw9xg0y4l9rm5g80nejpsryy53"
+  },
+  "split": {
+    "id": "spl_49e41855e55c1a56998c",
+    "totalAmount": 7,
+    "status": "committed",
+    "publicPayerAccountsRedacted": true,
+    "shares": [
+      {
+        "id": "shr_c5aafe0afe2546ed",
+        "amount": 3,
+        "invoiceId": "inv_f622d442fa30b3be21ed",
+        "payer": "ynx1775jrs9pya48jqgkqx62es8s2q2rlr98g9qyhx",
+        "transactionHash": "0xad60f4f676d10196ac0f6673e8d70c2846dd625d9673b1633a9d0f558e4cecb7",
+        "blockNumber": 951937,
+        "blockHash": "5fd23a90a897aecf440e1cf43bdddc9b5a27cf5bdd1315a800cfb1b5656d981d",
+        "fee": 1,
+        "rpcMatched": true,
+        "blockContainsTransaction": true
+      },
+      {
+        "id": "shr_818b722f97c208cb",
+        "amount": 4,
+        "invoiceId": "inv_cdc80094b8a444024b83",
+        "payer": "ynx1793wwvwd87prfgql6lx3yzmankg5as83cw7c6t",
+        "transactionHash": "0x6ae8407dadc597ae706cd463baf287094a41dc59e8bf9d3687f4f85518234a7f",
+        "blockNumber": 951948,
+        "blockHash": "f6696c7d7bc7835d7545d616c54858866d3f420a1bb54bf0cfa87354ee192b27",
+        "fee": 1,
+        "rpcMatched": true,
+        "blockContainsTransaction": true
+      }
+    ]
+  },
+  "companionPayment": {
+    "transactionHash": "0x158bb95a05bfe0e9a896b1f0c22db01e2a3db88bd1768fea55253843454fe5b5",
+    "blockNumber": 951917,
+    "amount": 7
+  },
+  "companionRefund": {
+    "transactionHash": "0xe4b6592663b2c964e68736caefdfed675170f7429afccdb54a5ede0b5995dd0a",
+    "blockNumber": 951924,
+    "amount": 2,
+    "status": "refunded"
+  },
+  "reconciliation": {
+    "committedInvoiceCount": 3,
+    "grossYnxt": 14,
+    "refundedYnxt": 2,
+    "netYnxt": 12,
+    "csvIncludesAllThreePaymentTransactions": true
+  },
+  "walletSessionReplayRejected": true,
+  "truthfulBoundary": "each share used a distinct expected-payer-bound Invoice v4 and became committed only after its own authoritative central Pay settlement matched a committed Testnet transaction",
+  "secretMaterialRecorded": false
+}

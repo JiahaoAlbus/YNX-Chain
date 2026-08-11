@@ -13,7 +13,7 @@
   "capabilities": {
     "authoritativeInvoiceSettlement": "verifiedPublicTestnet",
     "tip": "testedLocal",
-    "splitPayment": "testedLocal-consumer-flow",
+    "splitPayment": "verifiedPublicTestnet-two-account",
     "recurringDraft": "testedLocal-non-executing",
     "refund": "verifiedPublicTestnet",
     "dispute": "implementedLocal",
@@ -236,7 +236,7 @@
     "installFailureEvidence": "evidence/android/anr-emulator-failure.png"
   },
   "knownLimitations": [
-    "Current authoritative Testnet payment and committed refund transactions are proven. A two-account Split flow and sponsorship receipt are still missing.",
+    "Current authoritative Testnet payment, committed refund and two-account Split transactions are proven. A sponsorship receipt is still missing.",
     "Historical unsigned iOS Simulator install and cold-launch evidence exists for an older source. Current-source Android Debug and unsigned Release APKs build, but current-source install/cold-launch, production-signed device and store evidence remain absent.",
     "The current-source Pay Product backend is public at the recorded health URL, but the native clients have no hosted immutable production-signed download or store release.",
     "Quant verification is implemented locally, but no Quant/Data Fabric verifier key, staging evidence stream, or fresh Testnet service-fee payment has been accepted by the integration owner.",
