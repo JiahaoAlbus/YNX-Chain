@@ -38,7 +38,9 @@ install -m 0644 scripts/deploy/install-wallet-gateway-testnet-remote.sh "$releas
 find "$release_root" -type d -exec chmod 0755 {} +
 find "$release_root" -type f -exec chmod 0644 {} +
 chmod 0755 "$release_root/wallet-auth/scripts/ynx-wallet-gatewayd.mjs"
-registry_sha="$(sha256sum "$release_root/wallet-auth/central-registry.json" | awk '{print $1}')"
+if command -v xattr >/dev/null 2>&1; then xattr -cr "$release_root"; fi
+registry_file_sha="$(sha256sum "$release_root/wallet-auth/central-registry.json" | awk '{print $1}')"
+registry_runtime_sha="$(WALLET_REGISTRY_PATH="$release_root/wallet-auth/central-registry.json" node --input-type=module -e 'import {createHash} from "node:crypto"; import {readFileSync} from "node:fs"; import {canonicalJSON,parseCentralRegistryDocument} from "./packages/wallet-auth/src/index.js"; const value=parseCentralRegistryDocument(JSON.parse(readFileSync(process.env.WALLET_REGISTRY_PATH,"utf8"))); process.stdout.write(createHash("sha256").update(canonicalJSON(value)).digest("hex"))')"
 (
   cd "$release_root"
   find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS
@@ -49,7 +51,7 @@ COPYFILE_DISABLE=1 tar -C "$work" -czf "$tarball" "$release"
 tarball_sha="$(sha256sum "$tarball" | awk '{print $1}')"
 tar -tzf "$tarball" | grep -Fq "$release/wallet-auth/central-registry.json"
 tar -tzf "$tarball" | grep -Fq "$release/wallet-auth/scripts/ynx-wallet-gatewayd.mjs"
-printf 'walletGatewayPackage=passed\nrelease=%s\nsourceCommit=%s\nregistrySha256=%s\narchiveSha256=%s\n' "$release" "$source_commit" "$registry_sha" "$tarball_sha"
+printf 'walletGatewayPackage=passed\nrelease=%s\nsourceCommit=%s\nregistryFileSha256=%s\nregistryRuntimeSha256=%s\narchiveSha256=%s\n' "$release" "$source_commit" "$registry_file_sha" "$registry_runtime_sha" "$tarball_sha"
 
 if [[ "$YNX_WALLET_GATEWAY_TESTNET_DRY_RUN" == "1" ]]; then
   echo "walletGatewayDeploy=dry-run"
@@ -70,6 +72,6 @@ else
   sudo tar -xzf '$remote_tarball' -C /opt/ynx-chain/wallet-releases
   sudo chown -R root:root '$remote_release_dir'
 fi
-sudo bash '$remote_release_dir/install-wallet-gateway-testnet-remote.sh' '$remote_release_dir' '$source_commit' '$release' '$build_time' '$registry_sha'
+sudo bash '$remote_release_dir/install-wallet-gateway-testnet-remote.sh' '$remote_release_dir' '$source_commit' '$release' '$build_time' '$registry_file_sha' '$registry_runtime_sha'
 rm -f '$remote_tarball'"
 ynx_transport_ssh "wallet-gateway-primary" "$PRIMARY_NODE_SSH_KEY" "$remote" "$remote_command"
