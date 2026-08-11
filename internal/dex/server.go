@@ -101,6 +101,8 @@ type Server struct {
 	tokens        []Token
 	source        string
 	tokenProvider TokenProvider
+	sourceReady   bool
+	actionReady   bool
 }
 
 type TokenProvider interface{ Tokens() []Token }
@@ -110,6 +112,15 @@ func NewServer(store *Store, info buildinfo.Info, ingestionKey string, authorize
 }
 
 func (server *Server) SetTokenProvider(provider TokenProvider) { server.tokenProvider = provider }
+
+// SetRuntimeBoundary records whether the process has an authoritative market
+// source and whether that source also exposes canonical chain action routes.
+// A configured source is not by itself an executable market: health derives
+// availability from both this boundary and the presence of an indexed pool.
+func (server *Server) SetRuntimeBoundary(sourceReady, actionReady bool) {
+	server.sourceReady = sourceReady
+	server.actionReady = sourceReady && actionReady
+}
 
 func NewServerWithSource(store *Store, info buildinfo.Info, ingestionKey string, authorizer SessionAuthorizer, source string, tokens ...Token) (*Server, error) {
 	if store == nil || len(ingestionKey) < 32 {
@@ -164,7 +175,19 @@ func (server *Server) Handler() http.Handler {
 }
 
 func (server *Server) health(response http.ResponseWriter, _ *http.Request) {
-	writeJSON(response, http.StatusOK, map[string]any{"status": "ok", "productId": "ynx-dex", "chainId": ChainID, "source": server.source, "latestBlock": server.store.Analytics().LatestBlock})
+	analytics := server.store.Analytics()
+	marketAvailable := server.sourceReady && analytics.Pools > 0
+	writeJSON(response, http.StatusOK, map[string]any{
+		"status":                 "ok",
+		"productId":              "ynx-dex",
+		"chainId":                ChainID,
+		"source":                 server.source,
+		"latestBlock":            analytics.LatestBlock,
+		"indexedPools":           analytics.Pools,
+		"marketSourceConfigured": server.sourceReady,
+		"marketAvailable":        marketAvailable,
+		"executionAvailable":     marketAvailable && server.actionReady,
+	})
 }
 func (server *Server) version(response http.ResponseWriter, _ *http.Request) {
 	writeJSON(response, http.StatusOK, server.build)

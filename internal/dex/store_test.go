@@ -243,6 +243,14 @@ func TestServerEmptyTokenRegistryIsStableJSONArray(t *testing.T) {
 	if response.Code != http.StatusOK || !strings.Contains(response.Body.String(), `"items":[]`) {
 		t.Fatalf("empty token registry must be a stable JSON array: %d %s", response.Code, response.Body.String())
 	}
+	healthRequest := httptest.NewRequest(http.MethodGet, "/health", nil)
+	healthResponse := httptest.NewRecorder()
+	server.Handler().ServeHTTP(healthResponse, healthRequest)
+	for _, expected := range []string{`"indexedPools":0`, `"marketSourceConfigured":false`, `"marketAvailable":false`, `"executionAvailable":false`} {
+		if !strings.Contains(healthResponse.Body.String(), expected) {
+			t.Fatalf("empty runtime must fail closed on %s: %s", expected, healthResponse.Body.String())
+		}
+	}
 }
 
 func TestServerRejectsUnreviewedAndDuplicateTokenMetadata(t *testing.T) {

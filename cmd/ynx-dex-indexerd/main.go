@@ -45,7 +45,10 @@ func main() {
 	if factory != "" && nativeREST != "" {
 		log.Fatal("DEX_FACTORY_ADDRESS and YNX_DEX_NATIVE_REST_URL are mutually exclusive authoritative sources")
 	}
-	source := "indexed YNX Testnet EVM events"
+	source := "no verified YNX Testnet DEX market source configured"
+	if factory != "" {
+		source = "indexed confirmed YNX Testnet EVM DEX events"
+	}
 	if nativeREST != "" {
 		source = dex.NativeSource
 	}
@@ -53,6 +56,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	server.SetRuntimeBoundary(factory != "" || nativeREST != "", nativeREST != "")
 	if factory != "" {
 		startBlock, err := envUint("DEX_INDEXER_START_BLOCK", 0)
 		if err != nil || startBlock == 0 {
