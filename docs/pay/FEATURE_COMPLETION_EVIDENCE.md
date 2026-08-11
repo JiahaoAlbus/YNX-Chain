@@ -4,7 +4,7 @@ Status is evidence-based: `verified`, `partial`, `missing`, or `unavailable`.
 
 | Requirement | Status | Evidence or gap |
 |---|---|---|
-| Canonical Wallet/Gateway client bindings | partial | central registry is integrated and the public App Gateway enforces exact Pay identity/scopes, consumes one-use Product Session proofs and replaces them with a body/path-bound server HMAC assertion. Public real-session mutation evidence is still pending |
+| Canonical Wallet/Gateway client bindings | verified backend boundary | central registry is integrated and the public App Gateway enforces exact Pay identity/scopes, consumes one-use Product Session proofs and replaces them with a body/path-bound server HMAC assertion. A fresh public session crossed to Pay Product, replay failed with 401, revoke passed and post-revoke introspection failed with 403 `REVOKED`; this is authentication/routing evidence, not payment evidence |
 | Invoice/payment link/QR and review | verified locally | Pay client tests and production exports; no current install proof |
 | Authoritative committed receipt | verified locally | Go settlement matching and replay tests; fresh public transaction proof missing |
 | Refund request and dispute | partial | refund request, aggregate partial limit, owner/finance plus merchant-Wallet authorization, central submission and authoritative committed refund evidence pass local tests; no fresh public refund transaction. Dispute review remains Trust-owned |

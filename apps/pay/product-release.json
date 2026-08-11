@@ -115,6 +115,12 @@
       "details": "The public Pay Product health route reports the exact 9ab6be2562bd source and remote-canonical-pay-product. Pay Product and App Gateway are active; required store and central Pay dependencies are ready; a protected refund route without a Product Session fails closed with HTTP 401."
     },
     {
+      "command": "node scripts/verify/pay-product-public-session.mjs",
+      "result": "pass",
+      "verifiedAt": "2026-08-11",
+      "details": "A fresh public Pay Product Session completed with HTTP 200. Its one-use proof crossed the public App Gateway and reached Pay Product, which rejected the intentionally nonexistent invoice with HTTP 400; proof replay returned 401, revoke returned 200 and post-revoke introspection returned 403 REVOKED. No asset moved and no secret material was recorded."
+    },
+    {
       "command": "npm test && npm run typecheck && npm run bundle-check && npm run test:web",
       "cwd": "apps/pay",
       "result": "pass",

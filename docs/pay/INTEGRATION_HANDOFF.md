@@ -93,7 +93,7 @@ The mobile evidence is deliberately bounded: the iOS package is unsigned, Simula
 Central integration and the public backend route are now verified against the exact source commit. Complete Pay-product acceptance still requires:
 
 1. Preserve the accepted central Wallet registry Pay tuple and ordered scopes.
-2. Preserve the public App Gateway allowlist, one-use proof introspection and exact server assertion; add a public real-session mutation proof.
+2. Preserve the public App Gateway allowlist, one-use proof introspection and exact server assertion; the public real-session routing/replay/revoke proof is recorded in `apps/pay/evidence/pay-product-public-2026-08-11.json`.
 3. Replay, wrong product, wrong bundle, wrong device, scope widening, expiry and revoke vectors fail closed.
 4. Split claim reaches the Pay service through the product-scoped route without exposing server keys.
 5. `08-quant-lab` and `26-data-fabric-billing-ledger` sign the exact Quant evidence schema with a frozen, rotatable Ed25519 verifier key; stale, tampered, deposit-only and wrong-payer vectors behave as specified.

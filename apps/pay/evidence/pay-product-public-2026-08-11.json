@@ -24,6 +24,13 @@
     "centralPayRequiredAndReady": true,
     "appGatewayPayProductUpstreamHealthy": true,
     "unauthenticatedProtectedRouteHttpStatus": 401,
+    "canonicalPaySessionCompletionHttpStatus": 200,
+    "canonicalPaySessionRoutedMutationHttpStatus": 400,
+    "canonicalPaySessionRoutedMutationResult": "invoice not found",
+    "consumedProofReplayHttpStatus": 401,
+    "sessionRevocationHttpStatus": 200,
+    "postRevocationIntrospectionHttpStatus": 403,
+    "postRevocationError": "REVOKED",
     "walletBoundary": "one-use-canonical-product-session-proof",
     "browserProofForwardedUpstream": false,
     "serverAssertion": "YNX_PRODUCT_GATEWAY_ASSERTION_V1"
@@ -42,5 +49,7 @@
     "freshAuthoritativeRefundProven": false,
     "productionSigned": false,
     "storeReleased": false
-  }
+  },
+  "verificationScript": "scripts/verify/pay-product-public-session.mjs",
+  "secretMaterialRecorded": false
 }
