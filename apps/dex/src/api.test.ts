@@ -54,11 +54,10 @@ afterEach(() => vi.unstubAllGlobals());
 
 describe("DEX committed gateway boundary", () => {
   it("loads the currently deployed authoritative native DEX schema", async () => {
-    const responses = [
-      {
-        source: "authoritative chain-native YNX Testnet state",
-        nativeAsset: "YNXT",
-        items: [
+    const response = {
+      source: "authoritative chain-native YNX Testnet state",
+      updatedAt: new Date().toISOString(),
+      assets: [
           {
             id: "yusd-test",
             symbol: "YUSD",
@@ -68,26 +67,17 @@ describe("DEX committed gateway boundary", () => {
             transactionHash: HASH,
             auditHash: "d".repeat(64),
           },
-        ],
-      },
-      {
-        source: "authoritative chain-native YNX Testnet state",
-        items: [RAW_POOL],
-      },
-      {
-        source: "authoritative chain-native YNX Testnet state",
-        items: [RAW_EVENT],
-      },
-    ];
+      ],
+      pools: [RAW_POOL],
+      events: [RAW_EVENT],
+    };
     vi.stubGlobal(
       "fetch",
-      vi.fn().mockImplementation(() =>
-        Promise.resolve(
-          new Response(JSON.stringify(responses.shift()), {
+      vi.fn().mockResolvedValue(
+          new Response(JSON.stringify(response), {
             status: 200,
             headers: { "Content-Type": "application/json" },
           }),
-        ),
       ),
     );
     const snapshot = await loadDexSnapshot();
@@ -97,7 +87,7 @@ describe("DEX committed gateway boundary", () => {
       pools: 1,
     });
     expect(snapshot.pools[0]).toMatchObject({
-      contractVersion: "ynx-cpmm-v1",
+      contractVersion: "ynx-native-dex-cpmm-v1",
       txHash: HASH,
     });
     expect(snapshot.events[0].txHash).toBe(HASH);
@@ -195,37 +185,22 @@ describe("DEX committed gateway boundary", () => {
   });
 
   it("fails closed before rendering consensus integers that lose precision", async () => {
-    const envelopes = [
-      {
-        source: "ynx-consensus-abci",
-        version: "abci-state-v13",
-        failure: false,
-        assets: [],
-      },
-      {
-        source: "ynx-consensus-abci",
-        version: "abci-state-v13",
-        failure: false,
-        pools: [{ ...POOL, reserve0: Number.MAX_SAFE_INTEGER + 1 }],
-      },
-      {
-        source: "ynx-consensus-abci",
-        version: "abci-state-v13",
-        failure: false,
-        events: [],
-      },
-    ];
+    const envelope = {
+      source: "authoritative chain-native YNX Testnet state",
+      updatedAt: new Date().toISOString(),
+      assets: [],
+      pools: [{ ...RAW_POOL, reserve0: Number.MAX_SAFE_INTEGER + 1 }],
+      events: [],
+    };
     vi.stubGlobal(
       "fetch",
       vi
         .fn()
-        .mockImplementation(() =>
-          Promise.resolve(
-            new Response(JSON.stringify(envelopes.shift()), {
+        .mockResolvedValue(
+            new Response(JSON.stringify(envelope), {
               status: 200,
               headers: { "Content-Type": "application/json" },
             }),
-          ),
         ),
     );
     await expect(loadDexSnapshot()).rejects.toThrow(/safe-integer/);

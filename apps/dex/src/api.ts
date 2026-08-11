@@ -198,14 +198,34 @@ const event = (value: NativeEvent): ChainEvent => ({
 });
 
 export async function loadDexSnapshot(signal?: AbortSignal) {
-  const [assetEnvelope, poolEnvelope, eventEnvelope] = await Promise.all([
-    requestCollection<NativeAsset>("/dex/assets", "assets", signal),
-    requestCollection<NativePool>("/dex/pools", "pools", signal),
-    requestCollection<NativeEvent>("/dex/events", "events", signal),
-  ]);
-  const tokens = [ynxt, ...assetEnvelope.items.map(token)];
-  const pools = poolEnvelope.items.map(pool);
-  const events = eventEnvelope.items
+  const response = await fetch(`${BASE}/v1/native-snapshot`, {
+      signal,
+      headers: { Accept: "application/json" },
+      credentials: "omit",
+    }),
+    body = record(await response.json().catch(() => null));
+  if (
+    !response.ok ||
+    !body ||
+    body.source !== AUTHORITATIVE_SOURCE ||
+    typeof body.updatedAt !== "string" ||
+    !Array.isArray(body.assets) ||
+    !Array.isArray(body.pools) ||
+    !Array.isArray(body.events)
+  )
+    throw new Error(
+      (typeof body?.error === "string" && body.error) ||
+        `Authoritative DEX snapshot is unavailable (${response.status}).`,
+    );
+  const updatedAt = Date.parse(body.updatedAt);
+  if (!Number.isFinite(updatedAt) || Date.now() - updatedAt > 2 * 60_000)
+    throw new Error("Authoritative DEX snapshot is stale.");
+  const tokens = [ynxt, ...(body.assets as NativeAsset[]).map(token)];
+  const pools = (body.pools as NativePool[]).map((value) => ({
+    ...pool(value),
+    contractVersion: "ynx-native-dex-cpmm-v1" as const,
+  }));
+  const events = (body.events as NativeEvent[])
     .map(event)
     .sort((a, b) => b.blockNumber - a.blockNumber);
   const latestBlock = Math.max(
@@ -215,8 +235,8 @@ export async function loadDexSnapshot(signal?: AbortSignal) {
     ...tokens.map((item) => item.updatedBlock),
   );
   const analytics: Analytics = {
-    source: assetEnvelope.source,
-    version: assetEnvelope.version,
+    source: AUTHORITATIVE_SOURCE,
+    version: AUTHORITATIVE_VERSION,
     indexedEvents: events.length,
     pools: pools.length,
     swaps: events.filter((item) => item.type.startsWith("dex_swap_")).length,

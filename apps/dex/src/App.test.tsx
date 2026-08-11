@@ -9,13 +9,6 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
 
-const envelope = {
-  source: "ynx-consensus-abci",
-  version: "abci-state-v13",
-  failure: false,
-  coverage: { complete: true, returned: 0 },
-  asOf: null,
-};
 const json = (value: unknown) =>
   Promise.resolve({
     ok: true,
@@ -29,9 +22,14 @@ const nativeFetch = (
 ) =>
   vi.fn((input: RequestInfo | URL) => {
     const path = String(input);
-    if (path.includes("/dex/assets")) return json({ ...envelope, assets });
-    if (path.includes("/dex/pools")) return json({ ...envelope, pools });
-    if (path.includes("/dex/events")) return json({ ...envelope, events });
+    if (path.includes("/v1/native-snapshot"))
+      return json({
+        source: "authoritative chain-native YNX Testnet state",
+        updatedAt: new Date().toISOString(),
+        assets,
+        pools,
+        events,
+      });
     throw new Error(`unexpected request ${path}`);
   });
 

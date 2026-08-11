@@ -43,11 +43,13 @@ const pages: Page[] = [
   "governance",
   "docs",
 ];
-const CPMM_VERSION = "ynx-cpmm-v1";
+const CPMM_VERSION = "ynx-native-dex-cpmm-v1";
 const short = (value: string) =>
   value ? `${value.slice(0, 6)}…${value.slice(-4)}` : "—";
 const poolProtocol = (version: string) =>
-  version === CPMM_VERSION || version === "ynx-consensus-cpmm-v13"
+  version === CPMM_VERSION ||
+  version === "ynx-cpmm-v1" ||
+  version === "ynx-consensus-cpmm-v13"
     ? "Chain-native constant product"
     : "Unsupported pool";
 const poolMatches = (pool: Pool, tokenIn: string, tokenOut: string) => {
@@ -502,9 +504,9 @@ export default function App() {
               text={t.governanceText}
               rows={[
                 ["Pool model", CPMM_VERSION],
-                ["State version", "abci-state-v13"],
-                [t.status, "Consensus committed"],
-                [t.security, "Signed action + AppHash evidence"],
+                ["State version", "native-dex-schema-v1"],
+                [t.status, "Authoritative public Testnet state"],
+                [t.security, "Wallet-signed action + chain transaction evidence"],
               ]}
             />
           )}
@@ -514,8 +516,9 @@ export default function App() {
               text={t.docsText}
               rows={[
                 [t.network, "6423 / ynx_6423-1"],
-                ["Gateway routes", "/dex/assets · /dex/pools · /dex/events"],
-                [t.source, "ynx-consensus-abci"],
+                ["Read route", "/v1/native-snapshot"],
+                ["Action routes", "/dex/pools/{id}/…"],
+                [t.source, "authoritative chain-native YNX Testnet state"],
               ]}
             />
           )}
