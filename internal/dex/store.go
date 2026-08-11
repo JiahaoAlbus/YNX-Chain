@@ -139,6 +139,11 @@ func (store *Store) Pools() []Pool {
 		pool := latest[event.Pool]
 		pool.Address, pool.Token0, pool.Token1 = event.Pool, event.Token0, event.Token1
 		pool.ContractVersion, pool.UpdatedBlock, pool.UpdatedAt = event.ContractVersion, event.BlockNumber, event.Timestamp
+		if event.FeeBps != 0 {
+			pool.FeeBps = event.FeeBps
+		} else if pool.FeeBps == 0 {
+			pool.FeeBps = 30
+		}
 		if event.Reserve0 != "" {
 			pool.Reserve0, pool.Reserve1 = event.Reserve0, event.Reserve1
 		}

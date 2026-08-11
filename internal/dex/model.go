@@ -39,6 +39,7 @@ type Event struct {
 	LPAmount         string    `json:"lpAmount"`
 	Fee0             string    `json:"fee0"`
 	Fee1             string    `json:"fee1"`
+	FeeBps           uint16    `json:"feeBps,omitempty"`
 	Reserve0         string    `json:"reserve0"`
 	Reserve1         string    `json:"reserve1"`
 	Price0Cumulative string    `json:"price0Cumulative,omitempty"`
@@ -82,6 +83,9 @@ func (event Event) Validate() error {
 			return errors.New("invalid amount")
 		}
 	}
+	if event.FeeBps > 1000 {
+		return errors.New("invalid pool fee")
+	}
 	if (event.Reserve0 == "") != (event.Reserve1 == "") {
 		return errors.New("partial reserve snapshot")
 	}
@@ -110,6 +114,7 @@ type Pool struct {
 	Token1          string    `json:"token1"`
 	Reserve0        string    `json:"reserve0"`
 	Reserve1        string    `json:"reserve1"`
+	FeeBps          uint16    `json:"feeBps"`
 	ContractVersion string    `json:"contractVersion"`
 	UpdatedBlock    uint64    `json:"updatedBlock"`
 	UpdatedAt       time.Time `json:"updatedAt"`

@@ -179,7 +179,7 @@ func nativeIndexedEvent(value nativeEvent, pool nativePool, logIndex uint64) (Ev
 		BlockNumber: value.BlockHeight, BlockHash: value.BlockHash, TxHash: value.TxHash, LogIndex: logIndex,
 		Type: typeName, Pool: pool.ID, Account: value.Signer, Token0: pool.Asset0, Token1: pool.Asset1,
 		Amount0: strconv.FormatInt(amount0, 10), Amount1: strconv.FormatInt(amount1, 10), LPAmount: strconv.FormatInt(value.Shares, 10),
-		Fee0: strconv.FormatInt(fee0, 10), Fee1: strconv.FormatInt(fee1, 10), Timestamp: value.OccurredAt,
+		Fee0: strconv.FormatInt(fee0, 10), Fee1: strconv.FormatInt(fee1, 10), FeeBps: pool.FeeBps, Timestamp: value.OccurredAt,
 	}
 	if value.TxHash == pool.TxHash && value.BlockHeight == pool.BlockHeight {
 		event.Reserve0, event.Reserve1 = strconv.FormatInt(pool.Reserve0, 10), strconv.FormatInt(pool.Reserve1, 10)

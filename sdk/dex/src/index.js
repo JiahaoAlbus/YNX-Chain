@@ -19,7 +19,7 @@ export function parseToken(value) {
 
 export function parsePool(value) {
   exactObject(value, ["address", "feeBps", "reserve0", "reserve1", "token0", "token1", "updatedAt"]);
-  if ((!ADDRESS.test(value.address) && !NATIVE_POOL.test(value.address)) || !Number.isInteger(value.feeBps) || value.feeBps < 0 || value.feeBps > 100) fail("INVALID_POOL", "invalid pool identity or fee");
+  if ((!ADDRESS.test(value.address) && !NATIVE_POOL.test(value.address)) || !Number.isInteger(value.feeBps) || value.feeBps < 1 || value.feeBps > 1000) fail("INVALID_POOL", "invalid pool identity or fee");
   const token0 = parseToken(value.token0);
   const token1 = parseToken(value.token1);
   if (token0.address === token1.address) fail("INVALID_POOL", "pool tokens must be distinct");
@@ -217,7 +217,7 @@ function enumerateRoutes(tokenIn, tokenOut, rawPools, maxHops) {
 function routeKey(quote) { return quote.steps.map((step) => step.pool).join(":"); }
 function normalizeIdentifier(value) { return value.toLowerCase(); }
 function validMarketIdentity(pool, token0, token1) { return (ADDRESS.test(pool) || NATIVE_POOL.test(pool)) && (ADDRESS.test(token0) || NATIVE_ASSET.test(token0)) && (ADDRESS.test(token1) || NATIVE_ASSET.test(token1)); }
-function validateFee(value) { if (!Number.isInteger(value) || value < 0 || value > 100) fail("INVALID_FEE", "fee must be 0..100 bps"); }
+function validateFee(value) { if (!Number.isInteger(value) || value < 1 || value > 1000) fail("INVALID_FEE", "fee must be 1..1000 bps"); }
 function validateSlippage(value) { if (!Number.isInteger(value) || value < 1 || value > 5_000) fail("INVALID_SLIPPAGE", "slippage must be 1..5000 bps"); }
 function validateTxCommon(router, recipient, deadline, chainId) {
   if (!ADDRESS.test(router) || !ADDRESS.test(recipient) || chainId !== 6423) fail("INVALID_TRANSACTION", "invalid router, recipient, or chain");

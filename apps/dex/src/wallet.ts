@@ -38,6 +38,9 @@ const CHAIN_REST = (import.meta.env.VITE_CHAIN_REST_URL || "https://rest.ynxweb4
 
 type ProductDevice = Readonly<{productDeviceKey:string;productDeviceSecret:string}>;
 type WalletState = Readonly<{session:CentralWalletSession;device:ProductDevice}>;
+type PoolSnapshotInput = Readonly<{poolId:string;reserve0:number;reserve1:number;poolBlockHeight:number;poolUpdatedAt:string;asset0:string;asset1:string;feeBps:number}>;
+type AuthoritativePool = Readonly<{id:string;asset0:string;asset1:string;reserve0:number;reserve1:number;feeBps:number;totalShares:number;blockHeight:number;updatedAt:string}>;
+type ActionContext = Awaited<ReturnType<typeof authoritativeActionContext>>;
 let current:WalletState|null = null;
 
 export function buildWalletRequest(device:ProductDevice, now=new Date()):AuthorizationRequest {
@@ -98,7 +101,7 @@ export async function positionsProof(now=new Date()):Promise<string>{
   return encodeProductSessionProofHeader(proof);
 }
 
-export async function beginExactInputSwap(input:{poolId:string;assetIn:string;amountIn:number;minAmountOut:number;expectedAmount:number;reserve0:number;reserve1:number;poolBlockHeight:number;poolUpdatedAt:string;asset0:string;asset1:string;feeBps:number},now=new Date()):Promise<string>{
+async function authoritativeActionContext(input:PoolSnapshotInput,now:Date){
   if(!current&&!(await restoreWalletSession(now)))throw new Error("Connect YNX Wallet before requesting a transaction review.");
   const state=current!;
   if(!state.session.scopes.includes("dex:transaction:request"))throw new Error("Wallet session does not grant DEX transaction requests.");
@@ -108,16 +111,62 @@ export async function beginExactInputSwap(input:{poolId:string;assetIn:string;am
     fetch(`${CHAIN_REST}/dex/pools/${encodeURIComponent(input.poolId)}`,{headers:{Accept:"application/json"},credentials:"omit"}),
   ]);
   if(!accountResponse.ok||!poolResponse.ok)throw new Error("Authoritative account or pool state is unavailable.");
-  const accountEnvelope=await accountResponse.json() as {account?:{nonce?:number}};
-  const pool=await poolResponse.json() as {id?:string;asset0?:string;asset1?:string;reserve0?:number;reserve1?:number;feeBps?:number;blockHeight?:number;updatedAt?:string};
+  const account=await accountResponse.json() as {nonce?:number};
+  const poolEnvelope=await poolResponse.json() as {failure?:boolean;pool?:AuthoritativePool};
+  const pool=poolEnvelope.pool;
+  if(poolEnvelope.failure||!pool)throw new Error("Authoritative pool envelope is invalid.");
   if(pool.id!==input.poolId||pool.asset0!==input.asset0||pool.asset1!==input.asset1||pool.reserve0!==input.reserve0||pool.reserve1!==input.reserve1||pool.feeBps!==input.feeBps||pool.blockHeight!==input.poolBlockHeight||pool.updatedAt!==input.poolUpdatedAt)throw new Error("Pool changed after quote. Refresh before Wallet review.");
-  const nonceValue=accountEnvelope.account?.nonce;
+  if(!Number.isSafeInteger(pool.totalShares)||pool.totalShares<0)throw new Error("Authoritative pool share supply is invalid.");
+  const nonceValue=account.nonce;
   if(typeof nonceValue!=="number"||!Number.isSafeInteger(nonceValue)||nonceValue<0)throw new Error("Authoritative account nonce is invalid.");
+  return {state,pool,nonce:nonceValue+1};
+}
+
+async function beginPoolAction(input:PoolSnapshotInput,action:DexActionRequest["action"],payload:Record<string,string|number>,expectedAmount:number,now:Date,knownContext?:ActionContext){
+  const {state,nonce}=knownContext??await authoritativeActionContext(input,now);
   const issuedAt=now.toISOString(),deadlineUnix=Math.floor(now.getTime()/1000)+300;
-  const request:DexActionRequest={version:"1",chainId:6423,productClientId:"ynx-dex-web-v1",bundleId:"com.ynxweb4.dex.web",callback:"https://dex.ynxweb4.com/wallet-action/callback",sessionBinding:state.session.sessionBinding,account:state.session.account,nonce:nonceValue+1,action:"dex_swap_exact_input",payload:{poolId:input.poolId,assetIn:input.assetIn,amountIn:input.amountIn,minAmountOut:input.minAmountOut,deadlineUnix},quote:{poolId:input.poolId,poolBlockHeight:input.poolBlockHeight,poolUpdatedAt:input.poolUpdatedAt,asset0:input.asset0,asset1:input.asset1,reserve0:input.reserve0,reserve1:input.reserve1,feeBps:input.feeBps,expectedAmount:input.expectedAmount},issuedAt,expiresAt:new Date(now.getTime()+300_000).toISOString()};
+  const request:DexActionRequest={version:"1",chainId:6423,productClientId:"ynx-dex-web-v1",bundleId:"com.ynxweb4.dex.web",callback:"https://dex.ynxweb4.com/wallet-action/callback",sessionBinding:state.session.sessionBinding,account:state.session.account,nonce,action,payload:{...payload,poolId:input.poolId,deadlineUnix},quote:{poolId:input.poolId,poolBlockHeight:input.poolBlockHeight,poolUpdatedAt:input.poolUpdatedAt,asset0:input.asset0,asset1:input.asset1,reserve0:input.reserve0,reserve1:input.reserve1,feeBps:input.feeBps,expectedAmount},issuedAt,expiresAt:new Date(now.getTime()+300_000).toISOString()};
   await write("pendingDexAction",request);
   return createDexActionDeepLink(request,now);
 }
+
+export async function beginExactInputSwap(input:PoolSnapshotInput&{assetIn:string;amountIn:number;minAmountOut:number;expectedAmount:number},now=new Date()):Promise<string>{
+  return beginPoolAction(input,"dex_swap_exact_input",{assetIn:input.assetIn,amountIn:input.amountIn,minAmountOut:input.minAmountOut},input.expectedAmount,now);
+}
+
+export async function beginLiquidityAdd(input:PoolSnapshotInput&{amount0:number;amount1:number},now=new Date()):Promise<string>{
+  const context=await authoritativeActionContext(input,now),{pool}=context;
+  const expected=liquidityShares(BigInt(input.amount0),BigInt(input.amount1),pool);
+  const minShares=minimumBps(expected,50);
+  return beginPoolAction(input,"dex_liquidity_add",{amount0:input.amount0,amount1:input.amount1,minShares:toSafeNumber(minShares,"minimum LP shares")},toSafeNumber(expected,"expected LP shares"),now,context);
+}
+
+export async function beginLiquidityRemove(input:PoolSnapshotInput&{shares:number},now=new Date()):Promise<string>{
+  const context=await authoritativeActionContext(input,now),{pool}=context;
+  const [amount0,amount1]=liquidityAmounts(BigInt(input.shares),pool);
+  const minAmount0=minimumBps(amount0,50),minAmount1=minimumBps(amount1,50);
+  return beginPoolAction(input,"dex_liquidity_remove",{shares:input.shares,minAmount0:toSafeNumber(minAmount0,"minimum token 0"),minAmount1:toSafeNumber(minAmount1,"minimum token 1")},toSafeNumber(amount0+amount1,"expected withdrawal total"),now,context);
+}
+
+function liquidityShares(amount0:bigint,amount1:bigint,pool:AuthoritativePool){
+  if(amount0<=0n||amount1<=0n)throw new Error("Both liquidity amounts must be positive.");
+  const reserve0=BigInt(pool.reserve0),reserve1=BigInt(pool.reserve1),totalShares=BigInt(pool.totalShares);
+  if(reserve0<=0n||reserve1<=0n||totalShares<=0n)throw new Error("Initial pool funding requires the governed pool bootstrap flow.");
+  if(amount0*reserve1!==amount1*reserve0)throw new Error("Liquidity must match the current reserve ratio exactly.");
+  const shares=amount0*totalShares/reserve0;
+  if(shares<=0n)throw new Error("Liquidity amount is too small to mint a share.");
+  return shares;
+}
+
+function liquidityAmounts(shares:bigint,pool:AuthoritativePool):readonly[bigint,bigint]{
+  const reserve0=BigInt(pool.reserve0),reserve1=BigInt(pool.reserve1),totalShares=BigInt(pool.totalShares);
+  if(shares<=0n||totalShares<=0n||shares>totalShares)throw new Error("LP share amount is invalid for this pool.");
+  const amount0=shares*reserve0/totalShares,amount1=shares*reserve1/totalShares;
+  if(amount0<=0n||amount1<=0n)throw new Error("LP share amount is too small to withdraw both assets.");
+  return [amount0,amount1];
+}
+function minimumBps(value:bigint,slippageBps:number){return value*BigInt(10_000-slippageBps)/10_000n}
+function toSafeNumber(value:bigint,label:string){if(value<=0n||value>BigInt(Number.MAX_SAFE_INTEGER))throw new Error(`${label} exceeds the Wallet integer safety bound.`);return Number(value)}
 
 export async function completeDexAction(url:string,now=new Date()):Promise<string>{
   const request=await read<DexActionRequest>("pendingDexAction");
@@ -127,11 +176,12 @@ export async function completeDexAction(url:string,now=new Date()):Promise<strin
   let raw:unknown;
   try{raw=JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(encoded.replaceAll("-","+").replaceAll("_","/").padEnd(Math.ceil(encoded.length/4)*4,"=")),character=>character.charCodeAt(0))))}catch{throw new Error("Wallet action response encoding is invalid.")}
   const verified=parseDexActionResponse(raw,request,now);
-  const route=`/dex/pools/${encodeURIComponent(String(request.payload.poolId))}/swaps/exact-input`;
+  const suffix:Record<DexActionRequest["action"],string>={dex_swap_exact_input:"swaps/exact-input",dex_swap_exact_output:"swaps/exact-output",dex_liquidity_add:"liquidity/add",dex_liquidity_remove:"liquidity/remove"};
+  const route=`/dex/pools/${encodeURIComponent(String(request.payload.poolId))}/${suffix[request.action]}`;
   const response=await fetch(`${CHAIN_REST}${route}`,{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},credentials:"omit",body:JSON.stringify(verified.signedTransaction)});
   if(!response.ok)throw new Error(`Authoritative DEX broadcast failed (${response.status}).`);
-  const result=await response.json() as {transaction?:{hash?:string}};
-  if(result.transaction?.hash!==verified.transactionHash)throw new Error("Authoritative DEX response hash does not match the Wallet-signed transaction.");
+  const result=await response.json() as {failure?:boolean;event?:{txHash?:string;type?:string}};
+  if(result.failure||result.event?.txHash!==verified.transactionHash||result.event?.type!==request.action)throw new Error("Authoritative DEX event does not match the Wallet-signed transaction.");
   await remove("pendingDexAction");
   return verified.transactionHash;
 }

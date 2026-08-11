@@ -56,7 +56,7 @@ func TestNativePollerIndexesAuthoritativePoolEventsAndCurrentReserves(t *testing
 		t.Fatalf("authoritative native asset registry was not retained: %+v", tokens)
 	}
 	pool := store.Pools()[0]
-	if pool.Address != "dex_ynxt_yusdt" || pool.ContractVersion != "ynx-native-dex-cpmm-v1" || pool.Reserve0 != "100000" || pool.Reserve1 != "200000" {
+	if pool.Address != "dex_ynxt_yusdt" || pool.ContractVersion != "ynx-native-dex-cpmm-v1" || pool.Reserve0 != "100000" || pool.Reserve1 != "200000" || pool.FeeBps != 30 {
 		t.Fatalf("native current reserves were not retained: %+v", pool)
 	}
 	advanced, err = poller.PollOnce(context.Background())

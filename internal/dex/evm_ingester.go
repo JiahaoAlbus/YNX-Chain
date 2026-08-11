@@ -403,7 +403,7 @@ func (poller *EVMPoller) decodePoolLogs(ctx context.Context, logs []evmLog) ([]E
 }
 
 func baseEvent(log evmLog, block, index uint64, timestamp time.Time, pool poolIdentity, kind string) Event {
-	return Event{ID: strings.ToLower(log.TxHash) + ":" + strconv.FormatUint(index, 10), ChainID: ChainID, ContractVersion: "ynx-dex-cpmm-v1", BlockNumber: block, BlockHash: strings.ToLower(log.BlockHash), TxHash: strings.ToLower(log.TxHash), LogIndex: index, Type: kind, Pool: strings.ToLower(pool.Address), Token0: strings.ToLower(pool.Token0), Token1: strings.ToLower(pool.Token1), Amount0: "0", Amount1: "0", LPAmount: "0", Fee0: "0", Fee1: "0", Reserve0: "0", Reserve1: "0", Timestamp: timestamp}
+	return Event{ID: strings.ToLower(log.TxHash) + ":" + strconv.FormatUint(index, 10), ChainID: ChainID, ContractVersion: "ynx-dex-cpmm-v1", BlockNumber: block, BlockHash: strings.ToLower(log.BlockHash), TxHash: strings.ToLower(log.TxHash), LogIndex: index, Type: kind, Pool: strings.ToLower(pool.Address), Token0: strings.ToLower(pool.Token0), Token1: strings.ToLower(pool.Token1), Amount0: "0", Amount1: "0", LPAmount: "0", Fee0: "0", Fee1: "0", FeeBps: 30, Reserve0: "0", Reserve1: "0", Timestamp: timestamp}
 }
 
 func (poller *EVMPoller) getLogs(ctx context.Context, from, to uint64, address any) ([]evmLog, error) {

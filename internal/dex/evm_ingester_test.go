@@ -101,6 +101,9 @@ func TestEVMPollerConfirmedDecodeRestartAndReorg(t *testing.T) {
 	if len(positions) != 1 || positions[0].NetLPAmount != "500" || positions[0].AddedToken1 != "2000" {
 		t.Fatalf("positions=%#v", positions)
 	}
+	if pools := store.Pools(); len(pools) != 1 || pools[0].FeeBps != 30 {
+		t.Fatalf("pool fee provenance=%#v", pools)
+	}
 	restarted, err := NewEVMPoller(store, cfg)
 	if err != nil || restarted.cursor.NextBlock != 19 || len(restarted.cursor.Pools) != 1 {
 		t.Fatalf("restart=%#v %v", restarted, err)
