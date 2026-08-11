@@ -30,6 +30,7 @@ func main() {
 	mux := http.NewServeMux()
 	mux.Handle("/api/", http.StripPrefix("/api", s))
 	mux.HandleFunc("/wallet-auth/callback", func(w http.ResponseWriter, r *http.Request) { http.ServeFile(w, r, "apps/quant-lab/web/index.html") })
+	mux.HandleFunc("/wallet-action/callback", func(w http.ResponseWriter, r *http.Request) { http.ServeFile(w, r, "apps/quant-lab/web/index.html") })
 	mux.Handle("/", http.FileServer(http.Dir("apps/quant-lab/web")))
 	srv := http.Server{Addr: addr, Handler: headers(mux), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, WriteTimeout: 20 * time.Second}
 	log.Printf("YNX Quant Lab simulated/testnet preview on %s", addr)
