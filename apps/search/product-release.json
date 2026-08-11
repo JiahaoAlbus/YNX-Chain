@@ -4,27 +4,27 @@
     "number": 23,
     "name": "YNX Search",
     "slug": "search",
-    "version": "0.5.0-observability-preview",
+    "version": "0.6.1-central-candidate",
     "releaseClass": "Testnet Preview",
     "goalStatus": "active",
-    "phase": "FREEZE"
+    "phase": "INTEGRATE"
   },
   "source": {
-    "commit": "88ee867322ec11a243a483c04bab99676cc3416e",
+    "commit": "afb1b017c32dd95e593ba6269a6a67d47d9a40d3",
     "repository": "JiahaoAlbus/YNX-Chain"
   },
   "status": {
     "implementedLocal": true,
     "testedLocal": true,
     "installedLocal": false,
-    "integratedCentral": false,
-    "deployedStaging": true,
+    "integratedCentral": true,
+    "deployedStaging": false,
     "deployedPublic": false,
     "downloadHosted": false,
     "productionSigned": false,
     "storeReleased": false
   },
-  "staging": {
+  "historicalStaging": {
     "url": "https://search-staging.43.153.202.237.sslip.io",
     "deployedCommit": "d68b5d89c0d2e92744bf634c55b776397ec8f896",
     "currentSourceDeployed": false,
@@ -34,12 +34,23 @@
     "walletGateway": "unavailable",
     "trustGateway": "unavailable"
   },
+  "historicalPublic": {
+    "url": "https://web4.ynxweb4.com/search/",
+    "health": "https://web4.ynxweb4.com/search/api/health",
+    "deployedCommit": "a2601b6c1c49203fe386c8de55b5378fa86d1ff4",
+    "verifiedAt": "2026-08-11T00:00:14Z",
+    "currentSourceDeployed": false,
+    "coverage": "registered-authorized-sources-only",
+    "aiGateway": "unavailable",
+    "walletGateway": "unavailable",
+    "trustGateway": "unavailable"
+  },
   "verification": {
-    "completedAt": "2026-07-29",
+    "completedAt": "2026-08-11",
     "commands": [
       {
         "command": "cd apps/search && npm run check",
-        "result": "pass: 31/31 tests, service smoke, source-right enforcement, observability correlation, product-local secret scan, deterministic feed verification, and recovery drill"
+        "result": "pass: 45/45 tests, service smoke, source-right enforcement, external-provider boundaries, observability correlation, product-local secret scan, deterministic feed verification, and recovery drill"
       },
       {
         "command": "cd apps/search && npm run test:e2e",
@@ -56,6 +67,14 @@
       {
         "command": "cd packages/web4-permissions && npm test",
         "result": "pass: 15/15 shared Wallet, AI, index, i18n and registry contract tests"
+      },
+      {
+        "command": "cd packages/wallet-auth && npm test",
+        "result": "pass: 109/109 including the centrally accepted exact Search Web registration and fail-closed v1 migration"
+      },
+      {
+        "command": "cd apps/wallet && npm test",
+        "result": "pass: 39/39 including local review of the exact Search Web tuple"
       },
       {
         "command": "go test ./...",
@@ -91,7 +110,9 @@
     "Request, Trace and Error correlation identifiers",
     "bounded structured request and error logs without query strings or error messages",
     "fail-closed authenticated Prometheus metrics endpoint",
-    "reproducible local HTTP capacity benchmark with explicit scope boundaries"
+    "reproducible local HTTP capacity benchmark with explicit scope boundaries",
+    "provider-neutral external Search adapter with timeout, rate-limit, retention, response-size, provider-identity and private-network rejection",
+    "centrally accepted Search Web Wallet registration with exact public callback and least-privilege scopes"
   ],
   "evidence": [
     ".ai-bridge/full-goal-coverage.json",
@@ -109,7 +130,7 @@
     {
       "owner": "02-wallet-auth",
       "type": "dependency",
-      "item": "central Wallet/Auth registry and Product Session acceptance"
+      "item": "deploy the accepted registry and record one positive public Product Session callback"
     },
     {
       "owner": "14-ai",
@@ -137,6 +158,6 @@
       "item": "approved production source inventory and external search provider access"
     }
   ],
-  "nextAction": "Implement and test the provider-neutral external Search adapter with explicit unavailable, rate-limit, retention and source-separation semantics; then obtain central contract acceptance and deploy source commit 88ee867322ec11a243a483c04bab99676cc3416e to staging.",
-  "lastUpdated": "2026-07-29"
+  "nextAction": "Deploy source commit afb1b017c32dd95e593ba6269a6a67d47d9a40d3 with the accepted central Search registration, then record public Wallet callback, current-source capacity and approved external-provider evidence.",
+  "lastUpdated": "2026-08-11"
 }

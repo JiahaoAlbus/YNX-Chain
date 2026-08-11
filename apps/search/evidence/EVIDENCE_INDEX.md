@@ -4,7 +4,7 @@
 
 - Public UI: <https://web4.ynxweb4.com/search/>
 - Public health: <https://web4.ynxweb4.com/search/api/health>
-- `public-testnet-a2601b6c.json`: exact source commit, service/Caddy
+- `public-testnet-a2601b6c.json`: historical exact source commit, service/Caddy
   boundary, authorized source inventory, public browser flow and concurrent
   request results.
 - Staging: <https://search-staging.43.153.202.237.sslip.io>
@@ -14,10 +14,11 @@
 - `staging/search-empty.json`: historical staging evidence from before the
   public YNX-owned source inventory was approved.
 
-The current protected source commit is
-`88ee867322ec11a243a483c04bab99676cc3416e`. Historical staging remains on
-`d68b5d89c0d2e92744bf634c55b776397ec8f896`; it does not prove deployment of
-the current source.
+The current central source commit is
+`afb1b017c32dd95e593ba6269a6a67d47d9a40d3`. The public route remains on
+`a2601b6c1c49203fe386c8de55b5378fa86d1ff4` and historical staging remains on
+`d68b5d89c0d2e92744bf634c55b776397ec8f896`; neither proves deployment of the
+current source or its accepted Wallet registration.
 
 ## Visual evidence
 
@@ -55,8 +56,9 @@ product-local scanner is the valid evidence for this checkpoint.
 
 - `../product-release.json`: truthful local, historical staging and public
   states bound to the current protected source commit.
-- `../../../release/search/public-product-metadata.json`: Website/SEO handoff for the canonical
-  `ynxweb4.com/search` route; route deployment remains pending owner 28.
+- `../../../release/search/public-product-metadata.json`: Website/SEO handoff for
+  the canonical `ynxweb4.com/search` route; the historical preview is public,
+  while current-source deployment remains pending owner 28.
 - `../../../release/integration/search-contract.json`: proposed canonical Search
   source/result/auth/event/error/observability contract v1.4.0.
 - `../../../docs/integration/`: handoff, dependency acceptance and cross-product

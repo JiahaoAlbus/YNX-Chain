@@ -7,13 +7,13 @@
     "slug": "search",
     "owner": "23-search"
   },
-  "sourceCommit": "88ee867322ec11a243a483c04bab99676cc3416e",
+  "sourceCommit": "afb1b017c32dd95e593ba6269a6a67d47d9a40d3",
   "releaseStatus": {
     "implementedLocal": true,
     "testedLocal": true,
     "installedLocal": false,
-    "integratedCentral": false,
-    "deployedStaging": true,
+    "integratedCentral": true,
+    "deployedStaging": false,
     "deployedPublic": false,
     "downloadHosted": false,
     "productionSigned": false,
@@ -222,11 +222,12 @@
     }
   },
   "auth": {
-    "productClientId": "search.ynxweb4.com",
-    "bundleId": "com.ynx.search.web",
-    "requestedScopes": ["search.profile.read", "search.cases.write"],
+    "productClientId": "ynx-search-web",
+    "bundleId": "com.ynxweb4.search.web",
+    "requestedScopes": ["account:read", "search:cases"],
+    "callbacks": ["https://web4.ynxweb4.com/search/auth/callback"],
     "callbackClass": "reviewed exact HTTPS callback",
-    "sessionState": "not centrally integrated",
+    "sessionState": "central registration accepted; positive public callback pending deployment",
     "failClosedTests": [
       "wrong product",
       "wrong bundle",
@@ -274,7 +275,7 @@
     {
       "owner": "02-wallet-auth",
       "required": "accepted Product Session and exact callback/scope registry",
-      "status": "pending"
+      "status": "central registration accepted; positive public callback pending"
     },
     {
       "owner": "14-ai",
@@ -321,7 +322,6 @@
     "approved production source inventory",
     "external search provider credential and agreement",
     "AI Gateway client reference",
-    "Wallet/Auth registry acceptance",
     "Trust case acceptance",
     "public deployment authority and domain route"
   ]

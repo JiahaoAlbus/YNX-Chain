@@ -40,7 +40,7 @@ test("public Search feeds are deterministic, safe, truthful and hash-addressed",
 
   const products = JSON.parse(first["public-products.json"]);
   const search = products.items.find(item => item.name === "YNX Search");
-  assert.equal(search.publicationStatus, "Testnet Preview");
+  assert.equal(search.publicationStatus, metadata.status);
   assert.equal(search.routeVerified, false);
 
   const publicRelease = JSON.parse(first["public-releases.json"]).items[0];

@@ -6,9 +6,25 @@
   "title": "YNX Search — Transparent Search for the YNX Web4 Ecosystem",
   "metaDescription": "Search reviewed YNX products, documentation, releases, public chain evidence, governance and authorized public sources with visible citations, freshness and correction paths.",
   "h1": "Search YNX with sources you can verify",
-  "status": "Testnet Preview",
-  "releaseVersion": "0.5.0-observability-preview",
-  "sourceCommit": "88ee867322ec11a243a483c04bab99676cc3416e",
+  "status": "Central candidate; historical public Testnet preview remains online",
+  "releaseVersion": "0.6.1-central-candidate",
+  "sourceCommit": "afb1b017c32dd95e593ba6269a6a67d47d9a40d3",
+  "releaseStates": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": false,
+    "integratedCentral": true,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "historicalPublicPreview": {
+    "url": "https://web4.ynxweb4.com/search/",
+    "sourceCommit": "a2601b6c1c49203fe386c8de55b5378fa86d1ff4",
+    "currentSourceDeployed": false
+  },
   "brand": {
     "officialSiteName": "YNX Chain",
     "ecosystemName": "YNX Web4",
@@ -36,6 +52,8 @@
     "hash-verified backup, separate-path restore and deterministic public reindex",
     "Request, Trace and Error correlation with bounded structured logs",
     "protected Prometheus metrics and reproducible local capacity evidence",
+    "provider-neutral external Search adapter with explicit outage and retention boundaries",
+    "exact centrally accepted Web Wallet registration for correction and appeal cases",
     "12 languages and Arabic RTL",
     "light, dark and responsive PWA"
   ],
@@ -43,8 +61,8 @@
     "YNX Search covers only registered and authorized sources.",
     "It does not claim global web coverage, neutrality or complete protection from abuse.",
     "External provider and AI results are separate from the YNX index.",
-    "The current staging source inventory is intentionally empty.",
-    "The current source commit is not yet deployed to staging or public production."
+    "The older public preview is online, but its Wallet, AI and Trust gateways report unavailable.",
+    "The current central source commit is not yet deployed to staging or the public route."
   ],
   "faq": [
     {
@@ -85,5 +103,5 @@
     "apps/search/evidence/ui/search-ar-rtl-768x1024.png"
   ],
   "websiteOwner": "28-website",
-  "lastUpdated": "2026-07-29"
+  "lastUpdated": "2026-08-11"
 }
