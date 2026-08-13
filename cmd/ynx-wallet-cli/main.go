@@ -100,6 +100,7 @@ func run(args []string, out io.Writer, client *http.Client) error {
 		}
 		var result struct {
 			JSONRPC string          `json:"jsonrpc"`
+			ID      json.RawMessage `json:"id"`
 			Result  string          `json:"result"`
 			Error   json.RawMessage `json:"error"`
 		}
@@ -108,7 +109,7 @@ func run(args []string, out io.Writer, client *http.Client) error {
 		if err := decoder.Decode(&result); err != nil {
 			return fmt.Errorf("invalid RPC response: %w", err)
 		}
-		if len(result.Error) > 0 || result.JSONRPC != "2.0" || result.Result != "0x1917" {
+		if len(result.Error) > 0 || result.JSONRPC != "2.0" || string(result.ID) != "1" || result.Result != "0x1917" {
 			return fmt.Errorf("RPC did not prove YNX Testnet chain 0x1917")
 		}
 		return json.NewEncoder(out).Encode(map[string]any{"connected": true, "chainId": result.Result, "network": "YNX Testnet", "rpc": *rpc, "source": "eth_chainId", "asOf": time.Now().UTC().Format(time.RFC3339Nano)})
