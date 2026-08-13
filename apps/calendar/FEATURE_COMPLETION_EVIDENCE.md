@@ -69,7 +69,7 @@ Recovery-specific tests:
 1. Security/SRE encrypted offsite retention, independent key escrow and production-scale restore drill.
 2. Integration acceptance of Calendar contract and CAL-X-013.
 3. AI, Mail and Data Fabric Testnet flows plus shared Integration acceptance; canonical Wallet already has direct public proof.
-4. Current-source Android, iOS and macOS install/cold-start evidence.
+4. Healthy-device current-source Android interaction evidence plus iOS and macOS install/cold-start evidence. The current Android redesign APK builds and rendered after installation, but the dedicated API 36 AVD produced system/Launcher ANRs and is retained as diagnostic rather than accepted evidence.
 5. Current-source SBOM, provenance, immutable hashes and hosted artifacts.
 6. Continue Website product/support/privacy/security/status route probes and keep the published registry synchronized.
 7. Representative performance, capacity, RTO/RPO and unit-economics measurement.

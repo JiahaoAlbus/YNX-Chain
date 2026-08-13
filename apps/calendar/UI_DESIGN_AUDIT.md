@@ -42,3 +42,10 @@ Status: current-source implementation deployed to the public Testnet runtime and
 - The new explanatory section copy still requires complete translation across all 12 Web catalogs; English remains the default and no new Chinese-first surface was introduced.
 - Current-source native packages, production signing and real public two-user Wallet collaboration are not yet accepted.
 - The exact public sign-in and guest Calendar surface passed ComputerControl; a full current-release Wallet two-user interaction remains a separate integration gate.
+
+## Android native redesign diagnostic — current working source
+
+- The former one-column `YNX / CALENDAR` proof UI was replaced with a native Calendar workspace: proportional supplied YNX asset, English-first identity, connection/retry status, date navigation, Day/Week/Month/Agenda selection, seven-day strip, guest agenda, reviewed event editor, scheduling-assistant boundary and Wallet recovery path.
+- `ImageView.ScaleType.CENTER_INSIDE`, `adjustViewBounds` and a dedicated 72×38 dp slot preserve the supplied asset ratio. The app does not reconstruct or stretch the mark.
+- The current debug APK builds and installed on a freshly wiped dedicated API 36 Calendar AVD. The app surface rendered and showed the new hierarchy, but the emulator repeatedly raised unrelated Pixel Launcher, Process System, GMS and Phone ANRs, `uiautomator` timed out, and the emulator graphics/services later failed. That is retained as an unhealthy test environment; it is not counted as accepted Android interaction evidence.
+- A clean dedicated emulator/device rerun still has to prove create/review, persistence after restart, missing-Wallet fallback and callback rejection without a system ANR. Production signing and hosting remain unclaimed.
