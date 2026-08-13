@@ -796,6 +796,28 @@ export declare function probePublicERC4337Readiness(config: {
   timeoutMs?: number;
   fetchImpl?: typeof fetch;
 }): Promise<PublicERC4337Readiness>;
+export type PublicGatewayIdentifierStage = Readonly<{
+  status: number;
+  requestIdPresent: boolean;
+  requestIdValid: boolean;
+  traceIdPresent: boolean;
+  traceIdValid: boolean;
+  errorIdExpected: boolean;
+  errorIdPresent: boolean;
+  errorIdValid: boolean;
+}>;
+export declare function summarizePublicGatewayIdentifierEvidence(input: Record<
+  "completion" | "introspection" | "replay" | "revocation" | "postRevocation",
+  { status: number; requestId: string | null; traceId: string | null; errorId: string | null }
+>): Readonly<{
+  stages: Readonly<Record<string, PublicGatewayIdentifierStage>>;
+  requestIdCompleteness: boolean;
+  traceIdCompleteness: boolean;
+  errorIdCompleteness: boolean;
+  unexpectedErrorIdAbsent: boolean;
+  allRequiredIdentifiersComplete: boolean;
+  identifierValuesRecorded: false;
+}>;
 export declare const STRATEGY_MANDATE_SCHEMA_VERSION: 2;
 export declare const STRATEGY_ACTION_SCHEMA_VERSION: 1;
 export declare const STRATEGY_MANDATE_STORE_SCHEMA_VERSION: 1;

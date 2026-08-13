@@ -12,6 +12,7 @@ import {
   parseAuthorizationRequest,
   signAuthorization,
   signGatewayChallenge,
+  summarizePublicGatewayIdentifierEvidence,
 } from "../src/index.js";
 import { encodeGatewayProofHeader } from "../src/gateway-node-host.js";
 
@@ -66,6 +67,13 @@ const revoke = await request("/v1/wallet/sessions/revoke", revokeBody, proof(ses
 assert(revoke.status === 200 && revoke.payload?.ok === true, "public Product Session revoke failed");
 const postRevoke = await request("/v1/wallet/sessions/introspect", introspectionBody, proof(session, device.productDeviceSecret, "/v1/wallet/sessions/introspect", introspectionBody));
 assert(postRevoke.status === 403 && postRevoke.payload?.error?.code === "REVOKED", "revoked public Product Session remained active");
+const identifierEvidence = summarizePublicGatewayIdentifierEvidence({
+  completion: identifiers(completion),
+  introspection: identifiers(introspection),
+  replay: identifiers(replay),
+  revocation: identifiers(revoke),
+  postRevocation: identifiers(postRevoke),
+});
 
 console.log(JSON.stringify({
   schemaVersion: 1,
@@ -83,7 +91,7 @@ console.log(JSON.stringify({
   postRevocationStatus: postRevoke.status,
   postRevocationCode: postRevoke.payload.error.code,
   finalStateDigest: postRevoke.payload.stateDigest,
-  requestIdsPresent: [completion, introspection, replay, revoke, postRevoke].every((item) => /^[0-9a-f-]{36}$/.test(item.requestId)),
+  identifierEvidence,
   cacheControlNoStore: [completion, introspection, replay, revoke, postRevoke].every((item) => item.cacheControl === "no-store"),
   assetMoved: false,
   userClaimed: false,
@@ -128,7 +136,14 @@ async function request(path, body, proofHeader) {
   assert(Buffer.byteLength(text, "utf8") <= 1_048_576, "public Gateway response exceeded the local verification bound");
   let payload;
   try { payload = JSON.parse(text); } catch { throw new Error("public Gateway response was not JSON"); }
-  return { cacheControl: response.headers.get("cache-control"), payload, requestId: response.headers.get("x-request-id"), status: response.status };
+  return {
+    cacheControl: response.headers.get("cache-control"),
+    payload,
+    requestId: response.headers.get("x-request-id"),
+    traceId: response.headers.get("x-trace-id"),
+    errorId: response.headers.get("x-error-id"),
+    status: response.status,
+  };
 }
 
 function publicBaseURL(value) {
@@ -142,4 +157,5 @@ function publicBaseURL(value) {
 
 function accountSecret() { return randomBytes(32).toString("hex"); }
 function nonce() { return randomBytes(24).toString("base64url"); }
+function identifiers(value) { return { status: value.status, requestId: value.requestId, traceId: value.traceId, errorId: value.errorId }; }
 function assert(condition, message) { if (!condition) throw new Error(message); }
