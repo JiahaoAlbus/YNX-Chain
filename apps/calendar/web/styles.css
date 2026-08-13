@@ -679,6 +679,14 @@ dialog::backdrop {
 .signin-card > .primary {
   width: 100%;
 }
+.signin-card > .quiet {
+  width: 100%;
+  margin-top: 8px;
+}
+.guest-try {
+  border-color: var(--blue);
+  color: var(--blue);
+}
 .signin-card small {
   display: block;
   margin-top: 15px;
@@ -750,8 +758,11 @@ dialog::backdrop {
     border-radius: 50%;
     font-size: 0;
   }
-  .sidebar > .primary span {
+  .sidebar > .primary span:first-child {
     font-size: 24px;
+  }
+  .sidebar > .primary span:last-child {
+    display: none;
   }
   .sidebar section {
     display: none;

@@ -1,6 +1,7 @@
 const state = {
   token: "",
   user: null,
+  guest: false,
   view: localStorage.getItem("ynx.calendar.view") || "week",
   focusDate: new Date(),
   weekStart: startOfWeek(new Date()),
@@ -11,6 +12,7 @@ const state = {
   editing: null,
   aiJob: null,
 };
+const guestEventsKey = "ynx.calendar.guestEvents";
 if ((navigator.language || "").toLowerCase().startsWith("ar")) {
   document.documentElement.lang = "ar";
   document.documentElement.dir = "rtl";
@@ -88,8 +90,27 @@ async function restoreSession() {
 function signOut(show = true) {
   state.token = "";
   state.user = null;
+  state.guest = false;
   $("#signin").hidden = false;
   if (show) toast("Calendar session revoked");
+}
+function guestEvents() {
+  try {
+    const events = JSON.parse(localStorage.getItem(guestEventsKey) || "[]");
+    return Array.isArray(events) ? events : [];
+  } catch {
+    return [];
+  }
+}
+function enterGuest() {
+  state.token = "";
+  state.guest = true;
+  state.user = { handle: "@guest" };
+  $("#signin").hidden = true;
+  $("#account").textContent = "G";
+  $("#account").setAttribute("aria-label", tr("guest_boundary", "Local guest trial; no Wallet session"));
+  toast(tr("guest_boundary", "Local guest trial · device-only drafts · no sync, sharing, AI, or chain writes"));
+  loadEvents();
 }
 function renderFrame() {
   const days = $("#days");
@@ -139,8 +160,27 @@ function renderFrame() {
   }
 }
 async function loadEvents() {
-  if (!state.token) return;
   renderFrame();
+  if (state.guest) {
+    const events = guestEvents();
+    let fromDate = state.weekStart,
+      toDate = plusDays(state.weekStart, 7);
+    if (state.view === "day") {
+      fromDate = new Date(state.focusDate);
+      fromDate.setHours(0, 0, 0, 0);
+      toDate = plusDays(fromDate, 1);
+    } else if (state.view === "month") {
+      fromDate = startOfWeek(new Date(state.focusDate.getFullYear(), state.focusDate.getMonth(), 1));
+      toDate = plusDays(fromDate, 42);
+    }
+    state.occurrences = events.filter((event) => {
+      const start = new Date(event.start_utc);
+      return start >= fromDate && start < toDate;
+    });
+    renderEvents();
+    return;
+  }
+  if (!state.token) return;
   $("#app").setAttribute("aria-busy", "true");
   let fromDate = state.weekStart,
     toDate = plusDays(state.weekStart, 7);
@@ -303,6 +343,36 @@ function eventInput() {
 async function submitEvent(e) {
   e.preventDefault();
   const input = eventInput();
+  if (state.guest) {
+    const start = new Date(input.local_start),
+      end = new Date(input.local_end);
+    if (!input.title.trim() || Number.isNaN(start.valueOf()) || Number.isNaN(end.valueOf()) || end <= start) {
+      toast("Add a title and a valid end time after the start time");
+      return;
+    }
+    const id = state.editing?.event_id || state.editing?.id || mutationID();
+    const after = {
+      id,
+      event_id: id,
+      title: input.title.trim(),
+      description: input.description,
+      start_utc: start.toISOString(),
+      end_utc: end.toISOString(),
+      time_zone: input.time_zone,
+      recurrence: input.recurrence,
+      invites: input.invitees.map((handle) => ({ handle, state: "not_sent" })),
+      reminders: input.reminders,
+      meeting_link: input.meeting_link,
+      owner_handle: "@guest",
+      state: "local-draft",
+      version: (state.editing?.version || 0) + 1,
+      shares: [],
+    };
+    const conflicts = guestEvents().filter((event) => event.event_id !== id && new Date(event.start_utc) < end && start < new Date(event.end_utc));
+    state.pendingChange = { id: `guest-${mutationID()}`, kind: state.editing ? "update local draft" : "create local draft", after, conflicts };
+    showChange();
+    return;
+  }
   if (!navigator.onLine) {
     const queue = JSON.parse(
       localStorage.getItem("ynx.calendar.offlineQueue") || "[]",
@@ -342,6 +412,22 @@ function showChange() {
 }
 async function approveChange() {
   if (!state.pendingChange) return;
+  if (state.guest) {
+    if (state.pendingChange.conflicts?.length && !$("#accept-conflicts").checked) {
+      toast("Review and accept the local conflict before saving this draft");
+      return;
+    }
+    const after = state.pendingChange.after;
+    const events = guestEvents().filter((event) => event.event_id !== after.event_id);
+    events.push(after);
+    localStorage.setItem(guestEventsKey, JSON.stringify(events));
+    state.pendingChange = null;
+    state.editing = null;
+    $("#change-dialog").close();
+    toast("Local draft saved on this device; nothing was synced or written to YNX Chain");
+    await loadEvents();
+    return;
+  }
   try {
     const changeID = state.pendingChange.id;
     const event = await api(`/v1/changes/${changeID}/approve`, {
@@ -369,6 +455,28 @@ async function approveChange() {
   }
 }
 async function openEvent(occurrence) {
+  if (state.guest) {
+    const event = guestEvents().find((item) => item.event_id === occurrence.event_id);
+    if (!event) return;
+    state.selected = occurrence;
+    state.selectedEvent = event;
+    $("#ai-begin").disabled = true;
+    $("#ai-preview").textContent = "Connect YNX Wallet before sending selected event data to an AI provider.";
+    $("#event-content").innerHTML = `<span class="eyebrow">Local guest draft · v${event.version}</span><h1>${escapeHTML(event.title)}</h1><p>${escapeHTML(event.description || "No description")}</p><div class="detail-row"><span>Time</span><b>${new Date(event.start_utc).toLocaleString(activeLocale())} — ${new Date(event.end_utc).toLocaleString(activeLocale())}</b><span>${tr("timezone", "Time zone")}</span><b>${escapeHTML(event.time_zone)}</b><span>Boundary</span><b>Stored on this device only · not synced · not shared · not written to YNX Chain</b></div><div class="detail-actions"><button class="primary" id="edit-event">${tr("update", "Update event")}</button><button class="quiet" id="connect-event">Sign in to sync or share</button><button class="quiet" id="close-detail">Close</button></div>`;
+    $("#event-detail").showModal();
+    $("#close-detail").onclick = () => $("#event-detail").close();
+    $("#edit-event").onclick = () => {
+      $("#event-detail").close();
+      openForm(event);
+    };
+    $("#connect-event").onclick = () => {
+      $("#event-detail").close();
+      state.guest = false;
+      state.user = null;
+      $("#signin").hidden = false;
+    };
+    return;
+  }
   try {
     const event = await api(`/v1/events/${occurrence.event_id}`);
     state.selected = occurrence;
@@ -560,7 +668,8 @@ function init() {
     $("#app").setAttribute("aria-busy", "false");
   });
   $("#wallet-signin").onclick = beginSignIn;
-  $("#account").onclick = showAccount;
+  $("#guest-try").onclick = enterGuest;
+  $("#account").onclick = () => state.guest ? signOut(false) : showAccount();
   $("#new-event").onclick = () => openForm();
   $("#event-form").onsubmit = submitEvent;
   $("#approve-change").onclick = approveChange;
@@ -622,7 +731,7 @@ function init() {
 addEventListener("offline", updateNetwork);
 addEventListener("ynx:locale", () => {
   renderFrame();
-  if (state.token) loadEvents();
+  if (state.token || state.guest) loadEvents();
 });
   updateNetwork();
   if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js");
@@ -683,6 +792,7 @@ renderEvents = () => {
 window.ynxI18nReady.catch(() => {}).finally(init);
 $("#wallet-signin").onclick = () => beginSignIn(false);
 $("#wallet-recover").onclick = () => beginSignIn(true);
+$("#guest-try").onclick = enterGuest;
 const auditButton = document.createElement("button");
 auditButton.className = "avatar";
 auditButton.textContent = "Audit";
@@ -690,6 +800,10 @@ auditButton.setAttribute("aria-label", "Open Calendar audit");
 auditButton.onclick = showAudit;
 $("#ai-open").before(auditButton);
 async function showAudit() {
+  if (state.guest) {
+    toast("Sign in with YNX Wallet for server-backed audit evidence; guest drafts stay only on this device");
+    return;
+  }
   try {
     const audit = await api("/v1/audit");
     const dialog = document.createElement("dialog");

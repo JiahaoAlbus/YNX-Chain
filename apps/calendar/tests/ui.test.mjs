@@ -15,6 +15,7 @@ test("Calendar is an accessible independent time product", async () => {
   assert.match(html, /aria-live="polite"/);
   assert.match(html, /Sign in with YNX Wallet/);
   assert.match(html, /data-i18n="recover"/);
+  assert.match(html, /id="guest-try"[^>]*data-i18n="try_guest"/);
   assert.match(html, /id="locale-picker"/);
   assert.doesNotMatch(html, /\bynx1|0x[a-fA-F0-9]{8}/);
 });
@@ -43,6 +44,9 @@ test("Calendar offline, explicit approval, conflict and AI boundaries are wired"
     "/share",
     "/v1/ai/jobs",
     "canonical request envelope",
+    "guestEventsKey",
+    "Local draft saved on this device",
+    "no sync, sharing, AI, or chain writes",
   ])
     assert.ok(js.includes(term), `missing ${term}`);
   assert.match(js, /each change still requires preview and approval/);

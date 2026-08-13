@@ -43,6 +43,8 @@
       "independent": "Independent scheduling",
       "hero_title": "Your time, your approval.",
       "hero_description": "Create an independent Calendar device session with YNX Wallet. Contacts use @handles; Wallet addresses never enter the calendar UI.",
+      "try_guest": "Try locally without signing in",
+      "guest_boundary": "Local guest trial · device-only drafts · no sync, sharing, AI, or chain writes",
       "session_boundary": "Calendar account scope · one-time challenge · revocable session",
       "scheduling_disclaimer": "This Testnet preview does not claim production scheduling service."
     },
@@ -88,6 +90,8 @@
       "independent": "独立日程安排",
       "hero_title": "你的时间，由你批准。",
       "hero_description": "使用 YNX Wallet 创建独立 Calendar 设备会话。联系人使用 @handle；钱包地址不会进入日历界面。",
+      "try_guest": "无需登录，先在本机试用",
+      "guest_boundary": "本地访客试用 · 草稿仅存此设备 · 不同步、不共享、不调用 AI、不写入链",
       "session_boundary": "Calendar 账户范围 · 一次性挑战 · 可撤销会话",
       "scheduling_disclaimer": "此测试网预览不声称提供生产级日程服务。"
     },
@@ -133,6 +137,8 @@
       "independent": "獨立排程",
       "hero_title": "你的時間，由你核准。",
       "hero_description": "使用 YNX Wallet 建立獨立 Calendar 裝置工作階段。聯絡人使用 @handle；錢包位址不會進入日曆介面。",
+      "try_guest": "不登入，先在本機試用",
+      "guest_boundary": "本機訪客試用 · 草稿僅存此裝置 · 不同步、不分享、不呼叫 AI、不寫入鏈",
       "session_boundary": "Calendar 帳戶範圍 · 一次性挑戰 · 可撤銷工作階段",
       "scheduling_disclaimer": "此測試網預覽不聲稱提供正式排程服務。"
     },
@@ -178,6 +184,8 @@
       "independent": "独立したスケジュール管理",
       "hero_title": "あなたの時間、あなたの承認。",
       "hero_description": "YNX Wallet で独立した Calendar デバイスセッションを作成します。連絡先は @handle を使い、Wallet アドレスは画面に表示されません。",
+      "try_guest": "サインインせずローカルで試す",
+      "guest_boundary": "ローカルゲスト体験 · 下書きはこの端末のみ · 同期・共有・AI・チェーン書き込みなし",
       "session_boundary": "Calendar アカウント範囲 · ワンタイムチャレンジ · 取消可能なセッション",
       "scheduling_disclaimer": "このテストネット版は本番スケジューリングサービスを示すものではありません。"
     },
@@ -223,6 +231,8 @@
       "independent": "독립 일정 관리",
       "hero_title": "내 시간, 내 승인.",
       "hero_description": "YNX Wallet으로 독립 Calendar 기기 세션을 만듭니다. 연락처는 @handle을 사용하며 Wallet 주소는 캘린더 UI에 표시되지 않습니다.",
+      "try_guest": "로그인 없이 로컬에서 체험",
+      "guest_boundary": "로컬 게스트 체험 · 초안은 이 기기에만 저장 · 동기화·공유·AI·체인 기록 없음",
       "session_boundary": "Calendar 계정 범위 · 일회성 챌린지 · 취소 가능한 세션",
       "scheduling_disclaimer": "이 테스트넷 미리보기는 운영 일정 서비스를 주장하지 않습니다."
     },
@@ -268,6 +278,8 @@
       "independent": "Programación independiente",
       "hero_title": "Tu tiempo, tu aprobación.",
       "hero_description": "Crea una sesión independiente de Calendar con YNX Wallet. Los contactos usan @handles; las direcciones de Wallet nunca aparecen en la interfaz.",
+      "try_guest": "Probar localmente sin iniciar sesión",
+      "guest_boundary": "Prueba local de invitado · borradores solo en este dispositivo · sin sincronización, uso compartido, IA ni escritura en cadena",
       "session_boundary": "Ámbito de cuenta Calendar · desafío único · sesión revocable",
       "scheduling_disclaimer": "Esta vista previa de Testnet no afirma ofrecer programación de producción."
     },
@@ -313,6 +325,8 @@
       "independent": "Planification indépendante",
       "hero_title": "Votre temps, votre approbation.",
       "hero_description": "Créez une session Calendar indépendante avec YNX Wallet. Les contacts utilisent des @handles ; les adresses Wallet ne figurent jamais dans l’interface.",
+      "try_guest": "Essayer localement sans connexion",
+      "guest_boundary": "Essai invité local · brouillons sur cet appareil uniquement · sans synchronisation, partage, IA ni écriture sur la chaîne",
       "session_boundary": "Portée du compte Calendar · défi unique · session révocable",
       "scheduling_disclaimer": "Cet aperçu Testnet ne prétend pas fournir un service de planification en production."
     },
@@ -358,6 +372,8 @@
       "independent": "Unabhängige Terminplanung",
       "hero_title": "Ihre Zeit, Ihre Freigabe.",
       "hero_description": "Erstellen Sie mit YNX Wallet eine unabhängige Calendar-Gerätesitzung. Kontakte verwenden @Handles; Wallet-Adressen erscheinen nie in der Oberfläche.",
+      "try_guest": "Lokal ohne Anmeldung testen",
+      "guest_boundary": "Lokaler Gasttest · Entwürfe nur auf diesem Gerät · keine Synchronisierung, Freigabe, KI oder Chain-Schreibvorgänge",
       "session_boundary": "Calendar-Kontobereich · einmalige Challenge · widerrufbare Sitzung",
       "scheduling_disclaimer": "Diese Testnet-Vorschau beansprucht keinen produktiven Terminplanungsdienst."
     },
@@ -403,6 +419,8 @@
       "independent": "Agendamento independente",
       "hero_title": "O seu tempo, a sua aprovação.",
       "hero_description": "Crie uma sessão independente do Calendar com YNX Wallet. Os contactos usam @handles; endereços Wallet nunca entram na interface.",
+      "try_guest": "Experimentar localmente sem iniciar sessão",
+      "guest_boundary": "Teste local de convidado · rascunhos apenas neste dispositivo · sem sincronização, partilha, IA ou escrita na cadeia",
       "session_boundary": "Escopo da conta Calendar · desafio único · sessão revogável",
       "scheduling_disclaimer": "Esta prévia da Testnet não afirma oferecer agendamento de produção."
     },
@@ -448,6 +466,8 @@
       "independent": "Независимое планирование",
       "hero_title": "Ваше время — ваше подтверждение.",
       "hero_description": "Создайте независимый сеанс Calendar через YNX Wallet. Контакты используют @handle; адреса Wallet не отображаются в интерфейсе.",
+      "try_guest": "Попробовать локально без входа",
+      "guest_boundary": "Локальный гостевой режим · черновики только на этом устройстве · без синхронизации, общего доступа, ИИ и записи в цепочку",
       "session_boundary": "Область аккаунта Calendar · одноразовая проверка · отзывной сеанс",
       "scheduling_disclaimer": "Эта версия Testnet не заявляется как производственный сервис планирования."
     },
@@ -493,6 +513,8 @@
       "independent": "جدولة مستقلة",
       "hero_title": "وقتك، وموافقتك.",
       "hero_description": "أنشئ جلسة جهاز Calendar مستقلة باستخدام YNX Wallet. تستخدم جهات الاتصال ‎@handle ولا تظهر عناوين Wallet في واجهة التقويم.",
+      "try_guest": "جرّب محليًا من دون تسجيل الدخول",
+      "guest_boundary": "تجربة ضيف محلية · المسودات على هذا الجهاز فقط · بلا مزامنة أو مشاركة أو ذكاء اصطناعي أو كتابة على السلسلة",
       "session_boundary": "نطاق حساب Calendar · تحدٍ لمرة واحدة · جلسة قابلة للإلغاء",
       "scheduling_disclaimer": "لا تدّعي معاينة Testnet هذه تقديم خدمة جدولة للإنتاج."
     },
@@ -538,6 +560,8 @@
       "independent": "Penjadwalan mandiri",
       "hero_title": "Waktu Anda, persetujuan Anda.",
       "hero_description": "Buat sesi perangkat Calendar mandiri dengan YNX Wallet. Kontak memakai @handle; alamat Wallet tidak pernah masuk ke antarmuka kalender.",
+      "try_guest": "Coba secara lokal tanpa masuk",
+      "guest_boundary": "Uji tamu lokal · draf hanya di perangkat ini · tanpa sinkronisasi, berbagi, AI, atau penulisan ke chain",
       "session_boundary": "Cakupan akun Calendar · tantangan sekali pakai · sesi dapat dicabut",
       "scheduling_disclaimer": "Pratinjau Testnet ini tidak mengklaim layanan penjadwalan produksi."
     }

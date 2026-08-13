@@ -234,6 +234,42 @@ function unnamedInteractive() {
       cookie,
     );
     browser = await chromium.launch({ headless: true });
+    {
+      const context = await browser.newContext({
+        viewport: { width: 390, height: 844 },
+        locale: "zh-CN",
+        reducedMotion: "reduce",
+      });
+      const page = await context.newPage();
+      const errors = [];
+      page.on("pageerror", (error) => errors.push(error.message));
+      await page.goto(base, { waitUntil: "networkidle" });
+      await page.locator("#guest-try").waitFor();
+      if ((await page.locator("#locale-picker").inputValue()) !== "en")
+        throw Error("a fresh Calendar visit is not English-first");
+      await page.locator("#guest-try").click();
+      await page.locator("#signin").waitFor({ state: "hidden" });
+      await page.locator("#new-event").click();
+      await page.locator("#title").fill("Guest device-only draft");
+      await page.locator("#event-form button[type=submit]").click();
+      await page.locator("#change-dialog").waitFor({ state: "visible" });
+      await page.locator("#approve-change").click();
+      await page.locator(".event").first().waitFor();
+      const guestProof = await page.evaluate(() => ({
+        eventCount: JSON.parse(localStorage.getItem("ynx.calendar.guestEvents") || "[]").length,
+        signinHidden: document.querySelector("#signin")?.hidden,
+        account: document.querySelector("#account")?.textContent,
+        serverCookie: document.cookie,
+      }));
+      if (guestProof.eventCount !== 1 || !guestProof.signinHidden || guestProof.account !== "G" || guestProof.serverCookie)
+        throw Error(`guest mode boundary failed: ${JSON.stringify(guestProof)}`);
+      if (errors.length) throw Error(`guest mode page errors: ${errors.join(",")}`);
+      await page.screenshot({
+        path: path.join(artifact, "calendar-guest-trial.png"),
+        fullPage: true,
+      });
+      await context.close();
+    }
     for (const config of [
       { name: "desktop", width: 1440, height: 900 },
       { name: "desktop-dark", width: 1440, height: 900, colorScheme: "dark" },
@@ -400,6 +436,7 @@ function unnamedInteractive() {
         desktop: "apps/calendar/tests/artifacts/calendar-desktop.png",
         mobile: "apps/calendar/tests/artifacts/calendar-mobile.png",
         accessibility: "interactive controls named",
+        guestTrial: "device-only draft without Wallet or server session",
         consoleErrors: 0,
       }),
     );
