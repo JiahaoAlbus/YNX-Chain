@@ -113,7 +113,7 @@ function endpoint(value, label) {
   let parsed;
   try { parsed = new URL(value); } catch { fail("INVALID_CONFIG", `${label} is invalid`); }
   const loopback = parsed.protocol === "http:" && ["127.0.0.1", "localhost", "[::1]"].includes(parsed.hostname);
-  if ((parsed.protocol !== "https:" && !loopback) || parsed.username || parsed.password || parsed.search || parsed.hash) fail("INVALID_CONFIG", `${label} must be HTTPS or loopback HTTP without credentials, query or fragment`);
+  if ((parsed.protocol !== "https:" && !loopback) || parsed.username || parsed.password || parsed.search || parsed.hash || !["/", "/rpc"].includes(parsed.pathname)) fail("INVALID_CONFIG", `${label} must use canonical / or /rpc without credentials, query or fragment`);
   return parsed;
 }
 function publicEndpoint(value) { return `${value.protocol}//${value.host}${value.pathname}`; }

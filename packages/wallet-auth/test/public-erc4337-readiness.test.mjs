@@ -59,6 +59,7 @@ test("credentialed endpoints and partial EntryPoint configuration fail closed", 
   for (const config of [
     { rpcEndpoint: "https://user:secret@evm.invalid", bundlerEndpoint: BUNDLER },
     { rpcEndpoint: RPC, bundlerEndpoint: "https://bundler.invalid/rpc?apiKey=secret" },
+    { rpcEndpoint: RPC, bundlerEndpoint: "https://bundler.invalid/v2/secret-provider-key" },
     { rpcEndpoint: RPC, bundlerEndpoint: BUNDLER, entryPoint: ENTRY_POINT },
     { rpcEndpoint: RPC, bundlerEndpoint: BUNDLER, expectedRuntimeSha256: CODE_SHA256 },
   ]) await assert.rejects(probePublicERC4337Readiness(config), error("INVALID_CONFIG"));
