@@ -3,16 +3,30 @@
   "version": "0.2.0",
   "description": "Dependency-free JavaScript client for YNX Chain status, EVM JSON-RPC, ynx1 addresses, and bounded wallet integration",
   "type": "module",
-  "exports": "./index.js",
+  "main": "./index.js",
+  "types": "./index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "import": "./index.js",
+      "default": "./index.js"
+    }
+  },
   "files": [
     "index.js",
+    "index.d.ts",
     "wallet.js",
-    "ynx-testnet.js"
+    "ynx-testnet.js",
+    "README.md",
+    "examples"
   ],
   "engines": {
     "node": ">=18"
   },
   "scripts": {
-    "test": "node --test index.test.mjs"
-  }
+    "test": "node --test index.test.mjs wallet.test.mjs",
+    "example:testnet": "node examples/real-testnet-read.mjs",
+    "pack:check": "npm pack --dry-run --json"
+  },
+  "publishConfig": { "access": "public", "provenance": true }
 }
