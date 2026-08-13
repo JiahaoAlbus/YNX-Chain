@@ -44,7 +44,8 @@ jobs:
           npm run hardhat:build
       - run: npm ci
         working-directory: packages/wallet-auth
-      - run: npm test
+      - name: Run Wallet/Auth tests serially (includes Go verifier subprocess)
+        run: node --test --test-concurrency=1 test/*.test.mjs
         working-directory: packages/wallet-auth
       - run: npm ci
         working-directory: apps/wallet
