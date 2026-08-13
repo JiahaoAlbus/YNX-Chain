@@ -72,6 +72,26 @@ button {
   background: #fff;
   z-index: 4;
 }
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.locale-control select {
+  max-width: 126px;
+  min-height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--surface, #fff);
+  color: var(--ink);
+  padding: 0 9px;
+}
 .brand {
   display: flex;
   align-items: center;
@@ -240,7 +260,7 @@ button {
   background: #fff;
 }
 .shell[aria-busy="true"] .timeline::after {
-  content: "正在加载日程…";
+  content: "Loading calendar…";
   position: fixed;
   z-index: 6;
   inset: 160px 24px auto 254px;

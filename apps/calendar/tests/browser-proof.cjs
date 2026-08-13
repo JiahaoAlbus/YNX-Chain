@@ -262,6 +262,21 @@ function unnamedInteractive() {
         });
       await page.locator(".event").first().waitFor();
       await page.locator(".event").first().scrollIntoViewIfNeeded();
+      if (config.name === "arabic-rtl") {
+        const localeProof = await page.evaluate(() => ({
+          lang: document.documentElement.lang,
+          dir: document.documentElement.dir,
+          picker: document.querySelector("#locale-picker")?.value,
+          create: document.querySelector("#new-event")?.textContent.trim(),
+        }));
+        if (
+          localeProof.lang !== "ar" ||
+          localeProof.dir !== "rtl" ||
+          localeProof.picker !== "ar" ||
+          !localeProof.create.includes("إنشاء حدث")
+        )
+          throw Error(`Arabic RTL localization failed: ${JSON.stringify(localeProof)}`);
+      }
       if (config.width <= 390) {
         const compactWeek = await page.locator("#timeline").evaluate((timeline) => ({
           clientWidth: timeline.clientWidth,

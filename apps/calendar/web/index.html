@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta
@@ -16,24 +16,24 @@
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
-    <a class="skip" href="#timeline">跳到日程</a>
+    <a class="skip" href="#timeline">Skip to calendar</a>
     <div id="offline" class="offline" hidden role="status">
-      离线 · 变更已进入设备队列，联网后仍需预览与批准
+      <span data-i18n="offline">Offline — changes are queued on this device</span>
     </div>
     <div class="shell" id="app" aria-busy="true">
       <header class="topbar">
-        <a class="brand" href="/" aria-label="YNX Calendar 首页"
+        <a class="brand" href="/" aria-label="YNX Calendar home"
           ><span class="mark">Y</span><span>YNX <b>Calendar</b></span></a
         >
-        <nav class="view-switch" aria-label="日历视图">
-          <button type="button" data-view="day">日</button
-          ><button type="button" data-view="week" class="active">周</button
-          ><button type="button" data-view="month">月</button>
+        <nav class="view-switch" aria-label="Calendar view">
+          <button type="button" data-view="day">Day</button
+          ><button type="button" data-view="week" class="active">Week</button
+          ><button type="button" data-view="month">Month</button>
         </nav>
         <div class="date-controls">
-          <button id="prev" aria-label="上一周">‹</button
-          ><button id="today">今天</button
-          ><button id="next" aria-label="下一周">›</button
+          <button id="prev" aria-label="Previous range">‹</button
+          ><button id="today" data-i18n="today">Today</button
+          ><button id="next" aria-label="Next range">›</button
           ><strong id="range"></strong>
         </div>
         <button
@@ -42,36 +42,36 @@
           aria-controls="ai-panel"
           aria-expanded="false"
         >
-          AI 协调</button
-        ><button id="account" class="avatar" aria-label="账户与退出">—</button>
+          <span data-i18n="ai">AI 协调</span></button
+        ><label class="locale-control"><span class="sr-only">Language</span><select id="locale-picker" aria-label="Language"><option value="en">English</option><option value="zh-CN">简体中文</option><option value="zh-TW">繁體中文</option><option value="ja">日本語</option><option value="ko">한국어</option><option value="es">Español</option><option value="fr">Français</option><option value="de">Deutsch</option><option value="pt">Português</option><option value="ru">Русский</option><option value="ar">العربية</option><option value="id">Bahasa Indonesia</option></select></label><button id="account" class="avatar" aria-label="Account and sign out">—</button>
       </header>
       <aside class="sidebar">
-        <button id="new-event" class="primary"><span>＋</span> 新建事件</button>
+        <button id="new-event" class="primary"><span>＋</span> <span data-i18n="create">新建事件</span></button>
         <section class="mini">
-          <span class="eyebrow">时间边界</span>
-          <h2 id="zone-label">本地时区</h2>
-          <p>事件以 IANA 时区保存；跨夏令时重复日程保持本地时间。</p>
+          <span class="eyebrow" data-i18n="timezone">Time zone</span>
+          <h2 id="zone-label" data-i18n="timezone">Time zone</h2>
+          <p>Events use IANA time zones; recurring events preserve local time across daylight-saving changes.</p>
         </section>
         <section class="legend">
-          <h3>日历</h3>
-          <label><span class="dot mine"></span> 我的事件</label
-          ><label><span class="dot invited"></span> 邀请与共享</label
-          ><label><span class="dot conflict"></span> 冲突待处理</label>
+          <h3>Calendars</h3>
+          <label><span class="dot mine"></span> My events</label
+          ><label><span class="dot invited"></span> Invitations and sharing</label
+          ><label><span class="dot conflict"></span> Conflicts to resolve</label>
         </section>
         <section class="boundary">
-          <b>会议链接边界</b>
-          <p>仅接受无凭据的 HTTPS 链接。会议链接不能请求 Wallet 或签名权限。</p>
+          <b data-i18n="meeting_link">Meeting link</b>
+          <p>Only credential-free HTTPS links are accepted. Meeting links cannot request Wallet or signing permissions.</p>
         </section>
       </aside>
       <main id="timeline" class="timeline" tabindex="-1">
         <div id="days" class="days" aria-hidden="true"></div>
         <div class="time-grid">
           <div id="hours" class="hours"></div>
-          <div id="week" class="week" role="grid" aria-label="日程"></div>
+          <div id="week" class="week" role="grid" aria-label="Calendar"></div>
         </div>
         <div id="empty" class="empty" hidden>
-          <b>这一周还没有事件</b
-          ><span>创建事件后，先预览冲突和邀请范围，再批准。</span>
+          <b data-i18n="empty">这一周还没有事件</b
+          ><span data-i18n="review">Review changes</span>
         </div>
       </main>
     </div>
@@ -84,82 +84,82 @@
       <form id="event-form">
         <header>
           <div>
-            <span class="eyebrow">事件草稿</span>
-            <h2 id="event-title">安排时间</h2>
+            <span class="eyebrow" data-i18n="create">Create event</span>
+            <h2 id="event-title">Schedule time</h2>
           </div>
           <button
             class="icon"
             value="cancel"
             formmethod="dialog"
-            aria-label="关闭"
+            aria-label="Close"
           >
             ×
           </button>
         </header>
         <div class="form-grid">
           <label class="wide"
-            >标题<input
+            >Title<input
               id="title"
               required
               maxlength="200"
-              placeholder="事件名称" /></label
+              placeholder="Event name" /></label
           ><label
-            >开始<input
+            >Start<input
               id="start"
               type="datetime-local"
               required
-              aria-label="事件开始时间" /></label
+              aria-label="Event start time" /></label
           ><label
-            >结束<input
+            >End<input
               id="end"
               type="datetime-local"
               required
-              aria-label="事件结束时间" /></label
-          ><label>时区<select id="timezone"></select></label
+              aria-label="Event end time" /></label
+          ><label><span data-i18n="timezone">Time zone</span><select id="timezone"></select></label
           ><label
-            >重复<select id="recurrence">
-              <option value="">不重复</option>
-              <option value="weekly">每周</option>
-              <option value="daily">每天</option>
-              <option value="monthly">每月</option>
+            ><span data-i18n="repeat">重复</span><select id="recurrence">
+              <option value="">Does not repeat</option>
+              <option value="weekly">Weekly</option>
+              <option value="daily">Daily</option>
+              <option value="monthly">Monthly</option>
             </select></label
           ><label
-            >次数<input
+            >Occurrences<input
               id="count"
               type="number"
               min="1"
               max="366"
               value="1"
-              aria-label="重复次数" /></label
+              aria-label="Recurrence count" /></label
           ><label
-            >提醒<select id="reminder">
-              <option value="10">提前 10 分钟</option>
-              <option value="30">提前 30 分钟</option>
-              <option value="60">提前 1 小时</option>
-              <option value="1440">提前 1 天</option>
+            ><span data-i18n="reminder">提醒</span><select id="reminder">
+              <option value="10">10 minutes before</option>
+              <option value="30">30 minutes before</option>
+              <option value="60">1 hour before</option>
+              <option value="1440">1 day before</option>
             </select></label
           ><label class="wide"
-            >邀请联系人<input
+            ><span data-i18n="invite">Invite contacts by handle</span><input
               id="invitees"
-              placeholder="@handle（多个用逗号分隔）"
+              placeholder="@handle (comma separated)"
               autocomplete="off"
-            /><small>普通联系人只显示 @handle，不显示钱包地址。</small></label
+            /><small>Contacts display @handles, never Wallet addresses.</small></label
           ><label class="wide"
-            >会议链接<input
+            ><span data-i18n="meeting_link">Meeting link</span><input
               id="meeting-link"
               type="url"
-              placeholder="https://…（可选）" /></label
+              placeholder="https://… (optional)" /></label
           ><label class="wide"
-            >说明<textarea
+            >Description<textarea
               id="description"
               maxlength="4000"
-              placeholder="议题、准备事项或说明"
+              placeholder="Agenda, preparation, or notes"
             ></textarea>
           </label>
         </div>
         <footer>
-          <span id="draft-state" role="status">尚未保存</span
-          ><button class="primary" type="submit">查看变更预览</button>
+          <span id="draft-state" role="status">Not saved</span
+          ><button class="primary" type="submit" data-i18n="review">查看变更预览</button>
         </footer>
       </form>
     </dialog>
@@ -169,23 +169,23 @@
       aria-labelledby="change-title"
     >
       <div class="change-card">
-        <span class="eyebrow">执行前批准</span>
-        <h2 id="change-title">检查时间、邀请与冲突</h2>
+        <span class="eyebrow" data-i18n="approve">Approve change</span>
+        <h2 id="change-title" data-i18n="review">Review changes</h2>
         <div id="change-preview"></div>
         <label id="conflict-override" class="override" hidden
           ><input
             id="accept-conflicts"
             type="checkbox"
-            aria-label="确认保留时间冲突"
+            aria-label="Confirm keeping a time conflict"
           />
-          我确认仍要保留这个时间冲突</label
+          I confirm that I want to keep this time conflict</label
         >
         <p class="notice">
-          批准后才会创建事件或发出 YNX 邀请。应用后可用“撤销上次变更”恢复。
+          Only approval creates an event or issues YNX invitations. The last change can be reverted.
         </p>
         <footer>
-          <button id="edit-change" class="quiet">返回编辑</button
-          ><button id="approve-change" class="primary">批准变更</button>
+          <button id="edit-change" class="quiet">Back to edit</button
+          ><button id="approve-change" class="primary" data-i18n="approve">Approve change</button>
         </footer>
       </div>
     </dialog>
@@ -195,50 +195,50 @@
     <aside id="ai-panel" class="ai-panel" hidden aria-labelledby="ai-title">
       <header>
         <div>
-          <span class="eyebrow">权限化 AI</span>
-          <h2 id="ai-title">协调工作台</h2>
+          <span class="eyebrow" data-i18n="privacy">Only selected event details are sent to AI after approval.</span>
+          <h2 id="ai-title" data-i18n="ai">Scheduling assistant</h2>
         </div>
-        <button id="ai-close" class="icon" aria-label="关闭">×</button>
+        <button id="ai-close" class="icon" aria-label="Close">×</button>
       </header>
-      <p>
+      <p data-i18n="privacy">
         AI
-        只读取你选中的事件。它不会邀请联系人、修改或取消日程，也不会开启自动化。
+        AI reads only selected events. It cannot invite, update, cancel, or automate.
       </p>
       <label
-        >任务<select id="ai-kind">
-          <option value="propose_times">建议时间</option>
-          <option value="draft_agenda">起草议程</option>
-          <option value="draft_follow_up">起草跟进</option>
-          <option value="detect_conflicts">检测冲突</option>
+        >Task<select id="ai-kind">
+          <option value="propose_times">Propose times</option>
+          <option value="draft_agenda">Draft agenda</option>
+          <option value="draft_follow_up">Draft follow-up</option>
+          <option value="detect_conflicts">Detect conflicts</option>
         </select></label
       >
       <div id="ai-preview" class="permission">
-        先选择事件，再查看 provider、模型、成本与数据范围。
+        Select an event, then review the provider, model, cost, and data scope.
       </div>
-      <button id="ai-begin" class="primary" disabled>查看 AI 权限预览</button>
+      <button id="ai-begin" class="primary" data-i18n="review" disabled>Review changes</button>
       <div id="ai-result" aria-live="polite"></div>
     </aside>
     <section id="signin" class="signin">
       <div class="signin-card">
         <span class="mark large">Y</span
-        ><span class="eyebrow">独立日程产品</span>
-        <h1>时间属于你，变更也应由你批准。</h1>
+        ><span class="eyebrow">Independent scheduling</span>
+        <h1>Your time, your approval.</h1>
         <p>
-          通过 YNX Wallet 创建 Calendar 的独立设备会话。联系人使用
-          @handle；Wallet 地址不会进入日历界面。
+          Create an independent Calendar device session with YNX Wallet. Contacts use @handles; Wallet addresses never enter the calendar UI.
         </p>
-        <button id="wallet-signin" class="primary">
+        <button id="wallet-signin" class="primary" data-i18n="sign_in">
           Sign in with YNX Wallet</button
-        ><button id="wallet-recover" class="quiet recovery">
-          恢复已有 Calendar 账户
+        ><button id="wallet-recover" class="quiet recovery" data-i18n="recover">
+          <span data-i18n="recover">Recover with YNX Wallet</span>
         </button>
         <p id="signin-state" role="status">
-          Calendar 账户范围 · 一次性 challenge · 可撤销会话
+          Calendar account scope · one-time challenge · revocable session
         </p>
-        <small>本地工程不声称生产调度服务。</small>
+        <small>This local build does not claim production scheduling service.</small>
       </div>
     </section>
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <script src="/i18n.js" defer></script>
     <script src="/app.js" defer></script>
   </body>
 </html>

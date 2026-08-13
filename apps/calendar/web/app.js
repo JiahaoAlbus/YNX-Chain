@@ -17,6 +17,11 @@ if ((navigator.language || "").toLowerCase().startsWith("ar")) {
 }
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
+const activeLocale = () => window.ynxI18n?.locale() || document.documentElement.lang || navigator.language;
+const tr = (key, fallback) => {
+  const value = window.ynxI18n?.t(key);
+  return value && value !== key ? value : fallback;
+};
 const escapeHTML = (v) =>
   String(v ?? "").replace(
     /[&<>'"]/g,
@@ -59,16 +64,16 @@ async function api(path, options = {}) {
     headers,
     credentials: "same-origin",
   });
-  const body = await r.json().catch(() => ({ detail: "服务响应无效" }));
+  const body = await r.json().catch(() => ({ detail: "The service returned an invalid response." }));
   if (!r.ok) {
     if (r.status === 401) signOut(false);
-    throw new Error(body.detail || body.error || `请求失败 ${r.status}`);
+    throw new Error(body.detail || body.error || `Request failed (${r.status})`);
   }
   return body;
 }
 async function beginSignIn(recovery = false) {
   $("#signin-state").textContent =
-    `Web companion 不接收 Wallet 回调。请在已安装的 YNX Calendar 中使用 canonical request envelope 完成${recovery ? "恢复" : "登录"}；中央 registry/Gateway 部署前会失败关闭。`;
+    `The Web companion does not accept Wallet callbacks. Use the installed YNX Calendar app and its canonical request envelope to ${recovery ? "recover" : "sign in"}. It fails closed until the central registry and Gateway are available.`;
 }
 async function restoreSession() {
   try {
@@ -84,38 +89,39 @@ function signOut(show = true) {
   state.token = "";
   state.user = null;
   $("#signin").hidden = false;
-  if (show) toast("Calendar 会话已撤销");
+  if (show) toast("Calendar session revoked");
 }
 function renderFrame() {
   const days = $("#days");
   days.replaceChildren();
-  const weekdays = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"];
   const visibleDays = state.view === "day" ? 1 : 7;
   const firstDay = state.view === "day" ? state.focusDate : state.weekStart;
   for (let i = 0; i < visibleDays; i++) {
     const d = plusDays(firstDay, i),
       el = document.createElement("div");
     el.className = `day-head${d.toDateString() === new Date().toDateString() ? " today" : ""}`;
-    el.innerHTML = `<span>${weekdays[(d.getDay() + 6) % 7]}</span><b>${d.getDate()}</b>`;
+    el.innerHTML = `<span>${d.toLocaleDateString(activeLocale(), { weekday: "short" })}</span><b>${d.getDate()}</b>`;
     days.append(el);
   }
   if (state.view === "month") {
-    days.innerHTML = weekdays
+    days.innerHTML = Array.from({ length: 7 }, (_, index) =>
+      plusDays(state.weekStart, index).toLocaleDateString(activeLocale(), { weekday: "short" }),
+    )
       .map((name) => `<div class="day-head"><span>${name}</span></div>`)
       .join("");
-    $("#range").textContent = state.focusDate.toLocaleDateString(undefined, {
+    $("#range").textContent = state.focusDate.toLocaleDateString(activeLocale(), {
       year: "numeric",
       month: "long",
     });
   } else if (state.view === "day") {
-    $("#range").textContent = state.focusDate.toLocaleDateString(undefined, {
+    $("#range").textContent = state.focusDate.toLocaleDateString(activeLocale(), {
       year: "numeric",
       month: "long",
       day: "numeric",
     });
   } else {
     $("#range").textContent =
-      `${state.weekStart.toLocaleDateString(undefined, { month: "short", day: "numeric" })} — ${plusDays(state.weekStart, 6).toLocaleDateString(undefined, { month: "short", day: "numeric" })}`;
+      `${state.weekStart.toLocaleDateString(activeLocale(), { month: "short", day: "numeric" })} — ${plusDays(state.weekStart, 6).toLocaleDateString(activeLocale(), { month: "short", day: "numeric" })}`;
   }
   days.style.setProperty("--visible-days", visibleDays);
   $("#timeline").dataset.view = state.view;
@@ -200,10 +206,10 @@ function renderEvents() {
     el.style.width = `calc(${width}% - 6px)`;
     el.style.top = `${minutes}px`;
     el.style.height = `${duration}px`;
-    el.innerHTML = `<b>${escapeHTML(o.title)}</b><span>${start.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}–${end.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>`;
+    el.innerHTML = `<b>${escapeHTML(o.title)}</b><span>${start.toLocaleTimeString(activeLocale(), { hour: "2-digit", minute: "2-digit" })}–${end.toLocaleTimeString(activeLocale(), { hour: "2-digit", minute: "2-digit" })}</span>`;
     el.setAttribute(
       "aria-label",
-      `${o.title}，${start.toLocaleString()} 到 ${end.toLocaleTimeString()}`,
+      `${o.title}, ${start.toLocaleString(activeLocale())} to ${end.toLocaleTimeString(activeLocale())}`,
     );
     el.onclick = () => openEvent(o);
     week.append(el);
@@ -223,7 +229,7 @@ function renderMonthEvents(month) {
     )) {
       const button = document.createElement("button");
       button.className = "month-event";
-      button.textContent = `${new Date(occurrence.start_utc).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} ${occurrence.title}`;
+      button.textContent = `${new Date(occurrence.start_utc).toLocaleTimeString(activeLocale(), { hour: "2-digit", minute: "2-digit" })} ${occurrence.title}`;
       button.onclick = () => openEvent(occurrence);
       cell.append(button);
     }
@@ -267,7 +273,7 @@ function openForm(event = null) {
   $("#count").value = event?.recurrence?.count || 1;
   $("#invitees").value = (event?.invites || []).map((i) => i.handle).join(", ");
   $("#meeting-link").value = event?.meeting_link || "";
-  $("#event-title").textContent = event ? "修改事件" : "安排时间";
+  $("#event-title").textContent = event ? tr("update", "Update event") : tr("create", "Create event");
   $("#event-dialog").showModal();
   $("#title").focus();
 }
@@ -308,7 +314,7 @@ async function submitEvent(e) {
     });
     localStorage.setItem("ynx.calendar.offlineQueue", JSON.stringify(queue));
     $("#event-dialog").close();
-    toast("已加入离线队列；联网后仍需逐项预览批准");
+    toast("Queued offline; each change still requires preview and approval after reconnecting");
     return;
   }
   try {
@@ -328,7 +334,7 @@ function showChange() {
   const c = state.pendingChange,
     a = c.after;
   $("#change-preview").innerHTML =
-    `<div class="preview-block"><span>变更</span><b>${escapeHTML(c.kind)}</b><span>事件</span><b>${escapeHTML(a.title)}</b><span>时间</span><b>${new Date(a.start_utc).toLocaleString()} — ${new Date(a.end_utc).toLocaleTimeString()}</b><span>时区</span><b>${escapeHTML(a.time_zone)}</b><span>邀请</span><b>${a.invites.length ? a.invites.map((i) => escapeHTML(i.handle)).join("、") : "无"}</b><span>重复</span><b>${a.recurrence.frequency ? `${escapeHTML(a.recurrence.frequency)} × ${a.recurrence.count}` : "不重复"}</b></div>${c.conflicts?.length ? `<div class="conflicts"><b>${c.conflicts.length} 个冲突</b>${c.conflicts.map((x) => `<p>${escapeHTML(x.title)} · ${new Date(x.start_utc).toLocaleString()}</p>`).join("")}</div>` : ""}`;
+    `<div class="preview-block"><span>Change</span><b>${escapeHTML(c.kind)}</b><span>Event</span><b>${escapeHTML(a.title)}</b><span>Time</span><b>${new Date(a.start_utc).toLocaleString(activeLocale())} — ${new Date(a.end_utc).toLocaleTimeString(activeLocale())}</b><span>${tr("timezone", "Time zone")}</span><b>${escapeHTML(a.time_zone)}</b><span>Invitations</span><b>${a.invites.length ? a.invites.map((i) => escapeHTML(i.handle)).join(", ") : "None"}</b><span>${tr("repeat", "Recurrence")}</span><b>${a.recurrence.frequency ? `${escapeHTML(a.recurrence.frequency)} × ${a.recurrence.count}` : "Does not repeat"}</b></div>${c.conflicts?.length ? `<div class="conflicts"><b>${c.conflicts.length} conflict(s)</b>${c.conflicts.map((x) => `<p>${escapeHTML(x.title)} · ${new Date(x.start_utc).toLocaleString(activeLocale())}</p>`).join("")}</div>` : ""}`;
   $("#conflict-override").hidden = !c.conflicts?.length;
   $("#accept-conflicts").checked = false;
   $("#event-dialog").close();
@@ -347,14 +353,14 @@ async function approveChange() {
     state.pendingChange = null;
     state.editing = null;
     $("#change-dialog").close();
-    toast("变更已批准，可从事件详情撤销");
+    toast("Change approved; it can be reverted from event details");
     await loadEvents();
     await openEvent({ event_id: event.id });
     const actions = $("#event-content .detail-actions");
     if (actions) {
       const undo = document.createElement("button");
       undo.className = "quiet";
-      undo.textContent = "撤销刚才变更";
+      undo.textContent = "Undo last change";
       undo.onclick = () => revert(changeID);
       actions.prepend(undo);
     }
@@ -369,10 +375,10 @@ async function openEvent(occurrence) {
     state.selectedEvent = event;
     $("#ai-begin").disabled = false;
     $("#ai-preview").textContent =
-      `只会选择：${event.title}。点击后再查看 provider、模型和成本。`;
+      `Selected only: ${event.title}. Next, review the provider, model, and cost.`;
     const mine = event.owner_handle === state.user.handle;
     $("#event-content").innerHTML =
-      `<span class="eyebrow">${escapeHTML(event.state)} · v${event.version}</span><h1>${escapeHTML(event.title)}</h1><p>${escapeHTML(event.description || "无说明")}</p><div class="detail-row"><span>时间</span><b>${new Date(event.start_utc).toLocaleString()} — ${new Date(event.end_utc).toLocaleString()}</b><span>时区</span><b>${escapeHTML(event.time_zone)}</b><span>组织者</span><b>${escapeHTML(event.owner_handle)}</b><span>重复</span><b>${event.recurrence?.frequency ? `${escapeHTML(event.recurrence.frequency)} × ${event.recurrence.count}` : "不重复"}</b><span>提醒</span><b>${event.reminders?.map((r) => `提前 ${r.minutes_before} 分钟`).join("、") || "无"}</b><span>邀请</span><b>${event.invites?.map((i) => `${escapeHTML(i.handle)} · ${escapeHTML(i.state)}`).join("<br>") || "无"}</b><span>共享</span><b>${event.shares?.map((s) => `${escapeHTML(s.handle)} · ${escapeHTML(s.role)}`).join("<br>") || "无"}</b><span>会议链接</span><b>${event.meeting_link ? `<a href="${escapeHTML(event.meeting_link)}" target="_blank" rel="noopener noreferrer">打开边界链接</a>` : "无"}</b></div><div class="detail-actions">${mine ? '<button class="primary" id="edit-event">预览修改</button><button class="quiet" id="cancel-event">预览取消</button><button class="quiet" id="share-event">共享</button>' : '<button class="primary" data-rsvp="accepted">接受</button><button class="quiet" data-rsvp="tentative">暂定</button><button class="quiet" data-rsvp="declined">拒绝</button>'}${event._lastChange ? '<button class="quiet" id="revert-event">撤销上次变更</button>' : ""}<button class="quiet" id="close-detail">关闭</button></div>`;
+      `<span class="eyebrow">${escapeHTML(event.state)} · v${event.version}</span><h1>${escapeHTML(event.title)}</h1><p>${escapeHTML(event.description || "No description")}</p><div class="detail-row"><span>Time</span><b>${new Date(event.start_utc).toLocaleString(activeLocale())} — ${new Date(event.end_utc).toLocaleString(activeLocale())}</b><span>${tr("timezone", "Time zone")}</span><b>${escapeHTML(event.time_zone)}</b><span>Organizer</span><b>${escapeHTML(event.owner_handle)}</b><span>${tr("repeat", "Recurrence")}</span><b>${event.recurrence?.frequency ? `${escapeHTML(event.recurrence.frequency)} × ${event.recurrence.count}` : "Does not repeat"}</b><span>${tr("reminder", "Reminder")}</span><b>${event.reminders?.map((r) => `${r.minutes_before} minutes before`).join(", ") || "None"}</b><span>Invitations</span><b>${event.invites?.map((i) => `${escapeHTML(i.handle)} · ${escapeHTML(i.state)}`).join("<br>") || "None"}</b><span>${tr("share", "Sharing")}</span><b>${event.shares?.map((s) => `${escapeHTML(s.handle)} · ${escapeHTML(s.role)}`).join("<br>") || "None"}</b><span>${tr("meeting_link", "Meeting link")}</span><b>${event.meeting_link ? `<a href="${escapeHTML(event.meeting_link)}" target="_blank" rel="noopener noreferrer">Open bounded link</a>` : "None"}</b></div><div class="detail-actions">${mine ? `<button class="primary" id="edit-event">${tr("update", "Update event")}</button><button class="quiet" id="cancel-event">${tr("cancel_event", "Cancel event")}</button><button class="quiet" id="share-event">${tr("share", "Share calendar")}</button>` : '<button class="primary" data-rsvp="accepted">Accept</button><button class="quiet" data-rsvp="tentative">Tentative</button><button class="quiet" data-rsvp="declined">Decline</button>'}${event._lastChange ? '<button class="quiet" id="revert-event">Undo last change</button>' : ""}<button class="quiet" id="close-detail">Close</button></div>`;
     $("#event-detail").showModal();
     $("#close-detail").onclick = () => $("#event-detail").close();
     if (mine) {
@@ -393,7 +399,7 @@ async function openEvent(occurrence) {
   }
 }
 async function previewCancel(event) {
-  if (!confirm("先创建取消预览；此时不会通知联系人。继续？")) return;
+  if (!confirm("Create a cancellation preview first? Contacts are not notified yet.")) return;
   try {
     state.pendingChange = await api(`/v1/events/${event.id}/cancel-preview`, {
       method: "POST",
@@ -409,13 +415,13 @@ async function previewCancel(event) {
   }
 }
 async function shareEvent(event) {
-  const handle = prompt("共享给哪个 @handle？");
+  const handle = prompt("Share with which @handle?");
   if (!handle) return;
-  const role = prompt("角色：viewer 或 editor", "viewer");
+  const role = prompt("Role: viewer or editor", "viewer");
   if (!role) return;
   if (
     !confirm(
-      `确认将 ${event.title} 以 ${role} 权限共享给 ${handle}？共享可通过后续变更移除。`,
+      `Share ${event.title} with ${handle} as ${role}? Sharing can be removed by a later change.`,
     )
   )
     return;
@@ -424,7 +430,7 @@ async function shareEvent(event) {
       method: "POST",
       body: JSON.stringify({ handle, role }),
     });
-    toast("已共享并写入审计");
+    toast("Shared and recorded in the audit log");
     $("#event-detail").close();
     loadEvents();
   } catch (e) {
@@ -432,13 +438,13 @@ async function shareEvent(event) {
   }
 }
 async function rsvp(event, response) {
-  if (!confirm(`确认 RSVP：${response}？`)) return;
+  if (!confirm(`Confirm RSVP: ${response}?`)) return;
   try {
     await api(`/v1/events/${event.id}/rsvp`, {
       method: "POST",
       body: JSON.stringify({ response }),
     });
-    toast("RSVP 已更新");
+    toast("RSVP updated");
     $("#event-detail").close();
     loadEvents();
   } catch (e) {
@@ -446,10 +452,10 @@ async function rsvp(event, response) {
   }
 }
 async function revert(changeID) {
-  if (!confirm("撤销上次变更？若事件已有更新将安全失败。")) return;
+  if (!confirm("Undo the last change? This safely fails if the event has changed since.")) return;
   try {
     await api(`/v1/changes/${changeID}/revert`, { method: "POST", body: "{}" });
-    toast("变更已撤销并写入审计");
+    toast("Change reverted and recorded in the audit log");
     $("#event-detail").close();
     loadEvents();
   } catch (e) {
@@ -474,10 +480,10 @@ async function syncOffline() {
     });
     queue.shift();
     localStorage.setItem("ynx.calendar.offlineQueue", JSON.stringify(queue));
-    toast("离线变更已恢复；仍需你的批准");
+    toast("Offline change restored; your approval is still required");
     showChange();
   } catch (e) {
-    toast(`离线变更需要处理：${e.message}`);
+    toast(`Offline change needs attention: ${e.message}`);
   }
 }
 async function beginAI() {
@@ -491,8 +497,8 @@ async function beginAI() {
       }),
     });
     $("#ai-preview").innerHTML =
-      `<b>数据范围</b><br>${escapeHTML(state.aiJob.context_preview)}<br><br><b>Provider / 模型</b><br>${escapeHTML(state.aiJob.provider)} · ${escapeHTML(state.aiJob.model)}<br><br><b>成本估算</b><br>${escapeHTML(state.aiJob.cost_estimate || "由 Gateway 结算")}<br><small>批准后才会发送这 1 个事件的时间元数据。</small>`;
-    $("#ai-begin").textContent = "批准并开始（可取消）";
+      `<b>Data scope</b><br>${escapeHTML(state.aiJob.context_preview)}<br><br><b>Provider / model</b><br>${escapeHTML(state.aiJob.provider)} · ${escapeHTML(state.aiJob.model)}<br><br><b>Estimated cost</b><br>${escapeHTML(state.aiJob.cost_estimate || "Settled by Gateway")}<br><small>Only approval sends time metadata for this one event.</small>`;
+    $("#ai-begin").textContent = "Approve and start (cancelable)";
     $("#ai-begin").onclick = approveAI;
   } catch (e) {
     toast(e.message);
@@ -501,7 +507,7 @@ async function beginAI() {
 async function approveAI() {
   const jobID = state.aiJob.id;
   $("#ai-result").innerHTML =
-    '<div class="permission">AI 正在运行并流式记录状态。<button class="quiet" id="ai-cancel">取消生成</button></div>';
+    '<div class="permission">AI is running with streamed status.<button class="quiet" id="ai-cancel">Cancel generation</button></div>';
   $("#ai-cancel").onclick = () => reviewAI("cancel");
   try {
     state.aiJob = await api(`/v1/ai/jobs/${jobID}/approve`, {
@@ -509,11 +515,11 @@ async function approveAI() {
       body: "{}",
     });
     if (state.aiJob.state === "cancelled") {
-      toast("AI 生成已取消，晚到结果不会应用");
+      toast("AI generation canceled; late results will not be applied");
       return;
     }
     $("#ai-result").innerHTML =
-      `<div class="ai-output">${escapeHTML(state.aiJob.result)}</div><p>结果尚未更改事件、邀请或自动化。</p><div class="detail-actions"><button class="primary" id="ai-apply">保留为建议</button><button class="quiet" id="ai-reject">拒绝</button></div>`;
+      `<div class="ai-output">${escapeHTML(state.aiJob.result)}</div><p>The result has not changed any event, invitation, or automation.</p><div class="detail-actions"><button class="primary" id="ai-apply">Keep as suggestion</button><button class="quiet" id="ai-reject">Reject</button></div>`;
     $("#ai-apply").onclick = () => reviewAI("apply");
     $("#ai-reject").onclick = () => reviewAI("reject");
   } catch (e) {
@@ -526,7 +532,7 @@ async function reviewAI(decision) {
       method: "POST",
       body: JSON.stringify({ decision }),
     });
-    toast(decision === "apply" ? "建议已保留，但未修改日程" : "AI 建议已拒绝");
+    toast(decision === "apply" ? "Suggestion retained; the calendar was not changed" : "AI suggestion rejected");
     state.aiJob = null;
     $("#ai-result").replaceChildren();
   } catch (e) {
@@ -611,16 +617,20 @@ function init() {
   $("#ai-begin").onclick = beginAI;
   addEventListener("online", () => {
     updateNetwork();
-    toast("网络已恢复，准备离线变更预览");
+    toast("Network restored; offline changes are ready for preview");
   });
-  addEventListener("offline", updateNetwork);
+addEventListener("offline", updateNetwork);
+addEventListener("ynx:locale", () => {
+  renderFrame();
+  if (state.token) loadEvents();
+});
   updateNetwork();
   if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js");
 }
 async function showAccount() {
   const dialog = document.createElement("dialog");
   dialog.className = "change-dialog";
-  dialog.innerHTML = `<div class="change-card"><span class="eyebrow">数据与会话</span><h2>Calendar 账户</h2><p>${escapeHTML(state.user?.handle || "")}</p><p>导出包含 Calendar 事件、提醒与审计记录，不包含 Wallet 密钥或账户哈希。</p><div class="detail-actions"><button class="quiet" data-action="export">导出 JSON</button><button class="quiet" data-action="logout">撤销此设备会话</button><button class="quiet danger-action" data-action="delete">删除 Calendar 账户</button><button class="primary" data-action="close">关闭</button></div></div>`;
+  dialog.innerHTML = `<div class="change-card"><span class="eyebrow">Data and session</span><h2>Calendar account</h2><p>${escapeHTML(state.user?.handle || "")}</p><p>The export contains Calendar events, reminders, and audit records, never Wallet keys or account hashes.</p><div class="detail-actions"><button class="quiet" data-action="export">Export JSON</button><button class="quiet" data-action="logout">Revoke this device session</button><button class="quiet danger-action" data-action="delete">Delete Calendar account</button><button class="primary" data-action="close">Close</button></div></div>`;
   document.body.append(dialog);
   dialog.addEventListener("close", () => dialog.remove());
   dialog.querySelector('[data-action="close"]').onclick = () => dialog.close();
@@ -634,23 +644,23 @@ async function showAccount() {
       link.download = "ynx-calendar-export.json";
       link.click();
       URL.revokeObjectURL(link.href);
-      toast("Calendar 数据导出已生成");
+      toast("Calendar data export created");
     } catch (e) {
       toast(e.message);
     }
   };
   dialog.querySelector('[data-action="logout"]').onclick = () => {
-    if (confirm("撤销此 Calendar 设备会话并退出？"))
+    if (confirm("Revoke this Calendar device session and sign out?"))
       api("/v1/auth/session", { method: "DELETE", body: "{}" }).finally(() =>
         signOut(),
       );
   };
   dialog.querySelector('[data-action="delete"]').onclick = async () => {
     const phrase = prompt(
-      "此操作不可撤销。输入 DELETE CALENDAR ACCOUNT 继续：",
+      "This action cannot be undone. Enter DELETE CALENDAR ACCOUNT to continue:",
     );
     if (phrase !== "DELETE CALENDAR ACCOUNT")
-      return toast("确认短语不匹配，未删除");
+      return toast("Confirmation phrase did not match; nothing was deleted");
     try {
       await api("/v1/account", {
         method: "DELETE",
@@ -658,7 +668,7 @@ async function showAccount() {
       });
       dialog.close();
       signOut(false);
-      toast("Calendar 账户已删除并保留最小审计墓碑");
+      toast("Calendar account deleted; a minimal audit tombstone was retained");
     } catch (e) {
       toast(e.message);
     }
@@ -670,13 +680,13 @@ renderEvents = () => {
   renderEventsBase();
   $("#empty").style.display = state.occurrences.length ? "none" : "grid";
 };
-init();
+window.ynxI18nReady.catch(() => {}).finally(init);
 $("#wallet-signin").onclick = () => beginSignIn(false);
 $("#wallet-recover").onclick = () => beginSignIn(true);
 const auditButton = document.createElement("button");
 auditButton.className = "avatar";
-auditButton.textContent = "审";
-auditButton.setAttribute("aria-label", "打开 Calendar 审计");
+auditButton.textContent = "Audit";
+auditButton.setAttribute("aria-label", "Open Calendar audit");
 auditButton.onclick = showAudit;
 $("#ai-open").before(auditButton);
 async function showAudit() {
@@ -687,15 +697,15 @@ async function showAudit() {
     const card = document.createElement("div");
     card.className = "change-card";
     card.innerHTML =
-      '<span class="eyebrow">账户证据</span><h2>Calendar 审计</h2><p>预览、批准、撤销、RSVP、共享、提醒和 AI 审批均在此留痕。</p>';
+      '<span class="eyebrow">Account evidence</span><h2>Calendar audit</h2><p>Previews, approvals, reverts, RSVP, sharing, reminders, and AI approvals are recorded here.</p>';
     for (const entry of audit.slice(-25).reverse()) {
       const row = document.createElement("p");
-      row.textContent = `${new Date(entry.created_at).toLocaleString()} · ${entry.action}`;
+      row.textContent = `${new Date(entry.created_at).toLocaleString(activeLocale())} · ${entry.action}`;
       card.append(row);
     }
     const close = document.createElement("button");
     close.className = "primary";
-    close.textContent = "关闭";
+    close.textContent = "Close";
     close.onclick = () => dialog.close();
     card.append(close);
     dialog.append(card);
@@ -715,7 +725,7 @@ async function loadReminders() {
       lastReminder = reminders[0].id;
       localStorage.setItem("ynx.calendar.lastReminder", lastReminder);
       toast(
-        `提醒：${reminders[0].title}${reminders[0].state.includes("late") ? "（重启后恢复）" : ""}`,
+        `${tr("reminder", "Reminder")}: ${reminders[0].title}${reminders[0].state.includes("late") ? " (recovered after restart)" : ""}`,
       );
     }
   } catch {}
