@@ -310,6 +310,15 @@
       "evidence": "apps/wallet/proof/gateway-multi-user-loopback-2026-08-13.json",
       "publicCapacityProven": false
     },
+    "freshPublicGatewayProbe": {
+      "sourceCommit": "652b9da67a47e13f1826db07d423d464100939c1",
+      "observedAt": "2026-08-13T12:09:47Z",
+      "result": "blocked-before-http-response",
+      "error": "UND_ERR_CONNECT_TIMEOUT",
+      "boundedAttempts": 2,
+      "freshPublicLifecycleVerified": false,
+      "evidence": "apps/wallet/proof/gateway-public-probe-blocked-2026-08-13.json"
+    },
     "gatewayBackupTests": "6/6 passed: exact restore, replay preservation, tamper/policy/permission rejection, legacy normalization and unsupported future-schema rejection",
     "gatewayBackupDrill": "20 local samples bound to a5c99e4e26e150aa6cf4138f4ecf8ac6d1ea8b2f; restore-and-cold-start p95 42441 microseconds; production RTO/RPO not claimed",
     "browserSdkTests": "7/7 passed after npm ci from its independent lockfile",

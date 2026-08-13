@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "wallet-auth-public-gateway-probe-blocked-2026-08-13",
+  "sourceCommit": "652b9da67a47e13f1826db07d423d464100939c1",
+  "environment": "public-testnet",
+  "recordedAt": "2026-08-13T12:09:47Z",
+  "target": "https://rest.ynxweb4.com",
+  "probe": {
+    "command": "YNX_WALLET_GATEWAY_PUBLIC_PROBE=1 YNX_WALLET_GATEWAY_PUBLIC_URL=https://rest.ynxweb4.com/ npm run probe:public-gateway",
+    "optInRequired": true,
+    "boundedAttempts": 2,
+    "timeoutPerAttemptMs": 20000,
+    "result": "blocked-before-http-response",
+    "errorClass": "TypeError",
+    "cause": "UND_ERR_CONNECT_TIMEOUT",
+    "attemptedAddress": "rest.ynxweb4.com:443"
+  },
+  "readOnlyRouteEvidence": {
+    "method": "HEAD",
+    "observations": [
+      {"path": "/v1/wallet/sessions/complete", "status": 405, "contentType": "application/json; charset=utf-8"},
+      {"path": "/v1/wallet/sessions/introspect", "status": 405, "contentType": "application/json; charset=utf-8"},
+      {"path": "/v1/wallet/sessions/revoke", "status": 405, "contentType": "application/json; charset=utf-8"}
+    ],
+    "interpretation": "Routes resolved and rejected the wrong method, but this does not prove POST lifecycle availability."
+  },
+  "claims": {
+    "authorizationRequestAccepted": false,
+    "productSessionCreated": false,
+    "introspectionActive": false,
+    "replayRejected": false,
+    "sessionRevoked": false,
+    "postRevokeRejected": false,
+    "assetMoved": false,
+    "userClaimed": false,
+    "secretMaterialRecorded": false,
+    "freshPublicLifecycleVerified": false
+  },
+  "releaseState": {
+    "implementedLocal": true,
+    "testedLocal": false,
+    "installedLocal": false,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "artifact": {
+    "name": "ynx-chain-wallet-auth-1.0.0.tgz",
+    "sha256": "9378ba9b39d3454e3aaba8271c53f7b5221bb914e743eb1cafa53c7aa2281c86",
+    "bytes": 89501,
+    "unpackedBytes": 402022,
+    "minimumOS": "not-applicable",
+    "minimumRuntime": "Node.js 22",
+    "signingClass": "unsigned-local-npm-package",
+    "hosted": false
+  },
+  "recoveryCondition": "A bounded opt-in run must receive and validate completion, introspection, replay, revoke and post-revoke HTTP responses from the exact public endpoint."
+}
