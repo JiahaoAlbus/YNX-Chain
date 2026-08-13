@@ -1,0 +1,13 @@
+{
+  "name": "YNX Wallet Testnet Companion",
+  "short_name": "YNX Wallet",
+  "id": "/wallet/companion",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f6f7fa",
+  "theme_color": "#002fa7",
+  "lang": "en",
+  "dir": "auto",
+  "icons": [{"src":"./ynx-logo.png","sizes":"any","type":"image/png","purpose":"any maskable"}]
+}

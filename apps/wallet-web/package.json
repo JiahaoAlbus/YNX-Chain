@@ -1,0 +1,12 @@
+{
+  "name": "@ynx-chain/wallet-web",
+  "version": "0.1.0-testnet-preview.1",
+  "private": true,
+  "type": "module",
+  "engines": {"node": ">=20"},
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "build": "node scripts/build.mjs",
+    "package": "node scripts/package.mjs"
+  }
+}
