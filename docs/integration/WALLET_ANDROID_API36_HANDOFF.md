@@ -38,3 +38,9 @@ This follow-up has `implementedLocal=true` and `testedLocal=true`. Its `installe
 Commit `f105cadcda2bca619d3993a9bcedeb3c0faaebd4` promotes the already implemented Android privacy boundaries into the Wallet product gate without changing the frozen Auth protocol. The gate now fails if native `FLAG_SECURE` moves after React startup, either Android SecureStore backup-exclusion binding disappears, device-bound unlocked-only storage is weakened, strong biometric/device-fallback policy is removed, background locking no longer clears the unlocked account, or the bounded clipboard-clear policy is removed.
 
 The bounded verification completed on 2026-08-13: `npm run product-check` passed, all Wallet tests passed 41/41, `npm run typecheck` passed, and `git diff --check` passed. These are source and local-test facts. They do not turn biometric/background/clipboard emulator interaction, source-bound APK installation, public deployment, signing, or store release true.
+
+## Source-bound unsigned APK install boundary
+
+After the privacy-gate evidence was pushed, `YNX_WALLET_FINAL` / `emulator-5594` responded to bounded ADB commands and reported API 36 with `sys.boot_completed=1`. The source-bound unsigned APK still matched SHA-256 `4af2792486e24776ff4e19e1d9979f5194418766c801db01ba3e0a4e5408fcd8`. A bounded `adb install -r` failed before signature evaluation with `cmd: Can't find service: package`; a separate `service check package` returned `Service package: not found`.
+
+Therefore this probe proves neither an APK-signature rejection nor a Wallet failure. It records an emulator Package Manager boundary and leaves `installedLocal=false`, `apkSignatureVerified=false`, `productionSigned=false`, and device screenshot/second-PID evidence false for the new source-bound build.

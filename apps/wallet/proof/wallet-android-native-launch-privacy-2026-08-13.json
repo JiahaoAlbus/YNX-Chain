@@ -58,7 +58,21 @@
       "buildDuration": "15m 39s"
     },
     "installedFromSourceCommit": false,
-    "deviceScreenshotFromSourceCommit": false
+    "deviceScreenshotFromSourceCommit": false,
+    "api36UnsignedInstallProbe": {
+      "attempted": true,
+      "avd": "YNX_WALLET_FINAL",
+      "serial": "emulator-5594",
+      "api": 36,
+      "apkSha256MatchedBuildEvidence": true,
+      "result": "failed-closed",
+      "adbError": "cmd: Can't find service: package",
+      "bootCompleted": true,
+      "packageServiceAvailable": false,
+      "signatureRejectionObserved": false,
+      "walletFailureObserved": false,
+      "installedLocal": false
+    }
   },
   "releaseStates": {
     "implementedLocal": true,
@@ -74,8 +88,9 @@
   "limitations": [
     "The previously verified 1.0.1 APK predates this native source change and is not evidence for this commit.",
     "The source-bound Release APK is unsigned and cannot be installed or distributed as a signed preview.",
+    "A bounded install probe on the API 36 YNX_WALLET_FINAL AVD failed before signature evaluation because Android's package service was unavailable even though sys.boot_completed was 1; this is emulator-system evidence, not Wallet installation or failure evidence.",
     "A reviewed signing input plus source-bound APK install and launch-window screencap remain required before installedLocal may become true."
   ],
-  "verifiedAt": "2026-08-13T14:57:32Z",
+  "verifiedAt": "2026-08-13T15:13:18Z",
   "secretMaterialRecorded": false
 }
