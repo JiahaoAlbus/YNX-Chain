@@ -215,6 +215,12 @@ function unnamedInteractive() {
       {
         title: "Permission review",
         description: "Explicit scheduling approval and conflict boundary.",
+        location: "Testnet review room",
+        all_day: false,
+        calendar_id: "team",
+        color: "green",
+        privacy: "participants",
+        attachment_links: ["https://cloud.ynxweb4.com/files/browser-proof"],
         local_start: local(start),
         local_end: local(end),
         time_zone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
@@ -251,18 +257,35 @@ function unnamedInteractive() {
       await page.locator("#signin").waitFor({ state: "hidden" });
       await page.locator("#new-event").click();
       await page.locator("#title").fill("Guest device-only draft");
+      await page.locator("#location").fill("Room 6423");
+      await page.locator("#all-day").check();
+      await page.locator("#recurrence").selectOption("weekly");
+      await page.locator("#interval").fill("2");
+      await page.locator("#count").fill("3");
+      const currentDayCode = await page.evaluate(() => ["SU", "MO", "TU", "WE", "TH", "FR", "SA"][new Date().getDay()]);
+      await page.locator("#by-day").fill(currentDayCode);
+      await page.locator("#calendar-id").selectOption("team");
+      await page.locator("#event-color").selectOption("violet");
+      await page.locator("#event-privacy").selectOption("participants");
+      await page.locator("#attachment-links").fill("https://cloud.ynxweb4.com/files/guest-calendar-proof");
       await page.locator("#event-form button[type=submit]").click();
       await page.locator("#change-dialog").waitFor({ state: "visible" });
       await page.locator("#approve-change").click();
       await page.locator(".event").first().waitFor();
       const guestProof = await page.evaluate(() => ({
-        eventCount: JSON.parse(localStorage.getItem("ynx.calendar.guestEvents") || "[]").length,
+        events: JSON.parse(localStorage.getItem("ynx.calendar.guestEvents") || "[]"),
         signinHidden: document.querySelector("#signin")?.hidden,
         account: document.querySelector("#account")?.textContent,
         serverCookie: document.cookie,
       }));
-      if (guestProof.eventCount !== 1 || !guestProof.signinHidden || guestProof.account !== "G" || guestProof.serverCookie)
+      const storedGuest = guestProof.events[0];
+      if (guestProof.events.length !== 1 || storedGuest.location !== "Room 6423" || !storedGuest.all_day || storedGuest.calendar_id !== "team" || storedGuest.color !== "violet" || storedGuest.privacy !== "participants" || storedGuest.recurrence.frequency !== "weekly" || storedGuest.recurrence.interval !== 2 || storedGuest.recurrence.count !== 3 || storedGuest.attachment_links.length !== 1 || !guestProof.signinHidden || guestProof.account !== "G" || guestProof.serverCookie)
         throw Error(`guest mode boundary failed: ${JSON.stringify(guestProof)}`);
+      await page.locator("#account").click();
+      await page.getByRole("heading", { name: "Local Calendar data" }).waitFor();
+      await page.getByRole("button", { name: "Export JSON" }).waitFor();
+      await page.getByRole("button", { name: "Export iCalendar (.ics)" }).waitFor();
+      await page.getByRole("button", { name: "Close" }).click();
       if (errors.length) throw Error(`guest mode page errors: ${errors.join(",")}`);
       await page.screenshot({
         path: path.join(artifact, "calendar-guest-trial.png"),
@@ -349,6 +372,18 @@ function unnamedInteractive() {
         await page.locator(".event").first().scrollIntoViewIfNeeded();
         await page.screenshot({
           path: path.join(artifact, "calendar-desktop-day.png"),
+          fullPage: true,
+        });
+        await page.locator('[data-view="agenda"]').click();
+        await page.locator(".agenda-event").first().waitFor();
+        await page.locator("#calendar-search").fill("Permission review");
+        if ((await page.locator(".agenda-event").count()) !== 3)
+          throw Error("agenda search did not retain the three recurring occurrences");
+        await page.locator("#calendar-search").fill("no matching calendar event");
+        await page.locator("#empty").waitFor({ state: "visible" });
+        await page.locator("#calendar-search").fill("");
+        await page.screenshot({
+          path: path.join(artifact, "calendar-desktop-agenda.png"),
           fullPage: true,
         });
       }

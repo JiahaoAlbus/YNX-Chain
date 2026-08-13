@@ -11,6 +11,7 @@ const state = {
   pendingChange: null,
   editing: null,
   aiJob: null,
+  searchQuery: "",
 };
 const guestEventsKey = "ynx.calendar.guestEvents";
 if ((navigator.language || "").toLowerCase().startsWith("ar")) {
@@ -102,6 +103,68 @@ function guestEvents() {
     return [];
   }
 }
+function expandGuestEvent(event, from, to) {
+  const baseStart = new Date(event.start_utc), baseEnd = new Date(event.end_utc);
+  if (Number.isNaN(baseStart.valueOf()) || Number.isNaN(baseEnd.valueOf())) return [];
+  const recurrence = event.recurrence || {};
+  const frequency = recurrence.frequency || "";
+  const interval = Math.max(1, Number(recurrence.interval) || 1);
+  const until = recurrence.until ? new Date(recurrence.until) : null;
+  const count = frequency ? (Number(recurrence.count) > 0 ? Math.min(3660, Number(recurrence.count)) : until ? 3660 : 1) : 1;
+  const duration = baseEnd - baseStart;
+  const starts = [];
+  const push = (date) => {
+    if (starts.length >= Math.min(count, 3660) || (until && date > until)) return false;
+    starts.push(new Date(date));
+    return true;
+  };
+  if (!frequency) push(baseStart);
+  else if (frequency === "weekly" && recurrence.by_day?.length) {
+    const weekdays = { SU: 0, MO: 1, TU: 2, WE: 3, TH: 4, FR: 5, SA: 6 };
+    const weekBase = startOfWeek(baseStart);
+    for (let week = 0; starts.length < count && week < 530; week++) {
+      for (const code of recurrence.by_day) {
+        const candidate = plusDays(weekBase, week * 7 * interval + ((weekdays[code] + 6) % 7));
+        candidate.setHours(baseStart.getHours(), baseStart.getMinutes(), 0, 0);
+        if (candidate >= baseStart && !push(candidate)) break;
+      }
+      if (until && plusDays(weekBase, week * 7 * interval) > until) break;
+    }
+  } else if (frequency === "monthly" && recurrence.by_month_day?.length) {
+    for (let month = 0; starts.length < count && month < 1200; month++) {
+      const anchor = new Date(baseStart.getFullYear(), baseStart.getMonth() + month * interval, 1, baseStart.getHours(), baseStart.getMinutes());
+      for (const day of recurrence.by_month_day) {
+        const candidate = new Date(anchor.getFullYear(), anchor.getMonth(), Number(day), baseStart.getHours(), baseStart.getMinutes());
+        if (candidate.getMonth() === anchor.getMonth() && candidate >= baseStart && !push(candidate)) break;
+      }
+      if (until && anchor > until) break;
+    }
+  } else {
+    for (let index = 0; index < count; index++) {
+      const candidate = new Date(baseStart);
+      if (frequency === "daily") candidate.setDate(candidate.getDate() + index * interval);
+      else if (frequency === "weekly") candidate.setDate(candidate.getDate() + index * 7 * interval);
+      else if (frequency === "monthly") {
+        const expectedMonth = (baseStart.getMonth() + index * interval) % 12;
+        candidate.setDate(1);
+        candidate.setMonth(baseStart.getMonth() + index * interval);
+        candidate.setDate(baseStart.getDate());
+        if (candidate.getMonth() !== (expectedMonth + 12) % 12) continue;
+      } else if (frequency === "yearly") {
+        const expectedMonth = baseStart.getMonth();
+        candidate.setDate(1);
+        candidate.setFullYear(baseStart.getFullYear() + index * interval);
+        candidate.setMonth(expectedMonth);
+        candidate.setDate(baseStart.getDate());
+        if (candidate.getMonth() !== expectedMonth) continue;
+      }
+      if (!push(candidate)) break;
+    }
+  }
+  return starts
+    .map((start) => ({ ...event, event_id: event.event_id || event.id, start_utc: start.toISOString(), end_utc: new Date(start.getTime() + duration).toISOString() }))
+    .filter((occurrence) => new Date(occurrence.end_utc) > from && new Date(occurrence.start_utc) < to);
+}
 function enterGuest() {
   state.token = "";
   state.guest = true;
@@ -124,7 +187,10 @@ function renderFrame() {
     el.innerHTML = `<span>${d.toLocaleDateString(activeLocale(), { weekday: "short" })}</span><b>${d.getDate()}</b>`;
     days.append(el);
   }
-  if (state.view === "month") {
+  if (state.view === "agenda") {
+    days.replaceChildren();
+    $("#range").textContent = `${state.focusDate.toLocaleDateString(activeLocale(), { month: "short", day: "numeric" })} — ${plusDays(state.focusDate, 89).toLocaleDateString(activeLocale(), { month: "short", day: "numeric", year: "numeric" })}`;
+  } else if (state.view === "month") {
     days.innerHTML = Array.from({ length: 7 }, (_, index) =>
       plusDays(state.weekStart, index).toLocaleDateString(activeLocale(), { weekday: "short" }),
     )
@@ -165,7 +231,11 @@ async function loadEvents() {
     const events = guestEvents();
     let fromDate = state.weekStart,
       toDate = plusDays(state.weekStart, 7);
-    if (state.view === "day") {
+    if (state.view === "agenda") {
+      fromDate = new Date(state.focusDate);
+      fromDate.setHours(0, 0, 0, 0);
+      toDate = plusDays(fromDate, 90);
+    } else if (state.view === "day") {
       fromDate = new Date(state.focusDate);
       fromDate.setHours(0, 0, 0, 0);
       toDate = plusDays(fromDate, 1);
@@ -173,10 +243,7 @@ async function loadEvents() {
       fromDate = startOfWeek(new Date(state.focusDate.getFullYear(), state.focusDate.getMonth(), 1));
       toDate = plusDays(fromDate, 42);
     }
-    state.occurrences = events.filter((event) => {
-      const start = new Date(event.start_utc);
-      return start >= fromDate && start < toDate;
-    });
+    state.occurrences = events.flatMap((event) => expandGuestEvent(event, fromDate, toDate));
     renderEvents();
     return;
   }
@@ -184,7 +251,11 @@ async function loadEvents() {
   $("#app").setAttribute("aria-busy", "true");
   let fromDate = state.weekStart,
     toDate = plusDays(state.weekStart, 7);
-  if (state.view === "day") {
+  if (state.view === "agenda") {
+    fromDate = new Date(state.focusDate);
+    fromDate.setHours(0, 0, 0, 0);
+    toDate = plusDays(fromDate, 90);
+  } else if (state.view === "day") {
     fromDate = new Date(state.focusDate);
     fromDate.setHours(0, 0, 0, 0);
     toDate = plusDays(fromDate, 1);
@@ -214,17 +285,25 @@ async function loadEvents() {
 function renderEvents() {
   const week = $("#week");
   week.replaceChildren();
-  week.className = state.view === "month" ? "week month-grid" : "week";
-  if (state.view === "month") {
-    renderMonthEvents(week);
+  const query = state.searchQuery.trim().toLocaleLowerCase(activeLocale());
+  const visible = query
+    ? state.occurrences.filter((event) => [event.title, event.location, event.owner_handle, event.calendar_id].some((value) => String(value || "").toLocaleLowerCase(activeLocale()).includes(query)))
+    : state.occurrences;
+  week.className = state.view === "month" ? "week month-grid" : state.view === "agenda" ? "week agenda-list" : "week";
+  if (state.view === "agenda") {
+    renderAgendaEvents(week, visible);
     return;
   }
-  $("#empty").hidden = state.occurrences.length > 0;
+  if (state.view === "month") {
+    renderMonthEvents(week, visible);
+    return;
+  }
+  $("#empty").hidden = visible.length > 0;
   const overlap = new Set();
-  for (let i = 0; i < state.occurrences.length; i++)
-    for (let j = i + 1; j < state.occurrences.length; j++) {
-      const a = state.occurrences[i],
-        b = state.occurrences[j];
+  for (let i = 0; i < visible.length; i++)
+    for (let j = i + 1; j < visible.length; j++) {
+      const a = visible[i],
+        b = visible[j];
       if (
         new Date(a.start_utc) < new Date(b.end_utc) &&
         new Date(b.start_utc) < new Date(a.end_utc)
@@ -233,7 +312,7 @@ function renderEvents() {
         overlap.add(`${b.event_id}:${b.start_utc}`);
       }
     }
-  for (const o of state.occurrences) {
+  for (const o of visible) {
     const start = new Date(o.start_utc),
       end = new Date(o.end_utc),
       day = state.view === "day" ? 0 : (start.getDay() + 6) % 7,
@@ -241,6 +320,7 @@ function renderEvents() {
       duration = Math.max(30, (end - start) / 60000),
       el = document.createElement("button");
     el.className = `event${overlap.has(`${o.event_id}:${o.start_utc}`) ? " conflict" : ""}`;
+    el.dataset.color = o.color || "blue";
     const width = state.view === "day" ? 100 : 14.2857;
     el.style.left = `calc(${day} * ${width}% + 3px)`;
     el.style.width = `calc(${width}% - 6px)`;
@@ -255,7 +335,27 @@ function renderEvents() {
     week.append(el);
   }
 }
-function renderMonthEvents(month) {
+function renderAgendaEvents(list, occurrences) {
+  let lastDay = "";
+  for (const occurrence of [...occurrences].sort((a, b) => new Date(a.start_utc) - new Date(b.start_utc))) {
+    const start = new Date(occurrence.start_utc);
+    const dayKey = start.toDateString();
+    if (dayKey !== lastDay) {
+      const heading = document.createElement("h2");
+      heading.className = "agenda-day";
+      heading.textContent = start.toLocaleDateString(activeLocale(), { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+      list.append(heading);
+      lastDay = dayKey;
+    }
+    const button = document.createElement("button");
+    button.className = "agenda-event";
+    button.innerHTML = `<time>${occurrence.all_day ? "All day" : start.toLocaleTimeString(activeLocale(), { hour: "2-digit", minute: "2-digit" })}</time><span class="agenda-color" data-color="${escapeHTML(occurrence.color || "blue")}"></span><span><b>${escapeHTML(occurrence.title)}</b><small>${escapeHTML(occurrence.location || occurrence.calendar_id || "Personal")}</small></span><small>${escapeHTML(occurrence.owner_handle || "")}</small>`;
+    button.onclick = () => openEvent(occurrence);
+    list.append(button);
+  }
+  $("#empty").hidden = occurrences.length > 0;
+}
+function renderMonthEvents(month, occurrences = state.occurrences) {
   const first = startOfWeek(
     new Date(state.focusDate.getFullYear(), state.focusDate.getMonth(), 1),
   );
@@ -264,11 +364,12 @@ function renderMonthEvents(month) {
       cell = document.createElement("section");
     cell.className = `month-day${date.getMonth() === state.focusDate.getMonth() ? "" : " outside"}${date.toDateString() === new Date().toDateString() ? " today" : ""}`;
     cell.innerHTML = `<time datetime="${date.toISOString().slice(0, 10)}">${date.getDate()}</time>`;
-    for (const occurrence of state.occurrences.filter(
+    for (const occurrence of occurrences.filter(
       (o) => new Date(o.start_utc).toDateString() === date.toDateString(),
     )) {
       const button = document.createElement("button");
       button.className = "month-event";
+      button.dataset.color = occurrence.color || "blue";
       button.textContent = `${new Date(occurrence.start_utc).toLocaleTimeString(activeLocale(), { hour: "2-digit", minute: "2-digit" })} ${occurrence.title}`;
       button.onclick = () => openEvent(occurrence);
       cell.append(button);
@@ -303,6 +404,8 @@ function openForm(event = null) {
     : new Date(start.getTime() + 3600000);
   $("#title").value = event?.title || "";
   $("#description").value = event?.description || "";
+  $("#location").value = event?.location || "";
+  $("#all-day").checked = Boolean(event?.all_day);
   $("#start").value = localInput(start);
   $("#end").value = localInput(end);
   $("#timezone").value =
@@ -310,23 +413,38 @@ function openForm(event = null) {
     Intl.DateTimeFormat().resolvedOptions().timeZone ||
     "UTC";
   $("#recurrence").value = event?.recurrence?.frequency || "";
+  $("#interval").value = event?.recurrence?.interval || 1;
   $("#count").value = event?.recurrence?.count || 1;
+  $("#recurrence-until").value = event?.recurrence?.until ? String(event.recurrence.until).slice(0, 10) : "";
+  $("#by-day").value = (event?.recurrence?.by_day || []).join(",");
+  $("#by-month-day").value = (event?.recurrence?.by_month_day || []).join(",");
+  $("#calendar-id").value = event?.calendar_id || "personal";
+  $("#event-color").value = event?.color || "blue";
+  $("#event-privacy").value = event?.privacy || "private";
   $("#invitees").value = (event?.invites || []).map((i) => i.handle).join(", ");
   $("#meeting-link").value = event?.meeting_link || "";
+  $("#attachment-links").value = (event?.attachment_links || []).join(", ");
   $("#event-title").textContent = event ? tr("update", "Update event") : tr("create", "Create event");
   $("#event-dialog").showModal();
   $("#title").focus();
 }
 function eventInput() {
   const freq = $("#recurrence").value;
+  const untilValue = $("#recurrence-until").value;
   return {
     title: $("#title").value,
     description: $("#description").value,
+    location: $("#location").value,
+    all_day: $("#all-day").checked,
+    calendar_id: $("#calendar-id").value,
+    color: $("#event-color").value,
+    privacy: $("#event-privacy").value,
+    attachment_links: $("#attachment-links").value.split(",").map((value) => value.trim()).filter(Boolean),
     local_start: $("#start").value,
     local_end: $("#end").value,
     time_zone: $("#timezone").value,
     recurrence: freq
-      ? { frequency: freq, interval: 1, count: Number($("#count").value) }
+      ? { schema_version: 1, frequency: freq, interval: Number($("#interval").value), count: untilValue ? 0 : Number($("#count").value), until: untilValue ? new Date(`${untilValue}T23:59:59Z`).toISOString() : undefined, by_day: $("#by-day").value.split(",").map((value) => value.trim().toUpperCase()).filter(Boolean), by_month_day: $("#by-month-day").value.split(",").map((value) => Number(value.trim())).filter(Number.isInteger) }
       : { frequency: "", interval: 0, count: 0 },
     invitees: $("#invitees")
       .value.split(",")
@@ -350,12 +468,27 @@ async function submitEvent(e) {
       toast("Add a title and a valid end time after the start time");
       return;
     }
+    try {
+      for (const link of input.attachment_links) {
+        const parsed = new URL(link);
+        if (parsed.protocol !== "https:" || parsed.username || parsed.password || parsed.hash || parsed.hostname.toLowerCase().includes("wallet") || parsed.pathname.toLowerCase().startsWith("/sign")) throw new Error();
+      }
+    } catch {
+      toast("Cloud attachments must be credential-free HTTPS links and cannot request Wallet authority");
+      return;
+    }
     const id = state.editing?.event_id || state.editing?.id || mutationID();
     const after = {
       id,
       event_id: id,
       title: input.title.trim(),
       description: input.description,
+      location: input.location,
+      all_day: input.all_day,
+      calendar_id: input.calendar_id,
+      color: input.color,
+      privacy: input.privacy,
+      attachment_links: input.attachment_links,
       start_utc: start.toISOString(),
       end_utc: end.toISOString(),
       time_zone: input.time_zone,
@@ -462,12 +595,19 @@ async function openEvent(occurrence) {
     state.selectedEvent = event;
     $("#ai-begin").disabled = true;
     $("#ai-preview").textContent = "Connect YNX Wallet before sending selected event data to an AI provider.";
-    $("#event-content").innerHTML = `<span class="eyebrow">Local guest draft · v${event.version}</span><h1>${escapeHTML(event.title)}</h1><p>${escapeHTML(event.description || "No description")}</p><div class="detail-row"><span>Time</span><b>${new Date(event.start_utc).toLocaleString(activeLocale())} — ${new Date(event.end_utc).toLocaleString(activeLocale())}</b><span>${tr("timezone", "Time zone")}</span><b>${escapeHTML(event.time_zone)}</b><span>Boundary</span><b>Stored on this device only · not synced · not shared · not written to YNX Chain</b></div><div class="detail-actions"><button class="primary" id="edit-event">${tr("update", "Update event")}</button><button class="quiet" id="connect-event">Sign in to sync or share</button><button class="quiet" id="close-detail">Close</button></div>`;
+    $("#event-content").innerHTML = `<span class="eyebrow">Local guest draft · v${event.version}</span><h1>${escapeHTML(event.title)}</h1><p>${escapeHTML(event.description || "No description")}</p><div class="detail-row"><span>Time</span><b>${event.all_day ? "All day · " : ""}${new Date(event.start_utc).toLocaleString(activeLocale())} — ${new Date(event.end_utc).toLocaleString(activeLocale())}</b><span>Location</span><b>${escapeHTML(event.location || "None")}</b><span>Calendar / privacy</span><b>${escapeHTML(event.calendar_id || "personal")} · ${escapeHTML(event.privacy || "private")}</b><span>${tr("timezone", "Time zone")}</span><b>${escapeHTML(event.time_zone)}</b><span>${tr("repeat", "Recurrence")}</span><b>${event.recurrence?.frequency ? `Every ${event.recurrence.interval || 1} ${escapeHTML(event.recurrence.frequency)} · ${event.recurrence.count || "until date"}` : "Does not repeat"}</b><span>Cloud references</span><b>${event.attachment_links?.map((link) => `<a href="${escapeHTML(link)}" target="_blank" rel="noopener noreferrer">${escapeHTML(new URL(link).hostname)}</a>`).join("<br>") || "None"}</b><span>Boundary</span><b>Stored on this device only · invitations are drafts only · not synced, shared, or written to YNX Chain</b></div><div class="detail-actions"><button class="primary" id="edit-event">${tr("update", "Update event")}</button><button class="quiet danger-action" id="delete-local-event">Delete local draft</button><button class="quiet" id="connect-event">Sign in to sync or share</button><button class="quiet" id="close-detail">Close</button></div>`;
     $("#event-detail").showModal();
     $("#close-detail").onclick = () => $("#event-detail").close();
     $("#edit-event").onclick = () => {
       $("#event-detail").close();
       openForm(event);
+    };
+    $("#delete-local-event").onclick = () => {
+      if (!confirm("Delete this device-only draft? This cannot be recovered after the browser storage is cleared.")) return;
+      localStorage.setItem(guestEventsKey, JSON.stringify(guestEvents().filter((item) => item.event_id !== event.event_id)));
+      $("#event-detail").close();
+      toast("Local draft deleted from this device");
+      loadEvents();
     };
     $("#connect-event").onclick = () => {
       $("#event-detail").close();
@@ -486,7 +626,7 @@ async function openEvent(occurrence) {
       `Selected only: ${event.title}. Next, review the provider, model, and cost.`;
     const mine = event.owner_handle === state.user.handle;
     $("#event-content").innerHTML =
-      `<span class="eyebrow">${escapeHTML(event.state)} · v${event.version}</span><h1>${escapeHTML(event.title)}</h1><p>${escapeHTML(event.description || "No description")}</p><div class="detail-row"><span>Time</span><b>${new Date(event.start_utc).toLocaleString(activeLocale())} — ${new Date(event.end_utc).toLocaleString(activeLocale())}</b><span>${tr("timezone", "Time zone")}</span><b>${escapeHTML(event.time_zone)}</b><span>Organizer</span><b>${escapeHTML(event.owner_handle)}</b><span>${tr("repeat", "Recurrence")}</span><b>${event.recurrence?.frequency ? `${escapeHTML(event.recurrence.frequency)} × ${event.recurrence.count}` : "Does not repeat"}</b><span>${tr("reminder", "Reminder")}</span><b>${event.reminders?.map((r) => `${r.minutes_before} minutes before`).join(", ") || "None"}</b><span>Invitations</span><b>${event.invites?.map((i) => `${escapeHTML(i.handle)} · ${escapeHTML(i.state)}`).join("<br>") || "None"}</b><span>${tr("share", "Sharing")}</span><b>${event.shares?.map((s) => `${escapeHTML(s.handle)} · ${escapeHTML(s.role)}`).join("<br>") || "None"}</b><span>${tr("meeting_link", "Meeting link")}</span><b>${event.meeting_link ? `<a href="${escapeHTML(event.meeting_link)}" target="_blank" rel="noopener noreferrer">Open bounded link</a>` : "None"}</b></div><div class="detail-actions">${mine ? `<button class="primary" id="edit-event">${tr("update", "Update event")}</button><button class="quiet" id="cancel-event">${tr("cancel_event", "Cancel event")}</button><button class="quiet" id="share-event">${tr("share", "Share calendar")}</button>` : '<button class="primary" data-rsvp="accepted">Accept</button><button class="quiet" data-rsvp="tentative">Tentative</button><button class="quiet" data-rsvp="declined">Decline</button>'}${event._lastChange ? '<button class="quiet" id="revert-event">Undo last change</button>' : ""}<button class="quiet" id="close-detail">Close</button></div>`;
+      `<span class="eyebrow">${escapeHTML(event.state)} · v${event.version}</span><h1>${escapeHTML(event.title)}</h1><p>${escapeHTML(event.description || "No description")}</p><div class="detail-row"><span>Time</span><b>${event.all_day ? "All day · " : ""}${new Date(event.start_utc).toLocaleString(activeLocale())} — ${new Date(event.end_utc).toLocaleString(activeLocale())}</b><span>Location</span><b>${escapeHTML(event.location || "None")}</b><span>Calendar / privacy</span><b>${escapeHTML(event.calendar_id || "personal")} · ${escapeHTML(event.privacy || "private")}</b><span>${tr("timezone", "Time zone")}</span><b>${escapeHTML(event.time_zone)}</b><span>Organizer</span><b>${escapeHTML(event.owner_handle)}</b><span>${tr("repeat", "Recurrence")}</span><b>${event.recurrence?.frequency ? `Every ${event.recurrence.interval || 1} ${escapeHTML(event.recurrence.frequency)} · ${event.recurrence.count || "until date"}` : "Does not repeat"}</b><span>${tr("reminder", "Reminder")}</span><b>${event.reminders?.map((r) => `${r.minutes_before} minutes before`).join(", ") || "None"}</b><span>Invitations</span><b>${event.invites?.map((i) => `${escapeHTML(i.handle)} · ${escapeHTML(i.state)}`).join("<br>") || "None"}</b><span>${tr("share", "Sharing")}</span><b>${event.shares?.map((s) => `${escapeHTML(s.handle)} · ${escapeHTML(s.role)}`).join("<br>") || "None"}</b><span>Cloud references</span><b>${event.attachment_links?.map((link) => `<a href="${escapeHTML(link)}" target="_blank" rel="noopener noreferrer">Open attachment</a>`).join("<br>") || "None"}</b><span>${tr("meeting_link", "Meeting link")}</span><b>${event.meeting_link ? `<a href="${escapeHTML(event.meeting_link)}" target="_blank" rel="noopener noreferrer">Open bounded link</a>` : "None"}</b></div><div class="detail-actions">${mine ? `<button class="primary" id="edit-event">${tr("update", "Update event")}</button><button class="quiet" id="cancel-event">${tr("cancel_event", "Cancel event")}</button><button class="quiet" id="share-event">${tr("share", "Share calendar")}</button>` : '<button class="primary" data-rsvp="accepted">Accept</button><button class="quiet" data-rsvp="tentative">Tentative</button><button class="quiet" data-rsvp="declined">Decline</button>'}${event._lastChange ? '<button class="quiet" id="revert-event">Undo last change</button>' : ""}<button class="quiet" id="close-detail">Close</button></div>`;
     $("#event-detail").showModal();
     $("#close-detail").onclick = () => $("#event-detail").close();
     if (mine) {
@@ -669,7 +809,7 @@ function init() {
   });
   $("#wallet-signin").onclick = beginSignIn;
   $("#guest-try").onclick = enterGuest;
-  $("#account").onclick = () => state.guest ? signOut(false) : showAccount();
+  $("#account").onclick = () => state.guest ? showGuestAccount() : showAccount();
   $("#new-event").onclick = () => openForm();
   $("#event-form").onsubmit = submitEvent;
   $("#approve-change").onclick = approveChange;
@@ -683,7 +823,7 @@ function init() {
     loadEvents();
   };
   $("#prev").onclick = () => {
-    const step = state.view === "day" ? -1 : -7;
+    const step = state.view === "day" ? -1 : state.view === "agenda" ? -30 : -7;
     if (state.view === "month")
       state.focusDate = new Date(
         state.focusDate.getFullYear(),
@@ -695,7 +835,7 @@ function init() {
     loadEvents();
   };
   $("#next").onclick = () => {
-    const step = state.view === "day" ? 1 : 7;
+    const step = state.view === "day" ? 1 : state.view === "agenda" ? 30 : 7;
     if (state.view === "month")
       state.focusDate = new Date(
         state.focusDate.getFullYear(),
@@ -724,6 +864,10 @@ function init() {
     $("#ai-open").setAttribute("aria-expanded", "false");
   };
   $("#ai-begin").onclick = beginAI;
+  $("#calendar-search").oninput = (event) => {
+    state.searchQuery = event.target.value;
+    renderEvents();
+  };
   addEventListener("online", () => {
     updateNetwork();
     toast("Network restored; offline changes are ready for preview");
@@ -784,11 +928,43 @@ async function showAccount() {
   };
   dialog.showModal();
 }
-const renderEventsBase = renderEvents;
-renderEvents = () => {
-  renderEventsBase();
-  $("#empty").style.display = state.occurrences.length ? "none" : "grid";
-};
+function downloadBlob(name, type, body) {
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(new Blob([body], { type }));
+  link.download = name;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(link.href), 0);
+}
+function icsEscape(value) {
+  return String(value || "").replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/,/g, "\\,").replace(/;/g, "\\;");
+}
+function guestICS(events) {
+  const stamp = (value) => new Date(value).toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
+  return ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//YNX//Calendar Guest Export//EN", "CALSCALE:GREGORIAN", ...events.flatMap((event) => ["BEGIN:VEVENT", `UID:${icsEscape(event.event_id)}@calendar.ynxweb4.com`, `DTSTAMP:${stamp(new Date())}`, `DTSTART:${stamp(event.start_utc)}`, `DTEND:${stamp(event.end_utc)}`, `SUMMARY:${icsEscape(event.title)}`, `DESCRIPTION:${icsEscape(event.description)}`, `LOCATION:${icsEscape(event.location)}`, "STATUS:TENTATIVE", "X-YNX-BOUNDARY:DEVICE-ONLY-GUEST-DRAFT", "END:VEVENT"]), "END:VCALENDAR", ""].join("\r\n");
+}
+function showGuestAccount() {
+  const events = guestEvents();
+  const dialog = document.createElement("dialog");
+  dialog.className = "change-dialog";
+  dialog.innerHTML = `<div class="change-card"><span class="eyebrow">Device-only trial</span><h2>Local Calendar data</h2><p>${events.length} draft${events.length === 1 ? "" : "s"} are stored only in this browser profile. Export before clearing browser data if you want to keep them.</p><div class="detail-actions"><button class="quiet" data-action="json">Export JSON</button><button class="quiet" data-action="ics">Export iCalendar (.ics)</button><button class="quiet danger-action" data-action="clear">Delete all local drafts</button><button class="quiet" data-action="exit">Exit guest trial</button><button class="primary" data-action="close">Close</button></div></div>`;
+  document.body.append(dialog);
+  dialog.addEventListener("close", () => dialog.remove());
+  dialog.querySelector('[data-action="close"]').onclick = () => dialog.close();
+  dialog.querySelector('[data-action="json"]').onclick = () => downloadBlob("ynx-calendar-guest-export.json", "application/json", JSON.stringify({ schema_version: 1, boundary: "device-only-guest-drafts", exported_at: new Date().toISOString(), events }, null, 2));
+  dialog.querySelector('[data-action="ics"]').onclick = () => downloadBlob("ynx-calendar-guest-export.ics", "text/calendar", guestICS(events));
+  dialog.querySelector('[data-action="clear"]').onclick = () => {
+    if (!confirm(`Delete all ${events.length} device-only Calendar drafts? This cannot be undone.`)) return;
+    localStorage.removeItem(guestEventsKey);
+    dialog.close();
+    toast("All local Calendar drafts deleted from this browser profile");
+    loadEvents();
+  };
+  dialog.querySelector('[data-action="exit"]').onclick = () => {
+    dialog.close();
+    signOut(false);
+  };
+  dialog.showModal();
+}
 window.ynxI18nReady.catch(() => {}).finally(init);
 $("#wallet-signin").onclick = () => beginSignIn(false);
 $("#wallet-recover").onclick = () => beginSignIn(true);

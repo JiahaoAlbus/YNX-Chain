@@ -69,6 +69,32 @@ func TestExportDeleteCookieAndStoreTamper(t *testing.T) {
 	}
 }
 
+func TestEventProductFieldsRoundTripAndRejectUnsafeAttachments(t *testing.T) {
+	svc := newTestService(t, "")
+	token, _, _ := signIn(t, svc, "@alice", "ynx1alice")
+	in := input("Launch plan", "2026-09-01T00:00", "2026-09-02T00:00", "Asia/Shanghai", "product-fields-1")
+	in.Location = "Singapore · Room 6423"
+	in.AllDay = true
+	in.CalendarID = "team"
+	in.Color = "violet"
+	in.Privacy = "participants"
+	in.AttachmentLinks = []string{"https://cloud.ynxweb4.com/files/calendar-plan"}
+	preview, err := svc.PreviewCreate(token, in)
+	if err != nil {
+		t.Fatal(err)
+	}
+	event, err := svc.ApproveChange(token, preview.ID, false)
+	if err != nil || !event.AllDay || event.Location != in.Location || event.CalendarID != "team" || event.Color != "violet" || event.Privacy != "participants" || len(event.AttachmentLinks) != 1 {
+		t.Fatalf("event product fields did not round-trip: %v %+v", err, event)
+	}
+
+	bad := input("Unsafe attachment", "2026-09-03T09:00", "2026-09-03T10:00", "UTC", "product-fields-unsafe")
+	bad.AttachmentLinks = []string{"https://wallet.example/sign/approval"}
+	if _, err = svc.PreviewCreate(token, bad); err == nil {
+		t.Fatal("wallet authority attachment was accepted")
+	}
+}
+
 func TestLegacyRecurrenceLineageNormalizesOnRestart(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "calendar.json")
 	store, err := NewStore(path)

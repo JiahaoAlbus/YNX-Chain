@@ -28,7 +28,8 @@
         <nav class="view-switch" aria-label="Calendar view" data-i18n-aria-label="calendar_view">
           <button type="button" data-view="day" data-i18n="day">Day</button
           ><button type="button" data-view="week" class="active" data-i18n="week">Week</button
-          ><button type="button" data-view="month" data-i18n="month">Month</button>
+          ><button type="button" data-view="month" data-i18n="month">Month</button
+          ><button type="button" data-view="agenda">Agenda</button>
         </nav>
         <div class="date-controls">
           <button id="prev" aria-label="Previous range" data-i18n-aria-label="previous">‹</button
@@ -47,6 +48,10 @@
       </header>
       <aside class="sidebar">
         <button id="new-event" class="primary"><span>＋</span> <span data-i18n="create">新建事件</span></button>
+        <label class="calendar-search"
+          ><span class="sr-only">Search calendar</span
+          ><input id="calendar-search" type="search" maxlength="120" placeholder="Search events" autocomplete="off"
+        /></label>
         <section class="mini">
           <span class="eyebrow" data-i18n="timezone">Time zone</span>
           <h2 id="zone-label" data-i18n="timezone">Time zone</h2>
@@ -115,6 +120,8 @@
               type="datetime-local"
               required
               aria-label="Event end time" /></label
+          ><label class="check-row wide"><input id="all-day" type="checkbox" aria-label="All-day event" />All-day event</label
+          ><label class="wide">Location<input id="location" maxlength="300" placeholder="Room, venue, or place" /></label
           ><label><span data-i18n="timezone">Time zone</span><select id="timezone"></select></label
           ><label
             ><span data-i18n="repeat">重复</span><select id="recurrence">
@@ -122,7 +129,10 @@
               <option value="weekly">Weekly</option>
               <option value="daily">Daily</option>
               <option value="monthly">Monthly</option>
+              <option value="yearly">Yearly</option>
             </select></label
+          ><label
+            >Repeat every<input id="interval" type="number" min="1" max="366" value="1" aria-label="Recurrence interval" /></label
           ><label
             >Occurrences<input
               id="count"
@@ -131,6 +141,9 @@
               max="366"
               value="1"
               aria-label="Recurrence count" /></label
+          ><label>Or end on<input id="recurrence-until" type="date" aria-label="Recurrence end date" /></label
+          ><label class="wide">Weekly days<input id="by-day" maxlength="40" placeholder="MO,WE,FR (optional)" /></label
+          ><label class="wide">Monthly dates<input id="by-month-day" maxlength="50" placeholder="1,15,31 (optional)" /></label
           ><label
             ><span data-i18n="reminder">提醒</span><select id="reminder">
               <option value="10">10 minutes before</option>
@@ -138,6 +151,9 @@
               <option value="60">1 hour before</option>
               <option value="1440">1 day before</option>
             </select></label
+          ><label>Calendar<select id="calendar-id"><option value="personal">Personal</option><option value="team">Team</option><option value="shared">Shared</option></select></label
+          ><label>Color<select id="event-color"><option value="blue">Klein blue</option><option value="slate">Slate</option><option value="green">Green</option><option value="amber">Amber</option><option value="red">Red</option><option value="violet">Violet</option></select></label
+          ><label>Privacy<select id="event-privacy"><option value="private">Private</option><option value="participants">Participants</option><option value="availability">Availability only</option></select></label
           ><label class="wide"
             ><span data-i18n="invite">Invite contacts by handle</span><input
               id="invitees"
@@ -149,6 +165,7 @@
               id="meeting-link"
               type="url"
               placeholder="https://… (optional)" /></label
+          ><label class="wide">Cloud attachments<input id="attachment-links" placeholder="HTTPS links (comma separated)" autocomplete="off" /><small>Links are referenced from Calendar; files remain in their Cloud provider.</small></label
           ><label class="wide"
             >Description<textarea
               id="description"

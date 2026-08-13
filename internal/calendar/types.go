@@ -125,6 +125,12 @@ type Event struct {
 	OwnerHandle           string     `json:"owner_handle"`
 	Title                 string     `json:"title"`
 	Description           string     `json:"description,omitempty"`
+	Location              string     `json:"location,omitempty"`
+	AllDay                bool       `json:"all_day,omitempty"`
+	CalendarID            string     `json:"calendar_id,omitempty"`
+	Color                 string     `json:"color,omitempty"`
+	Privacy               string     `json:"privacy,omitempty"`
+	AttachmentLinks       []string   `json:"attachment_links,omitempty"`
 	StartUTC              time.Time  `json:"start_utc"`
 	EndUTC                time.Time  `json:"end_utc"`
 	TimeZone              string     `json:"time_zone"`
@@ -142,6 +148,12 @@ type Event struct {
 type EventInput struct {
 	Title            string     `json:"title"`
 	Description      string     `json:"description"`
+	Location         string     `json:"location"`
+	AllDay           bool       `json:"all_day"`
+	CalendarID       string     `json:"calendar_id"`
+	Color            string     `json:"color"`
+	Privacy          string     `json:"privacy"`
+	AttachmentLinks  []string   `json:"attachment_links"`
 	LocalStart       string     `json:"local_start"`
 	LocalEnd         string     `json:"local_end"`
 	TimeZone         string     `json:"time_zone"`
@@ -165,13 +177,19 @@ type RecurrenceMutationInput struct {
 	BaseVersion      int         `json:"base_version"`
 }
 type Occurrence struct {
-	EventID    string    `json:"event_id"`
-	Title      string    `json:"title"`
-	StartUTC   time.Time `json:"start_utc"`
-	EndUTC     time.Time `json:"end_utc"`
-	LocalStart string    `json:"local_start"`
-	LocalEnd   string    `json:"local_end"`
-	TimeZone   string    `json:"time_zone"`
+	EventID     string    `json:"event_id"`
+	Title       string    `json:"title"`
+	Location    string    `json:"location,omitempty"`
+	AllDay      bool      `json:"all_day,omitempty"`
+	CalendarID  string    `json:"calendar_id,omitempty"`
+	Color       string    `json:"color,omitempty"`
+	Privacy     string    `json:"privacy,omitempty"`
+	OwnerHandle string    `json:"owner_handle,omitempty"`
+	StartUTC    time.Time `json:"start_utc"`
+	EndUTC      time.Time `json:"end_utc"`
+	LocalStart  string    `json:"local_start"`
+	LocalEnd    string    `json:"local_end"`
+	TimeZone    string    `json:"time_zone"`
 }
 type Conflict struct {
 	EventID  string    `json:"event_id"`

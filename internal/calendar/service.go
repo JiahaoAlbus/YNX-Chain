@@ -1090,8 +1090,38 @@ func (s *Service) eventFromInput(owner User, input EventInput) (Event, error) {
 	if strings.TrimSpace(input.ClientMutationID) == "" || len(input.ClientMutationID) > 100 {
 		return Event{}, errors.New("client mutation ID is required and bounded")
 	}
-	if len(strings.TrimSpace(input.Title)) < 1 || len(input.Title) > 200 || len(input.Description) > 4000 {
+	if len(strings.TrimSpace(input.Title)) < 1 || len(input.Title) > 200 || len(input.Description) > 4000 || len(input.Location) > 300 {
 		return Event{}, errors.New("event text bounds exceeded")
+	}
+	input.CalendarID = strings.TrimSpace(input.CalendarID)
+	if input.CalendarID == "" {
+		input.CalendarID = "personal"
+	}
+	if input.CalendarID != "personal" && input.CalendarID != "team" && input.CalendarID != "shared" {
+		return Event{}, errors.New("invalid calendar classification")
+	}
+	input.Privacy = strings.TrimSpace(input.Privacy)
+	if input.Privacy == "" {
+		input.Privacy = "private"
+	}
+	if input.Privacy != "private" && input.Privacy != "participants" && input.Privacy != "availability" {
+		return Event{}, errors.New("invalid event privacy")
+	}
+	input.Color = strings.ToLower(strings.TrimSpace(input.Color))
+	if input.Color == "" {
+		input.Color = "blue"
+	}
+	if !map[string]bool{"blue": true, "slate": true, "green": true, "amber": true, "red": true, "violet": true}[input.Color] {
+		return Event{}, errors.New("invalid calendar color")
+	}
+	if len(input.AttachmentLinks) > 10 {
+		return Event{}, errors.New("attachment link bound exceeded")
+	}
+	for i, link := range input.AttachmentLinks {
+		input.AttachmentLinks[i] = strings.TrimSpace(link)
+		if err := validateAttachmentLink(input.AttachmentLinks[i]); err != nil {
+			return Event{}, err
+		}
 	}
 	loc, err := time.LoadLocation(input.TimeZone)
 	if err != nil {
@@ -1131,7 +1161,7 @@ func (s *Service) eventFromInput(owner User, input EventInput) (Event, error) {
 	if err = validateMeetingLink(input.MeetingLink); err != nil {
 		return Event{}, err
 	}
-	return Event{Title: strings.TrimSpace(input.Title), Description: strings.TrimSpace(input.Description), StartUTC: start.UTC(), EndUTC: end.UTC(), TimeZone: input.TimeZone, Recurrence: input.Recurrence, Invites: invites, Reminders: input.Reminders, MeetingLink: input.MeetingLink}, nil
+	return Event{Title: strings.TrimSpace(input.Title), Description: strings.TrimSpace(input.Description), Location: strings.TrimSpace(input.Location), AllDay: input.AllDay, CalendarID: input.CalendarID, Color: input.Color, Privacy: input.Privacy, AttachmentLinks: input.AttachmentLinks, StartUTC: start.UTC(), EndUTC: end.UTC(), TimeZone: input.TimeZone, Recurrence: input.Recurrence, Invites: invites, Reminders: input.Reminders, MeetingLink: input.MeetingLink}, nil
 }
 func validateInvitees(st *State, event Event) error {
 	for _, invite := range event.Invites {
@@ -1414,6 +1444,20 @@ func validateMeetingLink(raw string) error {
 	}
 	return nil
 }
+
+func validateAttachmentLink(raw string) error {
+	if raw == "" || len(raw) > 1024 {
+		return errors.New("attachment link must be a bounded HTTPS URL")
+	}
+	u, err := url.Parse(raw)
+	if err != nil || u.Scheme != "https" || u.Host == "" || u.User != nil || u.Fragment != "" {
+		return errors.New("attachment link must be bounded HTTPS without credentials or fragments")
+	}
+	if strings.Contains(strings.ToLower(u.Host), "wallet") || strings.HasPrefix(strings.ToLower(u.Path), "/sign") {
+		return errors.New("attachment links cannot request wallet or signing authority")
+	}
+	return nil
+}
 func expand(e Event, from, to time.Time) []Occurrence {
 	loc, err := time.LoadLocation(e.TimeZone)
 	if err != nil {
@@ -1466,7 +1510,7 @@ func appendOccurrence(out []Occurrence, e Event, original time.Time, duration ti
 		}
 	}
 	if finish.After(from) && start.Before(to) {
-		out = append(out, Occurrence{EventID: e.ID, Title: title, StartUTC: start.UTC(), EndUTC: finish.UTC(), LocalStart: start.Format(time.RFC3339), LocalEnd: finish.Format(time.RFC3339), TimeZone: e.TimeZone})
+		out = append(out, Occurrence{EventID: e.ID, Title: title, Location: e.Location, AllDay: e.AllDay, CalendarID: e.CalendarID, Color: e.Color, Privacy: e.Privacy, OwnerHandle: e.OwnerHandle, StartUTC: start.UTC(), EndUTC: finish.UTC(), LocalStart: start.Format(time.RFC3339), LocalEnd: finish.Format(time.RFC3339), TimeZone: e.TimeZone})
 	}
 	return out
 }
