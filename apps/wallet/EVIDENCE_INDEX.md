@@ -19,7 +19,7 @@ SHA-256 and byte sizes are recorded in `artifact-manifest.json`. The latest Andr
 - `proof/wallet-android-api36-recovery-2026-08-13.json` revalidates the public 1.0.1 Testnet preview byte-for-byte, its v2 Testnet signing certificate, fresh API 36 install, explicit first cold launch, force-stop plus `ynxwallet://open` second cold launch, focused/resumed `MainActivity`, first-PID scoped logcat and `FLAG_SECURE` black application capture.
 - `docs/integration/WALLET_ANDROID_API36_HANDOFF.md` records the recovery source, frozen Auth consumer boundary, direct evidence and emulator transport failure classification.
 - The recovery slice does not claim a new artifact built from commit `1883d406`, production signing, a store release, or fresh Dark/RTL/Large Text/biometric/background-lock/clipboard device coverage.
-- `proof/wallet-android-native-launch-privacy-2026-08-13.json` binds the follow-up native `FLAG_SECURE` implementation to source commit `6c59d219`, 41/41 Wallet tests and a successful API 36 Release Kotlin compilation. No APK/install claim is made for that newer source.
+- `proof/wallet-android-native-launch-privacy-2026-08-13.json` binds the follow-up native `FLAG_SECURE` implementation to source commit `6c59d219`, 41/41 Wallet tests, successful API 36 Release Kotlin compilation and a successful source-bound arm64 Release APK build. The APK is explicitly unsigned; no install, hosted-download or signing claim is made for that newer source.
 
 ## Protocol and chain evidence
 

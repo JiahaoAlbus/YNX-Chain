@@ -27,7 +27,24 @@
       "minimumOS": "Android API 24",
       "kotlin": "2.1.20"
     },
-    "releaseApkBuiltFromSourceCommit": false,
+    "releaseApkBuiltFromSourceCommit": true,
+    "releaseApk": {
+      "path": "apps/wallet/android/app/build/outputs/apk/release/app-release-unsigned.apk",
+      "bytes": 30647563,
+      "sha256": "4af2792486e24776ff4e19e1d9979f5194418766c801db01ba3e0a4e5408fcd8",
+      "package": "com.ynxweb4.wallet",
+      "versionName": "1.0.1",
+      "versionCode": 2,
+      "compileSdk": 36,
+      "targetSdk": 36,
+      "minimumOS": "Android API 24",
+      "abi": "arm64-v8a",
+      "signingClass": "unsigned-release-build",
+      "apkSignatureVerified": false,
+      "buildCommand": "JAVA_TOOL_OPTIONS=--enable-native-access=ALL-UNNAMED ./gradlew --offline --no-daemon --console=plain --max-workers=1 -PreactNativeArchitectures=arm64-v8a :app:assembleRelease",
+      "buildResult": "BUILD SUCCESSFUL",
+      "buildDuration": "15m 39s"
+    },
     "installedFromSourceCommit": false,
     "deviceScreenshotFromSourceCommit": false
   },
@@ -44,8 +61,8 @@
   },
   "limitations": [
     "The previously verified 1.0.1 APK predates this native source change and is not evidence for this commit.",
-    "A Release APK build invocation did not produce an artifact and is not counted as a successful build.",
-    "A source-bound APK install and launch-window screencap remain required before installedLocal may become true."
+    "The source-bound Release APK is unsigned and cannot be installed or distributed as a signed preview.",
+    "A reviewed signing input plus source-bound APK install and launch-window screencap remain required before installedLocal may become true."
   ],
   "verifiedAt": "2026-08-13T13:35:00Z",
   "secretMaterialRecorded": false
