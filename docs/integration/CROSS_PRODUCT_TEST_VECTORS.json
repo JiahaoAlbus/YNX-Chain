@@ -5,6 +5,17 @@
   "sourceCommit": "a940d2efa824bd9f43522ed792c9a563b55e1e11",
   "vectors": [
     {
+      "id": "WA-PUBLIC-GATEWAY-INGRESS-IDENTIFIERS-001",
+      "category": "wallet-auth",
+      "owners": ["02-wallet-auth", "13-monitor", "29-integration"],
+      "precondition": "The canonical Wallet Gateway on 127.0.0.1:6439 is active with exact build identity and emits valid identifiers, while public /v1/wallet/* traffic enters through App Gateway on 127.0.0.1:6437.",
+      "action": "Preserve or generate canonical response identifier headers at the 6437 public ingress without changing bodies, status codes, replay, revoke, state or route ownership; rerun the complete public lifecycle probe.",
+      "expectedHttpStatus": 403,
+      "expectedCode": "REVOKED",
+      "expectedState": "all five responses retain their canonical lifecycle results and valid x-request-id/x-trace-id; 409 REPLAY and 403 REVOKED also expose valid x-error-id; no identifier value is persisted in evidence",
+      "publicClaimAllowed": false
+    },
+    {
       "id": "WA-PUBLIC-GATEWAY-IDENTIFIERS-001",
       "category": "wallet-auth",
       "owners": ["02-wallet-auth", "13-monitor", "29-integration"],

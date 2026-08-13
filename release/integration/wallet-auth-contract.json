@@ -332,6 +332,28 @@
       "publicObservabilityComplete": false,
       "evidence": "apps/wallet/proof/gateway-public-identifier-gap-2026-08-13.json"
     },
+    "gatewayTestnetDeploymentTopology": {
+      "sourceCommit": "c6ac582c8d490ef980a8cadfd9172f133d1b1a49",
+      "release": "ynx-wallet-gateway-c6ac582c8d49",
+      "buildTime": "2026-08-13T15:31:18.688Z",
+      "archiveSha256": "086a0022078ad6abb1c89949a40160d20297d3a6aa74c64efc76a565526029c2",
+      "archiveBytes": null,
+      "registryFileSha256": "337145be4cbdd3b642f7fd263e1b06e20f512f8cd4981033109ba65c9856becd",
+      "registryRuntimeSha256": "fedc7d033150167fbc0a8ab1c678b4c17dc6a39acd47ae0b157018b9266d1a36",
+      "preflightPassed": true,
+      "backupPrepared": true,
+      "automaticRollbackArmedDuringSwitch": true,
+      "rollbackExecuted": false,
+      "walletGatewayActive": true,
+      "appGatewayActive": true,
+      "canonicalWalletGatewayLoopback": "127.0.0.1:6439",
+      "publicLifecycleUpstream": "127.0.0.1:6437",
+      "walletRuntimeIdentifiersVerified": true,
+      "publicLifecycleVerified": true,
+      "publicIdentifierCompleteness": false,
+      "ingressOwner": "29-integration/app-gateway",
+      "evidence": "apps/wallet/proof/gateway-testnet-deployment-topology-2026-08-13.json"
+    },
     "gatewayMultiUserLoopback": {
       "sourceCommit": "7678c5764010e9d6ff31445687555ae848070e5c",
       "environment": "real loopback HTTP and local mode-0600 disk persistence; excludes public network, external load balancer and production capacity",
@@ -378,8 +400,9 @@
       "evidence": "apps/wallet/proof/public-erc4337-readiness-blocked-2026-08-13.json"
     },
     "freshPublicGatewayProbe": {
-      "sourceCommit": "803d595b9ebee149b7823f59d165b65ff97d816b",
-      "observedAt": "2026-08-13T14:42:26.543Z",
+      "sourceCommit": "7bf0df85eafe7c2f6470a28f1784f96edfd4f048",
+      "deployedGatewaySourceCommit": "c6ac582c8d490ef980a8cadfd9172f133d1b1a49",
+      "observedAt": "2026-08-13T15:34:12.640Z",
       "result": "complete-replay-revoke-verified",
       "completionStatus": 200,
       "introspectionStatus": 200,
@@ -393,7 +416,7 @@
       "assetMoved": false,
       "userClaimed": false,
       "providerClaimed": false,
-      "evidence": "apps/wallet/proof/gateway-public-lifecycle-2026-08-13.json",
+      "evidence": "apps/wallet/proof/gateway-testnet-deployment-topology-2026-08-13.json",
       "supersedesBlockedEvidence": "apps/wallet/proof/gateway-public-probe-blocked-2026-08-13.json"
     },
     "gatewayBackupTests": "6/6 passed: exact restore, replay preservation, tamper/policy/permission rejection, legacy normalization and unsupported future-schema rejection",
@@ -407,8 +430,8 @@
     "remoteDeploymentBuildIdentityGate": "missing exact source commit/release/build time rejected",
     "nodeHostSubpathExport": "CanonicalWalletGatewayNodeHost and observability constants/types exposed from @ynx-chain/wallet-auth/gateway-node-host; universal root excludes Node-only imports",
     "directTestnetMandateReceipt": false,
-    "directPublicGatewayEvidence": "apps/wallet/proof/wallet-gateway-public-2026-08-11.json",
-    "publicBridgeProductSessionLifecycle": "completion 200; introspection active; revoke 200; post-revoke introspection 403 REVOKED",
-    "deployedGatewayRelease": "ynx-wallet-gateway-1666738a0f5a"
+    "directPublicGatewayEvidence": "apps/wallet/proof/gateway-testnet-deployment-topology-2026-08-13.json",
+    "publicBridgeProductSessionLifecycle": "completion 200; introspection active; exact replay 409 REPLAY; revoke 200; post-revoke introspection 403 REVOKED",
+    "deployedGatewayRelease": "ynx-wallet-gateway-c6ac582c8d49"
   }
 }
