@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "wallet-auth-gateway-multi-user-loopback-2026-08-13",
+  "sourceCommit": "7678c5764010e9d6ff31445687555ae848070e5c",
+  "sourceClass": "local-measurement",
+  "command": "node --test test/gateway-node-host.test.mjs",
+  "workingDirectory": "packages/wallet-auth",
+  "runtime": {
+    "node": "v24.19.0",
+    "platform": "darwin",
+    "arch": "arm64"
+  },
+  "result": {
+    "tests": 9,
+    "passed": 9,
+    "failed": 0,
+    "users": 32,
+    "walletSigningKeys": 32,
+    "p256ProductDeviceKeys": 32,
+    "completionHttpStatus": 200,
+    "introspectionHttpStatus": 200,
+    "replayHttpStatus": 409,
+    "replayCode": "REPLAY",
+    "postRestartReplayHttpStatus": 409,
+    "postRestartReplayCode": "REPLAY",
+    "postRestartRevokedHttpStatus": 403,
+    "postRestartRevokedCode": "REVOKED",
+    "persistedStateMode": "0600",
+    "completionLatencyMs": {
+      "p50": 298.799,
+      "p95": 725.398,
+      "p99": 752.327,
+      "max": 752.327
+    }
+  },
+  "walletOwnedSuite": {
+    "command": "node --test with every test/*.test.mjs except Developer-owned developer-deployment.test.mjs",
+    "tests": 112,
+    "passed": 112,
+    "failed": 0
+  },
+  "crossOwnerGap": {
+    "owner": "Developer",
+    "tests": 2,
+    "requiredArtifact": "artifacts/contracts/devtools/SampleEVMWriteCounter.sol/SampleEVMWriteCounter.json",
+    "classification": "missing Developer-owned compiled fixture; not a Wallet/Auth assertion failure",
+    "walletOwnerModifiedDependency": false
+  },
+  "coverage": [
+    "real-loopback-http",
+    "canonical-authorization-request",
+    "wallet-secp256k1-approval",
+    "p256-device-challenge",
+    "product-session-completion",
+    "sender-constrained-introspection",
+    "multi-user-account-and-device-isolation",
+    "proof-replay-before-and-after-restart",
+    "session-revoke-after-restart",
+    "atomic-mode-0600-state-persistence",
+    "bounded-replay-metric-label"
+  ],
+  "artifact": {
+    "name": "ynx-chain-wallet-auth-1.0.0.tgz",
+    "sha256": "5fd07c03a74a8f1e62fa2aa89ba7eae357a69b51d964a95dde59fce24ee1c98c",
+    "bytes": 87662,
+    "unpackedBytes": 394366,
+    "minimumOS": "not-applicable",
+    "minimumRuntime": "Node.js 22",
+    "signingClass": "unsigned-local-npm-package",
+    "hosted": false
+  },
+  "exclusions": [
+    "public-network-latency",
+    "external-load-balancer",
+    "production-database",
+    "multi-region-recovery",
+    "central-monitor-acceptance",
+    "public-capacity",
+    "testnet-asset-transaction"
+  ],
+  "releaseState": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": false,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

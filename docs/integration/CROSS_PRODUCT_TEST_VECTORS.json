@@ -5,6 +5,39 @@
   "sourceCommit": "a940d2efa824bd9f43522ed792c9a563b55e1e11",
   "vectors": [
     {
+      "id": "WA-MULTIUSER-ISOLATION-001",
+      "category": "wallet-auth",
+      "owners": ["02-wallet-auth", "29-integration"],
+      "precondition": "Thirty-two distinct Wallet signing keys and thirty-two distinct P-256 product-device keys submit canonical Social Product Session completions over one loopback HTTP Gateway host.",
+      "action": "Complete and introspect every Product Session concurrently with its own exact device-bound proof.",
+      "expectedHttpStatus": 200,
+      "expectedCode": null,
+      "expectedState": "32 unique accounts and 32 unique session bindings; every exact introspection is active; no account, device or proof crosses users",
+      "publicClaimAllowed": false
+    },
+    {
+      "id": "WA-REPLAY-RESTART-001",
+      "category": "wallet-auth",
+      "owners": ["02-wallet-auth", "13-monitor", "29-integration"],
+      "precondition": "One exact P-256 Product Session introspection proof has been accepted and persisted by the Gateway.",
+      "action": "Replay the proof before restart and again after reconstructing the Gateway host from its mode-0600 state file.",
+      "expectedHttpStatus": 409,
+      "expectedCode": "REPLAY",
+      "expectedState": "no second acceptance or state widening; replay rejection survives host reconstruction and is counted only under the bounded REPLAY metric label",
+      "publicClaimAllowed": false
+    },
+    {
+      "id": "WA-REVOKE-RESTART-001",
+      "category": "wallet-auth",
+      "owners": ["02-wallet-auth", "13-monitor", "29-integration"],
+      "precondition": "A device-bound Product Session is active and its exact revoke proof has been accepted and persisted.",
+      "action": "Reconstruct the Gateway host and submit a fresh correctly bound introspection proof for the revoked session.",
+      "expectedHttpStatus": 403,
+      "expectedCode": "REVOKED",
+      "expectedState": "revocation remains terminal after reconstruction; no active session or success response is fabricated",
+      "publicClaimAllowed": false
+    },
+    {
       "id": "RM-AUTH-WRONG-PRODUCT-001",
       "category": "wallet-auth",
       "owners": ["02-wallet-auth", "16-resource-market"],

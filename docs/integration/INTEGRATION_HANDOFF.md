@@ -54,3 +54,9 @@ No consumer may translate these failures into success, paid, settled or refunded
 ## Acceptance gate
 
 Central integration remains false until every applicable dependency row in `DEPENDENCY_ACCEPTANCE.md` has direct evidence and the vectors in `CROSS_PRODUCT_TEST_VECTORS.json` pass against deployed Testnet services. Local tests are not public or central proof.
+
+## Wallet/Auth owner addendum — multi-user Gateway recovery
+
+Wallet/Auth source commit `7678c5764010e9d6ff31445687555ae848070e5c` adds a real loopback HTTP acceptance slice for 32 distinct Wallet accounts and 32 distinct P-256 product devices. It concurrently completes and introspects canonical Product Sessions, then proves exact-proof replay rejection, session revocation, mode-0600 state persistence and the same `REPLAY`/`REVOKED` failures after reconstructing the Gateway host.
+
+Consumers must use `WA-MULTIUSER-ISOLATION-001`, `WA-REPLAY-RESTART-001` and `WA-REVOKE-RESTART-001` from `CROSS_PRODUCT_TEST_VECTORS.json`. This is local HTTP, filesystem and process-reconstruction evidence only. It does not prove public concurrency, staging capacity, a production load balancer, multi-region recovery, Monitor acceptance or a Testnet asset transaction; all corresponding publication booleans remain false absent direct evidence.
