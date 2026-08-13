@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-13T12:20:12.531Z",
+  "generatedAt": "2026-08-13T15:58:31.127Z",
   "specification": {
     "path": "/Users/huangjiahao/Downloads/YNX_Chain_Fable5_Coordinated_Ultimate_Goal_Prompts.md",
     "sha256": "21f86acd7de45053982eda918b2c4ae47c1e1e8409c57838723897f6e87244c1",
@@ -12,7 +12,7 @@
     "worktreesPresent": 36,
     "cleanWorktrees": 29,
     "specificationBranchMatches": 15,
-    "productsWithCurrentRuntimeBoundReleaseRecord": 5,
+    "productsWithCurrentRuntimeBoundReleaseRecord": 4,
     "productsProvenComplete": 0
   },
   "products": [
@@ -1751,9 +1751,16 @@
       "enumeratedRequirementLines": 118,
       "worktreeExists": true,
       "actualBranch": "codex/ynx-code-platform-v1",
-      "head": "e061a30e801a9075dfea212a854b3d7d578d7e85",
-      "clean": true,
-      "dirtyEntries": [],
+      "head": "8b64360baa35acf32c318643753d4131c2ba8b60",
+      "clean": false,
+      "dirtyEntries": [
+        "M apps/developer/frontend/src/app/Workbench.tsx",
+        " M apps/developer/frontend/src/runtime/client.ts",
+        " M apps/developer/frontend/src/scm/SourceControlPanel.tsx",
+        " M apps/developer/frontend/src/styles.css",
+        " M apps/developer/services/git-service/src/service.mjs",
+        " M apps/developer/services/git-service/test/service.test.mjs"
+      ],
       "branchMatchesSpecification": false,
       "releaseRecords": [
         {
@@ -1765,21 +1772,28 @@
           "sourceBoundToHead": false,
           "currentRuntimeSourceBound": false,
           "evidenceOnlyCommitsAfterRuntimeSource": false,
-          "changedPathCountAfterRuntimeSource": 13,
+          "changedPathCountAfterRuntimeSource": 32,
           "changedPathSampleAfterRuntimeSource": [
             "apps/developer/deploy/systemd/ynx-code-candidate.service",
             "apps/developer/deploy/systemd/ynx-developer-web-release.conf",
             "apps/developer/docs/ARTIFACT_MANIFEST.json",
+            "apps/developer/docs/EVIDENCE_INDEX.md",
+            "apps/developer/docs/OPERATIONS.md",
+            "apps/developer/docs/RECOVERY_AUDIT_2026-08-13.md",
+            "apps/developer/docs/RELEASE_NOTES.md",
             "apps/developer/docs/WEBSITE_HANDOFF.md",
+            "apps/developer/docs/YNX_CODE_ARCHITECTURE.md",
+            "apps/developer/evidence/public/ynx-code-public-predeploy-probe-20260813.json",
             "apps/developer/evidence/public/ynx-code-reconnect-ai-17ee9ae5.json",
+            "apps/developer/frontend/src/editor/languages.ts",
+            "apps/developer/frontend/src/runtime/RuntimePanel.tsx",
             "apps/developer/package.json",
             "apps/developer/product-release.json",
             "apps/developer/public-product-metadata.json",
             "apps/developer/release/PROVENANCE.json",
             "apps/developer/release/PUBLIC_WEBSITE_PREVIEW_4.json",
             "apps/developer/release/SHA256SUMS.txt",
-            "infra/systemd/ynx-developer-web.example.service",
-            "release/integration/developer-contract.json"
+            "apps/developer/scripts/build-cloud-toolchain-image.sh"
           ],
           "states": {
             "implementedLocal": true,
@@ -4032,11 +4046,9 @@
       "enumeratedRequirementLines": 151,
       "worktreeExists": true,
       "actualBranch": "codex/integration-pay-acceptance-v2",
-      "head": "df46a21710769a239998840850f9e75b4c6ce511",
-      "clean": false,
-      "dirtyEntries": [
-        "M scripts/audit-fable5-products.mjs"
-      ],
+      "head": "83c01ba9a389642a798777a05645ce5b9cb3786b",
+      "clean": true,
+      "dirtyEntries": [],
       "branchMatchesSpecification": false,
       "releaseRecords": [
         {
@@ -5024,7 +5036,7 @@
       "enumeratedRequirementLines": 111,
       "worktreeExists": true,
       "actualBranch": "codex/final-calendar",
-      "head": "0004c8509e73b1ca5b618e0b9658965762fcc3a7",
+      "head": "d2c2961471e4d0d88cb466e4bd03d67ec727b546",
       "clean": true,
       "dirtyEntries": [],
       "branchMatchesSpecification": true,
@@ -5036,9 +5048,9 @@
           "name": "YNX Calendar",
           "sourceCommit": "635f6745db8b5d4e4f00253d72fd5ab97da471ac",
           "sourceBoundToHead": false,
-          "currentRuntimeSourceBound": true,
-          "evidenceOnlyCommitsAfterRuntimeSource": true,
-          "changedPathCountAfterRuntimeSource": 23,
+          "currentRuntimeSourceBound": false,
+          "evidenceOnlyCommitsAfterRuntimeSource": false,
+          "changedPathCountAfterRuntimeSource": 26,
           "changedPathSampleAfterRuntimeSource": [
             "apps/calendar/EVIDENCE_INDEX.md",
             "apps/calendar/FABLE5_REQUIREMENTS.md",
@@ -5050,16 +5062,16 @@
             "apps/calendar/SLO_CAPACITY_PLAN.md",
             "apps/calendar/UI_DESIGN_AUDIT.md",
             "apps/calendar/UNIT_ECONOMICS.md",
+            "apps/calendar/native/android/app/build.gradle",
+            "apps/calendar/native/android/app/src/main/java/com/ynxweb4/calendar/MainActivity.java",
+            "apps/calendar/native/android/app/src/main/res/values/styles.xml",
             "apps/calendar/product-release.json",
             "apps/calendar/tests/release-manifest.test.mjs",
             "docs/agent-memory/CURRENT_STATE.md",
             "docs/agent-memory/DECISION_LOG.md",
             "docs/agent-memory/LAST_SUCCESS.md",
             "docs/agent-memory/RECOVERY_CHECKPOINT.json",
-            "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
-            "docs/integration/DEPENDENCY_ACCEPTANCE.md",
-            "docs/integration/INTEGRATION_HANDOFF.md",
-            "docs/integration/WEBSITE_INTEGRATION_HANDOFF.md"
+            "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json"
           ],
           "states": {
             "implementedLocal": true,
@@ -5088,9 +5100,9 @@
           "name": "YNX Calendar",
           "sourceCommit": "635f6745db8b5d4e4f00253d72fd5ab97da471ac",
           "sourceBoundToHead": false,
-          "currentRuntimeSourceBound": true,
-          "evidenceOnlyCommitsAfterRuntimeSource": true,
-          "changedPathCountAfterRuntimeSource": 23,
+          "currentRuntimeSourceBound": false,
+          "evidenceOnlyCommitsAfterRuntimeSource": false,
+          "changedPathCountAfterRuntimeSource": 26,
           "changedPathSampleAfterRuntimeSource": [
             "apps/calendar/EVIDENCE_INDEX.md",
             "apps/calendar/FABLE5_REQUIREMENTS.md",
@@ -5102,16 +5114,16 @@
             "apps/calendar/SLO_CAPACITY_PLAN.md",
             "apps/calendar/UI_DESIGN_AUDIT.md",
             "apps/calendar/UNIT_ECONOMICS.md",
+            "apps/calendar/native/android/app/build.gradle",
+            "apps/calendar/native/android/app/src/main/java/com/ynxweb4/calendar/MainActivity.java",
+            "apps/calendar/native/android/app/src/main/res/values/styles.xml",
             "apps/calendar/product-release.json",
             "apps/calendar/tests/release-manifest.test.mjs",
             "docs/agent-memory/CURRENT_STATE.md",
             "docs/agent-memory/DECISION_LOG.md",
             "docs/agent-memory/LAST_SUCCESS.md",
             "docs/agent-memory/RECOVERY_CHECKPOINT.json",
-            "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
-            "docs/integration/DEPENDENCY_ACCEPTANCE.md",
-            "docs/integration/INTEGRATION_HANDOFF.md",
-            "docs/integration/WEBSITE_INTEGRATION_HANDOFF.md"
+            "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json"
           ],
           "states": {
             "implementedLocal": true,
@@ -5129,7 +5141,7 @@
           "healthUrls": []
         }
       ],
-      "currentRuntimeBoundReleaseRecords": 2,
+      "currentRuntimeBoundReleaseRecords": 0,
       "evidence": {
         "FEATURE_COMPLETION_EVIDENCE.md": [
           "/Users/huangjiahao/Desktop/YNX Final Worktrees/36-calendar/apps/calendar/FEATURE_COMPLETION_EVIDENCE.md"
