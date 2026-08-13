@@ -25,6 +25,10 @@ jobs:
             package-lock.json
             packages/wallet-auth/package-lock.json
             apps/wallet/package-lock.json
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: "1.25"
+          cache-dependency-path: go.sum
       - name: Verify immutable GitHub Actions pins for Wallet CI
         run: |
           node --input-type=module <<'NODE'
@@ -45,7 +49,9 @@ jobs:
       - run: npm ci
         working-directory: packages/wallet-auth
       - name: Run Wallet/Auth tests serially (includes Go verifier subprocess)
-        run: node --test --test-concurrency=1 test/*.test.mjs
+        run: |
+          go version
+          node --test --test-concurrency=1 test/*.test.mjs
         working-directory: packages/wallet-auth
       - run: npm ci
         working-directory: apps/wallet
