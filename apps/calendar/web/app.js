@@ -12,6 +12,7 @@ const state = {
   editing: null,
   aiJob: null,
   searchQuery: "",
+  recurrenceEdit: null,
 };
 const guestEventsKey = "ynx.calendar.guestEvents";
 if ((navigator.language || "").toLowerCase().startsWith("ar")) {
@@ -393,8 +394,9 @@ function populateTimeZones() {
     .join("");
   $("#zone-label").textContent = local;
 }
-function openForm(event = null) {
+function openForm(event = null, recurrenceEdit = null) {
   state.editing = event;
+  state.recurrenceEdit = recurrenceEdit;
   const start = event
     ? new Date(event.start_utc)
     : new Date(Date.now() + 3600000);
@@ -521,6 +523,15 @@ async function submitEvent(e) {
     return;
   }
   try {
+    if (state.recurrenceEdit) {
+      const recurrenceEdit = state.recurrenceEdit;
+      const payload = recurrenceEdit.scope === "occurrence"
+        ? { scope: "occurrence", recurrence_id: recurrenceEdit.recurrenceID, action: "modify", local_start: input.local_start, local_end: input.local_end, title: input.title, client_mutation_id: input.client_mutation_id, base_version: state.editing.version }
+        : { scope: recurrenceEdit.scope, recurrence_id: recurrenceEdit.scope === "entire_series" ? "" : recurrenceEdit.recurrenceID, action: "update", series: input, client_mutation_id: input.client_mutation_id, base_version: state.editing.version };
+      state.pendingChange = await api(`/v1/events/${state.editing.id}/recurrence-preview`, { method: "POST", body: JSON.stringify(payload) });
+      showChange();
+      return;
+    }
     const path = state.editing
       ? `/v1/events/${state.editing.id}/preview`
       : "/v1/events/preview";
@@ -556,6 +567,7 @@ async function approveChange() {
     localStorage.setItem(guestEventsKey, JSON.stringify(events));
     state.pendingChange = null;
     state.editing = null;
+    state.recurrenceEdit = null;
     $("#change-dialog").close();
     toast("Local draft saved on this device; nothing was synced or written to YNX Chain");
     await loadEvents();
@@ -571,6 +583,7 @@ async function approveChange() {
     });
     state.pendingChange = null;
     state.editing = null;
+    state.recurrenceEdit = null;
     $("#change-dialog").close();
     toast("Change approved; it can be reverted from event details");
     await loadEvents();
@@ -626,7 +639,7 @@ async function openEvent(occurrence) {
       `Selected only: ${event.title}. Next, review the provider, model, and cost.`;
     const mine = event.owner_handle === state.user.handle;
     $("#event-content").innerHTML =
-      `<span class="eyebrow">${escapeHTML(event.state)} · v${event.version}</span><h1>${escapeHTML(event.title)}</h1><p>${escapeHTML(event.description || "No description")}</p><div class="detail-row"><span>Time</span><b>${event.all_day ? "All day · " : ""}${new Date(event.start_utc).toLocaleString(activeLocale())} — ${new Date(event.end_utc).toLocaleString(activeLocale())}</b><span>Location</span><b>${escapeHTML(event.location || "None")}</b><span>Calendar / privacy</span><b>${escapeHTML(event.calendar_id || "personal")} · ${escapeHTML(event.privacy || "private")}</b><span>${tr("timezone", "Time zone")}</span><b>${escapeHTML(event.time_zone)}</b><span>Organizer</span><b>${escapeHTML(event.owner_handle)}</b><span>${tr("repeat", "Recurrence")}</span><b>${event.recurrence?.frequency ? `Every ${event.recurrence.interval || 1} ${escapeHTML(event.recurrence.frequency)} · ${event.recurrence.count || "until date"}` : "Does not repeat"}</b><span>${tr("reminder", "Reminder")}</span><b>${event.reminders?.map((r) => `${r.minutes_before} minutes before`).join(", ") || "None"}</b><span>Invitations</span><b>${event.invites?.map((i) => `${escapeHTML(i.handle)} · ${escapeHTML(i.state)}`).join("<br>") || "None"}</b><span>${tr("share", "Sharing")}</span><b>${event.shares?.map((s) => `${escapeHTML(s.handle)} · ${escapeHTML(s.role)}`).join("<br>") || "None"}</b><span>Cloud references</span><b>${event.attachment_links?.map((link) => `<a href="${escapeHTML(link)}" target="_blank" rel="noopener noreferrer">Open attachment</a>`).join("<br>") || "None"}</b><span>${tr("meeting_link", "Meeting link")}</span><b>${event.meeting_link ? `<a href="${escapeHTML(event.meeting_link)}" target="_blank" rel="noopener noreferrer">Open bounded link</a>` : "None"}</b></div><div class="detail-actions">${mine ? `<button class="primary" id="edit-event">${tr("update", "Update event")}</button><button class="quiet" id="cancel-event">${tr("cancel_event", "Cancel event")}</button><button class="quiet" id="share-event">${tr("share", "Share calendar")}</button>` : '<button class="primary" data-rsvp="accepted">Accept</button><button class="quiet" data-rsvp="tentative">Tentative</button><button class="quiet" data-rsvp="declined">Decline</button>'}${event._lastChange ? '<button class="quiet" id="revert-event">Undo last change</button>' : ""}<button class="quiet" id="close-detail">Close</button></div>`;
+      `<span class="eyebrow">${escapeHTML(event.state)} · v${event.version}</span><h1>${escapeHTML(event.title)}</h1><p>${escapeHTML(event.description || "No description")}</p><div class="detail-row"><span>Time</span><b>${event.all_day ? "All day · " : ""}${new Date(event.start_utc).toLocaleString(activeLocale())} — ${new Date(event.end_utc).toLocaleString(activeLocale())}</b><span>Location</span><b>${escapeHTML(event.location || "None")}</b><span>Calendar / privacy</span><b>${escapeHTML(event.calendar_id || "personal")} · ${escapeHTML(event.privacy || "private")}</b><span>${tr("timezone", "Time zone")}</span><b>${escapeHTML(event.time_zone)}</b><span>Organizer</span><b>${escapeHTML(event.owner_handle)}</b><span>${tr("repeat", "Recurrence")}</span><b>${event.recurrence?.frequency ? `Every ${event.recurrence.interval || 1} ${escapeHTML(event.recurrence.frequency)} · ${event.recurrence.count || "until date"}` : "Does not repeat"}</b><span>${tr("reminder", "Reminder")}</span><b>${event.reminders?.map((r) => `${r.minutes_before} minutes before`).join(", ") || "None"}</b><span>Invitations</span><b>${event.invites?.map((i) => `${escapeHTML(i.handle)} · ${escapeHTML(i.state)}`).join("<br>") || "None"}</b><span>${tr("share", "Sharing")}</span><b>${event.shares?.map((s) => `${escapeHTML(s.handle)} · ${escapeHTML(s.role)}`).join("<br>") || "None"}</b><span>Cloud references</span><b>${event.attachment_links?.map((link) => `<a href="${escapeHTML(link)}" target="_blank" rel="noopener noreferrer">Open attachment</a>`).join("<br>") || "None"}</b><span>${tr("meeting_link", "Meeting link")}</span><b>${event.meeting_link ? `<a href="${escapeHTML(event.meeting_link)}" target="_blank" rel="noopener noreferrer">Open bounded link</a>` : "None"}</b></div><div class="detail-actions">${mine ? `<button class="primary" id="edit-event">${tr("update", "Update event")}</button>${event.recurrence?.frequency ? '<button class="quiet" id="recurrence-actions">Manage recurrence</button>' : ""}<button class="quiet" id="cancel-event">${tr("cancel_event", "Cancel event")}</button><button class="quiet" id="share-event">${tr("share", "Share calendar")}</button>` : '<button class="primary" data-rsvp="accepted">Accept</button><button class="quiet" data-rsvp="tentative">Tentative</button><button class="quiet" data-rsvp="declined">Decline</button>'}${event._lastChange ? '<button class="quiet" id="revert-event">Undo last change</button>' : ""}<button class="quiet" id="close-detail">Close</button></div>`;
     $("#event-detail").showModal();
     $("#close-detail").onclick = () => $("#event-detail").close();
     if (mine) {
@@ -636,6 +649,7 @@ async function openEvent(occurrence) {
       };
       $("#cancel-event").onclick = () => previewCancel(event);
       $("#share-event").onclick = () => shareEvent(event);
+      if ($("#recurrence-actions")) $("#recurrence-actions").onclick = () => showRecurrenceManager(event, occurrence);
     }
     $$("[data-rsvp]").forEach(
       (b) => (b.onclick = () => rsvp(event, b.dataset.rsvp)),
@@ -661,6 +675,33 @@ async function previewCancel(event) {
   } catch (e) {
     toast(e.message);
   }
+}
+function recurrenceIDFor(occurrence) {
+  if (occurrence.local_start) return occurrence.local_start.slice(0, 16);
+  return localInput(new Date(occurrence.start_utc));
+}
+function showRecurrenceManager(event, occurrence) {
+  const recurrenceID = recurrenceIDFor(occurrence);
+  const occurrenceEvent = { ...event, start_utc: occurrence.start_utc, end_utc: occurrence.end_utc };
+  $("#event-detail").close();
+  const dialog = document.createElement("dialog");
+  dialog.className = "change-dialog";
+  dialog.innerHTML = `<div class="change-card"><span class="eyebrow">Recurring event</span><h2>Choose what to change</h2><p><b>${escapeHTML(event.title)}</b><br>${new Date(occurrence.start_utc).toLocaleString(activeLocale())}<br><small>Every operation creates a preview first. Nothing changes until you approve it.</small></p><div class="recurrence-action-list"><button class="quiet" data-action="edit-one">Edit this occurrence</button><button class="quiet danger-action" data-action="cancel-one">Cancel this occurrence</button><button class="quiet" data-action="edit-future">Edit this and following</button><button class="quiet" data-action="edit-series">Edit entire series</button><button class="primary" data-action="close">Close</button></div></div>`;
+  document.body.append(dialog);
+  dialog.addEventListener("close", () => dialog.remove());
+  dialog.querySelector('[data-action="close"]').onclick = () => dialog.close();
+  dialog.querySelector('[data-action="edit-one"]').onclick = () => { dialog.close(); openForm(occurrenceEvent, { scope: "occurrence", recurrenceID }); };
+  dialog.querySelector('[data-action="edit-future"]').onclick = () => { dialog.close(); openForm(occurrenceEvent, { scope: "this_and_following", recurrenceID }); };
+  dialog.querySelector('[data-action="edit-series"]').onclick = () => { dialog.close(); openForm(event, { scope: "entire_series", recurrenceID: "" }); };
+  dialog.querySelector('[data-action="cancel-one"]').onclick = async () => {
+    if (!confirm(`Create a preview to cancel only ${new Date(occurrence.start_utc).toLocaleString(activeLocale())}?`)) return;
+    try {
+      state.pendingChange = await api(`/v1/events/${event.id}/recurrence-preview`, { method: "POST", body: JSON.stringify({ scope: "occurrence", recurrence_id: recurrenceID, action: "cancel", client_mutation_id: mutationID(), base_version: event.version }) });
+      dialog.close();
+      showChange();
+    } catch (error) { toast(error.message); }
+  };
+  dialog.showModal();
 }
 async function shareEvent(event) {
   const handle = prompt("Share with which @handle?");

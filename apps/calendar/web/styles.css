@@ -679,6 +679,13 @@ dialog::backdrop {
   gap: 8px;
   margin-top: 18px;
 }
+.recurrence-action-list {
+  display: grid;
+  gap: 9px;
+  margin-top: 22px;
+}
+.recurrence-action-list button { width: 100%; text-align: left; }
+.recurrence-action-list .primary { text-align: center; }
 .ai-panel {
   position: fixed;
   right: 0;

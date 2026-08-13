@@ -382,6 +382,11 @@ function unnamedInteractive() {
         await page.locator("#calendar-search").fill("no matching calendar event");
         await page.locator("#empty").waitFor({ state: "visible" });
         await page.locator("#calendar-search").fill("");
+        await page.locator(".agenda-event").first().click();
+        await page.getByRole("button", { name: "Manage recurrence" }).click();
+        for (const action of ["Edit this occurrence", "Cancel this occurrence", "Edit this and following", "Edit entire series"])
+          await page.getByRole("button", { name: action }).waitFor();
+        await page.getByRole("button", { name: "Close" }).click();
         await page.screenshot({
           path: path.join(artifact, "calendar-desktop-agenda.png"),
           fullPage: true,
