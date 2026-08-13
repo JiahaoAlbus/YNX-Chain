@@ -71,6 +71,22 @@ function zonedLocalInput(value, zone) {
   );
   return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}`;
 }
+function localDateTimeToISO(value, zone) {
+  const match = String(value).match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/);
+  if (!match) return "";
+  const [, year, month, day, hour, minute] = match.map(Number);
+  let guess = Date.UTC(year, month - 1, day, hour, minute);
+  for (let pass = 0; pass < 2; pass++) {
+    const parts = Object.fromEntries(new Intl.DateTimeFormat("en-CA", { timeZone: zone, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(new Date(guess)).filter((part) => part.type !== "literal").map((part) => [part.type, part.value]));
+    const rendered = Date.UTC(Number(parts.year), Number(parts.month) - 1, Number(parts.day), Number(parts.hour), Number(parts.minute));
+    guess -= rendered - Date.UTC(year, month - 1, day, hour, minute);
+  }
+  return new Date(guess).toISOString();
+}
+function zonedClock(value, zone) {
+  const parts = Object.fromEntries(new Intl.DateTimeFormat("en-US", { timeZone: zone, weekday: "short", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(value).filter((part) => part.type !== "literal").map((part) => [part.type, part.value]));
+  return { weekday: parts.weekday, hour: Number(parts.hour), minute: Number(parts.minute) };
+}
 function mutationID() {
   return crypto.randomUUID?.() || `${Date.now()}-${Math.random()}`;
 }
@@ -467,8 +483,8 @@ function openForm(event = null, recurrenceEdit = null) {
   $("#description").value = event?.description || "";
   $("#location").value = event?.location || "";
   $("#all-day").checked = Boolean(event?.all_day);
-  $("#start").value = localInput(start);
-  $("#end").value = localInput(end);
+  $("#start").value = event?.time_zone ? zonedLocalInput(start, event.time_zone) : localInput(start);
+  $("#end").value = event?.time_zone ? zonedLocalInput(end, event.time_zone) : localInput(end);
   $("#timezone").value =
     event?.time_zone ||
     Intl.DateTimeFormat().resolvedOptions().timeZone ||
@@ -532,7 +548,9 @@ function guestAlternativeSlots(candidate, events) {
   for (let attempts = 0; attempts < 14 * 48 && slots.length < 5; attempts++) {
     const start = new Date(cursor.getTime() + attempts * 30 * 60000);
     const end = new Date(start.getTime() + duration);
-    if (start.getDay() === 0 || start.getDay() === 6 || start.getHours() < 8 || end.getHours() > 18) continue;
+    const startClock = zonedClock(start, candidate.time_zone);
+    const endClock = zonedClock(end, candidate.time_zone);
+    if (startClock.weekday === "Sat" || startClock.weekday === "Sun" || startClock.hour < 8 || startClock.hour >= 18 || endClock.hour > 18 || (endClock.hour === 18 && endClock.minute > 0)) continue;
     const bufferedStart = new Date(start.getTime() - candidate.buffer_before_minutes * 60000);
     const bufferedEnd = new Date(end.getTime() + candidate.buffer_after_minutes * 60000);
     const busy = events.some((event) => {
@@ -548,8 +566,8 @@ async function submitEvent(e) {
   e.preventDefault();
   const input = eventInput();
   if (state.guest) {
-    const start = new Date(input.local_start),
-      end = new Date(input.local_end);
+    const start = new Date(localDateTimeToISO(input.local_start, input.time_zone)),
+      end = new Date(localDateTimeToISO(input.local_end, input.time_zone));
     if (!input.title.trim() || Number.isNaN(start.valueOf()) || Number.isNaN(end.valueOf()) || end <= start || input.buffer_before_minutes < 0 || input.buffer_before_minutes > 240 || input.buffer_after_minutes < 0 || input.buffer_after_minutes > 240) {
       toast("Add a title, a valid end time, and buffers between 0 and 240 minutes");
       return;
