@@ -9,22 +9,22 @@ also names direct evidence.
 
 | Requirement | Runtime / UI state | Direct test state | Public evidence / remaining gap |
 | --- | --- | --- | --- |
-| Day / Week / Month | Web implemented | Browser screenshots | Publicly deployed; refresh after current source release |
-| Agenda | Web implemented | Browser recurring/search proof | Not yet deployed from current source |
+| Day / Week / Month | Web implemented | Browser screenshots | Public build `78e0f2d3` verified with ComputerControl |
+| Agenda | Web implemented | Browser recurring/search proof | Public build `78e0f2d3`; direct interactive public proof remains |
 | Create / edit / cancel / revert | Service + Web implemented | Unit + browser preview/approval | Public create only available as device-local guest until Wallet Web handoff works |
-| Title / description / location / link | Service + Web implemented | Round-trip and browser proof | Location is not in the older public build |
-| Start / end / all-day / time zone | Service + Web implemented | Round-trip, invalid-zone and DST tests | All-day is not in the older public build |
+| Title / description / location / link | Service + Web implemented | Round-trip and browser proof | Public build `78e0f2d3` exposes all fields |
+| Start / end / all-day / time zone | Service + Web implemented | Round-trip, invalid-zone and DST tests | Public build `78e0f2d3` exposes all fields |
 | Reminder | Persistent local channel implemented | Restart/no-duplicate test | Mail/push provider delivery is not integrated |
 | Color / personal / team / shared classification | Service + Web implemented | Round-trip and browser proof | Calendar collection membership is metadata; independent shared-calendar object is not complete |
-| Search | Web occurrence search implemented | Browser exact/no-result proof | Not yet deployed from current source; server-side full-text indexing is not implemented |
+| Search | Web occurrence search implemented | Browser exact/no-result proof | Public build `78e0f2d3`; server-side full-text indexing is not implemented |
 | Cloud attachment references | Bounded HTTPS references implemented | Unsafe Wallet-authority link rejection | YNX Cloud authorization and attachment lifecycle are not integrated |
 | Offline / recovery | Approval-preserving queue + authenticated backup/restore | Unit, browser and statectl drills | Cross-device sync and production restore are not accepted |
-| Export / delete / audit | Account JSON export, exact delete phrase, audit UI | Unit tests | Guest export and hosted immutable export policy remain |
+| Export / delete / audit | Account JSON export, guest JSON/iCalendar export, exact delete phrase, audit UI | Unit + browser tests | Hosted immutable authenticated export policy remains |
 | Invite by YNX Handle | Service + Web input implemented | Unknown/duplicate invite rejection | Requires real Wallet sessions and Mail notification integration |
 | RSVP accept / tentative / decline | Service + event inspector implemented | Two-user authorization test | No public two-user proof yet |
 | Invitation update / cancellation / organizer / attendee | Persistent event lifecycle plus immutable attributed participant comments | Update/cancel/revert/comment authorization tests | External Mail/push delivery notification remains |
 | Duplicate / replay / privacy | Mutation IDs, version checks, Wallet replay rejection, privacy metadata | Replay/tamper/stale tests | Central Data Fabric event acceptance remains |
-| Daily / weekly / monthly / yearly recurrence | Versioned schema v1 implemented | Unit recurrence tests | Current Web release pending |
+| Daily / weekly / monthly / yearly recurrence | Versioned schema v1 implemented | Unit recurrence tests | Public build `78e0f2d3`; public series-management walkthrough remains |
 | Interval / ByDay / ByMonthDay / count / end date | Service + Web implemented | Boundary and DST tests | Browser proof covers interval/ByDay; full UI matrix still required |
 | Single occurrence / future / entire series update | Service and event-inspector controls implemented | Atomic/replay/recovery/browser tests | Public interactive proof remains |
 | Recurrence cancellation / recovery / DST | Service implemented | Dedicated unit tests | Public interactive proof remains |
@@ -33,7 +33,7 @@ also names direct evidence.
 | Alternative-time suggestions | AI adapter supports bounded proposal | Provider failure and approval tests | Real public provider success is not proved |
 | AI agenda / conflict explanation / follow-up | Context preview, approve, cancel, apply/reject implemented | Unit tests | AI does not mutate events; public provider availability remains unproved |
 | English-first + 12 locales + Arabic RTL | Shared catalogs and RTL implemented | Catalog parity + browser screenshots | New fields and every dynamic error are not yet fully translated |
-| A11y / dark / reduced motion / 390 px | Web implemented | Browser automated names + screenshots | Current-source public rerun remains |
+| A11y / dark / reduced motion / 390 px | Web implemented | Browser automated names + screenshots | Current-source public English UI and guest creation rerun with ComputerControl |
 | Web / Android / iOS / macOS | Source projects present | Web proven; historical native checks | Current-source Android/iOS/macOS install and cold launch remain |
 | Two-user Event→Invite→RSVP→Update→Cancel | Service test implemented | Unit test | Real public two-user Wallet flow remains |
 | Shared Calendar / permission end-to-end | Partial | Owner/editor/viewer tests | Dedicated shared-calendar lifecycle remains |
