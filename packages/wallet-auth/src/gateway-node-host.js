@@ -2,6 +2,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { chmodSync, mkdirSync, readFileSync, renameSync, statSync, writeFileSync } from "node:fs";
 import { dirname, isAbsolute } from "node:path";
 import { canonicalJSON, exactFields, WalletAuthError } from "./canonical.js";
+import { forwardedClient, GatewayAdmissionController } from "./gateway-admission.js";
 import { CANONICAL_GATEWAY_HTTP_SCHEMA_VERSION, CanonicalWalletGatewayHttpKernel, gatewayStateDigest } from "./gateway-http.js";
 import { parseCentralRegistryDocument } from "./registry.js";
 
@@ -35,6 +36,7 @@ const OBSERVABLE_ROUTES = Object.freeze(new Map([
 ]));
 
 export class CanonicalWalletGatewayNodeHost {
+  #admission;
   #build;
   #emitEvent;
   #kernel;
@@ -49,6 +51,7 @@ export class CanonicalWalletGatewayNodeHost {
     const runtime = hostOptions(options);
     const deploymentState = deploymentConfig(deployment);
     this.#statePath = statePath(runtime.statePath);
+    this.#admission = runtime.admission;
     this.#now = runtime.now;
     this.#emitEvent = runtime.emitEvent;
     this.#remoteDeployed = deploymentState.remoteDeployed;
@@ -83,7 +86,25 @@ export class CanonicalWalletGatewayNodeHost {
       let errorCode = null;
       let errorId = null;
       let status = 500;
+      let admissionTicket = null;
       try {
+        admissionTicket = this.#admission?.enter(forwardedClient(request)) ?? null;
+        if (admissionTicket && !admissionTicket.ok) {
+          status = admissionTicket.status;
+          errorCode = admissionTicket.code;
+          errorId = randomUUID();
+          response.writeHead(status, observabilityHeaders({ ...JSON_HEADERS, "retry-after": "60" }, requestId, traceId, errorId));
+          response.end(canonicalJSON({
+            error: { code: errorCode, message: "Wallet Gateway admission policy rejected the request" },
+            errorId,
+            ok: false,
+            requestId,
+            schemaVersion: CANONICAL_GATEWAY_HTTP_SCHEMA_VERSION,
+            stateDigest: gatewayStateDigest(this.#kernel.snapshot()),
+            traceId,
+          }));
+          return;
+        }
         const administrative = this.#administrativeResponse(request);
         if (administrative) {
           status = administrative.status;
@@ -122,6 +143,7 @@ export class CanonicalWalletGatewayNodeHost {
           traceId,
         }));
       } finally {
+        if (admissionTicket?.ok) admissionTicket.release();
         this.#metrics.inFlight -= 1;
         const durationMs = Math.max(0, Date.now() - startedAt);
         this.#metrics.durationMsTotal += durationMs;
@@ -266,16 +288,29 @@ export class CanonicalWalletGatewayNodeHost {
 }
 
 function hostOptions(value) {
+  let admission = null;
   let emitEvent = () => {};
   try {
     exactFields(value, ["now", "statePath"], "Canonical Gateway Node host options");
   } catch {
-    exactFields(value, ["emitEvent", "now", "statePath"], "Canonical Gateway Node host options");
-    if (typeof value.emitEvent !== "function") throw new WalletAuthError("INVALID_EVENT_SINK", "Canonical Gateway event sink is invalid");
-    emitEvent = value.emitEvent;
+    try {
+      exactFields(value, ["admission", "now", "statePath"], "Canonical Gateway Node host options");
+      admission = value.admission;
+    } catch {
+      try {
+        exactFields(value, ["emitEvent", "now", "statePath"], "Canonical Gateway Node host options");
+        emitEvent = value.emitEvent;
+      } catch {
+        exactFields(value, ["admission", "emitEvent", "now", "statePath"], "Canonical Gateway Node host options");
+        admission = value.admission;
+        emitEvent = value.emitEvent;
+      }
+    }
   }
+  if (admission !== null && !(admission instanceof GatewayAdmissionController)) throw new WalletAuthError("INVALID_ADMISSION", "Canonical Gateway admission controller is invalid");
+  if (typeof emitEvent !== "function") throw new WalletAuthError("INVALID_EVENT_SINK", "Canonical Gateway event sink is invalid");
   if (typeof value.now !== "function") throw new WalletAuthError("INVALID_CLOCK", "Canonical Gateway Node host clock is invalid");
-  return Object.freeze({ emitEvent, now: value.now, statePath: value.statePath });
+  return Object.freeze({ admission, emitEvent, now: value.now, statePath: value.statePath });
 }
 
 function deploymentConfig(value) {

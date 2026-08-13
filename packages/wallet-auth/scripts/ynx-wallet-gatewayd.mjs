@@ -5,7 +5,7 @@ import { isIP } from "node:net";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { canonicalJSON } from "../src/canonical.js";
-import { forwardedClient, GatewayAdmissionController } from "../src/gateway-admission.js";
+import { GatewayAdmissionController } from "../src/gateway-admission.js";
 import { CanonicalWalletGatewayNodeHost } from "../src/gateway-node-host.js";
 
 const address=process.env.YNX_WALLET_GATEWAY_HTTP_ADDR??"127.0.0.1";
@@ -20,10 +20,9 @@ if(remoteDeployed&&!build)throw new Error("remote deployment requires YNX_WALLET
 const registry=JSON.parse(readFileSync(registryPath,"utf8"));
 const emitEvent=event=>process.stdout.write(`${canonicalJSON(event)}\n`);
 const deployment=build?{build,remoteDeployed}:{remoteDeployed};
-const host=new CanonicalWalletGatewayNodeHost(registry,{emitEvent,statePath,now:()=>new Date()},deployment);
 const admission=new GatewayAdmissionController({maxConcurrent:integer(process.env.YNX_WALLET_GATEWAY_MAX_CONCURRENT??"64","YNX_WALLET_GATEWAY_MAX_CONCURRENT",1,1024),maxPerWindow:integer(process.env.YNX_WALLET_GATEWAY_RATE_LIMIT??"300","YNX_WALLET_GATEWAY_RATE_LIMIT",1,100000)});
-const gatewayHandler=host.handler();
-const server=createServer((request,response)=>{const ticket=admission.enter(forwardedClient(request));if(!ticket.ok){response.writeHead(ticket.status,{"cache-control":"no-store","content-type":"application/json; charset=utf-8","retry-after":"60"});response.end(canonicalJSON({error:{code:ticket.code,message:"Wallet Gateway admission policy rejected the request"},ok:false}));return}response.once("finish",ticket.release);response.once("close",ticket.release);Promise.resolve(gatewayHandler(request,response)).catch(error=>{ticket.release();if(!response.headersSent){response.writeHead(500,{"cache-control":"no-store","content-type":"application/json; charset=utf-8"});response.end(canonicalJSON({error:{code:"INTERNAL_ERROR",message:"Wallet Gateway request failed"},ok:false}))}emitEvent({at:new Date().toISOString(),error:error instanceof Error?error.message:"unknown",event:"handler_error",level:"error",service:"ynx-wallet-gatewayd"})})});
+const host=new CanonicalWalletGatewayNodeHost(registry,{admission,emitEvent,statePath,now:()=>new Date()},deployment);
+const server=createServer(host.handler());
 server.listen(port,address,()=>emitEvent({at:new Date().toISOString(),build:build??{buildTime:null,release:"local-unbound",sourceCommit:null},event:"listening",level:"info",remoteDeployed,service:"ynx-wallet-gatewayd",url:`http://${address}:${port}`}));
 for(const signal of ["SIGINT","SIGTERM"])process.on(signal,()=>server.close(()=>{emitEvent({at:new Date().toISOString(),event:"shutdown",level:"info",service:"ynx-wallet-gatewayd",signal});process.exit(0)}));
 

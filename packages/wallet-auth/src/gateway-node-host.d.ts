@@ -31,6 +31,9 @@ export type CanonicalGatewayNodeHostOptions=Readonly<{
   statePath:string;
   now:()=>Date;
   emitEvent?:(event:CanonicalGatewayObservabilityEvent)=>void;
+  admission?:Readonly<{
+    enter:(client:unknown)=>Readonly<{ok:false;code:"CONCURRENCY_LIMIT"|"RATE_LIMIT";status:429|503}|{ok:true;release:()=>void}>;
+  }>;
 }>;
 
 export type CanonicalGatewayNodeHostDeployment=Readonly<{

@@ -16,6 +16,7 @@ import {
   signGatewayChallenge,
 } from "../src/index.js";
 import { CanonicalWalletGatewayNodeHost, encodeGatewayProofHeader } from "../src/gateway-node-host.js";
+import { GatewayAdmissionController } from "../src/gateway-admission.js";
 import * as packageNodeHost from "@ynx-chain/wallet-auth/gateway-node-host";
 import * as universalPackage from "@ynx-chain/wallet-auth";
 import { ACCOUNT_SECRET, NOW, PRODUCT_DEVICE_SECRET, request } from "./fixtures.mjs";
@@ -197,6 +198,23 @@ test("Node host exposes truthful version, readiness, metrics and redacted struct
   const rejectedEvent=events.find(event=>event.errorCode==="INVALID_PROOF_HEADER");
   assert.equal(rejectedEvent.ok,false);assert.match(rejectedEvent.errorId,/^[0-9a-f-]{36}$/);assert.equal(rejectedEvent.route,"session_inventory");
   for(const event of events){assert.equal(Object.hasOwn(event,"body"),false);assert.equal(Object.hasOwn(event,"proof"),false);assert.equal(Object.hasOwn(event,"headers"),false);assert.match(event.requestId,/^[0-9a-f-]{36}$/);assert.match(event.traceId,/^[0-9a-f-]{36}$/)}
+});
+
+test("Node host reports admission rejection with canonical identifiers, metrics and redacted events",async()=>{
+  const directory=mkdtempSync(join(tmpdir(),"ynx-wallet-gateway-admission-")),statePath=join(directory,"state.json"),events=[];
+  const admission=new GatewayAdmissionController({maxConcurrent:2,maxPerWindow:1,windowMs:60_000,now:()=>NOW.getTime()});
+  const host=new CanonicalWalletGatewayNodeHost(approvedRegistry(),{admission,emitEvent:event=>events.push(event),statePath,now:()=>NOW});
+  await serve(host,async(base)=>{
+    const first=await fetch(`${base}/health`,{headers:{"x-forwarded-for":"198.51.100.10"}});assert.equal(first.status,200);
+    const limited=await fetch(`${base}/health`,{headers:{"x-forwarded-for":"198.51.100.10"}});
+    assert.equal(limited.status,429);assert.equal(limited.headers.get("cache-control"),"no-store");assert.equal(limited.headers.get("retry-after"),"60");
+    const payload=await limited.json();assert.equal(payload.ok,false);assert.equal(payload.error.code,"RATE_LIMIT");assert.match(payload.stateDigest,/^[0-9a-f]{64}$/);
+    assert.equal(payload.requestId,limited.headers.get("x-request-id"));assert.equal(payload.traceId,limited.headers.get("x-trace-id"));assert.equal(payload.errorId,limited.headers.get("x-error-id"));
+    const metrics=await (await fetch(`${base}/metrics`,{headers:{"x-forwarded-for":"198.51.100.11"}})).text();
+    assert.match(metrics,/ynx_wallet_gateway_requests_total 3/);assert.match(metrics,/ynx_wallet_gateway_errors_total\{code="RATE_LIMIT"\} 1/);
+  });
+  const rejected=events.find(event=>event.errorCode==="RATE_LIMIT");assert.equal(rejected.status,429);assert.equal(rejected.ok,false);assert.equal(rejected.route,"health");
+  assert.throws(()=>new CanonicalWalletGatewayNodeHost(approvedRegistry(),{admission:{},statePath:join(directory,"invalid.json"),now:()=>NOW}),/admission controller/);
 });
 
 test("Node host refuses remote deployment without exact build identity",()=>{
