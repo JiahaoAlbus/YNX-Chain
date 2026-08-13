@@ -1,43 +1,42 @@
-# YNX Calendar UI design audit — 2026-07-18
+# YNX Calendar UI design audit — 2026-08-13
 
-Status: public Testnet Web preview, not production release-complete. The current run used the checked-in browser proof against a real ephemeral Calendar service, approved a real event preview and inspected the public exact-build CSS/JavaScript.
+Status: current-source local implementation verified; public Testnet deployment still points to the previous visual build until the release step completes.
 
-## Information architecture and behavior
+## Audited flow
 
-- Desktop uses a time-boundary/sidebar plus timeline. Day, week and month are now real selectable views, not disabled decoration; month displays bounded recurrence instances.
-- Create/update/cancel all flow through preview → explicit approval. Event detail exposes RSVP, sharing, reminder, recurrence, conflict override, revert and AI suggestion boundaries.
-- Mobile fits all seven week columns into 390px without horizontal scrolling, preserves hour labels, a visible event and the floating create action. Day and month views use the same bounded viewport.
+1. **Start / account boundary — healthy after correction.** The first screen now presents the real YNX mark, the Wallet path, recovery path, device-only trial, and three factual product principles in one bounded surface. It no longer uses a full-screen Klein-blue field or a letter placeholder.
+2. **Week planning — healthy after correction.** Desktop retains all views, date controls, activity, audit, assistant, locale, account, search, calendar filters and the seven-day timeline without page-level horizontal overflow.
+3. **Create event — healthy after correction.** The editor is split into event details, recurrence/preparation, and calendar/access sections. Its content scrolls independently while the Review changes action stays visible.
+4. **390 px week planning — healthy after correction.** The seven-day week remains readable without horizontal scrolling. Secondary tools move into a fixed bottom bar instead of clipping the top bar; account and date context remain at the top.
+5. **390 px create event — healthy after correction.** The form becomes one column, retains the section hierarchy and keeps the explicit review action visible. An invisible toast could previously intercept the floating create action; `pointer-events: none` now prevents that failure.
 
-## Tokens and platform behavior
+## Current-run screenshot evidence
 
-- Klein blue `#002FA7`, neutral system surfaces, 1 px time-grid rules and platform system typography keep hierarchy restrained.
-- Added dark, increased-contrast, forced-colors and reduced-motion behavior. Focus targets are named and proof reports zero page errors.
-- The day view removes week-column rules; month uses a conventional seven-column calendar instead of card tiles.
+- `tests/artifacts/design-audit-20260813/01-start.png` — public pre-change sign-in surface.
+- `tests/artifacts/design-audit-20260813/02-week-view.png` — public pre-change week view with clipped top controls and horizontal overflow.
+- `tests/artifacts/design-audit-20260813/03-event-editor.png` — public pre-change editor with its primary action below the viewport.
+- `tests/artifacts/design-audit-20260813/04-redesign-start.png` — current-source two-panel start screen with the supplied real YNX logo.
+- `tests/artifacts/design-audit-20260813/05-redesign-week.png` — current-source desktop week view with the full command bar visible.
+- `tests/artifacts/design-audit-20260813/06-redesign-editor.png` — current-source structured editor and persistent review action.
+- `tests/artifacts/design-audit-20260813/12-redesign-mobile-final.png` — 390×844 week view after moving tools to the bottom bar.
+- `tests/artifacts/design-audit-20260813/15-redesign-mobile-editor-final.png` — 390×844 event editor after the toast hit-target fix.
+- `tests/artifacts/calendar-desktop.png` and `tests/artifacts/calendar-mobile.png` — independent checked-in browser proof generated after the redesign.
 
-## Inspected evidence
+## Visual system decisions
 
-- `tests/artifacts/calendar-desktop.png` — 1440×900 week success state scrolled to the approved event.
-- `tests/artifacts/calendar-desktop-dark.png` — 1440×900 dark week success state.
-- `tests/artifacts/calendar-desktop-day.png` — real day view with the same approved event.
-- `tests/artifacts/calendar-desktop-month.png` — real month view with weekly recurrence occurrences.
-- `tests/artifacts/calendar-mobile.png` — 390×844 mobile success/event state.
-- `tests/artifacts/calendar-tablet.png` — 834×1194 tablet week state.
-- `tests/artifacts/calendar-arabic-rtl.png` — mirrored RTL timeline and Arabic locale date/time.
-- `tests/artifacts/calendar-large-text.png` — 390×844 at 125% root text.
-- `tests/artifacts/calendar-loading.png`, `calendar-failure.png`, `calendar-empty.png` — controlled loading, API failure and empty states.
-- `tests/artifacts/calendar-android-cold-start-current.png` — installed native Android shell after a separately recorded cold launch.
-- GitHub Actions run `29652770138`, hosted `YNXCalendar-unsigned-simulator.app.zip` and `YNXCalendar-cold-launch.png` — independently built, installed, cold-launched and deep-link resolved; downloaded screenshot inspected, SHA-256 `ca377afa7a78a93579d255fe1cd53bd8a695aae6addf71f6c34bb061956d1a71`.
+- The supplied transparent YNX raster is cropped only to transparent bounds, resized proportionally, and rendered with `object-fit: contain`; it is not stretched or reconstructed.
+- Klein blue is reserved for identity, selected dates, focus and primary actions. Neutral light/dark surfaces carry most of the interface so the product reads as a professional scheduling tool rather than a branded landing page.
+- Borders, section numbers, compact uppercase labels and consistent control heights provide hierarchy without decorative cards or gradients.
+- Desktop and mobile expose the same core actions. Mobile relocates secondary actions; it does not silently remove them.
 
-## Findings fixed in this pass
+## Accessibility checks and limits
 
-1. Replaced the disabled month affordance with working day/week/month views and correct query ranges.
-2. Changed the success proof to scroll the real approved event into view; the earlier empty top-of-day grid did not prove success.
-3. Removed editorial serif typography and added dark/high-contrast/forced-colors coverage.
-4. Added account export, session revocation and exact-phrase deletion UI.
-5. Added mobile/tablet/RTL/large-text evidence and replaced the partially hidden horizontal week strip with a verified seven-day compact grid.
+- All interactive controls retain accessible names, keyboard focus treatment, forced-colors support and reduced-motion behavior; browser proof reported zero console errors.
+- The event sections use named `section` regions and the submit action stays reachable without scrolling the page behind the dialog.
+- Screenshot inspection cannot prove screen-reader announcement order, every translated string, switch-control behavior, or production Wallet callback behavior. Those remain separate functional acceptance gates.
 
-## Remaining visual/release limits
+## Remaining release limits
 
-- Native catalogs contain all 12 locales and Arabic RTL. The Web companion mirrors RTL geometry but its Chinese interface copy is not fully translated; localization acceptance remains incomplete.
-- Compact mobile event cards intentionally truncate long titles; the full title remains available through the event detail control and accessible name.
-- A public Web/API preview exists. Current-source native downloads, production signing and store release do not; iOS evidence is Simulator-only.
+- The new explanatory section copy still requires complete translation across all 12 Web catalogs; English remains the default and no new Chinese-first surface was introduced.
+- Current-source native packages, production signing and real public two-user Wallet collaboration are not yet accepted.
+- Public deployment and an exact-build ComputerControl pass must follow before this redesign can be described as public evidence.

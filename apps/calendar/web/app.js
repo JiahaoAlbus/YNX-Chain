@@ -1196,22 +1196,22 @@ $("#wallet-signin").onclick = () => beginSignIn(false);
 $("#wallet-recover").onclick = () => beginSignIn(true);
 $("#guest-try").onclick = enterGuest;
 const auditButton = document.createElement("button");
-auditButton.className = "avatar";
-auditButton.textContent = "Audit";
+auditButton.className = "quiet top-action audit-button";
+auditButton.textContent = "Audit log";
 auditButton.setAttribute("aria-label", "Open Calendar audit");
 auditButton.onclick = showAudit;
 $("#ai-open").before(auditButton);
 const notificationButton = document.createElement("button");
 notificationButton.id = "notifications-open";
 notificationButton.className = "quiet notification-button";
-notificationButton.textContent = "Notifications";
+notificationButton.textContent = "Activity";
 notificationButton.setAttribute("aria-label", "Open Calendar notifications");
 notificationButton.onclick = showActivityNotifications;
 auditButton.before(notificationButton);
 function renderNotificationCount() {
   if (!notificationButton) return;
   const unread = state.notifications.filter((item) => item.state === "unread").length;
-  notificationButton.textContent = unread ? `Notifications ${unread}` : "Notifications";
+  notificationButton.textContent = unread ? `Activity ${unread}` : "Activity";
   notificationButton.setAttribute("aria-label", unread ? `Open Calendar notifications; ${unread} unread` : "Open Calendar notifications");
 }
 async function loadActivityNotifications() {

@@ -1,4 +1,4 @@
-const CACHE = "ynx-calendar-v3";
+const CACHE = "ynx-calendar-v4";
 const ASSETS = [
   "/",
   "/styles.css",
@@ -6,6 +6,8 @@ const ASSETS = [
   "/locales.json",
   "/app.js",
   "/manifest.webmanifest",
+  "/ynx-logo.png",
+  "/ynx-app-icon.png",
 ];
 self.addEventListener("install", (event) =>
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(ASSETS))),

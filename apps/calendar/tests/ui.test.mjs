@@ -17,6 +17,8 @@ test("Calendar is an accessible independent time product", async () => {
   assert.match(html, /data-i18n="recover"/);
   assert.match(html, /id="guest-try"[^>]*data-i18n="try_guest"/);
   assert.match(html, /id="locale-picker"/);
+  assert.match(html, /src="\/ynx-logo\.png"/);
+  assert.doesNotMatch(html, /class="mark(?:\s|\")/);
   assert.doesNotMatch(html, /\bynx1|0x[a-fA-F0-9]{8}/);
 });
 test("Calendar visual and responsive contract is restrained Klein blue", async () => {
@@ -27,6 +29,9 @@ test("Calendar visual and responsive contract is restrained Klein blue", async (
   assert.match(css, /prefers-reduced-motion/);
   assert.match(css, /prefers-color-scheme:\s*dark/);
   assert.match(css, /forced-colors:\s*active/);
+  assert.match(css, /\.form-scroll\s*\{[^}]*overflow-y:\s*auto/s);
+  assert.match(css, /\.toast\s*\{[^}]*pointer-events:\s*none/s);
+  assert.match(css, /\.signin-frame\s*\{[^}]*grid-template-columns/s);
   assert.doesNotMatch(css, /linear-gradient\([^)]*(#|rgb)/i);
   assert.doesNotMatch(css, /neon|text-shadow/i);
   assert.match(css, /repeat\(var\(--visible-days, 7\), minmax\(0, 1fr\)\)/);
@@ -52,6 +57,8 @@ test("Calendar offline, explicit approval, conflict and AI boundaries are wired"
   assert.match(js, /each change still requires preview and approval/);
   assert.match(js, /the calendar was not changed/);
   assert.match(sw, /caches\.open/);
+  assert.match(sw, /ynx-logo\.png/);
+  assert.match(sw, /ynx-app-icon\.png/);
   assert.doesNotMatch(
     js,
     /wallet_proof|Authorization=`Bearer|ynx\.calendar\.session/,

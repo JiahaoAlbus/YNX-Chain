@@ -5,6 +5,8 @@
   --muted: #667085;
   --line: #dfe4ee;
   --wash: #f6f8fb;
+  --surface: #ffffff;
+  --elevated: #ffffff;
   --red: #b42318;
   --amber: #b54708;
   font-family:
@@ -23,6 +25,8 @@
 body {
   margin: 0;
   min-width: 320px;
+  overflow: hidden;
+  background: var(--surface);
 }
 button,
 input,
@@ -60,14 +64,16 @@ button {
 }
 .shell {
   display: grid;
-  grid-template: "top top" 68px "side time" calc(100vh - 68px) / 230px 1fr;
+  min-width: 0;
+  grid-template: "top top" 72px "side time" calc(100vh - 72px) / 236px minmax(0, 1fr);
 }
 .topbar {
   grid-area: top;
   display: flex;
   align-items: center;
-  gap: 20px;
-  padding: 0 22px;
+  gap: 8px;
+  min-width: 0;
+  padding: 0 14px;
   border-bottom: 1px solid var(--line);
   background: #fff;
   z-index: 4;
@@ -95,26 +101,17 @@ button {
 .brand {
   display: flex;
   align-items: center;
-  gap: 10px;
-  min-width: 208px;
+  gap: 9px;
+  min-width: 166px;
   color: var(--ink);
   text-decoration: none;
 }
-.mark {
-  display: grid;
-  place-items: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
-  background: var(--blue);
-  color: #fff;
-  font-weight: 800;
-}
-.mark.large {
-  width: 54px;
-  height: 54px;
-  border-radius: 15px;
-  font-size: 24px;
+.brand-mark {
+  display: block;
+  width: 42px;
+  height: 25px;
+  object-fit: contain;
+  flex: 0 0 auto;
 }
 .view-switch {
   display: flex;
@@ -126,7 +123,7 @@ button {
   border: 0;
   background: transparent;
   border-radius: 7px;
-  padding: 7px 12px;
+  padding: 7px 10px;
 }
 .view-switch button.active {
   background: #fff;
@@ -137,7 +134,9 @@ button {
   display: flex;
   align-items: center;
   gap: 5px;
-  margin: auto;
+  min-width: 214px;
+  justify-content: center;
+  flex: 1 1 auto;
 }
 .date-controls button,
 .icon {
@@ -160,6 +159,10 @@ button {
   border-radius: 9px;
   background: #fff;
   padding: 9px 12px;
+}
+.top-action {
+  white-space: nowrap;
+  padding-inline: 10px;
 }
 .danger-action {
   color: var(--red);
@@ -222,7 +225,7 @@ button {
   border-right: 1px solid var(--line);
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 20px;
   background: #fff;
 }
 .primary {
@@ -333,6 +336,7 @@ button {
 }
 .timeline {
   grid-area: time;
+  min-width: 0;
   overflow: auto;
   position: relative;
   background: #fff;
@@ -610,7 +614,60 @@ dialog::backdrop {
   backdrop-filter: blur(3px);
 }
 .event-dialog {
-  width: min(720px, calc(100% - 24px));
+  width: min(880px, calc(100% - 32px));
+  max-height: calc(100dvh - 32px);
+  overflow: hidden;
+  background: var(--elevated);
+}
+.event-dialog form {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  height: min(850px, calc(100dvh - 32px));
+}
+.form-scroll {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 8px 24px 24px;
+}
+.form-section {
+  padding: 18px 0 22px;
+  border-bottom: 1px solid var(--line);
+}
+.form-section:last-child {
+  border-bottom: 0;
+}
+.section-heading {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+  margin-bottom: 16px;
+}
+.section-heading h3,
+.section-heading p {
+  margin: 0;
+}
+.section-heading h3 {
+  font-size: 15px;
+}
+.section-heading p {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+.section-index {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 24px;
+  border: 1px solid #b8c8f4;
+  border-radius: 999px;
+  color: var(--blue);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .08em;
 }
 .event-dialog header,
 .ai-panel header {
@@ -628,7 +685,7 @@ dialog::backdrop {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
-  padding: 24px;
+  padding: 0;
 }
 .form-grid label,
 .ai-panel label {
@@ -672,6 +729,7 @@ dialog::backdrop {
   gap: 10px;
   padding: 16px 24px;
   border-top: 1px solid var(--line);
+  background: var(--elevated);
 }
 .event-dialog footer span {
   margin-right: auto;
@@ -801,27 +859,49 @@ dialog::backdrop {
   position: fixed;
   inset: 0;
   z-index: 80;
-  background: var(--blue);
+  background: #edf1f8;
   display: grid;
   place-items: center;
-  padding: 20px;
+  padding: 24px;
 }
 .signin[hidden] {
   display: none;
 }
+.signin-frame {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, .92fr);
+  width: min(1040px, 100%);
+  min-height: min(650px, calc(100dvh - 48px));
+  overflow: hidden;
+  border: 1px solid rgba(16, 22, 38, .1);
+  border-radius: 28px;
+  background: var(--elevated);
+  box-shadow: 0 28px 80px rgba(16, 22, 38, .16);
+}
 .signin-card {
-  width: min(520px, 100%);
-  padding: clamp(28px, 5vw, 52px);
-  border-radius: 22px;
-  background: #fff;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+  padding: clamp(30px, 4vw, 48px);
+  background: var(--elevated);
+}
+.signin-logo {
+  width: 96px;
+  height: 56px;
+  object-fit: contain;
+  object-position: left center;
+  margin-bottom: 18px;
 }
 .signin-card h1 {
   font:
-    clamp(36px, 6vw, 54px) / 1.03 -apple-system,
+    clamp(38px, 5vw, 58px) / 1.02 -apple-system,
     BlinkMacSystemFont,
     "Segoe UI",
     sans-serif;
-  margin: 18px 0;
+  margin: 16px 0;
+  max-width: 440px;
+  letter-spacing: -.045em;
 }
 .signin-card p {
   color: var(--muted);
@@ -843,6 +923,45 @@ dialog::backdrop {
   margin-top: 15px;
   color: var(--muted);
 }
+.signin-context {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+  padding: clamp(32px, 4vw, 48px);
+  background: #061846;
+  color: #fff;
+}
+.signin-context .eyebrow {
+  color: #9db9ff;
+}
+.signin-context h2 {
+  margin: 14px 0 34px;
+  font-size: clamp(34px, 4vw, 52px);
+  line-height: 1.03;
+  letter-spacing: -.045em;
+}
+.principle-list {
+  display: grid;
+  gap: 0;
+  border-top: 1px solid rgba(255,255,255,.18);
+}
+.principle-list article {
+  display: grid;
+  gap: 5px;
+  padding: 18px 0;
+  border-bottom: 1px solid rgba(255,255,255,.18);
+}
+.principle-list span,
+.testnet-label {
+  color: #b9c7e8;
+  font-size: 13px;
+  line-height: 1.55;
+}
+.testnet-label {
+  margin: auto 0 0;
+  padding-top: 28px;
+}
 .toast {
   position: fixed;
   z-index: 100;
@@ -850,6 +969,7 @@ dialog::backdrop {
   left: 50%;
   transform: translate(-50%, 15px);
   opacity: 0;
+  pointer-events: none;
   background: var(--ink);
   color: #fff;
   padding: 10px 16px;
@@ -863,6 +983,20 @@ dialog::backdrop {
 :focus-visible {
   outline: 3px solid rgba(0, 47, 167, 0.32);
   outline-offset: 2px;
+}
+@media (max-width: 1200px) {
+  .brand {
+    min-width: 46px;
+  }
+  .brand span:last-child {
+    display: none;
+  }
+  .view-switch button {
+    padding-inline: 8px;
+  }
+  .date-controls {
+    min-width: 190px;
+  }
 }
 @media (max-width: 900px) {
   .shell {
@@ -883,10 +1017,21 @@ dialog::backdrop {
   }
   .topbar > .quiet {
     font-size: 0;
+    width: 38px;
+    height: 38px;
+    padding: 0;
   }
-  .topbar > .quiet::after {
+  #ai-open::after {
     content: "AI";
     font-size: 13px;
+  }
+  .notification-button::after {
+    content: "ACT";
+    font-size: 10px;
+  }
+  .audit-button::after {
+    content: "LOG";
+    font-size: 10px;
   }
   .sidebar {
     position: fixed;
@@ -927,11 +1072,61 @@ dialog::backdrop {
   .ai-panel {
     top: 60px;
   }
+  .signin-frame {
+    grid-template-columns: minmax(0, 1fr);
+    width: min(600px, 100%);
+    min-height: auto;
+  }
+  .signin-context {
+    display: none;
+  }
 }
 @media (max-width: 600px) {
+  .topbar {
+    gap: 7px;
+    padding-inline: 10px;
+    z-index: 20;
+  }
+  .brand {
+    min-width: 42px;
+  }
+  .date-controls {
+    min-width: 0;
+    justify-content: flex-start;
+  }
   .date-controls #prev,
   .date-controls #next {
     display: none;
+  }
+  .date-controls #today {
+    padding-inline: 5px;
+  }
+  .date-controls strong {
+    margin-left: 2px;
+    font-size: 12px;
+  }
+  .notification-button,
+  .audit-button,
+  #ai-open,
+  .locale-control {
+    position: fixed;
+    z-index: 12;
+    bottom: 12px;
+  }
+  .notification-button { left: 10px; }
+  .audit-button { left: 54px; }
+  #ai-open { left: 98px; }
+  .locale-control { left: 142px; }
+  .locale-control select {
+    width: 126px;
+    height: 38px;
+  }
+  .toast {
+    bottom: 84px;
+    width: min(310px, calc(100% - 32px));
+    text-align: center;
+    font-size: 12px;
+    line-height: 1.4;
   }
   .days {
     margin-left: 52px;
@@ -984,16 +1179,16 @@ dialog::backdrop {
     grid-column: 1;
   }
   .event-dialog {
-    height: 92vh;
+    height: 92dvh;
   }
   .event-dialog form {
     height: 100%;
-    overflow: auto;
+    overflow: hidden;
   }
   .event-dialog footer {
     position: sticky;
     bottom: 0;
-    background: #fff;
+    background: var(--elevated);
   }
   .agenda-list { padding: 16px 12px 90px; }
   .agenda-event { grid-template-columns: 78px 6px minmax(0, 1fr); }
@@ -1018,6 +1213,8 @@ dialog::backdrop {
     --muted: #a1a1a6;
     --line: #38383a;
     --wash: #000;
+    --surface: #111214;
+    --elevated: #1c1c1e;
     --blue: #6e9cff;
     --blue2: #8aafff;
     --red: #ff6961;
@@ -1038,6 +1235,20 @@ dialog::backdrop {
   .change-card,
   .detail-dialog article {
     background: #1c1c1e;
+  }
+  .signin {
+    background: #0d0f14;
+  }
+  .signin-frame {
+    border-color: #34363c;
+    box-shadow: 0 28px 80px rgba(0,0,0,.5);
+  }
+  .signin-context {
+    background: #071a4d;
+  }
+  .toast {
+    background: #f5f5f7;
+    color: #101114;
   }
   .view-switch,
   .mini,
@@ -1103,7 +1314,7 @@ dialog::backdrop {
 }
 
 @media (forced-colors: active) {
-  .mark,
+  .brand-mark,
   .primary,
   .avatar,
   .event,

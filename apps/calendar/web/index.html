@@ -23,7 +23,7 @@
     <div class="shell" id="app" aria-busy="true">
       <header class="topbar">
         <a class="brand" href="/" aria-label="YNX Calendar home"
-          ><span class="mark">Y</span><span>YNX <b>Calendar</b></span></a
+          ><img class="brand-mark" src="/ynx-logo.png" alt="" width="48" height="28" /><span>YNX <b>Calendar</b></span></a
         >
         <nav class="view-switch" aria-label="Calendar view" data-i18n-aria-label="calendar_view">
           <button type="button" data-view="day" data-i18n="day">Day</button
@@ -103,7 +103,13 @@
             ×
           </button>
         </header>
-        <div class="form-grid">
+        <div class="form-scroll">
+          <section class="form-section" aria-labelledby="event-basics-heading">
+            <div class="section-heading">
+              <span class="section-index">01</span>
+              <div><h3 id="event-basics-heading">Event details</h3><p>Name the event and choose when it happens.</p></div>
+            </div>
+            <div class="form-grid">
           <label class="wide"
             >Title<input
               id="title"
@@ -124,8 +130,16 @@
               aria-label="Event end time" /></label
           ><label class="check-row wide"><input id="all-day" type="checkbox" aria-label="All-day event" />All-day event</label
           ><label class="wide">Location<input id="location" maxlength="300" placeholder="Room, venue, or place" /></label
-          ><label><span data-i18n="timezone">Time zone</span><select id="timezone"></select></label
-          ><label
+          ><label><span data-i18n="timezone">Time zone</span><select id="timezone"></select></label>
+            </div>
+          </section>
+          <section class="form-section" aria-labelledby="event-repeat-heading">
+            <div class="section-heading">
+              <span class="section-index">02</span>
+              <div><h3 id="event-repeat-heading">Repeat and preparation</h3><p>Keep recurring time and travel buffers predictable.</p></div>
+            </div>
+            <div class="form-grid">
+          <label
             ><span data-i18n="repeat">重复</span><select id="recurrence">
               <option value="">Does not repeat</option>
               <option value="weekly">Weekly</option>
@@ -154,8 +168,16 @@
               <option value="1440">1 day before</option>
             </select></label
           ><label>Preparation buffer<input id="buffer-before" type="number" min="0" max="240" step="5" value="0" aria-label="Preparation buffer in minutes" /></label
-          ><label>Travel buffer<input id="buffer-after" type="number" min="0" max="240" step="5" value="0" aria-label="Travel buffer in minutes" /></label
-          ><label>Calendar<select id="calendar-id"><option value="personal">Personal</option><option value="team">Team</option><option value="shared">Shared</option></select></label
+          ><label>Travel buffer<input id="buffer-after" type="number" min="0" max="240" step="5" value="0" aria-label="Travel buffer in minutes" /></label>
+            </div>
+          </section>
+          <section class="form-section" aria-labelledby="event-access-heading">
+            <div class="section-heading">
+              <span class="section-index">03</span>
+              <div><h3 id="event-access-heading">Calendar and access</h3><p>Choose visibility, people, links, and supporting context.</p></div>
+            </div>
+            <div class="form-grid">
+          <label>Calendar<select id="calendar-id"><option value="personal">Personal</option><option value="team">Team</option><option value="shared">Shared</option></select></label
           ><label>Color<select id="event-color"><option value="blue">Klein blue</option><option value="slate">Slate</option><option value="green">Green</option><option value="amber">Amber</option><option value="red">Red</option><option value="violet">Violet</option></select></label
           ><label>Privacy<select id="event-privacy"><option value="private">Private</option><option value="participants">Participants</option><option value="availability">Availability only</option></select></label
           ><label class="wide"
@@ -177,6 +199,8 @@
               placeholder="Agenda, preparation, or notes"
             ></textarea>
           </label>
+            </div>
+          </section>
         </div>
         <footer>
           <span id="draft-state" role="status">Not saved</span
@@ -240,9 +264,10 @@
       <div id="ai-result" aria-live="polite"></div>
     </aside>
     <section id="signin" class="signin">
+      <div class="signin-frame">
       <div class="signin-card">
-        <span class="mark large">Y</span
-        ><span class="eyebrow" data-i18n="independent">Independent scheduling</span>
+        <img class="signin-logo" src="/ynx-logo.png" alt="YNX" width="128" height="74" />
+        <span class="eyebrow" data-i18n="independent">Independent scheduling</span>
         <h1 data-i18n="hero_title">Your time, your approval.</h1>
         <p data-i18n="hero_description">
           Create an independent Calendar device session with YNX Wallet. Contacts use @handles; Wallet addresses never enter the calendar UI.
@@ -259,6 +284,17 @@
           Calendar account scope · one-time challenge · revocable session
         </p>
         <small data-i18n="scheduling_disclaimer">This Testnet preview does not claim production scheduling service.</small>
+      </div>
+      <aside class="signin-context" aria-label="Calendar product principles">
+        <span class="eyebrow">Calendar, without hidden actions</span>
+        <h2>Plan together.<br />Approve every change.</h2>
+        <div class="principle-list">
+          <article><b>Private by default</b><span>Contacts stay as @handles; availability can be shared without event details.</span></article>
+          <article><b>Conflict-aware</b><span>Review overlaps, preparation buffers, and alternative times before saving.</span></article>
+          <article><b>Useful before sign-in</b><span>Try device-only drafts first, then connect Wallet when you need sync and collaboration.</span></article>
+        </div>
+        <p class="testnet-label">YNX Testnet · Independent scheduling surface</p>
+      </aside>
       </div>
     </section>
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
