@@ -26,6 +26,15 @@
       "factoryDeployGas": 3693314,
       "poolCreateGas": 2269635,
       "stableSwapGas": 200902
+    },
+    {
+      "capability": "lp-protection",
+      "sourceCommit": "candidate-port-from-codex-final-dex",
+      "result": "passed",
+      "coverage": "32 differential vectors plus 16 stateful invariant/chaos vectors; base AMM, Strategy Vault and StableSwap regression also passed",
+      "factoryDeployGas": 5303678,
+      "poolCreateGas": 2279845,
+      "protectedSwapGas": 223568
     }
   ],
   "publicDeployment": false,

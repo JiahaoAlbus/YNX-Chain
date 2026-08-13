@@ -2,16 +2,20 @@
 pragma solidity ^0.8.24;
 
 import {YNXDexPool} from "./YNXDexPool.sol";
+import {YNXLPProtection} from "./YNXLPProtection.sol";
 
-/// @notice Versioned immutable-pool registry with delayed governance changes.
-contract YNXDexFactory {
+/// @notice Factory for CPMM pools that atomically enforce YNX LP Protection.
+/// It is separate from the recovered v1 factory so legacy deployments cannot
+/// silently change fee semantics or acquire a mutable hook.
+contract YNXProtectedDexFactory {
     uint256 public constant GOVERNANCE_DELAY = 2 days;
-    uint16 public constant SWAP_FEE_BPS = 30;
-    uint16 public constant PROTOCOL_FEE_SHARE_BPS = 1_667; // ~1/6 of swap fee
-    string public constant deploymentVersion = "ynx-dex-cpmm-v1";
+    uint16 public constant BASE_SWAP_FEE_BPS = 30;
+    uint16 public constant PROTOCOL_FEE_SHARE_BPS = 1_667;
+    string public constant deploymentVersion = "ynx-dex-protected-cpmm-v1";
 
     address public governance;
     address public protocolFeeRecipient;
+    YNXLPProtection public immutable lpProtection;
     mapping(address => bool) public supportedToken;
     mapping(address => mapping(address => address)) public getPool;
     address[] public allPools;
@@ -43,10 +47,17 @@ contract YNXDexFactory {
         _;
     }
 
-    constructor(address initialGovernance, address initialFeeRecipient, address[] memory initialTokens) {
+    constructor(
+        address initialGovernance,
+        address initialFeeRecipient,
+        address[] memory initialTokens,
+        address oracle,
+        YNXLPProtection.Config memory protectionDefaults
+    ) {
         if (initialGovernance == address(0) || initialFeeRecipient == address(0)) revert InvalidRecipient();
         governance = initialGovernance;
         protocolFeeRecipient = initialFeeRecipient;
+        lpProtection = new YNXLPProtection(address(this), oracle, protectionDefaults);
         for (uint256 i; i < initialTokens.length; ++i) {
             address token = initialTokens[i];
             if (token == address(0) || token.code.length == 0) revert InvalidToken();
@@ -63,11 +74,12 @@ contract YNXDexFactory {
         (address token0, address token1) = tokenA < tokenB ? (tokenA, tokenB) : (tokenB, tokenA);
         if (getPool[token0][token1] != address(0)) revert PoolExists();
         pool = address(new YNXDexPool{salt: keccak256(abi.encode(token0, token1))}(
-            token0, token1, SWAP_FEE_BPS, PROTOCOL_FEE_SHARE_BPS, address(0)
+            token0, token1, BASE_SWAP_FEE_BPS, PROTOCOL_FEE_SHARE_BPS, address(lpProtection)
         ));
         getPool[token0][token1] = pool;
         getPool[token1][token0] = pool;
         allPools.push(pool);
+        lpProtection.registerPool(pool, token0, token1);
         emit PoolCreated(token0, token1, pool, allPools.length);
     }
 

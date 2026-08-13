@@ -9,8 +9,8 @@ interface IYNXDexFactory {
 interface IYNXDexPoolRouter {
     function token0() external view returns (address);
     function getReserves() external view returns (uint112, uint112, uint32);
-    function getAmountOut(uint256 amountIn, uint256 reserveIn, uint256 reserveOut) external view returns (uint256);
-    function getAmountIn(uint256 amountOut, uint256 reserveIn, uint256 reserveOut) external view returns (uint256);
+    function getAmountOutFor(address tokenIn, uint256 amountIn) external view returns (uint256);
+    function getAmountInFor(address tokenIn, uint256 amountOut) external view returns (uint256);
     function executeSwap(address tokenIn, uint256 minAmountOut, address to, uint256 deadline) external returns (uint256);
     function mint(address to, uint256 deadline) external returns (uint256);
     function burn(address to, uint256 amount0Min, uint256 amount1Min, uint256 deadline) external returns (uint256, uint256);
@@ -44,8 +44,8 @@ contract YNXDexRouter {
         amounts = new uint256[](path.length);
         amounts[0] = amountIn;
         for (uint256 i; i + 1 < path.length; ++i) {
-            (address pool, uint256 reserveIn, uint256 reserveOut) = _poolAndReserves(path[i], path[i + 1]);
-            amounts[i + 1] = IYNXDexPoolRouter(pool).getAmountOut(amounts[i], reserveIn, reserveOut);
+            address pool = _pool(path[i], path[i + 1]);
+            amounts[i + 1] = IYNXDexPoolRouter(pool).getAmountOutFor(path[i], amounts[i]);
         }
     }
 
@@ -54,8 +54,8 @@ contract YNXDexRouter {
         amounts = new uint256[](path.length);
         amounts[path.length - 1] = amountOut;
         for (uint256 i = path.length - 1; i > 0; --i) {
-            (address pool, uint256 reserveIn, uint256 reserveOut) = _poolAndReserves(path[i - 1], path[i]);
-            amounts[i - 1] = IYNXDexPoolRouter(pool).getAmountIn(amounts[i], reserveIn, reserveOut);
+            address pool = _pool(path[i - 1], path[i]);
+            amounts[i - 1] = IYNXDexPoolRouter(pool).getAmountInFor(path[i - 1], amounts[i]);
         }
     }
 
@@ -120,12 +120,6 @@ contract YNXDexRouter {
             uint256 actual = IYNXDexPoolRouter(_pool(path[i], path[i + 1])).executeSwap(path[i], minimum, recipient, deadline);
             if (i + 2 == path.length && actual < quoted[i + 1]) revert InsufficientOutput();
         }
-    }
-
-    function _poolAndReserves(address tokenIn, address tokenOut) private view returns (address pool, uint256 reserveIn, uint256 reserveOut) {
-        pool = _pool(tokenIn, tokenOut);
-        (uint112 reserve0, uint112 reserve1,) = IYNXDexPoolRouter(pool).getReserves();
-        (reserveIn, reserveOut) = tokenIn == IYNXDexPoolRouter(pool).token0() ? (reserve0, reserve1) : (reserve1, reserve0);
     }
 
     function _pool(address tokenA, address tokenB) private view returns (address pool) {

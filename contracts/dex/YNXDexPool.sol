@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
+import {YNXLPProtection} from "./YNXLPProtection.sol";
+
 interface IYNXDexERC20 {
     function balanceOf(address account) external view returns (uint256);
     function transfer(address to, uint256 amount) external returns (bool);
@@ -21,7 +23,8 @@ contract YNXDexPool {
     address public immutable factory;
     address public immutable token0;
     address public immutable token1;
-    uint16 public immutable swapFeeBps;
+    address public immutable lpProtection;
+    uint16 public immutable baseSwapFeeBps;
     uint16 public immutable protocolFeeShareBps;
 
     uint112 private reserve0;
@@ -31,6 +34,7 @@ contract YNXDexPool {
     uint256 public price1CumulativeLast;
     uint256 public protocolFees0;
     uint256 public protocolFees1;
+    uint256 public lastLiquidityChangeBlock;
 
     uint256 public totalSupply;
     mapping(address => uint256) public balanceOf;
@@ -56,6 +60,7 @@ contract YNXDexPool {
     error TransferFailed();
     error InvariantViolation();
     error Unauthorized();
+    error ProtectedQuoteRequiresToken();
 
     modifier lock() {
         if (unlocked != 1) revert Reentrancy();
@@ -64,13 +69,16 @@ contract YNXDexPool {
         unlocked = 1;
     }
 
-    constructor(address tokenA, address tokenB, uint16 feeBps, uint16 protocolShareBps) {
+    constructor(address tokenA, address tokenB, uint16 feeBps, uint16 protocolShareBps, address protection) {
         if (tokenA == address(0) || tokenB == address(0) || tokenA >= tokenB) revert InvalidToken();
-        if (feeBps > 100 || protocolShareBps > 5_000) revert InvalidToken();
+        if (feeBps > 100 || protocolShareBps > 5_000 || (protection != address(0) && protection.code.length == 0)) {
+            revert InvalidToken();
+        }
         factory = msg.sender;
         token0 = tokenA;
         token1 = tokenB;
-        swapFeeBps = feeBps;
+        lpProtection = protection;
+        baseSwapFeeBps = feeBps;
         protocolFeeShareBps = protocolShareBps;
     }
 
@@ -116,6 +124,7 @@ contract YNXDexPool {
         if (liquidity == 0) revert InsufficientLiquidity();
         _mint(to, liquidity);
         _update(balance0, balance1);
+        lastLiquidityChangeBlock = block.number;
         emit Mint(msg.sender, amount0, amount1, to);
     }
 
@@ -137,6 +146,7 @@ contract YNXDexPool {
         _safeTransfer(token1, to, amount1);
         (balance0, balance1) = _availableBalances();
         _update(balance0, balance1);
+        lastLiquidityChangeBlock = block.number;
         emit Burn(msg.sender, amount0, amount1, to);
     }
 
@@ -155,10 +165,16 @@ contract YNXDexPool {
         (uint256 balance0, uint256 balance1) = _availableBalances();
         uint256 amountIn = zeroForOne ? balance0 - reserve0 : balance1 - reserve1;
         if (amountIn == 0) revert InsufficientInput();
-        amountOut = getAmountOut(amountIn, zeroForOne ? reserve0 : reserve1, zeroForOne ? reserve1 : reserve0);
+        uint16 feeBps = baseSwapFeeBps;
+        if (lpProtection != address(0)) {
+            feeBps = YNXLPProtection(lpProtection).assessSwap(
+                tokenIn, amountIn, reserve0, reserve1, lastLiquidityChangeBlock
+            ).totalFeeBps;
+        }
+        amountOut = _amountOut(amountIn, zeroForOne ? reserve0 : reserve1, zeroForOne ? reserve1 : reserve0, feeBps);
         if (amountOut < minAmountOut || amountOut == 0) revert InsufficientOutput();
 
-        uint256 totalFee = amountIn * swapFeeBps / 10_000;
+        uint256 totalFee = amountIn * feeBps / 10_000;
         uint256 protocolFee = totalFee * protocolFeeShareBps / 10_000;
         if (zeroForOne) protocolFees0 += protocolFee;
         else protocolFees1 += protocolFee;
@@ -203,14 +219,80 @@ contract YNXDexPool {
     }
 
     function getAmountOut(uint256 amountIn, uint256 reserveIn, uint256 reserveOut) public view returns (uint256) {
+        if (lpProtection != address(0)) revert ProtectedQuoteRequiresToken();
+        return _amountOut(amountIn, reserveIn, reserveOut, baseSwapFeeBps);
+    }
+
+    function getAmountOutFor(address tokenIn, uint256 amountIn) public view returns (uint256) {
+        bool zeroForOne = _direction(tokenIn);
+        uint16 feeBps = _previewFee(tokenIn, amountIn);
+        return _amountOut(amountIn, zeroForOne ? reserve0 : reserve1, zeroForOne ? reserve1 : reserve0, feeBps);
+    }
+
+    function getAmountInFor(address tokenIn, uint256 amountOut) public view returns (uint256 amountIn) {
+        bool zeroForOne = _direction(tokenIn);
+        uint256 reserveIn = zeroForOne ? reserve0 : reserve1;
+        uint256 reserveOut = zeroForOne ? reserve1 : reserve0;
+        if (amountOut == 0 || reserveIn == 0 || amountOut >= reserveOut) revert InsufficientLiquidity();
+        if (lpProtection == address(0)) return _amountIn(amountOut, reserveIn, reserveOut, baseSwapFeeBps);
+        (, uint16 maximumFee) = YNXLPProtection(lpProtection).feeBounds(address(this));
+        amountIn = _amountIn(amountOut, reserveIn, reserveOut, maximumFee);
+        // Fee is monotonic in same-side input. Starting at the maximum-fee
+        // upper bound and iterating downward remains conservative at every step.
+        for (uint256 i; i < 8; ++i) {
+            uint256 next = _amountIn(amountOut, reserveIn, reserveOut, _previewFee(tokenIn, amountIn));
+            if (next >= amountIn) break;
+            amountIn = next;
+        }
+    }
+
+    function currentFeeQuote(address tokenIn, uint256 amountIn)
+        external view returns (YNXLPProtection.FeeQuote memory quote)
+    {
+        if (lpProtection == address(0)) revert ProtectedQuoteRequiresToken();
+        _direction(tokenIn);
+        return YNXLPProtection(lpProtection).previewFee(
+            address(this), tokenIn, amountIn, reserve0, reserve1, lastLiquidityChangeBlock
+        );
+    }
+
+    function _amountOut(uint256 amountIn, uint256 reserveIn, uint256 reserveOut, uint16 feeBps)
+        private pure returns (uint256)
+    {
         if (amountIn == 0 || reserveIn == 0 || reserveOut == 0) revert InsufficientLiquidity();
-        uint256 inputAfterFee = amountIn * (10_000 - swapFeeBps);
+        uint256 inputAfterFee = amountIn * (10_000 - feeBps);
         return inputAfterFee * reserveOut / (reserveIn * 10_000 + inputAfterFee);
     }
 
     function getAmountIn(uint256 amountOut, uint256 reserveIn, uint256 reserveOut) public view returns (uint256) {
+        if (lpProtection != address(0)) revert ProtectedQuoteRequiresToken();
+        return _amountIn(amountOut, reserveIn, reserveOut, baseSwapFeeBps);
+    }
+
+    function _amountIn(uint256 amountOut, uint256 reserveIn, uint256 reserveOut, uint16 feeBps)
+        private pure returns (uint256)
+    {
         if (amountOut == 0 || reserveIn == 0 || amountOut >= reserveOut) revert InsufficientLiquidity();
-        return reserveIn * amountOut * 10_000 / ((reserveOut - amountOut) * (10_000 - swapFeeBps)) + 1;
+        return reserveIn * amountOut * 10_000 / ((reserveOut - amountOut) * (10_000 - feeBps)) + 1;
+    }
+
+    function _previewFee(address tokenIn, uint256 amountIn) private view returns (uint16) {
+        if (lpProtection == address(0)) return baseSwapFeeBps;
+        return YNXLPProtection(lpProtection).previewFee(
+            address(this), tokenIn, amountIn, reserve0, reserve1, lastLiquidityChangeBlock
+        ).totalFeeBps;
+    }
+
+    function _direction(address tokenIn) private view returns (bool zeroForOne) {
+        if (tokenIn == token0) return true;
+        if (tokenIn == token1) return false;
+        revert InvalidToken();
+    }
+
+    function swapFeeBps() external view returns (uint16) {
+        if (lpProtection == address(0)) return baseSwapFeeBps;
+        (uint16 baseFee,) = YNXLPProtection(lpProtection).feeBounds(address(this));
+        return baseFee;
     }
 
     function _availableBalances() private view returns (uint256 balance0, uint256 balance1) {
