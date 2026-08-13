@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "requestId": "wallet-desktop-cli-sdk-public-hosting-20260813",
+  "owner": "Website release operator",
+  "status": "required",
+  "requestedInputs": [
+    {
+      "name": "authorizedDeploymentMechanism",
+      "description": "Identify the approved YNX-Chain-website deployment workflow or execute it as the authorized Website operator. Do not paste deployment credentials into repository files or chat."
+    },
+    {
+      "name": "immutableAssetPublication",
+      "description": "Publish every artifact in release/wallet-cli/public/website-download-manifest.json byte-for-byte at its proposedCanonicalUrl."
+    },
+    {
+      "name": "walletRouteIntegration",
+      "description": "Render platform, architecture, Bytes, SHA-256, minimum OS and signing class from the manifest; keep unavailable buttons disabled until full-download verification passes."
+    }
+  ],
+  "acceptance": "Return deployment identity and a full HTTP GET evidence record whose Bytes and SHA-256 match every artifact before changing downloadHosted or deployedPublic to true."
+}

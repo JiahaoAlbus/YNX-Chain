@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-08-13T14:55:04Z",
+  "canonicalRoute": {
+    "requestedUrl": "https://www.ynxweb4.com/wallet",
+    "effectiveUrl": "https://www.ynxweb4.com/dapp/wallet",
+    "httpStatus": 200,
+    "directlyVerified": true
+  },
+  "deploymentAuthority": {
+    "availableInCurrentEnvironment": false,
+    "basis": [
+      "No Vercel, Cloudflare or object-storage deployment credential was present in the process environment.",
+      "The configured SSH host is GitHub only; no ynxweb4.com hosting target is configured.",
+      "The Website is maintained in the separate JiahaoAlbus/YNX-Chain-website repository."
+    ]
+  },
+  "candidateRouteChecks": [
+    {
+      "artifactId": "linux-amd64-deb",
+      "requestedUrl": "https://www.ynxweb4.com/downloads/wallet/sha256-cfed354c16bb20045e9ab7a0dae8b572c7afba213a1aba775e3e8fdba2d8988d/ynx-wallet-cli_0.1.0~testnet+95bd2aad56bd_amd64.deb",
+      "httpStatus": 200,
+      "contentType": "text/html; charset=utf-8",
+      "responseBytes": 1018,
+      "responseSha256": "fa9ffc6521978f0be61b5efb5fc26fbd864abcca9b1de3415c56c23a909c91bd",
+      "expectedBytes": 4423320,
+      "expectedSha256": "cfed354c16bb20045e9ab7a0dae8b572c7afba213a1aba775e3e8fdba2d8988d",
+      "artifactMatch": false,
+      "interpretation": "SPA fallback HTML; not a hosted artifact"
+    },
+    {
+      "artifactId": "windows-x64-installer",
+      "requestedUrl": "https://www.ynxweb4.com/downloads/wallet/sha256-8bc1c91622698ac07ab85ac435a71695f72f26b37aa82b25501d5bacb5e72134/ynx-wallet-cli-windows-x64-installer.zip",
+      "httpStatus": 200,
+      "contentType": "text/html; charset=utf-8",
+      "responseBytes": 1018,
+      "responseSha256": "fa9ffc6521978f0be61b5efb5fc26fbd864abcca9b1de3415c56c23a909c91bd",
+      "expectedBytes": 5041844,
+      "expectedSha256": "8bc1c91622698ac07ab85ac435a71695f72f26b37aa82b25501d5bacb5e72134",
+      "artifactMatch": false,
+      "interpretation": "SPA fallback HTML; not a hosted artifact"
+    }
+  ],
+  "downloadHosted": false,
+  "deployedPublic": false
+}
