@@ -28,7 +28,7 @@ also names direct evidence.
 | Interval / ByDay / ByMonthDay / count / end date | Service + Web implemented | Boundary and DST tests | Browser proof covers interval/ByDay; full UI matrix still required |
 | Single occurrence / future / entire series update | Service and event-inspector controls implemented | Atomic/replay/recovery/browser tests | Public interactive proof remains |
 | Recurrence cancellation / recovery / DST | Service implemented | Dedicated unit tests | Public interactive proof remains |
-| Owner / editor / viewer share and revoke | Shared-calendar lifecycle and permission manager implemented | Owner/editor/viewer/revoke tests | Availability-only ACL and public interactive permission proof remain |
+| Owner / editor / viewer share and revoke | Shared-calendar lifecycle, permission manager and availability-only redaction implemented | Owner/editor/viewer/availability/revoke tests | Public interactive two-user permission proof remains |
 | Conflict overlap / recurrence / time zone | Service preview implemented | Unit conflict tests | Travel/buffer and authorized attendee availability are not implemented |
 | Alternative-time suggestions | AI adapter supports bounded proposal | Provider failure and approval tests | Real public provider success is not proved |
 | AI agenda / conflict explanation / follow-up | Context preview, approve, cancel, apply/reject implemented | Unit tests | AI does not mutate events; public provider availability remains unproved |

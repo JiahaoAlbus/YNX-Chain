@@ -218,7 +218,11 @@ func (s *Service) ExportAccount(token string) (AccountExport, error) {
 			}
 		}
 		for _, event := range st.Events {
-			if canView(&st, event, user.Handle, sess.UserID) {
+			role := eventAccessRole(&st, event, user.Handle, sess.UserID)
+			if role != "" {
+				if role == "availability" {
+					event = availabilityEvent(event)
+				}
 				out.Events = append(out.Events, event)
 			}
 		}
@@ -378,7 +382,7 @@ func (s *Service) CreateCalendar(token, name, color string) (SharedCalendar, err
 
 func (s *Service) ShareCalendar(token, calendarID, handle, role string) (SharedCalendar, error) {
 	handle, role = strings.TrimSpace(handle), strings.ToLower(strings.TrimSpace(role))
-	if !handlePattern.MatchString(handle) || (role != "editor" && role != "viewer") {
+	if !handlePattern.MatchString(handle) || (role != "editor" && role != "viewer" && role != "availability") {
 		return SharedCalendar{}, errors.New("shared calendar handle or role is invalid")
 	}
 	var out SharedCalendar
@@ -996,7 +1000,7 @@ func (s *Service) AddComment(token, eventID, body string) (Event, error) {
 		}
 		user := st.Users[sess.UserID]
 		event, ok := st.Events[eventID]
-		if !ok || event.State == "cancelled" || !canView(st, event, user.Handle, sess.UserID) {
+		if !ok || event.State == "cancelled" || !canView(st, event, user.Handle, sess.UserID) || eventAccessRole(st, event, user.Handle, sess.UserID) == "availability" {
 			return ErrUnauthorized
 		}
 		comment := Comment{ID: s.id("comment"), Author: user.Handle, Body: body, CreatedAt: s.now().UTC()}
@@ -1020,8 +1024,12 @@ func (s *Service) Events(token string, from, to time.Time) ([]Occurrence, error)
 		}
 		user := st.Users[sess.UserID]
 		for _, event := range st.Events {
-			if event.State == "cancelled" || !canView(&st, event, user.Handle, sess.UserID) {
+			role := eventAccessRole(&st, event, user.Handle, sess.UserID)
+			if event.State == "cancelled" || role == "" {
 				continue
+			}
+			if role == "availability" {
+				event = availabilityEvent(event)
 			}
 			for _, occ := range expand(event, from, to) {
 				out = append(out, occ)
@@ -1047,6 +1055,9 @@ func (s *Service) Event(token, eventID string) (Event, error) {
 		user := st.Users[sess.UserID]
 		if !canView(&st, event, user.Handle, sess.UserID) {
 			return ErrUnauthorized
+		}
+		if eventAccessRole(&st, event, user.Handle, sess.UserID) == "availability" {
+			event = availabilityEvent(event)
 		}
 		out = event
 		return nil
@@ -1128,7 +1139,7 @@ func (s *Service) BeginAI(ctx context.Context, token, kind string, eventIDs []st
 		var titles []string
 		for _, id := range eventIDs {
 			event, ok := st.Events[id]
-			if !ok || !canView(st, event, user.Handle, sess.UserID) {
+			if !ok || !canView(st, event, user.Handle, sess.UserID) || eventAccessRole(st, event, user.Handle, sess.UserID) == "availability" {
 				return ErrUnauthorized
 			}
 			titles = append(titles, event.Title)
@@ -1741,23 +1752,45 @@ func validateCalendarWrite(st *State, calendarID, userID string) error {
 	return ErrUnauthorized
 }
 func canView(st *State, e Event, handle, userID string) bool {
+	return eventAccessRole(st, e, handle, userID) != ""
+}
+func eventAccessRole(st *State, e Event, handle, userID string) string {
 	if e.OwnerID == userID {
-		return true
+		return "owner"
 	}
-	if calendar, ok := st.SharedCalendars[e.CalendarID]; ok && (calendar.OwnerID == userID || calendarRole(calendar, handle) != "") {
-		return true
+	if calendar, ok := st.SharedCalendars[e.CalendarID]; ok {
+		if calendar.OwnerID == userID {
+			return "owner"
+		}
+		if role := calendarRole(calendar, handle); role != "" {
+			return role
+		}
 	}
 	for _, i := range e.Invites {
 		if i.Handle == handle {
-			return true
+			return "attendee"
 		}
 	}
 	for _, sh := range e.Shares {
 		if sh.Handle == handle {
-			return true
+			return sh.Role
 		}
 	}
-	return false
+	return ""
+}
+func availabilityEvent(event Event) Event {
+	event.Title = "Busy"
+	event.Description = ""
+	event.Location = ""
+	event.OwnerHandle = ""
+	event.Invites = nil
+	event.Shares = nil
+	event.Comments = nil
+	event.AttachmentLinks = nil
+	event.MeetingLink = ""
+	event.Reminders = nil
+	event.Privacy = "availability"
+	return event
 }
 func canEdit(st *State, e Event, userID string) bool {
 	if e.OwnerID == userID {

@@ -633,6 +633,21 @@ func TestSharedCalendarLifecycleAndRoles(t *testing.T) {
 	if _, err = svc.ApproveChange(bob, change.ID, false); err != nil {
 		t.Fatalf("editor update approval failed: %v", err)
 	}
+	calendar, err = svc.ShareCalendar(alice, calendar.ID, "@bob", "availability")
+	if err != nil || calendar.Shares[0].Role != "availability" {
+		t.Fatal("availability permission change failed")
+	}
+	busy, err := svc.Event(bob, event.ID)
+	if err != nil || busy.Title != "Busy" || busy.Location != "" || busy.OwnerHandle != "" || len(busy.Comments) != 0 {
+		t.Fatalf("availability view leaked event details: %#v %v", busy, err)
+	}
+	if _, err = svc.AddComment(bob, event.ID, "Must remain blocked"); !errors.Is(err, ErrUnauthorized) {
+		t.Fatalf("availability-only member commented: %v", err)
+	}
+	exported, err := svc.ExportAccount(bob)
+	if err != nil || len(exported.Events) != 1 || exported.Events[0].Title != "Busy" || exported.Events[0].Description != "" {
+		t.Fatalf("availability export leaked event details: %#v %v", exported.Events, err)
+	}
 	if _, err = svc.UnshareCalendar(alice, calendar.ID, "@bob"); err != nil {
 		t.Fatal(err)
 	}

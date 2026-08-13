@@ -1012,7 +1012,7 @@ function showCalendarManager() {
   dialog.querySelectorAll("[data-share-calendar]").forEach((button) => button.onclick = async () => {
     const handle = prompt("Member @handle");
     if (!handle) return;
-    const role = prompt("Role: viewer or editor", "viewer");
+    const role = prompt("Role: viewer, editor, or availability", "viewer");
     if (!role || !confirm(`Grant ${handle} the ${role} role?`)) return;
     try {
       await api(`/v1/calendars/${button.dataset.shareCalendar}/shares`, { method: "POST", body: JSON.stringify({ handle, role }) });
