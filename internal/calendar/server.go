@@ -53,6 +53,8 @@ func NewHandlerWithBuild(service *Service, build buildinfo.Info) http.Handler {
 	mux.HandleFunc("GET /v1/ai/jobs/{id}/stream", s.streamAI)
 	mux.HandleFunc("GET /v1/audit", s.audit)
 	mux.HandleFunc("GET /v1/reminders", s.reminders)
+	mux.HandleFunc("GET /v1/notifications", s.activityNotifications)
+	mux.HandleFunc("POST /v1/notifications/read", s.readNotifications)
 	mux.HandleFunc("GET /v1/account/export", s.exportAccount)
 	mux.HandleFunc("DELETE /v1/account", s.deleteAccount)
 	return headers(mux)
@@ -294,6 +296,14 @@ func (s *Server) audit(w http.ResponseWriter, r *http.Request) {
 func (s *Server) reminders(w http.ResponseWriter, r *http.Request) {
 	out, e := s.service.Notifications(bearer(r))
 	respond(w, out, e)
+}
+func (s *Server) activityNotifications(w http.ResponseWriter, r *http.Request) {
+	out, e := s.service.ActivityNotifications(bearer(r))
+	respond(w, out, e)
+}
+func (s *Server) readNotifications(w http.ResponseWriter, r *http.Request) {
+	out, e := s.service.MarkNotificationsRead(bearer(r))
+	respond(w, map[string]int{"marked_read": out}, e)
 }
 func (s *Server) exportAccount(w http.ResponseWriter, r *http.Request) {
 	out, e := s.service.ExportAccount(bearer(r))

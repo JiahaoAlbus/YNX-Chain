@@ -1,4 +1,4 @@
-const CACHE = "ynx-calendar-v2";
+const CACHE = "ynx-calendar-v3";
 const ASSETS = [
   "/",
   "/styles.css",

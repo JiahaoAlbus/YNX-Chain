@@ -94,7 +94,7 @@ func NewStore(path string) (*Store, error) {
 	return s, nil
 }
 func emptyState() State {
-	return State{SchemaVersion: StateSchemaVersion, Users: map[string]User{}, Challenges: map[string]Challenge{}, Sessions: map[string]Session{}, WalletRequests: map[string]bool{}, Events: map[string]Event{}, SharedCalendars: map[string]SharedCalendar{}, ReminderDeliveries: map[string]ReminderDelivery{}, Changes: map[string]ChangePreview{}, Mutations: map[string]string{}, AIJobs: map[string]AIJob{}}
+	return State{SchemaVersion: StateSchemaVersion, Users: map[string]User{}, Challenges: map[string]Challenge{}, Sessions: map[string]Session{}, WalletRequests: map[string]bool{}, Events: map[string]Event{}, SharedCalendars: map[string]SharedCalendar{}, ReminderDeliveries: map[string]ReminderDelivery{}, Notifications: map[string]ActivityNotification{}, Changes: map[string]ChangePreview{}, Mutations: map[string]string{}, AIJobs: map[string]AIJob{}}
 }
 func (s *Store) normalize() {
 	normalizeState(&s.data)
@@ -123,6 +123,9 @@ func normalizeState(state *State) {
 	}
 	if state.ReminderDeliveries == nil {
 		state.ReminderDeliveries = map[string]ReminderDelivery{}
+	}
+	if state.Notifications == nil {
+		state.Notifications = map[string]ActivityNotification{}
 	}
 	if state.Changes == nil {
 		state.Changes = map[string]ChangePreview{}

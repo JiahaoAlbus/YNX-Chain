@@ -22,7 +22,7 @@ also names direct evidence.
 | Export / delete / audit | Account JSON export, guest JSON/iCalendar export, exact delete phrase, audit UI | Unit + browser tests | Hosted immutable authenticated export policy remains |
 | Invite by YNX Handle | Service + Web input implemented | Unknown/duplicate invite rejection | Requires real Wallet sessions and Mail notification integration |
 | RSVP accept / tentative / decline | Service + event inspector implemented | Two-user authorization test | No public two-user proof yet |
-| Invitation update / cancellation / organizer / attendee | Persistent event lifecycle plus immutable attributed participant comments | Update/cancel/revert/comment authorization tests | External Mail/push delivery notification remains |
+| Invitation update / cancellation / organizer / attendee | Persistent event lifecycle, immutable attributed comments, and account activity notifications implemented | Update/cancel/revert/comment/notification authorization and read-state tests | External Mail/push delivery remains; exact public notification build evidence pending |
 | Duplicate / replay / privacy | Mutation IDs, version checks, Wallet replay rejection, privacy metadata | Replay/tamper/stale tests | Central Data Fabric event acceptance remains |
 | Daily / weekly / monthly / yearly recurrence | Versioned schema v1 implemented | Unit recurrence tests | Public build `78e0f2d3`; public series-management walkthrough remains |
 | Interval / ByDay / ByMonthDay / count / end date | Service + Web implemented | Boundary and DST tests | Browser proof covers interval/ByDay; full UI matrix still required |
@@ -37,7 +37,7 @@ also names direct evidence.
 | Web / Android / iOS / macOS | Source projects present | Web proven; historical native checks | Current-source Android/iOS/macOS install and cold launch remain |
 | Two-user Event→Invite→RSVP→Update→Cancel | Service test implemented | Unit test | Real public two-user Wallet flow remains |
 | Shared Calendar / permission end-to-end | Create/list/share/role-change/revoke plus event access implemented | Dedicated owner/editor/viewer/revoke lifecycle test | Public two-user Wallet proof remains |
-| Mail notification | Contract dependency only | No public end-to-end proof | Must integrate product 25 |
+| Notification / Mail integration | In-app invitation, RSVP, comment, calendar permission and revoke notifications implemented with unread state; Mail remains a contract dependency | Multi-user notification lifecycle, availability privacy, and browser notification-center tests | External Mail/push delivery and product 25 integration remain; in-app public proof pending |
 | `/calendar` micro-site and hosted artifacts | Metadata exists | Release schema checks | Website route and immutable current-source downloads remain |
 
 ## Rule for every subsequent Calendar slice

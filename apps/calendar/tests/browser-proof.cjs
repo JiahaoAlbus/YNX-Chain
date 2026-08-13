@@ -369,6 +369,10 @@ function unnamedInteractive() {
       });
       if (config.name === "desktop") {
         await page.getByRole("button", { name: /Protocol team/ }).waitFor();
+        await page.getByRole("button", { name: "Open Calendar notifications" }).click();
+        await page.getByRole("heading", { name: "Notifications" }).waitFor();
+        await page.getByText("Mail delivery is a separate integration.").waitFor();
+        await page.getByRole("button", { name: "Close" }).click();
         await page.getByRole("button", { name: "Manage shared calendars" }).click();
         await page.getByRole("heading", { name: "Calendars and permissions" }).waitFor();
         await page.getByRole("button", { name: "Close" }).click();

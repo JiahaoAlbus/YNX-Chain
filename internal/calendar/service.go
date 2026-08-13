@@ -236,6 +236,11 @@ func (s *Service) ExportAccount(token string) (AccountExport, error) {
 				out.Reminders = append(out.Reminders, reminder)
 			}
 		}
+		for _, notification := range st.Notifications {
+			if notification.UserID == sess.UserID {
+				out.Notifications = append(out.Notifications, notification)
+			}
+		}
 		for _, entry := range st.Audit {
 			if entry.ActorID == sess.UserID {
 				out.Audit = append(out.Audit, entry)
@@ -319,6 +324,11 @@ func (s *Service) DeleteAccount(token, confirmation string) error {
 		for id, reminder := range st.ReminderDeliveries {
 			if reminder.OwnerID == sess.UserID || ownedEvents[reminder.EventID] {
 				delete(st.ReminderDeliveries, id)
+			}
+		}
+		for id, notification := range st.Notifications {
+			if notification.UserID == sess.UserID || ownedEvents[notification.EventID] {
+				delete(st.Notifications, id)
 			}
 		}
 		for id, job := range st.AIJobs {
@@ -411,6 +421,12 @@ func (s *Service) ShareCalendar(token, calendarID, handle, role string) (SharedC
 		calendar.Version++
 		calendar.UpdatedAt = s.now().UTC()
 		st.SharedCalendars[calendar.ID] = calendar
+		actor := st.Users[sess.UserID]
+		title, body := "Calendar shared with you", fmt.Sprintf("%s granted %s access to %s.", actor.Handle, role, calendar.Name)
+		if role == "availability" {
+			title, body = "Calendar availability shared", fmt.Sprintf("%s granted availability-only access to a calendar.", actor.Handle)
+		}
+		s.notifyHandle(st, handle, "calendar_permission_changed", "", actor.Handle, title, body, calendar.UpdatedAt)
 		s.audit(st, sess.UserID, "calendar_permission_changed", calendar.ID, map[string]any{"contact": handle, "role": role})
 		out = calendar
 		return nil
@@ -444,6 +460,8 @@ func (s *Service) UnshareCalendar(token, calendarID, handle string) (SharedCalen
 		calendar.Version++
 		calendar.UpdatedAt = s.now().UTC()
 		st.SharedCalendars[calendar.ID] = calendar
+		actor := st.Users[sess.UserID]
+		s.notifyHandle(st, handle, "calendar_permission_revoked", "", actor.Handle, "Calendar access removed", fmt.Sprintf("%s removed your access to %s.", actor.Handle, calendar.Name), calendar.UpdatedAt)
 		s.audit(st, sess.UserID, "calendar_permission_revoked", calendar.ID, map[string]any{"contact": handle})
 		out = calendar
 		return nil
@@ -813,6 +831,23 @@ func (s *Service) ApproveChange(token, changeID string, acceptConflicts bool) (E
 		change.State = "applied"
 		change.ApprovedAt = now
 		st.Changes[change.ID] = change
+		actor := st.Users[sess.UserID]
+		kindTitle := map[string]string{"create": "New calendar invitation", "update": "Calendar event updated", "cancel": "Calendar event cancelled", "recurrence": "Recurring event updated"}[change.Kind]
+		if kindTitle == "" {
+			kindTitle = "Calendar event changed"
+		}
+		recipients := map[string]bool{}
+		for _, invite := range event.Invites {
+			recipients[invite.Handle] = true
+		}
+		if event.OwnerID != sess.UserID {
+			recipients[event.OwnerHandle] = true
+		}
+		for handle := range recipients {
+			if handle != actor.Handle {
+				s.notifyHandle(st, handle, "event_"+change.Kind, event.ID, actor.Handle, kindTitle, event.Title, now)
+			}
+		}
 		s.audit(st, sess.UserID, "event_change_approved", change.ID, map[string]any{"kind": change.Kind, "scope": change.Scope, "conflict_override": acceptConflicts, "related_events": len(change.RelatedAfter)})
 		out = event
 		return nil
@@ -907,6 +942,8 @@ func (s *Service) RSVP(token, eventID, response string) (Event, error) {
 		event.Version++
 		event.UpdatedAt = s.now().UTC()
 		st.Events[event.ID] = event
+		owner := st.Users[event.OwnerID]
+		s.notifyHandle(st, owner.Handle, "event_rsvp", event.ID, user.Handle, "Invitation response", fmt.Sprintf("%s responded %s to %s.", user.Handle, response, event.Title), event.UpdatedAt)
 		s.audit(st, sess.UserID, "event_rsvp_"+response, event.ID, nil)
 		out = event
 		return nil
@@ -944,6 +981,8 @@ func (s *Service) Share(token, eventID, handle, role string) (Event, error) {
 		event.Version++
 		event.UpdatedAt = s.now().UTC()
 		st.Events[event.ID] = event
+		actor := st.Users[sess.UserID]
+		s.notifyHandle(st, handle, "event_share", event.ID, actor.Handle, "Event shared with you", event.Title, event.UpdatedAt)
 		s.audit(st, sess.UserID, "event_share", event.ID, map[string]any{"contact": handle, "role": role})
 		out = event
 		return nil
@@ -978,6 +1017,8 @@ func (s *Service) Unshare(token, eventID, handle string) (Event, error) {
 		event.Version++
 		event.UpdatedAt = s.now().UTC()
 		st.Events[event.ID] = event
+		actor := st.Users[sess.UserID]
+		s.notifyHandle(st, handle, "event_unshare", event.ID, actor.Handle, "Event access removed", event.Title, event.UpdatedAt)
 		s.audit(st, sess.UserID, "event_unshare", event.ID, map[string]any{"contact": handle})
 		out = event
 		return nil
@@ -1008,6 +1049,25 @@ func (s *Service) AddComment(token, eventID, body string) (Event, error) {
 		event.Version++
 		event.UpdatedAt = comment.CreatedAt
 		st.Events[event.ID] = event
+		recipients := map[string]bool{event.OwnerHandle: true}
+		for _, invite := range event.Invites {
+			recipients[invite.Handle] = true
+		}
+		for _, share := range event.Shares {
+			recipients[share.Handle] = true
+		}
+		if calendar, ok := st.SharedCalendars[event.CalendarID]; ok {
+			for _, share := range calendar.Shares {
+				if share.Role != "availability" {
+					recipients[share.Handle] = true
+				}
+			}
+		}
+		for handle := range recipients {
+			if handle != user.Handle {
+				s.notifyHandle(st, handle, "event_comment", event.ID, user.Handle, "New participant comment", event.Title, comment.CreatedAt)
+			}
+		}
 		s.audit(st, sess.UserID, "event_comment_added", event.ID, map[string]any{"comment_id": comment.ID})
 		out = event
 		return nil
@@ -1115,6 +1175,46 @@ func (s *Service) Notifications(token string) ([]ReminderDelivery, error) {
 		return nil
 	})
 	return out, err
+}
+
+func (s *Service) ActivityNotifications(token string) ([]ActivityNotification, error) {
+	out := []ActivityNotification{}
+	err := s.store.view(func(st State) error {
+		sess, e := s.session(&st, token)
+		if e != nil {
+			return e
+		}
+		for _, notification := range st.Notifications {
+			if notification.UserID == sess.UserID {
+				out = append(out, notification)
+			}
+		}
+		sort.Slice(out, func(i, j int) bool { return out[i].CreatedAt.After(out[j].CreatedAt) })
+		return nil
+	})
+	return out, err
+}
+
+func (s *Service) MarkNotificationsRead(token string) (int, error) {
+	count := 0
+	err := s.store.update(func(st *State) error {
+		sess, e := s.session(st, token)
+		if e != nil {
+			return e
+		}
+		now := s.now().UTC()
+		for id, notification := range st.Notifications {
+			if notification.UserID == sess.UserID && notification.State == "unread" {
+				notification.State = "read"
+				notification.ReadAt = now
+				st.Notifications[id] = notification
+				count++
+			}
+		}
+		s.audit(st, sess.UserID, "notifications_marked_read", sess.UserID, map[string]any{"count": count})
+		return nil
+	})
+	return count, err
 }
 
 func (s *Service) BeginAI(ctx context.Context, token, kind string, eventIDs []string) (AIJob, error) {
@@ -1814,6 +1914,25 @@ func userByHandle(st *State, h string) (User, bool) {
 		}
 	}
 	return User{}, false
+}
+
+func (s *Service) notifyHandle(st *State, handle, kind, eventID, actorHandle, title, body string, now time.Time) {
+	user, ok := userByHandle(st, handle)
+	if !ok || user.Handle == actorHandle {
+		return
+	}
+	notification := ActivityNotification{
+		ID:          s.id("notification"),
+		UserID:      user.ID,
+		Kind:        kind,
+		EventID:     eventID,
+		ActorHandle: actorHandle,
+		Title:       title,
+		Body:        body,
+		State:       "unread",
+		CreatedAt:   now,
+	}
+	st.Notifications[notification.ID] = notification
 }
 func (s *Service) session(st *State, token string) (Session, error) {
 	sess, ok := st.Sessions[digest(token)]

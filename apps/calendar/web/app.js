@@ -14,6 +14,7 @@ const state = {
   searchQuery: "",
   recurrenceEdit: null,
   calendars: [],
+  notifications: [],
 };
 const guestEventsKey = "ynx.calendar.guestEvents";
 if ((navigator.language || "").toLowerCase().startsWith("ar")) {
@@ -95,7 +96,9 @@ function signOut(show = true) {
   state.user = null;
   state.guest = false;
   state.calendars = [];
+  state.notifications = [];
   renderCalendarCatalog();
+  renderNotificationCount();
   $("#signin").hidden = false;
   if (show) toast("Calendar session revoked");
 }
@@ -902,6 +905,7 @@ function init() {
         .slice(0, 2)
         .toUpperCase();
       await loadCalendars();
+      await loadActivityNotifications();
       await loadEvents();
       syncOffline();
     } else $("#signin").hidden = false;
@@ -1128,6 +1132,92 @@ auditButton.textContent = "Audit";
 auditButton.setAttribute("aria-label", "Open Calendar audit");
 auditButton.onclick = showAudit;
 $("#ai-open").before(auditButton);
+const notificationButton = document.createElement("button");
+notificationButton.id = "notifications-open";
+notificationButton.className = "quiet notification-button";
+notificationButton.textContent = "Notifications";
+notificationButton.setAttribute("aria-label", "Open Calendar notifications");
+notificationButton.onclick = showActivityNotifications;
+auditButton.before(notificationButton);
+function renderNotificationCount() {
+  if (!notificationButton) return;
+  const unread = state.notifications.filter((item) => item.state === "unread").length;
+  notificationButton.textContent = unread ? `Notifications ${unread}` : "Notifications";
+  notificationButton.setAttribute("aria-label", unread ? `Open Calendar notifications; ${unread} unread` : "Open Calendar notifications");
+}
+async function loadActivityNotifications() {
+  if (!state.token) {
+    state.notifications = [];
+    renderNotificationCount();
+    return;
+  }
+  try {
+    state.notifications = await api("/v1/notifications");
+    renderNotificationCount();
+  } catch {}
+}
+async function showActivityNotifications() {
+  if (!state.token) {
+    toast("Sign in with YNX Wallet for synced invitations, responses, comments, and permission notifications");
+    return;
+  }
+  await loadActivityNotifications();
+  const dialog = document.createElement("dialog");
+  dialog.className = "change-dialog";
+  const card = document.createElement("div");
+  card.className = "change-card";
+  card.innerHTML = '<span class="eyebrow">Calendar activity</span><h2>Notifications</h2><p>Invitations, RSVP responses, participant comments, and permission changes appear here. Mail delivery is a separate integration.</p>';
+  const list = document.createElement("div");
+  list.className = "notification-list";
+  for (const item of state.notifications.slice(0, 50)) {
+    const row = document.createElement("article");
+    row.className = `notification-row${item.state === "unread" ? " unread" : ""}`;
+    const title = document.createElement("strong");
+    title.textContent = item.title;
+    const body = document.createElement("span");
+    body.textContent = item.body;
+    const meta = document.createElement("small");
+    meta.textContent = `${item.actor_handle || "YNX Calendar"} · ${new Date(item.created_at).toLocaleString(activeLocale())}`;
+    row.append(title, body, meta);
+    if (item.event_id) {
+      row.tabIndex = 0;
+      row.setAttribute("role", "button");
+      row.onclick = async () => {
+        try {
+          dialog.close();
+          await openEvent({ event_id: item.event_id });
+        } catch (error) { toast(error.message); }
+      };
+    }
+    list.append(row);
+  }
+  if (!state.notifications.length) list.innerHTML = "<p>No account activity yet.</p>";
+  card.append(list);
+  const actions = document.createElement("div");
+  actions.className = "detail-actions";
+  const markRead = document.createElement("button");
+  markRead.className = "quiet";
+  markRead.textContent = "Mark all as read";
+  markRead.disabled = !state.notifications.some((item) => item.state === "unread");
+  markRead.onclick = async () => {
+    try {
+      await api("/v1/notifications/read", { method: "POST", body: "{}" });
+      await loadActivityNotifications();
+      dialog.close();
+      showActivityNotifications();
+    } catch (error) { toast(error.message); }
+  };
+  const close = document.createElement("button");
+  close.className = "primary";
+  close.textContent = "Close";
+  close.onclick = () => dialog.close();
+  actions.append(markRead, close);
+  card.append(actions);
+  dialog.append(card);
+  document.body.append(dialog);
+  dialog.addEventListener("close", () => dialog.remove());
+  dialog.showModal();
+}
 async function showAudit() {
   if (state.guest) {
     toast("Sign in with YNX Wallet for server-backed audit evidence; guest drafts stay only on this device");
@@ -1175,3 +1265,4 @@ async function loadReminders() {
 }
 setInterval(loadReminders, 30000);
 setTimeout(loadReminders, 1200);
+setInterval(loadActivityNotifications, 30000);

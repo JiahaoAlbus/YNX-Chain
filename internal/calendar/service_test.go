@@ -736,6 +736,76 @@ func TestInviteRSVPShareUpdateCancelRevertAndAuthorization(t *testing.T) {
 	}
 }
 
+func TestActivityNotificationsCoverInviteRSVPCommentReadAndAvailabilityPrivacy(t *testing.T) {
+	svc := newTestService(t, "")
+	alice, _, _ := signIn(t, svc, "@alice", "ynx1alice")
+	bob, _, _ := signIn(t, svc, "@bob", "ynx1bob")
+	carol, _, _ := signIn(t, svc, "@carol", "ynx1carol")
+
+	in := input("Private acquisition planning", "2026-10-01T09:00", "2026-10-01T10:00", "UTC", "notification-create")
+	in.Invitees = []string{"@bob"}
+	preview, err := svc.PreviewCreate(alice, in)
+	if err != nil {
+		t.Fatal(err)
+	}
+	event, err := svc.ApproveChange(alice, preview.ID, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	bobNotifications, err := svc.ActivityNotifications(bob)
+	if err != nil || len(bobNotifications) != 1 || bobNotifications[0].Kind != "event_create" || bobNotifications[0].Body != in.Title {
+		t.Fatalf("invite notification missing: %v %+v", err, bobNotifications)
+	}
+
+	if _, err = svc.RSVP(bob, event.ID, "accepted"); err != nil {
+		t.Fatal(err)
+	}
+	aliceNotifications, err := svc.ActivityNotifications(alice)
+	if err != nil || len(aliceNotifications) != 1 || aliceNotifications[0].Kind != "event_rsvp" {
+		t.Fatalf("RSVP notification missing: %v %+v", err, aliceNotifications)
+	}
+	if _, err = svc.AddComment(bob, event.ID, "Reviewed and accepted."); err != nil {
+		t.Fatal(err)
+	}
+	aliceNotifications, _ = svc.ActivityNotifications(alice)
+	if len(aliceNotifications) != 2 || aliceNotifications[0].Kind != "event_comment" {
+		t.Fatalf("comment notification missing: %+v", aliceNotifications)
+	}
+	count, err := svc.MarkNotificationsRead(alice)
+	if err != nil || count != 2 {
+		t.Fatalf("mark read failed: count=%d err=%v", count, err)
+	}
+	aliceNotifications, _ = svc.ActivityNotifications(alice)
+	for _, notification := range aliceNotifications {
+		if notification.State != "read" || notification.ReadAt.IsZero() {
+			t.Fatalf("notification remained unread: %+v", notification)
+		}
+	}
+
+	calendar, err := svc.CreateCalendar(alice, "Executive private calendar", "blue")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = svc.ShareCalendar(alice, calendar.ID, "@carol", "availability"); err != nil {
+		t.Fatal(err)
+	}
+	carolNotifications, err := svc.ActivityNotifications(carol)
+	if err != nil || len(carolNotifications) != 1 {
+		t.Fatalf("availability notification missing: %v %+v", err, carolNotifications)
+	}
+	encoded, _ := json.Marshal(carolNotifications[0])
+	if strings.Contains(string(encoded), calendar.Name) || strings.Contains(string(encoded), in.Title) {
+		t.Fatalf("availability-only notification leaked private details: %s", encoded)
+	}
+	if _, err = svc.UnshareCalendar(alice, calendar.ID, "@carol"); err != nil {
+		t.Fatal(err)
+	}
+	carolNotifications, _ = svc.ActivityNotifications(carol)
+	if len(carolNotifications) != 2 || carolNotifications[0].Kind != "calendar_permission_revoked" {
+		t.Fatalf("revocation notification missing: %+v", carolNotifications)
+	}
+}
+
 func TestBoundariesRecoveryAIAndHTTPTruth(t *testing.T) {
 	svc := newTestService(t, "")
 	old, _, proof := signIn(t, svc, "@alice", "ynx1alice")

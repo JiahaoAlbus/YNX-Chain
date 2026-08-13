@@ -107,6 +107,18 @@ type ReminderDelivery struct {
 	State           string    `json:"state"`
 	DeliveredAt     time.Time `json:"delivered_at"`
 }
+type ActivityNotification struct {
+	ID          string    `json:"id"`
+	UserID      string    `json:"user_id"`
+	Kind        string    `json:"kind"`
+	EventID     string    `json:"event_id,omitempty"`
+	ActorHandle string    `json:"actor_handle"`
+	Title       string    `json:"title"`
+	Body        string    `json:"body"`
+	State       string    `json:"state"`
+	CreatedAt   time.Time `json:"created_at"`
+	ReadAt      time.Time `json:"read_at,omitempty"`
+}
 type Invite struct {
 	Handle      string    `json:"handle"`
 	State       string    `json:"state"`
@@ -260,26 +272,28 @@ type AuditEntry struct {
 	CreatedAt time.Time      `json:"created_at"`
 }
 type AccountExport struct {
-	SchemaVersion int                `json:"schema_version"`
-	ExportedAt    time.Time          `json:"exported_at"`
-	User          User               `json:"user"`
-	Calendars     []SharedCalendar   `json:"calendars"`
-	Events        []Event            `json:"events"`
-	Changes       []ChangePreview    `json:"changes"`
-	Reminders     []ReminderDelivery `json:"reminders"`
-	Audit         []AuditEntry       `json:"audit"`
+	SchemaVersion int                    `json:"schema_version"`
+	ExportedAt    time.Time              `json:"exported_at"`
+	User          User                   `json:"user"`
+	Calendars     []SharedCalendar       `json:"calendars"`
+	Events        []Event                `json:"events"`
+	Changes       []ChangePreview        `json:"changes"`
+	Reminders     []ReminderDelivery     `json:"reminders"`
+	Notifications []ActivityNotification `json:"notifications"`
+	Audit         []AuditEntry           `json:"audit"`
 }
 type State struct {
-	SchemaVersion      int                         `json:"schema_version"`
-	Users              map[string]User             `json:"users"`
-	Challenges         map[string]Challenge        `json:"challenges"`
-	Sessions           map[string]Session          `json:"sessions"`
-	WalletRequests     map[string]bool             `json:"wallet_requests"`
-	Events             map[string]Event            `json:"events"`
-	SharedCalendars    map[string]SharedCalendar   `json:"shared_calendars"`
-	ReminderDeliveries map[string]ReminderDelivery `json:"reminder_deliveries"`
-	Changes            map[string]ChangePreview    `json:"changes"`
-	Mutations          map[string]string           `json:"mutations"`
-	AIJobs             map[string]AIJob            `json:"ai_jobs"`
-	Audit              []AuditEntry                `json:"audit"`
+	SchemaVersion      int                             `json:"schema_version"`
+	Users              map[string]User                 `json:"users"`
+	Challenges         map[string]Challenge            `json:"challenges"`
+	Sessions           map[string]Session              `json:"sessions"`
+	WalletRequests     map[string]bool                 `json:"wallet_requests"`
+	Events             map[string]Event                `json:"events"`
+	SharedCalendars    map[string]SharedCalendar       `json:"shared_calendars"`
+	ReminderDeliveries map[string]ReminderDelivery     `json:"reminder_deliveries"`
+	Notifications      map[string]ActivityNotification `json:"notifications"`
+	Changes            map[string]ChangePreview        `json:"changes"`
+	Mutations          map[string]string               `json:"mutations"`
+	AIJobs             map[string]AIJob                `json:"ai_jobs"`
+	Audit              []AuditEntry                    `json:"audit"`
 }
