@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "wallet-gateway-public-lifecycle-2026-08-13",
+  "owner": "02-wallet-auth",
+  "sourceCommit": "803d595b9ebee149b7823f59d165b65ff97d816b",
+  "verification": "wallet-auth-public-gateway-lifecycle",
+  "environment": "public-testnet",
+  "observedAt": "2026-08-13T14:42:26.543Z",
+  "baseURL": "https://rest.ynxweb4.com",
+  "probeCommand": "YNX_WALLET_GATEWAY_PUBLIC_PROBE=1 YNX_WALLET_GATEWAY_PUBLIC_URL=https://rest.ynxweb4.com/ npm --prefix packages/wallet-auth run probe:public-gateway",
+  "exitCode": 0,
+  "isolation": {
+    "walletAccount": "fresh random secp256k1 key generated in memory",
+    "productDevice": "fresh random P-256 key generated in memory",
+    "productClientId": "ynx-bridge-web-v1",
+    "preexistingUserUsed": false,
+    "providerClaimed": false,
+    "assetMoved": false,
+    "sessionImmediatelyRevoked": true,
+    "secretMaterialRecorded": false
+  },
+  "lifecycle": {
+    "completionStatus": 200,
+    "introspectionStatus": 200,
+    "activeBeforeRevoke": true,
+    "exactProofReplayStatus": 409,
+    "exactProofReplayCode": "REPLAY",
+    "revocationStatus": 200,
+    "postRevocationStatus": 403,
+    "postRevocationCode": "REVOKED",
+    "finalStateDigest": "4b1081386ddcc683f408b4f6fb600831eaa3544709d45b228f81095138966eb3",
+    "cacheControlNoStoreAllResponses": true
+  },
+  "observability": {
+    "requestIdsPresentAllResponses": false,
+    "requestIdentifierCompletenessPublic": false,
+    "traceIdentifierCompletenessPublic": false,
+    "errorIdentifierCompletenessPublic": false,
+    "reason": "The source-bound probe reported that not all five public lifecycle responses contained an x-request-id matching the expected UUID format. It did not capture per-response identifier headers, so no narrower claim is made."
+  },
+  "sourceSha256": {
+    "packages/wallet-auth/scripts/verify-public-gateway.mjs": "d625784c3933d3b921ba4338b73d429a04e8c0b9ed37a764137f2cc890aeb914",
+    "packages/wallet-auth/central-registry.json": "337145be4cbdd3b642f7fd263e1b06e20f512f8cd4981033109ba65c9856becd"
+  },
+  "packageArtifact": {
+    "name": "@ynx-chain/wallet-auth",
+    "version": "1.0.0",
+    "sha256": "a3f7583c490ce5dfe45fadc7be7103068e20af90dd33125de565ed0ff4e55880",
+    "bytes": 94971,
+    "unpackedBytes": 422429,
+    "entries": 56,
+    "minimumRuntime": "Node.js 22",
+    "minimumOS": null,
+    "signingClass": "unsigned-local-npm-package",
+    "deterministicArchiveClaimed": false
+  },
+  "releaseClaims": {
+    "freshPublicLifecycleVerified": true,
+    "freshPublicReplayRejected": true,
+    "freshPublicRevocationVerified": true,
+    "freshPublicPostRevocationRejected": true,
+    "gatewayDeployedPublic": true,
+    "requestIdentifierCompletenessPublic": false,
+    "nativeApplicationDeployedPublic": false,
+    "entryPointDeployedPublic": false,
+    "bundlerDeployedPublic": false,
+    "paymasterDeployedPublic": false,
+    "sponsoredReceiptPublic": false,
+    "assetMoved": false,
+    "userClaimed": false,
+    "providerClaimed": false
+  },
+  "exclusions": [
+    "native Wallet application deployment",
+    "production signing or store release",
+    "public request/trace/error identifier completeness",
+    "public Gateway capacity or multi-region recovery",
+    "public EntryPoint, Bundler, Paymaster or sponsored receipt",
+    "asset transaction or balance",
+    "existing user or provider state"
+  ]
+}
