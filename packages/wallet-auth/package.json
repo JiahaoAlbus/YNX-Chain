@@ -33,6 +33,7 @@
     "check": "npm test",
     "drill:backup": "node scripts/run-gateway-backup-drill.mjs",
     "benchmark:gateway": "node scripts/benchmark-gateway.mjs",
+    "probe:public-gateway": "node scripts/verify-public-gateway.mjs",
     "vector:strategy": "node scripts/generate-strategy-mandate-vector.mjs"
   },
   "dependencies": {
