@@ -8,6 +8,7 @@ const audit=await readFile(new URL("../src/protocol/authorizationAudit.ts",impor
 const controls=await readFile(new URL("../src/control/controlSurface.ts",import.meta.url),"utf8");
 const controlCopy=await readFile(new URL("../src/control/controlCopy.ts",import.meta.url),"utf8");
 const androidGradle=await readFile(new URL("../android/app/build.gradle",import.meta.url),"utf8");
+const androidActivity=await readFile(new URL("../android/app/src/main/java/com/ynxweb4/wallet/MainActivity.kt",import.meta.url),"utf8");
 const signingPlugin=await readFile(new URL("../plugins/withYnxAndroidReleaseSigning.js",import.meta.url),"utf8");
 assert.equal(config.name,"YNX Wallet");
 assert.equal(config.version,"1.0.1");
@@ -23,6 +24,8 @@ assert.equal(config.android.intentFilters[0].data[0].host,"authorize");
 assert.equal(config.android.intentFilters[0].data[1].host,"action");
 assert.equal(config.android.intentFilters[0].data[2].host,"open");
 assert.equal(source.includes('parsedURL.hostname==="open"'),true,"Wallet must support the safe ynxwallet://open launcher without treating it as an authorization request");
+assert.ok(androidActivity.includes("window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)"),"Android native launch window must set FLAG_SECURE before React starts");
+assert.ok(androidActivity.indexOf("window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)")<androidActivity.indexOf("super.onCreate(null)"),"Android FLAG_SECURE must precede React/splash lifecycle startup");
 assert.ok(config.plugins.includes("./plugins/withYnxAndroidReleaseSigning"),"Wallet must preserve Release signing policy through Expo prebuild");
 for(const required of ["ynxReleaseSigningConfigured ? signingConfigs.release : null","System.getenv(\"YNX_ANDROID_KEYSTORE_PATH\")","ynxDebugKeystorePath"])assert.equal(`${androidGradle}\n${signingPlugin}`.includes(required),true,`missing Android signing boundary ${required}`);
 assert.equal(androidGradle.includes("            signingConfig signingConfigs.debug\n            def enableShrinkResources"),false,"Release must never inherit debug signing");

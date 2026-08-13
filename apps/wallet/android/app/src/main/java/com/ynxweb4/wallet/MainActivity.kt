@@ -2,6 +2,7 @@ package com.ynxweb4.wallet
 
 import android.os.Build
 import android.os.Bundle
+import android.view.WindowManager
 
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate
@@ -12,6 +13,10 @@ import expo.modules.ReactActivityDelegateWrapper
 
 class MainActivity : ReactActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
+    // Protect the launch window before the splash screen or React runtime can
+    // render. The JavaScript screen-capture gate remains a second fail-closed
+    // layer and must not be the first point at which Wallet content is hidden.
+    window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
     // Set the theme to AppTheme BEFORE onCreate to support
     // coloring the background, status bar, and navigation bar.
     // This is required for expo-splash-screen.
