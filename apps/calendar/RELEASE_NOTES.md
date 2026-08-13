@@ -2,7 +2,7 @@
 
 ## Current source candidate
 
-Source commit: `73d0a66f8143b7a87d4a2f55125ae784a40433dc`
+Source commit: `9abb16167f3e862447d731cba91f6b37a8b82d34`
 Channel: public Testnet Web preview
 Overall goal: ACTIVE / FREEZE
 
@@ -20,6 +20,8 @@ Overall goal: ACTIVE / FREEZE
 - Compact 390px day/week/month layouts; week view shows all seven days without horizontal scrolling.
 - Persistent private activity notifications for invitations, RSVP responses, participant comments, calendar permission changes and revocation.
 - Unread count and explicit mark-all-read UI, with privacy-redacted availability-only notifications.
+- Preparation and travel buffers bounded to 0–240 minutes, included in conflict previews.
+- Authorized attendee availability checks that require explicit calendar/event sharing and return only Busy plus the attendee handle.
 
 ### Verified
 
@@ -33,7 +35,7 @@ Overall goal: ACTIVE / FREEZE
 - `npm run smoke`
 - `npm run browser:proof`
 - Local operator backup and restore drill with matching state SHA-256 and live state unchanged.
-- Public health, served CSS/JavaScript and exact binary build identity for `73d0a66f`; 100/100 concurrent health responses; ComputerControl notification-boundary proof; rollback binary retained.
+- Public health, served CSS/JavaScript and exact binary build identity for `9abb1616`; 100/100 concurrent health responses; ComputerControl notification-boundary proof; rollback binary retained.
 
 ### Compatibility
 
