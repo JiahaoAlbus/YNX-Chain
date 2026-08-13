@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "584acdb12e7c0946e70896687994a64bf37e2ccb",
+  "testedAt": "2026-08-13T12:39:48.394Z",
+  "artifact": {
+    "name": "ynx-wallet-chrome-edge-0.1.0.zip",
+    "sha256": "ae4882b7646b5efac6fce009113273c6487582d5c30235e4415032a68ec6b892",
+    "bytes": 171118,
+    "signingClass": "unsigned-unpacked-extension"
+  },
+  "browsers": {
+    "chrome": {
+      "applicationPresent": true,
+      "version": "151.0.7922.110",
+      "installationMethodAttempted": "Chrome browser-control family requested",
+      "controlEvidence": {
+        "chromeFamilyAvailable": false,
+        "chatGPTControlExtensionInstalled": true,
+        "chatGPTControlExtensionEnabled": true,
+        "nativeHostManifestCorrect": true,
+        "failure": "Browser runtime did not expose a chrome family instance"
+      },
+      "ynxExtensionInstalledLocal": false,
+      "firstOpenTested": false,
+      "secondOpenTested": false
+    },
+    "edge": {
+      "applicationPresent": true,
+      "version": "151.0.4129.78",
+      "installationMethodAttempted": "Edge extension browser-control channel, followed by Computer Control after two channel timeouts",
+      "controlEvidence": {
+        "edgeFamilyAvailable": true,
+        "extensionManagementNavigationCompleted": false,
+        "browserControlAttempts": 2,
+        "browserControlResult": "timeout",
+        "computerControlResult": "native pipe startup failed"
+      },
+      "ynxExtensionInstalledLocal": false,
+      "firstOpenTested": false,
+      "secondOpenTested": false
+    },
+    "firefox": {
+      "applicationPresent": false,
+      "applicationPathChecked": "/Applications/Firefox.app",
+      "version": null,
+      "installationMethodAttempted": "none; browser application absent",
+      "ynxExtensionInstalledLocal": false,
+      "firstOpenTested": false,
+      "secondOpenTested": false
+    }
+  },
+  "aggregateInstalledLocal": false,
+  "boundary": "An unpacked directory, extension ZIP, or successful PWA page load is not browser-extension installation evidence. No browser exposed a verified installed YNX extension card or extension-origin first launch."
+}
