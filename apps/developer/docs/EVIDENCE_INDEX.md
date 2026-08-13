@@ -8,6 +8,13 @@ upstream-synchronized repository checkpoint
 `e061a30e801a9075dfea212a854b3d7d578d7e85` without rewriting the exact older
 source and runtime checkpoints embedded in already-published desktop artifacts.
 
+The independent pre-deploy public probe is machine-readable at
+`evidence/public/ynx-code-public-predeploy-probe-20260813.json`. It records the
+public `17ee9ae5` release, seven runtime/compiler routes, missing public Java,
+and the failed strict read-only operator authentication probe without recording
+credential material. It is evidence that Java was not yet deployed, not a
+successful eight-runtime release record.
+
 ## Product behavior
 
 - Public full-platform gate: `scripts/live-public-candidate-check.mjs`. Against

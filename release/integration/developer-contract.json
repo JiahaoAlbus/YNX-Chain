@@ -261,7 +261,13 @@
       "deployedStaging": false,
       "deployedPublic": false,
       "javaLsp": false,
-      "operatorGate": "build revised OpenJDK 21 LXD image, record immutable fingerprint and package manifest, run eight-runtime live-container and public-candidate checks"
+      "operatorGate": "run apps/developer/scripts/deploy-public-candidate-transaction.sh on the reviewed Linux host with the exact pushed commit; record immutable image fingerprint, package manifest, eight-runtime, restart and public-health evidence",
+      "publicProbe20260813": {
+        "version": "0.2.0-testnet-preview-17ee9ae5-candidate",
+        "javaCompiler": false,
+        "changedRemoteState": false
+      },
+      "transactionScript": "apps/developer/scripts/deploy-public-candidate-transaction.sh"
     },
     "macosCurrentSourcePackage": {
       "sourceCommit": "76322af5e8c26a64fb6425c51d96c67d2b3df65f",

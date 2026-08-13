@@ -80,3 +80,13 @@ a fixed classpath, and keeps the existing no-network sandbox. The local JDK gate
 passed; the cloud image recipe now installs OpenJDK 21 and records exact Debian
 package versions, but no new image fingerprint or public Java result is claimed
 until the Linux operator builds and deploys that image.
+
+The public domain was independently re-probed on 2026-08-13. `/healthz`
+reported `0.2.0-testnet-preview-17ee9ae5-candidate`, and `/runtime/health`
+reported the seven existing compilers without Java. Strict SSH authentication
+to the documented host failed for all existing local reviewed key/user
+combinations; no host state was changed. The repository now provides a bounded
+transactional operator script with pre-switch tests, immutable source/image
+identity, root-only temporary backup material, automatic code/config rollback,
+eight-runtime and restart gates, and secret-free hashed evidence. Public Java
+status remains false until that transaction succeeds on the operator host.

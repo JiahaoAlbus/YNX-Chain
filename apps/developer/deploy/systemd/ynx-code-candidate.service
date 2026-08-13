@@ -12,7 +12,6 @@ EnvironmentFile=/etc/ynx/ynx-code-candidate.env
 Environment=NODE_ENV=production
 Environment=HOST=127.0.0.1
 Environment=PORT=18113
-Environment=YNX_CODE_RELEASE=0.2.0-testnet-preview-17ee9ae5-candidate
 Environment=YNX_CODE_STATE_DIR=/var/lib/ynx-code-candidate
 Environment=YNX_CODE_STATIC_ROOT=/opt/ynx-developer/candidates/current/apps/developer/frontend/dist
 Environment=PATH=/opt/ynx-developer/candidates/current/apps/developer/node_modules/.bin:/usr/local/bin:/usr/bin:/bin

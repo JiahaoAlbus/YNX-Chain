@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-builder="${YNX_CODE_IMAGE_BUILDER:-ynx-lsp-builder-v2}"
-source_alias="${YNX_CODE_SOURCE_IMAGE:-ynx-code-ubuntu-24.04-v1}"
-target_alias="${YNX_CODE_TARGET_IMAGE:-ynx-code-ubuntu-24.04-v2}"
+builder="${YNX_CODE_IMAGE_BUILDER:-ynx-lsp-builder-v3}"
+source_alias="${YNX_CODE_SOURCE_IMAGE:-ynx-code-ubuntu-24.04-v2}"
+target_alias="${YNX_CODE_TARGET_IMAGE:-ynx-code-ubuntu-24.04-v3}"
 probe_path="${YNX_CODE_LSP_PROBE:-$(cd "$(dirname "$0")" && pwd)/lsp-server-probe.mjs}"
 rust_analyzer_release="2026-07-27"
 

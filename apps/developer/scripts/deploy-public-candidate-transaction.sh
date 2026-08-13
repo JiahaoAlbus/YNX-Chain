@@ -1,0 +1,168 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Run on the reviewed Linux host from a clean clone of the exact pushed source.
+# This transaction never changes Caddy, Wallet, Chain or another product tree.
+
+script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+repo_dir=$(cd "$script_dir/../../.." && pwd)
+expected_commit="${YNX_CODE_DEPLOY_COMMIT:?Set YNX_CODE_DEPLOY_COMMIT to the exact 40-hex pushed commit}"
+service="${YNX_CODE_DEPLOY_SERVICE:-ynx-code-candidate.service}"
+candidate_root="${YNX_CODE_CANDIDATE_ROOT:-/opt/ynx-developer/candidates}"
+state_dir="${YNX_CODE_STATE_DIR:-/var/lib/ynx-code-candidate}"
+env_file="${YNX_CODE_ENV_FILE:-/etc/ynx/ynx-code-candidate.env}"
+evidence_root="${YNX_CODE_DEPLOY_EVIDENCE_ROOT:-/var/lib/ynx-code-candidate/deploy-evidence}"
+short_commit=${expected_commit:0:12}
+candidate_dir="$candidate_root/$expected_commit"
+current_link="$candidate_root/current"
+image_alias="ynx-code-ubuntu-24.04-java-$short_commit"
+release="0.2.0-testnet-preview-$short_commit-candidate"
+transaction_id="$(date -u +%Y%m%dT%H%M%SZ)-$short_commit"
+transaction_dir="$evidence_root/$transaction_id"
+staging_dir="$candidate_root/.staging-$transaction_id"
+rollback_dir="/run/ynx-code-deploy-$transaction_id"
+backup_tar="$rollback_dir/state-before.tar"
+env_backup="$rollback_dir/ynx-code-candidate.env.before"
+unit_backup="$rollback_dir/ynx-code-candidate.service.before"
+previous_target=""
+switched=false
+stopped=false
+candidate_installed=false
+image_created=false
+completed=false
+
+fail() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
+require() { command -v "$1" >/dev/null 2>&1 || fail "required command missing: $1"; }
+cleanup_staging() {
+  if [[ -d $staging_dir ]]; then
+    find "$staging_dir" -depth -delete
+  fi
+  if [[ $candidate_installed == true && $switched == false && -d $candidate_dir ]]; then
+    find "$candidate_dir" -depth -delete
+  fi
+  if [[ -d $rollback_dir ]]; then
+    find "$rollback_dir" -depth -delete
+  fi
+  if [[ $completed == false && $image_created == true && $image_fingerprint =~ ^[0-9a-f]{64}$ ]]; then
+    lxc image delete "$image_fingerprint" >/dev/null 2>&1 || true
+  fi
+}
+trap cleanup_staging EXIT
+
+[[ $expected_commit =~ ^[0-9a-f]{40}$ ]] || fail "YNX_CODE_DEPLOY_COMMIT must be 40 lowercase hex characters"
+[[ $candidate_root == /opt/ynx-developer/candidates ]] || fail "candidate root is outside the reviewed boundary"
+[[ $state_dir == /var/lib/ynx-code-candidate ]] || fail "state directory is outside the reviewed boundary"
+[[ $env_file == /etc/ynx/ynx-code-candidate.env ]] || fail "environment file is outside the reviewed boundary"
+[[ $evidence_root == "$state_dir/deploy-evidence" ]] || fail "evidence directory is outside the reviewed state boundary"
+[[ $(id -u) -eq 0 ]] || fail "run as root on the reviewed candidate host"
+
+for tool in git node npm lxc systemctl tar sha256sum install runuser; do require "$tool"; done
+cd "$repo_dir"
+git_safe=(git -c "safe.directory=$repo_dir")
+"${git_safe[@]}" fetch --prune origin codex/ynx-code-platform-v1
+[[ $("${git_safe[@]}" rev-parse HEAD) == "$expected_commit" ]] || fail "checkout does not match the approved commit"
+[[ -z $("${git_safe[@]}" status --porcelain=v1 --untracked-files=normal) ]] || fail "source checkout is dirty"
+"${git_safe[@]}" merge-base --is-ancestor "$expected_commit" origin/codex/ynx-code-platform-v1 || fail "commit is not on the reviewed remote branch"
+[[ ! -e $candidate_dir ]] || fail "immutable candidate directory already exists: $candidate_dir"
+[[ ! -e $staging_dir ]] || fail "candidate staging directory already exists: $staging_dir"
+[[ -f $env_file ]] || fail "candidate environment file is missing"
+[[ -d $state_dir ]] || fail "candidate state directory is missing"
+
+install -d -m 0700 "$transaction_dir"
+install -d -m 0700 "$rollback_dir"
+"${git_safe[@]}" status --short --branch > "$transaction_dir/source-status.txt"
+"${git_safe[@]}" show -s --format=fuller "$expected_commit" > "$transaction_dir/source-commit.txt"
+install -d -o ubuntu -g ubuntu -m 0755 "$staging_dir"
+"${git_safe[@]}" archive --format=tar "$expected_commit" | tar -xf - -C "$staging_dir"
+chown -R ubuntu:ubuntu "$staging_dir"
+
+runuser -u ubuntu -- bash -lc "cd '$staging_dir/apps/developer' && bash scripts/install-reviewed-dependencies.sh"
+runuser -u ubuntu -- bash -lc "cd '$staging_dir/apps/developer' && npm run code:check && npm run code:build && npm test"
+
+image_output=$(YNX_CODE_TARGET_IMAGE="$image_alias" "$staging_dir/apps/developer/scripts/build-cloud-toolchain-image.sh")
+image_fingerprint=$(printf '%s\n' "$image_output" | awk -F= '/^YNX_CODE_LXD_IMAGE=/{print $2}')
+[[ $image_fingerprint =~ ^[0-9a-f]{64}$ ]] || fail "image builder did not return an immutable fingerprint"
+image_created=true
+lxc image info "$image_fingerprint" > "$transaction_dir/lxd-image-info.txt"
+mv "$staging_dir" "$candidate_dir"
+candidate_installed=true
+chown -R ubuntu:ubuntu "$candidate_dir"
+
+previous_target=$(readlink -f "$current_link")
+[[ $previous_target == "$candidate_root/"* ]] || fail "current candidate symlink resolves outside the reviewed root"
+cp -a "$env_file" "$env_backup"
+cp -a "/etc/systemd/system/$service" "$unit_backup"
+
+rollback() {
+  status=$?
+  trap - ERR INT TERM
+  if [[ $status -ne 0 ]]; then
+    printf 'Deployment gate failed; restoring prior candidate.\n' >&2
+    if [[ $stopped == false ]]; then systemctl stop "$service" || true; fi
+    stopped=true
+    if [[ $switched == true ]]; then ln -sfn "$previous_target" "$current_link"; fi
+    cp -a "$env_backup" "$env_file" || true
+    cp -a "$unit_backup" "/etc/systemd/system/$service" || true
+    if [[ -f $backup_tar ]]; then
+      expected_backup_sha=$(awk 'NR==1{print $1}' "$transaction_dir/state-before.sha256")
+      actual_backup_sha=$(sha256sum "$backup_tar" | awk '{print $1}')
+      [[ $actual_backup_sha == "$expected_backup_sha" ]] || printf 'WARNING: pre-deploy state snapshot integrity check failed.\n' >&2
+    fi
+    if [[ $candidate_installed == true && -d $candidate_dir ]]; then
+      find "$candidate_dir" -depth -delete || true
+    elif [[ -d $staging_dir ]]; then
+      find "$staging_dir" -depth -delete || true
+    fi
+    systemctl daemon-reload || true
+    systemctl start "$service" || true
+    printf 'rolled-back\n' > "$transaction_dir/result.txt"
+  fi
+  exit "$status"
+}
+trap rollback ERR INT TERM
+
+systemctl stop "$service"
+stopped=true
+tar -C "$state_dir" --exclude=deploy-evidence -cpf "$backup_tar" .
+sha256sum "$backup_tar" | sed "s#$backup_tar#state-before.tar#" > "$transaction_dir/state-before.sha256"
+
+node - "$env_file" "$image_fingerprint" "$release" <<'NODE'
+const fs=require("node:fs"),[file,image,release]=process.argv.slice(2),lines=fs.readFileSync(file,"utf8").split(/\r?\n/),updates=new Map([["YNX_CODE_LXD_IMAGE",image],["YNX_CODE_RELEASE",release]]),seen=new Set(),output=[];
+for(const line of lines){const match=line.match(/^([A-Z][A-Z0-9_]*)=/);if(match&&updates.has(match[1])){output.push(`${match[1]}=${updates.get(match[1])}`);seen.add(match[1]);}else if(line)output.push(line)}
+for(const[key,value]of updates)if(!seen.has(key))output.push(`${key}=${value}`);
+fs.writeFileSync(file,`${output.join("\n")}\n`,{mode:0o600});
+NODE
+
+install -m 0644 "$candidate_dir/apps/developer/deploy/systemd/ynx-code-candidate.service" "/etc/systemd/system/$service"
+ln -sfn "$candidate_dir" "$current_link"
+switched=true
+systemctl daemon-reload
+systemctl start "$service"
+stopped=false
+
+for _ in $(seq 1 30); do
+  if curl -fsS --max-time 3 http://127.0.0.1:18113/healthz > "$transaction_dir/health.json"; then break; fi
+  sleep 1
+done
+node -e 'const fs=require("node:fs"),v=JSON.parse(fs.readFileSync(process.argv[1]));if(!v.ok||v.version!==process.argv[2])process.exit(1)' "$transaction_dir/health.json" "$release"
+
+cd "$candidate_dir/apps/developer"
+YNX_CODE_CHECK_BASE=http://127.0.0.1:18113 node scripts/live-container-check.mjs | tee "$transaction_dir/live-container.log"
+YNX_CODE_CHECK_BASE=http://127.0.0.1:18113 node scripts/live-chain-tools-check.mjs | tee "$transaction_dir/live-chain.log"
+YNX_CODE_CHECK_BASE=http://127.0.0.1:18113 node scripts/live-wallet-readiness-check.mjs | tee "$transaction_dir/live-wallet.log"
+YNX_CODE_CHECK_BASE=http://127.0.0.1:18113 node scripts/live-public-candidate-check.mjs | tee "$transaction_dir/live-public.log"
+YNX_CODE_CHECK_BASE=http://127.0.0.1:18113 YNX_CODE_CHECK_STATE="$state_dir/.persistence-probe-$transaction_id" node scripts/live-public-candidate-check.mjs prepare | tee "$transaction_dir/restart-prepare.log"
+systemctl restart "$service"
+YNX_CODE_CHECK_BASE=http://127.0.0.1:18113 YNX_CODE_CHECK_STATE="$state_dir/.persistence-probe-$transaction_id" node scripts/live-public-candidate-check.mjs resume | tee "$transaction_dir/restart-resume.log"
+
+systemctl is-active --quiet "$service"
+curl -fsS --max-time 10 https://developer.ynxweb4.com/healthz > "$transaction_dir/public-health.json"
+node -e 'const fs=require("node:fs"),v=JSON.parse(fs.readFileSync(process.argv[1]));if(!v.ok||v.version!==process.argv[2])process.exit(1)' "$transaction_dir/public-health.json" "$release"
+printf '%s\n' "$image_fingerprint" > "$transaction_dir/image-fingerprint.txt"
+printf 'passed\n' > "$transaction_dir/result.txt"
+sha256sum "$transaction_dir"/*.json "$transaction_dir"/*.log "$transaction_dir"/*.txt > "$transaction_dir/evidence-sha256.txt"
+find "$rollback_dir" -depth -delete
+completed=true
+trap - ERR INT TERM
+trap - EXIT
+printf 'YNX Code candidate deployed: %s\nImage: %s\nEvidence: %s\n' "$expected_commit" "$image_fingerprint" "$transaction_dir"
