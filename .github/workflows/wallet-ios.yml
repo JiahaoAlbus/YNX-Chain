@@ -92,15 +92,19 @@ jobs:
           trap 'kill "$LOG_PID" 2>/dev/null || true' EXIT
           open -a Simulator
           xcrun simctl openurl "$DEVICE" 'ynxwallet://authorize?request=invalid' | tee proof/ci-ios/deep-link.txt
+          xcrun simctl io "$DEVICE" screenshot proof/ci-ios/wallet-callback-confirmation.png
           /usr/bin/osascript <<'APPLESCRIPT' | tee proof/ci-ios/ui-automation.txt
           tell application "System Events"
             tell process "Simulator"
               repeat 100 times
-                set openButtons to (every button of entire contents whose name is "Open")
-                if (count of openButtons) > 0 then
-                  click item 1 of openButtons
-                  return "clicked accessibility button: Open"
-                end if
+                repeat with candidate in entire contents
+                  try
+                    if role of candidate is "AXButton" and name of candidate is "Open" then
+                      click candidate
+                      return "clicked accessibility button: Open"
+                    end if
+                  end try
+                end repeat
                 delay 0.1
               end repeat
             end tell
