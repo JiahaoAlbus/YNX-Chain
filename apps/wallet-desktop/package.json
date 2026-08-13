@@ -1,0 +1,44 @@
+{
+  "name": "@ynx-chain/wallet-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "src/main.mjs",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "start": "electron .",
+    "dist:linux": "electron-builder --linux deb AppImage --x64 --publish never"
+  },
+  "dependencies": {
+    "@ynx-chain/wallet-auth": "file:../../packages/wallet-auth"
+  },
+  "devDependencies": {
+    "electron": "37.2.6",
+    "electron-builder": "26.0.12"
+  },
+  "build": {
+    "appId": "com.ynxweb4.wallet.desktop",
+    "productName": "YNX Wallet Testnet Preview",
+    "artifactName": "ynx-wallet-desktop-${version}-${arch}.${ext}",
+    "asar": true,
+    "files": [
+      "src/**",
+      "package.json",
+      "node_modules/@ynx-chain/wallet-auth/**",
+      "node_modules/@noble/**"
+    ],
+    "linux": {
+      "target": ["deb", "AppImage"],
+      "category": "Utility",
+      "executableName": "ynx-wallet-desktop",
+      "synopsis": "Fail-closed YNX Testnet Wallet desktop preview",
+      "description": "YNX Wallet desktop engineering preview consuming the frozen wallet-auth contract."
+    },
+    "deb": {
+      "depends": ["libgtk-3-0", "libnotify4", "libnss3", "libxss1", "libxtst6", "xdg-utils"]
+    }
+  }
+}

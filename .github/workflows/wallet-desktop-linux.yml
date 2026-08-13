@@ -1,0 +1,70 @@
+name: Wallet desktop Linux
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [codex/wallet-desktop-cli-sdk-20260813]
+    paths:
+      - apps/wallet-desktop/**
+      - packages/wallet-auth/**
+      - .github/workflows/wallet-desktop-linux.yml
+
+permissions:
+  contents: read
+
+jobs:
+  linux-x64-native:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22.18.0
+          cache: npm
+          cache-dependency-path: apps/wallet-desktop/package-lock.json
+      - name: Install source dependencies and test frozen contract boundary
+        run: |
+          npm ci --ignore-scripts --prefix packages/wallet-auth
+          npm ci --prefix apps/wallet-desktop
+          npm test --prefix apps/wallet-desktop
+      - name: Build installable desktop packages
+        run: npm run dist:linux --prefix apps/wallet-desktop
+      - name: Install, cold launch, second launch and verify live Testnet
+        env:
+          EVIDENCE: ${{ runner.temp }}/wallet-desktop-lifecycle.json
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb ./apps/wallet-desktop/dist/ynx-wallet-desktop-0.1.0-x86_64.deb
+          YNX_WALLET_EVIDENCE_PATH="$EVIDENCE" xvfb-run -a /opt/YNX\ Wallet\ Testnet\ Preview/ynx-wallet-desktop --disable-gpu > "$RUNNER_TEMP/cold.log" 2>&1 &
+          COLD_PID=$!
+          for attempt in {1..30}; do test -f "$EVIDENCE" && break; sleep 1; done
+          test -f "$EVIDENCE"
+          node -e "const e=require(process.env.EVIDENCE);if(e.launches!==1||!e.visibleShellReady||!e.rpc.available||e.rpc.chainId!=='0x1917'||e.signingEnabled||e.accountCreated||e.balanceClaimed||e.transactionCreated)process.exit(1)"
+          kill "$COLD_PID" || true
+          wait "$COLD_PID" || true
+          YNX_WALLET_EVIDENCE_PATH="$EVIDENCE" xvfb-run -a /opt/YNX\ Wallet\ Testnet\ Preview/ynx-wallet-desktop --disable-gpu > "$RUNNER_TEMP/second.log" 2>&1 &
+          SECOND_PID=$!
+          for attempt in {1..30}; do test "$(node -p "require(process.env.EVIDENCE).launches" 2>/dev/null || echo 0)" = 2 && break; sleep 1; done
+          node -e "const e=require(process.env.EVIDENCE);if(e.launches!==2||!e.rpc.available||e.rpc.chainId!=='0x1917')process.exit(1)"
+          kill "$SECOND_PID" || true
+          wait "$SECOND_PID" || true
+          sudo apt-get remove -y ynx-wallet-desktop
+          test ! -e '/opt/YNX Wallet Testnet Preview/ynx-wallet-desktop'
+      - name: Record package evidence
+        env:
+          EVIDENCE: ${{ runner.temp }}/wallet-desktop-lifecycle.json
+        run: |
+          mkdir -p apps/wallet-desktop/evidence
+          cp "$EVIDENCE" apps/wallet-desktop/evidence/linux-x64-lifecycle.json
+          cp "$RUNNER_TEMP/cold.log" "$RUNNER_TEMP/second.log" apps/wallet-desktop/evidence/
+          sha256sum apps/wallet-desktop/dist/* | tee apps/wallet-desktop/evidence/SHA256SUMS.txt
+          stat -c '%n %s' apps/wallet-desktop/dist/* | tee apps/wallet-desktop/evidence/BYTES.txt
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ynx-wallet-desktop-linux-x64
+          path: |
+            apps/wallet-desktop/dist/*.deb
+            apps/wallet-desktop/dist/*.AppImage
+            apps/wallet-desktop/evidence/**
+          if-no-files-found: error

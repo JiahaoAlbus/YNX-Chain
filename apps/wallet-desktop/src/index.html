@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self'; style-src 'self'; script-src 'self'">
+  <title>YNX Wallet Testnet Preview</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main>
+    <header><strong>YNX CHAIN</strong><span>DESKTOP TESTNET PREVIEW</span></header>
+    <section class="hero">
+      <p class="eyebrow">SELF-CUSTODY BOUNDARY</p>
+      <h1>YNX Wallet</h1>
+      <p class="lead">A visible, fail-closed desktop shell for reviewing frozen Wallet Auth requests on YNX Testnet.</p>
+    </section>
+    <section class="status" aria-live="polite">
+      <div><span id="indicator" class="indicator pending"></span><strong id="network">Checking YNX Testnet…</strong></div>
+      <p id="detail">No account, balance, transaction or signing success is inferred while the network check is pending.</p>
+      <button id="retry" type="button">Retry network check</button>
+    </section>
+    <section class="grid">
+      <article><p class="label">NETWORK</p><h2 id="chain">Unavailable</h2><p>Required EVM chain ID: 0x1917</p></article>
+      <article><p class="label">ACCOUNT</p><h2>Not created</h2><p>This shell never invents an address or balance.</p></article>
+      <article><p class="label">SIGNING</p><h2>Locked</h2><p>Key custody is not implemented in this slice.</p></article>
+    </section>
+    <button class="sign" disabled aria-disabled="true">Review and sign — unavailable</button>
+    <footer>Consumes @ynx-chain/wallet-auth · Testnet assets have no real-world value</footer>
+  </main>
+  <script src="renderer.js"></script>
+</body>
+</html>
