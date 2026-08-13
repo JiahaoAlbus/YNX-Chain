@@ -523,6 +523,27 @@ function eventInput() {
     base_version: state.editing?.version || 0,
   };
 }
+function guestAlternativeSlots(candidate, events) {
+  if (candidate.all_day || candidate.recurrence?.frequency) return [];
+  const duration = new Date(candidate.end_utc) - new Date(candidate.start_utc);
+  const cursor = new Date(candidate.end_utc);
+  cursor.setMinutes(Math.ceil(cursor.getMinutes() / 30) * 30, 0, 0);
+  const slots = [];
+  for (let attempts = 0; attempts < 14 * 48 && slots.length < 5; attempts++) {
+    const start = new Date(cursor.getTime() + attempts * 30 * 60000);
+    const end = new Date(start.getTime() + duration);
+    if (start.getDay() === 0 || start.getDay() === 6 || start.getHours() < 8 || end.getHours() > 18) continue;
+    const bufferedStart = new Date(start.getTime() - candidate.buffer_before_minutes * 60000);
+    const bufferedEnd = new Date(end.getTime() + candidate.buffer_after_minutes * 60000);
+    const busy = events.some((event) => {
+      const eventStart = new Date(new Date(event.start_utc).getTime() - (event.buffer_before_minutes || 0) * 60000);
+      const eventEnd = new Date(new Date(event.end_utc).getTime() + (event.buffer_after_minutes || 0) * 60000);
+      return bufferedStart < eventEnd && eventStart < bufferedEnd;
+    });
+    if (!busy) slots.push({ start_utc: start.toISOString(), end_utc: end.toISOString(), time_zone: candidate.time_zone, reason: "No detected device-local conflict" });
+  }
+  return slots;
+}
 async function submitEvent(e) {
   e.preventDefault();
   const input = eventInput();
@@ -569,7 +590,7 @@ async function submitEvent(e) {
       shares: [],
     };
     const conflicts = guestEvents().filter((event) => event.event_id !== id && new Date(event.start_utc) < end && start < new Date(event.end_utc));
-    state.pendingChange = { id: `guest-${mutationID()}`, kind: state.editing ? "update local draft" : "create local draft", after, conflicts };
+    state.pendingChange = { id: `guest-${mutationID()}`, kind: state.editing ? "update local draft" : "create local draft", after, conflicts, suggested_slots: conflicts.length ? guestAlternativeSlots(after, guestEvents().filter((event) => event.event_id !== id)) : [] };
     showChange();
     return;
   }

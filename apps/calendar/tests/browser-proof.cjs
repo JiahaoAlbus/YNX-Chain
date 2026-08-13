@@ -294,6 +294,14 @@ function unnamedInteractive() {
       await page.getByRole("button", { name: "Export JSON" }).waitFor();
       await page.getByRole("button", { name: "Export iCalendar (.ics)" }).waitFor();
       await page.getByRole("button", { name: "Close" }).click();
+      await page.locator("#new-event").click();
+      await page.locator("#title").fill("Guest alternative proof");
+      await page.locator("#start").fill(local(new Date(storedGuest.start_utc)));
+      await page.locator("#end").fill(local(new Date(storedGuest.end_utc)));
+      await page.locator("#event-form button[type=submit]").click();
+      await page.getByText("Conflict-free draft alternatives").waitFor();
+      await page.locator("[data-suggestion]").first().click();
+      await page.locator("#event-close").click();
       if (errors.length) throw Error(`guest mode page errors: ${errors.join(",")}`);
       await page.screenshot({
         path: path.join(artifact, "calendar-guest-trial.png"),
