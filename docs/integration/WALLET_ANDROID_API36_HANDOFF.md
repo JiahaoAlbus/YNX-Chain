@@ -32,3 +32,9 @@ Source commit `6c59d21949f91a956ec567cf58cee28817471994` moves `FLAG_SECURE` int
 The source-bound arm64 Release build subsequently completed with `BUILD SUCCESSFUL in 15m 39s`. Its unsigned APK is 30,647,563 bytes with SHA-256 `4af2792486e24776ff4e19e1d9979f5194418766c801db01ba3e0a4e5408fcd8`; badging confirms package `com.ynxweb4.wallet`, versionName 1.0.1, versionCode 2, minimum API 24 and target/compile SDK 36. `apksigner` reports `DOES NOT VERIFY`, so signing class is strictly `unsigned-release-build`.
 
 This follow-up has `implementedLocal=true` and `testedLocal=true`. Its `installedLocal`, `downloadHosted`, `productionSigned` and `storeReleased` states remain false because the new APK is unsigned, and the installed signed 1.0.1 APK predates this change.
+
+## Android privacy product-gate checkpoint
+
+Commit `f105cadcda2bca619d3993a9bcedeb3c0faaebd4` promotes the already implemented Android privacy boundaries into the Wallet product gate without changing the frozen Auth protocol. The gate now fails if native `FLAG_SECURE` moves after React startup, either Android SecureStore backup-exclusion binding disappears, device-bound unlocked-only storage is weakened, strong biometric/device-fallback policy is removed, background locking no longer clears the unlocked account, or the bounded clipboard-clear policy is removed.
+
+The bounded verification completed on 2026-08-13: `npm run product-check` passed, all Wallet tests passed 41/41, `npm run typecheck` passed, and `git diff --check` passed. These are source and local-test facts. They do not turn biometric/background/clipboard emulator interaction, source-bound APK installation, public deployment, signing, or store release true.

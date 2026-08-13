@@ -16,6 +16,18 @@
     "walletTests": {"passed": true, "passedCount": 41, "failedCount": 0},
     "typecheck": {"passed": true, "command": "npm run typecheck"},
     "productGate": {"passed": true, "command": "npm run product-check"},
+    "androidPrivacyProductGate": {
+      "sourceCommit": "f105cadcda2bca619d3993a9bcedeb3c0faaebd4",
+      "passed": true,
+      "assertions": [
+        "native FLAG_SECURE precedes React startup",
+        "Android manifest binds both SecureStore backup exclusion resources",
+        "secret storage is device-bound and accessible only while unlocked",
+        "local key use requires strong biometrics with device fallback disabled",
+        "backgrounding locks and clears the unlocked account",
+        "public clipboard values expire after 30 seconds and clear only if unchanged"
+      ]
+    },
     "releaseContentAndSecretGate": {"passed": true, "filesScanned": 22},
     "androidCompile": {
       "passed": true,
@@ -64,6 +76,6 @@
     "The source-bound Release APK is unsigned and cannot be installed or distributed as a signed preview.",
     "A reviewed signing input plus source-bound APK install and launch-window screencap remain required before installedLocal may become true."
   ],
-  "verifiedAt": "2026-08-13T13:35:00Z",
+  "verifiedAt": "2026-08-13T14:57:32Z",
   "secretMaterialRecorded": false
 }

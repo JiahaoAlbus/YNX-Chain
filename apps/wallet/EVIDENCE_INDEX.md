@@ -20,6 +20,7 @@ SHA-256 and byte sizes are recorded in `artifact-manifest.json`. The latest Andr
 - `docs/integration/WALLET_ANDROID_API36_HANDOFF.md` records the recovery source, frozen Auth consumer boundary, direct evidence and emulator transport failure classification.
 - The recovery slice does not claim a new artifact built from commit `1883d406`, production signing, a store release, or fresh Dark/RTL/Large Text/biometric/background-lock/clipboard device coverage.
 - `proof/wallet-android-native-launch-privacy-2026-08-13.json` binds the follow-up native `FLAG_SECURE` implementation to source commit `6c59d219`, 41/41 Wallet tests, successful API 36 Release Kotlin compilation and a successful source-bound arm64 Release APK build. The APK is explicitly unsigned; no install, hosted-download or signing claim is made for that newer source.
+- Privacy-gate commit `f105cadcda2bca619d3993a9bcedeb3c0faaebd4` makes native launch-window protection, both Android SecureStore backup-exclusion bindings, device-bound unlocked-only storage, strong biometrics without device fallback, background locking/account clearing and bounded conditional clipboard clearing release-check invariants. Its bounded product gate, 41/41 tests, typecheck and diff check passed; no device-interaction or release boolean is inferred from source tests.
 
 ## Protocol and chain evidence
 
