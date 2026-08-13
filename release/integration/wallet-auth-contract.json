@@ -316,6 +316,22 @@
       "deployedPublic": false,
       "evidence": "apps/wallet/proof/gateway-admission-observability-local-2026-08-13.json"
     },
+    "publicGatewayIdentifierGap": {
+      "sourceCommit": "7bf0df85eafe7c2f6470a28f1784f96edfd4f048",
+      "observedAt": "2026-08-13T15:15:30.417Z",
+      "lifecycleStillVerified": true,
+      "responsesObserved": 5,
+      "responsesWithValidRequestId": 0,
+      "responsesWithValidTraceId": 0,
+      "errorResponsesObserved": 2,
+      "errorResponsesWithValidErrorId": 0,
+      "identifierValuesRecorded": false,
+      "requestIdentifierCompletenessPublic": false,
+      "traceIdentifierCompletenessPublic": false,
+      "errorIdentifierCompletenessPublic": false,
+      "publicObservabilityComplete": false,
+      "evidence": "apps/wallet/proof/gateway-public-identifier-gap-2026-08-13.json"
+    },
     "gatewayMultiUserLoopback": {
       "sourceCommit": "7678c5764010e9d6ff31445687555ae848070e5c",
       "environment": "real loopback HTTP and local mode-0600 disk persistence; excludes public network, external load balancer and production capacity",

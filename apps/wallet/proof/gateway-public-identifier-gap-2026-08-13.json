@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "wallet-gateway-public-identifier-gap-2026-08-13",
+  "owner": "02-wallet-auth",
+  "sourceCommit": "7bf0df85eafe7c2f6470a28f1784f96edfd4f048",
+  "verification": "wallet-auth-public-gateway-lifecycle-identifiers",
+  "environment": "public-testnet",
+  "observedAt": "2026-08-13T15:15:30.417Z",
+  "baseURL": "https://rest.ynxweb4.com",
+  "exitCode": 0,
+  "lifecycle": {
+    "completionStatus": 200,
+    "introspectionStatus": 200,
+    "activeBeforeRevoke": true,
+    "replayStatus": 409,
+    "replayCode": "REPLAY",
+    "revocationStatus": 200,
+    "postRevocationStatus": 403,
+    "postRevocationCode": "REVOKED",
+    "finalStateDigest": "564d1deaa89c3006edf12d5a26aa489c93fbf42055d942cbe252c31115886846",
+    "cacheControlNoStoreAllResponses": true,
+    "freshPublicLifecycleVerified": true
+  },
+  "identifierEvidence": {
+    "stages": {
+      "completion": {"status":200,"requestIdPresent":false,"requestIdValid":false,"traceIdPresent":false,"traceIdValid":false,"errorIdExpected":false,"errorIdPresent":false,"errorIdValid":false},
+      "introspection": {"status":200,"requestIdPresent":false,"requestIdValid":false,"traceIdPresent":false,"traceIdValid":false,"errorIdExpected":false,"errorIdPresent":false,"errorIdValid":false},
+      "replay": {"status":409,"requestIdPresent":false,"requestIdValid":false,"traceIdPresent":false,"traceIdValid":false,"errorIdExpected":true,"errorIdPresent":false,"errorIdValid":false},
+      "revocation": {"status":200,"requestIdPresent":false,"requestIdValid":false,"traceIdPresent":false,"traceIdValid":false,"errorIdExpected":false,"errorIdPresent":false,"errorIdValid":false},
+      "postRevocation": {"status":403,"requestIdPresent":false,"requestIdValid":false,"traceIdPresent":false,"traceIdValid":false,"errorIdExpected":true,"errorIdPresent":false,"errorIdValid":false}
+    },
+    "requestIdCompleteness": false,
+    "traceIdCompleteness": false,
+    "errorIdCompleteness": false,
+    "unexpectedErrorIdAbsent": true,
+    "allRequiredIdentifiersComplete": false,
+    "identifierValuesRecorded": false
+  },
+  "tests": {
+    "focusedIdentifierEvidence": {"passed":3,"failed":0},
+    "identifierAndNodeHost": {"passed":13,"failed":0},
+    "fullPackage": {"passed":125,"failed":0},
+    "walletOwned": {"passed":123,"failed":0},
+    "developerOwnedAudit": {"passed":2,"failed":0,"modifiedByWallet":false,"countedAsWalletOwned":false},
+    "walletProductGate": "passed",
+    "walletReleaseContentGate": "passed"
+  },
+  "sourceSha256": {
+    "packages/wallet-auth/src/gateway-public-evidence.js": "aac664cfacd2e4cbf01226cc411b148a7af440cf46c85d6cd388cc3d4b927d0e",
+    "packages/wallet-auth/test/gateway-public-evidence.test.mjs": "6b82a14d5660fe7fb3a01a18ee927198c1043aef8aee8f48e9545e0ab356c913",
+    "packages/wallet-auth/scripts/verify-public-gateway.mjs": "2b457638ed36cc691a00986a48484fa79907badadd302fd7e045e66ed9ebde6c"
+  },
+  "packageArtifact": {
+    "name": "@ynx-chain/wallet-auth",
+    "version": "1.0.0",
+    "sha256": "4528105a3849078db753162c3e772947a6bcee3bd0d703099f7d8bd0679c6255",
+    "bytes": 95815,
+    "unpackedBytes": 425928,
+    "entries": 57,
+    "minimumRuntime": "Node.js 22",
+    "minimumOS": null,
+    "signingClass": "unsigned-local-npm-package",
+    "deterministicArchiveClaimed": false
+  },
+  "releaseClaims": {
+    "freshPublicLifecycleVerified": true,
+    "gatewayDeployedPublic": true,
+    "requestIdentifierCompletenessPublic": false,
+    "traceIdentifierCompletenessPublic": false,
+    "errorIdentifierCompletenessPublic": false,
+    "publicObservabilityComplete": false,
+    "assetMoved": false,
+    "userClaimed": false,
+    "providerClaimed": false,
+    "secretMaterialRecorded": false
+  },
+  "requiredPublicFix": "Deploy the canonical Node Host responseIdentifier headers, or preserve equivalent x-request-id/x-trace-id on every lifecycle response and x-error-id on 409/403 errors, then rerun the source-bound probe."
+}
