@@ -38,6 +38,17 @@
       "publicClaimAllowed": false
     },
     {
+      "id": "WA-ADMISSION-OBSERVABILITY-001",
+      "category": "wallet-auth",
+      "owners": ["02-wallet-auth", "13-monitor", "29-integration"],
+      "precondition": "One client has exhausted its canonical Gateway admission window while a second client remains within policy.",
+      "action": "Submit another request from the exhausted client, then read metrics from the independent client.",
+      "expectedHttpStatus": 429,
+      "expectedCode": "RATE_LIMIT",
+      "expectedState": "no Gateway state mutation; rejection contains request/trace/error IDs and state digest, emits one redacted bounded event, and increments only the bounded RATE_LIMIT metric label",
+      "publicClaimAllowed": false
+    },
+    {
       "id": "RM-AUTH-WRONG-PRODUCT-001",
       "category": "wallet-auth",
       "owners": ["02-wallet-auth", "16-resource-market"],

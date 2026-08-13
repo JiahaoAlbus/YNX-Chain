@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "wallet-auth-gateway-admission-observability-local-2026-08-13",
+  "sourceCommit": "6b1f1f21a79861178ee7fc168ad21c2869296fd5",
+  "sourceClass": "local-measurement",
+  "runtime": {"node":"v24.19.0","platform":"darwin","arch":"arm64"},
+  "tests": {
+    "walletOwnedSuite": {"passed":113,"failed":0},
+    "gatewayAdmissionAndNodeHost": {"passed":12,"failed":0},
+    "gatewayNodeHost": {"passed":10,"failed":0}
+  },
+  "cliLoopback": {
+    "realProcess": true,
+    "address": "127.0.0.1",
+    "port": 16439,
+    "firstHealthStatus": 200,
+    "secondHealthStatus": 429,
+    "secondHealthCode": "RATE_LIMIT",
+    "cacheControl": "no-store",
+    "retryAfterSeconds": 60,
+    "requestIdPresent": true,
+    "traceIdPresent": true,
+    "errorIdPresent": true,
+    "stateDigestPresent": true,
+    "metricsRequestsTotal": 3,
+    "metricsRateLimitTotal": 1,
+    "redactedStructuredEventPresent": true,
+    "gracefulSigintShutdown": true
+  },
+  "securityBoundary": {
+    "canonicalErrors": ["CONCURRENCY_LIMIT","RATE_LIMIT"],
+    "requestBodyRecorded": false,
+    "proofRecorded": false,
+    "authorizationHeaderRecorded": false,
+    "secretMaterialRecorded": false,
+    "statePathRecorded": false
+  },
+  "artifact": {
+    "name": "ynx-chain-wallet-auth-1.0.0.tgz",
+    "sha256": "eb1167e3e3304938bad2825a9b6f971626d08660e6b926534157fcbe747309c1",
+    "bytes": 89597,
+    "unpackedBytes": 402879,
+    "minimumOS": "not-applicable",
+    "minimumRuntime": "Node.js 22",
+    "signingClass": "unsigned-local-npm-package",
+    "hosted": false
+  },
+  "releaseState": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": false,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "exclusions": ["central Monitor acceptance","public Gateway deployment","external load balancer","production capacity","multi-region telemetry"]
+}

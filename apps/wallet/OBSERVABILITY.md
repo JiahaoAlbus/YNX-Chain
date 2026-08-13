@@ -19,6 +19,8 @@ The CLI emits one canonical JSON event per request plus structured startup/shutd
 
 Events and metric labels exclude request bodies, Product Session proofs, authorization headers, private keys, seeds, recovery material, signatures, provider secrets and state paths. Route labels come from a fixed allowlist and error labels come from bounded public error codes. A failed event sink cannot fail an authorization request; the drop is counted by `ynx_wallet_gateway_events_dropped_total`.
 
+Admission is part of the canonical Node Host at source `6b1f1f21a79861178ee7fc168ad21c2869296fd5`. `RATE_LIMIT` and `CONCURRENCY_LIMIT` responses use the same request/trace/error identifiers, state digest, no-store policy, bounded metrics and redacted events as protocol failures; the daemon no longer maintains a second unobserved rejection format.
+
 ## Required central observability contract
 
 The central integration must extend correlation beyond the local host with authoritative audit IDs, product client, hashed device/account binding, operation or intent digest, source/version and outcome. It must cover authorization request/approve/reject/complete, introspection, expiry/revoke/logout, replay/tamper/cross-App rejection, UserOperation simulation/submission/receipt, Paymaster eligibility and budget consumption, provider latency/rate limits, queue age, Credential status failure, mandate kill/exit and artifact verification. Traces must connect Wallet callback → Gateway → Bundler/Paymaster without secret fields.
@@ -27,10 +29,10 @@ Required alerts remain p99/SLO burn, replay or signature/tamper surge, sponsor b
 
 ## Verification and remaining boundary
 
-- `packages/wallet-auth npm test`: 94/94 passed.
-- `gateway-node-host.test.mjs`: 8/8 passed, including Node-only package subpath export, ID headers, exact build identity, redaction, bounded metrics and event-sink failure isolation.
+- Wallet-owned package suite: 113/113 passed; the two excluded Developer deployment assertions still require their Owner's compiled fixture.
+- `gateway-admission.test.mjs` plus `gateway-node-host.test.mjs`: 12/12 passed, including canonical admission identifiers, state digest, bounded metrics, redacted events, Node-only package subpath export, exact build identity and event-sink failure isolation.
 - A real loopback CLI process returned health, readiness, version and metrics and emitted canonical structured events.
 - `remoteDeployed=true` without the complete build identity failed startup.
-- Machine-readable evidence: `proof/gateway-observability-local-2026-07-27.json`.
+- Machine-readable evidence: `proof/gateway-observability-local-2026-07-27.json` and `proof/gateway-admission-observability-local-2026-08-13.json`.
 
 This is tested local runtime evidence only. Central App Gateway merge, durable telemetry storage, distributed trace propagation, Monitor dashboard/alert acceptance, staging/public endpoints and production SLO compliance remain unverified.

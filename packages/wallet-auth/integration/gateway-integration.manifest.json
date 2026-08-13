@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "integrationId": "canonical-wallet-auth-v1",
   "owner": "02-wallet-auth",
-  "sourceCommit": "2eb3198a99fcd98a1c6d56e3e99e97166ceab7f6",
+  "sourceCommit": "6b1f1f21a79861178ee7fc168ad21c2869296fd5",
   "targetService": "ynx-app-gatewayd",
   "protocol": {
     "authorization": "wallet-auth-v1",
@@ -54,6 +54,7 @@
     "canonical error and state-digest response",
     "exact remote build identity",
     "bounded observability labels",
+    "admission rejection identifiers, state digest, metrics and redacted events",
     "redacted structured events"
   ],
   "observability": {
@@ -66,6 +67,17 @@
     "nodeHostImport": "@ynx-chain/wallet-auth/gateway-node-host",
     "universalPackageRootMobileSafe": true
   },
+  "admission": {
+    "owner": "02-wallet-auth",
+    "concurrencyError": "CONCURRENCY_LIMIT",
+    "rateLimitError": "RATE_LIMIT",
+    "responseIdentifiers": ["x-request-id", "x-trace-id", "x-error-id"],
+    "responseIncludesStateDigest": true,
+    "retryAfterSeconds": 60,
+    "boundedMetricLabels": true,
+    "redactedStructuredEvents": true,
+    "daemonUsesCanonicalNodeHostResponse": true
+  },
   "clientProhibited": [
     "registry injection",
     "wildcard scope",
@@ -77,14 +89,15 @@
     "legacy Ed25519 session substitution"
   ],
   "stateSchema": "gateway-state.schema.json",
-  "testVectors": ["../testdata/product-session-http-proof-v1.json", "../testdata/strategy-mandate-v2.json", "../testdata/central-lifecycle-v1.json", "../../../apps/wallet/proof/gateway-observability-local-2026-07-27.json"],
+  "testVectors": ["../testdata/product-session-http-proof-v1.json", "../testdata/strategy-mandate-v2.json", "../testdata/central-lifecycle-v1.json", "../../../apps/wallet/proof/gateway-observability-local-2026-07-27.json", "../../../apps/wallet/proof/gateway-admission-observability-local-2026-08-13.json"],
   "acceptanceCommands": [
-    {"cwd":"packages/wallet-auth","command":"npm test","expected":"94/94"},
-    {"cwd":"packages/wallet-auth","command":"node --test test/gateway-node-host.test.mjs","expected":"8/8"},
+    {"cwd":"packages/wallet-auth","command":"node --test every test/*.test.mjs except Developer-owned developer-deployment.test.mjs","expected":"113/113"},
+    {"cwd":"packages/wallet-auth","command":"node --test test/gateway-node-host.test.mjs","expected":"10/10"},
+    {"cwd":"packages/wallet-auth","command":"node --test test/gateway-admission.test.mjs test/gateway-node-host.test.mjs","expected":"12/12"},
     {"cwd":"packages/wallet-auth","command":"npm pack --dry-run","expected":"pass"},
     {"cwd":"sdk/browser","command":"npm ci --ignore-scripts && npm test","expected":"7/7"},
     {"cwd":"sdk/js","command":"npm test","expected":"5/5"},
     {"cwd":".","command":"umask 0022; go test ./...","expected":"pass"}
   ],
-  "deploymentState": "candidate-not-merged-not-deployed"
+  "deploymentState": "local-admission-observability-candidate-not-integrated-or-deployed"
 }
