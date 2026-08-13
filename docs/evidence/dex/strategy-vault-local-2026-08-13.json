@@ -1,0 +1,26 @@
+{
+  "schemaVersion": "1.0.0",
+  "observedAt": "2026-08-13T13:35:00Z",
+  "sourceCommit": "7a3a8f94d058be2284fa28b5a03f02d75120bb71",
+  "network": "Hardhat local isolated dexTest; not public Testnet",
+  "command": "npx hardhat build --config hardhat.dex.config.ts && npm run dex:vault:test",
+  "result": "passed",
+  "solidityFilesCompiled": 10,
+  "statefulVectors": 32,
+  "maxSwapGasObserved": 265341,
+  "boundaries": [
+    "owner-only withdrawal",
+    "engine cannot redirect proceeds",
+    "exact approvals are cleared",
+    "allowed token and pool enforcement",
+    "capital, trade, slippage, impact, gas, frequency, loss and drawdown limits",
+    "oracle stale and depeg circuit breakers",
+    "expiry, pause, revoke and kill",
+    "owner emergency exit",
+    "nonce-domain and action-nonce replay protection",
+    "v1 performance fee remains disabled"
+  ],
+  "publicDeployment": false,
+  "walletMandateE2E": false,
+  "externalAudit": false
+}
