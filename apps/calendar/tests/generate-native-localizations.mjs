@@ -5,6 +5,7 @@ const root = path.resolve(import.meta.dirname, "..");
 const res = path.join(root, "native/android/app/src/main/res");
 const ios = path.join(root, "native/ios/YNXCalendar/Localizable.xcstrings");
 const web = path.join(root, "web/locales.json");
+const webExtras = JSON.parse(fs.readFileSync(path.join(root, "web/locales-extra.json"), "utf8"));
 const map = {
   values: "en",
   "values-zh-rCN": "zh-Hans",
@@ -78,7 +79,7 @@ const webOut = {
     Object.entries(webCodes).map(([nativeCode, webCode]) => [
       webCode,
       Object.fromEntries(
-        Object.entries(strings).map(([key, values]) => [key, values[nativeCode]]),
+        [...Object.entries(strings).map(([key, values]) => [key, values[nativeCode]]), ...Object.entries(webExtras[webCode])],
       ),
     ]),
   ),

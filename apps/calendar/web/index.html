@@ -16,7 +16,7 @@
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
-    <a class="skip" href="#timeline">Skip to calendar</a>
+    <a class="skip" href="#timeline" data-i18n="skip">Skip to calendar</a>
     <div id="offline" class="offline" hidden role="status">
       <span data-i18n="offline">Offline — changes are queued on this device</span>
     </div>
@@ -25,15 +25,15 @@
         <a class="brand" href="/" aria-label="YNX Calendar home"
           ><span class="mark">Y</span><span>YNX <b>Calendar</b></span></a
         >
-        <nav class="view-switch" aria-label="Calendar view">
-          <button type="button" data-view="day">Day</button
-          ><button type="button" data-view="week" class="active">Week</button
-          ><button type="button" data-view="month">Month</button>
+        <nav class="view-switch" aria-label="Calendar view" data-i18n-aria-label="calendar_view">
+          <button type="button" data-view="day" data-i18n="day">Day</button
+          ><button type="button" data-view="week" class="active" data-i18n="week">Week</button
+          ><button type="button" data-view="month" data-i18n="month">Month</button>
         </nav>
         <div class="date-controls">
-          <button id="prev" aria-label="Previous range">‹</button
+          <button id="prev" aria-label="Previous range" data-i18n-aria-label="previous">‹</button
           ><button id="today" data-i18n="today">Today</button
-          ><button id="next" aria-label="Next range">›</button
+          ><button id="next" aria-label="Next range" data-i18n-aria-label="next">›</button
           ><strong id="range"></strong>
         </div>
         <button
@@ -50,17 +50,17 @@
         <section class="mini">
           <span class="eyebrow" data-i18n="timezone">Time zone</span>
           <h2 id="zone-label" data-i18n="timezone">Time zone</h2>
-          <p>Events use IANA time zones; recurring events preserve local time across daylight-saving changes.</p>
+          <p data-i18n="timezone_help">Events use IANA time zones; recurring events preserve local time across daylight-saving changes.</p>
         </section>
         <section class="legend">
-          <h3>Calendars</h3>
-          <label><span class="dot mine"></span> My events</label
-          ><label><span class="dot invited"></span> Invitations and sharing</label
-          ><label><span class="dot conflict"></span> Conflicts to resolve</label>
+          <h3 data-i18n="calendars">Calendars</h3>
+          <label><span class="dot mine"></span> <span data-i18n="my_events">My events</span></label
+          ><label><span class="dot invited"></span> <span data-i18n="invitations_sharing">Invitations and sharing</span></label
+          ><label><span class="dot conflict"></span> <span data-i18n="conflicts_resolve">Conflicts to resolve</span></label>
         </section>
         <section class="boundary">
           <b data-i18n="meeting_link">Meeting link</b>
-          <p>Only credential-free HTTPS links are accepted. Meeting links cannot request Wallet or signing permissions.</p>
+          <p data-i18n="meeting_help">Only credential-free HTTPS links are accepted. Meeting links cannot request Wallet or signing permissions.</p>
         </section>
       </aside>
       <main id="timeline" class="timeline" tabindex="-1">
@@ -221,9 +221,9 @@
     <section id="signin" class="signin">
       <div class="signin-card">
         <span class="mark large">Y</span
-        ><span class="eyebrow">Independent scheduling</span>
-        <h1>Your time, your approval.</h1>
-        <p>
+        ><span class="eyebrow" data-i18n="independent">Independent scheduling</span>
+        <h1 data-i18n="hero_title">Your time, your approval.</h1>
+        <p data-i18n="hero_description">
           Create an independent Calendar device session with YNX Wallet. Contacts use @handles; Wallet addresses never enter the calendar UI.
         </p>
         <button id="wallet-signin" class="primary" data-i18n="sign_in">
@@ -231,10 +231,10 @@
         ><button id="wallet-recover" class="quiet recovery" data-i18n="recover">
           <span data-i18n="recover">Recover with YNX Wallet</span>
         </button>
-        <p id="signin-state" role="status">
+        <p id="signin-state" role="status" data-i18n="session_boundary">
           Calendar account scope · one-time challenge · revocable session
         </p>
-        <small>This local build does not claim production scheduling service.</small>
+        <small data-i18n="scheduling_disclaimer">This Testnet preview does not claim production scheduling service.</small>
       </div>
     </section>
     <div id="toast" class="toast" role="status" aria-live="polite"></div>

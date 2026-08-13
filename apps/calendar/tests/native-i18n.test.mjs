@@ -27,6 +27,8 @@ test("Web Calendar exposes the same 12 audited catalogs and runtime RTL switch",
     assert.deepEqual(Object.keys(web.locales[locale]).sort(), keys, locale);
     for (const key of keys) assert.ok(web.locales[locale][key].trim(), `${locale}:${key}`);
   }
+  for (const key of ["day", "week", "month", "timezone_help", "calendars", "my_events", "meeting_help", "hero_title", "scheduling_disclaimer"])
+    for (const locale of webLocales.filter((value) => value !== "en")) assert.notEqual(web.locales[locale][key], web.locales.en[key], `${locale}:${key}`);
   const runtime = fs.readFileSync(path.join(root, "web/i18n.js"), "utf8");
   const html = fs.readFileSync(path.join(root, "web/index.html"), "utf8");
   assert.match(runtime, /locale === "ar" \? "rtl" : "ltr"/);
