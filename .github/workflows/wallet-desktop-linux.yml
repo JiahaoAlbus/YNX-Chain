@@ -35,7 +35,7 @@ jobs:
           EVIDENCE: ${{ runner.temp }}/wallet-desktop-lifecycle.json
         run: |
           sudo apt-get update
-          sudo apt-get install -y xvfb ./apps/wallet-desktop/dist/ynx-wallet-desktop-0.1.0-x86_64.deb
+          sudo apt-get install -y xvfb ./apps/wallet-desktop/dist/ynx-wallet-desktop-0.1.0-amd64.deb
           YNX_WALLET_EVIDENCE_PATH="$EVIDENCE" xvfb-run -a /opt/YNX\ Wallet\ Testnet\ Preview/ynx-wallet-desktop --disable-gpu > "$RUNNER_TEMP/cold.log" 2>&1 &
           COLD_PID=$!
           for attempt in {1..30}; do test -f "$EVIDENCE" && break; sleep 1; done
