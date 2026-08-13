@@ -209,6 +209,12 @@ function unnamedInteractive() {
       new Date(date.getTime() - date.getTimezoneOffset() * 60_000)
         .toISOString()
         .slice(0, 16);
+    const sharedCalendar = await api(
+      "/v1/calendars",
+      "POST",
+      { name: "Protocol team", color: "violet" },
+      cookie,
+    );
     const preview = await api(
       "/v1/events/preview",
       "POST",
@@ -217,7 +223,7 @@ function unnamedInteractive() {
         description: "Explicit scheduling approval and conflict boundary.",
         location: "Testnet review room",
         all_day: false,
-        calendar_id: "team",
+        calendar_id: sharedCalendar.id,
         color: "green",
         privacy: "participants",
         attachment_links: ["https://cloud.ynxweb4.com/files/browser-proof"],
@@ -362,6 +368,10 @@ function unnamedInteractive() {
         fullPage: true,
       });
       if (config.name === "desktop") {
+        await page.getByRole("button", { name: /Protocol team/ }).waitFor();
+        await page.getByRole("button", { name: "Manage shared calendars" }).click();
+        await page.getByRole("heading", { name: "Calendars and permissions" }).waitFor();
+        await page.getByRole("button", { name: "Close" }).click();
         await page.locator('[data-view="month"]').click();
         await page.locator(".month-grid").waitFor();
         await page.screenshot({

@@ -116,6 +116,17 @@ type Share struct {
 	Handle string `json:"handle"`
 	Role   string `json:"role"`
 }
+type SharedCalendar struct {
+	ID          string    `json:"id"`
+	OwnerID     string    `json:"owner_id"`
+	OwnerHandle string    `json:"owner_handle"`
+	Name        string    `json:"name"`
+	Color       string    `json:"color"`
+	Shares      []Share   `json:"shares,omitempty"`
+	Version     int       `json:"version"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+}
 type Comment struct {
 	ID        string    `json:"id"`
 	Author    string    `json:"author"`
@@ -252,6 +263,7 @@ type AccountExport struct {
 	SchemaVersion int                `json:"schema_version"`
 	ExportedAt    time.Time          `json:"exported_at"`
 	User          User               `json:"user"`
+	Calendars     []SharedCalendar   `json:"calendars"`
 	Events        []Event            `json:"events"`
 	Changes       []ChangePreview    `json:"changes"`
 	Reminders     []ReminderDelivery `json:"reminders"`
@@ -264,6 +276,7 @@ type State struct {
 	Sessions           map[string]Session          `json:"sessions"`
 	WalletRequests     map[string]bool             `json:"wallet_requests"`
 	Events             map[string]Event            `json:"events"`
+	SharedCalendars    map[string]SharedCalendar   `json:"shared_calendars"`
 	ReminderDeliveries map[string]ReminderDelivery `json:"reminder_deliveries"`
 	Changes            map[string]ChangePreview    `json:"changes"`
 	Mutations          map[string]string           `json:"mutations"`

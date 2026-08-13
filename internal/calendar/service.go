@@ -212,8 +212,13 @@ func (s *Service) ExportAccount(token string) (AccountExport, error) {
 		user := st.Users[sess.UserID]
 		user.AccountHash = ""
 		out = AccountExport{SchemaVersion: 1, ExportedAt: s.now().UTC(), User: user}
+		for _, calendar := range st.SharedCalendars {
+			if calendar.OwnerID == sess.UserID || calendarRole(calendar, user.Handle) != "" {
+				out.Calendars = append(out.Calendars, calendar)
+			}
+		}
 		for _, event := range st.Events {
-			if canView(event, user.Handle, sess.UserID) {
+			if canView(&st, event, user.Handle, sess.UserID) {
 				out.Events = append(out.Events, event)
 			}
 		}
@@ -233,6 +238,7 @@ func (s *Service) ExportAccount(token string) (AccountExport, error) {
 			}
 		}
 		sort.Slice(out.Events, func(i, j int) bool { return out.Events[i].StartUTC.Before(out.Events[j].StartUTC) })
+		sort.Slice(out.Calendars, func(i, j int) bool { return out.Calendars[i].Name < out.Calendars[j].Name })
 		sort.Slice(out.Changes, func(i, j int) bool { return out.Changes[i].CreatedAt.Before(out.Changes[j].CreatedAt) })
 		return nil
 	})
@@ -250,6 +256,22 @@ func (s *Service) DeleteAccount(token, confirmation string) error {
 		}
 		user := st.Users[sess.UserID]
 		ownedEvents := map[string]bool{}
+		ownedCalendars := map[string]bool{}
+		for id, calendar := range st.SharedCalendars {
+			if calendar.OwnerID == sess.UserID {
+				ownedCalendars[id] = true
+				delete(st.SharedCalendars, id)
+				continue
+			}
+			shares := calendar.Shares[:0]
+			for _, share := range calendar.Shares {
+				if share.Handle != user.Handle {
+					shares = append(shares, share)
+				}
+			}
+			calendar.Shares = shares
+			st.SharedCalendars[id] = calendar
+		}
 		for id, event := range st.Events {
 			if event.OwnerID == sess.UserID {
 				ownedEvents[id] = true
@@ -273,6 +295,9 @@ func (s *Service) DeleteAccount(token, confirmation string) error {
 				if comment.Author != user.Handle {
 					comments = append(comments, comment)
 				}
+			}
+			if ownedCalendars[event.CalendarID] {
+				event.CalendarID = "personal"
 			}
 			event.Invites, event.Shares, event.Comments = invites, shares, comments
 			st.Events[id] = event
@@ -308,6 +333,120 @@ func (s *Service) DeleteAccount(token, confirmation string) error {
 	})
 }
 
+func (s *Service) Calendars(token string) ([]SharedCalendar, error) {
+	var out []SharedCalendar
+	err := s.store.view(func(st State) error {
+		sess, err := s.session(&st, token)
+		if err != nil {
+			return err
+		}
+		user := st.Users[sess.UserID]
+		for _, calendar := range st.SharedCalendars {
+			if calendar.OwnerID == sess.UserID || calendarRole(calendar, user.Handle) != "" {
+				out = append(out, calendar)
+			}
+		}
+		sort.Slice(out, func(i, j int) bool { return out[i].Name < out[j].Name })
+		return nil
+	})
+	return out, err
+}
+
+func (s *Service) CreateCalendar(token, name, color string) (SharedCalendar, error) {
+	name, color = strings.TrimSpace(name), strings.ToLower(strings.TrimSpace(color))
+	if color == "" {
+		color = "blue"
+	}
+	if len([]rune(name)) < 1 || len([]rune(name)) > 80 || !validCalendarColor(color) {
+		return SharedCalendar{}, errors.New("shared calendar name or color is invalid")
+	}
+	var out SharedCalendar
+	err := s.store.update(func(st *State) error {
+		sess, err := s.session(st, token)
+		if err != nil {
+			return err
+		}
+		owner := st.Users[sess.UserID]
+		now := s.now().UTC()
+		out = SharedCalendar{ID: s.id("calendar"), OwnerID: owner.ID, OwnerHandle: owner.Handle, Name: name, Color: color, Version: 1, CreatedAt: now, UpdatedAt: now}
+		st.SharedCalendars[out.ID] = out
+		s.audit(st, sess.UserID, "calendar_created", out.ID, map[string]any{"name": name})
+		return nil
+	})
+	return out, err
+}
+
+func (s *Service) ShareCalendar(token, calendarID, handle, role string) (SharedCalendar, error) {
+	handle, role = strings.TrimSpace(handle), strings.ToLower(strings.TrimSpace(role))
+	if !handlePattern.MatchString(handle) || (role != "editor" && role != "viewer") {
+		return SharedCalendar{}, errors.New("shared calendar handle or role is invalid")
+	}
+	var out SharedCalendar
+	err := s.store.update(func(st *State) error {
+		sess, err := s.session(st, token)
+		if err != nil {
+			return err
+		}
+		calendar, ok := st.SharedCalendars[calendarID]
+		if !ok || calendar.OwnerID != sess.UserID || handle == calendar.OwnerHandle {
+			return ErrUnauthorized
+		}
+		if _, ok := userByHandle(st, handle); !ok {
+			return errors.New("unknown YNX contact")
+		}
+		updated := false
+		for index := range calendar.Shares {
+			if calendar.Shares[index].Handle == handle {
+				calendar.Shares[index].Role = role
+				updated = true
+			}
+		}
+		if !updated {
+			calendar.Shares = append(calendar.Shares, Share{Handle: handle, Role: role})
+		}
+		calendar.Version++
+		calendar.UpdatedAt = s.now().UTC()
+		st.SharedCalendars[calendar.ID] = calendar
+		s.audit(st, sess.UserID, "calendar_permission_changed", calendar.ID, map[string]any{"contact": handle, "role": role})
+		out = calendar
+		return nil
+	})
+	return out, err
+}
+
+func (s *Service) UnshareCalendar(token, calendarID, handle string) (SharedCalendar, error) {
+	var out SharedCalendar
+	err := s.store.update(func(st *State) error {
+		sess, err := s.session(st, token)
+		if err != nil {
+			return err
+		}
+		calendar, ok := st.SharedCalendars[calendarID]
+		if !ok || calendar.OwnerID != sess.UserID {
+			return ErrUnauthorized
+		}
+		shares, found := calendar.Shares[:0], false
+		for _, share := range calendar.Shares {
+			if share.Handle == handle {
+				found = true
+				continue
+			}
+			shares = append(shares, share)
+		}
+		if !found {
+			return errors.New("calendar permission not found")
+		}
+		calendar.Shares = shares
+		calendar.Version++
+		calendar.UpdatedAt = s.now().UTC()
+		st.SharedCalendars[calendar.ID] = calendar
+		s.audit(st, sess.UserID, "calendar_permission_revoked", calendar.ID, map[string]any{"contact": handle})
+		out = calendar
+		return nil
+	})
+	return out, err
+}
+
 func (s *Service) PreviewCreate(token string, input EventInput) (ChangePreview, error) {
 	var out ChangePreview
 	err := s.store.update(func(st *State) error {
@@ -320,6 +459,9 @@ func (s *Service) PreviewCreate(token string, input EventInput) (ChangePreview, 
 			return nil
 		}
 		owner := st.Users[sess.UserID]
+		if e = validateCalendarWrite(st, input.CalendarID, sess.UserID); e != nil {
+			return e
+		}
 		event, e := s.eventFromInput(owner, input)
 		if e != nil {
 			return e
@@ -367,6 +509,9 @@ func (s *Service) previewUpdate(token, eventID string, input EventInput, scope s
 			return ErrVersionConflict
 		}
 		owner := st.Users[before.OwnerID]
+		if e = validateCalendarWrite(st, input.CalendarID, sess.UserID); e != nil {
+			return e
+		}
 		after, e := s.eventFromInput(owner, input)
 		if e != nil {
 			return e
@@ -851,7 +996,7 @@ func (s *Service) AddComment(token, eventID, body string) (Event, error) {
 		}
 		user := st.Users[sess.UserID]
 		event, ok := st.Events[eventID]
-		if !ok || event.State == "cancelled" || !canView(event, user.Handle, sess.UserID) {
+		if !ok || event.State == "cancelled" || !canView(st, event, user.Handle, sess.UserID) {
 			return ErrUnauthorized
 		}
 		comment := Comment{ID: s.id("comment"), Author: user.Handle, Body: body, CreatedAt: s.now().UTC()}
@@ -875,7 +1020,7 @@ func (s *Service) Events(token string, from, to time.Time) ([]Occurrence, error)
 		}
 		user := st.Users[sess.UserID]
 		for _, event := range st.Events {
-			if event.State == "cancelled" || !canView(event, user.Handle, sess.UserID) {
+			if event.State == "cancelled" || !canView(&st, event, user.Handle, sess.UserID) {
 				continue
 			}
 			for _, occ := range expand(event, from, to) {
@@ -900,7 +1045,7 @@ func (s *Service) Event(token, eventID string) (Event, error) {
 			return errors.New("event not found")
 		}
 		user := st.Users[sess.UserID]
-		if !canView(event, user.Handle, sess.UserID) {
+		if !canView(&st, event, user.Handle, sess.UserID) {
 			return ErrUnauthorized
 		}
 		out = event
@@ -983,7 +1128,7 @@ func (s *Service) BeginAI(ctx context.Context, token, kind string, eventIDs []st
 		var titles []string
 		for _, id := range eventIDs {
 			event, ok := st.Events[id]
-			if !ok || !canView(event, user.Handle, sess.UserID) {
+			if !ok || !canView(st, event, user.Handle, sess.UserID) {
 				return ErrUnauthorized
 			}
 			titles = append(titles, event.Title)
@@ -1133,7 +1278,7 @@ func (s *Service) eventFromInput(owner User, input EventInput) (Event, error) {
 	if input.CalendarID == "" {
 		input.CalendarID = "personal"
 	}
-	if input.CalendarID != "personal" && input.CalendarID != "team" && input.CalendarID != "shared" {
+	if input.CalendarID != "personal" && input.CalendarID != "team" && input.CalendarID != "shared" && (!strings.HasPrefix(input.CalendarID, "calendar_") || len(input.CalendarID) > 100) {
 		return Event{}, errors.New("invalid calendar classification")
 	}
 	input.Privacy = strings.TrimSpace(input.Privacy)
@@ -1147,7 +1292,7 @@ func (s *Service) eventFromInput(owner User, input EventInput) (Event, error) {
 	if input.Color == "" {
 		input.Color = "blue"
 	}
-	if !map[string]bool{"blue": true, "slate": true, "green": true, "amber": true, "red": true, "violet": true}[input.Color] {
+	if !validCalendarColor(input.Color) {
 		return Event{}, errors.New("invalid calendar color")
 	}
 	if len(input.AttachmentLinks) > 10 {
@@ -1570,8 +1715,36 @@ func (s *Service) conflicts(st *State, candidate Event, exclude string) []Confli
 	}
 	return out
 }
-func canView(e Event, handle, userID string) bool {
+func validCalendarColor(color string) bool {
+	return map[string]bool{"blue": true, "slate": true, "green": true, "amber": true, "red": true, "violet": true}[color]
+}
+func calendarRole(calendar SharedCalendar, handle string) string {
+	for _, share := range calendar.Shares {
+		if share.Handle == handle {
+			return share.Role
+		}
+	}
+	return ""
+}
+func validateCalendarWrite(st *State, calendarID, userID string) error {
+	calendarID = strings.TrimSpace(calendarID)
+	if calendarID == "" || calendarID == "personal" || calendarID == "team" || calendarID == "shared" {
+		return nil
+	}
+	calendar, ok := st.SharedCalendars[calendarID]
+	if !ok {
+		return errors.New("shared calendar not found")
+	}
+	if calendar.OwnerID == userID || calendarRole(calendar, st.Users[userID].Handle) == "editor" {
+		return nil
+	}
+	return ErrUnauthorized
+}
+func canView(st *State, e Event, handle, userID string) bool {
 	if e.OwnerID == userID {
+		return true
+	}
+	if calendar, ok := st.SharedCalendars[e.CalendarID]; ok && (calendar.OwnerID == userID || calendarRole(calendar, handle) != "") {
 		return true
 	}
 	for _, i := range e.Invites {
@@ -1591,6 +1764,9 @@ func canEdit(st *State, e Event, userID string) bool {
 		return true
 	}
 	u := st.Users[userID]
+	if calendar, ok := st.SharedCalendars[e.CalendarID]; ok && (calendar.OwnerID == userID || calendarRole(calendar, u.Handle) == "editor") {
+		return true
+	}
 	for _, sh := range e.Shares {
 		if sh.Handle == u.Handle && sh.Role == "editor" {
 			return true

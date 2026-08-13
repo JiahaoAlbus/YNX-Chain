@@ -32,6 +32,10 @@ func NewHandlerWithBuild(service *Service, build buildinfo.Info) http.Handler {
 	mux.HandleFunc("GET /v1/auth/session", s.account)
 	mux.HandleFunc("DELETE /v1/auth/session", s.revoke)
 	mux.HandleFunc("GET /v1/events", s.events)
+	mux.HandleFunc("GET /v1/calendars", s.calendars)
+	mux.HandleFunc("POST /v1/calendars", s.createCalendar)
+	mux.HandleFunc("POST /v1/calendars/{id}/shares", s.shareCalendar)
+	mux.HandleFunc("DELETE /v1/calendars/{id}/shares/{handle}", s.unshareCalendar)
 	mux.HandleFunc("GET /v1/events/{id}", s.event)
 	mux.HandleFunc("POST /v1/events/preview", s.previewCreate)
 	mux.HandleFunc("POST /v1/events/{id}/preview", s.previewUpdate)
@@ -105,6 +109,36 @@ func (s *Server) events(w http.ResponseWriter, r *http.Request) {
 	}
 	v, e := s.service.Events(bearer(r), from, to)
 	respond(w, v, e)
+}
+func (s *Server) calendars(w http.ResponseWriter, r *http.Request) {
+	out, e := s.service.Calendars(bearer(r))
+	respond(w, out, e)
+}
+func (s *Server) createCalendar(w http.ResponseWriter, r *http.Request) {
+	var v struct {
+		Name  string `json:"name"`
+		Color string `json:"color"`
+	}
+	if !decode(w, r, &v, 4<<10) {
+		return
+	}
+	out, e := s.service.CreateCalendar(bearer(r), v.Name, v.Color)
+	respond(w, out, e)
+}
+func (s *Server) shareCalendar(w http.ResponseWriter, r *http.Request) {
+	var v struct {
+		Handle string `json:"handle"`
+		Role   string `json:"role"`
+	}
+	if !decode(w, r, &v, 2<<10) {
+		return
+	}
+	out, e := s.service.ShareCalendar(bearer(r), r.PathValue("id"), v.Handle, v.Role)
+	respond(w, out, e)
+}
+func (s *Server) unshareCalendar(w http.ResponseWriter, r *http.Request) {
+	out, e := s.service.UnshareCalendar(bearer(r), r.PathValue("id"), "@"+strings.TrimPrefix(r.PathValue("handle"), "@"))
+	respond(w, out, e)
 }
 func (s *Server) event(w http.ResponseWriter, r *http.Request) {
 	out, e := s.service.Event(bearer(r), r.PathValue("id"))

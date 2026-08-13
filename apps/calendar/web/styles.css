@@ -245,6 +245,33 @@ button {
   gap: 8px;
   font-size: 13px;
 }
+.shared-calendar-list {
+  display: grid;
+  gap: 6px;
+  margin-top: 12px;
+}
+.shared-calendar-chip {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  display: grid;
+  grid-template-columns: 10px 1fr;
+  padding: 4px 0;
+  text-align: start;
+}
+.shared-calendar-chip span:first-child {
+  background: var(--blue);
+  border-radius: 50%;
+  height: 8px;
+  width: 8px;
+}
+.shared-calendar-chip span[data-color="slate"] { background: #667085; }
+.shared-calendar-chip span[data-color="green"] { background: #16835b; }
+.shared-calendar-chip span[data-color="amber"] { background: #b54708; }
+.shared-calendar-chip span[data-color="red"] { background: #b42318; }
+.shared-calendar-chip span[data-color="violet"] { background: #6938ef; }
+.shared-calendar-chip small { color: var(--muted); display: block; }
+.shared-calendar-manage { margin-top: 10px; width: 100%; }
 .dot {
   width: 9px;
   height: 9px;

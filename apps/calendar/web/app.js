@@ -13,6 +13,7 @@ const state = {
   aiJob: null,
   searchQuery: "",
   recurrenceEdit: null,
+  calendars: [],
 };
 const guestEventsKey = "ynx.calendar.guestEvents";
 if ((navigator.language || "").toLowerCase().startsWith("ar")) {
@@ -93,6 +94,8 @@ function signOut(show = true) {
   state.token = "";
   state.user = null;
   state.guest = false;
+  state.calendars = [];
+  renderCalendarCatalog();
   $("#signin").hidden = false;
   if (show) toast("Calendar session revoked");
 }
@@ -281,6 +284,45 @@ async function loadEvents() {
     toast(e.message);
   } finally {
     $("#app").setAttribute("aria-busy", "false");
+  }
+}
+function calendarRole(calendar) {
+  if (calendar.owner_handle === state.user?.handle) return "owner";
+  return calendar.shares?.find((share) => share.handle === state.user?.handle)?.role || "";
+}
+function renderCalendarCatalog() {
+  const select = $("#calendar-id");
+  select.querySelectorAll("option[data-shared]").forEach((option) => option.remove());
+  for (const calendar of state.calendars) {
+    if (["owner", "editor"].includes(calendarRole(calendar))) {
+      const option = document.createElement("option");
+      option.value = calendar.id;
+      option.dataset.shared = "true";
+      option.textContent = `${calendar.name} · ${calendarRole(calendar)}`;
+      select.append(option);
+    }
+  }
+  const list = $("#shared-calendar-list");
+  list.replaceChildren();
+  for (const calendar of state.calendars) {
+    const button = document.createElement("button");
+    button.className = "shared-calendar-chip";
+    button.innerHTML = `<span data-color="${escapeHTML(calendar.color)}"></span><span>${escapeHTML(calendar.name)}<small>${escapeHTML(calendarRole(calendar))} · ${calendar.shares?.length || 0} member${calendar.shares?.length === 1 ? "" : "s"}</small></span>`;
+    button.onclick = showCalendarManager;
+    list.append(button);
+  }
+}
+async function loadCalendars() {
+  if (!state.token) {
+    state.calendars = [];
+    renderCalendarCatalog();
+    return;
+  }
+  try {
+    state.calendars = (await api("/v1/calendars")) || [];
+    renderCalendarCatalog();
+  } catch (error) {
+    toast(error.message);
   }
 }
 function renderEvents() {
@@ -859,6 +901,7 @@ function init() {
         .replace("@", "")
         .slice(0, 2)
         .toUpperCase();
+      await loadCalendars();
       await loadEvents();
       syncOffline();
     } else $("#signin").hidden = false;
@@ -868,6 +911,7 @@ function init() {
   $("#guest-try").onclick = enterGuest;
   $("#account").onclick = () => state.guest ? showGuestAccount() : showAccount();
   $("#new-event").onclick = () => openForm();
+  $("#manage-calendars").onclick = showCalendarManager;
   $("#event-form").onsubmit = submitEvent;
   $("#approve-change").onclick = approveChange;
   $("#edit-change").onclick = () => {
@@ -936,6 +980,58 @@ addEventListener("ynx:locale", () => {
 });
   updateNetwork();
   if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js");
+}
+function showCalendarManager() {
+  if (!state.token) {
+    toast("Sign in with YNX Wallet to create and share server-backed calendars");
+    return;
+  }
+  const dialog = document.createElement("dialog");
+  dialog.className = "change-dialog";
+  const rows = state.calendars.map((calendar) => {
+    const role = calendarRole(calendar);
+    const members = calendar.shares?.map((share) => `${escapeHTML(share.handle)} · ${escapeHTML(share.role)}`).join("<br>") || "No members yet";
+    return `<section class="permission"><span class="eyebrow">${escapeHTML(role)}</span><h3>${escapeHTML(calendar.name)}</h3><p>${members}</p>${role === "owner" ? `<div class="detail-actions"><button class="quiet" data-share-calendar="${escapeHTML(calendar.id)}">Add or change member</button><button class="quiet" data-revoke-calendar="${escapeHTML(calendar.id)}">Revoke member</button></div>` : ""}</section>`;
+  }).join("");
+  dialog.innerHTML = `<div class="change-card"><span class="eyebrow">Shared calendars</span><h2>Calendars and permissions</h2><p>Owners manage membership. Editors can schedule; viewers can read. Every permission change is audited.</p>${rows || "<p>No shared calendars yet.</p>"}<div class="detail-actions"><button class="quiet" data-action="create">Create shared calendar</button><button class="primary" data-action="close">Close</button></div></div>`;
+  document.body.append(dialog);
+  dialog.addEventListener("close", () => dialog.remove());
+  dialog.querySelector('[data-action="close"]').onclick = () => dialog.close();
+  dialog.querySelector('[data-action="create"]').onclick = async () => {
+    const name = prompt("Shared calendar name (1–80 characters)");
+    if (!name) return;
+    const color = prompt("Color: blue, slate, green, amber, red, or violet", "blue");
+    if (!color) return;
+    try {
+      await api("/v1/calendars", { method: "POST", body: JSON.stringify({ name, color }) });
+      await loadCalendars();
+      dialog.close();
+      showCalendarManager();
+    } catch (error) { toast(error.message); }
+  };
+  dialog.querySelectorAll("[data-share-calendar]").forEach((button) => button.onclick = async () => {
+    const handle = prompt("Member @handle");
+    if (!handle) return;
+    const role = prompt("Role: viewer or editor", "viewer");
+    if (!role || !confirm(`Grant ${handle} the ${role} role?`)) return;
+    try {
+      await api(`/v1/calendars/${button.dataset.shareCalendar}/shares`, { method: "POST", body: JSON.stringify({ handle, role }) });
+      await loadCalendars();
+      dialog.close();
+      showCalendarManager();
+    } catch (error) { toast(error.message); }
+  });
+  dialog.querySelectorAll("[data-revoke-calendar]").forEach((button) => button.onclick = async () => {
+    const handle = prompt("Revoke which @handle?");
+    if (!handle || !confirm(`Revoke ${handle} from this calendar?`)) return;
+    try {
+      await api(`/v1/calendars/${button.dataset.revokeCalendar}/shares/${encodeURIComponent(handle.replace(/^@/, ""))}`, { method: "DELETE" });
+      await loadCalendars();
+      dialog.close();
+      showCalendarManager();
+    } catch (error) { toast(error.message); }
+  });
+  dialog.showModal();
 }
 async function showAccount() {
   const dialog = document.createElement("dialog");

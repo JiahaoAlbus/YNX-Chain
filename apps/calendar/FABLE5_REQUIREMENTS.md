@@ -15,7 +15,7 @@ also names direct evidence.
 | Title / description / location / link | Service + Web implemented | Round-trip and browser proof | Public build `78e0f2d3` exposes all fields |
 | Start / end / all-day / time zone | Service + Web implemented | Round-trip, invalid-zone and DST tests | Public build `78e0f2d3` exposes all fields |
 | Reminder | Persistent local channel implemented | Restart/no-duplicate test | Mail/push provider delivery is not integrated |
-| Color / personal / team / shared classification | Service + Web implemented | Round-trip and browser proof | Calendar collection membership is metadata; independent shared-calendar object is not complete |
+| Color / personal / team / shared classification | Versioned shared-calendar objects, colors and event membership implemented | Round-trip, owner/editor/viewer/revoke tests | Public deployment and interactive shared-calendar proof remain |
 | Search | Web occurrence search implemented | Browser exact/no-result proof | Public build `78e0f2d3`; server-side full-text indexing is not implemented |
 | Cloud attachment references | Bounded HTTPS references implemented | Unsafe Wallet-authority link rejection | YNX Cloud authorization and attachment lifecycle are not integrated |
 | Offline / recovery | Approval-preserving queue + authenticated backup/restore | Unit, browser and statectl drills | Cross-device sync and production restore are not accepted |
@@ -28,7 +28,7 @@ also names direct evidence.
 | Interval / ByDay / ByMonthDay / count / end date | Service + Web implemented | Boundary and DST tests | Browser proof covers interval/ByDay; full UI matrix still required |
 | Single occurrence / future / entire series update | Service and event-inspector controls implemented | Atomic/replay/recovery/browser tests | Public interactive proof remains |
 | Recurrence cancellation / recovery / DST | Service implemented | Dedicated unit tests | Public interactive proof remains |
-| Owner / editor / viewer share and revoke | Service + inspector action implemented | Authorization/revoke tests | Availability-only ACL and polished permission editor remain |
+| Owner / editor / viewer share and revoke | Shared-calendar lifecycle and permission manager implemented | Owner/editor/viewer/revoke tests | Availability-only ACL and public interactive permission proof remain |
 | Conflict overlap / recurrence / time zone | Service preview implemented | Unit conflict tests | Travel/buffer and authorized attendee availability are not implemented |
 | Alternative-time suggestions | AI adapter supports bounded proposal | Provider failure and approval tests | Real public provider success is not proved |
 | AI agenda / conflict explanation / follow-up | Context preview, approve, cancel, apply/reject implemented | Unit tests | AI does not mutate events; public provider availability remains unproved |
@@ -36,7 +36,7 @@ also names direct evidence.
 | A11y / dark / reduced motion / 390 px | Web implemented | Browser automated names + screenshots | Current-source public English UI and guest creation rerun with ComputerControl |
 | Web / Android / iOS / macOS | Source projects present | Web proven; historical native checks | Current-source Android/iOS/macOS install and cold launch remain |
 | Two-user Event→Invite→RSVP→Update→Cancel | Service test implemented | Unit test | Real public two-user Wallet flow remains |
-| Shared Calendar / permission end-to-end | Partial | Owner/editor/viewer tests | Dedicated shared-calendar lifecycle remains |
+| Shared Calendar / permission end-to-end | Create/list/share/role-change/revoke plus event access implemented | Dedicated owner/editor/viewer/revoke lifecycle test | Public two-user Wallet proof remains |
 | Mail notification | Contract dependency only | No public end-to-end proof | Must integrate product 25 |
 | `/calendar` micro-site and hosted artifacts | Metadata exists | Release schema checks | Website route and immutable current-source downloads remain |
 

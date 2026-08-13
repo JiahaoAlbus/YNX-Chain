@@ -585,6 +585,62 @@ func TestOccurrenceCancellationDoesNotRequireUnrelatedConflictOverride(t *testin
 	}
 }
 
+func TestSharedCalendarLifecycleAndRoles(t *testing.T) {
+	svc := newTestService(t, "")
+	alice, _, _ := signIn(t, svc, "@alice", "ynx1alice")
+	bob, _, _ := signIn(t, svc, "@bob", "ynx1bob")
+	calendar, err := svc.CreateCalendar(alice, "Protocol team", "violet")
+	if err != nil || calendar.OwnerHandle != "@alice" || calendar.Version != 1 {
+		t.Fatalf("shared calendar not created: %#v %v", calendar, err)
+	}
+	if _, err = svc.ShareCalendar(alice, calendar.ID, "@missing", "viewer"); err == nil {
+		t.Fatal("unknown shared-calendar contact accepted")
+	}
+	calendar, err = svc.ShareCalendar(alice, calendar.ID, "@bob", "viewer")
+	if err != nil || len(calendar.Shares) != 1 || calendar.Shares[0].Role != "viewer" {
+		t.Fatalf("viewer permission not persisted: %#v %v", calendar, err)
+	}
+	in := input("Shared protocol review", "2026-08-20T10:00", "2026-08-20T11:00", "UTC", "shared-calendar-event")
+	in.CalendarID = calendar.ID
+	preview, err := svc.PreviewCreate(alice, in)
+	if err != nil {
+		t.Fatal(err)
+	}
+	event, err := svc.ApproveChange(alice, preview.ID, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = svc.Event(bob, event.ID); err != nil {
+		t.Fatalf("viewer could not read shared-calendar event: %v", err)
+	}
+	update := in
+	update.Title = "Viewer must not edit"
+	update.ClientMutationID = "shared-viewer-edit"
+	update.BaseVersion = event.Version
+	if _, err = svc.PreviewUpdate(bob, event.ID, update); !errors.Is(err, ErrUnauthorized) {
+		t.Fatalf("viewer edited shared-calendar event: %v", err)
+	}
+	calendar, err = svc.ShareCalendar(alice, calendar.ID, "@bob", "editor")
+	if err != nil || calendar.Shares[0].Role != "editor" {
+		t.Fatal("editor permission change failed")
+	}
+	update.Title = "Editor-reviewed shared event"
+	update.ClientMutationID = "shared-editor-edit"
+	change, err := svc.PreviewUpdate(bob, event.ID, update)
+	if err != nil {
+		t.Fatalf("editor update preview failed: %v", err)
+	}
+	if _, err = svc.ApproveChange(bob, change.ID, false); err != nil {
+		t.Fatalf("editor update approval failed: %v", err)
+	}
+	if _, err = svc.UnshareCalendar(alice, calendar.ID, "@bob"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = svc.Event(bob, event.ID); !errors.Is(err, ErrUnauthorized) {
+		t.Fatalf("revoked viewer retained shared-calendar access: %v", err)
+	}
+}
+
 func TestInviteRSVPShareUpdateCancelRevertAndAuthorization(t *testing.T) {
 	svc := newTestService(t, "")
 	alice, aliceUser, _ := signIn(t, svc, "@alice", "ynx1alice")
