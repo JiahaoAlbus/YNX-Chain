@@ -1,6 +1,12 @@
 {
   "name": "@ynx-chain/wallet-desktop",
   "version": "0.1.0",
+  "description": "Fail-closed YNX Testnet Wallet desktop engineering preview",
+  "homepage": "https://www.ynxweb4.com/wallet",
+  "author": {
+    "name": "YNX Chain",
+    "email": "support@ynxweb4.com"
+  },
   "private": true,
   "type": "module",
   "main": "src/main.mjs",
@@ -33,6 +39,7 @@
     "linux": {
       "target": ["deb", "AppImage"],
       "category": "Utility",
+      "maintainer": "YNX Chain <support@ynxweb4.com>",
       "executableName": "ynx-wallet-desktop",
       "synopsis": "Fail-closed YNX Testnet Wallet desktop preview",
       "description": "YNX Wallet desktop engineering preview consuming the frozen wallet-auth contract."
