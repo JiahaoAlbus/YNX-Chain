@@ -1,0 +1,26 @@
+{
+  "schemaVersion": "1.0.0",
+  "observedAt": "2026-08-13T13:55:00Z",
+  "network": "Hardhat local isolated dexTest; not public Testnet",
+  "results": [
+    {
+      "capability": "concentrated-liquidity-accounting",
+      "sourceCommit": "83407d5d",
+      "result": "passed",
+      "coverage": "64 stateful tick/range vectors, 32 exact fee vectors, 16 arbitrary round-down fee vectors",
+      "deployGas": 1259688
+    },
+    {
+      "capability": "fairflow-uniform-batch-and-solver",
+      "sourceCommit": "64864776",
+      "result": "passed",
+      "coverage": "32 differential vectors plus bonded solver, cancellation, timeout and adversarial boundaries",
+      "deployGas": 3825894,
+      "twoIntentSettlementGas": 252191
+    }
+  ],
+  "publicDeployment": false,
+  "productionLiquidity": false,
+  "externalAudit": false,
+  "truth": "These are local reviewed candidates. The public chain-native CPMM remains the only deployed DEX execution path."
+}
