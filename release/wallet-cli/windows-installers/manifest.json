@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "95bd2aad56bd8b72246f3f0e9529d699f09550ad",
+  "generatedAt": "2026-08-13T12:01:09.000Z",
+  "reproducibilityBoundary": "same host and Info-ZIP toolchain with stripped extra fields, stable order and source-commit timestamps",
+  "artifacts": [
+    {
+      "path": "release/wallet-cli/windows-installers/ynx-wallet-cli-windows-x64-installer.zip",
+      "format": "zip PowerShell user installer",
+      "architecture": "x64",
+      "bytes": 5041844,
+      "sha256": "8bc1c91622698ac07ab85ac435a71695f72f26b37aa82b25501d5bacb5e72134",
+      "binaryBytes": 9218048,
+      "binarySha256": "f04fee3ac493269773320c170ddbfda52a20b6b7a498cacf0947b24b7c77b7f6",
+      "minimumOS": "Windows 10 or Windows Server 2016",
+      "signingClass": "unsigned_windows_user_installer_candidate",
+      "runtimeTested": false,
+      "productionSigned": false
+    },
+    {
+      "path": "release/wallet-cli/windows-installers/ynx-wallet-cli-windows-arm64-installer.zip",
+      "format": "zip PowerShell user installer",
+      "architecture": "arm64",
+      "bytes": 4586536,
+      "sha256": "8e2e1b173b8de63a93a368f658e318cbc4ac142af9345d3010a3e0957ef130fc",
+      "binaryBytes": 8487424,
+      "binarySha256": "a99614f399643f44ffd9beef484d306d4b3b62971010cd3dce8c4ee79164ff9f",
+      "minimumOS": "Windows 10 or Windows Server 2016",
+      "signingClass": "unsigned_windows_user_installer_candidate",
+      "runtimeTested": false,
+      "productionSigned": false
+    }
+  ]
+}

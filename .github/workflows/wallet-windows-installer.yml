@@ -1,0 +1,61 @@
+name: Wallet Windows installer
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [codex/wallet-desktop-cli-sdk-20260813]
+    paths:
+      - release/wallet-cli/windows-installers/**
+      - packages/wallet-auth/testdata/product-session-http-proof-v1.json
+      - .github/workflows/wallet-windows-installer.yml
+
+permissions:
+  contents: read
+
+jobs:
+  x64-lifecycle:
+    runs-on: windows-2025
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - name: Install, launch, upgrade, verify Testnet and uninstall
+        shell: pwsh
+        run: |
+          $archive = 'release/wallet-cli/windows-installers/ynx-wallet-cli-windows-x64-installer.zip'
+          $first = Join-Path $env:RUNNER_TEMP 'wallet-first'
+          $second = Join-Path $env:RUNNER_TEMP 'wallet-second'
+          Expand-Archive $archive $first
+          Expand-Archive $archive $second
+          & (Join-Path $first 'install.ps1')
+          $exe = Join-Path $env:LOCALAPPDATA 'YNX Wallet CLI/ynx-wallet-cli.exe'
+          $cold = & $exe version | ConvertFrom-Json
+          $secondStart = & $exe version | ConvertFrom-Json
+          if ($cold.version -ne '95bd2aad56bd8b72246f3f0e9529d699f09550ad' -or $secondStart.version -ne $cold.version) { throw 'launch identity mismatch' }
+          & (Join-Path $second 'install.ps1')
+          $vector = & $exe verify-vector -file 'packages/wallet-auth/testdata/product-session-http-proof-v1.json' | ConvertFrom-Json
+          $sign = & $exe sign-self-test | ConvertFrom-Json
+          $chain = & $exe chain-status -timeout 15s | ConvertFrom-Json
+          if (-not $vector.verified -or -not $sign.verified -or $sign.privateKeyPersisted -or $chain.chainId -ne '0x1917') { throw 'runtime verification failed' }
+          & (Join-Path $first 'uninstall.ps1')
+          if (Test-Path $exe) { throw 'uninstall did not remove executable' }
+          @{architecture='x64';installed=$true;coldStart=$true;secondStart=$true;upgradeVerified=$true;vectorVerified=$true;signingVerified=$true;privateKeyPersisted=$false;chainId='0x1917';uninstallVerified=$true;productionSigned=$false} | ConvertTo-Json -Compress | Tee-Object 'release/wallet-cli/windows-installers/windows-x64-lifecycle-evidence.json'
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: wallet-windows-x64-evidence
+          path: release/wallet-cli/windows-installers/windows-x64-lifecycle-evidence.json
+          if-no-files-found: error
+
+  arm64-static:
+    runs-on: windows-2025
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - name: Validate arm64 installer contents without execution
+        shell: pwsh
+        run: |
+          $root = Join-Path $env:RUNNER_TEMP 'wallet-arm64'
+          Expand-Archive 'release/wallet-cli/windows-installers/ynx-wallet-cli-windows-arm64-installer.zip' $root
+          $manifest = Get-Content (Join-Path $root 'manifest.json') -Raw | ConvertFrom-Json
+          $actual = (Get-FileHash (Join-Path $root 'ynx-wallet-cli.exe') -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($manifest.architecture -ne 'arm64' -or $actual -ne $manifest.binarySha256) { throw 'arm64 static validation failed' }
+          @{architecture='arm64';built=$true;staticChecked=$true;installed=$false;runtimeTested=$false;productionSigned=$false} | ConvertTo-Json -Compress
