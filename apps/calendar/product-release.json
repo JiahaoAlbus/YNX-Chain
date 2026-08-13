@@ -2,10 +2,10 @@
   "productId": "com.ynx.calendar",
   "name": "YNX Calendar",
   "branch": "codex/final-calendar",
-  "commit": "fb98415c90379f9819eaebcf30292fafda132ca3",
-  "sourceCommit": "fb98415c90379f9819eaebcf30292fafda132ca3",
+  "commit": "73d0a66f8143b7a87d4a2f55125ae784a40433dc",
+  "sourceCommit": "73d0a66f8143b7a87d4a2f55125ae784a40433dc",
   "artifactSourceCommit": null,
-  "version": "0.2.0-testnet-public",
+  "version": "0.3.3-testnet-public",
   "releaseChannel": "public-testnet-preview",
   "surfaces": [
     "android-native",
@@ -68,7 +68,7 @@
   "publicProbe": {
     "url": "https://calendar-testnet.43.153.202.237.sslip.io/",
     "finalUrl": "https://calendar-testnet.43.153.202.237.sslip.io/",
-    "observedAt": "2026-08-08T18:57:46Z",
+    "observedAt": "2026-08-13T10:42:53Z",
     "httpStatus": 200,
     "contentMatch": true,
     "observedTitle": "YNX Calendar",
@@ -165,16 +165,20 @@
       "result": "pass"
     },
     {
-      "sourceCommit": "fb98415c90379f9819eaebcf30292fafda132ca3",
-      "gate": "390px compact week browser proof and public runtime deployment",
+      "sourceCommit": "73d0a66f8143b7a87d4a2f55125ae784a40433dc",
+      "gate": "private activity notifications, 390px browser proof, public deployment and ComputerControl",
       "result": "pass",
       "details": {
         "visibleDayHeaders": 7,
         "horizontalOverflow": 0,
         "consoleErrors": 0,
         "runtime": "https://calendar-testnet.43.153.202.237.sslip.io/",
-        "binarySha256": "18d03deb535fd2df14ea755bdfa34bdd8604d51e9b16c485ad1cc990717ba0fe",
-        "rollbackBackup": "/var/backups/ynx-chain/calendar-before-fb98415c"
+        "activityNotifications": ["invite", "RSVP", "comment", "permission", "revoke", "mark-read"],
+        "availabilityPrivacy": "pass",
+        "publicConcurrentHealth": "100/100 at parallelism 50",
+        "computerControl": "public notification control visible; guest access fails closed",
+        "binarySha256": "50efb67246238477c3d7ee24105c0fa7fbe3c36ca34eb12973a913d5e567b522",
+        "rollbackBackup": "/var/backups/ynx-chain/calendar-before-73d0a66f/ynx-calendard"
       }
     }
   ],

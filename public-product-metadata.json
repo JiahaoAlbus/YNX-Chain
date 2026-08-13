@@ -4,7 +4,7 @@
   "name": "YNX Calendar",
   "aliases": ["Calendar", "YNX 日历", "YNX 日曆"],
   "canonicalRoute": "/dapp/calendar",
-  "sourceCommit": "fb98415c90379f9819eaebcf30292fafda132ca3",
+  "sourceCommit": "73d0a66f8143b7a87d4a2f55125ae784a40433dc",
   "title": "YNX Calendar — Private scheduling with explicit approval",
   "metaDescription": "Plan events, recurring schedules, invitations, RSVP, sharing and conflict review with timezone-aware scheduling and explicit user approval.",
   "h1": "Your time, clearly under your control",
@@ -86,14 +86,14 @@
       "id": "calendar-desktop",
       "publicPath": "/products/calendar/screenshots/calendar-desktop.png",
       "status": "local-proof-unhosted",
-      "sourceCommit": "fb98415c90379f9819eaebcf30292fafda132ca3",
+      "sourceCommit": "73d0a66f8143b7a87d4a2f55125ae784a40433dc",
       "alt": "YNX Calendar desktop scheduling interface"
     },
     {
       "id": "calendar-mobile",
       "publicPath": "/products/calendar/screenshots/calendar-mobile.png",
       "status": "local-proof-unhosted",
-      "sourceCommit": "fb98415c90379f9819eaebcf30292fafda132ca3",
+      "sourceCommit": "73d0a66f8143b7a87d4a2f55125ae784a40433dc",
       "alt": "YNX Calendar mobile scheduling interface"
     }
   ],

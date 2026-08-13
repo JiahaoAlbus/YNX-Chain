@@ -3,7 +3,7 @@
 Consumer: `28-website`  
 Reviewers: `29-integration`, `30-security-platform`  
 Metadata source: `public-product-metadata.json`  
-Runtime source: `fb98415c90379f9819eaebcf30292fafda132ca3`
+Runtime source: `73d0a66f8143b7a87d4a2f55125ae784a40433dc`
 
 ## Canonical package
 
@@ -20,7 +20,7 @@ Website must consume the exact feature, FAQ, risk, locale, screenshot and struct
 
 ## Current public proof
 
-The Website now publishes the Calendar-specific product/status route at `https://www.ynxweb4.com/dapp/calendar`, and the direct public runtime is `https://calendar-testnet.43.153.202.237.sslip.io/`. On 2026-08-08T18:57:46Z the runtime returned HTTP 200 and health reported exact build `fb98415c90379f9819eaebcf30292fafda132ca3`. Its public CSS and JavaScript also matched the compact seven-day mobile release. This proves Website publication and the Testnet Web runtime; it does not prove native package hosting, production scheduling, Mail delivery, AI/Data Fabric acceptance, production signing or store release.
+The Website now publishes the Calendar-specific product/status route at `https://www.ynxweb4.com/dapp/calendar`, and the direct public runtime is `https://calendar-testnet.43.153.202.237.sslip.io/`. On 2026-08-08T18:57:46Z the runtime returned HTTP 200 and health reported exact build `73d0a66f8143b7a87d4a2f55125ae784a40433dc`. Its public CSS and JavaScript also matched the compact seven-day mobile release. This proves Website publication and the Testnet Web runtime; it does not prove native package hosting, production scheduling, Mail delivery, AI/Data Fabric acceptance, production signing or store release.
 
 The legacy `/calendar` convenience redirect may remain, but Website must keep `/dapp/calendar` content and release-state truth synchronized with the owner registry. A future canonical-route change still requires exact title, description, H1, Open Graph, JSON-LD, robots/sitemap and support/privacy/security/status probes.
 

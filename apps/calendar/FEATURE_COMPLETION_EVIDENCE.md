@@ -1,6 +1,6 @@
 # YNX Calendar feature completion evidence
 
-Runtime source: `fb98415c90379f9819eaebcf30292fafda132ca3`
+Runtime source: `73d0a66f8143b7a87d4a2f55125ae784a40433dc`
 Overall status: **ACTIVE / FREEZE**
 
 ## Release-state truth
@@ -44,7 +44,7 @@ Overall status: **ACTIVE / FREEZE**
 | `npm run smoke` | pass |
 | `npm run browser:proof` | pass; desktop/mobile proof and zero console errors |
 
-The 390px proof renders all seven week headers at once with no horizontal overflow. Public build `fb98415c` serves the same CSS/JavaScript and health reports the exact commit.
+The 390px proof renders all seven week headers at once with no horizontal overflow. Public build `73d0a66f` serves the same CSS/JavaScript and health reports the exact commit. Its notification center covers invitation, RSVP, comment, calendar-permission and revoke activity; unread state is persistent, availability-only notices are privacy-redacted, and Mail delivery remains explicitly separate. ComputerControl confirmed the public control and the guest fail-closed message. A 100-request health probe at parallelism 50 returned 100 HTTP 200 responses.
 
 Recovery-specific tests:
 

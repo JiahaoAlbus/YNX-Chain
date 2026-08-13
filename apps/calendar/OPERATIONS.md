@@ -1,6 +1,6 @@
 # YNX Calendar operations
 
-Runtime source: `fb98415c90379f9819eaebcf30292fafda132ca3`
+Runtime source: `73d0a66f8143b7a87d4a2f55125ae784a40433dc`
 Release boundary: public Testnet Web/API with canonical Wallet, not fully centrally integrated, not production scheduling and not production signed.
 
 ## Runtime

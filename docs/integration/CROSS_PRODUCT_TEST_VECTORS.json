@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "productId": "com.ynx.calendar",
   "contractVersion": "1.0.0-draft",
-  "sourceCommit": "fb98415c90379f9819eaebcf30292fafda132ca3",
+  "sourceCommit": "73d0a66f8143b7a87d4a2f55125ae784a40433dc",
   "generatedAt": "2026-08-08T18:57:46Z",
   "vectors": [
     {
@@ -143,7 +143,7 @@
       "name": "current-source platform artifacts",
       "owners": ["36-calendar", "30-security-platform"],
       "status": "build-pass-install-and-host-pending",
-      "preconditions": ["source commit fb98415c90379f9819eaebcf30292fafda132ca3"],
+      "preconditions": ["source commit 73d0a66f8143b7a87d4a2f55125ae784a40433dc"],
       "steps": ["build Web/Go, Android debug, iOS simulator, and macOS test-only artifacts", "generate SBOM and provenance", "install and cold-start", "restart and resolve callback", "publish immutable hashes and bytes"],
       "expected": ["every artifact names exact source commit", "signing class is truthful", "no old e227c4f artifact is presented as current", "productionSigned remains false without production evidence"],
       "localEvidence": ["npm run build", "npm run build:android", "npm run check:ios", "npm run smoke", "npm run browser:proof"],

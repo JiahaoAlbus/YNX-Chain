@@ -5,7 +5,7 @@
   "phase": "FREEZE",
   "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/36-calendar",
   "branch": "codex/final-calendar",
-  "runtimeSourceSha": "fb98415c90379f9819eaebcf30292fafda132ca3",
+  "runtimeSourceSha": "73d0a66f8143b7a87d4a2f55125ae784a40433dc",
   "evidenceCheckpointSha": "06f8b2bce60780ca27cf71a0705bfdf060dc57f6",
   "evidenceCheckpointLocalSha": "06f8b2bce60780ca27cf71a0705bfdf060dc57f6",
   "evidenceCheckpointRemoteSha": "06f8b2bce60780ca27cf71a0705bfdf060dc57f6",
@@ -52,7 +52,7 @@
       "calendarSpecificH1": true,
       "observedTitle": "YNX Calendar",
       "observedCanonical": "https://calendar-testnet.43.153.202.237.sslip.io/",
-      "buildCommit": "fb98415c90379f9819eaebcf30292fafda132ca3",
+      "buildCommit": "73d0a66f8143b7a87d4a2f55125ae784a40433dc",
       "classification": "direct public Testnet Calendar Web/API runtime"
     }
   ],

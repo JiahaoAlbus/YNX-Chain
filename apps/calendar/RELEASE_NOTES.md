@@ -2,7 +2,7 @@
 
 ## Current source candidate
 
-Source commit: `fb98415c90379f9819eaebcf30292fafda132ca3`
+Source commit: `73d0a66f8143b7a87d4a2f55125ae784a40433dc`
 Channel: public Testnet Web preview
 Overall goal: ACTIVE / FREEZE
 
@@ -18,6 +18,8 @@ Overall goal: ACTIVE / FREEZE
 - Integration test vector `CAL-X-013` for Security/SRE recovery acceptance.
 - Canonical Wallet public two-user lifecycle and bounded concurrent read proof.
 - Compact 390px day/week/month layouts; week view shows all seven days without horizontal scrolling.
+- Persistent private activity notifications for invitations, RSVP responses, participant comments, calendar permission changes and revocation.
+- Unread count and explicit mark-all-read UI, with privacy-redacted availability-only notifications.
 
 ### Verified
 
@@ -31,7 +33,7 @@ Overall goal: ACTIVE / FREEZE
 - `npm run smoke`
 - `npm run browser:proof`
 - Local operator backup and restore drill with matching state SHA-256 and live state unchanged.
-- Public health, served CSS/JavaScript and exact binary build identity for `fb98415c`; rollback backup retained.
+- Public health, served CSS/JavaScript and exact binary build identity for `73d0a66f`; 100/100 concurrent health responses; ComputerControl notification-boundary proof; rollback binary retained.
 
 ### Compatibility
 
