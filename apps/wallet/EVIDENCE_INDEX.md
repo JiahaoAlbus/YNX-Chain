@@ -14,6 +14,12 @@
 
 SHA-256 and byte sizes are recorded in `artifact-manifest.json`. The latest Android install used `com.ynxweb4.wallet/.MainActivity` on API 36 and returned `LaunchState: COLD`, `TotalTime: 2140 ms`, `WaitTime: 2274 ms`; a second cold launch returned 477/513 ms with Wallet as the focused activity. The foldable cold launch returned 15082/15742 ms at physical size 2076×2152.
 
+## Android 1.0.1 recovery verification
+
+- `proof/wallet-android-api36-recovery-2026-08-13.json` revalidates the public 1.0.1 Testnet preview byte-for-byte, its v2 Testnet signing certificate, fresh API 36 install, explicit first cold launch, force-stop plus `ynxwallet://open` second cold launch, focused/resumed `MainActivity`, first-PID scoped logcat and `FLAG_SECURE` black application capture.
+- `docs/integration/WALLET_ANDROID_API36_HANDOFF.md` records the recovery source, frozen Auth consumer boundary, direct evidence and emulator transport failure classification.
+- The recovery slice does not claim a new artifact built from commit `1883d406`, production signing, a store release, or fresh Dark/RTL/Large Text/biometric/background-lock/clipboard device coverage.
+
 ## Protocol and chain evidence
 
 - `packages/wallet-auth/testdata/signer-v1.json`: deterministic Wallet approval vector.

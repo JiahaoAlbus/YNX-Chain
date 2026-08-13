@@ -81,7 +81,17 @@
     "publicUrl": "https://www.ynxweb4.com/downloads/ynx-wallet-1.0.1-testnet-preview-dc31c9a8-test-signed.apk",
     "immutableBlobUrl": "https://dyggjsbxsiew8l6u.public.blob.vercel-storage.com/downloads/ynx-wallet-1.0.1-testnet-preview-dc31c9a8-test-signed-7mY7bsrspttg7FGR7qj7q8wUBKhUxW.apk",
     "fullDownloadVerified": true,
-    "evidence": "proof/wallet-android-1.0.1-installed-2026-08-11.json"
+    "evidence": "proof/wallet-android-1.0.1-installed-2026-08-11.json",
+    "recoveryEvidence": "proof/wallet-android-api36-recovery-2026-08-13.json",
+    "reverifiedAt": "2026-08-13T12:25:00Z",
+    "minimumOS": "API 24",
+    "compileSdk": 36,
+    "targetSdk": 36,
+    "firstColdLaunchVerified": true,
+    "secondColdDeepLinkLaunchVerified": true,
+    "screenshotPrivacyVerified": true,
+    "productionSigned": false,
+    "storeReleased": false
   },
   "sha256": {
     "androidReleaseApk": "3d7dd0b349721f2364a2ec0519269bee2933c8b718ba26fc68e7e3354ae15256",
@@ -124,5 +134,5 @@
     "The ERC-4337 EntryPoint and Smart Account contracts pass a local Hardhat EDR flow but are not deployed, Bundler-integrated, externally audited or proven on YNX Testnet.",
     "The public Gateway authorization routes and redacted runtime are deployed, but administrative health/readiness/version/metrics are not publicly exposed and central Monitor acceptance is not yet proven."
   ],
-  "generatedAt": "2026-08-11T14:45:00Z"
+  "generatedAt": "2026-08-13T12:25:00Z"
 }
