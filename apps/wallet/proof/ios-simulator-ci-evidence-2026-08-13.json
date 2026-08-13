@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "product": "YNX Wallet",
+  "evidenceType": "current-source-ios-simulator-ci",
+  "recordedAt": "2026-08-13T22:24:00+08:00",
+  "sourceCommit": "39d36b15890ad287397f3fee2ec969a247e4c30e",
+  "workflow": {
+    "name": "wallet-ios",
+    "runId": 31706190228,
+    "jobId": 94467237538,
+    "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/31706190228",
+    "conclusion": "success",
+    "runner": "macos-15",
+    "xcodeVersion": "26.3",
+    "xcodeBuild": "17C529",
+    "walletAuthTestsPassed": true,
+    "walletChecksPassed": true,
+    "simulatorBuildPassed": true,
+    "simulatorInstallPassed": true,
+    "coldLaunchPassed": true,
+    "secondLaunchPassed": true,
+    "coldLaunchPid": 27577,
+    "secondLaunchPid": 27980
+  },
+  "githubArtifact": {
+    "artifactId": 9183660890,
+    "name": "ynx-wallet-ios-simulator",
+    "expired": false,
+    "apiReportedBytes": 34017843,
+    "downloadedBytes": 34017843,
+    "downloadedSha256": "d5314b5786491fdcfc19d5a03345fda1481d40e91f821e22cee9e10c57b5d9c3",
+    "zipIntegrityVerified": true
+  },
+  "simulatorArchive": {
+    "pathInsideArtifact": "apps/wallet/proof/ci-ios/YNXWallet-iOS-Simulator.zip",
+    "bytes": 16665946,
+    "sha256": "f419876ac4ef2179aef6ca549f086a4671c6db8f6eeee80302476addd949a33a",
+    "bundleIdentifier": "com.ynxweb4.wallet",
+    "architectures": ["x86_64", "arm64"],
+    "minimumOS": "iOS 16.4",
+    "signingClass": "ad-hoc-linker-signed-simulator-build",
+    "teamIdentifierPresent": false,
+    "physicalDeviceInstallable": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "callbackObservation": {
+    "requestedURL": "ynxwallet://authorize?request=invalid",
+    "osConfirmationGateObserved": true,
+    "callbackDeliveredToApp": false,
+    "appRejectedCallback": false,
+    "successClaimed": false,
+    "reason": "Both downloaded screenshots show the iOS Open in YNX Wallet confirmation sheet. The workflow did not activate Open, so it does not directly prove application-level callback handling. Fail-closed parser behavior is covered separately by the passing Wallet/Auth test suite."
+  },
+  "screenshots": {
+    "callbackRequest": {
+      "pathInsideArtifact": "apps/wallet/proof/ci-ios/wallet-deep-link-rejection.png",
+      "bytes": 343155,
+      "sha256": "5800874602112dea01bdf200063a2cd929246f5381c5650a32605d4072063bb2",
+      "width": 1206,
+      "height": 2622
+    },
+    "secondLaunch": {
+      "pathInsideArtifact": "apps/wallet/proof/ci-ios/wallet-second-launch.png",
+      "bytes": 344588,
+      "sha256": "96db1a3592a67e2fdd07462181da8a9f45cd91fea49e903293f014e1b539466e",
+      "width": 1206,
+      "height": 2622,
+      "applicationContentUnobscured": false
+    }
+  },
+  "releaseStates": {
+    "implementedLocal": true,
+    "testedHostedCI": true,
+    "installedHostedSimulator": true,
+    "callbackDeliveredToApp": false,
+    "appRejectedMalformedCallback": false,
+    "integratedCentral": false,
+    "deployedTestnet": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "limitations": [
+    "The artifact is an unsigned-for-distribution Simulator engineering build and cannot be installed on a physical iPhone or iPad.",
+    "GitHub Actions artifact retention is temporary and is not a public product download.",
+    "The current workflow proves the operating-system confirmation gate, not application-level malformed callback rejection.",
+    "No Universal Link association, physical biometric prompt, App Store signing, notarization, Testnet transaction, or public deployment is claimed."
+  ]
+}
