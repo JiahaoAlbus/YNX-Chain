@@ -42,6 +42,7 @@ func NewHandlerWithBuild(service *Service, build buildinfo.Info) http.Handler {
 	mux.HandleFunc("POST /v1/events/{id}/rsvp", s.rsvp)
 	mux.HandleFunc("POST /v1/events/{id}/share", s.share)
 	mux.HandleFunc("DELETE /v1/events/{id}/share/{handle}", s.unshare)
+	mux.HandleFunc("POST /v1/events/{id}/comments", s.comment)
 	mux.HandleFunc("POST /v1/ai/jobs", s.beginAI)
 	mux.HandleFunc("POST /v1/ai/jobs/{id}/approve", s.approveAI)
 	mux.HandleFunc("POST /v1/ai/jobs/{id}/review", s.reviewAI)
@@ -177,6 +178,16 @@ func (s *Server) share(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	out, e := s.service.Share(bearer(r), r.PathValue("id"), v.Handle, v.Role)
+	respond(w, out, e)
+}
+func (s *Server) comment(w http.ResponseWriter, r *http.Request) {
+	var v struct {
+		Body string `json:"body"`
+	}
+	if !decode(w, r, &v, 4<<10) {
+		return
+	}
+	out, e := s.service.AddComment(bearer(r), r.PathValue("id"), v.Body)
 	respond(w, out, e)
 }
 func (s *Server) unshare(w http.ResponseWriter, r *http.Request) {

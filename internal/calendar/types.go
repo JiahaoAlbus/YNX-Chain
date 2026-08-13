@@ -116,6 +116,12 @@ type Share struct {
 	Handle string `json:"handle"`
 	Role   string `json:"role"`
 }
+type Comment struct {
+	ID        string    `json:"id"`
+	Author    string    `json:"author"`
+	Body      string    `json:"body"`
+	CreatedAt time.Time `json:"created_at"`
+}
 type Event struct {
 	ID                    string     `json:"id"`
 	SeriesID              string     `json:"series_id,omitempty"`
@@ -138,6 +144,7 @@ type Event struct {
 	Invites               []Invite   `json:"invites,omitempty"`
 	Reminders             []Reminder `json:"reminders,omitempty"`
 	Shares                []Share    `json:"shares,omitempty"`
+	Comments              []Comment  `json:"comments,omitempty"`
 	MeetingLink           string     `json:"meeting_link,omitempty"`
 	State                 string     `json:"state"`
 	Version               int        `json:"version"`

@@ -400,7 +400,7 @@ function openForm(event = null, recurrenceEdit = null) {
   const start = event
     ? new Date(event.start_utc)
     : new Date(Date.now() + 3600000);
-  start.setMinutes(Math.ceil(start.getMinutes() / 30) * 30, 0, 0);
+  if (!event) start.setMinutes(Math.ceil(start.getMinutes() / 30) * 30, 0, 0);
   const end = event
     ? new Date(event.end_utc)
     : new Date(start.getTime() + 3600000);
@@ -639,7 +639,7 @@ async function openEvent(occurrence) {
       `Selected only: ${event.title}. Next, review the provider, model, and cost.`;
     const mine = event.owner_handle === state.user.handle;
     $("#event-content").innerHTML =
-      `<span class="eyebrow">${escapeHTML(event.state)} · v${event.version}</span><h1>${escapeHTML(event.title)}</h1><p>${escapeHTML(event.description || "No description")}</p><div class="detail-row"><span>Time</span><b>${event.all_day ? "All day · " : ""}${new Date(event.start_utc).toLocaleString(activeLocale())} — ${new Date(event.end_utc).toLocaleString(activeLocale())}</b><span>Location</span><b>${escapeHTML(event.location || "None")}</b><span>Calendar / privacy</span><b>${escapeHTML(event.calendar_id || "personal")} · ${escapeHTML(event.privacy || "private")}</b><span>${tr("timezone", "Time zone")}</span><b>${escapeHTML(event.time_zone)}</b><span>Organizer</span><b>${escapeHTML(event.owner_handle)}</b><span>${tr("repeat", "Recurrence")}</span><b>${event.recurrence?.frequency ? `Every ${event.recurrence.interval || 1} ${escapeHTML(event.recurrence.frequency)} · ${event.recurrence.count || "until date"}` : "Does not repeat"}</b><span>${tr("reminder", "Reminder")}</span><b>${event.reminders?.map((r) => `${r.minutes_before} minutes before`).join(", ") || "None"}</b><span>Invitations</span><b>${event.invites?.map((i) => `${escapeHTML(i.handle)} · ${escapeHTML(i.state)}`).join("<br>") || "None"}</b><span>${tr("share", "Sharing")}</span><b>${event.shares?.map((s) => `${escapeHTML(s.handle)} · ${escapeHTML(s.role)}`).join("<br>") || "None"}</b><span>Cloud references</span><b>${event.attachment_links?.map((link) => `<a href="${escapeHTML(link)}" target="_blank" rel="noopener noreferrer">Open attachment</a>`).join("<br>") || "None"}</b><span>${tr("meeting_link", "Meeting link")}</span><b>${event.meeting_link ? `<a href="${escapeHTML(event.meeting_link)}" target="_blank" rel="noopener noreferrer">Open bounded link</a>` : "None"}</b></div><div class="detail-actions">${mine ? `<button class="primary" id="edit-event">${tr("update", "Update event")}</button>${event.recurrence?.frequency ? '<button class="quiet" id="recurrence-actions">Manage recurrence</button>' : ""}<button class="quiet" id="cancel-event">${tr("cancel_event", "Cancel event")}</button><button class="quiet" id="share-event">${tr("share", "Share calendar")}</button>` : '<button class="primary" data-rsvp="accepted">Accept</button><button class="quiet" data-rsvp="tentative">Tentative</button><button class="quiet" data-rsvp="declined">Decline</button>'}${event._lastChange ? '<button class="quiet" id="revert-event">Undo last change</button>' : ""}<button class="quiet" id="close-detail">Close</button></div>`;
+      `<span class="eyebrow">${escapeHTML(event.state)} · v${event.version}</span><h1>${escapeHTML(event.title)}</h1><p>${escapeHTML(event.description || "No description")}</p><div class="detail-row"><span>Time</span><b>${event.all_day ? "All day · " : ""}${new Date(event.start_utc).toLocaleString(activeLocale())} — ${new Date(event.end_utc).toLocaleString(activeLocale())}</b><span>Location</span><b>${escapeHTML(event.location || "None")}</b><span>Calendar / privacy</span><b>${escapeHTML(event.calendar_id || "personal")} · ${escapeHTML(event.privacy || "private")}</b><span>${tr("timezone", "Time zone")}</span><b>${escapeHTML(event.time_zone)}</b><span>Organizer</span><b>${escapeHTML(event.owner_handle)}</b><span>${tr("repeat", "Recurrence")}</span><b>${event.recurrence?.frequency ? `Every ${event.recurrence.interval || 1} ${escapeHTML(event.recurrence.frequency)} · ${event.recurrence.count || "until date"}` : "Does not repeat"}</b><span>${tr("reminder", "Reminder")}</span><b>${event.reminders?.map((r) => `${r.minutes_before} minutes before`).join(", ") || "None"}</b><span>Invitations</span><b>${event.invites?.map((i) => `${escapeHTML(i.handle)} · ${escapeHTML(i.state)}`).join("<br>") || "None"}</b><span>${tr("share", "Sharing")}</span><b>${event.shares?.map((s) => `${escapeHTML(s.handle)} · ${escapeHTML(s.role)}`).join("<br>") || "None"}</b><span>Participant comments</span><b>${event.comments?.map((c) => `${escapeHTML(c.author)} · ${escapeHTML(c.body)}<small>${new Date(c.created_at).toLocaleString(activeLocale())}</small>`).join("<br>") || "None"}</b><span>Cloud references</span><b>${event.attachment_links?.map((link) => `<a href="${escapeHTML(link)}" target="_blank" rel="noopener noreferrer">Open attachment</a>`).join("<br>") || "None"}</b><span>${tr("meeting_link", "Meeting link")}</span><b>${event.meeting_link ? `<a href="${escapeHTML(event.meeting_link)}" target="_blank" rel="noopener noreferrer">Open bounded link</a>` : "None"}</b></div><div class="detail-actions">${mine ? `<button class="primary" id="edit-event">${tr("update", "Update event")}</button>${event.recurrence?.frequency ? '<button class="quiet" id="recurrence-actions">Manage recurrence</button>' : ""}<button class="quiet" id="cancel-event">${tr("cancel_event", "Cancel event")}</button><button class="quiet" id="share-event">${tr("share", "Share calendar")}</button>` : '<button class="primary" data-rsvp="accepted">Accept</button><button class="quiet" data-rsvp="tentative">Tentative</button><button class="quiet" data-rsvp="declined">Decline</button>'}<button class="quiet" id="comment-event">Add participant comment</button>${event._lastChange ? '<button class="quiet" id="revert-event">Undo last change</button>' : ""}<button class="quiet" id="close-detail">Close</button></div>`;
     $("#event-detail").showModal();
     $("#close-detail").onclick = () => $("#event-detail").close();
     if (mine) {
@@ -654,6 +654,7 @@ async function openEvent(occurrence) {
     $$("[data-rsvp]").forEach(
       (b) => (b.onclick = () => rsvp(event, b.dataset.rsvp)),
     );
+    $("#comment-event").onclick = () => commentEvent(event);
     if ($("#revert-event"))
       $("#revert-event").onclick = () => revert(event._lastChange);
   } catch (e) {
@@ -724,6 +725,21 @@ async function shareEvent(event) {
     loadEvents();
   } catch (e) {
     toast(e.message);
+  }
+}
+async function commentEvent(event) {
+  const body = prompt("Add a participant comment (1–1000 characters)");
+  if (!body) return;
+  try {
+    await api(`/v1/events/${event.id}/comments`, {
+      method: "POST",
+      body: JSON.stringify({ body }),
+    });
+    toast("Comment shared with event participants");
+    $("#event-detail").close();
+    await loadEvents();
+  } catch (error) {
+    toast(error.message);
   }
 }
 async function rsvp(event, response) {

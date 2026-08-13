@@ -22,11 +22,11 @@ also names direct evidence.
 | Export / delete / audit | Account JSON export, exact delete phrase, audit UI | Unit tests | Guest export and hosted immutable export policy remain |
 | Invite by YNX Handle | Service + Web input implemented | Unknown/duplicate invite rejection | Requires real Wallet sessions and Mail notification integration |
 | RSVP accept / tentative / decline | Service + event inspector implemented | Two-user authorization test | No public two-user proof yet |
-| Invitation update / cancellation / organizer / attendee | Persistent event lifecycle implemented | Update/cancel/revert tests | Comment/response text and delivery notification remain |
+| Invitation update / cancellation / organizer / attendee | Persistent event lifecycle plus immutable attributed participant comments | Update/cancel/revert/comment authorization tests | External Mail/push delivery notification remains |
 | Duplicate / replay / privacy | Mutation IDs, version checks, Wallet replay rejection, privacy metadata | Replay/tamper/stale tests | Central Data Fabric event acceptance remains |
 | Daily / weekly / monthly / yearly recurrence | Versioned schema v1 implemented | Unit recurrence tests | Current Web release pending |
 | Interval / ByDay / ByMonthDay / count / end date | Service + Web implemented | Boundary and DST tests | Browser proof covers interval/ByDay; full UI matrix still required |
-| Single occurrence / future / entire series update | Service implemented | Atomic/replay/recovery tests | Complete event-inspector controls are not yet implemented |
+| Single occurrence / future / entire series update | Service and event-inspector controls implemented | Atomic/replay/recovery/browser tests | Public interactive proof remains |
 | Recurrence cancellation / recovery / DST | Service implemented | Dedicated unit tests | Public interactive proof remains |
 | Owner / editor / viewer share and revoke | Service + inspector action implemented | Authorization/revoke tests | Availability-only ACL and polished permission editor remain |
 | Conflict overlap / recurrence / time zone | Service preview implemented | Unit conflict tests | Travel/buffer and authorized attendee availability are not implemented |

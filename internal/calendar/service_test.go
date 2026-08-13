@@ -614,6 +614,16 @@ func TestInviteRSVPShareUpdateCancelRevertAndAuthorization(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	event, err = svc.AddComment(bob, event.ID, "I will bring the reviewed agenda.")
+	if err != nil || len(event.Comments) != 1 || event.Comments[0].Author != "@bob" {
+		t.Fatalf("participant comment not persisted: %v", err)
+	}
+	if _, err = svc.AddComment(charlie, event.ID, "Editor note"); err != nil {
+		t.Fatalf("shared editor could not comment: %v", err)
+	}
+	if _, err = svc.AddComment(bob, event.ID, strings.Repeat("x", 1001)); err == nil {
+		t.Fatal("oversized comment accepted")
+	}
 	event, err = svc.Unshare(alice, event.ID, "@charlie")
 	if err != nil || len(event.Shares) != 0 {
 		t.Fatalf("share recovery failed: %v", err)

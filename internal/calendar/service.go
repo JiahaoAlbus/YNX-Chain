@@ -268,7 +268,13 @@ func (s *Service) DeleteAccount(token, confirmation string) error {
 					shares = append(shares, share)
 				}
 			}
-			event.Invites, event.Shares = invites, shares
+			comments := event.Comments[:0]
+			for _, comment := range event.Comments {
+				if comment.Author != user.Handle {
+					comments = append(comments, comment)
+				}
+			}
+			event.Invites, event.Shares, event.Comments = invites, shares, comments
 			st.Events[id] = event
 		}
 		for id, change := range st.Changes {
@@ -824,6 +830,36 @@ func (s *Service) Unshare(token, eventID, handle string) (Event, error) {
 		event.UpdatedAt = s.now().UTC()
 		st.Events[event.ID] = event
 		s.audit(st, sess.UserID, "event_unshare", event.ID, map[string]any{"contact": handle})
+		out = event
+		return nil
+	})
+	return out, err
+}
+
+// AddComment is independent from event edits so viewers can collaborate
+// without receiving schedule-edit authority.
+func (s *Service) AddComment(token, eventID, body string) (Event, error) {
+	body = strings.TrimSpace(body)
+	if body == "" || len([]rune(body)) > 1000 {
+		return Event{}, errors.New("comment must contain 1 to 1000 characters")
+	}
+	var out Event
+	err := s.store.update(func(st *State) error {
+		sess, err := s.session(st, token)
+		if err != nil {
+			return err
+		}
+		user := st.Users[sess.UserID]
+		event, ok := st.Events[eventID]
+		if !ok || event.State == "cancelled" || !canView(event, user.Handle, sess.UserID) {
+			return ErrUnauthorized
+		}
+		comment := Comment{ID: s.id("comment"), Author: user.Handle, Body: body, CreatedAt: s.now().UTC()}
+		event.Comments = append(event.Comments, comment)
+		event.Version++
+		event.UpdatedAt = comment.CreatedAt
+		st.Events[event.ID] = event
+		s.audit(st, sess.UserID, "event_comment_added", event.ID, map[string]any{"comment_id": comment.ID})
 		out = event
 		return nil
 	})
