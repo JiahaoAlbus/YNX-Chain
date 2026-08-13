@@ -1,0 +1,50 @@
+{
+  "schemaVersion": "1.0.0",
+  "productId": "ynx-dex",
+  "network": "YNX Testnet",
+  "observedAt": "2026-08-13T13:43:17.426Z",
+  "publicUrl": "https://dex.ynxweb4.com/",
+  "sourceCommit": "7a6b009d3eeb7aca184b51ae7822a4c6565b4d60",
+  "release": "ynx-dex-7a6b009d3eeb",
+  "binarySha256": "c7f6aa7b294390dcf779efb70172b8c9e422b271cfe1176318a1c51011080eaa",
+  "webTreeSha256": "9a9b4226475216ce6afb2283a849c9ebc1457abdca22b5d95817b998c826e0b5",
+  "archiveSha256": "6db6d966f6e5e65590605b34d120b3595325020fd49613b52c30690b4db039f0",
+  "health": {
+    "status": "ok",
+    "chainId": 6423,
+    "marketSourceConfigured": true,
+    "marketAvailable": true,
+    "executionAvailable": true,
+    "indexedPools": 1,
+    "source": "indexed authoritative chain-native YNX Testnet DEX state"
+  },
+  "loopbackCapacity": {
+    "requests": 1000,
+    "concurrency": 64,
+    "successes": 1000,
+    "failures": 0,
+    "throughputPerSecond": 2181.47,
+    "latencyMs": { "p50": 22.598, "p95": 56.071, "p99": 82.103, "max": 87.223 }
+  },
+  "publicClientCapacity": {
+    "requests": 1000,
+    "concurrency": 64,
+    "successes": 993,
+    "failures": 7,
+    "throughputPerSecond": 55.8,
+    "latencyMs": { "p50": 127.502, "p95": 2122.831, "p99": 10078.64, "max": 15004.709 },
+    "verdict": "failed-zero-error-gate; client proxy/TLS path requires remediation or multi-region replacement evidence"
+  },
+  "rollback": {
+    "automaticInstallBackup": "/var/backups/ynx-dex/20260813T133932Z-pre-7a6b009d3eeb",
+    "priorRelease": "ynx-dex-4ae6cfd169bb",
+    "procedure": "Restore the backup env, Caddy fragment and state file; repoint /opt/ynx/dex-current to the prior release; restart ynx-dex-indexerd; reload Caddy; verify /health and /version."
+  },
+  "truth": {
+    "mainnet": false,
+    "productionLiquidity": false,
+    "strategyVaultDeployed": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}
