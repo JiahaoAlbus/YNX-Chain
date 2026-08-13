@@ -1,12 +1,12 @@
 # YNX Calendar current state
 
-Updated: 2026-08-08T18:57:46Z
+Updated: 2026-08-13T12:02:00Z
 
 - Product: 36 — YNX Calendar
 - Product ID: `com.ynx.calendar`
 - Worktree: `/Users/huangjiahao/Desktop/YNX Final Worktrees/36-calendar`
 - Branch: `codex/final-calendar`
-- Runtime source SHA: `55587bb6cc8c7c49202e4fc3222b69772dd05b5f`
+- Runtime source SHA: `635f6745db8b5d4e4f00253d72fd5ab97da471ac`
 - Evidence checkpoint SHA: `06f8b2bce60780ca27cf71a0705bfdf060dc57f6`
 - Evidence checkpoint local SHA: `06f8b2bce60780ca27cf71a0705bfdf060dc57f6`
 - Evidence checkpoint remote SHA: `06f8b2bce60780ca27cf71a0705bfdf060dc57f6`
@@ -32,7 +32,7 @@ Updated: 2026-08-08T18:57:46Z
 - `node --check tests/browser-proof.cjs`
 - operator backup and isolated restore drill
 - 390px compact week proof: seven visible day headers, zero horizontal overflow and zero console errors
-- external health and served-asset checks against exact public build `55587bb6`
+- external health and served-asset checks against exact public build `635f6745`
 
 ## GitHub
 
@@ -57,7 +57,7 @@ Updated: 2026-08-08T18:57:46Z
 - Official product domain: `ynxweb4.com`
 - Product route: `https://www.ynxweb4.com/dapp/calendar`
 - Direct Testnet runtime: `https://calendar-testnet.43.153.202.237.sslip.io/`
-- Public runtime health reports exact build `55587bb6cc8c7c49202e4fc3222b69772dd05b5f`; public CSS/JavaScript match the seven-day compact mobile release
+- Public runtime health reports exact build `635f6745db8b5d4e4f00253d72fd5ab97da471ac`; public CSS/JavaScript match the seven-day compact mobile release
 - `websitePublished`: true
 - `deployedPublic`: true
 - `downloadHosted`: false for current source

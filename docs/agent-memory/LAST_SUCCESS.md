@@ -1,6 +1,6 @@
 # YNX Calendar last success
 
-At 2026-08-08T18:57:46Z, runtime source `55587bb6cc8c7c49202e4fc3222b69772dd05b5f` was built as a Linux binary, SHA-256 `18d03deb535fd2df14ea755bdfa34bdd8604d51e9b16c485ad1cc990717ba0fe`, deployed with rollback backup `/var/backups/ynx-chain/calendar-before-55587bb6`, and verified externally.
+At 2026-08-13T12:02:00Z, runtime source `635f6745db8b5d4e4f00253d72fd5ab97da471ac` was built as a Linux binary, SHA-256 `b74820c013771f29a5b106f7c9ec36e274c64c2501d101afbcb51492d84270ed`, deployed with rollback backup `/var/backups/ynx-chain/calendar-before-635f6745`, and verified externally.
 
 The checkpoint provides:
 

@@ -2,7 +2,7 @@
 
 ## Current source candidate
 
-Source commit: `55587bb6cc8c7c49202e4fc3222b69772dd05b5f`
+Source commit: `635f6745db8b5d4e4f00253d72fd5ab97da471ac`
 Channel: public Testnet Web preview
 Overall goal: ACTIVE / FREEZE
 
@@ -38,7 +38,7 @@ Overall goal: ACTIVE / FREEZE
 - `npm run smoke`
 - `npm run browser:proof`
 - Local operator backup and restore drill with matching state SHA-256 and live state unchanged.
-- Public health, served CSS/JavaScript and exact binary build identity for `55587bb6`; 100/100 concurrent health responses; ComputerControl notification-boundary proof; rollback binary retained.
+- Public health, served assets and exact binary build identity for `635f6745`; 100/100 HTTP/2 health responses at parallelism 10; ComputerControl exact-build sign-in and guest Calendar proof; immediate Service Worker takeover; rollback binary retained. A 25-way fresh-TLS probe exposed an ingress capacity risk and is not counted as passed.
 
 ### Compatibility
 

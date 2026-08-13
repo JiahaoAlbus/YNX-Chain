@@ -46,7 +46,11 @@ Evidence checkpoint `06f8b2bce60780ca27cf71a0705bfdf060dc57f6` is pushed and rem
 
 ## 2026-08-08 — exact-build Testnet publication supersedes the old route finding
 
-Website `/dapp/calendar`, the owner registry and the direct Testnet Web/API runtime are now public. External health and served-asset checks bind runtime `55587bb6cc8c7c49202e4fc3222b69772dd05b5f`; `websitePublished` and `deployedPublic` are therefore true. This does not authorize production scheduling, native package, signing, store, Mail, AI or Data Fabric claims.
+Website `/dapp/calendar`, the owner registry and the direct Testnet Web/API runtime are now public. External health and served-asset checks bound runtime `55587bb6cc8c7c49202e4fc3222b69772dd05b5f`; `websitePublished` and `deployedPublic` became true. This did not authorize production scheduling, native package, signing, store, Mail, AI or Data Fabric claims.
+
+## 2026-08-13 — premium responsive UI and immediate update activation
+
+The public runtime now reports exact build `635f6745db8b5d4e4f00253d72fd5ab97da471ac`, binary SHA-256 `b74820c013771f29a5b106f7c9ec36e274c64c2501d101afbcb51492d84270ed`. ComputerControl verified the supplied proportional YNX logo, English-first two-panel sign-in and device-only Calendar surface. The Service Worker uses `skipWaiting` and `clients.claim` so an installed update does not remain behind the previous visual build. HTTP/2 health returned 100/100 at parallelism 10; a separate 25-way fresh-TLS test exposed an ingress capacity risk and remains open.
 
 ## 2026-08-08 — mobile week is seven days in one viewport
 

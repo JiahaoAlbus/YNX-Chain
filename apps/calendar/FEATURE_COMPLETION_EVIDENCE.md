@@ -1,6 +1,6 @@
 # YNX Calendar feature completion evidence
 
-Runtime source: `55587bb6cc8c7c49202e4fc3222b69772dd05b5f`
+Runtime source: `635f6745db8b5d4e4f00253d72fd5ab97da471ac`
 Overall status: **ACTIVE / FREEZE**
 
 ## Release-state truth
@@ -44,7 +44,7 @@ Overall status: **ACTIVE / FREEZE**
 | `npm run smoke` | pass |
 | `npm run browser:proof` | pass; desktop/mobile proof and zero console errors |
 
-The 390px proof renders all seven week headers at once with no horizontal overflow. Public build `55587bb6` serves the same CSS/JavaScript and health reports the exact commit. Its notification center covers invitation, RSVP, comment, calendar-permission and revoke activity; unread state is persistent, availability-only notices are privacy-redacted, and Mail delivery remains explicitly separate. Conflict preview includes bounded preparation/travel buffers, authorized attendee Busy checks, and five deterministic weekday alternatives that return to the editor without auto-applying. Guest local date-time values are converted through the selected IANA zone instead of the browser process zone. ComputerControl confirmed the public notification boundary, buffer controls and alternative-time preview; the final time-zone correction passed the same browser proof. A 100-request health probe at parallelism 50 returned 100 HTTP 200 responses.
+The 390px proof renders all seven week headers at once with no horizontal overflow. Public build `635f6745` serves the same CSS/JavaScript and health reports the exact commit. Its notification center covers invitation, RSVP, comment, calendar-permission and revoke activity; unread state is persistent, availability-only notices are privacy-redacted, and Mail delivery remains explicitly separate. Conflict preview includes bounded preparation/travel buffers, authorized attendee Busy checks, and five deterministic weekday alternatives that return to the editor without auto-applying. Guest local date-time values are converted through the selected IANA zone instead of the browser process zone. ComputerControl confirmed the exact public English-first sign-in, proportional supplied logo, device-only guest session, calendar navigation and create action; automated browser proof covers the structured event editor with zero console errors. A 100-request HTTP/2 health probe at parallelism 10 returned 100 HTTP 200 responses. A separate 25-way fresh-TLS test returned only 18/100 and is retained as a public-ingress capacity risk rather than hidden behind the successful multiplexed result.
 
 Recovery-specific tests:
 

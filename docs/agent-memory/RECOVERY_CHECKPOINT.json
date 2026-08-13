@@ -5,7 +5,7 @@
   "phase": "FREEZE",
   "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/36-calendar",
   "branch": "codex/final-calendar",
-  "runtimeSourceSha": "55587bb6cc8c7c49202e4fc3222b69772dd05b5f",
+  "runtimeSourceSha": "635f6745db8b5d4e4f00253d72fd5ab97da471ac",
   "evidenceCheckpointSha": "06f8b2bce60780ca27cf71a0705bfdf060dc57f6",
   "evidenceCheckpointLocalSha": "06f8b2bce60780ca27cf71a0705bfdf060dc57f6",
   "evidenceCheckpointRemoteSha": "06f8b2bce60780ca27cf71a0705bfdf060dc57f6",
@@ -46,13 +46,13 @@
     {
       "url": "https://calendar-testnet.43.153.202.237.sslip.io/",
       "finalUrl": "https://calendar-testnet.43.153.202.237.sslip.io/",
-      "observedAt": "2026-08-08T18:57:46Z",
+      "observedAt": "2026-08-13T12:02:00Z",
       "httpStatus": 200,
       "contentMatch": true,
       "calendarSpecificH1": true,
       "observedTitle": "YNX Calendar",
       "observedCanonical": "https://calendar-testnet.43.153.202.237.sslip.io/",
-      "buildCommit": "55587bb6cc8c7c49202e4fc3222b69772dd05b5f",
+      "buildCommit": "635f6745db8b5d4e4f00253d72fd5ab97da471ac",
       "classification": "direct public Testnet Calendar Web/API runtime"
     }
   ],
@@ -86,5 +86,5 @@
     "CAL-BLOCK-REL-001"
   ],
   "nextAction": "Preserve exact-build public runtime and Website truth while completing Mail, AI, Data Fabric, Security/SRE and current-source native release gates.",
-  "updatedAt": "2026-08-08T18:57:46Z"
+  "updatedAt": "2026-08-13T12:02:00Z"
 }

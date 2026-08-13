@@ -43,7 +43,7 @@ test("Calendar release record exposes every acceptance state and evidence field"
 
 test("current source and historical preview artifacts remain separated", () => {
   assert.equal(release.branch, "codex/final-calendar");
-  assert.equal(release.commit, "55587bb6cc8c7c49202e4fc3222b69772dd05b5f");
+  assert.equal(release.commit, "635f6745db8b5d4e4f00253d72fd5ab97da471ac");
   assert.equal(release.installedLocal, false);
   assert.equal(release.downloadHosted, false);
   assert.deepEqual(release.artifactUrls, []);

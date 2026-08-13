@@ -1,6 +1,6 @@
 # YNX Calendar UI design audit — 2026-08-13
 
-Status: current-source local implementation verified; public Testnet deployment still points to the previous visual build until the release step completes.
+Status: current-source implementation deployed to the public Testnet runtime and verified against exact build `635f6745`.
 
 ## Audited flow
 
@@ -20,6 +20,8 @@ Status: current-source local implementation verified; public Testnet deployment 
 - `tests/artifacts/design-audit-20260813/06-redesign-editor.png` — current-source structured editor and persistent review action.
 - `tests/artifacts/design-audit-20260813/12-redesign-mobile-final.png` — 390×844 week view after moving tools to the bottom bar.
 - `tests/artifacts/design-audit-20260813/15-redesign-mobile-editor-final.png` — 390×844 event editor after the toast hit-target fix.
+- `tests/artifacts/design-audit-20260813/16-public-signin-computercontrol.png` — exact public two-panel sign-in captured with ComputerControl.
+- `tests/artifacts/design-audit-20260813/17-public-calendar-computercontrol.png` — exact public device-only Calendar state captured with ComputerControl.
 - `tests/artifacts/calendar-desktop.png` and `tests/artifacts/calendar-mobile.png` — independent checked-in browser proof generated after the redesign.
 
 ## Visual system decisions
@@ -39,4 +41,4 @@ Status: current-source local implementation verified; public Testnet deployment 
 
 - The new explanatory section copy still requires complete translation across all 12 Web catalogs; English remains the default and no new Chinese-first surface was introduced.
 - Current-source native packages, production signing and real public two-user Wallet collaboration are not yet accepted.
-- Public deployment and an exact-build ComputerControl pass must follow before this redesign can be described as public evidence.
+- The exact public sign-in and guest Calendar surface passed ComputerControl; a full current-release Wallet two-user interaction remains a separate integration gate.

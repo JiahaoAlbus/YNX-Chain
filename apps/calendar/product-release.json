@@ -2,10 +2,10 @@
   "productId": "com.ynx.calendar",
   "name": "YNX Calendar",
   "branch": "codex/final-calendar",
-  "commit": "55587bb6cc8c7c49202e4fc3222b69772dd05b5f",
-  "sourceCommit": "55587bb6cc8c7c49202e4fc3222b69772dd05b5f",
+  "commit": "635f6745db8b5d4e4f00253d72fd5ab97da471ac",
+  "sourceCommit": "635f6745db8b5d4e4f00253d72fd5ab97da471ac",
   "artifactSourceCommit": null,
-  "version": "0.3.7-testnet-public",
+  "version": "0.3.9-testnet-public",
   "releaseChannel": "public-testnet-preview",
   "surfaces": [
     "android-native",
@@ -68,7 +68,7 @@
   "publicProbe": {
     "url": "https://calendar-testnet.43.153.202.237.sslip.io/",
     "finalUrl": "https://calendar-testnet.43.153.202.237.sslip.io/",
-    "observedAt": "2026-08-13T11:01:19Z",
+    "observedAt": "2026-08-13T12:02:00Z",
     "httpStatus": 200,
     "contentMatch": true,
     "observedTitle": "YNX Calendar",
@@ -165,7 +165,7 @@
       "result": "pass"
     },
     {
-      "sourceCommit": "55587bb6cc8c7c49202e4fc3222b69772dd05b5f",
+      "sourceCommit": "635f6745db8b5d4e4f00253d72fd5ab97da471ac",
       "gate": "private availability conflicts, deterministic alternatives, time-zone-correct guest scheduling, activity notifications, browser proof and public deployment",
       "result": "pass",
       "details": {
@@ -179,10 +179,12 @@
         "eventBuffers": "0 to 240 minutes before and after",
         "alternativeDrafts": "five bounded weekday candidates; never auto-applied",
         "guestTimeZoneRoundTrip": "pass across IANA conversion helper",
-        "publicConcurrentHealth": "100/100 at parallelism 50",
-        "computerControl": "public notification control visible; guest access fails closed",
-        "binarySha256": "2b0e07b049af467964d3df69784de3a3527247c560be63e0c1247770900d5543",
-        "rollbackBackup": "/var/backups/ynx-chain/calendar-before-55587bb6/ynx-calendard"
+        "publicConcurrentHealth": "100/100 HTTP 200 at HTTP/2 parallelism 10 with DNS pinned to the published IPv4 address",
+        "freshConnectionStress": "18/100 HTTP 200 at 25 independent TLS handshakes from one source; entrance-rate limitation retained as a capacity risk",
+        "computerControl": "exact public build shows the supplied proportional YNX logo, English-first sign-in, device-only guest mode, calendar navigation and create action",
+        "serviceWorkerUpgrade": "skipWaiting plus clients.claim prevents an installed update from remaining behind the previous visual build",
+        "binarySha256": "b74820c013771f29a5b106f7c9ec36e274c64c2501d101afbcb51492d84270ed",
+        "rollbackBackup": "/var/backups/ynx-chain/calendar-before-635f6745/ynx-calendard"
       }
     }
   ],
@@ -258,5 +260,5 @@
     "backup confidentiality encryption, offsite retention and independent key escrow remain pending Security/SRE acceptance",
     "repository-wide Go preflight has non-Calendar failures retained in dependency acceptance"
   ],
-  "generatedAt": "2026-08-08T18:57:46Z"
+  "generatedAt": "2026-08-13T12:02:00Z"
 }
