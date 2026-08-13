@@ -1,0 +1,38 @@
+{
+  "schemaVersion": "1.0.0",
+  "productId": "ynx-dex",
+  "network": "YNX Testnet",
+  "publicUrl": "https://dex.ynxweb4.com/",
+  "sourceCommit": "ac775de24176b293b5dbb5ab7114cf29428f8046",
+  "release": "ynx-dex-ac775de24176",
+  "binarySha256": "dd3122d3f104d3322b668ae997d96009c256c48ee8c171711b94042e704da1d1",
+  "webTreeSha256": "6ce1425b6836e75303bdad56da873f7fc7ea4b9a9e3ba2f24b2b48d0c12a124d",
+  "archiveSha256": "c4e5b208053780defbe10fbb2ae0653aefa8851b7f6671a1e10f445027e9321d",
+  "health": {
+    "status": "ok",
+    "chainId": 6423,
+    "marketSourceConfigured": true,
+    "marketAvailable": true,
+    "executionAvailable": true,
+    "indexedPools": 1,
+    "latestBlock": 956758
+  },
+  "versionProbeMatchedSource": true,
+  "reconnectControlObservedPublicly": true,
+  "automatedUiFallback": {
+    "desktop": { "viewport": "1440x900", "horizontalOverflow": false, "lang": "en", "dir": "ltr" },
+    "mobile": { "viewport": "390x844", "horizontalOverflow": false, "lang": "en", "dir": "ltr" },
+    "computerControlPassed": false,
+    "computerControlGap": "Sky Computer Use native pipe startup failed; Playwright visual inspection used as a truthful fallback."
+  },
+  "rollback": {
+    "automaticInstallBackup": "/var/backups/ynx-dex/20260813T152402Z-pre-ac775de24176",
+    "procedure": "Restore the backup env, Caddy fragment and state file; repoint /opt/ynx/dex-current to the prior release; restart ynx-dex-indexerd; reload Caddy; verify /health and /version."
+  },
+  "truth": {
+    "mainnet": false,
+    "advancedLiquidityContractsDeployedByThisRelease": false,
+    "strategyVaultDeployed": false,
+    "productionSigned": false
+  }
+}

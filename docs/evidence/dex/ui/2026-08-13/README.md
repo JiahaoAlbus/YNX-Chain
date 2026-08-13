@@ -13,3 +13,16 @@ The requested ComputerControl inspection was attempted first through the local
 Computer Use skill, but the native Sky pipe failed to start. Playwright was
 used only as an automated visual fallback. This limitation is a tooling gap,
 not a claim that ComputerControl inspection passed.
+
+## Source-bound deployed result
+
+The reconnect build was subsequently deployed from commit
+`ac775de24176b293b5dbb5ab7114cf29428f8046` and checked again through the
+public TLS endpoint. Both viewports rendered the explicit reconnect control,
+English/LTR defaults and indexed block `956758`, with document width equal to
+viewport width.
+
+| Viewport | File | SHA-256 |
+| --- | --- | --- |
+| 1440×900 | `desktop-deployed-1440x900.png` | `9b5cbf0eb5c9197281af1bb007f2d520d29f693b1b362d404ee495ccfab02c68` |
+| 390×844 | `mobile-deployed-390x844.png` | `979a89226cf4cdc92eb7d098a96a32ce98a4d07873f04a47ff451f28a6201cc1` |
