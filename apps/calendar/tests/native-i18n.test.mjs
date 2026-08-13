@@ -31,6 +31,9 @@ test("Web Calendar exposes the same 12 audited catalogs and runtime RTL switch",
   const html = fs.readFileSync(path.join(root, "web/index.html"), "utf8");
   assert.match(runtime, /locale === "ar" \? "rtl" : "ltr"/);
   assert.match(runtime, /ynx\.calendar\.locale/);
+  assert.match(runtime, /ynx\.calendar\.locale\.explicit/);
+  assert.match(runtime, /storedLocale : "en"/);
+  assert.doesNotMatch(runtime, /storedLocale \|\| navigator\.language/);
   for (const key of ["create", "empty", "timezone", "repeat", "reminder", "privacy", "review", "recover"])
     assert.match(html, new RegExp(`data-i18n="${key}"`));
 });

@@ -255,6 +255,11 @@ function unnamedInteractive() {
       const page = await context.newPage();
       const errors = [];
       page.on("pageerror", (error) => errors.push(error.message));
+      if (config.name === "arabic-rtl")
+        await page.addInitScript(() => {
+          localStorage.setItem("ynx.calendar.locale", "ar");
+          localStorage.setItem("ynx.calendar.locale.explicit", "1");
+        });
       await page.goto(base, { waitUntil: "networkidle" });
       if (config.largeText)
         await page.addStyleTag({

@@ -6,7 +6,9 @@
     if (lower.startsWith("zh")) return "zh-CN";
     return supported.find((code) => lower === code.toLowerCase() || lower.startsWith(`${code.toLowerCase()}-`)) || "en";
   };
-  let locale = normalize(localStorage.getItem("ynx.calendar.locale") || navigator.language);
+  const storedLocale = localStorage.getItem("ynx.calendar.locale");
+  const explicitLocale = localStorage.getItem("ynx.calendar.locale.explicit") === "1";
+  let locale = normalize(explicitLocale && storedLocale ? storedLocale : "en");
   let messages = {};
   let english = {};
   const applyDirection = () => {
@@ -39,10 +41,13 @@
     })
     .then((catalog) => {
       english = catalog.locales.en;
-      const activate = (next) => {
+      const activate = (next, persist = true) => {
         locale = normalize(next);
         messages = catalog.locales[locale] || catalog.locales.en;
-        localStorage.setItem("ynx.calendar.locale", locale);
+        if (persist) {
+          localStorage.setItem("ynx.calendar.locale", locale);
+          localStorage.setItem("ynx.calendar.locale.explicit", "1");
+        }
         applyDirection();
         translate();
         window.dispatchEvent(new CustomEvent("ynx:locale", { detail: { locale } }));
@@ -50,9 +55,9 @@
       const picker = document.querySelector("#locale-picker");
       if (picker) {
         picker.value = locale;
-        picker.addEventListener("change", () => activate(picker.value));
+        picker.addEventListener("change", () => activate(picker.value, true));
       }
-      activate(locale);
+      activate(locale, false);
       return window.ynxI18n;
     });
   applyDirection();
