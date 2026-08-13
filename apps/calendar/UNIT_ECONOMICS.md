@@ -1,6 +1,6 @@
 # YNX Calendar unit economics
 
-Runtime source: `9abb16167f3e862447d731cba91f6b37a8b82d34`
+Runtime source: `55587bb6cc8c7c49202e4fc3222b69772dd05b5f`
 
 ## Current evidence boundary
 

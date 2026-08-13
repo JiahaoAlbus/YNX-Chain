@@ -46,7 +46,7 @@ Evidence checkpoint `06f8b2bce60780ca27cf71a0705bfdf060dc57f6` is pushed and rem
 
 ## 2026-08-08 — exact-build Testnet publication supersedes the old route finding
 
-Website `/dapp/calendar`, the owner registry and the direct Testnet Web/API runtime are now public. External health and served-asset checks bind runtime `9abb16167f3e862447d731cba91f6b37a8b82d34`; `websitePublished` and `deployedPublic` are therefore true. This does not authorize production scheduling, native package, signing, store, Mail, AI or Data Fabric claims.
+Website `/dapp/calendar`, the owner registry and the direct Testnet Web/API runtime are now public. External health and served-asset checks bind runtime `55587bb6cc8c7c49202e4fc3222b69772dd05b5f`; `websitePublished` and `deployedPublic` are therefore true. This does not authorize production scheduling, native package, signing, store, Mail, AI or Data Fabric claims.
 
 ## 2026-08-08 — mobile week is seven days in one viewport
 

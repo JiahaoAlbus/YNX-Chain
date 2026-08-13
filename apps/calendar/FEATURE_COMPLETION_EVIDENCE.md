@@ -1,6 +1,6 @@
 # YNX Calendar feature completion evidence
 
-Runtime source: `9abb16167f3e862447d731cba91f6b37a8b82d34`
+Runtime source: `55587bb6cc8c7c49202e4fc3222b69772dd05b5f`
 Overall status: **ACTIVE / FREEZE**
 
 ## Release-state truth
@@ -44,7 +44,7 @@ Overall status: **ACTIVE / FREEZE**
 | `npm run smoke` | pass |
 | `npm run browser:proof` | pass; desktop/mobile proof and zero console errors |
 
-The 390px proof renders all seven week headers at once with no horizontal overflow. Public build `9abb1616` serves the same CSS/JavaScript and health reports the exact commit. Its notification center covers invitation, RSVP, comment, calendar-permission and revoke activity; unread state is persistent, availability-only notices are privacy-redacted, and Mail delivery remains explicitly separate. Conflict preview now includes bounded preparation/travel buffers and only checks attendee calendars explicitly shared with the organizer; attendee titles and event IDs remain redacted. ComputerControl confirmed the public notification boundary and the public 0–240 minute buffer controls. A 100-request health probe at parallelism 50 returned 100 HTTP 200 responses.
+The 390px proof renders all seven week headers at once with no horizontal overflow. Public build `55587bb6` serves the same CSS/JavaScript and health reports the exact commit. Its notification center covers invitation, RSVP, comment, calendar-permission and revoke activity; unread state is persistent, availability-only notices are privacy-redacted, and Mail delivery remains explicitly separate. Conflict preview includes bounded preparation/travel buffers, authorized attendee Busy checks, and five deterministic weekday alternatives that return to the editor without auto-applying. Guest local date-time values are converted through the selected IANA zone instead of the browser process zone. ComputerControl confirmed the public notification boundary, buffer controls and alternative-time preview; the final time-zone correction passed the same browser proof. A 100-request health probe at parallelism 50 returned 100 HTTP 200 responses.
 
 Recovery-specific tests:
 

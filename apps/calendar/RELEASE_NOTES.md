@@ -2,7 +2,7 @@
 
 ## Current source candidate
 
-Source commit: `9abb16167f3e862447d731cba91f6b37a8b82d34`
+Source commit: `55587bb6cc8c7c49202e4fc3222b69772dd05b5f`
 Channel: public Testnet Web preview
 Overall goal: ACTIVE / FREEZE
 
@@ -22,6 +22,9 @@ Overall goal: ACTIVE / FREEZE
 - Unread count and explicit mark-all-read UI, with privacy-redacted availability-only notifications.
 - Preparation and travel buffers bounded to 0–240 minutes, included in conflict previews.
 - Authorized attendee availability checks that require explicit calendar/event sharing and return only Busy plus the attendee handle.
+- Five deterministic conflict-free weekday drafts for timed single events; choosing one returns to editing and never saves automatically.
+- IANA-aware conversion for guest event creation and editing, independent of the browser process time zone.
+- A real close control that cannot accidentally submit the event form.
 
 ### Verified
 
@@ -35,7 +38,7 @@ Overall goal: ACTIVE / FREEZE
 - `npm run smoke`
 - `npm run browser:proof`
 - Local operator backup and restore drill with matching state SHA-256 and live state unchanged.
-- Public health, served CSS/JavaScript and exact binary build identity for `9abb1616`; 100/100 concurrent health responses; ComputerControl notification-boundary proof; rollback binary retained.
+- Public health, served CSS/JavaScript and exact binary build identity for `55587bb6`; 100/100 concurrent health responses; ComputerControl notification-boundary proof; rollback binary retained.
 
 ### Compatibility
 

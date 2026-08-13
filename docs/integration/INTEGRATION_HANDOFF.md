@@ -7,7 +7,7 @@
 - Product client: `ynx-calendar-v1`
 - Bundle ID: `com.ynxweb4.calendar`
 - Callback: `ynxcalendar://wallet-auth/callback`
-- Runtime source: `9abb16167f3e862447d731cba91f6b37a8b82d34`
+- Runtime source: `55587bb6cc8c7c49202e4fc3222b69772dd05b5f`
 - Contract: `release/integration/calendar-contract.json`
 - Status: public Testnet Web runtime with canonical Wallet accepted; wider central integration remains pending
 
@@ -81,7 +81,7 @@ Acceptance must record exact source commits, central dependency commits, request
 | installedLocal | false | current source has not completed all-platform install/cold-start proof |
 | integratedCentral | false | Wallet/Mail/AI/Data Fabric acceptance is missing |
 | deployedStaging | false | no direct staging proof |
-| deployedPublic | true | direct runtime and health proof at `https://calendar-testnet.43.153.202.237.sslip.io/`; exact build `9abb1616` |
+| deployedPublic | true | direct runtime and health proof at `https://calendar-testnet.43.153.202.237.sslip.io/`; exact build `55587bb6` |
 | downloadHosted | false | no current-source immutable artifact is hosted |
 | productionSigned | false | only historical debug/unsigned evidence exists |
 | storeReleased | false | no store evidence |

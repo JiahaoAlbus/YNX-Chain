@@ -2,10 +2,10 @@
   "productId": "com.ynx.calendar",
   "name": "YNX Calendar",
   "branch": "codex/final-calendar",
-  "commit": "9abb16167f3e862447d731cba91f6b37a8b82d34",
-  "sourceCommit": "9abb16167f3e862447d731cba91f6b37a8b82d34",
+  "commit": "55587bb6cc8c7c49202e4fc3222b69772dd05b5f",
+  "sourceCommit": "55587bb6cc8c7c49202e4fc3222b69772dd05b5f",
   "artifactSourceCommit": null,
-  "version": "0.3.4-testnet-public",
+  "version": "0.3.7-testnet-public",
   "releaseChannel": "public-testnet-preview",
   "surfaces": [
     "android-native",
@@ -68,7 +68,7 @@
   "publicProbe": {
     "url": "https://calendar-testnet.43.153.202.237.sslip.io/",
     "finalUrl": "https://calendar-testnet.43.153.202.237.sslip.io/",
-    "observedAt": "2026-08-13T10:50:40Z",
+    "observedAt": "2026-08-13T11:01:19Z",
     "httpStatus": 200,
     "contentMatch": true,
     "observedTitle": "YNX Calendar",
@@ -165,8 +165,8 @@
       "result": "pass"
     },
     {
-      "sourceCommit": "9abb16167f3e862447d731cba91f6b37a8b82d34",
-      "gate": "private availability conflicts, travel buffers, activity notifications, browser proof, public deployment and ComputerControl",
+      "sourceCommit": "55587bb6cc8c7c49202e4fc3222b69772dd05b5f",
+      "gate": "private availability conflicts, deterministic alternatives, time-zone-correct guest scheduling, activity notifications, browser proof and public deployment",
       "result": "pass",
       "details": {
         "visibleDayHeaders": 7,
@@ -177,10 +177,12 @@
         "availabilityPrivacy": "pass",
         "attendeeAvailability": "authorized shared calendars only; titles and event IDs redacted",
         "eventBuffers": "0 to 240 minutes before and after",
+        "alternativeDrafts": "five bounded weekday candidates; never auto-applied",
+        "guestTimeZoneRoundTrip": "pass across IANA conversion helper",
         "publicConcurrentHealth": "100/100 at parallelism 50",
         "computerControl": "public notification control visible; guest access fails closed",
-        "binarySha256": "146d2338ccbb208430f96c569827b7fd8b4d77db97bc2bc418a676b0135f1291",
-        "rollbackBackup": "/var/backups/ynx-chain/calendar-before-9abb1616/ynx-calendard"
+        "binarySha256": "2b0e07b049af467964d3df69784de3a3527247c560be63e0c1247770900d5543",
+        "rollbackBackup": "/var/backups/ynx-chain/calendar-before-55587bb6/ynx-calendard"
       }
     }
   ],

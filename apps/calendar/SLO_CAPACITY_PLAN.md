@@ -1,6 +1,6 @@
 # YNX Calendar SLO and capacity plan
 
-Runtime source: `9abb16167f3e862447d731cba91f6b37a8b82d34`
+Runtime source: `55587bb6cc8c7c49202e4fc3222b69772dd05b5f`
 
 ## Evidence boundary
 
@@ -17,7 +17,7 @@ A public Testnet Web/API runtime is available, but no production workload or sep
 | Browser proof | zero console errors | one desktop and one mobile scenario |
 | Service smoke | pass | single local process and bounded scenario |
 | Public authenticated concurrent reads | 100/100 | two canonical Wallet users against exact public build `cf92caa3`; control-path concurrency only |
-| Current public exact-build probe | pass | build `9abb1616`, HTTP 200, binary SHA-256 `146d2338…`, rollback binary retained |
+| Current public exact-build probe | pass | build `55587bb6`, HTTP 200, binary SHA-256 `2b0e07b0…`, rollback binary retained |
 | Current public concurrent health | 100/100 HTTP 200 | parallelism 50 from the public server; control-path availability only |
 
 These measurements are not representative p50/p95/p99 latency, throughput, concurrency or production RTO/RPO.

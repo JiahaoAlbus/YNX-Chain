@@ -5,7 +5,7 @@
   "productId": "com.ynx.calendar",
   "productClientId": "ynx-calendar-v1",
   "bundleId": "com.ynxweb4.calendar",
-  "sourceCommit": "9abb16167f3e862447d731cba91f6b37a8b82d34",
+  "sourceCommit": "55587bb6cc8c7c49202e4fc3222b69772dd05b5f",
   "generatedAt": "2026-08-08T18:57:46Z",
   "authority": {
     "calendarState": "36-calendar",
