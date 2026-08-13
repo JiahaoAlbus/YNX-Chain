@@ -10,6 +10,7 @@ const walletRoot = fileURLToPath(new URL("..", import.meta.url));
 const committedPath = path.join(walletRoot, "sbom.cdx.json");
 const packageDocument = JSON.parse(await readFile(path.join(walletRoot, "package.json"), "utf8"));
 const writeMode = process.argv.includes("--write");
+assert.equal(process.versions.node.split(".")[0], "22", "Wallet SBOM requires the release-locked Node 22 runtime");
 const toolPath = path.join(
   walletRoot,
   "node_modules",

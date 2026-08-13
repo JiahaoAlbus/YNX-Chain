@@ -2,6 +2,7 @@
   "name": "@ynx-chain/wallet-app",
   "version": "1.0.1",
   "packageManager": "npm@11.5.1",
+  "engines": {"node": "22.x"},
   "main": "index.ts",
   "private": true,
   "license": "UNLICENSED",
