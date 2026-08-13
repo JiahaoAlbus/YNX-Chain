@@ -1,0 +1,56 @@
+name: Wallet Linux packages
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [codex/wallet-desktop-cli-sdk-20260813]
+    paths:
+      - cmd/ynx-wallet-cli/**
+      - sdk/wallet/**
+      - packages/wallet-auth/testdata/product-session-http-proof-v1.json
+      - release/wallet-cli/**
+      - scripts/release/build-wallet-linux-packages.sh
+      - scripts/verify/wallet-linux-package-lifecycle.sh
+      - .github/workflows/wallet-linux-packages.yml
+
+permissions:
+  contents: read
+
+jobs:
+  packages:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            architecture: amd64
+          - runner: ubuntu-24.04-arm
+            architecture: arm64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - name: Install native package tooling
+        run: sudo apt-get update && sudo apt-get install -y rpm
+      - name: Build twice and require byte-identical packages
+        env:
+          SOURCE_COMMIT: 95bd2aad56bd8b72246f3f0e9529d699f09550ad
+        run: |
+          scripts/release/build-wallet-linux-packages.sh "$SOURCE_COMMIT" 0.1.0 tmp/wallet-linux-first
+          scripts/release/build-wallet-linux-packages.sh "$SOURCE_COMMIT" 0.1.0 tmp/wallet-linux-second
+          scripts/release/build-wallet-linux-packages.sh "$SOURCE_COMMIT" 0.0.0 tmp/wallet-linux-preflight
+          diff -rq tmp/wallet-linux-first tmp/wallet-linux-second
+      - name: Install, launch, verify Testnet and uninstall
+        env:
+          SOURCE_COMMIT: 95bd2aad56bd8b72246f3f0e9529d699f09550ad
+        run: sudo --preserve-env=SOURCE_COMMIT scripts/verify/wallet-linux-package-lifecycle.sh "$SOURCE_COMMIT" tmp/wallet-linux-first tmp/wallet-linux-preflight | tee "tmp/wallet-linux-${{ matrix.architecture }}-evidence.json"
+      - name: Record artifact hashes
+        run: sha256sum tmp/wallet-linux-first/* | tee "tmp/wallet-linux-${{ matrix.architecture }}-sha256.txt"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: wallet-linux-${{ matrix.architecture }}
+          path: |
+            tmp/wallet-linux-first/*
+            tmp/wallet-linux-${{ matrix.architecture }}-evidence.json
+            tmp/wallet-linux-${{ matrix.architecture }}-sha256.txt
+          if-no-files-found: error
