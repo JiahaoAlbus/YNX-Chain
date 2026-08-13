@@ -5,6 +5,17 @@
   "sourceCommit": "a940d2efa824bd9f43522ed792c9a563b55e1e11",
   "vectors": [
     {
+      "id": "WA-UO-EVIDENCE-SUBSTITUTION-001",
+      "category": "wallet-auth",
+      "owners": ["01-chain-core", "02-wallet-auth", "12-explorer", "13-monitor", "29-integration"],
+      "precondition": "A Bundler returns lookup, UserOperation receipt and inclusion transaction responses for a submitted PackedUserOperation.",
+      "action": "Substitute the operation, userOpHash, EntryPoint, sender/nonce, transaction, transaction recipient, Paymaster prefix, block evidence or success status in any response.",
+      "expectedHttpStatus": null,
+      "expectedCode": "BUNDLER_EVIDENCE_MISMATCH",
+      "expectedState": "no finalized or sponsored success is emitted; missing finality returns BUNDLER_NOT_FINALIZED and failed execution returns BUNDLER_USER_OPERATION_FAILED",
+      "publicClaimAllowed": false
+    },
+    {
       "id": "WA-MULTIUSER-ISOLATION-001",
       "category": "wallet-auth",
       "owners": ["02-wallet-auth", "29-integration"],

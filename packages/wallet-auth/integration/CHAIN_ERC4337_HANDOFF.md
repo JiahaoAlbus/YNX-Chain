@@ -4,7 +4,9 @@ Wallet/Auth owns the account, Paymaster, Bundler adapter, schemas and vectors. C
 
 ## Current direct evidence
 
-On 2026-07-22 the public endpoint returned chain ID `0x1917` and block `0x6bf29`. The exact v0.8 EntryPoint `eth_getCode` request returned JSON-RPC `-32601` with `method eth_getCode is not implemented by the local YNX devnet RPC`. Repository source confirms `internal/api/server.go` implements a bounded method/runtime subset and labels unsupported methods accordingly. Therefore Wallet must keep EntryPoint, Bundler, Paymaster and public sponsored receipt states false.
+On 2026-08-13 the public endpoint returned chain ID `0x1917` and block `0xf37a4` (997284). The first exact v0.8 EntryPoint `eth_getCode` request timed out; one bounded retry returned JSON-RPC `-32601` with `method eth_getCode is not implemented by the local YNX devnet RPC`. Therefore Wallet must keep EntryPoint, Bundler, Paymaster and public sponsored receipt states false.
+
+Wallet source `80291d53893aa6735d401c692a786fbcdbca8424` adds a local cross-response verifier that binds the exact submitted PackedUserOperation to Bundler lookup, UserOperation receipt and inclusion transaction evidence. It rejects operation/hash/EntryPoint/transaction/Paymaster substitution, missing finality and fake success with stable fail-closed errors. This verifier reduces provider-substitution risk but does not prove that any public provider, EntryPoint, Paymaster, balance, transaction or receipt exists.
 
 ## Required merge contract
 

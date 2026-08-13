@@ -39,6 +39,6 @@
     "packages/wallet-auth/integration/smart-account-testnet.manifest.json",
     "apps/wallet/proof/sponsorship-bundler-hardhat-local.json"
   ],
-  "currentContradiction": {"method":"eth_getCode","publicResultCode":-32601,"observedAt":"2026-07-22T16:00:36Z"},
+  "currentContradiction": {"method":"eth_getCode","publicResultCode":-32601,"publicResultMessage":"method eth_getCode is not implemented by the local YNX devnet RPC","observedAt":"2026-08-13T12:47:24Z","chainId":6423,"blockNumber":997284,"firstAttempt":"timeout","boundedRetry":"json-rpc-error"},
   "states": {"implementedWalletLocal":true,"acceptedChainCore":false,"deployedStaging":false,"deployedPublic":false}
 }

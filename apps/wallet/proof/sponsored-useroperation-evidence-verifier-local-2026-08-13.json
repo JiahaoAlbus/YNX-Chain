@@ -1,0 +1,130 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "wallet-sponsored-useroperation-evidence-verifier-local-2026-08-13",
+  "owner": "02-wallet-auth",
+  "sourceCommit": "80291d53893aa6735d401c692a786fbcdbca8424",
+  "environment": {
+    "runtime": "Node.js 22",
+    "chain": "isolated local Hardhat EDR",
+    "hardhatConfig": "hardhat.wallet.config.ts",
+    "sources": "contracts/wallet",
+    "artifacts": "tmp/wallet-hardhat/artifacts",
+    "cache": "tmp/wallet-hardhat/cache",
+    "productionSigning": false
+  },
+  "verifiedBindings": [
+    "exact submitted PackedUserOperation",
+    "canonical userOpHash",
+    "EntryPoint",
+    "sender",
+    "nonce",
+    "transaction hash",
+    "transaction block number and block hash",
+    "transaction recipient equals EntryPoint",
+    "Paymaster address prefix in paymasterAndData",
+    "successful UserOperation inclusion and transaction status"
+  ],
+  "failClosedErrors": [
+    "BUNDLER_NOT_FINALIZED",
+    "BUNDLER_EVIDENCE_MISMATCH",
+    "BUNDLER_USER_OPERATION_FAILED"
+  ],
+  "negativeCases": [
+    "submitted operation substitution",
+    "userOpHash substitution",
+    "EntryPoint substitution",
+    "transaction substitution",
+    "Paymaster substitution",
+    "provider fake-success substitution",
+    "missing lookup or receipt finality",
+    "failed UserOperation or reverted inclusion transaction"
+  ],
+  "tests": {
+    "focusedBundler": {"passed": 6, "failed": 0},
+    "walletOwnedSuite": {"passed": 115, "failed": 0},
+    "fullPackageSuite": {"passed": 117, "failed": 0},
+    "crossOwnerFixtureAudit": {
+      "owner": "Developer",
+      "test": "developer-deployment.test.mjs",
+      "assertions": 2,
+      "artifact": "artifacts/contracts/devtools/SampleEVMWriteCounter.sol/SampleEVMWriteCounter.json",
+      "passed": 2,
+      "failed": 0,
+      "modifiedByWalletCore": false,
+      "classifiedAsWalletCoreCoverage": false
+    },
+    "hardhatSponsoredFlow": {
+      "passed": true,
+      "zeroBalanceSponsoredFirstAction": true,
+      "merchantSponsorship": true,
+      "developerTestnetSponsorship": true,
+      "tamperRejected": true,
+      "replayRejected": true,
+      "emergencyDisableRejected": true,
+      "accountSamples": 50,
+      "accountFailures": 0,
+      "accountP50Milliseconds": 2.808,
+      "accountP95Milliseconds": 31.713,
+      "accountP99Milliseconds": 83.323,
+      "accountThroughputPerSecond": 131.92,
+      "sponsorSamples": 25,
+      "sponsorFailures": 0,
+      "sponsorP50Milliseconds": 4.66,
+      "sponsorP95Milliseconds": 10.005,
+      "sponsorP99Milliseconds": 11.853,
+      "sponsorThroughputPerSecond": 182.7
+    }
+  },
+  "runtimeBytecode": {
+    "YNXEntryPoint": {"bytes": 16075, "sha256": "ec8996b0639d05c7810e0a3e7774bf8d261fcbb068555ce14ba0cc7594d684a2"},
+    "YNXSmartAccount": {"bytes": 11865, "sha256": "e473c01b1e5e074ad9e443dca08effaaec7d45afa6423c4e6aecf47274751311"},
+    "YNXSmartAccountFactory": {"bytes": 13348, "sha256": "26ef956e408b8894746d397c039f6da7cd13c5f2fae8c5138609cc58a4c4c6d7"},
+    "YNXSponsorPaymaster": {"bytes": 11199, "sha256": "9b9e27bb1c7985a1f07ff020d5c13928e2d6a87fc391253654ce55d1bc902d67"}
+  },
+  "sourceSha256": {
+    "packages/wallet-auth/src/bundler.js": "cb5c33f1a9bb1a00fdb30ec5a4959c920db5fb295bc4531ccf76a4c3205f09a0",
+    "packages/wallet-auth/test/bundler.test.mjs": "77d91a858417820b8e5dd98b46c0d784cc95350849a43057a4b7d7e38170a3da",
+    "hardhat.wallet.config.ts": "46beeaf41fe92358dc27f8d9fd5977a566e5380d547a2712e45a0e62b607b5ef"
+  },
+  "packageArtifact": {
+    "sha256": "aa3859c5e804eeea8c7134b9fa7f54a00333becc8e816727637ff65aafdfba62",
+    "bytes": 90924,
+    "unpackedBytes": 409067,
+    "entries": 54,
+    "minimumRuntime": "Node.js 22",
+    "signingClass": "unsigned-local-npm-package"
+  },
+  "publicReadBoundary": {
+    "endpoint": "https://evm.ynxweb4.com",
+    "observedAt": "2026-08-13T12:47:24Z",
+    "chainIdHex": "0x1917",
+    "chainId": 6423,
+    "blockNumberHex": "0xf37a4",
+    "blockNumber": 997284,
+    "firstEthGetCodeAttempt": "timeout",
+    "boundedRetryCode": -32601,
+    "boundedRetryMessage": "method eth_getCode is not implemented by the local YNX devnet RPC"
+  },
+  "states": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "entryPointDeployedPublic": false,
+    "bundlerDeployedPublic": false,
+    "paymasterDeployedPublic": false,
+    "sponsoredReceiptPublic": false,
+    "explorerEvidencePublic": false,
+    "productionSigned": false
+  },
+  "exclusions": [
+    "public EntryPoint bytecode",
+    "public Bundler availability",
+    "public Paymaster balance or policy state",
+    "public sponsored UserOperation receipt",
+    "public transaction finality",
+    "public Explorer indexing",
+    "provider correctness beyond cross-response consistency",
+    "production signing"
+  ]
+}

@@ -243,7 +243,10 @@
     "BACKUP_UNAVAILABLE",
     "BACKUP_EXISTS",
     "RESTORE_TARGET_EXISTS",
-    "RESTORE_INTEGRITY"
+    "RESTORE_INTEGRITY",
+    "BUNDLER_NOT_FINALIZED",
+    "BUNDLER_EVIDENCE_MISMATCH",
+    "BUNDLER_USER_OPERATION_FAILED"
   ],
   "canonicalEventContract": [
     {"name": "wallet.product_session.created.v1", "owner": "02-wallet-auth", "integrationStatus": "adapter-ready"},
@@ -293,9 +296,9 @@
     "storeReleased": false
   },
   "verification": {
-    "walletAuthPackageTests": "100/100 passed",
-    "currentWalletOwnedSuite": "113/113 passed; all package tests except Developer-owned developer-deployment.test.mjs",
-    "crossOwnerTestGap": "2 Developer deployment assertions require artifacts/contracts/devtools/SampleEVMWriteCounter.sol/SampleEVMWriteCounter.json; Wallet/Auth does not generate or modify this Developer-owned artifact",
+    "walletAuthPackageTests": "117/117 passed",
+    "currentWalletOwnedSuite": "115/115 passed; all package tests except Developer-owned developer-deployment.test.mjs",
+    "crossOwnerTestAudit": "2/2 Developer-owned SampleEVMWriteCounter assertions passed in the full package audit; Wallet/Auth did not generate or modify the Developer-owned artifact and does not count them as Wallet-owned coverage",
     "gatewayNodeHostTests": "10/10 passed",
     "gatewayAdmissionObservability": {
       "sourceCommit": "6b1f1f21a79861178ee7fc168ad21c2869296fd5",
@@ -327,6 +330,21 @@
       "postRestartRevokedCode": "REVOKED",
       "evidence": "apps/wallet/proof/gateway-multi-user-loopback-2026-08-13.json",
       "publicCapacityProven": false
+    },
+    "sponsoredUserOperationEvidenceVerifier": {
+      "sourceCommit": "80291d53893aa6735d401c692a786fbcdbca8424",
+      "focusedBundlerTests": "6/6 passed",
+      "walletOwnedSuite": "115/115 passed",
+      "requiredBindings": ["submitted PackedUserOperation", "userOpHash", "EntryPoint", "sender", "nonce", "transaction hash and block", "transaction recipient", "Paymaster prefix", "successful inclusion"],
+      "substitutionAndFakeSuccessFailClosed": true,
+      "zeroBalanceSponsoredFirstActionLocal": true,
+      "isolatedHardhatWalletArtifacts": true,
+      "integratedCentral": false,
+      "entryPointDeployedPublic": false,
+      "bundlerDeployedPublic": false,
+      "paymasterDeployedPublic": false,
+      "sponsoredReceiptPublic": false,
+      "evidence": "apps/wallet/proof/sponsored-useroperation-evidence-verifier-local-2026-08-13.json"
     },
     "freshPublicGatewayProbe": {
       "sourceCommit": "652b9da67a47e13f1826db07d423d464100939c1",
