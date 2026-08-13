@@ -14,7 +14,7 @@
       "binarySha256": "f04fee3ac493269773320c170ddbfda52a20b6b7a498cacf0947b24b7c77b7f6",
       "minimumOS": "Windows 10 or Windows Server 2016",
       "signingClass": "unsigned_windows_user_installer_candidate",
-      "runtimeTested": false,
+      "runtimeTested": true,
       "productionSigned": false
     },
     {
@@ -31,4 +31,12 @@
       "productionSigned": false
     }
   ]
+  ,"workflowEvidence": {
+    "runId": 31709406143,
+    "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/31709406143",
+    "pipelineCommit": "23bfe2d0eab22b90f37d858401fc54009552d058",
+    "x64JobId": 94478148354,
+    "arm64StaticJobId": 94478148441,
+    "x64ArtifactId": 9184569539
+  }
 }
