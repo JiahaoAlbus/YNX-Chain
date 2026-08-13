@@ -858,6 +858,13 @@ func TestAuthorizedAttendeeAvailabilityAndTravelBuffersStayPrivate(t *testing.T)
 	if strings.Contains(string(encoded), busyInput.Title) || strings.Contains(string(encoded), busyEvent.ID) {
 		t.Fatalf("availability conflict leaked event identity: %s", encoded)
 	}
+	if len(bufferPreview.SuggestedSlots) == 0 || bufferPreview.SuggestedSlots[0].Reason == "" {
+		t.Fatalf("conflict-free draft alternatives were not generated: %+v", bufferPreview.SuggestedSlots)
+	}
+	approved, err := svc.ApproveChange(alice, bufferPreview.ID, true)
+	if err != nil || approved.StartUTC != bufferPreview.After.StartUTC {
+		t.Fatalf("suggestions moved an event without user editing and approval: %v %+v", err, approved)
+	}
 
 	overlap := input("Direct overlap", "2026-11-01T11:15", "2026-11-01T11:45", "UTC", "alice-overlap")
 	overlap.Invitees = []string{"@bob"}

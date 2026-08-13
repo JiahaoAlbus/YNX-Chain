@@ -371,6 +371,21 @@ function unnamedInteractive() {
       });
       if (config.name === "desktop") {
         await page.getByRole("button", { name: /Protocol team/ }).waitFor();
+        await page.locator("#new-event").click();
+        await page.locator("#title").fill("Conflict alternative proof");
+        await page.locator("#start").fill(local(start));
+        await page.locator("#end").fill(local(end));
+        await page.locator("#event-form button[type=submit]").click();
+        await page.waitForTimeout(500);
+        if (!(await page.locator("#change-dialog").isVisible()))
+          throw Error(`conflict preview did not open: ${await page.locator("#toast").innerText()}`);
+        if (!(await page.locator("#change-preview").innerText()).includes("Conflict-free draft alternatives"))
+          throw Error(`alternative drafts missing: ${await page.locator("#change-preview").innerText()}`);
+        const originalConflictStart = local(start);
+        await page.locator("[data-suggestion]").first().click();
+        if ((await page.locator("#start").inputValue()) === originalConflictStart)
+          throw Error("alternative draft did not update the editor");
+        await page.locator("#event-dialog").getByRole("button", { name: "Close" }).click();
         await page.getByRole("button", { name: "Open Calendar notifications" }).click();
         await page.getByRole("heading", { name: "Notifications" }).waitFor();
         await page.getByText("Mail delivery is a separate integration.").waitFor();

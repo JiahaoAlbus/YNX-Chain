@@ -233,23 +233,30 @@ type Conflict struct {
 	StartUTC          time.Time `json:"start_utc"`
 	EndUTC            time.Time `json:"end_utc"`
 }
+type SuggestedSlot struct {
+	StartUTC time.Time `json:"start_utc"`
+	EndUTC   time.Time `json:"end_utc"`
+	TimeZone string    `json:"time_zone"`
+	Reason   string    `json:"reason"`
+}
 type ChangePreview struct {
-	ID               string     `json:"id"`
-	EventID          string     `json:"event_id"`
-	ActorID          string     `json:"actor_id"`
-	Kind             string     `json:"kind"`
-	Scope            string     `json:"scope,omitempty"`
-	RecurrenceID     string     `json:"recurrence_id,omitempty"`
-	Before           *Event     `json:"before,omitempty"`
-	After            Event      `json:"after"`
-	RelatedBefore    []Event    `json:"related_before,omitempty"`
-	RelatedAfter     []Event    `json:"related_after,omitempty"`
-	Conflicts        []Conflict `json:"conflicts,omitempty"`
-	State            string     `json:"state"`
-	ClientMutationID string     `json:"client_mutation_id"`
-	CreatedAt        time.Time  `json:"created_at"`
-	ApprovedAt       time.Time  `json:"approved_at,omitempty"`
-	RevertedAt       time.Time  `json:"reverted_at,omitempty"`
+	ID               string          `json:"id"`
+	EventID          string          `json:"event_id"`
+	ActorID          string          `json:"actor_id"`
+	Kind             string          `json:"kind"`
+	Scope            string          `json:"scope,omitempty"`
+	RecurrenceID     string          `json:"recurrence_id,omitempty"`
+	Before           *Event          `json:"before,omitempty"`
+	After            Event           `json:"after"`
+	RelatedBefore    []Event         `json:"related_before,omitempty"`
+	RelatedAfter     []Event         `json:"related_after,omitempty"`
+	Conflicts        []Conflict      `json:"conflicts,omitempty"`
+	SuggestedSlots   []SuggestedSlot `json:"suggested_slots,omitempty"`
+	State            string          `json:"state"`
+	ClientMutationID string          `json:"client_mutation_id"`
+	CreatedAt        time.Time       `json:"created_at"`
+	ApprovedAt       time.Time       `json:"approved_at,omitempty"`
+	RevertedAt       time.Time       `json:"reverted_at,omitempty"`
 }
 
 type AIJob struct {

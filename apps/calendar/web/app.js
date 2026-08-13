@@ -57,6 +57,20 @@ function localInput(d) {
   const x = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
   return x.toISOString().slice(0, 16);
 }
+function zonedLocalInput(value, zone) {
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat("en-CA", {
+      timeZone: zone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+    }).formatToParts(new Date(value)).filter((part) => part.type !== "literal").map((part) => [part.type, part.value]),
+  );
+  return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}`;
+}
 function mutationID() {
   return crypto.randomUUID?.() || `${Date.now()}-${Math.random()}`;
 }
@@ -599,7 +613,16 @@ function showChange() {
   const c = state.pendingChange,
     a = c.after;
   $("#change-preview").innerHTML =
-    `<div class="preview-block"><span>Change</span><b>${escapeHTML(c.kind)}</b><span>Event</span><b>${escapeHTML(a.title)}</b><span>Time</span><b>${new Date(a.start_utc).toLocaleString(activeLocale())} — ${new Date(a.end_utc).toLocaleTimeString(activeLocale())}</b><span>Preparation / travel buffer</span><b>${a.buffer_before_minutes || 0} / ${a.buffer_after_minutes || 0} minutes</b><span>${tr("timezone", "Time zone")}</span><b>${escapeHTML(a.time_zone)}</b><span>Invitations</span><b>${a.invites.length ? a.invites.map((i) => escapeHTML(i.handle)).join(", ") : "None"}</b><span>${tr("repeat", "Recurrence")}</span><b>${a.recurrence.frequency ? `${escapeHTML(a.recurrence.frequency)} × ${a.recurrence.count}` : "Does not repeat"}</b></div>${c.conflicts?.length ? `<div class="conflicts"><b>${c.conflicts.length} conflict(s)</b>${c.conflicts.map((x) => `<p>${escapeHTML(x.participant_handle ? `${x.participant_handle} · Busy` : x.title)} · ${escapeHTML(x.kind || "overlap")} · ${new Date(x.start_utc).toLocaleString(activeLocale())}</p>`).join("")}</div>` : ""}`;
+    `<div class="preview-block"><span>Change</span><b>${escapeHTML(c.kind)}</b><span>Event</span><b>${escapeHTML(a.title)}</b><span>Time</span><b>${new Date(a.start_utc).toLocaleString(activeLocale())} — ${new Date(a.end_utc).toLocaleTimeString(activeLocale())}</b><span>Preparation / travel buffer</span><b>${a.buffer_before_minutes || 0} / ${a.buffer_after_minutes || 0} minutes</b><span>${tr("timezone", "Time zone")}</span><b>${escapeHTML(a.time_zone)}</b><span>Invitations</span><b>${(a.invites || []).length ? (a.invites || []).map((i) => escapeHTML(i.handle)).join(", ") : "None"}</b><span>${tr("repeat", "Recurrence")}</span><b>${a.recurrence.frequency ? `${escapeHTML(a.recurrence.frequency)} × ${a.recurrence.count}` : "Does not repeat"}</b></div>${c.conflicts?.length ? `<div class="conflicts"><b>${c.conflicts.length} conflict(s)</b>${c.conflicts.map((x) => `<p>${escapeHTML(x.participant_handle ? `${x.participant_handle} · Busy` : x.title)} · ${escapeHTML(x.kind || "overlap")} · ${new Date(x.start_utc).toLocaleString(activeLocale())}</p>`).join("")}</div>` : ""}${c.suggested_slots?.length ? `<div class="alternatives"><b>Conflict-free draft alternatives</b><p>Calendar has not moved the event. Choose a draft, review it in the editor, then approve again.</p>${c.suggested_slots.map((slot, index) => `<button type="button" class="quiet" data-suggestion="${index}">${new Date(slot.start_utc).toLocaleString(activeLocale())} — ${new Date(slot.end_utc).toLocaleTimeString(activeLocale())}</button>`).join("")}</div>` : ""}`;
+  $$('[data-suggestion]').forEach((button) => button.onclick = () => {
+    const slot = c.suggested_slots[Number(button.dataset.suggestion)];
+    $("#start").value = zonedLocalInput(slot.start_utc, slot.time_zone);
+    $("#end").value = zonedLocalInput(slot.end_utc, slot.time_zone);
+    $("#timezone").value = slot.time_zone;
+    $("#change-dialog").close();
+    $("#event-dialog").showModal();
+    toast("Alternative copied into the editor as a draft; review and approve to save it");
+  });
   $("#conflict-override").hidden = !c.conflicts?.length;
   $("#accept-conflicts").checked = false;
   $("#event-dialog").close();
@@ -921,6 +944,7 @@ function init() {
   $("#guest-try").onclick = enterGuest;
   $("#account").onclick = () => state.guest ? showGuestAccount() : showAccount();
   $("#new-event").onclick = () => openForm();
+  $("#event-close").onclick = () => $("#event-dialog").close();
   $("#manage-calendars").onclick = showCalendarManager;
   $("#event-form").onsubmit = submitEvent;
   $("#approve-change").onclick = approveChange;

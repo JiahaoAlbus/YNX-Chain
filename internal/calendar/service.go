@@ -500,6 +500,7 @@ func (s *Service) PreviewCreate(token string, input EventInput) (ChangePreview, 
 		event.CreatedAt = s.now().UTC()
 		event.UpdatedAt = event.CreatedAt
 		out = ChangePreview{ID: s.id("change"), EventID: event.ID, ActorID: sess.UserID, Kind: "create", After: event, Conflicts: s.conflicts(st, event, ""), State: "preview", ClientMutationID: input.ClientMutationID, CreatedAt: s.now().UTC()}
+		out.SuggestedSlots = s.suggestAlternatives(st, event, "", out.Conflicts)
 		st.Changes[out.ID] = out
 		st.Mutations[sess.UserID+":"+input.ClientMutationID] = out.ID
 		s.audit(st, sess.UserID, "event_create_preview", out.ID, map[string]any{"conflicts": len(out.Conflicts)})
@@ -553,6 +554,7 @@ func (s *Service) previewUpdate(token, eventID string, input EventInput, scope s
 		after.UpdatedAt = s.now().UTC()
 		copyBefore := before
 		out = ChangePreview{ID: s.id("change"), EventID: eventID, ActorID: sess.UserID, Kind: "update", Scope: scope, Before: &copyBefore, After: after, Conflicts: s.conflicts(st, after, eventID), State: "preview", ClientMutationID: input.ClientMutationID, CreatedAt: s.now().UTC()}
+		out.SuggestedSlots = s.suggestAlternatives(st, after, eventID, out.Conflicts)
 		st.Changes[out.ID] = out
 		st.Mutations[sess.UserID+":"+input.ClientMutationID] = out.ID
 		s.audit(st, sess.UserID, "event_update_preview", out.ID, map[string]any{"conflicts": len(out.Conflicts)})
@@ -724,6 +726,7 @@ func (s *Service) PreviewRecurrenceChange(token, eventID string, input Recurrenc
 
 			out = ChangePreview{ID: s.id("change"), EventID: eventID, ActorID: sess.UserID, Kind: "recurrence", Scope: "this_and_following", RecurrenceID: input.RecurrenceID, Before: &copyBefore, After: truncated, RelatedAfter: []Event{future}, Conflicts: s.conflicts(st, future, eventID), State: "preview", ClientMutationID: input.ClientMutationID, CreatedAt: now}
 		}
+		out.SuggestedSlots = s.suggestAlternatives(st, out.After, eventID, out.Conflicts)
 
 		st.Changes[out.ID] = out
 		st.Mutations[mutationKey] = out.ID
@@ -1865,6 +1868,37 @@ func availabilityAuthorized(st *State, event Event, requesterHandle string) bool
 	}
 	calendar, ok := st.SharedCalendars[event.CalendarID]
 	return ok && calendar.OwnerID == event.OwnerID && calendarRole(calendar, requesterHandle) != ""
+}
+
+func (s *Service) suggestAlternatives(st *State, candidate Event, exclude string, conflicts []Conflict) []SuggestedSlot {
+	if len(conflicts) == 0 || candidate.Recurrence.Frequency != "" || candidate.AllDay {
+		return nil
+	}
+	loc, err := time.LoadLocation(candidate.TimeZone)
+	if err != nil {
+		return nil
+	}
+	duration := candidate.EndUTC.Sub(candidate.StartUTC)
+	start := candidate.EndUTC.In(loc).Truncate(30 * time.Minute)
+	if start.Before(candidate.EndUTC.In(loc)) {
+		start = start.Add(30 * time.Minute)
+	}
+	var out []SuggestedSlot
+	for attempts := 0; attempts < 14*48 && len(out) < 5; attempts++ {
+		local := start.Add(time.Duration(attempts) * 30 * time.Minute)
+		if local.Hour() < 8 || local.Hour() >= 18 || local.Weekday() == time.Saturday || local.Weekday() == time.Sunday {
+			continue
+		}
+		probe := candidate
+		probe.StartUTC = local.UTC()
+		probe.EndUTC = local.Add(duration).UTC()
+		probe.Recurrence = Recurrence{}
+		if probe.EndUTC.In(loc).Hour() > 18 || len(s.conflicts(st, probe, exclude)) != 0 {
+			continue
+		}
+		out = append(out, SuggestedSlot{StartUTC: probe.StartUTC, EndUTC: probe.EndUTC, TimeZone: candidate.TimeZone, Reason: "No detected owner or authorized attendee conflict"})
+	}
+	return out
 }
 func validCalendarColor(color string) bool {
 	return map[string]bool{"blue": true, "slate": true, "green": true, "amber": true, "red": true, "violet": true}[color]
