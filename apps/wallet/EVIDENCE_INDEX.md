@@ -49,6 +49,8 @@ SHA-256 and byte sizes are recorded in `artifact-manifest.json`. The latest Andr
 
 GitHub Actions run [29646381701](https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/29646381701) executed `.github/workflows/wallet-ios.yml` on macOS 15 with Xcode 26.3. It installed dependencies and pods, passed the SDK and Wallet checks, built the unsigned Release `YNXWallet.app`, booted an available iPhone Simulator from shutdown, installed the app, cold-launched `com.ynxweb4.wallet`, resolved `ynxwallet://authorize?request=invalid`, captured the fail-closed rejection screen and uploaded the app plus command evidence. The exact unsigned Simulator bundle is hosted as an engineering-only release asset; this does not claim production signing, an archive, device installation or App Store release.
 
+`proof/ios-simulator-recovery-evidence-2026-08-13.json` re-verifies the retained e90 recovery slice against GitHub Actions, the unexpired Actions artifact, the hosted Release asset and the committed screenshot. Direct archive inspection corrected the minimum OS from the stale 15.1 claim to iOS 16.4 and records the exact signing boundary: ad-hoc linker signature, no TeamIdentifier, no physical-device/production/store claim. The local host has Xcode 16.3 and iOS Simulator runtimes installed, but its selected developer directory is Command Line Tools; Xcode 26.3 remains hosted-CI evidence only.
+
 ## Hosted engineering artifacts
 
 - [Android API 24+ test-signed APK](https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-auth-evidence-da82c8b/YNXWallet-Android-test-da82c8b.apk)

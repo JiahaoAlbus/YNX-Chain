@@ -90,8 +90,8 @@
     "iosSimulatorZip": "1396a275c90b1333c8cda80acf4428553e995cdcc87f8eaa3baf11fbfc7b3a43"
   },
   "bytes": {"androidReleaseApk": 78035858, "androidHermes": 4446705, "iosHermes": 4440970, "iosSimulatorZip": 16442130},
-  "signingClass": {"android": "local-test-signed", "ios": "unsigned-simulator-build"},
-  "minOS": {"android": "API 24", "ios": "15.1"},
+  "signingClass": {"android": "local-test-signed", "ios": "ad-hoc-linker-signed-simulator-build"},
+  "minOS": {"android": "API 24", "ios": "16.4"},
   "installEvidence": {
     "android": "Prior API 36 installation evidence remains. Current Smart Account/Capital source 0497940 additionally used an installed debug native shell with Metro-delivered JavaScript on Android 16/API 36: cold launch 999/1042 ms, strong simulated fingerprint unlock, focused MainActivity and fail-closed control UI verified. This is not a standalone current APK claim.",
     "ios": "GitHub Actions macOS 15 / Xcode 26.3 run 29646381701 built, booted an iPhone Simulator, installed the unsigned Release app, cold-launched com.ynxweb4.wallet, resolved ynxwallet://authorize, captured the fail-closed rejection UI and uploaded the app/evidence artifact."
@@ -119,7 +119,7 @@
     "Central Registry v2, Gateway adapter v2 and Gateway HTTP kernel v1 are centrally integrated and publicly deployed; StrategyMandate execution on shared Testnet is not yet proven.",
     "No direct YNX Testnet StrategyMandate transaction, mandate receipt, Explorer record or Monitor record exists yet.",
     "The canonical Wallet Gateway is public, but no current Wallet native application public deployment, production signing or store release exists; hosted binaries are engineering evidence only.",
-    "Native iOS development on this host requires full Xcode; the executed macOS CI provides the Simulator build/install evidence.",
+    "The inspected host has Xcode 16.3 installed but Command Line Tools selected; Xcode 26.3 is proven only by hosted CI run 29646381701. The recovered artifact remains Simulator-only.",
     "No external security audit or hardware-backed non-exportable chain transaction signer has been completed.",
     "The ERC-4337 EntryPoint and Smart Account contracts pass a local Hardhat EDR flow but are not deployed, Bundler-integrated, externally audited or proven on YNX Testnet.",
     "The public Gateway authorization routes and redacted runtime are deployed, but administrative health/readiness/version/metrics are not publicly exposed and central Monitor acceptance is not yet proven."

@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "product": "YNX Wallet",
+  "evidenceType": "recovered-ios-simulator-release",
+  "recordedAt": "2026-08-13T20:10:00+08:00",
+  "recoveryCommit": "e90e8c31a78db62e76f9f17093743b3254823cf4",
+  "sourceCommit": "da82c8b07b72b615ccb24b86a2a7ac66ee85b4d8",
+  "workflow": {
+    "name": "wallet-ios",
+    "runId": 29646381701,
+    "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/29646381701",
+    "conclusion": "success",
+    "runner": "macos-15",
+    "xcodeRequested": "26.3",
+    "job": "simulator-build",
+    "build": true,
+    "installed": true,
+    "coldLaunch": true,
+    "malformedDeepLinkRejected": true,
+    "artifactId": 8430231124,
+    "artifactExpired": false,
+    "artifactExpiresAt": "2026-10-16T13:33:55Z"
+  },
+  "hostInspection": {
+    "selectedDeveloperDirectory": "/Library/Developer/CommandLineTools",
+    "selectedXcodebuildAvailable": false,
+    "installedXcodePath": "/Applications/Xcode.app",
+    "installedXcodeVersion": "16.3",
+    "installedXcodeBuild": "16E140",
+    "simulatorRuntimesObserved": ["iOS 18.5", "iOS 26.2"],
+    "xcode26_3InstalledLocally": false
+  },
+  "releaseArtifact": {
+    "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-auth-evidence-da82c8b/YNXWallet-iOS-Simulator-da82c8b.zip",
+    "bytes": 16442130,
+    "sha256": "1396a275c90b1333c8cda80acf4428553e995cdcc87f8eaa3baf11fbfc7b3a43",
+    "bundleIdentifier": "com.ynxweb4.wallet",
+    "architectures": ["arm64", "x86_64"],
+    "minimumOS": "iOS 16.4",
+    "signingClass": "ad-hoc-linker-signed-simulator-build",
+    "teamIdentifierPresent": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "screenshot": {
+    "path": "proof/ios-simulator-deep-link-rejection.png",
+    "bytes": 342659,
+    "sha256": "4ae89720ae48714ab90fd943e7d4746d1f42417897ea9353bcdba9702368cb77",
+    "gitBlobAtRecoveryCommit": "1942efa0950931328253f13fd5da94ae50eac0e1"
+  },
+  "releaseStates": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocalSimulator": true,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": true,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "limitations": [
+    "The recovered app is a Simulator-only engineering artifact and is not installable on a physical iPhone or iPad.",
+    "The recovered workflow did not record a second launch, Universal Link association, DApp callback return, physical biometric prompt, or macOS application evidence.",
+    "Xcode 26.3 is proven by the successful hosted workflow; it is not installed on the inspected local host."
+  ]
+}
