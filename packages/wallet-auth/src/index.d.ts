@@ -719,6 +719,26 @@ export declare const YNX_TESTNET_CHAIN_QUANTITY: "0x1917";
 export declare function parsePackedUserOperation(
   input: unknown,
 ): PackedUserOperation;
+export declare function verifyBundlerUserOperationEvidence(
+  operation: unknown,
+  userOperationHash: string,
+  byHash: unknown,
+  receipt: unknown,
+  entryPoint: string,
+  options?: { requireSuccess: boolean },
+): Readonly<{
+  actualGasCost: string;
+  actualGasUsed: string;
+  blockHash: string;
+  blockNumber: string;
+  entryPoint: string;
+  nonce: string;
+  paymaster: string | null;
+  sender: string;
+  success: boolean;
+  transactionHash: string;
+  userOperationHash: string;
+}>;
 export declare class ERC7769BundlerClient {
   constructor(config: {
     endpoint: string;
@@ -739,6 +759,11 @@ export declare class ERC7769BundlerClient {
   ): Promise<Readonly<Record<string, unknown>>>;
   getUserOperationReceipt(
     hash: string,
+  ): Promise<Readonly<Record<string, unknown>>>;
+  getVerifiedUserOperationEvidence(
+    operation: unknown,
+    hash: string,
+    options?: { requireSuccess: boolean },
   ): Promise<Readonly<Record<string, unknown>>>;
 }
 export declare const STRATEGY_MANDATE_SCHEMA_VERSION: 2;
