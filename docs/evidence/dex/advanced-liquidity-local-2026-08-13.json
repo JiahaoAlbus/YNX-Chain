@@ -17,6 +17,15 @@
       "coverage": "32 differential vectors plus bonded solver, cancellation, timeout and adversarial boundaries",
       "deployGas": 3825894,
       "twoIntentSettlementGas": 252191
+    },
+    {
+      "capability": "stableswap",
+      "sourceCommit": "candidate-port-from-codex-final-dex",
+      "result": "passed",
+      "coverage": "64 differential vectors plus 32 stateful invariant/chaos vectors",
+      "factoryDeployGas": 3693314,
+      "poolCreateGas": 2269635,
+      "stableSwapGas": 200902
     }
   ],
   "publicDeployment": false,
