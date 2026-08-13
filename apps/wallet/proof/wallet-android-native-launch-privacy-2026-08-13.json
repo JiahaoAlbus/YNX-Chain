@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "evidenceType": "wallet-android-native-launch-privacy",
+  "productId": "wallet",
+  "sourceCommit": "6c59d21949f91a956ec567cf58cee28817471994",
+  "branch": "codex/wallet-android-api36-20260813",
+  "implementation": {
+    "file": "apps/wallet/android/app/src/main/java/com/ynxweb4/wallet/MainActivity.kt",
+    "mechanism": "WindowManager.LayoutParams.FLAG_SECURE",
+    "setBeforeReactOnCreate": true,
+    "runtimeExpoScreenCaptureGateRetained": true,
+    "authProtocolChanged": false,
+    "coreProtocolChanged": false
+  },
+  "verification": {
+    "walletTests": {"passed": true, "passedCount": 41, "failedCount": 0},
+    "typecheck": {"passed": true, "command": "npm run typecheck"},
+    "productGate": {"passed": true, "command": "npm run product-check"},
+    "releaseContentAndSecretGate": {"passed": true, "filesScanned": 22},
+    "androidCompile": {
+      "passed": true,
+      "command": "./gradlew --offline --no-daemon --console=plain --max-workers=1 :app:compileReleaseKotlin",
+      "result": "BUILD SUCCESSFUL",
+      "duration": "2m",
+      "compileSdk": 36,
+      "targetSdk": 36,
+      "minimumOS": "Android API 24",
+      "kotlin": "2.1.20"
+    },
+    "releaseApkBuiltFromSourceCommit": false,
+    "installedFromSourceCommit": false,
+    "deviceScreenshotFromSourceCommit": false
+  },
+  "releaseStates": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": false,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "limitations": [
+    "The previously verified 1.0.1 APK predates this native source change and is not evidence for this commit.",
+    "A Release APK build invocation did not produce an artifact and is not counted as a successful build.",
+    "A source-bound APK install and launch-window screencap remain required before installedLocal may become true."
+  ],
+  "verifiedAt": "2026-08-13T13:35:00Z",
+  "secretMaterialRecorded": false
+}

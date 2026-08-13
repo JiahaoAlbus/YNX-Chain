@@ -24,3 +24,9 @@ The successful launcher UI tree exposed the real empty onboarding and Testnet id
 ## Release truth and next gate
 
 `implementedLocal`, `testedLocal`, `installedLocal`, `integratedCentral` and `downloadHosted` are true for their separately evidenced boundaries. `deployedStaging`, native-app `deployedPublic`, `productionSigned` and `storeReleased` remain false. Dark mode, RTL, large text, biometric, background lock and clipboard privacy were not re-exercised in this slice and remain next-device-evidence work; no new Auth contract may be introduced while doing so.
+
+## Native launch-window privacy follow-up
+
+Source commit `6c59d21949f91a956ec567cf58cee28817471994` moves `FLAG_SECURE` into `MainActivity.onCreate` before `super.onCreate(null)`, closing the native splash/React-start window while retaining the Expo runtime fail-closed screen-capture gate. Wallet tests pass 41/41; typecheck, product, release-content/secret and diff gates pass. The bounded offline `:app:compileReleaseKotlin` task completed with `BUILD SUCCESSFUL` using compile/target SDK 36, minimum API 24 and Kotlin 2.1.20. Machine-readable evidence is `apps/wallet/proof/wallet-android-native-launch-privacy-2026-08-13.json`.
+
+This follow-up has `implementedLocal=true` and `testedLocal=true`. Its `installedLocal`, `downloadHosted`, `productionSigned` and `storeReleased` states remain false because no APK was produced from `6c59d219`, and the installed 1.0.1 APK predates this change.
