@@ -1,6 +1,6 @@
 import {execFileSync} from "node:child_process";
 import {createHash} from "node:crypto";
-import {mkdir, readFile, stat, writeFile} from "node:fs/promises";
+import {mkdir, readFile, readdir, rm, stat, utimes, writeFile} from "node:fs/promises";
 import {dirname, join, resolve} from "node:path";
 import {fileURLToPath} from "node:url";
 import "./build.mjs";
@@ -9,6 +9,12 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const dist = join(root, "dist"), artifacts = join(root, "artifacts");
 execFileSync(process.execPath, ["--test", "test/i18n.test.js", "test/provider.test.js"], {cwd:root, stdio:"inherit"});
 await mkdir(artifacts, {recursive: true});
+const reproducibleTime = new Date("2000-01-01T00:00:00.000Z");
+async function normalizeMtime(path) {
+  const info = await stat(path);
+  if (info.isDirectory()) for (const entry of await readdir(path)) await normalizeMtime(join(path, entry));
+  await utimes(path, reproducibleTime, reproducibleTime);
+}
 const entries = [
   ["ynx-wallet-web-pwa-0.1.0.zip", "pwa", "modern browser with Service Worker support", "unsigned-web-bundle", ["PWA"]],
   ["ynx-wallet-chrome-edge-0.1.0.zip", "chromium", "Chrome 120 / Edge 120", "unsigned-unpacked-extension", ["Chrome", "Edge"]],
@@ -17,6 +23,8 @@ const entries = [
 const records = [];
 for (const [name, folder, minimumOS, signingClass, browsers] of entries) {
   const output = join(artifacts, name);
+  await normalizeMtime(join(dist, folder));
+  await rm(output, {force:true});
   execFileSync("zip", ["-X", "-q", "-r", output, "."], {cwd: join(dist, folder)});
   const data = await readFile(output); const info = await stat(output);
   records.push({name, path:`artifacts/${name}`, bytes:info.size, sha256:createHash("sha256").update(data).digest("hex"), minimumOS, signingClass, browsers, installedLocal:false, productionSigned:false, storeReleased:false});
