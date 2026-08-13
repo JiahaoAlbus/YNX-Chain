@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "productSlug": "wallet-desktop-cli-sdk",
+  "owner": "02-wallet-auth-desktop-cli-sdk",
+  "sourceCommit": "95bd2aad56bd8b72246f3f0e9529d699f09550ad",
+  "consumes": {
+    "networkOwner": "01-chain-core",
+    "authOwner": "02-wallet-auth",
+    "protocol": "YNX_PRODUCT_SESSION_HTTP_PROOF_V1",
+    "vector": "packages/wallet-auth/testdata/product-session-http-proof-v1.json",
+    "evmChainId": 6423,
+    "evmChainIdHex": "0x1917"
+  },
+  "releaseState": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": true,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "failClosed": ["unknown command", "non-HTTPS RPC", "RPC unavailable", "wrong chain", "invalid vector", "tampered HTTP binding", "wrong device", "expired proof"],
+  "externalInputs": ["native Windows/Linux/x64 runners", "desktop signing identities", "immutable download hosting approval"]
+}
