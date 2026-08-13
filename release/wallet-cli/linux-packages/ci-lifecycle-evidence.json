@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "95bd2aad56bd8b72246f3f0e9529d699f09550ad",
+  "pipelineCommit": "a04a03e97bcf41e5e534730eec15e576bb682ff5",
+  "workflowRunId": 31704461712,
+  "workflowRunURL": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/31704461712",
+  "runnerEvidence": [
+    {
+      "runner": "ubuntu-24.04",
+      "architecture": "x86_64",
+      "jobId": 94461399676,
+      "debInstalled": true,
+      "debColdStart": true,
+      "debSecondStart": true,
+      "debUpgradeVerified": true,
+      "rpmInstalled": true,
+      "rpmColdStart": true,
+      "rpmUpgradeVerified": true,
+      "vectorVerified": true,
+      "signingVerified": true,
+      "chainId": "0x1917",
+      "uninstallVerified": true
+    },
+    {
+      "runner": "ubuntu-24.04-arm",
+      "architecture": "aarch64",
+      "jobId": 94461399592,
+      "debInstalled": true,
+      "debColdStart": true,
+      "debSecondStart": true,
+      "debUpgradeVerified": true,
+      "rpmInstalled": true,
+      "rpmColdStart": true,
+      "rpmUpgradeVerified": true,
+      "vectorVerified": true,
+      "signingVerified": true,
+      "chainId": "0x1917",
+      "uninstallVerified": true
+    }
+  ],
+  "productionSigned": false,
+  "downloadHosted": false
+}

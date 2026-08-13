@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "releaseClass": "native-linux-unsigned-testnet-cli-candidate",
+  "sourceCommit": "95bd2aad56bd8b72246f3f0e9529d699f09550ad",
+  "pipelineCommit": "a04a03e97bcf41e5e534730eec15e576bb682ff5",
+  "workflowRun": {
+    "id": 31704461712,
+    "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/31704461712",
+    "conclusion": "success",
+    "amd64ArtifactId": 9182590711,
+    "arm64ArtifactId": 9182594427
+  },
+  "minimumOS": "Linux kernel 3.2 or later",
+  "minimumOSReference": "https://go.dev/wiki/MinimumRequirements",
+  "signingClass": "unsigned_native_linux_testnet_cli_candidate",
+  "reproducibilityBoundary": "byte-identical across two builds on the same pinned GitHub-hosted Ubuntu 24.04 runner architecture and toolchain",
+  "artifacts": [
+    {
+      "path": "release/wallet-cli/linux-packages/ynx-wallet-cli_0.1.0~testnet+95bd2aad56bd_amd64.deb",
+      "format": "deb",
+      "architecture": "amd64",
+      "bytes": 4423320,
+      "sha256": "cfed354c16bb20045e9ab7a0dae8b572c7afba213a1aba775e3e8fdba2d8988d"
+    },
+    {
+      "path": "release/wallet-cli/linux-packages/ynx-wallet-cli_0.1.0~testnet+95bd2aad56bd_arm64.deb",
+      "format": "deb",
+      "architecture": "arm64",
+      "bytes": 3943204,
+      "sha256": "c15bf76e8e1361400551d3d9bc68429f55de93538cbf6a22953521c789769e0f"
+    },
+    {
+      "path": "release/wallet-cli/linux-packages/ynx-wallet-cli-0.1.0-0.testnet.95bd2aad56bd.x86_64.rpm",
+      "format": "rpm",
+      "architecture": "x86_64",
+      "bytes": 2162685,
+      "sha256": "282b09e0209b121ec202fda50593caaf688d4b6c9b70f872881162bb0da783fa"
+    },
+    {
+      "path": "release/wallet-cli/linux-packages/ynx-wallet-cli-0.1.0-0.testnet.95bd2aad56bd.aarch64.rpm",
+      "format": "rpm",
+      "architecture": "aarch64",
+      "bytes": 1849749,
+      "sha256": "08399b1957a5c1db81234525f3e0a861b615116dc8eb86a3bdb1f6d004d16c38"
+    }
+  ],
+  "releaseState": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": true,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}
