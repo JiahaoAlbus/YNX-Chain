@@ -1,0 +1,43 @@
+{
+  "schemaVersion": "1.0.0-candidate.1",
+  "contractId": "ynx-finance-suite-domain-v1",
+  "owner": "finance-suite",
+  "acceptanceOwner": "29-integration",
+  "sourcePackage": "packages/finance-domain",
+  "network": { "cosmosChainId": "ynx_6423-1", "evmChainId": 6423, "nativeTestnetAsset": "YNXT", "mainnet": false },
+  "models": ["Asset", "Market", "Quote", "Candle", "Order", "Trade", "Position", "Portfolio", "LiquidityPool", "Strategy", "RiskLimit"],
+  "writeProtocol": {
+    "requiredHeaders": ["requestId", "idempotencyKey", "expectedVersion"],
+    "confirmation": "exact-wallet-bound-intent-required",
+    "timeoutResult": "FIN_EXECUTION_UNKNOWN",
+    "reconciliationRequired": true
+  },
+  "sourceProtocol": {
+    "required": ["owner", "system", "version", "asOf", "classification", "status"],
+    "classifications": ["authoritative", "verified-index", "reference", "testnet"],
+    "statuses": ["live", "stale", "unavailable", "partial"]
+  },
+  "transport": {
+    "rest": "versioned JSON over HTTPS",
+    "stream": "product-owned WebSocket or SSE using Data Fabric event envelope v2",
+    "errors": "stable FIN_* code plus requestId and retryable flag"
+  },
+  "dependencies": {
+    "walletAuth": "consume accepted central product session, mandate, approval and revoke contracts only",
+    "oracle": "consume source-labelled market facts only",
+    "dataFabric": "map product events to canonical envelope v2; exactly-once effect through idempotent transitions",
+    "explorer": "link transaction hash, order ID, address and block evidence",
+    "website": "consume versioned handoff; finance-suite does not edit global navigation or registry"
+  },
+  "releaseStatus": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": false,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

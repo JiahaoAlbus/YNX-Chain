@@ -1,0 +1,34 @@
+{
+  "schemaVersion": "1.0.0",
+  "observedAt": "2026-08-13T12:30:00Z",
+  "network": "YNX Testnet",
+  "sourceBranch": "codex/final-finance-suite",
+  "baseCommit": "1883d406f77f94cb81171b79fe9518882ede0b16",
+  "local": {
+    "dexWebTests": { "passed": 16, "failed": 0 },
+    "dexGoRacePackages": ["internal/dex", "cmd/ynx-dex-indexerd"],
+    "dexWalletTests": { "passed": 2, "failed": 0 },
+    "dexSdkTests": { "passed": 7, "failed": 0 },
+    "dexManifestCheck": "passed",
+    "dexBuild": "passed",
+    "financeDomainTests": { "passed": 4, "failed": 0 },
+    "contractTests": "passed-after-restoring-the-local-only-dexTest-network-and-compiling-20-solidity-files"
+  },
+  "publicEndpoints": [
+    { "url": "https://dex.ynxweb4.com/health", "result": "timeout", "deployedPublicNowProven": false },
+    { "url": "https://dex.ynxweb4.com/version", "result": "timeout", "deployedPublicNowProven": false },
+    { "url": "https://exchange.ynxweb4.com/api/health", "httpStatus": 200, "commit": "225abcd5ffb1050e87d1acf811b97e1fc0b9fa64", "truth": "owned deterministic testnet only" },
+    { "url": "https://exchange.ynxweb4.com/api/version", "httpStatus": 200, "commit": "225abcd5ffb1050e87d1acf811b97e1fc0b9fa64" },
+    { "url": "https://finance.ynxweb4.com/health", "httpStatus": 200, "commit": "50b95bbd715895dcc108e3a9fd9dd45cb6c10634", "truth": "runtime-upstream-backed" },
+    { "url": "https://finance.ynxweb4.com/version", "httpStatus": 200, "commit": "50b95bbd715895dcc108e3a9fd9dd45cb6c10634" },
+    { "url": "https://quant.ynxweb4.com/api/health", "httpStatus": 200, "commit": "50b95bbd715895dcc108e3a9fd9dd45cb6c10634", "truth": "simulated_testnet_only", "liveFundsEnabled": false },
+    { "url": "https://quant.ynxweb4.com/api/version", "result": "timeout", "deployedVersionNowProven": false }
+  ],
+  "serverProbe": {
+    "host": "43.153.202.237",
+    "ssh": "banner-timeout-twice",
+    "mutationAttempted": false,
+    "deploymentAttempted": false
+  },
+  "truthRule": "A historical deployment record remains historical evidence. A timed-out current probe cannot be represented as current public availability."
+}
