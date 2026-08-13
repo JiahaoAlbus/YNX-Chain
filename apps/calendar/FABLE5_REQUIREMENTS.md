@@ -29,7 +29,7 @@ also names direct evidence.
 | Single occurrence / future / entire series update | Service and event-inspector controls implemented | Atomic/replay/recovery/browser tests | Public interactive proof remains |
 | Recurrence cancellation / recovery / DST | Service implemented | Dedicated unit tests | Public interactive proof remains |
 | Owner / editor / viewer share and revoke | Shared-calendar lifecycle, permission manager and availability-only redaction implemented | Owner/editor/viewer/availability/revoke tests | Public interactive two-user permission proof remains |
-| Conflict overlap / recurrence / time zone | Service preview implemented | Unit conflict tests | Travel/buffer and authorized attendee availability are not implemented |
+| Conflict overlap / recurrence / time zone / buffer / attendee availability | Owner overlap plus per-event preparation/travel buffers and explicitly shared attendee availability implemented; attendee details redact to Busy | Unit owner/recurrence/buffer/authorization/privacy tests; browser buffer round-trip | Exact public build evidence pending; suggested alternative ranking remains AI-provider dependent |
 | Alternative-time suggestions | AI adapter supports bounded proposal | Provider failure and approval tests | Real public provider success is not proved |
 | AI agenda / conflict explanation / follow-up | Context preview, approve, cancel, apply/reject implemented | Unit tests | AI does not mutate events; public provider availability remains unproved |
 | English-first + 12 locales + Arabic RTL | Shared catalogs and RTL implemented | Catalog parity + browser screenshots | New fields and every dynamic error are not yet fully translated |

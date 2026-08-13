@@ -656,7 +656,7 @@ func (s *Service) PreviewRecurrenceChange(token, eventID string, input Recurrenc
 			if input.Action == "modify" {
 				replacementStart, _ := time.ParseInLocation(recurrenceLocalLayout, exception.LocalStart, loc)
 				replacementEnd, _ := time.ParseInLocation(recurrenceLocalLayout, exception.LocalEnd, loc)
-				replacement := Event{ID: before.ID, SeriesID: seriesID(before), OwnerID: before.OwnerID, OwnerHandle: before.OwnerHandle, Title: after.Title, StartUTC: replacementStart.UTC(), EndUTC: replacementEnd.UTC(), TimeZone: before.TimeZone, State: before.State}
+				replacement := Event{ID: before.ID, SeriesID: seriesID(before), OwnerID: before.OwnerID, OwnerHandle: before.OwnerHandle, Title: after.Title, StartUTC: replacementStart.UTC(), EndUTC: replacementEnd.UTC(), TimeZone: before.TimeZone, BufferBeforeMinutes: before.BufferBeforeMinutes, BufferAfterMinutes: before.BufferAfterMinutes, State: before.State}
 				if exception.Title != "" {
 					replacement.Title = exception.Title
 				}
@@ -1453,7 +1453,10 @@ func (s *Service) eventFromInput(owner User, input EventInput) (Event, error) {
 	if err = validateMeetingLink(input.MeetingLink); err != nil {
 		return Event{}, err
 	}
-	return Event{Title: strings.TrimSpace(input.Title), Description: strings.TrimSpace(input.Description), Location: strings.TrimSpace(input.Location), AllDay: input.AllDay, CalendarID: input.CalendarID, Color: input.Color, Privacy: input.Privacy, AttachmentLinks: input.AttachmentLinks, StartUTC: start.UTC(), EndUTC: end.UTC(), TimeZone: input.TimeZone, Recurrence: input.Recurrence, Invites: invites, Reminders: input.Reminders, MeetingLink: input.MeetingLink}, nil
+	if input.BufferBeforeMinutes < 0 || input.BufferBeforeMinutes > 240 || input.BufferAfterMinutes < 0 || input.BufferAfterMinutes > 240 {
+		return Event{}, errors.New("event buffers must be between 0 and 240 minutes")
+	}
+	return Event{Title: strings.TrimSpace(input.Title), Description: strings.TrimSpace(input.Description), Location: strings.TrimSpace(input.Location), AllDay: input.AllDay, CalendarID: input.CalendarID, Color: input.Color, Privacy: input.Privacy, AttachmentLinks: input.AttachmentLinks, StartUTC: start.UTC(), EndUTC: end.UTC(), TimeZone: input.TimeZone, Recurrence: input.Recurrence, Invites: invites, Reminders: input.Reminders, MeetingLink: input.MeetingLink, BufferBeforeMinutes: input.BufferBeforeMinutes, BufferAfterMinutes: input.BufferAfterMinutes}, nil
 }
 func validateInvitees(st *State, event Event) error {
 	for _, invite := range event.Invites {
@@ -1811,20 +1814,57 @@ func (s *Service) conflicts(st *State, candidate Event, exclude string) []Confli
 	windowTo := candidate.StartUTC.AddDate(2, 0, 0)
 	candidateOcc := expand(candidate, windowFrom, windowTo)
 	var out []Conflict
+	participantOwners := map[string]string{}
+	for _, invite := range candidate.Invites {
+		if user, ok := userByHandle(st, invite.Handle); ok {
+			participantOwners[user.ID] = user.Handle
+		}
+	}
 	for _, e := range st.Events {
-		if e.ID == exclude || e.OwnerID != candidate.OwnerID || e.State == "cancelled" {
+		if e.ID == exclude || e.State == "cancelled" {
 			continue
+		}
+		participantHandle := ""
+		if e.OwnerID != candidate.OwnerID {
+			participantHandle = participantOwners[e.OwnerID]
+			if participantHandle == "" || !availabilityAuthorized(st, e, candidate.OwnerHandle) {
+				continue
+			}
 		}
 		for _, a := range candidateOcc {
 			for _, b := range expand(e, windowFrom, windowTo) {
-				if a.StartUTC.Before(b.EndUTC) && b.StartUTC.Before(a.EndUTC) {
-					out = append(out, Conflict{EventID: e.ID, Title: e.Title, StartUTC: b.StartUTC, EndUTC: b.EndUTC})
+				candidateStart := a.StartUTC.Add(-time.Duration(candidate.BufferBeforeMinutes) * time.Minute)
+				candidateEnd := a.EndUTC.Add(time.Duration(candidate.BufferAfterMinutes) * time.Minute)
+				existingStart := b.StartUTC.Add(-time.Duration(e.BufferBeforeMinutes) * time.Minute)
+				existingEnd := b.EndUTC.Add(time.Duration(e.BufferAfterMinutes) * time.Minute)
+				if candidateStart.Before(existingEnd) && existingStart.Before(candidateEnd) {
+					kind := "buffer"
+					if a.StartUTC.Before(b.EndUTC) && b.StartUTC.Before(a.EndUTC) {
+						kind = "overlap"
+					}
+					conflict := Conflict{EventID: e.ID, Title: e.Title, Kind: kind, StartUTC: b.StartUTC, EndUTC: b.EndUTC}
+					if participantHandle != "" {
+						conflict.EventID = ""
+						conflict.Title = "Busy"
+						conflict.ParticipantHandle = participantHandle
+					}
+					out = append(out, conflict)
 					break
 				}
 			}
 		}
 	}
 	return out
+}
+
+func availabilityAuthorized(st *State, event Event, requesterHandle string) bool {
+	for _, share := range event.Shares {
+		if share.Handle == requesterHandle {
+			return true
+		}
+	}
+	calendar, ok := st.SharedCalendars[event.CalendarID]
+	return ok && calendar.OwnerID == event.OwnerID && calendarRole(calendar, requesterHandle) != ""
 }
 func validCalendarColor(color string) bool {
 	return map[string]bool{"blue": true, "slate": true, "green": true, "amber": true, "red": true, "violet": true}[color]

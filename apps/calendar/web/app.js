@@ -470,6 +470,8 @@ function openForm(event = null, recurrenceEdit = null) {
   $("#event-privacy").value = event?.privacy || "private";
   $("#invitees").value = (event?.invites || []).map((i) => i.handle).join(", ");
   $("#meeting-link").value = event?.meeting_link || "";
+  $("#buffer-before").value = event?.buffer_before_minutes || 0;
+  $("#buffer-after").value = event?.buffer_after_minutes || 0;
   $("#attachment-links").value = (event?.attachment_links || []).join(", ");
   $("#event-title").textContent = event ? tr("update", "Update event") : tr("create", "Create event");
   $("#event-dialog").showModal();
@@ -501,6 +503,8 @@ function eventInput() {
       { minutes_before: Number($("#reminder").value), channel: "local" },
     ],
     meeting_link: $("#meeting-link").value,
+    buffer_before_minutes: Number($("#buffer-before").value),
+    buffer_after_minutes: Number($("#buffer-after").value),
     client_mutation_id: mutationID(),
     base_version: state.editing?.version || 0,
   };
@@ -511,8 +515,8 @@ async function submitEvent(e) {
   if (state.guest) {
     const start = new Date(input.local_start),
       end = new Date(input.local_end);
-    if (!input.title.trim() || Number.isNaN(start.valueOf()) || Number.isNaN(end.valueOf()) || end <= start) {
-      toast("Add a title and a valid end time after the start time");
+    if (!input.title.trim() || Number.isNaN(start.valueOf()) || Number.isNaN(end.valueOf()) || end <= start || input.buffer_before_minutes < 0 || input.buffer_before_minutes > 240 || input.buffer_after_minutes < 0 || input.buffer_after_minutes > 240) {
+      toast("Add a title, a valid end time, and buffers between 0 and 240 minutes");
       return;
     }
     try {
@@ -543,6 +547,8 @@ async function submitEvent(e) {
       invites: input.invitees.map((handle) => ({ handle, state: "not_sent" })),
       reminders: input.reminders,
       meeting_link: input.meeting_link,
+      buffer_before_minutes: input.buffer_before_minutes,
+      buffer_after_minutes: input.buffer_after_minutes,
       owner_handle: "@guest",
       state: "local-draft",
       version: (state.editing?.version || 0) + 1,
@@ -593,7 +599,7 @@ function showChange() {
   const c = state.pendingChange,
     a = c.after;
   $("#change-preview").innerHTML =
-    `<div class="preview-block"><span>Change</span><b>${escapeHTML(c.kind)}</b><span>Event</span><b>${escapeHTML(a.title)}</b><span>Time</span><b>${new Date(a.start_utc).toLocaleString(activeLocale())} — ${new Date(a.end_utc).toLocaleTimeString(activeLocale())}</b><span>${tr("timezone", "Time zone")}</span><b>${escapeHTML(a.time_zone)}</b><span>Invitations</span><b>${a.invites.length ? a.invites.map((i) => escapeHTML(i.handle)).join(", ") : "None"}</b><span>${tr("repeat", "Recurrence")}</span><b>${a.recurrence.frequency ? `${escapeHTML(a.recurrence.frequency)} × ${a.recurrence.count}` : "Does not repeat"}</b></div>${c.conflicts?.length ? `<div class="conflicts"><b>${c.conflicts.length} conflict(s)</b>${c.conflicts.map((x) => `<p>${escapeHTML(x.title)} · ${new Date(x.start_utc).toLocaleString(activeLocale())}</p>`).join("")}</div>` : ""}`;
+    `<div class="preview-block"><span>Change</span><b>${escapeHTML(c.kind)}</b><span>Event</span><b>${escapeHTML(a.title)}</b><span>Time</span><b>${new Date(a.start_utc).toLocaleString(activeLocale())} — ${new Date(a.end_utc).toLocaleTimeString(activeLocale())}</b><span>Preparation / travel buffer</span><b>${a.buffer_before_minutes || 0} / ${a.buffer_after_minutes || 0} minutes</b><span>${tr("timezone", "Time zone")}</span><b>${escapeHTML(a.time_zone)}</b><span>Invitations</span><b>${a.invites.length ? a.invites.map((i) => escapeHTML(i.handle)).join(", ") : "None"}</b><span>${tr("repeat", "Recurrence")}</span><b>${a.recurrence.frequency ? `${escapeHTML(a.recurrence.frequency)} × ${a.recurrence.count}` : "Does not repeat"}</b></div>${c.conflicts?.length ? `<div class="conflicts"><b>${c.conflicts.length} conflict(s)</b>${c.conflicts.map((x) => `<p>${escapeHTML(x.participant_handle ? `${x.participant_handle} · Busy` : x.title)} · ${escapeHTML(x.kind || "overlap")} · ${new Date(x.start_utc).toLocaleString(activeLocale())}</p>`).join("")}</div>` : ""}`;
   $("#conflict-override").hidden = !c.conflicts?.length;
   $("#accept-conflicts").checked = false;
   $("#event-dialog").close();
@@ -653,7 +659,7 @@ async function openEvent(occurrence) {
     state.selectedEvent = event;
     $("#ai-begin").disabled = true;
     $("#ai-preview").textContent = "Connect YNX Wallet before sending selected event data to an AI provider.";
-    $("#event-content").innerHTML = `<span class="eyebrow">Local guest draft · v${event.version}</span><h1>${escapeHTML(event.title)}</h1><p>${escapeHTML(event.description || "No description")}</p><div class="detail-row"><span>Time</span><b>${event.all_day ? "All day · " : ""}${new Date(event.start_utc).toLocaleString(activeLocale())} — ${new Date(event.end_utc).toLocaleString(activeLocale())}</b><span>Location</span><b>${escapeHTML(event.location || "None")}</b><span>Calendar / privacy</span><b>${escapeHTML(event.calendar_id || "personal")} · ${escapeHTML(event.privacy || "private")}</b><span>${tr("timezone", "Time zone")}</span><b>${escapeHTML(event.time_zone)}</b><span>${tr("repeat", "Recurrence")}</span><b>${event.recurrence?.frequency ? `Every ${event.recurrence.interval || 1} ${escapeHTML(event.recurrence.frequency)} · ${event.recurrence.count || "until date"}` : "Does not repeat"}</b><span>Cloud references</span><b>${event.attachment_links?.map((link) => `<a href="${escapeHTML(link)}" target="_blank" rel="noopener noreferrer">${escapeHTML(new URL(link).hostname)}</a>`).join("<br>") || "None"}</b><span>Boundary</span><b>Stored on this device only · invitations are drafts only · not synced, shared, or written to YNX Chain</b></div><div class="detail-actions"><button class="primary" id="edit-event">${tr("update", "Update event")}</button><button class="quiet danger-action" id="delete-local-event">Delete local draft</button><button class="quiet" id="connect-event">Sign in to sync or share</button><button class="quiet" id="close-detail">Close</button></div>`;
+    $("#event-content").innerHTML = `<span class="eyebrow">Local guest draft · v${event.version}</span><h1>${escapeHTML(event.title)}</h1><p>${escapeHTML(event.description || "No description")}</p><div class="detail-row"><span>Time</span><b>${event.all_day ? "All day · " : ""}${new Date(event.start_utc).toLocaleString(activeLocale())} — ${new Date(event.end_utc).toLocaleString(activeLocale())}</b><span>Preparation / travel buffer</span><b>${event.buffer_before_minutes || 0} / ${event.buffer_after_minutes || 0} minutes</b><span>Location</span><b>${escapeHTML(event.location || "None")}</b><span>Calendar / privacy</span><b>${escapeHTML(event.calendar_id || "personal")} · ${escapeHTML(event.privacy || "private")}</b><span>${tr("timezone", "Time zone")}</span><b>${escapeHTML(event.time_zone)}</b><span>${tr("repeat", "Recurrence")}</span><b>${event.recurrence?.frequency ? `Every ${event.recurrence.interval || 1} ${escapeHTML(event.recurrence.frequency)} · ${event.recurrence.count || "until date"}` : "Does not repeat"}</b><span>Cloud references</span><b>${event.attachment_links?.map((link) => `<a href="${escapeHTML(link)}" target="_blank" rel="noopener noreferrer">${escapeHTML(new URL(link).hostname)}</a>`).join("<br>") || "None"}</b><span>Boundary</span><b>Stored on this device only · invitations are drafts only · not synced, shared, or written to YNX Chain</b></div><div class="detail-actions"><button class="primary" id="edit-event">${tr("update", "Update event")}</button><button class="quiet danger-action" id="delete-local-event">Delete local draft</button><button class="quiet" id="connect-event">Sign in to sync or share</button><button class="quiet" id="close-detail">Close</button></div>`;
     $("#event-detail").showModal();
     $("#close-detail").onclick = () => $("#event-detail").close();
     $("#edit-event").onclick = () => {

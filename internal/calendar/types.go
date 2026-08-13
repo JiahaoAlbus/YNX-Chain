@@ -169,6 +169,8 @@ type Event struct {
 	Shares                []Share    `json:"shares,omitempty"`
 	Comments              []Comment  `json:"comments,omitempty"`
 	MeetingLink           string     `json:"meeting_link,omitempty"`
+	BufferBeforeMinutes   int        `json:"buffer_before_minutes,omitempty"`
+	BufferAfterMinutes    int        `json:"buffer_after_minutes,omitempty"`
 	State                 string     `json:"state"`
 	Version               int        `json:"version"`
 	CreatedAt             time.Time  `json:"created_at"`
@@ -176,23 +178,25 @@ type Event struct {
 	CancelledAt           time.Time  `json:"cancelled_at,omitempty"`
 }
 type EventInput struct {
-	Title            string     `json:"title"`
-	Description      string     `json:"description"`
-	Location         string     `json:"location"`
-	AllDay           bool       `json:"all_day"`
-	CalendarID       string     `json:"calendar_id"`
-	Color            string     `json:"color"`
-	Privacy          string     `json:"privacy"`
-	AttachmentLinks  []string   `json:"attachment_links"`
-	LocalStart       string     `json:"local_start"`
-	LocalEnd         string     `json:"local_end"`
-	TimeZone         string     `json:"time_zone"`
-	Recurrence       Recurrence `json:"recurrence"`
-	Invitees         []string   `json:"invitees"`
-	Reminders        []Reminder `json:"reminders"`
-	MeetingLink      string     `json:"meeting_link"`
-	ClientMutationID string     `json:"client_mutation_id"`
-	BaseVersion      int        `json:"base_version"`
+	Title               string     `json:"title"`
+	Description         string     `json:"description"`
+	Location            string     `json:"location"`
+	AllDay              bool       `json:"all_day"`
+	CalendarID          string     `json:"calendar_id"`
+	Color               string     `json:"color"`
+	Privacy             string     `json:"privacy"`
+	AttachmentLinks     []string   `json:"attachment_links"`
+	LocalStart          string     `json:"local_start"`
+	LocalEnd            string     `json:"local_end"`
+	TimeZone            string     `json:"time_zone"`
+	Recurrence          Recurrence `json:"recurrence"`
+	Invitees            []string   `json:"invitees"`
+	Reminders           []Reminder `json:"reminders"`
+	MeetingLink         string     `json:"meeting_link"`
+	BufferBeforeMinutes int        `json:"buffer_before_minutes"`
+	BufferAfterMinutes  int        `json:"buffer_after_minutes"`
+	ClientMutationID    string     `json:"client_mutation_id"`
+	BaseVersion         int        `json:"base_version"`
 }
 
 type RecurrenceMutationInput struct {
@@ -222,10 +226,12 @@ type Occurrence struct {
 	TimeZone    string    `json:"time_zone"`
 }
 type Conflict struct {
-	EventID  string    `json:"event_id"`
-	Title    string    `json:"title"`
-	StartUTC time.Time `json:"start_utc"`
-	EndUTC   time.Time `json:"end_utc"`
+	EventID           string    `json:"event_id,omitempty"`
+	Title             string    `json:"title"`
+	Kind              string    `json:"kind"`
+	ParticipantHandle string    `json:"participant_handle,omitempty"`
+	StartUTC          time.Time `json:"start_utc"`
+	EndUTC            time.Time `json:"end_utc"`
 }
 type ChangePreview struct {
 	ID               string     `json:"id"`

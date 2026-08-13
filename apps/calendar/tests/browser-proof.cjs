@@ -273,6 +273,8 @@ function unnamedInteractive() {
       await page.locator("#calendar-id").selectOption("team");
       await page.locator("#event-color").selectOption("violet");
       await page.locator("#event-privacy").selectOption("participants");
+      await page.locator("#buffer-before").fill("15");
+      await page.locator("#buffer-after").fill("30");
       await page.locator("#attachment-links").fill("https://cloud.ynxweb4.com/files/guest-calendar-proof");
       await page.locator("#event-form button[type=submit]").click();
       await page.locator("#change-dialog").waitFor({ state: "visible" });
@@ -285,7 +287,7 @@ function unnamedInteractive() {
         serverCookie: document.cookie,
       }));
       const storedGuest = guestProof.events[0];
-      if (guestProof.events.length !== 1 || storedGuest.location !== "Room 6423" || !storedGuest.all_day || storedGuest.calendar_id !== "team" || storedGuest.color !== "violet" || storedGuest.privacy !== "participants" || storedGuest.recurrence.frequency !== "weekly" || storedGuest.recurrence.interval !== 2 || storedGuest.recurrence.count !== 3 || storedGuest.attachment_links.length !== 1 || !guestProof.signinHidden || guestProof.account !== "G" || guestProof.serverCookie)
+      if (guestProof.events.length !== 1 || storedGuest.location !== "Room 6423" || !storedGuest.all_day || storedGuest.calendar_id !== "team" || storedGuest.color !== "violet" || storedGuest.privacy !== "participants" || storedGuest.buffer_before_minutes !== 15 || storedGuest.buffer_after_minutes !== 30 || storedGuest.recurrence.frequency !== "weekly" || storedGuest.recurrence.interval !== 2 || storedGuest.recurrence.count !== 3 || storedGuest.attachment_links.length !== 1 || !guestProof.signinHidden || guestProof.account !== "G" || guestProof.serverCookie)
         throw Error(`guest mode boundary failed: ${JSON.stringify(guestProof)}`);
       await page.locator("#account").click();
       await page.getByRole("heading", { name: "Local Calendar data" }).waitFor();

@@ -806,6 +806,73 @@ func TestActivityNotificationsCoverInviteRSVPCommentReadAndAvailabilityPrivacy(t
 	}
 }
 
+func TestAuthorizedAttendeeAvailabilityAndTravelBuffersStayPrivate(t *testing.T) {
+	svc := newTestService(t, "")
+	alice, _, _ := signIn(t, svc, "@alice", "ynx1alice")
+	bob, _, _ := signIn(t, svc, "@bob", "ynx1bob")
+
+	privatePreview, err := svc.PreviewCreate(bob, input("Unshared private appointment", "2026-11-01T09:00", "2026-11-01T10:00", "UTC", "bob-private"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = svc.ApproveChange(bob, privatePreview.ID, false); err != nil {
+		t.Fatal(err)
+	}
+	unauthorized := input("Proposed meeting", "2026-11-01T09:15", "2026-11-01T09:45", "UTC", "alice-no-availability")
+	unauthorized.Invitees = []string{"@bob"}
+	unauthorizedPreview, err := svc.PreviewCreate(alice, unauthorized)
+	if err != nil || len(unauthorizedPreview.Conflicts) != 0 {
+		t.Fatalf("unshared attendee availability was exposed: %v %+v", err, unauthorizedPreview.Conflicts)
+	}
+
+	calendar, err := svc.CreateCalendar(bob, "Bob availability source", "slate")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = svc.ShareCalendar(bob, calendar.ID, "@alice", "availability"); err != nil {
+		t.Fatal(err)
+	}
+	busyInput := input("Confidential medical appointment", "2026-11-01T11:00", "2026-11-01T12:00", "UTC", "bob-shared-busy")
+	busyInput.CalendarID = calendar.ID
+	busyPreview, err := svc.PreviewCreate(bob, busyInput)
+	if err != nil {
+		t.Fatal(err)
+	}
+	busyEvent, err := svc.ApproveChange(bob, busyPreview.ID, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	buffered := input("Travel-aware meeting", "2026-11-01T10:15", "2026-11-01T10:30", "UTC", "alice-buffered")
+	buffered.Invitees = []string{"@bob"}
+	buffered.BufferAfterMinutes = 45
+	bufferPreview, err := svc.PreviewCreate(alice, buffered)
+	if err != nil || len(bufferPreview.Conflicts) != 1 {
+		t.Fatalf("authorized buffer conflict missing: %v %+v", err, bufferPreview.Conflicts)
+	}
+	conflict := bufferPreview.Conflicts[0]
+	if conflict.Kind != "buffer" || conflict.Title != "Busy" || conflict.EventID != "" || conflict.ParticipantHandle != "@bob" {
+		t.Fatalf("attendee conflict leaked private details or lost provenance: %+v", conflict)
+	}
+	encoded, _ := json.Marshal(conflict)
+	if strings.Contains(string(encoded), busyInput.Title) || strings.Contains(string(encoded), busyEvent.ID) {
+		t.Fatalf("availability conflict leaked event identity: %s", encoded)
+	}
+
+	overlap := input("Direct overlap", "2026-11-01T11:15", "2026-11-01T11:45", "UTC", "alice-overlap")
+	overlap.Invitees = []string{"@bob"}
+	overlapPreview, err := svc.PreviewCreate(alice, overlap)
+	if err != nil || len(overlapPreview.Conflicts) != 1 || overlapPreview.Conflicts[0].Kind != "overlap" {
+		t.Fatalf("authorized attendee overlap missing: %v %+v", err, overlapPreview.Conflicts)
+	}
+
+	invalid := input("Invalid buffer", "2026-11-02T09:00", "2026-11-02T10:00", "UTC", "invalid-buffer")
+	invalid.BufferBeforeMinutes = 241
+	if _, err = svc.PreviewCreate(alice, invalid); err == nil {
+		t.Fatal("out-of-bound preparation buffer was accepted")
+	}
+}
+
 func TestBoundariesRecoveryAIAndHTTPTruth(t *testing.T) {
 	svc := newTestService(t, "")
 	old, _, proof := signIn(t, svc, "@alice", "ynx1alice")
