@@ -254,6 +254,15 @@
       "command": "make no-placeholder-check && make secret-scan",
       "result": "passed through verified grep fallback because rg was unavailable"
     },
+    "javaRuntimeCandidate": {
+      "command": "cd apps/developer && npm run code:check && npm run code:build && npm test",
+      "result": "real packaged Java compile/run passed locally; workspace agent 10 passed and 1 Rust skip; runtime profiles 6 passed; Web release tests 26 passed; production Web build passed",
+      "cloudImageBuilt": false,
+      "deployedStaging": false,
+      "deployedPublic": false,
+      "javaLsp": false,
+      "operatorGate": "build revised OpenJDK 21 LXD image, record immutable fingerprint and package manifest, run eight-runtime live-container and public-candidate checks"
+    },
     "macosCurrentSourcePackage": {
       "sourceCommit": "76322af5e8c26a64fb6425c51d96c67d2b3df65f",
       "sourceTree": "dc7e76e917da31ac27f5fe45fac1513a0e26d0bc",

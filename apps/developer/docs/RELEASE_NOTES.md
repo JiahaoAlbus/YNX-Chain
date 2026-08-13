@@ -1,5 +1,18 @@
 # YNX Developer 0.2.0 Testnet Preview release notes
 
+## 2026-08-13 Java runtime candidate
+
+- Added a real Java adapter to both the local workspace agent and the isolated
+  LXD runtime profile. `javac` writes only beneath `.ynx-build/java`; `java`
+  launches the declared package through a fixed classpath with no network.
+- The local installed-JDK integration gate compiled and ran a packaged Java
+  application. Workspace Agent now passes 10 tests with the Rust host-toolchain
+  test still honestly skipped; runtime profiles pass 6/6.
+- Updated the reviewed Ubuntu image recipe to include OpenJDK 21 and persist its
+  exact Debian package versions. This source checkpoint is not evidence that a
+  new LXD image was built or publicly deployed; the public candidate remains the
+  seven-runtime image until a new immutable fingerprint and live gate exist.
+
 ## 2026-08-10 full YNX Code macOS package
 
 - Replaced the legacy single-page desktop payload with the complete React,

@@ -198,6 +198,27 @@ test("Rust is compiled and executed when the reviewed toolchain is installed", {
   assert.match(value.output, /YNX-RUST-42/);
   assert.equal(value.sandbox.network, false);
 });
+test("Java is compiled and executed when the reviewed JDK is installed", { skip: !(await resolveExecutable(["javac"])) || !(await resolveExecutable(["java"])) }, async (t) => {
+  const { url } = await fixture(t),
+    cookie = await session(url),
+    response = await fetch(`${url}/runtime/tasks`, {
+      method: "POST",
+      headers: { cookie, "content-type": "application/json" },
+      body: JSON.stringify(
+        languageTask(
+          "src/Main.java",
+          'package dev.ynx; public final class Main { public static void main(String[] args) { System.out.print("YNX-JAVA-42"); } }',
+        ),
+      ),
+    }),
+    value = await response.json();
+  assert.equal(response.status, 200, JSON.stringify(value));
+  assert.equal(value.ok, true, value.output);
+  assert.equal(value.language, "java");
+  assert.match(value.compiler.version, /javac/i);
+  assert.match(value.output, /YNX-JAVA-42/);
+  assert.equal(value.sandbox.network, false);
+});
 test("Solidity is really compiled into integrity-addressed ABI, bytecode and source-map artifacts", { skip: !(await resolveExecutable(["solcjs"])) }, async (t) => {
   const { url } = await fixture(t),
     cookie = await session(url),

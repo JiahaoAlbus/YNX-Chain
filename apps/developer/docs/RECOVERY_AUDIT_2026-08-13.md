@@ -19,7 +19,7 @@ published packages and must not be rewritten to the documentation-only HEAD.
 | Requirement | Current implementation | Direct evidence at audit | Remaining gap / next gate |
 | --- | --- | --- | --- |
 | Multi-user persistent workspace | Owner-bound revisions, snapshots and idempotent recovery | `workspace-manager` 1/1; `workspace-agent` parallel-user and snapshot tests passed | Run accepted public restart/restore and capacity evidence against the release service |
-| Real build/run | Approved sandbox runners for C++, JavaScript, TypeScript, Python, Go and Solidity | `workspace-agent` 9 passed; real C++/JS/TS/Python/Go/Solidity cases passed | Rust skipped because the reviewed host toolchain is absent; Java and package-install acceptance still need direct current-host gates |
+| Real build/run | Approved sandbox runners for C++, JavaScript, TypeScript, Python, Go, Java and Solidity | `workspace-agent` 10 passed; real C++/JS/TS/Python/Go/Java/Solidity cases passed | Rust skipped because the reviewed host toolchain is absent; revised Java cloud image and package-install acceptance still need direct deployed-host gates |
 | LSP | Bounded language-service bridge to real language servers | 8 passed: C++, Python, Solidity and TypeScript completion/definition/diagnostics | `gopls` and `rust-analyzer` skipped because reviewed binaries are absent; Java LSP and formatting/rename/reference acceptance remain open |
 | Terminal and long processes | Authenticated PTY/WebSocket broker with cloud and SSH profiles | `terminal-service` 4/4 passed | Record stop/timeout/reconnect evidence for a public long-running task |
 | Debug Adapter Protocol | Authenticated DAP bridge with bounded frames | Bridge test passed | Installed LLDB-DAP test skipped; Node, Python, Go and Rust adapter acceptance remains open |
@@ -27,7 +27,7 @@ published packages and must not be rewritten to the documentation-only HEAD.
 | AI Software Engineer | Persisted plan/context/coder/reviewer flow, approval and cancellation | `agent-orchestrator` 3/3; `model-router` 4/4 passed | Tester/deployment stages, full tool permission matrix and accepted public provider/cost evidence remain open |
 | Project memory | Owner-isolated incremental index and vector ranking | `project-memory` 1/1 passed | Export, clear, rebuild, retention and architecture/symbol relationship acceptance remain open |
 | Collaboration | CRDT edit, presence, chat, ACL roles and capacity bound | `collaboration-service` 3/3 passed including convergence and viewer rejection | Shared-terminal approval, revocation, reconnect and multi-process deployment evidence remain open |
-| Container/remote workspace | Owner-bound LXD leases and reviewed-host-key SSH | `runtime-profile-service` 5/5 passed | Kubernetes lifecycle, sleep/wake, snapshot backup/restore and public resource-limit evidence remain open |
+| Container/remote workspace | Owner-bound LXD leases and reviewed-host-key SSH | `runtime-profile-service` 6/6 passed, including the packaged Java cloud command boundary | Build and deploy the revised eight-language image; Kubernetes lifecycle, sleep/wake, snapshot backup/restore and public resource-limit evidence remain open |
 | YNX Chain tools | Canonical chain identity, read-only RPC and transaction debugger | `chain-service` 3/3 passed | Wallet-approved deployment/receipt/verification end-to-end remains blocked on accepted central tuple |
 | Wallet boundary | Exact registry attestation, introspection and final receipt gates | `wallet-readiness` 8/8 passed fail-closed | Owner `02-wallet-auth` and `29-integration` acceptance still pending; do not claim central integration |
 | Extensions | Digest-addressed declarative registry isolated by owner | `extension-registry` 1/1 passed | Install/enable/disable/uninstall UI, signing/source policy and crash isolation remain open |
@@ -48,7 +48,7 @@ Result:
 
 - TypeScript protocol and frontend checks passed.
 - Workspace manager: 1 passed.
-- Workspace agent: 9 passed, 1 skipped (Rust toolchain absent).
+- Workspace agent: 10 passed, 1 skipped (Rust toolchain absent); real packaged Java compile/run passed through the network-disabled local sandbox.
 - Language service: 8 passed, 2 skipped (`gopls` and `rust-analyzer` absent).
 - Terminal: 4 passed.
 - Debug: 1 passed, 1 skipped (reviewed LLDB-DAP absent).
@@ -58,17 +58,25 @@ Result:
 - Agent orchestrator: 3 passed.
 - Project memory: 1 passed.
 - Collaboration: 3 passed.
-- Runtime profiles: 5 passed.
+- Runtime profiles: 6 passed, including the packaged Java cloud adapter command boundary.
 - Chain service: 3 passed.
 - Wallet readiness: 8 passed.
 - Gateway: 2 passed.
 
 Skipped tests are unresolved acceptance gaps, not successful support claims.
 
-## First repair slice
+## First and second repair slices
 
 Keep the exact artifact provenance at source `76322af5` and runtime checkpoint
 `17ee9ae5`, while updating coordination documents to identify the actual active
 branch and this recovery audit. The next engineering slice should close one real
 toolchain gap with an installed, reviewed runtime and direct build/LSP evidence;
 it must not create a second Wallet, Quant, Finance, DEX or Calendar implementation.
+
+The second slice adds Java syntax selection plus real `javac` build and `java`
+execution to the local workspace agent and LXD runtime profile. It derives the
+declared package, writes bytecode only below `.ynx-build/java`, launches through
+a fixed classpath, and keeps the existing no-network sandbox. The local JDK gate
+passed; the cloud image recipe now installs OpenJDK 21 and records exact Debian
+package versions, but no new image fingerprint or public Java result is claimed
+until the Linux operator builds and deploys that image.

@@ -19,6 +19,7 @@ try{
     ["src/main.py",'print("GATE_PY_OK")',"GATE_PY_OK"],
     ["src/main.go",'package main\nimport "fmt"\nfunc main(){fmt.Print("GATE_GO_OK")}',"GATE_GO_OK"],
     ["src/main.rs",'fn main(){println!("GATE_RUST_OK");}',"GATE_RUST_OK"],
+    ["src/Main.java",'package dev.ynx; public final class Main { public static void main(String[] args) { System.out.print("GATE_JAVA_OK"); } }',"GATE_JAVA_OK"],
     ["contracts/Gate.sol",'// SPDX-License-Identifier: MIT\npragma solidity ^0.8.20; contract Gate { function ok() external pure returns(bool){return true;} }',"compile>"],
   ];
   for(const[activePath,source,expected]of cases){const value=await request(`/runtime/profiles/lxd/leases/${runtimeId}/tasks`,{method:"POST",body:JSON.stringify({protocolVersion:"ynx-code-runtime/v1",approval:"execute-container-once",projectId,activePath,files:{[activePath]:source}})});assert.equal(value.ok,true,`${activePath}: ${value.output}`);assert.match(value.output,new RegExp(expected));assert.equal(value.sandbox.kind,"lxd-container");assert.equal(value.sandbox.network,false);assert.notEqual(value.compiler.version,"unavailable",`${value.language} version evidence is unavailable`);console.log(`${value.language}: ${value.compiler.version}`)}

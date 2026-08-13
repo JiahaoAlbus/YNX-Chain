@@ -385,6 +385,7 @@ async function compilerInventory() {
     python: ["python3.13", "python3.12", "python3.11", "python3"],
     go: ["go"],
     rust: ["rustc"],
+    java: ["javac"],
     solidity: ["solcjs"],
   };
   const output = {};
@@ -561,6 +562,38 @@ async function taskSpec(path, workspace, files) {
       phases: [
         { label: "build", command: compiler, args: [file, "-o", build] },
         { label: "run", command: build, args: [] },
+      ],
+    };
+  }
+  if (extension === ".java") {
+    const compiler = await resolveCommand(["javac"]),
+      runtime = await resolveCommand(["java"]);
+    if (!compiler || !runtime) return null;
+    const className = basename(path, extension),
+      source = files[path],
+      packageName = source.match(/^\s*package\s+([A-Za-z_$][A-Za-z0-9_$]*(?:\.[A-Za-z_$][A-Za-z0-9_$]*)*)\s*;/m)?.[1],
+      mainClass = packageName ? `${packageName}.${className}` : className,
+      output = join(workspace, ".ynx-build", "java");
+    if (!/^[A-Za-z_$][A-Za-z0-9_$]*$/.test(className))
+      throw Object.assign(
+        new Error("Java source filename must be a valid class identifier."),
+        { status: 400, code: "invalid_java_class_name" },
+      );
+    return {
+      language: "java",
+      compiler,
+      version: await version(compiler),
+      phases: [
+        {
+          label: "build",
+          command: compiler,
+          args: ["-encoding", "UTF-8", "-d", output, file],
+        },
+        {
+          label: "run",
+          command: runtime,
+          args: ["-Dfile.encoding=UTF-8", "-cp", output, mainClass],
+        },
       ],
     };
   }

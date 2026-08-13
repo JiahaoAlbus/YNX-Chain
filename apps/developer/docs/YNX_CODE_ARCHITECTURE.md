@@ -264,6 +264,16 @@ the revisioned workspace store, deletes the lease and rejects any leaked runtime
 container. Active terminal and LSP processes hold a lease lock, so their backing
 container cannot be stopped while work is running.
 
+The next reviewed image recipe extends execution to Java with OpenJDK 21. Both
+workspace-agent and LXD adapters derive the public class from the active
+filename and optional declared package, compile UTF-8 bytecode only below
+`.ynx-build/java`, and execute through a fixed classpath. A packaged Java program
+has passed on the local network-disabled macOS sandbox. The recipe also writes
+the exact installed JDK/JRE Debian package versions into the image. This remains
+an undeployed candidate until a Linux LXD builder produces a new immutable
+fingerprint and the eight-runtime live gate passes; Java LSP is a separate open
+gate and is not implied by syntax highlighting or successful compilation.
+
 Remote SSH profiles accept public targets only on the public tier. The service
 scans the host key, requires the user to approve that exact key, verifies the
 private key with `BatchMode`, `IdentitiesOnly` and strict host-key checking, then

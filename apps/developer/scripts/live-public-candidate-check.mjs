@@ -10,7 +10,7 @@ async function session() {
   const value = await response.json();
   assert.equal(response.status, 200, JSON.stringify(value));
   assert.equal(value.sandboxReady, true);
-  for (const language of ["cpp", "javascript", "typescript", "python", "go", "rust", "solidity"])
+  for (const language of ["cpp", "javascript", "typescript", "python", "go", "rust", "java", "solidity"])
     assert.equal(value.compilers[language], true, `${language} compiler missing`);
   const cookie = response.headers.get("set-cookie")?.split(";")[0];
   assert.ok(cookie);
@@ -80,6 +80,7 @@ const compilers = [
   ["python", "src/main.py", 'print("YNX-LIVE-PY")'],
   ["go", "src/main.go", 'package main\nimport "fmt"\nfunc main(){fmt.Print("YNX-LIVE-GO")}'],
   ["rust", "src/main.rs", 'fn main(){println!("YNX-LIVE-RUST");}'],
+  ["java", "src/Main.java", 'public final class Main { public static void main(String[] args) { System.out.print("YNX-LIVE-JAVA"); } }'],
   ["solidity", "contracts/Counter.sol", '// SPDX-License-Identifier: MIT\npragma solidity ^0.8.20; contract Counter { uint256 public value; function set(uint256 next) external { value=next; } }'],
 ];
 for (const [language, activePath, source] of compilers) {
@@ -137,4 +138,4 @@ const agent = await json(cookie, "/runtime/agent/runs", {
 assert.equal(agent.run.status, "plan_review");
 assert.ok(agent.run.plan.steps.length > 0);
 
-console.log(`YNX Code public candidate passed 7 runtimes, 6 LSPs, 12 concurrent tenants, isolation, Chain ${chain.status.height}, a hosted AI Planner run and fail-closed Wallet readiness.`);
+console.log(`YNX Code public candidate passed 8 runtimes, 6 LSPs, 12 concurrent tenants, isolation, Chain ${chain.status.height}, a hosted AI Planner run and fail-closed Wallet readiness.`);

@@ -41,7 +41,7 @@ async function runContainerTask(run,{containerName,task}){
     await run("lxc",["exec",containerName,"--","rm","-rf",remote],{timeout:20000});
     await run("lxc",["exec",containerName,"--","mkdir","-p",`${remote}/.ynx-build`],{timeout:20000});
     for(const[path,content]of Object.entries(task.files)){const source=join(local,path);await writeFileTree(source,content);await run("lxc",["file","push","--create-dirs",source,`${containerName}${remote}/${path}`],{timeout:20000})}
-    const spec=containerTaskSpec(task.activePath);if(!spec)throw fault("This cloud image has no reviewed adapter for the active file.","container_toolchain_unavailable",503);
+    const spec=containerTaskSpec(task.activePath,task.files);if(!spec)throw fault("This cloud image has no reviewed adapter for the active file.","container_toolchain_unavailable",503);
     let output="",code=0;
     for(const phase of spec.phases){try{const value=await run("lxc",["exec",containerName,"--cwd",remote,"--",phase.command,...phase.args],{timeout:phase.timeout||60000,maxBuffer:1024*1024});output+=`${phase.label}> ${value.stdout}${value.stderr}`}catch(error){code=Number.isInteger(error.code)?error.code:1;output+=`${phase.label}> ${error.stdout||""}${error.stderr||error.message}`;break}}
     let version="unavailable";try{version=(await run("lxc",["exec",containerName,"--",spec.compiler,...(spec.versionArgs||["--version"])],{timeout:5000,maxBuffer:64*1024})).stdout.split("\n")[0].slice(0,160)}catch{}
@@ -49,13 +49,14 @@ async function runContainerTask(run,{containerName,task}){
   }finally{await rm(local,{recursive:true,force:true})}
 }
 async function writeFileTree(path,content){await mkdir(dirname(path),{recursive:true,mode:0o700});await writeFile(path,content,{mode:0o600,flag:"wx"})}
-function containerTaskSpec(path){const extension=extname(path).toLowerCase(),program=".ynx-build/program";
+export function containerTaskSpec(path,files={}){const extension=extname(path).toLowerCase(),program=".ynx-build/program";
   if([".cpp",".cc",".cxx"].includes(extension))return{language:"cpp",compiler:"clang++",phases:[{label:"build",command:"clang++",args:["-std=c++20","-Wall","-Wextra","-pedantic",path,"-o",program]},{label:"run",command:`./${program}`,args:[]}]};
   if([".js",".mjs",".cjs"].includes(extension))return{language:"javascript",compiler:"node",phases:[{label:"run",command:"node",args:[path]}]};
   if(extension===".ts")return{language:"typescript",compiler:"tsc",phases:[{label:"build",command:"tsc",args:["--target","ES2022","--module","commonjs","--rootDir",".","--outDir",".ynx-build",path]},{label:"run",command:"node",args:[`.ynx-build/${path.slice(0,-3)}.js`]}]};
   if(extension===".py")return{language:"python",compiler:"python3",phases:[{label:"run",command:"python3",args:["-I",path]}]};
   if(extension===".go")return{language:"go",compiler:"go",versionArgs:["version"],phases:[{label:"run",command:"go",args:["run",path],timeout:90000}]};
   if(extension===".rs")return{language:"rust",compiler:"rustc",phases:[{label:"build",command:"rustc",args:[path,"-o",program]},{label:"run",command:`./${program}`,args:[]}]};
+  if(extension===".java"){const className=path.split("/").at(-1).slice(0,-5),source=files[path]||"",packageName=source.match(/^\s*package\s+([A-Za-z_$][A-Za-z0-9_$]*(?:\.[A-Za-z_$][A-Za-z0-9_$]*)*)\s*;/m)?.[1],mainClass=packageName?`${packageName}.${className}`:className;if(!/^[A-Za-z_$][A-Za-z0-9_$]*$/.test(className))return null;return{language:"java",compiler:"javac",phases:[{label:"build",command:"javac",args:["-encoding","UTF-8","-d",".ynx-build/java",path]},{label:"run",command:"java",args:["-Dfile.encoding=UTF-8","-cp",".ynx-build/java",mainClass]}]}}
   if(extension===".sol")return{language:"solidity",compiler:"solcjs",phases:[{label:"compile",command:"solcjs",args:["--bin","--abi","-o",".ynx-build",path]}]};
   return null
 }
