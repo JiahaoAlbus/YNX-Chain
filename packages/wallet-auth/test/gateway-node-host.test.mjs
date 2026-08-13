@@ -4,6 +4,7 @@ import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
+import { p256 } from "@noble/curves/nist.js";
 import {
   canonicalJSON,
   centralProtocolEntry,
@@ -39,6 +40,30 @@ function proof(session,path,nonce){
   return encodeGatewayProofHeader(createProductSessionProof(session,{method:"POST",path,bodyDigest:httpBodyDigest(body),nonce,issuedAt:NOW.toISOString(),expiresAt:"2026-07-15T12:00:30.000Z"},PRODUCT_DEVICE_SECRET));
 }
 
+function multiUserCompletion(registry,index) {
+  const registration=registry.products.find(item=>item.productId==="social");
+  const accountSecret=index.toString(16).padStart(64,"0");
+  const deviceSecretBytes=Buffer.alloc(32);deviceSecretBytes.writeUInt32BE(1_000+index,28);
+  const deviceSecret=deviceSecretBytes.toString("base64url");
+  const productDeviceKey=Buffer.from(p256.getPublicKey(deviceSecretBytes,true)).toString("base64url");
+  const authorizationRequest=parseAuthorizationRequest(request({
+    nonce:`multi_user_request_${index.toString().padStart(16,"0")}`,
+    productDeviceKey,
+    purpose:`Authorize isolated multi-user Gateway capacity subject ${index}.`,
+  }),{now:NOW,registry:{[registration.productClientId]:centralProtocolEntry(registration)}});
+  const walletApproval=signAuthorization(authorizationRequest,{accountSecret,issuedAt:NOW.toISOString()});
+  const gatewayCompletion=signGatewayChallenge(createGatewayChallenge(walletApproval,{
+    challenge:`multi_user_challenge_${index.toString().padStart(16,"0")}`,
+    expiresAt:"2026-07-15T12:03:00.000Z",
+  },NOW),deviceSecret);
+  return {account:walletApproval.account,deviceSecret,input:{authorizationRequest,walletApproval,gatewayCompletion}};
+}
+
+function multiUserProof(session,deviceSecret,path,nonce,body="{}") {
+  const value=createProductSessionProof(session,{method:"POST",path,bodyDigest:httpBodyDigest(body),nonce,issuedAt:NOW.toISOString(),expiresAt:"2026-07-15T12:00:30.000Z"},deviceSecret);
+  return {body,header:encodeGatewayProofHeader(value)};
+}
+
 async function serve(host,run){
   const server=createServer(host.handler());await new Promise(resolve=>server.listen(0,"127.0.0.1",resolve));
   try{return await run(`http://127.0.0.1:${server.address().port}`)}finally{await new Promise(resolve=>server.close(resolve))}
@@ -66,6 +91,63 @@ test("Node host mounts the existing kernel and preserves inventory across restar
     const health=await (await fetch(`${base}/health`)).json();
     assert.equal(health.remoteDeployed,true);assert.equal(health.truthfulStatus,"remote-canonical-wallet-gateway");
   });
+});
+
+test("Node host completes 32 isolated users concurrently and preserves replay and revoke across restart",async()=>{
+  const users=32,directory=mkdtempSync(join(tmpdir(),"ynx-wallet-gateway-multi-user-")),statePath=join(directory,"state.json"),registry=approvedRegistry();
+  const inputs=Array.from({length:users},(_,offset)=>multiUserCompletion(registry,offset+1));
+  const host=new CanonicalWalletGatewayNodeHost(registry,{statePath,now:()=>NOW});
+  const completionLatencies=[];
+  let replayProof,revokedSession,revokedDeviceSecret;
+  await serve(host,async(base)=>{
+    const completions=await Promise.all(inputs.map(async item=>{
+      const started=performance.now();
+      const response=await fetch(`${base}/v1/wallet/sessions/complete`,{method:"POST",headers:{"content-type":"application/json"},body:canonicalJSON(item.input)});
+      completionLatencies.push(performance.now()-started);
+      return {payload:await response.json(),status:response.status};
+    }));
+    assert.deepEqual(new Set(completions.map(item=>item.status)),new Set([200]));
+    assert.equal(new Set(completions.map(item=>item.payload.result.account)).size,users);
+
+    const sessions=host.snapshot().sessionStore.sessions;
+    assert.equal(sessions.length,users);
+    assert.equal(new Set(sessions.map(item=>item.account)).size,users);
+    const sessionByAccount=new Map(sessions.map(item=>[item.account,item]));
+    const introspections=await Promise.all(inputs.map(async(item,index)=>{
+      const session=sessionByAccount.get(item.account);
+      const signed=multiUserProof(session,item.deviceSecret,"/v1/wallet/sessions/introspect",`multi_user_introspect_${(index+1).toString().padStart(16,"0")}`,canonicalJSON({requiredScopes:["account:read"]}));
+      if(index===0)replayProof=signed;
+      const response=await fetch(`${base}/v1/wallet/sessions/introspect`,{method:"POST",headers:{"content-type":"application/json","x-ynx-product-session-proof":signed.header},body:signed.body});
+      return {payload:await response.json(),status:response.status};
+    }));
+    assert.deepEqual(new Set(introspections.map(item=>item.status)),new Set([200]));
+    assert.ok(introspections.every(item=>item.payload.result.active===true));
+
+    const replay=await fetch(`${base}/v1/wallet/sessions/introspect`,{method:"POST",headers:{"content-type":"application/json","x-ynx-product-session-proof":replayProof.header},body:replayProof.body});
+    assert.equal(replay.status,409);assert.equal((await replay.json()).error.code,"REPLAY");
+
+    const revokedInput=inputs.at(-1);revokedSession=sessionByAccount.get(revokedInput.account);revokedDeviceSecret=revokedInput.deviceSecret;
+    const revoke=multiUserProof(revokedSession,revokedDeviceSecret,"/v1/wallet/sessions/revoke","multi_user_revoke_0000000000000001");
+    const revoked=await fetch(`${base}/v1/wallet/sessions/revoke`,{method:"POST",headers:{"content-type":"application/json","x-ynx-product-session-proof":revoke.header},body:revoke.body});
+    assert.equal(revoked.status,200);
+
+    const metrics=await (await fetch(`${base}/metrics`)).text();
+    assert.match(metrics,/ynx_wallet_gateway_requests_total 67/);
+    assert.match(metrics,/ynx_wallet_gateway_errors_total\{code="REPLAY"\} 1/);
+  });
+
+  const restarted=new CanonicalWalletGatewayNodeHost(registry,{statePath,now:()=>NOW});
+  await serve(restarted,async(base)=>{
+    const replay=await fetch(`${base}/v1/wallet/sessions/introspect`,{method:"POST",headers:{"content-type":"application/json","x-ynx-product-session-proof":replayProof.header},body:replayProof.body});
+    assert.equal(replay.status,409);assert.equal((await replay.json()).error.code,"REPLAY");
+    const postRevoke=multiUserProof(revokedSession,revokedDeviceSecret,"/v1/wallet/sessions/introspect","multi_user_post_revoke_00000000001",canonicalJSON({requiredScopes:["account:read"]}));
+    const rejected=await fetch(`${base}/v1/wallet/sessions/introspect`,{method:"POST",headers:{"content-type":"application/json","x-ynx-product-session-proof":postRevoke.header},body:postRevoke.body});
+    assert.equal(rejected.status,403);assert.equal((await rejected.json()).error.code,"REVOKED");
+  });
+  assert.equal(statSync(statePath).mode&0o777,0o600);
+  completionLatencies.sort((left,right)=>left-right);
+  const percentile=fraction=>completionLatencies[Math.ceil(completionLatencies.length*fraction)-1];
+  console.log(JSON.stringify({gatewayMultiUserEvidence:{coverage:"real loopback HTTP, canonical P-256 completion and introspection, disk persistence, host reconstruction, replay and revoke; excludes public network and external load balancer",failures:0,users,completionLatencyMs:{p50:Number(percentile(0.5).toFixed(3)),p95:Number(percentile(0.95).toFixed(3)),p99:Number(percentile(0.99).toFixed(3)),max:Number(completionLatencies.at(-1).toFixed(3))}}}));
 });
 
 test("Node host rejects noncanonical proof transport and persisted-state tamper",async()=>{
