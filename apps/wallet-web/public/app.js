@@ -85,7 +85,7 @@ async function detect() {
   const metamaskPresent = Boolean(availability.metamask);
   document.querySelector("#ynx").classList.toggle("hidden", !ynxPresent);
   document.querySelector("#download").classList.toggle("hidden", ynxPresent);
-  document.querySelector("#metamask").classList.toggle("hidden", !metamaskPresent);
+  document.querySelector("#metamask").classList.toggle("hidden", ynxPresent);
   document.querySelector("#detected").textContent = ynxPresent ? text("detected") : text("unavailable");
   let saved = null;
   try { saved = JSON.parse(localStorage.getItem("ynx.wallet.web.session.v1") || "null"); }
