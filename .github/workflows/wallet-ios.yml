@@ -84,8 +84,43 @@ jobs:
           xcrun simctl terminate "$DEVICE" com.ynxweb4.wallet 2>/dev/null || true
           xcrun simctl launch "$DEVICE" com.ynxweb4.wallet | tee proof/ci-ios/cold-launch.txt
           xcrun simctl get_app_container "$DEVICE" com.ynxweb4.wallet | tee proof/ci-ios/app-container.txt
+          COLD_PID="$(awk '{print $2}' proof/ci-ios/cold-launch.txt)"
+          xcrun simctl spawn "$DEVICE" log stream --style compact --level info \
+            --predicate 'eventMessage CONTAINS "YNX_WALLET_CALLBACK_"' \
+            > proof/ci-ios/callback-app.log 2>&1 &
+          LOG_PID=$!
+          trap 'kill "$LOG_PID" 2>/dev/null || true' EXIT
+          open -a Simulator
           xcrun simctl openurl "$DEVICE" 'ynxwallet://authorize?request=invalid' | tee proof/ci-ios/deep-link.txt
+          /usr/bin/osascript <<'APPLESCRIPT' | tee proof/ci-ios/ui-automation.txt
+          tell application "System Events"
+            tell process "Simulator"
+              repeat 100 times
+                set openButtons to (every button of entire contents whose name is "Open")
+                if (count of openButtons) > 0 then
+                  click item 1 of openButtons
+                  return "clicked accessibility button: Open"
+                end if
+                delay 0.1
+              end repeat
+            end tell
+          end tell
+          error "Simulator Open confirmation was not available through accessibility"
+          APPLESCRIPT
+          for attempt in {1..60}; do
+            grep -q 'YNX_WALLET_CALLBACK_RECEIVED' proof/ci-ios/callback-app.log && \
+              grep -q 'YNX_WALLET_CALLBACK_REJECTED' proof/ci-ios/callback-app.log && break
+            sleep 0.5
+          done
+          grep 'YNX_WALLET_CALLBACK_RECEIVED' proof/ci-ios/callback-app.log | tee proof/ci-ios/callback-received.txt
+          grep 'YNX_WALLET_CALLBACK_REJECTED' proof/ci-ios/callback-app.log | tee proof/ci-ios/callback-rejected.txt
+          xcrun simctl launch "$DEVICE" com.ynxweb4.wallet | tee proof/ci-ios/post-callback-launch.txt
+          POST_CALLBACK_PID="$(awk '{print $2}' proof/ci-ios/post-callback-launch.txt)"
+          test "$COLD_PID" = "$POST_CALLBACK_PID"
           xcrun simctl io "$DEVICE" screenshot proof/ci-ios/wallet-deep-link-rejection.png
+          kill "$LOG_PID" 2>/dev/null || true
+          wait "$LOG_PID" 2>/dev/null || true
+          trap - EXIT
           xcrun simctl terminate "$DEVICE" com.ynxweb4.wallet
           xcrun simctl launch "$DEVICE" com.ynxweb4.wallet | tee proof/ci-ios/second-launch.txt
           xcrun simctl io "$DEVICE" screenshot proof/ci-ios/wallet-second-launch.png

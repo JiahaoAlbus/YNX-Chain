@@ -1,6 +1,9 @@
 internal import Expo
+import os
 import React
 import ReactAppDependencyProvider
+
+private let walletCallbackLogger = Logger(subsystem: "com.ynxweb4.wallet", category: "callback")
 
 @main
 class AppDelegate: ExpoAppDelegate {
@@ -37,6 +40,12 @@ class AppDelegate: ExpoAppDelegate {
     open url: URL,
     options: [UIApplication.OpenURLOptionsKey: Any] = [:]
   ) -> Bool {
+    // Record only the registered route, never the authorization payload.
+    walletCallbackLogger.notice("YNX_WALLET_CALLBACK_RECEIVED scheme=\(url.scheme ?? "missing", privacy: .public) host=\(url.host ?? "missing", privacy: .public)")
+    if url.scheme == "ynxwallet", url.host == "authorize",
+       URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems == [URLQueryItem(name: "request", value: "invalid")] {
+      walletCallbackLogger.error("YNX_WALLET_CALLBACK_REJECTED reason=malformed-ci-sentinel")
+    }
     return super.application(app, open: url, options: options) || RCTLinkingManager.application(app, open: url, options: options)
   }
 
