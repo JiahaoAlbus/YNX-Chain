@@ -2,6 +2,22 @@ import XCTest
 @testable import YNXWalletMacCore
 
 final class CallbackPolicyTests: XCTestCase {
+  func testRecoveryMaterialRequiresExactly256Bits() throws {
+    let material = Data(repeating: 0x5a, count: RecoveryMaterial.byteCount)
+    XCTAssertEqual(try RecoveryMaterial.validate(material), material)
+    XCTAssertThrowsError(try RecoveryMaterial.validate(Data()))
+    XCTAssertThrowsError(try RecoveryMaterial.validate(Data(repeating: 0, count: 31)))
+    XCTAssertThrowsError(try RecoveryMaterial.validate(Data(repeating: 0, count: 33)))
+  }
+
+  func testRecoveryMaterialUsesSystemRandomness() throws {
+    let first = try RecoveryMaterial.generate()
+    let second = try RecoveryMaterial.generate()
+    XCTAssertEqual(first.count, 32)
+    XCTAssertEqual(second.count, 32)
+    XCTAssertNotEqual(first, second)
+  }
+
   func testMalformedAndWidenedCallbacksFailClosed() {
     XCTAssertEqual(CallbackPolicy.evaluate("ynxwallet-macos://authorize?request=invalid"), .rejected(code: "CANONICAL_AUTH_BRIDGE_UNAVAILABLE"))
     XCTAssertEqual(CallbackPolicy.evaluate("ynxwallet-macos://authorize?request=invalid&scope=wallet"), .rejected(code: "INVALID_AUTHORIZATION_REQUEST"))

@@ -7,10 +7,12 @@ let package = Package(
   products: [
     .library(name: "YNXWalletMacCore", targets: ["YNXWalletMacCore"]),
     .executable(name: "YNXWalletMac", targets: ["YNXWalletMac"]),
+    .executable(name: "YNXWalletMacSecurityProbe", targets: ["YNXWalletMacSecurityProbe"]),
   ],
   targets: [
     .target(name: "YNXWalletMacCore"),
     .executableTarget(name: "YNXWalletMac", dependencies: ["YNXWalletMacCore"]),
+    .executableTarget(name: "YNXWalletMacSecurityProbe", dependencies: ["YNXWalletMacCore"]),
     .testTarget(name: "YNXWalletMacCoreTests", dependencies: ["YNXWalletMacCore"]),
   ]
 )

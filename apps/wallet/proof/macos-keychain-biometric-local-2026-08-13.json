@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "product": "YNX Wallet",
+  "evidenceType": "local-macos-keychain-biometric-recovery",
+  "recordedAt": "2026-08-13T20:50:00+08:00",
+  "sourceTreeBase": "ea98966443422e8b0d6ab936bce375e9aa016998",
+  "sourceSha256": {
+    "Package.swift": "ca6cf8ab2e8aa82386fd98a6ab17f2201c686a61b7eaa853b057fe291c792fc7",
+    "DeviceSecurity.swift": "d06089498b0ee18431f4d13a4f28bfb5d7eda5cc68dcc9a60ad5be9b5a89a8fd",
+    "main.swift": "cf3a2f9ca67e77f646f0c1a6cf5eb4626c9df6cf6c34cdfee8112933838cd0e2",
+    "SecurityProbe.swift": "8e1fc35ded771a9146ff93adaf80e8153aca56be131daac3342d75ddd5a38679",
+    "tests.swift": "f480832547fd9a32ad267b2f71a9131ab90fd7050855effb581f8bdce3254369"
+  },
+  "implementation": {
+    "systemRandomRecoveryBytes": 32,
+    "keychainClass": "generic-password",
+    "keychainAccessibility": "when-unlocked-this-device-only",
+    "accessControl": "biometry-current-set",
+    "biometricPolicy": "device-owner-authentication-with-biometrics",
+    "createRequiresBiometric": true,
+    "readRequiresBiometric": true,
+    "deleteRequiresBiometric": true,
+    "biometricSetChangeInvalidatesAccess": true,
+    "accountDerivationImplemented": false,
+    "signingImplemented": false,
+    "networkSubmissionImplemented": false
+  },
+  "localProbe": {
+    "keychainAvailable": true,
+    "keychainRoundTripVerified": true,
+    "temporaryCanaryDeleted": true,
+    "biometricPolicyAvailable": false,
+    "biometricDomainStatePresent": false,
+    "biometricErrorCode": -12,
+    "recoveryMaterialPersisted": false,
+    "interpretation": "Keychain is directly verified. Biometrics are unavailable on this host, so recovery create/read/delete remain fail closed and no biometric success is claimed."
+  },
+  "tests": {
+    "swiftTestsPassed": 4,
+    "swiftTestsFailed": 0,
+    "coverage": [
+      "strict-custom-url-fail-closed",
+      "unknown-and-widened-callback-rejection",
+      "exact-256-bit-recovery-material",
+      "system-random-material-generation"
+    ]
+  },
+  "installedApplication": {
+    "firstLaunchPid": 95764,
+    "secondLaunchPid": 95764,
+    "callbackWindowTitle": "Request rejected · CANONICAL_AUTH_BRIDGE_UNAVAILABLE",
+    "callbackFailedClosed": true
+  },
+  "artifact": {
+    "name": "YNX-Wallet-macOS-keychain-ad-hoc.zip",
+    "localPath": "/tmp/YNX-Wallet-macOS-keychain-ad-hoc.zip",
+    "committed": false,
+    "hosted": false,
+    "bytes": 55002,
+    "sha256": "9ab2f6d9f04b1fcb5c072e2bf658bc319e1c40abcd160a471823829c5314026c",
+    "bundleIdentifier": "com.ynxweb4.wallet.macos",
+    "minimumOS": "macOS 13.0",
+    "architecture": "arm64",
+    "signingClass": "ad-hoc",
+    "teamIdentifierPresent": false,
+    "productionSigned": false,
+    "notarized": false,
+    "storeReleased": false
+  },
+  "releaseStates": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": true,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}
