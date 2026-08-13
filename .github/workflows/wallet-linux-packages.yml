@@ -35,6 +35,7 @@ jobs:
       - name: Build twice and require byte-identical packages
         env:
           SOURCE_COMMIT: 95bd2aad56bd8b72246f3f0e9529d699f09550ad
+          SOURCE_DATE_EPOCH: 1786622469
         run: |
           scripts/release/build-wallet-linux-packages.sh "$SOURCE_COMMIT" 0.1.0 tmp/wallet-linux-first
           scripts/release/build-wallet-linux-packages.sh "$SOURCE_COMMIT" 0.1.0 tmp/wallet-linux-second
