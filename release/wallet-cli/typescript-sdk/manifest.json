@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "package": "@ynx-chain/sdk",
+  "version": "0.2.0",
+  "sourceCommit": "011b7118ff53c9832e156a3e0bc9f7bc6fe66563",
+  "artifact": {
+    "path": "release/wallet-cli/typescript-sdk/ynx-chain-sdk-0.2.0.tgz",
+    "format": "npm package tarball",
+    "bytes": 5421,
+    "sha256": "8cff9b233a1a057dbebfa0a9fee8df63514f3ed5aa30f5dae3d18b7ebd30da90",
+    "npmShasum": "e68aa7bee3d4216960d6e3640e3a0d94da369c52",
+    "signingClass": "unsigned_local_testnet_sdk_candidate",
+    "immutableDownloadURL": null
+  },
+  "minimumRuntime": "Node.js 18",
+  "buildEvidence": {
+    "node": "v24.19.0",
+    "npm": "11.17.0",
+    "typescriptConsumer": "6.0.3",
+    "independentPackByteEquality": true,
+    "packageTests": "12/12 pass",
+    "strictTypeConsumerCompiled": true,
+    "installedConsumerImported": true,
+    "realTestnetChainId": "0x1917",
+    "realTestnetSource": "https://evm.ynxweb4.com"
+  },
+  "releaseState": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": true,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}
