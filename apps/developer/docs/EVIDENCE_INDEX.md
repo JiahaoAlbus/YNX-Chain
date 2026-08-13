@@ -1,5 +1,13 @@
 # Evidence index
 
+## Current recovery audit
+
+The 2026-08-13 preservation audit and requirement/current-state/evidence/gap
+matrix is recorded in `RECOVERY_AUDIT_2026-08-13.md`. It binds the clean,
+upstream-synchronized repository checkpoint
+`e061a30e801a9075dfea212a854b3d7d578d7e85` without rewriting the exact older
+source and runtime checkpoints embedded in already-published desktop artifacts.
+
 ## Product behavior
 
 - Public full-platform gate: `scripts/live-public-candidate-check.mjs`. Against

@@ -12,7 +12,10 @@
     "branch": "codex/ynx-code-platform-v1",
     "commit": "17ee9ae5bf50677a3316b0838884dd135de80599",
     "releaseCandidateCommit": "76322af5e8c26a64fb6425c51d96c67d2b3df65f",
-    "generatedAt": "2026-08-11T17:00:00Z"
+    "generatedAt": "2026-08-11T17:00:00Z",
+    "auditedRepositoryCheckpoint": "e061a30e801a9075dfea212a854b3d7d578d7e85",
+    "auditedAt": "2026-08-13T12:15:00Z",
+    "recoveryAudit": "apps/developer/docs/RECOVERY_AUDIT_2026-08-13.md"
   },
   "walletBinding": {
     "productClientId": "ynx-developer-v1",
