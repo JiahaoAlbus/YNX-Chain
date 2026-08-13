@@ -37,8 +37,10 @@
   ],
   "crossRepositoryVectors": [
     "packages/wallet-auth/integration/smart-account-testnet.manifest.json",
-    "apps/wallet/proof/sponsorship-bundler-hardhat-local.json"
+    "apps/wallet/proof/sponsorship-bundler-hardhat-local.json",
+    "apps/wallet/proof/public-erc4337-readiness-blocked-2026-08-13.json"
   ],
   "currentContradiction": {"method":"eth_getCode","publicResultCode":-32601,"publicResultMessage":"method eth_getCode is not implemented by the local YNX devnet RPC","observedAt":"2026-08-13T12:47:24Z","chainId":6423,"blockNumber":997284,"firstAttempt":"timeout","boundedRetry":"json-rpc-error"},
+  "currentBundlerContradiction": {"candidate":"https://bundler.ynxweb4.com/rpc","candidateAuthority":"Wallet UI test fixture only","publicHttpStatus":404,"deploymentError":"DEPLOYMENT_NOT_FOUND","observedAt":"2026-08-13T14:27:24.748Z"},
   "states": {"implementedWalletLocal":true,"acceptedChainCore":false,"deployedStaging":false,"deployedPublic":false}
 }

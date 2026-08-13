@@ -296,8 +296,8 @@
     "storeReleased": false
   },
   "verification": {
-    "walletAuthPackageTests": "117/117 passed",
-    "currentWalletOwnedSuite": "115/115 passed; all package tests except Developer-owned developer-deployment.test.mjs",
+    "walletAuthPackageTests": "122/122 passed",
+    "currentWalletOwnedSuite": "120/120 passed; all package tests except Developer-owned developer-deployment.test.mjs",
     "crossOwnerTestAudit": "2/2 Developer-owned SampleEVMWriteCounter assertions passed in the full package audit; Wallet/Auth did not generate or modify the Developer-owned artifact and does not count them as Wallet-owned coverage",
     "gatewayNodeHostTests": "10/10 passed",
     "gatewayAdmissionObservability": {
@@ -345,6 +345,21 @@
       "paymasterDeployedPublic": false,
       "sponsoredReceiptPublic": false,
       "evidence": "apps/wallet/proof/sponsored-useroperation-evidence-verifier-local-2026-08-13.json"
+    },
+    "publicERC4337ReadinessProbe": {
+      "sourceCommit": "2a19cb153952c7e3e1e253fea39186e2ebff194b",
+      "observedAt": "2026-08-13T14:27:24.748Z",
+      "exitCode": 2,
+      "rpcChainId": 6423,
+      "bundlerCandidateStatus": "DEPLOYMENT_NOT_FOUND",
+      "authoritativeEntryPointConfigured": false,
+      "exactRuntimeHashVerified": false,
+      "ready": false,
+      "entryPointDeployedPublic": false,
+      "bundlerDeployedPublic": false,
+      "paymasterDeployedPublic": false,
+      "sponsoredReceiptPublic": false,
+      "evidence": "apps/wallet/proof/public-erc4337-readiness-blocked-2026-08-13.json"
     },
     "freshPublicGatewayProbe": {
       "sourceCommit": "652b9da67a47e13f1826db07d423d464100939c1",

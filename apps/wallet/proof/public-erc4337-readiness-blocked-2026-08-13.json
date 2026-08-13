@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "wallet-public-erc4337-readiness-blocked-2026-08-13",
+  "owner": "02-wallet-auth",
+  "sourceCommit": "2a19cb153952c7e3e1e253fea39186e2ebff194b",
+  "verification": "wallet-auth-public-erc4337-readiness",
+  "environment": "public-testnet",
+  "observedAt": "2026-08-13T14:27:24.748Z",
+  "probeCommand": "YNX_WALLET_ERC4337_PUBLIC_PROBE=1 YNX_EVM_RPC_URL=https://evm.ynxweb4.com YNX_ERC4337_BUNDLER_URL=https://bundler.ynxweb4.com/rpc YNX_ERC4337_PROBE_TIMEOUT_MS=12000 npm --prefix packages/wallet-auth run probe:public-erc4337",
+  "exitCode": 2,
+  "endpoints": {
+    "rpc": "https://evm.ynxweb4.com/",
+    "bundlerCandidate": "https://bundler.ynxweb4.com/rpc",
+    "bundlerCandidateAuthority": "Wallet control-surface test fixture only; not a frozen deployment configuration"
+  },
+  "entryPoint": {
+    "address": null,
+    "expectedRuntimeSha256": null,
+    "observedRuntimeSha256": null,
+    "observedRuntimeBytes": null,
+    "reason": "No authoritative public EntryPoint address and runtime hash are frozen; the probe does not guess or query a test-fixture address."
+  },
+  "checks": {
+    "rpcChainMatches": true,
+    "bundlerChainMatches": false,
+    "entryPointConfigured": false,
+    "entryPointRuntimeHashMatches": false,
+    "entryPointSupported": false
+  },
+  "observations": {
+    "rpcChain": {"status":"success","result":"0x1917","decimal":6423},
+    "bundlerChain": {"status":"http-error","httpStatus":404,"deploymentError":"DEPLOYMENT_NOT_FOUND"},
+    "bundlerSupportedEntryPoints": {"status":"http-error","httpStatus":404,"deploymentError":"DEPLOYMENT_NOT_FOUND"},
+    "entryPointCode": {"status":"not-configured"}
+  },
+  "tests": {
+    "focusedReadinessProbe": {"passed":5,"failed":0},
+    "focusedBundlerAndReadiness": {"passed":11,"failed":0},
+    "fullPackage": {"passed":122,"failed":0},
+    "walletOwned": {"passed":120,"failed":0},
+    "developerOwnedAudit": {"passed":2,"failed":0,"modifiedByWallet":false,"countedAsWalletOwned":false},
+    "walletProductGate": "passed",
+    "walletReleaseContentGate": "passed",
+    "universalPackageRootNodeBuiltinImports": false
+  },
+  "sourceSha256": {
+    "packages/wallet-auth/src/public-erc4337-readiness.js": "a6a6688edc7b3797ebc86c56da9b31cc997cb1fc3b26f9f22350bc1eed50afbe",
+    "packages/wallet-auth/scripts/probe-public-erc4337.mjs": "2f096da1dc9e4ee79cbb00c68119ec6a0568ffe532c7a91e1977e956f142516a",
+    "packages/wallet-auth/test/public-erc4337-readiness.test.mjs": "731c64351c0f0d70a0c0572805d81a367130c0de1a5d28b00653a75857b4800e"
+  },
+  "packageArtifact": {
+    "name": "@ynx-chain/wallet-auth",
+    "version": "1.0.0",
+    "sha256": "48f8f6fe7dcb94bff1455cef435e5fbd1ceed10fac0b46bc13553920fc982e71",
+    "bytes": 94973,
+    "unpackedBytes": 422429,
+    "entries": 56,
+    "minimumRuntime": "Node.js 22",
+    "minimumOS": null,
+    "signingClass": "unsigned-local-npm-package"
+  },
+  "ready": false,
+  "releaseClaims": {
+    "entryPointDeployedPublic": false,
+    "bundlerDeployedPublic": false,
+    "paymasterDeployedPublic": false,
+    "sponsoredReceiptPublic": false,
+    "explorerEvidencePublic": false
+  },
+  "secretMaterialRecorded": false,
+  "remainingRequirements": [
+    "authoritative public EntryPoint address and exact runtime SHA-256",
+    "public RPC eth_getCode support and matching non-empty runtime",
+    "public ERC-7769 Bundler connected to chain 6423 and supporting that exact EntryPoint",
+    "public Paymaster address, runtime, deposit, policy and enabled-state evidence",
+    "cross-bound zero-balance sponsored UserOperation lookup, receipt and inclusion transaction",
+    "public Explorer and Monitor evidence"
+  ]
+}

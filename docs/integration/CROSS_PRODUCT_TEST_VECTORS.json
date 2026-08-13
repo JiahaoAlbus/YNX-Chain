@@ -5,6 +5,17 @@
   "sourceCommit": "a940d2efa824bd9f43522ed792c9a563b55e1e11",
   "vectors": [
     {
+      "id": "WA-ERC4337-PUBLIC-READINESS-001",
+      "category": "wallet-auth",
+      "owners": ["01-chain-core", "02-wallet-auth", "12-explorer", "13-monitor", "29-integration"],
+      "precondition": "A public RPC URL, Bundler URL, authoritative EntryPoint address and exact expected runtime SHA-256 are supplied without credentials.",
+      "action": "Probe RPC and Bundler chain ID, exact EntryPoint runtime and Bundler-supported EntryPoints with bounded responses and timeouts.",
+      "expectedHttpStatus": null,
+      "expectedCode": "process exit 2 when any required binding is absent or mismatched",
+      "expectedState": "chainId, DNS/TLS, HTTP reachability, provider self-report or a test-fixture URL alone cannot enable public EntryPoint/Bundler/Paymaster/receipt claims; every unmet state remains false",
+      "publicClaimAllowed": false
+    },
+    {
       "id": "WA-UO-EVIDENCE-SUBSTITUTION-001",
       "category": "wallet-auth",
       "owners": ["01-chain-core", "02-wallet-auth", "12-explorer", "13-monitor", "29-integration"],

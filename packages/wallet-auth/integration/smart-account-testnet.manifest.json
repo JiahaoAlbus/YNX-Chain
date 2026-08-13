@@ -15,6 +15,15 @@
     "defaultRequireSuccess": true,
     "errors": ["BUNDLER_NOT_FINALIZED", "BUNDLER_EVIDENCE_MISMATCH", "BUNDLER_USER_OPERATION_FAILED"]
   },
+  "publicReadinessProbe": {
+    "sourceCommit": "2a19cb153952c7e3e1e253fea39186e2ebff194b",
+    "command": "npm --prefix packages/wallet-auth run probe:public-erc4337",
+    "requiredBindings": ["RPC chainId 6423", "Bundler chainId 6423", "authoritative EntryPoint address", "exact EntryPoint runtime SHA-256", "Bundler-supported exact EntryPoint"],
+    "requiresExplicitOptIn": true,
+    "acceptsSecrets": false,
+    "notReadyExitCode": 2,
+    "evidence": "apps/wallet/proof/public-erc4337-readiness-blocked-2026-08-13.json"
+  },
   "hardhatIsolation": {"config":"hardhat.wallet.config.ts","sources":"contracts/wallet","artifacts":"tmp/wallet-hardhat/artifacts","cache":"tmp/wallet-hardhat/cache","crossOwnerArtifactCleanup":false},
   "deploymentCommand": "npm run hardhat:deploy:wallet-smart-account",
   "testCommand": "npm run hardhat:test:wallet && node --test packages/wallet-auth/test/bundler.test.mjs && npm --prefix packages/wallet-auth test",
