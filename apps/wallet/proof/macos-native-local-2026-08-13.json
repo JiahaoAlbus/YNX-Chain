@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "product": "YNX Wallet",
+  "evidenceType": "local-macos-native-companion",
+  "recordedAt": "2026-08-13T20:15:00+08:00",
+  "sourceTreeBase": "8be43d3a067b1d6eed365509d3b44b6fda26601f",
+  "sourceSha256": {
+    "Package.swift": "1f3ce67af982d7004aa91e8f8d102526124f8190d2810ff4a8bd4623d44a7994",
+    "Info.plist": "ccf5dc73c4aa73a28f503094c0dfed0c52efad69968237c127cca0f060565a41",
+    "CallbackPolicy.swift": "40b18d37eecd7e70344e61a3b1184acb7d76cacd1825648561cf3a35fbe88454",
+    "main.swift": "37f5aa32d3504b486f2771c0d5e5cda2e0def6d0b51fdfad77a2f6c403b677d2",
+    "CallbackPolicyTests.swift": "85f67e61a2830a4d5f1dfa43722e43fca4b5e752928aad4b80715c74399858a5"
+  },
+  "environment": {
+    "hostOS": "macOS 26.0 (25A5279m)",
+    "architecture": "arm64",
+    "developerDirectory": "/Applications/Xcode.app/Contents/Developer",
+    "developerDirectoryScope": "command-only; global xcode-select was not changed",
+    "xcodeVersion": "16.3",
+    "xcodeBuild": "16E140"
+  },
+  "verification": {
+    "swiftTestsPassed": 2,
+    "swiftTestsFailed": 0,
+    "releaseBuildPassed": true,
+    "appBundleOpened": true,
+    "firstLaunchPid": 88284,
+    "secondLaunchPid": 88284,
+    "secondLaunchReusedRunningApplication": true,
+    "callbackInput": "ynxwallet-macos://authorize?request=invalid",
+    "callbackWindowTitle": "Request rejected · CANONICAL_AUTH_BRIDGE_UNAVAILABLE",
+    "callbackFailedClosed": true,
+    "signingAttempted": false,
+    "networkSubmissionAttempted": false,
+    "callbackReturnAttempted": false
+  },
+  "artifact": {
+    "name": "YNX-Wallet-macOS-ad-hoc.zip",
+    "localPath": "/tmp/YNX-Wallet-macOS-ad-hoc.zip",
+    "committed": false,
+    "hosted": false,
+    "bytes": 29819,
+    "sha256": "1a4d7cbc7da0fbfac4be6ff8e7e690b1c9880ec2ca7b2407ae1efb38611ff7f5",
+    "bundleIdentifier": "com.ynxweb4.wallet.macos",
+    "architecture": "arm64",
+    "minimumOS": "macOS 13.0",
+    "signingClass": "ad-hoc",
+    "teamIdentifierPresent": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "releaseStates": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": true,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "limitations": [
+    "This is an ad-hoc-signed local arm64 engineering application, not Developer ID, notarized, App Store, universal-binary, or production-signed delivery.",
+    "The application deliberately has no Keychain, biometric, account, signing, send, recovery, Gateway, or authoritative network bridge in this slice.",
+    "All authorization inputs fail closed until the frozen Core Wallet/Auth bridge is integrated; no fake success, balance, transaction, user, or provider is displayed.",
+    "The screenshot captured during local verification remains local and is not claimed as committed or hosted evidence."
+  ]
+}

@@ -58,6 +58,10 @@ GitHub Actions run [29646381701](https://github.com/JiahaoAlbus/YNX-Chain/action
 
 Both assets correspond to source commit `da82c8b07b72b615ccb24b86a2a7ac66ee85b4d8`. SHA-256 and byte sizes are recorded in `artifact-manifest.json`.
 
+## macOS native companion evidence
+
+`proof/macos-native-local-2026-08-13.json` records a command-scoped Xcode 16.3 / Swift build on the arm64 host without changing global `xcode-select`. Two strict callback-policy tests pass. The ad-hoc application bundle opened locally, a second open reused the same running application, and `ynxwallet-macos://authorize?request=invalid` changed the native window title to the exact fail-closed code `CANONICAL_AUTH_BRIDGE_UNAVAILABLE`. The local zip is 29,819 bytes with SHA-256 `1a4d7cbc7da0fbfac4be6ff8e7e690b1c9880ec2ca7b2407ae1efb38611ff7f5`, minimum macOS 13.0, arm64 only, ad-hoc signed with no TeamIdentifier. It is not committed, hosted, Developer ID signed, notarized, production signed or store released; Keychain, biometrics, accounts, signing, send, recovery and successful DApp callback remain unavailable rather than simulated.
+
 ## Smart Account, mandate and Credential evidence
 
 - `contracts/wallet/YNXSmartAccount.sol` and `YNXEntryPoint.sol`: official ERC-4337 v0.8 EntryPoint integration, owner and UV-required WebAuthn validation, exact-target/selector session keys, per-call/daily native-value limits, batch calls inherited from BaseAccount, emergency epoch revoke and delayed guardian recovery.
