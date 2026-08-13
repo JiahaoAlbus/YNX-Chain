@@ -44,7 +44,9 @@ jobs:
       - name: Install, launch, verify Testnet and uninstall
         env:
           SOURCE_COMMIT: 95bd2aad56bd8b72246f3f0e9529d699f09550ad
-        run: sudo --preserve-env=SOURCE_COMMIT scripts/verify/wallet-linux-package-lifecycle.sh "$SOURCE_COMMIT" tmp/wallet-linux-first tmp/wallet-linux-preflight | tee "tmp/wallet-linux-${{ matrix.architecture }}-evidence.json"
+        run: |
+          sudo --preserve-env=SOURCE_COMMIT scripts/verify/wallet-linux-package-lifecycle.sh "$SOURCE_COMMIT" tmp/wallet-linux-first tmp/wallet-linux-preflight | tee "tmp/wallet-linux-${{ matrix.architecture }}-evidence.json"
+          python3 -m json.tool "tmp/wallet-linux-${{ matrix.architecture }}-evidence.json" >/dev/null
       - name: Record artifact hashes
         run: sha256sum tmp/wallet-linux-first/* | tee "tmp/wallet-linux-${{ matrix.architecture }}-sha256.txt"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2

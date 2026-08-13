@@ -32,7 +32,7 @@ ynx-wallet-cli verify-vector -file "$vector" >/tmp/ynx-wallet-linux-vector.json
 ynx-wallet-cli sign-self-test >/tmp/ynx-wallet-linux-sign.json
 ynx-wallet-cli chain-status -timeout 15s >/tmp/ynx-wallet-linux-chain.json
 dpkg -r ynx-wallet-cli >/dev/null
-! command -v ynx-wallet-cli
+! command -v ynx-wallet-cli >/dev/null
 
 rpm -i --nodeps "$preflight_rpm"
 ynx-wallet-cli version >/tmp/ynx-wallet-linux-rpm-cold.json
@@ -42,6 +42,6 @@ ynx-wallet-cli verify-vector -file "$vector" >/tmp/ynx-wallet-linux-rpm-vector.j
 ynx-wallet-cli sign-self-test >/tmp/ynx-wallet-linux-rpm-sign.json
 ynx-wallet-cli chain-status -timeout 15s >/tmp/ynx-wallet-linux-rpm-chain.json
 rpm -e ynx-wallet-cli
-! command -v ynx-wallet-cli
+! command -v ynx-wallet-cli >/dev/null
 
 printf '{"architecture":"%s","sourceCommit":"%s","debInstalled":true,"debColdStart":true,"debSecondStart":true,"debUpgradeVerified":true,"rpmInstalled":true,"rpmColdStart":true,"rpmUpgradeVerified":true,"vectorVerified":true,"signingVerified":true,"chainId":"0x1917","uninstallVerified":true,"productionSigned":false}\n' "$(uname -m)" "$source_commit"
