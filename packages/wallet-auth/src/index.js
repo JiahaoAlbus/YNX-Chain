@@ -18,6 +18,7 @@ export * from "./session-proof.js";
 export * from "./gateway-adapter.js";
 export * from "./gateway-http.js";
 export * from "./bundler.js";
+export * from "./public-erc4337-readiness.js";
 export * from "./exchange-action.js";
 export * from "./developer-deployment.js";
 export * from "./dex-action.js";

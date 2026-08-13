@@ -766,6 +766,36 @@ export declare class ERC7769BundlerClient {
     options?: { requireSuccess: boolean },
   ): Promise<Readonly<Record<string, unknown>>>;
 }
+export type PublicERC4337Readiness = Readonly<{
+  schemaVersion: 1;
+  verification: "wallet-auth-public-erc4337-readiness";
+  environment: "public-testnet";
+  observedAt: string;
+  endpoints: Readonly<{ rpc: string; bundler: string }>;
+  entryPoint: string | null;
+  expectedRuntimeSha256: string | null;
+  observedRuntimeSha256: string | null;
+  observedRuntimeBytes: number | null;
+  supportedEntryPoints: readonly string[];
+  checks: Readonly<Record<string, boolean>>;
+  observations: Readonly<Record<string, unknown>>;
+  ready: boolean;
+  releaseClaims: Readonly<{
+    entryPointDeployedPublic: boolean;
+    bundlerDeployedPublic: boolean;
+    paymasterDeployedPublic: false;
+    sponsoredReceiptPublic: false;
+  }>;
+  secretMaterialRecorded: false;
+}>;
+export declare function probePublicERC4337Readiness(config: {
+  rpcEndpoint: string;
+  bundlerEndpoint: string;
+  entryPoint?: string;
+  expectedRuntimeSha256?: string;
+  timeoutMs?: number;
+  fetchImpl?: typeof fetch;
+}): Promise<PublicERC4337Readiness>;
 export declare const STRATEGY_MANDATE_SCHEMA_VERSION: 2;
 export declare const STRATEGY_ACTION_SCHEMA_VERSION: 1;
 export declare const STRATEGY_MANDATE_STORE_SCHEMA_VERSION: 1;
