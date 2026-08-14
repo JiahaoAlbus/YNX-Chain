@@ -122,9 +122,44 @@
       "branchHeadObserved": "2802876f8470264c4a8819f1426e28f957a09289",
       "remoteVerifiedAt": "2026-08-14T08:48:00Z",
       "verificationMode": "github-git-database-parent-tree-blob-readback"
+    },
+    {
+      "owner": "wallet-product-session-router",
+      "branch": "codex/wallet-session-router-recovery",
+      "sourceCommit": "e5932a2eb0e5c01ca31a1ba6e03f9872ccf0ef7f",
+      "remoteCommitObserved": "e5932a2eb0e5c01ca31a1ba6e03f9872ccf0ef7f",
+      "branchHeadObserved": "e5932a2eb0e5c01ca31a1ba6e03f9872ccf0ef7f",
+      "remoteVerifiedAt": "2026-08-14T10:39:34Z",
+      "verificationMode": "remote-ref-parent-tree-seven-blob-readback"
     }
   ],
   "evidence": {
+    "wallet-product-session-v2-public-route-gap": {
+      "type": "git-object",
+      "direct": true,
+      "commit": "e5932a2eb0e5c01ca31a1ba6e03f9872ccf0ef7f",
+      "path": "packages/wallet-auth/evidence/product-session-v2-public-route-probe-20260814.json",
+      "supports": [],
+      "observedAt": "2026-08-14T10:29:16Z",
+      "publicAppGatewayHttpStatus": 200,
+      "legacyV1RouteReached": true,
+      "productSessionV2HandlerReached": false,
+      "routingOutcome": "misrouted-to-chain-json-rpc-catch-all",
+      "jsonRpcErrorCode": -32601,
+      "releaseGateImplementation": "packages/wallet-auth/scripts/probe-product-session-v2-public.mjs",
+      "releaseGateUnitTestsPassed": 6,
+      "releaseGateMaximumTransportAttempts": 3,
+      "releaseGateResponseLimitBytes": 65536,
+      "releaseGateExitCode": 1,
+      "releaseGateErrorCode": "UNEXPECTED_HTTP_STATUS",
+      "releaseGateFullLifecycleAcceptance": false,
+      "fullPackageTestsPassed": 184,
+      "validAuthorizationSubmitted": false,
+      "challengeCreated": false,
+      "sessionCreated": false,
+      "integratedCentral": false,
+      "deployedPublic": false
+    },
     "gateway-release": {
       "type": "git-object",
       "direct": true,

@@ -6,19 +6,20 @@
   "recordedAt": "2026-08-14T03:52:00Z",
   "evidenceMatrix": {
     "path": "release/integration/wallet-auth-release-evidence-matrix.json",
-    "sha256": "9eb6a09bba5a1a6b25ec362fb8c3cedac694f88c3f467140132b201cd65a9d27",
+    "sha256": "9173ec0e11c233bee42666b3b11d9a008d540e6dee42bf9eb2359a65fc3420ea",
     "platforms": 21,
     "gatesPerPlatform": 12,
     "trueGates": 102,
     "falseGates": 150,
-    "evidenceRecords": 92
+    "evidenceRecords": 93
   },
   "frozenOwnerSources": {
     "coreAuthGateway": "0c747c6030b5a475a1f12dc7e57345555c23055d",
     "webPwaExtensions": "deca6f4fe29dafdccb3736f237e6e8829e094eec",
     "androidApi36": "f1edbec46ad4300beec406873b03db2da7c72e4b",
     "iosMacos": "7a3a110fb7cd9a33512ce4db87ddd8387cb730d5",
-    "desktopCliSdk": "2802876f8470264c4a8819f1426e28f957a09289"
+    "desktopCliSdk": "2802876f8470264c4a8819f1426e28f957a09289",
+    "walletProductSessionRouter": "e5932a2eb0e5c01ca31a1ba6e03f9872ccf0ef7f"
   },
   "externalDependencyAcceptance": {
     "chainCore": {
@@ -93,6 +94,7 @@
     "Consumed Owner checkpoints were verified through GitHub ref, commit parent, tree and evidence-blob readback.",
     "The dedicated Integration ref is remotely protected, but integratedCentral remains false until an authorized central merge/deployment record exists.",
     "The macOS arm64 CLI has an immutable official YNX download, but remains ad-hoc and is not a production-signed or store artifact.",
-    "Chain Core contract v1.21.0 is accepted as an immutable dependency identity only; its Owner commit is locally object-verified but not reachable from the shared origin, and Chain Core still reports authBoundary=dependency-not-accepted with no central or public deployment proof."
+    "Chain Core contract v1.21.0 is accepted as an immutable dependency identity only; its Owner commit is locally object-verified but not reachable from the shared origin, and Chain Core still reports authBoundary=dependency-not-accepted with no central or public deployment proof.",
+    "Product Session Router v2 commit e5932a2e is remotely frozen with a bounded executable release gate and direct negative public probe: the legacy v1 Wallet route is reachable, while /v2/product-sessions/challenge falls through to Chain JSON-RPC -32601; the gate exits 1 and no v2 challenge/session, full lifecycle, central integration or public runtime deployment is claimed."
   ]
 }
