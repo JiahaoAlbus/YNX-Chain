@@ -20,6 +20,11 @@
       "types": "./src/gateway-backup.d.ts",
       "import": "./src/gateway-backup.js",
       "default": "./src/gateway-backup.js"
+    },
+    "./sponsorship-ledger-node": {
+      "types": "./src/sponsorship-ledger-node.d.ts",
+      "import": "./src/sponsorship-ledger-node.js",
+      "default": "./src/sponsorship-ledger-node.js"
     }
   },
   "types": "./src/index.d.ts",
