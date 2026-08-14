@@ -1,6 +1,7 @@
 package quantlab
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"os"
@@ -27,10 +28,15 @@ type TenantServer struct {
 	role               string
 	root               string
 	base               http.Handler
-	servers            map[string]http.Handler
+	servers            map[string]tenantRuntime
 	maxOpen            int
 	financeRead        *readintegration.Verifier
 	financeConcurrency chan struct{}
+}
+
+type tenantRuntime struct {
+	service *Service
+	handler http.Handler
 }
 
 func NewTenantServer(config Config, role string) (*TenantServer, error) {
@@ -48,7 +54,7 @@ func NewTenantServer(config Config, role string) (*TenantServer, error) {
 	if err := os.Chmod(root, 0o700); err != nil {
 		return nil, err
 	}
-	server := &TenantServer{config: config, role: role, root: root, base: NewRoleServer(base, role), servers: map[string]http.Handler{}, maxOpen: 1024, financeConcurrency: make(chan struct{}, 16)}
+	server := &TenantServer{config: config, role: role, root: root, base: NewRoleServer(base, role), servers: map[string]tenantRuntime{}, maxOpen: 1024, financeConcurrency: make(chan struct{}, 16)}
 	if strings.TrimSpace(config.FinanceReadKey) != "" {
 		server.financeRead, err = readintegration.NewVerifier(strings.TrimSpace(config.FinanceReadKey), "finance", "quant", config.Now)
 		if err != nil {
@@ -83,8 +89,8 @@ func (s *TenantServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (s *TenantServer) tenant(id string) (http.Handler, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if server := s.servers[id]; server != nil {
-		return server, nil
+	if runtime, exists := s.servers[id]; exists {
+		return runtime.handler, nil
 	}
 	if len(s.servers) >= s.maxOpen {
 		return nil, ErrUnavailable
@@ -96,8 +102,37 @@ func (s *TenantServer) tenant(id string) (http.Handler, error) {
 		return nil, err
 	}
 	server := NewRoleServer(service, s.role)
-	s.servers[id] = server
+	s.servers[id] = tenantRuntime{service: service, handler: server}
 	return server, nil
+}
+
+// StartScheduler runs persisted research schedules for every active tenant.
+// Claims are protected by the same cross-process state lock as user writes, so
+// a second server instance cannot execute the same due run.
+func (s *TenantServer) StartScheduler(ctx context.Context, interval time.Duration) {
+	if interval <= 0 {
+		interval = 5 * time.Second
+	}
+	go func() {
+		ticker := time.NewTicker(interval)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				s.mu.Lock()
+				services := make([]*Service, 0, len(s.servers))
+				for _, runtime := range s.servers {
+					services = append(services, runtime.service)
+				}
+				s.mu.Unlock()
+				for _, service := range services {
+					_, _ = service.RunDueSchedules()
+				}
+			}
+		}
+	}()
 }
 
 func writeTenantError(w http.ResponseWriter, status int, code string) {

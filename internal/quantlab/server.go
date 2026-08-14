@@ -50,6 +50,7 @@ func NewObservedRoleServer(s *Service, role string, logWriter io.Writer) *Server
 		v.mux.HandleFunc("POST /v1/backtests", v.backtest)
 		v.mux.HandleFunc("POST /v1/backtests/from-market", v.backtestFromMarket)
 		v.mux.HandleFunc("PUT /v1/strategies/{id}/stage", v.stage)
+		v.mux.HandleFunc("PUT /v1/strategies/{id}/schedule", v.schedule)
 	}
 	if role == "all" || role == "paper" {
 		v.mux.HandleFunc("POST /v1/paper/orders", v.paper)
@@ -261,6 +262,18 @@ func (s *Server) stage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	v, e := s.service.AdvanceStrategy(r.PathValue("id"), q)
+	respond(w, r, v, e, 200)
+}
+func (s *Server) schedule(w http.ResponseWriter, r *http.Request) {
+	var q struct {
+		Enabled         bool        `json:"enabled"`
+		IntervalSeconds int64       `json:"intervalSeconds"`
+		Assumptions     Assumptions `json:"assumptions"`
+	}
+	if !decode(w, r, &q) {
+		return
+	}
+	v, e := s.service.ConfigureStrategySchedule(r.PathValue("id"), q.Enabled, q.IntervalSeconds, q.Assumptions)
 	respond(w, r, v, e, 200)
 }
 func (s *Server) revokeMandate(w http.ResponseWriter, r *http.Request) {

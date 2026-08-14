@@ -126,6 +126,16 @@ Strategy lifecycle changes are sequential and fail closed:
 
 `Draft → Research → Backtest → Walk-forward → Paper → Shadow → Candidate → Wallet-approved Bounded Testnet → Paused → Retired → Archived`
 
+Completed Backtest-stage strategies can start or stop a restart-persistent
+research schedule through `PUT /v1/strategies/{id}/schedule`. The interval is
+bounded to 60–86,400 seconds. Each due run is atomically claimed under the
+cross-process state lock, consumes the configured authoritative Exchange tape,
+persists a complete experiment and audit receipt, and records success or source
+failure. The scheduler intentionally runs backtests only: it never submits a
+Paper or Testnet order and cannot retain Wallet proof or signatures. Tenant
+schedulers begin when the hosted server starts and stop during graceful
+shutdown.
+
 The deterministic backtest records Draft, Research, and Backtest audit events.
 Every later transition requires an independent risk approval and a SHA-256
 evidence digest. Entry into bounded Testnet additionally requires a current,

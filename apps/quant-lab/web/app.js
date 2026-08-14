@@ -65,11 +65,14 @@ function render() {
   $("#strategy-rows").innerHTML = strategies.length
     ? strategies
         .map(
-          (s) =>
-            `<tr><td>${safe(s.Name)}</td><td>${safe(s.Family)}</td><td>${safe(s.Stage || "Draft")}</td><td><code>${safe((s.StrategyHash || "").slice(0, 12))}…</code></td><td>${safe(s.License)}</td></tr>`,
+          (s) => {
+            const runtime = s.Runtime || {};
+            const enabled = runtime.enabled === true;
+            return `<tr><td>${safe(s.Name)}</td><td>${safe(s.Family)}</td><td>${safe(s.Stage || "Draft")}</td><td><code>${safe((s.StrategyHash || "").slice(0, 12))}…</code></td><td>${safe(s.License)}</td><td><strong>${enabled ? safe(runtime.lastRunStatus || "scheduled") : "Stopped"}</strong><small>${enabled && runtime.nextRunAt ? `Next ${safe(localDate(runtime.nextRunAt))}` : "No automatic execution"}</small><button type="button" class="schedule-toggle" data-strategy-id="${safe(s.ID)}" data-enabled="${enabled ? "false" : "true"}">${enabled ? "Stop schedule" : "Start 60s research"}</button></td></tr>`;
+          },
         )
         .join("")
-    : `<tr><td colspan="5">${safe(t("emptyStrategy"))}</td></tr>`;
+    : `<tr><td colspan="6">${safe(t("emptyStrategy"))}</td></tr>`;
   $("#experiment-rows").innerHTML = experiments.length
     ? experiments
         .map(
@@ -96,6 +99,20 @@ function render() {
     $("#mandate-strategy").value = strategies[0].StrategyHash || "";
   }
 }
+$("#strategy-rows").addEventListener("click", async (event) => {
+  const button = event.target.closest(".schedule-toggle");
+  if (!button) return;
+  const enabled = button.dataset.enabled === "true";
+  if (enabled && !confirm("Start a persistent 60-second research backtest schedule? This does not place Paper or Testnet orders.")) return;
+  try {
+    await api(`/v1/strategies/${encodeURIComponent(button.dataset.strategyId)}/schedule`, {
+      method: "PUT",
+      body: JSON.stringify({enabled, intervalSeconds: enabled ? 60 : 0, assumptions: enabled ? {feeBPS:+$("#fee").value,slippageBPS:+$("#slippage").value,latencyBars:1,participationBPS:1000,seed:+$("#seed").value,trainEnd:24,walkForwardWindows:3} : {}}),
+    });
+    toast(enabled ? "Scheduled research started" : "Scheduled research stopped");
+    await refresh();
+  } catch (error) { toast(error.message); }
+});
 function renderEquityChart(points = []) {
   const figure = $("#equity-figure"), chart = $("#equity-chart");
   if (!figure || !chart || points.length < 2) { if (figure) figure.hidden = true; return; }

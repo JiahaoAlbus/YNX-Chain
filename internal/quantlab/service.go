@@ -117,12 +117,31 @@ type Assumptions struct {
 	TrainEnd            int
 	WalkForwardWindows  int
 }
+type StrategyRuntime struct {
+	Enabled         bool        `json:"enabled"`
+	Running         bool        `json:"running"`
+	IntervalSeconds int64       `json:"intervalSeconds"`
+	Assumptions     Assumptions `json:"assumptions"`
+	NextRunAt       time.Time   `json:"nextRunAt,omitempty"`
+	LastRunAt       time.Time   `json:"lastRunAt,omitempty"`
+	LastRunStatus   string      `json:"lastRunStatus,omitempty"`
+	LastExperiment  string      `json:"lastExperiment,omitempty"`
+	RunID           string      `json:"runId,omitempty"`
+}
 type StrategySpec struct {
 	ID, Name, Family, Source, SourceCommit, License, StrategyHash, ModelHash, DataHash, FeatureHash, Split, Limitations string
 	Seed                                                                                                                int64
 	Params                                                                                                              map[string]int64
 	Stage                                                                                                               string
 	CreatedAt                                                                                                           time.Time
+	Runtime                                                                                                             StrategyRuntime
+}
+type ScheduledRunReceipt struct {
+	StrategyID   string    `json:"strategyId"`
+	RunID        string    `json:"runId"`
+	Status       string    `json:"status"`
+	ExperimentID string    `json:"experimentId,omitempty"`
+	CompletedAt  time.Time `json:"completedAt"`
 }
 type LifecycleApproval struct {
 	TargetStage    string `json:"targetStage"`
@@ -132,9 +151,10 @@ type LifecycleApproval struct {
 	Actor          string `json:"actor"`
 }
 type BacktestRequest struct {
-	Strategy    StrategySpec `json:"strategy"`
-	Bars        []Bar        `json:"bars"`
-	Assumptions Assumptions  `json:"assumptions"`
+	Strategy      StrategySpec `json:"strategy"`
+	Bars          []Bar        `json:"bars"`
+	Assumptions   Assumptions  `json:"assumptions"`
+	scheduleRunID string
 }
 type Metrics struct {
 	ReturnBPS, BuyHoldBPS, MaxDrawdownBPS int64
@@ -713,6 +733,13 @@ func (s *Service) RunBacktest(req BacktestRequest) (Experiment, error) {
 		return Experiment{}, lockErr
 	}
 	defer release()
+	if req.scheduleRunID != "" {
+		current, exists := s.state.Strategies[strategy.ID]
+		if !exists || !current.Runtime.Enabled || current.Runtime.RunID != req.scheduleRunID {
+			return Experiment{}, ErrConflict
+		}
+		strategy.Runtime = current.Runtime
+	}
 	s.state.Sequence++
 	id := fmt.Sprintf("experiment-%06d", s.state.Sequence)
 	now := s.cfg.Now()
@@ -986,12 +1013,153 @@ func (s *Service) AdvanceStrategy(id string, approval LifecycleApproval) (Strate
 		}
 	}
 	v.Stage = approval.TargetStage
+	if v.Runtime.Enabled {
+		v.Runtime.Enabled = false
+		v.Runtime.Running = false
+		v.Runtime.NextRunAt = time.Time{}
+		v.Runtime.LastRunStatus = "stopped_stage_advanced"
+	}
 	s.state.Strategies[id] = v
 	s.audit("strategy_lifecycle_advanced", id, hash(struct {
 		Strategy StrategySpec
 		Approval LifecycleApproval
 	}{v, approval}))
 	return v, s.save()
+}
+
+func (s *Service) ConfigureStrategySchedule(id string, enabled bool, intervalSeconds int64, assumptions Assumptions) (StrategySpec, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	release, lockErr := s.lockAndReload()
+	if lockErr != nil {
+		return StrategySpec{}, lockErr
+	}
+	defer release()
+	strategy, ok := s.state.Strategies[id]
+	if !ok {
+		return StrategySpec{}, ErrInvalid
+	}
+	if !enabled {
+		strategy.Runtime.Enabled = false
+		strategy.Runtime.Running = false
+		strategy.Runtime.NextRunAt = time.Time{}
+		strategy.Runtime.LastRunStatus = "stopped_by_user"
+		s.state.Strategies[id] = strategy
+		s.audit("strategy_schedule_stopped", id, hash(strategy.Runtime))
+		return strategy, s.save()
+	}
+	if s.cfg.MarketData == nil || strategy.Stage != StageBacktest || intervalSeconds < 60 || intervalSeconds > 86400 || assumptions.FeeBPS < 0 || assumptions.SlippageBPS < 0 || assumptions.LatencyBars < 0 || assumptions.LatencyBars > 50 || assumptions.ParticipationBPS <= 0 || assumptions.ParticipationBPS > 10000 || assumptions.TrainEnd < 10 || assumptions.WalkForwardWindows < 1 || assumptions.WalkForwardWindows > 20 {
+		return StrategySpec{}, ErrInvalid
+	}
+	strategy.Runtime = StrategyRuntime{Enabled: true, IntervalSeconds: intervalSeconds, Assumptions: assumptions, NextRunAt: s.cfg.Now().Add(time.Duration(intervalSeconds) * time.Second), LastRunStatus: "scheduled"}
+	s.state.Strategies[id] = strategy
+	s.audit("strategy_schedule_started", id, hash(strategy.Runtime))
+	return strategy, s.save()
+}
+
+type scheduledRunClaim struct {
+	Strategy StrategySpec
+	RunID    string
+}
+
+func (s *Service) claimDueSchedules() ([]scheduledRunClaim, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	release, err := s.lockAndReload()
+	if err != nil {
+		return nil, err
+	}
+	defer release()
+	now := s.cfg.Now()
+	ids := make([]string, 0, len(s.state.Strategies))
+	for id := range s.state.Strategies {
+		ids = append(ids, id)
+	}
+	sort.Strings(ids)
+	claims := make([]scheduledRunClaim, 0)
+	for _, id := range ids {
+		strategy := s.state.Strategies[id]
+		if !strategy.Runtime.Enabled || strategy.Runtime.NextRunAt.IsZero() || now.Before(strategy.Runtime.NextRunAt) {
+			continue
+		}
+		runID := hash(struct {
+			StrategyID string
+			DueAt      time.Time
+			Now        time.Time
+		}{id, strategy.Runtime.NextRunAt, now})
+		strategy.Runtime.Running = true
+		strategy.Runtime.RunID = runID
+		strategy.Runtime.LastRunStatus = "running"
+		strategy.Runtime.NextRunAt = now.Add(time.Duration(strategy.Runtime.IntervalSeconds) * time.Second)
+		s.state.Strategies[id] = strategy
+		s.audit("strategy_schedule_run_claimed", id, runID)
+		claims = append(claims, scheduledRunClaim{Strategy: strategy, RunID: runID})
+	}
+	if len(claims) == 0 {
+		return claims, nil
+	}
+	return claims, s.save()
+}
+
+func (s *Service) completeScheduledRun(claim scheduledRunClaim, experiment Experiment, runErr error) (ScheduledRunReceipt, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	release, err := s.lockAndReload()
+	if err != nil {
+		return ScheduledRunReceipt{}, err
+	}
+	defer release()
+	strategy, ok := s.state.Strategies[claim.Strategy.ID]
+	if !ok || strategy.Runtime.RunID != claim.RunID {
+		return ScheduledRunReceipt{}, ErrConflict
+	}
+	status := "completed"
+	if !strategy.Runtime.Enabled {
+		status = "cancelled_before_execution"
+	} else if errors.Is(runErr, ErrInvalid) || errors.Is(runErr, ErrConflict) {
+		status = "failed_invalid_or_cancelled_configuration"
+	} else if runErr != nil {
+		status = "failed_market_data_unavailable"
+	}
+	strategy.Runtime.Running = false
+	strategy.Runtime.LastRunAt = s.cfg.Now()
+	strategy.Runtime.LastRunStatus = status
+	strategy.Runtime.LastExperiment = experiment.ID
+	s.state.Strategies[strategy.ID] = strategy
+	receipt := ScheduledRunReceipt{StrategyID: strategy.ID, RunID: claim.RunID, Status: status, ExperimentID: experiment.ID, CompletedAt: strategy.Runtime.LastRunAt}
+	s.audit("strategy_schedule_run_"+status, strategy.ID, hash(receipt))
+	return receipt, s.save()
+}
+
+// RunDueSchedules atomically claims due research runs before fetching market
+// data. Multiple processes sharing the state path cannot execute the same due
+// run; a crashed claim becomes eligible again only at the next persisted due
+// time. Scheduled runs never submit Paper or Testnet orders.
+func (s *Service) RunDueSchedules() ([]ScheduledRunReceipt, error) {
+	claims, err := s.claimDueSchedules()
+	if err != nil {
+		return nil, err
+	}
+	receipts := make([]ScheduledRunReceipt, 0, len(claims))
+	for _, claim := range claims {
+		var experiment Experiment
+		var runErr error
+		if s.cfg.MarketData == nil {
+			runErr = ErrUnavailable
+		} else if bars, source, marketErr := s.cfg.MarketData.History("YNXT-YUSD_TEST", 10000); marketErr != nil || len(bars) < 20 {
+			runErr = ErrUnavailable
+		} else {
+			strategy := claim.Strategy
+			strategy.Source = source
+			experiment, runErr = s.RunBacktest(BacktestRequest{Strategy: strategy, Bars: bars, Assumptions: strategy.Runtime.Assumptions, scheduleRunID: claim.RunID})
+		}
+		receipt, completeErr := s.completeScheduledRun(claim, experiment, runErr)
+		if completeErr != nil {
+			return receipts, completeErr
+		}
+		receipts = append(receipts, receipt)
+	}
+	return receipts, nil
 }
 
 func (s *Service) ApplyPaperSignal(strategyHash, side string, price, amount, volume int64) (PaperOrder, error) {

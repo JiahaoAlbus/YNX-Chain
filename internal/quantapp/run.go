@@ -40,6 +40,9 @@ func Run(cfg Config) error {
 	server := &http.Server{Addr: addr, Handler: handler, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, WriteTimeout: 20 * time.Second, IdleTimeout: 60 * time.Second}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
+	if cfg.Role == "all" || cfg.Role == "research" {
+		go runScheduler(ctx, service, 5*time.Second)
+	}
 	go func() {
 		<-ctx.Done()
 		shutdown, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -52,6 +55,23 @@ func Run(cfg Config) error {
 		return nil
 	}
 	return err
+}
+
+func runScheduler(ctx context.Context, service *quantlab.Service, interval time.Duration) {
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			if receipts, err := service.RunDueSchedules(); err != nil {
+				slog.Error("quant scheduler tick failed", "error", err)
+			} else if len(receipts) > 0 {
+				slog.Info("quant scheduler completed due runs", "count", len(receipts))
+			}
+		}
+	}
 }
 
 func env(key, fallback string) string {

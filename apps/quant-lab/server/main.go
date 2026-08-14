@@ -1,11 +1,15 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/quantlab"
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 	"time"
 )
 
@@ -34,8 +38,19 @@ func main() {
 	mux.HandleFunc("/wallet-action/callback", func(w http.ResponseWriter, r *http.Request) { http.ServeFile(w, r, "apps/quant-lab/web/index.html") })
 	mux.Handle("/", http.FileServer(http.Dir("apps/quant-lab/web")))
 	srv := http.Server{Addr: addr, Handler: headers(mux), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, WriteTimeout: 20 * time.Second}
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	s.StartScheduler(ctx, 5*time.Second)
+	go func() {
+		<-ctx.Done()
+		shutdown, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		_ = srv.Shutdown(shutdown)
+	}()
 	log.Printf("YNX Quant Lab simulated/testnet preview on %s", addr)
-	log.Fatal(srv.ListenAndServe())
+	if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		log.Fatal(err)
+	}
 }
 func registerFinanceOwnerRead(mux *http.ServeMux, api http.Handler) {
 	mux.Handle(quantlab.FinanceReadRoute, api)

@@ -27,3 +27,19 @@ sandbox with enforced cgroup/job-object limits, no-follow file access, network
 deny-by-default, deterministic host calls, checkpoint interruption tests, image
 digest/SBOM/provenance, and escape/side-channel testing. It cannot reuse the
 current built-in-runtime approval as sandbox evidence.
+
+## Scheduled research boundary
+
+The API scheduler is separate from the signed-package worker. It can repeat an
+already persisted built-in Backtest-stage strategy against the configured
+authoritative market adapter. Start, atomic due-run claim, completion/failure
+and stop are persisted in the strategy runtime and hash-chained audit log. A
+second process sharing the same state path observes the advanced due time and
+cannot claim the same run. After restart, enabled schedules resume from their
+persisted next-run time.
+
+Scheduled research has no execution adapter permission. It cannot create Paper
+orders, Testnet reservations, Wallet mandates or signatures. Automated bounded
+Testnet execution therefore remains unavailable: every Testnet order continues
+to require a fresh one-time Product Session proof and independent Wallet
+signature at the time of submission.
