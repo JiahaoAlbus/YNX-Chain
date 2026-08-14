@@ -43,6 +43,12 @@ POSTs plus external Wallet download routes remain network-only. Returning from
 offline mode never restores chain authority from cache: a fresh live `0x1917`
 RPC response is still required.
 
+The extension popup provider uses the same fail-closed operations over its
+`YNX_WALLET_REQUEST` runtime channel. Add-chain must be followed by switch and
+an exact `eth_chainId` proof; wrong-chain results are rejected. A disconnected
+runtime cannot restore local session metadata, and reconnect requires a fresh
+switch, chain proof, and account approval.
+
 ```sh
 npm test
 npm run build

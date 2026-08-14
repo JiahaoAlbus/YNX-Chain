@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   METAMASK_DOWNLOAD_URL, SESSION_KEY, WalletWebError, YNX_CHAIN, YNX_DOWNLOAD_URL,
-  addYNXChain, connectWallet, discoverInjectedProviders,
+  addYNXChain, connectWallet, createExtensionProvider, discoverInjectedProviders,
   forgetSession, readRememberedSession, rememberSession, resolveRememberedWallet,
   invalidatesConnectedSession, restoreTestnetSession, sendTransaction, signMessage, subscribeProviderLifecycle,
   switchToYNXChain, verifyTestnetRpc, walletActionGates, walletDiscoveryPresentation,
@@ -32,6 +32,20 @@ function provider(responses = {}) {
 function storage() {
   const values = new Map();
   return {getItem:(key)=>values.get(key)??null,setItem:(key,value)=>values.set(key,value),removeItem:(key)=>values.delete(key)};
+}
+
+function extensionRuntime(responses = {}) {
+  const messages = [];
+  return {
+    messages,
+    async sendMessage(message) {
+      messages.push(message);
+      const method = message.input?.method;
+      const response = responses[method];
+      if (typeof response === "function") return response(message);
+      return response ?? {ok:false,error:{code:"PROVIDER_REQUEST_FAILED",message:`unexpected ${method}`}};
+    },
+  };
 }
 
 test("frozen chain metadata is exact and complete", () => {
@@ -82,6 +96,44 @@ test("add-chain uses frozen metadata and proves the switched chain", async () =>
   await addYNXChain(wallet,{fetcher:rpc});
   assert.deepEqual(wallet.calls[0],{method:"wallet_addEthereumChain",params:[YNX_CHAIN]});
   assert.deepEqual(wallet.calls.map(({method})=>method),["wallet_addEthereumChain","wallet_switchEthereumChain","eth_chainId"]);
+});
+
+test("extension provider add-chain switches and proves exact 0x1917 through runtime messages", async () => {
+  const runtime = extensionRuntime({
+    wallet_addEthereumChain:{ok:true,result:null},
+    wallet_switchEthereumChain:{ok:true,result:null},
+    eth_chainId:{ok:true,result:"0x1917"},
+  });
+  assert.equal(await addYNXChain(createExtensionProvider("ynx",runtime),{fetcher:rpc}),"0x1917");
+  assert.deepEqual(runtime.messages.map(({type,preference,input})=>[type,preference,input.method]),[
+    ["YNX_WALLET_REQUEST","ynx","wallet_addEthereumChain"],
+    ["YNX_WALLET_REQUEST","ynx","wallet_switchEthereumChain"],
+    ["YNX_WALLET_REQUEST","ynx","eth_chainId"],
+  ]);
+  assert.deepEqual(runtime.messages[0].input.params,[YNX_CHAIN]);
+});
+
+test("extension provider switch rejects a wrong-chain result", async () => {
+  const runtime = extensionRuntime({wallet_switchEthereumChain:{ok:true,result:null},eth_chainId:{ok:true,result:"0x1"}});
+  await assert.rejects(() => switchToYNXChain(createExtensionProvider("metamask",runtime),{fetcher:rpc}), (error) => error.code === "WRONG_NETWORK");
+  assert.deepEqual(runtime.messages.map(({input})=>input.method),["wallet_switchEthereumChain","eth_chainId"]);
+});
+
+test("extension disconnect invalidates restore and reconnect requires fresh runtime approval", async () => {
+  let connected = false;
+  const runtime = extensionRuntime({
+    eth_chainId:()=>connected?{ok:true,result:"0x1917"}:{ok:false,error:{code:4900,message:"Provider disconnected"}},
+    eth_accounts:()=>({ok:true,result:connected?[ACCOUNT]:[]}),
+    wallet_switchEthereumChain:()=>connected?{ok:true,result:null}:{ok:false,error:{code:4900,message:"Provider disconnected"}},
+    eth_requestAccounts:()=>({ok:true,result:connected?[ACCOUNT]:[]}),
+  });
+  const extensionProvider = createExtensionProvider("ynx",runtime);
+  const memory = storage(); rememberSession({account:ACCOUNT,chainId:"0x1917"},"ynx",memory);
+  assert.equal(await restoreTestnetSession(extensionProvider,memory),null);
+  assert.equal(memory.getItem(SESSION_KEY),null);
+  connected = true;
+  assert.deepEqual(await connectWallet(extensionProvider,{fetcher:rpc}),{account:ACCOUNT,chainId:"0x1917"});
+  assert.deepEqual(runtime.messages.slice(-3).map(({input})=>input.method),["wallet_switchEthereumChain","eth_chainId","eth_requestAccounts"]);
 });
 
 test("network mutation fails closed before provider call when RPC is unavailable", async () => {
