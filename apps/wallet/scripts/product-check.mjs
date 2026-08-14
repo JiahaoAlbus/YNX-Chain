@@ -15,6 +15,8 @@ const localAuthorization=await readFile(new URL("../src/security/localAuthorizat
 const lockState=await readFile(new URL("../src/state/lockState.ts",import.meta.url),"utf8");
 const clipboardPrivacy=await readFile(new URL("../src/security/clipboardPrivacy.ts",import.meta.url),"utf8");
 const signingPlugin=await readFile(new URL("../plugins/withYnxAndroidReleaseSigning.js",import.meta.url),"utf8");
+const androidQaBuild=await readFile(new URL("./build-disposable-android-qa-release.sh",import.meta.url),"utf8");
+const androidQaVerify=await readFile(new URL("./verify-android-api36-qa-receipt.mjs",import.meta.url),"utf8");
 assert.equal(config.name,"YNX Wallet");
 assert.equal(config.version,"1.0.1");
 assert.equal(config.scheme,"ynxwallet");
@@ -42,6 +44,9 @@ assert.ok(clipboardPrivacy.includes('await clipboard.setStringAsync("")'),"clipb
 assert.ok(config.plugins.includes("./plugins/withYnxAndroidReleaseSigning"),"Wallet must preserve Release signing policy through Expo prebuild");
 for(const required of ["ynxReleaseSigningConfigured ? signingConfigs.release : null","System.getenv(\"YNX_ANDROID_KEYSTORE_PATH\")","ynxDebugKeystorePath"])assert.equal(`${androidGradle}\n${signingPlugin}`.includes(required),true,`missing Android signing boundary ${required}`);
 assert.equal(androidGradle.includes("            signingConfig signingConfigs.debug\n            def enableShrinkResources"),false,"Release must never inherit debug signing");
+for(const required of ["mktemp -d /private/tmp/ynx-wallet-disposable-qa-custody","chmod 0700","openssl rand","YNX_ANDROID_KEYSTORE_PATH","apksigner verify --verbose --print-certs","APK Signature Scheme v2","disposable-qa-release-key","productionSigned:false","storeReleased:false"])assert.equal(androidQaBuild.includes(required),true,`missing disposable Android QA build boundary ${required}`);
+for(const forbidden of ["androiddebugkey","storePassword 'android'","keyPassword 'android'"])assert.equal(androidQaBuild.includes(forbidden),false,`disposable Android QA build must not use ${forbidden}`);
+for(const required of ["firstColdLaunch.pid!==receipt.secondColdLaunch.pid","fatalExceptionCount===0","androidRuntimeCrashCount===0","flagSecureObserved===true","evmChainIdHex===\"0x1917\"","receipt.rawEvidence.length>=6","productionSigned:false","storeReleased:false"])assert.equal(androidQaVerify.includes(required),true,`missing Android API 36 receipt boundary ${required}`);
 for(const forbidden of ["Social Feed","Shop tab","Pay tab","Exchange tab"])assert.equal(source.includes(forbidden),false);
 for(const required of ["Sign in with YNX Wallet","Requesting App","App identity","Permissions","Purpose","Valid until","Approve","Reject"])assert.equal(`${source}\n${i18n}`.includes(required),true,`missing ${required}`);
 for(const required of ["parseExchangeOrderActionDeepLink","Review Exchange order","Review margin transfer","Review perpetual order","Review order cancellation","Approve and return to Exchange","No native withdrawal, reusable mandate or unlimited approval is included."])assert.equal(source.includes(required),true,`missing Exchange action boundary ${required}`);
