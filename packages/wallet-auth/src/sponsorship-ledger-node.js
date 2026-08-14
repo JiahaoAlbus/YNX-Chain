@@ -5,11 +5,14 @@ import { canonicalJSON, exactFields, WalletAuthError } from "./canonical.js";
 import { evaluateSponsorship, parseSponsorshipRequest } from "./smart-account.js";
 
 const STATE_FIELDS = ["consumed", "schemaVersion"];
+const LOCK_FIELDS = ["acquiredAt", "pid", "schemaVersion", "token"];
 const STATE_SCHEMA_VERSION = 1;
+const LOCK_SCHEMA_VERSION = 1;
 const MAXIMUM_CONSUMED = 100_000;
 const MAXIMUM_STATE_BYTES = 32 * 1024 * 1024;
 const STATE_LOCK_WAIT_MS = 2_000;
 const STATE_LOCK_RETRY_MS = 5;
+const MAXIMUM_LOCK_BYTES = 1024;
 
 export class DurableSponsorshipAuthorizationLedger {
   #consumed;
@@ -59,13 +62,39 @@ export class DurableSponsorshipAuthorizationLedger {
   }
 }
 
+export function recoverStaleSponsorshipStateLock(statePathInput, { minimumAgeMs } = {}) {
+  const statePath = safeStatePath(statePathInput);
+  boundedInteger(minimumAgeMs, "minimumAgeMs", 250, 86_400_000);
+  load(statePath, MAXIMUM_CONSUMED);
+  const lockPath = `${statePath}.lock`;
+  const observed = readLock(lockPath);
+  const ageMs = Date.now() - Date.parse(observed.record.acquiredAt);
+  if (ageMs < minimumAgeMs) fail("SPONSORSHIP_STALE_LOCK_TOO_YOUNG", "Sponsorship authorization state lock is not old enough for recovery");
+  if (processIsAlive(observed.record.pid)) fail("SPONSORSHIP_STALE_LOCK_OWNER_ALIVE", "Sponsorship authorization state lock owner is still alive");
+  const current = readLock(lockPath);
+  if (current.dev !== observed.dev || current.ino !== observed.ino || current.record.token !== observed.record.token || current.record.pid !== observed.record.pid) {
+    fail("SPONSORSHIP_STALE_LOCK_CHANGED", "Sponsorship authorization state lock changed during recovery");
+  }
+  try {
+    unlinkSync(lockPath);
+    syncDirectory(dirname(statePath));
+  } catch { fail("SPONSORSHIP_STATE_LOCK_FAILED", "Sponsorship authorization state lock could not be recovered"); }
+  return Object.freeze({ ageMs, ownerPid: observed.record.pid, recovered: true });
+}
+
 function acquireLock(statePath) {
   const lockPath = `${statePath}.lock`;
   const deadline = Date.now() + STATE_LOCK_WAIT_MS;
   let descriptor;
+  const record = Object.freeze({ acquiredAt: new Date().toISOString(), pid: process.pid, schemaVersion: LOCK_SCHEMA_VERSION, token: randomUUID() });
   while (descriptor === undefined) {
-    try { descriptor = openSync(lockPath, constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW, 0o600); }
+    try {
+      descriptor = openSync(lockPath, constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW, 0o600);
+      writeFileSync(descriptor, `${canonicalJSON(record)}\n`, { encoding: "utf8" });
+      fsyncSync(descriptor);
+    }
     catch (error) {
+      if (descriptor !== undefined) { closeSync(descriptor); descriptor = undefined; try { unlinkSync(lockPath); } catch {} }
       if (error?.code !== "EEXIST") fail("SPONSORSHIP_STATE_LOCK_FAILED", "Sponsorship authorization state lock could not be acquired");
       if (Date.now() >= deadline) fail("SPONSORSHIP_STATE_LOCKED", "Sponsorship authorization state is locked");
       Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, STATE_LOCK_RETRY_MS);
@@ -73,9 +102,35 @@ function acquireLock(statePath) {
   }
   return () => {
     closeSync(descriptor);
-    try { unlinkSync(lockPath); }
+    try {
+      const current = readLock(lockPath);
+      if (current.record.pid !== record.pid || current.record.token !== record.token) fail("SPONSORSHIP_STATE_LOCK_FAILED", "Sponsorship authorization state lock ownership changed");
+      unlinkSync(lockPath);
+      syncDirectory(dirname(statePath));
+    }
     catch { fail("SPONSORSHIP_STATE_LOCK_FAILED", "Sponsorship authorization state lock could not be released"); }
   };
+}
+
+function readLock(path) {
+  let metadata;
+  try { metadata = lstatSync(path); } catch { fail("SPONSORSHIP_STALE_LOCK_INVALID", "Sponsorship authorization state lock is invalid"); }
+  validateFile(metadata);
+  if (metadata.size > MAXIMUM_LOCK_BYTES) fail("SPONSORSHIP_STALE_LOCK_INVALID", "Sponsorship authorization state lock is invalid");
+  let descriptor;
+  try {
+    descriptor = openSync(path, constants.O_RDONLY | constants.O_NOFOLLOW);
+    const opened = fstatSync(descriptor);
+    validateFile(opened);
+    if (opened.size !== metadata.size || opened.ino !== metadata.ino || opened.dev !== metadata.dev) fail("SPONSORSHIP_STALE_LOCK_INVALID", "Sponsorship authorization state lock changed while reading");
+    const raw = readFileSync(descriptor, "utf8");
+    let record;
+    try { record = JSON.parse(raw); } catch { fail("SPONSORSHIP_STALE_LOCK_INVALID", "Sponsorship authorization state lock is invalid"); }
+    if (`${canonicalJSON(record)}\n` !== raw) fail("SPONSORSHIP_STALE_LOCK_INVALID", "Sponsorship authorization state lock is not canonical JSON");
+    exactFields(record, LOCK_FIELDS, "Sponsorship authorization state lock");
+    if (record.schemaVersion !== LOCK_SCHEMA_VERSION || !Number.isSafeInteger(record.pid) || record.pid < 1 || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(record.acquiredAt) || !Number.isFinite(Date.parse(record.acquiredAt)) || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(record.token)) fail("SPONSORSHIP_STALE_LOCK_INVALID", "Sponsorship authorization state lock fields are invalid");
+    return Object.freeze({ dev: opened.dev, ino: opened.ino, record: Object.freeze(record) });
+  } finally { if (descriptor !== undefined) closeSync(descriptor); }
 }
 
 function load(path, maximumConsumed) {
@@ -112,8 +167,7 @@ function persist(path, state) {
     closeSync(descriptor);
     descriptor = undefined;
     renameSync(temporary, path);
-    const directory = openSync(dirname(path), constants.O_RDONLY | constants.O_DIRECTORY | constants.O_NOFOLLOW);
-    try { fsyncSync(directory); } finally { closeSync(directory); }
+    syncDirectory(dirname(path));
   } catch (error) {
     if (descriptor !== undefined) closeSync(descriptor);
     try { unlinkSync(temporary); } catch {}
@@ -130,6 +184,8 @@ function safeStatePath(value) {
   if (!metadata.isDirectory() || (metadata.mode & 0o077) !== 0 || realpathSync(parent) !== parent) throw unsafe();
   return value;
 }
+function syncDirectory(path) { const descriptor = openSync(path, constants.O_RDONLY | constants.O_DIRECTORY | constants.O_NOFOLLOW); try { fsyncSync(descriptor); } finally { closeSync(descriptor); } }
+function processIsAlive(pid) { try { process.kill(pid, 0); return true; } catch (error) { if (error?.code === "ESRCH") return false; return true; } }
 function validateFile(metadata) { if (!metadata.isFile() || metadata.nlink !== 1 || (metadata.mode & 0o777) !== 0o600) throw unsafe(); }
 function replayKey(request) { return `${request.account}:${request.productClientId}:${request.requestNonce}`; }
 function replayKeyString(value) { if (typeof value !== "string" || !/^ynx1[023456789acdefghjklmnpqrstuvwxyz]{38}:[a-z][a-z0-9._-]{2,63}:[0-9a-f]{64}$/.test(value)) fail("SPONSORSHIP_STATE_INVALID", "Sponsorship authorization state entry is invalid"); return value; }

@@ -11,3 +11,7 @@ export declare class DurableSponsorshipAuthorizationLedger {
     at?: Date,
   ): Readonly<{ eligible: boolean; reasons: readonly string[]; policyId: string; userOperationDigest: string; paymaster: string; approvedCost: number; remainingSubjectBudget: number; remainingSponsorBudget: number }>;
 }
+export declare function recoverStaleSponsorshipStateLock(
+  statePath: string,
+  options: { minimumAgeMs: number },
+): Readonly<{ ageMs: number; ownerPid: number; recovered: true }>;

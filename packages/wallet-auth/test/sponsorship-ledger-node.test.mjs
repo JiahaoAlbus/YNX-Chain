@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawn } from "node:child_process";
 import { after, test } from "node:test";
-import { DurableSponsorshipAuthorizationLedger } from "../src/sponsorship-ledger-node.js";
+import { DurableSponsorshipAuthorizationLedger, recoverStaleSponsorshipStateLock } from "../src/sponsorship-ledger-node.js";
 import { userOperationDigest, WalletAuthError } from "../src/index.js";
 import { vector } from "./fixtures/sponsorship-vector.mjs";
 
@@ -89,6 +89,40 @@ test("independent processes produce exactly one winner for the same sponsorship 
   assert.equal(results.filter((code) => code === 0).length, 1);
   assert.equal(results.filter((code) => code === 1).length, 7);
   assert.equal(new DurableSponsorshipAuthorizationLedger({ statePath, maximumConsumed: 32 }).size, 1);
+});
+
+test("dead-owner stale lock requires explicit age-gated recovery with unchanged replay state", async () => {
+  const root = await privateRoot();
+  const statePath = join(root, "sponsorship-state.json");
+  const ledger = new DurableSponsorshipAuthorizationLedger({ statePath, maximumConsumed: 8 });
+  const [operation, request, policy, binding, at] = vector(); request.userOperationDigest = userOperationDigest(operation);
+  ledger.authorize(operation, request, policy, binding, at);
+  const before = await readFile(statePath, "utf8");
+  const readyPath = join(root, "stale-ready");
+  const child = spawn(process.execPath, [new URL("./fixtures/sponsorship-ledger-stale-lock-child.mjs", import.meta.url).pathname, statePath, readyPath], { stdio: "ignore" });
+  await waitFor(readyPath);
+  child.kill("SIGKILL");
+  await new Promise((resolve) => child.once("exit", resolve));
+  assert.throws(() => recoverStaleSponsorshipStateLock(statePath, { minimumAgeMs: 5_000 }), walletError("SPONSORSHIP_STALE_LOCK_TOO_YOUNG"));
+  assert.throws(() => new DurableSponsorshipAuthorizationLedger({ statePath, maximumConsumed: 8 }), walletError("SPONSORSHIP_STATE_LOCKED"));
+  const recovered = recoverStaleSponsorshipStateLock(statePath, { minimumAgeMs: 250 });
+  assert.equal(recovered.recovered, true);
+  assert.equal(recovered.ownerPid, child.pid);
+  assert.equal(await readFile(statePath, "utf8"), before);
+  const restarted = new DurableSponsorshipAuthorizationLedger({ statePath, maximumConsumed: 8 });
+  assert.throws(() => restarted.authorize(operation, request, policy, binding, at), walletError("SPONSORSHIP_REPLAY"));
+});
+
+test("stale-lock recovery rejects a live or PID-reused owner without touching state", async () => {
+  const root = await privateRoot();
+  const statePath = join(root, "sponsorship-state.json");
+  new DurableSponsorshipAuthorizationLedger({ statePath });
+  const before = await readFile(statePath, "utf8");
+  const lock = { acquiredAt: new Date(Date.now() - 60_000).toISOString(), pid: process.pid, schemaVersion: 1, token: "00000000-0000-4000-8000-000000000000" };
+  await writeFile(`${statePath}.lock`, `${JSON.stringify(lock)}\n`, { mode: 0o600 });
+  assert.throws(() => recoverStaleSponsorshipStateLock(statePath, { minimumAgeMs: 250 }), walletError("SPONSORSHIP_STALE_LOCK_OWNER_ALIVE"));
+  assert.equal(await readFile(statePath, "utf8"), before);
+  assert.equal((await lstat(`${statePath}.lock`)).isFile(), true);
 });
 
 async function privateRoot() { const root = await mkdtemp(join(tmpdir(), "ynx-sponsorship-ledger-")); roots.push(root); await chmod(root, 0o700); return realpath(root); }
