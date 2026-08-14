@@ -35,12 +35,12 @@ The 2026-08-14 audit found:
 |---|---:|
 | Fable5 product sections | 36 |
 | Expected worktrees present | 36 |
-| Clean after excluding the auditor's own output files | 30 |
+| Clean after excluding the auditor's own output files | 29 |
 | Branches still using the exact original prompt branch name | 15 |
 | Products with at least one release record bound to their current runtime source | 5 |
 | Products independently proven complete | 0 |
 
-Branch-name mismatch is not treated as data loss because several worktrees have newer continuation branches. It is a recovery-review signal: Integration must inspect ancestry and handoff evidence instead of resetting a worktree to the older prompt branch. The six dirty product worktrees are also preserved as active work and must not be overwritten. YNX Developer is clean at a newer source commit, but its older release record is correctly classified as no longer current-source-bound; new tests or commits do not automatically refresh release truth.
+Branch-name mismatch is not treated as data loss because several worktrees have newer continuation branches. It is a recovery-review signal: Integration must inspect ancestry and handoff evidence instead of resetting a worktree to the older prompt branch. The seven dirty product worktrees are also preserved as active work and must not be overwritten. YNX Developer is currently dirty on a newer continuation source while its public release record remains bound to older runtime source `17ee9ae5`; neither the new commits nor the in-progress files are counted as current public release proof.
 
 ## Parallel ownership
 
