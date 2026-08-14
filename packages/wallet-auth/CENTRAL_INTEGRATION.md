@@ -162,6 +162,13 @@ A post-control introspection fails `REVOKED` without consuming its proof. This
 local shared-filesystem test does not prove distributed-database or multi-region
 ordering and does not change central, staging or public release state.
 
+Strategy Action authorization and the Kill Switch use that same critical section.
+Across independent processes, kill must persist exactly once; a racing action may
+linearize immediately before it or fail `MANDATE_KILLED`, but no action may appear
+after the durable kill point. Every fresh post-kill action fails without consuming
+its Product Session proof, and restart must retain the killed digest and audit.
+This does not claim distributed or public ordering.
+
 Current focused verification on 2026-08-10 is Wallet/Auth 105/105, Wallet app
 39/39, and Wallet app TypeScript typecheck, all passing. Earlier Node host,
 Browser SDK, JS SDK, loopback CLI, package, and Go evidence remains subject to
