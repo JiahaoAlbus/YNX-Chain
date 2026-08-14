@@ -34,7 +34,6 @@
   },
   "pendingOwnerCommits": [],
   "pendingOwnerEvidence": [
-    {"owner":"web-pwa-extensions","candidateCommit":"7522b8162b2581c7fed216d0e4e9fef44ff4fef7","remoteFastForwardReported":true,"remoteReadbackComplete":true,"ciComplete":true,"consumedForReleaseTruth":false,"note":"Extension minimum-permissions evidence remains queued; device/provider/account/sign/tx truth stays false."},
     {"owner":"web-pwa-extensions","candidateCommit":"1ac8c4edd2c8f1b794b3aec9b70b1cf262576f3a","remoteFastForwardReported":true,"remoteReadbackComplete":true,"ciComplete":true,"consumedForReleaseTruth":false,"note":"activeTab fallback evidence remains queued; bundled browser runtime and action injection were not proved."},
     {
       "owner": "android-api36",
@@ -62,8 +61,8 @@
     {
       "owner": "web-pwa-extensions",
       "branch": "codex/wallet-web-pwa-extensions-20260813",
-      "sourceCommit": "f789c782c325d64234bd077f5c878b1821b2149a",
-      "remoteCommitObserved": "f789c782c325d64234bd077f5c878b1821b2149a",
+      "sourceCommit": "7522b8162b2581c7fed216d0e4e9fef44ff4fef7",
+      "remoteCommitObserved": "7522b8162b2581c7fed216d0e4e9fef44ff4fef7",
       "branchHeadObserved": "1ac8c4edd2c8f1b794b3aec9b70b1cf262576f3a",
       "remoteVerifiedAt": "2026-08-14T04:18:00Z",
       "verificationMode": "github-git-database-parent-tree-blob-readback"
@@ -271,6 +270,13 @@
       "commit": "f789c782c325d64234bd077f5c878b1821b2149a",
       "path": "apps/wallet-web/evidence/runtime/pwa-cache-integrity-lifecycle-20260814.json",
       "supports": ["web-pwa.build"]
+    },
+    "web-extension-minimum-permissions": {
+      "type": "git-object",
+      "direct": true,
+      "commit": "7522b8162b2581c7fed216d0e4e9fef44ff4fef7",
+      "path": "apps/wallet-web/evidence/runtime/extension-minimum-permissions-20260814.json",
+      "supports": ["browser-extension.build"]
     },
     "web-pwa-browser": {
       "type": "git-object",
@@ -602,9 +608,9 @@
       "ownerSource": "web-pwa-extensions",
       "artifactClass": "unsigned-unpacked-extension",
       "status": "build-only",
-      "capabilities": {"isolatedEdgeProviderInjection":true,"isolatedEdgeFixtureAccounts":true,"isolatedEdgeFixtureReconnect":true,"isolatedEdgeWrongChainRejected":true,"chromeProviderInjection":false,"liveRpcViaProvider":false,"installedLocal":false},
+      "capabilities": {"isolatedEdgeProviderInjection":true,"isolatedEdgeFixtureAccounts":true,"isolatedEdgeFixtureReconnect":true,"isolatedEdgeWrongChainRejected":true,"minimumPersistentPermissionsVerified":true,"persistentAllSiteContentScript":false,"webAccessibleProvider":false,"activeTabActionRequired":true,"chromeProviderInjection":false,"liveRpcViaProvider":false,"installedLocal":false},
       "gates": {"build":true,"install":false,"coldLaunch":false,"secondLaunch":false,"testnet":true,"sign":false,"tx":false,"callback":false,"reconnect":false,"downloadHosted":false,"productionSigned":false,"storeReleased":false},
-      "evidenceBindings": {"build":["web-artifacts"],"install":["browser-install-boundary","edge-unpacked-user-gesture","web-extension-sensitive-actions-source","web-edge-unpacked-negative-runtime","web-edge-isolated-provider-bridge"],"coldLaunch":["browser-install-boundary","edge-unpacked-user-gesture","web-extension-sensitive-actions-source","web-edge-unpacked-negative-runtime","web-edge-isolated-provider-bridge"],"secondLaunch":["browser-install-boundary","edge-unpacked-user-gesture","web-extension-sensitive-actions-source","web-edge-unpacked-negative-runtime","web-edge-isolated-provider-bridge"],"testnet":["web-edge-popup-live-rpc-boundary"],"sign":["browser-install-boundary","edge-unpacked-user-gesture","web-extension-sensitive-actions-source","web-edge-unpacked-negative-runtime","web-edge-popup-live-rpc-boundary","web-edge-isolated-provider-bridge"],"tx":["browser-install-boundary","edge-unpacked-user-gesture","web-extension-sensitive-actions-source","web-edge-unpacked-negative-runtime","web-edge-popup-live-rpc-boundary","web-edge-isolated-provider-bridge"],"callback":["browser-install-boundary","edge-unpacked-user-gesture","web-extension-sensitive-actions-source","web-edge-unpacked-negative-runtime","web-edge-isolated-provider-bridge"],"reconnect":["browser-install-boundary","edge-unpacked-user-gesture","web-extension-sensitive-actions-source","web-edge-unpacked-negative-runtime","web-edge-popup-live-rpc-boundary","web-edge-isolated-provider-bridge"],"downloadHosted":["web-artifacts","edge-unpacked-user-gesture","web-extension-sensitive-actions-source","web-edge-unpacked-negative-runtime","web-edge-isolated-provider-bridge"],"productionSigned":["web-artifacts","edge-unpacked-user-gesture","web-extension-sensitive-actions-source","web-edge-unpacked-negative-runtime","web-edge-isolated-provider-bridge"],"storeReleased":["web-artifacts","edge-unpacked-user-gesture","web-extension-sensitive-actions-source","web-edge-unpacked-negative-runtime","web-edge-isolated-provider-bridge"]},
+      "evidenceBindings": {"build":["web-artifacts","web-extension-minimum-permissions"],"install":["browser-install-boundary","edge-unpacked-user-gesture","web-extension-sensitive-actions-source","web-edge-unpacked-negative-runtime","web-edge-isolated-provider-bridge"],"coldLaunch":["browser-install-boundary","edge-unpacked-user-gesture","web-extension-sensitive-actions-source","web-edge-unpacked-negative-runtime","web-edge-isolated-provider-bridge"],"secondLaunch":["browser-install-boundary","edge-unpacked-user-gesture","web-extension-sensitive-actions-source","web-edge-unpacked-negative-runtime","web-edge-isolated-provider-bridge"],"testnet":["web-edge-popup-live-rpc-boundary"],"sign":["browser-install-boundary","edge-unpacked-user-gesture","web-extension-sensitive-actions-source","web-edge-unpacked-negative-runtime","web-edge-popup-live-rpc-boundary","web-edge-isolated-provider-bridge"],"tx":["browser-install-boundary","edge-unpacked-user-gesture","web-extension-sensitive-actions-source","web-edge-unpacked-negative-runtime","web-edge-popup-live-rpc-boundary","web-edge-isolated-provider-bridge"],"callback":["browser-install-boundary","edge-unpacked-user-gesture","web-extension-sensitive-actions-source","web-edge-unpacked-negative-runtime","web-edge-isolated-provider-bridge"],"reconnect":["browser-install-boundary","edge-unpacked-user-gesture","web-extension-sensitive-actions-source","web-edge-unpacked-negative-runtime","web-edge-popup-live-rpc-boundary","web-edge-isolated-provider-bridge"],"downloadHosted":["web-artifacts","edge-unpacked-user-gesture","web-extension-sensitive-actions-source","web-edge-unpacked-negative-runtime","web-edge-isolated-provider-bridge"],"productionSigned":["web-artifacts","edge-unpacked-user-gesture","web-extension-sensitive-actions-source","web-edge-unpacked-negative-runtime","web-edge-isolated-provider-bridge"],"storeReleased":["web-artifacts","edge-unpacked-user-gesture","web-extension-sensitive-actions-source","web-edge-unpacked-negative-runtime","web-edge-isolated-provider-bridge"]},
       "notes": ["Direct ComputerControl evidence shows Edge unpacked popup RPC 0x1917 but no active-DApp provider. The newer isolated-profile runtime proves MV3 page injection, fixture accounts, disconnect/reconnect lifecycle and wrong-chain rejection only; its live provider RPC failed, Chrome injection timed out and installedLocal stayed false. Connect/add/switch/sign/tx/release gates remain false; unpacked is never hosted/production/store."]
     },
     {
