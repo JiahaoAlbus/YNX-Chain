@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "product": "YNX Wallet",
+  "evidenceType": "ios-simulator-callback-delivery-limitation",
+  "recordedAt": "2026-08-14T00:18:00+08:00",
+  "branch": "codex/wallet-ios-macos-20260813",
+  "attempts": [
+    {
+      "sourceCommit": "2929fa07981aefb5b0946a2d568ab7445e920b74",
+      "runId": 31714430288,
+      "jobId": 94495387554,
+      "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/31714430288",
+      "conclusion": "failure",
+      "method": "Simulator host accessibility query for an AX button named Open",
+      "directFailure": "System Events error -1700: could not coerce the filtered entire-contents button query into a specifier"
+    },
+    {
+      "sourceCommit": "79aef2e2a55439256ecb6661211aab41e16e6f00",
+      "runId": 31717117184,
+      "jobId": 94504521786,
+      "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/31717117184",
+      "conclusion": "failure",
+      "method": "Recursive Simulator host accessibility traversal matching AXButton plus the name Open",
+      "directFailure": "The install/callback step exhausted its ten-minute timeout while traversing the hosted Simulator accessibility tree"
+    }
+  ],
+  "releaseStates": {
+    "callbackDeliveredToApp": false,
+    "appRejectedMalformedCallback": false,
+    "deployedTestnet": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "decision": "The hosted macOS runner cannot reliably activate the iOS confirmation sheet through Simulator host accessibility. Coordinate-based clicking is prohibited and was not used. The unreliable automation and CI-only native sentinel were removed. Existing parser tests remain fail-closed evidence, but application-level delivery and rejection remain unproven.",
+  "nextAcceptableEvidence": "A semantic XCUITest/SpringBoard interaction or a physical-device/signed test environment that proves delivery with application PID, application log and unobscured rejection UI."
+}
