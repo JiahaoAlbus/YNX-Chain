@@ -112,3 +112,11 @@ Both follow-ups passed Wallet/Auth 113/113, Wallet 63/63, typecheck and every Wa
 Commit `5260159fbf68dabbfd6a1ec8b57c520ec1f96291` restricts the non-authorizing launcher to the single byte-exact `ynxwallet://open` string. Alternate-case schemes, userinfo, ports, percent-normalized hosts, paths, queries and fragments cannot masquerade as the safe launcher or clear a pending review. Commit `b2a61ed5da255770e169340ef9ac3130f6184f04` binds every initial and runtime deep-link admission to exact active AppState; background, inactive and unknown state reject the link and the existing catch path clears every review.
 
 Verification passed Wallet 65/65, typecheck, product check, Social harness contract check, release-content check, full-goal coverage and `git diff --check`. A current-source Android Hermes export passed with 2,741 modules. No `adb`, emulator or process command was issued; device and release booleans remain false for these commits.
+
+## Sensitive Wallet operation lifecycle checkpoint
+
+Commit `df55d2bb5a0913a8c6a345b9f4440f99d5e963e4` extends background and account-drift invalidation beyond Product authorization Modals. Native transfer, recovery-key reveal, account creation/import/recovery, local account deletion and approval revocation now capture an exact operation/account binding and component generation. Each flow revalidates after biometric and asynchronous reads, and immediately before its first broadcast or persistent mutation.
+
+Repository and audit mutation entry points accept a final synchronous lifecycle assertion after their prerequisite reads and before SecureStore writes. Tests prove a dismissed attempt cannot add account material, delete an existing account or append a revocation record. Offline/network failure cannot weaken the local gate: native transfer still requires the authoritative account/nonce response, exact secure account material and an active review before broadcast.
+
+Verification passed Wallet 68/68, typecheck, product check, Social harness contract check, release-content check, full-goal coverage and `git diff --check`. A mode-0700 current-source dependency overlay resolved Wallet/Auth to this clone and produced an Android Hermes export of 2,742 modules; all temporary links were removed. No device command or interaction was performed, so exact-source device and release booleans remain false.
