@@ -1,0 +1,34 @@
+name: Wallet desktop Windows arm64 evidence readback
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [codex/wallet-desktop-cli-sdk-20260813]
+    paths:
+      - .github/workflows/wallet-desktop-windows-arm64-evidence-readback.yml
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  readback:
+    runs-on: windows-11-arm
+    timeout-minutes: 10
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ynx-wallet-desktop-windows-arm64-download-verification
+          path: readback
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: 31767726607
+      - name: Require and print immutable verification evidence
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($env:PROCESSOR_ARCHITECTURE -ne 'ARM64') { throw 'readback runner is not native ARM64' }
+          $file = Get-ChildItem readback -Filter 'downloaded-verification.json' -File -Recurse | Select-Object -First 1
+          if (-not $file) { throw 'verification evidence is missing' }
+          $evidence = Get-Content $file.FullName -Raw | ConvertFrom-Json
+          if ($evidence.sourceCommit -ne '23744b912c19b6f21bfb5544dea40f198905a15d' -or -not $evidence.uploadArtifactDownloaded -or -not $evidence.manifestPresent -or -not $evidence.lifecyclePresent -or -not $evidence.sha256Verified -or -not $evidence.bytesVerified -or $evidence.bytes -ne 103884766) { throw 'verification evidence boundary mismatch' }
+          $evidence | ConvertTo-Json -Depth 5
