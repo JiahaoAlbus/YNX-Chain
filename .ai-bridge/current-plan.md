@@ -14,7 +14,7 @@ Release Candidate: `ynx-data-fabric-8ee6d8f37ce9`
 - Full repository tests, Data Fabric Race tests, Vet and `govulncheck` pass locally; reachable vulnerabilities are zero.
 - Same-product account isolation now covers events, Ledger, billing settlements, Saga coordinates and reconciliation; `fabric.audit.export` remains an explicit product-wide privileged scope.
 - One hundred simultaneous local canonical account sessions each returned exactly their own event under the Go race detector. This is local API/Store isolation evidence, not Testnet or 1000-producer capacity evidence.
-- Engineering-evidence Run `31791152026` produced exact-source 1000 signed Producer PostgreSQL-to-JetStream evidence together with restart/replay, consumer-crash and transport-backpressure evidence at `8ee6d8f37ce945111ba76ddc2466c06164a6c4e8`; final evidence-head CI is pending.
+- Engineering-evidence Run `31791152026` produced exact-source 1000 signed Producer PostgreSQL-to-JetStream evidence together with restart/replay, consumer-crash and transport-backpressure evidence at `8ee6d8f37ce945111ba76ddc2466c06164a6c4e8`; final evidence-head Run `31793195539` passed both jobs at `8b405e4e9dd221b48099a55899a63adf885b9725`.
 - Producer ingress now has a configurable nonblocking concurrency gate, explicit retryable `429 producer_backpressure`, retry-safe nonce handling and saturation metrics.
 - A clean-source run released 1000 independently signed producers simultaneously through real loopback HTTP: 1000 committed, zero business errors, peak in-flight 64, p50/p95/p99 18.72/39.94/41.92 seconds, 23.37 events/s and Outbox depth 1000. The slow result is explicitly local file Store evidence, not production capacity.
 - Exact-source Linux CI committed 10,000 PostgreSQL events with 90% ordered hotspot skew, rejected all 1,000 synchronized duplicates, restarted PostgreSQL with zero event loss, completed integrity recovery in 851.920 ms, applied 10,000 Analytics effects at 387.932 events/s and idempotently skipped all 10,000 on the second replay.
@@ -29,11 +29,11 @@ Release Candidate: `ynx-data-fabric-8ee6d8f37ce9`
 
 ## Current slice
 
-1. Bind the exact 1000 signed Producer PostgreSQL-to-JetStream evidence, pass final evidence-head CI, and refresh the complete recovery bundle.
+1. Bind the final CI receipt and refresh the complete recovery bundle.
 2. Obtain the required independent approval and merge through protected-branch policy; do not bypass it with force or administrator merge.
 3. Execute sustained hotspot, repeated consumer/process crash, broker partition/leader-loss and PostgreSQL replica-failover drills on replicated infrastructure.
 4. Submit the frozen contract and both SDK paths to Product 29 for central acceptance, then have Website publish the existing canonical metadata only after runtime, signer, immutable-hosting and Website receipts are available.
 
 ## Exact next action
 
-Protect the exact 1000 signed Producer PostgreSQL-to-JetStream evidence and its v1.21.0 Chain Core consumption binding, wait for final evidence-head CI, then refresh recovery. Continue sustained-duration and replicated failure drills. Obtain independent approval before merging PR `#92`; keep shared-Testnet, staging, public, download and Website publication states false until direct receipts exist.
+Bind the final evidence-head CI receipt, refresh recovery, then continue sustained-duration and replicated failure drills. Obtain independent approval before merging PR `#92`; keep shared-Testnet, staging, public, download and Website publication states false until direct receipts exist.

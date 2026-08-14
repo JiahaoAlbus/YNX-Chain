@@ -5,7 +5,7 @@
   "release": "ynx-data-fabric-8ee6d8f37ce9",
   "channel": "testnet-preview",
   "sourceCommit": "8ee6d8f37ce945111ba76ddc2466c06164a6c4e8",
-  "generatedAt": "2026-08-14T10:33:31Z",
+  "generatedAt": "2026-08-14T10:47:17Z",
   "phase": "INTEGRATE",
   "overallStatus": "ACTIVE",
   "states": {
@@ -86,17 +86,28 @@
       "typeScriptSDK": "passed"
     },
     "remoteCI": {
-      "runId": null,
+      "runId": 31793195539,
       "workflow": "data-fabric",
       "sourceCommit": "8ee6d8f37ce945111ba76ddc2466c06164a6c4e8",
-      "headCommit": null,
-      "status": "pending",
-      "conclusion": null,
-      "startedAt": null,
-      "duration": null,
+      "headCommit": "8b405e4e9dd221b48099a55899a63adf885b9725",
+      "status": "completed",
+      "conclusion": "success",
+      "startedAt": "2026-08-14T10:41:08Z",
+      "duration": "4m00s",
       "artifactsPublished": false,
-      "url": null,
-      "evidenceArtifact": null
+      "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/31793195539",
+      "evidenceArtifact": {
+        "name": "data-fabric-postgres-resilience-8b405e4e9dd221b48099a55899a63adf885b9725",
+        "retentionDays": 30,
+        "publicReleaseArtifact": false,
+        "seedSha256": "7532786560111b4bececfa6ce488e33de87c213fc9f0086f87e9ca70e70dac0c",
+        "verifySha256": "6aae17d1e250122c00e19c50d771be3f73c12c984c76509ba313e009c686597e",
+        "consumerCrashSha256": "38b35fef4d21f1f0dd60490b40084c7a6fda4973b2beda3b6535fce2b8f8f1af",
+        "consumerCrashLogSha256": "4a55b84252261b0663eabf22e4be08f96319ad86507d76ea085ab350ee3f510c",
+        "transportBackpressureSha256": "a08774a8072791e0f38e6468b5508e15569234cf81077d8b7e73eb3c5374a743",
+        "transportBackpressureLogSha256": "34a00ab4fa6aeea6c89f266618bb9badb6008d23b3fb8da8eaafe1ec4e27abe7",
+        "producerPostgresJetStreamSha256": "035e7a3c83c6ab624833cd0cc679faaf2735c4fda49145f2d27d95fd31e7743e"
+      }
     },
     "engineeringEvidenceRun": {
       "runId": 31791152026,

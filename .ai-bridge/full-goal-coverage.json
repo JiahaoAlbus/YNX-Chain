@@ -6,7 +6,7 @@
   "overallStatus": "ACTIVE",
   "sourceCommit": "8ee6d8f37ce945111ba76ddc2466c06164a6c4e8",
   "release": "ynx-data-fabric-8ee6d8f37ce9",
-  "lastUpdated": "2026-08-14T10:33:31Z",
+  "lastUpdated": "2026-08-14T10:47:17Z",
   "items": [
     {
       "id": "DF-RECOVER-001",
@@ -30,15 +30,15 @@
       "requirement": "Protect verified engineering changes on codex/final-data-fabric and verify Local SHA equals the remote branch SHA.",
       "applicability": "applicable",
       "status": "inProgress",
-      "evidence": ["engineering source commit 8ee6d8f37ce945111ba76ddc2466c06164a6c4e8 is on remote review branch codex/data-fabric-typescript-sdk-20260814", "GitHub Actions engineering-evidence run 31791152026 passed its PostgreSQL job at the exact source; final evidence-head CI is pending", "exact-source PostgreSQL resilience, 1000 signed Producer PostgreSQL-to-JetStream, consumer-process-crash and transport-backpressure JSON was downloaded and SHA-256 verified", "Chain Core v1.21.0 bundle was imported to refs/remotes/chain-core/v21 and its SHA-256 and required base were verified", "complete verified prior Git bundles and SHA-256 manifest exist", "protected target requires one independent approval"],
+      "evidence": ["engineering source commit 8ee6d8f37ce945111ba76ddc2466c06164a6c4e8 is on remote review branch codex/data-fabric-typescript-sdk-20260814", "GitHub Actions final evidence-head run 31793195539 passed both jobs at 8b405e4e9dd221b48099a55899a63adf885b9725", "exact-source PostgreSQL resilience, 1000 signed Producer PostgreSQL-to-JetStream, consumer-process-crash and transport-backpressure JSON was downloaded and SHA-256 verified", "Chain Core v1.21.0 bundle was imported to refs/remotes/chain-core/v21 and its SHA-256 and required base were verified", "complete verified prior Git bundles and SHA-256 manifest exist", "protected target requires one independent approval"],
       "sourceCommit": "8ee6d8f37ce945111ba76ddc2466c06164a6c4e8",
-      "tests": ["go test ./...", "go test -race ./internal/datafabric ./internal/datafabricnats ./internal/datafabricpostgres ./scripts/data-fabric/postgres-resilience", "go run ./scripts/data-fabric/api-capacity -producers 1000 -server-concurrency 64", "GitHub Actions run 31791152026 PostgreSQL job", "git bundle verify chain-core-data-commitment-v21.bundle", "git bundle verify and shasum -a 256 -c SHA256SUMS"],
+      "tests": ["go test ./...", "go test -race ./internal/datafabric ./internal/datafabricnats ./internal/datafabricpostgres ./scripts/data-fabric/postgres-resilience", "go run ./scripts/data-fabric/api-capacity -producers 1000 -server-concurrency 64", "GitHub Actions run 31791152026 PostgreSQL job", "GitHub Actions run 31793195539 both jobs", "git bundle verify chain-core-data-commitment-v21.bundle", "git bundle verify and shasum -a 256 -c SHA256SUMS"],
       "artifact": null,
       "publicProof": null,
       "blockedBy": [],
       "owner": "YNX Data Fabric",
       "nextAction": "Push current source to PR 92, wait for both applicable checks and merge only after independent approval; never force or bypass protection.",
-      "lastUpdated": "2026-08-14T10:33:31Z"
+      "lastUpdated": "2026-08-14T10:47:17Z"
     },
     {
       "id": "DF-EVENT-001",
