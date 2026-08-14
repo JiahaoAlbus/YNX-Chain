@@ -1,3 +1,4 @@
+import Foundation
 import XCTest
 
 final class MalformedCallbackUITests: XCTestCase {
@@ -9,20 +10,16 @@ final class MalformedCallbackUITests: XCTestCase {
     let wallet = XCUIApplication()
     wallet.launch()
 
-    try XCUIDevice.shared.system.open(
-      XCTUnwrap(URL(string: "ynxwallet://authorize?request=invalid"))
-    )
-
     let rejection = wallet.staticTexts["Invalid Wallet authorization rejected"]
-    if !rejection.waitForExistence(timeout: 5) {
-      let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
-      let openButton = springboard.buttons["Open"]
-      XCTAssertTrue(
-        openButton.waitForExistence(timeout: 60),
-        "iOS neither delivered the callback automatically nor exposed a semantic Open action"
-      )
-      openButton.tap()
-    }
+    FileHandle.standardError.write(Data("YNX_WALLET_UI_READY_FOR_SIMCTL_OPENURL\n".utf8))
+
+    let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+    let openButton = springboard.buttons["Open"]
+    XCTAssertTrue(
+      openButton.waitForExistence(timeout: 60),
+      "simctl openurl did not expose a semantic Open action"
+    )
+    openButton.tap()
 
     XCTAssertTrue(
       rejection.waitForExistence(timeout: 45),

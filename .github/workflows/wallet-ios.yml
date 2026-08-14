@@ -102,7 +102,23 @@ jobs:
             -destination "platform=iOS Simulator,id=$DEVICE" \
             -only-testing:YNXWalletUITests/MalformedCallbackUITests/testMalformedCallbackIsDeliveredAndRejected \
             -resultBundlePath proof/ci-ios/MalformedCallback.xcresult \
-            | tee proof/ci-ios/malformed-callback-xctest.log
+            2>&1 | tee proof/ci-ios/malformed-callback-xctest.log &
+          XCODEBUILD_PID=$!
+          READY=false
+          for _ in $(seq 1 240); do
+            if grep -Fq 'YNX_WALLET_UI_READY_FOR_SIMCTL_OPENURL' proof/ci-ios/malformed-callback-xctest.log; then
+              READY=true
+              break
+            fi
+            if ! kill -0 "$XCODEBUILD_PID" 2>/dev/null; then
+              break
+            fi
+            sleep 1
+          done
+          test "$READY" = true
+          xcrun simctl openurl "$DEVICE" 'ynxwallet://authorize?request=invalid' \
+            | tee proof/ci-ios/deep-link.txt
+          wait "$XCODEBUILD_PID"
           xcrun simctl spawn "$DEVICE" log show \
             --style compact \
             --last 10m \
