@@ -122,6 +122,18 @@ jobs:
           test -n "${SECOND_PID:-}"
           test "$SECOND_PID" != "$COLD_PID"
           printf 'pid=%s running=true\n' "$SECOND_PID" | tee "$PROOF/second-launch.txt"
+          SECOND_READY=false
+          for _ in $(seq 1 60); do
+            xcrun log show --style compact --last 5m \
+              --predicate 'subsystem == "com.ynxweb4.wallet.macos" AND category == "lifecycle"' \
+              > "$PROOF/second-launch-native.log" 2>&1 || true
+            if grep -Fq "YNX_WALLET_MAC_LAUNCHED pid=$SECOND_PID" "$PROOF/second-launch-native.log"; then
+              SECOND_READY=true
+              break
+            fi
+            sleep 1
+          done
+          test "$SECOND_READY" = true
           open 'ynxwallet://authorize?request=invalid&scope=wallet' > "$PROOF/open-callback-first.txt"
           FIRST_CALLBACK_SEEN=false
           for _ in $(seq 1 60); do
@@ -207,6 +219,7 @@ jobs:
           test -s "$PROOF/callback-cold-start-fail-closed.png"
           kill "$CALLBACK_COLD_PID"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
         with:
           name: ynx-wallet-macos-native
           path: |
