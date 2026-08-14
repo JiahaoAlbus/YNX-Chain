@@ -183,7 +183,14 @@ if [[ "$mode" == rollback-drill ]]; then
     cmp -s "$backup_dir/service.unit" "$unit"
     cmp -s "$backup_dir/service.env" "$env_file"
     cmp -s "$backup_dir/state.json" "$state_file"
-    previous_commit="$(curl -fsS --max-time 5 http://127.0.0.1:6441/version | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>process.stdout.write(JSON.parse(s).build.sourceCommit))')"
+    previous_commit=""
+    for _ in $(seq 1 30); do
+      if previous_version="$(curl -fsS --max-time 3 http://127.0.0.1:6441/version 2>/dev/null)"; then
+        previous_commit="$(VERSION="$previous_version" node -e 'process.stdout.write(JSON.parse(process.env.VERSION).build.sourceCommit)')"
+        break
+      fi
+      sleep 1
+    done
     [[ "$previous_commit" =~ ^[0-9a-f]{40}$ && "$previous_commit" != "$source_commit" ]]
     YNX_PRODUCT_SESSION_V2_PUBLIC_PROBE=1 YNX_PRODUCT_SESSION_V2_PUBLIC_URL=https://rest.ynxweb4.com node "$release_dir/wallet-auth/scripts/probe-product-session-v2-public.mjs" >"$backup_dir/post-rollback-mount.json"
     post_rollback_result="restored-previous-v2-source-$previous_commit"
