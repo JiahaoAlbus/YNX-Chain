@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { mkdir, mkdtemp, realpath, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -7,7 +8,10 @@ import {
   resolveExecutable,
   sandboxLaunch,
 } from "../../workspace-agent/src/sandbox.mjs";
-import { materializeSnapshot } from "../../workspace-agent/src/workspace-files.mjs";
+import {
+  materializeSnapshot,
+  readTextSnapshot,
+} from "../../workspace-agent/src/workspace-files.mjs";
 
 const PROTOCOL = "ynx-code-git-v1",
   MAX_OUTPUT = 2 * 1024 * 1024;
@@ -49,6 +53,7 @@ export function createGitService(options) {
       json(response, error.status || 400, {
         error: error.publicMessage || error.message || "Git operation failed.",
         code: error.code || "git_operation_failed",
+        ...(error.details ? { details: error.details } : {}),
       });
     }
     return true;
@@ -122,7 +127,7 @@ export function createGitService(options) {
         409,
       );
     return withWorkspace(snapshot, repository, git, async (context) =>
-      mutate(context, body),
+      mutate({ ...context, owner, projectId, snapshot }, body),
     );
   }
   async function withWorkspace(snapshot, repository, git, operation) {
@@ -159,24 +164,8 @@ export function createGitService(options) {
       return status(context);
     }
     if (body.action === "commit") {
-      const message =
-          typeof body.message === "string" ? body.message.trim() : "",
-        name =
-          typeof body.authorName === "string" ? body.authorName.trim() : "",
-        email =
-          typeof body.authorEmail === "string" ? body.authorEmail.trim() : "";
-      if (
-        message.length < 1 ||
-        message.length > 4000 ||
-        name.length < 1 ||
-        name.length > 160 ||
-        !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
-      )
-        throw fault(
-          "A commit message and valid author identity are required.",
-          "invalid_commit",
-          400,
-        );
+      const message = validMessage(body.message),
+        { name, email } = validIdentity(body);
       const result = await command(
         context,
         ["commit", "--no-gpg-sign", "--no-verify", "-m", message],
@@ -190,10 +179,106 @@ export function createGitService(options) {
       if (result.code !== 0) throw gitFault(result);
       return status(context);
     }
+    if (body.action === "create-branch") {
+      const branch = validBranch(body.branch),
+        startPoint = body.startPoint ? validRevision(body.startPoint) : "HEAD",
+        verified = await command(context, ["rev-parse", "--verify", startPoint]);
+      if (verified.code !== 0)
+        throw fault("Branch start point was not found.", "git_revision_not_found", 404);
+      const result = await command(context, ["branch", branch, startPoint]);
+      if (result.code !== 0) throw gitFault(result);
+      return status(context);
+    }
+    if (body.action === "delete-branch") {
+      if (body.approval !== "delete-branch-once")
+        throw fault(
+          "Deleting a branch requires one-time approval.",
+          "git_branch_delete_approval_required",
+          403,
+        );
+      const branch = validBranch(body.branch),
+        current = await currentBranch(context);
+      if (branch === current)
+        throw fault("The current branch cannot be deleted.", "git_current_branch_delete", 409);
+      const result = await command(context, ["branch", "-d", "--", branch]);
+      if (result.code !== 0) throw gitFault(result);
+      return status(context);
+    }
+    if (body.action === "checkout") {
+      const branch = validBranch(body.branch);
+      validateWorkspaceMutation(body, context.snapshot);
+      await requireClean(context);
+      await requireLocalBranch(context, branch);
+      const originalBranch = await currentBranch(context),
+        result = await command(context, ["checkout", "--quiet", branch]);
+      if (result.code !== 0) throw gitFault(result);
+      try {
+        const workspace = await persistWorktree(context, body);
+        return { ...(await status(context)), workspace };
+      } catch (error) {
+        await command(context, ["checkout", "--quiet", originalBranch]);
+        throw error;
+      }
+    }
+    if (body.action === "merge") {
+      const branch = validBranch(body.branch),
+        message = body.message
+          ? validMessage(body.message)
+          : `Merge branch '${branch}'`,
+        { name, email } = validIdentity(body);
+      validateWorkspaceMutation(body, context.snapshot);
+      await requireClean(context);
+      await requireLocalBranch(context, branch);
+      const current = await currentBranch(context);
+      if (branch === current)
+        throw fault("A branch cannot be merged into itself.", "git_merge_same_branch", 409);
+      const before = (await command(context, ["rev-parse", "HEAD"])).output.trim(),
+        identityEnv = {
+          GIT_AUTHOR_NAME: name,
+          GIT_AUTHOR_EMAIL: email,
+          GIT_COMMITTER_NAME: name,
+          GIT_COMMITTER_EMAIL: email,
+        },
+        merge = await command(
+          context,
+          ["merge", "--no-ff", "--no-commit", branch],
+          identityEnv,
+        );
+      if (merge.code !== 0) {
+        const conflicts = await conflictPaths(context);
+        await command(context, ["merge", "--abort"]);
+        if (conflicts.length)
+          throw Object.assign(
+            fault("Merge has conflicts and was aborted without changing the workspace.", "git_merge_conflict", 409),
+            { details: { conflicts } },
+          );
+        throw gitFault(merge);
+      }
+      if (!/Already up[ -]to[ -]date\.?/i.test(merge.output)) {
+        const committed = await command(
+          context,
+          ["commit", "--no-gpg-sign", "--no-verify", "-m", message],
+          identityEnv,
+        );
+        if (committed.code !== 0) {
+          await command(context, ["merge", "--abort"]);
+          throw gitFault(committed);
+        }
+      }
+      try {
+        const workspace = await persistWorktree(context, body);
+        return { ...(await status(context)), workspace };
+      } catch (error) {
+        await command(context, ["reset", "--hard", before]);
+        throw error;
+      }
+    }
+    if (body.action === "remote-preview")
+      return remotePreview(context, body);
     throw fault("Unsupported Git mutation.", "unsupported_git_action", 400);
   }
   async function status(context) {
-    const [branchResult, statusResult, logResult] = await Promise.all([
+    const [branchResult, statusResult, logResult, branchesResult, headResult] = await Promise.all([
       command(context, ["branch", "--show-current"]),
       command(context, [
         "status",
@@ -203,16 +288,25 @@ export function createGitService(options) {
       ]),
       command(context, [
         "log",
-        "-10",
+        "-50",
         "--pretty=format:%H%x1f%h%x1f%an%x1f%aI%x1f%s%x1e",
       ]),
+      command(context, [
+        "for-each-ref",
+        "--sort=-committerdate",
+        "--format=%(refname:short)%00%(objectname)%00%(objectname:short)%00%(committerdate:iso-strict)",
+        "refs/heads",
+      ]),
+      command(context, ["rev-parse", "--verify", "HEAD"]),
     ]);
     if (statusResult.code !== 0) throw gitFault(statusResult);
     return {
       initialized: true,
       branch: branchResult.output.trim() || "main",
+      head: headResult.code === 0 ? headResult.output.trim() : null,
       changes: parseStatus(statusResult.output),
       commits: parseLog(logResult.code === 0 ? logResult.output : ""),
+      branches: parseBranches(branchesResult.code === 0 ? branchesResult.output : ""),
     };
   }
   async function diff(context, url) {
@@ -242,6 +336,38 @@ export function createGitService(options) {
     return (
       (await command(context, ["rev-parse", "--verify", "HEAD"])).code === 0
     );
+  }
+  async function currentBranch(context) {
+    const result = await command(context, ["symbolic-ref", "--quiet", "--short", "HEAD"]);
+    if (result.code !== 0)
+      throw fault("Detached HEAD is not supported by this workspace broker.", "git_detached_head", 409);
+    return result.output.trim();
+  }
+  async function requireClean(context) {
+    const value = await status(context);
+    if (value.changes.length)
+      throw Object.assign(
+        fault("Commit or discard workspace changes before switching or merging branches.", "git_workspace_dirty", 409),
+        { details: { changes: value.changes.map((change) => change.path) } },
+      );
+  }
+  async function requireLocalBranch(context, branch) {
+    const result = await command(context, ["show-ref", "--verify", "--quiet", `refs/heads/${branch}`]);
+    if (result.code !== 0)
+      throw fault("Local branch was not found.", "git_branch_not_found", 404);
+  }
+  async function conflictPaths(context) {
+    const result = await command(context, ["diff", "--name-only", "--diff-filter=U", "-z"]);
+    return result.output.split("\0").filter(safePath).slice(0, 256);
+  }
+  async function persistWorktree(context, body) {
+    const payload = await readTextSnapshot(context.workspace, context.snapshot),
+      saved = workspaceStore.put(context.owner, context.projectId, {
+        expectedRevision: body.expectedRevision,
+        idempotencyKey: body.idempotencyKey,
+        payload,
+      });
+    return { revision: saved.revision, updatedAt: saved.updatedAt, replayed: saved.replayed };
   }
   async function exclusive(key, work) {
     const previous = locks.get(key) || Promise.resolve(),
@@ -368,6 +494,126 @@ function parseLog(output) {
       const [hash, shortHash, author, date, subject] = record.split("\x1f");
       return { hash, shortHash, author, date, subject };
     });
+}
+function parseBranches(output) {
+  return output
+    .split("\n")
+    .filter(Boolean)
+    .map((record) => {
+      const [name, hash, shortHash, date] = record.split("\0");
+      return { name, hash, shortHash, date: date || null };
+    })
+    .filter((branch) => validBranchName(branch.name));
+}
+function validMessage(value) {
+  const message = typeof value === "string" ? value.trim() : "";
+  if (!message || message.length > 4_096 || /[\0\r]/.test(message))
+    throw fault("A valid commit message is required.", "invalid_git_message", 400);
+  return message;
+}
+function validIdentity(value) {
+  const name = typeof value.authorName === "string" ? value.authorName.trim() : "",
+    email = typeof value.authorEmail === "string" ? value.authorEmail.trim() : "";
+  if (!name || name.length > 160 || /[<>\0\r\n]/.test(name))
+    throw fault("A valid Git author name is required.", "invalid_git_author", 400);
+  if (
+    !email ||
+    email.length > 254 ||
+    /[<>\0\r\n]/.test(email) ||
+    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+  )
+    throw fault("A valid Git author email is required.", "invalid_git_email", 400);
+  return { name, email };
+}
+function validBranch(value) {
+  if (!validBranchName(value))
+    throw fault("A valid local branch name is required.", "invalid_git_branch", 400);
+  return value;
+}
+function validBranchName(value) {
+  return (
+    typeof value === "string" &&
+    value.length > 0 &&
+    value.length <= 160 &&
+    !value.startsWith("-") &&
+    !value.startsWith("/") &&
+    !value.endsWith("/") &&
+    !value.endsWith(".") &&
+    !value.includes("..") &&
+    !value.includes("@{") &&
+    !/[\s~^:?*[\\\0-\x1f\x7f]/.test(value) &&
+    !value.split("/").some((part) => !part || part.startsWith(".") || part.endsWith(".lock"))
+  );
+}
+function validRevision(value) {
+  if (
+    typeof value !== "string" ||
+    value.length < 1 ||
+    value.length > 200 ||
+    value.startsWith("-") ||
+    !/^[A-Za-z0-9_./@{}~^+-]+$/.test(value)
+  )
+    throw fault("A valid Git revision is required.", "invalid_git_revision", 400);
+  return value;
+}
+function validateWorkspaceMutation(body, snapshot) {
+  if (!Number.isInteger(body.expectedRevision) || body.expectedRevision < 0)
+    throw fault("A non-negative workspace revision is required.", "invalid_revision", 400);
+  if (
+    typeof body.idempotencyKey !== "string" ||
+    !/^[-A-Za-z0-9_]{8,160}$/.test(body.idempotencyKey)
+  )
+    throw fault("A valid idempotency key is required.", "invalid_idempotency_key", 400);
+}
+function remotePreview(_context, body) {
+  const operation = body.operation;
+  if (!["pull", "push", "create-pr"].includes(operation))
+    throw fault("Select pull, push, or create-pr.", "invalid_git_remote_operation", 400);
+  const remoteUrl = validRemoteUrl(body.remoteUrl),
+    branch = validBranch(body.branch),
+    targetBranch = operation === "create-pr" ? validBranch(body.targetBranch) : null,
+    intent = { operation, remoteUrl, branch, targetBranch },
+    previewDigest = createHash("sha256")
+      .update(`${PROTOCOL}\0${JSON.stringify(intent)}`)
+      .digest("hex");
+  return {
+    initialized: true,
+    remoteIntent: intent,
+    previewDigest,
+    executable: false,
+    boundary: "server-side-credential-broker-required",
+    message:
+      "Preview only. No network request or credential access occurred; execution remains disabled until an approved server-side credential broker is configured.",
+  };
+}
+function validRemoteUrl(value) {
+  let url;
+  try {
+    url = new URL(value);
+  } catch {
+    throw fault("A valid HTTPS Git remote URL is required.", "invalid_git_remote_url", 400);
+  }
+  if (
+    url.protocol !== "https:" ||
+    url.username ||
+    url.password ||
+    url.port ||
+    url.search ||
+    url.hash ||
+    !url.hostname.includes(".") ||
+    url.hostname === "localhost" ||
+    /^(127\.|10\.|192\.168\.|169\.254\.|0\.)/.test(url.hostname) ||
+    /^172\.(1[6-9]|2\d|3[01])\./.test(url.hostname)
+  )
+    throw fault(
+      "Only credential-free HTTPS remotes on public hosts can be previewed.",
+      "invalid_git_remote_url",
+      400,
+    );
+  url.pathname = url.pathname.replace(/\/+$/, "");
+  if (!url.pathname || url.pathname === "/")
+    throw fault("The remote repository path is required.", "invalid_git_remote_url", 400);
+  return url.toString();
 }
 function validPaths(value) {
   return Array.isArray(value)

@@ -441,13 +441,36 @@ export type GitCommit = {
   date: string;
   subject: string;
 };
+export type GitBranch = {
+  name: string;
+  hash: string;
+  shortHash: string;
+  date: string | null;
+};
 export type GitStatus = {
   protocolVersion: string;
   initialized: boolean;
   branch: string | null;
+  head?: string | null;
   changes: GitChange[];
   commits: GitCommit[];
+  branches: GitBranch[];
+  workspace?: { revision: number; updatedAt: string; replayed: boolean };
   replayed?: boolean;
+};
+export type GitRemotePreview = {
+  protocolVersion: string;
+  initialized: true;
+  remoteIntent: {
+    operation: "pull" | "push" | "create-pr";
+    remoteUrl: string;
+    branch: string;
+    targetBranch: string | null;
+  };
+  previewDigest: string;
+  executable: false;
+  boundary: "server-side-credential-broker-required";
+  message: string;
 };
 export async function gitStatus(projectId: string): Promise<GitStatus> {
   return gitFetch(projectId);
@@ -457,6 +480,20 @@ export async function gitMutation(projectId: string, body: Record<string, unknow
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ protocolVersion: "ynx-code-git-v1", ...body }),
+  });
+}
+export async function gitRemotePreview(
+  projectId: string,
+  body: Record<string, unknown>,
+): Promise<GitRemotePreview> {
+  return gitFetch(projectId, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      protocolVersion: "ynx-code-git-v1",
+      action: "remote-preview",
+      ...body,
+    }),
   });
 }
 export async function gitDiff(projectId: string, path: string, scope: "working" | "staged") {

@@ -1,6 +1,8 @@
 import {
   Check,
+  GitBranch,
   GitCommitHorizontal,
+  GitMerge,
   Minus,
   Plus,
   RefreshCw,
@@ -9,12 +11,21 @@ import { useCallback, useEffect, useState } from "react";
 import {
   gitDiff,
   gitMutation,
+  gitRemotePreview,
   gitStatus,
   type GitChange,
   type GitStatus,
 } from "../runtime/client";
 
-export function SourceControlPanel({ projectId }: { projectId: string }) {
+export function SourceControlPanel({
+  projectId,
+  revision,
+  onWorkspaceChanged,
+}: {
+  projectId: string;
+  revision: number;
+  onWorkspaceChanged: (revision: number) => void | Promise<void>;
+}) {
   const [status, setStatus] = useState<GitStatus>(),
     [message, setMessage] = useState(""),
     [authorName, setAuthorName] = useState(
@@ -25,7 +36,12 @@ export function SourceControlPanel({ projectId }: { projectId: string }) {
     ),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
-    [diff, setDiff] = useState<{ path: string; text: string }>();
+    [diff, setDiff] = useState<{ path: string; text: string }>(),
+    [branchName, setBranchName] = useState(""),
+    [remoteUrl, setRemoteUrl] = useState(""),
+    [remoteOperation, setRemoteOperation] = useState<"pull" | "push" | "create-pr">("push"),
+    [targetBranch, setTargetBranch] = useState("main"),
+    [remotePreview, setRemotePreview] = useState("");
   const refresh = useCallback(async () => {
     try {
       setStatus(await gitStatus(projectId));
@@ -41,11 +57,46 @@ export function SourceControlPanel({ projectId }: { projectId: string }) {
     setBusy(true);
     setError("");
     try {
-      setStatus(await gitMutation(projectId, body));
+      const next = await gitMutation(projectId, body);
+      setStatus(next);
+      if (next.workspace) await onWorkspaceChanged(next.workspace.revision);
     } catch (value) {
       setError(
         value instanceof Error ? value.message : "Git operation failed.",
       );
+    } finally {
+      setBusy(false);
+    }
+  };
+  const workspaceMutation = (action: "checkout" | "merge", branch: string) =>
+    mutate({
+      action,
+      branch,
+      expectedRevision: revision,
+      idempotencyKey: `git-${action}-${crypto.randomUUID()}`,
+      ...(action === "merge" ? { authorName, authorEmail } : {}),
+    });
+  const deleteBranch = (branch: string) => {
+    if (!window.confirm(`Delete local branch “${branch}”? This cannot be undone.`)) return;
+    void mutate({
+      action: "delete-branch",
+      branch,
+      approval: "delete-branch-once",
+    });
+  };
+  const previewRemote = async () => {
+    setBusy(true);
+    setError("");
+    try {
+      const preview = await gitRemotePreview(projectId, {
+        operation: remoteOperation,
+        remoteUrl,
+        branch: status?.branch || "main",
+        ...(remoteOperation === "create-pr" ? { targetBranch } : {}),
+      });
+      setRemotePreview(`${preview.previewDigest.slice(0, 16)} · ${preview.message}`);
+    } catch (value) {
+      setError(value instanceof Error ? value.message : "Remote preview failed.");
     } finally {
       setBusy(false);
     }
@@ -112,6 +163,27 @@ export function SourceControlPanel({ projectId }: { projectId: string }) {
       <div className="scm-branch">
         branch <strong>{status.branch}</strong>
       </div>
+      <details className="scm-branches">
+        <summary>
+          BRANCHES <span>{status.branches?.length || 0}</span>
+        </summary>
+        {(status.branches || []).map((branch) => (
+          <div className="scm-branch-row" key={branch.name}>
+            <span><GitBranch /> {branch.name}</span>
+            {branch.name !== status.branch && (
+              <>
+                <button disabled={busy} onClick={() => workspaceMutation("checkout", branch.name)}>Switch</button>
+                <button disabled={busy} title={`Merge ${branch.name}`} onClick={() => workspaceMutation("merge", branch.name)}><GitMerge /></button>
+                <button disabled={busy} title={`Delete ${branch.name}`} onClick={() => deleteBranch(branch.name)}>×</button>
+              </>
+            )}
+          </div>
+        ))}
+        <div className="scm-inline-form">
+          <input value={branchName} onChange={(event) => setBranchName(event.target.value)} placeholder="new-branch" aria-label="New branch name" />
+          <button disabled={busy || !branchName.trim()} onClick={async () => { await mutate({ action: "create-branch", branch: branchName }); setBranchName(""); }}>Create</button>
+        </div>
+      </details>
       <textarea
         value={message}
         onChange={(event) => setMessage(event.target.value)}
@@ -191,6 +263,19 @@ export function SourceControlPanel({ projectId }: { projectId: string }) {
             </span>
           </div>
         ))}
+      </details>
+      <details className="scm-remote">
+        <summary>REMOTE INTENT PREVIEW</summary>
+        <p>No credentials are stored in the browser. Previewing never performs a network request.</p>
+        <select value={remoteOperation} onChange={(event) => setRemoteOperation(event.target.value as typeof remoteOperation)} aria-label="Remote operation">
+          <option value="pull">Pull</option>
+          <option value="push">Push</option>
+          <option value="create-pr">Create PR</option>
+        </select>
+        <input value={remoteUrl} onChange={(event) => setRemoteUrl(event.target.value)} placeholder="https://github.com/org/repo.git" aria-label="HTTPS Git remote" />
+        {remoteOperation === "create-pr" && <input value={targetBranch} onChange={(event) => setTargetBranch(event.target.value)} placeholder="target branch" aria-label="PR target branch" />}
+        <button disabled={busy || !remoteUrl.trim()} onClick={previewRemote}>Preview intent</button>
+        {remotePreview && <small>{remotePreview}</small>}
       </details>
     </section>
   );

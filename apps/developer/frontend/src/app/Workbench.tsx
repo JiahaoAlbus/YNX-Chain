@@ -634,7 +634,7 @@ export function Workbench() {
             </div>
           </section>
         )}
-        {view === "source" && <SourceControlPanel projectId={project.id} />}
+        {view === "source" && <SourceControlPanel projectId={project.id} revision={project.remoteRevision} onWorkspaceChanged={refreshWorkspace} />}
         {view === "run" && <DebugPanel projectId={project.id} activePath={project.active} breakpoints={breakpoints[project.active] || []} onStoppedLine={setDebugLine} />}
         {view === "extensions" && <ExtensionPanel extensions={extensions} onChange={setExtensions} onApplyTheme={setExtensionTheme} />}
         {view === "agent" && <AgentPanel projectId={project.id} revision={project.remoteRevision} activePath={project.active} onApplied={refreshWorkspace} />}

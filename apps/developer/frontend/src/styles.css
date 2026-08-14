@@ -766,6 +766,59 @@ html[data-theme="dark"] .tree-row.file.active {
 .scm-branch strong {
   color: var(--text);
 }
+.scm-branch-row,
+.scm-inline-form {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 7px;
+}
+.scm-branch-row > span {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  gap: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.scm-branch-row svg {
+  width: 12px;
+  flex: 0 0 auto;
+}
+.scm-branch-row button,
+.scm-inline-form button,
+.scm-remote button {
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: var(--panel2);
+  color: var(--text);
+  padding: 3px 6px;
+}
+.scm-inline-form input,
+.scm-remote input,
+.scm-remote select {
+  min-width: 0;
+  flex: 1;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: var(--panel2);
+  color: var(--text);
+  padding: 4px 5px;
+}
+.scm-remote > p,
+.scm-remote > input,
+.scm-remote > select,
+.scm-remote > button,
+.scm-remote > small {
+  margin: 4px 7px;
+}
+.scm-remote > p,
+.scm-remote > small {
+  display: block;
+  color: var(--muted);
+  line-height: 1.4;
+}
 .scm-panel > textarea {
   min-height: 56px;
   margin: 7px;

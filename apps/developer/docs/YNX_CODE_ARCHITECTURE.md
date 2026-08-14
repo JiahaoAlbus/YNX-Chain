@@ -325,13 +325,22 @@ creation is a provider adapter action with preview and explicit approval.
 Destructive Git operations are separately classified and never issued by an AI
 agent without an exact user approval.
 
-The current first Git gate persists a bare object database per signed owner and
-project in `services/git-service`. Status, working/staged diff, stage, unstage,
-commit history and identity-explicit commits are real Git operations executed
-inside the default-deny-network sandbox. Hooks, global/system configuration,
-external diffs, interactive credential prompts and GPG signing are disabled.
-Branch creation/switch/merge, remotes and pull-request providers remain gated;
-the UI does not claim them yet.
+The Git gate persists a bare object database per signed owner and project in
+`services/git-service`. Status, working/staged diff, stage, unstage, 50-entry
+commit history, identity-explicit commits and local branch create/switch/delete/
+merge are real Git operations executed inside the default-deny-network sandbox.
+Checkout and merge use exact revision plus idempotency protection when replacing
+the authoritative text snapshot. Persistence failure rolls repository state
+back, while conflicts are enumerated and aborted without changing that snapshot.
+Hooks, global/system configuration, external diffs, interactive credential
+prompts and GPG signing are disabled.
+
+Remote pull, push and PR intent can be validated and hashed for review, but the
+current broker does not execute it and performs no preview-time network request.
+Only credential-free HTTPS public-host URLs pass validation; browser credentials,
+embedded URL credentials, local/private targets and SSH URLs fail closed. Real
+execution remains gated on an approved server-side credential/provider broker
+with one-time approval and auditable result evidence.
 
 ## 11. Extension system
 

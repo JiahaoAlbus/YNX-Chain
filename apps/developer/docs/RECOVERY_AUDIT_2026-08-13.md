@@ -23,7 +23,7 @@ published packages and must not be rewritten to the documentation-only HEAD.
 | LSP | Bounded language-service bridge to real language servers | 8 passed: C++, Python, Solidity and TypeScript completion/definition/diagnostics | `gopls` and `rust-analyzer` skipped because reviewed binaries are absent; Java LSP and formatting/rename/reference acceptance remain open |
 | Terminal and long processes | Authenticated PTY/WebSocket broker with cloud and SSH profiles | `terminal-service` 4/4 passed | Record stop/timeout/reconnect evidence for a public long-running task |
 | Debug Adapter Protocol | Authenticated DAP bridge with bounded frames | Bridge test passed | Installed LLDB-DAP test skipped; Node, Python, Go and Rust adapter acceptance remains open |
-| Git | Owner-isolated persistent repository broker | Real stage, diff and commit test passed | Branch/checkout/merge/history/pull/push approval and conflict-resolution acceptance remain open |
+| Git | Owner-isolated persistent repository broker with revision-guarded branch switching and merge persistence | Real status, stage, unstage, diff, 50-entry history, create/switch/delete branch and non-fast-forward merge passed; conflict merge abort preserved the authoritative workspace | Pull/push/PR execution remains fail-closed until an approved server-side credential/provider broker exists; interactive conflict resolution and public multi-user acceptance remain open |
 | AI Software Engineer | Persisted plan/context/coder/reviewer flow, approval and cancellation | `agent-orchestrator` 3/3; `model-router` 4/4 passed | Tester/deployment stages, full tool permission matrix and accepted public provider/cost evidence remain open |
 | Project memory | Owner-isolated incremental index and vector ranking | `project-memory` 1/1 passed | Export, clear, rebuild, retention and architecture/symbol relationship acceptance remain open |
 | Collaboration | CRDT edit, presence, chat, ACL roles and capacity bound | `collaboration-service` 3/3 passed including convergence and viewer rejection | Shared-terminal approval, revocation, reconnect and multi-process deployment evidence remain open |
@@ -90,3 +90,14 @@ transactional operator script with pre-switch tests, immutable source/image
 identity, root-only temporary backup material, automatic code/config rollback,
 eight-runtime and restart gates, and secret-free hashed evidence. Public Java
 status remains false until that transaction succeeds on the operator host.
+
+The third repair slice completes the local Git workflow gate. Checkout and
+merge require the exact workspace revision plus an idempotency key, then persist
+the resulting text worktree through the authoritative workspace store. Failed
+persistence rolls repository state back; a conflicted merge is aborted and
+returns bounded conflict paths without advancing or rewriting the workspace.
+The Source Control panel now exposes branch create/switch/merge/delete and the
+50-entry local history. Pull, push and PR creation are deliberately preview-only:
+the server validates a public credential-free HTTPS intent and returns a stable
+SHA-256 digest, performs no network request, and states that execution is
+unavailable until a server-side credential/provider broker is configured.

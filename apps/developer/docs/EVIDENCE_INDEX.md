@@ -17,6 +17,12 @@ successful eight-runtime release record.
 
 ## Product behavior
 
+- Git broker integration evidence: `services/git-service/test/service.test.mjs`
+  runs real Git status/stage/diff/commit/history, local branch creation and
+  revision-guarded switching, non-fast-forward merge persistence, conflict abort
+  with unchanged authoritative workspace, stable remote-intent preview hashing
+  and cross-owner repository isolation. Remote execution remains disabled.
+
 - Public full-platform gate: `scripts/live-public-candidate-check.mjs`. Against
   the deployed candidate it requires all seven real runtimes, six LSP routes,
   twelve concurrent isolated tenant sessions, same-project-name isolation,
