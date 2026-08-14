@@ -3,7 +3,7 @@
   "auditId": "wallet-auth-public-evidence-audit-2026-08-14",
   "auditedAt": "2026-08-14T03:38:07Z",
   "integrationBaseCommit": "a008ce0e8fa2ac0322198576c320441118fbae83",
-  "matrixSha256": "b3a4dbe5fafe4549d56ef2aeb5b6a18dc6bfdd7c8417768cb34635a8d059be11",
+  "matrixSha256": "9dbf5ed1a2fd7d538f7e8349398f5a5909263e0c7c6eb7d23e830fbfe5761223",
   "publicTestnet": {
     "smartAccountDeploymentVerifier": {
       "evidenceCommit": "0c747c6030b5a475a1f12dc7e57345555c23055d",
@@ -181,6 +181,15 @@
     "engineeringPrereleaseReachable": true,
     "officialWebsiteListed": false,
     "aasaValid": false,
+    "latestDirectRunId": 31786857637,
+    "latestDirectRunHead": "7a3a110fb7cd9a33512ce4db87ddd8387cb730d5",
+    "coldPid": 28338,
+    "secondPid": 29129,
+    "callbackPid": 35715,
+    "keychainOsStatus": {"add": 0, "read": 0, "delete": 0},
+    "malformedCallbackRejected": true,
+    "universalLinkPolicyFailedClosed": true,
+    "recoverySucceeded": false,
     "downloadHosted": false,
     "productionSigned": false,
     "storeReleased": false
