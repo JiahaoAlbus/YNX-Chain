@@ -8,6 +8,7 @@ script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 repo_dir=$(cd "$script_dir/../../.." && pwd)
 expected_commit="${YNX_CODE_DEPLOY_COMMIT:?Set YNX_CODE_DEPLOY_COMMIT to the exact 40-hex pushed commit}"
 package_network="${YNX_CODE_LXD_PACKAGE_NETWORK:?Set YNX_CODE_LXD_PACKAGE_NETWORK to the reviewed package-egress LXD network}"
+package_acl="ynx-code-package-egress-acl"
 service="${YNX_CODE_DEPLOY_SERVICE:-ynx-code-candidate.service}"
 candidate_root="${YNX_CODE_CANDIDATE_ROOT:-/opt/ynx-developer/candidates}"
 state_dir="${YNX_CODE_STATE_DIR:-/var/lib/ynx-code-candidate}"
@@ -52,6 +53,7 @@ trap cleanup_staging EXIT
 
 [[ $expected_commit =~ ^[0-9a-f]{40}$ ]] || fail "YNX_CODE_DEPLOY_COMMIT must be 40 lowercase hex characters"
 [[ $package_network =~ ^[A-Za-z0-9_.-]{1,80}$ ]] || fail "YNX_CODE_LXD_PACKAGE_NETWORK must be a valid LXD network name"
+[[ $package_network == ynx-code-package-egress ]] || fail "YNX_CODE_LXD_PACKAGE_NETWORK does not match the reviewed production network"
 [[ $candidate_root == /opt/ynx-developer/candidates ]] || fail "candidate root is outside the reviewed boundary"
 [[ $state_dir == /var/lib/ynx-code-candidate ]] || fail "state directory is outside the reviewed boundary"
 [[ $env_file == /etc/ynx/ynx-code-candidate.env ]] || fail "environment file is outside the reviewed boundary"
@@ -72,6 +74,12 @@ git_safe=(git -c "safe.directory=$repo_dir")
 
 install -d -m 0700 "$transaction_dir"
 install -d -m 0700 "$rollback_dir"
+lxc network show "$package_network" --format json > "$transaction_dir/lxd-package-network.json"
+lxc network acl show "$package_acl" --format json > "$transaction_dir/lxd-package-network-acl.json"
+node "$repo_dir/apps/developer/scripts/verify-package-egress-network.mjs" \
+  --network "$transaction_dir/lxd-package-network.json" \
+  --acl "$transaction_dir/lxd-package-network-acl.json" \
+  > "$transaction_dir/lxd-package-network-review.json"
 "${git_safe[@]}" status --short --branch > "$transaction_dir/source-status.txt"
 "${git_safe[@]}" show -s --format=fuller "$expected_commit" > "$transaction_dir/source-commit.txt"
 install -d -o ubuntu -g ubuntu -m 0755 "$staging_dir"

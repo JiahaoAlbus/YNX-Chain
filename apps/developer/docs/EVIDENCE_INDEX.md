@@ -1,5 +1,14 @@
 # Evidence index
 
+- Production package-egress policy: `scripts/verify-package-egress-network.mjs`
+  checks the exact dedicated bridge and ACL before any protected deployment
+  mutation. `test/package-egress-network.test.js` proves the reviewed
+  DNS/HTTPS-only default-reject policy and rejection of broad egress, profile
+  attachment, firewall disablement and external bridge bypass. The deployment
+  transaction archives raw network/ACL JSON and the normalized review result.
+  This is implementation evidence only; the production objects remain absent
+  until the operator explicitly approves their creation.
+
 ## Current recovery audit
 
 The 2026-08-13 preservation audit and requirement/current-state/evidence/gap

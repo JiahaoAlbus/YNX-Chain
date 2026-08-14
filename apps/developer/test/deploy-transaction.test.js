@@ -18,6 +18,14 @@ const root = new URL("../", import.meta.url),
 
 test("public candidate transaction is exact-source, preflighted and rollback-safe", () => {
   assert.match(transaction, /YNX_CODE_DEPLOY_COMMIT:\?/);
+  assert.match(transaction, /package_network == ynx-code-package-egress/);
+  assert.match(transaction, /lxc network show "\$package_network" --format json/);
+  assert.match(transaction, /lxc network acl show "\$package_acl" --format json/);
+  assert.match(transaction, /verify-package-egress-network\.mjs/);
+  assert.ok(
+    transaction.indexOf("verify-package-egress-network.mjs") <
+      transaction.indexOf("install-reviewed-dependencies.sh"),
+  );
   assert.match(transaction, /git_safe=.*safe\.directory/);
   assert.match(transaction, /merge-base --is-ancestor/);
   assert.match(transaction, /status --porcelain=v1 --untracked-files=normal/);

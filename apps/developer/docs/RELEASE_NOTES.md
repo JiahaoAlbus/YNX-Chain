@@ -1,5 +1,20 @@
 # YNX Developer 0.2.0 Testnet Preview release notes
 
+## 2026-08-15 production package-egress policy candidate
+
+- Added a deterministic LXD 5.21 bridge/ACL verifier for the fixed
+  `ynx-code-package-egress` network. The reviewed policy is default-reject,
+  DNS/HTTPS-only, explicitly denies private/special destinations, rejects
+  profile attachment and firewall/raw/external-bridge bypasses, and accepts only
+  owner-bound YNX runtime lease attachments.
+- The protected public deployment transaction now captures the raw network and
+  ACL JSON plus a normalized review result before dependency installation,
+  image creation, service stop or symlink mutation. A missing or changed network
+  fails without touching the running public candidate.
+- `PACKAGE_EGRESS_NETWORK.md` contains the exact proposed creation, verification
+  and unused-object rollback transaction. It remains unapplied pending explicit
+  production-owner approval; the default `lxdbr0` is not accepted.
+
 ## 2026-08-14 reviewed Python wheel installation candidate
 
 - Added an explicit npm/Python selector to the one-time package review. Python

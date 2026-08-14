@@ -1,5 +1,9 @@
 # YNX Developer operations
 
+The production-only temporary package network has a separate fail-closed review
+and rollback runbook in `PACKAGE_EGRESS_NETWORK.md`. Do not use the default LXD
+bridge for package installation.
+
 Build the Web product with `npm run build`. Static hosting must provide bounded,
 authenticated same-origin proxy equivalents and a version/health endpoint before
 `deployedStaging` can become true. Never place a provider or Wallet secret in the
