@@ -47,6 +47,7 @@
   ],
   "gatewayTransport": {
     "adapter": "ProductSessionGatewayFetchAdapter",
+    "handler": "ProductSessionGatewayHttpHandler",
     "endpointPolicy": "canonical HTTPS origin only",
     "proofHeader": "x-ynx-product-session-proof-v2",
     "fallback": "none",
@@ -70,6 +71,7 @@
   "tests": [
     "packages/wallet-auth/test/product-session-gateway.test.mjs",
     "packages/wallet-auth/test/product-session-gateway-client.test.mjs",
+    "packages/wallet-auth/test/product-session-gateway-http.test.mjs",
     "packages/wallet-auth/test/product-session-migration.test.mjs",
     "packages/wallet-auth/test/product-session-products.test.mjs",
     "packages/wallet-auth/test/product-session-recovery.test.mjs",

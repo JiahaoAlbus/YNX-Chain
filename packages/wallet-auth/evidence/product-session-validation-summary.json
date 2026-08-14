@@ -1,19 +1,19 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-08-14T04:30:28.000Z",
+  "capturedAt": "2026-08-14T04:35:39.000Z",
   "scope": "local Product Session v2 protocol and router validation",
   "registrySchemaVersion": 2,
   "branch": "codex/wallet-session-router-recovery",
   "sourceBaseline": "2a78ace0a647b73dd2961fae3361189116453a7d",
   "targetedTest": {
-    "command": "node --test test/product-session-gateway-client.test.mjs test/product-session-gateway.test.mjs test/product-session-migration.test.mjs test/product-session-products.test.mjs test/product-session-recovery.test.mjs test/product-session-router.test.mjs test/product-session-v2.test.mjs",
-    "passed": 47,
+    "command": "node --test test/product-session-gateway-client.test.mjs test/product-session-gateway-http.test.mjs test/product-session-gateway.test.mjs test/product-session-migration.test.mjs test/product-session-products.test.mjs test/product-session-recovery.test.mjs test/product-session-router.test.mjs test/product-session-v2.test.mjs",
+    "passed": 50,
     "failed": 0,
     "concurrentSessions": 120
   },
   "fullPackageTest": {
     "command": "npm test",
-    "passed": 149,
+    "passed": 152,
     "failed": 0,
     "exitCode": 0
   },
@@ -21,8 +21,8 @@
     "command": "npm_config_cache=<isolated-temp-cache> npm pack --dry-run",
     "exitCode": 0,
     "version": "1.1.0",
-    "files": 56,
-    "shasum": "598300b7a1ab19e3da99f7b508a69191fd1bade5"
+    "files": 57,
+    "shasum": "19c67b68cc512859a82dbc9479b48448eec7fc92"
   },
   "deviceSecretBoundary": {
     "clientLocalSigning": [
@@ -44,6 +44,15 @@
     "cachedResponseCannotBypassProofPolicy": true,
     "responseLossRecovery": "exact cached response for identical request ID, route, and canonical body",
     "conflictingReuse": "IDEMPOTENCY_CONFLICT"
+  },
+  "gatewayHttpBoundary": {
+    "handler": "ProductSessionGatewayHttpHandler",
+    "mountableWithoutLegacyHostChanges": true,
+    "canonicalJsonRequired": true,
+    "maxBodyBytes": 1048576,
+    "proofHeader": "x-ynx-product-session-proof-v2",
+    "loopbackEnvelopeVerified": true,
+    "fetchAdapterToHandlerResponseLossRecoveryVerified": true
   },
   "networkRecovery": {
     "storedSessionOnIntrospectionOutage": "retained-non-authoritative-until-retry",

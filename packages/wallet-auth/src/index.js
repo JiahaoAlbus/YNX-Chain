@@ -25,3 +25,4 @@ export * from "./product-session-recovery.js";
 export * from "./product-session-proof-v2.js";
 export * from "./product-session-gateway.js";
 export * from "./product-session-gateway-client.js";
+export * from "./product-session-gateway-http.js";

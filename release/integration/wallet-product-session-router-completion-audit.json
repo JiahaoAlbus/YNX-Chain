@@ -11,6 +11,7 @@
         "packages/wallet-auth/src/product-session-proof-v2.js",
         "packages/wallet-auth/src/product-session-recovery.js",
         "packages/wallet-auth/src/product-session-gateway-client.js",
+        "packages/wallet-auth/src/product-session-gateway-http.js",
         "packages/wallet-auth/test/product-session-v2.test.mjs",
         "packages/wallet-auth/test/product-session-recovery.test.mjs"
       ],
@@ -65,7 +66,9 @@
         "packages/wallet-auth/src/index.js",
         "packages/wallet-auth/src/index.d.ts",
         "packages/wallet-auth/src/product-session-gateway-client.js",
+        "packages/wallet-auth/src/product-session-gateway-http.js",
         "packages/wallet-auth/test/product-session-gateway-client.test.mjs",
+        "packages/wallet-auth/test/product-session-gateway-http.test.mjs",
         "release/integration/wallet-product-session-router-migration.json"
       ],
       "registryReadyProducts": 12,
@@ -85,15 +88,16 @@
         "packages/wallet-auth/evidence/ynx-wallet-installed-unavailable-computercontrol.jpeg",
         "packages/wallet-auth/evidence/metamask-installed-observation.json",
         "packages/wallet-auth/test/product-session-gateway-client.test.mjs",
+        "packages/wallet-auth/test/product-session-gateway-http.test.mjs",
         "packages/wallet-auth/test/product-session-migration.test.mjs"
       ],
       "targetedTests": {
-        "passed": 47,
+        "passed": 50,
         "failed": 0,
         "concurrentProductSessions": 120
       },
       "fullPackageTests": {
-        "passed": 149,
+        "passed": 152,
         "failed": 0
       },
       "remaining": [

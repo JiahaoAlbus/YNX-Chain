@@ -40,7 +40,7 @@ export class ProductSessionGatewayFetchAdapter {
     if (typeof requestId !== "string" || !/^req_[A-Za-z0-9_-]{12,80}$/.test(requestId)) fail("INVALID_REQUEST_ID", "Product Session Gateway request ID is invalid");
     const encodedBody = canonicalJSON(body);
     const headers = { "accept": "application/json", "content-type": "application/json", "x-request-id": requestId };
-    if (proof !== null) headers[PRODUCT_SESSION_GATEWAY_PROOF_HEADER_V2] = encodeBase64url(new TextEncoder().encode(canonicalJSON(proof)));
+    if (proof !== null) headers[PRODUCT_SESSION_GATEWAY_PROOF_HEADER_V2] = encodeProductSessionGatewayProofHeaderV2(proof);
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), this.#timeoutMs);
     let response;
@@ -78,6 +78,13 @@ export function decodeProductSessionGatewayProofHeaderV2(value) {
   if (typeof value !== "string" || value.length > 16_384) fail("INVALID_PROOF_HEADER", "Product Session proof header is invalid");
   let parsed; try { parsed = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(decodeBase64url(value, "Product Session proof header"))); } catch { fail("INVALID_PROOF_HEADER", "Product Session proof header is invalid"); }
   return parseProductSessionProofV2(parsed);
+}
+
+export function encodeProductSessionGatewayProofHeaderV2(value) {
+  const proof = parseProductSessionProofV2(value);
+  const encoded = encodeBase64url(new TextEncoder().encode(canonicalJSON(proof)));
+  if (encoded.length > 16_384) fail("INVALID_PROOF_HEADER", "Product Session proof header exceeds policy");
+  return encoded;
 }
 
 function endpoint(value) { if (typeof value !== "string" || value.length > 512) fail("INVALID_GATEWAY", "Product Session Gateway endpoint is invalid"); let parsed; try { parsed = new URL(value); } catch { fail("INVALID_GATEWAY", "Product Session Gateway endpoint is invalid"); } if (parsed.protocol !== "https:" || parsed.username || parsed.password || parsed.port || parsed.search || parsed.hash || parsed.pathname !== "/" || value !== parsed.origin) fail("INVALID_GATEWAY", "Product Session Gateway endpoint must be a canonical HTTPS origin"); return parsed.origin; }
