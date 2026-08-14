@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "vectorSet": "wallet-auth-release-evidence-matrix-v1",
+  "owner": "02-wallet-auth-integration",
+  "matrix": "release/integration/wallet-auth-release-evidence-matrix.json",
+  "vectors": [
+    {
+      "id": "TRUE_WITHOUT_DIRECT_SUPPORT",
+      "mutation": {"platformId":"web-pwa","gate":"coldLaunch","value":true},
+      "expectedExit": 1,
+      "expectedErrorContains": "web-pwa.coldLaunch=true lacks direct evidence"
+    },
+    {
+      "id": "DISPOSABLE_CANNOT_BE_PRODUCTION",
+      "mutation": {"platformId":"android-api36","gate":"productionSigned","value":true},
+      "expectedExit": 1,
+      "expectedErrorContains": "android-api36 forbidden artifact class cannot be productionSigned"
+    },
+    {
+      "id": "PENDING_IOS_CANNOT_PROMOTE",
+      "mutation": {"platformId":"ios-simulator","gate":"build","value":true},
+      "expectedExit": 1,
+      "expectedErrorContains": "ios-simulator pending status cannot contain true gates"
+    },
+    {
+      "id": "UNKNOWN_EVIDENCE_REFERENCE",
+      "mutation": {"platformId":"typescript-sdk","gate":"install","evidenceBindings":["missing-evidence"]},
+      "expectedExit": 1,
+      "expectedErrorContains": "typescript-sdk.install references unknown evidence missing-evidence"
+    },
+    {
+      "id": "HOSTING_REQUIRES_PUBLIC_DOWNLOAD_EVIDENCE",
+      "mutation": {"platformId":"gateway","gate":"downloadHosted","value":true},
+      "expectedExit": 1,
+      "expectedErrorContains": "gateway.downloadHosted=true requires a public-download evidence type"
+    }
+  ]
+}

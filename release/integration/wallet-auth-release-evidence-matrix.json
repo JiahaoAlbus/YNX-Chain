@@ -1,0 +1,405 @@
+{
+  "schemaVersion": 1,
+  "matrixId": "ynx-wallet-auth-platform-release-evidence-v1",
+  "product": "YNX Wallet / Auth",
+  "owner": "02-wallet-auth-integration",
+  "recordedAt": "2026-08-14T02:30:00Z",
+  "requiredGates": [
+    "build",
+    "install",
+    "coldLaunch",
+    "secondLaunch",
+    "testnet",
+    "sign",
+    "tx",
+    "callback",
+    "reconnect",
+    "downloadHosted",
+    "productionSigned",
+    "storeReleased"
+  ],
+  "semantics": {
+    "sign": "A directly observed Wallet authorization or device-proof signing flow; package signing alone does not qualify.",
+    "tx": "A directly observed YNX Testnet transaction with authoritative receipt evidence.",
+    "callback": "An application-level callback delivered and handled; parser-only tests or an OS confirmation sheet do not qualify.",
+    "reconnect": "A directly observed reconnection after transport or process interruption; second launch alone does not qualify.",
+    "downloadHosted": "An immutable public product download verified end to end; local files and temporary CI artifacts do not qualify.",
+    "productionSigned": "A production distribution identity, never a test, disposable, unsigned, unpacked, simulator or ad-hoc identity.",
+    "storeReleased": "A directly verified public store listing for the exact artifact and source commit."
+  },
+  "snapshotLimitations": {
+    "liveRemoteRecheck": false,
+    "reason": "The resumed sandbox could not resolve github.com. Each frozen sourceCommit exactly matched the shared repository's local branch and origin/<branch> remote-tracking ref, and the coordinating Owner notification identified the commits as pushed.",
+    "promotionEffect": "No public, hosted, production, store, callback, reconnect, signing or transaction gate was promoted from the unavailable live recheck."
+  },
+  "pendingOwnerCommits": [
+    {
+      "owner": "core-auth-gateway",
+      "branch": "codex/wallet-core-auth-gateway-continuation-20260814",
+      "commit": "4b7ffa680fab9b56e949c28cea523d0334943b59",
+      "localCommitted": true,
+      "pushPending": true,
+      "centralIntegrated": false,
+      "consumedForReleaseTruth": false,
+      "ownerReportedBoundary": "Completion negative-matrix evidence record and contract truth correction; the two canonical JSON hashes remain unchanged."
+    },
+    {
+      "owner": "android-api36",
+      "branch": "codex/wallet-android-api36-continuation2-20260814",
+      "commit": "7a6d30bc90f63c52e27340c10334e16c2e774643",
+      "localCommitted": true,
+      "pushPending": true,
+      "centralIntegrated": false,
+      "consumedForReleaseTruth": false,
+      "ownerReportedBoundary": "Strong-biometric authorization policy source slice; Owner reports 50/50 tests and gates passed."
+    }
+  ],
+  "pendingOwnerEvidence": [
+    {
+      "owner": "web-pwa-extensions",
+      "candidateCommitAbbrev": "3829aa6d",
+      "remoteFastForwardReported": true,
+      "remoteReadbackComplete": false,
+      "ciComplete": null,
+      "consumedForReleaseTruth": false,
+      "note": "Short SHA was reported while exact remote readback was still in progress; the frozen Web source remains unchanged."
+    },
+    {
+      "owner": "ios-macos",
+      "candidateCommit": "9810d6fd56c5eb71d450ee71dbc18eb86e143ea1",
+      "remoteFastForwardReported": true,
+      "remoteReadbackComplete": true,
+      "ciComplete": false,
+      "consumedForReleaseTruth": false,
+      "note": "Remote object and ref are protected and blob-equivalent, but current-source CI evidence is pending."
+    },
+    {
+      "owner": "desktop-cli-sdk",
+      "candidateCommit": null,
+      "remoteFastForwardReported": null,
+      "remoteReadbackComplete": null,
+      "ciComplete": false,
+      "workflowRunId": 31765520859,
+      "workflowStatus": "in_progress",
+      "consumedForReleaseTruth": false,
+      "note": "AppImage workflow is still running; no build, install, hosted or production gate is updated from it."
+    }
+  ],
+  "ownerSources": [
+    {
+      "owner": "core-auth-gateway",
+      "branch": "codex/wallet-core-auth-gateway-20260813",
+      "sourceCommit": "e8744e55cb112138f18a5f7d2d9bdced3dc62363",
+      "remoteCommitObserved": "e8744e55cb112138f18a5f7d2d9bdced3dc62363",
+      "remoteVerifiedAt": "2026-08-14T02:28:00Z",
+      "verificationMode": "shared-repository-origin-ref"
+    },
+    {
+      "owner": "web-pwa-extensions",
+      "branch": "codex/wallet-web-pwa-extensions-20260813",
+      "sourceCommit": "86f7dd1dfa7101066d789d4f9d1886c0b14eaf13",
+      "remoteCommitObserved": "86f7dd1dfa7101066d789d4f9d1886c0b14eaf13",
+      "remoteVerifiedAt": "2026-08-14T02:28:00Z",
+      "verificationMode": "shared-repository-origin-ref"
+    },
+    {
+      "owner": "android-api36",
+      "branch": "codex/wallet-android-api36-continuation-20260814",
+      "sourceCommit": "9f8079be143bbaea13c27c1073d0ae539de3e2ee",
+      "remoteCommitObserved": "9f8079be143bbaea13c27c1073d0ae539de3e2ee",
+      "remoteVerifiedAt": "2026-08-14T02:28:00Z",
+      "verificationMode": "shared-repository-origin-ref"
+    },
+    {
+      "owner": "ios-macos",
+      "branch": "codex/wallet-ios-macos-20260813",
+      "sourceCommit": "3150165e14f38031b9a089b029b623f67cd6df85",
+      "remoteCommitObserved": "3150165e14f38031b9a089b029b623f67cd6df85",
+      "remoteVerifiedAt": "2026-08-14T02:28:00Z",
+      "verificationMode": "shared-repository-origin-ref"
+    },
+    {
+      "owner": "desktop-cli-sdk",
+      "branch": "codex/wallet-desktop-cli-sdk-20260813",
+      "sourceCommit": "53f2ad8225a5465ba9f4b1e41a69ab8d2c0bccaf",
+      "remoteCommitObserved": "53f2ad8225a5465ba9f4b1e41a69ab8d2c0bccaf",
+      "remoteVerifiedAt": "2026-08-14T02:28:00Z",
+      "verificationMode": "shared-repository-origin-ref"
+    }
+  ],
+  "evidence": {
+    "gateway-release": {
+      "type": "git-object",
+      "direct": true,
+      "commit": "e8744e55cb112138f18a5f7d2d9bdced3dc62363",
+      "path": "apps/wallet/product-release.json",
+      "supports": ["gateway.build"]
+    },
+    "gateway-public-lifecycle": {
+      "type": "git-object",
+      "direct": true,
+      "commit": "e8744e55cb112138f18a5f7d2d9bdced3dc62363",
+      "path": "apps/wallet/proof/gateway-public-lifecycle-2026-08-13.json",
+      "supports": ["gateway.testnet", "gateway.sign"]
+    },
+    "gateway-completion-negative-matrix": {
+      "type": "git-object",
+      "direct": true,
+      "commit": "e8744e55cb112138f18a5f7d2d9bdced3dc62363",
+      "path": "packages/wallet-auth/testdata/gateway-completion-negative-matrix-v1.json",
+      "supports": []
+    },
+    "web-artifacts": {
+      "type": "git-object",
+      "direct": true,
+      "commit": "86f7dd1dfa7101066d789d4f9d1886c0b14eaf13",
+      "path": "apps/wallet-web/artifact-manifest.json",
+      "supports": ["web-pwa.build", "browser-extension.build"]
+    },
+    "web-pwa-browser": {
+      "type": "git-object",
+      "direct": true,
+      "commit": "86f7dd1dfa7101066d789d4f9d1886c0b14eaf13",
+      "path": "apps/wallet-web/evidence/browser-install-20260813/pwa-browser-evidence.json",
+      "supports": ["web-pwa.secondLaunch"]
+    },
+    "web-pwa-rpc-boundary": {
+      "type": "git-object",
+      "direct": true,
+      "commit": "86f7dd1dfa7101066d789d4f9d1886c0b14eaf13",
+      "path": "apps/wallet-web/evidence/testnet-rpc-fail-closed.json",
+      "supports": []
+    },
+    "browser-install-boundary": {
+      "type": "git-object",
+      "direct": true,
+      "commit": "86f7dd1dfa7101066d789d4f9d1886c0b14eaf13",
+      "path": "apps/wallet-web/evidence/browser-install-20260813/browser-install-evidence.json",
+      "supports": []
+    },
+    "edge-pwa-installed": {
+      "type": "git-object",
+      "direct": true,
+      "commit": "86f7dd1dfa7101066d789d4f9d1886c0b14eaf13",
+      "path": "apps/wallet-web/evidence/runtime/edge-pwa-installed-local-20260814.json",
+      "supports": ["web-pwa.install", "web-pwa.secondLaunch"]
+    },
+    "web-testnet-rpc-recovered": {
+      "type": "git-object",
+      "direct": true,
+      "commit": "d34d2b19940537fab9747de63ec9b96ac97c0953",
+      "path": "apps/wallet-web/evidence/runtime/testnet-rpc-recovered-20260814.json",
+      "supports": ["web-pwa.testnet"]
+    },
+    "edge-unpacked-user-gesture": {
+      "type": "git-object",
+      "direct": true,
+      "commit": "86f7dd1dfa7101066d789d4f9d1886c0b14eaf13",
+      "path": "apps/wallet-web/evidence/runtime/edge-unpacked-real-user-gesture-20260814.json",
+      "supports": []
+    },
+    "android-disposable-api36": {
+      "type": "git-object",
+      "direct": true,
+      "commit": "9f8079be143bbaea13c27c1073d0ae539de3e2ee",
+      "path": "apps/wallet/proof/wallet-android-api36-disposable-qa-2026-08-14.json",
+      "supports": [
+        "android-api36.build",
+        "android-api36.install",
+        "android-api36.coldLaunch",
+        "android-api36.secondLaunch",
+        "android-api36.testnet"
+      ]
+    },
+    "android-onboarding-qa-pending": {
+      "type": "git-object",
+      "direct": true,
+      "commit": "9f8079be143bbaea13c27c1073d0ae539de3e2ee",
+      "path": "apps/wallet/proof/wallet-android-onboarding-security-qa-pending.json",
+      "supports": []
+    },
+    "ios-current-head-workflow": {
+      "type": "git-object",
+      "direct": true,
+      "commit": "3150165e14f38031b9a089b029b623f67cd6df85",
+      "path": ".github/workflows/wallet-ios.yml",
+      "supports": []
+    },
+    "ios-callback-boundary": {
+      "type": "git-object",
+      "direct": true,
+      "commit": "3150165e14f38031b9a089b029b623f67cd6df85",
+      "path": "apps/wallet/proof/ios-simulator-callback-delivery-limitation-2026-08-14.json",
+      "supports": []
+    },
+    "macos-native": {
+      "type": "git-object",
+      "direct": true,
+      "commit": "3150165e14f38031b9a089b029b623f67cd6df85",
+      "path": "apps/wallet/proof/macos-native-local-2026-08-13.json",
+      "supports": ["macos.build", "macos.install", "macos.coldLaunch", "macos.secondLaunch"]
+    },
+    "linux-desktop-action": {
+      "type": "git-object",
+      "direct": true,
+      "commit": "53f2ad8225a5465ba9f4b1e41a69ab8d2c0bccaf",
+      "path": "release/wallet-desktop/linux-x64/manifest.json",
+      "supports": [
+        "linux-desktop-x64.build",
+        "linux-desktop-x64.install",
+        "linux-desktop-x64.coldLaunch",
+        "linux-desktop-x64.secondLaunch",
+        "linux-desktop-x64.testnet"
+      ]
+    },
+    "windows-desktop-action": {
+      "type": "git-object",
+      "direct": true,
+      "commit": "53f2ad8225a5465ba9f4b1e41a69ab8d2c0bccaf",
+      "path": "release/wallet-desktop/windows-x64/manifest.json",
+      "supports": [
+        "windows-desktop-x64.build",
+        "windows-desktop-x64.install",
+        "windows-desktop-x64.coldLaunch",
+        "windows-desktop-x64.secondLaunch",
+        "windows-desktop-x64.testnet"
+      ]
+    },
+    "linux-cli-lifecycle": {
+      "type": "git-object",
+      "direct": true,
+      "commit": "53f2ad8225a5465ba9f4b1e41a69ab8d2c0bccaf",
+      "path": "release/wallet-cli/linux-packages/ci-lifecycle-evidence.json",
+      "supports": [
+        "linux-cli.build",
+        "linux-cli.install",
+        "linux-cli.coldLaunch",
+        "linux-cli.secondLaunch",
+        "linux-cli.testnet",
+        "linux-cli.sign"
+      ]
+    },
+    "windows-cli-lifecycle": {
+      "type": "git-object",
+      "direct": true,
+      "commit": "53f2ad8225a5465ba9f4b1e41a69ab8d2c0bccaf",
+      "path": "release/wallet-cli/windows-installers/windows-lifecycle-evidence.json",
+      "supports": [
+        "windows-cli-x64.build",
+        "windows-cli-x64.install",
+        "windows-cli-x64.coldLaunch",
+        "windows-cli-x64.secondLaunch",
+        "windows-cli-x64.testnet",
+        "windows-cli-x64.sign"
+      ]
+    },
+    "typescript-sdk-manifest": {
+      "type": "git-object",
+      "direct": true,
+      "commit": "53f2ad8225a5465ba9f4b1e41a69ab8d2c0bccaf",
+      "path": "release/wallet-cli/typescript-sdk/manifest.json",
+      "supports": ["typescript-sdk.build", "typescript-sdk.install", "typescript-sdk.testnet"]
+    }
+  },
+  "platforms": [
+    {
+      "id": "gateway",
+      "ownerSource": "core-auth-gateway",
+      "artifactClass": "public-testnet-gateway",
+      "status": "accepted-bounded-testnet",
+      "gates": {"build":true,"install":false,"coldLaunch":false,"secondLaunch":false,"testnet":true,"sign":true,"tx":false,"callback":false,"reconnect":false,"downloadHosted":false,"productionSigned":false,"storeReleased":false},
+      "evidenceBindings": {"build":["gateway-release"],"install":[],"coldLaunch":[],"secondLaunch":[],"testnet":["gateway-public-lifecycle"],"sign":["gateway-public-lifecycle"],"tx":["gateway-public-lifecycle"],"callback":["gateway-completion-negative-matrix"],"reconnect":["gateway-public-lifecycle"],"downloadHosted":["gateway-release"],"productionSigned":["gateway-release"],"storeReleased":["gateway-release"]},
+      "notes": ["Public authorization completion, introspection, replay rejection and revoke are direct. The 15-case canonical completion negative matrix is local deterministic evidence only; its public/staging route remains false. No asset transaction, reconnect, native app, production signing or store release is claimed."]
+    },
+    {
+      "id": "web-pwa",
+      "ownerSource": "web-pwa-extensions",
+      "artifactClass": "unsigned-loopback-pwa-bundle",
+      "status": "edge-installed-local",
+      "gates": {"build":true,"install":true,"coldLaunch":false,"secondLaunch":true,"testnet":true,"sign":false,"tx":false,"callback":false,"reconnect":false,"downloadHosted":false,"productionSigned":false,"storeReleased":false},
+      "evidenceBindings": {"build":["web-artifacts"],"install":["edge-pwa-installed"],"coldLaunch":["edge-pwa-installed"],"secondLaunch":["edge-pwa-installed"],"testnet":["web-testnet-rpc-recovered"],"sign":["edge-pwa-installed"],"tx":["edge-pwa-installed"],"callback":["edge-pwa-installed"],"reconnect":["edge-pwa-installed"],"downloadHosted":["web-artifacts","edge-pwa-installed"],"productionSigned":["web-artifacts","edge-pwa-installed"],"storeReleased":["web-artifacts","edge-pwa-installed"]},
+      "notes": ["Exact pushed proof records the Edge PWA bundle com.microsoft.edgemac.app.plkhingfjhnclbfboobaipbemoiaogde, local installation, visible first/second windows and exact 0x1917 RPC recovery. No stopped process was observed between launches, so coldLaunch and reconnect remain false."]
+    },
+    {
+      "id": "browser-extension",
+      "ownerSource": "web-pwa-extensions",
+      "artifactClass": "unsigned-unpacked-extension",
+      "status": "build-only",
+      "gates": {"build":true,"install":false,"coldLaunch":false,"secondLaunch":false,"testnet":false,"sign":false,"tx":false,"callback":false,"reconnect":false,"downloadHosted":false,"productionSigned":false,"storeReleased":false},
+      "evidenceBindings": {"build":["web-artifacts"],"install":["browser-install-boundary","edge-unpacked-user-gesture"],"coldLaunch":["browser-install-boundary","edge-unpacked-user-gesture"],"secondLaunch":["browser-install-boundary","edge-unpacked-user-gesture"],"testnet":["browser-install-boundary","edge-unpacked-user-gesture"],"sign":["browser-install-boundary","edge-unpacked-user-gesture"],"tx":["browser-install-boundary","edge-unpacked-user-gesture"],"callback":["browser-install-boundary","edge-unpacked-user-gesture"],"reconnect":["browser-install-boundary","edge-unpacked-user-gesture"],"downloadHosted":["web-artifacts","edge-unpacked-user-gesture"],"productionSigned":["web-artifacts","edge-unpacked-user-gesture"],"storeReleased":["web-artifacts","edge-unpacked-user-gesture"]},
+      "notes": ["Edge developer-mode unpacked load and a real activeTab gesture are direct, but policy correctly records edgeExtensionInstalledLocal=false. No signed/store extension installation, provider injection, connection or chain mutation was proven."]
+    },
+    {
+      "id": "android-api36",
+      "ownerSource": "android-api36",
+      "artifactClass": "disposable-qa-release-key",
+      "status": "source-bound-emulator-qa",
+      "gates": {"build":true,"install":true,"coldLaunch":true,"secondLaunch":true,"testnet":true,"sign":false,"tx":false,"callback":false,"reconnect":false,"downloadHosted":false,"productionSigned":false,"storeReleased":false},
+      "evidenceBindings": {"build":["android-disposable-api36"],"install":["android-disposable-api36"],"coldLaunch":["android-disposable-api36"],"secondLaunch":["android-disposable-api36"],"testnet":["android-disposable-api36"],"sign":["android-disposable-api36","android-onboarding-qa-pending"],"tx":["android-disposable-api36","android-onboarding-qa-pending"],"callback":["android-disposable-api36","android-onboarding-qa-pending"],"reconnect":["android-disposable-api36","android-onboarding-qa-pending"],"downloadHosted":["android-disposable-api36","android-onboarding-qa-pending"],"productionSigned":["android-disposable-api36","android-onboarding-qa-pending"],"storeReleased":["android-disposable-api36","android-onboarding-qa-pending"]},
+      "notes": ["API 36 install and two distinct cold-launch PIDs are direct. The 30-day disposable identity is never production or store signing; no account, signature, transaction, callback or reconnect was exercised."]
+    },
+    {
+      "id": "ios-simulator",
+      "ownerSource": "ios-macos",
+      "artifactClass": "ad-hoc-simulator-build",
+      "status": "pending-current-head-ci",
+      "gates": {"build":false,"install":false,"coldLaunch":false,"secondLaunch":false,"testnet":false,"sign":false,"tx":false,"callback":false,"reconnect":false,"downloadHosted":false,"productionSigned":false,"storeReleased":false},
+      "evidenceBindings": {"build":["ios-current-head-workflow"],"install":["ios-current-head-workflow"],"coldLaunch":["ios-current-head-workflow"],"secondLaunch":["ios-current-head-workflow"],"testnet":["ios-current-head-workflow"],"sign":["ios-current-head-workflow"],"tx":["ios-current-head-workflow"],"callback":["ios-current-head-workflow","ios-callback-boundary"],"reconnect":["ios-current-head-workflow"],"downloadHosted":["ios-current-head-workflow"],"productionSigned":["ios-current-head-workflow"],"storeReleased":["ios-current-head-workflow"]},
+      "notes": ["Current origin HEAD only changes the CI callback-log capture path. Without an exact successful current-HEAD run record in this snapshot, every current candidate gate remains false. Historical simulator successes do not promote the current HEAD."]
+    },
+    {
+      "id": "macos",
+      "ownerSource": "ios-macos",
+      "artifactClass": "ad-hoc-local-arm64-app",
+      "status": "local-only",
+      "gates": {"build":true,"install":true,"coldLaunch":true,"secondLaunch":true,"testnet":false,"sign":false,"tx":false,"callback":false,"reconnect":false,"downloadHosted":false,"productionSigned":false,"storeReleased":false},
+      "evidenceBindings": {"build":["macos-native"],"install":["macos-native"],"coldLaunch":["macos-native"],"secondLaunch":["macos-native"],"testnet":["macos-native"],"sign":["macos-native"],"tx":["macos-native"],"callback":["macos-native"],"reconnect":["macos-native"],"downloadHosted":["macos-native"],"productionSigned":["macos-native"],"storeReleased":["macos-native"]},
+      "notes": ["Second open reused the running app. The callback failed closed because the canonical bridge was unavailable; no successful callback return, signing or network submission is claimed."]
+    },
+    {
+      "id": "linux-desktop-x64",
+      "ownerSource": "desktop-cli-sdk",
+      "artifactClass": "unsigned-ci-desktop-artifact",
+      "status": "native-ci-lifecycle",
+      "gates": {"build":true,"install":true,"coldLaunch":true,"secondLaunch":true,"testnet":true,"sign":false,"tx":false,"callback":false,"reconnect":false,"downloadHosted":false,"productionSigned":false,"storeReleased":false},
+      "evidenceBindings": {"build":["linux-desktop-action"],"install":["linux-desktop-action"],"coldLaunch":["linux-desktop-action"],"secondLaunch":["linux-desktop-action"],"testnet":["linux-desktop-action"],"sign":["linux-desktop-action"],"tx":["linux-desktop-action"],"callback":["linux-desktop-action"],"reconnect":["linux-desktop-action"],"downloadHosted":["linux-desktop-action"],"productionSigned":["linux-desktop-action"],"storeReleased":["linux-desktop-action"]},
+      "notes": ["GitHub-hosted Ubuntu lifecycle passed for current HEAD. The temporary Actions artifact is not a hosted product download."]
+    },
+    {
+      "id": "windows-desktop-x64",
+      "ownerSource": "desktop-cli-sdk",
+      "artifactClass": "unsigned-ci-desktop-artifact",
+      "status": "native-ci-lifecycle",
+      "gates": {"build":true,"install":true,"coldLaunch":true,"secondLaunch":true,"testnet":true,"sign":false,"tx":false,"callback":false,"reconnect":false,"downloadHosted":false,"productionSigned":false,"storeReleased":false},
+      "evidenceBindings": {"build":["windows-desktop-action"],"install":["windows-desktop-action"],"coldLaunch":["windows-desktop-action"],"secondLaunch":["windows-desktop-action"],"testnet":["windows-desktop-action"],"sign":["windows-desktop-action"],"tx":["windows-desktop-action"],"callback":["windows-desktop-action"],"reconnect":["windows-desktop-action"],"downloadHosted":["windows-desktop-action"],"productionSigned":["windows-desktop-action"],"storeReleased":["windows-desktop-action"]},
+      "notes": ["GitHub-hosted Windows x64 lifecycle passed for current HEAD. No production signature, public hosting or store release is inferred."]
+    },
+    {
+      "id": "linux-cli",
+      "ownerSource": "desktop-cli-sdk",
+      "artifactClass": "unsigned-native-cli-candidate",
+      "status": "native-ci-lifecycle",
+      "gates": {"build":true,"install":true,"coldLaunch":true,"secondLaunch":true,"testnet":true,"sign":true,"tx":false,"callback":false,"reconnect":false,"downloadHosted":false,"productionSigned":false,"storeReleased":false},
+      "evidenceBindings": {"build":["linux-cli-lifecycle"],"install":["linux-cli-lifecycle"],"coldLaunch":["linux-cli-lifecycle"],"secondLaunch":["linux-cli-lifecycle"],"testnet":["linux-cli-lifecycle"],"sign":["linux-cli-lifecycle"],"tx":["linux-cli-lifecycle"],"callback":["linux-cli-lifecycle"],"reconnect":["linux-cli-lifecycle"],"downloadHosted":["linux-cli-lifecycle"],"productionSigned":["linux-cli-lifecycle"],"storeReleased":["linux-cli-lifecycle"]},
+      "notes": ["The signing gate is limited to an ephemeral P-256 device proof; no asset key or transaction signing is claimed."]
+    },
+    {
+      "id": "windows-cli-x64",
+      "ownerSource": "desktop-cli-sdk",
+      "artifactClass": "unsigned-windows-user-installer",
+      "status": "native-ci-lifecycle",
+      "gates": {"build":true,"install":true,"coldLaunch":true,"secondLaunch":true,"testnet":true,"sign":true,"tx":false,"callback":false,"reconnect":false,"downloadHosted":false,"productionSigned":false,"storeReleased":false},
+      "evidenceBindings": {"build":["windows-cli-lifecycle"],"install":["windows-cli-lifecycle"],"coldLaunch":["windows-cli-lifecycle"],"secondLaunch":["windows-cli-lifecycle"],"testnet":["windows-cli-lifecycle"],"sign":["windows-cli-lifecycle"],"tx":["windows-cli-lifecycle"],"callback":["windows-cli-lifecycle"],"reconnect":["windows-cli-lifecycle"],"downloadHosted":["windows-cli-lifecycle"],"productionSigned":["windows-cli-lifecycle"],"storeReleased":["windows-cli-lifecycle"]},
+      "notes": ["Only x64 has native lifecycle evidence. Windows arm64 remains build/static-check only and is not aggregated into this row."]
+    },
+    {
+      "id": "typescript-sdk",
+      "ownerSource": "desktop-cli-sdk",
+      "artifactClass": "unsigned-local-npm-tarball",
+      "status": "clean-consumer-local",
+      "gates": {"build":true,"install":true,"coldLaunch":false,"secondLaunch":false,"testnet":true,"sign":false,"tx":false,"callback":false,"reconnect":false,"downloadHosted":false,"productionSigned":false,"storeReleased":false},
+      "evidenceBindings": {"build":["typescript-sdk-manifest"],"install":["typescript-sdk-manifest"],"coldLaunch":["typescript-sdk-manifest"],"secondLaunch":["typescript-sdk-manifest"],"testnet":["typescript-sdk-manifest"],"sign":["typescript-sdk-manifest"],"tx":["typescript-sdk-manifest"],"callback":["typescript-sdk-manifest"],"reconnect":["typescript-sdk-manifest"],"downloadHosted":["typescript-sdk-manifest"],"productionSigned":["typescript-sdk-manifest"],"storeReleased":["typescript-sdk-manifest"]},
+      "notes": ["A clean consumer imported the packed SDK and read exact chain 0x1917. The package is not published to npm and exposes no automatic signing or transaction success."]
+    }
+  ]
+}

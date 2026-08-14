@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "recordId": "wallet-auth-central-integration-2026-08-14",
+  "productId": "wallet-auth",
+  "owner": "02-wallet-auth-integration",
+  "recordedAt": "2026-08-14T02:35:00Z",
+  "evidenceMatrix": {
+    "path": "release/integration/wallet-auth-release-evidence-matrix.json",
+    "sha256": "7616753a282a5e3b5c21d6dc5e30bb80542382fc91d3ab08721b2cccb3556e5e",
+    "platforms": 11,
+    "gatesPerPlatform": 12,
+    "trueGates": 42,
+    "falseGates": 90,
+    "evidenceRecords": 20
+  },
+  "frozenOwnerSources": {
+    "coreAuthGateway": "e8744e55cb112138f18a5f7d2d9bdced3dc62363",
+    "webPwaExtensions": "86f7dd1dfa7101066d789d4f9d1886c0b14eaf13",
+    "androidApi36": "9f8079be143bbaea13c27c1073d0ae539de3e2ee",
+    "iosMacos": "3150165e14f38031b9a089b029b623f67cd6df85",
+    "desktopCliSdk": "53f2ad8225a5465ba9f4b1e41a69ab8d2c0bccaf"
+  },
+  "pendingOwnerCommits": [
+    "4b7ffa680fab9b56e949c28cea523d0334943b59",
+    "7a6d30bc90f63c52e27340c10334e16c2e774643"
+  ],
+  "releaseState": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": {
+      "edgePwa": true,
+      "androidDisposableQa": true,
+      "macosAdHoc": true,
+      "linuxDesktopX64NativeCi": true,
+      "windowsDesktopX64NativeCi": true,
+      "linuxCliNativeCi": true,
+      "windowsCliX64NativeCi": true,
+      "typescriptSdkCleanConsumer": true,
+      "browserExtension": false,
+      "iosCurrentHead": false
+    },
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "validation": {
+    "matrixVerifier": "scripts/verify/wallet-auth-release-evidence-matrix.mjs",
+    "matrixMutationVectors": "docs/integration/WALLET_AUTH_RELEASE_TEST_VECTORS.json",
+    "matrixMutationTest": "scripts/verify/wallet-auth-release-evidence-matrix.test.mjs",
+    "publicDownloadGate": "scripts/verify/wallet-auth-public-download-metadata-check.mjs"
+  },
+  "limitations": [
+    "The resumed sandbox could not resolve github.com; source commits were frozen only where shared local and origin remote-tracking refs exactly matched.",
+    "The central Integration branch is not committed or pushed while shared Git metadata is read-only, so integratedCentral remains false.",
+    "No candidate qualifies as an immutable public production download."
+  ]
+}

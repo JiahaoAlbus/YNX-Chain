@@ -54,3 +54,13 @@ No consumer may translate these failures into success, paid, settled or refunded
 ## Acceptance gate
 
 Central integration remains false until every applicable dependency row in `DEPENDENCY_ACCEPTANCE.md` has direct evidence and the vectors in `CROSS_PRODUCT_TEST_VECTORS.json` pass against deployed Testnet services. Local tests are not public or central proof.
+
+## Wallet/Auth central release-evidence slice
+
+The Wallet/Auth Integration thread freezes platform release truth in `release/integration/wallet-auth-release-evidence-matrix.json` and documents it in `docs/integration/WALLET_AUTH_RELEASE_EVIDENCE.md`. This slice consumes the five product Owner branches at their recorded remote SHAs; it does not redefine Chain Core network authority or the Wallet/Auth protocol.
+
+Every platform separately tracks build, install, cold launch, second launch, Testnet, signing, transaction, callback, reconnect, hosted download, production signing and store release. A true value requires an explicit direct evidence binding. Simulator, disposable, unpacked, temporary, unsigned and ad-hoc artifacts remain non-production by construction.
+
+Mutation gates are frozen in `docs/integration/WALLET_AUTH_RELEASE_TEST_VECTORS.json` and executed by `node --test scripts/verify/wallet-auth-release-evidence-matrix.test.mjs`. They prove that unsupported true claims, disposable-production promotion, pending-iOS promotion, unknown evidence and hosted-download claims without public download evidence fail closed.
+
+The central machine-readable Release Record is `release/integration/wallet-auth-release-record.json`. Website-facing download candidates are separately held in `release/integration/wallet-auth-public-download-metadata.json`; `scripts/verify/wallet-auth-public-download-metadata-check.mjs` prevents local, temporary, unpacked, disposable, simulator, ad-hoc or unsigned candidates from becoming public download metadata.

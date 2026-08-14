@@ -26,3 +26,17 @@ The product-owned portion is accepted locally only when all of the following pas
 - Backup/restore and migration compatibility checks.
 
 Local acceptance is not central integration, public Testnet proof or production release.
+
+## Wallet/Auth platform evidence acceptance
+
+| Owner delivery | Frozen source | Accepted boundary | Remaining false/pending boundary |
+| --- | --- | --- | --- |
+| Core Auth/Gateway | `e8744e55cb112138f18a5f7d2d9bdced3dc62363` | Bounded public Testnet auth lifecycle and device-proof signing; 15-case completion rejection matrix is local-only | Rejection public route, asset tx, reconnect, native release, production/store |
+| Web/PWA/Extensions | `86f7dd1dfa7101066d789d4f9d1886c0b14eaf13` | Edge-local PWA install, visible first/second windows and exact live `0x1917` RPC | Unpacked extension is not installed; cold process launch, callback, reconnect, hosting, production/store |
+| Android API 36 | `9f8079be143bbaea13c27c1073d0ae539de3e2ee` | Disposable-QA build/install/two cold launches/Testnet identity | Onboarding QA pending; persistent/production signing, tx, callback, reconnect, hosted current artifact |
+| iOS/macOS | `3150165e14f38031b9a089b029b623f67cd6df85` | macOS local ad-hoc lifecycle only | iOS current HEAD lacks an exact successful run record; callback, Testnet, production/store remain false |
+| Desktop/CLI/SDK | `53f2ad8225a5465ba9f4b1e41a69ab8d2c0bccaf` | Linux/Windows x64 native CI lifecycle; CLI proof signing; SDK clean-consumer Testnet read | Asset tx, reconnect, immutable public downloads, production/store |
+
+Acceptance is enforced by `scripts/verify/wallet-auth-release-evidence-matrix.mjs`. GitHub Actions artifacts are temporary retention evidence, not `downloadHosted` product delivery.
+
+Protected local-only continuations Core `4b7ffa680fab9b56e949c28cea523d0334943b59` and Android `7a6d30bc90f63c52e27340c10334e16c2e774643` remain `pushPending=true`, `centralIntegrated=false`, and are not consumed for release truth.
