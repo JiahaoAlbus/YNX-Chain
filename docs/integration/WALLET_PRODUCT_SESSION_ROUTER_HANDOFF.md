@@ -27,7 +27,7 @@ The router opens only `ynxwallet://authorize?request=<base64url canonical JSON>`
 
 The known legacy value `ynx-social` migrates only for the Social registration and becomes `ynx-social://com.ynx.social`. Unknown or cross-product legacy schemes fail with `UNKNOWN_LEGACY_SCHEME`. Known v1 requests can migrate only when their client, bundle, callback, device algorithm, chain and scopes match the same registry entry.
 
-If YNX Wallet is installed, the first option is to open it. If absent, the shared choices include the canonical `/wallet` download route and MetaMask only for registrations marked EVM compatible. Guest / Try always carries the explicit limitations `not-signed-in`, `no-wallet-balance`, `no-transactions`, and `no-chain-authority`.
+If YNX Wallet is installed, the first option is to open it. If absent, the shared choices include the verified official `https://www.ynxweb4.com/dapp/download` download center and MetaMask only for registrations marked EVM compatible. The earlier `/wallet` value was rejected because it redirects to an informational product page rather than the real download center. Guest / Try always carries the explicit limitations `not-signed-in`, `no-wallet-balance`, `no-transactions`, and `no-chain-authority`.
 
 ## Product migration truth
 
@@ -49,4 +49,4 @@ Integration should merge the scoped contract and matrix files, then reconcile v2
 
 ## Release boundary
 
-The scoped branch is pushed to `origin/codex/wallet-session-router-recovery`. Local implementation and automated tests are evidence for `implementedLocal`, `testedLocal`, and `pushedRemote` only. `installedLocal`, `integratedCentral`, `deployedStaging`, `deployedPublic`, `downloadHosted`, `productionSigned`, and `storeReleased` remain false until direct evidence exists.
+The scoped branch is pushed to `origin/codex/wallet-session-router-recovery`. Local implementation and automated tests are evidence for `implementedLocal`, `testedLocal`, and `pushedRemote`. The public release registry and a full artifact back-read prove `downloadHosted` for the Android Testnet Preview only. ComputerControl visibly verified the macOS Wallet Companion's fail-closed `NO SUPPORTED WALLET DETECTED` state, real YNX Wallet and MetaMask choices, and absence of fabricated connection data; no supported installed Wallet was available to validate a real approval/session flow. `installedLocal`, `integratedCentral`, `deployedStaging`, `deployedPublic`, `productionSigned`, and `storeReleased` remain false until direct evidence exists.

@@ -35,14 +35,13 @@
       "remaining": []
     },
     "B_walletSelection": {
-      "status": "implemented-local-not-installed-verified",
+      "status": "implemented-local-download-verified",
       "evidence": [
         "packages/wallet-auth/src/product-session-router.js",
         "packages/wallet-auth/test/product-session-router.test.mjs",
         "packages/wallet-auth/test/product-session-products.test.mjs"
       ],
       "remaining": [
-        "Verify the canonical Wallet download URL on a reachable public deployment",
         "Verify YNX Wallet and MetaMask detection/open behavior in approved installed applications"
       ]
     },
@@ -78,20 +77,20 @@
         "packages/wallet-auth/evidence/product-session-validation-summary.json",
         "packages/wallet-auth/evidence/product-session-visible-proof.json",
         "packages/wallet-auth/evidence/product-session-visible-proof.jsonl",
-        "packages/wallet-auth/evidence/product-session-visible-proof-computercontrol.jpeg"
+        "packages/wallet-auth/evidence/product-session-visible-proof-computercontrol.jpeg",
+        "packages/wallet-auth/evidence/ynx-wallet-installed-unavailable-computercontrol.jpeg"
       ],
       "targetedTests": {
         "passed": 31,
         "failed": 0,
         "concurrentProductSessions": 120
       },
-      "nonLoopbackPackageTests": {
-        "passed": 115,
+      "fullPackageTests": {
+        "passed": 133,
         "failed": 0
       },
       "remaining": [
-        "Loopback host tests require an environment that permits listen(127.0.0.1)",
-        "Computer Control permission is required for YNX Wallet Testnet Companion and MetaMask",
+        "No supported YNX Wallet or MetaMask application was available for a real approval/session flow",
         "Each actually migrated product requires installed Web/desktop/mobile approval, rejection, timeout, revoke, restart, network-loss and Retry evidence"
       ]
     },
@@ -114,7 +113,7 @@
   },
   "completion": false,
   "blockingConditions": [
-    "Computer Control is not approved for installed Wallet applications",
+    "No supported installed Wallet was available for a real approval/session flow",
     "product consumer and native packaging migrations are owned by isolated product/platform tasks"
   ]
 }

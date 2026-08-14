@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-14T03:26:58.536Z",
+  "generatedAt": "2026-08-14T03:57:08.181Z",
   "fixtureBoundary": "LOCAL PROTOCOL FIXTURE — deterministic test keys, no production login, balance, transaction or public deployment claim",
   "protocolVersion": "2",
   "product": {
@@ -105,7 +105,8 @@
     "integratedCentral": false,
     "deployedStaging": false,
     "deployedPublic": false,
-    "downloadHosted": false,
+    "downloadHosted": true,
+    "downloadHostedScope": "Android Testnet Preview artifact only",
     "productionSigned": false,
     "storeReleased": false
   }

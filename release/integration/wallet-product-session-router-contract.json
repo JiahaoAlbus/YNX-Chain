@@ -71,7 +71,16 @@
     "integratedCentral": false,
     "deployedStaging": false,
     "deployedPublic": false,
-    "downloadHosted": false,
+    "downloadHosted": true,
+    "downloadHostedScope": "Android Testnet Preview artifact only",
+    "downloadEvidence": {
+      "center": "https://www.ynxweb4.com/dapp/download",
+      "releaseRegistry": "https://www.ynxweb4.com/releases/ecosystem-release-registry.json",
+      "androidTestnetArtifact": "https://www.ynxweb4.com/downloads/ynx-wallet-1.0.1-testnet-preview-dc31c9a8-test-signed.apk",
+      "bytes": 78392878,
+      "sha256": "fd924ef853cf17d42ca2d36504528ef879c73fcb4b01ea72b1bfe7ae85085fef",
+      "signingClass": "persistent-testnet-release-key"
+    },
     "productionSigned": false,
     "storeReleased": false
   }

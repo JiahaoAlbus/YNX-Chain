@@ -62,7 +62,7 @@ const proofDocument = {
     { id: "post-revoke", label: "Use after revoke", outcome: JSON.parse(revokedResponse.body).error.code, requestId: "req_visible_revoked_001", detail: "Fail closed after restart-safe revocation" },
     { id: "guest", label: "Guest / Try", outcome: "limited", requestId: "local-router-only", detail: guest.limitations.join(", ") }
   ],
-  releaseBoundary: { implementedLocal: true, testedLocal: true, installedLocal: false, integratedCentral: false, deployedStaging: false, deployedPublic: false, downloadHosted: false, productionSigned: false, storeReleased: false }
+  releaseBoundary: { implementedLocal: true, testedLocal: true, installedLocal: false, integratedCentral: false, deployedStaging: false, deployedPublic: false, downloadHosted: true, downloadHostedScope: "Android Testnet Preview artifact only", productionSigned: false, storeReleased: false }
 };
 
 const output = new URL("../evidence/", import.meta.url);

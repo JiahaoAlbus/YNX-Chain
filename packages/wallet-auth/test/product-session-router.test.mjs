@@ -66,7 +66,9 @@ test("known v1 requests migrate into fully bound v2 requests while callback inje
 
 test("Wallet selection prefers installed YNX Wallet and only offers MetaMask for compatible EVM products", () => {
   assert.deepEqual(walletConnectionChoices(registry, "social", { ynxWalletInstalled: true, metaMaskAvailable: true }).map((item) => item.id), ["ynx-wallet", "guest"]);
-  assert.deepEqual(walletConnectionChoices(registry, "social", { ynxWalletInstalled: false, metaMaskAvailable: true }).map((item) => item.id), ["download-ynx-wallet", "guest"]);
+  const socialMissing = walletConnectionChoices(registry, "social", { ynxWalletInstalled: false, metaMaskAvailable: true });
+  assert.deepEqual(socialMissing.map((item) => item.id), ["download-ynx-wallet", "guest"]);
+  assert.equal(socialMissing[0].url, "https://www.ynxweb4.com/dapp/download");
   assert.deepEqual(walletConnectionChoices(registry, "dex", { ynxWalletInstalled: false, metaMaskAvailable: true }).map((item) => item.id), ["download-ynx-wallet", "metamask", "guest"]);
   const guest = walletConnectionChoices(registry, "dex", { ynxWalletInstalled: false, metaMaskAvailable: false }).at(-1);
   assert.deepEqual(guest.limitations, ["not-signed-in", "no-wallet-balance", "no-transactions", "no-chain-authority"]);
