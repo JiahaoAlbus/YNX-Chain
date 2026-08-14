@@ -37,13 +37,13 @@
         "coverage": "exact",
         "failure": false
       },
-      "chainCoreContractVersion": "1.24.0",
-      "chainCoreSourceCommit": "f544eff9d20f9db3834d25b4a6f6737e367d1e0b",
-      "chainCoreContractCommit": "fef6c84e9bb30ebfc57f7a30123b4976096c9b61",
+      "chainCoreContractVersion": "1.25.0",
+      "chainCoreSourceCommit": "503e06d06ca3f45eb189a5eafbfbf17c42df4fa6",
+      "chainCoreContractCommit": "8f385d975cd4e64d87fbb02b268e8d969e64d05c",
       "chainCoreLocalDelivery": {
-        "bundle": "release/local-delivery/chain-core-data-commitment-v24.bundle",
-        "sha256": "0ed809a89ec06757f1cfc4ddba8701c2e72e9296326ea01558afbed07c60d7aa",
-        "bytes": 71070452,
+        "bundle": "release/local-delivery/chain-core-data-commitment-v25.bundle",
+        "sha256": "ea1f144accefe36844260cf2c6fdb68374e0971c1dbb592a6ea63bd3bdeec8ed",
+        "bytes": 84361500,
         "verified": true,
         "public": false,
         "deployed": false
@@ -52,7 +52,7 @@
         "serviceCount": 13,
         "publicSmokeFailsClosed": true,
         "candidateGatewayExactBuildIdentity": true,
-        "integrationVectorCount": 99,
+        "integrationVectorCount": 100,
         "additiveMandateBoundStrategyExecution": true,
         "bulkDataCommitmentSemanticsChanged": false,
         "publicRuntimeMatchesSource": false,
@@ -67,7 +67,16 @@
           "worstCaseIntersectionLowerBoundIncludesHonestValidator": true,
           "finiteCasesChecked": 57619
         },
-        "notProvenByThisEvidence": ["full-state-machine-safety", "independent-tlc-or-apalache", "differential-replay", "wan-soak", "public-promotion"]
+        "candidateEngineExecutionReplay": {
+          "traceCount": 128,
+          "generatedTransactionCount": 12288,
+          "executionCount": 2048,
+          "workerCounts": [1, 2, 4, 8, 16],
+          "inputOrders": ["canonical", "reverse", "deterministic-shuffle"],
+          "matched": ["state", "state-root", "resource-accounting", "parallel-applied-order"],
+          "scope": "local-candidate-engine-only"
+        },
+        "notProvenByThisEvidence": ["full-state-machine-safety", "cometbft-or-public-differential-replay", "independent-tlc-or-apalache", "wan-soak", "public-promotion"]
       },
       "failurePolicy": "reject-before-event-store-mutation",
       "writeOwner": "derived-by-Chain-Core-from-transaction-signer-never-accepted-from-event",

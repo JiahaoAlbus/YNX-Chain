@@ -42,7 +42,7 @@
         "engineering source commit 4bb2ddfb6337e44060f57adafc7ee1cc08faedbe is on remote review branch codex/data-fabric-typescript-sdk-20260814",
         "GitHub Actions engineering run 31797308684 passed the PostgreSQL job at exact source and generated the three-replica stream-leader-loss receipt; final evidence-head run 31799837096 passed both jobs at v24-bound head 54c8bc0e16a5a5b3bf6321d041f8b35fea871fbb",
         "exact-source PostgreSQL resilience, 1000 signed Producer PostgreSQL-to-JetStream, consumer-process-crash, transport-backpressure and three-replica leader-loss JSON was downloaded and SHA-256 verified",
-        "Chain Core v1.24.0 bundle was imported to refs/remotes/chain-core/v24 and its SHA-256, bytes, ref and required base were verified",
+        "Chain Core v1.25.0 bundle was imported to refs/remotes/chain-core/v25 and its SHA-256, bytes, ref and required base were verified",
         "complete verified prior Git bundles and SHA-256 manifest exist",
         "protected target requires one independent approval"
       ],
@@ -52,7 +52,7 @@
         "go test -race ./internal/datafabric ./internal/datafabricnats ./internal/datafabricpostgres ./scripts/data-fabric/postgres-resilience",
         "TestJetStreamThreeReplicaLeaderLossRetainsOutboxAndRecovers repeated 10 times and under the race detector",
         "GitHub Actions run 31797308684 PostgreSQL job and final run 31799837096 both jobs",
-        "git bundle verify chain-core-data-commitment-v24.bundle",
+        "git bundle verify chain-core-data-commitment-v25.bundle",
         "git bundle verify and shasum -a 256 -c SHA256SUMS"
       ],
       "artifact": null,
