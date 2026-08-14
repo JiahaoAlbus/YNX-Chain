@@ -1,0 +1,135 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "7d569d1babb85e6d28bb6bfc3b3c0c5fd828255d",
+  "generatedAt": "2026-08-14T05:45:23.170Z",
+  "gateClass": "exact built-PWA manifest, PNG, integrity map and executable policy inspection; not a browser install or launch",
+  "artifact": {
+    "name": "ynx-wallet-web-pwa-0.1.0.zip",
+    "bytes": 269897,
+    "sha256": "eba52c4282cd52b55c54587a08e656c58ac5c0974f3178493f49c1282193fe8a",
+    "signingClass": "unsigned-web-bundle"
+  },
+  "sourceLogo": {
+    "name": "ynx logo 扣过.png",
+    "sha256": "38196080c2d56746fb37094abe68d1d89eabd8a2b29ab4f17bae48ac7e3effde",
+    "dimensions": "1254x1254",
+    "aspectRatioPreserved": true
+  },
+  "manifest": {
+    "id": "/wallet/companion",
+    "startUrl": "./",
+    "scope": "./",
+    "display": "standalone",
+    "lang": "en",
+    "dir": "auto",
+    "icons": [
+      {
+        "src": "./ynx-icon-192.png",
+        "sizes": "192x192",
+        "type": "image/png",
+        "purpose": "any"
+      },
+      {
+        "src": "./ynx-icon-512.png",
+        "sizes": "512x512",
+        "type": "image/png",
+        "purpose": "any"
+      },
+      {
+        "src": "./ynx-icon-maskable-512.png",
+        "sizes": "512x512",
+        "type": "image/png",
+        "purpose": "maskable"
+      }
+    ],
+    "exactIcons": true
+  },
+  "icons": [
+    {
+      "name": "ynx-icon-192.png",
+      "bytes": 9838,
+      "sha256": "02bd7b202a6683d83bbe4b17c246afc969b43284ee945e97167d9606e6df04af",
+      "width": 192,
+      "height": 192,
+      "format": "png",
+      "alphaBounds": {
+        "minX": 35,
+        "minY": 64,
+        "maxX": 156,
+        "maxY": 127,
+        "width": 122,
+        "height": 64,
+        "widthFraction": 0.6354166666666666,
+        "heightFraction": 0.3333333333333333
+      },
+      "exactDimensions": true
+    },
+    {
+      "name": "ynx-icon-512.png",
+      "bytes": 45914,
+      "sha256": "5a6fb80c48a2047ad5632cf0b69f410ebaefd8aff0bb3da7dce28c1ce8c992c7",
+      "width": 512,
+      "height": 512,
+      "format": "png",
+      "alphaBounds": {
+        "minX": 94,
+        "minY": 170,
+        "maxX": 419,
+        "maxY": 341,
+        "width": 326,
+        "height": 172,
+        "widthFraction": 0.63671875,
+        "heightFraction": 0.3359375
+      },
+      "exactDimensions": true
+    },
+    {
+      "name": "ynx-icon-maskable-512.png",
+      "bytes": 45914,
+      "sha256": "5a6fb80c48a2047ad5632cf0b69f410ebaefd8aff0bb3da7dce28c1ce8c992c7",
+      "width": 512,
+      "height": 512,
+      "format": "png",
+      "alphaBounds": {
+        "minX": 94,
+        "minY": 170,
+        "maxX": 419,
+        "maxY": 341,
+        "width": 326,
+        "height": 172,
+        "widthFraction": 0.63671875,
+        "heightFraction": 0.3359375
+      },
+      "exactDimensions": true
+    }
+  ],
+  "maskableSafeZoneProved": true,
+  "serviceWorker": {
+    "registered": true,
+    "cacheVersion": "ynx-wallet-web-v5",
+    "secondLaunchShellPolicy": "navigation-network-first"
+  },
+  "integrityIconsPresent": true,
+  "localization": {
+    "defaultEnglish": true,
+    "localeCount": 12,
+    "arabicRtl": true,
+    "rtlDriven": true
+  },
+  "presentation": {
+    "responsive390": true,
+    "lightDark": true
+  },
+  "passed": true,
+  "installedLocal": false,
+  "firstLaunchInstalled": false,
+  "secondLaunchInstalled": false,
+  "providerConnected": false,
+  "accountAuthorized": false,
+  "messageSigned": false,
+  "transactionSubmitted": false,
+  "deployedPublic": false,
+  "downloadHosted": false,
+  "productionSigned": false,
+  "storeReleased": false
+}

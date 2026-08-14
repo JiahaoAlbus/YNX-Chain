@@ -28,3 +28,13 @@ test("390px RTL dark and large-text preview contracts remain buildable", async (
   assert.match(accessibility,/\.wallets a/);
   assert.match(accessibility,/min-height: 44px/);
 });
+
+test("PWA manifest declares exact standalone identity and real-logo icon sizes", async () => {
+  const manifest=JSON.parse(await readFile(new URL("../public/manifest.webmanifest",import.meta.url),"utf8"));
+  assert.deepEqual({id:manifest.id,start_url:manifest.start_url,scope:manifest.scope,display:manifest.display,lang:manifest.lang,dir:manifest.dir},{id:"/wallet/companion",start_url:"./",scope:"./",display:"standalone",lang:"en",dir:"auto"});
+  assert.deepEqual(manifest.icons,[
+    {src:"./ynx-icon-192.png",sizes:"192x192",type:"image/png",purpose:"any"},
+    {src:"./ynx-icon-512.png",sizes:"512x512",type:"image/png",purpose:"any"},
+    {src:"./ynx-icon-maskable-512.png",sizes:"512x512",type:"image/png",purpose:"maskable"},
+  ]);
+});

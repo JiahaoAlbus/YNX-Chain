@@ -81,7 +81,11 @@ offline fallback, static assets never receive HTML as a substitute, and RPC
 POSTs plus external Wallet download routes remain network-only. Returning from
 offline mode never restores chain authority from cache: a fresh live `0x1917`
 RPC response is still required.
-The build also freezes SHA-256 digests for every cached shell asset. Cache v4
+Its standalone manifest declares explicit 192px and 512px PNG icons plus a
+dedicated 512px maskable icon, all proportionally derived from the checked-in
+1254px transparent YNX logo. The icon alpha bounds stay inside the maskable
+safe zone, and all icon bytes are part of the versioned shell integrity map.
+The build also freezes SHA-256 digests for every cached shell asset. Cache v5
 serves only current-cache bytes matching those digests, rejects and deletes
 tampered entries, and removes only obsolete `ynx-wallet-web-v*` caches without
 touching unrelated products. Missing current bytes fail closed with HTTP 503;

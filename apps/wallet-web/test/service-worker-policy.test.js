@@ -7,7 +7,7 @@ const origin = "https://wallet.ynxweb4.com";
 const request = (url, method="GET", mode="cors") => ({url,method,mode});
 
 test("PWA routes only same-origin GET navigation and assets into cache strategies", () => {
-  assert.equal(PWA_CACHE,"ynx-wallet-web-v4");
+  assert.equal(PWA_CACHE,"ynx-wallet-web-v5");
   assert.equal(serviceWorkerRoute(request(`${origin}/wallet`,"GET","navigate"),origin),"navigation-network-first");
   assert.equal(serviceWorkerRoute(request(`${origin}/app.js`),origin),"asset-cache-first");
   assert.equal(serviceWorkerRoute(request("https://evm.ynxweb4.com","POST"),origin),"network-only");

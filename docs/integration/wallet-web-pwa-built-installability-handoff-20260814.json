@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "owner": "wallet-web-pwa-extensions",
+  "sourceBaseline": "7d569d1babb85e6d28bb6bfc3b3c0c5fd828255d",
+  "evidenceClass": "exact built-PWA manifest, PNG, integrity map and executable policy inspection; not a browser installation",
+  "manifest": {
+    "id": "/wallet/companion",
+    "startUrl": "./",
+    "scope": "./",
+    "display": "standalone",
+    "defaultLanguage": "en",
+    "direction": "auto"
+  },
+  "logo": {
+    "source": "/Users/huangjiahao/Downloads/ynx logo 扣过.png",
+    "sha256": "38196080c2d56746fb37094abe68d1d89eabd8a2b29ab4f17bae48ac7e3effde",
+    "dimensions": "1254x1254",
+    "aspectRatioPreserved": true,
+    "maskableSafeZoneProved": true
+  },
+  "icons": [
+    {"path": "ynx-icon-192.png", "dimensions": "192x192", "purpose": "any"},
+    {"path": "ynx-icon-512.png", "dimensions": "512x512", "purpose": "any"},
+    {"path": "ynx-icon-maskable-512.png", "dimensions": "512x512", "purpose": "maskable"}
+  ],
+  "serviceWorker": {
+    "cacheVersion": "ynx-wallet-web-v5",
+    "iconsIntegrityProtected": true,
+    "secondLaunchNavigationPolicy": "network-first with integrity-checked cached shell fallback",
+    "cachedChainAuthority": false
+  },
+  "presentationContracts": {
+    "localeCount": 12,
+    "arabicRtl": true,
+    "responsive390": true,
+    "lightDark": true
+  },
+  "evidence": "apps/wallet-web/evidence/runtime/pwa-built-installability-20260814.json",
+  "mustRemainFalse": {
+    "installedLocal": false,
+    "firstLaunchInstalled": false,
+    "secondLaunchInstalled": false,
+    "providerConnected": false,
+    "accountAuthorized": false,
+    "messageSigned": false,
+    "transactionSubmitted": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}
