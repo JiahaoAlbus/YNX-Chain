@@ -100,7 +100,7 @@ func (s *Store) normalize() {
 	normalizeState(&s.data)
 }
 func normalizeState(state *State) {
-	if state.SchemaVersion == 0 {
+	if state.SchemaVersion < StateSchemaVersion {
 		state.SchemaVersion = StateSchemaVersion
 	}
 	if state.Users == nil {

@@ -133,31 +133,34 @@ func TestCalendarLegacyStateSchemaNormalizesAndFutureSchemaFailsClosed(t *testin
 	if err != nil {
 		t.Fatal(err)
 	}
-	legacy := emptyState()
-	legacy.SchemaVersion = 0
-	legacyBytes, err := json.Marshal(legacy)
-	if err != nil {
-		t.Fatal(err)
-	}
-	legacyEnvelope := diskEnvelope{SchemaVersion: 1, State: legacyBytes, HMAC: base64.RawURLEncoding.EncodeToString(hmacSHA256(store.key, legacyBytes))}
-	encodedLegacy, err := json.Marshal(legacyEnvelope)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err = os.WriteFile(path, encodedLegacy, 0o600); err != nil {
-		t.Fatal(err)
-	}
-	reloaded, err := NewStore(path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err = reloaded.view(func(state State) error {
-		if state.SchemaVersion != StateSchemaVersion {
-			t.Fatalf("legacy Calendar state schema was not normalized: %d", state.SchemaVersion)
+	for _, version := range []int{0, 1} {
+		legacy := emptyState()
+		legacy.SchemaVersion = version
+		legacy.CanonicalOutbox = nil
+		legacyBytes, err := json.Marshal(legacy)
+		if err != nil {
+			t.Fatal(err)
 		}
-		return nil
-	}); err != nil {
-		t.Fatal(err)
+		legacyEnvelope := diskEnvelope{SchemaVersion: 1, State: legacyBytes, HMAC: base64.RawURLEncoding.EncodeToString(hmacSHA256(store.key, legacyBytes))}
+		encodedLegacy, err := json.Marshal(legacyEnvelope)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err = os.WriteFile(path, encodedLegacy, 0o600); err != nil {
+			t.Fatal(err)
+		}
+		reloaded, err := NewStore(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err = reloaded.view(func(state State) error {
+			if state.SchemaVersion != StateSchemaVersion || state.CanonicalOutbox == nil {
+				t.Fatalf("legacy Calendar state schema %d was not normalized: %+v", version, state)
+			}
+			return nil
+		}); err != nil {
+			t.Fatal(err)
+		}
 	}
 
 	future := emptyState()

@@ -966,7 +966,7 @@ func TestBoundariesRecoveryAIAndHTTPTruth(t *testing.T) {
 	}
 	version := httptest.NewRecorder()
 	h.ServeHTTP(version, httptest.NewRequest(http.MethodGet, "/v1/version", nil))
-	if version.Code != 200 || !strings.Contains(version.Body.String(), `"state_schema_version":1`) {
+	if version.Code != 200 || !strings.Contains(version.Body.String(), `"state_schema_version":2`) {
 		t.Fatalf("version truth missing: %s", version.Body.String())
 	}
 	metrics := httptest.NewRecorder()

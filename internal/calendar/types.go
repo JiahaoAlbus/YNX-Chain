@@ -12,7 +12,7 @@ const (
 	CallbackURL             = "ynxcalendar://wallet-auth/callback"
 	RequiredScope           = "calendar:account"
 	RecoveryScope           = "calendar:recover"
-	StateSchemaVersion      = 1
+	StateSchemaVersion      = 2
 	RecurrenceSchemaVersion = 1
 )
 
