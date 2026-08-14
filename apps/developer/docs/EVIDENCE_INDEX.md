@@ -8,6 +8,13 @@
   transaction archives raw network/ACL JSON and the normalized review result.
   This is implementation evidence only; the production objects remain absent
   until the operator explicitly approves their creation.
+- Public package persistence gate: `scripts/live-package-install-check.mjs`
+  installs exact npm/Python dependencies, validates disabled npm scripts and
+  SHA-256-bound binary wheels, runs both with the task network disabled, persists
+  all three lock/manifest files, and repeats both imports after a service restart.
+  `test/package-public-gate.test.js` exercises prepare/resume and cleanup against
+  the HTTP contract; the deployment transaction separately captures LXD device
+  inventories and fails on any residual temporary package NIC.
 
 ## Current recovery audit
 

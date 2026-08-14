@@ -40,9 +40,22 @@ test("public candidate transaction is exact-source, preflighted and rollback-saf
   assert.match(transaction, /ln -sfn "\$previous_target" "\$current_link"/);
   assert.match(transaction, /lxc image delete "\$image_fingerprint"/);
   assert.match(transaction, /live-container-check\.mjs/);
+  assert.match(transaction, /live-package-install-check\.mjs prepare/);
+  assert.match(transaction, /package-devices-after-install\.json/);
+  assert.match(transaction, /Temporary package egress remains attached/);
   assert.match(transaction, /live-public-candidate-check\.mjs prepare/);
   assert.match(transaction, /systemctl restart "\$service"/);
   assert.match(transaction, /live-public-candidate-check\.mjs resume/);
+  assert.match(transaction, /live-package-install-check\.mjs resume/);
+  assert.match(transaction, /package-devices-after-restart\.json/);
+  assert.ok(
+    transaction.indexOf("live-package-install-check.mjs prepare") <
+      transaction.indexOf('systemctl restart "$service"'),
+  );
+  assert.ok(
+    transaction.indexOf('systemctl restart "$service"') <
+      transaction.indexOf("live-package-install-check.mjs resume"),
+  );
   assert.match(transaction, /https:\/\/developer\.ynxweb4\.com\/healthz/);
   assert.doesNotMatch(transaction, /PRIVATE KEY|mnemonic|seed phrase/);
   assert.doesNotMatch(transaction, /cp -a "\$backup_(?:dir|tar)".*"\$state_dir"/);

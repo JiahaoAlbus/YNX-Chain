@@ -22,6 +22,7 @@ release="0.2.0-testnet-preview-$short_commit-candidate"
 transaction_id="$(date -u +%Y%m%dT%H%M%SZ)-$short_commit"
 transaction_dir="$evidence_root/$transaction_id"
 staging_dir="$candidate_root/.staging-$transaction_id"
+package_probe_state="$state_dir/.package-persistence-probe-$transaction_id"
 rollback_dir="/run/ynx-code-deploy-$transaction_id"
 backup_tar="$rollback_dir/state-before.tar"
 env_backup="$rollback_dir/ynx-code-candidate.env.before"
@@ -35,6 +36,18 @@ completed=false
 
 fail() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
 require() { command -v "$1" >/dev/null 2>&1 || fail "required command missing: $1"; }
+assert_package_egress_detached() {
+  local evidence_file=$1
+  lxc query '/1.0/instances?recursion=1' > "$evidence_file"
+  node - "$evidence_file" <<'NODE'
+const fs=require("node:fs"),value=JSON.parse(fs.readFileSync(process.argv[2],"utf8")),instances=value?.metadata;
+if(!Array.isArray(instances))throw new Error("LXD instance inventory is invalid");
+for(const instance of instances){
+  const devices={...(instance.devices||{}),...(instance.expanded_devices||{})};
+  if(Object.hasOwn(devices,"ynx-package-egress"))throw new Error(`Temporary package egress remains attached to ${instance.name||"an instance"}`);
+}
+NODE
+}
 cleanup_staging() {
   if [[ -d $staging_dir ]]; then
     find "$staging_dir" -depth -delete
@@ -125,6 +138,10 @@ rollback() {
     fi
     systemctl daemon-reload || true
     systemctl start "$service" || true
+    if [[ -f $package_probe_state ]]; then
+      YNX_CODE_CHECK_BASE=http://127.0.0.1:18113 YNX_CODE_CHECK_STATE="$package_probe_state" \
+        node "$repo_dir/apps/developer/scripts/live-package-install-check.mjs" cleanup || true
+    fi
     printf 'rolled-back\n' > "$transaction_dir/result.txt"
   fi
   exit "$status"
@@ -161,9 +178,13 @@ YNX_CODE_CHECK_BASE=http://127.0.0.1:18113 node scripts/live-container-check.mjs
 YNX_CODE_CHECK_BASE=http://127.0.0.1:18113 node scripts/live-chain-tools-check.mjs | tee "$transaction_dir/live-chain.log"
 YNX_CODE_CHECK_BASE=http://127.0.0.1:18113 node scripts/live-wallet-readiness-check.mjs | tee "$transaction_dir/live-wallet.log"
 YNX_CODE_CHECK_BASE=http://127.0.0.1:18113 node scripts/live-public-candidate-check.mjs | tee "$transaction_dir/live-public.log"
+YNX_CODE_CHECK_BASE=http://127.0.0.1:18113 YNX_CODE_CHECK_STATE="$package_probe_state" node scripts/live-package-install-check.mjs prepare | tee "$transaction_dir/package-prepare.log"
+assert_package_egress_detached "$transaction_dir/package-devices-after-install.json"
 YNX_CODE_CHECK_BASE=http://127.0.0.1:18113 YNX_CODE_CHECK_STATE="$state_dir/.persistence-probe-$transaction_id" node scripts/live-public-candidate-check.mjs prepare | tee "$transaction_dir/restart-prepare.log"
 systemctl restart "$service"
 YNX_CODE_CHECK_BASE=http://127.0.0.1:18113 YNX_CODE_CHECK_STATE="$state_dir/.persistence-probe-$transaction_id" node scripts/live-public-candidate-check.mjs resume | tee "$transaction_dir/restart-resume.log"
+YNX_CODE_CHECK_BASE=http://127.0.0.1:18113 YNX_CODE_CHECK_STATE="$package_probe_state" node scripts/live-package-install-check.mjs resume | tee "$transaction_dir/package-resume.log"
+assert_package_egress_detached "$transaction_dir/package-devices-after-restart.json"
 
 systemctl is-active --quiet "$service"
 curl -fsS --max-time 10 https://developer.ynxweb4.com/healthz > "$transaction_dir/public-health.json"

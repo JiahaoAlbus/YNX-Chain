@@ -11,6 +11,12 @@
   ACL JSON plus a normalized review result before dependency installation,
   image creation, service stop or symlink mutation. A missing or changed network
   fails without touching the running public candidate.
+- The same transaction now performs real exact npm and Python installs in one
+  owner-bound LXD lease, runs both dependencies with runtime networking disabled,
+  persists `package.json`, `package-lock.json` and the SHA-256-bound
+  `requirements.ynx.lock`, restarts the service, reruns both dependencies, and
+  removes the probe lease. Pre/post-restart LXD inventories reject any remaining
+  `ynx-package-egress` NIC.
 - `PACKAGE_EGRESS_NETWORK.md` contains the exact proposed creation, verification
   and unused-object rollback transaction. It remains unapplied pending explicit
   production-owner approval; the default `lxdbr0` is not accepted. Feature

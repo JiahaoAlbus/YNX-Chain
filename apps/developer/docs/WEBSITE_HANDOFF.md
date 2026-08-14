@@ -42,6 +42,10 @@ The pending production transaction additionally requires the fixed
 `ynx-code-package-egress` bridge to pass its default-reject DNS/HTTPS-only ACL
 verifier before any service or release mutation. The network is not yet present
 and the default LXD bridge is not an acceptable substitute.
+After the candidate starts, the transaction must also install and run one exact
+npm package and one SHA-256-bound Python wheel, restart the service, rerun both
+with task networking disabled, verify the persisted locks, and prove no temporary
+package NIC remains. Local/mock gates do not replace that production evidence.
 These capabilities must remain labelled
 `pending public verification` until the protected Developer candidate transaction
 returns `passed`, the public `/healthz` version matches the exact deployed commit,
