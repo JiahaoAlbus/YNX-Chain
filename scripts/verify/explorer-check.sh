@@ -6,6 +6,10 @@ cd "$(dirname "$0")/../.."
 source scripts/verify/lib-local-testnet.sh
 ynx_start_local_testnet
 cleanup() {
+  if [[ -n "${sampler_pid:-}" ]]; then
+    kill "$sampler_pid" >/dev/null 2>&1 || true
+    wait "$sampler_pid" >/dev/null 2>&1 || true
+  fi
   if [[ -n "${explorer_pid:-}" ]]; then
     ynx_kill_tree "$explorer_pid"
   fi
@@ -23,6 +27,29 @@ explorer_url="http://127.0.0.1:6437"
 start_explorer() {
   YNX_EXPLORER_RPC_URL="$YNX_REST_URL" YNX_EXPLORER_INDEXER_URL="$indexer_url" YNX_EXPLORER_HTTP_ADDR=127.0.0.1:6437 YNX_EXPLORER_PUBLIC_RPC_URL="$YNX_REST_URL" YNX_EXPLORER_PUBLIC_URL="$explorer_url" go run ./cmd/ynx-explorerd >"$work/explorer.log" 2>&1 &
   explorer_pid=$!
+}
+tree_rss_kib() {
+  local root_pid="$1"
+  local total_rss
+  local child_pid
+  local child_rss
+  total_rss="$(ps -o rss= -p "$root_pid" 2>/dev/null | awk '{sum += $1} END {print sum+0}')"
+  while read -r child_pid; do
+    [[ -n "$child_pid" ]] || continue
+    child_rss="$(ps -o rss= -p "$child_pid" 2>/dev/null | awk '{sum += $1} END {print sum+0}')"
+    total_rss=$((total_rss + child_rss))
+  done < <(pgrep -P "$root_pid" 2>/dev/null || true)
+  printf '%s\n' "$total_rss"
+}
+indexer_store_bytes() {
+  local store_file
+  local total_bytes=0
+  for store_file in "$db" "$db.journal"; do
+    if [[ -f "$store_file" ]]; then
+      total_bytes=$((total_bytes + $(wc -c <"$store_file" | tr -d ' ')))
+    fi
+  done
+  printf '%s\n' "$total_bytes"
 }
 
 curl -fsS -X POST "$YNX_REST_URL/faucet" -H 'content-type: application/json' -d '{"address":"ynx_explorer_alice","amount":1000}' >/dev/null
@@ -96,6 +123,19 @@ grep -Eq '"sseReconnects": [1-9][0-9]*' "$work/explorer-recovery.json"
 grep -Eq '"sseRecoveries": [1-9][0-9]*' "$work/explorer-recovery.json"
 grep -Eq '"sseRecoveryMillis": [1-9][0-9]*(\.[0-9]+)?' "$work/explorer-recovery.json"
 
+store_bytes_before="$(indexer_store_bytes)"
+rss_samples="$work/explorer-runtime-rss.txt"
+(
+  while kill -0 "$explorer_pid" >/dev/null 2>&1 && kill -0 "$indexer_pid" >/dev/null 2>&1; do
+    explorer_rss="$(tree_rss_kib "$explorer_pid")"
+    indexer_rss="$(tree_rss_kib "$indexer_pid")"
+    if [[ -n "$explorer_rss" && -n "$indexer_rss" ]]; then
+      printf '%s %s\n' "$explorer_rss" "$indexer_rss"
+    fi
+    sleep 0.2
+  done
+) >"$rss_samples" &
+sampler_pid=$!
 go run ./cmd/ynx-explorer-load \
   --base-url "$explorer_url" \
   --allow-http-local \
@@ -107,6 +147,27 @@ go run ./cmd/ynx-explorer-load \
   --timeout 3s >"$work/explorer-search-storm.json"
 grep -Fq '"errorRate": 0' "$work/explorer-search-storm.json"
 grep -Fq '"sseErrors": 0' "$work/explorer-search-storm.json"
+kill "$sampler_pid" >/dev/null 2>&1 || true
+wait "$sampler_pid" >/dev/null 2>&1 || true
+sampler_pid=""
+explorer_rss_max="$(awk '{if ($1 > max) max=$1} END {print max+0}' "$rss_samples")"
+indexer_rss_max="$(awk '{if ($2 > max) max=$2} END {print max+0}' "$rss_samples")"
+store_bytes_after="$(indexer_store_bytes)"
+node - "$explorer_rss_max" "$indexer_rss_max" "$store_bytes_before" "$store_bytes_after" <<'NODE' >"$work/explorer-runtime.json"
+const [explorerRSSKiB,indexerRSSKiB,storeBytesBefore,storeBytesAfter] = process.argv.slice(2).map(Number);
+console.log(JSON.stringify({
+  schema:'ynx.explorer.runtime.v1',
+  checkedAt:new Date().toISOString(),
+  explorerMaxRSSKiB:explorerRSSKiB,
+  indexerMaxRSSKiB:indexerRSSKiB,
+  indexerStoreBytesBefore:storeBytesBefore,
+  indexerStoreBytesAfter:storeBytesAfter,
+  indexerStoreGrowthBytes:storeBytesAfter-storeBytesBefore,
+},null,2));
+NODE
+grep -Eq '"explorerMaxRSSKiB": [1-9][0-9]*' "$work/explorer-runtime.json"
+grep -Eq '"indexerMaxRSSKiB": [1-9][0-9]*' "$work/explorer-runtime.json"
+grep -Eq '"indexerStoreGrowthBytes": [0-9]+' "$work/explorer-runtime.json"
 
 html="$(curl -fsS "$explorer_url/")"
 grep -Fq "Open MetaMask compatibility" <<<"$html"
