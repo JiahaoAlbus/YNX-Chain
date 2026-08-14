@@ -53,8 +53,21 @@
     "fallback": "none",
     "idempotentRoutes": ["/v2/product-sessions/challenge", "/v2/product-sessions/complete"]
   },
+  "providerDiscovery": {
+    "implementation": "discoverWalletProviders",
+    "packageSubpath": "@ynx-chain/wallet-auth/wallet-provider-discovery",
+    "protocols": ["EIP-6963", "legacy injected EIP-1193"],
+    "ynxRdnsAllowlist": ["com.ynx.wallet", "com.ynx.wallet.companion"],
+    "ynxPriority": true,
+    "ambiguousSameKind": "fail closed without auto-selection",
+    "duplicateAnnouncementUuid": "reject conflicted UUID",
+    "authority": "unverified-injected-candidate",
+    "availabilityAdapter": "walletAvailabilityFromDiscovery",
+    "identityAuthority": false
+  },
   "metaMaskEvmConnection": {
     "adapter": "MetaMaskEvmConnectionAdapter",
+    "packageSubpath": "@ynx-chain/wallet-auth/metamask-evm",
     "eligibleProducts": "registry evmCompatible=true only",
     "provider": "explicit MetaMask EIP-1193 provider",
     "chainId": 6423,
@@ -89,6 +102,7 @@
   },
   "tests": [
     "packages/wallet-auth/test/metamask-evm-adapter.test.mjs",
+    "packages/wallet-auth/test/wallet-provider-discovery.test.mjs",
     "packages/wallet-auth/test/product-session-gateway.test.mjs",
     "packages/wallet-auth/test/product-session-gateway-client.test.mjs",
     "packages/wallet-auth/test/product-session-gateway-http.test.mjs",

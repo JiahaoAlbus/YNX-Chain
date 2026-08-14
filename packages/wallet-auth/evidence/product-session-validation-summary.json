@@ -1,19 +1,19 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-08-14T05:36:53.000Z",
+  "capturedAt": "2026-08-14T05:54:21.000Z",
   "scope": "local Product Session v2 protocol and router validation",
   "registrySchemaVersion": 2,
   "branch": "codex/wallet-session-router-recovery",
   "sourceBaseline": "2a78ace0a647b73dd2961fae3361189116453a7d",
   "targetedTest": {
-    "command": "node --test test/metamask-evm-adapter.test.mjs test/product-session-gateway-client.test.mjs test/product-session-gateway-http.test.mjs test/product-session-gateway.test.mjs test/product-session-migration.test.mjs test/product-session-products.test.mjs test/product-session-recovery.test.mjs test/product-session-router.test.mjs test/product-session-v2.test.mjs",
-    "passed": 57,
+    "command": "node --test test/metamask-evm-adapter.test.mjs test/wallet-provider-discovery.test.mjs test/product-session-gateway-client.test.mjs test/product-session-gateway-http.test.mjs test/product-session-gateway.test.mjs test/product-session-migration.test.mjs test/product-session-products.test.mjs test/product-session-recovery.test.mjs test/product-session-router.test.mjs test/product-session-v2.test.mjs",
+    "passed": 66,
     "failed": 0,
     "concurrentSessions": 120
   },
   "fullPackageTest": {
     "command": "npm test",
-    "passed": 159,
+    "passed": 168,
     "failed": 0,
     "exitCode": 0
   },
@@ -21,8 +21,8 @@
     "command": "npm_config_cache=<isolated-temp-cache> npm pack --dry-run",
     "exitCode": 0,
     "version": "1.1.0",
-    "files": 58,
-    "shasum": "04188ce81065ed21b6d3e8043e8fcd971c9ee177"
+    "files": 59,
+    "shasum": "57204c071b03c0a8b58249edaa8f7fbe03006774"
   },
   "deviceSecretBoundary": {
     "clientLocalSigning": [
@@ -68,6 +68,21 @@
     "url": "https://metamask.io/download",
     "officialPageVerifiedAt": "2026-08-14T04:02:00.000Z",
     "availabilityRule": "EVM-compatible products show a real MetaMask option even when MetaMask must first be installed"
+  },
+  "walletProviderDiscovery": {
+    "implementation": "src/wallet-provider-discovery.js",
+    "packageSubpath": "@ynx-chain/wallet-auth/wallet-provider-discovery",
+    "protocols": ["EIP-6963", "legacy injected EIP-1193"],
+    "authority": "unverified-injected-candidate",
+    "ynxPriority": true,
+    "sameKindAmbiguityFailsClosed": true,
+    "duplicateUuidConflictFailsClosed": true,
+    "hostileMetadataFailsClosed": true,
+    "routerAvailabilityAdapter": "walletAvailabilityFromDiscovery",
+    "browserEvidence": "evidence/wallet-provider-discovery-browser.json",
+    "browserScreenshot": "evidence/wallet-provider-discovery-browser.png",
+    "browserModuleValidated": true,
+    "installedExtensionRevisionValidated": false
   },
   "metaMaskEvmAdapter": {
     "implementation": "src/metamask-evm-adapter.js",
@@ -167,6 +182,7 @@
     "ynxTestnetSelected": true,
     "liveHarnessAdapterLoaded": true,
     "liveHarnessConnectionRequestTriggered": true,
+    "providerDiscoveryRevisionValidated": false,
     "liveHarnessApprovalResult": "unverified-computer-use-native-pipe-closed",
     "approvalFlowValidated": false
   },

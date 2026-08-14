@@ -20,6 +20,16 @@
       "types": "./src/gateway-backup.d.ts",
       "import": "./src/gateway-backup.js",
       "default": "./src/gateway-backup.js"
+    },
+    "./wallet-provider-discovery": {
+      "types": "./src/index.d.ts",
+      "import": "./src/wallet-provider-discovery.js",
+      "default": "./src/wallet-provider-discovery.js"
+    },
+    "./metamask-evm": {
+      "types": "./src/index.d.ts",
+      "import": "./src/metamask-evm-adapter.js",
+      "default": "./src/metamask-evm-adapter.js"
     }
   },
   "types": "./src/index.d.ts",

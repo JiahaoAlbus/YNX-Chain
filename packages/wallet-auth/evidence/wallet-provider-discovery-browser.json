@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-08-14T05:54:21Z",
+  "branch": "codex/wallet-session-router-recovery",
+  "browser": "Codex In-app Browser",
+  "url": "http://127.0.0.1:4175/evidence/wallet-provider-discovery-browser.html",
+  "module": "src/wallet-provider-discovery.js",
+  "packageSubpath": "@ynx-chain/wallet-auth/wallet-provider-discovery",
+  "fixture": "synthetic EIP-6963 announcements",
+  "observed": {
+    "browserModuleLoaded": true,
+    "authority": "unverified-injected-candidate",
+    "ynxKind": "ynx-wallet",
+    "metaMaskKind": "metamask",
+    "ynxPreferred": true,
+    "metaMaskAvailable": true,
+    "ambiguities": [],
+    "conflictedAnnouncements": 0,
+    "consoleWarnings": 0,
+    "consoleErrors": 0
+  },
+  "screenshot": {
+    "path": "evidence/wallet-provider-discovery-browser.png",
+    "bytes": 47354,
+    "sha256": "a0b9219d7e828f625b0e0465b01659c1733297971d5132cf3f8b59721df37a3f"
+  },
+  "truthBoundary": {
+    "installedWalletValidated": false,
+    "accountRead": false,
+    "productSessionValidated": false,
+    "balanceRead": false,
+    "messageSigned": false,
+    "transactionSubmitted": false,
+    "chainAuthorityClaimed": false
+  }
+}

@@ -40,13 +40,17 @@
       "status": "implemented-local-download-verified",
       "evidence": [
         "packages/wallet-auth/src/metamask-evm-adapter.js",
+        "packages/wallet-auth/src/wallet-provider-discovery.js",
         "packages/wallet-auth/test/metamask-evm-adapter.test.mjs",
+        "packages/wallet-auth/test/wallet-provider-discovery.test.mjs",
         "packages/wallet-auth/src/product-session-router.js",
         "packages/wallet-auth/test/product-session-router.test.mjs",
         "packages/wallet-auth/test/product-session-products.test.mjs",
         "packages/wallet-auth/evidence/metamask-installed-observation.json",
         "packages/wallet-auth/evidence/metamask-eip1193-live.html",
-        "packages/wallet-auth/evidence/metamask-eip1193-live-observation.json"
+        "packages/wallet-auth/evidence/metamask-eip1193-live-observation.json",
+        "packages/wallet-auth/evidence/wallet-provider-discovery-browser.json",
+        "packages/wallet-auth/evidence/wallet-provider-discovery-browser.png"
       ],
       "remaining": [
         "Verify YNX Wallet detection/open behavior in approved installed applications",
@@ -95,17 +99,20 @@
         "packages/wallet-auth/evidence/metamask-biometric-timeout-computercontrol.png",
         "packages/wallet-auth/evidence/metamask-eip1193-live.html",
         "packages/wallet-auth/evidence/metamask-eip1193-live-observation.json",
+        "packages/wallet-auth/evidence/wallet-provider-discovery-browser.html",
+        "packages/wallet-auth/evidence/wallet-provider-discovery-browser.json",
+        "packages/wallet-auth/evidence/wallet-provider-discovery-browser.png",
         "packages/wallet-auth/test/product-session-gateway-client.test.mjs",
         "packages/wallet-auth/test/product-session-gateway-http.test.mjs",
         "packages/wallet-auth/test/product-session-migration.test.mjs"
       ],
       "targetedTests": {
-        "passed": 57,
+        "passed": 66,
         "failed": 0,
         "concurrentProductSessions": 120
       },
       "fullPackageTests": {
-        "passed": 159,
+        "passed": 168,
         "failed": 0
       },
       "remaining": [
