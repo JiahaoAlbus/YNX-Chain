@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "wallet-smart-account-deployment-manifest-local-2026-08-14",
+  "owner": "02-wallet-auth",
+  "sourceCommit": "ae24bf3357b0036f6f3b8d167955dc4f91ba80ff",
+  "environment": "local-deployment-tooling",
+  "failFirst": "SyntaxError: requested module did not provide createWalletTestnetDeploymentManifest",
+  "deploymentCommand": "npm run hardhat:deploy:wallet-smart-account",
+  "outputSchemaVersion": 1,
+  "outputDirectlyAcceptedByPublicVerifier": true,
+  "existingEntryPointRequiresOriginalTransactionHash": true,
+  "requiredBeforeOutput": [
+    "chainId equals 6423",
+    "EntryPoint, Factory and Paymaster addresses are distinct",
+    "each creation receipt is mined and successful",
+    "each receipt contractAddress equals the deployed address",
+    "each runtime is non-empty and frozen by SHA-256",
+    "Factory and Paymaster EntryPoint getters equal the deployed EntryPoint"
+  ],
+  "outputExcludes": ["deployer private key","policy signer private key","risk officer private key","RPC credentials"],
+  "tests": {"focused":{"passed":4,"failed":0},"walletAuthFull":{"passed":188,"failed":0},"hardhatWallet":"passed","walletProductGate":"passed","walletReleaseContentGate":"passed","walletGoalCoverageGate":"passed"},
+  "sourceSha256": {
+    "packages/wallet-auth/src/testnet-deployment-verifier.js": "c808758d3342669bd651c610f990bebdd1dcf7bffc9530eb379c4373fef4e906",
+    "packages/wallet-auth/test/testnet-deployment-verifier.test.mjs": "96fee86ca42d22c0801e7553320f3f4a15bceed5b66cece3ebfb1592a1e7d5a9",
+    "scripts/contracts/deploy-wallet-smart-account.js": "50452ac7d55245105774b94f955612a0789db1451e70a3f1ca35e20da2aa9353"
+  },
+  "publicExecution": {"performed":false,"transactionHashes":[]},
+  "releaseClaims": {"entryPointDeployedPublic":false,"factoryDeployedPublic":false,"paymasterDeployedPublic":false,"bundlerDeployedPublic":false,"sponsoredReceiptPublic":false,"websiteContractMetadataUpdated":false},
+  "secretMaterialRecorded": false
+}
