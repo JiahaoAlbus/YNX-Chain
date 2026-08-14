@@ -13,7 +13,7 @@
   },
   "fullPackageTest": {
     "command": "npm test",
-    "passed": 190,
+    "passed": 191,
     "failed": 0,
     "exitCode": 0
   },
@@ -72,7 +72,8 @@
     "serializedConcurrentMutation": true,
     "responseLossIdempotencyRestartSafe": true,
     "remoteBuildIdentityRequired": true,
-    "dedicatedTestsPassed": 5,
+    "dedicatedTestsPassed": 6,
+    "runtimePermissionTamperZeroMutationFailClosed": true,
     "concurrentPersistentRequests": 100,
     "deployedPublic": true,
     "deployedSourceCommit": "cc6c393608a11022f8617eede753af4c578d0ecd",

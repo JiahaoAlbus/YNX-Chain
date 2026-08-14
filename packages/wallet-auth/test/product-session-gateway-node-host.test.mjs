@@ -79,6 +79,25 @@ test("Node host exposes exact build identity on loopback and rejects remote iden
   assert.throws(() => new ProductSessionGatewayNodeHost(registry, options(fixture.statePath, () => token("tampered")), { build, remoteDeployed: true }), { code: "STATE_TAMPERED" });
 });
 
+test("Node host detects runtime state permission tamper before protocol mutation and remains fail closed", async (context) => {
+  const fixture = stateFixture(context);
+  const running = await start(fixture.statePath, () => token("runtime-permission-tamper-unused"));
+  const beforeBytes = readFileSync(fixture.statePath);
+  const beforeSnapshot = running.host.snapshot();
+  chmodSync(fixture.statePath, 0o644);
+  const response = await post(running.origin, "/v2/product-sessions/challenge", "req_runtime_mode_tamper_001", {});
+  assert.equal(response.status, 503);
+  assert.equal(response.payload.error.code, "INSECURE_STATE_FILE");
+  assert.deepEqual(readFileSync(fixture.statePath), beforeBytes);
+  assert.deepEqual(running.host.snapshot(), beforeSnapshot);
+  chmodSync(fixture.statePath, 0o600);
+  const afterRepair = await post(running.origin, "/v2/product-sessions/challenge", "req_runtime_mode_repair_001", {});
+  assert.equal(afterRepair.status, 503);
+  assert.equal(afterRepair.payload.error.code, "SERVICE_NOT_READY");
+  assert.deepEqual(readFileSync(fixture.statePath), beforeBytes);
+  await running.close();
+});
+
 function stateFixture(context) {
   const directory = mkdtempSync(join(tmpdir(), "ynx-product-session-node-host-"));
   chmodSync(directory, 0o700);

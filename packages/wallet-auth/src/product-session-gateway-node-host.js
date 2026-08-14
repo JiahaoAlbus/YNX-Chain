@@ -38,7 +38,7 @@ export class ProductSessionGatewayNodeHost {
     this.#build = deploy.build;
     const stored = loadState(this.#statePath, this.#registrySha256);
     this.#handler = new ProductSessionGatewayHttpHandler(this.#registry, this.#tokenFactory, stored?.snapshot);
-    if (!stored) this.#persist();
+    if (!stored) this.#persist(null);
   }
 
   handler() {
@@ -97,9 +97,10 @@ export class ProductSessionGatewayNodeHost {
   #dispatch(input) {
     if (!this.#ready) throw new WalletAuthError("SERVICE_NOT_READY", "Product Session Gateway is not ready");
     const before = this.#handler.snapshot();
+    this.#assertPersistedState(before);
     const result = this.#handler.handle(input, this.#now());
     try {
-      this.#persist();
+      this.#persist(before);
     } catch {
       this.#handler = new ProductSessionGatewayHttpHandler(this.#registry, this.#tokenFactory, before);
       this.#ready = false;
@@ -116,6 +117,7 @@ export class ProductSessionGatewayNodeHost {
 
   #administrative(request) {
     if (request.method !== "GET" || request.headers[PRODUCT_SESSION_GATEWAY_PROOF_HEADER_V2] !== undefined || request.headers["content-length"] !== undefined || request.headers["transfer-encoding"] !== undefined) return null;
+    if (["/health", "/ready", "/version"].includes(request.url)) this.#assertPersistedState(this.#handler.snapshot());
     const stateSha256 = this.stateDigest();
     if (request.url === "/health") return jsonResponse(200, "req_administrative_health", { ok: true, remoteDeployed: this.#remoteDeployed, service: PRODUCT_SESSION_GATEWAY_NODE_SERVICE, stateSha256, truthfulStatus: this.#remoteDeployed ? "remote-product-session-v2-gateway" : "local-product-session-v2-gateway" });
     if (request.url === "/ready") return jsonResponse(this.#ready ? 200 : 503, "req_administrative_ready_", { ok: this.#ready, remoteDeployed: this.#remoteDeployed, runtimeReady: this.#ready, service: PRODUCT_SESSION_GATEWAY_NODE_SERVICE, stateSha256 });
@@ -123,10 +125,21 @@ export class ProductSessionGatewayNodeHost {
     return null;
   }
 
-  #persist() {
+  #persist(expectedPersistedSnapshot) {
+    if (expectedPersistedSnapshot !== null) this.#assertPersistedState(expectedPersistedSnapshot);
     const snapshot = this.#handler.snapshot();
     const envelope = Object.freeze({ registrySha256: this.#registrySha256, schemaVersion: PRODUCT_SESSION_GATEWAY_NODE_STATE_SCHEMA_VERSION, snapshot, snapshotSha256: sha256(canonicalJSON(snapshot)) });
     atomicWrite(this.#statePath, `${canonicalJSON(envelope)}\n`);
+  }
+
+  #assertPersistedState(expectedSnapshot) {
+    try {
+      const stored = loadState(this.#statePath, this.#registrySha256);
+      if (!stored || stored.snapshotSha256 !== sha256(canonicalJSON(expectedSnapshot))) throw new WalletAuthError("STATE_FILE_CHANGED", "Product Session Gateway authoritative state changed during runtime");
+    } catch (error) {
+      this.#ready = false;
+      throw error;
+    }
   }
 
   #emit(event) {
@@ -225,7 +238,8 @@ function sha256(value) { return createHash("sha256").update(value).digest("hex")
 
 function hostError(error) {
   if (error instanceof WalletAuthError) {
-    const status = error.code === "BODY_TOO_LARGE" ? 413 : error.code === "SERVICE_NOT_READY" || error.code === "STATE_PERSISTENCE_FAILED" ? 503 : 400;
+    const unavailable = ["INSECURE_STATE_FILE", "SERVICE_NOT_READY", "STATE_FILE_CHANGED", "STATE_PERSISTENCE_FAILED", "STATE_TAMPERED"].includes(error.code);
+    const status = error.code === "BODY_TOO_LARGE" ? 413 : unavailable ? 503 : 400;
     return { code: error.code, message: error.message, status };
   }
   return { code: "HOST_FAILURE", message: "Product Session Gateway host failed closed", status: 500 };
