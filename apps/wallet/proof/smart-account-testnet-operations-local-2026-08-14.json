@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "wallet-smart-account-testnet-operations-local-2026-08-14",
+  "owner": "02-wallet-auth",
+  "sourceCommit": "492ba0e53cf5497e3c5e3c3ff6dcb58b9793f187",
+  "failFirst": "ENOENT: smart-account-testnet-operations.json did not exist",
+  "contract": "packages/wallet-auth/integration/smart-account-testnet-operations.json",
+  "invariants": {"deployedCodeDeletionOrReplacementIsRollback":false,"partialDeploymentMayBePublished":false,"websiteMetadataMayLeadVerification":false,"paymasterStartsEnabled":false,"riskOfficerCanEnable":false,"monitorAlertsCanEnable":false},
+  "emergencyOrder": ["disable global sponsorship","disable affected product","stop affected Bundler admission","freeze direct evidence","rotate authority through Owner ceremony","publish only a separately verified successor"],
+  "tests": {"focused":{"passed":2,"failed":0},"walletAuthFull":{"passed":190,"failed":0},"walletProductGate":"passed","walletReleaseContentGate":"passed","walletGoalCoverageGate":"passed"},
+  "sourceSha256": {"packages/wallet-auth/integration/smart-account-testnet-operations.json":"7ee2e558873d782b49fa8f190757541b3d3e52966d82aa1fc110890af93aa20a","packages/wallet-auth/test/testnet-contract-operations.test.mjs":"e84ca16564b63a9dfbc6a171cfb93dfce67eb189b3aea933d139ef4ec6a87cff"},
+  "publicExecution": {"performed":false},
+  "releaseClaims": {"integratedCentral":false,"deployedStaging":false,"deployedPublic":false,"monitoringPublic":false,"rollbackDrillPublic":false},
+  "secretMaterialRecorded": false
+}

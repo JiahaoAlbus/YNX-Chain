@@ -75,6 +75,15 @@
     "deployedPublic": false,
     "evidence": "apps/wallet/proof/smart-account-deployment-manifest-local-2026-08-14.json"
   },
+  "operationsContract": {
+    "sourceCommit": "492ba0e53cf5497e3c5e3c3ff6dcb58b9793f187",
+    "contract": "packages/wallet-auth/integration/smart-account-testnet-operations.json",
+    "immutableDeploymentRollbackSemantics": true,
+    "paymasterFailClosedEmergencyOrder": true,
+    "monitoringRequiredBeforeEnablement": true,
+    "deployedPublic": false,
+    "evidence": "apps/wallet/proof/smart-account-testnet-operations-local-2026-08-14.json"
+  },
   "hardhatIsolation": {"config":"hardhat.wallet.config.ts","sources":"contracts/wallet","artifacts":"tmp/wallet-hardhat/artifacts","cache":"tmp/wallet-hardhat/cache","crossOwnerArtifactCleanup":false},
   "deploymentCommand": "npm run hardhat:deploy:wallet-smart-account",
   "testCommand": "npm run hardhat:test:wallet && node --test packages/wallet-auth/test/bundler.test.mjs && npm --prefix packages/wallet-auth test",
