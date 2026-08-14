@@ -6,7 +6,7 @@
   "matrixSha256": "e2e9fce4bf70d6189373d31fa6df72a9198f36c06c05736072e23d87a7dbcfca",
   "endpointServiceDiscoveryMatrix": {
     "path": "release/integration/wallet-auth-public-endpoint-service-discovery-matrix.json",
-    "sha256": "446e1bc4c3db196679da0895c36c824d4e924d9fe65d5022c3f4ee49c7e0b175"
+    "sha256": "a33b98e4a88492952957452ad76d1545fb33a41c7bc2ba39ed7cbacb466de8a0"
   },
   "androidLauncherContract": {
     "path": "release/integration/wallet-auth-android-launcher-contract.json",
@@ -58,6 +58,25 @@
     "mobileOrWorkstationTlsVerified": false,
     "successfulFundingTransactionObserved": false,
     "transactionHash": null,
+    "aggregateDeployedPublic": false
+  },
+  "productSessionV2Cors": {
+    "evidenceCommit": "7c39f78cb8fa398f526c6cd16df45a3f9dd579b6",
+    "evidencePath": "packages/wallet-auth/evidence/product-session-v2-mobile-cors-public-deployment-20260815.json",
+    "evidenceBlob": "d1131f9b9c1f6879f299f41991a504b59859668c",
+    "deployedSource": "577f81202a85ff7314dd862f60aa337b0f2fd1f1",
+    "registeredOrigin": "https://finance.ynxweb4.com",
+    "optionsVerified": true,
+    "optionsHttpStatus": 204,
+    "registeredOriginActualResponseVerified": true,
+    "unregisteredSuffixRejected": true,
+    "wildcardOriginAllowed": false,
+    "credentialsAllowed": false,
+    "zeroMutation": true,
+    "mobileWalletFlowVerified": false,
+    "evmRpcCorsVerified": false,
+    "walletV1RejectionRouteVerified": false,
+    "integratedCentral": false,
     "aggregateDeployedPublic": false
   },
   "chainCoreContractBoundary": {
