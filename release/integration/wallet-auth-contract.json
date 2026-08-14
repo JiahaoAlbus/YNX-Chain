@@ -290,6 +290,28 @@
     "productionSigned": false,
     "storeReleased": false
   },
+  "androidFailClosedSecurityCheckpoint": {
+    "sourceCommit": "2fc0613111cc2acfabed5e725133a3b1b448f020",
+    "recoveredStrongBiometricCommit": "7a6d30bc90f63c52e27340c10334e16c2e774643",
+    "branch": "codex/wallet-android-api36-continuation2-20260814",
+    "canonicalDeepLinkAuthority": true,
+    "rejectsUserInfoPortDuplicateQueryFragmentAndNonCanonicalEncoding": true,
+    "persistentNonceStoreSerializesConcurrentConsumption": true,
+    "persistentNonceStoreRejectsNonCanonicalTamperedState": true,
+    "socialHarnessCallbackContractGate": "apps/wallet/scripts/social-harness-contract-check.mjs",
+    "socialHarnessApi36DebugBuild": true,
+    "walletTests": "51/51 passed",
+    "walletAuthPackageTests": "113/113 passed",
+    "implementedLocal": true,
+    "testedLocal": true,
+    "testedOnDevice": false,
+    "installedLocal": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
   "verification": {
     "walletAuthPackageTests": "100/100 passed",
     "gatewayNodeHostTests": "8/8 passed",
