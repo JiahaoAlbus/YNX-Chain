@@ -16,6 +16,10 @@ test("branded Firefox harness opens the popup on launch two and keeps release cl
   assert.match(source,/moz-extension:\/\/\$\{first\.addonUuid\}\/index\.html/u);
   assert.match(source,/second\.addonUuid===first\.addonUuid/u);
   assert.match(source,/firefoxPidsAtLoad\.length>0/u);
+  assert.match(source,/extensions\.json/u);
+  assert.match(source,/temporaryAddonPersistedAfterFirstShutdown/u);
+  assert.match(source,/temporaryAddonReloadedOnSecondLaunch/u);
+  assert.match(source,/temporaryAddonRemovedAfterSuccessfulShutdown/u);
   assert.match(source,/popupRequestedOnSecondLaunch/u);
   assert.match(source,/popupDomObserved:false/u);
   assert.match(source,/backgroundStarted:false/u);
