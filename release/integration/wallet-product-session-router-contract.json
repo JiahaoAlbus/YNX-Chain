@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "owner": "Wallet/Auth and App Gateway",
+  "branch": "codex/wallet-session-router-recovery",
+  "sourceBaseline": "2a78ace0a647b73dd2961fae3361189116453a7d",
+  "deliveryCommitResolution": "git rev-parse HEAD after merge",
+  "protocol": {
+    "name": "YNX Product Session",
+    "version": "2",
+    "chainId": "ynx_6423-1",
+    "registry": "packages/wallet-auth/product-session-registry.json",
+    "requiredBindings": [
+      "chainId",
+      "productId",
+      "clientId",
+      "platform",
+      "applicationId",
+      "bundleId",
+      "packageId",
+      "origin",
+      "callback",
+      "account",
+      "deviceId",
+      "deviceKey",
+      "nonce",
+      "state",
+      "scopes",
+      "issuedAt",
+      "expiresAt"
+    ],
+    "walletApprovalSignature": "secp256k1-sha256 compact low-S",
+    "productDeviceSignature": "P-256 SHA-256 DER",
+    "challengePolicy": "Gateway-issued, one-time, maximum 60 seconds",
+    "sessionPolicy": "short-lived, sender-constrained, introspected online, fail closed",
+    "secureStoragePolicy": ["hardware-backed", "os-protected"],
+    "guestLimitations": ["not-signed-in", "no-wallet-balance", "no-transactions", "no-chain-authority"]
+  },
+  "gatewayRoutes": [
+    {"method": "POST", "path": "/v2/product-sessions/challenge", "proof": "Wallet approval plus registry-bound request"},
+    {"method": "POST", "path": "/v2/product-sessions/complete", "proof": "Gateway-issued challenge signed by exact product device"},
+    {"method": "POST", "path": "/v2/product-sessions/introspect", "proof": "fresh Product Session HTTP proof v2"},
+    {"method": "POST", "path": "/v2/product-sessions/revoke", "proof": "fresh Product Session HTTP proof v2"},
+    {"method": "POST", "path": "/v2/product-sessions/devices/revoke", "proof": "fresh Product Session HTTP proof v2"}
+  ],
+  "actionableRouterStates": [
+    "wallet-not-installed",
+    "scheme-not-registered",
+    "session-expired",
+    "callback-mismatch",
+    "user-rejected",
+    "network-unavailable"
+  ],
+  "forbiddenFallbacks": ["local session", "canned session", "fake Wallet answer", "fake AI Gateway answer", "javascript URL", "file URL", "http downgrade", "open redirect", "callback injection", "wildcard scope"],
+  "compatibility": {
+    "accepted": "Only exact legacy requests and callbacks declared for the same product in the router registry",
+    "unknownLegacyScheme": "UNKNOWN_LEGACY_SCHEME",
+    "unknownLegacyRequest": "LEGACY_BINDING_MISMATCH"
+  },
+  "tests": [
+    "packages/wallet-auth/test/product-session-gateway.test.mjs",
+    "packages/wallet-auth/test/product-session-products.test.mjs",
+    "packages/wallet-auth/test/product-session-recovery.test.mjs",
+    "packages/wallet-auth/test/product-session-router.test.mjs",
+    "packages/wallet-auth/test/product-session-v2.test.mjs"
+  ],
+  "releaseStatus": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": false,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

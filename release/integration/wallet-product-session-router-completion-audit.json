@@ -1,0 +1,123 @@
+{
+  "schemaVersion": 1,
+  "authority": "/Users/huangjiahao/Downloads/YNX_Chain_Fable5_Coordinated_Ultimate_Goal_Prompts.md",
+  "branch": "codex/wallet-session-router-recovery",
+  "sourceBaseline": "2a78ace0a647b73dd2961fae3361189116453a7d",
+  "audit": {
+    "A_productSession": {
+      "status": "implemented-local",
+      "evidence": [
+        "packages/wallet-auth/src/product-session-v2.js",
+        "packages/wallet-auth/src/product-session-proof-v2.js",
+        "packages/wallet-auth/src/product-session-recovery.js",
+        "packages/wallet-auth/test/product-session-v2.test.mjs",
+        "packages/wallet-auth/test/product-session-recovery.test.mjs"
+      ],
+      "verifiedBindings": [
+        "chainId",
+        "productId",
+        "clientId",
+        "platform",
+        "applicationId",
+        "bundleId",
+        "packageId",
+        "origin",
+        "callback",
+        "account",
+        "deviceId",
+        "deviceKey",
+        "nonce",
+        "state",
+        "scopes",
+        "issuedAt",
+        "expiresAt"
+      ],
+      "remaining": []
+    },
+    "B_walletSelection": {
+      "status": "implemented-local-not-installed-verified",
+      "evidence": [
+        "packages/wallet-auth/src/product-session-router.js",
+        "packages/wallet-auth/test/product-session-router.test.mjs",
+        "packages/wallet-auth/test/product-session-products.test.mjs"
+      ],
+      "remaining": [
+        "Verify the canonical Wallet download URL on a reachable public deployment",
+        "Verify YNX Wallet and MetaMask detection/open behavior in approved installed applications"
+      ]
+    },
+    "C_deepLinkRouter": {
+      "status": "implemented-local",
+      "evidence": [
+        "packages/wallet-auth/product-session-registry.json",
+        "packages/wallet-auth/src/product-session-registry.js",
+        "packages/wallet-auth/src/product-session-router.js",
+        "packages/wallet-auth/test/product-session-router.test.mjs"
+      ],
+      "remaining": [
+        "Product and Wallet packaging owners must declare the canonical schemes on each installed platform"
+      ]
+    },
+    "D_sharedSdkAndMigration": {
+      "status": "sdk-complete-consumer-migration-incomplete",
+      "evidence": [
+        "packages/wallet-auth/src/index.js",
+        "packages/wallet-auth/src/index.d.ts",
+        "release/integration/wallet-product-session-router-migration.json"
+      ],
+      "registryReadyProducts": 12,
+      "runtimeMigratedProducts": 0,
+      "remaining": [
+        "Product-owner tasks must replace each v1 or handwritten consumer with the shared v2 SDK",
+        "Integration must reconcile the overlapping App Gateway and product adapter files before enabling any migrated flag"
+      ]
+    },
+    "E_validation": {
+      "status": "local-protocol-verified-installed-platforms-incomplete",
+      "evidence": [
+        "packages/wallet-auth/evidence/product-session-validation-summary.json",
+        "packages/wallet-auth/evidence/product-session-visible-proof.json",
+        "packages/wallet-auth/evidence/product-session-visible-proof.jsonl",
+        "packages/wallet-auth/evidence/product-session-visible-proof-computercontrol.jpeg"
+      ],
+      "targetedTests": {
+        "passed": 31,
+        "failed": 0,
+        "concurrentProductSessions": 120
+      },
+      "nonLoopbackPackageTests": {
+        "passed": 115,
+        "failed": 0
+      },
+      "remaining": [
+        "Loopback host tests require an environment that permits listen(127.0.0.1)",
+        "Computer Control permission is required for YNX Wallet Testnet Companion and MetaMask",
+        "Each actually migrated product requires installed Web/desktop/mobile approval, rejection, timeout, revoke, restart, network-loss and Retry evidence"
+      ]
+    },
+    "F_releaseTruth": {
+      "status": "committed-local-push-blocked",
+      "evidence": [
+        "release/integration/wallet-product-session-router-contract.json",
+        "docs/integration/WALLET_PRODUCT_SESSION_ROUTER_HANDOFF.md"
+      ],
+      "pushed": false,
+      "deployedPublic": false,
+      "productionSigned": false,
+      "storeReleased": false,
+      "remaining": [
+        "Restore DNS access to github.com",
+        "Re-authenticate gh for JiahaoAlbus",
+        "Push codex/wallet-session-router-recovery",
+        "Hand the branch to central Integration"
+      ]
+    }
+  },
+  "completion": false,
+  "blockingConditions": [
+    "github.com cannot be resolved from the managed environment",
+    "the active gh credential is invalid",
+    "Computer Control is not approved for installed Wallet applications",
+    "product consumer and native packaging migrations are owned by isolated product/platform tasks"
+  ]
+}

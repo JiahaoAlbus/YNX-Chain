@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-08-14T03:27:59.000Z",
+  "scope": "local Product Session v2 protocol and router validation",
+  "branch": "codex/wallet-session-router-recovery",
+  "sourceBaseline": "2a78ace0a647b73dd2961fae3361189116453a7d",
+  "targetedTest": {
+    "command": "node --test test/product-session-gateway.test.mjs test/product-session-products.test.mjs test/product-session-recovery.test.mjs test/product-session-router.test.mjs test/product-session-v2.test.mjs",
+    "passed": 31,
+    "failed": 0,
+    "concurrentSessions": 120
+  },
+  "nonLoopbackPackageTest": {
+    "command": "rg --files test -g '*.test.mjs' | rg -v '(^|/)(bundler|gateway-backup|gateway-node-host)\\.test\\.mjs$' | xargs node --test --test-concurrency=1",
+    "passed": 115,
+    "failed": 0,
+    "exitCode": 0
+  },
+  "excludedEnvironmentTests": {
+    "files": [
+      "test/bundler.test.mjs",
+      "test/gateway-backup.test.mjs",
+      "test/gateway-node-host.test.mjs"
+    ],
+    "reason": "The managed sandbox denies loopback listen with EPERM; a prior full run reported 120 passed, 6 failed and 1 cancelled before interruption. The six observed failures were loopback-listen environment failures, and the bundler test did not complete before interruption."
+  },
+  "packageDryRun": {
+    "command": "npm_config_cache=<isolated-temp-cache> npm pack --dry-run",
+    "exitCode": 0,
+    "version": "1.1.0",
+    "files": 55,
+    "shasum": "9fa047e3e36333c33ce62a7ab6eda344e70cd24f"
+  },
+  "visibleComputerControl": {
+    "app": "Microsoft Edge",
+    "title": "YNX Product Session v2 visible proof",
+    "verified": [
+      "LOCAL PROTOCOL FIXTURE",
+      "Native identity: com.ynx.social",
+      "req_visible_complete_001",
+      "req_visible_introspect_001",
+      "req_visible_restart_001",
+      "NETWORK_UNAVAILABLE",
+      "req_visible_offline_001",
+      "req_visible_revoke_001",
+      "SESSION_REVOKED",
+      "req_visible_revoked_001",
+      "Guest / Try",
+      "Truth boundary"
+    ],
+    "screenshot": "evidence/product-session-visible-proof-computercontrol.jpeg"
+  },
+  "truthBoundary": {
+    "runtimeProductsMigrated": 0,
+    "installedPlatformsValidated": [],
+    "platformValidationBlocked": [
+      "Computer Control was not approved to use YNX Wallet Testnet Companion",
+      "Computer Control was not approved to use MetaMask",
+      "managed sandbox denies loopback listen with EPERM"
+    ],
+    "publicDeployment": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}
