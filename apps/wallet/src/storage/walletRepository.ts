@@ -87,11 +87,12 @@ export class WalletRepository {
     return this.replaceManifest(current, { ...current, selectedAccountId: account });
   }
 
-  renameAccount(account: string, label: string): Promise<WalletManifest> { return this.enqueue(()=>this.renameAccountExclusive(account,label)); }
+  renameAccount(account: string, label: string,assertActive:()=>void=()=>{}): Promise<WalletManifest> { return this.enqueue(()=>this.renameAccountExclusive(account,label,assertActive)); }
 
-  private async renameAccountExclusive(account: string,label:string): Promise<WalletManifest> {
+  private async renameAccountExclusive(account: string,label:string,assertActive:()=>void): Promise<WalletManifest> {
     const current = (await this.loadExclusive()).manifest;
     if (!current.accounts.some((item) => item.account === account)) throw new Error("Account is not stored in Wallet");
+    assertActive();
     return this.replaceManifest(current, { ...current, accounts: current.accounts.map((item) => item.account === account ? Object.freeze({ ...item, label: validLabel(label) }) : item) });
   }
 

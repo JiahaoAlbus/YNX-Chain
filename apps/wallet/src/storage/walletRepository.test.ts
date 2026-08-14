@@ -101,6 +101,8 @@ test("dismissed sensitive attempts cannot add or delete account material",async(
   await assert.rejects(repository.deleteAccount(manifest.selectedAccountId!,blocked),/backgrounded/);
   assert.deepEqual((await repository.load()).manifest,manifest);
   assert.equal(await repository.accountSecret(manifest.selectedAccountId!),SECRET_ONE);
+  await assert.rejects(repository.renameAccount(manifest.selectedAccountId!,"Changed after close",blocked),/backgrounded/);
+  assert.equal((await repository.load()).manifest.accounts[0]?.label,"Main");
 });
 
 test("restart journal rolls back incomplete add and completes interrupted delete without secret leakage",async()=>{
