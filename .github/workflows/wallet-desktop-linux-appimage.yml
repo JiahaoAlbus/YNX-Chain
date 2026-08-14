@@ -58,11 +58,13 @@ jobs:
             rpc_url="$2"
             phase="$3"
             YNX_WALLET_EVIDENCE_PATH="$EVIDENCE" YNX_WALLET_RPC_URL="$rpc_url" xvfb-run -a bash -c '
+              set -euo pipefail
               executable="$1"
               evidence="$2"
               expected="$3"
               log="$4"
               title_evidence="$5"
+              export APPDIR="$(dirname "$executable")"
               "$executable" --disable-gpu > "$log" 2>&1 &
               app_pid=$!
               for attempt in {1..30}; do
