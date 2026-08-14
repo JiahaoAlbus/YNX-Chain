@@ -155,6 +155,114 @@ func TestPostgresJetStreamConsumerProcessCrashRedelivery(t *testing.T) {
 	t.Logf("consumerCrashEvidence=%s", evidence)
 }
 
+func TestPostgresJetStreamCapacityBackpressureRetainsOutbox(t *testing.T) {
+	dsn := os.Getenv("YNX_TEST_POSTGRES_DSN")
+	if dsn == "" {
+		t.Skip("YNX_TEST_POSTGRES_DSN is not configured")
+	}
+	if os.Getenv("YNX_TEST_POSTGRES_ALLOW_DESTRUCTIVE") != "1" {
+		t.Fatal("live transport backpressure test requires YNX_TEST_POSTGRES_ALLOW_DESTRUCTIVE=1")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+	db := openCrashTestDatabase(t, ctx, dsn)
+	defer db.Close()
+	resetCrashTestDatabase(t, ctx, db)
+	t.Cleanup(func() {
+		cleanupCtx, cleanupCancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cleanupCancel()
+		_, _ = db.ExecContext(cleanupCtx, `DROP SCHEMA IF EXISTS ynx_analytics CASCADE; DROP SCHEMA IF EXISTS ynx_fabric CASCADE`)
+	})
+	if _, err := datafabricpostgres.Migrate(ctx, db); err != nil {
+		t.Fatal(err)
+	}
+	store, err := datafabricpostgres.NewStore(db)
+	if err != nil {
+		t.Fatal(err)
+	}
+	const eventCount = 256
+	baseTime := time.Now().UTC().Truncate(time.Millisecond)
+	for index := 0; index < eventCount; index++ {
+		if err := store.Append(ctx, backpressureEvent(t, index, baseTime), integrationKey); err != nil {
+			t.Fatalf("append backpressure event %d: %v", index, err)
+		}
+	}
+
+	natsServer := startServer(t, testServerOptions(t.TempDir(), -1))
+	defer natsServer.Shutdown()
+	const constrainedBytes = int64(64 << 10)
+	broker, err := Connect(ctx, Config{URL: natsServer.ClientURL(), MaxBytes: constrainedBytes, PublishTimeout: time.Second})
+	if err != nil {
+		t.Fatal(err)
+	}
+	dispatcher := datafabricpostgres.Dispatcher{
+		Store: store, Publisher: broker, Owner: "dispatcher.transport-backpressure.0001", BatchSize: eventCount,
+		Lease: time.Second, MaxAttempts: 4, Now: func() time.Time { return baseTime.Add(time.Minute) },
+	}
+	pressureStarted := time.Now()
+	constrainedReport, err := dispatcher.DispatchOnce(ctx)
+	pressureDuration := time.Since(pressureStarted)
+	if err != nil {
+		broker.Close()
+		t.Fatal(err)
+	}
+	if constrainedReport.Published == 0 || constrainedReport.Failed == 0 || constrainedReport.Published+constrainedReport.Failed != eventCount || constrainedReport.DeadLetter != 0 {
+		broker.Close()
+		t.Fatalf("constrained JetStream did not exert bounded capacity pressure: report=%+v", constrainedReport)
+	}
+	constrainedStats, err := store.Stats(ctx)
+	if err != nil || constrainedStats.Events != eventCount || constrainedStats.OutboxPending != constrainedReport.Failed || constrainedStats.DeadLetters != 0 {
+		broker.Close()
+		t.Fatalf("PostgreSQL Outbox was not retained under capacity pressure: stats=%+v report=%+v err=%v", constrainedStats, constrainedReport, err)
+	}
+	constrainedInfo, err := broker.StreamInfo(ctx)
+	if err != nil || constrainedInfo.State.Msgs != uint64(constrainedReport.Published) {
+		broker.Close()
+		t.Fatalf("constrained stream and acknowledged Outbox count diverged: info=%+v report=%+v err=%v", constrainedInfo, constrainedReport, err)
+	}
+	broker.Close()
+
+	const expandedBytes = int64(8 << 20)
+	expandedBroker, err := Connect(ctx, Config{URL: natsServer.ClientURL(), MaxBytes: expandedBytes, PublishTimeout: time.Second})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer expandedBroker.Close()
+	dispatcher.Publisher = expandedBroker
+	dispatcher.Owner = "dispatcher.transport-backpressure.0002"
+	dispatcher.Now = func() time.Time { return baseTime.Add(10 * time.Minute) }
+	recoveryStarted := time.Now()
+	recoveryReport, err := dispatcher.DispatchOnce(ctx)
+	recoveryDuration := time.Since(recoveryStarted)
+	if err != nil || recoveryReport.Published != constrainedReport.Failed || recoveryReport.Failed != 0 || recoveryReport.DeadLetter != 0 {
+		t.Fatalf("retained Outbox did not drain after capacity expansion: report=%+v err=%v", recoveryReport, err)
+	}
+	finalStats, err := store.Stats(ctx)
+	if err != nil || finalStats.Events != eventCount || finalStats.OutboxPending != 0 || finalStats.DeadLetters != 0 {
+		t.Fatalf("post-backpressure PostgreSQL state is invalid: stats=%+v err=%v", finalStats, err)
+	}
+	finalInfo, err := expandedBroker.StreamInfo(ctx)
+	if err != nil || finalInfo.State.Msgs != eventCount || finalInfo.State.Bytes > uint64(expandedBytes) {
+		t.Fatalf("expanded stream did not retain each canonical event exactly once: info=%+v err=%v", finalInfo, err)
+	}
+	evidence, err := json.Marshal(map[string]any{
+		"sourceCommit": os.Getenv("YNX_DATA_FABRIC_TEST_SOURCE_COMMIT"), "database": "PostgreSQL",
+		"broker": "file-backed embedded JetStream", "canonicalEvents": eventCount,
+		"constrainedMaxBytes": constrainedBytes, "constrainedPublished": constrainedReport.Published,
+		"constrainedRejected": constrainedReport.Failed, "outboxRetainedUnderPressure": constrainedStats.OutboxPending,
+		"deadLettersUnderPressure": constrainedStats.DeadLetters, "pressureDurationMilliseconds": durationMilliseconds(pressureDuration),
+		"expandedMaxBytes": expandedBytes, "recoveredPublished": recoveryReport.Published,
+		"recoveryDurationMilliseconds": durationMilliseconds(recoveryDuration), "finalOutboxPending": finalStats.OutboxPending,
+		"finalDeadLetters": finalStats.DeadLetters, "finalStreamMessages": finalInfo.State.Msgs,
+		"finalStreamBytes": finalInfo.State.Bytes, "duplicateStreamMessages": uint64(eventCount) - finalInfo.State.Msgs,
+		"limitations": []string{"256-event bounded batch, not a sustained-duration soak", "embedded single-node JetStream", "single PostgreSQL primary", "capacity recovery by explicit stream expansion, not automatic scaling", "no broker partition, leader loss, shared Testnet or public-scale claim"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("transportBackpressureEvidence=%s", evidence)
+}
+
 func TestPostgresJetStreamConsumerProcessCrashHelper(t *testing.T) {
 	if os.Getenv(consumerCrashHelper) != "1" {
 		t.Skip("consumer crash helper is subprocess-only")
@@ -222,6 +330,29 @@ func resetCrashTestDatabase(t *testing.T, ctx context.Context, db *sql.DB) {
 func crashPrivacyKey() []byte {
 	digest := sha256.Sum256([]byte("ynx-data-fabric-postgres-consumer-crash-privacy-key"))
 	return append([]byte(nil), digest[:]...)
+}
+
+func backpressureEvent(t *testing.T, index int, baseTime time.Time) datafabric.EventEnvelope {
+	t.Helper()
+	suffix := fmt.Sprintf("%06d", index)
+	event := testEvent(t, 1)
+	event.EventID = "event.pay.invoice.created.backpressure." + suffix
+	event.AggregateID = "invoice.backpressure." + suffix
+	event.CorrelationID = "correlation.backpressure." + suffix
+	event.CausationID = "command.backpressure." + suffix
+	event.AuditID = "audit.backpressure." + suffix
+	event.Timestamp = baseTime.Add(time.Duration(index) * time.Millisecond)
+	event.EffectiveAt = event.Timestamp
+	event.Source.AsOf = event.Timestamp
+	payload, err := json.Marshal(map[string]string{"invoiceId": event.AggregateID, "padding": strings.Repeat("x", 2048)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	event.Payload = payload
+	if err := event.Sign("key.datafabric.0001", integrationKey); err != nil {
+		t.Fatal(err)
+	}
+	return event
 }
 
 func boundedCrashOutput(output []byte) string {

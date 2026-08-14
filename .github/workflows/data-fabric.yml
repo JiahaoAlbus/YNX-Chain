@@ -204,6 +204,40 @@ jobs:
             and .ackFloorStreamSequence == 1
             and .ackPending == 0
           ' /tmp/data-fabric-postgres-resilience/consumer-process-crash.json
+      - name: Retain PostgreSQL Outbox under JetStream capacity backpressure
+        env:
+          YNX_TEST_POSTGRES_DSN: postgres://ynx_test:integration-only-password@127.0.0.1:5432/ynx_data_fabric_test?sslmode=disable
+          YNX_TEST_POSTGRES_ALLOW_DESTRUCTIVE: "1"
+          YNX_DATA_FABRIC_TEST_SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -o pipefail
+          go test -json ./internal/datafabricnats -run '^TestPostgresJetStreamCapacityBackpressureRetainsOutbox$' -count=1 \
+            | tee /tmp/data-fabric-postgres-resilience/transport-backpressure.jsonl
+          jq -s -e 'any(.[]; .Action == "pass" and .Test == "TestPostgresJetStreamCapacityBackpressureRetainsOutbox")' \
+            /tmp/data-fabric-postgres-resilience/transport-backpressure.jsonl
+          jq -s --arg source "$YNX_DATA_FABRIC_TEST_SOURCE_COMMIT" '
+            [
+              .[]
+              | select((.Output? // "") | contains("transportBackpressureEvidence="))
+              | (.Output | capture("transportBackpressureEvidence=(?<evidence>\\{.*\\})").evidence | fromjson)
+            ]
+            | if length != 1 then error("expected one transport backpressure evidence object") else .[0] end
+            | if .sourceCommit != $source then error("transport backpressure evidence source commit mismatch") else . end
+          ' /tmp/data-fabric-postgres-resilience/transport-backpressure.jsonl \
+            > /tmp/data-fabric-postgres-resilience/transport-backpressure.json
+          jq -e '
+            .canonicalEvents == 256
+            and .constrainedPublished > 0
+            and .constrainedRejected > 0
+            and .constrainedPublished + .constrainedRejected == .canonicalEvents
+            and .outboxRetainedUnderPressure == .constrainedRejected
+            and .deadLettersUnderPressure == 0
+            and .recoveredPublished == .constrainedRejected
+            and .finalOutboxPending == 0
+            and .finalDeadLetters == 0
+            and .finalStreamMessages == .canonicalEvents
+            and .duplicateStreamMessages == 0
+          ' /tmp/data-fabric-postgres-resilience/transport-backpressure.json
       - name: Upload exact-source PostgreSQL resilience evidence
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
