@@ -37,7 +37,12 @@
   "desktopCliSdkRelease": {
     "releaseClass": "unsigned-testnet-engineering-preview",
     "cliSourceCommit": "95bd2aad56bd8b72246f3f0e9529d699f09550ad",
-    "typescriptSdkSourceCommit": "011b7118ff53c9832e156a3e0bc9f7bc6fe66563",
+    "typescriptSdkSourceCommit": "f1069bc78a32afe980867ef5849da073923b7873",
+    "typescriptSdkVersion": "0.2.1",
+    "typescriptSdkCleanConsumerInstalledNativeCI": true,
+    "typescriptSdkRealTestnetVerifiedNativeCI": true,
+    "typescriptSdkUploadDownloadVerifiedNativeCI": true,
+    "typescriptSdkManifest": "../../release/wallet-cli/typescript-sdk/manifest.json",
     "manifest": "../../release/wallet-cli/public/website-download-manifest.json",
     "websiteHandoff": "../../docs/integration/WALLET_WEBSITE_PUBLIC_HANDOFF.md",
     "artifactsVerifiedLocal": 9,
