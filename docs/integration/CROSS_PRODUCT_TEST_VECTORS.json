@@ -93,6 +93,17 @@
       "publicClaimAllowed": false
     },
     {
+      "id": "WA-SPONSORSHIP-PREACK-CRASH-001",
+      "category": "wallet-auth",
+      "owners": ["02-wallet-auth", "29-integration"],
+      "precondition": "A canonical sponsorship request v2 is eligible and the durable Node ledger has an empty private state file.",
+      "action": "SIGKILL the process after file fsync, atomic rename and parent-directory fsync but before authorize returns; restart and retry the exact request.",
+      "expectedHttpStatus": null,
+      "expectedCode": "SPONSORSHIP_REPLAY",
+      "expectedState": "exactly one consumed nonce survives restart; no second sponsorship decision; multi-process and multi-region claims remain false",
+      "publicClaimAllowed": false
+    },
+    {
       "id": "WA-MULTIUSER-ISOLATION-001",
       "category": "wallet-auth",
       "owners": ["02-wallet-auth", "29-integration"],
