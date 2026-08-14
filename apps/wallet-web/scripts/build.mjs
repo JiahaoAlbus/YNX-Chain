@@ -22,6 +22,7 @@ for (const [name, manifest] of variants) {
   for (const file of ["provider.js", "i18n.js"]) await cp(join(root, "src", file), join(target, file));
   for (const file of ["service-worker.js", "content-script.js", "page-provider.js"]) await cp(join(root, "extension", file), join(target, file));
   await cp(join(root, "src", "extension-bridge.js"), join(target, "extension-bridge.js"));
+  await cp(join(root, "src", "extension-rpc.js"), join(target, "extension-rpc.js"));
   await cp(join(root, "public", "ynx-logo.png"), join(target, "ynx-logo.png"));
   const html = (await readFile(join(target, "index.html"), "utf8")).replace('<link rel="manifest" href="./manifest.webmanifest">', "");
   await writeFile(join(target, "index.html"), html);

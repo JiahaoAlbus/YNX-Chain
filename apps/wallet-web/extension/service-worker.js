@@ -1,6 +1,8 @@
 import {BRIDGE_VERSION,PROVIDER_EVENTS,REQUEST_METHODS,RUNTIME_EVENT,RUNTIME_REQUEST,publicBridgeError,validateRuntimeRequest} from "./extension-bridge.js";
+import {YNX_CHAIN_ID,verifyExtensionRpc} from "./extension-rpc.js";
 
-const extensionApi=globalThis.browser||globalThis.chrome,CHAIN_ID="0x1917",RPC_URL="https://evm.ynxweb4.com";
+const extensionApi=globalThis.browser||globalThis.chrome,CHAIN_ID=YNX_CHAIN_ID;
+const YNX_CHAIN=Object.freeze({chainId:CHAIN_ID,chainName:"YNX Testnet",nativeCurrency:Object.freeze({name:"YNX Testnet",symbol:"YNXT",decimals:18}),rpcUrls:Object.freeze(["https://evm.ynxweb4.com"]),blockExplorerUrls:Object.freeze(["https://explorer.ynxweb4.com"])});
 
 function pageWalletRequest(preference,input){
   const ethereum=globalThis.ethereum;
@@ -15,13 +17,13 @@ function pageWalletRequest(preference,input){
 globalThis.__YNX_INTERNAL_PAGE_WALLET_REQUEST__=pageWalletRequest;
 
 async function liveChainId(){
-  let response;
-  try{response=await fetch(RPC_URL,{method:"POST",headers:{"content-type":"application/json",accept:"application/json"},body:JSON.stringify({jsonrpc:"2.0",id:1,method:"eth_chainId",params:[]}),signal:AbortSignal.timeout(6000),cache:"no-store",credentials:"omit"})}
-  catch(error){throw Object.assign(new Error("YNX Testnet RPC is unavailable."),{code:"RPC_UNAVAILABLE",cause:error})}
-  const body=response.ok?await response.json().catch(()=>null):null;
-  if(body?.result!==CHAIN_ID)throw Object.assign(new Error("RPC did not prove YNX Testnet chain 6423."),{code:body?.result?"WRONG_NETWORK":"RPC_UNAVAILABLE"});
-  return body.result;
+  return (await verifyExtensionRpc()).chainId;
 }
+function exactMutationInput(method,params){
+  const expected=method==="wallet_addEthereumChain"?[YNX_CHAIN]:[{chainId:CHAIN_ID}];
+  if(JSON.stringify(params)!==JSON.stringify(expected))throw Object.assign(new Error("Rejected non-canonical YNX Testnet chain parameters."),{code:"INVALID_CHAIN_PARAMS"});
+}
+function requireLiveDeadline(deadlineAt){if(!Number.isSafeInteger(deadlineAt)||Date.now()>=deadlineAt)throw Object.assign(new Error("Wallet bridge request expired before mutation."),{code:"BRIDGE_EXPIRED"})}
 async function executeInTab(tabId,origin,preference,input){
   const tab=await extensionApi.tabs.get(tabId);
   if(!Number.isInteger(tab?.id)||new URL(tab.url).origin!==origin)throw Object.assign(new Error("The requesting DApp origin changed."),{code:"ORIGIN_CHANGED"});
@@ -40,8 +42,12 @@ async function handleDappRequest(message,sender){
   const tabId=sender.tab.id,origin=message.origin,input={method:message.method,params:message.params};
   if(message.method==="eth_chainId")return liveChainId();
   if(message.method==="ynx_disconnect"){await emitToTab(tabId,origin,"accountsChanged",[]);await emitToTab(tabId,origin,"disconnect",{code:4900,message:"YNX Wallet companion disconnected."});return null}
+  if(message.method==="wallet_addEthereumChain"||message.method==="wallet_switchEthereumChain"){
+    exactMutationInput(message.method,message.params);await liveChainId();requireLiveDeadline(message.deadlineAt);
+  }
   let result;
   try{result=await executeInTab(tabId,origin,"any",input)}catch(error){if(message.method==="eth_accounts"&&error?.code==="WALLET_BACKEND_NOT_FOUND")return[];throw error}
+  if(message.method==="wallet_addEthereumChain")await executeInTab(tabId,origin,"any",{method:"wallet_switchEthereumChain",params:[{chainId:CHAIN_ID}]});
   if(message.method==="wallet_addEthereumChain"||message.method==="wallet_switchEthereumChain"){
     const backendChain=await executeInTab(tabId,origin,"any",{method:"eth_chainId"});
     if(backendChain!==CHAIN_ID)throw Object.assign(new Error("Wallet backend remained on the wrong chain."),{code:"WRONG_NETWORK"});await emitToTab(tabId,origin,"chainChanged",CHAIN_ID);

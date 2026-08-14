@@ -1,6 +1,6 @@
 (() => {
   "use strict";
-  const PAGE_REQUEST="YNX_PAGE_REQUEST_V1",PAGE_RESPONSE="YNX_PAGE_RESPONSE_V1",PAGE_EVENT="YNX_PAGE_EVENT_V1",RUNTIME_REQUEST="YNX_DAPP_REQUEST_V1",RUNTIME_EVENT="YNX_DAPP_EVENT_V1",VERSION=1,TIMEOUT_MS=12000;
+  const PAGE_REQUEST="YNX_PAGE_REQUEST_V1",PAGE_RESPONSE="YNX_PAGE_RESPONSE_V1",PAGE_EVENT="YNX_PAGE_EVENT_V1",RUNTIME_REQUEST="YNX_DAPP_REQUEST_V1",RUNTIME_EVENT="YNX_DAPP_EVENT_V1",VERSION=1,TIMEOUT_MS=18000;
   const METHODS=new Set(["eth_chainId","eth_accounts","eth_requestAccounts","wallet_addEthereumChain","wallet_switchEthereumChain","wallet_revokePermissions","personal_sign","eth_sendTransaction","ynx_disconnect"]);
   const EVENTS=new Set(["accountsChanged","chainChanged","disconnect"]),pending=new Set(),requestIdPattern=/^ynx-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u,targetOrigin=location.origin;
   const reply=(requestId,response)=>window.postMessage({type:PAGE_RESPONSE,version:VERSION,requestId,origin:targetOrigin,...response},targetOrigin);
@@ -10,7 +10,7 @@
     if(data.origin!==targetOrigin||!requestIdPattern.test(data.requestId||"")||!METHODS.has(data.method)||(data.params!==undefined&&!Array.isArray(data.params))||pending.has(data.requestId))return;
     pending.add(data.requestId);
     const timer=setTimeout(()=>{if(pending.delete(data.requestId))reply(data.requestId,{ok:false,error:{code:"BRIDGE_TIMEOUT",message:"Wallet extension request timed out."}})},TIMEOUT_MS);
-    chrome.runtime.sendMessage({type:RUNTIME_REQUEST,version:VERSION,requestId:data.requestId,origin:targetOrigin,method:data.method,params:data.params})
+    chrome.runtime.sendMessage({type:RUNTIME_REQUEST,version:VERSION,requestId:data.requestId,origin:targetOrigin,method:data.method,params:data.params,deadlineAt:Date.now()+TIMEOUT_MS})
       .then((response)=>{if(!pending.delete(data.requestId))return;clearTimeout(timer);reply(data.requestId,response?.ok===true?{ok:true,result:response.result}:{ok:false,error:response?.error||{code:"PROVIDER_REQUEST_FAILED",message:"Wallet request failed closed."}})})
       .catch(()=>{if(!pending.delete(data.requestId))return;clearTimeout(timer);reply(data.requestId,{ok:false,error:{code:"RUNTIME_UNAVAILABLE",message:"Wallet extension runtime is unavailable."}})});
   });

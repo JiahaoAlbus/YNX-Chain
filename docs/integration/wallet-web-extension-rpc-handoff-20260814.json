@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "owner": "wallet-web-pwa-extensions",
+  "consumerOf": "01-chain-core frozen YNX Testnet contract",
+  "sourceBaseline": "0b3ffa8faabad2caa49b1c00db493261e2d98bca",
+  "evmChainId": "0x1917",
+  "rpcUrl": "https://evm.ynxweb4.com",
+  "edgeMv3RpcProved": false,
+  "chainMutationSucceeded": false,
+  "chainMutationFailClosedWithoutWalletCalls": true,
+  "tamperedFrozenParamsRejectedWithoutWalletCalls": true,
+  "evidence": "apps/wallet-web/evidence/runtime/extension-rpc-mutation-gates-20260814.json",
+  "releaseStates": {"installedLocal":false,"downloadHosted":false,"productionSigned":false,"storeReleased":false}
+}

@@ -9,7 +9,7 @@ import {chromium} from "playwright";
 const root=resolve(dirname(fileURLToPath(import.meta.url)),".."),extensionPath=join(root,"dist","chromium"),fixtureRoot=join(root,"test","fixtures"),evidenceDir=join(root,"evidence","runtime");
 const browserId=process.env.YNX_BROWSER||"edge",gate=process.env.YNX_GATE||"injection",writeEvidence=process.env.YNX_WALLET_WEB_WRITE_EVIDENCE==="1";
 const browsers={chrome:{name:"Google Chrome",path:"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"},edge:{name:"Microsoft Edge",path:"/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge"}};
-if(!browsers[browserId]||!["injection","accounts","lifecycle","wrong-chain","chain-id"].includes(gate))throw new Error("Unsupported YNX_BROWSER or YNX_GATE");
+if(!browsers[browserId]||!["injection","accounts","lifecycle","wrong-chain","chain-id","rpc","add-chain","switch-chain","tamper"].includes(gate))throw new Error("Unsupported YNX_BROWSER or YNX_GATE");
 const bounded=(promise,ms,label)=>Promise.race([promise,new Promise((_,reject)=>setTimeout(()=>reject(Object.assign(new Error(`${label} timed out after ${ms}ms`),{code:"GATE_TIMEOUT"})),ms))]);
 const server=createServer(async(request,response)=>{const url=new URL(request.url||"/","http://ynx.fixture"),relative=url.pathname==="/"?"dapp.html":url.pathname.slice(1),path=resolve(fixtureRoot,relative);if(!path.startsWith(fixtureRoot)){response.writeHead(403).end();return}try{const body=await readFile(path);response.setHeader("content-type",extname(path)===".html"?"text/html":"application/octet-stream");response.end(body)}catch{response.writeHead(404).end()}});
 await bounded(new Promise((accept,reject)=>{server.once("error",reject);server.listen(0,"127.0.0.1",accept)}),3000,"fixture server");
@@ -33,12 +33,20 @@ try{
     result.passed=result.outcome.first?.[0]===result.outcome.second?.[0]&&result.outcome.events.some(([event])=>event==="disconnect")&&result.outcome.events.some(([event,value])=>event==="accountsChanged"&&Array.isArray(value)&&value.length===0);
   }
   if(gate==="wrong-chain"){
-    result.outcome=await bounded(page.evaluate(async()=>{const provider=globalThis.ethereum.providers.find((item)=>item?.__ynxCompanion===true);globalThis.__YNX_FIXTURE_SET_CHAIN__("0x1");try{await provider.request({method:"wallet_switchEthereumChain",params:[{chainId:"0x1917"}]});return{success:true}}catch(error){return{success:false,error:{code:error?.code,message:error?.message}}}}),6000,"wrong-chain bridge");
+    result.outcome=await bounded(page.evaluate(async()=>{const provider=globalThis.ethereum.providers.find((item)=>item?.__ynxCompanion===true);globalThis.__YNX_FIXTURE_SET_CHAIN__("0x1");globalThis.__YNX_FIXTURE_SET_SWITCH_APPLIES__(false);try{await provider.request({method:"wallet_switchEthereumChain",params:[{chainId:"0x1917"}]});return{success:true}}catch(error){return{success:false,error:{code:error?.code,message:error?.message},calls:globalThis.__YNX_FIXTURE_CALLS__}}}),20000,"wrong-chain bridge");
     result.passed=result.outcome.success===false&&result.outcome.error?.code==="WRONG_NETWORK";
   }
-  if(gate==="chain-id"){
-    result.outcome=await bounded(page.evaluate(async()=>{const provider=globalThis.ethereum.providers.find((item)=>item?.__ynxCompanion===true);try{return{success:true,result:await provider.request({method:"eth_chainId"})}}catch(error){return{success:false,error:{code:error?.code,message:error?.message}}}}),9000,"chain-id bridge");
+  if(gate==="chain-id"||gate==="rpc"){
+    result.outcome=await bounded(page.evaluate(async()=>{const provider=globalThis.ethereum.providers.find((item)=>item?.__ynxCompanion===true);try{return{success:true,result:await provider.request({method:"eth_chainId"})}}catch(error){return{success:false,error:{code:error?.code,message:error?.message}}}}),20000,"chain-id bridge");
     result.passed=result.outcome.success===true&&result.outcome.result==="0x1917";
+  }
+  if(gate==="add-chain"||gate==="switch-chain"){
+    result.outcome=await bounded(page.evaluate(async(gateName)=>{const provider=globalThis.ethereum.providers.find((item)=>item?.__ynxCompanion===true),method=gateName==="add-chain"?"wallet_addEthereumChain":"wallet_switchEthereumChain",params=gateName==="add-chain"?[{chainId:"0x1917",chainName:"YNX Testnet",nativeCurrency:{name:"YNX Testnet",symbol:"YNXT",decimals:18},rpcUrls:["https://evm.ynxweb4.com"],blockExplorerUrls:["https://explorer.ynxweb4.com"]}]:[{chainId:"0x1917"}];try{await provider.request({method,params});return{success:true,chainId:await provider.request({method:"eth_chainId"}),calls:globalThis.__YNX_FIXTURE_CALLS__}}catch(error){return{success:false,error:{code:error?.code,message:error?.message},calls:globalThis.__YNX_FIXTURE_CALLS__}}},gate),20000,`${gate} bridge`);
+    result.passed=result.outcome.success===true&&result.outcome.chainId==="0x1917"&&result.outcome.calls.some((call)=>call.method===(gate==="add-chain"?"wallet_addEthereumChain":"wallet_switchEthereumChain"));
+  }
+  if(gate==="tamper"){
+    result.outcome=await bounded(page.evaluate(async()=>{const provider=globalThis.ethereum.providers.find((item)=>item?.__ynxCompanion===true);try{await provider.request({method:"wallet_switchEthereumChain",params:[{chainId:"0x1"}]});return{success:true,calls:globalThis.__YNX_FIXTURE_CALLS__}}catch(error){return{success:false,error:{code:error?.code,message:error?.message},calls:globalThis.__YNX_FIXTURE_CALLS__}}}),6000,"tampered chain params");
+    result.passed=result.outcome.success===false&&result.outcome.error?.code==="INVALID_CHAIN_PARAMS"&&!result.outcome.calls.some((call)=>call.method==="wallet_switchEthereumChain"||call.method==="wallet_addEthereumChain");
   }
 }catch(error){result.error={name:error?.name||"Error",code:error?.code||null,message:error?.message||String(error)};}
 finally{if(context)await bounded(context.close(),3000,"browser close").catch(()=>{});server.close();await rm(profile,{recursive:true,force:true}).catch(()=>{});}

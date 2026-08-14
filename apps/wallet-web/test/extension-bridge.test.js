@@ -9,14 +9,15 @@ const valid={type:PAGE_REQUEST,version:BRIDGE_VERSION,requestId:REQUEST_ID,origi
 test("page bridge accepts only exact HTTP(S) origin, request id, method and params",()=>{
   assert.equal(validatePageRequest(valid,"https://dapp.example"),true);
   for(const invalid of [{...valid,origin:"https://evil.example"},{...valid,requestId:"guessable"},{...valid,method:"eth_sign"},{...valid,params:{}},{...valid,extra:true}])assert.equal(validatePageRequest(invalid,"https://dapp.example"),false);
-  assert.equal(validHttpOrigin("file:///tmp/dapp.html"),false);assert.equal(REQUEST_TIMEOUT_MS,12000);
+  assert.equal(validHttpOrigin("file:///tmp/dapp.html"),false);assert.equal(REQUEST_TIMEOUT_MS,18000);
 });
 
 test("runtime bridge binds the content-script request to the sender origin",()=>{
-  const runtime={...valid,type:RUNTIME_REQUEST};
+  const runtime={...valid,type:RUNTIME_REQUEST,deadlineAt:Date.now()+REQUEST_TIMEOUT_MS};
   assert.equal(validateRuntimeRequest(runtime,"https://dapp.example/path"),true);
   assert.equal(validateRuntimeRequest(runtime,"https://evil.example/path"),false);
   assert.equal(validateRuntimeRequest(runtime,"chrome-extension://id/page"),false);
+  assert.equal(validateRuntimeRequest({...runtime,deadlineAt:Date.now()-1},"https://dapp.example/path"),false);
 });
 
 test("bridge allowlist includes lifecycle and sensitive methods but no arbitrary RPC",()=>{
@@ -27,7 +28,7 @@ test("bridge allowlist includes lifecycle and sensitive methods but no arbitrary
 
 test("content and page scripts enforce source, origin, timeout, duplicate-id and companion exclusion guards",async()=>{
   const[content,page,worker]=await Promise.all([readFile(new URL("../extension/content-script.js",import.meta.url),"utf8"),readFile(new URL("../extension/page-provider.js",import.meta.url),"utf8"),readFile(new URL("../extension/service-worker.js",import.meta.url),"utf8")]);
-  assert.match(content,/event\.source!==window\|\|event\.origin!==targetOrigin/);assert.match(content,/pending\.has\(data\.requestId\)/);assert.match(content,/BRIDGE_TIMEOUT/);
+  assert.match(content,/event\.source!==window\|\|event\.origin!==targetOrigin/);assert.match(content,/pending\.has\(data\.requestId\)/);assert.match(content,/BRIDGE_TIMEOUT/);assert.match(content,/deadlineAt:Date\.now\(\)\+TIMEOUT_MS/);
   assert.match(page,/event\.source!==window\|\|event\.origin!==expectedOrigin/);assert.match(page,/crypto\.randomUUID\(\)/);assert.match(page,/__ynxCompanion:true/);
-  assert.match(worker,/provider\?\.__ynxCompanion!==true/);assert.match(worker,/backendChain!==CHAIN_ID/);assert.match(worker,/WALLET_BACKEND_NOT_FOUND/);
+  assert.match(worker,/provider\?\.__ynxCompanion!==true/);assert.match(worker,/backendChain!==CHAIN_ID/);assert.match(worker,/WALLET_BACKEND_NOT_FOUND/);assert.match(worker,/await liveChainId\(\);requireLiveDeadline\(message\.deadlineAt\)/);
 });

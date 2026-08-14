@@ -8,6 +8,7 @@ const sharedManifest = {
   description: "Run fail-closed YNX Testnet wallet actions against the active DApp tab.",
   homepage_url: extensionHomepage,
   permissions: ["activeTab", "scripting", "storage"],
+  content_security_policy: {extension_pages: "script-src 'self'; object-src 'self'; connect-src https://evm.ynxweb4.com"},
   host_permissions: ["https://*/*", "http://localhost/*", "http://127.0.0.1/*"],
   content_scripts: [{
     matches: ["https://*/*", "http://localhost/*", "http://127.0.0.1/*"],

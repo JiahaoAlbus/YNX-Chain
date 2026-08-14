@@ -4,7 +4,7 @@ export const PAGE_RESPONSE = "YNX_PAGE_RESPONSE_V1";
 export const PAGE_EVENT = "YNX_PAGE_EVENT_V1";
 export const RUNTIME_REQUEST = "YNX_DAPP_REQUEST_V1";
 export const RUNTIME_EVENT = "YNX_DAPP_EVENT_V1";
-export const REQUEST_TIMEOUT_MS = 12000;
+export const REQUEST_TIMEOUT_MS = 18000;
 
 export const REQUEST_METHODS = Object.freeze([
   "eth_chainId", "eth_accounts", "eth_requestAccounts", "wallet_addEthereumChain",
@@ -29,7 +29,9 @@ export function validatePageRequest(data, eventOrigin) {
 }
 export function validateRuntimeRequest(message, senderUrl) {
   let senderOrigin; try { senderOrigin = new URL(senderUrl).origin; } catch { return false; }
-  return message?.type === RUNTIME_REQUEST && message.version === BRIDGE_VERSION && validatePageRequest({...message, type:PAGE_REQUEST}, senderOrigin);
+  if (!message || !Object.keys(message).every((key) => ["type", "version", "requestId", "origin", "method", "params", "deadlineAt"].includes(key))) return false;
+  const pageRequest={type:PAGE_REQUEST,version:message.version,requestId:message.requestId,origin:message.origin,method:message.method,params:message.params};
+  return message.type === RUNTIME_REQUEST && validatePageRequest(pageRequest, senderOrigin) && Number.isSafeInteger(message.deadlineAt) && message.deadlineAt > Date.now() && message.deadlineAt <= Date.now()+REQUEST_TIMEOUT_MS+1000;
 }
 export function publicBridgeError(error) {
   const code = typeof error?.code === "number" || typeof error?.code === "string" ? error.code : "PROVIDER_REQUEST_FAILED";

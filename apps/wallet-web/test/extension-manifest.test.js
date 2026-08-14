@@ -13,6 +13,7 @@ test("extension packages expose truthful install metadata without hosted-update 
     assert.equal(manifest.content_scripts[0].run_at,"document_start");
     assert.deepEqual(manifest.web_accessible_resources[0].resources,["page-provider.js"]);
     assert.deepEqual(manifest.host_permissions,["https://*/*","http://localhost/*","http://127.0.0.1/*"]);
+    assert.equal(manifest.content_security_policy.extension_pages,"script-src 'self'; object-src 'self'; connect-src https://evm.ynxweb4.com");
     assert.equal(manifest.host_permissions.includes("http://*/*"),false);
     assert.equal(manifest.host_permissions.some((pattern)=>pattern.startsWith("file:")),false);
     assert.equal("update_url" in manifest, false);

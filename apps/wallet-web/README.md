@@ -69,6 +69,14 @@ top-level tab and origin, time out closed, and never manufacture accounts,
 signatures, transactions, or chain responses. Account, chain, and disconnect
 events cross the same origin-bound channel.
 
+The service worker independently verifies the authoritative RPC before every
+add/switch mutation. Its 12-second transport deadline is shorter than the
+18-second page bridge deadline; both layers fail closed. Runtime requests carry
+an origin-bound absolute deadline that is checked again after RPC verification
+and before invoking the real wallet backend, preventing a late RPC response
+from mutating chain state after the DApp has already timed out. Add/switch input
+must exactly match the frozen YNX Testnet metadata.
+
 ```sh
 npm test
 npm run build
