@@ -34,7 +34,7 @@ successful eight-runtime release record.
   service tests provide the diagnostic payload evidence; unopened files and
   unavailable language servers remain outside the panel's stated coverage.
 - Project-test evidence: `services/workspace-agent/test/runtime.test.mjs` executes
-  discovered JavaScript, Python unittest, same-package Go and standalone C++ tests through
+  discovered JavaScript, Python unittest, same-package Go and standalone C/C++ tests through
   the real no-network sandbox, then rejects a wrong approval and missing tests.
   `test/project-test-runner-ui.test.js` holds the UI/client to exact discovery,
   one-time review, file/phase bounds and an allowlist that never invokes package

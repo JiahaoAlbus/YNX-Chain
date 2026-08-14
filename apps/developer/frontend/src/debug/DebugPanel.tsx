@@ -45,7 +45,7 @@ export function DebugPanel({
     [frames, setFrames] = useState<Frame[]>([]),
     [variables, setVariables] = useState<Variable[]>([]),
     [log, setLog] = useState("");
-  const supported = /\.(cpp|cc|cxx)$/i.test(activePath);
+  const supported = /\.(c|cpp|cc|cxx)$/i.test(activePath);
   useEffect(
     () => () => {
       socket.current?.close();
@@ -275,8 +275,8 @@ export function DebugPanel({
       </div>
       {!supported && (
         <div className="honest-boundary">
-          The first reviewed DAP adapter is C/C++ via LLDB. Select a .cpp, .cc
-          or .cxx file.
+          The first reviewed DAP adapter is C/C++ via LLDB. Select a .c, .cpp,
+          .cc or .cxx file.
         </div>
       )}
       <DebugSection title={`BREAKPOINTS (${breakpoints.length})`}>

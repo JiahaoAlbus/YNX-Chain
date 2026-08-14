@@ -10,7 +10,7 @@ async function session() {
   const value = await response.json();
   assert.equal(response.status, 200, JSON.stringify(value));
   assert.equal(value.sandboxReady, true);
-  for (const language of ["cpp", "javascript", "typescript", "python", "go", "rust", "java", "solidity"])
+  for (const language of ["c", "cpp", "javascript", "typescript", "python", "go", "rust", "java", "solidity"])
     assert.equal(value.compilers[language], true, `${language} compiler missing`);
   const cookie = response.headers.get("set-cookie")?.split(";")[0];
   assert.ok(cookie);
@@ -74,6 +74,7 @@ assert.match(await page.text(), /<div id="root"><\/div>/);
 
 const cookie = await session();
 const compilers = [
+  ["c", "src/main.c", '#include <stdio.h>\nint main(void){fputs("YNX-LIVE-C",stdout);return 0;}'],
   ["cpp", "src/main.cpp", '#include <iostream>\nint main(){std::cout<<"YNX-LIVE-CPP";}'],
   ["javascript", "src/main.js", 'console.log("YNX-LIVE-JS")'],
   ["typescript", "src/main.ts", 'const value:number=42; console.log(`YNX-LIVE-TS-${value}`);'],
@@ -91,6 +92,7 @@ for (const [language, activePath, source] of compilers) {
 }
 
 const languageRequests = [
+  ["cpp", { files: { "src/main.c": "int add(int a,int b){return a+b;}\nint main(void){return ad;}" }, activePath: "src/main.c", operation: "completion", position: { line: 1, character: 25 } }],
   ["cpp", { files: { "src/main.cpp": "int add(int a,int b){return a+b;}\nint main(){return ad;}" }, activePath: "src/main.cpp", operation: "completion", position: { line: 1, character: 20 } }],
   ["typescript", { files: { "src/main.ts": "function add(a:number,b:number){return a+b}\nad" }, activePath: "src/main.ts", operation: "completion", position: { line: 1, character: 2 } }],
   ["python", { files: { "src/main.py": "def add(a: int,b: int)->int: return a+b\nad" }, activePath: "src/main.py", operation: "completion", position: { line: 1, character: 2 } }],
@@ -138,4 +140,4 @@ const agent = await json(cookie, "/runtime/agent/runs", {
 assert.equal(agent.run.status, "plan_review");
 assert.ok(agent.run.plan.steps.length > 0);
 
-console.log(`YNX Code public candidate passed 8 runtimes, 6 LSPs, 12 concurrent tenants, isolation, Chain ${chain.status.height}, a hosted AI Planner run and fail-closed Wallet readiness.`);
+console.log(`YNX Code public candidate passed 9 runtimes, 7 language requests across 6 LSP routes, 12 concurrent tenants, isolation, Chain ${chain.status.height}, a hosted AI Planner run and fail-closed Wallet readiness.`);

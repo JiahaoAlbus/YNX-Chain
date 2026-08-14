@@ -7,7 +7,7 @@ import { detectSandbox, resolveExecutable, sandboxLaunch } from "../../workspace
 
 const OPERATIONS=new Set(["completion","definition","references","rename","format","diagnostics","documentSymbols"]),CPP_EXTENSIONS=new Set([".c",".cc",".cpp",".cxx",".h",".hh",".hpp",".hxx"]);
 const LSP_CONCURRENCY=bounded(process.env.YNX_CODE_LSP_CONCURRENCY,2,1,16),LSP_QUEUE_LIMIT=bounded(process.env.YNX_CODE_LSP_QUEUE,64,1,256);let activeLsp=0;const lspWaiters=[];
-export async function runCppLanguageRequest(request,options){return runStdioLanguageRequest(request,{language:"cpp",label:"C/C++",extensions:CPP_EXTENSIONS,serverCandidates:["clangd","clangd-18","clangd-17","clangd-16"],serverName:"clangd",serverArgs:["--background-index=false","--clang-tidy=false","--header-insertion=never","--log=error"],languageId:()=>"cpp"},options)}
+export async function runCppLanguageRequest(request,options){return runStdioLanguageRequest(request,{language:"cpp",label:"C/C++",extensions:CPP_EXTENSIONS,serverCandidates:["clangd","clangd-18","clangd-17","clangd-16"],serverName:"clangd",serverArgs:["--background-index=false","--clang-tidy=false","--header-insertion=never","--log=error"],languageId:path=>extname(path).toLowerCase()===".c"?"c":"cpp"},options)}
 export async function runStdioLanguageRequest(request,config,options={}){const release=await acquireLsp();try{return await runStdioLanguageRequestNow(request,config,options)}finally{release()}}
 async function runStdioLanguageRequestNow({files,activePath,operation,position,newName},config,options){
   validate(files,activePath,operation,position,newName,config);

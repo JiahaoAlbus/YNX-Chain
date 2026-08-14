@@ -1,5 +1,20 @@
 # YNX Developer 0.2.0 Testnet Preview release notes
 
+## 2026-08-14 real C17 build, test and debug path
+
+- Added a distinct `.c` runtime adapter using `clang`/`gcc` with C17, warnings
+  and pedantic checks; C is no longer inferred from the existing C++ adapter.
+- Project Test now discovers standalone `.c` files under `test/` or `tests/`,
+  compiles each without network or a shell and executes the bounded output.
+- The selected LXD workspace uses an equivalent fixed `clang -std=c17` plan,
+  and the LLDB DAP bridge now accepts `.c`, reports language `c` and builds with
+  the C compiler rather than `clang++`.
+- Clangd now opens `.c` documents with language identifier `c`; direct gates
+  exercise real C completion and diagnostics. The protected live candidate gate
+  now requires a ninth, distinct C runtime build and a C clangd request.
+- Direct gates compile and run a real C program and standalone C test. This does
+  not add CMake, Meson, Makefile execution or an arbitrary build-command path.
+
 ## 2026-08-14 reviewed Web npm installation
 
 - Added a one-time reviewed Package action for selected project-bound LXD
@@ -55,8 +70,8 @@
 - Added a real `test-project` workspace task and Test action with an exact
   discovered-file preview plus a separate one-time `test-once` approval.
 - The network-disabled sandbox runs Node's built-in test runner, Python unittest
-  scripts, same-package Go tests and standalone C++ tests. Direct integration
-  evidence executes all four, streams output and verifies the sandbox boundary.
+  scripts, same-package Go tests and standalone C/C++ tests. Direct integration
+  evidence executes all five runner classes, streams output and verifies the sandbox boundary.
 - Discovery is capped at 32 files and execution at 20 phases with existing
   output, time, memory and process limits. Package scripts and user-selected
   commands are never executed. Rust/Cargo, Java/JUnit and Solidity-framework

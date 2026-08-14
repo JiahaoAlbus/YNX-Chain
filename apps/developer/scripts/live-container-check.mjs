@@ -13,6 +13,7 @@ const runtimeId=created.runtime.runtimeId;
 try{
   assert.match(created.runtime.evidence.imageFingerprint,/^[a-f0-9]{64}$/);assert.equal(created.runtime.evidence.network,"disabled");
   const cases=[
+    ["src/main.c",'#include <stdio.h>\nint main(void){fputs("GATE_C_OK",stdout);}',"GATE_C_OK"],
     ["src/main.cpp",'#include <iostream>\nint main(){std::cout<<"GATE_CPP_OK";}',"GATE_CPP_OK"],
     ["src/main.js",'console.log("GATE_JS_OK")',"GATE_JS_OK"],
     ["src/main.ts",'const value: number=42; console.log("GATE_TS_OK",value)',"GATE_TS_OK"],
@@ -24,6 +25,7 @@ try{
   ];
   for(const[activePath,source,expected]of cases){const value=await request(`/runtime/profiles/lxd/leases/${runtimeId}/tasks`,{method:"POST",body:JSON.stringify({protocolVersion:"ynx-code-runtime/v1",approval:"execute-container-once",projectId,activePath,files:{[activePath]:source}})});assert.equal(value.ok,true,`${activePath}: ${value.output}`);assert.match(value.output,new RegExp(expected));assert.equal(value.sandbox.kind,"lxd-container");assert.equal(value.sandbox.network,false);assert.notEqual(value.compiler.version,"unavailable",`${value.language} version evidence is unavailable`);console.log(`${value.language}: ${value.compiler.version}`)}
   const languageCases=[
+    ["cpp",{"src/main.c":"int add(int a,int b){return a+b;}\nint main(void){return ad;}\n"},"src/main.c",{line:1,character:25},item=>String(item.label).trim()==="add"],
     ["cpp",{"src/main.cpp":"int add(int a,int b){return a+b;}\nint main(){return ad;}\n"},"src/main.cpp",{line:1,character:21},item=>String(item.label).trim()==="add"],
     ["typescript",{"src/main.ts":"function add(a:number,b:number){return a+b}\nconst value=ad\n"},"src/main.ts",{line:1,character:14},item=>String(item.label)==="add"],
     ["python",{"src/main.py":"def greet(name: str) -> str:\n    return name\n\ngre\n"},"src/main.py",{line:3,character:3},item=>String(item.label)==="greet"],

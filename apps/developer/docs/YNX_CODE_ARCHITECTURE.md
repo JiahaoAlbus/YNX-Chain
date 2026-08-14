@@ -201,7 +201,7 @@ gate. LSP capabilities are negotiated; the UI never enables a command the
 server did not advertise. Diagnostics include source, version and staleness.
 
 The execution gate is tracked separately from LSP. The Linux candidate actually
-builds or runs C++, JavaScript, TypeScript, Python, Go, Rust and Solidity inside
+builds or runs C, C++, JavaScript, TypeScript, Python, Go, Rust and Solidity inside
 the network-disabled workspace container. TypeScript is first transpiled by the
 installed `tsc`; only the validated workspace and `.ynx-build` are writable.
 macOS verifies its locally installed subset and reports missing toolchains as
@@ -254,7 +254,7 @@ The Web task broker now has two distinct reviewed envelopes: `build-run-active`
 requires `execute-once`, while `test-project` requires `test-once`. Project test
 discovery is server-duplicated from the visible client preview and selects only
 Node built-in tests, Python unittest discovery, same-directory Go package tests and
-standalone C++ tests. It accepts at most 32 discovered files and 20 phases and
+standalone C/C++ tests. It accepts at most 32 discovered files and 20 phases and
 uses the same no-network Bubblewrap/prlimit or sandbox-exec boundary, streaming
 and output limits. It never evaluates package-manager scripts or an arbitrary
 command string. Cargo, JUnit and Solidity framework adapters remain unimplemented.
@@ -305,14 +305,15 @@ created, entered and deleted a real Ubuntu 24.04 container with no IPv4/IPv6.
 The current reviewed toolchain and language-intelligence image is pinned by its
 immutable LXD fingerprint
 `7662bcfc5ca87f56d6fe47107b10bcbfd36e08d4faad912d2ebfa48976050ae9`.
-It contains the verified first-stage C++, JavaScript, TypeScript, Python, Go,
+It contains the verified first-stage C, C++, JavaScript, TypeScript, Python, Go,
 Rust and Solidity compilers/runtimes plus six initialized language servers.
 Selecting a lease in Remote Explorer
 routes the Workbench Run action through the runtime control plane, synchronizes
 only the validated text workspace, and compiles or executes the active file in
-that container without a shell or network device. A live server gate creates a
-fresh lease, runs all seven language paths, verifies compiler-version evidence,
-exercises all six cloud LSP paths, opens an interactive PTY inside that same
+that container without a shell or network device. The current candidate live
+server gate creates a fresh lease, runs all nine language paths including distinct
+C17 and Java adapters, verifies compiler-version evidence, exercises seven requests
+across six cloud LSP routes (including C and C++ through clangd), opens an interactive PTY inside that same
 container, writes a file, synchronizes the changed text snapshot back through
 the revisioned workspace store, deletes the lease and rejects any leaked runtime
 container. Active terminal and LSP processes hold a lease lock, so their backing
@@ -339,7 +340,7 @@ filename and optional declared package, compile UTF-8 bytecode only below
 has passed on the local network-disabled macOS sandbox. The recipe also writes
 the exact installed JDK/JRE Debian package versions into the image. This remains
 an undeployed candidate until a Linux LXD builder produces a new immutable
-fingerprint and the eight-runtime live gate passes; Java LSP is a separate open
+fingerprint and the nine-runtime live gate passes; Java LSP is a separate open
 gate and is not implied by syntax highlighting or successful compilation.
 
 Remote SSH profiles accept public targets only on the public tier. The service

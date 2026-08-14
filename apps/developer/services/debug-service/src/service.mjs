@@ -58,7 +58,7 @@ export function createDebugService(options) {
       !owner ||
       !validId(projectId) ||
       !safePath(activePath) ||
-      !cpp(activePath) ||
+      !cFamily(activePath) ||
       !sameOrigin(request) ||
       request.headers["sec-websocket-protocol"] !== PROTOCOL ||
       !sandbox.ready ||
@@ -98,14 +98,15 @@ export function createDebugService(options) {
         "Workspace or active source was not found.",
         "workspace_not_found",
       );
-    const compiler =
-        options.compilerPath || (await resolveExecutable(["clang++", "g++"])),
+    const language = extname(activePath).toLowerCase() === ".c" ? "c" : "cpp",
+      compiler =
+        options.compilerPath || (await resolveExecutable(language === "c" ? ["clang", "gcc"] : ["clang++", "g++"])),
       adapter =
         options.adapterPath ||
         (await resolveExecutable(["lldb-dap-18", "lldb-dap", "lldb-vscode"]));
     if (!compiler || !adapter)
       throw fault(
-        "The reviewed C++ compiler or LLDB DAP adapter is unavailable.",
+        "The reviewed C/C++ compiler or LLDB DAP adapter is unavailable.",
         "debug_adapter_unavailable",
       );
     const sessionId = randomUUID(),
@@ -127,7 +128,7 @@ export function createDebugService(options) {
         workspace,
         command: compiler,
         args: [
-          "-std=c++20",
+          language === "c" ? "-std=c17" : "-std=c++20",
           "-g",
           "-O0",
           "-fno-omit-frame-pointer",
@@ -175,7 +176,7 @@ export function createDebugService(options) {
       protocolVersion: PROTOCOL,
       sessionId,
       adapter: "lldb-dap",
-      language: "cpp",
+      language,
       sandbox: { kind: sandbox.kind, network: false },
       program: "/workspace/.ynx-build/debug-program",
     });
@@ -370,8 +371,8 @@ function safePath(value) {
     /^[A-Za-z0-9_./ +@-]+$/.test(value)
   );
 }
-function cpp(value) {
-  return [".cpp", ".cc", ".cxx"].includes(extname(value).toLowerCase());
+function cFamily(value) {
+  return [".c", ".cpp", ".cc", ".cxx"].includes(extname(value).toLowerCase());
 }
 function validId(value) {
   return typeof value === "string" && /^[A-Za-z0-9_-]{1,160}$/.test(value);

@@ -10,7 +10,7 @@ import { createWorkspaceStore } from "../../workspace-manager/src/store.mjs";
 import { createDebugService } from "../src/service.mjs";
 import { resolveExecutable } from "../../workspace-agent/src/sandbox.mjs";
 
-test("authenticated debug bridge compiles and forwards bounded DAP frames", async (t) => {
+test("authenticated C debug bridge compiles and forwards bounded DAP frames", async (t) => {
   const root = await mkdtemp(join(tmpdir(), "ynx-debug-test-")),
     compiler = join(root, "compiler.sh"),
     adapter = join(root, "adapter.mjs");
@@ -73,20 +73,21 @@ test("authenticated debug bridge compiles and forwards bounded DAP frames", asyn
       workspace: {
         name: "Debug",
         folders: ["src"],
-        files: { "src/main.cpp": "int main(){int value=7;return value;}\n" },
-        open: ["src/main.cpp"],
-        active: "src/main.cpp",
+        files: { "src/main.c": "int main(void){int value=7;return value;}\n" },
+        open: ["src/main.c"],
+        active: "src/main.c",
       },
     }),
   });
   const messages = [],
     websocket = new WebSocket(
-      `ws://127.0.0.1:${address.port}/runtime/debug?projectId=debug-project&activePath=src%2Fmain.cpp`,
+      `ws://127.0.0.1:${address.port}/runtime/debug?projectId=debug-project&activePath=src%2Fmain.c`,
       "ynx-code-dap-v1",
       { headers: { cookie, origin: base } },
     );
   websocket.on("message", (raw) => messages.push(JSON.parse(String(raw))));
   await waitFor(() => messages.some((value) => value.type === "ready"));
+  assert.equal(messages.find((value) => value.type === "ready").language, "c");
   websocket.send(
     JSON.stringify({
       type: "dap",
@@ -111,7 +112,7 @@ test("authenticated debug bridge compiles and forwards bounded DAP frames", asyn
         type: "request",
         command: "setBreakpoints",
         arguments: {
-          source: { path: "src/main.cpp" },
+          source: { path: "src/main.c" },
           breakpoints: [{ line: 1 }],
         },
       },
@@ -123,7 +124,7 @@ test("authenticated debug bridge compiles and forwards bounded DAP frames", asyn
   assert.equal(
     messages.filter((value) => value.type === "dap")[1].message.body
       .receivedPath,
-    "/workspace/src/main.cpp",
+    "/workspace/src/main.c",
   );
   websocket.send(
     JSON.stringify({

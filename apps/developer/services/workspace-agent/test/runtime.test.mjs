@@ -227,10 +227,11 @@ test("C++ is really compiled and executed through the approved sandbox", async (
   assert.equal(value.sandbox.writableRoot, "workspace");
   assert.equal(JSON.stringify(value).includes(tmpdir()), false);
 });
-test("JavaScript, TypeScript, Python and Go use real installed runtimes", async (t) => {
+test("C, JavaScript, TypeScript, Python and Go use real installed runtimes", async (t) => {
   const { url } = await fixture(t),
     cookie = await session(url),
     cases = [
+      ["src/main.c", '#include <stdio.h>\nint main(void){printf("YNX-C-42");return 0;}', "c", /YNX-C-42/],
       ["src/main.js", 'console.log("YNX-JS-42")', "javascript", /YNX-JS-42/],
       ["src/main.ts", "const value: number = 42; console.log(`YNX-TS-${value}`);", "typescript", /YNX-TS-42/],
       ["src/main.py", 'print("YNX-PY-42")', "python", /YNX-PY-42/],
@@ -262,6 +263,7 @@ test("project tests are discovered, one-time approved and run without network", 
         "test_math.py": 'import unittest\nclass MathTest(unittest.TestCase):\n def test_real(self): self.assertEqual(6*7,42)\nif __name__ == "__main__": unittest.main()',
         "math.go": "package mathcheck\nfunc multiply(a,b int) int { return a*b }",
         "math_test.go": 'package mathcheck\nimport "testing"\nfunc TestReal(t *testing.T){if multiply(6,7)!=42{t.Fatal("wrong")}}',
+        "tests/math.c": '#include <stdio.h>\nint main(void){if(6*7!=42)return 1;printf("C-TEST-PASS");return 0;}',
         "tests/math.cpp": '#include <iostream>\nint main(){if(6*7!=42)return 1;std::cout<<"CPP-TEST-PASS";}',
       },
       approval: "test-once",
@@ -277,10 +279,11 @@ test("project tests are discovered, one-time approved and run without network", 
   assert.equal(value.language, "project-tests");
   assert.match(value.output, /pass 1/);
   assert.equal(value.sandbox.network, false);
+  assert.match(value.output, /C-TEST-PASS/);
   assert.match(value.output, /CPP-TEST-PASS/);
   assert.deepEqual(
     value.compiler.evidence.runners.map(({ language }) => language),
-    ["javascript", "python", "go", "cpp"],
+    ["javascript", "python", "go", "c", "cpp"],
   );
   const unapproved = await fetch(`${url}/runtime/tasks`, {
     method: "POST",

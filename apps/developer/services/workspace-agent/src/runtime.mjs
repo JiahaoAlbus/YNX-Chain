@@ -506,6 +506,7 @@ function validateTask(value) {
 
 async function compilerInventory() {
   const specs = {
+    c: ["clang", "gcc"],
     cpp: ["clang++", "g++"],
     javascript: [basename(process.execPath)],
     typescript: ["tsc"],
@@ -620,6 +621,23 @@ async function taskSpec(path, workspace, files) {
   const file = safeJoin(workspace, path),
     extension = extname(path).toLowerCase(),
     build = join(workspace, ".ynx-build", "program");
+  if (extension === ".c") {
+    const compiler = await resolveCommand(["clang", "gcc"]);
+    if (!compiler) return null;
+    return {
+      language: "c",
+      compiler,
+      version: await version(compiler),
+      phases: [
+        {
+          label: "build",
+          command: compiler,
+          args: ["-std=c17", "-Wall", "-Wextra", "-pedantic", file, "-o", build],
+        },
+        { label: "run", command: build, args: [] },
+      ],
+    };
+  }
   if ([".cpp", ".cc", ".cxx"].includes(extension)) {
     const compiler = await resolveCommand(["clang++", "g++"]);
     if (!compiler) return null;
@@ -778,9 +796,10 @@ async function projectTestSpec(workspace, files) {
     javascript = paths.filter((path) => /(?:^|\/).+\.(?:test|spec)\.(?:js|mjs|cjs)$/i.test(path)),
     python = paths.filter((path) => /(?:^|\/)(?:test_.+|.+_test)\.py$/i.test(path)),
     goTests = paths.filter((path) => /_test\.go$/i.test(path)),
+    c = paths.filter((path) => /(?:^|\/)(?:test|tests)\/.+\.c$/i.test(path)),
     cpp = paths.filter((path) => /(?:^|\/)(?:test|tests)\/.+\.(?:cpp|cc|cxx)$/i.test(path));
-  if (javascript.length + python.length + goTests.length + cpp.length === 0) throw Object.assign(new Error("No supported JavaScript, Python, Go or C++ project tests were found."), { status: 400, code: "tests_missing" });
-  if (javascript.length + python.length + goTests.length + cpp.length > 32)
+  if (javascript.length + python.length + goTests.length + c.length + cpp.length === 0) throw Object.assign(new Error("No supported JavaScript, Python, Go, C or C++ project tests were found."), { status: 400, code: "tests_missing" });
+  if (javascript.length + python.length + goTests.length + c.length + cpp.length > 32)
     throw Object.assign(new Error("Project test discovery exceeds the 32-file review boundary."), {
       status: 413,
       code: "test_file_limit",
@@ -833,6 +852,34 @@ async function projectTestSpec(workspace, files) {
         timeout: 90_000,
         environment: { GOMAXPROCS: "2" },
       });
+    }
+  }
+  if (c.length) {
+    const command = await resolveCommand(["clang", "gcc"]);
+    if (!command)
+      throw Object.assign(new Error("C tests were found but no reviewed C compiler is installed."), {
+        status: 503,
+        code: "toolchain_unavailable",
+      });
+    if (!runners.length) primary = command;
+    runners.push({ language: "c", files: c });
+    for (let index = 0; index < c.length; index += 1) {
+      const path = c[index],
+        output = join(workspace, ".ynx-build", `test-c-${index}`);
+      phases.push(
+        {
+          label: `build-test:c:${path}`,
+          command,
+          args: ["-std=c17", "-Wall", "-Wextra", "-pedantic", safeJoin(workspace, path), "-o", output],
+          timeout: 20_000,
+        },
+        {
+          label: `test:c:${path}`,
+          command: output,
+          args: [],
+          timeout: 10_000,
+        },
+      );
     }
   }
   if (cpp.length) {
