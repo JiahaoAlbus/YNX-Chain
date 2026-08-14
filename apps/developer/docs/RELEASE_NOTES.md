@@ -14,8 +14,9 @@
   stops the container.
 - Service tests pass `14/14`; product tests pass `56/56`; a controlled Python
   `3.12.13` probe installed and imported the real `colorama==0.4.6` wheel and
-  produced the same exact lock. Feature source:
-  `6a0af002514ad3dbf19f527c7af00910b217b2c4`. Public exact-version and container
+  produced the same exact lock. The later integrity slice binds that lock to the
+  real wheel SHA-256. Feature source:
+  `f2b9e18c374d932ecb41f0f63b4007d9e3a8115e`. Public exact-version and container
   install evidence remain pending the dedicated reviewed LXD egress network.
 
 ## 2026-08-14 real offline Hardhat Solidity project-test candidate
