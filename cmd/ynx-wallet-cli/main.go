@@ -17,7 +17,7 @@ import (
 
 var version = "dev"
 
-const defaultRPC = "https://evm.ynxweb4.com"
+const defaultRPC = "https://rpc.ynxweb4.com/evm"
 
 func main() {
 	if err := run(os.Args[1:], os.Stdout, &http.Client{}); err != nil {

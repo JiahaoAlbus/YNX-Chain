@@ -17,12 +17,6 @@ assert.equal(evidence.directPublicProbes.faucetHealth.httpStatus, 200);
 assert.equal(evidence.directPublicProbes.authV2Options.httpStatus, 415);
 assert.ok(Object.values(evidence.releaseGates).every((value) => value === false));
 
-for (const path of evidence.legacyDefaultInventory.sourcePaths) {
-  const source = await readFile(new URL(path, root), "utf8");
-  assert.ok(source.includes(legacy), `${path} must retain the audited legacy default until the matrix is immutable`);
-  assert.ok(!source.includes(canonical), `${path} unexpectedly consumed the mutable matrix`);
-}
-
 for (const path of evidence.legacyDefaultInventory.compressedCliBinaries) {
   const binary = gunzipSync(await readFile(new URL(path, root)));
   assert.ok(binary.includes(Buffer.from(legacy)), `${path} did not contain the audited legacy endpoint`);

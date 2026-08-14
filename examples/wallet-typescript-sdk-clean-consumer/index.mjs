@@ -46,7 +46,7 @@ verifyProductSessionProof(ephemeralProof, ephemeralSession, {
   bodyDigest: ephemeralProof.bodyDigest,
 }, new Date("2026-07-15T12:00:10.000Z"));
 
-const rpc = process.env.YNX_EVM_RPC || "https://evm.ynxweb4.com";
+const rpc = process.env.YNX_EVM_RPC || "https://rpc.ynxweb4.com/evm";
 const chain = await proveYNXTestnetRPC(rpc, {timeoutMs: 15_000});
 console.log(JSON.stringify({
   cleanConsumer: true,

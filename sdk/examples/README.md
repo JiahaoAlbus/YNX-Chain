@@ -2,8 +2,8 @@
 
 YNX Chain SDK examples use the public testnet by default:
 
-- REST status: `https://rpc.ynxweb4.com/status`
-- EVM JSON-RPC: `https://evm.ynxweb4.com`
+- REST API: `https://rest.ynxweb4.com`
+- EVM JSON-RPC: `https://rpc.ynxweb4.com/evm`
 - Explorer: `https://explorer.ynxweb4.com`
 - Chain ID: `6423` / `0x1917`
 - Native coin: `YNXT`

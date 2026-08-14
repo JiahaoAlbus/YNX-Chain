@@ -39,3 +39,9 @@ func TestNonHTTPSRPCFailsBeforeNetwork(t *testing.T) {
 		t.Fatalf("expected HTTPS failure, got %v", err)
 	}
 }
+
+func TestDefaultRPCConsumesFrozenEndpointMatrix(t *testing.T) {
+	if defaultRPC != "https://rpc.ynxweb4.com/evm" {
+		t.Fatalf("unexpected default RPC %q", defaultRPC)
+	}
+}

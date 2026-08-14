@@ -16,7 +16,7 @@ import (
 	wallet "github.com/JiahaoAlbus/YNX-Chain/sdk/wallet/go"
 )
 
-const defaultRPC = "https://evm.ynxweb4.com"
+const defaultRPC = "https://rpc.ynxweb4.com/evm"
 
 func main() {
 	if err := run(os.Args[1:], os.Stdout, &http.Client{}); err != nil {

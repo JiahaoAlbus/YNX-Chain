@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "wallet-desktop-cli-sdk-endpoint-contract-consumption-20260815",
+  "checkedAt": "2026-08-14T16:31:00Z",
+  "ownerBaseCommit": "afff3d1ffdc64fa547749761c3157d3afea535e7",
+  "centralContract": {
+    "commit": "d0f89797d13c7667cc187b0c64d5c9e1cb1d8f59",
+    "endpointMatrix": {
+      "path": "release/integration/wallet-auth-public-endpoint-service-discovery-matrix.json",
+      "gitBlob": "d402fcdc844aa39bd5ee351a99d93acb4852dc37",
+      "sha256": "d344c607c2bbbf7bb0d9d3662b424976d0d6c4ff20428025dd1e2fb92bf31392"
+    },
+    "androidLauncher": {
+      "path": "release/integration/wallet-auth-android-launcher-contract.json",
+      "gitBlob": "83c9f91779701288861cff5e4dc6c487ffcdc26c",
+      "sha256": "d296732141a4029b1811b655f0001cc7d81a1d45019a4bd87d21b2b4b256d1a6"
+    },
+    "recreated": false,
+    "exactBlobsConsumed": true
+  },
+  "canonical": {
+    "rpc": "https://rpc.ynxweb4.com/evm",
+    "rest": "https://rest.ynxweb4.com",
+    "faucet": "https://faucet.ynxweb4.com",
+    "chainId": "0x1917"
+  },
+  "updatedOwnerConsumers": [
+    "apps/wallet-desktop/src/main.mjs",
+    "cmd/ynx-wallet-cli/main.go",
+    "examples/wallet-go-sdk/main.go",
+    "examples/wallet-typescript-sdk-clean-consumer/index.mjs",
+    "sdk/js/ynx-testnet.js",
+    "sdk/examples/README.md"
+  ],
+  "verification": {
+    "goTests": "PASS: ./cmd/ynx-wallet-cli and ./examples/wallet-go-sdk",
+    "goCliBuild": "PASS: darwin arm64 local binary",
+    "desktopTestsFirstAttempt": "FAIL: isolated worktree dependencies were not installed",
+    "desktopTestsAfterLockedDependencies": "PASS: 2/2",
+    "typescriptSdkTests": "PASS: 13/13",
+    "typescriptLocalPack": {
+      "version": "0.2.1",
+      "bytes": 5579,
+      "sha256": "9d3f747b5cb50a19bf67cf40d29181bc1b1a216f40bf9925d9125e6761efb274",
+      "signingClass": "unsigned-development-build",
+      "committedReleaseArtifact": false
+    },
+    "liveCanonicalConsumerProbes": [
+      {
+        "consumer": "built ynx-wallet-cli",
+        "result": "RPC unavailable: TLS handshake timeout",
+        "chainIdProved": false,
+        "failedClosed": true
+      },
+      {
+        "consumer": "Go SDK real example",
+        "result": "RPC unavailable: context deadline exceeded",
+        "chainIdProved": false,
+        "failedClosed": true
+      },
+      {
+        "consumer": "TypeScript SDK real example",
+        "result": "UND_ERR_CONNECT_TIMEOUT",
+        "chainIdProved": false,
+        "failedClosed": true
+      }
+    ]
+  },
+  "androidLauncherScope": {
+    "contractStoredExact": true,
+    "androidImplementationModifiedByDesktopCliSdkOwner": false,
+    "physicalDeviceValidated": false,
+    "launcherFunctional": false
+  },
+  "releaseGates": {
+    "endpointMatrixConsumed": true,
+    "sourceConsumersUpdated": true,
+    "sourceTestsPassed": true,
+    "releaseArtifactsRebuilt": false,
+    "officialDownloadsReplaced": false,
+    "nativeRpcFromOfficialArtifactProved": false,
+    "browserCorsProved": false,
+    "faucetFunctional": false,
+    "authFunctional": false,
+    "accountVerified": false,
+    "signVerified": false,
+    "transactionVerified": false,
+    "downloadFunctional": false,
+    "deployedPublic": false,
+    "productionSigned": false
+  }
+}
