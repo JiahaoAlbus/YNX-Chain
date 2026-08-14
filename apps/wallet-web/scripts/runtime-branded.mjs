@@ -95,7 +95,8 @@ async function testBrowser(browser){
 }
 
 if(keepEvidence){await mkdir(evidenceDir,{recursive:true});await rm(stageLog,{force:true})}
-const results=[];for(const browser of browsers.filter(({id})=>requestedBrowser==="all"||id===requestedBrowser))results.push(await testBrowser(browser));server.close();
+const results=[];for(const browser of browsers.filter(({id})=>requestedBrowser==="all"||id===requestedBrowser))results.push(await testBrowser(browser));
+server.closeIdleConnections?.();server.closeAllConnections?.();await bounded(new Promise(resolveClose=>server.close(resolveClose)),2000,"fixture server close").catch(()=>{});
 const artifact=await readFile(join(root,"artifacts","ynx-wallet-chrome-edge-0.1.0.zip"));
 const evidence={schemaVersion:1,sourceCommit,generatedAt:new Date().toISOString(),fixtureAuthority:"isolated test fixture; never production runtime",artifact:{name:"ynx-wallet-chrome-edge-0.1.0.zip",bytes:artifact.length,sha256:createHash("sha256").update(artifact).digest("hex"),signingClass:"unsigned-unpacked-extension"},results,releaseStates:{installedLocal:false,downloadHosted:false,productionSigned:false,storeReleased:false}};
 if(keepEvidence){await mkdir(evidenceDir,{recursive:true});await writeFile(join(evidenceDir,"branded-temporary-runtime.json"),`${JSON.stringify(evidence,null,2)}\n`)}
