@@ -2,7 +2,7 @@ import {LOCALES, catalog, isRTL} from "./i18n.js";
 import {
   YNX_DOWNLOAD_URL, addYNXChain, connectWallet, createExtensionProvider, discoverWallets,
   extensionWalletAvailability, forgetSession, rememberSession, restoreTestnetSession, sendTransaction,
-  signMessage, subscribeProviderLifecycle, switchToYNXChain, walletActionGates,
+  resolveRememberedWallet, signMessage, subscribeProviderLifecycle, switchToYNXChain, walletActionGates,
 } from "./provider.js";
 
 const app = document.querySelector("#app");
@@ -88,6 +88,7 @@ function bindProviderLifecycle(provider) {
 }
 
 function selectProvider(wallet) {
+  if (state.wallet && state.wallet !== wallet) clearConnectedSession();
   state.wallet = wallet;
   state.provider = isExtension ? createExtensionProvider(wallet) : state.providers?.[wallet];
   if (!state.provider) throw Object.assign(new Error(text("unavailable")), {code: "WALLET_NOT_FOUND"});
@@ -123,10 +124,7 @@ async function detect() {
   document.querySelector("#download").classList.toggle("hidden", ynxPresent);
   document.querySelector("#metamask").classList.toggle("hidden", ynxPresent);
   document.querySelector("#detected").textContent = ynxPresent ? text("detected") : text("unavailable");
-  let saved = null;
-  try { saved = JSON.parse(localStorage.getItem("ynx.wallet.web.session.v1") || "null"); }
-  catch { localStorage.removeItem("ynx.wallet.web.session.v1"); }
-  const wallet = saved?.wallet === "ynx" && ynxPresent ? "ynx" : saved?.wallet === "metamask" && metamaskPresent ? "metamask" : null;
+  const wallet = resolveRememberedWallet(availability);
   if (wallet) {
     const provider = selectProvider(wallet);
     const restored = await restoreTestnetSession(provider);

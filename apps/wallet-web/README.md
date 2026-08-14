@@ -19,6 +19,10 @@ The UI keeps signing and transaction actions disabled until a real provider,
 canonical account, and exact `0x1917` chain are present. Standard EIP-1193
 `accountsChanged`, `chainChanged`, and `disconnect` events invalidate stale
 public session metadata and return those actions to the fail-closed state.
+On a second launch, malformed, extra-field, wrong-chain, missing-provider,
+replaced-account, and provider-error session records are deleted. Switching
+between YNX Wallet and MetaMask also invalidates the previous wallet session;
+the user must explicitly connect again.
 
 ```sh
 npm test

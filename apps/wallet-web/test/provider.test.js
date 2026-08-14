@@ -2,8 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   SESSION_KEY, WalletWebError, YNX_CHAIN, addYNXChain, connectWallet, discoverInjectedProviders,
-  forgetSession, rememberSession, restoreTestnetSession, sendTransaction, signMessage,
-  subscribeProviderLifecycle, switchToYNXChain, verifyTestnetRpc, walletActionGates,
+  forgetSession, readRememberedSession, rememberSession, resolveRememberedWallet,
+  restoreTestnetSession, sendTransaction, signMessage, subscribeProviderLifecycle,
+  switchToYNXChain, verifyTestnetRpc, walletActionGates,
 } from "../src/provider.js";
 
 const ACCOUNT = `0x${"1".repeat(40)}`;
@@ -96,6 +97,33 @@ test("tampered local session JSON is removed without a provider request", async 
   const wallet = provider({});
   assert.equal(await restoreTestnetSession(wallet,memory),null);
   assert.equal(memory.getItem(SESSION_KEY),null); assert.equal(wallet.calls.length,0);
+});
+
+test("second launch removes non-canonical and unavailable remembered sessions", () => {
+  const memory = storage();
+  for (const saved of [
+    {account:ACCOUNT,chainId:"0x1",wallet:"ynx"},
+    {account:ACCOUNT,chainId:"0x1917",wallet:"unknown"},
+    {account:ACCOUNT,chainId:"0x1917",wallet:"ynx",extra:true},
+  ]) {
+    memory.setItem(SESSION_KEY,JSON.stringify(saved));
+    assert.equal(readRememberedSession(memory),null);
+    assert.equal(memory.getItem(SESSION_KEY),null);
+  }
+  rememberSession({account:ACCOUNT,chainId:"0x1917"},"ynx",memory);
+  assert.equal(resolveRememberedWallet({ynx:false,metamask:true},memory),null);
+  assert.equal(memory.getItem(SESSION_KEY),null);
+});
+
+test("second launch invalidates account replacement and provider failure", async () => {
+  for (const wallet of [
+    provider({eth_chainId:"0x1917",eth_accounts:[TO]}),
+    provider({eth_chainId:()=>{throw new Error("disconnected")},eth_accounts:[ACCOUNT]}),
+  ]) {
+    const memory = storage(); rememberSession({account:ACCOUNT,chainId:"0x1917"},"ynx",memory);
+    assert.equal(await restoreTestnetSession(wallet,memory),null);
+    assert.equal(memory.getItem(SESSION_KEY),null);
+  }
 });
 
 test("action gates require a provider and an exact connected Testnet account", () => {

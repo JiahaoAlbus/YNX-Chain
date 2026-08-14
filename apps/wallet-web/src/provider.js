@@ -145,9 +145,8 @@ export async function connectWallet(provider, options = {}) {
 
 export async function restoreTestnetSession(provider, storage = globalThis.localStorage) {
   if (!validProvider(provider) || !storage) return null;
-  let saved;
-  try { saved = JSON.parse(storage.getItem(SESSION_KEY) || "null"); } catch { storage.removeItem(SESSION_KEY); return null; }
-  if (!saved || saved.chainId !== YNX_CHAIN.chainId || !ADDRESS.test(saved.account || "")) return null;
+  const saved = readRememberedSession(storage);
+  if (!saved) return null;
   const [chainId, accounts] = await Promise.all([
     provider.request({method: "eth_chainId"}),
     provider.request({method: "eth_accounts"}),
@@ -160,8 +159,32 @@ export async function restoreTestnetSession(provider, storage = globalThis.local
 }
 
 export function rememberSession(session, wallet, storage = globalThis.localStorage) {
-  if (!storage || !ADDRESS.test(session?.account || "") || session.chainId !== YNX_CHAIN.chainId) return;
+  if (!storage || !ADDRESS.test(session?.account || "") || session.chainId !== YNX_CHAIN.chainId || !["ynx", "metamask"].includes(wallet)) return;
   storage.setItem(SESSION_KEY, JSON.stringify({account: session.account.toLowerCase(), chainId: session.chainId, wallet}));
+}
+
+export function readRememberedSession(storage = globalThis.localStorage) {
+  if (!storage) return null;
+  let saved;
+  try { saved = JSON.parse(storage.getItem(SESSION_KEY) || "null"); }
+  catch { storage.removeItem(SESSION_KEY); return null; }
+  const exactKeys = saved && typeof saved === "object" && !Array.isArray(saved) &&
+    Object.keys(saved).length === 3 && ["account", "chainId", "wallet"].every((key) => Object.hasOwn(saved, key));
+  if (!exactKeys || !ADDRESS.test(saved.account || "") || saved.chainId !== YNX_CHAIN.chainId || !["ynx", "metamask"].includes(saved.wallet)) {
+    if (saved !== null) storage.removeItem(SESSION_KEY);
+    return null;
+  }
+  return Object.freeze({account: saved.account.toLowerCase(), chainId: saved.chainId, wallet: saved.wallet});
+}
+
+export function resolveRememberedWallet(availability, storage = globalThis.localStorage) {
+  const saved = readRememberedSession(storage);
+  if (!saved) return null;
+  if (!availability?.[saved.wallet]) {
+    forgetSession(storage);
+    return null;
+  }
+  return saved.wallet;
 }
 
 export function forgetSession(storage = globalThis.localStorage) {

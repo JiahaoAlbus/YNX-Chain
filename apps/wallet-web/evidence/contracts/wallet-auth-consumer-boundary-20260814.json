@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "3829aa6dcaf740264cf3f257fae23ae6b2c6ba6f",
+  "observedAt": "2026-08-14T03:05:27Z",
+  "authority": {
+    "protocol": "packages/wallet-auth/src/protocol.js",
+    "deepLink": "packages/wallet-auth/src/deep-link.js",
+    "replay": "packages/wallet-auth/src/replay.js",
+    "registry": "packages/wallet-auth/central-registry.json",
+    "transport": "ynxwallet://authorize?request=<base64url(canonical JSON)>"
+  },
+  "walletWebRegistration": {
+    "productId": "wallet",
+    "productClientId": "ynx-wallet-v1",
+    "bundleId": "com.ynxweb4.wallet",
+    "callback": "ynxwallet://wallet-auth/callback",
+    "reviewState": "pending-review",
+    "enabled": false,
+    "registeredWebCallback": false
+  },
+  "decision": {
+    "authorizationRequestConsumerImplemented": false,
+    "walletAuthorizationApprovalFabricated": false,
+    "callbackSuccessClaimed": false,
+    "replaySuccessClaimed": false,
+    "reason": "Wallet Web has no enabled central product registration or registered Web callback. This slice does not invent a product binding, callback, approval, signature, session, or Auth protocol extension."
+  },
+  "fallbackSlice": {
+    "name": "disconnect-reconnect-and-second-launch-session-invalidation",
+    "wrongChainInvalidates": true,
+    "malformedOrExtraFieldSessionInvalidates": true,
+    "unavailableWalletInvalidates": true,
+    "replacedAccountInvalidates": true,
+    "providerFailureInvalidates": true,
+    "walletPreferenceChangeInvalidates": true,
+    "explicitReconnectRequired": true,
+    "executableTestCount": 17
+  },
+  "releaseStates": {
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}
