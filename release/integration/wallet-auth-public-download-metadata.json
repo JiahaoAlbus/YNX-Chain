@@ -232,6 +232,20 @@
       "exclusionReason": "The clean-consumer tarball is not published to npm or immutable public hosting."
     },
     {
+      "id": "macos-cli-x64-0.2.0",
+      "sourceCommit": "ddab97ee88e927558f87eddc2d4a61a09a5bdc80",
+      "artifactName": "ynx-wallet-cli-darwin-amd64.gz",
+      "sha256": "122e3bceae5854de9721b1e18e75bef5ce584985d0818a06fb160d9bac72aecf",
+      "signingClass": "unsigned-macos-testnet-cli-candidate",
+      "publicUrl": null,
+      "immutableUrl": null,
+      "downloadHosted": false,
+      "productionSigned": false,
+      "storeReleased": false,
+      "websitePublishable": false,
+      "exclusionReason": "Native Intel CI and temporary artifact readback do not make the unsigned gzip or its ad-hoc installed copy a hosted production release."
+    },
+    {
       "id": "go-sdk-0.1.0",
       "sourceCommit": "d430b44488d1c583e8983b422a825790f479add8",
       "artifactName": "ynx-wallet-go-sdk-0.1.0.tgz",

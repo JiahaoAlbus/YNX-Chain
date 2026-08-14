@@ -43,7 +43,6 @@
       "consumedForReleaseTruth": false,
       "note": "The Android branch advanced beyond frozen evidence without an Owner terminal checkpoint; device truth remains unchanged."
     },
-    {"owner":"desktop-cli-sdk","candidateCommit":"ddab97ee88e927558f87eddc2d4a61a09a5bdc80","remoteFastForwardReported":true,"remoteReadbackComplete":false,"ciComplete":true,"consumedForReleaseTruth":false,"note":"macOS x64 CLI lifecycle evidence remains queued separately."},
     {"owner":"desktop-cli-sdk","candidateCommit":"0b65e31031f8316b5ea753fe70bd9bea391ef760","remoteFastForwardReported":true,"remoteReadbackComplete":false,"ciComplete":true,"consumedForReleaseTruth":false,"note":"macOS x64 CLI handoff remains queued separately."}
   ],
   "ownerSources": [
@@ -86,9 +85,9 @@
     {
       "owner": "desktop-cli-sdk",
       "branch": "codex/wallet-desktop-cli-sdk-20260813",
-      "sourceCommit": "195de4618c5762b98a43192719854a62ae78d7b1",
-      "remoteCommitObserved": "195de4618c5762b98a43192719854a62ae78d7b1",
-      "branchHeadObserved": "6a5f256033f4a9fc99f834d86ebb1a1e7382b93a",
+      "sourceCommit": "ddab97ee88e927558f87eddc2d4a61a09a5bdc80",
+      "remoteCommitObserved": "ddab97ee88e927558f87eddc2d4a61a09a5bdc80",
+      "branchHeadObserved": "48f9392990080384ce0b9bd7b9568419d685e1a6",
       "remoteVerifiedAt": "2026-08-14T04:05:00Z",
       "verificationMode": "github-git-database-parent-tree-blob-readback"
     }
@@ -628,6 +627,13 @@
       "commit": "195de4618c5762b98a43192719854a62ae78d7b1",
       "path": "release/integration/wallet-desktop-cli-sdk-contract.json",
       "supports": []
+    },
+    "macos-cli-x64-native-lifecycle": {
+      "type": "git-object",
+      "direct": true,
+      "commit": "ddab97ee88e927558f87eddc2d4a61a09a5bdc80",
+      "path": "release/wallet-cli/macos-x64-native/manifest.json",
+      "supports": ["macos-cli-x64.build", "macos-cli-x64.install", "macos-cli-x64.coldLaunch", "macos-cli-x64.secondLaunch", "macos-cli-x64.testnet", "macos-cli-x64.sign"]
     }
   },
   "platforms": [
@@ -793,6 +799,16 @@
       "gates": {"build":true,"install":true,"coldLaunch":true,"secondLaunch":true,"testnet":true,"sign":true,"tx":false,"callback":false,"reconnect":false,"downloadHosted":false,"productionSigned":false,"storeReleased":false},
       "evidenceBindings": {"build":["windows-cli-arm64-native-lifecycle"],"install":["windows-cli-arm64-native-lifecycle"],"coldLaunch":["windows-cli-arm64-native-lifecycle"],"secondLaunch":["windows-cli-arm64-native-lifecycle"],"testnet":["windows-cli-arm64-native-lifecycle"],"sign":["windows-cli-arm64-native-lifecycle"],"tx":["windows-cli-arm64-native-lifecycle"],"callback":["windows-cli-arm64-native-lifecycle"],"reconnect":["windows-cli-arm64-native-lifecycle"],"downloadHosted":["windows-cli-arm64-native-lifecycle"],"productionSigned":["windows-cli-arm64-native-lifecycle"],"storeReleased":["windows-cli-arm64-native-lifecycle"]},
       "notes": ["Windows 11 arm64 native CI proved upgrade/install, cold/second start, frozen vectors, exact 0x1917, fail-close and uninstall. sign=true is limited to a temporary P-256 self-test with no persisted key; it is not a production account or chain transaction signature. The installer is Authenticode NotSigned and not hosted/public/store-released."]
+    },
+    {
+      "id": "macos-cli-x64",
+      "ownerSource": "desktop-cli-sdk",
+      "artifactClass": "unsigned-macos-testnet-cli-candidate",
+      "status": "native-ci-lifecycle",
+      "capabilities": {"installedNativeCI":true,"installedLocal":false,"upgradeVerified":true,"ephemeralP256SelfTest":true,"privateKeyPersisted":false,"artifactUnsigned":true,"installedCopyAdHocSigned":true,"postUploadRedownloadHashVerified":true},
+      "gates": {"build":true,"install":true,"coldLaunch":true,"secondLaunch":true,"testnet":true,"sign":true,"tx":false,"callback":false,"reconnect":false,"downloadHosted":false,"productionSigned":false,"storeReleased":false},
+      "evidenceBindings": {"build":["macos-cli-x64-native-lifecycle"],"install":["macos-cli-x64-native-lifecycle"],"coldLaunch":["macos-cli-x64-native-lifecycle"],"secondLaunch":["macos-cli-x64-native-lifecycle"],"testnet":["macos-cli-x64-native-lifecycle"],"sign":["macos-cli-x64-native-lifecycle"],"tx":["macos-cli-x64-native-lifecycle"],"callback":["macos-cli-x64-native-lifecycle"],"reconnect":["macos-cli-x64-native-lifecycle"],"downloadHosted":["macos-cli-x64-native-lifecycle"],"productionSigned":["macos-cli-x64-native-lifecycle"],"storeReleased":["macos-cli-x64-native-lifecycle"]},
+      "notes": ["Run 31773327847 on a macOS 15 Intel runner proved install/upgrade, cold/second start, frozen vector, exact 0x1917, fail-close, uninstall and downloaded-artifact re-verification. sign=true is only an ephemeral device proof. The source gzip is unsigned and only the temporary installed copy was ad-hoc signed; account, tx, hosting, production signing and store remain false."]
     },
     {
       "id": "go-sdk",
