@@ -123,8 +123,15 @@
                 <div><small>OOS RETURN</small><strong id="result-return">—</strong></div>
                 <div><small>BUY / HOLD</small><strong id="result-baseline">—</strong></div>
                 <div><small>MAX DRAWDOWN</small><strong id="result-drawdown">—</strong></div>
+                <div><small>SHARPE</small><strong id="result-sharpe">—</strong></div>
+                <div><small>PERIOD VOLATILITY</small><strong id="result-volatility">—</strong></div>
                 <div><small>TRADES</small><strong id="result-trades">—</strong></div>
               </div>
+              <figure id="equity-figure" class="equity-figure" hidden>
+                <figcaption>Out-of-sample equity (blue) vs buy/hold benchmark (gray). Both begin at the same test balance.</figcaption>
+                <svg id="equity-chart" viewBox="0 0 720 220" role="img" aria-label="Out-of-sample equity and benchmark curves"></svg>
+                <small id="metric-formula">Sharpe = mean period return ÷ sample standard deviation × √periods; zero risk-free rate. Volatility is period-level and not annualized.</small>
+              </figure>
             </div>
             <aside class="inspector">
               <h3 data-i18n="leakage">Leakage guard</h3>
@@ -191,6 +198,8 @@
                   <th>OOS return</th>
                   <th>Buy/hold</th>
                   <th>Drawdown</th>
+                  <th>Sharpe</th>
+                  <th>Volatility</th>
                   <th>Trades</th>
                   <th>Partial</th>
                   <th>Sensitivity</th>

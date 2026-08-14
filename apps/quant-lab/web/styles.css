@@ -498,3 +498,8 @@ th {
     display: none;
   }
 }
+.equity-figure{margin:18px 0 0;padding:14px;border:1px solid var(--line);border-radius:14px;background:var(--panel)}
+.equity-figure figcaption{margin-bottom:10px;color:var(--muted)}
+.equity-figure svg{display:block;width:100%;height:auto;background:color-mix(in srgb,var(--panel) 92%,var(--line));border-radius:10px}
+.equity-figure polyline{fill:none;stroke-width:3;vector-effect:non-scaling-stroke}
+.equity-line{stroke:#2f7cff}.benchmark-line{stroke:#8993a4;stroke-dasharray:7 5}

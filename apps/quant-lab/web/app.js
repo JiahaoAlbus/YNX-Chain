@@ -74,10 +74,10 @@ function render() {
     ? experiments
         .map(
           (e) =>
-            `<tr><td>${localDate(e.createdAt)}</td><td>${safe(e.strategy.Name)}</td><td>${e.metrics.ReturnBPS} bps</td><td>${e.metrics.BuyHoldBPS} bps</td><td>${e.metrics.MaxDrawdownBPS} bps</td><td>${e.metrics.Trades}</td><td>${e.metrics.PartialFills}</td><td>${e.sensitivitySpreadBPS} bps</td><td>${e.metrics.DataGaps}</td><td>${e.attribution?.userNetPnl ?? 0}</td><td>${e.attribution?.userRealizedPnl ?? 0}</td><td>${e.attribution?.userUnrealizedPnl ?? 0}</td><td>${e.attribution?.tradingFee ?? 0}</td><td>${e.attribution?.slippage ?? 0}</td></tr>`,
+            `<tr><td>${localDate(e.createdAt)}</td><td>${safe(e.strategy.Name)}</td><td>${e.metrics.ReturnBPS} bps</td><td>${e.metrics.BuyHoldBPS} bps</td><td>${e.metrics.MaxDrawdownBPS} bps</td><td>${((e.metrics.SharpeMilli ?? 0) / 1000).toFixed(3)}</td><td>${e.metrics.VolatilityBPS ?? 0} bps</td><td>${e.metrics.Trades}</td><td>${e.metrics.PartialFills}</td><td>${e.sensitivitySpreadBPS} bps</td><td>${e.metrics.DataGaps}</td><td>${e.attribution?.userNetPnl ?? 0}</td><td>${e.attribution?.userRealizedPnl ?? 0}</td><td>${e.attribution?.userUnrealizedPnl ?? 0}</td><td>${e.attribution?.tradingFee ?? 0}</td><td>${e.attribution?.slippage ?? 0}</td></tr>`,
         )
         .join("")
-    : `<tr><td colspan="14">${safe(t("emptyExperiment"))}</td></tr>`;
+    : `<tr><td colspan="16">${safe(t("emptyExperiment"))}</td></tr>`;
   const p = snapshot.paper || {};
   $("#paper-state").innerHTML =
     `<h3>Broker state</h3><dl><div><dt>Cash</dt><dd>${p.Cash ?? 0}</dd></div><div><dt>Position</dt><dd>${p.Position ?? 0}</dd></div><div><dt>Reconciliation</dt><dd>${p.ReconciliationDelta ?? 0}</dd></div><div><dt>Kill switch</dt><dd class="${p.KillSwitch ? "danger" : ""}">${p.KillSwitch ? "ACTIVE" : "Armed"}</dd></div></dl>`;
@@ -95,6 +95,19 @@ function render() {
   if (!$("#mandate-strategy").value && strategies.length) {
     $("#mandate-strategy").value = strategies[0].StrategyHash || "";
   }
+}
+function renderEquityChart(points = []) {
+  const figure = $("#equity-figure"), chart = $("#equity-chart");
+  if (!figure || !chart || points.length < 2) { if (figure) figure.hidden = true; return; }
+  const values = points.flatMap((point) => [Number(point.equity), Number(point.benchmarkEquity)]).filter(Number.isFinite);
+  const low = Math.min(...values), high = Math.max(...values), span = Math.max(1, high - low);
+  const path = (key) => points.map((point, index) => {
+    const x = 12 + index * 696 / Math.max(1, points.length - 1);
+    const y = 208 - (Number(point[key]) - low) * 196 / span;
+    return `${x.toFixed(2)},${y.toFixed(2)}`;
+  }).join(" ");
+  chart.innerHTML = `<polyline class="benchmark-line" points="${path("benchmarkEquity")}"/><polyline class="equity-line" points="${path("equity")}"/>`;
+  figure.hidden = false;
 }
 function safe(v) {
   const e = document.createElement("span");
@@ -154,7 +167,10 @@ $("#backtest").onsubmit = async (e) => {
       $("#result-return").textContent = `${metrics.ReturnBPS ?? metrics.returnBPS ?? 0} bps`;
       $("#result-baseline").textContent = `${metrics.BuyHoldBPS ?? metrics.buyHoldBPS ?? 0} bps`;
       $("#result-drawdown").textContent = `${metrics.MaxDrawdownBPS ?? metrics.maxDrawdownBPS ?? 0} bps`;
+      $("#result-sharpe").textContent = `${((metrics.SharpeMilli ?? metrics.sharpeMilli ?? 0) / 1000).toFixed(3)}`;
+      $("#result-volatility").textContent = `${metrics.VolatilityBPS ?? metrics.volatilityBPS ?? 0} bps`;
       $("#result-trades").textContent = metrics.Trades ?? metrics.trades ?? 0;
+      renderEquityChart(result.equityCurve || result.EquityCurve || []);
     }
     toast("Out-of-sample experiment completed and audited");
     if (publicMode) render(); else await refresh();

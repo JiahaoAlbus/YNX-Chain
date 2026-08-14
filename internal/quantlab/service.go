@@ -138,8 +138,15 @@ type BacktestRequest struct {
 }
 type Metrics struct {
 	ReturnBPS, BuyHoldBPS, MaxDrawdownBPS int64
+	SharpeMilli, VolatilityBPS            int64
 	Trades, PartialFills, DataGaps        int
 	NoTrade                               bool
+}
+type EquityPoint struct {
+	Time            time.Time `json:"time"`
+	Equity          int64     `json:"equity"`
+	BenchmarkEquity int64     `json:"benchmarkEquity"`
+	PeriodReturnBPS int64     `json:"periodReturnBps"`
 }
 type PnLAttribution struct {
 	Currency                 string   `json:"currency"`
@@ -174,6 +181,8 @@ type Experiment struct {
 	SensitivitySpreadBPS int64              `json:"sensitivitySpreadBPS"`
 	Regimes              map[string]Metrics `json:"regimes"`
 	NoTradeReturnBPS     int64              `json:"noTradeReturnBPS"`
+	EquityCurve          []EquityPoint      `json:"equityCurve"`
+	MetricDefinitions    map[string]string  `json:"metricDefinitions"`
 	Status               string             `json:"status"`
 	CreatedAt            time.Time          `json:"createdAt"`
 	AuditDigest          string             `json:"auditDigest"`
@@ -661,7 +670,7 @@ func (s *Service) RunBacktest(req BacktestRequest) (Experiment, error) {
 		Params map[string]int64
 	}{strategy.Family, strategy.Params})
 	strategy.Split = fmt.Sprintf("train[0:%d), out-of-sample[%d:%d), walk-forward=%d", req.Assumptions.TrainEnd, req.Assumptions.TrainEnd, len(req.Bars), req.Assumptions.WalkForwardWindows)
-	metrics, attribution := simulateDetailed(req.Bars, strategy, req.Assumptions, req.Assumptions.TrainEnd, len(req.Bars))
+	metrics, attribution, equityCurve := simulateDetailed(req.Bars, strategy, req.Assumptions, req.Assumptions.TrainEnd, len(req.Bars))
 	walkForward := make([]Metrics, 0, req.Assumptions.WalkForwardWindows)
 	oos := len(req.Bars) - req.Assumptions.TrainEnd
 	for i := 0; i < req.Assumptions.WalkForwardWindows; i++ {
@@ -707,7 +716,13 @@ func (s *Service) RunBacktest(req BacktestRequest) (Experiment, error) {
 	s.state.Sequence++
 	id := fmt.Sprintf("experiment-%06d", s.state.Sequence)
 	now := s.cfg.Now()
-	e := Experiment{ID: id, Strategy: strategy, Assumptions: req.Assumptions, Metrics: metrics, Attribution: attribution, LeakageChecksPassed: true, WalkForward: walkForward, Sensitivity: sensitivity, SensitivitySpreadBPS: maxReturn - minReturn, Regimes: regimes, NoTradeReturnBPS: 0, Status: "completed_oos", CreatedAt: now}
+	e := Experiment{ID: id, Strategy: strategy, Assumptions: req.Assumptions, Metrics: metrics, Attribution: attribution, LeakageChecksPassed: true, WalkForward: walkForward, Sensitivity: sensitivity, SensitivitySpreadBPS: maxReturn - minReturn, Regimes: regimes, NoTradeReturnBPS: 0, EquityCurve: equityCurve, MetricDefinitions: map[string]string{
+		"returnBPS":      "(ending equity - starting equity) / starting equity × 10,000",
+		"buyHoldBPS":     "(ending close - starting close) / starting close × 10,000",
+		"maxDrawdownBPS": "maximum peak-to-trough equity loss / prior peak × 10,000",
+		"sharpeMilli":    "mean OOS period return / sample standard deviation of OOS period returns × sqrt(number of periods) × 1,000; risk-free rate is assumed zero",
+		"volatilityBPS":  "sample standard deviation of OOS period returns × 10,000; not annualized",
+	}, Status: "completed_oos", CreatedAt: now}
 	e.AuditDigest = hash(e)
 	s.state.Experiments[id] = e
 	s.state.Strategies[strategy.ID] = strategy
@@ -748,10 +763,10 @@ func simulate(b []Bar, st StrategySpec, a Assumptions) Metrics {
 	return simulateRange(b, st, a, a.TrainEnd, len(b))
 }
 func simulateRange(b []Bar, st StrategySpec, a Assumptions, startIndex, endIndex int) Metrics {
-	metrics, _ := simulateDetailed(b, st, a, startIndex, endIndex)
+	metrics, _, _ := simulateDetailed(b, st, a, startIndex, endIndex)
 	return metrics
 }
-func simulateDetailed(b []Bar, st StrategySpec, a Assumptions, startIndex, endIndex int) (Metrics, PnLAttribution) {
+func simulateDetailed(b []Bar, st StrategySpec, a Assumptions, startIndex, endIndex int) (Metrics, PnLAttribution, []EquityPoint) {
 	cash := int64(100_000_000_000)
 	start := cash
 	pos := int64(0)
@@ -780,13 +795,30 @@ func simulateDetailed(b []Bar, st StrategySpec, a Assumptions, startIndex, endIn
 	if endIndex > len(b) {
 		endIndex = len(b)
 	}
+	equityCurve := make([]EquityPoint, 0, endIndex-startIndex)
+	periodReturns := make([]float64, 0, endIndex-startIndex)
+	previousEquity := start
+	benchmarkStart := b[startIndex].Close
+	recordEquity := func(index int) {
+		equity := cash + pos*b[index].Close/1_000_000
+		periodReturn := int64(0)
+		if previousEquity != 0 {
+			periodReturn = (equity - previousEquity) * 10000 / previousEquity
+			periodReturns = append(periodReturns, float64(equity-previousEquity)/float64(previousEquity))
+		}
+		benchmark := start * b[index].Close / benchmarkStart
+		equityCurve = append(equityCurve, EquityPoint{Time: b[index].Time, Equity: equity, BenchmarkEquity: benchmark, PeriodReturnBPS: periodReturn})
+		previousEquity = equity
+	}
 	for i := startIndex; i < endIndex; i++ {
 		if b[i].Time.Sub(b[i-1].Time) > 2*time.Minute {
 			gaps++
+			recordEquity(i)
 			continue
 		}
 		signalAt := i - 1 - a.LatencyBars
 		if signalAt < slow-1 {
+			recordEquity(i)
 			continue
 		}
 		f, sma := int64(0), int64(0)
@@ -805,10 +837,12 @@ func simulateDetailed(b []Bar, st StrategySpec, a Assumptions, startIndex, endIn
 		target := signal * 1_000_000
 		delta := target - pos
 		if delta == 0 {
+			recordEquity(i)
 			continue
 		}
 		capFill := b[i].Volume * a.ParticipationBPS / 10000
 		if capFill <= 0 {
+			recordEquity(i)
 			continue
 		}
 		fill := abs(delta)
@@ -865,10 +899,12 @@ func simulateDetailed(b []Bar, st StrategySpec, a Assumptions, startIndex, endIn
 		if dd > maxDD {
 			maxDD = dd
 		}
+		recordEquity(i)
 	}
 	end := cash + pos*b[endIndex-1].Close/1_000_000
 	buyHold := (b[endIndex-1].Close - b[startIndex].Close) * 10000 / b[startIndex].Close
-	metrics := Metrics{ReturnBPS: (end - start) * 10000 / start, BuyHoldBPS: buyHold, MaxDrawdownBPS: maxDD, Trades: trades, PartialFills: partial, DataGaps: gaps, NoTrade: trades == 0}
+	sharpeMilli, volatilityBPS := riskAdjustedMetrics(periodReturns)
+	metrics := Metrics{ReturnBPS: (end - start) * 10000 / start, BuyHoldBPS: buyHold, MaxDrawdownBPS: maxDD, SharpeMilli: sharpeMilli, VolatilityBPS: volatilityBPS, Trades: trades, PartialFills: partial, DataGaps: gaps, NoTrade: trades == 0}
 	net := end - start
 	beta := buyHold * start / 10000
 	gross := net + tradingFees + slippageCosts
@@ -879,7 +915,29 @@ func simulateDetailed(b []Bar, st StrategySpec, a Assumptions, startIndex, endIn
 	userRealized := realizedGross - tradingFees - slippageCosts
 	attribution := PnLAttribution{Currency: "YUSD_TEST_MICRO", Alpha: gross - beta, Beta: beta, TradingFee: tradingFees, Slippage: slippageCosts, AverageIdleCapital: averageIdle, UserRealizedPnL: userRealized, UserUnrealizedPnL: net - userRealized, UserNetPnL: net, UnsupportedComponents: []string{"carryFunding", "makerRebateLpFee", "gas", "mev", "oracleDrift", "computeDataFee", "managementPerformanceFee"}}
 	attribution.Reconciled = attribution.Alpha+attribution.Beta+attribution.CarryFunding+attribution.MakerRebateLPFee-attribution.TradingFee-attribution.Gas-attribution.Slippage-attribution.MEV-attribution.OracleDrift-attribution.ComputeDataFee-attribution.ManagementPerformanceFee == attribution.UserNetPnL && attribution.UserRealizedPnL+attribution.UserUnrealizedPnL == attribution.UserNetPnL
-	return metrics, attribution
+	return metrics, attribution, equityCurve
+}
+
+func riskAdjustedMetrics(returns []float64) (int64, int64) {
+	if len(returns) < 2 {
+		return 0, 0
+	}
+	mean := 0.0
+	for _, value := range returns {
+		mean += value
+	}
+	mean /= float64(len(returns))
+	variance := 0.0
+	for _, value := range returns {
+		delta := value - mean
+		variance += delta * delta
+	}
+	variance /= float64(len(returns) - 1)
+	deviation := math.Sqrt(variance)
+	if deviation == 0 {
+		return 0, 0
+	}
+	return int64(math.Round(mean / deviation * math.Sqrt(float64(len(returns))) * 1000)), int64(math.Round(deviation * 10000))
 }
 
 func cloneParams(input map[string]int64) map[string]int64 {

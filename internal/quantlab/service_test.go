@@ -66,8 +66,21 @@ func TestBacktestIsDeterministicOOSAndPersistent(t *testing.T) {
 		t.Fatal(e)
 	}
 	snap := b.Snapshot()
-	if a.Status != "completed_oos" || a.Strategy.DataHash == "" || !a.LeakageChecksPassed || len(a.WalkForward) != 3 || len(a.Sensitivity) != 4 || len(a.Regimes) != 2 || a.NoTradeReturnBPS != 0 || !a.Attribution.Reconciled || a.Attribution.UserRealizedPnL+a.Attribution.UserUnrealizedPnL != a.Attribution.UserNetPnL || len(a.Attribution.UnsupportedComponents) != 7 || len(snap["experiments"].(map[string]Experiment)) != 1 {
+	if a.Status != "completed_oos" || a.Strategy.DataHash == "" || !a.LeakageChecksPassed || len(a.WalkForward) != 3 || len(a.Sensitivity) != 4 || len(a.Regimes) != 2 || a.NoTradeReturnBPS != 0 || len(a.EquityCurve) != len(request().Bars)-request().Assumptions.TrainEnd || len(a.MetricDefinitions) != 5 || a.Metrics.SharpeMilli == 0 || !a.Attribution.Reconciled || a.Attribution.UserRealizedPnL+a.Attribution.UserUnrealizedPnL != a.Attribution.UserNetPnL || len(a.Attribution.UnsupportedComponents) != 7 || len(snap["experiments"].(map[string]Experiment)) != 1 {
 		t.Fatalf("bad result %#v", a)
+	}
+	if a.EquityCurve[0].BenchmarkEquity != 100_000_000_000 || !strings.Contains(a.MetricDefinitions["sharpeMilli"], "sample standard deviation") {
+		t.Fatalf("metric evidence is incomplete: %+v %+v", a.EquityCurve[0], a.MetricDefinitions)
+	}
+}
+
+func TestRiskAdjustedMetricsUseSampleDeviationAndZeroRiskFreeRate(t *testing.T) {
+	sharpeMilli, volatilityBPS := riskAdjustedMetrics([]float64{0.01, -0.005, 0.02, 0.015})
+	if sharpeMilli != 1852 || volatilityBPS != 108 {
+		t.Fatalf("risk-adjusted metrics sharpeMilli=%d volatilityBPS=%d", sharpeMilli, volatilityBPS)
+	}
+	if sharpe, volatility := riskAdjustedMetrics([]float64{0.01}); sharpe != 0 || volatility != 0 {
+		t.Fatalf("insufficient sample was not zeroed: %d %d", sharpe, volatility)
 	}
 }
 func TestLookAheadAndUnknownJSONFailClosed(t *testing.T) {
