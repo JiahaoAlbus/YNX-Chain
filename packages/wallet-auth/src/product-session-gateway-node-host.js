@@ -22,6 +22,7 @@ export class ProductSessionGatewayNodeHost {
   #registrySha256;
   #remoteDeployed;
   #statePath;
+  #stateIdentity;
   #tail = Promise.resolve();
   #tokenFactory;
 
@@ -37,8 +38,9 @@ export class ProductSessionGatewayNodeHost {
     this.#remoteDeployed = deploy.remoteDeployed;
     this.#build = deploy.build;
     const stored = loadState(this.#statePath, this.#registrySha256);
-    this.#handler = new ProductSessionGatewayHttpHandler(this.#registry, this.#tokenFactory, stored?.snapshot);
-    if (!stored) this.#persist(null);
+    this.#stateIdentity = stored?.identity ?? null;
+    this.#handler = new ProductSessionGatewayHttpHandler(this.#registry, this.#tokenFactory, stored?.envelope.snapshot);
+    if (!stored) this.#persist();
   }
 
   handler() {
@@ -48,7 +50,10 @@ export class ProductSessionGatewayNodeHost {
       let status = 500;
       let errorCode = null;
       try {
-        const administrative = this.#administrative(request);
+        const administrative = await this.#enqueue(() => {
+          this.#assertState();
+          return this.#administrative(request);
+        });
         if (administrative) {
           status = administrative.status;
           write(response, administrative);
@@ -96,14 +101,16 @@ export class ProductSessionGatewayNodeHost {
 
   #dispatch(input) {
     if (!this.#ready) throw new WalletAuthError("SERVICE_NOT_READY", "Product Session Gateway is not ready");
+    this.#assertState();
     const before = this.#handler.snapshot();
-    this.#assertPersistedState(before);
     const result = this.#handler.handle(input, this.#now());
     try {
-      this.#persist(before);
-    } catch {
+      this.#assertState(sha256(canonicalJSON(before)));
+      this.#persist();
+    } catch (error) {
       this.#handler = new ProductSessionGatewayHttpHandler(this.#registry, this.#tokenFactory, before);
       this.#ready = false;
+      if (error instanceof WalletAuthError) throw error;
       throw new WalletAuthError("STATE_PERSISTENCE_FAILED", "Product Session Gateway could not persist authoritative state");
     }
     return result;
@@ -117,7 +124,6 @@ export class ProductSessionGatewayNodeHost {
 
   #administrative(request) {
     if (request.method !== "GET" || request.headers[PRODUCT_SESSION_GATEWAY_PROOF_HEADER_V2] !== undefined || request.headers["content-length"] !== undefined || request.headers["transfer-encoding"] !== undefined) return null;
-    if (["/health", "/ready", "/version"].includes(request.url)) this.#assertPersistedState(this.#handler.snapshot());
     const stateSha256 = this.stateDigest();
     if (request.url === "/health") return jsonResponse(200, "req_administrative_health", { ok: true, remoteDeployed: this.#remoteDeployed, service: PRODUCT_SESSION_GATEWAY_NODE_SERVICE, stateSha256, truthfulStatus: this.#remoteDeployed ? "remote-product-session-v2-gateway" : "local-product-session-v2-gateway" });
     if (request.url === "/ready") return jsonResponse(this.#ready ? 200 : 503, "req_administrative_ready_", { ok: this.#ready, remoteDeployed: this.#remoteDeployed, runtimeReady: this.#ready, service: PRODUCT_SESSION_GATEWAY_NODE_SERVICE, stateSha256 });
@@ -125,17 +131,22 @@ export class ProductSessionGatewayNodeHost {
     return null;
   }
 
-  #persist(expectedPersistedSnapshot) {
-    if (expectedPersistedSnapshot !== null) this.#assertPersistedState(expectedPersistedSnapshot);
+  #persist() {
     const snapshot = this.#handler.snapshot();
     const envelope = Object.freeze({ registrySha256: this.#registrySha256, schemaVersion: PRODUCT_SESSION_GATEWAY_NODE_STATE_SCHEMA_VERSION, snapshot, snapshotSha256: sha256(canonicalJSON(snapshot)) });
     atomicWrite(this.#statePath, `${canonicalJSON(envelope)}\n`);
+    const stored = loadState(this.#statePath, this.#registrySha256);
+    if (!stored || stored.envelope.snapshotSha256 !== envelope.snapshotSha256) throw new WalletAuthError("STATE_PERSISTENCE_FAILED", "Product Session Gateway could not verify persisted authoritative state");
+    this.#stateIdentity = stored.identity;
   }
 
-  #assertPersistedState(expectedSnapshot) {
+  #assertState(expectedSnapshotSha256 = this.stateDigest()) {
+    if (!this.#ready) throw new WalletAuthError("SERVICE_NOT_READY", "Product Session Gateway is not ready");
     try {
       const stored = loadState(this.#statePath, this.#registrySha256);
-      if (!stored || stored.snapshotSha256 !== sha256(canonicalJSON(expectedSnapshot))) throw new WalletAuthError("STATE_FILE_CHANGED", "Product Session Gateway authoritative state changed during runtime");
+      if (!stored) throw new WalletAuthError("STATE_FILE_CHANGED", "Product Session Gateway state file disappeared at runtime");
+      if (!this.#stateIdentity || stored.identity.dev !== this.#stateIdentity.dev || stored.identity.ino !== this.#stateIdentity.ino) throw new WalletAuthError("STATE_FILE_CHANGED", "Product Session Gateway state inode changed at runtime");
+      if (stored.envelope.snapshotSha256 !== expectedSnapshotSha256) throw new WalletAuthError("STATE_TAMPERED", "Product Session Gateway persisted and in-memory state diverged");
     } catch (error) {
       this.#ready = false;
       throw error;
@@ -144,6 +155,17 @@ export class ProductSessionGatewayNodeHost {
 
   #emit(event) {
     try { this.#emitEvent(Object.freeze(event)); } catch { /* observability cannot change authority */ }
+  }
+}
+
+export class PersistentProductSessionGatewayNodeHost extends ProductSessionGatewayNodeHost {
+  constructor(registry, options) {
+    super(registry, {
+      emitEvent: options.emitEvent ?? (() => undefined),
+      now: options.now,
+      statePath: options.statePath,
+      tokenFactory: options.tokenFactory ?? defaultProductSessionTokenFactory,
+    });
   }
 }
 
@@ -191,7 +213,10 @@ function loadState(path, registrySha256) {
     try { parsed = JSON.parse(text); } catch { throw new WalletAuthError("INVALID_GATEWAY_STORE", "Product Session Gateway state envelope is not JSON"); }
     exactFields(parsed, STATE_FIELDS, "Product Session Gateway Node state envelope");
     if (canonicalJSON(parsed) !== text.slice(0, -1) || parsed.schemaVersion !== PRODUCT_SESSION_GATEWAY_NODE_STATE_SCHEMA_VERSION || parsed.registrySha256 !== registrySha256 || typeof parsed.snapshotSha256 !== "string" || !/^[0-9a-f]{64}$/.test(parsed.snapshotSha256) || parsed.snapshotSha256 !== sha256(canonicalJSON(parsed.snapshot))) throw new WalletAuthError("STATE_TAMPERED", "Product Session Gateway state envelope failed integrity or registry binding");
-    return Object.freeze(parsed);
+    return Object.freeze({
+      envelope: Object.freeze(parsed),
+      identity: Object.freeze({ dev: current.dev, ino: current.ino }),
+    });
   } finally { closeSync(descriptor); }
 }
 
@@ -238,8 +263,8 @@ function sha256(value) { return createHash("sha256").update(value).digest("hex")
 
 function hostError(error) {
   if (error instanceof WalletAuthError) {
-    const unavailable = ["INSECURE_STATE_FILE", "SERVICE_NOT_READY", "STATE_FILE_CHANGED", "STATE_PERSISTENCE_FAILED", "STATE_TAMPERED"].includes(error.code);
-    const status = error.code === "BODY_TOO_LARGE" ? 413 : unavailable ? 503 : 400;
+    const stateFailure = ["INSECURE_STATE_FILE", "INVALID_GATEWAY_STORE", "SERVICE_NOT_READY", "STATE_FILE_CHANGED", "STATE_PERSISTENCE_FAILED", "STATE_TAMPERED"].includes(error.code);
+    const status = error.code === "BODY_TOO_LARGE" ? 413 : stateFailure ? 503 : 400;
     return { code: error.code, message: error.message, status };
   }
   return { code: "HOST_FAILURE", message: "Product Session Gateway host failed closed", status: 500 };
