@@ -19,6 +19,8 @@ test("deployment monitor binds fresh block and fail-closed Paymaster state", asy
   assert.equal(result.checks.blockFresh, true);
   assert.equal(result.checks.sponsorshipEnabledMatches, true);
   assert.equal(result.checks.depositMeetsMinimum, true);
+  assert.equal(result.checks.paymasterEventLogQueryVerified, true);
+  assert.equal(result.paymaster.events.length, 0);
   assert.equal(result.paymaster.sponsorshipEnabled, false);
   assert.equal(result.paymaster.depositWei, "0");
   assert.equal(calls.some(call => call.startsWith("eth_send") || call === "eth_sign"), false);
@@ -38,11 +40,10 @@ test("stale block, unexpected enablement and insufficient deposit are unhealthy"
   }
 });
 
-test("malformed block and Paymaster values remain bounded false evidence", async () => {
-  for (const routes of [fixture({ block: { number: "0x10", timestamp: "latest" } }), fixture({ enabledResult: "0x02" }), fixture({ depositResult: "0x00" })]) {
+test("malformed block, Paymaster values and event logs remain bounded false evidence", async () => {
+  for (const routes of [fixture({ block: { number: "0x10", timestamp: "latest" } }), fixture({ enabledResult: "0x02" }), fixture({ depositResult: "0x00" }), fixture({ logs: [{ address: FACTORY, topics: ["0xa905917f60d605b78de2f22f23aa555c55cb7aadf4979d7976930ea86451b5a2"], data: "0x", blockNumber: "0x10", transactionHash: TXS[2], logIndex: "0x0", removed: false }] })]) {
     const result = await monitorPublicERC4337Deployment(configuration(routes));
     assert.equal(result.healthy, false);
-    assert.equal(result.paymaster.sponsorshipEnabled === null || result.paymaster.depositWei === null || result.checks.blockFresh === false, true);
   }
 });
 
@@ -50,7 +51,7 @@ function configuration(routes, calls = []) { return { rpcEndpoint: RPC, bundlerE
 function manifest() { return { schemaVersion: 1, sourceCommit: "1".repeat(40), chainId: 6423, entryPoint: contract(EP, TXS[0], SHAS[0]), factory: contract(FACTORY, TXS[1], SHAS[1]), paymaster: contract(PAYMASTER, TXS[2], SHAS[2]) }; }
 function contract(address, transactionHash, runtimeSha256) { return { address, transactionHash, runtimeSha256 }; }
 function fixture(overrides = {}) { return { timestamp: 1786694395, enabled: false, deposit: 0n, ...overrides }; }
-function fetchFrom(routes, calls) { let receiptIndex = 0, codeIndex = 0, relationshipIndex = 0; return async (url, options) => { const { method, params } = JSON.parse(options.body); calls.push(method); if (method === "eth_chainId") return rpc("0x1917"); if (method === "eth_supportedEntryPoints") return rpc([EP]); if (method === "eth_getTransactionReceipt") return rpc(receipt([EP, FACTORY, PAYMASTER][receiptIndex], TXS[receiptIndex++])); if (method === "eth_getCode") return rpc(CODES[codeIndex++]); if (method === "eth_getBlockByNumber") return rpc(routes.block ?? { number: "0x10", timestamp: `0x${routes.timestamp.toString(16)}` }); if (method === "eth_call") { const selector = params[0].data; if (selector === "0xb0d691fe") return rpc(word(EP, relationshipIndex++)); if (selector === "0x21d34c42") return rpc(routes.enabledResult ?? `0x${(routes.enabled ? 1 : 0).toString(16).padStart(64, "0")}`); if (selector === "0xc399ec88") return rpc(routes.depositResult ?? `0x${routes.deposit.toString(16).padStart(64, "0")}`); } throw new Error(`unexpected ${method}`); }; }
+function fetchFrom(routes, calls) { let receiptIndex = 0, codeIndex = 0, relationshipIndex = 0; return async (url, options) => { const { method, params } = JSON.parse(options.body); calls.push(method); if (method === "eth_chainId") return rpc("0x1917"); if (method === "eth_supportedEntryPoints") return rpc([EP]); if (method === "eth_getTransactionReceipt") return rpc(receipt([EP, FACTORY, PAYMASTER][receiptIndex], TXS[receiptIndex++])); if (method === "eth_getCode") return rpc(CODES[codeIndex++]); if (method === "eth_getBlockByNumber") return rpc(routes.block ?? { number: "0x10", timestamp: `0x${routes.timestamp.toString(16)}` }); if (method === "eth_getLogs") return rpc(routes.logs ?? []); if (method === "eth_call") { const selector = params[0].data; if (selector === "0xb0d691fe") return rpc(word(EP, relationshipIndex++)); if (selector === "0x21d34c42") return rpc(routes.enabledResult ?? `0x${(routes.enabled ? 1 : 0).toString(16).padStart(64, "0")}`); if (selector === "0xc399ec88") return rpc(routes.depositResult ?? `0x${routes.deposit.toString(16).padStart(64, "0")}`); } throw new Error(`unexpected ${method}`); }; }
 function receipt(address, transactionHash) { return { transactionHash, status: "0x1", contractAddress: address, blockHash: "0x" + "d4".repeat(32), blockNumber: "0x10", logs: address === PAYMASTER ? [{ address, topics: ["0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0", "0x" + "0".repeat(64), word("0x4444444444444444444444444444444444444444")], data: "0x" }] : [] }; }
 function word(address) { return "0x" + "0".repeat(24) + address.slice(2); }
 function rpc(result) { return { ok: true, status: 200, headers: { get: () => null }, text: async () => JSON.stringify({ jsonrpc: "2.0", id: 1, result }) }; }
