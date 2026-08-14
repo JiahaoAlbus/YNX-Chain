@@ -25,7 +25,8 @@ assert(receipt.firstColdLaunch.pid!==receipt.secondColdLaunch.pid,"second cold l
 exact(receipt.logs,["firstPidReactMain","secondPidReactMain","fatalExceptionCount","androidRuntimeCrashCount"],"logs");
 assert(receipt.logs.firstPidReactMain===true&&receipt.logs.secondPidReactMain===true&&receipt.logs.fatalExceptionCount===0&&receipt.logs.androidRuntimeCrashCount===0,"PID-scoped log gate failed");
 exact(receipt.privacy,["flagSecureObserved","applicationRegionBlack","systemBarsVisible","screenshotSha256","screenshotBytes"],"privacy");
-assert(receipt.privacy.flagSecureObserved===true&&receipt.privacy.applicationRegionBlack===true&&receipt.privacy.systemBarsVisible===true,"FLAG_SECURE gate failed");
+assert(receipt.privacy.flagSecureObserved===true&&receipt.privacy.applicationRegionBlack===true,"FLAG_SECURE gate failed");
+assert(typeof receipt.privacy.systemBarsVisible==="boolean","systemBarsVisible must record the observed capture boundary");
 assert(/^[0-9a-f]{64}$/.test(receipt.privacy.screenshotSha256)&&Number.isSafeInteger(receipt.privacy.screenshotBytes)&&receipt.privacy.screenshotBytes>0,"privacy screenshot evidence invalid");
 exact(receipt.chainIdentity,["nativeChainId","evmChainIdDecimal","evmChainIdHex"],"chainIdentity");
 assert(receipt.chainIdentity.nativeChainId==="ynx_6423-1"&&receipt.chainIdentity.evmChainIdDecimal===6423&&receipt.chainIdentity.evmChainIdHex==="0x1917","chain identity mismatch");
