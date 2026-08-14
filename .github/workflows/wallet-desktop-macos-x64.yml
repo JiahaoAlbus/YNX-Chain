@@ -1,0 +1,238 @@
+name: Wallet desktop macOS x64
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [codex/wallet-desktop-cli-sdk-20260813]
+    paths:
+      - apps/wallet-desktop/**
+      - packages/wallet-auth/**
+      - .github/workflows/wallet-desktop-macos-x64.yml
+
+permissions:
+  contents: read
+
+jobs:
+  macos-x64-native:
+    runs-on: macos-15-intel
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24.18.0
+          cache: npm
+          cache-dependency-path: apps/wallet-desktop/package-lock.json
+      - name: Require native x64 and test frozen contract boundary
+        run: |
+          test "$(uname -m)" = x86_64
+          npm ci --ignore-scripts --prefix packages/wallet-auth
+          npm ci --prefix apps/wallet-desktop
+          npm test --prefix apps/wallet-desktop
+      - name: Build current and upgrade-preflight packages
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+        run: |
+          pushd apps/wallet-desktop
+          npx electron-builder --mac dmg --x64 --publish never --config.directories.output=dist-preflight --config.extraMetadata.version=0.0.9
+          npx electron-builder --mac dmg zip --x64 --publish never
+          popd
+      - name: Install, upgrade, cold launch, second launch, fail closed and uninstall
+        env:
+          EVIDENCE: ${{ runner.temp }}/wallet-desktop-macos-x64.json
+          OUT_DIR: ${{ runner.temp }}/wallet-desktop-macos-x64-evidence
+          INSTALL_APP: ${{ runner.temp }}/Applications/YNX Wallet Testnet Preview.app
+        run: |
+          mkdir -p "$OUT_DIR" "$(dirname "$INSTALL_APP")"
+          PRE_DMG="$(find apps/wallet-desktop/dist-preflight -maxdepth 1 -name '*.dmg' -print -quit)"
+          CURRENT_DMG="$(find apps/wallet-desktop/dist -maxdepth 1 -name '*.dmg' -print -quit)"
+          test -n "$PRE_DMG"
+          test -n "$CURRENT_DMG"
+
+          mkdir "$RUNNER_TEMP/preflight-volume"
+          hdiutil attach "$PRE_DMG" -nobrowse -readonly -mountpoint "$RUNNER_TEMP/preflight-volume"
+          ditto "$RUNNER_TEMP/preflight-volume/YNX Wallet Testnet Preview.app" "$INSTALL_APP"
+          hdiutil detach "$RUNNER_TEMP/preflight-volume"
+          test "$(defaults read "$INSTALL_APP/Contents/Info" CFBundleShortVersionString)" = 0.0.9
+
+          rm -rf "$INSTALL_APP"
+          mkdir "$RUNNER_TEMP/current-volume"
+          hdiutil attach "$CURRENT_DMG" -nobrowse -readonly -mountpoint "$RUNNER_TEMP/current-volume"
+          ditto "$RUNNER_TEMP/current-volume/YNX Wallet Testnet Preview.app" "$INSTALL_APP"
+          hdiutil detach "$RUNNER_TEMP/current-volume"
+          test "$(defaults read "$INSTALL_APP/Contents/Info" CFBundleShortVersionString)" = 0.1.0
+          codesign --force --deep --sign - "$INSTALL_APP"
+          codesign --verify --deep --strict "$INSTALL_APP"
+          codesign -dv --verbose=4 "$INSTALL_APP" > "$OUT_DIR/installed-copy-codesign.txt" 2>&1
+          defaults read "$INSTALL_APP/Contents/Info" LSMinimumSystemVersion > "$OUT_DIR/minimum-os.txt"
+
+          run_phase() {
+            expected_launches="$1"
+            rpc_url="$2"
+            phase="$3"
+            YNX_WALLET_EVIDENCE_PATH="$EVIDENCE" YNX_WALLET_RPC_URL="$rpc_url" "$INSTALL_APP/Contents/MacOS/YNX Wallet Testnet Preview" --disable-gpu > "$OUT_DIR/$phase.log" 2>&1 &
+            app_pid=$!
+            for attempt in {1..30}; do
+              launches=$(node -e "try{process.stdout.write(String(require(process.argv[1]).launches))}catch{}" "$EVIDENCE")
+              test "$launches" = "$expected_launches" && break
+              sleep 1
+            done
+            if ! kill -0 "$app_pid"; then
+              cat "$OUT_DIR/$phase.log"
+              exit 1
+            fi
+            ps -p "$app_pid" -o pid=,comm= > "$OUT_DIR/$phase-process.txt"
+            cp "$EVIDENCE" "$OUT_DIR/$phase-app-evidence.json"
+            kill "$app_pid"
+            wait "$app_pid" || true
+          }
+
+          run_phase 1 https://evm.ynxweb4.com cold
+          node -e "const e=require(process.env.EVIDENCE);if(e.launches!==1||!e.visibleShellReady||!e.window.visible||e.window.title!=='YNX Wallet Testnet Preview'||!e.rpc.available||e.rpc.chainId!=='0x1917'||e.signingEnabled||e.accountCreated||e.balanceClaimed||e.transactionCreated)process.exit(1)"
+          run_phase 2 https://evm.ynxweb4.com second
+          node -e "const e=require(process.env.EVIDENCE);if(e.launches!==2||!e.rpc.available||e.rpc.chainId!=='0x1917'||e.signingEnabled)process.exit(1)"
+          run_phase 3 http://127.0.0.1:1 failed-rpc
+          node -e "const e=require(process.env.EVIDENCE);if(e.launches!==3||e.rpc.available||e.rpc.chainId!==null||e.signingEnabled)process.exit(1)"
+
+          rm -rf "$INSTALL_APP"
+          test ! -e "$INSTALL_APP"
+          node - <<'NODE'
+          const fs = require('fs');
+          const evidence = JSON.parse(fs.readFileSync(process.env.EVIDENCE, 'utf8'));
+          const result = {
+            schemaVersion: 1,
+            architecture: 'x64',
+            nativeRunner: 'macos-15-intel',
+            preflightInstalled: true,
+            upgradeVerified: true,
+            currentInstalled: true,
+            installedCopyAdHocSigned: true,
+            coldLaunch: true,
+            secondLaunch: true,
+            processObserved: true,
+            appReportedWindowVisible: true,
+            appReportedWindowTitle: 'YNX Wallet Testnet Preview',
+            chainId: '0x1917',
+            rpcFailureClosed: !evidence.rpc.available && evidence.rpc.chainId === null,
+            signingEnabled: false,
+            accountCreated: false,
+            balanceClaimed: false,
+            transactionCreated: false,
+            uninstallVerified: true,
+            artifactProductionSigned: false,
+            artifactNotarized: false
+          };
+          fs.writeFileSync(`${process.env.OUT_DIR}/lifecycle.json`, `${JSON.stringify(result, null, 2)}\n`);
+          NODE
+      - name: Record deterministic package manifest
+        env:
+          OUT_DIR: ${{ runner.temp }}/wallet-desktop-macos-x64-evidence
+        run: |
+          FILES=(apps/wallet-desktop/dist/*.dmg apps/wallet-desktop/dist/*.zip)
+          test "${#FILES[@]}" = 2
+          shasum -a 256 "${FILES[@]}" | tee "$OUT_DIR/SHA256SUMS.txt"
+          for file in "${FILES[@]}"; do stat -f '%N %z' "$file"; done | tee "$OUT_DIR/BYTES.txt"
+          node - <<'NODE'
+          const fs = require('fs');
+          const path = require('path');
+          const out = process.env.OUT_DIR;
+          const sums = fs.readFileSync(path.join(out, 'SHA256SUMS.txt'), 'utf8').trim().split('\n');
+          const sizes = fs.readFileSync(path.join(out, 'BYTES.txt'), 'utf8').trim().split('\n');
+          const byName = new Map(sizes.map(line => { const match = line.match(/^(.*) (\d+)$/); return [path.basename(match[1]), Number(match[2])]; }));
+          const artifacts = sums.map(line => {
+            const match = line.match(/^([a-f0-9]{64})  (.*)$/);
+            const filename = path.basename(match[2]);
+            return {
+              filename,
+              format: path.extname(filename).slice(1),
+              architecture: 'x64',
+              bytes: byName.get(filename),
+              sha256: match[1],
+              minimumOS: fs.readFileSync(path.join(out, 'minimum-os.txt'), 'utf8').trim(),
+              directlyTestedOS: 'macOS 15 x64',
+              signingClass: 'unsigned_unnotarized_macos_testnet_candidate',
+              productionSigned: false,
+              notarized: false
+            };
+          });
+          if (artifacts.length !== 2 || artifacts.some(a => !a.bytes || !a.sha256)) process.exit(1);
+          const manifest = {
+            schemaVersion: 1,
+            productId: 'wallet-desktop',
+            version: '0.1.0',
+            sourceCommit: process.env.GITHUB_SHA,
+            workflowRunId: Number(process.env.GITHUB_RUN_ID),
+            artifacts,
+            lifecycle: JSON.parse(fs.readFileSync(path.join(out, 'lifecycle.json'), 'utf8'))
+          };
+          fs.writeFileSync(path.join(out, 'artifact-manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`);
+          NODE
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ynx-wallet-desktop-macos-x64
+          path: |
+            apps/wallet-desktop/dist/*.dmg
+            apps/wallet-desktop/dist/*.zip
+            ${{ runner.temp }}/wallet-desktop-macos-x64-evidence/**
+          if-no-files-found: error
+
+  verify-uploaded-artifact:
+    needs: macos-x64-native
+    runs-on: macos-15-intel
+    timeout-minutes: 10
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ynx-wallet-desktop-macos-x64
+          path: downloaded
+      - name: Require manifest and verify every downloaded package
+        run: |
+          test "$(uname -m)" = x86_64
+          MANIFEST="$(find downloaded -type f -name 'artifact-manifest.json' -print -quit)"
+          LIFECYCLE="$(find downloaded -type f -name 'lifecycle.json' -print -quit)"
+          test -n "$MANIFEST"
+          test -n "$LIFECYCLE"
+          node - <<'NODE' "$MANIFEST" "$LIFECYCLE"
+          const crypto = require('crypto');
+          const fs = require('fs');
+          const path = require('path');
+          const manifestPath = process.argv[2];
+          const lifecyclePath = process.argv[3];
+          const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+          const lifecycle = JSON.parse(fs.readFileSync(lifecyclePath, 'utf8'));
+          if (manifest.sourceCommit !== process.env.GITHUB_SHA || manifest.artifacts.length !== 2) process.exit(1);
+          for (const expected of manifest.artifacts) {
+            const matches = [];
+            const visit = directory => {
+              for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+                const target = path.join(directory, entry.name);
+                if (entry.isDirectory()) visit(target);
+                else if (entry.name === expected.filename) matches.push(target);
+              }
+            };
+            visit('downloaded');
+            if (matches.length !== 1) process.exit(1);
+            const bytes = fs.statSync(matches[0]).size;
+            const sha256 = crypto.createHash('sha256').update(fs.readFileSync(matches[0])).digest('hex');
+            if (bytes !== expected.bytes || sha256 !== expected.sha256 || expected.productionSigned || expected.notarized) process.exit(1);
+          }
+          if (!lifecycle.preflightInstalled || !lifecycle.upgradeVerified || !lifecycle.currentInstalled || !lifecycle.installedCopyAdHocSigned || !lifecycle.coldLaunch || !lifecycle.secondLaunch || !lifecycle.processObserved || !lifecycle.appReportedWindowVisible || lifecycle.chainId !== '0x1917' || !lifecycle.rpcFailureClosed || lifecycle.signingEnabled || lifecycle.accountCreated || lifecycle.balanceClaimed || lifecycle.transactionCreated || !lifecycle.uninstallVerified || lifecycle.artifactProductionSigned || lifecycle.artifactNotarized) process.exit(1);
+          const result = {
+            schemaVersion: 1,
+            sourceCommit: process.env.GITHUB_SHA,
+            workflowRunId: Number(process.env.GITHUB_RUN_ID),
+            uploadArtifactDownloaded: true,
+            manifestPresent: true,
+            lifecyclePresent: true,
+            packageCount: manifest.artifacts.length,
+            sha256Verified: true,
+            bytesVerified: true
+          };
+          fs.mkdirSync('downloaded-verification');
+          fs.writeFileSync('downloaded-verification/downloaded-verification.json', `${JSON.stringify(result, null, 2)}\n`);
+          NODE
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ynx-wallet-desktop-macos-x64-download-verification
+          path: downloaded-verification/downloaded-verification.json
+          if-no-files-found: error
