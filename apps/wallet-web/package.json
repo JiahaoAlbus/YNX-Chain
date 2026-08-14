@@ -30,6 +30,7 @@
     "test:runtime:active-tab": "node scripts/runtime-active-tab-gate.mjs",
     "test:runtime:active-tab:browser": "node scripts/runtime-active-tab-browser-gate.mjs",
     "test:runtime:firefox-compatible": "npm run build && node scripts/runtime-firefox-compatible.mjs"
+    ,"test:runtime:firefox-branded": "npm run build && node scripts/runtime-firefox-branded.mjs"
   },
   "devDependencies": {
     "playwright": "1.62.1",

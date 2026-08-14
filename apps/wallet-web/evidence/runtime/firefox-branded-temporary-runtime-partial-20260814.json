@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "deca6f4fe29dafdccb3736f237e6e8829e094eec",
+  "runtime": "Mozilla Firefox Stable 153.0.4",
+  "profileClass": "disposable-isolated-profile",
+  "firstLaunch": {
+    "webExtPid": 35871,
+    "debuggerConnected": true,
+    "temporaryAddonLoaded": false,
+    "timedOut": true,
+    "exitCode": 130
+  },
+  "secondLaunch": {
+    "webExtPid": 36272,
+    "debuggerConnected": true,
+    "temporaryAddonLoaded": true,
+    "timedOut": false,
+    "addonUuid": "35ba90af-948d-49bf-b760-d56674b4f1ba",
+    "exitCode": 130
+  },
+  "temporaryAddonRuntimeProved": false,
+  "firstLaunchProved": false,
+  "secondLaunchProved": true,
+  "popupDomObserved": false,
+  "backgroundStarted": false,
+  "installedLocal": false,
+  "note": "The second launch cannot compensate for the bounded first-launch timeout. All exact-profile processes were cleaned."
+}

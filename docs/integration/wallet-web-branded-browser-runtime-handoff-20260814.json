@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "owner": "Wallet Web/PWA/Extensions",
+  "sourceBase": "deca6f4fe29dafdccb3736f237e6e8829e094eec",
+  "generatedAt": "2026-08-14T18:44:00+08:00",
+  "chrome": {
+    "version": "151.0.7922.138",
+    "extensionId": "jgijcegbgeobldllfniaejejofobcngk",
+    "isolatedProfile": true,
+    "commandLineUnpackedLoaded": false,
+    "backgroundTargetObserved": false,
+    "popupDomObserved": false,
+    "installedLocal": false,
+    "directEvidence": "evidence/runtime/branded-chrome-cdp-lifecycle-20260814.json",
+    "blocker": "Branded Chrome rejected the command-line-loaded extension: extension manager contained no entry and the popup URL returned ERR_BLOCKED_BY_CLIENT."
+  },
+  "edge": {
+    "version": "151.0.4129.78",
+    "extensionId": "jgijcegbgeobldllfniaejejofobcngk",
+    "isolatedProfile": true,
+    "commandLineUnpackedLoaded": false,
+    "backgroundTargetObserved": false,
+    "popupDomObserved": false,
+    "installedLocal": false,
+    "directEvidence": "evidence/runtime/branded-edge-cdp-lifecycle-20260814.json",
+    "blocker": "Launch one timed out connecting over CDP; launch two did not create DevToolsActivePort within 10 seconds. Exact-profile processes were cleaned."
+  },
+  "firefox": {
+    "version": "153.0.4",
+    "officialPackageVerified": true,
+    "isolatedProfile": true,
+    "loadMode": "web-ext temporary add-on",
+    "temporaryAddonRuntimeProved": true,
+    "firstLaunchProved": true,
+    "secondLaunchProved": true,
+    "popupRequestedOnSecondLaunch": true,
+    "popupDomObserved": false,
+    "backgroundStarted": false,
+    "installedLocal": false,
+    "packageEvidence": "evidence/runtime/firefox-official-stable-install-20260814.json",
+    "runtimeEvidence": "evidence/runtime/firefox-branded-temporary-runtime-20260814.json",
+    "preservedFailedAttempt": "evidence/runtime/firefox-branded-temporary-runtime-partial-20260814.json"
+  },
+  "releaseGates": {
+    "downloadHosted": false,
+    "deployedPublic": false,
+    "productionSignedExtension": false,
+    "storeReleased": false,
+    "accountAuthorized": false,
+    "messageSigned": false,
+    "transactionSubmitted": false
+  }
+}
