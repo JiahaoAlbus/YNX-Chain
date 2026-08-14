@@ -164,6 +164,19 @@
     "computerControlPassed": false,
     "computerControlError": "Sky Computer Use native pipe startup failed"
   },
+  "publicProductSessionV2RouteProbe": {
+    "evidence": "evidence/product-session-v2-public-route-probe-20260814.json",
+    "target": "https://rest.ynxweb4.com",
+    "capturedAt": "2026-08-14T10:29:16Z",
+    "appGatewayHealthStatus": 200,
+    "legacyWalletSessionControlStatus": 400,
+    "legacyWalletSessionRouteReached": true,
+    "v2ChallengeProbeStatus": 200,
+    "v2ChallengeProbeResponse": "JSON-RPC -32601 method not implemented",
+    "v2RoutingOutcome": "misrouted-to-chain-json-rpc-catch-all",
+    "productSessionV2RoutesDeployedPublic": false,
+    "stateCreated": false
+  },
   "visibleComputerControl": {
     "app": "Microsoft Edge",
     "title": "YNX Product Session v2 visible proof",
@@ -247,6 +260,9 @@
     "sourcePackageDeployedPublic": true,
     "officialWebsiteReleaseMetadataDeployedPublic": true,
     "appGatewayDeployedPublic": false,
+    "publicAppGatewayReachable": true,
+    "legacyWalletSessionRoutesReachable": true,
+    "productSessionV2RoutesDeployedPublic": false,
     "downloadHosted": true,
     "downloadHostedScope": "Android Testnet Preview artifact only",
     "productionSigned": false,
