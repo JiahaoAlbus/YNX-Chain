@@ -65,6 +65,7 @@ jobs:
 
           $failureOutput = & $exe chain-status -rpc http://127.0.0.1:1 2>&1
           if ($LASTEXITCODE -eq 0 -or ($failureOutput -join "`n") -notmatch 'RPC must use HTTPS') { throw 'invalid RPC did not fail closed' }
+          $global:LASTEXITCODE = 0
           & (Join-Path $stage 'uninstall.ps1')
           if (Test-Path $exe) { throw 'uninstall did not remove executable' }
 
