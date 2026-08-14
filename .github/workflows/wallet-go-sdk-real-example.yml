@@ -1,0 +1,44 @@
+name: Wallet Go SDK real consumer example
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [codex/wallet-desktop-cli-sdk-20260813]
+    paths:
+      - .github/workflows/wallet-go-sdk-real-example.yml
+      - examples/wallet-go-sdk/**
+      - sdk/wallet/go/**
+
+permissions:
+  contents: read
+
+jobs:
+  real-consumer:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: 1.25.0
+          cache: true
+      - name: Test SDK and real consumer
+        run: go test ./sdk/wallet/go ./examples/wallet-go-sdk
+      - name: Prove frozen vector, ephemeral signing and YNX Testnet
+        run: |
+          mkdir -p "$RUNNER_TEMP/wallet-go-sdk-evidence"
+          go run ./examples/wallet-go-sdk -timeout 15s > "$RUNNER_TEMP/wallet-go-sdk-evidence/real-consumer.json"
+          jq -e '.connected == true and .chainId == "0x1917" and .vectorVerified == true and .ephemeralSigningVerified == true and .privateKeyPersisted == false and .protocol == "YNX_PRODUCT_SESSION_HTTP_PROOF_V1"' "$RUNNER_TEMP/wallet-go-sdk-evidence/real-consumer.json"
+      - name: Require non-HTTPS RPC to fail closed
+        run: |
+          if go run ./examples/wallet-go-sdk -rpc http://127.0.0.1:1 > "$RUNNER_TEMP/wallet-go-sdk-evidence/fail-closed.stdout" 2> "$RUNNER_TEMP/wallet-go-sdk-evidence/fail-closed.stderr"; then
+            echo 'non-HTTPS RPC unexpectedly succeeded' >&2
+            exit 1
+          fi
+          grep -F 'RPC must be an absolute HTTPS URL without userinfo' "$RUNNER_TEMP/wallet-go-sdk-evidence/fail-closed.stderr"
+          jq -n --arg sourceCommit "$GITHUB_SHA" --argjson workflowRunId "$GITHUB_RUN_ID" '{schemaVersion:1,sourceCommit:$sourceCommit,workflowRunId:$workflowRunId,runner:"ubuntu-24.04-x64",sdkTests:true,consumerCompiled:true,vectorVerified:true,ephemeralSigningVerified:true,privateKeyPersisted:false,chainId:"0x1917",rpcFailureClosed:true,transactionCreated:false,balanceClaimed:false,productionSigned:false,downloadHosted:false,deployedPublic:false}' > "$RUNNER_TEMP/wallet-go-sdk-evidence/lifecycle.json"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ynx-wallet-go-sdk-real-consumer-evidence
+          path: ${{ runner.temp }}/wallet-go-sdk-evidence
+          if-no-files-found: error
