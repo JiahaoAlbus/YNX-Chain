@@ -232,8 +232,10 @@ const indexHTML = `<!doctype html>
     @media (max-width:620px) {
       .shell { width:min(100% - 24px,1180px); }
       .nav-inner { gap:10px; }
-      .network-pill { margin-left:auto; }
-      .nav-links { margin-left:0; }
+      .brand span { display:none; }
+      .nav-links { gap:10px; margin-left:auto; min-width:0; }
+      .network-pill { margin-left:0; }
+	  html[dir="rtl"] .nav-links { margin-right:auto; margin-left:0; }
       .hero { padding:38px 0 34px; }
       h1 { font-size:40px; }
       .hero-copy { font-size:17px; }
@@ -272,12 +274,12 @@ const indexHTML = `<!doctype html>
   </style>
 </head>
 <body>
-  <nav class="nav" aria-label="Primary navigation">
+  <nav class="nav" aria-label="Chain Explorer" data-i18n-aria="brand">
     <div class="shell nav-inner">
-      <a class="brand" href="#top" aria-label="YNX Chain Explorer home"><img class="brand-logo" src="/assets/ynx-logo.png?v=df071f54b" width="46" height="24" alt=""><span data-i18n="brand">Chain Explorer</span></a>
+      <a class="brand" href="#top" aria-label="YNX Chain network explorer" data-i18n-aria="heroTitle"><img class="brand-logo" src="/assets/ynx-logo.png?v=df071f54b" width="46" height="24" alt=""><span data-i18n="brand">Chain Explorer</span></a>
       <div class="nav-links">
         <a href="#network" data-i18n="navOverview">Overview</a><a href="#blocks" data-i18n="navBlockchain">Blockchain</a><a href="#accounts" data-i18n="navAccounts">Accounts</a><a href="#intelligence" data-i18n="navValidators">Validators</a><a href="#resourcesPanel" data-i18n="navResources">Resources</a>
-        <select class="language-select" id="languageSelect" aria-label="Language"><option value="en">English</option><option value="zh-CN">简体中文</option><option value="zh-TW">繁體中文</option><option value="ja">日本語</option><option value="ko">한국어</option><option value="es">Español</option><option value="fr">Français</option><option value="de">Deutsch</option><option value="pt">Português</option><option value="ru">Русский</option><option value="ar">العربية</option><option value="id">Bahasa Indonesia</option></select>
+		<select class="language-select" id="languageSelect" aria-label="Language" data-i18n-aria="language"><option value="en">English</option><option value="zh-CN">简体中文</option><option value="zh-TW">繁體中文</option><option value="ja">日本語</option><option value="ko">한국어</option><option value="es">Español</option><option value="fr">Français</option><option value="de">Deutsch</option><option value="pt">Português</option><option value="ru">Русский</option><option value="ar">العربية</option><option value="id">Bahasa Indonesia</option></select>
         <span class="network-pill"><span class="pulse"></span><span id="networkName">Testnet</span></span>
       </div>
     </div>
@@ -289,7 +291,7 @@ const indexHTML = `<!doctype html>
       <h1 data-i18n="heroTitle">YNX Chain network explorer</h1>
       <p class="hero-copy" data-i18n="heroCopy">Live blocks, transactions, validators, accounts, fees, and native YNXT resource economics from the public testnet.</p>
       <form class="search" id="searchForm">
-        <input id="searchInput" aria-label="Search the chain" data-i18n-placeholder="searchPlaceholder" placeholder="Search ynx1 address, transaction, block, or EVM compatibility address" autocomplete="off" spellcheck="false">
+        <input id="searchInput" aria-label="Search block, transaction, ynx1 or 0x address, YNXT, or contract" data-i18n-aria="searchPlaceholder" data-i18n-placeholder="searchPlaceholder" placeholder="Search ynx1 address, transaction, block, or EVM compatibility address" autocomplete="off" spellcheck="false">
         <button type="submit" data-i18n="search">Search</button>
       </form>
       <div class="hero-meta"><span><span class="pulse"></span><span data-i18n="rpcIndexerVerified">RPC + indexer verified</span></span><span id="lastUpdated" data-i18n="connectingNetwork">Connecting to the network</span><span id="heroHeight" data-i18n="waitingLatest">Waiting for the latest block</span></div>
@@ -304,12 +306,12 @@ const indexHTML = `<!doctype html>
     <div class="shell">
       <div class="status-bar" id="status"><span class="state"><span class="pulse"></span><span id="statusText" data-i18n="connecting">Connecting</span></span><span id="statusDetail" data-i18n="readingState">Reading RPC and indexer state</span><span class="stream-clock" id="streamClock"><span class="stream-dot"></span><span id="streamClockText" data-i18n="openingStream">Opening live stream</span></span><button class="refresh" id="refreshButton" type="button" data-i18n="refresh">Refresh</button></div>
 
-      <section class="block-ribbon" aria-label="Live finalized block stream">
+      <section class="block-ribbon" aria-label="Real-time blocks" data-i18n-aria="latestBlocks">
         <div class="ribbon-label"><span data-i18n="finality">FINALITY</span><strong id="finalityState" data-i18n="connecting">Connecting</strong></div>
         <div class="block-track" id="blockTrack"><div class="empty" data-i18n="waitingFinalized">Waiting for finalized blocks...</div></div>
       </section>
 
-      <section class="metrics" aria-label="Network metrics">
+	  <section class="metrics" aria-label="Network metrics" data-i18n-aria="networkMetrics">
         <article class="metric"><div class="metric-label" data-i18n="latestBlock">Latest block</div><div class="metric-value skeleton" id="rpcHeight">0000</div><div class="metric-foot" id="blockAge">Waiting for block data</div></article>
         <article class="metric"><div class="metric-label" data-i18n="networkTps">Network TPS</div><div class="metric-value skeleton" id="networkTps">0.00</div><div class="metric-foot" data-i18n="indexedWindow">Latest indexed window</div></article>
         <article class="metric"><div class="metric-label" data-i18n="blockTime">Block time</div><div class="metric-value skeleton" id="blockTime">0.0s</div><div class="metric-foot" data-i18n="observedAverage">Observed average</div></article>
@@ -324,7 +326,7 @@ const indexHTML = `<!doctype html>
 		  <div class="live-list" id="blocksBody"><div class="empty" data-i18n="loadingBlocks">Loading blocks...</div></div><div class="page-actions"><button class="refresh" id="olderBlocks" type="button" data-i18n="olderBlocks">Older blocks</button></div>
         </article>
         <article class="panel" id="transactions">
-          <div class="panel-head"><div><h2 data-i18n="latestTransactions">Live transactions</h2><p data-i18n="latestTransactionsCopy">Newest indexed transfers and actions</p></div><div class="filter-control"><input id="txQuickFind" data-i18n-placeholder="quickFindPlaceholder" placeholder="Find hash, address, amount…" aria-label="Quick find transactions"><select id="txFilter" aria-label="Filter transaction type"><option value="all" data-i18n="all">All</option><option value="transfer" data-i18n="transfers">Transfers</option><option value="resource" data-i18n="resourcesFilter">Resources</option><option value="faucet" data-i18n="faucet">Faucet</option></select></div></div>
+          <div class="panel-head"><div><h2 data-i18n="latestTransactions">Live transactions</h2><p data-i18n="latestTransactionsCopy">Newest indexed transfers and actions</p></div><div class="filter-control"><input id="txQuickFind" data-i18n-placeholder="quickFindPlaceholder" data-i18n-aria="quickFindPlaceholder" placeholder="Find hash, address, amount…" aria-label="Find hash, address, amount…"><select id="txFilter" aria-label="Live transactions" data-i18n-aria="latestTransactions"><option value="all" data-i18n="all">All</option><option value="transfer" data-i18n="transfers">Transfers</option><option value="resource" data-i18n="resourcesFilter">Resources</option><option value="faucet" data-i18n="faucet">Faucet</option></select></div></div>
 		  <div class="live-list" id="txsBody"><div class="empty" data-i18n="loadingTransactions">Loading transactions...</div></div><div class="page-actions"><button class="refresh" id="olderTransactions" type="button" data-i18n="olderTransactions">Older transactions</button></div>
         </article>
         <article class="panel network-facts-panel">
@@ -340,7 +342,7 @@ const indexHTML = `<!doctype html>
 
       <section class="intelligence" id="intelligence">
         <div class="section-head"><div><h2 data-i18n="intelligenceTitle">Network intelligence</h2><p data-i18n="intelligenceCopy">Validator and resource-economy state from live chain APIs</p></div></div>
-        <div class="segmented" role="tablist" aria-label="Network intelligence views">
+        <div class="segmented" role="tablist" aria-label="Network intelligence" data-i18n-aria="intelligenceTitle">
           <button class="segment active" id="validatorsTab" type="button" role="tab" aria-selected="true" aria-controls="validatorsPanel" data-i18n="validators">Validators</button>
           <button class="segment" id="resourcesTab" type="button" role="tab" aria-selected="false" aria-controls="resourcesPanel" data-i18n="resourceEconomy">Resource economy</button>
         </div>
@@ -369,7 +371,7 @@ const indexHTML = `<!doctype html>
 
   <div class="drawer-backdrop" id="detailBackdrop" aria-hidden="true">
     <aside class="drawer" id="detailDrawer" role="dialog" aria-modal="true" aria-labelledby="detailTitle">
-      <div class="drawer-head"><div><div class="drawer-kicker" id="detailKicker" data-i18n="chainDetail">Chain detail</div><h2 id="detailTitle" data-i18n="loading">Loading</h2></div><button class="icon-button" id="detailClose" type="button" aria-label="Close detail panel">&times;</button></div>
+      <div class="drawer-head"><div><div class="drawer-kicker" id="detailKicker" data-i18n="chainDetail">Chain detail</div><h2 id="detailTitle" data-i18n="loading">Loading</h2></div><button class="icon-button" id="detailClose" type="button" aria-label="Close" data-i18n-aria="close">&times;</button></div>
       <div id="detailContent"><div class="empty" data-i18n="loadingChainData">Loading live chain data...</div></div>
     </aside>
   </div>
@@ -427,6 +429,21 @@ const indexHTML = `<!doctype html>
 	  if (values.length !== supplementalKeys.length) throw new Error('Incomplete Explorer locale: ' + locale);
 	  supplementalKeys.forEach((key,index) => { messages[locale][key] = values[index]; });
 	});
+	const accessibilityMessages = {
+	  en:{language:'Language',networkMetrics:'Network metrics'},
+	  'zh-CN':{language:'语言',networkMetrics:'网络指标'},
+	  'zh-TW':{language:'語言',networkMetrics:'網路指標'},
+	  ja:{language:'言語',networkMetrics:'ネットワーク指標'},
+	  ko:{language:'언어',networkMetrics:'네트워크 지표'},
+	  es:{language:'Idioma',networkMetrics:'Métricas de red'},
+	  fr:{language:'Langue',networkMetrics:'Indicateurs réseau'},
+	  de:{language:'Sprache',networkMetrics:'Netzwerkmetriken'},
+	  pt:{language:'Idioma',networkMetrics:'Métricas da rede'},
+	  ru:{language:'Язык',networkMetrics:'Метрики сети'},
+	  ar:{language:'اللغة',networkMetrics:'مقاييس الشبكة'},
+	  id:{language:'Bahasa',networkMetrics:'Metrik jaringan'}
+	};
+	Object.entries(accessibilityMessages).forEach(([locale,values]) => Object.assign(messages[locale],values));
 	const rowMessages = {
 	  en:{emptyBlock:'Empty block',finalized:'Finalized',txUnit:'transactions',blockUnit:'blocks',observedAccounts:'observed accounts',publicAccounts:'public accounts',noBalances:'No verifiable indexed account balances are available yet.'},
 	  'zh-CN':{emptyBlock:'空区块',finalized:'已最终确定',txUnit:'笔交易',blockUnit:'个区块',observedAccounts:'个已观测账户',publicAccounts:'个全账本账户',noBalances:'暂未发现可验证的已索引账户余额。'},
@@ -462,8 +479,7 @@ const indexHTML = `<!doctype html>
 	  fieldKeys.forEach((key,index) => { messages[locale][key] = values[index]; });
 	});
 	const supportedLocales = Object.keys(messages);
-	const browserLocale = navigator.language;
-	let language = localStorage.getItem('ynx-explorer-language') || (supportedLocales.includes(browserLocale) ? browserLocale : (browserLocale.toLowerCase().startsWith('zh') ? 'zh-CN' : 'en'));
+	let language = localStorage.getItem('ynx-explorer-language') || 'en';
     const t = key => messages[language]?.[key] || messages.en[key] || key;
     function applyLanguage(nextLanguage) {
       language = messages[nextLanguage] ? nextLanguage : 'en';
@@ -472,6 +488,7 @@ const indexHTML = `<!doctype html>
 	  document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr';
       document.querySelectorAll('[data-i18n]').forEach(node => { node.textContent = t(node.dataset.i18n); });
       document.querySelectorAll('[data-i18n-placeholder]').forEach(node => { node.placeholder = t(node.dataset.i18nPlaceholder); });
+      document.querySelectorAll('[data-i18n-aria]').forEach(node => { node.setAttribute('aria-label',t(node.dataset.i18nAria)); });
       $('languageSelect').value = language;
       renderTransactions();
     }

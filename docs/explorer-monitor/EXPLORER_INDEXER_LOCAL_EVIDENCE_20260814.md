@@ -54,4 +54,16 @@ go run ./cmd/ynx-explorer-load \
 
 Observed at `2026-08-14T14:08:32Z`: 73 completed HTTP samples, 7.30 requests/second, p50 829.58 ms, p95 3838.67 ms, p99 4667.49 ms, maximum 4709.39 ms, 72 HTTP 200 responses, one HTTP 502 response, two additional request errors, eight SSE events, zero SSE reconnects, and zero SSE errors. The HTTP error rate was 4.11%, so the verifier exited non-zero as designed. This is negative public evidence: it does not satisfy the concurrency gate and must not be presented as a passing soak result.
 
+## Local responsive and RTL visual acceptance — 2026-08-15
+
+The in-app Browser opened the locally built candidate against the real local Testnet and Indexer. This local browser pass does not replace the required final Computer Control public acceptance.
+
+- At 1440×1000, the first viewport simultaneously displayed live blocks, live transactions and network details. Measured body width was 1440/1440 with no horizontal overflow.
+- The embedded 798×420 YNX logo rendered at 46×24 with computed `object-fit: contain`; it was neither cropped nor mirrored in LTR or RTL.
+- A fresh `localhost` origin with no saved preference selected English even though the host browser locale was Chinese. Explicit selection still persisted all 12 supported locales.
+- Arabic set `lang=ar` and `dir=rtl`. Navigation, search, live-block region, network metrics, transaction controls, network-intelligence tabs and detail-close accessible names were localized instead of retaining fixed English ARIA labels.
+- At 390×844, the initial RTL render exposed a 30px navigation overflow. The mobile header now hides only the redundant brand wordmark, uses a bounded 10px control gap and applies direction-aware margins. The repeated measurement reported body/client width 390/390, while the logo remained 46×24 with `object-fit: contain`.
+- The Explorer/Indexer/load Race suites passed after the localization and responsive changes. The only emitted linker message was the existing non-fatal macOS `LC_DYSYMTAB` warning.
+- The full `make explorer-check` gate then passed against a fresh local Testnet and accepted real transaction `0x3cb2a94a48edb0b8c2bce5fe061ac6c38192acb0a26f1a52ed01feb9a9c2c212`.
+
 This document is local evidence only. It does not assert central integration, staging, public deployment, production signing, or Computer Control verification.
