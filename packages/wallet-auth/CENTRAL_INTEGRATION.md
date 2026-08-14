@@ -154,6 +154,14 @@ lock. Client abort similarly records `REQUEST_ABORTED` without mutation. Ingress
 must retain its own header/body/connection deadlines; this process-local control
 does not prove protection at a public proxy or central load balancer.
 
+The same locked reload/dispatch/persist critical section directly linearizes
+independent-process Approval and Product Device revocation. Both controls may win
+in either order, but both durable cutoffs and exactly one audit event per control
+must survive restart before any later Product Session authority is considered.
+A post-control introspection fails `REVOKED` without consuming its proof. This
+local shared-filesystem test does not prove distributed-database or multi-region
+ordering and does not change central, staging or public release state.
+
 Current focused verification on 2026-08-10 is Wallet/Auth 105/105, Wallet app
 39/39, and Wallet app TypeScript typecheck, all passing. Earlier Node host,
 Browser SDK, JS SDK, loopback CLI, package, and Go evidence remains subject to
