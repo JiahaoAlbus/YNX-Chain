@@ -240,6 +240,22 @@ for binary in ynx-indexerd ynx-explorerd ynx-faucetd ynx-ai-gatewayd ynx-payd yn
 done
 grep -Fq "REST_DOMAIN=rest.ynx.test" "$release_dir/config/ynx-chaind.env" || { echo "chain env missing REST_DOMAIN"; exit 1; }
 grep -Fq "INDEXER_DOMAIN=indexer.ynx.test" "$release_dir/config/ynx-chaind.env" || { echo "chain env missing INDEXER_DOMAIN"; exit 1; }
+for setting in \
+  YNX_INDEXER_MAX_REORG_DEPTH=128 \
+  YNX_INDEXER_MAX_BLOCKS_PER_RUN=250 \
+  YNX_INDEXER_MAX_CONCURRENT=64 \
+  YNX_INDEXER_MAX_REQUESTS_PER_SECOND=500 \
+  YNX_INDEXER_QUEUE_WAIT=150ms \
+  YNX_EXPLORER_MAX_CONCURRENT=64 \
+  YNX_EXPLORER_MAX_REQUESTS_PER_SECOND=500 \
+  YNX_EXPLORER_MAX_STREAM_CLIENTS=256 \
+  YNX_EXPLORER_QUEUE_WAIT=150ms; do
+  grep -Fq "$setting" "$release_dir/config/ynx-chaind.env" || { echo "release env missing bounded Explorer/Indexer setting: $setting"; exit 1; }
+done
+grep -Fq "MemoryMax=2G" "$release_dir/systemd/ynx-indexerd.service" || { echo "indexer unit missing memory ceiling"; exit 1; }
+grep -Fq "TasksMax=512" "$release_dir/systemd/ynx-indexerd.service" || { echo "indexer unit missing task ceiling"; exit 1; }
+grep -Fq "MemoryMax=512M" "$release_dir/systemd/ynx-explorerd.service" || { echo "explorer unit missing memory ceiling"; exit 1; }
+grep -Fq "TasksMax=512" "$release_dir/systemd/ynx-explorerd.service" || { echo "explorer unit missing task ceiling"; exit 1; }
 node scripts/verify/release-manifest-check.mjs "$release_dir" "$commit" "$release"
 archive_listing="$tmp/release-archive-files.txt"
 tar -tzf "tmp/deploy/${release}.tar.gz" > "$archive_listing"
