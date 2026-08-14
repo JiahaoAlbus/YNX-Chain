@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "owner": "Wallet/Auth Web/PWA/Extensions",
+  "sourceBaseline": "90cdfcacf0d321a4c57e0556006838ec1a053a1a",
+  "evidence": "apps/wallet-web/evidence/runtime/official-wallet-platform-download-audit-20260814.json",
+  "consumerChange": "Unavailable desktop, extension, and PWA package choices render as disabled controls without guessed URLs; Android remains the sole official hosted package.",
+  "crossOwnerArtifactsModified": false,
+  "platformGates": {
+    "androidHosted": true,
+    "windowsX64Hosted": false,
+    "windowsArm64Hosted": false,
+    "macosX64Hosted": false,
+    "macosArm64Hosted": false,
+    "linuxX64Hosted": false,
+    "linuxArm64Hosted": false,
+    "chromeEdgeExtensionHosted": false,
+    "firefoxExtensionHosted": false,
+    "pwaPackageHosted": false
+  },
+  "releaseGates": {
+    "webArtifactDownloadHosted": false,
+    "installedLocal": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

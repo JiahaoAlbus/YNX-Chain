@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  METAMASK_DOWNLOAD_URL, SESSION_KEY, WalletWebError, YNX_CHAIN, YNX_DOWNLOAD_URL,
+  METAMASK_DOWNLOAD_URL, SESSION_KEY, WALLET_DOWNLOAD_MATRIX, WalletWebError, YNX_CHAIN, YNX_DOWNLOAD_URL,
   addYNXChain, connectWallet, createExtensionProvider, discoverInjectedProviders, extensionWalletAvailability,
   forgetSession, readRememberedSession, rememberSession, resolveRememberedWallet,
   invalidatesConnectedSession, restoreTestnetSession, sendTransaction, signMessage, subscribeProviderLifecycle,
@@ -72,6 +72,14 @@ test("discovery presentation directly prefers YNX and gives two non-empty fallba
   assert.deepEqual(walletDiscoveryPresentation({}),{ynxPresent:false,metamaskPresent:false,showYNXConnect:false,showYNXDownload:true,showMetaMaskChoice:true,metaMaskChoice:"official-download"});
   assert.equal(new URL(YNX_DOWNLOAD_URL).hostname,"www.ynxweb4.com");
   assert.equal(METAMASK_DOWNLOAD_URL,"https://metamask.io/download");
+});
+
+test("official platform matrix exposes only the verified Android route", () => {
+  assert.equal(WALLET_DOWNLOAD_MATRIX.android.hosted,true);
+  assert.equal(WALLET_DOWNLOAD_MATRIX.android.url,YNX_DOWNLOAD_URL);
+  assert.equal(new URL(YNX_DOWNLOAD_URL).hostname,"www.ynxweb4.com");
+  for(const [platform,item] of Object.entries(WALLET_DOWNLOAD_MATRIX))if(platform!=="android")assert.deepEqual({url:item.url,hosted:item.hosted},{url:null,hosted:false});
+  assert.equal(WALLET_DOWNLOAD_MATRIX.pwaPackage.publicStatusUrl,"https://www.ynxweb4.com/dapp/wallet");
 });
 
 test("extension discovery propagates runtime failure and rejects malformed responses", async () => {

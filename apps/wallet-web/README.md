@@ -103,6 +103,14 @@ of pretending that no wallet is installed. The YNX APK fallback was directly
 observed as an HTTP 200 Android package and independently verified as a v2
 testnet-preview signature; this does not make the Web/extension ZIPs hosted or
 production-signed.
+
+The official Wallet release registry currently declares only that Android API
+24+ APK. Windows x64/arm64, macOS x64/arm64, Linux x64/arm64, Chrome/Edge and
+Firefox extension packages, and a downloadable PWA package have no declared
+official candidate URL, so the UI exposes them only as disabled, unavailable
+choices. It never guesses a filename or converts the live `/dapp/wallet` status
+page into a package claim. The Android artifact uses the persistent testnet
+release key and therefore remains explicitly non-production-signed.
 Extension signing and transaction calls also perform the live chain/account
 preflight through that runtime channel. A replaced account prevents the
 sensitive call entirely; provider code `4001` remains a real user rejection and

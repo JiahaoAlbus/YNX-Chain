@@ -6,7 +6,19 @@ export const YNX_CHAIN = Object.freeze({
   blockExplorerUrls: Object.freeze(["https://explorer.ynxweb4.com"]),
 });
 
-export const YNX_DOWNLOAD_URL = "https://www.ynxweb4.com/downloads/ynx-wallet-1.0.1-testnet-preview-dc31c9a8-test-signed.apk";
+export const WALLET_DOWNLOAD_MATRIX = Object.freeze({
+  android: Object.freeze({label:"Android API 24+",url:"https://www.ynxweb4.com/downloads/ynx-wallet-1.0.1-testnet-preview-dc31c9a8-test-signed.apk",hosted:true,signingClass:"persistent-testnet-release-key"}),
+  windowsX64: Object.freeze({label:"Windows x64",url:null,hosted:false}),
+  windowsArm64: Object.freeze({label:"Windows arm64",url:null,hosted:false}),
+  macosX64: Object.freeze({label:"macOS x64",url:null,hosted:false}),
+  macosArm64: Object.freeze({label:"macOS arm64",url:null,hosted:false}),
+  linuxX64: Object.freeze({label:"Linux x64",url:null,hosted:false}),
+  linuxArm64: Object.freeze({label:"Linux arm64",url:null,hosted:false}),
+  chromeEdgeExtension: Object.freeze({label:"Chrome / Edge extension",url:null,hosted:false}),
+  firefoxExtension: Object.freeze({label:"Firefox extension",url:null,hosted:false}),
+  pwaPackage: Object.freeze({label:"PWA install package",url:null,hosted:false,publicStatusUrl:"https://www.ynxweb4.com/dapp/wallet"}),
+});
+export const YNX_DOWNLOAD_URL = WALLET_DOWNLOAD_MATRIX.android.url;
 export const METAMASK_DOWNLOAD_URL = "https://metamask.io/download";
 export const SESSION_KEY = "ynx.wallet.web.session.v1";
 

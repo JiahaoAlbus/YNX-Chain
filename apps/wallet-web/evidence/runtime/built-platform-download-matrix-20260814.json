@@ -1,0 +1,231 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "90cdfcacf0d321a4c57e0556006838ec1a053a1a",
+  "generatedAt": "2026-08-14T06:02:34.445Z",
+  "gateClass": "exact built-artifact download metadata and UI-source inspection; not browser installation, platform package publication, or signing proof",
+  "artifacts": [
+    {
+      "name": "ynx-wallet-web-pwa-0.1.0.zip",
+      "bytes": 270540,
+      "sha256": "b44a635e405ffcd5c1aa271901bfd73207f28bdb593abea30060b81822754d75",
+      "matrix": {
+        "android": {
+          "label": "Android API 24+",
+          "url": "https://www.ynxweb4.com/downloads/ynx-wallet-1.0.1-testnet-preview-dc31c9a8-test-signed.apk",
+          "hosted": true,
+          "signingClass": "persistent-testnet-release-key"
+        },
+        "windowsX64": {
+          "label": "Windows x64",
+          "url": null,
+          "hosted": false
+        },
+        "windowsArm64": {
+          "label": "Windows arm64",
+          "url": null,
+          "hosted": false
+        },
+        "macosX64": {
+          "label": "macOS x64",
+          "url": null,
+          "hosted": false
+        },
+        "macosArm64": {
+          "label": "macOS arm64",
+          "url": null,
+          "hosted": false
+        },
+        "linuxX64": {
+          "label": "Linux x64",
+          "url": null,
+          "hosted": false
+        },
+        "linuxArm64": {
+          "label": "Linux arm64",
+          "url": null,
+          "hosted": false
+        },
+        "chromeEdgeExtension": {
+          "label": "Chrome / Edge extension",
+          "url": null,
+          "hosted": false
+        },
+        "firefoxExtension": {
+          "label": "Firefox extension",
+          "url": null,
+          "hosted": false
+        },
+        "pwaPackage": {
+          "label": "PWA install package",
+          "url": null,
+          "hosted": false,
+          "publicStatusUrl": "https://www.ynxweb4.com/dapp/wallet"
+        }
+      },
+      "checks": {
+        "androidExact": true,
+        "unavailableNullRoutes": true,
+        "pwaStatusNotPackage": true,
+        "inaccessibleLinksPrevented": true,
+        "disabledStatePreserved": true,
+        "fallbackVisibilityBound": true,
+        "narrowLayout": true
+      },
+      "passed": true
+    },
+    {
+      "name": "ynx-wallet-chrome-edge-0.1.0.zip",
+      "bytes": 186678,
+      "sha256": "75ecb18081a32918a3b15a2e8dcb2c0945ef3a82b4f85a2921f7753886ae4503",
+      "matrix": {
+        "android": {
+          "label": "Android API 24+",
+          "url": "https://www.ynxweb4.com/downloads/ynx-wallet-1.0.1-testnet-preview-dc31c9a8-test-signed.apk",
+          "hosted": true,
+          "signingClass": "persistent-testnet-release-key"
+        },
+        "windowsX64": {
+          "label": "Windows x64",
+          "url": null,
+          "hosted": false
+        },
+        "windowsArm64": {
+          "label": "Windows arm64",
+          "url": null,
+          "hosted": false
+        },
+        "macosX64": {
+          "label": "macOS x64",
+          "url": null,
+          "hosted": false
+        },
+        "macosArm64": {
+          "label": "macOS arm64",
+          "url": null,
+          "hosted": false
+        },
+        "linuxX64": {
+          "label": "Linux x64",
+          "url": null,
+          "hosted": false
+        },
+        "linuxArm64": {
+          "label": "Linux arm64",
+          "url": null,
+          "hosted": false
+        },
+        "chromeEdgeExtension": {
+          "label": "Chrome / Edge extension",
+          "url": null,
+          "hosted": false
+        },
+        "firefoxExtension": {
+          "label": "Firefox extension",
+          "url": null,
+          "hosted": false
+        },
+        "pwaPackage": {
+          "label": "PWA install package",
+          "url": null,
+          "hosted": false,
+          "publicStatusUrl": "https://www.ynxweb4.com/dapp/wallet"
+        }
+      },
+      "checks": {
+        "androidExact": true,
+        "unavailableNullRoutes": true,
+        "pwaStatusNotPackage": true,
+        "inaccessibleLinksPrevented": true,
+        "disabledStatePreserved": true,
+        "fallbackVisibilityBound": true,
+        "narrowLayout": true
+      },
+      "passed": true
+    },
+    {
+      "name": "ynx-wallet-firefox-0.1.0.zip",
+      "bytes": 186715,
+      "sha256": "7f9e0ca85195b09c91828dcdf1e5cb66ce904230dc22f984917dc43dba380c00",
+      "matrix": {
+        "android": {
+          "label": "Android API 24+",
+          "url": "https://www.ynxweb4.com/downloads/ynx-wallet-1.0.1-testnet-preview-dc31c9a8-test-signed.apk",
+          "hosted": true,
+          "signingClass": "persistent-testnet-release-key"
+        },
+        "windowsX64": {
+          "label": "Windows x64",
+          "url": null,
+          "hosted": false
+        },
+        "windowsArm64": {
+          "label": "Windows arm64",
+          "url": null,
+          "hosted": false
+        },
+        "macosX64": {
+          "label": "macOS x64",
+          "url": null,
+          "hosted": false
+        },
+        "macosArm64": {
+          "label": "macOS arm64",
+          "url": null,
+          "hosted": false
+        },
+        "linuxX64": {
+          "label": "Linux x64",
+          "url": null,
+          "hosted": false
+        },
+        "linuxArm64": {
+          "label": "Linux arm64",
+          "url": null,
+          "hosted": false
+        },
+        "chromeEdgeExtension": {
+          "label": "Chrome / Edge extension",
+          "url": null,
+          "hosted": false
+        },
+        "firefoxExtension": {
+          "label": "Firefox extension",
+          "url": null,
+          "hosted": false
+        },
+        "pwaPackage": {
+          "label": "PWA install package",
+          "url": null,
+          "hosted": false,
+          "publicStatusUrl": "https://www.ynxweb4.com/dapp/wallet"
+        }
+      },
+      "checks": {
+        "androidExact": true,
+        "unavailableNullRoutes": true,
+        "pwaStatusNotPackage": true,
+        "inaccessibleLinksPrevented": true,
+        "disabledStatePreserved": true,
+        "fallbackVisibilityBound": true,
+        "narrowLayout": true
+      },
+      "passed": true
+    }
+  ],
+  "androidHosted": true,
+  "windowsX64Hosted": false,
+  "windowsArm64Hosted": false,
+  "macosX64Hosted": false,
+  "macosArm64Hosted": false,
+  "linuxX64Hosted": false,
+  "linuxArm64Hosted": false,
+  "chromeEdgeExtensionHosted": false,
+  "firefoxExtensionHosted": false,
+  "pwaPackageHosted": false,
+  "webArtifactDownloadHosted": false,
+  "installedLocal": false,
+  "deployedPublic": false,
+  "productionSigned": false,
+  "storeReleased": false,
+  "passed": true
+}

@@ -1,7 +1,7 @@
 import {LOCALES, catalog, isRTL} from "./i18n.js";
 import {PREFERENCES_KEY,acceptPreferenceUpdate,loadPreferences,savePreferences} from "./preferences.js";
 import {
-  METAMASK_DOWNLOAD_URL, YNX_DOWNLOAD_URL, addYNXChain, connectWallet, createExtensionProvider, discoverWallets,
+  METAMASK_DOWNLOAD_URL, WALLET_DOWNLOAD_MATRIX, YNX_DOWNLOAD_URL, addYNXChain, connectWallet, createExtensionProvider, discoverWallets,
   extensionWalletAvailability, forgetSession, rememberSession, restoreTestnetSession, sendTransaction,
   invalidatesConnectedSession, resolveRememberedWallet, signMessage, subscribeProviderLifecycle,
   switchToYNXChain, verifyTestnetRpc, walletActionGates, walletDiscoveryPresentation,
@@ -24,6 +24,7 @@ const state = {
 function text(key) { return catalog(state.locale)[key] || key; }
 function options() { return LOCALES.map(([value, label]) => `<option value="${value}" ${value === state.locale ? "selected" : ""}>${label}</option>`).join(""); }
 function escape(value) { const node = document.createElement("span"); node.textContent = String(value); return node.innerHTML; }
+function unavailablePlatforms(){return Object.values(WALLET_DOWNLOAD_MATRIX).filter(item=>item.hosted!==true).map(item=>`<button type="button" disabled aria-disabled="true" data-permanent-disabled="true">${escape(item.label)} · ${text("unavailable")}</button>`).join("")}
 
 function render() {
   document.documentElement.lang = state.locale;
@@ -35,7 +36,8 @@ function render() {
       <div class="controls"><label><span class="hidden">${text("language")}</span><select id="locale" aria-label="${text("language")}">${options()}</select></label><button id="theme" type="button">${state.theme === "dark" ? text("light") : text("dark")}</button></div></header>
     <section aria-labelledby="title"><h1 id="title">${text("title")}</h1><p class="intro">${text("intro")}</p></section>
     <section class="card" aria-label="Wallet connection"><div id="detected" class="eyebrow">${text("unavailable")}</div>
-      <div class="wallets"><button id="ynx" class="primary hidden" type="button">${text("connectYNX")}</button><a id="download" href="${YNX_DOWNLOAD_URL}" class="secondary" rel="noreferrer">${text("download")}</a><a id="metamask" href="${METAMASK_DOWNLOAD_URL}" class="secondary" rel="noreferrer">${text("metamask")}</a></div>
+      <div class="wallets"><button id="ynx" class="primary hidden" type="button">${text("connectYNX")}</button><a id="download" href="${YNX_DOWNLOAD_URL}" class="secondary" rel="noreferrer">Android · ${text("download")}</a><a id="metamask" href="${METAMASK_DOWNLOAD_URL}" class="secondary" rel="noreferrer">${text("metamask")}</a></div>
+      <details id="platforms" class="platforms"><summary>${text("download")}</summary><div class="platform-grid">${unavailablePlatforms()}</div></details>
       <div class="status" id="status" role="status" aria-live="polite"><strong>${text("status")}:</strong> ${state.account ? `${text("connected")} · <span class="mono">${escape(state.account)}</span>` : text("disconnected")}</div>
       <p class="risk">${text("rpcCheck")} ${text("testnet")}</p>
     </section>
@@ -62,7 +64,7 @@ async function act(work, success) {
     setStatus(`${error?.code ? `${error.code}: ` : ""}${error?.message || "Request failed closed."}`, "error");
     return null;
   }
-  finally { for (const button of document.querySelectorAll("button")) button.disabled = false; applyActionGates(); }
+  finally { for (const button of document.querySelectorAll("button")) button.disabled = button.dataset.permanentDisabled === "true"; applyActionGates(); }
 }
 
 function applyActionGates() {
@@ -138,6 +140,7 @@ function presentAvailability(availability) {
   const presentation = walletDiscoveryPresentation(availability);
   document.querySelector("#ynx").classList.toggle("hidden", !presentation.showYNXConnect);
   document.querySelector("#download").classList.toggle("hidden", !presentation.showYNXDownload);
+  document.querySelector("#platforms").classList.toggle("hidden", !presentation.showYNXDownload);
   document.querySelector("#metamask").classList.toggle("hidden", !presentation.showMetaMaskChoice);
   document.querySelector("#metamask").dataset.route = presentation.metaMaskChoice;
   document.querySelector("#detected").textContent = presentation.ynxPresent ? text("detected") : text("unavailable");

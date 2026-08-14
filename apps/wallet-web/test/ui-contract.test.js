@@ -8,6 +8,9 @@ test("fallback contract always offers YNX download and MetaMask when YNX is abse
   assert.match(source, /id="metamask" href="\$\{METAMASK_DOWNLOAD_URL\}"/);
   assert.match(source, /if \(!state\.providers\?\.metamask\) return/);
   assert.match(source, /walletDiscoveryPresentation\(availability\)/);
+  assert.match(source, /disabled aria-disabled="true" data-permanent-disabled="true"/);
+  assert.match(source, /button\.disabled = button\.dataset\.permanentDisabled === "true"/);
+  assert.match(source, /document\.querySelector\("#platforms"\)\.classList\.toggle\("hidden", !presentation\.showYNXDownload\)/);
   assert.match(source, /state\.providers = Object\.freeze\(\{ynx:false,metamask:false\}\); state\.provider = null; state\.wallet = null; state\.account = null; state\.chainId = null; state\.rpcVerified = false; applyActionGates\(\); presentAvailability\(state\.providers\)/);
   assert.match(source, /catch \(error\) \{ forgetSession\(\); throw error; \}/);
   assert.match(source, /const discoveryError=\(error\)=>`\$\{error\?\.code \? `\$\{error\.code\}: ` : ""\}/);
@@ -27,6 +30,7 @@ test("390px RTL dark and large-text preview contracts remain buildable", async (
   assert.match(app,/acceptPreferenceUpdate\(state\.preferences,event\.newValue\)/);
   assert.match(app,/preferencesRejected/);
   assert.match(styles,/@media\(max-width:520px\)/);
+  assert.match(styles,/\.platform-grid\{display:grid/);
   assert.match(accessibility,/font-size: 125%/);
   assert.match(accessibility,/\.wallets a/);
   assert.match(accessibility,/min-height: 44px/);
