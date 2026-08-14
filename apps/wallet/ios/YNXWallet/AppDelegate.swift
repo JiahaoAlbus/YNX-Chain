@@ -3,9 +3,43 @@ import Darwin
 import os
 import React
 import ReactAppDependencyProvider
+import Security
 
 private let walletLifecycleLogger = Logger(subsystem: "com.ynxweb4.wallet", category: "lifecycle")
 private let walletCallbackLogger = Logger(subsystem: "com.ynxweb4.wallet", category: "callback")
+private let walletSecurityLogger = Logger(subsystem: "com.ynxweb4.wallet", category: "security")
+
+private func runEphemeralKeychainProbeIfRequested() {
+  guard ProcessInfo.processInfo.environment["YNX_WALLET_KEYCHAIN_PROBE"] == "1" else { return }
+
+  let account = "ci.\(UUID().uuidString)"
+  let identity: [String: Any] = [
+    kSecClass as String: kSecClassGenericPassword,
+    kSecAttrService as String: "com.ynxweb4.wallet.keychain-probe",
+    kSecAttrAccount as String: account,
+  ]
+  var addQuery = identity
+  let expected = Data("YNX Wallet ephemeral Keychain probe".utf8)
+  addQuery[kSecAttrAccessible as String] = kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+  addQuery[kSecValueData as String] = expected
+  let addStatus = SecItemAdd(addQuery as CFDictionary, nil)
+
+  var readQuery = identity
+  readQuery[kSecMatchLimit as String] = kSecMatchLimitOne
+  readQuery[kSecReturnData as String] = true
+  var result: CFTypeRef?
+  let readStatus = SecItemCopyMatching(readQuery as CFDictionary, &result)
+  let valueMatches = (result as? Data) == expected
+  let deleteStatus = SecItemDelete(identity as CFDictionary)
+  let available = addStatus == errSecSuccess
+    && readStatus == errSecSuccess
+    && valueMatches
+    && deleteStatus == errSecSuccess
+
+  walletSecurityLogger.notice(
+    "YNX_WALLET_KEYCHAIN_PROBE pid=\(getpid(), privacy: .public) available=\(available, privacy: .public) add=\(addStatus, privacy: .public) read=\(readStatus, privacy: .public) delete=\(deleteStatus, privacy: .public)"
+  )
+}
 
 @main
 class AppDelegate: ExpoAppDelegate {
@@ -19,6 +53,7 @@ class AppDelegate: ExpoAppDelegate {
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
   ) -> Bool {
     walletLifecycleLogger.notice("YNX_WALLET_LAUNCHED pid=\(getpid(), privacy: .public)")
+    runEphemeralKeychainProbeIfRequested()
     let delegate = ReactNativeDelegate()
     let factory = ExpoReactNativeFactory(delegate: delegate)
     delegate.dependencyProvider = RCTAppDependencyProvider()

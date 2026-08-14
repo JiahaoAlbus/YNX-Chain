@@ -59,19 +59,27 @@ jobs:
         working-directory: apps/wallet
       - run: npx pod-install ios
         working-directory: apps/wallet
-      - name: Build unsigned iOS Simulator app
+      - name: Build ad-hoc iOS Simulator app and freeze the installable bundle
         working-directory: apps/wallet
-        run: >-
-          xcodebuild -workspace ios/YNXWallet.xcworkspace -scheme YNXWallet
-          -configuration Release -sdk iphonesimulator
-          -destination 'generic/platform=iOS Simulator'
-          CODE_SIGNING_ALLOWED=NO clean build
+        run: |
+          set -euo pipefail
+          xcodebuild -workspace ios/YNXWallet.xcworkspace -scheme YNXWallet \
+            -configuration Release -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=- clean build
+          APP="$(find "$HOME/Library/Developer/Xcode/DerivedData" -path '*/Build/Products/Release-iphonesimulator/YNXWallet.app' -print -quit)"
+          test -n "$APP"
+          mkdir -p proof/ci-ios
+          ditto "$APP" proof/ci-ios/YNXWallet-Standalone.app
+          codesign -d --entitlements :- proof/ci-ios/YNXWallet-Standalone.app \
+            > proof/ci-ios/standalone-entitlements.txt 2>&1
+          grep -F '<key>application-identifier</key>' proof/ci-ios/standalone-entitlements.txt
       - name: Install, cold launch and verify Wallet deep link
         timeout-minutes: 10
         working-directory: apps/wallet
         run: |
           set -euo pipefail
-          APP="$(find "$HOME/Library/Developer/Xcode/DerivedData" -path '*/Build/Products/Release-iphonesimulator/YNXWallet.app' -print -quit)"
+          APP="$PWD/proof/ci-ios/YNXWallet-Standalone.app"
           DEVICE="$(xcrun simctl list devices available | awk -F '[()]' '/iPhone/{print $2; exit}')"
           test -n "$APP"
           test -n "$DEVICE"
@@ -83,7 +91,16 @@ jobs:
           xcrun simctl bootstatus "$DEVICE" -b
           xcrun simctl install "$DEVICE" "$APP"
           xcrun simctl terminate "$DEVICE" com.ynxweb4.wallet 2>/dev/null || true
-          xcrun simctl launch "$DEVICE" com.ynxweb4.wallet | tee proof/ci-ios/cold-launch.txt
+          SIMCTL_CHILD_YNX_WALLET_KEYCHAIN_PROBE=1 \
+            xcrun simctl launch "$DEVICE" com.ynxweb4.wallet | tee proof/ci-ios/cold-launch.txt
+          sleep 3
+          xcrun simctl spawn "$DEVICE" log show \
+            --style compact \
+            --last 5m \
+            --predicate 'subsystem == "com.ynxweb4.wallet" AND category == "security"' \
+            2>&1 | tee proof/ci-ios/keychain-probe-native.log
+          grep -E 'YNX_WALLET_KEYCHAIN_PROBE pid=[0-9]+ available=true add=0 read=0 delete=0' \
+            proof/ci-ios/keychain-probe-native.log
           xcrun simctl get_app_container "$DEVICE" com.ynxweb4.wallet | tee proof/ci-ios/app-container.txt
           xcrun simctl terminate "$DEVICE" com.ynxweb4.wallet
           xcrun simctl launch "$DEVICE" com.ynxweb4.wallet | tee proof/ci-ios/second-launch.txt
@@ -183,7 +200,7 @@ jobs:
         working-directory: apps/wallet
         run: |
           set -euo pipefail
-          APP="$(find "$HOME/Library/Developer/Xcode/DerivedData" -path '*/Build/Products/Release-iphonesimulator/YNXWallet.app' -print -quit)"
+          APP="$PWD/proof/ci-ios/YNXWallet-Standalone.app"
           test -n "$APP"
           mkdir -p proof/ci-ios
           xcodebuild -version | tee proof/ci-ios/xcode-version.txt
@@ -198,6 +215,5 @@ jobs:
         with:
           name: ynx-wallet-ios-simulator
           path: |
-            ~/Library/Developer/Xcode/DerivedData/**/Build/Products/Release-iphonesimulator/YNXWallet.app
             apps/wallet/proof/ci-ios
           if-no-files-found: error
