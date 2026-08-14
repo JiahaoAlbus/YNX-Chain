@@ -461,7 +461,7 @@ const indexHTML = `<!doctype html>
 	const number = (value) => new Intl.NumberFormat(language).format(Number(value || 0));
     const relativeTime = (value) => {
       const seconds = Math.max(0, Math.floor((Date.now() - new Date(value).getTime()) / 1000));
-      if (!Number.isFinite(seconds)) return 'Time unavailable';
+	  if (!Number.isFinite(seconds)) return t('unavailable');
 	  const formatter = new Intl.RelativeTimeFormat(language,{numeric:'always'});
 	  if (seconds < 60) return formatter.format(-seconds,'second');
 	  if (seconds < 3600) return formatter.format(-Math.floor(seconds / 60),'minute');
@@ -504,12 +504,12 @@ const indexHTML = `<!doctype html>
       bindQueries();
     }
     function renderBlockTrack(blocks,incomingHeight) {
-      $('finalityState').textContent = blocks.length ? 'Block #' + number(blocks[0].height) : 'Waiting';
+	  $('finalityState').textContent = blocks.length ? t('latestBlock') + ' #' + number(blocks[0].height) : t('waitingLatest');
       $('blockTrack').innerHTML = blocks.slice(0,8).map((block,index) => {
         const arrived = index === 0 && previousHeight && incomingHeight > previousHeight;
         const txs = (block.transactions || []).length;
 		return '<button class="block-chip' + (txs === 0 ? ' empty-block' : '') + (arrived ? ' new' : '') + '" type="button" data-query="' + escapeHTML(block.height) + '"><strong class="mono">#' + escapeHTML(number(block.height)) + '</strong><span>' + (txs === 0 ? escapeHTML(t('emptyBlock')) : escapeHTML(number(txs)) + ' ' + escapeHTML(t('txUnit'))) + ' / ' + escapeHTML(relativeTime(block.time)) + '</span></button>';
-      }).join('') || '<div class="empty">No finalized blocks yet.</div>';
+	  }).join('') || '<div class="empty">' + escapeHTML(t('unavailable')) + '</div>';
     }
     function renderIntelligence(validatorData, resources) {
       const validators = Array.isArray(validatorData) ? validatorData : (validatorData?.validators || []);
@@ -517,9 +517,9 @@ const indexHTML = `<!doctype html>
         const ready = Boolean(validator.peerReady || validator.active);
         const status = validator.peerStatus || (ready ? 'active' : 'not ready');
         return '<tr><td><strong>' + escapeHTML(validator.moniker || compact(validator.address)) + '</strong><span class="mono hash muted" title="' + escapeHTML(validator.address) + '">' + escapeHTML(compact(validator.address,12,7)) + '</span></td><td>' + escapeHTML(validator.role || 'validator') + '</td><td><span class="validator-state' + (ready ? '' : ' offline') + '">' + escapeHTML(status) + '</span></td><td class="mono">' + escapeHTML(number(validator.votingPower)) + '</td><td class="mono">' + escapeHTML(number(validator.latestHeight)) + '</td></tr>';
-      }).join('') : '<tr><td colspan="5" class="empty">No validator records available.</td></tr>';
+	  }).join('') : '<tr><td colspan="5" class="empty">' + escapeHTML(t('unavailable')) + '</td></tr>';
       if (!resources || typeof resources !== 'object' || !Object.keys(resources).length) {
-        $('resourceMetrics').innerHTML = '<article class="resource-item"><small>Resource analytics temporarily unavailable</small></article>';
+		$('resourceMetrics').innerHTML = '<article class="resource-item"><small>' + escapeHTML(t('unavailable')) + '</small></article>';
         $('resourcePolicy').innerHTML = '';
         return;
       }
@@ -548,7 +548,7 @@ const indexHTML = `<!doctype html>
       document.querySelectorAll('[data-query]').forEach(node => node.onclick = () => search(node.dataset.query));
       document.querySelectorAll('[data-account]').forEach(node => node.onclick = event => { event.preventDefault(); event.stopPropagation(); search(node.dataset.account); });
     }
-    function renderDashboard(summary, blocks, transactions, validatorData, resources, source = 'Live stream') {
+    function renderDashboard(summary, blocks, transactions, validatorData, resources, sourceKey = 'live') {
       const windowStats = calculateWindow(blocks);
       const incomingHeight = Number(summary.rpcHeight || 0);
       walletConfig = summary.wallet;
@@ -570,17 +570,17 @@ const indexHTML = `<!doctype html>
       $('latestHash').textContent = compact(summary.latestBlockHash,12,9);
       $('latestHash').title = summary.latestBlockHash || '';
       $('truthState').textContent = summary.truthfulStatus === 'rpc-and-indexer-backed' ? 'RPC + Indexer' : summary.truthfulStatus;
-      $('lastUpdated').textContent = 'Updated ' + new Date(summary.lastCheckedAt).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'});
-      $('heroHeight').textContent = 'Block #' + number(summary.rpcHeight) + ' / ' + number(summary.syncLagBlocks) + '-block index lag';
+	  $('lastUpdated').textContent = new Date(summary.lastCheckedAt).toLocaleTimeString(language, {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+	  $('heroHeight').textContent = t('latestBlock') + ' #' + number(summary.rpcHeight) + ' / ' + t('indexerSync') + ' ' + number(summary.syncLagBlocks) + ' ' + t('blockUnit');
       document.title = 'Block ' + number(summary.rpcHeight) + ' | YNX Chain Explorer';
-	  $('blocksBody').innerHTML = blocks.length ? blocks.slice(0,blockDisplayLimit).map(blockRow).join('') : '<div class="empty">No indexed blocks yet.</div>';
+	  $('blocksBody').innerHTML = blocks.length ? blocks.slice(0,blockDisplayLimit).map(blockRow).join('') : '<div class="empty">' + escapeHTML(t('unavailable')) + '</div>';
 	  $('olderBlocks').hidden = !blockCursor;
       renderTransactions();
       renderBlockTrack(blocks,incomingHeight);
       renderIntelligence(validatorData, resources);
       bindQueries();
       $('statusText').textContent = summary.ok ? t('operational') : t('degraded');
-	  $('statusDetail').textContent = summary.ok ? source + ' / ' + t('rpcResponding') : t('unavailable');
+	  $('statusDetail').textContent = summary.ok ? t(sourceKey) + ' / ' + t('rpcResponding') : t('unavailable');
       $('status').className = 'status-bar' + (summary.ok ? '' : ' warn');
       if (incomingHeight > previousHeight) {
         const metric = $('rpcHeight').closest('.metric');
@@ -605,7 +605,7 @@ const indexHTML = `<!doctype html>
       ]);
 	  blockCursor = blockData.nextCursor || '';
 	  transactionCursor = txData.nextCursor || '';
-      renderDashboard(summary, blockData.blocks, txData.transactions, validators, resources, 'Manual snapshot');
+	  renderDashboard(summary, blockData.blocks, txData.transactions, validators, resources, 'refresh');
       renderAccounts(leaderboard);
     }
     function startFallbackPolling() {
@@ -622,13 +622,13 @@ const indexHTML = `<!doctype html>
       eventSource = new EventSource('/api/stream');
       eventSource.onopen = () => {
         $('streamClock').className = 'stream-clock live';
-        $('streamClockText').textContent = 'Live stream connected';
+		$('streamClockText').textContent = t('live');
       };
       eventSource.addEventListener('dashboard', event => {
         try {
           const snapshot = JSON.parse(event.data);
           lastStreamAt = Date.now();
-          renderDashboard(snapshot.summary, snapshot.blocks || [], snapshot.transactions || [], snapshot.validators, snapshot.resources, 'Live SSE');
+		  renderDashboard(snapshot.summary, snapshot.blocks || [], snapshot.transactions || [], snapshot.validators, snapshot.resources, 'live');
           stopFallbackPolling();
         } catch (error) { showLoadError(error); }
       });
@@ -640,7 +640,7 @@ const indexHTML = `<!doctype html>
 		$('statusDetail').textContent = t('fallback');
         $('status').className = 'status-bar warn';
         $('streamClock').className = 'stream-clock stale';
-        $('streamClockText').textContent = 'Stream reconnecting';
+		$('streamClockText').textContent = t('reconnecting');
         startFallbackPolling();
       };
     }
@@ -682,13 +682,14 @@ const indexHTML = `<!doctype html>
     function showDrawer(type,query,detail) {
 	  currentDetailType = type; currentDetailQuery = query; currentDetail = detail;
       const title = type.charAt(0).toUpperCase() + type.slice(1);
-      $('detailKicker').textContent = 'Live ' + type + ' detail';
-      $('detailTitle').textContent = type === 'account' ? compact(detail.addressFormats?.ynxAddress || query,18,12) : title;
+	  const typeLabels = {block:t('latestBlock'),transaction:t('latestTransactions'),account:t('navAccounts'),token:t('nativeCoin'),contract:'Contract'};
+	  $('detailKicker').textContent = t('live') + ' · ' + (typeLabels[type] || title);
+	  $('detailTitle').textContent = type === 'account' ? compact(detail.addressFormats?.ynxAddress || query,18,12) : (typeLabels[type] || title);
       const stats = detailStats(type,detail);
       const summary = stats.length ? '<div class="detail-summary">' + stats.map(([label,value]) => '<div class="detail-stat"><span>' + escapeHTML(label) + '</span><strong class="mono">' + escapeHTML(value) + '</strong></div>').join('') + '</div>' : '';
       const rows = detailRows(type,detail).map(([key,value]) => {
         const text = String(value ?? '');
-        const copy = text.length > 10 ? '<button class="copy-button" type="button" data-copy="' + encodeURIComponent(text) + '" aria-label="Copy value">Copy</button>' : '';
+		const copy = text.length > 10 ? '<button class="copy-button" type="button" data-copy="' + encodeURIComponent(text) + '" aria-label="' + escapeHTML(t('copied')) + '">' + escapeHTML(t('copied')) + '</button>' : '';
         return '<div class="detail-row"><dt>' + escapeHTML(key) + '</dt><dd class="mono">' + escapeHTML(text) + '</dd>' + copy + '</div>';
       }).join('');
 	  $('detailContent').innerHTML = summary + detailExtra(type,detail) + '<dl class="detail-body">' + rows + '</dl>';
@@ -712,9 +713,9 @@ const indexHTML = `<!doctype html>
       const q = String(query || $('searchInput').value).trim();
       if (!q) return;
       $('searchInput').value = q;
-      $('detailKicker').textContent = 'Searching live chain data';
+	  $('detailKicker').textContent = t('search');
       $('detailTitle').textContent = compact(q,18,10);
-      $('detailContent').innerHTML = '<div class="empty">Resolving RPC and indexer records...</div>';
+	  $('detailContent').innerHTML = '<div class="empty">' + escapeHTML(t('readingState')) + '</div>';
       $('detailBackdrop').classList.add('visible');
       $('detailBackdrop').setAttribute('aria-hidden','false');
       document.body.style.overflow = 'hidden';
@@ -724,9 +725,9 @@ const indexHTML = `<!doctype html>
         showDrawer(resolved.type,q,detail);
 		if (updateHistory && resolved.deepLink) history.pushState({query:q},'',resolved.deepLink);
       } catch (error) {
-        $('detailKicker').textContent = 'Search result';
-        $('detailTitle').textContent = 'Not found';
-        $('detailContent').innerHTML = '<div class="result-error">' + escapeHTML(error.message) + '</div>';
+		$('detailKicker').textContent = t('searchResult');
+		$('detailTitle').textContent = t('unavailable');
+		$('detailContent').innerHTML = '<div class="result-error">' + escapeHTML(t('unavailable')) + '</div>';
       }
     }
     $('searchForm').onsubmit = event => { event.preventDefault(); search(); };
@@ -748,8 +749,8 @@ const indexHTML = `<!doctype html>
 	  }
       const button = event.target.closest('[data-copy]');
       if (!button) return;
-      try { await navigator.clipboard.writeText(decodeURIComponent(button.dataset.copy)); showToast('Copied to clipboard'); }
-      catch (_) { showToast('Clipboard unavailable'); }
+	  try { await navigator.clipboard.writeText(decodeURIComponent(button.dataset.copy)); showToast(t('copied')); }
+	  catch (_) { showToast(t('unavailable')); }
     };
     function selectIntelligence(view) {
       const validatorsSelected = view === 'validators';
@@ -796,12 +797,12 @@ const indexHTML = `<!doctype html>
 	};
     document.querySelectorAll('[data-refresh]').forEach(button => button.onclick = () => load().catch(showLoadError));
     $('metamaskButton').onclick = async () => {
-      if (!window.ethereum) { $('resultPanel').classList.add('visible'); $('resultTitle').textContent = 'Wallet not detected'; $('resultSubtitle').textContent = 'Install or open an EIP-1193 compatible wallet.'; $('resultBody').innerHTML = '<div class="result-error">MetaMask is not available in this browser.</div>'; return; }
+	  if (!window.ethereum) { $('resultPanel').classList.add('visible'); $('resultTitle').textContent = t('unavailable'); $('resultSubtitle').textContent = t('openMetamask'); $('resultBody').innerHTML = '<div class="result-error">' + escapeHTML(t('unavailable')) + '</div>'; return; }
       if (!walletConfig) await load();
       try {
         await window.ethereum.request({method:'wallet_addEthereumChain',params:[{chainId:walletConfig.chainIdHex,chainName:walletConfig.chainName,nativeCurrency:{name:walletConfig.nativeCurrencyName,symbol:walletConfig.nativeSymbol,decimals:walletConfig.decimals},rpcUrls:walletConfig.rpcUrls,blockExplorerUrls:walletConfig.blockExplorerUrls}]});
-        $('resultPanel').classList.add('visible'); $('resultTitle').textContent = 'Compatibility request sent'; $('resultSubtitle').textContent = 'Confirm the YNX Testnet EVM adapter in MetaMask.'; $('resultBody').innerHTML = '<div class="empty">YNX-native applications continue to identify this account with its ynx1 address.</div>';
-      } catch (error) { $('resultPanel').classList.add('visible'); $('resultTitle').textContent = 'Wallet request declined'; $('resultBody').innerHTML = '<div class="result-error">' + escapeHTML(error.message) + '</div>'; }
+		$('resultPanel').classList.add('visible'); $('resultTitle').textContent = t('openMetamask'); $('resultSubtitle').textContent = t('testnet'); $('resultBody').innerHTML = '<div class="empty">' + escapeHTML(t('identityCopy')) + '</div>';
+	  } catch (_) { $('resultPanel').classList.add('visible'); $('resultTitle').textContent = t('unavailable'); $('resultBody').innerHTML = '<div class="result-error">' + escapeHTML(t('unavailable')) + '</div>'; }
     };
 	function showLoadError() { $('statusText').textContent = t('degraded'); $('statusDetail').textContent = t('unavailable'); $('status').className = 'status-bar warn'; $('refreshButton').disabled = false; removeSkeletons(); }
     applyLanguage(language);
@@ -811,7 +812,7 @@ const indexHTML = `<!doctype html>
       if (!lastStreamAt) return;
       const age = Math.floor((Date.now() - lastStreamAt) / 1000);
       $('streamClock').className = 'stream-clock ' + (age < 8 ? 'live' : 'stale');
-      $('streamClockText').textContent = age < 2 ? 'Updated now' : (age < 8 ? 'Updated ' + age + 's ago' : 'No event for ' + age + 's');
+	  $('streamClockText').textContent = age < 2 ? t('live') : relativeTime(new Date(lastStreamAt));
     },1000);
     document.addEventListener('keydown',event => { if (event.key === 'Escape') closeDrawer(); });
     document.addEventListener('visibilitychange',() => { if (!document.hidden) load().catch(showLoadError); });

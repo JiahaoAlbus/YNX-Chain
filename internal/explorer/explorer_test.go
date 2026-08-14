@@ -180,7 +180,7 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 		"Resource economy",
 		"Live finalized block stream",
 		"id=\"blockTrack\"",
-		"No event for ",
+		"relativeTime(new Date(lastStreamAt))",
 		"/assets/ynx-logo.png",
 		"/assets/ynx-icon.png",
 		"YNX native address (default)",
