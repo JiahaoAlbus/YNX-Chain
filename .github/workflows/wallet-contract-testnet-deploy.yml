@@ -110,7 +110,7 @@ jobs:
           YNX_ERC4337_ENTRYPOINT_TRANSACTION_HASH: ${{ inputs.entrypoint_transaction_hash }}
           YNX_PAYMASTER_POLICY_SIGNER_ADDRESS: ${{ inputs.policy_signer_address }}
           YNX_PAYMASTER_RISK_OFFICER_ADDRESS: ${{ inputs.risk_officer_address }}
-        run: npm run hardhat:deploy:wallet-smart-account > "$RUNNER_TEMP/wallet-contract-deployment.json"
+        run: ./node_modules/.bin/hardhat run ./scripts/contracts/deploy-wallet-smart-account.js --config hardhat.wallet.config.ts --network ynxTestnet > "$RUNNER_TEMP/wallet-contract-deployment.json"
 
       - name: Verify public receipts, bytecode, events, relationships and Bundler
         env:
@@ -127,8 +127,8 @@ jobs:
           YNX_WALLET_ERC4337_DEPLOYMENT_MANIFEST: ${{ runner.temp }}/wallet-contract-deployment.json
           YNX_WALLET_ERC4337_DEPLOYMENT_INTEGRITY: ${{ runner.temp }}/wallet-contract-deployment.integrity.json
         run: |
-          YNX_WALLET_DEPLOYMENT_ARTIFACT_INTEGRITY_MODE=create npm --prefix packages/wallet-auth run integrity:testnet-deployment > "$YNX_WALLET_ERC4337_DEPLOYMENT_INTEGRITY"
-          YNX_WALLET_DEPLOYMENT_ARTIFACT_INTEGRITY_MODE=verify npm --prefix packages/wallet-auth run integrity:testnet-deployment > /dev/null
+          YNX_WALLET_DEPLOYMENT_ARTIFACT_INTEGRITY_MODE=create node packages/wallet-auth/scripts/deployment-artifact-integrity.mjs > "$YNX_WALLET_ERC4337_DEPLOYMENT_INTEGRITY"
+          YNX_WALLET_DEPLOYMENT_ARTIFACT_INTEGRITY_MODE=verify node packages/wallet-auth/scripts/deployment-artifact-integrity.mjs > /dev/null
 
       - name: Upload source-bound deployment manifest
         if: ${{ always() }}
