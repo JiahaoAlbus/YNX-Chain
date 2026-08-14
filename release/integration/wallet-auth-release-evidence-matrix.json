@@ -42,7 +42,10 @@
       "ciComplete": null,
       "consumedForReleaseTruth": false,
       "note": "The Android branch advanced beyond frozen evidence without an Owner terminal checkpoint; device truth remains unchanged."
-    }
+    },
+    {"owner":"desktop-cli-sdk","candidateCommit":"1cdcc8fbf4b1264bec763ee6c713b353b12380ac","remoteFastForwardReported":true,"remoteReadbackComplete":true,"ciComplete":true,"consumedForReleaseTruth":false,"note":"Desktop SBOM provenance handoff remains queued separately."},
+    {"owner":"desktop-cli-sdk","candidateCommit":"02acde92b34ba555ed55f5b512d3dd8a48c1412e","remoteFastForwardReported":true,"remoteReadbackComplete":true,"ciComplete":true,"consumedForReleaseTruth":false,"note":"Fedora arm64 RPM lifecycle evidence remains queued separately."},
+    {"owner":"desktop-cli-sdk","candidateCommit":"f46866333b031a43c60d0f759db03edf5cf04fe8","remoteFastForwardReported":true,"remoteReadbackComplete":true,"ciComplete":true,"consumedForReleaseTruth":false,"note":"Fedora arm64 RPM lifecycle handoff remains queued separately; rollback descendants are not consumed."}
   ],
   "ownerSources": [
     {
@@ -84,9 +87,9 @@
     {
       "owner": "desktop-cli-sdk",
       "branch": "codex/wallet-desktop-cli-sdk-20260813",
-      "sourceCommit": "0b65e31031f8316b5ea753fe70bd9bea391ef760",
-      "remoteCommitObserved": "0b65e31031f8316b5ea753fe70bd9bea391ef760",
-      "branchHeadObserved": "48f9392990080384ce0b9bd7b9568419d685e1a6",
+      "sourceCommit": "a65c90c459b231ebbd0250cac7490714c6ed1541",
+      "remoteCommitObserved": "a65c90c459b231ebbd0250cac7490714c6ed1541",
+      "branchHeadObserved": "05e40267902fa17eb76b389f99e38ee181bff8e1",
       "remoteVerifiedAt": "2026-08-14T04:05:00Z",
       "verificationMode": "github-git-database-parent-tree-blob-readback"
     }
@@ -639,6 +642,13 @@
       "direct": true,
       "commit": "0b65e31031f8316b5ea753fe70bd9bea391ef760",
       "path": "release/integration/wallet-desktop-cli-sdk-contract.json",
+      "supports": []
+    },
+    "desktop-sbom-provenance": {
+      "type": "git-object",
+      "direct": true,
+      "commit": "a65c90c459b231ebbd0250cac7490714c6ed1541",
+      "path": "release/wallet-desktop/sbom-provenance/manifest.json",
       "supports": []
     }
   },
