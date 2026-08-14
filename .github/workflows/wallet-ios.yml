@@ -130,6 +130,27 @@ jobs:
           xcrun xcresulttool export attachments \
             --path proof/ci-ios/MalformedCallback.xcresult \
             --output-path proof/ci-ios/xcresult-attachments
+      - name: Prove Universal Link remains fail-closed without a frozen associated domain
+        timeout-minutes: 10
+        working-directory: apps/wallet
+        run: |
+          set -euo pipefail
+          DEVICE="$(xcrun simctl list devices booted | awk -F '[()]' '/iPhone/{print $2; exit}')"
+          test -n "$DEVICE"
+          plutil -p ios/YNXWallet/YNXWallet.entitlements \
+            | tee proof/ci-ios/associated-domain-entitlements.txt
+          ! grep -Fq 'com.apple.developer.associated-domains' \
+            proof/ci-ios/associated-domain-entitlements.txt
+          xcodebuild test \
+            -workspace ios/YNXWallet.xcworkspace \
+            -scheme YNXWallet \
+            -configuration Release \
+            -destination "platform=iOS Simulator,id=$DEVICE" \
+            -only-testing:YNXWalletUITests/MalformedCallbackUITests/testUniversalLinkRemainsFailClosedWithoutFrozenAssociatedDomain \
+            -resultBundlePath proof/ci-ios/UniversalLinkFailClosed.xcresult \
+            2>&1 | tee proof/ci-ios/universal-link-fail-closed-xctest.log
+          grep -F "Test Case '-[YNXWalletUITests.MalformedCallbackUITests testUniversalLinkRemainsFailClosedWithoutFrozenAssociatedDomain]' passed" \
+            proof/ci-ios/universal-link-fail-closed-xctest.log
       - name: Prove recovery stays empty without Simulator biometrics
         timeout-minutes: 10
         working-directory: apps/wallet

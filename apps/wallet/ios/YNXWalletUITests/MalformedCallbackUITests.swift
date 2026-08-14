@@ -83,4 +83,20 @@ final class MalformedCallbackUITests: XCTestCase {
     restart.lifetime = .keepAlways
     add(restart)
   }
+
+  func testUniversalLinkRemainsFailClosedWithoutFrozenAssociatedDomain() throws {
+    XCTAssertFalse(InboundLinkPolicy.associatedDomainFrozen)
+    XCTAssertEqual(
+      InboundLinkPolicy.evaluateUniversalLink(URL(string: "https://ynxweb4.com/authorize?request=invalid")),
+      .rejected(code: "ASSOCIATED_DOMAIN_UNAVAILABLE")
+    )
+    XCTAssertEqual(
+      InboundLinkPolicy.evaluateUniversalLink(URL(string: "http://ynxweb4.com/authorize?request=invalid")),
+      .rejected(code: "INVALID_UNIVERSAL_LINK")
+    )
+    XCTAssertEqual(
+      InboundLinkPolicy.evaluateUniversalLink(nil),
+      .rejected(code: "INVALID_UNIVERSAL_LINK")
+    )
+  }
 }

@@ -53,8 +53,13 @@ class AppDelegate: ExpoAppDelegate {
     continue userActivity: NSUserActivity,
     restorationHandler: @escaping ([UIUserActivityRestoring]?) -> Void
   ) -> Bool {
-    let result = RCTLinkingManager.application(application, continue: userActivity, restorationHandler: restorationHandler)
-    return super.application(application, continue: userActivity, restorationHandler: restorationHandler) || result
+    let url = userActivity.webpageURL
+    walletCallbackLogger.notice("YNX_WALLET_UNIVERSAL_LINK_RECEIVED pid=\(getpid(), privacy: .public) scheme=\(url?.scheme ?? "unknown", privacy: .public)")
+    switch InboundLinkPolicy.evaluateUniversalLink(url) {
+    case .rejected(let code):
+      walletCallbackLogger.notice("YNX_WALLET_UNIVERSAL_LINK_REJECTED pid=\(getpid(), privacy: .public) code=\(code, privacy: .public)")
+      return false
+    }
   }
 }
 
