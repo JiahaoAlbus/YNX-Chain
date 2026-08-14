@@ -57,9 +57,9 @@ jobs:
           sudo apt-get install -y xvfb xdotool
           sudo rpm --initdb
           sudo rpm -ivh --nodeps --noscripts "$PRE_RPM"
-          test "$(rpm -q --queryformat '%{VERSION}' "$PACKAGE_NAME")" = 0.0.9
+          test "$(sudo rpm -q --queryformat '%{VERSION}' "$PACKAGE_NAME")" = 0.0.9
           sudo rpm -Uvh --nodeps --noscripts "$CURRENT_RPM"
-          test "$(rpm -q --queryformat '%{VERSION}' "$PACKAGE_NAME")" = 0.1.0
+          test "$(sudo rpm -q --queryformat '%{VERSION}' "$PACKAGE_NAME")" = 0.1.0
           test -x "$EXECUTABLE"
 
           run_phase() {
