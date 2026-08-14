@@ -91,6 +91,26 @@ public final class KeychainRecoveryVault {
     }
   }
 
+  public func isAbsentWithoutAuthentication() throws -> Bool {
+    let context = LAContext()
+    context.interactionNotAllowed = true
+    let query: [CFString: Any] = [
+      kSecClass: kSecClassGenericPassword,
+      kSecAttrService: service,
+      kSecAttrAccount: account,
+      kSecMatchLimit: kSecMatchLimitOne,
+      kSecReturnAttributes: true,
+      kSecUseAuthenticationContext: context,
+    ]
+    var item: CFTypeRef?
+    let status = SecItemCopyMatching(query as CFDictionary, &item)
+    if status == errSecItemNotFound { return true }
+    if status == errSecSuccess || status == errSecInteractionNotAllowed || status == errSecAuthFailed {
+      return false
+    }
+    throw DeviceSecurityError.keychain(code: status)
+  }
+
   private func replace(_ material: Data, context: LAContext) throws {
     _ = SecItemDelete(baseQuery(context: context) as CFDictionary)
     var accessError: Unmanaged<CFError>?

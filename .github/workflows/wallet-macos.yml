@@ -88,6 +88,8 @@ jobs:
           assert recovery['keychainRoundTripVerified'] is True
           assert recovery['recoveryCreated'] is False
           assert recovery['recoveryMaterialPersisted'] is False
+          assert recovery['recoveryAbsentBeforeAttempt'] is True
+          assert recovery['recoveryAbsentAfterAttempt'] is True
           assert recovery['failedClosed'] is True
           PY
       - name: Install, cold launch, second launch and reject callback

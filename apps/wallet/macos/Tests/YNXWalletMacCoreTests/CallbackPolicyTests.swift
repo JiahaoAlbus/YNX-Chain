@@ -2,6 +2,14 @@ import XCTest
 @testable import YNXWalletMacCore
 
 final class CallbackPolicyTests: XCTestCase {
+  func testFreshRecoveryVaultIsAbsentWithoutAuthentication() throws {
+    let vault = KeychainRecoveryVault(
+      service: "com.ynxweb4.wallet.macos.tests",
+      account: UUID().uuidString
+    )
+    XCTAssertTrue(try vault.isAbsentWithoutAuthentication())
+  }
+
   func testRecoveryMaterialRequiresExactly256Bits() throws {
     let material = Data(repeating: 0x5a, count: RecoveryMaterial.byteCount)
     XCTAssertEqual(try RecoveryMaterial.validate(material), material)
