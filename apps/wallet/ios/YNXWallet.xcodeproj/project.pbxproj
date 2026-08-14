@@ -29,7 +29,7 @@
 /* Begin PBXFileReference section */
 		A10000000000000000000002 /* MalformedCallbackUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MalformedCallbackUITests.swift; sourceTree = "<group>"; };
 		A10000000000000000000003 /* YNXWalletUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = YNXWalletUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		A20000000000000000000003 /* InboundLinkPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InboundLinkPolicy.swift; sourceTree = "<group>"; };
+		A20000000000000000000003 /* InboundLinkPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = InboundLinkPolicy.swift; path = YNXWallet/InboundLinkPolicy.swift; sourceTree = "<group>"; };
 		13B07F961A680F5B00A75B9A /* YNXWallet.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = YNXWallet.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = YNXWallet/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = YNXWallet/Info.plist; sourceTree = "<group>"; };
