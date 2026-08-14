@@ -3,7 +3,7 @@
   "auditId": "wallet-auth-public-evidence-audit-2026-08-14",
   "auditedAt": "2026-08-14T03:38:07Z",
   "integrationBaseCommit": "a008ce0e8fa2ac0322198576c320441118fbae83",
-  "matrixSha256": "4dab0e769549e853c6c5a28fc92a8a2658f47516bdee4fd16dd1dc1e7bb0d7f1",
+  "matrixSha256": "e17196bb415a808f3359815a193ead68415e91ad9a5aa0759ec348bb014bb1dd",
   "publicTestnet": {
     "rpc": {
       "url": "https://evm.ynxweb4.com",
@@ -66,7 +66,7 @@
   "computerControl": {
     "userAuthorizationReported": true,
     "ownerContinuationInProgress": true,
-    "frozenWebSource": "45e5d63c5461424a963b1f8e867f82813ba0010b",
+    "frozenWebSource": "0b3ffa8faabad2caa49b1c00db493261e2d98bca",
     "exactEvidenceCommit": "45e5d63c5461424a963b1f8e867f82813ba0010b",
     "exactEvidencePath": "apps/wallet-web/evidence/runtime/branded-popup-live-rpc-boundary-20260814.json",
     "edgeUnpackedRegistrationId": "jgijcegbgeobldllfniaejejofobcngk",

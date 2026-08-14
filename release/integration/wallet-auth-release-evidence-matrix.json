@@ -33,7 +33,17 @@
     "promotionEffect": "Source and local/CI evidence advanced only where exact remote objects and Owner terminal evidence agreed. No public, hosted, production, store, callback, reconnect, signing or transaction gate was promoted without direct evidence."
   },
   "pendingOwnerCommits": [],
-  "pendingOwnerEvidence": [],
+  "pendingOwnerEvidence": [
+    {
+      "owner": "ios-macos",
+      "workflowRunId": 31768901687,
+      "remoteFastForwardReported": false,
+      "remoteReadbackComplete": false,
+      "ciComplete": true,
+      "consumedForReleaseTruth": false,
+      "note": "macOS Universal workflow is green, but no Owner evidence SHA or exact artifact hashes were provided; no release truth is consumed."
+    }
+  ],
   "ownerSources": [
     {
       "owner": "core-auth-gateway",
@@ -47,19 +57,19 @@
     {
       "owner": "web-pwa-extensions",
       "branch": "codex/wallet-web-pwa-extensions-20260813",
-      "sourceCommit": "45e5d63c5461424a963b1f8e867f82813ba0010b",
-      "remoteCommitObserved": "45e5d63c5461424a963b1f8e867f82813ba0010b",
-      "branchHeadObserved": "45e5d63c5461424a963b1f8e867f82813ba0010b",
-      "remoteVerifiedAt": "2026-08-14T03:27:00Z",
+      "sourceCommit": "0b3ffa8faabad2caa49b1c00db493261e2d98bca",
+      "remoteCommitObserved": "0b3ffa8faabad2caa49b1c00db493261e2d98bca",
+      "branchHeadObserved": "0b3ffa8faabad2caa49b1c00db493261e2d98bca",
+      "remoteVerifiedAt": "2026-08-14T04:18:00Z",
       "verificationMode": "github-git-database-parent-tree-blob-readback"
     },
     {
       "owner": "android-api36",
       "branch": "codex/wallet-android-api36-continuation2-20260814",
-      "sourceCommit": "32f65897f4d5f1cf64366c0fab38fdfd8a6768f3",
-      "remoteCommitObserved": "32f65897f4d5f1cf64366c0fab38fdfd8a6768f3",
-      "branchHeadObserved": "32f65897f4d5f1cf64366c0fab38fdfd8a6768f3",
-      "remoteVerifiedAt": "2026-08-14T03:52:00Z",
+      "sourceCommit": "4739a60e1fa0e3d0b6862e129330f9e9ca202887",
+      "remoteCommitObserved": "4739a60e1fa0e3d0b6862e129330f9e9ca202887",
+      "branchHeadObserved": "4739a60e1fa0e3d0b6862e129330f9e9ca202887",
+      "remoteVerifiedAt": "2026-08-14T04:20:00Z",
       "verificationMode": "github-git-database-parent-tree-blob-readback"
     },
     {
@@ -187,6 +197,13 @@
       "path": "apps/wallet-web/evidence/runtime/branded-popup-live-rpc-boundary-20260814.json",
       "supports": ["browser-extension.testnet"]
     },
+    "web-edge-isolated-provider-bridge": {
+      "type": "git-object",
+      "direct": true,
+      "commit": "0b3ffa8faabad2caa49b1c00db493261e2d98bca",
+      "path": "apps/wallet-web/evidence/runtime/content-provider-bridge-20260814.json",
+      "supports": []
+    },
     "web-pwa-browser": {
       "type": "git-object",
       "direct": true,
@@ -281,6 +298,13 @@
       "type": "git-object",
       "direct": true,
       "commit": "32f65897f4d5f1cf64366c0fab38fdfd8a6768f3",
+      "path": "docs/integration/WALLET_ANDROID_API36_HANDOFF.md",
+      "supports": []
+    },
+    "android-account-rename-lifecycle-source": {
+      "type": "git-object",
+      "direct": true,
+      "commit": "4739a60e1fa0e3d0b6862e129330f9e9ca202887",
       "path": "docs/integration/WALLET_ANDROID_API36_HANDOFF.md",
       "supports": []
     },
@@ -474,9 +498,10 @@
       "ownerSource": "web-pwa-extensions",
       "artifactClass": "unsigned-unpacked-extension",
       "status": "build-only",
+      "capabilities": {"isolatedEdgeProviderInjection":true,"isolatedEdgeFixtureAccounts":true,"isolatedEdgeFixtureReconnect":true,"isolatedEdgeWrongChainRejected":true,"chromeProviderInjection":false,"liveRpcViaProvider":false,"installedLocal":false},
       "gates": {"build":true,"install":false,"coldLaunch":false,"secondLaunch":false,"testnet":true,"sign":false,"tx":false,"callback":false,"reconnect":false,"downloadHosted":false,"productionSigned":false,"storeReleased":false},
-      "evidenceBindings": {"build":["web-artifacts"],"install":["browser-install-boundary","edge-unpacked-user-gesture","web-extension-sensitive-actions-source","web-edge-unpacked-negative-runtime"],"coldLaunch":["browser-install-boundary","edge-unpacked-user-gesture","web-extension-sensitive-actions-source","web-edge-unpacked-negative-runtime"],"secondLaunch":["browser-install-boundary","edge-unpacked-user-gesture","web-extension-sensitive-actions-source","web-edge-unpacked-negative-runtime"],"testnet":["web-edge-popup-live-rpc-boundary"],"sign":["browser-install-boundary","edge-unpacked-user-gesture","web-extension-sensitive-actions-source","web-edge-unpacked-negative-runtime","web-edge-popup-live-rpc-boundary"],"tx":["browser-install-boundary","edge-unpacked-user-gesture","web-extension-sensitive-actions-source","web-edge-unpacked-negative-runtime","web-edge-popup-live-rpc-boundary"],"callback":["browser-install-boundary","edge-unpacked-user-gesture","web-extension-sensitive-actions-source","web-edge-unpacked-negative-runtime"],"reconnect":["browser-install-boundary","edge-unpacked-user-gesture","web-extension-sensitive-actions-source","web-edge-unpacked-negative-runtime","web-edge-popup-live-rpc-boundary"],"downloadHosted":["web-artifacts","edge-unpacked-user-gesture","web-extension-sensitive-actions-source","web-edge-unpacked-negative-runtime"],"productionSigned":["web-artifacts","edge-unpacked-user-gesture","web-extension-sensitive-actions-source","web-edge-unpacked-negative-runtime"],"storeReleased":["web-artifacts","edge-unpacked-user-gesture","web-extension-sensitive-actions-source","web-edge-unpacked-negative-runtime"]},
-      "notes": ["Direct ComputerControl evidence shows Edge developer-mode unpacked registration, two visible popups, exact ID and popup RPC eth_chainId=0x1917. The active DApp still had no EIP-1193 provider and connect/add/switch/sign/tx/reconnect all remained false. Unpacked registration is not installedLocal; hosting/production/store remain false. Chrome first unsigned unpacked install still requires action-time user confirmation."]
+      "evidenceBindings": {"build":["web-artifacts"],"install":["browser-install-boundary","edge-unpacked-user-gesture","web-extension-sensitive-actions-source","web-edge-unpacked-negative-runtime","web-edge-isolated-provider-bridge"],"coldLaunch":["browser-install-boundary","edge-unpacked-user-gesture","web-extension-sensitive-actions-source","web-edge-unpacked-negative-runtime","web-edge-isolated-provider-bridge"],"secondLaunch":["browser-install-boundary","edge-unpacked-user-gesture","web-extension-sensitive-actions-source","web-edge-unpacked-negative-runtime","web-edge-isolated-provider-bridge"],"testnet":["web-edge-popup-live-rpc-boundary"],"sign":["browser-install-boundary","edge-unpacked-user-gesture","web-extension-sensitive-actions-source","web-edge-unpacked-negative-runtime","web-edge-popup-live-rpc-boundary","web-edge-isolated-provider-bridge"],"tx":["browser-install-boundary","edge-unpacked-user-gesture","web-extension-sensitive-actions-source","web-edge-unpacked-negative-runtime","web-edge-popup-live-rpc-boundary","web-edge-isolated-provider-bridge"],"callback":["browser-install-boundary","edge-unpacked-user-gesture","web-extension-sensitive-actions-source","web-edge-unpacked-negative-runtime","web-edge-isolated-provider-bridge"],"reconnect":["browser-install-boundary","edge-unpacked-user-gesture","web-extension-sensitive-actions-source","web-edge-unpacked-negative-runtime","web-edge-popup-live-rpc-boundary","web-edge-isolated-provider-bridge"],"downloadHosted":["web-artifacts","edge-unpacked-user-gesture","web-extension-sensitive-actions-source","web-edge-unpacked-negative-runtime","web-edge-isolated-provider-bridge"],"productionSigned":["web-artifacts","edge-unpacked-user-gesture","web-extension-sensitive-actions-source","web-edge-unpacked-negative-runtime","web-edge-isolated-provider-bridge"],"storeReleased":["web-artifacts","edge-unpacked-user-gesture","web-extension-sensitive-actions-source","web-edge-unpacked-negative-runtime","web-edge-isolated-provider-bridge"]},
+      "notes": ["Direct ComputerControl evidence shows Edge unpacked popup RPC 0x1917 but no active-DApp provider. The newer isolated-profile runtime proves MV3 page injection, fixture accounts, disconnect/reconnect lifecycle and wrong-chain rejection only; its live provider RPC failed, Chrome injection timed out and installedLocal stayed false. Connect/add/switch/sign/tx/release gates remain false; unpacked is never hosted/production/store."]
     },
     {
       "id": "android-api36",
@@ -484,8 +509,8 @@
       "artifactClass": "disposable-qa-release-key",
       "status": "source-bound-emulator-qa",
       "gates": {"build":true,"install":true,"coldLaunch":true,"secondLaunch":true,"testnet":true,"sign":false,"tx":false,"callback":false,"reconnect":false,"downloadHosted":false,"productionSigned":false,"storeReleased":false},
-      "evidenceBindings": {"build":["android-disposable-api36","android-auth-callback-relock-source"],"install":["android-disposable-api36","android-auth-callback-relock-source"],"coldLaunch":["android-disposable-api36","android-auth-callback-relock-source"],"secondLaunch":["android-disposable-api36","android-auth-callback-relock-source"],"testnet":["android-disposable-api36","android-auth-callback-relock-source"],"sign":["android-disposable-api36","android-onboarding-qa-pending","android-auth-callback-relock-source","android-audit-serialization-source","android-account-mutation-recovery-source"],"tx":["android-disposable-api36","android-onboarding-qa-pending","android-auth-callback-relock-source","android-audit-serialization-source","android-account-mutation-recovery-source"],"callback":["android-disposable-api36","android-onboarding-qa-pending","android-auth-callback-relock-source","android-audit-serialization-source","android-account-mutation-recovery-source"],"reconnect":["android-disposable-api36","android-onboarding-qa-pending","android-auth-callback-relock-source","android-audit-serialization-source","android-account-mutation-recovery-source"],"downloadHosted":["android-disposable-api36","android-onboarding-qa-pending","android-auth-callback-relock-source"],"productionSigned":["android-disposable-api36","android-onboarding-qa-pending","android-auth-callback-relock-source"],"storeReleased":["android-disposable-api36","android-onboarding-qa-pending","android-auth-callback-relock-source"]},
-      "notes": ["Historical API 36 install and two distinct cold-launch PIDs remain direct for the disposable artifact. Current source adds strong-biometric, canonical callback/replay, lifecycle guards, audit serialization and a secret-free verified-manifest mutation journal (focused 9/9, Wallet 72/72, Hermes 2,742). No current-source device install or interaction occurred; sign, tx, callback delivery and reconnect remain false, and the disposable identity is never production/store signing."]
+      "evidenceBindings": {"build":["android-disposable-api36","android-auth-callback-relock-source"],"install":["android-disposable-api36","android-auth-callback-relock-source"],"coldLaunch":["android-disposable-api36","android-auth-callback-relock-source"],"secondLaunch":["android-disposable-api36","android-auth-callback-relock-source"],"testnet":["android-disposable-api36","android-auth-callback-relock-source"],"sign":["android-disposable-api36","android-onboarding-qa-pending","android-auth-callback-relock-source","android-audit-serialization-source","android-account-mutation-recovery-source","android-account-rename-lifecycle-source"],"tx":["android-disposable-api36","android-onboarding-qa-pending","android-auth-callback-relock-source","android-audit-serialization-source","android-account-mutation-recovery-source","android-account-rename-lifecycle-source"],"callback":["android-disposable-api36","android-onboarding-qa-pending","android-auth-callback-relock-source","android-audit-serialization-source","android-account-mutation-recovery-source","android-account-rename-lifecycle-source"],"reconnect":["android-disposable-api36","android-onboarding-qa-pending","android-auth-callback-relock-source","android-audit-serialization-source","android-account-mutation-recovery-source","android-account-rename-lifecycle-source"],"downloadHosted":["android-disposable-api36","android-onboarding-qa-pending","android-auth-callback-relock-source"],"productionSigned":["android-disposable-api36","android-onboarding-qa-pending","android-auth-callback-relock-source"],"storeReleased":["android-disposable-api36","android-onboarding-qa-pending","android-auth-callback-relock-source"]},
+      "notes": ["Historical API 36 install and two distinct cold-launch PIDs remain direct for the disposable artifact. Current source adds canonical callback/replay, lifecycle guards, audit serialization, secret-free mutation journal and exact-account/active-generation rename fail-close (Wallet 74/74, Hermes 2,742). No current-source device install or interaction occurred; sign, tx, callback delivery and reconnect remain false, and the disposable identity is never production/store signing."]
     },
     {
       "id": "ios-simulator",
