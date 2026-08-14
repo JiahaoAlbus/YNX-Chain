@@ -685,12 +685,16 @@ export type SponsorshipPolicy = Readonly<{
   version: string;
 }>;
 export type SponsorshipRequest = Readonly<{
-  schemaVersion: 1;
+  schemaVersion: 2;
   policyId: string;
   sponsorType: SponsorshipPolicy["sponsorType"];
   productClientId: string;
   sessionBinding: string;
   account: string;
+  productDeviceKey: string;
+  orderedScopes: readonly string[];
+  requestNonce: string;
+  expiresAt: string;
   userOperationDigest: string;
   antiSybilBinding: string;
   requestedCost: number;
@@ -713,10 +717,20 @@ export declare function parseSponsorshipPolicy(
 export declare function parseSponsorshipRequest(
   input: unknown,
 ): SponsorshipRequest;
+export type SponsorshipBinding = Readonly<{
+  productClientId: string;
+  sessionBinding: string;
+  account: string;
+  productDeviceKey: string;
+  orderedScopes: readonly string[];
+  antiSybilBinding: string;
+}>;
+export declare function parseSponsorshipBinding(input: unknown): SponsorshipBinding;
 export declare function evaluateSponsorship(
   operation: unknown,
   request: unknown,
   policy: unknown,
+  binding: unknown,
   at?: Date,
 ): Readonly<{
   eligible: boolean;
@@ -728,6 +742,17 @@ export declare function evaluateSponsorship(
   remainingSubjectBudget: number;
   remainingSponsorBudget: number;
 }>;
+export declare class SponsorshipAuthorizationLedger {
+  constructor(options?: { maximumConsumed?: number });
+  readonly size: number;
+  authorize(
+    operation: unknown,
+    request: unknown,
+    policy: unknown,
+    binding: unknown,
+    at?: Date,
+  ): ReturnType<typeof evaluateSponsorship>;
+}
 export type PackedUserOperation = Readonly<{
   sender: string;
   nonce: string;
