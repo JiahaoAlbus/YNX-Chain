@@ -31,7 +31,7 @@ Local acceptance is not central integration, public Testnet proof or production 
 
 | Owner delivery | Frozen source | Accepted boundary | Remaining false/pending boundary |
 | --- | --- | --- | --- |
-| Core Auth/Gateway | `bdb40572570b02b913dbfb14165d35d54a1129ba` | Bounded public Testnet auth lifecycle/device-proof signing; local negative, inventory, single-Node linearization, persistence rollback, state-path fail-close and acknowledged SIGKILL cold-restart durability | New slices are absent from deployed public source; power loss, network filesystem, pre-ack/stale-lock, multi-process/multi-region, asset tx, reconnect, native release, production/store |
+| Core Auth/Gateway | `27416474aadd8f6ab996a2b49bfa3b28af608b03` | Bounded public Testnet auth/device-proof; local linearization, persistence, state-path, acknowledged SIGKILL and explicit verified stale-lock recovery after unacknowledged crash | Latest slices absent from public source; automatic recovery, PID namespace, power loss/network filesystem, multi-process/region, asset tx, reconnect, native release, production/store |
 | Web/PWA/Extensions | `0b3ffa8faabad2caa49b1c00db493261e2d98bca` | Edge-local PWA; unpacked popup RPC; isolated Edge MV3 provider injection, fixture accounts/lifecycle and wrong-chain rejection | isolated/unpacked is not installedLocal; Chrome injection, live provider RPC, connect/add/switch/sign/tx/release gates, hosting/production/store remain false |
 | Android API 36 | `4739a60e1fa0e3d0b6862e129330f9e9ca202887` | Historical disposable-QA lifecycle plus current canonical callback/replay, audit/journal and exact-account active-generation rename fail-close tests | Current-source device install/interaction, production signing, tx, callback delivery, reconnect and hosted artifact remain false |
 | iOS/macOS | `8ccb7bf9c4bf9453ed72395d1f024de9fa75fb4d` | iOS Simulator boundary; Universal x86_64+arm64 ad-hoc package plus arm64 install/cold/second, Keychain canary and malformed callback rejection | x86_64 lifecycle, physical iOS, Testnet/authorization/recovery success, asset tx, Universal Link, Developer ID/notarization, production/store remain false |
@@ -39,4 +39,4 @@ Local acceptance is not central integration, public Testnet proof or production 
 
 Acceptance is enforced by `scripts/verify/wallet-auth-release-evidence-matrix.mjs`. GitHub Actions artifacts are temporary retention evidence, not `downloadHosted` product delivery.
 
-Core `27416474aadd8f6ab996a2b49bfa3b28af608b03`, Android `0ad16656c31b3078ca6a77141a857f3ceacb4875` and Desktop `6edf84f62a95aa465106194178ad27ac89ead7e0` are queued descendants and are not consumed in the Universal macOS slice.
+Android `0ad16656c31b3078ca6a77141a857f3ceacb4875` and Desktop `6edf84f62a95aa465106194178ad27ac89ead7e0` remain queued descendants.

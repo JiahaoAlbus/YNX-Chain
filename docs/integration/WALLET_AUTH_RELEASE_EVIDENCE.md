@@ -40,8 +40,8 @@ The verifier rejects a `true` gate unless a direct evidence record explicitly su
 
 The 2026-08-14 resumed snapshot was upgraded through GitHub Git-database readback. Every consumed checkpoint has an exact remote commit, parent, tree and evidence blob; Owner branches were fetched without touching the working tree. These source advances promoted no public, hosted, production, store, callback, reconnect, signing or transaction gate without direct evidence.
 
-The frozen checkpoints are Core `bdb40572570b02b913dbfb14165d35d54a1129ba`, Web `0b3ffa8faabad2caa49b1c00db493261e2d98bca`, Android `4739a60e1fa0e3d0b6862e129330f9e9ca202887`, iOS/macOS `8ccb7bf9c4bf9453ed72395d1f024de9fa75fb4d`, and Desktop/CLI/SDK `931b70fc0dd4e7ff01542065099aeaa0b3f25a51`.
+The frozen checkpoints are Core `27416474aadd8f6ab996a2b49bfa3b28af608b03`, Web `0b3ffa8faabad2caa49b1c00db493261e2d98bca`, Android `4739a60e1fa0e3d0b6862e129330f9e9ca202887`, iOS/macOS `8ccb7bf9c4bf9453ed72395d1f024de9fa75fb4d`, and Desktop/CLI/SDK `931b70fc0dd4e7ff01542065099aeaa0b3f25a51`.
 
-Core `27416474aadd8f6ab996a2b49bfa3b28af608b03`, Android `0ad16656c31b3078ca6a77141a857f3ceacb4875` and Desktop `6edf84f62a95aa465106194178ad27ac89ead7e0` remain queued. No local/CI lifecycle changes public, hosted, production-signing or store truth.
+Android `0ad16656c31b3078ca6a77141a857f3ceacb4875` and Desktop `6edf84f62a95aa465106194178ad27ac89ead7e0` remain queued. No local/CI lifecycle changes public, hosted, production-signing or store truth.
 
 The public audit is machine-readable at `release/integration/wallet-auth-public-evidence-audit.json` and fail-closed verified by `scripts/verify/wallet-auth-public-evidence-audit-check.mjs`. It records public RPC/health/website observations separately from current-source deployment, exact downloads, signing level and ComputerControl evidence.

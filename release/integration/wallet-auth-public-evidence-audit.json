@@ -3,7 +3,7 @@
   "auditId": "wallet-auth-public-evidence-audit-2026-08-14",
   "auditedAt": "2026-08-14T03:38:07Z",
   "integrationBaseCommit": "a008ce0e8fa2ac0322198576c320441118fbae83",
-  "matrixSha256": "1405b56a7a7ddc2d08c63658c4fdaddc36afa954e38f7056b1df83fab37d8641",
+  "matrixSha256": "19c4de563eef86f053c5a0f2728425f72d1a01bee10b810da338bd42f2737dcc",
   "publicTestnet": {
     "rpc": {
       "url": "https://evm.ynxweb4.com",
@@ -19,7 +19,7 @@
       "remoteDeployed": true,
       "responseSha256": "5e7e89da2f121d8f41440a06ec4b5779eb8337cb9c616528fb3ece148030a3f4"
     },
-    "frozenCoreSource": "bdb40572570b02b913dbfb14165d35d54a1129ba",
+    "frozenCoreSource": "27416474aadd8f6ab996a2b49bfa3b28af608b03",
     "deployedGatewaySource": "c6ac582c8d490ef980a8cadfd9172f133d1b1a49",
     "latestFrozenSourceDeployed": false,
     "latestLocalRoutesPublicVerified": false,

@@ -35,15 +35,6 @@
   "pendingOwnerCommits": [],
   "pendingOwnerEvidence": [
     {
-      "owner": "core-auth-gateway",
-      "candidateCommit": "27416474aadd8f6ab996a2b49bfa3b28af608b03",
-      "remoteFastForwardReported": true,
-      "remoteReadbackComplete": true,
-      "ciComplete": null,
-      "consumedForReleaseTruth": false,
-      "note": "Stale-lock recovery evidence is queued for the next independent atomic slice and is not consumed in this Universal macOS slice."
-    },
-    {
       "owner": "android-api36",
       "candidateCommit": "0ad16656c31b3078ca6a77141a857f3ceacb4875",
       "remoteFastForwardReported": true,
@@ -66,10 +57,10 @@
     {
       "owner": "core-auth-gateway",
       "branch": "codex/wallet-core-auth-gateway-continuation-20260814",
-      "sourceCommit": "bdb40572570b02b913dbfb14165d35d54a1129ba",
-      "remoteCommitObserved": "bdb40572570b02b913dbfb14165d35d54a1129ba",
-      "branchHeadObserved": "bdb40572570b02b913dbfb14165d35d54a1129ba",
-      "remoteVerifiedAt": "2026-08-14T04:10:00Z",
+      "sourceCommit": "27416474aadd8f6ab996a2b49bfa3b28af608b03",
+      "remoteCommitObserved": "27416474aadd8f6ab996a2b49bfa3b28af608b03",
+      "branchHeadObserved": "27416474aadd8f6ab996a2b49bfa3b28af608b03",
+      "remoteVerifiedAt": "2026-08-14T04:32:00Z",
       "verificationMode": "github-git-database-parent-tree-blob-readback"
     },
     {
@@ -171,6 +162,13 @@
       "direct": true,
       "commit": "bdb40572570b02b913dbfb14165d35d54a1129ba",
       "path": "apps/wallet/proof/gateway-node-crash-durability-local-2026-08-14.json",
+      "supports": []
+    },
+    "gateway-node-stale-lock-recovery": {
+      "type": "git-object",
+      "direct": true,
+      "commit": "27416474aadd8f6ab996a2b49bfa3b28af608b03",
+      "path": "apps/wallet/proof/gateway-node-stale-lock-recovery-local-2026-08-14.json",
       "supports": []
     },
     "web-artifacts": {
@@ -506,8 +504,8 @@
       "artifactClass": "public-testnet-gateway",
       "status": "accepted-bounded-testnet",
       "gates": {"build":true,"install":false,"coldLaunch":false,"secondLaunch":false,"testnet":true,"sign":true,"tx":false,"callback":false,"reconnect":false,"downloadHosted":false,"productionSigned":false,"storeReleased":false},
-      "evidenceBindings": {"build":["gateway-release"],"install":[],"coldLaunch":[],"secondLaunch":[],"testnet":["gateway-public-lifecycle"],"sign":["gateway-public-lifecycle"],"tx":["gateway-public-lifecycle"],"callback":["gateway-completion-negative-matrix","gateway-session-http-negative-matrix","gateway-session-linearization-race","gateway-persistence-atomic-rollback","gateway-registry-state-binding","gateway-state-file-security","gateway-node-crash-durability"],"reconnect":["gateway-public-lifecycle","gateway-session-http-negative-matrix","gateway-session-linearization-race","gateway-persistence-atomic-rollback","gateway-registry-state-binding","gateway-state-file-security","gateway-node-crash-durability"],"downloadHosted":["gateway-release"],"productionSigned":["gateway-release"],"storeReleased":["gateway-release"]},
-      "notes": ["Public authorization completion, introspection, replay rejection and revoke are direct. Local matrices include 165/165 acknowledged completion/revoke then SIGKILL cold-restart durability, state-path fail-close, Registry/state v2, single-Node session linearization and persistence rollback. Power loss, network filesystems, pre-ack crash, stale-lock recovery, malicious filesystem owner, multi-process/multi-region, central integration and current staging/public deployment remain false. No asset transaction, reconnect, native app, production signing or store release is claimed."]
+      "evidenceBindings": {"build":["gateway-release"],"install":[],"coldLaunch":[],"secondLaunch":[],"testnet":["gateway-public-lifecycle"],"sign":["gateway-public-lifecycle"],"tx":["gateway-public-lifecycle"],"callback":["gateway-completion-negative-matrix","gateway-session-http-negative-matrix","gateway-session-linearization-race","gateway-persistence-atomic-rollback","gateway-registry-state-binding","gateway-state-file-security","gateway-node-crash-durability","gateway-node-stale-lock-recovery"],"reconnect":["gateway-public-lifecycle","gateway-session-http-negative-matrix","gateway-session-linearization-race","gateway-persistence-atomic-rollback","gateway-registry-state-binding","gateway-state-file-security","gateway-node-crash-durability","gateway-node-stale-lock-recovery"],"downloadHosted":["gateway-release"],"productionSigned":["gateway-release"],"storeReleased":["gateway-release"]},
+      "notes": ["Public authorization completion, introspection, replay rejection and revoke are direct. Local matrices include 167/167 acknowledged SIGKILL durability and explicit operator stale-lock recovery after an unacknowledged crash, with exact digest/registry checks and no mutation on rejected recovery. Automatic recovery, PID namespaces, power loss, network filesystems, multi-process/multi-region, central integration and current staging/public deployment remain false. No asset transaction, reconnect, native app, production signing or store release is claimed."]
     },
     {
       "id": "web-pwa",
