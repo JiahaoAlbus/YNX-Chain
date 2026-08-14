@@ -166,3 +166,9 @@ Commit `6a50d2d06ca425cca5cc83c9ae8b92a0b09f4d0b` makes the persistent audit the
 Audit canary tests confirm that account-secret and signed-response values supplied as widened inputs are discarded, and that nonce, product device key, callback and purpose are not persisted. Each audit record retains only its fixed public binding schema and hash-chain fields.
 
 Verification passed the focused audit/replay 9/9 suite, Wallet 77/77, typecheck, product check, Social harness contract check, release-content check, full-goal coverage and `git diff --check`. A mode-0700 current-source Android Hermes export passed with 2,742 modules and all temporary links were removed. No device command or interaction was performed, so exact-source device and release booleans remain false.
+
+## Callback audit account-binding checkpoint
+
+Commit `0ce5db709e935c67741e2322c840108464eb43f0` binds `approval-returned` to the exact native account recorded by its persisted approval intent. A callback completion for any other account fails before the audit write and leaves the hash chain unchanged. Reconstructing `AuthorizationAuditStore` from SecureStore does not weaken decision finality: a later opposite approve/reject decision remains rejected from persisted state.
+
+Verification passed the focused audit 7/7 suite, Wallet 78/78, typecheck, product check, Social harness contract check, release-content check, full-goal coverage and `git diff --check`. A mode-0700 current-source Android Hermes export passed with 2,742 modules and all temporary links were removed. No device command or interaction was performed, so exact-source device and release booleans remain false.
