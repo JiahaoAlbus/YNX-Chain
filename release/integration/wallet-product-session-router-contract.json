@@ -1,0 +1,190 @@
+{
+  "schemaVersion": 1,
+  "owner": "Wallet/Auth and App Gateway",
+  "branch": "codex/wallet-session-router-recovery",
+  "sourceBaseline": "2a78ace0a647b73dd2961fae3361189116453a7d",
+  "deliveryCommitResolution": "git rev-parse HEAD after merge",
+  "protocol": {
+    "name": "YNX Product Session",
+    "version": "2",
+    "registrySchemaVersion": 2,
+    "gatewaySchemaVersion": 2,
+    "chainId": "ynx_6423-1",
+    "registry": "packages/wallet-auth/product-session-registry.json",
+    "requiredBindings": [
+      "chainId",
+      "productId",
+      "clientId",
+      "platform",
+      "applicationId",
+      "bundleId",
+      "packageId",
+      "origin",
+      "callback",
+      "account",
+      "deviceId",
+      "deviceKey",
+      "nonce",
+      "state",
+      "scopes",
+      "issuedAt",
+      "expiresAt"
+    ],
+    "walletApprovalSignature": "secp256k1-sha256 compact low-S",
+    "productDeviceSignature": "P-256 SHA-256 DER, created only inside the product client; the device secret never crosses the Gateway adapter boundary",
+    "challengePolicy": "Gateway-issued, one-time, maximum 60 seconds",
+    "sessionPolicy": "short-lived, sender-constrained, introspected online, fail closed",
+    "networkRecoveryPolicy": "Gateway network failures retain protected session/callback state as non-authoritative; stable request IDs and restart-safe Gateway idempotency recover lost challenge/completion responses before starting a new approval",
+    "secureStoragePolicy": ["hardware-backed", "os-protected"],
+    "guestLimitations": ["not-signed-in", "no-wallet-balance", "no-transactions", "no-chain-authority"]
+  },
+  "gatewayRoutes": [
+    {"method": "POST", "path": "/v2/product-sessions/challenge", "proof": "Wallet approval plus registry-bound request"},
+    {"method": "POST", "path": "/v2/product-sessions/complete", "proof": "Gateway-issued challenge signed by exact product device"},
+    {"method": "POST", "path": "/v2/product-sessions/introspect", "proof": "fresh Product Session HTTP proof v2"},
+    {"method": "POST", "path": "/v2/product-sessions/revoke", "proof": "fresh Product Session HTTP proof v2"},
+    {"method": "POST", "path": "/v2/product-sessions/devices/revoke", "proof": "fresh Product Session HTTP proof v2"}
+  ],
+  "gatewayTransport": {
+    "adapter": "ProductSessionGatewayFetchAdapter",
+    "handler": "ProductSessionGatewayHttpHandler",
+    "endpointPolicy": "canonical HTTPS origin only",
+    "proofHeader": "x-ynx-product-session-proof-v2",
+    "fallback": "none",
+    "idempotentRoutes": ["/v2/product-sessions/challenge", "/v2/product-sessions/complete"]
+  },
+  "publicGatewayMount": {
+    "origin": "https://rest.ynxweb4.com",
+    "handler": "ProductSessionGatewayHttpHandler",
+    "requiredRoutePrefix": "/v2/product-sessions/",
+    "routePrecedence": "mount all exact Product Session v2 routes before the Chain JSON-RPC catch-all",
+    "currentObservedState": "misrouted-to-chain-json-rpc-catch-all",
+    "currentEvidence": "packages/wallet-auth/evidence/product-session-v2-public-route-probe-20260814.json",
+    "stateRequirements": [
+      "persist the exact schemaVersion 2 snapshot atomically before returning a successful mutating response",
+      "restore sessions, revocations, consumed proofs, idempotency responses and audit events after process restart",
+      "reject malformed, tampered or unsupported state instead of starting with an empty authority",
+      "run under a non-root service account with a mode-0700 state directory and mode-0600 state file"
+    ],
+    "releaseRequirements": [
+      "exact full source commit and canonical build time",
+      "registry file and parsed-registry SHA-256",
+      "candidate preflight against a copied production snapshot",
+      "atomic switch with a restorable previous service, configuration and state snapshot",
+      "post-switch public health, version and full Product Session lifecycle evidence"
+    ],
+    "acceptanceLifecycle": [
+      "challenge",
+      "identical request-id response-loss retry",
+      "Wallet approval and product-device completion",
+      "introspection",
+      "proof replay rejection",
+      "session revoke",
+      "post-revoke introspection rejection",
+      "process restart",
+      "network loss and explicit Retry"
+    ]
+  },
+  "providerDiscovery": {
+    "implementation": "discoverWalletProviders",
+    "packageSubpath": "@ynx-chain/wallet-auth/wallet-provider-discovery",
+    "protocols": ["EIP-6963", "legacy injected EIP-1193"],
+    "ynxRdnsAllowlist": ["com.ynx.wallet", "com.ynx.wallet.companion"],
+    "ynxPriority": true,
+    "ambiguousSameKind": "fail closed without auto-selection",
+    "duplicateAnnouncementUuid": "reject conflicted UUID",
+    "authority": "unverified-injected-candidate",
+    "availabilityAdapter": "walletAvailabilityFromDiscovery",
+    "identityAuthority": false
+  },
+  "connectionCoordinator": {
+    "implementation": "WalletConnectionCoordinator",
+    "packageSubpath": "@ynx-chain/wallet-auth/wallet-connection-coordinator",
+    "composes": ["RecoverableProductSessionClient", "discoverWalletProviders", "walletConnectionChoices", "MetaMaskEvmConnectionAdapter"],
+    "nativeAndInjectedAvailabilityMerged": true,
+    "ynxPriority": true,
+    "secondLaunchControlledOpen": "at most one automatic registered deep-link open before explicit Retry",
+    "platformOpenTimeout": "10-30000 milliseconds, fail closed",
+    "openRequestId": "req_ps_open_<Product Session nonce>",
+    "platformErrors": ["WALLET_NOT_INSTALLED", "SCHEME_NOT_REGISTERED", "NETWORK_UNAVAILABLE", "USER_REJECTED", "WALLET_OPEN_TIMEOUT"],
+    "fallback": "none"
+  },
+  "metaMaskEvmConnection": {
+    "adapter": "MetaMaskEvmConnectionAdapter",
+    "packageSubpath": "@ynx-chain/wallet-auth/metamask-evm",
+    "eligibleProducts": "registry evmCompatible=true only",
+    "provider": "explicit MetaMask EIP-1193 provider",
+    "chainId": 6423,
+    "chainQuantity": "0x1917",
+    "methods": ["eth_chainId", "wallet_switchEthereumChain", "wallet_addEthereumChain", "eth_requestAccounts"],
+    "chainRegistration": {
+      "chainName": "YNX Testnet",
+      "nativeCurrency": {"name": "YNX Testnet", "symbol": "YNXT", "decimals": 18},
+      "rpcUrls": ["https://evm.ynxweb4.com"],
+      "blockExplorerUrls": ["https://explorer.ynxweb4.com"],
+      "callerOverride": false
+    },
+    "authority": "eip-1193-provider-only",
+    "ynxProductSession": false,
+    "fallback": "none",
+    "limitations": ["evm-provider-only", "no-ynx-product-session", "no-wallet-ai-gateway-session", "no-native-ynx-account-authority"]
+  },
+  "actionableRouterStates": [
+    "wallet-not-installed",
+    "scheme-not-registered",
+    "session-expired",
+    "callback-mismatch",
+    "user-rejected",
+    "network-unavailable"
+  ],
+  "forbiddenFallbacks": ["local session", "canned session", "fake Wallet answer", "fake AI Gateway answer", "javascript URL", "file URL", "http downgrade", "open redirect", "callback injection", "wildcard scope"],
+  "compatibility": {
+    "registryV1": "Explicit migrateProductSessionRegistryV1 upgrade only; direct v1 parsing is rejected",
+    "accepted": "Only exact legacy requests and callbacks declared for the same product in the router registry",
+    "unknownLegacyScheme": "UNKNOWN_LEGACY_SCHEME",
+    "unknownLegacyRequest": "LEGACY_BINDING_MISMATCH"
+  },
+  "tests": [
+    "packages/wallet-auth/test/metamask-evm-adapter.test.mjs",
+    "packages/wallet-auth/test/wallet-provider-discovery.test.mjs",
+    "packages/wallet-auth/test/wallet-connection-coordinator.test.mjs",
+    "packages/wallet-auth/test/product-session-gateway.test.mjs",
+    "packages/wallet-auth/test/product-session-gateway-client.test.mjs",
+    "packages/wallet-auth/test/product-session-gateway-http.test.mjs",
+    "packages/wallet-auth/test/product-session-migration.test.mjs",
+    "packages/wallet-auth/test/product-session-products.test.mjs",
+    "packages/wallet-auth/test/product-session-recovery.test.mjs",
+    "packages/wallet-auth/test/product-session-router.test.mjs",
+    "packages/wallet-auth/test/product-session-v2.test.mjs"
+  ],
+  "releaseStatus": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "pushedRemote": true,
+    "installedLocal": false,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "deployedPublicMeaning": "Product Session v2 App Gateway routes and migrated product runtimes",
+    "publicAppGatewayReachable": true,
+    "legacyWalletSessionRoutesReachable": true,
+    "productSessionV2RoutesDeployedPublic": false,
+    "sourcePackageDeployedPublic": true,
+    "officialWebsiteCommit": "11f53023a419701e240f7e0980440d848a9f5af2",
+    "officialWebsiteDocs": "https://www.ynxweb4.com/docs",
+    "sourcePackageUrl": "https://www.ynxweb4.com/releases/wallet-session-router/d8863f6b2875/ynx-chain-wallet-auth-1.1.0.tgz",
+    "sourcePackageSha256": "7c7f36c364c89d5c51808cd4098d4fcbde147eda698960c80da8301f5f58276b",
+    "downloadHosted": true,
+    "downloadHostedScope": "Android Testnet Preview artifact only",
+    "downloadEvidence": {
+      "center": "https://www.ynxweb4.com/dapp/download",
+      "releaseRegistry": "https://www.ynxweb4.com/releases/ecosystem-release-registry.json",
+      "androidTestnetArtifact": "https://www.ynxweb4.com/downloads/ynx-wallet-1.0.1-testnet-preview-dc31c9a8-test-signed.apk",
+      "bytes": 78392878,
+      "sha256": "fd924ef853cf17d42ca2d36504528ef879c73fcb4b01ea72b1bfe7ae85085fef",
+      "signingClass": "persistent-testnet-release-key"
+    },
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

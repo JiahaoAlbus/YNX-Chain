@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-08-14T05:36:53Z",
+  "branch": "codex/wallet-session-router-recovery",
+  "origin": "http://127.0.0.1:4174",
+  "harness": "evidence/metamask-eip1193-live.html",
+  "sharedImplementation": "src/metamask-evm-adapter.js",
+  "browser": "Google Chrome 151.0.7922.138",
+  "wallet": {
+    "extension": "MetaMask",
+    "extensionId": "nkbihfbeogaeaoehlefnkodbefgpgknn",
+    "version": "13.42.0",
+    "providerInjected": true,
+    "unlockedBeforeHarness": true
+  },
+  "observed": {
+    "adapterLoadedAfterImportMap": true,
+    "buttonEnabled": true,
+    "connectionRequestTriggered": true,
+    "providerDiscoveryRevisionExercised": false,
+    "approvalResultObserved": false,
+    "requestId": null,
+    "chainId": null,
+    "chainQuantity": null,
+    "maskedAddress": null,
+    "ynxProductSession": false
+  },
+  "result": "unverified-after-wallet-request",
+  "revisionBoundary": "The observed request used the shared MetaMask adapter before the harness was revised to select its provider through the central discovery module. The revised discovery path requires a new visible installed-extension run.",
+  "blocker": "Computer Use timed out and its native pipe closed while the MetaMask approval UI was active; no approval, rejection, account, or chain result was observable.",
+  "walletCompanionExternalObservation": {
+    "url": "http://127.0.0.1:4173",
+    "providerInjected": true,
+    "result": "RPC_UNAVAILABLE",
+    "cause": "Browser CORS preflight for https://evm.ynxweb4.com did not return Access-Control-Allow-Origin, so account approval was not reached.",
+    "withinThisBranchModificationScope": false
+  },
+  "truthBoundary": {
+    "authority": "eip-1193-provider-only",
+    "productSessionValidated": false,
+    "balanceRead": false,
+    "messageSigned": false,
+    "transactionSubmitted": false,
+    "localOrCannedResultUsed": false,
+    "screenshotSaved": false
+  }
+}

@@ -1,6 +1,6 @@
 {
   "name": "@ynx-chain/wallet-auth",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "packageManager": "npm@11.5.1",
   "license": "UNLICENSED",
   "description": "Strict Sign in with YNX Wallet request, approval, and product-session binding protocol",
@@ -25,10 +25,25 @@
       "types": "./src/sponsorship-ledger-node.d.ts",
       "import": "./src/sponsorship-ledger-node.js",
       "default": "./src/sponsorship-ledger-node.js"
+    },
+    "./wallet-provider-discovery": {
+      "types": "./src/index.d.ts",
+      "import": "./src/wallet-provider-discovery.js",
+      "default": "./src/wallet-provider-discovery.js"
+    },
+    "./metamask-evm": {
+      "types": "./src/index.d.ts",
+      "import": "./src/metamask-evm-adapter.js",
+      "default": "./src/metamask-evm-adapter.js"
+    },
+    "./wallet-connection-coordinator": {
+      "types": "./src/index.d.ts",
+      "import": "./src/wallet-connection-coordinator.js",
+      "default": "./src/wallet-connection-coordinator.js"
     }
   },
   "types": "./src/index.d.ts",
-  "files": ["src", "scripts", "testdata", "integration", "central-registry.json", "registry-conflict-evidence.json", "CENTRAL_INTEGRATION.md"],
+  "files": ["src", "scripts", "testdata", "integration", "central-registry.json", "product-session-registry.json", "registry-conflict-evidence.json", "CENTRAL_INTEGRATION.md"],
   "bin": {
     "ynx-wallet-gatewayd": "scripts/ynx-wallet-gatewayd.mjs",
     "ynx-wallet-gateway-backup": "scripts/ynx-wallet-gateway-backup.mjs",
@@ -47,6 +62,7 @@
     "monitor:testnet-deployment": "node scripts/monitor-testnet-deployment.mjs",
     "integrity:testnet-deployment": "node scripts/deployment-artifact-integrity.mjs",
     "promote:public-erc4337-metadata": "node scripts/promote-public-erc4337-metadata.mjs",
+    "proof:product-session": "node test/generate-product-session-visible-proof.mjs",
     "vector:strategy": "node scripts/generate-strategy-mandate-vector.mjs"
   },
   "dependencies": {

@@ -1,0 +1,9 @@
+{"sequence":1,"requestId":"req_visible_challenge_001","path":"/v2/product-sessions/challenge","outcome":"ok","code":null,"subject":"dCJhfSRjLODxzOzSwNCB6ra_upmM5DyK0ktKr5NZxaY","at":"2026-08-14T01:00:00.000Z"}
+{"sequence":2,"requestId":"req_visible_challenge_001","path":"/v2/product-sessions/challenge","outcome":"idempotent","code":null,"subject":"dCJhfSRjLODxzOzSwNCB6ra_upmM5DyK0ktKr5NZxaY","at":"2026-08-14T01:00:00.000Z"}
+{"sequence":3,"requestId":"req_visible_complete_001","path":"/v2/product-sessions/complete","outcome":"ok","code":null,"subject":"025f475aa68f9c60b1cce1ee6091daae52ff92d2fd234eb5d89ce5a3f583a5b8","at":"2026-08-14T01:00:00.000Z"}
+{"sequence":4,"requestId":"req_visible_complete_001","path":"/v2/product-sessions/complete","outcome":"idempotent","code":null,"subject":"025f475aa68f9c60b1cce1ee6091daae52ff92d2fd234eb5d89ce5a3f583a5b8","at":"2026-08-14T01:00:00.000Z"}
+{"sequence":5,"requestId":"req_visible_introspect_001","path":"/v2/product-sessions/introspect","outcome":"ok","code":null,"subject":"025f475aa68f9c60b1cce1ee6091daae52ff92d2fd234eb5d89ce5a3f583a5b8","at":"2026-08-14T01:00:00.000Z"}
+{"sequence":6,"requestId":"req_visible_restart_001","path":"/v2/product-sessions/introspect","outcome":"ok","code":null,"subject":"025f475aa68f9c60b1cce1ee6091daae52ff92d2fd234eb5d89ce5a3f583a5b8","at":"2026-08-14T01:00:00.000Z"}
+{"sequence":7,"requestId":"req_visible_offline_001","path":"/v2/product-sessions/introspect","outcome":"rejected","code":"NETWORK_UNAVAILABLE","subject":"none","at":"2026-08-14T01:00:00.000Z"}
+{"sequence":8,"requestId":"req_visible_revoke_001","path":"/v2/product-sessions/revoke","outcome":"ok","code":null,"subject":"025f475aa68f9c60b1cce1ee6091daae52ff92d2fd234eb5d89ce5a3f583a5b8","at":"2026-08-14T01:00:00.000Z"}
+{"sequence":9,"requestId":"req_visible_revoked_001","path":"/v2/product-sessions/introspect","outcome":"rejected","code":"SESSION_REVOKED","subject":"none","at":"2026-08-14T01:00:00.000Z"}
