@@ -56,6 +56,13 @@ SHA-256 and byte sizes are recorded in `artifact-manifest.json`. The latest Andr
 
 ## iOS Simulator evidence
 
+## Android API 36 source-bound disposable QA evidence
+
+- proof/wallet-android-api36-disposable-qa-2026-08-14.json binds source commit 5f35c06d to a 30,659,851-byte arm64 Release APK with SHA-256 6a81b380398ce21fc7d62fb8f6ed8f6f0d904b63fbc473e07fb77b785e1c4fed, API 24 minimum / API 36 target, v2 signing and the explicitly non-production disposable-qa-release-key class.
+- On YNX_WALLET_101_QA / Android 16 API 36, a fresh install succeeded. Two explicit cold launches produced distinct PIDs 4589 and 4685, both reached top-resumed MainActivity, both emitted React Running main, and neither PID log contained a fatal/AndroidRuntime crash.
+- WindowManager reported SECURE; the source-bound screencap was fully black and the independent accessibility tree exposed the actual Wallet onboarding plus YNX TESTNET · ynx_6423-1. Public Testnet returned native chain ID 6423 and EVM eth_chainId=0x1917.
+- The strict raw-receipt verifier passed. installedLocal=true applies only to this disposable QA artifact; production signing, store release, public deployment and hosted download remain false.
+
 GitHub Actions run [29646381701](https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/29646381701) executed `.github/workflows/wallet-ios.yml` on macOS 15 with Xcode 26.3. It installed dependencies and pods, passed the SDK and Wallet checks, built the unsigned Release `YNXWallet.app`, booted an available iPhone Simulator from shutdown, installed the app, cold-launched `com.ynxweb4.wallet`, resolved `ynxwallet://authorize?request=invalid`, captured the fail-closed rejection screen and uploaded the app plus command evidence. The exact unsigned Simulator bundle is hosted as an engineering-only release asset; this does not claim production signing, an archive, device installation or App Store release.
 
 ## Hosted engineering artifacts

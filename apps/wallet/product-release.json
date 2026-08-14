@@ -93,6 +93,27 @@
     "productionSigned": false,
     "storeReleased": false
   },
+  "currentAndroidDisposableQa": {
+    "sourceCommit": "5f35c06d4ba1cc79c5112e592d185e040fbeae7e",
+    "bytes": 30659851,
+    "sha256": "6a81b380398ce21fc7d62fb8f6ed8f6f0d904b63fbc473e07fb77b785e1c4fed",
+    "minimumOS": "API 24",
+    "compileSdk": 36,
+    "targetSdk": 36,
+    "abi": "arm64-v8a",
+    "signingClass": "disposable-qa-release-key",
+    "certificateSha256": "6b21e3108b592c6bc23165103791250fda54f60653e1a61bd3890414f7fbfbcf",
+    "installedLocal": true,
+    "firstColdLaunchVerified": true,
+    "secondColdLaunchVerified": true,
+    "screenshotPrivacyVerified": true,
+    "chainIdentityVerified": true,
+    "downloadHosted": false,
+    "deployedPublic": false,
+    "productionSigned": false,
+    "storeReleased": false,
+    "evidence": "proof/wallet-android-api36-disposable-qa-2026-08-14.json"
+  },
   "sha256": {
     "androidReleaseApk": "3d7dd0b349721f2364a2ec0519269bee2933c8b718ba26fc68e7e3354ae15256",
     "androidHermes": "d3fb4d403eb46d54adbf5e8811ff36abeb0146b5a54c6b17ac6e246628bf7349",

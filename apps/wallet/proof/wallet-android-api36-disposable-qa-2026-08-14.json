@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "evidenceType": "wallet-android-api36-disposable-qa",
+  "productId": "wallet",
+  "branch": "codex/wallet-android-api36-continuation-20260814",
+  "artifactSourceCommit": "5f35c06d4ba1cc79c5112e592d185e040fbeae7e",
+  "evidenceVerifierCommit": "c87ba879ce8708c72fafc09c347b0d18f2929aaa",
+  "artifact": {
+    "package": "com.ynxweb4.wallet",
+    "versionName": "1.0.1",
+    "versionCode": 2,
+    "bytes": 30659851,
+    "sha256": "6a81b380398ce21fc7d62fb8f6ed8f6f0d904b63fbc473e07fb77b785e1c4fed",
+    "minimumOS": "Android API 24",
+    "compileSdk": 36,
+    "targetSdk": 36,
+    "abi": "arm64-v8a",
+    "signingClass": "disposable-qa-release-key",
+    "certificateSha256": "6b21e3108b592c6bc23165103791250fda54f60653e1a61bd3890414f7fbfbcf",
+    "apkSignatureSchemeV2": true,
+    "keyValidityDays": 30
+  },
+  "environment": {"avd":"YNX_WALLET_101_QA","serial":"emulator-5578","apiLevel":36,"androidRelease":16,"abi":"arm64-v8a"},
+  "verification": {
+    "receiptVerified": true,
+    "freshInstall": true,
+    "firstColdLaunch": {"pid":4589,"topResumedActivity":"com.ynxweb4.wallet/.MainActivity","reactMain":true},
+    "secondColdLaunch": {"pid":4685,"topResumedActivity":"com.ynxweb4.wallet/.MainActivity","reactMain":true},
+    "fatalExceptionCount": 0,
+    "androidRuntimeCrashCount": 0,
+    "flagSecureObserved": true,
+    "applicationRegionBlack": true,
+    "systemBarsVisible": false,
+    "secureScreenshot": {"bytes":15733,"sha256":"2ad1f80253fe85d8758d65b8bcce08f3cf1c7311b9fd99e6d8a240378361274b"},
+    "walletUiNativeChainId": "ynx_6423-1",
+    "publicNativeChainId": 6423,
+    "publicEvmChainId": "0x1917"
+  },
+  "releaseStates": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": true,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "limitations": [
+    "The 30-day disposable QA identity is only for source-bound emulator verification and is not a persistent Testnet, production, Play or store signing identity.",
+    "The secure screencap was fully black, including system bars; WindowManager independently reported the SECURE flag and the accessibility tree independently exposed the real Wallet UI.",
+    "No account was created or imported and no balance, signature, transfer, callback, biometric, RTL, Dark or Large Text flow is claimed by this slice.",
+    "The APK and raw receipts remain local engineering evidence and are not hosted or publicly deployed."
+  ],
+  "rawEvidenceRoot": "/private/tmp/ynx-wallet-api36-qa-evidence-5f35c06d",
+  "verifiedAt": "2026-08-14T01:18:00Z",
+  "secretMaterialRecorded": false
+}

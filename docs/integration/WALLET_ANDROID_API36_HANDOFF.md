@@ -49,6 +49,14 @@ The Package Manager boundary was committed locally as `ae14760c3b99bf9cc03a673a0
 
 ## Disposable source-bound API 36 continuation
 
+### Verified disposable QA install — 2026-08-14
+
+The strict receipt verifier passed for source commit 5f35c06d4ba1cc79c5112e592d185e040fbeae7e. The arm64 APK is 30,659,851 bytes with SHA-256 6a81b380398ce21fc7d62fb8f6ed8f6f0d904b63fbc473e07fb77b785e1c4fed, minimum API 24, compile/target API 36, v2 signature, certificate SHA-256 6b21e3108b592c6bc23165103791250fda54f60653e1a61bd3890414f7fbfbcf and signing class disposable-qa-release-key.
+
+Fresh install on YNX_WALLET_101_QA / Android 16 API 36 succeeded. Explicit first and second cold launches produced PIDs 4589 and 4685; both were top-resumed com.ynxweb4.wallet/.MainActivity, both PID logs contained React Running main, and neither contained a fatal/AndroidRuntime crash. WindowManager independently reported SECURE. The screencap was fully black including system bars, while the accessibility tree independently exposed the real onboarding and YNX TESTNET · ynx_6423-1. The public endpoint simultaneously returned native chain ID 6423 and EVM eth_chainId=0x1917.
+
+This makes installedLocal=true only for the source-bound disposable QA artifact. It does not prove a persistent signing identity, production signing, store release, hosted download, public native-app deployment, user/account recovery, transaction, callback, biometric, RTL, Dark or Large Text flows; each remains false until separately exercised.
+
 `apps/wallet/scripts/build-disposable-android-qa-release.sh` builds only the independent Wallet application from a clean commit. It creates a 30-day disposable PKCS12 identity in a mode-0700 `/private/tmp` custody directory, never prints passwords, passes credentials to the existing fail-closed Release signing block only through process environment, verifies APK Signature Scheme v2 plus exact package/version/API identity, removes custody material and emits an external APK plus secret-free manifest. It does not alter the persistent Testnet signing line and can never claim production/store signing.
 
 The system QA owner must install the emitted APK on a fresh API 36 target and capture raw install, first/second cold-launch PID/activity/window/log, `FLAG_SECURE` screenshot and `ynx_6423-1` / decimal 6423 / `0x1917` identity evidence. `apps/wallet/scripts/verify-android-api36-qa-receipt.mjs` requires absolute paths and validates SHA-256/Bytes for the APK and every raw file. Until that verifier passes, `installedLocal`, source-bound cold launches and device privacy remain false.
