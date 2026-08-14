@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { fork } from "node:child_process";
-import { mkdtempSync, readFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -11,13 +11,14 @@ import {
   centralProtocolEntry,
   createGatewayChallenge,
   createProductSessionProof,
+  gatewayStateDigest,
   httpBodyDigest,
   parseAuthorizationRequest,
   signAuthorization,
   signGatewayChallenge,
   strategyMandateDigest,
 } from "../src/index.js";
-import { CanonicalWalletGatewayNodeHost, encodeGatewayProofHeader } from "../src/gateway-node-host.js";
+import { CanonicalWalletGatewayNodeHost, encodeGatewayProofHeader, inspectGatewayStateLock, recoverGatewayStateLock } from "../src/gateway-node-host.js";
 import { ACCOUNT_SECRET, NOW, PRODUCT_DEVICE_KEY, PRODUCT_DEVICE_SECRET, request } from "./fixtures.mjs";
 
 const APPROVAL_REVOKE = "/v1/wallet/approvals/revoke";
@@ -111,7 +112,26 @@ async function listenProcess(statePath) {
       child.once("exit", code => code === 0 ? resolve() : reject(new Error(`Gateway child close failed (${code}): ${stderr}`)));
       child.send("close");
     }),
+    kill: () => new Promise((resolve, reject) => {
+      child.once("exit", (_code, signal) => signal === "SIGKILL" ? resolve() : reject(new Error(`Gateway child did not terminate by SIGKILL: ${stderr}`)));
+      child.kill("SIGKILL");
+    }),
   };
+}
+
+async function waitForLock(path) {
+  const deadline = Date.now() + 2_000;
+  while (!existsSync(path)) {
+    if (Date.now() >= deadline) throw new Error("Gateway owner lock was not observed");
+    await new Promise(resolve => setTimeout(resolve, 1));
+  }
+}
+
+function enlargeValidState(statePath) {
+  const envelope = JSON.parse(readFileSync(statePath, "utf8"));
+  envelope.snapshot.consumedProductProofs = Array.from({ length: 19_999 }, (_, index) => index.toString(16).padStart(64, "0"));
+  envelope.stateDigest = gatewayStateDigest(envelope.snapshot);
+  writeFileSync(statePath, canonicalJSON(envelope), { mode: 0o600 });
 }
 
 async function post(base, path, body, header = null) {
@@ -215,4 +235,53 @@ test("independent-process Strategy Action and Kill Switch linearize to a durable
   } finally { await server.close(); }
   assert.equal(restarted.snapshot().consumedProductProofs.length, proofsBefore);
   assert.deepEqual(new CanonicalWalletGatewayNodeHost(registry, { statePath, now: () => NOW }).snapshot(), restarted.snapshot());
+});
+
+test("pre-ack SIGKILL during Kill Switch recovers to exactly one durable terminal winner", async () => {
+  const directory = mkdtempSync(join(tmpdir(), "ynx-wallet-kill-crash-"));
+  const statePath = join(directory, "state.json");
+  const lockPath = `${statePath}.lock`;
+  const registry = approvedRegistry();
+  const initializer = new CanonicalWalletGatewayNodeHost(registry, { statePath, now: () => NOW });
+  const initialServer = await listen(initializer);
+  let session;
+  const activatePath = "/v1/wallet/mandates/activate";
+  try {
+    assert.equal((await post(initialServer.base, "/v1/wallet/sessions/complete", canonicalJSON(quantCompletion(registry)))).status, 200);
+    session = initializer.snapshot().sessionStore.sessions.find(item => item.productClientId === "ynx-quant-v1");
+    const value = mandate(session);
+    const body = canonicalJSON({ mandate: value });
+    assert.equal((await post(initialServer.base, activatePath, body, proof(session, activatePath, "kill_crash_activate_abcdefghijkl", body))).status, 200);
+  } finally { await initialServer.close(); }
+  enlargeValidState(statePath);
+
+  const value = mandate(session);
+  const killPath = "/v1/wallet/mandates/kill";
+  const killBody = canonicalJSON({ mandateId: value.mandateId });
+  const killProof = proof(session, killPath, "kill_crash_terminal_abcdefghijkl", killBody);
+  const child = await listenProcess(statePath);
+  let settled = false;
+  const pending = post(child.base, killPath, killBody, killProof)
+    .then(result => ({ error: null, result }), error => ({ error, result: null }))
+    .finally(() => { settled = true; });
+  await waitForLock(lockPath);
+  assert.equal(settled, false);
+  await child.kill();
+  assert.ok((await pending).error instanceof Error);
+  const stale = inspectGatewayStateLock(statePath);
+  assert.equal(stale.locked, true);
+  assert.equal(stale.ownerAlive, false);
+  const recoveryNow = new Date(Date.parse(stale.acquiredAt) + 10_000);
+  assert.equal(recoverGatewayStateLock(registry, { minimumAgeMs: 10_000, now: () => recoveryNow, statePath }).recovered, true);
+
+  const restarted = new CanonicalWalletGatewayNodeHost(registry, { statePath, now: () => NOW });
+  const server = await listen(restarted);
+  let retry;
+  try { retry = await post(server.base, killPath, killBody, killProof); }
+  finally { await server.close(); }
+  assert.ok(retry.status === 200 || (retry.status === 409 && (retry.code === "REPLAY" || retry.code === "MANDATE_KILLED")));
+  const final = new CanonicalWalletGatewayNodeHost(registry, { statePath, now: () => NOW }).snapshot();
+  assert.deepEqual(final.mandateStore.killedMandateDigests, [strategyMandateDigest(value)]);
+  assert.equal(final.mandateStore.audit.filter(item => item.type === "mandate-killed").length, 1);
+  assert.equal(final.consumedProductProofs.length, 20_000);
 });
