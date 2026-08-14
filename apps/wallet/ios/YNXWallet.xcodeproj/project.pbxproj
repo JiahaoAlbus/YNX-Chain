@@ -31,7 +31,7 @@
 /* Begin PBXFileReference section */
 		A10000000000000000000002 /* MalformedCallbackUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MalformedCallbackUITests.swift; sourceTree = "<group>"; };
 		A10000000000000000000003 /* YNXWalletUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = YNXWalletUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		A20000000000000000000003 /* InboundLinkPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InboundLinkPolicy.swift; sourceTree = "<group>"; };
+		A20000000000000000000003 /* InboundLinkPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YNXWallet/InboundLinkPolicy.swift; sourceTree = SOURCE_ROOT; };
 		A30000000000000000000003 /* EndpointMatrix.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = EndpointMatrix.swift; path = ../macos/Sources/YNXWalletMacCore/EndpointMatrix.swift; sourceTree = SOURCE_ROOT; };
 		A30000000000000000000004 /* wallet-auth-public-endpoint-service-discovery-matrix.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; name = wallet-auth-public-endpoint-service-discovery-matrix.json; path = ../../../release/integration/wallet-auth-public-endpoint-service-discovery-matrix.json; sourceTree = SOURCE_ROOT; };
 		13B07F961A680F5B00A75B9A /* YNXWallet.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = YNXWallet.app; sourceTree = BUILT_PRODUCTS_DIR; };
