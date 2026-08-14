@@ -20,12 +20,13 @@ if (!sha256(audit.publicTestnet?.gatewayHealth?.responseSha256)) fail("Gateway h
 if (audit.publicTestnet?.latestFrozenSourceDeployed !== false || audit.publicTestnet?.latestLocalRoutesPublicVerified !== false) fail("latest local Core slices cannot be promoted to public");
 if (audit.officialWebsite?.routePublic !== true || audit.officialWebsite?.effectiveStatus !== 200) fail("official Wallet website route is not public");
 if (!sha256(audit.officialWebsite?.pageSha256)) fail("official website response digest is missing");
-if (!Array.isArray(audit.officialWebsite?.directArtifactLinks) || audit.officialWebsite.directArtifactLinks.length !== 1) fail("official website exact artifact link is missing");
+if (!Array.isArray(audit.officialWebsite?.directArtifactLinks) || audit.officialWebsite.directArtifactLinks.length !== 4) fail("official website exact artifact links are missing");
 if (audit.officialWebsite?.currentDownloadsPublished !== true) fail("official macOS arm64 CLI download must remain published");
 if (audit.githubReleases?.currentCandidateExactArtifactsHosted !== false) fail("historical prereleases cannot host the current candidate set");
 if (audit.signingAudit?.candidateCount !== metadata.candidates.length) fail("signing audit candidate count differs from public metadata");
+const hostedIds = new Set(["macos-cli-arm64-0.1.0", "web-pwa-0.1.0", "browser-extension-0.1.0", "firefox-extension-0.1.0"]);
 for (const candidate of metadata.candidates) {
-  const hosted = candidate.id === "macos-cli-arm64-0.1.0";
+  const hosted = hostedIds.has(candidate.id);
   if (candidate.downloadHosted !== hosted || candidate.websitePublishable !== hosted) fail(`${candidate.id} hosted boundary mismatch`);
   if (candidate.productionSigned !== false || candidate.storeReleased !== false) fail(`${candidate.id} production boundary mismatch`);
 }
@@ -46,4 +47,4 @@ if (failures.length) {
   for (const failure of failures) process.stderr.write(`FAIL ${failure}\n`);
   process.exit(1);
 }
-process.stdout.write(`PASS wallet-auth public evidence audit: RPC 0x1917, 1 official hosted candidate, ${metadata.candidates.length - 1} fail-closed candidates, ComputerControl pending\n`);
+process.stdout.write(`PASS wallet-auth public evidence audit: RPC 0x1917, ${hostedIds.size} official hosted candidates, ${metadata.candidates.length - hostedIds.size} fail-closed candidates, ComputerControl pending\n`);

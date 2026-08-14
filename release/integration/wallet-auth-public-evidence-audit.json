@@ -3,7 +3,7 @@
   "auditId": "wallet-auth-public-evidence-audit-2026-08-14",
   "auditedAt": "2026-08-14T03:38:07Z",
   "integrationBaseCommit": "a008ce0e8fa2ac0322198576c320441118fbae83",
-  "matrixSha256": "3982ea3fe46482ca5cec9dbdd5274b66ed1652ee1c89f1d175184d43c08a5f12",
+  "matrixSha256": "140a31c692516f269ce3a54ee17def27a5b6d3b84159e6625287889a52c96be8",
   "publicTestnet": {
     "smartAccountDeploymentVerifier": {
       "evidenceCommit": "0c747c6030b5a475a1f12dc7e57345555c23055d",
@@ -88,7 +88,12 @@
     "effectiveStatus": 200,
     "routePublic": true,
     "pageSha256": "fa9ffc6521978f0be61b5efb5fc26fbd864abcca9b1de3415c56c23a909c91bd",
-    "directArtifactLinks": ["https://www.ynxweb4.com/downloads/wallet/sha256-21db36f1c80d4e88520918de141a7f71921817799270ff671db88179023b5591/ynx-wallet-cli-darwin-arm64.gz"],
+    "directArtifactLinks": [
+      "https://www.ynxweb4.com/downloads/wallet/sha256-21db36f1c80d4e88520918de141a7f71921817799270ff671db88179023b5591/ynx-wallet-cli-darwin-arm64.gz",
+      "https://www.ynxweb4.com/downloads/wallet-web/sha256-63d83cd20925f2d52c0f21f548fa7a857a4d056e03e5fa16244f173164a7d287/ynx-wallet-web-pwa-0.1.0.zip",
+      "https://www.ynxweb4.com/downloads/wallet-web/sha256-c733093dea47c6612c8a9d5ecea40be2227f62402f4b4966955c9e1accf4e2aa/ynx-wallet-chrome-edge-0.1.0.zip",
+      "https://www.ynxweb4.com/downloads/wallet-web/sha256-417d9b9e5babf05fdfdf8161504389eb99c636be75f94444bf4ff91a9b4536b3/ynx-wallet-firefox-0.1.0.zip"
+    ],
     "currentDownloadsPublished": true
   },
   "githubReleases": {
@@ -224,9 +229,37 @@
     "selfTestPassed": true,
     "exactDownloadsVerifiedInSelfTest": 9,
     "simulatedFirefoxRecoveredOnAttempt": 2,
-    "productionGateExecuted": false,
-    "downloadHosted": false,
-    "deployedPublic": false
+    "productionGateExecuted": true,
+    "productionGateExitCode": 0,
+    "pagesVerified": 3,
+    "downloadsVerified": 9,
+    "registryVerified": true,
+    "downloadHosted": true,
+    "deployedPublic": true
+  },
+  "webOfficialPublication": {
+    "websiteRepository": "JiahaoAlbus/YNX-Chain-website",
+    "websiteMainCommit": "92a8b90e4eb652fd308436c6caf3c30ee9730c62",
+    "websiteMainTree": "b4c8640b7bcec27c1918334879d2721c9bc3fd9b",
+    "mergedPullRequest": 34,
+    "sourceEvidenceCommit": "c70bf01db868331a271239c1b29a6a13362329e1",
+    "sourceEvidenceBlob": "37df25031a14ca2ebe6786187f84beb7e157c307",
+    "productionDeploymentIdPrefix": "dpl_KmRg",
+    "officialDomains": ["ynxweb4.com", "www.ynxweb4.com", "wallet.ynxweb4.com"],
+    "independentVerifierCommit": "deca6f4fe29dafdccb3736f237e6e8829e094eec",
+    "independentVerifiedAt": "2026-08-14T11:09:32.980Z",
+    "pagesHttp200": 3,
+    "fullDownloadsVerified": 9,
+    "registryExact": true,
+    "visibleEvidenceCommit": "46d030c85c2b1a3d12a10c6b5dd0e521ca303f1c",
+    "visibleButtons": 3,
+    "exactContentAddressedTargetsVisible": true,
+    "downloadHosted": true,
+    "deployedPublic": true,
+    "installedLocal": false,
+    "providerAccountSignTransactionProved": false,
+    "productionSigned": false,
+    "storeReleased": false
   },
   "iosMacosEngineeringBoundary": {
     "evidenceCommit": "a1ba611635289e22f883e49c4e7b25417f94778d",
