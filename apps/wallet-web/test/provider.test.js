@@ -59,6 +59,17 @@ test("RPC verification accepts only exact YNX Testnet", async () => {
   await assert.rejects(() => verifyTestnetRpc(async()=>({ok:true,json:async()=>({result:"0x1"})})), (error) => error instanceof WalletWebError && error.code === "WRONG_NETWORK");
 });
 
+test("RPC recovery requires a new live 0x1917 response after an offline failure", async () => {
+  let online = false;
+  const recoveringRpc = async () => {
+    if (!online) throw new Error("offline");
+    return {ok:true,status:200,json:async()=>({jsonrpc:"2.0",id:1,result:"0x1917"})};
+  };
+  await assert.rejects(() => verifyTestnetRpc(recoveringRpc), (error) => error.code === "RPC_UNAVAILABLE");
+  online = true;
+  assert.equal((await verifyTestnetRpc(recoveringRpc)).chainId,"0x1917");
+});
+
 test("connect switches before requesting a real account", async () => {
   const wallet = provider({wallet_switchEthereumChain:null,eth_chainId:"0x1917",eth_requestAccounts:[ACCOUNT]});
   const session = await connectWallet(wallet,{fetcher:rpc});

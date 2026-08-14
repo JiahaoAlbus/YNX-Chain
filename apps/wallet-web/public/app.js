@@ -148,4 +148,4 @@ async function detect() {
 }
 
 render(); detect().catch((error) => setStatus(error?.message || "Wallet detection failed closed.", "error"));
-if (!isExtension && "serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js").catch(() => {});
+if (!isExtension && "serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js", {type:"module"}).catch(() => {});

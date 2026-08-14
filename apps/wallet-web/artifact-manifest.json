@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "productId": "wallet-web",
   "version": "0.1.0-testnet-preview.1",
-  "sourceCommit": "85af602dc96ae476c723f8646de55a081b89ed46",
+  "sourceCommit": "40cbf6f2b6874a2f08580626ee77ab4c1dd00ae0",
   "implementedLocal": true,
   "testedLocal": true,
   "installedLocal": false,
@@ -16,8 +16,8 @@
     {
       "name": "ynx-wallet-web-pwa-0.1.0.zip",
       "path": "artifacts/ynx-wallet-web-pwa-0.1.0.zip",
-      "bytes": 172143,
-      "sha256": "cca739c0aa9fc9c30934690c00d3806d9ba395add74b3bbe597116af96773be2",
+      "bytes": 172802,
+      "sha256": "7126713f9a47ec3297fcdb378a8d0a8a42a44c391a9f9d5995238f1b7164e765",
       "minimumOS": "modern browser with Service Worker support",
       "signingClass": "unsigned-web-bundle",
       "browsers": [
@@ -30,8 +30,8 @@
     {
       "name": "ynx-wallet-chrome-edge-0.1.0.zip",
       "path": "artifacts/ynx-wallet-chrome-edge-0.1.0.zip",
-      "bytes": 172835,
-      "sha256": "a3429bf12736e060ea3cbb737fce1985bac0da45fa0b63d5ce3ebdcfe881671c",
+      "bytes": 172847,
+      "sha256": "62b517d42950d2e309622d24af9375043dacfb132f528da3d8800005f0120235",
       "minimumOS": "Chrome 120 / Edge 120",
       "signingClass": "unsigned-unpacked-extension",
       "browsers": [
@@ -45,8 +45,8 @@
     {
       "name": "ynx-wallet-firefox-0.1.0.zip",
       "path": "artifacts/ynx-wallet-firefox-0.1.0.zip",
-      "bytes": 172899,
-      "sha256": "846b485596ba92882327fdc3ccb918b633ed4870f71c3adbe3d9f3f70fcf102b",
+      "bytes": 172911,
+      "sha256": "aec222e43718c3c2fffef219ab2cf173dc0b306813d3950a514b5f87a00b6562",
       "minimumOS": "Firefox 128",
       "signingClass": "unsigned-unpacked-extension",
       "browsers": [

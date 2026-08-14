@@ -8,6 +8,7 @@ await rm(dist, {recursive: true, force: true});
 await mkdir(join(dist, "pwa"), {recursive: true});
 for (const file of ["index.html", "manifest.webmanifest", "sw.js", "styles.css", "accessibility.css", "app.js"]) await cp(join(root, "public", file), join(dist, "pwa", file));
 for (const file of ["provider.js", "i18n.js"]) await cp(join(root, "src", file), join(dist, "pwa", file));
+await cp(join(root, "src", "service-worker-policy.js"), join(dist, "pwa", "service-worker-policy.js"));
 await cp(join(root, "public", "ynx-logo.png"), join(dist, "pwa", "ynx-logo.png"));
 
 const variants = [

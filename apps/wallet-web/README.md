@@ -37,6 +37,12 @@ download URL and MetaMask. An injected MetaMask connects through EIP-1193, while
 an absent MetaMask routes to its verified official download page. These external
 routes do not change this package's `downloadHosted=false` release state.
 
+The PWA caches only its same-origin shell. Navigations use a network-first
+offline fallback, static assets never receive HTML as a substitute, and RPC
+POSTs plus external Wallet download routes remain network-only. Returning from
+offline mode never restores chain authority from cache: a fresh live `0x1917`
+RPC response is still required.
+
 ```sh
 npm test
 npm run build
