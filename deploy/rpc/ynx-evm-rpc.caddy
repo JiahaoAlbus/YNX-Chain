@@ -1,0 +1,51 @@
+# Core/RPC-owned public EVM JSON-RPC route.
+# Keep this site separate from the REST RPC host so browser CORS policy cannot
+# accidentally broaden the non-browser RPC surface.
+evm.ynxweb4.com {
+	@approvedPreflight {
+		method OPTIONS
+		header Origin https://ynxweb4.com https://www.ynxweb4.com https://wallet.ynxweb4.com
+		header Access-Control-Request-Method POST
+		header_regexp PreflightHeaders Access-Control-Request-Headers (?i)^content-type$
+	}
+	handle @approvedPreflight {
+		header Access-Control-Allow-Origin "{http.request.header.Origin}"
+		header Access-Control-Allow-Methods "POST, OPTIONS"
+		header Access-Control-Allow-Headers "Content-Type"
+		header Access-Control-Max-Age "600"
+		header Vary "Origin"
+		respond "" 204
+	}
+
+	@anyPreflight method OPTIONS
+	handle @anyPreflight {
+		respond "CORS preflight denied" 403
+	}
+
+	@approvedBrowserPost {
+		method POST
+		header Origin https://ynxweb4.com https://www.ynxweb4.com https://wallet.ynxweb4.com
+	}
+	handle @approvedBrowserPost {
+		header Access-Control-Allow-Origin "{http.request.header.Origin}"
+		header Vary "Origin"
+		reverse_proxy 127.0.0.1:6420
+	}
+
+	@browserOrigin header Origin *
+	handle @browserOrigin {
+		respond "CORS origin denied" 403
+	}
+
+	@unsupportedMethod {
+		not method POST
+	}
+	handle @unsupportedMethod {
+		header Allow "POST, OPTIONS"
+		respond "Method Not Allowed" 405
+	}
+
+	handle {
+		reverse_proxy 127.0.0.1:6420
+	}
+}

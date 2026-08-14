@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "evidenceType": "public-evm-cors-deployment-attempt",
+  "observedAt": "2026-08-15T02:00:00+08:00",
+  "owner": "Core/RPC",
+  "consumedCentralContract": {
+    "commit": "d0f89797d13c7667cc187b0c64d5c9e1cb1d8f59",
+    "endpointMatrixPath": "release/integration/wallet-auth-public-endpoint-service-discovery-matrix.json",
+    "endpointMatrixSha256": "d344c607c2bbbf7bb0d9d3662b424976d0d6c4ff20428025dd1e2fb92bf31392",
+    "androidLauncherPath": "release/integration/wallet-auth-android-launcher-contract.json",
+    "androidLauncherSha256": "d296732141a4029b1811b655f0001cc7d81a1d45019a4bd87d21b2b4b256d1a6"
+  },
+  "lastDirectProductionHostObservation": {
+    "observedAt": "2026-08-15T01:30:20+08:00",
+    "configuration": "evm.ynxweb4.com shared the testnet/rpc reverse-proxy block and had no CORS handler",
+    "approvedOriginPreflight": {
+      "origin": "https://www.ynxweb4.com",
+      "httpStatus": 405,
+      "accessControlAllowOrigin": null
+    },
+    "unapprovedOriginPreflight": {
+      "origin": "https://hostile.invalid",
+      "httpStatus": 405,
+      "accessControlAllowOrigin": null
+    },
+    "caddyConfigValidatedBeforeAttempt": true
+  },
+  "candidate": {
+    "configPath": "deploy/rpc/ynx-evm-rpc.caddy",
+    "configSha256": "bb073d9c0588fd1594d397a4f510c9081bbafd71481cba3722b0d24a1438dceb",
+    "deploymentScriptPath": "scripts/deploy/deploy-public-evm-cors.sh",
+    "deploymentScriptSha256": "9506cf4ae68b00575a4dccb61e8e5525c39ff9c2f12df323c0e1300389a6d1c1",
+    "verifierPath": "scripts/verify/public-evm-cors-check.sh",
+    "verifierSha256": "db67305a4a3207f107dc0fb73cd28870b6c35ed40766d72787f878ac5778d70c",
+    "allowedOrigins": [
+      "https://ynxweb4.com",
+      "https://www.ynxweb4.com",
+      "https://wallet.ynxweb4.com"
+    ],
+    "allowedMethods": ["POST", "OPTIONS"],
+    "allowedHeaders": ["Content-Type"],
+    "allowCredentials": false,
+    "unapprovedOriginStatus": 403
+  },
+  "attempts": [
+    {
+      "phase": "candidate-transfer",
+      "transport": "direct SSH/SCP",
+      "result": "failed-before-transfer",
+      "output": "Connection timed out during banner exchange"
+    },
+    {
+      "phase": "candidate-transfer",
+      "transport": "direct SSH/rsync",
+      "result": "failed-before-transfer",
+      "output": "Connection timed out during banner exchange; unexpected end of file"
+    },
+    {
+      "phase": "single-connection-transaction",
+      "transport": "tar over direct SSH",
+      "result": "failed-before-remote-command",
+      "output": "Connection timed out during banner exchange"
+    },
+    {
+      "phase": "single-connection-transaction",
+      "transport": "authorized SG and Seoul SSH TCP jump hosts",
+      "result": "failed-before-primary-authentication",
+      "output": "Jump-host banner exchange timed out"
+    },
+    {
+      "phase": "workstation-public-verifier",
+      "transport": "public HTTPS",
+      "result": "failed-before-HTTP",
+      "exitCode": 28,
+      "output": "Connection timed out after 15011 milliseconds"
+    }
+  ],
+  "terminalState": {
+    "candidateCaddyValidated": false,
+    "backupCreated": false,
+    "backupPath": null,
+    "caddyReloaded": false,
+    "approvedOriginPreflightPassed": false,
+    "ethChainIdPassedAfterReload": false,
+    "unapprovedOriginNegativePassed": false,
+    "currentProductionConfigSha256": null,
+    "lastProvenOnlinePreflightStatus": 405,
+    "deployed": false,
+    "rollbackRequired": false,
+    "aggregateDeployedPublic": false
+  },
+  "truthBoundary": "A tool process completing with an SSH banner timeout is not a successful deployment. No validate, backup, reload, post-deploy HTTP result, current config hash or rollback path is inferred."
+}
