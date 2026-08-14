@@ -6,7 +6,7 @@
   "matrixSha256": "e2e9fce4bf70d6189373d31fa6df72a9198f36c06c05736072e23d87a7dbcfca",
   "endpointServiceDiscoveryMatrix": {
     "path": "release/integration/wallet-auth-public-endpoint-service-discovery-matrix.json",
-    "sha256": "d344c607c2bbbf7bb0d9d3662b424976d0d6c4ff20428025dd1e2fb92bf31392"
+    "sha256": "446e1bc4c3db196679da0895c36c824d4e924d9fe65d5022c3f4ee49c7e0b175"
   },
   "androidLauncherContract": {
     "path": "release/integration/wallet-auth-android-launcher-contract.json",
@@ -41,6 +41,24 @@
     "latestFrozenSourceDeployed": false,
     "latestLocalRoutesPublicVerified": false,
     "assetTransactionObserved": false
+  },
+  "faucetPublicRecovery": {
+    "evidenceCommit": "41df12552ef5a1cab029223f3bc16af320e9973c",
+    "evidenceParent": "8fe48738f309c469bd7a16e31fbfe9e106d7de3c",
+    "evidenceTree": "9fa2fb739ba17dab7f94fc402376fd2a1d9e76a9",
+    "evidencePath": "release/evidence/faucet-public-recovery-20260815.json",
+    "evidenceBlob": "5d0c1745fd5a41576c2d8627083ff9c3cb4d1798",
+    "deployedSource": "8fe48738f309c469bd7a16e31fbfe9e106d7de3c",
+    "binarySha256": "6bc1b9c41095d235469be97901033d59db686601810fc8ac0fd0392e27135a26",
+    "productionHostPublicSniHealthy": true,
+    "chainId": 6423,
+    "officialWebsiteCorsObserved": true,
+    "invalidRequestHttpStatus": 400,
+    "invalidRequestAssetMutation": false,
+    "mobileOrWorkstationTlsVerified": false,
+    "successfulFundingTransactionObserved": false,
+    "transactionHash": null,
+    "aggregateDeployedPublic": false
   },
   "chainCoreContractBoundary": {
     "contractVersion": "1.27.0",

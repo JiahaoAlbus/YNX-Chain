@@ -27,10 +27,12 @@ if (endpoints.discoveryContract?.modes?.find(({id}) => id === "ynx-wallet-canoni
 for (const endpoint of endpoints.endpoints ?? []) {
   if (typeof endpoint.availability !== "boolean" || typeof endpoint.cors !== "boolean" || typeof endpoint.mobileReachable !== "boolean" || endpoint.failClosedWhenUnavailable !== true) fail(`${endpoint.id} endpoint truth is incomplete`);
 }
-for (const id of ["faucet", "wallet-approval-deep-link", "wallet-callback", "explorer"]) {
+for (const id of ["wallet-approval-deep-link", "wallet-callback", "explorer"]) {
   const endpoint = endpoints.endpoints?.find((item) => item.id === id);
   if (!endpoint || endpoint.availability !== false || endpoint.mobileReachable !== false) fail(`${id} must remain unavailable without direct public mobile evidence`);
 }
+const faucet = endpoints.endpoints?.find((item) => item.id === "faucet");
+if (!faucet || faucet.availability !== true || faucet.cors !== true || faucet.mobileReachable !== false || faucet.productionHostSniVerified !== true || faucet.clientTlsVerified !== false || faucet.successfulFundingTransactionObserved !== false) fail("faucet production-host/mobile truth boundary drifted");
 for (const id of ["chain-rpc-canonical", "chain-rpc-legacy-evm-host", "product-session-v2"]) {
   const endpoint = endpoints.endpoints?.find((item) => item.id === id);
   if (!endpoint || endpoint.cors !== false || endpoint.mobileReachable !== false) fail(`${id} browser CORS/mobile boundary was promoted`);
@@ -50,6 +52,7 @@ if (!sha256(audit.publicTestnet?.rpc?.responseSha256)) fail("public RPC response
 if (audit.publicTestnet?.gatewayHealth?.httpStatus !== 200 || audit.publicTestnet?.gatewayHealth?.remoteDeployed !== true) fail("public Gateway health is not directly verified");
 if (!sha256(audit.publicTestnet?.gatewayHealth?.responseSha256)) fail("Gateway health response digest is missing");
 if (audit.publicTestnet?.latestFrozenSourceDeployed !== false || audit.publicTestnet?.latestLocalRoutesPublicVerified !== false) fail("latest local Core slices cannot be promoted to public");
+if (audit.faucetPublicRecovery?.evidenceCommit !== "41df12552ef5a1cab029223f3bc16af320e9973c" || audit.faucetPublicRecovery?.productionHostPublicSniHealthy !== true || audit.faucetPublicRecovery?.officialWebsiteCorsObserved !== true || audit.faucetPublicRecovery?.mobileOrWorkstationTlsVerified !== false || audit.faucetPublicRecovery?.successfulFundingTransactionObserved !== false || audit.faucetPublicRecovery?.aggregateDeployedPublic !== false) fail("faucet public recovery boundary mismatch");
 if (audit.officialWebsite?.routePublic !== true || audit.officialWebsite?.effectiveStatus !== 200) fail("official Wallet website route is not public");
 if (!sha256(audit.officialWebsite?.pageSha256)) fail("official website response digest is missing");
 if (!Array.isArray(audit.officialWebsite?.directArtifactLinks) || audit.officialWebsite.directArtifactLinks.length !== 4) fail("official website exact artifact links are missing");

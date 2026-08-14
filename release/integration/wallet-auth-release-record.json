@@ -94,7 +94,7 @@
     "matrixMutationTest": "scripts/verify/wallet-auth-release-evidence-matrix.test.mjs",
     "publicDownloadGate": "scripts/verify/wallet-auth-public-download-metadata-check.mjs",
     "publicEvidenceAuditGate": "scripts/verify/wallet-auth-public-evidence-audit-check.mjs"
-    ,"publicEndpointServiceDiscoveryMatrix": {"path":"release/integration/wallet-auth-public-endpoint-service-discovery-matrix.json","sha256":"d344c607c2bbbf7bb0d9d3662b424976d0d6c4ff20428025dd1e2fb92bf31392"}
+    ,"publicEndpointServiceDiscoveryMatrix": {"path":"release/integration/wallet-auth-public-endpoint-service-discovery-matrix.json","sha256":"446e1bc4c3db196679da0895c36c824d4e924d9fe65d5022c3f4ee49c7e0b175"}
     ,"androidLauncherContract": {"path":"release/integration/wallet-auth-android-launcher-contract.json","sha256":"d296732141a4029b1811b655f0001cc7d81a1d45019a4bd87d21b2b4b256d1a6"}
   },
   "limitations": [
@@ -102,6 +102,7 @@
     "The dedicated Integration ref is remotely protected, but integratedCentral remains false until an authorized central merge/deployment record exists.",
     "The macOS arm64 CLI has an immutable official YNX download, but remains ad-hoc and is not a production-signed or store artifact.",
     "Chain Core contract v1.27.0 is accepted as an immutable dependency identity only; its Owner commits and 111,258,870-byte bundle are locally object/hash-verified but not reachable from the shared origin, and Chain Core still reports authBoundary=dependency-not-accepted with no central or public deployment proof.",
+    "Faucet evidence 41df1255 proves production-host public-SNI health and official-www CORS with a safe invalid request and zero mutation; the observed workstation/mobile TLS path, successful funding transaction and aggregate public availability remain false.",
     "Product Session Router v2 hardened evidence 2bcdf4f6 supersedes cc6c3936 and freezes deployed source d26ed915: isolated 6441 passes rollback, public lifecycle and a real chmod 0644 tamper with HTTP 503 INSECURE_STATE_FILE, unchanged state bytes, no silent repair and sticky fail-close until explicit 0600+restart recovery. Legacy 6437/6439 remain unchanged, runtimeProductsMigrated=0, visible Wallet approval=false, and integratedCentral plus aggregate Product Session deployment remain false.",
     "Web commit 60614bf5 directly proves first and second launch of an unsigned temporary YNX add-on in official notarized Firefox 153.0.4; install, popup DOM/background, provider/account/sign/tx, extension signing and store claims remain false.",
     "Website main 92a8b90 merged evidence c70bf01 through PR #34; Web 46d030c and an independent deca6f4f gate prove three visible official buttons and 9 exact downloads. PWA, Chrome/Edge and Firefox artifacts are hosted/public, but remain unsigned, non-store, and do not prove installation or provider/account/sign/tx runtime."
