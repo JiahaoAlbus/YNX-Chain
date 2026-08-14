@@ -9,9 +9,9 @@
   "candidates": [
     {
       "id": "web-pwa-0.1.0",
-      "sourceCommit": "4aae1fc8ef986cac7a5fa861b1c2d07ec373b36b",
+      "sourceCommit": "7d569d1babb85e6d28bb6bfc3b3c0c5fd828255d",
       "artifactName": "ynx-wallet-web-pwa-0.1.0.zip",
-      "sha256": "0868b4265f9ee06be3b8c529f323e5099fe436f12361e258af5d41f0f057fff2",
+      "sha256": "f782691a04e7d23b88d8fe9d1351bf5b791534cc8a2f60b58650f606523512c4",
       "signingClass": "unsigned-web-bundle",
       "publicUrl": null,
       "immutableUrl": null,

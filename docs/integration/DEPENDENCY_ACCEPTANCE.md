@@ -32,11 +32,11 @@ Local acceptance is not central integration, public Testnet proof or production 
 | Owner delivery | Frozen source | Accepted boundary | Remaining false/pending boundary |
 | --- | --- | --- | --- |
 | Core Auth/Gateway | `774a1f756890043e88626d13b6c9679a2ad6d288` | 173/173 local POSIX/shared-state evidence: revocation, Kill/Action linearization and pre-ack SIGKILL recovery | Distributed DB/multi-region, central/staging/public/public-route, asset tx, native release, production/store |
-| Web/PWA/Extensions | `4aae1fc8ef986cac7a5fa861b1c2d07ec373b36b` | Prior evidence plus exact built-PWA network-readiness module: offline/wrong-chain fail before Wallet calls and exact `0x1917` add/switch envelopes | Chrome-for-Testing attempt timed out before service worker; live RPC/runtime/install/action injection/provider/account/sign/tx/hosting/production/store remain false |
+| Web/PWA/Extensions | `7d569d1babb85e6d28bb6bfc3b3c0c5fd828255d` | Prior built-PWA readiness plus strict JSON-RPC envelope validation for jsonrpc/id/error/result before Wallet calls | exact module tests are not live RPC/browser runtime; install/action injection/provider/account/sign/tx/hosting/production/store remain false |
 | Android API 36 | `4739a60e1fa0e3d0b6862e129330f9e9ca202887` | Historical disposable-QA lifecycle plus current canonical callback/replay, audit/journal and exact-account active-generation rename fail-close tests | Current-source device install/interaction, production signing, tx, callback delivery, reconnect and hosted artifact remain false |
 | iOS/macOS | `04450cff296511018447e5d4886803081149f596` | Universal ad-hoc package, arm64 lifecycle/two callback rejection paths, plus direct recovery-vault absence before and after biometric-unavailable creation | authorization/return callback, Core native bridge, x86_64 lifecycle, recovery success, Testnet/public, Universal Link, Developer ID/notarization/store false |
 | Desktop/CLI/SDK | `905ac1e5479b08e6b2d9e50a91bef01cbe7d58ef` | Prior evidence, Linux arm64 RPM --noscripts native CI, and Windows 11 arm64 CLI upgrade/install/cold/second/0x1917/fail-close/uninstall with temporary P-256 self-test | Win10/Server2016 declared only; temporary P-256 is not production account/tx signing; CI artifacts not installedLocal; unsigned; no public hosting/production/store |
 
 Acceptance is enforced by `scripts/verify/wallet-auth-release-evidence-matrix.mjs`. GitHub Actions artifacts are temporary retention evidence, not `downloadHosted` product delivery.
 
-Web `7d569d1babb85e6d28bb6bfc3b3c0c5fd828255d`, Android `6f096503793218ddfd9b3b1cd6403a07d4fafb97` and the recorded Desktop/SDK successors remain queued.
+Android `6f096503793218ddfd9b3b1cd6403a07d4fafb97` and the recorded Desktop/SDK successors remain queued.
