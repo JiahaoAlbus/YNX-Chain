@@ -76,8 +76,8 @@
     "runtimePermissionTamperZeroMutationFailClosed": true,
     "concurrentPersistentRequests": 100,
     "deployedPublic": true,
-    "deployedSourceCommit": "cc6c393608a11022f8617eede753af4c578d0ecd",
-    "deploymentEvidence": "evidence/product-session-v2-public-deployment-20260814.json"
+    "deployedSourceCommit": "d26ed915516c97d07cb4d58e5fc4646486afc851",
+    "deploymentEvidence": "evidence/product-session-v2-hardened-public-deployment-20260814.json"
   },
   "productSessionV2DeploymentTransaction": {
     "orchestrator": "scripts/deploy/deploy-product-session-v2-testnet.sh",
@@ -94,9 +94,10 @@
     "executed": true,
     "rollbackVerified": true,
     "deployedPublic": true,
-    "deployedSourceCommit": "cc6c393608a11022f8617eede753af4c578d0ecd",
-    "rollbackEvidenceDirectory": "/var/backups/ynx-chain/product-session-v2-ynx-product-session-v2-cc6c393608a1-rollback-drill-20260814T112358Z",
-    "deploymentEvidenceDirectory": "/var/backups/ynx-chain/product-session-v2-ynx-product-session-v2-cc6c393608a1-deploy-20260814T112433Z"
+    "deployedSourceCommit": "d26ed915516c97d07cb4d58e5fc4646486afc851",
+    "rollbackEvidenceDirectory": "/var/backups/ynx-chain/product-session-v2-ynx-product-session-v2-d26ed915516c-rollback-drill-20260814T121756Z",
+    "deploymentEvidenceDirectory": "/var/backups/ynx-chain/product-session-v2-ynx-product-session-v2-d26ed915516c-deploy-20260814T121833Z",
+    "runtimePermissionTamperPublicZeroMutationVerified": true
   },
   "networkRecovery": {
     "storedSessionOnIntrospectionOutage": "retained-non-authoritative-until-retry",
@@ -316,7 +317,7 @@
     "publicAppGatewayReachable": true,
     "legacyWalletSessionRoutesReachable": true,
     "productSessionV2RoutesDeployedPublic": true,
-    "productSessionV2DeployedSourceCommit": "cc6c393608a11022f8617eede753af4c578d0ecd",
+    "productSessionV2DeployedSourceCommit": "d26ed915516c97d07cb4d58e5fc4646486afc851",
     "productSessionV2GatewayBoundary": "independent 6441 service; legacy 6437 and 6439 binaries not replaced",
     "downloadHosted": true,
     "downloadHostedScope": "Android Testnet Preview artifact only",

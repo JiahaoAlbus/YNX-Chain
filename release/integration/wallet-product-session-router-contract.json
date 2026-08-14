@@ -59,7 +59,7 @@
     "requiredRoutePrefix": "/v2/product-sessions/",
     "routePrecedence": "mount all exact Product Session v2 routes before the Chain JSON-RPC catch-all",
     "currentObservedState": "mounted-to-independent-persistent-v2-gateway",
-    "currentEvidence": "packages/wallet-auth/evidence/product-session-v2-public-deployment-20260814.json",
+    "currentEvidence": "packages/wallet-auth/evidence/product-session-v2-hardened-public-deployment-20260814.json",
     "releaseGate": {
       "command": "YNX_PRODUCT_SESSION_V2_PUBLIC_PROBE=1 YNX_PRODUCT_SESSION_V2_PUBLIC_URL=https://rest.ynxweb4.com node packages/wallet-auth/scripts/probe-product-session-v2-public.mjs",
       "proofStrength": "route mount only; never substitutes for the full lifecycle acceptance",
@@ -84,9 +84,10 @@
       "rollbackDrillRequiredBeforeDeploy": true,
       "publicLifecycleVerifier": "packages/wallet-auth/scripts/verify-product-session-v2-lifecycle.mjs",
       "currentStatus": "rollback-drill-and-public-deploy-passed",
-      "deployedSourceCommit": "cc6c393608a11022f8617eede753af4c578d0ecd",
-      "rollbackEvidenceDirectory": "/var/backups/ynx-chain/product-session-v2-ynx-product-session-v2-cc6c393608a1-rollback-drill-20260814T112358Z",
-      "deploymentEvidenceDirectory": "/var/backups/ynx-chain/product-session-v2-ynx-product-session-v2-cc6c393608a1-deploy-20260814T112433Z"
+      "deployedSourceCommit": "d26ed915516c97d07cb4d58e5fc4646486afc851",
+      "rollbackEvidenceDirectory": "/var/backups/ynx-chain/product-session-v2-ynx-product-session-v2-d26ed915516c-rollback-drill-20260814T121756Z",
+      "deploymentEvidenceDirectory": "/var/backups/ynx-chain/product-session-v2-ynx-product-session-v2-d26ed915516c-deploy-20260814T121833Z",
+      "runtimePermissionTamperZeroMutationVerified": true
     },
     "stateRequirements": [
       "persist the exact schemaVersion 2 snapshot atomically before returning a successful mutating response",
@@ -203,8 +204,8 @@
     "sourcePackageDeployedPublic": true,
     "sourcePackageCommit": "d8863f6b28752f427929a1c953dd035e096820ff",
     "currentHeadReleaseGateDeployedPublic": false,
-    "deployedProductSessionV2SourceCommit": "cc6c393608a11022f8617eede753af4c578d0ecd",
-    "productSessionV2DeploymentEvidence": "packages/wallet-auth/evidence/product-session-v2-public-deployment-20260814.json",
+    "deployedProductSessionV2SourceCommit": "d26ed915516c97d07cb4d58e5fc4646486afc851",
+    "productSessionV2DeploymentEvidence": "packages/wallet-auth/evidence/product-session-v2-hardened-public-deployment-20260814.json",
     "officialWebsiteCommit": "11f53023a419701e240f7e0980440d848a9f5af2",
     "officialWebsiteDocs": "https://www.ynxweb4.com/docs",
     "sourcePackageUrl": "https://www.ynxweb4.com/releases/wallet-session-router/d8863f6b2875/ynx-chain-wallet-auth-1.1.0.tgz",
