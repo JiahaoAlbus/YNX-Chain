@@ -31,6 +31,15 @@ test("creates, confirms backup, switches and deletes multiple secure accounts", 
   await assert.rejects(repository.accountSecret(walletIdentity(SECRET_TWO).account),/missing/);
 });
 
+test("dismissed account selection cannot persist a new selected account",async()=>{
+  const storage=new MemorySecureStorage(),repository=new WalletRepository(storage);
+  await repository.addAccount({secretHex:SECRET_ONE,label:"Main",createdAt:"2026-07-15T12:00:00.000Z",backupConfirmed:true});
+  await repository.addAccount({secretHex:SECRET_TWO,label:"Savings",createdAt:"2026-07-15T12:01:00.000Z",backupConfirmed:true});
+  const before=(await repository.load()).manifest,target=before.accounts.find(item=>item.account!==before.selectedAccountId)!.account;
+  await assert.rejects(repository.selectAccount(target,()=>{throw new Error("backgrounded")}),/backgrounded/);
+  assert.deepEqual((await repository.load()).manifest,before);
+});
+
 test("migrates the strict v1 identity once and discards its cross-product device secret", async () => {
   const storage=new MemorySecureStorage(), identity=walletIdentity(SECRET_ONE);
   storage.values.set(LEGACY_IDENTITY_KEY,JSON.stringify({schemaVersion:1,account:identity.account,accountSecret:SECRET_ONE,deviceSecret:"41".repeat(32)}));

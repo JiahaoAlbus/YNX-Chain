@@ -81,6 +81,8 @@ function WalletApp(){
   const storageAttemptGate=useRef(new ExclusiveAttemptGate());
   const unlockAttemptGate=useRef(new ExclusiveAttemptGate());
   const createAttemptGate=useRef(new ExclusiveAttemptGate());
+  const switchAttemptGate=useRef(new ExclusiveAttemptGate());
+  const [switching,setSwitching]=useState(false);
   const [locale,setLocale]=useState<WalletLocale>("en");
   const localeRef=useRef<WalletLocale>(locale);localeRef.current=locale;
   const [settings,setSettings]=useState(false);
@@ -121,7 +123,7 @@ function WalletApp(){
   const create=async()=>{const release=createAttemptGate.current.tryBegin();if(!release)return;const epoch=unlockEpochRef.current,assertActive=()=>{if(epoch!==unlockEpochRef.current||appStateRef.current!=="active")throw new Error("Wallet recovery-key generation was cancelled by lock or background")};setBusy(true);try{const recoveryKey=await generateRecoveryKeyFailClosed(()=>getRandomBytesAsync(32),assertActive);dispatchOnboarding({type:"openCreate",recoveryKey,label:`Account ${(manifest?.accounts.length??0)+1}`})}catch(caught){setError(localizeError(locale,caught))}finally{release();setBusy(false)}};
   const userLock=()=>{unlockEpochRef.current+=1;dispatchLock({type:"lock",reason:"user"})};
   const saved=(next:WalletManifest)=>{setManifest(next);dispatchOnboarding({type:"saveSucceeded"});userLock();setNotice("Account saved. Unlock with system biometrics to continue.")};
-  const select=async(account:string)=>{try{const next=await switchAccountFailClosed(account,(selectedAccount)=>{unlockEpochRef.current+=1;dispatchLock({type:"switch",account:selectedAccount})},(selectedAccount)=>repository.selectAccount(selectedAccount));setManifest(next)}catch(caught){setError(localizeError(locale,caught))}};
+  const select=async(account:string)=>{const release=switchAttemptGate.current.tryBegin();if(!release)return;let epoch=-1;setSwitching(true);try{const next=await switchAccountFailClosed(account,(selectedAccount)=>{unlockEpochRef.current+=1;epoch=unlockEpochRef.current;dispatchLock({type:"switch",account:selectedAccount})},(selectedAccount)=>repository.selectAccount(selectedAccount,()=>{if(epoch!==unlockEpochRef.current||appStateRef.current!=="active")throw new Error("Wallet account switch was cancelled by lock or background")}));setManifest(next)}catch(caught){setError(localizeError(locale,caught))}finally{release();setSwitching(false)}};
   const resetCorrupt=async()=>{const release=storageAttemptGate.current.tryBegin();if(!release)return;const attempt={epoch:unlockEpochRef.current},assertActive=()=>assertStorageResetActive(attempt,{epoch:unlockEpochRef.current,appState:appStateRef.current,privacyReady:privacyStateRef.current.ready,manifestPresent:manifestRef.current!==null,storageErrorPresent:storageErrorRef.current!==null});setBusy(true);try{await authorizeLocalKeyUse("wallet-reset");assertActive();await repository.resetCorruptStorage(assertActive);await reconstruct()}catch(caught){setError(localizeError(locale,caught))}finally{release();setBusy(false)}};
 
   if(!privacyState.ready)return privacyState.error?<Screen><Text style={styles.title}>Wallet privacy protection is required</Text><Text style={styles.error}>{privacyState.error}</Text><Button label="Retry screenshot protection" onPress={()=>setPrivacyAttempt((value)=>value+1)}/></Screen>:<Screen><ActivityIndicator color={ACTIVE_COLORS.blue}/><Text style={styles.muted}>Protecting Wallet screens</Text></Screen>;
@@ -136,7 +138,7 @@ function WalletApp(){
     {!manifest?.accounts.length
       ?<EmptyWallet locale={locale} create={()=>void create()} importAccount={()=>dispatchOnboarding({type:"openImport"})} recover={()=>dispatchOnboarding({type:"openRecover"})}/>
       :!selectedAccountUnlocked
-        ?<Locked locale={locale} account={selected!} busy={busy} unlock={()=>void unlock()} recovery={()=>dispatchOnboarding({type:"openRecover"})}/>
+        ?<Locked locale={locale} account={selected!} busy={busy||switching} unlock={()=>void unlock()} recovery={()=>dispatchOnboarding({type:"openRecover"})}/>
         :<Dashboard locale={locale} manifest={manifest} selected={selected!} select={(account)=>void select(account)} add={()=>dispatchOnboarding({type:"openImport"})} create={()=>void create()} lock={userLock} onManifest={setManifest}/>}
     <SetupModal state={onboarding} dispatch={dispatchOnboarding} close={()=>{if(!busy)dispatchOnboarding({type:"close"})}} saved={saved} busy={busy} setBusy={setBusy} setError={setError}/>
     {authorization&&manifest&&selected?<AuthorizationModal locale={locale} key={authorization.nonce} request={authorization} selected={selected} close={()=>setAuthorization(null)} onApproved={()=>setAuthorization(null)}/>:null}

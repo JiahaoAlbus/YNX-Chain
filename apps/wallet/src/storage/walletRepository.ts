@@ -79,11 +79,12 @@ export class WalletRepository {
     });
   }
 
-  selectAccount(account: string): Promise<WalletManifest> { return this.enqueue(()=>this.selectAccountExclusive(account)); }
+  selectAccount(account: string,assertActive:()=>void=()=>{}): Promise<WalletManifest> { return this.enqueue(()=>this.selectAccountExclusive(account,assertActive)); }
 
-  private async selectAccountExclusive(account: string): Promise<WalletManifest> {
+  private async selectAccountExclusive(account: string,assertActive:()=>void): Promise<WalletManifest> {
     const current = (await this.loadExclusive()).manifest;
     if (!current.accounts.some((item) => item.account === account)) throw new Error("Account is not stored in Wallet");
+    assertActive();
     return this.replaceManifest(current, { ...current, selectedAccountId: account });
   }
 
