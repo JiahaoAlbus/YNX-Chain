@@ -43,6 +43,7 @@ test("AI permissions are explicit, one-time, audited and fail closed", async () 
     "context-read-once",
     "write-once",
     "execute-once",
+    "git-local-commit-once",
     "deployment-review-once",
   ]) assert.match(panel + service, new RegExp(approval));
   assert.match(panel, /PERMISSIONS/);
@@ -59,6 +60,28 @@ test("AI permissions are explicit, one-time, audited and fail closed", async () 
     "destructive-delete",
     "deployment-execute",
   ]) assert.match(service, new RegExp(disabled));
+});
+
+test("AI local Git commit is digest reviewed and remote Git remains disabled", async () => {
+  const panel = await read("frontend/src/chat/AgentPanel.tsx"),
+    client = await read("frontend/src/runtime/client.ts"),
+    service = await read("services/agent-orchestrator/src/service.mjs"),
+    gateway = await read("services/gateway/src/server.mjs");
+  for (const action of ["prepare-git", "approve-git"])
+    assert.ok(
+      panel.includes(`"${action}"`) &&
+        service.includes(`body.action === "${action}"`),
+      `${action} must be wired through UI and orchestrator`,
+    );
+  assert.match(panel + client + service, /git-local-commit-once/);
+  assert.match(service, /git\.previewed/);
+  assert.match(service, /git\.committed/);
+  assert.match(service, /git_preview_stale/);
+  assert.match(service, /previewDigest/);
+  assert.match(service, /local-only-no-network-no-credentials-no-hooks-no-signing/);
+  assert.match(service, /git-remote/);
+  assert.match(gateway, /gitService/);
+  assert.match(panel, /No push, pull, PR, credential access or network request occurred/);
 });
 
 test("AI create and recoverable delete are exact-path approved", async () => {

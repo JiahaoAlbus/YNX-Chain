@@ -1,5 +1,18 @@
 # YNX Developer 0.2.0 Testnet Preview release notes
 
+## 2026-08-14 reviewed Agent local Git
+
+- Added a separate local-only Agent Git review after passing Tester evidence.
+  Its artifact binds workspace revision, local branch/HEAD, exact message,
+  changed-path digests/byte counts and the Tester event hash.
+- A fresh `git-local-commit-once` UUID is required before the owner-isolated Git
+  broker can initialize, stage only reviewed paths and create the local commit.
+  Repository or workspace drift is rejected; revalidation, staging and commit
+  run under one owner/project lock, and the resulting commit enters the
+  hash-chained audit ledger.
+- Pull, push, PR creation, credential access, hooks, signing and Git network
+  operations remain explicitly disabled.
+
 ## 2026-08-13 Java runtime candidate
 
 - Added a real Java adapter to both the local workspace agent and the isolated

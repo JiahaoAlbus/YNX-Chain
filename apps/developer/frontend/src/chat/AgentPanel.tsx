@@ -24,6 +24,8 @@ type AgentAction =
   | "restore-deleted"
   | "run-test"
   | "generate-fix"
+  | "prepare-git"
+  | "approve-git"
   | "prepare-deployment"
   | "approve-deployment";
 
@@ -116,6 +118,12 @@ export function AgentPanel({
             : {}),
           ...(action === "run-test"
             ? { approval: "execute-once", activePath }
+            : {}),
+          ...(action === "prepare-git"
+            ? { message: `Agent: ${run!.intent.slice(0, 72)}` }
+            : {}),
+          ...(action === "approve-git"
+            ? { approval: "git-local-commit-once" }
             : {}),
           ...(action === "prepare-deployment"
             ? { target: "ynx-testnet" }
@@ -300,8 +308,8 @@ export function AgentPanel({
       {error && <div className="agent-error">{error}</div>}
       <div className="honest-boundary">
         Planner → context approval → Coder → Reviewer → one-time write → Tester →
-        deployment review. Deletes are recoverable; the review artifact cannot
-        access the network, sign, publish or deploy.
+        reviewed local Git → deployment review. Deletes are recoverable; Agent
+        Git cannot access remotes, credentials, hooks or signing.
       </div>
     </section>
   );
@@ -409,6 +417,28 @@ function AgentRunView({
           ))}
         </div>
       )}
+      {run.gitOperation && (
+        <div className="agent-proposal">
+          <strong>
+            Local Git {run.gitOperation.commit ? "commit" : "review"} ·{" "}
+            {run.gitOperation.branch || "main"}
+          </strong>
+          <small>
+            {run.gitOperation.message} · revision{" "}
+            {run.gitOperation.workspaceRevision} · preview{" "}
+            {run.gitOperation.previewDigest.slice(0, 12)}…
+          </small>
+          {run.gitOperation.files.map((file) => (
+            <code key={file.path}>
+              {file.operation} · {file.path} · {file.digest.slice(0, 12)}… · {file.bytes} bytes
+            </code>
+          ))}
+          {run.gitOperation.commit && (
+            <code>commit · {run.gitOperation.commit}</code>
+          )}
+          <small>{run.gitOperation.boundary}</small>
+        </div>
+      )}
       {run.status === "plan_review" && (
         <Button disabled={busy} onClick={() => execute("approve-plan")}>
           Approve plan
@@ -442,6 +472,29 @@ function AgentRunView({
       {run.status === "tested" && (
         <>
           <div className="agent-approved">Tester passed with sandbox evidence.</div>
+          <Button disabled={busy} onClick={() => execute("prepare-git")}>
+            Prepare local Git commit review
+          </Button>
+          <Button disabled={busy} onClick={() => execute("prepare-deployment")}>
+            Prepare deployment preview
+          </Button>
+        </>
+      )}
+      {run.status === "git_review" && (
+        <Button
+          variant="default"
+          disabled={busy}
+          onClick={() => execute("approve-git")}
+        >
+          Approve local Git commit once
+        </Button>
+      )}
+      {run.status === "git_committed" && (
+        <>
+          <div className="agent-approved">
+            Local commit created. No push, pull, PR, credential access or network
+            request occurred.
+          </div>
           <Button disabled={busy} onClick={() => execute("prepare-deployment")}>
             Prepare deployment preview
           </Button>

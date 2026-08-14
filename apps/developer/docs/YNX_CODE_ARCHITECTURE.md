@@ -415,9 +415,20 @@ artifact are separate state transitions; approval requires the one-time
 the broker performs no network, signing, publishing or transaction action.
 Model events also retain provider/model, provider-reported token counts and
 duration. Cost is `unreported-by-provider` until the provider supplies accepted
-cost evidence; the UI does not invent an estimate. Package, Agent Git, browser
-and actual deployment tools stay disabled until each permission adapter passes
-its own gate.
+cost evidence; the UI does not invent an estimate. Package installation,
+browser-network, remote Git and actual deployment tools stay disabled until
+each permission adapter passes its own gate.
+
+The same passing Tester evidence may instead produce a local Git review. The
+artifact binds project/workspace revision, current local branch and HEAD, exact
+commit message, every changed path with operation/SHA-256/byte count, and the
+Tester event hash. A changed repository or workspace invalidates the preview.
+Only `git-local-commit-once` can call the owner-isolated Git broker to initialize
+when needed, stage those exact reviewed paths and create one local unsigned
+commit with hooks and prompts disabled. Revalidation, staging and commit share
+one owner/project broker lock, closing the inter-request TOCTOU window. The resulting commit hash is appended
+to the Agent hash chain. Pull, push, PR creation, credentials, signing and all
+Git network access remain a separately disabled `git-remote` permission.
 
 Tools are versioned: `read_file`, `write_file`, `edit_file`, `delete_file`,
 `search_code`, `terminal`, `git`, `browser` and `deploy`. Each call binds run,
@@ -425,11 +436,11 @@ tenant, workspace revision, arguments, permission class, preview, approval,
 result digest and audit ID. Read context uses an allowlist. Writes apply as a
 reviewable patch. Execute/network/package/secret/Git/deploy permissions are
 separate, short-lived and revocable. Subagents cannot widen parent authority.
-The implemented Agent matrix currently grants only context read, model-network,
-workspace write, test/build execution and deployment review. Each grant requires
+The implemented Agent matrix currently grants context read, model-network,
+workspace write, test/build execution, local Git commit and deployment review. Each grant requires
 a scope token plus an owner-scoped UUID that is atomically consumed in SQLite;
 reuse is rejected across actions and runs. Grant and denial decisions enter the
-same hash-chained run ledger. Package install, Agent Git, browser network,
+same hash-chained run ledger. Package install, remote Git, browser network,
 secret-reference, destructive delete and deployment execution are visibly
   disabled until their own adapters and recovery gates exist. Recoverable delete
   and restore are workspace-write capabilities; destructive delete remains a

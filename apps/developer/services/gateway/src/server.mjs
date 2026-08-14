@@ -76,6 +76,7 @@ const agentOrchestrator = createAgentOrchestrator({
   modelRouter,
   projectMemory,
   workspaceRuntime: runtime,
+  gitService,
 });
 const collaborationService = createCollaborationService({
   filename: join(stateDir, "collaboration.sqlite"),

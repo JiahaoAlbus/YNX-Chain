@@ -10,10 +10,11 @@ export function createAgentOrchestrator({
   modelRouter,
   projectMemory,
   workspaceRuntime,
+  gitService,
 }) {
   const db = new DatabaseSync(filename);
   db.exec(
-    "PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL; PRAGMA busy_timeout=5000; CREATE TABLE IF NOT EXISTS agent_runs(owner_id TEXT NOT NULL,run_id TEXT NOT NULL,project_id TEXT NOT NULL,status TEXT NOT NULL,provider TEXT NOT NULL,model TEXT NOT NULL,intent TEXT NOT NULL,workspace_revision INTEGER NOT NULL,plan TEXT,approved_paths TEXT NOT NULL DEFAULT '[]',approved_create_paths TEXT NOT NULL DEFAULT '[]',approved_delete_paths TEXT NOT NULL DEFAULT '[]',proposal TEXT,review TEXT,deployment TEXT,trash TEXT NOT NULL DEFAULT '[]',created_at TEXT NOT NULL,updated_at TEXT NOT NULL,PRIMARY KEY(owner_id,run_id)); CREATE TABLE IF NOT EXISTS agent_events(owner_id TEXT NOT NULL,run_id TEXT NOT NULL,sequence INTEGER NOT NULL,event_type TEXT NOT NULL,payload TEXT NOT NULL,previous_hash TEXT NOT NULL,event_hash TEXT NOT NULL,created_at TEXT NOT NULL,PRIMARY KEY(owner_id,run_id,sequence)); CREATE TABLE IF NOT EXISTS agent_approvals(owner_id TEXT NOT NULL,approval_id TEXT NOT NULL,permission TEXT NOT NULL,run_id TEXT NOT NULL,created_at TEXT NOT NULL,PRIMARY KEY(owner_id,approval_id));",
+    "PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL; PRAGMA busy_timeout=5000; CREATE TABLE IF NOT EXISTS agent_runs(owner_id TEXT NOT NULL,run_id TEXT NOT NULL,project_id TEXT NOT NULL,status TEXT NOT NULL,provider TEXT NOT NULL,model TEXT NOT NULL,intent TEXT NOT NULL,workspace_revision INTEGER NOT NULL,plan TEXT,approved_paths TEXT NOT NULL DEFAULT '[]',approved_create_paths TEXT NOT NULL DEFAULT '[]',approved_delete_paths TEXT NOT NULL DEFAULT '[]',proposal TEXT,review TEXT,deployment TEXT,git_operation TEXT,trash TEXT NOT NULL DEFAULT '[]',created_at TEXT NOT NULL,updated_at TEXT NOT NULL,PRIMARY KEY(owner_id,run_id)); CREATE TABLE IF NOT EXISTS agent_events(owner_id TEXT NOT NULL,run_id TEXT NOT NULL,sequence INTEGER NOT NULL,event_type TEXT NOT NULL,payload TEXT NOT NULL,previous_hash TEXT NOT NULL,event_hash TEXT NOT NULL,created_at TEXT NOT NULL,PRIMARY KEY(owner_id,run_id,sequence)); CREATE TABLE IF NOT EXISTS agent_approvals(owner_id TEXT NOT NULL,approval_id TEXT NOT NULL,permission TEXT NOT NULL,run_id TEXT NOT NULL,created_at TEXT NOT NULL,PRIMARY KEY(owner_id,approval_id));",
   );
   if (
     !db
@@ -34,6 +35,7 @@ export function createAgentOrchestrator({
   for (const [column, definition] of [
     ["approved_delete_paths", "TEXT NOT NULL DEFAULT '[]'"],
     ["trash", "TEXT NOT NULL DEFAULT '[]'"],
+    ["git_operation", "TEXT"],
   ])
     if (
       !db
@@ -52,7 +54,7 @@ export function createAgentOrchestrator({
       "INSERT INTO agent_runs(owner_id,run_id,project_id,status,provider,model,intent,workspace_revision,plan,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)",
     ),
     updateRun = db.prepare(
-      "UPDATE agent_runs SET status=?,provider=?,model=?,plan=?,approved_paths=?,approved_create_paths=?,approved_delete_paths=?,proposal=?,review=?,deployment=?,trash=?,workspace_revision=?,updated_at=? WHERE owner_id=? AND run_id=?",
+      "UPDATE agent_runs SET status=?,provider=?,model=?,plan=?,approved_paths=?,approved_create_paths=?,approved_delete_paths=?,proposal=?,review=?,deployment=?,git_operation=?,trash=?,workspace_revision=?,updated_at=? WHERE owner_id=? AND run_id=?",
     ),
     lastEvent = db.prepare(
       "SELECT sequence,event_hash FROM agent_events WHERE owner_id=? AND run_id=? ORDER BY sequence DESC LIMIT 1",
@@ -518,6 +520,7 @@ export function createAgentOrchestrator({
           ...current,
           status: "restored",
           deployment: null,
+          gitOperation: null,
           trash,
           workspaceRevision: saved.revision,
         });
@@ -635,8 +638,132 @@ export function createAgentOrchestrator({
           ...review,
           validationAttempts: reviewed.attempts,
         });
-      } else if (body.action === "prepare-deployment") {
+      } else if (body.action === "prepare-git") {
         requireState(current, "tested");
+        if (!gitService?.runForOwner)
+          throw fault(
+            "The reviewed local Git adapter is unavailable.",
+            "git_adapter_unavailable",
+            503,
+          );
+        const latest = workspaceStore.get(owner, current.projectId),
+          testEvent = current.events.findLast(
+            (event) => event.event_type === "tester.completed",
+          );
+        if (
+          !testEvent?.payload?.result?.ok ||
+          latest.revision !== current.workspaceRevision
+        )
+          throw fault(
+            "Passing Tester evidence for the current workspace revision is required.",
+            "git_test_evidence_required",
+            409,
+          );
+        const status = await gitService.runForOwner(owner, current.projectId),
+          message = body.message
+            ? text(body.message, 1, 4096, "commit message")
+            : `Agent: ${current.intent.slice(0, 72)}`,
+          files = gitReviewFiles(status, latest, current.trash);
+        if (!files.length)
+          throw fault(
+            "The current workspace has no local Git changes to commit.",
+            "git_no_changes",
+            409,
+          );
+        const intent = {
+            projectId: current.projectId,
+            workspaceRevision: latest.revision,
+            initialized: status.initialized,
+            branch: status.branch,
+            head: status.head || null,
+            message,
+            files,
+            testEvidenceHash: testEvent.event_hash,
+          },
+          gitOperation = {
+            ...intent,
+            previewDigest: sha(stable(intent)),
+            preparedAt: new Date().toISOString(),
+            executable: false,
+            boundary: "local-only-no-network-no-credentials-no-hooks-no-signing",
+          };
+        persist({ ...current, status: "git_review", gitOperation });
+        append(owner, id, "git.previewed", gitOperation);
+      } else if (body.action === "approve-git") {
+        requireState(current, "git_review");
+        if (!gitService?.runForOwner || !current.gitOperation)
+          throw fault(
+            "The reviewed local Git adapter is unavailable.",
+            "git_adapter_unavailable",
+            503,
+          );
+        const latest = workspaceStore.get(owner, current.projectId),
+          preview = current.gitOperation,
+          status = await gitService.runForOwner(owner, current.projectId);
+        if (
+          latest.revision !== preview.workspaceRevision ||
+          status.initialized !== preview.initialized ||
+          (status.branch || null) !== (preview.branch || null) ||
+          (status.head || null) !== (preview.head || null) ||
+          stable(gitReviewFiles(status, latest, current.trash)) !==
+            stable(preview.files)
+        )
+          throw fault(
+            "The workspace or local repository changed after Git review.",
+            "git_preview_stale",
+            409,
+          );
+        authorize(
+          "git-local-commit",
+          "git-local-commit-once",
+          "One-time local Git commit approval is required.",
+          "git_commit_approval_required",
+        );
+        try {
+          const committed = await gitService.runForOwner(
+            owner,
+            current.projectId,
+            {
+              protocolVersion: "ynx-code-git-v1",
+              action: "commit-reviewed",
+              expectedRevision: preview.workspaceRevision,
+              expectedInitialized: preview.initialized,
+              expectedHead: preview.head,
+              expectedBranch: preview.branch,
+              paths: preview.files.map((file) => file.path),
+              message: preview.message,
+              authorName: "YNX Code Agent",
+              authorEmail: "agent@ynx.local",
+            },
+          );
+          const gitOperation = {
+            ...preview,
+            approval: "git-local-commit-once",
+            committedAt: new Date().toISOString(),
+            commit: committed.head,
+            branch: committed.branch,
+            executable: false,
+            executed: true,
+          };
+          persist({ ...current, status: "git_committed", gitOperation });
+          append(owner, id, "git.committed", {
+            approval: "git-local-commit-once",
+            previewDigest: preview.previewDigest,
+            workspaceRevision: latest.revision,
+            commit: committed.head,
+            branch: committed.branch,
+            files: preview.files,
+            boundary: preview.boundary,
+          });
+        } catch (error) {
+          append(owner, id, "git.commit_failed", {
+            previewDigest: preview.previewDigest,
+            code: error.code || "git_operation_failed",
+          });
+          throw error;
+        }
+      } else if (body.action === "prepare-deployment") {
+        requireStateOneOf(current, ["tested", "git_committed"]);
         const latest = workspaceStore.get(owner, current.projectId),
           testEvent = current.events.findLast(
             (event) => event.event_type === "tester.completed",
@@ -712,6 +839,7 @@ export function createAgentOrchestrator({
           nullable(value.proposal),
           nullable(value.review),
           nullable(value.deployment),
+          nullable(value.gitOperation),
           stable(value.trash || []),
           value.workspaceRevision,
           now,
@@ -798,6 +926,7 @@ function record(row, eventRows) {
     proposal: parseNullable(row.proposal),
     review: parseNullable(row.review),
     deployment: parseNullable(row.deployment),
+    gitOperation: parseNullable(row.git_operation),
     trash,
     usage: summarizeUsage(parsedEvents),
     permissions: permissionMatrix(parsedEvents, row.status, trash),
@@ -886,10 +1015,23 @@ function permissionMatrix(events, status, trash) {
         approval: "deployment-review-once",
         uses: count("deployment-review"),
       },
+      {
+        id: "git-local-commit",
+        level: "git",
+        status:
+          status === "git_committed"
+            ? "used"
+            : status === "git_review"
+              ? "available"
+              : "locked",
+        approval: "git-local-commit-once",
+        uses: count("git-local-commit"),
+        boundary: "local-only; no network, credentials, hooks, signing or remote",
+      },
     ];
   for (const [id, level, boundary] of [
     ["package-install", "package", "reviewed adapter not connected"],
-    ["git", "git", "agent Git authority disabled"],
+    ["git-remote", "git", "pull, push and PR execution disabled"],
     ["browser-network", "network", "agent browser authority disabled"],
     ["secret-reference", "secret", "secret material is ineligible"],
     ["destructive-delete", "destructive", "irrecoverable delete disabled"],
@@ -1325,6 +1467,48 @@ function validateCreatePaths(value, files) {
         409,
       );
   return paths;
+}
+function gitReviewFiles(status, workspace, trash = []) {
+  if (!status || typeof status.initialized !== "boolean")
+    throw fault("Local Git returned an invalid status.", "git_status_invalid", 502);
+  if (!status.initialized)
+    return Object.entries(workspace.files)
+      .map(([path, content]) => ({
+        path: safePath(path),
+        operation: "add",
+        gitStatus: "??",
+        digest: sha(content),
+        bytes: Buffer.byteLength(content),
+      }))
+      .sort((left, right) => left.path.localeCompare(right.path));
+  const deleted = new Map(trash.map((file) => [file.path, file]));
+  return (status.changes || [])
+    .map((change) => {
+      const path = safePath(change.path),
+        content = workspace.files[path],
+        prior = deleted.get(path),
+        operation =
+          content === undefined
+            ? "delete"
+            : change.status === "??" || change.indexStatus === "A"
+              ? "add"
+              : "update";
+      if (content === undefined && !prior)
+        throw fault(
+          "Deleted Git content is not available in recoverable Agent trash.",
+          "git_deleted_content_unavailable",
+          409,
+        );
+      const reviewed = content === undefined ? prior.content : content;
+      return {
+        path,
+        operation,
+        gitStatus: String(change.status || "").slice(0, 2),
+        digest: sha(reviewed),
+        bytes: Buffer.byteLength(reviewed),
+      };
+    })
+    .sort((left, right) => left.path.localeCompare(right.path));
 }
 function safePath(value) {
   if (

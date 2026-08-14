@@ -3,6 +3,7 @@ import { mkdir, mkdtemp, realpath, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawn } from "node:child_process";
+import { Readable } from "node:stream";
 import {
   detectSandbox,
   resolveExecutable,
@@ -92,6 +93,68 @@ export function createGitService(options) {
         "protocol_mismatch",
         400,
       );
+    if (body.action === "commit-reviewed") {
+      if (
+        !Number.isInteger(body.expectedRevision) ||
+        body.expectedRevision !== snapshot.revision
+      )
+        throw fault(
+          "The workspace changed after Git review.",
+          "git_preview_stale",
+          409,
+        );
+      if (body.expectedInitialized !== initialized)
+        throw fault(
+          "The repository changed after Git review.",
+          "git_preview_stale",
+          409,
+        );
+      const paths = validPaths(body.paths),
+        message = validMessage(body.message),
+        identity = validIdentity(body),
+        expectedHead = body.expectedHead == null ? null : validRevision(body.expectedHead),
+        expectedBranch =
+          body.expectedBranch == null ? null : validBranch(body.expectedBranch);
+      if (!paths.length)
+        throw fault(
+          "Select at least one reviewed workspace path.",
+          "git_paths_required",
+          400,
+        );
+      if (!initialized)
+        await initializeRepository(ownerRoot, repository, snapshot, git);
+      return withWorkspace(snapshot, repository, git, async (context) => {
+        const before = await status(context),
+          actualPaths = before.changes
+            .map((change) => change.path)
+            .sort(),
+          reviewedPaths = [...paths].sort();
+        if (
+          (initialized &&
+            (before.head !== expectedHead || before.branch !== expectedBranch)) ||
+          JSON.stringify(actualPaths) !== JSON.stringify(reviewedPaths)
+        )
+          throw fault(
+            "The repository changed after Git review.",
+            "git_preview_stale",
+            409,
+          );
+        const staged = await command(context, ["add", "-A", "--", ...paths]);
+        if (staged.code !== 0) throw gitFault(staged);
+        const committed = await command(
+          context,
+          ["commit", "--no-gpg-sign", "--no-verify", "-m", message],
+          {
+            GIT_AUTHOR_NAME: identity.name,
+            GIT_AUTHOR_EMAIL: identity.email,
+            GIT_COMMITTER_NAME: identity.name,
+            GIT_COMMITTER_EMAIL: identity.email,
+          },
+        );
+        if (committed.code !== 0) throw gitFault(committed);
+        return status(context);
+      });
+    }
     if (body.action === "init") {
       if (initialized)
         return {
@@ -140,6 +203,25 @@ export function createGitService(options) {
         workspace,
         repository: canonical,
       });
+    } finally {
+      await rm(workspace, { recursive: true, force: true });
+    }
+  }
+  async function initializeRepository(ownerRoot, repository, snapshot, git) {
+    await mkdir(ownerRoot, { recursive: true, mode: 0o700 });
+    await mkdir(repository, { mode: 0o700 });
+    const canonical = await realpath(repository),
+      workspace = await temporaryWorkspace(snapshot);
+    try {
+      const launch = sandboxLaunch({
+        sandbox,
+        workspace,
+        command: git,
+        args: ["init", "--bare", "--initial-branch=main", canonical],
+        writableBinds: [{ host: canonical, guest: "/repo" }],
+      });
+      const result = await run(launch, 15_000);
+      if (result.code !== 0) throw gitFault(result);
     } finally {
       await rm(workspace, { recursive: true, force: true });
     }
@@ -379,8 +461,29 @@ export function createGitService(options) {
       if (locks.get(key) === current) locks.delete(key);
     }
   }
+  async function runForOwner(owner, projectId, body = null) {
+    if (typeof owner !== "string" || !owner)
+      throw fault("A workspace owner is required.", "workspace_owner_required", 401);
+    if (!/^[A-Za-z0-9_-]{1,160}$/.test(projectId))
+      throw fault("Invalid project identifier.", "invalid_project", 400);
+    if (!sandbox.ready)
+      throw fault(
+        "The approved Git sandbox is unavailable.",
+        "sandbox_unavailable",
+        503,
+      );
+    const request = body
+      ? Readable.from([Buffer.from(JSON.stringify(body))])
+      : Readable.from([]);
+    request.method = body ? "POST" : "GET";
+    const url = new URL(`http://internal/runtime/git/${projectId}`);
+    return exclusive(`${owner}:${projectId}`, () =>
+      execute({ request, url, owner, projectId }),
+    );
+  }
   return {
     handler,
+    runForOwner,
     status: () => ({
       activeRepositories: locks.size,
       sandbox: sandbox.kind,

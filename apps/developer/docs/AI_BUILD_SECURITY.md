@@ -16,14 +16,15 @@ file and match its captured digest; its content is retained in owner-scoped
 trash. Restoring requires a fresh one-time grant and unchanged workspace
 revision. Irreversible delete remains disabled.
 Test/build execution, network, package install,
-secret-reference, Git commit, Git push and deployment are separate permissions.
+secret-reference, local Git commit, remote Git and deployment are separate permissions.
 Every implemented grant combines its scope token with a caller-generated UUID.
 The broker atomically consumes that UUID in the owner-scoped SQLite approval
 ledger, records granted and denied decisions in the run hash chain, and rejects
 reuse even across permission classes or runs. The UI exposes the current matrix;
-package, Agent Git, browser-network, secret-reference, destructive-delete and
-deployment-execution authority remain disabled. One-time grants cannot be
-reused.
+local Git commit is available only after passing Tester evidence, a digest-bound
+preview and a fresh `git-local-commit-once` grant. Package install, remote Git,
+browser-network, secret-reference, destructive-delete and deployment-execution
+authority remain disabled. One-time grants cannot be reused.
 
 ## Data boundary
 
@@ -60,7 +61,14 @@ restart. Test/check tasks also enable the bundled Node permission model, allow
 filesystem access only to that workspace, and do not grant network, child
 process, worker, native-addon, WASI, inspector, or FFI permissions. macOS adds
 an outer operating-system sandbox; Windows uses the Node permission boundary.
-Git push and deployment are not in that executor allowlist.
+Agent Git uses the owner-isolated repository broker for local init, exact-path
+stage and commit only. The preview binds workspace revision, branch, HEAD,
+commit message, file digests/byte counts and Tester event hash. Approval is
+rejected if any binding changes. Hooks, signing, prompts, credentials and all
+remote/network operations remain disabled. Revalidation, exact-path staging and
+commit execute under one owner/project repository lock so another request
+cannot widen the staged set between review and commit. Git push and deployment are not in
+the executor allowlist.
 
 YNX Developer never handles a private key. Deployment requires exact Wallet
 authorization and a separate final network approval. A submitted hash remains

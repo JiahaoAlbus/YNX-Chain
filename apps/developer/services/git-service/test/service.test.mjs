@@ -66,19 +66,46 @@ test("Git broker isolates a real persistent object database and supports stage, 
     ).initialized,
     false,
   );
-  const initialized = await (await call({ action: "init" })).json();
-  assert.equal(initialized.initialized, true);
-  await call({ action: "stage", paths: ["src/main.cpp"] });
-  const committed = await (
-    await call({
-      action: "commit",
-      message: "Initial source",
-      authorName: "YNX Tester",
-      authorEmail: "tester@ynx.local",
-    })
-  ).json();
+  const owner = runtime.ownerForRequest({ headers: { cookie } });
+  assert.ok(owner);
+  assert.equal((await git.runForOwner(owner, "git-project")).initialized, false);
+  await assert.rejects(
+    git.runForOwner("", "git-project"),
+    (error) => error.code === "workspace_owner_required",
+  );
+  await assert.rejects(
+    git.runForOwner(owner, "../other"),
+    (error) => error.code === "invalid_project",
+  );
+  const committed = await git.runForOwner(owner, "git-project", {
+    protocolVersion: "ynx-code-git-v1",
+    action: "commit-reviewed",
+    expectedRevision: 1,
+    expectedInitialized: false,
+    expectedHead: null,
+    expectedBranch: null,
+    paths: ["src/main.cpp"],
+    message: "Initial reviewed source",
+    authorName: "YNX Tester",
+    authorEmail: "tester@ynx.local",
+  });
   assert.equal(committed.commits.length, 1);
   assert.equal(committed.changes.length, 0);
+  await assert.rejects(
+    git.runForOwner(owner, "git-project", {
+      protocolVersion: "ynx-code-git-v1",
+      action: "commit-reviewed",
+      expectedRevision: 1,
+      expectedInitialized: false,
+      expectedHead: null,
+      expectedBranch: null,
+      paths: ["src/main.cpp"],
+      message: "Stale commit",
+      authorName: "YNX Tester",
+      authorEmail: "tester@ynx.local",
+    }),
+    (error) => error.code === "git_preview_stale",
+  );
   await fetch(`${base}/runtime/workspaces/git-project`, {
     method: "PUT",
     headers: { cookie, "content-type": "application/json" },

@@ -621,6 +621,7 @@ export type ModelCatalog = {
 export type AgentRun = {
   runId: string;
   projectId: string;
+  intent: string;
   status: string;
   provider: string;
   model: string;
@@ -650,6 +651,30 @@ export type AgentRun = {
     deletedRevision: number;
   }>;
   review: { approved: boolean; summary: string; findings: string[] } | null;
+  gitOperation: {
+    projectId: string;
+    workspaceRevision: number;
+    initialized: boolean;
+    branch: string | null;
+    head: string | null;
+    message: string;
+    files: Array<{
+      path: string;
+      operation: "add" | "update" | "delete";
+      gitStatus: string;
+      digest: string;
+      bytes: number;
+    }>;
+    testEvidenceHash: string;
+    previewDigest: string;
+    preparedAt: string;
+    executable: boolean;
+    executed?: boolean;
+    boundary: "local-only-no-network-no-credentials-no-hooks-no-signing";
+    approval?: "git-local-commit-once";
+    committedAt?: string;
+    commit?: string;
+  } | null;
   deployment: {
     target: "ynx-testnet" | "web-preview";
     workspaceRevision: number;
