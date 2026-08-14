@@ -43,7 +43,6 @@
       "consumedForReleaseTruth": false,
       "note": "The Android branch advanced beyond frozen evidence without an Owner terminal checkpoint; device truth remains unchanged."
     },
-    {"owner":"desktop-cli-sdk","candidateCommit":"02acde92b34ba555ed55f5b512d3dd8a48c1412e","remoteFastForwardReported":true,"remoteReadbackComplete":true,"ciComplete":true,"consumedForReleaseTruth":false,"note":"Fedora arm64 RPM lifecycle evidence remains queued separately."},
     {"owner":"desktop-cli-sdk","candidateCommit":"f46866333b031a43c60d0f759db03edf5cf04fe8","remoteFastForwardReported":true,"remoteReadbackComplete":true,"ciComplete":true,"consumedForReleaseTruth":false,"note":"Fedora arm64 RPM lifecycle handoff remains queued separately; rollback descendants are not consumed."}
   ],
   "ownerSources": [
@@ -86,8 +85,8 @@
     {
       "owner": "desktop-cli-sdk",
       "branch": "codex/wallet-desktop-cli-sdk-20260813",
-      "sourceCommit": "1cdcc8fbf4b1264bec763ee6c713b353b12380ac",
-      "remoteCommitObserved": "1cdcc8fbf4b1264bec763ee6c713b353b12380ac",
+      "sourceCommit": "02acde92b34ba555ed55f5b512d3dd8a48c1412e",
+      "remoteCommitObserved": "02acde92b34ba555ed55f5b512d3dd8a48c1412e",
       "branchHeadObserved": "05e40267902fa17eb76b389f99e38ee181bff8e1",
       "remoteVerifiedAt": "2026-08-14T04:05:00Z",
       "verificationMode": "github-git-database-parent-tree-blob-readback"
@@ -536,8 +535,8 @@
     "linux-arm64-rpm-action": {
       "type": "git-object",
       "direct": true,
-      "commit": "b06bf39c365408ba28e9e5f9312f293693e3f73d",
-      "path": "release/wallet-desktop/linux-arm64-rpm/manifest.json",
+      "commit": "02acde92b34ba555ed55f5b512d3dd8a48c1412e",
+      "path": "release/wallet-desktop/linux-arm64-rpm-fedora/manifest.json",
       "supports": ["linux-desktop-arm64-rpm.build", "linux-desktop-arm64-rpm.install", "linux-desktop-arm64-rpm.coldLaunch", "linux-desktop-arm64-rpm.secondLaunch", "linux-desktop-arm64-rpm.testnet"]
     },
     "windows-desktop-action": {
@@ -761,10 +760,10 @@
       "ownerSource": "desktop-cli-sdk",
       "artifactClass": "unsigned-native-ci-rpm-artifact",
       "status": "native-ci-installed-lifecycle",
-      "capabilities": {"installedNativeCI":true,"installedLocal":false,"upgradeTestedNativeCI":true,"uninstallVerifiedNativeCI":true,"postUploadRedownloadHashVerified":true,"rpmScriptsTested":false,"fedoraDnfCompatibilityTested":false},
+      "capabilities": {"installedNativeCI":true,"installedLocal":false,"upgradeTestedNativeCI":true,"uninstallVerifiedNativeCI":true,"postUploadRedownloadHashVerified":true,"rpmScriptsTested":true,"fedoraDnfCompatibilityTested":true,"rollbackTested":false},
       "gates": {"build":true,"install":true,"coldLaunch":true,"secondLaunch":true,"testnet":true,"sign":false,"tx":false,"callback":false,"reconnect":false,"downloadHosted":false,"productionSigned":false,"storeReleased":false},
       "evidenceBindings": {"build":["linux-arm64-rpm-action"],"install":["linux-arm64-rpm-action"],"coldLaunch":["linux-arm64-rpm-action"],"secondLaunch":["linux-arm64-rpm-action"],"testnet":["linux-arm64-rpm-action"],"sign":["linux-arm64-rpm-action"],"tx":["linux-arm64-rpm-action"],"callback":["linux-arm64-rpm-action"],"reconnect":["linux-arm64-rpm-action"],"downloadHosted":["linux-arm64-rpm-action"],"productionSigned":["linux-arm64-rpm-action"],"storeReleased":["linux-arm64-rpm-action"]},
-      "notes": ["Ubuntu 24.04 arm64 used rpm --nodeps --noscripts, then explicitly set Electron sandbox root:root/4755 before install→upgrade, cold/second launch, 0x1917/fail-close, uninstall and artifact hash gates. RPM scripts, Fedora/DNF compatibility, installedLocal, signing and hosting are not claimed."]
+      "notes": ["Fedora 42 arm64 userland on the native arm64 runner kernel used DNF and executed RPM postinstall/postuninstall scripts, then proved install→upgrade, sandbox state, cold/second GUI launch, 0x1917/fail-close, uninstall and artifact hash gates. SYS_ADMIN/seccomp relaxation was limited to Electron namespace creation. Rollback, installedLocal, signing and hosting are not claimed."]
     },
     {
       "id": "windows-desktop-x64",

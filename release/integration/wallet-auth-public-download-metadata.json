@@ -191,9 +191,9 @@
     },
     {
       "id": "linux-arm64-rpm",
-      "sourceCommit": "b06bf39c365408ba28e9e5f9312f293693e3f73d",
+      "sourceCommit": "02acde92b34ba555ed55f5b512d3dd8a48c1412e",
       "artifactName": "ynx-wallet-desktop-0.1.0-aarch64.rpm",
-      "sha256": "fee7f168122ba0f610f042d97a8863e5b3bcae64f96b54863e7829bfdeb8e40a",
+      "sha256": "f520f138d2decfa8c33d721220482f6cf5f24b6a503fb381e484c56fcc7c56d2",
       "signingClass": "unsigned-linux-rpm-testnet-candidate",
       "publicUrl": null,
       "immutableUrl": null,
@@ -201,7 +201,7 @@
       "productionSigned": false,
       "storeReleased": false,
       "websitePublishable": false,
-      "exclusionReason": "Ubuntu rpm --noscripts native CI with explicit sandbox ownership/mode does not prove RPM scripts, Fedora/DNF compatibility, signing or public hosting."
+      "exclusionReason": "Fedora/DNF/RPM-script native CI and artifact readback do not provide production signing or immutable public hosting."
     },
     {
       "id": "windows-cli-arm64-0.2.0",
