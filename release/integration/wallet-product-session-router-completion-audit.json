@@ -44,10 +44,13 @@
         "packages/wallet-auth/src/product-session-router.js",
         "packages/wallet-auth/test/product-session-router.test.mjs",
         "packages/wallet-auth/test/product-session-products.test.mjs",
-        "packages/wallet-auth/evidence/metamask-installed-observation.json"
+        "packages/wallet-auth/evidence/metamask-installed-observation.json",
+        "packages/wallet-auth/evidence/metamask-eip1193-live.html",
+        "packages/wallet-auth/evidence/metamask-eip1193-live-observation.json"
       ],
       "remaining": [
-        "Verify YNX Wallet detection/open behavior and the EIP-1193 adapter against MetaMask in approved installed applications"
+        "Verify YNX Wallet detection/open behavior in approved installed applications",
+        "Repeat the installed MetaMask harness after Computer Use recovers and observe the approval result, request ID, chain, and masked account"
       ]
     },
     "C_deepLinkRouter": {
@@ -90,21 +93,24 @@
         "packages/wallet-auth/evidence/ynx-wallet-installed-unavailable-computercontrol.jpeg",
         "packages/wallet-auth/evidence/metamask-installed-observation.json",
         "packages/wallet-auth/evidence/metamask-biometric-timeout-computercontrol.png",
+        "packages/wallet-auth/evidence/metamask-eip1193-live.html",
+        "packages/wallet-auth/evidence/metamask-eip1193-live-observation.json",
         "packages/wallet-auth/test/product-session-gateway-client.test.mjs",
         "packages/wallet-auth/test/product-session-gateway-http.test.mjs",
         "packages/wallet-auth/test/product-session-migration.test.mjs"
       ],
       "targetedTests": {
-        "passed": 56,
+        "passed": 57,
         "failed": 0,
         "concurrentProductSessions": 120
       },
       "fullPackageTests": {
-        "passed": 158,
+        "passed": 159,
         "failed": 0
       },
       "remaining": [
-        "MetaMask is installed, enabled, and granted full site access; ComputerControl reached the real unlock route, but biometric unlock timed out without user confirmation before provider connection, chain approval, account approval, or Product Session",
+        "MetaMask was unlocked with user Touch ID, injected a provider, and the shared EIP-1193 harness loaded and triggered its real connection request; Computer Use timed out and its native pipe closed before the approval result, request ID, chain, or masked account was observable",
+        "The Wallet Companion's browser RPC preflight to https://evm.ynxweb4.com failed CORS before account approval; Wallet UI and Chain deployment configuration are outside this branch scope",
         "No installed YNX Wallet application was available for a real approval/session flow",
         "Each actually migrated product requires installed Web/desktop/mobile approval, rejection, timeout, revoke, restart, network-loss and Retry evidence"
       ]
@@ -130,6 +136,8 @@
   "completion": false,
   "blockingConditions": [
     "No migrated product runtime and installed Wallet combination is currently available for a real v2 approval/session flow",
+    "Installed MetaMask approval outcome remains unverified because Computer Use lost its native pipe after the shared harness triggered the request",
+    "Wallet Companion browser RPC preflight is blocked by external evm.ynxweb4.com CORS configuration before MetaMask account approval",
     "product consumer and native packaging migrations are owned by isolated product/platform tasks"
   ]
 }
