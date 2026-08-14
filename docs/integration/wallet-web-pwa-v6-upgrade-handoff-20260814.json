@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "owner": "Wallet/Auth Web/PWA/Extensions",
+  "parentCommit": "24dc97016ea3db18d862b5886a9597a5a46e5dcc",
+  "change": "Current publication uses a fresh v6 PWA cache so an incomplete update cannot mutate the active v5 shell; activation purges v5 only after the new worker installs successfully.",
+  "browserRuntimeRerun": false,
+  "browserVisibleRecheck": false,
+  "deployedPublic": false,
+  "downloadHosted": false
+}

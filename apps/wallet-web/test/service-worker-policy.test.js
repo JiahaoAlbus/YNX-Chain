@@ -7,7 +7,7 @@ const origin = "https://wallet.ynxweb4.com";
 const request = (url, method="GET", mode="cors") => ({url,method,mode});
 
 test("PWA routes only same-origin GET navigation and assets into cache strategies", () => {
-  assert.equal(PWA_CACHE,"ynx-wallet-web-v5");
+  assert.equal(PWA_CACHE,"ynx-wallet-web-v6");
   assert.equal(serviceWorkerRoute(request(`${origin}/wallet`,"GET","navigate"),origin),"navigation-network-first");
   assert.equal(serviceWorkerRoute(request(`${origin}/app.js`),origin),"asset-cache-first");
   assert.equal(serviceWorkerRoute(request("https://evm.ynxweb4.com","POST"),origin),"network-only");
@@ -16,7 +16,7 @@ test("PWA routes only same-origin GET navigation and assets into cache strategie
 });
 
 test("only obsolete YNX caches are purged and requests resolve to canonical asset keys",()=>{
-  assert.deepEqual(obsoletePwaCaches(["ynx-wallet-web-v2",PWA_CACHE,"another-product-v1","ynx-wallet-web-preview"]),["ynx-wallet-web-v2"]);
+  assert.deepEqual(obsoletePwaCaches(["ynx-wallet-web-v2","ynx-wallet-web-v5",PWA_CACHE,"another-product-v1","ynx-wallet-web-preview"]),["ynx-wallet-web-v2","ynx-wallet-web-v5"]);
   assert.equal(assetKeyForRequest(request(`${origin}/`),origin),"./index.html");
   assert.equal(assetKeyForRequest(request(`${origin}/app.js?rollback=1`),origin),"./app.js");
   assert.equal(assetKeyForRequest(request("https://evm.ynxweb4.com"),origin),null);
