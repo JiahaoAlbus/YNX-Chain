@@ -209,6 +209,12 @@ Commit `fa88cc80779a85956053ecc053353b5984a73209` moves the final Modal lifecycl
 
 Verification passed the focused audit 10/10 suite, Wallet 84/84, typecheck, product check, Social harness contract check, release-content check, full-goal coverage and `git diff --check`. A mode-0700 current-source Android Hermes export passed with 2,743 modules and all temporary links and export files were removed. No device command or interaction was performed, so `testedOnDevice`, `installedLocal`, `downloadHosted`, native-app `deployedPublic`, `productionSigned` and `storeReleased` remain false for this exact source.
 
+## Replay persistence lifecycle checkpoint
+
+Commit `3e94b4985e1fd079e91517828c5e4d1f64f33964` moves the final lifecycle assertion for authorization nonce and action replay consumption to each SecureStore write linearization point. The canonical authorization callback plus Exchange, Developer, DEX and Quant action callbacks retain their exact Modal generation, account and expiry binding while a serialized replay operation waits. If the Wallet backgrounds, the Modal closes, the account changes or the request expires before persistence, the replay state remains unchanged and no callback is opened.
+
+Verification passed the focused replay 8/8 suite, Wallet 86/86, typecheck, product check, Social harness contract check, release-content check, full-goal coverage and `git diff --check`. A mode-0700 current-source Android Hermes export passed with 2,743 modules; Expo reported a post-export forced process exit but returned status 0 after writing the HBC, and all temporary links and export files were removed. No device command or interaction was performed, so `testedOnDevice`, `installedLocal`, `downloadHosted`, native-app `deployedPublic`, `productionSigned` and `storeReleased` remain false for this exact source.
+
 ## In-flight unlock invalidation checkpoint
 
 Commit `d7d198da176a010f6b9aae4e200ca9218b6ee847` prevents a pending biometric unlock from reopening a Wallet that was locked while the prompt or SecureStore read was in flight. Backgrounding, explicit user lock, reconstruction/restart, account switch and privacy-protection failure synchronously advance an unlock epoch. The policy checks foreground/epoch after biometric authorization and again after exact-account secure-material verification, immediately before dispatching unlock. The locked recovery entry is also disabled while unlock is pending.
