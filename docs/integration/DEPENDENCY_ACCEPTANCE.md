@@ -1,7 +1,7 @@
 # YNX Data Fabric Dependency Acceptance
 
-Source Commit: `59c60864ac433bdf474ce16f9199533907017deb`
-Release Candidate: `ynx-data-fabric-59c60864ac43`
+Source Commit: `02e115743786d5e78adc02a1df6029891e81dfb0`
+Release Candidate: `ynx-data-fabric-02e115743786`
 Phase: `INTEGRATE`
 Overall Status: `ACTIVE`
 
@@ -19,7 +19,7 @@ A dependency is accepted only when its owner supplies a versioned contract, dire
 | YNX Oracle | Source-labeled market facts with as-of, version, coverage and unavailable state | Data Fabric source model can represent it | Pending | Reconciliation adapter accepts the Oracle contract without making Oracle an asset authority |
 | YNX Explorer, Monitor and Trust | Event, Ledger, Saga, alert and correction evidence surfaces | Local APIs and metrics exist | Pending | Shared Testnet receipts are visible and correlated by event, request and audit identifiers |
 | YNX Integration | Unique protocol freeze, merge order and shared Testnet | Envelope v2 and Schema Registry v2 are source-bound | Pending | Freeze the v2 contract and publish dependency acceptance receipts |
-| YNX Security/SRE | PostgreSQL, JetStream, backup, deployment, alert, signer and artifact policy | Local and CI test paths pass | Pending | Run production-shaped failure drills and approve deployment and signing classes |
+| YNX Security/SRE | PostgreSQL, JetStream, backup, deployment, alert, signer and artifact policy | Exact-source single-primary PostgreSQL hotspot, duplicate-storm, restart, integrity and long-replay drill passes; local JetStream outage/redelivery tests pass | Pending | Run PostgreSQL-plus-replicated-JetStream signed ingress, consumer/process crash, broker partition/leader-loss and PostgreSQL replica-failover drills; approve deployment and signing classes |
 | YNX Website | Canonical page, truthful status, downloads, status and support links | Public metadata handoff exists with all public states false | Pending | Consume the handoff only after runtime and immutable hosting receipts exist |
 
 ## Current accepted boundary

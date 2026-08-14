@@ -1,7 +1,7 @@
 # YNX Data Fabric Evidence Index
 
-Engineering Source Commit: `59c60864ac433bdf474ce16f9199533907017deb`
-Release Candidate: `ynx-data-fabric-59c60864ac43`
+Engineering Source Commit: `02e115743786d5e78adc02a1df6029891e81dfb0`
+Release Candidate: `ynx-data-fabric-02e115743786`
 Phase: `INTEGRATE`
 Status: `ACTIVE`
 
@@ -9,8 +9,8 @@ Status: `ACTIVE`
 
 - Exact YNX 26 Workspace and `codex/final-data-fabric` Branch were verified before modification.
 - No concurrent Git writer was found. A CodexPro server process was observed for this Worktree and left untouched.
-- Commit `59c60864ac433bdf474ce16f9199533907017deb` is the frozen Engineering Source Commit. It preserves the Chain Core commitment reference boundary and adds same-product account isolation; remote review Branch `codex/data-fabric-typescript-sdk-20260814` and PR `#92` target the protected product Branch.
-- Current-source Run `31773430492` passed both Data Fabric jobs at exact evidence checkpoint `504f7e62128c05fdae6ab7357efcd5eceb8cc9f7`.
+- Commit `02e115743786d5e78adc02a1df6029891e81dfb0` is the frozen Engineering Source Commit. It preserves the Chain Core commitment reference boundary, account isolation and bounded Producer admission, and adds the PostgreSQL resilience probe plus exact-head CI binding; remote review Branch `codex/data-fabric-typescript-sdk-20260814` and PR `#92` target the protected product Branch.
+- Current-source Run `31775538974` passed both Data Fabric jobs after exact PR-head checkout. Its source-bound PostgreSQL resilience artifact was downloaded and both JSON SHA-256 values matched.
 - The workflow runs full Go tests, Data Fabric Race tests, vet, vulnerability analysis, Linux builds and hashes, SBOM generation, quality gates, secret scanning, JSON validation and isolated PostgreSQL 17.10 transaction and logical backup/restore tests.
 - The workflow does not upload a public artifact; `downloadHosted` and all public states remain false.
 - The two stale untracked recovery summaries discovered at takeover are preserved under `recovery/2026-07-23/` and are not current truth.
@@ -50,6 +50,7 @@ Status: `ACTIVE`
 - API: `internal/datafabricapi`
 - Account isolation: `internal/datafabricapi/auth.go`, `internal/datafabricapi/server.go`, `internal/datafabricapi/account_isolation_test.go`; ordinary data APIs are account-scoped and privileged audit export remains product-scoped.
 - Producer admission and capacity: `internal/datafabricapi/producer_backpressure_test.go`, `scripts/data-fabric/api-capacity/main.go`, `evidence/capacity/api-1000-producers-clean-source-20260814.json`; 1000 simultaneous independently signed local HTTP producers completed through a 64-request gate with explicit retryable backpressure and zero business errors.
+- PostgreSQL resilience and capacity: `scripts/data-fabric/postgres-resilience`, `evidence/postgres/resilience-seed-clean-source-20260814.json`, `evidence/postgres/resilience-verify-clean-source-20260814.json`; exact-source Linux CI exercised 10,000 events with 90% hotspot skew, 1,000 simultaneous duplicate rejects, a real service restart, zero-event RPO, integrity RTO, 10,000 applied Analytics facts and a 10,000-event idempotent second replay.
 - Go SDK: `sdk/datafabric`
 - TypeScript SDK: `sdk/datafabric-typescript`; its producer and consumer clients enforce HTTPS outside loopback, canonical credential bindings, event and delivery HMAC verification, response byte limits and strict receipt shapes.
 - Daemon, worker and operator CLI: `cmd/ynx-data-fabricd`, `cmd/ynx-data-fabric-worker`, `cmd/ynx-data-fabricctl`
@@ -77,6 +78,7 @@ The release truth gate derives the latest Engineering Source Commit from tracked
 go test ./internal/datafabric -count=1
 go test ./internal/datafabricapi ./internal/datafabricpay ./internal/datafabricpayledger -count=1
 go test -race ./internal/datafabric -count=1
+go test -race ./internal/datafabricpostgres ./scripts/data-fabric/postgres-resilience -count=1
 npm test --prefix sdk/datafabric-typescript
 npm audit --audit-level=high --registry=https://registry.npmjs.org --prefix sdk/datafabric-typescript
 go run golang.org/x/vuln/cmd/govulncheck@v1.6.0 ./...
@@ -86,14 +88,14 @@ node scripts/data-fabric/release-truth-check-check.mjs
 bash scripts/data-fabric/quality-gates.sh
 ```
 
-The full repository test and Data Fabric API race suite passed locally and in current-source CI. One hundred simultaneous canonical account sessions each returned only their own event. The clean-source 1000-producer loopback run committed all events with zero business errors and exact Outbox depth 1000, but p95 was 39.94 seconds and throughput 23.37 events/s; it is a correctness/backpressure result, not a Testnet, PostgreSQL, JetStream or public capacity claim. PR `#92` is blocked only by one independent approval; no protection bypass was attempted.
+The full repository test and Data Fabric Race suites passed locally and in current-source CI. One hundred simultaneous canonical account sessions each returned only their own event. The clean-source 1000-producer loopback run committed all events with zero business errors and exact Outbox depth 1000, but p95 was 39.94 seconds and throughput 23.37 events/s; it is local file-Store correctness/backpressure evidence. The exact-source PostgreSQL drill separately verified bounded hotspot skew, a duplicate storm, service restart, RPO 0 and two 10,000-event replay passes. Neither result is PostgreSQL-plus-JetStream, shared-Testnet or public capacity evidence. PR `#92` is blocked only by one independent approval; no protection bypass was attempted.
 
 ## Evidence still missing
 
 - Central Wallet/Auth and App Gateway owner acceptance.
 - Complete producer adapter set and accepted fee and compensation semantics.
 - Shared-Testnet invoice, settlement, receipt, refund and reconciliation receipts.
-- Production-shaped JetStream partition, PostgreSQL failover, process-kill, long replay, capacity and RTO/RPO evidence.
+- PostgreSQL-plus-JetStream signed ingress, replicated broker partition/leader loss, PostgreSQL replica failover, consumer/process-kill, sustained-duration and shared-Testnet RTO/RPO evidence.
 - Encrypted immutable remote backup and PITR evidence.
 - Staging and public runtime receipts.
 - Approved secure signer and immutable HTTPS artifact hosting.

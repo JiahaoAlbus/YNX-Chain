@@ -1,0 +1,52 @@
+{
+  "phase": "verify",
+  "measuredAt": "2026-08-14T06:14:35.751836295Z",
+  "sourceCommit": "02e115743786d5e78adc02a1df6029891e81dfb0",
+  "sourceRelease": "ynx-data-fabric-02e115743786",
+  "dirtyWorkingTree": false,
+  "databaseVersion": "PostgreSQL 17.10 on x86_64-pc-linux-musl, compiled by gcc (Alpine 15.2.0) 15.2.0, 64-bit",
+  "goos": "linux",
+  "goarch": "amd64",
+  "goVersion": "go1.25.13",
+  "cpuCount": 4,
+  "events": 10000,
+  "hotEvents": 9000,
+  "coldEvents": 1000,
+  "hotEventShare": 0.9,
+  "databaseRestarted": true,
+  "connectionAttempts": 1,
+  "acceptingConnectionsRTOMilliseconds": 506.491,
+  "integrityValidatedRTOMilliseconds": 1012.603,
+  "recoveryPointObjectiveLostEvents": 0,
+  "integrityAuditDurationMilliseconds": 491.813,
+  "longReplayScanned": 10000,
+  "longReplayApplied": 10000,
+  "longReplaySkipped": 0,
+  "longReplayEventLatency": {
+    "p50Milliseconds": 2.06,
+    "p95Milliseconds": 3.058,
+    "p99Milliseconds": 98.164,
+    "maxMilliseconds": 290.646
+  },
+  "longReplayThroughputPerSecond": 231.40524421492782,
+  "idempotentReplaySkipped": 10000,
+  "idempotentReplayEventLatency": {
+    "p50Milliseconds": 0.79,
+    "p95Milliseconds": 0.843,
+    "p99Milliseconds": 0.925,
+    "maxMilliseconds": 4.025
+  },
+  "idempotentReplayThroughputPerSecond": 1248.156140434927,
+  "inboxEffects": 10000,
+  "analyticsFacts": 10000,
+  "transactionalOutboxQueueDepth": 10000,
+  "databaseBytes": 48895667,
+  "storageBytesPerEvent": 4889.5667,
+  "limitations": [
+    "single PostgreSQL service-container restart, not failover or regional disaster recovery",
+    "RTO starts immediately before docker restart and ends at connection/integrity readiness on one CI runner",
+    "RPO counts canonical events only and is zero for this bounded run",
+    "Analytics replay is sequential and local to PostgreSQL",
+    "Outbox is not published to JetStream in this drill; no availability or public-scale claim"
+  ]
+}

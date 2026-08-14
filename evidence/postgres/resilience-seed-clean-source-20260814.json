@@ -1,0 +1,46 @@
+{
+  "phase": "seed",
+  "measuredAt": "2026-08-14T06:14:06.498880429Z",
+  "sourceCommit": "02e115743786d5e78adc02a1df6029891e81dfb0",
+  "sourceRelease": "ynx-data-fabric-02e115743786",
+  "dirtyWorkingTree": false,
+  "databaseVersion": "PostgreSQL 17.10 on x86_64-pc-linux-musl, compiled by gcc (Alpine 15.2.0) 15.2.0, 64-bit",
+  "goos": "linux",
+  "goarch": "amd64",
+  "goVersion": "go1.25.13",
+  "cpuCount": 4,
+  "events": 10000,
+  "hotEvents": 9000,
+  "coldEvents": 1000,
+  "hotEventShare": 0.9,
+  "concurrentStart": true,
+  "coldWorkers": 16,
+  "appendLatency": {
+    "p50Milliseconds": 2.254,
+    "p95Milliseconds": 14.612,
+    "p99Milliseconds": 63.929,
+    "maxMilliseconds": 174.098
+  },
+  "appendThroughputPerSecond": 357.7570436259807,
+  "duplicateStormAttempts": 1000,
+  "duplicateStormConcurrentStart": true,
+  "duplicateStormLatency": {
+    "p50Milliseconds": 324.925,
+    "p95Milliseconds": 586.807,
+    "p99Milliseconds": 623.971,
+    "maxMilliseconds": 633.366
+  },
+  "duplicateStormThroughputPerSecond": 1566.7276039101296,
+  "duplicateRejects": 1000,
+  "unexpectedErrors": 0,
+  "transactionalOutboxQueueDepth": 10000,
+  "databaseBytes": 38208015,
+  "storageBytesPerEvent": 3820.8015,
+  "limitations": [
+    "one isolated PostgreSQL primary without replicas",
+    "90 percent ordered single-aggregate skew is a bounded hotspot workload, not a production traffic model",
+    "duplicate writers share one local runner network",
+    "Outbox is intentionally undrained before the restart",
+    "deterministic test-only HMAC keys; no public-scale claim"
+  ]
+}

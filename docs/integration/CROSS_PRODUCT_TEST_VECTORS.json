@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "productId": "ynx-data-fabric",
-  "sourceCommit": "59c60864ac433bdf474ce16f9199533907017deb",
+  "sourceCommit": "02e115743786d5e78adc02a1df6029891e81dfb0",
   "eventEnvelopeVersion": "2.0",
   "generatedAt": "2026-08-14T05:23:25Z",
   "vectors": [
@@ -202,6 +202,17 @@
       "compensation": "clients honor Retry-After with bounded jitter; operators lower admitted concurrency or scale the PostgreSQL and JetStream path based on production-shaped evidence",
       "status": "testedLocal",
       "evidence": ["internal/datafabricapi/producer_backpressure_test.go", "scripts/data-fabric/api-capacity/main.go", "evidence/capacity/api-1000-producers-clean-source-20260814.json"]
+    },
+    {
+      "id": "DF-XP-019",
+      "class": "postgres-hotspot-duplicate-restart-long-replay",
+      "owners": ["YNX Data Fabric", "Security/SRE"],
+      "preconditions": ["isolated PostgreSQL 17.10 database", "exact PR-head source checkout", "10000 signed canonical events", "90 percent of events assigned in order to one aggregate", "test-only HMAC and privacy keys"],
+      "input": ["concurrent hotspot and cold-partition append", "1000 duplicate writes released from one barrier", "real PostgreSQL service-container restart", "post-restart full integrity audit", "10000-event Analytics replay followed by identical replay"],
+      "expected": ["all 10000 canonical events and Outbox rows survive", "all 1000 duplicate attempts reject and create no extra event", "RPO is zero committed events", "connection and integrity RTO recorded", "first replay applies 10000 effects", "second replay applies zero and skips 10000 through Inbox idempotency", "latency throughput queue depth database bytes and per-event storage recorded"],
+      "compensation": "remain fail closed on unavailable database or failed integrity; preserve the Outbox and retry only after the exact database authority recovers",
+      "status": "testedLocal",
+      "evidence": ["scripts/data-fabric/postgres-resilience/main.go", "scripts/data-fabric/postgres-resilience/main_test.go", "evidence/postgres/resilience-seed-clean-source-20260814.json", "evidence/postgres/resilience-verify-clean-source-20260814.json", "GitHub Actions run 31775538974"]
     }
   ]
 }

@@ -6,9 +6,9 @@
   "slug": "data-fabric",
   "owner": "26-data-fabric",
   "serviceId": "ynx-data-fabric",
-  "release": "ynx-data-fabric-59c60864ac43",
-  "sourceCommit": "59c60864ac433bdf474ce16f9199533907017deb",
-  "generatedAt": "2026-08-14T05:23:25Z",
+  "release": "ynx-data-fabric-02e115743786",
+  "sourceCommit": "02e115743786d5e78adc02a1df6029891e81dfb0",
+  "generatedAt": "2026-08-14T06:18:00Z",
   "phase": "INTEGRATE",
   "protocol": {
     "eventEnvelope": {
@@ -106,7 +106,24 @@
   "testVectors": {
     "machineReadable": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
     "producerVectors": "integration/PRODUCER_TEST_VECTORS.md",
-    "requiredNegativeClasses": ["unknown-field", "invalid-version", "duplicate", "out-of-order", "tamper", "wrong-product", "same-product-wrong-account", "missing-account", "wrong-device", "scope-widening", "expiry", "revoke", "producer-backpressure-retry", "broker-outage", "consumer-crash", "schema-upgrade", "ledger-imbalance", "stale-recovery-lease", "chain-commitment-unavailable", "chain-commitment-mismatch"]
+    "requiredNegativeClasses": ["unknown-field", "invalid-version", "duplicate", "duplicate-storm", "out-of-order", "tamper", "wrong-product", "same-product-wrong-account", "missing-account", "wrong-device", "scope-widening", "expiry", "revoke", "producer-backpressure-retry", "broker-outage", "consumer-crash", "database-restart", "long-replay", "partition-hotspot", "schema-upgrade", "ledger-imbalance", "stale-recovery-lease", "chain-commitment-unavailable", "chain-commitment-mismatch"]
+  },
+  "capacityEvidence": {
+    "sourceCommit": "02e115743786d5e78adc02a1df6029891e81dfb0",
+    "runId": 31775538974,
+    "postgresVersion": "17.10",
+    "events": 10000,
+    "hotAggregateShare": 0.9,
+    "duplicateStormAttempts": 1000,
+    "duplicateRejects": 1000,
+    "databaseRestarted": true,
+    "lostCommittedEvents": 0,
+    "acceptingConnectionsRTOMilliseconds": 506.491,
+    "integrityValidatedRTOMilliseconds": 1012.603,
+    "longReplayApplied": 10000,
+    "idempotentReplaySkipped": 10000,
+    "scope": "single-primary-linux-ci-no-jetstream-or-public-scale-claim",
+    "evidence": ["evidence/postgres/resilience-seed-clean-source-20260814.json", "evidence/postgres/resilience-verify-clean-source-20260814.json"]
   },
   "dependencies": [
     {

@@ -1,7 +1,7 @@
 # YNX Data Fabric Integration Handoff
 
-Source Commit: `59c60864ac433bdf474ce16f9199533907017deb`
-Release Candidate: `ynx-data-fabric-59c60864ac43`
+Source Commit: `02e115743786d5e78adc02a1df6029891e81dfb0`
+Release Candidate: `ynx-data-fabric-02e115743786`
 Owner: YNX Data Fabric
 Phase: `INTEGRATE`
 Status: `ACTIVE`
@@ -33,7 +33,7 @@ Status: `ACTIVE`
 | productionSigned | false | Only test-fixture signing is exercised |
 | storeReleased | false | Native app-store delivery is not applicable to this headless service |
 
-Current-source Run `31773430492` passed both Data Fabric jobs at exact evidence checkpoint `504f7e62128c05fdae6ab7357efcd5eceb8cc9f7`. PR `#92` is blocked only by one independent approval; no protection bypass is authorized. The workflow publishes no downloadable artifact.
+Current-source Run `31775538974` passed both Data Fabric jobs after explicitly checking out exact PR head `02e115743786d5e78adc02a1df6029891e81dfb0`. PR `#92` is blocked only by one independent approval; no protection bypass is authorized. The workflow published a 30-day CI evidence artifact containing the two source-bound PostgreSQL resilience JSON records; it did not publish a product download or change `downloadHosted`.
 
 ## Current executable integration
 
@@ -43,7 +43,7 @@ Envelope v2 may carry optional `chainCommitmentId` as an external Chain Core Bul
 
 Wallet/Auth introspection must return a non-empty canonical `accountId`. Ordinary event, Ledger, billing settlement, Saga and reconciliation APIs are product-and-account scoped; Saga authority is derived from an existing event matching product, account, aggregate and correlation. `fabric.audit.export`, redelivery management and Saga recovery remain explicitly privileged product-wide scopes, while rate plans remain product metadata. One hundred simultaneous local account sessions passed exact event isolation under the Go race detector; this does not establish shared-Testnet or 1000-producer capacity.
 
-Producer ingress admits a configurable bounded number of already signature-verified requests. Saturation returns `429 producer_backpressure` with `Retry-After: 1` before consuming the producer nonce, so bounded retries remain safe. A clean-source local run started 1000 independently signed producers together, reached the configured peak of 64, committed all 1000 with zero business errors and left exactly 1000 transactional Outbox records. The measured p95 was 39.94 seconds and throughput 23.37 events/s, so this proves local correctness and backpressure only; PostgreSQL, JetStream, hotspot, restart, crash, replay and public capacity remain open.
+Producer ingress admits a configurable bounded number of already signature-verified requests. Saturation returns `429 producer_backpressure` with `Retry-After: 1` before consuming the producer nonce, so bounded retries remain safe. A clean-source local run started 1000 independently signed producers together, reached the configured peak of 64, committed all 1000 with zero business errors and left exactly 1000 transactional Outbox records. Its p95 was 39.94 seconds and throughput 23.37 events/s, so it remains local file-Store correctness evidence. Separately, exact-source Linux CI wrote 10,000 PostgreSQL events with 90% assigned in order to one aggregate, rejected 1,000 simultaneous duplicates, restarted PostgreSQL, recovered with zero lost events, completed integrity validation in 1,012.603 ms, applied a 10,000-event Analytics replay at 231.405 events/s and idempotently skipped all 10,000 on the second replay. This is bounded single-primary evidence; PostgreSQL-plus-JetStream Producer E2E, consumer/process crash, replica failover, sustained duration, shared Testnet and public capacity remain open.
 
 ## Required merge and acceptance order
 

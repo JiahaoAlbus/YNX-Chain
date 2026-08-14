@@ -23,6 +23,7 @@
 - Added a payload-free pseudonymous PostgreSQL analytics fact projection with atomic Inbox lineage, transactional erasure deletion, and suppression of later rematerialization.
 - Added actionable Prometheus alert rules, a Grafana integrity/recovery dashboard, Outbox-age metrics, reconciliation exceptions, and analytics fact counts.
 - Replaced cross-partition `MAX(sequence)` SSI contention with per-partition advisory ordering and aggregate sequence rows; recorded a bounded PostgreSQL 17.10 capacity sample after the corrected live tests passed.
+- Added an exact-source PostgreSQL 17.10 resilience probe and CI artifact: 10,000 canonical events with 90% ordered single-aggregate skew, 1,000 synchronized duplicate rejects, a real service-container restart, full integrity recovery with zero lost events, and two 10,000-event Analytics replay passes proving Inbox-idempotent local effects. This remains single-primary CI evidence, not JetStream, failover or public capacity.
 - Added a Go runtime SPDX inventory and automated zero-placeholder, fake-success, public-leak, secret-pattern, JSON, and whitespace gates for Data Fabric-owned surfaces.
 - Added bounded cursor pagination and an embedded read-only operator console with canonical Wallet request binding, truthful operational states, 12 selectable languages, Arabic RTL, accessibility semantics, reduced motion, light/dark mode, and responsive layout.
 - Added bounded per-session/device/product defense-in-depth rate limiting with explicit `429` and `Retry-After` behavior.
@@ -32,4 +33,4 @@
 - Upgraded the Go toolchain and reachable affected dependencies to fixed versions after official vulnerability analysis, and added pinned `govulncheck` to CI.
 - Added one consolidated product-owned operator-input request at `release/data-fabric/operator-inputs.request.json` for central registration, producer/reconciliation acceptance, staging services, Testnet observers, public routing/support, secure signing/hosting, and approved capacity/recovery drills; secret values must remain in approved secret systems. The shared root documentation-release request remains owned by the central documentation package.
 
-No release version or source commit has been assigned. Product-level implementation/testing, central integration, installation, staging/public deployment, hosted downloads, production signing and store release remain false.
+The local Testnet candidate is source-bound, but no public production release has been assigned. Central integration, staging/public deployment, hosted product downloads, production signing and store release remain false; the 30-day GitHub Actions JSON evidence artifact is not a hosted product download.

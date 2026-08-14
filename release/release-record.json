@@ -2,10 +2,10 @@
   "schemaVersion": 2,
   "productId": "ynx-data-fabric",
   "productName": "YNX Data Fabric & Billing Ledger",
-  "release": "ynx-data-fabric-59c60864ac43",
+  "release": "ynx-data-fabric-02e115743786",
   "channel": "testnet-preview",
-  "sourceCommit": "59c60864ac433bdf474ce16f9199533907017deb",
-  "generatedAt": "2026-08-14T05:39:25Z",
+  "sourceCommit": "02e115743786d5e78adc02a1df6029891e81dfb0",
+  "generatedAt": "2026-08-14T06:18:00Z",
   "phase": "INTEGRATE",
   "overallStatus": "ACTIVE",
   "states": {
@@ -77,7 +77,7 @@
   },
   "evidence": {
     "local": {
-      "sourceCommit": "59c60864ac433bdf474ce16f9199533907017deb",
+      "sourceCommit": "02e115743786d5e78adc02a1df6029891e81dfb0",
       "fullGoTest": "passed-with-standard-umask",
       "dataFabricRace": "passed",
       "reachableVulnerabilities": "zero-with-go1.25.13-and-govulncheck-v1.6.0",
@@ -86,16 +86,23 @@
       "typeScriptSDK": "passed"
     },
     "remoteCI": {
-      "runId": 31773430492,
+      "runId": 31775538974,
       "workflow": "data-fabric",
-      "sourceCommit": "59c60864ac433bdf474ce16f9199533907017deb",
-      "headCommit": "504f7e62128c05fdae6ab7357efcd5eceb8cc9f7",
+      "sourceCommit": "02e115743786d5e78adc02a1df6029891e81dfb0",
+      "headCommit": "02e115743786d5e78adc02a1df6029891e81dfb0",
       "status": "completed",
       "conclusion": "success",
-      "startedAt": "2026-08-14T05:34:26Z",
-      "duration": "4m36s",
+      "startedAt": "2026-08-14T06:13:13Z",
+      "duration": "4m17s",
       "artifactsPublished": false,
-      "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/31773430492"
+      "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/31775538974",
+      "evidenceArtifact": {
+        "name": "data-fabric-postgres-resilience-02e115743786d5e78adc02a1df6029891e81dfb0",
+        "retentionDays": 30,
+        "publicReleaseArtifact": false,
+        "seedSha256": "569d08050b801a3f49a5ec0b6fcbae87e3389a3575a383c825fb3a7593275ae8",
+        "verifySha256": "838587420fcd514b21ce3feb4753d7c93434136fbd4b3a2f83f7ffc3311970d2"
+      }
     },
     "sourceCandidate": {
       "tag": "data-fabric-v0.2.0-source-candidate",
@@ -120,6 +127,6 @@
     "crossProductVectors": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
     "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md"
   },
-  "blockingEvidence": ["central Wallet/Auth and App Gateway owner acceptance", "shared Testnet product producer and consumer receipts", "production-shaped JetStream and PostgreSQL capacity, partition and recovery drills", "approved secure signer path and immutable public HTTPS hosting", "public runtime, health, support, privacy, security and status URLs", "production artifact, SBOM, provenance, hash, bytes and cold-install receipts"],
+  "blockingEvidence": ["central Wallet/Auth and App Gateway owner acceptance", "shared Testnet product producer and consumer receipts", "PostgreSQL plus JetStream signed-producer E2E, consumer/process crash, replica failover and sustained recovery drills", "approved secure signer path and immutable public HTTPS hosting", "public runtime, health, support, privacy, security and status URLs", "production artifact, SBOM, provenance, hash, bytes and cold-install receipts"],
   "nextAction": "Execute central producer acceptance and shared-Testnet Pay flow before any PUBLIC phase transition."
 }
