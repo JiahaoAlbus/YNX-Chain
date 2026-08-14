@@ -124,6 +124,14 @@ migration against a copied state file, verify the v2 Registry digest, and disabl
 the flag before staging or public service. Replacing a v2 file with v1 while the
 flag is disabled returns `LEGACY_STATE_MIGRATION_REQUIRED` without rewriting it.
 
+The Node host now fsyncs the complete mode-0600 temporary state before atomic
+rename and fsyncs the state directory before an acknowledged mutation response.
+If the directory sync fails after rename, `STATE_COMMIT_UNCERTAIN` preserves the
+renamed in-memory winner instead of reconstructing stale state. Integration must
+reconcile that digest and must not translate the 503 into success or exact-retry
+safety. Local immediate-SIGKILL tests do not prove storage power-loss behavior,
+network filesystems or multi-region durability.
+
 Current focused verification on 2026-08-10 is Wallet/Auth 105/105, Wallet app
 39/39, and Wallet app TypeScript typecheck, all passing. Earlier Node host,
 Browser SDK, JS SDK, loopback CLI, package, and Go evidence remains subject to

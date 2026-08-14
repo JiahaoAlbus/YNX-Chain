@@ -14,5 +14,12 @@ by default; a reviewed copied-state preflight may set
 `YNX_WALLET_GATEWAY_ALLOW_LEGACY_STATE_MIGRATION=true` for exactly one cold start,
 verify the resulting v2 envelope and `/version` registry hash, then remove the flag
 before service cutover. Never leave legacy migration enabled during steady state.
+Each acknowledged state mutation fsyncs the private temporary file before rename
+and fsyncs the already-open state directory after rename. A post-rename directory
+sync failure returns `STATE_COMMIT_UNCERTAIN` without rolling memory back behind
+the renamed file; operators must reconcile the persisted digest before retrying.
+This is local-filesystem process-crash durability, not power-loss, network-storage
+or multi-region evidence. A crash before the handler releases its lock remains a
+fail-closed stale-lock condition requiring a separately reviewed recovery action.
 `MemoryDenyWriteExecute` is intentionally not set because Node/V8 requires JIT
 executable pages and fails closed with `signal=TRAP` under that systemd option.

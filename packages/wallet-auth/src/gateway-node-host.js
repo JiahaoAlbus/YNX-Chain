@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from "node:crypto";
-import { chmodSync, closeSync, constants, fstatSync, lstatSync, mkdirSync, openSync, readFileSync, renameSync, rmdirSync, statSync, writeFileSync } from "node:fs";
+import { closeSync, constants, fstatSync, fsyncSync, lstatSync, mkdirSync, openSync, readFileSync, renameSync, rmdirSync, statSync, unlinkSync, writeFileSync } from "node:fs";
 import { dirname, isAbsolute } from "node:path";
 import { canonicalJSON, exactFields, isPlainObject, WalletAuthError } from "./canonical.js";
 import { forwardedClient, GatewayAdmissionController } from "./gateway-admission.js";
@@ -143,7 +143,7 @@ export class CanonicalWalletGatewayNodeHost {
           try {
             this.#persist();
           } catch (caught) {
-            this.#kernel = new CanonicalWalletGatewayHttpKernel(this.#registry, before);
+            if (caught?.code !== "STATE_COMMIT_UNCERTAIN") this.#kernel = new CanonicalWalletGatewayHttpKernel(this.#registry, before);
             throw caught;
           }
         }
@@ -307,9 +307,25 @@ export class CanonicalWalletGatewayNodeHost {
     mkdirSync(directory, { recursive: true, mode: 0o700 });
     if ((statSync(directory).mode & 0o077) !== 0) throw new WalletAuthError("STATE_PERMISSIONS", "Canonical Gateway state directory must use mode 0700");
     const temporary = `${this.#statePath}.${process.pid}.tmp`;
-    writeFileSync(temporary, canonicalJSON(envelope), { encoding: "utf8", mode: 0o600, flag: "w" });
-    chmodSync(temporary, 0o600);
-    renameSync(temporary, this.#statePath);
+    let directoryDescriptor;
+    let renamed = false;
+    let temporaryDescriptor;
+    try {
+      temporaryDescriptor = openSync(temporary, constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW, 0o600);
+      writeFileSync(temporaryDescriptor, canonicalJSON(envelope), "utf8");
+      fsyncSync(temporaryDescriptor);
+      closeSync(temporaryDescriptor);
+      temporaryDescriptor = undefined;
+      directoryDescriptor = openSync(directory, constants.O_RDONLY | constants.O_DIRECTORY | constants.O_NOFOLLOW);
+      renameSync(temporary, this.#statePath);
+      renamed = true;
+      try { fsyncSync(directoryDescriptor); }
+      catch { throw new WalletAuthError("STATE_COMMIT_UNCERTAIN", "Canonical Gateway state rename completed but directory durability is uncertain"); }
+    } finally {
+      if (temporaryDescriptor !== undefined) closeSync(temporaryDescriptor);
+      if (directoryDescriptor !== undefined) closeSync(directoryDescriptor);
+      if (!renamed) try { unlinkSync(temporary); } catch { /* temporary path may be absent or a fault fixture */ }
+    }
   }
 
   #reload() {
