@@ -83,6 +83,7 @@ await (await account.connect(owner).configureSession(
   sessionKey.address,
   destination.address,
   arbitrarySelector,
+  ethers.keccak256(arbitrarySelector),
   now,
   now + 3600n,
   ethers.parseEther("0.2"),
@@ -98,6 +99,19 @@ await submit(await operation(sessionCall, 1n), sessionKey, 2, sessionKey.address
 const session = await account.sessions(sessionKey.address);
 assert.equal(session.spentToday, ethers.parseEther("0.1"));
 
+const substitutedCalldataCall = account.interface.encodeFunctionData("executeSession", [
+  sessionKey.address,
+  destination.address,
+  0n,
+  ethers.concat([arbitrarySelector, ethers.zeroPadValue(owner.address, 32)]),
+]);
+await expectFailed(await (async () => {
+  const op = await operation(substitutedCalldataCall, 2n);
+  const hash = await entryPoint.getUserOpHash(op);
+  op.signature = ethers.concat(["0x02", sessionKey.address, sessionKey.signingKey.sign(hash).serialized]);
+  return op;
+})());
+
 const overLimitCall = account.interface.encodeFunctionData("executeSession", [
   sessionKey.address,
   destination.address,
@@ -105,7 +119,7 @@ const overLimitCall = account.interface.encodeFunctionData("executeSession", [
   arbitrarySelector,
 ]);
 await expectFailed(await (async () => {
-  const op = await operation(overLimitCall, 2n);
+  const op = await operation(overLimitCall, 3n);
   const hash = await entryPoint.getUserOpHash(op);
   op.signature = ethers.concat(["0x02", sessionKey.address, sessionKey.signingKey.sign(hash).serialized]);
   return op;
@@ -118,15 +132,15 @@ const wrongTargetCall = account.interface.encodeFunctionData("executeSession", [
   arbitrarySelector,
 ]);
 await expectFailed(await (async () => {
-  const op = await operation(wrongTargetCall, 3n);
+  const op = await operation(wrongTargetCall, 4n);
   const hash = await entryPoint.getUserOpHash(op);
   op.signature = ethers.concat(["0x02", sessionKey.address, sessionKey.signingKey.sign(hash).serialized]);
   return op;
 })());
 
 const passkeyCall = account.interface.encodeFunctionData("execute", [destination.address, 0n, "0x"]);
-await expectValidationFailed(await signPasskeyOperation(await operation(passkeyCall, 4n), 0x01));
-const passkeyOp = await signPasskeyOperation(await operation(passkeyCall, 4n), 0x05);
+await expectValidationFailed(await signPasskeyOperation(await operation(passkeyCall, 5n), 0x01));
+const passkeyOp = await signPasskeyOperation(await operation(passkeyCall, 5n), 0x05);
 await (await entryPoint.handleOps([passkeyOp], beneficiary.address, { gasLimit: 12_000_000 })).wait();
 
 const soakSamples = [];
@@ -139,7 +153,7 @@ for (let index = 0; index < soakCount; index += 1) {
     arbitrarySelector,
   ]);
   const started = performance.now();
-  await submit(await operation(zeroValueSessionCall, 5n + BigInt(index)), sessionKey, 2, sessionKey.address);
+  await submit(await operation(zeroValueSessionCall, 6n + BigInt(index)), sessionKey, 2, sessionKey.address);
   soakSamples.push(performance.now() - started);
 }
 const sortedSamples = [...soakSamples].sort((a, b) => a - b);
@@ -156,7 +170,7 @@ await (await account.connect(guardian).requestRecovery(
 )).wait();
 assert.equal(await account.sessionEpoch(), 2n);
 assert.equal((await account.sessions(sessionKey.address)).epoch, 1n);
-const pendingRecoverySessionOp = await operation(sessionCall, 55n);
+const pendingRecoverySessionOp = await operation(sessionCall, 56n);
 const pendingRecoverySessionHash = await entryPoint.getUserOpHash(pendingRecoverySessionOp);
 pendingRecoverySessionOp.signature = ethers.concat([
   "0x02",
@@ -180,7 +194,7 @@ await (await account.executeRecovery()).wait();
 assert.equal(await account.owner(), newOwner.address);
 assert.equal(await account.sessionEpoch(), 3n);
 assert.equal((await account.sessions(sessionKey.address)).epoch, 1n);
-const revokedSessionOp = await operation(sessionCall, 55n);
+const revokedSessionOp = await operation(sessionCall, 56n);
 const revokedHash = await entryPoint.getUserOpHash(revokedSessionOp);
 revokedSessionOp.signature = ethers.concat(["0x02", sessionKey.address, sessionKey.signingKey.sign(revokedHash).serialized]);
 await expectValidationFailed(revokedSessionOp);
@@ -401,6 +415,7 @@ console.log(JSON.stringify({
   ownerUserOperation: "passed",
   webAuthnUVUserOperation: "passed",
   boundedSessionUserOperation: "passed",
+  exactSessionCalldataRejection: "passed",
   overLimitRejection: "passed",
   wrongTargetRejection: "passed",
   userVerificationRequired: "passed",

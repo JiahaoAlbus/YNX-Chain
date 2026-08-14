@@ -14,6 +14,7 @@ contract YNXSmartAccount is BaseAccount {
     struct Session {
         address target;
         bytes4 selector;
+        bytes32 dataHash;
         uint48 validAfter;
         uint48 validUntil;
         uint128 maxValuePerCall;
@@ -37,7 +38,13 @@ contract YNXSmartAccount is BaseAccount {
     error SessionPolicyViolation();
     error RecoveryNotReady();
 
-    event SessionConfigured(address indexed sessionKey, address indexed target, bytes4 indexed selector, uint48 validUntil);
+    event SessionConfigured(
+        address indexed sessionKey,
+        address indexed target,
+        bytes4 indexed selector,
+        bytes32 dataHash,
+        uint48 validUntil
+    );
     event SessionRevoked(address indexed sessionKey);
     event AllSessionsRevoked(uint64 indexed epoch, address indexed actor);
     event RecoveryRequested(address indexed guardian, address indexed newOwner, uint48 executeAfter);
@@ -86,19 +93,22 @@ contract YNXSmartAccount is BaseAccount {
         address sessionKey,
         address target,
         bytes4 selector,
+        bytes32 dataHash,
         uint48 validAfter,
         uint48 validUntil,
         uint128 maxValuePerCall,
         uint128 dailyValueLimit
     ) external onlyOwnerOrSelf {
         if (
-            sessionKey == address(0) || target == address(0) || selector == bytes4(0) || validUntil <= validAfter
+            sessionKey == address(0) || target == address(0) || selector == bytes4(0) || dataHash == bytes32(0)
+                || validUntil <= validAfter
                 || validUntil <= block.timestamp || validUntil - validAfter > 30 days || maxValuePerCall > dailyValueLimit
                 || dailyValueLimit == 0
         ) revert InvalidConfiguration();
         sessions[sessionKey] = Session({
             target: target,
             selector: selector,
+            dataHash: dataHash,
             validAfter: validAfter,
             validUntil: validUntil,
             maxValuePerCall: maxValuePerCall,
@@ -108,7 +118,7 @@ contract YNXSmartAccount is BaseAccount {
             epoch: sessionEpoch,
             enabled: true
         });
-        emit SessionConfigured(sessionKey, target, selector, validUntil);
+        emit SessionConfigured(sessionKey, target, selector, dataHash, validUntil);
     }
 
     function revokeSession(address sessionKey) external onlyOwnerOrSelf {
@@ -129,7 +139,10 @@ contract YNXSmartAccount is BaseAccount {
                 || block.timestamp > session.validUntil
         ) revert SessionNotActive();
         bytes4 selector = data.length < 4 ? bytes4(0) : bytes4(data[:4]);
-        if (target != session.target || selector != session.selector || value > session.maxValuePerCall) {
+        if (
+            target != session.target || selector != session.selector || keccak256(data) != session.dataHash
+                || value > session.maxValuePerCall
+        ) {
             revert SessionPolicyViolation();
         }
         uint64 today = uint64(block.timestamp / 1 days);
