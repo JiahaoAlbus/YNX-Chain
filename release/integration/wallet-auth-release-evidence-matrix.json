@@ -36,12 +36,12 @@
   "pendingOwnerEvidence": [
     {
       "owner": "android-api36",
-      "candidateCommit": "d14d19a022b82ed1006b4e4c3786e4505cf347a4",
+      "candidateCommit": "9f91b1f55d3da786198609e8c55cf26d2034b92d",
       "remoteFastForwardReported": true,
       "remoteReadbackComplete": true,
       "ciComplete": null,
       "consumedForReleaseTruth": false,
-      "note": "The Android branch advanced beyond the frozen authorization recovery checkpoint without terminal evidence; device truth remains unchanged."
+      "note": "Foreground deep-link deferral source is remote, but the new API36 APK has a different QA certificate and no replacement-device validation; callback, biometric, relock, hosting and production truth remain unchanged."
     },
     {"owner":"ios-macos","candidateCommit":"ee1457e8457177d7e21fdd81163384c15c3bec72","workflowRunId":31790750711,"remoteFastForwardReported":true,"remoteReadbackComplete":true,"ciComplete":false,"consumedForReleaseTruth":false,"note":"Semantic recovery submission fix has an in-progress run; recovery/biometric/auth success/public/download/signing remain false until terminal evidence."}
   ],
@@ -69,8 +69,8 @@
       "branch": "codex/wallet-android-api36-continuation2-20260814",
       "sourceCommit": "f1edbec46ad4300beec406873b03db2da7c72e4b",
       "remoteCommitObserved": "f1edbec46ad4300beec406873b03db2da7c72e4b",
-      "branchHeadObserved": "d14d19a022b82ed1006b4e4c3786e4505cf347a4",
-      "remoteVerifiedAt": "2026-08-14T04:20:00Z",
+      "branchHeadObserved": "9f91b1f55d3da786198609e8c55cf26d2034b92d",
+      "remoteVerifiedAt": "2026-08-14T09:50:00Z",
       "verificationMode": "github-git-database-parent-tree-blob-readback"
     },
     {

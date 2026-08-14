@@ -6,7 +6,7 @@
   "recordedAt": "2026-08-14T03:52:00Z",
   "evidenceMatrix": {
     "path": "release/integration/wallet-auth-release-evidence-matrix.json",
-    "sha256": "9dbf5ed1a2fd7d538f7e8349398f5a5909263e0c7c6eb7d23e830fbfe5761223",
+    "sha256": "c71f9d35cd9167cae2b2ff31974e0ecd9f0e6b6b5886693ce7e8c7a957b1dfec",
     "platforms": 21,
     "gatesPerPlatform": 12,
     "trueGates": 102,
@@ -21,7 +21,7 @@
     "desktopCliSdk": "2802876f8470264c4a8819f1426e28f957a09289"
   },
   "pendingOwnerEvidence": [
-    "d14d19a022b82ed1006b4e4c3786e4505cf347a4",
+    "9f91b1f55d3da786198609e8c55cf26d2034b92d",
     "ee1457e8457177d7e21fdd81163384c15c3bec72"
   ],
   "releaseState": {
