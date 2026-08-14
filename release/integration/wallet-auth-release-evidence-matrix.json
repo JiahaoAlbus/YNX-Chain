@@ -36,18 +36,17 @@
   "pendingOwnerEvidence": [
     {
       "owner": "android-api36",
-      "candidateCommit": "2e4c7362f957eca80510ec48d8732ba55b4abfa7",
+      "candidateCommit": "d14d19a022b82ed1006b4e4c3786e4505cf347a4",
       "remoteFastForwardReported": true,
       "remoteReadbackComplete": true,
       "ciComplete": null,
       "consumedForReleaseTruth": false,
-      "note": "The Android branch advanced beyond the frozen zeroing checkpoint without an Owner terminal checkpoint; device truth remains unchanged."
+      "note": "The Android branch advanced beyond the frozen authorization recovery checkpoint without terminal evidence; device truth remains unchanged."
     },
     {"owner":"ios-macos","candidateCommit":"b081dd7022f0a07499c1de91b8e3d2579363b926","remoteFastForwardReported":true,"remoteReadbackComplete":false,"ciComplete":false,"consumedForReleaseTruth":false,"note":"Universal Link path fix has no terminal successful evidence; associated-domain/public delivery remain false."},
     {"owner":"ios-macos","candidateCommit":"7115615f0fa06b75dfcf1c8d3c1c91edc2dff6d1","remoteFastForwardReported":true,"remoteReadbackComplete":true,"ciComplete":false,"consumedForReleaseTruth":false,"note":"Recovery workflow run remains in progress and promotes no biometric, recovery, auth or public gate."},
     {"owner":"core-auth-gateway","candidateCommit":"6425ec0c390c43de65b35529c885b353c747930d","remoteFastForwardReported":true,"remoteReadbackComplete":true,"ciComplete":null,"consumedForReleaseTruth":false,"note":"Unknown Core successor remains pending beyond the authorized batch evidence."},
-    {"owner":"android-api36","candidateCommit":"f1edbec46ad4300beec406873b03db2da7c72e4b","remoteFastForwardReported":true,"remoteReadbackComplete":false,"ciComplete":true,"consumedForReleaseTruth":false,"note":"Canonical authorization pending-to-delivered recovery remains queued after Desktop slices."}
-    ,{"owner":"ios-macos","candidateCommit":"3e77f2e015163ac57f50759715accd8277d96a13","remoteFastForwardReported":true,"remoteReadbackComplete":true,"ciComplete":false,"consumedForReleaseTruth":false,"note":"Simulator standalone signing/Keychain source fix has no terminal CI; all functional and release gates remain false."}
+    {"owner":"ios-macos","candidateCommit":"0901c24193eaa7747c40f22fcd94d8b002b866ee","remoteFastForwardReported":true,"remoteReadbackComplete":true,"ciComplete":false,"consumedForReleaseTruth":false,"note":"Run 31779956710 failed the standalone application-identifier gate; minimal entitlement injection fix has no new CI, so install/Keychain/recovery/public/signing remain false."}
   ],
   "ownerSources": [
     {
@@ -71,9 +70,9 @@
     {
       "owner": "android-api36",
       "branch": "codex/wallet-android-api36-continuation2-20260814",
-      "sourceCommit": "8666c0bb0535270e595f3db54e7d2e35b18afe66",
-      "remoteCommitObserved": "8666c0bb0535270e595f3db54e7d2e35b18afe66",
-      "branchHeadObserved": "2e4c7362f957eca80510ec48d8732ba55b4abfa7",
+      "sourceCommit": "f1edbec46ad4300beec406873b03db2da7c72e4b",
+      "remoteCommitObserved": "f1edbec46ad4300beec406873b03db2da7c72e4b",
+      "branchHeadObserved": "d14d19a022b82ed1006b4e4c3786e4505cf347a4",
       "remoteVerifiedAt": "2026-08-14T04:20:00Z",
       "verificationMode": "github-git-database-parent-tree-blob-readback"
     },
@@ -721,6 +720,13 @@
       "direct": true,
       "commit": "ca1fc40aaadab1421b4681647e619516ff25ff9b",
       "path": "release/integration/wallet-desktop-cli-sdk-contract.json",
+      "supports": []
+    },
+    "android-canonical-authorization-recovery": {
+      "type": "git-object",
+      "direct": true,
+      "commit": "f1edbec46ad4300beec406873b03db2da7c72e4b",
+      "path": "release/integration/wallet-auth-contract.json",
       "supports": []
     }
   },
