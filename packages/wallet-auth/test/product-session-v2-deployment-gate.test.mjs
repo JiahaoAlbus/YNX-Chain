@@ -24,4 +24,5 @@ test("Wallet deployment preflights, persists and rolls back Product Session v2 s
   assert.match(install,/cp -a \/usr\/local\/bin\/ynx-app-gatewayd "\$backup_dir\/ynx-app-gatewayd"/);
   assert.match(install,/install -m 0755 "\$release_dir\/bin\/ynx-app-gatewayd" \/usr\/local\/bin\/ynx-app-gatewayd/);
   assert.match(install,/systemctl restart ynx-app-gatewayd/);
+  assert.match(install,/127\.0\.0\.1:6437\/app\/version/);
 });

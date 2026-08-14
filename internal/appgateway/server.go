@@ -62,10 +62,24 @@ func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", s.health)
 	mux.HandleFunc("/app/health", s.appHealth)
+	mux.HandleFunc("/app/version", s.version)
 	mux.HandleFunc("/app/", s.app)
 	mux.HandleFunc("/v1/wallet/", s.wallet)
 	mux.HandleFunc("/v2/product-sessions/", s.productSessions)
 	return securityHeaders(mux)
+}
+
+func (s *Server) version(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+	writeJSON(w, http.StatusOK, struct {
+		OK             bool           `json:"ok"`
+		Service        string         `json:"service"`
+		RemoteDeployed bool           `json:"remoteDeployed"`
+		Build          buildinfo.Info `json:"build"`
+	}{OK: true, Service: "ynx-app-gatewayd", RemoteDeployed: s.gateway.cfg.RemoteDeployed, Build: s.build})
 }
 
 var productSessionV2Routes = map[string]struct{}{

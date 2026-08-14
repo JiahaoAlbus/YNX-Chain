@@ -32,6 +32,14 @@ func TestProductSessionV2RoutesPrecedeFallbackAndPreserveExactBoundary(t *testin
 	}
 	server := httptest.NewServer(NewServer(gateway).Handler())
 	t.Cleanup(server.Close)
+	version, err := http.Get(server.URL + "/app/version")
+	if err != nil {
+		t.Fatal(err)
+	}
+	version.Body.Close()
+	if version.StatusCode != http.StatusOK {
+		t.Fatalf("version status=%d", version.StatusCode)
+	}
 
 	request, _ := http.NewRequest(http.MethodPost, server.URL+"/v2/product-sessions/challenge", strings.NewReader(`{}`))
 	request.Header.Set("Content-Type", "application/json")

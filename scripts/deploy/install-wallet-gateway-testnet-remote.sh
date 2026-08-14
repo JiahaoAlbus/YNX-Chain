@@ -159,13 +159,13 @@ runtime_v2_response="$state_dir/.runtime-v2-$release.response.json"
 for attempt in $(seq 1 30); do
   if health_json="$(curl -fsS --max-time 3 http://127.0.0.1:6439/health)" && \
     version_json="$(curl -fsS --max-time 3 http://127.0.0.1:6439/version)" && \
-    app_health_json="$(curl -fsS --max-time 3 http://127.0.0.1:6437/health)" && \
+    app_version_json="$(curl -fsS --max-time 3 http://127.0.0.1:6437/app/version)" && \
     v2_status="$(curl -sS --max-time 3 -o "$runtime_v2_response" -w '%{http_code}' -H 'content-type: application/json' -H 'x-request-id: req_runtime_v2_0000001' -d '{}' http://127.0.0.1:6437/v2/product-sessions/challenge)" && \
-    HEALTH_JSON="$health_json" VERSION_JSON="$version_json" APP_HEALTH_JSON="$app_health_json" V2_JSON="$(cat "$runtime_v2_response")" V2_STATUS="$v2_status" EXPECTED_COMMIT="$source_commit" EXPECTED_RELEASE="$release" EXPECTED_REGISTRY="$registry_runtime_sha" node <<'NODE'
-const health=JSON.parse(process.env.HEALTH_JSON),version=JSON.parse(process.env.VERSION_JSON),app=JSON.parse(process.env.APP_HEALTH_JSON);
+    HEALTH_JSON="$health_json" VERSION_JSON="$version_json" APP_VERSION_JSON="$app_version_json" V2_JSON="$(cat "$runtime_v2_response")" V2_STATUS="$v2_status" EXPECTED_COMMIT="$source_commit" EXPECTED_RELEASE="$release" EXPECTED_REGISTRY="$registry_runtime_sha" node <<'NODE'
+const health=JSON.parse(process.env.HEALTH_JSON),version=JSON.parse(process.env.VERSION_JSON),app=JSON.parse(process.env.APP_VERSION_JSON);
 if(!health.ok||health.truthfulStatus!=="remote-canonical-wallet-gateway")process.exit(1);
 if(!version.ok||version.build?.sourceCommit!==process.env.EXPECTED_COMMIT||version.build?.release!==process.env.EXPECTED_RELEASE||version.registrySha256!==process.env.EXPECTED_REGISTRY||!version.enabledProductClientIds?.includes("ynx-bridge-web-v1")||!version.enabledProductClientIds?.includes("ynx-creator-studio-web-v1")||!version.enabledProductClientIds?.includes("ynx-dex-web-v1"))process.exit(1);
-if(!app.ok||!app.upstreams?.wallet?.ok||app.walletBoundary!=="p256-product-session-proof"||app.build?.commit!==process.env.EXPECTED_COMMIT||app.build?.release!==process.env.EXPECTED_RELEASE)process.exit(1);
+if(!app.ok||app.service!=="ynx-app-gatewayd"||app.remoteDeployed!==true||app.build?.commit!==process.env.EXPECTED_COMMIT||app.build?.release!==process.env.EXPECTED_RELEASE)process.exit(1);
 const v2=JSON.parse(process.env.V2_JSON);if(process.env.V2_STATUS!=="400"||v2.schemaVersion!==2||v2.requestId!=="req_runtime_v2_0000001"||v2.ok!==false)process.exit(1);
 NODE
   then
