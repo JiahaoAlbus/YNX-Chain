@@ -9,6 +9,8 @@ test("extension packages expose truthful install metadata without hosted-update 
     assert.equal(manifest.homepage_url, extensionHomepage);
     assert.deepEqual(manifest.permissions, ["activeTab", "scripting", "storage"]);
     assert.equal(manifest.action.default_popup, "index.html");
+    assert.deepEqual(manifest.commands._execute_action.suggested_key,{default:"Ctrl+Shift+Y",mac:"MacCtrl+Shift+Y"});
+    assert.equal(manifest.commands._execute_action.description,"Open YNX Wallet for the active DApp");
     assert.equal("content_scripts" in manifest,false);
     assert.equal("web_accessible_resources" in manifest,false);
     assert.equal("optional_host_permissions" in manifest,false);

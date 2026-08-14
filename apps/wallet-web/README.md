@@ -58,6 +58,9 @@ main-world provider. A missing user gesture, unsupported tab, lost grant, or
 injection error returns `ACTIVE_TAB_REQUIRED`. The sole persistent host grant
 is the frozen `https://evm.ynxweb4.com/*` RPC authority, and extension CSP allows
 network connection only to that origin.
+The same action is keyboard-accessible through `Ctrl+Shift+Y` (macOS
+`MacCtrl+Shift+Y`). This command grants no durable site permission: closing the
+browser or navigating the tab requires a new explicit action before injection.
 
 The PWA caches only its same-origin shell. Navigations use a network-first
 offline fallback, static assets never receive HTML as a substitute, and RPC

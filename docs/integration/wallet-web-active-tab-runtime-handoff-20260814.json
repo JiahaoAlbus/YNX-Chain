@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "owner": "wallet-web-pwa-extensions",
+  "sourceBaseline": "7522b8162b2581c7fed216d0e4e9fef44ff4fef7",
+  "sourceParent": "f789c782c325d64234bd077f5c878b1821b2149a",
+  "sourceTree": "40bdb52b4825bcc5d7cfe1a3a5f4d086385dda28",
+  "slice": "activeTab Chromium-compatible runtime attempt and service-worker message fallback",
+  "evidence": "apps/wallet-web/evidence/runtime/chromium-compatible-active-tab-runtime-20260814.json",
+  "browserBoundary": {
+    "chromiumCompatibleExtensionRuntimeProved": false,
+    "actionInjectionProved": false,
+    "reason": "three bounded Playwright persistent-context attempts timed out before extension service-worker startup",
+    "brandedBrowser": false,
+    "installedLocal": false
+  },
+  "fallbackEvidence": {
+    "runtimeClass": "direct production service-worker module message harness in Node; not a browser extension runtime",
+    "passed": true,
+    "startupAutoInjectionCalls": 0,
+    "secondStartupAutoInjectionCalls": 0,
+    "messageInjectionOrder": [
+      "isolated content-script.js",
+      "MAIN page-provider.js",
+      "MAIN wallet backend function"
+    ],
+    "noTabMessageError": "INVALID_BRIDGE_REQUEST",
+    "noTabPolicyError": "ACTIVE_TAB_REQUIRED",
+    "chromeUrlPolicyError": "ACTIVE_TAB_REQUIRED",
+    "sensitiveError": "CANONICAL_AUTH_UNAVAILABLE",
+    "sensitiveScriptingCalls": 0
+  },
+  "mustRemainFalse": {
+    "providerConnected": false,
+    "accountAuthorized": false,
+    "messageSigned": false,
+    "transactionSubmitted": false,
+    "installedLocal": false,
+    "integratedCentral": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

@@ -11,6 +11,7 @@ const sharedManifest = {
   content_security_policy: {extension_pages: "script-src 'self'; object-src 'self'; connect-src https://evm.ynxweb4.com"},
   host_permissions: ["https://evm.ynxweb4.com/*"],
   action: {default_popup: "index.html", default_title: "YNX Wallet"},
+  commands: {"_execute_action": {suggested_key: {default: "Ctrl+Shift+Y", mac: "MacCtrl+Shift+Y"}, description: "Open YNX Wallet for the active DApp"}},
   icons: {"128": "ynx-logo.png"},
 };
 
