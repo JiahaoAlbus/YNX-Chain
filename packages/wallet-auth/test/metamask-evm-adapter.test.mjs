@@ -5,6 +5,7 @@ import {
   MetaMaskEvmConnectionAdapter, METAMASK_EVM_CHAIN, METAMASK_EVM_CHAIN_ID, METAMASK_EVM_CHAIN_QUANTITY,
   WalletAuthError,
 } from "../src/index.js";
+import * as metamaskSubpath from "@ynx-chain/wallet-auth/metamask-evm";
 
 const registry = JSON.parse(readFileSync(new URL("../product-session-registry.json", import.meta.url), "utf8"));
 const ADDRESS = "0x1234567890ABCDEF1234567890aBcDeF12345678";
@@ -14,6 +15,8 @@ function provider(handler) {
 }
 
 test("MetaMask adapter performs a real EIP-1193 chain switch and account approval for an EVM product", async () => {
+  assert.equal(metamaskSubpath.MetaMaskEvmConnectionAdapter, MetaMaskEvmConnectionAdapter);
+  assert.equal(Object.hasOwn(metamaskSubpath, "ProductSessionGatewayKernel"), false);
   let chain = "0x1";
   const calls = [];
   const adapter = new MetaMaskEvmConnectionAdapter({ registry, productId: "dex", provider: provider(async (input) => {
@@ -141,7 +144,10 @@ test("MetaMask adapter rejects malicious or malformed chain and account response
 test("live evidence harness loads the shared adapter and preserves its EVM-only truth boundary", () => {
   const html = readFileSync(new URL("../evidence/metamask-eip1193-live.html", import.meta.url), "utf8");
   assert.match(html, /MetaMaskEvmConnectionAdapter/);
-  assert.match(html, /await import\("\.\.\/src\/metamask-evm-adapter\.js"\)/);
+  assert.match(html, /import\("\.\.\/src\/metamask-evm-adapter\.js"\)/);
+  assert.match(html, /discoverWalletProviders/);
+  assert.match(html, /discovery\.metamask\.provider/);
+  assert.doesNotMatch(html, /provider:globalThis\.ethereum/);
   assert.match(html, /"@noble\/hashes\/":"\.\.\/node_modules\/@noble\/hashes\/"/);
   assert.match(html, /ynxProductSession=false/);
   assert.match(html, /No local or canned result was substituted/);

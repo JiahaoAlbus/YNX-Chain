@@ -26,7 +26,9 @@
   const requestId = `eip1193_live_${crypto.randomUUID()}`;
   const masked = value => `${value.slice(0, 8)}…${value.slice(-6)}`;
   try {
-    const { MetaMaskEvmConnectionAdapter } = await import("../src/metamask-evm-adapter.js");
+    const [{ MetaMaskEvmConnectionAdapter }, { discoverWalletProviders }] = await Promise.all([
+      import("../src/metamask-evm-adapter.js"), import("../src/wallet-provider-discovery.js")
+    ]);
     button.disabled = false; button.textContent = "Connect installed MetaMask (EVM only)";
     button.addEventListener("click", async () => {
       button.disabled = true; status.className = "status"; status.textContent = `REQUESTING REAL WALLET APPROVAL\nrequestId=${requestId}`;
@@ -34,9 +36,11 @@
         const registry = await fetch("../product-session-registry.json", {cache:"no-store"}).then(response => {
           if (!response.ok) throw new Error("Registry unavailable"); return response.json();
         });
-        const result = await new MetaMaskEvmConnectionAdapter({registry, productId:"dex", provider:globalThis.ethereum}).connect();
+        const discovery = await discoverWalletProviders(globalThis, 250);
+        if (discovery.metamask === null) throw Object.assign(new Error(discovery.ambiguities.includes("metamask") ? "Multiple MetaMask providers require an explicit chooser" : "MetaMask provider was not detected"), {code:discovery.ambiguities.includes("metamask") ? "AMBIGUOUS_WALLET_PROVIDER" : "METAMASK_NOT_INSTALLED"});
+        const result = await new MetaMaskEvmConnectionAdapter({registry, productId:"dex", provider:discovery.metamask.provider}).connect();
         status.className = "status ok";
-        status.textContent = ["CONNECTED EVM PROVIDER", `requestId=${requestId}`, `wallet=${result.wallet}`, `chainId=${result.chainId}`, `chainQuantity=${result.chainQuantity}`, `address=${masked(result.address)}`, `authority=${result.authority}`, `ynxProductSession=${result.ynxProductSession}`, `limitations=${result.limitations.join(",")}`].join("\n");
+        status.textContent = ["CONNECTED EVM PROVIDER", `requestId=${requestId}`, `wallet=${result.wallet}`, `providerSource=${discovery.metamask.source}`, `providerRdns=${discovery.metamask.rdns || "unreported"}`, `discoveryAuthority=${discovery.authority}`, `ynxCandidatePresent=${discovery.ynx !== null}`, `chainId=${result.chainId}`, `chainQuantity=${result.chainQuantity}`, `address=${masked(result.address)}`, `authority=${result.authority}`, `ynxProductSession=${result.ynxProductSession}`, `limitations=${result.limitations.join(",")}`].join("\n");
       } catch (error) {
         status.className = "status error";
         status.textContent = ["FAILED CLOSED", `requestId=${requestId}`, `code=${error?.code || "INTERNAL"}`, `message=${error?.message || "Wallet connection failed"}`, "No local or canned result was substituted."].join("\n");
