@@ -68,8 +68,22 @@ const tempDir = await mkdtemp(path.join(tmpdir(), "ynx-wallet-sbom-"));
 const generatedPath = path.join(tempDir, "sbom.cdx.json");
 
 try {
+  const lockViewManifest = structuredClone(packageDocument);
+  const lockView = structuredClone(packageLockDocument);
+  const walletAuthPath = "../../packages/wallet-auth";
+  const walletAuthName = "@ynx-chain/wallet-auth";
+  const walletAuth = lockView.packages?.[walletAuthPath];
+  assert.ok(walletAuth?.version, "Wallet Auth lock entry is required");
+  lockViewManifest.dependencies[walletAuthName] = walletAuth.version;
+  lockView.packages[""].dependencies[walletAuthName] = walletAuth.version;
+  lockView.packages[`node_modules/${walletAuthName}`] = { ...walletAuth };
+  delete lockView.packages[walletAuthPath];
+  await writeFile(path.join(tempDir, "package.json"), `${JSON.stringify(lockViewManifest, null, 2)}\n`, { mode: 0o600 });
+  await writeFile(path.join(tempDir, "package-lock.json"), `${JSON.stringify(lockView, null, 2)}\n`, { mode: 0o600 });
+
   const generatorOutput = run(process.execPath, [
     toolPath,
+    "--package-lock-only",
     "--output-reproducible",
     "--output-file",
     generatedPath,
@@ -79,6 +93,8 @@ try {
     "1.6",
     "--omit",
     "dev",
+    "--",
+    path.join(tempDir, "package.json"),
   ]);
   assert.equal(
     generatorOutput.includes("ELSPROBLEMS"),
