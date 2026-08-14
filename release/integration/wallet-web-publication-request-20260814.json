@@ -22,6 +22,12 @@
   "deploymentAuditEvidence": "apps/wallet-web/evidence/runtime/website-publication-capability-audit-20260814.json",
   "blobUploadAuditEvidence": "apps/wallet-web/evidence/runtime/vercel-blob-upload-boundary-20260814.json",
   "blobUploadHandoff": "docs/integration/wallet-web-vercel-blob-owner-handoff-20260814.json",
+  "officialArtifactGate": {
+    "command": "cd apps/wallet-web && npm run test:public-artifacts",
+    "evidence": "apps/wallet-web/evidence/runtime/official-web-artifact-hosting-gate-20260814.json",
+    "currentResult": false,
+    "requiredBeforeHostedTrue": true
+  },
   "currentState": {
     "integratedCentral": false,
     "deployedPublic": false,
