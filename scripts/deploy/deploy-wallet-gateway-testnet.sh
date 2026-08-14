@@ -29,7 +29,7 @@ mkdir -p "$release_root/wallet-auth"
 
 cp -R packages/wallet-auth/src "$release_root/wallet-auth/src"
 cp -R packages/wallet-auth/scripts "$release_root/wallet-auth/scripts"
-cp packages/wallet-auth/central-registry.json packages/wallet-auth/package.json packages/wallet-auth/package-lock.json "$release_root/wallet-auth/"
+cp packages/wallet-auth/central-registry.json packages/wallet-auth/product-session-registry.json packages/wallet-auth/package.json packages/wallet-auth/package-lock.json "$release_root/wallet-auth/"
 install -m 0644 scripts/deploy/install-wallet-gateway-testnet-remote.sh "$release_root/install-wallet-gateway-testnet-remote.sh"
 (
   cd "$release_root/wallet-auth"
@@ -50,6 +50,7 @@ tarball="$work/$release.tar.gz"
 COPYFILE_DISABLE=1 tar -C "$work" -czf "$tarball" "$release"
 tarball_sha="$(sha256sum "$tarball" | awk '{print $1}')"
 tar -tzf "$tarball" | grep -Fq "$release/wallet-auth/central-registry.json"
+tar -tzf "$tarball" | grep -Fq "$release/wallet-auth/product-session-registry.json"
 tar -tzf "$tarball" | grep -Fq "$release/wallet-auth/scripts/ynx-wallet-gatewayd.mjs"
 printf 'walletGatewayPackage=passed\nrelease=%s\nsourceCommit=%s\nregistryFileSha256=%s\nregistryRuntimeSha256=%s\narchiveSha256=%s\n' "$release" "$source_commit" "$registry_file_sha" "$registry_runtime_sha" "$tarball_sha"
 
