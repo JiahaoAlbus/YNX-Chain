@@ -1,5 +1,19 @@
 # YNX Developer 0.2.0 Testnet Preview release notes
 
+## 2026-08-14 real JUnit project-test candidate
+
+- Added server-side discovery for `*Test.java` and `*Tests.java` below
+  `src/test/java`, compilation of the explicit Java workspace, and real JUnit
+  Jupiter execution inside the existing no-network project-test sandbox.
+- Pinned JUnit Platform Console Standalone `1.14.2` to SHA-256
+  `5566ffe2aa48263867bca745925f73bf7b01591b30d9a60f191c0b16fa0955e9`.
+  The image recipe verifies the immutable Maven Central artifact and its CLI
+  before publishing the LXD image.
+- The direct integration gate compiles a production class and JUnit test,
+  observes one successful test, preserves one-time review and file/phase limits,
+  and confirms the sandbox reports network disabled. Maven/Gradle dependency
+  installation, Cargo and Solidity-framework project tests remain open.
+
 ## 2026-08-14 real Java language intelligence candidate
 
 - Added a dedicated Java route from Monaco and Outline through the authenticated

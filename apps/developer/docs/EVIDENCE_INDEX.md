@@ -34,11 +34,14 @@ successful eight-runtime release record.
   service tests provide the diagnostic payload evidence; unopened files and
   unavailable language servers remain outside the panel's stated coverage.
 - Project-test evidence: `services/workspace-agent/test/runtime.test.mjs` executes
-  discovered JavaScript, Python unittest, same-package Go and standalone C/C++ tests through
+  discovered JavaScript, Python unittest, same-package Go, standalone C/C++ and
+  JUnit Jupiter tests through
   the real no-network sandbox, then rejects a wrong approval and missing tests.
   `test/project-test-runner-ui.test.js` holds the UI/client to exact discovery,
   one-time review, file/phase bounds and an allowlist that never invokes package
-  scripts. Rust/Cargo, Java/JUnit and Solidity framework tests are not evidenced.
+  scripts. The JUnit runner is the SHA-pinned Console Standalone `1.14.2`
+  artifact installed by the reviewed image recipe. Rust/Cargo and Solidity
+  framework tests are not evidenced.
 - Project transfer evidence: `test/project-transfer-ui.test.js` holds Explorer
   directory/versioned-JSON import and JSON export to safe-path, 256-file, 2 MiB,
   strict UTF-8, duplicate, confirmation, collaboration and History boundaries.

@@ -28,9 +28,10 @@ executable bits. Imported changes are saved and recovered like editor changes.
 Use **Test** beside Run when the workbench discovers supported test files. Review
 the exact list, then approve that test run once. YNX Code runs `.test.js`/`.spec.js`,
 Python unittest `test_*.py`/`*_test.py`, Go `_test.go` files with their same-directory Go
-sources, and standalone C/C++ files under `test/` or `tests/`. Network stays off and
-the server never runs a `package.json` script. Rust/Cargo, Java/JUnit and Solidity
-framework tests require future reviewed adapters; use the explicit terminal in a
+sources, standalone C/C++ files under `test/` or `tests/`, and JUnit Jupiter
+`*Test.java`/`*Tests.java` files under `src/test/java/`. Network stays off and
+the server never runs a `package.json` script. Rust/Cargo and Solidity framework
+tests require future reviewed adapters; use the explicit terminal in a
 runtime that has those tools rather than assuming the Test button supports them.
 
 Open **Problems** in the bottom panel to inspect current diagnostics returned for

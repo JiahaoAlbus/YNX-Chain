@@ -9,6 +9,8 @@ jdtls_launcher_path="$(cd "$(dirname "$0")" && pwd)/jdtls-launcher.sh"
 rust_analyzer_release="2026-07-27"
 jdtls_archive="jdt-language-server-1.61.0-202607142124.tar.gz"
 jdtls_sha256="4dc0747f22fb86dfada4c9214d3ef94c94f1e84eb57ce52126c26ecf2f17dce4"
+junit_version="1.14.2"
+junit_sha256="5566ffe2aa48263867bca745925f73bf7b01591b30d9a60f191c0b16fa0955e9"
 
 command -v lxc >/dev/null
 test -f "$probe_path"
@@ -56,12 +58,16 @@ lxc exec "$builder" -- tar -xzf "/tmp/$jdtls_archive" -C /usr/local/lib/ynx-code
 lxc file push "$jdtls_launcher_path" "$builder/usr/local/lib/ynx-code-jdtls/bin/ynx-jdtls"
 lxc exec "$builder" -- chmod 0755 /usr/local/lib/ynx-code-jdtls/bin/ynx-jdtls
 lxc exec "$builder" -- ln -sfn /usr/local/lib/ynx-code-jdtls/bin/ynx-jdtls /usr/local/bin/jdtls
+lxc exec "$builder" -- mkdir -p /usr/local/share/ynx-code
+lxc exec "$builder" -- curl --http1.1 -fL --retry 10 --retry-all-errors --connect-timeout 20 "https://repo1.maven.org/maven2/org/junit/platform/junit-platform-console-standalone/$junit_version/junit-platform-console-standalone-$junit_version.jar" -o /usr/local/share/ynx-code/junit-platform-console-standalone.jar
+lxc exec "$builder" -- sh -c "printf '%s  %s\n' '$junit_sha256' /usr/local/share/ynx-code/junit-platform-console-standalone.jar | sha256sum -c -"
+lxc exec "$builder" -- java -jar /usr/local/share/ynx-code/junit-platform-console-standalone.jar --version
 
 lxc file push "$probe_path" "$builder/tmp/lsp-server-probe.mjs"
 lxc exec "$builder" -- node /tmp/lsp-server-probe.mjs
 lxc exec "$builder" -- sh -c "apt-get clean; rm -rf /var/lib/apt/lists/* /root/.cache/go-build /root/go/pkg/mod/cache/download /tmp/rust-analyzer.gz /tmp/rust-analyzer-asset /tmp/lsp-server-probe.mjs '/tmp/$jdtls_archive'"
 lxc stop "$builder"
-lxc publish "$builder" --alias "$target_alias" description="YNX Code Ubuntu 24.04 reviewed nine-language toolchain and seven LSP servers"
+lxc publish "$builder" --alias "$target_alias" description="YNX Code Ubuntu 24.04 reviewed nine-language toolchain, JUnit and seven LSP servers"
 fingerprint="$(lxc image info "$target_alias" | awk '/^Fingerprint:/{print $2}')"
 test "${#fingerprint}" -eq 64
 cleanup

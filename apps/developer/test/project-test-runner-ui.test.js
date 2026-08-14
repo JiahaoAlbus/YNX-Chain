@@ -22,7 +22,7 @@ test("Project Test presents exact discovery and one-time no-network review", asy
 test("workspace test broker allowlists runners and never invokes package scripts", async () => {
   const runtime = await read("services/workspace-agent/src/runtime.mjs"),
     serviceTest = await read("services/workspace-agent/test/runtime.test.mjs");
-  for (const runner of ["javascript", "python", "go", "c", "cpp"])
+  for (const runner of ["javascript", "python", "go", "c", "cpp", "java"])
     assert.match(runtime, new RegExp(`language: "${runner}"`));
   assert.match(runtime, /test_file_limit/);
   assert.match(runtime, /test_phase_limit/);
@@ -30,5 +30,9 @@ test("workspace test broker allowlists runners and never invokes package scripts
   assert.doesNotMatch(runtime, /npm\s+(?:run\s+)?test|package\.json.*scripts/s);
   assert.match(serviceTest, /CPP-TEST-PASS/);
   assert.match(serviceTest, /C-TEST-PASS/);
+  assert.match(serviceTest, /MathOpsTest/);
+  const image = await read("scripts/build-cloud-toolchain-image.sh");
+  assert.match(image, /junit_version="1\.14\.2"/);
+  assert.match(image, /5566ffe2aa48263867bca745925f73bf7b01591b30d9a60f191c0b16fa0955e9/);
   assert.match(serviceTest, /sandbox\.network, false/);
 });

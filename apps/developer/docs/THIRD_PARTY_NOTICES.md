@@ -32,3 +32,15 @@ unsigned and is not a production distribution.
 The local macOS package bundles the local Node runtime selected by the package
 script. The artifact is ad-hoc signed with no Team ID and is not a Developer ID
 or notarized distribution.
+
+## Cloud JUnit test runtime
+
+- Upstream: `https://junit.org/`
+- Artifact: `org.junit.platform:junit-platform-console-standalone:1.14.2`
+- SHA-256: `5566ffe2aa48263867bca745925f73bf7b01591b30d9a60f191c0b16fa0955e9`
+- License: Eclipse Public License 2.0
+
+The reviewed cloud image retains the upstream executable JAR, including its
+embedded `META-INF/LICENSE*` files and bundled-dependency notices. The artifact
+is used only as the no-network Java project-test compiler classpath and console
+runner; it is not included in the current desktop downloads.

@@ -797,9 +797,11 @@ async function projectTestSpec(workspace, files) {
     python = paths.filter((path) => /(?:^|\/)(?:test_.+|.+_test)\.py$/i.test(path)),
     goTests = paths.filter((path) => /_test\.go$/i.test(path)),
     c = paths.filter((path) => /(?:^|\/)(?:test|tests)\/.+\.c$/i.test(path)),
-    cpp = paths.filter((path) => /(?:^|\/)(?:test|tests)\/.+\.(?:cpp|cc|cxx)$/i.test(path));
-  if (javascript.length + python.length + goTests.length + c.length + cpp.length === 0) throw Object.assign(new Error("No supported JavaScript, Python, Go, C or C++ project tests were found."), { status: 400, code: "tests_missing" });
-  if (javascript.length + python.length + goTests.length + c.length + cpp.length > 32)
+    cpp = paths.filter((path) => /(?:^|\/)(?:test|tests)\/.+\.(?:cpp|cc|cxx)$/i.test(path)),
+    javaTests = paths.filter((path) => /(?:^|\/)src\/test\/java\/.+(?:Test|Tests)\.java$/i.test(path)),
+    discovered = javascript.length + python.length + goTests.length + c.length + cpp.length + javaTests.length;
+  if (discovered === 0) throw Object.assign(new Error("No supported JavaScript, Python, Go, C, C++ or JUnit project tests were found."), { status: 400, code: "tests_missing" });
+  if (discovered > 32)
     throw Object.assign(new Error("Project test discovery exceeds the 32-file review boundary."), {
       status: 413,
       code: "test_file_limit",
@@ -909,6 +911,37 @@ async function projectTestSpec(workspace, files) {
         },
       );
     }
+  }
+  if (javaTests.length) {
+    const java = await resolveCommand(["java"]),
+      javac = await resolveCommand(["javac"]),
+      junitJar = await realpath(process.env.YNX_CODE_JUNIT_CONSOLE_JAR || "/usr/local/share/ynx-code/junit-platform-console-standalone.jar").catch(() => null);
+    if (!java || !javac || !junitJar)
+      throw Object.assign(new Error("JUnit tests were found but the reviewed JDK and pinned JUnit Console runtime are not installed."), {
+        status: 503,
+        code: "toolchain_unavailable",
+      });
+    if (!runners.length) primary = java;
+    const output = join(workspace, ".ynx-build", "junit"),
+      sources = paths.filter((path) => path.endsWith(".java"));
+    runners.push({ language: "java", framework: "junit-platform-1.14.2", files: javaTests });
+    phases.push(
+      {
+        label: "build-test:java:junit",
+        command: javac,
+        args: ["-encoding", "UTF-8", "-cp", junitJar, "-d", output, ...sources.map((path) => safeJoin(workspace, path))],
+        timeout: 60_000,
+        readOnlyBinds: [{ host: junitJar, guest: "/ynx-toolchain/junit-platform-console-standalone" }],
+      },
+      {
+        label: "test:java:junit",
+        command: java,
+        args: ["-jar", junitJar, "execute", "--class-path", output, "--scan-class-path", "--disable-banner", "--details=summary", "--fail-if-no-tests"],
+        timeout: 60_000,
+        addressSpaceBytes: null,
+        readOnlyBinds: [{ host: junitJar, guest: "/ynx-toolchain/junit-platform-console-standalone" }],
+      },
+    );
   }
   if (phases.length > 20)
     throw Object.assign(new Error("Project test plan exceeds the 20-phase execution boundary."), {

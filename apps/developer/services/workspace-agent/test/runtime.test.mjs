@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
-import { mkdtemp, rm } from "node:fs/promises";
+import { access, mkdtemp, rm } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -252,7 +252,9 @@ test("C, JavaScript, TypeScript, Python and Go use real installed runtimes", asy
   }
 });
 test("project tests are discovered, one-time approved and run without network", async (t) => {
-  const { url } = await fixture(t),
+  const junitJar = process.env.YNX_CODE_JUNIT_CONSOLE_JAR || "/usr/local/share/ynx-code/junit-platform-console-standalone.jar",
+    junitAvailable = await access(junitJar).then(() => true).catch(() => false),
+    { url } = await fixture(t),
     cookie = await session(url),
     request = {
       protocolVersion: "ynx-code/v1",
@@ -265,6 +267,10 @@ test("project tests are discovered, one-time approved and run without network", 
         "math_test.go": 'package mathcheck\nimport "testing"\nfunc TestReal(t *testing.T){if multiply(6,7)!=42{t.Fatal("wrong")}}',
         "tests/math.c": '#include <stdio.h>\nint main(void){if(6*7!=42)return 1;printf("C-TEST-PASS");return 0;}',
         "tests/math.cpp": '#include <iostream>\nint main(){if(6*7!=42)return 1;std::cout<<"CPP-TEST-PASS";}',
+        ...(junitAvailable ? {
+          "src/main/java/dev/ynx/MathOps.java": "package dev.ynx; public final class MathOps { public static int multiply(int a,int b){return a*b;} }",
+          "src/test/java/dev/ynx/MathOpsTest.java": "package dev.ynx; import org.junit.jupiter.api.Test; import static org.junit.jupiter.api.Assertions.assertEquals; final class MathOpsTest { @Test void multiplies(){ assertEquals(42,MathOps.multiply(6,7)); } }",
+        } : {}),
       },
       approval: "test-once",
     },
@@ -281,9 +287,10 @@ test("project tests are discovered, one-time approved and run without network", 
   assert.equal(value.sandbox.network, false);
   assert.match(value.output, /C-TEST-PASS/);
   assert.match(value.output, /CPP-TEST-PASS/);
+  if (junitAvailable) assert.match(value.output, /1 tests successful/);
   assert.deepEqual(
     value.compiler.evidence.runners.map(({ language }) => language),
-    ["javascript", "python", "go", "c", "cpp"],
+    ["javascript", "python", "go", "c", "cpp", ...(junitAvailable ? ["java"] : [])],
   );
   const unapproved = await fetch(`${url}/runtime/tasks`, {
     method: "POST",

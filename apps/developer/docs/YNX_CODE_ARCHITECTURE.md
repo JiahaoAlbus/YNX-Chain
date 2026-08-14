@@ -254,10 +254,12 @@ The Web task broker now has two distinct reviewed envelopes: `build-run-active`
 requires `execute-once`, while `test-project` requires `test-once`. Project test
 discovery is server-duplicated from the visible client preview and selects only
 Node built-in tests, Python unittest discovery, same-directory Go package tests and
-standalone C/C++ tests. It accepts at most 32 discovered files and 20 phases and
+standalone C/C++ tests, and JUnit Jupiter tests compiled from explicit Java
+sources and executed by a SHA-pinned Console Standalone runner. It accepts at
+most 32 discovered test files and 20 phases and
 uses the same no-network Bubblewrap/prlimit or sandbox-exec boundary, streaming
 and output limits. It never evaluates package-manager scripts or an arbitrary
-command string. Cargo, JUnit and Solidity framework adapters remain unimplemented.
+command string. Cargo and Solidity framework adapters remain unimplemented.
 
 The current foundation implements this boundary through
 `services/terminal-service`: a same-origin, signed-session WebSocket upgrades to
