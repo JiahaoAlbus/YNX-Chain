@@ -1,7 +1,17 @@
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import { test } from "node:test";
-import { buildSnapshot } from "./publish-public-status.mjs";
+import { boundedJSON, buildSnapshot } from "./publish-public-status.mjs";
+
+test("bounded probe reader cancels before buffering an oversized response", async () => {
+  let cancelled = false;
+  const response = new Response(new ReadableStream({
+    pull(controller) { controller.enqueue(new Uint8Array(262_145)); },
+    cancel() { cancelled = true; },
+  }));
+  await assert.rejects(boundedJSON(response), /exceeded its limit/);
+  assert.equal(cancelled, true);
+});
 
 test("publisher records real identity, dependencies, success and failure without inventing healthy state", async () => {
   const startedAt = "2026-08-02T23:00:00.000Z";

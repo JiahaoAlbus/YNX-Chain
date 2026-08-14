@@ -150,6 +150,38 @@ func TestIndexerFailsClosedWhenForkExceedsRecoveryDepth(t *testing.T) {
 	}
 }
 
+func TestRollbackPersistenceFailurePreservesPublishedIndex(t *testing.T) {
+	store := NewStore(t.TempDir() + "/index.json")
+	tx := reorgTransaction("0x"+strings.Repeat("c", 64), 2)
+	ancestor := chain.Block{Height: 1, Hash: forkBlockHash(1)}
+	tip := chain.Block{Height: 2, Hash: forkBlockHash(2), ParentHash: ancestor.Hash, Transactions: []chain.Transaction{tx}}
+	before := Database{
+		Version: 2, LastIndexedHeight: 2, LastBlockHash: tip.Hash, JournalSequence: 2,
+		Blocks:       map[string]chain.Block{"1": ancestor, "2": tip},
+		Transactions: map[string]chain.Transaction{tx.Hash: tx},
+	}
+	if err := store.Save(before); err != nil {
+		t.Fatal(err)
+	}
+	store.path = t.TempDir() // Renaming a snapshot over this non-empty directory must fail.
+	if _, _, _, err := store.RollbackTo(1); err == nil {
+		t.Fatal("rollback unexpectedly succeeded when its snapshot could not become durable")
+	}
+	after, err := store.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if after.LastIndexedHeight != before.LastIndexedHeight || after.LastBlockHash != before.LastBlockHash || after.JournalSequence != before.JournalSequence {
+		t.Fatalf("failed rollback changed published index identity: before=%+v after=%+v", before, after)
+	}
+	if _, exists := after.Blocks["2"]; !exists {
+		t.Fatal("failed rollback removed the published tip block")
+	}
+	if _, exists := after.Transactions[tx.Hash]; !exists {
+		t.Fatal("failed rollback removed a published transaction")
+	}
+}
+
 func (s *migrationSource) block(height uint64) chain.Block {
 	s.mu.Lock()
 	defer s.mu.Unlock()

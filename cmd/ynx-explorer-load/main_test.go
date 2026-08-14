@@ -1,6 +1,9 @@
 package main
 
 import (
+	"io"
+	"net/http"
+	"strings"
 	"testing"
 	"time"
 )
@@ -73,3 +76,31 @@ func TestPublicFailureCodeIsBoundedAndDoesNotEchoMessages(t *testing.T) {
 		}
 	}
 }
+
+func TestConsumeResponseMeasuresCompletedBody(t *testing.T) {
+	delay := 30 * time.Millisecond
+	response := &http.Response{Body: &delayedReadCloser{delay: delay, Reader: strings.NewReader(`{"ok":true}`)}}
+	payload, latency, err := consumeResponse(response, time.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(payload) != `{"ok":true}` || latency < delay {
+		t.Fatalf("response completion was not measured: payload=%q latency=%s", payload, latency)
+	}
+}
+
+type delayedReadCloser struct {
+	io.Reader
+	delay time.Duration
+	read  bool
+}
+
+func (r *delayedReadCloser) Read(payload []byte) (int, error) {
+	if !r.read {
+		r.read = true
+		time.Sleep(r.delay)
+	}
+	return r.Reader.Read(payload)
+}
+
+func (*delayedReadCloser) Close() error { return nil }

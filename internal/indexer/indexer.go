@@ -215,35 +215,43 @@ func (s *Store) RollbackTo(height uint64) (Database, int, int, error) {
 	if !ok || ancestor.Hash == "" {
 		return Database{}, 0, 0, fmt.Errorf("stored common ancestor at height %d is unavailable; indexer rebuild required", height)
 	}
+	candidate := s.db
+	candidate.Blocks = make(map[string]chain.Block, len(s.db.Blocks))
+	for rawHeight, block := range s.db.Blocks {
+		candidate.Blocks[rawHeight] = block
+	}
 	removedBlocks := 0
-	for rawHeight := range s.db.Blocks {
+	for rawHeight := range candidate.Blocks {
 		blockHeight, err := strconv.ParseUint(rawHeight, 10, 64)
 		if err != nil {
 			return Database{}, 0, 0, fmt.Errorf("stored block height %q is invalid; indexer rebuild required", rawHeight)
 		}
 		if blockHeight > height {
-			delete(s.db.Blocks, rawHeight)
+			delete(candidate.Blocks, rawHeight)
 			removedBlocks++
 		}
 	}
 	previousTxCount := len(s.db.Transactions)
-	s.db.Transactions = make(map[string]chain.Transaction)
-	for _, block := range s.db.Blocks {
+	candidate.Transactions = make(map[string]chain.Transaction)
+	for _, block := range candidate.Blocks {
 		for _, tx := range block.Transactions {
-			s.db.Transactions[tx.Hash] = tx
+			candidate.Transactions[tx.Hash] = tx
 		}
 	}
-	removedTransactions := previousTxCount - len(s.db.Transactions)
+	removedTransactions := previousTxCount - len(candidate.Transactions)
 	if removedTransactions < 0 {
 		removedTransactions = 0
 	}
-	s.db.LastIndexedHeight = height
-	s.db.LastBlockHash = ancestor.Hash
-	s.db.LastSyncAt = time.Now().UTC()
-	s.db.JournalSequence++
-	if err := s.saveSnapshotLocked(s.db); err != nil {
+	candidate.LastIndexedHeight = height
+	candidate.LastBlockHash = ancestor.Hash
+	candidate.LastSyncAt = time.Now().UTC()
+	candidate.JournalSequence++
+	if err := s.saveSnapshotLocked(candidate); err != nil {
 		return Database{}, 0, 0, err
 	}
+	// The canonical candidate is now durable. Publish it before journal cleanup so
+	// memory and the restart snapshot cannot diverge if cleanup itself fails.
+	s.db = candidate
 	if err := s.resetJournalLocked(); err != nil {
 		return Database{}, 0, 0, err
 	}

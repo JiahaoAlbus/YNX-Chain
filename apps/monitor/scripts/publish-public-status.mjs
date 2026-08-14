@@ -16,9 +16,22 @@ function publicDependencyStatus(value) {
   if (["unavailable", "failed", "outage", "error"].includes(normalized)) return "major_outage";
   return "unknown";
 }
-async function boundedJSON(response) {
-  const text = await response.text();
-  if (text.length > 262_144) throw new Error("bounded probe response exceeded its limit");
+export async function boundedJSON(response) {
+  const reader = response.body?.getReader();
+  if (!reader) return {};
+  const chunks = [];
+  let bytes = 0;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    bytes += value.byteLength;
+    if (bytes > 262_144) {
+      await reader.cancel("bounded probe response exceeded its limit");
+      throw new Error("bounded probe response exceeded its limit");
+    }
+    chunks.push(value);
+  }
+  const text = Buffer.concat(chunks.map((chunk) => Buffer.from(chunk))).toString("utf8");
   try { return record(JSON.parse(text)); } catch { return {}; }
 }
 function identityFrom(...documents) {

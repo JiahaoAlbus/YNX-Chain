@@ -153,15 +153,13 @@ func run(base string, duration time.Duration, concurrency, targetRPS, sseClients
 				}
 				req.Header.Set("Accept", "application/json")
 				resp, requestErr := client.Do(req)
-				latency := time.Since(startedRequest)
 				if requestErr != nil {
 					if ctx.Err() == nil {
-						samples <- sample{Latency: latency, Err: requestErr.Error(), Route: target.Route}
+						samples <- sample{Latency: time.Since(startedRequest), Err: requestErr.Error(), Route: target.Route}
 					}
 					continue
 				}
-				payload, copyErr := io.ReadAll(io.LimitReader(resp.Body, 4<<20))
-				resp.Body.Close()
+				payload, latency, copyErr := consumeResponse(resp, startedRequest)
 				entry := sample{Latency: latency, Status: resp.StatusCode, Route: target.Route}
 				if copyErr != nil {
 					entry.Err = copyErr.Error()
@@ -256,6 +254,15 @@ func run(base string, duration time.Duration, concurrency, targetRPS, sseClients
 		return err
 	}
 	return evaluateReport(result, expectedOutage)
+}
+
+func consumeResponse(resp *http.Response, started time.Time) ([]byte, time.Duration, error) {
+	payload, readErr := io.ReadAll(io.LimitReader(resp.Body, 4<<20))
+	closeErr := resp.Body.Close()
+	if readErr == nil {
+		readErr = closeErr
+	}
+	return payload, time.Since(started), readErr
 }
 
 func publicFailureCode(status int, payload []byte) string {

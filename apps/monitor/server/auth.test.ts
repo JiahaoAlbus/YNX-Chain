@@ -3,6 +3,7 @@ import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Server } from "node:http";
+import { createServer } from "node:http";
 import assert from "node:assert/strict";
 import { after, describe, it } from "node:test";
 import { createApp } from "./app.js";
@@ -171,6 +172,28 @@ describe("Monitor authorization and approval boundaries", () => {
 	  assert.equal(overview.body.network.consensus.streamBFT.status,"shadow/candidate");
 	  assert.equal(overview.body.network.consensus.streamBFT.active,false);
 	  assert.equal(overview.body.alerts.every((alert:{evidenceUrl:string})=>alert.evidenceUrl==="/ops/overview"),true);
+	});
+	it("reports finality unavailable unless both canonical and indexer probes are healthy",async()=>{
+	  const rpcServer=createServer((_request,response)=>response.writeHead(200,{"content-type":"application/json"}).end(JSON.stringify({height:10})));
+	  let indexerHealthy=false;
+	  const indexerServer=createServer((request,response)=>{
+		const body=request.url?.startsWith("/health")?{ok:indexerHealthy,lastIndexedHeight:9}:{blocks:[]};
+		response.writeHead(request.url?.startsWith("/health")&&!indexerHealthy?503:200,{"content-type":"application/json"}).end(JSON.stringify(body));
+	  });
+	  for(const server of [rpcServer,indexerServer]){
+		server.listen(0,"127.0.0.1");servers.push(server);await new Promise<void>((resolve)=>server.once("listening",resolve));
+	  }
+	  const rpcAddress=rpcServer.address(),indexerAddress=indexerServer.address();
+	  if(!rpcAddress||typeof rpcAddress==="string"||!indexerAddress||typeof indexerAddress==="string")throw new Error("probe fixture did not bind");
+	  const {base}=await fixture({rpcUrl:`http://127.0.0.1:${rpcAddress.port}`,indexerUrl:`http://127.0.0.1:${indexerAddress.port}`});
+	  const viewer=await token(base,"view","view-pass"),headers=sessionHeaders(viewer);
+	  const unavailable=await call(base,"/ops/overview",{headers});
+	  assert.equal(unavailable.body.network.finality.status,"unavailable");
+	  assert.equal(unavailable.body.network.finality.height,null);
+	  indexerHealthy=true;
+	  const healthy=await call(base,"/ops/overview",{headers});
+	  assert.equal(healthy.body.network.finality.status,"canonical-indexed");
+	  assert.equal(healthy.body.network.finality.height,9);
 	});
   it("requires exact operator approval and writes audit", async () => {
     const { base } = await fixture();
