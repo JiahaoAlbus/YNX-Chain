@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { randomBytes } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import {
   canonicalJSON,
   centralProtocolEntry,
@@ -27,6 +27,12 @@ const endpoint = publicBaseURL(
 );
 const { baseURL, transport } = endpoint;
 const exactSourceCommit = sourceCommit(process.env.YNX_WALLET_GATEWAY_EXACT_SOURCE_COMMIT);
+let peakOpenFileDescriptors = openFileDescriptors();
+const resourceSampler = setInterval(() => {
+  const current = openFileDescriptors();
+  if (current !== null && (peakOpenFileDescriptors === null || current > peakOpenFileDescriptors)) peakOpenFileDescriptors = current;
+}, 10);
+resourceSampler.unref();
 const intendedUsers = 4;
 const registry = JSON.parse(readFileSync(new URL("../central-registry.json", import.meta.url), "utf8"));
 const registration = registry.products.find(product => product.productId === "bridge-web");
@@ -107,6 +113,7 @@ try {
   }));
 }
 if (verificationError) {
+  clearInterval(resourceSampler);
   console.error(JSON.stringify({
     schemaVersion: 1,
     verification: "wallet-auth-public-gateway-multi-user-bounded-failure",
@@ -115,6 +122,7 @@ if (verificationError) {
     exactSourceCommit,
     concurrency: { requested: intendedUsers, completed: count(subject => subject.completionResponse?.status === 200) },
     errorRate: count(subject => subject.completionResponse?.status !== 200) / intendedUsers,
+    resources: resourceEvidence(),
     failures: [...new Set(failures)].sort(),
     phases: subjects.map(subject => ({
       completion: resultCode(subject.completionResponse),
@@ -146,6 +154,7 @@ const identifierSummaries = subjects.map(subject => summarizePublicGatewayIdenti
   revocation: identifiers(subject.revocationResponse), postRevocation: identifiers(subject.postRevocationResponse),
 }));
 const latencies = subjects.map(subject => subject.completionLatencyMs).sort((left, right) => left - right);
+clearInterval(resourceSampler);
 console.log(JSON.stringify({
   schemaVersion: 1,
   verification: "wallet-auth-public-gateway-multi-user-bounded",
@@ -157,6 +166,7 @@ console.log(JSON.stringify({
   summary,
   concurrency: { requested: intendedUsers, completed },
   errorRate: failures.length / intendedUsers,
+  resources: resourceEvidence(),
   completionLatencyMs: { p50: percentile(latencies, 0.5), p95: percentile(latencies, 0.95), p99: percentile(latencies, 0.99), max: decimal(latencies.at(-1)) },
   identifierEvidence: {
     requestIdCompleteness: identifierSummaries.every(value => value.requestIdCompleteness),
@@ -214,6 +224,8 @@ function publicBaseURL(value, allowLoopback) {
 function identifiers(value) { return { status: value.status, requestId: value.requestId, traceId: value.traceId, errorId: value.errorId }; }
 function resultCode(value) { return value ? { status: value.status, code: value.payload?.error?.code ?? null } : null; }
 function sourceCommit(value) { if (typeof value !== "string" || !/^[0-9a-f]{40}$/.test(value)) throw new Error("YNX_WALLET_GATEWAY_EXACT_SOURCE_COMMIT must be an exact commit SHA"); return value; }
+function openFileDescriptors() { try { return readdirSync("/proc/self/fd").length; } catch { return null; } }
+function resourceEvidence() { const value = process.resourceUsage(); return Object.freeze({ userCpuMicroseconds: value.userCPUTime, systemCpuMicroseconds: value.systemCPUTime, peakRssKilobytes: value.maxRSS, peakOpenFileDescriptors, openFileDescriptorsAtSummary: openFileDescriptors() }); }
 function count(predicate) { return subjects.filter(predicate).length; }
 function failPhase(code) { failures.push(code); return false; }
 function nonce() { return randomBytes(24).toString("base64url"); }

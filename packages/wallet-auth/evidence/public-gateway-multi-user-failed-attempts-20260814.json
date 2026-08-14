@@ -19,6 +19,16 @@
       "completionResponses": 0,
       "cleanupRevoked": 0,
       "classification": "SSH forward was closed by the remote host before requests connected"
+    },
+    {
+      "transport": "production-host-public-sni",
+      "outcome": "verifier-import-failed-before-network",
+      "code": "MISSING_EXPORT",
+      "detail": "The deployed c6ac582c source predates summarizePublicGatewayMultiUserEvidence; the current verifier must run from an isolated source-complete temporary package.",
+      "publicRequestsSent": 0,
+      "sessionsCreated": 0,
+      "startupPeakRssKilobytes": 60176,
+      "classification": "tooling/source mismatch; Gateway contract not exercised"
     }
   ],
   "productionReadOnlyDiagnosis": {
