@@ -126,11 +126,11 @@
     {
       "owner": "wallet-product-session-router",
       "branch": "codex/wallet-session-router-recovery",
-      "sourceCommit": "e5932a2eb0e5c01ca31a1ba6e03f9872ccf0ef7f",
-      "remoteCommitObserved": "e5932a2eb0e5c01ca31a1ba6e03f9872ccf0ef7f",
-      "branchHeadObserved": "e5932a2eb0e5c01ca31a1ba6e03f9872ccf0ef7f",
-      "remoteVerifiedAt": "2026-08-14T10:39:34Z",
-      "verificationMode": "remote-ref-parent-tree-seven-blob-readback"
+      "sourceCommit": "cd90b96271b3881bfe6db134aa54c7bb90a29a62",
+      "remoteCommitObserved": "cd90b96271b3881bfe6db134aa54c7bb90a29a62",
+      "branchHeadObserved": "cd90b96271b3881bfe6db134aa54c7bb90a29a62",
+      "remoteVerifiedAt": "2026-08-14T11:31:02Z",
+      "verificationMode": "remote-ref-parent-tree-deployment-evidence-blob-readback-and-state-free-public-probe"
     }
   ],
   "evidence": {
@@ -255,6 +255,41 @@
       "sessionCreated": false,
       "integratedCentral": false,
       "deployedPublic": false
+    },
+    "wallet-product-session-v2-public-interim-deployment": {
+      "type": "git-object",
+      "direct": true,
+      "commit": "cd90b96271b3881bfe6db134aa54c7bb90a29a62",
+      "sourceCommit": "cc6c393608a11022f8617eede753af4c578d0ecd",
+      "path": "packages/wallet-auth/evidence/product-session-v2-public-deployment-20260814.json",
+      "blob": "fde64e23acad84e4979b6375169c731b776617af",
+      "supports": [],
+      "origin": "https://rest.ynxweb4.com",
+      "release": "ynx-product-session-v2-cc6c393608a1",
+      "service": "ynx-product-session-gatewayd",
+      "loopbackPort": 6441,
+      "routePrecedesLegacyAndChainFallback": true,
+      "stateFreeMountProbeVerifiedAgain": true,
+      "stateFreeMountProbeStatus": 400,
+      "stateFreeMountProbeErrorCode": "UNKNOWN_OR_MISSING_FIELD",
+      "publicLifecyclePassed": true,
+      "challenge": true,
+      "completion": true,
+      "introspection": true,
+      "proofReplayRejected": true,
+      "revocation": true,
+      "postRevocationRejected": true,
+      "restartStateShaPreserved": true,
+      "postRestartRemoteSniMountAttemptsPassed": 3,
+      "rollbackDrillPassed": true,
+      "legacyPortsReplaced": false,
+      "runtimeProductsMigrated": 0,
+      "visibleWalletApproval": false,
+      "isolatedInterimRouteAccepted": true,
+      "integratedCentral": false,
+      "aggregateDeployedPublic": false,
+      "productionSigned": false,
+      "storeReleased": false
     },
     "gateway-release": {
       "type": "git-object",
