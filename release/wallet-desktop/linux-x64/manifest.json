@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "productId": "wallet-desktop",
+  "version": "0.1.0",
+  "sourceCommit": "e46bbe648ac92eb76eaf9da0fb0c9e180cef2cf0",
+  "releaseClass": "unsigned-testnet-engineering-preview",
+  "workflow": {
+    "runId": 31757668293,
+    "runUrl": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/31757668293",
+    "jobId": 94636930345,
+    "conclusion": "success",
+    "runner": "ubuntu-24.04",
+    "artifactId": 9203411072,
+    "artifactName": "ynx-wallet-desktop-linux-x64"
+  },
+  "artifacts": [
+    {
+      "filename": "ynx-wallet-desktop-0.1.0-amd64.deb",
+      "format": "deb",
+      "architecture": "amd64",
+      "bytes": 81098840,
+      "sha256": "d55848b7e3e7da5110cc3f31576157a15169cacdd12552465ac890382f467152",
+      "minimumOS": "Ubuntu 24.04 directly tested; broader Linux compatibility not yet evidenced",
+      "signingClass": "unsigned_linux_desktop_testnet_candidate",
+      "installedOnNativeRunner": true,
+      "productionSigned": false
+    },
+    {
+      "filename": "ynx-wallet-desktop-0.1.0-x86_64.AppImage",
+      "format": "AppImage",
+      "architecture": "x86_64",
+      "bytes": 117018980,
+      "sha256": "ded0d059ea1ae96acb65fcd18cff4efa589ab2b01bc31a75c98913570599f426",
+      "minimumOS": "Not runtime-tested separately; contains the same Ubuntu 24.04-built desktop application",
+      "signingClass": "unsigned_linux_desktop_testnet_candidate",
+      "installedOnNativeRunner": false,
+      "productionSigned": false
+    }
+  ],
+  "lifecycleEvidence": {
+    "debInstalled": true,
+    "visibleShellReady": true,
+    "coldLaunch": true,
+    "secondLaunch": true,
+    "rpcEndpoint": "https://evm.ynxweb4.com",
+    "rpcMethod": "eth_chainId",
+    "chainId": "0x1917",
+    "frozenWalletAuthImported": true,
+    "accountCreated": false,
+    "balanceClaimed": false,
+    "transactionCreated": false,
+    "signingEnabled": false,
+    "uninstallVerified": true
+  },
+  "releaseState": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": {
+      "linuxX64DebNativeCI": true,
+      "linuxX64AppImage": false,
+      "linuxArm64": false,
+      "windowsX64": false,
+      "windowsArm64": false
+    },
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

@@ -51,6 +51,20 @@
     "productionSigned": false,
     "storeReleased": false
   },
+  "desktopWalletRelease": {
+    "version": "0.1.0",
+    "sourceCommit": "e46bbe648ac92eb76eaf9da0fb0c9e180cef2cf0",
+    "manifest": "../../release/wallet-desktop/linux-x64/manifest.json",
+    "linuxX64DebInstalledNativeCI": true,
+    "linuxX64AppImageBuilt": true,
+    "linuxX64AppImageInstalledNativeCI": false,
+    "linuxArm64InstalledNativeCI": false,
+    "windowsX64InstalledNativeCI": false,
+    "windowsArm64InstalledNativeCI": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false
+  },
   "implementedLocal": true,
   "testedLocal": true,
   "installedLocal": {"android": true, "ios": true},
