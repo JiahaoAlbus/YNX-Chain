@@ -13,10 +13,16 @@ if (command === "assert-secret-free") {
   const matches = [...body.matchAll(/<node\b([^>]*)\/?\s*>/g)]
     .map((match) => attributes(match[1] ?? ""))
     .filter((node) => node.text === expected || node["content-desc"] === expected);
-  if (matches.length !== 1) fail(`expected exactly one UI node named ${JSON.stringify(expected)}, found ${matches.length}`);
+  const accessibleMatches = matches.filter((node) => node["content-desc"] === expected && node.clickable === "true");
+  const selected = matches.length === 1 ? matches[0] : accessibleMatches.length === 1 ? accessibleMatches[0] : undefined;
+  if (!selected) {
+    fail(
+      `expected one unambiguous UI node named ${JSON.stringify(expected)}, found ${matches.length} matches and ${accessibleMatches.length} clickable accessibility matches`,
+    );
+  }
   if (command === "assert-label") console.log(JSON.stringify({ verified: true, label: expected }));
   else {
-    const bounds = matches[0]?.bounds?.match(/^\[(\d+),(\d+)]\[(\d+),(\d+)]$/);
+    const bounds = selected.bounds?.match(/^\[(\d+),(\d+)]\[(\d+),(\d+)]$/);
     if (!bounds) fail("matched UI node has no canonical bounds");
     const [, left, top, right, bottom] = bounds.map(Number);
     if (!(right > left && bottom > top)) fail("matched UI node has empty bounds");
