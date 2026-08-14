@@ -71,16 +71,25 @@ test("network mutation fails closed before provider call when RPC is unavailable
 });
 
 test("signing validates chain and returned signature", async () => {
-  const wallet = provider({eth_chainId:"0x1917",personal_sign:SIGNATURE});
+  const wallet = provider({eth_chainId:"0x1917",eth_accounts:[ACCOUNT],personal_sign:SIGNATURE});
   assert.equal(await signMessage(wallet,ACCOUNT,"YNX Testnet consent"),SIGNATURE);
-  assert.equal(wallet.calls[1].params[1],ACCOUNT);
+  assert.equal(wallet.calls[2].params[1],ACCOUNT);
 });
 
 test("transaction requires live RPC, exact network, canonical input and real hash", async () => {
-  const wallet = provider({eth_chainId:"0x1917",eth_sendTransaction:TX_HASH});
+  const wallet = provider({eth_chainId:"0x1917",eth_accounts:[ACCOUNT],eth_sendTransaction:TX_HASH});
   assert.equal(await sendTransaction(wallet,{from:ACCOUNT,to:TO,value:"0x0",data:"0x"},{fetcher:rpc}),TX_HASH);
-  assert.deepEqual(wallet.calls.map(({method})=>method),["eth_chainId","eth_sendTransaction"]);
+  assert.deepEqual(wallet.calls.map(({method})=>method),["eth_chainId","eth_accounts","eth_sendTransaction"]);
   await assert.rejects(() => sendTransaction(wallet,{from:ACCOUNT,to:"bad",value:"0x0",data:"0x"},{fetcher:rpc}), (error) => error.code === "INVALID_TRANSACTION");
+});
+
+test("signing and transaction reject a replaced account before sensitive provider calls", async () => {
+  const signingWallet = provider({eth_chainId:"0x1917",eth_accounts:[TO],personal_sign:SIGNATURE});
+  await assert.rejects(() => signMessage(signingWallet,ACCOUNT,"stale session"), (error) => error.code === "ACCOUNT_CHANGED");
+  assert.deepEqual(signingWallet.calls.map(({method})=>method),["eth_chainId","eth_accounts"]);
+  const transactionWallet = provider({eth_chainId:"0x1917",eth_accounts:[TO],eth_sendTransaction:TX_HASH});
+  await assert.rejects(() => sendTransaction(transactionWallet,{from:ACCOUNT,to:TO,value:"0x0",data:"0x"},{fetcher:rpc}), (error) => error.code === "ACCOUNT_CHANGED");
+  assert.deepEqual(transactionWallet.calls.map(({method})=>method),["eth_chainId","eth_accounts"]);
 });
 
 test("second launch restores only an exact live Testnet account", async () => {

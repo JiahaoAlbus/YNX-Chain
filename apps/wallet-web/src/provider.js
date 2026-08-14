@@ -120,6 +120,15 @@ async function exactChain(provider) {
   return chainId;
 }
 
+async function exactAuthorizedAccount(provider, expectedAccount) {
+  await exactChain(provider);
+  const accounts = await provider.request({method: "eth_accounts"});
+  if (!Array.isArray(accounts) || !accounts.some((account) => String(account).toLowerCase() === expectedAccount.toLowerCase())) {
+    fail("ACCOUNT_CHANGED", "The connected account is no longer authorized. Connect again before signing or sending a transaction.");
+  }
+  return expectedAccount.toLowerCase();
+}
+
 export async function addYNXChain(provider, options = {}) {
   if (!validProvider(provider)) fail("WALLET_NOT_FOUND", "No compatible wallet provider was detected.");
   await verifyTestnetRpc(options.fetcher, options.rpcUrl);
@@ -222,9 +231,9 @@ export function subscribeProviderLifecycle(provider, handlers = {}) {
 export async function signMessage(provider, account, message) {
   if (!validProvider(provider) || !ADDRESS.test(account || "")) fail("INVALID_ACCOUNT", "Connect a valid wallet account before signing.");
   if (typeof message !== "string" || message.length < 1 || message.length > 4096) fail("INVALID_MESSAGE", "Message must contain 1 to 4096 characters.");
-  await exactChain(provider);
+  const authorizedAccount = await exactAuthorizedAccount(provider, account);
   const data = `0x${[...new TextEncoder().encode(message)].map((byte) => byte.toString(16).padStart(2, "0")).join("")}`;
-  const signature = await provider.request({method: "personal_sign", params: [data, account]});
+  const signature = await provider.request({method: "personal_sign", params: [data, authorizedAccount]});
   if (typeof signature !== "string" || !SIGNATURE.test(signature)) fail("INVALID_SIGNATURE", "Wallet returned an invalid signature.");
   return signature;
 }
@@ -238,8 +247,8 @@ export async function sendTransaction(provider, transaction, options = {}) {
   if (!ADDRESS.test(from) || !ADDRESS.test(to)) fail("INVALID_TRANSACTION", "Transaction requires valid from and to addresses.");
   if (!/^0x(?:0|[1-9a-fA-F][0-9a-fA-F]*)$/.test(value) || !/^0x(?:[0-9a-fA-F]{2})*$/.test(data)) fail("INVALID_TRANSACTION", "Transaction value or data is not canonical hex.");
   await verifyTestnetRpc(options.fetcher, options.rpcUrl);
-  await exactChain(provider);
-  const hash = await provider.request({method: "eth_sendTransaction", params: [{from, to, value, data}]});
+  const authorizedFrom = await exactAuthorizedAccount(provider, from);
+  const hash = await provider.request({method: "eth_sendTransaction", params: [{from: authorizedFrom, to, value, data}]});
   if (typeof hash !== "string" || !HASH.test(hash)) fail("INVALID_TRANSACTION_HASH", "Wallet did not return a valid transaction hash.");
   return hash.toLowerCase();
 }

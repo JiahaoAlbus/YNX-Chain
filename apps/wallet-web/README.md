@@ -23,6 +23,10 @@ On a second launch, malformed, extra-field, wrong-chain, missing-provider,
 replaced-account, and provider-error session records are deleted. Switching
 between YNX Wallet and MetaMask also invalidates the previous wallet session;
 the user must explicitly connect again.
+Every sign and transaction attempt independently rechecks both the exact chain
+and the currently authorized provider accounts before invoking `personal_sign`
+or `eth_sendTransaction`. This protects extension popups whose runtime proxy
+cannot subscribe to injected-provider lifecycle events.
 
 ```sh
 npm test
