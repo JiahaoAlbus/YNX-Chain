@@ -47,6 +47,12 @@ final class MalformedCallbackUITests: XCTestCase {
     recoveryField.tap()
     recoveryField.typeText(String(repeating: "0", count: 64))
 
+    let semanticSubmit = wallet.keyboards.buttons["Done"]
+    XCTAssertTrue(
+      semanticSubmit.waitForExistence(timeout: 15),
+      "Recovery input did not expose its semantic authorization submit action"
+    )
+
     let persist = wallet.buttons["Recover into secure storage"]
     let enabled = NSPredicate(format: "enabled == true")
     let enabledExpectation = expectation(for: enabled, evaluatedWith: persist)
@@ -55,7 +61,11 @@ final class MalformedCallbackUITests: XCTestCase {
       .completed,
       "Recovery action did not accept the isolated 32-byte test vector"
     )
-    persist.tap()
+    semanticSubmit.tap()
+    XCTAssertTrue(
+      persist.waitForExistence(timeout: 5),
+      "Recovery sheet disappeared before authorization produced a result"
+    )
 
     let failure = wallet.staticTexts["Recovery authorization failed"]
     if !failure.waitForExistence(timeout: 5) {
