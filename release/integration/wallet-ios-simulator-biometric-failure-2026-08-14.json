@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-08-14T12:34:13Z",
+  "scope": "YNX Wallet iOS Simulator engineering evidence only",
+  "source": {
+    "commit": "eea0280c80a29beba9e883bb80c4ba636d586535",
+    "runId": 31798994987,
+    "runUrl": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/31798994987",
+    "runStatus": "completed",
+    "runConclusion": "failure",
+    "jobId": 94762304372,
+    "jobUrl": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/31798994987/job/94762304372",
+    "jobConclusion": "failure"
+  },
+  "artifact": {
+    "id": 9219184406,
+    "name": "ynx-wallet-ios-simulator",
+    "archiveBytes": 109251627,
+    "archiveDigest": "sha256:4db3de276527629bca9aa4ea70783ae8d16842748b389835581a7790ff449bbf",
+    "expired": false,
+    "downloadedAndInspected": false,
+    "downloadBoundary": "Artifact download hit bounded GitHub API EOF/TLS failures; digest and byte count are GitHub artifact metadata, not a locally recomputed hash."
+  },
+  "steps": {
+    "failClosedRecovery": {
+      "number": 18,
+      "startedAt": "2026-08-14T12:27:22Z",
+      "completedAt": "2026-08-14T12:29:16Z",
+      "conclusion": "success"
+    },
+    "simulatedBiometricRecoveryAndUnlock": {
+      "number": 19,
+      "startedAt": "2026-08-14T12:29:16Z",
+      "completedAt": "2026-08-14T12:33:20Z",
+      "conclusion": "failure"
+    },
+    "artifactUpload": {
+      "number": 21,
+      "startedAt": "2026-08-14T12:33:30Z",
+      "completedAt": "2026-08-14T12:33:45Z",
+      "conclusion": "success"
+    }
+  },
+  "directFailureEvidence": {
+    "simulatorEnrollmentMenuDelivered": true,
+    "simulatorEnrollmentReceipt": "12:29:24.7671460Z: menu item Enrolled of menu Face ID ... of application process Simulator",
+    "expectedSpringBoardReason": "Import a YNX Wallet account",
+    "expectedSpringBoardReasonObserved": false,
+    "accessibilityError": "Error getting main window kAXErrorInvalidUIElement for remote element in process 48989",
+    "assertion": "MalformedCallbackUITests.swift:131 XCTAssertTrue failed - LocalAuthentication recovery prompt did not appear after Simulator enrollment",
+    "readyMarkerObserved": false,
+    "matchingFaceDelivered": false,
+    "recoveryPersistedAndLocked": false,
+    "secondBiometricPromptObserved": false,
+    "secondMatchingFaceDelivered": false,
+    "nativeAccountVisibleAfterUnlock": false,
+    "rootCauseClassification": "unresolved: hosted SpringBoard prompt inaccessible, prompt text mismatch, or LocalAuthentication native evaluation not presented",
+    "excludedConclusion": "The evidence does not prove Simulator biometric success and does not prove physical-device biometric behavior."
+  },
+  "gates": {
+    "simulatorSystemBiometricPromptObserved": false,
+    "simulatorRecoveryBiometricMatched": false,
+    "simulatorRecoveryPersistedLocked": false,
+    "simulatorUnlockBiometricMatched": false,
+    "simulatorNativeAccountVisibleAfterUnlock": false,
+    "physicalDeviceBiometric": false,
+    "productRecovery": false,
+    "authenticationSuccess": false,
+    "public": false,
+    "downloadHosted": false,
+    "productionSigned": false
+  }
+}
