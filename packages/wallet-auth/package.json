@@ -63,6 +63,8 @@
     "probe:public-gateway": "node scripts/verify-public-gateway.mjs",
     "probe:public-gateway-multi-user": "node scripts/verify-public-gateway-multi-user.mjs",
     "probe:public-erc4337": "node scripts/probe-public-erc4337.mjs",
+    "verify:canonical-wallet-callers": "node scripts/verify-canonical-wallet-callers.mjs",
+    "report:canonical-wallet-callers": "node scripts/verify-canonical-wallet-callers.mjs --report-only",
     "verify:testnet-deployment": "node scripts/verify-testnet-deployment.mjs",
     "monitor:testnet-deployment": "node scripts/monitor-testnet-deployment.mjs",
     "integrity:testnet-deployment": "node scripts/deployment-artifact-integrity.mjs",

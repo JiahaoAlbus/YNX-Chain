@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 1,
+  "evidenceType": "canonical-wallet-caller-migration-gate",
+  "observedAt": "2026-08-15T03:00:00+08:00",
+  "owner": "Core/Auth",
+  "consumedContract": {
+    "commit": "d0f89797d13c7667cc187b0c64d5c9e1cb1d8f59",
+    "path": "release/integration/wallet-auth-android-launcher-contract.json",
+    "sha256": "d296732141a4029b1811b655f0001cc7d81a1d45019a4bd87d21b2b4b256d1a6",
+    "canonicalBuilder": "@ynx-chain/wallet-auth encodeRequestDeepLink",
+    "walletPackage": "com.ynxweb4.wallet",
+    "uri": "ynxwallet://authorize?request=<base64url-canonical-authorization-request>"
+  },
+  "verifier": {
+    "path": "packages/wallet-auth/scripts/verify-canonical-wallet-callers.mjs",
+    "strictCommand": "npm run verify:canonical-wallet-callers",
+    "reportCommand": "npm run report:canonical-wallet-callers",
+    "scope": ["apps release sources", "apps release bundles", "wallet-auth protocol source"],
+    "forbidden": [
+      "ynx-wallet://",
+      "ynxwallet://sign-app-session",
+      "ynx-wallet://com.ynxweb4.wallet",
+      "caller-owned ynxwallet://authorize?request= concatenation"
+    ],
+    "allowedBuilderOwners": [
+      "packages/wallet-auth/src/deep-link.js",
+      "exact vendored wallet-auth/src/deep-link.js"
+    ]
+  },
+  "testVectors": [
+    {
+      "id": "legacy-monitor-challenge-uri",
+      "input": "ynx-wallet://authorize?challenge=<json>",
+      "expectedCode": "LEGACY_SCHEME",
+      "failClosed": true
+    },
+    {
+      "id": "legacy-trust-sign-app-session",
+      "input": "ynxwallet://sign-app-session?callback=<callback>&challenge=<challenge>",
+      "expectedCode": "LEGACY_SIGN_APP_SESSION",
+      "failClosed": true
+    },
+    {
+      "id": "legacy-wallet-binding",
+      "input": "ynx-wallet://com.ynxweb4.wallet",
+      "expectedCode": "LEGACY_WALLET_BINDING",
+      "failClosed": true
+    },
+    {
+      "id": "manual-canonical-uri",
+      "input": "caller concatenates ynxwallet://authorize?request=",
+      "expectedCode": "MANUAL_AUTHORIZE_URI",
+      "failClosed": true
+    },
+    {
+      "id": "shared-sdk-builder",
+      "input": "import encodeRequestDeepLink from @ynx-chain/wallet-auth and call it with the registry-bound request",
+      "expectedCode": null,
+      "accepted": true
+    }
+  ],
+  "directResult": {
+    "passed": false,
+    "findingCount": 35,
+    "affectedPathCount": 34,
+    "byCode": {
+      "LEGACY_SCHEME": 3,
+      "LEGACY_SIGN_APP_SESSION": 1,
+      "LEGACY_WALLET_BINDING": 1,
+      "MANUAL_AUTHORIZE_URI": 30
+    },
+    "frozenBlockers": [
+      "apps/monitor/src/App.tsx",
+      "apps/trust-center/mobile/android/app/src/main/java/com/ynxweb4/trust/MainActivity.java",
+      "apps/mobile/src/api/mobileSession.ts"
+    ]
+  },
+  "truthBoundary": {
+    "allCallersMigrated": false,
+    "androidResolveActivityVerified": false,
+    "androidQueryIntentActivitiesVerified": false,
+    "pixel9ApproveVerified": false,
+    "pixel9RejectVerified": false,
+    "callbackVerified": false,
+    "productSessionVerified": false,
+    "secondLaunchVerified": false,
+    "integratedCentral": false,
+    "deployedPublic": false
+  }
+}
