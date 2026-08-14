@@ -35,13 +35,27 @@ jobs:
           PROOF="$GITHUB_WORKSPACE/apps/wallet/proof/ci-macos"
           INSTALL_ROOT="$RUNNER_TEMP/Applications"
           APP="$INSTALL_ROOT/YNX Wallet.app"
-          swift build --package-path "$PACKAGE" --configuration release
-          BIN="$(swift build --package-path "$PACKAGE" --configuration release --show-bin-path)"
+          ARM_SCRATCH="$RUNNER_TEMP/wallet-macos-arm64"
+          X86_SCRATCH="$RUNNER_TEMP/wallet-macos-x86_64"
+          swift build --package-path "$PACKAGE" --configuration release \
+            --triple arm64-apple-macosx13.0 --scratch-path "$ARM_SCRATCH"
+          swift build --package-path "$PACKAGE" --configuration release \
+            --triple x86_64-apple-macosx13.0 --scratch-path "$X86_SCRATCH"
+          ARM_BIN="$(swift build --package-path "$PACKAGE" --configuration release \
+            --triple arm64-apple-macosx13.0 --scratch-path "$ARM_SCRATCH" --show-bin-path)"
+          X86_BIN="$(swift build --package-path "$PACKAGE" --configuration release \
+            --triple x86_64-apple-macosx13.0 --scratch-path "$X86_SCRATCH" --show-bin-path)"
           rm -rf "$PROOF" "$APP"
           mkdir -p "$PROOF" "$APP/Contents/MacOS"
           cp "$PACKAGE/Info.plist" "$APP/Contents/Info.plist"
-          cp "$BIN/YNXWalletMac" "$APP/Contents/MacOS/YNXWalletMac"
+          lipo -create \
+            "$ARM_BIN/YNXWalletMac" \
+            "$X86_BIN/YNXWalletMac" \
+            -output "$APP/Contents/MacOS/YNXWalletMac"
           chmod 755 "$APP/Contents/MacOS/YNXWalletMac"
+          lipo -archs "$APP/Contents/MacOS/YNXWalletMac" | tee "$PROOF/architectures.txt"
+          grep -Eq '(^| )arm64( |$)' "$PROOF/architectures.txt"
+          grep -Eq '(^| )x86_64( |$)' "$PROOF/architectures.txt"
           codesign --force --sign - --timestamp=none "$APP"
           codesign --verify --deep --strict "$APP"
           codesign -dv --verbose=4 "$APP" 2> "$PROOF/codesign.txt"
