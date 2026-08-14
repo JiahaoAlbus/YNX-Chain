@@ -158,3 +158,11 @@ Verification passed the focused biometric/repository 14/14 suite, Wallet 75/75, 
 Commit `0ad16656c31b3078ca6a77141a857f3ceacb4875` moves duplicate-attempt rejection ahead of React's asynchronous busy-state render for all five authorization/action Modals. Authorization approve and reject share one exclusive gate, so they cannot race audit and nonce state. Exchange, Developer, DEX and Quant each reject a second approve before another biometric prompt, private-key read, persistent replay consumption or callback handoff can begin. Persistent nonce/action replay stores remain the restart-safe authority; the UI gate removes same-process duplicate side effects before reaching them.
 
 Verification passed Wallet 75/75, typecheck, product check, Social harness contract check, release-content check, full-goal coverage and `git diff --check`. A mode-0700 current-source Android Hermes export passed with 2,742 modules and all temporary links were removed. No device command or interaction was performed, so exact-source device and release booleans remain false.
+
+## Authorization decision linearization checkpoint
+
+Commit `6a50d2d06ca425cca5cc83c9ae8b92a0b09f4d0b` makes the persistent audit the linearization point for authorization approve versus reject. For the same canonical request digest, the first persisted `intent-approved` or `request-rejected` decision wins and a queued opposite decision fails closed. `approval-returned` now requires an earlier approval intent, rejects a prior rejection and cannot be appended twice. The persistent nonce store remains serialized and restart-safe, so concurrent duplicate callbacks still consume the nonce exactly once.
+
+Audit canary tests confirm that account-secret and signed-response values supplied as widened inputs are discarded, and that nonce, product device key, callback and purpose are not persisted. Each audit record retains only its fixed public binding schema and hash-chain fields.
+
+Verification passed the focused audit/replay 9/9 suite, Wallet 77/77, typecheck, product check, Social harness contract check, release-content check, full-goal coverage and `git diff --check`. A mode-0700 current-source Android Hermes export passed with 2,742 modules and all temporary links were removed. No device command or interaction was performed, so exact-source device and release booleans remain false.
