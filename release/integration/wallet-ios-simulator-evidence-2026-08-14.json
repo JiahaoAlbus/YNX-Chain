@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-08-14T11:00:37Z",
+  "sourceCommit": "dd479d28f03cc1d591d0bd78be1a41391d3b67ab",
+  "githubActions": {
+    "runId": 31793565880,
+    "jobId": 94745600713,
+    "conclusion": "success",
+    "xcode": "26.3 (17C529)"
+  },
+  "installable": {
+    "platform": "iOS Simulator",
+    "minimumOS": "16.4",
+    "architectures": ["arm64", "x86_64"],
+    "signingClass": "ad-hoc Simulator",
+    "productionSigned": false,
+    "appZip": {
+      "bytes": 16806598,
+      "sha256": "64df58f48f14cfd54f91a2ef2bd45f29773620949a98c4d56360683a22b3f4d6"
+    },
+    "actionsArtifact": {
+      "id": 9216788542,
+      "bytes": 36559942,
+      "sha256": "52ae1f40933733d39076a40a74c42e086baa913d1ec004327115c301ad84d9a5"
+    }
+  },
+  "directEvidence": {
+    "embeddedApplicationIdentifier": "FAKETEAMID.com.ynxweb4.wallet",
+    "codesignDeepStrict": true,
+    "coldLaunchPid": 30160,
+    "secondLaunchPid": 30616,
+    "nativeKeychainProbe": {"available": true, "addStatus": 0, "readStatus": 0, "deleteStatus": 0},
+    "malformedCallback": {"receivedPid": 36979, "scheme": "ynxwallet", "visibleFailClosedUI": true},
+    "recovery": {
+      "authorizationCompleted": false,
+      "mode": "native-unavailable",
+      "visibleFailureUI": true,
+      "terminatedPid": 43735,
+      "secondLaunchEmpty": true
+    }
+  },
+  "gates": {
+    "simulatorInstallColdSecondLaunch": true,
+    "nativeKeychainAddReadDelete": true,
+    "malformedCallbackDeliveredAndRejected": true,
+    "recoveryFailClosedAndEmptyAfterRestart": true,
+    "biometricSuccess": false,
+    "recoverySuccess": false,
+    "authorizationSuccess": false,
+    "public": false,
+    "downloadHosted": false,
+    "productionSigned": false
+  }
+}
