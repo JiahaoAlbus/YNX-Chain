@@ -235,6 +235,12 @@ Commit `119c7fc9e8e863fab25c922b33dc8a3d76de97fa` prevents the Backup Sheet from
 
 Verification passed the focused display 2/2 suite, Wallet 92/92, typecheck, product check, Social harness contract check, release-content check, full-goal coverage and `git diff --check`. A mode-0700 current-source Android Hermes export passed with 2,746 modules and all temporary links and export files were removed. No device command or interaction was performed, so `testedOnDevice`, `installedLocal`, `downloadHosted`, native-app `deployedPublic`, `productionSigned` and `storeReleased` remain false for this exact source.
 
+## Recovery-key input privacy checkpoint
+
+Commit `5a654db03ef75612ca852fb15f8f5490231d17e9` keeps imported and recovered key input out of Android Autofill and text-learning surfaces. The shared secure Field retains `secureTextEntry` and now sets autocomplete off, excludes Autofill descendants, uses no semantic text-content type and disables spell checking. Non-secret Wallet fields retain their ordinary behavior.
+
+Verification passed the focused input-privacy 1/1 suite, Wallet 93/93, typecheck, product check, Social harness contract check, release-content check, full-goal coverage and `git diff --check`. A mode-0700 current-source Android Hermes export passed with 2,746 modules and all temporary links and export files were removed. No device command or interaction was performed, so `testedOnDevice`, `installedLocal`, `downloadHosted`, native-app `deployedPublic`, `productionSigned` and `storeReleased` remain false for this exact source.
+
 ## In-flight unlock invalidation checkpoint
 
 Commit `d7d198da176a010f6b9aae4e200ca9218b6ee847` prevents a pending biometric unlock from reopening a Wallet that was locked while the prompt or SecureStore read was in flight. Backgrounding, explicit user lock, reconstruction/restart, account switch and privacy-protection failure synchronously advance an unlock epoch. The policy checks foreground/epoch after biometric authorization and again after exact-account secure-material verification, immediately before dispatching unlock. The locked recovery entry is also disabled while unlock is pending.
