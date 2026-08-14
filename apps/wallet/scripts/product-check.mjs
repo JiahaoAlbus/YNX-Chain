@@ -14,6 +14,7 @@ const secureStorage=await readFile(new URL("../src/storage/secureStorage.ts",imp
 const localAuthorization=await readFile(new URL("../src/security/localAuthorization.ts",import.meta.url),"utf8");
 const localAuthorizationPolicy=await readFile(new URL("../src/security/localAuthorizationPolicy.ts",import.meta.url),"utf8");
 const authorizationLifecyclePolicy=await readFile(new URL("../src/security/authorizationLifecyclePolicy.ts",import.meta.url),"utf8");
+const unlockPolicy=await readFile(new URL("../src/security/unlockPolicy.ts",import.meta.url),"utf8");
 const lockState=await readFile(new URL("../src/state/lockState.ts",import.meta.url),"utf8");
 const clipboardPrivacy=await readFile(new URL("../src/security/clipboardPrivacy.ts",import.meta.url),"utf8");
 const signingPlugin=await readFile(new URL("../plugins/withYnxAndroidReleaseSigning.js",import.meta.url),"utf8");
@@ -44,7 +45,13 @@ for(const setter of ["setAuthorization(null)","setExchangeAction(null)","setDeve
 for(const required of ["attempt.generation!==current.generation","attempt.account!==current.account","now.toISOString()>=expiresAt"])assert.ok(authorizationLifecyclePolicy.includes(required),`authorization lifecycle must fail closed on ${required}`);
 assert.ok((source.match(/useAuthorizationAttemptGuard\(selected\.account,request\.expiresAt\)/g)??[]).length===5,"all five authorization/action Modals must use the lifecycle attempt guard");
 assert.ok(source.includes("parseAuthorizationRequest(activeRequest,{now,registry:PRODUCT_REGISTRY})"),"canonical authorization must revalidate expiry after private-key access and before signing");
+assert.ok(source.includes('dispatchLock({type:"lock",reason:"restart"})'),"every repository reconstruction must relock before reading persisted state");
+assert.ok(source.includes("setManifest(null)"),"repository reconstruction must discard stale in-memory account state");
+assert.ok(source.includes("dismissAuthorizationReviews()"),"repository reconstruction must discard pending authorization reviews");
+assert.ok(source.includes("unlockAccountFailClosed(reviewedAccount"),"Wallet unlock must use the exact-account fail-closed policy");
+for(const required of ["await authorizeBiometric()","await verifyAccountSecret(reviewedAccount)","currentSelectedAccount()!==reviewedAccount"])assert.ok(unlockPolicy.includes(required),`unlock policy must enforce ${required}`);
 assert.ok(lockState.includes("unlockedAccount: null"),"background/restart lock must clear the in-memory unlocked account");
+assert.ok(lockState.includes('reason:"restart"'),"repository reconstruction must be an explicit lock action");
 assert.ok(source.includes("switchAccountFailClosed(account"),"account selection must use the fail-closed relock policy");
 assert.ok(lockState.includes('reason: "account-switch"'),"every account switch must clear authorization and require a fresh unlock");
 assert.ok(source.includes("isSelectedAccountUnlocked(lockState,selected.account)"),"Dashboard access must bind authorization to the exact selected account");

@@ -1,5 +1,5 @@
 export type LockState = Readonly<{ locked: boolean; unlockedAccount: string | null; reason: "restart" | "user" | "background" | "account-switch" | "authorized" }>;
-export type LockAction = {type:"unlock";account:string}|{type:"lock";reason:"user"|"background"}|{type:"switch";account:string};
+export type LockAction = {type:"unlock";account:string}|{type:"lock";reason:"restart"|"user"|"background"}|{type:"switch";account:string};
 export const initialLockState = (): LockState => Object.freeze({ locked: true, unlockedAccount: null, reason: "restart" });
 export const isSelectedAccountUnlocked = (state:LockState,selectedAccount:string):boolean => !state.locked&&state.unlockedAccount===selectedAccount;
 export function reduceLockState(state: LockState, action: LockAction): LockState {

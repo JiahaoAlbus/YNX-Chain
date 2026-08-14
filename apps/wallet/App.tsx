@@ -25,6 +25,7 @@ import { authorizeLocalKeyUse } from "./src/security/localAuthorization";
 import { switchAccountFailClosed } from "./src/security/accountSwitchPolicy";
 import { assertAuthorizationAttemptActive, type AuthorizationAttempt } from "./src/security/authorizationLifecyclePolicy";
 import { copyPublicValueWithExpiry } from "./src/security/clipboardPrivacy";
+import { unlockAccountFailClosed } from "./src/security/unlockPolicy";
 import { initialLockState, isSelectedAccountUnlocked, reduceLockState } from "./src/state/lockState";
 import { beginOnboardingSave, canSaveOnboarding, initialOnboardingState, onboardingAccountInput, reduceOnboardingState, type OnboardingState } from "./src/state/onboardingState";
 import { assertSecureStorageAvailable, platformSecureStorage } from "./src/storage/secureStorage";
@@ -71,14 +72,17 @@ function WalletApp(){
   const [privacyAttempt,setPrivacyAttempt]=useState(0);
   const [privacyState,setPrivacyState]=useState<{ready:boolean;error:string|null}>({ready:false,error:null});
   const selected=useMemo(()=>manifest?.accounts.find((item)=>item.account===manifest.selectedAccountId)??null,[manifest]);
+  const selectedRef=useRef<WalletAccount|null>(selected);selectedRef.current=selected;
   const selectedAccountUnlocked=selected!==null&&isSelectedAccountUnlocked(lockState,selected.account);
 
+  const dismissAuthorizationReviews=useCallback(()=>{setAuthorization(null);setExchangeAction(null);setDeveloperDeployment(null);setDexAction(null);setQuantAction(null)},[]);
+
   const load=useCallback(async()=>{
-    setLoading(true);setError(null);
+    dispatchLock({type:"lock",reason:"restart"});dismissAuthorizationReviews();setManifest(null);setLoading(true);setError(null);
     try{await assertSecureStorageAvailable();const [result,savedLocale]=await Promise.all([repository.load(),loadLocale(platformSecureStorage)]);setLocale(savedLocale);setManifest(result.manifest);if(result.migrated)setNotice("Existing secure identity migrated to the independent Wallet. The old product device key was discarded.");}
     catch(caught){setError(localizeError(locale,caught));}
     finally{setLoading(false)}
-  },[locale]);
+  },[dismissAuthorizationReviews,locale]);
 
   const handleLink=useCallback((url:string)=>{
     try{const parsedURL=new URL(url);if(parsedURL.protocol==="ynxwallet:"&&parsedURL.hostname==="open"&&parsedURL.pathname===""&&!parsedURL.search&&!parsedURL.hash){setAuthorization(null);setExchangeAction(null);setDeveloperDeployment(null);setDexAction(null);setQuantAction(null)}else if(parsedURL.protocol==="ynxwallet:"&&parsedURL.hostname==="action"){setExchangeAction(parseExchangeOrderActionDeepLink(url,new Date()));setAuthorization(null);setDeveloperDeployment(null);setDexAction(null);setQuantAction(null)}else if(parsedURL.protocol==="ynxwallet:"&&parsedURL.hostname==="developer-deploy"){setDeveloperDeployment(parseDeveloperDeploymentDeepLink(url,new Date()));setAuthorization(null);setExchangeAction(null);setDexAction(null);setQuantAction(null)}else if(parsedURL.protocol==="ynxwallet:"&&parsedURL.hostname==="dex-action"){setDexAction(parseDexActionDeepLink(url,new Date()));setAuthorization(null);setExchangeAction(null);setDeveloperDeployment(null);setQuantAction(null)}else if(parsedURL.protocol==="ynxwallet:"&&parsedURL.hostname==="quant-action"){setQuantAction(parseQuantActionDeepLink(url,new Date()));setAuthorization(null);setExchangeAction(null);setDeveloperDeployment(null);setDexAction(null)}else{const parsed=parseWalletDeepLink(url,Platform.OS==="ios"?"ios":"android",{now:new Date(),registry:PRODUCT_REGISTRY});setAuthorization(parsed.request);setExchangeAction(null);setDeveloperDeployment(null);setDexAction(null);setQuantAction(null)}setAuthorizationError(null);}
@@ -86,13 +90,13 @@ function WalletApp(){
   },[locale]);
 
   useEffect(()=>{void load();void Linking.getInitialURL().then((url)=>{if(url)handleLink(url)});const sub=Linking.addEventListener("url",({url})=>handleLink(url));return()=>sub.remove()},[handleLink,load]);
-  useEffect(()=>{const sub=AppState.addEventListener("change",(next)=>{if(next!=="active"){dispatchLock({type:"lock",reason:"background"});dispatchOnboarding({type:"background"});setAuthorization(null);setExchangeAction(null);setDeveloperDeployment(null);setDexAction(null);setQuantAction(null)}});return()=>sub.remove()},[]);
+  useEffect(()=>{const sub=AppState.addEventListener("change",(next)=>{if(next!=="active"){dispatchLock({type:"lock",reason:"background"});dispatchOnboarding({type:"background"});dismissAuthorizationReviews()}});return()=>sub.remove()},[dismissAuthorizationReviews]);
   useEffect(()=>{void AccessibilityInfo.isReduceMotionEnabled().then(setReducedMotion);void AccessibilityInfo.isHighTextContrastEnabled().then(setHighContrast);const sub=AccessibilityInfo.addEventListener("reduceMotionChanged",setReducedMotion);return()=>sub.remove()},[]);
   useEffect(()=>{let active=true;setPrivacyState({ready:false,error:null});void preventScreenCaptureAsync("wallet-runtime").then(()=>{if(active)setPrivacyState({ready:true,error:null})}).catch((caught)=>{if(active){dispatchLock({type:"lock",reason:"user"});setPrivacyState({ready:false,error:`Wallet privacy protection failed: ${message(caught)}`})}});return()=>{active=false;void allowScreenCaptureAsync("wallet-runtime")}},[privacyAttempt]);
 
   const unlock=async()=>{
-    if(!selected)return;setBusy(true);setError(null);
-    try{await authorizeLocalKeyUse("unlock");dispatchLock({type:"unlock",account:selected.account});}
+    if(!selected)return;const reviewedAccount=selected.account;setBusy(true);setError(null);
+    try{await unlockAccountFailClosed(reviewedAccount,()=>authorizeLocalKeyUse("unlock"),async(account)=>{await repository.accountSecret(account)},()=>selectedRef.current?.account??null,(account)=>dispatchLock({type:"unlock",account}));}
     catch(caught){setError(localizeError(locale,caught))}finally{setBusy(false)}
   };
   const create=async()=>{const bytes=await getRandomBytesAsync(32);dispatchOnboarding({type:"openCreate",recoveryKey:bytesToHex(bytes),label:`Account ${(manifest?.accounts.length??0)+1}`})};

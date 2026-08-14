@@ -8,6 +8,7 @@ test("every process restart is locked and backgrounding clears unlocked account"
   const unlocked=reduceLockState(first,{type:"unlock",account:"ynx1account"});
   assert.equal(unlocked.locked,false);
   assert.deepEqual(reduceLockState(unlocked,{type:"lock",reason:"background"}),{locked:true,unlockedAccount:null,reason:"background"});
+  assert.deepEqual(reduceLockState(unlocked,{type:"lock",reason:"restart"}),{locked:true,unlockedAccount:null,reason:"restart"});
   assert.deepEqual(initialLockState(),first);
 });
 
