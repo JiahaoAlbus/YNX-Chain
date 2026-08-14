@@ -48,6 +48,7 @@ assert.ok(source.includes("appStateRef.current=next"),"deep-link foreground admi
 assert.ok(foregroundDeepLinkPolicy.includes('state!=="active"'),"background, inactive and unknown AppState must reject authorization links");
 for(const required of ["!current.active","attempt.generation!==current.generation","attempt.binding!==current.binding"])assert.ok(sensitiveOperationPolicy.includes(required),`sensitive operation policy must enforce ${required}`);
 for(const required of ["class ExclusiveAttemptGate","if(this.active)return null","deleteAttemptGate.current.tryBegin()",'disabled={busy||confirm!==account.label}'])assert.ok(`${sensitiveOperationPolicy}\n${source}`.includes(required),`destructive account removal must prevent synchronous attempt reentry through ${required}`);
+assert.ok((source.match(/attemptGate\.current\.tryBegin\(\)/g)??[]).length===6,"authorization approve/reject and all four action callback Modals must synchronously reject attempt reentry");
 for(const boundary of ["transaction-sign","recovery-view","account-import","account-delete"])assert.ok(source.includes(`authorizeLocalKeyUse("${boundary}")`),`Wallet must retain biometric purpose ${boundary}`);
 assert.ok(source.includes('authorizeLocalKeyUse("wallet-reset")'),"unreadable Wallet reset must require strong local biometric authorization");
 assert.ok((source.match(/useSensitiveOperationGuard\(/g)??[]).length>=6,"send, recovery, onboarding, delete, revoke and the guard implementation must share lifecycle invalidation");
