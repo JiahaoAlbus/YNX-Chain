@@ -1,0 +1,87 @@
+name: wallet-android
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - codex/ecosystem-wallet-auth
+      - codex/final-wallet-auth
+      - codex/wallet-android-api36-continuation2-20260814
+    paths:
+      - apps/wallet/**
+      - packages/wallet-auth/**
+      - .github/workflows/wallet-android.yml
+  pull_request:
+    paths:
+      - apps/wallet/**
+      - packages/wallet-auth/**
+      - .github/workflows/wallet-android.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: wallet-android-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  disposable-qa-release:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: |
+            packages/wallet-auth/package-lock.json
+            apps/wallet/package-lock.json
+      - uses: actions/setup-java@d7793b545071e98d581d3bf084a51c3213318a07 # v5.0.0
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407 # v3.2.2
+      - uses: gradle/actions/setup-gradle@0b6dd653ba04f4f93bf581ec31e66cbd7dcb644d # v4
+      - name: Install Android API 36 toolchain
+        run: yes | sdkmanager "platforms;android-36" "build-tools;36.0.0" "platform-tools"
+      - name: Use the release-locked npm
+        run: npm install --global npm@11.5.1
+      - run: npm ci
+        working-directory: packages/wallet-auth
+      - run: npm test
+        working-directory: packages/wallet-auth
+      - run: npm ci
+        working-directory: apps/wallet
+      - run: npm run check
+        working-directory: apps/wallet
+      - name: Build disposable Android API 36 QA release
+        env:
+          YNX_QA_ALLOW_GRADLE_NETWORK: "1"
+        run: bash apps/wallet/scripts/build-disposable-android-qa-release.sh "$RUNNER_TEMP/ynx-wallet-android-api36-disposable-qa"
+      - name: Verify artifact identity and fail-closed release boundary
+        env:
+          QA_ROOT: ${{ runner.temp }}/ynx-wallet-android-api36-disposable-qa
+        run: |
+          set -euo pipefail
+          manifest="$QA_ROOT/manifest.json"
+          apk="$QA_ROOT/ynx-wallet-1.0.1-api36-disposable-qa.apk"
+          test "$(jq -r '.sourceCommit' "$manifest")" = "$GITHUB_SHA"
+          test "$(jq -r '.signingClass' "$manifest")" = disposable-qa-release-key
+          test "$(jq -r '.minimumOS' "$manifest")" = 'Android API 24'
+          test "$(jq -r '.targetSdk' "$manifest")" = 36
+          test "$(jq -r '.apkSignatureSchemeV2' "$manifest")" = true
+          test "$(jq -r '.productionSigned' "$manifest")" = false
+          test "$(jq -r '.storeReleased' "$manifest")" = false
+          test "$(jq -r '.secretMaterialRecorded' "$manifest")" = false
+          test "$(jq -r '.apk.bytes' "$manifest")" = "$(stat -c %s "$apk")"
+          test "$(jq -r '.apk.sha256' "$manifest")" = "$(sha256sum "$apk" | cut -d ' ' -f 1)"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ynx-wallet-android-api36-disposable-qa-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/ynx-wallet-android-api36-disposable-qa/ynx-wallet-1.0.1-api36-disposable-qa.apk
+            ${{ runner.temp }}/ynx-wallet-android-api36-disposable-qa/manifest.json
+          if-no-files-found: error
+          retention-days: 14

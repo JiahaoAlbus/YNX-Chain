@@ -45,6 +45,10 @@ export YNX_QA_KEY_PASSWORD="$YNX_QA_STORE_PASSWORD"
 chmod 0600 "$keystore"
 
 source_commit="$(git -C "$repo_root" rev-parse HEAD)"
+gradle_network_args=(--offline)
+if [[ "${YNX_QA_ALLOW_GRADLE_NETWORK:-0}" == "1" ]]; then
+  gradle_network_args=()
+fi
 (
   cd "$wallet_root/android"
   ANDROID_HOME="$android_home" ANDROID_SDK_ROOT="$android_home" JAVA_HOME="$java_home" \
@@ -52,7 +56,7 @@ source_commit="$(git -C "$repo_root" rev-parse HEAD)"
   YNX_ANDROID_KEYSTORE_PATH="$keystore" YNX_ANDROID_KEYSTORE_TYPE=PKCS12 \
   YNX_ANDROID_KEY_ALIAS="$alias_name" YNX_ANDROID_STORE_PASSWORD="$YNX_QA_STORE_PASSWORD" \
   YNX_ANDROID_KEY_PASSWORD="$YNX_QA_KEY_PASSWORD" \
-  ./gradlew --offline --no-daemon --console=plain --max-workers=1 \
+  ./gradlew "${gradle_network_args[@]}" --no-daemon --console=plain --max-workers=1 \
     -Pkotlin.compiler.execution.strategy=in-process -PreactNativeArchitectures=arm64-v8a :app:assembleRelease
 )
 unset YNX_QA_STORE_PASSWORD YNX_QA_KEY_PASSWORD
