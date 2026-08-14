@@ -249,8 +249,13 @@ contract YNXSponsorPaymaster is BasePaymaster, EIP712 {
             subject.day = today;
             subject.reservedToday = 0;
         }
-        if (maxCost > product.dailyLimit - product.reservedToday) revert BudgetExceeded();
-        if (maxCost > product.perSubjectDailyLimit - subject.reservedToday) revert BudgetExceeded();
+        if (product.reservedToday > product.dailyLimit || maxCost > product.dailyLimit - product.reservedToday) {
+            revert BudgetExceeded();
+        }
+        if (
+            subject.reservedToday > product.perSubjectDailyLimit
+                || maxCost > product.perSubjectDailyLimit - subject.reservedToday
+        ) revert BudgetExceeded();
         product.reservedToday += uint128(maxCost);
         subject.reservedToday += uint128(maxCost);
         consumedAuthorizations[authorization.authorizationId] = true;

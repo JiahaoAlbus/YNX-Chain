@@ -505,6 +505,47 @@ await assert.rejects(
   ),
   /AA33|AuthorizationReplay/,
 );
+const loweredSubjectLimit = usage.reservedToday - 1n;
+await (await paymaster.configureProduct(
+  productId,
+  policyId,
+  ethers.parseEther("10"),
+  ethers.parseEther("0.1"),
+  loweredSubjectLimit,
+  ethers.parseEther("0.1"),
+  0x0f,
+  destination.address,
+  true,
+)).wait();
+const loweredLimitAuthorizationId = ethers.keccak256(ethers.toUtf8Bytes("lowered-subject-limit"));
+const loweredBudgetBefore = await paymaster.productBudgets(productId);
+const loweredUsageBefore = await paymaster.subjectUsage(productId, subjectId);
+await assert.rejects(
+  entryPoint.handleOps(
+    [await sponsoredOperation(28n, 0, loweredLimitAuthorizationId)],
+    beneficiary.address,
+    { gasLimit: 12_000_000 },
+  ),
+  /0x50b2c4e1|BudgetExceeded/,
+);
+const loweredBudgetAfter = await paymaster.productBudgets(productId);
+const loweredUsageAfter = await paymaster.subjectUsage(productId, subjectId);
+assert.equal(loweredBudgetAfter.reservedToday, loweredBudgetBefore.reservedToday);
+assert.equal(loweredBudgetAfter.observedToday, loweredBudgetBefore.observedToday);
+assert.equal(loweredUsageAfter.reservedToday, loweredUsageBefore.reservedToday);
+assert.equal(await paymaster.consumedAuthorizations(loweredLimitAuthorizationId), false);
+assert.equal(await entryPoint.getNonce(sponsoredAccount.target, 0), 28n);
+await (await paymaster.configureProduct(
+  productId,
+  policyId,
+  ethers.parseEther("10"),
+  ethers.parseEther("0.1"),
+  ethers.parseEther("5"),
+  ethers.parseEther("0.1"),
+  0x0f,
+  destination.address,
+  true,
+)).wait();
 await (await paymaster.connect(guardian).disableProduct(productId)).wait();
 await (await paymaster.connect(guardian).setSponsorshipEnabled(false)).wait();
 await assert.rejects(paymaster.connect(guardian).setSponsorshipEnabled(true), /UnauthorizedRiskAction/);
@@ -540,6 +581,7 @@ console.log(JSON.stringify({
   sponsoredFirstActionUserOperation: "passed",
   merchantAndDeveloperSponsorship: "passed",
   exactSponsorPolicyIdRejection: "passed",
+  loweredSubjectLimitCanonicalRejection: "passed",
   sponsorTamperReplayDisableRejection: "passed",
   benchmark: {
     environment: "Hardhat EDR in-process local chain; excludes bundler, RPC, persistence and network latency",
