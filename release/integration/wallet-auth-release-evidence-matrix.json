@@ -88,10 +88,10 @@
     {
       "owner": "desktop-cli-sdk",
       "branch": "codex/wallet-desktop-cli-sdk-20260813",
-      "sourceCommit": "ca1fc40aaadab1421b4681647e619516ff25ff9b",
-      "remoteCommitObserved": "ca1fc40aaadab1421b4681647e619516ff25ff9b",
-      "branchHeadObserved": "ca1fc40aaadab1421b4681647e619516ff25ff9b",
-      "remoteVerifiedAt": "2026-08-14T04:05:00Z",
+      "sourceCommit": "6856bf41f79ffdb0a637d7e1cad11e6931158d67",
+      "remoteCommitObserved": "6856bf41f79ffdb0a637d7e1cad11e6931158d67",
+      "branchHeadObserved": "6856bf41f79ffdb0a637d7e1cad11e6931158d67",
+      "remoteVerifiedAt": "2026-08-14T07:28:17Z",
       "verificationMode": "github-git-database-parent-tree-blob-readback"
     }
   ],
@@ -722,6 +722,13 @@
       "path": "release/integration/wallet-desktop-cli-sdk-contract.json",
       "supports": []
     },
+    "desktop-macos-cli-arm64-nonofficial-blob": {
+      "type": "git-object",
+      "direct": true,
+      "commit": "6856bf41f79ffdb0a637d7e1cad11e6931158d67",
+      "path": "release/wallet-cli/public/macos-arm64-cli-blob-hosting-evidence.json",
+      "supports": []
+    },
     "android-canonical-authorization-recovery": {
       "type": "git-object",
       "direct": true,
@@ -912,10 +919,10 @@
       "ownerSource": "desktop-cli-sdk",
       "artifactClass": "ad-hoc-macos-testnet-cli-candidate",
       "status": "native-ci-lifecycle",
-      "capabilities": {"installedNativeCI":true,"installedLocal":false,"upgradeVerified":true,"ephemeralDeviceProof":true,"privateKeyPersisted":false,"artifactAdHocSigned":true,"postUploadRedownloadHashVerified":true},
+      "capabilities": {"installedNativeCI":true,"installedLocal":false,"upgradeVerified":true,"ephemeralDeviceProof":true,"privateKeyPersisted":false,"artifactAdHocSigned":true,"postUploadRedownloadHashVerified":true,"publicBlobFullDownloadVerified":true,"officialYnxDomainVerified":false,"websiteRegistryDeployed":false},
       "gates": {"build":true,"install":true,"coldLaunch":true,"secondLaunch":true,"testnet":true,"sign":true,"tx":false,"callback":false,"reconnect":false,"downloadHosted":false,"productionSigned":false,"storeReleased":false},
       "evidenceBindings": {"build":["macos-cli-arm64-native-lifecycle"],"install":["macos-cli-arm64-native-lifecycle"],"coldLaunch":["macos-cli-arm64-native-lifecycle"],"secondLaunch":["macos-cli-arm64-native-lifecycle"],"testnet":["macos-cli-arm64-native-lifecycle"],"sign":["macos-cli-arm64-native-lifecycle"],"tx":["macos-cli-arm64-native-lifecycle"],"callback":["macos-cli-arm64-native-lifecycle"],"reconnect":["macos-cli-arm64-native-lifecycle"],"downloadHosted":["macos-cli-arm64-native-lifecycle"],"productionSigned":["macos-cli-arm64-native-lifecycle"],"storeReleased":["macos-cli-arm64-native-lifecycle"]},
-      "notes": ["macOS 14 arm64 native CI proved install/upgrade, cold/second start, frozen vectors, ephemeral proof, exact 0x1917, fail-close, uninstall and rehash. The artifact is ad-hoc linker signed with no official YNX URL; production signing, public hosting and store remain false."]
+      "notes": ["macOS 14 arm64 native CI proved install/upgrade, cold/second start, frozen vectors, ephemeral proof, exact 0x1917, fail-close, uninstall and rehash. A public Vercel Blob HTTP 200 full download matches 4,904,463 bytes and the frozen SHA-256, but the URL is not on an official YNX domain and the website registry/rewrite is absent. The artifact is ad-hoc linker signed; downloadHosted, deployedPublic, production signing and store remain false."]
     },
     {
       "id": "macos-cli-x64",

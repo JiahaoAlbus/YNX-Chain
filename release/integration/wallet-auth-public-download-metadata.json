@@ -257,7 +257,7 @@
       "productionSigned": false,
       "storeReleased": false,
       "websitePublishable": false,
-      "exclusionReason": "No official YNX URL or public re-download SHA/Bytes exists; ad-hoc native CI is not production signing or public hosting."
+      "exclusionReason": "A matching public Vercel Blob re-download exists, but there is no official YNX-domain URL or website registry deployment; ad-hoc native CI is not production signing or official public hosting."
     },
     {
       "id": "macos-cli-x64-0.2.0",

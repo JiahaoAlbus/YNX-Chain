@@ -3,7 +3,7 @@
   "auditId": "wallet-auth-public-evidence-audit-2026-08-14",
   "auditedAt": "2026-08-14T03:38:07Z",
   "integrationBaseCommit": "a008ce0e8fa2ac0322198576c320441118fbae83",
-  "matrixSha256": "255edfa0d9c0cd752f3ed6be594beb2c22d362bb489b22f83aa309bda10dad88",
+  "matrixSha256": "463fd365f0750070b3bb213fc09f3c89366c8cfa4af6319712ce70454f83a598",
   "publicTestnet": {
     "rpc": {
       "url": "https://evm.ynxweb4.com",
@@ -86,6 +86,18 @@
     "reconnectObserved": false,
     "signObserved": false,
     "transactionObserved": false
+  },
+  "nonOfficialBlobObservation": {
+    "artifactId": "macos-cli-arm64-0.1.0",
+    "evidenceCommit": "6856bf41f79ffdb0a637d7e1cad11e6931158d67",
+    "httpStatus": 200,
+    "bytes": 4904463,
+    "sha256": "21db36f1c80d4e88520918de141a7f71921817799270ff671db88179023b5591",
+    "publicBlobVerified": true,
+    "officialYnxDomainVerified": false,
+    "websiteRegistryDeployed": false,
+    "downloadHosted": false,
+    "deployedPublic": false
   },
   "releaseDecision": {
     "publicTestnetRpcVerified": true,
