@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-08-14T13:05:00Z",
+  "requestingHandoff": {
+    "commit": "3b27b83f18799ff74252469075ec460b6665dd44",
+    "requiredFrozenFlag": "YNX_ASSOCIATED_DOMAIN_FROZEN",
+    "requiredComponentsInput": "YNX_AASA_COMPONENTS_JSON"
+  },
+  "authorityAudit": {
+    "walletAuthChapter": "/Users/huangjiahao/Downloads/YNX_Chain_Fable5_Coordinated_Ultimate_Goal_Prompts.md:564",
+    "walletAuthChapterDefinesAssociatedDomain": false,
+    "walletAuthChapterDefinesAasaComponents": false,
+    "coreRegistryDefinesProductBundleAndCallbackBindings": true,
+    "coreRegistryDefinesAasaPathComponents": false,
+    "appleTeamIdDirectEvidencePresent": false,
+    "signedProductionWalletAppIdDirectEvidencePresent": false,
+    "newAuthRouteAuthorizedByIosHandoff": false
+  },
+  "decision": {
+    "YNX_ASSOCIATED_DOMAIN_FROZEN": "false",
+    "YNX_AASA_COMPONENTS_JSON": null,
+    "generationAuthorized": false,
+    "publicAasaDeploymentAuthorized": false,
+    "iosAssociatedDomainEntitlementAuthorized": false,
+    "reason": "Core has no direct evidence for an Apple Team ID or a non-empty AASA component allowlist; inventing a path would define an unauthorized Auth route."
+  },
+  "testFixtureClassification": {
+    "value": "/core-frozen-path/*",
+    "source": "release/integration/wallet-aasa/aasa-policy.test.mjs at handoff commit 3b27b83f18799ff74252469075ec460b6665dd44",
+    "productionAuthority": false
+  },
+  "truth": {
+    "associatedDomainFrozen": false,
+    "aasaComponentsFrozen": false,
+    "nativeUniversalLinkReady": false,
+    "publicAasaVerified": false,
+    "aggregateDeployedPublic": false
+  }
+}
