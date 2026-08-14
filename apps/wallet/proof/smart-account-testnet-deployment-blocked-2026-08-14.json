@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "wallet-smart-account-testnet-deployment-blocked-2026-08-14",
+  "owner": "02-wallet-auth",
+  "sourceCommit": "6cb7bc3a6d824628018f581f4d070619ab8a5128",
+  "environment": "public-testnet",
+  "observedAt": "2026-08-14T07:34:28.327Z",
+  "deploymentTarget": {"network":"YNX Testnet","chainId":6423},
+  "authorizedChannelAudit": {
+    "walletDeploymentWorkflowPresent": false,
+    "localDeploymentCommandPresent": true,
+    "localDeploymentCommand": "npm run hardhat:deploy:wallet-smart-account",
+    "requiresProcessLocalDeployerKey": true,
+    "githubDeploymentEnvironmentDefined": false,
+    "githubOIDCOrRemoteSignerDefined": false
+  },
+  "environmentVariablePresence": {
+    "YNX_EVM_RPC_URL": false,
+    "DEPLOYER_PRIVATE_KEY": false,
+    "SOURCE_COMMIT": false,
+    "YNX_ERC4337_ENTRYPOINT_MODE": false,
+    "YNX_ERC4337_ENTRYPOINT_ADDRESS": false,
+    "YNX_PAYMASTER_POLICY_SIGNER_ADDRESS": false,
+    "YNX_PAYMASTER_RISK_OFFICER_ADDRESS": false,
+    "YNX_ERC4337_BUNDLER_URL": false
+  },
+  "repositoryReadiness": {
+    "chainIdGuard": true,
+    "entryPointCodePresenceGuardForExistingMode": true,
+    "factoryAndPaymasterDeploymentImplemented": true,
+    "transactionAndRuntimeEvidenceOutputImplemented": true,
+    "authoritativeAddressRegistryPopulated": false,
+    "walletContractRollbackRunbookPresent": false,
+    "walletContractMonitoringDefined": false,
+    "genericNodeRollbackApplicable": false,
+    "genericMonitorWorkflowProvesWalletContracts": false
+  },
+  "publicProbe": {
+    "command": "YNX_WALLET_ERC4337_PUBLIC_PROBE=1 YNX_EVM_RPC_URL=https://evm.ynxweb4.com YNX_ERC4337_BUNDLER_URL=https://bundler.ynxweb4.com/rpc YNX_ERC4337_PROBE_TIMEOUT_MS=12000 npm --prefix packages/wallet-auth run probe:public-erc4337",
+    "exitCode": 2,
+    "rpcChain": {"status":"unavailable"},
+    "bundlerChain": {"status":"http-error","httpStatus":404,"deploymentError":"DEPLOYMENT_NOT_FOUND"},
+    "bundlerSupportedEntryPoints": {"status":"http-error","httpStatus":404,"deploymentError":"DEPLOYMENT_NOT_FOUND"},
+    "entryPoint": {"address":null,"expectedRuntimeSha256":null,"status":"not-configured"},
+    "ready": false
+  },
+  "broadcast": {"attempted":false,"transactionHashes":[],"reason":"No process-local deployer credential, RPC configuration, authoritative EntryPoint decision, or repository-authorized Wallet deployment workflow was available."},
+  "releaseClaims": {
+    "entryPointDeployedPublic": false,
+    "factoryDeployedPublic": false,
+    "paymasterDeployedPublic": false,
+    "bundlerDeployedPublic": false,
+    "sponsoredReceiptPublic": false,
+    "explorerEvidencePublic": false,
+    "walletContractMonitoringPublic": false,
+    "websiteContractMetadataUpdated": false
+  },
+  "secretMaterialRecorded": false,
+  "blockingRequirements": [
+    "an authorized deployment identity and RPC channel without exposing secret material",
+    "an authoritative EntryPoint deploy-or-existing decision and exact runtime identity",
+    "a live ERC-7769 Bundler endpoint for chain 6423",
+    "a source-bound address registry and post-deployment receipt/code/event verifier",
+    "a Wallet contract rollback or emergency-disable runbook and live monitoring acceptance",
+    "a public metadata update only after direct deployed evidence passes"
+  ]
+}

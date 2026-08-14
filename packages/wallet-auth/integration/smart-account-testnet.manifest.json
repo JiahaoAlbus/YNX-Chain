@@ -41,6 +41,19 @@
     "notReadyExitCode": 2,
     "evidence": "apps/wallet/proof/public-erc4337-readiness-blocked-2026-08-13.json"
   },
+  "deploymentChannelAudit": {
+    "sourceCommit": "6cb7bc3a6d824628018f581f4d070619ab8a5128",
+    "observedAt": "2026-08-14T07:34:28.327Z",
+    "authorizedWorkflowPresent": false,
+    "deployerCredentialPresent": false,
+    "rpcConfigurationPresent": false,
+    "authoritativeAddressRegistryPopulated": false,
+    "walletContractRollbackRunbookPresent": false,
+    "walletContractMonitoringDefined": false,
+    "freshPublicProbeReady": false,
+    "broadcastAttempted": false,
+    "evidence": "apps/wallet/proof/smart-account-testnet-deployment-blocked-2026-08-14.json"
+  },
   "hardhatIsolation": {"config":"hardhat.wallet.config.ts","sources":"contracts/wallet","artifacts":"tmp/wallet-hardhat/artifacts","cache":"tmp/wallet-hardhat/cache","crossOwnerArtifactCleanup":false},
   "deploymentCommand": "npm run hardhat:deploy:wallet-smart-account",
   "testCommand": "npm run hardhat:test:wallet && node --test packages/wallet-auth/test/bundler.test.mjs && npm --prefix packages/wallet-auth test",
