@@ -149,7 +149,7 @@ test("two independent Gateway processes sharing one state path preserve concurre
   assert.equal(snapshot.sessionStore.audit.filter(item => item.type === "session-created").length, 2);
 });
 
-test("shared-state introspection and revoke linearize without proof or revocation loss", async () => {
+test("independent-process introspection and revoke linearize without proof or revocation loss", async () => {
   const directory = mkdtempSync(join(tmpdir(), "ynx-wallet-shared-state-revoke-"));
   const statePath = join(directory, "state.json");
   const registry = approvedRegistry();
@@ -161,10 +161,8 @@ test("shared-state introspection and revoke linearize without proof or revocatio
     await initialServer.close();
   }
   const session = initializer.snapshot().sessionStore.sessions[0];
-  const firstHost = new CanonicalWalletGatewayNodeHost(registry, { statePath, now: () => NOW });
-  const secondHost = new CanonicalWalletGatewayNodeHost(registry, { statePath, now: () => NOW });
-  const firstServer = await listen(firstHost);
-  const secondServer = await listen(secondHost);
+  const firstServer = await listenProcess(statePath);
+  const secondServer = await listenProcess(statePath);
   const introspectBody = canonicalJSON({ requiredScopes: ["account:read"] });
   try {
     const results = await Promise.all([
@@ -182,7 +180,7 @@ test("shared-state introspection and revoke linearize without proof or revocatio
   assert.ok(snapshot.consumedProductProofs.length === 1 || snapshot.consumedProductProofs.length === 2);
 });
 
-test("two Gateway hosts produce exactly one duplicate-revoke winner", async () => {
+test("two independent Gateway processes produce exactly one duplicate-revoke winner", async () => {
   for (const [suffix, exact, expectedCode] of [["distinct", false, "ALREADY_REVOKED"], ["exact", true, "REPLAY"]]) {
     const directory = mkdtempSync(join(tmpdir(), `ynx-wallet-shared-state-${suffix}-`));
     const statePath = join(directory, "state.json");
@@ -197,8 +195,8 @@ test("two Gateway hosts produce exactly one duplicate-revoke winner", async () =
     const session = initializer.snapshot().sessionStore.sessions[0];
     const first = proof(session, REVOKE, `shared_${suffix}_first_abcdefghijklmnop`);
     const second = exact ? first : proof(session, REVOKE, `shared_${suffix}_second_abcdefghijklmnop`);
-    const firstServer = await listen(new CanonicalWalletGatewayNodeHost(registry, { statePath, now: () => NOW }));
-    const secondServer = await listen(new CanonicalWalletGatewayNodeHost(registry, { statePath, now: () => NOW }));
+    const firstServer = await listenProcess(statePath);
+    const secondServer = await listenProcess(statePath);
     let results;
     try {
       results = await Promise.all([
