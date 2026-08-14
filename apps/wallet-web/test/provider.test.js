@@ -77,7 +77,17 @@ test("discovery presentation directly prefers YNX and gives two non-empty fallba
 test("RPC verification accepts only exact YNX Testnet", async () => {
   const evidence = await verifyTestnetRpc(rpc);
   assert.equal(evidence.chainId, "0x1917"); assert.equal(evidence.source, "https://evm.ynxweb4.com");
-  await assert.rejects(() => verifyTestnetRpc(async()=>({ok:true,json:async()=>({result:"0x1"})})), (error) => error instanceof WalletWebError && error.code === "WRONG_NETWORK");
+  await assert.rejects(() => verifyTestnetRpc(async()=>({ok:true,json:async()=>({jsonrpc:"2.0",id:1,result:"0x1"})})), (error) => error instanceof WalletWebError && error.code === "WRONG_NETWORK");
+});
+
+test("RPC verification rejects malformed, mismatched and error envelopes", async () => {
+  for (const envelope of [
+    null,
+    {jsonrpc:"2.0",id:2,result:"0x1917"},
+    {jsonrpc:"1.0",id:1,result:"0x1917"},
+    {jsonrpc:"2.0",id:1,error:{code:-32603},result:"0x1917"},
+    {jsonrpc:"2.0",id:1,result:6423},
+  ]) await assert.rejects(() => verifyTestnetRpc(async()=>({ok:true,json:async()=>envelope})), (error) => error.code === "INVALID_RPC_RESPONSE");
 });
 
 test("RPC recovery requires a new live 0x1917 response after an offline failure", async () => {
@@ -251,7 +261,7 @@ test("network mutation readiness is revoked unless exact live RPC was proved", a
   assert.equal(walletActionGates(wallet,null,null,false).canSwitchChain,false);
   await assert.rejects(() => switchToYNXChain(wallet,{fetcher:async()=>{throw new Error("offline")}}), (error) => error.code === "RPC_UNAVAILABLE");
   assert.equal(wallet.calls.length,0);
-  await assert.rejects(() => switchToYNXChain(wallet,{fetcher:async()=>({ok:true,json:async()=>({result:"0x1"})})}), (error) => error.code === "WRONG_NETWORK");
+  await assert.rejects(() => switchToYNXChain(wallet,{fetcher:async()=>({ok:true,json:async()=>({jsonrpc:"2.0",id:1,result:"0x1"})})}), (error) => error.code === "WRONG_NETWORK");
   assert.equal(wallet.calls.length,0);
   assert.equal(await switchToYNXChain(wallet,{fetcher:rpc}),"0x1917");
   assert.equal(walletActionGates(wallet,null,null,true).canSwitchChain,true);

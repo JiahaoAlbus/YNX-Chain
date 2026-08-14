@@ -124,7 +124,10 @@ export async function verifyTestnetRpc(fetcher = globalThis.fetch, url = YNX_CHA
   }
   if (!response.ok) fail("RPC_UNAVAILABLE", `YNX Testnet RPC failed closed (${response.status}).`);
   const envelope = await response.json().catch(() => null);
-  if (envelope?.result !== YNX_CHAIN.chainId) fail("WRONG_NETWORK", "The configured RPC did not prove YNX Testnet chain 6423.");
+  if (!envelope || envelope.jsonrpc !== "2.0" || envelope.id !== 1 || Object.hasOwn(envelope, "error") || typeof envelope.result !== "string") {
+    fail("INVALID_RPC_RESPONSE", "YNX Testnet RPC returned an invalid JSON-RPC envelope.");
+  }
+  if (envelope.result !== YNX_CHAIN.chainId) fail("WRONG_NETWORK", "The configured RPC did not prove YNX Testnet chain 6423.");
   return Object.freeze({chainId: envelope.result, source: url, asOf: new Date().toISOString(), version: "json-rpc-2.0"});
 }
 

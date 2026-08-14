@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "owner": "wallet-web-pwa-extensions",
+  "sourceBaseline": "4aae1fc8ef986cac7a5fa861b1c2d07ec373b36b",
+  "consumerOf": "01-chain-core frozen YNX Testnet contract",
+  "rpcUrl": "https://evm.ynxweb4.com",
+  "chainId": "0x1917",
+  "requestId": 1,
+  "strictEnvelope": {
+    "jsonrpcMustEqual": "2.0",
+    "idMustEqual": 1,
+    "errorMemberForbidden": true,
+    "resultMustBeString": true,
+    "wrongEnvelopeCode": "INVALID_RPC_RESPONSE",
+    "wrongChainCode": "WRONG_NETWORK",
+    "walletCallsBeforeProof": 0
+  },
+  "evidence": "apps/wallet-web/evidence/runtime/pwa-built-network-readiness-20260814.json",
+  "mustRemainFalse": {
+    "chromiumCompatibleExtensionRuntimeProved": false,
+    "actionInjectionProved": false,
+    "installedLocal": false,
+    "providerConnected": false,
+    "accountAuthorized": false,
+    "messageSigned": false,
+    "transactionSubmitted": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

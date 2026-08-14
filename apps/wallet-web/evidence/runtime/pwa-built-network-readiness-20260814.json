@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "sourceCommit": "7631c8ca666060684693af20f079f63b97385e30",
-  "generatedAt": "2026-08-14T05:36:01.319Z",
+  "sourceCommit": "4aae1fc8ef986cac7a5fa861b1c2d07ec373b36b",
+  "generatedAt": "2026-08-14T05:37:58.330Z",
   "gateClass": "executable provider module and UI-source contract imported from the exact built PWA ZIP; not browser runtime evidence",
   "artifact": {
     "name": "ynx-wallet-web-pwa-0.1.0.zip",
-    "bytes": 176236,
-    "sha256": "0868b4265f9ee06be3b8c529f323e5099fe436f12361e258af5d41f0f057fff2",
+    "bytes": 176296,
+    "sha256": "f782691a04e7d23b88d8fe9d1351bf5b791534cc8a2f60b58650f606523512c4",
     "signingClass": "unsigned-web-bundle"
   },
   "failures": {
@@ -18,6 +18,16 @@
     "wrongChain": {
       "failedClosed": true,
       "code": "WRONG_NETWORK",
+      "walletCalls": 0
+    },
+    "wrongId": {
+      "failedClosed": true,
+      "code": "INVALID_RPC_RESPONSE",
+      "walletCalls": 0
+    },
+    "rpcError": {
+      "failedClosed": true,
+      "code": "INVALID_RPC_RESPONSE",
       "walletCalls": 0
     }
   },
