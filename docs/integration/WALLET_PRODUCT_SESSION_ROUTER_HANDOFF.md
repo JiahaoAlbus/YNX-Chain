@@ -49,4 +49,4 @@ Integration should merge the scoped contract and matrix files, then reconcile v2
 
 ## Release boundary
 
-Local implementation and local automated tests are evidence for `implementedLocal` and `testedLocal` only. `installedLocal`, `integratedCentral`, `deployedStaging`, `deployedPublic`, `downloadHosted`, `productionSigned`, and `storeReleased` remain false until direct evidence exists.
+The scoped branch is pushed to `origin/codex/wallet-session-router-recovery`. Local implementation and automated tests are evidence for `implementedLocal`, `testedLocal`, and `pushedRemote` only. `installedLocal`, `integratedCentral`, `deployedStaging`, `deployedPublic`, `downloadHosted`, `productionSigned`, and `storeReleased` remain false until direct evidence exists.

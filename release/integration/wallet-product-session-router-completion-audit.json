@@ -96,27 +96,24 @@
       ]
     },
     "F_releaseTruth": {
-      "status": "committed-local-push-blocked",
+      "status": "pushed-awaiting-central-integration",
       "evidence": [
         "release/integration/wallet-product-session-router-contract.json",
         "docs/integration/WALLET_PRODUCT_SESSION_ROUTER_HANDOFF.md"
       ],
-      "pushed": false,
+      "pushed": true,
+      "remote": "https://github.com/JiahaoAlbus/YNX-Chain.git",
+      "remoteBranch": "codex/wallet-session-router-recovery",
       "deployedPublic": false,
       "productionSigned": false,
       "storeReleased": false,
       "remaining": [
-        "Restore DNS access to github.com",
-        "Re-authenticate gh for JiahaoAlbus",
-        "Push codex/wallet-session-router-recovery",
         "Hand the branch to central Integration"
       ]
     }
   },
   "completion": false,
   "blockingConditions": [
-    "github.com cannot be resolved from the managed environment",
-    "the active gh credential is invalid",
     "Computer Control is not approved for installed Wallet applications",
     "product consumer and native packaging migrations are owned by isolated product/platform tasks"
   ]

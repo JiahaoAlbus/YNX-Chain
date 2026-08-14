@@ -66,6 +66,7 @@
   "releaseStatus": {
     "implementedLocal": true,
     "testedLocal": true,
+    "pushedRemote": true,
     "installedLocal": false,
     "integratedCentral": false,
     "deployedStaging": false,
