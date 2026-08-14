@@ -33,7 +33,7 @@ Status: `ACTIVE`
 | productionSigned | false | Only test-fixture signing is exercised |
 | storeReleased | false | Native app-store delivery is not applicable to this headless service |
 
-Engineering-evidence Run `31797308684` checked out exact source `4bb2ddfb6337e44060f57adafc7ee1cc08faedbe`; its PostgreSQL job passed and produced the checked-in source-bound restart/replay, consumer-crash, capacity-backpressure, 1000 signed Producer E2E and three-replica stream-leader-loss evidence. The artifact was downloaded and all ten files were SHA-256 verified. Its verify job rejected the intentionally stale pre-binding release truth; final evidence-head CI is pending this documentation commit. PR `#92` remains blocked by one independent approval; no protection bypass is authorized. The 30-day CI artifact is not a product download and does not change `downloadHosted`.
+Engineering-evidence Run `31797308684` checked out exact source `4bb2ddfb6337e44060f57adafc7ee1cc08faedbe`; its PostgreSQL job passed and produced the checked-in source-bound restart/replay, consumer-crash, capacity-backpressure, 1000 signed Producer E2E and three-replica stream-leader-loss evidence. Its verify job rejected the intentionally stale pre-binding release truth. Final evidence-head Run `31799837096` then passed both jobs at v24-bound head `54c8bc0e16a5a5b3bf6321d041f8b35fea871fbb`; its nine-file artifact was downloaded and all SHA-256 values verified. PR `#92` remains blocked by one independent approval; no protection bypass is authorized. The 30-day CI artifact is not a product download and does not change `downloadHosted`.
 
 ## Current executable integration
 

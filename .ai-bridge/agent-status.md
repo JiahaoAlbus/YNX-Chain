@@ -6,7 +6,7 @@
 - Branch: `codex/final-data-fabric`
 - Engineering Source Commit: `4bb2ddfb6337e44060f57adafc7ee1cc08faedbe`
 - Remote Source Commit: current Engineering Source `4bb2ddfb6337e44060f57adafc7ee1cc08faedbe` is on review Branch `codex/data-fabric-typescript-sdk-20260814`
-- Source evidence CI: Run `31797308684` PostgreSQL job passed at exact engineering source `4bb2ddfb6337e44060f57adafc7ee1cc08faedbe`, including the three-replica JetStream stream-leader-loss gate. Its ten-file evidence artifact was downloaded and SHA-256 verified; final evidence-head CI is pending the binding commit.
+- Source evidence CI: Run `31797308684` PostgreSQL job passed at exact engineering source `4bb2ddfb6337e44060f57adafc7ee1cc08faedbe`, including the three-replica JetStream stream-leader-loss gate. Final evidence-head Run `31799837096` passed both jobs at v24-bound head `54c8bc0e16a5a5b3bf6321d041f8b35fea871fbb`; both evidence artifacts were downloaded and all hashes verified.
 - Concurrent writer: no Git writer detected; an existing CodexPro server process was left untouched
 - Dirty state: reviewed and verified source-bound evidence slice awaiting commit and push; legacy recovery files are preserved under `recovery/2026-07-23/`
 
@@ -20,4 +20,4 @@ Central owner acceptance, complete product adapter set, shared Testnet E2E, stag
 
 ## Exact next action
 
-Bind the final CI receipt, refresh the verified recovery bundle, then continue sustained replicated-service failure drills. Prepare the existing Website handoff for publication, but keep public URLs and downloads false until runtime, signer, immutable-hosting and Website receipts exist. Require independent approval before merging PR `#92`.
+Validate the bound final CI receipt, refresh the verified recovery bundle, then continue sustained replicated-service failure drills. Prepare the existing Website handoff for publication, but keep public URLs and downloads false until runtime, signer, immutable-hosting and Website receipts exist. Require independent approval before merging PR `#92`.
