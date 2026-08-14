@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { chmodSync, linkSync, mkdirSync, mkdtempSync, readFileSync, symlinkSync, unlinkSync, writeFileSync } from "node:fs";
+import { chmodSync, linkSync, mkdirSync, mkdtempSync, readFileSync, statSync, symlinkSync, truncateSync, unlinkSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -65,18 +65,22 @@ test("Gateway state reader rejects symlink, hard-link and non-regular paths with
   assert.equal(readFileSync(sourcePath, "utf8"), target);
 });
 
-test("Gateway state reader rejects broad file mode and noncanonical JSON without rewriting", () => {
+test("Gateway state reader rejects world-readable, oversized and noncanonical state without rewriting", () => {
   const root = mkdtempSync(join(tmpdir(), "ynx-wallet-state-content-security-"));
   const statePath = join(root, "state.json");
   const registry = approvedRegistry();
   new CanonicalWalletGatewayNodeHost(registry, { statePath, now: () => NOW });
   const canonical = readFileSync(statePath, "utf8");
 
-  chmodSync(statePath, 0o640);
+  chmodSync(statePath, 0o644);
   assert.throws(() => new CanonicalWalletGatewayNodeHost(registry, { statePath, now: () => NOW }), code("STATE_PERMISSIONS"));
   assert.equal(readFileSync(statePath, "utf8"), canonical);
 
   chmodSync(statePath, 0o600);
+  truncateSync(statePath, 64 * 1024 * 1024 + 1);
+  assert.throws(() => new CanonicalWalletGatewayNodeHost(registry, { statePath, now: () => NOW }), code("STATE_PERMISSIONS"));
+  assert.equal(statSync(statePath).size, 64 * 1024 * 1024 + 1);
+
   const noncanonical = `${canonical}\n`;
   writeFileSync(statePath, noncanonical, { mode: 0o600 });
   assert.throws(() => new CanonicalWalletGatewayNodeHost(registry, { statePath, now: () => NOW }), code("STATE_TAMPERED"));
