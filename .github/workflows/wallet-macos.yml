@@ -218,6 +218,53 @@ jobs:
           screencapture -x "$PROOF/callback-cold-start-fail-closed.png"
           test -s "$PROOF/callback-cold-start-fail-closed.png"
           kill "$CALLBACK_COLD_PID"
+          for _ in $(seq 1 30); do
+            kill -0 "$CALLBACK_COLD_PID" 2>/dev/null || break
+            sleep 1
+          done
+          ! kill -0 "$CALLBACK_COLD_PID" 2>/dev/null
+
+          open 'ynxwallet://authorize?request=invalid&scope=wallet' > "$PROOF/open-widened-callback-cold-start.txt"
+          for _ in $(seq 1 60); do
+            WIDENED_COLD_PID="$(pgrep -x YNXWalletMac | head -n 1 || true)"
+            if test -n "$WIDENED_COLD_PID" && test "$WIDENED_COLD_PID" != "$CALLBACK_COLD_PID"; then break; fi
+            sleep 1
+          done
+          test -n "${WIDENED_COLD_PID:-}"
+          test "$WIDENED_COLD_PID" != "$CALLBACK_COLD_PID"
+          WIDENED_COLD_SEEN=false
+          WIDENED_COLD_UI=false
+          for _ in $(seq 1 60); do
+            xcrun log show --style compact --last 5m \
+              --predicate 'subsystem == "com.ynxweb4.wallet.macos" AND (category == "callback" OR category == "lifecycle")' \
+              > "$PROOF/widened-callback-cold-start-native.log" 2>&1 || true
+            if grep -Fq "YNX_WALLET_MAC_LAUNCHED pid=$WIDENED_COLD_PID" "$PROOF/widened-callback-cold-start-native.log" && \
+               grep -Fq "YNX_WALLET_MAC_CALLBACK_RECEIVED pid=$WIDENED_COLD_PID scheme=ynxwallet" "$PROOF/widened-callback-cold-start-native.log" && \
+               grep -Fq "YNX_WALLET_MAC_CALLBACK_REJECTED pid=$WIDENED_COLD_PID code=INVALID_AUTHORIZATION_REQUEST" "$PROOF/widened-callback-cold-start-native.log"; then
+              WIDENED_COLD_SEEN=true
+            fi
+            osascript <<'APPLESCRIPT' > "$PROOF/widened-callback-cold-start-ui.txt" 2>/dev/null || true
+          tell application "System Events"
+            tell process "YNXWalletMac"
+              set frontmost to true
+              return name of every static text of window 1
+            end tell
+          end tell
+          APPLESCRIPT
+            if grep -Fq 'Request rejected' "$PROOF/widened-callback-cold-start-ui.txt" && \
+               grep -Fq 'INVALID_AUTHORIZATION_REQUEST' "$PROOF/widened-callback-cold-start-ui.txt"; then
+              WIDENED_COLD_UI=true
+            fi
+            if test "$WIDENED_COLD_SEEN" = true && test "$WIDENED_COLD_UI" = true; then break; fi
+            sleep 1
+          done
+          test "$WIDENED_COLD_SEEN" = true
+          test "$WIDENED_COLD_UI" = true
+          printf 'pid=%s launchedByWidenedCallback=true received=true error=INVALID_AUTHORIZATION_REQUEST visible=true failedClosed=true\n' \
+            "$WIDENED_COLD_PID" | tee "$PROOF/widened-callback-cold-start.txt"
+          screencapture -x "$PROOF/widened-callback-cold-start-fail-closed.png"
+          test -s "$PROOF/widened-callback-cold-start-fail-closed.png"
+          kill "$WIDENED_COLD_PID"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
