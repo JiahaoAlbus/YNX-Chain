@@ -238,6 +238,38 @@ jobs:
             and .finalStreamMessages == .canonicalEvents
             and .duplicateStreamMessages == 0
           ' /tmp/data-fabric-postgres-resilience/transport-backpressure.json
+      - name: Run 1000 signed Producers through PostgreSQL and JetStream
+        env:
+          YNX_TEST_POSTGRES_DSN: postgres://ynx_test:integration-only-password@127.0.0.1:5432/ynx_data_fabric_test?sslmode=disable
+          YNX_DATA_FABRIC_TEST_SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          go run ./scripts/data-fabric/api-capacity \
+            -producers 1000 \
+            -server-concurrency 64 \
+            -source-commit "$YNX_DATA_FABRIC_TEST_SOURCE_COMMIT" \
+            -source-release "ynx-data-fabric-${YNX_DATA_FABRIC_TEST_SOURCE_COMMIT:0:12}" \
+            -dirty-working-tree=false \
+            -postgres-dsn "$YNX_TEST_POSTGRES_DSN" \
+            -embedded-jetstream \
+            -allow-destructive-test-database \
+            | tee /tmp/data-fabric-postgres-resilience/producer-postgres-jetstream.json
+          jq -e --arg source "$YNX_DATA_FABRIC_TEST_SOURCE_COMMIT" '
+            .sourceCommit == $source
+            and .dirtyWorkingTree == false
+            and .producers == 1000
+            and .succeeded == 1000
+            and .businessErrors == 0
+            and .producerConcurrencyLimit == 64
+            and .observedPeakServerInFlight > 0
+            and .observedPeakServerInFlight <= .producerConcurrencyLimit
+            and .backpressureResponses > 0
+            and .database == "PostgreSQL"
+            and .broker == "file-backed embedded JetStream"
+            and .transactionalOutboxQueueDepth == 1000
+            and .brokerPublished == 1000
+            and .finalTransactionalOutboxQueueDepth == 0
+            and .streamMessages == 1000
+          ' /tmp/data-fabric-postgres-resilience/producer-postgres-jetstream.json
       - name: Upload exact-source PostgreSQL resilience evidence
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
