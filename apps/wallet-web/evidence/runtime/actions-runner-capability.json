@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-08-14T00:51:00Z",
+  "repository": "JiahaoAlbus/YNX-Chain",
+  "githubActions": {
+    "selfHostedRunnerCount": 0,
+    "selfHostedRunners": [],
+    "walletWebExtensionRuntimeWorkflowPresent": false,
+    "existingPlaywrightInstallSteps": [
+      {
+        "workflow": ".github/workflows/resource-market-ci.yml",
+        "command": "npx playwright install --with-deps chromium"
+      },
+      {
+        "workflow": ".github/workflows/pay-platforms.yml",
+        "command": "npm ci && npx playwright install --with-deps chromium"
+      }
+    ],
+    "brandedChromeEdgeAvailableOnHostedLinux": false,
+    "note": "The repository has no self-hosted runners and no existing wallet-web extension runtime workflow. Existing jobs demonstrate Playwright Chromium installation only; they are not evidence of branded Chrome or Edge installation."
+  },
+  "localCapabilities": {
+    "playwrightVersion": "1.62.1",
+    "nodeMinimum": ">=20",
+    "chromeBrandedBinary": "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+    "edgeBrandedBinary": "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
+    "firefoxBrandedApplicationPresent": false,
+    "firefoxCommandPresent": false,
+    "webExtCommandPresent": false
+  },
+  "releaseStates": {
+    "chromeInstalledLocal": false,
+    "edgeInstalledLocal": false,
+    "firefoxInstalledLocal": false,
+    "downloadHosted": false
+  }
+}

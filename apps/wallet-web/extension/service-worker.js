@@ -13,6 +13,9 @@ function pageWalletRequest(preference, input) {
   return provider.request(input);
 }
 
+// Worker-global only: keeps the exact production MAIN-world function inspectable by native runtime automation.
+globalThis.__YNX_INTERNAL_PAGE_WALLET_REQUEST__ = pageWalletRequest;
+
 async function execute(preference, input) {
   const [tab] = await extensionApi.tabs.query({active: true, currentWindow: true});
   if (!Number.isInteger(tab?.id) || !/^https?:/.test(tab.url || "")) throw Object.assign(new Error("Open an HTTPS DApp tab before using this companion."), {code: "UNSUPPORTED_TAB"});

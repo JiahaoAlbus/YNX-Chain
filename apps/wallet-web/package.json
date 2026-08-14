@@ -3,10 +3,16 @@
   "version": "0.1.0-testnet-preview.1",
   "private": true,
   "type": "module",
-  "engines": {"node": ">=20"},
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "test": "node --test test/*.test.js",
     "build": "node scripts/build.mjs",
-    "package": "node scripts/package.mjs"
+    "package": "node scripts/package.mjs",
+    "test:runtime:branded": "npm run build && node scripts/runtime-branded.mjs"
+  },
+  "devDependencies": {
+    "playwright": "1.62.1"
   }
 }
