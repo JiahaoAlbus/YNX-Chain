@@ -77,6 +77,7 @@ function WalletApp(){
   const [busy,setBusy]=useState(false);
   const storageAttemptGate=useRef(new ExclusiveAttemptGate());
   const unlockAttemptGate=useRef(new ExclusiveAttemptGate());
+  const createAttemptGate=useRef(new ExclusiveAttemptGate());
   const [locale,setLocale]=useState<WalletLocale>("en");
   const localeRef=useRef<WalletLocale>(locale);localeRef.current=locale;
   const [settings,setSettings]=useState(false);
@@ -113,7 +114,7 @@ function WalletApp(){
     try{await unlockAccountFailClosed(reviewedAccount,()=>authorizeLocalKeyUse("unlock"),async(account)=>{await repository.accountSecret(account)},()=>selectedRef.current?.account??null,assertActive,(account)=>dispatchLock({type:"unlock",account}));}
     catch(caught){setError(localizeError(locale,caught))}finally{release();setBusy(false)}
   };
-  const create=async()=>{const bytes=await getRandomBytesAsync(32);dispatchOnboarding({type:"openCreate",recoveryKey:bytesToHex(bytes),label:`Account ${(manifest?.accounts.length??0)+1}`})};
+  const create=async()=>{const release=createAttemptGate.current.tryBegin();if(!release)return;setBusy(true);try{const bytes=await getRandomBytesAsync(32);dispatchOnboarding({type:"openCreate",recoveryKey:bytesToHex(bytes),label:`Account ${(manifest?.accounts.length??0)+1}`})}catch(caught){setError(localizeError(locale,caught))}finally{release();setBusy(false)}};
   const userLock=()=>{unlockEpochRef.current+=1;dispatchLock({type:"lock",reason:"user"})};
   const saved=(next:WalletManifest)=>{setManifest(next);dispatchOnboarding({type:"saveSucceeded"});userLock();setNotice("Account saved. Unlock with system biometrics to continue.")};
   const select=async(account:string)=>{try{const next=await switchAccountFailClosed(account,(selectedAccount)=>{unlockEpochRef.current+=1;dispatchLock({type:"switch",account:selectedAccount})},(selectedAccount)=>repository.selectAccount(selectedAccount));setManifest(next)}catch(caught){setError(localizeError(locale,caught))}};
