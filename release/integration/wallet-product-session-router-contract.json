@@ -60,6 +60,12 @@
     "routePrecedence": "mount all exact Product Session v2 routes before the Chain JSON-RPC catch-all",
     "currentObservedState": "misrouted-to-chain-json-rpc-catch-all",
     "currentEvidence": "packages/wallet-auth/evidence/product-session-v2-public-route-probe-20260814.json",
+    "releaseGate": {
+      "command": "YNX_PRODUCT_SESSION_V2_PUBLIC_PROBE=1 YNX_PRODUCT_SESSION_V2_PUBLIC_URL=https://rest.ynxweb4.com node packages/wallet-auth/scripts/probe-product-session-v2-public.mjs",
+      "proofStrength": "route mount only; never substitutes for the full lifecycle acceptance",
+      "requiredResult": "HTTP 400 canonical schemaVersion 2 rejection bound to the exact request ID with Cache-Control no-store",
+      "currentResult": "UNEXPECTED_HTTP_STATUS because the public route returned HTTP 200 from Chain JSON-RPC"
+    },
     "stateRequirements": [
       "persist the exact schemaVersion 2 snapshot atomically before returning a successful mutating response",
       "restore sessions, revocations, consumed proofs, idempotency responses and audit events after process restart",
@@ -151,6 +157,7 @@
     "packages/wallet-auth/test/product-session-gateway.test.mjs",
     "packages/wallet-auth/test/product-session-gateway-client.test.mjs",
     "packages/wallet-auth/test/product-session-gateway-http.test.mjs",
+    "packages/wallet-auth/test/product-session-public-probe.test.mjs",
     "packages/wallet-auth/test/product-session-migration.test.mjs",
     "packages/wallet-auth/test/product-session-products.test.mjs",
     "packages/wallet-auth/test/product-session-recovery.test.mjs",
@@ -170,6 +177,8 @@
     "legacyWalletSessionRoutesReachable": true,
     "productSessionV2RoutesDeployedPublic": false,
     "sourcePackageDeployedPublic": true,
+    "sourcePackageCommit": "d8863f6b28752f427929a1c953dd035e096820ff",
+    "currentHeadReleaseGateDeployedPublic": false,
     "officialWebsiteCommit": "11f53023a419701e240f7e0980440d848a9f5af2",
     "officialWebsiteDocs": "https://www.ynxweb4.com/docs",
     "sourcePackageUrl": "https://www.ynxweb4.com/releases/wallet-session-router/d8863f6b2875/ynx-chain-wallet-auth-1.1.0.tgz",

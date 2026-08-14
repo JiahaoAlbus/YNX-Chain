@@ -77,5 +77,18 @@
     "legacyWalletSessionRouteReachable": true,
     "productSessionV2RoutesDeployedPublic": false,
     "requiredIntegrationAction": "mount the exact ProductSessionGatewayHttpHandler for /v2/product-sessions/* ahead of the Chain JSON-RPC catch-all, deploy with persisted v2 state, then run challenge, completion, introspection, replay, revoke and restart recovery acceptance"
+  },
+  "releaseGate": {
+    "implementation": "scripts/probe-product-session-v2-public.mjs",
+    "test": "test/product-session-public-probe.test.mjs",
+    "unitTestsPassed": 6,
+    "unitTestsFailed": 0,
+    "networkAttempts": "1-3 bounded attempts with one stable request ID and an invalid empty canonical body",
+    "command": "YNX_PRODUCT_SESSION_V2_PUBLIC_PROBE=1 YNX_PRODUCT_SESSION_V2_PUBLIC_URL=https://rest.ynxweb4.com node scripts/probe-product-session-v2-public.mjs",
+    "executedAt": "2026-08-14T10:39:34Z",
+    "exitCode": 1,
+    "errorCode": "UNEXPECTED_HTTP_STATUS",
+    "message": "Product Session v2 mount probe expected HTTP 400, received 200",
+    "outcome": "correctly-blocked-public-v2-deployment-claim"
   }
 }

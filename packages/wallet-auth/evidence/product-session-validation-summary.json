@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-08-14T10:12:42Z",
+  "capturedAt": "2026-08-14T10:39:34Z",
   "scope": "local Product Session v2 protocol and router validation",
   "registrySchemaVersion": 2,
   "branch": "codex/wallet-session-router-recovery",
@@ -13,7 +13,7 @@
   },
   "fullPackageTest": {
     "command": "npm test",
-    "passed": 178,
+    "passed": 184,
     "failed": 0,
     "exitCode": 0
   },
@@ -21,8 +21,11 @@
     "command": "npm_config_cache=<isolated-temp-cache> npm pack --dry-run",
     "exitCode": 0,
     "version": "1.1.0",
-    "files": 60,
-    "shasum": "fb1f684094fcf9144bbed929561cb71dbf31b3e1"
+    "files": 61,
+    "bytes": 103670,
+    "unpackedBytes": 469498,
+    "shasum": "ed69775b812266384754d9a40ae0f8e582576a7a",
+    "published": false
   },
   "deviceSecretBoundary": {
     "clientLocalSigning": [
@@ -175,7 +178,11 @@
     "v2ChallengeProbeResponse": "JSON-RPC -32601 method not implemented",
     "v2RoutingOutcome": "misrouted-to-chain-json-rpc-catch-all",
     "productSessionV2RoutesDeployedPublic": false,
-    "stateCreated": false
+    "stateCreated": false,
+    "mountReleaseGate": "scripts/probe-product-session-v2-public.mjs",
+    "mountReleaseGateUnitTestsPassed": 6,
+    "mountReleaseGateLiveResult": "UNEXPECTED_HTTP_STATUS",
+    "mountReleaseGateLiveExitCode": 1
   },
   "visibleComputerControl": {
     "app": "Microsoft Edge",
@@ -258,6 +265,8 @@
     "publicDeployment": false,
     "publicDeploymentMeaning": "App Gateway and migrated product runtimes",
     "sourcePackageDeployedPublic": true,
+    "sourcePackageCommit": "d8863f6b28752f427929a1c953dd035e096820ff",
+    "currentHeadReleaseGateDeployedPublic": false,
     "officialWebsiteReleaseMetadataDeployedPublic": true,
     "appGatewayDeployedPublic": false,
     "publicAppGatewayReachable": true,

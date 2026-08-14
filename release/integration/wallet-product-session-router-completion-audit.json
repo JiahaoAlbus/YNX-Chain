@@ -85,6 +85,7 @@
         "packages/wallet-auth/src/wallet-connection-coordinator.js",
         "packages/wallet-auth/test/product-session-gateway-client.test.mjs",
         "packages/wallet-auth/test/product-session-gateway-http.test.mjs",
+        "packages/wallet-auth/test/product-session-public-probe.test.mjs",
         "packages/wallet-auth/test/wallet-connection-coordinator.test.mjs",
         "release/integration/wallet-product-session-router-migration.json"
       ],
@@ -125,7 +126,7 @@
         "concurrentProductSessions": 120
       },
       "fullPackageTests": {
-        "passed": 178,
+        "passed": 184,
         "failed": 0
       },
       "remaining": [
@@ -143,7 +144,8 @@
         "release/integration/wallet-product-session-router-contract.json",
         "docs/integration/WALLET_PRODUCT_SESSION_ROUTER_HANDOFF.md",
         "packages/wallet-auth/evidence/wallet-session-official-website-deployment.json",
-        "packages/wallet-auth/evidence/product-session-v2-public-route-probe-20260814.json"
+        "packages/wallet-auth/evidence/product-session-v2-public-route-probe-20260814.json",
+        "packages/wallet-auth/scripts/probe-product-session-v2-public.mjs"
       ],
       "pushed": true,
       "remote": "https://github.com/JiahaoAlbus/YNX-Chain.git",
@@ -151,6 +153,8 @@
       "deployedPublic": false,
       "deployedPublicMeaning": "App Gateway and migrated product runtimes",
       "sourcePackageDeployedPublic": true,
+      "sourcePackageCommit": "d8863f6b28752f427929a1c953dd035e096820ff",
+      "currentHeadReleaseGateDeployedPublic": false,
       "officialWebsiteReleaseMetadataDeployedPublic": true,
       "appGatewayDeployedPublic": false,
       "publicAppGatewayReachable": true,
