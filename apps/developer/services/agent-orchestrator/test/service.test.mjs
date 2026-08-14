@@ -4,6 +4,7 @@ import { createServer, request as httpRequest } from "node:http";
 import { mkdtemp, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
+import { DatabaseSync } from "node:sqlite";
 import test from "node:test";
 import { createWorkspaceStore } from "../../workspace-manager/src/store.mjs";
 import { createAgentOrchestrator } from "../src/service.mjs";
@@ -19,7 +20,7 @@ test("agent plan, context, coder, reviewer and one-time write are persisted and 
     {provider:"openai",model:"gpt-test",text:JSON.stringify({approved:true,summary:"Fix addresses evidence",findings:[]})},
   ], seen=[];let testAttempt=0;
   workspaceStore.put("owner-a","project-1",{expectedRevision:0,idempotencyKey:"initial-workspace",payload:{name:"Project",files:{"src/main.ts":"export {};\n"},folders:["src"],open:["src/main.ts"],active:"src/main.ts"}});
-  const orchestrator=createAgentOrchestrator({filename:join(root,"agent.sqlite"),ownerForRequest:req=>req.headers["x-owner"]||null,workspaceStore,modelRouter:{generate:async input=>{seen.push(input);return outputs.shift();}},workspaceRuntime:{runTaskForOwner:async()=>{testAttempt+=1;return{protocolVersion:"ynx-code/v1",taskId:`task-${testAttempt}`,ok:testAttempt>1,code:testAttempt>1?0:1,language:"typescript",output:testAttempt>1?"tests passed":"expected hello world",durationMs:12,compiler:{executable:"node",version:"test"},sandbox:{kind:"test-sandbox",network:false,writableRoot:"workspace"},truncated:false}}}}), server=createServer(async(request,response)=>{if(await orchestrator.handler(request,response))return;response.statusCode=404;response.end()});
+  const orchestrator=createAgentOrchestrator({filename:join(root,"agent.sqlite"),ownerForRequest:req=>req.headers["x-owner"]||null,workspaceStore,modelRouter:{generate:async input=>{seen.push(input);return{...outputs.shift(),usage:{inputTokens:10,outputTokens:5},durationMs:20};}},workspaceRuntime:{runTaskForOwner:async()=>{testAttempt+=1;return{protocolVersion:"ynx-code/v1",taskId:`task-${testAttempt}`,ok:testAttempt>1,code:testAttempt>1?0:1,language:"typescript",output:testAttempt>1?"tests passed":"expected hello world",durationMs:12,compiler:{executable:"node",version:"test"},sandbox:{kind:"test-sandbox",network:false,writableRoot:"workspace"},truncated:false}}}}), server=createServer(async(request,response)=>{if(await orchestrator.handler(request,response))return;response.statusCode=404;response.end()});
   await new Promise(resolve=>server.listen(0,"127.0.0.1",resolve));
   t.after(async()=>{await new Promise(resolve=>server.close(resolve));orchestrator.close();workspaceStore.close()});
   const base=`http://127.0.0.1:${server.address().port}`, key="request-only-secret-never-store", call=(path,body)=>fetch(`${base}${path}`,{method:"POST",headers:{"x-owner":"owner-a","content-type":"application/json"},body:JSON.stringify({protocolVersion:"ynx-code-agent/v1",...body})});
@@ -31,6 +32,8 @@ test("agent plan, context, coder, reviewer and one-time write are persisted and 
   response=await call(`/runtime/agent/runs/${id}`,{action:"generate-fix",provider:"openai",apiKey:key});value=await response.json();assert.equal(response.status,200,value.error);assert.equal(value.run.status,"diff_review");
   response=await call(`/runtime/agent/runs/${id}`,{action:"apply",approval:"write-once"});value=await response.json();assert.equal(response.status,200,value.error);
   response=await call(`/runtime/agent/runs/${id}`,{action:"run-test",approval:"execute-once",activePath:"src/main.ts"});value=await response.json();assert.equal(response.status,200,value.error);assert.equal(value.run.status,"tested");assert.equal(value.run.events.at(-1).payload.result.output,"tests passed");
+  response=await call(`/runtime/agent/runs/${id}`,{action:"prepare-deployment",target:"ynx-testnet"});value=await response.json();assert.equal(response.status,200,value.error);assert.equal(value.run.status,"deployment_review");assert.equal(value.run.deployment.executable,false);assert.equal(value.run.deployment.boundary,"review-only-no-network-no-signing");assert.equal(value.run.deployment.files[0].digest,createHash("sha256").update('export const greeting = "hello world";\n').digest("hex"));assert.equal(value.run.deployment.testEvidenceHash,value.run.events.findLast(event=>event.event_type==="tester.completed").event_hash);
+  response=await call(`/runtime/agent/runs/${id}`,{action:"approve-deployment"});assert.equal(response.status,403);response=await call(`/runtime/agent/runs/${id}`,{action:"approve-deployment",approval:"deployment-review-once"});value=await response.json();assert.equal(response.status,200,value.error);assert.equal(value.run.status,"deployment_approved");assert.equal(value.run.deployment.executable,false);assert.equal(value.run.usage.reportedCalls,7);assert.equal(value.run.usage.inputTokens,70);assert.equal(value.run.usage.outputTokens,35);assert.equal(value.run.usage.cost.status,"unreported-by-provider");
   const hashes=value.run.events.map(event=>event.event_hash);assert.equal(new Set(hashes).size,hashes.length);assert.ok(value.run.events.every((event,index)=>event.previous_hash===(index?hashes[index-1]:"0".repeat(64))));
   assert.equal((await readFile(join(root,"agent.sqlite"))).includes(Buffer.from(key)),false);
 });
@@ -58,4 +61,31 @@ test("agent disconnect cancels the in-flight Planner model request", async (t)=>
   client.destroy();
   for(let attempt=0;attempt<20&&!modelSignal.aborted;attempt++)await new Promise(resolve=>setTimeout(resolve,10));
   assert.equal(modelSignal.aborted,true);
+});
+
+test("agent orchestrator migrates an existing run database for deployment review", async () => {
+  const root = await mkdtemp(join(tmpdir(), "ynx-agent-migration-")),
+    filename = join(root, "agent.sqlite"),
+    legacy = new DatabaseSync(filename);
+  legacy.exec("CREATE TABLE agent_runs(owner_id TEXT NOT NULL,run_id TEXT NOT NULL,project_id TEXT NOT NULL,status TEXT NOT NULL,provider TEXT NOT NULL,model TEXT NOT NULL,intent TEXT NOT NULL,workspace_revision INTEGER NOT NULL,plan TEXT,approved_paths TEXT NOT NULL DEFAULT '[]',proposal TEXT,review TEXT,created_at TEXT NOT NULL,updated_at TEXT NOT NULL,PRIMARY KEY(owner_id,run_id))");
+  legacy.close();
+  const workspaceStore = createWorkspaceStore({
+      filename: join(root, "workspaces.sqlite"),
+    }),
+    orchestrator = createAgentOrchestrator({
+      filename,
+      ownerForRequest: () => "owner",
+      workspaceStore,
+      modelRouter: { generate: async () => assert.fail("model not expected") },
+    }),
+    migrated = new DatabaseSync(filename);
+  assert.ok(
+    migrated
+      .prepare("PRAGMA table_info(agent_runs)")
+      .all()
+      .some((column) => column.name === "deployment"),
+  );
+  migrated.close();
+  orchestrator.close();
+  workspaceStore.close();
 });

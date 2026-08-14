@@ -400,9 +400,17 @@ produce a new digest-bound fix, but every revision is reviewed and needs a new
 write approval. Role responses use JSON mode, role-specific output ceilings and
 strict schema validation; harmless model formatting is normalized only when it
 resolves to one unique already-approved path.
-Package, Agent Git, browser and deployment tools stay disabled until each
-permission adapter passes its own gate; the UI does not describe those stages
-as completed.
+After a passing Tester event for the current revision, the Deployment Agent can
+prepare a deterministic review artifact containing the target, exact file
+digests/byte counts and the Tester event hash. Preparing and approving that
+artifact are separate state transitions; approval requires the one-time
+`deployment-review-once` token. Both states are marked `executable: false` and
+the broker performs no network, signing, publishing or transaction action.
+Model events also retain provider/model, provider-reported token counts and
+duration. Cost is `unreported-by-provider` until the provider supplies accepted
+cost evidence; the UI does not invent an estimate. Package, Agent Git, browser
+and actual deployment tools stay disabled until each permission adapter passes
+its own gate.
 
 Tools are versioned: `read_file`, `write_file`, `edit_file`, `delete_file`,
 `search_code`, `terminal`, `git`, `browser` and `deploy`. Each call binds run,

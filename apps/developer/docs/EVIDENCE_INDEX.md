@@ -17,6 +17,14 @@ successful eight-runtime release record.
 
 ## Product behavior
 
+- AI Software Engineer evidence:
+  `services/agent-orchestrator/test/service.test.mjs` proves schema-bounded
+  Planner/Coder/Reviewer work, one-time write and Tester execution, evidence-led
+  fix/review, hash-chain continuity, provider usage retention and the
+  Tester-hash/file-digest deployment review with separate one-time approval.
+  `test/agent-deployment-review-ui.test.js` holds the visible context,
+  provider/model/token/cost truth and the no-network/no-signing/non-executable
+  deployment boundary. It is not evidence of a deployment.
 - Git broker integration evidence: `services/git-service/test/service.test.mjs`
   runs real Git status/stage/diff/commit/history, local branch creation and
   revision-guarded switching, non-fast-forward merge persistence, conflict abort

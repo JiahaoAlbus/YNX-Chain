@@ -636,6 +636,30 @@ export type AgentRun = {
     files: Array<{ path: string; content: string }>;
   } | null;
   review: { approved: boolean; summary: string; findings: string[] } | null;
+  deployment: {
+    target: "ynx-testnet" | "web-preview";
+    workspaceRevision: number;
+    files: Array<{ path: string; digest: string; bytes: number }>;
+    testEvidenceHash: string;
+    preparedAt: string;
+    executable: false;
+    requires: string[];
+    boundary: "review-only-no-network-no-signing";
+    approval?: "deployment-review-once";
+    approvedAt?: string;
+  } | null;
+  usage: {
+    inputTokens: number;
+    outputTokens: number;
+    durationMs: number;
+    reportedCalls: number;
+    unreportedCalls: number;
+    cost: {
+      amount: null;
+      currency: null;
+      status: "unreported-by-provider";
+    };
+  };
 };
 export async function loadModelCatalog(): Promise<ModelCatalog> {
   return agentFetch("/runtime/models");
