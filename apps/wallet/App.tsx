@@ -23,6 +23,7 @@ import { PRODUCT_REGISTRY, SCOPE_EXPLANATIONS } from "./src/protocol/registry";
 import { WalletSessionInventoryClient, type WalletGatewayBridge, type WalletSessionInventory } from "./src/protocol/sessionInventory";
 import { authorizeLocalKeyUse } from "./src/security/localAuthorization";
 import { generateRecoveryKeyFailClosed } from "./src/security/recoveryKeyGenerationPolicy";
+import { assertStorageResetActive } from "./src/security/storageResetLifecyclePolicy";
 import { switchAccountFailClosed } from "./src/security/accountSwitchPolicy";
 import { assertAuthorizationAttemptActive, type AuthorizationAttempt } from "./src/security/authorizationLifecyclePolicy";
 import { copyPublicValueWithExpiry } from "./src/security/clipboardPrivacy";
@@ -83,6 +84,7 @@ function WalletApp(){
   const [settings,setSettings]=useState(false);
   const [privacyAttempt,setPrivacyAttempt]=useState(0);
   const [privacyState,setPrivacyState]=useState<{ready:boolean;error:string|null}>({ready:false,error:null});
+  const privacyStateRef=useRef(privacyState);privacyStateRef.current=privacyState;
   const appStateRef=useRef<string|null>(AppState.currentState);
   const unlockEpochRef=useRef(0);
   const selected=useMemo(()=>manifest?.accounts.find((item)=>item.account===manifest.selectedAccountId)??null,[manifest]);
@@ -118,7 +120,7 @@ function WalletApp(){
   const userLock=()=>{unlockEpochRef.current+=1;dispatchLock({type:"lock",reason:"user"})};
   const saved=(next:WalletManifest)=>{setManifest(next);dispatchOnboarding({type:"saveSucceeded"});userLock();setNotice("Account saved. Unlock with system biometrics to continue.")};
   const select=async(account:string)=>{try{const next=await switchAccountFailClosed(account,(selectedAccount)=>{unlockEpochRef.current+=1;dispatchLock({type:"switch",account:selectedAccount})},(selectedAccount)=>repository.selectAccount(selectedAccount));setManifest(next)}catch(caught){setError(localizeError(locale,caught))}};
-  const resetCorrupt=async()=>{const release=storageAttemptGate.current.tryBegin();if(!release)return;setBusy(true);const assertActive=()=>{if(appStateRef.current!=="active"||manifestRef.current!==null||storageErrorRef.current===null)throw new Error("Wallet reset was dismissed or moved to the background")};try{await authorizeLocalKeyUse("wallet-reset");assertActive();await repository.resetCorruptStorage(assertActive);await reconstruct()}catch(caught){setError(localizeError(locale,caught))}finally{release();setBusy(false)}};
+  const resetCorrupt=async()=>{const release=storageAttemptGate.current.tryBegin();if(!release)return;const attempt={epoch:unlockEpochRef.current},assertActive=()=>assertStorageResetActive(attempt,{epoch:unlockEpochRef.current,appState:appStateRef.current,privacyReady:privacyStateRef.current.ready,manifestPresent:manifestRef.current!==null,storageErrorPresent:storageErrorRef.current!==null});setBusy(true);try{await authorizeLocalKeyUse("wallet-reset");assertActive();await repository.resetCorruptStorage(assertActive);await reconstruct()}catch(caught){setError(localizeError(locale,caught))}finally{release();setBusy(false)}};
 
   if(!privacyState.ready)return privacyState.error?<Screen><Text style={styles.title}>Wallet privacy protection is required</Text><Text style={styles.error}>{privacyState.error}</Text><Button label="Retry screenshot protection" onPress={()=>setPrivacyAttempt((value)=>value+1)}/></Screen>:<Screen><ActivityIndicator color={ACTIVE_COLORS.blue}/><Text style={styles.muted}>Protecting Wallet screens</Text></Screen>;
   if(loading)return <Screen><ActivityIndicator color={ACTIVE_COLORS.blue}/><Text style={styles.muted}>Verifying secure Wallet storage</Text></Screen>;

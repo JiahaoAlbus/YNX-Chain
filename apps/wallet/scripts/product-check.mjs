@@ -17,6 +17,7 @@ const walletRepository=await readFile(new URL("../src/storage/walletRepository.t
 const localAuthorization=await readFile(new URL("../src/security/localAuthorization.ts",import.meta.url),"utf8");
 const localAuthorizationPolicy=await readFile(new URL("../src/security/localAuthorizationPolicy.ts",import.meta.url),"utf8");
 const recoveryKeyGenerationPolicy=await readFile(new URL("../src/security/recoveryKeyGenerationPolicy.ts",import.meta.url),"utf8");
+const storageResetLifecyclePolicy=await readFile(new URL("../src/security/storageResetLifecyclePolicy.ts",import.meta.url),"utf8");
 const authorizationLifecyclePolicy=await readFile(new URL("../src/security/authorizationLifecyclePolicy.ts",import.meta.url),"utf8");
 const foregroundDeepLinkPolicy=await readFile(new URL("../src/security/foregroundDeepLinkPolicy.ts",import.meta.url),"utf8");
 const sensitiveOperationPolicy=await readFile(new URL("../src/security/sensitiveOperationPolicy.ts",import.meta.url),"utf8");
@@ -54,6 +55,8 @@ assert.ok((source.match(/attemptGate\.current\.tryBegin\(\)/g)??[]).length===6,"
 for(const required of ["sendAttemptGate.current.tryBegin()","saveAttemptGate.current.tryBegin()","revokeAttemptGate.current.tryBegin()",'disabled={revokeBusy}'])assert.ok(source.includes(required),`transfer, secure onboarding save and approval revoke must synchronously reject reentry through ${required}`);
 for(const boundary of ["transaction-sign","recovery-view","account-import","account-delete"])assert.ok(source.includes(`authorizeLocalKeyUse("${boundary}")`),`Wallet must retain biometric purpose ${boundary}`);
 assert.ok(source.includes('authorizeLocalKeyUse("wallet-reset")'),"unreadable Wallet reset must require strong local biometric authorization");
+for(const required of ["attempt.epoch!==current.epoch",'current.appState!=="active"',"!current.privacyReady","current.manifestPresent||!current.storageErrorPresent"])assert.ok(storageResetLifecyclePolicy.includes(required),`unreadable Wallet reset must fail closed through ${required}`);
+for(const required of ["const attempt={epoch:unlockEpochRef.current}","privacyReady:privacyStateRef.current.ready","assertStorageResetActive(attempt"])assert.ok(source.includes(required),`in-flight Wallet reset must retain exact privacy/lock epoch through ${required}`);
 assert.equal((source.match(/storageAttemptGate\.current\.tryBegin\(\)/g)??[]).length,2,"Wallet reconstruction/retry and destructive reset must share one synchronous attempt gate");
 assert.ok(source.includes("await repository.resetCorruptStorage(assertActive);await reconstruct()"),"destructive reset must reconstruct storage while retaining the shared attempt gate");
 assert.ok((source.match(/useSensitiveOperationGuard\(/g)??[]).length>=6,"send, recovery, onboarding, delete, revoke and the guard implementation must share lifecycle invalidation");
