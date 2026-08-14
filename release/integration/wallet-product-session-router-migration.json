@@ -4,7 +4,7 @@
   "audit": {
     "sourceBaseline": "2a78ace0a647b73dd2961fae3361189116453a7d",
     "auditedAt": "2026-08-14T04:06:46.000Z",
-    "rule": "Every evidence path must exist in this branch. migrated-v2 additionally requires distinct runtime, Gateway v2 route, and visible installed/browser platform evidence."
+    "rule": "Every evidence path must exist in this branch. migrated-v2 additionally requires distinct runtime, Gateway v2 route, and visible installed/browser platform evidence. An EVM-only MetaMask adapter connection is not Product Session migration evidence."
   },
   "meaning": {
     "registry-ready": "The central v2 registry and shared contract tests cover the product. This is not product-runtime migration evidence.",
@@ -29,5 +29,5 @@
   ],
   "productRuntimeMigrationCount": 0,
   "fixedProductCount": 0,
-  "integrationRule": "A product may change migrated to true only when its runtime imports the v2 shared SDK, its Gateway uses the v2 routes, and the required installed or browser flow evidence exists."
+  "integrationRule": "A product may change migrated to true only when its runtime imports the v2 shared SDK, its Gateway uses the v2 routes, and the required installed or browser flow evidence exists. MetaMaskEvmConnectionAdapter provides EIP-1193 provider-only authority and cannot satisfy the Product Session or Gateway evidence requirements."
 }

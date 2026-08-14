@@ -162,6 +162,11 @@ export declare function signProductSessionChallenge(challenge:unknown,deviceSecr
 export declare function parseProductSession(input:unknown):ProductSessionV2;
 export declare class ProductSessionAuthority{constructor(registry:unknown,snapshot?:unknown);issueChallenge(input:{request:unknown;approval:unknown;challenge:string},at?:Date):Readonly<Record<string,unknown>>;complete(input:{request:unknown;approval:unknown;completion:unknown},at?:Date):ProductSessionV2;introspect(sessionBinding:string,context:Readonly<Record<string,unknown>>,at?:Date):Readonly<{active:true;session:ProductSessionV2}>;revokeSession(sessionBinding:string):string;revokeDevice(deviceBinding:string):string;revokeAccount(account:string,at?:Date):Readonly<{account:string;before:string}>;snapshot():Readonly<Record<string,unknown>>;}
 export declare function walletConnectionChoices(registry:unknown,productId:string,availability:{ynxWalletInstalled:boolean;metaMaskAvailable:boolean}):readonly Readonly<Record<string,unknown>>[];
+export declare const METAMASK_EVM_CONNECTION_STATUS:Readonly<{CONNECTED:"connected-evm"}>;
+export declare const METAMASK_EVM_CHAIN_ID:6423;
+export declare const METAMASK_EVM_CHAIN_QUANTITY:"0x1917";
+export type MetaMaskEvmConnection=Readonly<{status:"connected-evm";wallet:"metamask";connectionMode:"evm-only";authority:"eip-1193-provider-only";productId:string;chainId:6423;chainQuantity:"0x1917";address:string;ynxProductSession:false;productSession:null;limitations:readonly string[]}>;
+export declare class MetaMaskEvmConnectionAdapter{constructor(config:Readonly<{registry:unknown;productId:string;provider:unknown}>);connect():Promise<MetaMaskEvmConnection>};
 export declare function encodeProductSessionWalletURL(registry:unknown,request:unknown,at?:Date):string;
 export declare function parseProductSessionWalletURL(registry:unknown,url:string,at?:Date):Readonly<Record<string,unknown>>;
 export declare function prepareWalletOpen(registry:unknown,request:unknown,environment:{networkAvailable:boolean;walletInstalled:boolean;schemeRegistered:boolean},at?:Date):Readonly<Record<string,unknown>>;
