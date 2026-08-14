@@ -50,6 +50,15 @@ test("clients reject insecure remote origins and unsafe credentials", async () =
   await assert.rejects(client.events(), /incomplete or unsafe/u);
 });
 
+test("producer rejects noncanonical or v1 Chain Core references before delivery", async () => {
+  let called = false;
+  const client = new ProducerClient("https://fabric.ynx.invalid", "key.sdk.0001", key, async () => { called = true; throw new Error("must not be called"); });
+  const v1 = signedEvent();
+  v1.chainCommitmentId = "0123456789abcdef0123456789abcdef";
+  await assert.rejects(client.send(v1), /Envelope v2/u);
+  assert.equal(called, false);
+});
+
 function signedEvent() {
   const event = {
     eventId: "event.pay.sdk.0001", eventType: "pay.invoice.created", schemaVersion: "1.0", product: "pay", service: "invoice", aggregateId: "invoice.sdk.0001",

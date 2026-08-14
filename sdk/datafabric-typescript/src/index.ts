@@ -58,6 +58,7 @@ export interface EventEnvelope<TPayload extends Record<string, unknown> = Record
   retentionClass: "transient" | "operational" | "financial-7y" | "audit-7y" | "legal-hold";
   residencyClass?: "global" | "regional" | "account-home" | "legal-hold";
   auditId: string;
+  chainCommitmentId?: string;
   idempotencyKey?: string;
   partitionKey?: string;
   orderingKey?: string;
@@ -122,6 +123,7 @@ export class DataFabricError extends Error {
 }
 
 const identifier = /^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$/;
+const chainCommitmentIdentifier = /^[0-9a-f]{32}$/;
 const maxResponseBytes = 8 * 1024 * 1024;
 
 export function producerDeliverySignature(
@@ -255,7 +257,7 @@ function eventIntegrityMaterial(event: EventEnvelope): Buffer {
     "eventId", "eventType", "schemaVersion", "producer", "product", "service", "aggregateType", "aggregateId", "actor",
     "actorId", "accountId", "productSessionId", "correlationId", "causationId", "traceId", "requestId", "sequence", "timestamp",
     "occurredAt", "effectiveAt", "receivedAt", "sourceCommit", "sourceRelease", "integrity", "integrityHash", "signature",
-    "privacyClassification", "retentionClass", "residencyClass", "auditId", "idempotencyKey", "partitionKey", "orderingKey", "source", "payload", "metadata",
+    "privacyClassification", "retentionClass", "residencyClass", "auditId", "chainCommitmentId", "idempotencyKey", "partitionKey", "orderingKey", "source", "payload", "metadata",
   ];
   for (const field of fields) {
     let value: unknown = event[field];
@@ -270,13 +272,14 @@ function eventIntegrityMaterial(event: EventEnvelope): Buffer {
 }
 
 function optionalOmit(field: keyof EventEnvelope): boolean {
-  return new Set<keyof EventEnvelope>(["producer", "aggregateType", "actorId", "accountId", "productSessionId", "causationId", "traceId", "requestId", "occurredAt", "receivedAt", "integrityHash", "signature", "residencyClass", "idempotencyKey", "partitionKey", "orderingKey"]).has(field);
+  return new Set<keyof EventEnvelope>(["producer", "aggregateType", "actorId", "accountId", "productSessionId", "causationId", "traceId", "requestId", "occurredAt", "receivedAt", "integrityHash", "signature", "residencyClass", "chainCommitmentId", "idempotencyKey", "partitionKey", "orderingKey"]).has(field);
 }
 
 function validateEnvelopeBindings(event: EventEnvelope): void {
   if (event.schemaVersion !== "1.0" && event.schemaVersion !== "2.0") throw new Error("event schema version is unsupported");
   if (!identifier.test(event.eventId) || !identifier.test(event.auditId) || !identifier.test(event.aggregateId)) throw new Error("event identifiers are invalid");
   if (event.integrity.algorithm !== "hmac-sha256" || !identifier.test(event.integrity.keyId)) throw new Error("event integrity binding is invalid");
+  if (event.chainCommitmentId !== undefined && (event.schemaVersion !== "2.0" || !chainCommitmentIdentifier.test(event.chainCommitmentId))) throw new Error("chainCommitmentId must be a canonical Chain Core v1 commitment reference on Envelope v2");
   if (event.schemaVersion === "2.0" && (event.integrityHash !== event.integrity.digest || event.signature !== event.integrity.signature)) throw new Error("v2 integrity aliases do not match");
 }
 

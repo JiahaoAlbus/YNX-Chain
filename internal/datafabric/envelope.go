@@ -22,13 +22,14 @@ const (
 )
 
 var (
-	ErrDuplicate  = errors.New("data fabric: duplicate event")
-	ErrOutOfOrder = errors.New("data fabric: event is out of order")
-	ErrTampered   = errors.New("data fabric: event integrity check failed")
-	idPattern     = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$`)
-	slugPattern   = regexp.MustCompile(`^[a-z][a-z0-9-]{1,63}$`)
-	typePattern   = regexp.MustCompile(`^[a-z][a-z0-9]*(\.[a-z][a-z0-9_-]*){2,7}$`)
-	commitPattern = regexp.MustCompile(`^[0-9a-f]{7,64}$`)
+	ErrDuplicate             = errors.New("data fabric: duplicate event")
+	ErrOutOfOrder            = errors.New("data fabric: event is out of order")
+	ErrTampered              = errors.New("data fabric: event integrity check failed")
+	idPattern                = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$`)
+	slugPattern              = regexp.MustCompile(`^[a-z][a-z0-9-]{1,63}$`)
+	typePattern              = regexp.MustCompile(`^[a-z][a-z0-9]*(\.[a-z][a-z0-9_-]*){2,7}$`)
+	commitPattern            = regexp.MustCompile(`^[0-9a-f]{7,64}$`)
+	chainCommitmentIDPattern = regexp.MustCompile(`^[0-9a-f]{32}$`)
 )
 
 type Actor struct {
@@ -85,6 +86,7 @@ type EventEnvelope struct {
 	RetentionClass        string            `json:"retentionClass"`
 	ResidencyClass        string            `json:"residencyClass,omitempty"`
 	AuditID               string            `json:"auditId"`
+	ChainCommitmentID     string            `json:"chainCommitmentId,omitempty"`
 	IdempotencyKey        string            `json:"idempotencyKey,omitempty"`
 	Partition             string            `json:"partitionKey,omitempty"`
 	OrderingKey           string            `json:"orderingKey,omitempty"`
@@ -104,14 +106,15 @@ func (e EventEnvelope) PartitionKey() string {
 }
 
 type V2EnvelopeContext struct {
-	Producer       string
-	AggregateType  string
-	TraceID        string
-	RequestID      string
-	ResidencyClass string
-	IdempotencyKey string
-	ReceivedAt     time.Time
-	Metadata       map[string]string
+	Producer          string
+	AggregateType     string
+	TraceID           string
+	RequestID         string
+	ResidencyClass    string
+	ChainCommitmentID string
+	IdempotencyKey    string
+	ReceivedAt        time.Time
+	Metadata          map[string]string
 }
 
 // PromoteToV2 creates the canonical v2 bindings while retaining the v1 fields
@@ -132,6 +135,7 @@ func (e *EventEnvelope) PromoteToV2(context V2EnvelopeContext) error {
 	e.OccurredAt = e.Timestamp
 	e.ReceivedAt = context.ReceivedAt.UTC()
 	e.ResidencyClass = context.ResidencyClass
+	e.ChainCommitmentID = context.ChainCommitmentID
 	e.IdempotencyKey = context.IdempotencyKey
 	e.Metadata = cloneEvidence(context.Metadata)
 	e.Partition = e.PartitionKey()
@@ -233,6 +237,14 @@ func (e EventEnvelope) Validate() error {
 	}
 	if e.Integrity.Algorithm != "hmac-sha256" || !idPattern.MatchString(e.Integrity.KeyID) {
 		return errors.New("integrity algorithm or keyId is invalid")
+	}
+	if e.ChainCommitmentID != "" {
+		if e.SchemaVersion != EnvelopeSchemaVersionV2 {
+			return Reject(CodeInvalidVersion, "chainCommitmentId is supported only by Envelope v2", map[string]string{"eventId": e.EventID})
+		}
+		if !chainCommitmentIDPattern.MatchString(e.ChainCommitmentID) {
+			return Reject(CodeChainCommitmentRejected, "chainCommitmentId must be a canonical Chain Core commitment ID", map[string]string{"eventId": e.EventID})
+		}
 	}
 	if e.SchemaVersion == EnvelopeSchemaVersionV2 {
 		if err := e.validateV2(); err != nil {

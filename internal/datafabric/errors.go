@@ -54,6 +54,8 @@ const (
 	CodeBillingAlreadySettled         ErrorCode = "DF_BILLING_ALREADY_SETTLED_V1"
 	CodeBillingRatingOverflow         ErrorCode = "DF_BILLING_RATING_OVERFLOW_V1"
 	CodeBillingAuthorityMismatch      ErrorCode = "DF_BILLING_AUTHORITY_MISMATCH_V1"
+	CodeChainCommitmentUnavailable    ErrorCode = "DF_CHAIN_COMMITMENT_UNAVAILABLE_V1"
+	CodeChainCommitmentRejected       ErrorCode = "DF_CHAIN_COMMITMENT_REJECTED_V1"
 )
 
 // RejectionError carries the stable code plus bounded evidence suitable for an

@@ -23,20 +23,21 @@ import (
 )
 
 type Config struct {
-	Store              *datafabric.Store
-	Repository         Repository
-	Authorizer         Authorizer
-	EventKeys          map[string][]byte
-	EventKeyProducts   map[string]string
-	PrivacyKey         []byte
-	SchemaRegistry     *datafabric.SchemaRegistry
-	BrokerKind         string
-	DatabaseKind       string
-	BrokerProbe        func(context.Context) error
-	SourceCommit       string
-	SourceRelease      string
-	MaxBodyBytes       int64
-	RateLimitPerMinute uint32
+	Store                   *datafabric.Store
+	Repository              Repository
+	Authorizer              Authorizer
+	EventKeys               map[string][]byte
+	EventKeyProducts        map[string]string
+	PrivacyKey              []byte
+	SchemaRegistry          *datafabric.SchemaRegistry
+	ChainCommitmentVerifier datafabric.ChainCommitmentVerifier
+	BrokerKind              string
+	DatabaseKind            string
+	BrokerProbe             func(context.Context) error
+	SourceCommit            string
+	SourceRelease           string
+	MaxBodyBytes            int64
+	RateLimitPerMinute      uint32
 }
 
 type Server struct {
@@ -449,6 +450,9 @@ func (s *Server) appendEvent(w http.ResponseWriter, r *http.Request, principal P
 		s.writeError(w, http.StatusForbidden, "integrity_key_product_mismatch", "Event integrity key is not registered for this product")
 		return
 	}
+	if !s.verifyChainCommitment(w, r, event, key) {
+		return
+	}
 	if err := s.repo.Append(r.Context(), event, key); err != nil {
 		status := http.StatusConflict
 		if errors.Is(err, datafabric.ErrTampered) {
@@ -530,6 +534,9 @@ func (s *Server) appendProducerEvent(w http.ResponseWriter, r *http.Request) {
 		s.writeDataFabricError(w, http.StatusUnprocessableEntity, err)
 		return
 	}
+	if !s.verifyChainCommitment(w, r, event, key) {
+		return
+	}
 	if err := s.repo.Append(r.Context(), event, key); err != nil {
 		if errors.Is(err, datafabric.ErrDuplicate) {
 			writeJSON(w, http.StatusOK, map[string]any{"eventId": event.EventID, "status": "already-committed", "auditId": event.AuditID})
@@ -547,6 +554,25 @@ func (s *Server) appendProducerEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusAccepted, map[string]any{"eventId": event.EventID, "status": "committed-to-outbox", "auditId": event.AuditID})
+}
+
+func (s *Server) verifyChainCommitment(w http.ResponseWriter, r *http.Request, event datafabric.EventEnvelope, key []byte) bool {
+	if event.ChainCommitmentID == "" {
+		return true
+	}
+	if err := event.Verify(key); err != nil {
+		s.writeDataFabricError(w, http.StatusForbidden, err)
+		return false
+	}
+	if err := datafabric.VerifyChainCommitmentReference(r.Context(), s.cfg.ChainCommitmentVerifier, event); err != nil {
+		status := http.StatusUnprocessableEntity
+		if datafabric.ErrorCodeOf(err) == datafabric.CodeChainCommitmentUnavailable {
+			status = http.StatusServiceUnavailable
+		}
+		s.writeDataFabricError(w, status, err)
+		return false
+	}
+	return true
 }
 
 func readBoundedBody(r *http.Request, maxBodyBytes int64) ([]byte, error) {
