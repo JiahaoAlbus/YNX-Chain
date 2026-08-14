@@ -9,6 +9,8 @@ const SOURCE_COMMIT = /^[0-9a-f]{40}$/;
 const HEX_DATA = /^0x(?:[0-9a-f]{2})*$/;
 const ENTRY_POINT_SELECTOR = "0xb0d691fe";
 const OWNERSHIP_TRANSFERRED_TOPIC = "0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0";
+const SPONSORSHIP_ENABLED_SELECTOR = "0x21d34c42";
+const GET_DEPOSIT_SELECTOR = "0xc399ec88";
 
 export function createWalletTestnetDeploymentManifest(input) {
   if (!input || typeof input !== "object" || Array.isArray(input) || !SOURCE_COMMIT.test(input.sourceCommit ?? "") || input.chainId !== 6423) fail("INVALID_DEPLOYMENT_EVIDENCE", "deployment identity is invalid");
@@ -82,6 +84,45 @@ export async function verifyPublicERC4337Deployment(config) {
   });
 }
 
+export async function monitorPublicERC4337Deployment(config) {
+  const rpcEndpoint = endpoint(config?.rpcEndpoint, "RPC endpoint");
+  const timeoutMs = integer(config?.timeoutMs ?? 10_000, 250, 30_000, "monitor timeout");
+  const maximumBlockAgeSeconds = integer(config?.maximumBlockAgeSeconds, 1, 3600, "maximum block age");
+  if (typeof config?.expectedSponsorshipEnabled !== "boolean") fail("INVALID_CONFIG", "expected sponsorship state is invalid");
+  if (typeof config?.minimumDepositWei !== "string" || !/^(?:0|[1-9][0-9]*)$/.test(config.minimumDepositWei)) fail("INVALID_CONFIG", "minimum deposit is invalid");
+  const now = config?.now ?? new Date();
+  if (!(now instanceof Date) || !Number.isSafeInteger(now.getTime()) || Number.isNaN(now.getTime())) fail("INVALID_CONFIG", "monitor time is invalid");
+  const fetchImpl = config?.fetchImpl ?? globalThis.fetch;
+  const deployment = await verifyPublicERC4337Deployment({ ...config, timeoutMs, fetchImpl });
+  const block = await jsonRpc(fetchImpl, rpcEndpoint, "eth_getBlockByNumber", ["latest", false], timeoutMs);
+  const enabled = await jsonRpc(fetchImpl, rpcEndpoint, "eth_call", [{ to: deployment.contracts.paymaster.address, data: SPONSORSHIP_ENABLED_SELECTOR }, "latest"], timeoutMs);
+  const deposit = await jsonRpc(fetchImpl, rpcEndpoint, "eth_call", [{ to: deployment.contracts.paymaster.address, data: GET_DEPOSIT_SELECTOR }, "latest"], timeoutMs);
+  const blockValue = blockEvidence(block, now, maximumBlockAgeSeconds);
+  const sponsorshipEnabled = booleanWord(enabled);
+  const depositWei = uintWord(deposit);
+  const checks = Object.freeze({
+    deploymentVerified: deployment.ready,
+    blockFresh: blockValue.fresh,
+    sponsorshipEnabledMatches: sponsorshipEnabled !== null && sponsorshipEnabled === config.expectedSponsorshipEnabled,
+    depositMeetsMinimum: depositWei !== null && BigInt(depositWei) >= BigInt(config.minimumDepositWei),
+  });
+  const healthy = Object.values(checks).every(Boolean);
+  return Object.freeze({
+    schemaVersion: 1,
+    verification: "wallet-auth-public-erc4337-monitor-sample",
+    environment: "public-testnet",
+    observedAt: now.toISOString(),
+    deployment,
+    block: Object.freeze({ number: blockValue.number, timestamp: blockValue.timestamp, ageSeconds: blockValue.ageSeconds }),
+    paymaster: Object.freeze({ sponsorshipEnabled, expectedSponsorshipEnabled: config.expectedSponsorshipEnabled, depositWei, minimumDepositWei: config.minimumDepositWei }),
+    checks,
+    healthy,
+    releaseClaims: Object.freeze({ monitoringSampleHealthy: healthy, monitoringPublic: false }),
+    readOnlyMethods: Object.freeze(["eth_chainId", "eth_supportedEntryPoints", "eth_getTransactionReceipt", "eth_getCode", "eth_getBlockByNumber", "eth_call"]),
+    secretMaterialRecorded: false,
+  });
+}
+
 function deploymentManifest(input) {
   if (!input || typeof input !== "object" || Array.isArray(input) || input.schemaVersion !== 1 || !SOURCE_COMMIT.test(input.sourceCommit ?? "") || input.chainId !== 6423) fail("INVALID_CONFIG", "deployment manifest identity is invalid");
   const result = { schemaVersion: 1, sourceCommit: input.sourceCommit, chainId: input.chainId };
@@ -114,6 +155,10 @@ function runtimeSha256(value) { const raw = value.slice(2); const bytes = Uint8A
 function paymasterOwnershipEvent(receipt, address) { if (!receipt || !Array.isArray(receipt.logs)) return false; return receipt.logs.some(log => log && typeof log === "object" && log.address === address && Array.isArray(log.topics) && log.topics.length === 3 && log.topics[0] === OWNERSHIP_TRANSFERRED_TOPIC && log.topics[1] === `0x${"0".repeat(64)}` && /^0x0{24}[0-9a-f]{40}$/.test(log.topics[2]) && !/^0x0{64}$/.test(log.topics[2]) && log.data === "0x"); }
 
 function returnedAddress(value) { return value.ok && typeof value.result === "string" && /^0x0{24}[0-9a-f]{40}$/.test(value.result) ? `0x${value.result.slice(-40)}` : null; }
+function blockEvidence(value, now, maximumAge) { const result = value.ok && value.result && typeof value.result === "object" && !Array.isArray(value.result) ? value.result : null; const number = canonicalQuantity(result?.number); const timestampQuantity = canonicalQuantity(result?.timestamp); if (number === null || timestampQuantity === null) return { number: null, timestamp: null, ageSeconds: null, fresh: false }; const timestamp = Number(BigInt(timestampQuantity)); const nowSeconds = Math.floor(now.getTime() / 1000); if (!Number.isSafeInteger(timestamp) || timestamp > nowSeconds) return { number, timestamp: null, ageSeconds: null, fresh: false }; const ageSeconds = nowSeconds - timestamp; return { number, timestamp: new Date(timestamp * 1000).toISOString(), ageSeconds, fresh: ageSeconds <= maximumAge }; }
+function canonicalQuantity(value) { return typeof value === "string" && /^0x(?:0|[1-9a-f][0-9a-f]*)$/.test(value) ? value : null; }
+function booleanWord(value) { if (!value.ok || typeof value.result !== "string" || !/^0x[0-9a-f]{64}$/.test(value.result)) return null; if (value.result === `0x${"0".repeat(64)}`) return false; if (value.result === `0x${"0".repeat(63)}1`) return true; return null; }
+function uintWord(value) { return value.ok && typeof value.result === "string" && /^0x[0-9a-f]{64}$/.test(value.result) ? BigInt(value.result).toString(10) : null; }
 async function jsonRpc(fetchImpl, url, method, params, timeoutMs) {
   let response;
   try { response = await fetchImpl(url.href, { method: "POST", headers: { accept: "application/json", "content-type": "application/json" }, body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }), signal: AbortSignal.timeout(timeoutMs) }); }

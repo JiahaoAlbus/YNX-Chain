@@ -44,6 +44,7 @@
     "probe:public-gateway-multi-user": "node scripts/verify-public-gateway-multi-user.mjs",
     "probe:public-erc4337": "node scripts/probe-public-erc4337.mjs",
     "verify:testnet-deployment": "node scripts/verify-testnet-deployment.mjs",
+    "monitor:testnet-deployment": "node scripts/monitor-testnet-deployment.mjs",
     "vector:strategy": "node scripts/generate-strategy-mandate-vector.mjs"
   },
   "dependencies": {
