@@ -17,6 +17,11 @@ successful eight-runtime release record.
 
 ## Product behavior
 
+- Project transfer evidence: `test/project-transfer-ui.test.js` holds Explorer
+  directory/versioned-JSON import and JSON export to safe-path, 256-file, 2 MiB,
+  strict UTF-8, duplicate, confirmation, collaboration and History boundaries.
+  Frontend TypeScript and production build gates compile the File API path; this
+  is text-project transfer, not a binary/symlink/permission-preserving archive.
 - Project-wide replace evidence: `test/project-replace-ui.test.js` executes the
   literal replacement planner across files, including case policy, regex-like
   search text and `$` replacement text, and holds the UI to exact preview counts,

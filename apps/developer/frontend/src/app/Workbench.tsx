@@ -6,6 +6,7 @@ import { DebugPanel } from "../debug/DebugPanel";
 import { languageForPath } from "../editor/languages";
 import { ExtensionPanel } from "../extensions/ExtensionPanel";
 import { FileExplorer } from "../explorer/FileExplorer";
+import { PROJECT_BYTE_LIMIT, PROJECT_FILE_LIMIT, PROJECT_TRANSFER_SCHEMA, projectExportJSON, validateImportedProject, type ImportedProject } from "../explorer/projectTransfer";
 import { loadChainStatus, loadWorkspace, loadExtensions, runActive, runContainerActive, runtimeHealth, saveWorkspace, type CollaborationRole, type InstalledExtension } from "../runtime/client";
 import { loadProject, foldersFromFiles, saveProject, validPath, type ProjectState } from "../state/workspace";
 import { SourceControlPanel } from "../scm/SourceControlPanel";
@@ -359,6 +360,66 @@ export function Workbench() {
     );
     return null;
   };
+  const applyImportedProject = (candidate: ImportedProject) => {
+    if (collaborationReadOnly) return "Your collaboration role is read-only.";
+    let imported: ImportedProject;
+    try {
+      imported = validateImportedProject({ schemaVersion: PROJECT_TRANSFER_SCHEMA, ...candidate });
+    } catch (error) {
+      return error instanceof Error ? error.message : String(error);
+    }
+    if (!window.confirm(`Replace the current project with ${Object.keys(imported.files).length} imported UTF-8 text files? The import becomes recoverable in Workspace History after save.`)) return null;
+    const paths = Object.keys(imported.files).sort(),
+      active = paths[0] || "";
+    setProject((current) => ({
+      ...current,
+      name: imported.name,
+      files: imported.files,
+      folders: foldersFromFiles(paths),
+      open: active ? [active] : [],
+      active,
+      revision: current.revision + 1,
+    }));
+    setDirty(new Set(paths));
+    return null;
+  };
+  const importProject = async (file: File) => {
+    if (file.size > PROJECT_BYTE_LIMIT + 256 * 1024) return "Project JSON exceeds its bounded import envelope.";
+    try {
+      return applyImportedProject(validateImportedProject(JSON.parse(await file.text())));
+    } catch (error) {
+      return error instanceof Error ? error.message : String(error);
+    }
+  };
+  const importFolder = async (selected: File[]) => {
+    if (!selected.length) return "The selected folder contains no files.";
+    if (selected.length > PROJECT_FILE_LIMIT) return `Folder import exceeds the ${PROJECT_FILE_LIMIT}-file limit.`;
+    if (selected.reduce((total, file) => total + file.size, 0) > PROJECT_BYTE_LIMIT) return "Folder import exceeds the 2 MiB text-workspace limit.";
+    const rawPaths = selected.map((file) => file.webkitRelativePath || file.name),
+      root = rawPaths[0]?.split("/")[0] || "Imported project",
+      stripRoot = rawPaths.every((path) => path.startsWith(`${root}/`)),
+      files: Record<string, string> = Object.create(null),
+      decoder = new TextDecoder("utf-8", { fatal: true });
+    try {
+      for (let index = 0; index < selected.length; index += 1) {
+        const path = stripRoot ? rawPaths[index].slice(root.length + 1) : rawPaths[index];
+        if (Object.hasOwn(files, path)) return `Folder import contains a duplicate path: ${path}`;
+        files[path] = decoder.decode(await selected[index].arrayBuffer());
+      }
+    } catch {
+      return "Folder import supports valid UTF-8 text files only; binary or differently encoded files were rejected.";
+    }
+    return applyImportedProject({ name: root, files });
+  };
+  const exportProject = () => {
+    const blob = new Blob([projectExportJSON(project.name, project.files)], { type: "application/json" }),
+      href = URL.createObjectURL(blob),
+      anchor = document.createElement("a");
+    anchor.href = href;
+    anchor.download = `${project.name.replace(/[^A-Za-z0-9._-]+/g, "-") || "ynx-project"}.ynx-code.json`;
+    anchor.click();
+    URL.revokeObjectURL(href);
+  };
   const addGeneratedFile = (path: string, content: string) => {
     if (collaborationReadOnly) return;
     if (!validPath(path)) return;
@@ -673,7 +734,7 @@ export function Workbench() {
         </button>
       </aside>
       <aside className="sidebar">
-        {view === "files" && <FileExplorer files={project.files} folders={project.folders} active={project.active} onOpen={open} onCreate={create} onRename={rename} onDelete={remove} />}{" "}
+        {view === "files" && <FileExplorer files={project.files} folders={project.folders} active={project.active} onOpen={open} onCreate={create} onRename={rename} onDelete={remove} onImportFolder={importFolder} onImportProject={importProject} onExportProject={exportProject} />}{" "}
         {view === "search" && (
           <section className="side-section">
             <header>

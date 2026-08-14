@@ -1,5 +1,17 @@
 # YNX Developer 0.2.0 Testnet Preview release notes
 
+## 2026-08-14 bounded project transfer
+
+- Added Explorer actions to import a Chromium-selected directory, import a
+  versioned `ynx-code-project/v1` JSON export and download the complete current
+  text project as JSON.
+- Import enforces the authoritative 256-file/2 MiB ceiling, safe relative paths,
+  strict UTF-8 decoding, duplicate-path rejection, explicit project replacement
+  confirmation and collaboration write policy. Imported state follows the normal
+  revisioned save and Workspace History recovery path.
+- Directory transfer does not claim binary, symlink, permission, executable-bit
+  or empty-directory preservation; use Git or an external archive for those.
+
 ## 2026-08-14 project-wide literal replace
 
 - Extended Search with case-sensitive or case-insensitive literal replacement,

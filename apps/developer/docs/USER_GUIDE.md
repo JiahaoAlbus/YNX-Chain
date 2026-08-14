@@ -17,6 +17,14 @@ unsaved and follows the normal auto-save/manual-save and Workspace History path.
 Search and replacement are literal; text such as `.` or `$&` is not interpreted
 as a regular expression or replacement command.
 
+Explorer provides **Import project JSON**, **Import folder** and **Export project
+JSON** actions. Both imports ask before replacing the current project and accept
+at most 256 valid UTF-8 text files within 2 MiB; unsafe or duplicate relative
+paths fail without changing the project. JSON exports use the versioned
+`ynx-code-project/v1` schema and include all current text files. Directory import
+does not preserve binary content, symlinks, empty directories, permissions or
+executable bits. Imported changes are saved and recovered like editor changes.
+
 The editor recognizes common source extensions through Monaco. The isolated
 workspace uses its reviewed pinned Solidity 0.8.36 compiler. For other registered languages, Compile asks once and the
 desktop runtime detects a broad catalog including C/C++, Objective-C, JavaScript,

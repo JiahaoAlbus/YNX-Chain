@@ -159,6 +159,9 @@ Monaco owns one model per canonical file URI. The workbench implements:
 - horizontal/vertical editor groups with independent selections;
 - bounded project-wide literal search/replace with case policy, exact preview,
   confirmation, multi-file dirty tracking and collaboration write enforcement;
+- versioned JSON project import/export plus browser directory import, enforcing
+  safe relative paths, strict UTF-8, duplicate rejection and the shared
+  256-file/2 MiB text-workspace ceiling; it does not represent an archive format;
 - schema-sanitized device-local editor preferences for font size, minimap, word
   wrap and bounded auto-save delay; explicit Save remains a revision-checked
   server mutation when auto-save is disabled;
