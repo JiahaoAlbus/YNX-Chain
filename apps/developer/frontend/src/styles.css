@@ -318,7 +318,7 @@ html[data-theme="dark"] .tree-row.file.active {
   grid-column: 3;
   grid-row: 2;
   display: grid;
-  grid-template-rows: 35px minmax(180px, 1fr) 215px 22px;
+  grid-template-rows: 35px 25px minmax(180px, 1fr) 215px 22px;
   min-width: 0;
   min-height: 0;
 }
@@ -369,11 +369,13 @@ html[data-theme="dark"] .tree-row.file.active {
   padding: 3px 5px;
   gap: 3px;
 }
+.breadcrumbs{display:flex;align-items:center;min-width:0;overflow:auto;border-bottom:1px solid var(--border);background:var(--editor);padding:0 7px;white-space:nowrap}.breadcrumbs>button,.breadcrumbs>span>button{height:24px;border:0;background:transparent;color:var(--muted);padding:0 3px;font-size:11px}.breadcrumbs>span{display:flex;align-items:center;color:var(--muted)}.breadcrumbs button:hover,.breadcrumbs button[aria-current="page"]{color:var(--text)}
 .editors {
   display: grid;
   min-height: 0;
   background: var(--editor);
 }
+.outline-panel{height:100%;display:flex;flex-direction:column;min-height:0}.outline-panel>header{height:35px;display:flex;align-items:center;justify-content:space-between;flex:0 0 auto;padding:0 8px;border-bottom:1px solid var(--border);font-size:10px;letter-spacing:.08em}.outline-panel>header span{min-width:20px;border:1px solid var(--border);border-radius:8px;color:var(--muted);padding:1px 5px;text-align:center;letter-spacing:0}.outline-panel>p{display:flex;align-items:center;gap:6px;margin:10px;color:var(--muted);font-size:11px;line-height:1.45}.outline-list{min-height:0;overflow:auto}.outline-list button{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:6px;width:100%;min-height:25px;border:0;background:transparent;color:var(--text);padding-block:4px;padding-inline-end:7px;text-align:left}.outline-list button:hover{background:var(--hover)}.outline-list button>svg{color:var(--blue)}.outline-list button>span{display:grid;min-width:0}.outline-list strong,.outline-list small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.outline-list strong{font-size:11px;font-weight:500}.outline-list small{color:var(--muted);font-size:9px}.outline-list em{color:var(--muted);font-size:9px;font-style:normal}
 .editors.split {
   grid-template-columns: 1fr 1fr;
 }
@@ -575,7 +577,7 @@ html[data-theme="dark"] .tree-row.file.active {
     padding: 2px 5px;
   }
   .main {
-    grid-template-rows: 35px minmax(180px, 1fr) 180px 22px;
+    grid-template-rows: 35px 25px minmax(180px, 1fr) 180px 22px;
   }
 }
 .debug-panel {

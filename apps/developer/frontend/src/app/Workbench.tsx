@@ -1,5 +1,5 @@
 import * as Dialog from "@radix-ui/react-dialog";
-import { Braces, Bug, CircleAlert, Cloud, Files, GitBranch, History, Info, Link2, Play, Save, Search, Settings, Sparkles, SplitSquareHorizontal, TerminalSquare, TestTube2, TriangleAlert, Users, X } from "lucide-react";
+import { Braces, Bug, ChevronRight, CircleAlert, Cloud, Files, GitBranch, History, Info, Link2, ListTree, Play, Save, Search, Settings, Sparkles, SplitSquareHorizontal, TerminalSquare, TestTube2, TriangleAlert, Users, X } from "lucide-react";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "../components/ui/button";
 import { DebugPanel } from "../debug/DebugPanel";
@@ -15,6 +15,7 @@ import { AgentPanel } from "../chat/AgentPanel";
 import { WorkspaceHistoryPanel } from "../history/WorkspaceHistoryPanel";
 import { buildLiteralReplacement } from "../search/literalReplace";
 import type { EditorProblem } from "../editor/CodeEditor";
+import { OutlinePanel } from "../outline/OutlinePanel";
 
 const CodeEditor = lazy(() => import("../editor/CodeEditor"));
 const CollaborationPanel = lazy(() =>
@@ -32,9 +33,10 @@ const ChainPanel = lazy(() =>
     default: module.ChainPanel,
   })),
 );
-type View = "files" | "search" | "source" | "run" | "extensions" | "agent" | "collaboration" | "remote" | "history" | "chain";
+type View = "files" | "outline" | "search" | "source" | "run" | "extensions" | "agent" | "collaboration" | "remote" | "history" | "chain";
 const activity: [View, React.ReactNode, string][] = [
   ["files", <Files />, "Explorer"],
+  ["outline", <ListTree />, "Outline"],
   ["search", <Search />, "Search"],
   ["source", <GitBranch />, "Source Control"],
   ["run", <Bug />, "Run and Debug"],
@@ -118,6 +120,7 @@ export function Workbench() {
     [hydrated, setHydrated] = useState(false),
     [breakpoints, setBreakpoints] = useState<Record<string, number[]>>({}),
     [debugLine, setDebugLine] = useState<number>(),
+    [editorLocation, setEditorLocation] = useState<{ path: string; line: number; column: number; nonce: number }>(),
     [problemsByPath, setProblemsByPath] = useState<Record<string, { content: string; items: EditorProblem[] }>>({}),
     [extensions, setExtensions] = useState<InstalledExtension[]>([]),
     [extensionTheme, setExtensionTheme] = useState(() => localStorage.getItem("ynx-extension-theme") || ""),
@@ -318,6 +321,10 @@ export function Workbench() {
       })),
     [],
   );
+  const navigateToLocation = useCallback((path: string, line: number, column: number) => {
+    open(path);
+    setEditorLocation({ path, line, column, nonce: Date.now() });
+  }, [open]);
   const update = (value: string | undefined) => {
     if (collaborationReadOnly) return;
     const content = value ?? "";
@@ -778,6 +785,7 @@ export function Workbench() {
       </aside>
       <aside className="sidebar">
         {view === "files" && <FileExplorer files={project.files} folders={project.folders} active={project.active} onOpen={open} onCreate={create} onRename={rename} onDelete={remove} onImportFolder={importFolder} onImportProject={importProject} onExportProject={exportProject} />}{" "}
+        {view === "outline" && <OutlinePanel projectId={project.id} runtimeId={selectedRuntime?.startsWith("ssh-") ? undefined : selectedRuntime} files={project.files} activePath={project.active} language={languageOf(project.active)} onNavigate={navigateToLocation} />}
         {view === "search" && (
           <section className="side-section">
             <header>
@@ -857,6 +865,15 @@ export function Workbench() {
             </Button>
           </div>
         </div>
+        <nav className="breadcrumbs" aria-label="Editor breadcrumbs">
+          <button type="button" onClick={() => setView("files")}>{project.name}</button>
+          {project.active.split("/").filter(Boolean).map((segment, index, segments) => (
+            <span key={`${segment}:${index}`}>
+              <ChevronRight size={12} />
+              <button type="button" aria-current={index === segments.length - 1 ? "page" : undefined} onClick={() => index === segments.length - 1 ? open(project.active) : setView("files")}>{segment}</button>
+            </span>
+          ))}
+        </nav>
         <section className={`editors ${split && second ? "split" : ""}`}>
           <Suspense fallback={<div className="editor-loading">Loading Monaco editor engine…</div>}>
             <CodeEditor
@@ -890,6 +907,7 @@ export function Workbench() {
               minimap={editorPreferences.minimap}
               wordWrap={editorPreferences.wordWrap}
               onDiagnostics={receiveDiagnostics}
+              revealLocation={editorLocation}
             />
           </Suspense>
         </section>

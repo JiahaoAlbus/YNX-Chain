@@ -40,6 +40,13 @@ entry until the language server responds again. An empty panel can also mean the
 language server for that file is not installed, so it is not proof that every
 project file passed analysis.
 
+The breadcrumb above the editor shows the active workspace and file path. Open
+**Outline** from the activity bar to request the current file's symbols from its
+configured language server. Select a class, function, method, variable or other
+returned symbol to open that file and focus its exact source location. Outline
+refreshes after content edits; an empty view may mean the server returned no
+symbols or that the required language server is unavailable.
+
 The editor recognizes common source extensions through Monaco. The isolated
 workspace uses its reviewed pinned Solidity 0.8.36 compiler. For other registered languages, Compile asks once and the
 desktop runtime detects a broad catalog including C/C++, Objective-C, JavaScript,

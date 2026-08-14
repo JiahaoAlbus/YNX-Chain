@@ -17,6 +17,11 @@ successful eight-runtime release record.
 
 ## Product behavior
 
+- Breadcrumb/Outline evidence: `test/breadcrumb-outline-ui.test.js` holds path
+  hierarchy, Outline activity, exact-content freshness and Monaco line/column
+  navigation. `services/language-service/test/typescript-lsp.test.mjs` executes
+  a real `textDocument/documentSymbol` request through the no-network language
+  sandbox and verifies the returned `add` function symbol.
 - Problems-panel evidence: `test/problems-panel-ui.test.js` holds the Monaco/LSP
   callback to structured severity/location/source/code records, exact-content
   freshness filtering, live counts and source-file navigation. Existing real LSP

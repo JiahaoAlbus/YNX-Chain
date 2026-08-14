@@ -460,7 +460,8 @@ export async function restoreWorkspaceRevision(projectId: string, expectedRevisi
   if (!response.ok) throw Object.assign(new Error(value.error || "Workspace revision could not be restored."), { code: value.code, currentRevision: value.currentRevision });
   return value.workspace;
 }
-export async function languageRequest(language: "cpp" | "typescript" | "python" | "go" | "rust" | "solidity", files: Record<string, string>, activePath: string, operation: "completion" | "definition" | "references" | "rename" | "format" | "diagnostics", position?: { line: number; character: number }, newName?: string, context?: { projectId: string; runtimeId?: string }) {
+export type LanguageOperation = "completion" | "definition" | "references" | "rename" | "format" | "diagnostics" | "documentSymbols";
+export async function languageRequest(language: "cpp" | "typescript" | "python" | "go" | "rust" | "solidity", files: Record<string, string>, activePath: string, operation: LanguageOperation, position?: { line: number; character: number }, newName?: string, context?: { projectId: string; runtimeId?: string }) {
   const body = JSON.stringify({
     protocolVersion: "ynx-code/v1",
     files,
@@ -490,7 +491,7 @@ export async function languageRequest(language: "cpp" | "typescript" | "python" 
   }
   throw new Error("Workspace session could not be established.");
 }
-export function cppLanguageRequest(files: Record<string, string>, activePath: string, operation: "completion" | "definition" | "references" | "rename" | "format" | "diagnostics", position?: { line: number; character: number }, newName?: string, context?: { projectId: string; runtimeId?: string }) {
+export function cppLanguageRequest(files: Record<string, string>, activePath: string, operation: LanguageOperation, position?: { line: number; character: number }, newName?: string, context?: { projectId: string; runtimeId?: string }) {
   return languageRequest("cpp", files, activePath, operation, position, newName, context);
 }
 

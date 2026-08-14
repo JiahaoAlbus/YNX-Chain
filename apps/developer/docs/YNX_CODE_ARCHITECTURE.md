@@ -165,6 +165,9 @@ Monaco owns one model per canonical file URI. The workbench implements:
 - a content-bound Problems model populated from actual Monaco/LSP markers, with
   severity/location/source/code, live count and file navigation; stale content is
   filtered and unopened-file whole-project coverage is not claimed;
+- a workspace/file breadcrumb and a content-bound current-file Outline using
+  real LSP `textDocument/documentSymbol` responses; the UI preserves hierarchy,
+  caps rendered symbols at 500 and navigates Monaco to the returned line/column;
 - schema-sanitized device-local editor preferences for font size, minimap, word
   wrap and bounded auto-save delay; explicit Save remains a revision-checked
   server mutation when auto-save is disabled;

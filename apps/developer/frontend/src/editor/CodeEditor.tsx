@@ -52,6 +52,7 @@ type Props = {
   minimap: boolean;
   wordWrap: "off" | "on";
   onDiagnostics?: (path: string, content: string, problems: EditorProblem[]) => void;
+  revealLocation?: { path: string; line: number; column: number; nonce: number };
 };
 export type EditorProblem = {
   message: string;
@@ -86,6 +87,7 @@ export default function CodeEditor({
   minimap,
   wordWrap,
   onDiagnostics,
+  revealLocation,
 }: Props) {
   const selectedTheme = extensions
       .flatMap((extension) =>
@@ -242,6 +244,20 @@ export default function CodeEditor({
     }, 700);
     return () => clearTimeout(timer);
   }, [activePath, files, language, projectId, runtimeId]);
+  useEffect(() => {
+    if (!revealLocation || revealLocation.path !== activePath) return;
+    const timer = setTimeout(() => {
+      const editor = editorRef.current,
+        model = editor?.getModel();
+      if (!editor || !model) return;
+      const lineNumber = Math.max(1, Math.min(model.getLineCount(), revealLocation.line)),
+        column = Math.max(1, Math.min(model.getLineMaxColumn(lineNumber), revealLocation.column));
+      editor.setPosition({ lineNumber, column });
+      editor.revealPositionInCenter({ lineNumber, column });
+      editor.focus();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [activePath, revealLocation]);
   useEffect(() => {
     decorations.current?.set([
       ...breakpoints.map((line) => ({

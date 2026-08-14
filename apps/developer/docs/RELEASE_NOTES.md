@@ -1,5 +1,16 @@
 # YNX Developer 0.2.0 Testnet Preview release notes
 
+## 2026-08-14 real Breadcrumb and Outline navigation
+
+- Added a path breadcrumb above Monaco using the current workspace and active
+  file hierarchy, with Explorer navigation and an accessible current-page item.
+- Added an Outline activity backed by the configured language server's real
+  `textDocument/documentSymbol` response. Hierarchical symbols retain their
+  kind and location; selecting one opens the source and focuses its exact line
+  and column in Monaco.
+- Outline results are bound to the exact active-file content and discarded on
+  edits. The empty and unavailable states do not imply whole-project coverage.
+
 ## 2026-08-14 real Problems panel
 
 - Replaced the static Problems `0` placeholder with current Monaco/LSP error,
