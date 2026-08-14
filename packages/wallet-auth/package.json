@@ -32,7 +32,8 @@
   "bin": {
     "ynx-wallet-gatewayd": "scripts/ynx-wallet-gatewayd.mjs",
     "ynx-wallet-gateway-backup": "scripts/ynx-wallet-gateway-backup.mjs",
-    "ynx-wallet-gateway-state-lock": "scripts/ynx-wallet-gateway-state-lock.mjs"
+    "ynx-wallet-gateway-state-lock": "scripts/ynx-wallet-gateway-state-lock.mjs",
+    "ynx-wallet-sponsorship-state-lock": "scripts/ynx-wallet-sponsorship-state-lock.mjs"
   },
   "scripts": {
     "test": "node --test test/*.test.mjs",

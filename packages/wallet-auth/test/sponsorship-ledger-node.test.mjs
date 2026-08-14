@@ -2,7 +2,8 @@ import assert from "node:assert/strict";
 import { access, chmod, link, lstat, mkdtemp, readFile, realpath, rm, symlink, truncate, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import { after, test } from "node:test";
 import { DurableSponsorshipAuthorizationLedger, recoverStaleSponsorshipStateLock } from "../src/sponsorship-ledger-node.js";
 import { userOperationDigest, WalletAuthError } from "../src/index.js";
@@ -123,6 +124,41 @@ test("stale-lock recovery rejects a live or PID-reused owner without touching st
   assert.throws(() => recoverStaleSponsorshipStateLock(statePath, { minimumAgeMs: 250 }), walletError("SPONSORSHIP_STALE_LOCK_OWNER_ALIVE"));
   assert.equal(await readFile(statePath, "utf8"), before);
   assert.equal((await lstat(`${statePath}.lock`)).isFile(), true);
+});
+
+test("packaged stale-lock CLI emits canonical redacted errors and recovers one dead owner", async () => {
+  const script = fileURLToPath(new URL("../scripts/ynx-wallet-sponsorship-state-lock.mjs", import.meta.url));
+  const missing = spawnSync(process.execPath, [script, "recover"], { encoding: "utf8", env: {} });
+  assert.equal(missing.status, 2);
+  assert.equal(missing.stdout, "");
+  assert.deepEqual(JSON.parse(missing.stderr), { error: { code: "MISSING_ENVIRONMENT", message: "YNX_WALLET_SPONSORSHIP_STATE_PATH is required" }, ok: false });
+  assert.equal(`${JSON.stringify(JSON.parse(missing.stderr))}\n`, missing.stderr);
+  assert.doesNotMatch(missing.stderr, /(?:\/private\/|\.mjs:\d+|\n\s+at )/);
+
+  const root = await privateRoot();
+  const statePath = join(root, "sponsorship-state.json");
+  new DurableSponsorshipAuthorizationLedger({ statePath });
+  const before = await readFile(statePath, "utf8");
+  const readyPath = join(root, "cli-ready");
+  const child = spawn(process.execPath, [new URL("./fixtures/sponsorship-ledger-stale-lock-child.mjs", import.meta.url).pathname, statePath, readyPath], { stdio: "ignore" });
+  await waitFor(readyPath);
+  child.kill("SIGKILL");
+  await new Promise((resolve) => child.once("exit", resolve));
+  const tooYoung = spawnSync(process.execPath, [script, "recover"], { encoding: "utf8", env: { YNX_WALLET_SPONSORSHIP_LOCK_MINIMUM_AGE_MS: "5000", YNX_WALLET_SPONSORSHIP_STATE_PATH: statePath } });
+  assert.equal(tooYoung.status, 2);
+  assert.equal(JSON.parse(tooYoung.stderr).error.code, "SPONSORSHIP_STALE_LOCK_TOO_YOUNG");
+  assert.doesNotMatch(tooYoung.stderr, new RegExp(root));
+  await new Promise((resolve) => setTimeout(resolve, 275));
+  const recovered = spawnSync(process.execPath, [script, "recover"], { encoding: "utf8", env: { YNX_WALLET_SPONSORSHIP_LOCK_MINIMUM_AGE_MS: "250", YNX_WALLET_SPONSORSHIP_STATE_PATH: statePath } });
+  assert.equal(recovered.status, 0);
+  assert.equal(recovered.stderr, "");
+  const output = JSON.parse(recovered.stdout);
+  assert.deepEqual(Object.keys(output).sort(), ["ageMs", "ownerPid", "recovered"]);
+  assert.equal(output.recovered, true);
+  assert.equal(output.ownerPid, child.pid);
+  assert.equal(`${JSON.stringify(output)}\n`, recovered.stdout);
+  assert.doesNotMatch(recovered.stdout, new RegExp(root));
+  assert.equal(await readFile(statePath, "utf8"), before);
 });
 
 async function privateRoot() { const root = await mkdtemp(join(tmpdir(), "ynx-sponsorship-ledger-")); roots.push(root); await chmod(root, 0o700); return realpath(root); }
