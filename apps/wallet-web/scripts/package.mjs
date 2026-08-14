@@ -32,3 +32,4 @@ for (const [name, folder, minimumOS, signingClass, browsers] of entries) {
 const manifest = {schemaVersion:1,productId:"wallet-web",version:"0.1.0-testnet-preview.1",sourceCommit:process.env.YNX_WALLET_WEB_SOURCE_COMMIT || "uncommitted-source-tree",implementedLocal:true,testedLocal:true,installedLocal:false,integratedCentral:false,deployedStaging:false,deployedPublic:false,downloadHosted:false,productionSigned:false,storeReleased:false,artifacts:records};
 await writeFile(join(root, "artifact-manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`);
 console.log(JSON.stringify(manifest, null, 2));
+execFileSync(process.execPath, ["scripts/verify-package.mjs"], {cwd:root, stdio:"inherit"});
