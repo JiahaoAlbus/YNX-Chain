@@ -8,6 +8,9 @@ import path from "node:path";
 
 const walletRoot = fileURLToPath(new URL("..", import.meta.url));
 const committedPath = path.join(walletRoot, "sbom.cdx.json");
+const packageDocument = JSON.parse(
+  await readFile(path.join(walletRoot, "package.json"), "utf8"),
+);
 const writeMode = process.argv.includes("--write");
 const toolPath = path.join(
   walletRoot,
@@ -72,7 +75,7 @@ try {
   assert.equal(sbom.specVersion, "1.6");
   assert.equal(sbom.metadata?.component?.group, "@ynx-chain");
   assert.equal(sbom.metadata?.component?.name, "wallet-app");
-  assert.equal(sbom.metadata?.component?.version, "1.0.0");
+  assert.equal(sbom.metadata?.component?.version, packageDocument.version);
 
   const tools = sbom.metadata?.tools?.components ?? [];
   const generator = tools.find(

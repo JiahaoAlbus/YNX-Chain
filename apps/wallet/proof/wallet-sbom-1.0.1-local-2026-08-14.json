@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "productId": "wallet",
+  "evidenceType": "current-source-release-grade-sbom",
+  "observedAt": "2026-08-14T12:13:42Z",
+  "sourceBaselineCommit": "19d86a333cecc9f241af5a19e7f7cccd560dbe3c",
+  "packageVersion": "1.0.1",
+  "generator": {
+    "package": "@cyclonedx/cyclonedx-npm",
+    "version": "6.0.0",
+    "specVersion": "1.6",
+    "packageManager": "npm@11.5.1",
+    "outputReproducible": true,
+    "ignoredNpmErrors": false
+  },
+  "result": {
+    "npmProductionTreeExitCode": 0,
+    "npmTreeProblems": 0,
+    "components": 431,
+    "dependencyNodes": 504,
+    "componentsWithLicenseMetadata": 431,
+    "duplicateComponentBomRefs": 0,
+    "sha256": "4d9a8d93de710755e97c55ae2cad15769992ed3718d3f75e752036ffbbec1d67",
+    "generationAndVerificationPassed": true
+  },
+  "commands": [
+    "npm run sbom:generate",
+    "npm run sbom:check"
+  ],
+  "boundaries": {
+    "runtimeDependenciesOnly": true,
+    "developmentToolIncludedInRuntimeSbom": false,
+    "externalAudit": false,
+    "productionSigned": false,
+    "deployedPublic": false
+  }
+}
