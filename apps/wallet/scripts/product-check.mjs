@@ -12,6 +12,9 @@ const controlCopy=await readFile(new URL("../src/control/controlCopy.ts",import.
 const androidGradle=await readFile(new URL("../android/app/build.gradle",import.meta.url),"utf8");
 const androidActivity=await readFile(new URL("../android/app/src/main/java/com/ynxweb4/wallet/MainActivity.kt",import.meta.url),"utf8");
 const androidManifest=await readFile(new URL("../android/app/src/main/AndroidManifest.xml",import.meta.url),"utf8");
+const androidApplication=await readFile(new URL("../android/app/src/main/java/com/ynxweb4/wallet/MainApplication.kt",import.meta.url),"utf8");
+const exactCallbackModule=await readFile(new URL("../android/app/src/main/java/com/ynxweb4/wallet/ExactCallbackModule.kt",import.meta.url),"utf8");
+const exactCallbackPackage=await readFile(new URL("../android/app/src/main/java/com/ynxweb4/wallet/ExactCallbackPackage.kt",import.meta.url),"utf8");
 const secureStorage=await readFile(new URL("../src/storage/secureStorage.ts",import.meta.url),"utf8");
 const walletRepository=await readFile(new URL("../src/storage/walletRepository.ts",import.meta.url),"utf8");
 const onboardingState=await readFile(new URL("../src/state/onboardingState.ts",import.meta.url),"utf8");
@@ -23,6 +26,7 @@ const recoveryRevealPolicy=await readFile(new URL("../src/security/recoveryRevea
 const storageResetLifecyclePolicy=await readFile(new URL("../src/security/storageResetLifecyclePolicy.ts",import.meta.url),"utf8");
 const authorizationLifecyclePolicy=await readFile(new URL("../src/security/authorizationLifecyclePolicy.ts",import.meta.url),"utf8");
 const callbackHandoffPolicy=await readFile(new URL("../src/security/callbackHandoffPolicy.ts",import.meta.url),"utf8");
+const registeredCallbackHandoffPolicy=await readFile(new URL("../src/security/registeredCallbackHandoffPolicy.ts",import.meta.url),"utf8");
 const foregroundDeepLinkPolicy=await readFile(new URL("../src/security/foregroundDeepLinkPolicy.ts",import.meta.url),"utf8");
 const sensitiveOperationPolicy=await readFile(new URL("../src/security/sensitiveOperationPolicy.ts",import.meta.url),"utf8");
 const startupDeepLinkPolicy=await readFile(new URL("../src/security/startupDeepLinkPolicy.ts",import.meta.url),"utf8");
@@ -73,7 +77,13 @@ assert.ok(source.includes("nonces.consume(activeRequest,now,()=>guard.verify(att
 assert.equal((source.match(/actionReplays\.consume\([^;]+,new Date\(\),\(\)=>guard\.verify\(attempt,new Date\(\)\)\)/g)??[]).length,4,"all action replay writes must retain exact Modal lifecycle binding");
 for(const required of ["append(request:AuthorizationRequest", "assertActive:()=>void=()=>{}", "assertActive();\n    await this.save([...records,record])"])assert.ok(audit.includes(required),`authorization audit decisions must revalidate lifecycle at the storage linearization point through ${required}`);
 for(const required of ["assertBeforeHandoff();","await openCallback();","await recordSuccessfulHandoff();","complete();"])assert.ok(callbackHandoffPolicy.includes(required),`authorization callback handoff must enforce ${required}`);
-assert.ok(source.includes('completeAuthorizationCallbackHandoff(()=>guard.verify(attempt,new Date()),()=>Linking.openURL(createCallbackURL(response as any)),()=>authorizationAudit.append(activeRequest,{action:"approval-returned"'),"authorization callback must validate before OS handoff and persist success after the handoff resolves");
+assert.ok(source.includes('completeAuthorizationCallbackHandoff(()=>guard.verify(attempt,new Date()),()=>openRegisteredCallback(createCallbackURL(response as any),activeRequest.callback,activeRequest.bundleId),()=>authorizationAudit.append(activeRequest,{action:"approval-returned"'),"authorization callback must validate before exact registered OS handoff and persist success after the handoff resolves");
+assert.equal((source.match(/openRegisteredCallback\(/g)??[]).length,6,"all five signed callback flows and their helper must use registered callback handoff");
+assert.equal((source.match(/Linking\.openURL\(/g)??[]).length,1,"signed callbacks must never bypass the registered callback helper");
+for(const required of ['callback.toString()!==registeredCallback','keys.length===1&&keys[0]==="response"','url!==`${registeredCallback}?response=${response}`','platform==="android"&&callback.protocol!=="https:"','if(!exactAndroidBridge)','await exactAndroidBridge(url,bundleId)','await fallback(url)'])assert.ok(registeredCallbackHandoffPolicy.includes(required),`registered callback handoff must fail closed through ${required}`);
+for(const required of ['Intent(Intent.ACTION_VIEW, uri)','setPackage(packageName)','Intent.CATEGORY_BROWSABLE','Intent.FLAG_ACTIVITY_NEW_TASK','YNX_CALLBACK_PACKAGE_NOT_FOUND','scheme == "http" || scheme == "https"'])assert.ok(exactCallbackModule.includes(required),`Android callback bridge must enforce ${required}`);
+assert.ok(exactCallbackPackage.includes("listOf(ExactCallbackModule(reactContext))"),"Android callback bridge package must register its native module");
+assert.ok(androidApplication.includes("add(ExactCallbackPackage())"),"Android application must install the exact callback package bridge");
 for(const required of ['action:"intent-approved"','action:"approval-returned"','action:"request-rejected"'])assert.ok(source.includes(`${required},account:selected.account`)&&source.includes("()=>guard.verify(attempt,new Date())"),`authorization ${required} must stay bound to its active Modal lifecycle`);
 for(const required of ["MAX_AUDIT_RECORDS=1000","MAX_AUDIT_BYTES=1024*1024","raw.length>MAX_AUDIT_BYTES","records.length>=MAX_AUDIT_RECORDS","await this.save([...records,record])"])assert.ok(audit.includes(required),`authorization audit must fail closed at bounded capacity through ${required}`);
 for(const required of ["assertStoredTransition(records,record)","Wallet authorization audit contains conflicting decisions","Wallet authorization audit callback has no approval intent","Wallet authorization audit revocation has no returned approval"])assert.ok(audit.includes(required),`authorization audit reconstruction must replay its decision state machine through ${required}`);
@@ -92,7 +102,7 @@ for(const required of ["attempt.generation!==current.generation","attempt.accoun
 assert.ok((source.match(/useAuthorizationAttemptGuard\(selected\.account,request\.expiresAt\)/g)??[]).length===5,"all five authorization/action Modals must use the lifecycle attempt guard");
 assert.ok(source.includes("parseAuthorizationRequest(activeRequest,{now,registry:PRODUCT_REGISTRY})"),"canonical authorization must revalidate expiry after private-key access and before signing");
 assert.equal((source.match(/await actionReplays\.consume\(/g)??[]).length,4,"all four signed action callbacks must persist exact-request replay state before returning");
-assert.equal((source.match(/await actionReplays\.consume\([^;]+;guard\.verify\(attempt,new Date\(\)\);await Linking\.openURL/g)??[]).length,4,"action replay consumption and lifecycle validation must precede every callback handoff");
+assert.equal((source.match(/await actionReplays\.consume\([^;]+;guard\.verify\(attempt,new Date\(\)\);await openRegisteredCallback/g)??[]).length,4,"action replay consumption and lifecycle validation must precede every exact registered callback handoff");
 for(const required of ["MAX_ACTION_REPLAY_RECORDS=4096","MAX_ACTION_REPLAY_BYTES=512*1024","this.pending.then","records.some(([key])=>key===record.key)","await this.storage.setItem(ACTION_REPLAY_KEY"])assert.ok(actionReplayStore.includes(required),`action replay store must enforce ${required}`);
 for(const parser of actionDeepLinkParsers)assert.ok(parser.includes("link is not canonical"),"every action deep-link parser must reject byte-noncanonical URLs after strict request parsing");
 for(const required of ["callback.toString() !== response.callback","url !== `${expectedCallback}?response=${response}`","parsed.port","expected.port"])assert.ok(canonicalDeepLink.includes(required),`Wallet callback handling must enforce ${required}`);
