@@ -159,6 +159,53 @@ jobs:
           screencapture -x "$PROOF/malformed-callback-fail-closed.png"
           test -s "$PROOF/malformed-callback-fail-closed.png"
           kill "$SECOND_PID"
+          for _ in $(seq 1 30); do
+            kill -0 "$SECOND_PID" 2>/dev/null || break
+            sleep 1
+          done
+          ! kill -0 "$SECOND_PID" 2>/dev/null
+
+          open 'ynxwallet://authorize?request=invalid' > "$PROOF/open-callback-cold-start.txt"
+          for _ in $(seq 1 60); do
+            CALLBACK_COLD_PID="$(pgrep -x YNXWalletMac | head -n 1 || true)"
+            if test -n "$CALLBACK_COLD_PID" && test "$CALLBACK_COLD_PID" != "$SECOND_PID"; then break; fi
+            sleep 1
+          done
+          test -n "${CALLBACK_COLD_PID:-}"
+          test "$CALLBACK_COLD_PID" != "$SECOND_PID"
+          CALLBACK_COLD_SEEN=false
+          CALLBACK_COLD_UI=false
+          for _ in $(seq 1 60); do
+            xcrun log show --style compact --last 5m \
+              --predicate 'subsystem == "com.ynxweb4.wallet.macos" AND (category == "callback" OR category == "lifecycle")' \
+              > "$PROOF/callback-cold-start-native.log" 2>&1 || true
+            if grep -Fq "YNX_WALLET_MAC_LAUNCHED pid=$CALLBACK_COLD_PID" "$PROOF/callback-cold-start-native.log" && \
+               grep -Fq "YNX_WALLET_MAC_CALLBACK_RECEIVED pid=$CALLBACK_COLD_PID scheme=ynxwallet" "$PROOF/callback-cold-start-native.log" && \
+               grep -Fq "YNX_WALLET_MAC_CALLBACK_REJECTED pid=$CALLBACK_COLD_PID code=CANONICAL_AUTH_BRIDGE_UNAVAILABLE" "$PROOF/callback-cold-start-native.log"; then
+              CALLBACK_COLD_SEEN=true
+            fi
+            osascript <<'APPLESCRIPT' > "$PROOF/callback-cold-start-ui.txt" 2>/dev/null || true
+          tell application "System Events"
+            tell process "YNXWalletMac"
+              set frontmost to true
+              return name of every static text of window 1
+            end tell
+          end tell
+          APPLESCRIPT
+            if grep -Fq 'Request rejected' "$PROOF/callback-cold-start-ui.txt" && \
+               grep -Fq 'CANONICAL_AUTH_BRIDGE_UNAVAILABLE' "$PROOF/callback-cold-start-ui.txt"; then
+              CALLBACK_COLD_UI=true
+            fi
+            if test "$CALLBACK_COLD_SEEN" = true && test "$CALLBACK_COLD_UI" = true; then break; fi
+            sleep 1
+          done
+          test "$CALLBACK_COLD_SEEN" = true
+          test "$CALLBACK_COLD_UI" = true
+          printf 'pid=%s launchedByCallback=true received=true error=CANONICAL_AUTH_BRIDGE_UNAVAILABLE visible=true failedClosed=true\n' \
+            "$CALLBACK_COLD_PID" | tee "$PROOF/callback-cold-start.txt"
+          screencapture -x "$PROOF/callback-cold-start-fail-closed.png"
+          test -s "$PROOF/callback-cold-start-fail-closed.png"
+          kill "$CALLBACK_COLD_PID"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ynx-wallet-macos-native
