@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "productId": "wallet-desktop",
+  "version": "0.1.0",
+  "sourceCommit": "b11faa864304ac3e260c261c732d30d018fe0eb8",
+  "runtime": {"electron": "42.8.0", "node": "24.18.0"},
+  "buildTooling": {"electronBuilder": "26.0.12", "systemFpm": "1.15.1", "nativeFpm": true},
+  "releaseClass": "unsigned-testnet-engineering-preview",
+  "workflow": {
+    "runId": 31769689650,
+    "runUrl": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/31769689650",
+    "buildJobId": 94672874818,
+    "downloadVerificationJobId": 94673513281,
+    "conclusion": "success",
+    "runner": "ubuntu-24.04-arm",
+    "runnerOS": "Ubuntu 24.04 arm64"
+  },
+  "artifact": {
+    "id": 9207719921,
+    "name": "ynx-wallet-desktop-linux-arm64-rpm",
+    "archiveBytes": 81237952,
+    "archiveSha256": "be8bcbf72bc69ab3498ac466cb6d097e1146cd44b04a28f65419949a23c793e4",
+    "downloadedAndVerifiedOnNativeRunner": true,
+    "files": [
+      {
+        "filename": "ynx-wallet-desktop-0.1.0-aarch64.rpm",
+        "format": "rpm",
+        "architecture": "arm64",
+        "bytes": 81223541,
+        "sha256": "fee7f168122ba0f610f042d97a8863e5b3bcae64f96b54863e7829bfdeb8e40a",
+        "minimumOS": "Ubuntu 24.04 arm64 directly tested with rpm --nodeps --noscripts and explicit root:root/4755 Electron sandbox configuration; RPM script and Fedora-family compatibility not evidenced",
+        "signingClass": "unsigned_linux_rpm_testnet_candidate",
+        "productionSigned": false,
+        "installedOnNativeRunner": true
+      }
+    ]
+  },
+  "downloadVerificationArtifact": {
+    "id": 9207723221,
+    "name": "ynx-wallet-desktop-linux-arm64-rpm-download-verification",
+    "archiveBytes": 399,
+    "archiveSha256": "533f28a5f8e4b70a528e842dede277d34617f45ac37f19d482d9da32af4a05ee",
+    "manifestPresent": true,
+    "lifecyclePresent": true,
+    "sha256Verified": true,
+    "bytesVerified": true
+  },
+  "lifecycleEvidence": {
+    "packageName": "ynx-wallet-testnet-preview",
+    "packageManagerBoundary": "rpm --nodeps --noscripts on Ubuntu with explicit root:root/4755 Electron sandbox configuration; RPM script and Fedora-family dependency-manager integration not evidenced",
+    "preflightVersion": "0.0.9",
+    "currentVersion": "0.1.0",
+    "preflightInstalled": true,
+    "upgradeVerified": true,
+    "currentInstalled": true,
+    "coldLaunch": true,
+    "secondLaunch": true,
+    "processObserved": true,
+    "coldWindowTitleObserved": true,
+    "secondWindowTitleObserved": true,
+    "appReportedWindowVisible": true,
+    "appReportedWindowTitle": "YNX Wallet Testnet Preview",
+    "rpcEndpoint": "https://evm.ynxweb4.com",
+    "rpcMethod": "eth_chainId",
+    "chainId": "0x1917",
+    "rpcFailureClosed": true,
+    "frozenWalletAuthImported": true,
+    "accountCreated": false,
+    "balanceClaimed": false,
+    "transactionCreated": false,
+    "signingEnabled": false,
+    "uninstallVerified": true,
+    "productionSigned": false
+  },
+  "releaseState": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": false,
+    "installedNativeCI": true,
+    "upgradeTestedNativeCI": true,
+    "uploadedArtifactDownloadedAndVerifiedNativeCI": true,
+    "rpmScriptsTested": false,
+    "fedoraFamilyDependencyManagerTested": false,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}
