@@ -27,6 +27,12 @@ Each owner listed in `integration/product-event-contracts.json` must:
 
 No product may send raw credentials, keys, PAN/CVV, private Mail/Social/Cloud content, or raw AI prompt/output into the general event payload or analytics sink.
 
+### Calendar producer mapping
+
+Calendar source `f1305e6b52c7484c099fe6b2f6cbc2b6d36508e2` now has a locally tested central v2 mapping at Integration adapter commit `6f45ec22f7fb0eabc0a630d40d250de9caf75c28`. Ten lifecycle, invitation, RSVP, sharing, reminder and AI-preview event types are registered as restricted, operational, account-home schemas with unknown payload fields rejected. Source event, aggregate, audit and idempotency identifiers are pseudonymized while the producer sequence is preserved.
+
+The adapter requires a real Wallet/App Gateway product session, request ID, trace ID, source release, receipt time, residency class and registered signing key. Missing context rejects without local or canned substitution. Calendar may acknowledge only the exact matching sequence after a signed envelope is durably accepted. This is source-contract evidence only: authenticated transport, runtime acceptance, Mail delivery outcomes, shared Testnet recovery and public deployment remain false. The machine-readable boundary is `release/integration/calendar-data-fabric-v2-mapping.json`.
+
 ## Chain, Pay, Exchange, DEX and Quant reconciliation
 
 The owning services must provide real Testnet observation adapters with source, as-of time, version, authority status, failure, confidence/coverage where applicable, stable reference ID and a SHA-256 evidence hash. A run is `matched` only when every required source is present and every amount agrees per asset/currency. Unavailable is not zero and HTTP success is not settlement finality.

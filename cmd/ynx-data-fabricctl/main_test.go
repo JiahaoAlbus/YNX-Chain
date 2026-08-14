@@ -23,7 +23,7 @@ func TestExportSchemaRegistryWritesVerifiedArtifactAndRefusesSilentOverwrite(t *
 	if err != nil {
 		t.Fatal(err)
 	}
-	if registry.Version() != "2.0" || len(registry.Definitions("")) != 92 {
+	if registry.Version() != "2.0" || len(registry.Definitions("")) != 102 {
 		t.Fatalf("exported registry is incomplete: version=%s definitions=%d", registry.Version(), len(registry.Definitions("")))
 	}
 	info, err := os.Stat(path)

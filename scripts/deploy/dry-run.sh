@@ -335,6 +335,11 @@ grep -Fq "reverse_proxy 127.0.0.1:6426" "$release_dir/caddy/ynx-chain.caddy" || 
 grep -Fq "reverse_proxy 127.0.0.1:6427" "$release_dir/caddy/ynx-chain.caddy" || { echo "Caddy ingress snippet missing explorer proxy target"; exit 1; }
 grep -Fq "reverse_proxy 127.0.0.1:6428" "$release_dir/caddy/ynx-chain.caddy" || { echo "Caddy ingress snippet missing faucet proxy target"; exit 1; }
 grep -Fq "bridge.www.ynx.test" "$release_dir/caddy/ynx-chain.caddy" || { echo "Caddy ingress snippet must preserve bridge route"; exit 1; }
+grep -A2 -F "bridge.www.ynx.test" "$release_dir/caddy/ynx-chain.caddy" | grep -Fq "reverse_proxy 127.0.0.1:6433" || { echo "Caddy Bridge route must target the current chain-bound coordinator"; exit 1; }
+if grep -A2 -F "bridge.www.ynx.test" "$release_dir/caddy/ynx-chain.caddy" | grep -Fq "38083"; then
+  echo "Caddy Bridge route must not target the retired v2 bridge"
+  exit 1
+fi
 grep -Fq "web4.www.ynx.test" "$release_dir/caddy/ynx-chain.caddy" || { echo "Caddy ingress snippet must preserve Web4 route"; exit 1; }
 grep -Fq "grpc.www.ynx.test" "$release_dir/caddy/ynx-chain.caddy" || { echo "Caddy ingress snippet must preserve gRPC route"; exit 1; }
 grep -Fq "evm-ws.www.ynx.test" "$release_dir/caddy/ynx-chain.caddy" || { echo "Caddy ingress snippet must preserve EVM WebSocket route"; exit 1; }

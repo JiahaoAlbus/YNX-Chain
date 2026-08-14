@@ -1,0 +1,64 @@
+{
+  "generatedAt": "2026-08-02T09:31:00Z",
+  "sourceCommit": "c5150caa35ee8cc563538d15acc9e404a6f2bf08",
+  "scope": "shared testnet indexer recovery, four-node convergence, and bounded concurrent read acceptance",
+  "indexerRecovery": {
+    "release": "ynx-indexer-hotfix-c5150caa35ee",
+    "binarySha256": "8fa4efaafc830304b825451f2837ffb75b0a6a4fa58b2739d80fe892f239983d",
+    "checkpointBytesApprox": 249561088,
+    "warmingContract": {
+      "httpStatus": 503,
+      "dependencyStatus": "warming"
+    },
+    "healthyAfterSecondsApprox": 3,
+    "legacyJournalAndWalDeleted": false,
+    "legacyJournalAndWalQuarantined": true,
+    "backupPaths": [
+      "/var/backups/ynx-chain/indexer-hotfix/20260802T091540Z",
+      "/var/backups/ynx-chain/indexer-final/20260802T092921Z"
+    ]
+  },
+  "fourNodeConvergence": {
+    "referenceHeight": 735693,
+    "identicalBlockHash": "4252a2b63520939c0ef25a72a663b483cd2360f7135999086fb37f4c8b62b5ff",
+    "allSourceCommit": "c5150caa35ee8cc563538d15acc9e404a6f2bf08",
+    "readyValidatorCount": 4,
+    "replicas": {
+      "singapore": {"status": "synced", "fresh": true, "lagBlocks": 0, "consecutiveFailures": 0},
+      "siliconValley": {"status": "synced", "fresh": true, "lagBlocks": 0, "consecutiveFailures": 0},
+      "seoul": {"status": "synced", "fresh": true, "lagBlocks": 0, "consecutiveFailures": 0}
+    }
+  },
+  "indexerMixedReadProbe": {
+    "target": "primary local service",
+    "paths": ["/health", "/blocks/latest?limit=25", "/txs?limit=25"],
+    "requests": 100,
+    "concurrency": 50,
+    "http200": 100,
+    "averageSeconds": 0.157441,
+    "p50Seconds": 0.022528,
+    "p95Seconds": 0.494112,
+    "maxSeconds": 0.521596
+  },
+  "explorerDashboardProbe": {
+    "target": "primary local service",
+    "path": "/api/dashboard",
+    "requests": 100,
+    "concurrency": 50,
+    "http200": 100,
+    "averageSeconds": 1.414381,
+    "p50Seconds": 0.024562,
+    "p95Seconds": 2.920296,
+    "maxSeconds": 2.930229
+  },
+  "postProbe": {
+    "rpcHeight": 735807,
+    "indexedHeight": 735806,
+    "syncLagBlocks": 1,
+    "indexedTxCount": 404,
+    "chainRestarts": 0,
+    "indexerRestarts": 0,
+    "explorerRestarts": 0
+  },
+  "claimBoundary": "This evidence proves bounded 100-request service concurrency on the primary host and four-node read convergence. It does not claim unbounded scale, mainnet readiness, or external bridge settlement."
+}
