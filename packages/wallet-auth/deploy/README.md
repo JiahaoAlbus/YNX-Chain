@@ -21,5 +21,13 @@ the renamed file; operators must reconcile the persisted digest before retrying.
 This is local-filesystem process-crash durability, not power-loss, network-storage
 or multi-region evidence. A crash before the handler releases its lock remains a
 fail-closed stale-lock condition requiring a separately reviewed recovery action.
+Use `ynx-wallet-gateway-state-lock inspect` first. `recover` additionally requires
+`YNX_WALLET_GATEWAY_LOCK_MINIMUM_AGE_MS` and the exact reviewed Registry path; it
+refuses live owners, PID reuse, a changed/young/malformed lock, unsafe temporary
+state, invalid state digest or Registry mismatch. Do not delete `.lock` manually,
+do not set a zero age floor in steady-state runbooks, and do not automate recovery
+without a separate PID-namespace and storage-semantics review. Successful local
+recovery reports the frozen state/Registry digests but does not establish central,
+staging, public, network-filesystem or multi-region safety.
 `MemoryDenyWriteExecute` is intentionally not set because Node/V8 requires JIT
 executable pages and fails closed with `signal=TRAP` under that systemd option.

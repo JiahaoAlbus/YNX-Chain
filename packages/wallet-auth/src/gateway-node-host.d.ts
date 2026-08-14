@@ -50,3 +50,24 @@ export declare class CanonicalWalletGatewayNodeHost{
 
 export declare function encodeGatewayProofHeader(proof:unknown):string;
 export declare function decodeGatewayProofHeader(value:unknown):Readonly<Record<string,unknown>>|null;
+export declare function inspectGatewayStateLock(statePath:string):Readonly<{
+  locked:false;
+}|{
+  acquiredAt:string;
+  locked:true;
+  ownerAlive:boolean;
+  ownerPid:number;
+  schemaVersion:1;
+}>;
+export declare function recoverGatewayStateLock(registry:unknown,options:Readonly<{
+  minimumAgeMs:number;
+  now:()=>Date;
+  statePath:string;
+}>):Readonly<{
+  discardedTemporaryState:boolean;
+  lockAcquiredAt:string;
+  lockOwnerPid:number;
+  recovered:true;
+  registrySha256:string;
+  stateDigest:string;
+}>;

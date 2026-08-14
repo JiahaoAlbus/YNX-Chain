@@ -132,6 +132,20 @@ reconcile that digest and must not translate the 503 into success or exact-retry
 safety. Local immediate-SIGKILL tests do not prove storage power-loss behavior,
 network filesystems or multi-region durability.
 
+The adjacent state lock is a canonical mode-0600 owner record published with an
+exclusive no-follow temporary file and an atomic hard link. A crashed process
+therefore leaves a durable PID, acquisition time and random owner token; normal
+Gateway requests never infer staleness and continue to return `STATE_LOCKED`.
+An operator may inspect it with `ynx-wallet-gateway-state-lock inspect` and may
+run `recover` only with an explicit non-negative age floor and the exact Registry.
+Recovery refuses a live/reused PID, a too-young or changed lock, malformed or
+noncanonical lock data, unsafe links/modes/sizes, an invalid current state digest,
+legacy state, or a Registry mismatch. It serializes competing recoveries, removes
+only the verified dead owner's bounded private temporary state, unlinks the main
+lock last, and fsyncs the parent directory. This is manual single-host POSIX
+recovery evidence; automatic recovery, PID namespaces, network filesystems,
+central rollout and multi-region leader election remain outside the claim.
+
 Current focused verification on 2026-08-10 is Wallet/Auth 105/105, Wallet app
 39/39, and Wallet app TypeScript typecheck, all passing. Earlier Node host,
 Browser SDK, JS SDK, loopback CLI, package, and Go evidence remains subject to

@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from "node:crypto";
-import { closeSync, constants, fstatSync, fsyncSync, lstatSync, mkdirSync, openSync, readFileSync, renameSync, rmdirSync, statSync, unlinkSync, writeFileSync } from "node:fs";
+import { closeSync, constants, fstatSync, fsyncSync, linkSync, lstatSync, mkdirSync, openSync, readFileSync, renameSync, statSync, unlinkSync, writeFileSync } from "node:fs";
 import { dirname, isAbsolute } from "node:path";
 import { canonicalJSON, exactFields, isPlainObject, WalletAuthError } from "./canonical.js";
 import { forwardedClient, GatewayAdmissionController } from "./gateway-admission.js";
@@ -13,8 +13,11 @@ const STATE_FIELDS = ["registrySha256", "schemaVersion", "stateDigest", "snapsho
 const LEGACY_STATE_FIELDS = ["schemaVersion", "stateDigest", "snapshot"];
 const MAX_PROOF_HEADER_BYTES = 16_384;
 const MAX_STATE_BYTES = 64 * 1024 * 1024;
+const MAX_STATE_LOCK_BYTES = 1024;
 const STATE_LOCK_WAIT_MS = 2_000;
 const STATE_LOCK_RETRY_MS = 5;
+const STATE_LOCK_FIELDS = ["acquiredAt", "pid", "schemaVersion", "token"];
+const STATE_LOCK_SCHEMA_VERSION = 1;
 const JSON_HEADERS = Object.freeze({
   "cache-control": "no-store",
   "content-type": "application/json; charset=utf-8",
@@ -510,16 +513,183 @@ async function acquireStateLock(path) {
   const lockPath = `${path}.lock`;
   const deadline = Date.now() + STATE_LOCK_WAIT_MS;
   for (;;) {
+    const owner = Object.freeze({
+      acquiredAt: new Date().toISOString(),
+      pid: process.pid,
+      schemaVersion: STATE_LOCK_SCHEMA_VERSION,
+      token: randomUUID(),
+    });
+    const temporary = `${lockPath}.${owner.token}.tmp`;
     try {
-      mkdirSync(lockPath, { mode: 0o700 });
-      return () => rmdirSync(lockPath);
+      writeStateLockOwner(temporary, owner);
+      linkSync(temporary, lockPath);
+      unlinkSync(temporary);
+      return () => releaseStateLock(lockPath, owner);
     } catch (caught) {
+      try { unlinkSync(temporary); } catch { /* temporary lock owner may be absent */ }
       if (!caught || caught.code !== "EEXIST") throw caught;
       if (Date.now() >= deadline) {
         throw new WalletAuthError("STATE_LOCKED", "Canonical Gateway persisted state is locked");
       }
       await new Promise(resolve => setTimeout(resolve, STATE_LOCK_RETRY_MS));
     }
+  }
+}
+
+export function inspectGatewayStateLock(value) {
+  const stateFile = statePath(value);
+  const lockPath = `${stateFile}.lock`;
+  const lock = readStateLock(lockPath, true);
+  if (lock === null) return Object.freeze({ locked: false });
+  return Object.freeze({
+    acquiredAt: lock.owner.acquiredAt,
+    locked: true,
+    ownerAlive: processAlive(lock.owner.pid),
+    ownerPid: lock.owner.pid,
+    schemaVersion: lock.owner.schemaVersion,
+  });
+}
+
+export function recoverGatewayStateLock(registryInput, options) {
+  exactFields(options, ["minimumAgeMs", "now", "statePath"], "Canonical Gateway state lock recovery options");
+  if (!Number.isSafeInteger(options.minimumAgeMs) || options.minimumAgeMs < 0) throw new WalletAuthError("INVALID_LOCK_RECOVERY_POLICY", "Canonical Gateway minimum stale-lock age is invalid");
+  if (typeof options.now !== "function") throw new WalletAuthError("INVALID_CLOCK", "Canonical Gateway state lock recovery clock is invalid");
+  const now = options.now();
+  if (!(now instanceof Date) || !Number.isFinite(now.getTime())) throw new WalletAuthError("INVALID_CLOCK", "Canonical Gateway state lock recovery clock is invalid");
+  const stateFile = statePath(options.statePath);
+  const lockPath = `${stateFile}.lock`;
+  const initial = readStateLock(lockPath, false);
+  if (initial === null) throw new WalletAuthError("STATE_LOCK_ABSENT", "Canonical Gateway state lock is absent");
+  assertRecoverableStateLock(initial.owner, now, options.minimumAgeMs);
+
+  const registry = parseCentralRegistryDocument(registryInput);
+  const registrySha256 = createHash("sha256").update(canonicalJSON(registry)).digest("hex");
+  const stored = loadState(stateFile);
+  if (!stored || stored.needsRewrite) throw new WalletAuthError("STATE_TAMPERED", "Canonical Gateway current state is unavailable or legacy during lock recovery");
+  const kernel = new CanonicalWalletGatewayHttpKernel(registry, stored.snapshot);
+  if (stored.stateDigest !== gatewayStateDigest(kernel.snapshot())) throw new WalletAuthError("STATE_TAMPERED", "Canonical Gateway current state digest is invalid during lock recovery");
+  if (stored.registrySha256 !== registrySha256) throw new WalletAuthError("REGISTRY_STATE_MISMATCH", "Canonical Gateway current state belongs to a different registry during lock recovery");
+
+  const recoveryPath = `${lockPath}.recovery`;
+  const recovery = Object.freeze({ acquiredAt: now.toISOString(), pid: process.pid, schemaVersion: STATE_LOCK_SCHEMA_VERSION, token: randomUUID() });
+  try {
+    writeStateLockOwner(recoveryPath, recovery);
+  } catch (caught) {
+    if (caught?.code === "EEXIST") throw new WalletAuthError("STATE_LOCK_RECOVERY_BUSY", "Canonical Gateway state lock recovery is already in progress");
+    throw caught;
+  }
+  let discardedTemporaryState = false;
+  try {
+    const current = readStateLock(lockPath, false);
+    if (current === null || canonicalJSON(current.owner) !== canonicalJSON(initial.owner)) throw new WalletAuthError("STATE_LOCK_CHANGED", "Canonical Gateway state lock changed during recovery");
+    assertRecoverableStateLock(current.owner, now, options.minimumAgeMs);
+    const temporaryStatePath = `${stateFile}.${current.owner.pid}.tmp`;
+    discardedTemporaryState = validateDeadOwnerTemporaryState(temporaryStatePath);
+    if (discardedTemporaryState) unlinkSync(temporaryStatePath);
+    if (current.temporaryPath !== null) unlinkSync(current.temporaryPath);
+    unlinkSync(lockPath);
+    fsyncStateDirectory(dirname(stateFile));
+  } finally {
+    try { unlinkSync(recoveryPath); } catch { /* recovery guard may be absent */ }
+  }
+  return Object.freeze({
+    discardedTemporaryState,
+    lockAcquiredAt: initial.owner.acquiredAt,
+    lockOwnerPid: initial.owner.pid,
+    recovered: true,
+    registrySha256,
+    stateDigest: stored.stateDigest,
+  });
+}
+
+function writeStateLockOwner(path, owner) {
+  let descriptor;
+  try {
+    descriptor = openSync(path, constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW, 0o600);
+    writeFileSync(descriptor, canonicalJSON(owner), "utf8");
+    fsyncSync(descriptor);
+  } finally {
+    if (descriptor !== undefined) closeSync(descriptor);
+  }
+}
+
+function readStateLock(path, absentAllowed) {
+  let descriptor;
+  try {
+    try { descriptor = openSync(path, constants.O_RDONLY | constants.O_NOFOLLOW); }
+    catch (caught) {
+      if (caught?.code === "ENOENT" && absentAllowed) return null;
+      if (caught?.code === "ENOENT") return null;
+      throw new WalletAuthError("STATE_LOCK_TAMPERED", "Canonical Gateway state lock is unavailable or unsafe");
+    }
+    const info = fstatSync(descriptor);
+    if (!info.isFile() || info.nlink < 1 || info.nlink > 2 || (info.mode & 0o077) !== 0 || info.size < 2 || info.size > MAX_STATE_LOCK_BYTES) {
+      throw new WalletAuthError("STATE_LOCK_TAMPERED", "Canonical Gateway state lock must be a private one-link owner record");
+    }
+    const raw = readFileSync(descriptor, "utf8");
+    let owner;
+    try { owner = JSON.parse(raw); } catch { throw new WalletAuthError("STATE_LOCK_TAMPERED", "Canonical Gateway state lock owner record is invalid JSON"); }
+    if (canonicalJSON(owner) !== raw) throw new WalletAuthError("STATE_LOCK_TAMPERED", "Canonical Gateway state lock owner record must use canonical JSON");
+    try { exactFields(owner, STATE_LOCK_FIELDS, "Canonical Gateway state lock owner"); }
+    catch { throw new WalletAuthError("STATE_LOCK_TAMPERED", "Canonical Gateway state lock owner record has unknown or missing fields"); }
+    const acquiredAt = Date.parse(owner.acquiredAt);
+    if (owner.schemaVersion !== STATE_LOCK_SCHEMA_VERSION || !Number.isSafeInteger(owner.pid) || owner.pid < 1 || typeof owner.token !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(owner.token) || typeof owner.acquiredAt !== "string" || !Number.isFinite(acquiredAt) || new Date(acquiredAt).toISOString() !== owner.acquiredAt) {
+      throw new WalletAuthError("STATE_LOCK_TAMPERED", "Canonical Gateway state lock owner record is invalid");
+    }
+    let temporaryPath = null;
+    if (info.nlink === 2) {
+      temporaryPath = `${path}.${owner.token}.tmp`;
+      let temporaryInfo;
+      try { temporaryInfo = lstatSync(temporaryPath); } catch { throw new WalletAuthError("STATE_LOCK_TAMPERED", "Canonical Gateway state lock has an unexplained hard link"); }
+      if (!temporaryInfo.isFile() || temporaryInfo.isSymbolicLink() || temporaryInfo.dev !== info.dev || temporaryInfo.ino !== info.ino) throw new WalletAuthError("STATE_LOCK_TAMPERED", "Canonical Gateway state lock hard link does not match its owner token");
+    }
+    return Object.freeze({ owner: Object.freeze(owner), temporaryPath });
+  } finally {
+    if (descriptor !== undefined) closeSync(descriptor);
+  }
+}
+
+function releaseStateLock(path, owner) {
+  const current = readStateLock(path, false);
+  if (current === null || current.owner.pid !== owner.pid || current.owner.token !== owner.token) throw new WalletAuthError("STATE_LOCK_LOST", "Canonical Gateway state lock ownership was lost");
+  unlinkSync(path);
+}
+
+function assertRecoverableStateLock(owner, now, minimumAgeMs) {
+  if (processAlive(owner.pid)) throw new WalletAuthError("STATE_LOCK_ACTIVE", "Canonical Gateway state lock owner is still alive");
+  const ageMs = now.getTime() - Date.parse(owner.acquiredAt);
+  if (ageMs < minimumAgeMs) throw new WalletAuthError("STATE_LOCK_TOO_FRESH", "Canonical Gateway state lock has not reached the recovery age floor");
+}
+
+function validateDeadOwnerTemporaryState(path) {
+  let info;
+  try { info = lstatSync(path); }
+  catch (caught) {
+    if (caught?.code === "ENOENT") return false;
+    throw new WalletAuthError("STATE_LOCK_TAMPERED", "Canonical Gateway temporary state is unavailable during lock recovery");
+  }
+  if (!info.isFile() || info.isSymbolicLink() || info.nlink !== 1 || (info.mode & 0o077) !== 0 || info.size > MAX_STATE_BYTES) {
+    throw new WalletAuthError("STATE_LOCK_TAMPERED", "Canonical Gateway temporary state is unsafe during lock recovery");
+  }
+  return true;
+}
+
+function processAlive(pid) {
+  try { process.kill(pid, 0); return true; }
+  catch (caught) {
+    if (caught?.code === "ESRCH") return false;
+    if (caught?.code === "EPERM") return true;
+    throw caught;
+  }
+}
+
+function fsyncStateDirectory(directory) {
+  let descriptor;
+  try {
+    descriptor = openSync(directory, constants.O_RDONLY | constants.O_DIRECTORY | constants.O_NOFOLLOW);
+    fsyncSync(descriptor);
+  } finally {
+    if (descriptor !== undefined) closeSync(descriptor);
   }
 }
 
