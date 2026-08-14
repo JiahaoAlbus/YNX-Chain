@@ -9,15 +9,22 @@ test("extension packages expose truthful install metadata without hosted-update 
     assert.equal(manifest.homepage_url, extensionHomepage);
     assert.deepEqual(manifest.permissions, ["activeTab", "scripting", "storage"]);
     assert.equal(manifest.action.default_popup, "index.html");
-    assert.deepEqual(manifest.content_scripts[0].js,["content-script.js"]);
-    assert.equal(manifest.content_scripts[0].run_at,"document_start");
-    assert.deepEqual(manifest.web_accessible_resources[0].resources,["page-provider.js"]);
-    assert.deepEqual(manifest.host_permissions,["https://*/*","http://localhost/*","http://127.0.0.1/*"]);
+    assert.equal("content_scripts" in manifest,false);
+    assert.equal("web_accessible_resources" in manifest,false);
+    assert.equal("optional_host_permissions" in manifest,false);
+    assert.deepEqual(manifest.host_permissions,["https://evm.ynxweb4.com/*"]);
     assert.equal(manifest.content_security_policy.extension_pages,"script-src 'self'; object-src 'self'; connect-src https://evm.ynxweb4.com");
     assert.equal(manifest.host_permissions.includes("http://*/*"),false);
     assert.equal(manifest.host_permissions.some((pattern)=>pattern.startsWith("file:")),false);
     assert.equal("update_url" in manifest, false);
   }
+});
+
+test("DApp injection is bound to an explicit activeTab user gesture",async()=>{
+  const worker=await import("node:fs/promises").then(({readFile})=>readFile(new URL("../extension/service-worker.js",import.meta.url),"utf8"));
+  assert.match(worker,/tabs\.query\(\{active:true,currentWindow:true\}\)/);
+  assert.match(worker,/activeTabInjectionPlans\(context\.tabId\)/);
+  assert.match(worker,/code:"ACTIVE_TAB_REQUIRED"/);
 });
 
 test("unsigned Chromium package stays honest about identity and minimum runtime", () => {

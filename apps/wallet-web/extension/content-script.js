@@ -1,5 +1,7 @@
 (() => {
   "use strict";
+  if(globalThis.__YNX_CONTENT_BRIDGE_V1__===true)return;
+  Object.defineProperty(globalThis,"__YNX_CONTENT_BRIDGE_V1__",{value:true});
   const PAGE_REQUEST="YNX_PAGE_REQUEST_V1",PAGE_RESPONSE="YNX_PAGE_RESPONSE_V1",PAGE_EVENT="YNX_PAGE_EVENT_V1",RUNTIME_REQUEST="YNX_DAPP_REQUEST_V1",RUNTIME_EVENT="YNX_DAPP_EVENT_V1",VERSION=1,TIMEOUT_MS=18000;
   const METHODS=new Set(["eth_chainId","eth_accounts","eth_requestAccounts","wallet_addEthereumChain","wallet_switchEthereumChain","wallet_revokePermissions","personal_sign","eth_sendTransaction","ynx_disconnect"]);
   const EVENTS=new Set(["accountsChanged","chainChanged","disconnect"]),pending=new Set(),requestIdPattern=/^ynx-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u,targetOrigin=location.origin;
@@ -18,5 +20,4 @@
     if(message?.type!==RUNTIME_EVENT||message.version!==VERSION||message.origin!==targetOrigin||!EVENTS.has(message.event))return;
     window.postMessage({type:PAGE_EVENT,version:VERSION,origin:targetOrigin,event:message.event,payload:message.payload},targetOrigin);
   });
-  const script=document.createElement("script");script.src=chrome.runtime.getURL("page-provider.js");script.dataset.ynxOrigin=targetOrigin;script.onload=()=>script.remove();script.onerror=()=>script.remove();(document.head||document.documentElement).appendChild(script);
 })();

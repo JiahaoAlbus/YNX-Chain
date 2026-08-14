@@ -3,6 +3,7 @@ import {YNX_CHAIN_ID,verifyExtensionRpc} from "./extension-rpc.js";
 import {CORE_WALLET_AUTH_BINDING} from "./core-auth-binding.js";
 import {requireCanonicalAuthorizationContext} from "./core-auth-consumer.js";
 import {consumeSensitiveRequest,parseSensitiveRequest,validateSensitiveResult} from "./extension-sensitive-policy.js";
+import {activeTabInjectionPlans,requireActiveDappTab} from "./active-tab-policy.js";
 
 const extensionApi=globalThis.browser||globalThis.chrome,CHAIN_ID=YNX_CHAIN_ID;
 const YNX_CHAIN=Object.freeze({chainId:CHAIN_ID,chainName:"YNX Testnet",nativeCurrency:Object.freeze({name:"YNX Testnet",symbol:"YNXT",decimals:18}),rpcUrls:Object.freeze(["https://evm.ynxweb4.com"]),blockExplorerUrls:Object.freeze(["https://explorer.ynxweb4.com"])});
@@ -32,10 +33,17 @@ async function executeInTab(tabId,origin,preference,input){
   if(!Number.isInteger(tab?.id)||new URL(tab.url).origin!==origin)throw Object.assign(new Error("The requesting DApp origin changed."),{code:"ORIGIN_CHANGED"});
   const[execution]=await extensionApi.scripting.executeScript({target:{tabId},world:"MAIN",func:pageWalletRequest,args:[preference,input]});return await execution?.result;
 }
-async function executeActive(preference,input){
+async function ensureActiveTabBridge(){
   const[tab]=await extensionApi.tabs.query({active:true,currentWindow:true});
-  if(!Number.isInteger(tab?.id)||!/^https?:/u.test(tab.url||""))throw Object.assign(new Error("Open an HTTP(S) DApp tab before using this companion."),{code:"UNSUPPORTED_TAB"});
-  return executeInTab(tab.id,new URL(tab.url).origin,preference,input);
+  const context=requireActiveDappTab(tab);
+  try{
+    for(const plan of activeTabInjectionPlans(context.tabId))await extensionApi.scripting.executeScript(plan);
+  }catch(error){throw Object.assign(new Error("The DApp bridge requires a current user-granted activeTab permission."),{code:"ACTIVE_TAB_REQUIRED",cause:error})}
+  return context;
+}
+async function executeActive(preference,input){
+  const{tabId,origin}=await ensureActiveTabBridge();
+  return executeInTab(tabId,origin,preference,input);
 }
 async function emitToTab(tabId,origin,event,payload){if(PROVIDER_EVENTS.includes(event))await extensionApi.tabs.sendMessage(tabId,{type:RUNTIME_EVENT,version:BRIDGE_VERSION,origin,event,payload}).catch(()=>{})}
 function exactAccounts(value){if(!Array.isArray(value)||value.some((account)=>!/^0x[0-9a-fA-F]{40}$/u.test(account)))throw Object.assign(new Error("Wallet backend returned invalid accounts."),{code:"INVALID_ACCOUNT"});return value.map((account)=>account.toLowerCase())}

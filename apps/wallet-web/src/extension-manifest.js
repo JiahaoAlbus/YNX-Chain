@@ -9,17 +9,7 @@ const sharedManifest = {
   homepage_url: extensionHomepage,
   permissions: ["activeTab", "scripting", "storage"],
   content_security_policy: {extension_pages: "script-src 'self'; object-src 'self'; connect-src https://evm.ynxweb4.com"},
-  host_permissions: ["https://*/*", "http://localhost/*", "http://127.0.0.1/*"],
-  content_scripts: [{
-    matches: ["https://*/*", "http://localhost/*", "http://127.0.0.1/*"],
-    js: ["content-script.js"],
-    run_at: "document_start",
-    all_frames: false,
-  }],
-  web_accessible_resources: [{
-    resources: ["page-provider.js"],
-    matches: ["https://*/*", "http://localhost/*", "http://127.0.0.1/*"],
-  }],
+  host_permissions: ["https://evm.ynxweb4.com/*"],
   action: {default_popup: "index.html", default_title: "YNX Wallet"},
   icons: {"128": "ynx-logo.png"},
 };

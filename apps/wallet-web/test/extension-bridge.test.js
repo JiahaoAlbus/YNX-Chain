@@ -29,6 +29,7 @@ test("bridge allowlist includes lifecycle and sensitive methods but no arbitrary
 test("content and page scripts enforce source, origin, timeout, duplicate-id and companion exclusion guards",async()=>{
   const[content,page,worker]=await Promise.all([readFile(new URL("../extension/content-script.js",import.meta.url),"utf8"),readFile(new URL("../extension/page-provider.js",import.meta.url),"utf8"),readFile(new URL("../extension/service-worker.js",import.meta.url),"utf8")]);
   assert.match(content,/event\.source!==window\|\|event\.origin!==targetOrigin/);assert.match(content,/pending\.has\(data\.requestId\)/);assert.match(content,/BRIDGE_TIMEOUT/);assert.match(content,/deadlineAt:Date\.now\(\)\+TIMEOUT_MS/);
-  assert.match(page,/event\.source!==window\|\|event\.origin!==expectedOrigin/);assert.match(page,/crypto\.randomUUID\(\)/);assert.match(page,/__ynxCompanion:true/);
+  assert.match(content,/__YNX_CONTENT_BRIDGE_V1__/);assert.doesNotMatch(content,/web_accessible_resources|runtime\.getURL/);
+  assert.match(page,/event\.source!==window\|\|event\.origin!==expectedOrigin/);assert.match(page,/crypto\.randomUUID\(\)/);assert.match(page,/__ynxCompanion:true/);assert.match(page,/__YNX_COMPANION_PROVIDER_V1__/);
   assert.match(worker,/provider\?\.__ynxCompanion!==true/);assert.match(worker,/backendChain!==CHAIN_ID/);assert.match(worker,/WALLET_BACKEND_NOT_FOUND/);assert.match(worker,/await liveChainId\(\);requireLiveDeadline\(message\.deadlineAt\)/);
 });

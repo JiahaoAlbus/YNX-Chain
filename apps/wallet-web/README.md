@@ -51,6 +51,13 @@ upgrade, and store-managed uninstall are not claimed. Firefox declares the
 stable development add-on ID `wallet-testnet@ynxweb4.com` and Firefox 128 as
 its minimum runtime, but remains unsigned and not store-released. Both bundles
 link only to the public project homepage; that link is not a hosted download.
+Neither bundle has persistent all-site content-script access or a web-accessible
+provider script. Opening the popup from an HTTP(S) DApp grants the temporary
+`activeTab` capability used to inject the isolated transport before the
+main-world provider. A missing user gesture, unsupported tab, lost grant, or
+injection error returns `ACTIVE_TAB_REQUIRED`. The sole persistent host grant
+is the frozen `https://evm.ynxweb4.com/*` RPC authority, and extension CSP allows
+network connection only to that origin.
 
 The PWA caches only its same-origin shell. Navigations use a network-first
 offline fallback, static assets never receive HTML as a substitute, and RPC
