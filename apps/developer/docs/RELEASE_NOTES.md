@@ -20,7 +20,8 @@
 - `PACKAGE_EGRESS_NETWORK.md` contains the exact proposed creation, verification
   and unused-object rollback transaction. It remains unapplied pending explicit
   production-owner approval; the default `lxdbr0` is not accepted. Feature
-  source: `fe3ad8be0d103b3187904b32f7882e45160ac7e8`.
+  source including the restart/package gate:
+  `a30308dc1320372c09c7dd03d7715e6a828a68c4`.
 
 ## 2026-08-14 reviewed Python wheel installation candidate
 
