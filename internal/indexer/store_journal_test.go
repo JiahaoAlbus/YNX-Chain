@@ -74,3 +74,63 @@ func TestStoreRejectsJournalSequenceGap(t *testing.T) {
 		t.Fatal("journal sequence gap was accepted")
 	}
 }
+
+func TestStoreBackupRestoresSnapshotAndJournalInIsolation(t *testing.T) {
+	sourcePath := filepath.Join(t.TempDir(), "index.json")
+	store := NewStore(sourcePath)
+	initial := Database{
+		Version:           2,
+		Network:           "YNX Testnet",
+		ChainID:           6423,
+		NativeSymbol:      "YNXT",
+		Blocks:            map[string]chain.Block{"40": {Height: 40, Hash: blockHash(40), ParentHash: blockHash(39)}},
+		Transactions:      map[string]chain.Transaction{},
+		LastIndexedHeight: 40,
+		LastSourceHeight:  40,
+		LastBlockHash:     blockHash(40),
+	}
+	if err := store.Save(initial); err != nil {
+		t.Fatal(err)
+	}
+	status := Status{Network: "YNX Testnet", ChainID: 6423, NativeCurrencySymbol: "YNXT", Height: 42, LatestBlockHash: blockHash(42)}
+	for height := uint64(41); height <= 42; height++ {
+		block := chain.Block{Height: height, Hash: blockHash(height), ParentHash: blockHash(height - 1), Time: time.Now().UTC()}
+		if _, err := store.UpsertBlock("https://rpc.ynx.invalid", status, block); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	backupSnapshot, err := os.ReadFile(sourcePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	backupJournal, err := os.ReadFile(sourcePath + ".journal")
+	if err != nil {
+		t.Fatal(err)
+	}
+	restorePath := filepath.Join(t.TempDir(), "restored", "index.json")
+	if err := os.MkdirAll(filepath.Dir(restorePath), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(restorePath, backupSnapshot, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(restorePath+".journal", backupJournal, 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	restored, err := NewStore(restorePath).Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if restored.LastIndexedHeight != 42 || restored.LastBlockHash != blockHash(42) || restored.JournalSequence != 2 || restored.Blocks["41"].Hash != blockHash(41) || restored.Blocks["42"].Hash != blockHash(42) {
+		t.Fatalf("isolated backup restore lost canonical snapshot or WAL state: %+v", restored)
+	}
+
+	if err := os.WriteFile(restorePath+".journal", append(backupJournal, []byte("corrupt-record\n")...), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := NewStore(restorePath).Load(); err == nil {
+		t.Fatal("corrupted restored journal was accepted")
+	}
+}

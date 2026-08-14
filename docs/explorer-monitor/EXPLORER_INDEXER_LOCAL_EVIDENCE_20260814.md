@@ -19,6 +19,10 @@ Covered positive vectors include canonical block/transaction pagination, feed-bo
 
 Covered negative vectors include tampered/cross-feed cursors, index store warm-up, deep reorg fail-closed behavior, and dependency errors containing `127.0.0.1`, private paths, or connection-refused text. Public responses are asserted to omit those internal values.
 
+`TestStoreBackupRestoresSnapshotAndJournalInIsolation` copies the durable Indexer snapshot and WAL to an isolated restore directory, proves canonical heights 40–42 and journal sequence 2 survive restart, and rejects a subsequently corrupted restored journal. The existing migration-height bootstrap/resume, rollback, shallow/deep reorg and sequence-gap suites pass under the race detector.
+
+Monitor validation additionally passed 36 server/UI tests, five publisher/supply-chain tests, `npm audit --omit=dev` with zero vulnerabilities, the production supply-chain gate and build. Playwright passed eight desktop/mobile E2E cases covering authenticated operations, viewer restrictions, incident lifecycle, locale persistence and Arabic RTL. The independent accessibility test passed. These are local candidate results and do not replace final public Computer Control acceptance.
+
 The continuation also adds configurable application-level resource limits for both services: maximum concurrent requests, global requests per second, finite queue wait, and bounded HTTP server headers/timeouts. Explorer separately caps live SSE clients so long-lived subscriptions do not consume ordinary request slots. Indexer serializes polling and manual synchronization so concurrent triggers cannot race one canonical write. Dedicated Race tests prove 429 rate-limit responses and 503 bounded-queue responses while preserving a successful admitted request.
 
 Default limits are 64 concurrent non-stream requests, 500 requests/second, a 150 ms queue wait, and 256 Explorer SSE clients. Deployments can lower or raise them through the `YNX_EXPLORER_*` and `YNX_INDEXER_*` flags/environment variables; overload remains explicit and fail-closed.
