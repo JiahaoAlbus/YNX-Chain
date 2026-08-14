@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "product-session-http-negative-matrix-local-2026-08-14",
+  "owner": "02-wallet-auth",
+  "sourceCommit": "0a3c048d1baf0cca51f78630dc8a26ec14fd43fd",
+  "observedAt": "2026-08-14T03:07:49Z",
+  "environment": "local-node-http-kernel",
+  "protocol": {
+    "domain": "YNX_PRODUCT_SESSION_HTTP_NEGATIVE_MATRIX_V1",
+    "routes": ["/v1/wallet/sessions/introspect", "/v1/wallet/sessions/revoke"],
+    "method": "POST",
+    "contentType": "application/json",
+    "sharedVector": "packages/wallet-auth/testdata/product-session-http-negative-matrix-v1.json",
+    "caseCount": 16,
+    "preSuccessFailClosedCases": 14,
+    "postSuccessReplayCases": 2
+  },
+  "negativeCoverage": ["wrong-method", "wrong-path", "wrong-body", "wrong-device", "scope-widening", "pre-session", "expiry", "replay"],
+  "requestAtomicInvariants": {
+    "mutated": false,
+    "stateDigestUnchanged": true,
+    "sessionsChanged": 0,
+    "revocationsChanged": 0,
+    "productProofsConsumed": 0,
+    "additionalMutationOnReplay": false
+  },
+  "tests": {
+    "focused": "3/3 passed",
+    "walletAuthFullSuite": "139/139 passed",
+    "walletOwnedSuite": "137/137 passed",
+    "walletProductCheck": "passed",
+    "walletReleaseContentCheck": "passed",
+    "walletGoalCoverageCheck": "passed",
+    "jsonAndDiffChecks": "passed"
+  },
+  "sourceSha256": {
+    "packages/wallet-auth/src/gateway-http.js": "fbd2ba0d4ffb46286d3d6fe51cf4f42c5a6a9858c8eb3ae20d0f37fac43b8b55",
+    "packages/wallet-auth/test/product-session-http-negative-matrix.test.mjs": "3ecbd5ff61d10fcde2354fc8bb78bdb882d8edecf91b2847c3a66c7e89635155",
+    "packages/wallet-auth/testdata/product-session-http-negative-matrix-v1.json": "3751790e363f2e4b39919673773e6ff48e108539d3a5cd88c6e1c7756a78bdda"
+  },
+  "releaseClaims": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": false,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "publicRouteVerified": false,
+    "publicGatewaySourceContainsSlice": false,
+    "assetMoved": false,
+    "userClaimed": false,
+    "providerClaimed": false,
+    "secretMaterialRecorded": false
+  },
+  "deployedGateway": {
+    "sourceCommit": "c6ac582c8d490ef980a8cadfd9172f133d1b1a49",
+    "release": "ynx-wallet-gateway-c6ac582c8d49",
+    "containsProductSessionHttpNegativeMatrixSlice": false
+  }
+}
