@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from "node:crypto";
-import { chmodSync, mkdirSync, readFileSync, renameSync, rmdirSync, statSync, writeFileSync } from "node:fs";
+import { chmodSync, closeSync, constants, fstatSync, lstatSync, mkdirSync, openSync, readFileSync, renameSync, rmdirSync, statSync, writeFileSync } from "node:fs";
 import { dirname, isAbsolute } from "node:path";
 import { canonicalJSON, exactFields, isPlainObject, WalletAuthError } from "./canonical.js";
 import { forwardedClient, GatewayAdmissionController } from "./gateway-admission.js";
@@ -12,6 +12,7 @@ export const CANONICAL_GATEWAY_OBSERVABILITY_SCHEMA_VERSION = 1;
 const STATE_FIELDS = ["registrySha256", "schemaVersion", "stateDigest", "snapshot"];
 const LEGACY_STATE_FIELDS = ["schemaVersion", "stateDigest", "snapshot"];
 const MAX_PROOF_HEADER_BYTES = 16_384;
+const MAX_STATE_BYTES = 64 * 1024 * 1024;
 const STATE_LOCK_WAIT_MS = 2_000;
 const STATE_LOCK_RETRY_MS = 5;
 const JSON_HEADERS = Object.freeze({
@@ -441,13 +442,32 @@ export function decodeGatewayProofHeader(value) {
 
 function loadState(path) {
   let raw;
-  try { raw = readFileSync(path, "utf8"); } catch (caught) {
-    if (caught && caught.code === "ENOENT") return null;
-    throw caught;
+  let descriptor;
+  try {
+    const directory = dirname(path);
+    let directoryInfo;
+    try { directoryInfo = lstatSync(directory); } catch (caught) {
+      if (caught?.code === "ENOENT") return null;
+      throw caught;
+    }
+    if (!directoryInfo.isDirectory() || directoryInfo.isSymbolicLink() || (directoryInfo.mode & 0o077) !== 0) {
+      throw new WalletAuthError("STATE_PERMISSIONS", "Canonical Gateway state directory must use mode 0700 and be a private non-symlink directory");
+    }
+    try { descriptor = openSync(path, constants.O_RDONLY | constants.O_NOFOLLOW); } catch (caught) {
+      if (caught?.code === "ENOENT") return null;
+      throw new WalletAuthError("STATE_UNAVAILABLE", "Canonical Gateway persisted state is unavailable");
+    }
+    const info = fstatSync(descriptor);
+    if (!info.isFile() || info.nlink !== 1 || (info.mode & 0o077) !== 0 || info.size < 2 || info.size > MAX_STATE_BYTES) {
+      throw new WalletAuthError("STATE_PERMISSIONS", "Canonical Gateway state must be a private single-link regular file within the size policy");
+    }
+    raw = readFileSync(descriptor, "utf8");
+  } finally {
+    if (descriptor !== undefined) closeSync(descriptor);
   }
-  if ((statSync(path).mode & 0o077) !== 0) throw new WalletAuthError("STATE_PERMISSIONS", "Canonical Gateway state must use mode 0600");
   let value;
   try { value = JSON.parse(raw); } catch { throw new WalletAuthError("STATE_TAMPERED", "Canonical Gateway persisted state is invalid JSON"); }
+  if (canonicalJSON(value) !== raw) throw new WalletAuthError("STATE_TAMPERED", "Canonical Gateway persisted state must use canonical JSON");
   let needsRewrite = value?.schemaVersion === 1;
   if (needsRewrite) {
     try { exactFields(value, LEGACY_STATE_FIELDS, "Canonical Gateway legacy persisted state"); }
@@ -505,8 +525,8 @@ function statePath(value) {
 
 function hostError(caught) {
   if (caught instanceof WalletAuthError) {
-    const stateUnavailable = new Set(["LEGACY_STATE_MIGRATION_REQUIRED", "REGISTRY_STATE_MISMATCH", "STATE_LOCKED", "STATE_TAMPERED", "STATE_UNAVAILABLE"]);
-    const status = caught.code === "INVALID_BODY" ? 413 : stateUnavailable.has(caught.code) ? 503 : 400;
+    const stateUnavailable = caught.code === "LEGACY_STATE_MIGRATION_REQUIRED" || caught.code === "REGISTRY_STATE_MISMATCH" || caught.code.startsWith("STATE_");
+    const status = caught.code === "INVALID_BODY" ? 413 : stateUnavailable ? 503 : 400;
     return { status, code: caught.code, message: caught.message };
   }
   return { status: 500, code: "INTERNAL", message: "Canonical Wallet Gateway host failed closed" };

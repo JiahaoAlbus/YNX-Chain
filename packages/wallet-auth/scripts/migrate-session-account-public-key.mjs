@@ -33,7 +33,7 @@ const migratedSnapshot = {
 const migrated = { ...(envelope.schemaVersion === 2 ? { registrySha256: envelope.registrySha256 } : {}), schemaVersion: envelope.schemaVersion, stateDigest: gatewayStateDigest(migratedSnapshot), snapshot: migratedSnapshot };
 const temporary = `${destination}.${process.pid}.tmp`;
 const fd = openSync(temporary, "wx", 0o600);closeSync(fd);
-try { writeFileSync(temporary, `${canonicalJSON(migrated)}\n`, { mode: 0o600 });renameSync(temporary, destination); }
+try { writeFileSync(temporary, canonicalJSON(migrated), { mode: 0o600 });renameSync(temporary, destination); }
 catch (error) { try { unlinkSync(temporary); } catch {} throw error; }
 process.stdout.write(`${canonicalJSON({cutoff,expiredSessionsInvalidated:sessions.length,maxExpiredAt:expiries.sort().at(-1)??null,oldStateDigest:envelope.stateDigest,newStateDigest:migrated.stateDigest,sessionCount:0,proofCount:0,mandateCount:0,destinationDirectory:dirname(destination).split("/").at(-1)})}\n`);
 
