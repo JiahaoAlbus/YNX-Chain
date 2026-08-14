@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "wallet-paymaster-deployment-event-binding-local-2026-08-14",
+  "owner": "02-wallet-auth",
+  "sourceCommit": "26d9932f0a2f14078f6e58e6b13778e540c16ff9",
+  "failFirst": "requiredDeploymentEventMatches was absent from verified Paymaster evidence",
+  "requiredEvent": {"signature":"OwnershipTransferred(address,address)","topic0":"0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0","emitterMustEqualPaymaster":true,"previousOwnerMustBeZero":true,"newOwnerMustBeNonzero":true,"dataMustBeEmpty":true},
+  "producerAndVerifierBothRequireEvent": true,
+  "missingOrSubstitutedEventPublicClaims": false,
+  "tests": {"focused":{"passed":4,"failed":0},"walletAuthFull":{"passed":190,"failed":0},"hardhatWallet":"passed","walletProductGate":"passed","walletReleaseContentGate":"passed","walletGoalCoverageGate":"passed"},
+  "sourceSha256": {"packages/wallet-auth/src/testnet-deployment-verifier.js":"9c83078c52783dd4c796e8c3fe99dd9cd955d99d30bc156d1d920971906150f2","packages/wallet-auth/test/testnet-deployment-verifier.test.mjs":"78c476324c43af0a3cbdf57577efcb905ed7e8b272d0c656acb03319d573f236"},
+  "publicExecution": {"performed":false},
+  "releaseClaims": {"paymasterDeployedPublic":false,"bundlerDeployedPublic":false,"sponsoredReceiptPublic":false},
+  "secretMaterialRecorded": false
+}
