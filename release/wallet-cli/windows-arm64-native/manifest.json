@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "artifactClass": "wallet-cli-windows-arm64-native-lifecycle-evidence",
+  "sourceCommit": "8b778604144e49b8ff85ba04850d325af1d378be",
+  "workflowRunId": 31770348463,
+  "workflowRunURL": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/31770348463",
+  "jobs": {
+    "nativeLifecycle": {
+      "id": 94674777353,
+      "conclusion": "success",
+      "runner": "windows-11-arm"
+    },
+    "downloadVerification": {
+      "id": 94675035799,
+      "conclusion": "success",
+      "runner": "windows-11-arm"
+    }
+  },
+  "installer": {
+    "path": "release/wallet-cli/windows-installers/ynx-wallet-cli-windows-arm64-installer.zip",
+    "format": "zip PowerShell user installer",
+    "architecture": "arm64",
+    "bytes": 4586536,
+    "sha256": "8e2e1b173b8de63a93a368f658e318cbc4ac142af9345d3010a3e0957ef130fc",
+    "payloadBytes": 8487424,
+    "payloadSha256": "a99614f399643f44ffd9beef484d306d4b3b62971010cd3dce8c4ee79164ff9f",
+    "minimumOS": "Windows 10 or Windows Server 2016 declared by existing installer; Windows 11 arm64 directly tested",
+    "signingClass": "unsigned_windows_user_installer_candidate",
+    "authenticodeStatus": "NotSigned",
+    "productionSigned": false
+  },
+  "lifecycle": {
+    "preflightInstalled": true,
+    "upgradeVerified": true,
+    "coldStart": true,
+    "secondStart": true,
+    "vectorVerified": true,
+    "ephemeralSigningSelfTestVerified": true,
+    "privateKeyPersisted": false,
+    "chainId": "0x1917",
+    "rpcFailureClosed": true,
+    "uninstallVerified": true,
+    "transactionCreated": false,
+    "balanceClaimed": false
+  },
+  "artifacts": {
+    "native": {
+      "id": 9207898123,
+      "archiveBytes": 4581114,
+      "digest": "sha256:debf69018322618eaa9cc9a79eda6b1094b0f324b4266321fa0e9cde0cbcd748"
+    },
+    "downloadVerification": {
+      "id": 9207903581,
+      "archiveBytes": 384,
+      "digest": "sha256:54e45f8dccc8f9f215a42c6d66814255392162199b68397faf79593eaf94d8a5"
+    }
+  },
+  "releaseState": {
+    "installedNativeCI": true,
+    "downloadVerifiedNativeCI": true,
+    "productionSigned": false,
+    "downloadHosted": false,
+    "deployedPublic": false,
+    "storeReleased": false
+  }
+}

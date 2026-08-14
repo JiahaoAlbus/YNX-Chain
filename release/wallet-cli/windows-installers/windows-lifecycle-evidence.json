@@ -18,11 +18,25 @@
     "productionSigned": false
   },
   "arm64": {
-    "jobId": 94478148441,
+    "pipelineCommit": "8b778604144e49b8ff85ba04850d325af1d378be",
+    "workflowRunId": 31770348463,
+    "workflowRunURL": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/31770348463",
+    "jobId": 94674777353,
+    "downloadVerificationJobId": 94675035799,
     "built": true,
     "staticChecked": true,
-    "installed": false,
-    "runtimeTested": false,
+    "installed": true,
+    "runtimeTested": true,
+    "coldStart": true,
+    "secondStart": true,
+    "upgradeVerified": true,
+    "vectorVerified": true,
+    "ephemeralSigningSelfTestVerified": true,
+    "privateKeyPersisted": false,
+    "chainId": "0x1917",
+    "rpcFailureClosed": true,
+    "uninstallVerified": true,
+    "authenticodeStatus": "NotSigned",
     "productionSigned": false
   },
   "releaseState": {

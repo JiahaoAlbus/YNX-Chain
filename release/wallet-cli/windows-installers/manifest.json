@@ -27,7 +27,7 @@
       "binarySha256": "a99614f399643f44ffd9beef484d306d4b3b62971010cd3dce8c4ee79164ff9f",
       "minimumOS": "Windows 10 or Windows Server 2016",
       "signingClass": "unsigned_windows_user_installer_candidate",
-      "runtimeTested": false,
+      "runtimeTested": true,
       "productionSigned": false
     }
   ]
@@ -38,5 +38,13 @@
     "x64JobId": 94478148354,
     "arm64StaticJobId": 94478148441,
     "x64ArtifactId": 9184569539
+  },
+  "arm64NativeLifecycleEvidence": {
+    "sourceCommit": "8b778604144e49b8ff85ba04850d325af1d378be",
+    "runId": 31770348463,
+    "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/31770348463",
+    "jobId": 94674777353,
+    "downloadVerificationJobId": 94675035799,
+    "manifest": "../windows-arm64-native/manifest.json"
   }
 }
