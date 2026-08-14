@@ -221,7 +221,16 @@ func (s *Server) handleOverview(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
-	db, storeReady, err := trySummarizeDatabase(s.indexer.Store())
+	store := s.indexer.Store()
+	var db databaseSummary
+	var storeReady bool
+	var err error
+	if store.Ready() {
+		db, err = summarizeDatabase(store)
+		storeReady = err == nil
+	} else {
+		db, storeReady, err = trySummarizeDatabase(store)
+	}
 	if err != nil {
 		writePublicError(w, http.StatusServiceUnavailable, "store_unavailable", "The canonical index is temporarily unavailable.")
 		return

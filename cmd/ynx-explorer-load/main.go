@@ -23,6 +23,19 @@ type sample struct {
 	Latency time.Duration
 	Status  int
 	Err     string
+	Route   string
+}
+
+type requestTarget struct {
+	Route string
+	Path  string
+}
+
+type routeSummary struct {
+	Requests     int            `json:"requests"`
+	Errors       int            `json:"errors"`
+	StatusCodes  map[int]int    `json:"statusCodes"`
+	FailureCodes map[string]int `json:"failureCodes,omitempty"`
 }
 
 type latencySummary struct {
@@ -33,25 +46,26 @@ type latencySummary struct {
 }
 
 type report struct {
-	Schema            string         `json:"schema"`
-	BaseURL           string         `json:"baseUrl"`
-	StartedAt         time.Time      `json:"startedAt"`
-	FinishedAt        time.Time      `json:"finishedAt"`
-	DurationSeconds   float64        `json:"durationSeconds"`
-	Concurrency       int            `json:"concurrency"`
-	TargetRPS         int            `json:"targetRequestsPerSecond"`
-	SSEClients        int            `json:"sseClients"`
-	Requests          int            `json:"requests"`
-	RequestsPerSecond float64        `json:"requestsPerSecond"`
-	Errors            int            `json:"errors"`
-	ErrorRate         float64        `json:"errorRate"`
-	StatusCodes       map[int]int    `json:"statusCodes"`
-	Latency           latencySummary `json:"latency"`
-	SSEEvents         int64          `json:"sseEvents"`
-	SSEReconnects     int64          `json:"sseReconnects"`
-	SSERecoveries     int64          `json:"sseRecoveries"`
-	SSEErrors         int64          `json:"sseErrors"`
-	SSERecoveryMillis float64        `json:"sseRecoveryMillis"`
+	Schema            string                  `json:"schema"`
+	BaseURL           string                  `json:"baseUrl"`
+	StartedAt         time.Time               `json:"startedAt"`
+	FinishedAt        time.Time               `json:"finishedAt"`
+	DurationSeconds   float64                 `json:"durationSeconds"`
+	Concurrency       int                     `json:"concurrency"`
+	TargetRPS         int                     `json:"targetRequestsPerSecond"`
+	SSEClients        int                     `json:"sseClients"`
+	Requests          int                     `json:"requests"`
+	RequestsPerSecond float64                 `json:"requestsPerSecond"`
+	Errors            int                     `json:"errors"`
+	ErrorRate         float64                 `json:"errorRate"`
+	StatusCodes       map[int]int             `json:"statusCodes"`
+	Routes            map[string]routeSummary `json:"routes"`
+	Latency           latencySummary          `json:"latency"`
+	SSEEvents         int64                   `json:"sseEvents"`
+	SSEReconnects     int64                   `json:"sseReconnects"`
+	SSERecoveries     int64                   `json:"sseRecoveries"`
+	SSEErrors         int64                   `json:"sseErrors"`
+	SSERecoveryMillis float64                 `json:"sseRecoveryMillis"`
 }
 
 func main() {
@@ -89,9 +103,9 @@ func run(base string, duration time.Duration, concurrency, targetRPS, sseClients
 		return errors.New("expected-outage requires at least one SSE client")
 	}
 
-	paths := []string{"/api/summary", "/api/blocks/latest?limit=12", "/api/txs?limit=12"}
+	paths := []requestTarget{{Route: "summary", Path: "/api/summary"}, {Route: "blocks", Path: "/api/blocks/latest?limit=12"}, {Route: "transactions", Path: "/api/txs?limit=12"}}
 	if strings.TrimSpace(searchQuery) != "" {
-		paths = append(paths, "/api/search?q="+url.QueryEscape(strings.TrimSpace(searchQuery)))
+		paths = append(paths, requestTarget{Route: "search", Path: "/api/search?q=" + url.QueryEscape(strings.TrimSpace(searchQuery))})
 	}
 
 	transport := http.DefaultTransport.(*http.Transport).Clone()
@@ -129,12 +143,12 @@ func run(base string, duration time.Duration, concurrency, targetRPS, sseClients
 					case <-pace:
 					}
 				}
-				path := paths[sequence%len(paths)]
+				target := paths[sequence%len(paths)]
 				sequence++
 				startedRequest := time.Now()
-				req, requestErr := http.NewRequestWithContext(ctx, http.MethodGet, origin+path, nil)
+				req, requestErr := http.NewRequestWithContext(ctx, http.MethodGet, origin+target.Path, nil)
 				if requestErr != nil {
-					samples <- sample{Latency: time.Since(startedRequest), Err: requestErr.Error()}
+					samples <- sample{Latency: time.Since(startedRequest), Err: requestErr.Error(), Route: target.Route}
 					continue
 				}
 				req.Header.Set("Accept", "application/json")
@@ -142,17 +156,17 @@ func run(base string, duration time.Duration, concurrency, targetRPS, sseClients
 				latency := time.Since(startedRequest)
 				if requestErr != nil {
 					if ctx.Err() == nil {
-						samples <- sample{Latency: latency, Err: requestErr.Error()}
+						samples <- sample{Latency: latency, Err: requestErr.Error(), Route: target.Route}
 					}
 					continue
 				}
-				_, copyErr := io.Copy(io.Discard, io.LimitReader(resp.Body, 4<<20))
+				payload, copyErr := io.ReadAll(io.LimitReader(resp.Body, 4<<20))
 				resp.Body.Close()
-				entry := sample{Latency: latency, Status: resp.StatusCode}
+				entry := sample{Latency: latency, Status: resp.StatusCode, Route: target.Route}
 				if copyErr != nil {
 					entry.Err = copyErr.Error()
 				} else if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-					entry.Err = http.StatusText(resp.StatusCode)
+					entry.Err = publicFailureCode(resp.StatusCode, payload)
 				}
 				samples <- entry
 			}
@@ -244,6 +258,22 @@ func run(base string, duration time.Duration, concurrency, targetRPS, sseClients
 	return evaluateReport(result, expectedOutage)
 }
 
+func publicFailureCode(status int, payload []byte) string {
+	fallback := strings.ToLower(strings.ReplaceAll(http.StatusText(status), " ", "_"))
+	var failure struct {
+		Code string `json:"code"`
+	}
+	if json.Unmarshal(payload, &failure) != nil || failure.Code == "" || len(failure.Code) > 80 {
+		return fallback
+	}
+	for _, char := range failure.Code {
+		if !((char >= 'a' && char <= 'z') || (char >= '0' && char <= '9') || char == '_' || char == '-') {
+			return fallback
+		}
+	}
+	return failure.Code
+}
+
 func waitReconnect(ctx context.Context) bool {
 	timer := time.NewTimer(100 * time.Millisecond)
 	defer timer.Stop()
@@ -291,6 +321,7 @@ func validateOrigin(raw string, allowLocal bool) (string, error) {
 func summarize(base string, started, finished time.Time, concurrency, targetRPS, sseClients int, samples []sample, sseEvents, sseReconnects, sseRecoveries, sseErrors, firstDisconnect, firstRecovery int64) report {
 	latencies := make([]time.Duration, 0, len(samples))
 	statuses := map[int]int{}
+	routes := map[string]routeSummary{}
 	errorsSeen := 0
 	for _, entry := range samples {
 		latencies = append(latencies, entry.Latency)
@@ -300,13 +331,29 @@ func summarize(base string, started, finished time.Time, concurrency, targetRPS,
 		if entry.Err != "" {
 			errorsSeen++
 		}
+		route := routes[entry.Route]
+		if route.StatusCodes == nil {
+			route.StatusCodes = map[int]int{}
+		}
+		route.Requests++
+		if entry.Status != 0 {
+			route.StatusCodes[entry.Status]++
+		}
+		if entry.Err != "" {
+			route.Errors++
+			if route.FailureCodes == nil {
+				route.FailureCodes = map[string]int{}
+			}
+			route.FailureCodes[entry.Err]++
+		}
+		routes[entry.Route] = route
 	}
 	sort.Slice(latencies, func(i, j int) bool { return latencies[i] < latencies[j] })
 	elapsed := finished.Sub(started).Seconds()
 	result := report{
 		Schema: "ynx.explorer.load.v1", BaseURL: base, StartedAt: started, FinishedAt: finished,
 		DurationSeconds: elapsed, Concurrency: concurrency, TargetRPS: targetRPS, SSEClients: sseClients, Requests: len(samples),
-		Errors: errorsSeen, StatusCodes: statuses, SSEEvents: sseEvents, SSEReconnects: sseReconnects, SSERecoveries: sseRecoveries, SSEErrors: sseErrors,
+		Errors: errorsSeen, StatusCodes: statuses, Routes: routes, SSEEvents: sseEvents, SSEReconnects: sseReconnects, SSERecoveries: sseRecoveries, SSEErrors: sseErrors,
 	}
 	if firstDisconnect > 0 && firstRecovery > firstDisconnect {
 		result.SSERecoveryMillis = float64(firstRecovery-firstDisconnect) / float64(time.Millisecond)

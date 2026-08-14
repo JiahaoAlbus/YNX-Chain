@@ -22,10 +22,10 @@ func TestValidateOrigin(t *testing.T) {
 func TestSummarize(t *testing.T) {
 	started := time.Unix(0, 0).UTC()
 	samples := []sample{
-		{Latency: 10 * time.Millisecond, Status: 200},
-		{Latency: 20 * time.Millisecond, Status: 200},
-		{Latency: 30 * time.Millisecond, Status: 503, Err: "Service Unavailable"},
-		{Latency: 40 * time.Millisecond, Status: 429, Err: "Too Many Requests"},
+		{Latency: 10 * time.Millisecond, Status: 200, Route: "summary"},
+		{Latency: 20 * time.Millisecond, Status: 200, Route: "search"},
+		{Latency: 30 * time.Millisecond, Status: 503, Err: "Service Unavailable", Route: "summary"},
+		{Latency: 40 * time.Millisecond, Status: 429, Err: "Too Many Requests", Route: "search"},
 	}
 	got := summarize("https://explorer.ynx.invalid", started, started.Add(2*time.Second), 2, 10, 1, samples, 3, 1, 1, 0, started.Add(time.Second).UnixNano(), started.Add(1500*time.Millisecond).UnixNano())
 	if got.Requests != 4 || got.Errors != 2 || got.ErrorRate != 0.5 || got.RequestsPerSecond != 2 {
@@ -39,6 +39,9 @@ func TestSummarize(t *testing.T) {
 	}
 	if got.StatusCodes[200] != 2 || got.StatusCodes[503] != 1 || got.StatusCodes[429] != 1 {
 		t.Fatalf("unexpected status counts: %+v", got.StatusCodes)
+	}
+	if got.Routes["summary"].Requests != 2 || got.Routes["summary"].Errors != 1 || got.Routes["summary"].StatusCodes[503] != 1 || got.Routes["search"].Requests != 2 || got.Routes["search"].Errors != 1 {
+		t.Fatalf("unexpected bounded route aggregates: %+v", got.Routes)
 	}
 	if got.SSERecoveries != 1 || got.SSERecoveryMillis != 500 {
 		t.Fatalf("unexpected recovery aggregate: %+v", got)
@@ -57,5 +60,16 @@ func TestEvaluateReportExpectedOutage(t *testing.T) {
 	}
 	if err := evaluateReport(recovered, false); err == nil {
 		t.Fatal("transient errors were accepted outside an expected outage drill")
+	}
+}
+
+func TestPublicFailureCodeIsBoundedAndDoesNotEchoMessages(t *testing.T) {
+	if got := publicFailureCode(502, []byte(`{"code":"dependency_unavailable","message":"dial 127.0.0.1:6426 /private/path"}`)); got != "dependency_unavailable" {
+		t.Fatalf("expected bounded public code, got %q", got)
+	}
+	for _, payload := range [][]byte{[]byte(`{"code":"../../private/path"}`), []byte(`{"message":"dial 127.0.0.1:6426"}`), []byte("not-json")} {
+		if got := publicFailureCode(502, payload); got != "bad_gateway" {
+			t.Fatalf("unsafe failure payload was reflected: %q", got)
+		}
 	}
 }

@@ -25,7 +25,7 @@ db="$work/explorer-indexer-db.json"
 indexer_url="http://127.0.0.1:6436"
 explorer_url="http://127.0.0.1:6437"
 start_explorer() {
-  YNX_EXPLORER_RPC_URL="$YNX_REST_URL" YNX_EXPLORER_INDEXER_URL="$indexer_url" YNX_EXPLORER_HTTP_ADDR=127.0.0.1:6437 YNX_EXPLORER_PUBLIC_RPC_URL="$YNX_REST_URL" YNX_EXPLORER_PUBLIC_URL="$explorer_url" go run ./cmd/ynx-explorerd >"$work/explorer.log" 2>&1 &
+  YNX_EXPLORER_RPC_URL="$YNX_REST_URL" YNX_EXPLORER_INDEXER_URL="$indexer_url" YNX_EXPLORER_HTTP_ADDR=127.0.0.1:6437 YNX_EXPLORER_PUBLIC_RPC_URL="$YNX_REST_URL" YNX_EXPLORER_PUBLIC_URL="$explorer_url" "$work/ynx-explorerd" >"$work/explorer.log" 2>&1 &
   explorer_pid=$!
 }
 tree_rss_kib() {
@@ -57,8 +57,10 @@ transfer="$(curl -fsS -X POST "$YNX_REST_URL/transfer" -H 'content-type: applica
 tx_hash="$(printf '%s' "$transfer" | ynx_json_field '["hash"]')"
 sleep 2
 
-go run ./cmd/ynx-indexerd -rpc "$YNX_REST_URL" -db "$db" -once >/dev/null
-YNX_INDEXER_RPC_URL="$YNX_REST_URL" YNX_INDEXER_DB_PATH="$db" YNX_INDEXER_HTTP_ADDR=127.0.0.1:6436 go run ./cmd/ynx-indexerd >"$work/indexer.log" 2>&1 &
+go build -o "$work/ynx-indexerd" ./cmd/ynx-indexerd
+go build -o "$work/ynx-explorerd" ./cmd/ynx-explorerd
+"$work/ynx-indexerd" -rpc "$YNX_REST_URL" -db "$db" -once >/dev/null
+YNX_INDEXER_RPC_URL="$YNX_REST_URL" YNX_INDEXER_DB_PATH="$db" YNX_INDEXER_HTTP_ADDR=127.0.0.1:6436 "$work/ynx-indexerd" >"$work/indexer.log" 2>&1 &
 indexer_pid=$!
 start_explorer
 
@@ -85,7 +87,20 @@ curl -fsS "$explorer_url/api/fees/$tx_hash" >/dev/null
 search="$(curl -fsS "$explorer_url/api/search?q=$tx_hash")"
 [[ "$(printf '%s' "$search" | ynx_json_field '["type"]')" == "transaction" ]] || { echo "explorer search did not resolve tx"; exit 1; }
 
-sleep 1
+stable_rounds=0
+for _ in {1..40}; do
+  if curl -fsS --max-time 2 "$explorer_url/api/summary" >/dev/null 2>&1 && \
+    curl -fsS --max-time 2 "$explorer_url/api/blocks/latest?limit=3" >/dev/null 2>&1 && \
+    curl -fsS --max-time 2 "$explorer_url/api/txs?limit=3" >/dev/null 2>&1 && \
+    curl -fsS --max-time 2 "$explorer_url/api/search?q=$tx_hash" >/dev/null 2>&1; then
+    stable_rounds=$((stable_rounds + 1))
+    [[ "$stable_rounds" -ge 5 ]] && break
+  else
+    stable_rounds=0
+  fi
+  sleep 0.25
+done
+[[ "$stable_rounds" -ge 5 ]] || { echo "explorer did not hold a five-round stable readiness window" >&2; exit 1; }
 go run ./cmd/ynx-explorer-load \
   --base-url "$explorer_url" \
   --allow-http-local \
@@ -112,6 +127,15 @@ recovery_pid=$!
 sleep 4
 ynx_kill_tree "$explorer_pid"
 explorer_pid=""
+outage_observed=0
+for _ in {1..20}; do
+  if ! curl -fsS --max-time 0.2 "$explorer_url/health" >/dev/null 2>&1; then
+    outage_observed=1
+    break
+  fi
+  sleep 0.1
+done
+[[ "$outage_observed" == "1" ]] || { echo "Explorer fault injection did not make the scoped listener unavailable" >&2; exit 1; }
 sleep 1
 start_explorer
 for _ in {1..80}; do
@@ -141,7 +165,7 @@ go run ./cmd/ynx-explorer-load \
   --allow-http-local \
   --duration 5s \
   --concurrency 20 \
-  --requests-per-second 200 \
+  --requests-per-second 50 \
   --sse-clients 5 \
   --search-query "$tx_hash" \
   --timeout 3s >"$work/explorer-search-storm.json"

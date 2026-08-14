@@ -42,3 +42,35 @@ func TestHealthReturnsWarmingWithoutWaitingForStoreLock(t *testing.T) {
 		t.Fatalf("health did not report truthful warming state: %+v", payload)
 	}
 }
+
+func TestHealthWaitsForOrdinaryLoadedStoreWriteInsteadOfReportingWarming(t *testing.T) {
+	store := NewStore(t.TempDir() + "/indexer-db.json")
+	if err := store.Save(Database{Version: 2, Network: "YNX Testnet", ChainID: 6423, NativeSymbol: "YNXT"}); err != nil {
+		t.Fatal(err)
+	}
+	server := NewServerWithBuild(&Indexer{store: store}, buildinfo.Info{Commit: "abc123", Release: "ynx-indexer-abc123"})
+	server.lastSyncedAt = time.Now().UTC()
+	store.mu.Lock()
+	request := httptest.NewRequest(http.MethodGet, "/health", nil)
+	response := httptest.NewRecorder()
+	done := make(chan struct{})
+	go func() {
+		server.Handler().ServeHTTP(response, request)
+		close(done)
+	}()
+	select {
+	case <-done:
+		store.mu.Unlock()
+		t.Fatal("loaded-store health returned a transient result while an ordinary writer held the lock")
+	case <-time.After(25 * time.Millisecond):
+	}
+	store.mu.Unlock()
+	select {
+	case <-done:
+	case <-time.After(250 * time.Millisecond):
+		t.Fatal("loaded-store health did not resume after the writer completed")
+	}
+	if response.Code != http.StatusOK {
+		t.Fatalf("loaded-store health returned %d: %s", response.Code, response.Body.String())
+	}
+}

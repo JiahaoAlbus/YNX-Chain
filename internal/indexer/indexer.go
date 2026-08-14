@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
@@ -91,6 +92,7 @@ type Store struct {
 	journalPath    string
 	mu             sync.RWMutex
 	loaded         bool
+	ready          atomic.Bool
 	db             Database
 	journalRecords uint64
 }
@@ -98,6 +100,8 @@ type Store struct {
 func NewStore(path string) *Store {
 	return &Store{path: path, journalPath: path + ".journal"}
 }
+
+func (s *Store) Ready() bool { return s.ready.Load() }
 
 type Database struct {
 	Version              int                          `json:"version"`
@@ -168,7 +172,11 @@ func (s *Store) Save(db Database) error {
 	}
 	s.db = db
 	s.loaded = true
-	return s.resetJournalLocked()
+	if err := s.resetJournalLocked(); err != nil {
+		return err
+	}
+	s.ready.Store(true)
+	return nil
 }
 
 func (s *Store) UpsertBlock(sourceURL string, status Status, block chain.Block) (Database, error) {
@@ -294,6 +302,7 @@ func (s *Store) ensureLoadedLocked() error {
 	}
 	s.db = db
 	s.loaded = true
+	s.ready.Store(true)
 	s.journalRecords = records
 	return nil
 }
