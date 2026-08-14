@@ -87,10 +87,10 @@
     {
       "owner": "desktop-cli-sdk",
       "branch": "codex/wallet-desktop-cli-sdk-20260813",
-      "sourceCommit": "6856bf41f79ffdb0a637d7e1cad11e6931158d67",
-      "remoteCommitObserved": "6856bf41f79ffdb0a637d7e1cad11e6931158d67",
-      "branchHeadObserved": "6856bf41f79ffdb0a637d7e1cad11e6931158d67",
-      "remoteVerifiedAt": "2026-08-14T07:28:17Z",
+      "sourceCommit": "2802876f8470264c4a8819f1426e28f957a09289",
+      "remoteCommitObserved": "2802876f8470264c4a8819f1426e28f957a09289",
+      "branchHeadObserved": "2802876f8470264c4a8819f1426e28f957a09289",
+      "remoteVerifiedAt": "2026-08-14T08:48:00Z",
       "verificationMode": "github-git-database-parent-tree-blob-readback"
     }
   ],
@@ -735,6 +735,16 @@
       "path": "release/wallet-cli/public/macos-arm64-cli-blob-hosting-evidence.json",
       "supports": []
     },
+    "desktop-macos-cli-arm64-official-download": {
+      "type": "public-download",
+      "direct": true,
+      "commit": "2802876f8470264c4a8819f1426e28f957a09289",
+      "path": "release/wallet-cli/public/macos-arm64-cli-public-terminal-evidence.json",
+      "url": "https://www.ynxweb4.com/downloads/wallet/sha256-21db36f1c80d4e88520918de141a7f71921817799270ff671db88179023b5591/ynx-wallet-cli-darwin-arm64.gz",
+      "bytes": 4904463,
+      "sha256": "21db36f1c80d4e88520918de141a7f71921817799270ff671db88179023b5591",
+      "supports": ["macos-cli-arm64.downloadHosted"]
+    },
     "android-canonical-authorization-recovery": {
       "type": "git-object",
       "direct": true,
@@ -925,10 +935,10 @@
       "ownerSource": "desktop-cli-sdk",
       "artifactClass": "ad-hoc-macos-testnet-cli-candidate",
       "status": "native-ci-lifecycle",
-      "capabilities": {"installedNativeCI":true,"installedLocal":false,"upgradeVerified":true,"ephemeralDeviceProof":true,"privateKeyPersisted":false,"artifactAdHocSigned":true,"postUploadRedownloadHashVerified":true,"publicBlobFullDownloadVerified":true,"officialYnxDomainVerified":false,"websiteRegistryDeployed":false},
-      "gates": {"build":true,"install":true,"coldLaunch":true,"secondLaunch":true,"testnet":true,"sign":true,"tx":false,"callback":false,"reconnect":false,"downloadHosted":false,"productionSigned":false,"storeReleased":false},
-      "evidenceBindings": {"build":["macos-cli-arm64-native-lifecycle"],"install":["macos-cli-arm64-native-lifecycle"],"coldLaunch":["macos-cli-arm64-native-lifecycle"],"secondLaunch":["macos-cli-arm64-native-lifecycle"],"testnet":["macos-cli-arm64-native-lifecycle"],"sign":["macos-cli-arm64-native-lifecycle"],"tx":["macos-cli-arm64-native-lifecycle"],"callback":["macos-cli-arm64-native-lifecycle"],"reconnect":["macos-cli-arm64-native-lifecycle"],"downloadHosted":["macos-cli-arm64-native-lifecycle"],"productionSigned":["macos-cli-arm64-native-lifecycle"],"storeReleased":["macos-cli-arm64-native-lifecycle"]},
-      "notes": ["macOS 14 arm64 native CI proved install/upgrade, cold/second start, frozen vectors, ephemeral proof, exact 0x1917, fail-close, uninstall and rehash. A public Vercel Blob HTTP 200 full download matches 4,904,463 bytes and the frozen SHA-256, but the URL is not on an official YNX domain and the website registry/rewrite is absent. The artifact is ad-hoc linker signed; downloadHosted, deployedPublic, production signing and store remain false."]
+      "capabilities": {"installedNativeCI":true,"installedLocal":false,"upgradeVerified":true,"ephemeralDeviceProof":true,"privateKeyPersisted":false,"artifactAdHocSigned":true,"postUploadRedownloadHashVerified":true,"publicBlobFullDownloadVerified":true,"officialYnxDomainVerified":true,"websiteRegistryDeployed":true,"deployedPublic":true,"rollbackAttempted":true,"rollbackSucceeded":false,"rollbackVerified":false},
+      "gates": {"build":true,"install":true,"coldLaunch":true,"secondLaunch":true,"testnet":true,"sign":true,"tx":false,"callback":false,"reconnect":false,"downloadHosted":true,"productionSigned":false,"storeReleased":false},
+      "evidenceBindings": {"build":["macos-cli-arm64-native-lifecycle"],"install":["macos-cli-arm64-native-lifecycle"],"coldLaunch":["macos-cli-arm64-native-lifecycle"],"secondLaunch":["macos-cli-arm64-native-lifecycle"],"testnet":["macos-cli-arm64-native-lifecycle"],"sign":["macos-cli-arm64-native-lifecycle"],"tx":["macos-cli-arm64-native-lifecycle"],"callback":["macos-cli-arm64-native-lifecycle"],"reconnect":["macos-cli-arm64-native-lifecycle"],"downloadHosted":["desktop-macos-cli-arm64-official-download"],"productionSigned":["macos-cli-arm64-native-lifecycle"],"storeReleased":["macos-cli-arm64-native-lifecycle"]},
+      "notes": ["macOS 14 arm64 native CI proved lifecycle, ephemeral proof, exact 0x1917 and fail-close. The content-addressed official YNX URL, three aliases, public registry/page bundle and full HTTP 200 byte/SHA readback directly support downloadHosted=true and current deployedPublic=true. The artifact remains ad-hoc; rollback was attempted but failed, so rollbackVerified, production signing and store remain false."]
     },
     {
       "id": "macos-cli-x64",

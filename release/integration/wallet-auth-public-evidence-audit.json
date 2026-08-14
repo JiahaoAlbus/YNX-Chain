@@ -3,7 +3,7 @@
   "auditId": "wallet-auth-public-evidence-audit-2026-08-14",
   "auditedAt": "2026-08-14T03:38:07Z",
   "integrationBaseCommit": "a008ce0e8fa2ac0322198576c320441118fbae83",
-  "matrixSha256": "23e5a8a6ebe0a6e129ca9224685e9726cd9aceadfa61b28fe2ece6291e89f97f",
+  "matrixSha256": "3926de0763823732c9b2638fdb5a326242d763d67eb0a7346d08dff7d54ec045",
   "publicTestnet": {
     "smartAccountDeploymentVerifier": {
       "evidenceCommit": "0c747c6030b5a475a1f12dc7e57345555c23055d",
@@ -41,8 +41,8 @@
     "effectiveStatus": 200,
     "routePublic": true,
     "pageSha256": "fa9ffc6521978f0be61b5efb5fc26fbd864abcca9b1de3415c56c23a909c91bd",
-    "directArtifactLinks": [],
-    "currentDownloadsPublished": false
+    "directArtifactLinks": ["https://www.ynxweb4.com/downloads/wallet/sha256-21db36f1c80d4e88520918de141a7f71921817799270ff671db88179023b5591/ynx-wallet-cli-darwin-arm64.gz"],
+    "currentDownloadsPublished": true
   },
   "githubReleases": {
     "repository": "JiahaoAlbus/YNX-Chain",
@@ -108,12 +108,31 @@
     "downloadHosted": false,
     "deployedPublic": false
   },
+  "officialMacosArm64CliDownload": {
+    "evidenceCommit": "2802876f8470264c4a8819f1426e28f957a09289",
+    "publicUrl": "https://www.ynxweb4.com/downloads/wallet/sha256-21db36f1c80d4e88520918de141a7f71921817799270ff671db88179023b5591/ynx-wallet-cli-darwin-arm64.gz",
+    "httpStatus": 200,
+    "contentType": "application/gzip",
+    "bytes": 4904463,
+    "sha256": "21db36f1c80d4e88520918de141a7f71921817799270ff671db88179023b5591",
+    "registryEvidenceCommit": "6856bf41f79ffdb0a637d7e1cad11e6931158d67",
+    "aliasesVerified": ["www.ynxweb4.com", "ynxweb4.com", "wallet.ynxweb4.com"],
+    "rollbackAttempted": true,
+    "rollbackSucceeded": false,
+    "rollbackVerified": false,
+    "productionHealthReverified": true,
+    "downloadHosted": true,
+    "deployedPublic": true,
+    "productionSigned": false,
+    "storeReleased": false
+  },
   "releaseDecision": {
     "publicTestnetRpcVerified": true,
     "gatewayHealthPublic": true,
     "websiteRoutePublic": true,
     "latestFrozenGatewaySourcePublic": false,
-    "downloadHosted": false,
+    "downloadHosted": true,
+    "deployedPublic": true,
     "productionSigned": false,
     "storeReleased": false,
     "computerControlAccepted": false

@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "productId": "wallet-auth",
   "canonicalRoute": "/wallet",
-  "websitePublishable": false,
-  "downloadHosted": false,
+  "websitePublishable": true,
+  "downloadHosted": true,
   "productionSigned": false,
   "storeReleased": false,
   "candidates": [
@@ -249,15 +249,16 @@
       "id": "macos-cli-arm64-0.1.0",
       "sourceCommit": "fb0b1ac18b809a7b9782fdebc4f9c2c50312fb7b",
       "artifactName": "ynx-wallet-cli-darwin-arm64.gz",
+      "bytes": 4904463,
       "sha256": "21db36f1c80d4e88520918de141a7f71921817799270ff671db88179023b5591",
       "signingClass": "ad_hoc_linker_signed_local_testnet_cli_candidate",
-      "publicUrl": null,
-      "immutableUrl": null,
-      "downloadHosted": false,
+      "publicUrl": "https://www.ynxweb4.com/downloads/wallet/sha256-21db36f1c80d4e88520918de141a7f71921817799270ff671db88179023b5591/ynx-wallet-cli-darwin-arm64.gz",
+      "immutableUrl": "https://www.ynxweb4.com/downloads/wallet/sha256-21db36f1c80d4e88520918de141a7f71921817799270ff671db88179023b5591/ynx-wallet-cli-darwin-arm64.gz",
+      "downloadHosted": true,
       "productionSigned": false,
       "storeReleased": false,
-      "websitePublishable": false,
-      "exclusionReason": "A matching public Vercel Blob re-download exists, but there is no official YNX-domain URL or website registry deployment; ad-hoc native CI is not production signing or official public hosting."
+      "websitePublishable": true,
+      "exclusionReason": "Official content-addressed YNX hosting is verified, but the artifact is ad-hoc linker signed and therefore is not production signed or store released."
     },
     {
       "id": "macos-cli-x64-0.2.0",

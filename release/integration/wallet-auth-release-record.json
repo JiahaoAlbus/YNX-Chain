@@ -6,19 +6,19 @@
   "recordedAt": "2026-08-14T03:52:00Z",
   "evidenceMatrix": {
     "path": "release/integration/wallet-auth-release-evidence-matrix.json",
-    "sha256": "23e5a8a6ebe0a6e129ca9224685e9726cd9aceadfa61b28fe2ece6291e89f97f",
+    "sha256": "3926de0763823732c9b2638fdb5a326242d763d67eb0a7346d08dff7d54ec045",
     "platforms": 21,
     "gatesPerPlatform": 12,
-    "trueGates": 101,
-    "falseGates": 151,
-    "evidenceRecords": 83
+    "trueGates": 102,
+    "falseGates": 150,
+    "evidenceRecords": 84
   },
   "frozenOwnerSources": {
     "coreAuthGateway": "0c747c6030b5a475a1f12dc7e57345555c23055d",
     "webPwaExtensions": "7d569d1babb85e6d28bb6bfc3b3c0c5fd828255d",
     "androidApi36": "f1edbec46ad4300beec406873b03db2da7c72e4b",
     "iosMacos": "50d3b2e2c5bd77456b84f348c48fa4a9ed76b5b3",
-    "desktopCliSdk": "6856bf41f79ffdb0a637d7e1cad11e6931158d67"
+    "desktopCliSdk": "2802876f8470264c4a8819f1426e28f957a09289"
   },
   "pendingOwnerEvidence": [
     "d14d19a022b82ed1006b4e4c3786e4505cf347a4",
@@ -61,8 +61,8 @@
     },
     "integratedCentral": false,
     "deployedStaging": false,
-    "deployedPublic": false,
-    "downloadHosted": false,
+    "deployedPublic": true,
+    "downloadHosted": true,
     "productionSigned": false,
     "storeReleased": false
   },
@@ -76,6 +76,6 @@
   "limitations": [
     "Consumed Owner checkpoints were verified through GitHub ref, commit parent, tree and evidence-blob readback.",
     "The dedicated Integration ref is remotely protected, but integratedCentral remains false until an authorized central merge/deployment record exists.",
-    "No candidate qualifies as an immutable public production download."
+    "The macOS arm64 CLI has an immutable official YNX download, but remains ad-hoc and is not a production-signed or store artifact."
   ]
 }

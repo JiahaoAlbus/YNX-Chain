@@ -107,6 +107,24 @@ for (const [id, item] of Object.entries(evidence)) {
       if (item.observedStatus === "completed" && live?.status !== "completed") fail(`${id} completed run regressed to ${live?.status}`);
       if (item.observedConclusion === "success" && live?.conclusion !== "success") fail(`${id} successful run differs: ${live?.conclusion}`);
     }
+  } else if (item.type === "public-download") {
+    if (!/^[0-9a-f]{40}$/.test(item.commit ?? "")) fail(`${id}.commit must be a full SHA`);
+    if (!item.path || item.path.startsWith("/") || item.path.split("/").includes("..")) fail(`${id}.path must be repository-relative`);
+    try {
+      git("cat-file", "-e", `${item.commit}:${item.path}`);
+    } catch {
+      fail(`${id} git evidence is missing: ${item.commit}:${item.path}`);
+    }
+    let publicUrl;
+    try {
+      publicUrl = new URL(item.url);
+    } catch {
+      fail(`${id}.url must be an absolute URL`);
+    }
+    if (publicUrl?.protocol !== "https:" || publicUrl?.hostname !== "www.ynxweb4.com") fail(`${id}.url must use the official HTTPS YNX host`);
+    if (!Number.isSafeInteger(item.bytes) || item.bytes <= 0) fail(`${id}.bytes must be a positive integer`);
+    if (!/^[0-9a-f]{64}$/.test(item.sha256 ?? "")) fail(`${id}.sha256 must be exact`);
+    if (!publicUrl?.pathname.includes(item.sha256 ?? "")) fail(`${id}.url must be content-addressed by the exact SHA-256`);
   } else {
     fail(`${id} has unsupported evidence type: ${item.type}`);
   }
@@ -147,7 +165,13 @@ for (const platform of matrix.platforms ?? []) {
       if (typeof value !== "boolean") fail(`${platform.id}.capabilities.${name} must be boolean`);
     }
   }
-  if (platform.gates?.downloadHosted) fail(`${platform.id}.downloadHosted=true requires a public-download evidence type, which v1 intentionally has none`);
+  if (platform.gates?.downloadHosted) {
+    const claim = `${platform.id}.downloadHosted`;
+    const hostedBindings = platform.evidenceBindings?.downloadHosted ?? [];
+    if (!hostedBindings.some((ref) => evidence[ref]?.type === "public-download" && evidence[ref]?.supports?.includes(claim))) {
+      fail(`${claim}=true requires a public-download evidence type`);
+    }
+  }
 }
 
 if (platformIds.size === 0) fail("platforms must be non-empty");
