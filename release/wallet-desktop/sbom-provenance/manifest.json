@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "artifactClass": "wallet-desktop-source-sbom-provenance",
+  "sourceCommit": "6a5f256033f4a9fc99f834d86ebb1a1e7382b93a",
+  "workflowRunId": 31774626932,
+  "workflowRunURL": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/31774626932",
+  "jobs": {
+    "generateAndValidate": 94687407291,
+    "verifyDownloadedArtifact": 94687475480
+  },
+  "builder": {
+    "runner": "Ubuntu 24.04.4 x64",
+    "node": "24.19.0",
+    "npm": "11.17.0"
+  },
+  "artifacts": [
+    {
+      "filename": "wallet-desktop.cdx.json",
+      "format": "CycloneDX 1.5 JSON",
+      "components": 298,
+      "bytes": 370326,
+      "sha256": "9cda1f9d4a081e4145f80c1dabebe4d051cc3c77e7b269080bdd7353158b582a",
+      "minimumOS": "N/A metadata; generated on Ubuntu 24.04.4 x64",
+      "signingClass": "unsigned_ci_metadata",
+      "productionSigned": false
+    },
+    {
+      "filename": "provenance.json",
+      "format": "YNX source-material provenance JSON",
+      "materials": 5,
+      "bytes": 1467,
+      "sha256": "964bfe239d83cfda87fb7b99609d4b05f68d92542c6c4822e8c528d1aa969325",
+      "minimumOS": "N/A metadata; generated on Ubuntu 24.04.4 x64",
+      "signingClass": "unsigned_ci_metadata",
+      "productionSigned": false
+    }
+  ],
+  "workflowArtifacts": {
+    "sbomProvenance": {
+      "id": 9209400554,
+      "archiveBytes": 58507,
+      "archiveSha256": "a8a14965d7cc260e1be43680e2dd47e219d083c16bc7f0ec3d10fa5641ba08a7"
+    },
+    "downloadVerification": {
+      "id": 9209403524,
+      "archiveBytes": 335,
+      "archiveSha256": "e0745b310a6e7e29b809c993db5491ca911bbbdb7064b6c8b684ee904c373d12"
+    }
+  },
+  "evidence": {
+    "desktopTestsPassed": true,
+    "frozenAuthMaterialHashed": true,
+    "sourceMaterialsHashed": true,
+    "artifactDownloadedViaGitHubConnector": true,
+    "artifactArchiveSha256Verified": true,
+    "everyPayloadBytesVerified": true,
+    "everyPayloadSha256Verified": true,
+    "desktopRuntimeClaimed": false,
+    "accountClaimed": false,
+    "balanceClaimed": false,
+    "transactionCreated": false
+  },
+  "downloadHosted": false,
+  "deployedPublic": false,
+  "storeReleased": false
+}

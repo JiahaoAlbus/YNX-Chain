@@ -116,6 +116,11 @@
     "windowsArm64UploadDownloadVerifiedNativeCI": true,
     "windowsArm64Manifest": "../../release/wallet-desktop/windows-arm64/manifest.json",
     "windowsX64Manifest": "../../release/wallet-desktop/windows-x64/manifest.json",
+    "desktopSbomBuiltNativeCI": true,
+    "desktopProvenanceBuiltNativeCI": true,
+    "desktopSbomProvenanceUploadDownloadVerifiedNativeCI": true,
+    "desktopSbomProvenanceSigningClass": "unsigned_ci_metadata",
+    "desktopSbomProvenanceManifest": "../../release/wallet-desktop/sbom-provenance/manifest.json",
     "deployedPublic": false,
     "downloadHosted": false,
     "productionSigned": false
