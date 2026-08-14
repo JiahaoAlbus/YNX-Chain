@@ -2,10 +2,11 @@
   "schemaVersion": 2,
   "integrationId": "canonical-wallet-auth-v1",
   "owner": "02-wallet-auth",
-  "sourceCommit": "6b1f1f21a79861178ee7fc168ad21c2869296fd5",
+  "sourceCommit": "dcca919068c18daef58a10bbfdb38368f1b0db1c",
   "targetService": "ynx-app-gatewayd",
   "protocol": {
     "authorization": "wallet-auth-v1",
+    "authorizationRejection": "YNX_WALLET_AUTH_REJECTION_V1",
     "productDeviceAlgorithm": "p256-sha256",
     "httpProof": "YNX_PRODUCT_SESSION_HTTP_PROOF_V1",
     "httpKernelVersion": 1,

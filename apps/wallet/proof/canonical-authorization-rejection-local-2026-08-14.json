@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "canonical-authorization-rejection-local-2026-08-14",
+  "owner": "02-wallet-auth",
+  "sourceCommit": "dcca919068c18daef58a10bbfdb38368f1b0db1c",
+  "implementationCommit": "6533fcb7f0a0016959f478c725cfe22af2b88bbf",
+  "observedAt": "2026-08-14T01:42:38Z",
+  "environment": "local-node-http-kernel",
+  "protocol": {
+    "domain": "YNX_WALLET_AUTH_REJECTION_V1",
+    "decision": "rejected",
+    "decisionCode": "USER_REJECTED",
+    "authorityGranted": false,
+    "grantedScopes": [],
+    "requestBindings": ["requestDigest", "nonce", "chainId", "requestingProduct", "productClientId", "bundleId", "callback", "request lifetime"],
+    "route": "/v1/wallet/authorizations/reject",
+    "proofHeaderRequired": false,
+    "proofHeaderAllowed": false
+  },
+  "gatewayResult": {
+    "status": 403,
+    "code": "AUTHORIZATION_REJECTED",
+    "mutated": false,
+    "stateDigestUnchanged": true,
+    "sessionsCreated": 0,
+    "noncesConsumed": 0,
+    "productProofsConsumed": 0,
+    "accountPresentInRejection": false,
+    "walletSignaturePresentInRejection": false
+  },
+  "negativeCoverage": {
+    "requestDigestSubstitution": "AUTHORIZATION_REJECTION_MISMATCH",
+    "nonceSubstitution": "AUTHORIZATION_REJECTION_MISMATCH",
+    "productSubstitution": "AUTHORIZATION_REJECTION_MISMATCH",
+    "callbackSubstitution": "AUTHORIZATION_REJECTION_MISMATCH",
+    "authorityInjection": "AUTHORITY_ON_REJECTION",
+    "scopeInjection": "AUTHORITY_ON_REJECTION",
+    "unknownField": "UNKNOWN_OR_MISSING_FIELD",
+    "invalidDecisionCode": "INVALID_REJECTION",
+    "invalidOrFutureTime": "INVALID_REJECTION_TIME",
+    "proofHeaderInjection": "UNEXPECTED_PROOF_HEADER"
+  },
+  "contract": {
+    "gatewayManifestRoutes": 14,
+    "gatewayManifestPathsUnique": true,
+    "sessionInventoryRouteRecoveredInManifest": true,
+    "sharedVector": "packages/wallet-auth/testdata/authorization-rejection-v1.json"
+  },
+  "tests": {
+    "focused": "6/6 passed",
+    "walletAuthFullSuite": "133/133 passed",
+    "walletProductCheck": "passed",
+    "walletReleaseContentCheck": "22/22 files passed",
+    "jsonAndDiffChecks": "passed"
+  },
+  "sourceSha256": {
+    "packages/wallet-auth/src/protocol.js": "1ad636ec586bcd7eb5d65f65c3d969fff2aa1c6b6dba3ec449cb5f4e292748ba",
+    "packages/wallet-auth/src/gateway-adapter.js": "744a529065bf9bc03a2e1f9e7d94b65921d7c9b7a53cb3d77b804b956eafae2a",
+    "packages/wallet-auth/src/gateway-http.js": "807a759c07c1d48ef407cd32e298c0d98d9bd1b1ab538472b2f0a8969f8a3889",
+    "packages/wallet-auth/test/authorization-rejection.test.mjs": "fed67952a756a9115c3b5a05dff968c6648e705b883e450c3eca1f112878a6db",
+    "packages/wallet-auth/testdata/authorization-rejection-v1.json": "62550a72a93623dbbc89f54b583d3118e0cf57e61de406709f65caba5b7b65a6",
+    "packages/wallet-auth/integration/gateway-integration.manifest.json": "3cf57e629a104173de621ca4fdb622faf0cb15d0bd6f299c8e8482220774fc1d"
+  },
+  "packageArtifact": {
+    "name": "@ynx-chain/wallet-auth",
+    "version": "1.0.0",
+    "sha256": "fc1a97a8cdeb423235dc4a47fc2f89daa2906bb4e703247feee4c475f698a1d9",
+    "bytes": 100099,
+    "unpackedBytes": 450438,
+    "entries": 59,
+    "minimumRuntime": "Node.js 22",
+    "minimumOS": null,
+    "signingClass": "unsigned-local-npm-package",
+    "published": false
+  },
+  "releaseClaims": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "publicRouteVerified": false,
+    "publicGatewaySourceContainsSlice": false,
+    "assetMoved": false,
+    "userClaimed": false,
+    "providerClaimed": false,
+    "secretMaterialRecorded": false
+  },
+  "deployedGateway": {
+    "sourceCommit": "c6ac582c8d490ef980a8cadfd9172f133d1b1a49",
+    "release": "ynx-wallet-gateway-c6ac582c8d49",
+    "containsCanonicalAuthorizationRejection": false
+  }
+}

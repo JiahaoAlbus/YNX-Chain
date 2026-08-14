@@ -15,6 +15,7 @@
   "protocolVersions": {
     "authorizationRequest": 1,
     "walletApproval": 1,
+    "walletRejection": 1,
     "deviceChallenge": 1,
     "productSession": 1,
     "productSessionHttpProof": 1,
@@ -118,10 +119,22 @@
       "binding": "authorizationRequest+walletApproval+P-256 device challenge; proof header null"
     },
     {
+      "operation": "rejectAuthorization",
+      "path": "/v1/wallet/authorizations/reject",
+      "requiredScope": null,
+      "binding": "requestDigest+nonce+product+callback+request lifetime; authorityGranted false; grantedScopes empty; proof header null"
+    },
+    {
       "operation": "introspectProductSession",
       "path": "/v1/wallet/sessions/introspect",
       "requiredScope": "caller-selected subset of granted ordered scopes",
       "binding": "separate P-256 header proof over method+path+canonical bodyDigest+nonce"
+    },
+    {
+      "operation": "listOwnProductSessions",
+      "path": "/v1/wallet/sessions",
+      "requiredScope": "wallet:sessions",
+      "binding": "canonical ynx-wallet-v1 and com.ynxweb4.wallet Product Session only"
     },
     {
       "operation": "revokeProductSession",
@@ -204,6 +217,11 @@
     "NON_CANONICAL_JSON",
     "INVALID_PROOF_HEADER",
     "UNEXPECTED_PROOF_HEADER",
+    "AUTHORIZATION_REJECTED",
+    "AUTHORIZATION_REJECTION_MISMATCH",
+    "AUTHORITY_ON_REJECTION",
+    "INVALID_REJECTION",
+    "INVALID_REJECTION_TIME",
     "PROOF_REQUIRED",
     "ROUTE_NOT_FOUND",
     "WALLET_CONTROL_REQUIRED",
@@ -269,6 +287,7 @@
     },
     {"path": "packages/wallet-auth/testdata/gateway-p256-v1.json"},
     {"path": "packages/wallet-auth/testdata/product-session-http-proof-v1.json"},
+    {"path": "packages/wallet-auth/testdata/authorization-rejection-v1.json"},
     {"path": "packages/wallet-auth/testdata/central-lifecycle-v1.json"},
     {"path": "packages/wallet-auth/testdata/mobile-native-transfer-v1.json"}
   ],
@@ -296,10 +315,27 @@
     "storeReleased": false
   },
   "verification": {
-    "walletAuthPackageTests": "122/122 passed",
-    "currentWalletOwnedSuite": "120/120 passed; all package tests except Developer-owned developer-deployment.test.mjs",
+    "walletAuthPackageTests": "133/133 passed",
+    "currentWalletOwnedSuite": "131/131 passed; all package tests except Developer-owned developer-deployment.test.mjs",
     "crossOwnerTestAudit": "2/2 Developer-owned SampleEVMWriteCounter assertions passed in the full package audit; Wallet/Auth did not generate or modify the Developer-owned artifact and does not count them as Wallet-owned coverage",
     "gatewayNodeHostTests": "10/10 passed",
+    "canonicalAuthorizationRejection": {
+      "sourceCommit": "dcca919068c18daef58a10bbfdb38368f1b0db1c",
+      "focusedTests": "6/6 passed",
+      "gatewayStatus": 403,
+      "gatewayCode": "AUTHORIZATION_REJECTED",
+      "requestAtomic": true,
+      "authorityGranted": false,
+      "sessionsCreated": 0,
+      "noncesConsumed": 0,
+      "proofsConsumed": 0,
+      "gatewayManifestRoutes": 14,
+      "integratedCentral": false,
+      "deployedStaging": false,
+      "deployedPublic": false,
+      "publicRouteVerified": false,
+      "evidence": "apps/wallet/proof/canonical-authorization-rejection-local-2026-08-14.json"
+    },
     "gatewayAdmissionObservability": {
       "sourceCommit": "6b1f1f21a79861178ee7fc168ad21c2869296fd5",
       "focusedTests": "12/12 gateway admission and Node host tests passed",
@@ -447,7 +483,7 @@
     "jsSdkTests": "5/5 passed",
     "goRepositoryTests": "umask 0022; go test ./... passed; MCP default umask 0077 made two non-Wallet unsafe-permission fixtures mode 0600 and was preserved as an environment precondition, not a runtime pass",
     "packageDryRun": "passed",
-    "gatewayHttpKernel": "twelve exact routes; canonical body; separate proof header; immutable registry; replay; restart; rollback; state digest; self-scoped approval/device revoke; Wallet-only all-device logout tested",
+    "gatewayHttpKernel": "fourteen exact routes including request-bound authorization rejection and Wallet-only session inventory; canonical body; separate proof header; immutable registry; replay; restart; rollback; state digest; self-scoped approval/device revoke; Wallet-only all-device logout tested",
     "gatewayCliLoopbackSmoke": "health/version/ready/metrics and structured JSON events passed",
     "remoteDeploymentBuildIdentityGate": "missing exact source commit/release/build time rejected",
     "nodeHostSubpathExport": "CanonicalWalletGatewayNodeHost and observability constants/types exposed from @ynx-chain/wallet-auth/gateway-node-host; universal root excludes Node-only imports",
