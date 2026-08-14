@@ -151,7 +151,7 @@ jobs:
             2>&1 | tee proof/ci-ios/universal-link-fail-closed-xctest.log
           grep -F "Test Case '-[YNXWalletUITests.MalformedCallbackUITests testUniversalLinkRemainsFailClosedWithoutFrozenAssociatedDomain]' passed" \
             proof/ci-ios/universal-link-fail-closed-xctest.log
-      - name: Prove recovery stays empty without Simulator biometrics
+      - name: Prove recovery stays empty when biometric authorization is not completed
         timeout-minutes: 10
         working-directory: apps/wallet
         run: |
@@ -165,7 +165,7 @@ jobs:
             -scheme YNXWallet \
             -configuration Release \
             -destination "platform=iOS Simulator,id=$DEVICE" \
-            -only-testing:YNXWalletUITests/MalformedCallbackUITests/testRecoveryRemainsEmptyWhenBiometricsAreUnavailable \
+            -only-testing:YNXWalletUITests/MalformedCallbackUITests/testRecoveryRemainsEmptyWhenBiometricAuthorizationIsNotCompleted \
             -resultBundlePath proof/ci-ios/RecoveryFailClosed.xcresult \
             2>&1 | tee proof/ci-ios/recovery-fail-closed-xctest.log
           XCODEBUILD_STATUS=${PIPESTATUS[0]}
@@ -176,7 +176,8 @@ jobs:
               --output-path proof/ci-ios/recovery-xcresult-attachments || true
           fi
           test "$XCODEBUILD_STATUS" -eq 0
-          grep -F "Test Case '-[YNXWalletUITests.MalformedCallbackUITests testRecoveryRemainsEmptyWhenBiometricsAreUnavailable]' passed" proof/ci-ios/recovery-fail-closed-xctest.log
+          grep -F "YNX_WALLET_RECOVERY_AUTHORIZATION_NOT_COMPLETED mode=" proof/ci-ios/recovery-fail-closed-xctest.log
+          grep -F "Test Case '-[YNXWalletUITests.MalformedCallbackUITests testRecoveryRemainsEmptyWhenBiometricAuthorizationIsNotCompleted]' passed" proof/ci-ios/recovery-fail-closed-xctest.log
       - name: Record truthful Simulator artifact facts
         if: always()
         working-directory: apps/wallet

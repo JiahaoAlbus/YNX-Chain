@@ -32,7 +32,7 @@ final class MalformedCallbackUITests: XCTestCase {
     add(screenshot)
   }
 
-  func testRecoveryRemainsEmptyWhenBiometricsAreUnavailable() throws {
+  func testRecoveryRemainsEmptyWhenBiometricAuthorizationIsNotCompleted() throws {
     let wallet = XCUIApplication()
     wallet.launch()
 
@@ -58,9 +58,25 @@ final class MalformedCallbackUITests: XCTestCase {
     persist.tap()
 
     let failure = wallet.staticTexts["Recovery authorization failed"]
+    if !failure.waitForExistence(timeout: 5) {
+      let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+      let cancel = springboard.buttons["Cancel"]
+      XCTAssertTrue(
+        cancel.waitForExistence(timeout: 15),
+        "Recovery neither failed closed nor exposed a semantic biometric cancellation action"
+      )
+      cancel.tap()
+      FileHandle.standardError.write(
+        Data("YNX_WALLET_RECOVERY_AUTHORIZATION_NOT_COMPLETED mode=system-prompt-cancelled\n".utf8)
+      )
+    } else {
+      FileHandle.standardError.write(
+        Data("YNX_WALLET_RECOVERY_AUTHORIZATION_NOT_COMPLETED mode=native-unavailable\n".utf8)
+      )
+    }
     XCTAssertTrue(
       failure.waitForExistence(timeout: 30),
-      "Recovery did not expose its fail-closed biometric error"
+      "Recovery did not expose its fail-closed authorization error"
     )
     XCTAssertTrue(wallet.buttons["Recover into secure storage"].exists)
 
