@@ -72,7 +72,9 @@ jobs:
           set -euo pipefail
           PACKAGE="$GITHUB_WORKSPACE/apps/wallet/macos"
           PROOF="$GITHUB_WORKSPACE/apps/wallet/proof/ci-macos"
-          BIN="$(swift build --package-path "$PACKAGE" --configuration release --show-bin-path)"
+          ARM_SCRATCH="$RUNNER_TEMP/wallet-macos-arm64"
+          BIN="$(swift build --package-path "$PACKAGE" --configuration release \
+            --triple arm64-apple-macosx13.0 --scratch-path "$ARM_SCRATCH" --show-bin-path)"
           "$BIN/YNXWalletMacSecurityProbe" | tee "$PROOF/device-security.json"
           "$BIN/YNXWalletMacRecoveryProbe" | tee "$PROOF/recovery-fail-closed.json"
           python3 - <<'PY'
