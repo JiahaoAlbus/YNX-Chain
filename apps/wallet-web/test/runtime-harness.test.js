@@ -21,4 +21,5 @@ test("branded runtime gate uses disposable profiles, bounded launches, and hones
   assert.match(source,/messageSigned:false/u);
   assert.match(source,/transactionSubmitted:false/u);
   assert.match(source,/server\.closeAllConnections\?\.\(\)/u);
+  assert.match(source,/process\.exit\(results\.some/u);
 });

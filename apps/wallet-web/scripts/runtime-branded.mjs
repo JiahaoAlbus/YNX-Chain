@@ -100,4 +100,4 @@ server.closeIdleConnections?.();server.closeAllConnections?.();await bounded(new
 const artifact=await readFile(join(root,"artifacts","ynx-wallet-chrome-edge-0.1.0.zip"));
 const evidence={schemaVersion:1,sourceCommit,generatedAt:new Date().toISOString(),fixtureAuthority:"isolated test fixture; never production runtime",artifact:{name:"ynx-wallet-chrome-edge-0.1.0.zip",bytes:artifact.length,sha256:createHash("sha256").update(artifact).digest("hex"),signingClass:"unsigned-unpacked-extension"},results,releaseStates:{installedLocal:false,downloadHosted:false,productionSigned:false,storeReleased:false}};
 if(keepEvidence){await mkdir(evidenceDir,{recursive:true});await writeFile(join(evidenceDir,"branded-temporary-runtime.json"),`${JSON.stringify(evidence,null,2)}\n`)}
-console.log(JSON.stringify(evidence,null,2));if(!results.some(result=>result.temporaryUnpackedRuntimeTested))process.exitCode=1;
+console.log(JSON.stringify(evidence,null,2));await new Promise(resolveWrite=>process.stdout.write("",resolveWrite));process.exit(results.some(result=>result.temporaryUnpackedRuntimeTested)?0:1);
