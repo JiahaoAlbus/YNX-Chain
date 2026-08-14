@@ -1,0 +1,132 @@
+name: wallet-macos
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, codex/wallet-ios-macos-20260813]
+    paths: ["apps/wallet/macos/**", ".github/workflows/wallet-macos.yml"]
+  pull_request:
+    paths: ["apps/wallet/macos/**", ".github/workflows/wallet-macos.yml"]
+
+jobs:
+  native-package:
+    runs-on: macos-15
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: maxim-lobanov/setup-xcode@ed7a3b1fda3918c0306d1b724322adc0b8cc0a90 # v1.7.0
+        with:
+          xcode-version: "26.3"
+      - name: Verify immutable GitHub Actions pins
+        run: |
+          python3 - <<'PY'
+          import pathlib, re
+          source = pathlib.Path('.github/workflows/wallet-macos.yml').read_text()
+          uses = re.findall(r'^\s*-\s+uses:\s+([^\s#]+)', source, re.MULTILINE)
+          mutable = [use for use in uses if not use.startswith('./') and not re.search(r'@[0-9a-f]{40}$', use)]
+          assert not mutable, f'wallet-macos actions must use immutable pins: {mutable}'
+          PY
+      - name: Test native callback and recovery boundaries
+        run: swift test --package-path apps/wallet/macos
+      - name: Build and package ad-hoc native application
+        run: |
+          set -euo pipefail
+          PACKAGE="$GITHUB_WORKSPACE/apps/wallet/macos"
+          PROOF="$GITHUB_WORKSPACE/apps/wallet/proof/ci-macos"
+          INSTALL_ROOT="$RUNNER_TEMP/Applications"
+          APP="$INSTALL_ROOT/YNX Wallet.app"
+          swift build --package-path "$PACKAGE" --configuration release
+          BIN="$(swift build --package-path "$PACKAGE" --configuration release --show-bin-path)"
+          rm -rf "$PROOF" "$APP"
+          mkdir -p "$PROOF" "$APP/Contents/MacOS"
+          cp "$PACKAGE/Info.plist" "$APP/Contents/Info.plist"
+          cp "$BIN/YNXWalletMac" "$APP/Contents/MacOS/YNXWalletMac"
+          chmod 755 "$APP/Contents/MacOS/YNXWalletMac"
+          codesign --force --sign - --timestamp=none "$APP"
+          codesign --verify --deep --strict "$APP"
+          codesign -dv --verbose=4 "$APP" 2> "$PROOF/codesign.txt"
+          /usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' "$APP/Contents/Info.plist" > "$PROOF/minimum-os.txt"
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP/Contents/Info.plist" > "$PROOF/bundle-identifier.txt"
+          xcodebuild -version > "$PROOF/xcode-version.txt"
+          file "$APP/Contents/MacOS/YNXWalletMac" > "$PROOF/executable-file.txt"
+          ditto -c -k --sequesterRsrc --keepParent "$APP" "$PROOF/YNX-Wallet-macOS-ad-hoc.zip"
+          shasum -a 256 "$PROOF/YNX-Wallet-macOS-ad-hoc.zip" > "$PROOF/SHA256SUMS"
+          wc -c "$PROOF/YNX-Wallet-macOS-ad-hoc.zip" > "$PROOF/BYTES"
+          printf '%s\n' "$APP" > "$PROOF/installed-app-path.txt"
+      - name: Verify real Keychain and biometric recovery boundary
+        run: |
+          set -euo pipefail
+          PACKAGE="$GITHUB_WORKSPACE/apps/wallet/macos"
+          PROOF="$GITHUB_WORKSPACE/apps/wallet/proof/ci-macos"
+          BIN="$(swift build --package-path "$PACKAGE" --configuration release --show-bin-path)"
+          "$BIN/YNXWalletMacSecurityProbe" | tee "$PROOF/device-security.json"
+          "$BIN/YNXWalletMacRecoveryProbe" | tee "$PROOF/recovery-fail-closed.json"
+          python3 - <<'PY'
+          import json, pathlib
+          proof = pathlib.Path('apps/wallet/proof/ci-macos')
+          security = json.loads((proof / 'device-security.json').read_text())
+          recovery = json.loads((proof / 'recovery-fail-closed.json').read_text())
+          assert security['keychainAvailable'] is True
+          assert security['keychainRoundTripVerified'] is True
+          assert security['recoveryMaterialPersisted'] is False
+          assert recovery['keychainRoundTripVerified'] is True
+          assert recovery['recoveryCreated'] is False
+          assert recovery['recoveryMaterialPersisted'] is False
+          assert recovery['failedClosed'] is True
+          PY
+      - name: Install, cold launch, second launch and reject callback
+        timeout-minutes: 8
+        run: |
+          set -euo pipefail
+          PROOF="$GITHUB_WORKSPACE/apps/wallet/proof/ci-macos"
+          APP="$RUNNER_TEMP/Applications/YNX Wallet.app"
+          LSREGISTER="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister"
+          "$LSREGISTER" -f "$APP"
+          open -n "$APP"
+          for _ in $(seq 1 60); do
+            COLD_PID="$(pgrep -x YNXWalletMac | head -n 1 || true)"
+            test -n "$COLD_PID" && break
+            sleep 1
+          done
+          test -n "${COLD_PID:-}"
+          printf 'pid=%s running=true\n' "$COLD_PID" | tee "$PROOF/cold-launch.txt"
+          kill "$COLD_PID"
+          for _ in $(seq 1 30); do
+            kill -0 "$COLD_PID" 2>/dev/null || break
+            sleep 1
+          done
+          open -n "$APP"
+          for _ in $(seq 1 60); do
+            SECOND_PID="$(pgrep -x YNXWalletMac | head -n 1 || true)"
+            if test -n "$SECOND_PID" && test "$SECOND_PID" != "$COLD_PID"; then break; fi
+            sleep 1
+          done
+          test -n "${SECOND_PID:-}"
+          test "$SECOND_PID" != "$COLD_PID"
+          printf 'pid=%s running=true\n' "$SECOND_PID" | tee "$PROOF/second-launch.txt"
+          open 'ynxwallet-macos://authorize?request=invalid' > "$PROOF/open-callback.txt"
+          CALLBACK_SEEN=false
+          for _ in $(seq 1 60); do
+            xcrun log show --style compact --last 5m \
+              --predicate 'subsystem == "com.ynxweb4.wallet.macos" AND (category == "callback" OR category == "lifecycle")' \
+              > "$PROOF/native.log" 2>&1 || true
+            if grep -Fq "YNX_WALLET_MAC_CALLBACK_RECEIVED pid=$SECOND_PID scheme=ynxwallet-macos" "$PROOF/native.log" && \
+               grep -Fq "YNX_WALLET_MAC_CALLBACK_REJECTED pid=$SECOND_PID code=CANONICAL_AUTH_BRIDGE_UNAVAILABLE" "$PROOF/native.log"; then
+              CALLBACK_SEEN=true
+              break
+            fi
+            sleep 1
+          done
+          test "$CALLBACK_SEEN" = true
+          open "$APP"
+          sleep 2
+          screencapture -x "$PROOF/malformed-callback-fail-closed.png"
+          test -s "$PROOF/malformed-callback-fail-closed.png"
+          kill "$SECOND_PID"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ynx-wallet-macos-native
+          path: |
+            apps/wallet/proof/ci-macos
+            ${{ runner.temp }}/Applications/YNX Wallet.app
+          if-no-files-found: error

@@ -1,6 +1,10 @@
 import AppKit
+import OSLog
 import SwiftUI
 import YNXWalletMacCore
+
+private let lifecycleLogger = Logger(subsystem: "com.ynxweb4.wallet.macos", category: "lifecycle")
+private let callbackLogger = Logger(subsystem: "com.ynxweb4.wallet.macos", category: "callback")
 
 @MainActor
 final class WalletState: ObservableObject {
@@ -83,6 +87,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
   private var pendingURL: String?
 
   func applicationDidFinishLaunching(_ notification: Notification) {
+    lifecycleLogger.notice("YNX_WALLET_MAC_LAUNCHED pid=\(getpid(), privacy: .public)")
     NSAppleEventManager.shared().setEventHandler(
       self,
       andSelector: #selector(handleGetURL(event:reply:)),
@@ -107,10 +112,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
   }
 
   private func deliver(_ rawValue: String) {
+    let scheme = URLComponents(string: rawValue)?.scheme ?? "unknown"
+    callbackLogger.notice("YNX_WALLET_MAC_CALLBACK_RECEIVED pid=\(getpid(), privacy: .public) scheme=\(scheme, privacy: .public)")
     let decision = CallbackPolicy.evaluate(rawValue)
     if let state { state.receive(rawValue) } else { pendingURL = rawValue }
     if case .rejected(let code) = decision {
       NSApp.mainWindow?.title = "Request rejected · \(code)"
+      callbackLogger.notice("YNX_WALLET_MAC_CALLBACK_REJECTED pid=\(getpid(), privacy: .public) code=\(code, privacy: .public)")
     }
   }
 }
