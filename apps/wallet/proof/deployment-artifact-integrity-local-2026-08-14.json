@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "wallet-deployment-artifact-integrity-local-2026-08-14",
+  "owner": "02-wallet-auth",
+  "sourceCommit": "efcd580dee079812a438549a4370c31325ca484f",
+  "failFirst": "SyntaxError: requested module did not provide createDeploymentArtifactIntegrity",
+  "command": "npm --prefix packages/wallet-auth run integrity:testnet-deployment",
+  "artifactBinding": {"algorithm":"sha256","exactManifestBytes":true,"sourceCommit":true,"chainId":6423,"maximumBytes":1048576,"canonicalSidecar":true},
+  "workflow": {"createsThenReverifiesSidecar":true,"uploadsManifestAndSidecar":true,"missingArtifactFails":true,"environment":"ynx-testnet-wallet-contracts","environmentExists":false,"dispatched":false},
+  "failClosedCases": ["manifest byte substitution","manifest source substitution","sidecar digest substitution","noncanonical sidecar","oversized input"],
+  "tests": {"focused":{"passed":3,"failed":0},"walletAuthFull":{"passed":199,"failed":0},"hardhatWallet":"passed","packageDryRun":"passed","walletProductGate":"passed","walletReleaseContentGate":"passed","walletGoalCoverageGate":"passed"},
+  "sourceSha256": {
+    "packages/wallet-auth/src/deployment-artifact-integrity.js":"dd9a224b98344b448a423567cfb4ed259fad2c595a932c55b2f16ac99da9b0c3",
+    "packages/wallet-auth/scripts/deployment-artifact-integrity.mjs":"339cfb75ad521b708ddab7f444eca0e88dcfe4607014b68b54235552fa7fc543",
+    "packages/wallet-auth/test/deployment-artifact-integrity.test.mjs":"08e413d15b576473bbe0311321cc37d15f52fe0443a378b51210b2285be9a704",
+    ".github/workflows/wallet-contract-testnet-deploy.yml":"4a757759ebc08c1091087018cbe2d44dbea33d5ff34ac85515d3d4a40a385882"
+  },
+  "releaseClaims": {"artifactProducedPublic":false,"authorizedDeploymentChannel":false,"integratedCentral":false,"deployedStaging":false,"deployedPublic":false},
+  "secretMaterialRecorded": false
+}
