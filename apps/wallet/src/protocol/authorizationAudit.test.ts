@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { walletIdentity } from "@ynx-chain/wallet-auth";
+import { digestHex, walletIdentity } from "@ynx-chain/wallet-auth";
 import { AuthorizationAuditStore, AUTHORIZATION_AUDIT_KEY } from "./authorizationAudit";
 import type { SecureStorageAdapter } from "../storage/walletRepository";
 
@@ -74,6 +74,23 @@ test("callback audit stays on the intent account and decisions survive store rec
   await assert.rejects(restarted.append(request,{action:"request-rejected",account,at:"2026-07-15T12:00:01.000Z"}),/already decided/);
   await assert.rejects(restarted.append(request,{action:"approval-returned",account:otherAccount,at:"2026-07-15T12:00:02.000Z"}),/account differs/);
   assert.deepEqual((await restarted.load()).map(record=>[record.action,record.account]),[["intent-approved",account]]);
+});
+
+test("audit capacity and oversized storage fail closed without corrupting the existing chain",async()=>{
+  const storage=new MemoryStorage(),store=new AuthorizationAuditStore(storage);
+  await store.append(request,{action:"request-rejected",account,at:"2026-07-15T12:00:00.000Z"});
+  const seed=JSON.parse(storage.values.get(AUTHORIZATION_AUDIT_KEY)!)[0],records:any[]=[];
+  for(let sequence=1;sequence<=1000;sequence++){
+    const unsigned={...seed,sequence,previousHash:records.at(-1)?.hash??null};delete unsigned.hash;
+    records.push({...unsigned,hash:digestHex("YNX_WALLET_AUTH_AUDIT_V1",unsigned)});
+  }
+  const full=JSON.stringify(records);storage.values.set(AUTHORIZATION_AUDIT_KEY,full);
+  await assert.rejects(store.append({...request,nonce:"other_nonce_abcdefghijklmnopqrstuv"},{action:"request-rejected",account,at:"2026-07-15T12:01:00.000Z"}),/capacity is exhausted/);
+  assert.equal(storage.values.get(AUTHORIZATION_AUDIT_KEY),full);
+  assert.equal((await new AuthorizationAuditStore(storage).load()).length,1000);
+
+  storage.values.set(AUTHORIZATION_AUDIT_KEY," ".repeat(1024*1024+1));
+  await assert.rejects(new AuthorizationAuditStore(storage).load(),/too large/);
 });
 
 test("concurrent audit append and duplicate revoke serialize without lost records",async()=>{

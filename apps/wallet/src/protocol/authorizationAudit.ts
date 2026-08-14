@@ -2,6 +2,8 @@ import { digestHex, requestDigest, type AuthorizationRequest } from "@ynx-chain/
 import type { SecureStorageAdapter } from "../storage/walletRepository";
 
 export const AUTHORIZATION_AUDIT_KEY = "ynx.wallet.authorization-audit.v1";
+const MAX_AUDIT_RECORDS=1000;
+const MAX_AUDIT_BYTES=1024*1024;
 const ACTIONS = new Set(["intent-approved", "approval-returned", "request-rejected", "approval-revoked"]);
 const FIELDS = ["schemaVersion", "sequence", "at", "action", "requestDigest", "productClientId", "bundleId", "account", "scopes", "expiresAt", "previousHash", "hash"];
 
@@ -21,6 +23,7 @@ export class AuthorizationAuditStore {
 
   private async appendExclusive(request:AuthorizationRequest, input:{action:AuthorizationAuditAction;account:string;at:string}):Promise<AuthorizationAuditRecord> {
     const records=await this.load();
+    if(records.length>=MAX_AUDIT_RECORDS)throw new Error("Wallet authorization audit capacity is exhausted");
     const action=strictAction(input.action),digest=requestDigest(request),account=strictAccount(input.account);
     assertDecisionTransition(records,digest,action,account);
     const unsigned={
@@ -37,15 +40,16 @@ export class AuthorizationAuditStore {
       previousHash:records.at(-1)?.hash??null,
     };
     const record=freeze({...unsigned,hash:digestHex("YNX_WALLET_AUTH_AUDIT_V1",unsigned)});
-    await this.storage.setItem(AUTHORIZATION_AUDIT_KEY,JSON.stringify([...records,record]));
+    await this.save([...records,record]);
     return record;
   }
 
   async load():Promise<readonly AuthorizationAuditRecord[]> {
     const raw=await this.storage.getItem(AUTHORIZATION_AUDIT_KEY);
     if(raw===null)return Object.freeze([]);
+    if(raw.length>MAX_AUDIT_BYTES)throw new Error("Wallet authorization audit is too large");
     let value:unknown;try{value=JSON.parse(raw)}catch{throw new Error("Wallet authorization audit is unreadable")}
-    if(!Array.isArray(value)||value.length>1000)throw new Error("Wallet authorization audit is invalid");
+    if(!Array.isArray(value)||value.length>MAX_AUDIT_RECORDS)throw new Error("Wallet authorization audit is invalid");
     const records:AuthorizationAuditRecord[]=[];
     for(let index=0;index<value.length;index++){
       const item=value[index];
@@ -70,14 +74,22 @@ export class AuthorizationAuditStore {
 
   private async revokeExclusive(requestDigestValue:string,at:string,assertActive:()=>void):Promise<AuthorizationAuditRecord> {
     const records=await this.load();
+    if(records.length>=MAX_AUDIT_RECORDS)throw new Error("Wallet authorization audit capacity is exhausted");
     const source=[...records].reverse().find((item)=>item.requestDigest===requestDigestValue&&item.action==="approval-returned");
     if(!source)throw new Error("Approved Wallet authorization was not found");
     if(records.some((item)=>item.requestDigest===requestDigestValue&&item.action==="approval-revoked"))throw new Error("Wallet authorization is already revoked");
     const unsigned={schemaVersion:1 as const,sequence:records.length+1,at:strictTime(at,"audit time"),action:"approval-revoked" as const,requestDigest:source.requestDigest,productClientId:source.productClientId,bundleId:source.bundleId,account:source.account,scopes:source.scopes,expiresAt:source.expiresAt,previousHash:records.at(-1)?.hash??null};
     const record=freeze({...unsigned,hash:digestHex("YNX_WALLET_AUTH_AUDIT_V1",unsigned)});
     assertActive();
-    await this.storage.setItem(AUTHORIZATION_AUDIT_KEY,JSON.stringify([...records,record]));
+    await this.save([...records,record]);
     return record;
+  }
+
+  private async save(records:readonly AuthorizationAuditRecord[]):Promise<void>{
+    if(records.length>MAX_AUDIT_RECORDS)throw new Error("Wallet authorization audit capacity is exhausted");
+    const serialized=JSON.stringify(records);
+    if(serialized.length>MAX_AUDIT_BYTES)throw new Error("Wallet authorization audit capacity is exhausted");
+    await this.storage.setItem(AUTHORIZATION_AUDIT_KEY,serialized);
   }
 
   private enqueue<T>(operation:()=>Promise<T>):Promise<T>{
