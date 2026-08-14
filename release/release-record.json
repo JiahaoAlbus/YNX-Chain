@@ -86,17 +86,24 @@
       "typeScriptSDK": "passed"
     },
     "remoteCI": {
-      "runId": null,
+      "runId": 31784577273,
       "workflow": "data-fabric",
       "sourceCommit": "2bac01e4b09f7fc83654a2400a722100ecd91368",
-      "headCommit": null,
-      "status": "pending",
-      "conclusion": null,
-      "startedAt": null,
-      "duration": null,
+      "headCommit": "b36bff881d4c409d1fed09b654e20548249de04c",
+      "status": "completed",
+      "conclusion": "success",
+      "startedAt": "2026-08-14T08:36:12Z",
+      "duration": "4m28s",
       "artifactsPublished": false,
-      "url": null,
-      "evidenceArtifact": null
+      "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/31784577273",
+      "evidenceArtifact": {
+        "name": "data-fabric-postgres-resilience-b36bff881d4c409d1fed09b654e20548249de04c",
+        "retentionDays": 30,
+        "publicReleaseArtifact": false,
+        "seedSha256": "d84a3c11fb67c9c5ca53bede2a0330a78acb033e15f37abd4408e2a5e7d67a73",
+        "verifySha256": "7dd2b0cda79a776e58ac4c7ca7b8296c9cd45057be03869185c82fb52a92bd05",
+        "consumerCrashSha256": "80e363bcd5806db423346a11566414fdc21f16ec41dd38d86fb39c9686c4f27a"
+      }
     },
     "engineeringEvidenceRun": {
       "runId": 31779789224,

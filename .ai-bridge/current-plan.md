@@ -14,7 +14,7 @@ Release Candidate: `ynx-data-fabric-2bac01e4b09f`
 - Full repository tests, Data Fabric Race tests, Vet and `govulncheck` pass locally; reachable vulnerabilities are zero.
 - Same-product account isolation now covers events, Ledger, billing settlements, Saga coordinates and reconciliation; `fabric.audit.export` remains an explicit product-wide privileged scope.
 - One hundred simultaneous local canonical account sessions each returned exactly their own event under the Go race detector. This is local API/Store isolation evidence, not Testnet or 1000-producer capacity evidence.
-- Engineering-evidence Run `31779789224` checked out exact source `2bac01e4b09f7fc83654a2400a722100ecd91368`; the PostgreSQL job passed, while verify correctly failed against the then-stale frozen source binding. Final evidence-head CI is pending.
+- Engineering-evidence Run `31779789224` produced exact-source PostgreSQL and consumer-crash evidence. Final evidence-head Run `31784577273` then passed both jobs at `b36bff881d4c409d1fed09b654e20548249de04c` with engineering source still frozen at `2bac01e4b09f7fc83654a2400a722100ecd91368`.
 - Producer ingress now has a configurable nonblocking concurrency gate, explicit retryable `429 producer_backpressure`, retry-safe nonce handling and saturation metrics.
 - A clean-source run released 1000 independently signed producers simultaneously through real loopback HTTP: 1000 committed, zero business errors, peak in-flight 64, p50/p95/p99 18.72/39.94/41.92 seconds, 23.37 events/s and Outbox depth 1000. The slow result is explicitly local file Store evidence, not production capacity.
 - Exact-source Linux CI committed 10,000 PostgreSQL events with 90% ordered hotspot skew, rejected all 1,000 synchronized duplicates, restarted PostgreSQL with zero event loss, completed integrity recovery in 2,950.171 ms, applied 10,000 Analytics effects at 141.530 events/s and idempotently skipped all 10,000 on the second replay.
@@ -27,11 +27,11 @@ Release Candidate: `ynx-data-fabric-2bac01e4b09f`
 
 ## Current slice
 
-1. Commit the exact-source PostgreSQL resilience and consumer-process-crash evidence, validate release truth and obtain a successful evidence-head CI.
+1. Refresh and verify the complete recovery bundle at the final evidence checkpoint.
 2. Obtain the required independent approval and merge through protected-branch policy; do not bypass it with force or administrator merge.
 3. Repeat 1000 signed HTTP Producers across PostgreSQL plus JetStream and execute sustained hotspot, repeated consumer/process crash, broker partition/leader-loss and PostgreSQL replica-failover drills.
 4. Submit the frozen contract and both SDK paths to Product 29 for central acceptance, then have Website publish the existing canonical metadata only after runtime, signer, immutable-hosting and Website receipts are available.
 
 ## Exact next action
 
-Verify and protect the source-bound PostgreSQL resilience and consumer-crash slice, then continue PostgreSQL-plus-JetStream Producer and replicated failure drills. Obtain independent approval before merging PR `#92`; keep shared-Testnet, staging, public, download and Website publication states false until direct receipts exist.
+Refresh recovery for the protected PostgreSQL resilience and consumer-crash slice, then continue PostgreSQL-plus-JetStream Producer and replicated failure drills. Obtain independent approval before merging PR `#92`; keep shared-Testnet, staging, public, download and Website publication states false until direct receipts exist.

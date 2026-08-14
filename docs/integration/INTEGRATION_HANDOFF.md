@@ -33,7 +33,7 @@ Status: `ACTIVE`
 | productionSigned | false | Only test-fixture signing is exercised |
 | storeReleased | false | Native app-store delivery is not applicable to this headless service |
 
-Engineering-evidence Run `31779789224` checked out exact source `2bac01e4b09f7fc83654a2400a722100ecd91368`. Its PostgreSQL job passed and published a 30-day artifact containing source-bound seed, restart/replay and consumer-process-crash records. The overall run failed because the verify job correctly rejected the then-stale frozen `sourceCommit`; a final evidence-head CI success is pending. PR `#92` remains blocked by one independent approval; no protection bypass is authorized. The CI artifact is not a product download and does not change `downloadHosted`.
+Engineering-evidence Run `31779789224` checked out exact source `2bac01e4b09f7fc83654a2400a722100ecd91368`; its PostgreSQL job passed and produced the checked-in source-bound evidence. Final evidence-head Run `31784577273` then passed both jobs at `b36bff881d4c409d1fed09b654e20548249de04c`. PR `#92` remains blocked by one independent approval; no protection bypass is authorized. The 30-day CI artifact is not a product download and does not change `downloadHosted`.
 
 ## Current executable integration
 

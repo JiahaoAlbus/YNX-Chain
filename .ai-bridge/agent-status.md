@@ -6,7 +6,7 @@
 - Branch: `codex/final-data-fabric`
 - Engineering Source Commit: `2bac01e4b09f7fc83654a2400a722100ecd91368`
 - Remote Source Commit: current Engineering Source `2bac01e4b09f7fc83654a2400a722100ecd91368` is on review Branch `codex/data-fabric-typescript-sdk-20260814`
-- Source evidence CI: Run `31779789224` PostgreSQL job passed after exact PR-head checkout; source-bound restart/replay and consumer-process-crash JSON was downloaded and SHA-256 verified. The overall run failed only because verify rejected the then-stale frozen source binding; final evidence-head CI is pending.
+- Source CI: final evidence-head Run `31784577273` passed both jobs at `b36bff881d4c409d1fed09b654e20548249de04c`; engineering source remains `2bac01e4b09f7fc83654a2400a722100ecd91368`, and the source-bound restart/replay and consumer-process-crash artifacts were downloaded and SHA-256 verified.
 - Concurrent writer: no Git writer detected; an existing CodexPro server process was left untouched
 - Dirty state: reviewed and verified source-bound evidence slice awaiting commit and push; legacy recovery files are preserved under `recovery/2026-07-23/`
 
@@ -20,4 +20,4 @@ Central owner acceptance, complete product adapter set, shared Testnet E2E, stag
 
 ## Exact next action
 
-Commit the exact-source PostgreSQL and consumer-crash evidence, obtain a successful final evidence-head CI, and refresh recovery; then repeat signed Producer traffic across PostgreSQL plus JetStream with sustained and replicated-service failure drills. Prepare the existing Website handoff for publication, but keep public URLs and downloads false until runtime, signer, immutable-hosting and Website receipts exist. Require independent approval before merging PR `#92`.
+Refresh the verified recovery bundle, then repeat signed Producer traffic across PostgreSQL plus JetStream with sustained and replicated-service failure drills. Prepare the existing Website handoff for publication, but keep public URLs and downloads false until runtime, signer, immutable-hosting and Website receipts exist. Require independent approval before merging PR `#92`.
