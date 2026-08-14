@@ -73,20 +73,24 @@ jobs:
           ditto "$APP" proof/ci-ios/YNXWallet-Standalone.app
           BUNDLE_ID="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' proof/ci-ios/YNXWallet-Standalone.app/Info.plist)"
           test "$BUNDLE_ID" = com.ynxweb4.wallet
-          ENTITLEMENTS=proof/ci-ios/simulator-keychain-entitlements.plist
-          plutil -create xml1 "$ENTITLEMENTS"
-          /usr/libexec/PlistBuddy -c "Add :application-identifier string FAKETEAMID.$BUNDLE_ID" "$ENTITLEMENTS"
-          /usr/libexec/PlistBuddy -c 'Add :com.apple.developer.team-identifier string FAKETEAMID' "$ENTITLEMENTS"
-          /usr/libexec/PlistBuddy -c 'Add :keychain-access-groups array' "$ENTITLEMENTS"
-          /usr/libexec/PlistBuddy -c "Add :keychain-access-groups:0 string FAKETEAMID.$BUNDLE_ID" "$ENTITLEMENTS"
-          codesign --force --sign - --timestamp=none --entitlements "$ENTITLEMENTS" \
-            proof/ci-ios/YNXWallet-Standalone.app
           codesign --verify --deep --strict proof/ci-ios/YNXWallet-Standalone.app
+          codesign -dv --verbose=4 proof/ci-ios/YNXWallet-Standalone.app \
+            2> proof/ci-ios/standalone-codesign.txt
+          grep -F 'Signature=adhoc' proof/ci-ios/standalone-codesign.txt
           codesign -d --entitlements :- proof/ci-ios/YNXWallet-Standalone.app \
-            > proof/ci-ios/standalone-entitlements.txt 2>&1
-          grep -F '<key>application-identifier</key>' proof/ci-ios/standalone-entitlements.txt
-          grep -F '<key>keychain-access-groups</key>' proof/ci-ios/standalone-entitlements.txt
-          grep -F "<string>FAKETEAMID.$BUNDLE_ID</string>" proof/ci-ios/standalone-entitlements.txt
+            > proof/ci-ios/standalone-codesign-entitlements.txt 2>&1
+          EXECUTABLE=proof/ci-ios/YNXWallet-Standalone.app/YNXWallet
+          for ARCH in arm64 x86_64; do
+            THIN="proof/ci-ios/YNXWallet-$ARCH"
+            ENTITLEMENTS="proof/ci-ios/standalone-simulator-entitlements-$ARCH.plist"
+            lipo "$EXECUTABLE" -thin "$ARCH" -output "$THIN"
+            otool -X -s __TEXT __entitlements "$THIN" \
+              | awk '{for (i=2;i<=NF;i++) {for (j=length($i);j>0;j-=2) printf "%s", substr($i,j-1,2)}} END {print ""}' \
+              | xxd -r -p > "$ENTITLEMENTS"
+            test "$(/usr/libexec/PlistBuddy -c 'Print :application-identifier' "$ENTITLEMENTS")" = "FAKETEAMID.$BUNDLE_ID"
+          done
+          cmp proof/ci-ios/standalone-simulator-entitlements-arm64.plist \
+            proof/ci-ios/standalone-simulator-entitlements-x86_64.plist
       - name: Install, cold launch and verify Wallet deep link
         timeout-minutes: 10
         working-directory: apps/wallet
@@ -104,8 +108,18 @@ jobs:
           xcrun simctl bootstatus "$DEVICE" -b
           xcrun simctl install "$DEVICE" "$APP"
           xcrun simctl terminate "$DEVICE" com.ynxweb4.wallet 2>/dev/null || true
+          set +e
           SIMCTL_CHILD_YNX_WALLET_KEYCHAIN_PROBE=1 \
-            xcrun simctl launch "$DEVICE" com.ynxweb4.wallet | tee proof/ci-ios/cold-launch.txt
+            xcrun simctl launch "$DEVICE" com.ynxweb4.wallet \
+            2>&1 | tee proof/ci-ios/cold-launch.txt
+          LAUNCH_STATUS=${PIPESTATUS[0]}
+          set -e
+          if test "$LAUNCH_STATUS" -ne 0; then
+            xcrun simctl spawn "$DEVICE" log show --style compact --last 5m \
+              --predicate 'process == "SpringBoard" OR process == "securityd" OR process == "runningboardd"' \
+              2>&1 | tee proof/ci-ios/cold-launch-failure-system.log || true
+          fi
+          test "$LAUNCH_STATUS" -eq 0
           sleep 3
           xcrun simctl spawn "$DEVICE" log show \
             --style compact \
