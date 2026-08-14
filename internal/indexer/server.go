@@ -166,13 +166,17 @@ func trySummarizeDatabase(store *Store) (databaseSummary, bool, error) {
 func (s *Server) handleOverview(w http.ResponseWriter, r *http.Request) {
 	db, err := summarizeDatabase(s.indexer.Store())
 	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]any{"ok": false, "error": err.Error()})
+		writePublicError(w, http.StatusServiceUnavailable, "store_unavailable", "The canonical index is temporarily unavailable.")
 		return
 	}
 	s.mu.RLock()
 	lastError, lastSyncedAt, lastResult := s.lastError, s.lastSyncedAt, s.lastResult
 	s.mu.RUnlock()
-	writeJSON(w, http.StatusOK, map[string]any{
+	status := http.StatusOK
+	if lastError != "" || lastSyncedAt.IsZero() {
+		status = http.StatusServiceUnavailable
+	}
+	writeJSON(w, status, map[string]any{
 		"ok":                   lastError == "" && !lastSyncedAt.IsZero(),
 		"service":              "ynx-indexerd",
 		"network":              db.Network,
@@ -186,7 +190,7 @@ func (s *Server) handleOverview(w http.ResponseWriter, r *http.Request) {
 		"indexedBlockCount":    db.IndexedBlockCount,
 		"indexedTxCount":       db.IndexedTxCount,
 		"lastSyncedAt":         lastSyncedAt,
-		"lastError":            lastError,
+		"lastErrorCode":        publicSyncErrorCode(lastError),
 		"lastRecoveryMode":     lastResult.RecoveryMode,
 		"lastReorgDetected":    lastResult.ReorgDetected,
 		"lastCommonAncestor":   lastResult.CommonAncestorHeight,
@@ -204,7 +208,7 @@ func (s *Server) handleOverview(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 	db, storeReady, err := trySummarizeDatabase(s.indexer.Store())
 	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]any{"ok": false, "error": err.Error()})
+		writePublicError(w, http.StatusServiceUnavailable, "store_unavailable", "The canonical index is temporarily unavailable.")
 		return
 	}
 	s.mu.RLock()
@@ -237,7 +241,7 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 		"indexedBlockCount":    db.IndexedBlockCount,
 		"indexedTxCount":       db.IndexedTxCount,
 		"lastSyncedAt":         lastSyncedAt,
-		"lastError":            lastError,
+		"lastErrorCode":        publicSyncErrorCode(lastError),
 		"syncErrorCount":       errorCount,
 		"reorgRecoveryCount":   reorgCount,
 		"lastRecoveryMode":     lastResult.RecoveryMode,
@@ -260,7 +264,7 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleMetrics(w http.ResponseWriter, r *http.Request) {
 	db, err := summarizeDatabase(s.indexer.Store())
 	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]any{"error": err.Error()})
+		writePublicError(w, http.StatusServiceUnavailable, "metrics_unavailable", "Indexer metrics are temporarily unavailable.")
 		return
 	}
 	s.mu.RLock()
@@ -310,7 +314,7 @@ func (s *Server) handleMetrics(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleSync(w http.ResponseWriter, r *http.Request) {
 	result, err := s.SyncOnce(r.Context())
 	if err != nil {
-		writeJSON(w, http.StatusBadGateway, map[string]any{"error": err.Error()})
+		writePublicError(w, http.StatusBadGateway, publicSyncErrorCode(err.Error()), "Indexer synchronization failed closed. Retry after the chain dependency recovers.")
 		return
 	}
 	writeJSON(w, http.StatusOK, result)
@@ -319,7 +323,7 @@ func (s *Server) handleSync(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleLatestBlocks(w http.ResponseWriter, r *http.Request) {
 	after, err := s.cursor.decode(r.URL.Query().Get("cursor"), "blocks")
 	if err != nil {
-		writeJSON(w, http.StatusBadRequest, map[string]any{"error": "invalid_cursor", "detail": err.Error()})
+		writePublicError(w, http.StatusBadRequest, "invalid_cursor", "The pagination cursor is invalid or expired.")
 		return
 	}
 	var blocks []chain.Block
@@ -330,7 +334,7 @@ func (s *Server) handleLatestBlocks(w http.ResponseWriter, r *http.Request) {
 		return pageErr
 	})
 	if err != nil {
-		writeJSON(w, http.StatusBadRequest, map[string]any{"error": "invalid_cursor", "detail": err.Error()})
+		writePublicError(w, http.StatusBadRequest, "invalid_cursor", "The pagination cursor is invalid or expired.")
 		return
 	}
 	nextCursor := ""
@@ -352,11 +356,11 @@ func (s *Server) handleBlock(w http.ResponseWriter, r *http.Request) {
 		return nil
 	})
 	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]any{"error": err.Error()})
+		writePublicError(w, http.StatusServiceUnavailable, "store_unavailable", "The canonical index is temporarily unavailable.")
 		return
 	}
 	if !ok {
-		writeJSON(w, http.StatusNotFound, map[string]any{"error": "indexed block not found"})
+		writePublicError(w, http.StatusNotFound, "block_not_found", "That block was not found in the canonical index.")
 		return
 	}
 	writeJSON(w, http.StatusOK, block)
@@ -365,7 +369,7 @@ func (s *Server) handleBlock(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleTransactions(w http.ResponseWriter, r *http.Request) {
 	after, err := s.cursor.decode(r.URL.Query().Get("cursor"), "transactions")
 	if err != nil {
-		writeJSON(w, http.StatusBadRequest, map[string]any{"error": "invalid_cursor", "detail": err.Error()})
+		writePublicError(w, http.StatusBadRequest, "invalid_cursor", "The pagination cursor is invalid or expired.")
 		return
 	}
 	var transactions []chain.Transaction
@@ -376,7 +380,7 @@ func (s *Server) handleTransactions(w http.ResponseWriter, r *http.Request) {
 		return pageErr
 	})
 	if err != nil {
-		writeJSON(w, http.StatusBadRequest, map[string]any{"error": "invalid_cursor", "detail": err.Error()})
+		writePublicError(w, http.StatusBadRequest, "invalid_cursor", "The pagination cursor is invalid or expired.")
 		return
 	}
 	nextCursor := ""
@@ -398,11 +402,11 @@ func (s *Server) handleTransaction(w http.ResponseWriter, r *http.Request) {
 		return nil
 	})
 	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]any{"error": err.Error()})
+		writePublicError(w, http.StatusServiceUnavailable, "store_unavailable", "The canonical index is temporarily unavailable.")
 		return
 	}
 	if !ok {
-		writeJSON(w, http.StatusNotFound, map[string]any{"error": "indexed transaction not found"})
+		writePublicError(w, http.StatusNotFound, "transaction_not_found", "That transaction was not found in the canonical index.")
 		return
 	}
 	writeJSON(w, http.StatusOK, tx)
@@ -414,13 +418,37 @@ func writeJSON(w http.ResponseWriter, status int, payload any) {
 	_ = json.NewEncoder(w).Encode(payload)
 }
 
+type publicError struct {
+	Code    string `json:"code"`
+	Message string `json:"message"`
+}
+
+func writePublicError(w http.ResponseWriter, status int, code, message string) {
+	writeJSON(w, status, publicError{Code: code, Message: message})
+}
+
+func publicSyncErrorCode(raw string) string {
+	if raw == "" {
+		return ""
+	}
+	lower := strings.ToLower(raw)
+	switch {
+	case strings.Contains(lower, "rebuild required"), strings.Contains(lower, "divergence"), strings.Contains(lower, "common ancestor"):
+		return "canonical_recovery_required"
+	case strings.Contains(lower, "journal"), strings.Contains(lower, "snapshot"), strings.Contains(lower, "store"):
+		return "store_unavailable"
+	default:
+		return "chain_rpc_unavailable"
+	}
+}
+
 func intQuery(r *http.Request, key string, fallback int) int {
 	raw := r.URL.Query().Get(key)
 	if raw == "" {
 		return fallback
 	}
 	parsed, err := strconv.Atoi(raw)
-	if err != nil {
+	if err != nil || parsed <= 0 || parsed > 100 {
 		return fallback
 	}
 	return parsed

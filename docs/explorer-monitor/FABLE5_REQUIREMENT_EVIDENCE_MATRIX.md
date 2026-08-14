@@ -1,6 +1,6 @@
 # YNX Explorer, Indexer, Monitor, and Website Fable5 Evidence Matrix
 
-Snapshot date: 2026-08-14  
+Snapshot date: 2026-08-14
 Continuation source: `2a78ace0a647b73dd2961fae3361189116453a7d` (`origin/main`)  
 Recovered Indexer checkpoint: `23b3f08b48992899fdcf101dc233e95c76385ba9`  
 Public Explorer source observed: `660ab05db423319d92e9597ce5a280474ae293d6`  

@@ -44,12 +44,6 @@ func New(cfg Config) (*Service, error) {
 	if strings.TrimSpace(cfg.IndexerURL) == "" {
 		return nil, fmt.Errorf("explorer indexer URL is required")
 	}
-	if cfg.PublicRPCURL == "" {
-		cfg.PublicRPCURL = cfg.RPCURL
-	}
-	if cfg.PublicExplorerURL == "" {
-		cfg.PublicExplorerURL = "http://127.0.0.1:6427"
-	}
 	return &Service{cfg: cfg, rpcClient: newClient(cfg.RPCURL), indexerClient: newClient(cfg.IndexerURL)}, nil
 }
 
@@ -169,6 +163,10 @@ func (s *Service) Summary(ctx context.Context) (Summary, error) {
 	if status.Height > health.LastIndexedHeight {
 		lag = status.Height - health.LastIndexedHeight
 	}
+	indexerError := ""
+	if !health.OK || health.LastError != "" {
+		indexerError = "indexer_sync_failed"
+	}
 	network := chain.NetworkConfig{
 		Name:                 status.Network,
 		Slug:                 status.Slug,
@@ -194,21 +192,32 @@ func (s *Service) Summary(ctx context.Context) (Summary, error) {
 		PendingTxCount:    status.PendingTxCount,
 		NativeSymbol:      status.NativeCurrencySymbol,
 		IndexerOK:         health.OK,
-		IndexerError:      health.LastError,
+		IndexerError:      indexerError,
 		Wallet: WalletConfig{
 			ChainIDHex:         fmt.Sprintf("0x%x", status.ChainID),
 			ChainName:          status.Network,
 			NativeCurrencyName: status.NativeCoinName,
 			NativeSymbol:       status.NativeCurrencySymbol,
 			Decimals:           status.Decimals,
-			RPCURLs:            []string{s.cfg.PublicRPCURL},
-			BlockExplorerURLs:  []string{s.cfg.PublicExplorerURL},
+			RPCURLs:            nonEmptyPublicURLs(s.cfg.PublicRPCURL),
+			BlockExplorerURLs:  nonEmptyPublicURLs(s.cfg.PublicExplorerURL),
 		},
 		ResourceStatus: "available-through-resource-endpoints",
 		FeeStatus:      "available-per-transaction",
 		TruthfulStatus: "rpc-and-indexer-backed",
 		LastCheckedAt:  time.Now().UTC(),
 	}, nil
+}
+
+func nonEmptyPublicURLs(values ...string) []string {
+	urls := make([]string, 0, len(values))
+	for _, value := range values {
+		value = strings.TrimSpace(value)
+		if value != "" {
+			urls = append(urls, value)
+		}
+	}
+	return urls
 }
 
 func (s *Service) Status(ctx context.Context) (Status, error) {

@@ -255,3 +255,46 @@ func TestFeeDetailUsesRealSponsorTransactionEvidence(t *testing.T) {
 		t.Fatalf("direct transaction was mislabeled as sponsored: %+v", direct)
 	}
 }
+
+func TestPublicFailuresDoNotExposeInternalDependencyDetails(t *testing.T) {
+	service, err := New(Config{
+		RPCURL:     "http://127.0.0.1:1/private-rpc",
+		IndexerURL: "http://127.0.0.1:2/private-indexer",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	server := httptest.NewServer(NewServer(service).Handler())
+	defer server.Close()
+
+	for _, path := range []string{"/health", "/api/summary", "/api/blocks/latest", "/api/txs", "/api/accounts", "/metrics"} {
+		response, err := http.Get(server.URL + path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		body, readErr := io.ReadAll(response.Body)
+		_ = response.Body.Close()
+		if readErr != nil {
+			t.Fatal(readErr)
+		}
+		text := string(body)
+		if response.StatusCode < 400 || strings.Contains(text, "127.0.0.1") || strings.Contains(text, "private-rpc") || strings.Contains(text, "private-indexer") || strings.Contains(text, "connection refused") {
+			t.Fatalf("%s leaked an internal dependency failure: status=%d body=%s", path, response.StatusCode, text)
+		}
+		var failure map[string]any
+		if err := json.Unmarshal(body, &failure); err != nil || failure["code"] == "" || failure["message"] == "" {
+			t.Fatalf("%s did not return a bounded public failure: %s", path, text)
+		}
+	}
+
+	for _, path := range []string{"/tx/0xabc", "/block/42", "/address/ynx1test", "/token/YNXT", "/contract/0xabc"} {
+		response, err := http.Get(server.URL + path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_ = response.Body.Close()
+		if response.StatusCode != http.StatusOK {
+			t.Fatalf("deep link %s returned %d", path, response.StatusCode)
+		}
+	}
+}
