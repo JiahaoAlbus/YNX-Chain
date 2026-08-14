@@ -1,0 +1,131 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "wallet-desktop-cli-sdk-public-endpoint-audit-20260815",
+  "checkedAt": "2026-08-14T16:20:30Z",
+  "sourceCommit": "2802876f8470264c4a8819f1426e28f957a09289",
+  "centralMatrix": {
+    "path": "release/integration/wallet-auth-public-endpoint-service-discovery-matrix.json",
+    "observedSha256": "d344c607c2bbbf7bb0d9d3662b424976d0d6c4ff20428025dd1e2fb92bf31392",
+    "tracked": false,
+    "committed": false,
+    "consumed": false,
+    "candidateCanonicalRpc": "https://rpc.ynxweb4.com/evm",
+    "candidateLegacyRpc": "https://evm.ynxweb4.com",
+    "blocker": "The only Central matrix is an untracked mutable file and its faucet availability observation became stale during this audit."
+  },
+  "directPublicProbes": {
+    "canonicalRpc": {
+      "url": "https://rpc.ynxweb4.com/evm",
+      "nativePostHttpStatus": 200,
+      "ethChainId": "0x1917",
+      "contentType": "application/json",
+      "browserOriginProbeExit": 28,
+      "browserOriginProbeError": "SSL connection timeout",
+      "browserCorsProved": false
+    },
+    "legacyRpc": {
+      "url": "https://evm.ynxweb4.com",
+      "nativePostHttpStatus": 200,
+      "ethChainId": "0x1917",
+      "contentType": "application/json",
+      "browserCorsProved": false
+    },
+    "restHealth": {
+      "url": "https://rest.ynxweb4.com/app/health",
+      "httpStatus": 200,
+      "service": "ynx-app-gatewayd"
+    },
+    "faucetHealth": {
+      "url": "https://faucet.ynxweb4.com/health",
+      "httpStatus": 200,
+      "service": "ynx-faucetd",
+      "chainId": 6423,
+      "upstreamOk": true,
+      "browserOptionsExit": 28,
+      "browserCorsProved": false
+    },
+    "authV1Options": {
+      "url": "https://rest.ynxweb4.com/v1/wallet/sessions/complete",
+      "attempts": 2,
+      "lastExit": 28,
+      "lastError": "SSL connection timeout",
+      "browserCorsProved": false
+    },
+    "authV2Options": {
+      "url": "https://rest.ynxweb4.com/v2/product-sessions/complete",
+      "attempts": 2,
+      "httpStatus": 415,
+      "responseCode": "UNSUPPORTED_MEDIA_TYPE",
+      "accessControlAllowOriginObserved": false,
+      "browserCorsProved": false
+    }
+  },
+  "legacyDefaultInventory": {
+    "endpoint": "https://evm.ynxweb4.com",
+    "sourcePaths": [
+      "apps/wallet-desktop/src/main.mjs",
+      "examples/wallet-go-sdk/main.go",
+      "examples/wallet-typescript-sdk-clean-consumer/index.mjs",
+      "sdk/js/ynx-testnet.js"
+    ],
+    "compressedCliBinaries": [
+      "release/wallet-cli/artifacts/ynx-wallet-cli-darwin-amd64.gz",
+      "release/wallet-cli/artifacts/ynx-wallet-cli-darwin-arm64.gz",
+      "release/wallet-cli/artifacts/ynx-wallet-cli-linux-amd64.gz",
+      "release/wallet-cli/artifacts/ynx-wallet-cli-linux-arm64.gz",
+      "release/wallet-cli/artifacts/ynx-wallet-cli-windows-amd64.exe.gz",
+      "release/wallet-cli/artifacts/ynx-wallet-cli-windows-arm64.exe.gz"
+    ],
+    "installableCliPackages": [
+      "release/wallet-cli/linux-packages/ynx-wallet-cli_0.1.0~testnet+95bd2aad56bd_amd64.deb",
+      "release/wallet-cli/linux-packages/ynx-wallet-cli_0.1.0~testnet+95bd2aad56bd_arm64.deb",
+      "release/wallet-cli/linux-packages/ynx-wallet-cli-0.1.0-0.testnet.95bd2aad56bd.x86_64.rpm",
+      "release/wallet-cli/linux-packages/ynx-wallet-cli-0.1.0-0.testnet.95bd2aad56bd.aarch64.rpm",
+      "release/wallet-cli/windows-installers/ynx-wallet-cli-windows-x64-installer.zip",
+      "release/wallet-cli/windows-installers/ynx-wallet-cli-windows-arm64-installer.zip"
+    ],
+    "sdkPackages": [
+      "release/wallet-cli/typescript-sdk/ynx-chain-sdk-0.2.0.tgz",
+      "release/wallet-cli/typescript-sdk/ynx-chain-sdk-0.2.1.tgz",
+      "release/wallet-cli/go-sdk/ynx-wallet-go-sdk-0.1.0.tgz"
+    ],
+    "desktopArtifactManifests": [
+      "release/wallet-desktop/linux-arm64-appimage/manifest.json",
+      "release/wallet-desktop/linux-arm64-deb/manifest.json",
+      "release/wallet-desktop/linux-arm64-rpm/manifest.json",
+      "release/wallet-desktop/linux-arm64-rpm-fedora/manifest.json",
+      "release/wallet-desktop/linux-x64-appimage/manifest.json",
+      "release/wallet-desktop/linux-x64/manifest.json",
+      "release/wallet-desktop/macos-arm64/manifest.json",
+      "release/wallet-desktop/macos-x64/manifest.json",
+      "release/wallet-desktop/windows-arm64/manifest.json",
+      "release/wallet-desktop/windows-x64/manifest.json"
+    ]
+  },
+  "negativeFindings": {
+    "productionDefaultsPointToLocalhost": false,
+    "productionDefaultsPointToPreviewDeployment": false,
+    "testFixturesUseLoopback": true,
+    "testFixtureLoopbackPromotedToReleaseDefault": false
+  },
+  "requiredNextSlice": [
+    "Central commits and pushes one refreshed immutable endpoint matrix after reconciling current Faucet and RPC observations.",
+    "Rebuild every affected CLI, installable package, Desktop artifact, TypeScript package, and Go example from that exact matrix commit.",
+    "On native runners, install the rebuilt artifacts and prove eth_chainId 0x1917 plus fail-closed behavior for unavailable RPC.",
+    "For Website/mobile consumers, separately prove CORS and service discovery before enabling RPC, Faucet, Auth, account, sign, or transaction UI."
+  ],
+  "releaseGates": {
+    "endpointMatrixConsumed": false,
+    "artifactsRebuilt": false,
+    "officialDownloadsReplaced": false,
+    "rpcNativeVerifiedFromRebuiltArtifacts": false,
+    "rpcBrowserCorsVerified": false,
+    "faucetBrowserVerified": false,
+    "authBrowserVerified": false,
+    "accountVerified": false,
+    "signVerified": false,
+    "transactionVerified": false,
+    "downloadFunctional": false,
+    "deployedPublic": false
+  }
+}
