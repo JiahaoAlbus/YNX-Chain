@@ -56,6 +56,9 @@ async function expectFailed(op) {
 async function expectValidationFailed(op) {
   await assert.rejects(entryPoint.handleOps([op], beneficiary.address, { gasLimit: 12_000_000 }), /AA24 signature error/);
 }
+async function expectTimeRangeFailed(op) {
+  await assert.rejects(entryPoint.handleOps([op], beneficiary.address, { gasLimit: 12_000_000 }), /AA22 expired or not due/);
+}
 async function signPasskeyOperation(op, flags) {
   const passkeyHash = await entryPoint.getUserOpHash(op);
   const challenge = Buffer.from(ethers.getBytes(passkeyHash)).toString("base64url");
@@ -199,6 +202,41 @@ assert.equal(await ethers.provider.getBalance(destination.address) - destination
 assert.equal((await account.sessions(sessionKey.address)).spentToday, ethers.parseEther("0.25"));
 assert.equal(await entryPoint.getNonce(account.target, 0), 55n);
 
+const timeBoundSessionKey = ethers.Wallet.createRandom().connect(ethers.provider);
+const timeBoundaryNow = BigInt((await ethers.provider.getBlock("latest")).timestamp);
+await (await account.connect(owner).configureSession(
+  timeBoundSessionKey.address,
+  destination.address,
+  arbitrarySelector,
+  ethers.keccak256(arbitrarySelector),
+  timeBoundaryNow + 60n,
+  timeBoundaryNow + 120n,
+  ethers.parseEther("0.1"),
+  ethers.parseEther("0.1"),
+)).wait();
+const timeBoundCall = account.interface.encodeFunctionData("executeSession", [
+  timeBoundSessionKey.address,
+  destination.address,
+  0n,
+  arbitrarySelector,
+]);
+async function timeBoundOperation(nonce) {
+  const op = await operation(timeBoundCall, nonce);
+  const hash = await entryPoint.getUserOpHash(op);
+  op.signature = ethers.concat(["0x02", timeBoundSessionKey.address, timeBoundSessionKey.signingKey.sign(hash).serialized]);
+  return op;
+}
+await expectTimeRangeFailed(await timeBoundOperation(55n));
+assert.equal(await entryPoint.getNonce(account.target, 0), 55n);
+await ethers.provider.send("evm_increaseTime", [61]);
+await ethers.provider.send("evm_mine", []);
+await (await entryPoint.handleOps([await timeBoundOperation(55n)], beneficiary.address, { gasLimit: 12_000_000 })).wait();
+assert.equal(await entryPoint.getNonce(account.target, 0), 56n);
+await ethers.provider.send("evm_increaseTime", [60]);
+await ethers.provider.send("evm_mine", []);
+await expectTimeRangeFailed(await timeBoundOperation(56n));
+assert.equal(await entryPoint.getNonce(account.target, 0), 56n);
+
 const newOwner = ethers.Wallet.createRandom();
 const newPasskeySecret = p256.utils.randomPrivateKey();
 const newPasskeyPublic = p256.getPublicKey(newPasskeySecret, false);
@@ -209,7 +247,7 @@ await (await account.connect(guardian).requestRecovery(
 )).wait();
 assert.equal(await account.sessionEpoch(), 2n);
 assert.equal((await account.sessions(sessionKey.address)).epoch, 1n);
-const pendingRecoverySessionOp = await operation(sessionCall, 55n);
+const pendingRecoverySessionOp = await operation(sessionCall, 56n);
 const pendingRecoverySessionHash = await entryPoint.getUserOpHash(pendingRecoverySessionOp);
 pendingRecoverySessionOp.signature = ethers.concat([
   "0x02",
@@ -233,7 +271,7 @@ await (await account.executeRecovery()).wait();
 assert.equal(await account.owner(), newOwner.address);
 assert.equal(await account.sessionEpoch(), 3n);
 assert.equal((await account.sessions(sessionKey.address)).epoch, 1n);
-const revokedSessionOp = await operation(sessionCall, 55n);
+const revokedSessionOp = await operation(sessionCall, 56n);
 const revokedHash = await entryPoint.getUserOpHash(revokedSessionOp);
 revokedSessionOp.signature = ethers.concat(["0x02", sessionKey.address, sessionKey.signingKey.sign(revokedHash).serialized]);
 await expectValidationFailed(revokedSessionOp);
@@ -458,6 +496,7 @@ console.log(JSON.stringify({
   sessionPolicyRejectedBeforeNonceConsumption: "passed",
   noncanonicalSessionCallRejection: "passed",
   sameBundleDailyLimitLinearization: "passed",
+  sessionValidAfterAndExpiry: "passed",
   overLimitRejection: "passed",
   wrongTargetRejection: "passed",
   userVerificationRequired: "passed",
