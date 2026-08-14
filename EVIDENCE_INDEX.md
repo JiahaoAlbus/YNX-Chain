@@ -10,7 +10,7 @@ Status: `ACTIVE`
 - Exact YNX 26 Workspace and `codex/final-data-fabric` Branch were verified before modification.
 - No concurrent Git writer was found. A CodexPro server process was observed for this Worktree and left untouched.
 - Commit `70c56d95ab28cdee963ad7bfc4332d0515d6418c` is the frozen Engineering Source Commit. It adds the Chain Core commitment reference boundary; remote review Branch `codex/data-fabric-typescript-sdk-20260814` and PR `#92` target the protected product Branch.
-- GitHub Actions Run `31768273194` passed both Data Fabric jobs for prior Engineering Source `6fbe0d33f4b4de3237391646d582e79cfee30a3c`. Current-source remote CI is pending.
+- GitHub Actions Run `31769929949` passed both Data Fabric jobs for current Engineering Source `70c56d95ab28cdee963ad7bfc4332d0515d6418c` at evidence checkpoint `22b3549a804d33a67ef79233cdb866f2b3d70850`.
 - The workflow runs full Go tests, Data Fabric Race tests, vet, vulnerability analysis, Linux builds and hashes, SBOM generation, quality gates, secret scanning, JSON validation and isolated PostgreSQL 17.10 transaction and logical backup/restore tests.
 - The workflow does not upload a public artifact; `downloadHosted` and all public states remain false.
 - The two stale untracked recovery summaries discovered at takeover are preserved under `recovery/2026-07-23/` and are not current truth.
@@ -84,7 +84,7 @@ node scripts/data-fabric/release-truth-check-check.mjs
 bash scripts/data-fabric/quality-gates.sh
 ```
 
-The full repository test passed under the standard CI `umask=022`. The TypeScript SDK and cross-language signature vector passed locally. PR `#92` now requires only `data-fabric-verify`, `data-fabric-postgres-live` and one independent approval; current-source checks have not yet been recorded, and no protection bypass was attempted.
+The full repository test passed under the standard CI `umask=022`. The TypeScript SDK and cross-language signature vector passed locally and in current-source CI. PR `#92` requires only `data-fabric-verify`, `data-fabric-postgres-live` and one independent approval; no protection bypass was attempted.
 
 ## Evidence still missing
 

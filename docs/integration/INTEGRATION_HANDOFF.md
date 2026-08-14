@@ -33,7 +33,7 @@ Status: `ACTIVE`
 | productionSigned | false | Only test-fixture signing is exercised |
 | storeReleased | false | Native app-store delivery is not applicable to this headless service |
 
-Remote CI Run `31768273194` passed both Data Fabric jobs for prior Engineering Source `6fbe0d33f4b4de3237391646d582e79cfee30a3c`. Current Source `70c56d95ab28cdee963ad7bfc4332d0515d6418c` has local verification only until its review-branch checks complete. PR `#92` now requires the two applicable Data Fabric checks and one independent approval; no protection bypass is authorized. The workflow publishes no downloadable artifact.
+Remote CI Run `31769929949` passed both Data Fabric jobs for current Engineering Source `70c56d95ab28cdee963ad7bfc4332d0515d6418c` at evidence checkpoint `22b3549a804d33a67ef79233cdb866f2b3d70850`. PR `#92` now requires the two applicable Data Fabric checks and one independent approval; no protection bypass is authorized. The workflow publishes no downloadable artifact.
 
 ## Current executable integration
 

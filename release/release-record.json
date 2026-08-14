@@ -5,7 +5,7 @@
   "release": "ynx-data-fabric-70c56d95ab28",
   "channel": "testnet-preview",
   "sourceCommit": "70c56d95ab28cdee963ad7bfc4332d0515d6418c",
-  "generatedAt": "2026-08-14T04:22:41Z",
+  "generatedAt": "2026-08-14T04:31:56Z",
   "phase": "INTEGRATE",
   "overallStatus": "ACTIVE",
   "states": {
@@ -83,16 +83,16 @@
       "typeScriptSDK": "passed"
     },
     "remoteCI": {
-      "runId": null,
+      "runId": 31769929949,
       "workflow": "data-fabric",
       "sourceCommit": "70c56d95ab28cdee963ad7bfc4332d0515d6418c",
-      "headCommit": null,
-      "status": "pending",
-      "conclusion": null,
-      "startedAt": null,
-      "duration": null,
+      "headCommit": "22b3549a804d33a67ef79233cdb866f2b3d70850",
+      "status": "completed",
+      "conclusion": "success",
+      "startedAt": "2026-08-14T04:27:37Z",
+      "duration": "3m28s",
       "artifactsPublished": false,
-      "url": null
+      "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/31769929949"
     },
     "sourceCandidate": {
       "tag": "data-fabric-v0.2.0-source-candidate",

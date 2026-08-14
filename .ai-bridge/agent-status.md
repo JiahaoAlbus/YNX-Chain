@@ -5,8 +5,8 @@
 - Workspace: exact configured YNX 26 Worktree verified
 - Branch: `codex/final-data-fabric`
 - Engineering Source Commit: `70c56d95ab28cdee963ad7bfc4332d0515d6418c`
-- Remote Source Commit: current source/evidence update is not yet pushed to review Branch `codex/data-fabric-typescript-sdk-20260814`; protected target merge is pending
-- Source CI: pending for current Source; Run `31768273194` passed both jobs for prior source `6fbe0d33f4b4de3237391646d582e79cfee30a3c`
+- Remote Source Commit: current source and evidence checkpoint `22b3549a804d33a67ef79233cdb866f2b3d70850` is on review Branch `codex/data-fabric-typescript-sdk-20260814`; protected target merge is pending
+- Source CI: Run `31769929949` passed both jobs for current Source `70c56d95ab28cdee963ad7bfc4332d0515d6418c`
 - Concurrent writer: no Git writer detected; an existing CodexPro server process was left untouched
 - Dirty state: reviewed and verified source-bound evidence slice awaiting commit and push; legacy recovery files are preserved under `recovery/2026-07-23/`
 

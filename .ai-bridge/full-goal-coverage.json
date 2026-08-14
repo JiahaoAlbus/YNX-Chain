@@ -6,7 +6,7 @@
   "overallStatus": "ACTIVE",
   "sourceCommit": "70c56d95ab28cdee963ad7bfc4332d0515d6418c",
   "release": "ynx-data-fabric-70c56d95ab28",
-  "lastUpdated": "2026-08-14T04:22:41Z",
+  "lastUpdated": "2026-08-14T04:31:56Z",
   "items": [
     {
       "id": "DF-RECOVER-001",
@@ -30,15 +30,15 @@
       "requirement": "Protect verified engineering changes on codex/final-data-fabric and verify Local SHA equals the remote branch SHA.",
       "applicability": "applicable",
       "status": "inProgress",
-      "evidence": ["engineering source commit 70c56d95ab28cdee963ad7bfc4332d0515d6418c is committed locally for review branch delivery", "GitHub Actions run 31768273194 passed prior source 6fbe0d33f4b4de3237391646d582e79cfee30a3c", "complete verified prior Git bundle and SHA-256 manifest exist", "protected target requires the two applicable Data Fabric checks and one independent approval"],
+      "evidence": ["engineering source commit 70c56d95ab28cdee963ad7bfc4332d0515d6418c and evidence checkpoint 22b3549a804d33a67ef79233cdb866f2b3d70850 are on remote review branch codex/data-fabric-typescript-sdk-20260814", "GitHub Actions run 31769929949 passed both Data Fabric jobs for the current engineering source", "complete verified prior Git bundle and SHA-256 manifest exist", "protected target requires the two applicable Data Fabric checks and one independent approval"],
       "sourceCommit": "70c56d95ab28cdee963ad7bfc4332d0515d6418c",
-      "tests": ["git push origin HEAD:refs/heads/codex/data-fabric-typescript-sdk-20260814", "git ls-remote origin refs/heads/codex/data-fabric-typescript-sdk-20260814", "GitHub Actions run 31768273194", "git bundle verify and shasum -a 256 -c SHA256SUMS"],
+      "tests": ["git push origin HEAD:refs/heads/codex/data-fabric-typescript-sdk-20260814", "git ls-remote origin refs/heads/codex/data-fabric-typescript-sdk-20260814", "GitHub Actions run 31769929949", "git bundle verify and shasum -a 256 -c SHA256SUMS"],
       "artifact": null,
       "publicProof": null,
       "blockedBy": [],
       "owner": "YNX Data Fabric",
       "nextAction": "Push current source to PR 92, wait for both applicable checks and merge only after independent approval; never force or bypass protection.",
-      "lastUpdated": "2026-08-14T04:22:41Z"
+      "lastUpdated": "2026-08-14T04:31:56Z"
     },
     {
       "id": "DF-EVENT-001",
@@ -262,7 +262,7 @@
       "blockedBy": [],
       "owner": "YNX Data Fabric",
       "nextAction": "Run Go and TypeScript SDKs against accepted central Wallet/App Gateway and shared-Testnet endpoints; add only owner-requested languages.",
-      "lastUpdated": "2026-08-14T04:22:41Z"
+      "lastUpdated": "2026-08-14T04:31:56Z"
     },
     {
       "id": "DF-MIGRATION-001",
