@@ -3,7 +3,7 @@ import test from "node:test";
 import {
   SESSION_KEY, WalletWebError, YNX_CHAIN, addYNXChain, connectWallet, discoverInjectedProviders,
   forgetSession, readRememberedSession, rememberSession, resolveRememberedWallet,
-  restoreTestnetSession, sendTransaction, signMessage, subscribeProviderLifecycle,
+  invalidatesConnectedSession, restoreTestnetSession, sendTransaction, signMessage, subscribeProviderLifecycle,
   switchToYNXChain, verifyTestnetRpc, walletActionGates,
 } from "../src/provider.js";
 
@@ -139,6 +139,11 @@ test("action gates require a provider and an exact connected Testnet account", (
   assert.deepEqual(walletActionGates(null,null,null),{canAddChain:false,canSwitchChain:false,canSign:false,canSendTransaction:false});
   assert.deepEqual(walletActionGates(provider(),ACCOUNT,"0x1"),{canAddChain:true,canSwitchChain:true,canSign:false,canSendTransaction:false});
   assert.deepEqual(walletActionGates(provider(),ACCOUNT,"0x1917"),{canAddChain:true,canSwitchChain:true,canSign:true,canSendTransaction:true});
+});
+
+test("only authoritative provider identity failures invalidate the connected UI session", () => {
+  for (const code of ["ACCOUNT_CHANGED","WRONG_NETWORK","WALLET_NOT_FOUND",4900,4901]) assert.equal(invalidatesConnectedSession({code}),true);
+  for (const code of ["RPC_UNAVAILABLE","INVALID_MESSAGE",4001,-32603,undefined]) assert.equal(invalidatesConnectedSession({code}),false);
 });
 
 test("provider lifecycle callbacks normalize accounts and unsubscribe exactly", () => {

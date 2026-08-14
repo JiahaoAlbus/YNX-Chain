@@ -2,7 +2,8 @@ import {LOCALES, catalog, isRTL} from "./i18n.js";
 import {
   YNX_DOWNLOAD_URL, addYNXChain, connectWallet, createExtensionProvider, discoverWallets,
   extensionWalletAvailability, forgetSession, rememberSession, restoreTestnetSession, sendTransaction,
-  resolveRememberedWallet, signMessage, subscribeProviderLifecycle, switchToYNXChain, walletActionGates,
+  invalidatesConnectedSession, resolveRememberedWallet, signMessage, subscribeProviderLifecycle,
+  switchToYNXChain, walletActionGates,
 } from "./provider.js";
 
 const app = document.querySelector("#app");
@@ -50,7 +51,11 @@ async function act(work, success) {
   setStatus(text("working"));
   for (const button of document.querySelectorAll("button")) button.disabled = true;
   try { const result = await work(); setStatus(success(result)); return result; }
-  catch (error) { setStatus(`${error?.code ? `${error.code}: ` : ""}${error?.message || "Request failed closed."}`, "error"); return null; }
+  catch (error) {
+    if (invalidatesConnectedSession(error)) invalidateConnectedState();
+    setStatus(`${error?.code ? `${error.code}: ` : ""}${error?.message || "Request failed closed."}`, "error");
+    return null;
+  }
   finally { for (const button of document.querySelectorAll("button")) button.disabled = false; applyActionGates(); }
 }
 
@@ -65,11 +70,15 @@ function applyActionGates() {
   }
 }
 
-function clearConnectedSession() {
+function invalidateConnectedState() {
   state.account = null;
   state.chainId = null;
   forgetSession();
   applyActionGates();
+}
+
+function clearConnectedSession() {
+  invalidateConnectedState();
   setStatus(text("disconnected"), "error");
 }
 

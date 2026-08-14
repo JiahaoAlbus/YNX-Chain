@@ -211,6 +211,10 @@ export function walletActionGates(provider, account, chainId) {
   });
 }
 
+export function invalidatesConnectedSession(error) {
+  return ["ACCOUNT_CHANGED", "WRONG_NETWORK", "WALLET_NOT_FOUND", 4900, 4901].includes(error?.code);
+}
+
 export function subscribeProviderLifecycle(provider, handlers = {}) {
   if (!provider || typeof provider.on !== "function") return () => {};
   const listeners = {

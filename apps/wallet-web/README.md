@@ -27,6 +27,9 @@ Every sign and transaction attempt independently rechecks both the exact chain
 and the currently authorized provider accounts before invoking `personal_sign`
 or `eth_sendTransaction`. This protects extension popups whose runtime proxy
 cannot subscribe to injected-provider lifecycle events.
+If that preflight proves an account change, wrong network, missing provider, or
+standard provider disconnect, the UI deletes the remembered session and keeps
+sign/transaction controls disabled until an explicit reconnect.
 
 ```sh
 npm test
