@@ -103,6 +103,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     )
   }
 
+  func application(_ application: NSApplication, open urls: [URL]) {
+    for url in urls {
+      deliver(url.absoluteString)
+    }
+  }
+
   @objc private func handleGetURL(event: NSAppleEventDescriptor, reply: NSAppleEventDescriptor) {
     guard let rawValue = event.paramDescriptor(forKeyword: keyDirectObject)?.stringValue else {
       deliver("")
