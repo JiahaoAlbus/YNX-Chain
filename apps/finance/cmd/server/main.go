@@ -16,7 +16,7 @@ var buildRelease = "local"
 var buildTime = "unknown"
 
 func main() {
-	store, err := finance.OpenStore(required("YNX_FINANCE_STATE_PATH"))
+	store, err := finance.OpenStoreWithDatabase(required("YNX_FINANCE_STATE_PATH"), os.Getenv("YNX_FINANCE_DATABASE_URL"))
 	if err != nil {
 		log.Fatal(err)
 	}
