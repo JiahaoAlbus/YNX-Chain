@@ -203,6 +203,12 @@ Commit `7701019bd38a3807e822e6a669e1f4ed18cec4cc` binds asynchronous recovery-ke
 
 Generation accepts exactly 32 bytes. Its temporary `Uint8Array` is overwritten in a `finally` block after success, lifecycle cancellation or invalid entropy length; only the encoded recovery key may enter the already guarded onboarding state. Verification passed Wallet 83/83, typecheck, product check, Social harness contract check, release-content check, full-goal coverage and `git diff --check`. A mode-0700 current-source Android Hermes export passed with 2,743 modules and all temporary links and export files were removed. No device command or interaction was performed, so `testedOnDevice`, `installedLocal`, `downloadHosted`, native-app `deployedPublic`, `productionSigned` and `storeReleased` remain false for this exact source.
 
+## Authorization audit lifecycle linearization checkpoint
+
+Commit `fa88cc80779a85956053ecc053353b5984a73209` moves the final Modal lifecycle assertion to each authorization audit decision's storage linearization point. Approval intent, callback-returned and explicit rejection now revalidate the exact Modal generation, selected account and expiry after queued audit reads and immediately before SecureStore mutation. A background transition, dismissal, account drift or expiry while an append is queued therefore leaves the audit unchanged; reject no longer bypasses the authorization attempt guard.
+
+Verification passed the focused audit 10/10 suite, Wallet 84/84, typecheck, product check, Social harness contract check, release-content check, full-goal coverage and `git diff --check`. A mode-0700 current-source Android Hermes export passed with 2,743 modules and all temporary links and export files were removed. No device command or interaction was performed, so `testedOnDevice`, `installedLocal`, `downloadHosted`, native-app `deployedPublic`, `productionSigned` and `storeReleased` remain false for this exact source.
+
 ## In-flight unlock invalidation checkpoint
 
 Commit `d7d198da176a010f6b9aae4e200ca9218b6ee847` prevents a pending biometric unlock from reopening a Wallet that was locked while the prompt or SecureStore read was in flight. Backgrounding, explicit user lock, reconstruction/restart, account switch and privacy-protection failure synchronously advance an unlock epoch. The policy checks foreground/epoch after biometric authorization and again after exact-account secure-material verification, immediately before dispatching unlock. The locked recovery entry is also disabled while unlock is pending.
