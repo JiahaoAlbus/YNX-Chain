@@ -12,9 +12,14 @@ export type AuthorizationAuditRecord = Readonly<{
 }>;
 
 export class AuthorizationAuditStore {
+  private pending:Promise<void>=Promise.resolve();
   constructor(private readonly storage:SecureStorageAdapter) {}
 
   async append(request:AuthorizationRequest, input:{action:AuthorizationAuditAction;account:string;at:string}):Promise<AuthorizationAuditRecord> {
+    return this.enqueue(()=>this.appendExclusive(request,input));
+  }
+
+  private async appendExclusive(request:AuthorizationRequest, input:{action:AuthorizationAuditAction;account:string;at:string}):Promise<AuthorizationAuditRecord> {
     const records=await this.load();
     const unsigned={
       schemaVersion:1 as const,
@@ -58,6 +63,10 @@ export class AuthorizationAuditStore {
   }
 
   async revoke(requestDigestValue:string,at:string,assertActive:()=>void=()=>{}):Promise<AuthorizationAuditRecord> {
+    return this.enqueue(()=>this.revokeExclusive(requestDigestValue,at,assertActive));
+  }
+
+  private async revokeExclusive(requestDigestValue:string,at:string,assertActive:()=>void):Promise<AuthorizationAuditRecord> {
     const records=await this.load();
     const source=[...records].reverse().find((item)=>item.requestDigest===requestDigestValue&&item.action==="approval-returned");
     if(!source)throw new Error("Approved Wallet authorization was not found");
@@ -67,6 +76,12 @@ export class AuthorizationAuditStore {
     assertActive();
     await this.storage.setItem(AUTHORIZATION_AUDIT_KEY,JSON.stringify([...records,record]));
     return record;
+  }
+
+  private enqueue<T>(operation:()=>Promise<T>):Promise<T>{
+    const result=this.pending.then(operation);
+    this.pending=result.then(()=>undefined,()=>undefined);
+    return result;
   }
 }
 

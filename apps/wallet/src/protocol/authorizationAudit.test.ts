@@ -5,6 +5,11 @@ import { AuthorizationAuditStore, AUTHORIZATION_AUDIT_KEY } from "./authorizatio
 import type { SecureStorageAdapter } from "../storage/walletRepository";
 
 class MemoryStorage implements SecureStorageAdapter{values=new Map<string,string>();async getItem(key:string){return this.values.get(key)??null}async setItem(key:string,value:string){this.values.set(key,value)}async deleteItem(key:string){this.values.delete(key)}}
+class ControlledStorage extends MemoryStorage{
+  private blocker:null|{started:()=>void;released:Promise<void>}=null;
+  blockNextWrite(){let started!:()=>void,release!:()=>void;const startedPromise=new Promise<void>(resolve=>{started=resolve}),released=new Promise<void>(resolve=>{release=resolve});this.blocker={started,released};return{started:startedPromise,release}}
+  override async setItem(key:string,value:string){const blocker=this.blocker;this.blocker=null;if(blocker){blocker.started();await blocker.released}await super.setItem(key,value)}
+}
 const account=walletIdentity(`${"00".repeat(31)}01`).account;
 const request:any={version:"1",nonce:"nonce_abcdefghijklmnopqrstuvwxyz12",chainId:"ynx_6423-1",requestingProduct:"social",productClientId:"ynx-social-v1",bundleId:"com.ynx.social",productDeviceAlgorithm:"p256-sha256",productDeviceKey:"AzrThhqVYhOSUWu1k-8FWD7S5YZvXLYmCjAXI3_Ym5Cv",callback:"ynx-social://com.ynx.social",scopes:["account:read","profile:link"],purpose:"Link account",issuedAt:"2026-07-15T11:59:00.000Z",expiresAt:"2026-07-15T12:04:00.000Z"};
 
@@ -35,4 +40,26 @@ test("dismissed revocation attempt cannot append an audit mutation",async()=>{
   const before=storage.values.get(AUTHORIZATION_AUDIT_KEY);
   await assert.rejects(store.revoke((await store.load())[0]!.requestDigest,"2026-07-15T12:01:00.000Z",()=>{throw new Error("backgrounded")}),/backgrounded/);
   assert.equal(storage.values.get(AUTHORIZATION_AUDIT_KEY),before);
+});
+
+test("concurrent audit append and duplicate revoke serialize without lost records",async()=>{
+  const storage=new ControlledStorage(),store=new AuthorizationAuditStore(storage),appendBlock=storage.blockNextWrite();
+  const approved=store.append(request,{action:"intent-approved",account,at:"2026-07-15T12:00:00.000Z"});
+  await appendBlock.started;
+  const returned=store.append(request,{action:"approval-returned",account,at:"2026-07-15T12:00:01.000Z"});
+  appendBlock.release();
+  await Promise.all([approved,returned]);
+  let records=await store.load();
+  assert.deepEqual(records.map(item=>[item.sequence,item.action]),[[1,"intent-approved"],[2,"approval-returned"]]);
+  assert.equal(records[1]!.previousHash,records[0]!.hash);
+
+  const revokeBlock=storage.blockNextWrite(),digest=records[0]!.requestDigest;
+  const first=store.revoke(digest,"2026-07-15T12:01:00.000Z");
+  await revokeBlock.started;
+  const duplicate=store.revoke(digest,"2026-07-15T12:01:01.000Z");
+  revokeBlock.release();
+  await first;
+  await assert.rejects(duplicate,/already revoked/);
+  records=await store.load();
+  assert.deepEqual(records.map(item=>[item.sequence,item.action]),[[1,"intent-approved"],[2,"approval-returned"],[3,"approval-revoked"]]);
 });
