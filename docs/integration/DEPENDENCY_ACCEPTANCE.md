@@ -31,12 +31,12 @@ Local acceptance is not central integration, public Testnet proof or production 
 
 | Owner delivery | Frozen source | Accepted boundary | Remaining false/pending boundary |
 | --- | --- | --- | --- |
-| Core Auth/Gateway | `e8744e55cb112138f18a5f7d2d9bdced3dc62363` | Bounded public Testnet auth lifecycle and device-proof signing; 15-case completion rejection matrix is local-only | Rejection public route, asset tx, reconnect, native release, production/store |
-| Web/PWA/Extensions | `86f7dd1dfa7101066d789d4f9d1886c0b14eaf13` | Edge-local PWA install, visible first/second windows and exact live `0x1917` RPC | Unpacked extension is not installed; cold process launch, callback, reconnect, hosting, production/store |
-| Android API 36 | `9f8079be143bbaea13c27c1073d0ae539de3e2ee` | Disposable-QA build/install/two cold launches/Testnet identity | Onboarding QA pending; persistent/production signing, tx, callback, reconnect, hosted current artifact |
+| Core Auth/Gateway | `674d07c3157ce33a4ee6419fd599aac5b2703255` | Bounded public Testnet auth lifecycle and device-proof signing; 15-case completion plus 16-case introspection/revoke matrices are local-only | New matrices are absent from the deployed public source; asset tx, reconnect, native release, production/store |
+| Web/PWA/Extensions | `85af602dc96ae476c723f8646de55a081b89ed46` | Edge-local PWA install, visible first/second windows, exact live `0x1917` RPC and fail-closed provider identity invalidation | Real-provider reconnect was not retested; callback, hosting, production/store remain false; unpacked extension is not installed |
+| Android API 36 | `52825ac7fce0d962271a920397eb838862130301` | Historical disposable-QA build/install/two cold launches/Testnet identity plus current-source strong-biometric, callback/replay and account-relock tests | Current-source device install/interaction, production signing, tx, callback delivery, reconnect and hosted artifact remain false |
 | iOS/macOS | `3150165e14f38031b9a089b029b623f67cd6df85` | macOS local ad-hoc lifecycle only | iOS current HEAD lacks an exact successful run record; callback, Testnet, production/store remain false |
-| Desktop/CLI/SDK | `53f2ad8225a5465ba9f4b1e41a69ab8d2c0bccaf` | Linux/Windows x64 native CI lifecycle; CLI proof signing; SDK clean-consumer Testnet read | Asset tx, reconnect, immutable public downloads, production/store |
+| Desktop/CLI/SDK | `1bdb7fb4991937eba4f74341bd123214f9776e92` | Linux/Windows x64 native CI lifecycle; Ubuntu AppImage portable lifecycle and post-upload hash verification; CLI proof signing; SDK clean-consumer Testnet read | AppImage install, asset tx, reconnect, immutable public downloads, production/store |
 
 Acceptance is enforced by `scripts/verify/wallet-auth-release-evidence-matrix.mjs`. GitHub Actions artifacts are temporary retention evidence, not `downloadHosted` product delivery.
 
-Protected local-only continuations Core `4b7ffa680fab9b56e949c28cea523d0334943b59` and Android `7a6d30bc90f63c52e27340c10334e16c2e774643` remain `pushPending=true`, `centralIntegrated=false`, and are not consumed for release truth.
+Core `806f342723bdc7911367b9db9a72c4f33cd0a3db` and Web `40cbf6f2` are pending later Owner evidence-freeze checkpoints. Core branch descendant `979b791a87320718e66832cf690755792e998ab5` is readable but lacks explicit terminal authority in this integration thread. None is consumed for release truth.

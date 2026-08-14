@@ -45,6 +45,7 @@ for (const owner of matrix.ownerSources ?? []) {
   for (const field of ["sourceCommit", "remoteCommitObserved"]) {
     if (!/^[0-9a-f]{40}$/.test(owner[field] ?? "")) fail(`${owner.owner}.${field} must be a full commit SHA`);
   }
+  if (owner.branchHeadObserved && !/^[0-9a-f]{40}$/.test(owner.branchHeadObserved)) fail(`${owner.owner}.branchHeadObserved must be a full commit SHA`);
   if (owner.sourceCommit !== owner.remoteCommitObserved) fail(`${owner.owner} was not frozen at the observed remote commit`);
   try {
     git("cat-file", "-e", `${owner.sourceCommit}^{commit}`);
@@ -54,7 +55,15 @@ for (const owner of matrix.ownerSources ?? []) {
   if (remote && remoteBranches) {
     const liveCommit = remoteBranches?.get(`refs/heads/${owner.branch}`);
     if (!liveCommit) fail(`${owner.owner} remote branch is missing: ${owner.branch}`);
-    if (liveCommit && liveCommit !== owner.sourceCommit) fail(`${owner.owner} remote branch drifted: expected ${owner.sourceCommit}, observed ${liveCommit}`);
+    const expectedHead = owner.branchHeadObserved ?? owner.sourceCommit;
+    if (liveCommit && liveCommit !== expectedHead) fail(`${owner.owner} remote branch drifted: expected ${expectedHead}, observed ${liveCommit}`);
+    if (liveCommit && liveCommit !== owner.sourceCommit) {
+      try {
+        execFileSync("git", ["merge-base", "--is-ancestor", owner.sourceCommit, liveCommit], { stdio: "ignore" });
+      } catch {
+        fail(`${owner.owner} frozen source is not an ancestor of observed branch head`);
+      }
+    }
   }
 }
 
@@ -132,6 +141,11 @@ for (const platform of matrix.platforms ?? []) {
   if (forbiddenProductionClass.test(platform.artifactClass ?? "")) {
     if (platform.gates?.productionSigned) fail(`${platform.id} forbidden artifact class cannot be productionSigned`);
     if (platform.gates?.storeReleased) fail(`${platform.id} forbidden artifact class cannot be storeReleased`);
+  }
+  if (platform.capabilities) {
+    for (const [name, value] of Object.entries(platform.capabilities)) {
+      if (typeof value !== "boolean") fail(`${platform.id}.capabilities.${name} must be boolean`);
+    }
   }
   if (platform.gates?.downloadHosted) fail(`${platform.id}.downloadHosted=true requires a public-download evidence type, which v1 intentionally has none`);
 }

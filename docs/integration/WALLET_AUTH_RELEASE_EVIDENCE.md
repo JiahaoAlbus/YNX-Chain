@@ -7,9 +7,9 @@ This is the central Integration view of platform delivery. The authoritative mac
 | Surface | Accepted direct boundary | Explicitly not promoted |
 | --- | --- | --- |
 | Gateway | Public Testnet authorization lifecycle, proof signing, replay rejection and revoke | Asset transaction, reconnect, native deployment, production signing, store release |
-| Web PWA | Exact pushed proof for Edge-local install, visible first/second windows and live `0x1917` RPC | Cold process launch, callback, reconnect, public hosting |
+| Web PWA | Exact pushed proof for Edge-local install, visible first/second windows, live `0x1917` RPC and fail-closed provider identity invalidation | Cold process launch, registered callback, real-provider reconnect, public hosting |
 | Browser extensions | Unsigned bundle build | Browser installation, extension launch, signing, store listing |
-| Android API 36 | Disposable-QA build, fresh install, two cold launches, exact Testnet identity | Onboarding QA remains pending; persistent/production signature, hosted current artifact, account/sign/tx/callback/reconnect |
+| Android API 36 | Historical disposable-QA build/install/two cold launches/Testnet identity; current-source biometric, callback/replay and relock tests | Current-source device install/interaction; persistent/production signature, hosted artifact, sign/tx/callback/reconnect |
 | iOS Simulator | Current HEAD pending in Actions at snapshot time | Every current-candidate promotion gate remains false |
 | macOS | Local ad-hoc build/install/open and second open | Canonical bridge callback, Testnet, signing, notarization, public hosting |
 | Linux/Windows desktop x64 | Current-HEAD native CI build/install/cold/second launch and exact Testnet read | Wallet signing, transaction, reconnect, hosted download, production signature |
@@ -34,8 +34,8 @@ node scripts/verify/wallet-auth-release-evidence-matrix.mjs --remote
 
 The verifier rejects a `true` gate unless a direct evidence record explicitly supports that exact platform/gate pair. It also rejects production/store promotion for temporary, unpacked, simulator, disposable, unsigned, ad-hoc or local-only artifact classes.
 
-The 2026-08-14 resumed snapshot froze commits only where the shared repository's local Owner branch and `origin/<branch>` remote-tracking ref were identical. A fresh live recheck was unavailable because the resumed sandbox could not resolve GitHub; this limitation promoted no gate and is recorded in the machine-readable matrix.
+The 2026-08-14 resumed snapshot was upgraded through GitHub Git-database readback. Every consumed checkpoint has an exact remote commit, parent, tree and evidence blob; Owner branches were fetched without touching the working tree. These source advances promoted no public, hosted, production, store, callback, reconnect, signing or transaction gate without direct evidence.
 
-Two later rescue commits are protected but excluded from release truth while push remains pending: Core `4b7ffa680fab9b56e949c28cea523d0334943b59` and Android `7a6d30bc90f63c52e27340c10334e16c2e774643`. Owner-reported passing tests do not make either commit remote, centrally integrated, hosted or public.
+The frozen checkpoints are Core `674d07c3157ce33a4ee6419fd599aac5b2703255`, Web `85af602dc96ae476c723f8646de55a081b89ed46`, Android `52825ac7fce0d962271a920397eb838862130301`, iOS/macOS `3150165e14f38031b9a089b029b623f67cd6df85`, and Desktop/CLI/SDK `1bdb7fb4991937eba4f74341bd123214f9776e92`.
 
-Later Owner signals also remain queued rather than consumed: Web `3829aa6d` awaits exact remote readback, iOS/macOS `9810d6fd56c5eb71d450ee71dbc18eb86e143ea1` awaits current-source CI, and Desktop AppImage run `31765520859` is in progress. None changes a release boolean.
+Later Owner signals remain queued rather than consumed: Core session-inventory source `806f342723bdc7911367b9db9a72c4f33cd0a3db` and Web offline source `40cbf6f2` await their terminal evidence checkpoints; iOS/macOS `9810d6fd56c5eb71d450ee71dbc18eb86e143ea1` still lacks completed current-source CI in this slice. The Core branch descendant `979b791a87320718e66832cf690755792e998ab5` is readable but lacks explicit Owner terminal authority. None changes a release boolean.

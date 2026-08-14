@@ -3,26 +3,33 @@
   "recordId": "wallet-auth-central-integration-2026-08-14",
   "productId": "wallet-auth",
   "owner": "02-wallet-auth-integration",
-  "recordedAt": "2026-08-14T02:35:00Z",
+  "recordedAt": "2026-08-14T03:17:12Z",
   "evidenceMatrix": {
     "path": "release/integration/wallet-auth-release-evidence-matrix.json",
-    "sha256": "7616753a282a5e3b5c21d6dc5e30bb80542382fc91d3ab08721b2cccb3556e5e",
+    "sha256": "b12069d58b09e2a9c03ef49532df13f98a3bc6336bef9bd7160df00cddbb0193",
     "platforms": 11,
     "gatesPerPlatform": 12,
     "trueGates": 42,
     "falseGates": 90,
-    "evidenceRecords": 20
+    "evidenceRecords": 24
   },
   "frozenOwnerSources": {
-    "coreAuthGateway": "e8744e55cb112138f18a5f7d2d9bdced3dc62363",
-    "webPwaExtensions": "86f7dd1dfa7101066d789d4f9d1886c0b14eaf13",
-    "androidApi36": "9f8079be143bbaea13c27c1073d0ae539de3e2ee",
+    "coreAuthGateway": "674d07c3157ce33a4ee6419fd599aac5b2703255",
+    "webPwaExtensions": "85af602dc96ae476c723f8646de55a081b89ed46",
+    "androidApi36": "52825ac7fce0d962271a920397eb838862130301",
     "iosMacos": "3150165e14f38031b9a089b029b623f67cd6df85",
-    "desktopCliSdk": "53f2ad8225a5465ba9f4b1e41a69ab8d2c0bccaf"
+    "desktopCliSdk": "1bdb7fb4991937eba4f74341bd123214f9776e92"
   },
-  "pendingOwnerCommits": [
-    "4b7ffa680fab9b56e949c28cea523d0334943b59",
-    "7a6d30bc90f63c52e27340c10334e16c2e774643"
+  "pendingOwnerEvidence": [
+    "806f342723bdc7911367b9db9a72c4f33cd0a3db",
+    "63d05e8f3eacd58f50037d6759099fd22ef30e88",
+    "a3dc6d52bfba48a3d272084828764192d4c7ac34",
+    "fc8c51f8bbd72399362611a1d85a6056d9419dc2",
+    "cd52568ba4041800528dd08fcd48b9e2ec4159c4",
+    "7d70e514a6a89dbbeb6b0c772430448e7db82994",
+    "e8c88e0ffdd7ecd90f1c719e3239758cb95ee2f3",
+    "9810d6fd56c5eb71d450ee71dbc18eb86e143ea1",
+    "979b791a87320718e66832cf690755792e998ab5"
   ],
   "releaseState": {
     "implementedLocal": true,
@@ -32,6 +39,8 @@
       "androidDisposableQa": true,
       "macosAdHoc": true,
       "linuxDesktopX64NativeCi": true,
+      "linuxAppImagePortableRun": true,
+      "linuxAppImageInstalled": false,
       "windowsDesktopX64NativeCi": true,
       "linuxCliNativeCi": true,
       "windowsCliX64NativeCi": true,
@@ -53,8 +62,8 @@
     "publicDownloadGate": "scripts/verify/wallet-auth-public-download-metadata-check.mjs"
   },
   "limitations": [
-    "The resumed sandbox could not resolve github.com; source commits were frozen only where shared local and origin remote-tracking refs exactly matched.",
-    "The central Integration branch is not committed or pushed while shared Git metadata is read-only, so integratedCentral remains false.",
+    "Consumed Owner checkpoints were verified through GitHub ref, commit parent, tree and evidence-blob readback.",
+    "The dedicated Integration ref is remotely protected, but integratedCentral remains false until an authorized central merge/deployment record exists.",
     "No candidate qualifies as an immutable public production download."
   ]
 }
