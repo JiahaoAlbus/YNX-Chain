@@ -22,6 +22,7 @@ const recoveryDisplayPrivacyPolicy=await readFile(new URL("../src/security/recov
 const recoveryRevealPolicy=await readFile(new URL("../src/security/recoveryRevealPolicy.ts",import.meta.url),"utf8");
 const storageResetLifecyclePolicy=await readFile(new URL("../src/security/storageResetLifecyclePolicy.ts",import.meta.url),"utf8");
 const authorizationLifecyclePolicy=await readFile(new URL("../src/security/authorizationLifecyclePolicy.ts",import.meta.url),"utf8");
+const callbackHandoffPolicy=await readFile(new URL("../src/security/callbackHandoffPolicy.ts",import.meta.url),"utf8");
 const foregroundDeepLinkPolicy=await readFile(new URL("../src/security/foregroundDeepLinkPolicy.ts",import.meta.url),"utf8");
 const sensitiveOperationPolicy=await readFile(new URL("../src/security/sensitiveOperationPolicy.ts",import.meta.url),"utf8");
 const startupDeepLinkPolicy=await readFile(new URL("../src/security/startupDeepLinkPolicy.ts",import.meta.url),"utf8");
@@ -71,6 +72,8 @@ for(const replayStore of [nonceReplayStore,actionReplayStore])for(const required
 assert.ok(source.includes("nonces.consume(activeRequest,now,()=>guard.verify(attempt,new Date()))"),"authorization nonce consumption must retain exact Modal lifecycle binding");
 assert.equal((source.match(/actionReplays\.consume\([^;]+,new Date\(\),\(\)=>guard\.verify\(attempt,new Date\(\)\)\)/g)??[]).length,4,"all action replay writes must retain exact Modal lifecycle binding");
 for(const required of ["append(request:AuthorizationRequest", "assertActive:()=>void=()=>{}", "assertActive();\n    await this.save([...records,record])"])assert.ok(audit.includes(required),`authorization audit decisions must revalidate lifecycle at the storage linearization point through ${required}`);
+for(const required of ["assertBeforeHandoff();","await openCallback();","await recordSuccessfulHandoff();","complete();"])assert.ok(callbackHandoffPolicy.includes(required),`authorization callback handoff must enforce ${required}`);
+assert.ok(source.includes('completeAuthorizationCallbackHandoff(()=>guard.verify(attempt,new Date()),()=>Linking.openURL(createCallbackURL(response as any)),()=>authorizationAudit.append(activeRequest,{action:"approval-returned"'),"authorization callback must validate before OS handoff and persist success after the handoff resolves");
 for(const required of ['action:"intent-approved"','action:"approval-returned"','action:"request-rejected"'])assert.ok(source.includes(`${required},account:selected.account`)&&source.includes("()=>guard.verify(attempt,new Date())"),`authorization ${required} must stay bound to its active Modal lifecycle`);
 for(const required of ["MAX_AUDIT_RECORDS=1000","MAX_AUDIT_BYTES=1024*1024","raw.length>MAX_AUDIT_BYTES","records.length>=MAX_AUDIT_RECORDS","await this.save([...records,record])"])assert.ok(audit.includes(required),`authorization audit must fail closed at bounded capacity through ${required}`);
 for(const required of ["assertStoredTransition(records,record)","Wallet authorization audit contains conflicting decisions","Wallet authorization audit callback has no approval intent","Wallet authorization audit revocation has no returned approval"])assert.ok(audit.includes(required),`authorization audit reconstruction must replay its decision state machine through ${required}`);
