@@ -198,6 +198,12 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 		"Observed YNXT funds flow",
 		"id=\"olderBlocks\"",
 		"id=\"olderTransactions\"",
+		"const supplementalKeys = ['testnet','rpcIndexerVerified'",
+		"Incomplete Explorer locale:",
+		"data-i18n=\"identityTitle\"",
+		"data-i18n=\"footerBoundary\"",
+		"هوية YNX الأصلية أولًا.",
+		"Aucun lancement mainnet n’est revendiqué.",
 	} {
 		if !strings.Contains(html, marker) {
 			t.Fatalf("explorer web is missing live interaction marker %q", marker)
