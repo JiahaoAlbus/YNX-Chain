@@ -2,33 +2,33 @@
   "schemaVersion": 1,
   "productId": "wallet-desktop",
   "version": "0.1.0",
-  "sourceCommit": "7a3947d0302e923ecf7699e76a5fb443fbdf4f70",
+  "sourceCommit": "e46d7951b932bb2a2d6a9a5a2daddaba6728d1fe",
   "runtime": {
     "electron": "42.8.0",
     "node": "24.18.0"
   },
   "releaseClass": "unsigned-testnet-engineering-preview",
   "workflow": {
-    "runId": 31765903996,
-    "runUrl": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/31765903996",
-    "buildJobId": 94661633353,
-    "downloadVerificationJobId": 94661829327,
+    "runId": 31775537778,
+    "runUrl": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/31775537778",
+    "buildJobId": 94690104232,
+    "downloadVerificationJobId": 94690298596,
     "conclusion": "success",
     "runner": "ubuntu-24.04"
   },
   "artifact": {
-    "id": 9206305886,
+    "id": 9209737116,
     "name": "ynx-wallet-desktop-linux-x64-appimage",
-    "archiveBytes": 126108896,
-    "archiveSha256": "1415f242edc20e0668b9620c1faba13e2226886d246acc9083541ec6b3a06934",
-    "downloadedAndVerifiedOnNativeRunner": true,
+    "archiveBytes": 126106758,
+    "archiveSha256": "82600ad04d82867133e0739e7def51e77b9c1a12e8ecd7df2d4eb921deda4ac4",
+    "connectorDownloadedAndLocallyReverified": true,
     "files": [
       {
         "filename": "ynx-wallet-desktop-0.1.0-x86_64.AppImage",
         "format": "AppImage",
         "architecture": "x86_64",
-        "bytes": 126614751,
-        "sha256": "0f71d81566da947cb5e8f14362c3c7909c28192534c318f35d3853767bc11ce7",
+        "bytes": 126614750,
+        "sha256": "46fe24fce56f696c00efd578541b32a4c9a014b3df1ed4885d0b9255950970c2",
         "minimumOS": "Ubuntu 24.04 directly tested; broader Linux compatibility not evidenced",
         "signingClass": "unsigned_linux_desktop_testnet_candidate",
         "productionSigned": false,
@@ -38,19 +38,25 @@
     ]
   },
   "downloadVerificationArtifact": {
-    "id": 9206310224,
+    "id": 9209740502,
     "name": "ynx-wallet-desktop-linux-x64-appimage-download-verification",
     "archiveBytes": 402,
-    "archiveSha256": "97ca94084583464cb968e68a86fd6d78239a8277fd8674a8e415f73486541aa8",
+    "archiveSha256": "934f2813c23e941cf36df1b07247db3edd96c8af4cc0b45d5fd2f13a52b6332a",
+    "connectorDownloadedAndLocallyReverified": true,
     "manifestPresent": true,
     "lifecyclePresent": true,
     "sha256Verified": true,
     "bytesVerified": true
   },
   "lifecycleEvidence": {
-    "portableLaunchMode": "--appimage-extract-and-run",
-    "runtimeLaunchFlags": ["--appimage-extract-and-run", "--no-sandbox", "--disable-gpu"],
-    "chromiumProcessSandboxEnabled": false,
+    "portableLaunchMode": "AppImage payload extracted and executed through AppRun",
+    "runtimeLaunchFlags": [
+      "--disable-gpu"
+    ],
+    "appDirExplicitlyBoundToExtractedPayload": true,
+    "chromiumProcessSandboxEnabled": true,
+    "sandboxMode": "setuid chrome-sandbox root:root/4755",
+    "noSandboxFlagUsed": false,
     "coldLaunch": true,
     "secondLaunch": true,
     "processObserved": true,
@@ -74,6 +80,7 @@
     "testedLocal": true,
     "installedLocal": false,
     "portableRuntimeTestedNativeCI": true,
+    "sandboxedPortableRuntimeTestedNativeCI": true,
     "uploadedArtifactDownloadedAndVerifiedNativeCI": true,
     "integratedCentral": false,
     "deployedStaging": false,
@@ -81,5 +88,11 @@
     "downloadHosted": false,
     "productionSigned": false,
     "storeReleased": false
-  }
+  },
+  "priorFailedRuns": [
+    {
+      "runId": 31775381972,
+      "failure": "extracted AppRun did not receive APPDIR; no lifecycle gate was promoted"
+    }
+  ]
 }
