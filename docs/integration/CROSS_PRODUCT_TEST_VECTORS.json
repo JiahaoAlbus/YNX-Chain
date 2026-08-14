@@ -27,6 +27,17 @@
       "publicClaimAllowed": false
     },
     {
+      "id": "WA-GUARDIAN-RECOVERY-CREDENTIAL-ROTATION-001",
+      "category": "wallet-smart-account",
+      "owners": ["02-wallet-auth", "01-chain-core", "29-integration"],
+      "precondition": "Guardian Recovery has executed after its delay and replaced both owner and WebAuthn credential while EntryPoint nonce N is unused.",
+      "action": "Submit old-owner and old-passkey UserOperations at N, then submit new-owner at N and new-passkey UV at N+1.",
+      "expectedHttpStatus": null,
+      "expectedCode": "AA24 signature error",
+      "expectedState": "old credentials fail validation without nonce mutation; new owner and new passkey take over sequentially; every pre-recovery Session Key remains revoked",
+      "publicClaimAllowed": false
+    },
+    {
       "id": "WA-SESSION-EXACT-CALLDATA-001",
       "category": "wallet-smart-account",
       "owners": ["02-wallet-auth", "01-chain-core", "29-integration"],
