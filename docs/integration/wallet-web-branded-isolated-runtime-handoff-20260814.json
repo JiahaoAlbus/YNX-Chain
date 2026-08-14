@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "owner": "Wallet Web/PWA/Extensions",
+  "sourceCommit": "8650053233c060c77c978e29e6a8584fe275b430",
+  "status": "fail-closed",
+  "summary": "Single-browser branded runtime gates now use disposable isolated profiles, remove Playwright's conflicting extension blocker, enforce bounded stages, and terminate with the real gate status. Chrome and Edge still lack current-source service-worker/first-open/second-open proof; branded Firefox is absent.",
+  "tests": {
+    "sourceRegression": "70/70 passed",
+    "packageVerification": "3/3 passed",
+    "chromeRuntime": "exit 1; service-worker timeout; false",
+    "edgeRuntime": "exit 1; persistent-context timeout; false",
+    "firefoxRuntime": "not attempted because branded binary is absent"
+  },
+  "artifact": {
+    "name": "ynx-wallet-chrome-edge-0.1.0.zip",
+    "bytes": 188846,
+    "sha256": "c733093dea47c6612c8a9d5ecea40be2227f62402f4b4966955c9e1accf4e2aa",
+    "minimumOS": "Chrome 120 / Edge 120",
+    "signingClass": "unsigned-unpacked-extension"
+  },
+  "evidence": "apps/wallet-web/evidence/runtime/branded-isolated-runtime-boundary-20260814.json",
+  "releaseStates": {
+    "chromeInstalledLocal": false,
+    "edgeInstalledLocal": false,
+    "firefoxInstalledLocal": false,
+    "downloadHosted": false,
+    "deployedPublic": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}
