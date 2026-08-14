@@ -28,16 +28,16 @@ trap cleanup EXIT INT TERM
 chmod 0700 "$custody"
 
 store_password_file="$custody/store-password"
-key_password_file="$custody/key-password"
 keystore="$custody/wallet-disposable-qa.p12"
 alias_name="ynx-wallet-disposable-qa"
 openssl rand -base64 48 | tr -d '\n' >"$store_password_file"
 printf '\n' >>"$store_password_file"
-openssl rand -base64 48 | tr -d '\n' >"$key_password_file"
-printf '\n' >>"$key_password_file"
-chmod 0600 "$store_password_file" "$key_password_file"
+chmod 0600 "$store_password_file"
 export YNX_QA_STORE_PASSWORD="$(<"$store_password_file")"
-export YNX_QA_KEY_PASSWORD="$(<"$key_password_file")"
+# PKCS12 requires the private key and store to use the same password. Reuse
+# the single high-entropy disposable secret instead of passing a key password
+# that keytool would silently ignore and Gradle could not decrypt.
+export YNX_QA_KEY_PASSWORD="$YNX_QA_STORE_PASSWORD"
 "$java_home/bin/keytool" -genkeypair -noprompt \
   -storetype PKCS12 -keystore "$keystore" -storepass:env YNX_QA_STORE_PASSWORD \
   -keypass:env YNX_QA_KEY_PASSWORD -alias "$alias_name" -keyalg RSA -keysize 3072 \
