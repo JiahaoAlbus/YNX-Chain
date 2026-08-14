@@ -13,6 +13,7 @@
     "verify:package": "node scripts/verify-package.mjs",
     "test:runtime:branded": "npm run build && node scripts/runtime-branded.mjs",
     "test:runtime:bridge": "npm run build && node scripts/runtime-bridge-gate.mjs",
+    "test:runtime:preferences": "npm run build && node scripts/runtime-preferences-gate.mjs",
     "test:runtime:firefox-compatible": "npm run build && node scripts/runtime-firefox-compatible.mjs"
   },
   "devDependencies": {

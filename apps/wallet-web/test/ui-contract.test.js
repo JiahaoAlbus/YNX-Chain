@@ -20,6 +20,9 @@ test("390px RTL dark and large-text preview contracts remain buildable", async (
   assert.match(index,/<html lang="en">/);
   assert.match(app,/document\.documentElement\.dir = isRTL\(state\.locale\)/);
   assert.match(app,/requestedText === "large"/);
+  assert.match(app,/loadPreferences\(localStorage\)/);
+  assert.match(app,/acceptPreferenceUpdate\(state\.preferences,event\.newValue\)/);
+  assert.match(app,/preferencesRejected/);
   assert.match(styles,/@media\(max-width:520px\)/);
   assert.match(accessibility,/font-size: 125%/);
   assert.match(accessibility,/\.wallets a/);

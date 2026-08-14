@@ -1,4 +1,5 @@
 import {LOCALES, catalog, isRTL} from "./i18n.js";
+import {PREFERENCES_KEY,acceptPreferenceUpdate,loadPreferences,savePreferences} from "./preferences.js";
 import {
   METAMASK_DOWNLOAD_URL, YNX_DOWNLOAD_URL, addYNXChain, connectWallet, createExtensionProvider, discoverWallets,
   extensionWalletAvailability, forgetSession, rememberSession, restoreTestnetSession, sendTransaction,
@@ -12,9 +13,11 @@ const preview = new URLSearchParams(location.search);
 const requestedLocale = preview.get("lang");
 const requestedTheme = preview.get("theme");
 const requestedText = preview.get("text");
+const loadedPreferences=loadPreferences(localStorage);
 const state = {
-  locale: LOCALES.some(([locale]) => locale === requestedLocale) ? requestedLocale : localStorage.getItem("ynx.wallet.web.locale") || "en",
-  theme: ["light", "dark"].includes(requestedTheme) ? requestedTheme : localStorage.getItem("ynx.wallet.web.theme") || "system",
+  locale: LOCALES.some(([locale]) => locale === requestedLocale) ? requestedLocale : loadedPreferences.record.locale,
+  theme: ["light", "dark"].includes(requestedTheme) ? requestedTheme : loadedPreferences.record.theme,
+  preferences: loadedPreferences.record,
   provider: null, wallet: null, account: null, chainId: null, unsubscribeProvider: null,
 };
 
@@ -116,8 +119,8 @@ async function connect(wallet) {
 }
 
 function bind() {
-  document.querySelector("#locale").addEventListener("change", (event) => {state.locale = event.target.value; localStorage.setItem("ynx.wallet.web.locale", state.locale); render(); detect();});
-  document.querySelector("#theme").addEventListener("click", () => {state.theme = state.theme === "dark" ? "light" : "dark"; localStorage.setItem("ynx.wallet.web.theme", state.theme); render(); detect();});
+  document.querySelector("#locale").addEventListener("change", (event) => {state.locale = event.target.value; state.preferences=savePreferences(localStorage,state.preferences,{locale:state.locale}); render(); detect();});
+  document.querySelector("#theme").addEventListener("click", () => {state.theme = state.theme === "dark" ? "light" : "dark"; state.preferences=savePreferences(localStorage,state.preferences,{theme:state.theme}); render(); detect();});
   document.querySelector("#ynx").addEventListener("click", () => connect("ynx"));
   document.querySelector("#metamask").addEventListener("click", (event) => {
     if (!state.providers?.metamask) return;
@@ -147,5 +150,6 @@ async function detect() {
   }
 }
 
-render(); detect().catch((error) => setStatus(error?.message || "Wallet detection failed closed.", "error"));
+render(); detect().then(()=>{if(loadedPreferences.status==="rejected")setStatus(text("preferencesRejected"),"error")}).catch((error) => setStatus(error?.message || "Wallet detection failed closed.", "error"));
+addEventListener("storage",(event)=>{if(event.key!==PREFERENCES_KEY)return;try{const next=acceptPreferenceUpdate(state.preferences,event.newValue);state.preferences=next;state.locale=next.locale;state.theme=next.theme;render();detect().catch((error)=>setStatus(error?.message||"Wallet detection failed closed.","error"))}catch(error){setStatus(`${error?.code||"PREFERENCES_REJECTED"}: ${text("preferencesRejected")}`,"error")}});
 if (!isExtension && "serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js", {type:"module"}).catch(() => {});

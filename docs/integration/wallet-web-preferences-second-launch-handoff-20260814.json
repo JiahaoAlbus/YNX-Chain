@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "owner": "wallet-web-pwa-extensions",
+  "sourceBaseline": "ae55e8272018979abb6cb393307755c063f71f38",
+  "slice": "versioned non-sensitive preferences and fail-closed second launch",
+  "restoredFields": [
+    "locale",
+    "theme"
+  ],
+  "neverRestoredByThisRecord": [
+    "provider",
+    "account",
+    "signature",
+    "transaction",
+    "authorization success"
+  ],
+  "runtimeEvidence": "apps/wallet-web/evidence/runtime/pwa-preferences-second-launch-20260814.json",
+  "runtimeClass": "Playwright bundled Chromium-compatible PWA; not branded Chrome/Edge and not an installed PWA",
+  "proved": {
+    "persistentProfileSecondLaunch": true,
+    "arabicRtlDark": true,
+    "viewport390NoHorizontalOverflow": true,
+    "downloadRouteVisibleAndNonempty": true,
+    "metaMaskRouteVisibleAndNonempty": true,
+    "invalidJsonResetVisible": true,
+    "staleRevisionReplayRejectedBySourceGate": true
+  },
+  "releaseStates": {
+    "installedLocal": false,
+    "integratedCentral": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

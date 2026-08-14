@@ -9,7 +9,7 @@ const en = {
   detected: "YNX Wallet detected", connectYNX: "Open YNX Wallet", download: "Download YNX Wallet", metamask: "Use MetaMask", unavailable: "No supported wallet detected",
   add: "Add YNX Testnet", switch: "Switch network", sign: "Sign message", send: "Send transaction", message: "Message", recipient: "Recipient", value: "Value (hex wei)", data: "Data (hex)",
   connected: "Connected", disconnected: "Not connected", rpcCheck: "Live RPC verification is required before chain or transaction changes.", testnet: "Testnet assets have no represented monetary value.",
-  light: "Light", dark: "Dark", language: "Language", status: "Status", txHash: "Transaction hash", signature: "Signature", working: "Waiting for wallet approval…",
+  light: "Light", dark: "Dark", language: "Language", status: "Status", txHash: "Transaction hash", signature: "Signature", working: "Waiting for wallet approval…", preferencesRejected: "Saved display preferences were invalid or stale and were reset safely.",
 };
 
 const overrides = {

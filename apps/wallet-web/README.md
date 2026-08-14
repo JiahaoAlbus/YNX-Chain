@@ -5,6 +5,13 @@ seed material, bearer tokens, balances, users, or transactions. It consumes the
 frozen YNX Testnet identity (`6423`, `0x1917`) and does not define a Wallet/Auth
 protocol.
 
+Locale and theme are the only preferences restored across launches. They are
+stored in one versioned, expiring, non-sensitive record with a monotonic
+revision. Invalid JSON, unknown fields, expired records, and stale cross-window
+updates fail closed to English and the system theme, remove the rejected record,
+and surface a visible error. Accounts, provider authority, signatures, and
+transactions are never included in this preference record.
+
 The PWA detects an injected YNX Wallet first. When one is present, the primary
 action connects it directly. Otherwise the UI offers the official YNX Wallet
 download and an explicit MetaMask path. The Chrome/Edge and Firefox companion
