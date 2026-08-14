@@ -21,8 +21,16 @@ export class AuthorizationAuditStore {
     return this.enqueue(()=>this.appendExclusive(request,input,assertActive));
   }
 
+  async ensure(request:AuthorizationRequest,input:{action:"intent-approved"|"approval-returned";account:string;at:string},assertActive:()=>void=()=>{}):Promise<AuthorizationAuditRecord>{
+    return this.enqueue(async()=>{const records=await this.load(),digest=requestDigest(request),account=strictAccount(input.account);const existing=records.find(record=>record.requestDigest===digest&&record.action===input.action);if(existing){if(existing.account!==account)throw new Error("Wallet authorization audit account differs from the persisted decision");assertActive();return existing}return this.appendFromRecords(records,request,input,assertActive)});
+  }
+
   private async appendExclusive(request:AuthorizationRequest, input:{action:AuthorizationAuditAction;account:string;at:string}, assertActive:()=>void):Promise<AuthorizationAuditRecord> {
     const records=await this.load();
+    return this.appendFromRecords(records,request,input,assertActive);
+  }
+
+  private async appendFromRecords(records:readonly AuthorizationAuditRecord[],request:AuthorizationRequest, input:{action:AuthorizationAuditAction;account:string;at:string}, assertActive:()=>void):Promise<AuthorizationAuditRecord> {
     if(records.length>=MAX_AUDIT_RECORDS)throw new Error("Wallet authorization audit capacity is exhausted");
     const action=strictAction(input.action),digest=requestDigest(request),account=strictAccount(input.account);
     assertDecisionTransition(records,digest,action,account);

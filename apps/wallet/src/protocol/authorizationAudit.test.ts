@@ -84,6 +84,15 @@ test("callback audit stays on the intent account and decisions survive store rec
   assert.deepEqual((await restarted.load()).map(record=>[record.action,record.account]),[["intent-approved",account]]);
 });
 
+test("restart recovery idempotently ensures exact approval intent and returned audit",async()=>{
+  const storage=new MemoryStorage(),store=new AuthorizationAuditStore(storage);
+  const intent=await store.ensure(request,{action:"intent-approved",account,at:"2026-07-15T12:00:00.000Z"});
+  assert.equal((await new AuthorizationAuditStore(storage).ensure(request,{action:"intent-approved",account,at:"2026-07-15T12:00:01.000Z"})).hash,intent.hash);
+  const returned=await store.ensure(request,{action:"approval-returned",account,at:"2026-07-15T12:00:02.000Z"});
+  assert.equal((await new AuthorizationAuditStore(storage).ensure(request,{action:"approval-returned",account,at:"2026-07-15T12:00:03.000Z"})).hash,returned.hash);
+  assert.deepEqual((await store.load()).map(item=>item.action),["intent-approved","approval-returned"]);
+});
+
 test("audit capacity and oversized storage fail closed without corrupting the existing chain",async()=>{
   const storage=new MemoryStorage(),store=new AuthorizationAuditStore(storage);
   await store.append(request,{action:"request-rejected",account,at:"2026-07-15T12:00:00.000Z"});
