@@ -17,6 +17,10 @@ successful eight-runtime release record.
 
 ## Product behavior
 
+- Project-wide replace evidence: `test/project-replace-ui.test.js` executes the
+  literal replacement planner across files, including case policy, regex-like
+  search text and `$` replacement text, and holds the UI to exact preview counts,
+  confirmation, collaboration write policy, dirty tracking and recovery wording.
 - Editor settings evidence: `test/editor-settings-ui.test.js` holds the formerly
   inactive Settings control to a real dialog, sanitized restart-persistent
   preferences, Monaco option wiring and explicit revisioned workspace save when

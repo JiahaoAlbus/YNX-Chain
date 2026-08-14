@@ -1,5 +1,5 @@
 import * as Dialog from "@radix-ui/react-dialog";
-import { Braces, Bug, ChevronDown, Cloud, Files, GitBranch, History, Link2, Play, Save, Search, Settings, Sparkles, SplitSquareHorizontal, TerminalSquare, Users, X } from "lucide-react";
+import { Braces, Bug, Cloud, Files, GitBranch, History, Link2, Play, Save, Search, Settings, Sparkles, SplitSquareHorizontal, TerminalSquare, Users, X } from "lucide-react";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "../components/ui/button";
 import { DebugPanel } from "../debug/DebugPanel";
@@ -12,6 +12,7 @@ import { SourceControlPanel } from "../scm/SourceControlPanel";
 import { InteractiveTerminal, TerminalPanel } from "../terminal/TerminalPanel";
 import { AgentPanel } from "../chat/AgentPanel";
 import { WorkspaceHistoryPanel } from "../history/WorkspaceHistoryPanel";
+import { buildLiteralReplacement } from "../search/literalReplace";
 
 const CodeEditor = lazy(() => import("../editor/CodeEditor"));
 const CollaborationPanel = lazy(() =>
@@ -64,7 +65,6 @@ function loadEditorPreferences(): EditorPreferences {
     return defaultEditorPreferences;
   }
 }
-
 async function sha256Text(content: string) {
   const bytes = new TextEncoder().encode(content),
     digest = await crypto.subtle.digest("SHA-256", bytes);
@@ -110,6 +110,8 @@ export function Workbench() {
     [runReview, setRunReview] = useState(false),
     [theme, setTheme] = useState<"light" | "dark">(() => (localStorage.getItem("ynx-code-theme") === "light" ? "light" : "dark")),
     [search, setSearch] = useState(""),
+    [replacement, setReplacement] = useState(""),
+    [matchCase, setMatchCase] = useState(false),
     [hydrated, setHydrated] = useState(false),
     [breakpoints, setBreakpoints] = useState<Record<string, number[]>>({}),
     [debugLine, setDebugLine] = useState<number>(),
@@ -546,17 +548,29 @@ export function Workbench() {
     }));
   }, [project.id]);
   const results = useMemo(() => {
-    const query = search.toLowerCase();
+    const query = matchCase ? search : search.toLocaleLowerCase();
     if (!query) return [];
     return Object.entries(project.files)
       .flatMap(([path, content]) =>
         content
           .split("\n")
           .map((line, index) => ({ path, line, index: index + 1 }))
-          .filter((item) => item.line.toLowerCase().includes(query)),
+          .filter((item) => (matchCase ? item.line : item.line.toLocaleLowerCase()).includes(query)),
       )
       .slice(0, 200);
-  }, [project.files, search]);
+  }, [matchCase, project.files, search]);
+  const replacementPlan = useMemo(() => buildLiteralReplacement(project.files, search, replacement, matchCase), [matchCase, project.files, replacement, search]);
+  const replaceAll = () => {
+    if (!replacementPlan.matches || collaborationReadOnly) return;
+    if (!window.confirm(`Replace ${replacementPlan.matches} literal match${replacementPlan.matches === 1 ? "" : "es"} across ${replacementPlan.changedPaths.length} file${replacementPlan.changedPaths.length === 1 ? "" : "s"}? The changed files will remain recoverable in Workspace History.`)) return;
+    const changed = new Set(replacementPlan.changedPaths);
+    setProject((current) => ({
+      ...current,
+      revision: current.revision + 1,
+      files: replacementPlan.files,
+    }));
+    setDirty((current) => new Set([...current, ...changed]));
+  };
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.shiftKey && event.key.toLowerCase() === "p") {
@@ -666,6 +680,12 @@ export function Workbench() {
               <strong>SEARCH</strong>
             </header>
             <input autoFocus className="search-input" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search files" />
+            <div className="replace-controls">
+              <input value={replacement} onChange={(event) => setReplacement(event.target.value)} placeholder="Replace with" aria-label="Replace with" />
+              <label><input type="checkbox" checked={matchCase} onChange={(event) => setMatchCase(event.target.checked)} /> Match case</label>
+              <button type="button" disabled={!replacementPlan.matches || collaborationReadOnly} onClick={replaceAll}>Replace all</button>
+              <small>{search ? `${replacementPlan.matches} literal matches in ${replacementPlan.changedPaths.length} files` : "Enter text to preview replacements"}</small>
+            </div>
             <div className="search-results">
               {results.map((item) => (
                 <button key={`${item.path}:${item.index}`} onClick={() => open(item.path)}>
@@ -727,9 +747,6 @@ export function Workbench() {
             </Button>
             <Button variant="default" onClick={() => setRunReview(true)} disabled={!project.active || running}>
               <Play size={13} /> Run
-            </Button>
-            <Button variant="ghost">
-              <ChevronDown size={13} />
             </Button>
           </div>
         </div>

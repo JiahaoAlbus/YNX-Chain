@@ -1,5 +1,14 @@
 # YNX Developer 0.2.0 Testnet Preview release notes
 
+## 2026-08-14 project-wide literal replace
+
+- Extended Search with case-sensitive or case-insensitive literal replacement,
+  exact match/file counts, explicit confirmation and multi-file dirty tracking.
+- Replacement treats regex metacharacters and replacement `$` sequences as
+  literal user text. Changed files enter the normal revisioned save and Workspace
+  History recovery path; read-only collaborators cannot apply replacements.
+- Removed the inactive editor-toolbar dropdown control.
+
 ## 2026-08-14 real editor settings
 
 - Replaced the inactive activity-bar Settings control with an accessible dialog

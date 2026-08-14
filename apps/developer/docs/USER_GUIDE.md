@@ -10,6 +10,13 @@ minimap, word wrap, auto-save and its delay. These preferences are stored only o
 the current device. When auto-save is off, use **Save** or `Ctrl/Cmd+S`; the save
 still goes through the revision-checked workspace service and reports conflicts.
 
+Open **Search** to find matching lines across the project. Enter replacement text,
+choose whether case must match, review the exact match and file counts, then use
+**Replace all**. The operation asks for confirmation, marks every changed file as
+unsaved and follows the normal auto-save/manual-save and Workspace History path.
+Search and replacement are literal; text such as `.` or `$&` is not interpreted
+as a regular expression or replacement command.
+
 The editor recognizes common source extensions through Monaco. The isolated
 workspace uses its reviewed pinned Solidity 0.8.36 compiler. For other registered languages, Compile asks once and the
 desktop runtime detects a broad catalog including C/C++, Objective-C, JavaScript,
