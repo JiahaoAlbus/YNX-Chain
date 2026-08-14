@@ -304,7 +304,7 @@ export function Workbench() {
   const activeContent = project.files[project.active] ?? "";
   const second = project.open.find((path) => path !== project.active);
   const testCandidates = useMemo(
-    () => Object.keys(project.files).filter((path) => /(?:\.(?:test|spec)\.(?:js|mjs|cjs)|(?:^|\/)(?:test_.+|.+_test)\.py|_test\.go|(?:^|\/)(?:test|tests)\/.+\.(?:c|cpp|cc|cxx)|(?:^|\/)src\/test\/java\/.+(?:Test|Tests)\.java)$/i.test(path)).sort(),
+    () => Object.entries(project.files).filter(([path, content]) => /(?:\.(?:test|spec)\.(?:js|mjs|cjs)|(?:^|\/)(?:test_.+|.+_test)\.py|_test\.go|(?:^|\/)(?:test|tests)\/.+\.(?:c|cpp|cc|cxx)|(?:^|\/)src\/test\/java\/.+(?:Test|Tests)\.java)$/i.test(path) || (path.endsWith(".rs") && /#\s*\[\s*test\s*\]/.test(content) && Object.hasOwn(project.files, "Cargo.toml"))).map(([path]) => path).sort(),
     [project.files],
   );
   const packageManifestReview = useMemo(() => {

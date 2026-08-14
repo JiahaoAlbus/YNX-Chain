@@ -254,6 +254,7 @@ test("C, JavaScript, TypeScript, Python and Go use real installed runtimes", asy
 test("project tests are discovered, one-time approved and run without network", async (t) => {
   const junitJar = process.env.YNX_CODE_JUNIT_CONSOLE_JAR || "/usr/local/share/ynx-code/junit-platform-console-standalone.jar",
     junitAvailable = await access(junitJar).then(() => true).catch(() => false),
+    cargoAvailable = Boolean(await resolveExecutable(["cargo"])),
     { url } = await fixture(t),
     cookie = await session(url),
     request = {
@@ -267,6 +268,10 @@ test("project tests are discovered, one-time approved and run without network", 
         "math_test.go": 'package mathcheck\nimport "testing"\nfunc TestReal(t *testing.T){if multiply(6,7)!=42{t.Fatal("wrong")}}',
         "tests/math.c": '#include <stdio.h>\nint main(void){if(6*7!=42)return 1;printf("C-TEST-PASS");return 0;}',
         "tests/math.cpp": '#include <iostream>\nint main(){if(6*7!=42)return 1;std::cout<<"CPP-TEST-PASS";}',
+        ...(cargoAvailable ? {
+          "Cargo.toml": '[package]\nname = "ynx_math"\nversion = "0.1.0"\nedition = "2021"\n',
+          "src/lib.rs": "pub fn multiply(a:i32,b:i32)->i32{a*b}\n#[cfg(test)] mod tests { use super::*; #[test] fn multiplies(){assert_eq!(multiply(6,7),42);} }\n",
+        } : {}),
         ...(junitAvailable ? {
           "src/main/java/dev/ynx/MathOps.java": "package dev.ynx; public final class MathOps { public static int multiply(int a,int b){return a*b;} }",
           "src/test/java/dev/ynx/MathOpsTest.java": "package dev.ynx; import org.junit.jupiter.api.Test; import static org.junit.jupiter.api.Assertions.assertEquals; final class MathOpsTest { @Test void multiplies(){ assertEquals(42,MathOps.multiply(6,7)); } }",
@@ -287,10 +292,11 @@ test("project tests are discovered, one-time approved and run without network", 
   assert.equal(value.sandbox.network, false);
   assert.match(value.output, /C-TEST-PASS/);
   assert.match(value.output, /CPP-TEST-PASS/);
+  if (cargoAvailable) assert.match(value.output, /test result: ok/);
   if (junitAvailable) assert.match(value.output, /1 tests successful/);
   assert.deepEqual(
     value.compiler.evidence.runners.map(({ language }) => language),
-    ["javascript", "python", "go", "c", "cpp", ...(junitAvailable ? ["java"] : [])],
+    ["javascript", "python", "go", "c", "cpp", ...(cargoAvailable ? ["rust"] : []), ...(junitAvailable ? ["java"] : [])],
   );
   const unapproved = await fetch(`${url}/runtime/tasks`, {
     method: "POST",
@@ -305,6 +311,22 @@ test("project tests are discovered, one-time approved and run without network", 
   });
   assert.equal(missing.status, 400);
   assert.equal((await missing.json()).code, "tests_missing");
+  const dependencyManifest = await fetch(`${url}/runtime/tasks`, {
+    method: "POST",
+    headers: { cookie, "content-type": "application/json" },
+    body: JSON.stringify({ ...request, files: { "Cargo.toml": '[package]\nname = "unsafe"\nversion = "0.1.0"\nedition = "2021"\n[dependencies]\nserde = "1"\n', "src/lib.rs": "#[test] fn blocked(){}" } }),
+  });
+  assert.equal(dependencyManifest.status, 400);
+  assert.equal((await dependencyManifest.json()).code, "invalid_cargo_manifest");
+  if (cargoAvailable) {
+    const externalLock = await fetch(`${url}/runtime/tasks`, {
+      method: "POST",
+      headers: { cookie, "content-type": "application/json" },
+      body: JSON.stringify({ ...request, files: { "Cargo.toml": '[package]\nname = "unsafe"\nversion = "0.1.0"\nedition = "2021"\n', "Cargo.lock": 'version = 4\n\n[[package]]\nname = "unsafe"\nversion = "0.1.0"\nsource = "registry+https://github.com/rust-lang/crates.io-index"\n', "src/lib.rs": "#[test] fn blocked(){}" } }),
+    });
+    assert.equal(externalLock.status, 400);
+    assert.equal((await externalLock.json()).code, "invalid_cargo_lock");
+  }
 });
 test("Rust is compiled and executed when the reviewed toolchain is installed", { skip: !(await resolveExecutable(["rustc"])) }, async (t) => {
   const { url } = await fixture(t),

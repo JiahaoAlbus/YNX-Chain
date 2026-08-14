@@ -1,5 +1,20 @@
 # YNX Developer 0.2.0 Testnet Preview release notes
 
+## 2026-08-14 real offline Cargo project-test candidate
+
+- Added server-side discovery of Rust `#[test]` functions and a real Cargo test
+  phase. It accepts only a minimal dependency-free `[package]` manifest, creates
+  or verifies the canonical dependency-free lock, and runs `cargo test --offline
+  --locked` with an isolated target and Cargo home inside `.ynx-build`.
+- The test action preserves the existing one-time approval, 32-file/20-phase,
+  process, time, output and no-network boundaries. It does not read the user's
+  Cargo cache, run build scripts from dependencies or claim Cargo package
+  installation.
+- The reviewed image gate now requires both `rustc` and `cargo`; the direct test
+  executes with the official Rust `1.92.0` macOS arm64 archive after verifying
+  SHA-256 `22276ecf826b22e718f099d7bf7ddb8c88aa46230fdba74962ab3c5031472268`.
+  Solidity-framework project tests remain open.
+
 ## 2026-08-14 real JUnit project-test candidate
 
 - Added server-side discovery for `*Test.java` and `*Tests.java` below

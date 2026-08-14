@@ -62,6 +62,8 @@ lxc exec "$builder" -- mkdir -p /usr/local/share/ynx-code
 lxc exec "$builder" -- curl --http1.1 -fL --retry 10 --retry-all-errors --connect-timeout 20 "https://repo1.maven.org/maven2/org/junit/platform/junit-platform-console-standalone/$junit_version/junit-platform-console-standalone-$junit_version.jar" -o /usr/local/share/ynx-code/junit-platform-console-standalone.jar
 lxc exec "$builder" -- sh -c "printf '%s  %s\n' '$junit_sha256' /usr/local/share/ynx-code/junit-platform-console-standalone.jar | sha256sum -c -"
 lxc exec "$builder" -- java -jar /usr/local/share/ynx-code/junit-platform-console-standalone.jar --version
+lxc exec "$builder" -- sh -c 'rustc --version | grep "^rustc 1.92.0 "'
+lxc exec "$builder" -- sh -c 'cargo --version | grep "^cargo 1.92.0 "'
 
 lxc file push "$probe_path" "$builder/tmp/lsp-server-probe.mjs"
 lxc exec "$builder" -- node /tmp/lsp-server-probe.mjs

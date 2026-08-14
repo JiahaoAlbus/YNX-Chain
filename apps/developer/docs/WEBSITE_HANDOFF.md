@@ -32,7 +32,8 @@ records and Secret references, reconnectable terminal inventory and Stop,
 reviewed container loopback port previews, redacted running-task inventory and
 owner-bound queued/running-task cancellation, plus distinct C17 build/run/test
 and C LLDB debugging, Eclipse JDT LS-backed Java language intelligence, plus
-SHA-pinned JUnit Jupiter project-test execution in the no-network sandbox.
+SHA-pinned JUnit Jupiter and dependency-free offline Cargo project-test
+execution in the no-network sandbox.
 These capabilities must remain labelled
 `pending public verification` until the protected Developer candidate transaction
 returns `passed`, the public `/healthz` version matches the exact deployed commit,

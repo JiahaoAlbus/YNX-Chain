@@ -22,11 +22,14 @@ test("Project Test presents exact discovery and one-time no-network review", asy
 test("workspace test broker allowlists runners and never invokes package scripts", async () => {
   const runtime = await read("services/workspace-agent/src/runtime.mjs"),
     serviceTest = await read("services/workspace-agent/test/runtime.test.mjs");
-  for (const runner of ["javascript", "python", "go", "c", "cpp", "java"])
+  for (const runner of ["javascript", "python", "go", "c", "cpp", "rust", "java"])
     assert.match(runtime, new RegExp(`language: "${runner}"`));
   assert.match(runtime, /test_file_limit/);
   assert.match(runtime, /test_phase_limit/);
   assert.match(runtime, /tests_missing/);
+  assert.match(runtime, /"--offline", "--locked"/);
+  assert.match(runtime, /invalid_cargo_manifest/);
+  assert.match(runtime, /invalid_cargo_lock/);
   assert.doesNotMatch(runtime, /npm\s+(?:run\s+)?test|package\.json.*scripts/s);
   assert.match(serviceTest, /CPP-TEST-PASS/);
   assert.match(serviceTest, /C-TEST-PASS/);
