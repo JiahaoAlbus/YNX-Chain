@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "owner": "Wallet/Auth Web/PWA/Extensions",
+  "parentCommit": "550d0779a4511ad9c76df7525505f79c38c4555a",
+  "change": "Both landmark region labels are direct translations in all 12 locales; Arabic exposes exact RTL-language accessible names instead of English hardcoding.",
+  "evidence": "apps/wallet-web/evidence/runtime/built-localized-region-gate-20260814.json",
+  "tests": {
+    "source": "66/66 passed",
+    "packageInternal": "64/64 passed",
+    "exactZipLocalizedRegionGate": "3/3 passed",
+    "packageIntegrity": "3/3 passed"
+  },
+  "artifacts": [
+    {"name":"ynx-wallet-web-pwa-0.1.0.zip","bytes":272707,"sha256":"c84679c16d0ae48bdb4796bcaeb86a60c17f25bec4ec1cb87b202b00fbd300bf","minimumOS":"modern browser with Service Worker and Web Crypto support","signingClass":"unsigned-web-bundle"},
+    {"name":"ynx-wallet-chrome-edge-0.1.0.zip","bytes":188846,"sha256":"c733093dea47c6612c8a9d5ecea40be2227f62402f4b4966955c9e1accf4e2aa","minimumOS":"Chrome 120 / Edge 120","signingClass":"unsigned-unpacked-extension"},
+    {"name":"ynx-wallet-firefox-0.1.0.zip","bytes":188883,"sha256":"417d9b9e5babf05fdfdf8161504389eb99c636be75f94444bf4ff91a9b4536b3","minimumOS":"Firefox 128","signingClass":"unsigned-unpacked-extension"}
+  ],
+  "browser": {
+    "visibleRecheckPassed": false,
+    "blocker": "Browser URL safety policy still blocks the isolated offline error-page tab; no workaround was attempted."
+  },
+  "gates": {
+    "installedLocal": false,
+    "deployedPublic": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

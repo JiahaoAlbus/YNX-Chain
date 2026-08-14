@@ -35,14 +35,14 @@ function render() {
     <header><div class="brand"><img src="./ynx-logo.png" alt="YNX"><p class="eyebrow">${text("eyebrow")}</p></div>
       <div class="controls"><label><span class="hidden">${text("language")}</span><select id="locale" aria-label="${text("language")}">${options()}</select></label><button id="theme" type="button">${state.theme === "dark" ? text("light") : text("dark")}</button></div></header>
     <section aria-labelledby="title"><h1 id="title">${text("title")}</h1><p class="intro">${text("intro")}</p></section>
-    <section class="card" aria-label="Wallet connection"><div id="detected" class="eyebrow">${text("unavailable")}</div>
+    <section class="card" aria-label="${text("walletConnection")}"><div id="detected" class="eyebrow">${text("unavailable")}</div>
       <div class="wallets"><button id="ynx" class="primary hidden" type="button">${text("connectYNX")}</button><a id="download" href="${YNX_DOWNLOAD_URL}" class="secondary" rel="noreferrer" aria-describedby="download-meta">Android · ${text("download")}</a><a id="metamask" href="${METAMASK_DOWNLOAD_URL}" class="secondary" rel="noreferrer">${text("metamask")}</a></div>
       <p id="download-meta" class="download-meta mono">${escape(WALLET_DOWNLOAD_MATRIX.android.label)} · ${WALLET_DOWNLOAD_MATRIX.android.bytes.toLocaleString("en-US")} Bytes · SHA-256 ${escape(WALLET_DOWNLOAD_MATRIX.android.sha256)} · ${escape(WALLET_DOWNLOAD_MATRIX.android.signingClass)} · productionSigned=false</p>
       <details id="platforms" class="platforms"><summary>${text("download")}</summary><div class="platform-grid">${unavailablePlatforms()}</div></details>
       <div class="status" id="status" role="status" aria-live="polite"><strong>${text("status")}:</strong> ${state.account ? `${text("connected")} · <span class="mono">${escape(state.account)}</span>` : text("disconnected")}</div>
       <p class="risk">${text("rpcCheck")} ${text("testnet")}</p>
     </section>
-    <section class="card" id="actions" aria-label="Wallet actions">
+    <section class="card" id="actions" aria-label="${text("walletActions")}">
       <div class="actions"><button id="add" type="button">${text("add")}</button><button id="switch" type="button">${text("switch")}</button></div>
       <label class="label" for="message">${text("message")}</label><textarea id="message" maxlength="4096" autocomplete="off"></textarea><button id="sign" class="primary" type="button">${text("sign")}</button>
       <label class="label" for="recipient">${text("recipient")}</label><input id="recipient" inputmode="text" autocomplete="off">

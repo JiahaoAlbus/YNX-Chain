@@ -12,4 +12,6 @@ test("all twelve requested locales cover every English runtime key", () => {
     assert.deepEqual(untranslatedKeys(locale),[],`${locale} must not rely on English fallback`);
   }
   assert.equal(isRTL("ar"),true); assert.equal(isRTL("en"),false);
+  assert.equal(catalog("ar").walletConnection,"اتصال المحفظة");
+  assert.equal(catalog("ar").walletActions,"إجراءات المحفظة");
 });

@@ -22,6 +22,7 @@
     "test:artifact:discovery": "node scripts/artifact-discovery-fail-closed-gate.mjs",
     "test:artifact:platform-downloads": "node scripts/artifact-platform-download-gate.mjs",
     "test:artifact:localized-errors": "node scripts/artifact-localized-error-gate.mjs",
+    "test:artifact:localized-regions": "node scripts/artifact-localized-region-gate.mjs",
     "audit:public-deployment": "node scripts/public-deployment-gate.mjs",
     "test:runtime:active-tab": "node scripts/runtime-active-tab-gate.mjs",
     "test:runtime:active-tab:browser": "node scripts/runtime-active-tab-browser-gate.mjs",
