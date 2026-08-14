@@ -221,6 +221,49 @@ test("JavaScript, TypeScript, Python and Go use real installed runtimes", async 
     assert.equal(value.sandbox.network, false);
   }
 });
+test("project tests are discovered, one-time approved and run without network", async (t) => {
+  const { url } = await fixture(t),
+    cookie = await session(url),
+    request = {
+      protocolVersion: "ynx-code/v1",
+      task: "test-project",
+      projectId: "project-tests",
+      files: {
+        "math.test.mjs": 'import test from "node:test"; import assert from "node:assert/strict"; test("real",()=>assert.equal(6*7,42));',
+        "test_math.py": 'import unittest\nclass MathTest(unittest.TestCase):\n def test_real(self): self.assertEqual(6*7,42)\nif __name__ == "__main__": unittest.main()',
+        "math.go": "package mathcheck\nfunc multiply(a,b int) int { return a*b }",
+        "math_test.go": 'package mathcheck\nimport "testing"\nfunc TestReal(t *testing.T){if multiply(6,7)!=42{t.Fatal("wrong")}}',
+        "tests/math.cpp": '#include <iostream>\nint main(){if(6*7!=42)return 1;std::cout<<"CPP-TEST-PASS";}',
+      },
+      approval: "test-once",
+    },
+    response = await fetch(`${url}/runtime/tasks`, {
+      method: "POST",
+      headers: { cookie, "content-type": "application/json" },
+      body: JSON.stringify(request),
+    }),
+    value = await response.json();
+  assert.equal(response.status, 200, JSON.stringify(value));
+  assert.equal(value.ok, true, value.output);
+  assert.equal(value.language, "project-tests");
+  assert.match(value.output, /pass 1/);
+  assert.equal(value.sandbox.network, false);
+  assert.match(value.output, /CPP-TEST-PASS/);
+  assert.deepEqual(value.compiler.evidence.runners.map(({ language }) => language), ["javascript", "python", "go", "cpp"]);
+  const unapproved = await fetch(`${url}/runtime/tasks`, {
+    method: "POST",
+    headers: { cookie, "content-type": "application/json" },
+    body: JSON.stringify({ ...request, approval: "execute-once" }),
+  });
+  assert.equal(unapproved.status, 403);
+  const missing = await fetch(`${url}/runtime/tasks`, {
+    method: "POST",
+    headers: { cookie, "content-type": "application/json" },
+    body: JSON.stringify({ ...request, files: { "src/main.js": "export default 42;" } }),
+  });
+  assert.equal(missing.status, 400);
+  assert.equal((await missing.json()).code, "tests_missing");
+});
 test("Rust is compiled and executed when the reviewed toolchain is installed", { skip: !(await resolveExecutable(["rustc"])) }, async (t) => {
   const { url } = await fixture(t),
     cookie = await session(url),

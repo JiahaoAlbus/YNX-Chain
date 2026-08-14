@@ -398,10 +398,12 @@ function safePath(value) {
   return typeof value === "string" && value.length > 0 && value.length <= 240 && !value.startsWith("/") && !value.includes("\\") && !value.split("/").some((part) => !part || part === "." || part === "..") && SAFE_PATH.test(value);
 }
 function validateTask(value) {
-  if (!value || value.protocolVersion !== PROTOCOL || value.approval !== "execute-once" || value.task !== "build-run-active") throw Object.assign(new Error("A versioned one-time build-and-run approval is required."), { status: 403, code: "task_approval_required" });
-  if (typeof value.projectId !== "string" || !/^[A-Za-z0-9_-]{1,160}$/.test(value.projectId) || !safePath(value.activePath) || !value.files || Array.isArray(value.files) || typeof value.files !== "object") throw Object.assign(new Error("A valid project, active path and file map are required."), { code: "invalid_workspace" });
+  const build = value?.task === "build-run-active",
+    test = value?.task === "test-project";
+  if (!value || value.protocolVersion !== PROTOCOL || (!build && !test) || value.approval !== (build ? "execute-once" : "test-once")) throw Object.assign(new Error("A versioned one-time build/run or project-test approval is required."), { status: 403, code: "task_approval_required" });
+  if (typeof value.projectId !== "string" || !/^[A-Za-z0-9_-]{1,160}$/.test(value.projectId) || (build && !safePath(value.activePath)) || !value.files || Array.isArray(value.files) || typeof value.files !== "object") throw Object.assign(new Error("A valid project and text file map are required."), { code: "invalid_workspace" });
   const entries = Object.entries(value.files);
-  if (entries.length < 1 || entries.length > MAX_FILES || !Object.hasOwn(value.files, value.activePath)) throw Object.assign(new Error("Workspace must contain the active file and at most 256 files."), { code: "invalid_workspace" });
+  if (entries.length < 1 || entries.length > MAX_FILES || (build && !Object.hasOwn(value.files, value.activePath))) throw Object.assign(new Error("Workspace must contain the active file when building and at most 256 files."), { code: "invalid_workspace" });
   let bytes = 0;
   for (const [path, content] of entries) {
     if (!safePath(path) || typeof content !== "string") throw Object.assign(new Error("Workspace contains an invalid path or non-text file."), { code: "invalid_workspace_file" });
@@ -446,7 +448,7 @@ async function execute(session, task, { root, sandbox, onEvent }) {
       await mkdir(dirname(target), { recursive: true, mode: 0o700 });
       await writeFile(target, content, { mode: 0o600, flag: "wx" });
     }
-    const spec = await taskSpec(task.activePath, sandboxWorkspace, task.files);
+    const spec = task.task === "test-project" ? await projectTestSpec(sandboxWorkspace, task.files) : await taskSpec(task.activePath, sandboxWorkspace, task.files);
     if (!spec) throw Object.assign(new Error(`No installed runtime adapter can build and run ${extname(task.activePath) || "this file"}.`), { status: 503, code: "toolchain_unavailable" });
     await mkdir(join(sandboxWorkspace, ".ynx-build"), { mode: 0o700 });
     if (spec.artifactRoot) await mkdir(spec.artifactRoot, { recursive: true, mode: 0o700 });
@@ -681,6 +683,113 @@ async function taskSpec(path, workspace, files) {
     };
   }
   return null;
+}
+async function projectTestSpec(workspace, files) {
+  const paths = Object.keys(files).sort(),
+    javascript = paths.filter((path) => /(?:^|\/).+\.(?:test|spec)\.(?:js|mjs|cjs)$/i.test(path)),
+    python = paths.filter((path) => /(?:^|\/)(?:test_.+|.+_test)\.py$/i.test(path)),
+    goTests = paths.filter((path) => /_test\.go$/i.test(path)),
+    cpp = paths.filter((path) => /(?:^|\/)(?:test|tests)\/.+\.(?:cpp|cc|cxx)$/i.test(path));
+  if (javascript.length + python.length + goTests.length + cpp.length === 0)
+    throw Object.assign(
+      new Error("No supported JavaScript, Python, Go or C++ project tests were found."),
+      { status: 400, code: "tests_missing" },
+    );
+  if (javascript.length + python.length + goTests.length + cpp.length > 32)
+    throw Object.assign(new Error("Project test discovery exceeds the 32-file review boundary."), {
+      status: 413,
+      code: "test_file_limit",
+    });
+  const phases = [],
+    runners = [];
+  let primary = process.execPath;
+  if (javascript.length) {
+    runners.push({ language: "javascript", files: javascript });
+    phases.push({
+      label: "test:javascript",
+      command: process.execPath,
+      args: ["--test", ...javascript.map((path) => safeJoin(workspace, path))],
+      timeout: 20_000,
+    });
+  }
+  if (python.length) {
+    const command = await resolveCommand(["python3.13", "python3.12", "python3.11", "python3"]);
+    if (!command)
+      throw Object.assign(new Error("Python tests were found but no reviewed Python runtime is installed."), {
+        status: 503,
+        code: "toolchain_unavailable",
+      });
+    if (!runners.length) primary = command;
+    runners.push({ language: "python", files: python });
+    for (const path of python)
+      phases.push({
+        label: `test:python:${path}`,
+        command,
+        args: ["-I", "-m", "unittest", "discover", "-s", safeJoin(workspace, dirname(path)), "-p", basename(path)],
+        timeout: 10_000,
+      });
+  }
+  if (goTests.length) {
+    const command = await resolveCommand(["go"]);
+    if (!command)
+      throw Object.assign(new Error("Go tests were found but no reviewed Go toolchain is installed."), {
+        status: 503,
+        code: "toolchain_unavailable",
+      });
+    if (!runners.length) primary = command;
+    const directories = [...new Set(goTests.map((path) => dirname(path)))].sort();
+    runners.push({ language: "go", files: goTests });
+    for (const directory of directories) {
+      const sources = paths.filter((path) => dirname(path) === directory && path.endsWith(".go"));
+      phases.push({
+        label: `test:go:${directory}`,
+        command,
+        args: ["test", ...sources.map((path) => safeJoin(workspace, path))],
+        timeout: 20_000,
+        environment: { GOMAXPROCS: "2" },
+      });
+    }
+  }
+  if (cpp.length) {
+    const command = await resolveCommand(["clang++", "g++"]);
+    if (!command)
+      throw Object.assign(new Error("C++ tests were found but no reviewed C++ compiler is installed."), {
+        status: 503,
+        code: "toolchain_unavailable",
+      });
+    if (!runners.length) primary = command;
+    runners.push({ language: "cpp", files: cpp });
+    for (let index = 0; index < cpp.length; index += 1) {
+      const path = cpp[index],
+        output = join(workspace, ".ynx-build", `test-cpp-${index}`);
+      phases.push(
+        {
+          label: `build-test:cpp:${path}`,
+          command,
+          args: ["-std=c++20", "-Wall", "-Wextra", "-pedantic", safeJoin(workspace, path), "-o", output],
+          timeout: 20_000,
+        },
+        {
+          label: `test:cpp:${path}`,
+          command: output,
+          args: [],
+          timeout: 10_000,
+        },
+      );
+    }
+  }
+  if (phases.length > 20)
+    throw Object.assign(new Error("Project test plan exceeds the 20-phase execution boundary."), {
+      status: 413,
+      code: "test_phase_limit",
+    });
+  return {
+    language: "project-tests",
+    compiler: primary,
+    version: await version(primary),
+    compilerEvidence: { discovery: "bounded-explicit-files", runners },
+    phases,
+  };
 }
 async function typescriptToolBinds(compiler) {
   const packageRoot = dirname(dirname(compiler)),

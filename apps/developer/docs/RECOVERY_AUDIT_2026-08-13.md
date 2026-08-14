@@ -19,7 +19,7 @@ published packages and must not be rewritten to the documentation-only HEAD.
 | Requirement | Current implementation | Direct evidence at audit | Remaining gap / next gate |
 | --- | --- | --- | --- |
 | Multi-user persistent workspace | Owner-bound current state plus immutable server-local revision snapshots, paginated history/export and reviewed restore | `workspace-manager` 4/4 covers restart, isolation, legacy backfill, 50-revision retention and restore; authenticated `workspace-agent` history/export/restore and parallel-user gates passed | Run accepted public restart/restore and capacity evidence against the release service; server-local retention is not an object-store/disaster-recovery backup |
-| Real build/run | Approved sandbox runners for C++, JavaScript, TypeScript, Python, Go, Java and Solidity | `workspace-agent` 10 passed; real C++/JS/TS/Python/Go/Java/Solidity cases passed | Rust skipped because the reviewed host toolchain is absent; revised Java cloud image and package-install acceptance still need direct deployed-host gates |
+| Real build/run/test | Approved sandbox runners for C++, JavaScript, TypeScript, Python, Go, Java and Solidity plus separately reviewed project tests | `workspace-agent` 11 passed/1 skipped; real C++/JS/TS/Python/Go/Java/Solidity build/run and JS/Python/Go/C++ project-test cases passed with wrong-approval/missing-test rejection | Rust build skipped because the reviewed host toolchain is absent; Cargo, JUnit and Solidity-framework project-test adapters, revised Java cloud image and package-install acceptance still need direct gates |
 | LSP | Bounded language-service bridge to real language servers | 8 passed: C++, Python, Solidity and TypeScript completion/definition/diagnostics | `gopls` and `rust-analyzer` skipped because reviewed binaries are absent; Java LSP and formatting/rename/reference acceptance remain open |
 | Terminal and long processes | Authenticated PTY/WebSocket broker with cloud and SSH profiles | `terminal-service` 4/4 passed | Record stop/timeout/reconnect evidence for a public long-running task |
 | Debug Adapter Protocol | Authenticated DAP bridge with bounded frames | Bridge test passed | Installed LLDB-DAP test skipped; Node, Python, Go and Rust adapter acceptance remains open |
@@ -48,7 +48,7 @@ Result:
 
 - TypeScript protocol and frontend checks passed.
 - Workspace manager: 4 passed (restart durability, isolation, restore, retention and legacy backfill).
-- Workspace agent: 10 passed, 1 skipped (Rust toolchain absent); real packaged Java compile/run passed through the network-disabled local sandbox.
+- Workspace agent: 11 passed, 1 skipped (Rust toolchain absent); real packaged Java compile/run and reviewed JS/Python/Go/C++ project tests passed through the network-disabled local sandbox.
 - Language service: 8 passed, 2 skipped (`gopls` and `rust-analyzer` absent).
 - Terminal: 4 passed.
 - Debug: 1 passed, 1 skipped (reviewed LLDB-DAP absent).

@@ -1,5 +1,5 @@
 import * as Dialog from "@radix-ui/react-dialog";
-import { Braces, Bug, Cloud, Files, GitBranch, History, Link2, Play, Save, Search, Settings, Sparkles, SplitSquareHorizontal, TerminalSquare, Users, X } from "lucide-react";
+import { Braces, Bug, Cloud, Files, GitBranch, History, Link2, Play, Save, Search, Settings, Sparkles, SplitSquareHorizontal, TerminalSquare, TestTube2, Users, X } from "lucide-react";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "../components/ui/button";
 import { DebugPanel } from "../debug/DebugPanel";
@@ -7,7 +7,7 @@ import { languageForPath } from "../editor/languages";
 import { ExtensionPanel } from "../extensions/ExtensionPanel";
 import { FileExplorer } from "../explorer/FileExplorer";
 import { PROJECT_BYTE_LIMIT, PROJECT_FILE_LIMIT, PROJECT_TRANSFER_SCHEMA, projectExportJSON, validateImportedProject, type ImportedProject } from "../explorer/projectTransfer";
-import { loadChainStatus, loadWorkspace, loadExtensions, runActive, runContainerActive, runtimeHealth, saveWorkspace, type CollaborationRole, type InstalledExtension } from "../runtime/client";
+import { loadChainStatus, loadWorkspace, loadExtensions, runActive, runContainerActive, runProjectTests, runtimeHealth, saveWorkspace, type CollaborationRole, type InstalledExtension } from "../runtime/client";
 import { loadProject, foldersFromFiles, saveProject, validPath, type ProjectState } from "../state/workspace";
 import { SourceControlPanel } from "../scm/SourceControlPanel";
 import { InteractiveTerminal, TerminalPanel } from "../terminal/TerminalPanel";
@@ -109,6 +109,7 @@ export function Workbench() {
     [settingsOpen, setSettingsOpen] = useState(false),
     [editorPreferences, setEditorPreferences] = useState(loadEditorPreferences),
     [runReview, setRunReview] = useState(false),
+    [testReview, setTestReview] = useState(false),
     [theme, setTheme] = useState<"light" | "dark">(() => (localStorage.getItem("ynx-code-theme") === "light" ? "light" : "dark")),
     [search, setSearch] = useState(""),
     [replacement, setReplacement] = useState(""),
@@ -291,6 +292,10 @@ export function Workbench() {
   const collaborationReadOnly = Boolean(collaborationRole && !["owner", "editor"].includes(collaborationRole));
   const activeContent = project.files[project.active] ?? "";
   const second = project.open.find((path) => path !== project.active);
+  const testCandidates = useMemo(
+    () => Object.keys(project.files).filter((path) => /(?:\.(?:test|spec)\.(?:js|mjs|cjs)|(?:^|\/)(?:test_.+|.+_test)\.py|_test\.go|(?:^|\/)(?:test|tests)\/.+\.(?:cpp|cc|cxx))$/i.test(path)).sort(),
+    [project.files],
+  );
   const open = useCallback(
     (path: string) =>
       setProject((current) => ({
@@ -547,6 +552,24 @@ export function Workbench() {
       setRunning(false);
     }
   };
+  const executeTests = async () => {
+    setTestReview(false);
+    setRunning(true);
+    setBottom("task");
+    setOutput((current) => `${current}\n$ ynx task test-project · ${testCandidates.length} discovered files\n`);
+    try {
+      if (selectedRuntime) throw new Error("Project test execution is currently approved only for the authenticated local workspace sandbox. Deselect the remote runtime or run tests explicitly in its terminal.");
+      const result = await runProjectTests(project.id, project.files, (event) => {
+        if (event.type === "phase" && event.status === "started") setOutput((current) => `${current}${event.phase}> `);
+        if (event.type === "output") setOutput((current) => `${current}${event.data}`);
+      });
+      setOutput((current) => `${current}\n[exit ${result.code}] ${result.compiler.executable} · ${result.durationMs} ms · ${result.sandbox.kind}\n`);
+    } catch (error) {
+      setOutput((current) => `${current}\x1b[31m${error instanceof Error ? error.message : String(error)}\x1b[0m\n`);
+    } finally {
+      setRunning(false);
+    }
+  };
   const refreshWorkspace = useCallback(
     async (revision: number) => {
       const remote = await loadWorkspace(project.id);
@@ -680,6 +703,13 @@ export function Workbench() {
       },
     },
     {
+      label: "Task: Test Project",
+      run: () => {
+        setTestReview(true);
+        setPalette(false);
+      },
+    },
+    {
       label: "View: Toggle Color Theme",
       run: () => {
         setTheme((value) => (value === "dark" ? "light" : "dark"));
@@ -808,6 +838,9 @@ export function Workbench() {
             </Button>
             <Button variant="default" onClick={() => setRunReview(true)} disabled={!project.active || running}>
               <Play size={13} /> Run
+            </Button>
+            <Button variant="ghost" title={testCandidates.length ? `Review ${testCandidates.length} discovered project test files` : "No supported project tests discovered"} onClick={() => setTestReview(true)} disabled={!testCandidates.length || running}>
+              <TestTube2 size={13} /> Test
             </Button>
           </div>
         </div>
@@ -949,6 +982,20 @@ export function Workbench() {
               <Button variant="default" onClick={execute}>
                 Approve and run once
               </Button>
+            </div>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
+      <Dialog.Root open={testReview} onOpenChange={setTestReview}>
+        <Dialog.Portal>
+          <Dialog.Overlay className="dialog-overlay" />
+          <Dialog.Content className="run-dialog">
+            <Dialog.Title>Test project</Dialog.Title>
+            <Dialog.Description>Review the exact discovered test files. The server selects only built-in JavaScript, Python, Go or standalone C++ runners, disables network access and enforces output, phase, time, process and memory bounds.</Dialog.Description>
+            <pre>{JSON.stringify({ task: "test-project", files: testCandidates, approval: "test-once", network: false, maximumFiles: 32, maximumPhases: 20 }, null, 2)}</pre>
+            <div>
+              <Button onClick={() => setTestReview(false)}>Cancel</Button>
+              <Button variant="default" onClick={executeTests}>Approve tests once</Button>
             </div>
           </Dialog.Content>
         </Dialog.Portal>

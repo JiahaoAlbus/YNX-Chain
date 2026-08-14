@@ -1,5 +1,17 @@
 # YNX Developer 0.2.0 Testnet Preview release notes
 
+## 2026-08-14 reviewed project tests
+
+- Added a real `test-project` workspace task and Test action with an exact
+  discovered-file preview plus a separate one-time `test-once` approval.
+- The network-disabled sandbox runs Node's built-in test runner, Python unittest
+  scripts, same-package Go tests and standalone C++ tests. Direct integration
+  evidence executes all four, streams output and verifies the sandbox boundary.
+- Discovery is capped at 32 files and execution at 20 phases with existing
+  output, time, memory and process limits. Package scripts and user-selected
+  commands are never executed. Rust/Cargo, Java/JUnit and Solidity-framework
+  project test adapters remain outside this checkpoint and are not claimed.
+
 ## 2026-08-14 bounded project transfer
 
 - Added Explorer actions to import a Chromium-selected directory, import a

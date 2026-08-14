@@ -102,14 +102,26 @@ export async function boundedReadFetch(path: string, init: RequestInit = {}) {
   throw readableConnectionError(lastError);
 }
 export async function runActive(projectId: string, activePath: string, files: Record<string, string>, onEvent?: (event: StreamEvent) => void): Promise<TaskResult> {
-  const body = JSON.stringify({
+  return streamWorkspaceTask({
     protocolVersion: "ynx-code/v1",
     task: "build-run-active",
     projectId,
     activePath,
     files,
     approval: "execute-once",
-  });
+  }, onEvent);
+}
+export async function runProjectTests(projectId: string, files: Record<string, string>, onEvent?: (event: StreamEvent) => void): Promise<TaskResult> {
+  return streamWorkspaceTask({
+    protocolVersion: "ynx-code/v1",
+    task: "test-project",
+    projectId,
+    files,
+    approval: "test-once",
+  }, onEvent);
+}
+async function streamWorkspaceTask(request: Record<string, unknown>, onEvent?: (event: StreamEvent) => void): Promise<TaskResult> {
+  const body = JSON.stringify(request);
   for (let attempt = 0; attempt < 2; attempt++) {
     const response = await fetch("/runtime/tasks/stream", {
       method: "POST",
