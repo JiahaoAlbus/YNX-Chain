@@ -104,6 +104,17 @@
       "publicClaimAllowed": false
     },
     {
+      "id": "WA-PAYMASTER-SPONSORSHIP-STATUS-001",
+      "category": "wallet-paymaster",
+      "owners": ["02-wallet-auth", "01-chain-core", "29-integration"],
+      "precondition": "A Product sponsorship policy is configured and has both reserved and observed current-day cost for one anti-Sybil subject.",
+      "action": "Read getSponsorshipStatus for the exact product, subject and merchant before use, after use and after a UTC-day rollover.",
+      "expectedHttpStatus": null,
+      "expectedCode": null,
+      "expectedState": "policy, signer, enablement, sponsor types, target, limits, current-day product/subject cost, first-action use, merchant approval and deposit are returned together; rollover counters read as zero without storage or authority mutation",
+      "publicClaimAllowed": false
+    },
+    {
       "id": "WA-PAYMASTER-PRODUCT-POLICY-001",
       "category": "wallet-paymaster",
       "owners": ["02-wallet-auth", "01-chain-core", "29-integration"],
