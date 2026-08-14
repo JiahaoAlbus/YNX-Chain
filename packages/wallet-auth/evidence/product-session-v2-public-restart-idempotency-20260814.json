@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-08-14T12:42:00Z",
+  "runtime": {
+    "origin": "https://rest.ynxweb4.com",
+    "service": "ynx-product-session-gatewayd",
+    "sourceCommit": "37f2485ed604d88ed1457bc497d50f3f7a037469",
+    "release": "ynx-product-session-v2-37f2485ed604",
+    "loopbackPort": 6441,
+    "legacyAppGatewayChanged": false,
+    "legacyWalletGatewayChanged": false
+  },
+  "prepare": {
+    "completionRequestId": "req_psv2_restart_complete_DD5FQzhSFjgEn0P-",
+    "completionResponseBytes": 1122,
+    "completionResponseSha256": "a02b0576441a5d9607513fe79a25f58f5784443ddbb82c326fc085bfad2ec7c9",
+    "sessionBindingSha256": "faf33817e0df11cc39d6e5c703bef90ab372d3e2b71d26eba10e628294fa6f04",
+    "privateRetryRecordMode": "0600",
+    "privateRetryRecordSecretLogged": false
+  },
+  "controlledRestart": {
+    "unit": "ynx-product-session-gatewayd",
+    "sourceCommitBefore": "37f2485ed604d88ed1457bc497d50f3f7a037469",
+    "sourceCommitAfter": "37f2485ed604d88ed1457bc497d50f3f7a037469",
+    "stateFileSha256Before": "2843220ca8c8fb5e9d4af16175f878575edb887752a50125a135019132e36e9c",
+    "stateFileSha256After": "2843220ca8c8fb5e9d4af16175f878575edb887752a50125a135019132e36e9c",
+    "readyAfterRestart": true,
+    "otherServicesRestarted": false
+  },
+  "retry": {
+    "completionRequestId": "req_psv2_restart_complete_DD5FQzhSFjgEn0P-",
+    "completionResponseBytes": 1122,
+    "completionResponseSha256": "a02b0576441a5d9607513fe79a25f58f5784443ddbb82c326fc085bfad2ec7c9",
+    "byteIdentical": true
+  },
+  "cleanup": {
+    "revokeRequestId": "req_psv2_restart_cleanup_duBzEXoBKLVk",
+    "revokePassed": true,
+    "postRevokeRequestId": "req_psv2_restart_postrevoke_HnBm5UGckCPi",
+    "postRevokeStatus": 403,
+    "postRevokeCode": "SESSION_REVOKED",
+    "privateRetryRecordRemoved": true
+  },
+  "finalReadback": {
+    "stateFileSha256": "6c39572e751db4646c7ad8c7f8f0a15fd9252f88306748a9ba18944730da15f2",
+    "stateFile": "0600 ynx:ynx nlink=1",
+    "servicesActive": [
+      "ynx-product-session-gatewayd",
+      "ynx-app-gatewayd",
+      "ynx-wallet-gatewayd",
+      "caddy"
+    ]
+  },
+  "truth": {
+    "crossRestartExactRequestIdVerified": true,
+    "crossRestartByteIdenticalResponseVerified": true,
+    "revocationAfterRestartVerified": true,
+    "postRevokeFailClosedVerified": true,
+    "aggregateDeployedPublic": false,
+    "runtimeProductsMigrated": 0,
+    "installedWalletApprovalVerified": false
+  }
+}
