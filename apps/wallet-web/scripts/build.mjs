@@ -1,6 +1,7 @@
 import {cp, mkdir, readFile, rm, writeFile} from "node:fs/promises";
 import {dirname, join, resolve} from "node:path";
 import {fileURLToPath} from "node:url";
+import {chromiumManifest, firefoxManifest} from "../src/extension-manifest.js";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const dist = join(root, "dist");
@@ -12,8 +13,8 @@ await cp(join(root, "src", "service-worker-policy.js"), join(dist, "pwa", "servi
 await cp(join(root, "public", "ynx-logo.png"), join(dist, "pwa", "ynx-logo.png"));
 
 const variants = [
-  ["chromium", {manifest_version:3,name:"YNX Wallet Testnet Companion",version:"0.1.0",description:"Run fail-closed YNX Testnet wallet actions against the active DApp tab.",permissions:["activeTab","scripting","storage"],background:{service_worker:"service-worker.js",type:"module"},action:{default_popup:"index.html",default_title:"YNX Wallet"},icons:{"128":"ynx-logo.png"}}],
-  ["firefox", {manifest_version:3,name:"YNX Wallet Testnet Companion",version:"0.1.0",description:"Run fail-closed YNX Testnet wallet actions against the active DApp tab.",permissions:["activeTab","scripting","storage"],background:{scripts:["service-worker.js"],type:"module"},action:{default_popup:"index.html",default_title:"YNX Wallet"},icons:{"128":"ynx-logo.png"},browser_specific_settings:{gecko:{id:"wallet-testnet@ynxweb4.com",strict_min_version:"128.0"}}}],
+  ["chromium", chromiumManifest],
+  ["firefox", firefoxManifest],
 ];
 for (const [name, manifest] of variants) {
   const target = join(dist, name); await mkdir(target, {recursive: true});

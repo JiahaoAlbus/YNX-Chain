@@ -37,6 +37,14 @@ download URL and MetaMask. An injected MetaMask connects through EIP-1193, while
 an absent MetaMask routes to its verified official download page. These external
 routes do not change this package's `downloadHosted=false` release state.
 
+Extension package identity is deliberately fail-closed. The unsigned Chromium
+bundle declares Chrome/Edge 120 as its minimum runtime, but has no manifest
+`key` or `update_url`; consequently a stable Chrome/Edge extension ID, hosted
+upgrade, and store-managed uninstall are not claimed. Firefox declares the
+stable development add-on ID `wallet-testnet@ynxweb4.com` and Firefox 128 as
+its minimum runtime, but remains unsigned and not store-released. Both bundles
+link only to the public project homepage; that link is not a hosted download.
+
 The PWA caches only its same-origin shell. Navigations use a network-first
 offline fallback, static assets never receive HTML as a substitute, and RPC
 POSTs plus external Wallet download routes remain network-only. Returning from
