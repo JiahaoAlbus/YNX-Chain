@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "integrationId": "ynx-erc4337-testnet-operations-v1",
+  "owner": "02-wallet-auth",
+  "chainId": 6423,
+  "contractsImmutableAfterDeployment": true,
+  "paymaster": {
+    "initialState": {"sponsorshipEnabled":false,"depositWei":"0"},
+    "riskOfficerAllowed": ["disableProduct(bytes32)","setSponsorshipEnabled(false)"],
+    "riskOfficerForbidden": ["setSponsorshipEnabled(true)","setPolicySigner(address)","setRiskOfficer(address)"],
+    "ownerRecoveryActions": ["setPolicySigner(address)","setRiskOfficer(address)","setSponsorshipEnabled(bool)","disableProduct(bytes32)"],
+    "enablementPreconditions": ["exact deployed manifest verifies","Bundler supports exact EntryPoint","Paymaster deposit and policy are explicitly configured","Monitor acceptance is active","one bounded sponsored receipt and one replay rejection are frozen"]
+  },
+  "rollback": {
+    "canDeleteOrReplaceDeployedCode": false,
+    "partialDeploymentMayBePublished": false,
+    "websiteMetadataMayLeadVerification": false,
+    "safeResponseOrder": ["disable global sponsorship","disable affected product","stop Bundler admission for the affected Paymaster","freeze receipts, runtime and event evidence","rotate policy signer or risk officer only through Owner ceremony","publish incident and superseding deployment only after independent verification"],
+    "oldAddressHandling": "retain as immutable historical evidence; never relabel an old address as the new release"
+  },
+  "monitoring": {
+    "requiredChecks": ["chainId","block freshness","EntryPoint runtime SHA-256","Factory runtime SHA-256","Paymaster runtime SHA-256","Factory EntryPoint relationship","Paymaster EntryPoint relationship","Bundler supported EntryPoints","Paymaster deposit","sponsorship global and product enablement","policy signer and risk officer rotation events","UserOperation inclusion success and failure","sponsorship budget saturation","replay and emergency-disable rejection"],
+    "alertActionsMayEnableSponsorship": false,
+    "implementedLocal": false,
+    "integratedCentral": false,
+    "deployedPublic": false
+  },
+  "releaseClaims": {"implementedLocal":true,"testedLocal":true,"integratedCentral":false,"deployedStaging":false,"deployedPublic":false,"monitoringPublic":false,"rollbackDrillPublic":false}
+}
