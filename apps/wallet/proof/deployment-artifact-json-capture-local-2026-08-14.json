@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "wallet-deployment-artifact-json-capture-local-2026-08-14",
+  "owner": "02-wallet-auth",
+  "sourceCommit": "7d0fa0072d38890f43b7d1cfc198f8116df0aaa4",
+  "failFirst": "workflow redirected npm run banners into files required to be pure JSON",
+  "fix": {"deploymentUsesDirectHardhatBinary":true,"integrityUsesDirectNodeCli":true,"npmBannerCaptureExcluded":true,"canonicalSidecarReverification":true},
+  "tests": {"focused":{"passed":3,"failed":0},"walletAuthFull":{"passed":199,"failed":0},"hardhatWallet":"passed","walletProductGate":"passed","walletReleaseContentGate":"passed","walletGoalCoverageGate":"passed"},
+  "sourceSha256": {".github/workflows/wallet-contract-testnet-deploy.yml":"8cee19b2b47af125787c53e5e93102c7eadffa22bf40fd43116b1e373f26dae1","packages/wallet-auth/test/testnet-deployment-workflow.test.mjs":"1f022cbe346d1c716f7e9478e03a78fdc79cd82bd7e689dff6fb8e1293c24f2d"},
+  "releaseClaims": {"workflowDispatched":false,"artifactProducedPublic":false,"authorizedDeploymentChannel":false,"deployedPublic":false},
+  "secretMaterialRecorded": false
+}
