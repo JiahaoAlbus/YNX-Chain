@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "from": "Wallet/Auth Web/PWA/Extensions",
+  "to": "Desktop Website publishing owner",
+  "artifactCarrierCommit": "ac5f32c96d1d2b4234720a5026d38f8e066fbe07",
+  "sourceCommit": "a1c680982b63f67ee04c49a2131ba62796d21a8b",
+  "directory": "release/integration/wallet-web-publication",
+  "materializeCommand": "node release/integration/wallet-web-publication/materialize-wallet-web-artifacts.mjs --output-dir <isolated-output-directory>",
+  "verificationCommand": "node release/integration/wallet-web-publication/verify-wallet-web-publication.mjs",
+  "preDeploymentMonitorCommand": "node release/integration/wallet-web-publication/verify-wallet-web-publication.mjs --expect-unpublished",
+  "tests": {
+    "jsonAndSyntax": true,
+    "gitObjectMaterializer": "3/3 exact",
+    "publicationGateSelfTest": "3 pages + 9 downloads + registry passed",
+    "productionMonitor": "unpublished as expected"
+  },
+  "productionObservation": {
+    "observedAt": "2026-08-14T09:02:04.061Z",
+    "wwwWalletPage200": true,
+    "registryWalletCommit": "6856bf41f79f",
+    "registryContainsRequestedWebArtifacts": false,
+    "threeOriginArtifactGatePassed": false,
+    "evidence": "apps/wallet-web/evidence/runtime/wallet-web-publication-three-origin-gate-20260814.json"
+  },
+  "websiteWorktreeModified": false,
+  "uploaded": false,
+  "deployedPublic": false,
+  "downloadHosted": false,
+  "visibleBrowserAcceptance": false
+}

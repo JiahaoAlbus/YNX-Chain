@@ -28,6 +28,12 @@
     "currentResult": false,
     "requiredBeforeHostedTrue": true
   },
+  "desktopPublicationKit": {
+    "directory": "release/integration/wallet-web-publication",
+    "materializer": "release/integration/wallet-web-publication/materialize-wallet-web-artifacts.mjs",
+    "threeOriginGate": "release/integration/wallet-web-publication/verify-wallet-web-publication.mjs",
+    "handoff": "docs/integration/wallet-web-desktop-publication-kit-handoff-20260814.json"
+  },
   "currentState": {
     "integratedCentral": false,
     "deployedPublic": false,

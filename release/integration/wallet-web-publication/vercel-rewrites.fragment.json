@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "instructions": "Replace each __VERCEL_BLOB_URL_* value only with the URL returned by uploading the exact matching blobPathname to ynx-official-downloads. Do not apply until SHA/Bytes match artifact-acquisition.json.",
+  "rewrites": [
+    {"source":"/downloads/wallet-web/sha256-63d83cd20925f2d52c0f21f548fa7a857a4d056e03e5fa16244f173164a7d287/ynx-wallet-web-pwa-0.1.0.zip","destination":"__VERCEL_BLOB_URL_PWA__"},
+    {"source":"/downloads/wallet-web/sha256-c733093dea47c6612c8a9d5ecea40be2227f62402f4b4966955c9e1accf4e2aa/ynx-wallet-chrome-edge-0.1.0.zip","destination":"__VERCEL_BLOB_URL_CHROME_EDGE__"},
+    {"source":"/downloads/wallet-web/sha256-417d9b9e5babf05fdfdf8161504389eb99c636be75f94444bf4ff91a9b4536b3/ynx-wallet-firefox-0.1.0.zip","destination":"__VERCEL_BLOB_URL_FIREFOX__"}
+  ],
+  "requiredHeaders": [
+    {"source":"/downloads/wallet-web/(.*)","headers":[{"key":"Cache-Control","value":"public, max-age=31536000, immutable"},{"key":"Content-Disposition","value":"attachment"},{"key":"X-Content-Type-Options","value":"nosniff"}]}
+  ]
+}
