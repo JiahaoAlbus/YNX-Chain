@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "artifactClass": "wallet-go-sdk-real-consumer-evidence",
+  "sourceCommit": "be0613249028e7e1b8315f927a839f8e845bb31f",
+  "workflowRunId": 31770772805,
+  "workflowRunURL": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/31770772805",
+  "job": {
+    "id": 94676068785,
+    "conclusion": "success",
+    "runner": "ubuntu-24.04-x64",
+    "minimumOSDirectlyTested": "Ubuntu 24.04.4 x64",
+    "goVersion": "1.25.0"
+  },
+  "consumer": {
+    "path": "examples/wallet-go-sdk/main.go",
+    "sdkPath": "sdk/wallet/go",
+    "sdkTests": true,
+    "consumerCompiled": true,
+    "vectorVerified": true,
+    "protocol": "YNX_PRODUCT_SESSION_HTTP_PROOF_V1",
+    "ephemeralSigningVerified": true,
+    "privateKeyPersisted": false,
+    "rpc": "https://evm.ynxweb4.com",
+    "chainId": "0x1917",
+    "rpcFailureClosed": true,
+    "transactionCreated": false,
+    "balanceClaimed": false
+  },
+  "evidenceArtifact": {
+    "id": 9208040839,
+    "bytes": 1037,
+    "sha256": "7a7cc2854f99b0bc5a366f12280b8df02bad365e3368708e255058f40a58553b",
+    "signingClass": "unsigned_ci_evidence",
+    "productionSigned": false
+  },
+  "releaseState": {
+    "deliveryClass": "source-only",
+    "formalGoModuleArchiveBuilt": false,
+    "downloadHosted": false,
+    "deployedPublic": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}
