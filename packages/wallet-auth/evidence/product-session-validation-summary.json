@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-08-14T06:07:51.000Z",
+  "capturedAt": "2026-08-14T10:12:42Z",
   "scope": "local Product Session v2 protocol and router validation",
   "registrySchemaVersion": 2,
   "branch": "codex/wallet-session-router-recovery",
@@ -148,6 +148,22 @@
     "productionSigned": false,
     "storeReleased": false
   },
+  "officialWebsiteRelease": {
+    "evidence": "evidence/wallet-session-official-website-deployment.json",
+    "websiteCommit": "11f53023a419701e240f7e0980440d848a9f5af2",
+    "productionDeploymentId": "dpl_764jDRPtfWyGCivuoqq8eEf4Fnng",
+    "productionDeploymentUrl": "https://ynx-web4-website-9vt02xxkm-jiahaoalbus-projects.vercel.app",
+    "officialDocsUrl": "https://www.ynxweb4.com/docs",
+    "sourcePackageUrl": "https://www.ynxweb4.com/releases/wallet-session-router/d8863f6b2875/ynx-chain-wallet-auth-1.1.0.tgz",
+    "sourcePackageBytes": 101437,
+    "sourcePackageSha256": "7c7f36c364c89d5c51808cd4098d4fcbde147eda698960c80da8301f5f58276b",
+    "publicBackReadMatches": true,
+    "visibleBrowserVerified": true,
+    "screenshot": "evidence/wallet-session-official-website-visible-20260814.png",
+    "screenshotSha256": "156c14e70a1232f3510c240e9c1b16dd15678dec72487f5e2de0d4bf1b93b62a",
+    "computerControlPassed": false,
+    "computerControlError": "Sky Computer Use native pipe startup failed"
+  },
   "visibleComputerControl": {
     "app": "Microsoft Edge",
     "title": "YNX Product Session v2 visible proof",
@@ -227,6 +243,10 @@
       "No installed YNX Wallet application was available for a real approval/session flow"
     ],
     "publicDeployment": false,
+    "publicDeploymentMeaning": "App Gateway and migrated product runtimes",
+    "sourcePackageDeployedPublic": true,
+    "officialWebsiteReleaseMetadataDeployedPublic": true,
+    "appGatewayDeployedPublic": false,
     "downloadHosted": true,
     "downloadHostedScope": "Android Testnet Preview artifact only",
     "productionSigned": false,

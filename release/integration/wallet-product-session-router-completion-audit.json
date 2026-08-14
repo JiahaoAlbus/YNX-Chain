@@ -111,6 +111,8 @@
         "packages/wallet-auth/evidence/wallet-provider-discovery-browser.json",
         "packages/wallet-auth/evidence/wallet-provider-discovery-browser.png",
         "packages/wallet-auth/evidence/ynx-wallet-android-deeplink-observation.json",
+        "packages/wallet-auth/evidence/wallet-session-official-website-deployment.json",
+        "packages/wallet-auth/evidence/wallet-session-official-website-visible-20260814.png",
         "packages/wallet-auth/test/product-session-gateway-client.test.mjs",
         "packages/wallet-auth/test/product-session-gateway-http.test.mjs",
         "packages/wallet-auth/test/product-session-migration.test.mjs",
@@ -135,19 +137,31 @@
       ]
     },
     "F_releaseTruth": {
-      "status": "pushed-awaiting-central-integration",
+      "status": "source-package-hosted-awaiting-central-integration",
       "evidence": [
         "release/integration/wallet-product-session-router-contract.json",
-        "docs/integration/WALLET_PRODUCT_SESSION_ROUTER_HANDOFF.md"
+        "docs/integration/WALLET_PRODUCT_SESSION_ROUTER_HANDOFF.md",
+        "packages/wallet-auth/evidence/wallet-session-official-website-deployment.json"
       ],
       "pushed": true,
       "remote": "https://github.com/JiahaoAlbus/YNX-Chain.git",
       "remoteBranch": "codex/wallet-session-router-recovery",
       "deployedPublic": false,
+      "deployedPublicMeaning": "App Gateway and migrated product runtimes",
+      "sourcePackageDeployedPublic": true,
+      "officialWebsiteReleaseMetadataDeployedPublic": true,
+      "appGatewayDeployedPublic": false,
+      "runtimeProductsMigrated": 0,
+      "officialWebsiteCommit": "11f53023a419701e240f7e0980440d848a9f5af2",
+      "vercelProductionDeploymentId": "dpl_764jDRPtfWyGCivuoqq8eEf4Fnng",
+      "vercelProductionDeploymentUrl": "https://ynx-web4-website-9vt02xxkm-jiahaoalbus-projects.vercel.app",
+      "officialDocsUrl": "https://www.ynxweb4.com/docs",
+      "sourcePackageUrl": "https://www.ynxweb4.com/releases/wallet-session-router/d8863f6b2875/ynx-chain-wallet-auth-1.1.0.tgz",
       "productionSigned": false,
       "storeReleased": false,
       "remaining": [
-        "Hand the branch to central Integration"
+        "Central Integration must merge the chain branch without claiming runtime product migration",
+        "Deploy the public App Gateway only after production authority, configuration, and live health evidence are available"
       ]
     }
   },
@@ -156,6 +170,7 @@
     "No migrated product runtime and installed Wallet combination is currently available for a real v2 approval/session flow",
     "Installed MetaMask approval outcome remains unverified because Computer Use lost its native pipe after the shared harness triggered the request",
     "The post-coordinator visible retry could not inspect Chrome or MetaMask because the Computer Use native pipe closed and then failed startup",
+    "The official website source-package release was visibly verified with the in-app browser, but Sky Computer Use still failed native-pipe startup and therefore did not pass",
     "Wallet Companion browser RPC preflight is blocked by external evm.ynxweb4.com CORS configuration before MetaMask account approval",
     "product consumer and native packaging migrations are owned by isolated product/platform tasks"
   ]
