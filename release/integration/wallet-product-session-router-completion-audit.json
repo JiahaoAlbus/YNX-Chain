@@ -54,7 +54,8 @@
         "packages/wallet-auth/evidence/metamask-eip1193-live.html",
         "packages/wallet-auth/evidence/metamask-eip1193-live-observation.json",
         "packages/wallet-auth/evidence/wallet-provider-discovery-browser.json",
-        "packages/wallet-auth/evidence/wallet-provider-discovery-browser.png"
+        "packages/wallet-auth/evidence/wallet-provider-discovery-browser.png",
+        "packages/wallet-auth/evidence/ynx-wallet-android-deeplink-observation.json"
       ],
       "remaining": [
         "Verify YNX Wallet detection/open behavior in approved installed applications",
@@ -67,10 +68,11 @@
         "packages/wallet-auth/product-session-registry.json",
         "packages/wallet-auth/src/product-session-registry.js",
         "packages/wallet-auth/src/product-session-router.js",
-        "packages/wallet-auth/test/product-session-router.test.mjs"
+        "packages/wallet-auth/test/product-session-router.test.mjs",
+        "packages/wallet-auth/evidence/ynx-wallet-android-deeplink-observation.json"
       ],
       "remaining": [
-        "Product and Wallet packaging owners must declare the canonical schemes on each installed platform"
+        "Product and Wallet packaging owners must declare the canonical schemes on each remaining installed platform; the public Android Wallet APK resolved the central ynxwallet route"
       ]
     },
     "D_sharedSdkAndMigration": {
@@ -108,6 +110,7 @@
         "packages/wallet-auth/evidence/wallet-provider-discovery-browser.html",
         "packages/wallet-auth/evidence/wallet-provider-discovery-browser.json",
         "packages/wallet-auth/evidence/wallet-provider-discovery-browser.png",
+        "packages/wallet-auth/evidence/ynx-wallet-android-deeplink-observation.json",
         "packages/wallet-auth/test/product-session-gateway-client.test.mjs",
         "packages/wallet-auth/test/product-session-gateway-http.test.mjs",
         "packages/wallet-auth/test/product-session-migration.test.mjs",
@@ -125,6 +128,7 @@
       "remaining": [
         "MetaMask was unlocked with user Touch ID, injected a provider, and the shared EIP-1193 harness loaded and triggered its real connection request; Computer Use timed out and its native pipe closed before the approval result, request ID, chain, or masked account was observable",
         "The post-coordinator Computer Use retry timed out for Chrome, closed its native pipe by bundle identifier, and failed native-pipe startup for the MetaMask app",
+        "Android 16 installed the hash-verified YNX Wallet APK, resolved the canonical ynxwallet scheme and accepted ACTION_VIEW delivery; headless UI remained black, so approval and Product Session remain unverified",
         "The Wallet Companion's browser RPC preflight to https://evm.ynxweb4.com failed CORS before account approval; Wallet UI and Chain deployment configuration are outside this branch scope",
         "No installed YNX Wallet application was available for a real approval/session flow",
         "Each actually migrated product requires installed Web/desktop/mobile approval, rejection, timeout, revoke, restart, network-loss and Retry evidence"
