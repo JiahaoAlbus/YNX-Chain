@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "gateway-state-file-security-local-2026-08-14",
+  "owner": "02-wallet-auth",
+  "sourceCommit": "f3574cc17c53dfbe937933836ccdadf24f9e191e",
+  "observedAt": "2026-08-14T03:48:01Z",
+  "environment": "local-node-host-loopback-http-private-posix-filesystem",
+  "readerPolicy": {
+    "noFollow": true,
+    "regularFileRequired": true,
+    "singleHardLinkRequired": true,
+    "privateDirectoryMode": "0700",
+    "privateFileMode": "0600",
+    "maximumStateBytes": 67108864,
+    "canonicalJsonRequired": true
+  },
+  "negativeCoverage": {
+    "symlinkRejected": true,
+    "hardLinkRejected": true,
+    "directoryAsStateRejected": true,
+    "broadFileModeRejected": true,
+    "noncanonicalJsonRejected": true,
+    "runtimeSymlinkReplacementRejected": true,
+    "runtimeReplacementStatus": 503,
+    "runtimeReplacementCode": "STATE_UNAVAILABLE",
+    "targetMutation": false,
+    "rejectedStateRewrite": false
+  },
+  "tests": {
+    "focusedStateFileSecurity": "3/3 passed",
+    "focusedHostBackupSharedStatePersistenceRegistrySecurity": "30/30 passed",
+    "walletAuthFullSuite": "163/163 passed",
+    "walletProductCheck": "passed",
+    "walletReleaseContentCheck": "passed",
+    "walletGoalCoverageCheck": "passed",
+    "jsonAndDiffChecks": "passed"
+  },
+  "sourceSha256": {
+    "packages/wallet-auth/src/gateway-node-host.js": "0742a81c736566d7566ace98c5163264a495c37833b835e692d691a2add15bde",
+    "packages/wallet-auth/scripts/migrate-session-account-public-key.mjs": "4120f84c38a1225d6704d31f748cd17f11f956daebf1ea0331a823ec284f55cc",
+    "packages/wallet-auth/test/gateway-node-state-file-security.test.mjs": "27569cbf9b2ff26bdcde0c5dec99624481ff8facce0703ad7d242dbe71f0fe99"
+  },
+  "releaseClaims": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": false,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "publicRouteVerified": false,
+    "publicGatewaySourceContainsSlice": false,
+    "localPathAttackMatrixVerified": true,
+    "maliciousOwnerWithFilesystemWriteAccessExcluded": true,
+    "networkFilesystemSemanticsVerified": false,
+    "multiRegionVerified": false,
+    "assetMoved": false,
+    "secretMaterialRecorded": false
+  },
+  "deployedGateway": {
+    "sourceCommit": "c6ac582c8d490ef980a8cadfd9172f133d1b1a49",
+    "release": "ynx-wallet-gateway-c6ac582c8d49",
+    "containsGatewayStateFileSecuritySlice": false
+  }
+}
