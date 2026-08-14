@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-08-14T12:50:00Z",
+  "origin": "https://rest.ynxweb4.com",
+  "path": "/v1/wallet/authorizations/reject",
+  "method": "POST",
+  "request": {
+    "requestId": "req_public_reject_6yW6JexciGfT-m6X",
+    "canonicalJson": true,
+    "decisionCode": "USER_REJECTED",
+    "authorityGranted": false,
+    "grantedScopes": [],
+    "walletSignaturePresent": false,
+    "accountPresent": false,
+    "secretSubmitted": false
+  },
+  "response": {
+    "status": 404,
+    "schemaVersion": 1,
+    "ok": false,
+    "code": "ROUTE_NOT_FOUND",
+    "message": "Canonical Wallet Gateway route was not found",
+    "cacheControl": "no-store",
+    "canonicalJson": true,
+    "stateDigest": "006b2aca51a900c6aed550ff7fa8e968a9831829b6dfe9e36c42bea7c54b7b02"
+  },
+  "postProbeReadback": {
+    "walletGatewaySourceCommit": "c6ac582c8d490ef980a8cadfd9172f133d1b1a49",
+    "walletGatewayRelease": "ynx-wallet-gateway-c6ac582c8d49",
+    "walletGatewayStateDigest": "006b2aca51a900c6aed550ff7fa8e968a9831829b6dfe9e36c42bea7c54b7b02",
+    "walletGatewayActive": true,
+    "appGatewaySourceCommit": "63582190fdff2a74460073f8b7ce79f37ec9e7f7",
+    "appGatewayRelease": "ynx-pay-product-63582190fdff",
+    "appGatewayActive": true
+  },
+  "expected": {
+    "status": 403,
+    "code": "AUTHORIZATION_REJECTED",
+    "stateDigestUnchanged": true,
+    "authorityMutation": 0
+  },
+  "initialLocalConstructionFailure": {
+    "preserved": true,
+    "classification": "invalid-test-input-before-network",
+    "code": "INVALID_DEVICE_KEY",
+    "publicRequestSent": false,
+    "publicMutation": 0,
+    "correction": "use the repository's valid P-256 product-device public-key fixture"
+  },
+  "truth": {
+    "canonicalUserRejectionImplementedLocal": true,
+    "canonicalUserRejectionDeployedPublic": false,
+    "visibleInstalledWalletUserRejectionVerified": false,
+    "aggregateDeployedPublic": false
+  }
+}
