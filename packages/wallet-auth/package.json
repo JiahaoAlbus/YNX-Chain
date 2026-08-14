@@ -35,6 +35,11 @@
       "types": "./src/index.d.ts",
       "import": "./src/wallet-connection-coordinator.js",
       "default": "./src/wallet-connection-coordinator.js"
+    },
+    "./product-wallet-connection": {
+      "types": "./src/index.d.ts",
+      "import": "./src/product-wallet-connection.js",
+      "default": "./src/product-wallet-connection.js"
     }
   },
   "types": "./src/index.d.ts",
