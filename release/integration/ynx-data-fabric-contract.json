@@ -37,13 +37,13 @@
         "coverage": "exact",
         "failure": false
       },
-      "chainCoreContractVersion": "1.23.0",
-      "chainCoreSourceCommit": "23f9ce3d32e614aa2f0a80664bbf1d8f8f85e7a5",
-      "chainCoreContractCommit": "d26592571e78ae44fc76f2270a21eaf8bd62eaa4",
+      "chainCoreContractVersion": "1.24.0",
+      "chainCoreSourceCommit": "f544eff9d20f9db3834d25b4a6f6737e367d1e0b",
+      "chainCoreContractCommit": "fef6c84e9bb30ebfc57f7a30123b4976096c9b61",
       "chainCoreLocalDelivery": {
-        "bundle": "release/local-delivery/chain-core-data-commitment-v23.bundle",
-        "sha256": "306b47ce4fc92e3564fbe22b5439c1e1039d6bf0f8f6e81a8dffe4549c89c182",
-        "bytes": 57861962,
+        "bundle": "release/local-delivery/chain-core-data-commitment-v24.bundle",
+        "sha256": "0ed809a89ec06757f1cfc4ddba8701c2e72e9296326ea01558afbed07c60d7aa",
+        "bytes": 71070452,
         "verified": true,
         "public": false,
         "deployed": false
@@ -52,14 +52,22 @@
         "serviceCount": 13,
         "publicSmokeFailsClosed": true,
         "candidateGatewayExactBuildIdentity": true,
-        "integrationVectorCount": 98,
+        "integrationVectorCount": 99,
         "additiveMandateBoundStrategyExecution": true,
         "bulkDataCommitmentSemanticsChanged": false,
         "publicRuntimeMatchesSource": false,
         "workspaceIsolatedReproducibleSolcBuild": true,
         "pinnedSolcVersion": "0.8.24",
         "soliditySourceCount": 9,
-        "selectorArtifactCount": 9
+        "selectorArtifactCount": 9,
+        "validatorQuorumIntersectionCardinality": {
+          "validatorCounts": [4, 7, 13, 21],
+          "exactQuorumSubsetCardinality": true,
+          "exactOrderedQuorumPairCardinality": true,
+          "worstCaseIntersectionLowerBoundIncludesHonestValidator": true,
+          "finiteCasesChecked": 57619
+        },
+        "notProvenByThisEvidence": ["full-state-machine-safety", "independent-tlc-or-apalache", "differential-replay", "wan-soak", "public-promotion"]
       },
       "failurePolicy": "reject-before-event-store-mutation",
       "writeOwner": "derived-by-Chain-Core-from-transaction-signer-never-accepted-from-event",
