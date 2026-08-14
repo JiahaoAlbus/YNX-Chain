@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "wallet-smart-account-testnet-deployment-verifier-local-2026-08-14",
+  "owner": "02-wallet-auth",
+  "sourceCommit": "28b76ad504f71b282439e39b407174b585d28540",
+  "verification": "wallet-auth-public-erc4337-deployment",
+  "environment": "isolated-local-mocked-json-rpc",
+  "failFirst": "SyntaxError: requested module did not provide verifyPublicERC4337Deployment",
+  "command": "npm --prefix packages/wallet-auth run verify:testnet-deployment",
+  "requiresExplicitOptIn": true,
+  "acceptsDeployerOrSignerSecrets": false,
+  "readOnlyMethods": ["eth_chainId","eth_supportedEntryPoints","eth_getTransactionReceipt","eth_getCode","eth_call"],
+  "requiredBindings": [
+    "chain ID 6423 on RPC and Bundler",
+    "three distinct EntryPoint, Factory and Paymaster addresses",
+    "three exact successful mined deployment receipts and contractAddress values",
+    "three exact non-empty runtime SHA-256 values",
+    "Factory entryPoint getter equals the frozen EntryPoint",
+    "Paymaster entryPoint getter equals the frozen EntryPoint",
+    "Bundler-supported EntryPoints contains the exact frozen EntryPoint"
+  ],
+  "failClosedSubstitutions": ["failed receipt","runtime bytecode","Factory EntryPoint","Bundler EntryPoint","duplicate contract address","credentialed endpoint"],
+  "tests": {
+    "failFirstObserved": true,
+    "focused": {"passed":3,"failed":0},
+    "walletAuthFull": {"passed":187,"failed":0},
+    "hardhatWallet": "passed",
+    "walletProductGate": "passed",
+    "walletReleaseContentGate": "passed",
+    "walletGoalCoverageGate": "passed",
+    "packageDryRun": "passed"
+  },
+  "sourceSha256": {
+    "packages/wallet-auth/src/testnet-deployment-verifier.js": "e2f284e2c0318d9073fade588cea886d42e9f54d5d9cf33b522e226264aebffb",
+    "packages/wallet-auth/scripts/verify-testnet-deployment.mjs": "bb3360eddd4348a85a5fdb485fa6f41100f54eddfae9fb1192d40b927f81abfc",
+    "packages/wallet-auth/test/testnet-deployment-verifier.test.mjs": "8d17dedd72270c07fee87404ab332e9ad043c7e59933ddaec29a5f84907b765a"
+  },
+  "packageArtifact": {"name":"@ynx-chain/wallet-auth","version":"1.0.0","bytes":117823,"unpackedBytes":529034,"entries":70,"signingClass":"unsigned-local-npm-package"},
+  "publicExecution": {"performed":false,"reason":"No authorized deployment identity, configured RPC, authoritative deployed manifest or live Bundler was available."},
+  "releaseClaims": {"entryPointDeployedPublic":false,"factoryDeployedPublic":false,"paymasterDeployedPublic":false,"bundlerDeployedPublic":false,"sponsoredReceiptPublic":false,"websiteContractMetadataUpdated":false},
+  "secretMaterialRecorded": false
+}
