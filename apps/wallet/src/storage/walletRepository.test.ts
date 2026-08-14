@@ -114,6 +114,20 @@ test("unreadable storage reset requires an active destructive attempt before del
   assert.ok(manifest.selectedAccountId);
 });
 
+test("reset revalidates before each manifest, legacy and journal deletion",async()=>{
+  for(const failAt of [1,2,3]){
+    const storage=new MemorySecureStorage(),repository=new WalletRepository(storage);
+    storage.values.set(MANIFEST_KEY,"{");
+    storage.values.set(LEGACY_IDENTITY_KEY,"legacy-secret");
+    storage.values.set(MUTATION_KEY,"tampered-journal");
+    let checks=0;
+    await assert.rejects(repository.resetCorruptStorage(()=>{if(++checks>=failAt)throw new Error("invalidated")}),/invalidated/);
+    assert.equal(storage.values.has(MANIFEST_KEY),failAt===1);
+    assert.equal(storage.values.has(LEGACY_IDENTITY_KEY),failAt<=2);
+    assert.equal(storage.values.has(MUTATION_KEY),true);
+  }
+});
+
 test("restart journal rolls back incomplete add and completes interrupted delete without secret leakage",async()=>{
   const seedStorage=new MemorySecureStorage(),seedRepository=new WalletRepository(seedStorage);
   const seeded=await seedRepository.addAccount({secretHex:SECRET_ONE,label:"Main",createdAt:"2026-07-15T12:00:00.000Z",backupConfirmed:true}),account=seeded.selectedAccountId!;

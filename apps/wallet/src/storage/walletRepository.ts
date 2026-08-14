@@ -130,16 +130,17 @@ export class WalletRepository {
   private async resetCorruptStorageExclusive(assertActive:()=>void): Promise<void> {
     const raw = await this.storage.getItem(MANIFEST_KEY);
     if (raw) {
-      try {
-        const parsed = JSON.parse(raw) as { accounts?: Array<{ account?: string }> };
-        for (const item of parsed.accounts ?? []) if (typeof item.account === "string"){assertActive();await this.storage.deleteItem(secretKey(item.account))}
-      } catch { /* unreadable manifest has no trusted account identifiers */ }
+      let parsed:{accounts?:Array<{account?:string}>}|null=null;
+      try { parsed=JSON.parse(raw) as {accounts?:Array<{account?:string}>} } catch { /* unreadable manifest has no trusted account identifiers */ }
+      for (const item of parsed?.accounts ?? []) if (typeof item.account === "string"){assertActive();await this.storage.deleteItem(secretKey(item.account))}
     }
     const pending=await this.storage.getItem(MUTATION_KEY);
     if(pending!==null){let mutation:ReturnType<typeof parseMutation>|null=null;try{mutation=parseMutation(pending)}catch{/* tampered journal has no trusted account identifier */}if(mutation){assertActive();await this.storage.deleteItem(secretKey(mutation.account))}}
     assertActive();
     await this.storage.deleteItem(MANIFEST_KEY);
+    assertActive();
     await this.storage.deleteItem(LEGACY_IDENTITY_KEY);
+    assertActive();
     await this.storage.deleteItem(MUTATION_KEY);
   }
 
