@@ -1,7 +1,7 @@
 # YNX Data Fabric Integration Handoff
 
-Source Commit: `4bb2ddfb6337e44060f57adafc7ee1cc08faedbe`
-Release Candidate: `ynx-data-fabric-4bb2ddfb6337`
+Source Commit: `b218b62688ab311513b650db0659390130735cad`
+Release Candidate: `ynx-data-fabric-b218b62688ab`
 Owner: YNX Data Fabric
 Phase: `INTEGRATE`
 Status: `ACTIVE`
