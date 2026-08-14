@@ -498,6 +498,25 @@
     "productionSigned": false,
     "storeReleased": false
   },
+  "androidAccountRenameLifecycleCheckpoint": {
+    "sourceCommit": "8d0ea4c9e0ece84a2e3a72e983a89de2882267fc",
+    "branch": "codex/wallet-android-api36-continuation2-20260814",
+    "exactAccountBindingRequired": true,
+    "inactiveOrDismissedAttemptRejectedBeforeWrite": true,
+    "synchronousAttemptReentryRejected": true,
+    "dismissedAttemptPersistsNoRename": true,
+    "walletTests": "74/74 passed",
+    "androidHermesModules": 2742,
+    "implementedLocal": true,
+    "testedLocal": true,
+    "testedOnDevice": false,
+    "installedLocal": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
   "verification": {
     "walletAuthPackageTests": "100/100 passed",
     "gatewayNodeHostTests": "8/8 passed",
