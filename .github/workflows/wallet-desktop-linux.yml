@@ -49,7 +49,7 @@ jobs:
           node -e "const e=require(process.env.EVIDENCE);if(e.launches!==2||!e.rpc.available||e.rpc.chainId!=='0x1917')process.exit(1)"
           kill "$SECOND_PID" || true
           wait "$SECOND_PID" || true
-          sudo apt-get remove -y ynx-wallet-desktop
+          sudo apt-get remove -y ynx-wallet-testnet-preview
           test ! -e '/opt/YNX Wallet Testnet Preview/ynx-wallet-desktop'
       - name: Record package evidence
         env:
