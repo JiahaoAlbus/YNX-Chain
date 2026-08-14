@@ -3,7 +3,7 @@
   "productId": "com.ynx.calendar",
   "name": "YNX Calendar",
   "owner": "36-calendar",
-  "sourceCommit": "635f6745db8b5d4e4f00253d72fd5ab97da471ac",
+  "sourceCommit": "b606052d503ab0b4884a64a7b767f8f1f3a7fa7f",
   "releaseRecord": "apps/calendar/product-release.json",
   "integrationContract": "release/integration/calendar-contract.json",
   "integrationHandoff": "docs/integration/INTEGRATION_HANDOFF.md",
@@ -16,7 +16,7 @@
   "releaseStates": {
     "implementedLocal": true,
     "testedLocal": true,
-    "installedLocal": false,
+    "installedLocal": true,
     "integratedCentral": false,
     "deployedStaging": false,
     "deployedPublic": true,
@@ -48,7 +48,7 @@
     "authenticatedConcurrentReads": "100/100",
     "mobileWeekVisibleDays": "7/7 without horizontal overflow",
     "publicBinarySha256": "b74820c013771f29a5b106f7c9ec36e274c64c2501d101afbcb51492d84270ed",
-    "currentSourceInstallProof": false,
+    "currentSourceInstallProof": "unsigned macOS CLI/Web companion only",
     "currentSourceHostedArtifacts": false
   },
   "repositoryPreflight": {
@@ -61,5 +61,5 @@
       "Trust signer-file permission test"
     ]
   },
-  "generatedAt": "2026-08-13T12:02:00Z"
+  "generatedAt": "2026-08-14T00:33:45Z"
 }

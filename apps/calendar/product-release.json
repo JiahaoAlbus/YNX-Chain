@@ -2,9 +2,9 @@
   "productId": "com.ynx.calendar",
   "name": "YNX Calendar",
   "branch": "codex/final-calendar",
-  "commit": "635f6745db8b5d4e4f00253d72fd5ab97da471ac",
-  "sourceCommit": "635f6745db8b5d4e4f00253d72fd5ab97da471ac",
-  "artifactSourceCommit": null,
+  "commit": "b606052d503ab0b4884a64a7b767f8f1f3a7fa7f",
+  "sourceCommit": "b606052d503ab0b4884a64a7b767f8f1f3a7fa7f",
+  "artifactSourceCommit": "b606052d503ab0b4884a64a7b767f8f1f3a7fa7f",
   "version": "0.3.9-testnet-public",
   "releaseChannel": "public-testnet-preview",
   "surfaces": [
@@ -16,7 +16,7 @@
   ],
   "implementedLocal": true,
   "testedLocal": true,
-  "installedLocal": false,
+  "installedLocal": true,
   "integratedCentral": false,
   "deployedStaging": false,
   "deployedPublic": true,
@@ -32,8 +32,14 @@
     "https://calendar-testnet.43.153.202.237.sslip.io/v1/health"
   ],
   "artifactUrls": [],
-  "sha256": {},
-  "bytes": {},
+  "sha256": {
+    "ynx-calendar-0.2.0-testnet-preview-darwin-arm64.tar.gz": "f487f9f057a5c190f84418dba7558e2cf9c6d43490e5762b59fd49c4e6636176",
+    "ynx-calendar-0.2.0-testnet-preview-darwin-arm64-desktop-install-evidence.json": "11c6e57c225b56611b2df8240bbdd0987fc16db4a48007ced46e14cfe2f4c65c"
+  },
+  "bytes": {
+    "ynx-calendar-0.2.0-testnet-preview-darwin-arm64.tar.gz": 3045832,
+    "ynx-calendar-0.2.0-testnet-preview-darwin-arm64-desktop-install-evidence.json": 473
+  },
   "signingClass": {
     "android": "debug-local-build-unhosted",
     "ios": "source-parse-only",
@@ -75,7 +81,20 @@
     "observedCanonical": "https://calendar-testnet.43.153.202.237.sslip.io/",
     "classification": "direct public Testnet Calendar web runtime"
   },
-  "installEvidence": [],
+  "installEvidence": [
+    {
+      "sourceCommit": "b606052d503ab0b4884a64a7b767f8f1f3a7fa7f",
+      "platform": "darwin-arm64",
+      "surface": "unsigned macOS CLI/Web companion",
+      "install": "archive extracted into a clean temporary directory and executable verified",
+      "coldStartSeconds": 0.511,
+      "restartSeconds": 0.019,
+      "exactHealthCommit": true,
+      "productionScheduling": false,
+      "signingClass": "unsigned-local",
+      "artifactHosted": false
+    }
+  ],
   "buildEvidence": [
     {
       "sourceCommit": "4ed42274a7abca2aaea0a426faa1c5548f8fd63e",
@@ -186,6 +205,17 @@
         "binarySha256": "b74820c013771f29a5b106f7c9ec36e274c64c2501d101afbcb51492d84270ed",
         "rollbackBackup": "/var/backups/ynx-chain/calendar-before-635f6745/ynx-calendard"
       }
+    },
+    {
+      "sourceCommit": "b606052d503ab0b4884a64a7b767f8f1f3a7fa7f",
+      "gate": "current native workspace and macOS companion proof",
+      "result": "pass-with-platform-limits",
+      "details": {
+        "android": "debug APK builds and rendered after install; AVD system/Launcher ANRs prevent accepted interaction proof",
+        "ios": "Swift parse plus project/plist validation; Xcode and Simulator unavailable on this host",
+        "macosCompanion": "clean extraction, executable, cold start, restart, embedded Web and exact health commit verified",
+        "macosArchiveSha256": "f487f9f057a5c190f84418dba7558e2cf9c6d43490e5762b59fd49c4e6636176"
+      }
     }
   ],
   "historicalPreview": {
@@ -255,10 +285,10 @@
   "knownLimitations": [
     "current-source invitation and reminder delivery is local Calendar state, not accepted Mail or push delivery",
     "canonical Wallet/Auth is accepted by the deployed public Gateway; AI, Mail, Data Fabric and shared integration acceptance remain incomplete",
-    "current-source Android/iOS/macOS artifacts are not install-proved or hosted",
+    "current-source unsigned macOS CLI/Web companion is install-proved but unhosted; Android interaction and iOS install remain unaccepted",
     "no distinct staging runtime, production signing, notarization, or store release",
     "backup confidentiality encryption, offsite retention and independent key escrow remain pending Security/SRE acceptance",
     "repository-wide Go preflight has non-Calendar failures retained in dependency acceptance"
   ],
-  "generatedAt": "2026-08-13T12:02:00Z"
+  "generatedAt": "2026-08-14T00:33:45Z"
 }

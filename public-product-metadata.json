@@ -4,7 +4,7 @@
   "name": "YNX Calendar",
   "aliases": ["Calendar", "YNX 日历", "YNX 日曆"],
   "canonicalRoute": "/dapp/calendar",
-  "sourceCommit": "635f6745db8b5d4e4f00253d72fd5ab97da471ac",
+  "sourceCommit": "b606052d503ab0b4884a64a7b767f8f1f3a7fa7f",
   "title": "YNX Calendar — Private scheduling with explicit approval",
   "metaDescription": "Plan events, recurring schedules, invitations, RSVP, sharing and conflict review with timezone-aware scheduling and explicit user approval.",
   "h1": "Your time, clearly under your control",
@@ -54,7 +54,7 @@
   ],
   "risksAndLimitations": [
     "The public runtime is a Testnet preview, not a production scheduling service.",
-    "Current-source mobile and desktop packages are not yet hosted or install-proved.",
+    "Current-source packages are not hosted. The unsigned macOS CLI/Web companion is locally install-proved; Android interaction and iOS installation remain unaccepted.",
     "Canonical Wallet/Auth is live; Mail delivery, AI provider execution, Data Fabric and shared integration acceptance are pending.",
     "Invitation and reminder delivery is currently local Calendar state, not accepted Mail or push delivery.",
     "Backup confidentiality encryption, offsite retention and independent key escrow are not yet accepted by Security/SRE.",
@@ -163,5 +163,5 @@
       "record Website deployment commit and public probes"
     ]
   },
-  "generatedAt": "2026-08-13T12:02:00Z"
+  "generatedAt": "2026-08-14T00:33:45Z"
 }

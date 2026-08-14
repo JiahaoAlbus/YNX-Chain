@@ -5,8 +5,8 @@
   "productId": "com.ynx.calendar",
   "productClientId": "ynx-calendar-v1",
   "bundleId": "com.ynxweb4.calendar",
-  "sourceCommit": "635f6745db8b5d4e4f00253d72fd5ab97da471ac",
-  "generatedAt": "2026-08-13T12:02:00Z",
+  "sourceCommit": "b606052d503ab0b4884a64a7b767f8f1f3a7fa7f",
+  "generatedAt": "2026-08-14T00:33:45Z",
   "authority": {
     "calendarState": "36-calendar",
     "walletIdentityAndSessions": "02-wallet-auth",
@@ -202,7 +202,7 @@
   "releaseStates": {
     "implementedLocal": true,
     "testedLocal": true,
-    "installedLocal": false,
+    "installedLocal": true,
     "integratedCentral": false,
     "deployedStaging": false,
     "deployedPublic": true,
@@ -211,7 +211,7 @@
     "storeReleased": false
   },
   "releaseStateNotes": {
-    "installedLocal": "Current source cf92caa has not completed install/cold-start proof on all target platforms. Historical e227c4f preview artifacts have separate install evidence.",
+    "installedLocal": "Current source b606052d passed clean extraction, exact-build cold start and restart for the unsigned macOS CLI/Web companion. Android interaction and iOS installation remain separate unaccepted platform gates.",
     "downloadHosted": "No current-source artifact is hosted. Historical e227c4f preview downloads are tracked separately in product-release.json."
   }
 }
