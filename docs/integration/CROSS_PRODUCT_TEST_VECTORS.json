@@ -60,6 +60,17 @@
       "publicClaimAllowed": false
     },
     {
+      "id": "WA-SMART-ACCOUNT-SESSION-TIME-001",
+      "category": "wallet-smart-account",
+      "owners": ["02-wallet-auth", "01-chain-core", "29-integration"],
+      "precondition": "A Session Key has explicit validAfter and validUntil bounds and EntryPoint nonce N is unused.",
+      "action": "Submit before validAfter, submit at nonce N inside the window, then submit at nonce N+1 after validUntil.",
+      "expectedHttpStatus": null,
+      "expectedCode": "AA22 expired or not due",
+      "expectedState": "pre-window and expired attempts preserve nonce and target/spend state; the inside-window operation succeeds",
+      "publicClaimAllowed": false
+    },
+    {
       "id": "WA-PUBLIC-GATEWAY-INGRESS-IDENTIFIERS-001",
       "category": "wallet-auth",
       "owners": ["02-wallet-auth", "13-monitor", "29-integration"],
