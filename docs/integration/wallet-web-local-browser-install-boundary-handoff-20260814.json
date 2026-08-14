@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "owner": "Wallet Web/PWA/Extensions",
+  "sourceCommit": "671e629f182f3bb47d4f7c000e9d64168052a7f3",
+  "artifactSha256": "c733093dea47c6612c8a9d5ecea40be2227f62402f4b4966955c9e1accf4e2aa",
+  "artifactBytes": 188846,
+  "chromeVersion": "151.0.7922.138",
+  "edgeVersion": "151.0.4129.78",
+  "chromeInstalledLocal": false,
+  "edgeInstalledLocal": false,
+  "pwaInstalledLocal": false,
+  "providerAddChainConnectProved": false,
+  "dailyProfilesModified": false,
+  "directEvidence": "apps/wallet-web/evidence/browser/branded-local-install-ui-boundary-20260814.json",
+  "nextSafeRequirement": "A browser-control surface must identify the disposable process/profile instance, not only the shared application bundle, before visible Developer Mode installation can proceed."
+}
