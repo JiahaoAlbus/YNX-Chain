@@ -43,7 +43,6 @@
       "consumedForReleaseTruth": false,
       "note": "The Android branch advanced beyond frozen evidence without an Owner terminal checkpoint; device truth remains unchanged."
     },
-    {"owner":"desktop-cli-sdk","candidateCommit":"0985090cc5640a7bc6f614acba1f32ba24e6dc55","remoteFastForwardReported":true,"remoteReadbackComplete":true,"ciComplete":true,"consumedForReleaseTruth":false,"note":"Linux x64 AppImage handoff remains queued separately."},
     {"owner":"ios-macos","candidateCommit":"50d3b2e2c5bd77456b84f348c48fa4a9ed76b5b3","remoteFastForwardReported":true,"remoteReadbackComplete":false,"ciComplete":false,"consumedForReleaseTruth":false,"note":"Terminal failed iOS run may promote only malformed callback delivery/rejection after evidence readback."},
     {"owner":"android-api36","candidateCommit":"8666c0bb0535270e595f3db54e7d2e35b18afe66","remoteFastForwardReported":true,"remoteReadbackComplete":false,"ciComplete":true,"consumedForReleaseTruth":false,"note":"Temporary Uint8Array zeroization evidence remains queued; immutable JS strings are excluded."},
     {"owner":"core-auth-gateway","candidateCommit":"b8467853060db04c2981abb7fcfa22d4cfdcf65b","remoteFastForwardReported":true,"remoteReadbackComplete":false,"ciComplete":true,"consumedForReleaseTruth":false,"note":"Smart Account batch-call evidence remains queued after platform slices."}
@@ -88,8 +87,8 @@
     {
       "owner": "desktop-cli-sdk",
       "branch": "codex/wallet-desktop-cli-sdk-20260813",
-      "sourceCommit": "aa88a6e7a1bb17b5fc46799100e43acdccb26dc6",
-      "remoteCommitObserved": "aa88a6e7a1bb17b5fc46799100e43acdccb26dc6",
+      "sourceCommit": "0985090cc5640a7bc6f614acba1f32ba24e6dc55",
+      "remoteCommitObserved": "0985090cc5640a7bc6f614acba1f32ba24e6dc55",
       "branchHeadObserved": "a25c4977655a28b5ae12f34604636eb75d71302c",
       "remoteVerifiedAt": "2026-08-14T04:05:00Z",
       "verificationMode": "github-git-database-parent-tree-blob-readback"
@@ -663,6 +662,13 @@
       "type": "git-object",
       "direct": true,
       "commit": "f46866333b031a43c60d0f759db03edf5cf04fe8",
+      "path": "release/integration/wallet-desktop-cli-sdk-contract.json",
+      "supports": []
+    },
+    "desktop-linux-x64-appimage-handoff": {
+      "type": "git-object",
+      "direct": true,
+      "commit": "0985090cc5640a7bc6f614acba1f32ba24e6dc55",
       "path": "release/integration/wallet-desktop-cli-sdk-contract.json",
       "supports": []
     }
