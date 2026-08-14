@@ -528,6 +528,8 @@ type rpcStatus struct {
 
 func (s *Service) CheckHealth(ctx context.Context) Health {
 	health := s.Health()
+	health.OK = true
+	health.LastError = ""
 	var status rpcStatus
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, strings.TrimRight(s.cfg.RPCURL, "/")+"/status", nil)
 	if err != nil {

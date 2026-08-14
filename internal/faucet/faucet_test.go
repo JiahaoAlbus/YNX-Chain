@@ -128,6 +128,28 @@ func TestFaucetServerEndpoints(t *testing.T) {
 	_ = resp.Body.Close()
 }
 
+func TestHealthRecoversAfterTransientRequestFailureWhenUpstreamIsHealthy(t *testing.T) {
+	rpc := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet && r.URL.Path == "/status" {
+			_ = json.NewEncoder(w).Encode(map[string]any{"chainId": 6423, "height": 42, "nativeCurrencySymbol": "YNXT"})
+			return
+		}
+		http.Error(w, "temporary faucet broadcast failure", http.StatusBadGateway)
+	}))
+	defer rpc.Close()
+	service, err := New(Config{RPCURL: rpc.URL, FaucetKey: "local-test-key", DefaultAmount: 25, MaxAmount: 25, MaxRequests: 2, RequestLog: t.TempDir() + "/requests.jsonl"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, status, err := service.Request(context.Background(), Request{Address: "ynx_faucet_health_recovery"}, "127.0.0.1:1000"); err == nil || status != http.StatusBadGateway {
+		t.Fatalf("transient request failure not observed: status=%d err=%v", status, err)
+	}
+	health := service.CheckHealth(context.Background())
+	if !health.OK || !health.UpstreamOK || health.LastError != "" || health.ChainID != 6423 || health.Height != 42 {
+		t.Fatalf("healthy upstream remained poisoned by request history: %+v", health)
+	}
+}
+
 func TestFaucetWebsiteCORSAndTrustedProxyIdentity(t *testing.T) {
 	handler := NewServer(nil).Handler()
 	req := httptest.NewRequest(http.MethodOptions, "/request", nil)
