@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "artifactClass": "wallet-desktop-linux-arm64-rpm-fedora-rollback-recovery",
+  "version": "0.1.0",
+  "sourceCommit": "9d8507ddba885b12af2d98fde86980763b711bd6",
+  "workflowRunId": 31775233732,
+  "workflowRunURL": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/31775233732",
+  "jobs": {
+    "rollbackLifecycle": 94689196784,
+    "verifyDownloadedArtifact": 94690135981
+  },
+  "artifact": {
+    "filename": "ynx-wallet-desktop-0.1.0-aarch64.rpm",
+    "format": "rpm",
+    "architecture": "arm64",
+    "bytes": 81231949,
+    "sha256": "32bdf0f1a040891ba4fc1bbbe055a7e310d52a0d4ce7796f236cf9cece08107e",
+    "minimumOS": "Fedora 42 arm64 userland directly tested on Ubuntu 24.04 arm64 native runner kernel",
+    "signingClass": "unsigned_linux_rpm_testnet_candidate",
+    "productionSigned": false
+  },
+  "workflowArtifacts": {
+    "rpmAndEvidence": {
+      "id": 9209717229,
+      "archiveBytes": 81259937,
+      "archiveSha256": "436cdb7cb5f4dc65db31e6e1b5b25fb91a171b6996ab32101c379391ee8da548"
+    },
+    "downloadVerification": {
+      "id": 9209722568,
+      "archiveBytes": 367,
+      "archiveSha256": "6f415ec143778f3d76f2e2c73388be6d8e06b7487616e374211229aca9165dc4"
+    }
+  },
+  "rollbackEvidence": {
+    "initialUpgradeFrom": "0.0.9",
+    "initialUpgradeTo": "0.1.0",
+    "currentLaunchVerified": true,
+    "rollbackWithFedoraDnf": true,
+    "rollbackVersion": "0.0.9",
+    "rollbackLaunchVerified": true,
+    "rollbackChainId": "0x1917",
+    "reupgradeWithFedoraDnf": true,
+    "restoredVersion": "0.1.0",
+    "restoredCurrentLaunchVerified": true,
+    "restoredChainId": "0x1917",
+    "rpcFailureClosedBeforeRollback": true,
+    "rpmScriptsExecutedAcrossTransitions": true,
+    "uninstallVerified": true,
+    "artifactDownloadedAndReverified": true,
+    "signingEnabled": false,
+    "accountCreated": false,
+    "balanceClaimed": false,
+    "transactionCreated": false
+  },
+  "downloadHosted": false,
+  "deployedPublic": false,
+  "storeReleased": false
+}
