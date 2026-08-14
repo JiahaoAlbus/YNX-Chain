@@ -3,7 +3,7 @@
   "auditId": "wallet-auth-public-evidence-audit-2026-08-14",
   "auditedAt": "2026-08-14T03:38:07Z",
   "integrationBaseCommit": "a008ce0e8fa2ac0322198576c320441118fbae83",
-  "matrixSha256": "a8ad8d3d165e5880162101ef83c13592cc8b98cc062f1eba42dd4db15f0c746f",
+  "matrixSha256": "70aaba44cad549334b7c99ced1a4f401ba03b8096fff51cc87553acebbd7ce53",
   "publicTestnet": {
     "smartAccountDeploymentVerifier": {
       "evidenceCommit": "0c747c6030b5a475a1f12dc7e57345555c23055d",
@@ -136,6 +136,23 @@
     "productionArtifactChecksPassed": 0,
     "productionArtifactChecksTotal": 9,
     "registryPassed": false,
+    "downloadHosted": false,
+    "deployedPublic": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "webBrandedIsolatedRuntime": {
+    "commit": "d14a1b00366ff94f76efe3f0d86bec42f1033b15",
+    "artifactBytes": 188846,
+    "artifactSha256": "c733093dea47c6612c8a9d5ecea40be2227f62402f4b4966955c9e1accf4e2aa",
+    "chromeLaunched": true,
+    "chromeServiceWorkerStarted": false,
+    "edgeLaunched": true,
+    "edgePersistentContextStarted": false,
+    "firefoxBinaryPresent": false,
+    "firstOpenProved": false,
+    "secondOpenProved": false,
+    "installedLocal": false,
     "downloadHosted": false,
     "deployedPublic": false,
     "productionSigned": false,
