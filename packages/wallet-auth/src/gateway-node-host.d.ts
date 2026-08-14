@@ -30,6 +30,7 @@ export type CanonicalGatewayObservabilityEvent=Readonly<{
 export type CanonicalGatewayNodeHostOptions=Readonly<{
   statePath:string;
   now:()=>Date;
+  bodyTimeoutMs?:number;
   allowLegacyStateMigration?:boolean;
   emitEvent?:(event:CanonicalGatewayObservabilityEvent)=>void;
   admission?:Readonly<{

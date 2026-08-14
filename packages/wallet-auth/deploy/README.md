@@ -29,5 +29,10 @@ do not set a zero age floor in steady-state runbooks, and do not automate recove
 without a separate PID-namespace and storage-semantics review. Successful local
 recovery reports the frozen state/Registry digests but does not establish central,
 staging, public, network-filesystem or multi-region safety.
+Set `YNX_WALLET_GATEWAY_BODY_TIMEOUT_MS` within 250–120000 ms (default 15000).
+An incomplete body is connection-terminated, observed as bounded
+`REQUEST_BODY_TIMEOUT`, and releases process-local admission capacity without
+touching canonical state. Configure independent ingress header, body, idle and
+connection deadlines; the Node setting does not replace those controls.
 `MemoryDenyWriteExecute` is intentionally not set because Node/V8 requires JIT
 executable pages and fails closed with `signal=TRAP` under that systemd option.

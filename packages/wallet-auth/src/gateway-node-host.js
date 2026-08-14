@@ -46,6 +46,7 @@ export class CanonicalWalletGatewayNodeHost {
   #admission;
   #allowLegacyStateMigration;
   #build;
+  #bodyTimeoutMs;
   #emitEvent;
   #kernel;
   #metrics;
@@ -60,6 +61,7 @@ export class CanonicalWalletGatewayNodeHost {
     const runtime = hostOptions(options);
     const deploymentState = deploymentConfig(deployment);
     this.#statePath = statePath(runtime.statePath);
+    this.#bodyTimeoutMs = runtime.bodyTimeoutMs;
     this.#admission = runtime.admission;
     this.#allowLegacyStateMigration = runtime.allowLegacyStateMigration;
     this.#now = runtime.now;
@@ -130,7 +132,7 @@ export class CanonicalWalletGatewayNodeHost {
           response.end(administrative.body);
           return;
         }
-        const body = await boundedBody(request);
+        const body = await boundedBody(request, this.#bodyTimeoutMs);
         const proof = decodeGatewayProofHeader(request.headers[CANONICAL_GATEWAY_PROOF_HEADER]);
         releaseStateLock = await acquireStateLock(this.#statePath);
         this.#reload();
@@ -351,18 +353,20 @@ export class CanonicalWalletGatewayNodeHost {
 function hostOptions(value) {
   if (!isPlainObject(value)) exactFields(value, ["now", "statePath"], "Canonical Gateway Node host options");
   const required = ["now", "statePath"];
-  const allowed = new Set([...required, "admission", "allowLegacyStateMigration", "emitEvent"]);
+  const allowed = new Set([...required, "admission", "allowLegacyStateMigration", "bodyTimeoutMs", "emitEvent"]);
   if (required.some(field => !Object.hasOwn(value, field)) || Object.keys(value).some(field => !allowed.has(field))) {
     throw new WalletAuthError("UNKNOWN_OR_MISSING_FIELD", "Canonical Gateway Node host options fields do not match the protocol schema");
   }
   const admission = value.admission ?? null;
   const emitEvent = value.emitEvent ?? (() => {});
   const allowLegacyStateMigration = value.allowLegacyStateMigration ?? false;
+  const bodyTimeoutMs = value.bodyTimeoutMs ?? 15_000;
   if (admission !== null && !(admission instanceof GatewayAdmissionController)) throw new WalletAuthError("INVALID_ADMISSION", "Canonical Gateway admission controller is invalid");
   if (typeof allowLegacyStateMigration !== "boolean") throw new WalletAuthError("INVALID_MIGRATION_POLICY", "Canonical Gateway legacy state migration policy is invalid");
+  if (!Number.isSafeInteger(bodyTimeoutMs) || bodyTimeoutMs < 10 || bodyTimeoutMs > 120_000) throw new WalletAuthError("INVALID_BODY_TIMEOUT", "Canonical Gateway request body timeout is outside policy");
   if (typeof emitEvent !== "function") throw new WalletAuthError("INVALID_EVENT_SINK", "Canonical Gateway event sink is invalid");
   if (typeof value.now !== "function") throw new WalletAuthError("INVALID_CLOCK", "Canonical Gateway Node host clock is invalid");
-  return Object.freeze({ admission, allowLegacyStateMigration, emitEvent, now: value.now, statePath: value.statePath });
+  return Object.freeze({ admission, allowLegacyStateMigration, bodyTimeoutMs, emitEvent, now: value.now, statePath: value.statePath });
 }
 
 function deploymentConfig(value) {
@@ -693,13 +697,27 @@ function fsyncStateDirectory(directory) {
   }
 }
 
-async function boundedBody(request) {
+async function boundedBody(request, timeoutMs) {
   const chunks = [];
   let size = 0;
-  for await (const chunk of request) {
-    size += chunk.length;
-    if (size > 1_048_576) throw new WalletAuthError("INVALID_BODY", "Canonical Wallet Gateway body exceeds 1048576 bytes");
-    chunks.push(chunk);
+  let timedOut = false;
+  const timeout = setTimeout(() => {
+    timedOut = true;
+    request.destroy(new WalletAuthError("REQUEST_BODY_TIMEOUT", "Canonical Wallet Gateway request body timed out"));
+  }, timeoutMs);
+  timeout.unref?.();
+  try {
+    for await (const chunk of request) {
+      size += chunk.length;
+      if (size > 1_048_576) throw new WalletAuthError("INVALID_BODY", "Canonical Wallet Gateway body exceeds 1048576 bytes");
+      chunks.push(chunk);
+    }
+  } catch (caught) {
+    if (timedOut) throw new WalletAuthError("REQUEST_BODY_TIMEOUT", "Canonical Wallet Gateway request body timed out");
+    if (request.aborted || caught?.code === "ECONNRESET") throw new WalletAuthError("REQUEST_ABORTED", "Canonical Wallet Gateway request was aborted");
+    throw caught;
+  } finally {
+    clearTimeout(timeout);
   }
   return Buffer.concat(chunks).toString("utf8");
 }
@@ -712,7 +730,7 @@ function statePath(value) {
 function hostError(caught) {
   if (caught instanceof WalletAuthError) {
     const stateUnavailable = caught.code === "LEGACY_STATE_MIGRATION_REQUIRED" || caught.code === "REGISTRY_STATE_MISMATCH" || caught.code.startsWith("STATE_");
-    const status = caught.code === "INVALID_BODY" ? 413 : stateUnavailable ? 503 : 400;
+    const status = caught.code === "INVALID_BODY" ? 413 : caught.code === "REQUEST_BODY_TIMEOUT" ? 408 : stateUnavailable ? 503 : 400;
     return { status, code: caught.code, message: caught.message };
   }
   return { status: 500, code: "INTERNAL", message: "Canonical Wallet Gateway host failed closed" };

@@ -146,6 +146,14 @@ lock last, and fsyncs the parent directory. This is manual single-host POSIX
 recovery evidence; automatic recovery, PID namespaces, network filesystems,
 central rollout and multi-region leader election remain outside the claim.
 
+The Node host also bounds receipt of every non-administrative request body. The
+default 15-second deadline is operator-configurable only within 250–120000 ms in
+the daemon; timeout destroys the incomplete request, records bounded 408
+`REQUEST_BODY_TIMEOUT`, releases admission capacity and never acquires the state
+lock. Client abort similarly records `REQUEST_ABORTED` without mutation. Ingress
+must retain its own header/body/connection deadlines; this process-local control
+does not prove protection at a public proxy or central load balancer.
+
 Current focused verification on 2026-08-10 is Wallet/Auth 105/105, Wallet app
 39/39, and Wallet app TypeScript typecheck, all passing. Earlier Node host,
 Browser SDK, JS SDK, loopback CLI, package, and Go evidence remains subject to
