@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "wallet-product-session-v2-persistence-rollback-local-2026-08-14",
+  "owner": "02-wallet-auth",
+  "sourceCommit": "2d72165b6fd281dde3e8c2d41f50ec8bffad6a6a",
+  "routerContractCommit": "739fca33d230d390f0c001467c39efb14450b9ec",
+  "failFirst": "PersistentProductSessionGatewayNodeHost module was absent",
+  "state": {"gatewaySchemaVersion":2,"envelopeSchemaVersion":1,"registrySha256Bound":true,"directoryMode":"0700","fileMode":"0600","noFollow":true,"regularFile":true,"singleLink":true,"maximumBytes":67108864,"canonicalJson":true,"temporaryExclusive":true,"fileFsync":true,"atomicRename":true,"directoryFsync":true,"successAfterCommit":true},
+  "restart": {"challengePersistedBeforeResponse":true,"idempotentChallengeResponseRestored":true,"unsafeRuntimeReplacementStatus":503,"unsafeRuntimeReplacementMutation":false},
+  "deployment": {"copiedProductionSnapshotPreflight":true,"freshFirstDeploySupported":true,"candidateV2RoutePreflight":true,"stateBackup":true,"priorStateRollback":true,"firstDeployRollbackRemovesNewState":true,"postSwitchV2RouteCheck":true,"publicExecutionPerformed":false},
+  "tests": {"focused":{"passed":6,"failed":0},"walletAuthFull":{"passed":278,"failed":0},"goAppGateway":"passed","appGatewayCheck":"passed","hardhatWallet":"passed","packageDryRun":"passed","walletProductGate":"passed","walletReleaseContentGate":"passed","walletGoalCoverageGate":"passed"},
+  "sourceSha256": {"packages/wallet-auth/src/product-session-gateway-node-host.js":"5ae2c1740980cacd5e5d02b13af52096398647b0d177d16ef3bea7f55c2bd4f2","packages/wallet-auth/scripts/ynx-wallet-gatewayd.mjs":"567db5c42459163d7efd389ccc1ae819e53cfc9fea90c03d4c5125a3b825d14b","packages/wallet-auth/test/product-session-gateway-node-host.test.mjs":"bca8506c7d2832dcbf15d22c40aa92d1f0251a2b3e8bd0c194e97d04e7715fcc","packages/wallet-auth/test/product-session-v2-deployment-gate.test.mjs":"31530e04283ac61d7dd26cab385bfebf6333d39612e7f3f1f6d9ce7345573dde","scripts/deploy/install-wallet-gateway-testnet-remote.sh":"a53188fd3a0f4894e70a2e0252cd87b41fe647ff19f96ca2e15c28b297745cb1"},
+  "remaining": ["deploy through an authorized production channel","run full public challenge/approval/reject/session/introspect/expiry/revoke negative matrix"],
+  "releaseClaims": {"implementedLocal":true,"testedLocal":true,"integratedCentral":false,"deployedStaging":false,"deployedV2":false,"deployedPublic":false},
+  "secretMaterialRecorded": false
+}
