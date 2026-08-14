@@ -125,7 +125,7 @@ jobs:
             --predicate 'subsystem == "com.ynxweb4.wallet" AND (category == "callback" OR category == "lifecycle")' \
             2>&1 | tee proof/ci-ios/malformed-callback-native.log || true
           grep -E 'YNX_WALLET_CALLBACK_RECEIVED pid=[0-9]+ scheme=ynxwallet' proof/ci-ios/malformed-callback-native.log
-          grep -F "Test case '-[YNXWalletUITests.MalformedCallbackUITests testMalformedCallbackIsDeliveredAndRejected]' passed" proof/ci-ios/malformed-callback-xctest.log
+          grep -F "Test Case '-[YNXWalletUITests.MalformedCallbackUITests testMalformedCallbackIsDeliveredAndRejected]' passed" proof/ci-ios/malformed-callback-xctest.log
           xcrun xcresulttool export attachments \
             --path proof/ci-ios/MalformedCallback.xcresult \
             --output-path proof/ci-ios/xcresult-attachments
