@@ -1,7 +1,6 @@
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-import zlib from "node:zlib";
 import {fileURLToPath} from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
@@ -45,7 +44,7 @@ for (const name of [...entries.keys()].sort()) {
   blocks.push(header, content, Buffer.alloc((512 - (content.length % 512)) % 512));
 }
 blocks.push(Buffer.alloc(1024));
-const archive = zlib.gzipSync(Buffer.concat(blocks), {level: 9, mtime: 0});
+const archive = deterministicGzip(Buffer.concat(blocks));
 fs.mkdirSync(path.dirname(output), {recursive: true});
 fs.writeFileSync(output, archive);
 console.log(JSON.stringify({path: path.relative(root, output), bytes: archive.length, sha256: crypto.createHash("sha256").update(archive).digest("hex"), ...manifest}));
@@ -78,4 +77,35 @@ function write(buffer, value, offset, length) {
   const encoded = Buffer.from(value);
   if (encoded.length > length) throw new Error(`tar field overflow: ${value}`);
   encoded.copy(buffer, offset);
+}
+
+// Emit RFC 1952 gzip with RFC 1951 stored blocks. This intentionally avoids
+// platform zlib versions so macOS and Linux produce byte-identical archives.
+function deterministicGzip(input) {
+  const chunks = [Buffer.from([0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff])];
+  for (let offset = 0; offset < input.length || offset === 0;) {
+    const length = Math.min(0xffff, input.length - offset);
+    const final = offset + length === input.length;
+    const header = Buffer.alloc(5);
+    header[0] = final ? 1 : 0;
+    header.writeUInt16LE(length, 1);
+    header.writeUInt16LE((~length) & 0xffff, 3);
+    chunks.push(header, input.subarray(offset, offset + length));
+    offset += length;
+    if (final) break;
+  }
+  const trailer = Buffer.alloc(8);
+  trailer.writeUInt32LE(crc32(input), 0);
+  trailer.writeUInt32LE(input.length >>> 0, 4);
+  chunks.push(trailer);
+  return Buffer.concat(chunks);
+}
+
+function crc32(input) {
+  let crc = 0xffffffff;
+  for (const byte of input) {
+    crc ^= byte;
+    for (let bit = 0; bit < 8; bit++) crc = (crc >>> 1) ^ ((crc & 1) ? 0xedb88320 : 0);
+  }
+  return (crc ^ 0xffffffff) >>> 0;
 }

@@ -31,8 +31,8 @@ jobs:
           cp release/wallet-cli/go-sdk/ynx-wallet-go-sdk-0.1.0.tgz "$RUNNER_TEMP/committed.tgz"
           node scripts/release/build-wallet-go-sdk.mjs f27b5867227e172756d4a8c3638905c668874f33 > "$RUNNER_TEMP/evidence/build.json"
           package=release/wallet-cli/go-sdk/ynx-wallet-go-sdk-0.1.0.tgz
-          test "$(stat -c %s "$package")" = 5610
-          test "$(sha256sum "$package" | cut -d ' ' -f 1)" = 9834b5c37d089ccbbfcd7afee18c0a4ff421d762be7d2d1e473e162241950208
+          test "$(stat -c %s "$package")" = 23063
+          test "$(sha256sum "$package" | cut -d ' ' -f 1)" = 6ef48782edd2be8cd5b79ab62e5ac5ed93ef52242f4157dab3aac29117bee94e
           cmp "$package" "$RUNNER_TEMP/committed.tgz"
       - name: Extract, install and test module package
         run: |
@@ -50,7 +50,7 @@ jobs:
           grep -F 'RPC must be an absolute HTTPS URL without userinfo' "$RUNNER_TEMP/evidence/http.stderr"
           if go run ./examples/real-consumer -vector testdata/product-session-http-proof-v1.json -rpc https://127.0.0.1:1 -timeout 2s > "$RUNNER_TEMP/evidence/unreachable.stdout" 2> "$RUNNER_TEMP/evidence/unreachable.stderr"; then exit 1; fi
           grep -E 'RPC unavailable|deadline exceeded' "$RUNNER_TEMP/evidence/unreachable.stderr"
-          jq -n --arg workflowSourceCommit "$GITHUB_SHA" --argjson workflowRunId "$GITHUB_RUN_ID" '{schemaVersion:1,packageSourceCommit:"f27b5867227e172756d4a8c3638905c668874f33",workflowSourceCommit:$workflowSourceCommit,workflowRunId:$workflowRunId,runner:"ubuntu-24.04-x64",go:"1.25.0",minimumRuntime:"Go 1.25.0",minimumOS:"Ubuntu 24.04.4 x64 directly tested",bytes:5610,sha256:"9834b5c37d089ccbbfcd7afee18c0a4ff421d762be7d2d1e473e162241950208",signingClass:"unsigned_go_module_testnet_candidate",deterministicRebuild:true,cleanExtracted:true,moduleTests:true,realConsumer:true,vectorVerified:true,ephemeralSigningVerified:true,privateKeyPersisted:false,chainId:"0x1917",httpFailureClosed:true,unreachableRpcFailureClosed:true,accountClaimed:false,balanceClaimed:false,transactionCreated:false,productionSigned:false,downloadHosted:false,deployedPublic:false}' > "$RUNNER_TEMP/evidence/lifecycle.json"
+          jq -n --arg workflowSourceCommit "$GITHUB_SHA" --argjson workflowRunId "$GITHUB_RUN_ID" '{schemaVersion:1,packageSourceCommit:"f27b5867227e172756d4a8c3638905c668874f33",workflowSourceCommit:$workflowSourceCommit,workflowRunId:$workflowRunId,runner:"ubuntu-24.04-x64",go:"1.25.0",minimumRuntime:"Go 1.25.0",minimumOS:"Ubuntu 24.04.4 x64 directly tested",bytes:23063,sha256:"6ef48782edd2be8cd5b79ab62e5ac5ed93ef52242f4157dab3aac29117bee94e",signingClass:"unsigned_go_module_testnet_candidate",deterministicRebuild:true,cleanExtracted:true,moduleTests:true,realConsumer:true,vectorVerified:true,ephemeralSigningVerified:true,privateKeyPersisted:false,chainId:"0x1917",httpFailureClosed:true,unreachableRpcFailureClosed:true,accountClaimed:false,balanceClaimed:false,transactionCreated:false,productionSigned:false,downloadHosted:false,deployedPublic:false}' > "$RUNNER_TEMP/evidence/lifecycle.json"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: ynx-wallet-go-sdk-package
@@ -73,10 +73,10 @@ jobs:
           package="$(find downloaded -name ynx-wallet-go-sdk-0.1.0.tgz -type f -print -quit)"
           evidence="$(find downloaded -name lifecycle.json -type f -print -quit)"
           test -n "$package" && test -n "$evidence"
-          test "$(stat -c %s "$package")" = 5610
-          test "$(sha256sum "$package" | cut -d ' ' -f 1)" = 9834b5c37d089ccbbfcd7afee18c0a4ff421d762be7d2d1e473e162241950208
+          test "$(stat -c %s "$package")" = 23063
+          test "$(sha256sum "$package" | cut -d ' ' -f 1)" = 6ef48782edd2be8cd5b79ab62e5ac5ed93ef52242f4157dab3aac29117bee94e
           jq -e '.deterministicRebuild == true and .cleanExtracted == true and .moduleTests == true and .realConsumer == true and .vectorVerified == true and .ephemeralSigningVerified == true and .privateKeyPersisted == false and .chainId == "0x1917" and .httpFailureClosed == true and .unreachableRpcFailureClosed == true and .productionSigned == false and .downloadHosted == false and .deployedPublic == false' "$evidence"
-          jq -n --arg sourceCommit "$GITHUB_SHA" --argjson workflowRunId "$GITHUB_RUN_ID" '{schemaVersion:1,sourceCommit:$sourceCommit,workflowRunId:$workflowRunId,downloaded:true,bytesVerified:true,sha256Verified:true,bytes:5610,sha256:"9834b5c37d089ccbbfcd7afee18c0a4ff421d762be7d2d1e473e162241950208"}' > downloaded-verification.json
+          jq -n --arg sourceCommit "$GITHUB_SHA" --argjson workflowRunId "$GITHUB_RUN_ID" '{schemaVersion:1,sourceCommit:$sourceCommit,workflowRunId:$workflowRunId,downloaded:true,bytesVerified:true,sha256Verified:true,bytes:23063,sha256:"6ef48782edd2be8cd5b79ab62e5ac5ed93ef52242f4157dab3aac29117bee94e"}' > downloaded-verification.json
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: ynx-wallet-go-sdk-package-download-verification
