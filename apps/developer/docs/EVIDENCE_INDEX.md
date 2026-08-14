@@ -23,6 +23,13 @@ successful eight-runtime release record.
   cleanup of temporary package egress on both success and failure.
   `test/package-install-ui.test.js` holds the React review, one-time approval,
   returned manifest/lockfile mutation and fail-closed language.
+- Web Python package evidence: the same service rejects ranges, non-canonical
+  locks and cross-owner access, permits binary wheels only, atomically swaps a
+  bounded project venv, links it into later isolated Python execution and always
+  removes temporary egress. The direct wheel probe used controlled Python
+  `3.12.13`, installed and imported `colorama==0.4.6`, then produced the exact
+  canonical lock. This local proof does not claim the production LXD network or
+  public service has been updated.
 - Breadcrumb/Outline evidence: `test/breadcrumb-outline-ui.test.js` holds path
   hierarchy, Outline activity, exact-content freshness and Monaco line/column
   navigation. `services/language-service/test/typescript-lsp.test.mjs` executes

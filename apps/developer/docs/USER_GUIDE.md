@@ -82,15 +82,18 @@ they are never reported as successful compilation.
 
 Select a project-bound LXD workspace in **Remote Explorer**, then choose
 **Package** beside Run/Test to install one exact npm dependency such as
-`kleur@4.1.5`. Review the command and every existing direct dependency before
-approving. Existing dependencies must already use exact versions. npm lifecycle
-scripts, audit and funding calls are disabled; temporary install network must be
-removed before the operation succeeds. The service persists `node_modules` only
-inside that project's container and returns updated `package.json` and
-`package-lock.json` to the revisioned text workspace. The action is unavailable
-for the local ephemeral Web sandbox and SSH profiles; use the explicitly opened
-SSH terminal under that host's own policy. Non-npm package managers do not yet
-have reviewed Web buttons.
+`kleur@4.1.5`, or choose Python and install an exact package such as
+`colorama==0.4.6`. Review the command and existing lock before approving. npm
+dependencies must use exact versions; its lifecycle scripts, audit and funding
+calls are disabled. Python accepts only an exact `name==version`, rejects source
+distributions/builds with `--only-binary=:all:`, persists an atomic project venv,
+and writes its exact resolved environment to `requirements.ynx.lock`. The
+temporary install network must be removed before either operation succeeds.
+The service links only that project's persisted dependency store into later
+tasks. The action is unavailable for the local ephemeral Web sandbox and SSH
+profiles; use the explicitly opened SSH terminal under that host's own policy.
+Cargo, Go, Maven/Gradle and Solidity package installers do not yet have reviewed
+Web buttons.
 
 The packaged desktop product separately supports an exact project-local npm
 install. Its TypeScript adapter can use a reviewed `typescript@5.9.0` package

@@ -336,8 +336,11 @@ cleanup failure stops the container. An atomic, 512 MiB project store under
 `/opt/ynx-code-dependencies/<project>/node` survives later tasks, which link its
 `node_modules` only after resolving the owner/project lease. The returned
 manifest and lockfile must still fit the shared 256-file/2 MiB text-workspace
-boundary. This does not claim pip, Cargo, Go, Maven/Gradle or Solidity framework
-installation.
+boundary. The same one-time network capability now supports exact Python wheel
+plans: source builds are rejected, an atomic project venv is persisted below the
+owner/project dependency store, the resolved environment is returned as
+`requirements.ynx.lock`, and later Python tasks use that venv in isolated mode.
+This does not claim Cargo, Go, Maven/Gradle or Solidity framework installation.
 
 The next reviewed image recipe extends execution to Java with OpenJDK 21. Both
 workspace-agent and LXD adapters derive the public class from the active

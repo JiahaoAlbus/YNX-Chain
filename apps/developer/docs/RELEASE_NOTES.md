@@ -1,5 +1,21 @@
 # YNX Developer 0.2.0 Testnet Preview release notes
 
+## 2026-08-14 reviewed Python wheel installation candidate
+
+- Added an explicit npm/Python selector to the one-time package review. Python
+  accepts only exact `name==version` requests and records the resolved environment
+  in `requirements.ynx.lock`.
+- The LXD adapter forces `--only-binary=:all:` and `--no-input`, rejects source
+  builds, checks the existing lock against the persisted environment, atomically
+  swaps a 512 MiB-bounded project venv, and makes later isolated Python tasks use
+  it. Temporary package egress must be removed before success; cleanup uncertainty
+  stops the container.
+- Service tests pass `14/14`; product tests pass `56/56`; a controlled Python
+  `3.12.13` probe installed and imported the real `colorama==0.4.6` wheel and
+  produced the same exact lock. Feature source:
+  `6a0af002514ad3dbf19f527c7af00910b217b2c4`. Public exact-version and container
+  install evidence remain pending the dedicated reviewed LXD egress network.
+
 ## 2026-08-14 real offline Hardhat Solidity project-test candidate
 
 - Added server-side discovery for Solidity `.t.sol` files containing `test*`
