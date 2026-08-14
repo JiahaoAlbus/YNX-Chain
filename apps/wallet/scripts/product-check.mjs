@@ -13,6 +13,7 @@ const androidManifest=await readFile(new URL("../android/app/src/main/AndroidMan
 const secureStorage=await readFile(new URL("../src/storage/secureStorage.ts",import.meta.url),"utf8");
 const localAuthorization=await readFile(new URL("../src/security/localAuthorization.ts",import.meta.url),"utf8");
 const localAuthorizationPolicy=await readFile(new URL("../src/security/localAuthorizationPolicy.ts",import.meta.url),"utf8");
+const authorizationLifecyclePolicy=await readFile(new URL("../src/security/authorizationLifecyclePolicy.ts",import.meta.url),"utf8");
 const lockState=await readFile(new URL("../src/state/lockState.ts",import.meta.url),"utf8");
 const clipboardPrivacy=await readFile(new URL("../src/security/clipboardPrivacy.ts",import.meta.url),"utf8");
 const signingPlugin=await readFile(new URL("../plugins/withYnxAndroidReleaseSigning.js",import.meta.url),"utf8");
@@ -39,6 +40,10 @@ assert.ok(secureStorage.includes("WHEN_UNLOCKED_THIS_DEVICE_ONLY"),"Wallet secre
 for(const required of ["BIOMETRIC_STRONG","disableDeviceFallback: true",'biometricsSecurityLevel: "strong"'])assert.ok(`${localAuthorization}\n${localAuthorizationPolicy}`.includes(required),`local key authorization must require ${required}`);
 assert.ok(source.includes('AppState.addEventListener("change"'),"Wallet must observe application background state");
 assert.ok(source.includes('dispatchLock({type:"lock",reason:"background"})'),"Wallet must lock when leaving the active state");
+for(const setter of ["setAuthorization(null)","setExchangeAction(null)","setDeveloperDeployment(null)","setDexAction(null)","setQuantAction(null)"])assert.ok(source.includes(setter),`background/link handling must clear ${setter}`);
+for(const required of ["attempt.generation!==current.generation","attempt.account!==current.account","now.toISOString()>=expiresAt"])assert.ok(authorizationLifecyclePolicy.includes(required),`authorization lifecycle must fail closed on ${required}`);
+assert.ok((source.match(/useAuthorizationAttemptGuard\(selected\.account,request\.expiresAt\)/g)??[]).length===5,"all five authorization/action Modals must use the lifecycle attempt guard");
+assert.ok(source.includes("parseAuthorizationRequest(activeRequest,{now,registry:PRODUCT_REGISTRY})"),"canonical authorization must revalidate expiry after private-key access and before signing");
 assert.ok(lockState.includes("unlockedAccount: null"),"background/restart lock must clear the in-memory unlocked account");
 assert.ok(source.includes("switchAccountFailClosed(account"),"account selection must use the fail-closed relock policy");
 assert.ok(lockState.includes('reason: "account-switch"'),"every account switch must clear authorization and require a fresh unlock");
