@@ -81,11 +81,11 @@
     {
       "owner": "core-auth-gateway",
       "branch": "codex/wallet-core-auth-gateway-continuation-20260814",
-      "sourceCommit": "0c747c6030b5a475a1f12dc7e57345555c23055d",
-      "remoteCommitObserved": "0c747c6030b5a475a1f12dc7e57345555c23055d",
-      "branchHeadObserved": "0c747c6030b5a475a1f12dc7e57345555c23055d",
-      "remoteVerifiedAt": "2026-08-14T08:49:00Z",
-      "verificationMode": "github-git-database-parent-tree-blob-readback"
+      "sourceCommit": "19277165ec69c3d0dba76050c2529710d43f88b7",
+      "remoteCommitObserved": "19277165ec69c3d0dba76050c2529710d43f88b7",
+      "branchHeadObserved": "19277165ec69c3d0dba76050c2529710d43f88b7",
+      "remoteVerifiedAt": "2026-08-14T12:30:14Z",
+      "verificationMode": "remote-ref-parent-tree-public-negative-matrix-blob-readback"
     },
     {
       "owner": "web-pwa-extensions",
@@ -325,6 +325,33 @@
       "aggregateDeployedPublic": false,
       "productionSigned": false,
       "storeReleased": false
+    },
+    "wallet-product-session-v2-public-negative-matrix": {
+      "type": "git-object",
+      "direct": true,
+      "commit": "19277165ec69c3d0dba76050c2529710d43f88b7",
+      "sourceCommit": "d26ed915516c97d07cb4d58e5fc4646486afc851",
+      "path": "packages/wallet-auth/evidence/product-session-v2-public-negative-matrix-20260814.json",
+      "blob": "855db0936f281566edda63a70a6a54b4df4fa994",
+      "supports": [],
+      "origin": "https://rest.ynxweb4.com",
+      "wrongProduct": "403 CROSS_PRODUCT_SESSION",
+      "wrongDevice": "403 CROSS_PRODUCT_SESSION",
+      "wrongBundle": "403 CROSS_PRODUCT_SESSION",
+      "wrongScope": "403 SCOPE_WIDENING",
+      "devicesRevokeSibling": "403 SESSION_REVOKED",
+      "expiry": "403 SESSION_EXPIRED",
+      "deviceRevokeCascadedToSiblingSession": true,
+      "secretsRecorded": false,
+      "runtimeDeviceInodePinnedAcrossRequests": false,
+      "deployedSymlinkTamperDirectlyTested": false,
+      "deployedHardlinkTamperDirectlyTested": false,
+      "deployedSameBytesInodeReplacementDirectlyTested": false,
+      "deployedDigestTamperDirectlyTested": false,
+      "runtimeProductsMigrated": 0,
+      "visibleWalletApproval": false,
+      "integratedCentral": false,
+      "aggregateDeployedPublic": false
     },
     "gateway-release": {
       "type": "git-object",
@@ -1086,10 +1113,10 @@
       "ownerSource": "core-auth-gateway",
       "artifactClass": "public-testnet-gateway",
       "status": "accepted-bounded-testnet",
-      "capabilities": {"localOwnerBatch":true,"localWebAuthnBatch":true,"sessionKeyBatchRejectedAA24":true,"sessionKeyRejectNonceUnchanged":true,"sessionKeyRejectTargetsUnchanged":true,"failedSubcallBatchRollback":true,"externalBundlerBatchVerified":false},
+      "capabilities": {"localOwnerBatch":true,"localWebAuthnBatch":true,"sessionKeyBatchRejectedAA24":true,"sessionKeyRejectNonceUnchanged":true,"sessionKeyRejectTargetsUnchanged":true,"failedSubcallBatchRollback":true,"externalBundlerBatchVerified":false,"publicV2WrongProductRejected":true,"publicV2WrongDeviceRejected":true,"publicV2WrongBundleRejected":true,"publicV2ScopeWideningRejected":true,"publicV2DeviceRevokeCascadeRejected":true,"publicV2ExpiryRejected":true,"deployedStateDeviceInodePinnedAcrossRequests":false},
       "gates": {"build":true,"install":false,"coldLaunch":false,"secondLaunch":false,"testnet":true,"sign":true,"tx":false,"callback":false,"reconnect":false,"downloadHosted":false,"productionSigned":false,"storeReleased":false},
       "evidenceBindings": {"build":["gateway-release"],"install":[],"coldLaunch":[],"secondLaunch":[],"testnet":["gateway-public-lifecycle"],"sign":["gateway-public-lifecycle"],"tx":["gateway-public-lifecycle"],"callback":["gateway-completion-negative-matrix","gateway-session-http-negative-matrix","gateway-session-linearization-race","gateway-persistence-atomic-rollback","gateway-registry-state-binding","gateway-state-file-security","gateway-node-crash-durability","gateway-node-stale-lock-recovery"],"reconnect":["gateway-public-lifecycle","gateway-session-http-negative-matrix","gateway-session-linearization-race","gateway-persistence-atomic-rollback","gateway-registry-state-binding","gateway-state-file-security","gateway-node-crash-durability","gateway-node-stale-lock-recovery"],"downloadHosted":["gateway-release"],"productionSigned":["gateway-release"],"storeReleased":["gateway-release"]},
-      "notes": ["Prior public authorization evidence remains direct. New local Hardhat evidence passes 184/184 and proves owner/WebAuthn batch, Session Key AA24 rejection without nonce/target mutation, and failed-subcall rollback. It is in-process only; external Bundler, distributed DB, multi-region, central, staging and public deployment remain false."]
+      "notes": ["Public source d26ed915 directly rejects wrong product/device/bundle, scope widening, sibling device revoke and expiry on isolated 6441; full package 294/294 passed. Deployed permission tamper is proven, but device+inode pinning and public symlink/hardlink/same-bytes replacement/digest tamper are not. Existing 6437/6439 are unchanged; external Bundler, central absorption, runtime migration and aggregate deployment remain false."]
     },
     {
       "id": "web-pwa",
