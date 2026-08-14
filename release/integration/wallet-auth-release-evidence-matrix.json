@@ -42,8 +42,7 @@
       "ciComplete": null,
       "consumedForReleaseTruth": false,
       "note": "The Android branch advanced beyond frozen evidence without an Owner terminal checkpoint; device truth remains unchanged."
-    },
-    {"owner":"desktop-cli-sdk","candidateCommit":"0b65e31031f8316b5ea753fe70bd9bea391ef760","remoteFastForwardReported":true,"remoteReadbackComplete":false,"ciComplete":true,"consumedForReleaseTruth":false,"note":"macOS x64 CLI handoff remains queued separately."}
+    }
   ],
   "ownerSources": [
     {
@@ -85,8 +84,8 @@
     {
       "owner": "desktop-cli-sdk",
       "branch": "codex/wallet-desktop-cli-sdk-20260813",
-      "sourceCommit": "ddab97ee88e927558f87eddc2d4a61a09a5bdc80",
-      "remoteCommitObserved": "ddab97ee88e927558f87eddc2d4a61a09a5bdc80",
+      "sourceCommit": "0b65e31031f8316b5ea753fe70bd9bea391ef760",
+      "remoteCommitObserved": "0b65e31031f8316b5ea753fe70bd9bea391ef760",
       "branchHeadObserved": "48f9392990080384ce0b9bd7b9568419d685e1a6",
       "remoteVerifiedAt": "2026-08-14T04:05:00Z",
       "verificationMode": "github-git-database-parent-tree-blob-readback"
@@ -634,6 +633,13 @@
       "commit": "ddab97ee88e927558f87eddc2d4a61a09a5bdc80",
       "path": "release/wallet-cli/macos-x64-native/manifest.json",
       "supports": ["macos-cli-x64.build", "macos-cli-x64.install", "macos-cli-x64.coldLaunch", "macos-cli-x64.secondLaunch", "macos-cli-x64.testnet", "macos-cli-x64.sign"]
+    },
+    "desktop-macos-cli-x64-handoff": {
+      "type": "git-object",
+      "direct": true,
+      "commit": "0b65e31031f8316b5ea753fe70bd9bea391ef760",
+      "path": "release/integration/wallet-desktop-cli-sdk-contract.json",
+      "supports": []
     }
   },
   "platforms": [
