@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-08-14T09:33:00+08:00",
+  "product": "YNX Finance",
+  "environment": "local-candidate",
+  "sourceCommit": "8a1aadb11da1f380b63f45072f314c123fcd79b8",
+  "stateBackend": {
+    "candidate": "postgres-cas-multi-instance",
+    "fallback": "file-cas-single-host",
+    "migration": "apps/finance/deploy/migrations/001_finance_state.sql",
+    "migrationSha256": "5bd9ec9db85cc47798f73de5aacd76f1fc4fc53c64b2f28c029b8314d9739328",
+    "databaseImage": "postgres:16-alpine",
+    "databaseImageId": "sha256:c05eced0bdb41ea9b95a656472a6aa4d50cad0d8a2e33d14eb1c53fd6204f2ae",
+    "databaseCredentialsPersisted": false
+  },
+  "verification": {
+    "postgresBootstrapAndCas": "passed",
+    "staleWriterRejected": true,
+    "twoIndependentFileStoresPreservedSeparateAccounts": true,
+    "goTests": "passed: ./internal/finance ./apps/finance/cmd/server ./apps/finance/cmd/admin",
+    "goRace": "passed: ./internal/finance ./apps/finance/cmd/server ./apps/finance/cmd/admin",
+    "webContractTests": "15/15 passed",
+    "securityGate": "passed across 149 text files",
+    "gitDiffCheck": "passed",
+    "localBinarySha256": "eef96dd3c970681bf20342697bc297779533522df55c0f9524f09d56d9ef7674"
+  },
+  "publicBoundary": {
+    "url": "https://finance.ynxweb4.com/",
+    "observedCommit": "50b95bbd715895dcc108e3a9fd9dd45cb6c10634",
+    "candidateDeployed": false,
+    "readyEndpointStatus": 404,
+    "reason": "Public upload transport stalled before a complete artifact reached the host. The running service was left unchanged.",
+    "claim": "PostgreSQL multi-instance support and reconnect UI are local, tested candidates only; they are not publicly deployed."
+  },
+  "limitations": [
+    "The PostgreSQL candidate stores the validated Finance state as a CAS-protected singleton JSONB document; normalized append-only event tables remain future hardening.",
+    "The public host still runs the older source commit and does not expose the new readiness endpoint.",
+    "No production database credential or public database migration was available or attempted."
+  ],
+  "rollback": {
+    "code": "revert commit 8a1aadb11da1f380b63f45072f314c123fcd79b8",
+    "database": "unset YNX_FINANCE_DATABASE_URL to return to the existing file-cas-single-host state path; retain the PostgreSQL table for forensic rollback until verification is complete"
+  }
+}
