@@ -5,8 +5,8 @@
 - Workspace: exact configured YNX 26 Worktree verified
 - Branch: `codex/final-data-fabric`
 - Engineering Source Commit: `59c60864ac433bdf474ce16f9199533907017deb`
-- Remote Source Commit: current Engineering Source `59c60864ac433bdf474ce16f9199533907017deb` is committed locally and awaits its evidence checkpoint push
-- Source CI: pending for current source; previous source final-head Run `31771975186` passed both jobs
+- Remote Source Commit: current Engineering Source `59c60864ac433bdf474ce16f9199533907017deb` and evidence checkpoint `504f7e62128c05fdae6ab7357efcd5eceb8cc9f7` are on review Branch `codex/data-fabric-typescript-sdk-20260814`
+- Source CI: Run `31773430492` passed both jobs for exact head `504f7e62128c05fdae6ab7357efcd5eceb8cc9f7`
 - Concurrent writer: no Git writer detected; an existing CodexPro server process was left untouched
 - Dirty state: reviewed and verified source-bound evidence slice awaiting commit and push; legacy recovery files are preserved under `recovery/2026-07-23/`
 
@@ -20,4 +20,4 @@ Central owner acceptance, complete product adapter set, shared Testnet E2E, stag
 
 ## Exact next action
 
-Verify, push and protect the current capacity slice, then repeat it on PostgreSQL/JetStream with hotspot and failure drills. Require independent approval before merging PR `#92`. Product remains `ACTIVE`; it is not complete or publicly released.
+Record the CI receipt and refresh recovery, then repeat the capacity slice on PostgreSQL/JetStream with hotspot and failure drills. Require independent approval before merging PR `#92`. Product remains `ACTIVE`; it is not complete or publicly released.

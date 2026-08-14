@@ -14,7 +14,7 @@ Release Candidate: `ynx-data-fabric-59c60864ac43`
 - Full repository tests, Data Fabric Race tests, Vet and `govulncheck` pass locally; reachable vulnerabilities are zero.
 - Same-product account isolation now covers events, Ledger, billing settlements, Saga coordinates and reconciliation; `fabric.audit.export` remains an explicit product-wide privileged scope.
 - One hundred simultaneous local canonical account sessions each returned exactly their own event under the Go race detector. This is local API/Store isolation evidence, not Testnet or 1000-producer capacity evidence.
-- Previous Engineering Source `962e2668fa666729f210990a7ad89e5ab5b66d6f` passed final-head Run `31771975186`; current-source remote CI is pending.
+- Current-source Run `31773430492` passed `data-fabric-verify` and `data-fabric-postgres-live` at exact evidence checkpoint `504f7e62128c05fdae6ab7357efcd5eceb8cc9f7`.
 - Producer ingress now has a configurable nonblocking concurrency gate, explicit retryable `429 producer_backpressure`, retry-safe nonce handling and saturation metrics.
 - A clean-source run released 1000 independently signed producers simultaneously through real loopback HTTP: 1000 committed, zero business errors, peak in-flight 64, p50/p95/p99 18.72/39.94/41.92 seconds, 23.37 events/s and Outbox depth 1000. The slow result is explicitly local file Store evidence, not production capacity.
 - Source-only prerelease `data-fabric-v0.2.0-source-candidate` is published at checkpoint `8cbc3dba0cbd139a0ba6bf7ba716b406856b32f5`; all seven assets were downloaded and their SHA-256 values matched, including archive digest `83f7f9ab449a61dcc1fe4006889f230b0c662b4678d522b1f0e6499eb81df848`.
@@ -25,7 +25,7 @@ Release Candidate: `ynx-data-fabric-59c60864ac43`
 
 ## Current slice
 
-1. Bind the 1000-producer result to the current source, run quality gates, push PR `#92` and wait for both current-source checks.
+1. Record the current-source CI receipt and refresh the verified recovery bundle.
 2. Obtain the required independent approval and merge through protected-branch policy; do not bypass it with force or administrator merge.
 3. Repeat 1000 producers on PostgreSQL plus JetStream and execute hotspot, restart, crash and long-replay drills.
 4. Submit the frozen contract and both SDK paths to Product 29 for central acceptance.

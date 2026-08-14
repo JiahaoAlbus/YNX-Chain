@@ -33,7 +33,7 @@ Status: `ACTIVE`
 | productionSigned | false | Only test-fixture signing is exercised |
 | storeReleased | false | Native app-store delivery is not applicable to this headless service |
 
-Current-source remote CI is pending. Previous source final-head Run `31771975186` passed both Data Fabric jobs. PR `#92` still requires both current-head checks and one independent approval; no protection bypass is authorized. The workflow publishes no downloadable artifact.
+Current-source Run `31773430492` passed both Data Fabric jobs at exact evidence checkpoint `504f7e62128c05fdae6ab7357efcd5eceb8cc9f7`. PR `#92` is blocked only by one independent approval; no protection bypass is authorized. The workflow publishes no downloadable artifact.
 
 ## Current executable integration
 

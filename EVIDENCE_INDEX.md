@@ -10,7 +10,7 @@ Status: `ACTIVE`
 - Exact YNX 26 Workspace and `codex/final-data-fabric` Branch were verified before modification.
 - No concurrent Git writer was found. A CodexPro server process was observed for this Worktree and left untouched.
 - Commit `59c60864ac433bdf474ce16f9199533907017deb` is the frozen Engineering Source Commit. It preserves the Chain Core commitment reference boundary and adds same-product account isolation; remote review Branch `codex/data-fabric-typescript-sdk-20260814` and PR `#92` target the protected product Branch.
-- Current-source remote CI is pending; previous source final-head Run `31771975186` passed both Data Fabric jobs.
+- Current-source Run `31773430492` passed both Data Fabric jobs at exact evidence checkpoint `504f7e62128c05fdae6ab7357efcd5eceb8cc9f7`.
 - The workflow runs full Go tests, Data Fabric Race tests, vet, vulnerability analysis, Linux builds and hashes, SBOM generation, quality gates, secret scanning, JSON validation and isolated PostgreSQL 17.10 transaction and logical backup/restore tests.
 - The workflow does not upload a public artifact; `downloadHosted` and all public states remain false.
 - The two stale untracked recovery summaries discovered at takeover are preserved under `recovery/2026-07-23/` and are not current truth.
@@ -86,7 +86,7 @@ node scripts/data-fabric/release-truth-check-check.mjs
 bash scripts/data-fabric/quality-gates.sh
 ```
 
-The full repository test and Data Fabric API race suite passed locally. One hundred simultaneous canonical account sessions each returned only their own event. The clean-source 1000-producer loopback run committed all events with zero business errors and exact Outbox depth 1000, but p95 was 39.94 seconds and throughput 23.37 events/s; it is a correctness/backpressure result, not a Testnet, PostgreSQL, JetStream or public capacity claim. Current-source CI is pending. PR `#92` still requires both jobs and one independent approval; no protection bypass was attempted.
+The full repository test and Data Fabric API race suite passed locally and in current-source CI. One hundred simultaneous canonical account sessions each returned only their own event. The clean-source 1000-producer loopback run committed all events with zero business errors and exact Outbox depth 1000, but p95 was 39.94 seconds and throughput 23.37 events/s; it is a correctness/backpressure result, not a Testnet, PostgreSQL, JetStream or public capacity claim. PR `#92` is blocked only by one independent approval; no protection bypass was attempted.
 
 ## Evidence still missing
 

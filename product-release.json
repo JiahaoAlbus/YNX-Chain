@@ -6,7 +6,7 @@
   "channel": "testnet-preview",
   "sourceCommit": "59c60864ac433bdf474ce16f9199533907017deb",
   "sourceRelease": "ynx-data-fabric-59c60864ac43",
-  "generatedAt": "2026-08-14T05:23:25Z",
+  "generatedAt": "2026-08-14T05:39:25Z",
   "states": {
     "implementedLocal": true,
     "testedLocal": true,
@@ -44,16 +44,16 @@
       "commands": ["go test ./internal/datafabric -count=1", "go test ./internal/datafabricapi ./internal/datafabricpay ./internal/datafabricpayledger -count=1", "go test -race ./internal/datafabric -count=1", "jq empty schemas/data-fabric/event-envelope-v1.schema.json schemas/data-fabric/event-envelope-v2.schema.json schemas/data-fabric/schema-registry-v2.json integration/product-event-contracts.json", "bash -lc 'umask 022; exec go test ./... -count=1'", "go test -race ./internal/datafabric ./internal/datafabricapi ./internal/datafabricnats ./internal/datafabricpay ./internal/datafabricpayledger ./internal/datafabricpostgres ./sdk/datafabric -count=1", "go run ./scripts/data-fabric/api-capacity -producers 1000 -server-concurrency 64 -source-commit 59c60864ac433bdf474ce16f9199533907017deb -source-release ynx-data-fabric-59c60864ac43 -dirty-working-tree=false", "go run golang.org/x/vuln/cmd/govulncheck@v1.6.0 ./...", "bash scripts/data-fabric/quality-gates.sh", "npm test --prefix sdk/datafabric-typescript", "npm audit --audit-level=high --registry=https://registry.npmjs.org --prefix sdk/datafabric-typescript"]
     },
     "remoteCI": {
-      "runId": null,
+      "runId": 31773430492,
       "workflow": "data-fabric",
       "sourceCommit": "59c60864ac433bdf474ce16f9199533907017deb",
-      "headCommit": null,
-      "status": "pending",
-      "conclusion": null,
-      "startedAt": null,
-      "duration": null,
+      "headCommit": "504f7e62128c05fdae6ab7357efcd5eceb8cc9f7",
+      "status": "completed",
+      "conclusion": "success",
+      "startedAt": "2026-08-14T05:34:26Z",
+      "duration": "4m36s",
       "artifactsPublished": false,
-      "url": null
+      "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/31773430492"
     },
     "sourceCandidate": {
       "tag": "data-fabric-v0.2.0-source-candidate",

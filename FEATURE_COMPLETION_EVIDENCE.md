@@ -54,7 +54,7 @@ This matrix reports only the strongest directly evidenced state. A successful lo
 - Full Go repository test under standard CI permission-test `umask=022`: passed.
 - TypeScript SDK build, five Node tests and canonical-registry dependency audit: passed.
 - Go `1.25.13` reachable-vulnerability scan: zero reachable vulnerabilities.
-- Current-source remote CI is pending; previous source final-head Run `31771975186` passed both Data Fabric jobs.
+- Current-source Run `31773430492` passed both Data Fabric jobs at exact evidence checkpoint `504f7e62128c05fdae6ab7357efcd5eceb8cc9f7`.
 - One hundred simultaneous local canonical account sessions each returned exactly one account-owned event under Go Race.
 - One thousand independently signed producers started simultaneously through real loopback HTTP and all committed with zero business errors. The 39.94-second p95, 23.37 events/s and 94.11% attempt-level backpressure rate expose the local file Store ceiling; this is not PostgreSQL, JetStream, shared-Testnet or public capacity evidence.
 - Historical GitHub Actions Run `30488889722` passed for prior source `84872ff9042ed9f4364645750bbfa2dc3475e80b`; it is not current-source evidence.
