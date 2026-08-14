@@ -43,7 +43,11 @@ export type WorkspaceHistory = {
   revisions: WorkspaceRevision[];
   cursor: number;
   nextCursor: number | null;
-  retention: { mode: "latest-revisions"; maximumRevisions: number; retainedRevisions: number };
+  retention: {
+    mode: "latest-revisions";
+    maximumRevisions: number;
+    retainedRevisions: number;
+  };
 };
 type StreamEvent =
   | {
@@ -69,8 +73,7 @@ function wait(milliseconds: number) {
 }
 
 function readableConnectionError(error: unknown) {
-  if (error instanceof DOMException && error.name === "TimeoutError")
-    return new Error("YNX Code connection timed out. Check the network and retry.");
+  if (error instanceof DOMException && error.name === "TimeoutError") return new Error("YNX Code connection timed out. Check the network and retry.");
   return new Error("YNX Code could not reach its workspace service. Your local edits are still available; retry the connection.", {
     cause: error,
   });
@@ -82,17 +85,20 @@ function readableConnectionError(error: unknown) {
  */
 export async function boundedReadFetch(path: string, init: RequestInit = {}) {
   const method = String(init.method || "GET").toUpperCase();
-  if (method !== "GET" && method !== "HEAD")
-    throw new Error("boundedReadFetch accepts read-only requests only.");
+  if (method !== "GET" && method !== "HEAD") throw new Error("boundedReadFetch accepts read-only requests only.");
   let lastError: unknown;
   for (let attempt = 0; attempt < READ_RETRY_DELAYS_MS.length; attempt += 1) {
     if (READ_RETRY_DELAYS_MS[attempt]) await wait(READ_RETRY_DELAYS_MS[attempt]);
     try {
       const timeout = AbortSignal.timeout(12_000),
         signal = init.signal ? AbortSignal.any([init.signal, timeout]) : timeout,
-        response = await fetch(path, { ...init, method, credentials: "same-origin", signal });
-      if (!RETRYABLE_READ_STATUSES.has(response.status) || attempt === READ_RETRY_DELAYS_MS.length - 1)
-        return response;
+        response = await fetch(path, {
+          ...init,
+          method,
+          credentials: "same-origin",
+          signal,
+        });
+      if (!RETRYABLE_READ_STATUSES.has(response.status) || attempt === READ_RETRY_DELAYS_MS.length - 1) return response;
     } catch (error) {
       lastError = error;
       if (init.signal?.aborted) throw error;
@@ -102,23 +108,29 @@ export async function boundedReadFetch(path: string, init: RequestInit = {}) {
   throw readableConnectionError(lastError);
 }
 export async function runActive(projectId: string, activePath: string, files: Record<string, string>, onEvent?: (event: StreamEvent) => void): Promise<TaskResult> {
-  return streamWorkspaceTask({
-    protocolVersion: "ynx-code/v1",
-    task: "build-run-active",
-    projectId,
-    activePath,
-    files,
-    approval: "execute-once",
-  }, onEvent);
+  return streamWorkspaceTask(
+    {
+      protocolVersion: "ynx-code/v1",
+      task: "build-run-active",
+      projectId,
+      activePath,
+      files,
+      approval: "execute-once",
+    },
+    onEvent,
+  );
 }
 export async function runProjectTests(projectId: string, files: Record<string, string>, onEvent?: (event: StreamEvent) => void): Promise<TaskResult> {
-  return streamWorkspaceTask({
-    protocolVersion: "ynx-code/v1",
-    task: "test-project",
-    projectId,
-    files,
-    approval: "test-once",
-  }, onEvent);
+  return streamWorkspaceTask(
+    {
+      protocolVersion: "ynx-code/v1",
+      task: "test-project",
+      projectId,
+      files,
+      approval: "test-once",
+    },
+    onEvent,
+  );
 }
 async function streamWorkspaceTask(request: Record<string, unknown>, onEvent?: (event: StreamEvent) => void): Promise<TaskResult> {
   const body = JSON.stringify(request);
@@ -192,6 +204,22 @@ export type RuntimeProfiles = {
     createdAt: string;
   }>;
 };
+export type EnvironmentEntry = { key: string; kind: "literal"; value: string } | { key: string; kind: "secret-reference"; reference: string };
+export type ProjectEnvironment = {
+  revision: number;
+  updatedAt: string | null;
+  entries: EnvironmentEntry[];
+};
+export type TerminalSession = {
+  sessionId: string;
+  projectId: string;
+  runtimeId?: string;
+  status: "attached" | "detached";
+  startedAt: string;
+  lastActivityAt: string;
+  replayBytes: number;
+  environmentRevision: number;
+};
 async function profileFetch(path: string, options: RequestInit = {}) {
   for (let attempt = 0; attempt < 2; attempt++) {
     const init = {
@@ -201,9 +229,7 @@ async function profileFetch(path: string, options: RequestInit = {}) {
         ...options.headers,
       },
     };
-    const response = options.method && options.method !== "GET"
-      ? await fetch(path, { credentials: "same-origin", ...init })
-      : await boundedReadFetch(path, init);
+    const response = options.method && options.method !== "GET" ? await fetch(path, { credentials: "same-origin", ...init }) : await boundedReadFetch(path, init);
     if (response.status === 401 && attempt === 0) {
       await runtimeHealth();
       continue;
@@ -218,6 +244,31 @@ async function profileFetch(path: string, options: RequestInit = {}) {
 }
 export function loadRuntimeProfiles(): Promise<RuntimeProfiles> {
   return profileFetch("/runtime/profiles");
+}
+export async function loadProjectEnvironment(projectId: string): Promise<ProjectEnvironment> {
+  const value = await profileFetch(`/runtime/projects/${encodeURIComponent(projectId)}/environment`);
+  return value.environment;
+}
+export async function saveProjectEnvironment(projectId: string, expectedRevision: number, entries: EnvironmentEntry[]): Promise<ProjectEnvironment> {
+  const value = await profileFetch(`/runtime/projects/${encodeURIComponent(projectId)}/environment`, {
+    method: "PUT",
+    body: JSON.stringify({
+      protocolVersion: "ynx-code-environment/v1",
+      approval: "update-environment-once",
+      expectedRevision,
+      entries,
+    }),
+  });
+  return value.environment;
+}
+export async function loadTerminalSessions(projectId: string): Promise<TerminalSession[]> {
+  const value = await profileFetch(`/runtime/terminals?projectId=${encodeURIComponent(projectId)}`);
+  return value.terminals;
+}
+export function stopTerminalSession(sessionId: string) {
+  return profileFetch(`/runtime/terminals/${encodeURIComponent(sessionId)}`, {
+    method: "DELETE",
+  });
 }
 export function createContainerLease(projectId: string) {
   return profileFetch("/runtime/profiles/lxd/leases", {
@@ -351,9 +402,13 @@ async function chainFetch(path: string, options: RequestInit = {}) {
         ...options.headers,
       },
     };
-    const response = options.method && options.method !== "GET"
-      ? await fetch(`/runtime/chain${path}`, { credentials: "same-origin", ...init })
-      : await boundedReadFetch(`/runtime/chain${path}`, init);
+    const response =
+      options.method && options.method !== "GET"
+        ? await fetch(`/runtime/chain${path}`, {
+            credentials: "same-origin",
+            ...init,
+          })
+        : await boundedReadFetch(`/runtime/chain${path}`, init);
     if (response.status === 401 && attempt === 0) {
       await runtimeHealth();
       continue;
@@ -410,8 +465,13 @@ export type WalletReadiness = {
 export async function loadWalletReadiness(): Promise<WalletReadiness> {
   for (let attempt = 0; attempt < 2; attempt++) {
     const response = await boundedReadFetch("/runtime/wallet/readiness");
-    if (response.status === 401 && attempt === 0) { await runtimeHealth(); continue; }
-    const value = await response.json().catch(() => ({ error: `Wallet readiness returned HTTP ${response.status}` }));
+    if (response.status === 401 && attempt === 0) {
+      await runtimeHealth();
+      continue;
+    }
+    const value = await response.json().catch(() => ({
+      error: `Wallet readiness returned HTTP ${response.status}`,
+    }));
     if (!response.ok) throw new Error(value.error || "Wallet readiness is unavailable.");
     return value;
   }
@@ -430,9 +490,19 @@ export type DeveloperWalletSession = {
 };
 export async function completeDeveloperWalletSession(canonicalBody: string): Promise<DeveloperWalletSession> {
   for (let attempt = 0; attempt < 2; attempt++) {
-    const response = await fetch("/runtime/wallet/sessions/complete", { method: "POST", credentials: "same-origin", headers: { "content-type": "application/json" }, body: canonicalBody });
-    if (response.status === 401 && attempt === 0) { await runtimeHealth(); continue; }
-    const value = await response.json().catch(() => ({ error: `Wallet completion returned HTTP ${response.status}` }));
+    const response = await fetch("/runtime/wallet/sessions/complete", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "content-type": "application/json" },
+      body: canonicalBody,
+    });
+    if (response.status === 401 && attempt === 0) {
+      await runtimeHealth();
+      continue;
+    }
+    const value = await response.json().catch(() => ({
+      error: `Wallet completion returned HTTP ${response.status}`,
+    }));
     if (!response.ok) throw new Error(value.error || "Wallet session completion was rejected.");
     if (value?.session?.productClientId !== "ynx-developer-v1" || value.session.bundleId !== "com.ynxweb4.developer.testnetpreview" || !/^[0-9a-f]{64}$/.test(value.session.sessionBinding || "") || !/^[A-Za-z0-9_-]{44}$/.test(value.session.productDeviceKey || "") || typeof value.session.issuedAt !== "string" || typeof value.session.expiresAt !== "string") throw new Error("Wallet Gateway returned an invalid Developer session binding.");
     return value.session;
@@ -440,15 +510,38 @@ export async function completeDeveloperWalletSession(canonicalBody: string): Pro
   throw new Error("Workspace session could not be established.");
 }
 export async function introspectDeveloperWalletSession(canonicalProofBody: string): Promise<DeveloperWalletSession> {
-  const response = await fetch("/runtime/wallet/sessions/introspect", { method: "POST", credentials: "same-origin", headers: { "content-type": "application/json" }, body: canonicalProofBody });
-  const value = await response.json().catch(() => ({ error: `Wallet introspection returned HTTP ${response.status}` }));
+  const response = await fetch("/runtime/wallet/sessions/introspect", {
+    method: "POST",
+    credentials: "same-origin",
+    headers: { "content-type": "application/json" },
+    body: canonicalProofBody,
+  });
+  const value = await response.json().catch(() => ({
+    error: `Wallet introspection returned HTTP ${response.status}`,
+  }));
   if (!response.ok) throw new Error(value.error || "Developer Wallet session is inactive.");
   if (value?.introspection?.active !== true || value.introspection.session?.productClientId !== "ynx-developer-v1") throw new Error("Wallet Gateway did not return an active Developer session.");
   return value.introspection.session;
 }
-export async function broadcastDeveloperDeployment(canonicalBody: string): Promise<{transactionHash:string;artifactDigest:string;account:string;confirmed:true;receipt:Record<string,unknown>}> {
-  const response=await fetch("/runtime/wallet/deployments/broadcast",{method:"POST",credentials:"same-origin",headers:{"content-type":"application/json"},body:canonicalBody}),value=await response.json().catch(()=>({error:`Deployment broadcast returned HTTP ${response.status}`}));
-  if(!response.ok)throw new Error(value.error||"YNX deployment was not confirmed.");if(value?.deployment?.confirmed!==true||!/^0x[0-9a-f]{64}$/.test(value.deployment.transactionHash||"")||value.deployment.receipt?.status!=="0x1")throw new Error("YNX Chain did not return a confirmed deployment receipt.");return value.deployment;
+export async function broadcastDeveloperDeployment(canonicalBody: string): Promise<{
+  transactionHash: string;
+  artifactDigest: string;
+  account: string;
+  confirmed: true;
+  receipt: Record<string, unknown>;
+}> {
+  const response = await fetch("/runtime/wallet/deployments/broadcast", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "content-type": "application/json" },
+      body: canonicalBody,
+    }),
+    value = await response.json().catch(() => ({
+      error: `Deployment broadcast returned HTTP ${response.status}`,
+    }));
+  if (!response.ok) throw new Error(value.error || "YNX deployment was not confirmed.");
+  if (value?.deployment?.confirmed !== true || !/^0x[0-9a-f]{64}$/.test(value.deployment.transactionHash || "") || value.deployment.receipt?.status !== "0x1") throw new Error("YNX Chain did not return a confirmed deployment receipt.");
+  return value.deployment;
 }
 export async function loadWorkspace(projectId: string): Promise<WorkspaceSnapshot | null> {
   for (let attempt = 0; attempt < 2; attempt++) {
@@ -483,8 +576,13 @@ export async function saveWorkspace(projectId: string, expectedRevision: number,
 export async function loadWorkspaceHistory(projectId: string, cursor = 0): Promise<WorkspaceHistory> {
   for (let attempt = 0; attempt < 2; attempt++) {
     const response = await boundedReadFetch(`/runtime/workspaces/${encodeURIComponent(projectId)}?view=history&cursor=${cursor}&limit=20`);
-    if (response.status === 401 && attempt === 0) { await runtimeHealth(); continue; }
-    const value = await response.json().catch(() => ({ error: `Workspace history returned HTTP ${response.status}` }));
+    if (response.status === 401 && attempt === 0) {
+      await runtimeHealth();
+      continue;
+    }
+    const value = await response.json().catch(() => ({
+      error: `Workspace history returned HTTP ${response.status}`,
+    }));
     if (!response.ok) throw new Error(value.error || "Workspace history could not be loaded.");
     return value.history;
   }
@@ -493,8 +591,13 @@ export async function loadWorkspaceHistory(projectId: string, cursor = 0): Promi
 export async function loadWorkspaceSnapshot(projectId: string, revision: number): Promise<WorkspaceSnapshot> {
   for (let attempt = 0; attempt < 2; attempt++) {
     const response = await boundedReadFetch(`/runtime/workspaces/${encodeURIComponent(projectId)}?view=snapshot&revision=${revision}`);
-    if (response.status === 401 && attempt === 0) { await runtimeHealth(); continue; }
-    const value = await response.json().catch(() => ({ error: `Workspace revision returned HTTP ${response.status}` }));
+    if (response.status === 401 && attempt === 0) {
+      await runtimeHealth();
+      continue;
+    }
+    const value = await response.json().catch(() => ({
+      error: `Workspace revision returned HTTP ${response.status}`,
+    }));
     if (!response.ok) throw new Error(value.error || "Workspace revision could not be loaded.");
     return value.workspace;
   }
@@ -515,7 +618,9 @@ export async function restoreWorkspaceRevision(projectId: string, expectedRevisi
       idempotencyKey: crypto.randomUUID(),
     }),
   });
-  const value = await response.json().catch(() => ({ error: `Workspace restore returned HTTP ${response.status}` }));
+  const value = await response.json().catch(() => ({
+    error: `Workspace restore returned HTTP ${response.status}`,
+  }));
   if (!response.ok) throw Object.assign(new Error(value.error || "Workspace revision could not be restored."), { code: value.code, currentRevision: value.currentRevision });
   return value.workspace;
 }
@@ -609,10 +714,7 @@ export async function gitMutation(projectId: string, body: Record<string, unknow
     body: JSON.stringify({ protocolVersion: "ynx-code-git-v1", ...body }),
   });
 }
-export async function gitRemotePreview(
-  projectId: string,
-  body: Record<string, unknown>,
-): Promise<GitRemotePreview> {
+export async function gitRemotePreview(projectId: string, body: Record<string, unknown>): Promise<GitRemotePreview> {
   return gitFetch(projectId, {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -631,9 +733,7 @@ export async function gitDiff(projectId: string, path: string, scope: "working" 
 async function gitFetch(projectId: string, init: RequestInit = {}, query?: URLSearchParams): Promise<any> {
   for (let attempt = 0; attempt < 2; attempt++) {
     const path = `/runtime/git/${encodeURIComponent(projectId)}${query ? `?${query}` : ""}`,
-      response = init.method && init.method !== "GET"
-        ? await fetch(path, { credentials: "same-origin", ...init })
-        : await boundedReadFetch(path, init);
+      response = init.method && init.method !== "GET" ? await fetch(path, { credentials: "same-origin", ...init }) : await boundedReadFetch(path, init);
     if (response.status === 401 && attempt === 0) {
       await runtimeHealth();
       continue;
@@ -695,11 +795,7 @@ export async function installExtension(manifest: unknown): Promise<InstalledExte
   });
   return value.extension;
 }
-export async function setExtensionEnabled(
-  id: string,
-  expectedDigest: string,
-  enabled: boolean,
-): Promise<InstalledExtension> {
+export async function setExtensionEnabled(id: string, expectedDigest: string, enabled: boolean): Promise<InstalledExtension> {
   const value = await extensionFetch({
     method: "PATCH",
     headers: { "content-type": "application/json" },
@@ -725,9 +821,7 @@ export async function uninstallExtension(id: string, expectedDigest: string): Pr
 async function extensionFetch(init: RequestInit = {}, query?: URLSearchParams): Promise<any> {
   for (let attempt = 0; attempt < 2; attempt++) {
     const path = `/runtime/extensions${query ? `?${query}` : ""}`,
-      response = init.method && init.method !== "GET"
-        ? await fetch(path, { credentials: "same-origin", ...init })
-        : await boundedReadFetch(path, init);
+      response = init.method && init.method !== "GET" ? await fetch(path, { credentials: "same-origin", ...init }) : await boundedReadFetch(path, init);
     if (response.status === 401 && attempt === 0) {
       await runtimeHealth();
       continue;
@@ -858,12 +952,9 @@ async function agentFetch(path: string, init: RequestInit = {}): Promise<any> {
   for (let attempt = 0; attempt < 2; attempt++) {
     let response: Response;
     try {
-      response = init.method && init.method !== "GET"
-        ? await fetch(path, { credentials: "same-origin", ...init })
-        : await boundedReadFetch(path, init);
+      response = init.method && init.method !== "GET" ? await fetch(path, { credentials: "same-origin", ...init }) : await boundedReadFetch(path, init);
     } catch (error) {
-      if (error instanceof DOMException && error.name === "AbortError")
-        throw new Error("AI request was cancelled.");
+      if (error instanceof DOMException && error.name === "AbortError") throw new Error("AI request was cancelled.");
       throw new Error("AI service connection was interrupted. Your request was not automatically retried; retry it manually.");
     }
     if (response.status === 401 && attempt === 0) {
@@ -926,25 +1017,17 @@ export type ProjectMemoryFact = {
   digest: string;
   indexedAt: string;
 };
-export async function loadProjectMemoryFacts(
-  projectId: string,
-  expectedRevision: number,
-): Promise<ProjectMemoryFact[]> {
+export async function loadProjectMemoryFacts(projectId: string, expectedRevision: number): Promise<ProjectMemoryFact[]> {
   const query = new URLSearchParams({
     view: "facts",
     cursor: "0",
     limit: "50",
     expectedRevision: String(expectedRevision),
   });
-  const page = await agentFetch(
-    `/runtime/memory/${encodeURIComponent(projectId)}?${query}`,
-  );
+  const page = await agentFetch(`/runtime/memory/${encodeURIComponent(projectId)}?${query}`);
   return page.facts;
 }
-export async function clearProjectMemory(
-  projectId: string,
-  expectedRevision: number | null,
-) {
+export async function clearProjectMemory(projectId: string, expectedRevision: number | null) {
   return agentFetch(
     `/runtime/memory/${encodeURIComponent(projectId)}?${new URLSearchParams({
       expectedRevision: String(expectedRevision),
@@ -966,11 +1049,8 @@ export async function exportProjectMemory(projectId: string) {
       cursor: String(cursor),
       limit: "100",
     });
-    if (expectedRevision !== undefined)
-      query.set("expectedRevision", String(expectedRevision));
-    const page = await agentFetch(
-      `/runtime/memory/${encodeURIComponent(projectId)}?${query}`,
-    );
+    if (expectedRevision !== undefined) query.set("expectedRevision", String(expectedRevision));
+    const page = await agentFetch(`/runtime/memory/${encodeURIComponent(projectId)}?${query}`);
     project = page.project;
     expectedRevision = project?.revision;
     exportedAt = page.exportedAt;
@@ -985,9 +1065,7 @@ export async function exportProjectMemory(projectId: string) {
       limit: "100",
       expectedRevision: String(expectedRevision),
     });
-    const page = await agentFetch(
-      `/runtime/memory/${encodeURIComponent(projectId)}?${query}`,
-    );
+    const page = await agentFetch(`/runtime/memory/${encodeURIComponent(projectId)}?${query}`);
     facts.push(...page.facts);
     cursor = page.nextCursor;
   }
@@ -1049,20 +1127,12 @@ export async function redeemCollaborationInvite(token: string): Promise<Collabor
     body: JSON.stringify({ token }),
   });
 }
-export async function revokeCollaborationMember(
-  roomId: string,
-  subjectId: string,
-): Promise<{ members: CollaborationMember[] }> {
-  return collaborationFetch(
-    `/runtime/collaboration/rooms/${encodeURIComponent(roomId)}/members/${encodeURIComponent(subjectId)}?approval=revoke-member-once`,
-    { method: "DELETE" },
-  );
+export async function revokeCollaborationMember(roomId: string, subjectId: string): Promise<{ members: CollaborationMember[] }> {
+  return collaborationFetch(`/runtime/collaboration/rooms/${encodeURIComponent(roomId)}/members/${encodeURIComponent(subjectId)}?approval=revoke-member-once`, { method: "DELETE" });
 }
 async function collaborationFetch(path: string, init: RequestInit = {}): Promise<any> {
   for (let attempt = 0; attempt < 2; attempt++) {
-    const response = init.method && init.method !== "GET"
-      ? await fetch(path, { credentials: "same-origin", ...init })
-      : await boundedReadFetch(path, init);
+    const response = init.method && init.method !== "GET" ? await fetch(path, { credentials: "same-origin", ...init }) : await boundedReadFetch(path, init);
     if (response.status === 401 && attempt === 0) {
       await runtimeHealth();
       continue;
@@ -1070,11 +1140,7 @@ async function collaborationFetch(path: string, init: RequestInit = {}): Promise
     const value = await response.json().catch(() => ({
       error: `Collaboration service returned HTTP ${response.status}`,
     }));
-    if (!response.ok)
-      throw Object.assign(
-        new Error(value.error || "Collaboration operation failed."),
-        { code: value.code, status: response.status },
-      );
+    if (!response.ok) throw Object.assign(new Error(value.error || "Collaboration operation failed."), { code: value.code, status: response.status });
     return value;
   }
   throw new Error("Workspace session could not be established.");

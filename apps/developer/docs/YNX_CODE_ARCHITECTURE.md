@@ -261,13 +261,23 @@ command string. Cargo, JUnit and Solidity framework adapters remain unimplemente
 
 The current foundation implements this boundary through
 `services/terminal-service`: a same-origin, signed-session WebSocket upgrades to
-an actual `node-pty` shell inside the existing macOS `sandbox-exec` or Linux
-Bubblewrap/prlimit workspace. It enforces per-owner/global session ceilings,
-input and resize bounds, idle/hard lifetime cleanup, default-deny network and
-revision-checked text snapshot synchronization. Task output remains a separate,
-non-interactive terminal surface. Shared terminal resume, object-store-backed
-runtime volumes and audited Docker/SSH profiles remain gated and are not
-represented as available.
+an actual `node-pty` shell inside the existing macOS `sandbox-exec`, Linux
+Bubblewrap/prlimit, owner-bound LXD or reviewed-host-key SSH workspace. It
+enforces per-owner/global session ceilings, input and resize bounds, idle/hard
+lifetime cleanup and revision-checked text snapshot synchronization. A signed
+HTTP inventory and stop endpoint reads the same in-memory session map; it
+returns lifecycle/replay/environment-revision metadata but never commands or
+environment values. Task output remains a separate, non-interactive terminal
+surface. Shared-terminal input and object-store-backed runtime volumes remain
+gated and are not represented as available.
+
+`services/environment-service` stores at most 32 owner/project-scoped entries in
+SQLite WAL behind an optimistic revision and a one-time reviewed update. An
+entry is either an explicitly non-sensitive literal or an opaque Secret broker
+reference. Runtime-reserved keys are rejected. The browser never submits Secret
+values; when the server has no approved resolver, any referenced Secret fails
+terminal startup closed. A resolved snapshot is injected only into a newly
+created local, LXD or SSH terminal and is not exposed by process inventory.
 
 Tasks are declarative records (`command`, argument array, cwd, environment class,
 problem matcher, timeout, network policy and artifact outputs). Shell parsing is
