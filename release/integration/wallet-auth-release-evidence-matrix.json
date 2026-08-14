@@ -81,11 +81,11 @@
     {
       "owner": "core-auth-gateway",
       "branch": "codex/wallet-core-auth-gateway-continuation-20260814",
-      "sourceCommit": "99523546c6486f65825d84aa884190fc5bd76128",
-      "remoteCommitObserved": "99523546c6486f65825d84aa884190fc5bd76128",
-      "branchHeadObserved": "99523546c6486f65825d84aa884190fc5bd76128",
-      "remoteVerifiedAt": "2026-08-14T12:42:00Z",
-      "verificationMode": "remote-ref-parent-tree-public-restart-idempotency-blob-readback"
+      "sourceCommit": "404f818719b920008f88f076949a4387c5130855",
+      "remoteCommitObserved": "404f818719b920008f88f076949a4387c5130855",
+      "branchHeadObserved": "404f818719b920008f88f076949a4387c5130855",
+      "remoteVerifiedAt": "2026-08-14T13:00:00Z",
+      "verificationMode": "remote-ref-parent-tree-public-state-integrity-blob-readback"
     },
     {
       "owner": "web-pwa-extensions",
@@ -398,6 +398,35 @@
       "visibleWalletApproval": false,
       "integratedCentral": false,
       "aggregateDeployedPublic": false
+    },
+    "wallet-product-session-v2-public-state-integrity": {
+      "type": "git-object",
+      "direct": true,
+      "commit": "404f818719b920008f88f076949a4387c5130855",
+      "sourceCommit": "37f2485ed604d88ed1457bc497d50f3f7a037469",
+      "path": "packages/wallet-auth/evidence/product-session-v2-state-integrity-public-deployment-20260814.json",
+      "blob": "afb10801e44b4baf1d1232335ca6bb24ff35da0e",
+      "supports": [],
+      "origin": "https://rest.ynxweb4.com",
+      "rollbackDrillPassed": true,
+      "publicMountPassed": true,
+      "publicLifecyclePassed": true,
+      "worldReadable": "503 INSECURE_STATE_FILE",
+      "hardlinkReplacement": "503 INSECURE_STATE_FILE",
+      "symlinkReplacement": "503 INSECURE_STATE_FILE",
+      "sameBytesInodeReplacement": "503 STATE_FILE_CHANGED",
+      "snapshotDigestMismatch": "503 STATE_TAMPERED",
+      "allTamperVectorsZeroMutation": true,
+      "baselineAndFinalFileSha256": "6c39572e751db4646c7ad8c7f8f0a15fd9252f88306748a9ba18944730da15f2",
+      "baselineAndFinalStateDigest": "f61853a8376133fff74e0305a96855eb8ece2d81396489a22fb821440fc9b14e",
+      "restoredStateFile": "0600 ynx:ynx nlink=1",
+      "legacyPortsReplaced": false,
+      "runtimeProductsMigrated": 0,
+      "visibleWalletApproval": false,
+      "integratedCentral": false,
+      "aggregateDeployedPublic": false,
+      "productionSigned": false,
+      "storeReleased": false
     },
     "gateway-release": {
       "type": "git-object",
@@ -1159,10 +1188,10 @@
       "ownerSource": "core-auth-gateway",
       "artifactClass": "public-testnet-gateway",
       "status": "accepted-bounded-testnet",
-      "capabilities": {"localOwnerBatch":true,"localWebAuthnBatch":true,"sessionKeyBatchRejectedAA24":true,"sessionKeyRejectNonceUnchanged":true,"sessionKeyRejectTargetsUnchanged":true,"failedSubcallBatchRollback":true,"externalBundlerBatchVerified":false,"publicV2WrongProductRejected":true,"publicV2WrongDeviceRejected":true,"publicV2WrongBundleRejected":true,"publicV2ScopeWideningRejected":true,"publicV2DeviceRevokeCascadeRejected":true,"publicV2ExpiryRejected":true,"publicV2CrossRestartExactRequestId":true,"publicV2CrossRestartByteIdenticalCompletion":true,"publicV2PostRestartRevoke":true,"publicV2PrivateRetryRecordRemoved":true,"deployedStateDeviceInodePinnedAcrossRequests":false},
+      "capabilities": {"localOwnerBatch":true,"localWebAuthnBatch":true,"sessionKeyBatchRejectedAA24":true,"sessionKeyRejectNonceUnchanged":true,"sessionKeyRejectTargetsUnchanged":true,"failedSubcallBatchRollback":true,"externalBundlerBatchVerified":false,"publicV2WrongProductRejected":true,"publicV2WrongDeviceRejected":true,"publicV2WrongBundleRejected":true,"publicV2ScopeWideningRejected":true,"publicV2DeviceRevokeCascadeRejected":true,"publicV2ExpiryRejected":true,"publicV2CrossRestartExactRequestId":true,"publicV2CrossRestartByteIdenticalCompletion":true,"publicV2PostRestartRevoke":true,"publicV2PrivateRetryRecordRemoved":true,"deployedStateDeviceInodePinnedAcrossRequests":true,"publicV2WorldReadableTamperRejected":true,"publicV2HardlinkTamperRejected":true,"publicV2SymlinkTamperRejected":true,"publicV2SameBytesInodeReplacementRejected":true,"publicV2DigestTamperRejected":true},
       "gates": {"build":true,"install":false,"coldLaunch":false,"secondLaunch":false,"testnet":true,"sign":true,"tx":false,"callback":false,"reconnect":false,"downloadHosted":false,"productionSigned":false,"storeReleased":false},
       "evidenceBindings": {"build":["gateway-release"],"install":[],"coldLaunch":[],"secondLaunch":[],"testnet":["gateway-public-lifecycle"],"sign":["gateway-public-lifecycle"],"tx":["gateway-public-lifecycle"],"callback":["gateway-completion-negative-matrix","gateway-session-http-negative-matrix","gateway-session-linearization-race","gateway-persistence-atomic-rollback","gateway-registry-state-binding","gateway-state-file-security","gateway-node-crash-durability","gateway-node-stale-lock-recovery"],"reconnect":["gateway-public-lifecycle","gateway-session-http-negative-matrix","gateway-session-linearization-race","gateway-persistence-atomic-rollback","gateway-registry-state-binding","gateway-state-file-security","gateway-node-crash-durability","gateway-node-stale-lock-recovery"],"downloadHosted":["gateway-release"],"productionSigned":["gateway-release"],"storeReleased":["gateway-release"]},
-      "notes": ["Public source 37f2485 directly preserves an exact 1,122-byte completion response and state SHA across a controlled 6441 restart, then revokes, rejects post-revoke and deletes the private retry record; full package 295/295 passed. Prior d26 negative/tamper evidence remains bounded. Existing 6437/6439 are unchanged; device+inode and broader tamper coverage await separate evidence, while central absorption, runtime migration and aggregate deployment remain false."]
+      "notes": ["Public source 37f2485 preserves the exact cross-restart response/state and directly rejects world-readable, hardlink, symlink, same-byte inode replacement and digest tamper with HTTP 503 and zero mutation. Existing 6437/6439 remain unchanged; central absorption, visible Wallet approval, runtime migration and aggregate deployment remain false."]
     },
     {
       "id": "web-pwa",

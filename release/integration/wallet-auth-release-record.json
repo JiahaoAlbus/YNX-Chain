@@ -6,15 +6,15 @@
   "recordedAt": "2026-08-14T03:52:00Z",
   "evidenceMatrix": {
     "path": "release/integration/wallet-auth-release-evidence-matrix.json",
-    "sha256": "d9a07ad492855951066152f6472f2addd4d194bf549af99361eb89470ad97c3d",
+    "sha256": "6470108a029c4b9812cb25bba2db385499af2995b145a8e556f1ed0287dfff59",
     "platforms": 21,
     "gatesPerPlatform": 12,
     "trueGates": 106,
     "falseGates": 146,
-    "evidenceRecords": 106
+    "evidenceRecords": 107
   },
   "frozenOwnerSources": {
-    "coreAuthGateway": "99523546c6486f65825d84aa884190fc5bd76128",
+    "coreAuthGateway": "404f818719b920008f88f076949a4387c5130855",
     "webPwaExtensions": "46d030c85c2b1a3d12a10c6b5dd0e521ca303f1c",
     "androidApi36": "66d321e423baedb0e030650729f1000d25a351cf",
     "iosMacos": "3b27b83f18799ff74252469075ec460b6665dd44",
@@ -101,6 +101,7 @@
     ,"Android evidence 66d321e4 binds source 9f91b1f5 to a disposable API 36 arm64 AVD and directly proves fresh install, two cold PIDs, strong-biometric wrong/registered-fingerprint behavior, background relock and bounded authorization fail-close paths. The QA certificate is disposable; terminal replay, process reconstruction, authoritative balance/nonce, callback delivery, transaction, hosting, production signing and store remain false."
     ,"Core/Auth evidence 19277165 directly proves the isolated d26ed915 public v2 negative matrix: wrong product/device/bundle, scope widening, sibling device revoke and expiry fail closed. It also freezes the remaining gap: deployed state does not pin device+inode across requests and public symlink/hardlink/same-bytes inode/digest tamper vectors are unproved; aggregate/central remain false."
     ,"Core/Auth evidence 99523546 directly proves source 37f2485 cross-restart exact-request idempotency: a 1,122-byte completion response and state SHA are identical, post-restart revoke succeeds, post-revoke returns SESSION_REVOKED, and the private retry record is removed. Product migration, visible approval, central absorption and aggregate deployment remain false."
+    ,"Core/Auth evidence 404f8187 directly proves deployed source 37f2485 rejects runtime 0644, hardlink, symlink, same-byte inode replacement and digest tamper with exact HTTP 503 codes and zero mutation. Repair restores 0600 ynx:ynx nlink=1 and the public lifecycle. Existing 6437/6439, zero product migration, absent visible Wallet approval, central absorption and aggregate deployment remain unchanged and false."
     ,"iOS/macOS AASA contract 3b27b83f is frozen only as fail-closed engineering truth. The public well-known path is HTTP 200 but serves a 1,018-byte text/html SPA fallback, so AASA validity, associated-domain freeze, Universal Link delivery, auth success and every public/production claim remain false."
   ]
 }
