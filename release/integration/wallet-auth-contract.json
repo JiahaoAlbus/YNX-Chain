@@ -19,6 +19,7 @@
     "deviceChallenge": 1,
     "productSession": 1,
     "productSessionHttpProof": 1,
+    "sponsorshipRequest": 2,
     "centralRegistryDocument": 2,
     "centralProductRegistration": 3,
     "gatewayAdapterSnapshot": 2,
@@ -739,6 +740,7 @@
       "sponsoredReceiptPublic": false,
       "evidence": "apps/wallet/proof/sponsored-useroperation-evidence-verifier-local-2026-08-13.json"
     },
+    "sponsorshipSessionBinding": {"sourceCommit":"ddd7ce3397d40d7a49c3511a452d32d78f0450b8","requestSchemaVersion":2,"focusedTests":"9/9 passed","walletAuthFullSuite":"176/176 passed","requiredBindings":["productClientId","sessionBinding","account","productDeviceKey","orderedScopes","antiSybilBinding","userOperationDigest"],"replayNonceConsumedOnlyWhenEligible":true,"wrongBindingMutation":false,"boundedLedger":true,"crashRecoveryVerified":false,"multiProcessAtomicityVerified":false,"integratedCentral":false,"deployedStaging":false,"deployedPublic":false,"publicRouteVerified":false,"evidence":"apps/wallet/proof/sponsorship-session-binding-local-2026-08-14.json"},
     "publicERC4337ReadinessProbe": {
       "sourceCommit": "2a19cb153952c7e3e1e253fea39186e2ebff194b",
       "observedAt": "2026-08-13T14:27:24.748Z",

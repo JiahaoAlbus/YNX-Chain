@@ -82,6 +82,17 @@
       "publicClaimAllowed": false
     },
     {
+      "id": "WA-SPONSORSHIP-SESSION-BINDING-001",
+      "category": "wallet-auth",
+      "owners": ["02-wallet-auth", "29-integration"],
+      "precondition": "A canonical sponsorship request v2 carries an exact Product Session binding and UserOperation digest.",
+      "action": "Substitute account, session binding, product device key, product, ordered scopes, anti-Sybil subject or operation digest; then retry the original request nonce.",
+      "expectedHttpStatus": null,
+      "expectedCode": "binding-specific ineligible reason; exact accepted replay throws SPONSORSHIP_REPLAY",
+      "expectedState": "every substituted request approves zero cost and consumes no nonce; only one eligible exact request consumes the nonce; bounded ledger exhaustion fails closed",
+      "publicClaimAllowed": false
+    },
+    {
       "id": "WA-MULTIUSER-ISOLATION-001",
       "category": "wallet-auth",
       "owners": ["02-wallet-auth", "29-integration"],

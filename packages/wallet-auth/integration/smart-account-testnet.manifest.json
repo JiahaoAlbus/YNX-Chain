@@ -7,6 +7,7 @@
   "accountCapabilities": ["owner", "webauthn-uv", "session-key", "batch-call", "per-call-native-value-limit", "daily-native-value-limit", "guardian-delay-recovery", "emergency-session-revoke"],
   "sponsorTypes": ["product", "first-action", "merchant", "developer-testnet"],
   "paymasterInvariants": ["eip712-signed-authorization", "operation-core-binding", "authorization-replay-protection", "product-daily-budget", "subject-daily-budget", "per-operation-budget", "first-action-once", "merchant-allowlist", "risk-officer-disable-only", "conservative-max-cost-reservation"],
+  "sponsorshipAuthorization": {"sourceCommit":"ddd7ce3397d40d7a49c3511a452d32d78f0450b8","requestSchemaVersion":2,"requiredProductSessionBindings":["productClientId","sessionBinding","account","productDeviceKey","orderedScopes","antiSybilBinding"],"requiredOperationBindings":["userOperationDigest","requestNonce","expiresAt"],"replayConsumption":"eligible-only","errors":["INVALID_SPONSOR_BINDING","SPONSORSHIP_REPLAY","SPONSORSHIP_LEDGER_FULL"],"evidence":"apps/wallet/proof/sponsorship-session-binding-local-2026-08-14.json"},
   "bundlerProtocol": "ERC-7769",
   "bundlerEvidenceVerification": {
     "sourceCommit": "80291d53893aa6735d401c692a786fbcdbca8424",
