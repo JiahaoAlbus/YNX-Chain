@@ -78,6 +78,7 @@ jobs:
           mkdir -p proof/ci-ios
           xcrun simctl shutdown "$DEVICE" 2>/dev/null || true
           xcrun simctl erase "$DEVICE"
+          printf 'device=%s erased=true\n' "$DEVICE" | tee proof/ci-ios/simulator-reset.txt
           xcrun simctl boot "$DEVICE"
           xcrun simctl bootstatus "$DEVICE" -b
           xcrun simctl install "$DEVICE" "$APP"
@@ -136,7 +137,7 @@ jobs:
           set -euo pipefail
           DEVICE="$(xcrun simctl list devices booted | awk -F '[()]' '/iPhone/{print $2; exit}')"
           test -n "$DEVICE"
-          xcrun simctl biometric "$DEVICE" unenroll
+          grep -F "device=$DEVICE erased=true" proof/ci-ios/simulator-reset.txt
           set +e
           xcodebuild test \
             -workspace ios/YNXWallet.xcworkspace \
