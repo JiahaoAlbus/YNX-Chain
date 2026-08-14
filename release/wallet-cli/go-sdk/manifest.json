@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "artifactClass": "wallet-go-sdk-deterministic-module-archive",
+  "version": "0.1.0",
+  "module": "github.com/JiahaoAlbus/YNX-Chain/sdk/wallet/go",
+  "packagePath": "release/wallet-cli/go-sdk/ynx-wallet-go-sdk-0.1.0.tgz",
+  "packageSourceCommit": "f27b5867227e172756d4a8c3638905c668874f33",
+  "workflowSourceCommit": "68c5b54c15da0030aea9133ccd06ce87a154b2bf",
+  "bytes": 23063,
+  "sha256": "6ef48782edd2be8cd5b79ab62e5ac5ed93ef52242f4157dab3aac29117bee94e",
+  "minimumRuntime": "Go 1.25.0",
+  "minimumOS": "Ubuntu 24.04.4 x64 directly tested",
+  "signingClass": "unsigned_go_module_testnet_candidate",
+  "protocol": "YNX_PRODUCT_SESSION_HTTP_PROOF_V1",
+  "evmChainId": "0x1917",
+  "continuousIntegration": {
+    "workflow": "wallet-go-sdk-package.yml",
+    "runId": 31772532074,
+    "runURL": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/31772532074",
+    "conclusion": "success",
+    "buildJobId": 94681224331,
+    "downloadVerificationJobId": 94681283313,
+    "runner": "ubuntu-24.04-x64",
+    "goVersion": "1.25.0",
+    "nodeVersion": "24.19.0"
+  },
+  "packageArtifact": {
+    "id": 9208646740,
+    "archiveBytes": 8176,
+    "archiveSha256": "94ce07c28cf3380ca9ba185ba9af7d21887383f099e60afd467ce0ceb285c9d5"
+  },
+  "downloadVerificationArtifact": {
+    "id": 9208649412,
+    "archiveBytes": 364,
+    "archiveSha256": "28e252882478c74709b829c090534759f84c33a64dd8c690e597228b4a6d1a88"
+  },
+  "evidence": {
+    "deterministicRebuild": true,
+    "cleanExtracted": true,
+    "moduleTests": true,
+    "realConsumer": true,
+    "vectorVerified": true,
+    "ephemeralSigningVerified": true,
+    "privateKeyPersisted": false,
+    "realTestnetChainId": "0x1917",
+    "httpRpcFailureClosed": true,
+    "unreachableRpcFailureClosed": true,
+    "artifactDownloadedAndReverified": true,
+    "accountClaimed": false,
+    "balanceClaimed": false,
+    "transactionCreated": false
+  },
+  "productionSigned": false,
+  "downloadHosted": false,
+  "deployedPublic": false,
+  "storeReleased": false
+}
