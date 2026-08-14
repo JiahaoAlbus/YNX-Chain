@@ -45,17 +45,16 @@
     },
     {"owner":"ios-macos","candidateCommit":"b081dd7022f0a07499c1de91b8e3d2579363b926","remoteFastForwardReported":true,"remoteReadbackComplete":false,"ciComplete":false,"consumedForReleaseTruth":false,"note":"Universal Link path fix has no terminal successful evidence; associated-domain/public delivery remain false."},
     {"owner":"ios-macos","candidateCommit":"7115615f0fa06b75dfcf1c8d3c1c91edc2dff6d1","remoteFastForwardReported":true,"remoteReadbackComplete":true,"ciComplete":false,"consumedForReleaseTruth":false,"note":"Recovery workflow run remains in progress and promotes no biometric, recovery, auth or public gate."},
-    {"owner":"core-auth-gateway","candidateCommit":"6425ec0c390c43de65b35529c885b353c747930d","remoteFastForwardReported":true,"remoteReadbackComplete":true,"ciComplete":null,"consumedForReleaseTruth":false,"note":"Unknown Core successor remains pending beyond the authorized batch evidence."},
     {"owner":"ios-macos","candidateCommit":"0901c24193eaa7747c40f22fcd94d8b002b866ee","remoteFastForwardReported":true,"remoteReadbackComplete":true,"ciComplete":false,"consumedForReleaseTruth":false,"note":"Run 31779956710 failed the standalone application-identifier gate; minimal entitlement injection fix has no new CI, so install/Keychain/recovery/public/signing remain false."}
   ],
   "ownerSources": [
     {
       "owner": "core-auth-gateway",
       "branch": "codex/wallet-core-auth-gateway-continuation-20260814",
-      "sourceCommit": "b8467853060db04c2981abb7fcfa22d4cfdcf65b",
-      "remoteCommitObserved": "b8467853060db04c2981abb7fcfa22d4cfdcf65b",
-      "branchHeadObserved": "6425ec0c390c43de65b35529c885b353c747930d",
-      "remoteVerifiedAt": "2026-08-14T04:32:00Z",
+      "sourceCommit": "0c747c6030b5a475a1f12dc7e57345555c23055d",
+      "remoteCommitObserved": "0c747c6030b5a475a1f12dc7e57345555c23055d",
+      "branchHeadObserved": "0c747c6030b5a475a1f12dc7e57345555c23055d",
+      "remoteVerifiedAt": "2026-08-14T08:49:00Z",
       "verificationMode": "github-git-database-parent-tree-blob-readback"
     },
     {
@@ -108,6 +107,13 @@
       "direct": true,
       "commit": "b8467853060db04c2981abb7fcfa22d4cfdcf65b",
       "path": "apps/wallet/proof/smart-account-batch-boundary-local-2026-08-14.json",
+      "supports": []
+    },
+    "gateway-smart-account-deployment-verifier-local": {
+      "type": "git-object",
+      "direct": true,
+      "commit": "0c747c6030b5a475a1f12dc7e57345555c23055d",
+      "path": "apps/wallet/proof/smart-account-testnet-deployment-verifier-local-2026-08-14.json",
       "supports": []
     },
     "gateway-public-lifecycle": {
