@@ -4,6 +4,14 @@
   "auditedAt": "2026-08-14T03:38:07Z",
   "integrationBaseCommit": "a008ce0e8fa2ac0322198576c320441118fbae83",
   "matrixSha256": "bc6a4a88b3e78bc1406f7c94ad17818a077415ce1b7e1b3f67ed8fcc12df33be",
+  "endpointServiceDiscoveryMatrix": {
+    "path": "release/integration/wallet-auth-public-endpoint-service-discovery-matrix.json",
+    "sha256": "d344c607c2bbbf7bb0d9d3662b424976d0d6c4ff20428025dd1e2fb92bf31392"
+  },
+  "androidLauncherContract": {
+    "path": "release/integration/wallet-auth-android-launcher-contract.json",
+    "sha256": "d296732141a4029b1811b655f0001cc7d81a1d45019a4bd87d21b2b4b256d1a6"
+  },
   "publicTestnet": {
     "smartAccountDeploymentVerifier": {
       "evidenceCommit": "0c747c6030b5a475a1f12dc7e57345555c23055d",

@@ -5,13 +5,45 @@ import { readFileSync } from "node:fs";
 const audit = JSON.parse(readFileSync("release/integration/wallet-auth-public-evidence-audit.json", "utf8"));
 const metadata = JSON.parse(readFileSync("release/integration/wallet-auth-public-download-metadata.json", "utf8"));
 const record = JSON.parse(readFileSync("release/integration/wallet-auth-release-record.json", "utf8"));
+const endpoints = JSON.parse(readFileSync("release/integration/wallet-auth-public-endpoint-service-discovery-matrix.json", "utf8"));
+const androidLauncher = JSON.parse(readFileSync("release/integration/wallet-auth-android-launcher-contract.json", "utf8"));
 const matrixBytes = readFileSync(record.evidenceMatrix.path);
 const matrixSha256 = createHash("sha256").update(matrixBytes).digest("hex");
+const endpointBytes = readFileSync(record.validation.publicEndpointServiceDiscoveryMatrix.path);
+const endpointSha256 = createHash("sha256").update(endpointBytes).digest("hex");
+const androidLauncherBytes = readFileSync(record.validation.androidLauncherContract.path);
+const androidLauncherSha256 = createHash("sha256").update(androidLauncherBytes).digest("hex");
 const failures = [];
 const fail = (message) => failures.push(message);
 const sha256 = (value) => /^[0-9a-f]{64}$/.test(value ?? "");
 
 if (audit.schemaVersion !== 1) fail("audit schemaVersion must be 1");
+if (endpointSha256 !== record.validation.publicEndpointServiceDiscoveryMatrix.sha256 || endpointSha256 !== audit.endpointServiceDiscoveryMatrix?.sha256) fail("endpoint discovery matrix digest mismatch");
+if (androidLauncherSha256 !== record.validation.androidLauncherContract.sha256 || androidLauncherSha256 !== audit.androidLauncherContract?.sha256) fail("Android launcher contract digest mismatch");
+if (endpoints.schemaVersion !== 1 || endpoints.network?.chainIdDecimal !== 6423 || endpoints.network?.chainIdHex !== "0x1917") fail("endpoint discovery matrix identity mismatch");
+if (endpoints.canonical?.rpcUrl !== "https://rpc.ynxweb4.com/evm" || endpoints.canonical?.restUrl !== "https://rest.ynxweb4.com") fail("canonical public RPC/REST endpoints drifted");
+if (endpoints.discoveryContract?.modes?.length !== 3 || endpoints.discoveryContract?.unavailableBehavior?.failClosed !== true) fail("mobile discovery contract must have three fail-closed modes");
+if (endpoints.discoveryContract?.modes?.find(({id}) => id === "ynx-wallet-canonical-authorization")?.returnRequiresInjectedProvider !== false) fail("YNX Wallet mobile return cannot require injected EIP-1193");
+for (const endpoint of endpoints.endpoints ?? []) {
+  if (typeof endpoint.availability !== "boolean" || typeof endpoint.cors !== "boolean" || typeof endpoint.mobileReachable !== "boolean" || endpoint.failClosedWhenUnavailable !== true) fail(`${endpoint.id} endpoint truth is incomplete`);
+}
+for (const id of ["faucet", "wallet-approval-deep-link", "wallet-callback", "explorer"]) {
+  const endpoint = endpoints.endpoints?.find((item) => item.id === id);
+  if (!endpoint || endpoint.availability !== false || endpoint.mobileReachable !== false) fail(`${id} must remain unavailable without direct public mobile evidence`);
+}
+for (const id of ["chain-rpc-canonical", "chain-rpc-legacy-evm-host", "product-session-v2"]) {
+  const endpoint = endpoints.endpoints?.find((item) => item.id === id);
+  if (!endpoint || endpoint.cors !== false || endpoint.mobileReachable !== false) fail(`${id} browser CORS/mobile boundary was promoted`);
+}
+if (endpoints.aggregate?.allRequiredServicesAvailable !== false || endpoints.aggregate?.allRequiredServicesCorsReady !== false || endpoints.aggregate?.mobileWalletDiscoveryVerified !== false || endpoints.aggregate?.deployedPublic !== false || endpoints.aggregate?.integratedCentral !== false) fail("endpoint/mobile aggregate must remain false");
+if (androidLauncher.schemaVersion !== 1 || androidLauncher.authority?.walletPackage !== "com.ynxweb4.wallet" || androidLauncher.authority?.scheme !== "ynxwallet" || androidLauncher.authority?.host !== "authorize" || androidLauncher.authority?.path !== "" || androidLauncher.authority?.uriTemplate !== "ynxwallet://authorize?request=<base64url-canonical-authorization-request>") fail("Android launcher authority drifted");
+if (androidLauncher.sharedCallerRequirements?.callerMayConcatenateUri !== false || androidLauncher.sharedCallerRequirements?.resolveActivityBeforeLaunch !== true || androidLauncher.sharedCallerRequirements?.queryIntentActivitiesBeforeLaunch !== true || androidLauncher.sharedCallerRequirements?.rawActivityNotFoundExposedToUser !== false) fail("Android shared launcher safety contract is incomplete");
+for (const field of ["resolveActivityVerified", "queryIntentActivitiesVerified", "approveVerified", "rejectVerified", "callbackVerified", "productSessionVerified", "secondLaunchVerified", "accepted"]) {
+  if (androidLauncher.crossProductAcceptance?.[field] !== false) fail(`androidLauncher.crossProductAcceptance.${field} cannot promote without direct Pixel 9 evidence`);
+}
+for (const field of ["implementedShared", "deviceValidated", "integratedCentral", "deployedPublic", "productionSigned", "storeReleased"]) {
+  if (androidLauncher.releaseTruth?.[field] !== false) fail(`androidLauncher.releaseTruth.${field} must remain false`);
+}
 if (audit.matrixSha256 !== matrixSha256 || record.evidenceMatrix.sha256 !== matrixSha256) fail("audit/record matrix digest mismatch");
 if (audit.publicTestnet?.rpc?.observedResult !== "0x1917" || audit.publicTestnet?.rpc?.verified !== true) fail("public RPC chain identity is not directly verified");
 if (!sha256(audit.publicTestnet?.rpc?.responseSha256)) fail("public RPC response digest is missing");

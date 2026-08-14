@@ -90,6 +90,8 @@
     "matrixMutationTest": "scripts/verify/wallet-auth-release-evidence-matrix.test.mjs",
     "publicDownloadGate": "scripts/verify/wallet-auth-public-download-metadata-check.mjs",
     "publicEvidenceAuditGate": "scripts/verify/wallet-auth-public-evidence-audit-check.mjs"
+    ,"publicEndpointServiceDiscoveryMatrix": {"path":"release/integration/wallet-auth-public-endpoint-service-discovery-matrix.json","sha256":"d344c607c2bbbf7bb0d9d3662b424976d0d6c4ff20428025dd1e2fb92bf31392"}
+    ,"androidLauncherContract": {"path":"release/integration/wallet-auth-android-launcher-contract.json","sha256":"d296732141a4029b1811b655f0001cc7d81a1d45019a4bd87d21b2b4b256d1a6"}
   },
   "limitations": [
     "Consumed Owner checkpoints were verified through GitHub ref, commit parent, tree and evidence-blob readback.",
