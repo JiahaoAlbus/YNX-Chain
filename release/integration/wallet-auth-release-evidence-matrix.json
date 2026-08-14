@@ -63,21 +63,12 @@
     },
     {
       "owner": "desktop-cli-sdk",
-      "candidateCommit": "b06bf39c365408ba28e9e5f9312f293693e3f73d",
+      "candidateCommit": "905ac1e5479b08e6b2d9e50a91bef01cbe7d58ef",
       "remoteFastForwardReported": true,
       "remoteReadbackComplete": true,
       "ciComplete": null,
       "consumedForReleaseTruth": false,
-      "note": "Linux arm64 RPM final evidence is queued for its own later atomic slice."
-    },
-    {
-      "owner": "desktop-cli-sdk",
-      "candidateCommit": "8b778604144e49b8ff85ba04850d325af1d378be",
-      "remoteFastForwardReported": true,
-      "remoteReadbackComplete": true,
-      "ciComplete": null,
-      "consumedForReleaseTruth": false,
-      "note": "The Desktop branch advanced beyond the queued RPM evidence; the successor is not consumed."
+      "note": "Windows arm64 CLI final evidence is queued for its own later atomic slice."
     }
   ],
   "ownerSources": [
@@ -120,9 +111,9 @@
     {
       "owner": "desktop-cli-sdk",
       "branch": "codex/wallet-desktop-cli-sdk-20260813",
-      "sourceCommit": "931b70fc0dd4e7ff01542065099aeaa0b3f25a51",
-      "remoteCommitObserved": "931b70fc0dd4e7ff01542065099aeaa0b3f25a51",
-      "branchHeadObserved": "8b778604144e49b8ff85ba04850d325af1d378be",
+      "sourceCommit": "b06bf39c365408ba28e9e5f9312f293693e3f73d",
+      "remoteCommitObserved": "b06bf39c365408ba28e9e5f9312f293693e3f73d",
+      "branchHeadObserved": "905ac1e5479b08e6b2d9e50a91bef01cbe7d58ef",
       "remoteVerifiedAt": "2026-08-14T04:05:00Z",
       "verificationMode": "github-git-database-parent-tree-blob-readback"
     }
@@ -504,6 +495,13 @@
         "linux-desktop-arm64-deb.testnet"
       ]
     },
+    "linux-arm64-rpm-action": {
+      "type": "git-object",
+      "direct": true,
+      "commit": "b06bf39c365408ba28e9e5f9312f293693e3f73d",
+      "path": "release/wallet-desktop/linux-arm64-rpm/manifest.json",
+      "supports": ["linux-desktop-arm64-rpm.build", "linux-desktop-arm64-rpm.install", "linux-desktop-arm64-rpm.coldLaunch", "linux-desktop-arm64-rpm.secondLaunch", "linux-desktop-arm64-rpm.testnet"]
+    },
     "windows-desktop-action": {
       "type": "git-object",
       "direct": true,
@@ -662,6 +660,16 @@
       "gates": {"build":true,"install":true,"coldLaunch":true,"secondLaunch":true,"testnet":true,"sign":false,"tx":false,"callback":false,"reconnect":false,"downloadHosted":false,"productionSigned":false,"storeReleased":false},
       "evidenceBindings": {"build":["linux-arm64-deb-action"],"install":["linux-arm64-deb-action"],"coldLaunch":["linux-arm64-deb-action"],"secondLaunch":["linux-arm64-deb-action"],"testnet":["linux-arm64-deb-action"],"sign":["linux-arm64-deb-action"],"tx":["linux-arm64-deb-action"],"callback":["linux-arm64-deb-action"],"reconnect":["linux-arm64-deb-action"],"downloadHosted":["linux-arm64-deb-action"],"productionSigned":["linux-arm64-deb-action"],"storeReleased":["linux-arm64-deb-action"]},
       "notes": ["Native Ubuntu arm64 runner verified install, upgrade, cold/second lifecycle, exact 0x1917, fail-closed RPC, uninstall and post-upload hashes. installedNativeCI is true while installedLocal remains false; the deb is unsigned, temporary and non-hosted."]
+    },
+    {
+      "id": "linux-desktop-arm64-rpm",
+      "ownerSource": "desktop-cli-sdk",
+      "artifactClass": "unsigned-native-ci-rpm-artifact",
+      "status": "native-ci-installed-lifecycle",
+      "capabilities": {"installedNativeCI":true,"installedLocal":false,"upgradeTestedNativeCI":true,"uninstallVerifiedNativeCI":true,"postUploadRedownloadHashVerified":true,"rpmScriptsTested":false,"fedoraDnfCompatibilityTested":false},
+      "gates": {"build":true,"install":true,"coldLaunch":true,"secondLaunch":true,"testnet":true,"sign":false,"tx":false,"callback":false,"reconnect":false,"downloadHosted":false,"productionSigned":false,"storeReleased":false},
+      "evidenceBindings": {"build":["linux-arm64-rpm-action"],"install":["linux-arm64-rpm-action"],"coldLaunch":["linux-arm64-rpm-action"],"secondLaunch":["linux-arm64-rpm-action"],"testnet":["linux-arm64-rpm-action"],"sign":["linux-arm64-rpm-action"],"tx":["linux-arm64-rpm-action"],"callback":["linux-arm64-rpm-action"],"reconnect":["linux-arm64-rpm-action"],"downloadHosted":["linux-arm64-rpm-action"],"productionSigned":["linux-arm64-rpm-action"],"storeReleased":["linux-arm64-rpm-action"]},
+      "notes": ["Ubuntu 24.04 arm64 used rpm --nodeps --noscripts, then explicitly set Electron sandbox root:root/4755 before install→upgrade, cold/second launch, 0x1917/fail-close, uninstall and artifact hash gates. RPM scripts, Fedora/DNF compatibility, installedLocal, signing and hosting are not claimed."]
     },
     {
       "id": "windows-desktop-x64",

@@ -190,6 +190,20 @@
       "exclusionReason": "Native Windows 11 arm64 CI lifecycle and artifact readback do not make the Authenticode NotSigned installer a hosted or production release."
     },
     {
+      "id": "linux-arm64-rpm",
+      "sourceCommit": "b06bf39c365408ba28e9e5f9312f293693e3f73d",
+      "artifactName": "ynx-wallet-desktop-0.1.0-aarch64.rpm",
+      "sha256": "fee7f168122ba0f610f042d97a8863e5b3bcae64f96b54863e7829bfdeb8e40a",
+      "signingClass": "unsigned-linux-rpm-testnet-candidate",
+      "publicUrl": null,
+      "immutableUrl": null,
+      "downloadHosted": false,
+      "productionSigned": false,
+      "storeReleased": false,
+      "websitePublishable": false,
+      "exclusionReason": "Ubuntu rpm --noscripts native CI with explicit sandbox ownership/mode does not prove RPM scripts, Fedora/DNF compatibility, signing or public hosting."
+    },
+    {
       "id": "typescript-sdk-0.2.0",
       "sourceCommit": "53f2ad8225a5465ba9f4b1e41a69ab8d2c0bccaf",
       "artifactName": "ynx-chain-sdk-0.2.0.tgz",

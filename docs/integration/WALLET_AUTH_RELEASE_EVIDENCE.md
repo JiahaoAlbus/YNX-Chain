@@ -16,6 +16,7 @@ This is the central Integration view of platform delivery. The authoritative mac
 | macOS desktop x64 | Native CI upgrade/install/cold/second launch, exact Testnet read and DMG/ZIP post-upload hash verification | Packages remain unsigned/unnotarized; hosted download, production signature and store release |
 | Linux desktop arm64 AppImage | Native arm64 portable cold/second lifecycle, exact Testnet read and post-upload hash verification | installedLocal/installedNativeCI false; hosted download, production signature and store release |
 | Linux desktop arm64 deb | Native CI install, upgrade, cold/second lifecycle, exact Testnet read, fail-close, uninstall and redownload hash | installedLocal false; unsigned, non-hosted and not store released |
+| Linux desktop arm64 RPM | Ubuntu rpm --noscripts native CI with explicit root:root/4755 sandbox; upgrade/lifecycle/Testnet/fail-close/uninstall/hash | RPM scripts and Fedora/DNF not tested; installedLocal/signing/hosting/store false |
 | Windows desktop arm64 | Windows 11 arm64 native CI install/upgrade, cold/second lifecycle, exact Testnet read, fail-close, uninstall and readback hash | installedLocal false; Authenticode NotSigned, non-hosted and not store released |
 | Linux/Windows CLI | Native package lifecycle, exact Testnet read and ephemeral P-256 device proof | Asset signing/transaction, public hosting, production signature |
 | TypeScript SDK | Reproducible local tarball, clean-consumer install/import and exact Testnet read | npm publication, automatic signing/transaction, production signature |
@@ -40,7 +41,7 @@ The verifier rejects a `true` gate unless a direct evidence record explicitly su
 
 The 2026-08-14 resumed snapshot was upgraded through GitHub Git-database readback. Every consumed checkpoint has an exact remote commit, parent, tree and evidence blob; Owner branches were fetched without touching the working tree. These source advances promoted no public, hosted, production, store, callback, reconnect, signing or transaction gate without direct evidence.
 
-The frozen checkpoints are Core `774a1f756890043e88626d13b6c9679a2ad6d288`, Web `0b3ffa8faabad2caa49b1c00db493261e2d98bca`, Android `4739a60e1fa0e3d0b6862e129330f9e9ca202887`, iOS/macOS `8b6dee8f746456874d7a7b2913d38b3aa5591fc7`, and Desktop/CLI/SDK `931b70fc0dd4e7ff01542065099aeaa0b3f25a51`.
+The frozen checkpoints are Core `774a1f756890043e88626d13b6c9679a2ad6d288`, Web `0b3ffa8faabad2caa49b1c00db493261e2d98bca`, Android `4739a60e1fa0e3d0b6862e129330f9e9ca202887`, iOS/macOS `8b6dee8f746456874d7a7b2913d38b3aa5591fc7`, and Desktop/CLI/SDK `b06bf39c365408ba28e9e5f9312f293693e3f73d`.
 
 Core evidence HEAD `ea33b83c5cc21ebd673bdb2e20a0e996eaf28212`, Android `2299a90e12a46dd030425c6a5bf2edf4257c9c59`, iOS/macOS `33d10fa2f2422b577d3b9bf10d926e6c608893f0` and Desktop RPM `b06bf39c365408ba28e9e5f9312f293693e3f73d` remain queued. Public/hosted/production/store truth is unchanged.
 
