@@ -107,7 +107,8 @@ successful eight-runtime release record.
   shared-terminal input remains explicitly disabled.
 
 - Public full-platform gate: `scripts/live-public-candidate-check.mjs`. Against
-  the deployed candidate it requires all seven real runtimes, six LSP routes,
+  the deployed candidate it requires all nine real runtimes and eight language
+  requests across seven LSP routes (C/C++ share clangd),
   twelve concurrent isolated tenant sessions, same-project-name isolation,
   YNX Chain identity, a real hosted `qwen3:4b` Planner run, an attested
   Developer Wallet binding and a closed public Wallet/BFT write gate.
@@ -117,6 +118,13 @@ successful eight-runtime release record.
 
 - Cloud toolchain image builder and pinned-server initialize probe:
   `scripts/build-cloud-toolchain-image.sh` and `scripts/lsp-server-probe.mjs`
+  verify Eclipse JDT LS `1.61.0-202607142124` against its fixed SHA-256 and
+  launch all seven server routes through the reviewed image entry points.
+- Java language evidence: `services/language-service/test/java-lsp.test.mjs`
+  executes completion, definition and semantic project diagnostics against the
+  pinned JDT LS artifact in the no-network local sandbox;
+  `test/java-lsp-ui.test.js` guards the gateway, Monaco, Outline, image and live
+  candidate route wiring.
 - Candidate live container gate: `scripts/live-container-check.mjs`; on
   2026-08-10 it passed seven real compile/run paths, six real cloud completion
   paths and PTY-to-workspace synchronization against image fingerprint

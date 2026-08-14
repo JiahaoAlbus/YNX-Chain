@@ -8,6 +8,7 @@ const servers = [
   ["gopls", []],
   ["rust-analyzer", []],
   ["nomicfoundation-solidity-language-server", ["--stdio"]],
+  ["jdtls", ["-data", "/tmp/ynx-code-jdtls-probe"]],
 ];
 
 for (const [command, args] of servers) {
@@ -16,6 +17,8 @@ for (const [command, args] of servers) {
   assert.ok(value.result?.capabilities, `${command} did not advertise LSP capabilities`);
   console.log(`${command}: initialize passed`);
 }
+
+await import("node:fs/promises").then(({ rm }) => rm("/tmp/ynx-code-jdtls-probe", { recursive: true, force: true }));
 
 function initialize(command, args) {
   return new Promise((resolve, reject) => {

@@ -54,7 +54,7 @@ directory. It stops the candidate only after those preflight gates, captures a
 root-only state snapshot and SHA-256, updates only the candidate release/image
 environment, and atomically changes the `current` symlink.
 
-After start it must pass the eight-runtime container gate, Chain tools, Wallet
+After start it must pass the nine-runtime, seven-LSP container gate, Chain tools, Wallet
 readiness, full public candidate gate, signed-session/workspace restart recovery
 and the external HTTPS health/version check. Failure restores the previous
 symlink, protected environment and systemd unit, then restarts the prior

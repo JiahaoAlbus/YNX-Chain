@@ -5,10 +5,14 @@ builder="${YNX_CODE_IMAGE_BUILDER:-ynx-lsp-builder-v3}"
 source_alias="${YNX_CODE_SOURCE_IMAGE:-ynx-code-ubuntu-24.04-v2}"
 target_alias="${YNX_CODE_TARGET_IMAGE:-ynx-code-ubuntu-24.04-v3}"
 probe_path="${YNX_CODE_LSP_PROBE:-$(cd "$(dirname "$0")" && pwd)/lsp-server-probe.mjs}"
+jdtls_launcher_path="$(cd "$(dirname "$0")" && pwd)/jdtls-launcher.sh"
 rust_analyzer_release="2026-07-27"
+jdtls_archive="jdt-language-server-1.61.0-202607142124.tar.gz"
+jdtls_sha256="4dc0747f22fb86dfada4c9214d3ef94c94f1e84eb57ce52126c26ecf2f17dce4"
 
 command -v lxc >/dev/null
 test -f "$probe_path"
+test -f "$jdtls_launcher_path"
 if lxc image info "$target_alias" >/dev/null 2>&1; then
   echo "Target image alias already exists: $target_alias" >&2
   exit 1
@@ -45,12 +49,19 @@ lxc exec "$builder" -- curl -fL --retry 3 "$asset_url" -o /tmp/rust-analyzer.gz
 lxc exec "$builder" -- sh -c "printf '%s  %s\n' '$asset_sha' /tmp/rust-analyzer.gz | sha256sum -c -"
 lxc exec "$builder" -- sh -c 'gzip -dc /tmp/rust-analyzer.gz > /usr/local/bin/rust-analyzer && chmod 0755 /usr/local/bin/rust-analyzer'
 lxc exec "$builder" -- sh -c 'javac -version && java -version && dpkg-query -W -f="\${Package}=\${Version}\n" openjdk-21-jdk-headless openjdk-21-jre-headless > /etc/ynx-code-jdk-packages.txt'
+lxc exec "$builder" -- curl --http1.1 -fL --retry 10 --retry-all-errors --connect-timeout 20 "https://download.eclipse.org/jdtls/snapshots/$jdtls_archive" -o "/tmp/$jdtls_archive"
+lxc exec "$builder" -- sh -c "printf '%s  %s\n' '$jdtls_sha256' '/tmp/$jdtls_archive' | sha256sum -c -"
+lxc exec "$builder" -- mkdir -p /usr/local/lib/ynx-code-jdtls
+lxc exec "$builder" -- tar -xzf "/tmp/$jdtls_archive" -C /usr/local/lib/ynx-code-jdtls
+lxc file push "$jdtls_launcher_path" "$builder/usr/local/lib/ynx-code-jdtls/bin/ynx-jdtls"
+lxc exec "$builder" -- chmod 0755 /usr/local/lib/ynx-code-jdtls/bin/ynx-jdtls
+lxc exec "$builder" -- ln -sfn /usr/local/lib/ynx-code-jdtls/bin/ynx-jdtls /usr/local/bin/jdtls
 
 lxc file push "$probe_path" "$builder/tmp/lsp-server-probe.mjs"
 lxc exec "$builder" -- node /tmp/lsp-server-probe.mjs
-lxc exec "$builder" -- sh -c 'apt-get clean; rm -rf /var/lib/apt/lists/* /root/.cache/go-build /root/go/pkg/mod/cache/download /tmp/rust-analyzer.gz /tmp/rust-analyzer-asset /tmp/lsp-server-probe.mjs'
+lxc exec "$builder" -- sh -c "apt-get clean; rm -rf /var/lib/apt/lists/* /root/.cache/go-build /root/go/pkg/mod/cache/download /tmp/rust-analyzer.gz /tmp/rust-analyzer-asset /tmp/lsp-server-probe.mjs '/tmp/$jdtls_archive'"
 lxc stop "$builder"
-lxc publish "$builder" --alias "$target_alias" description="YNX Code Ubuntu 24.04 reviewed eight-language toolchain and six LSP servers"
+lxc publish "$builder" --alias "$target_alias" description="YNX Code Ubuntu 24.04 reviewed nine-language toolchain and seven LSP servers"
 fingerprint="$(lxc image info "$target_alias" | awk '/^Fingerprint:/{print $2}')"
 test "${#fingerprint}" -eq 64
 cleanup

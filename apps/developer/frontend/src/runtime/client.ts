@@ -642,7 +642,7 @@ export async function restoreWorkspaceRevision(projectId: string, expectedRevisi
   return value.workspace;
 }
 export type LanguageOperation = "completion" | "definition" | "references" | "rename" | "format" | "diagnostics" | "documentSymbols";
-export async function languageRequest(language: "cpp" | "typescript" | "python" | "go" | "rust" | "solidity", files: Record<string, string>, activePath: string, operation: LanguageOperation, position?: { line: number; character: number }, newName?: string, context?: { projectId: string; runtimeId?: string }) {
+export async function languageRequest(language: "cpp" | "typescript" | "python" | "go" | "rust" | "java" | "solidity", files: Record<string, string>, activePath: string, operation: LanguageOperation, position?: { line: number; character: number }, newName?: string, context?: { projectId: string; runtimeId?: string }) {
   const body = JSON.stringify({
     protocolVersion: "ynx-code/v1",
     files,

@@ -29,8 +29,8 @@ const symbolKinds = [
 
 function serverLanguage(language: string) {
   if (language === "javascript" || language === "typescript") return "typescript";
-  if (["cpp", "python", "go", "rust", "solidity"].includes(language))
-    return language as "cpp" | "python" | "go" | "rust" | "solidity";
+  if (["cpp", "python", "go", "rust", "java", "solidity"].includes(language))
+    return language as "cpp" | "python" | "go" | "rust" | "java" | "solidity";
   return null;
 }
 

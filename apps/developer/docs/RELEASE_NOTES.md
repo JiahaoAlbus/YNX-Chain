@@ -1,5 +1,27 @@
 # YNX Developer 0.2.0 Testnet Preview release notes
 
+## 2026-08-14 real Java language intelligence candidate
+
+- Added a dedicated Java route from Monaco and Outline through the authenticated
+  workspace language bridge to Eclipse JDT Language Server. Completion,
+  definition, references, rename, formatting, diagnostics and document symbols
+  now use the same owner/project/runtime boundary as the existing LSP routes.
+- Pinned Eclipse JDT LS `1.61.0-202607142124` from the Eclipse Foundation to
+  SHA-256 `4dc0747f22fb86dfada4c9214d3ef94c94f1e84eb57ce52126c26ecf2f17dce4`.
+  The reviewed image build verifies the archive before extraction and probes a
+  real initialize exchange under OpenJDK 21.
+- A direct acceptance gate starts that exact artifact in the no-network local
+  sandbox and verifies Java completion, definition resolution and semantic
+  project diagnostics. The repository launcher caps the JVM at 768 MiB and
+  avoids the upstream snapshot launcher's invalid process argument boundary.
+- The JSON-RPC client now answers bounded, non-executing server requests such as
+  workspace configuration and capability registration, which JDT LS requires,
+  while refusing to apply server-originated workspace edits automatically.
+- The protected live gate now requires eight requests across seven LSP routes,
+  including Java completion inside the selected no-network LXD runtime. This
+  does not add Maven/Gradle dependency installation, JUnit project testing or a
+  public deployment claim.
+
 ## 2026-08-14 real C17 build, test and debug path
 
 - Added a distinct `.c` runtime adapter using `clang`/`gcc` with C17, warnings

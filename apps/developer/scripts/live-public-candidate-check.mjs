@@ -98,6 +98,7 @@ const languageRequests = [
   ["python", { files: { "src/main.py": "def add(a: int,b: int)->int: return a+b\nad" }, activePath: "src/main.py", operation: "completion", position: { line: 1, character: 2 } }],
   ["go", { files: { "main.go": "package main\nimport \"fmt\"\nfunc main(){ fmt.Pr }" }, activePath: "main.go", operation: "completion", position: { line: 2, character: 20 } }],
   ["rust", { files: { "Cargo.toml": "[package]\nname='probe'\nversion='0.1.0'\nedition='2021'\n", "src/main.rs": "fn main(){ let values=Vec::<i32>::new(); values. }" }, activePath: "src/main.rs", operation: "completion", position: { line: 0, character: 48 } }],
+  ["java", { files: { "src/Main.java": "package dev.ynx; final class Main { static int add(int a,int b){return a+b;} public static void main(String[] args){int value=ad;} }" }, activePath: "src/Main.java", operation: "completion", position: { line: 0, character: 128 } }],
   ["solidity", { files: { "contracts/Counter.sol": "pragma solidity ^0.8.20; contract Counter { uint value; function set(uint next) external { val } }" }, activePath: "contracts/Counter.sol", operation: "completion", position: { line: 0, character: 94 } }],
 ];
 for (const [language, request] of languageRequests) {
@@ -140,4 +141,4 @@ const agent = await json(cookie, "/runtime/agent/runs", {
 assert.equal(agent.run.status, "plan_review");
 assert.ok(agent.run.plan.steps.length > 0);
 
-console.log(`YNX Code public candidate passed 9 runtimes, 7 language requests across 6 LSP routes, 12 concurrent tenants, isolation, Chain ${chain.status.height}, a hosted AI Planner run and fail-closed Wallet readiness.`);
+console.log(`YNX Code public candidate passed 9 runtimes, 8 language requests across 7 LSP routes, 12 concurrent tenants, isolation, Chain ${chain.status.height}, a hosted AI Planner run and fail-closed Wallet readiness.`);

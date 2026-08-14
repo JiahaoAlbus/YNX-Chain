@@ -312,8 +312,8 @@ routes the Workbench Run action through the runtime control plane, synchronizes
 only the validated text workspace, and compiles or executes the active file in
 that container without a shell or network device. The current candidate live
 server gate creates a fresh lease, runs all nine language paths including distinct
-C17 and Java adapters, verifies compiler-version evidence, exercises seven requests
-across six cloud LSP routes (including C and C++ through clangd), opens an interactive PTY inside that same
+C17 and Java adapters, verifies compiler-version evidence, exercises eight requests
+across seven cloud LSP routes (including C and C++ through clangd), opens an interactive PTY inside that same
 container, writes a file, synchronizes the changed text snapshot back through
 the revisioned workspace store, deletes the lease and rejects any leaked runtime
 container. Active terminal and LSP processes hold a lease lock, so their backing
@@ -338,10 +338,14 @@ workspace-agent and LXD adapters derive the public class from the active
 filename and optional declared package, compile UTF-8 bytecode only below
 `.ynx-build/java`, and execute through a fixed classpath. A packaged Java program
 has passed on the local network-disabled macOS sandbox. The recipe also writes
-the exact installed JDK/JRE Debian package versions into the image. This remains
-an undeployed candidate until a Linux LXD builder produces a new immutable
-fingerprint and the nine-runtime live gate passes; Java LSP is a separate open
-gate and is not implied by syntax highlighting or successful compilation.
+the exact installed JDK/JRE Debian package versions into the image and installs
+Eclipse JDT LS `1.61.0-202607142124` only after verifying its pinned SHA-256.
+The image probe requires a real JDT LS initialize exchange. Monaco and Outline
+route Java completion, navigation, rename, formatting, diagnostics and symbols
+through that owner/project/runtime-scoped process; its data directory is bounded
+to `.ynx-build/jdtls`. This remains an undeployed candidate until a Linux LXD
+builder produces a new immutable fingerprint and the nine-runtime, seven-LSP
+live gate passes.
 
 Remote SSH profiles accept public targets only on the public tier. The service
 scans the host key, requires the user to approve that exact key, verifies the

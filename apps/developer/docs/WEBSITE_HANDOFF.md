@@ -31,7 +31,8 @@ The pending Web IDE source adds owner/project-scoped persisted environment
 records and Secret references, reconnectable terminal inventory and Stop,
 reviewed container loopback port previews, redacted running-task inventory and
 owner-bound queued/running-task cancellation, plus distinct C17 build/run/test
-and C LLDB debugging. These capabilities must remain labelled
+and C LLDB debugging, plus Eclipse JDT LS-backed Java language intelligence.
+These capabilities must remain labelled
 `pending public verification` until the protected Developer candidate transaction
 returns `passed`, the public `/healthz` version matches the exact deployed commit,
 and the transaction evidence path plus immutable LXD image fingerprint are

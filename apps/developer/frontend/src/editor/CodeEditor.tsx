@@ -117,8 +117,8 @@ export default function CodeEditor({
   diagnosticsCallbackRef.current = onDiagnostics;
   useEffect(() => {
     const disposables: monaco.IDisposable[] = [], context={projectId,runtimeId};
-    for(const editorLanguage of ["cpp","typescript","javascript","python","go","rust","solidity"]){
-      const serverLanguage=editorLanguage==="javascript"?"typescript":editorLanguage as "cpp"|"typescript"|"python"|"go"|"rust"|"solidity";
+    for(const editorLanguage of ["cpp","typescript","javascript","python","go","rust","java","solidity"]){
+      const serverLanguage=editorLanguage==="javascript"?"typescript":editorLanguage as "cpp"|"typescript"|"python"|"go"|"rust"|"java"|"solidity";
       disposables.push(monaco.languages.registerCompletionItemProvider(editorLanguage,{triggerCharacters:[".",">",":","/"],provideCompletionItems:async(model,position)=>{const path=modelPath(model.uri,files);if(!path)return{suggestions:[]};try{const value=await languageRequest(serverLanguage,files,path,"completion",lspPosition(position),undefined,context),items=Array.isArray(value.result)?value.result:value.result?.items||[];return{suggestions:items.slice(0,200).map((item:any)=>completionItem(item,position))}}catch{return{suggestions:[]}}}}));
       disposables.push(monaco.languages.registerDefinitionProvider(editorLanguage,{provideDefinition:async(model,position)=>{const path=modelPath(model.uri,files);if(!path)return[];try{return locations((await languageRequest(serverLanguage,files,path,"definition",lspPosition(position),undefined,context)).result,files)}catch{return[]}}}));
       disposables.push(monaco.languages.registerReferenceProvider(editorLanguage,{provideReferences:async(model,position)=>{const path=modelPath(model.uri,files);if(!path)return[];try{return locations((await languageRequest(serverLanguage,files,path,"references",lspPosition(position),undefined,context)).result,files)}catch{return[]}}}));
@@ -195,7 +195,7 @@ export default function CodeEditor({
         );
   }, [extensions]);
   useEffect(() => {
-    const serverLanguage=language==="cpp"?"cpp":language==="typescript"||language==="javascript"?"typescript":language==="python"?"python":language==="go"?"go":language==="rust"?"rust":language==="solidity"?"solidity":null;
+    const serverLanguage=language==="cpp"?"cpp":language==="typescript"||language==="javascript"?"typescript":language==="python"?"python":language==="go"?"go":language==="rust"?"rust":language==="java"?"java":language==="solidity"?"solidity":null;
     if (!serverLanguage || !activePath) {
       if (activePath) diagnosticsCallbackRef.current?.(activePath, files[activePath] || "", []);
       return;
