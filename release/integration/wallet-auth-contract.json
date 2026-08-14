@@ -985,6 +985,27 @@
     "productionSigned": false,
     "storeReleased": false
   },
+  "temporarySigningKeyByteZeroingCheckpoint": {
+    "sourceCommit": "c1568cc2585426cda0a7705fec3766581323fc42",
+    "branch": "codex/wallet-android-api36-continuation2-20260814",
+    "coveredSigningDomains": ["identity", "authorization", "signed-intent", "native-transfer", "exchange", "quant", "developer", "dex"],
+    "decodedSecretBytesZeroedAfterSuccess": true,
+    "decodedSecretBytesZeroedAfterException": true,
+    "invalidAllocatedSecretBytesZeroedBeforeReject": true,
+    "immutableJavaScriptSecretStringClaimedZeroed": false,
+    "walletAuthTests": "115/115 passed with temporary real Developer Solidity fixture",
+    "walletTests": "104/104 passed against current Wallet/Auth source",
+    "androidHermesModules": 2749,
+    "implementedLocal": true,
+    "testedLocal": true,
+    "testedOnDevice": false,
+    "installedLocal": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
   "verification": {
     "walletAuthPackageTests": "100/100 passed",
     "gatewayNodeHostTests": "8/8 passed",
