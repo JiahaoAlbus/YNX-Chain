@@ -59,14 +59,14 @@ async function expectValidationFailed(op) {
 async function expectTimeRangeFailed(op) {
   await assert.rejects(entryPoint.handleOps([op], beneficiary.address, { gasLimit: 12_000_000 }), /AA22 expired or not due/);
 }
-async function signPasskeyOperation(op, flags) {
+async function signPasskeyOperation(op, flags, credentialSecret = passkeySecret) {
   const passkeyHash = await entryPoint.getUserOpHash(op);
   const challenge = Buffer.from(ethers.getBytes(passkeyHash)).toString("base64url");
   const clientDataJSON = `{"type":"webauthn.get","challenge":"${challenge}","origin":"https://wallet.testnet.ynx"}`;
   const authenticatorData = new Uint8Array(37);
   authenticatorData[32] = flags;
   const signedPayload = ethers.concat([authenticatorData, sha256(new TextEncoder().encode(clientDataJSON))]);
-  const signature = p256.sign(sha256(ethers.getBytes(signedPayload)), passkeySecret, { lowS: true });
+  const signature = p256.sign(sha256(ethers.getBytes(signedPayload)), credentialSecret, { lowS: true });
   const auth = ethers.AbiCoder.defaultAbiCoder().encode(
     ["bytes32", "bytes32", "uint256", "uint256", "bytes", "string"],
     [ethers.toBeHex(signature.r, 32), ethers.toBeHex(signature.s, 32), clientDataJSON.indexOf('"challenge"'), clientDataJSON.indexOf('"type"'), authenticatorData, clientDataJSON],
@@ -314,6 +314,31 @@ const revokedSessionOp = await operation(sessionCall, 59n);
 const revokedHash = await entryPoint.getUserOpHash(revokedSessionOp);
 revokedSessionOp.signature = ethers.concat(["0x02", sessionKey.address, sessionKey.signingKey.sign(revokedHash).serialized]);
 await expectValidationFailed(revokedSessionOp);
+
+const postRecoveryCall = account.interface.encodeFunctionData("execute", [destination.address, 0n, "0x"]);
+const oldOwnerPostRecoveryOp = await operation(postRecoveryCall, 59n);
+const oldOwnerPostRecoveryHash = await entryPoint.getUserOpHash(oldOwnerPostRecoveryOp);
+oldOwnerPostRecoveryOp.signature = ethers.concat([
+  "0x00",
+  owner.signingKey.sign(oldOwnerPostRecoveryHash).serialized,
+]);
+await expectValidationFailed(oldOwnerPostRecoveryOp);
+await expectValidationFailed(await signPasskeyOperation(await operation(postRecoveryCall, 59n), 0x05));
+assert.equal(await entryPoint.getNonce(account.target, 0), 59n);
+
+await submit(await operation(postRecoveryCall, 59n), newOwner, 0);
+assert.equal(await entryPoint.getNonce(account.target, 0), 60n);
+const newPasskeyPostRecoveryOp = await signPasskeyOperation(
+  await operation(postRecoveryCall, 60n),
+  0x05,
+  newPasskeySecret,
+);
+await (await entryPoint.handleOps(
+  [newPasskeyPostRecoveryOp],
+  beneficiary.address,
+  { gasLimit: 12_000_000 },
+)).wait();
+assert.equal(await entryPoint.getNonce(account.target, 0), 61n);
 
 const factoryOwner = ethers.Wallet.createRandom();
 const factory = await ethers.deployContract("YNXSmartAccountFactory", [entryPoint.target]);
@@ -652,6 +677,8 @@ console.log(JSON.stringify({
   recoveryRequestRevokedSessionsImmediately: "passed",
   recoveryCancellationDidNotRestoreSessions: "passed",
   recoveryExecutionKeptSessionsRevoked: "passed",
+  recoveryRotatedOwnerAndPasskeyCredentials: "passed",
+  oldRecoveryCredentialsRejectedBeforeNonceConsumption: "passed",
   counterfactualFactoryUserOperation: "passed",
   sponsoredFirstActionUserOperation: "passed",
   merchantAndDeveloperSponsorship: "passed",
