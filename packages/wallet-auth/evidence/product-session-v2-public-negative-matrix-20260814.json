@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-08-14T12:30:14Z",
+  "origin": "https://rest.ynxweb4.com",
+  "runtimeTarget": {
+    "service": "ynx-product-session-gatewayd",
+    "loopbackPort": 6441,
+    "sourceCommit": "d26ed915516c97d07cb4d58e5fc4646486afc851",
+    "release": "ynx-product-session-v2-d26ed915516c",
+    "registryRuntimeSha256": "3b1ee629685651fab161d56b99b005d1acfd101b6d84a4c0894f144b5142eb17",
+    "transport": "bounded SSH local forwarding to the production host loopback service; the separately verified public Caddy route maps the exact v2 prefix to this service",
+    "deployedPublicIngressMutated": false,
+    "legacyPortsMutated": false
+  },
+  "initialVerifierFailure": {
+    "preserved": true,
+    "classification": "verifier-contract-assumption",
+    "error": "PUBLIC_MATRIX_ASSERTION_FAILED",
+    "message": "devices-revoke returned 403/SESSION_EXPIRED",
+    "cause": "the verifier used a one-second proof lifetime, so production forwarding latency could expire the proof before device-revoke authority was evaluated",
+    "minimumFix": "proof expiry is min(issuedAt + 30 seconds, Session expiresAt)",
+    "gatewayMismatchProven": false
+  },
+  "successfulRun": {
+    "passed": true,
+    "cases": [
+      { "name": "wrong-product", "status": 403, "code": "CROSS_PRODUCT_SESSION", "requestId": "req_psv2_neg_wrong_product_OXK3heo1nFv1PG2Y" },
+      { "name": "wrong-device", "status": 403, "code": "CROSS_PRODUCT_SESSION", "requestId": "req_psv2_neg_wrong_device_OXK3heo1nFv1PG2Y" },
+      { "name": "wrong-bundle", "status": 403, "code": "CROSS_PRODUCT_SESSION", "requestId": "req_psv2_neg_wrong_bundle_OXK3heo1nFv1PG2Y" },
+      { "name": "wrong-scope", "status": 403, "code": "SCOPE_WIDENING", "requestId": "req_psv2_neg_wrong_scope_OXK3heo1nFv1PG2Y" },
+      { "name": "devices-revoke", "status": 403, "code": "SESSION_REVOKED", "requestId": "req_psv2_neg_device_revoked_sibling_OXK3heo1nFv1PG2Y" },
+      { "name": "expiry", "status": 403, "code": "SESSION_EXPIRED", "requestId": "req_psv2_neg_expired_OXK3heo1nFv1PG2Y" }
+    ],
+    "primarySessionRevoked": true,
+    "deviceRevokeCascadedToSiblingSession": true,
+    "expirySessionNaturallyExpired": true,
+    "secretsRecorded": false
+  },
+  "postRunReadback": {
+    "stateFile": "0600 ynx:ynx nlink=1",
+    "stateFileSha256": "b9f67bdb9b0719c6545e1d0b87696a58b3515453417a0fc19ac9b93352690b3f",
+    "servicesActive": [
+      "ynx-app-gatewayd",
+      "ynx-wallet-gatewayd",
+      "ynx-product-session-gatewayd",
+      "caddy"
+    ]
+  },
+  "hardenedContractComparison": {
+    "sharedContractCommit": "3387fd5bc7362f60b27b3326b10368f4ef43967b",
+    "gatewayEvidenceCommit": "2bcdf4f646177fe2419f1af3ac9e66bb3c218194",
+    "matching": [
+      "owner and mode checks",
+      "regular file and nlink=1 checks",
+      "O_NOFOLLOW open",
+      "bounded canonical JSON envelope",
+      "registry and snapshot digest binding",
+      "per-protocol-request and administrative-request persisted-state checks",
+      "permission tamper returns HTTP 503 with unchanged bytes"
+    ],
+    "differences": [
+      "d26ed915 does not retain and compare the state file device+inode identity across requests, so a same-bytes mode-0600 inode replacement is not directly rejected",
+      "d26ed915 evidence directly covers permission tamper only; shared symlink, hardlink, same-bytes inode replacement and digest-tamper vectors were not executed against the deployed source"
+    ]
+  },
+  "truth": {
+    "interimIsolatedV2MountAccepted": true,
+    "aggregateDeployedPublic": false,
+    "integratedCentral": false,
+    "runtimeProductsMigrated": 0,
+    "installedWalletApprovalVerified": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}
