@@ -12,6 +12,7 @@ const androidActivity=await readFile(new URL("../android/app/src/main/java/com/y
 const androidManifest=await readFile(new URL("../android/app/src/main/AndroidManifest.xml",import.meta.url),"utf8");
 const secureStorage=await readFile(new URL("../src/storage/secureStorage.ts",import.meta.url),"utf8");
 const localAuthorization=await readFile(new URL("../src/security/localAuthorization.ts",import.meta.url),"utf8");
+const localAuthorizationPolicy=await readFile(new URL("../src/security/localAuthorizationPolicy.ts",import.meta.url),"utf8");
 const lockState=await readFile(new URL("../src/state/lockState.ts",import.meta.url),"utf8");
 const clipboardPrivacy=await readFile(new URL("../src/security/clipboardPrivacy.ts",import.meta.url),"utf8");
 const signingPlugin=await readFile(new URL("../plugins/withYnxAndroidReleaseSigning.js",import.meta.url),"utf8");
@@ -35,7 +36,7 @@ assert.ok(androidActivity.includes("window.addFlags(WindowManager.LayoutParams.F
 assert.ok(androidActivity.indexOf("window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)")<androidActivity.indexOf("super.onCreate(null)"),"Android FLAG_SECURE must precede React/splash lifecycle startup");
 for(const required of ['android:fullBackupContent="@xml/secure_store_backup_rules"','android:dataExtractionRules="@xml/secure_store_data_extraction_rules"'])assert.ok(androidManifest.includes(required),`Android manifest must bind SecureStore backup exclusion: ${required}`);
 assert.ok(secureStorage.includes("WHEN_UNLOCKED_THIS_DEVICE_ONLY"),"Wallet secrets must use device-bound secure storage accessible only while unlocked");
-for(const required of ["BIOMETRIC_STRONG","disableDeviceFallback: true",'biometricsSecurityLevel: "strong"'])assert.ok(localAuthorization.includes(required),`local key authorization must require ${required}`);
+for(const required of ["BIOMETRIC_STRONG","disableDeviceFallback: true",'biometricsSecurityLevel: "strong"'])assert.ok(`${localAuthorization}\n${localAuthorizationPolicy}`.includes(required),`local key authorization must require ${required}`);
 assert.ok(source.includes('AppState.addEventListener("change"'),"Wallet must observe application background state");
 assert.ok(source.includes('dispatchLock({type:"lock",reason:"background"})'),"Wallet must lock when leaving the active state");
 assert.ok(lockState.includes("unlockedAccount: null"),"background/restart lock must clear the in-memory unlocked account");
