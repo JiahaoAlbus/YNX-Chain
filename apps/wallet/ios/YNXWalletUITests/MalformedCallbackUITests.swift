@@ -98,7 +98,7 @@ final class MalformedCallbackUITests: XCTestCase {
     wallet.terminate()
     wallet.launch()
     XCTAssertTrue(
-      wallet.buttons["Create new Wallet"].waitForExistence(timeout: 45),
+      wallet.buttons["Create a new Wallet"].waitForExistence(timeout: 45),
       "Failed recovery unexpectedly persisted an account across process restart"
     )
 
