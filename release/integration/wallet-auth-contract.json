@@ -382,6 +382,8 @@
   "androidStartupAndActionReplayCheckpoint": {
     "startupGateCommit": "52edb133efdc816cd0b1091c63076d28cdf2e8e8",
     "actionReplayCommit": "6f45295be28cd51debf50feb4cf2544dbc0e406d",
+    "canonicalActionDeepLinkCommit": "ab2c137950297f58bb95b9e614ce22bea3a40ca6",
+    "canonicalAuthorizationCallbackCommit": "02fe097202fec8fe6589798720cb3f40f65e73a8",
     "branch": "codex/wallet-android-api36-continuation2-20260814",
     "initialLinkWaitsForSecureReconstruction": true,
     "secureReconstructionFailureDiscardsPendingLink": true,
@@ -391,6 +393,9 @@
     "replayStatePersistedBeforeCallbackHandoff": true,
     "replayStateSurvivesProcessReconstruction": true,
     "tamperedExpiredAndConcurrentDuplicateReplayRejected": true,
+    "allActionDeepLinksRequireByteExactCanonicalURL": true,
+    "authorizationCallbackRequiresByteExactRegisteredRoute": true,
+    "callbackUserInfoPortCaseAndPercentNormalizationRejected": true,
     "walletTests": "63/63 passed",
     "walletAuthPackageTests": "113/113 passed",
     "androidHermesModules": 2739,
