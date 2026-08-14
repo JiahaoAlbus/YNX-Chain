@@ -9,9 +9,9 @@
   "candidates": [
     {
       "id": "web-pwa-0.1.0",
-      "sourceCommit": "1ac8c4edd2c8f1b794b3aec9b70b1cf262576f3a",
+      "sourceCommit": "4aae1fc8ef986cac7a5fa861b1c2d07ec373b36b",
       "artifactName": "ynx-wallet-web-pwa-0.1.0.zip",
-      "sha256": "69a9458fb36ce02a0a4bc168f8a162998c0d37bd6566cc7e077ef356f4c38ba7",
+      "sha256": "0868b4265f9ee06be3b8c529f323e5099fe436f12361e258af5d41f0f057fff2",
       "signingClass": "unsigned-web-bundle",
       "publicUrl": null,
       "immutableUrl": null,
@@ -23,9 +23,9 @@
     },
     {
       "id": "browser-extension-0.1.0",
-      "sourceCommit": "1ac8c4edd2c8f1b794b3aec9b70b1cf262576f3a",
+      "sourceCommit": "4aae1fc8ef986cac7a5fa861b1c2d07ec373b36b",
       "artifactName": "ynx-wallet-chrome-edge-0.1.0.zip",
-      "sha256": "b3a2c34a6a3c8f997dec5ee24f49cf8c724916a799853b2a515897a83fb92bf2",
+      "sha256": "d0498d3009a3414252fd0ba0e0038531e5a6c8b4ec6c9dd052a8f4040aa206aa",
       "signingClass": "unsigned-unpacked-extension",
       "publicUrl": null,
       "immutableUrl": null,
