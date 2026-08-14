@@ -33,3 +33,30 @@ test("AI model and context evidence is visible without invented cost", async () 
   assert.match(client + service, /unreported-by-provider/);
   assert.match(service, /summarizeUsage/);
 });
+
+test("AI permissions are explicit, one-time, audited and fail closed", async () => {
+  const panel = await read("frontend/src/chat/AgentPanel.tsx"),
+    client = await read("frontend/src/runtime/client.ts"),
+    service = await read("services/agent-orchestrator/src/service.mjs");
+  for (const approval of [
+    "model-request-once",
+    "context-read-once",
+    "write-once",
+    "execute-once",
+    "deployment-review-once",
+  ]) assert.match(panel + service, new RegExp(approval));
+  assert.match(panel, /PERMISSIONS/);
+  assert.match(panel, /crypto\.randomUUID/);
+  assert.match(client + service, /permissions/);
+  assert.match(service, /permission\.decision/);
+  assert.match(service, /agent_approvals/);
+  assert.match(service, /approval_replayed/);
+  for (const disabled of [
+    "package-install",
+    "git",
+    "browser-network",
+    "secret-reference",
+    "destructive-delete",
+    "deployment-execute",
+  ]) assert.match(service, new RegExp(disabled));
+});

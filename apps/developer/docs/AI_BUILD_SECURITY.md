@@ -12,7 +12,13 @@ checkpoint, revert and audit. A run can pause, resume, cancel, fail and recover.
 Writes require an approved plan, approved paths, a reviewed diff and one-time
 write permission. Test/build execution, network, package install,
 secret-reference, Git commit, Git push and deployment are separate permissions.
-One-time grants cannot be reused.
+Every implemented grant combines its scope token with a caller-generated UUID.
+The broker atomically consumes that UUID in the owner-scoped SQLite approval
+ledger, records granted and denied decisions in the run hash chain, and rejects
+reuse even across permission classes or runs. The UI exposes the current matrix;
+package, Agent Git, browser-network, secret-reference, destructive-delete and
+deployment-execution authority remain disabled. One-time grants cannot be
+reused.
 
 ## Data boundary
 

@@ -660,6 +660,14 @@ export type AgentRun = {
       status: "unreported-by-provider";
     };
   };
+  permissions: Array<{
+    id: string;
+    level: string;
+    status: "available" | "locked" | "used" | "disabled";
+    approval: string | null;
+    uses: number;
+    boundary?: string;
+  }>;
 };
 export async function loadModelCatalog(): Promise<ModelCatalog> {
   return agentFetch("/runtime/models");

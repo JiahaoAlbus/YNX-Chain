@@ -418,6 +418,13 @@ tenant, workspace revision, arguments, permission class, preview, approval,
 result digest and audit ID. Read context uses an allowlist. Writes apply as a
 reviewable patch. Execute/network/package/secret/Git/deploy permissions are
 separate, short-lived and revocable. Subagents cannot widen parent authority.
+The implemented Agent matrix currently grants only context read, model-network,
+workspace write, test/build execution and deployment review. Each grant requires
+a scope token plus an owner-scoped UUID that is atomically consumed in SQLite;
+reuse is rejected across actions and runs. Grant and denial decisions enter the
+same hash-chained run ledger. Package install, Agent Git, browser network,
+secret-reference, destructive delete and deployment execution are visibly
+disabled until their own adapters and recovery gates exist.
 
 ## 13. Model router and project memory
 

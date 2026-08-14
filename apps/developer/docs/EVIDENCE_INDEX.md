@@ -24,7 +24,10 @@ successful eight-runtime release record.
   Tester-hash/file-digest deployment review with separate one-time approval.
   `test/agent-deployment-review-ui.test.js` holds the visible context,
   provider/model/token/cost truth and the no-network/no-signing/non-executable
-  deployment boundary. It is not evidence of a deployment.
+  deployment boundary. The same service/UI gates prove the graded permission
+  matrix, owner-scoped approval UUID consumption, replay rejection, durable
+  grant/denial decisions and fail-closed unavailable capabilities. It is not
+  evidence of a deployment or of the disabled tool adapters.
 - Git broker integration evidence: `services/git-service/test/service.test.mjs`
   runs real Git status/stage/diff/commit/history, local branch creation and
   revision-guarded switching, non-fast-forward merge persistence, conflict abort

@@ -13,7 +13,7 @@ export function createAgentOrchestrator({
 }) {
   const db = new DatabaseSync(filename);
   db.exec(
-    "PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL; PRAGMA busy_timeout=5000; CREATE TABLE IF NOT EXISTS agent_runs(owner_id TEXT NOT NULL,run_id TEXT NOT NULL,project_id TEXT NOT NULL,status TEXT NOT NULL,provider TEXT NOT NULL,model TEXT NOT NULL,intent TEXT NOT NULL,workspace_revision INTEGER NOT NULL,plan TEXT,approved_paths TEXT NOT NULL DEFAULT '[]',proposal TEXT,review TEXT,deployment TEXT,created_at TEXT NOT NULL,updated_at TEXT NOT NULL,PRIMARY KEY(owner_id,run_id)); CREATE TABLE IF NOT EXISTS agent_events(owner_id TEXT NOT NULL,run_id TEXT NOT NULL,sequence INTEGER NOT NULL,event_type TEXT NOT NULL,payload TEXT NOT NULL,previous_hash TEXT NOT NULL,event_hash TEXT NOT NULL,created_at TEXT NOT NULL,PRIMARY KEY(owner_id,run_id,sequence));",
+    "PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL; PRAGMA busy_timeout=5000; CREATE TABLE IF NOT EXISTS agent_runs(owner_id TEXT NOT NULL,run_id TEXT NOT NULL,project_id TEXT NOT NULL,status TEXT NOT NULL,provider TEXT NOT NULL,model TEXT NOT NULL,intent TEXT NOT NULL,workspace_revision INTEGER NOT NULL,plan TEXT,approved_paths TEXT NOT NULL DEFAULT '[]',proposal TEXT,review TEXT,deployment TEXT,created_at TEXT NOT NULL,updated_at TEXT NOT NULL,PRIMARY KEY(owner_id,run_id)); CREATE TABLE IF NOT EXISTS agent_events(owner_id TEXT NOT NULL,run_id TEXT NOT NULL,sequence INTEGER NOT NULL,event_type TEXT NOT NULL,payload TEXT NOT NULL,previous_hash TEXT NOT NULL,event_hash TEXT NOT NULL,created_at TEXT NOT NULL,PRIMARY KEY(owner_id,run_id,sequence)); CREATE TABLE IF NOT EXISTS agent_approvals(owner_id TEXT NOT NULL,approval_id TEXT NOT NULL,permission TEXT NOT NULL,run_id TEXT NOT NULL,created_at TEXT NOT NULL,PRIMARY KEY(owner_id,approval_id));",
   );
   if (
     !db
@@ -42,6 +42,12 @@ export function createAgentOrchestrator({
     ),
     events = db.prepare(
       "SELECT sequence,event_type,payload,previous_hash,event_hash,created_at FROM agent_events WHERE owner_id=? AND run_id=? ORDER BY sequence",
+    ),
+    getApproval = db.prepare(
+      "SELECT permission,run_id FROM agent_approvals WHERE owner_id=? AND approval_id=?",
+    ),
+    insertApproval = db.prepare(
+      "INSERT INTO agent_approvals(owner_id,approval_id,permission,run_id,created_at) VALUES(?,?,?,?,?)",
     );
   const append = (owner, runId, type, payload) => {
     const previous = lastEvent.get(owner, runId),
@@ -125,9 +131,24 @@ export function createAgentOrchestrator({
       if (!id) {
         const projectId = validId(body.projectId, "project"),
           intent = text(body.intent, 4, 12000, "intent"),
-          workspace = workspaceStore.get(owner, projectId);
+          workspace = workspaceStore.get(owner, projectId),
+          runId = randomUUID();
         if (!workspace)
           throw fault("Workspace not found.", "workspace_not_found", 404);
+        if (body.approval !== "model-request-once")
+          throw fault(
+            "One-time model request approval is required.",
+            "model_request_approval_required",
+            403,
+          );
+        claimApproval(
+          owner,
+          body.approvalId,
+          "model-network",
+          runId,
+          getApproval,
+          insertApproval,
+        );
         const model = await modelRouter.generate(
             modelInput(
               body,
@@ -137,7 +158,6 @@ export function createAgentOrchestrator({
             ),
           ),
           plan = validatePlan(parseJson(model.text), workspace.files),
-          runId = randomUUID(),
           now = new Date().toISOString();
         insertRun.run(
           owner,
@@ -154,6 +174,8 @@ export function createAgentOrchestrator({
         );
         append(owner, runId, "planner.completed", {
           ...modelEvidence(model),
+          approval: "model-request-once",
+          approvalId: body.approvalId,
           plan,
         });
         json(response, 201, {
@@ -175,6 +197,12 @@ export function createAgentOrchestrator({
       } else if (body.action === "approve-context") {
         requireState(current, "context_review");
         const paths = validatePaths(body.paths, workspace.files);
+        authorize(
+          "read-context",
+          "context-read-once",
+          "One-time context read approval is required.",
+          "context_read_approval_required",
+        );
         persist({
           ...current,
           status: "proposal_generation",
@@ -188,6 +216,12 @@ export function createAgentOrchestrator({
         });
       } else if (body.action === "generate-proposal") {
         requireState(current, "proposal_generation");
+        authorize(
+          "model-network",
+          "model-request-once",
+          "One-time model request approval is required.",
+          "model_request_approval_required",
+        );
         const context = current.approvedPaths
             .map(
               (path) =>
@@ -255,6 +289,12 @@ export function createAgentOrchestrator({
             "revision_not_required",
             409,
           );
+        authorize(
+          "model-network",
+          "model-request-once",
+          "One-time model request approval is required.",
+          "model_request_approval_required",
+        );
         const context = current.approvedPaths
             .map(
               (path) =>
@@ -299,12 +339,6 @@ export function createAgentOrchestrator({
         });
       } else if (body.action === "apply") {
         requireState(current, "diff_review");
-        if (body.approval !== "write-once")
-          throw fault(
-            "One-time write approval is required.",
-            "write_approval_required",
-            403,
-          );
         if (!current.review?.approved)
           throw fault(
             "Reviewer did not approve this proposal.",
@@ -317,6 +351,12 @@ export function createAgentOrchestrator({
             "revision_conflict",
             409,
           );
+        authorize(
+          "workspace-write",
+          "write-once",
+          "One-time write approval is required.",
+          "write_approval_required",
+        );
         const files = { ...workspace.files };
         for (const file of current.proposal.files)
           files[file.path] = file.content;
@@ -354,12 +394,6 @@ export function createAgentOrchestrator({
         });
       } else if (body.action === "run-test") {
         requireState(current, "applied");
-        if (body.approval !== "execute-once")
-          throw fault(
-            "One-time execute approval is required.",
-            "execute_approval_required",
-            403,
-          );
         if (!workspaceRuntime)
           throw fault(
             "Workspace runtime is unavailable.",
@@ -374,6 +408,12 @@ export function createAgentOrchestrator({
             "test_entry_not_found",
             400,
           );
+        authorize(
+          "test-build-execute",
+          "execute-once",
+          "One-time execute approval is required.",
+          "execute_approval_required",
+        );
         const result = await workspaceRuntime.runTaskForOwner(owner, {
           protocolVersion: "ynx-code/v1",
           task: "build-run-active",
@@ -404,6 +444,12 @@ export function createAgentOrchestrator({
             "test_evidence_missing",
             409,
           );
+        authorize(
+          "model-network",
+          "model-request-once",
+          "One-time model request approval is required.",
+          "model_request_approval_required",
+        );
         const context = current.approvedPaths
             .map(
               (path) =>
@@ -493,12 +539,12 @@ export function createAgentOrchestrator({
         append(owner, id, "deployment.previewed", deployment);
       } else if (body.action === "approve-deployment") {
         requireState(current, "deployment_review");
-        if (body.approval !== "deployment-review-once")
-          throw fault(
-            "One-time deployment review approval is required.",
-            "deployment_review_approval_required",
-            403,
-          );
+        authorize(
+          "deployment-review",
+          "deployment-review-once",
+          "One-time deployment review approval is required.",
+          "deployment_review_approval_required",
+        );
         const deployment = {
           ...current.deployment,
           approval: "deployment-review-once",
@@ -526,6 +572,39 @@ export function createAgentOrchestrator({
           owner,
           id,
         );
+      }
+      function authorize(permission, expected, message, code) {
+        const granted = body.approval === expected;
+        if (granted) {
+          try {
+            claimApproval(
+              owner,
+              body.approvalId,
+              permission,
+              id,
+              getApproval,
+              insertApproval,
+            );
+          } catch (error) {
+            append(owner, id, "permission.decision", {
+              permission,
+              decision: "denied",
+              approval: expected,
+              approvalId: body.approvalId || null,
+              requestAction: body.action,
+              reason: error.code,
+            });
+            throw error;
+          }
+        }
+        append(owner, id, "permission.decision", {
+          permission,
+          decision: granted ? "granted" : "denied",
+          approval: granted ? expected : null,
+          approvalId: granted ? body.approvalId : null,
+          requestAction: body.action,
+        });
+        if (!granted) throw fault(message, code, 403);
       }
     } catch (error) {
       if (response.destroyed || response.writableEnded) return true;
@@ -571,10 +650,120 @@ function record(row, eventRows) {
     review: parseNullable(row.review),
     deployment: parseNullable(row.deployment),
     usage: summarizeUsage(parsedEvents),
+    permissions: permissionMatrix(parsedEvents, row.status),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     events: parsedEvents,
   };
+}
+function permissionMatrix(events, status) {
+  const decisions = events.filter(
+      (event) => event.event_type === "permission.decision",
+    ),
+    count = (permission, decision = "granted") =>
+      decisions.filter(
+        (event) =>
+          event.payload?.permission === permission &&
+          event.payload?.decision === decision,
+      ).length,
+    contextApproved = events.some(
+      (event) => event.event_type === "context.approved",
+    ),
+    modelCalls = events.filter((event) =>
+      /^(planner|coder|reviewer)\./.test(event.event_type),
+    ).length,
+    matrix = [
+      {
+        id: "read-context",
+        level: "read",
+        status: contextApproved ? "used" : "available",
+        approval: "context-read-once",
+        uses: count("read-context"),
+      },
+      {
+        id: "model-network",
+        level: "network",
+        status: modelCalls ? "used" : "available",
+        approval: "model-request-once",
+        uses: modelCalls,
+      },
+      {
+        id: "workspace-write",
+        level: "write",
+        status: count("workspace-write") ? "used" : "available",
+        approval: "write-once",
+        uses: count("workspace-write"),
+      },
+      {
+        id: "test-build-execute",
+        level: "execute",
+        status: count("test-build-execute") ? "used" : "available",
+        approval: "execute-once",
+        uses: count("test-build-execute"),
+      },
+      {
+        id: "deployment-review",
+        level: "deploy-review",
+        status:
+          status === "deployment_approved"
+            ? "used"
+            : status === "deployment_review"
+              ? "available"
+              : "locked",
+        approval: "deployment-review-once",
+        uses: count("deployment-review"),
+      },
+    ];
+  for (const [id, level, boundary] of [
+    ["package-install", "package", "reviewed adapter not connected"],
+    ["git", "git", "agent Git authority disabled"],
+    ["browser-network", "network", "agent browser authority disabled"],
+    ["secret-reference", "secret", "secret material is ineligible"],
+    ["destructive-delete", "destructive", "irrecoverable delete disabled"],
+    ["deployment-execute", "deploy", "Wallet-reviewed flow required"],
+  ])
+    matrix.push({
+      id,
+      level,
+      status: "disabled",
+      approval: null,
+      uses: 0,
+      boundary,
+    });
+  return matrix;
+}
+function claimApproval(
+  owner,
+  approvalId,
+  permission,
+  runId,
+  getApproval,
+  insertApproval,
+) {
+  if (
+    typeof approvalId !== "string" ||
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      approvalId,
+    )
+  )
+    throw fault(
+      "A unique approval identifier is required.",
+      "approval_id_required",
+      403,
+    );
+  if (getApproval.get(owner, approvalId))
+    throw fault(
+      "This one-time approval was already consumed.",
+      "approval_replayed",
+      409,
+    );
+  insertApproval.run(
+    owner,
+    approvalId,
+    permission,
+    runId,
+    new Date().toISOString(),
+  );
 }
 function modelEvidence(result) {
   const inputTokens = Number.isFinite(result?.usage?.inputTokens)
