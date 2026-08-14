@@ -1,0 +1,57 @@
+{
+  "schemaVersion": "1.0.0",
+  "productId": "ynx-exchange",
+  "network": "YNX Testnet",
+  "publicUrl": "https://exchange.ynxweb4.com/",
+  "sourceCommit": "82a09f448cbb8699883f324e44dde763cdeaa8ae",
+  "exchangeBinarySha256": "7c109144b19aea4ac8502c42cdf9264759f83b4445d12daae1c803fe46b95ae2",
+  "quantBinarySha256": "d477ad2b3904ca261be3b757dd27f5d7bc44cbb655454c813db6f55bd9f6cf4e",
+  "packageArchiveSha256": "36c05f8e3d3b93d0f583c11558dbcc09cee9d20f01519e7201d5d87e9ad17357",
+  "health": {
+    "status": "live",
+    "ready": "ready_public_testnet",
+    "stateSchemaVersion": 10,
+    "stateIntegrity": true,
+    "productionCustody": false
+  },
+  "marketEvidence": {
+    "tradesSource": "persisted deterministic matching-engine fills only",
+    "candlesSource": "persisted deterministic matching-engine fills only; empty intervals omitted",
+    "publicWebSocket": "wss://exchange.ynxweb4.com/api/v1/ws/market",
+    "observedFrame": "snapshot",
+    "observedSequence": 6,
+    "streamVersion": "execution-stream-v1"
+  },
+  "localVerification": {
+    "goTests": "passed",
+    "goRace": "passed",
+    "webUnit": "11/11 passed",
+    "browser": "4/4 passed, including cursor-bound WebSocket reconnect and no mutation retry",
+    "releaseValidation": "passed; 101 runtime files and 11 product documents scanned"
+  },
+  "publicClientProbe": {
+    "requests": 400,
+    "concurrency": 32,
+    "http200": 294,
+    "failuresOrAdmissionRejections": 106,
+    "p50Ms": 114.272,
+    "p95Ms": 1030.881,
+    "p99Ms": 3061.797,
+    "maxMs": 4207.944,
+    "verdict": "failed-zero-error-gate; this single public client path also reached the configured per-client admission boundary"
+  },
+  "rollback": {
+    "automaticBackup": "/var/backups/ynx-financial-owner-reads/20260814T004144Z-82a09f448cbb",
+    "procedure": "Restore the saved Exchange/Quant binaries and environment files, repoint /opt/ynx/exchange and /opt/ynx/quant to their prior release targets, restart ynx-exchange.service, ynx-quant.service and ynx-finance.service, then verify all health/version and owner-read probes."
+  },
+  "truth": {
+    "mainnet": false,
+    "productionCustody": false,
+    "withdrawalBroadcast": false,
+    "crossChainExecution": false,
+    "portfolioMargin": false,
+    "committedDexExecution": false,
+    "multiInstanceDatabase": false,
+    "persistenceBoundary": "single active matching process with integrity-chained atomic JSON snapshot; PostgreSQL/transactional multi-instance migration remains required"
+  }
+}
