@@ -66,5 +66,18 @@
     "secretFreeEvidenceRequired": true,
     "accepted": false
   },
+  "callerMigrationGate": {
+    "verifier": "scripts/verify/wallet-auth-android-launcher-callers-check.mjs",
+    "requiredBuilder": "@ynx-chain/wallet-auth encodeRequestDeepLink",
+    "scanReleaseAppSourcesAndBundles": true,
+    "productSpecificCallbackRewriteAllowed": false,
+    "knownNoncanonicalCallers": [
+      {"path":"apps/monitor/src/App.tsx","pattern":"ynx-wallet://authorize?challenge=","migrated":false},
+      {"path":"apps/trust-center/mobile/android/app/src/main/java/com/ynxweb4/trust/MainActivity.java","pattern":"ynxwallet://sign-app-session","migrated":false},
+      {"path":"apps/mobile/src/api/mobileSession.ts","pattern":"ynx-wallet://com.ynxweb4.wallet","migrated":false}
+    ],
+    "allReleaseCallersCanonical": false,
+    "gatePassed": false
+  },
   "releaseTruth": {"implementedShared":false,"deviceValidated":false,"integratedCentral":false,"deployedPublic":false,"productionSigned":false,"storeReleased":false}
 }

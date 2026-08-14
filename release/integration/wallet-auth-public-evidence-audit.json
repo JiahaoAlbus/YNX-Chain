@@ -10,7 +10,7 @@
   },
   "androidLauncherContract": {
     "path": "release/integration/wallet-auth-android-launcher-contract.json",
-    "sha256": "d296732141a4029b1811b655f0001cc7d81a1d45019a4bd87d21b2b4b256d1a6"
+    "sha256": "d1752b74f1b83dd3d5d789cb68263750243bbe7bb6bc6bcbea6294954b385441"
   },
   "publicTestnet": {
     "smartAccountDeploymentVerifier": {
