@@ -31,7 +31,7 @@ Local acceptance is not central integration, public Testnet proof or production 
 
 | Owner delivery | Frozen source | Accepted boundary | Remaining false/pending boundary |
 | --- | --- | --- | --- |
-| Core Auth/Gateway | `75b0a68a03eb75cb8afb84d71abce591e544dc92` | Prior bounded auth/durability plus process-local request-body timeout/abort, admission release and zero mutation/lock acquisition | Public proxy/load-balancer protection, automatic recovery, power loss/network filesystem, multi-region, asset tx, reconnect, native release, production/store |
+| Core Auth/Gateway | `8e91c58e3f997b35da1b3d0298f174a2e8533fa2` | Prior lifecycle controls plus local two-process HTTP Approval/Device revoke linearization, audit/proof persistence and cold-restart agreement | Central/staging/public, automatic multi-region/capacity, asset tx, reconnect, native release, production/store |
 | Web/PWA/Extensions | `0b3ffa8faabad2caa49b1c00db493261e2d98bca` | Edge-local PWA; unpacked popup RPC; isolated Edge MV3 provider injection, fixture accounts/lifecycle and wrong-chain rejection | isolated/unpacked is not installedLocal; Chrome injection, live provider RPC, connect/add/switch/sign/tx/release gates, hosting/production/store remain false |
 | Android API 36 | `4739a60e1fa0e3d0b6862e129330f9e9ca202887` | Historical disposable-QA lifecycle plus current canonical callback/replay, audit/journal and exact-account active-generation rename fail-close tests | Current-source device install/interaction, production signing, tx, callback delivery, reconnect and hosted artifact remain false |
 | iOS/macOS | `8b6dee8f746456874d7a7b2913d38b3aa5591fc7` | Universal ad-hoc package, arm64 lifecycle/Keychain and two canonical-scheme callback rejection paths | authorization/return callback, Core native bridge, x86_64 lifecycle, recovery success, Testnet/public, Universal Link, Developer ID/notarization/store false |
@@ -39,4 +39,4 @@ Local acceptance is not central integration, public Testnet proof or production 
 
 Acceptance is enforced by `scripts/verify/wallet-auth-release-evidence-matrix.mjs`. GitHub Actions artifacts are temporary retention evidence, not `downloadHosted` product delivery.
 
-Core `8e91c58e3f997b35da1b3d0298f174a2e8533fa2` then `ea33b83c5cc21ebd673bdb2e20a0e996eaf28212`, Android `2299a90e12a46dd030425c6a5bf2edf4257c9c59`, iOS/macOS `33d10fa2f2422b577d3b9bf10d926e6c608893f0` and Desktop RPM `b06bf39c365408ba28e9e5f9312f293693e3f73d` remain queued.
+Core evidence HEAD `ea33b83c5cc21ebd673bdb2e20a0e996eaf28212`, Android `2299a90e12a46dd030425c6a5bf2edf4257c9c59`, iOS/macOS `33d10fa2f2422b577d3b9bf10d926e6c608893f0` and Desktop RPM `b06bf39c365408ba28e9e5f9312f293693e3f73d` remain queued.

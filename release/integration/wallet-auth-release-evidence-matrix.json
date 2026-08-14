@@ -36,15 +36,6 @@
   "pendingOwnerEvidence": [
     {
       "owner": "core-auth-gateway",
-      "candidateCommit": "8e91c58e3f997b35da1b3d0298f174a2e8533fa2",
-      "remoteFastForwardReported": true,
-      "remoteReadbackComplete": true,
-      "ciComplete": true,
-      "consumedForReleaseTruth": false,
-      "note": "Revocation-control linearization is queued for its own later atomic slice after request-lifecycle and macOS two-callback consumption."
-    },
-    {
-      "owner": "core-auth-gateway",
       "candidateCommit": "ea33b83c5cc21ebd673bdb2e20a0e996eaf28212",
       "remoteFastForwardReported": true,
       "remoteReadbackComplete": true,
@@ -84,8 +75,8 @@
     {
       "owner": "core-auth-gateway",
       "branch": "codex/wallet-core-auth-gateway-continuation-20260814",
-      "sourceCommit": "75b0a68a03eb75cb8afb84d71abce591e544dc92",
-      "remoteCommitObserved": "75b0a68a03eb75cb8afb84d71abce591e544dc92",
+      "sourceCommit": "8e91c58e3f997b35da1b3d0298f174a2e8533fa2",
+      "remoteCommitObserved": "8e91c58e3f997b35da1b3d0298f174a2e8533fa2",
       "branchHeadObserved": "ea33b83c5cc21ebd673bdb2e20a0e996eaf28212",
       "remoteVerifiedAt": "2026-08-14T04:32:00Z",
       "verificationMode": "github-git-database-parent-tree-blob-readback"
@@ -203,6 +194,13 @@
       "direct": true,
       "commit": "75b0a68a03eb75cb8afb84d71abce591e544dc92",
       "path": "packages/wallet-auth/test/gateway-node-request-lifecycle.test.mjs",
+      "supports": []
+    },
+    "gateway-revocation-control-linearization": {
+      "type": "git-object",
+      "direct": true,
+      "commit": "8e91c58e3f997b35da1b3d0298f174a2e8533fa2",
+      "path": "packages/wallet-auth/test/gateway-node-revocation-control-linearization.test.mjs",
       "supports": []
     },
     "web-artifacts": {
@@ -546,7 +544,7 @@
       "status": "accepted-bounded-testnet",
       "gates": {"build":true,"install":false,"coldLaunch":false,"secondLaunch":false,"testnet":true,"sign":true,"tx":false,"callback":false,"reconnect":false,"downloadHosted":false,"productionSigned":false,"storeReleased":false},
       "evidenceBindings": {"build":["gateway-release"],"install":[],"coldLaunch":[],"secondLaunch":[],"testnet":["gateway-public-lifecycle"],"sign":["gateway-public-lifecycle"],"tx":["gateway-public-lifecycle"],"callback":["gateway-completion-negative-matrix","gateway-session-http-negative-matrix","gateway-session-linearization-race","gateway-persistence-atomic-rollback","gateway-registry-state-binding","gateway-state-file-security","gateway-node-crash-durability","gateway-node-stale-lock-recovery"],"reconnect":["gateway-public-lifecycle","gateway-session-http-negative-matrix","gateway-session-linearization-race","gateway-persistence-atomic-rollback","gateway-registry-state-binding","gateway-state-file-security","gateway-node-crash-durability","gateway-node-stale-lock-recovery"],"downloadHosted":["gateway-release"],"productionSigned":["gateway-release"],"storeReleased":["gateway-release"]},
-      "notes": ["Public authorization completion, introspection, replay rejection and revoke are direct. Local evidence adds bounded non-administrative body timeout/abort with zero mutation, admission release and no state-lock acquisition, plus explicit stale-lock recovery and acknowledged SIGKILL durability. Public proxy/load-balancer protection, automatic recovery, PID namespaces, power loss, network filesystems, central/public deployment and multi-region remain false."]
+      "notes": ["Public authorization completion, introspection, replay rejection and revoke are direct. Local real-HTTP evidence proves two independent Gateway processes serialize concurrent Approval/Device revokes on one Product Session: both persist with one audit and success proof, post-introspection is REVOKED, failure proofs consume nothing, and cold restart agrees. This is local shared-state evidence only; central/staging/public, automatic multi-region and capacity remain false."]
     },
     {
       "id": "web-pwa",
