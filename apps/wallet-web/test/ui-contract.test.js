@@ -6,7 +6,11 @@ test("fallback contract always offers YNX download and MetaMask when YNX is abse
   const source = await readFile(new URL("../public/app.js", import.meta.url), "utf8");
   assert.match(source, /id="download" href="\$\{YNX_DOWNLOAD_URL\}"/);
   assert.match(source, /id="metamask" href="\$\{METAMASK_DOWNLOAD_URL\}"/);
-  assert.match(source, /if \(!state\.providers\?\.metamask\) return/);
+  assert.match(source, /if \(state\.providers\?\.metamask\) \{ event\.preventDefault\(\); return connect\("metamask"\); \}/);
+  assert.match(source, /CANONICAL_AUTH_UNAVAILABLE/);
+  assert.match(source, /mobileWalletPresentation\(availability, mobileBrowser, CORE_WALLET_AUTH_BINDING\)/);
+  assert.doesNotMatch(source, /handleMobileWalletReturn/);
+  assert.doesNotMatch(source, /pageshow|visibilitychange/);
   assert.match(source, /walletDiscoveryPresentation\(availability\)/);
   assert.match(source, /function localizedError\(error\)/);
   assert.doesNotMatch(source, /error\?\.message \|\| "Request failed closed\."/);
@@ -19,6 +23,7 @@ test("fallback contract always offers YNX download and MetaMask when YNX is abse
   assert.match(source, /state\.providers = Object\.freeze\(\{ynx:false,metamask:false\}\); state\.provider = null; state\.wallet = null; state\.account = null; state\.chainId = null; state\.rpcVerified = false; applyActionGates\(\); presentAvailability\(state\.providers\)/);
   assert.match(source, /catch \(error\) \{ forgetSession\(\); throw error; \}/);
   assert.match(source, /const discoveryError=\(error\)=>localizedError\(error\)/);
+  assert.doesNotMatch(source, /state\.provider\s*=\s*\{.*request/s);
 });
 
 test("390px RTL dark and large-text preview contracts remain buildable", async () => {

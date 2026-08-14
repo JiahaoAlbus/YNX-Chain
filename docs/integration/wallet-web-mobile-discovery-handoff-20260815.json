@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "owner": "Wallet Web/PWA/Extensions",
+  "date": "2026-08-15",
+  "baseCommit": "b040fe91e414b163e95b7fd02ba0e402d1aa0be4",
+  "immutableCentralDependency": {
+    "commit": "d0f89797d13c7667cc187b0c64d5c9e1cb1d8f59",
+    "endpointMatrix": {
+      "path": "release/integration/wallet-auth-public-endpoint-service-discovery-matrix.json",
+      "blob": "d402fcdc844aa39bd5ee351a99d93acb4852dc37",
+      "sha256": "d344c607c2bbbf7bb0d9d3662b424976d0d6c4ff20428025dd1e2fb92bf31392"
+    },
+    "androidLauncher": {
+      "path": "release/integration/wallet-auth-android-launcher-contract.json",
+      "blob": "83c9f91779701288861cff5e4dc6c487ffcdc26c",
+      "sha256": "d296732141a4029b1811b655f0001cc7d81a1d45019a4bd87d21b2b4b256d1a6"
+    }
+  },
+  "contract": {
+    "injectedProvider": "Desktop and wallet-embedded browsers connect only through a discovered real EIP-1193 provider.",
+    "ynxWalletMobile": "The Web companion consumes only a Core-frozen canonical Authorization Request plus exact HTTPS callback and Product Session. The current Core binding is disabled and has no HTTPS callback, so Web shows CANONICAL_AUTH_UNAVAILABLE and performs no chain/account mutation.",
+    "metaMaskMobile": "When no injected MetaMask provider exists on mobile, use the Central-frozen MetaMask mobile dapp candidate. Connection is not claimed until the MetaMask in-app browser exposes a real provider.",
+    "noWallet": "Keep the verified official Android download visible; never surface a raw Android Activity/URL exception.",
+    "desktop": "Existing EIP-6963 and window.ethereum discovery remains unchanged."
+  },
+  "exactRoutes": {
+    "metaMaskMobileDapp": "https://metamask.app.link/dapp/www.ynxweb4.com/dapp/wallet",
+    "ynxAndroidDownload": "https://www.ynxweb4.com/downloads/ynx-wallet-1.0.1-testnet-preview-dc31c9a8-test-signed.apk",
+    "ynxAndroidAuthorize": "ynxwallet://authorize?request=<base64url-canonical-authorization-request>",
+    "ynxAndroidAuthorizeConsumerRule": "Only @ynx-chain/wallet-auth encodeRequestDeepLink may build the URI; Web does not concatenate it and does not launch it while the canonical Web callback is null."
+  },
+  "coreBindingObserved": {
+    "productClientId": "ynx-wallet-v1",
+    "bundleId": "com.ynxweb4.wallet",
+    "enabled": false,
+    "reviewState": "pending-review",
+    "webCallbacks": [],
+    "result": "CANONICAL_AUTH_UNAVAILABLE"
+  },
+  "publication": {
+    "requestedOfficialRoutes": [
+      "https://www.ynxweb4.com/dapp/wallet",
+      "https://www.ynxweb4.com/wallet/companion/",
+      "https://ynxweb4.com/dapp/wallet",
+      "https://ynxweb4.com/wallet/companion/"
+    ],
+    "beforeDeployEvidence": "apps/wallet-web/evidence/browser/public-mobile-wallet-discovery-before-deploy-20260815.json",
+    "deployedPublic": false
+  },
+  "artifacts": [
+    {
+      "name": "ynx-wallet-web-pwa-0.1.0.zip",
+      "bytes": 274329,
+      "sha256": "a5e8d413e037ed1e345a4af7c42fc31bc413d6514afb0c8a0a0b82b6047fe209",
+      "signingClass": "unsigned-web-bundle"
+    },
+    {
+      "name": "ynx-wallet-chrome-edge-0.1.0.zip",
+      "bytes": 189922,
+      "sha256": "354c1d7834c4be1ec19af4f19bb69ad8f097ce7ebb713e8b639e382815495266",
+      "signingClass": "unsigned-unpacked-extension"
+    },
+    {
+      "name": "ynx-wallet-firefox-0.1.0.zip",
+      "bytes": 189959,
+      "sha256": "4d71e5de63ed24f35b52b847743f9c60bc3dc22e3c49e3461761ee5180466cea",
+      "signingClass": "unsigned-unpacked-extension"
+    }
+  ],
+  "verification": [
+    "npm test (84/84)",
+    "npm run package (70/70 package regression plus ZIP verification)",
+    "npm run test:artifact:mobile-wallet-routing"
+  ],
+  "falseUntilDirectEvidence": [
+    "ynxCanonicalAuthorizationAvailable",
+    "installedLocal",
+    "providerConnected",
+    "account",
+    "sign",
+    "transaction",
+    "testnetConnected",
+    "deployedPublic",
+    "productionSigned",
+    "storeReleased"
+  ]
+}

@@ -1,6 +1,10 @@
 import {LOCALES, catalog, isRTL} from "./i18n.js";
 import {PREFERENCES_KEY,acceptPreferenceUpdate,loadPreferences,savePreferences} from "./preferences.js";
 import {
+  isMobileWalletBrowser, mobileWalletPresentation,
+} from "./mobile-wallet-routing.js";
+import {CORE_WALLET_AUTH_BINDING} from "./core-auth-binding.js";
+import {
   METAMASK_DOWNLOAD_URL, WALLET_DOWNLOAD_MATRIX, YNX_DOWNLOAD_URL, addYNXChain, connectWallet, createExtensionProvider, discoverWallets,
   extensionWalletAvailability, forgetSession, rememberSession, restoreTestnetSession, sendTransaction,
   invalidatesConnectedSession, resolveRememberedWallet, signMessage, subscribeProviderLifecycle,
@@ -9,6 +13,7 @@ import {
 
 const app = document.querySelector("#app");
 const isExtension = location.protocol === "chrome-extension:" || location.protocol === "moz-extension:";
+const mobileBrowser = !isExtension && isMobileWalletBrowser(navigator);
 const preview = new URLSearchParams(location.search);
 const requestedLocale = preview.get("lang");
 const requestedTheme = preview.get("theme");
@@ -126,11 +131,12 @@ async function connect(wallet) {
 function bind() {
   document.querySelector("#locale").addEventListener("change", (event) => {state.locale = event.target.value; state.preferences=savePreferences(localStorage,state.preferences,{locale:state.locale}); render(); detect();});
   document.querySelector("#theme").addEventListener("click", () => {state.theme = state.theme === "dark" ? "light" : "dark"; state.preferences=savePreferences(localStorage,state.preferences,{theme:state.theme}); render(); detect();});
-  document.querySelector("#ynx").addEventListener("click", () => connect("ynx"));
+  document.querySelector("#ynx").addEventListener("click", () => {
+    if (state.providers?.ynx) return connect("ynx");
+    setStatus(`CANONICAL_AUTH_UNAVAILABLE: ${text("requestFailed")}`, "error");
+  });
   document.querySelector("#metamask").addEventListener("click", (event) => {
-    if (!state.providers?.metamask) return;
-    event.preventDefault();
-    connect("metamask");
+    if (state.providers?.metamask) { event.preventDefault(); return connect("metamask"); }
   });
   document.querySelector("#add").addEventListener("click", () => act(() => addYNXChain(state.provider), () => text("testnet")));
   document.querySelector("#switch").addEventListener("click", () => act(() => switchToYNXChain(state.provider), () => text("connected")));
@@ -140,12 +146,16 @@ function bind() {
 
 function presentAvailability(availability) {
   const presentation = walletDiscoveryPresentation(availability);
-  document.querySelector("#ynx").classList.toggle("hidden", !presentation.showYNXConnect);
+  const mobile = mobileWalletPresentation(availability, mobileBrowser, CORE_WALLET_AUTH_BINDING);
+  document.querySelector("#ynx").classList.toggle("hidden", mobile.ynxRoute === "hidden");
+  document.querySelector("#ynx").dataset.route = mobile.ynxRoute;
+  document.querySelector("#ynx").textContent = mobile.ynxRoute === "canonical-auth-unavailable" ? `${text("connectYNX")} · ${text("unavailable")}` : text("connectYNX");
   document.querySelector("#download").classList.toggle("hidden", !presentation.showYNXDownload);
   document.querySelector("#download-meta").classList.toggle("hidden", !presentation.showYNXDownload);
   document.querySelector("#platforms").classList.toggle("hidden", !presentation.showYNXDownload);
   document.querySelector("#metamask").classList.toggle("hidden", !presentation.showMetaMaskChoice);
-  document.querySelector("#metamask").dataset.route = presentation.metaMaskChoice;
+  document.querySelector("#metamask").dataset.route = mobile.metaMaskRoute;
+  document.querySelector("#metamask").href = mobile.metaMaskHref || METAMASK_DOWNLOAD_URL;
   document.querySelector("#detected").textContent = presentation.ynxPresent ? text("detected") : text("unavailable");
 }
 

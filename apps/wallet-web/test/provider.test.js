@@ -7,6 +7,9 @@ import {
   invalidatesConnectedSession, restoreTestnetSession, sendTransaction, signMessage, subscribeProviderLifecycle,
   switchToYNXChain, verifyTestnetRpc, walletActionGates, walletDiscoveryPresentation,
 } from "../src/provider.js";
+import {
+  canonicalYNXAuthorizationState, isMobileWalletBrowser, metaMaskMobileDappUrl, mobileWalletPresentation,
+} from "../src/mobile-wallet-routing.js";
 
 const ACCOUNT = `0x${"1".repeat(40)}`;
 const TO = `0x${"2".repeat(40)}`;
@@ -72,6 +75,41 @@ test("discovery presentation directly prefers YNX and gives two non-empty fallba
   assert.deepEqual(walletDiscoveryPresentation({}),{ynxPresent:false,metamaskPresent:false,showYNXConnect:false,showYNXDownload:true,showMetaMaskChoice:true,metaMaskChoice:"official-download"});
   assert.equal(new URL(YNX_DOWNLOAD_URL).hostname,"www.ynxweb4.com");
   assert.equal(METAMASK_DOWNLOAD_URL,"https://metamask.io/download");
+});
+
+test("mobile discovery separates unavailable canonical YNX auth from MetaMask dapp routing", () => {
+  assert.equal(metaMaskMobileDappUrl(),"https://metamask.app.link/dapp/www.ynxweb4.com/dapp/wallet");
+  assert.deepEqual(mobileWalletPresentation({},true),{
+    ynxRoute:"canonical-auth-unavailable",metaMaskRoute:"mobile-dapp",
+    metaMaskHref:"https://metamask.app.link/dapp/www.ynxweb4.com/dapp/wallet",
+    canonicalYNXAuthAvailable:false,
+  });
+  assert.deepEqual(mobileWalletPresentation({},false),{
+    ynxRoute:"hidden",metaMaskRoute:"official-download",metaMaskHref:"https://metamask.io/download",canonicalYNXAuthAvailable:false,
+  });
+});
+
+test("real injected providers remain the only connect routes on mobile", () => {
+  assert.deepEqual(mobileWalletPresentation({ynx:provider(),metamask:provider()},true),{
+    ynxRoute:"injected-provider",metaMaskRoute:"injected-provider",metaMaskHref:null,canonicalYNXAuthAvailable:false,
+  });
+});
+
+test("mobile browser detection covers phone and iPad desktop UA without affecting desktop", () => {
+  assert.equal(isMobileWalletBrowser({userAgent:"Mozilla/5.0 (Linux; Android 16) AppleWebKit Mobile"}),true);
+  assert.equal(isMobileWalletBrowser({userAgent:"Mozilla/5.0 (iPhone; CPU iPhone OS 19_0 like Mac OS X)"}),true);
+  assert.equal(isMobileWalletBrowser({userAgent:"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",maxTouchPoints:5}),true);
+  assert.equal(isMobileWalletBrowser({userAgent:"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",maxTouchPoints:0}),false);
+});
+
+test("canonical YNX mobile authorization stays closed until Core freezes the exact HTTPS callback", () => {
+  const unavailable={enabled:false,reviewState:"pending-review",webCallbacks:[]};
+  assert.deepEqual(canonicalYNXAuthorizationState(unavailable),{route:"canonical-auth-unavailable",available:false,callback:null,error:"CANONICAL_AUTH_UNAVAILABLE"});
+  const wrongCallback={enabled:true,reviewState:"approved",webCallbacks:["https://evil.example/wallet-auth/callback"]};
+  assert.equal(canonicalYNXAuthorizationState(wrongCallback).available,false);
+  const frozen={enabled:true,reviewState:"approved",webCallbacks:["https://www.ynxweb4.com/wallet-auth/callback"]};
+  assert.equal(canonicalYNXAuthorizationState(frozen).available,false);
+  assert.deepEqual(canonicalYNXAuthorizationState(frozen,"https://www.ynxweb4.com/wallet-auth/callback"),{route:"canonical-auth",available:true,callback:"https://www.ynxweb4.com/wallet-auth/callback",error:null});
 });
 
 test("official platform matrix exposes only the verified Android route", () => {
