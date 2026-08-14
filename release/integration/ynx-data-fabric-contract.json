@@ -8,7 +8,7 @@
   "serviceId": "ynx-data-fabric",
   "release": "ynx-data-fabric-8ee6d8f37ce9",
   "sourceCommit": "8ee6d8f37ce945111ba76ddc2466c06164a6c4e8",
-  "generatedAt": "2026-08-14T10:47:17Z",
+  "generatedAt": "2026-08-14T10:58:15Z",
   "phase": "INTEGRATE",
   "protocol": {
     "eventEnvelope": {
@@ -29,12 +29,13 @@
       "authority": "external-YNX-Chain-Core",
       "readContract": "GET /data/commitments/{id}",
       "acceptedEvidence": {"source": "ynx-consensus-abci", "version": "abci-state-v14", "coverage": "exact", "failure": false},
-      "chainCoreContractVersion": "1.21.0",
-      "chainCoreSourceCommit": "9468a771b46f50e0e12b7567d7aa51a2f95b4e36",
-      "chainCoreContractCommit": "cefb37144517e8f44fd9d0b41119bb5754bdb55d",
+      "chainCoreContractVersion": "1.22.0",
+      "chainCoreSourceCommit": "b23df6e8c36f763898c03d4a8ffbef1b3fd9b044",
+      "chainCoreContractCommit": "15f62663c8bbbad360405d1ace4db8b07d2dc54d",
       "chainCoreLocalDelivery": {
-        "bundle": "release/local-delivery/chain-core-data-commitment-v21.bundle",
-        "sha256": "d3f2d34d6b7671e673330b12c11fb26f685cd7f2eb9b958675de7ab2c67b3481",
+        "bundle": "release/local-delivery/chain-core-data-commitment-v22.bundle",
+        "sha256": "8f3cab6bc119097a7ae57ea26385c544cc50c74a5b83e62674fe0a331d9ca2d4",
+        "bytes": 42881424,
         "verified": true,
         "public": false,
         "deployed": false
@@ -43,6 +44,9 @@
         "serviceCount": 13,
         "publicSmokeFailsClosed": true,
         "candidateGatewayExactBuildIdentity": true,
+        "integrationVectorCount": 97,
+        "additiveMandateBoundStrategyExecution": true,
+        "bulkDataCommitmentSemanticsChanged": false,
         "publicRuntimeMatchesSource": false
       },
       "failurePolicy": "reject-before-event-store-mutation",

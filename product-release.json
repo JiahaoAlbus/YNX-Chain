@@ -6,7 +6,7 @@
   "channel": "testnet-preview",
   "sourceCommit": "8ee6d8f37ce945111ba76ddc2466c06164a6c4e8",
   "sourceRelease": "ynx-data-fabric-8ee6d8f37ce9",
-  "generatedAt": "2026-08-14T10:47:17Z",
+  "generatedAt": "2026-08-14T10:58:15Z",
   "states": {
     "implementedLocal": true,
     "testedLocal": true,
