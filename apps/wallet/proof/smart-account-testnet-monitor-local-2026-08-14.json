@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "wallet-smart-account-testnet-monitor-local-2026-08-14",
+  "owner": "02-wallet-auth",
+  "sourceCommit": "ab19d19ff83ab985010c67603939d2abf46810d2",
+  "failFirst": "SyntaxError: requested module did not provide monitorPublicERC4337Deployment",
+  "command": "npm --prefix packages/wallet-auth run monitor:testnet-deployment",
+  "requiresExplicitOptIn": true,
+  "acceptsSecrets": false,
+  "readOnlyMethods": ["eth_chainId","eth_supportedEntryPoints","eth_getTransactionReceipt","eth_getCode","eth_getBlockByNumber","eth_call"],
+  "checks": ["exact deployment remains verified","latest block is not future or stale","Paymaster sponsorship enablement matches operator expectation","Paymaster EntryPoint deposit meets explicit minimum"],
+  "failClosedCases": ["stale block","future block","malformed block quantity","unexpected sponsorship enablement","malformed bool word","insufficient deposit","malformed uint256 word","any deployment verifier failure"],
+  "singleSampleDoesNotClaimContinuousMonitoring": true,
+  "tests": {"focused":{"passed":3,"failed":0},"walletAuthFull":{"passed":193,"failed":0},"hardhatWallet":"passed","packageDryRun":"passed","walletProductGate":"passed","walletReleaseContentGate":"passed","walletGoalCoverageGate":"passed"},
+  "sourceSha256": {"packages/wallet-auth/src/testnet-deployment-verifier.js":"b3f69beac7fefb48167ce2c8aaa0b533a0488afbff7720826d5eb762961b3732","packages/wallet-auth/scripts/monitor-testnet-deployment.mjs":"82690cbc2637363dccf2726471d4b43b6d6f4573e0954e9b1e3937ceffde1486","packages/wallet-auth/test/testnet-deployment-monitor.test.mjs":"d0265ed67fa7a77904c45d341e8257040e4e7477c569d1b06450af0ac8cb116e"},
+  "publicExecution": {"performed":false,"reason":"No authoritative deployed manifest or live authorized endpoint configuration was available."},
+  "releaseClaims": {"monitoringSampleHealthy":false,"monitoringPublic":false,"deployedPublic":false},
+  "secretMaterialRecorded": false
+}
