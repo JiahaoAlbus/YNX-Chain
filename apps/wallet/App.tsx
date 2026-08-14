@@ -22,6 +22,7 @@ import { PersistentNonceStore } from "./src/protocol/replayStore";
 import { PRODUCT_REGISTRY, SCOPE_EXPLANATIONS } from "./src/protocol/registry";
 import { WalletSessionInventoryClient, type WalletGatewayBridge, type WalletSessionInventory } from "./src/protocol/sessionInventory";
 import { authorizeLocalKeyUse } from "./src/security/localAuthorization";
+import { switchAccountFailClosed } from "./src/security/accountSwitchPolicy";
 import { copyPublicValueWithExpiry } from "./src/security/clipboardPrivacy";
 import { initialLockState, reduceLockState } from "./src/state/lockState";
 import { beginOnboardingSave, canSaveOnboarding, initialOnboardingState, onboardingAccountInput, reduceOnboardingState, type OnboardingState } from "./src/state/onboardingState";
@@ -94,7 +95,7 @@ function WalletApp(){
   };
   const create=async()=>{const bytes=await getRandomBytesAsync(32);dispatchOnboarding({type:"openCreate",recoveryKey:bytesToHex(bytes),label:`Account ${(manifest?.accounts.length??0)+1}`})};
   const saved=(next:WalletManifest)=>{setManifest(next);dispatchOnboarding({type:"saveSucceeded"});dispatchLock({type:"lock",reason:"user"});setNotice("Account saved. Unlock with system biometrics to continue.")};
-  const select=async(account:string)=>{try{const next=await repository.selectAccount(account);setManifest(next);dispatchLock({type:"switch",account})}catch(caught){setError(localizeError(locale,caught))}};
+  const select=async(account:string)=>{try{const next=await switchAccountFailClosed(account,(selectedAccount)=>dispatchLock({type:"switch",account:selectedAccount}),(selectedAccount)=>repository.selectAccount(selectedAccount));setManifest(next)}catch(caught){setError(localizeError(locale,caught))}};
 
   if(!privacyState.ready)return privacyState.error?<Screen><Text style={styles.title}>Wallet privacy protection is required</Text><Text style={styles.error}>{privacyState.error}</Text><Button label="Retry screenshot protection" onPress={()=>setPrivacyAttempt((value)=>value+1)}/></Screen>:<Screen><ActivityIndicator color={ACTIVE_COLORS.blue}/><Text style={styles.muted}>Protecting Wallet screens</Text></Screen>;
   if(loading)return <Screen><ActivityIndicator color={ACTIVE_COLORS.blue}/><Text style={styles.muted}>Verifying secure Wallet storage</Text></Screen>;

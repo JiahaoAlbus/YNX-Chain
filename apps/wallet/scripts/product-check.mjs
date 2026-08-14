@@ -40,6 +40,8 @@ for(const required of ["BIOMETRIC_STRONG","disableDeviceFallback: true",'biometr
 assert.ok(source.includes('AppState.addEventListener("change"'),"Wallet must observe application background state");
 assert.ok(source.includes('dispatchLock({type:"lock",reason:"background"})'),"Wallet must lock when leaving the active state");
 assert.ok(lockState.includes("unlockedAccount: null"),"background/restart lock must clear the in-memory unlocked account");
+assert.ok(source.includes("switchAccountFailClosed(account"),"account selection must use the fail-closed relock policy");
+assert.ok(lockState.includes('reason: "account-switch"'),"every account switch must clear authorization and require a fresh unlock");
 assert.ok(clipboardPrivacy.includes("const DEFAULT_TTL_MS = 30_000"),"public clipboard values must default to a bounded 30-second lifetime");
 assert.ok(clipboardPrivacy.includes('await clipboard.setStringAsync("")'),"clipboard expiry must clear only the still-matching value");
 assert.ok(config.plugins.includes("./plugins/withYnxAndroidReleaseSigning"),"Wallet must preserve Release signing policy through Expo prebuild");

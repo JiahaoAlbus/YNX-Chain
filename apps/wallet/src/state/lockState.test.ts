@@ -11,9 +11,10 @@ test("every process restart is locked and backgrounding clears unlocked account"
   assert.deepEqual(initialLockState(),first);
 });
 
-test("account switching requires an unlocked Wallet",()=>{
+test("every account switch relocks and clears the previously authorized account",()=>{
   const locked=initialLockState();
-  assert.equal(reduceLockState(locked,{type:"switch",account:"other"}),locked);
-  const switched=reduceLockState(reduceLockState(locked,{type:"unlock",account:"one"}),{type:"switch",account:"two"});
-  assert.equal(switched.unlockedAccount,"two");
+  assert.deepEqual(reduceLockState(locked,{type:"switch",account:"other"}),{locked:true,unlockedAccount:null,reason:"account-switch"});
+  const unlocked=reduceLockState(locked,{type:"unlock",account:"one"});
+  assert.deepEqual(reduceLockState(unlocked,{type:"switch",account:"two"}),{locked:true,unlockedAccount:null,reason:"account-switch"});
+  assert.deepEqual(reduceLockState(unlocked,{type:"switch",account:"one"}),{locked:true,unlockedAccount:null,reason:"account-switch"});
 });
