@@ -43,7 +43,9 @@ The verifier rejects a `true` gate unless a direct evidence record explicitly su
 
 The 2026-08-14 resumed snapshot was upgraded through GitHub Git-database readback. Every consumed checkpoint has an exact remote commit, parent, tree and evidence blob; Owner branches were fetched without touching the working tree. These source advances promoted no public, hosted, production, store, callback, reconnect, signing or transaction gate without direct evidence.
 
-The frozen checkpoints are Core `774a1f756890043e88626d13b6c9679a2ad6d288`, Web `7d569d1babb85e6d28bb6bfc3b3c0c5fd828255d`, Android `8666c0bb0535270e595f3db54e7d2e35b18afe66`, iOS/macOS `50d3b2e2c5bd77456b84f348c48fa4a9ed76b5b3`, and Desktop/CLI/SDK `0985090cc5640a7bc6f614acba1f32ba24e6dc55`.
+The frozen checkpoints are Core `b8467853060db04c2981abb7fcfa22d4cfdcf65b`, Web `7d569d1babb85e6d28bb6bfc3b3c0c5fd828255d`, Android `8666c0bb0535270e595f3db54e7d2e35b18afe66`, iOS/macOS `50d3b2e2c5bd77456b84f348c48fa4a9ed76b5b3`, and Desktop/CLI/SDK `0985090cc5640a7bc6f614acba1f32ba24e6dc55`.
+
+Core source `d5bb0a036827878b291b2c26b1f7e09ca31a93b1` and evidence `b8467853060db04c2981abb7fcfa22d4cfdcf65b` prove local Smart Account batch semantics: owner/WebAuthn success, Session Key AA24 rejection without nonce/target mutation, and failed-subcall rollback. Wallet/Auth 184/184 passed. This is Hardhat EDR in-process only and promotes no external Bundler or deployment gate.
 
 Android source `c1568cc2585426cda0a7705fec3766581323fc42` and checkpoint `8666c0bb0535270e595f3db54e7d2e35b18afe66` prove finally-zeroing for temporary decoded 32-byte Uint8Array keys across 8 signing domains after success or exception. Wallet/Auth 115/115, Wallet 104/104 and Hermes 2749 passed. The immutable JavaScript secret string returned by SecureStore is explicitly not claimed zeroed; no device or release truth is promoted.
 

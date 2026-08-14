@@ -3,7 +3,7 @@
   "auditId": "wallet-auth-public-evidence-audit-2026-08-14",
   "auditedAt": "2026-08-14T03:38:07Z",
   "integrationBaseCommit": "a008ce0e8fa2ac0322198576c320441118fbae83",
-  "matrixSha256": "d14b4c4e69eab4ba4368f3788f4adb4d3d841ccec148f2a9994191696809cd6d",
+  "matrixSha256": "35e9cfa4b237703bcc73f69ec6ec5e8dd740f363ec627b72d4766e3fc8420bc2",
   "publicTestnet": {
     "rpc": {
       "url": "https://evm.ynxweb4.com",
