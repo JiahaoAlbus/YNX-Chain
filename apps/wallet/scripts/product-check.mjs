@@ -23,6 +23,7 @@ const signingPlugin=await readFile(new URL("../plugins/withYnxAndroidReleaseSign
 const androidQaBuild=await readFile(new URL("./build-disposable-android-qa-release.sh",import.meta.url),"utf8");
 const androidQaVerify=await readFile(new URL("./verify-android-api36-qa-receipt.mjs",import.meta.url),"utf8");
 const actionDeepLinkParsers=await Promise.all(["exchange-action.js","developer-deployment.js","dex-action.js","quant-action.js"].map((file)=>readFile(new URL(`../../../packages/wallet-auth/src/${file}`,import.meta.url),"utf8")));
+const canonicalDeepLink=await readFile(new URL("../../../packages/wallet-auth/src/deep-link.js",import.meta.url),"utf8");
 assert.equal(config.name,"YNX Wallet");
 assert.equal(config.version,"1.0.1");
 assert.equal(config.scheme,"ynxwallet");
@@ -52,6 +53,7 @@ assert.equal((source.match(/await actionReplays\.consume\(/g)??[]).length,4,"all
 assert.equal((source.match(/await actionReplays\.consume\([^;]+;guard\.verify\(attempt,new Date\(\)\);await Linking\.openURL/g)??[]).length,4,"action replay consumption and lifecycle validation must precede every callback handoff");
 for(const required of ["MAX_ACTION_REPLAY_RECORDS=4096","MAX_ACTION_REPLAY_BYTES=512*1024","this.pending.then","records.some(([key])=>key===record.key)","await this.storage.setItem(ACTION_REPLAY_KEY"])assert.ok(actionReplayStore.includes(required),`action replay store must enforce ${required}`);
 for(const parser of actionDeepLinkParsers)assert.ok(parser.includes("link is not canonical"),"every action deep-link parser must reject byte-noncanonical URLs after strict request parsing");
+for(const required of ["callback.toString() !== response.callback","url !== `${expectedCallback}?response=${response}`","parsed.port","expected.port"])assert.ok(canonicalDeepLink.includes(required),`Wallet callback handling must enforce ${required}`);
 assert.ok(source.includes('dispatchLock({type:"lock",reason:"restart"})'),"every repository reconstruction must relock before reading persisted state");
 assert.ok(source.includes("setManifest(null)"),"repository reconstruction must discard stale in-memory account state");
 assert.ok(source.includes("dismissAuthorizationReviews()"),"repository reconstruction must discard pending authorization reviews");

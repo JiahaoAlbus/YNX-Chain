@@ -23,9 +23,9 @@ export function parseWalletDeepLink(url, platform, options) {
 
 export function createCallbackURL(response) {
   const callback = new URL(response.callback);
-  if (callback.search || callback.hash) throw new WalletAuthError("INVALID_CALLBACK", "Registered callback must not contain query or fragment state");
-  callback.searchParams.set("response", encodeBase64url(new TextEncoder().encode(canonicalJSON(response))));
-  return callback.toString();
+  if (callback.search || callback.hash || callback.username || callback.password || callback.port || callback.toString() !== response.callback) throw new WalletAuthError("INVALID_CALLBACK", "Registered callback must be canonical and contain no authority, query or fragment ambiguity");
+  const encoded = encodeBase64url(new TextEncoder().encode(canonicalJSON(response)));
+  return `${response.callback}?response=${encoded}`;
 }
 
 export function parseCallbackURL(url, expectedCallback) {
@@ -33,8 +33,6 @@ export function parseCallbackURL(url, expectedCallback) {
   try { parsed = new URL(url); expected = new URL(expectedCallback); } catch { throw new WalletAuthError("INVALID_CALLBACK", "Wallet callback is invalid"); }
   const keys = [...parsed.searchParams.keys()];
   const response = keys.length === 1 && keys[0] === "response" ? parsed.searchParams.get("response") : null;
-  if (parsed.hash || parsed.username || parsed.password) throw new WalletAuthError("CALLBACK_MISMATCH", "Callback route was substituted");
-  parsed.search = "";
-  if (!response || parsed.toString() !== expected.toString()) throw new WalletAuthError("CALLBACK_MISMATCH", "Callback route was substituted");
+  if (expected.search || expected.hash || expected.username || expected.password || expected.port || expected.toString() !== expectedCallback || parsed.hash || parsed.username || parsed.password || parsed.port || !response || url !== `${expectedCallback}?response=${response}`) throw new WalletAuthError("CALLBACK_MISMATCH", "Callback route was substituted");
   try { return JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(decodeBase64url(response, "Wallet callback response"))); } catch { throw new WalletAuthError("INVALID_CALLBACK", "Callback response encoding is invalid"); }
 }

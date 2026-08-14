@@ -28,12 +28,12 @@ test("Social -> Wallet -> callback -> Gateway yields only a Social-device-bound 
 test("callback interception cannot complete the product-device challenge", () => {
   const parsed = parseAuthorizationRequest(request(), { now: NOW, registry: REGISTRY });
   const approval = signAuthorization(parsed, { accountSecret: ACCOUNT_SECRET, issuedAt: NOW.toISOString() });
+  const callback = createCallbackURL(approval);
   const challenge = createGatewayChallenge(approval, { challenge: "gateway_challenge_abcdefghijklmnop", expiresAt: "2026-07-15T12:03:00.000Z" }, NOW);
   const attackerSecret = Buffer.alloc(32, 0x24).toString("base64url");
   assert.throws(() => signGatewayChallenge(challenge, attackerSecret), (error) => error instanceof WalletAuthError && error.code === "DEVICE_MISMATCH");
-  assert.throws(() => parseCallbackURL(createCallbackURL(approval).replace("ynx-social:", "attacker:"), parsed.callback), /substituted/);
-  assert.throws(() => parseCallbackURL(`${createCallbackURL(approval)}&state=attacker`, parsed.callback), /substituted/);
-  assert.throws(() => parseCallbackURL(`${createCallbackURL(approval)}#attacker`, parsed.callback), /substituted/);
+  for(const ambiguous of [callback.replace("ynx-social:","attacker:"),callback.replace("ynx-social:","YNX-SOCIAL:"),callback.replace("//","//attacker@"),callback.replace("com.ynx.social","%63om.ynx.social"),`${callback}&state=attacker`,`${callback}#attacker`])assert.throws(() => parseCallbackURL(ambiguous, parsed.callback), /substituted/);
+  assert.throws(() => createCallbackURL({...approval,callback:"YNX-SOCIAL://com.ynx.social"}),/canonical/);
 });
 
 test("a product session cannot be reused across another App binding", () => {
