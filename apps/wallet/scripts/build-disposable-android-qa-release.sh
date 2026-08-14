@@ -70,8 +70,8 @@ unset YNX_QA_STORE_PASSWORD YNX_QA_KEY_PASSWORD
 apk_source="$wallet_root/android/app/build/outputs/apk/release/app-release.apk"
 [[ -s "$apk_source" ]] || { echo "signed Wallet QA APK is missing" >&2; exit 1; }
 signing_output="$($build_tools/apksigner verify --verbose --print-certs "$apk_source")"
-printf '%s\n' "$signing_output" | rg -q '^Verifies$'
-printf '%s\n' "$signing_output" | rg -q '^Verified using v2 scheme \(APK Signature Scheme v2\): true$'
+printf '%s\n' "$signing_output" | grep -Fqx 'Verifies'
+printf '%s\n' "$signing_output" | grep -Fqx 'Verified using v2 scheme (APK Signature Scheme v2): true'
 cert_sha="$(printf '%s\n' "$signing_output" | awk -F': ' '/Signer #1 certificate SHA-256 digest:/{print tolower($2); exit}')"
 cert_dn="$(printf '%s\n' "$signing_output" | sed -n 's/^Signer #1 certificate DN: //p' | head -1)"
 [[ "$cert_sha" =~ ^[0-9a-f]{64}$ ]] || { echo "APK signer certificate digest is invalid" >&2; exit 1; }
