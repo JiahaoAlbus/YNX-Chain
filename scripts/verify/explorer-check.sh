@@ -55,6 +55,18 @@ curl -fsS "$explorer_url/api/fees/$tx_hash" >/dev/null
 search="$(curl -fsS "$explorer_url/api/search?q=$tx_hash")"
 [[ "$(printf '%s' "$search" | ynx_json_field '["type"]')" == "transaction" ]] || { echo "explorer search did not resolve tx"; exit 1; }
 
+go run ./cmd/ynx-explorer-load \
+  --base-url "$explorer_url" \
+  --allow-http-local \
+  --duration 3s \
+  --concurrency 5 \
+  --requests-per-second 50 \
+  --sse-clients 1 \
+  --search-query "$tx_hash" \
+  --timeout 2s >"$work/explorer-load.json"
+grep -Fq '"errorRate": 0' "$work/explorer-load.json"
+grep -Fq '"sseErrors": 0' "$work/explorer-load.json"
+
 html="$(curl -fsS "$explorer_url/")"
 grep -Fq "Open MetaMask compatibility" <<<"$html"
 grep -Fq "YNX native address (default)" <<<"$html"

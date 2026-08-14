@@ -39,6 +39,7 @@ type report struct {
 	FinishedAt        time.Time      `json:"finishedAt"`
 	DurationSeconds   float64        `json:"durationSeconds"`
 	Concurrency       int            `json:"concurrency"`
+	TargetRPS         int            `json:"targetRequestsPerSecond"`
 	SSEClients        int            `json:"sseClients"`
 	Requests          int            `json:"requests"`
 	RequestsPerSecond float64        `json:"requestsPerSecond"`
@@ -56,6 +57,7 @@ func main() {
 		baseURL     = flag.String("base-url", "", "Explorer origin, for example https://explorer.example")
 		duration    = flag.Duration("duration", 30*time.Second, "test duration")
 		concurrency = flag.Int("concurrency", 20, "concurrent HTTP workers")
+		targetRPS   = flag.Int("requests-per-second", 0, "global target request rate; zero means unpaced storm")
 		sseClients  = flag.Int("sse-clients", 5, "concurrent SSE subscribers")
 		searchQuery = flag.String("search-query", "", "real block, transaction, address, token, or contract query")
 		timeout     = flag.Duration("timeout", 5*time.Second, "per-request timeout")
@@ -63,19 +65,22 @@ func main() {
 	)
 	flag.Parse()
 
-	if err := run(*baseURL, *duration, *concurrency, *sseClients, *searchQuery, *timeout, *allowLocal, os.Stdout); err != nil {
+	if err := run(*baseURL, *duration, *concurrency, *targetRPS, *sseClients, *searchQuery, *timeout, *allowLocal, os.Stdout); err != nil {
 		fmt.Fprintln(os.Stderr, "explorer load verification failed:", err)
 		os.Exit(1)
 	}
 }
 
-func run(base string, duration time.Duration, concurrency, sseClients int, searchQuery string, timeout time.Duration, allowLocal bool, out io.Writer) error {
+func run(base string, duration time.Duration, concurrency, targetRPS, sseClients int, searchQuery string, timeout time.Duration, allowLocal bool, out io.Writer) error {
 	origin, err := validateOrigin(base, allowLocal)
 	if err != nil {
 		return err
 	}
-	if duration <= 0 || concurrency <= 0 || sseClients < 0 || timeout <= 0 {
-		return errors.New("duration, concurrency and timeout must be positive; sse-clients cannot be negative")
+	if duration <= 0 || concurrency <= 0 || targetRPS < 0 || sseClients < 0 || timeout <= 0 {
+		return errors.New("duration, concurrency and timeout must be positive; requests-per-second and sse-clients cannot be negative")
+	}
+	if targetRPS > 1_000_000 {
+		return errors.New("requests-per-second cannot exceed 1000000")
 	}
 
 	paths := []string{"/api/summary", "/api/blocks/latest?limit=12", "/api/txs?limit=12"}
@@ -93,6 +98,13 @@ func run(base string, duration time.Duration, concurrency, sseClients int, searc
 	started := time.Now().UTC()
 	ctx, cancel := context.WithTimeout(context.Background(), duration)
 	defer cancel()
+	var pace <-chan time.Time
+	var paceTicker *time.Ticker
+	if targetRPS > 0 {
+		paceTicker = time.NewTicker(time.Second / time.Duration(targetRPS))
+		defer paceTicker.Stop()
+		pace = paceTicker.C
+	}
 	samples := make(chan sample, concurrency*8)
 	var sseEvents, sseReconnects, sseErrors atomic.Int64
 	var workers sync.WaitGroup
@@ -103,6 +115,13 @@ func run(base string, duration time.Duration, concurrency, sseClients int, searc
 			defer workers.Done()
 			sequence := offset
 			for ctx.Err() == nil {
+				if pace != nil {
+					select {
+					case <-ctx.Done():
+						return
+					case <-pace:
+					}
+				}
 				path := paths[sequence%len(paths)]
 				sequence++
 				startedRequest := time.Now()
@@ -186,7 +205,7 @@ func run(base string, duration time.Duration, concurrency, sseClients int, searc
 		collected = append(collected, entry)
 	}
 	finished := time.Now().UTC()
-	result := summarize(origin, started, finished, concurrency, sseClients, collected, sseEvents.Load(), sseReconnects.Load(), sseErrors.Load())
+	result := summarize(origin, started, finished, concurrency, targetRPS, sseClients, collected, sseEvents.Load(), sseReconnects.Load(), sseErrors.Load())
 	encoder := json.NewEncoder(out)
 	encoder.SetIndent("", "  ")
 	if err := encoder.Encode(result); err != nil {
@@ -218,7 +237,7 @@ func validateOrigin(raw string, allowLocal bool) (string, error) {
 	return strings.TrimSuffix(parsed.String(), "/"), nil
 }
 
-func summarize(base string, started, finished time.Time, concurrency, sseClients int, samples []sample, sseEvents, sseReconnects, sseErrors int64) report {
+func summarize(base string, started, finished time.Time, concurrency, targetRPS, sseClients int, samples []sample, sseEvents, sseReconnects, sseErrors int64) report {
 	latencies := make([]time.Duration, 0, len(samples))
 	statuses := map[int]int{}
 	errorsSeen := 0
@@ -235,7 +254,7 @@ func summarize(base string, started, finished time.Time, concurrency, sseClients
 	elapsed := finished.Sub(started).Seconds()
 	result := report{
 		Schema: "ynx.explorer.load.v1", BaseURL: base, StartedAt: started, FinishedAt: finished,
-		DurationSeconds: elapsed, Concurrency: concurrency, SSEClients: sseClients, Requests: len(samples),
+		DurationSeconds: elapsed, Concurrency: concurrency, TargetRPS: targetRPS, SSEClients: sseClients, Requests: len(samples),
 		Errors: errorsSeen, StatusCodes: statuses, SSEEvents: sseEvents, SSEReconnects: sseReconnects, SSEErrors: sseErrors,
 	}
 	if elapsed > 0 {

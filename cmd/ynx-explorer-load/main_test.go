@@ -27,9 +27,12 @@ func TestSummarize(t *testing.T) {
 		{Latency: 30 * time.Millisecond, Status: 503, Err: "Service Unavailable"},
 		{Latency: 40 * time.Millisecond, Status: 429, Err: "Too Many Requests"},
 	}
-	got := summarize("https://explorer.example", started, started.Add(2*time.Second), 2, 1, samples, 3, 1, 0)
+	got := summarize("https://explorer.example", started, started.Add(2*time.Second), 2, 10, 1, samples, 3, 1, 0)
 	if got.Requests != 4 || got.Errors != 2 || got.ErrorRate != 0.5 || got.RequestsPerSecond != 2 {
 		t.Fatalf("unexpected aggregate: %+v", got)
+	}
+	if got.TargetRPS != 10 {
+		t.Fatalf("target request rate was not recorded: %+v", got)
 	}
 	if got.Latency.P50Millis != 20 || got.Latency.P95Millis != 30 || got.Latency.P99Millis != 30 || got.Latency.MaxMillis != 40 {
 		t.Fatalf("unexpected latency percentiles: %+v", got.Latency)
