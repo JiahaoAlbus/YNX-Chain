@@ -15,6 +15,7 @@ const secureStorage=await readFile(new URL("../src/storage/secureStorage.ts",imp
 const walletRepository=await readFile(new URL("../src/storage/walletRepository.ts",import.meta.url),"utf8");
 const localAuthorization=await readFile(new URL("../src/security/localAuthorization.ts",import.meta.url),"utf8");
 const localAuthorizationPolicy=await readFile(new URL("../src/security/localAuthorizationPolicy.ts",import.meta.url),"utf8");
+const recoveryKeyGenerationPolicy=await readFile(new URL("../src/security/recoveryKeyGenerationPolicy.ts",import.meta.url),"utf8");
 const authorizationLifecyclePolicy=await readFile(new URL("../src/security/authorizationLifecyclePolicy.ts",import.meta.url),"utf8");
 const foregroundDeepLinkPolicy=await readFile(new URL("../src/security/foregroundDeepLinkPolicy.ts",import.meta.url),"utf8");
 const sensitiveOperationPolicy=await readFile(new URL("../src/security/sensitiveOperationPolicy.ts",import.meta.url),"utf8");
@@ -87,6 +88,8 @@ for(const required of ["await authorizeBiometric()","await verifyAccountSecret(r
 for(const required of ["unlockEpochRef.current+=1","epoch!==unlockEpochRef.current",'appStateRef.current!=="active"',"Wallet unlock was cancelled by lock or background"])assert.ok(source.includes(required),`in-flight unlock must fail closed through ${required}`);
 assert.ok(source.includes("unlockAttemptGate.current.tryBegin()"),"Wallet unlock must reject synchronous biometric attempt reentry before React busy state renders");
 assert.ok(source.includes("createAttemptGate.current.tryBegin()"),"Wallet account secret generation must reject synchronous Create reentry");
+for(const required of ["generateRecoveryKeyFailClosed(()=>getRandomBytesAsync(32),assertActive)","Wallet recovery-key generation was cancelled by lock or background"])assert.ok(source.includes(required),`Wallet recovery-key generation must bind lifecycle through ${required}`);
+for(const required of ["bytes.length!==32","assertActive();","bytes.fill(0)"])assert.ok(recoveryKeyGenerationPolicy.includes(required),`temporary recovery-key entropy must fail closed through ${required}`);
 assert.ok(source.includes("if(!await load()){gate.fail();return}"),"cold-start deep links must wait for successful secure repository reconstruction");
 assert.ok(source.indexOf("await load()")<source.indexOf("await Linking.getInitialURL()"),"secure repository reconstruction must precede initial deep-link admission");
 for(const required of ['phase:"restoring"|"ready"|"failed"','this.pending=null;this.ambiguous=true','if(pending!==null)this.handle(pending)'])assert.ok(startupDeepLinkPolicy.includes(required),`startup deep-link gate must enforce ${required}`);
