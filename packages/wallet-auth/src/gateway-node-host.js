@@ -107,6 +107,12 @@ export class CanonicalWalletGatewayNodeHost {
       let status = 500;
       let admissionTicket = null;
       let releaseStateLock = null;
+      const releaseHeldStateLock = () => {
+        if (!releaseStateLock) return;
+        const release = releaseStateLock;
+        releaseStateLock = null;
+        release();
+      };
       try {
         admissionTicket = this.#admission?.enter(forwardedClient(request)) ?? null;
         if (admissionTicket && !admissionTicket.ok) {
@@ -152,13 +158,17 @@ export class CanonicalWalletGatewayNodeHost {
             throw caught;
           }
         }
+        releaseHeldStateLock();
         status = result.status;
         errorCode = status >= 400 ? responseErrorCode(result.body) : null;
         errorId = errorCode ? randomUUID() : null;
         response.writeHead(status, observabilityHeaders(result.headers, requestId, traceId, errorId));
         response.end(result.body);
       } catch (caught) {
-        const error = hostError(caught);
+        let failure = caught;
+        try { releaseHeldStateLock(); }
+        catch (lockFailure) { failure = lockFailure; }
+        const error = hostError(failure);
         status = error.status;
         errorCode = error.code;
         errorId = randomUUID();
@@ -173,7 +183,7 @@ export class CanonicalWalletGatewayNodeHost {
           traceId,
         }));
       } finally {
-        if (releaseStateLock) releaseStateLock();
+        releaseHeldStateLock();
         if (admissionTicket?.ok) admissionTicket.release();
         this.#metrics.inFlight -= 1;
         const durationMs = Math.max(0, Date.now() - startedAt);
