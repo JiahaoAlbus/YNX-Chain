@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "contractId": "ynx-wallet-auth-android-launcher-v1",
+  "owner": "02-wallet-auth-integration",
+  "checkedAt": "2026-08-14T15:29:51Z",
+  "authority": {
+    "protocolSource": "packages/wallet-auth/src/deep-link.js",
+    "requestProtocolSource": "packages/wallet-auth/src/protocol.js",
+    "walletPackage": "com.ynxweb4.wallet",
+    "walletActivity": "com.ynxweb4.wallet/.MainActivity",
+    "scheme": "ynxwallet",
+    "host": "authorize",
+    "path": "",
+    "queryFields": ["request"],
+    "uriTemplate": "ynxwallet://authorize?request=<base64url-canonical-authorization-request>",
+    "androidAction": "android.intent.action.VIEW",
+    "androidCategories": ["android.intent.category.DEFAULT", "android.intent.category.BROWSABLE"],
+    "activityExported": true
+  },
+  "walletConsumerRequirements": {
+    "manifestExactSchemeHostEmptyPathFilter": true,
+    "parserExactSchemeHostEmptyPathSingleRequestField": true,
+    "canonicalRequestParserRequired": true,
+    "wrongProductFailClosed": true,
+    "wrongBundleFailClosed": true,
+    "wrongDeviceFailClosed": true,
+    "scopeWideningFailClosed": true,
+    "currentInstalledPixel9IntentResolutionVerified": false
+  },
+  "sharedCallerRequirements": {
+    "singleBuilder": "@ynx-chain/wallet-auth encodeRequestDeepLink",
+    "callerMayConcatenateUri": false,
+    "resolveActivityBeforeLaunch": true,
+    "queryIntentActivitiesBeforeLaunch": true,
+    "explicitPackageAfterExactResolution": "com.ynxweb4.wallet",
+    "rawActivityNotFoundExposedToUser": false,
+    "unavailableUi": {"errorCode":"WALLET_APP_UNAVAILABLE","showYnXWalletDownload":true,"showMetaMaskMobileOption":true,"fabricateSuccess":false}
+  },
+  "callbackContract": {
+    "source": "exact enabled Product registry entry",
+    "queryFields": ["response"],
+    "substitutionAllowed": false,
+    "registeredHttpsOrAppCallbackRequired": true,
+    "publicAuthoritativeCallbackFrozen": false,
+    "callbackSuccessVerified": false
+  },
+  "directFailureEvidence": {
+    "device": "Pixel 9 / Android API 36",
+    "flows": ["YNX Social to YNX Wallet", "ecosystem app to YNX Wallet"],
+    "securityCheckFailedVisible": true,
+    "androidError": "No Activity found to handle Intent",
+    "classification": "caller URI, installed Wallet manifest/package, or both are not mutually resolvable",
+    "walletLaunchVerified": false,
+    "authorizationVerified": false
+  },
+  "crossProductAcceptance": {
+    "requiredInstalledApps": ["com.ynxweb4.wallet", "com.ynx.social", "one-additional-ecosystem-app"],
+    "requiredDevice": "Pixel 9 API 36",
+    "resolveActivityVerified": false,
+    "queryIntentActivitiesVerified": false,
+    "approveVerified": false,
+    "rejectVerified": false,
+    "callbackVerified": false,
+    "productSessionVerified": false,
+    "secondLaunchVerified": false,
+    "secretFreeEvidenceRequired": true,
+    "accepted": false
+  },
+  "releaseTruth": {"implementedShared":false,"deviceValidated":false,"integratedCentral":false,"deployedPublic":false,"productionSigned":false,"storeReleased":false}
+}

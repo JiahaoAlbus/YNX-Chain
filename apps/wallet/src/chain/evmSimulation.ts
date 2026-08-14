@@ -1,10 +1,9 @@
 import { keccak_256 } from "@noble/hashes/sha3.js";
 import { bytesToHex, hexToBytes } from "@noble/hashes/utils.js";
-import { DEFAULT_CHAIN_API } from "./nativeTransfer";
-
 const EVM_CHAIN_ID = 6423;
 const MAX_RESPONSE_BYTES = 256 * 1024;
 const MAX_UINT256 = (1n << 256n) - 1n;
+export const DEFAULT_EVM_RPC_URL = "https://rpc.ynxweb4.com/evm";
 
 type FetchLike = (input: string, init?: RequestInit) => Promise<Response>;
 
@@ -38,8 +37,8 @@ export class EvmSimulationClient {
   readonly #now: () => Date;
   #id = 0;
 
-  constructor(baseURL = DEFAULT_CHAIN_API, fetcher: FetchLike = fetch, now: () => Date = () => new Date()) {
-    this.#origin = strictOrigin(baseURL);
+  constructor(baseURL = DEFAULT_EVM_RPC_URL, fetcher: FetchLike = fetch, now: () => Date = () => new Date()) {
+    this.#origin = strictRpcURL(baseURL);
     this.#fetch = fetcher;
     this.#now = now;
   }
@@ -150,12 +149,15 @@ async function boundedText(response: Response): Promise<string> {
   return text;
 }
 
-function strictOrigin(value: string): string {
+function strictRpcURL(value: string): string {
   if (typeof value !== "string") throw new Error("EVM RPC URL is invalid");
   const parsed = new URL(value);
-  if (parsed.username || parsed.password || parsed.search || parsed.hash || (parsed.pathname !== "/" && parsed.pathname !== "")) throw new Error("EVM RPC URL must be an origin");
-  if (parsed.protocol !== "https:" && !(parsed.protocol === "http:" && ["127.0.0.1", "localhost", "10.0.2.2"].includes(parsed.hostname))) throw new Error("EVM RPC requires HTTPS except local development");
-  return parsed.origin;
+  const loopback = parsed.protocol === "http:" && ["127.0.0.1", "localhost", "10.0.2.2"].includes(parsed.hostname);
+  if (parsed.username || parsed.password || parsed.search || parsed.hash) throw new Error("EVM RPC URL must not contain credentials, query or fragment");
+  if (parsed.protocol !== "https:" && !loopback) throw new Error("EVM RPC requires HTTPS except local development");
+  if (!loopback && parsed.pathname !== "/evm") throw new Error("EVM RPC HTTPS URL must use the frozen /evm path");
+  if (loopback && parsed.pathname !== "/" && parsed.pathname !== "") throw new Error("Local EVM RPC URL must be an origin");
+  return loopback ? parsed.origin : `${parsed.origin}/evm`;
 }
 
 function strictNow(value: Date): Date {

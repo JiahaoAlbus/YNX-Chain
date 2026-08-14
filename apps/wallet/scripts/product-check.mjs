@@ -1,5 +1,17 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { access, readFile } from "node:fs/promises";
+
+const CENTRAL_FREEZE=Object.freeze({
+  commit:"d0f89797d13c7667cc187b0c64d5c9e1cb1d8f59",
+  endpointMatrix:Object.freeze({blob:"d402fcdc844aa39bd5ee351a99d93acb4852dc37",sha256:"d344c607c2bbbf7bb0d9d3662b424976d0d6c4ff20428025dd1e2fb92bf31392"}),
+  androidLauncher:Object.freeze({blob:"83c9f91779701288861cff5e4dc6c487ffcdc26c",sha256:"d296732141a4029b1811b655f0001cc7d81a1d45019a4bd87d21b2b4b256d1a6"}),
+});
+const endpointMatrixBytes=await readFile(new URL("../../../release/integration/wallet-auth-public-endpoint-service-discovery-matrix.json",import.meta.url));
+const androidLauncherBytes=await readFile(new URL("../../../release/integration/wallet-auth-android-launcher-contract.json",import.meta.url));
+const endpointMatrix=JSON.parse(endpointMatrixBytes.toString("utf8"));
+const androidLauncher=JSON.parse(androidLauncherBytes.toString("utf8"));
+const sha256=(bytes)=>createHash("sha256").update(bytes).digest("hex");
 
 const config=JSON.parse(await readFile(new URL("../app.json",import.meta.url),"utf8")).expo;
 const source=await readFile(new URL("../App.tsx",import.meta.url),"utf8");
@@ -39,7 +51,10 @@ const walletOpenLinkPolicy=await readFile(new URL("../src/security/walletOpenLin
 const unlockPolicy=await readFile(new URL("../src/security/unlockPolicy.ts",import.meta.url),"utf8");
 const lockState=await readFile(new URL("../src/state/lockState.ts",import.meta.url),"utf8");
 const clipboardPrivacy=await readFile(new URL("../src/security/clipboardPrivacy.ts",import.meta.url),"utf8");
+const nativeTransfer=await readFile(new URL("../src/chain/nativeTransfer.ts",import.meta.url),"utf8");
+const evmSimulation=await readFile(new URL("../src/chain/evmSimulation.ts",import.meta.url),"utf8");
 const signingPlugin=await readFile(new URL("../plugins/withYnxAndroidReleaseSigning.js",import.meta.url),"utf8");
+const intentFilterPlugin=await readFile(new URL("../plugins/withYnxAndroidExactIntentFilters.js",import.meta.url),"utf8");
 const androidQaBuild=await readFile(new URL("./build-disposable-android-qa-release.sh",import.meta.url),"utf8");
 const androidQaVerify=await readFile(new URL("./verify-android-api36-qa-receipt.mjs",import.meta.url),"utf8");
 const actionDeepLinkParsers=await Promise.all(["exchange-action.js","developer-deployment.js","dex-action.js","quant-action.js"].map((file)=>readFile(new URL(`../../../packages/wallet-auth/src/${file}`,import.meta.url),"utf8")));
@@ -59,6 +74,14 @@ assert.equal(config.userInterfaceStyle,"automatic");
 assert.equal(config.android.intentFilters[0].data[0].host,"authorize");
 assert.equal(config.android.intentFilters[0].data[1].host,"action");
 assert.equal(config.android.intentFilters[0].data[2].host,"open");
+assert.equal(sha256(endpointMatrixBytes),CENTRAL_FREEZE.endpointMatrix.sha256,`Central endpoint matrix must remain exact blob ${CENTRAL_FREEZE.endpointMatrix.blob} from ${CENTRAL_FREEZE.commit}`);
+assert.equal(sha256(androidLauncherBytes),CENTRAL_FREEZE.androidLauncher.sha256,`Central Android launcher must remain exact blob ${CENTRAL_FREEZE.androidLauncher.blob} from ${CENTRAL_FREEZE.commit}`);
+assert.equal(endpointMatrix.canonical.restUrl,"https://rest.ynxweb4.com");
+assert.equal(endpointMatrix.canonical.rpcUrl,"https://rpc.ynxweb4.com/evm");
+assert.ok(nativeTransfer.includes('DEFAULT_CHAIN_API="https://rest.ynxweb4.com"'),"native account/transaction REST must consume the frozen REST endpoint");
+assert.ok(evmSimulation.includes('DEFAULT_EVM_RPC_URL = "https://rpc.ynxweb4.com/evm"'),"EVM JSON-RPC must consume the frozen path-bearing RPC endpoint");
+assert.deepEqual(androidLauncher.authority,{protocolSource:"packages/wallet-auth/src/deep-link.js",requestProtocolSource:"packages/wallet-auth/src/protocol.js",walletPackage:"com.ynxweb4.wallet",walletActivity:"com.ynxweb4.wallet/.MainActivity",scheme:"ynxwallet",host:"authorize",path:"",queryFields:["request"],uriTemplate:"ynxwallet://authorize?request=<base64url-canonical-authorization-request>",androidAction:"android.intent.action.VIEW",androidCategories:["android.intent.category.DEFAULT","android.intent.category.BROWSABLE"],activityExported:true});
+for(const gate of [endpointMatrix.aggregate.allRequiredServicesAvailable,endpointMatrix.aggregate.mobileWalletDiscoveryVerified,endpointMatrix.aggregate.mobileAccountVerified,endpointMatrix.aggregate.mobileSignVerified,endpointMatrix.aggregate.mobileSendVerified,endpointMatrix.aggregate.deployedPublic,endpointMatrix.aggregate.integratedCentral,androidLauncher.walletConsumerRequirements.currentInstalledPixel9IntentResolutionVerified,androidLauncher.crossProductAcceptance.accepted,androidLauncher.releaseTruth.deviceValidated,androidLauncher.releaseTruth.deployedPublic,androidLauncher.releaseTruth.productionSigned,androidLauncher.releaseTruth.storeReleased])assert.equal(gate,false,"unproved Central endpoint/Pixel/release gates must remain false");
 assert.equal(source.includes("if(isExactWalletOpenLink(url))"),true,"Wallet must route the safe launcher through its byte-exact policy");
 assert.equal(walletOpenLinkPolicy.includes('url==="ynxwallet://open"'),true,"Wallet must support only the exact safe launcher without treating ambiguous URL variants as open");
 assert.ok(source.includes("appStateRef.current=next"),"deep-link foreground admission must track AppState changes synchronously");
@@ -156,9 +179,13 @@ assert.ok(source.includes("isSelectedAccountUnlocked(lockState,selected.account)
 assert.ok(clipboardPrivacy.includes("const DEFAULT_TTL_MS = 30_000"),"public clipboard values must default to a bounded 30-second lifetime");
 assert.ok(clipboardPrivacy.includes('await clipboard.setStringAsync("")'),"clipboard expiry must clear only the still-matching value");
 assert.ok(config.plugins.includes("./plugins/withYnxAndroidReleaseSigning"),"Wallet must preserve Release signing policy through Expo prebuild");
+assert.ok(config.plugins.includes("./plugins/withYnxAndroidExactIntentFilters"),"Wallet must preserve exact Android intent filters through Expo prebuild");
+for(const required of ['AUTHORIZE_SCHEME = "ynxwallet"','EXACT_HOSTS = ["authorize", "action", "open"]','walletFilters.length !== 1','android.intent.category.BROWSABLE'])assert.ok(intentFilterPlugin.includes(required),`Wallet exact intent-filter plugin must enforce ${required}`);
 for(const required of ["ynxReleaseSigningConfigured ? signingConfigs.release : null","System.getenv(\"YNX_ANDROID_KEYSTORE_PATH\")","ynxDebugKeystorePath"])assert.equal(`${androidGradle}\n${signingPlugin}`.includes(required),true,`missing Android signing boundary ${required}`);
 assert.equal(androidGradle.includes("            signingConfig signingConfigs.debug\n            def enableShrinkResources"),false,"Release must never inherit debug signing");
 for(const required of ["mktemp -d /private/tmp/ynx-wallet-disposable-qa-custody","RUNNER_TEMP","chmod 0700","openssl rand","YNX_ANDROID_KEYSTORE_PATH","apksigner verify --verbose --print-certs","grep -Fqx","APK Signature Scheme v2","disposable-qa-release-key","productionSigned:false","storeReleased:false"])assert.equal(androidQaBuild.includes(required),true,`missing disposable Android QA build boundary ${required}`);
+for(const route of ["authorize","action","open"])assert.ok(androidQaBuild.includes(`android:host(0x01010028)=\\\"$route\\\"`),`release APK must verify exact ${route} host`);
+assert.ok(androidQaBuild.includes('exactly three host-bound ynxwallet routes'),"release APK must reject a scheme-only Wallet intent filter");
 for(const forbidden of ["androiddebugkey","storePassword 'android'","keyPassword 'android'"])assert.equal(androidQaBuild.includes(forbidden),false,`disposable Android QA build must not use ${forbidden}`);
 for(const required of ["firstColdLaunch.pid!==receipt.secondColdLaunch.pid","fatalExceptionCount===0","androidRuntimeCrashCount===0","flagSecureObserved===true","evmChainIdHex===\"0x1917\"","receipt.rawEvidence.length>=6","productionSigned:false","storeReleased:false"])assert.equal(androidQaVerify.includes(required),true,`missing Android API 36 receipt boundary ${required}`);
 for(const forbidden of ["Social Feed","Shop tab","Pay tab","Exchange tab"])assert.equal(source.includes(forbidden),false);

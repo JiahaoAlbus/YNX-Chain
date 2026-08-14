@@ -78,6 +78,7 @@ cert_dn="$(printf '%s\n' "$signing_output" | sed -n 's/^Signer #1 certificate DN
 [[ "$cert_dn" == *"CN=YNX Wallet Disposable QA"* ]] || { echo "APK signer is not the disposable Wallet QA identity" >&2; exit 1; }
 
 badging="$($build_tools/aapt dump badging "$apk_source")"
+manifest_tree="$($build_tools/aapt dump xmltree "$apk_source" AndroidManifest.xml)"
 package_name="$(printf '%s\n' "$badging" | sed -n "s/^package: name='\([^']*\)'.*/\1/p" | head -1)"
 version_code="$(printf '%s\n' "$badging" | sed -n "s/^package:.*versionCode='\([^']*\)'.*/\1/p" | head -1)"
 version_name="$(printf '%s\n' "$badging" | sed -n "s/^package:.*versionName='\([^']*\)'.*/\1/p" | head -1)"
@@ -85,6 +86,12 @@ minimum_sdk="$(printf '%s\n' "$badging" | sed -n "s/^sdkVersion:'\([^']*\)'.*/\1
 target_sdk="$(printf '%s\n' "$badging" | sed -n "s/^targetSdkVersion:'\([^']*\)'.*/\1/p" | head -1)"
 [[ "$package_name" == "com.ynxweb4.wallet" && "$version_code" == "2" && "$version_name" == "1.0.1" ]] || { echo "Wallet package/version identity mismatch" >&2; exit 1; }
 [[ "$minimum_sdk" == "24" && "$target_sdk" == "36" ]] || { echo "Wallet SDK boundary mismatch" >&2; exit 1; }
+[[ "$(printf '%s\n' "$manifest_tree" | grep -Fc 'android:scheme(0x01010027)="ynxwallet"')" == "3" ]] || { echo "Wallet APK must expose exactly three host-bound ynxwallet routes" >&2; exit 1; }
+for route in authorize action open; do
+  [[ "$(printf '%s\n' "$manifest_tree" | grep -Fc "android:host(0x01010028)=\"$route\"")" == "1" ]] || { echo "Wallet APK is missing its exact $route route" >&2; exit 1; }
+done
+printf '%s\n' "$manifest_tree" | grep -Fq 'android:name(0x01010003)="android.intent.category.DEFAULT"'
+printf '%s\n' "$manifest_tree" | grep -Fq 'android:name(0x01010003)="android.intent.category.BROWSABLE"'
 
 install -d -m 0700 "$partial"
 install -m 0644 "$apk_source" "$partial/ynx-wallet-1.0.1-api36-disposable-qa.apk"

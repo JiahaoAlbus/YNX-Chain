@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { EvmSimulationClient } from "./evmSimulation";
+import { DEFAULT_EVM_RPC_URL, EvmSimulationClient } from "./evmSimulation";
 
 const FROM = "0x1111111111111111111111111111111111111111";
 const TARGET = "0x2222222222222222222222222222222222222222";
@@ -39,6 +39,20 @@ test("strict EVM simulation verifies chain, deployed code, eth_call and gas with
   assert.match(result.contractCodeHash, /^0x[0-9a-f]{64}$/);
   assert.equal(result.truthfulStatus, "read-only-evm-simulation-no-sign-no-broadcast");
   assert.equal(Object.isFrozen(result), true);
+});
+
+test("default EVM endpoint consumes the frozen path-bearing public RPC contract", async () => {
+  const requested: string[] = [];
+  const values: Record<string, unknown> = { eth_chainId: "0x1917", eth_blockNumber: "0x2a", eth_getCode: "0x6000", eth_call: "0x", eth_estimateGas: "0x5208" };
+  const fetcher = async (url: string, init?: RequestInit) => {
+    requested.push(url);
+    const request = JSON.parse(String(init?.body));
+    return new Response(JSON.stringify({ jsonrpc: "2.0", id: request.id, result: values[request.method] }));
+  };
+  await new EvmSimulationClient(undefined, fetcher).simulate({ from: FROM, to: TARGET, data: "0x", valueWei: "0" });
+  assert.equal(DEFAULT_EVM_RPC_URL, "https://rpc.ynxweb4.com/evm");
+  assert.deepEqual(new Set(requested), new Set([DEFAULT_EVM_RPC_URL]));
+  assert.throws(() => new EvmSimulationClient("https://rpc.ynxweb4.com"), /frozen \/evm path/);
 });
 
 test("wrong chain and missing contract code fail closed before call simulation", async () => {

@@ -1,6 +1,6 @@
 import { evmAddressFromYNX, type SignedNativeTransfer } from "@ynx-chain/wallet-auth";
 
-export const DEFAULT_CHAIN_API="https://rpc.ynxweb4.com";
+export const DEFAULT_CHAIN_API="https://rest.ynxweb4.com";
 export type ChainAccount=Readonly<{address:string;balance:number;nonce:number}>;
 export type ChainActivity=Readonly<{hash:string;type:string;from:string;to:string;amount:number;fee:number;nonce:number;timestamp?:string}>;
 export type BroadcastResult=Readonly<{hash:string;replayed:boolean;truthfulStatus:"signature-verified-authoritative-native-transfer"}>;

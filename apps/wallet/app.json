@@ -28,6 +28,7 @@
     "plugins": [
       ["expo-secure-store", {"configureAndroidBackup": true}],
       ["expo-local-authentication", {"faceIDPermission": "YNX Wallet uses Face ID to unlock keys and approve exact requests."}],
+      "./plugins/withYnxAndroidExactIntentFilters",
       "./plugins/withYnxAndroidReleaseSigning"
     ],
     "extra": {
