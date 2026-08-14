@@ -312,6 +312,25 @@
     "productionSigned": false,
     "storeReleased": false
   },
+  "androidMultiAccountRelockCheckpoint": {
+    "sourceCommit": "73e451191992d1275dd597cd390fccf9686cbb42",
+    "branch": "codex/wallet-android-api36-continuation2-20260814",
+    "relockBeforeSelectionPersistence": true,
+    "clearsUnlockedAccount": true,
+    "sameAccountReselectionRelocks": true,
+    "failedSelectionRemainsLocked": true,
+    "walletTests": "53/53 passed",
+    "androidHermesBundle": true,
+    "implementedLocal": true,
+    "testedLocal": true,
+    "testedOnDevice": false,
+    "installedLocal": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
   "verification": {
     "walletAuthPackageTests": "100/100 passed",
     "gatewayNodeHostTests": "8/8 passed",
