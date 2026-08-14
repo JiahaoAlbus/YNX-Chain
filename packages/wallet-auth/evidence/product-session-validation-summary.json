@@ -1,19 +1,19 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-08-14T04:35:39.000Z",
+  "capturedAt": "2026-08-14T04:45:37.000Z",
   "scope": "local Product Session v2 protocol and router validation",
   "registrySchemaVersion": 2,
   "branch": "codex/wallet-session-router-recovery",
   "sourceBaseline": "2a78ace0a647b73dd2961fae3361189116453a7d",
   "targetedTest": {
-    "command": "node --test test/product-session-gateway-client.test.mjs test/product-session-gateway-http.test.mjs test/product-session-gateway.test.mjs test/product-session-migration.test.mjs test/product-session-products.test.mjs test/product-session-recovery.test.mjs test/product-session-router.test.mjs test/product-session-v2.test.mjs",
-    "passed": 50,
+    "command": "node --test test/metamask-evm-adapter.test.mjs test/product-session-gateway-client.test.mjs test/product-session-gateway-http.test.mjs test/product-session-gateway.test.mjs test/product-session-migration.test.mjs test/product-session-products.test.mjs test/product-session-recovery.test.mjs test/product-session-router.test.mjs test/product-session-v2.test.mjs",
+    "passed": 55,
     "failed": 0,
     "concurrentSessions": 120
   },
   "fullPackageTest": {
     "command": "npm test",
-    "passed": 152,
+    "passed": 157,
     "failed": 0,
     "exitCode": 0
   },
@@ -21,8 +21,8 @@
     "command": "npm_config_cache=<isolated-temp-cache> npm pack --dry-run",
     "exitCode": 0,
     "version": "1.1.0",
-    "files": 57,
-    "shasum": "19c67b68cc512859a82dbc9479b48448eec7fc92"
+    "files": 58,
+    "shasum": "faea098794e3cb7771d3c1ddd2ef5f70a11acb5b"
   },
   "deviceSecretBoundary": {
     "clientLocalSigning": [
@@ -68,6 +68,20 @@
     "url": "https://metamask.io/download",
     "officialPageVerifiedAt": "2026-08-14T04:02:00.000Z",
     "availabilityRule": "EVM-compatible products show a real MetaMask option even when MetaMask must first be installed"
+  },
+  "metaMaskEvmAdapter": {
+    "implementation": "src/metamask-evm-adapter.js",
+    "eligibleProducts": "registry evmCompatible=true only",
+    "provider": "explicit MetaMask EIP-1193 provider",
+    "chainId": 6423,
+    "chainQuantity": "0x1917",
+    "providerMethods": ["eth_chainId", "wallet_switchEthereumChain", "eth_requestAccounts"],
+    "walletAddEthereumChain": false,
+    "authority": "eip-1193-provider-only",
+    "ynxProductSession": false,
+    "localDeterministicProviderTestsPassed": true,
+    "installedExtensionFlowValidated": false,
+    "fallback": "none"
   },
   "migrationEvidenceGate": {
     "matrix": "release/integration/wallet-product-session-router-migration.json",
@@ -142,7 +156,7 @@
       "macos-wallet-companion"
     ],
     "platformValidationBlocked": [
-      "MetaMask 13.42.0 is installed and enabled, but no product runtime is migrated to v2 and the ComputerControl pipe closed before a real approval/session flow could be exercised",
+      "MetaMask 13.42.0 is installed and enabled and the EIP-1193 adapter is locally tested, but no product runtime is migrated and the ComputerControl pipe closed before a real EVM connection or Product Session flow could be exercised",
       "No installed YNX Wallet application was available for a real approval/session flow"
     ],
     "publicDeployment": false,

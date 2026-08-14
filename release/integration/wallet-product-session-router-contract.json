@@ -53,6 +53,18 @@
     "fallback": "none",
     "idempotentRoutes": ["/v2/product-sessions/challenge", "/v2/product-sessions/complete"]
   },
+  "metaMaskEvmConnection": {
+    "adapter": "MetaMaskEvmConnectionAdapter",
+    "eligibleProducts": "registry evmCompatible=true only",
+    "provider": "explicit MetaMask EIP-1193 provider",
+    "chainId": 6423,
+    "chainQuantity": "0x1917",
+    "methods": ["eth_chainId", "wallet_switchEthereumChain", "eth_requestAccounts"],
+    "authority": "eip-1193-provider-only",
+    "ynxProductSession": false,
+    "fallback": "none",
+    "limitations": ["evm-provider-only", "no-ynx-product-session", "no-wallet-ai-gateway-session", "no-native-ynx-account-authority"]
+  },
   "actionableRouterStates": [
     "wallet-not-installed",
     "scheme-not-registered",
@@ -69,6 +81,7 @@
     "unknownLegacyRequest": "LEGACY_BINDING_MISMATCH"
   },
   "tests": [
+    "packages/wallet-auth/test/metamask-evm-adapter.test.mjs",
     "packages/wallet-auth/test/product-session-gateway.test.mjs",
     "packages/wallet-auth/test/product-session-gateway-client.test.mjs",
     "packages/wallet-auth/test/product-session-gateway-http.test.mjs",

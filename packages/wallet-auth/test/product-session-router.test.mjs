@@ -73,10 +73,17 @@ test("Wallet selection prefers installed YNX Wallet and only offers MetaMask for
   const installedMetaMask = walletConnectionChoices(registry, "dex", { ynxWalletInstalled: false, metaMaskAvailable: true });
   assert.deepEqual(installedMetaMask.map((item) => item.id), ["download-ynx-wallet", "metamask", "guest"]);
   assert.equal(installedMetaMask[1].action, "open-evm");
+  assert.equal(installedMetaMask[1].authoritative, true);
+  assert.equal(installedMetaMask[1].connectionMode, "evm-only");
+  assert.equal(installedMetaMask[1].authority, "eip-1193-provider-only");
+  assert.equal(installedMetaMask[1].ynxProductSession, false);
   const missingMetaMask = walletConnectionChoices(registry, "dex", { ynxWalletInstalled: false, metaMaskAvailable: false });
   assert.deepEqual(missingMetaMask.map((item) => item.id), ["download-ynx-wallet", "metamask", "guest"]);
   assert.equal(missingMetaMask[1].action, "download-evm-wallet");
   assert.equal(missingMetaMask[1].url, "https://metamask.io/download");
+  assert.equal(missingMetaMask[1].authoritative, true);
+  assert.equal(missingMetaMask[1].authority, "none");
+  assert.equal(missingMetaMask[1].ynxProductSession, false);
   const guest = missingMetaMask.at(-1);
   assert.deepEqual(guest.limitations, ["not-signed-in", "no-wallet-balance", "no-transactions", "no-chain-authority"]);
 });

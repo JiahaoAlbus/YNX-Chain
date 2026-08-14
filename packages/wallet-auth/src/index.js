@@ -21,6 +21,7 @@ export * from "./bundler.js";
 export * from "./product-session-registry.js";
 export * from "./product-session-v2.js";
 export * from "./product-session-router.js";
+export * from "./metamask-evm-adapter.js";
 export * from "./product-session-recovery.js";
 export * from "./product-session-proof-v2.js";
 export * from "./product-session-gateway.js";

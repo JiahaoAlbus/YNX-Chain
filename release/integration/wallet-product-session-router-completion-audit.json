@@ -39,13 +39,15 @@
     "B_walletSelection": {
       "status": "implemented-local-download-verified",
       "evidence": [
+        "packages/wallet-auth/src/metamask-evm-adapter.js",
+        "packages/wallet-auth/test/metamask-evm-adapter.test.mjs",
         "packages/wallet-auth/src/product-session-router.js",
         "packages/wallet-auth/test/product-session-router.test.mjs",
         "packages/wallet-auth/test/product-session-products.test.mjs",
         "packages/wallet-auth/evidence/metamask-installed-observation.json"
       ],
       "remaining": [
-        "Verify YNX Wallet and MetaMask detection/open behavior in approved installed applications"
+        "Verify YNX Wallet detection/open behavior and the EIP-1193 adapter against MetaMask in approved installed applications"
       ]
     },
     "C_deepLinkRouter": {
@@ -92,16 +94,16 @@
         "packages/wallet-auth/test/product-session-migration.test.mjs"
       ],
       "targetedTests": {
-        "passed": 50,
+        "passed": 55,
         "failed": 0,
         "concurrentProductSessions": 120
       },
       "fullPackageTests": {
-        "passed": 152,
+        "passed": 157,
         "failed": 0
       },
       "remaining": [
-        "MetaMask is installed and enabled, but no product runtime is migrated to v2 and ComputerControl closed before a real approval/session flow could be exercised",
+        "MetaMask is installed and enabled and the EIP-1193 adapter is locally tested, but no product runtime is migrated and ComputerControl closed before a real EVM connection or Product Session flow could be exercised",
         "No installed YNX Wallet application was available for a real approval/session flow",
         "Each actually migrated product requires installed Web/desktop/mobile approval, rejection, timeout, revoke, restart, network-loss and Retry evidence"
       ]

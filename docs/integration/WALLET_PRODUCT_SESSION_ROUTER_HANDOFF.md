@@ -10,6 +10,7 @@ The shared implementation is in:
 - `packages/wallet-auth/src/product-session-v2.js`
 - `packages/wallet-auth/src/product-session-proof-v2.js`
 - `packages/wallet-auth/src/product-session-router.js`
+- `packages/wallet-auth/src/metamask-evm-adapter.js`
 - `packages/wallet-auth/src/product-session-recovery.js`
 - `packages/wallet-auth/src/product-session-gateway.js`
 - `packages/wallet-auth/src/product-session-gateway-client.js`
@@ -31,7 +32,11 @@ The router opens only `ynxwallet://authorize?request=<base64url canonical JSON>`
 
 The known legacy value `ynx-social` migrates only for the Social registration and becomes `ynx-social://com.ynx.social`. Unknown or cross-product legacy schemes fail with `UNKNOWN_LEGACY_SCHEME`. Known v1 requests can migrate only when their client, bundle, callback, device algorithm, chain and scopes match the same registry entry.
 
-If YNX Wallet is installed, the first option is to open it. If absent, the shared choices include the verified official `https://www.ynxweb4.com/dapp/download` download center and MetaMask only for registrations marked EVM compatible. An EVM-compatible product still shows a real `https://metamask.io/download` option when MetaMask is missing; when detected, the same choice becomes an `open-evm` action. Both URLs are pinned by the registry parser's official allowlist. The earlier `/wallet` value was rejected because it redirects to an informational product page rather than the real download center. Guest / Try always carries the explicit limitations `not-signed-in`, `no-wallet-balance`, `no-transactions`, and `no-chain-authority`.
+If YNX Wallet is installed, the first option is to open it. If absent, the shared choices include the verified official `https://www.ynxweb4.com/dapp/download` download center and MetaMask only for registrations marked EVM compatible. An EVM-compatible product still shows a real `https://metamask.io/download` option when MetaMask is missing; when detected, the same choice becomes an `open-evm` action. Both URLs are pinned by the registry parser's official allowlist. The earlier `/wallet` value was rejected because it redirects to an informational product page rather than the real download center.
+
+`MetaMaskEvmConnectionAdapter` makes `open-evm` executable through the supplied, explicit MetaMask EIP-1193 provider. It reads the real chain, switches to canonical chain quantity `0x1917` only when needed, re-reads the chain, requests real accounts, and rejects malformed provider responses. A 4001 rejection, unavailable provider, disconnected provider, unconfigured chain 6423, refused switch, or invalid address fails closed with an actionable SDK error. The adapter never calls `wallet_addEthereumChain`, because this contract has no authoritative RPC registration to supply. Its result is explicitly `evm-only` with `authority: eip-1193-provider-only`, `ynxProductSession: false`, and `productSession: null`. MetaMask therefore cannot substitute for YNX Product Session, YNX Wallet account authority, Wallet AI Gateway answers, balances, or transactions.
+
+Guest / Try always carries the explicit limitations `not-signed-in`, `no-wallet-balance`, `no-transactions`, and `no-chain-authority`.
 
 ## Product migration truth
 
@@ -53,4 +58,4 @@ Integration should merge the scoped contract and matrix files, then reconcile v2
 
 ## Release boundary
 
-The scoped branch is pushed to `origin/codex/wallet-session-router-recovery`. Local implementation and automated tests are evidence for `implementedLocal`, `testedLocal`, and `pushedRemote`. The public release registry and a full artifact back-read prove `downloadHosted` for the Android Testnet Preview only. ComputerControl visibly verified the macOS Wallet Companion's fail-closed `NO SUPPORTED WALLET DETECTED` state, real YNX Wallet and MetaMask choices, and absence of fabricated connection data. It also observed an enabled MetaMask 13.42.0 Chrome extension, but the control pipe closed before any product connection or approval; installation evidence is not Session evidence. No installed YNX Wallet was available and no product runtime is yet migrated to v2. `installedLocal`, `integratedCentral`, `deployedStaging`, `deployedPublic`, `productionSigned`, and `storeReleased` remain false until direct evidence exists.
+The scoped branch is pushed to `origin/codex/wallet-session-router-recovery`. Local implementation and automated tests are evidence for `implementedLocal`, `testedLocal`, and `pushedRemote`. The public release registry and a full artifact back-read prove `downloadHosted` for the Android Testnet Preview only. ComputerControl visibly verified the macOS Wallet Companion's fail-closed `NO SUPPORTED WALLET DETECTED` state, real YNX Wallet and MetaMask choices, and absence of fabricated connection data. It also observed an enabled MetaMask 13.42.0 Chrome extension, but the control pipe closed before any product connection or approval; installation evidence is not Product Session or EVM connection evidence. The EIP-1193 adapter is locally tested with deterministic providers, not yet exercised against that installed extension. No installed YNX Wallet was available and no product runtime is yet migrated to v2. `installedLocal`, `integratedCentral`, `deployedStaging`, `deployedPublic`, `productionSigned`, and `storeReleased` remain false until direct evidence exists.
