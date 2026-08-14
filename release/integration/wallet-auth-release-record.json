@@ -6,12 +6,12 @@
   "recordedAt": "2026-08-14T03:52:00Z",
   "evidenceMatrix": {
     "path": "release/integration/wallet-auth-release-evidence-matrix.json",
-    "sha256": "ffd66dedb956980e09f1628c4d70b33f91f83caa60b0984b75d1e74aa328e505",
+    "sha256": "bc6a4a88b3e78bc1406f7c94ad17818a077415ce1b7e1b3f67ed8fcc12df33be",
     "platforms": 21,
     "gatesPerPlatform": 12,
     "trueGates": 106,
     "falseGates": 146,
-    "evidenceRecords": 108
+    "evidenceRecords": 109
   },
   "frozenOwnerSources": {
     "coreAuthGateway": "404f818719b920008f88f076949a4387c5130855",
@@ -19,7 +19,8 @@
     "androidApi36": "66d321e423baedb0e030650729f1000d25a351cf",
     "iosMacos": "3b27b83f18799ff74252469075ec460b6665dd44",
     "desktopCliSdk": "2802876f8470264c4a8819f1426e28f957a09289",
-    "walletProductSessionRouter": "2bcdf4f646177fe2419f1af3ac9e66bb3c218194"
+    "walletProductSessionRouter": "2bcdf4f646177fe2419f1af3ac9e66bb3c218194",
+    "walletProductSessionWebsitePublication": "24c0589e729a2a1ae59400600c346e6f18dd7864"
   },
   "externalDependencyAcceptance": {
     "chainCore": {
@@ -103,6 +104,7 @@
     ,"Core/Auth evidence 99523546 directly proves source 37f2485 cross-restart exact-request idempotency: a 1,122-byte completion response and state SHA are identical, post-restart revoke succeeds, post-revoke returns SESSION_REVOKED, and the private retry record is removed. Product migration, visible approval, central absorption and aggregate deployment remain false."
     ,"Core/Auth evidence 404f8187 directly proves deployed source 37f2485 rejects runtime 0644, hardlink, symlink, same-byte inode replacement and digest tamper with exact HTTP 503 codes and zero mutation. Repair restores 0600 ynx:ynx nlink=1 and the public lifecycle. Existing 6437/6439, zero product migration, absent visible Wallet approval, central absorption and aggregate deployment remain unchanged and false."
     ,"Core/Auth evidence f1c43b77 directly proves the canonical public rejection route is absent: /v1/wallet/authorizations/reject returns 404 ROUTE_NOT_FOUND rather than 403 AUTHORIZATION_REJECTED, while the authoritative state digest is unchanged and mutation is zero. Public/visible installed-Wallet rejection remains false."
+    ,"Website evidence 24c0589e binds production merge 3ac32e03 and Ready deployments to three official-domain runtime backreads for Product Session source 37f2485/evidence 404f8187. Website and route-level publication are true; immutable deployment URL HTTP backread, product migration, visible Wallet approval, integratedCentral and aggregate ecosystem deployment remain false."
     ,"iOS/macOS AASA contract 3b27b83f is frozen only as fail-closed engineering truth. The public well-known path is HTTP 200 but serves a 1,018-byte text/html SPA fallback, so AASA validity, associated-domain freeze, Universal Link delivery, auth success and every public/production claim remain false."
   ]
 }

@@ -79,6 +79,8 @@ Core/Auth `404f8187…` completes the bounded public state-integrity matrix for 
 
 Core/Auth `f1c43b77…` independently records that the public canonical user-rejection route is missing: `/v1/wallet/authorizations/reject` returns 404 `ROUTE_NOT_FOUND` instead of 403 `AUTHORIZATION_REJECTED`. The Wallet/App sources are read back, state digest is unchanged and mutation is zero; deployed rejection and visible installed-Wallet approval/rejection remain false.
 
+Website `24c0589e…` freezes the Product Session runtime status publication after merge `3ac32e03…`: both Vercel production deployments are Ready and all three official aliases return the same 2,059-byte runtime JSON (`35d50f3e…`) bound to source `37f2485…` and evidence `404f8187…`. This establishes website/route publication only. Immutable deployment HTTP backread, runtime migration, visible Wallet approval, `integratedCentral` and aggregate ecosystem deployment remain false.
+
 Every platform separately tracks build, install, cold launch, second launch, Testnet, signing, transaction, callback, reconnect, hosted download, production signing and store release. A true value requires an explicit direct evidence binding. Simulator, disposable, unpacked, temporary, unsigned and ad-hoc artifacts remain non-production by construction.
 
 Mutation gates are frozen in `docs/integration/WALLET_AUTH_RELEASE_TEST_VECTORS.json` and executed by `node --test scripts/verify/wallet-auth-release-evidence-matrix.test.mjs`. They prove that unsupported true claims, disposable-production promotion, pending-platform promotion, unknown evidence and hosted-download claims without public download evidence fail closed.
