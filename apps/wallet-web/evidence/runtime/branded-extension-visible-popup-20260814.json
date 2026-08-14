@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "sourceBaseline": "d8f96c0649576cc645b3bc1651148dd0318bc243",
+  "observedAt": "2026-08-14T03:37:53Z",
+  "localDappUrl": "http://127.0.0.1:4173/",
+  "edge": {
+    "name": "Microsoft Edge",
+    "version": "151.0.4129.78",
+    "mainPid": 6399,
+    "extensionRendererPidsObserved": [1022, 1291, 1406, 50212, 50214, 50215],
+    "developerMode": true,
+    "unpackedRegistrationVisible": true,
+    "extensionName": "YNX Wallet Testnet Companion",
+    "extensionVersion": "0.1.0",
+    "extensionId": "jgijcegbgeobldllfniaejejofobcngk",
+    "enabled": true,
+    "reloadClickedVisible": true,
+    "firstPopupVisible": true,
+    "secondPopupVisible": true,
+    "popupOriginVisible": "chrome-extension://jgijcegbgeobldllfniaejejofobcngk/index.html",
+    "popupFirstStatus": "NO SUPPORTED WALLET DETECTED / Status: Not connected",
+    "popupSecondStatus": "NO SUPPORTED WALLET DETECTED / Status: Not connected",
+    "actionsDisabled": ["Add YNX Testnet", "Switch network", "Sign message", "Send transaction"],
+    "installedLocal": false,
+    "installedLocalReason": "Visible developer-mode unpacked registration is not treated as a signed or store installation."
+  },
+  "activeDappProviderInspection": {
+    "hasEthereum": false,
+    "providerCount": 0,
+    "ynxProviderDetected": false,
+    "metaMaskProviderDetected": false,
+    "visibleDetectedText": "No supported wallet detected",
+    "visibleStatus": "Status: Not connected"
+  },
+  "testnet": {
+    "expectedChainId": "0x1917",
+    "liveRpcProvedThroughPopup": false,
+    "connectSucceeded": false,
+    "disconnectReconnectSucceeded": false,
+    "wrongChainFailClosedVisible": false,
+    "reason": "The real active DApp tab had no injected EIP-1193 provider. The popup therefore disabled every chain and sensitive action; footer metadata is not counted as a chain response."
+  },
+  "chrome": {
+    "name": "Google Chrome",
+    "version": "151.0.7922.138",
+    "mainPid": 13472,
+    "extensionRendererPidsObserved": [1492, 1493],
+    "developerModeEnabledVisible": true,
+    "loadUnpackedButtonVisible": true,
+    "ynxRegistrationVisible": false,
+    "installedLocal": false,
+    "installFinalActionPerformed": false,
+    "blocker": "Selecting the local unpacked directory would install software from outside an official extension marketplace and requires action-time confirmation under the active Computer Use policy."
+  },
+  "firefox": {
+    "brandedBinaryInstalled": false,
+    "installedLocal": false
+  },
+  "uninstall": {
+    "edgePerformed": false,
+    "chromePerformed": false,
+    "reason": "Removing the only Edge registration before permission to reinstall would discard the recovered runnable state."
+  },
+  "releaseStates": {
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}
