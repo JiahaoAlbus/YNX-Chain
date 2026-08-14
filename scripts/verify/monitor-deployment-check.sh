@@ -8,9 +8,21 @@ publisher=infra/systemd/ynx-monitor-publisher.example.service
 timer=infra/systemd/ynx-monitor-publisher.example.timer
 caddy=infra/caddy/ynx-monitor.caddy.example
 environment=infra/monitor/ynx-monitor.env.example
+indexer=infra/systemd/ynx-indexerd.example.service
+explorer=infra/systemd/ynx-explorerd.example.service
 
-for required in "$control" "$publisher" "$timer" "$caddy" "$environment"; do
+for required in "$control" "$publisher" "$timer" "$caddy" "$environment" "$indexer" "$explorer"; do
   [[ -s "$required" ]] || { echo "missing Monitor deployment asset: $required" >&2; exit 1; }
+done
+
+grep -Fq 'MemoryMax=2G' "$indexer"
+grep -Fq 'TasksMax=512' "$indexer"
+grep -Fq 'MemoryMax=512M' "$explorer"
+grep -Fq 'TasksMax=512' "$explorer"
+for service in "$indexer" "$explorer"; do
+  grep -Fq 'PrivateDevices=true' "$service"
+  grep -Fq 'ProtectKernelTunables=true' "$service"
+  grep -Fq 'RestrictSUIDSGID=true' "$service"
 done
 
 for unit in "$control" "$publisher"; do
