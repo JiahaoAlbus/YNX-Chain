@@ -22,10 +22,18 @@ func NewHandler(service *Service) http.Handler {
 func NewHandlerWithBuild(service *Service, build buildinfo.Info) http.Handler {
 	s := &Server{service: service}
 	build = buildinfo.Normalize(build)
+	metrics := newRuntimeMetrics()
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /v1/health", func(w http.ResponseWriter, _ *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]any{"ok": true, "product": ProductID, "production_scheduling": false, "build": build})
 	})
+	mux.HandleFunc("GET /v1/ready", func(w http.ResponseWriter, _ *http.Request) {
+		writeJSON(w, http.StatusOK, map[string]any{"ready": true, "product": ProductID, "checks": map[string]string{"calendar_state": "ready"}, "production_scheduling": false, "build": build})
+	})
+	mux.HandleFunc("GET /v1/version", func(w http.ResponseWriter, _ *http.Request) {
+		writeJSON(w, http.StatusOK, map[string]any{"product": ProductID, "api_version": "v1", "state_schema_version": StateSchemaVersion, "recurrence_schema_version": RecurrenceSchemaVersion, "production_scheduling": false, "build": build})
+	})
+	mux.HandleFunc("GET /v1/metrics", metrics.serve)
 	mux.HandleFunc("POST /v1/auth/challenges", s.challenge)
 	mux.HandleFunc("POST /v1/auth/sessions", s.signIn)
 	mux.HandleFunc("POST /v1/auth/recovery", s.recover)
@@ -57,7 +65,7 @@ func NewHandlerWithBuild(service *Service, build buildinfo.Info) http.Handler {
 	mux.HandleFunc("POST /v1/notifications/read", s.readNotifications)
 	mux.HandleFunc("GET /v1/account/export", s.exportAccount)
 	mux.HandleFunc("DELETE /v1/account", s.deleteAccount)
-	return headers(mux)
+	return headers(metrics.observe(mux))
 }
 func (s *Server) challenge(w http.ResponseWriter, _ *http.Request) {
 	v, e := s.service.NewChallenge()

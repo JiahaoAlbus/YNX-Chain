@@ -942,6 +942,24 @@ func TestBoundariesRecoveryAIAndHTTPTruth(t *testing.T) {
 	if health.Code != 200 || !strings.Contains(health.Body.String(), `"production_scheduling":false`) {
 		t.Fatalf("truth boundary missing: %s", health.Body.String())
 	}
+	if requestID := health.Header().Get("X-Request-ID"); !strings.HasPrefix(requestID, "cal_") {
+		t.Fatalf("bounded request ID missing: %q", requestID)
+	}
+	ready := httptest.NewRecorder()
+	h.ServeHTTP(ready, httptest.NewRequest(http.MethodGet, "/v1/ready", nil))
+	if ready.Code != 200 || !strings.Contains(ready.Body.String(), `"calendar_state":"ready"`) {
+		t.Fatalf("readiness truth missing: %s", ready.Body.String())
+	}
+	version := httptest.NewRecorder()
+	h.ServeHTTP(version, httptest.NewRequest(http.MethodGet, "/v1/version", nil))
+	if version.Code != 200 || !strings.Contains(version.Body.String(), `"state_schema_version":1`) {
+		t.Fatalf("version truth missing: %s", version.Body.String())
+	}
+	metrics := httptest.NewRecorder()
+	h.ServeHTTP(metrics, httptest.NewRequest(http.MethodGet, "/v1/metrics", nil))
+	if metrics.Code != 200 || !strings.Contains(metrics.Body.String(), `ynx_calendar_http_requests_total{method="GET",route="GET /v1/health",status="200"} 1`) {
+		t.Fatalf("runtime metrics missing: %s", metrics.Body.String())
+	}
 	req := httptest.NewRequest(http.MethodPost, "/v1/events/preview", strings.NewReader(`{"title":"x","unknown":true}`))
 	req.Header.Set("Authorization", "Bearer "+fresh)
 	rec := httptest.NewRecorder()

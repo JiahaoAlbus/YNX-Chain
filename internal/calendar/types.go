@@ -6,13 +6,14 @@ import (
 )
 
 const (
-	ProductID          = "com.ynx.calendar"
-	ProductClientID    = "ynx-calendar-v1"
-	BundleID           = "com.ynxweb4.calendar"
-	CallbackURL        = "ynxcalendar://wallet-auth/callback"
-	RequiredScope      = "calendar:account"
-	RecoveryScope      = "calendar:recover"
-	StateSchemaVersion = 1
+	ProductID               = "com.ynx.calendar"
+	ProductClientID         = "ynx-calendar-v1"
+	BundleID                = "com.ynxweb4.calendar"
+	CallbackURL             = "ynxcalendar://wallet-auth/callback"
+	RequiredScope           = "calendar:account"
+	RecoveryScope           = "calendar:recover"
+	StateSchemaVersion      = 1
+	RecurrenceSchemaVersion = 1
 )
 
 type WalletProof struct {
