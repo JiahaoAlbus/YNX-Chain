@@ -2,17 +2,18 @@
 <html lang="en"><head><meta charset="utf-8"><title>YNX Wallet provider fixture</title></head>
 <body><h1>YNX Wallet provider fixture</h1><script>
 (() => {
-  const calls = [];
+  const calls = []; let chainId = "0x1917";
   const makeProvider = (name, flags) => Object.freeze({...flags, providerInfo:Object.freeze({rdns:`com.ynx.fixture.${name}`}), async request(input) {
     calls.push({provider:name,method:input.method,params:input.params ?? null});
-    if (input.method === "eth_chainId") return "0x1917";
+    if (input.method === "eth_chainId") return chainId;
     if (input.method === "eth_accounts" || input.method === "eth_requestAccounts") return name === "ynx" ? ["0x1111111111111111111111111111111111111111"] : ["0x2222222222222222222222222222222222222222"];
     if (input.method === "wallet_switchEthereumChain") return null;
     throw Object.assign(new Error(`Fixture refuses ${input.method}`),{code:-32601});
   }});
   const ynx = makeProvider("ynx",{isYNXWallet:true});
   const metamask = makeProvider("metamask",{isMetaMask:true});
-  Object.defineProperty(globalThis,"ethereum",{value:Object.freeze({providers:Object.freeze([metamask,ynx])}),configurable:false,writable:false});
+  Object.defineProperty(globalThis,"ethereum",{value:Object.freeze({providers:[metamask,ynx]}),configurable:false,writable:false});
   Object.defineProperty(globalThis,"__YNX_FIXTURE_CALLS__",{get:()=>JSON.parse(JSON.stringify(calls))});
+  Object.defineProperty(globalThis,"__YNX_FIXTURE_SET_CHAIN__",{value:(value)=>{chainId=value}});
 })();
 </script></body></html>

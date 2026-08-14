@@ -41,34 +41,30 @@ async function testBrowser(browser){
     result.serviceWorker={started:true,url:worker.url(),extensionOrigin};
     const page=context.pages()[0]||await context.newPage();await page.goto(fixtureUrl,{waitUntil:"domcontentloaded"});await page.bringToFront();
     await stage("fixture-active",{url:page.url()});
-    await worker.evaluate(async()=>{await chrome.action.openPopup().catch(()=>{});});
-    await stage("action-invoked");
     const activeTab=await worker.evaluate(async()=>{
       const [tab]=await chrome.tabs.query({active:true,currentWindow:true});
       return {id:tab?.id,url:tab?.url};
     });
     await stage("active-tab",activeTab);
     try {
-      const discovered=await worker.evaluate(async()=>{
-        const [tab]=await chrome.tabs.query({active:true,currentWindow:true});
-        const [execution]=await chrome.scripting.executeScript({target:{tabId:tab.id},world:"MAIN",func:globalThis.__YNX_INTERNAL_PAGE_WALLET_REQUEST__,args:["any",{method:"ynx_walletDetected"}]});
-        return execution?.result;
+      await page.waitForFunction(()=>Array.isArray(globalThis.ethereum?.providers)&&globalThis.ethereum.providers.some((provider)=>provider?.__ynxCompanion===true),null,{timeout:5000});
+      const bridge=await page.evaluate(async()=>{
+        const provider=globalThis.ethereum.providers.find((item)=>item?.__ynxCompanion===true),events=[];
+        provider.on("accountsChanged",(value)=>events.push(["accountsChanged",value]));provider.on("chainChanged",(value)=>events.push(["chainChanged",value]));provider.on("disconnect",(value)=>events.push(["disconnect",value]));
+        const passiveAccounts=await provider.request({method:"eth_accounts"});let chainId=null,chainError=null;
+        try{chainId=await provider.request({method:"eth_chainId"})}catch(error){chainError={code:error?.code,message:error?.message}}
+        const accounts=await provider.request({method:"eth_requestAccounts"});await provider.disconnect();const reconnected=await provider.request({method:"eth_requestAccounts"});
+        globalThis.__YNX_FIXTURE_SET_CHAIN__("0x1");let wrongChainError=null;
+        try{await provider.request({method:"wallet_switchEthereumChain",params:[{chainId:"0x1917"}]})}catch(error){wrongChainError={code:error?.code,message:error?.message}}
+        let unsupportedError=null;try{await provider.request({method:"eth_sign",params:[]})}catch(error){unsupportedError={code:error?.code,message:error?.message}}
+        await new Promise((resolve)=>setTimeout(resolve,50));return{injected:Boolean(provider),passiveAccounts,chainId,chainError,accounts,reconnected,events,wrongChainError,unsupportedError,calls:globalThis.__YNX_FIXTURE_CALLS__};
       });
-      await stage("provider-discovery",{discovered});
-      const response=await worker.evaluate(async()=>{
-        const [tab]=await chrome.tabs.query({active:true,currentWindow:true});
-        const [execution]=await chrome.scripting.executeScript({target:{tabId:tab.id},world:"MAIN",func:globalThis.__YNX_INTERNAL_PAGE_WALLET_REQUEST__,args:["ynx",{method:"eth_requestAccounts"}]});
-        return {ok:true,result:await execution?.result};
-      });
-      const calls=await page.evaluate(()=>globalThis.__YNX_FIXTURE_CALLS__);
-      result.dappBridge={fixtureUrl,mainWorldInjection:"production pageWalletRequest via chrome.scripting.executeScript world MAIN",contentScriptRegistered:false,activeTab,discovered,tested:true};
-      result.ynxPriority={response,calls,passed:response?.ok===true&&response.result?.[0]==="0x1111111111111111111111111111111111111111"&&calls.at(-1)?.provider==="ynx"};
-      await stage("provider-request",{response,calls});
-    } catch (error) {
-      result.dappBridge={fixtureUrl,mainWorldInjection:"production pageWalletRequest via chrome.scripting.executeScript world MAIN",contentScriptRegistered:false,activeTab,tested:false,error:{name:error?.name||"Error",message:error?.message||String(error)},reason:"Programmatic action.openPopup does not grant the user-gesture activeTab permission."};
-      result.ynxPriority={passed:false,reason:"MAIN-world injection was denied before provider selection."};
-      await stage("provider-injection-denied",result.dappBridge.error);
-    }
+      result.dappBridge={fixtureUrl,mainWorldInjection:"manifest content script plus origin-bound page bridge",contentScriptRegistered:true,activeTab,tested:true,...bridge};
+      result.ynxPriority={passed:bridge.accounts?.[0]==="0x1111111111111111111111111111111111111111"&&bridge.calls.some((call)=>call.provider==="ynx"&&call.method==="eth_requestAccounts")};
+      const chainSafe=bridge.chainId==="0x1917"||["RPC_UNAVAILABLE","BRIDGE_TIMEOUT"].includes(bridge.chainError?.code);
+      result.bridgeLifecycle={passed:bridge.injected&&chainSafe&&bridge.reconnected?.[0]===bridge.accounts?.[0]&&bridge.events.some(([event])=>event==="disconnect")&&bridge.wrongChainError?.code==="WRONG_NETWORK"&&bridge.unsupportedError?.code===4200};
+      await stage("content-bridge",bridge);
+    } catch(error){result.dappBridge={fixtureUrl,mainWorldInjection:"manifest content script plus origin-bound page bridge",contentScriptRegistered:true,activeTab,tested:false,error:{name:error?.name||"Error",message:error?.message||String(error)}};result.ynxPriority={passed:false};result.bridgeLifecycle={passed:false};await stage("content-bridge-error",result.dappBridge.error)}
     const popup=await context.newPage();await popup.goto(`${extensionOrigin}/index.html`,{waitUntil:"domcontentloaded"});
     await stage("popup-open",{url:popup.url()});
     result.popup={url:popup.url(),opened:true};await popup.locator("#theme").click();await popup.getByLabel("Language").selectOption("ar");
@@ -86,8 +82,9 @@ async function testBrowser(browser){
     await stage("second-launch",{worker:worker2.url(),popup:popup2.url()});
     const preference2=await popup2.evaluate(()=>({locale:localStorage.getItem("ynx.wallet.web.locale"),theme:localStorage.getItem("ynx.wallet.web.theme"),dir:document.documentElement.dir}));
     result.secondLaunch={serviceWorkerRestarted:true,preference:preference2,persisted:preference2.locale===preference.locale&&preference2.theme===preference.theme};
-    result.runtimeLifecycleTested=result.serviceWorker.started&&result.secondLaunch.persisted&&!result.rpcFailClosed.chainChangeSucceeded;
-    result.temporaryUnpackedRuntimeTested=result.runtimeLifecycleTested&&result.ynxPriority.passed;
+    const rpcSafe=result.rpcFailClosed?.proof?.chainId==="0x1917"||result.rpcFailClosed?.chainChangeSucceeded===false;
+    result.runtimeLifecycleTested=result.serviceWorker.started&&result.secondLaunch.persisted&&rpcSafe;
+    result.temporaryUnpackedRuntimeTested=result.runtimeLifecycleTested&&result.ynxPriority.passed&&result.bridgeLifecycle.passed;
   }catch(error){result.error={name:error?.name||"Error",message:error?.message||String(error)};await stage("error",result.error);}
   finally{if(context)await context.close().catch(()=>{});await rm(profile,{recursive:true,force:true}).catch(()=>{});}
   return result;
@@ -98,4 +95,4 @@ const results=[];for(const browser of browsers)results.push(await testBrowser(br
 const artifact=await readFile(join(root,"artifacts","ynx-wallet-chrome-edge-0.1.0.zip"));
 const evidence={schemaVersion:1,sourceCommit,generatedAt:new Date().toISOString(),fixtureAuthority:"isolated test fixture; never production runtime",artifact:{name:"ynx-wallet-chrome-edge-0.1.0.zip",bytes:artifact.length,sha256:createHash("sha256").update(artifact).digest("hex"),signingClass:"unsigned-unpacked-extension"},results,releaseStates:{installedLocal:false,downloadHosted:false,productionSigned:false,storeReleased:false}};
 if(keepEvidence){await mkdir(evidenceDir,{recursive:true});await writeFile(join(evidenceDir,"branded-temporary-runtime.json"),`${JSON.stringify(evidence,null,2)}\n`)}
-console.log(JSON.stringify(evidence,null,2));if(!results.some(result=>result.runtimeLifecycleTested))process.exitCode=1;
+console.log(JSON.stringify(evidence,null,2));if(!results.some(result=>result.temporaryUnpackedRuntimeTested))process.exitCode=1;

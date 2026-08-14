@@ -61,6 +61,14 @@ preflight through that runtime channel. A replaced account prevents the
 sensitive call entirely; provider code `4001` remains a real user rejection and
 is never converted into a signature, transaction hash, or disconnected claim.
 
+The MV3 companion injects a transport-only EIP-1193 provider into the DApp's
+main world at `document_start`. Its isolated-world bridge accepts only exact
+HTTP(S) origins, the originating window, UUID request IDs, array parameters,
+and an explicit method allowlist. Runtime requests are rebound to the sender's
+top-level tab and origin, time out closed, and never manufacture accounts,
+signatures, transactions, or chain responses. Account, chain, and disconnect
+events cross the same origin-bound channel.
+
 ```sh
 npm test
 npm run build

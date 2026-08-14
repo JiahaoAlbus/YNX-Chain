@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "45e5d63c5461424a963b1f8e867f82813ba0010b",
+  "generatedAt": "2026-08-14T04:03:30+08:00",
+  "scope": "MV3 content-script to page-world provider bridge",
+  "artifact": {
+    "name": "ynx-wallet-chrome-edge-0.1.0.zip",
+    "bytes": 177873,
+    "sha256": "0bd773c7614443c17f53aa88c77460ebf139e8f744e5346b2d8d74e9fc216022",
+    "minimumOS": "Chrome 120 / Edge 120",
+    "signingClass": "unsigned-unpacked-extension"
+  },
+  "edge": {
+    "version": "151.0.4129.78",
+    "loadMode": "temporary-unpacked-isolated-profile",
+    "extensionId": "jgijcegbgeobldllfniaejejofobcngk",
+    "serviceWorkerStarted": true,
+    "providerInjection": true,
+    "fixtureAccountBridge": true,
+    "fixtureDisconnectReconnect": true,
+    "fixtureWrongChainRejected": true,
+    "liveRpcExact0x1917": false,
+    "liveRpcFailure": {
+      "code": "RPC_UNAVAILABLE",
+      "message": "YNX Testnet RPC is unavailable."
+    },
+    "installedLocal": false
+  },
+  "chrome": {
+    "version": "151.0.7922.138",
+    "loadMode": "temporary-unpacked-isolated-profile",
+    "serviceWorkerStarted": false,
+    "providerInjection": false,
+    "failure": "service worker did not appear before the bounded timeout",
+    "installedLocal": false
+  },
+  "productionBackend": {
+    "connectedAccount": false,
+    "signedMessage": false,
+    "submittedTransaction": false
+  },
+  "releaseStates": {
+    "installedLocal": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "evidenceFiles": [
+    "branded-edge-injection.json",
+    "branded-edge-accounts.json",
+    "branded-edge-lifecycle.json",
+    "branded-edge-wrong-chain.json",
+    "branded-edge-chain-id.json",
+    "branded-chrome-injection.json"
+  ]
+}

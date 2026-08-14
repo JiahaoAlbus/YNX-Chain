@@ -31,8 +31,8 @@ function providerList(ethereum) {
 }
 
 function ynxProvider(provider) {
-  return provider.isYNXWallet === true || provider.isYnxWallet === true ||
-    String(provider.providerInfo?.rdns || provider.rdns || "").toLowerCase().includes("ynx");
+  const rdns = String(provider.providerInfo?.rdns || provider.rdns || "").toLowerCase();
+  return provider.isYNXWallet === true || provider.isYnxWallet === true || rdns === "com.ynx.wallet" || rdns.endsWith(".ynxweb4.com");
 }
 
 export function discoverInjectedProviders(scope = globalThis) {
@@ -67,7 +67,7 @@ export async function discoverWallets(scope = globalThis) {
   const announced = await discoverEip6963(scope);
   const injected = discoverInjectedProviders(scope);
   const announcedYNX = announced.find(({info, provider}) =>
-    String(info.rdns || "").toLowerCase().includes("ynx") || ynxProvider(provider));
+    ynxProvider({...provider, providerInfo:info}) || ynxProvider(provider));
   const announcedMetaMask = announced.find(({info, provider}) =>
     String(info.rdns || "").toLowerCase().includes("metamask") || provider.isMetaMask === true);
   return Object.freeze({

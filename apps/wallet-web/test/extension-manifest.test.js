@@ -9,7 +9,12 @@ test("extension packages expose truthful install metadata without hosted-update 
     assert.equal(manifest.homepage_url, extensionHomepage);
     assert.deepEqual(manifest.permissions, ["activeTab", "scripting", "storage"]);
     assert.equal(manifest.action.default_popup, "index.html");
-    assert.equal("host_permissions" in manifest, false);
+    assert.deepEqual(manifest.content_scripts[0].js,["content-script.js"]);
+    assert.equal(manifest.content_scripts[0].run_at,"document_start");
+    assert.deepEqual(manifest.web_accessible_resources[0].resources,["page-provider.js"]);
+    assert.deepEqual(manifest.host_permissions,["https://*/*","http://localhost/*","http://127.0.0.1/*"]);
+    assert.equal(manifest.host_permissions.includes("http://*/*"),false);
+    assert.equal(manifest.host_permissions.some((pattern)=>pattern.startsWith("file:")),false);
     assert.equal("update_url" in manifest, false);
   }
 });

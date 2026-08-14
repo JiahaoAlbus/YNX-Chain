@@ -20,7 +20,8 @@ for (const [name, manifest] of variants) {
   const target = join(dist, name); await mkdir(target, {recursive: true});
   for (const file of ["index.html", "styles.css", "accessibility.css", "app.js"]) await cp(join(root, "public", file), join(target, file));
   for (const file of ["provider.js", "i18n.js"]) await cp(join(root, "src", file), join(target, file));
-  await cp(join(root, "extension", "service-worker.js"), join(target, "service-worker.js"));
+  for (const file of ["service-worker.js", "content-script.js", "page-provider.js"]) await cp(join(root, "extension", file), join(target, file));
+  await cp(join(root, "src", "extension-bridge.js"), join(target, "extension-bridge.js"));
   await cp(join(root, "public", "ynx-logo.png"), join(target, "ynx-logo.png"));
   const html = (await readFile(join(target, "index.html"), "utf8")).replace('<link rel="manifest" href="./manifest.webmanifest">', "");
   await writeFile(join(target, "index.html"), html);

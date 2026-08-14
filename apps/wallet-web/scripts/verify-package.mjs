@@ -26,8 +26,10 @@ for (const artifact of manifest.artifacts) {
   }
 
   const extension = JSON.parse(execFileSync("unzip", ["-p", archive, "manifest.json"], {encoding: "utf8"}));
+  for (const required of ["content-script.js", "page-provider.js", "extension-bridge.js", "service-worker.js"]) if (!entries.includes(required)) throw new Error(`Missing ${required}: ${artifact.name}`);
   if (extension.manifest_version !== 3 || extension.action?.default_popup !== "index.html") throw new Error(`Invalid MV3 entrypoint: ${artifact.name}`);
-  for (const forbidden of ["host_permissions", "update_url", "key"]) if (forbidden in extension) throw new Error(`Forbidden ${forbidden}: ${artifact.name}`);
+  if (JSON.stringify(extension.host_permissions) !== JSON.stringify(["https://*/*","http://localhost/*","http://127.0.0.1/*"])) throw new Error(`Invalid host permissions: ${artifact.name}`);
+  for (const forbidden of ["update_url", "key"]) if (forbidden in extension) throw new Error(`Forbidden ${forbidden}: ${artifact.name}`);
   if (artifact.browsers.includes("Firefox")) {
     if (extension.browser_specific_settings?.gecko?.id !== "wallet-testnet@ynxweb4.com" || extension.browser_specific_settings?.gecko?.strict_min_version !== "128.0") throw new Error(`Invalid Firefox identity metadata: ${artifact.name}`);
   } else if (extension.minimum_chrome_version !== "120") {

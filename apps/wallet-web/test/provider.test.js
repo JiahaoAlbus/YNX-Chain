@@ -59,6 +59,13 @@ test("injected discovery prefers YNX and keeps MetaMask explicit", () => {
   assert.equal(result.ynx, ynx); assert.equal(result.metamask, metamask); assert.equal(result.any, ynx);
 });
 
+test("provider identity does not trust an arbitrary rdns substring", () => {
+  const spoofed = Object.assign(provider(),{isMetaMask:true,providerInfo:{rdns:"com.ynx.fixture.metamask"}});
+  const ynx = Object.assign(provider(),{isYNXWallet:true});
+  const result = discoverInjectedProviders({ethereum:{providers:[spoofed,ynx]}});
+  assert.equal(result.ynx,ynx);assert.equal(result.metamask,spoofed);
+});
+
 test("discovery presentation directly prefers YNX and gives two non-empty fallbacks", () => {
   assert.deepEqual(walletDiscoveryPresentation({ynx:provider(),metamask:provider()}),{ynxPresent:true,metamaskPresent:true,showYNXConnect:true,showYNXDownload:false,showMetaMaskChoice:false,metaMaskChoice:"connect"});
   assert.deepEqual(walletDiscoveryPresentation({ynx:null,metamask:provider()}),{ynxPresent:false,metamaskPresent:true,showYNXConnect:false,showYNXDownload:true,showMetaMaskChoice:true,metaMaskChoice:"connect"});
