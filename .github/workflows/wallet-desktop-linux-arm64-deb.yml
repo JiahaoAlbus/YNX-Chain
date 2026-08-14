@@ -30,7 +30,11 @@ jobs:
           npm ci --prefix apps/wallet-desktop
           npm test --prefix apps/wallet-desktop
       - name: Build current and upgrade-preflight deb packages
+        env:
+          USE_SYSTEM_FPM: "true"
         run: |
+          sudo gem install fpm --version 1.15.1 --no-document
+          test "$(fpm --version)" = 1.15.1
           pushd apps/wallet-desktop
           npx electron-builder --linux deb --arm64 --publish never --config.directories.output=dist-preflight --config.extraMetadata.version=0.0.9
           npx electron-builder --linux deb --arm64 --publish never
