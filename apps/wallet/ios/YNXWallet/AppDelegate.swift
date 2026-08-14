@@ -1,6 +1,11 @@
 internal import Expo
+import Darwin
+import os
 import React
 import ReactAppDependencyProvider
+
+private let walletLifecycleLogger = Logger(subsystem: "com.ynxweb4.wallet", category: "lifecycle")
+private let walletCallbackLogger = Logger(subsystem: "com.ynxweb4.wallet", category: "callback")
 
 @main
 class AppDelegate: ExpoAppDelegate {
@@ -13,6 +18,7 @@ class AppDelegate: ExpoAppDelegate {
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
   ) -> Bool {
+    walletLifecycleLogger.notice("YNX_WALLET_LAUNCHED pid=\(getpid(), privacy: .public)")
     let delegate = ReactNativeDelegate()
     let factory = ExpoReactNativeFactory(delegate: delegate)
     delegate.dependencyProvider = RCTAppDependencyProvider()
@@ -37,6 +43,7 @@ class AppDelegate: ExpoAppDelegate {
     open url: URL,
     options: [UIApplication.OpenURLOptionsKey: Any] = [:]
   ) -> Bool {
+    walletCallbackLogger.notice("YNX_WALLET_CALLBACK_RECEIVED pid=\(getpid(), privacy: .public) scheme=\(url.scheme ?? "unknown", privacy: .public)")
     return super.application(app, open: url, options: options) || RCTLinkingManager.application(app, open: url, options: options)
   }
 

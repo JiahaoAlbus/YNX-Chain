@@ -84,11 +84,35 @@ jobs:
           xcrun simctl terminate "$DEVICE" com.ynxweb4.wallet 2>/dev/null || true
           xcrun simctl launch "$DEVICE" com.ynxweb4.wallet | tee proof/ci-ios/cold-launch.txt
           xcrun simctl get_app_container "$DEVICE" com.ynxweb4.wallet | tee proof/ci-ios/app-container.txt
-          xcrun simctl openurl "$DEVICE" 'ynxwallet://authorize?request=invalid' | tee proof/ci-ios/deep-link.txt
-          xcrun simctl io "$DEVICE" screenshot proof/ci-ios/wallet-deep-link-rejection.png
           xcrun simctl terminate "$DEVICE" com.ynxweb4.wallet
           xcrun simctl launch "$DEVICE" com.ynxweb4.wallet | tee proof/ci-ios/second-launch.txt
           xcrun simctl io "$DEVICE" screenshot proof/ci-ios/wallet-second-launch.png
+      - name: Deliver malformed callback and prove fail-closed UI semantically
+        timeout-minutes: 15
+        working-directory: apps/wallet
+        run: |
+          set -euo pipefail
+          DEVICE="$(xcrun simctl list devices booted | awk -F '[()]' '/iPhone/{print $2; exit}')"
+          test -n "$DEVICE"
+          mkdir -p proof/ci-ios/xcresult-attachments
+          xcodebuild test \
+            -workspace ios/YNXWallet.xcworkspace \
+            -scheme YNXWallet \
+            -configuration Release \
+            -destination "platform=iOS Simulator,id=$DEVICE" \
+            -only-testing:YNXWalletUITests/MalformedCallbackUITests/testMalformedCallbackIsDeliveredAndRejected \
+            -resultBundlePath proof/ci-ios/MalformedCallback.xcresult \
+            | tee proof/ci-ios/malformed-callback-xctest.log
+          xcrun simctl spawn "$DEVICE" log show \
+            --style compact \
+            --last 10m \
+            --predicate 'subsystem == "com.ynxweb4.wallet" AND (category == "callback" OR category == "lifecycle")' \
+            | tee proof/ci-ios/malformed-callback-native.log
+          grep -E 'YNX_WALLET_CALLBACK_RECEIVED pid=[0-9]+ scheme=ynxwallet' proof/ci-ios/malformed-callback-native.log
+          grep -F "Test case '-[YNXWalletUITests.MalformedCallbackUITests testMalformedCallbackIsDeliveredAndRejected]' passed" proof/ci-ios/malformed-callback-xctest.log
+          xcrun xcresulttool export attachments \
+            --path proof/ci-ios/MalformedCallback.xcresult \
+            --output-path proof/ci-ios/xcresult-attachments
       - name: Record truthful Simulator artifact facts
         working-directory: apps/wallet
         run: |
