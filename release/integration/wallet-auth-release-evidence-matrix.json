@@ -35,13 +35,31 @@
   "pendingOwnerCommits": [],
   "pendingOwnerEvidence": [
     {
-      "owner": "ios-macos",
-      "workflowRunId": 31768901687,
-      "remoteFastForwardReported": false,
-      "remoteReadbackComplete": false,
-      "ciComplete": true,
+      "owner": "core-auth-gateway",
+      "candidateCommit": "27416474aadd8f6ab996a2b49bfa3b28af608b03",
+      "remoteFastForwardReported": true,
+      "remoteReadbackComplete": true,
+      "ciComplete": null,
       "consumedForReleaseTruth": false,
-      "note": "macOS Universal workflow is green, but no Owner evidence SHA or exact artifact hashes were provided; no release truth is consumed."
+      "note": "Stale-lock recovery evidence is queued for the next independent atomic slice and is not consumed in this Universal macOS slice."
+    },
+    {
+      "owner": "android-api36",
+      "candidateCommit": "0ad16656c31b3078ca6a77141a857f3ceacb4875",
+      "remoteFastForwardReported": true,
+      "remoteReadbackComplete": true,
+      "ciComplete": null,
+      "consumedForReleaseTruth": false,
+      "note": "Authorization-modal reentry work is an unapproved successor to the frozen Android evidence and changes no device truth."
+    },
+    {
+      "owner": "desktop-cli-sdk",
+      "candidateCommit": "6edf84f62a95aa465106194178ad27ac89ead7e0",
+      "remoteFastForwardReported": true,
+      "remoteReadbackComplete": true,
+      "ciComplete": null,
+      "consumedForReleaseTruth": false,
+      "note": "Linux RPM database query work lacks a terminal Owner evidence checkpoint and changes no release truth."
     }
   ],
   "ownerSources": [
@@ -75,10 +93,10 @@
     {
       "owner": "ios-macos",
       "branch": "codex/wallet-ios-macos-20260813",
-      "sourceCommit": "d71c9c9626f584fcb91aadf7aa44b8928f949385",
-      "remoteCommitObserved": "d71c9c9626f584fcb91aadf7aa44b8928f949385",
-      "branchHeadObserved": "d71c9c9626f584fcb91aadf7aa44b8928f949385",
-      "remoteVerifiedAt": "2026-08-14T04:12:00Z",
+      "sourceCommit": "8ccb7bf9c4bf9453ed72395d1f024de9fa75fb4d",
+      "remoteCommitObserved": "8ccb7bf9c4bf9453ed72395d1f024de9fa75fb4d",
+      "branchHeadObserved": "8ccb7bf9c4bf9453ed72395d1f024de9fa75fb4d",
+      "remoteVerifiedAt": "2026-08-14T04:26:00Z",
       "verificationMode": "github-git-database-parent-tree-blob-readback"
     },
     {
@@ -349,6 +367,13 @@
       "path": "apps/wallet/proof/macos-native-ci-evidence-2026-08-14.json",
       "supports": ["macos.build", "macos.install", "macos.coldLaunch", "macos.secondLaunch", "macos.callback"]
     },
+    "macos-universal-native-ci": {
+      "type": "git-object",
+      "direct": true,
+      "commit": "8ccb7bf9c4bf9453ed72395d1f024de9fa75fb4d",
+      "path": "apps/wallet/proof/macos-native-ci-evidence-2026-08-14.json",
+      "supports": ["macos.build", "macos.install", "macos.coldLaunch", "macos.secondLaunch", "macos.callback"]
+    },
     "linux-desktop-action": {
       "type": "git-object",
       "direct": true,
@@ -526,10 +551,10 @@
       "ownerSource": "ios-macos",
       "artifactClass": "ad-hoc-local-arm64-app",
       "status": "hosted-ad-hoc-native-ci",
-      "capabilities": {"installedHostedRunner":true,"installedLocal":false,"keychainRoundTripVerified":true,"biometricRecoverySucceeded":false,"developerIDSigned":false,"notarized":false},
+      "capabilities": {"universalPackageVerified":true,"arm64InstalledHostedRunner":true,"x86_64InstalledHostedRunner":false,"installedLocal":false,"keychainRoundTripVerified":true,"biometricRecoverySucceeded":false,"developerIDSigned":false,"notarized":false},
       "gates": {"build":true,"install":true,"coldLaunch":true,"secondLaunch":true,"testnet":false,"sign":false,"tx":false,"callback":true,"reconnect":false,"downloadHosted":false,"productionSigned":false,"storeReleased":false},
-      "evidenceBindings": {"build":["macos-native","macos-native-ci-current"],"install":["macos-native","macos-native-ci-current"],"coldLaunch":["macos-native","macos-native-ci-current"],"secondLaunch":["macos-native","macos-native-ci-current"],"testnet":["macos-native-ci-current"],"sign":["macos-native-ci-current"],"tx":["macos-native-ci-current"],"callback":["macos-native-ci-current"],"reconnect":["macos-native-ci-current"],"downloadHosted":["macos-native-ci-current"],"productionSigned":["macos-native-ci-current"],"storeReleased":["macos-native-ci-current"]},
-      "notes": ["Run 31768312759 proves arm64 macOS 13+ ad-hoc native CI install, distinct cold/second PIDs, Keychain canary roundtrip, malformed callback delivery and app rejection. Biometric recovery was unavailable and failed closed. No successful authorization, Testnet, signing, tx, reconnect, Developer ID, notarization, public hosting or store release is claimed."]
+      "evidenceBindings": {"build":["macos-native","macos-native-ci-current","macos-universal-native-ci"],"install":["macos-native","macos-native-ci-current","macos-universal-native-ci"],"coldLaunch":["macos-native","macos-native-ci-current","macos-universal-native-ci"],"secondLaunch":["macos-native","macos-native-ci-current","macos-universal-native-ci"],"testnet":["macos-native-ci-current","macos-universal-native-ci"],"sign":["macos-native-ci-current","macos-universal-native-ci"],"tx":["macos-native-ci-current","macos-universal-native-ci"],"callback":["macos-native-ci-current","macos-universal-native-ci"],"reconnect":["macos-native-ci-current","macos-universal-native-ci"],"downloadHosted":["macos-native-ci-current","macos-universal-native-ci"],"productionSigned":["macos-native-ci-current","macos-universal-native-ci"],"storeReleased":["macos-native-ci-current","macos-universal-native-ci"]},
+      "notes": ["Run 31768901687 proves an x86_64+arm64 Universal package and arm64 hosted-runner install, distinct cold/second PIDs, Keychain canary, malformed callback delivery and app rejection. x86_64 install/launch, biometric recovery, Universal Link/DApp success, Testnet, signing, tx, reconnect, Developer ID, notarization, public hosting and store release remain false."]
     },
     {
       "id": "linux-desktop-x64",

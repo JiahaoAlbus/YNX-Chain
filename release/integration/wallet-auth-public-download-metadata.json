@@ -64,10 +64,10 @@
       "exclusionReason": "The 30-day QA identity and local evidence cannot become a public production download."
     },
     {
-      "id": "macos-arm64-ad-hoc",
-      "sourceCommit": "d71c9c9626f584fcb91aadf7aa44b8928f949385",
+      "id": "macos-universal-ad-hoc",
+      "sourceCommit": "8ccb7bf9c4bf9453ed72395d1f024de9fa75fb4d",
       "artifactName": "YNX-Wallet-macOS-ad-hoc.zip",
-      "sha256": "14c76db5ac7585f7e468fdaae08e4f82e219e524cec2c20802c29333eceba7e8",
+      "sha256": "e3c0e1ed9e8d931ca06d51457e49a92c2166378af4106b314541b22638969e04",
       "signingClass": "ad-hoc-local-arm64-app",
       "publicUrl": null,
       "immutableUrl": null,
@@ -75,7 +75,7 @@
       "productionSigned": false,
       "storeReleased": false,
       "websitePublishable": false,
-      "exclusionReason": "The hosted-runner ad-hoc app is a temporary CI artifact, not Developer ID signed, notarized, publicly hosted or store released."
+      "exclusionReason": "The Universal ad-hoc app is a temporary CI artifact; only arm64 lifecycle is evidenced, and it is not Developer ID signed, notarized, publicly hosted or store released."
     },
     {
       "id": "linux-desktop-x64",
