@@ -154,12 +154,31 @@ await (await account.connect(guardian).requestRecovery(
   ethers.hexlify(newPasskeyPublic.slice(1, 33)),
   ethers.hexlify(newPasskeyPublic.slice(33)),
 )).wait();
+assert.equal(await account.sessionEpoch(), 2n);
+assert.equal((await account.sessions(sessionKey.address)).epoch, 1n);
+const pendingRecoverySessionOp = await operation(sessionCall, 55n);
+const pendingRecoverySessionHash = await entryPoint.getUserOpHash(pendingRecoverySessionOp);
+pendingRecoverySessionOp.signature = ethers.concat([
+  "0x02",
+  sessionKey.address,
+  sessionKey.signingKey.sign(pendingRecoverySessionHash).serialized,
+]);
+await expectValidationFailed(pendingRecoverySessionOp);
+await (await account.connect(owner).cancelRecovery()).wait();
+assert.equal((await account.recovery()).executeAfter, 0n);
+await expectValidationFailed(pendingRecoverySessionOp);
+await (await account.connect(guardian).requestRecovery(
+  newOwner.address,
+  ethers.hexlify(newPasskeyPublic.slice(1, 33)),
+  ethers.hexlify(newPasskeyPublic.slice(33)),
+)).wait();
+assert.equal(await account.sessionEpoch(), 3n);
 await assert.rejects(account.executeRecovery());
 await ethers.provider.send("evm_increaseTime", [86401]);
 await ethers.provider.send("evm_mine", []);
 await (await account.executeRecovery()).wait();
 assert.equal(await account.owner(), newOwner.address);
-assert.equal(await account.sessionEpoch(), 2n);
+assert.equal(await account.sessionEpoch(), 3n);
 assert.equal((await account.sessions(sessionKey.address)).epoch, 1n);
 const revokedSessionOp = await operation(sessionCall, 55n);
 const revokedHash = await entryPoint.getUserOpHash(revokedSessionOp);
@@ -386,7 +405,9 @@ console.log(JSON.stringify({
   wrongTargetRejection: "passed",
   userVerificationRequired: "passed",
   delayedGuardianRecovery: "passed",
-  recoveryRevokedSessions: "passed",
+  recoveryRequestRevokedSessionsImmediately: "passed",
+  recoveryCancellationDidNotRestoreSessions: "passed",
+  recoveryExecutionKeptSessionsRevoked: "passed",
   counterfactualFactoryUserOperation: "passed",
   sponsoredFirstActionUserOperation: "passed",
   merchantAndDeveloperSponsorship: "passed",

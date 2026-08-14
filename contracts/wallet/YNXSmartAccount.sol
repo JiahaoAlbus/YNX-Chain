@@ -118,8 +118,7 @@ contract YNXSmartAccount is BaseAccount {
 
     function revokeAllSessions() external {
         if (msg.sender != owner && msg.sender != guardian && msg.sender != address(this)) revert Unauthorized();
-        unchecked { ++sessionEpoch; }
-        emit AllSessionsRevoked(sessionEpoch, msg.sender);
+        _revokeAllSessions(msg.sender);
     }
 
     function executeSession(address sessionKey, address target, uint256 value, bytes calldata data) external {
@@ -149,6 +148,10 @@ contract YNXSmartAccount is BaseAccount {
         if (newOwner == address(0) || newPasskeyX == bytes32(0) || newPasskeyY == bytes32(0)) {
             revert InvalidConfiguration();
         }
+        // A recovery request signals possible owner compromise. Cut off every
+        // existing session immediately instead of leaving delegated asset
+        // authority live for the full recovery delay.
+        _revokeAllSessions(msg.sender);
         uint48 executeAfter = uint48(block.timestamp) + recoveryDelay;
         recovery = Recovery(newOwner, newPasskeyX, newPasskeyY, executeAfter);
         emit RecoveryRequested(msg.sender, newOwner, executeAfter);
@@ -168,7 +171,6 @@ contract YNXSmartAccount is BaseAccount {
         passkeyX = pending.newPasskeyX;
         passkeyY = pending.newPasskeyY;
         delete recovery;
-        unchecked { ++sessionEpoch; }
         emit RecoveryExecuted(oldOwner, owner, sessionEpoch);
     }
 
@@ -182,6 +184,11 @@ contract YNXSmartAccount is BaseAccount {
 
     function _requireForExecute() internal view override {
         if (msg.sender != address(entryPoint()) && msg.sender != owner) revert Unauthorized();
+    }
+
+    function _revokeAllSessions(address actor) internal {
+        ++sessionEpoch;
+        emit AllSessionsRevoked(sessionEpoch, actor);
     }
 
     function _validateSignature(PackedUserOperation calldata userOp, bytes32 userOpHash)
