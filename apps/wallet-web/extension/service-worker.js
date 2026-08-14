@@ -4,8 +4,11 @@ import {CORE_WALLET_AUTH_BINDING} from "./core-auth-binding.js";
 import {requireCanonicalAuthorizationContext} from "./core-auth-consumer.js";
 import {consumeSensitiveRequest,parseSensitiveRequest,validateSensitiveResult} from "./extension-sensitive-policy.js";
 import {activeTabInjectionPlans,requireActiveDappTab} from "./active-tab-policy.js";
+import {runExtensionMigration} from "./extension-migration.js";
 
 const extensionApi=globalThis.browser||globalThis.chrome,CHAIN_ID=YNX_CHAIN_ID;
+const migrationPromise=runExtensionMigration(extensionApi,{alarmsDeclared:false}).then(report=>({ok:true,report}),error=>({ok:false,error}));
+async function requireMigrationReady(){const state=await migrationPromise;if(!state.ok)throw Object.assign(new Error("Extension upgrade cleanup is incomplete; wallet access remains disabled."),{code:"MIGRATION_INCOMPLETE",cause:state.error});return state.report}
 const YNX_CHAIN=Object.freeze({chainId:CHAIN_ID,chainName:"YNX Testnet",nativeCurrency:Object.freeze({name:"YNX Testnet",symbol:"YNXT",decimals:18}),rpcUrls:Object.freeze(["https://evm.ynxweb4.com"]),blockExplorerUrls:Object.freeze(["https://explorer.ynxweb4.com"])});
 
 function pageWalletRequest(preference,input){
@@ -70,11 +73,11 @@ async function handleDappRequest(message,sender){
 }
 
 extensionApi.runtime.onMessage.addListener((message,sender,sendResponse)=>{
-  if(message?.type==="YNX_WALLET_DISCOVER"){executeActive("any",{method:"ynx_walletDetected"}).then((result)=>sendResponse(result||{ynx:false,metamask:false})).catch(()=>sendResponse({ynx:false,metamask:false}));return true}
+  if(message?.type==="YNX_WALLET_DISCOVER"){requireMigrationReady().then(()=>executeActive("any",{method:"ynx_walletDetected"})).then((result)=>sendResponse(result||{ynx:false,metamask:false})).catch((error)=>sendResponse({ynx:false,metamask:false,error:publicBridgeError(error)}));return true}
   if(message?.type==="YNX_WALLET_REQUEST"){
     if(!REQUEST_METHODS.includes(message.input?.method)){sendResponse({ok:false,error:{code:4200,message:"Unsupported wallet method."}});return false}
-    executeActive(message.preference,message.input).then((result)=>sendResponse({ok:true,result})).catch((error)=>sendResponse({ok:false,error:publicBridgeError(error)}));return true;
+    requireMigrationReady().then(()=>executeActive(message.preference,message.input)).then((result)=>sendResponse({ok:true,result})).catch((error)=>sendResponse({ok:false,error:publicBridgeError(error)}));return true;
   }
   if(message?.type!==RUNTIME_REQUEST)return false;
-  handleDappRequest(message,sender).then((result)=>sendResponse({ok:true,result})).catch((error)=>sendResponse({ok:false,error:publicBridgeError(error)}));return true;
+  requireMigrationReady().then(()=>handleDappRequest(message,sender)).then((result)=>sendResponse({ok:true,result})).catch((error)=>sendResponse({ok:false,error:publicBridgeError(error)}));return true;
 });

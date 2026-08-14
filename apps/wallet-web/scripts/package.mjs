@@ -7,7 +7,7 @@ import "./build.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const dist = join(root, "dist"), artifacts = join(root, "artifacts");
-execFileSync(process.execPath, ["--test", "test/i18n.test.js", "test/provider.test.js", "test/ui-contract.test.js", "test/preferences.test.js", "test/service-worker-policy.test.js", "test/active-tab-policy.test.js", "test/extension-manifest.test.js", "test/extension-bridge.test.js", "test/extension-rpc.test.js", "test/extension-sensitive-policy.test.js"], {cwd:root, stdio:"inherit"});
+execFileSync(process.execPath, ["--test", "test/i18n.test.js", "test/provider.test.js", "test/ui-contract.test.js", "test/preferences.test.js", "test/service-worker-policy.test.js", "test/active-tab-policy.test.js", "test/extension-manifest.test.js", "test/extension-bridge.test.js", "test/extension-rpc.test.js", "test/extension-sensitive-policy.test.js", "test/extension-migration.test.js"], {cwd:root, stdio:"inherit"});
 await mkdir(artifacts, {recursive: true});
 const reproducibleTime = new Date("2000-01-01T00:00:00.000Z");
 async function normalizeMtime(path) {

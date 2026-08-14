@@ -31,7 +31,7 @@ for (const artifact of manifest.artifacts) {
   }
 
   const extension = JSON.parse(execFileSync("unzip", ["-p", archive, "manifest.json"], {encoding: "utf8"}));
-  for (const required of ["preferences.js", "content-script.js", "page-provider.js", "active-tab-policy.js", "extension-bridge.js", "extension-rpc.js", "core-auth-consumer.js", "core-auth-binding.js", "extension-sensitive-policy.js", "service-worker.js"]) if (!entries.includes(required)) throw new Error(`Missing ${required}: ${artifact.name}`);
+  for (const required of ["preferences.js", "content-script.js", "page-provider.js", "active-tab-policy.js", "extension-migration.js", "extension-bridge.js", "extension-rpc.js", "core-auth-consumer.js", "core-auth-binding.js", "extension-sensitive-policy.js", "service-worker.js"]) if (!entries.includes(required)) throw new Error(`Missing ${required}: ${artifact.name}`);
   if (extension.manifest_version !== 3 || extension.action?.default_popup !== "index.html") throw new Error(`Invalid MV3 entrypoint: ${artifact.name}`);
   if (extension.content_security_policy?.extension_pages !== "script-src 'self'; object-src 'self'; connect-src https://evm.ynxweb4.com") throw new Error(`Invalid extension RPC CSP: ${artifact.name}`);
   if (JSON.stringify(extension.host_permissions) !== JSON.stringify(["https://evm.ynxweb4.com/*"])) throw new Error(`Invalid host permissions: ${artifact.name}`);

@@ -61,6 +61,14 @@ network connection only to that origin.
 The same action is keyboard-accessible through `Ctrl+Shift+Y` (macOS
 `MacCtrl+Shift+Y`). This command grants no durable site permission: closing the
 browser or navigating the tab requires a new explicit action before injection.
+On every extension service-worker start, migration v2 removes the historical
+all-site and localhost origin grants, unregisters every dynamic content script,
+and clears extension alarms when that API was historically available. It then
+rechecks that no legacy capability remains and that the frozen RPC origin still
+exists. The migration writes only its non-sensitive report in extension-local
+storage; it never reads or deletes account/session state. Any cleanup or report
+failure blocks discovery and all wallet requests with `MIGRATION_INCOMPLETE`
+before provider injection or sensitive work.
 
 The PWA caches only its same-origin shell. Navigations use a network-first
 offline fallback, static assets never receive HTML as a substitute, and RPC

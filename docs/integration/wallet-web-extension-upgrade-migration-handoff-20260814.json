@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "owner": "wallet-web-pwa-extensions",
+  "sourceBaseline": "1ac8c4edd2c8f1b794b3aec9b70b1cf262576f3a",
+  "sourceParent": "7522b8162b2581c7fed216d0e4e9fef44ff4fef7",
+  "sourceTree": "0d6e1649051788cd8313792ed6f986e70e4c9719",
+  "slice": "extension upgrade cleanup and migration fail-closed",
+  "evidence": "apps/wallet-web/evidence/runtime/extension-upgrade-migration-20260814.json",
+  "gateClass": "executable migration policy imported from exact built ZIPs; not a browser installation",
+  "migration": {
+    "version": 2,
+    "legacyOriginsRemoved": [
+      "https://*/*",
+      "http://localhost/*",
+      "http://127.0.0.1/*"
+    ],
+    "requiredOriginRetained": "https://evm.ynxweb4.com/*",
+    "dynamicContentScriptsRemaining": 0,
+    "chromiumAlarmsRemaining": 0,
+    "firefoxAlarmsPolicy": "API unavailable is allowed only because historical and current manifests never declare alarms",
+    "firstInstallPassed": true,
+    "upgradePassed": true,
+    "secondStartupIdempotent": true,
+    "accountStateTouched": false
+  },
+  "failClosed": {
+    "cleanupFailure": "MIGRATION_INCOMPLETE",
+    "missingRpcPermission": "REQUIRED_RPC_PERMISSION_MISSING",
+    "discoveryProviderSuccess": false,
+    "sensitiveSuccess": false,
+    "scriptingCallsBeforeFailure": 0
+  },
+  "mustRemainFalse": {
+    "providerConnected": false,
+    "accountAuthorized": false,
+    "messageSigned": false,
+    "transactionSubmitted": false,
+    "installedLocal": false,
+    "integratedCentral": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

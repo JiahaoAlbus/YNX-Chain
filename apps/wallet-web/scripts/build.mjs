@@ -34,6 +34,7 @@ for (const [name, manifest] of variants) {
   await cp(join(root, "src", "core-auth-consumer.js"), join(target, "core-auth-consumer.js"));
   await cp(join(root, "src", "extension-sensitive-policy.js"), join(target, "extension-sensitive-policy.js"));
   await cp(join(root, "src", "active-tab-policy.js"), join(target, "active-tab-policy.js"));
+  await cp(join(root, "src", "extension-migration.js"), join(target, "extension-migration.js"));
   await writeFile(join(target,"core-auth-binding.js"),`export const CORE_WALLET_AUTH_BINDING=Object.freeze(${JSON.stringify(coreAuthBinding)});\n`);
   await cp(join(root, "public", "ynx-logo.png"), join(target, "ynx-logo.png"));
   const html = (await readFile(join(target, "index.html"), "utf8")).replace('<link rel="manifest" href="./manifest.webmanifest">', "");
