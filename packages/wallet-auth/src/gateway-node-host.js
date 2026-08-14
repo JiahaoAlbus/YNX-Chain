@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from "node:crypto";
-import { chmodSync, mkdirSync, readFileSync, renameSync, statSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, readFileSync, renameSync, rmdirSync, statSync, writeFileSync } from "node:fs";
 import { dirname, isAbsolute } from "node:path";
 import { canonicalJSON, exactFields, WalletAuthError } from "./canonical.js";
 import { forwardedClient, GatewayAdmissionController } from "./gateway-admission.js";
@@ -11,6 +11,8 @@ export const CANONICAL_GATEWAY_NODE_STATE_SCHEMA_VERSION = 1;
 export const CANONICAL_GATEWAY_OBSERVABILITY_SCHEMA_VERSION = 1;
 const STATE_FIELDS = ["schemaVersion", "stateDigest", "snapshot"];
 const MAX_PROOF_HEADER_BYTES = 16_384;
+const STATE_LOCK_WAIT_MS = 2_000;
+const STATE_LOCK_RETRY_MS = 5;
 const JSON_HEADERS = Object.freeze({
   "cache-control": "no-store",
   "content-type": "application/json; charset=utf-8",
@@ -89,6 +91,7 @@ export class CanonicalWalletGatewayNodeHost {
       let errorId = null;
       let status = 500;
       let admissionTicket = null;
+      let releaseStateLock = null;
       try {
         admissionTicket = this.#admission?.enter(forwardedClient(request)) ?? null;
         if (admissionTicket && !admissionTicket.ok) {
@@ -116,6 +119,8 @@ export class CanonicalWalletGatewayNodeHost {
         }
         const body = await boundedBody(request);
         const proof = decodeGatewayProofHeader(request.headers[CANONICAL_GATEWAY_PROOF_HEADER]);
+        releaseStateLock = await acquireStateLock(this.#statePath);
+        this.#reload();
         const before = this.#kernel.snapshot();
         const result = this.#kernel.dispatch({
           method: request.method,
@@ -153,6 +158,7 @@ export class CanonicalWalletGatewayNodeHost {
           traceId,
         }));
       } finally {
+        if (releaseStateLock) releaseStateLock();
         if (admissionTicket?.ok) admissionTicket.release();
         this.#metrics.inFlight -= 1;
         const durationMs = Math.max(0, Date.now() - startedAt);
@@ -293,6 +299,16 @@ export class CanonicalWalletGatewayNodeHost {
     writeFileSync(temporary, canonicalJSON(envelope), { encoding: "utf8", mode: 0o600, flag: "w" });
     chmodSync(temporary, 0o600);
     renameSync(temporary, this.#statePath);
+  }
+
+  #reload() {
+    const stored = loadState(this.#statePath);
+    if (!stored) throw new WalletAuthError("STATE_UNAVAILABLE", "Canonical Gateway persisted state is unavailable");
+    const refreshed = new CanonicalWalletGatewayHttpKernel(this.#registry, stored.snapshot);
+    if (stored.stateDigest !== gatewayStateDigest(refreshed.snapshot())) {
+      throw new WalletAuthError("STATE_TAMPERED", "Canonical Gateway persisted state digest is invalid");
+    }
+    this.#kernel = refreshed;
   }
 }
 
@@ -448,6 +464,23 @@ function loadState(path) {
   return { schemaVersion: value.schemaVersion, stateDigest: value.stateDigest, snapshot: value.snapshot, needsRewrite };
 }
 
+async function acquireStateLock(path) {
+  const lockPath = `${path}.lock`;
+  const deadline = Date.now() + STATE_LOCK_WAIT_MS;
+  for (;;) {
+    try {
+      mkdirSync(lockPath, { mode: 0o700 });
+      return () => rmdirSync(lockPath);
+    } catch (caught) {
+      if (!caught || caught.code !== "EEXIST") throw caught;
+      if (Date.now() >= deadline) {
+        throw new WalletAuthError("STATE_LOCKED", "Canonical Gateway persisted state is locked");
+      }
+      await new Promise(resolve => setTimeout(resolve, STATE_LOCK_RETRY_MS));
+    }
+  }
+}
+
 async function boundedBody(request) {
   const chunks = [];
   let size = 0;
@@ -465,6 +498,9 @@ function statePath(value) {
 }
 
 function hostError(caught) {
-  if (caught instanceof WalletAuthError) return { status: caught.code === "INVALID_BODY" ? 413 : 400, code: caught.code, message: caught.message };
+  if (caught instanceof WalletAuthError) {
+    const status = caught.code === "INVALID_BODY" ? 413 : caught.code === "STATE_LOCKED" ? 503 : 400;
+    return { status, code: caught.code, message: caught.message };
+  }
   return { status: 500, code: "INTERNAL", message: "Canonical Wallet Gateway host failed closed" };
 }
