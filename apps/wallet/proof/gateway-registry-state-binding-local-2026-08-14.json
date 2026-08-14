@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "gateway-registry-state-binding-local-2026-08-14",
+  "owner": "02-wallet-auth",
+  "sourceCommit": "9330045bfd1153d1129f74bc1a7a1e7866f70cf0",
+  "observedAt": "2026-08-14T03:42:44Z",
+  "environment": "local-node-host-loopback-http-and-private-filesystem",
+  "stateEnvelope": {
+    "schemaVersion": 2,
+    "registrySha256Required": true,
+    "snapshotStateDigestRequired": true,
+    "registryDigestSource": "exact-canonical-json-of-parsed-central-registry",
+    "sameVersionRegistrySubstitutionRejected": true,
+    "runtimeRegistrySubstitutionStatus": 503,
+    "runtimeRegistrySubstitutionCode": "REGISTRY_STATE_MISMATCH",
+    "stateRewrittenOnRegistryMismatch": false
+  },
+  "migration": {
+    "legacySchemaVersion": 1,
+    "defaultAllowed": false,
+    "explicitOneTimeAuthorizationRequired": true,
+    "environmentVariable": "YNX_WALLET_GATEWAY_ALLOW_LEGACY_STATE_MIGRATION",
+    "rejectionCode": "LEGACY_STATE_MIGRATION_REQUIRED",
+    "runtimeDowngradeStatus": 503,
+    "stateRewrittenOnUnauthorizedMigration": false,
+    "authorizedMigrationWritesVersion": 2,
+    "authorizedMigrationBindsCurrentRegistry": true,
+    "backupRestoreRegressionPassed": true
+  },
+  "tests": {
+    "focusedRegistryBinding": "4/4 passed",
+    "focusedHostBackupSharedStatePersistence": "27/27 passed",
+    "walletAuthFullSuite": "160/160 passed",
+    "packageDryRun": "passed",
+    "walletProductCheck": "passed",
+    "walletReleaseContentCheck": "passed",
+    "walletGoalCoverageCheck": "passed",
+    "jsonAndDiffChecks": "passed"
+  },
+  "sourceSha256": {
+    "packages/wallet-auth/src/gateway-node-host.js": "5339ca10e004f3be93dd89d5fc25a423d96d6f7fe03fb971132d440486522d30",
+    "packages/wallet-auth/src/gateway-backup.js": "708a7fe9887e9753335026fbc04237d77604f3edfc030ef665f07ce58e7a0a3f",
+    "packages/wallet-auth/scripts/ynx-wallet-gatewayd.mjs": "e5b7cf73b520b9f7e7343d08795ad8469c9e3f6395d8373ea11c8530d5afb5b0",
+    "packages/wallet-auth/test/gateway-node-registry-state-binding.test.mjs": "7dbd0d97d85474ab3dc2ed1ef374d1832aec9bbb2cb9989c86ffdf6393ee1ba8"
+  },
+  "releaseClaims": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": false,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "publicRouteVerified": false,
+    "publicGatewaySourceContainsSlice": false,
+    "operatorMisconfigurationFailClosed": true,
+    "maliciousWriterCryptographicIntegrityVerified": false,
+    "multiRegionMigrationVerified": false,
+    "assetMoved": false,
+    "secretMaterialRecorded": false
+  },
+  "deployedGateway": {
+    "sourceCommit": "c6ac582c8d490ef980a8cadfd9172f133d1b1a49",
+    "release": "ynx-wallet-gateway-c6ac582c8d49",
+    "nodeStateSchemaVersion": 1,
+    "containsGatewayRegistryStateBindingSlice": false
+  }
+}

@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "integrationId": "canonical-wallet-auth-v1",
   "owner": "02-wallet-auth",
-  "sourceCommit": "dcca919068c18daef58a10bbfdb38368f1b0db1c",
+  "sourceCommit": "9330045bfd1153d1129f74bc1a7a1e7866f70cf0",
   "targetService": "ynx-app-gatewayd",
   "protocol": {
     "authorization": "wallet-auth-v1",
@@ -10,7 +10,7 @@
     "productDeviceAlgorithm": "p256-sha256",
     "httpProof": "YNX_PRODUCT_SESSION_HTTP_PROOF_V1",
     "httpKernelVersion": 1,
-    "nodeStateVersion": 1,
+    "nodeStateVersion": 2,
     "observabilityVersion": 1,
     "registryDocumentVersion": 2,
     "productSchemaVersion": 3,
@@ -50,6 +50,7 @@
   ],
   "serverAuthority": [
     "immutable parsed registry selection",
+    "state-envelope binding to exact parsed registry SHA-256",
     "enabled and approved state",
     "session, revocation and Product Session proof replay state",
     "StrategyMandate, action nonce and terminal state",
@@ -92,9 +93,10 @@
     "legacy Ed25519 session substitution"
   ],
   "stateSchema": "gateway-state.schema.json",
-  "testVectors": ["../testdata/product-session-http-proof-v1.json", "../testdata/strategy-mandate-v2.json", "../testdata/central-lifecycle-v1.json", "../../../apps/wallet/proof/gateway-observability-local-2026-07-27.json", "../../../apps/wallet/proof/gateway-admission-observability-local-2026-08-13.json"],
+  "testVectors": ["../testdata/product-session-http-proof-v1.json", "../testdata/strategy-mandate-v2.json", "../testdata/central-lifecycle-v1.json", "../../../apps/wallet/proof/gateway-observability-local-2026-07-27.json", "../../../apps/wallet/proof/gateway-admission-observability-local-2026-08-13.json", "../../../apps/wallet/proof/gateway-registry-state-binding-local-2026-08-14.json"],
   "acceptanceCommands": [
-    {"cwd":"packages/wallet-auth","command":"node --test every test/*.test.mjs except Developer-owned developer-deployment.test.mjs","expected":"113/113"},
+    {"cwd":"packages/wallet-auth","command":"npm test","expected":"160/160"},
+    {"cwd":"packages/wallet-auth","command":"node --test test/gateway-node-registry-state-binding.test.mjs","expected":"4/4"},
     {"cwd":"packages/wallet-auth","command":"node --test test/gateway-node-host.test.mjs","expected":"10/10"},
     {"cwd":"packages/wallet-auth","command":"node --test test/gateway-admission.test.mjs test/gateway-node-host.test.mjs","expected":"12/12"},
     {"cwd":"packages/wallet-auth","command":"npm pack --dry-run","expected":"pass"},
