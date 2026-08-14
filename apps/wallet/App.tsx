@@ -75,7 +75,7 @@ function WalletApp(){
   const [quantAction,setQuantAction]=useState<QuantActionRequest|null>(null);
   const [authorizationError,setAuthorizationError]=useState<string|null>(null);
   const [busy,setBusy]=useState(false);
-  const resetAttemptGate=useRef(new ExclusiveAttemptGate());
+  const storageAttemptGate=useRef(new ExclusiveAttemptGate());
   const [locale,setLocale]=useState<WalletLocale>("en");
   const localeRef=useRef<WalletLocale>(locale);localeRef.current=locale;
   const [settings,setSettings]=useState(false);
@@ -88,12 +88,13 @@ function WalletApp(){
 
   const dismissAuthorizationReviews=useCallback(()=>{setAuthorization(null);setExchangeAction(null);setDeveloperDeployment(null);setDexAction(null);setQuantAction(null)},[]);
 
-  const load=useCallback(async():Promise<boolean>=>{
+  const reconstruct=useCallback(async():Promise<boolean>=>{
     dispatchLock({type:"lock",reason:"restart"});dismissAuthorizationReviews();setManifest(null);setLoading(true);setError(null);
     try{await assertSecureStorageAvailable();const [result,savedLocale]=await Promise.all([repository.load(),loadLocale(platformSecureStorage)]);setLocale(savedLocale);setManifest(result.manifest);if(result.migrated)setNotice("Existing secure identity migrated to the independent Wallet. The old product device key was discarded.");return true;}
     catch(caught){setError(localizeError(localeRef.current,caught));return false;}
     finally{setLoading(false)}
   },[dismissAuthorizationReviews]);
+  const load=useCallback(async():Promise<boolean>=>{const release=storageAttemptGate.current.tryBegin();if(!release)return false;try{return await reconstruct()}finally{release()}},[reconstruct]);
 
   const handleLink=useCallback((url:string)=>{
     try{assertDeepLinkForeground(appStateRef.current);const parsedURL=new URL(url);if(isExactWalletOpenLink(url)){setAuthorization(null);setExchangeAction(null);setDeveloperDeployment(null);setDexAction(null);setQuantAction(null)}else if(parsedURL.protocol==="ynxwallet:"&&parsedURL.hostname==="action"){setExchangeAction(parseExchangeOrderActionDeepLink(url,new Date()));setAuthorization(null);setDeveloperDeployment(null);setDexAction(null);setQuantAction(null)}else if(parsedURL.protocol==="ynxwallet:"&&parsedURL.hostname==="developer-deploy"){setDeveloperDeployment(parseDeveloperDeploymentDeepLink(url,new Date()));setAuthorization(null);setExchangeAction(null);setDexAction(null);setQuantAction(null)}else if(parsedURL.protocol==="ynxwallet:"&&parsedURL.hostname==="dex-action"){setDexAction(parseDexActionDeepLink(url,new Date()));setAuthorization(null);setExchangeAction(null);setDeveloperDeployment(null);setQuantAction(null)}else if(parsedURL.protocol==="ynxwallet:"&&parsedURL.hostname==="quant-action"){setQuantAction(parseQuantActionDeepLink(url,new Date()));setAuthorization(null);setExchangeAction(null);setDeveloperDeployment(null);setDexAction(null)}else{const parsed=parseWalletDeepLink(url,Platform.OS==="ios"?"ios":"android",{now:new Date(),registry:PRODUCT_REGISTRY});setAuthorization(parsed.request);setExchangeAction(null);setDeveloperDeployment(null);setDexAction(null);setQuantAction(null)}setAuthorizationError(null);}
@@ -113,7 +114,7 @@ function WalletApp(){
   const create=async()=>{const bytes=await getRandomBytesAsync(32);dispatchOnboarding({type:"openCreate",recoveryKey:bytesToHex(bytes),label:`Account ${(manifest?.accounts.length??0)+1}`})};
   const saved=(next:WalletManifest)=>{setManifest(next);dispatchOnboarding({type:"saveSucceeded"});dispatchLock({type:"lock",reason:"user"});setNotice("Account saved. Unlock with system biometrics to continue.")};
   const select=async(account:string)=>{try{const next=await switchAccountFailClosed(account,(selectedAccount)=>dispatchLock({type:"switch",account:selectedAccount}),(selectedAccount)=>repository.selectAccount(selectedAccount));setManifest(next)}catch(caught){setError(localizeError(locale,caught))}};
-  const resetCorrupt=async()=>{const release=resetAttemptGate.current.tryBegin();if(!release)return;setBusy(true);const assertActive=()=>{if(appStateRef.current!=="active"||manifestRef.current!==null||storageErrorRef.current===null)throw new Error("Wallet reset was dismissed or moved to the background")};try{await authorizeLocalKeyUse("wallet-reset");assertActive();await repository.resetCorruptStorage(assertActive);await load()}catch(caught){setError(localizeError(locale,caught))}finally{release();setBusy(false)}};
+  const resetCorrupt=async()=>{const release=storageAttemptGate.current.tryBegin();if(!release)return;setBusy(true);const assertActive=()=>{if(appStateRef.current!=="active"||manifestRef.current!==null||storageErrorRef.current===null)throw new Error("Wallet reset was dismissed or moved to the background")};try{await authorizeLocalKeyUse("wallet-reset");assertActive();await repository.resetCorruptStorage(assertActive);await reconstruct()}catch(caught){setError(localizeError(locale,caught))}finally{release();setBusy(false)}};
 
   if(!privacyState.ready)return privacyState.error?<Screen><Text style={styles.title}>Wallet privacy protection is required</Text><Text style={styles.error}>{privacyState.error}</Text><Button label="Retry screenshot protection" onPress={()=>setPrivacyAttempt((value)=>value+1)}/></Screen>:<Screen><ActivityIndicator color={ACTIVE_COLORS.blue}/><Text style={styles.muted}>Protecting Wallet screens</Text></Screen>;
   if(loading)return <Screen><ActivityIndicator color={ACTIVE_COLORS.blue}/><Text style={styles.muted}>Verifying secure Wallet storage</Text></Screen>;

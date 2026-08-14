@@ -17,3 +17,13 @@ test("exclusive sensitive attempt gate rejects reentry until the first attempt r
   release?.();release?.();
   assert.equal(typeof gate.tryBegin(),"function");
 });
+
+test("one exclusive gate serializes reconstruction and destructive reset entry points",()=>{
+  const storageGate=new ExclusiveAttemptGate(),finishReconstruction=storageGate.tryBegin();
+  assert.equal(typeof finishReconstruction,"function");
+  assert.equal(storageGate.tryBegin(),null);
+  finishReconstruction?.();
+  const finishReset=storageGate.tryBegin();
+  assert.equal(typeof finishReset,"function");
+  finishReset?.();
+});
