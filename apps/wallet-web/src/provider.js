@@ -104,7 +104,9 @@ export function createExtensionProvider(preference, runtime = globalThis.browser
 export async function extensionWalletAvailability(runtime = globalThis.browser?.runtime || globalThis.chrome?.runtime) {
   if (!runtime || typeof runtime.sendMessage !== "function") return Object.freeze({ynx: false, metamask: false});
   const response = await runtime.sendMessage({type: "YNX_WALLET_DISCOVER"});
-  return Object.freeze({ynx: response?.ynx === true, metamask: response?.metamask === true});
+  if (response?.error) fail(response.error.code || "DISCOVERY_UNAVAILABLE", response.error.message || "Wallet discovery failed closed.");
+  if (typeof response?.ynx !== "boolean" || typeof response?.metamask !== "boolean") fail("INVALID_DISCOVERY_RESPONSE", "Wallet discovery returned an invalid response.");
+  return Object.freeze({ynx: response.ynx, metamask: response.metamask});
 }
 
 export async function verifyTestnetRpc(fetcher = globalThis.fetch, url = YNX_CHAIN.rpcUrls[0]) {

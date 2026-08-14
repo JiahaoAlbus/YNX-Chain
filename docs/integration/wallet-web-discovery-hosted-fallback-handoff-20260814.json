@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "owner": "wallet-web-pwa-extensions",
+  "sourceBaseline": "e596c74e46af7dcc61bd4f8f24bc65baa84897ca",
+  "discovery": {
+    "ynxDetectedAction": "Open YNX Wallet",
+    "ynxPriority": true,
+    "migrationFailureCode": "MIGRATION_INCOMPLETE",
+    "malformedFailureCode": "INVALID_DISCOVERY_RESPONSE",
+    "staleProviderClearedBeforeDetection": true,
+    "rememberedSessionDeletedOnlyOnDetectionFailure": true,
+    "errorCodeVisible": true,
+    "noProviderFallbacks": [
+      "Download YNX Wallet",
+      "Use MetaMask"
+    ]
+  },
+  "ynxFallback": {
+    "url": "https://www.ynxweb4.com/downloads/ynx-wallet-1.0.1-testnet-preview-dc31c9a8-test-signed.apk",
+    "hosted": true,
+    "httpStatus": 200,
+    "contentType": "application/vnd.android.package-archive",
+    "bytes": 78392878,
+    "sha256": "fd924ef853cf17d42ca2d36504528ef879c73fcb4b01ea72b1bfe7ae85085fef",
+    "zipIntegrityPassed": true,
+    "signingClass": "testnet-preview-apk-v2-signed",
+    "certificateSha256": "67c841ab31a4eb34f21e458827eb213b24dc22d3f1d224686ed601ed7eb8f489"
+  },
+  "evidence": [
+    "apps/wallet-web/evidence/runtime/built-discovery-fail-closed-20260814.json",
+    "apps/wallet-web/evidence/runtime/ynx-wallet-fallback-hosted-20260814.json"
+  ],
+  "mustRemainFalse": {
+    "webArtifactDownloadHosted": false,
+    "installedLocal": false,
+    "providerConnected": false,
+    "accountAuthorized": false,
+    "messageSigned": false,
+    "transactionSubmitted": false,
+    "deployedPublic": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   METAMASK_DOWNLOAD_URL, SESSION_KEY, WalletWebError, YNX_CHAIN, YNX_DOWNLOAD_URL,
-  addYNXChain, connectWallet, createExtensionProvider, discoverInjectedProviders,
+  addYNXChain, connectWallet, createExtensionProvider, discoverInjectedProviders, extensionWalletAvailability,
   forgetSession, readRememberedSession, rememberSession, resolveRememberedWallet,
   invalidatesConnectedSession, restoreTestnetSession, sendTransaction, signMessage, subscribeProviderLifecycle,
   switchToYNXChain, verifyTestnetRpc, walletActionGates, walletDiscoveryPresentation,
@@ -72,6 +72,12 @@ test("discovery presentation directly prefers YNX and gives two non-empty fallba
   assert.deepEqual(walletDiscoveryPresentation({}),{ynxPresent:false,metamaskPresent:false,showYNXConnect:false,showYNXDownload:true,showMetaMaskChoice:true,metaMaskChoice:"official-download"});
   assert.equal(new URL(YNX_DOWNLOAD_URL).hostname,"www.ynxweb4.com");
   assert.equal(METAMASK_DOWNLOAD_URL,"https://metamask.io/download");
+});
+
+test("extension discovery propagates runtime failure and rejects malformed responses", async () => {
+  await assert.rejects(() => extensionWalletAvailability({sendMessage:async()=>({ynx:false,metamask:false,error:{code:"MIGRATION_INCOMPLETE",message:"cleanup failed"}})}), (error) => error.code === "MIGRATION_INCOMPLETE");
+  for (const response of [null,{}, {ynx:true}, {ynx:1,metamask:false}]) await assert.rejects(() => extensionWalletAvailability({sendMessage:async()=>response}), (error) => error.code === "INVALID_DISCOVERY_RESPONSE");
+  assert.deepEqual(await extensionWalletAvailability({sendMessage:async()=>({ynx:true,metamask:false})}),{ynx:true,metamask:false});
 });
 
 test("RPC verification accepts only exact YNX Testnet", async () => {

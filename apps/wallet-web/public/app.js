@@ -134,15 +134,21 @@ function bind() {
   document.querySelector("#send").addEventListener("click", () => act(() => sendTransaction(state.provider, {from: state.account, to: document.querySelector("#recipient").value.trim(), value: document.querySelector("#value").value.trim(), data: document.querySelector("#data").value.trim()}), (value) => `${text("txHash")}: ${value}`));
 }
 
-async function detect() {
-  const availability = isExtension ? await extensionWalletAvailability() : await discoverWallets();
-  state.providers = availability;
+function presentAvailability(availability) {
   const presentation = walletDiscoveryPresentation(availability);
   document.querySelector("#ynx").classList.toggle("hidden", !presentation.showYNXConnect);
   document.querySelector("#download").classList.toggle("hidden", !presentation.showYNXDownload);
   document.querySelector("#metamask").classList.toggle("hidden", !presentation.showMetaMaskChoice);
   document.querySelector("#metamask").dataset.route = presentation.metaMaskChoice;
   document.querySelector("#detected").textContent = presentation.ynxPresent ? text("detected") : text("unavailable");
+}
+
+async function detect() {
+  state.providers = Object.freeze({ynx:false,metamask:false}); state.provider = null; state.wallet = null; state.account = null; state.chainId = null; state.rpcVerified = false; applyActionGates(); presentAvailability(state.providers);
+  let availability;
+  try { availability = isExtension ? await extensionWalletAvailability() : await discoverWallets(); }
+  catch (error) { forgetSession(); throw error; }
+  state.providers = availability; presentAvailability(availability);
   try { await verifyTestnetRpc(); state.rpcVerified = true; }
   catch (error) { state.rpcVerified = false; applyActionGates(); throw error; }
   applyActionGates();
@@ -154,6 +160,7 @@ async function detect() {
   }
 }
 
-render(); detect().then(()=>{if(loadedPreferences.status==="rejected")setStatus(text("preferencesRejected"),"error")}).catch((error) => setStatus(error?.message || "Wallet detection failed closed.", "error"));
-addEventListener("storage",(event)=>{if(event.key!==PREFERENCES_KEY)return;try{const next=acceptPreferenceUpdate(state.preferences,event.newValue);state.preferences=next;state.locale=next.locale;state.theme=next.theme;render();detect().catch((error)=>setStatus(error?.message||"Wallet detection failed closed.","error"))}catch(error){setStatus(`${error?.code||"PREFERENCES_REJECTED"}: ${text("preferencesRejected")}`,"error")}});
+const discoveryError=(error)=>`${error?.code ? `${error.code}: ` : ""}${error?.message || "Wallet detection failed closed."}`;
+render(); detect().then(()=>{if(loadedPreferences.status==="rejected")setStatus(text("preferencesRejected"),"error")}).catch((error) => setStatus(discoveryError(error), "error"));
+addEventListener("storage",(event)=>{if(event.key!==PREFERENCES_KEY)return;try{const next=acceptPreferenceUpdate(state.preferences,event.newValue);state.preferences=next;state.locale=next.locale;state.theme=next.theme;render();detect().catch((error)=>setStatus(discoveryError(error),"error"))}catch(error){setStatus(`${error?.code||"PREFERENCES_REJECTED"}: ${text("preferencesRejected")}`,"error")}});
 if (!isExtension && "serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js", {type:"module"}).catch(() => {});

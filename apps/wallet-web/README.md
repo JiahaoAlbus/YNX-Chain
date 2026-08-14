@@ -96,6 +96,13 @@ The extension popup provider uses the same fail-closed operations over its
 an exact `eth_chainId` proof; wrong-chain results are rejected. A disconnected
 runtime cannot restore local session metadata, and reconnect requires a fresh
 switch, chain proof, and account approval.
+Discovery also fails closed: migration/runtime errors and malformed responses
+clear stale provider state, invalidate the remembered session, keep the two
+official fallback routes available, and surface the bounded error code instead
+of pretending that no wallet is installed. The YNX APK fallback was directly
+observed as an HTTP 200 Android package and independently verified as a v2
+testnet-preview signature; this does not make the Web/extension ZIPs hosted or
+production-signed.
 Extension signing and transaction calls also perform the live chain/account
 preflight through that runtime channel. A replaced account prevents the
 sensitive call entirely; provider code `4001` remains a real user rejection and

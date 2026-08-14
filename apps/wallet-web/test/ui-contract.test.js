@@ -8,6 +8,9 @@ test("fallback contract always offers YNX download and MetaMask when YNX is abse
   assert.match(source, /id="metamask" href="\$\{METAMASK_DOWNLOAD_URL\}"/);
   assert.match(source, /if \(!state\.providers\?\.metamask\) return/);
   assert.match(source, /walletDiscoveryPresentation\(availability\)/);
+  assert.match(source, /state\.providers = Object\.freeze\(\{ynx:false,metamask:false\}\); state\.provider = null; state\.wallet = null; state\.account = null; state\.chainId = null; state\.rpcVerified = false; applyActionGates\(\); presentAvailability\(state\.providers\)/);
+  assert.match(source, /catch \(error\) \{ forgetSession\(\); throw error; \}/);
+  assert.match(source, /const discoveryError=\(error\)=>`\$\{error\?\.code \? `\$\{error\.code\}: ` : ""\}/);
 });
 
 test("390px RTL dark and large-text preview contracts remain buildable", async () => {
