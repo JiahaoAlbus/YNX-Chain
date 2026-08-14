@@ -14,7 +14,18 @@ for (const platform of ["android", "ios"]) {
 
 test("deep links reject route, query and encoding tampering", () => {
   const valid = encodeRequestDeepLink(request());
-  assert.throws(() => parseWalletDeepLink(valid.replace("authorize", "approve"), "android", { now: NOW, registry: REGISTRY }), WalletAuthError);
-  assert.throws(() => parseWalletDeepLink(`${valid}&redirect=attacker`, "ios", { now: NOW, registry: REGISTRY }), WalletAuthError);
-  assert.throws(() => parseWalletDeepLink("ynxwallet://authorize?request=%25", "android", { now: NOW, registry: REGISTRY }), WalletAuthError);
+  for (const [platform, candidate] of [
+    ["android", valid.replace("authorize", "approve")],
+    ["ios", `${valid}&redirect=attacker`],
+    ["android", `${valid}&request=duplicate`],
+    ["ios", `${valid}#fragment`],
+    ["android", valid.replace("ynxwallet://", "ynxwallet://attacker@")],
+    ["ios", valid.replace("authorize?", "authorize:443?")],
+    ["android", valid.replace("authorize", "%61uthorize")],
+    ["ios", valid.replace("ynxwallet:", "YNXWALLET:")],
+    ["android", "ynxwallet://authorize?request=%25"],
+  ]) assert.throws(
+    () => parseWalletDeepLink(candidate, platform, { now: NOW, registry: REGISTRY }),
+    (error) => error instanceof WalletAuthError && error.code === "INVALID_DEEP_LINK",
+  );
 });

@@ -11,11 +11,13 @@ export function parseWalletDeepLink(url, platform, options) {
   if (platform !== "android" && platform !== "ios") throw new WalletAuthError("INVALID_PLATFORM", "Deep link platform must be android or ios");
   let parsed;
   try { parsed = new URL(url); } catch { throw new WalletAuthError("INVALID_DEEP_LINK", "Wallet deep link is invalid"); }
-  if (parsed.protocol !== "ynxwallet:" || parsed.hostname !== "authorize" || parsed.pathname !== "" || parsed.hash || [...parsed.searchParams.keys()].join(",") !== "request") {
+  const keys = [...parsed.searchParams.keys()];
+  const encoded = keys.length === 1 && keys[0] === "request" ? parsed.searchParams.get("request") : null;
+  if (parsed.protocol !== "ynxwallet:" || parsed.hostname !== "authorize" || parsed.username || parsed.password || parsed.port || parsed.pathname !== "" || parsed.hash || !encoded || url !== `ynxwallet://authorize?request=${encoded}`) {
     throw new WalletAuthError("INVALID_DEEP_LINK", "Wallet deep link route or fields are invalid");
   }
   let requestText;
-  try { requestText = new TextDecoder("utf-8", { fatal: true }).decode(decodeBase64url(parsed.searchParams.get("request") ?? "", "Wallet deep link request")); } catch { throw new WalletAuthError("INVALID_DEEP_LINK", "Wallet deep link request encoding is invalid"); }
+  try { requestText = new TextDecoder("utf-8", { fatal: true }).decode(decodeBase64url(encoded, "Wallet deep link request")); } catch { throw new WalletAuthError("INVALID_DEEP_LINK", "Wallet deep link request encoding is invalid"); }
   return Object.freeze({ platform, request: parseAuthorizationRequest(requestText, options) });
 }
 

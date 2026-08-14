@@ -91,9 +91,10 @@ public final class MainActivity extends Activity {
   private void handle(Intent intent){
     Uri uri=intent.getData();if(uri==null)return;
     try{
-      if(!"ynx-social".equals(uri.getScheme())||!"com.ynx.social".equals(uri.getHost())||(uri.getPath()!=null&&!uri.getPath().isEmpty())||uri.getFragment()!=null||!uri.getQueryParameterNames().equals(Set.of("response")))throw new SecurityException("callback route substituted");
-      String encoded=uri.getQueryParameter("response");if(encoded==null)throw new IllegalArgumentException("response missing");
-      JSONObject response=new JSONObject(new String(Base64.decode(encoded,Base64.URL_SAFE|Base64.NO_WRAP|Base64.NO_PADDING),StandardCharsets.UTF_8));
+      String encodedQuery=uri.getEncodedQuery();
+      if(!"ynx-social".equals(uri.getScheme())||!"com.ynx.social".equals(uri.getHost())||uri.getUserInfo()!=null||uri.getPort()!=-1||(uri.getPath()!=null&&!uri.getPath().isEmpty())||uri.getFragment()!=null||encodedQuery==null||!encodedQuery.matches("^response=[A-Za-z0-9_-]+$")||!uri.getQueryParameterNames().equals(Set.of("response")))throw new SecurityException("callback route substituted");
+      String encoded=encodedQuery.substring("response=".length());byte[] decoded=Base64.decode(encoded,Base64.URL_SAFE|Base64.NO_WRAP|Base64.NO_PADDING);if(!base64url(decoded).equals(encoded))throw new SecurityException("callback response encoding is not canonical");
+      JSONObject response=new JSONObject(new String(decoded,StandardCharsets.UTF_8));
       JSONObject request=pendingRequest();
       verifyWalletApproval(response,request,Instant.now());
       String nonce=response.getString("nonce");if(preferences.getBoolean("consumed."+nonce,false)){status.setText("Replay rejected: verified Wallet response nonce was already consumed.");return;}
@@ -116,8 +117,8 @@ public final class MainActivity extends Activity {
     requireExactScopes(response.getJSONArray("grantedScopes"),request.getJSONArray("scopes"));
     String expectedDigest=hex(sha256(("YNX_WALLET_AUTH_REQUEST_V1\n"+canonical(request)).getBytes(StandardCharsets.UTF_8)));
     if(!expectedDigest.equals(response.getString("requestDigest")))throw new SecurityException("Wallet approval request digest mismatch");
-    Instant requestExpiry=strictTime(request.getString("expiresAt"));Instant issued=strictTime(response.getString("issuedAt"));Instant expires=strictTime(response.getString("expiresAt"));
-    if(!expires.isAfter(issued)||expires.isAfter(requestExpiry)||!expires.isAfter(now))throw new SecurityException("Wallet approval expiry mismatch");
+    Instant requestIssued=strictTime(request.getString("issuedAt")),requestExpiry=strictTime(request.getString("expiresAt")),issued=strictTime(response.getString("issuedAt")),expires=strictTime(response.getString("expiresAt"));
+    if(issued.isBefore(requestIssued)||issued.isAfter(now.plusSeconds(30))||!expires.isAfter(issued)||expires.isAfter(requestExpiry)||!expires.isAfter(now))throw new SecurityException("Wallet approval expiry mismatch");
     String publicKey=response.getString("accountPublicKey"),signature=response.getString("walletSignature");if(!publicKey.matches("^(02|03)[0-9a-f]{64}$")||!signature.matches("^[0-9a-f]{128}$"))throw new SecurityException("Wallet approval key or signature encoding invalid");
     JSONObject payload=new JSONObject(response.toString());payload.remove("walletSignature");byte[] digest=sha256(("YNX_WALLET_AUTH_APPROVAL_V1\n"+canonical(payload)).getBytes(StandardCharsets.UTF_8));
     if(!verifySecp256k1(digest,hexBytes(signature),hexBytes(publicKey)))throw new SecurityException("Wallet approval signature invalid");
