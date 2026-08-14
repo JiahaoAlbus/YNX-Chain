@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "a3059db5d7e08e60bfcdf6b590d8217d211e008a",
+  "generatedAt": "2026-08-14T04:44:24.078Z",
+  "runtimeClass": "Playwright bundled Chromium-compatible persistent PWA profile; not branded Chrome/Edge and not an installed PWA",
+  "passed": true,
+  "liveRpcProved": false,
+  "secondLaunchLiveRpcProved": false,
+  "rpcRecoveryProved": false,
+  "providerConnected": false,
+  "accountAuthorized": false,
+  "messageSigned": false,
+  "transactionSubmitted": false,
+  "installedLocal": false,
+  "deployedPublic": false,
+  "downloadHosted": false,
+  "productionSigned": false,
+  "storeReleased": false,
+  "liveRpc": {
+    "proved": false,
+    "error": {
+      "code": "RPC_UNAVAILABLE",
+      "message": "YNX Testnet RPC did not answer. Chain-changing and transaction actions remain disabled."
+    }
+  },
+  "initial": {
+    "controlled": true,
+    "cacheNames": [
+      "ynx-wallet-web-v4"
+    ],
+    "statusText": "Status: Not connected",
+    "session": null,
+    "signDisabled": true,
+    "sendDisabled": true
+  },
+  "tamper": {
+    "status": 503,
+    "body": "Offline asset unavailable",
+    "tamperedExecuted": false,
+    "session": null,
+    "signDisabled": true,
+    "sendDisabled": true
+  },
+  "rollback": {
+    "status": 503,
+    "body": "Offline asset unavailable",
+    "legacyPresent": false,
+    "session": null
+  },
+  "recovery": {
+    "appStatus": 200,
+    "indexStatus": 200,
+    "appSha256": "a0e77f7c138e3a31c76eee0bf67f40c643d5de1923f1d770006afb3a0923695b",
+    "indexContainsFake": false,
+    "cacheNames": [
+      "ynx-wallet-web-v4"
+    ],
+    "session": null
+  },
+  "artifact": {
+    "name": "ynx-wallet-web-pwa-0.1.0.zip",
+    "bytes": 176090,
+    "sha256": "69a9458fb36ce02a0a4bc168f8a162998c0d37bd6566cc7e077ef356f4c38ba7",
+    "minimumOS": "modern browser with Service Worker and Web Crypto support",
+    "signingClass": "unsigned-web-bundle"
+  }
+}

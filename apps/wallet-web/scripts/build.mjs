@@ -1,3 +1,4 @@
+import {createHash} from "node:crypto";
 import {cp, mkdir, readFile, rm, writeFile} from "node:fs/promises";
 import {dirname, join, resolve} from "node:path";
 import {fileURLToPath} from "node:url";
@@ -14,6 +15,10 @@ for (const file of ["index.html", "manifest.webmanifest", "sw.js", "styles.css",
 for (const file of ["provider.js", "i18n.js", "preferences.js"]) await cp(join(root, "src", file), join(dist, "pwa", file));
 await cp(join(root, "src", "service-worker-policy.js"), join(dist, "pwa", "service-worker-policy.js"));
 await cp(join(root, "public", "ynx-logo.png"), join(dist, "pwa", "ynx-logo.png"));
+const pwaIntegrityFiles=["index.html","styles.css","accessibility.css","app.js","provider.js","i18n.js","preferences.js","service-worker-policy.js","ynx-logo.png","manifest.webmanifest"],assetIntegrity={};
+for(const file of pwaIntegrityFiles)assetIntegrity[`./${file}`]=createHash("sha256").update(await readFile(join(dist,"pwa",file))).digest("hex");
+assetIntegrity["./"]=assetIntegrity["./index.html"];
+await writeFile(join(dist,"pwa","asset-integrity.js"),`export const ASSET_INTEGRITY=Object.freeze(${JSON.stringify(assetIntegrity)});\n`);
 
 const variants = [
   ["chromium", chromiumManifest],

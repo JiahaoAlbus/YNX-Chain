@@ -57,6 +57,11 @@ offline fallback, static assets never receive HTML as a substitute, and RPC
 POSTs plus external Wallet download routes remain network-only. Returning from
 offline mode never restores chain authority from cache: a fresh live `0x1917`
 RPC response is still required.
+The build also freezes SHA-256 digests for every cached shell asset. Cache v4
+serves only current-cache bytes matching those digests, rejects and deletes
+tampered entries, and removes only obsolete `ynx-wallet-web-v*` caches without
+touching unrelated products. Missing current bytes fail closed with HTTP 503;
+an older cache can never become a wallet connection or chain-authority source.
 
 The extension popup provider uses the same fail-closed operations over its
 `YNX_WALLET_REQUEST` runtime channel. Add-chain must be followed by switch and

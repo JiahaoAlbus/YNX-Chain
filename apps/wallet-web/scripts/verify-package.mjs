@@ -21,7 +21,12 @@ for (const artifact of manifest.artifacts) {
   for (const required of requiredFiles) if (!entries.includes(required)) throw new Error(`Missing ${required}: ${artifact.name}`);
 
   if (artifact.browsers.includes("PWA")) {
-    for (const required of ["manifest.webmanifest", "sw.js", "service-worker-policy.js"]) if (!entries.includes(required)) throw new Error(`Missing ${required}: ${artifact.name}`);
+    for (const required of ["manifest.webmanifest", "preferences.js", "sw.js", "service-worker-policy.js", "asset-integrity.js"]) if (!entries.includes(required)) throw new Error(`Missing ${required}: ${artifact.name}`);
+    const integritySource=execFileSync("unzip",["-p",archive,"asset-integrity.js"],{encoding:"utf8"}),match=integritySource.match(/^export const ASSET_INTEGRITY=Object\.freeze\((\{.*\})\);\n$/u);
+    if(!match)throw new Error(`Invalid PWA asset integrity module: ${artifact.name}`);
+    const integrity=JSON.parse(match[1]),expected=["./","./index.html","./styles.css","./accessibility.css","./app.js","./provider.js","./i18n.js","./preferences.js","./service-worker-policy.js","./ynx-logo.png","./manifest.webmanifest"];
+    if(JSON.stringify(Object.keys(integrity).sort())!==JSON.stringify(expected.sort()))throw new Error(`Invalid PWA asset integrity set: ${artifact.name}`);
+    for(const [key,digest] of Object.entries(integrity)){const file=key==="./"?"index.html":key.slice(2),content=execFileSync("unzip",["-p",archive,file]);if(createHash("sha256").update(content).digest("hex")!==digest)throw new Error(`PWA asset integrity mismatch for ${key}: ${artifact.name}`)}
     continue;
   }
 

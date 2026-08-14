@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "productId": "wallet-web",
   "version": "0.1.0-testnet-preview.1",
-  "sourceCommit": "ae55e8272018979abb6cb393307755c063f71f38",
+  "sourceCommit": "a3059db5d7e08e60bfcdf6b590d8217d211e008a",
   "implementedLocal": true,
   "testedLocal": true,
   "installedLocal": false,
@@ -16,9 +16,9 @@
     {
       "name": "ynx-wallet-web-pwa-0.1.0.zip",
       "path": "artifacts/ynx-wallet-web-pwa-0.1.0.zip",
-      "bytes": 174601,
-      "sha256": "45db1074103837575f74f697d8401e7ade06f421b00307794dd9eaa58d9a7e17",
-      "minimumOS": "modern browser with Service Worker support",
+      "bytes": 176090,
+      "sha256": "69a9458fb36ce02a0a4bc168f8a162998c0d37bd6566cc7e077ef356f4c38ba7",
+      "minimumOS": "modern browser with Service Worker and Web Crypto support",
       "signingClass": "unsigned-web-bundle",
       "browsers": [
         "PWA"

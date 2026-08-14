@@ -7,7 +7,7 @@ import "./build.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const dist = join(root, "dist"), artifacts = join(root, "artifacts");
-execFileSync(process.execPath, ["--test", "test/i18n.test.js", "test/provider.test.js", "test/ui-contract.test.js", "test/preferences.test.js", "test/extension-manifest.test.js", "test/extension-bridge.test.js", "test/extension-rpc.test.js", "test/extension-sensitive-policy.test.js"], {cwd:root, stdio:"inherit"});
+execFileSync(process.execPath, ["--test", "test/i18n.test.js", "test/provider.test.js", "test/ui-contract.test.js", "test/preferences.test.js", "test/service-worker-policy.test.js", "test/extension-manifest.test.js", "test/extension-bridge.test.js", "test/extension-rpc.test.js", "test/extension-sensitive-policy.test.js"], {cwd:root, stdio:"inherit"});
 await mkdir(artifacts, {recursive: true});
 const reproducibleTime = new Date("2000-01-01T00:00:00.000Z");
 async function normalizeMtime(path) {
@@ -16,7 +16,7 @@ async function normalizeMtime(path) {
   await utimes(path, reproducibleTime, reproducibleTime);
 }
 const entries = [
-  ["ynx-wallet-web-pwa-0.1.0.zip", "pwa", "modern browser with Service Worker support", "unsigned-web-bundle", ["PWA"]],
+  ["ynx-wallet-web-pwa-0.1.0.zip", "pwa", "modern browser with Service Worker and Web Crypto support", "unsigned-web-bundle", ["PWA"]],
   ["ynx-wallet-chrome-edge-0.1.0.zip", "chromium", "Chrome 120 / Edge 120", "unsigned-unpacked-extension", ["Chrome", "Edge"]],
   ["ynx-wallet-firefox-0.1.0.zip", "firefox", "Firefox 128", "unsigned-unpacked-extension", ["Firefox"]],
 ];

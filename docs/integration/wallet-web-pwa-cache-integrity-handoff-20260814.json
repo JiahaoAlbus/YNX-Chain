@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "owner": "wallet-web-pwa-extensions",
+  "sourceBaseline": "a3059db5d7e08e60bfcdf6b590d8217d211e008a",
+  "sourceParent": "ae55e8272018979abb6cb393307755c063f71f38",
+  "sourceTree": "20cdab49168e2b26ebfbaf839ed6b1e1d0a8b1fc",
+  "slice": "PWA cache integrity and version rollback fail-closed",
+  "runtimeEvidence": "apps/wallet-web/evidence/runtime/pwa-cache-integrity-lifecycle-20260814.json",
+  "runtimeClass": "Playwright bundled Chromium-compatible persistent PWA profile; not branded Chrome/Edge and not an installed PWA",
+  "testnetLifecycle": {
+    "liveRpcProved": false,
+    "secondLaunchLiveRpcProved": false,
+    "rpcRecoveryProved": false,
+    "failure": "RPC_UNAVAILABLE"
+  },
+  "proved": {
+    "currentCacheVersion": "ynx-wallet-web-v4",
+    "buildAssetSha256Binding": true,
+    "tamperedAssetReturned503": true,
+    "tamperedAssetExecuted": false,
+    "legacyV3RollbackReturned503": true,
+    "legacyV3Purged": true,
+    "networkRecoveryAcceptedOnlyBuildBytes": true,
+    "walletSessionRemainedAbsent": true
+  },
+  "mustRemainFalse": {
+    "providerConnected": false,
+    "accountAuthorized": false,
+    "messageSigned": false,
+    "transactionSubmitted": false,
+    "installedLocal": false,
+    "integratedCentral": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}
