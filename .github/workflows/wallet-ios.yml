@@ -66,15 +66,27 @@ jobs:
           xcodebuild -workspace ios/YNXWallet.xcworkspace -scheme YNXWallet \
             -configuration Release -sdk iphonesimulator \
             -destination 'generic/platform=iOS Simulator' \
-            CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=- \
-            CODE_SIGN_INJECT_BASE_ENTITLEMENTS=YES clean build
+            CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=- clean build
           APP="$(find "$HOME/Library/Developer/Xcode/DerivedData" -path '*/Build/Products/Release-iphonesimulator/YNXWallet.app' -print -quit)"
           test -n "$APP"
           mkdir -p proof/ci-ios
           ditto "$APP" proof/ci-ios/YNXWallet-Standalone.app
+          BUNDLE_ID="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' proof/ci-ios/YNXWallet-Standalone.app/Info.plist)"
+          test "$BUNDLE_ID" = com.ynxweb4.wallet
+          ENTITLEMENTS=proof/ci-ios/simulator-keychain-entitlements.plist
+          plutil -create xml1 "$ENTITLEMENTS"
+          /usr/libexec/PlistBuddy -c "Add :application-identifier string FAKETEAMID.$BUNDLE_ID" "$ENTITLEMENTS"
+          /usr/libexec/PlistBuddy -c 'Add :com.apple.developer.team-identifier string FAKETEAMID' "$ENTITLEMENTS"
+          /usr/libexec/PlistBuddy -c 'Add :keychain-access-groups array' "$ENTITLEMENTS"
+          /usr/libexec/PlistBuddy -c "Add :keychain-access-groups:0 string FAKETEAMID.$BUNDLE_ID" "$ENTITLEMENTS"
+          codesign --force --sign - --timestamp=none --entitlements "$ENTITLEMENTS" \
+            proof/ci-ios/YNXWallet-Standalone.app
+          codesign --verify --deep --strict proof/ci-ios/YNXWallet-Standalone.app
           codesign -d --entitlements :- proof/ci-ios/YNXWallet-Standalone.app \
             > proof/ci-ios/standalone-entitlements.txt 2>&1
           grep -F '<key>application-identifier</key>' proof/ci-ios/standalone-entitlements.txt
+          grep -F '<key>keychain-access-groups</key>' proof/ci-ios/standalone-entitlements.txt
+          grep -F "<string>FAKETEAMID.$BUNDLE_ID</string>" proof/ci-ios/standalone-entitlements.txt
       - name: Install, cold launch and verify Wallet deep link
         timeout-minutes: 10
         working-directory: apps/wallet
