@@ -15,6 +15,7 @@ const secureStorage=await readFile(new URL("../src/storage/secureStorage.ts",imp
 const localAuthorization=await readFile(new URL("../src/security/localAuthorization.ts",import.meta.url),"utf8");
 const localAuthorizationPolicy=await readFile(new URL("../src/security/localAuthorizationPolicy.ts",import.meta.url),"utf8");
 const authorizationLifecyclePolicy=await readFile(new URL("../src/security/authorizationLifecyclePolicy.ts",import.meta.url),"utf8");
+const foregroundDeepLinkPolicy=await readFile(new URL("../src/security/foregroundDeepLinkPolicy.ts",import.meta.url),"utf8");
 const startupDeepLinkPolicy=await readFile(new URL("../src/security/startupDeepLinkPolicy.ts",import.meta.url),"utf8");
 const walletOpenLinkPolicy=await readFile(new URL("../src/security/walletOpenLinkPolicy.ts",import.meta.url),"utf8");
 const unlockPolicy=await readFile(new URL("../src/security/unlockPolicy.ts",import.meta.url),"utf8");
@@ -40,6 +41,9 @@ assert.equal(config.android.intentFilters[0].data[1].host,"action");
 assert.equal(config.android.intentFilters[0].data[2].host,"open");
 assert.equal(source.includes("if(isExactWalletOpenLink(url))"),true,"Wallet must route the safe launcher through its byte-exact policy");
 assert.equal(walletOpenLinkPolicy.includes('url==="ynxwallet://open"'),true,"Wallet must support only the exact safe launcher without treating ambiguous URL variants as open");
+assert.ok(source.includes("assertDeepLinkForeground(appStateRef.current)"),"every runtime and startup deep link must require the exact active foreground");
+assert.ok(source.includes("appStateRef.current=next"),"deep-link foreground admission must track AppState changes synchronously");
+assert.ok(foregroundDeepLinkPolicy.includes('state!=="active"'),"background, inactive and unknown AppState must reject authorization links");
 assert.ok(androidActivity.includes("window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)"),"Android native launch window must set FLAG_SECURE before React starts");
 assert.ok(androidActivity.indexOf("window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)")<androidActivity.indexOf("super.onCreate(null)"),"Android FLAG_SECURE must precede React/splash lifecycle startup");
 for(const required of ['android:fullBackupContent="@xml/secure_store_backup_rules"','android:dataExtractionRules="@xml/secure_store_data_extraction_rules"'])assert.ok(androidManifest.includes(required),`Android manifest must bind SecureStore backup exclusion: ${required}`);
