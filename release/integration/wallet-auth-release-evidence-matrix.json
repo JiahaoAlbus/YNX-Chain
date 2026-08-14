@@ -43,7 +43,9 @@
       "consumedForReleaseTruth": false,
       "note": "The Android branch advanced beyond frozen evidence without an Owner terminal checkpoint; device truth remains unchanged."
     },
-    {"owner":"desktop-cli-sdk","candidateCommit":"5bf869a191877cdd83b83e90156f698ed7e2d2cc","remoteFastForwardReported":true,"remoteReadbackComplete":false,"ciComplete":true,"consumedForReleaseTruth":false,"note":"Desktop/CLI/SDK final handoff remains queued separately."}
+    {"owner":"desktop-cli-sdk","candidateCommit":"195de4618c5762b98a43192719854a62ae78d7b1","remoteFastForwardReported":true,"remoteReadbackComplete":false,"ciComplete":true,"consumedForReleaseTruth":false,"note":"Formal Go SDK package handoff remains queued separately."},
+    {"owner":"desktop-cli-sdk","candidateCommit":"ddab97ee88e927558f87eddc2d4a61a09a5bdc80","remoteFastForwardReported":true,"remoteReadbackComplete":false,"ciComplete":true,"consumedForReleaseTruth":false,"note":"macOS x64 CLI lifecycle evidence remains queued separately."},
+    {"owner":"desktop-cli-sdk","candidateCommit":"0b65e31031f8316b5ea753fe70bd9bea391ef760","remoteFastForwardReported":true,"remoteReadbackComplete":false,"ciComplete":true,"consumedForReleaseTruth":false,"note":"macOS x64 CLI handoff remains queued separately."}
   ],
   "ownerSources": [
     {
@@ -85,8 +87,8 @@
     {
       "owner": "desktop-cli-sdk",
       "branch": "codex/wallet-desktop-cli-sdk-20260813",
-      "sourceCommit": "f27b5867227e172756d4a8c3638905c668874f33",
-      "remoteCommitObserved": "f27b5867227e172756d4a8c3638905c668874f33",
+      "sourceCommit": "d430b44488d1c583e8983b422a825790f479add8",
+      "remoteCommitObserved": "d430b44488d1c583e8983b422a825790f479add8",
       "branchHeadObserved": "6a5f256033f4a9fc99f834d86ebb1a1e7382b93a",
       "remoteVerifiedAt": "2026-08-14T04:05:00Z",
       "verificationMode": "github-git-database-parent-tree-blob-readback"
@@ -610,9 +612,9 @@
     "go-sdk-real-consumer": {
       "type": "git-object",
       "direct": true,
-      "commit": "6331265ae74a957f07958e459251fc42c9ea6b66",
-      "path": "release/wallet-cli/go-sdk/real-consumer-evidence.json",
-      "supports": ["go-sdk.build", "go-sdk.testnet", "go-sdk.sign"]
+      "commit": "d430b44488d1c583e8983b422a825790f479add8",
+      "path": "release/wallet-cli/go-sdk/manifest.json",
+      "supports": ["go-sdk.build", "go-sdk.install", "go-sdk.testnet", "go-sdk.sign"]
     },
     "desktop-typescript-sdk-handoff": {
       "type": "git-object",
@@ -789,12 +791,12 @@
     {
       "id": "go-sdk",
       "ownerSource": "desktop-cli-sdk",
-      "artifactClass": "unsigned-source-only-sdk-evidence",
-      "status": "source-consumer-native-ci",
-      "capabilities": {"consumerCompiledNativeCI":true,"formalGoModuleArchiveBuilt":false,"installedLocal":false,"ephemeralDeviceProof":true,"privateKeyPersisted":false},
-      "gates": {"build":true,"install":false,"coldLaunch":false,"secondLaunch":false,"testnet":true,"sign":true,"tx":false,"callback":false,"reconnect":false,"downloadHosted":false,"productionSigned":false,"storeReleased":false},
+      "artifactClass": "unsigned-go-module-testnet-candidate",
+      "status": "formal-archive-native-ci",
+      "capabilities": {"consumerCompiledNativeCI":true,"formalGoModuleArchiveBuilt":true,"deterministicRebuild":true,"cleanExtracted":true,"installedLocal":false,"ephemeralDeviceProof":true,"privateKeyPersisted":false},
+      "gates": {"build":true,"install":true,"coldLaunch":false,"secondLaunch":false,"testnet":true,"sign":true,"tx":false,"callback":false,"reconnect":false,"downloadHosted":false,"productionSigned":false,"storeReleased":false},
       "evidenceBindings": {"build":["go-sdk-real-consumer"],"install":["go-sdk-real-consumer"],"coldLaunch":["go-sdk-real-consumer"],"secondLaunch":["go-sdk-real-consumer"],"testnet":["go-sdk-real-consumer"],"sign":["go-sdk-real-consumer"],"tx":["go-sdk-real-consumer"],"callback":["go-sdk-real-consumer"],"reconnect":["go-sdk-real-consumer"],"downloadHosted":["go-sdk-real-consumer"],"productionSigned":["go-sdk-real-consumer"],"storeReleased":["go-sdk-real-consumer"]},
-      "notes": ["Ubuntu 24.04/Go 1.25 CI compiled the real source consumer, verified frozen Auth vectors, exact 0x1917 and an ephemeral device proof without persisting the key. formalGoModuleArchiveBuilt=false; install, tx, public hosting, production signing and store remain false."]
+      "notes": ["Run 31772532074 deterministically rebuilt the formal 0.1.0 module archive, clean-extracted it, ran module/consumer/Auth/0x1917/device-proof checks and reverified the downloaded artifact. install=true is package-consumer installation, not a public module release; tx, hosting, production signing and store remain false."]
     }
   ]
 }

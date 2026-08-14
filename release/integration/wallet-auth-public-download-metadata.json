@@ -230,6 +230,20 @@
       "storeReleased": false,
       "websitePublishable": false,
       "exclusionReason": "The clean-consumer tarball is not published to npm or immutable public hosting."
+    },
+    {
+      "id": "go-sdk-0.1.0",
+      "sourceCommit": "d430b44488d1c583e8983b422a825790f479add8",
+      "artifactName": "ynx-wallet-go-sdk-0.1.0.tgz",
+      "sha256": "6ef48782edd2be8cd5b79ab62e5ac5ed93ef52242f4157dab3aac29117bee94e",
+      "signingClass": "unsigned-go-module-testnet-candidate",
+      "publicUrl": null,
+      "immutableUrl": null,
+      "downloadHosted": false,
+      "productionSigned": false,
+      "storeReleased": false,
+      "websitePublishable": false,
+      "exclusionReason": "A deterministic CI archive and temporary artifact readback are not a published Go module or immutable public product download."
     }
   ]
 }

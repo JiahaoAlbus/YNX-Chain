@@ -3,7 +3,7 @@
   "auditId": "wallet-auth-public-evidence-audit-2026-08-14",
   "auditedAt": "2026-08-14T03:38:07Z",
   "integrationBaseCommit": "a008ce0e8fa2ac0322198576c320441118fbae83",
-  "matrixSha256": "3de3c4a9282904f7a82cc057607dcce1c99c708cca5b9053e96f34c993f5e2a9",
+  "matrixSha256": "cddb7d31a88796001d8b6af66bf1451dd21a291ebb01b683a166ad7a2051e6ce",
   "publicTestnet": {
     "rpc": {
       "url": "https://evm.ynxweb4.com",
@@ -47,7 +47,7 @@
     "note": "Observed public assets are historical source, prerelease or test evidence and do not match the frozen current candidate set."
   },
   "signingAudit": {
-    "candidateCount": 16,
+    "candidateCount": 17,
     "classes": [
       "unsigned-web-bundle",
       "unsigned-unpacked-extension",
@@ -61,6 +61,7 @@
       "unsigned-unnotarized-macos-testnet-candidate",
       "unsigned-local-testnet-sdk-candidate"
       ,"unsigned-npm-testnet-candidate"
+      ,"unsigned-go-module-testnet-candidate"
     ],
     "productionSignedCandidateCount": 0,
     "notarizedCandidateCount": 0,

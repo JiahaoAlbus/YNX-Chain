@@ -19,7 +19,7 @@ This is the central Integration view of platform delivery. The authoritative mac
 | Linux desktop arm64 RPM | Ubuntu rpm --noscripts native CI with explicit root:root/4755 sandbox; upgrade/lifecycle/Testnet/fail-close/uninstall/hash | RPM scripts and Fedora/DNF not tested; installedLocal/signing/hosting/store false |
 | Windows desktop arm64 | Windows 11 arm64 native CI install/upgrade, cold/second lifecycle, exact Testnet read, fail-close, uninstall and readback hash | installedLocal false; Authenticode NotSigned, non-hosted and not store released |
 | Windows CLI arm64 | Run 31770348463: Windows 11 arm64 upgrade/install/cold/second, frozen vectors, temporary P-256 self-test, exact `0x1917`, fail-close, uninstall and hash readback | Win10/Server2016 not directly tested; temporary P-256 is not production account/tx signing; Authenticode NotSigned; local/public/hosted/production/store false |
-| Go SDK | Run 31770772805: Ubuntu 24.04/Go 1.25 source consumer compile, SDK tests, Auth vector, exact `0x1917`, fail-close and temporary device proof | formal module archive/install, production account/tx signing, public hosting, production signing and store false |
+| Go SDK | Run 31772532074: deterministic 0.1.0 formal archive, clean extract/install, module+consumer tests, Auth vector, exact `0x1917`, temporary device proof and download reverify | not publicly published/hosted; production account/tx signing, production signature and store false |
 | Linux/Windows CLI | Native package lifecycle, exact Testnet read and ephemeral P-256 device proof | Asset signing/transaction, public hosting, production signature |
 | TypeScript SDK | Reproducible local tarball, clean-consumer install/import and exact Testnet read | npm publication, automatic signing/transaction, production signature |
 
@@ -43,7 +43,7 @@ The verifier rejects a `true` gate unless a direct evidence record explicitly su
 
 The 2026-08-14 resumed snapshot was upgraded through GitHub Git-database readback. Every consumed checkpoint has an exact remote commit, parent, tree and evidence blob; Owner branches were fetched without touching the working tree. These source advances promoted no public, hosted, production, store, callback, reconnect, signing or transaction gate without direct evidence.
 
-The frozen checkpoints are Core `774a1f756890043e88626d13b6c9679a2ad6d288`, Web `7d569d1babb85e6d28bb6bfc3b3c0c5fd828255d`, Android `4739a60e1fa0e3d0b6862e129330f9e9ca202887`, iOS/macOS `04450cff296511018447e5d4886803081149f596`, and Desktop/CLI/SDK `f27b5867227e172756d4a8c3638905c668874f33`.
+The frozen checkpoints are Core `774a1f756890043e88626d13b6c9679a2ad6d288`, Web `7d569d1babb85e6d28bb6bfc3b3c0c5fd828255d`, Android `4739a60e1fa0e3d0b6862e129330f9e9ca202887`, iOS/macOS `04450cff296511018447e5d4886803081149f596`, and Desktop/CLI/SDK `d430b44488d1c583e8983b422a825790f479add8`.
 
 Android `6f096503793218ddfd9b3b1cd6403a07d4fafb97` and the recorded Desktop/SDK successors remain queued. Public/hosted/production/store truth is unchanged.
 
