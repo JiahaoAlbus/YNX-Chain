@@ -8,6 +8,7 @@ const SHA256 = /^[0-9a-f]{64}$/;
 const SOURCE_COMMIT = /^[0-9a-f]{40}$/;
 const HEX_DATA = /^0x(?:[0-9a-f]{2})*$/;
 const ENTRY_POINT_SELECTOR = "0xb0d691fe";
+const OWNERSHIP_TRANSFERRED_TOPIC = "0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0";
 
 export function createWalletTestnetDeploymentManifest(input) {
   if (!input || typeof input !== "object" || Array.isArray(input) || !SOURCE_COMMIT.test(input.sourceCommit ?? "") || input.chainId !== 6423) fail("INVALID_DEPLOYMENT_EVIDENCE", "deployment identity is invalid");
@@ -20,6 +21,7 @@ export function createWalletTestnetDeploymentManifest(input) {
     addresses.add(value.address);
     const receipt = value.receipt;
     if (!receipt || typeof receipt !== "object" || Array.isArray(receipt) || receipt.transactionHash !== value.transactionHash || receipt.status !== "0x1" || receipt.contractAddress !== value.address || !HASH.test(receipt.blockHash ?? "") || !/^0x[1-9a-f][0-9a-f]*$/.test(receipt.blockNumber ?? "") || !Array.isArray(receipt.logs)) fail("INVALID_DEPLOYMENT_EVIDENCE", `${name} mined receipt is invalid`);
+    if (name === "paymaster" && !paymasterOwnershipEvent(receipt, value.address)) fail("INVALID_DEPLOYMENT_EVIDENCE", "paymaster deployment event is invalid");
     result[name] = Object.freeze({ address: value.address, transactionHash: value.transactionHash, runtimeSha256: runtimeSha256(value.runtimeCode) });
   }
   return Object.freeze(result);
@@ -41,7 +43,7 @@ export async function verifyPublicERC4337Deployment(config) {
     const expected = manifest[name];
     const receipt = await jsonRpc(fetchImpl, rpcEndpoint, "eth_getTransactionReceipt", [expected.transactionHash], timeoutMs);
     const code = await jsonRpc(fetchImpl, rpcEndpoint, "eth_getCode", [expected.address, "latest"], timeoutMs);
-    contracts[name] = contractEvidence(expected, receipt, code);
+    contracts[name] = contractEvidence(name, expected, receipt, code);
   }
   const factoryEntryPoint = await jsonRpc(fetchImpl, rpcEndpoint, "eth_call", [{ to: manifest.factory.address, data: ENTRY_POINT_SELECTOR }, "latest"], timeoutMs);
   const paymasterEntryPoint = await jsonRpc(fetchImpl, rpcEndpoint, "eth_call", [{ to: manifest.paymaster.address, data: ENTRY_POINT_SELECTOR }, "latest"], timeoutMs);
@@ -94,11 +96,12 @@ function deploymentManifest(input) {
   return Object.freeze(result);
 }
 
-function contractEvidence(expected, receipt, code) {
+function contractEvidence(name, expected, receipt, code) {
   const receiptValue = receipt.ok && receipt.result && typeof receipt.result === "object" && !Array.isArray(receipt.result) ? receipt.result : null;
   const receiptMatches = receiptValue !== null && receiptValue.transactionHash === expected.transactionHash && receiptValue.status === "0x1" && receiptValue.contractAddress === expected.address && HASH.test(receiptValue.blockHash ?? "") && /^0x[1-9a-f][0-9a-f]*$/.test(receiptValue.blockNumber ?? "") && Array.isArray(receiptValue.logs);
+  const requiredDeploymentEventMatches = name !== "paymaster" || paymasterOwnershipEvent(receiptValue, expected.address);
   const runtime = runtimeEvidence(code);
-  return Object.freeze({ address: expected.address, transactionHash: expected.transactionHash, receiptMatches, runtimeBytes: runtime.bytes, observedRuntimeSha256: runtime.sha256, runtimeMatches: runtime.sha256 === expected.runtimeSha256, verified: receiptMatches && runtime.sha256 === expected.runtimeSha256 });
+  return Object.freeze({ address: expected.address, transactionHash: expected.transactionHash, receiptMatches, requiredDeploymentEventMatches, runtimeBytes: runtime.bytes, observedRuntimeSha256: runtime.sha256, runtimeMatches: runtime.sha256 === expected.runtimeSha256, verified: receiptMatches && requiredDeploymentEventMatches && runtime.sha256 === expected.runtimeSha256 });
 }
 
 function runtimeEvidence(value) {
@@ -108,6 +111,7 @@ function runtimeEvidence(value) {
   return { bytes: bytes.length, sha256: bytesToHex(sha256(bytes)) };
 }
 function runtimeSha256(value) { const raw = value.slice(2); const bytes = Uint8Array.from({ length: raw.length / 2 }, (_, index) => Number.parseInt(raw.slice(index * 2, index * 2 + 2), 16)); return bytesToHex(sha256(bytes)); }
+function paymasterOwnershipEvent(receipt, address) { if (!receipt || !Array.isArray(receipt.logs)) return false; return receipt.logs.some(log => log && typeof log === "object" && log.address === address && Array.isArray(log.topics) && log.topics.length === 3 && log.topics[0] === OWNERSHIP_TRANSFERRED_TOPIC && log.topics[1] === `0x${"0".repeat(64)}` && /^0x0{24}[0-9a-f]{40}$/.test(log.topics[2]) && !/^0x0{64}$/.test(log.topics[2]) && log.data === "0x"); }
 
 function returnedAddress(value) { return value.ok && typeof value.result === "string" && /^0x0{24}[0-9a-f]{40}$/.test(value.result) ? `0x${value.result.slice(-40)}` : null; }
 async function jsonRpc(fetchImpl, url, method, params, timeoutMs) {

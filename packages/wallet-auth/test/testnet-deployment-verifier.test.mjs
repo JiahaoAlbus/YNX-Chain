@@ -19,6 +19,7 @@ test("deployment verifier binds chain, receipts, runtime, EntryPoint relationshi
   const calls = [];
   const result = await verifyPublicERC4337Deployment(configuration(fixture(), calls));
   assert.equal(result.ready, true);
+  assert.equal(result.contracts.paymaster.requiredDeploymentEventMatches, true);
   assert.deepEqual(result.releaseClaims, { entryPointDeployedPublic: true, factoryDeployedPublic: true, paymasterDeployedPublic: true, bundlerDeployedPublic: true });
   assert.equal(result.secretMaterialRecorded, false);
   assert.equal(calls.some(({ method }) => method.startsWith("eth_send") || method === "eth_sign"), false);
@@ -29,6 +30,7 @@ test("receipt, bytecode, relationship and Bundler substitutions fail closed", as
   for (const routes of [
     fixture({ receipts: [{ ...receipt(ENTRY_POINT, HASHES[0]), status: "0x0" }, receipt(FACTORY, HASHES[1]), receipt(PAYMASTER, HASHES[2])] }),
     fixture({ codes: [CODES[0], "0x6004", CODES[2]] }),
+    fixture({ receipts: [receipt(ENTRY_POINT, HASHES[0]), receipt(FACTORY, HASHES[1]), { ...receipt(PAYMASTER, HASHES[2]), logs: [] }] }),
     fixture({ relationships: [word(PAYMASTER), word(ENTRY_POINT)] }),
     fixture({ supported: [FACTORY] }),
   ]) {
@@ -64,7 +66,7 @@ function manifest() { return { schemaVersion: 1, sourceCommit: "1".repeat(40), c
 function contract(address, transactionHash, runtimeSha256) { return { address, transactionHash, runtimeSha256 }; }
 function deployedContract(address, transactionHash, runtimeCode) { return { address, transactionHash, runtimeCode, receipt: receipt(address, transactionHash) }; }
 function fixture(overrides = {}) { return { rpcChain: "0x1917", bundlerChain: "0x1917", supported: [ENTRY_POINT], receipts: [receipt(ENTRY_POINT, HASHES[0]), receipt(FACTORY, HASHES[1]), receipt(PAYMASTER, HASHES[2])], codes: CODES, relationships: [word(ENTRY_POINT), word(ENTRY_POINT)], ...overrides }; }
-function receipt(address, transactionHash) { return { transactionHash, status: "0x1", contractAddress: address, blockHash: "0x" + "d4".repeat(32), blockNumber: "0x10", logs: [] }; }
+function receipt(address, transactionHash) { return { transactionHash, status: "0x1", contractAddress: address, blockHash: "0x" + "d4".repeat(32), blockNumber: "0x10", logs: address === PAYMASTER ? [{ address, topics: ["0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0", "0x" + "0".repeat(64), word("0x4444444444444444444444444444444444444444")], data: "0x" }] : [] }; }
 function word(address) { return "0x" + "0".repeat(24) + address.slice(2); }
 function fetchFrom(routes, calls) { let receiptIndex = 0, codeIndex = 0, callIndex = 0; return async (url, options) => { const request = JSON.parse(options.body); calls.push({ url, method: request.method }); if (request.method === "eth_chainId") return rpc(url === RPC ? routes.rpcChain : routes.bundlerChain); if (request.method === "eth_supportedEntryPoints") return rpc(routes.supported); if (request.method === "eth_getTransactionReceipt") return rpc(routes.receipts[receiptIndex++]); if (request.method === "eth_getCode") return rpc(routes.codes[codeIndex++]); if (request.method === "eth_call") return rpc(routes.relationships[callIndex++]); throw new Error(`unexpected ${request.method}`); }; }
 function rpc(result) { return { ok: true, status: 200, headers: { get: () => null }, text: async () => JSON.stringify({ jsonrpc: "2.0", id: 1, result }) }; }
