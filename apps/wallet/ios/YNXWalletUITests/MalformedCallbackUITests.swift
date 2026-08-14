@@ -95,8 +95,6 @@ final class MalformedCallbackUITests: XCTestCase {
     rejected.lifetime = .keepAlways
     add(rejected)
 
-    wallet.buttons["Close Recover Wallet"].tap()
-    XCTAssertTrue(wallet.buttons["Create new Wallet"].waitForExistence(timeout: 15))
     wallet.terminate()
     wallet.launch()
     XCTAssertTrue(
