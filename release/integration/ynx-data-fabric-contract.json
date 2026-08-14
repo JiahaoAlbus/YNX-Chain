@@ -6,9 +6,9 @@
   "slug": "data-fabric",
   "owner": "26-data-fabric",
   "serviceId": "ynx-data-fabric",
-  "release": "ynx-data-fabric-70c56d95ab28",
-  "sourceCommit": "70c56d95ab28cdee963ad7bfc4332d0515d6418c",
-  "generatedAt": "2026-08-14T04:31:56Z",
+  "release": "ynx-data-fabric-962e2668fa66",
+  "sourceCommit": "962e2668fa666729f210990a7ad89e5ab5b66d6f",
+  "generatedAt": "2026-08-14T04:48:52Z",
   "phase": "INTEGRATE",
   "protocol": {
     "eventEnvelope": {
@@ -57,10 +57,18 @@
     "rejectedCredentialTransport": ["authorization-bearer", "browser-long-lived-token", "browser-cookie"],
     "requiredScopes": ["data-fabric.events.write", "data-fabric.events.read", "data-fabric.ledger.read", "data-fabric.ledger.write", "data-fabric.reconciliation.read", "data-fabric.reconciliation.write", "data-fabric.audit.export", "data-fabric.privacy.export", "data-fabric.privacy.delete", "data-fabric.operator.recover"],
     "walletTuple": ["sessionId", "deviceId", "product", "bundleId", "accountId", "requiredScope"],
+    "accountIsolation": {
+      "requiredPrincipal": "canonical non-empty accountId from Wallet/Auth introspection",
+      "accountScopedSurfaces": ["event append and read", "Ledger journal read, write and correction", "billing settlement read and write", "Saga start, read and transition", "reconciliation read and write", "subject export and erasure"],
+      "productScopedPrivilegedSurfaces": ["fabric.audit.export", "fabric.redelivery.manage", "fabric.sagas.recover"],
+      "productScopedMetadata": ["billing rate plans"],
+      "sagaAuthority": "an existing authoritative event must match product, accountId, aggregateId and correlationId",
+      "failurePolicy": "same-product cross-account access rejects before mutation and authorized list results omit foreign-account records"
+    },
     "signedIntentBindings": ["requestId", "requestNonce", "requestTimestamp", "requestMethod", "requestPath", "contentSha256", "requestSignature"],
     "freshness": "not-older-than-2m-and-not-more-than-30s-future",
     "replay": "consume-session-device-nonce-after-successful-introspection",
-    "failClosed": ["introspection-unavailable", "inactive", "revoked", "expired", "wrong-session", "wrong-product", "wrong-bundle", "wrong-device", "scope-widening", "request-tamper", "replay"]
+    "failClosed": ["introspection-unavailable", "inactive", "revoked", "expired", "missing-account", "noncanonical-account", "wrong-account", "wrong-session", "wrong-product", "wrong-bundle", "wrong-device", "scope-widening", "request-tamper", "replay"]
   },
   "canonicalEvents": {
     "registry": "schemas/data-fabric/schema-registry-v2.json",
@@ -90,7 +98,7 @@
   "testVectors": {
     "machineReadable": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
     "producerVectors": "integration/PRODUCER_TEST_VECTORS.md",
-    "requiredNegativeClasses": ["unknown-field", "invalid-version", "duplicate", "out-of-order", "tamper", "wrong-product", "wrong-device", "scope-widening", "expiry", "revoke", "broker-outage", "consumer-crash", "schema-upgrade", "ledger-imbalance", "stale-recovery-lease", "chain-commitment-unavailable", "chain-commitment-mismatch"]
+    "requiredNegativeClasses": ["unknown-field", "invalid-version", "duplicate", "out-of-order", "tamper", "wrong-product", "same-product-wrong-account", "missing-account", "wrong-device", "scope-widening", "expiry", "revoke", "broker-outage", "consumer-crash", "schema-upgrade", "ledger-imbalance", "stale-recovery-lease", "chain-commitment-unavailable", "chain-commitment-mismatch"]
   },
   "dependencies": [
     {

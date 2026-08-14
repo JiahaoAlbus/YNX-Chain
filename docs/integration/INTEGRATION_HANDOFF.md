@@ -1,7 +1,7 @@
 # YNX Data Fabric Integration Handoff
 
-Source Commit: `70c56d95ab28cdee963ad7bfc4332d0515d6418c`
-Release Candidate: `ynx-data-fabric-70c56d95ab28`
+Source Commit: `962e2668fa666729f210990a7ad89e5ab5b66d6f`
+Release Candidate: `ynx-data-fabric-962e2668fa66`
 Owner: YNX Data Fabric
 Phase: `INTEGRATE`
 Status: `ACTIVE`
@@ -33,13 +33,15 @@ Status: `ACTIVE`
 | productionSigned | false | Only test-fixture signing is exercised |
 | storeReleased | false | Native app-store delivery is not applicable to this headless service |
 
-Remote CI Run `31769929949` passed both Data Fabric jobs for current Engineering Source `70c56d95ab28cdee963ad7bfc4332d0515d6418c` at evidence checkpoint `22b3549a804d33a67ef79233cdb866f2b3d70850`. PR `#92` now requires the two applicable Data Fabric checks and one independent approval; no protection bypass is authorized. The workflow publishes no downloadable artifact.
+Current-source remote CI is pending until this evidence checkpoint is pushed to PR `#92`. Prior Run `31770225080` passed both Data Fabric jobs for the preceding source/evidence checkpoint. PR `#92` requires the two applicable Data Fabric checks and one independent approval; no protection bypass is authorized. The workflow publishes no downloadable artifact.
 
 ## Current executable integration
 
 The YNX Pay BFT bridge reads authoritative Pay state, emits canonical Pay events, drives the Pay Saga and posts receipt and refund effects to the immutable Billing Ledger. This path is locally tested but is not yet current-source CI verified, centrally accepted or shared-Testnet verified.
 
 Envelope v2 may carry optional `chainCommitmentId` as an external Chain Core Bulk Data Commitment reference. Data Fabric consumes frozen Chain Core implementation `0da66c319629a79613739df351b5000b85a1371a` bound by release commit `b481a46f6d77644d0dff13e3917a51f8503e88f4`: it accepts only an exact successful `GET /data/commitments/{id}` read from `ynx-consensus-abci` at `abci-state-v14`. Missing, unavailable or contradictory verification rejects before storage. Data Fabric neither computes the commitment ID nor accepts a write owner; Chain Core derives owner from the transaction signer. Raw content, plaintext metadata, recipient lists, access tokens and key material remain off-chain.
+
+Wallet/Auth introspection must return a non-empty canonical `accountId`. Ordinary event, Ledger, billing settlement, Saga and reconciliation APIs are product-and-account scoped; Saga authority is derived from an existing event matching product, account, aggregate and correlation. `fabric.audit.export`, redelivery management and Saga recovery remain explicitly privileged product-wide scopes, while rate plans remain product metadata. One hundred simultaneous local account sessions passed exact event isolation under the Go race detector; this does not establish shared-Testnet or 1000-producer capacity.
 
 ## Required merge and acceptance order
 

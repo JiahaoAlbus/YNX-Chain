@@ -2,10 +2,10 @@
   "schemaVersion": 2,
   "productId": "ynx-data-fabric",
   "productName": "YNX Data Fabric & Billing Ledger",
-  "release": "ynx-data-fabric-70c56d95ab28",
+  "release": "ynx-data-fabric-962e2668fa66",
   "channel": "testnet-preview",
-  "sourceCommit": "70c56d95ab28cdee963ad7bfc4332d0515d6418c",
-  "generatedAt": "2026-08-14T04:31:56Z",
+  "sourceCommit": "962e2668fa666729f210990a7ad89e5ab5b66d6f",
+  "generatedAt": "2026-08-14T04:48:52Z",
   "phase": "INTEGRATE",
   "overallStatus": "ACTIVE",
   "states": {
@@ -74,7 +74,7 @@
   },
   "evidence": {
     "local": {
-      "sourceCommit": "70c56d95ab28cdee963ad7bfc4332d0515d6418c",
+      "sourceCommit": "962e2668fa666729f210990a7ad89e5ab5b66d6f",
       "fullGoTest": "passed-with-standard-umask",
       "dataFabricRace": "passed",
       "reachableVulnerabilities": "zero-with-go1.25.13-and-govulncheck-v1.6.0",
@@ -83,16 +83,16 @@
       "typeScriptSDK": "passed"
     },
     "remoteCI": {
-      "runId": 31769929949,
+      "runId": null,
       "workflow": "data-fabric",
-      "sourceCommit": "70c56d95ab28cdee963ad7bfc4332d0515d6418c",
-      "headCommit": "22b3549a804d33a67ef79233cdb866f2b3d70850",
-      "status": "completed",
-      "conclusion": "success",
-      "startedAt": "2026-08-14T04:27:37Z",
-      "duration": "3m28s",
+      "sourceCommit": "962e2668fa666729f210990a7ad89e5ab5b66d6f",
+      "headCommit": null,
+      "status": "pending",
+      "conclusion": null,
+      "startedAt": null,
+      "duration": null,
       "artifactsPublished": false,
-      "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/31769929949"
+      "url": null
     },
     "sourceCandidate": {
       "tag": "data-fabric-v0.2.0-source-candidate",

@@ -6,6 +6,8 @@ No public capacity or availability claim is approved yet. The current single-nod
 
 ## Exploratory local measurement
 
+`internal/datafabricapi/account_isolation_test.go` now exercises 100 simultaneous canonical account sessions against the real local file Store and API handler under Go Race. The Store is preloaded with one signed event per product/account/session, all requests start together, and every response must contain exactly the requesting account's event. All 100 passed with zero isolation or request failures. This is a bounded concurrency and authorization-correctness test; it does not measure producer append throughput, latency percentiles, PostgreSQL, JetStream, hot partitions, backpressure, shared Testnet or public capacity.
+
 `evidence/capacity/local-clean-source-20260729.json` records a clean-source sample bound to `645c1080f2ff054ec16a62800a778f62c861cc6d` on Darwin arm64, Go 1.25.12, 8 logical CPUs, 500 events and concurrency 8. Append p50/p95/p99 were 117.887/149.999/177.217 ms, maximum 194.093 ms, with 67.226 events/s overall. Dispatching 500 records to the append-and-fsync event log took 11,575.723 ms; idempotent replay took 10,018.630 ms. Cold reopen took 7.073 ms, integrity audit 5.747 ms, state was 1,082,505 bytes and event log 774,757 bytes. No operation error occurred. This is exact local evidence for the bounded single-process file implementation, not a PostgreSQL, JetStream, shared-Testnet, availability or public-scale claim.
 
 `evidence/capacity/local-working-tree-20260722.json` records a dirty-working-tree sample on Darwin arm64, Go 1.25.7, 8 logical CPUs, 200 events and concurrency 4. Append p50/p95/p99 were 65.353/73.031/120.950 ms, maximum 125.897 ms, with 61.623 events/s overall. Dispatching 200 records to the append-and-fsync event log took 5121.913 ms; idempotent replay took 4085.531 ms. Cold reopen took 2.921 ms, integrity audit 2.282 ms, state was 413,877 bytes and event log 294,089 bytes. No operation error occurred.
@@ -30,7 +32,7 @@ These are targets to test, not achieved values:
 
 ## Required experiments
 
-Measure p50/p95/p99, throughput and error rate for event append, dispatch, Inbox effect, journal post, Saga transition, reconciliation and audit export. Run cold start and warm start at increasing event/journal sizes. Test concurrent producers, aggregate partition skew, duplicates, sequence gaps, consumer crash, crash after publish/before acknowledgement, broker outage, DLQ recovery, long replay, schema rejection, disk-full, truncated state, storage growth and restored cold start.
+Measure p50/p95/p99, throughput and error rate for event append, dispatch, Inbox effect, journal post, Saga transition, reconciliation and audit export. Run cold start and warm start at increasing event/journal sizes. Test at least 1,000 simultaneous producer attempts, aggregate partition skew and hot accounts, bounded queue/backpressure behavior, duplicates, sequence gaps, consumer crash, crash after publish/before acknowledgement, broker outage, DLQ recovery, long replay, schema rejection, disk-full, truncated state, storage growth and restored cold start.
 
 Record hardware, OS, Go version, source commit, release, command, duration, sample count, concurrency and raw output. A small local sample can characterize only that sample and must not be extrapolated to public scale.
 

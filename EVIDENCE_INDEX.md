@@ -1,7 +1,7 @@
 # YNX Data Fabric Evidence Index
 
-Engineering Source Commit: `70c56d95ab28cdee963ad7bfc4332d0515d6418c`
-Release Candidate: `ynx-data-fabric-70c56d95ab28`
+Engineering Source Commit: `962e2668fa666729f210990a7ad89e5ab5b66d6f`
+Release Candidate: `ynx-data-fabric-962e2668fa66`
 Phase: `INTEGRATE`
 Status: `ACTIVE`
 
@@ -9,8 +9,8 @@ Status: `ACTIVE`
 
 - Exact YNX 26 Workspace and `codex/final-data-fabric` Branch were verified before modification.
 - No concurrent Git writer was found. A CodexPro server process was observed for this Worktree and left untouched.
-- Commit `70c56d95ab28cdee963ad7bfc4332d0515d6418c` is the frozen Engineering Source Commit. It adds the Chain Core commitment reference boundary; remote review Branch `codex/data-fabric-typescript-sdk-20260814` and PR `#92` target the protected product Branch.
-- GitHub Actions Run `31769929949` passed both Data Fabric jobs for current Engineering Source `70c56d95ab28cdee963ad7bfc4332d0515d6418c` at evidence checkpoint `22b3549a804d33a67ef79233cdb866f2b3d70850`.
+- Commit `962e2668fa666729f210990a7ad89e5ab5b66d6f` is the frozen Engineering Source Commit. It preserves the Chain Core commitment reference boundary and adds same-product account isolation; remote review Branch `codex/data-fabric-typescript-sdk-20260814` and PR `#92` target the protected product Branch.
+- Current-source remote CI is pending until the evidence checkpoint is pushed. Prior Run `31770225080` passed both Data Fabric jobs for the preceding source/evidence checkpoint.
 - The workflow runs full Go tests, Data Fabric Race tests, vet, vulnerability analysis, Linux builds and hashes, SBOM generation, quality gates, secret scanning, JSON validation and isolated PostgreSQL 17.10 transaction and logical backup/restore tests.
 - The workflow does not upload a public artifact; `downloadHosted` and all public states remain false.
 - The two stale untracked recovery summaries discovered at takeover are preserved under `recovery/2026-07-23/` and are not current truth.
@@ -48,6 +48,7 @@ Status: `ACTIVE`
 ## API, SDK, operations and UI
 
 - API: `internal/datafabricapi`
+- Account isolation: `internal/datafabricapi/auth.go`, `internal/datafabricapi/server.go`, `internal/datafabricapi/account_isolation_test.go`; ordinary data APIs are account-scoped and privileged audit export remains product-scoped.
 - Go SDK: `sdk/datafabric`
 - TypeScript SDK: `sdk/datafabric-typescript`; its producer and consumer clients enforce HTTPS outside loopback, canonical credential bindings, event and delivery HMAC verification, response byte limits and strict receipt shapes.
 - Daemon, worker and operator CLI: `cmd/ynx-data-fabricd`, `cmd/ynx-data-fabric-worker`, `cmd/ynx-data-fabricctl`
@@ -84,7 +85,7 @@ node scripts/data-fabric/release-truth-check-check.mjs
 bash scripts/data-fabric/quality-gates.sh
 ```
 
-The full repository test passed under the standard CI `umask=022`. The TypeScript SDK and cross-language signature vector passed locally and in current-source CI. PR `#92` requires only `data-fabric-verify`, `data-fabric-postgres-live` and one independent approval; no protection bypass was attempted.
+The full repository test and Data Fabric API race suite passed locally. One hundred simultaneous canonical account sessions each returned only their own event; that bounded file Store/API result is not a Testnet, database, broker or 1000-producer capacity claim. Current-source CI is pending. PR `#92` requires only `data-fabric-verify`, `data-fabric-postgres-live` and one independent approval; no protection bypass was attempted.
 
 ## Evidence still missing
 

@@ -1,7 +1,7 @@
 # YNX Data Fabric Feature Completion Evidence
 
-Engineering Source Commit: `70c56d95ab28cdee963ad7bfc4332d0515d6418c`
-Release Candidate: `ynx-data-fabric-70c56d95ab28`
+Engineering Source Commit: `962e2668fa666729f210990a7ad89e5ab5b66d6f`
+Release Candidate: `ynx-data-fabric-962e2668fa66`
 Phase: `INTEGRATE`
 Product Status: `ACTIVE`
 
@@ -25,6 +25,7 @@ This matrix reports only the strongest directly evidenced state. A successful lo
 | Chain Core Bulk Data Commitment reference | testedLocal | optional Envelope v2 `chainCommitmentId`; fail-closed read adapter | exact/read-unavailable/mismatch, both ingress paths, schema and TypeScript rejection tests | accepted shared-Testnet Gateway receipt and central owner acceptance |
 | Chain, Pay, Exchange, DEX and Quant reconciliation | inProgress | generic and PostgreSQL reconciliation | generic and Pay tests | accepted Exchange, DEX and Quant observation adapters |
 | Canonical Wallet/App Gateway auth | testedLocal adapter | fail-closed authorizer and signed request tuple | replay, wrong tuple, scope, expiry and revoke vectors | central owner endpoint and trust-root acceptance |
+| Same-product account isolation | testedLocal | account-bound event, Ledger, billing, Saga and reconciliation API boundaries | A/B negative mutation and read vectors; 100 simultaneous local canonical sessions under Go Race | central Wallet/App Gateway vectors and shared-Testnet multi-account receipts |
 | API, CLI, Go and TypeScript SDKs | testedLocal | Data Fabric API, control binary and typed SDKs | Go package tests, five Node tests and cross-language HMAC vector | central endpoint and producer-owner acceptance |
 | PostgreSQL migrations 0001–0006 | testedLocal | checksum-locked up/down migrations | migration tests and PostgreSQL 17.10 CI | production-size upgrade and rollback drill |
 | Backup and restore | testedLocal | file and PostgreSQL logical backup | tamper, non-overwrite, balance and integrity tests | encrypted immutable remote backup, PITR and timed restore |
@@ -53,7 +54,8 @@ This matrix reports only the strongest directly evidenced state. A successful lo
 - Full Go repository test under standard CI permission-test `umask=022`: passed.
 - TypeScript SDK build, five Node tests and canonical-registry dependency audit: passed.
 - Go `1.25.13` reachable-vulnerability scan: zero reachable vulnerabilities.
-- GitHub Actions Run `31769929949` passed both Data Fabric jobs for current Engineering Source `70c56d95ab28cdee963ad7bfc4332d0515d6418c` at evidence checkpoint `22b3549a804d33a67ef79233cdb866f2b3d70850`.
+- Current-source remote CI is pending until the evidence checkpoint is pushed. Prior Run `31770225080` passed both Data Fabric jobs for the preceding source/evidence checkpoint.
+- One hundred simultaneous local canonical account sessions each returned exactly one account-owned event under Go Race; this is not shared-Testnet or 1000-producer evidence.
 - Historical GitHub Actions Run `30488889722` passed for prior source `84872ff9042ed9f4364645750bbfa2dc3475e80b`; it is not current-source evidence.
 - Release truth positive vector and five negative mutations: passed.
 - Public artifacts published by CI: none.

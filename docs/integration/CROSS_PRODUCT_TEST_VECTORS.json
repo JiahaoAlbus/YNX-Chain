@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "productId": "ynx-data-fabric",
-  "sourceCommit": "70c56d95ab28cdee963ad7bfc4332d0515d6418c",
+  "sourceCommit": "962e2668fa666729f210990a7ad89e5ab5b66d6f",
   "eventEnvelopeVersion": "2.0",
-  "generatedAt": "2026-08-14T04:31:56Z",
+  "generatedAt": "2026-08-14T04:48:52Z",
   "vectors": [
     {
       "id": "DF-XP-001",
@@ -70,6 +70,17 @@
       "compensation": "obtain a fresh authorized session and intent",
       "status": "testedLocal",
       "evidence": ["internal/datafabricapi/server_test.go"]
+    },
+    {
+      "id": "DF-XP-017",
+      "class": "same-product-account-isolation",
+      "owners": ["YNX Wallet/Auth", "YNX App Gateway", "YNX Data Fabric"],
+      "preconditions": ["two active canonical accounts in the same product", "each account has an authoritative event and derived Ledger or Saga state"],
+      "input": ["account A lists product events, journal, billing settlements and reconciliation", "account A reads or mutates account B event, journal, billing, Saga or reconciliation coordinates", "100 canonical account sessions read concurrently"],
+      "expected": ["ordinary reads return only the canonical account records", "cross-account mutations reject before state change", "Saga ownership is derived from matching authoritative event coordinates", "all 100 local concurrent sessions observe exactly their own event", "fabric.audit.export remains explicitly product-wide and privilege-scoped"],
+      "compensation": "none; obtain the correct canonical account session or use a separately authorized privileged operator scope",
+      "status": "testedLocal",
+      "evidence": ["internal/datafabricapi/account_isolation_test.go", "internal/datafabricapi/auth.go", "internal/datafabricapi/server.go"]
     },
     {
       "id": "DF-XP-007",
