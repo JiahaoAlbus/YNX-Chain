@@ -378,9 +378,14 @@
     ]
   },
   "postgresReplicaFailoverEvidence": {
-    "status": "passed-local-dirty-docker-pending-exact-source-ci",
+    "status": "passed-exact-source-linux-ci-artifact-download-pending",
     "measuredSourceCommit": "2f9c7f92ed050d83b43668541dbb4841314319d0",
     "implementationSourceCommit": "ed06ce8053d165122a0fa550f59af7c88d3b3c6b",
+    "exactSourceCIRunId": 31838660585,
+    "exactSourceCIHeadCommit": "1216adcfd889af371f52c96dbb2d1d3112b291ea",
+    "exactSourceCIConclusion": "success",
+    "exactSourceFailoverArtifact": "data-fabric-postgres-failover-1216adcfd889af371f52c96dbb2d1d3112b291ea",
+    "exactSourceArtifactDownloadVerified": false,
     "postgresVersion": "17.10",
     "topology": "one-primary-one-asynchronous-streaming-standby-one-docker-host",
     "standbyReadOnlyBeforeFailure": true,

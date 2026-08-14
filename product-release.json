@@ -69,7 +69,7 @@
         "YNX_DATA_FABRIC_TEST_SOURCE_COMMIT=b218b62688ab311513b650db0659390130735cad go test -race -run TestJetStreamThreeReplicaRoutePartitionRetainsOutboxAndRecovers -count=2 ./internal/datafabricnats",
         "go test ./internal/datafabricnats -count=1 -timeout=180s",
         "go vet ./internal/datafabricnats/...",
-        "development Docker drill: PostgreSQL 17 asynchronous streaming standby caught up, primary stopped, standby manually promoted, 1000 canonical events retained with RPO zero and integrity/replay invariants passed; exact-source CI pending",
+        "exact-source GitHub Actions run 31838660585: PostgreSQL 17 asynchronous streaming standby caught up, primary stopped, standby manually promoted, 1000 canonical events retained with RPO zero and integrity/replay invariants passed",
         "go test ./scripts/data-fabric/postgres-resilience ./internal/datafabricpostgres -count=1",
         "go vet ./scripts/data-fabric/postgres-resilience ./internal/datafabricpostgres",
         "bash -n scripts/data-fabric/postgres-replica-failover.sh",
@@ -77,17 +77,24 @@
       ]
     },
     "remoteCI": {
-      "runId": null,
+      "runId": 31838660585,
       "workflow": "data-fabric",
       "sourceCommit": "ed06ce8053d165122a0fa550f59af7c88d3b3c6b",
-      "headCommit": null,
-      "status": "pending",
-      "conclusion": null,
-      "startedAt": null,
-      "duration": null,
+      "headCommit": "1216adcfd889af371f52c96dbb2d1d3112b291ea",
+      "status": "completed",
+      "conclusion": "success",
+      "startedAt": "2026-08-14T20:36:17Z",
+      "duration": "6m2s",
       "artifactsPublished": false,
-      "url": null,
-      "evidenceArtifact": null
+      "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/31838660585",
+      "evidenceArtifact": {
+        "resilienceName": "data-fabric-postgres-resilience-1216adcfd889af371f52c96dbb2d1d3112b291ea",
+        "resilienceBytes": 9757,
+        "failoverName": "data-fabric-postgres-failover-1216adcfd889af371f52c96dbb2d1d3112b291ea",
+        "failoverBytes": 3213,
+        "downloadVerified": false,
+        "downloadBlockedBy": "intermittent-github-api-and-artifact-blob-tls-timeouts"
+      }
     },
     "engineeringEvidenceRun": {
       "runId": 31797308684,
