@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "gateway-node-crash-durability-local-2026-08-14",
+  "owner": "02-wallet-auth",
+  "sourceCommit": "c8eca508d4575af188b2a23750e88ecadf98055f",
+  "observedAt": "2026-08-14T03:58:29Z",
+  "environment": "independent-node-processes-loopback-http-private-local-filesystem",
+  "commitProtocol": {
+    "temporaryOpenExclusive": true,
+    "temporaryNoFollow": true,
+    "temporaryMode": "0600",
+    "temporaryFileFsyncBeforeRename": true,
+    "atomicRename": true,
+    "parentDirectoryOpenedBeforeRename": true,
+    "parentDirectoryFsyncAfterRename": true,
+    "successResponseAfterDirectoryFsync": true,
+    "postRenameSyncFailureCode": "STATE_COMMIT_UNCERTAIN",
+    "postRenameSyncFailureStatus": 503,
+    "postRenameSyncFailureRollsMemoryBack": false
+  },
+  "crashCoverage": {
+    "completionAcknowledgedBeforeSigkill": true,
+    "completionColdRestartPreserved": true,
+    "completionNoncePreserved": true,
+    "completionAuditPreserved": true,
+    "revokeAcknowledgedBeforeSigkill": true,
+    "revokeColdRestartPreserved": true,
+    "revokeProofPreserved": true,
+    "revokeAuditPreserved": true,
+    "lockPresentAfterAcknowledgedSigkill": false,
+    "stateDigestValidAfterRestart": true,
+    "stateFileMode": "0600"
+  },
+  "tests": {
+    "focusedCrashDurability": "2/2 passed",
+    "focusedWithPersistenceRollback": "4/4 passed",
+    "walletAuthFullSuite": "165/165 passed",
+    "packageDryRun": "passed",
+    "walletProductCheck": "passed",
+    "walletReleaseContentCheck": "passed",
+    "walletGoalCoverageCheck": "passed",
+    "jsonAndDiffChecks": "passed"
+  },
+  "sourceSha256": {
+    "packages/wallet-auth/src/gateway-node-host.js": "5cb8b3189af1f1f0e949e0d82d181e0f863872d38f17bb373435c150f47da83c",
+    "packages/wallet-auth/test/gateway-node-crash-durability.test.mjs": "eeefa32a775833ce926c30ca622db784642501e52a0b2dc5e83475e3eb1e6d57"
+  },
+  "releaseClaims": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "publicRouteVerified": false,
+    "acknowledgedLocalProcessCrashDurabilityVerified": true,
+    "postRenameDirectorySyncFailureInjected": false,
+    "powerLossDurabilityVerified": false,
+    "networkFilesystemDurabilityVerified": false,
+    "multiRegionDurabilityVerified": false,
+    "preAcknowledgementCrashRecoveryVerified": false,
+    "automaticStaleLockRecoveryVerified": false,
+    "assetMoved": false,
+    "secretMaterialRecorded": false
+  },
+  "deployedGateway": {
+    "sourceCommit": "c6ac582c8d490ef980a8cadfd9172f133d1b1a49",
+    "release": "ynx-wallet-gateway-c6ac582c8d49",
+    "containsCrashDurabilitySlice": false
+  }
+}
