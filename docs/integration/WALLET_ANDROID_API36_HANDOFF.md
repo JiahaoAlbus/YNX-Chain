@@ -178,3 +178,9 @@ Verification passed the focused audit 7/7 suite, Wallet 78/78, typecheck, produc
 Commit `7c48f9474f39af9d8ab3ce9b1494b223487ede90` makes authorization-audit storage bounded and restart-safe at exhaustion. SecureStore input larger than 1 MiB is rejected before JSON parsing. Append and revoke reject at 1,000 records before constructing or writing an invalid 1,001-record chain, and every serialized write is checked against both limits. Capacity failure leaves the exact prior hash chain unchanged and readable after store reconstruction.
 
 Verification passed the focused audit 8/8 suite, Wallet 79/79, typecheck, product check, Social harness contract check, release-content check, full-goal coverage and `git diff --check`. A mode-0700 current-source Android Hermes export passed with 2,742 modules and all temporary links were removed. No device command or interaction was performed, so exact-source device and release booleans remain false.
+
+## Authorization audit reconstruction checkpoint
+
+Commit `4bfcead8f61a0578169f86f0fb280508bf252e1a` replays the authorization decision state machine while loading the persisted audit. Hash-valid but semantically impossible history now fails closed: callback-returned without approval intent, approve/reject conflict, callback account drift, revoke without a returned approval, and duplicate callback or revocation terminals are rejected during process reconstruction. This remains effective when an invalid record's ordinary digest-chain hash has been recomputed.
+
+Verification passed the focused audit 9/9 suite, Wallet 80/80, typecheck, product check, Social harness contract check, release-content check, full-goal coverage and `git diff --check`. A mode-0700 current-source Android Hermes export passed with 2,742 modules and all temporary links were removed. No device command or interaction was performed, so exact-source device and release booleans remain false.
