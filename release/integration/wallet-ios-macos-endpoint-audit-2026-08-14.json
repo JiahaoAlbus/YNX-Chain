@@ -1,0 +1,147 @@
+{
+  "schemaVersion": "ynx-wallet-ios-macos-endpoint-audit/v1",
+  "recordedAt": "2026-08-14T23:39:00+08:00",
+  "owner": "02-wallet-auth-ios-macos",
+  "branch": "codex/wallet-ios-macos-20260813",
+  "sourceCommit": "dc0888cd39a0b057eb98e1aa80ca6963d30825c4",
+  "centralEndpointMatrix": {
+    "located": false,
+    "commit": null,
+    "path": null,
+    "blob": null,
+    "consumedByNativeRelease": false,
+    "status": "awaiting Central immutable matrix; this audit does not define or select production endpoints"
+  },
+  "sourceAudit": {
+    "publicFacts": {
+      "path": "release/facts/public-urls.json",
+      "blob": "45b3809828d9180fde1698499f3b07aac490d911",
+      "version": "2026.07.26.1",
+      "rpcURL": "https://evm.ynxweb4.com",
+      "rpcStatus": "Blocked",
+      "faucetStatus": "Candidate",
+      "staleForCurrentNativeRelease": true
+    },
+    "reactNativeWallet": {
+      "chainClientPath": "apps/wallet/src/chain/nativeTransfer.ts",
+      "chainClientBlob": "de054373fb739ec9341cc405fee00f9712dfd5b5",
+      "evmClientPath": "apps/wallet/src/chain/evmSimulation.ts",
+      "evmClientBlob": "235b62d25e30df79b93d0a5c84d68b67b28741b5",
+      "hardCodedDefaultOrigin": "https://rpc.ynxweb4.com",
+      "runtimeOverrideMechanism": "globalThis.__YNX_WALLET_CHAIN_RUNTIME__",
+      "runtimeOverridePackagedOrDiscovered": false,
+      "requestTimeoutSeconds": 15,
+      "serviceDiscoveryImplemented": false,
+      "centralMatrixConsumed": false
+    },
+    "ios": {
+      "infoPlistPath": "apps/wallet/ios/YNXWallet/Info.plist",
+      "infoPlistBlob": "7f45e72838a6428475d387058a2e682dddfdf817",
+      "atsAllowsArbitraryLoads": false,
+      "atsAllowsLocalNetworking": true,
+      "plainHTTPProductionAllowed": false,
+      "entitlementsPath": "apps/wallet/ios/YNXWallet/YNXWallet.entitlements",
+      "entitlementsBlob": "f683276c573e8f6c0631b22043ce44e3073b81f0",
+      "associatedDomainsPresent": false,
+      "universalLinkEnabled": false,
+      "nativeServiceDiscoveryImplemented": false
+    },
+    "macos": {
+      "infoPlistPath": "apps/wallet/macos/Info.plist",
+      "infoPlistBlob": "222c3ec18d6323493abaf36a6d10b636a53c1fe4",
+      "mainSourcePath": "apps/wallet/macos/Sources/YNXWalletMac/main.swift",
+      "mainSourceBlob": "b33c0d049ea3d8e8edaafe857690719510ce5677",
+      "urlSessionOrNetworkClientPresent": false,
+      "rpcClientPresent": false,
+      "serviceDiscoveryImplemented": false,
+      "centralMatrixConsumed": false,
+      "testnetChainIdVerifiedByInstalledMacApp": false
+    }
+  },
+  "publicReadOnlyProbe": {
+    "observedAt": "2026-08-14T15:34:44Z/2026-08-14T15:38:57Z",
+    "operatorVantageOnly": true,
+    "rpcStatus": {
+      "url": "https://rpc.ynxweb4.com/status",
+      "httpStatus": 200,
+      "tlsVerified": true,
+      "chainId": 6423,
+      "height": 1019445,
+      "catchingUp": false,
+      "responseBytes": 2985,
+      "responseSha256": "1c45f7d785841b0914c1ad8f61bd9861273808ebb002f45cef9ef3a65cbd035f",
+      "timeToTLSSeconds": 6.39161,
+      "timeTotalSeconds": 6.63495
+    },
+    "walletExactDefaultEvmOrigin": {
+      "url": "https://rpc.ynxweb4.com",
+      "method": "eth_chainId",
+      "httpStatus": 200,
+      "tlsVerified": true,
+      "result": "0x1917",
+      "responseBytes": 43,
+      "responseSha256": "1ea492353384c188a24a903cad13b3bbcab31684c7f04fea3628a9fc8d1fe355",
+      "timeToTLSSeconds": 9.993993,
+      "timeTotalSeconds": 13.616577,
+      "insideWalletTimeoutSeconds": 15
+    },
+    "alternateEvmOrigin": {
+      "url": "https://evm.ynxweb4.com",
+      "method": "eth_chainId",
+      "httpStatus": 200,
+      "tlsVerified": true,
+      "result": "0x1917",
+      "responseBytes": 43,
+      "responseSha256": "5c4a05f13a54a9563933c7daa16938e313e9b35240d6689abc92c1351ebaff79",
+      "timeToTLSSeconds": 6.395347,
+      "timeTotalSeconds": 6.712546
+    },
+    "appGatewayHealth": {
+      "url": "https://api.ynxweb4.com/app/health",
+      "firstAttempt": "TLS connection timeout after 10.033398 seconds",
+      "boundedRetryHttpStatus": 200,
+      "boundedRetryTlsVerified": true,
+      "boundedRetryResponseBytes": 2193,
+      "boundedRetryResponseSha256": "5e7e89da2f121d8f41440a06ec4b5779eb8337cb9c616528fb3ece148030a3f4",
+      "boundedRetryTimeToTLSSeconds": 8.549135,
+      "boundedRetryTimeTotalSeconds": 11.755943
+    },
+    "rpcEvmPath": {
+      "url": "https://rpc.ynxweb4.com/evm",
+      "firstAttempt": "TLS connection timeout after 10.006023 seconds",
+      "boundedRetryHttpStatus": 200,
+      "boundedRetryTlsVerified": true,
+      "boundedRetryResult": "0x1917",
+      "boundedRetryTimeToTLSSeconds": 9.439067,
+      "boundedRetryTimeTotalSeconds": 11.718185
+    },
+    "installedIosOrMacosAppProbe": false,
+    "installedAppRpcChainIdVerified": false,
+    "installedAppAuthVerified": false,
+    "installedAppTestnetFlowVerified": false
+  },
+  "findings": [
+    "No single immutable Central endpoint matrix was present in the audited branch, so native release code cannot yet consume a canonical endpoint source.",
+    "The React Native Wallet hard-codes rpc.ynxweb4.com while release public facts still identify evm.ynxweb4.com as Blocked; neither source is a current Central matrix.",
+    "The Wallet accepts a process-global runtime override, but this audit found no packaged immutable runtime configuration or service-discovery implementation that sets it for installed iOS/macOS releases.",
+    "The macOS native application contains callback, UI, Keychain and biometric recovery boundaries but no RPC/Auth/service-discovery network client, so it cannot truthfully pass Testnet chainId or Auth flow today.",
+    "Public read-only probes reached chainId 6423 from both RPC origins, but TLS establishment took 6.4-10.0 seconds and two first attempts hit a 10-second TLS timeout. This operator probe does not prove installed-app reliability.",
+    "iOS ATS correctly rejects arbitrary production HTTP. Associated domains remain absent because Core has not frozen the Team ID/domain/path contract."
+  ],
+  "releaseGates": {
+    "centralEndpointMatrixConsumed": false,
+    "iosInstalledAppRpcChainIdVerified": false,
+    "macosInstalledAppRpcChainIdVerified": false,
+    "iosInstalledAppAuthVerified": false,
+    "macosInstalledAppAuthVerified": false,
+    "iosTestnetTransactionSucceeded": false,
+    "macosTestnetTransactionSucceeded": false,
+    "associatedDomainDeployed": false,
+    "universalLinkAccepted": false,
+    "physicalDeviceVerified": false,
+    "developerIDSigned": false,
+    "notarized": false,
+    "productionSigned": false,
+    "public": false
+  }
+}
