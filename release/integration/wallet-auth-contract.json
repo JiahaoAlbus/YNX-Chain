@@ -5,7 +5,7 @@
   "slug": "wallet-auth",
   "productSlug": "wallet-auth",
   "owner": "02-wallet-auth",
-  "sourceCommit": "a3dc6d52bfba48a3d272084828764192d4c7ac34",
+  "sourceCommit": "acc906c4c3a86e6557685e1959b78a4505a961c3",
   "phase": "PUBLIC-TESTNET-GATEWAY",
   "network": {
     "nativeChainId": "ynx_6423-1",
@@ -31,6 +31,7 @@
     "revocationControlHttpNegativeMatrix": 1,
     "sessionInventoryHttpPrivacyMatrix": 1,
     "sessionLinearizationRace": 1,
+    "gatewayNodePersistenceAtomicity": 1,
     "strategyMandate": 2,
     "strategyAction": 1,
     "strategyMandateStore": 1,
@@ -330,8 +331,8 @@
     "storeReleased": false
   },
   "verification": {
-    "walletAuthPackageTests": "149/149 passed",
-    "currentWalletOwnedSuite": "147/147 passed; all package tests except Developer-owned developer-deployment.test.mjs",
+    "walletAuthPackageTests": "151/151 passed",
+    "currentWalletOwnedSuite": "149/149 passed; all package tests except Developer-owned developer-deployment.test.mjs",
     "crossOwnerTestAudit": "2/2 Developer-owned SampleEVMWriteCounter assertions passed in the full package audit; Wallet/Auth did not generate or modify the Developer-owned artifact and does not count them as Wallet-owned coverage",
     "gatewayNodeHostTests": "10/10 passed",
     "canonicalAuthorizationRejection": {
@@ -462,6 +463,29 @@
       "deployedPublic": false,
       "publicRouteVerified": false,
       "evidence": "apps/wallet/proof/session-linearization-race-local-2026-08-14.json"
+    },
+    "gatewayNodePersistenceAtomicity": {
+      "sourceCommit": "acc906c4c3a86e6557685e1959b78a4505a961c3",
+      "focusedTests": "2/2 passed",
+      "environment": "single-node-process-loopback-http-with-real-filesystem-fault",
+      "completionPersistenceFailureCovered": true,
+      "revokePersistenceFailureCovered": true,
+      "persistenceFailureRollback": true,
+      "inMemoryStateRolledBack": true,
+      "persistedStateUnchanged": true,
+      "authorizationNonceConsumedOnFailure": false,
+      "sessionCreatedOnFailure": false,
+      "productProofConsumedOnFailure": false,
+      "revocationRecordedOnFailure": false,
+      "exactRetryAfterRecovery": true,
+      "restartPreservesRetryWinner": true,
+      "multiProcessAtomicityVerified": false,
+      "multiRegionAtomicityVerified": false,
+      "integratedCentral": false,
+      "deployedStaging": false,
+      "deployedPublic": false,
+      "publicRouteVerified": false,
+      "evidence": "apps/wallet/proof/gateway-node-persistence-atomicity-local-2026-08-14.json"
     },
     "gatewayAdmissionObservability": {
       "sourceCommit": "6b1f1f21a79861178ee7fc168ad21c2869296fd5",
