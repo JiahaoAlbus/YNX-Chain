@@ -12,6 +12,7 @@
     "package": "node scripts/package.mjs",
     "verify:package": "node scripts/verify-package.mjs",
     "test:runtime:branded": "npm run build && node scripts/runtime-branded.mjs",
+    "test:runtime:branded:cdp": "npm run build && node scripts/runtime-branded-cdp.mjs",
     "test:runtime:bridge": "npm run build && node scripts/runtime-bridge-gate.mjs",
     "test:runtime:preferences": "npm run build && node scripts/runtime-preferences-gate.mjs",
     "test:runtime:cache-integrity": "npm run build && node scripts/runtime-cache-integrity-gate.mjs",

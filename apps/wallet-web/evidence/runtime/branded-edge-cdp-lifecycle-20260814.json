@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "deca6f4fe29dafdccb3736f237e6e8829e094eec",
+  "generatedAt": "2026-08-14T10:12:38.128Z",
+  "browserId": "edge",
+  "browserName": "Microsoft Edge",
+  "executablePath": "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
+  "browserVersion": null,
+  "loadMode": "temporary-unpacked-isolated-profile",
+  "profileClass": "disposable-isolated-profile-reused-only-for-second-launch",
+  "runtimePresentation": "headless-new branded binary; not visible-browser or installedLocal evidence",
+  "extension": {
+    "path": "/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/dist/chromium",
+    "derivedId": "jgijcegbgeobldllfniaejejofobcngk",
+    "actualId": null
+  },
+  "artifact": {
+    "name": "ynx-wallet-chrome-edge-0.1.0.zip",
+    "bytes": 188846,
+    "sha256": "c733093dea47c6612c8a9d5ecea40be2227f62402f4b4966955c9e1accf4e2aa",
+    "signingClass": "unsigned-unpacked-extension"
+  },
+  "launchArgs": {
+    "removedDisableExtensions": true,
+    "headlessNew": true,
+    "gpuDisabled": true,
+    "remoteAllowOrigins": true,
+    "remoteDebuggingPort": "ephemeral",
+    "dailyProfileTouched": false
+  },
+  "launches": [
+    {
+      "sequence": 1,
+      "startedAt": "2026-08-14T10:12:38.182Z",
+      "pid": 75961,
+      "pidAliveAtStart": true,
+      "childExit": {
+        "code": null,
+        "signal": "SIGTERM"
+      },
+      "cdpConnected": false,
+      "managerEntries": [],
+      "popupOpened": false,
+      "serviceWorkerStarted": false,
+      "backgroundTargets": [],
+      "console": [],
+      "runtimeWake": null,
+      "endedPidAlive": false,
+      "error": {
+        "name": "Error",
+        "code": "CDP_ENDPOINT_TIMEOUT",
+        "message": "DevToolsActivePort was not created within 10000ms"
+      },
+      "endedAt": "2026-08-14T10:12:49.050Z"
+    },
+    {
+      "sequence": 2,
+      "startedAt": "2026-08-14T10:12:49.233Z",
+      "pid": 75990,
+      "pidAliveAtStart": true,
+      "childExit": {
+        "code": null,
+        "signal": "SIGKILL"
+      },
+      "cdpConnected": false,
+      "managerEntries": [],
+      "popupOpened": false,
+      "serviceWorkerStarted": false,
+      "backgroundTargets": [],
+      "console": [],
+      "runtimeWake": null,
+      "endedPidAlive": false,
+      "error": {
+        "name": "Error",
+        "code": "CDP_ENDPOINT_TIMEOUT",
+        "message": "DevToolsActivePort was not created within 10000ms"
+      },
+      "endedAt": "2026-08-14T10:13:00.684Z"
+    }
+  ],
+  "passed": false,
+  "temporaryUnpackedRuntimeProved": false,
+  "firstOpenProved": false,
+  "secondOpenProved": false,
+  "serviceWorkerRestartProved": false,
+  "visibleBrowserAcceptance": false,
+  "installedLocal": false,
+  "providerSuccessClaimed": false,
+  "accountAuthorized": false,
+  "messageSigned": false,
+  "transactionSubmitted": false,
+  "downloadHosted": false,
+  "deployedPublic": false,
+  "productionSigned": false,
+  "storeReleased": false,
+  "stderr": ""
+}
