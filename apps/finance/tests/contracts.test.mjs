@@ -35,9 +35,9 @@ test('web wallet chooser offers the official Wallet release and bounded MetaMask
   for(const marker of ['ynx-wallet-1.0.1-testnet-preview-dc31c9a8-test-signed.apk','0x1917','wallet_switchEthereumChain','wallet_addEthereumChain','eth_chainId','eth_requestAccounts']) assert.ok(webWallet.includes(marker),marker);
   assert.ok(webWallet.includes('only for EVM compatibility'));
 });
-test('read reconnect is bounded and mutations are never automatically replayed',()=>{
-  for(const marker of ['id="network-retry"','Retry connection']) assert.ok(html.includes(marker),marker);
-  for(const marker of ['READ_RETRY_DELAYS=[0,600,1600]','readOnly?READ_RETRY_DELAYS.length:1',"method==='GET'",'AbortSignal.timeout(10_000)',"window.addEventListener('online'",'Connection unavailable']) assert.ok(js.includes(marker),marker);
+test('public and private read reconnect are bounded and mutations are never automatically replayed',()=>{
+  for(const marker of ['id="network-retry"','Reconnect YNX Chain']) assert.ok(html.includes(marker),marker);
+  for(const marker of ['READ_RETRY_DELAYS=[0,600,1600]','readOnly?READ_RETRY_DELAYS.length:1',"method==='GET'",'AbortSignal.timeout(10_000)',"window.addEventListener('online'",'Connection unavailable',"fetch('/health'",'YNX Testnet reachable · Wallet not connected']) assert.ok(js.includes(marker),marker);
 });
 test('responsive and accessibility contracts exist',()=>{
   assert.ok(html.includes('class="skip"'));
