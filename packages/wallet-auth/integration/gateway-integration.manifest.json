@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "integrationId": "canonical-wallet-auth-v1",
   "owner": "02-wallet-auth",
-  "sourceCommit": "838ced040abe13fed2f75e13724380190b0a3626",
+  "sourceCommit": "8e91c58e3f997b35da1b3d0298f174a2e8533fa2",
   "targetService": "ynx-app-gatewayd",
   "protocol": {
     "authorization": "wallet-auth-v1",
@@ -95,9 +95,11 @@
     "legacy Ed25519 session substitution"
   ],
   "stateSchema": "gateway-state.schema.json",
-  "testVectors": ["../testdata/product-session-http-proof-v1.json", "../testdata/strategy-mandate-v2.json", "../testdata/central-lifecycle-v1.json", "../../../apps/wallet/proof/gateway-observability-local-2026-07-27.json", "../../../apps/wallet/proof/gateway-admission-observability-local-2026-08-13.json", "../../../apps/wallet/proof/gateway-registry-state-binding-local-2026-08-14.json", "../../../apps/wallet/proof/gateway-state-file-security-local-2026-08-14.json", "../../../apps/wallet/proof/gateway-state-file-exact-boundaries-local-2026-08-14.json", "../../../apps/wallet/proof/gateway-node-crash-durability-local-2026-08-14.json", "../../../apps/wallet/proof/gateway-node-stale-lock-recovery-local-2026-08-14.json"],
+  "testVectors": ["../testdata/product-session-http-proof-v1.json", "../testdata/strategy-mandate-v2.json", "../testdata/central-lifecycle-v1.json", "../../../apps/wallet/proof/gateway-observability-local-2026-07-27.json", "../../../apps/wallet/proof/gateway-admission-observability-local-2026-08-13.json", "../../../apps/wallet/proof/gateway-registry-state-binding-local-2026-08-14.json", "../../../apps/wallet/proof/gateway-state-file-security-local-2026-08-14.json", "../../../apps/wallet/proof/gateway-state-file-exact-boundaries-local-2026-08-14.json", "../../../apps/wallet/proof/gateway-node-crash-durability-local-2026-08-14.json", "../../../apps/wallet/proof/gateway-node-stale-lock-recovery-local-2026-08-14.json", "../../../apps/wallet/proof/gateway-node-request-lifecycle-local-2026-08-14.json", "../../../apps/wallet/proof/gateway-revocation-control-linearization-local-2026-08-14.json"],
   "acceptanceCommands": [
-    {"cwd":"packages/wallet-auth","command":"npm test","expected":"167/167"},
+    {"cwd":"packages/wallet-auth","command":"npm test","expected":"171/171"},
+    {"cwd":"packages/wallet-auth","command":"node --test test/gateway-node-revocation-control-linearization.test.mjs","expected":"1/1"},
+    {"cwd":"packages/wallet-auth","command":"node --test test/gateway-node-request-lifecycle.test.mjs","expected":"3/3"},
     {"cwd":"packages/wallet-auth","command":"node --test test/gateway-node-stale-lock-recovery.test.mjs","expected":"2/2"},
     {"cwd":"packages/wallet-auth","command":"node --test test/gateway-node-crash-durability.test.mjs","expected":"2/2"},
     {"cwd":"packages/wallet-auth","command":"node --test test/gateway-node-state-file-security.test.mjs","expected":"3/3"},
