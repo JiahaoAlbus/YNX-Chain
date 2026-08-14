@@ -1,0 +1,115 @@
+name: Wallet desktop Linux AppImage
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [codex/wallet-desktop-cli-sdk-20260813]
+    paths:
+      - apps/wallet-desktop/**
+      - packages/wallet-auth/**
+      - .github/workflows/wallet-desktop-linux-appimage.yml
+
+permissions:
+  contents: read
+
+jobs:
+  linux-x64-appimage-native:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24.18.0
+          cache: npm
+          cache-dependency-path: apps/wallet-desktop/package-lock.json
+      - name: Install dependencies and test frozen contract boundary
+        run: |
+          npm ci --ignore-scripts --prefix packages/wallet-auth
+          npm ci --prefix apps/wallet-desktop
+          npm test --prefix apps/wallet-desktop
+      - name: Build AppImage only
+        run: npm run dist:linux-appimage --prefix apps/wallet-desktop
+      - name: First launch, second launch and fail-closed RPC on native runner
+        env:
+          EVIDENCE: ${{ runner.temp }}/wallet-desktop-appimage.json
+          OUT_DIR: ${{ runner.temp }}/wallet-desktop-appimage-evidence
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb xdotool
+          mkdir -p "$OUT_DIR"
+          APPIMAGE="$(find apps/wallet-desktop/dist -maxdepth 1 -name '*.AppImage' -print -quit)"
+          test -n "$APPIMAGE"
+          chmod +x "$APPIMAGE"
+
+          run_phase() {
+            expected_launches="$1"
+            rpc_url="$2"
+            phase="$3"
+            YNX_WALLET_EVIDENCE_PATH="$EVIDENCE" YNX_WALLET_RPC_URL="$rpc_url" xvfb-run -a bash -c '
+              appimage="$1"
+              evidence="$2"
+              expected="$3"
+              log="$4"
+              title_evidence="$5"
+              "$appimage" --appimage-extract-and-run --disable-gpu > "$log" 2>&1 &
+              app_pid=$!
+              for attempt in {1..30}; do
+                launches=$(node -e "try{process.stdout.write(String(require(process.argv[1]).launches))}catch{}" "$evidence")
+                test "$launches" = "$expected" && break
+                sleep 1
+              done
+              kill -0 "$app_pid"
+              xdotool search --name "YNX Wallet Testnet Preview" getwindowname > "$title_evidence"
+              kill "$app_pid"
+              wait "$app_pid" || true
+            ' _ "$APPIMAGE" "$EVIDENCE" "$expected_launches" "$OUT_DIR/$phase.log" "$OUT_DIR/$phase-window-title.txt"
+            cp "$EVIDENCE" "$OUT_DIR/$phase-app-evidence.json"
+          }
+
+          run_phase 1 https://evm.ynxweb4.com cold
+          node -e "const e=require(process.env.EVIDENCE);if(e.launches!==1||!e.visibleShellReady||!e.window.visible||e.window.title!=='YNX Wallet Testnet Preview'||!e.rpc.available||e.rpc.chainId!=='0x1917'||e.signingEnabled||e.accountCreated||e.balanceClaimed||e.transactionCreated)process.exit(1)"
+          run_phase 2 https://evm.ynxweb4.com second
+          node -e "const e=require(process.env.EVIDENCE);if(e.launches!==2||!e.rpc.available||e.rpc.chainId!=='0x1917'||e.signingEnabled)process.exit(1)"
+          run_phase 3 http://127.0.0.1:1 failed-rpc
+          node -e "const e=require(process.env.EVIDENCE);if(e.launches!==3||e.rpc.available||e.rpc.chainId!==null||e.signingEnabled)process.exit(1)"
+
+          node - <<'NODE'
+          const fs = require('fs');
+          const evidence = JSON.parse(fs.readFileSync(process.env.EVIDENCE, 'utf8'));
+          const result = {
+            schemaVersion: 1,
+            architecture: 'x86_64',
+            portableFormat: 'AppImage',
+            nativeRunner: 'ubuntu-24.04',
+            coldLaunch: true,
+            secondLaunch: true,
+            processObserved: true,
+            coldWindowTitleObserved: true,
+            secondWindowTitleObserved: true,
+            appReportedWindowVisible: true,
+            appReportedWindowTitle: 'YNX Wallet Testnet Preview',
+            chainId: '0x1917',
+            rpcFailureClosed: !evidence.rpc.available && evidence.rpc.chainId === null,
+            signingEnabled: false,
+            accountCreated: false,
+            balanceClaimed: false,
+            transactionCreated: false,
+            productionSigned: false
+          };
+          fs.writeFileSync(`${process.env.OUT_DIR}/lifecycle.json`, `${JSON.stringify(result, null, 2)}\n`);
+          NODE
+      - name: Record AppImage artifact evidence
+        env:
+          OUT_DIR: ${{ runner.temp }}/wallet-desktop-appimage-evidence
+        run: |
+          APPIMAGE="$(find apps/wallet-desktop/dist -maxdepth 1 -name '*.AppImage' -print -quit)"
+          sha256sum "$APPIMAGE" | tee "$OUT_DIR/SHA256SUMS.txt"
+          stat -c '%n %s' "$APPIMAGE" | tee "$OUT_DIR/BYTES.txt"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ynx-wallet-desktop-linux-x64-appimage
+          path: |
+            apps/wallet-desktop/dist/*.AppImage
+            ${{ runner.temp }}/wallet-desktop-appimage-evidence/**
+          if-no-files-found: error

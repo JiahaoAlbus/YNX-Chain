@@ -17,6 +17,7 @@
     "test": "node --test test/*.test.mjs",
     "start": "electron .",
     "dist:linux": "electron-builder --linux deb AppImage --x64 --publish never",
+    "dist:linux-appimage": "electron-builder --linux AppImage --x64 --publish never",
     "dist:windows": "electron-builder --win nsis --x64 --publish never"
   },
   "dependencies": {
