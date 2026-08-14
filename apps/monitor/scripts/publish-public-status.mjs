@@ -32,7 +32,23 @@ export async function boundedJSON(response) {
     chunks.push(value);
   }
   const text = Buffer.concat(chunks.map((chunk) => Buffer.from(chunk))).toString("utf8");
-  try { return record(JSON.parse(text)); } catch { return {}; }
+  try {
+    const parsed = JSON.parse(text);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error("probe response must be a JSON object");
+    return parsed;
+  } catch (error) {
+    if (error instanceof Error && error.message === "probe response must be a JSON object") throw error;
+    throw new Error("probe response was not valid JSON");
+  }
+}
+function healthStatus(response, health, dependencies) {
+  if (!response.ok || health.ok === false) return "major_outage";
+  const explicit = String(health.status ?? "").toLowerCase();
+  let status = health.ok === true || ["healthy", "available", "operational", "ok", "ready"].includes(explicit)
+    ? "operational"
+    : publicDependencyStatus(explicit);
+  for (const dependency of dependencies) if (ranks[dependency.status] > ranks[status]) status = dependency.status;
+  return status;
 }
 function identityFrom(...documents) {
   for (const document of documents) {
@@ -78,7 +94,8 @@ export async function buildSnapshot({ probes, key, source, approvalId, timeoutMs
 	  const reportedDependencies = record(health.dependencies);
 	  const dependencyIDs = [...new Set([...(Array.isArray(probe.dependencies) ? probe.dependencies : []), ...Object.keys(reportedDependencies)])].filter((id) => /^[a-z0-9][a-z0-9._:-]{0,79}$/i.test(id)).slice(0, 20);
 	  const dependencies = dependencyIDs.map((id) => ({ id, status: id in reportedDependencies ? publicDependencyStatus(reportedDependencies[id]) : "unknown" }));
-	  return { id: probe.id, name: probe.name.slice(0, 120), status: response.ok ? "operational" : "major_outage", asOf, checkedAt: asOf, ...identity, dependencies, message: response.ok ? "Bounded public probe returned a successful response." : "Bounded public probe did not return a successful response." };
+	  const status = healthStatus(response, health, dependencies);
+	  return { id: probe.id, name: probe.name.slice(0, 120), status, asOf, checkedAt: asOf, ...identity, dependencies, message: status === "operational" ? "Bounded public probe returned verified healthy evidence." : "Bounded public probe did not return verified healthy evidence." };
     } catch {
 	  return { id: probe.id, name: probe.name.slice(0, 120), status: "major_outage", asOf, checkedAt: asOf, sourceCommit: null, release: null, startedAt: null, dependencies: (Array.isArray(probe.dependencies) ? probe.dependencies : []).filter((id) => /^[a-z0-9][a-z0-9._:-]{0,79}$/i.test(id)).slice(0,20).map((id) => ({ id, status: "unknown" })), message: "Bounded public probe was unavailable before its timeout." };
     } finally { clearTimeout(timeout); }

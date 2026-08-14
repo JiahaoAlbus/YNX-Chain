@@ -282,6 +282,7 @@ func applySourceStatus(db *Database, sourceURL string, status Status) {
 
 const (
 	storeJournalVersion       = 1
+	storeJournalRecordBytes   = 8 << 20
 	storeJournalCompactBytes  = 64 << 20
 	storeJournalCompactEvents = 100_000
 )
@@ -376,6 +377,9 @@ func (s *Store) appendJournalLocked(record storeJournalRecord) error {
 		return err
 	}
 	payload = append(payload, '\n')
+	if len(payload) > storeJournalRecordBytes {
+		return fmt.Errorf("index journal record exceeds the %d byte replay limit", storeJournalRecordBytes)
+	}
 	journal, err := os.OpenFile(s.journalPath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o600)
 	if err != nil {
 		return err
@@ -408,7 +412,7 @@ func (s *Store) replayJournalLocked(db *Database) (uint64, error) {
 	}
 	defer journal.Close()
 	scanner := bufio.NewScanner(journal)
-	scanner.Buffer(make([]byte, 64*1024), 8<<20)
+	scanner.Buffer(make([]byte, 64*1024), storeJournalRecordBytes)
 	var records uint64
 	for scanner.Scan() {
 		line := scanner.Bytes()

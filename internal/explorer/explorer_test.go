@@ -164,6 +164,8 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 		"Open MetaMask compatibility",
 		"/api/summary",
 		"new EventSource('/api/stream')",
+		"mergeLiveRows(snapshot.blocks || [], latestBlocks",
+		"mergeLiveRows(snapshot.transactions || [], latestTransactions",
 		"Network TPS",
 		"Real-time transactions",
 		"Five newest finalized blocks, updated live",

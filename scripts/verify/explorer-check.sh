@@ -59,6 +59,7 @@ sleep 2
 
 go build -o "$work/ynx-indexerd" ./cmd/ynx-indexerd
 go build -o "$work/ynx-explorerd" ./cmd/ynx-explorerd
+go build -o "$work/ynx-explorer-load" ./cmd/ynx-explorer-load
 "$work/ynx-indexerd" -rpc "$YNX_REST_URL" -db "$db" -once >/dev/null
 YNX_INDEXER_RPC_URL="$YNX_REST_URL" YNX_INDEXER_DB_PATH="$db" YNX_INDEXER_HTTP_ADDR=127.0.0.1:6436 "$work/ynx-indexerd" >"$work/indexer.log" 2>&1 &
 indexer_pid=$!
@@ -101,7 +102,7 @@ for _ in {1..40}; do
   sleep 0.25
 done
 [[ "$stable_rounds" -ge 5 ]] || { echo "explorer did not hold a five-round stable readiness window" >&2; exit 1; }
-go run ./cmd/ynx-explorer-load \
+"$work/ynx-explorer-load" \
   --base-url "$explorer_url" \
   --allow-http-local \
   --duration 3s \
@@ -113,7 +114,7 @@ go run ./cmd/ynx-explorer-load \
 grep -Fq '"errorRate": 0' "$work/explorer-load.json"
 grep -Fq '"sseErrors": 0' "$work/explorer-load.json"
 
-go run ./cmd/ynx-explorer-load \
+"$work/ynx-explorer-load" \
   --base-url "$explorer_url" \
   --allow-http-local \
   --expected-outage \
@@ -160,7 +161,7 @@ rss_samples="$work/explorer-runtime-rss.txt"
   done
 ) >"$rss_samples" &
 sampler_pid=$!
-go run ./cmd/ynx-explorer-load \
+"$work/ynx-explorer-load" \
   --base-url "$explorer_url" \
   --allow-http-local \
   --duration 5s \

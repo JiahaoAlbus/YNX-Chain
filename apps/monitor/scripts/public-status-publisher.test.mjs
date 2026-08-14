@@ -32,7 +32,7 @@ test("publisher records real identity, dependencies, success and failure without
       key: "k".repeat(32),
       source: "ynx.status.publisher",
       approvalId: "public-probes-v1",
-      timeoutMs: 100,
+      timeoutMs: 1_000,
       now: new Date("2026-08-03T00:00:00.000Z"),
     });
     assert.equal(snapshot.status, "major_outage");
@@ -44,5 +44,25 @@ test("publisher records real identity, dependencies, success and failure without
 	assert.deepEqual(snapshot.services[0].dependencies, [{ id: "chainRpc", status: "operational" }]);
 	assert.equal(snapshot.services[1].sourceCommit, null);
     assert.match(snapshot.integrity.digest, /^[a-f0-9]{64}$/);
+  } finally { await new Promise((resolve) => server.close(resolve)); }
+});
+
+test("publisher fails closed on invalid, negative, and dependency-failed HTTP 200 health bodies", async () => {
+  const server = createServer((request, response) => {
+    response.writeHead(200, { "content-type": "application/json" });
+    if (request.url === "/malformed") return response.end("not-json");
+    if (request.url === "/negative") return response.end(JSON.stringify({ ok: false }));
+    return response.end(JSON.stringify({ ok: true, dependencies: { rpc: { status: "failed" } } }));
+  });
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const address = server.address();
+  try {
+    const snapshot = await buildSnapshot({
+      probes: ["malformed", "negative", "dependency"].map((id) => ({ id, name: id, url: `http://127.0.0.1:${address.port}/${id}` })),
+      key: "k".repeat(32), source: "ynx.status.publisher", approvalId: "fail-closed-health-v1", timeoutMs: 1_000,
+      now: new Date("2026-08-03T01:00:00.000Z"),
+    });
+    assert.equal(snapshot.status, "major_outage");
+    assert.deepEqual(snapshot.services.map((service) => service.status), ["major_outage", "major_outage", "major_outage"]);
   } finally { await new Promise((resolve) => server.close(resolve)); }
 });

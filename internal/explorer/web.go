@@ -563,6 +563,10 @@ const indexHTML = `<!doctype html>
 	  $('accountsBody').innerHTML = accounts.length ? accounts.map((account,index) => '<tr data-query="' + escapeHTML(account.address) + '"><td><strong>#' + (index + 1) + '</strong></td><td><span class="link mono hash" title="' + escapeHTML(account.address) + '">' + escapeHTML(account.address) + '</span></td><td class="amount">' + escapeHTML(number(account.balance)) + ' YNXT</td><td>' + escapeHTML(number(account.staked)) + ' YNXT</td><td class="mono">' + escapeHTML(number(account.nonce)) + '</td></tr>').join('') : '<tr><td colspan="5" class="empty">' + escapeHTML(t('noBalances')) + '</td></tr>';
       bindQueries();
     }
+    function mergeLiveRows(incoming, accumulated, identity) {
+      const seen = new Set(incoming.map(identity));
+      return [...incoming, ...accumulated.filter(row => !seen.has(identity(row)))];
+    }
     function bindQueries() {
       document.querySelectorAll('[data-query]').forEach(node => node.onclick = () => search(node.dataset.query));
       document.querySelectorAll('[data-account]').forEach(node => node.onclick = event => { event.preventDefault(); event.stopPropagation(); search(node.dataset.account); });
@@ -647,7 +651,9 @@ const indexHTML = `<!doctype html>
         try {
           const snapshot = JSON.parse(event.data);
           lastStreamAt = Date.now();
-		  renderDashboard(snapshot.summary, snapshot.blocks || [], snapshot.transactions || [], snapshot.validators, snapshot.resources, 'live');
+		  const blocks = mergeLiveRows(snapshot.blocks || [], latestBlocks, block => String(block.height));
+		  const transactions = mergeLiveRows(snapshot.transactions || [], latestTransactions, tx => tx.hash);
+		  renderDashboard(snapshot.summary, blocks, transactions, snapshot.validators, snapshot.resources, 'live');
           stopFallbackPolling();
         } catch (error) { showLoadError(error); }
       });

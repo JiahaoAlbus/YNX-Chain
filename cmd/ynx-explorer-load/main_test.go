@@ -89,6 +89,17 @@ func TestConsumeResponseMeasuresCompletedBody(t *testing.T) {
 	}
 }
 
+func TestConsumeResponseRejectsBodyAboveCap(t *testing.T) {
+	response := &http.Response{Body: io.NopCloser(strings.NewReader(strings.Repeat("x", maxResponseBodyBytes+1)))}
+	payload, _, err := consumeResponse(response, time.Now())
+	if err == nil || err.Error() != "response_body_too_large" {
+		t.Fatalf("oversized response was accepted: bytes=%d err=%v", len(payload), err)
+	}
+	if len(payload) != maxResponseBodyBytes {
+		t.Fatalf("oversized response was not bounded in memory: %d", len(payload))
+	}
+}
+
 type delayedReadCloser struct {
 	io.Reader
 	delay time.Duration

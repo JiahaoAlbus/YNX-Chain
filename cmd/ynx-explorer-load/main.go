@@ -26,6 +26,8 @@ type sample struct {
 	Route   string
 }
 
+const maxResponseBodyBytes = 4 << 20
+
 type requestTarget struct {
 	Route string
 	Path  string
@@ -257,10 +259,14 @@ func run(base string, duration time.Duration, concurrency, targetRPS, sseClients
 }
 
 func consumeResponse(resp *http.Response, started time.Time) ([]byte, time.Duration, error) {
-	payload, readErr := io.ReadAll(io.LimitReader(resp.Body, 4<<20))
+	payload, readErr := io.ReadAll(io.LimitReader(resp.Body, maxResponseBodyBytes+1))
 	closeErr := resp.Body.Close()
 	if readErr == nil {
 		readErr = closeErr
+	}
+	if readErr == nil && len(payload) > maxResponseBodyBytes {
+		readErr = errors.New("response_body_too_large")
+		payload = payload[:maxResponseBodyBytes]
 	}
 	return payload, time.Since(started), readErr
 }

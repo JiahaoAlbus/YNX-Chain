@@ -182,6 +182,29 @@ func TestRollbackPersistenceFailurePreservesPublishedIndex(t *testing.T) {
 	}
 }
 
+func TestOversizedJournalRecordIsRejectedBeforeCommit(t *testing.T) {
+	store := NewStore(t.TempDir() + "/index.json")
+	block := chain.Block{
+		Height: 1,
+		Hash:   forkBlockHash(1),
+		Transactions: []chain.Transaction{{
+			Hash: "0x" + strings.Repeat("d", 64),
+			Type: strings.Repeat("x", storeJournalRecordBytes),
+		}},
+	}
+	_, err := store.UpsertBlock("https://rpc.example.invalid", Status{Height: 1}, block)
+	if err == nil || !strings.Contains(err.Error(), "replay limit") {
+		t.Fatalf("oversized record was not rejected before commit: %v", err)
+	}
+	db, loadErr := store.Load()
+	if loadErr != nil {
+		t.Fatal(loadErr)
+	}
+	if db.LastIndexedHeight != 0 || db.JournalSequence != 0 || len(db.Blocks) != 0 || len(db.Transactions) != 0 {
+		t.Fatalf("oversized record mutated the published index: %+v", db)
+	}
+}
+
 func (s *migrationSource) block(height uint64) chain.Block {
 	s.mu.Lock()
 	defer s.mu.Unlock()
