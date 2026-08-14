@@ -36,7 +36,7 @@ export class WalletRepository {
   private async loadExclusive(): Promise<LoadResult> {
     await this.recoverPendingMutation();
     const serialized = await this.storage.getItem(MANIFEST_KEY);
-    if (serialized !== null) return { manifest: await this.decodeAndVerifyManifest(serialized), migrated: false };
+    if (serialized !== null){const manifest=await this.decodeAndVerifyManifest(serialized);await this.removeCompletedLegacyMigration(manifest);return{manifest,migrated:false}}
     const migrated = await this.migrateLegacy();
     if (migrated) return { manifest: migrated, migrated: true };
     return { manifest: emptyManifest(), migrated: false };
@@ -158,17 +158,20 @@ export class WalletRepository {
   private async migrateLegacy(): Promise<WalletManifest | null> {
     const serialized = await this.storage.getItem(LEGACY_IDENTITY_KEY);
     if (serialized === null) return null;
-    const value = parseObject(serialized, "Legacy secure identity record");
-    exactKeys(value, ["schemaVersion", "account", "accountSecret", "deviceSecret"], "Legacy secure identity record");
-    if (value.schemaVersion !== 1 || typeof value.account !== "string" || typeof value.accountSecret !== "string" || typeof value.deviceSecret !== "string" || !/^[0-9a-f]{64}$/.test(value.deviceSecret)) throw new Error("Legacy secure identity record is invalid");
-    const identity = walletIdentity(value.accountSecret);
-    if (identity.account !== value.account) throw new Error("Legacy secure identity record failed account verification");
+    const value=parseLegacyIdentity(serialized),identity=walletIdentity(value.accountSecret);
     const account = Object.freeze({ ...identity, label: "Migrated account", createdAt: "1970-01-01T00:00:00.000Z", backupConfirmed: true });
     await this.storage.setItem(secretKey(identity.account), encodeSecret(identity.account, value.accountSecret));
     const manifest = freezeManifest({ schemaVersion: 2, selectedAccountId: identity.account, accounts: [account] });
     await this.saveManifest(manifest);
     await this.storage.deleteItem(LEGACY_IDENTITY_KEY);
     return manifest;
+  }
+
+  private async removeCompletedLegacyMigration(manifest:WalletManifest):Promise<void>{
+    const serialized=await this.storage.getItem(LEGACY_IDENTITY_KEY);if(serialized===null)return;
+    const value=parseLegacyIdentity(serialized),identity=walletIdentity(value.accountSecret),account=manifest.accounts.find(item=>item.account===identity.account);
+    if(!account||account.accountPublicKey!==identity.accountPublicKey)throw new Error("Legacy secure identity conflicts with the migrated Wallet manifest");
+    await this.storage.deleteItem(LEGACY_IDENTITY_KEY);
   }
 
   private async decodeAndVerifyManifest(serialized: string): Promise<WalletManifest> {
@@ -209,6 +212,7 @@ export class WalletRepository {
 
 export function emptyManifest(): WalletManifest { return freezeManifest({ schemaVersion: 2, selectedAccountId: null, accounts: [] }); }
 function secretKey(account: string) { return `${SECRET_PREFIX}${account}`; }
+function parseLegacyIdentity(serialized:string):Readonly<{schemaVersion:1;account:string;accountSecret:string;deviceSecret:string}>{const value=parseObject(serialized,"Legacy secure identity record");exactKeys(value,["schemaVersion","account","accountSecret","deviceSecret"],"Legacy secure identity record");if(value.schemaVersion!==1||typeof value.account!=="string"||typeof value.accountSecret!=="string"||typeof value.deviceSecret!=="string"||!/^[0-9a-f]{64}$/.test(value.deviceSecret))throw new Error("Legacy secure identity record is invalid");const identity=walletIdentity(value.accountSecret);if(identity.account!==value.account)throw new Error("Legacy secure identity record failed account verification");return Object.freeze({schemaVersion:1,account:value.account,accountSecret:value.accountSecret,deviceSecret:value.deviceSecret})}
 function parseMutation(serialized:string):Readonly<{schemaVersion:1;kind:"add"|"delete";account:string}>{const value=parseObject(serialized,"Wallet account mutation journal");exactKeys(value,["schemaVersion","kind","account"],"Wallet account mutation journal");if(value.schemaVersion!==1||(value.kind!=="add"&&value.kind!=="delete")||typeof value.account!=="string"||!/^ynx1[023456789acdefghjklmnpqrstuvwxyz]{38}$/.test(value.account))throw new Error("Wallet account mutation journal is invalid");return Object.freeze({schemaVersion:1,kind:value.kind,account:value.account})}
 function encodeSecret(account: string, secretHex: string) { walletIdentity(secretHex); return JSON.stringify({ schemaVersion: 2, account, secretHex }); }
 function freezeManifest(value: {schemaVersion:2;selectedAccountId:string|null;accounts:readonly WalletAccount[]}): WalletManifest {

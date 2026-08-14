@@ -44,6 +44,20 @@ test("migrates the strict v1 identity once and discards its cross-product device
   assert.deepEqual(restart.manifest,first.manifest);
 });
 
+test("restart completes legacy cleanup only when v1 identity matches the verified v2 manifest",async()=>{
+  const storage=new MemorySecureStorage(),identity=walletIdentity(SECRET_ONE),legacy=JSON.stringify({schemaVersion:1,account:identity.account,accountSecret:SECRET_ONE,deviceSecret:"41".repeat(32)}),repository=new WalletRepository(storage);
+  storage.values.set(LEGACY_IDENTITY_KEY,legacy);
+  const migrated=await repository.load();
+  storage.values.set(LEGACY_IDENTITY_KEY,legacy);
+  assert.deepEqual((await new WalletRepository(storage).load()).manifest,migrated.manifest);
+  assert.equal(storage.values.has(LEGACY_IDENTITY_KEY),false);
+
+  const conflicting=walletIdentity(SECRET_TWO);
+  storage.values.set(LEGACY_IDENTITY_KEY,JSON.stringify({schemaVersion:1,account:conflicting.account,accountSecret:SECRET_TWO,deviceSecret:"42".repeat(32)}));
+  await assert.rejects(new WalletRepository(storage).load(),/conflicts/);
+  assert.equal(storage.values.has(LEGACY_IDENTITY_KEY),true);
+});
+
 test("deterministic restart preserves only manifest selection and starts from verified secrets", async () => {
   const storage=new MemorySecureStorage(), repository=new WalletRepository(storage);
   await repository.addAccount({secretHex:SECRET_ONE,label:"Main",createdAt:"2026-07-15T12:00:00.000Z",backupConfirmed:true});
