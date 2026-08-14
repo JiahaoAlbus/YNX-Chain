@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "domain": "YNX_SESSION_INVENTORY_HTTP_PRIVACY_MATRIX_V1",
+  "route": "/v1/wallet/sessions",
+  "method": "POST",
+  "body": {},
+  "requiredAuthority": {"scope":"wallet:sessions","productClientId":"ynx-wallet-v1","bundleId":"com.ynxweb4.wallet"},
+  "failureInvariants": {"mutated":false,"stateDigestUnchanged":true,"inventoryDisclosed":false,"productProofsConsumed":0},
+  "cases": [
+    {"id":"inventory-wrong-method","mutation":"request-method","value":"GET","status":405,"code":"METHOD_NOT_ALLOWED"},
+    {"id":"inventory-wrong-path","mutation":"proof-path","value":"/v1/wallet/accounts/logout-all","status":403,"code":"HTTP_BINDING_MISMATCH"},
+    {"id":"inventory-caller-selected-account","mutation":"request-body","value":{"account":"ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80"},"status":400,"code":"UNKNOWN_OR_MISSING_FIELD"},
+    {"id":"inventory-unknown-body-field","mutation":"request-body","value":{"extra":true},"status":400,"code":"UNKNOWN_OR_MISSING_FIELD"},
+    {"id":"inventory-wrong-device","mutation":"proof-device","value":"A6O9sRMzJUEJ6GsxD44JH0O1NV2_NJfTsllRvxpaID0Q","status":403,"code":"SESSION_BINDING_MISMATCH"},
+    {"id":"inventory-pre-session","mutation":"proof-time","issuedAt":"2026-07-15T11:59:59.000Z","expiresAt":"2026-07-15T12:00:30.000Z","status":400,"code":"INVALID_TIME"},
+    {"id":"inventory-expiry","mutation":"dispatch-time","value":"2026-07-15T12:00:31.000Z","status":403,"code":"EXPIRED"},
+    {"id":"inventory-missing-proof","mutation":"missing-proof","status":400,"code":"PROOF_REQUIRED"},
+    {"id":"inventory-social-missing-scope","mutation":"social-without-wallet-scope","status":403,"code":"SCOPE_NOT_ALLOWED"},
+    {"id":"inventory-non-wallet-control","mutation":"social-with-wallet-scope","status":403,"code":"WALLET_CONTROL_REQUIRED"},
+    {"id":"inventory-proof-replay","mutation":"replay-after-success","status":409,"code":"REPLAY"},
+    {"id":"inventory-cross-account-isolation","mutation":"cross-account-isolation","status":200,"code":null}
+  ]
+}
