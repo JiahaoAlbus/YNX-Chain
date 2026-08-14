@@ -304,7 +304,7 @@ export function Workbench() {
   const activeContent = project.files[project.active] ?? "";
   const second = project.open.find((path) => path !== project.active);
   const testCandidates = useMemo(
-    () => Object.entries(project.files).filter(([path, content]) => /(?:\.(?:test|spec)\.(?:js|mjs|cjs)|(?:^|\/)(?:test_.+|.+_test)\.py|_test\.go|(?:^|\/)(?:test|tests)\/.+\.(?:c|cpp|cc|cxx)|(?:^|\/)src\/test\/java\/.+(?:Test|Tests)\.java)$/i.test(path) || (path.endsWith(".rs") && /#\s*\[\s*test\s*\]/.test(content) && Object.hasOwn(project.files, "Cargo.toml"))).map(([path]) => path).sort(),
+    () => Object.entries(project.files).filter(([path, content]) => /(?:\.(?:test|spec)\.(?:js|mjs|cjs)|(?:^|\/)(?:test_.+|.+_test)\.py|_test\.go|(?:^|\/)(?:test|tests)\/.+\.(?:c|cpp|cc|cxx)|(?:^|\/)src\/test\/java\/.+(?:Test|Tests)\.java)$/i.test(path) || (path.endsWith(".rs") && /#\s*\[\s*test\s*\]/.test(content) && Object.hasOwn(project.files, "Cargo.toml")) || (/(?:^|\/)contracts\/.+\.t\.sol$/i.test(path) && /\bfunction\s+test[A-Za-z0-9_]*\s*\(/.test(content))).map(([path]) => path).sort(),
     [project.files],
   );
   const packageManifestReview = useMemo(() => {
@@ -1076,7 +1076,7 @@ export function Workbench() {
           <Dialog.Overlay className="dialog-overlay" />
           <Dialog.Content className="run-dialog">
             <Dialog.Title>Test project</Dialog.Title>
-            <Dialog.Description>Review the exact discovered test files. The server selects only built-in JavaScript, Python, Go or standalone C/C++ runners, disables network access and enforces output, phase, time, process and memory bounds.</Dialog.Description>
+            <Dialog.Description>Review the exact discovered test files. The server selects reviewed JavaScript, Python, Go, standalone C/C++, dependency-free Cargo, pinned JUnit or pinned Hardhat Solidity runners, disables network access and enforces output, phase, time, process and memory bounds.</Dialog.Description>
             <pre>{JSON.stringify({ task: "test-project", files: testCandidates, approval: "test-once", network: false, maximumFiles: 32, maximumPhases: 20 }, null, 2)}</pre>
             <div>
               <Button onClick={() => setTestReview(false)}>Cancel</Button>

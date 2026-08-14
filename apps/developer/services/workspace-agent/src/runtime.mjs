@@ -2,6 +2,7 @@ import { createHash, createHmac, randomBytes, randomUUID, timingSafeEqual } from
 import { mkdir, mkdtemp, readFile, readdir, realpath, rm, writeFile } from "node:fs/promises";
 import { basename, dirname, extname, join, normalize, relative, sep } from "node:path";
 import { tmpdir } from "node:os";
+import { fileURLToPath } from "node:url";
 import { spawn } from "node:child_process";
 import { detectSandbox, resolveExecutable as resolveCommand, sandboxLaunch } from "./sandbox.mjs";
 
@@ -800,8 +801,9 @@ async function projectTestSpec(workspace, files) {
     cpp = paths.filter((path) => /(?:^|\/)(?:test|tests)\/.+\.(?:cpp|cc|cxx)$/i.test(path)),
     rustTests = paths.filter((path) => path.endsWith(".rs") && /#\s*\[\s*test\s*\]/.test(files[path])),
     javaTests = paths.filter((path) => /(?:^|\/)src\/test\/java\/.+(?:Test|Tests)\.java$/i.test(path)),
-    discovered = javascript.length + python.length + goTests.length + c.length + cpp.length + rustTests.length + javaTests.length;
-  if (discovered === 0) throw Object.assign(new Error("No supported JavaScript, Python, Go, C, C++, Cargo or JUnit project tests were found."), { status: 400, code: "tests_missing" });
+    solidityTests = paths.filter((path) => /(?:^|\/)contracts\/.+\.t\.sol$/i.test(path) && /\bfunction\s+test[A-Za-z0-9_]*\s*\(/.test(files[path])),
+    discovered = javascript.length + python.length + goTests.length + c.length + cpp.length + rustTests.length + javaTests.length + solidityTests.length;
+  if (discovered === 0) throw Object.assign(new Error("No supported JavaScript, Python, Go, C, C++, Cargo, JUnit or Solidity project tests were found."), { status: 400, code: "tests_missing" });
   if (discovered > 32)
     throw Object.assign(new Error("Project test discovery exceeds the 32-file review boundary."), {
       status: 413,
@@ -965,6 +967,29 @@ async function projectTestSpec(workspace, files) {
       },
     );
   }
+  if (solidityTests.length) {
+    const nodeModules = await reviewedHardhatToolchain(),
+      runner = await realpath(fileURLToPath(new URL("./hardhat-solidity-test.mjs", import.meta.url))).catch(() => null);
+    if (!nodeModules || !runner)
+      throw Object.assign(new Error("Solidity tests were found but the reviewed Hardhat 3 and pinned solc 0.8.24 toolchain are not installed."), {
+        status: 503,
+        code: "toolchain_unavailable",
+      });
+    if (!runners.length) primary = process.execPath;
+    runners.push({ language: "solidity", framework: "hardhat-3-solidity-tests", compiler: "solc-0.8.24-wasm", files: solidityTests });
+    phases.push({
+      label: "test:solidity:hardhat",
+      command: process.execPath,
+      args: [runner, nodeModules],
+      timeout: 120_000,
+      addressSpaceBytes: null,
+      environment: { NODE_OPTIONS: "--max-old-space-size=768" },
+      readOnlyBinds: [
+        { host: runner, guest: "/ynx-toolchain/hardhat-runner" },
+        { host: nodeModules, guest: "/ynx-toolchain/node_modules" },
+      ],
+    });
+  }
   if (phases.length > 20)
     throw Object.assign(new Error("Project test plan exceeds the 20-phase execution boundary."), {
       status: 413,
@@ -977,6 +1002,14 @@ async function projectTestSpec(workspace, files) {
     compilerEvidence: { discovery: "bounded-explicit-files", runners },
     phases,
   };
+}
+async function reviewedHardhatToolchain() {
+  for (let cursor = dirname(fileURLToPath(import.meta.url)); cursor !== dirname(cursor); cursor = dirname(cursor)) {
+    const hardhat = await realpath(join(cursor, "node_modules", "hardhat", "package.json")).catch(() => null),
+      solc = await realpath(join(cursor, "node_modules", "solc", "soljson.js")).catch(() => null);
+    if (hardhat && solc) return join(cursor, "node_modules");
+  }
+  return null;
 }
 function rustPackageMetadata(manifest) {
   if (typeof manifest !== "string") throw Object.assign(new Error("Cargo tests require a bounded Cargo.toml."), { status: 400, code: "invalid_cargo_manifest" });

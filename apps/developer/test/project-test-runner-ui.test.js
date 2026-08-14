@@ -22,7 +22,7 @@ test("Project Test presents exact discovery and one-time no-network review", asy
 test("workspace test broker allowlists runners and never invokes package scripts", async () => {
   const runtime = await read("services/workspace-agent/src/runtime.mjs"),
     serviceTest = await read("services/workspace-agent/test/runtime.test.mjs");
-  for (const runner of ["javascript", "python", "go", "c", "cpp", "rust", "java"])
+  for (const runner of ["javascript", "python", "go", "c", "cpp", "rust", "java", "solidity"])
     assert.match(runtime, new RegExp(`language: "${runner}"`));
   assert.match(runtime, /test_file_limit/);
   assert.match(runtime, /test_phase_limit/);
@@ -34,6 +34,12 @@ test("workspace test broker allowlists runners and never invokes package scripts
   assert.match(serviceTest, /CPP-TEST-PASS/);
   assert.match(serviceTest, /C-TEST-PASS/);
   assert.match(serviceTest, /MathOpsTest/);
+  assert.match(serviceTest, /CounterTest/);
+  const hardhatRunner = await read("services/workspace-agent/src/hardhat-solidity-test.mjs");
+  assert.match(hardhatRunner, /Pinned Hardhat 3\.9\.0 runtime is required/);
+  assert.match(hardhatRunner, /fb59b825b7d57f9de89cd9de2415b12aab1fcc7eb2573fd2bf5c9b969eacf4d9/);
+  assert.match(hardhatRunner, /preferWasm: true/);
+  assert.doesNotMatch(hardhatRunner, /https?:\/\//);
   const image = await read("scripts/build-cloud-toolchain-image.sh");
   assert.match(image, /junit_version="1\.14\.2"/);
   assert.match(image, /5566ffe2aa48263867bca745925f73bf7b01591b30d9a60f191c0b16fa0955e9/);

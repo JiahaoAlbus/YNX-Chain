@@ -255,6 +255,7 @@ test("project tests are discovered, one-time approved and run without network", 
   const junitJar = process.env.YNX_CODE_JUNIT_CONSOLE_JAR || "/usr/local/share/ynx-code/junit-platform-console-standalone.jar",
     junitAvailable = await access(junitJar).then(() => true).catch(() => false),
     cargoAvailable = Boolean(await resolveExecutable(["cargo"])),
+    hardhatAvailable = await access(new URL("../../../../../node_modules/hardhat/package.json", import.meta.url)).then(() => true).catch(() => false),
     { url } = await fixture(t),
     cookie = await session(url),
     request = {
@@ -276,6 +277,10 @@ test("project tests are discovered, one-time approved and run without network", 
           "src/main/java/dev/ynx/MathOps.java": "package dev.ynx; public final class MathOps { public static int multiply(int a,int b){return a*b;} }",
           "src/test/java/dev/ynx/MathOpsTest.java": "package dev.ynx; import org.junit.jupiter.api.Test; import static org.junit.jupiter.api.Assertions.assertEquals; final class MathOpsTest { @Test void multiplies(){ assertEquals(42,MathOps.multiply(6,7)); } }",
         } : {}),
+        ...(hardhatAvailable ? {
+          "contracts/Counter.sol": "// SPDX-License-Identifier: MIT\npragma solidity 0.8.24;\ncontract Counter { uint256 public value; function add(uint256 amount) external { value += amount; } }\n",
+          "contracts/Counter.t.sol": "// SPDX-License-Identifier: MIT\npragma solidity 0.8.24;\nimport {Counter} from './Counter.sol';\ncontract CounterTest { function test_Add() public { Counter counter = new Counter(); counter.add(42); require(counter.value() == 42, 'wrong value'); } }\n",
+        } : {}),
       },
       approval: "test-once",
     },
@@ -294,9 +299,10 @@ test("project tests are discovered, one-time approved and run without network", 
   assert.match(value.output, /CPP-TEST-PASS/);
   if (cargoAvailable) assert.match(value.output, /test result: ok/);
   if (junitAvailable) assert.match(value.output, /1 tests successful/);
+  if (hardhatAvailable) assert.match(value.output, /1 passing/);
   assert.deepEqual(
     value.compiler.evidence.runners.map(({ language }) => language),
-    ["javascript", "python", "go", "c", "cpp", ...(cargoAvailable ? ["rust"] : []), ...(junitAvailable ? ["java"] : [])],
+    ["javascript", "python", "go", "c", "cpp", ...(cargoAvailable ? ["rust"] : []), ...(junitAvailable ? ["java"] : []), ...(hardhatAvailable ? ["solidity"] : [])],
   );
   const unapproved = await fetch(`${url}/runtime/tasks`, {
     method: "POST",
