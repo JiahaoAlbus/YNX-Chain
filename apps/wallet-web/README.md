@@ -77,6 +77,16 @@ and before invoking the real wallet backend, preventing a late RPC response
 from mutating chain state after the DApp has already timed out. Add/switch input
 must exactly match the frozen YNX Testnet metadata.
 
+Sensitive DApp requests consume the Core Wallet/Auth central registry during
+the build. The current `ynx-wallet-v1` registration is pending review, disabled,
+and has no registered HTTPS callback, so the companion returns
+`CANONICAL_AUTH_UNAVAILABLE` before requesting accounts, signatures, or
+transactions from a wallet backend. Request IDs are consumed once in bounded
+session storage, deadlines and exact parameter shapes are enforced, and account,
+signature, and transaction-hash results are never synthesized. Enabling a
+registration alone does not bypass this gate: a verified canonical context is
+still required.
+
 ```sh
 npm test
 npm run build

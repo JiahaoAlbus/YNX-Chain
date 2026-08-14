@@ -1,5 +1,8 @@
 import {BRIDGE_VERSION,PROVIDER_EVENTS,REQUEST_METHODS,RUNTIME_EVENT,RUNTIME_REQUEST,publicBridgeError,validateRuntimeRequest} from "./extension-bridge.js";
 import {YNX_CHAIN_ID,verifyExtensionRpc} from "./extension-rpc.js";
+import {CORE_WALLET_AUTH_BINDING} from "./core-auth-binding.js";
+import {requireCanonicalAuthorizationContext} from "./core-auth-consumer.js";
+import {consumeSensitiveRequest,parseSensitiveRequest,validateSensitiveResult} from "./extension-sensitive-policy.js";
 
 const extensionApi=globalThis.browser||globalThis.chrome,CHAIN_ID=YNX_CHAIN_ID;
 const YNX_CHAIN=Object.freeze({chainId:CHAIN_ID,chainName:"YNX Testnet",nativeCurrency:Object.freeze({name:"YNX Testnet",symbol:"YNXT",decimals:18}),rpcUrls:Object.freeze(["https://evm.ynxweb4.com"]),blockExplorerUrls:Object.freeze(["https://explorer.ynxweb4.com"])});
@@ -40,6 +43,8 @@ async function handleDappRequest(message,sender){
   const senderUrl=sender?.url||sender?.tab?.url;
   if(!Number.isInteger(sender?.tab?.id)||sender?.frameId!==0||!validateRuntimeRequest(message,senderUrl))throw Object.assign(new Error("Rejected invalid DApp bridge request."),{code:"INVALID_BRIDGE_REQUEST"});
   const tabId=sender.tab.id,origin=message.origin,input={method:message.method,params:message.params};
+  const sensitive=parseSensitiveRequest(message);
+  if(sensitive){await consumeSensitiveRequest(extensionApi.storage?.session,message);requireCanonicalAuthorizationContext(CORE_WALLET_AUTH_BINDING,null)}
   if(message.method==="eth_chainId")return liveChainId();
   if(message.method==="ynx_disconnect"){await emitToTab(tabId,origin,"accountsChanged",[]);await emitToTab(tabId,origin,"disconnect",{code:4900,message:"YNX Wallet companion disconnected."});return null}
   if(message.method==="wallet_addEthereumChain"||message.method==="wallet_switchEthereumChain"){
@@ -53,7 +58,7 @@ async function handleDappRequest(message,sender){
     if(backendChain!==CHAIN_ID)throw Object.assign(new Error("Wallet backend remained on the wrong chain."),{code:"WRONG_NETWORK"});await emitToTab(tabId,origin,"chainChanged",CHAIN_ID);
   }
   if(message.method==="eth_requestAccounts"||message.method==="eth_accounts"){result=exactAccounts(result);if(message.method==="eth_requestAccounts")await emitToTab(tabId,origin,"accountsChanged",result)}
-  return result;
+  return sensitive?validateSensitiveResult(message.method,result):result;
 }
 
 extensionApi.runtime.onMessage.addListener((message,sender,sendResponse)=>{

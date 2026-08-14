@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "sourceBaseline": "0056d7fbb13f63dd3253b4459ad6e75ff88f8c80",
+  "authority": {
+    "registry": "packages/wallet-auth/central-registry.json",
+    "protocol": "packages/wallet-auth/src/protocol.js",
+    "deepLink": "packages/wallet-auth/src/deep-link.js",
+    "replay": "packages/wallet-auth/src/replay.js"
+  },
+  "generatedBinding": {
+    "registryVersion": 2,
+    "chainId": "ynx_6423-1",
+    "productClientId": "ynx-wallet-v1",
+    "requestingProduct": "wallet",
+    "bundleId": "com.ynxweb4.wallet",
+    "reviewState": "pending-review",
+    "enabled": false,
+    "webCallbacks": [],
+    "scopes": ["wallet:account","wallet:audit","wallet:sessions"]
+  },
+  "sensitiveMethods": ["eth_requestAccounts","personal_sign","eth_sendTransaction"],
+  "gates": {
+    "exactRequestId": true,
+    "sessionReplayStore": true,
+    "replayCapacity": 2048,
+    "absoluteDeadline": true,
+    "exactMethodParams": true,
+    "expectedAccountBinding": true,
+    "canonicalCoreContextRequired": true,
+    "canonicalCoreContextAvailable": false,
+    "invalidAccountRejected": true,
+    "invalidSignatureRejected": true,
+    "invalidTransactionHashRejected": true
+  },
+  "fallback": {
+    "ynxDetectedAction": "Open YNX Wallet",
+    "ynxAbsentActions": ["Download YNX Wallet","Use MetaMask"],
+    "routesNonEmpty": true,
+    "downloadHosted": false
+  },
+  "results": {
+    "sourceTestsPassed": 44,
+    "packageGateTestsPassed": 42,
+    "accountAuthorized": false,
+    "messageSigned": false,
+    "transactionSubmitted": false,
+    "fabricatedSuccess": false
+  },
+  "releaseStates": {
+    "installedLocal": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

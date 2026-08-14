@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "owner": "wallet-web-pwa-extensions",
+  "sourceBaseline": "0056d7fbb13f63dd3253b4459ad6e75ff88f8c80",
+  "coreDependency": "packages/wallet-auth/central-registry.json",
+  "productClientId": "ynx-wallet-v1",
+  "currentCoreBinding": {"enabled":false,"reviewState":"pending-review","registeredWebCallback":false},
+  "consumerBehavior": "fail closed before account, signature, or transaction backend calls",
+  "requiredCentralEnablement": ["approved enabled registry entry","registered HTTPS callback","verified canonical authorization context transport"],
+  "mustRemainFalseUntilDirectEvidence": ["accountAuthorized","messageSigned","transactionSubmitted","installedLocal","deployedPublic","downloadHosted","productionSigned","storeReleased"],
+  "evidence": "apps/wallet-web/evidence/contracts/canonical-sensitive-consumer-20260814.json"
+}
