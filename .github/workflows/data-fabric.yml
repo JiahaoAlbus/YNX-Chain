@@ -170,10 +170,44 @@ jobs:
             | tee /tmp/data-fabric-postgres-resilience/verify.json
           jq -e '.phase == "seed" and .events == 10000 and .duplicateRejects == 1000 and .unexpectedErrors == 0' /tmp/data-fabric-postgres-resilience/seed.json
           jq -e '.phase == "verify" and .databaseRestarted == true and .recoveryPointObjectiveLostEvents == 0 and .longReplayApplied == 10000 and .idempotentReplaySkipped == 10000' /tmp/data-fabric-postgres-resilience/verify.json
+      - name: Crash PostgreSQL-backed JetStream consumer after commit before ack
+        env:
+          YNX_TEST_POSTGRES_DSN: postgres://ynx_test:integration-only-password@127.0.0.1:5432/ynx_data_fabric_test?sslmode=disable
+          YNX_TEST_POSTGRES_ALLOW_DESTRUCTIVE: "1"
+          YNX_DATA_FABRIC_TEST_SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -o pipefail
+          go test -json ./internal/datafabricnats -run '^TestPostgresJetStreamConsumerProcessCrashRedelivery$' -count=1 \
+            | tee /tmp/data-fabric-postgres-resilience/consumer-process-crash.jsonl
+          jq -s -e 'any(.[]; .Action == "pass" and .Test == "TestPostgresJetStreamConsumerProcessCrashRedelivery")' \
+            /tmp/data-fabric-postgres-resilience/consumer-process-crash.jsonl
+          jq -s --arg source "$YNX_DATA_FABRIC_TEST_SOURCE_COMMIT" '
+            [
+              .[]
+              | select((.Output? // "") | contains("consumerCrashEvidence="))
+              | (.Output | capture("consumerCrashEvidence=(?<evidence>\\{.*\\})").evidence | fromjson)
+            ]
+            | if length != 1 then error("expected one consumer crash evidence object") else .[0] end
+            | if .sourceCommit != $source then error("consumer crash evidence source commit mismatch") else . end
+          ' /tmp/data-fabric-postgres-resilience/consumer-process-crash.jsonl \
+            > /tmp/data-fabric-postgres-resilience/consumer-process-crash.json
+          jq -e '
+            .childExitCode == 86
+            and .crashAfterPostgresCommitBeforeBrokerAck == true
+            and .canonicalEvents == 1
+            and .inboxEffects == 1
+            and .analyticsFacts == 1
+            and .duplicateBusinessEffects == 0
+            and .deliveredConsumerSequence >= 2
+            and .deliveredStreamSequence == 1
+            and .ackFloorConsumerSequence >= 2
+            and .ackFloorStreamSequence == 1
+            and .ackPending == 0
+          ' /tmp/data-fabric-postgres-resilience/consumer-process-crash.json
       - name: Upload exact-source PostgreSQL resilience evidence
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: data-fabric-postgres-resilience-${{ github.event.pull_request.head.sha || github.sha }}
-          path: /tmp/data-fabric-postgres-resilience/*.json
+          path: /tmp/data-fabric-postgres-resilience/*.json*
           if-no-files-found: error
           retention-days: 30
