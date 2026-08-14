@@ -16,6 +16,17 @@
       "publicClaimAllowed": false
     },
     {
+      "id": "WA-GUARDIAN-RECOVERY-SESSION-CUTOFF-001",
+      "category": "wallet-smart-account",
+      "owners": ["02-wallet-auth", "01-chain-core", "29-integration"],
+      "precondition": "A Smart Account has an active bounded Session Key and the Guardian has a valid delayed-recovery target.",
+      "action": "Request Guardian Recovery, attempt the old Session Key before the delay, cancel recovery, retry the same old key, then request replacement recovery.",
+      "expectedHttpStatus": null,
+      "expectedCode": "AA24 signature error",
+      "expectedState": "session epoch increments at each recovery request; the pre-request Session Key is rejected immediately and remains rejected after cancellation; recovery execution does not add a second cutoff for the same request",
+      "publicClaimAllowed": false
+    },
+    {
       "id": "WA-PUBLIC-GATEWAY-INGRESS-IDENTIFIERS-001",
       "category": "wallet-auth",
       "owners": ["02-wallet-auth", "13-monitor", "29-integration"],
