@@ -42,7 +42,10 @@ export function reduceOnboardingState(state: OnboardingState, event: OnboardingE
     case "editLabel": return state.mode === "closed" ? state : Object.freeze({ ...state, label: event.value });
     case "editRecoveryKey": return state.mode === "import" || state.mode === "recover" ? Object.freeze({ ...state, recoveryKey: event.value }) : state;
     case "editBackupConfirmation": return state.mode === "create" ? Object.freeze({ ...state, backupConfirmation: event.value }) : state;
-    case "beginSave": return beginOnboardingSave(state);
+    case "beginSave": {
+      const saving=beginOnboardingSave(state);
+      return Object.freeze({...saving,recoveryKey:"",backupConfirmation:""});
+    }
     case "saveFailed": return state;
   }
 }

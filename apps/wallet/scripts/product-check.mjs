@@ -14,6 +14,7 @@ const androidActivity=await readFile(new URL("../android/app/src/main/java/com/y
 const androidManifest=await readFile(new URL("../android/app/src/main/AndroidManifest.xml",import.meta.url),"utf8");
 const secureStorage=await readFile(new URL("../src/storage/secureStorage.ts",import.meta.url),"utf8");
 const walletRepository=await readFile(new URL("../src/storage/walletRepository.ts",import.meta.url),"utf8");
+const onboardingState=await readFile(new URL("../src/state/onboardingState.ts",import.meta.url),"utf8");
 const localAuthorization=await readFile(new URL("../src/security/localAuthorization.ts",import.meta.url),"utf8");
 const localAuthorizationPolicy=await readFile(new URL("../src/security/localAuthorizationPolicy.ts",import.meta.url),"utf8");
 const recoveryKeyGenerationPolicy=await readFile(new URL("../src/security/recoveryKeyGenerationPolicy.ts",import.meta.url),"utf8");
@@ -103,6 +104,7 @@ assert.ok(source.includes("createAttemptGate.current.tryBegin()"),"Wallet accoun
 for(const required of ["switchAttemptGate.current.tryBegin()",'busy={busy||switching}',"epoch!==unlockEpochRef.current",'appStateRef.current!=="active"',"Wallet account switch was cancelled by lock or background"])assert.ok(source.includes(required),`account switching must reject reentry and stale foreground persistence through ${required}`);
 assert.ok(walletRepository.includes("selectAccount(account: string,assertActive:()=>void=()=>{})")&&walletRepository.includes("selectAccountExclusive(account,assertActive)"),"selected-account persistence must accept a final lifecycle assertion");
 for(const required of ["generateRecoveryKeyFailClosed(()=>getRandomBytesAsync(32),assertActive)","Wallet recovery-key generation was cancelled by lock or background"])assert.ok(source.includes(required),`Wallet recovery-key generation must bind lifecycle through ${required}`);
+for(const required of ['return Object.freeze({...saving,recoveryKey:"",backupConfirmation:""})','state.phase==="saving"','The recovery key has been removed from the form'])assert.ok(`${source}\n${onboardingState}`.includes(required),`onboarding must remove recovery material from React state while saving through ${required}`);
 for(const required of ["bytes.length!==32","assertActive();","bytes.fill(0)"])assert.ok(recoveryKeyGenerationPolicy.includes(required),`temporary recovery-key entropy must fail closed through ${required}`);
 for(const required of ["await protectScreen();","assertActive();"])assert.ok(recoveryDisplayPrivacyPolicy.includes(required),`new recovery-key display must fail closed through ${required}`);
 for(const required of ['prepareRecoveryKeyDisplayFailClosed(()=>preventScreenCaptureAsync("wallet-recovery")',"const ready=protectedSecret===pending.secretHex","Recovery key remains hidden:"])assert.ok(source.includes(required),`new recovery key must remain hidden until dedicated screenshot protection through ${required}`);

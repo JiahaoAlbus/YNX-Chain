@@ -39,13 +39,17 @@ test("background, close and success wipe every secret-bearing onboarding field",
   }
 });
 
-test("saving blocks edits, mode changes and replayed begin events until success or failure", () => {
+test("saving immediately redacts React secret state and blocks edits until success or failure", () => {
   let state = reduceOnboardingState(initialOnboardingState, { type: "openImport" });
   state = reduceOnboardingState(state, { type: "editRecoveryKey", value: SECRET });
   state = reduceOnboardingState(state, { type: "beginSave" });
   assert.equal(state.phase, "saving");
-  assert.equal(reduceOnboardingState(state, { type: "editRecoveryKey", value: "00" }).recoveryKey, SECRET);
+  assert.equal(state.recoveryKey,"");
+  assert.equal(JSON.stringify(state).includes(SECRET),false);
+  assert.equal(reduceOnboardingState(state, { type: "editRecoveryKey", value: "00" }).recoveryKey, "");
   assert.equal(reduceOnboardingState(state, { type: "openRecover" }).mode, "import");
   assert.equal(reduceOnboardingState(state, { type: "beginSave" }), state);
-  assert.equal(reduceOnboardingState(state, { type: "saveFailed" }).phase, "editing");
+  const failed=reduceOnboardingState(state, { type: "saveFailed" });
+  assert.equal(failed.phase, "editing");
+  assert.equal(failed.recoveryKey,"");
 });
