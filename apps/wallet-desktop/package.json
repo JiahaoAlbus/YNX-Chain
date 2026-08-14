@@ -23,7 +23,7 @@
     "@ynx-chain/wallet-auth": "file:../../packages/wallet-auth"
   },
   "devDependencies": {
-    "electron": "37.2.6",
+    "electron": "42.8.0",
     "electron-builder": "26.0.12"
   },
   "build": {
