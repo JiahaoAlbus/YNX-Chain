@@ -18,7 +18,13 @@ build_tools="$android_home/build-tools/36.0.0"
 [[ -x "$build_tools/apksigner" && -x "$build_tools/aapt" ]] || { echo "Android build-tools 36.0.0 are required" >&2; exit 2; }
 [[ -x "$java_home/bin/java" && -x "$java_home/bin/keytool" ]] || { echo "Android Studio Java runtime is required" >&2; exit 2; }
 
-custody="$(mktemp -d /private/tmp/ynx-wallet-disposable-qa-custody.XXXXXX)"
+if [[ -d /private/tmp ]]; then
+  custody="$(mktemp -d /private/tmp/ynx-wallet-disposable-qa-custody.XXXXXX)"
+else
+  temp_root="${RUNNER_TEMP:-${TMPDIR:-/tmp}}"
+  [[ -d "$temp_root" ]] || { echo "QA temporary root is missing: $temp_root" >&2; exit 2; }
+  custody="$(mktemp -d "$temp_root/ynx-wallet-disposable-qa-custody.XXXXXX")"
+fi
 partial="${output}.partial.$$"
 cleanup() {
   chmod -R u+rwX "$custody" "$partial" 2>/dev/null || true
