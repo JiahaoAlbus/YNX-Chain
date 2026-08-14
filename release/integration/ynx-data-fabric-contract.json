@@ -37,13 +37,13 @@
         "coverage": "exact",
         "failure": false
       },
-      "chainCoreContractVersion": "1.28.0",
-      "chainCoreSourceCommit": "abae5384dc856434470860ab0060998ac216addc",
-      "chainCoreContractCommit": "6cd71d6c53908fbfb2b2810ace922fd8b19bff17",
+      "chainCoreContractVersion": "1.29.0",
+      "chainCoreSourceCommit": "1571d6889b195daf476151474ce67889acdd9712",
+      "chainCoreContractCommit": "f0bc3c98d55976f33525ab6eed32403937b9b9c5",
       "chainCoreLocalDelivery": {
-        "bundle": "release/local-delivery/chain-core-data-commitment-v28.bundle",
-        "sha256": "1d66fc0b2c7c2a0fc28f3339de2fd9c5b45af70120c8605fc1a24c730d009704",
-        "bytes": 124884797,
+        "bundle": "release/local-delivery/chain-core-data-commitment-v29.bundle",
+        "sha256": "2543de0458e500880cc5d34f1cb847e7820f285f121e270cc28b7ddda882d8c2",
+        "bytes": 138646383,
         "verified": true,
         "public": false,
         "deployed": false
@@ -52,7 +52,7 @@
         "serviceCount": 13,
         "publicSmokeFailsClosed": true,
         "candidateGatewayExactBuildIdentity": true,
-        "integrationVectorCount": 103,
+        "integrationVectorCount": 104,
         "additiveMandateBoundStrategyExecution": true,
         "bulkDataCommitmentSemanticsChanged": false,
         "publicRuntimeMatchesSource": false,
@@ -107,6 +107,19 @@
           "windowsValidatorRuntimeSupported": false,
           "singleProcessOwnerStillRequired": false,
           "scope": "chain-core-validator-safety-only"
+        },
+        "validatorVoteSigner": {
+          "signerInterface": "crypto.Signer",
+          "signatureScheme": "Ed25519",
+          "canonicalProposalValidatedBeforePersistence": true,
+          "configuredValidatorIdentityAndPublicKeyMatchedBeforePersistence": true,
+          "safetyStatePersistedBeforeSignerInvocation": true,
+          "signerFailureConsumesDurableView": true,
+          "sameViewRetryRejected": true,
+          "returnedSignatureLocallyVerified": true,
+          "externalSignerCustodyOwnedByDataFabric": false,
+          "deployedPublic": false,
+          "scope": "chain-core-validator-vote-signing-only"
         },
         "notProvenByThisEvidence": ["full-state-machine-safety", "chain-core-real-network-partition", "packet-loss", "ddos", "state-sync-restore", "cometbft-or-public-differential-replay", "independent-tlc-or-apalache", "wan-soak", "public-promotion"]
       },
