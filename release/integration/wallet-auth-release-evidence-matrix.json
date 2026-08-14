@@ -43,7 +43,6 @@
       "consumedForReleaseTruth": false,
       "note": "The Android branch advanced beyond frozen evidence without an Owner terminal checkpoint; device truth remains unchanged."
     },
-    {"owner":"desktop-cli-sdk","candidateCommit":"195de4618c5762b98a43192719854a62ae78d7b1","remoteFastForwardReported":true,"remoteReadbackComplete":false,"ciComplete":true,"consumedForReleaseTruth":false,"note":"Formal Go SDK package handoff remains queued separately."},
     {"owner":"desktop-cli-sdk","candidateCommit":"ddab97ee88e927558f87eddc2d4a61a09a5bdc80","remoteFastForwardReported":true,"remoteReadbackComplete":false,"ciComplete":true,"consumedForReleaseTruth":false,"note":"macOS x64 CLI lifecycle evidence remains queued separately."},
     {"owner":"desktop-cli-sdk","candidateCommit":"0b65e31031f8316b5ea753fe70bd9bea391ef760","remoteFastForwardReported":true,"remoteReadbackComplete":false,"ciComplete":true,"consumedForReleaseTruth":false,"note":"macOS x64 CLI handoff remains queued separately."}
   ],
@@ -87,8 +86,8 @@
     {
       "owner": "desktop-cli-sdk",
       "branch": "codex/wallet-desktop-cli-sdk-20260813",
-      "sourceCommit": "d430b44488d1c583e8983b422a825790f479add8",
-      "remoteCommitObserved": "d430b44488d1c583e8983b422a825790f479add8",
+      "sourceCommit": "195de4618c5762b98a43192719854a62ae78d7b1",
+      "remoteCommitObserved": "195de4618c5762b98a43192719854a62ae78d7b1",
       "branchHeadObserved": "6a5f256033f4a9fc99f834d86ebb1a1e7382b93a",
       "remoteVerifiedAt": "2026-08-14T04:05:00Z",
       "verificationMode": "github-git-database-parent-tree-blob-readback"
@@ -620,6 +619,13 @@
       "type": "git-object",
       "direct": true,
       "commit": "f27b5867227e172756d4a8c3638905c668874f33",
+      "path": "release/integration/wallet-desktop-cli-sdk-contract.json",
+      "supports": []
+    },
+    "desktop-go-sdk-formal-handoff": {
+      "type": "git-object",
+      "direct": true,
+      "commit": "195de4618c5762b98a43192719854a62ae78d7b1",
       "path": "release/integration/wallet-desktop-cli-sdk-contract.json",
       "supports": []
     }
