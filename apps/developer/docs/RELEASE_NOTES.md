@@ -1,5 +1,20 @@
 # YNX Developer 0.2.0 Testnet Preview release notes
 
+## 2026-08-14 structured project memory
+
+- Extended owner/project/revision-isolated memory with a transactional facts
+  index for files, source declarations and workspace-file import relations.
+- Declaration extraction covers JavaScript, TypeScript, Python, Go, Rust,
+  C/C++, Java and Solidity. A relation is marked resolved only when the exact
+  target exists in the same workspace snapshot; external dependencies remain
+  visibly unresolved.
+- Chunk/vector and fact exports are independently paginated against one
+  revision. Explicit index metadata preserves empty-file projects and migrates
+  existing chunk indexes. Rebuild and clear update every derived layer in one
+  SQLite transaction.
+- API call/reference graphs, architecture decisions, change/test history and
+  user preferences remain outside this checkpoint and are not claimed by the UI.
+
 ## 2026-08-14 reviewed Agent local Git
 
 - Added a separate local-only Agent Git review after passing Tester evidence.

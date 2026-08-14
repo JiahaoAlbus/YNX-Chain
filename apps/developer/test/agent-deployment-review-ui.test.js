@@ -81,7 +81,10 @@ test("AI local Git commit is digest reviewed and remote Git remains disabled", a
   assert.match(service, /local-only-no-network-no-credentials-no-hooks-no-signing/);
   assert.match(service, /git-remote/);
   assert.match(gateway, /gitService/);
-  assert.match(panel, /No push, pull, PR, credential access or network request occurred/);
+  assert.match(
+    panel,
+    /No push, pull, PR, credential access or network\s+request occurred/,
+  );
 });
 
 test("AI create and recoverable delete are exact-path approved", async () => {

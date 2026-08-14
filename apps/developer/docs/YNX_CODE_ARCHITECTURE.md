@@ -474,7 +474,9 @@ for an explicitly selected deep task until accelerated capacity exists.
 
 The target project-memory model includes a versioned symbol/reference graph,
 architecture facts, API schemas, decisions, test history and user-approved
-preferences. The current implementation does not yet claim those graph layers.
+preferences. The current implementation now covers deterministic source
+declarations and resolvable workspace-file imports, but does not claim AST/LSP
+references, API call graphs, architecture decisions, history or preferences.
 Embeddings store chunks with tenant, repository, revision, path and ACL.
 Retrieval must pass tenant and file authorization before scoring. Deletion
 removes derived chunks and vector entries; rebuild is deterministic from the
@@ -489,10 +491,21 @@ and replaces the previous revision transactionally, so deleted chunks cannot
 survive. The Coder may retrieve only paths explicitly approved in the Agent
 context step; cross-owner and non-approved retrieval are filtered before vector
 scoring. The UI exposes view, incremental rebuild, semantic search, paginated
-JSON export and one-time-confirmed clear. Export pages bind to one indexed
+JSON export and one-time-confirmed clear. Its bounded facts view marks each file
+relation with a concrete target or an explicit external/unresolved state. Export pages bind to one indexed
 revision to avoid mixed-generation archives. Retention is truthfully reported as
 one current index with no automatic expiry; rebuild and user clear are its
 deletion triggers. Source workspace files are not deleted by memory clear.
+
+The same transaction now rebuilds a bounded `memory_facts` index. It records a
+language-classified file fact, declaration name/kind/line facts and import/use/
+include facts for JavaScript, TypeScript, Python, Go, Rust, C/C++, Java and
+Solidity. Relative relations are marked resolved only when a concrete path
+exists in the same owner/project snapshot; external packages remain named but
+unresolved. Fact and chunk exports paginate independently while binding the same
+revision. `memory_indexes` preserves explicit current-revision metadata even for
+empty files and is backfilled from legacy chunk databases. Rebuild and clear
+replace/remove chunks, vectors, facts and revision metadata in one transaction.
 
 ## 14. Collaboration
 

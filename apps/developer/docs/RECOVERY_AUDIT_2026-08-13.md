@@ -25,7 +25,7 @@ published packages and must not be rewritten to the documentation-only HEAD.
 | Debug Adapter Protocol | Authenticated DAP bridge with bounded frames | Bridge test passed | Installed LLDB-DAP test skipped; Node, Python, Go and Rust adapter acceptance remains open |
 | Git | Owner-isolated persistent repository broker with revision-guarded branch switching and merge persistence | Real status, stage, unstage, diff, 50-entry history, create/switch/delete branch and non-fast-forward merge passed; direct owner adapter and conflict-safe merge were exercised | Pull/push/PR execution remains fail-closed until an approved server-side credential/provider broker exists; interactive conflict resolution and public multi-user acceptance remain open |
 | AI Software Engineer | Persisted Planner/context/Coder/Reviewer/Tester flow, exact-path create/edit/recoverable-delete, reviewed local Git commit, digest-bound deployment review and visible graded permission matrix | `agent-orchestrator` 4/4 and AI Web boundary 5/5 passed; Git preview binds revision/HEAD/branch/message/file digests/Tester hash, rejects drift, and consumes a separate one-time local-commit grant; remote Git stays disabled | Irreversible delete, package, browser-network, secret-reference and actual deployment adapters plus accepted public provider/cost evidence remain open |
-| Project memory | Owner-isolated incremental text/vector index with explicit current-index retention | Semantic search, unchanged-vector reuse, changed-chunk rebuild, paginated revision-consistent JSON export, stale-clear rejection and user-confirmed clear passed | File/API relationship graph, architecture facts, symbol index, change history and user-preference memory remain open |
+| Project memory | Owner-isolated incremental text/vector and structured-fact index with explicit current-index retention | Semantic search, unchanged-vector reuse, declaration extraction for first-stage languages, resolved workspace-file imports, paginated chunk/fact export, legacy metadata migration, empty-file indexing, stale-clear rejection and user-confirmed clear passed | AST/LSP reference and API call graph, architecture/decision facts, change/test history and user-preference memory remain open |
 | Collaboration | CRDT edit, ephemeral presence/chat and durable owner-controlled ACL roles | Convergence, viewer rejection, capacity, restart recovery, durable member listing, one-time-confirmed live revocation and access-validating reconnect passed | Shared-terminal floor/approval and multi-process deployment evidence remain open; terminal input stays off |
 | Container/remote workspace | Owner-bound LXD leases and reviewed-host-key SSH | `runtime-profile-service` 6/6 passed, including the packaged Java cloud command boundary | Build and deploy the revised eight-language image; Kubernetes lifecycle, sleep/wake, snapshot backup/restore and public resource-limit evidence remain open |
 | YNX Chain tools | Canonical chain identity, read-only RPC and transaction debugger | `chain-service` 3/3 passed | Wallet-approved deployment/receipt/verification end-to-end remains blocked on accepted central tuple |
@@ -55,9 +55,9 @@ Result:
 - Git: 1 passed.
 - Extension registry: 1 passed.
 - Model router: 4 passed.
-- Agent orchestrator: 3 passed.
-- Project memory: 1 passed.
-- Collaboration: 3 passed.
+- Agent orchestrator: 4 passed.
+- Project memory: 3 passed.
+- Collaboration: 4 passed.
 - Runtime profiles: 6 passed, including the packaged Java cloud adapter command boundary.
 - Chain service: 3 passed.
 - Wallet readiness: 8 passed.

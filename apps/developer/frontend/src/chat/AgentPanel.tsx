@@ -7,10 +7,12 @@ import {
   exportProjectMemory,
   indexProjectMemory,
   loadModelCatalog,
+  loadProjectMemoryFacts,
   loadProjectMemory,
   searchProjectMemory,
   type AgentRun,
   type ModelCatalog,
+  type ProjectMemoryFact,
   type ProjectMemoryStatus,
 } from "../runtime/client";
 
@@ -53,6 +55,7 @@ export function AgentPanel({
   const [memoryResults, setMemoryResults] = useState<
     Array<{ path: string; score: number }>
   >([]);
+  const [memoryFacts, setMemoryFacts] = useState<ProjectMemoryFact[]>([]);
 
   const loadCatalog = async () => {
     setBusy(true);
@@ -69,6 +72,7 @@ export function AgentPanel({
 
   useEffect(() => {
     void loadCatalog();
+    setMemoryFacts([]);
     loadProjectMemory(projectId).then(setMemory).catch(() => {});
   }, [projectId]);
 
@@ -152,6 +156,7 @@ export function AgentPanel({
     setError("");
     try {
       setMemory(await indexProjectMemory(projectId, revision));
+      setMemoryFacts([]);
     } catch (error) {
       setError(error instanceof Error ? error.message : String(error));
     } finally {
@@ -189,6 +194,18 @@ export function AgentPanel({
       setBusy(false);
     }
   };
+  const viewMemoryFacts = async () => {
+    if (memory?.revision == null) return;
+    setBusy(true);
+    setError("");
+    try {
+      setMemoryFacts(await loadProjectMemoryFacts(projectId, memory.revision));
+    } catch (error) {
+      setError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setBusy(false);
+    }
+  };
   const clearMemory = async () => {
     if (
       !window.confirm(
@@ -202,6 +219,7 @@ export function AgentPanel({
       await clearProjectMemory(projectId, memory?.revision ?? null);
       setMemory(await loadProjectMemory(projectId));
       setMemoryResults([]);
+      setMemoryFacts([]);
     } catch (error) {
       setError(error instanceof Error ? error.message : String(error));
     } finally {
@@ -225,16 +243,31 @@ export function AgentPanel({
       <details className="memory-box">
         <summary>PROJECT MEMORY {memory ? `· ${memory.chunks} chunks` : ""}</summary>
         <small>
-          Current index only · no automatic expiry · text chunks and semantic vectors. File/API relationships, symbol graph, history and preferences are not indexed yet.
+          Current index only · no automatic expiry · semantic vectors, source
+          declarations and resolved file imports. API call graph, change history
+          and preferences are not indexed yet.
         </small>
+        {memory && (
+          <small>
+            {memory.symbols} declarations · {memory.relationships} file relations ·{" "}
+            {memory.languages.join(", ") || "no languages"}
+          </small>
+        )}
         <div className="memory-actions">
           <Button disabled={busy || revision < 1} onClick={buildMemory}>
-            {memory?.chunks ? "Incremental rebuild" : "Index"} revision {revision}
+            {memory?.revision != null ? "Incremental rebuild" : "Index"} revision{" "}
+            {revision}
           </Button>
-          <Button disabled={busy || !memory?.chunks} onClick={exportMemory}>
+          <Button disabled={busy || memory?.revision == null} onClick={exportMemory}>
             Export JSON
           </Button>
-          <Button disabled={busy || !memory?.chunks} onClick={clearMemory}>
+          <Button
+            disabled={busy || memory?.revision == null}
+            onClick={viewMemoryFacts}
+          >
+            View facts
+          </Button>
+          <Button disabled={busy || memory?.revision == null} onClick={clearMemory}>
             Clear
           </Button>
         </div>
@@ -259,6 +292,14 @@ export function AgentPanel({
         {memoryResults.map((result) => (
           <code key={`${result.path}:${result.score}`}>
             {result.path} · {result.score.toFixed(3)}
+          </code>
+        ))}
+        {memoryFacts.map((fact) => (
+          <code key={`${fact.path}:${fact.type}:${fact.name}:${fact.line}`}>
+            {fact.type} · {fact.kind} · {fact.name} · {fact.path}:{fact.line}
+            {fact.type === "relation"
+              ? ` → ${fact.targetPath || "external or unresolved"}`
+              : ""}
           </code>
         ))}
       </details>

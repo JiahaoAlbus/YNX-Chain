@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { DatabaseSync } from "node:sqlite";
+import { posix } from "node:path";
 
 const PROTOCOL = "ynx-code-memory/v1",
   MAX_BODY = 64 * 1024,
@@ -18,10 +19,25 @@ export function createProjectMemory({
 }) {
   const db = new DatabaseSync(filename);
   db.exec(
-    "PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL; PRAGMA busy_timeout=5000; CREATE TABLE IF NOT EXISTS memory_chunks(owner_id TEXT NOT NULL,project_id TEXT NOT NULL,revision INTEGER NOT NULL,path TEXT NOT NULL,chunk_index INTEGER NOT NULL,digest TEXT NOT NULL,content TEXT NOT NULL,vector TEXT NOT NULL,dimensions INTEGER NOT NULL,indexed_at TEXT NOT NULL,PRIMARY KEY(owner_id,project_id,path,chunk_index)); CREATE INDEX IF NOT EXISTS memory_scope ON memory_chunks(owner_id,project_id,revision);",
+    "PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL; PRAGMA busy_timeout=5000; CREATE TABLE IF NOT EXISTS memory_chunks(owner_id TEXT NOT NULL,project_id TEXT NOT NULL,revision INTEGER NOT NULL,path TEXT NOT NULL,chunk_index INTEGER NOT NULL,digest TEXT NOT NULL,content TEXT NOT NULL,vector TEXT NOT NULL,dimensions INTEGER NOT NULL,indexed_at TEXT NOT NULL,PRIMARY KEY(owner_id,project_id,path,chunk_index)); CREATE INDEX IF NOT EXISTS memory_scope ON memory_chunks(owner_id,project_id,revision); CREATE TABLE IF NOT EXISTS memory_facts(owner_id TEXT NOT NULL,project_id TEXT NOT NULL,revision INTEGER NOT NULL,path TEXT NOT NULL,fact_type TEXT NOT NULL,name TEXT NOT NULL,kind TEXT NOT NULL,target_path TEXT NOT NULL DEFAULT '',line INTEGER NOT NULL,digest TEXT NOT NULL,indexed_at TEXT NOT NULL,PRIMARY KEY(owner_id,project_id,path,fact_type,name,kind,target_path,line)); CREATE INDEX IF NOT EXISTS memory_fact_scope ON memory_facts(owner_id,project_id,revision,fact_type); CREATE TABLE IF NOT EXISTS memory_indexes(owner_id TEXT NOT NULL,project_id TEXT NOT NULL,revision INTEGER NOT NULL,indexed_at TEXT NOT NULL,PRIMARY KEY(owner_id,project_id));",
+  );
+  db.exec(
+    "INSERT OR IGNORE INTO memory_indexes(owner_id,project_id,revision,indexed_at) SELECT owner_id,project_id,MAX(revision),MAX(indexed_at) FROM memory_chunks GROUP BY owner_id,project_id; INSERT OR IGNORE INTO memory_indexes(owner_id,project_id,revision,indexed_at) SELECT owner_id,project_id,MAX(revision),MAX(indexed_at) FROM memory_facts GROUP BY owner_id,project_id;",
   );
   const remove = db.prepare(
       "DELETE FROM memory_chunks WHERE owner_id=? AND project_id=?",
+    ),
+    removeFacts = db.prepare(
+      "DELETE FROM memory_facts WHERE owner_id=? AND project_id=?",
+    ),
+    removeIndex = db.prepare(
+      "DELETE FROM memory_indexes WHERE owner_id=? AND project_id=?",
+    ),
+    upsertIndex = db.prepare(
+      "INSERT INTO memory_indexes(owner_id,project_id,revision,indexed_at) VALUES(?,?,?,?) ON CONFLICT(owner_id,project_id) DO UPDATE SET revision=excluded.revision,indexed_at=excluded.indexed_at",
+    ),
+    readIndex = db.prepare(
+      "SELECT revision,indexed_at FROM memory_indexes WHERE owner_id=? AND project_id=?",
     ),
     insert = db.prepare(
       "INSERT INTO memory_chunks(owner_id,project_id,revision,path,chunk_index,digest,content,vector,dimensions,indexed_at) VALUES(?,?,?,?,?,?,?,?,?,?)",
@@ -34,20 +50,42 @@ export function createProjectMemory({
     ),
     readPage = db.prepare(
       "SELECT revision,path,chunk_index,digest,content,vector,dimensions,indexed_at FROM memory_chunks WHERE owner_id=? AND project_id=? ORDER BY path,chunk_index LIMIT ? OFFSET ?",
+    ),
+    insertFact = db.prepare(
+      "INSERT INTO memory_facts(owner_id,project_id,revision,path,fact_type,name,kind,target_path,line,digest,indexed_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)",
+    ),
+    readFacts = db.prepare(
+      "SELECT revision,path,fact_type,name,kind,target_path,line,digest,indexed_at FROM memory_facts WHERE owner_id=? AND project_id=? ORDER BY path,line,fact_type,name",
+    ),
+    readFactPage = db.prepare(
+      "SELECT revision,path,fact_type,name,kind,target_path,line,digest,indexed_at FROM memory_facts WHERE owner_id=? AND project_id=? ORDER BY path,line,fact_type,name LIMIT ? OFFSET ?",
     );
 
   function status(owner, projectId) {
-    const value = count.get(owner, projectId);
+    const value = count.get(owner, projectId),
+      index = readIndex.get(owner, projectId),
+      facts = readFacts.all(owner, projectId),
+      languages = [
+        ...new Set(
+          facts
+            .filter((fact) => fact.fact_type === "file")
+            .map((fact) => fact.kind),
+        ),
+      ].sort();
     return {
       protocolVersion: PROTOCOL,
       projectId,
       chunks: Number(value.count),
-      revision: value.revision == null ? null : Number(value.revision),
+      revision: index ? Number(index.revision) : null,
       dimensions: value.dimensions == null ? 0 : Number(value.dimensions),
-      indexedAt: value.indexed_at || null,
+      indexedAt: index?.indexed_at || null,
       embeddingModel: "nomic-embed-text",
       retention: RETENTION,
-      coverage: "text-chunks-and-semantic-vectors",
+      coverage: "text-vectors-declarations-and-file-relations",
+      facts: facts.length,
+      symbols: facts.filter((fact) => fact.fact_type === "symbol").length,
+      relationships: facts.filter((fact) => fact.fact_type === "relation").length,
+      languages,
     };
   }
 
@@ -62,6 +100,7 @@ export function createProjectMemory({
         409,
       );
     const chunks = chunkWorkspace(workspace.files),
+      facts = extractFacts(workspace.files),
       previous = new Map(
         read
           .all(owner, projectId)
@@ -96,6 +135,7 @@ export function createProjectMemory({
     db.exec("BEGIN IMMEDIATE");
     try {
       remove.run(owner, projectId);
+      removeFacts.run(owner, projectId);
       for (const chunk of chunks) {
         const digest = sha(chunk.content),
           key = `${chunk.path}\0${chunk.index}\0${digest}`,
@@ -114,6 +154,21 @@ export function createProjectMemory({
           now,
         );
       }
+      for (const fact of facts)
+        insertFact.run(
+          owner,
+          projectId,
+          workspace.revision,
+          fact.path,
+          fact.type,
+          fact.name,
+          fact.kind,
+          fact.targetPath || "",
+          fact.line,
+          sha(JSON.stringify(fact)),
+          now,
+        );
+      upsertIndex.run(owner, projectId, workspace.revision, now);
       db.exec("COMMIT");
     } catch (error) {
       try {
@@ -126,6 +181,7 @@ export function createProjectMemory({
       indexedAt: now,
       embeddedChunks: changed.length,
       reusedChunks: chunks.length - changed.length,
+      indexedFacts: facts.length,
     };
   }
 
@@ -204,6 +260,40 @@ export function createProjectMemory({
     };
   }
 
+  function exportFacts(owner, projectId, cursor = 0, limit = 50, expectedRevision) {
+    cursor = Math.max(0, Number(cursor) || 0);
+    limit = Math.max(1, Math.min(Number(limit) || 50, 100));
+    const project = status(owner, projectId);
+    if (
+      expectedRevision !== undefined &&
+      String(project.revision) !== String(expectedRevision)
+    )
+      throw Object.assign(
+        fault("Memory index changed during export. Restart the export.", "memory_revision_conflict", 409),
+        { currentRevision: project.revision },
+      );
+    const facts = readFactPage.all(owner, projectId, limit, cursor).map((row) => ({
+      revision: Number(row.revision),
+      path: row.path,
+      type: row.fact_type,
+      name: row.name,
+      kind: row.kind,
+      targetPath: row.target_path || null,
+      line: Number(row.line),
+      digest: row.digest,
+      indexedAt: row.indexed_at,
+    }));
+    return {
+      protocolVersion: PROTOCOL,
+      exportedAt: new Date().toISOString(),
+      project,
+      facts,
+      cursor,
+      nextCursor:
+        cursor + facts.length < project.facts ? cursor + facts.length : null,
+    };
+  }
+
   function clear(owner, projectId, expectedRevision) {
     const current = status(owner, projectId);
     if (current.revision !== expectedRevision)
@@ -211,11 +301,24 @@ export function createProjectMemory({
         fault("Memory index changed. Refresh before clearing it.", "memory_revision_conflict", 409),
         { currentRevision: current.revision },
       );
-    const result = remove.run(owner, projectId);
+    db.exec("BEGIN IMMEDIATE");
+    let chunks, facts;
+    try {
+      chunks = remove.run(owner, projectId);
+      facts = removeFacts.run(owner, projectId);
+      removeIndex.run(owner, projectId);
+      db.exec("COMMIT");
+    } catch (error) {
+      try {
+        db.exec("ROLLBACK");
+      } catch {}
+      throw error;
+    }
     return {
       protocolVersion: PROTOCOL,
       projectId,
-      removedChunks: Number(result.changes),
+      removedChunks: Number(chunks.changes),
+      removedFacts: Number(facts.changes),
       clearedRevision: expectedRevision,
       retention: RETENTION,
     };
@@ -250,6 +353,20 @@ export function createProjectMemory({
             response,
             200,
             exportMemory(
+              owner,
+              projectId,
+              url.searchParams.get("cursor"),
+              url.searchParams.get("limit"),
+              url.searchParams.has("expectedRevision")
+                ? url.searchParams.get("expectedRevision")
+                : undefined,
+            ),
+          );
+        else if (url.searchParams.get("view") === "facts")
+          json(
+            response,
+            200,
+            exportFacts(
               owner,
               projectId,
               url.searchParams.get("cursor"),
@@ -300,7 +417,15 @@ export function createProjectMemory({
       return true;
     }
   }
-  return { handler, index, search, exportMemory, clear, close: () => db.close() };
+  return {
+    handler,
+    index,
+    search,
+    exportMemory,
+    exportFacts,
+    clear,
+    close: () => db.close(),
+  };
 }
 
 export function createOllamaEmbedder({
@@ -344,6 +469,227 @@ function chunkWorkspace(files) {
       });
   }
   return chunks;
+}
+function extractFacts(files) {
+  const facts = [],
+    paths = new Set(Object.keys(files));
+  for (const path of [...paths].sort()) {
+    if (facts.length >= 8192) break;
+    const content = files[path],
+      language = languageForPath(path);
+    facts.push({
+      path,
+      type: "file",
+      name: path,
+      kind: language,
+      targetPath: "",
+      line: 1,
+    });
+    for (const symbol of extractSymbols(language, content)) {
+      if (facts.length >= 8192) break;
+      facts.push({ path, type: "symbol", targetPath: "", ...symbol });
+    }
+    for (const relation of extractRelations(language, content)) {
+      if (facts.length >= 8192) break;
+      facts.push({
+        path,
+        type: "relation",
+        ...relation,
+        targetPath: resolveRelation(path, relation.name, language, paths),
+      });
+    }
+  }
+  const unique = new Map();
+  for (const fact of facts)
+    unique.set(
+      [fact.path, fact.type, fact.name, fact.kind, fact.targetPath, fact.line].join(
+        "\0",
+      ),
+      fact,
+    );
+  return [...unique.values()].slice(0, 8192);
+}
+function languageForPath(path) {
+  const extension = posix.extname(path).toLowerCase();
+  return (
+    {
+      ".js": "javascript",
+      ".jsx": "javascript",
+      ".mjs": "javascript",
+      ".cjs": "javascript",
+      ".ts": "typescript",
+      ".tsx": "typescript",
+      ".py": "python",
+      ".go": "go",
+      ".rs": "rust",
+      ".c": "c",
+      ".h": "cpp",
+      ".hh": "cpp",
+      ".hpp": "cpp",
+      ".cc": "cpp",
+      ".cpp": "cpp",
+      ".cxx": "cpp",
+      ".java": "java",
+      ".sol": "solidity",
+      ".json": "json",
+      ".yaml": "yaml",
+      ".yml": "yaml",
+      ".toml": "toml",
+      ".md": "markdown",
+    }[extension] || "text"
+  );
+}
+function extractSymbols(language, content) {
+  const patterns = {
+      javascript: [
+        ["function", /^\s*(?:export\s+)?(?:default\s+)?(?:async\s+)?function\s+([$A-Z_a-z][$\w]*)/],
+        ["class", /^\s*(?:export\s+)?(?:default\s+)?class\s+([$A-Z_a-z][$\w]*)/],
+        ["variable", /^\s*(?:export\s+)?(?:const|let|var)\s+([$A-Z_a-z][$\w]*)/],
+      ],
+      typescript: [
+        ["function", /^\s*(?:export\s+)?(?:default\s+)?(?:async\s+)?function\s+([$A-Z_a-z][$\w]*)/],
+        ["class", /^\s*(?:export\s+)?(?:default\s+)?class\s+([$A-Z_a-z][$\w]*)/],
+        ["interface", /^\s*(?:export\s+)?interface\s+([$A-Z_a-z][$\w]*)/],
+        ["type", /^\s*(?:export\s+)?type\s+([$A-Z_a-z][$\w]*)/],
+        ["enum", /^\s*(?:export\s+)?enum\s+([$A-Z_a-z][$\w]*)/],
+        ["namespace", /^\s*(?:export\s+)?namespace\s+([$A-Z_a-z][$\w]*)/],
+        ["variable", /^\s*(?:export\s+)?(?:const|let|var)\s+([$A-Z_a-z][$\w]*)/],
+      ],
+      python: [
+        ["function", /^\s*(?:async\s+)?def\s+([A-Za-z_]\w*)/],
+        ["class", /^\s*class\s+([A-Za-z_]\w*)/],
+      ],
+      go: [
+        ["function", /^\s*func\s+(?:\([^)]*\)\s*)?([A-Za-z_]\w*)/],
+        ["type", /^\s*type\s+([A-Za-z_]\w*)\s+(?:struct|interface|\w+)/],
+      ],
+      rust: [
+        ["function", /^\s*(?:pub(?:\([^)]*\))?\s+)?(?:async\s+)?fn\s+([A-Za-z_]\w*)/],
+        ["struct", /^\s*(?:pub(?:\([^)]*\))?\s+)?struct\s+([A-Za-z_]\w*)/],
+        ["enum", /^\s*(?:pub(?:\([^)]*\))?\s+)?enum\s+([A-Za-z_]\w*)/],
+        ["trait", /^\s*(?:pub(?:\([^)]*\))?\s+)?trait\s+([A-Za-z_]\w*)/],
+        ["module", /^\s*(?:pub(?:\([^)]*\))?\s+)?mod\s+([A-Za-z_]\w*)/],
+      ],
+      c: cFamilyPatterns(),
+      cpp: cFamilyPatterns(),
+      java: [
+        ["type", /^\s*(?:public\s+|protected\s+|private\s+|abstract\s+|final\s+|static\s+)*(?:class|interface|enum|record)\s+([A-Za-z_]\w*)/],
+        ["method", /^\s*(?:public\s+|protected\s+|private\s+|abstract\s+|final\s+|static\s+|synchronized\s+)*(?:[A-Za-z_$][\w$<>,.?\[\]]*\s+)+([A-Za-z_$][\w$]*)\s*\(/],
+      ],
+      solidity: [
+        ["contract", /^\s*(?:abstract\s+)?contract\s+([A-Za-z_]\w*)/],
+        ["interface", /^\s*interface\s+([A-Za-z_]\w*)/],
+        ["library", /^\s*library\s+([A-Za-z_]\w*)/],
+        ["function", /^\s*function\s+([A-Za-z_]\w*)/],
+        ["event", /^\s*event\s+([A-Za-z_]\w*)/],
+        ["error", /^\s*error\s+([A-Za-z_]\w*)/],
+        ["struct", /^\s*struct\s+([A-Za-z_]\w*)/],
+        ["enum", /^\s*enum\s+([A-Za-z_]\w*)/],
+      ],
+    },
+    selected = patterns[language] || [],
+    symbols = [];
+  for (const [index, line] of content.split("\n").entries())
+    for (const [kind, pattern] of selected) {
+      const match = pattern.exec(line);
+      if (match && !CONTROL_WORDS.has(match[1]))
+        symbols.push({ name: match[1], kind, line: index + 1 });
+    }
+  return symbols;
+}
+function cFamilyPatterns() {
+  return [
+    ["type", /^\s*(?:class|struct|enum|union|namespace)\s+([A-Za-z_]\w*)/],
+    ["function", /^\s*(?:[A-Za-z_]\w*(?:::\w+)?[\s*&<>]+)+([A-Za-z_]\w*)\s*\([^;]*\)\s*(?:const\s*)?(?:\{|$)/],
+  ];
+}
+const CONTROL_WORDS = new Set(["if", "for", "while", "switch", "catch", "return"]);
+function extractRelations(language, content) {
+  const relations = [],
+    lines = content.split("\n");
+  let goImportBlock = false;
+  for (const [index, line] of lines.entries()) {
+    let match;
+    if (language === "javascript" || language === "typescript") {
+      match = line.match(/\b(?:import|export)\b[^"']*\bfrom\s*["']([^"']+)["']/) ||
+        line.match(/\bimport\s*["']([^"']+)["']/) ||
+        line.match(/\brequire\s*\(\s*["']([^"']+)["']\s*\)/);
+      if (match) relations.push({ name: match[1], kind: "import", line: index + 1 });
+    } else if (language === "python") {
+      match = line.match(/^\s*from\s+([.\w]+)\s+import\s+/);
+      if (match) relations.push({ name: match[1], kind: "import", line: index + 1 });
+      else if ((match = line.match(/^\s*import\s+(.+)/)))
+        for (const name of match[1].split(",").map((value) => value.trim().split(/\s+as\s+/)[0]))
+          if (name) relations.push({ name, kind: "import", line: index + 1 });
+    } else if (language === "go") {
+      if (/^\s*import\s*\(\s*$/.test(line)) {
+        goImportBlock = true;
+        continue;
+      }
+      if (goImportBlock && /^\s*\)\s*$/.test(line)) {
+        goImportBlock = false;
+        continue;
+      }
+      match = goImportBlock
+        ? line.match(/^\s*(?:[A-Za-z_]\w*\s+)?["`]([^"`]+)["`]/)
+        : line.match(/^\s*import\s+(?:[A-Za-z_]\w*\s+)?["`]([^"`]+)["`]/);
+      if (match) relations.push({ name: match[1], kind: "import", line: index + 1 });
+    } else if (language === "rust") {
+      match = line.match(/^\s*use\s+([^;]+);/) || line.match(/^\s*(?:pub\s+)?mod\s+([A-Za-z_]\w*)\s*;/);
+      if (match) relations.push({ name: match[1].trim(), kind: "use", line: index + 1 });
+    } else if (language === "c" || language === "cpp") {
+      match = line.match(/^\s*#\s*include\s*["<]([^">]+)[">]/);
+      if (match) relations.push({ name: match[1], kind: "include", line: index + 1 });
+    } else if (language === "java") {
+      match = line.match(/^\s*import\s+(?:static\s+)?([\w.*]+)\s*;/);
+      if (match) relations.push({ name: match[1], kind: "import", line: index + 1 });
+    } else if (language === "solidity") {
+      match = line.match(/^\s*import\s+(?:[^"']*from\s+)?["']([^"']+)["']/);
+      if (match) relations.push({ name: match[1], kind: "import", line: index + 1 });
+    }
+  }
+  return relations;
+}
+function resolveRelation(sourcePath, specifier, language, paths) {
+  const extensions = [
+      "",
+      ".ts",
+      ".tsx",
+      ".js",
+      ".jsx",
+      ".mjs",
+      ".cjs",
+      ".py",
+      ".go",
+      ".rs",
+      ".c",
+      ".h",
+      ".hpp",
+      ".cpp",
+      ".java",
+      ".sol",
+    ],
+    candidates = [];
+  if (specifier.startsWith(".")) {
+    const value =
+      language === "python"
+        ? specifier.replace(/^\.+/, "").replaceAll(".", "/")
+        : specifier;
+    candidates.push(posix.normalize(posix.join(posix.dirname(sourcePath), value)));
+  } else if (language === "python")
+    candidates.push(specifier.replaceAll(".", "/"));
+  else if (language === "rust") {
+    const value = specifier.replace(/^crate::/, "").split("::{")[0].replaceAll("::", "/");
+    candidates.push(posix.join("src", value), posix.join(posix.dirname(sourcePath), value));
+  } else if ((language === "c" || language === "cpp") && !specifier.includes("/"))
+    candidates.push(posix.join(posix.dirname(sourcePath), specifier));
+  else if (language === "solidity")
+    candidates.push(posix.join(posix.dirname(sourcePath), specifier));
+  for (const base of candidates)
+    for (const extension of extensions)
+      for (const candidate of [base + extension, posix.join(base, `index${extension}`)])
+        if (!candidate.startsWith("../") && paths.has(candidate)) return candidate;
+  return "";
 }
 function validVector(value) {
   return (

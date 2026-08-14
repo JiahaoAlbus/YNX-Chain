@@ -48,8 +48,10 @@ successful eight-runtime release record.
   visible without executable or marketplace loading paths.
 - Project-memory lifecycle evidence: `services/project-memory/test/service.test.mjs`
   proves unchanged-vector reuse, changed-chunk incremental rebuild, semantic
-  ranking, owner isolation, paginated full-content/vector export, revision
-  consistency, stale-clear rejection and deletion. The Web gate
+  ranking, owner isolation, first-stage-language declaration extraction,
+  concrete workspace import resolution, paginated full-content/vector/fact
+  export, explicit empty-file revision metadata, legacy metadata migration,
+  revision consistency, stale-clear rejection and transactional deletion. The Web gate
   `test/project-memory-lifecycle-ui.test.js` holds view/rebuild/export/clear and
   the honest current-index retention/coverage boundary in the product surface.
 - Collaboration lifecycle evidence:
