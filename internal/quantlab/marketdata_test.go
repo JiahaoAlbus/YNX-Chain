@@ -47,6 +47,24 @@ func TestHTTPMarketDataUsesOnlyOwnedActualTradeTape(t *testing.T) {
 	}
 }
 
+func TestHTTPMarketDataAcceptsCurrentPersistedExchangeProvenance(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		trades := make([]map[string]any, 20)
+		for index := range trades {
+			trades[index] = map[string]any{"priceMicro": 1_000_000 + index, "amountMicro": 10_000 + index, "createdAt": time.Date(2026, 8, 14, 0, index, 0, 0, time.UTC)}
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{"market": "YNXT-YUSD_TEST", "source": "persisted deterministic matching-engine fills only", "externalPrice": false, "trades": trades})
+	}))
+	defer server.Close()
+	bars, source, err := (HTTPExchangeMarketData{BaseURL: server.URL, Client: server.Client()}).History("YNXT-YUSD_TEST", 100)
+	if err != nil || len(bars) != 20 || source == "" {
+		t.Fatalf("bars=%d source=%q err=%v", len(bars), source, err)
+	}
+	if ownedExchangeTapeSource("generic real-time price feed") {
+		t.Fatal("unknown market provenance was accepted")
+	}
+}
+
 func TestMarketSourceEmptyAndExternalPriceFailClosed(t *testing.T) {
 	for _, external := range []bool{false, true} {
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {

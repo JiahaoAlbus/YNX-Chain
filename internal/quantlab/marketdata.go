@@ -69,10 +69,19 @@ func (h HTTPExchangeMarketData) tape() (tradeTape, error) {
 	// three market-data fields consumed here. Keep the adapter forward
 	// compatible with additive fields while still fail-closing on the owned
 	// market, source marker, external-price flag, and every consumed value.
-	if d.Decode(&tape) != nil || tape.Market != "YNXT-YUSD_TEST" || tape.ExternalPrice || tape.Source != "YNX-owned deterministic matched trades only" {
+	if d.Decode(&tape) != nil || tape.Market != "YNXT-YUSD_TEST" || tape.ExternalPrice || !ownedExchangeTapeSource(tape.Source) {
 		return tradeTape{}, ErrUnavailable
 	}
 	return tape, nil
+}
+
+func ownedExchangeTapeSource(source string) bool {
+	switch strings.TrimSpace(source) {
+	case "YNX-owned deterministic matched trades only", "persisted deterministic matching-engine fills only":
+		return true
+	default:
+		return false
+	}
 }
 func (h HTTPExchangeMarketData) History(market string, limit int) ([]Bar, string, error) {
 	if market != "YNXT-YUSD_TEST" || limit < 20 || limit > 10000 {
