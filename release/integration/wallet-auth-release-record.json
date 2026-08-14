@@ -6,25 +6,23 @@
   "recordedAt": "2026-08-14T03:52:00Z",
   "evidenceMatrix": {
     "path": "release/integration/wallet-auth-release-evidence-matrix.json",
-    "sha256": "e2fbbb075fcde442f4f97faaeafbf5fed375ea2c58517431a27232221c767c0d",
+    "sha256": "a8ad8d3d165e5880162101ef83c13592cc8b98cc062f1eba42dd4db15f0c746f",
     "platforms": 21,
     "gatesPerPlatform": 12,
     "trueGates": 102,
     "falseGates": 150,
-    "evidenceRecords": 86
+    "evidenceRecords": 88
   },
   "frozenOwnerSources": {
     "coreAuthGateway": "0c747c6030b5a475a1f12dc7e57345555c23055d",
     "webPwaExtensions": "7461608692a4d5a349b4c03728850b6d4fbfe6a1",
     "androidApi36": "f1edbec46ad4300beec406873b03db2da7c72e4b",
-    "iosMacos": "50d3b2e2c5bd77456b84f348c48fa4a9ed76b5b3",
+    "iosMacos": "a1ba611635289e22f883e49c4e7b25417f94778d",
     "desktopCliSdk": "2802876f8470264c4a8819f1426e28f957a09289"
   },
   "pendingOwnerEvidence": [
     "d14d19a022b82ed1006b4e4c3786e4505cf347a4",
-    "b081dd7022f0a07499c1de91b8e3d2579363b926",
-    "7115615f0fa06b75dfcf1c8d3c1c91edc2dff6d1",
-    "0901c24193eaa7747c40f22fcd94d8b002b866ee"
+    "7a3a110fb7cd9a33512ce4db87ddd8387cb730d5"
   ],
   "releaseState": {
     "implementedLocal": true,

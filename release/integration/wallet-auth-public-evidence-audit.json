@@ -3,7 +3,7 @@
   "auditId": "wallet-auth-public-evidence-audit-2026-08-14",
   "auditedAt": "2026-08-14T03:38:07Z",
   "integrationBaseCommit": "a008ce0e8fa2ac0322198576c320441118fbae83",
-  "matrixSha256": "e2fbbb075fcde442f4f97faaeafbf5fed375ea2c58517431a27232221c767c0d",
+  "matrixSha256": "a8ad8d3d165e5880162101ef83c13592cc8b98cc062f1eba42dd4db15f0c746f",
   "publicTestnet": {
     "smartAccountDeploymentVerifier": {
       "evidenceCommit": "0c747c6030b5a475a1f12dc7e57345555c23055d",
@@ -138,6 +138,21 @@
     "registryPassed": false,
     "downloadHosted": false,
     "deployedPublic": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "iosMacosEngineeringBoundary": {
+    "evidenceCommit": "a1ba611635289e22f883e49c4e7b25417f94778d",
+    "failedRunId": 31785220186,
+    "failedRunHead": "2900dfb5402d13c664b0fc6bb7266040dd7db37c",
+    "installSucceeded": true,
+    "firstLaunchSucceeded": false,
+    "keychainProbeSucceeded": false,
+    "secondLaunchSucceeded": false,
+    "engineeringPrereleaseReachable": true,
+    "officialWebsiteListed": false,
+    "aasaValid": false,
+    "downloadHosted": false,
     "productionSigned": false,
     "storeReleased": false
   },

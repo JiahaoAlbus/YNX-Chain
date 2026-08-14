@@ -43,9 +43,7 @@
       "consumedForReleaseTruth": false,
       "note": "The Android branch advanced beyond the frozen authorization recovery checkpoint without terminal evidence; device truth remains unchanged."
     },
-    {"owner":"ios-macos","candidateCommit":"b081dd7022f0a07499c1de91b8e3d2579363b926","remoteFastForwardReported":true,"remoteReadbackComplete":false,"ciComplete":false,"consumedForReleaseTruth":false,"note":"Universal Link path fix has no terminal successful evidence; associated-domain/public delivery remain false."},
-    {"owner":"ios-macos","candidateCommit":"7115615f0fa06b75dfcf1c8d3c1c91edc2dff6d1","remoteFastForwardReported":true,"remoteReadbackComplete":true,"ciComplete":false,"consumedForReleaseTruth":false,"note":"Recovery workflow run remains in progress and promotes no biometric, recovery, auth or public gate."},
-    {"owner":"ios-macos","candidateCommit":"0901c24193eaa7747c40f22fcd94d8b002b866ee","remoteFastForwardReported":true,"remoteReadbackComplete":true,"ciComplete":false,"consumedForReleaseTruth":false,"note":"Run 31779956710 failed the standalone application-identifier gate; minimal entitlement injection fix has no new CI, so install/Keychain/recovery/public/signing remain false."}
+    {"owner":"ios-macos","candidateCommit":"7a3a110fb7cd9a33512ce4db87ddd8387cb730d5","workflowRunId":31786857637,"remoteFastForwardReported":true,"remoteReadbackComplete":true,"ciComplete":false,"consumedForReleaseTruth":false,"note":"Run 31785220186 failed first launch after successful install; follow-up run 31786857637 is in progress, so new launch/Keychain/callback/recovery/public/signing remain false."}
   ],
   "ownerSources": [
     {
@@ -78,10 +76,10 @@
     {
       "owner": "ios-macos",
       "branch": "codex/wallet-ios-macos-20260813",
-      "sourceCommit": "50d3b2e2c5bd77456b84f348c48fa4a9ed76b5b3",
-      "remoteCommitObserved": "50d3b2e2c5bd77456b84f348c48fa4a9ed76b5b3",
-      "branchHeadObserved": "7115615f0fa06b75dfcf1c8d3c1c91edc2dff6d1",
-      "remoteVerifiedAt": "2026-08-14T04:26:00Z",
+      "sourceCommit": "a1ba611635289e22f883e49c4e7b25417f94778d",
+      "remoteCommitObserved": "a1ba611635289e22f883e49c4e7b25417f94778d",
+      "branchHeadObserved": "7a3a110fb7cd9a33512ce4db87ddd8387cb730d5",
+      "remoteVerifiedAt": "2026-08-14T09:01:13Z",
       "verificationMode": "github-git-database-parent-tree-blob-readback"
     },
     {
@@ -451,6 +449,23 @@
       "path": ".github/workflows/wallet-ios.yml",
       "supports": []
     },
+    "ios-simulator-first-launch-terminal-failure": {
+      "type": "github-action",
+      "direct": true,
+      "runId": 31785220186,
+      "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/31785220186",
+      "sourceCommit": "2900dfb5402d13c664b0fc6bb7266040dd7db37c",
+      "observedStatus": "completed",
+      "observedConclusion": "failure",
+      "supports": []
+    },
+    "macos-engineering-prerelease-boundary": {
+      "type": "git-object",
+      "direct": true,
+      "commit": "a1ba611635289e22f883e49c4e7b25417f94778d",
+      "path": "release/integration/wallet-native-public-download-2026-08-14.json",
+      "supports": []
+    },
     "ios-recovery-precondition-source": {
       "type": "git-object",
       "direct": true,
@@ -813,10 +828,10 @@
       "ownerSource": "ios-macos",
       "artifactClass": "ad-hoc-simulator-build",
       "status": "hosted-simulator-lifecycle-with-latest-failure",
-      "capabilities": {"latestRunTerminalFailure":true,"latestMalformedCallbackDelivered":true,"latestMalformedCallbackRejected":true,"latestStep15DeepLinkDelivered":false,"latestRecoverySucceeded":false,"latestBiometricSucceeded":false},
+      "capabilities": {"latestRunTerminalFailure":true,"latestInstallSucceeded":true,"latestFirstLaunchSucceeded":false,"latestKeychainProbeSucceeded":false,"latestSecondLaunchSucceeded":false,"latestCallbackDelivered":false,"latestRecoverySucceeded":false,"latestBiometricSucceeded":false},
       "gates": {"build":true,"install":true,"coldLaunch":true,"secondLaunch":true,"testnet":false,"sign":false,"tx":false,"callback":true,"reconnect":false,"downloadHosted":false,"productionSigned":false,"storeReleased":false},
       "evidenceBindings": {"build":["ios-current-simulator-callback-delivery"],"install":["ios-current-simulator-callback-delivery"],"coldLaunch":["ios-current-simulator-callback-delivery"],"secondLaunch":["ios-current-simulator-callback-delivery"],"testnet":["ios-current-simulator-callback-delivery"],"sign":["ios-current-simulator-callback-delivery"],"tx":["ios-current-simulator-callback-delivery"],"callback":["ios-current-simulator-callback-delivery"],"reconnect":["ios-current-simulator-callback-delivery"],"downloadHosted":["ios-current-simulator-callback-delivery"],"productionSigned":["ios-current-simulator-callback-delivery"],"storeReleased":["ios-current-simulator-callback-delivery"]},
-      "notes": ["Run 31766659407 remains the git-object-bound callback gate evidence. Latest run 31774232444 ended failure: malformed callback reached PID 39845 and was rejected, while step15 did not deliver a deep link and recovery failed. The 50d3 workflow source adds no gate. No Testnet, physical device, auth success, recovery/biometric success, Universal Link, signing, tx, public download, production signature or store release is claimed."]
+      "notes": ["Historical run 31766659407 remains the direct callback binding. Current run 31785220186 installed the app but SpringBoard rejected the first launch, leaving no PID, Keychain probe, second launch or callback. The follow-up workflow-only fix has no CI and adds no gate. No Testnet, physical device, auth success, recovery/biometric success, Universal Link, signing, tx, public download, production signature or store release is claimed."]
     },
     {
       "id": "macos",
