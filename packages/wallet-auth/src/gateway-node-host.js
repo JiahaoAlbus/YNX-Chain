@@ -20,6 +20,7 @@ const OBSERVABLE_ROUTES = Object.freeze(new Map([
   ["/ready", "ready"],
   ["/version", "version"],
   ["/metrics", "metrics"],
+  ["/v1/wallet/authorizations/reject", "authorization_reject"],
   ["/v1/wallet/sessions/complete", "session_complete"],
   ["/v1/wallet/sessions/introspect", "session_introspect"],
   ["/v1/wallet/sessions", "session_inventory"],
