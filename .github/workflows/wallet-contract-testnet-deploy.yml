@@ -1,0 +1,131 @@
+name: wallet-contract-testnet-deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_commit:
+        description: Exact reviewed 40-character commit to deploy
+        required: true
+        type: string
+      entrypoint_mode:
+        description: Deploy a new EntryPoint or bind an existing verified deployment
+        required: true
+        type: choice
+        options: [existing, deploy]
+      entrypoint_address:
+        description: Existing EntryPoint address; required only in existing mode
+        required: false
+        type: string
+      entrypoint_transaction_hash:
+        description: Existing EntryPoint creation transaction; required only in existing mode
+        required: false
+        type: string
+      policy_signer_address:
+        description: Public Paymaster policy signer address
+        required: true
+        type: string
+      risk_officer_address:
+        description: Public Paymaster risk officer address
+        required: true
+        type: string
+      bundler_url:
+        description: Credential-free canonical ERC-7769 Bundler URL
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: wallet-contract-testnet-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy-and-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment: ynx-testnet-wallet-contracts
+    steps:
+      - name: Check out exact reviewed source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ inputs.source_commit }}
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Verify exact immutable source identity
+        env:
+          SOURCE_COMMIT: ${{ inputs.source_commit }}
+        run: |
+          [[ "$SOURCE_COMMIT" =~ ^[0-9a-f]{40}$ ]]
+          test "$(git rev-parse HEAD)" = "$SOURCE_COMMIT"
+          test -z "$(git status --porcelain)"
+
+      - name: Validate public deployment inputs
+        env:
+          ENTRYPOINT_MODE: ${{ inputs.entrypoint_mode }}
+          ENTRYPOINT_ADDRESS: ${{ inputs.entrypoint_address }}
+          ENTRYPOINT_TRANSACTION_HASH: ${{ inputs.entrypoint_transaction_hash }}
+          POLICY_SIGNER_ADDRESS: ${{ inputs.policy_signer_address }}
+          RISK_OFFICER_ADDRESS: ${{ inputs.risk_officer_address }}
+          BUNDLER_URL: ${{ inputs.bundler_url }}
+        run: |
+          [[ "$ENTRYPOINT_MODE" =~ ^(existing|deploy)$ ]]
+          [[ "$POLICY_SIGNER_ADDRESS" =~ ^0x[0-9a-fA-F]{40}$ ]]
+          [[ "$RISK_OFFICER_ADDRESS" =~ ^0x[0-9a-fA-F]{40}$ ]]
+          [[ "$BUNDLER_URL" =~ ^https://[^/?#]+(/rpc|/)?$ ]]
+          if [[ "$ENTRYPOINT_MODE" = existing ]]; then
+            [[ "$ENTRYPOINT_ADDRESS" =~ ^0x[0-9a-fA-F]{40}$ ]]
+            [[ "$ENTRYPOINT_TRANSACTION_HASH" =~ ^0x[0-9a-fA-F]{64}$ ]]
+          else
+            test -z "$ENTRYPOINT_ADDRESS"
+            test -z "$ENTRYPOINT_TRANSACTION_HASH"
+          fi
+
+      - name: Install locked dependencies
+        run: |
+          npm ci --ignore-scripts
+          npm ci --ignore-scripts --prefix packages/wallet-auth
+
+      - name: Run complete Wallet contract and protocol gates
+        run: |
+          npm run hardhat:test:wallet
+          npm --prefix packages/wallet-auth test
+          npm --prefix apps/wallet run product-check
+          npm --prefix apps/wallet run release-content:check
+          npm --prefix apps/wallet run goal-coverage:check
+
+      - name: Deploy default-disabled contracts to YNX Testnet
+        env:
+          SOURCE_COMMIT: ${{ inputs.source_commit }}
+          YNX_EVM_RPC_URL: ${{ secrets.YNX_EVM_RPC_URL }}
+          DEPLOYER_PRIVATE_KEY: ${{ secrets.DEPLOYER_PRIVATE_KEY }}
+          YNX_ERC4337_ENTRYPOINT_MODE: ${{ inputs.entrypoint_mode }}
+          YNX_ERC4337_ENTRYPOINT_ADDRESS: ${{ inputs.entrypoint_address }}
+          YNX_ERC4337_ENTRYPOINT_TRANSACTION_HASH: ${{ inputs.entrypoint_transaction_hash }}
+          YNX_PAYMASTER_POLICY_SIGNER_ADDRESS: ${{ inputs.policy_signer_address }}
+          YNX_PAYMASTER_RISK_OFFICER_ADDRESS: ${{ inputs.risk_officer_address }}
+        run: npm run hardhat:deploy:wallet-smart-account > "$RUNNER_TEMP/wallet-contract-deployment.json"
+
+      - name: Verify public receipts, bytecode, events, relationships and Bundler
+        env:
+          YNX_WALLET_ERC4337_DEPLOYMENT_VERIFY: "1"
+          YNX_WALLET_ERC4337_DEPLOYMENT_MANIFEST: ${{ runner.temp }}/wallet-contract-deployment.json
+          YNX_EVM_RPC_URL: ${{ secrets.YNX_EVM_RPC_URL }}
+          YNX_ERC4337_BUNDLER_URL: ${{ inputs.bundler_url }}
+          YNX_ERC4337_VERIFY_TIMEOUT_MS: "12000"
+        run: npm --prefix packages/wallet-auth run verify:testnet-deployment
+
+      - name: Upload source-bound deployment manifest
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: wallet-contract-testnet-${{ inputs.source_commit }}
+          path: ${{ runner.temp }}/wallet-contract-deployment.json
+          if-no-files-found: warn
+          retention-days: 90
