@@ -6,12 +6,12 @@ import (
 )
 
 func TestValidateOrigin(t *testing.T) {
-	for _, raw := range []string{"http://example.com", "https://user@example.com", "https://example.com/path", "https://example.com?secret=value"} {
+	for _, raw := range []string{"http://service.invalid", "https://user@service.invalid", "https://service.invalid/path", "https://service.invalid?secret=value"} {
 		if _, err := validateOrigin(raw, false); err == nil {
 			t.Fatalf("unsafe origin %q was accepted", raw)
 		}
 	}
-	if got, err := validateOrigin("https://explorer.example/", false); err != nil || got != "https://explorer.example" {
+	if got, err := validateOrigin("https://explorer.ynx.invalid/", false); err != nil || got != "https://explorer.ynx.invalid" {
 		t.Fatalf("safe public origin rejected: got=%q err=%v", got, err)
 	}
 	if got, err := validateOrigin("http://127.0.0.1:6425", true); err != nil || got != "http://127.0.0.1:6425" {
@@ -27,7 +27,7 @@ func TestSummarize(t *testing.T) {
 		{Latency: 30 * time.Millisecond, Status: 503, Err: "Service Unavailable"},
 		{Latency: 40 * time.Millisecond, Status: 429, Err: "Too Many Requests"},
 	}
-	got := summarize("https://explorer.example", started, started.Add(2*time.Second), 2, 10, 1, samples, 3, 1, 0)
+	got := summarize("https://explorer.ynx.invalid", started, started.Add(2*time.Second), 2, 10, 1, samples, 3, 1, 0)
 	if got.Requests != 4 || got.Errors != 2 || got.ErrorRate != 0.5 || got.RequestsPerSecond != 2 {
 		t.Fatalf("unexpected aggregate: %+v", got)
 	}
