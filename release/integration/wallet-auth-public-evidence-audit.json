@@ -3,7 +3,7 @@
   "auditId": "wallet-auth-public-evidence-audit-2026-08-14",
   "auditedAt": "2026-08-14T03:38:07Z",
   "integrationBaseCommit": "a008ce0e8fa2ac0322198576c320441118fbae83",
-  "matrixSha256": "68167042d1922bebf340c716055504d9e5d8700dced5565abfaefc301f332239",
+  "matrixSha256": "d9a07ad492855951066152f6472f2addd4d194bf549af99361eb89470ad97c3d",
   "publicTestnet": {
     "smartAccountDeploymentVerifier": {
       "evidenceCommit": "0c747c6030b5a475a1f12dc7e57345555c23055d",
@@ -152,6 +152,27 @@
     "downloadHosted": false,
     "productionSigned": false,
     "storeReleased": false
+  },
+  "iosAasaPublicBoundary": {
+    "contractCommit": "3b27b83f18799ff74252469075ec460b6665dd44",
+    "contractParent": "b5594f16d50b59106df9a7324ccdc5f531e7c06c",
+    "contractTree": "3e9afc7917251ca8df433bd2da1bbd0b576c464b",
+    "contractPath": "release/integration/wallet-aasa/README.md",
+    "contractBlob": "1a69d115dbeff0c9eea62fc9675ac3756d950696",
+    "contractTestsPassed": 3,
+    "url": "https://ynxweb4.com/.well-known/apple-app-site-association",
+    "httpStatus": 200,
+    "contentType": "text/html; charset=utf-8",
+    "bytes": 1018,
+    "sha256": "0206ff01c03b5230fd40683a05f496fd4b5bb460b494be43e3aefe815b46da7c",
+    "verifierExitCode": 1,
+    "aasaValid": false,
+    "realAppleTeamIdFrozen": false,
+    "coreComponentsFrozen": false,
+    "signedAppBindingFrozen": false,
+    "associatedDomainFrozen": false,
+    "universalLinkPublicDelivery": false,
+    "authorizationSuccess": false
   },
   "officialWebsite": {
     "requestedUrl": "https://www.ynxweb4.com/wallet",

@@ -108,11 +108,11 @@
     {
       "owner": "ios-macos",
       "branch": "codex/wallet-ios-macos-20260813",
-      "sourceCommit": "369578f20b0802bcfef5cfc8bcdd7f53fec0f801",
-      "remoteCommitObserved": "369578f20b0802bcfef5cfc8bcdd7f53fec0f801",
-      "branchHeadObserved": "a6cd9677cba2bfae85bc33cfa6919e82ff7de897",
-      "remoteVerifiedAt": "2026-08-14T11:00:37Z",
-      "verificationMode": "github-git-database-parent-tree-blob-readback"
+      "sourceCommit": "3b27b83f18799ff74252469075ec460b6665dd44",
+      "remoteCommitObserved": "3b27b83f18799ff74252469075ec460b6665dd44",
+      "branchHeadObserved": "3b27b83f18799ff74252469075ec460b6665dd44",
+      "remoteVerifiedAt": "2026-08-14T12:50:00Z",
+      "verificationMode": "remote-ref-parent-tree-aasa-contract-blob-and-public-http-readback"
     },
     {
       "owner": "desktop-cli-sdk",
@@ -154,6 +154,28 @@
       "authorizationSuccess": false,
       "downloadHosted": false,
       "productionSigned": false
+    },
+    "ios-aasa-contract-public-spa-fallback": {
+      "type": "git-object",
+      "direct": true,
+      "commit": "3b27b83f18799ff74252469075ec460b6665dd44",
+      "path": "release/integration/wallet-aasa/README.md",
+      "blob": "1a69d115dbeff0c9eea62fc9675ac3756d950696",
+      "supports": [],
+      "contractTestsPassed": 3,
+      "url": "https://ynxweb4.com/.well-known/apple-app-site-association",
+      "publicHttpStatus": 200,
+      "publicContentType": "text/html; charset=utf-8",
+      "publicBytes": 1018,
+      "publicSha256": "0206ff01c03b5230fd40683a05f496fd4b5bb460b494be43e3aefe815b46da7c",
+      "publicAasaValid": false,
+      "verifierExitCode": 1,
+      "realAppleTeamIdFrozen": false,
+      "coreComponentsFrozen": false,
+      "signedAppBindingFrozen": false,
+      "associatedDomainFrozen": false,
+      "universalLinkPublicDelivery": false,
+      "authorizationSuccess": false
     },
     "web-pwa-official-public-download": {
       "type": "public-download",
