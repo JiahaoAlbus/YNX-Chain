@@ -1,0 +1,101 @@
+{
+  "schemaVersion": 1,
+  "productId": "wallet-desktop",
+  "version": "0.1.0",
+  "sourceCommit": "e8c88e0ffdd7ecd90f1c719e3239758cb95ee2f3",
+  "runtime": {"electron": "42.8.0", "node": "24.18.0"},
+  "releaseClass": "unsigned-testnet-engineering-preview",
+  "workflow": {
+    "runId": 31766529660,
+    "runUrl": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/31766529660",
+    "buildJobId": 94663491890,
+    "downloadVerificationJobId": 94664063002,
+    "conclusion": "success",
+    "runner": "macos-15-intel",
+    "runnerOS": "macOS 15.7.7"
+  },
+  "artifact": {
+    "id": 9206581210,
+    "name": "ynx-wallet-desktop-macos-x64",
+    "archiveBytes": 236675877,
+    "archiveSha256": "c2f20cee149bb3189563eb79639b2d5b247f744e5b0310e11edcf885c618be2b",
+    "downloadedAndVerifiedOnNativeRunner": true,
+    "files": [
+      {
+        "filename": "ynx-wallet-desktop-0.1.0-x64.dmg",
+        "format": "dmg",
+        "architecture": "x64",
+        "bytes": 120409881,
+        "sha256": "10bb29eea8e6bc7d220e1f370ec2b9bfeba6d2c54036879eb3f29469dd2458f1",
+        "minimumOS": "macOS 12.0; macOS 15.7.7 x64 directly tested",
+        "minimumOSEvidence": "Electron 42 support boundary and packaged app LSMinimumSystemVersion captured in uploaded artifact-manifest.json",
+        "signingClass": "unsigned_unnotarized_macos_testnet_candidate",
+        "productionSigned": false,
+        "notarized": false
+      },
+      {
+        "filename": "ynx-wallet-desktop-0.1.0-x64.zip",
+        "format": "zip",
+        "architecture": "x64",
+        "bytes": 116660192,
+        "sha256": "ca625c38f54c4886cefc2a5c40e921442b3bb16529acba5bc918246b5470b827",
+        "minimumOS": "macOS 12.0; macOS 15.7.7 x64 directly tested",
+        "minimumOSEvidence": "Electron 42 support boundary and packaged app LSMinimumSystemVersion captured in uploaded artifact-manifest.json",
+        "signingClass": "unsigned_unnotarized_macos_testnet_candidate",
+        "productionSigned": false,
+        "notarized": false
+      }
+    ]
+  },
+  "downloadVerificationArtifact": {
+    "id": 9206591683,
+    "name": "ynx-wallet-desktop-macos-x64-download-verification",
+    "archiveBytes": 357,
+    "archiveSha256": "949e98c2666fc704e88d473e8af130a825b5c42585db8db10f56ac2680129dc6",
+    "manifestPresent": true,
+    "lifecyclePresent": true,
+    "packageCount": 2,
+    "sha256Verified": true,
+    "bytesVerified": true
+  },
+  "lifecycleEvidence": {
+    "preflightVersion": "0.0.9",
+    "currentVersion": "0.1.0",
+    "preflightInstalled": true,
+    "upgradeVerified": true,
+    "currentInstalled": true,
+    "installedCopyAdHocSigned": true,
+    "artifactProductionSigned": false,
+    "artifactNotarized": false,
+    "coldLaunch": true,
+    "secondLaunch": true,
+    "processObserved": true,
+    "appReportedWindowVisible": true,
+    "appReportedWindowTitle": "YNX Wallet Testnet Preview",
+    "rpcEndpoint": "https://evm.ynxweb4.com",
+    "rpcMethod": "eth_chainId",
+    "chainId": "0x1917",
+    "rpcFailureClosed": true,
+    "frozenWalletAuthImported": true,
+    "accountCreated": false,
+    "balanceClaimed": false,
+    "transactionCreated": false,
+    "signingEnabled": false,
+    "uninstallVerified": true
+  },
+  "releaseState": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": false,
+    "installedNativeCI": true,
+    "upgradeTestedNativeCI": true,
+    "uploadedArtifactDownloadedAndVerifiedNativeCI": true,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "notarized": false,
+    "storeReleased": false
+  }
+}
