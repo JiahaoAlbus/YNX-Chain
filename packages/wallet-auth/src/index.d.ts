@@ -1092,3 +1092,24 @@ export declare class CanonicalWalletGatewayHttpKernel {
   snapshot(): Readonly<Record<string, unknown>>;
 }
 export declare function gatewayStateDigest(snapshot: unknown): string;
+export declare function summarizePublicGatewayMultiUserEvidence(input: unknown): Readonly<{
+  environment: "public-testnet";
+  intendedUsers: number;
+  completed: number;
+  distinctAccounts: number;
+  introspectedActive: number;
+  replayRejected: number;
+  crossSessionRejected: boolean;
+  revoked: number;
+  postRevokeRejected: number;
+  cleanupComplete: boolean;
+  failures: readonly string[];
+  boundedSamplePassed: boolean;
+  publicCapacityProven: false;
+  multiRegionRecoveryProven: false;
+  assetMoved: false;
+  userClaimed: false;
+  providerClaimed: false;
+  secretMaterialRecorded: false;
+  identifierValuesRecorded: false;
+}>;
