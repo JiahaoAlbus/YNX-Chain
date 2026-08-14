@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-08-14T18:56:00+08:00",
+  "browser": "Codex In-app Browser",
+  "url": "https://www.ynxweb4.com/dapp/wallet",
+  "scope": "official publication page visible acceptance; not a PWA install or extension runtime",
+  "viewport": {"width": 390, "height": 844},
+  "firstLoad": {
+    "httpVisible": true,
+    "language": "en",
+    "direction": "ltr",
+    "theme": "dark",
+    "documentClientWidth": 390,
+    "documentScrollWidth": 390,
+    "walletWebDownloadLinksVisible": 3,
+    "sourceCommitVisible": "a1c680982b63"
+  },
+  "themeGate": {
+    "lightModeVisible": true,
+    "darkModeRestored": true
+  },
+  "secondLoad": {
+    "reloadSucceeded": true,
+    "language": "en",
+    "direction": "ltr",
+    "theme": "dark",
+    "documentClientWidth": 390,
+    "documentScrollWidth": 390,
+    "walletWebDownloadLinksVisible": 3,
+    "sourceCommitVisible": true
+  },
+  "logo": {
+    "url": "https://www.ynxweb4.com/ynx-logo.png",
+    "naturalWidth": 798,
+    "naturalHeight": 420,
+    "renderedWidth": 52,
+    "renderedHeight": 28,
+    "proportionPreservedWithinPixelRounding": true
+  },
+  "websitePublicationVisibleAcceptance": true,
+  "walletPwaInstalledLocal": false,
+  "extensionInstalledLocal": false,
+  "providerAccountSignTransactionProved": false,
+  "arabicRtlOnPublicationPageProved": false,
+  "note": "The official publication page exposes English/Chinese navigation only. This evidence does not replace the built Wallet PWA twelve-locale and RTL gates."
+}

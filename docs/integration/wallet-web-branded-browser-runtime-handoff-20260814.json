@@ -42,8 +42,10 @@
     "preservedFailedAttempt": "evidence/runtime/firefox-branded-temporary-runtime-partial-20260814.json"
   },
   "releaseGates": {
-    "downloadHosted": false,
-    "deployedPublic": false,
+    "downloadHosted": true,
+    "deployedPublic": true,
+    "publicationMachineGate": "apps/wallet-web/evidence/runtime/wallet-web-production-publication-20260814.json",
+    "publicationVisibleGate": "apps/wallet-web/evidence/browser/public-wallet-publication-visible-20260814.json",
     "productionSignedExtension": false,
     "storeReleased": false,
     "accountAuthorized": false,
