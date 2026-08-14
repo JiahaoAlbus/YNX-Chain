@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "productSlug": "wallet-desktop-cli-sdk",
   "owner": "02-wallet-auth-desktop-cli-sdk",
-  "sourceCommit": "95bd2aad56bd8b72246f3f0e9529d699f09550ad",
+  "sourceCommit": "6331265ae74a957f07958e459251fc42c9ea6b66",
   "consumes": {
     "networkOwner": "01-chain-core",
     "authOwner": "02-wallet-auth",
@@ -17,6 +17,30 @@
     "installedLocal": true,
     "integratedCentral": false,
     "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "evidenceCheckpoints": {
+    "linuxX64AppImage": "1bdb7fb4991937eba4f74341bd123214f9776e92",
+    "macosArm64": "2b0e62a25c0b16b8d7529c52b9e930020cb2d6ed",
+    "macosX64": "297894a4a48c26012e051d371aac54e768969e67",
+    "linuxArm64AppImage": "f76a416ebde087e16f1c0c02c80dc392e8c365e8",
+    "linuxArm64Deb": "37dcea8fa7e35bd765025fc3c89a6af47b6b8b8a",
+    "windowsArm64Desktop": "931b70fc0dd4e7ff01542065099aeaa0b3f25a51",
+    "linuxArm64Rpm": "b06bf39c365408ba28e9e5f9312f293693e3f73d",
+    "windowsArm64Cli": "905ac1e5479b08e6b2d9e50a91bef01cbe7d58ef",
+    "goSdkRealConsumer": "6331265ae74a957f07958e459251fc42c9ea6b66"
+  },
+  "directEvidence": {
+    "windowsArm64Cli": "release/wallet-cli/windows-arm64-native/manifest.json",
+    "linuxArm64Rpm": "release/wallet-desktop/linux-arm64-rpm/manifest.json",
+    "goSdkRealConsumer": "release/wallet-cli/go-sdk/real-consumer-evidence.json"
+  },
+  "remainingFalse": {
+    "formalGoModuleArchiveBuilt": false,
+    "integratedCentral": false,
     "deployedPublic": false,
     "downloadHosted": false,
     "productionSigned": false,
