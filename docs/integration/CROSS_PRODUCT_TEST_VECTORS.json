@@ -82,6 +82,17 @@
       "publicClaimAllowed": false
     },
     {
+      "id": "WA-PAYMASTER-BATCH-POLICY-001",
+      "category": "wallet-paymaster",
+      "owners": ["02-wallet-auth", "01-chain-core", "29-integration"],
+      "precondition": "The Paymaster policy signer signs an exact executeBatch UserOperation while the Product policy expresses only one authorization destination.",
+      "action": "Submit the signed sponsored batch through EntryPoint before any sponsorship usage for the subject.",
+      "expectedHttpStatus": null,
+      "expectedCode": "PolicyViolation",
+      "expectedState": "Paymaster rejects before reservation; product and subject budgets, authorization replay marker, sponsored-account nonce and every batch target remain unchanged",
+      "publicClaimAllowed": false
+    },
+    {
       "id": "WA-PAYMASTER-PRODUCT-POLICY-001",
       "category": "wallet-paymaster",
       "owners": ["02-wallet-auth", "01-chain-core", "29-integration"],
