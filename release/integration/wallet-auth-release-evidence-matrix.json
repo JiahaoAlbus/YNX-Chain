@@ -45,7 +45,7 @@
     },
     {"owner":"desktop-cli-sdk","candidateCommit":"6331265ae74a957f07958e459251fc42c9ea6b66","remoteFastForwardReported":true,"remoteReadbackComplete":false,"ciComplete":true,"consumedForReleaseTruth":false,"note":"Go SDK evidence remains queued for a separate atomic slice."},
     {"owner":"desktop-cli-sdk","candidateCommit":"5bf869a191877cdd83b83e90156f698ed7e2d2cc","remoteFastForwardReported":true,"remoteReadbackComplete":false,"ciComplete":true,"consumedForReleaseTruth":false,"note":"Desktop/CLI/SDK final handoff remains queued separately."},
-    {"owner":"desktop-cli-sdk","candidateCommit":"963e07a3325dd7fff31244d90e89b2f9b13a3809","remoteFastForwardReported":true,"remoteReadbackComplete":false,"ciComplete":true,"consumedForReleaseTruth":false,"note":"TypeScript SDK 0.2.1 evidence remains queued separately."}
+    {"owner":"desktop-cli-sdk","candidateCommit":"f27b5867227e172756d4a8c3638905c668874f33","remoteFastForwardReported":true,"remoteReadbackComplete":false,"ciComplete":true,"consumedForReleaseTruth":false,"note":"TypeScript SDK central handoff remains queued separately."}
   ],
   "ownerSources": [
     {
@@ -87,9 +87,9 @@
     {
       "owner": "desktop-cli-sdk",
       "branch": "codex/wallet-desktop-cli-sdk-20260813",
-      "sourceCommit": "905ac1e5479b08e6b2d9e50a91bef01cbe7d58ef",
-      "remoteCommitObserved": "905ac1e5479b08e6b2d9e50a91bef01cbe7d58ef",
-      "branchHeadObserved": "5bf869a191877cdd83b83e90156f698ed7e2d2cc",
+      "sourceCommit": "963e07a3325dd7fff31244d90e89b2f9b13a3809",
+      "remoteCommitObserved": "963e07a3325dd7fff31244d90e89b2f9b13a3809",
+      "branchHeadObserved": "195de4618c5762b98a43192719854a62ae78d7b1",
       "remoteVerifiedAt": "2026-08-14T04:05:00Z",
       "verificationMode": "github-git-database-parent-tree-blob-readback"
     }
@@ -605,9 +605,9 @@
     "typescript-sdk-manifest": {
       "type": "git-object",
       "direct": true,
-      "commit": "53f2ad8225a5465ba9f4b1e41a69ab8d2c0bccaf",
+      "commit": "963e07a3325dd7fff31244d90e89b2f9b13a3809",
       "path": "release/wallet-cli/typescript-sdk/manifest.json",
-      "supports": ["typescript-sdk.build", "typescript-sdk.install", "typescript-sdk.testnet"]
+      "supports": ["typescript-sdk.build", "typescript-sdk.install", "typescript-sdk.testnet", "typescript-sdk.sign"]
     }
   },
   "platforms": [
@@ -760,9 +760,9 @@
       "ownerSource": "desktop-cli-sdk",
       "artifactClass": "unsigned-local-npm-tarball",
       "status": "clean-consumer-local",
-      "gates": {"build":true,"install":true,"coldLaunch":false,"secondLaunch":false,"testnet":true,"sign":false,"tx":false,"callback":false,"reconnect":false,"downloadHosted":false,"productionSigned":false,"storeReleased":false},
+      "gates": {"build":true,"install":true,"coldLaunch":false,"secondLaunch":false,"testnet":true,"sign":true,"tx":false,"callback":false,"reconnect":false,"downloadHosted":false,"productionSigned":false,"storeReleased":false},
       "evidenceBindings": {"build":["typescript-sdk-manifest"],"install":["typescript-sdk-manifest"],"coldLaunch":["typescript-sdk-manifest"],"secondLaunch":["typescript-sdk-manifest"],"testnet":["typescript-sdk-manifest"],"sign":["typescript-sdk-manifest"],"tx":["typescript-sdk-manifest"],"callback":["typescript-sdk-manifest"],"reconnect":["typescript-sdk-manifest"],"downloadHosted":["typescript-sdk-manifest"],"productionSigned":["typescript-sdk-manifest"],"storeReleased":["typescript-sdk-manifest"]},
-      "notes": ["A clean consumer imported the packed SDK and read exact chain 0x1917. The package is not published to npm and exposes no automatic signing or transaction success."]
+      "notes": ["Run 31771420130 reproduced and installed the 0.2.1 tarball in an isolated strict TypeScript consumer, verified exact 0x1917 and an ephemeral device-proof signature without persisting the key. sign=true is limited to that temporary device proof; no production account/tx signing, npm publication, public hosting or store release is claimed."]
     },
     {
       "id": "windows-cli-arm64",

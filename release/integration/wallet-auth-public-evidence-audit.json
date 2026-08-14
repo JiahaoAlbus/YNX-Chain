@@ -3,7 +3,7 @@
   "auditId": "wallet-auth-public-evidence-audit-2026-08-14",
   "auditedAt": "2026-08-14T03:38:07Z",
   "integrationBaseCommit": "a008ce0e8fa2ac0322198576c320441118fbae83",
-  "matrixSha256": "c1ed66d5aefdcfd9890f15879e20e705e0e2b78929a5c10f33ff278543e12559",
+  "matrixSha256": "3efcef7222ced1a4f855d88c90f3d597fa1467408813e610969972e86a4ccaf0",
   "publicTestnet": {
     "rpc": {
       "url": "https://evm.ynxweb4.com",
@@ -60,6 +60,7 @@
       "unsigned-windows-user-installer-candidate",
       "unsigned-unnotarized-macos-testnet-candidate",
       "unsigned-local-testnet-sdk-candidate"
+      ,"unsigned-npm-testnet-candidate"
     ],
     "productionSignedCandidateCount": 0,
     "notarizedCandidateCount": 0,

@@ -218,11 +218,11 @@
       "exclusionReason": "Windows 11 arm64 native CI and artifact readback do not make the Authenticode NotSigned installer a hosted or production release."
     },
     {
-      "id": "typescript-sdk-0.2.0",
-      "sourceCommit": "53f2ad8225a5465ba9f4b1e41a69ab8d2c0bccaf",
-      "artifactName": "ynx-chain-sdk-0.2.0.tgz",
-      "sha256": "8cff9b233a1a057dbebfa0a9fee8df63514f3ed5aa30f5dae3d18b7ebd30da90",
-      "signingClass": "unsigned-local-testnet-sdk-candidate",
+      "id": "typescript-sdk-0.2.1",
+      "sourceCommit": "963e07a3325dd7fff31244d90e89b2f9b13a3809",
+      "artifactName": "ynx-chain-sdk-0.2.1.tgz",
+      "sha256": "6f3bc67e1382d75bb9ce31abdcfcc68a6d9f3ba36f92c36fd76b8d1a1a071174",
+      "signingClass": "unsigned-npm-testnet-candidate",
       "publicUrl": null,
       "immutableUrl": null,
       "downloadHosted": false,
