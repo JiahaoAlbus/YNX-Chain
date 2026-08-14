@@ -45,6 +45,7 @@
     "sha256Verified": true,
     "bytesVerified": true
   },
+  "fedoraPackageManagerEvidence": "../linux-arm64-rpm-fedora/manifest.json",
   "lifecycleEvidence": {
     "packageName": "ynx-wallet-testnet-preview",
     "packageManagerBoundary": "rpm --nodeps --noscripts on Ubuntu with explicit root:root/4755 Electron sandbox configuration; RPM script and Fedora-family dependency-manager integration not evidenced",
@@ -79,8 +80,8 @@
     "installedNativeCI": true,
     "upgradeTestedNativeCI": true,
     "uploadedArtifactDownloadedAndVerifiedNativeCI": true,
-    "rpmScriptsTested": false,
-    "fedoraFamilyDependencyManagerTested": false,
+    "rpmScriptsTested": true,
+    "fedoraFamilyDependencyManagerTested": true,
     "integratedCentral": false,
     "deployedStaging": false,
     "deployedPublic": false,

@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "artifactClass": "wallet-desktop-linux-arm64-rpm-fedora-dnf-lifecycle",
+  "version": "0.1.0",
+  "sourceCommit": "20a5271b8186615819946f80dcc5f661156bd750",
+  "workflowRunId": 31774674583,
+  "workflowRunURL": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/31774674583",
+  "jobs": {
+    "fedoraPackageManagerLifecycle": 94687544217,
+    "verifyDownloadedArtifact": 94688330846
+  },
+  "runtime": {
+    "nativeRunner": "Ubuntu 24.04 arm64",
+    "fedoraUserland": "Fedora 42 arm64 container on the native arm64 runner kernel",
+    "fedoraImageDigest": "fedora@sha256:99e203b80b1c3d8f7e161ec10a68fd02b081ef83a3963553e513c82846b97814",
+    "containerSecurityBoundary": "SYS_ADMIN and seccomp=unconfined enabled solely for Electron sandbox namespace creation; the application was not launched with --no-sandbox"
+  },
+  "artifact": {
+    "filename": "ynx-wallet-desktop-0.1.0-aarch64.rpm",
+    "format": "rpm",
+    "architecture": "arm64",
+    "bytes": 81243557,
+    "sha256": "f520f138d2decfa8c33d721220482f6cf5f24b6a503fb381e484c56fcc7c56d2",
+    "minimumOS": "Fedora 42 arm64 userland directly tested on Ubuntu 24.04 arm64 native runner kernel",
+    "signingClass": "unsigned_linux_rpm_testnet_candidate",
+    "productionSigned": false
+  },
+  "workflowArtifacts": {
+    "rpmAndEvidence": {
+      "id": 9209506479,
+      "archiveBytes": 81267427,
+      "archiveSha256": "7049f07201da8abab10d99b664f2ea7ec0669ed02e3952696f521bc935af75c7"
+    },
+    "downloadVerification": {
+      "id": 9209511877,
+      "archiveBytes": 367,
+      "archiveSha256": "b207b5f866bf9e97b5c87c0108ba1bf811021e2fb831df23989aae1432f3277e"
+    }
+  },
+  "lifecycleEvidence": {
+    "rpmScriptsInspected": true,
+    "rpmPostinstallExecuted": true,
+    "rpmPostuninstallExecuted": true,
+    "fedoraDnfDependencyResolutionTested": true,
+    "preflightVersion": "0.0.9",
+    "preflightInstalled": true,
+    "upgradeVersion": "0.1.0",
+    "upgradeVerified": true,
+    "currentInstalled": true,
+    "sandboxPostinstallStateVerified": true,
+    "sandboxMode": "unprivileged user namespace with chrome-sandbox root:root/0755 selected by the RPM postinstall script",
+    "coldLaunch": true,
+    "secondLaunch": true,
+    "processObserved": true,
+    "windowTitleObserved": "YNX Wallet Testnet Preview",
+    "rpcEndpoint": "https://evm.ynxweb4.com",
+    "rpcMethod": "eth_chainId",
+    "chainId": "0x1917",
+    "rpcFailureClosed": true,
+    "signingEnabled": false,
+    "accountCreated": false,
+    "balanceClaimed": false,
+    "transactionCreated": false,
+    "uninstallVerified": true,
+    "artifactDownloadedAndReverified": true
+  },
+  "downloadHosted": false,
+  "deployedPublic": false,
+  "storeReleased": false
+}
