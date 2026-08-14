@@ -3,10 +3,10 @@
   "auditId": "wallet-auth-public-evidence-audit-2026-08-14",
   "auditedAt": "2026-08-14T03:38:07Z",
   "integrationBaseCommit": "a008ce0e8fa2ac0322198576c320441118fbae83",
-  "matrixSha256": "6be999bd9ada19f7e26e6cf155d26be7c04647230f8fcbda6d66385d59751da2",
+  "matrixSha256": "cdf35a2429c013507ee6a7cf26f4fa8515accd6cddb3fda6fd6294dc1f2a9869",
   "endpointServiceDiscoveryMatrix": {
     "path": "release/integration/wallet-auth-public-endpoint-service-discovery-matrix.json",
-    "sha256": "a33b98e4a88492952957452ad76d1545fb33a41c7bc2ba39ed7cbacb466de8a0"
+    "sha256": "98ef4460ea75411cc529a3dbcd8fa85a7d47e57d7332ee5b4dc6c5d2c23c72b8"
   },
   "androidLauncherContract": {
     "path": "release/integration/wallet-auth-android-launcher-contract.json",
@@ -77,6 +77,25 @@
     "evmRpcCorsVerified": false,
     "walletV1RejectionRouteVerified": false,
     "integratedCentral": false,
+    "aggregateDeployedPublic": false
+  },
+  "evmCorsDeploymentAttempt": {
+    "commit": "c2a34c926dcba0867d91d36fd629953f6c81bd2f",
+    "parent": "41df12552ef5a1cab029223f3bc16af320e9973c",
+    "tree": "16a7fa2ab7c7139a2636051d643bc9a5c45fa731",
+    "evidencePath": "release/evidence/public-evm-cors-deployment-attempt-20260815.json",
+    "evidenceBlob": "35d280a689f47b58812b7b4ba346913f7a06e20f",
+    "lastApprovedOriginOptionsStatus": 405,
+    "lastApprovedOriginAllowOrigin": null,
+    "lastHostileOriginOptionsStatus": 405,
+    "lastHostileOriginAllowOrigin": null,
+    "candidateAllowedOrigins": ["https://ynxweb4.com", "https://www.ynxweb4.com", "https://wallet.ynxweb4.com"],
+    "candidateAllowsCredentials": false,
+    "candidateValidated": false,
+    "backupCreated": false,
+    "caddyReloaded": false,
+    "deployed": false,
+    "mobileReachable": false,
     "aggregateDeployedPublic": false
   },
   "chainCoreContractBoundary": {

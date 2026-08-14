@@ -543,6 +543,14 @@
       "path": "apps/wallet/proof/gateway-public-lifecycle-2026-08-13.json",
       "supports": ["gateway.testnet", "gateway.sign"]
     },
+    "evm-cors-deployment-attempt": {
+      "type": "git-object",
+      "direct": true,
+      "commit": "c2a34c926dcba0867d91d36fd629953f6c81bd2f",
+      "path": "release/evidence/public-evm-cors-deployment-attempt-20260815.json",
+      "blob": "35d280a689f47b58812b7b4ba346913f7a06e20f",
+      "supports": []
+    },
     "gateway-completion-negative-matrix": {
       "type": "git-object",
       "direct": true,
@@ -1283,10 +1291,10 @@
       "ownerSource": "core-auth-gateway",
       "artifactClass": "public-testnet-gateway",
       "status": "accepted-bounded-testnet",
-      "capabilities": {"localOwnerBatch":true,"localWebAuthnBatch":true,"sessionKeyBatchRejectedAA24":true,"sessionKeyRejectNonceUnchanged":true,"sessionKeyRejectTargetsUnchanged":true,"failedSubcallBatchRollback":true,"externalBundlerBatchVerified":false,"publicV2WrongProductRejected":true,"publicV2WrongDeviceRejected":true,"publicV2WrongBundleRejected":true,"publicV2ScopeWideningRejected":true,"publicV2DeviceRevokeCascadeRejected":true,"publicV2ExpiryRejected":true,"publicV2CrossRestartExactRequestId":true,"publicV2CrossRestartByteIdenticalCompletion":true,"publicV2PostRestartRevoke":true,"publicV2PrivateRetryRecordRemoved":true,"deployedStateDeviceInodePinnedAcrossRequests":true,"publicV2WorldReadableTamperRejected":true,"publicV2HardlinkTamperRejected":true,"publicV2SymlinkTamperRejected":true,"publicV2SameBytesInodeReplacementRejected":true,"publicV2DigestTamperRejected":true,"publicCanonicalUserRejectionRouteAvailable":false,"officialWebsiteRuntimeStatusPublished":true},
+      "capabilities": {"localOwnerBatch":true,"localWebAuthnBatch":true,"sessionKeyBatchRejectedAA24":true,"sessionKeyRejectNonceUnchanged":true,"sessionKeyRejectTargetsUnchanged":true,"failedSubcallBatchRollback":true,"externalBundlerBatchVerified":false,"publicV2WrongProductRejected":true,"publicV2WrongDeviceRejected":true,"publicV2WrongBundleRejected":true,"publicV2ScopeWideningRejected":true,"publicV2DeviceRevokeCascadeRejected":true,"publicV2ExpiryRejected":true,"publicV2CrossRestartExactRequestId":true,"publicV2CrossRestartByteIdenticalCompletion":true,"publicV2PostRestartRevoke":true,"publicV2PrivateRetryRecordRemoved":true,"deployedStateDeviceInodePinnedAcrossRequests":true,"publicV2WorldReadableTamperRejected":true,"publicV2HardlinkTamperRejected":true,"publicV2SymlinkTamperRejected":true,"publicV2SameBytesInodeReplacementRejected":true,"publicV2DigestTamperRejected":true,"publicCanonicalUserRejectionRouteAvailable":false,"officialWebsiteRuntimeStatusPublished":true,"evmCorsCandidateSourceFrozen":true,"evmCorsCandidateValidated":false,"evmCorsBackupCreated":false,"evmCorsReloaded":false,"evmCorsDeployed":false,"evmCorsMobileReachable":false},
       "gates": {"build":true,"install":false,"coldLaunch":false,"secondLaunch":false,"testnet":true,"sign":true,"tx":false,"callback":false,"reconnect":false,"downloadHosted":false,"productionSigned":false,"storeReleased":false},
       "evidenceBindings": {"build":["gateway-release"],"install":[],"coldLaunch":[],"secondLaunch":[],"testnet":["gateway-public-lifecycle"],"sign":["gateway-public-lifecycle"],"tx":["gateway-public-lifecycle"],"callback":["gateway-completion-negative-matrix","gateway-session-http-negative-matrix","gateway-session-linearization-race","gateway-persistence-atomic-rollback","gateway-registry-state-binding","gateway-state-file-security","gateway-node-crash-durability","gateway-node-stale-lock-recovery"],"reconnect":["gateway-public-lifecycle","gateway-session-http-negative-matrix","gateway-session-linearization-race","gateway-persistence-atomic-rollback","gateway-registry-state-binding","gateway-state-file-security","gateway-node-crash-durability","gateway-node-stale-lock-recovery"],"downloadHosted":["gateway-release"],"productionSigned":["gateway-release"],"storeReleased":["gateway-release"]},
-      "notes": ["Public source 37f2485 preserves the exact cross-restart response/state and directly rejects world-readable, hardlink, symlink, same-byte inode replacement and digest tamper with HTTP 503 and zero mutation. Existing 6437/6439 remain unchanged; central absorption, visible Wallet approval, runtime migration and aggregate deployment remain false."]
+      "notes": ["Public source 37f2485 preserves the exact cross-restart response/state and directly rejects world-readable, hardlink, symlink, same-byte inode replacement and digest tamper with HTTP 503 and zero mutation. Existing 6437/6439 remain unchanged; central absorption, visible Wallet approval, runtime migration and aggregate deployment remain false.","EVM CORS candidate c2a34c92 is frozen only as a pending Git identity. The last direct approved and hostile preflights both returned HTTP 405 without ACAO; all candidate transfer attempts failed before a remote command, so validate, backup, reload, deploy and mobile CORS remain false."]
     },
     {
       "id": "web-pwa",
