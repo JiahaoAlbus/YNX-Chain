@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "wallet-smart-account-protected-deployment-workflow-local-2026-08-14",
+  "owner": "02-wallet-auth",
+  "sourceCommit": "53f5ac97f4efbb29eca489be72a665821f654a64",
+  "failFirst": "ENOENT: wallet-contract-testnet-deploy.yml did not exist",
+  "workflow": ".github/workflows/wallet-contract-testnet-deploy.yml",
+  "trigger": "workflow_dispatch-only",
+  "environment": "ynx-testnet-wallet-contracts",
+  "permissions": {"contents":"read"},
+  "controls": ["exact reviewed 40-character source checkout","clean exact HEAD check","public input validation","environment-scoped RPC and deployer secrets","complete Wallet gates before broadcast","default-disabled Paymaster deployment","receipt/bytecode/event/relationship/Bundler verification","always-attempted source-bound manifest artifact upload","no PR, push, website or Caddy mutation"],
+  "tests": {"focused":{"passed":1,"failed":0},"walletAuthFull":{"passed":194,"failed":0},"hardhatWallet":"passed","walletProductGate":"passed","walletReleaseContentGate":"passed","walletGoalCoverageGate":"passed"},
+  "repositoryActionPinGate": {"passed":false,"walletWorkflowViolationCount":0,"blockingNonOwnerFiles":[".github/workflows/mail-calendar-ios-proof.yml",".github/workflows/mail-ci.yml"],"modifiedByWallet":false},
+  "githubEnvironmentAudit": {"request":"GET /repos/JiahaoAlbus/YNX-Chain/environments/ynx-testnet-wallet-contracts","httpStatus":404,"exists":false},
+  "repositorySecretNameAudit": {"completed":false,"reason":"two bounded GitHub API attempts timed out during TLS handshake","secretValuesRequested":false},
+  "sourceSha256": {".github/workflows/wallet-contract-testnet-deploy.yml":"446170e2488ed01975fcfa656a21185019dc17f5311a050cceb59a56d158bdf4","packages/wallet-auth/test/testnet-deployment-workflow.test.mjs":"95a5d1c2c311b8c7298b8070820405bf4078dd676de5b5c4ca54664db2ed64ff"},
+  "publicExecution": {"performed":false,"workflowRunId":null,"transactionHashes":[]},
+  "releaseClaims": {"authorizedDeploymentEnvironment":false,"deploymentSecretsConfigured":false,"deployedPublic":false,"websiteContractMetadataUpdated":false},
+  "secretMaterialRecorded": false
+}
