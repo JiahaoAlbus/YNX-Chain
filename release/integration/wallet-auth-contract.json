@@ -438,6 +438,28 @@
     "productionSigned": false,
     "storeReleased": false
   },
+  "androidAccountMutationRecoveryCheckpoint": {
+    "sourceCommit": "7a4f439607b820c040e7386f5777783eaa008140",
+    "branch": "codex/wallet-android-api36-continuation2-20260814",
+    "journalSchemaVersion": 1,
+    "journalContainsSecretMaterial": false,
+    "incompleteAddRollsBackOrphanSecret": true,
+    "committedAddPreservesVerifiedSecret": true,
+    "interruptedDeleteCompletesSecretRemoval": true,
+    "tamperedJournalFailsClosed": true,
+    "manifestMutationsSerialized": true,
+    "walletTests": "72/72 passed",
+    "androidHermesModules": 2742,
+    "implementedLocal": true,
+    "testedLocal": true,
+    "testedOnDevice": false,
+    "installedLocal": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
   "verification": {
     "walletAuthPackageTests": "100/100 passed",
     "gatewayNodeHostTests": "8/8 passed",
