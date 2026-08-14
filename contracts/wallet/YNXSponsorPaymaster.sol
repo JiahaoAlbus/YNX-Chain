@@ -13,6 +13,7 @@ contract YNXSponsorPaymaster is BasePaymaster, EIP712 {
     enum SponsorType { Product, FirstAction, Merchant, Developer }
 
     struct ProductBudget {
+        bytes32 policyId;
         uint128 dailyLimit;
         uint128 perOperationLimit;
         uint128 perSubjectDailyLimit;
@@ -49,7 +50,13 @@ contract YNXSponsorPaymaster is BasePaymaster, EIP712 {
     error AuthorizationReplay();
     error UnauthorizedRiskAction();
 
-    event ProductBudgetConfigured(bytes32 indexed productId, uint128 dailyLimit, uint128 perOperationLimit, uint8 allowedTypes);
+    event ProductBudgetConfigured(
+        bytes32 indexed productId,
+        bytes32 indexed policyId,
+        uint128 dailyLimit,
+        uint128 perOperationLimit,
+        uint8 allowedTypes
+    );
     event MerchantApprovalChanged(bytes32 indexed productId, address indexed merchant, bool approved);
     event SponsorshipReserved(bytes32 indexed authorizationId, bytes32 indexed productId, bytes32 indexed subjectId, uint256 maxCost, SponsorType sponsorType);
     event SponsorshipObserved(bytes32 indexed authorizationId, bytes32 indexed productId, uint256 reservedCost, uint256 actualGasCost, uint256 actualUserOpFeePerGas, PostOpMode mode);
@@ -87,6 +94,7 @@ contract YNXSponsorPaymaster is BasePaymaster, EIP712 {
 
     function configureProduct(
         bytes32 productId,
+        bytes32 policyId,
         uint128 dailyLimit,
         uint128 perOperationLimit,
         uint128 perSubjectDailyLimit,
@@ -96,7 +104,8 @@ contract YNXSponsorPaymaster is BasePaymaster, EIP712 {
         bool enabled
     ) external onlyOwner {
         if (
-            productId == bytes32(0) || dailyLimit == 0 || perOperationLimit == 0 || perSubjectDailyLimit == 0
+            productId == bytes32(0) || policyId == bytes32(0) || dailyLimit == 0 || perOperationLimit == 0
+                || perSubjectDailyLimit == 0
                 || perOperationLimit > dailyLimit || perSubjectDailyLimit > dailyLimit || firstActionLimit > perOperationLimit
                 || allowedTypes == 0 || allowedTypes & 0xf0 != 0
         ) revert InvalidConfiguration();
@@ -105,11 +114,20 @@ contract YNXSponsorPaymaster is BasePaymaster, EIP712 {
         uint128 reserved = current.day == today ? current.reservedToday : 0;
         uint128 observed = current.day == today ? current.observedToday : 0;
         if (reserved > dailyLimit) revert InvalidConfiguration();
-        productBudgets[productId] = ProductBudget(
-            dailyLimit, perOperationLimit, perSubjectDailyLimit, firstActionLimit,
-            reserved, observed, today, allowedTypes, requiredTarget, enabled
-        );
-        emit ProductBudgetConfigured(productId, dailyLimit, perOperationLimit, allowedTypes);
+        productBudgets[productId] = ProductBudget({
+            policyId: policyId,
+            dailyLimit: dailyLimit,
+            perOperationLimit: perOperationLimit,
+            perSubjectDailyLimit: perSubjectDailyLimit,
+            firstActionLimit: firstActionLimit,
+            reservedToday: reserved,
+            observedToday: observed,
+            day: today,
+            allowedTypes: allowedTypes,
+            requiredTarget: requiredTarget,
+            enabled: enabled
+        });
+        emit ProductBudgetConfigured(productId, policyId, dailyLimit, perOperationLimit, allowedTypes);
     }
 
     function setMerchant(bytes32 productId, address merchant, bool approved) external onlyOwner {
@@ -203,6 +221,7 @@ contract YNXSponsorPaymaster is BasePaymaster, EIP712 {
         }
 
         ProductBudget storage product = productBudgets[authorization.productId];
+        if (authorization.policyId != product.policyId) revert PolicyViolation();
         uint8 sponsorBit = uint8(1 << uint8(authorization.sponsorType));
         if (!product.enabled || product.allowedTypes & sponsorBit == 0) revert SponsorshipDisabled();
         if (maxCost > authorization.authorizationMaxCost || maxCost > product.perOperationLimit) revert BudgetExceeded();

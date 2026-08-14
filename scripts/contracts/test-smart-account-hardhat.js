@@ -332,6 +332,7 @@ const subjectId = ethers.keccak256(ethers.toUtf8Bytes("anti-sybil:test-subject")
 const policyId = ethers.keccak256(ethers.toUtf8Bytes("first-action-policy-v1"));
 await (await paymaster.configureProduct(
   productId,
+  policyId,
   ethers.parseEther("10"),
   ethers.parseEther("0.1"),
   ethers.parseEther("5"),
@@ -348,7 +349,13 @@ const paymasterStatic = ethers.solidityPacked(
   [paymaster.target, 2_000_000n, 500_000n],
 );
 const sponsorshipNow = BigInt((await ethers.provider.getBlock("latest")).timestamp);
-async function sponsoredOperation(nonce, sponsorType, authorizationId, callDestination = destination.address) {
+async function sponsoredOperation(
+  nonce,
+  sponsorType,
+  authorizationId,
+  callDestination = destination.address,
+  authorizationPolicyId = policyId,
+) {
   const callData = sponsoredAccount.interface.encodeFunctionData("execute", [callDestination, 0n, "0x"]);
   const op = {
     sender: sponsoredAccount.target,
@@ -365,7 +372,7 @@ async function sponsoredOperation(nonce, sponsorType, authorizationId, callDesti
     authorizationId,
     productId,
     subjectId,
-    policyId,
+    policyId: authorizationPolicyId,
     sponsorType,
     destination: callDestination,
     authorizationMaxCost: ethers.parseEther("0.1"),
@@ -395,6 +402,31 @@ assert.equal(await ethers.provider.getBalance(sponsoredAccount.target), 0n);
 let budget = await paymaster.productBudgets(productId);
 assert.equal(budget.reservedToday > 0n, true);
 assert.equal(budget.observedToday > 0n, true);
+
+const wrongPolicyAuthorizationId = ethers.keccak256(ethers.toUtf8Bytes("wrong-policy-authorization"));
+const budgetBeforeWrongPolicy = await paymaster.productBudgets(productId);
+const usageBeforeWrongPolicy = await paymaster.subjectUsage(productId, subjectId);
+await assert.rejects(
+  entryPoint.handleOps(
+    [await sponsoredOperation(
+      1n,
+      0,
+      wrongPolicyAuthorizationId,
+      destination.address,
+      ethers.keccak256(ethers.toUtf8Bytes("retired-policy-v0")),
+    )],
+    beneficiary.address,
+    { gasLimit: 12_000_000 },
+  ),
+  /AA33|PolicyViolation/,
+);
+const budgetAfterWrongPolicy = await paymaster.productBudgets(productId);
+const usageAfterWrongPolicy = await paymaster.subjectUsage(productId, subjectId);
+assert.equal(budgetAfterWrongPolicy.reservedToday, budgetBeforeWrongPolicy.reservedToday);
+assert.equal(budgetAfterWrongPolicy.observedToday, budgetBeforeWrongPolicy.observedToday);
+assert.equal(usageAfterWrongPolicy.reservedToday, usageBeforeWrongPolicy.reservedToday);
+assert.equal(await paymaster.consumedAuthorizations(wrongPolicyAuthorizationId), false);
+assert.equal(await entryPoint.getNonce(sponsoredAccount.target, 0), 1n);
 
 await assert.rejects(
   entryPoint.handleOps(
@@ -507,6 +539,7 @@ console.log(JSON.stringify({
   counterfactualFactoryUserOperation: "passed",
   sponsoredFirstActionUserOperation: "passed",
   merchantAndDeveloperSponsorship: "passed",
+  exactSponsorPolicyIdRejection: "passed",
   sponsorTamperReplayDisableRejection: "passed",
   benchmark: {
     environment: "Hardhat EDR in-process local chain; excludes bundler, RPC, persistence and network latency",
