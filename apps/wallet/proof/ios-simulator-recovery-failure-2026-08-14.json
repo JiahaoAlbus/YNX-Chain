@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "product": "YNX Wallet",
+  "evidenceType": "ios-simulator-recovery-fail-closed-ci-failure",
+  "recordedAt": "2026-08-14T13:34:53+08:00",
+  "branch": "codex/wallet-ios-macos-20260813",
+  "sourceCommit": "a93caa57a407f07b94be3e5e55e7538c7d56c70c",
+  "workflow": {
+    "name": "wallet-ios",
+    "runId": 31770448869,
+    "jobId": 94675087131,
+    "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/31770448869",
+    "jobConclusion": "failure",
+    "elapsed": "20m45s",
+    "stepsOneThroughSixteenPassed": true,
+    "unsignedSimulatorBuildPassed": true,
+    "simulatorInstallColdSecondLaunchPassed": true,
+    "malformedCallbackFailClosedStepPassed": true,
+    "recoveryFailClosedStepPassed": false,
+    "recoveryStepExitCode": 65,
+    "artifactFactsStepPassed": false,
+    "artifactUploadPassed": false
+  },
+  "diagnosis": {
+    "jobLogDownloaded": false,
+    "publicActionsAnnotationObserved": true,
+    "publicAnnotation": "Prove recovery stays empty without Simulator biometrics: Process completed with exit code 65.",
+    "reproducibleRaceObservedInSource": "The XCUITest read the React Native controlled button isEnabled state immediately after typing the 64-character recovery vector.",
+    "environmentPreconditionPreviouslyExplicit": false,
+    "fixCommit": "0acea5ddc9e78d48a27f99308140dd9a001e193d",
+    "fix": "Wait for the recovery button enabled state with XCTWaiter and explicitly unenroll Simulator biometrics before the recovery test.",
+    "fixVerification": "pending"
+  },
+  "releaseStates": {
+    "recoveryFailClosedVerifiedHostedCI": false,
+    "biometricRecoveryVerified": false,
+    "physicalDeviceRecoveryVerified": false,
+    "artifactAvailable": false,
+    "integratedCentral": false,
+    "deployedTestnet": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "limitations": [
+    "The run failed at the recovery XCTest step; no recovery or biometric success is claimed.",
+    "Artifact fact collection and upload were skipped, so no artifact digest, byte count, Minimum OS, or signing-class evidence exists for this failed run.",
+    "The preceding callback step passed, but this record does not replace the separately committed callback PID, UI, screenshot, and artifact evidence.",
+    "The fix is pending a new direct CI run and must not be treated as verified until that run completes successfully."
+  ]
+}
