@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "owner": "Wallet/Auth Web/PWA/Extensions",
+  "sourceBaseline": "4b631f83f7cc468dbde3a1bb9c9383f98060c347",
+  "evidence": "apps/wallet-web/evidence/browser/local-wallet-product-visible-audit-20260814.json",
+  "fixedGap": "All eleven non-English locales now define every runtime string directly instead of silently falling back to English.",
+  "browserChecks": ["English default", "Arabic RTL", "390px", "Light/Dark", "logo contain ratio", "wallet fallback", "disabled unavailable platforms", "offline visible fail-closed"],
+  "artifacts": [
+    {"name":"ynx-wallet-web-pwa-0.1.0.zip","bytes":271991,"sha256":"0f8447db94f09cbb237eaa4e2f91cdbdb05c7f15ee44785ca1af0ae66c507701","minimumOS":"modern browser with Service Worker and Web Crypto support","signingClass":"unsigned-web-bundle"},
+    {"name":"ynx-wallet-chrome-edge-0.1.0.zip","bytes":188129,"sha256":"685ec243e931e43d6346f2effac3fb799408fcd96dff5552c701821587bd3079","minimumOS":"Chrome 120 / Edge 120","signingClass":"unsigned-unpacked-extension"},
+    {"name":"ynx-wallet-firefox-0.1.0.zip","bytes":188166,"sha256":"554ba7280c69b8a3e8cbae07941c51c5b3c2ce35fc2b8773c9589927ce0854cc","minimumOS":"Firefox 128","signingClass":"unsigned-unpacked-extension"}
+  ],
+  "gates": {
+    "sourceTests": "66/66",
+    "packageTests": "64/64",
+    "artifactVerification": true,
+    "pwaInstallability": true,
+    "discoveryFailClosed": true,
+    "platformDownloads": true,
+    "networkReadiness": true,
+    "installedLocal": false,
+    "deployedPublic": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}
