@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "productId": "wallet-desktop",
+  "version": "0.1.0",
+  "sourceCommit": "bd4d23af55968e1b0887326e2fd8d0c4d388cfea",
+  "releaseClass": "unsigned-testnet-engineering-preview",
+  "runtime": {
+    "name": "Electron",
+    "version": "42.8.0",
+    "supportBoundary": "Official Electron 42 support extends through 2026-10-20"
+  },
+  "workflow": {
+    "runId": 31760881980,
+    "runUrl": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/31760881980",
+    "jobId": 94646758642,
+    "conclusion": "success",
+    "runner": "windows-2025",
+    "artifactId": 9204584422,
+    "artifactName": "ynx-wallet-desktop-windows-x64",
+    "artifactZipBytes": 104736033,
+    "artifactZipSha256": "ae68cbf5a123fc30a84bb1d8850249457c54d322bc2c29604cbfdc249afb2da0",
+    "artifactDownloadedAndVerified": true
+  },
+  "artifact": {
+    "filename": "ynx-wallet-desktop-0.1.0-x64.exe",
+    "format": "NSIS per-user one-click installer",
+    "architecture": "x64",
+    "bytes": 104731957,
+    "sha256": "6ce0dc1fcaede9126aab4089d1da071e3b9f4e81fd7e2b37013c1708083f5ab3",
+    "minimumOS": "Windows 10 x64; Windows Server 2025 directly tested",
+    "signingClass": "unsigned_windows_desktop_testnet_candidate",
+    "authenticodeStatus": "NotSigned",
+    "productionSigned": false
+  },
+  "lifecycleEvidence": {
+    "installed": true,
+    "preflightVersion": "0.0.9.0",
+    "currentVersion": "0.1.0.0",
+    "upgraded": true,
+    "coldLaunch": true,
+    "secondLaunch": true,
+    "processObserved": true,
+    "coldWindowTitleObserved": true,
+    "secondWindowTitleObserved": true,
+    "appReportedWindowVisible": true,
+    "appReportedWindowTitle": "YNX Wallet Testnet Preview",
+    "rpcEndpoint": "https://evm.ynxweb4.com",
+    "rpcMethod": "eth_chainId",
+    "chainId": "0x1917",
+    "rpcFailureClosed": true,
+    "frozenWalletAuthImported": true,
+    "accountCreated": false,
+    "balanceClaimed": false,
+    "transactionCreated": false,
+    "signingEnabled": false,
+    "uninstalled": true,
+    "installedExecutableRemoved": true
+  },
+  "releaseState": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": {
+      "windowsX64NativeCI": true,
+      "windowsArm64": false
+    },
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

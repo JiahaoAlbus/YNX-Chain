@@ -59,8 +59,9 @@
     "linuxX64AppImageBuilt": true,
     "linuxX64AppImageInstalledNativeCI": false,
     "linuxArm64InstalledNativeCI": false,
-    "windowsX64InstalledNativeCI": false,
+    "windowsX64InstalledNativeCI": true,
     "windowsArm64InstalledNativeCI": false,
+    "windowsX64Manifest": "../../release/wallet-desktop/windows-x64/manifest.json",
     "deployedPublic": false,
     "downloadHosted": false,
     "productionSigned": false
