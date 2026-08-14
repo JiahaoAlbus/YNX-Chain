@@ -17,6 +17,7 @@ const walletRepository=await readFile(new URL("../src/storage/walletRepository.t
 const localAuthorization=await readFile(new URL("../src/security/localAuthorization.ts",import.meta.url),"utf8");
 const localAuthorizationPolicy=await readFile(new URL("../src/security/localAuthorizationPolicy.ts",import.meta.url),"utf8");
 const recoveryKeyGenerationPolicy=await readFile(new URL("../src/security/recoveryKeyGenerationPolicy.ts",import.meta.url),"utf8");
+const recoveryRevealPolicy=await readFile(new URL("../src/security/recoveryRevealPolicy.ts",import.meta.url),"utf8");
 const storageResetLifecyclePolicy=await readFile(new URL("../src/security/storageResetLifecyclePolicy.ts",import.meta.url),"utf8");
 const authorizationLifecyclePolicy=await readFile(new URL("../src/security/authorizationLifecyclePolicy.ts",import.meta.url),"utf8");
 const foregroundDeepLinkPolicy=await readFile(new URL("../src/security/foregroundDeepLinkPolicy.ts",import.meta.url),"utf8");
@@ -99,6 +100,8 @@ assert.ok(source.includes("unlockAttemptGate.current.tryBegin()"),"Wallet unlock
 assert.ok(source.includes("createAttemptGate.current.tryBegin()"),"Wallet account secret generation must reject synchronous Create reentry");
 for(const required of ["generateRecoveryKeyFailClosed(()=>getRandomBytesAsync(32),assertActive)","Wallet recovery-key generation was cancelled by lock or background"])assert.ok(source.includes(required),`Wallet recovery-key generation must bind lifecycle through ${required}`);
 for(const required of ["bytes.length!==32","assertActive();","bytes.fill(0)"])assert.ok(recoveryKeyGenerationPolicy.includes(required),`temporary recovery-key entropy must fail closed through ${required}`);
+for(const required of ["await protectScreen();","await authorizeBiometric();","const secret=await readSecret();","assertActive();","/^[0-9a-f]{64}$/"])assert.ok(recoveryRevealPolicy.includes(required),`recovery-key reveal must fail closed through ${required}`);
+assert.ok(source.includes('revealRecoverySecretFailClosed(()=>preventScreenCaptureAsync("wallet-recovery-export"),()=>authorizeLocalKeyUse("recovery-view"),()=>repository.accountSecret(account.account),()=>sensitiveGuard.verify(attempt))'),"recovery-key reveal must confirm screenshot protection before biometric and SecureStore access");
 assert.ok(source.includes("if(!await load()){gate.fail();return}"),"cold-start deep links must wait for successful secure repository reconstruction");
 assert.ok(source.indexOf("await load()")<source.indexOf("await Linking.getInitialURL()"),"secure repository reconstruction must precede initial deep-link admission");
 for(const required of ['phase:"restoring"|"ready"|"failed"','this.pending=null;this.ambiguous=true','if(pending!==null)this.handle(pending)'])assert.ok(startupDeepLinkPolicy.includes(required),`startup deep-link gate must enforce ${required}`);
