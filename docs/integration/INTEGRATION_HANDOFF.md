@@ -77,6 +77,8 @@ Core/Auth `99523546…` independently freezes controlled-restart idempotency for
 
 Core/Auth `404f8187…` completes the bounded public state-integrity matrix for the same source: 0644, hardlink, symlink, same-byte inode replacement and digest mismatch all return their exact HTTP 503 fail-closed codes with zero mutation. The final file SHA and state digest match their baselines, explicit repair restores `0600 ynx:ynx nlink=1`, and post-regression lifecycle passes. The dedicated 6441 route remains interim; 6437/6439 absorption, runtime migration, visible Wallet approval, `integratedCentral` and aggregate deployment remain false.
 
+Core/Auth `f1c43b77…` independently records that the public canonical user-rejection route is missing: `/v1/wallet/authorizations/reject` returns 404 `ROUTE_NOT_FOUND` instead of 403 `AUTHORIZATION_REJECTED`. The Wallet/App sources are read back, state digest is unchanged and mutation is zero; deployed rejection and visible installed-Wallet approval/rejection remain false.
+
 Every platform separately tracks build, install, cold launch, second launch, Testnet, signing, transaction, callback, reconnect, hosted download, production signing and store release. A true value requires an explicit direct evidence binding. Simulator, disposable, unpacked, temporary, unsigned and ad-hoc artifacts remain non-production by construction.
 
 Mutation gates are frozen in `docs/integration/WALLET_AUTH_RELEASE_TEST_VECTORS.json` and executed by `node --test scripts/verify/wallet-auth-release-evidence-matrix.test.mjs`. They prove that unsupported true claims, disposable-production promotion, pending-platform promotion, unknown evidence and hosted-download claims without public download evidence fail closed.

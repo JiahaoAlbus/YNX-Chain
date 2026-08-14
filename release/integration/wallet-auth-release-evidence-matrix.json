@@ -428,6 +428,27 @@
       "productionSigned": false,
       "storeReleased": false
     },
+    "wallet-public-authorization-rejection-route-gap": {
+      "type": "git-object",
+      "direct": true,
+      "commit": "f1c43b77b054da2d918e2b10ec5cad8afe6e3645",
+      "path": "packages/wallet-auth/evidence/public-authorization-rejection-route-gap-20260814.json",
+      "blob": "bb5016c4203729acf4096394313ec8f546f9f7e1",
+      "supports": [],
+      "origin": "https://rest.ynxweb4.com",
+      "route": "/v1/wallet/authorizations/reject",
+      "requestId": "req_public_reject_6yW6JexciGfT-m6X",
+      "observed": "404 ROUTE_NOT_FOUND",
+      "expected": "403 AUTHORIZATION_REJECTED",
+      "stateDigestBeforeAndAfter": "006b2aca51a900c6aed550ff7fa8e968a9831829b6dfe9e36c42bea7c54b7b02",
+      "zeroMutation": true,
+      "walletGatewaySourceCommit": "c6ac582c8d490ef980a8cadfd9172f133d1b1a49",
+      "appGatewaySourceCommit": "63582190fdff2a74460073f8b7ce79f37ec9e7f7",
+      "canonicalUserRejectionImplementedLocal": true,
+      "canonicalUserRejectionDeployedPublic": false,
+      "visibleInstalledWalletUserRejectionVerified": false,
+      "aggregateDeployedPublic": false
+    },
     "gateway-release": {
       "type": "git-object",
       "direct": true,
@@ -1188,7 +1209,7 @@
       "ownerSource": "core-auth-gateway",
       "artifactClass": "public-testnet-gateway",
       "status": "accepted-bounded-testnet",
-      "capabilities": {"localOwnerBatch":true,"localWebAuthnBatch":true,"sessionKeyBatchRejectedAA24":true,"sessionKeyRejectNonceUnchanged":true,"sessionKeyRejectTargetsUnchanged":true,"failedSubcallBatchRollback":true,"externalBundlerBatchVerified":false,"publicV2WrongProductRejected":true,"publicV2WrongDeviceRejected":true,"publicV2WrongBundleRejected":true,"publicV2ScopeWideningRejected":true,"publicV2DeviceRevokeCascadeRejected":true,"publicV2ExpiryRejected":true,"publicV2CrossRestartExactRequestId":true,"publicV2CrossRestartByteIdenticalCompletion":true,"publicV2PostRestartRevoke":true,"publicV2PrivateRetryRecordRemoved":true,"deployedStateDeviceInodePinnedAcrossRequests":true,"publicV2WorldReadableTamperRejected":true,"publicV2HardlinkTamperRejected":true,"publicV2SymlinkTamperRejected":true,"publicV2SameBytesInodeReplacementRejected":true,"publicV2DigestTamperRejected":true},
+      "capabilities": {"localOwnerBatch":true,"localWebAuthnBatch":true,"sessionKeyBatchRejectedAA24":true,"sessionKeyRejectNonceUnchanged":true,"sessionKeyRejectTargetsUnchanged":true,"failedSubcallBatchRollback":true,"externalBundlerBatchVerified":false,"publicV2WrongProductRejected":true,"publicV2WrongDeviceRejected":true,"publicV2WrongBundleRejected":true,"publicV2ScopeWideningRejected":true,"publicV2DeviceRevokeCascadeRejected":true,"publicV2ExpiryRejected":true,"publicV2CrossRestartExactRequestId":true,"publicV2CrossRestartByteIdenticalCompletion":true,"publicV2PostRestartRevoke":true,"publicV2PrivateRetryRecordRemoved":true,"deployedStateDeviceInodePinnedAcrossRequests":true,"publicV2WorldReadableTamperRejected":true,"publicV2HardlinkTamperRejected":true,"publicV2SymlinkTamperRejected":true,"publicV2SameBytesInodeReplacementRejected":true,"publicV2DigestTamperRejected":true,"publicCanonicalUserRejectionRouteAvailable":false},
       "gates": {"build":true,"install":false,"coldLaunch":false,"secondLaunch":false,"testnet":true,"sign":true,"tx":false,"callback":false,"reconnect":false,"downloadHosted":false,"productionSigned":false,"storeReleased":false},
       "evidenceBindings": {"build":["gateway-release"],"install":[],"coldLaunch":[],"secondLaunch":[],"testnet":["gateway-public-lifecycle"],"sign":["gateway-public-lifecycle"],"tx":["gateway-public-lifecycle"],"callback":["gateway-completion-negative-matrix","gateway-session-http-negative-matrix","gateway-session-linearization-race","gateway-persistence-atomic-rollback","gateway-registry-state-binding","gateway-state-file-security","gateway-node-crash-durability","gateway-node-stale-lock-recovery"],"reconnect":["gateway-public-lifecycle","gateway-session-http-negative-matrix","gateway-session-linearization-race","gateway-persistence-atomic-rollback","gateway-registry-state-binding","gateway-state-file-security","gateway-node-crash-durability","gateway-node-stale-lock-recovery"],"downloadHosted":["gateway-release"],"productionSigned":["gateway-release"],"storeReleased":["gateway-release"]},
       "notes": ["Public source 37f2485 preserves the exact cross-restart response/state and directly rejects world-readable, hardlink, symlink, same-byte inode replacement and digest tamper with HTTP 503 and zero mutation. Existing 6437/6439 remain unchanged; central absorption, visible Wallet approval, runtime migration and aggregate deployment remain false."]

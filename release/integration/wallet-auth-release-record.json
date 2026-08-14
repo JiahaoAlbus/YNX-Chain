@@ -6,12 +6,12 @@
   "recordedAt": "2026-08-14T03:52:00Z",
   "evidenceMatrix": {
     "path": "release/integration/wallet-auth-release-evidence-matrix.json",
-    "sha256": "6470108a029c4b9812cb25bba2db385499af2995b145a8e556f1ed0287dfff59",
+    "sha256": "ffd66dedb956980e09f1628c4d70b33f91f83caa60b0984b75d1e74aa328e505",
     "platforms": 21,
     "gatesPerPlatform": 12,
     "trueGates": 106,
     "falseGates": 146,
-    "evidenceRecords": 107
+    "evidenceRecords": 108
   },
   "frozenOwnerSources": {
     "coreAuthGateway": "404f818719b920008f88f076949a4387c5130855",
@@ -102,6 +102,7 @@
     ,"Core/Auth evidence 19277165 directly proves the isolated d26ed915 public v2 negative matrix: wrong product/device/bundle, scope widening, sibling device revoke and expiry fail closed. It also freezes the remaining gap: deployed state does not pin device+inode across requests and public symlink/hardlink/same-bytes inode/digest tamper vectors are unproved; aggregate/central remain false."
     ,"Core/Auth evidence 99523546 directly proves source 37f2485 cross-restart exact-request idempotency: a 1,122-byte completion response and state SHA are identical, post-restart revoke succeeds, post-revoke returns SESSION_REVOKED, and the private retry record is removed. Product migration, visible approval, central absorption and aggregate deployment remain false."
     ,"Core/Auth evidence 404f8187 directly proves deployed source 37f2485 rejects runtime 0644, hardlink, symlink, same-byte inode replacement and digest tamper with exact HTTP 503 codes and zero mutation. Repair restores 0600 ynx:ynx nlink=1 and the public lifecycle. Existing 6437/6439, zero product migration, absent visible Wallet approval, central absorption and aggregate deployment remain unchanged and false."
+    ,"Core/Auth evidence f1c43b77 directly proves the canonical public rejection route is absent: /v1/wallet/authorizations/reject returns 404 ROUTE_NOT_FOUND rather than 403 AUTHORIZATION_REJECTED, while the authoritative state digest is unchanged and mutation is zero. Public/visible installed-Wallet rejection remains false."
     ,"iOS/macOS AASA contract 3b27b83f is frozen only as fail-closed engineering truth. The public well-known path is HTTP 200 but serves a 1,018-byte text/html SPA fallback, so AASA validity, associated-domain freeze, Universal Link delivery, auth success and every public/production claim remain false."
   ]
 }
