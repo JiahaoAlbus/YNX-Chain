@@ -94,4 +94,37 @@ test("viewer updates and cross-origin sockets fail closed", async t => {
   assert.equal(status, 403);
 });
 
+test("owner revocation closes active sockets and prevents reconnect", async t => {
+  const { base } = await fixture(t),
+    created = await request(base, "owner-a", "/runtime/collaboration/rooms", { projectId: "shared-project" }),
+    invited = await request(base, "owner-a", "/runtime/collaboration/invites", { roomId: created.value.roomId, role: "editor", expiresMinutes: 5 });
+  await request(base, "editor-b", "/runtime/collaboration/invites/redeem", { token: invited.value.token });
+  const access = await request(base, "owner-a", `/runtime/collaboration/rooms/${created.value.roomId}`, undefined, "GET");
+  assert.deepEqual(access.value.members.map(member => [member.subjectId, member.role]), [["owner-a", "owner"], ["editor-b", "editor"]]);
+  const editorAccess = await request(base, "editor-b", `/runtime/collaboration/rooms/${created.value.roomId}`, undefined, "GET");
+  assert.equal(editorAccess.value.members, undefined);
+  const editor = await connect(base, "editor-b", created.value.roomId);
+  await editor.inbox(value => value.type === "ready");
+  const unapproved = await request(base, "owner-a", `/runtime/collaboration/rooms/${created.value.roomId}/members/editor-b`, undefined, "DELETE");
+  assert.equal(unapproved.response.status, 403);
+  const closeCode = new Promise(resolve => editor.websocket.once("close", resolve));
+  const revoked = await request(base, "owner-a", `/runtime/collaboration/rooms/${created.value.roomId}/members/editor-b?approval=revoke-member-once`, undefined, "DELETE");
+  assert.equal(revoked.response.status, 200);
+  assert.deepEqual(revoked.value.members.map(member => member.subjectId), ["owner-a"]);
+  assert.equal((await editor.inbox(value => value.type === "access-revoked")).roomId, created.value.roomId);
+  assert.equal(await closeCode, 4003);
+  const denied = await request(base, "editor-b", `/runtime/collaboration/rooms/${created.value.roomId}`, undefined, "GET");
+  assert.equal(denied.response.status, 403);
+  const reconnect = new WebSocket(
+    `${base.replace("http", "ws")}/runtime/collaboration?roomId=${created.value.roomId}`,
+    PROTOCOL,
+    { headers: { origin: base, "x-owner": "editor-b" } },
+  );
+  const reconnectStatus = await new Promise(resolve => {
+    reconnect.once("unexpected-response", (_request, response) => resolve(response.statusCode));
+    reconnect.once("error", () => resolve(0));
+  });
+  assert.equal(reconnectStatus, 403);
+});
+
 test("concurrent editors converge and per-room connection capacity is enforced",async t=>{const{base}=await fixture(t),created=await request(base,"owner-a","/runtime/collaboration/rooms",{projectId:"shared-project"});for(const editor of ["editor-b","editor-c"]){const invited=await request(base,"owner-a","/runtime/collaboration/invites",{roomId:created.value.roomId,role:"editor",expiresMinutes:5});await request(base,editor,"/runtime/collaboration/invites/redeem",{token:invited.value.token})}const owner=await connect(base,"owner-a",created.value.roomId),first=await connect(base,"editor-b",created.value.roomId),second=await connect(base,"editor-c",created.value.roomId);t.after(()=>{owner.websocket.close();first.websocket.close();second.websocket.close()});const ready=await Promise.all([owner.inbox(value=>value.type==="ready"),first.inbox(value=>value.type==="ready"),second.inbox(value=>value.type==="ready")]),documents=ready.map(value=>{const doc=new Y.Doc();Y.applyUpdate(doc,Buffer.from(value.update,"base64"));return doc}),updates=[];documents[1].once("update",value=>updates[0]=value);documents[1].getText("file:src/main.ts").insert(0,"// editor B\n");documents[2].once("update",value=>updates[1]=value);documents[2].getText("file:src/main.ts").insert(documents[2].getText("file:src/main.ts").length,"// editor C\n");first.websocket.send(JSON.stringify({type:"update",update:Buffer.from(updates[0]).toString("base64")}));second.websocket.send(JSON.stringify({type:"update",update:Buffer.from(updates[1]).toString("base64")}));assert.equal((await first.inbox(value=>value.type==="ack"||value.type==="error")).type,"ack");assert.equal((await second.inbox(value=>value.type==="ack"||value.type==="error")).type,"ack");for(let index=0;index<2;index++)Y.applyUpdate(documents[0],Buffer.from((await owner.inbox(value=>value.type==="update")).update,"base64"));const merged=documents[0].getText("file:src/main.ts").toString();assert.match(merged,/editor B/);assert.match(merged,/editor C/);const fourth=await connect(base,"owner-a",created.value.roomId);t.after(()=>fourth.websocket.close());const fourthReady=await fourth.inbox(value=>value.type==="ready"),fourthDoc=new Y.Doc();Y.applyUpdate(fourthDoc,Buffer.from(fourthReady.update,"base64"));assert.equal(fourthDoc.getText("file:src/main.ts").toString(),merged);const fifth=new WebSocket(`${base.replace("http","ws")}/runtime/collaboration?roomId=${created.value.roomId}`,PROTOCOL,{headers:{origin:base,"x-owner":"owner-a"}}),status=await new Promise(resolve=>{fifth.once("unexpected-response",(_request,response)=>resolve(response.statusCode));fifth.once("error",()=>resolve(0))});assert.equal(status,403)});

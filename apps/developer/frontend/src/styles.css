@@ -1109,7 +1109,7 @@ html[data-theme="dark"] .tree-row.file.active {
 .collaboration-panel { overflow:auto; gap:0; }
 .collaboration-panel>header span { color:var(--muted); font-size:9px; }
 .collaboration-panel>header span.collab-online { color:#2ea043; }
-.collab-start,.collab-invite,.collab-chat,.collab-people,.collab-summary { display:grid; gap:7px; padding:9px; border-bottom:1px solid var(--border); font-size:10px; }
+.collab-start,.collab-invite,.collab-chat,.collab-people,.collab-members,.collab-summary { display:grid; gap:7px; padding:9px; border-bottom:1px solid var(--border); font-size:10px; }
 .collab-start p { margin:0; color:var(--muted); line-height:1.5; }
 .collaboration-panel label { display:grid; gap:4px; color:var(--muted); }
 .collaboration-panel input,.collaboration-panel select { min-width:0; width:100%; border:1px solid var(--border); border-radius:4px; background:var(--panel2); color:var(--text); padding:6px; font-size:10px; }
@@ -1124,6 +1124,10 @@ html[data-theme="dark"] .tree-row.file.active {
 .collab-people i { width:7px; height:7px; border-radius:50%; background:#2ea043; }
 .collab-people span { overflow:hidden; text-overflow:ellipsis; }
 .collab-people em { color:var(--muted); font-style:normal; font-size:9px; }
+.collab-members>strong { font-size:9px; letter-spacing:.04em; }
+.collab-members>div { display:grid; grid-template-columns:minmax(0,1fr) auto auto; gap:5px; align-items:center; }
+.collab-members span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.collab-members em { color:var(--muted); font-style:normal; font-size:9px; }
 .collab-chat>div { max-height:150px; overflow:auto; padding:5px; border:1px solid var(--border); background:var(--panel2); }
 .collab-chat p { margin:0 0 6px; line-height:1.4; overflow-wrap:anywhere; }
 .collab-chat p:last-child { margin-bottom:0; }

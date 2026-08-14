@@ -759,6 +759,12 @@ export type CollaborationAccess = {
   roomId: string;
   projectId: string;
   role: CollaborationRole;
+  members?: CollaborationMember[];
+};
+export type CollaborationMember = {
+  subjectId: string;
+  role: CollaborationRole;
+  grantedAt: string;
 };
 export async function createCollaborationRoom(projectId: string): Promise<CollaborationAccess> {
   return collaborationFetch("/runtime/collaboration/rooms", {
@@ -793,6 +799,15 @@ export async function redeemCollaborationInvite(token: string): Promise<Collabor
     body: JSON.stringify({ token }),
   });
 }
+export async function revokeCollaborationMember(
+  roomId: string,
+  subjectId: string,
+): Promise<{ members: CollaborationMember[] }> {
+  return collaborationFetch(
+    `/runtime/collaboration/rooms/${encodeURIComponent(roomId)}/members/${encodeURIComponent(subjectId)}?approval=revoke-member-once`,
+    { method: "DELETE" },
+  );
+}
 async function collaborationFetch(path: string, init: RequestInit = {}): Promise<any> {
   for (let attempt = 0; attempt < 2; attempt++) {
     const response = init.method && init.method !== "GET"
@@ -805,7 +820,11 @@ async function collaborationFetch(path: string, init: RequestInit = {}): Promise
     const value = await response.json().catch(() => ({
       error: `Collaboration service returned HTTP ${response.status}`,
     }));
-    if (!response.ok) throw new Error(value.error || "Collaboration operation failed.");
+    if (!response.ok)
+      throw Object.assign(
+        new Error(value.error || "Collaboration operation failed."),
+        { code: value.code, status: response.status },
+      );
     return value;
   }
   throw new Error("Workspace session could not be established.");

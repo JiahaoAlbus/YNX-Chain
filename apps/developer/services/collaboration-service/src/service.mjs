@@ -23,7 +23,9 @@ export function createCollaborationService(options) {
     resourceById: db.prepare("SELECT room_id,owner_id,project_id FROM collaboration_resources WHERE room_id=?"),
     insertResource: db.prepare("INSERT INTO collaboration_resources(room_id,owner_id,project_id,created_at) VALUES(?,?,?,?)"),
     access: db.prepare("SELECT role FROM collaboration_acl WHERE room_id=? AND subject_id=?"),
+    listAccess: db.prepare("SELECT subject_id,role,created_at FROM collaboration_acl WHERE room_id=? ORDER BY created_at,subject_id"),
     grant: db.prepare("INSERT INTO collaboration_acl(room_id,subject_id,role,created_at) VALUES(?,?,?,?) ON CONFLICT(room_id,subject_id) DO UPDATE SET role=excluded.role"),
+    revoke: db.prepare("DELETE FROM collaboration_acl WHERE room_id=? AND subject_id=? AND role<>'owner'"),
     invite: db.prepare("INSERT INTO collaboration_invites(invite_hash,room_id,role,expires_at) VALUES(?,?,?,?)"),
     inviteByHash: db.prepare("SELECT invite_hash,room_id,role,expires_at,consumed_by FROM collaboration_invites WHERE invite_hash=?"),
     consume: db.prepare("UPDATE collaboration_invites SET consumed_by=?,consumed_at=? WHERE invite_hash=? AND consumed_by IS NULL"),
@@ -49,7 +51,32 @@ export function createCollaborationService(options) {
       const roomMatch = url.pathname.match(/^\/runtime\/collaboration\/rooms\/([-A-Za-z0-9_]{1,160})$/);
       if (roomMatch && request.method === "GET") {
         const resource = requireAccess(roomMatch[1], subject);
-        return json(response, 200, { protocolVersion: PROTOCOL, roomId: resource.room_id, projectId: resource.project_id, role: resource.role }), true;
+        return json(response, 200, {
+          protocolVersion: PROTOCOL,
+          roomId: resource.room_id,
+          projectId: resource.project_id,
+          role: resource.role,
+          ...(resource.role === "owner" ? { members: members(resource.room_id) } : {}),
+        }), true;
+      }
+      const memberMatch = url.pathname.match(/^\/runtime\/collaboration\/rooms\/([-A-Za-z0-9_]{1,160})\/members\/([-A-Za-z0-9_]{1,160})$/);
+      if (memberMatch && request.method === "DELETE") {
+        const resource = statements.resourceById.get(memberMatch[1]);
+        if (!resource || resource.owner_id !== subject)
+          throw fault("Only the workspace owner can revoke collaborators.", "collaboration_forbidden", 403);
+        if (url.searchParams.get("approval") !== "revoke-member-once")
+          throw fault("Revocation requires one-time approval.", "collaboration_revoke_approval_required", 403);
+        const memberId = memberMatch[2], access = statements.access.get(resource.room_id, memberId);
+        if (!access) throw fault("Collaboration member was not found.", "collaboration_member_not_found", 404);
+        if (access.role === "owner") throw fault("Room owner access cannot be revoked.", "collaboration_owner_revoke_forbidden", 409);
+        statements.revoke.run(resource.room_id, memberId);
+        disconnectSubject(resource.room_id, memberId);
+        return json(response, 200, {
+          protocolVersion: PROTOCOL,
+          roomId: resource.room_id,
+          revokedSubject: memberId,
+          members: members(resource.room_id),
+        }), true;
       }
       if (url.pathname === "/runtime/collaboration/invites" && request.method === "POST") {
         const body = await readJson(request), resource = statements.resourceById.get(body.roomId);
@@ -107,6 +134,11 @@ export function createCollaborationService(options) {
   }
 
   async function message(room, websocket, raw) {
+    const currentAccess = statements.access.get(room.roomId, websocket.subject);
+    if (!currentAccess || currentAccess.role !== websocket.role) {
+      websocket.close(4003, "Collaboration access revoked");
+      throw fault("Collaboration access was revoked.", "collaboration_access_revoked", 403);
+    }
     let value;
     try { value = JSON.parse(String(raw)); } catch { throw fault("Collaboration messages must be JSON.", "invalid_collaboration_message", 400); }
     if (value.type === "update") {
@@ -163,6 +195,8 @@ export function createCollaborationService(options) {
     return resource || statements.resourceById.get(roomId);
   }
   function requireAccess(roomId, subject) { if (!validId(roomId)) throw fault("A valid collaboration room is required.", "invalid_collaboration_room", 400); const resource = statements.resourceById.get(roomId), access = resource && statements.access.get(roomId, subject); if (!resource || !access) throw fault("Collaboration access was not granted.", "collaboration_forbidden", 403); return { ...resource, role: access.role }; }
+  function members(roomId) { return statements.listAccess.all(roomId).map(row => ({ subjectId: row.subject_id, role: row.role, grantedAt: row.created_at })); }
+  function disconnectSubject(roomId, subject) { const room = rooms.get(roomId); if (!room) return; for (const client of room.clients.values()) if (client.subject === subject) { send(client.websocket, { type: "access-revoked", roomId }); client.websocket.close(4003, "Collaboration access revoked"); } }
   function persistRoom(room) { statements.saveDocument.run(room.roomId, room.revision, JSON.stringify([...room.paths]), Buffer.from(Y.encodeStateAsUpdate(room.document)), new Date().toISOString()); }
   function leave(room, clientId) { if (!room.clients.delete(clientId)) return; broadcast(room, { type: "presence", action: "leave", clientId }); }
   function broadcast(room, value, except) { for (const [clientId, client] of room.clients) if (clientId !== except) send(client.websocket, value); }

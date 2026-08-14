@@ -474,6 +474,16 @@ single-use, expiring invitation tokens; redemption binds an authenticated
 subject to `editor`, `reviewer`, `viewer` or `terminal` ACL state in SQLite WAL.
 Editors and owners may merge existing-file edits and CRDT-backed file
 create/remove operations. Reviewers/viewers cannot mutate the document.
+
+Durable ACL membership is distinct from ephemeral online presence. Owners can
+list granted subjects and issue a separately confirmed revoke. The service
+deletes the ACL row before notifying and closing every matching live socket with
+code 4003, and it revalidates ACL role on every message to close race windows.
+Clients retry transient disconnects after 1.5 seconds only after an authenticated
+HTTP access check; revoked clients clear their stored room rather than retrying.
+Terminal-role invitations do not grant terminal input in this checkpoint. A
+separate shared-terminal floor/approval protocol remains required and the UI
+states that terminal input is off by default.
 Presence and cursors are ephemeral, room chat is a separate message channel,
 and a shared document changes the canonical workspace only through an explicit
 revision-checked checkpoint. CRDT state and workspace revisions survive service

@@ -34,6 +34,13 @@ successful eight-runtime release record.
   consistency, stale-clear rejection and deletion. The Web gate
   `test/project-memory-lifecycle-ui.test.js` holds view/rebuild/export/clear and
   the honest current-index retention/coverage boundary in the product surface.
+- Collaboration lifecycle evidence:
+  `services/collaboration-service/test/service.test.mjs` proves owner-only ACL
+  visibility, explicit revoke approval, live revocation notification, socket
+  close code 4003 and denied HTTP/WebSocket reconnect in addition to CRDT
+  convergence and restart recovery. `test/collaboration-lifecycle-ui.test.js`
+  guards the durable-access list, confirmation and reconnect-first ACL check;
+  shared-terminal input remains explicitly disabled.
 
 - Public full-platform gate: `scripts/live-public-candidate-check.mjs`. Against
   the deployed candidate it requires all seven real runtimes, six LSP routes,
