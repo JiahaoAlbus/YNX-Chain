@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "productSlug": "wallet-desktop-cli-sdk",
   "owner": "02-wallet-auth-desktop-cli-sdk",
-  "sourceCommit": "d430b44488d1c583e8983b422a825790f479add8",
+  "sourceCommit": "ddab97ee88e927558f87eddc2d4a61a09a5bdc80",
   "consumes": {
     "networkOwner": "01-chain-core",
     "authOwner": "02-wallet-auth",
@@ -34,14 +34,16 @@
     "goSdkRealConsumer": "6331265ae74a957f07958e459251fc42c9ea6b66",
     "typescriptSdkCleanConsumerSource": "f1069bc78a32afe980867ef5849da073923b7873",
     "typescriptSdkCleanConsumerEvidence": "963e07a3325dd7fff31244d90e89b2f9b13a3809",
-    "goSdkFormalModuleArchive": "d430b44488d1c583e8983b422a825790f479add8"
+    "goSdkFormalModuleArchive": "d430b44488d1c583e8983b422a825790f479add8",
+    "macosX64Cli": "ddab97ee88e927558f87eddc2d4a61a09a5bdc80"
   },
   "directEvidence": {
     "windowsArm64Cli": "release/wallet-cli/windows-arm64-native/manifest.json",
     "linuxArm64Rpm": "release/wallet-desktop/linux-arm64-rpm/manifest.json",
     "goSdkRealConsumer": "release/wallet-cli/go-sdk/real-consumer-evidence.json",
     "typescriptSdkCleanConsumer": "release/wallet-cli/typescript-sdk/manifest.json",
-    "goSdkFormalModuleArchive": "release/wallet-cli/go-sdk/manifest.json"
+    "goSdkFormalModuleArchive": "release/wallet-cli/go-sdk/manifest.json",
+    "macosX64Cli": "release/wallet-cli/macos-x64-native/manifest.json"
   },
   "remainingFalse": {
     "integratedCentral": false,
