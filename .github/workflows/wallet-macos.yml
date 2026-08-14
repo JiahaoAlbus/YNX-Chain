@@ -120,13 +120,29 @@ jobs:
           test -n "${SECOND_PID:-}"
           test "$SECOND_PID" != "$COLD_PID"
           printf 'pid=%s running=true\n' "$SECOND_PID" | tee "$PROOF/second-launch.txt"
-          open 'ynxwallet-macos://authorize?request=invalid' > "$PROOF/open-callback.txt"
+          open 'ynxwallet://authorize?request=invalid&scope=wallet' > "$PROOF/open-callback-first.txt"
+          FIRST_CALLBACK_SEEN=false
+          for _ in $(seq 1 60); do
+            xcrun log show --style compact --last 5m \
+              --predicate 'subsystem == "com.ynxweb4.wallet.macos" AND (category == "callback" OR category == "lifecycle")' \
+              > "$PROOF/native.log" 2>&1 || true
+            if grep -Fq "YNX_WALLET_MAC_CALLBACK_RECEIVED pid=$SECOND_PID scheme=ynxwallet" "$PROOF/native.log" && \
+               grep -Fq "YNX_WALLET_MAC_CALLBACK_REJECTED pid=$SECOND_PID code=INVALID_AUTHORIZATION_REQUEST" "$PROOF/native.log"; then
+              FIRST_CALLBACK_SEEN=true
+              break
+            fi
+            sleep 1
+          done
+          test "$FIRST_CALLBACK_SEEN" = true
+          printf 'pid=%s error=INVALID_AUTHORIZATION_REQUEST failedClosed=true\n' "$SECOND_PID" \
+            > "$PROOF/first-callback.txt"
+          open 'ynxwallet://authorize?request=invalid' > "$PROOF/open-callback-second.txt"
           CALLBACK_SEEN=false
           for _ in $(seq 1 60); do
             xcrun log show --style compact --last 5m \
               --predicate 'subsystem == "com.ynxweb4.wallet.macos" AND (category == "callback" OR category == "lifecycle")' \
               > "$PROOF/native.log" 2>&1 || true
-            if grep -Fq "YNX_WALLET_MAC_CALLBACK_RECEIVED pid=$SECOND_PID scheme=ynxwallet-macos" "$PROOF/native.log" && \
+            if test "$(grep -Fc "YNX_WALLET_MAC_CALLBACK_RECEIVED pid=$SECOND_PID scheme=ynxwallet" "$PROOF/native.log")" -ge 2 && \
                grep -Fq "YNX_WALLET_MAC_CALLBACK_REJECTED pid=$SECOND_PID code=CANONICAL_AUTH_BRIDGE_UNAVAILABLE" "$PROOF/native.log"; then
               CALLBACK_SEEN=true
               break
@@ -134,6 +150,8 @@ jobs:
             sleep 1
           done
           test "$CALLBACK_SEEN" = true
+          printf 'pid=%s error=CANONICAL_AUTH_BRIDGE_UNAVAILABLE failedClosed=true\n' "$SECOND_PID" \
+            > "$PROOF/second-callback.txt"
           open "$APP"
           sleep 2
           screencapture -x "$PROOF/malformed-callback-fail-closed.png"

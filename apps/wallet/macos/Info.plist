@@ -15,8 +15,8 @@
   <key>NSHighResolutionCapable</key><true/>
   <key>CFBundleURLTypes</key>
   <array><dict>
-    <key>CFBundleURLName</key><string>com.ynxweb4.wallet.macos.callback</string>
-    <key>CFBundleURLSchemes</key><array><string>ynxwallet-macos</string></array>
+    <key>CFBundleURLName</key><string>com.ynxweb4.wallet.authorization</string>
+    <key>CFBundleURLSchemes</key><array><string>ynxwallet</string></array>
   </dict></array>
 </dict>
 </plist>

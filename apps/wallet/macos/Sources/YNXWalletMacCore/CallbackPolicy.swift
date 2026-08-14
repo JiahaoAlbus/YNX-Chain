@@ -8,7 +8,7 @@ public enum CallbackDecision: Equatable, Sendable {
 public enum CallbackPolicy {
   public static func evaluate(_ rawValue: String) -> CallbackDecision {
     guard let components = URLComponents(string: rawValue),
-          components.scheme == "ynxwallet-macos",
+          components.scheme == "ynxwallet",
           components.host == "authorize",
           components.path.isEmpty,
           components.fragment == nil else {
