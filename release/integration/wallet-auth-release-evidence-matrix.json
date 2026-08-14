@@ -35,17 +35,17 @@
   "pendingOwnerCommits": [],
   "pendingOwnerEvidence": [
     {
-      "owner": "core-auth-gateway",
-      "candidateCommit": "ea33b83c5cc21ebd673bdb2e20a0e996eaf28212",
+      "owner": "web-pwa-extensions",
+      "candidateCommit": "ae55e8272018979abb6cb393307755c063f71f38",
       "remoteFastForwardReported": true,
       "remoteReadbackComplete": true,
       "ciComplete": true,
       "consumedForReleaseTruth": false,
-      "note": "The combined Core evidence HEAD is queued after the independent revocation-control slice."
+      "note": "Canonical sensitive-request fail-close evidence is queued for its own later atomic slice."
     },
     {
       "owner": "android-api36",
-      "candidateCommit": "2299a90e12a46dd030425c6a5bf2edf4257c9c59",
+      "candidateCommit": "6f096503793218ddfd9b3b1cd6403a07d4fafb97",
       "remoteFastForwardReported": true,
       "remoteReadbackComplete": true,
       "ciComplete": null,
@@ -54,12 +54,12 @@
     },
     {
       "owner": "ios-macos",
-      "candidateCommit": "33d10fa2f2422b577d3b9bf10d926e6c608893f0",
+      "candidateCommit": "04450cff296511018447e5d4886803081149f596",
       "remoteFastForwardReported": true,
       "remoteReadbackComplete": true,
       "ciComplete": null,
       "consumedForReleaseTruth": false,
-      "note": "The branch advanced beyond the consumed canonical two-callback evidence; the unknown successor changes no authorization or release truth."
+      "note": "Keychain recovery-absence evidence is queued for its own later atomic slice."
     },
     {
       "owner": "desktop-cli-sdk",
@@ -69,15 +69,24 @@
       "ciComplete": null,
       "consumedForReleaseTruth": false,
       "note": "Linux arm64 RPM final evidence is queued for its own later atomic slice."
+    },
+    {
+      "owner": "desktop-cli-sdk",
+      "candidateCommit": "8b778604144e49b8ff85ba04850d325af1d378be",
+      "remoteFastForwardReported": true,
+      "remoteReadbackComplete": true,
+      "ciComplete": null,
+      "consumedForReleaseTruth": false,
+      "note": "The Desktop branch advanced beyond the queued RPM evidence; the successor is not consumed."
     }
   ],
   "ownerSources": [
     {
       "owner": "core-auth-gateway",
       "branch": "codex/wallet-core-auth-gateway-continuation-20260814",
-      "sourceCommit": "8e91c58e3f997b35da1b3d0298f174a2e8533fa2",
-      "remoteCommitObserved": "8e91c58e3f997b35da1b3d0298f174a2e8533fa2",
-      "branchHeadObserved": "ea33b83c5cc21ebd673bdb2e20a0e996eaf28212",
+      "sourceCommit": "774a1f756890043e88626d13b6c9679a2ad6d288",
+      "remoteCommitObserved": "774a1f756890043e88626d13b6c9679a2ad6d288",
+      "branchHeadObserved": "774a1f756890043e88626d13b6c9679a2ad6d288",
       "remoteVerifiedAt": "2026-08-14T04:32:00Z",
       "verificationMode": "github-git-database-parent-tree-blob-readback"
     },
@@ -86,7 +95,7 @@
       "branch": "codex/wallet-web-pwa-extensions-20260813",
       "sourceCommit": "0b3ffa8faabad2caa49b1c00db493261e2d98bca",
       "remoteCommitObserved": "0b3ffa8faabad2caa49b1c00db493261e2d98bca",
-      "branchHeadObserved": "0b3ffa8faabad2caa49b1c00db493261e2d98bca",
+      "branchHeadObserved": "ae55e8272018979abb6cb393307755c063f71f38",
       "remoteVerifiedAt": "2026-08-14T04:18:00Z",
       "verificationMode": "github-git-database-parent-tree-blob-readback"
     },
@@ -95,7 +104,7 @@
       "branch": "codex/wallet-android-api36-continuation2-20260814",
       "sourceCommit": "4739a60e1fa0e3d0b6862e129330f9e9ca202887",
       "remoteCommitObserved": "4739a60e1fa0e3d0b6862e129330f9e9ca202887",
-      "branchHeadObserved": "2299a90e12a46dd030425c6a5bf2edf4257c9c59",
+      "branchHeadObserved": "6f096503793218ddfd9b3b1cd6403a07d4fafb97",
       "remoteVerifiedAt": "2026-08-14T04:20:00Z",
       "verificationMode": "github-git-database-parent-tree-blob-readback"
     },
@@ -104,7 +113,7 @@
       "branch": "codex/wallet-ios-macos-20260813",
       "sourceCommit": "8b6dee8f746456874d7a7b2913d38b3aa5591fc7",
       "remoteCommitObserved": "8b6dee8f746456874d7a7b2913d38b3aa5591fc7",
-      "branchHeadObserved": "33d10fa2f2422b577d3b9bf10d926e6c608893f0",
+      "branchHeadObserved": "04450cff296511018447e5d4886803081149f596",
       "remoteVerifiedAt": "2026-08-14T04:26:00Z",
       "verificationMode": "github-git-database-parent-tree-blob-readback"
     },
@@ -113,7 +122,7 @@
       "branch": "codex/wallet-desktop-cli-sdk-20260813",
       "sourceCommit": "931b70fc0dd4e7ff01542065099aeaa0b3f25a51",
       "remoteCommitObserved": "931b70fc0dd4e7ff01542065099aeaa0b3f25a51",
-      "branchHeadObserved": "b06bf39c365408ba28e9e5f9312f293693e3f73d",
+      "branchHeadObserved": "8b778604144e49b8ff85ba04850d325af1d378be",
       "remoteVerifiedAt": "2026-08-14T04:05:00Z",
       "verificationMode": "github-git-database-parent-tree-blob-readback"
     }
@@ -201,6 +210,27 @@
       "direct": true,
       "commit": "8e91c58e3f997b35da1b3d0298f174a2e8533fa2",
       "path": "packages/wallet-auth/test/gateway-node-revocation-control-linearization.test.mjs",
+      "supports": []
+    },
+    "gateway-revocation-control-linearization-evidence": {
+      "type": "git-object",
+      "direct": true,
+      "commit": "774a1f756890043e88626d13b6c9679a2ad6d288",
+      "path": "apps/wallet/proof/gateway-revocation-control-linearization-local-2026-08-14.json",
+      "supports": []
+    },
+    "gateway-kill-switch-linearization-evidence": {
+      "type": "git-object",
+      "direct": true,
+      "commit": "774a1f756890043e88626d13b6c9679a2ad6d288",
+      "path": "apps/wallet/proof/gateway-kill-switch-linearization-local-2026-08-14.json",
+      "supports": []
+    },
+    "gateway-kill-switch-preack-crash-evidence": {
+      "type": "git-object",
+      "direct": true,
+      "commit": "774a1f756890043e88626d13b6c9679a2ad6d288",
+      "path": "apps/wallet/proof/gateway-kill-switch-preack-crash-local-2026-08-14.json",
       "supports": []
     },
     "web-artifacts": {
@@ -544,7 +574,7 @@
       "status": "accepted-bounded-testnet",
       "gates": {"build":true,"install":false,"coldLaunch":false,"secondLaunch":false,"testnet":true,"sign":true,"tx":false,"callback":false,"reconnect":false,"downloadHosted":false,"productionSigned":false,"storeReleased":false},
       "evidenceBindings": {"build":["gateway-release"],"install":[],"coldLaunch":[],"secondLaunch":[],"testnet":["gateway-public-lifecycle"],"sign":["gateway-public-lifecycle"],"tx":["gateway-public-lifecycle"],"callback":["gateway-completion-negative-matrix","gateway-session-http-negative-matrix","gateway-session-linearization-race","gateway-persistence-atomic-rollback","gateway-registry-state-binding","gateway-state-file-security","gateway-node-crash-durability","gateway-node-stale-lock-recovery"],"reconnect":["gateway-public-lifecycle","gateway-session-http-negative-matrix","gateway-session-linearization-race","gateway-persistence-atomic-rollback","gateway-registry-state-binding","gateway-state-file-security","gateway-node-crash-durability","gateway-node-stale-lock-recovery"],"downloadHosted":["gateway-release"],"productionSigned":["gateway-release"],"storeReleased":["gateway-release"]},
-      "notes": ["Public authorization completion, introspection, replay rejection and revoke are direct. Local real-HTTP evidence proves two independent Gateway processes serialize concurrent Approval/Device revokes on one Product Session: both persist with one audit and success proof, post-introspection is REVOKED, failure proofs consume nothing, and cold restart agrees. This is local shared-state evidence only; central/staging/public, automatic multi-region and capacity remain false."]
+      "notes": ["Public authorization completion, introspection, replay rejection and revoke are direct. Final local evidence HEAD passes 173/173 and adds two-process revocation-control, Kill/Action linearization and pre-ack SIGKILL recovery on private POSIX/shared state. Distributed database, multi-region, central integration, staging, public deployment and public-route verification remain false."]
     },
     {
       "id": "web-pwa",
