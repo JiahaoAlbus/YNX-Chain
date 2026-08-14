@@ -42,7 +42,11 @@
       "ciComplete": null,
       "consumedForReleaseTruth": false,
       "note": "The Android branch advanced beyond frozen evidence without an Owner terminal checkpoint; device truth remains unchanged."
-    }
+    },
+    {"owner":"desktop-cli-sdk","candidateCommit":"0985090cc5640a7bc6f614acba1f32ba24e6dc55","remoteFastForwardReported":true,"remoteReadbackComplete":true,"ciComplete":true,"consumedForReleaseTruth":false,"note":"Linux x64 AppImage handoff remains queued separately."},
+    {"owner":"ios-macos","candidateCommit":"50d3b2e2c5bd77456b84f348c48fa4a9ed76b5b3","remoteFastForwardReported":true,"remoteReadbackComplete":false,"ciComplete":false,"consumedForReleaseTruth":false,"note":"Terminal failed iOS run may promote only malformed callback delivery/rejection after evidence readback."},
+    {"owner":"android-api36","candidateCommit":"8666c0bb0535270e595f3db54e7d2e35b18afe66","remoteFastForwardReported":true,"remoteReadbackComplete":false,"ciComplete":true,"consumedForReleaseTruth":false,"note":"Temporary Uint8Array zeroization evidence remains queued; immutable JS strings are excluded."},
+    {"owner":"core-auth-gateway","candidateCommit":"b8467853060db04c2981abb7fcfa22d4cfdcf65b","remoteFastForwardReported":true,"remoteReadbackComplete":false,"ciComplete":true,"consumedForReleaseTruth":false,"note":"Smart Account batch-call evidence remains queued after platform slices."}
   ],
   "ownerSources": [
     {
@@ -84,9 +88,9 @@
     {
       "owner": "desktop-cli-sdk",
       "branch": "codex/wallet-desktop-cli-sdk-20260813",
-      "sourceCommit": "f46866333b031a43c60d0f759db03edf5cf04fe8",
-      "remoteCommitObserved": "f46866333b031a43c60d0f759db03edf5cf04fe8",
-      "branchHeadObserved": "05e40267902fa17eb76b389f99e38ee181bff8e1",
+      "sourceCommit": "aa88a6e7a1bb17b5fc46799100e43acdccb26dc6",
+      "remoteCommitObserved": "aa88a6e7a1bb17b5fc46799100e43acdccb26dc6",
+      "branchHeadObserved": "a25c4977655a28b5ae12f34604636eb75d71302c",
       "remoteVerifiedAt": "2026-08-14T04:05:00Z",
       "verificationMode": "github-git-database-parent-tree-blob-readback"
     }
@@ -484,7 +488,7 @@
     "linux-appimage-portable-action": {
       "type": "git-object",
       "direct": true,
-      "commit": "1bdb7fb4991937eba4f74341bd123214f9776e92",
+      "commit": "aa88a6e7a1bb17b5fc46799100e43acdccb26dc6",
       "path": "release/wallet-desktop/linux-x64-appimage/manifest.json",
       "supports": [
         "linux-desktop-x64.build",
@@ -726,10 +730,10 @@
       "ownerSource": "desktop-cli-sdk",
       "artifactClass": "unsigned-ci-desktop-artifact",
       "status": "native-ci-lifecycle",
-      "capabilities": {"portableRun":true,"installedAppImage":false,"postUploadRedownloadHashVerified":true},
+      "capabilities": {"portableRun":true,"installedAppImage":false,"postUploadRedownloadHashVerified":true,"setuidChromiumSandbox":true,"noSandboxFlagUsed":false},
       "gates": {"build":true,"install":true,"coldLaunch":true,"secondLaunch":true,"testnet":true,"sign":false,"tx":false,"callback":false,"reconnect":false,"downloadHosted":false,"productionSigned":false,"storeReleased":false},
       "evidenceBindings": {"build":["linux-desktop-action","linux-appimage-portable-action"],"install":["linux-desktop-action","linux-appimage-portable-action"],"coldLaunch":["linux-desktop-action","linux-appimage-portable-action"],"secondLaunch":["linux-desktop-action","linux-appimage-portable-action"],"testnet":["linux-desktop-action","linux-appimage-portable-action"],"sign":["linux-desktop-action","linux-appimage-portable-action"],"tx":["linux-desktop-action","linux-appimage-portable-action"],"callback":["linux-desktop-action","linux-appimage-portable-action"],"reconnect":["linux-desktop-action","linux-appimage-portable-action"],"downloadHosted":["linux-desktop-action","linux-appimage-portable-action"],"productionSigned":["linux-desktop-action","linux-appimage-portable-action"],"storeReleased":["linux-desktop-action","linux-appimage-portable-action"]},
-      "notes": ["Ubuntu 24.04 AppImage portable first/second lifecycle and post-upload redownload/hash verification passed. The AppImage was not installed, remains unsigned, and temporary Actions retention is not an immutable hosted product download."]
+      "notes": ["Ubuntu 24.04 AppImage portable first/second lifecycle, exact 0x1917, RPC fail-close, setuid Chromium sandbox and post-upload redownload/hash verification passed. The AppImage was not installed, remains unsigned, and temporary Actions retention is not an immutable hosted product download."]
     },
     {
       "id": "macos-desktop-x64",

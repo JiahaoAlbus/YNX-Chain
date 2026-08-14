@@ -107,9 +107,9 @@
     },
     {
       "id": "linux-appimage-x64-portable",
-      "sourceCommit": "1bdb7fb4991937eba4f74341bd123214f9776e92",
+      "sourceCommit": "aa88a6e7a1bb17b5fc46799100e43acdccb26dc6",
       "artifactName": "ynx-wallet-desktop-0.1.0-x86_64.AppImage",
-      "sha256": "0f71d81566da947cb5e8f14362c3c7909c28192534c318f35d3853767bc11ce7",
+      "sha256": "46fe24fce56f696c00efd578541b32a4c9a014b3df1ed4885d0b9255950970c2",
       "signingClass": "unsigned-linux-desktop-testnet-candidate",
       "publicUrl": null,
       "immutableUrl": null,
