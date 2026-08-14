@@ -171,6 +171,34 @@ const sortedSamples = [...soakSamples].sort((a, b) => a - b);
 const percentile = (fraction) => sortedSamples[Math.ceil(sortedSamples.length * fraction) - 1];
 const soakSeconds = soakSamples.reduce((sum, value) => sum + value, 0) / 1000;
 
+const bundledLimitCall = account.interface.encodeFunctionData("executeSession", [
+  sessionKey.address,
+  destination.address,
+  ethers.parseEther("0.15"),
+  arbitrarySelector,
+]);
+const bundledLimitOps = await Promise.all([53n, 54n].map(async (nonce) => {
+  const op = await operation(bundledLimitCall, nonce);
+  const hash = await entryPoint.getUserOpHash(op);
+  op.signature = ethers.concat(["0x02", sessionKey.address, sessionKey.signingKey.sign(hash).serialized]);
+  return op;
+}));
+const destinationBeforeBundledLimit = await ethers.provider.getBalance(destination.address);
+const bundledLimitReceipt = await (await entryPoint.handleOps(
+  bundledLimitOps,
+  beneficiary.address,
+  { gasLimit: 16_000_000 },
+)).wait();
+const bundledLimitEvents = bundledLimitReceipt.logs.flatMap((log) => {
+  try { return [entryPoint.interface.parseLog(log)]; } catch { return []; }
+}).filter((event) => event?.name === "UserOperationEvent");
+assert.equal(bundledLimitEvents.length, 2);
+assert.equal(bundledLimitEvents.filter((event) => event.args.success === true).length, 1);
+assert.equal(bundledLimitEvents.filter((event) => event.args.success === false).length, 1);
+assert.equal(await ethers.provider.getBalance(destination.address) - destinationBeforeBundledLimit, ethers.parseEther("0.15"));
+assert.equal((await account.sessions(sessionKey.address)).spentToday, ethers.parseEther("0.25"));
+assert.equal(await entryPoint.getNonce(account.target, 0), 55n);
+
 const newOwner = ethers.Wallet.createRandom();
 const newPasskeySecret = p256.utils.randomPrivateKey();
 const newPasskeyPublic = p256.getPublicKey(newPasskeySecret, false);
@@ -181,7 +209,7 @@ await (await account.connect(guardian).requestRecovery(
 )).wait();
 assert.equal(await account.sessionEpoch(), 2n);
 assert.equal((await account.sessions(sessionKey.address)).epoch, 1n);
-const pendingRecoverySessionOp = await operation(sessionCall, 53n);
+const pendingRecoverySessionOp = await operation(sessionCall, 55n);
 const pendingRecoverySessionHash = await entryPoint.getUserOpHash(pendingRecoverySessionOp);
 pendingRecoverySessionOp.signature = ethers.concat([
   "0x02",
@@ -205,7 +233,7 @@ await (await account.executeRecovery()).wait();
 assert.equal(await account.owner(), newOwner.address);
 assert.equal(await account.sessionEpoch(), 3n);
 assert.equal((await account.sessions(sessionKey.address)).epoch, 1n);
-const revokedSessionOp = await operation(sessionCall, 53n);
+const revokedSessionOp = await operation(sessionCall, 55n);
 const revokedHash = await entryPoint.getUserOpHash(revokedSessionOp);
 revokedSessionOp.signature = ethers.concat(["0x02", sessionKey.address, sessionKey.signingKey.sign(revokedHash).serialized]);
 await expectValidationFailed(revokedSessionOp);
@@ -429,6 +457,7 @@ console.log(JSON.stringify({
   exactSessionCalldataRejection: "passed",
   sessionPolicyRejectedBeforeNonceConsumption: "passed",
   noncanonicalSessionCallRejection: "passed",
+  sameBundleDailyLimitLinearization: "passed",
   overLimitRejection: "passed",
   wrongTargetRejection: "passed",
   userVerificationRequired: "passed",
