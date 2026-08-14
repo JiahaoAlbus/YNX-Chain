@@ -82,6 +82,17 @@
       "publicClaimAllowed": false
     },
     {
+      "id": "WA-PAYMASTER-LOWERED-LIMIT-001",
+      "category": "wallet-paymaster",
+      "owners": ["02-wallet-auth", "01-chain-core", "29-integration"],
+      "precondition": "The owner lowers a ProductBudget or per-subject daily limit below already reserved same-day usage.",
+      "action": "Submit a fresh otherwise valid sponsored UserOperation.",
+      "expectedHttpStatus": null,
+      "expectedCode": "BudgetExceeded",
+      "expectedState": "canonical custom error instead of arithmetic panic; product/subject budgets, authorization replay state and account nonce remain unchanged",
+      "publicClaimAllowed": false
+    },
+    {
       "id": "WA-PUBLIC-GATEWAY-INGRESS-IDENTIFIERS-001",
       "category": "wallet-auth",
       "owners": ["02-wallet-auth", "13-monitor", "29-integration"],
