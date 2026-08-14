@@ -17,11 +17,11 @@ export class AuthorizationAuditStore {
   private pending:Promise<void>=Promise.resolve();
   constructor(private readonly storage:SecureStorageAdapter) {}
 
-  async append(request:AuthorizationRequest, input:{action:AuthorizationAuditAction;account:string;at:string}):Promise<AuthorizationAuditRecord> {
-    return this.enqueue(()=>this.appendExclusive(request,input));
+  async append(request:AuthorizationRequest, input:{action:AuthorizationAuditAction;account:string;at:string}, assertActive:()=>void=()=>{}):Promise<AuthorizationAuditRecord> {
+    return this.enqueue(()=>this.appendExclusive(request,input,assertActive));
   }
 
-  private async appendExclusive(request:AuthorizationRequest, input:{action:AuthorizationAuditAction;account:string;at:string}):Promise<AuthorizationAuditRecord> {
+  private async appendExclusive(request:AuthorizationRequest, input:{action:AuthorizationAuditAction;account:string;at:string}, assertActive:()=>void):Promise<AuthorizationAuditRecord> {
     const records=await this.load();
     if(records.length>=MAX_AUDIT_RECORDS)throw new Error("Wallet authorization audit capacity is exhausted");
     const action=strictAction(input.action),digest=requestDigest(request),account=strictAccount(input.account);
@@ -40,6 +40,7 @@ export class AuthorizationAuditStore {
       previousHash:records.at(-1)?.hash??null,
     };
     const record=freeze({...unsigned,hash:digestHex("YNX_WALLET_AUTH_AUDIT_V1",unsigned)});
+    assertActive();
     await this.save([...records,record]);
     return record;
   }

@@ -43,6 +43,14 @@ test("dismissed revocation attempt cannot append an audit mutation",async()=>{
   assert.equal(storage.values.get(AUTHORIZATION_AUDIT_KEY),before);
 });
 
+test("dismissed approval and rejection attempts cannot append audit decisions",async()=>{
+  for(const action of ["intent-approved","request-rejected"] as const){
+    const storage=new MemoryStorage(),store=new AuthorizationAuditStore(storage);
+    await assert.rejects(store.append(request,{action,account,at:"2026-07-15T12:00:00.000Z"},()=>{throw new Error("backgrounded")}),/backgrounded/);
+    assert.equal(storage.values.get(AUTHORIZATION_AUDIT_KEY),undefined);
+  }
+});
+
 test("concurrent approve and reject decisions linearize to the first persisted terminal choice",async()=>{
   const approvedStorage=new ControlledStorage(),approvedStore=new AuthorizationAuditStore(approvedStorage),approvalBlock=approvedStorage.blockNextWrite();
   const approved=approvedStore.append(request,{action:"intent-approved",account,at:"2026-07-15T12:00:00.000Z"});
