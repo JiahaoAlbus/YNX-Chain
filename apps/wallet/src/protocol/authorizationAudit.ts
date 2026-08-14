@@ -57,13 +57,14 @@ export class AuthorizationAuditStore {
     return Object.freeze([...new Set(records.filter((item)=>item.action==="approval-revoked").map((item)=>item.requestDigest))].sort());
   }
 
-  async revoke(requestDigestValue:string,at:string):Promise<AuthorizationAuditRecord> {
+  async revoke(requestDigestValue:string,at:string,assertActive:()=>void=()=>{}):Promise<AuthorizationAuditRecord> {
     const records=await this.load();
     const source=[...records].reverse().find((item)=>item.requestDigest===requestDigestValue&&item.action==="approval-returned");
     if(!source)throw new Error("Approved Wallet authorization was not found");
     if(records.some((item)=>item.requestDigest===requestDigestValue&&item.action==="approval-revoked"))throw new Error("Wallet authorization is already revoked");
     const unsigned={schemaVersion:1 as const,sequence:records.length+1,at:strictTime(at,"audit time"),action:"approval-revoked" as const,requestDigest:source.requestDigest,productClientId:source.productClientId,bundleId:source.bundleId,account:source.account,scopes:source.scopes,expiresAt:source.expiresAt,previousHash:records.at(-1)?.hash??null};
     const record=freeze({...unsigned,hash:digestHex("YNX_WALLET_AUTH_AUDIT_V1",unsigned)});
+    assertActive();
     await this.storage.setItem(AUTHORIZATION_AUDIT_KEY,JSON.stringify([...records,record]));
     return record;
   }

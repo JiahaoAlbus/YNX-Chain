@@ -28,3 +28,11 @@ test("authorization audit rejects field, binding, and hash tamper",async()=>{
   storage.values.set(AUTHORIZATION_AUDIT_KEY,JSON.stringify([{...original[0],unknown:true}]));
   await assert.rejects(store.load(),/schema/);
 });
+
+test("dismissed revocation attempt cannot append an audit mutation",async()=>{
+  const storage=new MemoryStorage(),store=new AuthorizationAuditStore(storage);
+  await store.append(request,{action:"approval-returned",account,at:"2026-07-15T12:00:00.000Z"});
+  const before=storage.values.get(AUTHORIZATION_AUDIT_KEY);
+  await assert.rejects(store.revoke((await store.load())[0]!.requestDigest,"2026-07-15T12:01:00.000Z",()=>{throw new Error("backgrounded")}),/backgrounded/);
+  assert.equal(storage.values.get(AUTHORIZATION_AUDIT_KEY),before);
+});

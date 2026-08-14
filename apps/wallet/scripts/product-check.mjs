@@ -16,6 +16,7 @@ const localAuthorization=await readFile(new URL("../src/security/localAuthorizat
 const localAuthorizationPolicy=await readFile(new URL("../src/security/localAuthorizationPolicy.ts",import.meta.url),"utf8");
 const authorizationLifecyclePolicy=await readFile(new URL("../src/security/authorizationLifecyclePolicy.ts",import.meta.url),"utf8");
 const foregroundDeepLinkPolicy=await readFile(new URL("../src/security/foregroundDeepLinkPolicy.ts",import.meta.url),"utf8");
+const sensitiveOperationPolicy=await readFile(new URL("../src/security/sensitiveOperationPolicy.ts",import.meta.url),"utf8");
 const startupDeepLinkPolicy=await readFile(new URL("../src/security/startupDeepLinkPolicy.ts",import.meta.url),"utf8");
 const walletOpenLinkPolicy=await readFile(new URL("../src/security/walletOpenLinkPolicy.ts",import.meta.url),"utf8");
 const unlockPolicy=await readFile(new URL("../src/security/unlockPolicy.ts",import.meta.url),"utf8");
@@ -44,6 +45,10 @@ assert.equal(walletOpenLinkPolicy.includes('url==="ynxwallet://open"'),true,"Wal
 assert.ok(source.includes("assertDeepLinkForeground(appStateRef.current)"),"every runtime and startup deep link must require the exact active foreground");
 assert.ok(source.includes("appStateRef.current=next"),"deep-link foreground admission must track AppState changes synchronously");
 assert.ok(foregroundDeepLinkPolicy.includes('state!=="active"'),"background, inactive and unknown AppState must reject authorization links");
+for(const required of ["!current.active","attempt.generation!==current.generation","attempt.binding!==current.binding"])assert.ok(sensitiveOperationPolicy.includes(required),`sensitive operation policy must enforce ${required}`);
+for(const boundary of ["transaction-sign","recovery-view","account-import","account-delete"])assert.ok(source.includes(`authorizeLocalKeyUse("${boundary}")`),`Wallet must retain biometric purpose ${boundary}`);
+assert.ok((source.match(/useSensitiveOperationGuard\(/g)??[]).length>=6,"send, recovery, onboarding, delete, revoke and the guard implementation must share lifecycle invalidation");
+for(const required of ["repository.addAccount(onboardingAccountInput(saving,new Date().toISOString()),()=>sensitiveGuard.verify(attempt))","repository.deleteAccount(account.account,()=>sensitiveGuard.verify(attempt))","authorizationAudit.revoke(record.requestDigest,new Date().toISOString(),()=>sensitiveGuard.verify(attempt))","sensitiveGuard.verify(attempt);const result=await client.broadcast"])assert.ok(source.includes(required),`sensitive mutations must verify lifecycle at ${required}`);
 assert.ok(androidActivity.includes("window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)"),"Android native launch window must set FLAG_SECURE before React starts");
 assert.ok(androidActivity.indexOf("window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)")<androidActivity.indexOf("super.onCreate(null)"),"Android FLAG_SECURE must precede React/splash lifecycle startup");
 for(const required of ['android:fullBackupContent="@xml/secure_store_backup_rules"','android:dataExtractionRules="@xml/secure_store_data_extraction_rules"'])assert.ok(androidManifest.includes(required),`Android manifest must bind SecureStore backup exclusion: ${required}`);

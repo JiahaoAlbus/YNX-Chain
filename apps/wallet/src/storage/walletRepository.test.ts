@@ -77,3 +77,13 @@ test("offline recovery reconstructs only the native account and never restores p
   assert.equal(replacementDevice.values.has("ynx.wallet.authorization-audit.v1"),false);
   assert.equal([...replacementDevice.values.keys()].some((key)=>key.includes("session")),false);
 });
+
+test("dismissed sensitive attempts cannot add or delete account material",async()=>{
+  const storage=new MemorySecureStorage(),repository=new WalletRepository(storage),blocked=()=>{throw new Error("backgrounded")};
+  await assert.rejects(repository.addAccount({secretHex:SECRET_ONE,label:"Main",createdAt:"2026-07-15T12:00:00.000Z",backupConfirmed:true},blocked),/backgrounded/);
+  assert.equal(storage.values.size,0);
+  const manifest=await repository.addAccount({secretHex:SECRET_ONE,label:"Main",createdAt:"2026-07-15T12:00:00.000Z",backupConfirmed:true});
+  await assert.rejects(repository.deleteAccount(manifest.selectedAccountId!,blocked),/backgrounded/);
+  assert.deepEqual((await repository.load()).manifest,manifest);
+  assert.equal(await repository.accountSecret(manifest.selectedAccountId!),SECRET_ONE);
+});

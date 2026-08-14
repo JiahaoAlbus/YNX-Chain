@@ -37,7 +37,7 @@ export class WalletRepository {
     return { manifest: emptyManifest(), migrated: false };
   }
 
-  async addAccount(input: { secretHex: string; label: string; createdAt: string; backupConfirmed: boolean }): Promise<WalletManifest> {
+  async addAccount(input: { secretHex: string; label: string; createdAt: string; backupConfirmed: boolean }, assertActive:()=>void=()=>{}): Promise<WalletManifest> {
     const current = (await this.load()).manifest;
     const identity = walletIdentity(input.secretHex);
     if (current.accounts.some((account) => account.account === identity.account)) throw new Error("This YNX account already exists in Wallet");
@@ -48,6 +48,7 @@ export class WalletRepository {
       createdAt: validTime(input.createdAt),
       backupConfirmed: input.backupConfirmed === true,
     });
+    assertActive();
     await this.storage.setItem(secretKey(identity.account), encodeSecret(identity.account, input.secretHex));
     const manifest = freezeManifest({
       schemaVersion: 2,
@@ -79,9 +80,10 @@ export class WalletRepository {
     return this.replaceManifest(current, { ...current, accounts: current.accounts.map((item) => item.account === account ? Object.freeze({ ...item, label: validLabel(label) }) : item) });
   }
 
-  async deleteAccount(account: string): Promise<WalletManifest> {
+  async deleteAccount(account: string, assertActive:()=>void=()=>{}): Promise<WalletManifest> {
     const current = (await this.load()).manifest;
     if (!current.accounts.some((item) => item.account === account)) throw new Error("Account is not stored in Wallet");
+    assertActive();
     await this.storage.deleteItem(secretKey(account));
     const accounts = current.accounts.filter((item) => item.account !== account);
     const selectedAccountId = current.selectedAccountId === account ? accounts[0]?.account ?? null : current.selectedAccountId;
