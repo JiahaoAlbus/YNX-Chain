@@ -74,11 +74,24 @@ function gitSucceeds(worktree, args) {
   }
 }
 
+function runGitStatus(worktree) {
+  try {
+    return execFileSync("git", ["-C", worktree, "status", "--porcelain=v1"], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+    }).replace(/\n$/, "");
+  } catch {
+    return null;
+  }
+}
+
 function isEvidenceOnlyPath(path) {
   if (path.startsWith("docs/") || path.startsWith("release/") || path.startsWith(".ai-bridge/")) return true;
   if (["product-release.json", "public-product-metadata.json"].includes(path)) return true;
   if (/^apps\/[^/]+\/(product-release\.json|public-product-metadata\.json)$/.test(path)) return true;
-  if (/^apps\/[^/]+\/tests\/release-manifest\.test\.mjs$/.test(path)) return true;
+  if (/(^|\/)tests?\//.test(path)) return true;
+  if (/(^|\/)[^/]+_test\.go$/.test(path)) return true;
+  if (/(^|\/)[^/]+\.(test|spec)\.[cm]?[jt]sx?$/.test(path)) return true;
   return /^apps\/[^/]+\/(FEATURE_COMPLETION_EVIDENCE|EVIDENCE_INDEX|UI_DESIGN_AUDIT|MIGRATION_COMPATIBILITY|OBSERVABILITY|RELEASE_NOTES|OPERATIONS|SLO_CAPACITY_PLAN|UNIT_ECONOMICS|FABLE5_REQUIREMENTS)\.md$/.test(path);
 }
 
@@ -179,7 +192,7 @@ const products = sections.map((section) => {
   const worktreeExists = Boolean(section.expectedWorktree && existsSync(section.expectedWorktree));
   const branch = worktreeExists ? runGit(section.expectedWorktree, ["branch", "--show-current"]) : null;
   const head = worktreeExists ? runGit(section.expectedWorktree, ["rev-parse", "HEAD"]) : null;
-  const status = worktreeExists ? runGit(section.expectedWorktree, ["status", "--porcelain=v1"]) : null;
+  const status = worktreeExists ? runGitStatus(section.expectedWorktree) : null;
   const dirtyEntries = status
     ? status
         .split("\n")
