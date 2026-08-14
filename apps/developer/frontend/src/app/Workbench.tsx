@@ -7,7 +7,7 @@ import { languageForPath } from "../editor/languages";
 import { ExtensionPanel } from "../extensions/ExtensionPanel";
 import { FileExplorer } from "../explorer/FileExplorer";
 import { PROJECT_BYTE_LIMIT, PROJECT_FILE_LIMIT, PROJECT_TRANSFER_SCHEMA, projectExportJSON, validateImportedProject, type ImportedProject } from "../explorer/projectTransfer";
-import { installContainerPackage, loadChainStatus, loadWorkspace, loadExtensions, runActive, runContainerActive, runProjectTests, runtimeHealth, saveWorkspace, type CollaborationRole, type InstalledExtension } from "../runtime/client";
+import { installContainerPackage, installContainerPythonPackage, loadChainStatus, loadWorkspace, loadExtensions, runActive, runContainerActive, runProjectTests, runtimeHealth, saveWorkspace, type CollaborationRole, type InstalledExtension } from "../runtime/client";
 import { loadProject, foldersFromFiles, saveProject, validPath, type ProjectState } from "../state/workspace";
 import { SourceControlPanel } from "../scm/SourceControlPanel";
 import { InteractiveTerminal, TerminalPanel } from "../terminal/TerminalPanel";
@@ -57,6 +57,7 @@ type EditorPreferences = {
 };
 const defaultEditorPreferences: EditorPreferences = { fontSize: 13, minimap: true, wordWrap: "off", autoSave: true, autoSaveDelay: 700 };
 const exactPackageSpec = /^(?:@[a-z0-9][a-z0-9._-]*\/)?[a-z0-9][a-z0-9._-]*@\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/;
+const exactPythonPackageSpec = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}==\d+\.\d+\.\d+(?:[A-Za-z0-9._+-]*)?$/;
 function loadEditorPreferences(): EditorPreferences {
   try {
     const value = JSON.parse(localStorage.getItem("ynx-code-editor-preferences/v1") || "null");
@@ -117,6 +118,7 @@ export function Workbench() {
     [testReview, setTestReview] = useState(false),
     [packageReview, setPackageReview] = useState(false),
     [previewOpen, setPreviewOpen] = useState(false),
+    [packageEcosystem, setPackageEcosystem] = useState<"npm" | "python">("npm"),
     [packageSpec, setPackageSpec] = useState(""),
     [packageBusy, setPackageBusy] = useState(false),
     [theme, setTheme] = useState<"light" | "dark">(() => (localStorage.getItem("ynx-code-theme") === "light" ? "light" : "dark")),
@@ -615,21 +617,26 @@ export function Workbench() {
     }
   };
   const installDependency = async () => {
-    if (!selectedRuntime || selectedRuntime.startsWith("ssh-") || !exactPackageSpec.test(packageSpec) || !packageManifestReview.valid || collaborationReadOnly) return;
+    const valid = packageEcosystem === "npm" ? exactPackageSpec.test(packageSpec) && packageManifestReview.valid : exactPythonPackageSpec.test(packageSpec);
+    if (!selectedRuntime || selectedRuntime.startsWith("ssh-") || !valid || collaborationReadOnly) return;
     setPackageReview(false);
     setPackageBusy(true);
     setBottom("task");
-    setOutput((current) => `${current}\n$ ynx package install ${packageSpec}\n`);
+    setOutput((current) => `${current}\n$ ynx package install --ecosystem ${packageEcosystem} ${packageSpec}\n`);
     try {
-      const result = await installContainerPackage(selectedRuntime, project.id, packageSpec, project.files);
-      if (!result.ok || result.scripts !== false || result.network.restored !== true) throw new Error("Package service returned an invalid installation envelope.");
-      setProject((current) => ({
-        ...current,
-        revision: current.revision + 1,
-        files: { ...current.files, "package.json": result.packageJson, "package-lock.json": result.packageLock },
-      }));
-      setDirty((current) => new Set([...current, "package.json", "package-lock.json"]));
-      setOutput((current) => `${current}${result.output}\n[installed] ${result.packageSpec} · ${result.bytes} bytes · lifecycle scripts disabled · temporary network removed · ${result.durationMs} ms\n`);
+      if (packageEcosystem === "npm") {
+        const result = await installContainerPackage(selectedRuntime, project.id, packageSpec, project.files);
+        if (!result.ok || result.scripts !== false || result.network.restored !== true) throw new Error("Package service returned an invalid npm installation envelope.");
+        setProject((current) => ({ ...current, revision: current.revision + 1, files: { ...current.files, "package.json": result.packageJson, "package-lock.json": result.packageLock } }));
+        setDirty((current) => new Set([...current, "package.json", "package-lock.json"]));
+        setOutput((current) => `${current}${result.output}\n[installed] ${result.packageSpec} · ${result.bytes} bytes · lifecycle scripts disabled · temporary network removed · ${result.durationMs} ms\n`);
+      } else {
+        const result = await installContainerPythonPackage(selectedRuntime, project.id, packageSpec, project.files);
+        if (!result.ok || result.buildScripts !== false || result.binaryOnly !== true || result.network.restored !== true) throw new Error("Package service returned an invalid Python installation envelope.");
+        setProject((current) => ({ ...current, revision: current.revision + 1, files: { ...current.files, "requirements.ynx.lock": result.requirementsLock } }));
+        setDirty((current) => new Set([...current, "requirements.ynx.lock"]));
+        setOutput((current) => `${current}${result.output}\n[installed] ${result.packageSpec} · ${result.bytes} bytes · binary wheels only · temporary network removed · ${result.durationMs} ms\n`);
+      }
       setPackageSpec("");
     } catch (error) {
       setOutput((current) => `${current}\x1b[31m${error instanceof Error ? error.message : String(error)}\x1b[0m\n`);
@@ -910,7 +917,7 @@ export function Workbench() {
             <Button variant="ghost" title={testCandidates.length ? `Review ${testCandidates.length} discovered project test files` : "No supported project tests discovered"} onClick={() => setTestReview(true)} disabled={!testCandidates.length || running}>
               <TestTube2 size={13} /> Test
             </Button>
-            <Button variant="ghost" title={!selectedRuntime ? "Select an isolated cloud workspace to install packages" : selectedRuntime.startsWith("ssh-") ? "Use the reviewed SSH terminal for remote package installation" : "Review one exact npm package installation"} onClick={() => setPackageReview(true)} disabled={!selectedRuntime || selectedRuntime.startsWith("ssh-") || packageBusy || collaborationReadOnly}>
+            <Button variant="ghost" title={!selectedRuntime ? "Select an isolated cloud workspace to install packages" : selectedRuntime.startsWith("ssh-") ? "Use the reviewed SSH terminal for remote package installation" : "Review one exact npm or Python package installation"} onClick={() => setPackageReview(true)} disabled={!selectedRuntime || selectedRuntime.startsWith("ssh-") || packageBusy || collaborationReadOnly}>
               <PackagePlus size={13} /> Package
             </Button>
             <Button variant="ghost" title={!selectedRuntime ? "Select an isolated cloud workspace to preview a listening port" : selectedRuntime.startsWith("ssh-") ? "Remote SSH port forwarding is not enabled on this tier" : "Review a short-lived container loopback preview"} onClick={() => setPreviewOpen(true)} disabled={!selectedRuntime || selectedRuntime.startsWith("ssh-") || collaborationReadOnly}>
@@ -1089,17 +1096,24 @@ export function Workbench() {
         <Dialog.Portal>
           <Dialog.Overlay className="dialog-overlay" />
           <Dialog.Content className="run-dialog package-dialog">
-            <Dialog.Title>Install an exact npm dependency</Dialog.Title>
-            <Dialog.Description>The selected LXD workspace installs only an exact registry version. npm lifecycle scripts stay disabled. Outbound network is attached only for this approved install and must be removed before success is returned.</Dialog.Description>
+            <Dialog.Title>Install an exact dependency</Dialog.Title>
+            <Dialog.Description>The selected LXD workspace installs one exact npm version or one exact Python wheel plan. npm lifecycle scripts and Python source builds stay disabled. Outbound network is attached only for this approved install and must be removed before success is returned.</Dialog.Description>
+            <label>
+              Ecosystem
+              <select value={packageEcosystem} onChange={(event) => { setPackageEcosystem(event.target.value as "npm" | "python"); setPackageSpec(""); }} aria-label="Package ecosystem">
+                <option value="npm">npm</option>
+                <option value="python">Python / pip</option>
+              </select>
+            </label>
             <label>
               Exact package and version
-              <input autoFocus value={packageSpec} onChange={(event) => setPackageSpec(event.target.value.trim())} placeholder="kleur@4.1.5" aria-label="Exact npm package and version" />
+              <input autoFocus value={packageSpec} onChange={(event) => setPackageSpec(event.target.value.trim())} placeholder={packageEcosystem === "npm" ? "kleur@4.1.5" : "colorama==0.4.6"} aria-label={`Exact ${packageEcosystem} package and version`} />
             </label>
-            <pre>{JSON.stringify({ task: "install-package", runtime: selectedRuntime, package: packageSpec || "<name>@<major>.<minor>.<patch>", approval: "install-package-once", command: packageSpec ? ["npm", "install", "--ignore-scripts", "--save-exact", "--no-audit", "--no-fund", packageSpec] : [], existingExactDependencies: packageManifestReview.items, maximumDirectDependencies: 64, maximumStoreBytes: 512 * 1024 * 1024, network: "temporary install egress; fail closed unless removed" }, null, 2)}</pre>
-            {packageManifestReview.error && <div className="collab-error">{packageManifestReview.error}</div>}
+            <pre>{JSON.stringify({ task: "install-package", ecosystem: packageEcosystem, runtime: selectedRuntime, package: packageSpec || (packageEcosystem === "npm" ? "<name>@<major>.<minor>.<patch>" : "<name>==<major>.<minor>.<patch>"), approval: "install-package-once", command: packageSpec ? packageEcosystem === "npm" ? ["npm", "install", "--ignore-scripts", "--save-exact", "--no-audit", "--no-fund", packageSpec] : ["python", "-m", "pip", "install", "--only-binary=:all:", "--disable-pip-version-check", "--no-input", packageSpec] : [], existingExactDependencies: packageEcosystem === "npm" ? packageManifestReview.items : (project.files["requirements.ynx.lock"] || "").split(/\r?\n/).filter(Boolean), maximumDirectDependencies: 64, maximumStoreBytes: 512 * 1024 * 1024, network: "temporary install egress; fail closed unless removed" }, null, 2)}</pre>
+            {packageEcosystem === "npm" && packageManifestReview.error && <div className="collab-error">{packageManifestReview.error}</div>}
             <div>
               <Button onClick={() => setPackageReview(false)}>Cancel</Button>
-              <Button variant="default" disabled={!exactPackageSpec.test(packageSpec) || !packageManifestReview.valid || packageBusy} onClick={installDependency}>Approve one install</Button>
+              <Button variant="default" disabled={(packageEcosystem === "npm" ? !exactPackageSpec.test(packageSpec) || !packageManifestReview.valid : !exactPythonPackageSpec.test(packageSpec)) || packageBusy} onClick={installDependency}>Approve one install</Button>
             </div>
           </Dialog.Content>
         </Dialog.Portal>

@@ -346,6 +346,38 @@ export function installContainerPackage(runtimeId: string, projectId: string, pa
     }),
   });
 }
+export type PythonPackageInstallResult = {
+  protocolVersion: string;
+  ok: true;
+  packageSpec: string;
+  manager: "pip";
+  buildScripts: false;
+  binaryOnly: true;
+  scope: "project-container";
+  bytes: number;
+  output: string;
+  requirementsLock: string;
+  durationMs: number;
+  network: { temporary: true; restored: true };
+};
+export function installContainerPythonPackage(runtimeId: string, projectId: string, packageSpec: string, files: Record<string, string>): Promise<PythonPackageInstallResult> {
+  const bytes = (value: string) => new TextEncoder().encode(value).byteLength;
+  return profileFetch(`/runtime/profiles/lxd/leases/${encodeURIComponent(runtimeId)}/packages`, {
+    method: "POST",
+    body: JSON.stringify({
+      protocolVersion: "ynx-code-runtime/v1",
+      approval: "install-package-once",
+      ecosystem: "python",
+      projectId,
+      packageSpec,
+      requirementsLock: files["requirements.ynx.lock"],
+      workspaceBytes: Object.values(files).reduce((total, value) => total + bytes(value), 0),
+      workspaceFileCount: Object.keys(files).length,
+      previousRequirementsBytes: bytes(files["requirements.ynx.lock"] || ""),
+      hasRequirementsLock: Object.hasOwn(files, "requirements.ynx.lock"),
+    }),
+  });
+}
 export type PortPreviewGrant = {
   previewId: string;
   runtimeId: string;

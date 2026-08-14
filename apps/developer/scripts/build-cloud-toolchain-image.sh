@@ -32,7 +32,7 @@ done
 lxc exec "$builder" -- getent hosts archive.ubuntu.com >/dev/null
 lxc exec "$builder" -- env DEBIAN_FRONTEND=noninteractive apt-get update -qq
 lxc exec "$builder" -- env DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-  clangd-18=1:18.1.3-1ubuntu1 ca-certificates curl gzip openjdk-21-jdk-headless
+  clangd-18=1:18.1.3-1ubuntu1 ca-certificates curl gzip openjdk-21-jdk-headless python3-pip python3-venv
 lxc exec "$builder" -- ln -sfn /usr/bin/clangd-18 /usr/local/bin/clangd
 lxc exec "$builder" -- npm install -g --ignore-scripts pyright@1.1.411
 lxc exec "$builder" -- ln -sfn /opt/node-v22.23.1/bin/pyright /usr/local/bin/pyright
@@ -64,12 +64,13 @@ lxc exec "$builder" -- sh -c "printf '%s  %s\n' '$junit_sha256' /usr/local/share
 lxc exec "$builder" -- java -jar /usr/local/share/ynx-code/junit-platform-console-standalone.jar --version
 lxc exec "$builder" -- sh -c 'rustc --version | grep "^rustc 1.92.0 "'
 lxc exec "$builder" -- sh -c 'cargo --version | grep "^cargo 1.92.0 "'
+lxc exec "$builder" -- sh -c 'python3 -m venv --copies /tmp/ynx-python-package-probe && /tmp/ynx-python-package-probe/bin/python -m pip --version && rm -rf /tmp/ynx-python-package-probe && dpkg-query -W -f="\${Package}=\${Version}\n" python3-pip python3-venv > /etc/ynx-code-python-packages.txt'
 
 lxc file push "$probe_path" "$builder/tmp/lsp-server-probe.mjs"
 lxc exec "$builder" -- node /tmp/lsp-server-probe.mjs
 lxc exec "$builder" -- sh -c "apt-get clean; rm -rf /var/lib/apt/lists/* /root/.cache/go-build /root/go/pkg/mod/cache/download /tmp/rust-analyzer.gz /tmp/rust-analyzer-asset /tmp/lsp-server-probe.mjs '/tmp/$jdtls_archive'"
 lxc stop "$builder"
-lxc publish "$builder" --alias "$target_alias" description="YNX Code Ubuntu 24.04 reviewed nine-language toolchain, JUnit and seven LSP servers"
+lxc publish "$builder" --alias "$target_alias" description="YNX Code Ubuntu 24.04 reviewed nine-language toolchain, Python package runtime, JUnit and seven LSP servers"
 fingerprint="$(lxc image info "$target_alias" | awk '/^Fingerprint:/{print $2}')"
 test "${#fingerprint}" -eq 64
 cleanup
