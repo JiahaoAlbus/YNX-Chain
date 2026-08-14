@@ -46,8 +46,11 @@ jobs:
           mv "$PREFIX/bin/ynx-wallet-cli.new" "$PREFIX/bin/ynx-wallet-cli"
           file "$PREFIX/bin/ynx-wallet-cli" | tee "$OUT/file.txt"
           grep -F 'x86_64' "$OUT/file.txt"
+          if codesign -dv --verbose=4 "$PREFIX/bin/ynx-wallet-cli" > "$OUT/artifact-codesign.stdout" 2> "$OUT/artifact-codesign.stderr"; then exit 1; fi
+          grep -F 'code object is not signed at all' "$OUT/artifact-codesign.stderr"
+          codesign --force --sign - "$PREFIX/bin/ynx-wallet-cli"
           codesign --verify --strict "$PREFIX/bin/ynx-wallet-cli"
-          codesign -dv --verbose=4 "$PREFIX/bin/ynx-wallet-cli" > "$OUT/codesign.txt" 2>&1
+          codesign -dv --verbose=4 "$PREFIX/bin/ynx-wallet-cli" > "$OUT/installed-copy-codesign.txt" 2>&1
 
           "$PREFIX/bin/ynx-wallet-cli" version | tee "$OUT/cold.json"
           "$PREFIX/bin/ynx-wallet-cli" version | tee "$OUT/second.json"
@@ -70,7 +73,7 @@ jobs:
 
           rm "$PREFIX/bin/ynx-wallet-cli"
           test ! -e "$PREFIX/bin/ynx-wallet-cli"
-          jq -n --arg sourceCommit "$GITHUB_SHA" --argjson workflowRunId "$GITHUB_RUN_ID" '{schemaVersion:1,artifactSourceCommit:"95bd2aad56bd8b72246f3f0e9529d699f09550ad",workflowSourceCommit:$sourceCommit,workflowRunId:$workflowRunId,architecture:"x64",nativeRunner:"macos-15-intel",minimumOS:"macOS 12 Monterey",signingClass:"ad_hoc_linker_signed_local_testnet_cli_candidate",archiveBytes:5218699,archiveSha256:"122e3bceae5854de9721b1e18e75bef5ce584985d0818a06fb160d9bac72aecf",installed:true,upgradeVerified:true,coldStart:true,secondStart:true,vectorVerified:true,ephemeralSigningVerified:true,privateKeyPersisted:false,chainId:"0x1917",httpRpcFailureClosed:true,unreachableRpcFailureClosed:true,unknownCommandFailureClosed:true,uninstallVerified:true,accountClaimed:false,balanceClaimed:false,transactionCreated:false,productionSigned:false,downloadHosted:false,deployedPublic:false,storeReleased:false}' > "$OUT/lifecycle.json"
+          jq -n --arg sourceCommit "$GITHUB_SHA" --argjson workflowRunId "$GITHUB_RUN_ID" '{schemaVersion:1,artifactSourceCommit:"95bd2aad56bd8b72246f3f0e9529d699f09550ad",workflowSourceCommit:$sourceCommit,workflowRunId:$workflowRunId,architecture:"x64",nativeRunner:"macos-15-intel",minimumOS:"macOS 12 Monterey",signingClass:"unsigned_macos_testnet_cli_candidate",installedCopyAdHocSigned:true,archiveBytes:5218699,archiveSha256:"122e3bceae5854de9721b1e18e75bef5ce584985d0818a06fb160d9bac72aecf",installed:true,upgradeVerified:true,coldStart:true,secondStart:true,vectorVerified:true,ephemeralSigningVerified:true,privateKeyPersisted:false,chainId:"0x1917",httpRpcFailureClosed:true,unreachableRpcFailureClosed:true,unknownCommandFailureClosed:true,uninstallVerified:true,accountClaimed:false,balanceClaimed:false,transactionCreated:false,productionSigned:false,downloadHosted:false,deployedPublic:false,storeReleased:false}' > "$OUT/lifecycle.json"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: ynx-wallet-cli-macos-x64-native
@@ -96,7 +99,7 @@ jobs:
           test -n "$archive" && test -n "$evidence"
           test "$(stat -f %z "$archive")" = 5218699
           test "$(shasum -a 256 "$archive" | cut -d ' ' -f 1)" = 122e3bceae5854de9721b1e18e75bef5ce584985d0818a06fb160d9bac72aecf
-          jq -e '.installed == true and .upgradeVerified == true and .coldStart == true and .secondStart == true and .vectorVerified == true and .ephemeralSigningVerified == true and .privateKeyPersisted == false and .chainId == "0x1917" and .httpRpcFailureClosed == true and .unreachableRpcFailureClosed == true and .unknownCommandFailureClosed == true and .uninstallVerified == true and .productionSigned == false and .downloadHosted == false and .deployedPublic == false and .storeReleased == false' "$evidence"
+          jq -e '.signingClass == "unsigned_macos_testnet_cli_candidate" and .installedCopyAdHocSigned == true and .installed == true and .upgradeVerified == true and .coldStart == true and .secondStart == true and .vectorVerified == true and .ephemeralSigningVerified == true and .privateKeyPersisted == false and .chainId == "0x1917" and .httpRpcFailureClosed == true and .unreachableRpcFailureClosed == true and .unknownCommandFailureClosed == true and .uninstallVerified == true and .productionSigned == false and .downloadHosted == false and .deployedPublic == false and .storeReleased == false' "$evidence"
           jq -n --arg sourceCommit "$GITHUB_SHA" --argjson workflowRunId "$GITHUB_RUN_ID" '{schemaVersion:1,sourceCommit:$sourceCommit,workflowRunId:$workflowRunId,downloaded:true,bytesVerified:true,sha256Verified:true,bytes:5218699,sha256:"122e3bceae5854de9721b1e18e75bef5ce584985d0818a06fb160d9bac72aecf"}' > downloaded-verification.json
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
