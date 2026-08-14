@@ -38,6 +38,17 @@
       "publicClaimAllowed": false
     },
     {
+      "id": "WA-SESSION-POLICY-PREVALIDATION-001",
+      "category": "wallet-smart-account",
+      "owners": ["02-wallet-auth", "01-chain-core", "29-integration"],
+      "precondition": "EntryPoint nonce N is unused and a Session Key signs out-of-policy target, calldata, value or noncanonical executeSession ABI.",
+      "action": "Submit every invalid operation at nonce N, then submit one valid owner or Passkey operation using the same nonce N.",
+      "expectedHttpStatus": null,
+      "expectedCode": "AA24 signature error",
+      "expectedState": "each invalid operation is rejected during validateUserOp with no nonce, target or session-spend mutation; the valid operation at the same nonce succeeds",
+      "publicClaimAllowed": false
+    },
+    {
       "id": "WA-PUBLIC-GATEWAY-INGRESS-IDENTIFIERS-001",
       "category": "wallet-auth",
       "owners": ["02-wallet-auth", "13-monitor", "29-integration"],
