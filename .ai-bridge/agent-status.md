@@ -4,7 +4,7 @@
 - Phase: `INTEGRATE`
 - Workspace: exact configured YNX 26 Worktree verified
 - Branch: `codex/final-data-fabric`
-- Engineering Source Commit: `314a17f96b89145b6feed6d61294f19376c2c9ef`
+- Engineering Source Commit: `6fbe0d33f4b4de3237391646d582e79cfee30a3c`
 - Remote Source Commit: pending push and exact verification for this slice
 - Source CI: pending for the current source; historical Run `30488889722` covers prior source only
 - Concurrent writer: no Git writer detected; an existing CodexPro server process was left untouched

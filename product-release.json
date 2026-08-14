@@ -2,10 +2,10 @@
   "schemaVersion": 2,
   "productId": "ynx-data-fabric",
   "productName": "YNX Data Fabric & Billing Ledger",
-  "release": "ynx-data-fabric-314a17f96b89",
+  "release": "ynx-data-fabric-6fbe0d33f4b4",
   "channel": "testnet-preview",
-  "sourceCommit": "314a17f96b89145b6feed6d61294f19376c2c9ef",
-  "sourceRelease": "ynx-data-fabric-314a17f96b89",
+  "sourceCommit": "6fbe0d33f4b4de3237391646d582e79cfee30a3c",
+  "sourceRelease": "ynx-data-fabric-6fbe0d33f4b4",
   "generatedAt": "2026-08-14T03:35:07Z",
   "states": {
     "implementedLocal": true,
@@ -38,15 +38,15 @@
   "artifacts": [],
   "evidence": {
     "localVerification": {
-      "sourceCommit": "314a17f96b89145b6feed6d61294f19376c2c9ef",
+      "sourceCommit": "6fbe0d33f4b4de3237391646d582e79cfee30a3c",
       "status": "passed",
       "environment": "macOS development environment with standard umask for cross-repository permission vectors",
-      "commands": ["go test ./internal/datafabric -count=1", "go test ./internal/datafabricapi ./internal/datafabricpay ./internal/datafabricpayledger -count=1", "go test -race ./internal/datafabric -count=1", "jq empty schemas/data-fabric/event-envelope-v1.schema.json schemas/data-fabric/event-envelope-v2.schema.json schemas/data-fabric/schema-registry-v2.json integration/product-event-contracts.json", "bash -lc 'umask 022; exec go test ./... -count=1'", "go test -race ./internal/datafabric ./internal/datafabricapi ./internal/datafabricnats ./internal/datafabricpay ./internal/datafabricpayledger ./internal/datafabricpostgres ./sdk/datafabric -count=1", "bash scripts/data-fabric/quality-gates.sh", "npm test --prefix sdk/datafabric-typescript", "npm audit --audit-level=high --registry=https://registry.npmjs.org --prefix sdk/datafabric-typescript"]
+      "commands": ["go test ./internal/datafabric -count=1", "go test ./internal/datafabricapi ./internal/datafabricpay ./internal/datafabricpayledger -count=1", "go test -race ./internal/datafabric -count=1", "jq empty schemas/data-fabric/event-envelope-v1.schema.json schemas/data-fabric/event-envelope-v2.schema.json schemas/data-fabric/schema-registry-v2.json integration/product-event-contracts.json", "bash -lc 'umask 022; exec go test ./... -count=1'", "go test -race ./internal/datafabric ./internal/datafabricapi ./internal/datafabricnats ./internal/datafabricpay ./internal/datafabricpayledger ./internal/datafabricpostgres ./sdk/datafabric -count=1", "go run golang.org/x/vuln/cmd/govulncheck@v1.6.0 ./...", "bash scripts/data-fabric/quality-gates.sh", "npm test --prefix sdk/datafabric-typescript", "npm audit --audit-level=high --registry=https://registry.npmjs.org --prefix sdk/datafabric-typescript"]
     },
     "remoteCI": {
       "runId": null,
       "workflow": "data-fabric",
-      "sourceCommit": "314a17f96b89145b6feed6d61294f19376c2c9ef",
+      "sourceCommit": "6fbe0d33f4b4de3237391646d582e79cfee30a3c",
       "headCommit": null,
       "status": "pending",
       "conclusion": null,

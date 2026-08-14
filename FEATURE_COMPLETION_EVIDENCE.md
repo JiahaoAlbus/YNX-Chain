@@ -1,7 +1,7 @@
 # YNX Data Fabric Feature Completion Evidence
 
-Engineering Source Commit: `314a17f96b89145b6feed6d61294f19376c2c9ef`
-Release Candidate: `ynx-data-fabric-314a17f96b89`
+Engineering Source Commit: `6fbe0d33f4b4de3237391646d582e79cfee30a3c`
+Release Candidate: `ynx-data-fabric-6fbe0d33f4b4`
 Phase: `INTEGRATE`
 Product Status: `ACTIVE`
 
@@ -51,6 +51,7 @@ This matrix reports only the strongest directly evidenced state. A successful lo
 - Data Fabric Race: passed.
 - Full Go repository test under standard CI permission-test `umask=022`: passed.
 - TypeScript SDK build, four Node tests and canonical-registry dependency audit: passed.
+- Go `1.25.13` reachable-vulnerability scan: zero reachable vulnerabilities.
 - GitHub Actions for the current Engineering Source Commit: pending.
 - Historical GitHub Actions Run `30488889722` passed for prior source `84872ff9042ed9f4364645750bbfa2dc3475e80b`; it is not current-source evidence.
 - Release truth positive vector and five negative mutations: passed.

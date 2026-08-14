@@ -1,7 +1,7 @@
 # YNX Data Fabric Evidence Index
 
-Engineering Source Commit: `314a17f96b89145b6feed6d61294f19376c2c9ef`
-Release Candidate: `ynx-data-fabric-314a17f96b89`
+Engineering Source Commit: `6fbe0d33f4b4de3237391646d582e79cfee30a3c`
+Release Candidate: `ynx-data-fabric-6fbe0d33f4b4`
 Phase: `INTEGRATE`
 Status: `ACTIVE`
 
@@ -9,7 +9,7 @@ Status: `ACTIVE`
 
 - Exact YNX 26 Workspace and `codex/final-data-fabric` Branch were verified before modification.
 - No concurrent Git writer was found. A CodexPro server process was observed for this Worktree and left untouched.
-- Commit `314a17f96b89145b6feed6d61294f19376c2c9ef` is the locally frozen Engineering Source Commit; push and exact remote verification are pending at this evidence checkpoint.
+- Commit `6fbe0d33f4b4de3237391646d582e79cfee30a3c` is the locally frozen Engineering Source Commit; push and exact remote verification are pending at this evidence checkpoint.
 - GitHub Actions is pending for the current Engineering Source Commit. Historical Run `30488889722` passed for prior source `84872ff9042ed9f4364645750bbfa2dc3475e80b` and is retained only as historical evidence.
 - The workflow runs full Go tests, Data Fabric Race tests, vet, vulnerability analysis, Linux builds and hashes, SBOM generation, quality gates, secret scanning, JSON validation and isolated PostgreSQL 17.10 transaction and logical backup/restore tests.
 - The workflow does not upload a public artifact; `downloadHosted` and all public states remain false.
@@ -76,6 +76,7 @@ go test ./internal/datafabricapi ./internal/datafabricpay ./internal/datafabricp
 go test -race ./internal/datafabric -count=1
 npm test --prefix sdk/datafabric-typescript
 npm audit --audit-level=high --registry=https://registry.npmjs.org --prefix sdk/datafabric-typescript
+go run golang.org/x/vuln/cmd/govulncheck@v1.6.0 ./...
 jq empty schemas/data-fabric/event-envelope-v1.schema.json schemas/data-fabric/event-envelope-v2.schema.json schemas/data-fabric/schema-registry-v2.json integration/product-event-contracts.json
 bash -lc 'umask 022; exec go test ./... -count=1'
 node scripts/data-fabric/release-truth-check-check.mjs
