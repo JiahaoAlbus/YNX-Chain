@@ -1,0 +1,91 @@
+{
+  "schemaVersion": "ynx.explorer-monitor.integration.v1",
+  "owner": "12-explorer-and-13-monitor",
+  "sourceCommit": null,
+  "baseCommit": "2a78ace0a647b73dd2961fae3361189116453a7d",
+  "network": {
+    "name": "YNX Testnet",
+    "chainId": 6423,
+    "nativeAsset": "YNXT"
+  },
+  "authority": {
+    "owns": [
+      "indexer persistence, canonical replay, cursors and read APIs",
+      "explorer read APIs and public chain-data presentation",
+      "monitor public projection and private operator presentation",
+      "Explorer and Monitor website handoff metadata"
+    ],
+    "readsOnly": [
+      "Chain Core RPC and ABCI facts",
+      "Wallet/Auth product-session contracts",
+      "Finance, DEX, Exchange and Quant public evidence",
+      "Data Fabric canonical events",
+      "central release and deployment acceptance"
+    ]
+  },
+  "publicApis": {
+    "indexer": [
+      "GET /health",
+      "GET /ynx/overview",
+      "GET /metrics",
+      "GET /blocks/latest?limit=&cursor=",
+      "GET /blocks/{height}",
+      "GET /txs?limit=&cursor=",
+      "GET /txs/{hash}"
+    ],
+    "explorer": [
+      "GET /health",
+      "GET /metrics",
+      "GET /api/summary",
+      "GET /api/stream",
+      "GET /api/blocks/latest",
+      "GET /api/blocks/{height}",
+      "GET /api/txs",
+      "GET /api/txs/{hash}",
+      "GET /api/accounts",
+      "GET /api/accounts/{address}",
+      "GET /api/tokens/{symbol}",
+      "GET /api/validators",
+      "GET /api/fees/{hash}",
+      "GET /api/search?q="
+    ],
+    "monitor": [
+      "GET /health",
+      "GET /version",
+      "GET /status",
+      "authenticated /ops/* operator APIs"
+    ]
+  },
+  "stableErrors": [
+    "dependency_unavailable",
+    "invalid_cursor",
+    "cursor_encoding_failed",
+    "not_found",
+    "public_status_unavailable",
+    "public_status_integrity_failed",
+    "public_status_stale"
+  ],
+  "dependencies": [
+    { "owner": "01-chain-core", "contract": "RPC/ABCI status, blocks, transactions, accounts and validators", "mode": "read-only-fail-closed" },
+    { "owner": "02-wallet-auth", "contract": "Monitor product session, role, expiry and revoke", "mode": "read-only-auth-verification" },
+    { "owner": "26-data-fabric", "contract": "canonical public event evidence", "mode": "read-only" },
+    { "owner": "29-integration", "contract": "central acceptance and shared Testnet endpoints", "mode": "handoff" },
+    { "owner": "30-security-sre-release", "contract": "artifact, secret, backup and deployment controls", "mode": "handoff" }
+  ],
+  "migration": {
+    "indexSnapshotVersion": 2,
+    "journalVersion": 1,
+    "cursorVersion": 1,
+    "deepForkPolicy": "fail closed with rebuild required when no common ancestor exists within configured recovery depth"
+  },
+  "releaseStatus": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "publicVerified": false
+  }
+}
