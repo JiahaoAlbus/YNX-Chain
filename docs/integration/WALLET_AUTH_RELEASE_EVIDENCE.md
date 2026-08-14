@@ -43,7 +43,9 @@ The verifier rejects a `true` gate unless a direct evidence record explicitly su
 
 The 2026-08-14 resumed snapshot was upgraded through GitHub Git-database readback. Every consumed checkpoint has an exact remote commit, parent, tree and evidence blob; Owner branches were fetched without touching the working tree. These source advances promoted no public, hosted, production, store, callback, reconnect, signing or transaction gate without direct evidence.
 
-The frozen checkpoints are Core `b8467853060db04c2981abb7fcfa22d4cfdcf65b`, Web `7d569d1babb85e6d28bb6bfc3b3c0c5fd828255d`, Android `8666c0bb0535270e595f3db54e7d2e35b18afe66`, iOS/macOS `50d3b2e2c5bd77456b84f348c48fa4a9ed76b5b3`, and Desktop/CLI/SDK `c738443079fe2519d334d7104f30dc9675673c9a`. The handoff adds no truth beyond its parent evidence.
+The frozen checkpoints are Core `b8467853060db04c2981abb7fcfa22d4cfdcf65b`, Web `7d569d1babb85e6d28bb6bfc3b3c0c5fd828255d`, Android `8666c0bb0535270e595f3db54e7d2e35b18afe66`, iOS/macOS `50d3b2e2c5bd77456b84f348c48fa4a9ed76b5b3`, and Desktop/CLI/SDK `fb0b1ac18b809a7b9782fdebc4f9c2c50312fb7b`.
+
+macOS arm64 CLI run 31776448279 proves native-CI install/upgrade, cold/second start, frozen Auth vector, ephemeral device proof without key persistence, exact `0x1917`, fail-close, uninstall and connector rehash. The gzip is 4,904,463 bytes with SHA-256 `21db36f1c80d4e88520918de141a7f71921817799270ff671db88179023b5591`; it is ad-hoc linker signed, has no official YNX URL and is not production signed.
 
 Linux x64 RPM run 31776185699 proves Fedora 42 x64 DNF/RPM scripts, install→upgrade→rollback→re-upgrade, sandbox state, GUI cold/second launch, exact `0x1917`, RPC fail-close, uninstall and artifact rehash. The RPM is 86,926,281 bytes with SHA-256 `8cf24d83dd5da5851484eab14ce9e6cd16946c95699a7af1e11048bbd7692bea`; it is unsigned and unhosted.
 

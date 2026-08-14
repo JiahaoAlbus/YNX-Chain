@@ -46,9 +46,9 @@
     {"owner":"ios-macos","candidateCommit":"b081dd7022f0a07499c1de91b8e3d2579363b926","remoteFastForwardReported":true,"remoteReadbackComplete":false,"ciComplete":false,"consumedForReleaseTruth":false,"note":"Universal Link path fix has no terminal successful evidence; associated-domain/public delivery remain false."},
     {"owner":"ios-macos","candidateCommit":"7115615f0fa06b75dfcf1c8d3c1c91edc2dff6d1","remoteFastForwardReported":true,"remoteReadbackComplete":true,"ciComplete":false,"consumedForReleaseTruth":false,"note":"Recovery workflow run remains in progress and promotes no biometric, recovery, auth or public gate."},
     {"owner":"core-auth-gateway","candidateCommit":"6425ec0c390c43de65b35529c885b353c747930d","remoteFastForwardReported":true,"remoteReadbackComplete":true,"ciComplete":null,"consumedForReleaseTruth":false,"note":"Unknown Core successor remains pending beyond the authorized batch evidence."},
-    {"owner":"desktop-cli-sdk","candidateCommit":"fb0b1ac18b809a7b9782fdebc4f9c2c50312fb7b","remoteFastForwardReported":true,"remoteReadbackComplete":true,"ciComplete":true,"consumedForReleaseTruth":false,"note":"macOS arm64 CLI evidence remains queued separately."},
     {"owner":"desktop-cli-sdk","candidateCommit":"ca1fc40aaadab1421b4681647e619516ff25ff9b","remoteFastForwardReported":true,"remoteReadbackComplete":true,"ciComplete":true,"consumedForReleaseTruth":false,"note":"macOS arm64 CLI handoff remains queued separately."},
     {"owner":"android-api36","candidateCommit":"f1edbec46ad4300beec406873b03db2da7c72e4b","remoteFastForwardReported":true,"remoteReadbackComplete":false,"ciComplete":true,"consumedForReleaseTruth":false,"note":"Canonical authorization pending-to-delivered recovery remains queued after Desktop slices."}
+    ,{"owner":"ios-macos","candidateCommit":"3e77f2e015163ac57f50759715accd8277d96a13","remoteFastForwardReported":true,"remoteReadbackComplete":true,"ciComplete":false,"consumedForReleaseTruth":false,"note":"Simulator standalone signing/Keychain source fix has no terminal CI; all functional and release gates remain false."}
   ],
   "ownerSources": [
     {
@@ -90,8 +90,8 @@
     {
       "owner": "desktop-cli-sdk",
       "branch": "codex/wallet-desktop-cli-sdk-20260813",
-      "sourceCommit": "c738443079fe2519d334d7104f30dc9675673c9a",
-      "remoteCommitObserved": "c738443079fe2519d334d7104f30dc9675673c9a",
+      "sourceCommit": "fb0b1ac18b809a7b9782fdebc4f9c2c50312fb7b",
+      "remoteCommitObserved": "fb0b1ac18b809a7b9782fdebc4f9c2c50312fb7b",
       "branchHeadObserved": "ca1fc40aaadab1421b4681647e619516ff25ff9b",
       "remoteVerifiedAt": "2026-08-14T04:05:00Z",
       "verificationMode": "github-git-database-parent-tree-blob-readback"
@@ -709,6 +709,13 @@
       "commit": "c738443079fe2519d334d7104f30dc9675673c9a",
       "path": "release/integration/wallet-desktop-cli-sdk-contract.json",
       "supports": []
+    },
+    "macos-cli-arm64-native-lifecycle": {
+      "type": "git-object",
+      "direct": true,
+      "commit": "fb0b1ac18b809a7b9782fdebc4f9c2c50312fb7b",
+      "path": "release/wallet-cli/macos-arm64-native/manifest.json",
+      "supports": ["macos-cli-arm64.build", "macos-cli-arm64.install", "macos-cli-arm64.coldLaunch", "macos-cli-arm64.secondLaunch", "macos-cli-arm64.testnet", "macos-cli-arm64.sign"]
     }
   },
   "platforms": [
@@ -887,6 +894,16 @@
       "gates": {"build":true,"install":true,"coldLaunch":true,"secondLaunch":true,"testnet":true,"sign":true,"tx":false,"callback":false,"reconnect":false,"downloadHosted":false,"productionSigned":false,"storeReleased":false},
       "evidenceBindings": {"build":["windows-cli-arm64-native-lifecycle"],"install":["windows-cli-arm64-native-lifecycle"],"coldLaunch":["windows-cli-arm64-native-lifecycle"],"secondLaunch":["windows-cli-arm64-native-lifecycle"],"testnet":["windows-cli-arm64-native-lifecycle"],"sign":["windows-cli-arm64-native-lifecycle"],"tx":["windows-cli-arm64-native-lifecycle"],"callback":["windows-cli-arm64-native-lifecycle"],"reconnect":["windows-cli-arm64-native-lifecycle"],"downloadHosted":["windows-cli-arm64-native-lifecycle"],"productionSigned":["windows-cli-arm64-native-lifecycle"],"storeReleased":["windows-cli-arm64-native-lifecycle"]},
       "notes": ["Windows 11 arm64 native CI proved upgrade/install, cold/second start, frozen vectors, exact 0x1917, fail-close and uninstall. sign=true is limited to a temporary P-256 self-test with no persisted key; it is not a production account or chain transaction signature. The installer is Authenticode NotSigned and not hosted/public/store-released."]
+    },
+    {
+      "id": "macos-cli-arm64",
+      "ownerSource": "desktop-cli-sdk",
+      "artifactClass": "ad-hoc-macos-testnet-cli-candidate",
+      "status": "native-ci-lifecycle",
+      "capabilities": {"installedNativeCI":true,"installedLocal":false,"upgradeVerified":true,"ephemeralDeviceProof":true,"privateKeyPersisted":false,"artifactAdHocSigned":true,"postUploadRedownloadHashVerified":true},
+      "gates": {"build":true,"install":true,"coldLaunch":true,"secondLaunch":true,"testnet":true,"sign":true,"tx":false,"callback":false,"reconnect":false,"downloadHosted":false,"productionSigned":false,"storeReleased":false},
+      "evidenceBindings": {"build":["macos-cli-arm64-native-lifecycle"],"install":["macos-cli-arm64-native-lifecycle"],"coldLaunch":["macos-cli-arm64-native-lifecycle"],"secondLaunch":["macos-cli-arm64-native-lifecycle"],"testnet":["macos-cli-arm64-native-lifecycle"],"sign":["macos-cli-arm64-native-lifecycle"],"tx":["macos-cli-arm64-native-lifecycle"],"callback":["macos-cli-arm64-native-lifecycle"],"reconnect":["macos-cli-arm64-native-lifecycle"],"downloadHosted":["macos-cli-arm64-native-lifecycle"],"productionSigned":["macos-cli-arm64-native-lifecycle"],"storeReleased":["macos-cli-arm64-native-lifecycle"]},
+      "notes": ["macOS 14 arm64 native CI proved install/upgrade, cold/second start, frozen vectors, ephemeral proof, exact 0x1917, fail-close, uninstall and rehash. The artifact is ad-hoc linker signed with no official YNX URL; production signing, public hosting and store remain false."]
     },
     {
       "id": "macos-cli-x64",
