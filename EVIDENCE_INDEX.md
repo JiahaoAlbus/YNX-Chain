@@ -10,7 +10,7 @@ Status: `ACTIVE`
 - Exact YNX 26 Workspace and `codex/final-data-fabric` Branch were verified before modification.
 - No concurrent Git writer was found. A CodexPro server process was observed for this Worktree and left untouched.
 - Commit `962e2668fa666729f210990a7ad89e5ab5b66d6f` is the frozen Engineering Source Commit. It preserves the Chain Core commitment reference boundary and adds same-product account isolation; remote review Branch `codex/data-fabric-typescript-sdk-20260814` and PR `#92` target the protected product Branch.
-- Current-source remote CI is pending until the evidence checkpoint is pushed. Prior Run `31770225080` passed both Data Fabric jobs for the preceding source/evidence checkpoint.
+- Current-source Run `31771466255` passed `data-fabric-verify` and `data-fabric-postgres-live` at exact evidence checkpoint `7ee762137896bccf796aa5ae5c5738d929813999`.
 - The workflow runs full Go tests, Data Fabric Race tests, vet, vulnerability analysis, Linux builds and hashes, SBOM generation, quality gates, secret scanning, JSON validation and isolated PostgreSQL 17.10 transaction and logical backup/restore tests.
 - The workflow does not upload a public artifact; `downloadHosted` and all public states remain false.
 - The two stale untracked recovery summaries discovered at takeover are preserved under `recovery/2026-07-23/` and are not current truth.
@@ -85,7 +85,7 @@ node scripts/data-fabric/release-truth-check-check.mjs
 bash scripts/data-fabric/quality-gates.sh
 ```
 
-The full repository test and Data Fabric API race suite passed locally. One hundred simultaneous canonical account sessions each returned only their own event; that bounded file Store/API result is not a Testnet, database, broker or 1000-producer capacity claim. Current-source CI is pending. PR `#92` requires only `data-fabric-verify`, `data-fabric-postgres-live` and one independent approval; no protection bypass was attempted.
+The full repository test and Data Fabric API race suite passed locally. One hundred simultaneous canonical account sessions each returned only their own event; that bounded file Store/API result is not a Testnet, database, broker or 1000-producer capacity claim. Current-source CI passed. PR `#92` is mergeable but blocked only by the required independent approval; no protection bypass was attempted.
 
 ## Evidence still missing
 

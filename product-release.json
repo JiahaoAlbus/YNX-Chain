@@ -6,7 +6,7 @@
   "channel": "testnet-preview",
   "sourceCommit": "962e2668fa666729f210990a7ad89e5ab5b66d6f",
   "sourceRelease": "ynx-data-fabric-962e2668fa66",
-  "generatedAt": "2026-08-14T04:48:52Z",
+  "generatedAt": "2026-08-14T05:04:54Z",
   "states": {
     "implementedLocal": true,
     "testedLocal": true,
@@ -44,16 +44,16 @@
       "commands": ["go test ./internal/datafabric -count=1", "go test ./internal/datafabricapi ./internal/datafabricpay ./internal/datafabricpayledger -count=1", "go test -race ./internal/datafabric -count=1", "jq empty schemas/data-fabric/event-envelope-v1.schema.json schemas/data-fabric/event-envelope-v2.schema.json schemas/data-fabric/schema-registry-v2.json integration/product-event-contracts.json", "bash -lc 'umask 022; exec go test ./... -count=1'", "go test -race ./internal/datafabric ./internal/datafabricapi ./internal/datafabricnats ./internal/datafabricpay ./internal/datafabricpayledger ./internal/datafabricpostgres ./sdk/datafabric -count=1", "go run golang.org/x/vuln/cmd/govulncheck@v1.6.0 ./...", "bash scripts/data-fabric/quality-gates.sh", "npm test --prefix sdk/datafabric-typescript", "npm audit --audit-level=high --registry=https://registry.npmjs.org --prefix sdk/datafabric-typescript"]
     },
     "remoteCI": {
-      "runId": null,
+      "runId": 31771466255,
       "workflow": "data-fabric",
       "sourceCommit": "962e2668fa666729f210990a7ad89e5ab5b66d6f",
-      "headCommit": null,
-      "status": "pending",
-      "conclusion": null,
-      "startedAt": null,
-      "duration": null,
+      "headCommit": "7ee762137896bccf796aa5ae5c5738d929813999",
+      "status": "completed",
+      "conclusion": "success",
+      "startedAt": "2026-08-14T04:57:14Z",
+      "duration": "4m34s",
       "artifactsPublished": false,
-      "url": null
+      "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/31771466255"
     },
     "sourceCandidate": {
       "tag": "data-fabric-v0.2.0-source-candidate",

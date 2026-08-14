@@ -33,7 +33,7 @@ Status: `ACTIVE`
 | productionSigned | false | Only test-fixture signing is exercised |
 | storeReleased | false | Native app-store delivery is not applicable to this headless service |
 
-Current-source remote CI is pending until this evidence checkpoint is pushed to PR `#92`. Prior Run `31770225080` passed both Data Fabric jobs for the preceding source/evidence checkpoint. PR `#92` requires the two applicable Data Fabric checks and one independent approval; no protection bypass is authorized. The workflow publishes no downloadable artifact.
+Current-source Run `31771466255` passed `data-fabric-verify` and `data-fabric-postgres-live` at exact evidence checkpoint `7ee762137896bccf796aa5ae5c5738d929813999`. PR `#92` is mergeable but blocked because no independent approval exists; the only review is non-approving commentary. No protection bypass is authorized. The workflow publishes no downloadable artifact.
 
 ## Current executable integration
 
