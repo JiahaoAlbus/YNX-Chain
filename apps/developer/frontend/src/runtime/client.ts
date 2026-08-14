@@ -630,17 +630,25 @@ export type AgentRun = {
     steps: Array<{ title: string; acceptance: string }>;
     contextPaths: string[];
     createPaths: string[];
+    deletePaths: string[];
   } | null;
   approvedPaths: string[];
   approvedCreatePaths: string[];
+  approvedDeletePaths: string[];
   proposal: {
     summary: string;
     files: Array<{
       path: string;
       content: string;
-      operation: "edit" | "create";
+      operation: "edit" | "create" | "delete";
     }>;
   } | null;
+  trash: Array<{
+    path: string;
+    content: string;
+    digest: string;
+    deletedRevision: number;
+  }>;
   review: { approved: boolean; summary: string; findings: string[] } | null;
   deployment: {
     target: "ynx-testnet" | "web-preview";

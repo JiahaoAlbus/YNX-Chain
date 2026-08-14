@@ -391,8 +391,11 @@ the server requires each source fragment to match exactly once before it
 materializes the full reviewable file. The Planner may separately suggest new
 paths; the user must approve each exact path, and the server rejects existing
 paths, file-parent collisions, duplicates, unapproved output and oversized
-content before a create operation enters the reviewable proposal. Delete is not
-implemented and remains disabled. A separate Reviewer decision is required,
+content before a create operation enters the reviewable proposal. Deletes also
+require an exact approved existing path and captured SHA-256. Apply removes the
+file but persists its content/digest in owner-scoped run trash; a separate
+`restore-once` grant and unchanged revision restore it in a new workspace
+revision. Irreversible deletion remains disabled. A separate Reviewer decision is required,
 and apply requires an explicit `write-once` approval plus the unchanged captured
 workspace revision. Runs and events persist in SQLite WAL with a SHA-256 hash
 chain. After apply, the Tester can run one explicitly selected supported entry
@@ -428,7 +431,9 @@ a scope token plus an owner-scoped UUID that is atomically consumed in SQLite;
 reuse is rejected across actions and runs. Grant and denial decisions enter the
 same hash-chained run ledger. Package install, Agent Git, browser network,
 secret-reference, destructive delete and deployment execution are visibly
-disabled until their own adapters and recovery gates exist.
+  disabled until their own adapters and recovery gates exist. Recoverable delete
+  and restore are workspace-write capabilities; destructive delete remains a
+  separate disabled permission.
 
 ## 13. Model router and project memory
 

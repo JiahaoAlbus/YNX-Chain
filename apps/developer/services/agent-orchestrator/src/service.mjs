@@ -13,7 +13,7 @@ export function createAgentOrchestrator({
 }) {
   const db = new DatabaseSync(filename);
   db.exec(
-    "PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL; PRAGMA busy_timeout=5000; CREATE TABLE IF NOT EXISTS agent_runs(owner_id TEXT NOT NULL,run_id TEXT NOT NULL,project_id TEXT NOT NULL,status TEXT NOT NULL,provider TEXT NOT NULL,model TEXT NOT NULL,intent TEXT NOT NULL,workspace_revision INTEGER NOT NULL,plan TEXT,approved_paths TEXT NOT NULL DEFAULT '[]',approved_create_paths TEXT NOT NULL DEFAULT '[]',proposal TEXT,review TEXT,deployment TEXT,created_at TEXT NOT NULL,updated_at TEXT NOT NULL,PRIMARY KEY(owner_id,run_id)); CREATE TABLE IF NOT EXISTS agent_events(owner_id TEXT NOT NULL,run_id TEXT NOT NULL,sequence INTEGER NOT NULL,event_type TEXT NOT NULL,payload TEXT NOT NULL,previous_hash TEXT NOT NULL,event_hash TEXT NOT NULL,created_at TEXT NOT NULL,PRIMARY KEY(owner_id,run_id,sequence)); CREATE TABLE IF NOT EXISTS agent_approvals(owner_id TEXT NOT NULL,approval_id TEXT NOT NULL,permission TEXT NOT NULL,run_id TEXT NOT NULL,created_at TEXT NOT NULL,PRIMARY KEY(owner_id,approval_id));",
+    "PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL; PRAGMA busy_timeout=5000; CREATE TABLE IF NOT EXISTS agent_runs(owner_id TEXT NOT NULL,run_id TEXT NOT NULL,project_id TEXT NOT NULL,status TEXT NOT NULL,provider TEXT NOT NULL,model TEXT NOT NULL,intent TEXT NOT NULL,workspace_revision INTEGER NOT NULL,plan TEXT,approved_paths TEXT NOT NULL DEFAULT '[]',approved_create_paths TEXT NOT NULL DEFAULT '[]',approved_delete_paths TEXT NOT NULL DEFAULT '[]',proposal TEXT,review TEXT,deployment TEXT,trash TEXT NOT NULL DEFAULT '[]',created_at TEXT NOT NULL,updated_at TEXT NOT NULL,PRIMARY KEY(owner_id,run_id)); CREATE TABLE IF NOT EXISTS agent_events(owner_id TEXT NOT NULL,run_id TEXT NOT NULL,sequence INTEGER NOT NULL,event_type TEXT NOT NULL,payload TEXT NOT NULL,previous_hash TEXT NOT NULL,event_hash TEXT NOT NULL,created_at TEXT NOT NULL,PRIMARY KEY(owner_id,run_id,sequence)); CREATE TABLE IF NOT EXISTS agent_approvals(owner_id TEXT NOT NULL,approval_id TEXT NOT NULL,permission TEXT NOT NULL,run_id TEXT NOT NULL,created_at TEXT NOT NULL,PRIMARY KEY(owner_id,approval_id));",
   );
   if (
     !db
@@ -31,6 +31,17 @@ export function createAgentOrchestrator({
     db.exec(
       "ALTER TABLE agent_runs ADD COLUMN approved_create_paths TEXT NOT NULL DEFAULT '[]'",
     );
+  for (const [column, definition] of [
+    ["approved_delete_paths", "TEXT NOT NULL DEFAULT '[]'"],
+    ["trash", "TEXT NOT NULL DEFAULT '[]'"],
+  ])
+    if (
+      !db
+        .prepare("PRAGMA table_info(agent_runs)")
+        .all()
+        .some((item) => item.name === column)
+    )
+      db.exec(`ALTER TABLE agent_runs ADD COLUMN ${column} ${definition}`);
   const getRun = db.prepare(
       "SELECT * FROM agent_runs WHERE owner_id=? AND run_id=?",
     ),
@@ -41,7 +52,7 @@ export function createAgentOrchestrator({
       "INSERT INTO agent_runs(owner_id,run_id,project_id,status,provider,model,intent,workspace_revision,plan,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)",
     ),
     updateRun = db.prepare(
-      "UPDATE agent_runs SET status=?,provider=?,model=?,plan=?,approved_paths=?,approved_create_paths=?,proposal=?,review=?,deployment=?,workspace_revision=?,updated_at=? WHERE owner_id=? AND run_id=?",
+      "UPDATE agent_runs SET status=?,provider=?,model=?,plan=?,approved_paths=?,approved_create_paths=?,approved_delete_paths=?,proposal=?,review=?,deployment=?,trash=?,workspace_revision=?,updated_at=? WHERE owner_id=? AND run_id=?",
     ),
     lastEvent = db.prepare(
       "SELECT sequence,event_hash FROM agent_events WHERE owner_id=? AND run_id=? ORDER BY sequence DESC LIMIT 1",
@@ -162,7 +173,7 @@ export function createAgentOrchestrator({
             modelInput(
               body,
               "Planner",
-              `Create a concise implementation plan for this request. Return JSON only as {\"summary\":string,\"steps\":[{\"title\":string,\"acceptance\":string}],\"contextPaths\":[string],\"createPaths\":[string]}. contextPaths must name existing files to read. createPaths must name only necessary new files. Available paths: ${Object.keys(workspace.files).join(", ")}\nRequest: ${intent}`,
+              `Create a concise implementation plan for this request. Return JSON only as {\"summary\":string,\"steps\":[{\"title\":string,\"acceptance\":string}],\"contextPaths\":[string],\"createPaths\":[string],\"deletePaths\":[string]}. contextPaths must name existing files to read. createPaths must name only necessary new files. deletePaths must name existing files whose removal is necessary and recoverable. Available paths: ${Object.keys(workspace.files).join(", ")}\nRequest: ${intent}`,
               clientController.signal,
             ),
           ),
@@ -209,6 +220,10 @@ export function createAgentOrchestrator({
           createPaths = validateCreatePaths(
             body.createPaths || [],
             workspace.files,
+          ),
+          deletePaths = validatePaths(
+            body.deletePaths || [],
+            workspace.files,
           );
         authorize(
           "read-context",
@@ -221,10 +236,12 @@ export function createAgentOrchestrator({
           status: "proposal_generation",
           approvedPaths: paths,
           approvedCreatePaths: createPaths,
+          approvedDeletePaths: deletePaths,
         });
         append(owner, id, "context.approved", {
           paths,
           createPaths,
+          deletePaths,
           digests: Object.fromEntries(
             paths.map((path) => [path, sha(workspace.files[path])]),
           ),
@@ -261,10 +278,11 @@ export function createAgentOrchestrator({
           generated = await generateValidatedProposal(
             modelRouter,
             body,
-            `Implement the approved plan. Return JSON only as {\"summary\":string,\"edits\":[{\"path\":string,\"expectedDigest\":string,\"replacements\":[{\"find\":string,\"replace\":string}]}],\"creates\":[{\"path\":string,\"content\":string}]}. Use exact non-empty find text that occurs once. Only create explicitly approved new paths. Keep the response compact; never return unchanged files.\nPlan: ${stable(current.plan)}\nApproved semantic memory:\n${memoryContext}\nApproved context:\n${context}`,
+            `Implement the approved plan. Return JSON only as {\"summary\":string,\"edits\":[{\"path\":string,\"expectedDigest\":string,\"replacements\":[{\"find\":string,\"replace\":string}]}],\"creates\":[{\"path\":string,\"content\":string}],\"deletes\":[{\"path\":string,\"expectedDigest\":string}]}. Use exact non-empty find text that occurs once. Only create or delete explicitly approved paths. Deletes are recoverable from server-side trash. Keep the response compact; never return unchanged files.\nPlan: ${stable(current.plan)}\nApproved semantic memory:\n${memoryContext}\nApproved context:\n${context}`,
             workspace.files,
             current.approvedPaths,
             current.approvedCreatePaths,
+            current.approvedDeletePaths,
           ),
           coder = generated.coder,
           proposal = generated.proposal,
@@ -321,10 +339,11 @@ export function createAgentOrchestrator({
           generated = await generateValidatedProposal(
             modelRouter,
             body,
-            `Revise the rejected patch to satisfy the user intent and every Reviewer finding. Preserve all unrelated imports, declarations, and behavior. Prefer the smallest exact replacement. Return JSON only as {"summary":string,"edits":[{"path":string,"expectedDigest":string,"replacements":[{"find":string,"replace":string}]}],"creates":[{"path":string,"content":string}]}.\nIntent: ${current.intent}\nRejected proposal: ${stable(current.proposal)}\nReviewer: ${stable(current.review)}\nApproved context:\n${context}`,
+            `Revise the rejected patch to satisfy the user intent and every Reviewer finding. Preserve all unrelated imports, declarations, and behavior. Prefer the smallest exact replacement. Return JSON only as {"summary":string,"edits":[{"path":string,"expectedDigest":string,"replacements":[{"find":string,"replace":string}]}],"creates":[{"path":string,"content":string}],"deletes":[{"path":string,"expectedDigest":string}]}.\nIntent: ${current.intent}\nRejected proposal: ${stable(current.proposal)}\nReviewer: ${stable(current.review)}\nApproved context:\n${context}`,
             workspace.files,
             current.approvedPaths,
             current.approvedCreatePaths,
+            current.approvedDeletePaths,
           ),
           coder = generated.coder,
           proposal = generated.proposal,
@@ -377,8 +396,17 @@ export function createAgentOrchestrator({
           "write_approval_required",
         );
         const files = { ...workspace.files };
-        for (const file of current.proposal.files)
-          files[file.path] = file.content;
+        for (const file of current.proposal.files) {
+          if (file.operation === "delete") delete files[file.path];
+          else files[file.path] = file.content;
+        }
+        const deleted = current.proposal.files
+          .filter((file) => file.operation === "delete")
+          .map((file) => ({
+            path: file.path,
+            content: file.content,
+            digest: sha(file.content),
+          }));
         const folders = [
             ...new Set([
               ...workspace.folders,
@@ -396,20 +424,110 @@ export function createAgentOrchestrator({
               name: workspace.name,
               files,
               folders,
-              open: workspace.open,
-              active: workspace.active,
+              open: workspace.open.filter((path) => Object.hasOwn(files, path)),
+              active: Object.hasOwn(files, workspace.active)
+                ? workspace.active
+                : Object.keys(files).sort()[0],
             },
           });
+        const trash = [
+          ...(current.trash || []),
+          ...deleted.map((file) => ({
+            ...file,
+            deletedRevision: saved.revision,
+          })),
+        ];
         persist({
           ...current,
           status: "applied",
+          trash,
           workspaceRevision: saved.revision,
         });
         append(owner, id, "write.applied", {
           approval: "write-once",
           attempt: applyAttempt,
           revision: saved.revision,
-          files: current.proposal.files.map((file) => file.path),
+          files: current.proposal.files.map((file) => ({
+            path: file.path,
+            operation: file.operation,
+          })),
+        });
+      } else if (body.action === "restore-deleted") {
+        requireStateOneOf(current, [
+          "applied",
+          "test_failed",
+          "tested",
+          "deployment_review",
+          "deployment_approved",
+        ]);
+        const latest = workspaceStore.get(owner, current.projectId),
+          requested = [...new Set((body.paths || []).map(safePath))],
+          available = new Map(
+            (current.trash || []).map((file) => [file.path, file]),
+          );
+        if (!requested.length || requested.some((path) => !available.has(path)))
+          throw fault(
+            "Restore paths must select recoverable deleted files.",
+            "invalid_restore_paths",
+            400,
+          );
+        if (latest.revision !== current.workspaceRevision)
+          throw fault(
+            "Workspace changed after the agent deletion.",
+            "revision_conflict",
+            409,
+          );
+        if (requested.some((path) => Object.hasOwn(latest.files, path)))
+          throw fault(
+            "A restore path now exists in the workspace.",
+            "restore_path_conflict",
+            409,
+          );
+        authorize(
+          "workspace-restore",
+          "restore-once",
+          "One-time restore approval is required.",
+          "restore_approval_required",
+        );
+        const files = { ...latest.files };
+        for (const path of requested) files[path] = available.get(path).content;
+        const restoreAttempt =
+            current.events.filter(
+              (event) => event.event_type === "trash.restored",
+            ).length + 1,
+          saved = workspaceStore.put(owner, current.projectId, {
+            expectedRevision: latest.revision,
+            idempotencyKey: `agent-${id}-restore-${restoreAttempt}`,
+            payload: {
+              name: latest.name,
+              files,
+              folders: [
+                ...new Set([
+                  ...latest.folders,
+                  ...requested.flatMap(parents),
+                ]),
+              ].sort(),
+              open: latest.open,
+              active: latest.active,
+            },
+          }),
+          trash = (current.trash || []).filter(
+            (file) => !requested.includes(file.path),
+          );
+        persist({
+          ...current,
+          status: "restored",
+          deployment: null,
+          trash,
+          workspaceRevision: saved.revision,
+        });
+        append(owner, id, "trash.restored", {
+          approval: "restore-once",
+          revision: saved.revision,
+          files: requested.map((path) => ({
+            path,
+            digest: available.get(path).digest,
+          })),
         });
       } else if (body.action === "run-test") {
         requireState(current, "applied");
@@ -469,7 +587,10 @@ export function createAgentOrchestrator({
           "One-time model request approval is required.",
           "model_request_approval_required",
         );
-        const context = current.approvedPaths
+        const fixPaths = current.approvedPaths.filter((path) =>
+            Object.hasOwn(latest.files, path),
+          ),
+          context = fixPaths
             .map(
               (path) =>
                 `--- ${path} sha256=${sha(latest.files[path])} ---\n${latest.files[path]}`,
@@ -480,7 +601,8 @@ export function createAgentOrchestrator({
             body,
             `Fix the exact Tester failure. Return JSON only as {\"summary\":string,\"edits\":[{\"path\":string,\"expectedDigest\":string,\"replacements\":[{\"find\":string,\"replace\":string}]}]}. Use exact non-empty find text that occurs once and ensure the materialized file changes.\nTester evidence:\n${failure.output}\nApproved current context:\n${context}`,
             latest.files,
-            current.approvedPaths,
+            fixPaths,
+            [],
             [],
           ),
           coder = generated.coder,
@@ -586,9 +708,11 @@ export function createAgentOrchestrator({
           nullable(value.plan),
           stable(value.approvedPaths || []),
           stable(value.approvedCreatePaths || []),
+          stable(value.approvedDeletePaths || []),
           nullable(value.proposal),
           nullable(value.review),
           nullable(value.deployment),
+          stable(value.trash || []),
           value.workspaceRevision,
           now,
           owner,
@@ -657,7 +781,8 @@ function record(row, eventRows) {
   const parsedEvents = eventRows.map((event) => ({
     ...event,
     payload: JSON.parse(event.payload),
-  }));
+  })),
+    trash = JSON.parse(row.trash || "[]");
   return {
     runId: row.run_id,
     projectId: row.project_id,
@@ -669,17 +794,19 @@ function record(row, eventRows) {
     plan: parseNullable(row.plan),
     approvedPaths: JSON.parse(row.approved_paths || "[]"),
     approvedCreatePaths: JSON.parse(row.approved_create_paths || "[]"),
+    approvedDeletePaths: JSON.parse(row.approved_delete_paths || "[]"),
     proposal: parseNullable(row.proposal),
     review: parseNullable(row.review),
     deployment: parseNullable(row.deployment),
+    trash,
     usage: summarizeUsage(parsedEvents),
-    permissions: permissionMatrix(parsedEvents, row.status),
+    permissions: permissionMatrix(parsedEvents, row.status, trash),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     events: parsedEvents,
   };
 }
-function permissionMatrix(events, status) {
+function permissionMatrix(events, status, trash) {
   const decisions = events.filter(
       (event) => event.event_type === "permission.decision",
     ),
@@ -694,6 +821,11 @@ function permissionMatrix(events, status) {
     ),
     modelCalls = events.filter((event) =>
       /^(planner|coder|reviewer)\./.test(event.event_type),
+    ).length,
+    deleteUses = events.filter(
+      (event) =>
+        event.event_type === "write.applied" &&
+        event.payload?.files?.some((file) => file.operation === "delete"),
     ).length,
     matrix = [
       {
@@ -716,6 +848,24 @@ function permissionMatrix(events, status) {
         status: count("workspace-write") ? "used" : "available",
         approval: "write-once",
         uses: count("workspace-write"),
+      },
+      {
+        id: "recoverable-delete",
+        level: "write",
+        status: deleteUses ? "used" : "available",
+        approval: "write-once",
+        uses: deleteUses,
+      },
+      {
+        id: "workspace-restore",
+        level: "write",
+        status: trash.length
+          ? "available"
+          : count("workspace-restore")
+            ? "used"
+            : "locked",
+        approval: "restore-once",
+        uses: count("workspace-restore"),
       },
       {
         id: "test-build-execute",
@@ -859,6 +1009,7 @@ function validatePlan(value, files) {
     })),
     contextPaths: validatePaths(value.contextPaths || [], files),
     createPaths: validateCreatePaths(value.createPaths || [], files),
+    deletePaths: validatePaths(value.deletePaths || [], files),
   };
 }
 function materializeProposal(
@@ -866,17 +1017,21 @@ function materializeProposal(
   files,
   approvedPaths,
   approvedCreatePaths,
+  approvedDeletePaths,
 ) {
   const edits = value?.edits || [],
-    creates = value?.creates || [];
+    creates = value?.creates || [],
+    deletes = value?.deletes || [];
   if (
     !value ||
     typeof value.summary !== "string" ||
     !Array.isArray(edits) ||
     !Array.isArray(creates) ||
+    !Array.isArray(deletes) ||
     edits.length > 64 ||
     creates.length > 32 ||
-    edits.length + creates.length < 1
+    deletes.length > 32 ||
+    edits.length + creates.length + deletes.length < 1
   )
     throw fault(
       "Coder returned an invalid edit proposal.",
@@ -885,6 +1040,7 @@ function materializeProposal(
     );
   const approved = new Set(approvedPaths),
     approvedCreates = new Set(approvedCreatePaths),
+    approvedDeletes = new Set(approvedDeletePaths),
     paths = new Set(),
     output = [];
   let bytes = 0;
@@ -982,6 +1138,33 @@ function materializeProposal(
       );
     output.push({ path, content, operation: "create" });
   }
+  for (const deletion of deletes) {
+    const path = safePath(modelPath(deletion?.path, approvedDeletePaths));
+    if (
+      paths.has(path) ||
+      !approvedDeletes.has(path) ||
+      typeof files[path] !== "string"
+    )
+      throw fault(
+        "Delete path was not approved, is duplicated, or does not exist.",
+        "invalid_agent_proposal",
+        502,
+      );
+    if (deletion.expectedDigest !== sha(files[path]))
+      throw fault(
+        "Delete digest does not match approved context.",
+        "proposal_digest_mismatch",
+        409,
+      );
+    paths.add(path);
+    output.push({ path, content: files[path], operation: "delete" });
+  }
+  if (Object.keys(files).length + creates.length - deletes.length < 1)
+    throw fault(
+      "A proposal cannot delete the final workspace file.",
+      "final_workspace_file_required",
+      409,
+    );
   return { summary: text(value.summary, 1, 2000, "summary"), files: output };
 }
 function modelPath(value, approvedPaths = []) {
@@ -1006,9 +1189,10 @@ async function generateValidatedProposal(
   files,
   approvedPaths,
   approvedCreatePaths,
+  approvedDeletePaths,
 ) {
   let lastError;
-  const boundedPrompt = `${prompt}\nAllowed edit path values: ${JSON.stringify(approvedPaths)}. Allowed create path values: ${JSON.stringify(approvedCreatePaths)}. Every path field must equal one of the corresponding strings exactly.`;
+  const boundedPrompt = `${prompt}\nAllowed edit path values: ${JSON.stringify(approvedPaths)}. Allowed create path values: ${JSON.stringify(approvedCreatePaths)}. Allowed delete path values: ${JSON.stringify(approvedDeletePaths)}. Every path field must equal one of the corresponding strings exactly.`;
   for (let attempt = 1; attempt <= 2; attempt++) {
     const coder = await modelRouter.generate(
       modelInput(
@@ -1027,6 +1211,7 @@ async function generateValidatedProposal(
           files,
           approvedPaths,
           approvedCreatePaths,
+          approvedDeletePaths,
         ),
         attempts: attempt,
       };
@@ -1161,6 +1346,14 @@ function parents(path) {
 function requireState(run, state) {
   if (run.status !== state)
     throw fault(`Agent run must be in ${state}.`, "invalid_agent_state", 409);
+}
+function requireStateOneOf(run, states) {
+  if (!states.includes(run.status))
+    throw fault(
+      `Agent run must be in one of: ${states.join(", ")}.`,
+      "invalid_agent_state",
+      409,
+    );
 }
 function validId(value, label) {
   if (typeof value !== "string" || !/^[-A-Za-z0-9_]{1,160}$/.test(value))

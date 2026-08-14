@@ -11,7 +11,10 @@ selection, edit, diff review, test, build, fix, package, deploy review,
 checkpoint, revert and audit. A run can pause, resume, cancel, fail and recover.
 Writes require an approved plan, approved existing-file read paths, exact new
 file paths, a reviewed diff and one-time write permission. A create path must
-not exist or collide with a file parent; irreversible delete remains disabled.
+not exist or collide with a file parent. A delete must name an approved existing
+file and match its captured digest; its content is retained in owner-scoped
+trash. Restoring requires a fresh one-time grant and unchanged workspace
+revision. Irreversible delete remains disabled.
 Test/build execution, network, package install,
 secret-reference, Git commit, Git push and deployment are separate permissions.
 Every implemented grant combines its scope token with a caller-generated UUID.

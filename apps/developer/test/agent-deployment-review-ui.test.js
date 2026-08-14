@@ -61,7 +61,7 @@ test("AI permissions are explicit, one-time, audited and fail closed", async () 
   ]) assert.match(service, new RegExp(disabled));
 });
 
-test("AI file creation is exact-path approved while delete stays disabled", async () => {
+test("AI create and recoverable delete are exact-path approved", async () => {
   const panel = await read("frontend/src/chat/AgentPanel.tsx"),
     client = await read("frontend/src/runtime/client.ts"),
     service = await read("services/agent-orchestrator/src/service.mjs");
@@ -69,7 +69,10 @@ test("AI file creation is exact-path approved while delete stays disabled", asyn
   assert.match(service, /approved_create_paths/);
   assert.match(service, /validateCreatePaths/);
   assert.match(service, /operation: "create"/);
-  assert.match(panel, /approved creates/);
+  assert.match(service, /operation: "delete"/);
+  assert.match(service, /trash\.restored/);
+  assert.match(service + panel, /restore-once/);
+  assert.match(panel, /Recoverable trash/);
+  assert.match(panel, /recoverable deletes/);
   assert.match(service, /destructive-delete/);
-  assert.doesNotMatch(service, /operation: "delete"/);
 });
