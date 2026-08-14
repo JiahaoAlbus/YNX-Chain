@@ -17,6 +17,8 @@ Website owner: `28-website`
 - Current full YNX Code macOS source: `76322af5e8c26a64fb6425c51d96c67d2b3df65f`
 - Current Windows hosted-workspace client source: `76322af5e8c26a64fb6425c51d96c67d2b3df65f`
 - Browser-evidence source: `98fcbe3cff68b4b01ebfd94df2d1476b41ecf2b5`
+- Current public Web IDE source: `17ee9ae5bf50677a3316b0838884dd135de80599`
+- Pending Web IDE feature source: `ea0c4ac6f5fdd55f24f51e0aad8363af0e4027b2`
 - Product metadata: `apps/developer/public-product-metadata.json`
 - Product release truth: `apps/developer/product-release.json`
 - Release class: unsigned Testnet Preview
@@ -24,6 +26,15 @@ Website owner: `28-website`
 - `integratedCentral=false`, `deployedStaging=true`, `deployedPublic=true`
 - `downloadHosted=true`, `productionSigned=false`, `storeReleased=false`
 - Historical GitHub pre-release: `developer-v0.2.0-testnet-preview.1` (published 2026-07-29); current download CTAs use immutable YNX-domain URLs.
+
+The pending Web IDE source adds owner/project-scoped persisted environment
+records and Secret references, reconnectable terminal inventory and Stop,
+reviewed container loopback port previews, redacted running-task inventory and
+owner-bound running-task cancellation. These capabilities must remain labelled
+`pending public verification` until the protected Developer candidate transaction
+returns `passed`, the public `/healthz` version matches the exact deployed commit,
+and the transaction evidence path plus immutable LXD image fingerprint are
+recorded. Updating this handoff or its website copy is not deployment evidence.
 
 ## Page content package
 
