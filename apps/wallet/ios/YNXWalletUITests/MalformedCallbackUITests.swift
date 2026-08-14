@@ -108,6 +108,56 @@ final class MalformedCallbackUITests: XCTestCase {
     add(restart)
   }
 
+  func testRecoveryAndUnlockWithSimulatedBiometricMatches() throws {
+    let wallet = XCUIApplication()
+    wallet.launch()
+
+    let recover = wallet.buttons["Recover on a replacement device"]
+    XCTAssertTrue(recover.waitForExistence(timeout: 45), "Fresh Wallet recovery action is unavailable")
+    recover.tap()
+
+    let textView = wallet.textViews["Recovery key"]
+    let secureField = wallet.secureTextFields["Recovery key"]
+    let recoveryField = textView.waitForExistence(timeout: 15) ? textView : secureField
+    XCTAssertTrue(recoveryField.waitForExistence(timeout: 15), "Recovery key field is unavailable")
+    recoveryField.tap()
+    recoveryField.typeText(String(repeating: "1", count: 64))
+
+    let semanticSubmit = wallet.keyboards.buttons["Done"]
+    XCTAssertTrue(semanticSubmit.waitForExistence(timeout: 15), "Recovery input has no semantic submit action")
+    semanticSubmit.tap()
+    FileHandle.standardError.write(
+      Data("YNX_WALLET_SIMULATED_BIOMETRIC_READY phase=recovery\n".utf8)
+    )
+
+    let unlock = wallet.buttons["Unlock with biometrics"]
+    XCTAssertTrue(
+      unlock.waitForExistence(timeout: 45),
+      "Matched Simulator biometric did not persist and lock the recovered account"
+    )
+    let recovered = XCTAttachment(screenshot: wallet.screenshot())
+    recovered.name = "simulated-biometric-recovery-persisted-locked"
+    recovered.lifetime = .keepAlways
+    add(recovered)
+
+    unlock.tap()
+    FileHandle.standardError.write(
+      Data("YNX_WALLET_SIMULATED_BIOMETRIC_READY phase=unlock\n".utf8)
+    )
+    XCTAssertTrue(
+      wallet.staticTexts["NATIVE ACCOUNT"].waitForExistence(timeout: 45),
+      "Second matched Simulator biometric did not unlock the recovered account"
+    )
+
+    let unlocked = XCTAttachment(screenshot: wallet.screenshot())
+    unlocked.name = "simulated-biometric-recovery-unlocked"
+    unlocked.lifetime = .keepAlways
+    add(unlocked)
+    FileHandle.standardError.write(
+      Data("YNX_WALLET_SIMULATED_BIOMETRIC_MATCHED recovery=true unlock=true\n".utf8)
+    )
+  }
+
   func testUniversalLinkRemainsFailClosedWithoutFrozenAssociatedDomain() throws {
     XCTAssertFalse(InboundLinkPolicy.associatedDomainFrozen)
     XCTAssertEqual(

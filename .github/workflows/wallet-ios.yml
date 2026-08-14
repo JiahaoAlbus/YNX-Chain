@@ -222,6 +222,49 @@ jobs:
           test "$XCODEBUILD_STATUS" -eq 0
           grep -F "YNX_WALLET_RECOVERY_AUTHORIZATION_NOT_COMPLETED mode=" proof/ci-ios/recovery-fail-closed-xctest.log
           grep -F "Test Case '-[YNXWalletUITests.MalformedCallbackUITests testRecoveryRemainsEmptyWhenBiometricAuthorizationIsNotCompleted]' passed" proof/ci-ios/recovery-fail-closed-xctest.log
+      - name: Prove recovery and unlock with Simulator biometric matches
+        timeout-minutes: 15
+        working-directory: apps/wallet
+        run: |
+          set -euo pipefail
+          DEVICE="$(xcrun simctl list devices booted | awk -F '[()]' '/iPhone/{print $2; exit}')"
+          test -n "$DEVICE"
+          grep -F "device=$DEVICE erased=true" proof/ci-ios/simulator-reset.txt
+          xcrun simctl biometric "$DEVICE" enroll
+          xcodebuild test \
+            -workspace ios/YNXWallet.xcworkspace \
+            -scheme YNXWallet \
+            -configuration Release \
+            -destination "platform=iOS Simulator,id=$DEVICE" \
+            -only-testing:YNXWalletUITests/MalformedCallbackUITests/testRecoveryAndUnlockWithSimulatedBiometricMatches \
+            -resultBundlePath proof/ci-ios/SimulatedBiometricRecovery.xcresult \
+            2>&1 | tee proof/ci-ios/simulated-biometric-recovery-xctest.log &
+          XCODEBUILD_PID=$!
+          for PHASE in recovery unlock; do
+            READY=false
+            for _ in $(seq 1 240); do
+              if grep -Fq "YNX_WALLET_SIMULATED_BIOMETRIC_READY phase=$PHASE" \
+                proof/ci-ios/simulated-biometric-recovery-xctest.log; then
+                READY=true
+                break
+              fi
+              if ! kill -0 "$XCODEBUILD_PID" 2>/dev/null; then
+                break
+              fi
+              sleep 1
+            done
+            test "$READY" = true
+            sleep 2
+            xcrun simctl biometric "$DEVICE" match face
+          done
+          wait "$XCODEBUILD_PID"
+          grep -F "YNX_WALLET_SIMULATED_BIOMETRIC_MATCHED recovery=true unlock=true" \
+            proof/ci-ios/simulated-biometric-recovery-xctest.log
+          grep -F "Test Case '-[YNXWalletUITests.MalformedCallbackUITests testRecoveryAndUnlockWithSimulatedBiometricMatches]' passed" \
+            proof/ci-ios/simulated-biometric-recovery-xctest.log
+          xcrun xcresulttool export attachments \
+            --path proof/ci-ios/SimulatedBiometricRecovery.xcresult \
+            --output-path proof/ci-ios/simulated-biometric-recovery-xcresult-attachments
       - name: Record truthful Simulator artifact facts
         if: always()
         working-directory: apps/wallet
