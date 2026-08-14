@@ -64,7 +64,60 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("/app/health", s.appHealth)
 	mux.HandleFunc("/app/", s.app)
 	mux.HandleFunc("/v1/wallet/", s.wallet)
+	mux.HandleFunc("/v2/product-sessions/", s.productSessions)
 	return securityHeaders(mux)
+}
+
+var productSessionV2Routes = map[string]struct{}{
+	"/v2/product-sessions/challenge":      {},
+	"/v2/product-sessions/complete":       {},
+	"/v2/product-sessions/introspect":     {},
+	"/v2/product-sessions/revoke":         {},
+	"/v2/product-sessions/devices/revoke": {},
+}
+
+func (s *Server) productSessions(w http.ResponseWriter, r *http.Request) {
+	if _, ok := productSessionV2Routes[r.URL.EscapedPath()]; !ok || r.URL.RawQuery != "" {
+		writeError(w, http.StatusNotFound, "Product Session v2 route not found")
+		return
+	}
+	origin := strings.TrimSpace(r.Header.Get("Origin"))
+	if origin != "" && !s.gateway.OriginAllowed(origin) {
+		writeError(w, http.StatusForbidden, "origin is not allowed")
+		return
+	}
+	if origin != "" {
+		setCORS(w, origin)
+	}
+	if r.Method == http.MethodOptions {
+		s.productSessionsPreflight(w, r)
+		return
+	}
+	if r.Method != http.MethodPost {
+		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+	if !s.gateway.Allow(r.RemoteAddr) {
+		writeError(w, http.StatusTooManyRequests, "app gateway rate limit exceeded")
+		return
+	}
+	s.proxyWallet(w, r, []string{"Accept", "Content-Type", "X-Request-ID", "X-YNX-Product-Session-Proof-V2"}, true)
+}
+
+func (s *Server) productSessionsPreflight(w http.ResponseWriter, r *http.Request) {
+	if strings.ToUpper(strings.TrimSpace(r.Header.Get("Access-Control-Request-Method"))) != http.MethodPost {
+		writeError(w, http.StatusForbidden, "Product Session v2 preflight method is not allowed")
+		return
+	}
+	for _, raw := range strings.Split(r.Header.Get("Access-Control-Request-Headers"), ",") {
+		header := http.CanonicalHeaderKey(strings.TrimSpace(raw))
+		if header != "" && header != "Accept" && header != "Content-Type" && header != "X-Request-Id" && header != "X-Ynx-Product-Session-Proof-V2" {
+			writeError(w, http.StatusForbidden, fmt.Sprintf("Product Session v2 preflight header %s is not allowed", header))
+			return
+		}
+	}
+	w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, X-Request-ID, X-YNX-Product-Session-Proof-V2")
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (s *Server) appHealth(w http.ResponseWriter, r *http.Request) {
@@ -148,6 +201,10 @@ func (s *Server) wallet(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusTooManyRequests, "app gateway rate limit exceeded")
 		return
 	}
+	s.proxyWallet(w, r, []string{"Accept", "Content-Type", "X-YNX-Product-Session-Proof"}, false)
+}
+
+func (s *Server) proxyWallet(w http.ResponseWriter, r *http.Request, requestHeaders []string, preserveRequestID bool) {
 	body, err := io.ReadAll(io.LimitReader(r.Body, s.gateway.cfg.MaxBodyBytes+1))
 	if err != nil || int64(len(body)) > s.gateway.cfg.MaxBodyBytes {
 		writeError(w, http.StatusRequestEntityTooLarge, "canonical Wallet request exceeds gateway policy")
@@ -160,7 +217,7 @@ func (s *Server) wallet(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadGateway, "unable to construct canonical Wallet request")
 		return
 	}
-	for _, header := range []string{"Accept", "Content-Type", "X-YNX-Product-Session-Proof"} {
+	for _, header := range requestHeaders {
 		if value := strings.TrimSpace(r.Header.Get(header)); value != "" {
 			request.Header.Set(header, value)
 		}
@@ -179,6 +236,11 @@ func (s *Server) wallet(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-store")
 	if contentType := response.Header.Get("Content-Type"); contentType != "" {
 		w.Header().Set("Content-Type", contentType)
+	}
+	if preserveRequestID {
+		if requestID := strings.TrimSpace(response.Header.Get("X-Request-ID")); requestID != "" {
+			w.Header().Set("X-Request-ID", requestID)
+		}
 	}
 	w.WriteHeader(response.StatusCode)
 	_, _ = w.Write(responseBody)
