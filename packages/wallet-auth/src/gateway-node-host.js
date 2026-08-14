@@ -1,15 +1,16 @@
 import { createHash, randomUUID } from "node:crypto";
 import { chmodSync, mkdirSync, readFileSync, renameSync, rmdirSync, statSync, writeFileSync } from "node:fs";
 import { dirname, isAbsolute } from "node:path";
-import { canonicalJSON, exactFields, WalletAuthError } from "./canonical.js";
+import { canonicalJSON, exactFields, isPlainObject, WalletAuthError } from "./canonical.js";
 import { forwardedClient, GatewayAdmissionController } from "./gateway-admission.js";
 import { CANONICAL_GATEWAY_HTTP_SCHEMA_VERSION, CanonicalWalletGatewayHttpKernel, gatewayStateDigest } from "./gateway-http.js";
 import { parseCentralRegistryDocument } from "./registry.js";
 
 export const CANONICAL_GATEWAY_PROOF_HEADER = "x-ynx-product-session-proof";
-export const CANONICAL_GATEWAY_NODE_STATE_SCHEMA_VERSION = 1;
+export const CANONICAL_GATEWAY_NODE_STATE_SCHEMA_VERSION = 2;
 export const CANONICAL_GATEWAY_OBSERVABILITY_SCHEMA_VERSION = 1;
-const STATE_FIELDS = ["schemaVersion", "stateDigest", "snapshot"];
+const STATE_FIELDS = ["registrySha256", "schemaVersion", "stateDigest", "snapshot"];
+const LEGACY_STATE_FIELDS = ["schemaVersion", "stateDigest", "snapshot"];
 const MAX_PROOF_HEADER_BYTES = 16_384;
 const STATE_LOCK_WAIT_MS = 2_000;
 const STATE_LOCK_RETRY_MS = 5;
@@ -39,6 +40,7 @@ const OBSERVABLE_ROUTES = Object.freeze(new Map([
 
 export class CanonicalWalletGatewayNodeHost {
   #admission;
+  #allowLegacyStateMigration;
   #build;
   #emitEvent;
   #kernel;
@@ -55,6 +57,7 @@ export class CanonicalWalletGatewayNodeHost {
     const deploymentState = deploymentConfig(deployment);
     this.#statePath = statePath(runtime.statePath);
     this.#admission = runtime.admission;
+    this.#allowLegacyStateMigration = runtime.allowLegacyStateMigration;
     this.#now = runtime.now;
     this.#emitEvent = runtime.emitEvent;
     this.#remoteDeployed = deploymentState.remoteDeployed;
@@ -72,9 +75,15 @@ export class CanonicalWalletGatewayNodeHost {
     this.#registrySha256 = createHash("sha256").update(canonicalJSON(reviewedRegistry)).digest("hex");
     this.#enabledProductClientIds = Object.freeze(reviewedRegistry.products.filter((product) => product.enabled).map((product) => product.productClientId).sort());
     const stored = loadState(this.#statePath);
+    if (stored?.needsRewrite && !this.#allowLegacyStateMigration) {
+      throw new WalletAuthError("LEGACY_STATE_MIGRATION_REQUIRED", "Canonical Gateway legacy state requires explicit one-time migration authorization");
+    }
     this.#kernel = new CanonicalWalletGatewayHttpKernel(reviewedRegistry, stored?.snapshot);
     if (stored && stored.stateDigest !== gatewayStateDigest(this.#kernel.snapshot())) {
       throw new WalletAuthError("STATE_TAMPERED", "Canonical Gateway persisted state digest is invalid");
+    }
+    if (stored && stored.registrySha256 !== null && stored.registrySha256 !== this.#registrySha256) {
+      throw new WalletAuthError("REGISTRY_STATE_MISMATCH", "Canonical Gateway persisted state belongs to a different registry");
     }
     if (!stored || stored.needsRewrite) this.#persist();
   }
@@ -288,6 +297,7 @@ export class CanonicalWalletGatewayNodeHost {
   #persist() {
     const snapshot = this.#kernel.snapshot();
     const envelope = {
+      registrySha256: this.#registrySha256,
       schemaVersion: CANONICAL_GATEWAY_NODE_STATE_SCHEMA_VERSION,
       stateDigest: gatewayStateDigest(snapshot),
       snapshot,
@@ -304,38 +314,35 @@ export class CanonicalWalletGatewayNodeHost {
   #reload() {
     const stored = loadState(this.#statePath);
     if (!stored) throw new WalletAuthError("STATE_UNAVAILABLE", "Canonical Gateway persisted state is unavailable");
+    if (stored.needsRewrite && !this.#allowLegacyStateMigration) {
+      throw new WalletAuthError("LEGACY_STATE_MIGRATION_REQUIRED", "Canonical Gateway legacy state requires explicit one-time migration authorization");
+    }
     const refreshed = new CanonicalWalletGatewayHttpKernel(this.#registry, stored.snapshot);
     if (stored.stateDigest !== gatewayStateDigest(refreshed.snapshot())) {
       throw new WalletAuthError("STATE_TAMPERED", "Canonical Gateway persisted state digest is invalid");
+    }
+    if (stored.registrySha256 !== null && stored.registrySha256 !== this.#registrySha256) {
+      throw new WalletAuthError("REGISTRY_STATE_MISMATCH", "Canonical Gateway persisted state belongs to a different registry");
     }
     this.#kernel = refreshed;
   }
 }
 
 function hostOptions(value) {
-  let admission = null;
-  let emitEvent = () => {};
-  try {
-    exactFields(value, ["now", "statePath"], "Canonical Gateway Node host options");
-  } catch {
-    try {
-      exactFields(value, ["admission", "now", "statePath"], "Canonical Gateway Node host options");
-      admission = value.admission;
-    } catch {
-      try {
-        exactFields(value, ["emitEvent", "now", "statePath"], "Canonical Gateway Node host options");
-        emitEvent = value.emitEvent;
-      } catch {
-        exactFields(value, ["admission", "emitEvent", "now", "statePath"], "Canonical Gateway Node host options");
-        admission = value.admission;
-        emitEvent = value.emitEvent;
-      }
-    }
+  if (!isPlainObject(value)) exactFields(value, ["now", "statePath"], "Canonical Gateway Node host options");
+  const required = ["now", "statePath"];
+  const allowed = new Set([...required, "admission", "allowLegacyStateMigration", "emitEvent"]);
+  if (required.some(field => !Object.hasOwn(value, field)) || Object.keys(value).some(field => !allowed.has(field))) {
+    throw new WalletAuthError("UNKNOWN_OR_MISSING_FIELD", "Canonical Gateway Node host options fields do not match the protocol schema");
   }
+  const admission = value.admission ?? null;
+  const emitEvent = value.emitEvent ?? (() => {});
+  const allowLegacyStateMigration = value.allowLegacyStateMigration ?? false;
   if (admission !== null && !(admission instanceof GatewayAdmissionController)) throw new WalletAuthError("INVALID_ADMISSION", "Canonical Gateway admission controller is invalid");
+  if (typeof allowLegacyStateMigration !== "boolean") throw new WalletAuthError("INVALID_MIGRATION_POLICY", "Canonical Gateway legacy state migration policy is invalid");
   if (typeof emitEvent !== "function") throw new WalletAuthError("INVALID_EVENT_SINK", "Canonical Gateway event sink is invalid");
   if (typeof value.now !== "function") throw new WalletAuthError("INVALID_CLOCK", "Canonical Gateway Node host clock is invalid");
-  return Object.freeze({ admission, emitEvent, now: value.now, statePath: value.statePath });
+  return Object.freeze({ admission, allowLegacyStateMigration, emitEvent, now: value.now, statePath: value.statePath });
 }
 
 function deploymentConfig(value) {
@@ -441,27 +448,26 @@ function loadState(path) {
   if ((statSync(path).mode & 0o077) !== 0) throw new WalletAuthError("STATE_PERMISSIONS", "Canonical Gateway state must use mode 0600");
   let value;
   try { value = JSON.parse(raw); } catch { throw new WalletAuthError("STATE_TAMPERED", "Canonical Gateway persisted state is invalid JSON"); }
-  let needsRewrite = false;
-  try {
-    exactFields(value, STATE_FIELDS, "Canonical Gateway persisted state");
-  } catch (currentError) {
-    try {
-      exactFields(value, [...STATE_FIELDS, "updatedAt"], "Canonical Gateway legacy persisted state");
-      needsRewrite = true;
-    } catch {
-      throw currentError;
-    }
-  }
+  let needsRewrite = value?.schemaVersion === 1;
   if (needsRewrite) {
+    try { exactFields(value, LEGACY_STATE_FIELDS, "Canonical Gateway legacy persisted state"); }
+    catch (legacyError) {
+      try { exactFields(value, [...LEGACY_STATE_FIELDS, "updatedAt"], "Canonical Gateway timestamped legacy persisted state"); }
+      catch { throw legacyError; }
+    }
+  } else {
+    exactFields(value, STATE_FIELDS, "Canonical Gateway persisted state");
+  }
+  if (Object.hasOwn(value, "updatedAt")) {
     const updatedAt = Date.parse(value.updatedAt);
     if (typeof value.updatedAt !== "string" || !Number.isFinite(updatedAt) || new Date(updatedAt).toISOString() !== value.updatedAt) {
       throw new WalletAuthError("STATE_TAMPERED", "Canonical Gateway legacy persisted state timestamp is invalid");
     }
   }
-  if (value.schemaVersion !== CANONICAL_GATEWAY_NODE_STATE_SCHEMA_VERSION || !/^[0-9a-f]{64}$/.test(value.stateDigest)) {
+  if ((value.schemaVersion !== 1 && value.schemaVersion !== CANONICAL_GATEWAY_NODE_STATE_SCHEMA_VERSION) || !/^[0-9a-f]{64}$/.test(value.stateDigest) || (value.schemaVersion === CANONICAL_GATEWAY_NODE_STATE_SCHEMA_VERSION && !/^[0-9a-f]{64}$/.test(value.registrySha256))) {
     throw new WalletAuthError("STATE_TAMPERED", "Canonical Gateway persisted state envelope is invalid");
   }
-  return { schemaVersion: value.schemaVersion, stateDigest: value.stateDigest, snapshot: value.snapshot, needsRewrite };
+  return { schemaVersion: value.schemaVersion, registrySha256: value.registrySha256 ?? null, stateDigest: value.stateDigest, snapshot: value.snapshot, needsRewrite };
 }
 
 async function acquireStateLock(path) {
@@ -499,7 +505,8 @@ function statePath(value) {
 
 function hostError(caught) {
   if (caught instanceof WalletAuthError) {
-    const status = caught.code === "INVALID_BODY" ? 413 : caught.code === "STATE_LOCKED" ? 503 : 400;
+    const stateUnavailable = new Set(["LEGACY_STATE_MIGRATION_REQUIRED", "REGISTRY_STATE_MISMATCH", "STATE_LOCKED", "STATE_TAMPERED", "STATE_UNAVAILABLE"]);
+    const status = caught.code === "INVALID_BODY" ? 413 : stateUnavailable.has(caught.code) ? 503 : 400;
     return { status, code: caught.code, message: caught.message };
   }
   return { status: 500, code: "INTERNAL", message: "Canonical Wallet Gateway host failed closed" };

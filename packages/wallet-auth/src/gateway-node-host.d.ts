@@ -1,5 +1,5 @@
 export declare const CANONICAL_GATEWAY_PROOF_HEADER:"x-ynx-product-session-proof";
-export declare const CANONICAL_GATEWAY_NODE_STATE_SCHEMA_VERSION:1;
+export declare const CANONICAL_GATEWAY_NODE_STATE_SCHEMA_VERSION:2;
 export declare const CANONICAL_GATEWAY_OBSERVABILITY_SCHEMA_VERSION:1;
 
 export type CanonicalGatewayBuildIdentity=Readonly<{
@@ -30,6 +30,7 @@ export type CanonicalGatewayObservabilityEvent=Readonly<{
 export type CanonicalGatewayNodeHostOptions=Readonly<{
   statePath:string;
   now:()=>Date;
+  allowLegacyStateMigration?:boolean;
   emitEvent?:(event:CanonicalGatewayObservabilityEvent)=>void;
   admission?:Readonly<{
     enter:(client:unknown)=>Readonly<{ok:false;code:"CONCURRENCY_LIMIT"|"RATE_LIMIT";status:429|503}|{ok:true;release:()=>void}>;

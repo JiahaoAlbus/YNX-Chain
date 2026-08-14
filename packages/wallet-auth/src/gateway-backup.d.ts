@@ -8,7 +8,7 @@ export type CanonicalGatewayBackupSummary=Readonly<{
   createdAt:string;
   schemaVersion:1;
   sourceStateDigest:string;
-  stateSchemaVersion:1;
+  stateSchemaVersion:2;
 }>;
 
 export type CanonicalGatewayBackupPolicy=Readonly<{
@@ -33,4 +33,4 @@ export declare function restoreGatewayStateBackup(options:Readonly<{
   key:Uint8Array;
   statePath:string;
 }>&CanonicalGatewayBackupPolicy):CanonicalGatewayBackupSummary&Readonly<{restored:true;restoredStateDigest:string}>;
-export declare function readGatewayStateEnvelope(path:string):Readonly<{schemaVersion:1;snapshot:unknown;stateDigest:string}>;
+export declare function readGatewayStateEnvelope(path:string):Readonly<{registrySha256:string;schemaVersion:2;snapshot:unknown;stateDigest:string}>;

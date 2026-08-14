@@ -12,7 +12,7 @@ if (source === destination) fail("source and destination must differ");
 const stat = lstatSync(source);
 if (!stat.isFile() || stat.isSymbolicLink() || stat.nlink !== 1 || (stat.mode & 0o077) !== 0) fail("source must be one private regular file");
 const envelope = JSON.parse(readFileSync(source, "utf8"));
-if (envelope?.schemaVersion !== 1 || typeof envelope.stateDigest !== "string" || !envelope.snapshot) fail("unsupported Gateway state envelope");
+if ((envelope?.schemaVersion !== 1 && envelope?.schemaVersion !== 2) || typeof envelope.stateDigest !== "string" || !envelope.snapshot || (envelope.schemaVersion === 2 && !/^[0-9a-f]{64}$/.test(envelope.registrySha256))) fail("unsupported Gateway state envelope");
 if (gatewayStateDigest(envelope.snapshot) !== envelope.stateDigest) fail("source Gateway state digest is invalid");
 const sessionStore = envelope.snapshot.sessionStore, sessions = sessionStore?.sessions;
 if (!Array.isArray(sessions)) fail("source session store is invalid");
@@ -30,7 +30,7 @@ const migratedSnapshot = {
   consumedProductProofs: [],
   mandateStore: new StrategyMandateStore().snapshot(),
 };
-const migrated = { schemaVersion: 1, stateDigest: gatewayStateDigest(migratedSnapshot), snapshot: migratedSnapshot };
+const migrated = { ...(envelope.schemaVersion === 2 ? { registrySha256: envelope.registrySha256 } : {}), schemaVersion: envelope.schemaVersion, stateDigest: gatewayStateDigest(migratedSnapshot), snapshot: migratedSnapshot };
 const temporary = `${destination}.${process.pid}.tmp`;
 const fd = openSync(temporary, "wx", 0o600);closeSync(fd);
 try { writeFileSync(temporary, `${canonicalJSON(migrated)}\n`, { mode: 0o600 });renameSync(temporary, destination); }

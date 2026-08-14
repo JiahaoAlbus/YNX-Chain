@@ -165,10 +165,13 @@ test("Node host validates and atomically normalizes the legacy timestamped state
   const directory=mkdtempSync(join(tmpdir(),"ynx-wallet-gateway-legacy-")),statePath=join(directory,"state.json"),registry=approvedRegistry();
   const original=new CanonicalWalletGatewayNodeHost(registry,{statePath,now:()=>NOW});
   const stored=JSON.parse(readFileSync(statePath,"utf8"));
-  writeFileSync(statePath,canonicalJSON({...stored,updatedAt:NOW.toISOString()}),{mode:0o600});
-  const migrated=new CanonicalWalletGatewayNodeHost(registry,{statePath,now:()=>NOW});
+  const {registrySha256:_registrySha256,...legacy}=stored;
+  writeFileSync(statePath,canonicalJSON({...legacy,schemaVersion:1,updatedAt:NOW.toISOString()}),{mode:0o600});
+  assert.throws(()=>new CanonicalWalletGatewayNodeHost(registry,{statePath,now:()=>NOW}),caught=>caught?.code==="LEGACY_STATE_MIGRATION_REQUIRED");
+  const migrated=new CanonicalWalletGatewayNodeHost(registry,{allowLegacyStateMigration:true,statePath,now:()=>NOW});
   assert.deepEqual(migrated.snapshot(),original.snapshot());
-  assert.deepEqual(Object.keys(JSON.parse(readFileSync(statePath,"utf8"))).sort(),["schemaVersion","snapshot","stateDigest"]);
+  assert.deepEqual(Object.keys(JSON.parse(readFileSync(statePath,"utf8"))).sort(),["registrySha256","schemaVersion","snapshot","stateDigest"]);
+  assert.equal(JSON.parse(readFileSync(statePath,"utf8")).schemaVersion,2);
 });
 
 test("Node host refuses a group-readable state directory instead of changing its permissions",()=>{
@@ -186,7 +189,7 @@ test("Node host exposes truthful version, readiness, metrics and redacted struct
     const ready=await (await fetch(`${base}/ready`)).json();
     assert.equal(ready.runtimeReady,true);assert.equal(ready.publicDeploymentReady,false);assert.equal(ready.remoteDeployed,false);
     const version=await (await fetch(`${base}/version`)).json();
-    assert.deepEqual(version.build,BUILD);assert.equal(version.gatewayHttpSchemaVersion,1);assert.equal(version.nodeStateSchemaVersion,1);assert.equal(version.observabilitySchemaVersion,1);assert.match(version.registrySha256,/^[0-9a-f]{64}$/);assert.deepEqual(version.enabledProductClientIds,["ynx-bridge-web-v1","ynx-browser-android","ynx-browser-ios","ynx-browser-macos","ynx-browser-windows","ynx-calendar-v1","ynx-cloud-mobile-v1","ynx-cloud-web-v1","ynx-creator-studio-web-v1","ynx-developer-v1","ynx-dex-web-v1","ynx-docs-mobile-v1","ynx-docs-web-v1","ynx-exchange-v1","ynx-finance-v1","ynx-mail-v1","ynx-merchant-console-v1","ynx-music-v1","ynx-music-web-v1","ynx-pay-v1","ynx-quant-v1","ynx-search-web","ynx-seller-v1","ynx-shop-v1","ynx-social-v1","ynx-video-mobile-v1","ynx-video-web-v1","ynx-wallet-v1"]);
+    assert.deepEqual(version.build,BUILD);assert.equal(version.gatewayHttpSchemaVersion,1);assert.equal(version.nodeStateSchemaVersion,2);assert.equal(version.observabilitySchemaVersion,1);assert.match(version.registrySha256,/^[0-9a-f]{64}$/);assert.deepEqual(version.enabledProductClientIds,["ynx-bridge-web-v1","ynx-browser-android","ynx-browser-ios","ynx-browser-macos","ynx-browser-windows","ynx-calendar-v1","ynx-cloud-mobile-v1","ynx-cloud-web-v1","ynx-creator-studio-web-v1","ynx-developer-v1","ynx-dex-web-v1","ynx-docs-mobile-v1","ynx-docs-web-v1","ynx-exchange-v1","ynx-finance-v1","ynx-mail-v1","ynx-merchant-console-v1","ynx-music-v1","ynx-music-web-v1","ynx-pay-v1","ynx-quant-v1","ynx-search-web","ynx-seller-v1","ynx-shop-v1","ynx-social-v1","ynx-video-mobile-v1","ynx-video-web-v1","ynx-wallet-v1"]);
     const rejected=await fetch(`${base}/v1/wallet/sessions`,{method:"POST",headers:{"content-type":"application/json","x-ynx-product-session-proof":"not+base64"},body:"{}"});
     assert.equal(rejected.status,400);assert.match(rejected.headers.get("x-error-id"),/^[0-9a-f-]{36}$/);assert.equal((await rejected.json()).error.code,"INVALID_PROOF_HEADER");
     const metrics=await (await fetch(`${base}/metrics`)).text();
@@ -236,7 +239,7 @@ test("Node host isolates a failed structured-event sink and reports the drop",as
 test("Node-only package subpath exports the canonical observability host",()=>{
   assert.equal(Object.hasOwn(universalPackage,"CanonicalWalletGatewayNodeHost"),false);
   assert.equal(packageNodeHost.CanonicalWalletGatewayNodeHost,CanonicalWalletGatewayNodeHost);
-  assert.equal(packageNodeHost.CANONICAL_GATEWAY_NODE_STATE_SCHEMA_VERSION,1);
+  assert.equal(packageNodeHost.CANONICAL_GATEWAY_NODE_STATE_SCHEMA_VERSION,2);
   assert.equal(packageNodeHost.CANONICAL_GATEWAY_OBSERVABILITY_SCHEMA_VERSION,1);
   assert.equal(packageNodeHost.CANONICAL_GATEWAY_PROOF_HEADER,"x-ynx-product-session-proof");
   assert.equal(packageNodeHost.encodeGatewayProofHeader,encodeGatewayProofHeader);

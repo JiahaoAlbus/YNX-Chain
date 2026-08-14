@@ -117,6 +117,13 @@ The kernel freezes the parsed registry at construction, rejects alternate JSON e
 6. Deploy registry, kernel host and durable state migration atomically to staging; record registry hash, source commit, release, canonical build time, deployment ID and restore evidence, then run real Wallet↔product flows.
 7. Have Monitor accept the bounded metric/event contract, prove dashboard and alert behavior, and correlate request/error IDs to authoritative audit IDs without logging custody or proof material.
 
+Gateway Node state envelope v2 adds `registrySha256` and rejects a same-version
+Registry substitution at startup and before every dispatch. Legacy v1 envelopes
+require explicit one-time `allowLegacyStateMigration`; operators must perform that
+migration against a copied state file, verify the v2 Registry digest, and disable
+the flag before staging or public service. Replacing a v2 file with v1 while the
+flag is disabled returns `LEGACY_STATE_MIGRATION_REQUIRED` without rewriting it.
+
 Current focused verification on 2026-08-10 is Wallet/Auth 105/105, Wallet app
 39/39, and Wallet app TypeScript typecheck, all passing. Earlier Node host,
 Browser SDK, JS SDK, loopback CLI, package, and Go evidence remains subject to

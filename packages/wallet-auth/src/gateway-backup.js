@@ -8,7 +8,7 @@ import { CANONICAL_GATEWAY_NODE_STATE_SCHEMA_VERSION } from "./gateway-node-host
 export const CANONICAL_GATEWAY_BACKUP_SCHEMA_VERSION = 1;
 export const CANONICAL_GATEWAY_BACKUP_ALGORITHM = "aes-256-gcm";
 const BACKUP_FIELDS = ["algorithm", "authTag", "ciphertext", "createdAt", "iv", "schemaVersion", "sourceStateDigest", "stateSchemaVersion"];
-const STATE_FIELDS = ["schemaVersion", "snapshot", "stateDigest"];
+const STATE_FIELDS = ["registrySha256", "schemaVersion", "snapshot", "stateDigest"];
 const MAX_BACKUP_BYTES = 64 * 1024 * 1024;
 const MAX_CLOCK_SKEW_MS = 5 * 60 * 1000;
 
@@ -81,11 +81,11 @@ export function readGatewayStateEnvelope(value) {
   try { state = JSON.parse(serialized); } catch { throw new WalletAuthError("STATE_TAMPERED", "Canonical Gateway state is invalid JSON"); }
   try { exactFields(state, STATE_FIELDS, "Canonical Gateway state"); } catch { throw new WalletAuthError("STATE_TAMPERED", "Canonical Gateway state envelope is invalid"); }
   if (canonicalJSON(state) !== serialized) throw new WalletAuthError("STATE_TAMPERED", "Canonical Gateway state must use canonical JSON");
-  if (state.schemaVersion !== CANONICAL_GATEWAY_NODE_STATE_SCHEMA_VERSION || typeof state.stateDigest !== "string" || !/^[0-9a-f]{64}$/.test(state.stateDigest)) {
+  if (state.schemaVersion !== CANONICAL_GATEWAY_NODE_STATE_SCHEMA_VERSION || typeof state.registrySha256 !== "string" || !/^[0-9a-f]{64}$/.test(state.registrySha256) || typeof state.stateDigest !== "string" || !/^[0-9a-f]{64}$/.test(state.stateDigest)) {
     throw new WalletAuthError("STATE_TAMPERED", "Canonical Gateway state envelope is invalid");
   }
   if (gatewayStateDigest(state.snapshot) !== state.stateDigest) throw new WalletAuthError("STATE_TAMPERED", "Canonical Gateway state digest is invalid");
-  return Object.freeze({ schemaVersion: state.schemaVersion, snapshot: state.snapshot, stateDigest: state.stateDigest });
+  return Object.freeze({ registrySha256: state.registrySha256, schemaVersion: state.schemaVersion, snapshot: state.snapshot, stateDigest: state.stateDigest });
 }
 
 function openGatewayBackup(options) {
@@ -120,7 +120,7 @@ function openGatewayBackup(options) {
   let state;
   try { state = JSON.parse(plaintext); } catch { throw new WalletAuthError("BACKUP_TAMPERED", "Canonical Gateway backup payload is invalid JSON"); }
   try { exactFields(state, STATE_FIELDS, "Canonical Gateway backup state"); } catch { throw new WalletAuthError("BACKUP_TAMPERED", "Canonical Gateway backup state envelope is invalid"); }
-  if (canonicalJSON(state) !== plaintext || state.schemaVersion !== CANONICAL_GATEWAY_NODE_STATE_SCHEMA_VERSION || state.schemaVersion !== envelope.stateSchemaVersion || typeof state.stateDigest !== "string" || state.stateDigest !== envelope.sourceStateDigest || gatewayStateDigest(state.snapshot) !== state.stateDigest) {
+  if (canonicalJSON(state) !== plaintext || state.schemaVersion !== CANONICAL_GATEWAY_NODE_STATE_SCHEMA_VERSION || state.schemaVersion !== envelope.stateSchemaVersion || typeof state.registrySha256 !== "string" || !/^[0-9a-f]{64}$/.test(state.registrySha256) || typeof state.stateDigest !== "string" || state.stateDigest !== envelope.sourceStateDigest || gatewayStateDigest(state.snapshot) !== state.stateDigest) {
     throw new WalletAuthError("BACKUP_TAMPERED", "Canonical Gateway backup state integrity is invalid");
   }
   return Object.freeze({ envelope: Object.freeze(envelope), serialized, state: Object.freeze(state) });

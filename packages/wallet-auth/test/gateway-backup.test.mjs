@@ -274,11 +274,13 @@ test("legacy Gateway state normalizes before backup while unsupported future sta
     const source = await nonEmptyGatewayState(statePath);
 
     const currentEnvelope = JSON.parse(readFileSync(statePath, "utf8"));
-    writeFileSync(statePath, canonicalJSON({ ...currentEnvelope, updatedAt: NOW.toISOString() }), { mode: 0o600 });
+    const { registrySha256: _registrySha256, ...legacyEnvelope } = currentEnvelope;
+    writeFileSync(statePath, canonicalJSON({ ...legacyEnvelope, schemaVersion: 1, updatedAt: NOW.toISOString() }), { mode: 0o600 });
 
-    const migratedHost = new CanonicalWalletGatewayNodeHost(source.registry, { statePath, now: () => NOW });
+    assert.throws(() => new CanonicalWalletGatewayNodeHost(source.registry, { statePath, now: () => NOW }), errorCode("LEGACY_STATE_MIGRATION_REQUIRED"));
+    const migratedHost = new CanonicalWalletGatewayNodeHost(source.registry, { allowLegacyStateMigration: true, statePath, now: () => NOW });
     assert.deepEqual(migratedHost.snapshot(), source.snapshot);
-    assert.deepEqual(Object.keys(JSON.parse(readFileSync(statePath, "utf8"))).sort(), ["schemaVersion", "snapshot", "stateDigest"]);
+    assert.deepEqual(Object.keys(JSON.parse(readFileSync(statePath, "utf8"))).sort(), ["registrySha256", "schemaVersion", "snapshot", "stateDigest"]);
 
     const created = createGatewayStateBackup({ backupPath, key: KEY, statePath, now: () => BACKUP_TIME });
     const restored = restoreGatewayStateBackup({
