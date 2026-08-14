@@ -15,10 +15,12 @@ import (
 )
 
 type Server struct {
-	service   *Service
-	mux       *http.ServeMux
-	build     buildinfo.Info
-	startedAt time.Time
+	service     *Service
+	mux         *http.ServeMux
+	build       buildinfo.Info
+	startedAt   time.Time
+	admission   *admissionController
+	streamSlots chan struct{}
 
 	streamMu      sync.Mutex
 	streamClients map[chan streamEvent]struct{}
@@ -36,11 +38,18 @@ func NewServer(service *Service) *Server {
 }
 
 func NewServerWithBuild(service *Service, build buildinfo.Info) *Server {
+	return NewServerWithBuildAndLimits(service, build, Limits{})
+}
+
+func NewServerWithBuildAndLimits(service *Service, build buildinfo.Info, limits Limits) *Server {
+	limits = normalizeLimits(limits)
 	s := &Server{
 		service:       service,
 		mux:           http.NewServeMux(),
 		build:         buildinfo.Normalize(build),
 		startedAt:     time.Now().UTC(),
+		admission:     newAdmissionController(limits),
+		streamSlots:   make(chan struct{}, limits.MaxStreamClients),
 		streamClients: make(map[chan streamEvent]struct{}),
 	}
 	s.routes()
@@ -48,7 +57,7 @@ func NewServerWithBuild(service *Service, build buildinfo.Info) *Server {
 }
 
 func (s *Server) Handler() http.Handler {
-	return s.mux
+	return s.admission.wrap(s.mux)
 }
 
 func (s *Server) routes() {
@@ -137,6 +146,14 @@ func (s *Server) dashboardSnapshot(ctx context.Context) (dashboardSnapshot, erro
 }
 
 func (s *Server) handleStream(w http.ResponseWriter, r *http.Request) {
+	select {
+	case s.streamSlots <- struct{}{}:
+		defer func() { <-s.streamSlots }()
+	default:
+		w.Header().Set("Retry-After", "2")
+		writePublicError(w, http.StatusServiceUnavailable, "stream_capacity_exhausted", "Live subscriptions are temporarily full. Snapshot refresh remains available.")
+		return
+	}
 	flusher, ok := w.(http.Flusher)
 	if !ok {
 		writeJSON(w, http.StatusInternalServerError, map[string]any{"error": "streaming is unavailable"})

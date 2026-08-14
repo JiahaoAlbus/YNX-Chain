@@ -27,6 +27,8 @@ type Server struct {
 	startedAt    time.Time
 	build        buildinfo.Info
 	cursor       *cursorCodec
+	admission    *admissionController
+	syncMu       sync.Mutex
 }
 
 func NewServer(indexer *Indexer) *Server {
@@ -34,7 +36,7 @@ func NewServer(indexer *Indexer) *Server {
 }
 
 func NewServerWithBuild(indexer *Indexer, build buildinfo.Info) *Server {
-	server, err := NewServerWithBuildAndCursorKey(indexer, build, nil)
+	server, err := NewServerWithBuildCursorKeyAndLimits(indexer, build, nil, Limits{})
 	if err != nil {
 		panic(err)
 	}
@@ -42,20 +44,26 @@ func NewServerWithBuild(indexer *Indexer, build buildinfo.Info) *Server {
 }
 
 func NewServerWithBuildAndCursorKey(indexer *Indexer, build buildinfo.Info, cursorKey []byte) (*Server, error) {
+	return NewServerWithBuildCursorKeyAndLimits(indexer, build, cursorKey, Limits{})
+}
+
+func NewServerWithBuildCursorKeyAndLimits(indexer *Indexer, build buildinfo.Info, cursorKey []byte, limits Limits) (*Server, error) {
 	codec, err := newCursorCodec(cursorKey)
 	if err != nil {
 		return nil, err
 	}
-	s := &Server{indexer: indexer, mux: http.NewServeMux(), startedAt: time.Now().UTC(), build: buildinfo.Normalize(build), cursor: codec}
+	s := &Server{indexer: indexer, mux: http.NewServeMux(), startedAt: time.Now().UTC(), build: buildinfo.Normalize(build), cursor: codec, admission: newAdmissionController(limits)}
 	s.routes()
 	return s, nil
 }
 
 func (s *Server) Handler() http.Handler {
-	return s.mux
+	return s.admission.wrap(s.mux)
 }
 
 func (s *Server) SyncOnce(ctx context.Context) (SyncResult, error) {
+	s.syncMu.Lock()
+	defer s.syncMu.Unlock()
 	result, err := s.indexer.SyncOnce(ctx)
 	s.mu.Lock()
 	defer s.mu.Unlock()
