@@ -2,7 +2,7 @@ import { secp256k1 } from "@noble/curves/secp256k1.js";
 import { sha256 } from "@noble/hashes/sha2.js";
 import { bytesToHex, hexToBytes, utf8ToBytes } from "@noble/hashes/utils.js";
 import { canonicalJSON, digestHex, exactFields, WalletAuthError } from "./canonical.js";
-import { walletIdentity, walletIdentityFromPublicKey } from "./crypto.js";
+import { walletIdentity, walletIdentityFromPublicKey, withSecretBytes } from "./crypto.js";
 
 const INTENT_FIELDS = ["schemaVersion","intentId","sessionBinding","productClientId","bundleId","account","action","parametersDigest","evidence","trust","approval","ai","nonce","issuedAt","expiresAt","accountPublicKey","signature"];
 const CREATE_FIELDS = ["accountSecret","schemaVersion","intentId","sessionBinding","productClientId","bundleId","account","action","parametersDigest","evidence","trust","approval","ai","nonce","issuedAt","expiresAt"];
@@ -18,7 +18,7 @@ export function createSignedIntent(input) {
   if (identity.account !== input.account) fail("ACCOUNT_MISMATCH", "Signed Intent account does not match the signing key");
   const { accountSecret, ...payload } = input;
   const unsigned = parseUnsigned({ ...payload, accountPublicKey: identity.accountPublicKey });
-  const signature = bytesToHex(secp256k1.sign(sha256(utf8ToBytes(intentSignBytes(unsigned))), hexToBytes(accountSecret), { prehash:false, format:"compact", lowS:true }));
+  const signature = bytesToHex(withSecretBytes(accountSecret, secret => secp256k1.sign(sha256(utf8ToBytes(intentSignBytes(unsigned))), secret, { prehash:false, format:"compact", lowS:true })));
   return parseSignedIntent({ ...unsigned, signature });
 }
 

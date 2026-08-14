@@ -3,7 +3,7 @@ import { sha256 } from "@noble/hashes/sha2.js";
 import { bytesToHex, hexToBytes, utf8ToBytes } from "@noble/hashes/utils.js";
 import { decodeBase64url, encodeBase64url } from "./base64url.js";
 import { canonicalJSON, exactFields, WalletAuthError } from "./canonical.js";
-import { evmAddressFromYNX, walletIdentity, walletIdentityFromPublicKey } from "./crypto.js";
+import { evmAddressFromYNX, walletIdentity, walletIdentityFromPublicKey, withSecretBytes } from "./crypto.js";
 
 const REQUEST_FIELDS = ["version","chainId","productClientId","bundleId","callback","sessionBinding","account","nonce","action","payload","artifactDigest","simulation","issuedAt","expiresAt"];
 const PAYLOAD_FIELDS = ["name","source","deployedBytecode","constructorArgs","idempotencyKey","requestHash"];
@@ -63,7 +63,7 @@ export function signDeveloperDeployment(requestInput, input, at = new Date()) {
   const payloadJSON = JSON.stringify(request.payload), payloadHash = bytesToHex(sha256(utf8ToBytes(payloadJSON)));
   const unsigned = { version:1, chainId:6423, type:"application_action", signer:evmAddressFromYNX(request.account), nonce:request.nonce, action:"ide_contract_deploy", payload:request.payload, payloadHash, fee:1, aiUnits:0, payUnits:0, publicKey:identity.accountPublicKey };
   const signDocument = { domain:"YNX_APPLICATION_ACTION_V1", ...unsigned };
-  const signature = secp256k1.sign(sha256(utf8ToBytes(JSON.stringify(signDocument))), hexToBytes(input.accountSecret), { prehash:false, format:"der", lowS:true });
+  const signature = withSecretBytes(input.accountSecret, secret => secp256k1.sign(sha256(utf8ToBytes(JSON.stringify(signDocument))), secret, { prehash:false, format:"der", lowS:true }));
   const signedTransaction = Object.freeze({ ...unsigned, signature:bytesToHex(signature) });
   const canonicalPayload = JSON.stringify(signedTransaction), issuedAt = validDate(at).toISOString(), expiresAt = new Date(Math.min(Date.parse(request.expiresAt), at.getTime() + 120_000)).toISOString();
   const response = { version:"1", requestDigest:developerDeploymentDigest(request), productClientId:request.productClientId, bundleId:request.bundleId, callback:request.callback, sessionBinding:request.sessionBinding, account:request.account, action:request.action, artifactDigest:request.artifactDigest, signedTransaction, canonicalPayloadHex:`0x${bytesToHex(utf8ToBytes(canonicalPayload))}`, transactionHash:`0x${bytesToHex(sha256(utf8ToBytes(canonicalPayload)))}`, issuedAt, expiresAt };

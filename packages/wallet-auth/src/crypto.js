@@ -8,19 +8,23 @@ import { WalletAuthError } from "./canonical.js";
 const CHARSET = "qpzry9x8gf2tvdw0s3jn54khce6mua7l";
 
 export function walletIdentity(secretHex) {
-  const secret = validSecret(secretHex);
+  return withSecretBytes(secretHex, walletIdentityFromSecretBytes);
+}
+
+function walletIdentityFromSecretBytes(secret) {
   const publicKey = secp256k1.getPublicKey(secret, true);
   const digest = keccak_256(secp256k1.getPublicKey(secret, false).slice(1));
   return Object.freeze({ account: encodeYNX(digest.slice(-20)), accountPublicKey: bytesToHex(publicKey) });
 }
 
 export function signAuthorization(request, input) {
-  const secret = validSecret(input.accountSecret);
-  const identity = walletIdentity(bytesToHex(secret));
-  if (input.account && input.account !== identity.account) throw new WalletAuthError("ACCOUNT_MISMATCH", "Selected account does not match the signing key");
-  const payload = createApprovalPayload(request, { ...identity, issuedAt: input.issuedAt });
-  const signature = secp256k1.sign(sha256(utf8ToBytes(approvalSignBytes(payload))), secret, { prehash: false, format: "compact", lowS: true });
-  return Object.freeze({ ...payload, walletSignature: bytesToHex(signature) });
+  return withSecretBytes(input.accountSecret, secret => {
+    const identity = walletIdentityFromSecretBytes(secret);
+    if (input.account && input.account !== identity.account) throw new WalletAuthError("ACCOUNT_MISMATCH", "Selected account does not match the signing key");
+    const payload = createApprovalPayload(request, { ...identity, issuedAt: input.issuedAt });
+    const signature = secp256k1.sign(sha256(utf8ToBytes(approvalSignBytes(payload))), secret, { prehash: false, format: "compact", lowS: true });
+    return Object.freeze({ ...payload, walletSignature: bytesToHex(signature) });
+  });
 }
 
 export function verifyAuthorization(response, expected) {
@@ -63,8 +67,14 @@ export function ynxAddressFromEVM(address) {
 function validSecret(value) {
   if (typeof value !== "string" || !/^[0-9a-f]{64}$/.test(value)) throw new WalletAuthError("INVALID_SECRET", "Wallet account secret must be 32-byte lowercase hex");
   const bytes = hexToBytes(value);
-  if (!secp256k1.utils.isValidSecretKey(bytes)) throw new WalletAuthError("INVALID_SECRET", "Wallet account secret is outside the secp256k1 range");
+  if (!secp256k1.utils.isValidSecretKey(bytes)) { bytes.fill(0); throw new WalletAuthError("INVALID_SECRET", "Wallet account secret is outside the secp256k1 range"); }
   return bytes;
+}
+
+export function withSecretBytes(secretHex, operation) {
+  const secret = validSecret(secretHex);
+  try { return operation(secret); }
+  finally { secret.fill(0); }
 }
 
 function encodeYNX(payload) {

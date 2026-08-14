@@ -3,7 +3,7 @@ import { sha256 } from "@noble/hashes/sha2.js";
 import { bytesToHex, hexToBytes, utf8ToBytes } from "@noble/hashes/utils.js";
 import { decodeBase64url, encodeBase64url } from "./base64url.js";
 import { canonicalJSON, digestHex, exactFields, WalletAuthError } from "./canonical.js";
-import { walletIdentity, walletIdentityFromPublicKey } from "./crypto.js";
+import { walletIdentity, walletIdentityFromPublicKey, withSecretBytes } from "./crypto.js";
 
 const REQUEST_FIELDS=["version","chainId","productClientId","bundleId","callback","sessionBinding","account","action","parameters","nonce","issuedAt","expiresAt"];
 const RESPONSE_FIELDS=[...REQUEST_FIELDS,"requestDigest","accountPublicKey","walletSignature"];
@@ -51,7 +51,7 @@ export function signExchangeOrderAction(requestInput,input){
   const request=parseExchangeOrderActionRequest(requestInput,new Date(input.issuedAt));
   const identity=walletIdentity(input.accountSecret);
   if(identity.account!==request.account||input.account!==request.account)fail("ACCOUNT_MISMATCH","Selected Wallet account does not match the Exchange session");
-  const payload=exchangeActionAuthorizationPayload(request.account,request.action,request.parameters),signature=secp256k1.sign(sha256(utf8ToBytes(payload)),hexToBytes(input.accountSecret),{prehash:false,format:"compact",lowS:true});
+  const payload=exchangeActionAuthorizationPayload(request.account,request.action,request.parameters),signature=withSecretBytes(input.accountSecret,secret=>secp256k1.sign(sha256(utf8ToBytes(payload)),secret,{prehash:false,format:"compact",lowS:true}));
   return Object.freeze({...request,requestDigest:exchangeOrderActionRequestDigest(request),accountPublicKey:identity.accountPublicKey,walletSignature:bytesToHex(signature)});
 }
 

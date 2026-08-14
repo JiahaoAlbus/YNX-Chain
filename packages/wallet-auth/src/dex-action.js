@@ -7,6 +7,7 @@ import {
   evmAddressFromYNX,
   walletIdentity,
   walletIdentityFromPublicKey,
+  withSecretBytes,
 } from "./crypto.js";
 
 const ACTIONS = new Set([
@@ -231,14 +232,16 @@ export function signDexAction(requestInput, input, at = new Date()) {
     payUnits: 0,
     publicKey: identity.accountPublicKey,
   };
-  const signature = secp256k1.sign(
-    sha256(
-      utf8ToBytes(
-        JSON.stringify({ domain: "YNX_APPLICATION_ACTION_V1", ...unsigned }),
+  const signature = withSecretBytes(input.accountSecret, secret =>
+    secp256k1.sign(
+      sha256(
+        utf8ToBytes(
+          JSON.stringify({ domain: "YNX_APPLICATION_ACTION_V1", ...unsigned }),
+        ),
       ),
+      secret,
+      { prehash: false, format: "der", lowS: true },
     ),
-    hexToBytes(input.accountSecret),
-    { prehash: false, format: "der", lowS: true },
   );
   const signedTransaction = Object.freeze({
       ...unsigned,
