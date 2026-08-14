@@ -1,10 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  SESSION_KEY, WalletWebError, YNX_CHAIN, addYNXChain, connectWallet, discoverInjectedProviders,
+  METAMASK_DOWNLOAD_URL, SESSION_KEY, WalletWebError, YNX_CHAIN, YNX_DOWNLOAD_URL,
+  addYNXChain, connectWallet, discoverInjectedProviders,
   forgetSession, readRememberedSession, rememberSession, resolveRememberedWallet,
   invalidatesConnectedSession, restoreTestnetSession, sendTransaction, signMessage, subscribeProviderLifecycle,
-  switchToYNXChain, verifyTestnetRpc, walletActionGates,
+  switchToYNXChain, verifyTestnetRpc, walletActionGates, walletDiscoveryPresentation,
 } from "../src/provider.js";
 
 const ACCOUNT = `0x${"1".repeat(40)}`;
@@ -42,6 +43,14 @@ test("injected discovery prefers YNX and keeps MetaMask explicit", () => {
   const metamask = Object.assign(provider(), {isMetaMask:true});
   const result = discoverInjectedProviders({ethereum:{providers:[metamask,ynx]}});
   assert.equal(result.ynx, ynx); assert.equal(result.metamask, metamask); assert.equal(result.any, ynx);
+});
+
+test("discovery presentation directly prefers YNX and gives two non-empty fallbacks", () => {
+  assert.deepEqual(walletDiscoveryPresentation({ynx:provider(),metamask:provider()}),{ynxPresent:true,metamaskPresent:true,showYNXConnect:true,showYNXDownload:false,showMetaMaskChoice:false,metaMaskChoice:"connect"});
+  assert.deepEqual(walletDiscoveryPresentation({ynx:null,metamask:provider()}),{ynxPresent:false,metamaskPresent:true,showYNXConnect:false,showYNXDownload:true,showMetaMaskChoice:true,metaMaskChoice:"connect"});
+  assert.deepEqual(walletDiscoveryPresentation({}),{ynxPresent:false,metamaskPresent:false,showYNXConnect:false,showYNXDownload:true,showMetaMaskChoice:true,metaMaskChoice:"official-download"});
+  assert.equal(new URL(YNX_DOWNLOAD_URL).hostname,"www.ynxweb4.com");
+  assert.equal(METAMASK_DOWNLOAD_URL,"https://metamask.io/download");
 });
 
 test("RPC verification accepts only exact YNX Testnet", async () => {

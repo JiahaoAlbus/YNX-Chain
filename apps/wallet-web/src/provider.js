@@ -7,6 +7,7 @@ export const YNX_CHAIN = Object.freeze({
 });
 
 export const YNX_DOWNLOAD_URL = "https://www.ynxweb4.com/downloads/ynx-wallet-1.0.1-testnet-preview-dc31c9a8-test-signed.apk";
+export const METAMASK_DOWNLOAD_URL = "https://metamask.io/download";
 export const SESSION_KEY = "ynx.wallet.web.session.v1";
 
 const ADDRESS = /^0x[0-9a-fA-F]{40}$/;
@@ -72,6 +73,19 @@ export async function discoverWallets(scope = globalThis) {
   return Object.freeze({
     ynx: announcedYNX?.provider || injected.ynx,
     metamask: announcedMetaMask?.provider || injected.metamask,
+  });
+}
+
+export function walletDiscoveryPresentation(availability = {}) {
+  const ynxPresent = Boolean(availability.ynx);
+  const metamaskPresent = Boolean(availability.metamask);
+  return Object.freeze({
+    ynxPresent,
+    metamaskPresent,
+    showYNXConnect: ynxPresent,
+    showYNXDownload: !ynxPresent,
+    showMetaMaskChoice: !ynxPresent,
+    metaMaskChoice: metamaskPresent ? "connect" : "official-download",
   });
 }
 

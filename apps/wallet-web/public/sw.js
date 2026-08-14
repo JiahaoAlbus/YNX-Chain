@@ -1,5 +1,5 @@
-const CACHE = "ynx-wallet-web-v1";
-const ASSETS = ["./", "./index.html", "./styles.css", "./app.js", "./provider.js", "./i18n.js", "./ynx-logo.png", "./manifest.webmanifest"];
+const CACHE = "ynx-wallet-web-v2";
+const ASSETS = ["./", "./index.html", "./styles.css", "./accessibility.css", "./app.js", "./provider.js", "./i18n.js", "./ynx-logo.png", "./manifest.webmanifest"];
 self.addEventListener("install", (event) => event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(ASSETS))));
 self.addEventListener("activate", (event) => event.waitUntil(caches.keys().then((keys) => Promise.all(keys.filter((key) => key !== CACHE).map((key) => caches.delete(key))))));
 self.addEventListener("fetch", (event) => {

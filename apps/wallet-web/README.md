@@ -31,6 +31,12 @@ If that preflight proves an account change, wrong network, missing provider, or
 standard provider disconnect, the UI deletes the remembered session and keeps
 sign/transaction controls disabled until an explicit reconnect.
 
+Discovery renders one unambiguous path: a detected YNX provider gets the direct
+Open YNX Wallet action; without YNX, the UI shows both the current YNX website
+download URL and MetaMask. An injected MetaMask connects through EIP-1193, while
+an absent MetaMask routes to its verified official download page. These external
+routes do not change this package's `downloadHosted=false` release state.
+
 ```sh
 npm test
 npm run build

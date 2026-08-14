@@ -6,7 +6,7 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const dist = join(root, "dist");
 await rm(dist, {recursive: true, force: true});
 await mkdir(join(dist, "pwa"), {recursive: true});
-for (const file of ["index.html", "manifest.webmanifest", "sw.js", "styles.css", "app.js"]) await cp(join(root, "public", file), join(dist, "pwa", file));
+for (const file of ["index.html", "manifest.webmanifest", "sw.js", "styles.css", "accessibility.css", "app.js"]) await cp(join(root, "public", file), join(dist, "pwa", file));
 for (const file of ["provider.js", "i18n.js"]) await cp(join(root, "src", file), join(dist, "pwa", file));
 await cp(join(root, "public", "ynx-logo.png"), join(dist, "pwa", "ynx-logo.png"));
 
@@ -16,7 +16,7 @@ const variants = [
 ];
 for (const [name, manifest] of variants) {
   const target = join(dist, name); await mkdir(target, {recursive: true});
-  for (const file of ["index.html", "styles.css", "app.js"]) await cp(join(root, "public", file), join(target, file));
+  for (const file of ["index.html", "styles.css", "accessibility.css", "app.js"]) await cp(join(root, "public", file), join(target, file));
   for (const file of ["provider.js", "i18n.js"]) await cp(join(root, "src", file), join(target, file));
   await cp(join(root, "extension", "service-worker.js"), join(target, "service-worker.js"));
   await cp(join(root, "public", "ynx-logo.png"), join(target, "ynx-logo.png"));

@@ -1,9 +1,9 @@
 import {LOCALES, catalog, isRTL} from "./i18n.js";
 import {
-  YNX_DOWNLOAD_URL, addYNXChain, connectWallet, createExtensionProvider, discoverWallets,
+  METAMASK_DOWNLOAD_URL, YNX_DOWNLOAD_URL, addYNXChain, connectWallet, createExtensionProvider, discoverWallets,
   extensionWalletAvailability, forgetSession, rememberSession, restoreTestnetSession, sendTransaction,
   invalidatesConnectedSession, resolveRememberedWallet, signMessage, subscribeProviderLifecycle,
-  switchToYNXChain, walletActionGates,
+  switchToYNXChain, walletActionGates, walletDiscoveryPresentation,
 } from "./provider.js";
 
 const app = document.querySelector("#app");
@@ -11,6 +11,7 @@ const isExtension = location.protocol === "chrome-extension:" || location.protoc
 const preview = new URLSearchParams(location.search);
 const requestedLocale = preview.get("lang");
 const requestedTheme = preview.get("theme");
+const requestedText = preview.get("text");
 const state = {
   locale: LOCALES.some(([locale]) => locale === requestedLocale) ? requestedLocale : localStorage.getItem("ynx.wallet.web.locale") || "en",
   theme: ["light", "dark"].includes(requestedTheme) ? requestedTheme : localStorage.getItem("ynx.wallet.web.theme") || "system",
@@ -25,12 +26,13 @@ function render() {
   document.documentElement.lang = state.locale;
   document.documentElement.dir = isRTL(state.locale) ? "rtl" : "ltr";
   document.documentElement.dataset.theme = state.theme === "system" ? "" : state.theme;
+  document.documentElement.dataset.text = requestedText === "large" ? "large" : "";
   app.innerHTML = `<div class="shell">
     <header><div class="brand"><img src="./ynx-logo.png" alt="YNX"><p class="eyebrow">${text("eyebrow")}</p></div>
       <div class="controls"><label><span class="hidden">${text("language")}</span><select id="locale" aria-label="${text("language")}">${options()}</select></label><button id="theme" type="button">${state.theme === "dark" ? text("light") : text("dark")}</button></div></header>
     <section aria-labelledby="title"><h1 id="title">${text("title")}</h1><p class="intro">${text("intro")}</p></section>
     <section class="card" aria-label="Wallet connection"><div id="detected" class="eyebrow">${text("unavailable")}</div>
-      <div class="wallets"><button id="ynx" class="primary hidden" type="button">${text("connectYNX")}</button><a id="download" href="${YNX_DOWNLOAD_URL}" class="secondary" rel="noreferrer">${text("download")}</a><button id="metamask" class="secondary" type="button">${text("metamask")}</button></div>
+      <div class="wallets"><button id="ynx" class="primary hidden" type="button">${text("connectYNX")}</button><a id="download" href="${YNX_DOWNLOAD_URL}" class="secondary" rel="noreferrer">${text("download")}</a><a id="metamask" href="${METAMASK_DOWNLOAD_URL}" class="secondary" rel="noreferrer">${text("metamask")}</a></div>
       <div class="status" id="status" role="status" aria-live="polite"><strong>${text("status")}:</strong> ${state.account ? `${text("connected")} · <span class="mono">${escape(state.account)}</span>` : text("disconnected")}</div>
       <p class="risk">${text("rpcCheck")} ${text("testnet")}</p>
     </section>
@@ -117,7 +119,11 @@ function bind() {
   document.querySelector("#locale").addEventListener("change", (event) => {state.locale = event.target.value; localStorage.setItem("ynx.wallet.web.locale", state.locale); render(); detect();});
   document.querySelector("#theme").addEventListener("click", () => {state.theme = state.theme === "dark" ? "light" : "dark"; localStorage.setItem("ynx.wallet.web.theme", state.theme); render(); detect();});
   document.querySelector("#ynx").addEventListener("click", () => connect("ynx"));
-  document.querySelector("#metamask").addEventListener("click", () => connect("metamask"));
+  document.querySelector("#metamask").addEventListener("click", (event) => {
+    if (!state.providers?.metamask) return;
+    event.preventDefault();
+    connect("metamask");
+  });
   document.querySelector("#add").addEventListener("click", () => act(() => addYNXChain(state.provider), () => text("testnet")));
   document.querySelector("#switch").addEventListener("click", () => act(() => switchToYNXChain(state.provider), () => text("connected")));
   document.querySelector("#sign").addEventListener("click", () => act(() => signMessage(state.provider, state.account, document.querySelector("#message").value), (value) => `${text("signature")}: ${value}`));
@@ -127,12 +133,12 @@ function bind() {
 async function detect() {
   const availability = isExtension ? await extensionWalletAvailability() : await discoverWallets();
   state.providers = availability;
-  const ynxPresent = Boolean(availability.ynx);
-  const metamaskPresent = Boolean(availability.metamask);
-  document.querySelector("#ynx").classList.toggle("hidden", !ynxPresent);
-  document.querySelector("#download").classList.toggle("hidden", ynxPresent);
-  document.querySelector("#metamask").classList.toggle("hidden", ynxPresent);
-  document.querySelector("#detected").textContent = ynxPresent ? text("detected") : text("unavailable");
+  const presentation = walletDiscoveryPresentation(availability);
+  document.querySelector("#ynx").classList.toggle("hidden", !presentation.showYNXConnect);
+  document.querySelector("#download").classList.toggle("hidden", !presentation.showYNXDownload);
+  document.querySelector("#metamask").classList.toggle("hidden", !presentation.showMetaMaskChoice);
+  document.querySelector("#metamask").dataset.route = presentation.metaMaskChoice;
+  document.querySelector("#detected").textContent = presentation.ynxPresent ? text("detected") : text("unavailable");
   const wallet = resolveRememberedWallet(availability);
   if (wallet) {
     const provider = selectProvider(wallet);
