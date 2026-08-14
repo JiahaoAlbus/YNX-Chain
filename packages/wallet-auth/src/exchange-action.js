@@ -70,7 +70,7 @@ export function parseExchangeOrderActionDeepLink(url,at=new Date()){
   let parsed;try{parsed=new URL(url)}catch{fail("INVALID_DEEP_LINK","Exchange Wallet action link is invalid")}
   if(parsed.protocol!=="ynxwallet:"||parsed.hostname!=="action"||parsed.pathname!==""||parsed.hash||[...parsed.searchParams.keys()].join(",")!=="request")fail("INVALID_DEEP_LINK","Exchange Wallet action route or fields are invalid");
   let value;try{value=JSON.parse(new TextDecoder("utf-8",{fatal:true}).decode(decodeBase64url(parsed.searchParams.get("request")??"","Exchange Wallet action request")))}catch{fail("INVALID_DEEP_LINK","Exchange Wallet action encoding is invalid")}
-  return parseExchangeOrderActionRequest(value,at);
+  const request=parseExchangeOrderActionRequest(value,at);if(encodeExchangeOrderActionDeepLink(request)!==url)fail("INVALID_DEEP_LINK","Exchange Wallet action link is not canonical");return request;
 }
 
 function parseParameters(action,value){

@@ -100,7 +100,10 @@ test("DEX Wallet signs exact-input, exact-output, add and remove liquidity actio
 
 test("DEX Wallet rejects action, route, session, quote, deadline, account and signature substitution", () => {
   const expected = request(),
-    signed = signDexAction(expected, { accountSecret: SECRET }, NOW);
+    signed = signDexAction(expected, { accountSecret: SECRET }, NOW),
+    link = createDexActionDeepLink(expected, NOW);
+  for (const ambiguous of [link.replace("ynxwallet:","YNXWALLET:"),link.replace("ynxwallet://","ynxwallet://attacker@"),link.replace("//dex-action","//%64ex-action")])
+    assert.throws(() => parseDexActionDeepLink(ambiguous, NOW), /canonical|route/);
   assert.throws(
     () =>
       createDexActionDeepLink({ ...expected, action: "dex_asset_mint" }, NOW),

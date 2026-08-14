@@ -27,6 +27,7 @@ test("action deep link is exact and tampering fails closed",()=>{
   const response=signExchangeOrderAction(input,{accountSecret:ACCOUNT_SECRET,account:ACCOUNT,issuedAt:NOW.toISOString()});
   assert.throws(()=>verifyExchangeOrderActionResponse({...response,parameters:{...response.parameters,amountMicro:250001}},input,NOW),WalletAuthError);
   assert.throws(()=>parseExchangeOrderActionDeepLink(link.replace("action","authorize"),NOW),WalletAuthError);
+  for(const ambiguous of [link.replace("ynxwallet:","YNXWALLET:"),link.replace("ynxwallet://","ynxwallet://attacker@"),link.replace("//action","//%61ction")])assert.throws(()=>parseExchangeOrderActionDeepLink(ambiguous,NOW),WalletAuthError);
 });
 
 test("wrong account, stale review and unsupported market are rejected",()=>{

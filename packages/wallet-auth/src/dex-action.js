@@ -136,7 +136,10 @@ export function parseDexActionDeepLink(value, at = new Date()) {
   } catch {
     fail("INVALID_DEEP_LINK", "DEX Wallet action encoding is invalid");
   }
-  return parseDexActionRequest(decoded, at);
+  const request = parseDexActionRequest(decoded, at);
+  if (createDexActionDeepLink(request, at) !== value)
+    fail("INVALID_DEEP_LINK", "DEX Wallet action link is not canonical");
+  return request;
 }
 
 export function parseDexActionRequest(input, at = new Date()) {

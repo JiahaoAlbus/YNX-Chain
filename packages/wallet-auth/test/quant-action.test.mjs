@@ -7,7 +7,8 @@ function mandate(){return{Account:identity.account,StrategyHash:"ab".repeat(32),
 function request(parameters=mandate()){return{version:"1",chainId:"ynx_6423-1",productClientId:"ynx-quant-v1",bundleId:"com.ynxweb4.quant",callback:"https://quant.ynxweb4.com/wallet-action/callback",sessionBinding:"cd".repeat(32),account:identity.account,action:"quant.mandate.activate",parameters,nonce:"quant_action_nonce_abcdefghijklmnopqrstuvwxyz",issuedAt:"2026-08-11T08:00:00.000Z",expiresAt:"2026-08-11T08:05:00.000Z"}}
 
 test("Quant mandate action binds every displayed risk limit and round-trips through Wallet",()=>{
-  const input=request(),parsed=parseQuantActionDeepLink(encodeQuantActionDeepLink(input),NOW),payload=quantActionAuthorizationPayload(parsed.action,parsed.parameters);
+  const input=request(),link=encodeQuantActionDeepLink(input),parsed=parseQuantActionDeepLink(link,NOW),payload=quantActionAuthorizationPayload(parsed.action,parsed.parameters);
+  for(const ambiguous of [link.replace("ynxwallet:","YNXWALLET:"),link.replace("ynxwallet://","ynxwallet://attacker@"),link.replace("//quant-action","//%71uant-action")])assert.throws(()=>parseQuantActionDeepLink(ambiguous,NOW),/canonical|route/);
   for(const value of ["ynx-quant-execution-adapter-v2",parsed.parameters.StrategyHash,"500000","50","10000","20000","300000","400000","true"])assert.ok(payload.includes(value),value);
   const response=signQuantAction(parsed,{accountSecret:SECRET,account:identity.account,issuedAt:NOW.toISOString()});
   assert.equal(verifyQuantActionResponse(response,input,NOW).walletSignature.length,128);

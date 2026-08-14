@@ -23,7 +23,9 @@ export function parseDeveloperDeploymentDeepLink(value, at = new Date()) {
   if (url.protocol !== "ynxwallet:" || url.hostname !== "developer-deploy" || url.pathname || url.hash || keys.length !== 1 || keys[0] !== "request") fail("INVALID_DEEP_LINK", "Developer deployment route or fields are invalid");
   let decoded;
   try { decoded = new TextDecoder("utf-8", { fatal: true }).decode(decodeBase64url(url.searchParams.get("request") || "", "Developer deployment request")); } catch { fail("INVALID_DEEP_LINK", "Developer deployment encoding is invalid"); }
-  return parseDeveloperDeploymentRequest(decoded, at);
+  const request = parseDeveloperDeploymentRequest(decoded, at);
+  if (createDeveloperDeploymentDeepLink(request, at) !== value) fail("INVALID_DEEP_LINK", "Developer deployment link is not canonical");
+  return request;
 }
 
 export function parseDeveloperDeploymentRequest(input, at = new Date()) {

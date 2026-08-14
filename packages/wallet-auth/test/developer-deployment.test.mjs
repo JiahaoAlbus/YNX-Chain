@@ -38,7 +38,9 @@ test("Developer deployment rejects session, artifact, simulation, route and sign
   assert.throws(()=>createDeveloperDeploymentDeepLink({...expected,sessionBinding:"b"},NOW),/sessionBinding/);
   assert.throws(()=>createDeveloperDeploymentDeepLink({...expected,artifactDigest:"b".repeat(64)},NOW),/artifact/);
   assert.throws(()=>createDeveloperDeploymentDeepLink({...expected,simulation:{...expected.simulation,chainId:1}},NOW),/chain/);
-  assert.throws(()=>parseDeveloperDeploymentDeepLink(createDeveloperDeploymentDeepLink(expected,NOW).replace("developer-deploy","authorize"),NOW),/route/);
+  const link=createDeveloperDeploymentDeepLink(expected,NOW);
+  assert.throws(()=>parseDeveloperDeploymentDeepLink(link.replace("developer-deploy","authorize"),NOW),/route/);
+  for(const ambiguous of [link.replace("ynxwallet:","YNXWALLET:"),link.replace("ynxwallet://","ynxwallet://attacker@"),link.replace("//developer-deploy","//%64eveloper-deploy")])assert.throws(()=>parseDeveloperDeploymentDeepLink(ambiguous,NOW),/canonical|route/);
   assert.throws(()=>parseDeveloperDeploymentResponse({...signed,transactionHash:`0x${"0".repeat(64)}`},expected,NOW),/hash|encoding/);
   assert.throws(()=>parseDeveloperDeploymentResponse({...signed,signedTransaction:{...signed.signedTransaction,signature:`${signed.signedTransaction.signature.slice(0,-2)}00`}},expected,NOW),/signature|encoding|hash/);
 });
