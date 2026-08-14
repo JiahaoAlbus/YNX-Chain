@@ -110,6 +110,7 @@ final class MalformedCallbackUITests: XCTestCase {
 
   func testRecoveryAndUnlockWithSimulatedBiometricMatches() throws {
     let wallet = XCUIApplication()
+    let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
     wallet.launch()
 
     let recover = wallet.buttons["Recover on a replacement device"]
@@ -126,8 +127,17 @@ final class MalformedCallbackUITests: XCTestCase {
     let semanticSubmit = wallet.keyboards.buttons["Done"]
     XCTAssertTrue(semanticSubmit.waitForExistence(timeout: 15), "Recovery input has no semantic submit action")
     semanticSubmit.tap()
+    let recoveryPrompt = springboard.staticTexts["Import a YNX Wallet account"]
+    XCTAssertTrue(
+      recoveryPrompt.waitForExistence(timeout: 30),
+      "LocalAuthentication recovery prompt did not appear after Simulator enrollment"
+    )
+    let recoveryPromptAttachment = XCTAttachment(screenshot: springboard.screenshot())
+    recoveryPromptAttachment.name = "simulated-biometric-recovery-system-prompt"
+    recoveryPromptAttachment.lifetime = .keepAlways
+    add(recoveryPromptAttachment)
     FileHandle.standardError.write(
-      Data("YNX_WALLET_SIMULATED_BIOMETRIC_READY phase=recovery\n".utf8)
+      Data("YNX_WALLET_SIMULATED_BIOMETRIC_READY phase=recovery prompt=true\n".utf8)
     )
 
     let unlock = wallet.buttons["Unlock with biometrics"]
@@ -141,8 +151,17 @@ final class MalformedCallbackUITests: XCTestCase {
     add(recovered)
 
     unlock.tap()
+    let unlockPrompt = springboard.staticTexts["Unlock YNX Wallet"]
+    XCTAssertTrue(
+      unlockPrompt.waitForExistence(timeout: 30),
+      "LocalAuthentication unlock prompt did not appear for the persisted account"
+    )
+    let unlockPromptAttachment = XCTAttachment(screenshot: springboard.screenshot())
+    unlockPromptAttachment.name = "simulated-biometric-unlock-system-prompt"
+    unlockPromptAttachment.lifetime = .keepAlways
+    add(unlockPromptAttachment)
     FileHandle.standardError.write(
-      Data("YNX_WALLET_SIMULATED_BIOMETRIC_READY phase=unlock\n".utf8)
+      Data("YNX_WALLET_SIMULATED_BIOMETRIC_READY phase=unlock prompt=true\n".utf8)
     )
     XCTAssertTrue(
       wallet.staticTexts["NATIVE ACCOUNT"].waitForExistence(timeout: 45),
