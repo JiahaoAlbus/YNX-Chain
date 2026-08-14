@@ -16,6 +16,33 @@ function sortObjects(values, key) {
   values.sort((left, right) => key(left).localeCompare(key(right), "en"));
 }
 
+export function createNormalizedLockView(packageDocument, packageLockDocument, { localPackageName, localPackagePath }) {
+  const sourceEntry = packageLockDocument.packages?.[localPackagePath];
+  if (!sourceEntry?.version) throw new Error("local package lock entry is required");
+  const manifest = {
+    name: packageDocument.name,
+    version: packageDocument.version,
+    private: packageDocument.private,
+    license: packageDocument.license,
+    packageManager: packageDocument.packageManager,
+    dependencies: {
+      ...packageDocument.dependencies,
+      [localPackageName]: sourceEntry.version,
+    },
+    ...(packageDocument.devDependencies
+      ? { devDependencies: { ...packageDocument.devDependencies } }
+      : {}),
+    ...(packageDocument.overrides
+      ? { overrides: { ...packageDocument.overrides } }
+      : {}),
+  };
+  const lock = structuredClone(packageLockDocument);
+  lock.packages[""].dependencies[localPackageName] = sourceEntry.version;
+  lock.packages[`node_modules/${localPackageName}`] = { ...sourceEntry };
+  delete lock.packages[localPackagePath];
+  return { manifest: stableObject(manifest), lock: stableObject(lock) };
+}
+
 export function canonicalizeSbom(input, { npmVersion, platformSpecificPackages = new Set() }) {
   const sbom = structuredClone(input);
   if (!sbom.metadata || typeof sbom.metadata !== "object") {

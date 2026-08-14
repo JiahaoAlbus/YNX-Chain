@@ -5,7 +5,7 @@ import { mkdtemp, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
-import { canonicalizeSbom, serializeCanonicalSbom } from "./sbom-canonical.mjs";
+import { canonicalizeSbom, createNormalizedLockView, serializeCanonicalSbom } from "./sbom-canonical.mjs";
 
 const walletRoot = fileURLToPath(new URL("..", import.meta.url));
 const committedPath = path.join(walletRoot, "sbom.cdx.json");
@@ -68,18 +68,14 @@ const tempDir = await mkdtemp(path.join(tmpdir(), "ynx-wallet-sbom-"));
 const generatedPath = path.join(tempDir, "sbom.cdx.json");
 
 try {
-  const lockViewManifest = structuredClone(packageDocument);
-  const lockView = structuredClone(packageLockDocument);
   const walletAuthPath = "../../packages/wallet-auth";
   const walletAuthName = "@ynx-chain/wallet-auth";
-  const walletAuth = lockView.packages?.[walletAuthPath];
-  assert.ok(walletAuth?.version, "Wallet Auth lock entry is required");
-  lockViewManifest.dependencies[walletAuthName] = walletAuth.version;
-  lockView.packages[""].dependencies[walletAuthName] = walletAuth.version;
-  lockView.packages[`node_modules/${walletAuthName}`] = { ...walletAuth };
-  delete lockView.packages[walletAuthPath];
-  await writeFile(path.join(tempDir, "package.json"), `${JSON.stringify(lockViewManifest, null, 2)}\n`, { mode: 0o600 });
-  await writeFile(path.join(tempDir, "package-lock.json"), `${JSON.stringify(lockView, null, 2)}\n`, { mode: 0o600 });
+  const lockView = createNormalizedLockView(packageDocument, packageLockDocument, {
+    localPackageName: walletAuthName,
+    localPackagePath: walletAuthPath,
+  });
+  await writeFile(path.join(tempDir, "package.json"), `${JSON.stringify(lockView.manifest, null, 2)}\n`, { mode: 0o600 });
+  await writeFile(path.join(tempDir, "package-lock.json"), `${JSON.stringify(lockView.lock, null, 2)}\n`, { mode: 0o600 });
 
   const generatorOutput = run(process.execPath, [
     toolPath,

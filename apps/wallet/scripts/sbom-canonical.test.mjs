@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { canonicalizeSbom, serializeCanonicalSbom } from "./sbom-canonical.mjs";
+import { canonicalizeSbom, createNormalizedLockView, serializeCanonicalSbom } from "./sbom-canonical.mjs";
 
 const node22Fixture = {
   metadata: {
@@ -20,7 +20,7 @@ const node24Fixture = {
   },
 };
 
-test("Node 22 and Node 24 SBOM fixtures normalize to exact UTF-8 LF bytes", () => {
+test("Linux Node 22 and macOS Node 24 SBOM fixtures normalize to exact UTF-8 LF bytes", () => {
   const options = {
     npmVersion: "11.5.1",
     platformSpecificPackages: new Set([
@@ -35,4 +35,19 @@ test("Node 22 and Node 24 SBOM fixtures normalize to exact UTF-8 LF bytes", () =
   assert.equal(node22.at(-1), 10);
   assert.match(node22.toString("utf8"), /"version": "11\.5\.1"/);
   assert.doesNotMatch(node22.toString("utf8"), /timestamp|11\.17\.0/);
+});
+
+test("local package lock view is repeatable and never mutates its source documents", () => {
+  const manifest = { name: "app", version: "1.0.1", private: true, license: "UNLICENSED", packageManager: "npm@11.5.1", dependencies: { local: "file:../local", stable: "2.0.0" }, scripts: { unsafe: "ignored" } };
+  const lock = { lockfileVersion: 3, packages: { "": { dependencies: { local: "file:../local", stable: "2.0.0" } }, "../local": { name: "local", version: "1.0.0", dependencies: { stable: "2.0.0" } }, "node_modules/local": { resolved: "../local", link: true }, "node_modules/stable": { version: "2.0.0" } } };
+  const before = JSON.stringify({ manifest, lock });
+  const options = { localPackageName: "local", localPackagePath: "../local" };
+  const first = createNormalizedLockView(manifest, lock, options);
+  const second = createNormalizedLockView(manifest, lock, options);
+  assert.deepEqual(first, second);
+  assert.equal(JSON.stringify({ manifest, lock }), before);
+  assert.equal(first.manifest.scripts, undefined);
+  assert.equal(first.manifest.dependencies.local, "1.0.0");
+  assert.equal(first.lock.packages["../local"], undefined);
+  assert.deepEqual(first.lock.packages["node_modules/local"], { dependencies: { stable: "2.0.0" }, name: "local", version: "1.0.0" });
 });
