@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "gateway-node-stale-lock-recovery-local-2026-08-14",
+  "owner": "02-wallet-auth",
+  "sourceCommit": "838ced040abe13fed2f75e13724380190b0a3626",
+  "observedAt": "2026-08-14T04:11:55Z",
+  "environment": "independent-node-process-loopback-http-private-local-posix-filesystem",
+  "ownerLockProtocol": {
+    "schemaVersion": 1,
+    "canonicalJson": true,
+    "temporaryOpenExclusive": true,
+    "temporaryNoFollow": true,
+    "temporaryMode": "0600",
+    "atomicHardLinkPublish": true,
+    "ownerPidBound": true,
+    "ownerTokenBound": true,
+    "acquisitionTimeBound": true,
+    "maximumLockBytes": 1024
+  },
+  "recoveryPolicy": {
+    "explicitOperatorActionRequired": true,
+    "minimumAgeRequired": true,
+    "liveOrReusedPidRejected": true,
+    "changedLockRejected": true,
+    "competingRecoverySerialized": true,
+    "currentStateDigestVerified": true,
+    "exactRegistrySha256Verified": true,
+    "legacyStateRejected": true,
+    "unsafeTemporaryStateRejected": true,
+    "verifiedDeadOwnerTemporaryStateDiscarded": true,
+    "mainLockUnlinkedLast": true,
+    "parentDirectoryFsyncAfterRecovery": true,
+    "normalRuntimeAutomaticRecovery": false
+  },
+  "crashCoverage": {
+    "realIndependentChildProcess": true,
+    "requestUnacknowledgedBeforeSigkill": true,
+    "ownerLockObservedBeforeSigkill": true,
+    "activeOwnerRecoveryRejected": true,
+    "deadOwnerLockPreservedAfterSigkill": true,
+    "normalRequestWhileStaleReturnsStateLocked": true,
+    "normalRequestWhileStaleStatus": 503,
+    "mutationWhileStale": false,
+    "tooYoungRecoveryRejected": true,
+    "wrongRegistryRecoveryRejected": true,
+    "symlinkTemporaryStateRecoveryRejected": true,
+    "mutationOnRejectedRecovery": false,
+    "explicitVerifiedRecoverySucceeded": true,
+    "exactRetryOutcomeBoundedToSuccessOrReplay": true,
+    "finalSessions": 1,
+    "finalSessionCreatedAuditEvents": 1,
+    "sessionResurrection": false
+  },
+  "tests": {
+    "focusedStaleLockRecovery": "2/2 passed",
+    "focusedHostPersistenceCrashRegressions": "19/19 passed",
+    "walletAuthFullSuite": "167/167 passed",
+    "packageDryRun": "passed",
+    "walletProductCheck": "passed",
+    "walletReleaseContentCheck": "passed",
+    "walletGoalCoverageCheck": "passed",
+    "jsonAndDiffChecks": "passed"
+  },
+  "sourceSha256": {
+    "packages/wallet-auth/src/gateway-node-host.js": "6c3d44a26c202589e23b7cf2516ada861d88316b4a7a41b65e4ef4352c420e18",
+    "packages/wallet-auth/src/gateway-node-host.d.ts": "b48d05e88ef43c31ae407996d51ac5625313f230ad87b4d90fbfc9a85505c108",
+    "packages/wallet-auth/scripts/ynx-wallet-gateway-state-lock.mjs": "f5fe3edf4d4f889269b66d09c9061f77cdef701d86682461f0d4338aa5aabd92",
+    "packages/wallet-auth/test/gateway-node-stale-lock-recovery.test.mjs": "09715872d7151fd1d40a2e5328180d00939a13c2d739e57fb1173921e5b0b62e"
+  },
+  "releaseClaims": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "publicRouteVerified": false,
+    "preAcknowledgementCrashRecoveryVerified": true,
+    "automaticStaleLockRecoveryVerified": false,
+    "pidNamespaceRecoveryVerified": false,
+    "networkFilesystemRecoveryVerified": false,
+    "multiRegionRecoveryVerified": false,
+    "powerLossRecoveryVerified": false,
+    "assetMoved": false,
+    "secretMaterialRecorded": false
+  },
+  "deployedGateway": {
+    "sourceCommit": "c6ac582c8d490ef980a8cadfd9172f133d1b1a49",
+    "release": "ynx-wallet-gateway-c6ac582c8d49",
+    "containsStaleLockRecoverySlice": false
+  }
+}
