@@ -18,7 +18,7 @@ Website owner: `28-website`
 - Current Windows hosted-workspace client source: `76322af5e8c26a64fb6425c51d96c67d2b3df65f`
 - Browser-evidence source: `98fcbe3cff68b4b01ebfd94df2d1476b41ecf2b5`
 - Current public Web IDE source: `17ee9ae5bf50677a3316b0838884dd135de80599`
-- Pending Web IDE feature source: `ced2cf769e23e1e885249f60544637c16480ab52`
+- Pending Web IDE feature source: `908ea56da35ccb0183d90aad4866aef90827a9c4`
 - Product metadata: `apps/developer/public-product-metadata.json`
 - Product release truth: `apps/developer/product-release.json`
 - Release class: unsigned Testnet Preview
