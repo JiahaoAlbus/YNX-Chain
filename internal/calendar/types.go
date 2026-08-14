@@ -285,16 +285,40 @@ type AuditEntry struct {
 	Metadata  map[string]any `json:"metadata,omitempty"`
 	CreatedAt time.Time      `json:"created_at"`
 }
+type CanonicalEvent struct {
+	ID               string            `json:"id"`
+	SchemaVersion    string            `json:"schema_version"`
+	Type             string            `json:"type"`
+	Product          string            `json:"product"`
+	Owner            string            `json:"owner"`
+	SourceCommit     string            `json:"source_commit"`
+	Sequence         uint64            `json:"sequence"`
+	AggregateID      string            `json:"aggregate_id"`
+	AggregateVersion int               `json:"aggregate_version"`
+	SubjectHash      string            `json:"subject_hash"`
+	Authority        string            `json:"authority"`
+	SourceStatus     string            `json:"source_status"`
+	Coverage         float64           `json:"coverage"`
+	PrivacyClass     string            `json:"privacy_class"`
+	RetentionClass   string            `json:"retention_class"`
+	OccurredAt       time.Time         `json:"occurred_at"`
+	AsOf             time.Time         `json:"as_of"`
+	RecordedAt       time.Time         `json:"recorded_at"`
+	AuditID          string            `json:"audit_id"`
+	IdempotencyKey   string            `json:"idempotency_key"`
+	Payload          map[string]string `json:"payload"`
+}
 type AccountExport struct {
-	SchemaVersion int                    `json:"schema_version"`
-	ExportedAt    time.Time              `json:"exported_at"`
-	User          User                   `json:"user"`
-	Calendars     []SharedCalendar       `json:"calendars"`
-	Events        []Event                `json:"events"`
-	Changes       []ChangePreview        `json:"changes"`
-	Reminders     []ReminderDelivery     `json:"reminders"`
-	Notifications []ActivityNotification `json:"notifications"`
-	Audit         []AuditEntry           `json:"audit"`
+	SchemaVersion   int                    `json:"schema_version"`
+	ExportedAt      time.Time              `json:"exported_at"`
+	User            User                   `json:"user"`
+	Calendars       []SharedCalendar       `json:"calendars"`
+	Events          []Event                `json:"events"`
+	Changes         []ChangePreview        `json:"changes"`
+	Reminders       []ReminderDelivery     `json:"reminders"`
+	Notifications   []ActivityNotification `json:"notifications"`
+	Audit           []AuditEntry           `json:"audit"`
+	CanonicalEvents []CanonicalEvent       `json:"canonical_events"`
 }
 type State struct {
 	SchemaVersion      int                             `json:"schema_version"`
@@ -310,4 +334,7 @@ type State struct {
 	Mutations          map[string]string               `json:"mutations"`
 	AIJobs             map[string]AIJob                `json:"ai_jobs"`
 	Audit              []AuditEntry                    `json:"audit"`
+	CanonicalOutbox    []CanonicalEvent                `json:"canonical_outbox"`
+	OutboxSequence     uint64                          `json:"outbox_sequence"`
+	OutboxAcknowledged uint64                          `json:"outbox_acknowledged"`
 }

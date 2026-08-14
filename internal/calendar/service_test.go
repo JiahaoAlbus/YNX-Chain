@@ -1047,3 +1047,88 @@ func TestReminderRestartRecoveryAndAICancel(t *testing.T) {
 		t.Fatal("late AI result overwrote cancellation")
 	}
 }
+
+func TestCanonicalOutboxIsTransactionalPrivateReplaySafeAndPersistent(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "canonical-outbox.json")
+	svc := newTestService(t, path)
+	svc.SetSourceCommit("31a34c5736a848eb3fa6d5d3a55ea5187654af14")
+	_, _, _ = signIn(t, svc, "@bob", "ynx1bob")
+	alice, _, _ := signIn(t, svc, "@alice", "ynx1alice")
+	in := input("Private Board Meeting", "2026-09-12T10:00", "2026-09-12T11:00", "UTC", "canonical-create-1")
+	in.Description = "confidential agenda"
+	in.Invitees = []string{"@bob"}
+	preview, err := svc.PreviewCreate(alice, in)
+	if err != nil {
+		t.Fatal(err)
+	}
+	event, err := svc.ApproveChange(alice, preview.ID, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	batch, err := svc.PullCanonicalEvents(100)
+	if err != nil || len(batch) != 2 {
+		t.Fatalf("expected lifecycle plus invitation events: %v %+v", err, batch)
+	}
+	if batch[0].Sequence != 1 || batch[1].Sequence != 2 || batch[0].Type != "calendar.event.created.v1" || batch[1].Type != "calendar.invitation.created.v1" || batch[0].AggregateID != event.ID || batch[0].SourceCommit != "31a34c5736a848eb3fa6d5d3a55ea5187654af14" {
+		t.Fatalf("canonical event contract mismatch: %+v", batch)
+	}
+	encoded, _ := json.Marshal(batch)
+	for _, private := range []string{"Private Board Meeting", "confidential agenda", "@alice", "@bob", "ynx1alice", "ynx1bob"} {
+		if strings.Contains(string(encoded), private) {
+			t.Fatalf("private Calendar content leaked into canonical outbox: %q", private)
+		}
+	}
+	exported, err := svc.ExportAccount(alice)
+	if err != nil || len(exported.CanonicalEvents) != 2 {
+		t.Fatalf("subject export did not include its pending canonical evidence: %v %+v", err, exported.CanonicalEvents)
+	}
+	if err = svc.AcknowledgeCanonicalEvents(batch[0].Sequence); err != nil {
+		t.Fatal(err)
+	}
+	store2, err := NewStore(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	svc2, err := NewService(store2, testVerifier{}, testAI{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	restored, err := svc2.PullCanonicalEvents(100)
+	if err != nil || len(restored) != 1 || restored[0].Sequence != batch[1].Sequence {
+		t.Fatalf("unacknowledged event did not survive restart: %v %+v", err, restored)
+	}
+	if err = svc2.AcknowledgeCanonicalEvents(batch[1].Sequence + 1); err == nil {
+		t.Fatal("future outbox acknowledgement accepted")
+	}
+	if err = svc2.AcknowledgeCanonicalEvents(batch[1].Sequence); err != nil {
+		t.Fatal(err)
+	}
+	remaining, _ := svc2.PullCanonicalEvents(100)
+	if len(remaining) != 0 {
+		t.Fatalf("acknowledged events were not compacted: %+v", remaining)
+	}
+}
+
+func TestCanonicalOutboxOverflowAbortsCalendarMutation(t *testing.T) {
+	store, _ := NewStore("")
+	svc, _ := NewService(store, testVerifier{}, testAI{})
+	token, _, _ := signIn(t, svc, "@alice", "ynx1alice")
+	in := input("Must remain unapplied", "2026-09-12T10:00", "2026-09-12T11:00", "UTC", "outbox-overflow-1")
+	preview, err := svc.PreviewCreate(token, in)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = store.update(func(st *State) error {
+		st.CanonicalOutbox = make([]CanonicalEvent, maximumPendingCanonicalEvents)
+		st.OutboxSequence = maximumPendingCanonicalEvents
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = svc.ApproveChange(token, preview.ID, false); err == nil || !strings.Contains(err.Error(), "outbox is full") {
+		t.Fatalf("mutation did not fail closed on outbox overflow: %v", err)
+	}
+	if _, err = svc.Event(token, preview.EventID); err == nil {
+		t.Fatal("Calendar mutation committed after canonical evidence overflow")
+	}
+}

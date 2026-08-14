@@ -13,6 +13,7 @@ import (
 	"net/url"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -30,20 +31,28 @@ type AIGateway interface {
 	Generate(context.Context, string, []Event) (string, error)
 }
 type Service struct {
-	store    *Store
-	verifier WalletVerifier
-	ai       AIGateway
-	now      func() time.Time
-	random   io.Reader
-	cancelMu sync.Mutex
-	cancels  map[string]context.CancelFunc
+	store        *Store
+	verifier     WalletVerifier
+	ai           AIGateway
+	now          func() time.Time
+	random       io.Reader
+	cancelMu     sync.Mutex
+	cancels      map[string]context.CancelFunc
+	sourceCommit string
 }
 
 func NewService(store *Store, verifier WalletVerifier, ai AIGateway) (*Service, error) {
 	if store == nil || verifier == nil {
 		return nil, errors.New("calendar store and wallet verifier are required")
 	}
-	return &Service{store: store, verifier: verifier, ai: ai, now: time.Now, random: rand.Reader, cancels: map[string]context.CancelFunc{}}, nil
+	return &Service{store: store, verifier: verifier, ai: ai, now: time.Now, random: rand.Reader, cancels: map[string]context.CancelFunc{}, sourceCommit: "unknown"}, nil
+}
+
+func (s *Service) SetSourceCommit(commit string) {
+	commit = strings.TrimSpace(commit)
+	if matched, _ := regexp.MatchString(`^[0-9a-f]{7,64}$`, commit); matched {
+		s.sourceCommit = commit
+	}
 }
 
 func (s *Service) NewChallenge() (Challenge, error) {
@@ -246,6 +255,12 @@ func (s *Service) ExportAccount(token string) (AccountExport, error) {
 				out.Audit = append(out.Audit, entry)
 			}
 		}
+		subjectHash := digest(sess.UserID)
+		for _, event := range st.CanonicalOutbox {
+			if event.SubjectHash == subjectHash {
+				out.CanonicalEvents = append(out.CanonicalEvents, event)
+			}
+		}
 		sort.Slice(out.Events, func(i, j int) bool { return out.Events[i].StartUTC.Before(out.Events[j].StartUTC) })
 		sort.Slice(out.Calendars, func(i, j int) bool { return out.Calendars[i].Name < out.Calendars[j].Name })
 		sort.Slice(out.Changes, func(i, j int) bool { return out.Changes[i].CreatedAt.Before(out.Changes[j].CreatedAt) })
@@ -336,6 +351,15 @@ func (s *Service) DeleteAccount(token, confirmation string) error {
 				delete(st.AIJobs, id)
 			}
 		}
+		subjectHash := digest(sess.UserID)
+		pending := st.CanonicalOutbox[:0]
+		for _, event := range st.CanonicalOutbox {
+			if event.SubjectHash == subjectHash || ownedEvents[event.AggregateID] {
+				continue
+			}
+			pending = append(pending, event)
+		}
+		st.CanonicalOutbox = pending
 		for hash, session := range st.Sessions {
 			if session.UserID == sess.UserID {
 				delete(st.Sessions, hash)
@@ -851,7 +875,22 @@ func (s *Service) ApproveChange(token, changeID string, acceptConflicts bool) (E
 				s.notifyHandle(st, handle, "event_"+change.Kind, event.ID, actor.Handle, kindTitle, event.Title, now)
 			}
 		}
-		s.audit(st, sess.UserID, "event_change_approved", change.ID, map[string]any{"kind": change.Kind, "scope": change.Scope, "conflict_override": acceptConflicts, "related_events": len(change.RelatedAfter)})
+		auditID := s.audit(st, sess.UserID, "event_change_approved", change.ID, map[string]any{"kind": change.Kind, "scope": change.Scope, "conflict_override": acceptConflicts, "related_events": len(change.RelatedAfter)})
+		eventType := map[string]string{"create": "calendar.event.created.v1", "update": "calendar.event.updated.v1", "recurrence": "calendar.event.updated.v1", "cancel": "calendar.event.cancelled.v1"}[change.Kind]
+		if eventType == "" {
+			eventType = "calendar.event.updated.v1"
+		}
+		if err := s.enqueueCanonical(st, canonicalInput{Type: eventType, AggregateID: event.ID, AggregateVersion: event.Version, SubjectID: sess.UserID, AuditID: auditID, IdempotencyKey: change.ID + ":" + eventType, OccurredAt: now, Payload: map[string]string{"operation": change.Kind, "scope": change.Scope}}); err != nil {
+			return err
+		}
+		if change.Kind == "create" || change.Kind == "update" || change.Kind == "cancel" {
+			invitationType := map[string]string{"create": "calendar.invitation.created.v1", "update": "calendar.invitation.updated.v1", "cancel": "calendar.invitation.cancelled.v1"}[change.Kind]
+			for _, invite := range event.Invites {
+				if err := s.enqueueCanonical(st, canonicalInput{Type: invitationType, AggregateID: event.ID, AggregateVersion: event.Version, SubjectID: sess.UserID, AuditID: auditID, IdempotencyKey: change.ID + ":invite:" + digest(invite.Handle), OccurredAt: now, Payload: map[string]string{"operation": change.Kind, "recipient_ref": digest(invite.Handle), "invitation_state": invite.State}}); err != nil {
+					return err
+				}
+			}
+		}
 		out = event
 		return nil
 	})
@@ -947,7 +986,10 @@ func (s *Service) RSVP(token, eventID, response string) (Event, error) {
 		st.Events[event.ID] = event
 		owner := st.Users[event.OwnerID]
 		s.notifyHandle(st, owner.Handle, "event_rsvp", event.ID, user.Handle, "Invitation response", fmt.Sprintf("%s responded %s to %s.", user.Handle, response, event.Title), event.UpdatedAt)
-		s.audit(st, sess.UserID, "event_rsvp_"+response, event.ID, nil)
+		auditID := s.audit(st, sess.UserID, "event_rsvp_"+response, event.ID, nil)
+		if err := s.enqueueCanonical(st, canonicalInput{Type: "calendar.rsvp.updated.v1", AggregateID: event.ID, AggregateVersion: event.Version, SubjectID: sess.UserID, AuditID: auditID, IdempotencyKey: event.ID + ":rsvp:" + digest(user.Handle) + ":" + strconv.Itoa(event.Version), OccurredAt: event.UpdatedAt, Payload: map[string]string{"responder_ref": digest(user.Handle), "response": response}}); err != nil {
+			return err
+		}
 		out = event
 		return nil
 	})
@@ -986,7 +1028,10 @@ func (s *Service) Share(token, eventID, handle, role string) (Event, error) {
 		st.Events[event.ID] = event
 		actor := st.Users[sess.UserID]
 		s.notifyHandle(st, handle, "event_share", event.ID, actor.Handle, "Event shared with you", event.Title, event.UpdatedAt)
-		s.audit(st, sess.UserID, "event_share", event.ID, map[string]any{"contact": handle, "role": role})
+		auditID := s.audit(st, sess.UserID, "event_share", event.ID, map[string]any{"contact": handle, "role": role})
+		if err := s.enqueueCanonical(st, canonicalInput{Type: "calendar.share.changed.v1", AggregateID: event.ID, AggregateVersion: event.Version, SubjectID: sess.UserID, AuditID: auditID, IdempotencyKey: event.ID + ":share:" + digest(handle) + ":" + strconv.Itoa(event.Version), OccurredAt: event.UpdatedAt, Payload: map[string]string{"recipient_ref": digest(handle), "role": role, "state": "granted"}}); err != nil {
+			return err
+		}
 		out = event
 		return nil
 	})
@@ -1022,7 +1067,10 @@ func (s *Service) Unshare(token, eventID, handle string) (Event, error) {
 		st.Events[event.ID] = event
 		actor := st.Users[sess.UserID]
 		s.notifyHandle(st, handle, "event_unshare", event.ID, actor.Handle, "Event access removed", event.Title, event.UpdatedAt)
-		s.audit(st, sess.UserID, "event_unshare", event.ID, map[string]any{"contact": handle})
+		auditID := s.audit(st, sess.UserID, "event_unshare", event.ID, map[string]any{"contact": handle})
+		if err := s.enqueueCanonical(st, canonicalInput{Type: "calendar.share.changed.v1", AggregateID: event.ID, AggregateVersion: event.Version, SubjectID: sess.UserID, AuditID: auditID, IdempotencyKey: event.ID + ":unshare:" + digest(handle) + ":" + strconv.Itoa(event.Version), OccurredAt: event.UpdatedAt, Payload: map[string]string{"recipient_ref": digest(handle), "state": "revoked"}}); err != nil {
+			return err
+		}
 		out = event
 		return nil
 	})
@@ -1152,7 +1200,10 @@ func (s *Service) ProcessReminders(now time.Time) ([]ReminderDelivery, error) {
 					}
 					delivery := ReminderDelivery{ID: s.id("reminder_delivery"), ReminderID: reminder.ID, EventID: event.ID, OwnerID: event.OwnerID, Title: event.Title, OccurrenceStart: occurrence.StartUTC, DueAt: due, State: state, DeliveredAt: now}
 					st.ReminderDeliveries[key] = delivery
-					s.audit(st, event.OwnerID, "reminder_"+state, event.ID, map[string]any{"occurrence_start": occurrence.StartUTC})
+					auditID := s.audit(st, event.OwnerID, "reminder_"+state, event.ID, map[string]any{"occurrence_start": occurrence.StartUTC})
+					if err := s.enqueueCanonical(st, canonicalInput{Type: "calendar.reminder.due.v1", AggregateID: event.ID, AggregateVersion: event.Version, SubjectID: event.OwnerID, AuditID: auditID, IdempotencyKey: delivery.ID + ":calendar.reminder.due.v1", OccurredAt: now, Payload: map[string]string{"reminder_id": reminder.ID, "occurrence_start": occurrence.StartUTC.Format(time.RFC3339), "delivery_state": state}}); err != nil {
+						return err
+					}
 					out = append(out, delivery)
 				}
 			}
@@ -1249,7 +1300,10 @@ func (s *Service) BeginAI(ctx context.Context, token, kind string, eventIDs []st
 		}
 		out = AIJob{ID: s.id("ai"), OwnerID: sess.UserID, Kind: kind, EventIDs: append([]string{}, eventIDs...), ContextPreview: strings.Join(titles, "; "), Provider: provider, Model: model, CostEstimate: cost, State: "preview", CreatedAt: s.now().UTC(), UpdatedAt: s.now().UTC()}
 		st.AIJobs[out.ID] = out
-		s.audit(st, sess.UserID, "ai_context_preview", out.ID, map[string]any{"event_count": len(eventIDs)})
+		auditID := s.audit(st, sess.UserID, "ai_context_preview", out.ID, map[string]any{"event_count": len(eventIDs)})
+		if err := s.enqueueCanonical(st, canonicalInput{Type: "calendar.ai.previewed.v1", AggregateID: out.ID, AggregateVersion: 1, SubjectID: sess.UserID, AuditID: auditID, IdempotencyKey: out.ID + ":calendar.ai.previewed.v1", OccurredAt: out.CreatedAt, Payload: map[string]string{"workflow": kind, "event_count": strconv.Itoa(len(eventIDs)), "provider": provider, "model": model, "cost_state": cost}}); err != nil {
+			return err
+		}
 		return nil
 	})
 	return out, err
@@ -2015,8 +2069,114 @@ func (s *Service) session(st *State, token string) (Session, error) {
 	}
 	return sess, nil
 }
-func (s *Service) audit(st *State, actor, action, target string, meta map[string]any) {
-	st.Audit = append(st.Audit, AuditEntry{ID: s.id("audit"), ActorID: actor, Action: action, TargetID: target, Metadata: meta, CreatedAt: s.now().UTC()})
+func (s *Service) audit(st *State, actor, action, target string, meta map[string]any) string {
+	entry := AuditEntry{ID: s.id("audit"), ActorID: actor, Action: action, TargetID: target, Metadata: meta, CreatedAt: s.now().UTC()}
+	st.Audit = append(st.Audit, entry)
+	return entry.ID
+}
+
+const maximumPendingCanonicalEvents = 10000
+
+type canonicalInput struct {
+	Type             string
+	AggregateID      string
+	AggregateVersion int
+	SubjectID        string
+	AuditID          string
+	IdempotencyKey   string
+	OccurredAt       time.Time
+	Payload          map[string]string
+}
+
+func (s *Service) enqueueCanonical(st *State, input canonicalInput) error {
+	for _, existing := range st.CanonicalOutbox {
+		if existing.IdempotencyKey == input.IdempotencyKey {
+			return nil
+		}
+	}
+	if len(st.CanonicalOutbox) >= maximumPendingCanonicalEvents {
+		return errors.New("calendar canonical outbox is full; mutation aborted before evidence loss")
+	}
+	if !regexp.MustCompile(`^calendar\.[a-z][a-z0-9_]*\.[a-z][a-z0-9_]*\.v1$`).MatchString(input.Type) || input.AggregateID == "" || input.AggregateVersion < 1 || input.SubjectID == "" || input.AuditID == "" || input.IdempotencyKey == "" {
+		return errors.New("invalid Calendar canonical event")
+	}
+	now := s.now().UTC()
+	if input.OccurredAt.IsZero() {
+		input.OccurredAt = now
+	}
+	st.OutboxSequence++
+	payload := map[string]string{}
+	for key, value := range input.Payload {
+		key, value = strings.TrimSpace(key), strings.TrimSpace(value)
+		if key == "" || len(key) > 64 || len(value) > 1024 {
+			return errors.New("Calendar canonical payload exceeds its boundary")
+		}
+		payload[key] = value
+	}
+	st.CanonicalOutbox = append(st.CanonicalOutbox, CanonicalEvent{
+		ID:               s.id("calendar_event"),
+		SchemaVersion:    "calendar-canonical-event/1.0",
+		Type:             input.Type,
+		Product:          ProductID,
+		Owner:            "36-calendar",
+		SourceCommit:     s.sourceCommit,
+		Sequence:         st.OutboxSequence,
+		AggregateID:      input.AggregateID,
+		AggregateVersion: input.AggregateVersion,
+		SubjectHash:      digest(input.SubjectID),
+		Authority:        "YNX Calendar",
+		SourceStatus:     "authoritative",
+		Coverage:         1,
+		PrivacyClass:     "restricted",
+		RetentionClass:   "operational",
+		OccurredAt:       input.OccurredAt.UTC(),
+		AsOf:             input.OccurredAt.UTC(),
+		RecordedAt:       now,
+		AuditID:          input.AuditID,
+		IdempotencyKey:   input.IdempotencyKey,
+		Payload:          payload,
+	})
+	return nil
+}
+
+func (s *Service) PullCanonicalEvents(limit int) ([]CanonicalEvent, error) {
+	if limit < 1 || limit > 1000 {
+		return nil, errors.New("canonical outbox batch limit must be 1 to 1000")
+	}
+	out := []CanonicalEvent{}
+	err := s.store.view(func(st State) error {
+		for _, event := range st.CanonicalOutbox {
+			if event.Sequence <= st.OutboxAcknowledged {
+				continue
+			}
+			out = append(out, event)
+			if len(out) == limit {
+				break
+			}
+		}
+		return nil
+	})
+	return out, err
+}
+
+func (s *Service) AcknowledgeCanonicalEvents(through uint64) error {
+	return s.store.update(func(st *State) error {
+		if through < st.OutboxAcknowledged || through > st.OutboxSequence {
+			return errors.New("canonical outbox acknowledgement is stale or beyond the produced sequence")
+		}
+		if through == st.OutboxAcknowledged {
+			return nil
+		}
+		st.OutboxAcknowledged = through
+		next := st.CanonicalOutbox[:0]
+		for _, event := range st.CanonicalOutbox {
+			if event.Sequence > through {
+				next = append(next, event)
+			}
+		}
+		st.CanonicalOutbox = next
+		return nil
+	})
 }
 func (s *Service) id(prefix string) string { return prefix + "_" + s.token()[:22] }
 func (s *Service) token() string {

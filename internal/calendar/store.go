@@ -136,6 +136,12 @@ func normalizeState(state *State) {
 	if state.AIJobs == nil {
 		state.AIJobs = map[string]AIJob{}
 	}
+	if state.CanonicalOutbox == nil {
+		state.CanonicalOutbox = []CanonicalEvent{}
+	}
+	if state.OutboxAcknowledged > state.OutboxSequence {
+		state.OutboxAcknowledged = state.OutboxSequence
+	}
 	normalizeEvent := func(event Event) Event {
 		if event.SeriesID == "" {
 			event.SeriesID = event.ID

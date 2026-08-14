@@ -26,6 +26,7 @@ func main() {
 	fatal(err)
 	service, err := calendarservice.NewService(store, calendarservice.RemoteWalletVerifier{BaseURL: os.Getenv("YNX_WALLET_VERIFY_URL")}, calendarservice.RemoteAI{BaseURL: os.Getenv("YNX_AI_GATEWAY_URL"), Token: os.Getenv("YNX_AI_GATEWAY_TOKEN")})
 	fatal(err)
+	service.SetSourceCommit(buildCommit)
 	go func() {
 		ticker := time.NewTicker(30 * time.Second)
 		defer ticker.Stop()
