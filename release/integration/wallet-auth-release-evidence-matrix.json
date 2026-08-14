@@ -58,10 +58,10 @@
     {
       "owner": "web-pwa-extensions",
       "branch": "codex/wallet-web-pwa-extensions-20260813",
-      "sourceCommit": "d14a1b00366ff94f76efe3f0d86bec42f1033b15",
-      "remoteCommitObserved": "d14a1b00366ff94f76efe3f0d86bec42f1033b15",
-      "branchHeadObserved": "d14a1b00366ff94f76efe3f0d86bec42f1033b15",
-      "remoteVerifiedAt": "2026-08-14T09:21:33Z",
+      "sourceCommit": "deca6f4fe29dafdccb3736f237e6e8829e094eec",
+      "remoteCommitObserved": "deca6f4fe29dafdccb3736f237e6e8829e094eec",
+      "branchHeadObserved": "deca6f4fe29dafdccb3736f237e6e8829e094eec",
+      "remoteVerifiedAt": "2026-08-14T09:28:00Z",
       "verificationMode": "github-git-database-parent-tree-blob-readback"
     },
     {
@@ -238,6 +238,13 @@
       "direct": true,
       "commit": "d14a1b00366ff94f76efe3f0d86bec42f1033b15",
       "path": "docs/integration/wallet-web-branded-isolated-runtime-handoff-20260814.json",
+      "supports": []
+    },
+    "web-publication-transport-retry-verifier": {
+      "type": "git-object",
+      "direct": true,
+      "commit": "deca6f4fe29dafdccb3736f237e6e8829e094eec",
+      "path": "release/integration/wallet-web-publication/verify-wallet-web-publication.mjs",
       "supports": []
     },
     "web-artifacts": {
