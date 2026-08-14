@@ -53,15 +53,6 @@
       "note": "The Android branch advanced beyond frozen evidence without an Owner terminal checkpoint; device truth remains unchanged."
     },
     {
-      "owner": "ios-macos",
-      "candidateCommit": "04450cff296511018447e5d4886803081149f596",
-      "remoteFastForwardReported": true,
-      "remoteReadbackComplete": true,
-      "ciComplete": null,
-      "consumedForReleaseTruth": false,
-      "note": "Keychain recovery-absence evidence is queued for its own later atomic slice."
-    },
-    {
       "owner": "desktop-cli-sdk",
       "candidateCommit": "905ac1e5479b08e6b2d9e50a91bef01cbe7d58ef",
       "remoteFastForwardReported": true,
@@ -102,8 +93,8 @@
     {
       "owner": "ios-macos",
       "branch": "codex/wallet-ios-macos-20260813",
-      "sourceCommit": "8b6dee8f746456874d7a7b2913d38b3aa5591fc7",
-      "remoteCommitObserved": "8b6dee8f746456874d7a7b2913d38b3aa5591fc7",
+      "sourceCommit": "04450cff296511018447e5d4886803081149f596",
+      "remoteCommitObserved": "04450cff296511018447e5d4886803081149f596",
       "branchHeadObserved": "04450cff296511018447e5d4886803081149f596",
       "remoteVerifiedAt": "2026-08-14T04:26:00Z",
       "verificationMode": "github-git-database-parent-tree-blob-readback"
@@ -432,6 +423,13 @@
       "path": "apps/wallet/proof/macos-native-ci-evidence-2026-08-14.json",
       "supports": ["macos.build", "macos.install", "macos.coldLaunch", "macos.secondLaunch", "macos.callback"]
     },
+    "macos-keychain-recovery-absence-ci": {
+      "type": "git-object",
+      "direct": true,
+      "commit": "04450cff296511018447e5d4886803081149f596",
+      "path": "apps/wallet/proof/macos-native-ci-evidence-2026-08-14.json",
+      "supports": ["macos.build", "macos.install", "macos.coldLaunch", "macos.secondLaunch", "macos.callback"]
+    },
     "linux-desktop-action": {
       "type": "git-object",
       "direct": true,
@@ -616,10 +614,10 @@
       "ownerSource": "ios-macos",
       "artifactClass": "ad-hoc-local-arm64-app",
       "status": "hosted-ad-hoc-native-ci",
-      "capabilities": {"universalPackageVerified":true,"arm64InstalledHostedRunner":true,"x86_64InstalledHostedRunner":false,"installedLocal":false,"keychainRoundTripVerified":true,"biometricRecoverySucceeded":false,"developerIDSigned":false,"notarized":false},
+      "capabilities": {"universalPackageVerified":true,"arm64InstalledHostedRunner":true,"x86_64InstalledHostedRunner":false,"installedLocal":false,"keychainRoundTripVerified":true,"recoveryAbsentBeforeAttempt":true,"recoveryAbsentAfterAttempt":true,"recoveryFailurePersistedNothing":true,"biometricRecoverySucceeded":false,"developerIDSigned":false,"notarized":false},
       "gates": {"build":true,"install":true,"coldLaunch":true,"secondLaunch":true,"testnet":false,"sign":false,"tx":false,"callback":true,"reconnect":false,"downloadHosted":false,"productionSigned":false,"storeReleased":false},
-      "evidenceBindings": {"build":["macos-native","macos-native-ci-current","macos-universal-native-ci","macos-canonical-two-callback-ci"],"install":["macos-native","macos-native-ci-current","macos-universal-native-ci","macos-canonical-two-callback-ci"],"coldLaunch":["macos-native","macos-native-ci-current","macos-universal-native-ci","macos-canonical-two-callback-ci"],"secondLaunch":["macos-native","macos-native-ci-current","macos-universal-native-ci","macos-canonical-two-callback-ci"],"testnet":["macos-canonical-two-callback-ci"],"sign":["macos-canonical-two-callback-ci"],"tx":["macos-canonical-two-callback-ci"],"callback":["macos-canonical-two-callback-ci"],"reconnect":["macos-canonical-two-callback-ci"],"downloadHosted":["macos-canonical-two-callback-ci"],"productionSigned":["macos-canonical-two-callback-ci"],"storeReleased":["macos-canonical-two-callback-ci"]},
-      "notes": ["Run 31769670570 proves a Universal package and arm64 lifecycle, then two canonical-scheme callbacks on PID 5083: widened query rejected INVALID_AUTHORIZATION_REQUEST and valid route/invalid Core payload rejected CANONICAL_AUTH_BRIDGE_UNAVAILABLE. Authorization success, return callback, Core native bridge, x86_64 launch, biometric recovery, Testnet/public/hosted/Developer ID/notarization/store remain false."]
+      "evidenceBindings": {"build":["macos-native","macos-native-ci-current","macos-universal-native-ci","macos-canonical-two-callback-ci","macos-keychain-recovery-absence-ci"],"install":["macos-native","macos-native-ci-current","macos-universal-native-ci","macos-canonical-two-callback-ci","macos-keychain-recovery-absence-ci"],"coldLaunch":["macos-native","macos-native-ci-current","macos-universal-native-ci","macos-canonical-two-callback-ci","macos-keychain-recovery-absence-ci"],"secondLaunch":["macos-native","macos-native-ci-current","macos-universal-native-ci","macos-canonical-two-callback-ci","macos-keychain-recovery-absence-ci"],"testnet":["macos-keychain-recovery-absence-ci"],"sign":["macos-keychain-recovery-absence-ci"],"tx":["macos-keychain-recovery-absence-ci"],"callback":["macos-keychain-recovery-absence-ci"],"reconnect":["macos-keychain-recovery-absence-ci"],"downloadHosted":["macos-keychain-recovery-absence-ci"],"productionSigned":["macos-keychain-recovery-absence-ci"],"storeReleased":["macos-keychain-recovery-absence-ci"]},
+      "notes": ["Run 31769976021 preserves the Universal arm64 lifecycle and two canonical callback fail-close paths, and directly proves a fresh recovery vault was absent before and after the biometric-unavailable creation attempt. Authorization success, return callback, Core native bridge, x86_64 launch, biometric recovery success, Testnet/public/hosted/Developer ID/notarization/store remain false."]
     },
     {
       "id": "linux-desktop-x64",
