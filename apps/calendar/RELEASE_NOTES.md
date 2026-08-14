@@ -2,7 +2,8 @@
 
 ## Current source candidate
 
-Source commit: `635f6745db8b5d4e4f00253d72fd5ab97da471ac`
+Current product source: `31a34c5736a848eb3fa6d5d3a55ea5187654af14`
+Public Web runtime source: `635f6745db8b5d4e4f00253d72fd5ab97da471ac`
 Channel: public Testnet Web preview
 Overall goal: ACTIVE / FREEZE
 
@@ -25,6 +26,7 @@ Overall goal: ACTIVE / FREEZE
 - Five deterministic conflict-free weekday drafts for timed single events; choosing one returns to editing and never saves automatically.
 - IANA-aware conversion for guest event creation and editing, independent of the browser process time zone.
 - A real close control that cannot accidentally submit the event form.
+- Bounded request IDs plus health, readiness, version and Prometheus request telemetry using route-template labels.
 
 ### Verified
 
@@ -50,6 +52,6 @@ Backups are authenticated but not encrypted. Verification depends on retained Ca
 
 ### Release truth
 
-`implementedLocal`, `testedLocal`, `websitePublished` and `deployedPublic` are true. `installedLocal`, `integratedCentral`, `deployedStaging`, `downloadHosted`, `productionSigned` and `storeReleased` remain false for the current source.
+`implementedLocal`, `testedLocal`, `installedLocal`, `websitePublished` and `deployedPublic` are true. `installedLocal` is supported by the current-source unsigned macOS CLI/Web companion only; it is not an all-platform or signed-release claim. `integratedCentral`, `deployedStaging`, `downloadHosted`, `productionSigned` and `storeReleased` remain false for the current source.
 
 Historical `e227c4f0505537b19f4588ea26478c54518f0a4c` preview artifacts remain test-only evidence and are not current-source release proof.

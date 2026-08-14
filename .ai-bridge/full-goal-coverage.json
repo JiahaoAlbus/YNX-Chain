@@ -4,8 +4,8 @@
   "product": "YNX Calendar",
   "phase": "FREEZE",
   "overallStatus": "ACTIVE",
-  "runtimeSourceCommit": "fb98415c90379f9819eaebcf30292fafda132ca3",
-  "lastUpdated": "2026-08-08T18:57:46Z",
+  "runtimeSourceCommit": "31a34c5736a848eb3fa6d5d3a55ea5187654af14",
+  "lastUpdated": "2026-08-14T00:58:59Z",
   "items": [
     {
       "id": "CAL-RECOVER-001",
@@ -380,16 +380,16 @@
       "category": "observability",
       "requirement": "Implement structured logs, metrics, traces, request/error/audit IDs, health, ready, version, alerts, SLO dashboard, incident runbook, status and support integration.",
       "applicability": "required",
-      "status": "notStarted",
-      "evidence": ["service has a bounded health surface but no release-grade metrics/traces/alerts evidence"],
-      "sourceCommit": "9cf30f16c4312b4438d087b1df58cec68df54f15",
-      "tests": ["npm run smoke"],
+      "status": "inProgress",
+      "evidence": ["service exposes health, readiness, version and Prometheus metrics", "every API response receives a bounded X-Request-ID", "metrics labels use the matched route template rather than private URL values"],
+      "sourceCommit": "31a34c5736a848eb3fa6d5d3a55ea5187654af14",
+      "tests": ["go test -race ./internal/calendar", "npm run smoke"],
       "artifact": [],
       "publicProof": [],
       "blockedBy": [],
       "owner": "36-calendar",
-      "nextAction": "add request IDs, structured event-safe logs, Prometheus metrics, readiness/version checks, and alert tests",
-      "lastUpdated": "2026-07-27T14:39:45Z"
+      "nextAction": "add privacy-safe structured logs, distributed trace export, Monitor dashboard binding and alert tests",
+      "lastUpdated": "2026-08-14T00:58:59Z"
     },
     {
       "id": "CAL-SECURITY-001",

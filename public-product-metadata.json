@@ -4,7 +4,7 @@
   "name": "YNX Calendar",
   "aliases": ["Calendar", "YNX 日历", "YNX 日曆"],
   "canonicalRoute": "/dapp/calendar",
-  "sourceCommit": "b606052d503ab0b4884a64a7b767f8f1f3a7fa7f",
+  "sourceCommit": "31a34c5736a848eb3fa6d5d3a55ea5187654af14",
   "title": "YNX Calendar — Private scheduling with explicit approval",
   "metaDescription": "Plan events, recurring schedules, invitations, RSVP, sharing and conflict review with timezone-aware scheduling and explicit user approval.",
   "h1": "Your time, clearly under your control",
@@ -50,6 +50,7 @@
     "Calendar state payload schema version 1 now has deterministic authenticated backup and isolated restore verification.",
     "Restore rejects tampered, wrong-product, incompatible-version, stale, absolute, path-escaping and symbolic-link inputs.",
     "Current source passes Calendar unit, Race, Vet, Web, browser, build and service smoke gates.",
+    "The Calendar API now exposes bounded request IDs, health, readiness, version and Prometheus metrics locally; public deployment of these newer endpoints is not claimed.",
     "The 390px week view displays all seven days without horizontal scrolling; day and month views remain available."
   ],
   "risksAndLimitations": [
@@ -163,5 +164,5 @@
       "record Website deployment commit and public probes"
     ]
   },
-  "generatedAt": "2026-08-14T00:33:45Z"
+  "generatedAt": "2026-08-14T00:58:59Z"
 }

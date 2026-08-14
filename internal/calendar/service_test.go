@@ -945,6 +945,20 @@ func TestBoundariesRecoveryAIAndHTTPTruth(t *testing.T) {
 	if requestID := health.Header().Get("X-Request-ID"); !strings.HasPrefix(requestID, "cal_") {
 		t.Fatalf("bounded request ID missing: %q", requestID)
 	}
+	preservedID := httptest.NewRecorder()
+	preservedRequest := httptest.NewRequest(http.MethodGet, "/v1/health", nil)
+	preservedRequest.Header.Set("X-Request-ID", "calendar-client-request-0001")
+	h.ServeHTTP(preservedID, preservedRequest)
+	if got := preservedID.Header().Get("X-Request-ID"); got != "calendar-client-request-0001" {
+		t.Fatalf("safe request ID not preserved: %q", got)
+	}
+	replacedID := httptest.NewRecorder()
+	replacedRequest := httptest.NewRequest(http.MethodGet, "/v1/events?from=private-title", nil)
+	replacedRequest.Header.Set("X-Request-ID", "bad value with spaces")
+	h.ServeHTTP(replacedID, replacedRequest)
+	if got := replacedID.Header().Get("X-Request-ID"); !strings.HasPrefix(got, "cal_") || strings.Contains(got, "bad value") {
+		t.Fatalf("unsafe request ID not replaced: %q", got)
+	}
 	ready := httptest.NewRecorder()
 	h.ServeHTTP(ready, httptest.NewRequest(http.MethodGet, "/v1/ready", nil))
 	if ready.Code != 200 || !strings.Contains(ready.Body.String(), `"calendar_state":"ready"`) {
@@ -957,8 +971,11 @@ func TestBoundariesRecoveryAIAndHTTPTruth(t *testing.T) {
 	}
 	metrics := httptest.NewRecorder()
 	h.ServeHTTP(metrics, httptest.NewRequest(http.MethodGet, "/v1/metrics", nil))
-	if metrics.Code != 200 || !strings.Contains(metrics.Body.String(), `ynx_calendar_http_requests_total{method="GET",route="GET /v1/health",status="200"} 1`) {
+	if metrics.Code != 200 || !strings.Contains(metrics.Body.String(), `ynx_calendar_http_requests_total{method="GET",route="GET /v1/health",status="200"} 2`) {
 		t.Fatalf("runtime metrics missing: %s", metrics.Body.String())
+	}
+	if strings.Contains(metrics.Body.String(), "private-title") {
+		t.Fatalf("private URL value leaked into metrics: %s", metrics.Body.String())
 	}
 	req := httptest.NewRequest(http.MethodPost, "/v1/events/preview", strings.NewReader(`{"title":"x","unknown":true}`))
 	req.Header.Set("Authorization", "Bearer "+fresh)

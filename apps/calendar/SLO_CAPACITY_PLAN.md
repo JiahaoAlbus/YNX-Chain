@@ -1,6 +1,7 @@
 # YNX Calendar SLO and capacity plan
 
-Runtime source: `635f6745db8b5d4e4f00253d72fd5ab97da471ac`
+Current product source: `31a34c5736a848eb3fa6d5d3a55ea5187654af14`
+Public Web runtime source: `635f6745db8b5d4e4f00253d72fd5ab97da471ac`
 
 ## Evidence boundary
 

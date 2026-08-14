@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "productId": "com.ynx.calendar",
   "contractVersion": "1.0.0-draft",
-  "sourceCommit": "b606052d503ab0b4884a64a7b767f8f1f3a7fa7f",
+  "sourceCommit": "31a34c5736a848eb3fa6d5d3a55ea5187654af14",
   "generatedAt": "2026-08-13T12:02:00Z",
   "vectors": [
     {
@@ -143,7 +143,7 @@
       "name": "current-source platform artifacts",
       "owners": ["36-calendar", "30-security-platform"],
       "status": "build-pass-install-and-host-pending",
-      "preconditions": ["current product source commit b606052d503ab0b4884a64a7b767f8f1f3a7fa7f", "public Web runtime remains separately bound to 635f6745db8b5d4e4f00253d72fd5ab97da471ac"],
+      "preconditions": ["current product source commit 31a34c5736a848eb3fa6d5d3a55ea5187654af14", "public Web runtime remains separately bound to 635f6745db8b5d4e4f00253d72fd5ab97da471ac"],
       "steps": ["build Web/Go, Android debug, iOS simulator, and macOS test-only artifacts", "generate SBOM and provenance", "install and cold-start", "restart and resolve callback", "publish immutable hashes and bytes"],
       "expected": ["every artifact names exact source commit", "signing class is truthful", "no old e227c4f artifact is presented as current", "productionSigned remains false without production evidence"],
       "localEvidence": ["npm run build", "npm run build:android", "npm run check:ios", "npm run smoke", "npm run browser:proof"],

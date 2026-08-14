@@ -2,9 +2,9 @@
   "productId": "com.ynx.calendar",
   "name": "YNX Calendar",
   "branch": "codex/final-calendar",
-  "commit": "b606052d503ab0b4884a64a7b767f8f1f3a7fa7f",
-  "sourceCommit": "b606052d503ab0b4884a64a7b767f8f1f3a7fa7f",
-  "artifactSourceCommit": "b606052d503ab0b4884a64a7b767f8f1f3a7fa7f",
+  "commit": "31a34c5736a848eb3fa6d5d3a55ea5187654af14",
+  "sourceCommit": "31a34c5736a848eb3fa6d5d3a55ea5187654af14",
+  "artifactSourceCommit": "31a34c5736a848eb3fa6d5d3a55ea5187654af14",
   "version": "0.3.9-testnet-public",
   "releaseChannel": "public-testnet-preview",
   "surfaces": [
@@ -33,11 +33,11 @@
   ],
   "artifactUrls": [],
   "sha256": {
-    "ynx-calendar-0.2.0-testnet-preview-darwin-arm64.tar.gz": "f487f9f057a5c190f84418dba7558e2cf9c6d43490e5762b59fd49c4e6636176",
-    "ynx-calendar-0.2.0-testnet-preview-darwin-arm64-desktop-install-evidence.json": "11c6e57c225b56611b2df8240bbdd0987fc16db4a48007ced46e14cfe2f4c65c"
+    "ynx-calendar-0.2.0-testnet-preview-darwin-arm64.tar.gz": "60079f8d9e5f5ef629bb67c851c96632209678d6c8c4045de8766a869a2c6c9a",
+    "ynx-calendar-0.2.0-testnet-preview-darwin-arm64-desktop-install-evidence.json": "1880c2adfe55b948746ebbe2eff5c77e1a4d33fe3e817d98d88d247c455d99bf"
   },
   "bytes": {
-    "ynx-calendar-0.2.0-testnet-preview-darwin-arm64.tar.gz": 3045832,
+    "ynx-calendar-0.2.0-testnet-preview-darwin-arm64.tar.gz": 3051027,
     "ynx-calendar-0.2.0-testnet-preview-darwin-arm64-desktop-install-evidence.json": 473
   },
   "signingClass": {
@@ -83,11 +83,11 @@
   },
   "installEvidence": [
     {
-      "sourceCommit": "b606052d503ab0b4884a64a7b767f8f1f3a7fa7f",
+      "sourceCommit": "31a34c5736a848eb3fa6d5d3a55ea5187654af14",
       "platform": "darwin-arm64",
       "surface": "unsigned macOS CLI/Web companion",
       "install": "archive extracted into a clean temporary directory and executable verified",
-      "coldStartSeconds": 0.511,
+      "coldStartSeconds": 0.613,
       "restartSeconds": 0.019,
       "exactHealthCommit": true,
       "productionScheduling": false,
@@ -207,14 +207,15 @@
       }
     },
     {
-      "sourceCommit": "b606052d503ab0b4884a64a7b767f8f1f3a7fa7f",
-      "gate": "current native workspace and macOS companion proof",
+      "sourceCommit": "31a34c5736a848eb3fa6d5d3a55ea5187654af14",
+      "gate": "current native workspace, operational telemetry and macOS companion proof",
       "result": "pass-with-platform-limits",
       "details": {
         "android": "debug APK builds and rendered after install; AVD system/Launcher ANRs prevent accepted interaction proof",
         "ios": "Swift parse plus project/plist validation; Xcode and Simulator unavailable on this host",
         "macosCompanion": "clean extraction, executable, cold start, restart, embedded Web and exact health commit verified",
-        "macosArchiveSha256": "f487f9f057a5c190f84418dba7558e2cf9c6d43490e5762b59fd49c4e6636176"
+        "telemetry": "request IDs plus health, readiness, version and bounded-route Prometheus metrics pass local Race tests",
+        "macosArchiveSha256": "60079f8d9e5f5ef629bb67c851c96632209678d6c8c4045de8766a869a2c6c9a"
       }
     }
   ],
@@ -290,5 +291,5 @@
     "backup confidentiality encryption, offsite retention and independent key escrow remain pending Security/SRE acceptance",
     "repository-wide Go preflight has non-Calendar failures retained in dependency acceptance"
   ],
-  "generatedAt": "2026-08-14T00:33:45Z"
+  "generatedAt": "2026-08-14T00:58:59Z"
 }

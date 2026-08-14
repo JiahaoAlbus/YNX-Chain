@@ -1,6 +1,7 @@
 # YNX Calendar evidence index
 
-Runtime source: `635f6745db8b5d4e4f00253d72fd5ab97da471ac`
+Current product source: `31a34c5736a848eb3fa6d5d3a55ea5187654af14`
+Public Web runtime source: `635f6745db8b5d4e4f00253d72fd5ab97da471ac`
 
 | Evidence area | Authoritative file or command | Status |
 |---|---|---|
@@ -19,7 +20,7 @@ Runtime source: `635f6745db8b5d4e4f00253d72fd5ab97da471ac`
 | Migration | `apps/calendar/MIGRATION_COMPATIBILITY.md` | state schema 1, legacy normalization and future fail-closed |
 | Completion evidence | `apps/calendar/FEATURE_COMPLETION_EVIDENCE.md` | local status and remaining gates |
 | UI audit | `apps/calendar/UI_DESIGN_AUDIT.md` | existing UI evidence |
-| Observability | `apps/calendar/OBSERVABILITY.md` | local surface and missing central telemetry |
+| Observability | `internal/calendar/observability.go`, `apps/calendar/OBSERVABILITY.md` | local health/readiness/version/request-ID/metrics pass; traces, dashboard and alerts remain central dependencies |
 | SLO/capacity | `apps/calendar/SLO_CAPACITY_PLAN.md` | local measurements and required production benchmarks |
 | Unit economics | `apps/calendar/UNIT_ECONOMICS.md` | measurement model; no fabricated cost claims |
 | Release notes | `apps/calendar/RELEASE_NOTES.md` | current-source changes and boundaries |

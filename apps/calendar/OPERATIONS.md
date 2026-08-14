@@ -1,6 +1,7 @@
 # YNX Calendar operations
 
-Runtime source: `635f6745db8b5d4e4f00253d72fd5ab97da471ac`
+Current product source: `31a34c5736a848eb3fa6d5d3a55ea5187654af14`
+Public Web runtime source: `635f6745db8b5d4e4f00253d72fd5ab97da471ac`
 Release boundary: public Testnet Web/API with canonical Wallet, not fully centrally integrated, not production scheduling and not production signed.
 
 ## Runtime
@@ -16,7 +17,7 @@ npm run smoke
 npm run browser:proof
 ```
 
-The health endpoint is `/v1/health`. Public deployment is proven only when the external runtime, exact build identity and served assets match the release record. Health alone does not prove production scheduling, Mail/push delivery, AI/Data Fabric acceptance or production readiness.
+The runtime endpoints are `/v1/health`, `/v1/ready`, `/v1/version` and `/v1/metrics`. API responses include a bounded `X-Request-ID`. Public deployment is proven only when the external runtime, exact build identity and served assets match the release record. These endpoints alone do not prove production scheduling, Mail/push delivery, AI/Data Fabric acceptance or production readiness. The public Web runtime remains an older exact build and is not claimed to expose the newer local telemetry contract.
 
 ## Build the state operator
 

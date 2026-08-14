@@ -72,6 +72,10 @@ test("integration contract freezes Calendar authority without claiming central a
   assert.equal(integrationContract.releaseStates.integratedCentral, false);
   assert.equal(integrationContract.releaseStates.deployedPublic, true);
   assert.equal(integrationContract.releaseStates.productionSigned, false);
+  assert.equal(integrationContract.healthAndVersion.readyEndpoint, "/v1/ready");
+  assert.equal(integrationContract.healthAndVersion.versionEndpoint, "/v1/version");
+  assert.equal(integrationContract.healthAndVersion.metricsEndpoint, "/v1/metrics");
+  assert.ok(integrationContract.api.some((route) => route.method === "GET" && route.path === "/v1/metrics" && route.state.includes("private-content-excluded")));
   assert.ok(testVectors.vectors.some((vector) => vector.id === "CAL-X-003" && vector.status === "local-pass"));
   assert.ok(testVectors.vectors.some((vector) => vector.id === "CAL-X-005" && vector.status === "local-pass"));
 });

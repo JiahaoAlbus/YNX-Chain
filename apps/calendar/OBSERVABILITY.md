@@ -1,10 +1,14 @@
 # YNX Calendar observability
 
-Runtime source: `635f6745db8b5d4e4f00253d72fd5ab97da471ac`
+Current product source: `31a34c5736a848eb3fa6d5d3a55ea5187654af14`
+Public Web runtime source: `635f6745db8b5d4e4f00253d72fd5ab97da471ac`
 
 ## Current local evidence
 
 - `/v1/health` returns Calendar product and build truth without claiming production scheduling.
+- `/v1/ready` reports the opened Calendar state boundary; `/v1/version` reports API, state and recurrence schema versions.
+- Every API response receives a bounded `X-Request-ID`; unsafe caller values are replaced.
+- `/v1/metrics` exports request count, accumulated duration, current in-flight and maximum observed in-flight values. Labels use the matched route template, method and status; URLs and private event data are not labels.
 - Service smoke verifies startup and core HTTP flow.
 - Browser proof records desktop/mobile rendering, named controls and zero console errors.
 - Calendar state mutations produce local audit entries.
@@ -25,9 +29,9 @@ Runtime logs and cross-product events should carry, where applicable:
 
 Do not log event titles, descriptions, links, notes, attendee addresses, session tokens, HMAC keys, backup bodies, local absolute paths or provider secrets.
 
-## Metrics contract candidate
+## Metrics contract
 
-- HTTP request count, latency and error rate by bounded route template/status.
+- HTTP request count, accumulated latency and error status by bounded route template/status are implemented locally.
 - Active sessions and failed Wallet verification by reason class.
 - Event previews, approvals, rejects, reverts and version conflicts.
 - Recurrence expansion latency and generated occurrence count.
@@ -36,7 +40,7 @@ Do not log event titles, descriptions, links, notes, attendee addresses, session
 - Backup duration, bytes, age, restore duration, restore result and digest-match boolean.
 - State bytes, event count, audit growth and write duration.
 
-No metrics endpoint, trace exporter, dashboard or alert route is currently accepted. These remain owner `13-monitor` and `30-security-platform` dependencies.
+The local metrics endpoint is implemented and Race-tested. A trace exporter, Monitor dashboard binding, alert route and public deployment of the newer observability build are not yet accepted; those remain owner `13-monitor`, `29-integration` and `30-security-platform` dependencies.
 
 ## Alerts candidate
 
