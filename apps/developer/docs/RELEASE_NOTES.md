@@ -13,7 +13,8 @@
   fails without touching the running public candidate.
 - `PACKAGE_EGRESS_NETWORK.md` contains the exact proposed creation, verification
   and unused-object rollback transaction. It remains unapplied pending explicit
-  production-owner approval; the default `lxdbr0` is not accepted.
+  production-owner approval; the default `lxdbr0` is not accepted. Feature
+  source: `fe3ad8be0d103b3187904b32f7882e45160ac7e8`.
 
 ## 2026-08-14 reviewed Python wheel installation candidate
 
