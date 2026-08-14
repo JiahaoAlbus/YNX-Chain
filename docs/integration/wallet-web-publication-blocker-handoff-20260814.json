@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "owner": "Wallet/Auth Web/PWA/Extensions",
+  "sourceCommit": "dbf17086803d2bc2aeba7f8ed0d52d91b069449c",
+  "request": "release/integration/wallet-web-publication-request-20260814.json",
+  "evidence": "apps/wallet-web/evidence/runtime/website-publication-capability-audit-20260814.json",
+  "blocker": "The Website repository has Vercel Git deployments but its only Actions workflow performs build/test and exposes no workflow_dispatch, deploy job, Wallet artifact ingest, Actions secrets or variables. Cross-owner production changes require Website/Central Integration acceptance.",
+  "deploymentAttempted": false,
+  "browserVisibleAcceptance": false,
+  "deployedPublic": false,
+  "downloadHosted": false
+}
