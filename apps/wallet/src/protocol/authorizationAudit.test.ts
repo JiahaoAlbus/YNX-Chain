@@ -36,10 +36,35 @@ test("authorization audit rejects field, binding, and hash tamper",async()=>{
 
 test("dismissed revocation attempt cannot append an audit mutation",async()=>{
   const storage=new MemoryStorage(),store=new AuthorizationAuditStore(storage);
+  await store.append(request,{action:"intent-approved",account,at:"2026-07-15T11:59:59.000Z"});
   await store.append(request,{action:"approval-returned",account,at:"2026-07-15T12:00:00.000Z"});
   const before=storage.values.get(AUTHORIZATION_AUDIT_KEY);
   await assert.rejects(store.revoke((await store.load())[0]!.requestDigest,"2026-07-15T12:01:00.000Z",()=>{throw new Error("backgrounded")}),/backgrounded/);
   assert.equal(storage.values.get(AUTHORIZATION_AUDIT_KEY),before);
+});
+
+test("concurrent approve and reject decisions linearize to the first persisted terminal choice",async()=>{
+  const approvedStorage=new ControlledStorage(),approvedStore=new AuthorizationAuditStore(approvedStorage),approvalBlock=approvedStorage.blockNextWrite();
+  const approved=approvedStore.append(request,{action:"intent-approved",account,at:"2026-07-15T12:00:00.000Z"});
+  await approvalBlock.started;
+  const lateReject=approvedStore.append(request,{action:"request-rejected",account,at:"2026-07-15T12:00:00.001Z"});
+  approvalBlock.release();await approved;await assert.rejects(lateReject,/already decided/);
+  assert.deepEqual((await approvedStore.load()).map(record=>record.action),["intent-approved"]);
+
+  const rejectedStorage=new ControlledStorage(),rejectedStore=new AuthorizationAuditStore(rejectedStorage),rejectionBlock=rejectedStorage.blockNextWrite();
+  const rejected=rejectedStore.append(request,{action:"request-rejected",account,at:"2026-07-15T12:00:01.000Z"});
+  await rejectionBlock.started;
+  const lateApprove=rejectedStore.append(request,{action:"intent-approved",account,at:"2026-07-15T12:00:01.001Z"});
+  rejectionBlock.release();await rejected;await assert.rejects(lateApprove,/already decided/);
+  assert.deepEqual((await rejectedStore.load()).map(record=>record.action),["request-rejected"]);
+});
+
+test("authorization audit persists only public binding metadata and no secret or callback payload",async()=>{
+  const storage=new MemoryStorage(),store=new AuthorizationAuditStore(storage),accountSecret="audit-secret-canary",signatureResponse="signed-callback-canary";
+  await store.append(request,{action:"intent-approved",account,at:"2026-07-15T12:00:00.000Z",accountSecret,signatureResponse} as any);
+  const raw=storage.values.get(AUTHORIZATION_AUDIT_KEY)!;
+  for(const forbidden of [accountSecret,signatureResponse,request.nonce,request.productDeviceKey,request.callback,request.purpose])assert.equal(raw.includes(forbidden),false,`audit leaked ${forbidden}`);
+  assert.deepEqual(Object.keys(JSON.parse(raw)[0]).sort(),["account","action","at","bundleId","expiresAt","hash","previousHash","productClientId","requestDigest","schemaVersion","scopes","sequence"].sort());
 });
 
 test("concurrent audit append and duplicate revoke serialize without lost records",async()=>{

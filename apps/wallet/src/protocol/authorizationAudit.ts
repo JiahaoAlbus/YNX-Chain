@@ -21,12 +21,14 @@ export class AuthorizationAuditStore {
 
   private async appendExclusive(request:AuthorizationRequest, input:{action:AuthorizationAuditAction;account:string;at:string}):Promise<AuthorizationAuditRecord> {
     const records=await this.load();
+    const action=strictAction(input.action),digest=requestDigest(request);
+    assertDecisionTransition(records,digest,action);
     const unsigned={
       schemaVersion:1 as const,
       sequence:records.length+1,
       at:strictTime(input.at,"audit time"),
-      action:strictAction(input.action),
-      requestDigest:requestDigest(request),
+      action,
+      requestDigest:digest,
       productClientId:request.productClientId,
       bundleId:request.bundleId,
       account:strictAccount(input.account),
@@ -90,3 +92,14 @@ function plain(value:unknown):value is Record<string,any>{return typeof value===
 function strictAction(value:unknown):AuthorizationAuditAction{if(typeof value!=="string"||!ACTIONS.has(value))throw new Error("Wallet authorization audit action is invalid");return value as AuthorizationAuditAction}
 function strictAccount(value:unknown):string{if(typeof value!=="string"||!/^ynx1[023456789acdefghjklmnpqrstuvwxyz]{38}$/.test(value))throw new Error("Wallet authorization audit account is invalid");return value}
 function strictTime(value:unknown,label:string):string{if(typeof value!=="string"||!/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{3}Z$/.test(value)||new Date(value).toISOString()!==value)throw new Error(`${label} is invalid`);return value}
+function assertDecisionTransition(records:readonly AuthorizationAuditRecord[],digest:string,action:AuthorizationAuditAction):void{
+  const decisions=records.filter(record=>record.requestDigest===digest);
+  if(action==="approval-revoked")throw new Error("Wallet authorization revocation must use the verified revoke operation");
+  if(action==="intent-approved"||action==="request-rejected"){
+    if(decisions.some(record=>record.action==="intent-approved"||record.action==="approval-returned"||record.action==="request-rejected"))throw new Error("Wallet authorization request is already decided");
+    return;
+  }
+  if(!decisions.some(record=>record.action==="intent-approved"))throw new Error("Wallet authorization approval intent was not recorded");
+  if(decisions.some(record=>record.action==="request-rejected"))throw new Error("Wallet authorization request was rejected");
+  if(decisions.some(record=>record.action==="approval-returned"))throw new Error("Wallet authorization callback was already returned");
+}
