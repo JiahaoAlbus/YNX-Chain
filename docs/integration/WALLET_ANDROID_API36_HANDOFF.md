@@ -197,6 +197,12 @@ Commit `583de2da0127d39cc2e81d17ae609bb018f59fab` closes the remaining React pre
 
 Verification passed Wallet 81/81, typecheck, product check, Social harness contract check, release-content check, full-goal coverage and `git diff --check`. A mode-0700 current-source Android Hermes export passed with 2,742 modules and all temporary links were removed. No device command or interaction was performed, so exact-source device and release booleans remain false.
 
+## Recovery-key entropy lifecycle checkpoint
+
+Commit `7701019bd38a3807e822e6a669e1f4ed18cec4cc` binds asynchronous recovery-key generation to the exact active foreground and unlock epoch. A background transition, explicit lock, account switch, reconstruction or privacy failure that advances the epoch invalidates the pending result before it can open onboarding. The lifecycle is checked both before and after encoding so a lock or background transition cannot race the conversion boundary.
+
+Generation accepts exactly 32 bytes. Its temporary `Uint8Array` is overwritten in a `finally` block after success, lifecycle cancellation or invalid entropy length; only the encoded recovery key may enter the already guarded onboarding state. Verification passed Wallet 83/83, typecheck, product check, Social harness contract check, release-content check, full-goal coverage and `git diff --check`. A mode-0700 current-source Android Hermes export passed with 2,743 modules and all temporary links and export files were removed. No device command or interaction was performed, so `testedOnDevice`, `installedLocal`, `downloadHosted`, native-app `deployedPublic`, `productionSigned` and `storeReleased` remain false for this exact source.
+
 ## In-flight unlock invalidation checkpoint
 
 Commit `d7d198da176a010f6b9aae4e200ca9218b6ee847` prevents a pending biometric unlock from reopening a Wallet that was locked while the prompt or SecureStore read was in flight. Backgrounding, explicit user lock, reconstruction/restart, account switch and privacy-protection failure synchronously advance an unlock epoch. The policy checks foreground/epoch after biometric authorization and again after exact-account secure-material verification, immediately before dispatching unlock. The locked recovery entry is also disabled while unlock is pending.

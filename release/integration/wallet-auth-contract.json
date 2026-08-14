@@ -747,6 +747,27 @@
     "productionSigned": false,
     "storeReleased": false
   },
+  "androidRecoveryEntropyLifecycleCheckpoint": {
+    "sourceCommit": "7701019bd38a3807e822e6a669e1f4ed18cec4cc",
+    "branch": "codex/wallet-android-api36-continuation2-20260814",
+    "foregroundAndUnlockEpochBound": true,
+    "exactEntropyBytes": 32,
+    "lifecycleRevalidatedBeforeAndAfterEncoding": true,
+    "temporaryEntropyWipedOnSuccess": true,
+    "temporaryEntropyWipedOnBackgroundOrLock": true,
+    "temporaryEntropyWipedOnInvalidLength": true,
+    "walletTests": "83/83 passed",
+    "androidHermesModules": 2743,
+    "implementedLocal": true,
+    "testedLocal": true,
+    "testedOnDevice": false,
+    "installedLocal": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
   "verification": {
     "walletAuthPackageTests": "100/100 passed",
     "gatewayNodeHostTests": "8/8 passed",
