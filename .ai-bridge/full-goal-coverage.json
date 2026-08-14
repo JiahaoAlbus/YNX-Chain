@@ -30,14 +30,14 @@
       "requirement": "Protect verified engineering changes on codex/final-data-fabric and verify Local SHA equals the remote branch SHA.",
       "applicability": "applicable",
       "status": "inProgress",
-      "evidence": ["engineering source commit 6fbe0d33f4b4de3237391646d582e79cfee30a3c is frozen locally", "remote CI and exact remote checkpoint are pending for this slice"],
+      "evidence": ["engineering source commit 6fbe0d33f4b4de3237391646d582e79cfee30a3c is protected on remote review branch codex/data-fabric-typescript-sdk-20260814", "GitHub Actions run 31768273194 passed at descendant checkpoint 759eedcfd1d631596092277a4e7469b8a70592dd", "complete verified Git bundle and SHA-256 manifest exist", "protected target PR 92 remains open because six unrelated required contexts do not trigger for this base branch"],
       "sourceCommit": "6fbe0d33f4b4de3237391646d582e79cfee30a3c",
-      "tests": ["git push origin HEAD", "git ls-remote origin refs/heads/codex/final-data-fabric"],
+      "tests": ["git push origin HEAD:refs/heads/codex/data-fabric-typescript-sdk-20260814", "git ls-remote origin refs/heads/codex/data-fabric-typescript-sdk-20260814", "GitHub Actions run 31768273194", "git bundle verify and shasum -a 256 -c SHA256SUMS"],
       "artifact": null,
       "publicProof": null,
       "blockedBy": [],
       "owner": "YNX Data Fabric",
-      "nextAction": "Protect each subsequent evidence-only checkpoint with the same non-force push, exact SHA comparison and remote CI verification.",
+      "nextAction": "Merge PR 92 only after repository policy owners make all required contexts runnable or remove unrelated contexts; never force or bypass protection.",
       "lastUpdated": "2026-08-14T03:35:07Z"
     },
     {

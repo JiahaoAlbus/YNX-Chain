@@ -82,16 +82,16 @@
       "typeScriptSDK": "passed"
     },
     "remoteCI": {
-      "runId": null,
+      "runId": 31768273194,
       "workflow": "data-fabric",
       "sourceCommit": "6fbe0d33f4b4de3237391646d582e79cfee30a3c",
-      "headCommit": null,
-      "status": "pending",
-      "conclusion": null,
-      "startedAt": null,
-      "duration": null,
+      "headCommit": "759eedcfd1d631596092277a4e7469b8a70592dd",
+      "status": "completed",
+      "conclusion": "success",
+      "startedAt": "2026-08-14T03:55:40Z",
+      "duration": "4m48s",
       "artifactsPublished": false,
-      "url": null
+      "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/31768273194"
     },
     "sourceCandidate": {
       "tag": "data-fabric-v0.2.0-source-candidate",

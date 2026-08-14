@@ -52,7 +52,7 @@ This matrix reports only the strongest directly evidenced state. A successful lo
 - Full Go repository test under standard CI permission-test `umask=022`: passed.
 - TypeScript SDK build, four Node tests and canonical-registry dependency audit: passed.
 - Go `1.25.13` reachable-vulnerability scan: zero reachable vulnerabilities.
-- GitHub Actions for the current Engineering Source Commit: pending.
+- GitHub Actions Run `31768273194` for the current Engineering Source Commit: both Data Fabric jobs passed.
 - Historical GitHub Actions Run `30488889722` passed for prior source `84872ff9042ed9f4364645750bbfa2dc3475e80b`; it is not current-source evidence.
 - Release truth positive vector and five negative mutations: passed.
 - Public artifacts published by CI: none.

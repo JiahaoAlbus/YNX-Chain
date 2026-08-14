@@ -33,7 +33,7 @@ Status: `ACTIVE`
 | productionSigned | false | Only test-fixture signing is exercised |
 | storeReleased | false | Native app-store delivery is not applicable to this headless service |
 
-Remote CI is pending for the current Source Commit. Historical Run `30488889722` passed for prior source `84872ff9042ed9f4364645750bbfa2dc3475e80b`; it does not prove the current TypeScript SDK slice. The workflow publishes no downloadable artifact.
+Remote CI Run `31768273194` passed both Data Fabric jobs for the current Source Commit. PR `#92` remains blocked by unrelated protected-branch contexts that do not trigger for this base Branch. Historical Run `30488889722` remains prior-source evidence only. The workflow publishes no downloadable artifact.
 
 ## Current executable integration
 

@@ -9,8 +9,8 @@ Status: `ACTIVE`
 
 - Exact YNX 26 Workspace and `codex/final-data-fabric` Branch were verified before modification.
 - No concurrent Git writer was found. A CodexPro server process was observed for this Worktree and left untouched.
-- Commit `6fbe0d33f4b4de3237391646d582e79cfee30a3c` is the locally frozen Engineering Source Commit; push and exact remote verification are pending at this evidence checkpoint.
-- GitHub Actions is pending for the current Engineering Source Commit. Historical Run `30488889722` passed for prior source `84872ff9042ed9f4364645750bbfa2dc3475e80b` and is retained only as historical evidence.
+- Commit `6fbe0d33f4b4de3237391646d582e79cfee30a3c` is the frozen Engineering Source Commit. Descendant checkpoint `759eedcfd1d631596092277a4e7469b8a70592dd` is verified on remote review Branch `codex/data-fabric-typescript-sdk-20260814` and PR `#92` targets the protected product Branch.
+- GitHub Actions Run `31768273194` passed both Data Fabric jobs for the current Engineering Source Commit. Historical Run `30488889722` remains prior-source evidence only.
 - The workflow runs full Go tests, Data Fabric Race tests, vet, vulnerability analysis, Linux builds and hashes, SBOM generation, quality gates, secret scanning, JSON validation and isolated PostgreSQL 17.10 transaction and logical backup/restore tests.
 - The workflow does not upload a public artifact; `downloadHosted` and all public states remain false.
 - The two stale untracked recovery summaries discovered at takeover are preserved under `recovery/2026-07-23/` and are not current truth.
@@ -83,7 +83,7 @@ node scripts/data-fabric/release-truth-check-check.mjs
 bash scripts/data-fabric/quality-gates.sh
 ```
 
-The full repository test passed under the standard CI `umask=022`. The TypeScript SDK and cross-language signature vector also passed. Current-source remote CI remains pending and is not inferred from local results.
+The full repository test passed under the standard CI `umask=022`. The TypeScript SDK, cross-language signature vector and current-source remote CI also passed. PR `#92` remains blocked because the target requires six unrelated check contexts whose workflows do not trigger for this base Branch; no protection bypass was attempted.
 
 ## Evidence still missing
 

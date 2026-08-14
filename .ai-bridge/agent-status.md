@@ -5,8 +5,8 @@
 - Workspace: exact configured YNX 26 Worktree verified
 - Branch: `codex/final-data-fabric`
 - Engineering Source Commit: `6fbe0d33f4b4de3237391646d582e79cfee30a3c`
-- Remote Source Commit: pending push and exact verification for this slice
-- Source CI: pending for the current source; historical Run `30488889722` covers prior source only
+- Remote Source Commit: source and evidence checkpoint `759eedcfd1d631596092277a4e7469b8a70592dd` verified on review Branch `codex/data-fabric-typescript-sdk-20260814`; protected target merge is pending
+- Source CI: GitHub Actions Run `31768273194` completed successfully for the current source
 - Concurrent writer: no Git writer detected; an existing CodexPro server process was left untouched
 - Dirty state: reviewed and verified source-bound evidence slice awaiting commit and push; legacy recovery files are preserved under `recovery/2026-07-23/`
 
@@ -20,4 +20,4 @@ Central owner acceptance, complete product adapter set, shared Testnet E2E, stag
 
 ## Exact next action
 
-Review, commit and push the verified release-truth evidence slice, verify Local SHA equals Remote SHA, then continue central integration without changing another product Worktree. Product remains `ACTIVE`; it is not complete or publicly released.
+Preserve the verified PR and bundle while the protected target remains blocked by six required contexts that do not trigger for this base Branch. Continue central integration without changing another product Worktree. Product remains `ACTIVE`; it is not complete or publicly released.
