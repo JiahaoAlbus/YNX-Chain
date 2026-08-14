@@ -1,0 +1,28 @@
+{
+  "schemaVersion": "1.0.0",
+  "productId": "ynx-exchange",
+  "publicUrl": "https://exchange.ynxweb4.com/",
+  "sourceCommit": "ebed627f8b799e93bd3c4c31669ccb17e8e40385",
+  "exchangeBinarySha256": "df8d3510f028ab5a762f5fb36510b08b62df2b119932afb00d6a71805226cce0",
+  "quantBinarySha256": "6fa5dabc8bfaf3b6a2249cdd3f45fc2144369f0ff1fd81002325341372b9a05f",
+  "archiveSha256": "1eea22c2c908942392969172cac5fdf89f66bb09606274b238d00bef2a726fe7",
+  "observedPublic": {
+    "health": 200,
+    "ready": 200,
+    "versionMatched": true,
+    "stateIntegrity": true,
+    "stateSchemaVersion": 10,
+    "stateStore": "file-cas-single-host",
+    "multiInstanceState": false,
+    "webSocketReplay": { "after": 5, "current": 6, "type": "replay" }
+  },
+  "rollback": {
+    "automaticBackup": "/var/backups/ynx-financial-owner-reads/20260814T010001Z-ebed627f8b79",
+    "procedure": "Restore saved targets/binaries/env, restart Exchange, Quant and Finance, then verify health, version, state integrity and owner reads."
+  },
+  "postgresCandidate": {
+    "testedLocal": true,
+    "deployedPublic": false,
+    "evidence": "docs/evidence/exchange/postgres-multi-instance-local-2026-08-14.json"
+  }
+}

@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "productId": "ynx-exchange-pro",
   "name": "YNX Exchange Pro",
-  "branch": "codex/integrate-finance-suite",
-  "sourceCommit": "bdc88190ec1bfca2d308a58c4c2626fd2d75ac46",
-  "commit": "bdc88190ec1bfca2d308a58c4c2626fd2d75ac46",
+  "branch": "codex/final-finance-suite",
+  "sourceCommit": "ebed627f8b799e93bd3c4c31669ccb17e8e40385",
+  "commit": "ebed627f8b799e93bd3c4c31669ccb17e8e40385",
   "version": "0.1.0-testnet",
   "stateSchemaVersion": 10,
   "surfaces": [
@@ -80,8 +80,8 @@
     "Repository-wide tests are blocked outside Exchange ownership by missing generated contract artifacts and key-permission assumptions"
   ],
   "publicRuntimeEvidence": {
-    "sourceCommit": "bdc88190ec1bfca2d308a58c4c2626fd2d75ac46",
-    "binarySha256": "4d9a0274cc795cfca4d867aa39fd22f10e052e8569e0ed5e1a7265424832434f",
+    "sourceCommit": "ebed627f8b799e93bd3c4c31669ccb17e8e40385",
+    "binarySha256": "df8d3510f028ab5a762f5fb36510b08b62df2b119932afb00d6a71805226cce0",
     "stateSchemaVersion": 10,
     "stateIntegrity": true,
     "restartStateHashStable": true,
@@ -101,7 +101,10 @@
     "boundedSpotAndPerpetualTapes": true,
     "evidence": "evidence/capacity/exchange-market-data-public-2026-08-11.txt",
     "priorWalletEvidence": "evidence/capacity/exchange-wallet-public-2026-08-10.txt",
-    "verifiedAt": "2026-08-11T10:13:31Z"
+    "stateStore": "file-cas-single-host",
+    "multiInstanceState": false,
+    "postgresCandidateEvidence": "docs/evidence/exchange/postgres-multi-instance-local-2026-08-14.json",
+    "verifiedAt": "2026-08-14T01:02:00Z"
   },
-  "generatedAt": "2026-08-11T10:13:31Z"
+  "generatedAt": "2026-08-14T01:02:00Z"
 }
