@@ -9,6 +9,22 @@ const SOURCE_COMMIT = /^[0-9a-f]{40}$/;
 const HEX_DATA = /^0x(?:[0-9a-f]{2})*$/;
 const ENTRY_POINT_SELECTOR = "0xb0d691fe";
 
+export function createWalletTestnetDeploymentManifest(input) {
+  if (!input || typeof input !== "object" || Array.isArray(input) || !SOURCE_COMMIT.test(input.sourceCommit ?? "") || input.chainId !== 6423) fail("INVALID_DEPLOYMENT_EVIDENCE", "deployment identity is invalid");
+  const result = { schemaVersion: 1, sourceCommit: input.sourceCommit, chainId: input.chainId };
+  const addresses = new Set();
+  for (const name of ["entryPoint", "factory", "paymaster"]) {
+    const value = input[name];
+    if (!value || typeof value !== "object" || Array.isArray(value) || !ADDRESS.test(value.address ?? "") || !HASH.test(value.transactionHash ?? "") || !HEX_DATA.test(value.runtimeCode ?? "") || value.runtimeCode === "0x") fail("INVALID_DEPLOYMENT_EVIDENCE", `${name} deployment evidence is invalid`);
+    if (addresses.has(value.address)) fail("INVALID_DEPLOYMENT_EVIDENCE", "deployment contract addresses must be distinct");
+    addresses.add(value.address);
+    const receipt = value.receipt;
+    if (!receipt || typeof receipt !== "object" || Array.isArray(receipt) || receipt.transactionHash !== value.transactionHash || receipt.status !== "0x1" || receipt.contractAddress !== value.address || !HASH.test(receipt.blockHash ?? "") || !/^0x[1-9a-f][0-9a-f]*$/.test(receipt.blockNumber ?? "") || !Array.isArray(receipt.logs)) fail("INVALID_DEPLOYMENT_EVIDENCE", `${name} mined receipt is invalid`);
+    result[name] = Object.freeze({ address: value.address, transactionHash: value.transactionHash, runtimeSha256: runtimeSha256(value.runtimeCode) });
+  }
+  return Object.freeze(result);
+}
+
 export async function verifyPublicERC4337Deployment(config) {
   const rpcEndpoint = endpoint(config?.rpcEndpoint, "RPC endpoint");
   const bundlerEndpoint = endpoint(config?.bundlerEndpoint, "Bundler endpoint");
@@ -91,6 +107,7 @@ function runtimeEvidence(value) {
   const bytes = Uint8Array.from({ length: raw.length / 2 }, (_, index) => Number.parseInt(raw.slice(index * 2, index * 2 + 2), 16));
   return { bytes: bytes.length, sha256: bytesToHex(sha256(bytes)) };
 }
+function runtimeSha256(value) { const raw = value.slice(2); const bytes = Uint8Array.from({ length: raw.length / 2 }, (_, index) => Number.parseInt(raw.slice(index * 2, index * 2 + 2), 16)); return bytesToHex(sha256(bytes)); }
 
 function returnedAddress(value) { return value.ok && typeof value.result === "string" && /^0x0{24}[0-9a-f]{40}$/.test(value.result) ? `0x${value.result.slice(-40)}` : null; }
 async function jsonRpc(fetchImpl, url, method, params, timeoutMs) {

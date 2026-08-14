@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { verifyPublicERC4337Deployment, WalletAuthError } from "../src/index.js";
+import { createWalletTestnetDeploymentManifest, verifyPublicERC4337Deployment, WalletAuthError } from "../src/index.js";
 
 const RPC = "https://evm.test.invalid/rpc";
 const BUNDLER = "https://bundler.test.invalid/rpc";
@@ -46,9 +46,23 @@ test("missing deployment bindings and credentialed endpoints fail before RPC", a
   ]) await assert.rejects(verifyPublicERC4337Deployment(config), error("INVALID_CONFIG"));
 });
 
+test("deployment manifest builder binds mined receipts and runtime bytes", () => {
+  const built = createWalletTestnetDeploymentManifest({
+    sourceCommit: "1".repeat(40),
+    chainId: 6423,
+    entryPoint: deployedContract(ENTRY_POINT, HASHES[0], CODES[0]),
+    factory: deployedContract(FACTORY, HASHES[1], CODES[1]),
+    paymaster: deployedContract(PAYMASTER, HASHES[2], CODES[2]),
+  });
+  assert.deepEqual(built, manifest());
+  assert.throws(() => createWalletTestnetDeploymentManifest({ ...built, factory: deployedContract(FACTORY, HASHES[1], "0x") }), error("INVALID_DEPLOYMENT_EVIDENCE"));
+  assert.throws(() => createWalletTestnetDeploymentManifest({ ...built, paymaster: { ...deployedContract(PAYMASTER, HASHES[2], CODES[2]), receipt: receipt(FACTORY, HASHES[2]) } }), error("INVALID_DEPLOYMENT_EVIDENCE"));
+});
+
 function configuration(routes, calls = []) { return { rpcEndpoint: RPC, bundlerEndpoint: BUNDLER, manifest: manifest(), fetchImpl: fetchFrom(routes, calls) }; }
 function manifest() { return { schemaVersion: 1, sourceCommit: "1".repeat(40), chainId: 6423, entryPoint: contract(ENTRY_POINT, HASHES[0], SHA256[0]), factory: contract(FACTORY, HASHES[1], SHA256[1]), paymaster: contract(PAYMASTER, HASHES[2], SHA256[2]) }; }
 function contract(address, transactionHash, runtimeSha256) { return { address, transactionHash, runtimeSha256 }; }
+function deployedContract(address, transactionHash, runtimeCode) { return { address, transactionHash, runtimeCode, receipt: receipt(address, transactionHash) }; }
 function fixture(overrides = {}) { return { rpcChain: "0x1917", bundlerChain: "0x1917", supported: [ENTRY_POINT], receipts: [receipt(ENTRY_POINT, HASHES[0]), receipt(FACTORY, HASHES[1]), receipt(PAYMASTER, HASHES[2])], codes: CODES, relationships: [word(ENTRY_POINT), word(ENTRY_POINT)], ...overrides }; }
 function receipt(address, transactionHash) { return { transactionHash, status: "0x1", contractAddress: address, blockHash: "0x" + "d4".repeat(32), blockNumber: "0x10", logs: [] }; }
 function word(address) { return "0x" + "0".repeat(24) + address.slice(2); }
