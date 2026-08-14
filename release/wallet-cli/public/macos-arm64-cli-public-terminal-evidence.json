@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-08-14T08:48:00Z",
+  "artifactId": "macos-arm64-cli",
+  "sourceEvidenceCommit": "6856bf41f79ffdb0a637d7e1cad11e6931158d67",
+  "websiteRepository": "JiahaoAlbus/YNX-Chain-website",
+  "websiteCommit": "8676d9c",
+  "project": "ynx-web4-website-new",
+  "productionDeployment": {
+    "id": "dpl_Ems3qg5aR7bcjAsMoYt89vBhTRcE",
+    "url": "https://ynx-web4-website-5m2mfbqor-jiahaoalbus-projects.vercel.app",
+    "createdAt": "2026-08-14T08:34:24Z",
+    "ready": true
+  },
+  "priorProductionRollbackAnchor": {
+    "id": "dpl_Eh9QESPuDXbvtW6RcVozz4ArZDif",
+    "url": "https://ynx-web4-website-4nrqlwtpw-jiahaoalbus-projects.vercel.app",
+    "createdAt": "2026-08-11T17:17:05Z"
+  },
+  "aliases": {
+    "https://www.ynxweb4.com": "dpl_Ems3qg5aR7bcjAsMoYt89vBhTRcE",
+    "https://ynxweb4.com": "dpl_Ems3qg5aR7bcjAsMoYt89vBhTRcE",
+    "https://wallet.ynxweb4.com": "dpl_Ems3qg5aR7bcjAsMoYt89vBhTRcE"
+  },
+  "publicUrl": "https://www.ynxweb4.com/downloads/wallet/sha256-21db36f1c80d4e88520918de141a7f71921817799270ff671db88179023b5591/ynx-wallet-cli-darwin-arm64.gz",
+  "httpStatus": 200,
+  "contentType": "application/gzip",
+  "contentLength": 4904463,
+  "bytes": 4904463,
+  "sha256": "21db36f1c80d4e88520918de141a7f71921817799270ff671db88179023b5591",
+  "minimumOS": "macOS 12 Monterey",
+  "signingClass": "ad_hoc_linker_signed_local_testnet_cli_candidate",
+  "registryEvidenceCommit": "6856bf41f79ffdb0a637d7e1cad11e6931158d67",
+  "registryVerifiedOnAliases": [
+    "www.ynxweb4.com",
+    "ynxweb4.com",
+    "wallet.ynxweb4.com"
+  ],
+  "pageBundleSourceCommitVerified": true,
+  "fullDownloadVerified": true,
+  "rollbackAttempted": true,
+  "rollbackSucceeded": false,
+  "rollbackVerified": false,
+  "rollbackAttemptFailedButProductionHealthy": true,
+  "productionHealthReverifiedAfterRollbackAttempt": true,
+  "downloadHosted": true,
+  "deployedPublic": true,
+  "productionSigned": false,
+  "storeReleased": false,
+  "accountClaimed": false,
+  "balanceClaimed": false,
+  "transactionCreated": false
+}
