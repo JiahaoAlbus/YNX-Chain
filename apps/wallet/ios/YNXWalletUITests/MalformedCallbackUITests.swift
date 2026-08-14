@@ -31,4 +31,50 @@ final class MalformedCallbackUITests: XCTestCase {
     screenshot.lifetime = .keepAlways
     add(screenshot)
   }
+
+  func testRecoveryRemainsEmptyWhenBiometricsAreUnavailable() throws {
+    let wallet = XCUIApplication()
+    wallet.launch()
+
+    let recover = wallet.buttons["Recover on a replacement device"]
+    XCTAssertTrue(recover.waitForExistence(timeout: 45), "Fresh Wallet recovery action is unavailable")
+    recover.tap()
+
+    let textView = wallet.textViews["Recovery key"]
+    let secureField = wallet.secureTextFields["Recovery key"]
+    let recoveryField = textView.waitForExistence(timeout: 15) ? textView : secureField
+    XCTAssertTrue(recoveryField.waitForExistence(timeout: 15), "Recovery key field is unavailable")
+    recoveryField.tap()
+    recoveryField.typeText(String(repeating: "0", count: 64))
+
+    let persist = wallet.buttons["Recover into secure storage"]
+    XCTAssertTrue(persist.isEnabled, "Recovery action did not accept the isolated 32-byte test vector")
+    persist.tap()
+
+    let failure = wallet.staticTexts["Recovery authorization failed"]
+    XCTAssertTrue(
+      failure.waitForExistence(timeout: 30),
+      "Recovery did not expose its fail-closed biometric error"
+    )
+    XCTAssertTrue(wallet.buttons["Recover into secure storage"].exists)
+
+    let rejected = XCTAttachment(screenshot: wallet.screenshot())
+    rejected.name = "recovery-biometric-fail-closed"
+    rejected.lifetime = .keepAlways
+    add(rejected)
+
+    wallet.buttons["Close Recover Wallet"].tap()
+    XCTAssertTrue(wallet.buttons["Create new Wallet"].waitForExistence(timeout: 15))
+    wallet.terminate()
+    wallet.launch()
+    XCTAssertTrue(
+      wallet.buttons["Create new Wallet"].waitForExistence(timeout: 45),
+      "Failed recovery unexpectedly persisted an account across process restart"
+    )
+
+    let restart = XCTAttachment(screenshot: wallet.screenshot())
+    restart.name = "recovery-second-launch-empty"
+    restart.lifetime = .keepAlways
+    add(restart)
+  }
 }

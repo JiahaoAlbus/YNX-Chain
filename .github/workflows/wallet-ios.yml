@@ -129,6 +129,25 @@ jobs:
           xcrun xcresulttool export attachments \
             --path proof/ci-ios/MalformedCallback.xcresult \
             --output-path proof/ci-ios/xcresult-attachments
+      - name: Prove recovery stays empty without Simulator biometrics
+        timeout-minutes: 10
+        working-directory: apps/wallet
+        run: |
+          set -euo pipefail
+          DEVICE="$(xcrun simctl list devices booted | awk -F '[()]' '/iPhone/{print $2; exit}')"
+          test -n "$DEVICE"
+          xcodebuild test \
+            -workspace ios/YNXWallet.xcworkspace \
+            -scheme YNXWallet \
+            -configuration Release \
+            -destination "platform=iOS Simulator,id=$DEVICE" \
+            -only-testing:YNXWalletUITests/MalformedCallbackUITests/testRecoveryRemainsEmptyWhenBiometricsAreUnavailable \
+            -resultBundlePath proof/ci-ios/RecoveryFailClosed.xcresult \
+            2>&1 | tee proof/ci-ios/recovery-fail-closed-xctest.log
+          grep -F "Test Case '-[YNXWalletUITests.MalformedCallbackUITests testRecoveryRemainsEmptyWhenBiometricsAreUnavailable]' passed" proof/ci-ios/recovery-fail-closed-xctest.log
+          xcrun xcresulttool export attachments \
+            --path proof/ci-ios/RecoveryFailClosed.xcresult \
+            --output-path proof/ci-ios/recovery-xcresult-attachments
       - name: Record truthful Simulator artifact facts
         working-directory: apps/wallet
         run: |
