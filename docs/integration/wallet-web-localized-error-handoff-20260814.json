@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "owner": "Wallet/Auth Web/PWA/Extensions",
+  "parentCommit": "c6870072fade9aa0868446033f1dbf9ab1f5ca97",
+  "change": "Known and unknown request failures preserve a stable error code but render a directly translated fail-closed message instead of arbitrary provider text.",
+  "localeCount": 12,
+  "evidence": "apps/wallet-web/evidence/runtime/built-localized-error-gate-20260814.json",
+  "tests": {
+    "source": "66/66 passed",
+    "packageInternal": "64/64 passed",
+    "exactZipLocalizedErrorGate": "3/3 passed",
+    "packageIntegrity": "3/3 passed"
+  },
+  "artifacts": [
+    {
+      "name": "ynx-wallet-web-pwa-0.1.0.zip",
+      "bytes": 272501,
+      "sha256": "38499d18d889a3d5f8c709bf9b2b2dda553c49b4b1f8c7e84fed1f23ca2638ed",
+      "minimumOS": "modern browser with Service Worker and Web Crypto support",
+      "signingClass": "unsigned-web-bundle"
+    },
+    {
+      "name": "ynx-wallet-chrome-edge-0.1.0.zip",
+      "bytes": 188641,
+      "sha256": "4b8d54c2d7d6397f9423110e8b9dc18833b47ec73efaa2ecdcf31cffd32bf694",
+      "minimumOS": "Chrome 120 / Edge 120",
+      "signingClass": "unsigned-unpacked-extension"
+    },
+    {
+      "name": "ynx-wallet-firefox-0.1.0.zip",
+      "bytes": 188678,
+      "sha256": "0bd51179ec21ba523c6ecfab1f4aa61bd9aa15d8341aa0a3beb89e6765e2bf42",
+      "minimumOS": "Firefox 128",
+      "signingClass": "unsigned-unpacked-extension"
+    }
+  ],
+  "browser": {
+    "visibleRecheckPassed": false,
+    "blocker": "The isolated Browser navigated to its own data URL error page during the second offline reload; Browser URL policy prohibited further inspection or CDP cleanup on that page.",
+    "workaroundAttempted": false
+  },
+  "gates": {
+    "installedLocal": false,
+    "providerConnected": false,
+    "accountAuthorized": false,
+    "messageSigned": false,
+    "transactionSubmitted": false,
+    "deployedPublic": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

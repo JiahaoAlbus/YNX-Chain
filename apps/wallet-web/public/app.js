@@ -55,6 +55,7 @@ function render() {
 }
 
 function setStatus(message, kind = "info") { const node = document.querySelector("#status"); node.dataset.kind = kind; node.innerHTML = `<strong>${text("status")}:</strong> ${escape(message)}`; }
+function localizedError(error) { const code=typeof error?.code==="string"||typeof error?.code==="number"?String(error.code):"REQUEST_FAILED"; return `${code}: ${text("requestFailed")}`; }
 async function act(work, success) {
   setStatus(text("working"));
   for (const button of document.querySelectorAll("button")) button.disabled = true;
@@ -62,7 +63,7 @@ async function act(work, success) {
   catch (error) {
     if (["RPC_UNAVAILABLE","WRONG_NETWORK","INVALID_RPC_RESPONSE"].includes(error?.code)) state.rpcVerified = false;
     if (invalidatesConnectedSession(error)) invalidateConnectedState();
-    setStatus(`${error?.code ? `${error.code}: ` : ""}${error?.message || "Request failed closed."}`, "error");
+    setStatus(localizedError(error), "error");
     return null;
   }
   finally { for (const button of document.querySelectorAll("button")) button.disabled = button.dataset.permanentDisabled === "true"; applyActionGates(); }
@@ -165,7 +166,7 @@ async function detect() {
   }
 }
 
-const discoveryError=(error)=>`${error?.code ? `${error.code}: ` : ""}${error?.message || "Wallet detection failed closed."}`;
+const discoveryError=(error)=>localizedError(error);
 render(); detect().then(()=>{if(loadedPreferences.status==="rejected")setStatus(text("preferencesRejected"),"error")}).catch((error) => setStatus(discoveryError(error), "error"));
 addEventListener("storage",(event)=>{if(event.key!==PREFERENCES_KEY)return;try{const next=acceptPreferenceUpdate(state.preferences,event.newValue);state.preferences=next;state.locale=next.locale;state.theme=next.theme;render();detect().catch((error)=>setStatus(discoveryError(error),"error"))}catch(error){setStatus(`${error?.code||"PREFERENCES_REJECTED"}: ${text("preferencesRejected")}`,"error")}});
 if (!isExtension && "serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js", {type:"module"}).catch(() => {});

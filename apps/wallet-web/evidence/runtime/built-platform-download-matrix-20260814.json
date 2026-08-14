@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
-  "sourceCommit": "4b631f83f7cc468dbde3a1bb9c9383f98060c347",
-  "generatedAt": "2026-08-14T06:29:14.240Z",
+  "sourceCommit": "c6870072fade9aa0868446033f1dbf9ab1f5ca97",
+  "generatedAt": "2026-08-14T06:45:11.707Z",
   "gateClass": "exact built-artifact download metadata and UI-source inspection; not browser installation, platform package publication, or signing proof",
   "artifacts": [
     {
       "name": "ynx-wallet-web-pwa-0.1.0.zip",
-      "bytes": 271991,
-      "sha256": "0f8447db94f09cbb237eaa4e2f91cdbdb05c7f15ee44785ca1af0ae66c507701",
+      "bytes": 272501,
+      "sha256": "38499d18d889a3d5f8c709bf9b2b2dda553c49b4b1f8c7e84fed1f23ca2638ed",
       "matrix": {
         "android": {
           "label": "Android API 24+",
@@ -80,8 +80,8 @@
     },
     {
       "name": "ynx-wallet-chrome-edge-0.1.0.zip",
-      "bytes": 188129,
-      "sha256": "685ec243e931e43d6346f2effac3fb799408fcd96dff5552c701821587bd3079",
+      "bytes": 188641,
+      "sha256": "4b8d54c2d7d6397f9423110e8b9dc18833b47ec73efaa2ecdcf31cffd32bf694",
       "matrix": {
         "android": {
           "label": "Android API 24+",
@@ -154,8 +154,8 @@
     },
     {
       "name": "ynx-wallet-firefox-0.1.0.zip",
-      "bytes": 188166,
-      "sha256": "554ba7280c69b8a3e8cbae07941c51c5b3c2ce35fc2b8773c9589927ce0854cc",
+      "bytes": 188678,
+      "sha256": "0bd51179ec21ba523c6ecfab1f4aa61bd9aa15d8341aa0a3beb89e6765e2bf42",
       "matrix": {
         "android": {
           "label": "Android API 24+",

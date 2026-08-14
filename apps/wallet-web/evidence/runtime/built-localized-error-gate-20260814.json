@@ -1,0 +1,243 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "c6870072fade9aa0868446033f1dbf9ab1f5ca97",
+  "generatedAt": "2026-08-14T06:44:44.724Z",
+  "gateClass": "exact built ZIP locale module and UI-source inspection; not visible browser runtime",
+  "artifacts": [
+    {
+      "name": "ynx-wallet-web-pwa-0.1.0.zip",
+      "bytes": 272501,
+      "sha256": "38499d18d889a3d5f8c709bf9b2b2dda553c49b4b1f8c7e84fed1f23ca2638ed",
+      "localeChecks": [
+        {
+          "locale": "en",
+          "untranslated": [],
+          "requestFailed": "The request failed closed. No wallet state was changed."
+        },
+        {
+          "locale": "zh-CN",
+          "untranslated": [],
+          "requestFailed": "请求已失败关闭，钱包状态没有改变。"
+        },
+        {
+          "locale": "zh-TW",
+          "untranslated": [],
+          "requestFailed": "請求已失敗關閉，錢包狀態沒有變更。"
+        },
+        {
+          "locale": "ja",
+          "untranslated": [],
+          "requestFailed": "リクエストは安全に失敗し、ウォレットの状態は変更されませんでした。"
+        },
+        {
+          "locale": "ko",
+          "untranslated": [],
+          "requestFailed": "요청은 안전하게 실패했으며 지갑 상태는 변경되지 않았습니다."
+        },
+        {
+          "locale": "es",
+          "untranslated": [],
+          "requestFailed": "La solicitud se cerró con error y no se modificó el estado de la cartera."
+        },
+        {
+          "locale": "fr",
+          "untranslated": [],
+          "requestFailed": "La demande a échoué de manière sécurisée et l’état du portefeuille n’a pas été modifié."
+        },
+        {
+          "locale": "de",
+          "untranslated": [],
+          "requestFailed": "Die Anfrage wurde sicher abgebrochen; der Wallet-Status blieb unverändert."
+        },
+        {
+          "locale": "pt",
+          "untranslated": [],
+          "requestFailed": "A solicitação falhou de forma segura e o estado da carteira não foi alterado."
+        },
+        {
+          "locale": "ru",
+          "untranslated": [],
+          "requestFailed": "Запрос безопасно завершился ошибкой; состояние кошелька не изменилось."
+        },
+        {
+          "locale": "ar",
+          "untranslated": [],
+          "requestFailed": "فشل الطلب بشكل آمن ولم تتغير حالة المحفظة."
+        },
+        {
+          "locale": "id",
+          "untranslated": [],
+          "requestFailed": "Permintaan gagal secara aman dan status dompet tidak berubah."
+        }
+      ],
+      "checks": {
+        "allLocalesDirect": true,
+        "allErrorsLocalized": true,
+        "arabicExact": true,
+        "stableCodePreserved": true,
+        "rawProviderMessageNotRendered": true
+      },
+      "passed": true
+    },
+    {
+      "name": "ynx-wallet-chrome-edge-0.1.0.zip",
+      "bytes": 188641,
+      "sha256": "4b8d54c2d7d6397f9423110e8b9dc18833b47ec73efaa2ecdcf31cffd32bf694",
+      "localeChecks": [
+        {
+          "locale": "en",
+          "untranslated": [],
+          "requestFailed": "The request failed closed. No wallet state was changed."
+        },
+        {
+          "locale": "zh-CN",
+          "untranslated": [],
+          "requestFailed": "请求已失败关闭，钱包状态没有改变。"
+        },
+        {
+          "locale": "zh-TW",
+          "untranslated": [],
+          "requestFailed": "請求已失敗關閉，錢包狀態沒有變更。"
+        },
+        {
+          "locale": "ja",
+          "untranslated": [],
+          "requestFailed": "リクエストは安全に失敗し、ウォレットの状態は変更されませんでした。"
+        },
+        {
+          "locale": "ko",
+          "untranslated": [],
+          "requestFailed": "요청은 안전하게 실패했으며 지갑 상태는 변경되지 않았습니다."
+        },
+        {
+          "locale": "es",
+          "untranslated": [],
+          "requestFailed": "La solicitud se cerró con error y no se modificó el estado de la cartera."
+        },
+        {
+          "locale": "fr",
+          "untranslated": [],
+          "requestFailed": "La demande a échoué de manière sécurisée et l’état du portefeuille n’a pas été modifié."
+        },
+        {
+          "locale": "de",
+          "untranslated": [],
+          "requestFailed": "Die Anfrage wurde sicher abgebrochen; der Wallet-Status blieb unverändert."
+        },
+        {
+          "locale": "pt",
+          "untranslated": [],
+          "requestFailed": "A solicitação falhou de forma segura e o estado da carteira não foi alterado."
+        },
+        {
+          "locale": "ru",
+          "untranslated": [],
+          "requestFailed": "Запрос безопасно завершился ошибкой; состояние кошелька не изменилось."
+        },
+        {
+          "locale": "ar",
+          "untranslated": [],
+          "requestFailed": "فشل الطلب بشكل آمن ولم تتغير حالة المحفظة."
+        },
+        {
+          "locale": "id",
+          "untranslated": [],
+          "requestFailed": "Permintaan gagal secara aman dan status dompet tidak berubah."
+        }
+      ],
+      "checks": {
+        "allLocalesDirect": true,
+        "allErrorsLocalized": true,
+        "arabicExact": true,
+        "stableCodePreserved": true,
+        "rawProviderMessageNotRendered": true
+      },
+      "passed": true
+    },
+    {
+      "name": "ynx-wallet-firefox-0.1.0.zip",
+      "bytes": 188678,
+      "sha256": "0bd51179ec21ba523c6ecfab1f4aa61bd9aa15d8341aa0a3beb89e6765e2bf42",
+      "localeChecks": [
+        {
+          "locale": "en",
+          "untranslated": [],
+          "requestFailed": "The request failed closed. No wallet state was changed."
+        },
+        {
+          "locale": "zh-CN",
+          "untranslated": [],
+          "requestFailed": "请求已失败关闭，钱包状态没有改变。"
+        },
+        {
+          "locale": "zh-TW",
+          "untranslated": [],
+          "requestFailed": "請求已失敗關閉，錢包狀態沒有變更。"
+        },
+        {
+          "locale": "ja",
+          "untranslated": [],
+          "requestFailed": "リクエストは安全に失敗し、ウォレットの状態は変更されませんでした。"
+        },
+        {
+          "locale": "ko",
+          "untranslated": [],
+          "requestFailed": "요청은 안전하게 실패했으며 지갑 상태는 변경되지 않았습니다."
+        },
+        {
+          "locale": "es",
+          "untranslated": [],
+          "requestFailed": "La solicitud se cerró con error y no se modificó el estado de la cartera."
+        },
+        {
+          "locale": "fr",
+          "untranslated": [],
+          "requestFailed": "La demande a échoué de manière sécurisée et l’état du portefeuille n’a pas été modifié."
+        },
+        {
+          "locale": "de",
+          "untranslated": [],
+          "requestFailed": "Die Anfrage wurde sicher abgebrochen; der Wallet-Status blieb unverändert."
+        },
+        {
+          "locale": "pt",
+          "untranslated": [],
+          "requestFailed": "A solicitação falhou de forma segura e o estado da carteira não foi alterado."
+        },
+        {
+          "locale": "ru",
+          "untranslated": [],
+          "requestFailed": "Запрос безопасно завершился ошибкой; состояние кошелька не изменилось."
+        },
+        {
+          "locale": "ar",
+          "untranslated": [],
+          "requestFailed": "فشل الطلب بشكل آمن ولم تتغير حالة المحفظة."
+        },
+        {
+          "locale": "id",
+          "untranslated": [],
+          "requestFailed": "Permintaan gagal secara aman dan status dompet tidak berubah."
+        }
+      ],
+      "checks": {
+        "allLocalesDirect": true,
+        "allErrorsLocalized": true,
+        "arabicExact": true,
+        "stableCodePreserved": true,
+        "rawProviderMessageNotRendered": true
+      },
+      "passed": true
+    }
+  ],
+  "browserVisibleRecheck": false,
+  "installedLocal": false,
+  "providerConnected": false,
+  "accountAuthorized": false,
+  "messageSigned": false,
+  "transactionSubmitted": false,
+  "deployedPublic": false,
+  "productionSigned": false,
+  "storeReleased": false,
+  "passed": true
+}
