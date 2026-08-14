@@ -26,6 +26,8 @@ test("runtime process UI uses real redacted terminal and task inventories", asyn
   assert.match(runtime, /\/runtime\/tasks\/active/);
   assert.match(runtime, /function publicActivity/);
   assert.match(runtime, /activity\.controller\.abort/);
+  assert.match(runtime, /status: "queued"/);
+  assert.match(runtime, /code: "task_cancelled"/);
   assert.doesNotMatch(runtime.match(/function publicActivity[\s\S]*?\n\}/)?.[0] || "", /command|environment[^R]/i);
   assert.match(terminal, /function publicSession/);
 });

@@ -225,8 +225,9 @@ export type TaskActivity = {
   taskId: string;
   projectId: string;
   kind: "build-run-active" | "test-project";
-  status: "running" | "stopping";
-  startedAt: string;
+  status: "queued" | "running" | "stopping";
+  queuedAt: string;
+  startedAt: string | null;
   environmentRevision: number | null;
 };
 async function profileFetch(path: string, options: RequestInit = {}) {

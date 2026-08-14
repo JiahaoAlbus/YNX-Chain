@@ -438,6 +438,52 @@ test("active task inventory is owner scoped and redacts commands and environment
   assert.deepEqual((await (await fetch(`${url}/runtime/tasks/active`, { headers: { cookie } })).json()).tasks, []);
 });
 
+test("queued tasks are owner visible and can be cancelled before execution", async (t) => {
+  const { url } = await fixture(t, { concurrency: 1 }),
+    cookie = await session(url),
+    attackerCookie = await session(url),
+    running = fetch(`${url}/runtime/tasks`, {
+      method: "POST",
+      headers: { cookie, "content-type": "application/json" },
+      body: JSON.stringify(languageTask("src/running.js", "setTimeout(() => console.log('done'), 5000)")),
+    });
+  let tasks = [];
+  for (let attempt = 0; attempt < 40 && !tasks.some((item) => item.status === "running"); attempt += 1) {
+    await new Promise((resolve) => setTimeout(resolve, 25));
+    tasks = (await (await fetch(`${url}/runtime/tasks/active`, { headers: { cookie } })).json()).tasks;
+  }
+  const queuedRequest = fetch(`${url}/runtime/tasks`, {
+    method: "POST",
+    headers: { cookie, "content-type": "application/json" },
+    body: JSON.stringify(languageTask("src/queued.js", "console.log('must-not-run')")),
+  });
+  for (let attempt = 0; attempt < 40 && !tasks.some((item) => item.status === "queued"); attempt += 1) {
+    await new Promise((resolve) => setTimeout(resolve, 25));
+    tasks = (await (await fetch(`${url}/runtime/tasks/active`, { headers: { cookie } })).json()).tasks;
+  }
+  const queued = tasks.find((item) => item.status === "queued"),
+    activeTask = tasks.find((item) => item.status === "running");
+  assert.ok(queued);
+  assert.ok(activeTask);
+  assert.equal(queued.projectId, "language-src-queued-js");
+  assert.equal(queued.startedAt, null);
+  assert.match(queued.queuedAt, /^\d{4}-\d{2}-\d{2}T/);
+  assert.equal(JSON.stringify(queued).includes("must-not-run"), false);
+  assert.equal((await fetch(`${url}/runtime/tasks/${queued.taskId}`, { method: "DELETE", headers: { cookie: attackerCookie } })).status, 404);
+  const cancelled = await fetch(`${url}/runtime/tasks/${queued.taskId}`, { method: "DELETE", headers: { cookie } });
+  assert.equal(cancelled.status, 202);
+  assert.equal((await cancelled.json()).previousStatus, "queued");
+  const queuedResponse = await queuedRequest,
+    queuedResult = await queuedResponse.json();
+  assert.equal(queuedResponse.status, 409);
+  assert.equal(queuedResult.code, "task_cancelled");
+  assert.match(queuedResult.error, /before execution/);
+  tasks = (await (await fetch(`${url}/runtime/tasks/active`, { headers: { cookie } })).json()).tasks;
+  assert.deepEqual(tasks.map((item) => item.taskId), [activeTask.taskId]);
+  assert.equal((await fetch(`${url}/runtime/tasks/${activeTask.taskId}`, { method: "DELETE", headers: { cookie } })).status, 202);
+  assert.equal((await (await running).json()).code, 130);
+});
+
 test("parallel users receive bounded independent workspaces", async (t) => {
   const { url, runtime } = await fixture(t),
     cookies = await Promise.all(Array.from({ length: 8 }, () => session(url))),

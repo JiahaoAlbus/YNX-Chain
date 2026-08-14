@@ -277,7 +277,7 @@ function EnvironmentAndProcesses({ projectId }: { projectId: string }) {
               <small>
                 {task.status} · env r{task.environmentRevision ?? "resolving"}
                 <br />
-                started {new Date(task.startedAt).toLocaleTimeString()}
+                {task.startedAt ? `started ${new Date(task.startedAt).toLocaleTimeString()}` : `queued ${new Date(task.queuedAt).toLocaleTimeString()}`}
               </small>
             </span>
             <Button

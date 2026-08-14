@@ -46,12 +46,34 @@ export function createWorkspaceRuntime(options = {}) {
       const activity = activities.get(stopTaskMatch[1]),
         owner = ownerId(session, sessionKey);
       if (!activity || activity.owner !== owner) {
-        json(response, 404, { error: "Running task was not found.", code: "task_not_found" });
+        json(response, 404, { error: "Task was not found.", code: "task_not_found" });
+        return true;
+      }
+      if (activity.status === "queued") {
+        const index = queue.findIndex((item) => item.taskId === activity.taskId);
+        if (index < 0) {
+          json(response, 409, { error: "Task state changed before cancellation. Refresh and retry.", code: "task_state_changed" });
+          return true;
+        }
+        const [item] = queue.splice(index, 1);
+        finishActivity(activity.taskId);
+        const error = Object.assign(new Error("Task cancelled before execution."), { status: 409, code: "task_cancelled" });
+        if (item.internal) item.reject(error);
+        else {
+          json(item.response, error.status, { error: error.message, code: error.code });
+          item.resolve();
+        }
+        json(response, 202, { protocolVersion: PROTOCOL, cancelled: activity.taskId, previousStatus: "queued" });
+        pump();
+        return true;
+      }
+      if (activity.status === "stopping") {
+        json(response, 202, { protocolVersion: PROTOCOL, stopping: activity.taskId, previousStatus: "stopping" });
         return true;
       }
       activity.status = "stopping";
       activity.controller.abort();
-      json(response, 202, { protocolVersion: PROTOCOL, stopping: activity.taskId });
+      json(response, 202, { protocolVersion: PROTOCOL, stopping: activity.taskId, previousStatus: "running" });
       return true;
     }
     if (url.pathname === "/runtime/health" && request.method === "GET") {
@@ -256,7 +278,9 @@ export function createWorkspaceRuntime(options = {}) {
         return true;
       }
       await new Promise((resolve) => {
-        queue.push({ taskId: randomUUID(), session, owner: ownerId(session, sessionKey), body, response, resolve, streaming });
+        const item = { taskId: randomUUID(), session, owner: ownerId(session, sessionKey), body, response, resolve, streaming };
+        queue.push(item);
+        queueActivity(item);
         pump();
       });
       return true;
@@ -344,7 +368,7 @@ export function createWorkspaceRuntime(options = {}) {
         code: "runtime_overloaded",
       });
     return new Promise((resolve, reject) => {
-      queue.push({
+      const item = {
         taskId: randomUUID(),
         session: `internal:${owner}`,
         owner,
@@ -353,13 +377,19 @@ export function createWorkspaceRuntime(options = {}) {
         resolve,
         reject,
         internal: true,
-      });
+      };
+      queue.push(item);
+      queueActivity(item);
       pump();
     });
   }
+  function queueActivity(item) {
+    activities.set(item.taskId, { taskId: item.taskId, owner: item.owner, projectId: item.body.projectId, kind: item.body.task, status: "queued", queuedAt: new Date().toISOString(), startedAt: null, environmentRevision: null, controller: null });
+  }
   function startActivity(item) {
     item.controller = new AbortController();
-    activities.set(item.taskId, { taskId: item.taskId, owner: item.owner, projectId: item.body.projectId, kind: item.body.task, status: "running", startedAt: new Date().toISOString(), environmentRevision: null, controller: item.controller });
+    const activity = activities.get(item.taskId);
+    if (activity) Object.assign(activity, { status: "running", startedAt: new Date().toISOString(), controller: item.controller });
   }
   function updateActivity(taskId, environmentRevision) {
     const item = activities.get(taskId);
@@ -390,6 +420,7 @@ function publicActivity(item) {
     projectId: item.projectId,
     kind: item.kind,
     status: item.status,
+    queuedAt: item.queuedAt,
     startedAt: item.startedAt,
     environmentRevision: item.environmentRevision,
   };

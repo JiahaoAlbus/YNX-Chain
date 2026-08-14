@@ -280,10 +280,11 @@ process startup closed. A resolved snapshot is injected only into a newly
 created local/LXD/SSH terminal or reviewed local/LXD task. Terminal and task
 inventories expose its revision, never its keys or values. Task activity is
 derived from the real bounded execution queue and disappears on completion.
-An owner-bound Stop request moves a running task to `stopping`, aborts its
-detached process group, returns code 130 to the original request and removes the
-activity after workspace cleanup. Cross-owner and stale task IDs return 404;
-queued-task removal is not yet exposed.
+An owner-bound Stop request atomically removes a `queued` task before execution
+and returns `task_cancelled` to its original request, or moves a running task to
+`stopping`, aborts its detached process group and returns code 130. Activities
+are removed after cancellation or workspace cleanup. Cross-owner and stale task
+IDs return 404.
 
 Tasks are declarative records (`command`, argument array, cwd, environment class,
 problem matcher, timeout, network policy and artifact outputs). Shell parsing is
