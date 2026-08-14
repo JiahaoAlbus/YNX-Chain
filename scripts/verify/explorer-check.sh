@@ -70,7 +70,7 @@ grep -Fq '"sseErrors": 0' "$work/explorer-load.json"
 
 html="$(curl -fsS "$explorer_url/")"
 grep -Fq "Open MetaMask compatibility" <<<"$html"
-grep -Fq "YNX native address (default)" <<<"$html"
+grep -Fq "const fieldKeys = ['delegatedYnxt'" <<<"$html"
 grep -Fq "EVM compatibility address" <<<"$html"
 grep -Fq "/api/summary" <<<"$html"
 metrics="$(curl -fsS "$explorer_url/metrics")"
