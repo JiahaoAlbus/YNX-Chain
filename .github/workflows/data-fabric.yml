@@ -304,6 +304,50 @@ jobs:
             and .leaderFailoverRTOMilliseconds >= 0
             and .restartedReplicaCatchupRTOMilliseconds >= 0
           ' /tmp/data-fabric-postgres-resilience/jetstream-cluster-leader-loss.json
+      - name: Partition and heal a three-replica JetStream route mesh
+        env:
+          YNX_DATA_FABRIC_TEST_SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -o pipefail
+          go test -json ./internal/datafabricnats -run '^TestJetStreamThreeReplicaRoutePartitionRetainsOutboxAndRecovers$' -count=1 \
+            | tee /tmp/data-fabric-postgres-resilience/jetstream-cluster-partition.jsonl
+          jq -s -e 'any(.[]; .Action == "pass" and .Test == "TestJetStreamThreeReplicaRoutePartitionRetainsOutboxAndRecovers")' \
+            /tmp/data-fabric-postgres-resilience/jetstream-cluster-partition.jsonl
+          jq -s --arg source "$YNX_DATA_FABRIC_TEST_SOURCE_COMMIT" '
+            [
+              .[]
+              | select(.Test == "TestJetStreamThreeReplicaRoutePartitionRetainsOutboxAndRecovers")
+              | (.Output? // "")
+            ]
+            | join("")
+            | capture("jetStreamClusterPartitionEvidence=(?<evidence>\\{[^\\n]*\\})").evidence
+            | fromjson
+            | if .sourceCommit != $source then error("JetStream cluster partition source commit mismatch") else . end
+          ' /tmp/data-fabric-postgres-resilience/jetstream-cluster-partition.jsonl \
+            > /tmp/data-fabric-postgres-resilience/jetstream-cluster-partition.json
+          jq -e '
+            .broker == "three-node file-backed JetStream cluster"
+            and .faultMechanism == "bidirectional TCP route isolation at advertised per-node proxies"
+            and .clusterNodes == 3
+            and .streamReplicas == 3
+            and .canonicalEvents == 192
+            and .publishedBeforePartition == 64
+            and .streamLeaderChanged == true
+            and .allServerProcessesRunning == true
+            and .isolatedServerRouteCount == 0
+            and .rejectedOnIsolatedServer == 1
+            and .outboxPendingDuringPartition == 128
+            and .publishedDuringPartition == 64
+            and .streamMessagesDuringPartition == 128
+            and .currentReplicaCountDuringPartition == 2
+            and .publishedAfterHeal == 64
+            and .finalOutboxPending == 0
+            and .finalStreamMessages == 192
+            and .duplicateStreamMessages == 0
+            and .currentReplicaCount == 3
+            and .partitionFailoverRTOMilliseconds >= 0
+            and .partitionHealRTOMilliseconds >= 0
+          ' /tmp/data-fabric-postgres-resilience/jetstream-cluster-partition.json
       - name: Upload exact-source PostgreSQL resilience evidence
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:

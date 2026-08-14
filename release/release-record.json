@@ -63,7 +63,7 @@
     "productIntegration": {
       "payBFTBridge": "testedLocal",
       "payLedgerReconciliation": "testedLocal",
-      "chainCoreCommitmentReference": "testedLocal-contract-v1.25.0-implementation-503e06d06ca3f45eb189a5eafbfbf17c42df4fa6-contract-8f385d975cd4e64d87fbb02b268e8d969e64d05c",
+      "chainCoreCommitmentReference": "testedLocal-contract-v1.26.0-implementation-e940a5197fb2eed7f30d2810e6f670d844f2c625-contract-27b52d79ea7c9f3f77761451645720174f2886d1",
       "otherProducerOwners": "not-yet-integrated-central"
     },
     "releaseEngineering": {
@@ -87,7 +87,8 @@
       "schemaContract": "passed",
       "releaseTruth": "passed",
       "typeScriptSDK": "passed",
-      "jetStreamThreeReplicaLeaderLoss": "passed-local-loopback"
+      "jetStreamThreeReplicaLeaderLoss": "passed-local-loopback",
+      "jetStreamThreeReplicaTCPRoutePartition": "passed-local-loopback-pending-exact-source-ci"
     },
     "remoteCI": {
       "runId": 31799837096,

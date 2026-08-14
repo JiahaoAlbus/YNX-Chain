@@ -116,6 +116,7 @@ func TestJetStreamThreeReplicaLeaderLossRetainsOutboxAndRecovers(t *testing.T) {
 
 type testJetStreamCluster struct {
 	servers []*server.Server
+	network *routeProxyNetwork
 }
 
 func startJetStreamCluster(t *testing.T, count int) *testJetStreamCluster {
@@ -211,6 +212,16 @@ func (c *testJetStreamCluster) clientURLs() []string {
 	return urls
 }
 
+func (c *testJetStreamCluster) clientURLsExcluding(excluded *server.Server) []string {
+	urls := make([]string, 0, len(c.servers)-1)
+	for _, candidate := range c.servers {
+		if candidate != excluded {
+			urls = append(urls, candidate.ClientURL())
+		}
+	}
+	return urls
+}
+
 func (c *testJetStreamCluster) byName(name string) *server.Server {
 	for _, candidate := range c.servers {
 		if candidate.Name() == name {
@@ -243,6 +254,9 @@ func (c *testJetStreamCluster) shutdown() {
 		if candidate != nil {
 			candidate.Shutdown()
 		}
+	}
+	if c.network != nil {
+		c.network.close()
 	}
 }
 

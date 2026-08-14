@@ -492,8 +492,8 @@
       "preconditions": [
         "Envelope v2 event is signed",
         "optional chainCommitmentId is a 32-character lowercase hexadecimal external reference",
-        "Chain Core contract v1.25.0 implementation 503e06d06ca3f45eb189a5eafbfbf17c42df4fa6 and contract commit 8f385d975cd4e64d87fbb02b268e8d969e64d05c",
-        "Chain Core v25 local delivery bundle SHA-256 ea1f144accefe36844260cf2c6fdb68374e0971c1dbb592a6ea63bd3bdeec8ed is verified",
+        "Chain Core contract v1.26.0 implementation e940a5197fb2eed7f30d2810e6f670d844f2c625 and contract commit 27b52d79ea7c9f3f77761451645720174f2886d1",
+        "Chain Core v26 local delivery bundle SHA-256 d6ef075344d916167043f6d12f9b3f559620432f5b04c953189f4cca00aa2b1c is verified",
         "Bulk Data Commitment semantics are unchanged from v21"
       ],
       "input": [
@@ -667,6 +667,48 @@
         "internal/datafabricnats/cluster_leader_loss_test.go",
         "evidence/postgres/jetstream-cluster-leader-loss-clean-source-20260814.json",
         "GitHub Actions run 31797308684 PostgreSQL job"
+      ]
+    },
+    {
+      "id": "DF-XP-022",
+      "class": "jetstream-three-replica-tcp-route-partition-and-heal",
+      "owners": [
+        "YNX Data Fabric",
+        "Security/SRE"
+      ],
+      "preconditions": [
+        "three live embedded NATS server processes form one file-backed JetStream cluster on loopback",
+        "every explicit and gossiped route uses an advertised per-node TCP fault proxy",
+        "YNX_EVENTS uses replicas=3",
+        "192 canonical events and transactional Outbox rows exist"
+      ],
+      "input": [
+        "publish 64 events with server acknowledgements",
+        "bidirectionally isolate the current stream leader at every route proxy without stopping its process",
+        "attempt one isolated-side publication and require timeout or rejection",
+        "publish 64 retained rows through the surviving quorum",
+        "heal the route proxies and wait for all three replicas to become current",
+        "publish the final 64 rows"
+      ],
+      "expected": [
+        "isolated server has zero routes while all three processes remain running",
+        "isolated-side publication fails closed and its Outbox row remains pending",
+        "surviving two-node quorum changes leader and acknowledges 64 events",
+        "during partition exactly two replicas are current",
+        "after healing all three replicas are current",
+        "final Outbox depth is zero and stream contains exactly 192 messages with zero duplicates",
+        "partition failover and healing RTO are recorded"
+      ],
+      "compensation": "retain every unacknowledged Outbox row; heal transport and retry through a confirmed writable quorum without treating client send as publication",
+      "status": "testedLocalPendingExactSourceCI",
+      "evidence": [
+        "internal/datafabricnats/cluster_partition_test.go",
+        ".github/workflows/data-fabric.yml"
+      ],
+      "limitations": [
+        "one CI host and loopback transport",
+        "one bounded partition cycle",
+        "not packet loss, cross-zone WAN, simultaneous quorum loss, sustained load, shared Testnet or public availability evidence"
       ]
     }
   ]
