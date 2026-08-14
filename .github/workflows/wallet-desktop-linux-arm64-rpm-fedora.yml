@@ -105,6 +105,15 @@ jobs:
               run_phase 3 http://127.0.0.1:1 failed-rpc
               node -e "const e=require(\"/evidence/app.json\");if(e.launches!==3||e.rpc.available||e.rpc.chainId!==null||e.signingEnabled)process.exit(1)"
 
+              dnf downgrade -y "$PRE_RPM" | tee /evidence/dnf-rollback.log
+              test "$(rpm -q --qf "%{VERSION}" ynx-wallet-testnet-preview)" = 0.0.9
+              run_phase 4 https://evm.ynxweb4.com rollback
+              node -e "const e=require(\"/evidence/app.json\");if(e.launches!==4||!e.rpc.available||e.rpc.chainId!==\"0x1917\"||e.signingEnabled||e.accountCreated||e.balanceClaimed||e.transactionCreated)process.exit(1)"
+              dnf upgrade -y "$CURRENT_RPM" | tee /evidence/dnf-restore-current.log
+              test "$(rpm -q --qf "%{VERSION}" ynx-wallet-testnet-preview)" = 0.1.0
+              run_phase 5 https://evm.ynxweb4.com restored-current
+              node -e "const e=require(\"/evidence/app.json\");if(e.launches!==5||!e.rpc.available||e.rpc.chainId!==\"0x1917\"||e.signingEnabled||e.accountCreated||e.balanceClaimed||e.transactionCreated)process.exit(1)"
+
               dnf remove -y ynx-wallet-testnet-preview | tee /evidence/dnf-remove.log
               test ! -e "$EXECUTABLE"
               test "$(rpm -q ynx-wallet-testnet-preview >/dev/null 2>&1; echo $?)" != 0
@@ -146,6 +155,10 @@ jobs:
             windowTitleObserved: true,
             chainId: '0x1917',
             rpcFailureClosed: !app.rpc.available && app.rpc.chainId === null,
+            rollbackToPreflightVerified: true,
+            rollbackLaunchVerified: true,
+            reupgradeAfterRollbackVerified: true,
+            restoredCurrentLaunchVerified: true,
             signingEnabled: false,
             accountCreated: false,
             balanceClaimed: false,
@@ -182,7 +195,7 @@ jobs:
           test -n "$rpm" && test -n "$evidence"
           test "$(stat -c %s "$rpm")" = "$(jq -r .bytes "$evidence")"
           test "$(sha256sum "$rpm" | cut -d ' ' -f 1)" = "$(jq -r .sha256 "$evidence")"
-          jq -e '.rpmScriptsTested == true and .fedoraDnfDependencyResolutionTested == true and .preflightInstalled == true and .upgradeVerified == true and .currentInstalled == true and .sandboxPostInstallStateVerified == true and .coldLaunch == true and .secondLaunch == true and .processObserved == true and .windowTitleObserved == true and .chainId == "0x1917" and .rpcFailureClosed == true and .signingEnabled == false and .accountCreated == false and .balanceClaimed == false and .transactionCreated == false and .uninstallVerified == true and .productionSigned == false and .downloadHosted == false and .deployedPublic == false and .storeReleased == false' "$evidence"
+          jq -e '.rpmScriptsTested == true and .fedoraDnfDependencyResolutionTested == true and .preflightInstalled == true and .upgradeVerified == true and .currentInstalled == true and .sandboxPostInstallStateVerified == true and .coldLaunch == true and .secondLaunch == true and .processObserved == true and .windowTitleObserved == true and .chainId == "0x1917" and .rpcFailureClosed == true and .rollbackToPreflightVerified == true and .rollbackLaunchVerified == true and .reupgradeAfterRollbackVerified == true and .restoredCurrentLaunchVerified == true and .signingEnabled == false and .accountCreated == false and .balanceClaimed == false and .transactionCreated == false and .uninstallVerified == true and .productionSigned == false and .downloadHosted == false and .deployedPublic == false and .storeReleased == false' "$evidence"
           jq -n --arg sourceCommit "$GITHUB_SHA" --argjson workflowRunId "$GITHUB_RUN_ID" --argjson bytes "$(stat -c %s "$rpm")" --arg sha256 "$(sha256sum "$rpm" | cut -d ' ' -f 1)" '{schemaVersion:1,sourceCommit:$sourceCommit,workflowRunId:$workflowRunId,downloaded:true,bytesVerified:true,sha256Verified:true,bytes:$bytes,sha256:$sha256}' > downloaded-verification.json
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
