@@ -60,10 +60,10 @@
     {
       "owner": "web-pwa-extensions",
       "branch": "codex/wallet-web-pwa-extensions-20260813",
-      "sourceCommit": "7d569d1babb85e6d28bb6bfc3b3c0c5fd828255d",
-      "remoteCommitObserved": "7d569d1babb85e6d28bb6bfc3b3c0c5fd828255d",
-      "branchHeadObserved": "7d569d1babb85e6d28bb6bfc3b3c0c5fd828255d",
-      "remoteVerifiedAt": "2026-08-14T04:18:00Z",
+      "sourceCommit": "7461608692a4d5a349b4c03728850b6d4fbfe6a1",
+      "remoteCommitObserved": "7461608692a4d5a349b4c03728850b6d4fbfe6a1",
+      "branchHeadObserved": "7461608692a4d5a349b4c03728850b6d4fbfe6a1",
+      "remoteVerifiedAt": "2026-08-14T09:02:04Z",
       "verificationMode": "github-git-database-parent-tree-blob-readback"
     },
     {
@@ -212,6 +212,20 @@
       "direct": true,
       "commit": "774a1f756890043e88626d13b6c9679a2ad6d288",
       "path": "apps/wallet/proof/gateway-kill-switch-preack-crash-local-2026-08-14.json",
+      "supports": []
+    },
+    "web-publication-kit": {
+      "type": "git-object",
+      "direct": true,
+      "commit": "7461608692a4d5a349b4c03728850b6d4fbfe6a1",
+      "path": "release/integration/wallet-web-publication/artifact-acquisition.json",
+      "supports": []
+    },
+    "web-publication-unpublished-monitor": {
+      "type": "git-object",
+      "direct": true,
+      "commit": "7461608692a4d5a349b4c03728850b6d4fbfe6a1",
+      "path": "apps/wallet-web/evidence/runtime/wallet-web-publication-three-origin-gate-20260814.json",
       "supports": []
     },
     "web-artifacts": {

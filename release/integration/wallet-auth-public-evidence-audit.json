@@ -3,7 +3,7 @@
   "auditId": "wallet-auth-public-evidence-audit-2026-08-14",
   "auditedAt": "2026-08-14T03:38:07Z",
   "integrationBaseCommit": "a008ce0e8fa2ac0322198576c320441118fbae83",
-  "matrixSha256": "3926de0763823732c9b2638fdb5a326242d763d67eb0a7346d08dff7d54ec045",
+  "matrixSha256": "e2fbbb075fcde442f4f97faaeafbf5fed375ea2c58517431a27232221c767c0d",
   "publicTestnet": {
     "smartAccountDeploymentVerifier": {
       "evidenceCommit": "0c747c6030b5a475a1f12dc7e57345555c23055d",
@@ -123,6 +123,21 @@
     "productionHealthReverified": true,
     "downloadHosted": true,
     "deployedPublic": true,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "webPublicationHandoff": {
+    "commit": "7461608692a4d5a349b4c03728850b6d4fbfe6a1",
+    "artifactCarrierCommit": "ac5f32c96d1d2b4234720a5026d38f8e066fbe07",
+    "sourceCommit": "a1c680982b63f67ee04c49a2131ba62796d21a8b",
+    "materializedArtifacts": 3,
+    "materializationExact": true,
+    "selfTestPassed": true,
+    "productionArtifactChecksPassed": 0,
+    "productionArtifactChecksTotal": 9,
+    "registryPassed": false,
+    "downloadHosted": false,
+    "deployedPublic": false,
     "productionSigned": false,
     "storeReleased": false
   },
