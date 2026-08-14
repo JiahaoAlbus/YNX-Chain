@@ -29,7 +29,7 @@ async function rpcStatus() {
   }
 }
 
-async function recordEvidence(status) {
+async function recordEvidence(status, window) {
   if (!evidencePath) return;
   let prior = { launches: 0 };
   try { prior = JSON.parse(await readFile(evidencePath, "utf8")); } catch {}
@@ -37,6 +37,11 @@ async function recordEvidence(status) {
     schemaVersion: 1,
     launches: Number(prior.launches || 0) + 1,
     visibleShellReady: true,
+    window: {
+      title: window.getTitle(),
+      visible: window.isVisible(),
+      destroyed: window.isDestroyed()
+    },
     walletAuthContract: { imported: true, expectedChainId: YNX_TESTNET_CHAIN_QUANTITY },
     rpc: status,
     accountCreated: false,
@@ -68,7 +73,7 @@ app.whenReady().then(async () => {
   window.removeMenu();
   await window.loadFile(path.join(directory, "index.html"));
   const status = await rpcStatus();
-  await recordEvidence(status);
+  await recordEvidence(status, window);
   window.webContents.send("wallet:status-result", status);
 });
 

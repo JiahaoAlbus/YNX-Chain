@@ -1,0 +1,136 @@
+name: Wallet desktop Windows
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [codex/wallet-desktop-cli-sdk-20260813]
+    paths:
+      - apps/wallet-desktop/**
+      - packages/wallet-auth/**
+      - .github/workflows/wallet-desktop-windows.yml
+
+permissions:
+  contents: read
+
+jobs:
+  windows-x64-native:
+    runs-on: windows-2025
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22.18.0
+          cache: npm
+          cache-dependency-path: apps/wallet-desktop/package-lock.json
+      - name: Install dependencies and test frozen contract boundary
+        shell: pwsh
+        run: |
+          npm ci --ignore-scripts --prefix packages/wallet-auth
+          npm ci --prefix apps/wallet-desktop
+          npm test --prefix apps/wallet-desktop
+      - name: Build preflight and current NSIS installers
+        shell: pwsh
+        run: |
+          npx --prefix apps/wallet-desktop electron-builder --win nsis --x64 --publish never --config.directories.output=dist-preflight --config.extraMetadata.version=0.0.9
+          npm run dist:windows --prefix apps/wallet-desktop
+          Get-ChildItem apps/wallet-desktop/dist-preflight/*.exe,apps/wallet-desktop/dist/*.exe | Select-Object FullName,Length
+      - name: Install, upgrade, cold launch, second launch, fail closed and uninstall
+        shell: pwsh
+        env:
+          EVIDENCE: ${{ runner.temp }}\wallet-desktop-lifecycle.json
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $preflight = (Get-ChildItem 'apps/wallet-desktop/dist-preflight/*.exe' | Select-Object -First 1).FullName
+          $current = (Get-ChildItem 'apps/wallet-desktop/dist/*.exe' | Where-Object Name -NotLike '*blockmap*' | Select-Object -First 1).FullName
+          $installRoot = Join-Path $env:LOCALAPPDATA 'Programs\YNX Wallet Testnet Preview'
+          $appExe = Join-Path $installRoot 'YNX Wallet Testnet Preview.exe'
+          Start-Process -FilePath $preflight -ArgumentList '/S' -Wait
+          if (-not (Test-Path $appExe)) { throw 'preflight installer did not install the application' }
+          $preflightVersion = (Get-Item $appExe).VersionInfo.ProductVersion
+          Start-Process -FilePath $current -ArgumentList '/S' -Wait
+          if (-not (Test-Path $appExe)) { throw 'current installer did not preserve the application' }
+          $currentVersion = (Get-Item $appExe).VersionInfo.ProductVersion
+          if ($preflightVersion -eq $currentVersion) { throw 'upgrade did not change installed version' }
+
+          $env:YNX_WALLET_EVIDENCE_PATH = $env:EVIDENCE
+          $cold = Start-Process -FilePath $appExe -PassThru
+          for ($i=0; $i -lt 30 -and -not (Test-Path $env:EVIDENCE); $i++) { Start-Sleep 1 }
+          if (-not (Test-Path $env:EVIDENCE)) { throw 'cold launch did not write evidence' }
+          $coldEvidence = Get-Content $env:EVIDENCE -Raw | ConvertFrom-Json
+          if ($coldEvidence.launches -ne 1 -or -not $coldEvidence.visibleShellReady -or -not $coldEvidence.rpc.available -or $coldEvidence.rpc.chainId -ne '0x1917' -or $coldEvidence.signingEnabled -or $coldEvidence.accountCreated -or $coldEvidence.balanceClaimed -or $coldEvidence.transactionCreated) { throw 'cold launch evidence failed' }
+          $cold.Refresh()
+          if ($cold.HasExited) { throw 'cold launch process exited' }
+          $coldTitle = (Get-Process | Where-Object MainWindowTitle -eq 'YNX Wallet Testnet Preview' | Select-Object -First 1).MainWindowTitle
+          Stop-Process -Id $cold.Id -Force
+
+          $second = Start-Process -FilePath $appExe -PassThru
+          for ($i=0; $i -lt 30; $i++) {
+            Start-Sleep 1
+            $secondEvidence = Get-Content $env:EVIDENCE -Raw | ConvertFrom-Json
+            if ($secondEvidence.launches -eq 2) { break }
+          }
+          if ($secondEvidence.launches -ne 2 -or -not $secondEvidence.rpc.available -or $secondEvidence.rpc.chainId -ne '0x1917') { throw 'second launch evidence failed' }
+          $second.Refresh()
+          if ($second.HasExited) { throw 'second launch process exited' }
+          $secondTitle = (Get-Process | Where-Object MainWindowTitle -eq 'YNX Wallet Testnet Preview' | Select-Object -First 1).MainWindowTitle
+          Stop-Process -Id $second.Id -Force
+
+          $env:YNX_WALLET_RPC_URL = 'http://127.0.0.1:1'
+          $failed = Start-Process -FilePath $appExe -PassThru
+          for ($i=0; $i -lt 30; $i++) {
+            Start-Sleep 1
+            $failedEvidence = Get-Content $env:EVIDENCE -Raw | ConvertFrom-Json
+            if ($failedEvidence.launches -eq 3) { break }
+          }
+          if ($failedEvidence.launches -ne 3 -or $failedEvidence.rpc.available -or $failedEvidence.rpc.chainId -or $failedEvidence.signingEnabled) { throw 'RPC failure did not fail closed' }
+          Stop-Process -Id $failed.Id -Force
+
+          $uninstaller = Join-Path $installRoot 'Uninstall YNX Wallet Testnet Preview.exe'
+          if (-not (Test-Path $uninstaller)) { throw 'uninstaller missing' }
+          Start-Process -FilePath $uninstaller -ArgumentList '/S' -Wait
+          for ($i=0; $i -lt 30 -and (Test-Path $appExe); $i++) { Start-Sleep 1 }
+          if (Test-Path $appExe) { throw 'application executable remains after uninstall' }
+
+          $final = [ordered]@{
+            schemaVersion = 1
+            architecture = 'x64'
+            installed = $true
+            upgraded = $true
+            preflightVersion = $preflightVersion
+            currentVersion = $currentVersion
+            coldLaunch = $true
+            secondLaunch = $true
+            processEvidence = $true
+            coldWindowTitleObserved = [bool]$coldTitle
+            secondWindowTitleObserved = [bool]$secondTitle
+            appReportedWindowVisible = [bool]$secondEvidence.window.visible
+            appReportedWindowTitle = $secondEvidence.window.title
+            chainId = $secondEvidence.rpc.chainId
+            rpcFailureClosed = $true
+            signingEnabled = $false
+            accountCreated = $false
+            balanceClaimed = $false
+            transactionCreated = $false
+            uninstalled = $true
+            productionSigned = $false
+          }
+          $final | ConvertTo-Json -Depth 5 | Set-Content $env:EVIDENCE
+      - name: Record installer evidence
+        shell: pwsh
+        env:
+          EVIDENCE: ${{ runner.temp }}\wallet-desktop-lifecycle.json
+        run: |
+          New-Item -ItemType Directory -Force apps/wallet-desktop/evidence/windows-x64 | Out-Null
+          Copy-Item $env:EVIDENCE apps/wallet-desktop/evidence/windows-x64/lifecycle.json
+          $installer = Get-ChildItem 'apps/wallet-desktop/dist/*.exe' | Where-Object Name -NotLike '*blockmap*' | Select-Object -First 1
+          Get-FileHash $installer.FullName -Algorithm SHA256 | Format-List | Out-File apps/wallet-desktop/evidence/windows-x64/SHA256.txt
+          "{0} {1}" -f $installer.Name,$installer.Length | Set-Content apps/wallet-desktop/evidence/windows-x64/BYTES.txt
+          Get-AuthenticodeSignature $installer.FullName | Select-Object Status,StatusMessage,SignerCertificate | ConvertTo-Json -Depth 4 | Set-Content apps/wallet-desktop/evidence/windows-x64/AUTHENTICODE.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ynx-wallet-desktop-windows-x64
+          path: |
+            apps/wallet-desktop/dist/*.exe
+            apps/wallet-desktop/evidence/windows-x64/**
+          if-no-files-found: error

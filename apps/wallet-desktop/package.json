@@ -16,7 +16,8 @@
   "scripts": {
     "test": "node --test test/*.test.mjs",
     "start": "electron .",
-    "dist:linux": "electron-builder --linux deb AppImage --x64 --publish never"
+    "dist:linux": "electron-builder --linux deb AppImage --x64 --publish never",
+    "dist:windows": "electron-builder --win nsis --x64 --publish never"
   },
   "dependencies": {
     "@ynx-chain/wallet-auth": "file:../../packages/wallet-auth"
@@ -46,6 +47,19 @@
     },
     "deb": {
       "depends": ["libgtk-3-0", "libnotify4", "libnss3", "libxss1", "libxtst6", "xdg-utils"]
+    },
+    "win": {
+      "target": ["nsis"],
+      "executableName": "YNX Wallet Testnet Preview",
+      "requestedExecutionLevel": "asInvoker",
+      "verifyUpdateCodeSignature": false
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "allowElevation": false,
+      "deleteAppDataOnUninstall": false,
+      "runAfterFinish": false
     }
   }
 }

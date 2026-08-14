@@ -15,4 +15,6 @@ test("shell is explicit and fail closed", async () => {
   assert.match(html, /Not created/);
   assert.match(main, /result !== YNX_TESTNET_CHAIN_QUANTITY/);
   assert.match(main, /signingEnabled: false/);
+  assert.match(main, /window\.isVisible\(\)/);
+  assert.match(main, /window\.getTitle\(\)/);
 });
