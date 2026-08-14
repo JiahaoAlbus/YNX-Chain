@@ -11,9 +11,19 @@ export const PRODUCT_SESSION_GATEWAY_NODE_SERVICE = "ynx-product-session-gateway
 const STATE_FIELDS = ["registrySha256", "schemaVersion", "snapshot", "snapshotSha256"];
 const MAX_STATE_BYTES = 64 * 1024 * 1024;
 const JSON_HEADERS = Object.freeze({ "cache-control": "no-store", "content-type": "application/json; charset=utf-8", "x-content-type-options": "nosniff" });
+const PRODUCT_SESSION_PATHS = Object.freeze(new Set([
+  "/v2/product-sessions/challenge",
+  "/v2/product-sessions/complete",
+  "/v2/product-sessions/devices/revoke",
+  "/v2/product-sessions/introspect",
+  "/v2/product-sessions/revoke",
+]));
+const CORS_REQUEST_HEADERS = Object.freeze(new Set(["accept", "content-type", "x-request-id", PRODUCT_SESSION_GATEWAY_PROOF_HEADER_V2]));
+const CORS_ALLOW_HEADERS = "Accept, Content-Type, X-Request-Id, X-YNX-Product-Session-Proof-V2";
 
 export class ProductSessionGatewayNodeHost {
   #build;
+  #browserOrigins;
   #emitEvent;
   #handler;
   #now;
@@ -30,6 +40,7 @@ export class ProductSessionGatewayNodeHost {
     const runtime = runtimeOptions(options);
     const deploy = deploymentOptions(deployment);
     this.#registry = parseProductSessionRegistry(registryInput);
+    this.#browserOrigins = new Set(this.#registry.products.map((product) => product.webOrigin));
     this.#registrySha256 = sha256(canonicalJSON(this.#registry));
     this.#statePath = secureStatePath(runtime.statePath);
     this.#now = runtime.now;
@@ -47,16 +58,27 @@ export class ProductSessionGatewayNodeHost {
     return async (request, response) => {
       const startedAt = Date.now();
       const requestId = requestIdHeader(request.headers["x-request-id"]);
+      let browserOrigin = null;
       let status = 500;
       let errorCode = null;
       try {
+        browserOrigin = this.#browserOrigin(request.headers.origin);
+        if (request.method === "OPTIONS") {
+          const preflight = await this.#enqueue(() => {
+            this.#assertState();
+            return this.#preflight(request, browserOrigin);
+          });
+          status = preflight.status;
+          write(response, preflight);
+          return;
+        }
         const administrative = await this.#enqueue(() => {
           this.#assertState();
           return this.#administrative(request);
         });
         if (administrative) {
           status = administrative.status;
-          write(response, administrative);
+          write(response, withCors(administrative, browserOrigin));
           return;
         }
         const body = await boundedBody(request);
@@ -71,12 +93,12 @@ export class ProductSessionGatewayNodeHost {
         }));
         status = result.status;
         errorCode = responseErrorCode(result.body);
-        write(response, result);
+        write(response, withCors(result, browserOrigin));
       } catch (error) {
         const normalized = hostError(error);
         status = normalized.status;
         errorCode = normalized.code;
-        write(response, jsonResponse(status, requestId, { error: { code: normalized.code, message: normalized.message }, ok: false, requestId, schemaVersion: 2 }));
+        write(response, withCors(jsonResponse(status, requestId, { error: { code: normalized.code, message: normalized.message }, ok: false, requestId, schemaVersion: 2 }), browserOrigin));
       } finally {
         this.#emit({
           at: new Date().toISOString(),
@@ -129,6 +151,36 @@ export class ProductSessionGatewayNodeHost {
     if (request.url === "/ready") return jsonResponse(this.#ready ? 200 : 503, "req_administrative_ready_", { ok: this.#ready, remoteDeployed: this.#remoteDeployed, runtimeReady: this.#ready, service: PRODUCT_SESSION_GATEWAY_NODE_SERVICE, stateSha256 });
     if (request.url === "/version") return jsonResponse(200, "req_administrative_version", { build: this.#build, nodeStateSchemaVersion: PRODUCT_SESSION_GATEWAY_NODE_STATE_SCHEMA_VERSION, ok: true, productSessionGatewaySchemaVersion: 2, registrySchemaVersion: 2, registrySha256: this.#registrySha256, remoteDeployed: this.#remoteDeployed, service: PRODUCT_SESSION_GATEWAY_NODE_SERVICE });
     return null;
+  }
+
+  #browserOrigin(value) {
+    if (value === undefined) return null;
+    if (typeof value !== "string" || !this.#browserOrigins.has(value)) throw new WalletAuthError("ORIGIN_NOT_ALLOWED", "Product Session Gateway browser origin is not registered");
+    return value;
+  }
+
+  #preflight(request, browserOrigin) {
+    if (browserOrigin === null) throw new WalletAuthError("ORIGIN_NOT_ALLOWED", "Product Session Gateway preflight requires a registered browser origin");
+    if (!PRODUCT_SESSION_PATHS.has(request.url)) throw new WalletAuthError("ROUTE_NOT_FOUND", "Product Session Gateway preflight route is not registered");
+    if (header(request.headers["access-control-request-method"]).toUpperCase() !== "POST") throw new WalletAuthError("PREFLIGHT_NOT_ALLOWED", "Product Session Gateway preflight method is not allowed");
+    const requestedHeaders = header(request.headers["access-control-request-headers"]);
+    for (const item of requestedHeaders.split(",")) {
+      const name = item.trim().toLowerCase();
+      if (name && !CORS_REQUEST_HEADERS.has(name)) throw new WalletAuthError("PREFLIGHT_NOT_ALLOWED", "Product Session Gateway preflight header is not allowed");
+    }
+    return Object.freeze({
+      body: "",
+      headers: Object.freeze({
+        "access-control-allow-headers": CORS_ALLOW_HEADERS,
+        "access-control-allow-methods": "POST, OPTIONS",
+        "access-control-allow-origin": browserOrigin,
+        "access-control-max-age": "600",
+        "cache-control": "no-store",
+        "vary": "Origin",
+        "x-content-type-options": "nosniff",
+      }),
+      status: 204,
+    });
   }
 
   #persist() {
@@ -264,13 +316,25 @@ function sha256(value) { return createHash("sha256").update(value).digest("hex")
 function hostError(error) {
   if (error instanceof WalletAuthError) {
     const stateFailure = ["INSECURE_STATE_FILE", "INVALID_GATEWAY_STORE", "SERVICE_NOT_READY", "STATE_FILE_CHANGED", "STATE_PERSISTENCE_FAILED", "STATE_TAMPERED"].includes(error.code);
-    const status = error.code === "BODY_TOO_LARGE" ? 413 : stateFailure ? 503 : 400;
+    const status = error.code === "BODY_TOO_LARGE" ? 413 : error.code === "ROUTE_NOT_FOUND" ? 404 : ["ORIGIN_NOT_ALLOWED", "PREFLIGHT_NOT_ALLOWED"].includes(error.code) ? 403 : stateFailure ? 503 : 400;
     return { code: error.code, message: error.message, status };
   }
   return { code: "HOST_FAILURE", message: "Product Session Gateway host failed closed", status: 500 };
 }
 
 function jsonResponse(status, requestId, value) { return Object.freeze({ body: canonicalJSON(value), headers: Object.freeze({ ...JSON_HEADERS, "x-request-id": requestId }), status }); }
+function withCors(result, origin) {
+  if (origin === null) return result;
+  return Object.freeze({
+    ...result,
+    headers: Object.freeze({
+      ...result.headers,
+      "access-control-allow-origin": origin,
+      "access-control-expose-headers": "X-Request-Id",
+      "vary": "Origin",
+    }),
+  });
+}
 function write(response, result) { response.writeHead(result.status, result.headers); response.end(result.body); }
 
 export function defaultProductSessionTokenFactory() { return randomBytes(32).toString("base64url"); }
