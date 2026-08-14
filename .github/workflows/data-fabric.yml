@@ -270,6 +270,40 @@ jobs:
             and .finalTransactionalOutboxQueueDepth == 0
             and .streamMessages == 1000
           ' /tmp/data-fabric-postgres-resilience/producer-postgres-jetstream.json
+      - name: Fail over a three-replica JetStream stream leader
+        env:
+          YNX_DATA_FABRIC_TEST_SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -o pipefail
+          go test -json ./internal/datafabricnats -run '^TestJetStreamThreeReplicaLeaderLossRetainsOutboxAndRecovers$' -count=1 \
+            | tee /tmp/data-fabric-postgres-resilience/jetstream-cluster-leader-loss.jsonl
+          jq -s -e 'any(.[]; .Action == "pass" and .Test == "TestJetStreamThreeReplicaLeaderLossRetainsOutboxAndRecovers")' \
+            /tmp/data-fabric-postgres-resilience/jetstream-cluster-leader-loss.jsonl
+          jq -s --arg source "$YNX_DATA_FABRIC_TEST_SOURCE_COMMIT" '
+            [
+              .[]
+              | select((.Output? // "") | contains("jetStreamClusterLeaderLossEvidence="))
+              | (.Output | capture("jetStreamClusterLeaderLossEvidence=(?<evidence>\\{.*\\})").evidence | fromjson)
+            ]
+            | if length != 1 then error("expected one JetStream cluster leader-loss evidence object") else .[0] end
+            | if .sourceCommit != $source then error("JetStream cluster leader-loss source commit mismatch") else . end
+          ' /tmp/data-fabric-postgres-resilience/jetstream-cluster-leader-loss.jsonl \
+            > /tmp/data-fabric-postgres-resilience/jetstream-cluster-leader-loss.json
+          jq -e '
+            .broker == "three-node file-backed JetStream cluster"
+            and .clusterNodes == 3
+            and .streamReplicas == 3
+            and .canonicalEvents == 128
+            and .publishedBeforeLeaderLoss == 64
+            and .streamLeaderChanged == true
+            and .publishedAfterLeaderLoss == 64
+            and .finalOutboxPending == 0
+            and .finalStreamMessages == 128
+            and .duplicateStreamMessages == 0
+            and .currentReplicaCount == 3
+            and .leaderFailoverRTOMilliseconds >= 0
+            and .restartedReplicaCatchupRTOMilliseconds >= 0
+          ' /tmp/data-fabric-postgres-resilience/jetstream-cluster-leader-loss.json
       - name: Upload exact-source PostgreSQL resilience evidence
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
