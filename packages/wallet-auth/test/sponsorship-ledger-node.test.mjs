@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { chmod, link, lstat, mkdtemp, readFile, realpath, rm, symlink, truncate, writeFile } from "node:fs/promises";
+import { access, chmod, link, lstat, mkdtemp, readFile, realpath, rm, symlink, truncate, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawn } from "node:child_process";
@@ -55,5 +55,42 @@ test("durable ledger rejects broad mode, hard links, noncanonical JSON and overs
   }
 });
 
+test("independent processes preserve every distinct sponsorship nonce", async () => {
+  const root = await privateRoot();
+  const statePath = join(root, "sponsorship-state.json");
+  new DurableSponsorshipAuthorizationLedger({ statePath, maximumConsumed: 32 });
+  const startPath = join(root, "start");
+  const children = Array.from({ length: 8 }, (_, index) => {
+    const readyPath = join(root, `ready-${index}`);
+    const child = spawn(process.execPath, [new URL("./fixtures/sponsorship-ledger-concurrent-child.mjs", import.meta.url).pathname, statePath, String(index + 10), readyPath, startPath], { stdio: "ignore" });
+    return { child, readyPath };
+  });
+  await Promise.all(children.map(({ readyPath }) => waitFor(readyPath)));
+  await writeFile(startPath, "go", { mode: 0o600 });
+  const results = await Promise.all(children.map(({ child }) => new Promise((resolve) => child.once("exit", (code, signal) => resolve({ code, signal })))));
+  assert.deepEqual(results, Array.from({ length: 8 }, () => ({ code: 0, signal: null })));
+  const restarted = new DurableSponsorshipAuthorizationLedger({ statePath, maximumConsumed: 32 });
+  assert.equal(restarted.size, 8);
+});
+
+test("independent processes produce exactly one winner for the same sponsorship nonce", async () => {
+  const root = await privateRoot();
+  const statePath = join(root, "sponsorship-state.json");
+  new DurableSponsorshipAuthorizationLedger({ statePath, maximumConsumed: 32 });
+  const startPath = join(root, "start");
+  const children = Array.from({ length: 8 }, (_, index) => {
+    const readyPath = join(root, `ready-${index}`);
+    const child = spawn(process.execPath, [new URL("./fixtures/sponsorship-ledger-concurrent-child.mjs", import.meta.url).pathname, statePath, "42", readyPath, startPath], { stdio: "ignore" });
+    return { child, readyPath };
+  });
+  await Promise.all(children.map(({ readyPath }) => waitFor(readyPath)));
+  await writeFile(startPath, "go", { mode: 0o600 });
+  const results = await Promise.all(children.map(({ child }) => new Promise((resolve) => child.once("exit", (code) => resolve(code)))));
+  assert.equal(results.filter((code) => code === 0).length, 1);
+  assert.equal(results.filter((code) => code === 1).length, 7);
+  assert.equal(new DurableSponsorshipAuthorizationLedger({ statePath, maximumConsumed: 32 }).size, 1);
+});
+
 async function privateRoot() { const root = await mkdtemp(join(tmpdir(), "ynx-sponsorship-ledger-")); roots.push(root); await chmod(root, 0o700); return realpath(root); }
+async function waitFor(path) { for (let attempt = 0; attempt < 500; attempt += 1) { try { await access(path); return; } catch { await new Promise((resolve) => setTimeout(resolve, 10)); } } throw new Error("child readiness timeout"); }
 function walletError(code) { return (error) => error instanceof WalletAuthError && error.code === code; }

@@ -8,6 +8,8 @@ const STATE_FIELDS = ["consumed", "schemaVersion"];
 const STATE_SCHEMA_VERSION = 1;
 const MAXIMUM_CONSUMED = 100_000;
 const MAXIMUM_STATE_BYTES = 32 * 1024 * 1024;
+const STATE_LOCK_WAIT_MS = 2_000;
+const STATE_LOCK_RETRY_MS = 5;
 
 export class DurableSponsorshipAuthorizationLedger {
   #consumed;
@@ -20,25 +22,34 @@ export class DurableSponsorshipAuthorizationLedger {
     this.#maximumConsumed = boundedInteger(maximumConsumed, "maximumConsumed", 1, MAXIMUM_CONSUMED);
     if (typeof onCommitted !== "function") fail("INVALID_CONFIG", "onCommitted must be a function");
     this.#onCommitted = onCommitted;
-    const stored = load(this.#statePath, this.#maximumConsumed);
-    this.#consumed = new Set(stored?.consumed ?? []);
-    if (!stored) this.#persist();
+    const release = acquireLock(this.#statePath);
+    try {
+      const stored = load(this.#statePath, this.#maximumConsumed);
+      this.#consumed = new Set(stored?.consumed ?? []);
+      if (!stored) this.#persist();
+    } finally { release(); }
   }
 
   get size() { return this.#consumed.size; }
 
   authorize(operationInput, requestInput, policyInput, bindingInput, at = new Date()) {
-    const stored = load(this.#statePath, this.#maximumConsumed);
-    this.#consumed = new Set(stored.consumed);
-    const request = parseSponsorshipRequest(requestInput);
-    const key = replayKey(request);
-    if (this.#consumed.has(key)) fail("SPONSORSHIP_REPLAY", "Sponsorship authorization nonce was already consumed");
-    const result = evaluateSponsorship(operationInput, request, policyInput, bindingInput, at);
-    if (!result.eligible) return result;
-    if (this.#consumed.size >= this.#maximumConsumed) fail("SPONSORSHIP_LEDGER_FULL", "Sponsorship authorization ledger reached its configured bound");
-    this.#consumed.add(key);
-    this.#persist();
-    this.#onCommitted(Object.freeze({ size: this.#consumed.size }));
+    const release = acquireLock(this.#statePath);
+    let committed = false;
+    let result;
+    try {
+      const stored = load(this.#statePath, this.#maximumConsumed);
+      this.#consumed = new Set(stored.consumed);
+      const request = parseSponsorshipRequest(requestInput);
+      const key = replayKey(request);
+      if (this.#consumed.has(key)) fail("SPONSORSHIP_REPLAY", "Sponsorship authorization nonce was already consumed");
+      result = evaluateSponsorship(operationInput, request, policyInput, bindingInput, at);
+      if (!result.eligible) return result;
+      if (this.#consumed.size >= this.#maximumConsumed) fail("SPONSORSHIP_LEDGER_FULL", "Sponsorship authorization ledger reached its configured bound");
+      this.#consumed.add(key);
+      this.#persist();
+      committed = true;
+    } finally { release(); }
+    if (committed) this.#onCommitted(Object.freeze({ size: this.#consumed.size }));
     return result;
   }
 
@@ -46,6 +57,25 @@ export class DurableSponsorshipAuthorizationLedger {
     const consumed = [...this.#consumed].sort();
     persist(this.#statePath, { consumed, schemaVersion: STATE_SCHEMA_VERSION });
   }
+}
+
+function acquireLock(statePath) {
+  const lockPath = `${statePath}.lock`;
+  const deadline = Date.now() + STATE_LOCK_WAIT_MS;
+  let descriptor;
+  while (descriptor === undefined) {
+    try { descriptor = openSync(lockPath, constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW, 0o600); }
+    catch (error) {
+      if (error?.code !== "EEXIST") fail("SPONSORSHIP_STATE_LOCK_FAILED", "Sponsorship authorization state lock could not be acquired");
+      if (Date.now() >= deadline) fail("SPONSORSHIP_STATE_LOCKED", "Sponsorship authorization state is locked");
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, STATE_LOCK_RETRY_MS);
+    }
+  }
+  return () => {
+    closeSync(descriptor);
+    try { unlinkSync(lockPath); }
+    catch { fail("SPONSORSHIP_STATE_LOCK_FAILED", "Sponsorship authorization state lock could not be released"); }
+  };
 }
 
 function load(path, maximumConsumed) {
