@@ -3,7 +3,7 @@
   "auditId": "wallet-auth-public-evidence-audit-2026-08-14",
   "auditedAt": "2026-08-14T03:38:07Z",
   "integrationBaseCommit": "a008ce0e8fa2ac0322198576c320441118fbae83",
-  "matrixSha256": "bc6a4a88b3e78bc1406f7c94ad17818a077415ce1b7e1b3f67ed8fcc12df33be",
+  "matrixSha256": "e2e9fce4bf70d6189373d31fa6df72a9198f36c06c05736072e23d87a7dbcfca",
   "endpointServiceDiscoveryMatrix": {
     "path": "release/integration/wallet-auth-public-endpoint-service-discovery-matrix.json",
     "sha256": "d344c607c2bbbf7bb0d9d3662b424976d0d6c4ff20428025dd1e2fb92bf31392"
@@ -43,10 +43,17 @@
     "assetTransactionObserved": false
   },
   "chainCoreContractBoundary": {
-    "contractVersion": "1.21.0",
-    "implementationCommit": "9468a771b46f50e0e12b7567d7aa51a2f95b4e36",
-    "contractCommit": "cefb37144517e8f44fd9d0b41119bb5754bdb55d",
-    "contractBlob": "2ab1e66e72cb17c7d0b234d77a0ed020f77da102",
+    "contractVersion": "1.27.0",
+    "implementationCommit": "a456daeca2f89af65ac39840efb40ada1cba2e29",
+    "contractCommit": "f55934b7d5a24abf0e6de471441cceacc47ad5e7",
+    "contractBlob": "e6595dc5231fd7c863a68b3797e329d5f662ddd0",
+    "contractContentSha256": "9aa77ff5063d447f231d28567d930084357363932451ca560aa0d6f36de1ad0c",
+    "packageCommit": "e19b236f91a4889ecbd98b2f9e6b80a45c4ff654",
+    "readinessHead": "e3ae947b6396efa1ae6534652ca017c25069663e",
+    "bundleSha256": "39120dabcb30a1c36c19751a3b6bc0e83be65364ca5f40b8592a1bb944503cd6",
+    "bundleBytes": 111258870,
+    "durableValidatorSafetyLocalVerified": true,
+    "durableValidatorSafetyPublicVerified": false,
     "ownerObjectReadbackVerified": true,
     "sharedOriginCommitReachable": false,
     "productSessionOwner": "Wallet/Auth",
