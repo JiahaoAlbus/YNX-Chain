@@ -29,6 +29,8 @@ The deployment dry-run built the Linux release bundle, verified exact commit/rel
 
 The source-bound `cmd/ynx-explorer-load` verifier was added to exercise concurrent reads, a caller-supplied real search query, and concurrent SSE subscriptions without manufacturing chain data or treating failures as success. Its unit/race tests and `go vet` pass.
 
+`make explorer-check` now includes a three-second controlled baseline over the transaction created by that Testnet integration run: five HTTP workers, a global 50 requests/second target, one SSE subscriber, and a real transaction-hash search. The gate requires both zero HTTP error rate and zero SSE errors and passed locally. Unpaced mode remains available for explicit overload/search-storm evidence and is not confused with the healthy baseline.
+
 The following bounded observation targeted the currently deployed older public Explorer, not the continuation release:
 
 ```text
