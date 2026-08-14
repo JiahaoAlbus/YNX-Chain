@@ -1,8 +1,10 @@
 import { randomUUID } from "node:crypto";
-import { mkdir, mkdtemp, realpath, rm } from "node:fs/promises";
+import { access, mkdir, mkdtemp, realpath, rm } from "node:fs/promises";
+import { constants as fsConstants } from "node:fs";
 import { tmpdir } from "node:os";
 import { extname, join } from "node:path";
 import { spawn } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import { WebSocketServer } from "ws";
 import {
   detectSandbox,
@@ -16,6 +18,9 @@ import {
 
 const PROTOCOL = "ynx-code-dap-v1",
   MAX_MESSAGE = 1024 * 1024,
+  DEFAULT_DEBUGPY_ROOT = fileURLToPath(
+    new URL("../../../.ynx-debugpy", import.meta.url),
+  ),
   ALLOWED = new Set([
     "initialize",
     "launch",
@@ -53,15 +58,21 @@ export function createDebugService(options) {
     if (url.pathname !== "/runtime/debug") return false;
     const owner = ownerForRequest(request),
       projectId = url.searchParams.get("projectId"),
-      activePath = url.searchParams.get("activePath");
+      activePath = url.searchParams.get("activePath"),
+      runtimeId = url.searchParams.get("runtimeId"),
+      language = debugLanguage(activePath);
     if (
       !owner ||
       !validId(projectId) ||
       !safePath(activePath) ||
-      !cFamily(activePath) ||
+      !language ||
+      (language === "python" &&
+        options.containerDebugBroker &&
+        !validRuntimeId(runtimeId)) ||
       !sameOrigin(request) ||
       request.headers["sec-websocket-protocol"] !== PROTOCOL ||
-      !sandbox.ready ||
+      (!sandbox.ready &&
+        !(language === "python" && options.containerDebugBroker)) ||
       sessions.size >= maxSessions ||
       [...sessions.values()].filter((value) => value.owner === owner).length >=
         maxOwnerSessions
@@ -74,6 +85,7 @@ export function createDebugService(options) {
         owner,
         projectId,
         activePath,
+        runtimeId,
       }),
     );
     return true;
@@ -91,22 +103,44 @@ export function createDebugService(options) {
       websocket.close(1011, "Debug start failed");
     }),
   );
-  async function start(websocket, { owner, projectId, activePath }) {
+  async function start(websocket, { owner, projectId, activePath, runtimeId }) {
     const snapshot = workspaceStore.get(owner, projectId);
     if (!snapshot || !Object.hasOwn(snapshot.files, activePath))
       throw fault(
         "Workspace or active source was not found.",
         "workspace_not_found",
       );
-    const language = extname(activePath).toLowerCase() === ".c" ? "c" : "cpp",
-      compiler =
-        options.compilerPath || (await resolveExecutable(language === "c" ? ["clang", "gcc"] : ["clang++", "g++"])),
-      adapter =
-        options.adapterPath ||
-        (await resolveExecutable(["lldb-dap-18", "lldb-dap", "lldb-vscode"]));
-    if (!compiler || !adapter)
+    const language = debugLanguage(activePath);
+    if (language === "python" && options.containerDebugBroker) {
+      const handle = await options.containerDebugBroker.openContainerDebugProcess({
+        owner,
+        runtimeId,
+        projectId,
+        files: snapshot.files,
+        activePath,
+      });
+      attach(websocket, {
+        owner,
+        projectId,
+        activePath,
+        language,
+        workspace: null,
+        program: `${handle.visibleRoot}/${activePath}`,
+        visibleRoot: handle.visibleRoot,
+        child: handle.child,
+        cleanup: handle.cleanup,
+        adapterId: "debugpy",
+        sandboxKind: handle.sandbox.kind,
+      });
+      return;
+    }
+    const
+      toolchain = await resolveToolchain(language, options);
+    if (!toolchain)
       throw fault(
-        "The reviewed C/C++ compiler or LLDB DAP adapter is unavailable.",
+        language === "python"
+          ? "The reviewed Python debugpy adapter is unavailable."
+          : "The reviewed C/C++ compiler or LLDB DAP adapter is unavailable.",
         "debug_adapter_unavailable",
       );
     const sessionId = randomUUID(),
@@ -122,75 +156,97 @@ export function createDebugService(options) {
       throw error;
     }
     const source = safeWorkspaceJoin(workspace, activePath),
-      program = join(workspace, ".ynx-build", "debug-program"),
-      compileLaunch = createLaunch({
-        sandbox,
-        workspace,
-        command: compiler,
-        args: [
-          language === "c" ? "-std=c17" : "-std=c++20",
-          "-g",
-          "-O0",
-          "-fno-omit-frame-pointer",
-          source,
-          "-o",
-          program,
-        ],
-      });
-    const compiled = await run(compileLaunch, 30_000);
-    if (compiled.code !== 0) {
-      await rm(workspace, { recursive: true, force: true });
-      throw Object.assign(fault("Debug build failed.", "debug_build_failed"), {
-        publicMessage: `Debug build failed:\n${compiled.output.slice(0, 32_000)}`,
-      });
+      program =
+        language === "python"
+          ? source
+          : join(workspace, ".ynx-build", "debug-program"),
+      visibleRoot =
+        sandbox.kind === "macos-sandbox-exec" ? workspace : "/workspace";
+    if (language !== "python") {
+      const compileLaunch = createLaunch({
+          sandbox,
+          workspace,
+          command: toolchain.compiler,
+          args: [
+            language === "c" ? "-std=c17" : "-std=c++20",
+            "-g",
+            "-O0",
+            "-fno-omit-frame-pointer",
+            source,
+            "-o",
+            program,
+          ],
+        }),
+        compiled = await run(compileLaunch, 30_000);
+      if (compiled.code !== 0) {
+        await rm(workspace, { recursive: true, force: true });
+        throw Object.assign(fault("Debug build failed.", "debug_build_failed"), {
+          publicMessage: `Debug build failed:\n${compiled.output.slice(0, 32_000)}`,
+        });
+      }
     }
     const adapterLaunch = createLaunch({
         sandbox,
         workspace,
-        command: adapter,
-        args: [],
+        command: toolchain.adapter,
+        args: toolchain.adapterArgs,
         writeWorkspace: true,
+        readOnlyBinds: toolchain.readOnlyBinds,
       }),
       child = spawn(adapterLaunch.command, adapterLaunch.args, {
         cwd: adapterLaunch.cwd,
         env: adapterLaunch.env,
         stdio: ["pipe", "pipe", "pipe"],
         detached: process.platform !== "win32",
-      }),
-      state = {
-        sessionId,
-        owner,
-        projectId,
-        activePath,
-        workspace,
-        program,
-        websocket,
-        child,
-        buffer: Buffer.alloc(0),
-        closed: false,
-        lastActivity: Date.now(),
-      };
-    sessions.set(sessionId, state);
+      });
+    attach(websocket, {
+      sessionId,
+      owner,
+      projectId,
+      activePath,
+      language,
+      workspace,
+      program,
+      visibleRoot,
+      child,
+      cleanup: null,
+      adapterId: toolchain.adapterId,
+      sandboxKind: sandbox.kind,
+    });
+  }
+  function attach(websocket, value) {
+    const state = {
+      sessionId: value.sessionId || randomUUID(),
+      ...value,
+      websocket,
+      buffer: Buffer.alloc(0),
+      closed: false,
+      lastActivity: Date.now(),
+    };
+    sessions.set(state.sessionId, state);
     send(websocket, {
       type: "ready",
       protocolVersion: PROTOCOL,
-      sessionId,
-      adapter: "lldb-dap",
-      language,
-      sandbox: { kind: sandbox.kind, network: false },
-      program: "/workspace/.ynx-build/debug-program",
+      sessionId: state.sessionId,
+      adapter: state.adapterId,
+      language: state.language,
+      sandbox: { kind: state.sandboxKind, network: false },
+      program:
+        state.language === "python"
+          ? `${state.visibleRoot}/${state.activePath}`
+          : `${state.visibleRoot}/.ynx-build/debug-program`,
     });
-    child.stdout.on("data", (chunk) => parse(state, chunk));
-    child.stderr.on("data", (chunk) =>
+    state.child.stdout.on("data", (chunk) => parse(state, chunk));
+    state.child.stderr.on("data", (chunk) =>
       send(websocket, {
         type: "adapter-stderr",
         data: String(chunk).slice(0, 32_000),
       }),
     );
-    child.on("close", (code) =>
+    state.child.on("close", (code) =>
       finish(state, { code: code ?? 0, reason: "adapter_exit" }),
     );
-    child.on("error", () =>
+    state.child.on("error", () =>
       finish(state, { code: 1, reason: "adapter_error" }),
     );
     websocket.on("message", (raw) => receive(state, raw));
@@ -230,13 +286,26 @@ export function createDebugService(options) {
         message: "DAP request is not approved.",
       });
     const next = structuredClone(message);
-    if (next.command === "launch")
-      next.arguments = {
-        program: "/workspace/.ynx-build/debug-program",
-        cwd: "/workspace",
+    if (next.command === "launch") {
+      const shared = {
+        program:
+          state.language === "python"
+            ? `${state.visibleRoot}/${state.activePath}`
+            : `${state.visibleRoot}/.ynx-build/debug-program`,
+        cwd: state.visibleRoot,
         args: validArgs(next.arguments?.args),
         stopOnEntry: Boolean(next.arguments?.stopOnEntry),
       };
+      next.arguments =
+        state.language === "python"
+          ? {
+              ...shared,
+              justMyCode: true,
+              subProcess: false,
+              console: "internalConsole",
+            }
+          : shared;
+    }
     if (next.command === "setBreakpoints") {
       const path = next.arguments?.source?.path;
       if (!safePath(path))
@@ -245,7 +314,7 @@ export function createDebugService(options) {
           code: "invalid_breakpoint_path",
           message: "Breakpoint source must be workspace-relative.",
         });
-      next.arguments.source.path = `/workspace/${path}`;
+      next.arguments.source.path = `${state.visibleRoot}/${path}`;
       next.arguments.breakpoints = (next.arguments.breakpoints || [])
         .slice(0, 256)
         .filter(
@@ -298,7 +367,11 @@ export function createDebugService(options) {
     try {
       state.websocket.close(1000, "Debug session ended");
     } catch {}
-    await rm(state.workspace, { recursive: true, force: true });
+    try {
+      await state.cleanup?.();
+    } catch {}
+    if (state.workspace)
+      await rm(state.workspace, { recursive: true, force: true });
   }
   async function close() {
     for (const state of [...sessions.values()])
@@ -371,11 +444,52 @@ function safePath(value) {
     /^[A-Za-z0-9_./ +@-]+$/.test(value)
   );
 }
-function cFamily(value) {
-  return [".c", ".cpp", ".cc", ".cxx"].includes(extname(value).toLowerCase());
+function debugLanguage(value) {
+  const extension = extname(value).toLowerCase();
+  if (extension === ".py") return "python";
+  if (extension === ".c") return "c";
+  if ([".cpp", ".cc", ".cxx"].includes(extension)) return "cpp";
+  return null;
+}
+async function resolveToolchain(language, options) {
+  if (language === "python") {
+    const root = options.pythonRoot || process.env.YNX_CODE_DEBUGPY_ROOT || DEFAULT_DEBUGPY_ROOT,
+      executable = options.pythonPath || join(root, process.platform === "win32" ? "Scripts/python.exe" : "bin/python");
+    try {
+      await access(executable, fsConstants.X_OK);
+    } catch {
+      return null;
+    }
+    return {
+      // Preserve the venv launcher path: resolving its Python symlink would
+      // discard pyvenv.cfg and make the pinned debugpy package unreachable.
+      adapter: executable,
+      adapterArgs: ["-m", "debugpy.adapter"],
+      adapterId: "debugpy",
+      readOnlyBinds: [{ host: await realpath(root), guest: "/ynx-debugpy" }],
+    };
+  }
+  const compiler =
+      options.compilerPath ||
+      (await resolveExecutable(language === "c" ? ["clang", "gcc"] : ["clang++", "g++"])),
+    adapter =
+      options.adapterPath ||
+      (await resolveExecutable(["lldb-dap-18", "lldb-dap", "lldb-vscode"]));
+  return compiler && adapter
+    ? {
+        compiler,
+        adapter,
+        adapterArgs: [],
+        adapterId: "lldb-dap",
+        readOnlyBinds: [],
+      }
+    : null;
 }
 function validId(value) {
   return typeof value === "string" && /^[A-Za-z0-9_-]{1,160}$/.test(value);
+}
+function validRuntimeId(value) {
+  return typeof value === "string" && /^[a-f0-9]{24}$/.test(value);
 }
 function sameOrigin(request) {
   try {

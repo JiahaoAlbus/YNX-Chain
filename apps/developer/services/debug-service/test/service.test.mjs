@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
-import { chmod, mkdtemp, writeFile } from "node:fs/promises";
+import { access, chmod, mkdtemp, writeFile } from "node:fs/promises";
+import { spawn } from "node:child_process";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
+import { fileURLToPath } from "node:url";
 import test from "node:test";
 import WebSocket from "ws";
 import { createWorkspaceRuntime } from "../../workspace-agent/src/runtime.mjs";
@@ -135,6 +137,242 @@ test("authenticated C debug bridge compiles and forwards bounded DAP frames", as
   await waitFor(() =>
     messages.some((value) => value.code === "unapproved_dap_request"),
   );
+  websocket.close();
+});
+
+test("authenticated Python bridge skips compilation and fixes debugpy launch paths", async (t) => {
+  const root = await mkdtemp(join(tmpdir(), "ynx-debug-python-test-")),
+    adapter = join(root, "debugpy-adapter.mjs");
+  await writeFile(
+    adapter,
+    `#!/usr/bin/env node\nlet b=Buffer.alloc(0);process.stdin.on('data',c=>{b=Buffer.concat([b,c]);for(;;){const s=b.indexOf('\\r\\n\\r\\n');if(s<0)return;const h=b.subarray(0,s).toString(),n=Number(h.match(/Content-Length:\\s*(\\d+)/i)?.[1]),e=s+4+n;if(b.length<e)return;const q=JSON.parse(b.subarray(s+4,e));b=b.subarray(e);const m={seq:q.seq+100,type:'response',request_seq:q.seq,success:true,command:q.command,body:{program:q.arguments?.program,cwd:q.arguments?.cwd,source:q.arguments?.source?.path,justMyCode:q.arguments?.justMyCode,subProcess:q.arguments?.subProcess}};const out=JSON.stringify(m);process.stdout.write('Content-Length: '+Buffer.byteLength(out)+'\\r\\n\\r\\n'+out)}});`,
+  );
+  await chmod(adapter, 0o755);
+  const store = createWorkspaceStore({ filename: join(root, "workspaces.sqlite") }),
+    runtime = createWorkspaceRuntime({
+      sessionKey: "python-debug-test-session-key-is-long-enough",
+      workspaceStore: store,
+    }),
+    server = createServer(async (request, response) => {
+      if (!(await runtime.handler(request, response))) {
+        response.statusCode = 404;
+        response.end();
+      }
+    }),
+    brokerCalls = [],
+    debug = createDebugService({
+      workspaceStore: store,
+      ownerForRequest: (request) => runtime.ownerForRequest(request),
+      root: join(root, "sessions"),
+      sandbox: { kind: "test-process-boundary", ready: true },
+      containerDebugBroker: {
+        openContainerDebugProcess: async (value) => {
+          brokerCalls.push(value);
+          const child = spawn(adapter, ["-m", "debugpy.adapter"], {
+            cwd: root,
+            env: { ...process.env, HOME: root },
+            stdio: ["pipe", "pipe", "pipe"],
+          });
+          return {
+            child,
+            visibleRoot: "/workspaces/python-project/.ynx-debug/session",
+            sandbox: { kind: "lxd-container", network: false },
+            cleanup: async () => child.kill("SIGKILL"),
+          };
+        },
+      },
+    });
+  server.on("upgrade", debug.handleUpgrade);
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  t.after(async () => {
+    await debug.close();
+    await new Promise((resolve) => server.close(resolve));
+    store.close();
+  });
+  const address = server.address(),
+    base = `http://127.0.0.1:${address.port}`,
+    health = await fetch(`${base}/runtime/health`),
+    cookie = health.headers.get("set-cookie")?.split(";")[0];
+  await fetch(`${base}/runtime/workspaces/python-project`, {
+    method: "PUT",
+    headers: { cookie, "content-type": "application/json" },
+    body: JSON.stringify({
+      protocolVersion: "ynx-code/v1",
+      expectedRevision: 0,
+      idempotencyKey: "python-debug-seed-0001",
+      workspace: {
+        name: "Python Debug",
+        folders: ["src"],
+        files: { "src/main.py": "value = 7\nprint(value)\n" },
+        open: ["src/main.py"],
+        active: "src/main.py",
+      },
+    }),
+  });
+  const messages = [],
+    websocket = new WebSocket(
+      `ws://127.0.0.1:${address.port}/runtime/debug?projectId=python-project&activePath=src%2Fmain.py&runtimeId=0123456789abcdef01234567`,
+      "ynx-code-dap-v1",
+      { headers: { cookie, origin: base } },
+    );
+  websocket.on("message", (raw) => messages.push(JSON.parse(String(raw))));
+  await waitFor(() => messages.some((value) => value.type === "ready"));
+  const ready = messages.find((value) => value.type === "ready");
+  assert.equal(ready.language, "python");
+  assert.equal(ready.adapter, "debugpy");
+  assert.equal(
+    ready.program,
+    "/workspaces/python-project/.ynx-debug/session/src/main.py",
+  );
+  assert.equal(brokerCalls.length, 1);
+  assert.equal(brokerCalls[0].runtimeId, "0123456789abcdef01234567");
+  websocket.send(JSON.stringify({
+    type: "dap",
+    message: { seq: 1, type: "request", command: "launch", arguments: { program: "/etc/passwd", cwd: "/", justMyCode: false, subProcess: true, args: ["safe"] } },
+  }));
+  await waitFor(() => response(messages, 1)?.success === true);
+  assert.deepEqual(response(messages, 1).body, {
+    program: "/workspaces/python-project/.ynx-debug/session/src/main.py",
+    cwd: "/workspaces/python-project/.ynx-debug/session",
+    justMyCode: true,
+    subProcess: false,
+  });
+  websocket.send(JSON.stringify({
+    type: "dap",
+    message: { seq: 2, type: "request", command: "setBreakpoints", arguments: { source: { path: "src/main.py" }, breakpoints: [{ line: 1 }] } },
+  }));
+  await waitFor(() => response(messages, 2)?.success === true);
+  assert.equal(
+    response(messages, 2).body.source,
+    "/workspaces/python-project/.ynx-debug/session/src/main.py",
+  );
+  websocket.close();
+});
+
+test("installed debugpy stops a real Python process and exposes local variables", async (t) => {
+  const pythonRoot =
+      process.env.YNX_CODE_TEST_DEBUGPY_ROOT ||
+      fileURLToPath(new URL("../../../.ynx-debugpy", import.meta.url)),
+    python = join(pythonRoot, process.platform === "win32" ? "Scripts/python.exe" : "bin/python");
+  try {
+    await access(python);
+  } catch {
+    t.skip("reviewed debugpy runtime is not installed on this host");
+    return;
+  }
+  const root = await mkdtemp(join(tmpdir(), "ynx-debug-real-python-")),
+    store = createWorkspaceStore({ filename: join(root, "workspaces.sqlite") }),
+    runtime = createWorkspaceRuntime({
+      sessionKey: "real-python-debug-session-key-is-long-enough",
+      workspaceStore: store,
+    }),
+    server = createServer(async (request, response) => {
+      if (!(await runtime.handler(request, response))) {
+        response.statusCode = 404;
+        response.end();
+      }
+    }),
+    debug = createDebugService({
+      workspaceStore: store,
+      ownerForRequest: (request) => runtime.ownerForRequest(request),
+      root: join(root, "sessions"),
+      pythonRoot,
+      sandbox: { kind: "macos-sandbox-exec", ready: true },
+      createLaunch: ({ workspace, command, args }) => ({
+        command,
+        args,
+        cwd: workspace,
+        env: { ...process.env, HOME: workspace, TMPDIR: join(workspace, ".tmp") },
+      }),
+    });
+  server.on("upgrade", debug.handleUpgrade);
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  t.after(async () => {
+    await debug.close();
+    await new Promise((resolve) => server.close(resolve));
+    store.close();
+  });
+  const address = server.address(),
+    base = `http://127.0.0.1:${address.port}`,
+    health = await fetch(`${base}/runtime/health`),
+    cookie = health.headers.get("set-cookie")?.split(";")[0];
+  await fetch(`${base}/runtime/workspaces/debugpy-project`, {
+    method: "PUT",
+    headers: { cookie, "content-type": "application/json" },
+    body: JSON.stringify({
+      protocolVersion: "ynx-code/v1",
+      expectedRevision: 0,
+      idempotencyKey: "debugpy-real-seed-0001",
+      workspace: {
+        name: "debugpy",
+        folders: ["src"],
+        files: { "src/main.py": "value = 7\nprint(value)\n" },
+        open: ["src/main.py"],
+        active: "src/main.py",
+      },
+    }),
+  });
+  const messages = [],
+    websocket = new WebSocket(
+      `ws://127.0.0.1:${address.port}/runtime/debug?projectId=debugpy-project&activePath=src%2Fmain.py`,
+      "ynx-code-dap-v1",
+      { headers: { cookie, origin: base } },
+    );
+  websocket.on("message", (raw) => messages.push(JSON.parse(String(raw))));
+  let seq = 1;
+  const request = (command, args = {}) => {
+    const id = seq++;
+    websocket.send(JSON.stringify({
+      type: "dap",
+      message: { seq: id, type: "request", command, arguments: args },
+    }));
+    return id;
+  };
+  await waitFor(() => messages.some((value) => value.type === "ready"), 10_000);
+  const initialize = request("initialize", {
+    clientID: "ynx-code",
+    adapterID: "python",
+    linesStartAt1: true,
+    columnsStartAt1: true,
+    pathFormat: "path",
+  });
+  await waitFor(() => response(messages, initialize)?.success === true, 10_000);
+  request("launch", { args: [] });
+  await waitFor(() => event(messages, "initialized"), 10_000);
+  const breakpoints = request("setBreakpoints", {
+    source: { path: "src/main.py" },
+    breakpoints: [{ line: 2 }],
+  });
+  await waitFor(() => response(messages, breakpoints)?.success === true, 10_000);
+  assert.equal(response(messages, breakpoints).body.breakpoints[0].verified, true);
+  const configured = request("configurationDone");
+  await waitFor(() => response(messages, configured)?.success === true, 10_000);
+  const stopped = await waitValue(() => event(messages, "stopped"), 10_000);
+  assert.equal(stopped.body.reason, "breakpoint");
+  const threads = request("threads");
+  await waitFor(() => response(messages, threads)?.success === true);
+  const threadId = response(messages, threads).body.threads[0].id,
+    stack = request("stackTrace", { threadId, startFrame: 0, levels: 20 });
+  await waitFor(() => response(messages, stack)?.success === true);
+  const top = response(messages, stack).body.stackFrames[0];
+  assert.equal(top.line, 2);
+  const scopes = request("scopes", { frameId: top.id });
+  await waitFor(() => response(messages, scopes)?.success === true);
+  const localScope = response(messages, scopes).body.scopes.find(
+      (value) => value.name === "Locals",
+    ),
+    variables = request("variables", {
+      variablesReference: localScope.variablesReference,
+      start: 0,
+      count: 200,
+    });
+  await waitFor(() => response(messages, variables)?.success === true);
+  assert.ok(
+    response(messages, variables).body.variables.some(
+      (value) => value.name === "value" && value.value === "7",
+    ),
+  );
+  request("disconnect", { terminateDebuggee: true });
   websocket.close();
 });
 

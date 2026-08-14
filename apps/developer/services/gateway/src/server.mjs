@@ -121,6 +121,7 @@ const server = createServer(
 const debugService = createDebugService({
   workspaceStore,
   ownerForRequest: (request) => runtime.ownerForRequest(request),
+  containerDebugBroker: runtimeProfileService,
 });
 server.on("upgrade", (request, socket, head) => {
   if (collaborationService.handleUpgrade(request, socket, head) || terminalService.handleUpgrade(request, socket, head) || debugService.handleUpgrade(request, socket, head)) return;

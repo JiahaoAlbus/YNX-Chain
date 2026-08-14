@@ -11,6 +11,9 @@ jdtls_archive="jdt-language-server-1.61.0-202607142124.tar.gz"
 jdtls_sha256="4dc0747f22fb86dfada4c9214d3ef94c94f1e84eb57ce52126c26ecf2f17dce4"
 junit_version="1.14.2"
 junit_sha256="5566ffe2aa48263867bca745925f73bf7b01591b30d9a60f191c0b16fa0955e9"
+debugpy_version="1.8.21"
+debugpy_sha256="b1e37d333663c8851516a47364ef473da127f9caebe4417e6df6f5825a7e9a92"
+debugpy_url="https://files.pythonhosted.org/packages/95/51/67e7cf11a53e40694f720457d5b3a1cdaaa3d5a9a633e482f225456b93ff/debugpy-1.8.21-py2.py3-none-any.whl"
 
 command -v lxc >/dev/null
 test -f "$probe_path"
@@ -65,12 +68,17 @@ lxc exec "$builder" -- java -jar /usr/local/share/ynx-code/junit-platform-consol
 lxc exec "$builder" -- sh -c 'rustc --version | grep "^rustc 1.92.0 "'
 lxc exec "$builder" -- sh -c 'cargo --version | grep "^cargo 1.92.0 "'
 lxc exec "$builder" -- sh -c 'python3 -m venv --copies /tmp/ynx-python-package-probe && /tmp/ynx-python-package-probe/bin/python -m pip --version && rm -rf /tmp/ynx-python-package-probe && dpkg-query -W -f="\${Package}=\${Version}\n" python3-pip python3-venv > /etc/ynx-code-python-packages.txt'
+lxc exec "$builder" -- curl --proto '=https' --tlsv1.2 -fL --retry 4 --connect-timeout 20 "$debugpy_url" -o "/tmp/debugpy-${debugpy_version}-py2.py3-none-any.whl"
+lxc exec "$builder" -- sh -c "printf '%s  %s\n' '$debugpy_sha256' '/tmp/debugpy-${debugpy_version}-py2.py3-none-any.whl' | sha256sum -c -"
+lxc exec "$builder" -- python3 -m venv --copies /opt/ynx-debugpy
+lxc exec "$builder" -- /opt/ynx-debugpy/bin/python -m pip install --no-index --no-deps "/tmp/debugpy-${debugpy_version}-py2.py3-none-any.whl"
+lxc exec "$builder" -- /opt/ynx-debugpy/bin/python -c "import debugpy,sys; sys.exit(0 if debugpy.__version__ == '$debugpy_version' else 1)"
 
 lxc file push "$probe_path" "$builder/tmp/lsp-server-probe.mjs"
 lxc exec "$builder" -- node /tmp/lsp-server-probe.mjs
-lxc exec "$builder" -- sh -c "apt-get clean; rm -rf /var/lib/apt/lists/* /root/.cache/go-build /root/go/pkg/mod/cache/download /tmp/rust-analyzer.gz /tmp/rust-analyzer-asset /tmp/lsp-server-probe.mjs '/tmp/$jdtls_archive'"
+lxc exec "$builder" -- sh -c "apt-get clean; rm -rf /var/lib/apt/lists/* /root/.cache/go-build /root/go/pkg/mod/cache/download /tmp/rust-analyzer.gz /tmp/rust-analyzer-asset /tmp/lsp-server-probe.mjs '/tmp/$jdtls_archive' '/tmp/debugpy-${debugpy_version}-py2.py3-none-any.whl'"
 lxc stop "$builder"
-lxc publish "$builder" --alias "$target_alias" description="YNX Code Ubuntu 24.04 reviewed nine-language toolchain, Python package runtime, JUnit and seven LSP servers"
+lxc publish "$builder" --alias "$target_alias" description="YNX Code Ubuntu 24.04 reviewed nine-language toolchain, Python package runtime, debugpy DAP, JUnit and seven LSP servers"
 fingerprint="$(lxc image info "$target_alias" | awk '/^Fingerprint:/{print $2}')"
 test "${#fingerprint}" -eq 64
 cleanup

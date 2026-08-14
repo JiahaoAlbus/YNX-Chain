@@ -1,5 +1,17 @@
 # YNX Developer 0.2.0 Testnet Preview release notes
 
+## 2026-08-15 Python DAP in the isolated cloud runtime
+
+- Python files can now start a real debugpy DAP session after the user selects
+  an owner/project-bound LXD runtime. Breakpoints, stack frames, scopes and
+  variables use workspace-relative paths; the runtime lease is locked until
+  cleanup and the container keeps external networking disabled.
+- debugpy 1.8.21 is installed from an exact PyPI wheel URL with SHA-256
+  `b1e37d333663c8851516a47364ef473da127f9caebe4417e6df6f5825a7e9a92` in
+  both the candidate verifier and immutable cloud image.
+- The protected live-container gate now stops at Python line 2 and proves the
+  local variable `value = 7` before accepting the candidate.
+
 ## 2026-08-15 production package-egress policy candidate
 
 - Added a deterministic LXD 5.21 bridge/ACL verifier for the fixed

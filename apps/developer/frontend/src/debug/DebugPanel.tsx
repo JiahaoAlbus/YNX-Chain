@@ -27,11 +27,13 @@ type Variable = {
 
 export function DebugPanel({
   projectId,
+  runtimeId,
   activePath,
   breakpoints,
   onStoppedLine,
 }: {
   projectId: string;
+  runtimeId?: string;
   activePath: string;
   breakpoints: number[];
   onStoppedLine: (line?: number) => void;
@@ -45,7 +47,8 @@ export function DebugPanel({
     [frames, setFrames] = useState<Frame[]>([]),
     [variables, setVariables] = useState<Variable[]>([]),
     [log, setLog] = useState("");
-  const supported = /\.(c|cpp|cc|cxx)$/i.test(activePath);
+  const supported = /\.(c|cpp|cc|cxx|py)$/i.test(activePath),
+    python = /\.py$/i.test(activePath);
   useEffect(
     () => () => {
       socket.current?.close();
@@ -64,18 +67,22 @@ export function DebugPanel({
     return id;
   };
   const start = async () => {
-    if (!supported) return;
+    if (!supported || (python && !runtimeId)) return;
     socket.current?.close();
     setState("connecting");
     setFrames([]);
     setVariables([]);
-    setLog("Building a debug binary inside the isolated workspace…\n");
+    setLog(
+      python
+        ? "Starting Python inside the isolated debug workspace…\n"
+        : "Building a debug binary inside the isolated workspace…\n",
+    );
     onStoppedLine();
     try {
       await runtimeHealth();
       const scheme = location.protocol === "https:" ? "wss" : "ws",
         ws = new WebSocket(
-          `${scheme}://${location.host}/runtime/debug?projectId=${encodeURIComponent(projectId)}&activePath=${encodeURIComponent(activePath)}`,
+          `${scheme}://${location.host}/runtime/debug?projectId=${encodeURIComponent(projectId)}&activePath=${encodeURIComponent(activePath)}${runtimeId ? `&runtimeId=${encodeURIComponent(runtimeId)}` : ""}`,
           "ynx-code-dap-v1",
         );
       socket.current = ws;
@@ -101,12 +108,12 @@ export function DebugPanel({
     if (envelope.type === "ready") {
       setLog(
         (value) =>
-          `${value}LLDB DAP ready · ${envelope.sandbox.kind} · network disabled\n`,
+          `${value}${envelope.adapter} ready · ${envelope.sandbox.kind} · network disabled\n`,
       );
       request("initialize", {
         clientID: "ynx-code",
         clientName: "YNX Code",
-        adapterID: "lldb",
+        adapterID: envelope.language === "python" ? "python" : "lldb",
         linesStartAt1: true,
         columnsStartAt1: true,
         pathFormat: "path",
@@ -239,7 +246,7 @@ export function DebugPanel({
       <div className="debug-controls">
         <button
           onClick={start}
-          disabled={!supported || state === "connecting" || state === "running"}
+          disabled={!supported || (python && !runtimeId) || state === "connecting" || state === "running"}
           title="Start debugging"
         >
           <Play />
@@ -275,8 +282,14 @@ export function DebugPanel({
       </div>
       {!supported && (
         <div className="honest-boundary">
-          The first reviewed DAP adapter is C/C++ via LLDB. Select a .c, .cpp,
-          .cc or .cxx file.
+          Reviewed DAP adapters support Python via debugpy and C/C++ via LLDB.
+          Select a .py, .c, .cpp, .cc or .cxx file.
+        </div>
+      )}
+      {python && !runtimeId && (
+        <div className="honest-boundary">
+          Select an isolated LXD cloud runtime before starting Python debug.
+          debugpy needs container loopback for its internal adapter channel.
         </div>
       )}
       <DebugSection title={`BREAKPOINTS (${breakpoints.length})`}>

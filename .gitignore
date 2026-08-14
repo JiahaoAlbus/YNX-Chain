@@ -26,3 +26,5 @@ __pycache__/
 *.log
 tmp/
 .ynx-smoke/
+.ynx-debugpy/
+.ynx-debugpy-stage.*/
