@@ -29,6 +29,7 @@
     {"path":"/v1/wallet/sessions/complete","operation":"completeProductSession","authentication":"exact Wallet approval plus P-256 Gateway completion","requiredScope":null,"bodyFields":["authorizationRequest","walletApproval","gatewayCompletion"]},
     {"path":"/v1/wallet/authorizations/reject","operation":"rejectAuthorization","authentication":"request-bound canonical Wallet rejection; grants no account, scope, session or authority","requiredScope":null,"bodyFields":["authorizationRequest","walletRejection"]},
     {"path":"/v1/wallet/sessions/introspect","operation":"introspectProductSession","authentication":"separate sender-constrained P-256 Product Session proof","requiredScope":"route-selected subset","bodyFields":["requiredScopes"]},
+    {"path":"/v1/wallet/sessions","operation":"listOwnProductSessions","authentication":"canonical Wallet Product Session only","requiredScope":"wallet:sessions","bodyFields":[]},
     {"path":"/v1/wallet/sessions/revoke","operation":"revokeProductSession","authentication":"separate path-bound P-256 Product Session proof","requiredScope":null,"bodyFields":[]},
     {"path":"/v1/wallet/approvals/revoke","operation":"revokeOwnApproval","authentication":"separate path-bound P-256 Product Session proof from a session created by the approval","requiredScope":null,"bodyFields":[]},
     {"path":"/v1/wallet/devices/revoke","operation":"revokeOwnProductDevice","authentication":"separate path-bound P-256 Product Session proof from the device being revoked","requiredScope":null,"bodyFields":[]},

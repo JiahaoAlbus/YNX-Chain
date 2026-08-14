@@ -100,3 +100,11 @@ test("published canonical rejection and negative vector remain deterministic", (
   assert.equal(vector.negativeCases.length, 7);
   assert.deepEqual([...new Set(vector.negativeCases.map(item => item.code))].sort(), ["AUTHORITY_ON_REJECTION", "AUTHORIZATION_REJECTION_MISMATCH", "UNEXPECTED_PROOF_HEADER", "UNKNOWN_OR_MISSING_FIELD"]);
 });
+
+test("shared Gateway manifest freezes all fourteen runtime routes", () => {
+  const manifest = JSON.parse(readFileSync(new URL("../integration/gateway-integration.manifest.json", import.meta.url), "utf8"));
+  assert.equal(manifest.routes.length, 14);
+  assert.equal(new Set(manifest.routes.map(route => route.path)).size, 14);
+  assert.ok(manifest.routes.some(route => route.path === "/v1/wallet/authorizations/reject" && route.operation === "rejectAuthorization"));
+  assert.ok(manifest.routes.some(route => route.path === "/v1/wallet/sessions" && route.operation === "listOwnProductSessions"));
+});
