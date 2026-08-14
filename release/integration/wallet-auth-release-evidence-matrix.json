@@ -43,7 +43,8 @@
       "consumedForReleaseTruth": false,
       "note": "The Android branch advanced beyond frozen evidence without an Owner terminal checkpoint; device truth remains unchanged."
     },
-    {"owner":"ios-macos","candidateCommit":"50d3b2e2c5bd77456b84f348c48fa4a9ed76b5b3","remoteFastForwardReported":true,"remoteReadbackComplete":false,"ciComplete":false,"consumedForReleaseTruth":false,"note":"Terminal failed iOS run may promote only malformed callback delivery/rejection after evidence readback."},
+    {"owner":"ios-macos","candidateCommit":"b081dd7022f0a07499c1de91b8e3d2579363b926","remoteFastForwardReported":true,"remoteReadbackComplete":false,"ciComplete":false,"consumedForReleaseTruth":false,"note":"Universal Link path fix has no terminal successful evidence; associated-domain/public delivery remain false."},
+    {"owner":"ios-macos","candidateCommit":"7115615f0fa06b75dfcf1c8d3c1c91edc2dff6d1","remoteFastForwardReported":true,"remoteReadbackComplete":true,"ciComplete":false,"consumedForReleaseTruth":false,"note":"Recovery workflow run remains in progress and promotes no biometric, recovery, auth or public gate."},
     {"owner":"android-api36","candidateCommit":"8666c0bb0535270e595f3db54e7d2e35b18afe66","remoteFastForwardReported":true,"remoteReadbackComplete":false,"ciComplete":true,"consumedForReleaseTruth":false,"note":"Temporary Uint8Array zeroization evidence remains queued; immutable JS strings are excluded."},
     {"owner":"core-auth-gateway","candidateCommit":"b8467853060db04c2981abb7fcfa22d4cfdcf65b","remoteFastForwardReported":true,"remoteReadbackComplete":false,"ciComplete":true,"consumedForReleaseTruth":false,"note":"Smart Account batch-call evidence remains queued after platform slices."}
   ],
@@ -78,9 +79,9 @@
     {
       "owner": "ios-macos",
       "branch": "codex/wallet-ios-macos-20260813",
-      "sourceCommit": "04450cff296511018447e5d4886803081149f596",
-      "remoteCommitObserved": "04450cff296511018447e5d4886803081149f596",
-      "branchHeadObserved": "04450cff296511018447e5d4886803081149f596",
+      "sourceCommit": "50d3b2e2c5bd77456b84f348c48fa4a9ed76b5b3",
+      "remoteCommitObserved": "50d3b2e2c5bd77456b84f348c48fa4a9ed76b5b3",
+      "branchHeadObserved": "7115615f0fa06b75dfcf1c8d3c1c91edc2dff6d1",
       "remoteVerifiedAt": "2026-08-14T04:26:00Z",
       "verificationMode": "github-git-database-parent-tree-blob-readback"
     },
@@ -416,6 +417,13 @@
       "path": ".github/workflows/wallet-ios.yml",
       "supports": []
     },
+    "ios-recovery-precondition-source": {
+      "type": "git-object",
+      "direct": true,
+      "commit": "50d3b2e2c5bd77456b84f348c48fa4a9ed76b5b3",
+      "path": ".github/workflows/wallet-ios.yml",
+      "supports": []
+    },
     "ios-callback-boundary": {
       "type": "git-object",
       "direct": true,
@@ -716,10 +724,11 @@
       "id": "ios-simulator",
       "ownerSource": "ios-macos",
       "artifactClass": "ad-hoc-simulator-build",
-      "status": "hosted-simulator-lifecycle",
+      "status": "hosted-simulator-lifecycle-with-latest-failure",
+      "capabilities": {"latestRunTerminalFailure":true,"latestMalformedCallbackDelivered":true,"latestMalformedCallbackRejected":true,"latestStep15DeepLinkDelivered":false,"latestRecoverySucceeded":false,"latestBiometricSucceeded":false},
       "gates": {"build":true,"install":true,"coldLaunch":true,"secondLaunch":true,"testnet":false,"sign":false,"tx":false,"callback":true,"reconnect":false,"downloadHosted":false,"productionSigned":false,"storeReleased":false},
       "evidenceBindings": {"build":["ios-current-simulator-callback-delivery"],"install":["ios-current-simulator-callback-delivery"],"coldLaunch":["ios-current-simulator-callback-delivery"],"secondLaunch":["ios-current-simulator-callback-delivery"],"testnet":["ios-current-simulator-callback-delivery"],"sign":["ios-current-simulator-callback-delivery"],"tx":["ios-current-simulator-callback-delivery"],"callback":["ios-current-simulator-callback-delivery"],"reconnect":["ios-current-simulator-callback-delivery"],"downloadHosted":["ios-current-simulator-callback-delivery"],"productionSigned":["ios-current-simulator-callback-delivery"],"storeReleased":["ios-current-simulator-callback-delivery"]},
-      "notes": ["Run 31766659407 directly proves Simulator install, distinct cold/second PIDs and malformed callback delivery to app followed by fail-closed rejection. It is an ad-hoc Simulator artifact only; no Testnet, physical device, successful authorization, signing, tx, public download, production signature or store release is claimed."]
+      "notes": ["Run 31766659407 remains the git-object-bound callback gate evidence. Latest run 31774232444 ended failure: malformed callback reached PID 39845 and was rejected, while step15 did not deliver a deep link and recovery failed. The 50d3 workflow source adds no gate. No Testnet, physical device, auth success, recovery/biometric success, Universal Link, signing, tx, public download, production signature or store release is claimed."]
     },
     {
       "id": "macos",
