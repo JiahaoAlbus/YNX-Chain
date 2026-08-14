@@ -11,7 +11,7 @@
     "test:a11y": "tsx --test src/accessibility.test.ts",
     "test:e2e": "playwright test --config playwright.managed.config.ts",
     "security:gate": "node scripts/supply-chain-gate.mjs",
-    "security:check": "npm run test && npm audit --omit=dev --audit-level=high && npm run security:gate",
+    "security:check": "npm run test && npm audit --omit=dev --audit-level=high --registry=https://registry.npmjs.org && npm run security:gate",
     "smoke": "tsx scripts/real-service-smoke.ts"
   },
   "dependencies": {
