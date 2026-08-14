@@ -6,26 +6,28 @@
   "recordedAt": "2026-08-14T03:52:00Z",
   "evidenceMatrix": {
     "path": "release/integration/wallet-auth-release-evidence-matrix.json",
-    "sha256": "80e332ddfa33d8bb93b384240c7dbceebc456e3b96f1b7aaba696645eb01aff2",
-    "platforms": 16,
+    "sha256": "f522d3148c4694b443e3e3dbb57eee3d13af33e1c12c11120e9c8263a6c72f17",
+    "platforms": 17,
     "gatesPerPlatform": 12,
-    "trueGates": 73,
-    "falseGates": 119,
-    "evidenceRecords": 56
+    "trueGates": 79,
+    "falseGates": 125,
+    "evidenceRecords": 57
   },
   "frozenOwnerSources": {
     "coreAuthGateway": "774a1f756890043e88626d13b6c9679a2ad6d288",
     "webPwaExtensions": "ae55e8272018979abb6cb393307755c063f71f38",
     "androidApi36": "4739a60e1fa0e3d0b6862e129330f9e9ca202887",
     "iosMacos": "04450cff296511018447e5d4886803081149f596",
-    "desktopCliSdk": "b06bf39c365408ba28e9e5f9312f293693e3f73d"
+    "desktopCliSdk": "905ac1e5479b08e6b2d9e50a91bef01cbe7d58ef"
   },
   "pendingOwnerEvidence": [
     "a3059db5d7e08e60bfcdf6b590d8217d211e008a",
     "f789c782c325d64234bd077f5c878b1821b2149a",
     "7522b8162b2581c7fed216d0e4e9fef44ff4fef7",
     "6f096503793218ddfd9b3b1cd6403a07d4fafb97",
-    "905ac1e5479b08e6b2d9e50a91bef01cbe7d58ef"
+    "6331265ae74a957f07958e459251fc42c9ea6b66",
+    "5bf869a191877cdd83b83e90156f698ed7e2d2cc",
+    "963e07a3325dd7fff31244d90e89b2f9b13a3809"
   ],
   "releaseState": {
     "implementedLocal": true,
@@ -50,6 +52,8 @@
       "macosDesktopX64NativeCi": true,
       "linuxCliNativeCi": true,
       "windowsCliX64NativeCi": true,
+      "windowsCliArm64NativeCi": true,
+      "windowsCliArm64InstalledLocal": false,
       "typescriptSdkCleanConsumer": true,
       "browserExtension": false,
       "iosCurrentHostedSimulator": true,

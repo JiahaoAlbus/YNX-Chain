@@ -204,6 +204,20 @@
       "exclusionReason": "Ubuntu rpm --noscripts native CI with explicit sandbox ownership/mode does not prove RPM scripts, Fedora/DNF compatibility, signing or public hosting."
     },
     {
+      "id": "windows-cli-arm64-0.2.0",
+      "sourceCommit": "905ac1e5479b08e6b2d9e50a91bef01cbe7d58ef",
+      "artifactName": "ynx-wallet-cli-windows-arm64-installer.zip",
+      "sha256": "8e2e1b173b8de63a93a368f658e318cbc4ac142af9345d3010a3e0957ef130fc",
+      "signingClass": "unsigned-windows-user-installer-candidate",
+      "publicUrl": null,
+      "immutableUrl": null,
+      "downloadHosted": false,
+      "productionSigned": false,
+      "storeReleased": false,
+      "websitePublishable": false,
+      "exclusionReason": "Windows 11 arm64 native CI and artifact readback do not make the Authenticode NotSigned installer a hosted or production release."
+    },
+    {
       "id": "typescript-sdk-0.2.0",
       "sourceCommit": "53f2ad8225a5465ba9f4b1e41a69ab8d2c0bccaf",
       "artifactName": "ynx-chain-sdk-0.2.0.tgz",

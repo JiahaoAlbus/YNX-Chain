@@ -46,15 +46,9 @@
       "consumedForReleaseTruth": false,
       "note": "The Android branch advanced beyond frozen evidence without an Owner terminal checkpoint; device truth remains unchanged."
     },
-    {
-      "owner": "desktop-cli-sdk",
-      "candidateCommit": "905ac1e5479b08e6b2d9e50a91bef01cbe7d58ef",
-      "remoteFastForwardReported": true,
-      "remoteReadbackComplete": true,
-      "ciComplete": null,
-      "consumedForReleaseTruth": false,
-      "note": "Windows arm64 CLI final evidence is queued for its own later atomic slice."
-    }
+    {"owner":"desktop-cli-sdk","candidateCommit":"6331265ae74a957f07958e459251fc42c9ea6b66","remoteFastForwardReported":true,"remoteReadbackComplete":false,"ciComplete":true,"consumedForReleaseTruth":false,"note":"Go SDK evidence remains queued for a separate atomic slice."},
+    {"owner":"desktop-cli-sdk","candidateCommit":"5bf869a191877cdd83b83e90156f698ed7e2d2cc","remoteFastForwardReported":true,"remoteReadbackComplete":false,"ciComplete":true,"consumedForReleaseTruth":false,"note":"Desktop/CLI/SDK final handoff remains queued separately."},
+    {"owner":"desktop-cli-sdk","candidateCommit":"963e07a3325dd7fff31244d90e89b2f9b13a3809","remoteFastForwardReported":true,"remoteReadbackComplete":false,"ciComplete":true,"consumedForReleaseTruth":false,"note":"TypeScript SDK 0.2.1 evidence remains queued separately."}
   ],
   "ownerSources": [
     {
@@ -96,9 +90,9 @@
     {
       "owner": "desktop-cli-sdk",
       "branch": "codex/wallet-desktop-cli-sdk-20260813",
-      "sourceCommit": "b06bf39c365408ba28e9e5f9312f293693e3f73d",
-      "remoteCommitObserved": "b06bf39c365408ba28e9e5f9312f293693e3f73d",
-      "branchHeadObserved": "905ac1e5479b08e6b2d9e50a91bef01cbe7d58ef",
+      "sourceCommit": "905ac1e5479b08e6b2d9e50a91bef01cbe7d58ef",
+      "remoteCommitObserved": "905ac1e5479b08e6b2d9e50a91bef01cbe7d58ef",
+      "branchHeadObserved": "5bf869a191877cdd83b83e90156f698ed7e2d2cc",
       "remoteVerifiedAt": "2026-08-14T04:05:00Z",
       "verificationMode": "github-git-database-parent-tree-blob-readback"
     }
@@ -555,6 +549,13 @@
         "windows-cli-x64.sign"
       ]
     },
+    "windows-cli-arm64-native-lifecycle": {
+      "type": "git-object",
+      "direct": true,
+      "commit": "905ac1e5479b08e6b2d9e50a91bef01cbe7d58ef",
+      "path": "release/wallet-cli/windows-arm64-native/manifest.json",
+      "supports": ["windows-cli-arm64.build", "windows-cli-arm64.install", "windows-cli-arm64.coldLaunch", "windows-cli-arm64.secondLaunch", "windows-cli-arm64.testnet", "windows-cli-arm64.sign"]
+    },
     "typescript-sdk-manifest": {
       "type": "git-object",
       "direct": true,
@@ -715,6 +716,16 @@
       "gates": {"build":true,"install":true,"coldLaunch":false,"secondLaunch":false,"testnet":true,"sign":false,"tx":false,"callback":false,"reconnect":false,"downloadHosted":false,"productionSigned":false,"storeReleased":false},
       "evidenceBindings": {"build":["typescript-sdk-manifest"],"install":["typescript-sdk-manifest"],"coldLaunch":["typescript-sdk-manifest"],"secondLaunch":["typescript-sdk-manifest"],"testnet":["typescript-sdk-manifest"],"sign":["typescript-sdk-manifest"],"tx":["typescript-sdk-manifest"],"callback":["typescript-sdk-manifest"],"reconnect":["typescript-sdk-manifest"],"downloadHosted":["typescript-sdk-manifest"],"productionSigned":["typescript-sdk-manifest"],"storeReleased":["typescript-sdk-manifest"]},
       "notes": ["A clean consumer imported the packed SDK and read exact chain 0x1917. The package is not published to npm and exposes no automatic signing or transaction success."]
+    },
+    {
+      "id": "windows-cli-arm64",
+      "ownerSource": "desktop-cli-sdk",
+      "artifactClass": "unsigned-windows-user-installer",
+      "status": "native-ci-lifecycle",
+      "capabilities": {"installedNativeCI":true,"installedLocal":false,"upgradeVerified":true,"ephemeralP256SelfTest":true,"privateKeyPersisted":false,"authenticodeSigned":false},
+      "gates": {"build":true,"install":true,"coldLaunch":true,"secondLaunch":true,"testnet":true,"sign":true,"tx":false,"callback":false,"reconnect":false,"downloadHosted":false,"productionSigned":false,"storeReleased":false},
+      "evidenceBindings": {"build":["windows-cli-arm64-native-lifecycle"],"install":["windows-cli-arm64-native-lifecycle"],"coldLaunch":["windows-cli-arm64-native-lifecycle"],"secondLaunch":["windows-cli-arm64-native-lifecycle"],"testnet":["windows-cli-arm64-native-lifecycle"],"sign":["windows-cli-arm64-native-lifecycle"],"tx":["windows-cli-arm64-native-lifecycle"],"callback":["windows-cli-arm64-native-lifecycle"],"reconnect":["windows-cli-arm64-native-lifecycle"],"downloadHosted":["windows-cli-arm64-native-lifecycle"],"productionSigned":["windows-cli-arm64-native-lifecycle"],"storeReleased":["windows-cli-arm64-native-lifecycle"]},
+      "notes": ["Windows 11 arm64 native CI proved upgrade/install, cold/second start, frozen vectors, exact 0x1917, fail-close and uninstall. sign=true is limited to a temporary P-256 self-test with no persisted key; it is not a production account or chain transaction signature. The installer is Authenticode NotSigned and not hosted/public/store-released."]
     }
   ]
 }
