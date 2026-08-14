@@ -37,6 +37,10 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 	if _, err := devnet.Faucet(canonicalAddress, 50); err != nil {
 		t.Fatal(err)
 	}
+	contract, _, err := devnet.DeployContract(canonicalAddress, "ExplorerEvents", "pragma solidity ^0.8.24; contract ExplorerEvents { event Audit(bytes32 indexed id); }")
+	if err != nil {
+		t.Fatal(err)
+	}
 	ownerKey := secp256k1.PrivKeyFromBytes(append(make([]byte, 31), 91))
 	userKey := secp256k1.PrivKeyFromBytes(append(make([]byte, 31), 92))
 	owner, _ := consensus.NativeAddress(ownerKey.PubKey().SerializeCompressed())
@@ -78,7 +82,7 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 	server := httptest.NewServer(NewServerWithBuild(svc, buildinfo.Info{Commit: "abc123", Release: "ynx-chain-abc123", BuildTime: "2026-07-10T00:00:00Z"}).Handler())
 	defer server.Close()
 
-	for _, path := range []string{"/health", "/api/summary", "/api/blocks/latest", "/api/txs", "/api/accounts?limit=10", "/api/accounts/ynx_explorer_bob", "/api/accounts/" + ynxAddress, "/api/tokens/YNXT", "/api/validators", "/api/resources/ynx_explorer_bob", "/api/resource-market/analytics", "/api/fees/" + tx.Hash, "/api/fees/" + sponsoredTx.Hash, "/api/search?q=" + tx.Hash, "/api/search?q=" + ynxAddress, "/metrics"} {
+	for _, path := range []string{"/health", "/version", "/api/summary", "/api/blocks/latest", "/api/txs", "/api/accounts?limit=10", "/api/accounts/ynx_explorer_bob", "/api/accounts/" + ynxAddress, "/api/accounts/" + ynxAddress + "/activity?limit=2", "/api/tokens/YNXT", "/api/contracts/" + contract.Address, "/api/validators", "/api/resources/ynx_explorer_bob", "/api/resource-market/analytics", "/api/fees/" + tx.Hash, "/api/fees/" + sponsoredTx.Hash, "/api/search?q=" + tx.Hash, "/api/search?q=" + ynxAddress, "/api/search?q=YNXT", "/api/search?q=" + contract.Address, "/metrics"} {
 		resp, err := http.Get(server.URL + path)
 		if err != nil {
 			t.Fatal(err)
@@ -101,6 +105,33 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 	}
 	if aliasDetail.Account.Address != canonicalAddress || aliasDetail.AddressFormats == nil || aliasDetail.AddressFormats.YNX != ynxAddress || aliasDetail.AddressFormats.EVM != canonicalAddress {
 		t.Fatalf("explorer did not expose equivalent address formats: %+v", aliasDetail)
+	}
+	if aliasDetail.Activity.TruthfulStatus != "canonical-indexed-account-activity" || aliasDetail.Activity.LastIndexedHeight == 0 || len(aliasDetail.Activity.Transactions) == 0 || len(aliasDetail.Holdings) != 1 || aliasDetail.Holdings[0].Symbol != "YNXT" {
+		t.Fatalf("account detail omitted indexed history or native holdings: %+v", aliasDetail)
+	}
+	txResponse, err := http.Get(server.URL + "/api/txs/" + tx.Hash)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer txResponse.Body.Close()
+	var transactionDetail TransactionDetail
+	if err := json.NewDecoder(txResponse.Body).Decode(&transactionDetail); err != nil {
+		t.Fatal(err)
+	}
+	if transactionDetail.Status != "finalized-indexed" || transactionDetail.From == "" || transactionDetail.To == "" || transactionDetail.BlockNum == 0 || transactionDetail.Gas.TruthfulStatus == "" || transactionDetail.HistoricalNotice == "" {
+		t.Fatalf("transaction detail omitted canonical status, direction, block, gas, or history semantics: %+v", transactionDetail)
+	}
+	pageResponse, err := http.Get(server.URL + "/api/txs?limit=2")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer pageResponse.Body.Close()
+	var transactionPage TransactionPage
+	if err := json.NewDecoder(pageResponse.Body).Decode(&transactionPage); err != nil {
+		t.Fatal(err)
+	}
+	if len(transactionPage.Transactions) != 2 || transactionPage.NextCursor == "" || transactionPage.CursorVersion == 0 {
+		t.Fatalf("transaction pagination did not expose an opaque continuation: %+v", transactionPage)
 	}
 	feeResponse, err := http.Get(server.URL + "/api/fees/" + sponsoredTx.Hash)
 	if err != nil {
@@ -155,6 +186,17 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 		"EVM compatibility address",
 		"tx.sponsor",
 		"sponsorPoolId",
+		"option value=\"zh-TW\"",
+		"option value=\"ar\"",
+		"document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr'",
+		"html[dir=\"rtl\"] .drawer",
+		"history.pushState",
+		"openDeepLink",
+		"data-activity-cursor",
+		"A block is not a fixed YNXT reward",
+		"Observed YNXT funds flow",
+		"id=\"olderBlocks\"",
+		"id=\"olderTransactions\"",
 	} {
 		if !strings.Contains(html, marker) {
 			t.Fatalf("explorer web is missing live interaction marker %q", marker)
@@ -177,7 +219,7 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if summary.NativeSymbol != "YNXT" || summary.IndexedTxCount != 7 || summary.Wallet.ChainIDHex != "0x1917" {
+	if summary.NativeSymbol != "YNXT" || summary.IndexedTxCount != 8 || summary.Wallet.ChainIDHex != "0x1917" {
 		t.Fatalf("unexpected summary: %+v", summary)
 	}
 	fallbackHandler := api.NewServerWithConfig(devnet, api.ServerConfig{ResourceGatewayUpstreamKey: resourceUpstreamKey})
@@ -239,7 +281,7 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 	}
 	cancelStream()
 	_ = streamResp.Body.Close()
-	if streamData == "" || !strings.Contains(streamData, `"indexedTxCount":7`) || !strings.Contains(streamData, `"resource_sponsored_action"`) || !strings.Contains(streamData, `"sponsorPoolId"`) || !strings.Contains(streamData, `"blocks"`) || !strings.Contains(streamData, `"validators"`) || !strings.Contains(streamData, `"resources"`) {
+	if streamData == "" || !strings.Contains(streamData, `"indexedTxCount":8`) || !strings.Contains(streamData, `"resource_sponsored_action"`) || !strings.Contains(streamData, `"sponsorPoolId"`) || !strings.Contains(streamData, `"blocks"`) || !strings.Contains(streamData, `"validators"`) || !strings.Contains(streamData, `"resources"`) {
 		t.Fatalf("stream did not return a live dashboard snapshot: %s", streamData)
 	}
 }

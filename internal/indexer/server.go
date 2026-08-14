@@ -2,6 +2,7 @@ package indexer
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -99,6 +100,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /blocks/{height}", s.handleBlock)
 	s.mux.HandleFunc("GET /txs", s.handleTransactions)
 	s.mux.HandleFunc("GET /txs/{hash}", s.handleTransaction)
+	s.mux.HandleFunc("GET /accounts/{address}/activity", s.handleAccountActivity)
 }
 
 func (s *Server) handleVersion(w http.ResponseWriter, r *http.Request) {
@@ -410,6 +412,53 @@ func (s *Server) handleTransaction(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, tx)
+}
+
+func (s *Server) handleAccountActivity(w http.ResponseWriter, r *http.Request) {
+	address := strings.TrimSpace(r.PathValue("address"))
+	if address == "" || len(address) > 256 {
+		writePublicError(w, http.StatusBadRequest, "invalid_address", "A valid account address is required.")
+		return
+	}
+	feed := fmt.Sprintf("account-transactions:%x", sha256.Sum256([]byte(strings.ToLower(address))))
+	after, err := s.cursor.decode(r.URL.Query().Get("cursor"), feed)
+	if err != nil {
+		writePublicError(w, http.StatusBadRequest, "invalid_cursor", "The pagination cursor is invalid or expired.")
+		return
+	}
+	var transactions []chain.Transaction
+	var nextAfter string
+	var lastIndexedHeight uint64
+	var indexedTxCount int
+	err = s.indexer.Store().View(func(db Database) error {
+		lastIndexedHeight = db.LastIndexedHeight
+		indexedTxCount = len(db.Transactions)
+		var pageErr error
+		transactions, nextAfter, pageErr = AccountTransactionsPage(db, address, intQuery(r, "limit", 25), after)
+		return pageErr
+	})
+	if err != nil {
+		writePublicError(w, http.StatusBadRequest, "invalid_cursor", "The pagination cursor is invalid or expired.")
+		return
+	}
+	nextCursor := ""
+	if nextAfter != "" {
+		nextCursor, err = s.cursor.encode(feed, nextAfter)
+		if err != nil {
+			writePublicError(w, http.StatusInternalServerError, "cursor_encoding_failed", "The next page could not be prepared.")
+			return
+		}
+	}
+	writeJSON(w, http.StatusOK, map[string]any{
+		"address":           address,
+		"transactions":      transactions,
+		"nextCursor":        nextCursor,
+		"cursorVersion":     cursorVersion,
+		"lastIndexedHeight": lastIndexedHeight,
+		"indexedTxCount":    indexedTxCount,
+		"checkedAt":         time.Now().UTC(),
+		"truthfulStatus":    "canonical-indexed-account-activity",
+	})
 }
 
 func writeJSON(w http.ResponseWriter, status int, payload any) {

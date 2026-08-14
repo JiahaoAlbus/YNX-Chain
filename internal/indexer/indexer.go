@@ -779,10 +779,28 @@ func LatestTransactions(db Database, limit int) []chain.Transaction {
 }
 
 func LatestTransactionsPage(db Database, limit int, after string) ([]chain.Transaction, string, error) {
+	return filteredTransactionsPage(db, limit, after, func(chain.Transaction) bool { return true })
+}
+
+func AccountTransactionsPage(db Database, address string, limit int, after string) ([]chain.Transaction, string, error) {
+	address = strings.TrimSpace(address)
+	if address == "" {
+		return nil, "", fmt.Errorf("account address is required")
+	}
+	return filteredTransactionsPage(db, limit, after, func(tx chain.Transaction) bool {
+		return strings.EqualFold(strings.TrimSpace(tx.From), address) ||
+			strings.EqualFold(strings.TrimSpace(tx.To), address) ||
+			strings.EqualFold(strings.TrimSpace(tx.Sponsor), address)
+	})
+}
+
+func filteredTransactionsPage(db Database, limit int, after string, include func(chain.Transaction) bool) ([]chain.Transaction, string, error) {
 	limit = normalizePageLimit(limit)
 	txs := make([]chain.Transaction, 0, len(db.Transactions))
 	for _, tx := range db.Transactions {
-		txs = append(txs, tx)
+		if include(tx) {
+			txs = append(txs, tx)
+		}
 	}
 	sort.Slice(txs, func(a, b int) bool {
 		if txs[a].Timestamp.Equal(txs[b].Timestamp) {

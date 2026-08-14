@@ -145,6 +145,7 @@ const indexHTML = `<!doctype html>
     .filter-control select { height:32px; padding:0 28px 0 10px; border:1px solid var(--line); border-radius:7px; color:var(--ink); background:var(--surface); font-size:12px; }
     .filter-control input { width:150px; height:32px; padding:0 10px; border:1px solid var(--line); border-radius:7px; color:var(--ink); background:var(--surface); font-size:12px; outline:none; }
     .filter-control input:focus { border-color:var(--blue); box-shadow:0 0 0 3px rgba(0,113,227,.1); }
+	.page-actions { display:flex; justify-content:center; padding:10px 14px 14px; border-top:1px solid var(--line-soft); }
 
     .drawer-backdrop { position:fixed; inset:0; z-index:40; visibility:hidden; background:rgba(0,0,0,.2); opacity:0; transition:opacity .25s,visibility .25s; }
     .drawer-backdrop.visible { visibility:visible; opacity:1; }
@@ -162,6 +163,13 @@ const indexHTML = `<!doctype html>
     .detail-row { display:grid; grid-template-columns:150px minmax(0,1fr) auto; gap:14px; align-items:start; padding:14px 0; border-bottom:1px solid var(--line-soft); font-size:13px; }
     .detail-row dt { color:var(--muted); }
     .detail-row dd { margin:0; overflow-wrap:anywhere; }
+	.flow-visual { margin:20px 24px 0; padding:18px; border:1px solid var(--line-soft); border-radius:8px; background:var(--surface-alt); }
+	.flow-visual h3 { margin:0 0 14px; font-size:14px; }
+	.flow-line { display:grid; grid-template-columns:80px minmax(0,1fr) 100px; gap:10px; align-items:center; margin:9px 0; font-size:12px; }
+	.flow-meter { height:8px; overflow:hidden; border-radius:999px; background:#dedee3; }
+	.flow-meter span { display:block; height:100%; border-radius:inherit; background:var(--blue); }
+	.flow-line.out .flow-meter span { background:var(--amber); }
+	.detail-notice { margin:18px 24px 0; padding:13px 15px; border-left:3px solid var(--blue); border-radius:5px; color:var(--muted); background:var(--blue-soft); font-size:12px; line-height:1.55; }
     .copy-button { width:30px; height:30px; border:0; border-radius:6px; color:var(--blue); background:var(--blue-soft); font-size:11px; }
     .toast { position:fixed; left:50%; bottom:24px; z-index:60; padding:10px 14px; border-radius:8px; color:#fff; background:rgba(29,29,31,.92); box-shadow:var(--shadow); font-size:13px; opacity:0; transform:translate(-50%,12px); pointer-events:none; transition:opacity .2s,transform .2s; }
     .toast.visible { opacity:1; transform:translate(-50%,0); }
@@ -200,6 +208,13 @@ const indexHTML = `<!doctype html>
     .footer-inner { display:flex; justify-content:space-between; gap:20px; }
     .skeleton { position:relative; overflow:hidden; color:transparent!important; background:#ededf0!important; border-radius:4px; }
     .skeleton::after { content:""; position:absolute; inset:0; transform:translateX(-100%); background:linear-gradient(90deg,transparent,rgba(255,255,255,.7),transparent); animation:shimmer 1.4s infinite; }
+	html[dir="rtl"] body { direction:rtl; }
+	html[dir="rtl"] .drawer { right:auto; left:0; transform:translateX(-100%); box-shadow:24px 0 60px rgba(0,0,0,.16); }
+	html[dir="rtl"] .drawer-backdrop.visible .drawer { transform:translateX(0); }
+	html[dir="rtl"] .search button { right:auto; left:5px; }
+	html[dir="rtl"] .search input { padding-right:16px; padding-left:128px; }
+	html[dir="rtl"] .row-side { text-align:left; }
+	html[dir="rtl"] .flow-arrow { transform:scaleX(-1); }
     @keyframes shimmer { 100% { transform:translateX(100%); } }
     @keyframes row-arrival { from { opacity:0; transform:translateY(-8px); background:var(--blue-soft); } to { opacity:1; transform:translateY(0); background:transparent; } }
     @keyframes block-arrival { from { opacity:0; transform:translateX(-18px); } to { opacity:1; transform:translateX(0); } }
@@ -262,7 +277,7 @@ const indexHTML = `<!doctype html>
       <a class="brand" href="#top" aria-label="YNX Chain Explorer home"><img class="brand-logo" src="/assets/ynx-logo.png?v=df071f54b" width="46" height="24" alt=""><span data-i18n="brand">Chain Explorer</span></a>
       <div class="nav-links">
         <a href="#network" data-i18n="navOverview">Overview</a><a href="#blocks" data-i18n="navBlockchain">Blockchain</a><a href="#accounts" data-i18n="navAccounts">Accounts</a><a href="#intelligence" data-i18n="navValidators">Validators</a><a href="#resourcesPanel" data-i18n="navResources">Resources</a>
-        <select class="language-select" id="languageSelect" aria-label="Language"><option value="en">English</option><option value="zh">中文</option></select>
+        <select class="language-select" id="languageSelect" aria-label="Language"><option value="en">English</option><option value="zh-CN">简体中文</option><option value="zh-TW">繁體中文</option><option value="ja">日本語</option><option value="ko">한국어</option><option value="es">Español</option><option value="fr">Français</option><option value="de">Deutsch</option><option value="pt">Português</option><option value="ru">Русский</option><option value="ar">العربية</option><option value="id">Bahasa Indonesia</option></select>
         <span class="network-pill"><span class="pulse"></span><span id="networkName">Testnet</span></span>
       </div>
     </div>
@@ -306,11 +321,11 @@ const indexHTML = `<!doctype html>
       <section class="overview" id="network">
         <article class="panel" id="blocks">
           <div class="panel-head"><div><h2 data-i18n="latestBlocks">Live blocks</h2><p data-i18n="latestBlocksCopy">Finalized blocks arriving now</p></div><span class="stream-clock live"><span class="stream-dot"></span><span data-i18n="live">Live</span></span></div>
-          <div class="live-list" id="blocksBody"><div class="empty">Loading blocks...</div></div>
+		  <div class="live-list" id="blocksBody"><div class="empty">Loading blocks...</div></div><div class="page-actions"><button class="refresh" id="olderBlocks" type="button">Older blocks</button></div>
         </article>
         <article class="panel" id="transactions">
           <div class="panel-head"><div><h2 data-i18n="latestTransactions">Live transactions</h2><p data-i18n="latestTransactionsCopy">Newest indexed transfers and actions</p></div><div class="filter-control"><input id="txQuickFind" data-i18n-placeholder="quickFindPlaceholder" placeholder="Find hash, address, amount…" aria-label="Quick find transactions"><select id="txFilter" aria-label="Filter transaction type"><option value="all">All</option><option value="transfer">Transfers</option><option value="resource">Resources</option><option value="faucet">Faucet</option></select></div></div>
-          <div class="live-list" id="txsBody"><div class="empty">Loading transactions...</div></div>
+		  <div class="live-list" id="txsBody"><div class="empty">Loading transactions...</div></div><div class="page-actions"><button class="refresh" id="olderTransactions" type="button">Older transactions</button></div>
         </article>
         <article class="panel network-facts-panel">
           <div class="panel-head"><div><h2 data-i18n="networkDetails">Network details</h2><p data-i18n="networkDetailsCopy">Current chain configuration</p></div></div>
@@ -365,22 +380,43 @@ const indexHTML = `<!doctype html>
     let walletConfig = null;
     let refreshTimer = null;
     let eventSource = null;
+	let latestBlocks = [];
     let latestTransactions = [];
+	let blockCursor = '';
+	let transactionCursor = '';
+	let blockDisplayLimit = 5;
+	let transactionDisplayLimit = 5;
     let previousHeight = 0;
     let previousTxHash = '';
     let lastStreamAt = 0;
     let toastTimer = null;
+	let currentDetail = null;
+	let currentDetailType = '';
+	let currentDetailQuery = '';
     const $ = (id) => document.getElementById(id);
-    const messages = {
-      en:{brand:'Chain Explorer',navOverview:'Overview',navBlockchain:'Blockchain',navAccounts:'Accounts',navValidators:'Validators',navResources:'Resources',heroTitle:'YNX Chain network explorer',heroCopy:'Live blocks, transactions, validators, accounts, fees, and native YNXT resource economics from the public testnet.',searchPlaceholder:'Search ynx1 address, transaction, block, or EVM compatibility address',search:'Search',latestBlock:'Latest block',networkTps:'Network TPS',indexedWindow:'Latest indexed window',blockTime:'Block time',observedAverage:'Observed average',indexedTxs:'Transactions indexed',verifiedIndexer:'Verified by the indexer',validators:'Validators',reportedRpc:'Reported by chain RPC',indexerSync:'Indexer sync',networkDetails:'Network details',networkDetailsCopy:'Current chain configuration',latestBlocks:'Real-time blocks',latestBlocksCopy:'Five newest finalized blocks, updated live',refresh:'Refresh',latestTransactions:'Real-time transactions',latestTransactionsCopy:'Five newest indexed transfers and actions',quickFindPlaceholder:'Find hash, address, amount…',accountLeaderboard:'YNXT account leaderboard',accountLeaderboardCopy:'Ranks full-ledger balances when available; otherwise shows a clearly labeled indexed-participant sample.',operational:'Network operational',degraded:'Upstream degraded',fullySynced:'Fully synchronized',catchingUp:'Indexer catching up',noMatching:'No matching transactions in the indexed transaction feed.',rpcResponding:'RPC and indexer are responding',live:'Live'},
-      zh:{brand:'链上浏览器',navOverview:'概览',navBlockchain:'区块链',navAccounts:'账户',navValidators:'验证者',navResources:'资源',heroTitle:'YNX Chain 区块链浏览器',heroCopy:'查看公共测试网的实时区块、交易、验证者、账户、手续费与原生 YNXT 资源经济数据。',searchPlaceholder:'搜索 ynx1 地址、交易哈希、区块高度或 EVM 兼容地址',search:'搜索',latestBlock:'最新区块',networkTps:'网络 TPS',indexedWindow:'最近索引窗口',blockTime:'平均出块时间',observedAverage:'实时观测平均值',indexedTxs:'已索引交易',verifiedIndexer:'由索引器验证',validators:'验证者',reportedRpc:'由链 RPC 报告',indexerSync:'索引同步',networkDetails:'网络详情',networkDetailsCopy:'当前链配置',latestBlocks:'实时出块',latestBlocksCopy:'最新 5 个最终区块，实时更新',refresh:'刷新',latestTransactions:'实时交易',latestTransactionsCopy:'最新 5 笔已索引转账与协议操作',quickFindPlaceholder:'快速查找哈希、地址、金额…',accountLeaderboard:'YNXT 账户富豪榜',accountLeaderboardCopy:'节点支持时展示全账本余额排名；否则明确标注为已索引交易参与地址样本。',operational:'网络运行正常',degraded:'上游服务降级',fullySynced:'已完全同步',catchingUp:'索引器正在追赶',noMatching:'已索引交易流中没有匹配结果。',rpcResponding:'RPC 与索引器正在正常响应',live:'实时'}
-    };
-    let language = localStorage.getItem('ynx-explorer-language') || (navigator.language.toLowerCase().startsWith('zh') ? 'zh' : 'en');
+	const messages = {
+	  en:{brand:'Chain Explorer',navOverview:'Overview',navBlockchain:'Blockchain',navAccounts:'Accounts',navValidators:'Validators',navResources:'Resources',heroTitle:'YNX Chain network explorer',heroCopy:'Live blocks, transactions, validators, accounts, fees, and native YNXT resource economics from the public testnet.',searchPlaceholder:'Search block, transaction, ynx1 or 0x address, YNXT, or contract',search:'Search',latestBlock:'Latest block',networkTps:'Network TPS',indexedWindow:'Latest indexed window',blockTime:'Block time',observedAverage:'Observed average',indexedTxs:'Transactions indexed',verifiedIndexer:'Verified by the indexer',validators:'Validators',reportedRpc:'Reported by chain RPC',indexerSync:'Indexer sync',networkDetails:'Network details',networkDetailsCopy:'Current chain configuration',latestBlocks:'Real-time blocks',latestBlocksCopy:'Five newest finalized blocks, updated live',refresh:'Refresh',latestTransactions:'Real-time transactions',latestTransactionsCopy:'Five newest indexed transfers and actions',quickFindPlaceholder:'Find hash, address, amount…',accountLeaderboard:'YNXT account leaderboard',accountLeaderboardCopy:'Ranks full-ledger balances when available; otherwise shows a clearly labeled indexed-participant sample.',operational:'Network operational',degraded:'Upstream degraded',fullySynced:'Fully synchronized',catchingUp:'Indexer catching up',noMatching:'No matching transactions in the indexed transaction feed.',rpcResponding:'RPC and indexer are responding',live:'Live',unavailable:'Explorer data is temporarily unavailable.',reconnecting:'Reconnecting live data',fallback:'Using the ten-second snapshot fallback',historical:'Historical chain data is read-only. Viewing it cannot recreate state or submit a transaction.',economics:'A block is not a fixed YNXT reward. Fees and rewards follow chain economic parameters; this Explorer reports observed fees only.',fundsFlow:'Observed YNXT funds flow',incoming:'Incoming',outgoing:'Outgoing'},
+	  'zh-CN':{brand:'链上浏览器',navOverview:'概览',navBlockchain:'区块链',navAccounts:'账户',navValidators:'验证者',navResources:'资源',heroTitle:'YNX Chain 区块链浏览器',heroCopy:'查看公共测试网的实时区块、交易、验证者、账户、手续费与原生 YNXT 资源经济数据。',searchPlaceholder:'搜索区块、交易、ynx1/0x 地址、YNXT 或合约',search:'搜索',latestBlock:'最新区块',networkTps:'网络 TPS',indexedWindow:'最近索引窗口',blockTime:'平均出块时间',observedAverage:'实时观测平均值',indexedTxs:'已索引交易',verifiedIndexer:'由索引器验证',validators:'验证者',reportedRpc:'由链 RPC 报告',indexerSync:'索引同步',networkDetails:'网络详情',networkDetailsCopy:'当前链配置',latestBlocks:'实时出块',latestBlocksCopy:'最新 5 个最终区块，实时更新',refresh:'刷新',latestTransactions:'实时交易',latestTransactionsCopy:'最新 5 笔已索引转账与协议操作',quickFindPlaceholder:'查找哈希、地址、金额…',accountLeaderboard:'YNXT 账户富豪榜',accountLeaderboardCopy:'可用时按全账本余额排名，否则明确展示索引参与者样本。',operational:'网络运行正常',degraded:'上游服务降级',fullySynced:'已完全同步',catchingUp:'索引器正在追赶',noMatching:'索引交易中没有匹配项。',rpcResponding:'RPC 与索引器正在正常响应',live:'实时',unavailable:'浏览器数据暂时不可用。',reconnecting:'正在重连实时数据',fallback:'正在使用十秒快照回退',historical:'历史链上数据只读；查看旧记录不会重建状态或提交交易。',economics:'一个区块并不固定等于一个 YNXT。手续费和奖励遵循链上经济参数，本浏览器仅报告实际观测手续费。',fundsFlow:'已观测 YNXT 资金流',incoming:'流入',outgoing:'流出'},
+	  'zh-TW':{brand:'鏈上瀏覽器',navOverview:'概覽',navBlockchain:'區塊鏈',navAccounts:'帳戶',navValidators:'驗證者',navResources:'資源',heroTitle:'YNX Chain 區塊鏈瀏覽器',heroCopy:'查看公共測試網的即時區塊、交易、驗證者、帳戶、手續費與原生 YNXT 資源經濟資料。',searchPlaceholder:'搜尋區塊、交易、ynx1/0x 地址、YNXT 或合約',search:'搜尋',latestBlock:'最新區塊',networkTps:'網路 TPS',indexedWindow:'最近索引視窗',blockTime:'平均出塊時間',observedAverage:'即時觀測平均值',indexedTxs:'已索引交易',verifiedIndexer:'由索引器驗證',validators:'驗證者',reportedRpc:'由鏈 RPC 報告',indexerSync:'索引同步',networkDetails:'網路詳情',networkDetailsCopy:'目前鏈設定',latestBlocks:'即時區塊',latestBlocksCopy:'最新五個最終區塊，即時更新',refresh:'重新整理',latestTransactions:'即時交易',latestTransactionsCopy:'最新五筆已索引轉帳與操作',quickFindPlaceholder:'查找雜湊、地址、金額…',accountLeaderboard:'YNXT 帳戶排行榜',accountLeaderboardCopy:'可用時按完整帳本餘額排名，否則明確顯示索引參與者樣本。',operational:'網路運作正常',degraded:'上游服務降級',fullySynced:'已完全同步',catchingUp:'索引器追趕中',noMatching:'索引交易中沒有符合項目。',rpcResponding:'RPC 與索引器正常回應',live:'即時',unavailable:'瀏覽器資料暫時不可用。',reconnecting:'正在重新連線即時資料',fallback:'正在使用十秒快照備援',historical:'歷史鏈上資料唯讀；查看舊紀錄不會重建狀態或提交交易。',economics:'一個區塊不固定等於一個 YNXT。費用與獎勵依鏈上經濟參數，本瀏覽器僅顯示實際觀測費用。',fundsFlow:'已觀測 YNXT 資金流',incoming:'流入',outgoing:'流出'},
+	  ja:{brand:'チェーンエクスプローラー',navOverview:'概要',navBlockchain:'ブロックチェーン',navAccounts:'アカウント',navValidators:'バリデーター',navResources:'リソース',heroTitle:'YNX Chain ネットワークエクスプローラー',heroCopy:'公開テストネットのブロック、取引、バリデーター、アカウント、手数料、YNXT リソース経済をリアルタイム表示します。',searchPlaceholder:'ブロック、取引、ynx1/0x、YNXT、コントラクトを検索',search:'検索',latestBlock:'最新ブロック',networkTps:'ネットワーク TPS',indexedWindow:'最新インデックス範囲',blockTime:'ブロック時間',observedAverage:'観測平均',indexedTxs:'インデックス済み取引',verifiedIndexer:'インデクサーで検証',validators:'バリデーター',reportedRpc:'チェーン RPC の報告',indexerSync:'インデクサー同期',networkDetails:'ネットワーク詳細',networkDetailsCopy:'現在のチェーン設定',latestBlocks:'リアルタイムブロック',latestBlocksCopy:'最新5件の確定ブロック',refresh:'更新',latestTransactions:'リアルタイム取引',latestTransactionsCopy:'最新5件の取引と操作',quickFindPlaceholder:'ハッシュ、アドレス、金額…',accountLeaderboard:'YNXT アカウント順位',accountLeaderboardCopy:'利用可能なら全台帳、そうでなければ明記した索引参加者を表示します。',operational:'ネットワーク正常',degraded:'上流が低下',fullySynced:'同期済み',catchingUp:'追跡中',noMatching:'一致する取引はありません。',rpcResponding:'RPC とインデクサーは応答中',live:'ライブ',unavailable:'データは一時的に利用できません。',reconnecting:'ライブデータを再接続中',fallback:'10秒スナップショットを使用中',historical:'履歴データは読み取り専用です。過去の状態や取引を再作成しません。',economics:'1ブロックは固定1 YNXTではありません。報酬と手数料はチェーンの経済パラメータに従い、ここでは観測手数料のみを表示します。',fundsFlow:'観測済み YNXT 資金フロー',incoming:'入金',outgoing:'出金'},
+	  ko:{brand:'체인 탐색기',navOverview:'개요',navBlockchain:'블록체인',navAccounts:'계정',navValidators:'검증자',navResources:'리소스',heroTitle:'YNX Chain 네트워크 탐색기',heroCopy:'공개 테스트넷의 블록, 거래, 검증자, 계정, 수수료 및 YNXT 리소스 경제를 실시간으로 봅니다.',searchPlaceholder:'블록, 거래, ynx1/0x 주소, YNXT 또는 컨트랙트 검색',search:'검색',latestBlock:'최신 블록',networkTps:'네트워크 TPS',indexedWindow:'최신 인덱스 구간',blockTime:'블록 시간',observedAverage:'관측 평균',indexedTxs:'인덱싱된 거래',verifiedIndexer:'인덱서 검증',validators:'검증자',reportedRpc:'체인 RPC 보고',indexerSync:'인덱서 동기화',networkDetails:'네트워크 상세',networkDetailsCopy:'현재 체인 설정',latestBlocks:'실시간 블록',latestBlocksCopy:'최신 5개 확정 블록',refresh:'새로고침',latestTransactions:'실시간 거래',latestTransactionsCopy:'최신 5개 거래와 작업',quickFindPlaceholder:'해시, 주소, 금액 찾기…',accountLeaderboard:'YNXT 계정 순위',accountLeaderboardCopy:'가능하면 전체 원장, 아니면 명시된 인덱스 참여자 표본을 표시합니다.',operational:'네트워크 정상',degraded:'업스트림 저하',fullySynced:'동기화 완료',catchingUp:'인덱서 추적 중',noMatching:'일치하는 거래가 없습니다.',rpcResponding:'RPC와 인덱서 응답 중',live:'실시간',unavailable:'탐색기 데이터를 일시적으로 사용할 수 없습니다.',reconnecting:'실시간 데이터 재연결 중',fallback:'10초 스냅샷 대체 사용 중',historical:'과거 체인 데이터는 읽기 전용이며 상태나 거래를 다시 만들지 않습니다.',economics:'블록 하나가 고정 1 YNXT를 뜻하지 않습니다. 보상과 수수료는 체인 경제 매개변수를 따르며 관측 수수료만 표시합니다.',fundsFlow:'관측된 YNXT 자금 흐름',incoming:'유입',outgoing:'유출'},
+	  es:{brand:'Explorador de cadena',navOverview:'Resumen',navBlockchain:'Blockchain',navAccounts:'Cuentas',navValidators:'Validadores',navResources:'Recursos',heroTitle:'Explorador de la red YNX Chain',heroCopy:'Bloques, transacciones, validadores, cuentas, comisiones y economía YNXT en tiempo real desde la testnet pública.',searchPlaceholder:'Buscar bloque, transacción, dirección ynx1/0x, YNXT o contrato',search:'Buscar',latestBlock:'Último bloque',networkTps:'TPS de red',indexedWindow:'Ventana indexada',blockTime:'Tiempo de bloque',observedAverage:'Promedio observado',indexedTxs:'Transacciones indexadas',verifiedIndexer:'Verificado por el indexador',validators:'Validadores',reportedRpc:'Informado por RPC',indexerSync:'Sincronización',networkDetails:'Detalles de red',networkDetailsCopy:'Configuración actual',latestBlocks:'Bloques en tiempo real',latestBlocksCopy:'Cinco bloques finalizados más recientes',refresh:'Actualizar',latestTransactions:'Transacciones en tiempo real',latestTransactionsCopy:'Cinco transferencias y acciones recientes',quickFindPlaceholder:'Buscar hash, dirección, importe…',accountLeaderboard:'Clasificación de cuentas YNXT',accountLeaderboardCopy:'Muestra el libro completo cuando está disponible o una muestra indexada claramente indicada.',operational:'Red operativa',degraded:'Servicio degradado',fullySynced:'Totalmente sincronizado',catchingUp:'Indexador poniéndose al día',noMatching:'No hay transacciones coincidentes.',rpcResponding:'RPC e indexador responden',live:'En vivo',unavailable:'Los datos no están disponibles temporalmente.',reconnecting:'Reconectando datos en vivo',fallback:'Usando instantánea cada diez segundos',historical:'Los datos históricos son de solo lectura; no recrean estado ni envían transacciones.',economics:'Un bloque no equivale a un YNXT fijo. Comisiones y recompensas siguen los parámetros económicos; solo se muestran comisiones observadas.',fundsFlow:'Flujo YNXT observado',incoming:'Entrante',outgoing:'Saliente'},
+	  fr:{brand:'Explorateur de chaîne',navOverview:'Vue générale',navBlockchain:'Blockchain',navAccounts:'Comptes',navValidators:'Validateurs',navResources:'Ressources',heroTitle:'Explorateur du réseau YNX Chain',heroCopy:'Blocs, transactions, validateurs, comptes, frais et économie YNXT en direct depuis le testnet public.',searchPlaceholder:'Rechercher bloc, transaction, adresse ynx1/0x, YNXT ou contrat',search:'Rechercher',latestBlock:'Dernier bloc',networkTps:'TPS réseau',indexedWindow:'Fenêtre indexée',blockTime:'Temps de bloc',observedAverage:'Moyenne observée',indexedTxs:'Transactions indexées',verifiedIndexer:'Vérifié par l’indexeur',validators:'Validateurs',reportedRpc:'Rapporté par le RPC',indexerSync:'Synchronisation',networkDetails:'Détails réseau',networkDetailsCopy:'Configuration actuelle',latestBlocks:'Blocs en temps réel',latestBlocksCopy:'Cinq derniers blocs finalisés',refresh:'Actualiser',latestTransactions:'Transactions en temps réel',latestTransactionsCopy:'Cinq derniers transferts et actions',quickFindPlaceholder:'Trouver hash, adresse, montant…',accountLeaderboard:'Classement des comptes YNXT',accountLeaderboardCopy:'Affiche le registre complet si disponible, sinon un échantillon indexé clairement signalé.',operational:'Réseau opérationnel',degraded:'Service amont dégradé',fullySynced:'Entièrement synchronisé',catchingUp:'Indexeur en rattrapage',noMatching:'Aucune transaction correspondante.',rpcResponding:'RPC et indexeur répondent',live:'Direct',unavailable:'Les données sont temporairement indisponibles.',reconnecting:'Reconnexion des données en direct',fallback:'Instantané de secours toutes les dix secondes',historical:'Les données historiques sont en lecture seule et ne recréent ni état ni transaction.',economics:'Un bloc ne vaut pas un YNXT fixe. Frais et récompenses suivent les paramètres économiques; seuls les frais observés sont affichés.',fundsFlow:'Flux YNXT observé',incoming:'Entrant',outgoing:'Sortant'},
+	  de:{brand:'Chain Explorer',navOverview:'Übersicht',navBlockchain:'Blockchain',navAccounts:'Konten',navValidators:'Validatoren',navResources:'Ressourcen',heroTitle:'YNX Chain Netzwerk-Explorer',heroCopy:'Live-Blöcke, Transaktionen, Validatoren, Konten, Gebühren und YNXT-Ressourcenökonomie aus dem öffentlichen Testnet.',searchPlaceholder:'Block, Transaktion, ynx1/0x-Adresse, YNXT oder Vertrag suchen',search:'Suchen',latestBlock:'Neuester Block',networkTps:'Netzwerk-TPS',indexedWindow:'Indexiertes Fenster',blockTime:'Blockzeit',observedAverage:'Beobachteter Mittelwert',indexedTxs:'Indexierte Transaktionen',verifiedIndexer:'Vom Indexer verifiziert',validators:'Validatoren',reportedRpc:'Von Chain-RPC gemeldet',indexerSync:'Indexer-Synchronisierung',networkDetails:'Netzwerkdetails',networkDetailsCopy:'Aktuelle Chain-Konfiguration',latestBlocks:'Echtzeit-Blöcke',latestBlocksCopy:'Fünf neueste finalisierte Blöcke',refresh:'Aktualisieren',latestTransactions:'Echtzeit-Transaktionen',latestTransactionsCopy:'Fünf neueste Transfers und Aktionen',quickFindPlaceholder:'Hash, Adresse, Betrag finden…',accountLeaderboard:'YNXT-Kontenrangliste',accountLeaderboardCopy:'Zeigt wenn verfügbar das Gesamtledger, sonst eine klar markierte Index-Stichprobe.',operational:'Netzwerk betriebsbereit',degraded:'Upstream beeinträchtigt',fullySynced:'Vollständig synchronisiert',catchingUp:'Indexer holt auf',noMatching:'Keine passenden Transaktionen.',rpcResponding:'RPC und Indexer antworten',live:'Live',unavailable:'Explorer-Daten sind vorübergehend nicht verfügbar.',reconnecting:'Live-Daten werden neu verbunden',fallback:'Zehn-Sekunden-Snapshot wird verwendet',historical:'Historische Chain-Daten sind schreibgeschützt und erzeugen keinen Zustand oder Transaktionen neu.',economics:'Ein Block entspricht nicht fest einem YNXT. Gebühren und Belohnungen folgen den Wirtschaftsparametern; angezeigt werden nur beobachtete Gebühren.',fundsFlow:'Beobachteter YNXT-Geldfluss',incoming:'Eingang',outgoing:'Ausgang'},
+	  pt:{brand:'Explorador da cadeia',navOverview:'Visão geral',navBlockchain:'Blockchain',navAccounts:'Contas',navValidators:'Validadores',navResources:'Recursos',heroTitle:'Explorador da rede YNX Chain',heroCopy:'Blocos, transações, validadores, contas, taxas e economia YNXT em tempo real da testnet pública.',searchPlaceholder:'Buscar bloco, transação, endereço ynx1/0x, YNXT ou contrato',search:'Buscar',latestBlock:'Bloco mais recente',networkTps:'TPS da rede',indexedWindow:'Janela indexada',blockTime:'Tempo de bloco',observedAverage:'Média observada',indexedTxs:'Transações indexadas',verifiedIndexer:'Verificado pelo indexador',validators:'Validadores',reportedRpc:'Informado pelo RPC',indexerSync:'Sincronização',networkDetails:'Detalhes da rede',networkDetailsCopy:'Configuração atual',latestBlocks:'Blocos em tempo real',latestBlocksCopy:'Cinco blocos finalizados mais recentes',refresh:'Atualizar',latestTransactions:'Transações em tempo real',latestTransactionsCopy:'Cinco transferências e ações mais recentes',quickFindPlaceholder:'Localizar hash, endereço, valor…',accountLeaderboard:'Ranking de contas YNXT',accountLeaderboardCopy:'Mostra o livro completo quando disponível ou uma amostra indexada claramente indicada.',operational:'Rede operacional',degraded:'Serviço degradado',fullySynced:'Totalmente sincronizado',catchingUp:'Indexador atualizando',noMatching:'Nenhuma transação correspondente.',rpcResponding:'RPC e indexador respondendo',live:'Ao vivo',unavailable:'Dados temporariamente indisponíveis.',reconnecting:'Reconectando dados ao vivo',fallback:'Usando instantâneo de dez segundos',historical:'Dados históricos são somente leitura e não recriam estado nem enviam transações.',economics:'Um bloco não equivale a um YNXT fixo. Taxas e recompensas seguem os parâmetros econômicos; apenas taxas observadas são exibidas.',fundsFlow:'Fluxo YNXT observado',incoming:'Entrada',outgoing:'Saída'},
+	  ru:{brand:'Обозреватель сети',navOverview:'Обзор',navBlockchain:'Блокчейн',navAccounts:'Счета',navValidators:'Валидаторы',navResources:'Ресурсы',heroTitle:'Обозреватель сети YNX Chain',heroCopy:'Блоки, транзакции, валидаторы, счета, комиссии и экономика YNXT в реальном времени из публичной тестовой сети.',searchPlaceholder:'Поиск блока, транзакции, адреса ynx1/0x, YNXT или контракта',search:'Найти',latestBlock:'Последний блок',networkTps:'TPS сети',indexedWindow:'Окно индекса',blockTime:'Время блока',observedAverage:'Наблюдаемое среднее',indexedTxs:'Проиндексировано',verifiedIndexer:'Проверено индексатором',validators:'Валидаторы',reportedRpc:'По данным RPC',indexerSync:'Синхронизация',networkDetails:'Сведения о сети',networkDetailsCopy:'Текущая конфигурация',latestBlocks:'Блоки в реальном времени',latestBlocksCopy:'Пять последних финализированных блоков',refresh:'Обновить',latestTransactions:'Транзакции в реальном времени',latestTransactionsCopy:'Пять последних переводов и действий',quickFindPlaceholder:'Хэш, адрес, сумма…',accountLeaderboard:'Рейтинг счетов YNXT',accountLeaderboardCopy:'Показывает весь реестр, если доступен, иначе явно отмеченную индексированную выборку.',operational:'Сеть работает',degraded:'Сервис деградирован',fullySynced:'Полностью синхронизировано',catchingUp:'Индексатор догоняет',noMatching:'Совпадающих транзакций нет.',rpcResponding:'RPC и индексатор отвечают',live:'В эфире',unavailable:'Данные временно недоступны.',reconnecting:'Переподключение данных',fallback:'Используется снимок каждые десять секунд',historical:'Исторические данные доступны только для чтения и не создают состояние или транзакции заново.',economics:'Блок не равен фиксированному одному YNXT. Комиссии и награды следуют экономическим параметрам; показаны только наблюдаемые комиссии.',fundsFlow:'Наблюдаемый поток YNXT',incoming:'Входящие',outgoing:'Исходящие'},
+	  ar:{brand:'مستكشف السلسلة',navOverview:'نظرة عامة',navBlockchain:'سلسلة الكتل',navAccounts:'الحسابات',navValidators:'المدققون',navResources:'الموارد',heroTitle:'مستكشف شبكة YNX Chain',heroCopy:'كتل ومعاملات ومدققون وحسابات ورسوم واقتصاد موارد YNXT مباشرة من شبكة الاختبار العامة.',searchPlaceholder:'ابحث عن كتلة أو معاملة أو عنوان ynx1/0x أو YNXT أو عقد',search:'بحث',latestBlock:'أحدث كتلة',networkTps:'معاملات الشبكة/ث',indexedWindow:'نافذة الفهرسة',blockTime:'زمن الكتلة',observedAverage:'المتوسط المرصود',indexedTxs:'المعاملات المفهرسة',verifiedIndexer:'تحقق منها المفهرس',validators:'المدققون',reportedRpc:'وفق RPC السلسلة',indexerSync:'مزامنة المفهرس',networkDetails:'تفاصيل الشبكة',networkDetailsCopy:'إعداد السلسلة الحالي',latestBlocks:'الكتل المباشرة',latestBlocksCopy:'أحدث خمس كتل نهائية',refresh:'تحديث',latestTransactions:'المعاملات المباشرة',latestTransactionsCopy:'أحدث خمس تحويلات وإجراءات',quickFindPlaceholder:'ابحث عن تجزئة أو عنوان أو مبلغ…',accountLeaderboard:'ترتيب حسابات YNXT',accountLeaderboardCopy:'يعرض دفتر الحسابات الكامل عند توفره، وإلا عينة مفهرسة موضحة بوضوح.',operational:'الشبكة تعمل',degraded:'تراجع خدمة المصدر',fullySynced:'متزامن بالكامل',catchingUp:'المفهرس يلحق بالشبكة',noMatching:'لا توجد معاملات مطابقة.',rpcResponding:'RPC والمفهرس يستجيبان',live:'مباشر',unavailable:'بيانات المستكشف غير متاحة مؤقتًا.',reconnecting:'إعادة اتصال البيانات المباشرة',fallback:'استخدام لقطة احتياطية كل عشر ثوانٍ',historical:'بيانات السلسلة التاريخية للقراءة فقط ولا تعيد إنشاء الحالة أو إرسال معاملة.',economics:'لا تساوي الكتلة الواحدة مقدارًا ثابتًا من YNXT. تتبع الرسوم والمكافآت معلمات اقتصاد السلسلة، ويعرض المستكشف الرسوم المرصودة فقط.',fundsFlow:'تدفق أموال YNXT المرصود',incoming:'وارد',outgoing:'صادر'},
+	  id:{brand:'Penjelajah rantai',navOverview:'Ringkasan',navBlockchain:'Blockchain',navAccounts:'Akun',navValidators:'Validator',navResources:'Sumber daya',heroTitle:'Penjelajah jaringan YNX Chain',heroCopy:'Blok, transaksi, validator, akun, biaya, dan ekonomi YNXT langsung dari testnet publik.',searchPlaceholder:'Cari blok, transaksi, alamat ynx1/0x, YNXT, atau kontrak',search:'Cari',latestBlock:'Blok terbaru',networkTps:'TPS jaringan',indexedWindow:'Jendela indeks',blockTime:'Waktu blok',observedAverage:'Rata-rata teramati',indexedTxs:'Transaksi terindeks',verifiedIndexer:'Diverifikasi pengindeks',validators:'Validator',reportedRpc:'Dilaporkan RPC',indexerSync:'Sinkronisasi pengindeks',networkDetails:'Detail jaringan',networkDetailsCopy:'Konfigurasi rantai saat ini',latestBlocks:'Blok waktu nyata',latestBlocksCopy:'Lima blok final terbaru',refresh:'Muat ulang',latestTransactions:'Transaksi waktu nyata',latestTransactionsCopy:'Lima transfer dan tindakan terbaru',quickFindPlaceholder:'Cari hash, alamat, jumlah…',accountLeaderboard:'Peringkat akun YNXT',accountLeaderboardCopy:'Menampilkan ledger penuh bila tersedia, atau sampel peserta indeks yang diberi label jelas.',operational:'Jaringan beroperasi',degraded:'Layanan hulu menurun',fullySynced:'Tersinkron penuh',catchingUp:'Pengindeks mengejar',noMatching:'Tidak ada transaksi yang cocok.',rpcResponding:'RPC dan pengindeks merespons',live:'Langsung',unavailable:'Data sementara tidak tersedia.',reconnecting:'Menyambungkan ulang data langsung',fallback:'Menggunakan snapshot cadangan sepuluh detik',historical:'Data historis hanya-baca dan tidak membuat ulang status atau mengirim transaksi.',economics:'Satu blok bukan satu YNXT tetap. Biaya dan imbalan mengikuti parameter ekonomi rantai; hanya biaya teramati yang ditampilkan.',fundsFlow:'Arus dana YNXT teramati',incoming:'Masuk',outgoing:'Keluar'}
+	};
+	const supportedLocales = Object.keys(messages);
+	const browserLocale = navigator.language;
+	let language = localStorage.getItem('ynx-explorer-language') || (supportedLocales.includes(browserLocale) ? browserLocale : (browserLocale.toLowerCase().startsWith('zh') ? 'zh-CN' : 'en'));
     const t = key => messages[language]?.[key] || messages.en[key] || key;
     function applyLanguage(nextLanguage) {
       language = messages[nextLanguage] ? nextLanguage : 'en';
       localStorage.setItem('ynx-explorer-language',language);
-      document.documentElement.lang = language === 'zh' ? 'zh-CN' : 'en';
+	  document.documentElement.lang = language;
+	  document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr';
       document.querySelectorAll('[data-i18n]').forEach(node => { node.textContent = t(node.dataset.i18n); });
       document.querySelectorAll('[data-i18n-placeholder]').forEach(node => { node.placeholder = t(node.dataset.i18nPlaceholder); });
       $('languageSelect').value = language;
@@ -388,30 +424,26 @@ const indexHTML = `<!doctype html>
     }
     const escapeHTML = (value) => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     const compact = (value, start = 10, end = 7) => { const text = String(value ?? ''); return text.length > start + end + 3 ? text.slice(0,start) + '...' + text.slice(-end) : text || '--'; };
-    const number = (value) => new Intl.NumberFormat('en-US').format(Number(value || 0));
+	const number = (value) => new Intl.NumberFormat(language).format(Number(value || 0));
     const relativeTime = (value) => {
       const seconds = Math.max(0, Math.floor((Date.now() - new Date(value).getTime()) / 1000));
       if (!Number.isFinite(seconds)) return 'Time unavailable';
-      if (language === 'zh') {
-        if (seconds < 60) return seconds + ' 秒前';
-        if (seconds < 3600) return Math.floor(seconds / 60) + ' 分钟前';
-        return Math.floor(seconds / 3600) + ' 小时前';
-      }
-      if (seconds < 60) return seconds + ' seconds ago';
-      if (seconds < 3600) return Math.floor(seconds / 60) + ' minutes ago';
-      return Math.floor(seconds / 3600) + ' hours ago';
+	  const formatter = new Intl.RelativeTimeFormat(language,{numeric:'always'});
+	  if (seconds < 60) return formatter.format(-seconds,'second');
+	  if (seconds < 3600) return formatter.format(-Math.floor(seconds / 60),'minute');
+	  return formatter.format(-Math.floor(seconds / 3600),'hour');
     };
     const exactTime = (value) => { const date = new Date(value); return Number.isNaN(date.getTime()) ? '--' : date.toLocaleString([], {dateStyle:'medium',timeStyle:'medium'}); };
     async function get(path) {
       const response = await fetch(api + path, {headers:{accept:'application/json'}});
-      if (!response.ok) { let detail = ''; try { detail = (await response.json()).error || ''; } catch (_) {} throw new Error(detail || path + ' returned ' + response.status); }
+	  if (!response.ok) { let detail = ''; try { const failure = await response.json(); detail = failure.message || ''; } catch (_) {} throw new Error(detail || t('unavailable')); }
       return response.json();
     }
     function removeSkeletons() { document.querySelectorAll('.skeleton').forEach(node => node.classList.remove('skeleton')); }
     function blockRow(block,index = 0) {
       const txs = (block.transactions || []).length;
       const isNew = index === 0 && previousHeight && Number(block.height) > previousHeight;
-      return '<button class="live-row block-live-row' + (txs === 0 ? ' empty-block-row' : '') + (isNew ? ' new-row' : '') + '" type="button" data-query="' + escapeHTML(block.height) + '"><span class="row-icon">BK</span><span><span class="row-title"><span class="link mono">#' + escapeHTML(number(block.height)) + '</span><span class="type-tag">' + (txs === 0 ? (language === 'zh' ? '空区块' : 'Empty') : (language === 'zh' ? '已最终确定' : 'Finalized')) + '</span></span><span class="row-subtitle"><span class="mono hash" title="' + escapeHTML(block.hash) + '">' + escapeHTML(compact(block.hash,14,9)) + '</span></span></span><span class="row-side"><strong>' + txs + (language === 'zh' ? ' 笔交易' : (txs === 1 ? ' tx' : ' txs')) + '</strong><span title="' + escapeHTML(exactTime(block.time)) + '">' + escapeHTML(relativeTime(block.time)) + '</span></span></button>';
+	  return '<button class="live-row block-live-row' + (txs === 0 ? ' empty-block-row' : '') + (isNew ? ' new-row' : '') + '" type="button" data-query="' + escapeHTML(block.height) + '"><span class="row-icon">BK</span><span><span class="row-title"><span class="link mono">#' + escapeHTML(number(block.height)) + '</span><span class="type-tag">' + (txs === 0 ? (language.startsWith('zh') ? '空区块' : 'Empty') : (language.startsWith('zh') ? '已最终确定' : 'Finalized')) + '</span></span><span class="row-subtitle"><span class="mono hash" title="' + escapeHTML(block.hash) + '">' + escapeHTML(compact(block.hash,14,9)) + '</span></span></span><span class="row-side"><strong>' + txs + (language.startsWith('zh') ? ' 笔交易' : (txs === 1 ? ' tx' : ' txs')) + '</strong><span title="' + escapeHTML(exactTime(block.time)) + '">' + escapeHTML(relativeTime(block.time)) + '</span></span></button>';
     }
     function txRow(tx,index = 0) {
       const isNew = index === 0 && previousTxHash && tx.hash !== previousTxHash;
@@ -433,7 +465,8 @@ const indexHTML = `<!doctype html>
       const filter = $('txFilter').value;
       const query = String($('txQuickFind').value || '').trim().toLowerCase();
       const filtered = latestTransactions.filter(tx => (filter === 'all' || (filter === 'resource' ? String(tx.type).includes('resource') : tx.type === filter)) && (!query || [tx.hash,tx.from,tx.to,tx.type,tx.amount,tx.fee,tx.blockNumber].some(value => String(value ?? '').toLowerCase().includes(query))));
-      $('txsBody').innerHTML = filtered.length ? filtered.slice(0,5).map(txRow).join('') : '<div class="empty">' + escapeHTML(t('noMatching')) + '</div>';
+	  $('txsBody').innerHTML = filtered.length ? filtered.slice(0,transactionDisplayLimit).map(txRow).join('') : '<div class="empty">' + escapeHTML(t('noMatching')) + '</div>';
+	  $('olderTransactions').hidden = !transactionCursor;
       bindQueries();
     }
     function renderBlockTrack(blocks,incomingHeight) {
@@ -441,7 +474,7 @@ const indexHTML = `<!doctype html>
       $('blockTrack').innerHTML = blocks.slice(0,8).map((block,index) => {
         const arrived = index === 0 && previousHeight && incomingHeight > previousHeight;
         const txs = (block.transactions || []).length;
-        return '<button class="block-chip' + (txs === 0 ? ' empty-block' : '') + (arrived ? ' new' : '') + '" type="button" data-query="' + escapeHTML(block.height) + '"><strong class="mono">#' + escapeHTML(number(block.height)) + '</strong><span>' + (txs === 0 ? (language === 'zh' ? '空区块' : 'empty') : txs + (language === 'zh' ? ' 笔' : (txs === 1 ? ' tx' : ' txs'))) + ' / ' + escapeHTML(relativeTime(block.time)) + '</span></button>';
+		return '<button class="block-chip' + (txs === 0 ? ' empty-block' : '') + (arrived ? ' new' : '') + '" type="button" data-query="' + escapeHTML(block.height) + '"><strong class="mono">#' + escapeHTML(number(block.height)) + '</strong><span>' + (txs === 0 ? (language.startsWith('zh') ? '空区块' : 'empty') : txs + (language.startsWith('zh') ? ' 笔' : (txs === 1 ? ' tx' : ' txs'))) + ' / ' + escapeHTML(relativeTime(block.time)) + '</span></button>';
       }).join('') || '<div class="empty">No finalized blocks yet.</div>';
     }
     function renderIntelligence(validatorData, resources) {
@@ -467,9 +500,14 @@ const indexHTML = `<!doctype html>
     }
     function renderAccounts(leaderboard) {
       const accounts = leaderboard?.accounts || [];
+	  if (leaderboard?.failed) {
+		$('accountTotal').textContent = t('unavailable');
+		$('accountsBody').innerHTML = '<tr><td colspan="5" class="empty">' + escapeHTML(t('unavailable')) + '</td></tr>';
+		return;
+	  }
       const observed = leaderboard?.truthfulStatus === 'observed-indexed-participant-account-ranking';
-      $('accountTotal').textContent = number(leaderboard?.total || accounts.length) + (observed ? (language === 'zh' ? ' 个已观测账户 / 展示前 ' : ' observed accounts / top ') : (language === 'zh' ? ' 个全账本账户 / 展示前 ' : ' public accounts / top ')) + number(accounts.length);
-      $('accountsBody').innerHTML = accounts.length ? accounts.map((account,index) => '<tr data-query="' + escapeHTML(account.address) + '"><td><strong>#' + (index + 1) + '</strong></td><td><span class="link mono hash" title="' + escapeHTML(account.address) + '">' + escapeHTML(account.address) + '</span></td><td class="amount">' + escapeHTML(number(account.balance)) + ' YNXT</td><td>' + escapeHTML(number(account.staked)) + ' YNXT</td><td class="mono">' + escapeHTML(number(account.nonce)) + '</td></tr>').join('') : '<tr><td colspan="5" class="empty">' + (language === 'zh' ? '暂未发现可验证的已索引账户余额。' : 'No verifiable indexed account balances are available yet.') + '</td></tr>';
+	  $('accountTotal').textContent = number(leaderboard?.total || accounts.length) + (observed ? (language.startsWith('zh') ? ' 个已观测账户 / 展示前 ' : ' observed accounts / top ') : (language.startsWith('zh') ? ' 个全账本账户 / 展示前 ' : ' public accounts / top ')) + number(accounts.length) + ' · ' + exactTime(leaderboard?.checkedAt);
+	  $('accountsBody').innerHTML = accounts.length ? accounts.map((account,index) => '<tr data-query="' + escapeHTML(account.address) + '"><td><strong>#' + (index + 1) + '</strong></td><td><span class="link mono hash" title="' + escapeHTML(account.address) + '">' + escapeHTML(account.address) + '</span></td><td class="amount">' + escapeHTML(number(account.balance)) + ' YNXT</td><td>' + escapeHTML(number(account.staked)) + ' YNXT</td><td class="mono">' + escapeHTML(number(account.nonce)) + '</td></tr>').join('') : '<tr><td colspan="5" class="empty">' + (language.startsWith('zh') ? '暂未发现可验证的已索引账户余额。' : 'No verifiable indexed account balances are available yet.') + '</td></tr>';
       bindQueries();
     }
     function bindQueries() {
@@ -480,6 +518,7 @@ const indexHTML = `<!doctype html>
       const windowStats = calculateWindow(blocks);
       const incomingHeight = Number(summary.rpcHeight || 0);
       walletConfig = summary.wallet;
+	  latestBlocks = blocks;
       latestTransactions = transactions;
       $('networkName').textContent = summary.network.name || 'YNX Testnet';
       $('rpcHeight').textContent = number(summary.rpcHeight);
@@ -487,7 +526,7 @@ const indexHTML = `<!doctype html>
       $('blockTime').textContent = windowStats.blockTime.toFixed(1) + 's';
       $('txCount').textContent = number(summary.indexedTxCount);
       $('validatorCount').textContent = number(summary.validatorCount);
-      $('syncValue').textContent = number(summary.syncLagBlocks) + (language === 'zh' ? ' 个区块' : (summary.syncLagBlocks === 1 ? ' block' : ' blocks'));
+	  $('syncValue').textContent = number(summary.syncLagBlocks) + (language.startsWith('zh') ? ' 个区块' : (summary.syncLagBlocks === 1 ? ' block' : ' blocks'));
       $('syncState').textContent = summary.syncLagBlocks === 0 ? t('fullySynced') : t('catchingUp');
       $('syncState').className = 'metric-foot' + (summary.syncLagBlocks === 0 ? ' good' : '');
       $('blockAge').textContent = relativeTime(summary.latestBlockTime);
@@ -500,13 +539,14 @@ const indexHTML = `<!doctype html>
       $('lastUpdated').textContent = 'Updated ' + new Date(summary.lastCheckedAt).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'});
       $('heroHeight').textContent = 'Block #' + number(summary.rpcHeight) + ' / ' + number(summary.syncLagBlocks) + '-block index lag';
       document.title = 'Block ' + number(summary.rpcHeight) + ' | YNX Chain Explorer';
-      $('blocksBody').innerHTML = blocks.length ? blocks.slice(0,5).map(blockRow).join('') : '<div class="empty">No indexed blocks yet.</div>';
+	  $('blocksBody').innerHTML = blocks.length ? blocks.slice(0,blockDisplayLimit).map(blockRow).join('') : '<div class="empty">No indexed blocks yet.</div>';
+	  $('olderBlocks').hidden = !blockCursor;
       renderTransactions();
       renderBlockTrack(blocks,incomingHeight);
       renderIntelligence(validatorData, resources);
       bindQueries();
       $('statusText').textContent = summary.ok ? t('operational') : t('degraded');
-      $('statusDetail').textContent = summary.ok ? source + ' / ' + t('rpcResponding') : (summary.indexerError || (language === 'zh' ? '一个或多个上游服务已降级' : 'One or more upstream services are degraded'));
+	  $('statusDetail').textContent = summary.ok ? source + ' / ' + t('rpcResponding') : t('unavailable');
       $('status').className = 'status-bar' + (summary.ok ? '' : ' warn');
       if (incomingHeight > previousHeight) {
         const metric = $('rpcHeight').closest('.metric');
@@ -527,8 +567,10 @@ const indexHTML = `<!doctype html>
         get('/api/txs?limit=12'),
         get('/api/validators').catch(() => ({})),
         get('/api/resource-market/analytics').catch(() => ({})),
-        get('/api/accounts?limit=10').catch(() => ({accounts:[],total:0}))
+		get('/api/accounts?limit=10').catch(() => ({accounts:[],total:0,failed:true}))
       ]);
+	  blockCursor = blockData.nextCursor || '';
+	  transactionCursor = txData.nextCursor || '';
       renderDashboard(summary, blockData.blocks, txData.transactions, validators, resources, 'Manual snapshot');
       renderAccounts(leaderboard);
     }
@@ -556,12 +598,12 @@ const indexHTML = `<!doctype html>
           stopFallbackPolling();
         } catch (error) { showLoadError(error); }
       });
-      eventSource.addEventListener('upstream-error', event => {
-        try { showLoadError(new Error(JSON.parse(event.data).error || 'Live upstream error')); } catch (_) { showLoadError(new Error('Live upstream error')); }
+	  eventSource.addEventListener('upstream-error', event => {
+		try { showLoadError(new Error(JSON.parse(event.data).message || t('unavailable'))); } catch (_) { showLoadError(new Error(t('unavailable'))); }
       });
       eventSource.onerror = () => {
-        $('statusText').textContent = 'Reconnecting live data';
-        $('statusDetail').textContent = 'Using 10-second snapshot fallback';
+		$('statusText').textContent = t('reconnecting');
+		$('statusDetail').textContent = t('fallback');
         $('status').className = 'status-bar warn';
         $('streamClock').className = 'stream-clock stale';
         $('streamClockText').textContent = 'Stream reconnecting';
@@ -579,21 +621,32 @@ const indexHTML = `<!doctype html>
       if (type === 'transaction' && detail.sponsor) return [['Resource',number(detail.resourceConsumed) + ' ' + String(detail.resourceType || 'units').replaceAll('_',' ')],['Sponsor',compact(detail.sponsor,10,7)],['Pool',compact(detail.sponsorPoolId,10,7)]];
       if (type === 'transaction') return [['Amount',number(detail.amount) + ' YNXT'],['Fee',number(detail.fee) + ' YNXT'],['Block','#' + number(detail.blockNumber)]];
       if (type === 'account') return [['YNX address',compact(detail.addressFormats?.ynxAddress || detail.account?.address,14,10)],['Balance',number(detail.account?.balance) + ' YNXT'],['Staked',number(detail.account?.staked) + ' YNXT'],['Nonce',number(detail.account?.nonce)]];
+	  if (type === 'token') return [['Symbol',detail.symbol],['Decimals',number(detail.decimals)],['Network',detail.network?.name || '--']];
+	  if (type === 'contract') return [['Name',detail.name || '--'],['Verified',detail.verified ? 'Yes' : 'No'],['Runtime',detail.runtimeMode || '--']];
       return [];
     }
     function detailRows(type,detail) {
-      if (type !== 'account') return flatten(detail);
-      const account = {...(detail.account || {})};
-      delete account.address;
-      const rest = {...detail,account};
-      delete rest.addressFormats;
-      return [
-        ['YNX native address (default)',detail.addressFormats?.ynxAddress || detail.account?.address || 'unavailable'],
-        ['EVM compatibility address',detail.addressFormats?.evmAddress || detail.account?.address || 'unavailable'],
-        ...flatten(rest)
-      ];
+	  if (type === 'transaction') return [['Status',detail.status],['From',detail.from || 'unavailable'],['To',detail.to || 'unavailable'],['Amount',number(detail.amount) + ' YNXT'],['Gas / fee',number(detail.gas?.feeYnxt ?? detail.fee) + ' YNXT'],['Block','#' + number(detail.blockNumber)],['Block hash',detail.blockHash],['Time',exactTime(detail.timestamp)],['Nonce',number(detail.nonce)],['Events',(detail.events || []).length ? JSON.stringify(detail.events) : 'None'],['Type',detail.type]];
+	  if (type === 'block') return [['Height','#' + number(detail.height)],['Hash',detail.hash],['Parent hash',detail.parentHash],['Validator',detail.validator],['Time',exactTime(detail.time)],['Transactions',(detail.transactions || []).length]];
+	  if (type === 'contract') return [['Address',detail.address],['Deployer',detail.deployer],['Name',detail.name],['Source hash',detail.sourceHash],['Bytecode hash',detail.deployedBytecodeHash],['Compiler',detail.compiler?.version || detail.compilerMode],['Verified',detail.verified],['Functions',(detail.functions || []).length],['Events',(detail.events || []).length],['Deployed at',exactTime(detail.deployedAt)]];
+	  if (type === 'token') return [['Symbol',detail.symbol],['Name',detail.name],['Type',detail.type],['Decimals',detail.decimals],['Network',detail.network?.name],['Usage',(detail.usage || []).join(', ')],['Source status',detail.truthfulStatus]];
+	  if (type !== 'account') return flatten(detail);
+	  return [['YNX native address (default)',detail.addressFormats?.ynxAddress || detail.account?.address || 'unavailable'],['EVM compatibility address',detail.addressFormats?.evmAddress || detail.account?.address || 'unavailable'],['Liquid balance',number(detail.account?.balance) + ' YNXT'],['Staked',number(detail.account?.staked) + ' YNXT'],['Nonce',number(detail.account?.nonce)],['Indexed history coverage','Through block #' + number(detail.activity?.lastIndexedHeight)],['Indexed activity',(detail.activity?.transactions || []).map(tx => tx.hash + ' / ' + tx.type + ' / ' + number(tx.amount) + ' YNXT').join('\n') || 'None'],['Contract activity',number(detail.activity?.contractActivityCount)],['Data checked at',exactTime(detail.activity?.checkedAt)]];
     }
+	function detailExtra(type,detail) {
+	  let html = '';
+	  if (type === 'account' && detail.activity?.fundsFlow) {
+		const flow = detail.activity.fundsFlow;
+		const maxFlow = Math.max(1,Number(flow.inboundYnxt || 0),Number(flow.outboundYnxt || 0));
+		html += '<section class="flow-visual" aria-label="' + escapeHTML(t('fundsFlow')) + '"><h3>' + escapeHTML(t('fundsFlow')) + '</h3><div class="flow-line"><span>' + escapeHTML(t('incoming')) + '</span><span class="flow-meter"><span style="width:' + Math.round(Number(flow.inboundYnxt || 0) / maxFlow * 100) + '%"></span></span><strong>' + escapeHTML(number(flow.inboundYnxt)) + ' YNXT</strong></div><div class="flow-line out"><span>' + escapeHTML(t('outgoing')) + '</span><span class="flow-meter"><span style="width:' + Math.round(Number(flow.outboundYnxt || 0) / maxFlow * 100) + '%"></span></span><strong>' + escapeHTML(number(flow.outboundYnxt)) + ' YNXT</strong></div></section>';
+		if (detail.activity.nextCursor) html += '<div class="detail-notice"><button class="refresh" type="button" data-activity-cursor="' + escapeHTML(detail.activity.nextCursor) + '">Load older indexed activity</button></div>';
+	  }
+	  if (type === 'block') html += '<p class="detail-notice">' + escapeHTML(t('historical')) + ' ' + escapeHTML(t('economics')) + '</p>';
+	  if (type === 'transaction' && detail.historicalNotice) html += '<p class="detail-notice">' + escapeHTML(t('historical')) + '</p>';
+	  return html;
+	}
     function showDrawer(type,query,detail) {
+	  currentDetailType = type; currentDetailQuery = query; currentDetail = detail;
       const title = type.charAt(0).toUpperCase() + type.slice(1);
       $('detailKicker').textContent = 'Live ' + type + ' detail';
       $('detailTitle').textContent = type === 'account' ? compact(detail.addressFormats?.ynxAddress || query,18,12) : title;
@@ -604,7 +657,7 @@ const indexHTML = `<!doctype html>
         const copy = text.length > 10 ? '<button class="copy-button" type="button" data-copy="' + encodeURIComponent(text) + '" aria-label="Copy value">Copy</button>' : '';
         return '<div class="detail-row"><dt>' + escapeHTML(key) + '</dt><dd class="mono">' + escapeHTML(text) + '</dd>' + copy + '</div>';
       }).join('');
-      $('detailContent').innerHTML = summary + '<dl class="detail-body">' + rows + '</dl>';
+	  $('detailContent').innerHTML = summary + detailExtra(type,detail) + '<dl class="detail-body">' + rows + '</dl>';
       $('detailBackdrop').classList.add('visible');
       $('detailBackdrop').setAttribute('aria-hidden','false');
       document.body.style.overflow = 'hidden';
@@ -621,7 +674,7 @@ const indexHTML = `<!doctype html>
       window.clearTimeout(toastTimer);
       toastTimer = window.setTimeout(() => $('toast').classList.remove('visible'),1500);
     }
-    async function search(query) {
+	async function search(query,updateHistory = true) {
       const q = String(query || $('searchInput').value).trim();
       if (!q) return;
       $('searchInput').value = q;
@@ -635,6 +688,7 @@ const indexHTML = `<!doctype html>
         const resolved = await get('/api/search?q=' + encodeURIComponent(q));
         const detail = await get(resolved.path);
         showDrawer(resolved.type,q,detail);
+		if (updateHistory && resolved.deepLink) history.pushState({query:q},'',resolved.deepLink);
       } catch (error) {
         $('detailKicker').textContent = 'Search result';
         $('detailTitle').textContent = 'Not found';
@@ -646,6 +700,18 @@ const indexHTML = `<!doctype html>
     $('detailClose').onclick = closeDrawer;
     $('detailBackdrop').onclick = event => { if (event.target === $('detailBackdrop')) closeDrawer(); };
     $('detailContent').onclick = async event => {
+	  const pageButton = event.target.closest('[data-activity-cursor]');
+	  if (pageButton && currentDetailType === 'account') {
+		pageButton.disabled = true;
+		try {
+		  const address = currentDetail.account?.address || currentDetailQuery;
+		  const next = await get('/api/accounts/' + encodeURIComponent(address) + '/activity?limit=25&cursor=' + encodeURIComponent(pageButton.dataset.activityCursor));
+		  currentDetail.activity.transactions = [...(currentDetail.activity.transactions || []),...(next.transactions || [])];
+		  currentDetail.activity.nextCursor = next.nextCursor;
+		  showDrawer('account',currentDetailQuery,currentDetail);
+		} catch (_) { showToast(t('unavailable')); pageButton.disabled = false; }
+		return;
+	  }
       const button = event.target.closest('[data-copy]');
       if (!button) return;
       try { await navigator.clipboard.writeText(decodeURIComponent(button.dataset.copy)); showToast('Copied to clipboard'); }
@@ -666,6 +732,34 @@ const indexHTML = `<!doctype html>
     $('txQuickFind').oninput = renderTransactions;
     $('languageSelect').onchange = event => { applyLanguage(event.target.value); load().catch(showLoadError); };
     $('refreshButton').onclick = () => load().catch(showLoadError);
+	$('olderBlocks').onclick = async () => {
+	  if (!blockCursor) return;
+	  $('olderBlocks').disabled = true;
+	  try {
+		const page = await get('/api/blocks/latest?limit=25&cursor=' + encodeURIComponent(blockCursor));
+		const known = new Set(latestBlocks.map(block => String(block.height)));
+		latestBlocks.push(...(page.blocks || []).filter(block => !known.has(String(block.height))));
+		blockCursor = page.nextCursor || '';
+		blockDisplayLimit = latestBlocks.length;
+		$('blocksBody').innerHTML = latestBlocks.map(blockRow).join('');
+		$('olderBlocks').hidden = !blockCursor;
+		bindQueries();
+	  } catch (_) { showToast(t('unavailable')); }
+	  $('olderBlocks').disabled = false;
+	};
+	$('olderTransactions').onclick = async () => {
+	  if (!transactionCursor) return;
+	  $('olderTransactions').disabled = true;
+	  try {
+		const page = await get('/api/txs?limit=25&cursor=' + encodeURIComponent(transactionCursor));
+		const known = new Set(latestTransactions.map(tx => tx.hash));
+		latestTransactions.push(...(page.transactions || []).filter(tx => !known.has(tx.hash)));
+		transactionCursor = page.nextCursor || '';
+		transactionDisplayLimit = latestTransactions.length;
+		renderTransactions();
+	  } catch (_) { showToast(t('unavailable')); }
+	  $('olderTransactions').disabled = false;
+	};
     document.querySelectorAll('[data-refresh]').forEach(button => button.onclick = () => load().catch(showLoadError));
     $('metamaskButton').onclick = async () => {
       if (!window.ethereum) { $('resultPanel').classList.add('visible'); $('resultTitle').textContent = 'Wallet not detected'; $('resultSubtitle').textContent = 'Install or open an EIP-1193 compatible wallet.'; $('resultBody').innerHTML = '<div class="result-error">MetaMask is not available in this browser.</div>'; return; }
@@ -675,7 +769,7 @@ const indexHTML = `<!doctype html>
         $('resultPanel').classList.add('visible'); $('resultTitle').textContent = 'Compatibility request sent'; $('resultSubtitle').textContent = 'Confirm the YNX Testnet EVM adapter in MetaMask.'; $('resultBody').innerHTML = '<div class="empty">YNX-native applications continue to identify this account with its ynx1 address.</div>';
       } catch (error) { $('resultPanel').classList.add('visible'); $('resultTitle').textContent = 'Wallet request declined'; $('resultBody').innerHTML = '<div class="result-error">' + escapeHTML(error.message) + '</div>'; }
     };
-    function showLoadError(error) { $('statusText').textContent = 'Explorer unavailable'; $('statusDetail').textContent = error.message; $('status').className = 'status-bar warn'; $('refreshButton').disabled = false; removeSkeletons(); }
+	function showLoadError() { $('statusText').textContent = t('degraded'); $('statusDetail').textContent = t('unavailable'); $('status').className = 'status-bar warn'; $('refreshButton').disabled = false; removeSkeletons(); }
     applyLanguage(language);
     load().catch(showLoadError);
     connectLiveStream();
@@ -687,6 +781,17 @@ const indexHTML = `<!doctype html>
     },1000);
     document.addEventListener('keydown',event => { if (event.key === 'Escape') closeDrawer(); });
     document.addEventListener('visibilitychange',() => { if (!document.hidden) load().catch(showLoadError); });
+	window.addEventListener('popstate',() => openDeepLink());
+	async function openDeepLink() {
+	  const match = location.pathname.match(/^\/(block|tx|address|token|contract)\/(.+)$/);
+	  if (!match) return;
+	  const aliases = {tx:'transaction',address:'account'};
+	  const type = aliases[match[1]] || match[1];
+	  const query = decodeURIComponent(match[2]);
+	  const endpoints = {block:'/api/blocks/',transaction:'/api/txs/',account:'/api/accounts/',token:'/api/tokens/',contract:'/api/contracts/'};
+	  try { showDrawer(type,query,await get(endpoints[type] + encodeURIComponent(query))); } catch (_) { showLoadError(); }
+	}
+	openDeepLink();
   </script>
 </body>
 </html>`

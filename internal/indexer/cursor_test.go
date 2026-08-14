@@ -68,6 +68,24 @@ func TestLatestPagesRemainStableWhenNewRecordsArrive(t *testing.T) {
 	}
 }
 
+func TestAccountTransactionsPageFiltersAndPaginatesCanonicalActivity(t *testing.T) {
+	base := time.Unix(100, 0).UTC()
+	db := Database{Transactions: map[string]chain.Transaction{
+		"incoming":  {Hash: "incoming", From: "0xother", To: "0xAccount", Amount: 7, Timestamp: base.Add(3 * time.Second)},
+		"outgoing":  {Hash: "outgoing", From: "0xaccount", To: "0xother", Amount: 2, Timestamp: base.Add(2 * time.Second)},
+		"sponsored": {Hash: "sponsored", From: "0xuser", Sponsor: "0xACCOUNT", Timestamp: base.Add(time.Second)},
+		"unrelated": {Hash: "unrelated", From: "0xother", To: "0xthird", Timestamp: base.Add(4 * time.Second)},
+	}}
+	first, cursor, err := AccountTransactionsPage(db, "0xaccount", 2, "")
+	if err != nil || len(first) != 2 || first[0].Hash != "incoming" || first[1].Hash != "outgoing" || cursor != "outgoing" {
+		t.Fatalf("unexpected first account activity page: txs=%+v cursor=%q err=%v", first, cursor, err)
+	}
+	second, cursor, err := AccountTransactionsPage(db, "0xaccount", 2, cursor)
+	if err != nil || len(second) != 1 || second[0].Hash != "sponsored" || cursor != "" {
+		t.Fatalf("unexpected second account activity page: txs=%+v cursor=%q err=%v", second, cursor, err)
+	}
+}
+
 func TestIndexerHTTPPaginationUsesOpaqueFeedBoundCursors(t *testing.T) {
 	store := NewStore(t.TempDir() + "/cursor-db.json")
 	if err := store.Save(cursorFixtureDatabase()); err != nil {

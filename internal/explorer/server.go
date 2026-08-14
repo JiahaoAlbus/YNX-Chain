@@ -66,7 +66,9 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /api/txs/{hash}", s.handleTransaction)
 	s.mux.HandleFunc("GET /api/accounts", s.handleAccountLeaderboard)
 	s.mux.HandleFunc("GET /api/accounts/{address}", s.handleAccount)
+	s.mux.HandleFunc("GET /api/accounts/{address}/activity", s.handleAccountActivity)
 	s.mux.HandleFunc("GET /api/tokens/{symbol}", s.handleToken)
+	s.mux.HandleFunc("GET /api/contracts/{address}", s.handleContract)
 	s.mux.HandleFunc("GET /api/validators", s.handleValidators)
 	s.mux.HandleFunc("GET /api/resources/{address}", s.handleResources)
 	s.mux.HandleFunc("GET /api/resource-market/analytics", s.handleResourceAnalytics)
@@ -285,12 +287,12 @@ func (s *Server) handleSummary(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleLatestBlocks(w http.ResponseWriter, r *http.Request) {
-	blocks, err := s.service.LatestBlocks(r.Context(), intQuery(r, "limit", 10))
+	page, err := s.service.BlocksPage(r.Context(), intQuery(r, "limit", 10), r.URL.Query().Get("cursor"))
 	if err != nil {
 		writePublicError(w, http.StatusBadGateway, "indexer_unavailable", "Indexed blocks are temporarily unavailable.")
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"blocks": blocks})
+	writeJSON(w, http.StatusOK, page)
 }
 
 func (s *Server) handleBlock(w http.ResponseWriter, r *http.Request) {
@@ -303,21 +305,35 @@ func (s *Server) handleBlock(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleTransactions(w http.ResponseWriter, r *http.Request) {
-	txs, err := s.service.Transactions(r.Context(), intQuery(r, "limit", 10))
+	page, err := s.service.TransactionsPage(r.Context(), intQuery(r, "limit", 10), r.URL.Query().Get("cursor"))
 	if err != nil {
 		writePublicError(w, http.StatusBadGateway, "indexer_unavailable", "Indexed transactions are temporarily unavailable.")
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"transactions": txs})
+	writeJSON(w, http.StatusOK, page)
 }
 
 func (s *Server) handleTransaction(w http.ResponseWriter, r *http.Request) {
-	tx, err := s.service.Transaction(r.Context(), r.PathValue("hash"))
+	tx, err := s.service.TransactionDetail(r.Context(), r.PathValue("hash"))
 	if err != nil {
 		writePublicError(w, http.StatusNotFound, "transaction_not_found", "That transaction was not found in the canonical index.")
 		return
 	}
 	writeJSON(w, http.StatusOK, tx)
+}
+
+func (s *Server) handleAccountActivity(w http.ResponseWriter, r *http.Request) {
+	address, err := normalizeExplorerAddress(r.PathValue("address"))
+	if err != nil {
+		writePublicError(w, http.StatusBadRequest, "invalid_address", "A valid account address is required.")
+		return
+	}
+	activity, err := s.service.AccountActivity(r.Context(), address, intQuery(r, "limit", 25), r.URL.Query().Get("cursor"))
+	if err != nil {
+		writePublicError(w, http.StatusBadGateway, "indexer_unavailable", "Account activity is temporarily unavailable.")
+		return
+	}
+	writeJSON(w, http.StatusOK, activity)
 }
 
 func (s *Server) handleAccount(w http.ResponseWriter, r *http.Request) {
@@ -345,6 +361,15 @@ func (s *Server) handleToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, token)
+}
+
+func (s *Server) handleContract(w http.ResponseWriter, r *http.Request) {
+	contract, err := s.service.Contract(r.Context(), r.PathValue("address"))
+	if err != nil {
+		writePublicError(w, http.StatusNotFound, "contract_not_found", "That contract was not found in the chain registry.")
+		return
+	}
+	writeJSON(w, http.StatusOK, contract)
 }
 
 func (s *Server) handleValidators(w http.ResponseWriter, r *http.Request) {
