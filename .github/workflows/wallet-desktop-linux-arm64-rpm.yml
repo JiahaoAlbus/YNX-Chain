@@ -1,0 +1,222 @@
+name: Wallet desktop Linux arm64 rpm
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [codex/wallet-desktop-cli-sdk-20260813]
+    paths:
+      - apps/wallet-desktop/**
+      - packages/wallet-auth/**
+      - .github/workflows/wallet-desktop-linux-arm64-rpm.yml
+
+permissions:
+  contents: read
+
+jobs:
+  linux-arm64-rpm-native:
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24.18.0
+          cache: npm
+          cache-dependency-path: apps/wallet-desktop/package-lock.json
+      - name: Require native arm64 and test frozen contract boundary
+        run: |
+          test "$(uname -m)" = aarch64
+          npm ci --ignore-scripts --prefix packages/wallet-auth
+          npm ci --prefix apps/wallet-desktop
+          npm test --prefix apps/wallet-desktop
+      - name: Build current and upgrade-preflight rpm packages
+        env:
+          USE_SYSTEM_FPM: "true"
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y rpm
+          sudo gem install fpm --version 1.15.1 --no-document
+          test "$(fpm --version)" = 1.15.1
+          pushd apps/wallet-desktop
+          npx electron-builder --linux rpm --arm64 --publish never --config.directories.output=dist-preflight --config.extraMetadata.version=0.0.9
+          npx electron-builder --linux rpm --arm64 --publish never
+          popd
+      - name: Install, upgrade, cold launch, second launch, fail closed and uninstall
+        env:
+          EVIDENCE: ${{ runner.temp }}/wallet-desktop-linux-arm64-rpm.json
+          OUT_DIR: ${{ runner.temp }}/wallet-desktop-linux-arm64-rpm-evidence
+          EXECUTABLE: /opt/YNX Wallet Testnet Preview/ynx-wallet-desktop
+        run: |
+          mkdir -p "$OUT_DIR"
+          PRE_RPM="$(realpath "$(find apps/wallet-desktop/dist-preflight -maxdepth 1 -name '*.rpm' -print -quit)")"
+          CURRENT_RPM="$(realpath "$(find apps/wallet-desktop/dist -maxdepth 1 -name '*.rpm' -print -quit)")"
+          test -f "$PRE_RPM"
+          test -f "$CURRENT_RPM"
+          PACKAGE_NAME="$(rpm -qp --queryformat '%{NAME}' "$CURRENT_RPM")"
+          test -n "$PACKAGE_NAME"
+          sudo apt-get install -y xvfb xdotool
+          sudo rpm --initdb
+          sudo rpm -ivh --nodeps "$PRE_RPM"
+          test "$(rpm -q --queryformat '%{VERSION}' "$PACKAGE_NAME")" = 0.0.9
+          sudo rpm -Uvh --nodeps "$CURRENT_RPM"
+          test "$(rpm -q --queryformat '%{VERSION}' "$PACKAGE_NAME")" = 0.1.0
+          test -x "$EXECUTABLE"
+
+          run_phase() {
+            expected_launches="$1"
+            rpc_url="$2"
+            phase="$3"
+            YNX_WALLET_EVIDENCE_PATH="$EVIDENCE" YNX_WALLET_RPC_URL="$rpc_url" xvfb-run -a bash -c '
+              executable="$1"
+              evidence="$2"
+              expected="$3"
+              log="$4"
+              title_evidence="$5"
+              "$executable" --disable-gpu > "$log" 2>&1 &
+              app_pid=$!
+              for attempt in {1..30}; do
+                launches=$(node -e "try{process.stdout.write(String(require(process.argv[1]).launches))}catch{}" "$evidence")
+                test "$launches" = "$expected" && break
+                sleep 1
+              done
+              if ! kill -0 "$app_pid"; then
+                cat "$log"
+                exit 1
+              fi
+              xdotool search --name "YNX Wallet Testnet Preview" getwindowname > "$title_evidence"
+              kill "$app_pid"
+              wait "$app_pid" || true
+            ' _ "$EXECUTABLE" "$EVIDENCE" "$expected_launches" "$OUT_DIR/$phase.log" "$OUT_DIR/$phase-window-title.txt"
+            cp "$EVIDENCE" "$OUT_DIR/$phase-app-evidence.json"
+          }
+
+          run_phase 1 https://evm.ynxweb4.com cold
+          node -e "const e=require(process.env.EVIDENCE);if(e.launches!==1||!e.visibleShellReady||!e.window.visible||e.window.title!=='YNX Wallet Testnet Preview'||!e.rpc.available||e.rpc.chainId!=='0x1917'||e.signingEnabled||e.accountCreated||e.balanceClaimed||e.transactionCreated)process.exit(1)"
+          run_phase 2 https://evm.ynxweb4.com second
+          node -e "const e=require(process.env.EVIDENCE);if(e.launches!==2||!e.rpc.available||e.rpc.chainId!=='0x1917'||e.signingEnabled)process.exit(1)"
+          run_phase 3 http://127.0.0.1:1 failed-rpc
+          node -e "const e=require(process.env.EVIDENCE);if(e.launches!==3||e.rpc.available||e.rpc.chainId!==null||e.signingEnabled)process.exit(1)"
+
+          sudo rpm -e "$PACKAGE_NAME"
+          test ! -e "$EXECUTABLE"
+          PACKAGE_NAME="$PACKAGE_NAME" node - <<'NODE'
+          const fs = require('fs');
+          const evidence = JSON.parse(fs.readFileSync(process.env.EVIDENCE, 'utf8'));
+          const result = {
+            schemaVersion: 1,
+            architecture: 'arm64',
+            nativeRunner: 'ubuntu-24.04-arm',
+            packageFormat: 'rpm',
+            packageManagerBoundary: 'rpm --nodeps on Ubuntu; Fedora-family dependency-manager integration not evidenced',
+            packageName: process.env.PACKAGE_NAME,
+            preflightInstalled: true,
+            upgradeVerified: true,
+            currentInstalled: true,
+            coldLaunch: true,
+            secondLaunch: true,
+            processObserved: true,
+            coldWindowTitleObserved: true,
+            secondWindowTitleObserved: true,
+            appReportedWindowVisible: true,
+            appReportedWindowTitle: 'YNX Wallet Testnet Preview',
+            chainId: '0x1917',
+            rpcFailureClosed: !evidence.rpc.available && evidence.rpc.chainId === null,
+            signingEnabled: false,
+            accountCreated: false,
+            balanceClaimed: false,
+            transactionCreated: false,
+            uninstallVerified: true,
+            productionSigned: false
+          };
+          fs.writeFileSync(`${process.env.OUT_DIR}/lifecycle.json`, `${JSON.stringify(result, null, 2)}\n`);
+          NODE
+      - name: Record package manifest
+        env:
+          OUT_DIR: ${{ runner.temp }}/wallet-desktop-linux-arm64-rpm-evidence
+        run: |
+          RPM="$(find apps/wallet-desktop/dist -maxdepth 1 -name '*.rpm' -print -quit)"
+          sha256sum "$RPM" | tee "$OUT_DIR/SHA256SUMS.txt"
+          stat -c '%n %s' "$RPM" | tee "$OUT_DIR/BYTES.txt"
+          rpm -qip "$RPM" > "$OUT_DIR/RPM-METADATA.txt"
+          node - <<'NODE'
+          const fs = require('fs');
+          const path = require('path');
+          const out = process.env.OUT_DIR;
+          const sumMatch = fs.readFileSync(path.join(out, 'SHA256SUMS.txt'), 'utf8').trim().match(/^([a-f0-9]{64})  (.*)$/);
+          if (!sumMatch) process.exit(1);
+          const bytes = Number(fs.readFileSync(path.join(out, 'BYTES.txt'), 'utf8').trim().split(/\s+/).at(-1));
+          const manifest = {
+            schemaVersion: 1,
+            productId: 'wallet-desktop',
+            version: '0.1.0',
+            sourceCommit: process.env.GITHUB_SHA,
+            workflowRunId: Number(process.env.GITHUB_RUN_ID),
+            artifact: {
+              filename: path.basename(sumMatch[2]),
+              format: 'rpm',
+              architecture: 'arm64',
+              bytes,
+              sha256: sumMatch[1],
+              minimumOS: 'Ubuntu 24.04 arm64 directly tested with rpm --nodeps; Fedora-family compatibility not evidenced',
+              signingClass: 'unsigned_linux_rpm_testnet_candidate',
+              productionSigned: false,
+              installedOnNativeRunner: true
+            },
+            lifecycle: JSON.parse(fs.readFileSync(path.join(out, 'lifecycle.json'), 'utf8'))
+          };
+          fs.writeFileSync(path.join(out, 'artifact-manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`);
+          NODE
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ynx-wallet-desktop-linux-arm64-rpm
+          path: |
+            apps/wallet-desktop/dist/*.rpm
+            ${{ runner.temp }}/wallet-desktop-linux-arm64-rpm-evidence/**
+          if-no-files-found: error
+
+  verify-uploaded-artifact:
+    needs: linux-arm64-rpm-native
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 10
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ynx-wallet-desktop-linux-arm64-rpm
+          path: downloaded
+      - name: Require manifest and verify downloaded rpm
+        run: |
+          RPM="$(find downloaded -type f -name '*.rpm' -print -quit)"
+          MANIFEST="$(find downloaded -type f -name 'artifact-manifest.json' -print -quit)"
+          LIFECYCLE="$(find downloaded -type f -name 'lifecycle.json' -print -quit)"
+          test -n "$RPM"
+          test -n "$MANIFEST"
+          test -n "$LIFECYCLE"
+          ACTUAL_SHA256="$(sha256sum "$RPM" | cut -d ' ' -f 1)"
+          ACTUAL_BYTES="$(stat -c '%s' "$RPM")"
+          EXPECTED_SHA256="$(node -p "require('./' + process.argv[1]).artifact.sha256" "$MANIFEST")"
+          EXPECTED_BYTES="$(node -p "require('./' + process.argv[1]).artifact.bytes" "$MANIFEST")"
+          test "$ACTUAL_SHA256" = "$EXPECTED_SHA256"
+          test "$ACTUAL_BYTES" = "$EXPECTED_BYTES"
+          node -e "const m=require('./'+process.argv[1]);const l=require('./'+process.argv[2]);if(m.sourceCommit!==process.env.GITHUB_SHA||m.artifact.minimumOS!=='Ubuntu 24.04 arm64 directly tested with rpm --nodeps; Fedora-family compatibility not evidenced'||m.artifact.signingClass!=='unsigned_linux_rpm_testnet_candidate'||m.artifact.productionSigned||!m.artifact.installedOnNativeRunner||!l.preflightInstalled||!l.upgradeVerified||!l.currentInstalled||!l.coldLaunch||!l.secondLaunch||!l.processObserved||l.chainId!=='0x1917'||!l.rpcFailureClosed||l.signingEnabled||l.accountCreated||l.balanceClaimed||l.transactionCreated||!l.uninstallVerified||l.productionSigned)process.exit(1)" "$MANIFEST" "$LIFECYCLE"
+          mkdir -p downloaded-verification
+          ACTUAL_SHA256="$ACTUAL_SHA256" ACTUAL_BYTES="$ACTUAL_BYTES" node - <<'NODE'
+          const fs = require('fs');
+          const result = {
+            schemaVersion: 1,
+            sourceCommit: process.env.GITHUB_SHA,
+            workflowRunId: Number(process.env.GITHUB_RUN_ID),
+            uploadArtifactDownloaded: true,
+            manifestPresent: true,
+            lifecyclePresent: true,
+            sha256Verified: true,
+            bytesVerified: true,
+            sha256: process.env.ACTUAL_SHA256,
+            bytes: Number(process.env.ACTUAL_BYTES)
+          };
+          fs.writeFileSync('downloaded-verification/downloaded-verification.json', `${JSON.stringify(result, null, 2)}\n`);
+          NODE
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ynx-wallet-desktop-linux-arm64-rpm-download-verification
+          path: downloaded-verification/downloaded-verification.json
+          if-no-files-found: error
