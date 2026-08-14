@@ -25,4 +25,19 @@ Default limits are 64 concurrent non-stream requests, 500 requests/second, a 150
 
 The deployment dry-run built the Linux release bundle, verified exact commit/release identity and manifest integrity, exercised the four-role installation/backup/rollback command sequence without remote writes, verified Caddy/Nginx Explorer and Indexer bindings, and passed the packaged local-service self-test. The release units set `MemoryMax=2G` and `TasksMax=512` for Indexer and `MemoryMax=512M` and `TasksMax=512` for Explorer. This is deployment-package evidence, not a staging or public deployment.
 
+## Public-vantage bounded load observation
+
+The source-bound `cmd/ynx-explorer-load` verifier was added to exercise concurrent reads, a caller-supplied real search query, and concurrent SSE subscriptions without manufacturing chain data or treating failures as success. Its unit/race tests and `go vet` pass.
+
+The following bounded observation targeted the currently deployed older public Explorer, not the continuation release:
+
+```text
+go run ./cmd/ynx-explorer-load \
+  --base-url https://explorer.ynxweb4.com \
+  --duration 10s --concurrency 10 --sse-clients 2 \
+  --search-query 1017890 --timeout 5s
+```
+
+Observed at `2026-08-14T14:08:32Z`: 73 completed HTTP samples, 7.30 requests/second, p50 829.58 ms, p95 3838.67 ms, p99 4667.49 ms, maximum 4709.39 ms, 72 HTTP 200 responses, one HTTP 502 response, two additional request errors, eight SSE events, zero SSE reconnects, and zero SSE errors. The HTTP error rate was 4.11%, so the verifier exited non-zero as designed. This is negative public evidence: it does not satisfy the concurrency gate and must not be presented as a passing soak result.
+
 This document is local evidence only. It does not assert central integration, staging, public deployment, production signing, or Computer Control verification.
