@@ -4,19 +4,19 @@
 - Phase: `INTEGRATE`
 - Workspace: exact configured YNX 26 Worktree verified
 - Branch: `codex/final-data-fabric`
-- Engineering Source Commit: `8ee6d8f37ce945111ba76ddc2466c06164a6c4e8`
-- Remote Source Commit: current Engineering Source `8ee6d8f37ce945111ba76ddc2466c06164a6c4e8` is on review Branch `codex/data-fabric-typescript-sdk-20260814`
-- Source evidence CI: Run `31791152026` PostgreSQL job passed at exact engineering source `8ee6d8f37ce945111ba76ddc2466c06164a6c4e8`; final evidence-head Run `31793195539` passed both jobs at `8b405e4e9dd221b48099a55899a63adf885b9725`. Both evidence artifacts were downloaded and their SHA-256 values verified.
+- Engineering Source Commit: `4bb2ddfb6337e44060f57adafc7ee1cc08faedbe`
+- Remote Source Commit: current Engineering Source `4bb2ddfb6337e44060f57adafc7ee1cc08faedbe` is on review Branch `codex/data-fabric-typescript-sdk-20260814`
+- Source evidence CI: Run `31797308684` PostgreSQL job passed at exact engineering source `4bb2ddfb6337e44060f57adafc7ee1cc08faedbe`, including the three-replica JetStream stream-leader-loss gate. Its ten-file evidence artifact was downloaded and SHA-256 verified; final evidence-head CI is pending the binding commit.
 - Concurrent writer: no Git writer detected; an existing CodexPro server process was left untouched
 - Dirty state: reviewed and verified source-bound evidence slice awaiting commit and push; legacy recovery files are preserved under `recovery/2026-07-23/`
 
 ## Verified capabilities
 
-Canonical Envelope v2 and v1 migration compatibility, fail-closed external Chain Core Bulk Data Commitment references, Schema Registry v2, transactional Outbox and Inbox, idempotent consumers, retry, DLQ, replay, Saga recovery, immutable double-entry corrections, atomic usage billing, same-product account isolation, 100 simultaneous local canonical account sessions, bounded producer ingress and 1000 simultaneous local producer completion, PostgreSQL 10,000-event hotspot/duplicate/restart/long-replay drill, one real post-commit/pre-ack consumer subprocess crash with embedded JetStream redelivery and zero duplicate effect, bounded JetStream capacity rejection with PostgreSQL Outbox retention and explicit-expansion recovery, Pay BFT ingestion and refund reconciliation, API, Go and TypeScript SDKs, CLI, PostgreSQL migrations through 0006, backup and restore, operator console, package installation and cold-start gates.
+Canonical Envelope v2 and v1 migration compatibility, fail-closed external Chain Core Bulk Data Commitment references, Schema Registry v2, transactional Outbox and Inbox, idempotent consumers, retry, DLQ, replay, Saga recovery, immutable double-entry corrections, atomic usage billing, same-product account isolation, 100 simultaneous local canonical account sessions, bounded producer ingress and 1000 simultaneous local producer completion, PostgreSQL 10,000-event hotspot/duplicate/restart/long-replay drill, one real post-commit/pre-ack consumer subprocess crash with zero duplicate effect, bounded JetStream capacity rejection with PostgreSQL Outbox retention and explicit-expansion recovery, one bounded three-node replicas=3 JetStream stream-leader stop/re-election/restart/catch-up drill, Pay BFT ingestion and refund reconciliation, API, Go and TypeScript SDKs, CLI, PostgreSQL migrations through 0006, backup and restore, operator console, package installation and cold-start gates.
 
 ## Unverified or incomplete states
 
-Central owner acceptance, complete product adapter set, shared Testnet E2E, staging deployment, public deployment, immutable public download, production signing, sustained PostgreSQL-plus-replicated-JetStream signed HTTP Producer traffic, sustained hotspot duration, repeated consumer/process crash on replicated infrastructure, broker partition/leader loss, PostgreSQL replica failover, production-shaped capacity, live support and status endpoints.
+Central owner acceptance, complete product adapter set, shared Testnet E2E, staging deployment, public deployment, immutable public download, production signing, sustained PostgreSQL-plus-replicated-JetStream signed HTTP Producer traffic, sustained hotspot duration, repeated consumer/process crash on replicated infrastructure, network partition and repeated leader loss, PostgreSQL replica failover, production-shaped capacity, live support and status endpoints.
 
 ## Exact next action
 
