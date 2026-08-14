@@ -394,8 +394,9 @@ async function sponsoredOperation(
   authorizationId,
   callDestination = destination.address,
   authorizationPolicyId = policyId,
+  callDataOverride,
 ) {
-  const callData = sponsoredAccount.interface.encodeFunctionData("execute", [callDestination, 0n, "0x"]);
+  const callData = callDataOverride ?? sponsoredAccount.interface.encodeFunctionData("execute", [callDestination, 0n, "0x"]);
   const op = {
     sender: sponsoredAccount.target,
     nonce,
@@ -429,6 +430,37 @@ async function sponsoredOperation(
   op.signature = ethers.concat(["0x00", sponsorOwner.signingKey.sign(accountHash).serialized]);
   return op;
 }
+
+const sponsoredBatchAuthorizationId = ethers.keccak256(ethers.toUtf8Bytes("sponsored-batch-authorization"));
+const sponsoredBatchCall = sponsoredAccount.interface.encodeFunctionData("executeBatch", [[
+  { target: batchTarget.target, value: 0n, data: batchTarget.interface.encodeFunctionData("increment", [11n]) },
+  { target: destination.address, value: 0n, data: "0x" },
+]]);
+const budgetBeforeSponsoredBatch = await paymaster.productBudgets(productId);
+const usageBeforeSponsoredBatch = await paymaster.subjectUsage(productId, subjectId);
+await assert.rejects(
+  entryPoint.handleOps(
+    [await sponsoredOperation(
+      0n,
+      0,
+      sponsoredBatchAuthorizationId,
+      destination.address,
+      policyId,
+      sponsoredBatchCall,
+    )],
+    beneficiary.address,
+    { gasLimit: 12_000_000 },
+  ),
+  /AA33|PolicyViolation/,
+);
+const budgetAfterSponsoredBatch = await paymaster.productBudgets(productId);
+const usageAfterSponsoredBatch = await paymaster.subjectUsage(productId, subjectId);
+assert.equal(budgetAfterSponsoredBatch.reservedToday, budgetBeforeSponsoredBatch.reservedToday);
+assert.equal(budgetAfterSponsoredBatch.observedToday, budgetBeforeSponsoredBatch.observedToday);
+assert.equal(usageAfterSponsoredBatch.reservedToday, usageBeforeSponsoredBatch.reservedToday);
+assert.equal(await paymaster.consumedAuthorizations(sponsoredBatchAuthorizationId), false);
+assert.equal(await entryPoint.getNonce(sponsoredAccount.target, 0), 0n);
+assert.equal(await batchTarget.count(), 9n);
 
 const firstActionId = ethers.keccak256(ethers.toUtf8Bytes("first-action-authorization"));
 await (await entryPoint.handleOps(
@@ -625,6 +657,7 @@ console.log(JSON.stringify({
   merchantAndDeveloperSponsorship: "passed",
   exactSponsorPolicyIdRejection: "passed",
   loweredSubjectLimitCanonicalRejection: "passed",
+  sponsoredBatchPolicyRejectionBeforeMutation: "passed",
   sponsorTamperReplayDisableRejection: "passed",
   benchmark: {
     environment: "Hardhat EDR in-process local chain; excludes bundler, RPC, persistence and network latency",
