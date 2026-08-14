@@ -1,0 +1,99 @@
+{
+  "schemaVersion": "ynx-wallet-macos-endpoint-matrix-rpc-evidence/v1",
+  "recordedAt": "2026-08-15T04:02:00+08:00",
+  "owner": "02-wallet-auth-ios-macos",
+  "branch": "codex/wallet-ios-macos-20260813",
+  "sourceCommit": "eae3bed5d8add0d99513b9b595d1800b1f044d9e",
+  "centralContract": {
+    "commit": "d0f89797d13c7667cc187b0c64d5c9e1cb1d8f59",
+    "path": "release/integration/wallet-auth-public-endpoint-service-discovery-matrix.json",
+    "gitBlob": "d402fcdc844aa39bd5ee351a99d93acb4852dc37",
+    "sha256": "d344c607c2bbbf7bb0d9d3662b424976d0d6c4ff20428025dd1e2fb92bf31392",
+    "recreated": false
+  },
+  "workflow": {
+    "name": "wallet-macos",
+    "runId": 31833071222,
+    "jobId": 94873124277,
+    "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/31833071222",
+    "status": "completed",
+    "conclusion": "success",
+    "xcodeVersion": "26.3.0",
+    "xcodeBuild": "17C529",
+    "swiftTestsPassed": 10,
+    "swiftTestsFailed": 0,
+    "allWorkflowStepsPassed": true
+  },
+  "installedApplication": {
+    "bundleIdentifier": "com.ynxweb4.wallet.macos",
+    "minimumOS": "13.0",
+    "architecturesBuilt": ["arm64", "x86_64"],
+    "architectureLaunched": "arm64",
+    "x86_64LaunchVerified": false,
+    "signingClass": "ad-hoc",
+    "developerIDSigned": false,
+    "notarized": false,
+    "storeReleased": false,
+    "coldLaunchPid": 2896,
+    "secondLaunchPid": 2918
+  },
+  "nativeEndpointObservation": {
+    "bundledMatrixGitBlobVerified": true,
+    "bundledMatrixSHA256Verified": true,
+    "coldLaunchMatrixLoaded": true,
+    "coldLaunchRpcChainIdHex": "0x1917",
+    "secondLaunchMatrixLoaded": true,
+    "secondLaunchRpcChainIdHex": "0x1917",
+    "rpcURL": "https://rpc.ynxweb4.com/evm",
+    "restURL": "https://rest.ynxweb4.com",
+    "integratedCentralFromMatrix": false,
+    "authorizationAttempted": false,
+    "accountInferred": false,
+    "signingAttempted": false,
+    "transactionSubmissionAttempted": false
+  },
+  "callbackRegression": {
+    "canonicalRouteShapeCallbackColdStartPid": 3209,
+    "canonicalRouteShapeReceived": true,
+    "canonicalRouteShapeVisible": true,
+    "canonicalRouteShapeError": "CANONICAL_AUTH_BRIDGE_UNAVAILABLE",
+    "widenedCallbackColdStartPid": 3237,
+    "widenedCallbackReceived": true,
+    "widenedCallbackVisible": true,
+    "widenedCallbackError": "INVALID_AUTHORIZATION_REQUEST",
+    "failedClosed": true
+  },
+  "githubArtifact": {
+    "artifactId": 9231469617,
+    "name": "ynx-wallet-macos-native",
+    "apiReportedBytes": 688465,
+    "githubDigest": "sha256:dcb7f320e741657968a377b882325c29394fcaeb3013d08adb87d563a5d81418",
+    "downloadInspected": false,
+    "packagedProductZipSHA256Recomputed": false,
+    "temporaryCIArtifactOnly": true,
+    "publicProductDownload": false
+  },
+  "releaseGates": {
+    "centralEndpointMatrixConsumedByInstalledMacApp": true,
+    "installedMacAppRpcChainIdVerified": true,
+    "authorizationSucceeded": false,
+    "accountVerified": false,
+    "signSucceeded": false,
+    "testnetTransactionSucceeded": false,
+    "biometricRecoverySucceeded": false,
+    "physicalDeviceVerified": false,
+    "universalLinkVerified": false,
+    "public": false,
+    "downloadHosted": false,
+    "developerIDSigned": false,
+    "notarized": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "limitations": [
+    "The successful hosted arm64 process proves strict matrix consumption and eth_chainId 0x1917 on cold and second launch; it does not prove authorization, account access, signing, or transaction submission.",
+    "The x86_64 slice was built into the Universal executable but was not launched.",
+    "The app is ad-hoc signed and the artifact is a temporary GitHub Actions artifact, not a public product download.",
+    "The artifact download connector failed in a bounded attempt, so downloadInspected and packagedProductZipSHA256Recomputed remain false."
+  ]
+}
