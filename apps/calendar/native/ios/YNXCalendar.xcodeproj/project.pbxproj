@@ -8,6 +8,7 @@
  A10000000000000000000001 = {isa = PBXBuildFile; fileRef = A10000000000000000000002; };
  A20000000000000000000001 = {isa = PBXBuildFile; fileRef = A20000000000000000000002; };
  A30000000000000000000001 = {isa = PBXBuildFile; fileRef = A30000000000000000000002; };
+ A40000000000000000000001 = {isa = PBXBuildFile; fileRef = A40000000000000000000002; };
 /* End PBXBuildFile section */
 /* Begin PBXFileReference section */
  A10000000000000000000002 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YNXCalendarApp.swift; sourceTree = "<group>"; };
@@ -15,13 +16,14 @@
  A10000000000000000000004 = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = YNXCalendar.app; sourceTree = BUILT_PRODUCTS_DIR; };
  A20000000000000000000002 = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
  A30000000000000000000002 = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+ A40000000000000000000002 = {isa = PBXFileReference; lastKnownFileType = image.png; path = "ynx-logo.png"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 /* Begin PBXFrameworksBuildPhase section */
  A10000000000000000000005 = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXFrameworksBuildPhase section */
 /* Begin PBXGroup section */
  A10000000000000000000006 = {isa = PBXGroup; children = (A10000000000000000000007,A10000000000000000000008); sourceTree = "<group>"; };
- A10000000000000000000007 = {isa = PBXGroup; children = (A10000000000000000000002,A10000000000000000000003,A20000000000000000000002,A30000000000000000000002); path = YNXCalendar; sourceTree = "<group>"; };
+ A10000000000000000000007 = {isa = PBXGroup; children = (A10000000000000000000002,A10000000000000000000003,A20000000000000000000002,A30000000000000000000002,A40000000000000000000002); path = YNXCalendar; sourceTree = "<group>"; };
  A10000000000000000000008 = {isa = PBXGroup; children = (A10000000000000000000004); name = Products; sourceTree = "<group>"; };
 /* End PBXGroup section */
 /* Begin PBXNativeTarget section */
@@ -31,7 +33,7 @@
  A10000000000000000000013 = {isa = PBXProject; attributes = {BuildIndependentTargetsInParallel = 1; LastSwiftUpdateCheck = 1600; LastUpgradeCheck = 1600; TargetAttributes = {A10000000000000000000009 = {CreatedOnToolsVersion = 16.0;};};}; buildConfigurationList = A10000000000000000000014; compatibilityVersion = "Xcode 14.0"; developmentRegion = en; hasScannedForEncodings = 0; knownRegions = (en,Base,"zh-Hans","zh-Hant",ja,ko,es,fr,de,pt,ru,ar,id); mainGroup = A10000000000000000000006; productRefGroup = A10000000000000000000008; projectDirPath = ""; projectRoot = ""; targets = (A10000000000000000000009); };
 /* End PBXProject section */
 /* Begin PBXResourcesBuildPhase section */
- A10000000000000000000012 = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (A20000000000000000000001,A30000000000000000000001); runOnlyForDeploymentPostprocessing = 0; };
+ A10000000000000000000012 = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (A20000000000000000000001,A30000000000000000000001,A40000000000000000000001); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXResourcesBuildPhase section */
 /* Begin PBXSourcesBuildPhase section */
  A10000000000000000000011 = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A10000000000000000000001); runOnlyForDeploymentPostprocessing = 0; };

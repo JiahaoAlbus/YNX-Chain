@@ -49,3 +49,9 @@ Status: current-source implementation deployed to the public Testnet runtime and
 - `ImageView.ScaleType.CENTER_INSIDE`, `adjustViewBounds` and a dedicated 72×38 dp slot preserve the supplied asset ratio. The app does not reconstruct or stretch the mark.
 - The current debug APK builds and installed on a freshly wiped dedicated API 36 Calendar AVD. The app surface rendered and showed the new hierarchy, but the emulator repeatedly raised unrelated Pixel Launcher, Process System, GMS and Phone ANRs, `uiautomator` timed out, and the emulator graphics/services later failed. That is retained as an unhealthy test environment; it is not counted as accepted Android interaction evidence.
 - A clean dedicated emulator/device rerun still has to prove create/review, persistence after restart, missing-Wallet fallback and callback rejection without a system ANR. Production signing and hosting remain unclaimed.
+
+## iOS native redesign — current working source
+
+- The compact single-scroll iOS proof surface now uses the same product information architecture as the current Calendar family: a proportional supplied YNX resource, English-first product header, Testnet session boundary, Day/Week/Month/Agenda selector, date navigation, seven-day strip, guest agenda, persistent event inspector, structured event editor, recurrence/reminder fields, explicit review and a permissioned Wallet/AI boundary.
+- The real 512×296 transparent YNX PNG is included as a bundle resource and rendered with `resizable().scaledToFit()` in a 72×38 pt slot; it is byte-identical to the audited Web source asset and is not reconstructed or stretched.
+- `swiftc -frontend -parse`, project plist validation, localization tests and the rest of the Calendar test suite pass. The host does not contain Xcode or `simctl`, so no current-source simulator install/cold-launch claim is made here.
