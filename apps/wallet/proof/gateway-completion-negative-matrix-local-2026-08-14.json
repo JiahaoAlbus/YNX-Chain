@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "gateway-completion-negative-matrix-local-2026-08-14",
+  "owner": "02-wallet-auth",
+  "sourceCommit": "e8744e55cb112138f18a5f7d2d9bdced3dc62363",
+  "observedAt": "2026-08-14T02:00:20Z",
+  "environment": "local-node-http-kernel",
+  "protocol": {
+    "domain": "YNX_GATEWAY_COMPLETION_NEGATIVE_MATRIX_V1",
+    "route": "/v1/wallet/sessions/complete",
+    "method": "POST",
+    "contentType": "application/json",
+    "sharedVector": "packages/wallet-auth/testdata/gateway-completion-negative-matrix-v1.json",
+    "caseCount": 15,
+    "preSuccessFailClosedCases": 14,
+    "postSuccessReplayCases": 1
+  },
+  "requestAtomicInvariants": {
+    "mutated": false,
+    "stateDigestUnchanged": true,
+    "sessionsCreated": 0,
+    "authorizationNoncesConsumed": 0,
+    "productProofsConsumed": 0
+  },
+  "negativeCoverage": {
+    "wrongNetwork": {"status": 400, "code": "WRONG_NETWORK"},
+    "unknownProduct": {"status": 403, "code": "UNKNOWN_PRODUCT"},
+    "wrongProduct": {"status": 400, "code": "PRODUCT_MISMATCH"},
+    "wrongCallback": {"status": 400, "code": "CALLBACK_MISMATCH"},
+    "requestScopeWidening": {"status": 403, "code": "SCOPE_NOT_ALLOWED"},
+    "approvalRequestDigestSubstitution": {"status": 403, "code": "BINDING_MISMATCH"},
+    "approvalScopeWidening": {"status": 403, "code": "BINDING_MISMATCH"},
+    "approvalSignatureTamper": {"status": 403, "code": "INVALID_SIGNATURE"},
+    "challengeProductSubstitution": {"status": 403, "code": "SESSION_BINDING_MISMATCH"},
+    "challengeDeviceSubstitution": {"status": 403, "code": "SESSION_BINDING_MISMATCH"},
+    "challengeAccountSubstitution": {"status": 403, "code": "SESSION_BINDING_MISMATCH"},
+    "challengeScopeWidening": {"status": 403, "code": "SESSION_SCOPE_MISMATCH"},
+    "challengeLifetimeExtension": {"status": 400, "code": "SESSION_LIFETIME_MISMATCH"},
+    "deviceSignatureTamper": {"status": 403, "code": "INVALID_DEVICE_PROOF"},
+    "exactCompletionReplay": {"status": 409, "code": "REPLAY", "additionalMutation": false}
+  },
+  "tests": {
+    "focused": "3/3 passed",
+    "walletAuthFullSuite": "136/136 passed",
+    "jsonAndDiffChecks": "passed"
+  },
+  "sourceSha256": {
+    "packages/wallet-auth/src/gateway-http.js": "fbd2ba0d4ffb46286d3d6fe51cf4f42c5a6a9858c8eb3ae20d0f37fac43b8b55",
+    "packages/wallet-auth/test/gateway-completion-negative-matrix.test.mjs": "163c8f4dc27def2638b5a943c60ab067eed372d21167e6a945a19d24979bdf61",
+    "packages/wallet-auth/testdata/gateway-completion-negative-matrix-v1.json": "e37a2be152e2e99dfa646b23a20566cbf908689ec7d035b43554dc80e191119e"
+  },
+  "packageArtifact": {
+    "name": "@ynx-chain/wallet-auth",
+    "version": "1.0.0",
+    "sha256": "06e5d9e6092b7f13218011728901333f49b3da2b9a511c12cd76f0748f42f2d2",
+    "bytes": 100955,
+    "unpackedBytes": 453618,
+    "entries": 60,
+    "minimumRuntime": "Node.js 22",
+    "minimumOS": null,
+    "signingClass": "unsigned-local-npm-package",
+    "published": false
+  },
+  "releaseClaims": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "publicRouteVerified": false,
+    "publicGatewaySourceContainsSlice": false,
+    "assetMoved": false,
+    "userClaimed": false,
+    "providerClaimed": false,
+    "secretMaterialRecorded": false
+  },
+  "deployedGateway": {
+    "sourceCommit": "c6ac582c8d490ef980a8cadfd9172f133d1b1a49",
+    "release": "ynx-wallet-gateway-c6ac582c8d49",
+    "containsGatewayCompletionNegativeMatrixSlice": false
+  }
+}
