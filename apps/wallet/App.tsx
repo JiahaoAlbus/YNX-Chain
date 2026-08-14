@@ -25,6 +25,7 @@ import { authorizeLocalKeyUse } from "./src/security/localAuthorization";
 import { switchAccountFailClosed } from "./src/security/accountSwitchPolicy";
 import { assertAuthorizationAttemptActive, type AuthorizationAttempt } from "./src/security/authorizationLifecyclePolicy";
 import { copyPublicValueWithExpiry } from "./src/security/clipboardPrivacy";
+import { StartupDeepLinkGate } from "./src/security/startupDeepLinkPolicy";
 import { unlockAccountFailClosed } from "./src/security/unlockPolicy";
 import { initialLockState, isSelectedAccountUnlocked, reduceLockState } from "./src/state/lockState";
 import { beginOnboardingSave, canSaveOnboarding, initialOnboardingState, onboardingAccountInput, reduceOnboardingState, type OnboardingState } from "./src/state/onboardingState";
@@ -68,6 +69,7 @@ function WalletApp(){
   const [authorizationError,setAuthorizationError]=useState<string|null>(null);
   const [busy,setBusy]=useState(false);
   const [locale,setLocale]=useState<WalletLocale>("en");
+  const localeRef=useRef<WalletLocale>(locale);localeRef.current=locale;
   const [settings,setSettings]=useState(false);
   const [privacyAttempt,setPrivacyAttempt]=useState(0);
   const [privacyState,setPrivacyState]=useState<{ready:boolean;error:string|null}>({ready:false,error:null});
@@ -77,19 +79,19 @@ function WalletApp(){
 
   const dismissAuthorizationReviews=useCallback(()=>{setAuthorization(null);setExchangeAction(null);setDeveloperDeployment(null);setDexAction(null);setQuantAction(null)},[]);
 
-  const load=useCallback(async()=>{
+  const load=useCallback(async():Promise<boolean>=>{
     dispatchLock({type:"lock",reason:"restart"});dismissAuthorizationReviews();setManifest(null);setLoading(true);setError(null);
-    try{await assertSecureStorageAvailable();const [result,savedLocale]=await Promise.all([repository.load(),loadLocale(platformSecureStorage)]);setLocale(savedLocale);setManifest(result.manifest);if(result.migrated)setNotice("Existing secure identity migrated to the independent Wallet. The old product device key was discarded.");}
-    catch(caught){setError(localizeError(locale,caught));}
+    try{await assertSecureStorageAvailable();const [result,savedLocale]=await Promise.all([repository.load(),loadLocale(platformSecureStorage)]);setLocale(savedLocale);setManifest(result.manifest);if(result.migrated)setNotice("Existing secure identity migrated to the independent Wallet. The old product device key was discarded.");return true;}
+    catch(caught){setError(localizeError(localeRef.current,caught));return false;}
     finally{setLoading(false)}
-  },[dismissAuthorizationReviews,locale]);
+  },[dismissAuthorizationReviews]);
 
   const handleLink=useCallback((url:string)=>{
     try{const parsedURL=new URL(url);if(parsedURL.protocol==="ynxwallet:"&&parsedURL.hostname==="open"&&parsedURL.pathname===""&&!parsedURL.search&&!parsedURL.hash){setAuthorization(null);setExchangeAction(null);setDeveloperDeployment(null);setDexAction(null);setQuantAction(null)}else if(parsedURL.protocol==="ynxwallet:"&&parsedURL.hostname==="action"){setExchangeAction(parseExchangeOrderActionDeepLink(url,new Date()));setAuthorization(null);setDeveloperDeployment(null);setDexAction(null);setQuantAction(null)}else if(parsedURL.protocol==="ynxwallet:"&&parsedURL.hostname==="developer-deploy"){setDeveloperDeployment(parseDeveloperDeploymentDeepLink(url,new Date()));setAuthorization(null);setExchangeAction(null);setDexAction(null);setQuantAction(null)}else if(parsedURL.protocol==="ynxwallet:"&&parsedURL.hostname==="dex-action"){setDexAction(parseDexActionDeepLink(url,new Date()));setAuthorization(null);setExchangeAction(null);setDeveloperDeployment(null);setQuantAction(null)}else if(parsedURL.protocol==="ynxwallet:"&&parsedURL.hostname==="quant-action"){setQuantAction(parseQuantActionDeepLink(url,new Date()));setAuthorization(null);setExchangeAction(null);setDeveloperDeployment(null);setDexAction(null)}else{const parsed=parseWalletDeepLink(url,Platform.OS==="ios"?"ios":"android",{now:new Date(),registry:PRODUCT_REGISTRY});setAuthorization(parsed.request);setExchangeAction(null);setDeveloperDeployment(null);setDexAction(null);setQuantAction(null)}setAuthorizationError(null);}
     catch(caught){setAuthorization(null);setExchangeAction(null);setDeveloperDeployment(null);setDexAction(null);setQuantAction(null);setAuthorizationError(localizeError(locale,caught));}
   },[locale]);
 
-  useEffect(()=>{void load();void Linking.getInitialURL().then((url)=>{if(url)handleLink(url)});const sub=Linking.addEventListener("url",({url})=>handleLink(url));return()=>sub.remove()},[handleLink,load]);
+  useEffect(()=>{let active=true;const gate=new StartupDeepLinkGate((url)=>{if(active)handleLink(url)});const sub=Linking.addEventListener("url",({url})=>gate.receive(url));void (async()=>{if(!await load()){gate.fail();return}try{const url=await Linking.getInitialURL();if(url)gate.receive(url);gate.ready()}catch(caught){gate.fail();if(active)setAuthorizationError(localizeError(localeRef.current,caught))}})();return()=>{active=false;gate.fail();sub.remove()}},[handleLink,load]);
   useEffect(()=>{const sub=AppState.addEventListener("change",(next)=>{if(next!=="active"){dispatchLock({type:"lock",reason:"background"});dispatchOnboarding({type:"background"});dismissAuthorizationReviews()}});return()=>sub.remove()},[dismissAuthorizationReviews]);
   useEffect(()=>{void AccessibilityInfo.isReduceMotionEnabled().then(setReducedMotion);void AccessibilityInfo.isHighTextContrastEnabled().then(setHighContrast);const sub=AccessibilityInfo.addEventListener("reduceMotionChanged",setReducedMotion);return()=>sub.remove()},[]);
   useEffect(()=>{let active=true;setPrivacyState({ready:false,error:null});void preventScreenCaptureAsync("wallet-runtime").then(()=>{if(active)setPrivacyState({ready:true,error:null})}).catch((caught)=>{if(active){dispatchLock({type:"lock",reason:"user"});setPrivacyState({ready:false,error:`Wallet privacy protection failed: ${message(caught)}`})}});return()=>{active=false;void allowScreenCaptureAsync("wallet-runtime")}},[privacyAttempt]);

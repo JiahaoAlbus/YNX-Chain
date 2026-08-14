@@ -14,6 +14,7 @@ const secureStorage=await readFile(new URL("../src/storage/secureStorage.ts",imp
 const localAuthorization=await readFile(new URL("../src/security/localAuthorization.ts",import.meta.url),"utf8");
 const localAuthorizationPolicy=await readFile(new URL("../src/security/localAuthorizationPolicy.ts",import.meta.url),"utf8");
 const authorizationLifecyclePolicy=await readFile(new URL("../src/security/authorizationLifecyclePolicy.ts",import.meta.url),"utf8");
+const startupDeepLinkPolicy=await readFile(new URL("../src/security/startupDeepLinkPolicy.ts",import.meta.url),"utf8");
 const unlockPolicy=await readFile(new URL("../src/security/unlockPolicy.ts",import.meta.url),"utf8");
 const lockState=await readFile(new URL("../src/state/lockState.ts",import.meta.url),"utf8");
 const clipboardPrivacy=await readFile(new URL("../src/security/clipboardPrivacy.ts",import.meta.url),"utf8");
@@ -50,6 +51,9 @@ assert.ok(source.includes("setManifest(null)"),"repository reconstruction must d
 assert.ok(source.includes("dismissAuthorizationReviews()"),"repository reconstruction must discard pending authorization reviews");
 assert.ok(source.includes("unlockAccountFailClosed(reviewedAccount"),"Wallet unlock must use the exact-account fail-closed policy");
 for(const required of ["await authorizeBiometric()","await verifyAccountSecret(reviewedAccount)","currentSelectedAccount()!==reviewedAccount"])assert.ok(unlockPolicy.includes(required),`unlock policy must enforce ${required}`);
+assert.ok(source.includes("if(!await load()){gate.fail();return}"),"cold-start deep links must wait for successful secure repository reconstruction");
+assert.ok(source.indexOf("await load()")<source.indexOf("await Linking.getInitialURL()"),"secure repository reconstruction must precede initial deep-link admission");
+for(const required of ['phase:"restoring"|"ready"|"failed"','this.pending=null;this.ambiguous=true','if(pending!==null)this.handle(pending)'])assert.ok(startupDeepLinkPolicy.includes(required),`startup deep-link gate must enforce ${required}`);
 assert.ok(lockState.includes("unlockedAccount: null"),"background/restart lock must clear the in-memory unlocked account");
 assert.ok(lockState.includes('reason:"restart"'),"repository reconstruction must be an explicit lock action");
 assert.ok(source.includes("switchAccountFailClosed(account"),"account selection must use the fail-closed relock policy");
