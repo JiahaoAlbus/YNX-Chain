@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "domain": "YNX_PRODUCT_SESSION_HTTP_NEGATIVE_MATRIX_V1",
+  "operations": {
+    "introspect": {"route":"/v1/wallet/sessions/introspect","body":{"requiredScopes":["account:read"]}},
+    "revoke": {"route":"/v1/wallet/sessions/revoke","body":{}}
+  },
+  "invariants": {
+    "mutated": false,
+    "stateDigestUnchanged": true,
+    "sessionsChanged": 0,
+    "revocationsChanged": 0,
+    "productProofsConsumed": 0
+  },
+  "requiredCoverage": ["wrong-method","wrong-path","wrong-body","wrong-device","scope-widening","pre-session","expiry","replay"],
+  "cases": [
+    {"id":"introspect-wrong-method","operation":"introspect","mutation":"request-method","value":"GET","coverage":"wrong-method","status":405,"code":"METHOD_NOT_ALLOWED"},
+    {"id":"introspect-wrong-path","operation":"introspect","mutation":"proof-path","value":"/v1/wallet/sessions/revoke","coverage":"wrong-path","status":403,"code":"HTTP_BINDING_MISMATCH"},
+    {"id":"introspect-wrong-body-digest","operation":"introspect","mutation":"proof-body","value":{},"coverage":"wrong-body","status":403,"code":"HTTP_BINDING_MISMATCH"},
+    {"id":"introspect-wrong-device","operation":"introspect","mutation":"proof-device","value":"A6O9sRMzJUEJ6GsxD44JH0O1NV2_NJfTsllRvxpaID0Q","coverage":"wrong-device","status":403,"code":"SESSION_BINDING_MISMATCH"},
+    {"id":"introspect-scope-widening","operation":"introspect","mutation":"request-body","value":{"requiredScopes":["account:read","payments:write"]},"coverage":"scope-widening","status":403,"code":"SCOPE_NOT_ALLOWED"},
+    {"id":"introspect-pre-session","operation":"introspect","mutation":"proof-time","issuedAt":"2026-07-15T11:59:59.000Z","expiresAt":"2026-07-15T12:00:30.000Z","coverage":"pre-session","status":400,"code":"INVALID_TIME"},
+    {"id":"introspect-expiry","operation":"introspect","mutation":"dispatch-time","value":"2026-07-15T12:00:31.000Z","coverage":"expiry","status":403,"code":"EXPIRED"},
+    {"id":"introspect-unknown-body-field","operation":"introspect","mutation":"request-body","value":{"extra":true,"requiredScopes":["account:read"]},"coverage":"wrong-body","status":400,"code":"UNKNOWN_OR_MISSING_FIELD"},
+    {"id":"introspect-exact-proof-replay","operation":"introspect","mutation":"replay-after-success","coverage":"replay","status":409,"code":"REPLAY"},
+    {"id":"revoke-wrong-method","operation":"revoke","mutation":"request-method","value":"DELETE","coverage":"wrong-method","status":405,"code":"METHOD_NOT_ALLOWED"},
+    {"id":"revoke-wrong-path","operation":"revoke","mutation":"proof-path","value":"/v1/wallet/sessions/introspect","coverage":"wrong-path","status":403,"code":"HTTP_BINDING_MISMATCH"},
+    {"id":"revoke-wrong-body","operation":"revoke","mutation":"request-body","value":{"requiredScopes":[]},"coverage":"wrong-body","status":400,"code":"UNKNOWN_OR_MISSING_FIELD"},
+    {"id":"revoke-wrong-device","operation":"revoke","mutation":"proof-device","value":"A6O9sRMzJUEJ6GsxD44JH0O1NV2_NJfTsllRvxpaID0Q","coverage":"wrong-device","status":403,"code":"SESSION_BINDING_MISMATCH"},
+    {"id":"revoke-pre-session","operation":"revoke","mutation":"proof-time","issuedAt":"2026-07-15T11:59:59.000Z","expiresAt":"2026-07-15T12:00:30.000Z","coverage":"pre-session","status":400,"code":"INVALID_TIME"},
+    {"id":"revoke-expiry","operation":"revoke","mutation":"dispatch-time","value":"2026-07-15T12:00:31.000Z","coverage":"expiry","status":403,"code":"EXPIRED"},
+    {"id":"revoke-exact-proof-replay","operation":"revoke","mutation":"replay-after-success","coverage":"replay","status":409,"code":"REPLAY"}
+  ]
+}
