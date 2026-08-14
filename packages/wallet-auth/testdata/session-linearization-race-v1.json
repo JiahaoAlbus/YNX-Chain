@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "domain": "YNX_SESSION_LINEARIZATION_RACE_V1",
+  "environment": "single-node-process-loopback-http",
+  "linearizationPoint": "synchronous-kernel-dispatch-and-atomic-state-rename",
+  "routes": ["/v1/wallet/sessions/introspect", "/v1/wallet/sessions/revoke"],
+  "scenarios": [
+    {
+      "id": "concurrent-introspect-revoke-valid-window",
+      "requests": 2,
+      "allowedIntrospection": [{"status":200,"code":null},{"status":403,"code":"REVOKED"}],
+      "requiredRevoke": {"status":200,"code":null},
+      "finalRevocations": 1,
+      "consumedProofRange": [1,2]
+    },
+    {
+      "id": "concurrent-duplicate-revoke-distinct-proofs",
+      "requests": 2,
+      "requiredOutcomes": [{"status":200,"code":null},{"status":409,"code":"ALREADY_REVOKED"}],
+      "finalRevocations": 1,
+      "consumedProofs": 1
+    },
+    {
+      "id": "concurrent-duplicate-revoke-exact-proof",
+      "requests": 2,
+      "requiredOutcomes": [{"status":200,"code":null},{"status":409,"code":"REPLAY"}],
+      "finalRevocations": 1,
+      "consumedProofs": 1
+    },
+    {
+      "id": "expiry-boundary-introspect-revoke",
+      "requests": 2,
+      "requiredOutcomes": [{"status":200,"code":null},{"status":403,"code":"EXPIRED"}],
+      "finalRevocationRange": [0,1],
+      "consumedProofs": 1,
+      "postBoundaryIntrospection": {"status":403,"code":"EXPIRED"}
+    }
+  ],
+  "invariants": {
+    "successesLinearizable": true,
+    "duplicateRevokeSuccesses": 1,
+    "revocationAuditEventsPerSubjectMax": 1,
+    "failedProofConsumed": false,
+    "stateDigestMatchesPersistedSnapshot": true,
+    "restartPreservesWinner": true,
+    "sessionResurrection": false,
+    "multiProcessOrMultiRegionClaimed": false
+  }
+}
