@@ -20,8 +20,12 @@
     "dependencyNodes": 504,
     "componentsWithLicenseMetadata": 431,
     "duplicateComponentBomRefs": 0,
-    "sha256": "4d9a8d93de710755e97c55ae2cad15769992ed3718d3f75e752036ffbbec1d67",
-    "generationAndVerificationPassed": true
+    "sha256": "f35e795bd364dc585f72e3ec1f41033b234dbe2a8b1637d618e0cc63deea2864",
+    "generationAndVerificationPassed": true,
+    "node22Node24FixtureMatch": true,
+    "canonicalEncoding": "UTF-8 with LF and one trailing newline",
+    "canonicalVersionSource": "package.json packageManager",
+    "canonicalTimestamp": "omitted"
   },
   "commands": [
     "npm run sbom:generate",

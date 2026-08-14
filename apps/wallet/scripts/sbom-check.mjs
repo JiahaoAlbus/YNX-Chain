@@ -5,12 +5,16 @@ import { mkdtemp, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
+import { canonicalizeSbom, serializeCanonicalSbom } from "./sbom-canonical.mjs";
 
 const walletRoot = fileURLToPath(new URL("..", import.meta.url));
 const committedPath = path.join(walletRoot, "sbom.cdx.json");
 const packageDocument = JSON.parse(
   await readFile(path.join(walletRoot, "package.json"), "utf8"),
 );
+const packageManagerMatch = /^npm@(\d+\.\d+\.\d+)$/.exec(packageDocument.packageManager ?? "");
+assert.ok(packageManagerMatch, "Wallet packageManager must pin an exact npm version");
+const npmVersion = packageManagerMatch[1];
 const writeMode = process.argv.includes("--write");
 const toolPath = path.join(
   walletRoot,
@@ -69,8 +73,9 @@ try {
     "CycloneDX generation reported ELSPROBLEMS",
   );
 
-  const generatedBytes = await readFile(generatedPath);
-  const sbom = JSON.parse(generatedBytes.toString("utf8"));
+  const rawSbom = JSON.parse(await readFile(generatedPath, "utf8"));
+  const sbom = canonicalizeSbom(rawSbom, { npmVersion });
+  const generatedBytes = serializeCanonicalSbom(sbom);
   assert.equal(sbom.bomFormat, "CycloneDX");
   assert.equal(sbom.specVersion, "1.6");
   assert.equal(sbom.metadata?.component?.group, "@ynx-chain");
