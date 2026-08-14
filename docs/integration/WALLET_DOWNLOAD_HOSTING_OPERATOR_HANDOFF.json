@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "requestId": "wallet-desktop-cli-sdk-official-downloads-20260814",
+  "websiteRepository": "JiahaoAlbus/YNX-Chain-website",
+  "websiteProject": "ynx-web4-website-new",
+  "blobStore": "ynx-official-downloads",
+  "releaseClass": "testnet-preview",
+  "artifacts": [
+    {
+      "id": "macos-arm64-cli",
+      "officialPath": "/downloads/wallet/sha256-21db36f1c80d4e88520918de141a7f71921817799270ff671db88179023b5591/ynx-wallet-cli-darwin-arm64.gz",
+      "blobUrl": "https://dyggjsbxsiew8l6u.public.blob.vercel-storage.com/downloads/wallet/sha256-21db36f1c80d4e88520918de141a7f71921817799270ff671db88179023b5591/ynx-wallet-cli-darwin-arm64-R8DBYwa0YQxXIlYKC6TfHmgCgFqCVK.gz",
+      "bytes": 4904463,
+      "sha256": "21db36f1c80d4e88520918de141a7f71921817799270ff671db88179023b5591",
+      "minimumOS": "macOS 12 Monterey",
+      "signingClass": "ad_hoc_linker_signed_local_testnet_cli_candidate",
+      "blobFullDownloadVerified": true,
+      "officialDomainFullDownloadVerified": false
+    }
+  ],
+  "requiredWebsiteChanges": [
+    "Add an exact rewrite from officialPath to blobUrl before the SPA catch-all rewrite.",
+    "Add immutable Cache-Control and Content-Disposition headers for /downloads/wallet/(.*).",
+    "Render Testnet Preview, Bytes, SHA-256, minimum OS and signing class in the wallet download registry.",
+    "Deploy through deploy/vercel-deploy.sh and retain the prior production deployment for rollback."
+  ],
+  "acceptance": "HTTP GET the exact https://www.ynxweb4.com officialPath and require 4904463 bytes plus the recorded SHA-256 before setting downloadHosted or deployedPublic true.",
+  "downloadHosted": false,
+  "deployedPublic": false,
+  "productionSigned": false,
+  "storeReleased": false
+}

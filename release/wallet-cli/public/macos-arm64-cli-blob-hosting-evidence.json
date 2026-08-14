@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-08-14T07:28:17Z",
+  "artifactId": "macos-arm64-cli",
+  "sourceEvidenceCommit": "fb0b1ac18b809a7b9782fdebc4f9c2c50312fb7b",
+  "immutableBlobUrl": "https://dyggjsbxsiew8l6u.public.blob.vercel-storage.com/downloads/wallet/sha256-21db36f1c80d4e88520918de141a7f71921817799270ff671db88179023b5591/ynx-wallet-cli-darwin-arm64-R8DBYwa0YQxXIlYKC6TfHmgCgFqCVK.gz",
+  "bytes": 4904463,
+  "sha256": "21db36f1c80d4e88520918de141a7f71921817799270ff671db88179023b5591",
+  "minimumOS": "macOS 12 Monterey",
+  "signingClass": "ad_hoc_linker_signed_local_testnet_cli_candidate",
+  "httpStatus": 200,
+  "contentType": "application/gzip",
+  "cacheControl": "public, max-age=31536000",
+  "fullDownloadVerified": true,
+  "blobHosted": true,
+  "officialDomainUrl": null,
+  "downloadHosted": false,
+  "productionSigned": false,
+  "deployedPublic": false,
+  "storeReleased": false,
+  "boundary": "Public immutable Vercel Blob download is proven; ynxweb4.com direct URL and Website registry integration are not yet deployed."
+}
