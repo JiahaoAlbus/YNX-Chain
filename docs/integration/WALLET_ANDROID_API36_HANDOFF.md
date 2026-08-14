@@ -208,3 +208,9 @@ Verification passed the focused unlock policy 2/2 suite, Wallet 81/81, typecheck
 Commit `adb3673be1cba3279266a82fef32268a58126374` acquires an exclusive unlock-attempt gate before React can render its busy state. A rapid second Unlock press cannot open another biometric prompt or start a parallel SecureStore verification. The gate remains held through exact-account verification and final dispatch, releases after either success or failure, and does not replace the unlock epoch that invalidates an in-flight attempt on background, user lock, restart or account switch.
 
 Verification passed the focused security policy 5/5 suite, Wallet 81/81, typecheck, product check, Social harness contract check, release-content check, full-goal coverage and `git diff --check`. A mode-0700 current-source Android Hermes export passed with 2,742 modules and all temporary links were removed. No device command or interaction was performed, so exact-source device and release booleans remain false.
+
+## Recovery-key generation checkpoint
+
+Commit `80c50618fff67436d9b1185430b65e39b1a1baa9` serializes asynchronous recovery-key generation before opening create-account onboarding. Rapid Create presses cannot launch multiple random-secret generations whose completion order overwrites the active flow. Exactly one generated secret enters onboarding, generation failure leaves onboarding closed with an error, and the gate releases after either outcome.
+
+Verification passed Wallet 81/81, typecheck, product check, Social harness contract check, release-content check, full-goal coverage and `git diff --check`. A mode-0700 current-source Android Hermes export passed with 2,742 modules and all temporary links were removed. No device command or interaction was performed, so exact-source device and release booleans remain false.
