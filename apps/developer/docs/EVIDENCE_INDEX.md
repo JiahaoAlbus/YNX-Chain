@@ -121,7 +121,8 @@ successful eight-runtime release record.
   verify Eclipse JDT LS `1.61.0-202607142124` against its fixed SHA-256 and
   launch all seven server routes through the reviewed image entry points.
 - Java language evidence: `services/language-service/test/java-lsp.test.mjs`
-  executes completion, definition and semantic project diagnostics against the
+  executes completion, definition, references, rename, formatting, document
+  symbols and semantic project diagnostics against the
   pinned JDT LS artifact in the no-network local sandbox;
   `test/java-lsp-ui.test.js` guards the gateway, Monaco, Outline, image and live
   candidate route wiring.
