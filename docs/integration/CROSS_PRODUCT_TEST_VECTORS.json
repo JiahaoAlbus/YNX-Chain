@@ -492,8 +492,8 @@
       "preconditions": [
         "Envelope v2 event is signed",
         "optional chainCommitmentId is a 32-character lowercase hexadecimal external reference",
-        "Chain Core contract v1.26.0 implementation e940a5197fb2eed7f30d2810e6f670d844f2c625 and contract commit 27b52d79ea7c9f3f77761451645720174f2886d1",
-        "Chain Core v26 local delivery bundle SHA-256 d6ef075344d916167043f6d12f9b3f559620432f5b04c953189f4cca00aa2b1c is verified",
+        "Chain Core contract v1.27.0 implementation a456daeca2f89af65ac39840efb40ada1cba2e29 and contract commit f55934b7d5a24abf0e6de471441cceacc47ad5e7",
+        "Chain Core v27 local delivery bundle SHA-256 39120dabcb30a1c36c19751a3b6bc0e83be65364ca5f40b8592a1bb944503cd6 is verified",
         "Bulk Data Commitment semantics are unchanged from v21"
       ],
       "input": [

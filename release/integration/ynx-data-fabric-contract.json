@@ -37,13 +37,13 @@
         "coverage": "exact",
         "failure": false
       },
-      "chainCoreContractVersion": "1.26.0",
-      "chainCoreSourceCommit": "e940a5197fb2eed7f30d2810e6f670d844f2c625",
-      "chainCoreContractCommit": "27b52d79ea7c9f3f77761451645720174f2886d1",
+      "chainCoreContractVersion": "1.27.0",
+      "chainCoreSourceCommit": "a456daeca2f89af65ac39840efb40ada1cba2e29",
+      "chainCoreContractCommit": "f55934b7d5a24abf0e6de471441cceacc47ad5e7",
       "chainCoreLocalDelivery": {
-        "bundle": "release/local-delivery/chain-core-data-commitment-v26.bundle",
-        "sha256": "d6ef075344d916167043f6d12f9b3f559620432f5b04c953189f4cca00aa2b1c",
-        "bytes": 97757002,
+        "bundle": "release/local-delivery/chain-core-data-commitment-v27.bundle",
+        "sha256": "39120dabcb30a1c36c19751a3b6bc0e83be65364ca5f40b8592a1bb944503cd6",
+        "bytes": 111258870,
         "verified": true,
         "public": false,
         "deployed": false
@@ -52,7 +52,7 @@
         "serviceCount": 13,
         "publicSmokeFailsClosed": true,
         "candidateGatewayExactBuildIdentity": true,
-        "integrationVectorCount": 101,
+        "integrationVectorCount": 102,
         "additiveMandateBoundStrategyExecution": true,
         "bulkDataCommitmentSemanticsChanged": false,
         "publicRuntimeMatchesSource": false,
@@ -86,6 +86,18 @@
           "saturationTransactions": 10000,
           "saturationAcceptedLimit": 100,
           "scope": "deterministic-in-process-chain-core-only"
+        },
+        "durableValidatorSafetyState": {
+          "schema": "ynx-streambft-safety-state/v1",
+          "checksumDomain": "YNX_STREAMBFT_SAFETY_STATE_V1",
+          "maximumBytes": 65536,
+          "fileMode": "0600",
+          "persistBeforeVoteAuthorizationSuccess": true,
+          "atomicTempSyncRenameAndDirectorySync": true,
+          "restartRechecked": true,
+          "rejected": ["tamper", "trailing-json", "unknown-fields", "unknown-version", "symlink", "last-voted-view-regression", "locked-view-regression", "locked-block-change-without-higher-qc", "same-view-mutation", "concurrent-double-sign"],
+          "singleProcessOwnerStillRequired": true,
+          "scope": "chain-core-validator-safety-only"
         },
         "notProvenByThisEvidence": ["full-state-machine-safety", "chain-core-real-network-partition", "packet-loss", "ddos", "state-sync-restore", "cometbft-or-public-differential-replay", "independent-tlc-or-apalache", "wan-soak", "public-promotion"]
       },
