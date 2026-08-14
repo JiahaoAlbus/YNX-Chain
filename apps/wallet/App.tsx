@@ -76,6 +76,7 @@ function WalletApp(){
   const [authorizationError,setAuthorizationError]=useState<string|null>(null);
   const [busy,setBusy]=useState(false);
   const storageAttemptGate=useRef(new ExclusiveAttemptGate());
+  const unlockAttemptGate=useRef(new ExclusiveAttemptGate());
   const [locale,setLocale]=useState<WalletLocale>("en");
   const localeRef=useRef<WalletLocale>(locale);localeRef.current=locale;
   const [settings,setSettings]=useState(false);
@@ -108,9 +109,9 @@ function WalletApp(){
   useEffect(()=>{let active=true;setPrivacyState({ready:false,error:null});void preventScreenCaptureAsync("wallet-runtime").then(()=>{if(active)setPrivacyState({ready:true,error:null})}).catch((caught)=>{if(active){unlockEpochRef.current+=1;dispatchLock({type:"lock",reason:"user"});setPrivacyState({ready:false,error:`Wallet privacy protection failed: ${message(caught)}`})}});return()=>{active=false;void allowScreenCaptureAsync("wallet-runtime")}},[privacyAttempt]);
 
   const unlock=async()=>{
-    if(!selected)return;const reviewedAccount=selected.account,epoch=unlockEpochRef.current,assertActive=()=>{if(epoch!==unlockEpochRef.current||appStateRef.current!=="active")throw new Error("Wallet unlock was cancelled by lock or background")};setBusy(true);setError(null);
+    const release=unlockAttemptGate.current.tryBegin();if(!release)return;if(!selected){release();return}const reviewedAccount=selected.account,epoch=unlockEpochRef.current,assertActive=()=>{if(epoch!==unlockEpochRef.current||appStateRef.current!=="active")throw new Error("Wallet unlock was cancelled by lock or background")};setBusy(true);setError(null);
     try{await unlockAccountFailClosed(reviewedAccount,()=>authorizeLocalKeyUse("unlock"),async(account)=>{await repository.accountSecret(account)},()=>selectedRef.current?.account??null,assertActive,(account)=>dispatchLock({type:"unlock",account}));}
-    catch(caught){setError(localizeError(locale,caught))}finally{setBusy(false)}
+    catch(caught){setError(localizeError(locale,caught))}finally{release();setBusy(false)}
   };
   const create=async()=>{const bytes=await getRandomBytesAsync(32);dispatchOnboarding({type:"openCreate",recoveryKey:bytesToHex(bytes),label:`Account ${(manifest?.accounts.length??0)+1}`})};
   const userLock=()=>{unlockEpochRef.current+=1;dispatchLock({type:"lock",reason:"user"})};

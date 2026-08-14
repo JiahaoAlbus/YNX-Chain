@@ -85,6 +85,7 @@ assert.ok(source.includes("dismissAuthorizationReviews()"),"repository reconstru
 assert.ok(source.includes("unlockAccountFailClosed(reviewedAccount"),"Wallet unlock must use the exact-account fail-closed policy");
 for(const required of ["await authorizeBiometric()","await verifyAccountSecret(reviewedAccount)","currentSelectedAccount()!==reviewedAccount","assertActive();"])assert.ok(unlockPolicy.includes(required),`unlock policy must enforce ${required}`);
 for(const required of ["unlockEpochRef.current+=1","epoch!==unlockEpochRef.current",'appStateRef.current!=="active"',"Wallet unlock was cancelled by lock or background"])assert.ok(source.includes(required),`in-flight unlock must fail closed through ${required}`);
+assert.ok(source.includes("unlockAttemptGate.current.tryBegin()"),"Wallet unlock must reject synchronous biometric attempt reentry before React busy state renders");
 assert.ok(source.includes("if(!await load()){gate.fail();return}"),"cold-start deep links must wait for successful secure repository reconstruction");
 assert.ok(source.indexOf("await load()")<source.indexOf("await Linking.getInitialURL()"),"secure repository reconstruction must precede initial deep-link admission");
 for(const required of ['phase:"restoring"|"ready"|"failed"','this.pending=null;this.ambiguous=true','if(pending!==null)this.handle(pending)'])assert.ok(startupDeepLinkPolicy.includes(required),`startup deep-link gate must enforce ${required}`);
