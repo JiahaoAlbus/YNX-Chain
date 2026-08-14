@@ -13,6 +13,7 @@ The shared implementation is in:
 - `packages/wallet-auth/src/product-session-recovery.js`
 - `packages/wallet-auth/src/product-session-gateway.js`
 - `packages/wallet-auth/src/product-session-gateway-client.js`
+- `packages/wallet-auth/src/product-session-gateway-http.js`
 
 ## Frozen security contract
 
@@ -20,7 +21,7 @@ A v2 Session is valid only when all of these values remain exact: `chainId`, `pr
 
 Wallet approval uses the selected account signature. The App Gateway, not the product, issues the one-time challenge. The client validates that every challenge field matches the exact request and approval before the exact product P-256 device signs it locally. The device secret is never passed to the Gateway adapter. Every later Gateway call uses a fresh locally signed sender-constrained proof bound to method, path, body digest, device, product, origin, callback, account and a maximum sixty-second lifetime. Challenge, request, state and proof replay stores survive snapshot restore.
 
-The recovery client refuses implicit browser/local storage. It accepts only an injected adapter labelled `hardware-backed` or `os-protected`, re-introspects a restored Session online, attempts one controlled reconnect after confirmed invalidation, and then requires explicit Retry. `ProductSessionGatewayFetchAdapter` accepts only a canonical HTTPS origin, canonical JSON, bound request IDs, `no-store` responses and the v2 proof header; it has no local/canned fallback. A typed Gateway network failure preserves the protected Session as non-authoritative and Retry re-introspects it instead of forcing a new approval. If the network fails after Wallet approval, the exact validated callback is retained in protected storage and can resume after restart.
+The recovery client refuses implicit browser/local storage. It accepts only an injected adapter labelled `hardware-backed` or `os-protected`, re-introspects a restored Session online, attempts one controlled reconnect after confirmed invalidation, and then requires explicit Retry. `ProductSessionGatewayFetchAdapter` accepts only a canonical HTTPS origin, canonical JSON, bound request IDs, `no-store` responses and the v2 proof header; it has no local/canned fallback. `ProductSessionGatewayHttpHandler` is the matching host-neutral HTTP boundary and can be mounted by Integration without changing the actively owned legacy Node host. It rejects noncanonical or oversized bodies, wrong media types, malformed proof headers and unavailable dependencies with canonical request-ID-bound errors. A typed Gateway network failure preserves the protected Session as non-authoritative and Retry re-introspects it instead of forcing a new approval. If the network fails after Wallet approval, the exact validated callback is retained in protected storage and can resume after restart.
 
 Gateway schema v2 persists idempotent responses for Challenge and Complete. The client derives stable request IDs from the pending nonce/state. If a response is lost after the Gateway commits, an identical retry returns the exact cached challenge or Session across restart; reuse of that request ID with another route or body fails with `IDEMPOTENCY_CONFLICT`. Revoked, expired, malformed, or binding-mismatched state is still removed fail closed. Gateway snapshot v1 requires the explicit `migrateProductSessionGatewaySnapshotV1` path.
 

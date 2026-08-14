@@ -4,8 +4,8 @@ import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import { p256 } from "@noble/curves/nist.js";
 import {
-  createProductSessionReturnURL, decodeProductSessionGatewayProofHeaderV2,
-  ProductSessionGatewayFetchAdapter, ProductSessionGatewayKernel, RecoverableProductSessionClient,
+  createProductSessionReturnURL,
+  ProductSessionGatewayFetchAdapter, ProductSessionGatewayHttpHandler, RecoverableProductSessionClient,
   signProductSessionApproval, PRODUCT_SESSION_CLIENT_STATE, PRODUCT_SESSION_GATEWAY_PROOF_HEADER_V2, WalletAuthError,
 } from "../src/index.js";
 
@@ -24,14 +24,12 @@ const storage = () => { const values = new Map(); return { securityLevel: "os-pr
 
 test("fetch adapter recovers lost completion response idempotently without exposing the device secret", async () => {
   let challengeIndex = 0; let loseCompletionResponse = true;
-  const kernel = new ProductSessionGatewayKernel(registry, () => token(`fetch-gateway-${challengeIndex++}`));
+  const handler = new ProductSessionGatewayHttpHandler(registry, () => token(`fetch-gateway-${challengeIndex++}`));
   const captured = [];
   const fakeFetch = async (url, init) => {
     const parsed = new URL(url); const headers = init.headers; const body = JSON.parse(init.body);
-    const proofHeader = headers[PRODUCT_SESSION_GATEWAY_PROOF_HEADER_V2];
-    const proof = proofHeader === undefined ? null : decodeProductSessionGatewayProofHeaderV2(proofHeader);
     captured.push({ url, headers: { ...headers }, body });
-    const response = kernel.dispatch({ requestId: headers["x-request-id"], method: init.method, path: parsed.pathname, body, proof, networkAvailable: true }, NOW);
+    const response = handler.handle({ requestId: headers["x-request-id"], method: init.method, path: parsed.pathname, contentType: headers["content-type"], body: init.body, proofHeader: headers[PRODUCT_SESSION_GATEWAY_PROOF_HEADER_V2] ?? null, networkAvailable: true }, NOW);
     if (parsed.pathname === "/v2/product-sessions/complete" && loseCompletionResponse) { loseCompletionResponse = false; throw new TypeError("response lost after commit"); }
     return new Response(response.body, { status: response.status, headers: response.headers });
   };
@@ -44,9 +42,9 @@ test("fetch adapter recovers lost completion response idempotently without expos
   assert.equal((await client.handleReturn(callback)).status, PRODUCT_SESSION_CLIENT_STATE.NETWORK_UNAVAILABLE);
   const connected = await client.retry({ walletInstalled: true, schemeRegistered: true });
   assert.equal(connected.status, PRODUCT_SESSION_CLIENT_STATE.CONNECTED);
-  assert.equal(kernel.snapshot().authority.sessions.length, 1);
-  assert.equal(kernel.snapshot().idempotency.length, 2);
-  assert.ok(kernel.snapshot().audit.filter((item) => item.outcome === "idempotent").length >= 2);
+  assert.equal(handler.snapshot().authority.sessions.length, 1);
+  assert.equal(handler.snapshot().idempotency.length, 2);
+  assert.ok(handler.snapshot().audit.filter((item) => item.outcome === "idempotent").length >= 2);
   assert.equal(JSON.stringify(captured).includes(device.secret), false);
   assert.equal(captured.every((item) => item.headers["content-type"] === "application/json" && item.headers["x-request-id"].startsWith("req_ps_")), true);
 
