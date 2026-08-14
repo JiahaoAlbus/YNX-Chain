@@ -71,6 +71,12 @@ jobs:
           test -n "$APP"
           mkdir -p proof/ci-ios
           ditto "$APP" proof/ci-ios/YNXWallet-Standalone.app
+          MATRIX=proof/ci-ios/YNXWallet-Standalone.app/wallet-auth-public-endpoint-service-discovery-matrix.json
+          test -f "$MATRIX"
+          test "$(git hash-object "$MATRIX")" = d402fcdc844aa39bd5ee351a99d93acb4852dc37
+          test "$(shasum -a 256 "$MATRIX" | awk '{print $1}')" = d344c607c2bbbf7bb0d9d3662b424976d0d6c4ff20428025dd1e2fb92bf31392
+          git hash-object "$MATRIX" | tee proof/ci-ios/endpoint-matrix-git-blob.txt
+          shasum -a 256 "$MATRIX" | tee proof/ci-ios/endpoint-matrix-sha256.txt
           BUNDLE_ID="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' proof/ci-ios/YNXWallet-Standalone.app/Info.plist)"
           test "$BUNDLE_ID" = com.ynxweb4.wallet
           codesign --verify --deep --strict proof/ci-ios/YNXWallet-Standalone.app
@@ -120,7 +126,25 @@ jobs:
               2>&1 | tee proof/ci-ios/cold-launch-failure-system.log || true
           fi
           test "$LAUNCH_STATUS" -eq 0
-          sleep 3
+          COLD_PID="$(awk '{print $NF}' proof/ci-ios/cold-launch.txt | tail -n 1)"
+          test -n "$COLD_PID"
+          NETWORK_READY=false
+          for _ in $(seq 1 60); do
+            xcrun simctl spawn "$DEVICE" log show \
+              --style compact \
+              --last 5m \
+              --predicate 'subsystem == "com.ynxweb4.wallet" AND category == "network"' \
+              2>&1 | tee proof/ci-ios/cold-launch-network-native.log || true
+            if grep -Fq "YNX_WALLET_ENDPOINT_MATRIX_LOADED pid=$COLD_PID matrixId=ynx-wallet-auth-public-endpoint-service-discovery-v1 rpcHost=rpc.ynxweb4.com rpcPath=/evm integratedCentral=false" \
+                 proof/ci-ios/cold-launch-network-native.log && \
+               grep -Fq "YNX_WALLET_RPC_CHAIN_ID_VERIFIED pid=$COLD_PID chainId=0x1917" \
+                 proof/ci-ios/cold-launch-network-native.log; then
+              NETWORK_READY=true
+              break
+            fi
+            sleep 1
+          done
+          test "$NETWORK_READY" = true
           xcrun simctl spawn "$DEVICE" log show \
             --style compact \
             --last 5m \
@@ -131,6 +155,25 @@ jobs:
           xcrun simctl get_app_container "$DEVICE" com.ynxweb4.wallet | tee proof/ci-ios/app-container.txt
           xcrun simctl terminate "$DEVICE" com.ynxweb4.wallet
           xcrun simctl launch "$DEVICE" com.ynxweb4.wallet | tee proof/ci-ios/second-launch.txt
+          SECOND_PID="$(awk '{print $NF}' proof/ci-ios/second-launch.txt | tail -n 1)"
+          test -n "$SECOND_PID"
+          SECOND_NETWORK_READY=false
+          for _ in $(seq 1 60); do
+            xcrun simctl spawn "$DEVICE" log show \
+              --style compact \
+              --last 5m \
+              --predicate 'subsystem == "com.ynxweb4.wallet" AND category == "network"' \
+              2>&1 | tee proof/ci-ios/second-launch-network-native.log || true
+            if grep -Fq "YNX_WALLET_ENDPOINT_MATRIX_LOADED pid=$SECOND_PID matrixId=ynx-wallet-auth-public-endpoint-service-discovery-v1 rpcHost=rpc.ynxweb4.com rpcPath=/evm integratedCentral=false" \
+                 proof/ci-ios/second-launch-network-native.log && \
+               grep -Fq "YNX_WALLET_RPC_CHAIN_ID_VERIFIED pid=$SECOND_PID chainId=0x1917" \
+                 proof/ci-ios/second-launch-network-native.log; then
+              SECOND_NETWORK_READY=true
+              break
+            fi
+            sleep 1
+          done
+          test "$SECOND_NETWORK_READY" = true
           xcrun simctl io "$DEVICE" screenshot proof/ci-ios/wallet-second-launch.png
       - name: Deliver malformed callback and prove fail-closed UI semantically
         timeout-minutes: 15

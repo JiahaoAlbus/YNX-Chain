@@ -8,6 +8,33 @@ import Security
 private let walletLifecycleLogger = Logger(subsystem: "com.ynxweb4.wallet", category: "lifecycle")
 private let walletCallbackLogger = Logger(subsystem: "com.ynxweb4.wallet", category: "callback")
 private let walletSecurityLogger = Logger(subsystem: "com.ynxweb4.wallet", category: "security")
+private let walletNetworkLogger = Logger(subsystem: "com.ynxweb4.wallet", category: "network")
+
+private func verifyFrozenEndpointMatrixAndChain() async {
+  guard let matrixURL = Bundle.main.url(
+    forResource: "wallet-auth-public-endpoint-service-discovery-matrix",
+    withExtension: "json"
+  ) else {
+    walletNetworkLogger.error("YNX_WALLET_ENDPOINT_MATRIX_UNAVAILABLE pid=\(getpid(), privacy: .public) code=MISSING_BUNDLED_MATRIX")
+    return
+  }
+
+  do {
+    let configuration = try EndpointMatrixPolicy.parse(Data(contentsOf: matrixURL))
+    let rpcHost = configuration.rpcURL.host ?? "unknown"
+    walletNetworkLogger.notice(
+      "YNX_WALLET_ENDPOINT_MATRIX_LOADED pid=\(getpid(), privacy: .public) matrixId=\(configuration.matrixID, privacy: .public) rpcHost=\(rpcHost, privacy: .public) rpcPath=\(configuration.rpcURL.path, privacy: .public) integratedCentral=\(configuration.integratedCentral, privacy: .public)"
+    )
+    let observation = try await ChainRPCProbe().run(configuration: configuration)
+    walletNetworkLogger.notice(
+      "YNX_WALLET_RPC_CHAIN_ID_VERIFIED pid=\(getpid(), privacy: .public) chainId=\(observation.chainIDHex, privacy: .public) bytes=\(observation.responseBytes, privacy: .public)"
+    )
+  } catch {
+    walletNetworkLogger.error(
+      "YNX_WALLET_RPC_CHAIN_ID_UNAVAILABLE pid=\(getpid(), privacy: .public) code=ENDPOINT_OR_RESPONSE_REJECTED"
+    )
+  }
+}
 
 private func runEphemeralKeychainProbeIfRequested() {
   guard ProcessInfo.processInfo.environment["YNX_WALLET_KEYCHAIN_PROBE"] == "1" else { return }
@@ -68,6 +95,8 @@ class AppDelegate: ExpoAppDelegate {
       in: window,
       launchOptions: launchOptions)
 #endif
+
+    Task { await verifyFrozenEndpointMatrixAndChain() }
 
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }

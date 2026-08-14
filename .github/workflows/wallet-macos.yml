@@ -46,8 +46,15 @@ jobs:
           X86_BIN="$(swift build --package-path "$PACKAGE" --configuration release \
             --triple x86_64-apple-macosx13.0 --scratch-path "$X86_SCRATCH" --show-bin-path)"
           rm -rf "$PROOF" "$APP"
-          mkdir -p "$PROOF" "$APP/Contents/MacOS"
+          mkdir -p "$PROOF" "$APP/Contents/MacOS" "$APP/Contents/Resources"
           cp "$PACKAGE/Info.plist" "$APP/Contents/Info.plist"
+          cp "$GITHUB_WORKSPACE/release/integration/wallet-auth-public-endpoint-service-discovery-matrix.json" \
+            "$APP/Contents/Resources/wallet-auth-public-endpoint-service-discovery-matrix.json"
+          MATRIX="$APP/Contents/Resources/wallet-auth-public-endpoint-service-discovery-matrix.json"
+          test "$(git hash-object "$MATRIX")" = d402fcdc844aa39bd5ee351a99d93acb4852dc37
+          test "$(shasum -a 256 "$MATRIX" | awk '{print $1}')" = d344c607c2bbbf7bb0d9d3662b424976d0d6c4ff20428025dd1e2fb92bf31392
+          git hash-object "$MATRIX" | tee "$PROOF/endpoint-matrix-git-blob.txt"
+          shasum -a 256 "$MATRIX" | tee "$PROOF/endpoint-matrix-sha256.txt"
           lipo -create \
             "$ARM_BIN/YNXWalletMac" \
             "$X86_BIN/YNXWalletMac" \
@@ -108,6 +115,21 @@ jobs:
           done
           test -n "${COLD_PID:-}"
           printf 'pid=%s running=true\n' "$COLD_PID" | tee "$PROOF/cold-launch.txt"
+          COLD_NETWORK_READY=false
+          for _ in $(seq 1 60); do
+            xcrun log show --style compact --last 5m \
+              --predicate 'subsystem == "com.ynxweb4.wallet.macos" AND category == "network"' \
+              > "$PROOF/cold-launch-network-native.log" 2>&1 || true
+            if grep -Fq "YNX_WALLET_MAC_ENDPOINT_MATRIX_LOADED pid=$COLD_PID matrixId=ynx-wallet-auth-public-endpoint-service-discovery-v1 rpcHost=rpc.ynxweb4.com rpcPath=/evm integratedCentral=false" \
+                 "$PROOF/cold-launch-network-native.log" && \
+               grep -Fq "YNX_WALLET_MAC_RPC_CHAIN_ID_VERIFIED pid=$COLD_PID chainId=0x1917" \
+                 "$PROOF/cold-launch-network-native.log"; then
+              COLD_NETWORK_READY=true
+              break
+            fi
+            sleep 1
+          done
+          test "$COLD_NETWORK_READY" = true
           kill "$COLD_PID"
           for _ in $(seq 1 30); do
             kill -0 "$COLD_PID" 2>/dev/null || break
@@ -122,6 +144,21 @@ jobs:
           test -n "${SECOND_PID:-}"
           test "$SECOND_PID" != "$COLD_PID"
           printf 'pid=%s running=true\n' "$SECOND_PID" | tee "$PROOF/second-launch.txt"
+          SECOND_NETWORK_READY=false
+          for _ in $(seq 1 60); do
+            xcrun log show --style compact --last 5m \
+              --predicate 'subsystem == "com.ynxweb4.wallet.macos" AND category == "network"' \
+              > "$PROOF/second-launch-network-native.log" 2>&1 || true
+            if grep -Fq "YNX_WALLET_MAC_ENDPOINT_MATRIX_LOADED pid=$SECOND_PID matrixId=ynx-wallet-auth-public-endpoint-service-discovery-v1 rpcHost=rpc.ynxweb4.com rpcPath=/evm integratedCentral=false" \
+                 "$PROOF/second-launch-network-native.log" && \
+               grep -Fq "YNX_WALLET_MAC_RPC_CHAIN_ID_VERIFIED pid=$SECOND_PID chainId=0x1917" \
+                 "$PROOF/second-launch-network-native.log"; then
+              SECOND_NETWORK_READY=true
+              break
+            fi
+            sleep 1
+          done
+          test "$SECOND_NETWORK_READY" = true
           SECOND_READY=false
           for _ in $(seq 1 60); do
             xcrun log show --style compact --last 5m \
