@@ -223,6 +223,12 @@ Verification passed the focused reset/repository 12/12 suite, Wallet 87/87, type
 
 Follow-up commit `02004c99ba5baa1be0156d97e3d89a4f69cbc0ce` revalidates the same lifecycle immediately before each manifest, legacy-identity and mutation-journal deletion. Manifest JSON parse recovery no longer encloses lifecycle assertions, so a cancellation cannot be mistaken for malformed storage and swallowed. Controlled-storage tests invalidate each deletion boundary in turn and prove that every not-yet-reached item remains stored. Verification passed the repository 12/12 suite, Wallet 88/88, all Wallet gates and a fresh 2,744-module Hermes export. Device and release booleans remain false.
 
+## Recovery secret reveal privacy checkpoint
+
+Commit `44ff6b669f2b97c255d15d1179328b686e3fdbab` makes the Recovery Export flow await its dedicated screenshot-protection tag before opening strong biometrics or reading SecureStore. It revalidates the exact visible-account lifecycle after protection, after biometrics and after the secret read, and accepts only a canonical 64-character lowercase recovery key before rendering. Protection failure triggers neither biometric authorization nor secret access; dismissal, background or account drift stops the next step.
+
+Verification passed the focused reveal 2/2 suite, Wallet 90/90, typecheck, product check, Social harness contract check, release-content check, full-goal coverage and `git diff --check`. A mode-0700 current-source Android Hermes export passed with 2,745 modules and all temporary links and export files were removed. No device command or interaction was performed, so `testedOnDevice`, `installedLocal`, `downloadHosted`, native-app `deployedPublic`, `productionSigned` and `storeReleased` remain false for this exact source.
+
 ## In-flight unlock invalidation checkpoint
 
 Commit `d7d198da176a010f6b9aae4e200ca9218b6ee847` prevents a pending biometric unlock from reopening a Wallet that was locked while the prompt or SecureStore read was in flight. Backgrounding, explicit user lock, reconstruction/restart, account switch and privacy-protection failure synchronously advance an unlock epoch. The policy checks foreground/epoch after biometric authorization and again after exact-account secure-material verification, immediately before dispatching unlock. The locked recovery entry is also disabled while unlock is pending.
