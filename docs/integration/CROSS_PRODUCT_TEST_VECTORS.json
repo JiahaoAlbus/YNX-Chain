@@ -27,6 +27,17 @@
       "publicClaimAllowed": false
     },
     {
+      "id": "WA-SESSION-EXACT-CALLDATA-001",
+      "category": "wallet-smart-account",
+      "owners": ["02-wallet-auth", "01-chain-core", "29-integration"],
+      "precondition": "A bounded Session Key is configured for one target, selector, exact calldata keccak256, native-value limits and time window.",
+      "action": "Submit a correctly signed UserOperation using the same target, selector, value and time but replace or append any calldata parameter.",
+      "expectedHttpStatus": null,
+      "expectedCode": "SessionPolicyViolation",
+      "expectedState": "UserOperation execution fails; target state and account spending counters remain unchanged; only the exact configured calldata may execute",
+      "publicClaimAllowed": false
+    },
+    {
       "id": "WA-PUBLIC-GATEWAY-INGRESS-IDENTIFIERS-001",
       "category": "wallet-auth",
       "owners": ["02-wallet-auth", "13-monitor", "29-integration"],

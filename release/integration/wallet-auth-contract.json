@@ -38,6 +38,7 @@
     "gatewayNodeCrashDurability": 1,
     "gatewayAcknowledgementLockRelease": 1,
     "guardianRecoverySessionCutoff": 1,
+    "sessionKeyExactCalldata": 1,
     "gatewayNodeStaleLockRecovery": 1,
     "gatewayNodeRequestLifecycle": 1,
     "gatewayRevocationControlLinearization": 1,
@@ -607,6 +608,7 @@
     },
     "gatewayAcknowledgementLockRelease": {"sourceCommit":"04aad00c775943040da7fb75a024dcd884c8608d","failFirst":"183/184; acknowledged revoke observed state lock after HTTP 200","focusedTests":"2/2 plus 10 repeated runs (20/20)","walletAuthFullSuite":"184/184 passed","successResponseAfterLockRelease":true,"errorResponseAfterLockReleaseAttempt":true,"completionAndRevokeColdRestartPassed":true,"powerLossDurabilityVerified":false,"networkFilesystemDurabilityVerified":false,"multiRegionDurabilityVerified":false,"integratedCentral":false,"deployedStaging":false,"deployedPublic":false,"publicRouteVerified":false,"evidence":"apps/wallet/proof/gateway-acknowledgement-lock-release-local-2026-08-14.json"},
     "guardianRecoverySessionCutoff": {"sourceCommit":"c7031a845864b0086d36c7e48cce8cc1e7c31cad","failFirst":"sessionEpoch remained 1 after requestRecovery","focusedHardhat":"passed","walletAuthFullSuite":"184/184 passed","cutoffPoint":"requestRecovery","existingSessionRejectedBeforeRecoveryDelay":true,"recoveryCancellationRestoresOldSession":false,"replacementRecoveryRequestCreatesNewCutoff":true,"guardianAuthorityExpanded":false,"integratedCentral":false,"deployedStaging":false,"deployedPublic":false,"publicRouteVerified":false,"entryPointDeployedPublic":false,"bundlerDeployedPublic":false,"paymasterDeployedPublic":false,"publicReceiptVerified":false,"evidence":"apps/wallet/proof/guardian-recovery-session-cutoff-local-2026-08-14.json"},
+    "sessionKeyExactCalldata": {"sourceCommit":"f455e60be05eef04a9d3a544ee478c692c95188d","failFirst":"same target/selector/value/time with replacement calldata parameter succeeded","focusedHardhat":"passed","walletAuthFullSuite":"184/184 passed","algorithm":"keccak256","exactTarget":true,"exactSelector":true,"exactCalldata":true,"perCallAndDailyNativeValueLimits":true,"dynamicParameterWideningAllowed":false,"configureSessionAbiChanged":true,"sessionConfiguredEventAbiChanged":true,"integratedCentral":false,"deployedStaging":false,"deployedPublic":false,"publicRouteVerified":false,"entryPointDeployedPublic":false,"bundlerDeployedPublic":false,"paymasterDeployedPublic":false,"publicReceiptVerified":false,"evidence":"apps/wallet/proof/session-key-exact-calldata-local-2026-08-14.json"},
     "gatewayNodeStaleLockRecovery": {
       "sourceCommit": "838ced040abe13fed2f75e13724380190b0a3626",
       "focusedTests": "2/2 passed",
