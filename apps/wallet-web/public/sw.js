@@ -16,10 +16,11 @@ async function installCurrent() {
 self.addEventListener("install", (event) => event.waitUntil(installCurrent().then(() => self.skipWaiting())));
 self.addEventListener("activate", (event) => event.waitUntil(purgeObsolete().then(() => self.clients.claim())));
 self.addEventListener("fetch", (event) => {
-  const route = serviceWorkerRoute(event.request, self.location.origin);
+  const scopeUrl = self.registration.scope;
+  const route = serviceWorkerRoute(event.request, scopeUrl);
   if (route === "network-only") return;
   event.waitUntil(purgeObsolete());
-  const key = assetKeyForRequest(event.request, self.location.origin);
+  const key = assetKeyForRequest(event.request, scopeUrl);
   if (!key || !ASSET_INTEGRITY[key]) return;
   if (route === "navigation-network-first") {
     event.respondWith(fetch(event.request).then(async (response) => {

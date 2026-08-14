@@ -22,6 +22,23 @@ test("only obsolete YNX caches are purged and requests resolve to canonical asse
   assert.equal(assetKeyForRequest(request("https://evm.ynxweb4.com"),origin),null);
 });
 
+test("nested official scope resolves canonical keys and rejects same-origin paths outside Wallet",()=>{
+  const scope=`${origin}/wallet/companion/`;
+  assert.equal(assetKeyForRequest(request(`${origin}/wallet/companion/`),scope),"./index.html");
+  assert.equal(assetKeyForRequest(request(`${origin}/wallet/companion/app.js?cold=1`),scope),"./app.js");
+  assert.equal(assetKeyForRequest(request(`${origin}/wallet/companionish/app.js`),scope),null);
+  assert.equal(assetKeyForRequest(request(`${origin}/app.js`),scope),null);
+  assert.equal(serviceWorkerRoute(request(`${origin}/wallet/companion/`,`GET`,`navigate`),scope),"navigation-network-first");
+  assert.equal(serviceWorkerRoute(request(`${origin}/wallet/companion/app.js`),scope),"asset-cache-first");
+  assert.equal(serviceWorkerRoute(request(`${origin}/app.js`),scope),"network-only");
+});
+
+test("built worker derives cache keys from its registration scope",async()=>{
+  const worker=await import("node:fs/promises").then(({readFile})=>readFile(new URL("../public/sw.js",import.meta.url),"utf8"));
+  assert.match(worker,/const scopeUrl = self\.registration\.scope;/u);
+  assert.doesNotMatch(worker,/assetKeyForRequest\(event\.request, self\.location\.origin\)/u);
+});
+
 test("PWA caches only successful same-origin response classes", () => {
   assert.equal(cacheableResponse({ok:true,type:"basic"}),true);
   assert.equal(cacheableResponse({ok:true,type:"default"}),true);

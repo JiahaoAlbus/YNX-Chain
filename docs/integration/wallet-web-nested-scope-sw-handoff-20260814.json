@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "owner": "Wallet Web/PWA/Extensions",
+  "baseCommit": "aad50a37b710c37d243a3034b0527eca75e68aad",
+  "websitePullRequest": "https://github.com/JiahaoAlbus/YNX-Chain-website/pull/35",
+  "reviewBlocker": "The Wallet service worker previously derived asset keys from the origin instead of its nested registration scope.",
+  "sourceChanges": [
+    "apps/wallet-web/src/service-worker-policy.js",
+    "apps/wallet-web/public/sw.js",
+    "apps/wallet-web/test/service-worker-policy.test.js"
+  ],
+  "requiredWebsiteActions": [
+    "Consume the corrected PWA artifact or the exact three Wallet source changes before merging PR #35.",
+    "Keep the Wallet registration at /wallet/companion/ so ./app.js and ./index.html resolve inside that scope.",
+    "Address the Website-owned CSP, root service-worker cache coexistence, and Website-local fixture paths separately; this Wallet commit does not modify the Website worktree."
+  ],
+  "artifacts": [
+    {"name":"ynx-wallet-web-pwa-0.1.0.zip","bytes":272793,"sha256":"d54126990dc421ec730112d244e404d5f81ec69b07e030f724925f4dfaf6bc40","minimumOS":"modern browser with Service Worker and Web Crypto support","signingClass":"unsigned-web-bundle"},
+    {"name":"ynx-wallet-chrome-edge-0.1.0.zip","bytes":188846,"sha256":"c733093dea47c6612c8a9d5ecea40be2227f62402f4b4966955c9e1accf4e2aa","minimumOS":"Chrome 120 / Edge 120","signingClass":"unsigned-unpacked-extension"},
+    {"name":"ynx-wallet-firefox-0.1.0.zip","bytes":188883,"sha256":"417d9b9e5babf05fdfdf8161504389eb99c636be75f94444bf4ff91a9b4536b3","minimumOS":"Firefox 128","signingClass":"unsigned-unpacked-extension"}
+  ],
+  "tests": {
+    "full": "80/80",
+    "nestedScope": true,
+    "sameOriginOutsideScopeRejected": true,
+    "builtWorkerUsesRegistrationScope": true,
+    "packageIntegrity": true
+  },
+  "walletManifestDeployedPublic": false,
+  "installedLocal": false,
+  "coldLaunchProved": false,
+  "secondLaunchProved": false,
+  "browserProfileTouched": false
+}
