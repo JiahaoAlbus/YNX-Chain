@@ -45,7 +45,11 @@ test('mobile terminal is responsive without horizontal overflow',async()=>{
 test('read requests recover after two transport failures while POST is sent once',async()=>{
   const page=await browser.newPage({viewport:{width:1100,height:760}});let reads=0,posts=0;
   await page.route('**/api/v1/orderbook',async route=>{const method=route.request().method();if(method==='GET'&&++reads<3)return route.abort('failed');if(method==='POST'){posts++;return route.abort('failed')}return route.continue()});
-  await page.goto(base);for(let i=0;i<40&&reads<3;i++)await page.waitForTimeout(250);assert.equal(reads,3);await page.getByText('YNX Testnet connected').waitFor({timeout:15000});
+  await page.goto(base);for(let i=0;i<40&&reads<3;i++)await page.waitForTimeout(250);assert.ok(reads>=3&&reads<=4,`bounded retry plus at most one stream snapshot refresh expected, got ${reads}`);await page.getByText(/YNX Testnet (live stream )?connected/).waitFor({timeout:15000});
   await page.evaluate(async()=>{try{await api('/v1/orderbook',{method:'POST'})}catch{}});assert.equal(posts,1);
   await page.close();
+});
+
+test('market WebSocket reconnects with a persisted sequence cursor',async()=>{
+  const page=await browser.newPage({viewport:{width:1100,height:760}});const sockets=[];page.on('websocket',socket=>sockets.push(socket));await page.goto(base,{waitUntil:'networkidle'});await page.waitForFunction(()=>marketSocket?.readyState===WebSocket.OPEN,null,{timeout:15000});assert.equal(sockets.length,1);const firstURL=sockets[0].url();assert.match(firstURL,/\/api\/v1\/ws\/market$/);const cursor=await page.evaluate(()=>marketCursor);assert.ok(cursor>=0);await page.evaluate(()=>marketSocket.close());for(let i=0;i<40&&sockets.length<2;i++)await page.waitForTimeout(250);assert.ok(sockets.length>=2,'market stream did not reconnect');await page.waitForFunction(()=>marketSocket?.readyState===WebSocket.OPEN,null,{timeout:15000});await page.getByText('YNX Testnet live stream connected').waitFor({timeout:15000});if(cursor>0)assert.match(sockets.at(-1).url(),new RegExp(`after=${cursor}`));await page.close();
 });

@@ -1,10 +1,23 @@
 const $=(s)=>document.querySelector(s);const $$=(s)=>[...document.querySelectorAll(s)];
 const state={account:null,side:'buy',snapshot:null,book:null,publicTrades:[],spotCandles:[],perpCandles:[],config:null,solvency:null,risk:null,perpBook:null,activity:'trades'};
 const READ_RETRY_DELAYS=[0,600,1600];
+const STREAM_RETRY_DELAYS=[500,1000,2000,5000,10_000];let marketSocket=null,marketCursor=0,marketReconnectTimer=0,marketReconnectAttempt=0,marketRefreshTimer=0,marketStreamStopped=false;
 const micro=(v)=>Math.round(Number(v)*1e6);const display=(v,d=6)=>Number(v/1e6).toLocaleString(undefined,{maximumFractionDigits:d,minimumFractionDigits:Math.min(2,d)});
 function toast(message){const el=$('#toast');el.textContent=message;el.classList.add('show');clearTimeout(toast.timer);toast.timer=setTimeout(()=>el.classList.remove('show'),3500)}
 function wait(ms){return new Promise(resolve=>setTimeout(resolve,ms))}
 function setNetworkStatus(message,stateName='live'){const label=$('#network-status'),root=label?.closest('.truth');if(label)label.textContent=message;if(root)root.dataset.network=stateName}
+function marketStreamURL(){const url=new URL('/api/v1/ws/market',location.href);url.protocol=url.protocol==='https:'?'wss:':'ws:';if(marketCursor>0)url.searchParams.set('after',String(marketCursor));return url}
+function scheduleMarketRefresh(){clearTimeout(marketRefreshTimer);marketRefreshTimer=setTimeout(()=>refreshBook().catch(e=>toast(e.message)),120)}
+function stopMarketStream(){marketStreamStopped=true;clearTimeout(marketReconnectTimer);marketSocket?.close();marketSocket=null}
+function reconnectMarketStream(){marketStreamStopped=false;clearTimeout(marketReconnectTimer);marketSocket?.close();marketSocket=null;marketReconnectAttempt=0;startMarketStream()}
+function startMarketStream(){
+  if(marketStreamStopped||marketSocket||!navigator.onLine)return;
+  const socket=new WebSocket(marketStreamURL());marketSocket=socket;
+  socket.addEventListener('open',()=>{if(marketSocket!==socket)return;marketReconnectAttempt=0;setNetworkStatus('YNX Testnet live stream connected','live')});
+  socket.addEventListener('message',event=>{if(marketSocket!==socket)return;let message;try{message=JSON.parse(event.data)}catch{return}if(message.type==='snapshot'){marketCursor=Number(message.snapshot?.sequence)||marketCursor;if(message.snapshot?.book){state.book=message.snapshot.book;renderBook()}scheduleMarketRefresh();return}if(message.type==='replay'){marketCursor=Number(message.current)||marketCursor;if((message.events||[]).length)scheduleMarketRefresh();return}if(message.type==='event'){marketCursor=Math.max(marketCursor,Number(message.event?.sequence)||0);scheduleMarketRefresh()}});
+  socket.addEventListener('close',()=>{if(marketSocket!==socket)return;marketSocket=null;if(marketStreamStopped)return;const delay=STREAM_RETRY_DELAYS[Math.min(marketReconnectAttempt,STREAM_RETRY_DELAYS.length-1)];marketReconnectAttempt++;setNetworkStatus(`Market stream reconnecting in ${delay/1000}s…`,'retrying');marketReconnectTimer=setTimeout(startMarketStream,delay)});
+  socket.addEventListener('error',()=>socket.close());
+}
 async function api(path,options={},scope=''){
   const method=String(options.method||'GET').toUpperCase(),readOnly=method==='GET',attempts=readOnly?READ_RETRY_DELAYS.length:1;
   for(let attempt=0;attempt<attempts;attempt++){
@@ -14,7 +27,7 @@ async function api(path,options={},scope=''){
       if(scope){const wallet=window.YNXExchangeWallet;if(!wallet)throw Object.assign(new Error('YNX Wallet integration is unavailable.'),{nonRetryable:true});try{headers['X-YNX-Product-Session-Proof']=await wallet.requireProof(scope)}catch(error){error.nonRetryable=true;throw error}}
       const response=await fetch(`/api${path}`,{...options,method,headers,signal:AbortSignal.timeout(10_000)});let body={};try{body=await response.json()}catch{}
       if(!response.ok){const error=new Error(body.error||`Request failed (${response.status})`);error.status=response.status;if(!readOnly||![502,503,504].includes(response.status)||attempt===attempts-1)throw error;continue}
-      setNetworkStatus('YNX Testnet connected','live');return body
+      setNetworkStatus(marketSocket?.readyState===WebSocket.OPEN?'YNX Testnet live stream connected':'YNX Testnet connected','live');return body
     }catch(error){if(!readOnly||error?.status||error?.nonRetryable||attempt===attempts-1){if(!error?.nonRetryable&&(!error?.status||[502,503,504].includes(error.status)))setNetworkStatus('Connection unavailable · Retry','offline');throw error}}
   }
   throw new Error('Read connection retry exhausted.')
@@ -22,7 +35,7 @@ async function api(path,options={},scope=''){
 function idempotency(prefix){return `${prefix}-${Date.now()}-${crypto.getRandomValues(new Uint32Array(1))[0]}`}
 function requireCentralSession(){if(window.YNXExchangeWallet?.connected())return true;$('#wallet-dialog').showModal();return false}
 
-async function boot(){bind();window.addEventListener('ynx-exchange-wallet-error',event=>toast(event.detail));try{await window.YNXExchangeWallet?.ready;const action=window.YNXExchangeWallet?.consumeActionResult();if(action)toast(`${evidenceLabel(action.kind)} accepted${action.record?.status?`: ${action.record.status}`:''}`);[state.config,state.solvency]=await Promise.all([api('/v1/config'),api('/v1/solvency')]);$('#custody-address').textContent=state.config.custodyAddress||'Not configured — deposits and withdrawals disabled';$('#withdraw-fee').textContent=`${display(withdrawFee())} YNXT`;renderSolvency();await Promise.all([refreshBook(),refreshPerpetual()])}catch(e){toast(e.message)}if(window.YNXExchangeWallet?.connected())await refreshAccount()}
+async function boot(){bind();window.addEventListener('ynx-exchange-wallet-error',event=>toast(event.detail));try{await window.YNXExchangeWallet?.ready;const action=window.YNXExchangeWallet?.consumeActionResult();if(action)toast(`${evidenceLabel(action.kind)} accepted${action.record?.status?`: ${action.record.status}`:''}`);[state.config,state.solvency]=await Promise.all([api('/v1/config'),api('/v1/solvency')]);$('#custody-address').textContent=state.config.custodyAddress||'Not configured — deposits and withdrawals disabled';$('#withdraw-fee').textContent=`${display(withdrawFee())} YNXT`;renderSolvency();await Promise.all([refreshBook(),refreshPerpetual()]);startMarketStream()}catch(e){toast(e.message)}if(window.YNXExchangeWallet?.connected())await refreshAccount()}
 function bind(){
   $$('.topbar nav button').forEach(b=>b.addEventListener('click',()=>showView(b.dataset.view)));
   $('#connect').addEventListener('click',()=>$('#wallet-dialog').showModal());
@@ -31,14 +44,14 @@ function bind(){
   $('#order-form').addEventListener('submit',reviewOrder);$('#deposit-form').addEventListener('submit',observeDeposit);$('#withdraw-form').addEventListener('submit',reviewWithdrawal);
   $('#route-form').addEventListener('submit',quoteLiquidity);
   $('#refresh').addEventListener('click',refreshAll);$('#security-form').addEventListener('submit',saveSecurity);$('#support-form').addEventListener('submit',openSupport);
-  $('#network-retry').addEventListener('click',()=>refreshAll().catch(e=>toast(e.message)));
+  $('#network-retry').addEventListener('click',()=>{reconnectMarketStream();refreshAll().catch(e=>toast(e.message))});
   $('#ai-submit').addEventListener('click',requestAI);$('#draft-order').addEventListener('click',()=>{showView('controls');$('#ai-kind').value='order_draft';$('#ai-prompt').focus()});
   $('#load-liability-proof').addEventListener('click',loadLiabilityProof);
   $('#perp-order-form').addEventListener('submit',reviewPerpetualOrder);$('#margin-deposit').addEventListener('click',reviewMarginTransfer);$('#margin-withdraw').addEventListener('click',reviewMarginTransfer);
   $('#spot-interval').addEventListener('change',refreshBook);$('#perp-interval').addEventListener('change',refreshPerpetual);
   $$('.tabs button').forEach(b=>b.addEventListener('click',()=>{state.activity=b.dataset.activity;$$('.tabs button').forEach(x=>x.setAttribute('aria-selected',String(x===b)));renderActivity()}));
 }
-window.addEventListener('online',()=>refreshAll().catch(e=>toast(e.message)));
+window.addEventListener('online',()=>{reconnectMarketStream();refreshAll().catch(e=>toast(e.message))});window.addEventListener('offline',()=>{stopMarketStream();setNetworkStatus('Offline · reconnect when network returns','offline')});
 function showView(id){$$('.view').forEach(v=>v.classList.toggle('active',v.id===id));$$('.topbar nav button').forEach(b=>b.classList.toggle('nav-active',b.dataset.view===id));location.hash=id;document.title=`YNX Exchange — ${id[0].toUpperCase()+id.slice(1)}`}
 function setSide(side){state.side=side;$('#buy-tab').setAttribute('aria-selected',side==='buy');$('#sell-tab').setAttribute('aria-selected',side==='sell');estimate()}
 function estimate(){const p=micro($('#price').value||0),a=micro($('#amount').value||0);if(p<=0||a<=0){$('#reservation').textContent='—';return}if(state.side==='buy'){const q=Math.floor(a*p/1e6);$('#reservation').textContent=`${display(q+Math.ceil(q*.002))} YUSD_TEST max`}else{$('#reservation').textContent=`${display(a)} YNXT`}}
