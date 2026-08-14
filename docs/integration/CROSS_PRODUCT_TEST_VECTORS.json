@@ -104,6 +104,17 @@
       "publicClaimAllowed": false
     },
     {
+      "id": "WA-SPONSORSHIP-MULTIPROCESS-LINEARIZATION-001",
+      "category": "wallet-auth",
+      "owners": ["02-wallet-auth", "29-integration"],
+      "precondition": "Eight independent Node processes share one private sponsorship replay state path.",
+      "action": "Release all processes simultaneously with either eight distinct nonces or one identical nonce.",
+      "expectedHttpStatus": null,
+      "expectedCode": "SPONSORSHIP_REPLAY for seven identical-nonce losers",
+      "expectedState": "all eight distinct nonces persist without lost update; an identical nonce has exactly one winner; reload, decision and persistence occur inside one exclusive lock",
+      "publicClaimAllowed": false
+    },
+    {
       "id": "WA-MULTIUSER-ISOLATION-001",
       "category": "wallet-auth",
       "owners": ["02-wallet-auth", "29-integration"],
