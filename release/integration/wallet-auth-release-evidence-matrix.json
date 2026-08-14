@@ -34,15 +34,9 @@
   },
   "pendingOwnerCommits": [],
   "pendingOwnerEvidence": [
-    {
-      "owner": "web-pwa-extensions",
-      "candidateCommit": "ae55e8272018979abb6cb393307755c063f71f38",
-      "remoteFastForwardReported": true,
-      "remoteReadbackComplete": true,
-      "ciComplete": true,
-      "consumedForReleaseTruth": false,
-      "note": "Canonical sensitive-request fail-close evidence is queued for its own later atomic slice."
-    },
+    {"owner":"web-pwa-extensions","candidateCommit":"a3059db5d7e08e60bfcdf6b590d8217d211e008a","remoteFastForwardReported":true,"remoteReadbackComplete":false,"ciComplete":true,"consumedForReleaseTruth":false,"note":"PWA preferences second-launch evidence remains queued for its own atomic slice."},
+    {"owner":"web-pwa-extensions","candidateCommit":"f789c782c325d64234bd077f5c878b1821b2149a","remoteFastForwardReported":true,"remoteReadbackComplete":false,"ciComplete":true,"consumedForReleaseTruth":false,"note":"PWA cache-integrity lifecycle evidence remains queued; live RPC/recovery stay false."},
+    {"owner":"web-pwa-extensions","candidateCommit":"7522b8162b2581c7fed216d0e4e9fef44ff4fef7","remoteFastForwardReported":true,"remoteReadbackComplete":true,"ciComplete":true,"consumedForReleaseTruth":false,"note":"Extension minimum-permissions evidence remains queued; device/provider/account/sign/tx truth stays false."},
     {
       "owner": "android-api36",
       "candidateCommit": "6f096503793218ddfd9b3b1cd6403a07d4fafb97",
@@ -75,9 +69,9 @@
     {
       "owner": "web-pwa-extensions",
       "branch": "codex/wallet-web-pwa-extensions-20260813",
-      "sourceCommit": "0b3ffa8faabad2caa49b1c00db493261e2d98bca",
-      "remoteCommitObserved": "0b3ffa8faabad2caa49b1c00db493261e2d98bca",
-      "branchHeadObserved": "ae55e8272018979abb6cb393307755c063f71f38",
+      "sourceCommit": "ae55e8272018979abb6cb393307755c063f71f38",
+      "remoteCommitObserved": "ae55e8272018979abb6cb393307755c063f71f38",
+      "branchHeadObserved": "7522b8162b2581c7fed216d0e4e9fef44ff4fef7",
       "remoteVerifiedAt": "2026-08-14T04:18:00Z",
       "verificationMode": "github-git-database-parent-tree-blob-readback"
     },
@@ -263,6 +257,13 @@
       "commit": "0b3ffa8faabad2caa49b1c00db493261e2d98bca",
       "path": "apps/wallet-web/evidence/runtime/content-provider-bridge-20260814.json",
       "supports": []
+    },
+    "web-canonical-sensitive-request-fail-closed": {
+      "type": "git-object",
+      "direct": true,
+      "commit": "ae55e8272018979abb6cb393307755c063f71f38",
+      "path": "apps/wallet-web/evidence/contracts/canonical-sensitive-consumer-20260814.json",
+      "supports": ["web-pwa.build", "browser-extension.build"]
     },
     "web-pwa-browser": {
       "type": "git-object",
