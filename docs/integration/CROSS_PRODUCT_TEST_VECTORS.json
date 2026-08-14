@@ -115,6 +115,17 @@
       "publicClaimAllowed": false
     },
     {
+      "id": "WA-SPONSORSHIP-STALE-LOCK-RECOVERY-001",
+      "category": "wallet-auth",
+      "owners": ["02-wallet-auth", "29-integration"],
+      "precondition": "A sponsorship ledger process dies while its canonical mode-0600 owner lock remains beside a valid replay state file.",
+      "action": "Attempt normal startup, too-young recovery, live/PID-reused-owner recovery, then explicit recovery after the minimum age with the owner dead.",
+      "expectedHttpStatus": null,
+      "expectedCode": "SPONSORSHIP_STATE_LOCKED, SPONSORSHIP_STALE_LOCK_TOO_YOUNG or SPONSORSHIP_STALE_LOCK_OWNER_ALIVE until every recovery invariant passes",
+      "expectedState": "normal startup and unsafe recovery mutate nothing; explicit recovery revalidates state plus PID/token/inode, removes only the unchanged dead-owner lock, preserves consumed nonces and exact replay rejection",
+      "publicClaimAllowed": false
+    },
+    {
       "id": "WA-MULTIUSER-ISOLATION-001",
       "category": "wallet-auth",
       "owners": ["02-wallet-auth", "29-integration"],
