@@ -2,11 +2,11 @@
   "schemaVersion": 2,
   "productId": "ynx-data-fabric",
   "productName": "YNX Data Fabric & Billing Ledger",
-  "release": "ynx-data-fabric-a0f92680d0df",
+  "release": "ynx-data-fabric-8ee6d8f37ce9",
   "channel": "testnet-preview",
-  "sourceCommit": "a0f92680d0df50ed131b5eb422a851f5874c9045",
-  "sourceRelease": "ynx-data-fabric-a0f92680d0df",
-  "generatedAt": "2026-08-14T09:17:01Z",
+  "sourceCommit": "8ee6d8f37ce945111ba76ddc2466c06164a6c4e8",
+  "sourceRelease": "ynx-data-fabric-8ee6d8f37ce9",
+  "generatedAt": "2026-08-14T10:33:31Z",
   "states": {
     "implementedLocal": true,
     "testedLocal": true,
@@ -38,43 +38,36 @@
   "artifacts": [],
   "evidence": {
     "localVerification": {
-      "sourceCommit": "a0f92680d0df50ed131b5eb422a851f5874c9045",
+      "sourceCommit": "8ee6d8f37ce945111ba76ddc2466c06164a6c4e8",
       "status": "passed",
       "environment": "macOS development environment with standard umask for cross-repository permission vectors",
-      "commands": ["go test ./internal/datafabric -count=1", "go test ./internal/datafabricapi ./internal/datafabricpay ./internal/datafabricpayledger -count=1", "go test -race ./internal/datafabric -count=1", "jq empty schemas/data-fabric/event-envelope-v1.schema.json schemas/data-fabric/event-envelope-v2.schema.json schemas/data-fabric/schema-registry-v2.json integration/product-event-contracts.json", "bash -lc 'umask 022; exec go test ./... -count=1'", "go test -race ./internal/datafabric ./internal/datafabricapi ./internal/datafabricnats ./internal/datafabricpay ./internal/datafabricpayledger ./internal/datafabricpostgres ./sdk/datafabric -count=1", "go test -race ./scripts/data-fabric/postgres-resilience -count=1", "go run ./scripts/data-fabric/api-capacity -producers 1000 -server-concurrency 64 -source-commit 59c60864ac433bdf474ce16f9199533907017deb -source-release ynx-data-fabric-59c60864ac43 -dirty-working-tree=false", "GitHub Actions run 31786668608 data-fabric-postgres-live: PostgreSQL hotspot, duplicate storm, restart, replay, post-commit/pre-ack process crash and JetStream capacity-backpressure recovery", "go run golang.org/x/vuln/cmd/govulncheck@v1.6.0 ./...", "bash scripts/data-fabric/quality-gates.sh", "npm test --prefix sdk/datafabric-typescript", "npm audit --audit-level=high --registry=https://registry.npmjs.org --prefix sdk/datafabric-typescript"]
+      "commands": ["go test ./internal/datafabric -count=1", "go test ./internal/datafabricapi ./internal/datafabricpay ./internal/datafabricpayledger -count=1", "go test -race ./internal/datafabric -count=1", "jq empty schemas/data-fabric/event-envelope-v1.schema.json schemas/data-fabric/event-envelope-v2.schema.json schemas/data-fabric/schema-registry-v2.json integration/product-event-contracts.json", "bash -lc 'umask 022; exec go test ./... -count=1'", "go test -race ./internal/datafabric ./internal/datafabricapi ./internal/datafabricnats ./internal/datafabricpay ./internal/datafabricpayledger ./internal/datafabricpostgres ./sdk/datafabric -count=1", "go test -race ./scripts/data-fabric/postgres-resilience -count=1", "go run ./scripts/data-fabric/api-capacity -producers 1000 -server-concurrency 64 -source-commit 59c60864ac433bdf474ce16f9199533907017deb -source-release ynx-data-fabric-59c60864ac43 -dirty-working-tree=false", "GitHub Actions run 31791152026 data-fabric-postgres-live: 1000 signed Producers through PostgreSQL and JetStream plus hotspot, duplicate, restart, replay, process-crash and capacity-pressure drills", "go run golang.org/x/vuln/cmd/govulncheck@v1.6.0 ./...", "bash scripts/data-fabric/quality-gates.sh", "npm test --prefix sdk/datafabric-typescript", "npm audit --audit-level=high --registry=https://registry.npmjs.org --prefix sdk/datafabric-typescript"]
     },
     "remoteCI": {
-      "runId": 31788198895,
+      "runId": null,
       "workflow": "data-fabric",
-      "sourceCommit": "a0f92680d0df50ed131b5eb422a851f5874c9045",
-      "headCommit": "d0d7e4d6ce5bfbeeafcc21d3c9186aa6e52434dc",
-      "status": "completed",
-      "conclusion": "success",
-      "startedAt": "2026-08-14T09:28:11Z",
-      "duration": "4m25s",
+      "sourceCommit": "8ee6d8f37ce945111ba76ddc2466c06164a6c4e8",
+      "headCommit": null,
+      "status": "pending",
+      "conclusion": null,
+      "startedAt": null,
+      "duration": null,
       "artifactsPublished": false,
-      "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/31788198895",
-      "evidenceArtifact": {
-        "name": "data-fabric-postgres-resilience-d0d7e4d6ce5bfbeeafcc21d3c9186aa6e52434dc",
-        "retentionDays": 30,
-        "publicReleaseArtifact": false,
-        "seedSha256": "f5caa144db7ced72cc2393b9398fa667a43a98ae9e691d3841a7c6293c75fb26",
-        "verifySha256": "3817d23708eab54b8555f69f9311882555a7f07fa45b03410b33670ce1c90472",
-        "consumerCrashSha256": "97aef19b48166befd120b16b3831f9879dbfdbec444cdf74c6c562b8c5a8e47a",
-        "transportBackpressureSha256": "67fb0c5725187345e6dffb608ee4785b8be1bdf20b549f2d5b29e146de6ba92a"
-      }
+      "url": null,
+      "evidenceArtifact": null
     },
     "engineeringEvidenceRun": {
-      "runId": 31786668608,
-      "sourceCommit": "a0f92680d0df50ed131b5eb422a851f5874c9045",
+      "runId": 31791152026,
+      "sourceCommit": "8ee6d8f37ce945111ba76ddc2466c06164a6c4e8",
       "postgresJobConclusion": "success",
       "overallConclusion": "failure",
       "verifyFailure": "release truth rejected the not-yet-updated frozen sourceCommit",
-      "artifactName": "data-fabric-postgres-resilience-a0f92680d0df50ed131b5eb422a851f5874c9045",
-      "seedSha256": "882013060cd825748e77ebf421f70cf9b47d9c4122c82e041fe8261c16c5ffa8",
-      "verifySha256": "bd56b767a613670d2f46503d2dec7bb5ca622a1c9f34a63702f48ab6dcea9255",
-      "consumerCrashSha256": "be1dd4c1413c5156aea6ad6b18f28ed4c3f191e3887369d6765bf26f8c871bc0",
-      "transportBackpressureSha256": "2ac5502c954caed676346ca01daa3cb35db3faacf3004ac5949db8a7edea33dc"
+      "artifactName": "data-fabric-postgres-resilience-8ee6d8f37ce945111ba76ddc2466c06164a6c4e8",
+      "seedSha256": "8ea6bf3b7e9ba6434b91344af9f013cfb10cd1befae9f5b5d7013fe77296af57",
+      "verifySha256": "469d8d2d880e866aea68a484aa3b92b6e64995663fdf110eee7ab54f62ef5348",
+      "consumerCrashSha256": "85df387abb393ab8d5b9067df9174cddcf6ed17ed66f5c5cd0e6efec01aca380",
+      "transportBackpressureSha256": "936443080204c94bdbf7d787edcadf330a61f09a9d11d086baaf32aeefe0a0d8",
+      "producerPostgresJetStreamSha256": "c6bf1aba958bb851ec716a7d6eb0cb409b502bd4b65972be9c4ea323d7cb8a96"
     },
     "sourceCandidate": {
       "tag": "data-fabric-v0.2.0-source-candidate",
@@ -94,6 +87,6 @@
       "currentSourceIncluded": false
     }
   },
-  "limitations": ["No central product-owner acceptance receipt exists for the full producer set.", "The clean-source 1000-producer HTTP result still uses the local file Store. PostgreSQL 17.10 has bounded single-primary hotspot, duplicate-storm, restart and replay evidence; embedded single-node JetStream has one recovered post-commit/pre-ack process crash and one 256-event capacity-pressure recovery. Replicated JetStream, signed Producer E2E, automatic scaling, replica failover, sustained duration and public capacity remain unverified.", "No shared Testnet, staging or public runtime receipt is recorded for this source.", "The CI evidence artifact is retained for 30 days and is not an immutable public product download.", "No immutable public download, production signature or public health endpoint is recorded.", "The successful Linux CI package and cold-start path is a Testnet candidate class, not a public production release."],
+  "limitations": ["No central product-owner acceptance receipt exists for the full producer set.", "PostgreSQL 17.10 and embedded single-node JetStream now have a bounded 1000 signed Producer E2E result, single-primary hotspot, duplicate-storm, restart and replay evidence, one recovered post-commit/pre-ack process crash and one 256-event capacity-pressure recovery. Replicated JetStream, automatic scaling, replica failover, sustained duration and public capacity remain unverified.", "No shared Testnet, staging or public runtime receipt is recorded for this source.", "The CI evidence artifact is retained for 30 days and is not an immutable public product download.", "No immutable public download, production signature or public health endpoint is recorded.", "The successful Linux CI package and cold-start path is a Testnet candidate class, not a public production release."],
   "nextAction": "Continue central producer acceptance and shared-Testnet integration while keeping all public and production states false until direct receipts exist."
 }

@@ -20,8 +20,8 @@
     "no broker partition, leader loss, shared Testnet or public-scale claim"
   ],
   "outboxRetainedUnderPressure": 238,
-  "pressureDurationMilliseconds": 545.672,
+  "pressureDurationMilliseconds": 1593.187,
   "recoveredPublished": 238,
-  "recoveryDurationMilliseconds": 444.58,
-  "sourceCommit": "a0f92680d0df50ed131b5eb422a851f5874c9045"
+  "recoveryDurationMilliseconds": 1669.04,
+  "sourceCommit": "8ee6d8f37ce945111ba76ddc2466c06164a6c4e8"
 }

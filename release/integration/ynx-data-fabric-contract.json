@@ -6,9 +6,9 @@
   "slug": "data-fabric",
   "owner": "26-data-fabric",
   "serviceId": "ynx-data-fabric",
-  "release": "ynx-data-fabric-a0f92680d0df",
-  "sourceCommit": "a0f92680d0df50ed131b5eb422a851f5874c9045",
-  "generatedAt": "2026-08-14T09:17:01Z",
+  "release": "ynx-data-fabric-8ee6d8f37ce9",
+  "sourceCommit": "8ee6d8f37ce945111ba76ddc2466c06164a6c4e8",
+  "generatedAt": "2026-08-14T10:33:31Z",
   "phase": "INTEGRATE",
   "protocol": {
     "eventEnvelope": {
@@ -29,8 +29,22 @@
       "authority": "external-YNX-Chain-Core",
       "readContract": "GET /data/commitments/{id}",
       "acceptedEvidence": {"source": "ynx-consensus-abci", "version": "abci-state-v14", "coverage": "exact", "failure": false},
-      "chainCoreSourceCommit": "0da66c319629a79613739df351b5000b85a1371a",
-      "chainCoreReleaseCommit": "b481a46f6d77644d0dff13e3917a51f8503e88f4",
+      "chainCoreContractVersion": "1.21.0",
+      "chainCoreSourceCommit": "9468a771b46f50e0e12b7567d7aa51a2f95b4e36",
+      "chainCoreContractCommit": "cefb37144517e8f44fd9d0b41119bb5754bdb55d",
+      "chainCoreLocalDelivery": {
+        "bundle": "release/local-delivery/chain-core-data-commitment-v21.bundle",
+        "sha256": "d3f2d34d6b7671e673330b12c11fb26f685cd7f2eb9b958675de7ab2c67b3481",
+        "verified": true,
+        "public": false,
+        "deployed": false
+      },
+      "chainCoreRuntimeIdentityEvidence": {
+        "serviceCount": 13,
+        "publicSmokeFailsClosed": true,
+        "candidateGatewayExactBuildIdentity": true,
+        "publicRuntimeMatchesSource": false
+      },
       "failurePolicy": "reject-before-event-store-mutation",
       "writeOwner": "derived-by-Chain-Core-from-transaction-signer-never-accepted-from-event",
       "excludedFromChain": ["raw-content", "plaintext-private-metadata", "recipient-lists", "access-tokens", "passwords", "seed-phrases", "private-keys", "content-encryption-keys"]
@@ -109,8 +123,8 @@
     "requiredNegativeClasses": ["unknown-field", "invalid-version", "duplicate", "duplicate-storm", "out-of-order", "tamper", "wrong-product", "same-product-wrong-account", "missing-account", "wrong-device", "scope-widening", "expiry", "revoke", "producer-backpressure-retry", "broker-outage", "consumer-crash", "database-restart", "long-replay", "partition-hotspot", "schema-upgrade", "ledger-imbalance", "stale-recovery-lease", "chain-commitment-unavailable", "chain-commitment-mismatch"]
   },
   "capacityEvidence": {
-    "sourceCommit": "a0f92680d0df50ed131b5eb422a851f5874c9045",
-    "runId": 31786668608,
+    "sourceCommit": "8ee6d8f37ce945111ba76ddc2466c06164a6c4e8",
+    "runId": 31791152026,
     "postgresVersion": "17.10",
     "events": 10000,
     "hotAggregateShare": 0.9,
@@ -118,16 +132,16 @@
     "duplicateRejects": 1000,
     "databaseRestarted": true,
     "lostCommittedEvents": 0,
-    "acceptingConnectionsRTOMilliseconds": 411.036,
-    "integrityValidatedRTOMilliseconds": 1106.607,
+    "acceptingConnectionsRTOMilliseconds": 389.135,
+    "integrityValidatedRTOMilliseconds": 851.92,
     "longReplayApplied": 10000,
     "idempotentReplaySkipped": 10000,
     "scope": "single-primary-linux-ci-plus-one-embedded-single-node-jetstream-consumer-crash-no-public-scale-claim",
     "evidence": ["evidence/postgres/resilience-seed-clean-source-20260814.json", "evidence/postgres/resilience-verify-clean-source-20260814.json"]
   },
   "consumerCrashEvidence": {
-    "runId": 31786668608,
-    "sourceCommit": "a0f92680d0df50ed131b5eb422a851f5874c9045",
+    "runId": 31791152026,
+    "sourceCommit": "8ee6d8f37ce945111ba76ddc2466c06164a6c4e8",
     "boundary": "after-postgresql-effect-and-inbox-commit-before-jetstream-ack",
     "childExitCode": 86,
     "deliveredConsumerSequence": 2,
@@ -136,13 +150,13 @@
     "analyticsFacts": 1,
     "duplicateBusinessEffects": 0,
     "ackPending": 0,
-    "recoveryAfterHelperExitMilliseconds": 996.203,
+    "recoveryAfterHelperExitMilliseconds": 997.721,
     "scope": "one-event-one-process-crash-single-postgresql-primary-embedded-single-node-jetstream",
     "evidence": "evidence/postgres/consumer-process-crash-clean-source-20260814.json"
   },
   "transportBackpressureEvidence": {
-    "runId": 31786668608,
-    "sourceCommit": "a0f92680d0df50ed131b5eb422a851f5874c9045",
+    "runId": 31791152026,
+    "sourceCommit": "8ee6d8f37ce945111ba76ddc2466c06164a6c4e8",
     "canonicalEvents": 256,
     "constrainedMaxBytes": 65536,
     "constrainedPublished": 18,
@@ -157,6 +171,24 @@
     "duplicateStreamMessages": 0,
     "scope": "bounded-256-event-batch-single-postgresql-primary-embedded-single-node-jetstream-explicit-capacity-expansion",
     "evidence": "evidence/postgres/transport-backpressure-clean-source-20260814.json"
+  },
+  "producerPostgresJetStreamEvidence": {
+    "runId": 31791152026,
+    "sourceCommit": "8ee6d8f37ce945111ba76ddc2466c06164a6c4e8",
+    "signedProducers": 1000,
+    "producerConcurrencyLimit": 64,
+    "observedPeakServerInFlight": 64,
+    "succeeded": 1000,
+    "businessErrors": 0,
+    "requestAttempts": 4688,
+    "backpressureResponses": 3688,
+    "committedEventsPerSecond": 129.48888709116588,
+    "initialOutboxDepth": 1000,
+    "brokerPublished": 1000,
+    "finalOutboxDepth": 0,
+    "streamMessages": 1000,
+    "scope": "real-loopback-http-single-postgresql-primary-embedded-single-node-jetstream-bounded-batch",
+    "evidence": "evidence/capacity/api-1000-producers-postgres-jetstream-clean-source-20260814.json"
   },
   "dependencies": [
     {
