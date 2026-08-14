@@ -1,0 +1,69 @@
+{
+  "schemaVersion": "ynx-wallet-ios-endpoint-consumer-fix-pending-verification/v1",
+  "recordedAt": "2026-08-15T07:12:00+08:00",
+  "owner": "02-wallet-auth-ios-macos",
+  "branch": "codex/wallet-ios-macos-20260813",
+  "failedSourceRun": {
+    "sourceCommit": "eae3bed5d8add0d99513b9b595d1800b1f044d9e",
+    "runId": 31833071212,
+    "jobId": 94873124470,
+    "conclusion": "failure",
+    "failedStep": 14,
+    "xcodebuildExitCode": 65,
+    "directError": "Build input file cannot be found: apps/wallet/ios/InboundLinkPolicy.swift",
+    "installColdSecondLaunchStepsReached": false,
+    "endpointMatrixBundledVerified": false,
+    "rpcChainIdVerified": false,
+    "failureArtifactId": 9231723807,
+    "failureArtifactBytes": 427,
+    "failureArtifactDigest": "sha256:0eb0fd86789b97b3c691aba207bd7942cc18089f5b4404c9d37199463912e0bb"
+  },
+  "minimalFix": {
+    "commit": "d18fa6e55d48677baa1a436ba2a766ca2e26c160",
+    "changedPath": "apps/wallet/ios/YNXWallet.xcodeproj/project.pbxproj",
+    "fileReference": "YNXWallet/InboundLinkPolicy.swift",
+    "localProjectPlistLintPassed": true,
+    "localSwiftParsePassed": true,
+    "remoteForceFalseUpdateReportedSuccess": true
+  },
+  "triggerContract": {
+    "workflow": ".github/workflows/wallet-ios.yml",
+    "pushBranchMatches": true,
+    "pushPathMatches": true,
+    "workflowDispatchAvailable": true
+  },
+  "verification": {
+    "connectorReadBoundedAndAbandoned": true,
+    "alternatePublicActionsReadAttempted": true,
+    "exactHeadRunDirectlyVisible": false,
+    "hostedVerification": false,
+    "localXcodeAppPresent": false,
+    "localXcodebuildAvailable": false,
+    "localSimctlAvailable": false,
+    "localSimulatorBuildVerified": false,
+    "localSimulatorInstallVerified": false,
+    "localColdLaunchVerified": false,
+    "localSecondLaunchVerified": false,
+    "localRpcChainIdVerified": false
+  },
+  "releaseGates": {
+    "iosEndpointMatrixConsumed": false,
+    "iosInstalledAppRpcChainIdVerified": false,
+    "authorizationSucceeded": false,
+    "accountVerified": false,
+    "signSucceeded": false,
+    "testnetTransactionSucceeded": false,
+    "biometricRecoverySucceeded": false,
+    "physicalDeviceVerified": false,
+    "universalLinkVerified": false,
+    "public": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "limitations": [
+    "The Git Database force=false update returned success for the exact fix commit, but the bounded connector and public Actions reads did not return a semantic exact-head run result.",
+    "The local host has only Command Line Tools selected and no Xcode.app, xcodebuild, or simctl, so it cannot replace hosted Simulator verification.",
+    "No iOS endpoint, launch, authorization, biometric, signing, transaction, public, or distribution gate is promoted by this record."
+  ]
+}
