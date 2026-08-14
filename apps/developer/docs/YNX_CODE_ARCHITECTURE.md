@@ -351,12 +351,15 @@ templates. Web extensions execute in a worker sandbox; runtime extensions run
 in a restricted extension-host process. No extension receives filesystem,
 process, network, secret or Wallet access by default.
 
-The implemented first gate is `declarative-web` only. The per-owner SQLite
-registry validates bounded language suffixes, Monaco snippets and theme tokens,
-stores a canonical manifest with SHA-256 identity, and supports install/update/
-uninstall. The workbench applies those contributions immediately. Executable
-Web Workers, runtime code, VSIX import, marketplace trust and privileged
-contributions remain disabled until their separate isolation/signature gates;
+The implemented gate is `declarative-web` only. The per-owner SQLite registry
+validates bounded language suffixes, Monaco snippets and theme tokens, stores a
+canonical manifest with SHA-256 identity, and supports install/update,
+enable/disable and one-time-confirmed uninstall. State changes require the exact
+installed digest so a stale tab cannot mutate a newer version. The workbench
+applies contributions only while an extension is enabled and identifies every
+entry as local-manifest / validated-declarative-only. Executable Web Workers,
+runtime code, VSIX import, marketplace trust and privileged contributions remain
+disabled until their separate isolation/signature gates;
 the manifest installer states that boundary explicitly.
 
 Install records bind publisher, package digest, signature/provenance, permissions,

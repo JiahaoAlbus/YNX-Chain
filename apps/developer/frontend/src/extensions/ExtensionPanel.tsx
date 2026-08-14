@@ -1,7 +1,8 @@
-import { Download, Palette, Puzzle, Trash2 } from "lucide-react";
+import { Download, Palette, Power, Puzzle, Trash2 } from "lucide-react";
 import { useState } from "react";
 import {
   installExtension,
+  setExtensionEnabled,
   uninstallExtension,
   type InstalledExtension,
 } from "../runtime/client";
@@ -74,15 +75,32 @@ export function ExtensionPanel({
       setBusy(false);
     }
   };
-  const remove = async (id: string) => {
+  const remove = async (extension: InstalledExtension) => {
+    if (!window.confirm(`Uninstall “${extension.manifest.displayName}”? This removes its local manifest and contributions.`)) return;
     setBusy(true);
     try {
-      await uninstallExtension(id);
-      onChange(extensions.filter((item) => item.id !== id));
+      await uninstallExtension(extension.id, extension.digest);
+      onChange(extensions.filter((item) => item.id !== extension.id));
     } catch (value) {
       setError(
         value instanceof Error ? value.message : "Extension uninstall failed.",
       );
+    } finally {
+      setBusy(false);
+    }
+  };
+  const toggle = async (extension: InstalledExtension) => {
+    setBusy(true);
+    setError("");
+    try {
+      const updated = await setExtensionEnabled(
+        extension.id,
+        extension.digest,
+        !extension.enabled,
+      );
+      onChange(extensions.map((item) => item.id === updated.id ? updated : item));
+    } catch (value) {
+      setError(value instanceof Error ? value.message : "Extension state change failed.");
     } finally {
       setBusy(false);
     }
@@ -100,6 +118,10 @@ export function ExtensionPanel({
           Language mappings, snippets and validated theme tokens only. No
           process, filesystem, network, secret or Wallet authority.
         </small>
+        <small>
+          Local manifest source · validated declarative trust. Marketplace,
+          VSIX, executable code and unsigned runtime contributions are blocked.
+        </small>
       </div>
       {extensions.map((extension) => (
         <article key={extension.id}>
@@ -109,9 +131,13 @@ export function ExtensionPanel({
               {extension.id} · v{extension.version}
             </span>
             <small>SHA-256 {extension.digest.slice(0, 16)}…</small>
+            <small>{extension.enabled ? "Enabled" : "Disabled"} · local manifest · declarative-only</small>
           </div>
+          <button onClick={() => toggle(extension)} disabled={busy} title={extension.enabled ? "Disable extension" : "Enable extension"} aria-pressed={extension.enabled}>
+            <Power />
+          </button>
           <button
-            onClick={() => remove(extension.id)}
+            onClick={() => remove(extension)}
             disabled={busy}
             title="Uninstall extension"
           >
@@ -121,7 +147,7 @@ export function ExtensionPanel({
             {extension.manifest.contributes.languages.length} languages ·{" "}
             {extension.manifest.contributes.snippets.length} snippets ·{" "}
             {extension.manifest.contributes.themes.length} themes
-            {extension.manifest.contributes.themes.map((theme) => (
+            {extension.enabled && extension.manifest.contributes.themes.map((theme) => (
               <button
                 key={theme.id}
                 onClick={() => onApplyTheme(`${extension.id}/${theme.id}`)}

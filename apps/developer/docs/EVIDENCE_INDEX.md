@@ -22,6 +22,12 @@ successful eight-runtime release record.
   revision-guarded switching, non-fast-forward merge persistence, conflict abort
   with unchanged authoritative workspace, stable remote-intent preview hashing
   and cross-owner repository isolation. Remote execution remains disabled.
+- Extension lifecycle evidence: `services/extension-registry/test/service.test.mjs`
+  proves canonical digest installation, replay, persisted disable, stale-digest
+  rejection, owner isolation and one-time-approved uninstall. The paired Web
+  gate `test/extension-lifecycle-ui.test.js` proves disabled contributions are
+  filtered from consumers and the local/declarative-only trust boundary remains
+  visible without executable or marketplace loading paths.
 
 - Public full-platform gate: `scripts/live-public-candidate-check.mjs`. Against
   the deployed candidate it requires all seven real runtimes, six LSP routes,

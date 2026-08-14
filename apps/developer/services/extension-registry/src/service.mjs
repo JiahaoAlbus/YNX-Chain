@@ -6,19 +6,24 @@ const PROTOCOL = "ynx-code-extension/v1",
 export function createExtensionRegistry({ filename, ownerForRequest }) {
   const db = new DatabaseSync(filename);
   db.exec(
-    "PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL; PRAGMA busy_timeout=5000; CREATE TABLE IF NOT EXISTS extensions(owner_id TEXT NOT NULL, extension_id TEXT NOT NULL, version TEXT NOT NULL, digest TEXT NOT NULL, manifest TEXT NOT NULL, installed_at TEXT NOT NULL, PRIMARY KEY(owner_id,extension_id));",
+    "PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL; PRAGMA busy_timeout=5000; CREATE TABLE IF NOT EXISTS extensions(owner_id TEXT NOT NULL, extension_id TEXT NOT NULL, version TEXT NOT NULL, digest TEXT NOT NULL, manifest TEXT NOT NULL, installed_at TEXT NOT NULL, enabled INTEGER NOT NULL DEFAULT 1, PRIMARY KEY(owner_id,extension_id));",
   );
+  if (!db.prepare("PRAGMA table_info(extensions)").all().some((column) => column.name === "enabled"))
+    db.exec("ALTER TABLE extensions ADD COLUMN enabled INTEGER NOT NULL DEFAULT 1");
   const list = db.prepare(
-      "SELECT extension_id,version,digest,manifest,installed_at FROM extensions WHERE owner_id=? ORDER BY extension_id",
+      "SELECT extension_id,version,digest,manifest,installed_at,enabled FROM extensions WHERE owner_id=? ORDER BY extension_id",
     ),
     read = db.prepare(
-      "SELECT digest,manifest,installed_at FROM extensions WHERE owner_id=? AND extension_id=?",
+      "SELECT extension_id,version,digest,manifest,installed_at,enabled FROM extensions WHERE owner_id=? AND extension_id=?",
     ),
     upsert = db.prepare(
-      "INSERT INTO extensions(owner_id,extension_id,version,digest,manifest,installed_at) VALUES(?,?,?,?,?,?) ON CONFLICT(owner_id,extension_id) DO UPDATE SET version=excluded.version,digest=excluded.digest,manifest=excluded.manifest,installed_at=excluded.installed_at",
+      "INSERT INTO extensions(owner_id,extension_id,version,digest,manifest,installed_at,enabled) VALUES(?,?,?,?,?,?,1) ON CONFLICT(owner_id,extension_id) DO UPDATE SET version=excluded.version,digest=excluded.digest,manifest=excluded.manifest,installed_at=excluded.installed_at,enabled=1",
     ),
     remove = db.prepare(
       "DELETE FROM extensions WHERE owner_id=? AND extension_id=?",
+    ),
+    setEnabled = db.prepare(
+      "UPDATE extensions SET enabled=? WHERE owner_id=? AND extension_id=? AND digest=?",
     );
   async function handler(request, response) {
     const url = new URL(
@@ -46,12 +51,7 @@ export function createExtensionRegistry({ filename, ownerForRequest }) {
         const body = JSON.parse(
           (await readBody(request, MAX_BODY)).toString("utf8"),
         );
-        if (body.protocolVersion !== PROTOCOL)
-          throw fault(
-            "Extension protocol version is required.",
-            "protocol_mismatch",
-            400,
-          );
+        requireProtocol(body);
         const manifest = validateManifest(body.manifest),
           serialized = stableStringify(manifest),
           digest = createHash("sha256").update(serialized).digest("hex"),
@@ -66,6 +66,7 @@ export function createExtensionRegistry({ filename, ownerForRequest }) {
               digest,
               manifest: serialized,
               installed_at: existing.installed_at,
+              enabled: existing.enabled,
             }),
             replayed: true,
           });
@@ -88,21 +89,41 @@ export function createExtensionRegistry({ filename, ownerForRequest }) {
             digest,
             manifest,
             installedAt,
+            enabled: true,
+            source: "local-manifest",
+            trust: "validated-declarative-only",
           },
           replayed: false,
         });
         return true;
       }
+      if (request.method === "PATCH") {
+        const body = JSON.parse(
+          (await readBody(request, MAX_BODY)).toString("utf8"),
+        );
+        requireProtocol(body);
+        const id = validId(body.id),
+          expectedDigest = validDigest(body.expectedDigest);
+        if (typeof body.enabled !== "boolean")
+          throw fault("Enabled state must be boolean.", "invalid_extension_state", 400);
+        const existing = requireCurrent(read.get(owner, id), expectedDigest);
+        setEnabled.run(body.enabled ? 1 : 0, owner, id, expectedDigest);
+        json(response, 200, {
+          protocolVersion: PROTOCOL,
+          extension: record({ ...existing, enabled: body.enabled ? 1 : 0 }),
+        });
+        return true;
+      }
       if (request.method === "DELETE") {
-        const id = url.searchParams.get("id");
-        if (
-          !/^[a-z0-9][a-z0-9-]{1,63}\.[a-z0-9][a-z0-9-]{1,63}$/.test(id || "")
-        )
+        if (url.searchParams.get("approval") !== "uninstall-extension-once")
           throw fault(
-            "Valid extension ID is required.",
-            "invalid_extension_id",
-            400,
+            "Uninstall requires one-time approval.",
+            "extension_uninstall_approval_required",
+            403,
           );
+        const id = validId(url.searchParams.get("id")),
+          expectedDigest = validDigest(url.searchParams.get("expectedDigest"));
+        requireCurrent(read.get(owner, id), expectedDigest);
         remove.run(owner, id);
         json(response, 200, { protocolVersion: PROTOCOL, removed: id });
         return true;
@@ -125,7 +146,35 @@ function record(row) {
     digest: row.digest,
     manifest: JSON.parse(row.manifest),
     installedAt: row.installed_at,
+    enabled: Boolean(row.enabled),
+    source: "local-manifest",
+    trust: "validated-declarative-only",
   };
+}
+function requireProtocol(body) {
+  if (body.protocolVersion !== PROTOCOL)
+    throw fault("Extension protocol version is required.", "protocol_mismatch", 400);
+}
+function validId(value) {
+  if (!/^[a-z0-9][a-z0-9-]{1,63}\.[a-z0-9][a-z0-9-]{1,63}$/.test(value || ""))
+    throw fault("Valid extension ID is required.", "invalid_extension_id", 400);
+  return value;
+}
+function validDigest(value) {
+  if (typeof value !== "string" || !/^[a-f0-9]{64}$/.test(value))
+    throw fault("Exact extension digest is required.", "invalid_extension_digest", 400);
+  return value;
+}
+function requireCurrent(existing, expectedDigest) {
+  if (!existing)
+    throw fault("Extension was not found.", "extension_not_found", 404);
+  if (existing.digest !== expectedDigest)
+    throw fault(
+      "Extension changed. Refresh before modifying it.",
+      "extension_digest_conflict",
+      409,
+    );
+  return existing;
 }
 function validateManifest(value) {
   if (

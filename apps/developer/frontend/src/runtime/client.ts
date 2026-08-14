@@ -549,6 +549,9 @@ export type InstalledExtension = {
   digest: string;
   manifest: ExtensionManifest;
   installedAt: string;
+  enabled: boolean;
+  source: "local-manifest";
+  trust: "validated-declarative-only";
 };
 export async function loadExtensions(): Promise<InstalledExtension[]> {
   const value = await extensionFetch();
@@ -565,8 +568,32 @@ export async function installExtension(manifest: unknown): Promise<InstalledExte
   });
   return value.extension;
 }
-export async function uninstallExtension(id: string): Promise<void> {
-  await extensionFetch({ method: "DELETE" }, new URLSearchParams({ id }));
+export async function setExtensionEnabled(
+  id: string,
+  expectedDigest: string,
+  enabled: boolean,
+): Promise<InstalledExtension> {
+  const value = await extensionFetch({
+    method: "PATCH",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      protocolVersion: "ynx-code-extension/v1",
+      id,
+      expectedDigest,
+      enabled,
+    }),
+  });
+  return value.extension;
+}
+export async function uninstallExtension(id: string, expectedDigest: string): Promise<void> {
+  await extensionFetch(
+    { method: "DELETE" },
+    new URLSearchParams({
+      id,
+      expectedDigest,
+      approval: "uninstall-extension-once",
+    }),
+  );
 }
 async function extensionFetch(init: RequestInit = {}, query?: URLSearchParams): Promise<any> {
   for (let attempt = 0; attempt < 2; attempt++) {

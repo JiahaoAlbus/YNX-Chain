@@ -990,7 +990,7 @@ html[data-theme="dark"] .tree-row.file.active {
 }
 .extension-panel article {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 28px;
+  grid-template-columns: minmax(0, 1fr) 28px 28px;
   padding: 8px;
   border-top: 1px solid var(--border);
 }

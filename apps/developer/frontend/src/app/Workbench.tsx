@@ -129,7 +129,7 @@ export function Workbench() {
   const languageOf = useCallback(
     (path: string) => {
       const lower = path.toLowerCase();
-      for (const extension of extensions) for (const contribution of extension.manifest.contributes.languages) if (contribution.extensions.some((suffix) => lower.endsWith(suffix.toLowerCase()))) return contribution.id;
+      for (const extension of extensions) if (extension.enabled) for (const contribution of extension.manifest.contributes.languages) if (contribution.extensions.some((suffix) => lower.endsWith(suffix.toLowerCase()))) return contribution.id;
       return languageForPath(path);
     },
     [extensions],
@@ -149,6 +149,7 @@ export function Workbench() {
   useEffect(() => {
     localStorage.setItem("ynx-extension-theme", extensionTheme);
     const selected = extensions
+        .filter((extension) => extension.enabled)
         .flatMap((extension) =>
           extension.manifest.contributes.themes.map((value) => ({
             extension,
@@ -698,7 +699,7 @@ export function Workbench() {
               activeContent={activeContent}
               language={languageOf(project.active)}
               theme={theme}
-              extensions={extensions}
+              extensions={extensions.filter((extension) => extension.enabled)}
               extensionTheme={extensionTheme}
               onChange={update}
               onCursorChange={(path, anchor, head) => setCollaborationCursor({ path, anchor, head })}
