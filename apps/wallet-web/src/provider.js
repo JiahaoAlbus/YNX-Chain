@@ -164,6 +164,38 @@ export function rememberSession(session, wallet, storage = globalThis.localStora
   storage.setItem(SESSION_KEY, JSON.stringify({account: session.account.toLowerCase(), chainId: session.chainId, wallet}));
 }
 
+export function forgetSession(storage = globalThis.localStorage) {
+  storage?.removeItem?.(SESSION_KEY);
+}
+
+export function walletActionGates(provider, account, chainId) {
+  const hasProvider = Boolean(validProvider(provider));
+  const connected = hasProvider && ADDRESS.test(account || "") && chainId === YNX_CHAIN.chainId;
+  return Object.freeze({
+    canAddChain: hasProvider,
+    canSwitchChain: hasProvider,
+    canSign: connected,
+    canSendTransaction: connected,
+  });
+}
+
+export function subscribeProviderLifecycle(provider, handlers = {}) {
+  if (!provider || typeof provider.on !== "function") return () => {};
+  const listeners = {
+    accountsChanged(accounts) {
+      const normalized = Array.isArray(accounts) ? accounts.filter((account) => ADDRESS.test(account || "")).map((account) => account.toLowerCase()) : [];
+      handlers.accountsChanged?.(Object.freeze(normalized));
+    },
+    chainChanged(chainId) { handlers.chainChanged?.(typeof chainId === "string" ? chainId : null); },
+    disconnect(error) { handlers.disconnect?.(error); },
+  };
+  for (const [event, listener] of Object.entries(listeners)) provider.on(event, listener);
+  return () => {
+    if (typeof provider.removeListener !== "function") return;
+    for (const [event, listener] of Object.entries(listeners)) provider.removeListener(event, listener);
+  };
+}
+
 export async function signMessage(provider, account, message) {
   if (!validProvider(provider) || !ADDRESS.test(account || "")) fail("INVALID_ACCOUNT", "Connect a valid wallet account before signing.");
   if (typeof message !== "string" || message.length < 1 || message.length > 4096) fail("INVALID_MESSAGE", "Message must contain 1 to 4096 characters.");

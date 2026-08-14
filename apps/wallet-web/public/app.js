@@ -1,8 +1,8 @@
 import {LOCALES, catalog, isRTL} from "./i18n.js";
 import {
   YNX_DOWNLOAD_URL, addYNXChain, connectWallet, createExtensionProvider, discoverWallets,
-  extensionWalletAvailability, rememberSession, restoreTestnetSession, sendTransaction,
-  signMessage, switchToYNXChain,
+  extensionWalletAvailability, forgetSession, rememberSession, restoreTestnetSession, sendTransaction,
+  signMessage, subscribeProviderLifecycle, switchToYNXChain, walletActionGates,
 } from "./provider.js";
 
 const app = document.querySelector("#app");
@@ -13,7 +13,7 @@ const requestedTheme = preview.get("theme");
 const state = {
   locale: LOCALES.some(([locale]) => locale === requestedLocale) ? requestedLocale : localStorage.getItem("ynx.wallet.web.locale") || "en",
   theme: ["light", "dark"].includes(requestedTheme) ? requestedTheme : localStorage.getItem("ynx.wallet.web.theme") || "system",
-  provider: null, wallet: null, account: null,
+  provider: null, wallet: null, account: null, chainId: null, unsubscribeProvider: null,
 };
 
 function text(key) { return catalog(state.locale)[key] || key; }
@@ -42,6 +42,7 @@ function render() {
       <button id="send" class="primary" type="button">${text("send")}</button>
     </section><footer>YNX Testnet · Chain 6423 · 0x1917</footer></div>`;
   bind();
+  applyActionGates();
 }
 
 function setStatus(message, kind = "info") { const node = document.querySelector("#status"); node.dataset.kind = kind; node.innerHTML = `<strong>${text("status")}:</strong> ${escape(message)}`; }
@@ -50,13 +51,48 @@ async function act(work, success) {
   for (const button of document.querySelectorAll("button")) button.disabled = true;
   try { const result = await work(); setStatus(success(result)); return result; }
   catch (error) { setStatus(`${error?.code ? `${error.code}: ` : ""}${error?.message || "Request failed closed."}`, "error"); return null; }
-  finally { for (const button of document.querySelectorAll("button")) button.disabled = false; }
+  finally { for (const button of document.querySelectorAll("button")) button.disabled = false; applyActionGates(); }
+}
+
+function applyActionGates() {
+  const gates = walletActionGates(state.provider, state.account, state.chainId);
+  const mapping = {add:gates.canAddChain,switch:gates.canSwitchChain,sign:gates.canSign,send:gates.canSendTransaction};
+  for (const [id, enabled] of Object.entries(mapping)) {
+    const button = document.querySelector(`#${id}`);
+    if (!button) continue;
+    button.disabled = !enabled;
+    button.setAttribute("aria-disabled", String(!enabled));
+  }
+}
+
+function clearConnectedSession() {
+  state.account = null;
+  state.chainId = null;
+  forgetSession();
+  applyActionGates();
+  setStatus(text("disconnected"), "error");
+}
+
+function bindProviderLifecycle(provider) {
+  state.unsubscribeProvider?.();
+  state.unsubscribeProvider = subscribeProviderLifecycle(provider, {
+    accountsChanged(accounts) {
+      if (!state.account || !accounts.includes(state.account.toLowerCase())) clearConnectedSession();
+    },
+    chainChanged(chainId) {
+      if (chainId !== "0x1917") clearConnectedSession();
+      else { state.chainId = chainId; applyActionGates(); }
+    },
+    disconnect() { clearConnectedSession(); },
+  });
 }
 
 function selectProvider(wallet) {
   state.wallet = wallet;
   state.provider = isExtension ? createExtensionProvider(wallet) : state.providers?.[wallet];
   if (!state.provider) throw Object.assign(new Error(text("unavailable")), {code: "WALLET_NOT_FOUND"});
+  bindProviderLifecycle(state.provider);
+  applyActionGates();
   return state.provider;
 }
 
@@ -64,7 +100,7 @@ async function connect(wallet) {
   const provider = selectProvider(wallet);
   const session = await act(() => connectWallet(provider), (result) => `${text("connected")} · ${result.account}`);
   if (!session) return;
-  state.account = session.account; rememberSession(session, wallet); render(); await detect();
+  state.account = session.account; state.chainId = session.chainId; rememberSession(session, wallet); render(); await detect();
 }
 
 function bind() {
@@ -94,7 +130,7 @@ async function detect() {
   if (wallet) {
     const provider = selectProvider(wallet);
     const restored = await restoreTestnetSession(provider);
-    if (restored) { state.account = restored.account; setStatus(`${text("connected")} · ${restored.account}`); }
+    if (restored) { state.account = restored.account; state.chainId = restored.chainId; applyActionGates(); setStatus(`${text("connected")} · ${restored.account}`); }
   }
 }
 

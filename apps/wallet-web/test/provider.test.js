@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   SESSION_KEY, WalletWebError, YNX_CHAIN, addYNXChain, connectWallet, discoverInjectedProviders,
-  rememberSession, restoreTestnetSession, sendTransaction, signMessage, switchToYNXChain,
-  verifyTestnetRpc,
+  forgetSession, rememberSession, restoreTestnetSession, sendTransaction, signMessage,
+  subscribeProviderLifecycle, switchToYNXChain, verifyTestnetRpc, walletActionGates,
 } from "../src/provider.js";
 
 const ACCOUNT = `0x${"1".repeat(40)}`;
@@ -96,4 +96,29 @@ test("tampered local session JSON is removed without a provider request", async 
   const wallet = provider({});
   assert.equal(await restoreTestnetSession(wallet,memory),null);
   assert.equal(memory.getItem(SESSION_KEY),null); assert.equal(wallet.calls.length,0);
+});
+
+test("action gates require a provider and an exact connected Testnet account", () => {
+  assert.deepEqual(walletActionGates(null,null,null),{canAddChain:false,canSwitchChain:false,canSign:false,canSendTransaction:false});
+  assert.deepEqual(walletActionGates(provider(),ACCOUNT,"0x1"),{canAddChain:true,canSwitchChain:true,canSign:false,canSendTransaction:false});
+  assert.deepEqual(walletActionGates(provider(),ACCOUNT,"0x1917"),{canAddChain:true,canSwitchChain:true,canSign:true,canSendTransaction:true});
+});
+
+test("provider lifecycle callbacks normalize accounts and unsubscribe exactly", () => {
+  const listeners = new Map(); const removed = [];
+  const wallet = {on:(event,listener)=>listeners.set(event,listener),removeListener:(event,listener)=>removed.push([event,listener])};
+  const observed = [];
+  const unsubscribe = subscribeProviderLifecycle(wallet,{
+    accountsChanged:(accounts)=>observed.push(["accounts",accounts]),
+    chainChanged:(chainId)=>observed.push(["chain",chainId]),
+    disconnect:()=>observed.push(["disconnect"]),
+  });
+  listeners.get("accountsChanged")([ACCOUNT,"bad"]); listeners.get("chainChanged")("0x1"); listeners.get("disconnect")();
+  assert.deepEqual(observed,[["accounts",[ACCOUNT]],["chain","0x1"],["disconnect"]]);
+  unsubscribe(); assert.deepEqual(removed.map(([event])=>event),["accountsChanged","chainChanged","disconnect"]);
+});
+
+test("forgetSession removes only the wallet session key", () => {
+  const memory = storage(); memory.setItem(SESSION_KEY,"saved"); memory.setItem("other","keep"); forgetSession(memory);
+  assert.equal(memory.getItem(SESSION_KEY),null); assert.equal(memory.getItem("other"),"keep");
 });
