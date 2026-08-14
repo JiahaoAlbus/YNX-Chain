@@ -1,19 +1,19 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-08-14T04:53:19.000Z",
+  "capturedAt": "2026-08-14T05:36:53.000Z",
   "scope": "local Product Session v2 protocol and router validation",
   "registrySchemaVersion": 2,
   "branch": "codex/wallet-session-router-recovery",
   "sourceBaseline": "2a78ace0a647b73dd2961fae3361189116453a7d",
   "targetedTest": {
     "command": "node --test test/metamask-evm-adapter.test.mjs test/product-session-gateway-client.test.mjs test/product-session-gateway-http.test.mjs test/product-session-gateway.test.mjs test/product-session-migration.test.mjs test/product-session-products.test.mjs test/product-session-recovery.test.mjs test/product-session-router.test.mjs test/product-session-v2.test.mjs",
-    "passed": 56,
+    "passed": 57,
     "failed": 0,
     "concurrentSessions": 120
   },
   "fullPackageTest": {
     "command": "npm test",
-    "passed": 158,
+    "passed": 159,
     "failed": 0,
     "exitCode": 0
   },
@@ -88,6 +88,10 @@
     "authority": "eip-1193-provider-only",
     "ynxProductSession": false,
     "localDeterministicProviderTestsPassed": true,
+    "liveHarness": "evidence/metamask-eip1193-live.html",
+    "liveObservation": "evidence/metamask-eip1193-live-observation.json",
+    "liveAdapterLoaded": true,
+    "liveConnectionRequestTriggered": true,
     "installedExtensionFlowValidated": false,
     "fallback": "none"
   },
@@ -158,7 +162,12 @@
     "enabled": true,
     "siteAccess": "full",
     "unlockRouteReached": true,
-    "biometricResult": "timed-out-without-user-biometric",
+    "biometricResult": "later-unlocked-with-user-touch-id",
+    "providerInjected": true,
+    "ynxTestnetSelected": true,
+    "liveHarnessAdapterLoaded": true,
+    "liveHarnessConnectionRequestTriggered": true,
+    "liveHarnessApprovalResult": "unverified-computer-use-native-pipe-closed",
     "approvalFlowValidated": false
   },
   "truthBoundary": {
@@ -168,7 +177,8 @@
       "macos-wallet-companion"
     ],
     "platformValidationBlocked": [
-      "MetaMask 13.42.0 is installed, enabled, and granted full site access; ComputerControl reached the real unlock route, but biometric unlock timed out without user confirmation before provider connection, chain approval, account approval, or Product Session",
+      "MetaMask 13.42.0 was unlocked with user Touch ID, injected a provider, and the central EIP-1193 harness loaded and triggered a connection request; Computer Use timed out and its native pipe closed before the approval result, request ID, chain, or masked account could be observed",
+      "The Wallet Companion detected the injected provider but its browser RPC preflight to https://evm.ynxweb4.com failed CORS before account approval; Wallet UI and Chain deployment configuration are outside this branch scope",
       "No installed YNX Wallet application was available for a real approval/session flow"
     ],
     "publicDeployment": false,

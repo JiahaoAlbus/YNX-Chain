@@ -138,4 +138,15 @@ test("MetaMask adapter rejects malicious or malformed chain and account response
   await assert.rejects(refusesSwitch.connect(), code("WRONG_NETWORK"));
 });
 
+test("live evidence harness loads the shared adapter and preserves its EVM-only truth boundary", () => {
+  const html = readFileSync(new URL("../evidence/metamask-eip1193-live.html", import.meta.url), "utf8");
+  assert.match(html, /MetaMaskEvmConnectionAdapter/);
+  assert.match(html, /await import\("\.\.\/src\/metamask-evm-adapter\.js"\)/);
+  assert.match(html, /"@noble\/hashes\/":"\.\.\/node_modules\/@noble\/hashes\/"/);
+  assert.match(html, /ynxProductSession=false/);
+  assert.match(html, /No local or canned result was substituted/);
+  assert.doesNotMatch(html, /eth_getBalance|personal_sign|eth_sign|eth_sendTransaction|wallet_sendCalls/);
+  assert.doesNotMatch(html, /CONNECTED EVM PROVIDER[\s\S]{0,300}0x[0-9a-fA-F]{40}/);
+});
+
 function code(expected) { return (error) => error instanceof WalletAuthError && error.code === expected; }
