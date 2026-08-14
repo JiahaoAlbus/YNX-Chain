@@ -2,8 +2,8 @@
 
 Status: `ACTIVE`
 Phase: `INTEGRATE`
-Engineering Source Commit: `b218b62688ab311513b650db0659390130735cad`
-Release Candidate: `ynx-data-fabric-b218b62688ab`
+Engineering Source Commit: `ed06ce8053d165122a0fa550f59af7c88d3b3c6b`
+Release Candidate: `ynx-data-fabric-ed06ce8053d1`
 
 ## Completed and protected
 
@@ -23,19 +23,20 @@ Release Candidate: `ynx-data-fabric-b218b62688ab`
 - A 256-event PostgreSQL Outbox batch filled a 64 KiB JetStream after 18 acknowledgements. All 238 capacity rejections remained pending with zero DLQ entries; explicit expansion to 8 MiB published all 238 and ended with exactly 256 stream messages, zero duplicates and zero pending Outbox rows.
 - A three-process file-backed JetStream cluster with replicas=3 changed stream leader after 64 acknowledged events, acknowledged 64 more through the new leader, ended with Outbox 0 and Stream 128 without duplicates, restarted the stopped server and restored three current replicas. This is one bounded one-host loopback drill, not shared-Testnet availability proof.
 - A second three-process drill forces every explicit and gossiped route through per-node TCP fault proxies, isolates the live stream leader with zero remaining routes, rejects and retains one isolated-side Outbox write, commits 64 rows through the surviving quorum, heals all routes and ends with three current replicas, Outbox 0, Stream 192 and zero duplicates. Race mode passed twice; exact-source Linux CI Run `31811137802` passed both jobs and its eleven-file artifact was downloaded and SHA-256 verified. This is not packet-loss, WAN, sustained-load, shared-Testnet or public availability proof.
+- A dirty-worktree local PostgreSQL 17 drill established asynchronous streaming catch-up, old-primary stop, manual standby promotion, writable recovery, 1,000-event/Outbox preservation, RPO zero, integrity validation and exactly-once replay effects. Measured connection/integrity RTO was 66.3/72.7 seconds. The implementation is frozen at `ed06ce8053d165122a0fa550f59af7c88d3b3c6b`; exact-source Linux CI is pending. It is not automatic endpoint failover, fencing, synchronous quorum, multi-host/regional DR or public availability proof.
 - Source-only prerelease `data-fabric-v0.2.0-source-candidate` is published at checkpoint `8cbc3dba0cbd139a0ba6bf7ba716b406856b32f5`; all seven assets were downloaded and their SHA-256 values matched, including archive digest `83f7f9ab449a61dcc1fe4006889f230b0c662b4678d522b1f0e6499eb81df848`.
 - Go and TypeScript SDKs now share an exact producer-delivery signature vector. The TypeScript SDK verifies event integrity, requires HTTPS outside loopback, binds canonical Product Session credentials, bounds responses and rejects response-shape drift.
-- Optional Envelope v2 `chainCommitmentId` consumes frozen Chain Core contract v1.27.0 / implementation `a456daeca2f89af65ac39840efb40ada1cba2e29` / contract `f55934b7d5a24abf0e6de471441cceacc47ad5e7` from the SHA-256-verified v27 bundle as a read-only external reference and fails closed before storage. Public semantics are unchanged; v27 retains prior replay/fault-matrix evidence and adds durable validator safety-state persistence plus fail-closed restart/tamper/regression/concurrency checks and 102 vectors. It does not establish Chain Core real-network partition, packet-loss, DDoS, State Sync, CometBFT/public differential replay, central integration or deployment.
+- Optional Envelope v2 `chainCommitmentId` consumes frozen Chain Core contract v1.28.0 / implementation `abae5384dc856434470860ab0060998ac216addc` / contract `6cd71d6c53908fbfb2b2810ace922fd8b19bff17` from the SHA-256-verified v28 bundle as a read-only external reference and fails closed before storage. Public semantics are unchanged; v28 adds a mode-0600, no-symlink, nonblocking exclusive OS-process lease to the durable validator safety-state path, proves second-owner rejection and post-close/process-exit reacquisition, supports macOS/Linux, fails closed on Windows, and advances to 103 vectors. It does not establish Chain Core real-network partition, packet-loss, DDoS, State Sync, CometBFT/public differential replay, central integration or deployment.
 - The published source-only prerelease predates this engineering commit and truthfully records `currentSourceIncluded=false`; it is recovery evidence, not a download for the current release candidate.
 - Central integration, shared Testnet, staging, public deployment, hosted download and production signing remain false without direct receipts.
 
 ## Current slice
 
-1. Bind the successful exact-source CI receipt and refresh the complete recovery bundle.
+1. Bind the PostgreSQL streaming-standby drill to exact-source Linux CI and refresh the complete recovery bundle.
 2. Obtain the required independent approval and merge through protected-branch policy; do not bypass it with force or administrator merge.
-3. Execute sustained hotspot, repeated consumer/process crash, deployed network-partition and PostgreSQL replica-failover drills on replicated infrastructure; repeat leader-loss beyond the bounded local proofs.
+3. Execute sustained hotspot, repeated consumer/process crash, deployed network-partition and multi-host PostgreSQL failover/fencing drills on replicated infrastructure; repeat leader-loss beyond the bounded local proofs.
 4. Submit the frozen contract and both SDK paths to Product 29 for central acceptance, then have Website publish the existing canonical metadata only after runtime, signer, immutable-hosting and Website receipts are available.
 
 ## Exact next action
 
-Commit the successful Run `31811137802` receipt, validate its receipt-head CI and refresh recovery, then continue sustained-duration and replicated failure drills. Obtain independent approval before merging PR `#92`; keep shared-Testnet, staging, public, download and Website publication states false until direct receipts exist.
+Push the source-bound PostgreSQL failover candidate, validate all three CI jobs and exact artifact hashes, then refresh recovery and continue multi-host failure drills. Obtain independent approval before merging PR `#92`; keep shared-Testnet, staging, public, download and Website publication states false until direct receipts exist.

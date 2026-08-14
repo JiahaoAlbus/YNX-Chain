@@ -2,10 +2,10 @@
   "schemaVersion": 2,
   "productId": "ynx-data-fabric",
   "productName": "YNX Data Fabric & Billing Ledger",
-  "release": "ynx-data-fabric-b218b62688ab",
+  "release": "ynx-data-fabric-ed06ce8053d1",
   "channel": "testnet-preview",
-  "sourceCommit": "b218b62688ab311513b650db0659390130735cad",
-  "sourceRelease": "ynx-data-fabric-b218b62688ab",
+  "sourceCommit": "ed06ce8053d165122a0fa550f59af7c88d3b3c6b",
+  "sourceRelease": "ynx-data-fabric-ed06ce8053d1",
   "generatedAt": "2026-08-14T11:46:16Z",
   "states": {
     "implementedLocal": true,
@@ -47,7 +47,7 @@
   "artifacts": [],
   "evidence": {
     "localVerification": {
-      "sourceCommit": "b218b62688ab311513b650db0659390130735cad",
+      "sourceCommit": "ed06ce8053d165122a0fa550f59af7c88d3b3c6b",
       "status": "passed",
       "environment": "macOS development environment with standard umask for cross-repository permission vectors",
       "commands": [
@@ -69,36 +69,25 @@
         "YNX_DATA_FABRIC_TEST_SOURCE_COMMIT=b218b62688ab311513b650db0659390130735cad go test -race -run TestJetStreamThreeReplicaRoutePartitionRetainsOutboxAndRecovers -count=2 ./internal/datafabricnats",
         "go test ./internal/datafabricnats -count=1 -timeout=180s",
         "go vet ./internal/datafabricnats/...",
+        "development Docker drill: PostgreSQL 17 asynchronous streaming standby caught up, primary stopped, standby manually promoted, 1000 canonical events retained with RPO zero and integrity/replay invariants passed; exact-source CI pending",
+        "go test ./scripts/data-fabric/postgres-resilience ./internal/datafabricpostgres -count=1",
+        "go vet ./scripts/data-fabric/postgres-resilience ./internal/datafabricpostgres",
+        "bash -n scripts/data-fabric/postgres-replica-failover.sh",
         "GitHub Actions run 31797308684 data-fabric-postgres-live: three-replica JetStream stream-leader failover and prior PostgreSQL resilience gates"
       ]
     },
     "remoteCI": {
-      "runId": 31811137802,
+      "runId": null,
       "workflow": "data-fabric",
-      "sourceCommit": "b218b62688ab311513b650db0659390130735cad",
-      "headCommit": "58eff9dad4a0a3dc27105716928f2a9b7c4f6460",
-      "status": "completed",
-      "conclusion": "success",
-      "startedAt": "2026-08-14T14:45:58Z",
-      "duration": "6m7s",
+      "sourceCommit": "ed06ce8053d165122a0fa550f59af7c88d3b3c6b",
+      "headCommit": null,
+      "status": "pending",
+      "conclusion": null,
+      "startedAt": null,
+      "duration": null,
       "artifactsPublished": false,
-      "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/31811137802",
-      "evidenceArtifact": {
-        "name": "data-fabric-postgres-resilience-58eff9dad4a0a3dc27105716928f2a9b7c4f6460",
-        "retentionDays": 30,
-        "publicReleaseArtifact": false,
-        "seedSha256": "96e26a757325395b9cf59f54e786808dd9bc2f07a8dd9280ea65965802e6826b",
-        "verifySha256": "8f924c4269cfa1227d322edacd74a78b106c4acd35555bba451eae06c65a74cc",
-        "consumerCrashSha256": "84917e32a5f52f79909acac024a6740a3ad83bc450da6c06e3c112b6f02f4c44",
-        "consumerCrashLogSha256": "03790a22140c1cf5f5a3ffe1ef64b33ee0f4498486de69ca4da3517cca28f9fe",
-        "transportBackpressureSha256": "1fe7e0a6922568a8501a07406296da359b3d48e78460edd4d117879e292a0da8",
-        "transportBackpressureLogSha256": "05979e73e3818ef29002bc9ecf1e8a7e52d907e79070c97d78ef3e5b1d86a468",
-        "producerPostgresJetStreamSha256": "335ed18bd4d95d6f27902a612c129f838454dbbce626af75cae2eb65743b98de",
-        "jetStreamClusterLeaderLossSha256": "9a62b0370fadb7d7cd7b14a6c3068e12935bb5ce36fc78f7f1d7b6c71eb3f677",
-        "jetStreamClusterLeaderLossLogSha256": "a0f882b6d8e0e0b9501435203345fe1b4eeb64d5e64415011710a365f443c2f7",
-        "jetStreamClusterPartitionSha256": "7812570af63414e8ddc4bacf9ccbda3d7be3740cc8f4d0739551119c1b1cf968",
-        "jetStreamClusterPartitionLogSha256": "2ae6c30ddc77ab0a7626cb944e0d13ee8812ab7206b12566697878e4d0997ddb"
-      }
+      "url": null,
+      "evidenceArtifact": null
     },
     "engineeringEvidenceRun": {
       "runId": 31797308684,

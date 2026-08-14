@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "productId": "ynx-data-fabric",
-  "sourceCommit": "b218b62688ab311513b650db0659390130735cad",
+  "sourceCommit": "ed06ce8053d165122a0fa550f59af7c88d3b3c6b",
   "eventEnvelopeVersion": "2.0",
   "generatedAt": "2026-08-14T11:46:16Z",
   "vectors": [
@@ -492,8 +492,8 @@
       "preconditions": [
         "Envelope v2 event is signed",
         "optional chainCommitmentId is a 32-character lowercase hexadecimal external reference",
-        "Chain Core contract v1.27.0 implementation a456daeca2f89af65ac39840efb40ada1cba2e29 and contract commit f55934b7d5a24abf0e6de471441cceacc47ad5e7",
-        "Chain Core v27 local delivery bundle SHA-256 39120dabcb30a1c36c19751a3b6bc0e83be65364ca5f40b8592a1bb944503cd6 is verified",
+        "Chain Core contract v1.28.0 implementation abae5384dc856434470860ab0060998ac216addc and contract commit 6cd71d6c53908fbfb2b2810ace922fd8b19bff17",
+        "Chain Core v28 local delivery bundle SHA-256 1d66fc0b2c7c2a0fc28f3339de2fd9c5b45af70120c8605fc1a24c730d009704 is verified",
         "Bulk Data Commitment semantics are unchanged from v21"
       ],
       "input": [
@@ -710,6 +710,49 @@
         "one CI host and loopback transport",
         "one bounded partition cycle",
         "not packet loss, cross-zone WAN, simultaneous quorum loss, sustained load, shared Testnet or public availability evidence"
+      ]
+    },
+    {
+      "id": "DF-XP-023",
+      "class": "postgres-streaming-standby-manual-promotion",
+      "owners": [
+        "YNX Data Fabric",
+        "Security/SRE"
+      ],
+      "preconditions": [
+        "one PostgreSQL 17 primary and one asynchronous streaming standby run on an isolated Docker network",
+        "standby is in recovery and transaction_read_only is true",
+        "1000 canonical events and Outbox rows plus 100 duplicate rejects exist on the primary",
+        "standby replay LSN is at or beyond the primary flush LSN before failure"
+      ],
+      "input": [
+        "record the primary flush and standby replay LSNs",
+        "stop the primary container",
+        "manually promote the caught-up standby with pg_promote",
+        "connect Data Fabric to the promoted endpoint",
+        "audit canonical event integrity and all repository invariants",
+        "apply a 1000-event Analytics replay and repeat it idempotently"
+      ],
+      "expected": [
+        "the old primary remains stopped during verification",
+        "the promoted standby is writable",
+        "canonical-event RPO is zero for the bounded caught-up run",
+        "all 1000 events and pending Outbox rows survive",
+        "integrity audit passes",
+        "first replay applies 1000 Inbox/Analytics effects and second replay skips all 1000",
+        "connection and integrity-ready RTO are recorded"
+      ],
+      "compensation": "fence the old primary, promote only a verified caught-up standby, reconnect through an operator-controlled endpoint and keep writes unavailable until the new primary passes integrity checks",
+      "status": "testedLocalDirtyPendingExactSourceCI",
+      "evidence": [
+        "scripts/data-fabric/postgres-replica-failover.sh",
+        "scripts/data-fabric/postgres-resilience/main.go",
+        ".github/workflows/data-fabric.yml"
+      ],
+      "limitations": [
+        "manual promotion on one Docker host",
+        "asynchronous replication is accepted only after explicit pre-failure LSN catch-up",
+        "no automatic endpoint failover, fencing automation, synchronous quorum, cross-zone loss, regional disaster recovery, sustained load, shared Testnet or public availability claim"
       ]
     }
   ]

@@ -4,7 +4,7 @@
   "productName": "YNX Data Fabric & Billing Ledger",
   "slug": "data-fabric",
   "owner": "26-data-fabric",
-  "sourceCommit": "b218b62688ab311513b650db0659390130735cad",
+  "sourceCommit": "ed06ce8053d165122a0fa550f59af7c88d3b3c6b",
   "product": {
     "id": "ynx-data-fabric",
     "name": "YNX Data Fabric",
@@ -20,7 +20,7 @@
     }
   },
   "releaseStatus": {
-    "release": "ynx-data-fabric-b218b62688ab",
+    "release": "ynx-data-fabric-ed06ce8053d1",
     "channel": "testnet-preview",
     "implementedLocal": true,
     "testedLocal": true,

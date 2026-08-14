@@ -4,9 +4,9 @@
   "productName": "YNX Data Fabric & Billing Ledger",
   "phase": "INTEGRATE",
   "overallStatus": "ACTIVE",
-  "sourceCommit": "b218b62688ab311513b650db0659390130735cad",
-  "release": "ynx-data-fabric-b218b62688ab",
-  "lastUpdated": "2026-08-14T13:30:00Z",
+  "sourceCommit": "ed06ce8053d165122a0fa550f59af7c88d3b3c6b",
+  "release": "ynx-data-fabric-ed06ce8053d1",
+  "lastUpdated": "2026-08-15T00:30:00Z",
   "items": [
     {
       "id": "DF-RECOVER-001",
@@ -20,7 +20,7 @@
         "concurrent processes checked by working directory",
         "legacy untracked recovery summaries preserved for archival"
       ],
-      "sourceCommit": "b218b62688ab311513b650db0659390130735cad",
+      "sourceCommit": "ed06ce8053d165122a0fa550f59af7c88d3b3c6b",
       "tests": [
         "git rev-list HEAD...origin/codex/final-data-fabric = 0/0 before engineering slice",
         "GitHub run 30239043293 succeeded at prior protected HEAD"
@@ -39,30 +39,31 @@
       "applicability": "applicable",
       "status": "inProgress",
       "evidence": [
-        "engineering source commit b218b62688ab311513b650db0659390130735cad and v26-bound head 58eff9dad4a0a3dc27105716928f2a9b7c4f6460 are on remote review branch codex/data-fabric-typescript-sdk-20260814",
+        "engineering source commit ed06ce8053d165122a0fa550f59af7c88d3b3c6b is frozen locally and pending push; prior v27-bound head 2f9c7f92ed050d83b43668541dbb4841314319d0 is on remote review branch codex/data-fabric-typescript-sdk-20260814",
         "GitHub Actions engineering run 31797308684 passed the PostgreSQL job at exact source and generated the three-replica stream-leader-loss receipt; final evidence-head run 31799837096 passed both jobs at v24-bound head 54c8bc0e16a5a5b3bf6321d041f8b35fea871fbb",
         "GitHub Actions run 31811137802 passed both jobs at the v26-bound head and its route-partition artifact was downloaded and hash-verified",
         "exact-source PostgreSQL resilience, 1000 signed Producer PostgreSQL-to-JetStream, consumer-process-crash, transport-backpressure and three-replica leader-loss JSON was downloaded and SHA-256 verified",
-        "Chain Core v1.27.0 bundle was imported to refs/remotes/chain-core/v27 and its SHA-256, bytes, ref and required base were verified",
+        "Chain Core v1.28.0 bundle was imported to refs/remotes/chain-core/v28 and its SHA-256, bytes, ref and required base were verified",
         "complete verified prior Git bundles and SHA-256 manifest exist",
         "protected target requires one independent approval"
       ],
-      "sourceCommit": "b218b62688ab311513b650db0659390130735cad",
+      "sourceCommit": "ed06ce8053d165122a0fa550f59af7c88d3b3c6b",
       "tests": [
         "go test ./...",
         "go test -race ./internal/datafabric ./internal/datafabricnats ./internal/datafabricpostgres ./scripts/data-fabric/postgres-resilience",
         "TestJetStreamThreeReplicaLeaderLossRetainsOutboxAndRecovers repeated 10 times and under the race detector",
         "TestJetStreamThreeReplicaRoutePartitionRetainsOutboxAndRecovers passed twice under the race detector",
+        "dirty-worktree PostgreSQL 17 streaming standby catch-up, primary stop, manual promotion, RPO-zero integrity and replay drill",
         "GitHub Actions run 31797308684 PostgreSQL job and final run 31799837096 both jobs",
-        "git bundle verify chain-core-data-commitment-v27.bundle",
+        "git bundle verify chain-core-data-commitment-v28.bundle",
         "git bundle verify and shasum -a 256 -c SHA256SUMS"
       ],
       "artifact": null,
       "publicProof": null,
       "blockedBy": [],
       "owner": "YNX Data Fabric",
-      "nextAction": "Push current source to PR 92, wait for both applicable checks and merge only after independent approval; never force or bypass protection.",
-      "lastUpdated": "2026-08-14T11:46:16Z"
+      "nextAction": "Push current source to PR 92, wait for all three applicable checks and merge only after independent approval; never force or bypass protection.",
+      "lastUpdated": "2026-08-15T00:30:00Z"
     },
     {
       "id": "DF-EVENT-001",
@@ -77,7 +78,7 @@
         "internal/datafabric/chain_commitment.go",
         "internal/datafabricapi/chain_commitment.go"
       ],
-      "sourceCommit": "b218b62688ab311513b650db0659390130735cad",
+      "sourceCommit": "ed06ce8053d165122a0fa550f59af7c88d3b3c6b",
       "tests": [
         "TestCommittedEventEnvelopeSchemasMatchRuntimeFields",
         "internal/datafabric/envelope_v2_test.go",
@@ -103,7 +104,7 @@
         "schemas/data-fabric/schema-registry-v2.json",
         "integration/product-event-contracts.json"
       ],
-      "sourceCommit": "b218b62688ab311513b650db0659390130735cad",
+      "sourceCommit": "ed06ce8053d165122a0fa550f59af7c88d3b3c6b",
       "tests": [
         "TestCommittedSchemaRegistryArtifactMatchesRuntimeSource",
         "internal/datafabric/schema_registry_test.go",
@@ -129,7 +130,7 @@
         "evidence/postgres/consumer-process-crash-clean-source-20260814.json",
         "evidence/postgres/transport-backpressure-clean-source-20260814.json"
       ],
-      "sourceCommit": "b218b62688ab311513b650db0659390130735cad",
+      "sourceCommit": "ed06ce8053d165122a0fa550f59af7c88d3b3c6b",
       "tests": [
         "internal/datafabric/datafabric_test.go",
         "internal/datafabricpostgres/store_test.go",
@@ -159,9 +160,10 @@
         "evidence/postgres/transport-backpressure-clean-source-20260814.json",
         "internal/datafabricnats/cluster_leader_loss_test.go",
         "evidence/postgres/jetstream-cluster-leader-loss-clean-source-20260814.json",
-        "internal/datafabricnats/cluster_partition_test.go"
+        "internal/datafabricnats/cluster_partition_test.go",
+        "scripts/data-fabric/postgres-replica-failover.sh"
       ],
-      "sourceCommit": "b218b62688ab311513b650db0659390130735cad",
+      "sourceCommit": "ed06ce8053d165122a0fa550f59af7c88d3b3c6b",
       "tests": [
         "internal/datafabric/dispatcher_test.go",
         "internal/datafabricnats/broker_test.go",
@@ -169,14 +171,15 @@
         "TestPostgresJetStreamCapacityBackpressureRetainsOutbox",
         "integration/PRODUCER_TEST_VECTORS.md",
         "TestJetStreamThreeReplicaLeaderLossRetainsOutboxAndRecovers",
-        "TestJetStreamThreeReplicaRoutePartitionRetainsOutboxAndRecovers"
+        "TestJetStreamThreeReplicaRoutePartitionRetainsOutboxAndRecovers",
+        "PostgreSQL streaming standby promotion preserves canonical events, Outbox, integrity and replay invariants"
       ],
       "artifact": null,
       "publicProof": null,
       "blockedBy": [],
       "owner": "YNX Data Fabric",
-      "nextAction": "Repeat leader loss, partition and packet-loss drills on deployed shared Testnet infrastructure; the bounded TCP route-partition path is exact-source CI verified.",
-      "lastUpdated": "2026-08-14T13:30:00Z"
+      "nextAction": "Bind the PostgreSQL promotion drill to exact-source CI, then repeat broker/database failure with automatic endpoints and fencing on deployed shared Testnet infrastructure.",
+      "lastUpdated": "2026-08-15T00:30:00Z"
     },
     {
       "id": "DF-REPLAY-001",
@@ -190,7 +193,7 @@
         "cmd/ynx-data-fabricctl/main.go",
         "evidence/postgres/resilience-verify-clean-source-20260814.json"
       ],
-      "sourceCommit": "b218b62688ab311513b650db0659390130735cad",
+      "sourceCommit": "ed06ce8053d165122a0fa550f59af7c88d3b3c6b",
       "tests": [
         "internal/datafabric/redelivery_test.go",
         "internal/datafabricapi/redelivery_api_test.go",
@@ -215,7 +218,7 @@
         "internal/datafabricpostgres/saga.go",
         "cmd/ynx-data-fabric-worker/main.go"
       ],
-      "sourceCommit": "b218b62688ab311513b650db0659390130735cad",
+      "sourceCommit": "ed06ce8053d165122a0fa550f59af7c88d3b3c6b",
       "tests": [
         "internal/datafabric/saga_test.go",
         "internal/datafabricapi/server_test.go",
@@ -239,7 +242,7 @@
         "Pay bridge and Pay Ledger adapter are locally tested",
         "other product contracts remain integratedCentral=false"
       ],
-      "sourceCommit": "b218b62688ab311513b650db0659390130735cad",
+      "sourceCommit": "ed06ce8053d165122a0fa550f59af7c88d3b3c6b",
       "tests": [
         "internal/datafabricapi/product_flow_test.go",
         "internal/datafabricpay/bridge_test.go",
@@ -266,7 +269,7 @@
         "internal/datafabricpostgres/store.go",
         "internal/datafabricpostgres/migrations/0004_immutable_ledger_corrections.up.sql"
       ],
-      "sourceCommit": "b218b62688ab311513b650db0659390130735cad",
+      "sourceCommit": "ed06ce8053d165122a0fa550f59af7c88d3b3c6b",
       "tests": [
         "internal/datafabric/ledger_test.go",
         "internal/datafabricpostgres/audit_test.go",
@@ -290,7 +293,7 @@
         "internal/datafabricpostgres/billing.go",
         "internal/datafabricpostgres/migrations/0006_usage_billing_runtime.up.sql"
       ],
-      "sourceCommit": "b218b62688ab311513b650db0659390130735cad",
+      "sourceCommit": "ed06ce8053d165122a0fa550f59af7c88d3b3c6b",
       "tests": [
         "internal/datafabric/billing_test.go",
         "internal/datafabricapi/server_test.go",
@@ -314,7 +317,7 @@
         "internal/datafabricpay/bridge.go",
         "internal/datafabricpayledger/processor.go"
       ],
-      "sourceCommit": "b218b62688ab311513b650db0659390130735cad",
+      "sourceCommit": "ed06ce8053d165122a0fa550f59af7c88d3b3c6b",
       "tests": [
         "internal/bftgateway/pay_test.go",
         "internal/datafabricpay/bridge_test.go",
@@ -338,7 +341,7 @@
         "internal/datafabricpostgres/reconciliation.go",
         "Pay chain/pay observations are locally tested"
       ],
-      "sourceCommit": "b218b62688ab311513b650db0659390130735cad",
+      "sourceCommit": "ed06ce8053d165122a0fa550f59af7c88d3b3c6b",
       "tests": [
         "internal/datafabric/reconciliation_test.go",
         "internal/datafabricpayledger/processor_test.go"
@@ -366,7 +369,7 @@
         "internal/datafabricpostgres/analytics.go",
         "internal/datafabricapi/server.go"
       ],
-      "sourceCommit": "b218b62688ab311513b650db0659390130735cad",
+      "sourceCommit": "ed06ce8053d165122a0fa550f59af7c88d3b3c6b",
       "tests": [
         "internal/datafabric/privacy_test.go",
         "internal/datafabricpostgres/live_integration_test.go",
@@ -391,7 +394,7 @@
         "schemas/data-fabric/canonical-introspection-request-v1.schema.json",
         "schemas/data-fabric/canonical-introspection-response-v1.schema.json"
       ],
-      "sourceCommit": "b218b62688ab311513b650db0659390130735cad",
+      "sourceCommit": "ed06ce8053d165122a0fa550f59af7c88d3b3c6b",
       "tests": [
         "internal/datafabricapi/server_test.go",
         "internal/datafabricapi/account_isolation_test.go",
@@ -417,7 +420,7 @@
         "cmd/ynx-data-fabricctl",
         "cmd/ynx-data-fabricd"
       ],
-      "sourceCommit": "b218b62688ab311513b650db0659390130735cad",
+      "sourceCommit": "ed06ce8053d165122a0fa550f59af7c88d3b3c6b",
       "tests": [
         "go test ./internal/datafabricapi ./sdk/datafabric ./cmd/ynx-data-fabricctl -count=1",
         "npm test --prefix sdk/datafabric-typescript",
@@ -441,7 +444,7 @@
         "event v1/v2 compatibility window",
         "MIGRATION_COMPATIBILITY.md"
       ],
-      "sourceCommit": "b218b62688ab311513b650db0659390130735cad",
+      "sourceCommit": "ed06ce8053d165122a0fa550f59af7c88d3b3c6b",
       "tests": [
         "internal/datafabricpostgres/migrate_test.go",
         "internal/datafabric/envelope_v2_test.go",
@@ -465,7 +468,7 @@
         "internal/datafabricpgbackup",
         "scripts/data-fabric/local-smoke.sh"
       ],
-      "sourceCommit": "b218b62688ab311513b650db0659390130735cad",
+      "sourceCommit": "ed06ce8053d165122a0fa550f59af7c88d3b3c6b",
       "tests": [
         "internal/datafabricbackup/backup_test.go",
         "internal/datafabricpgbackup/backup_test.go",
@@ -490,7 +493,7 @@
         "infra/data-fabric/grafana-dashboard.json",
         "OBSERVABILITY.md"
       ],
-      "sourceCommit": "b218b62688ab311513b650db0659390130735cad",
+      "sourceCommit": "ed06ce8053d165122a0fa550f59af7c88d3b3c6b",
       "tests": [
         "internal/datafabricapi/health_test.go",
         "internal/datafabricapi/server_test.go",
@@ -514,7 +517,7 @@
         "evidence/ui/operator-console-unavailable-state-20260722.json",
         "UI_DESIGN_AUDIT.md"
       ],
-      "sourceCommit": "b218b62688ab311513b650db0659390130735cad",
+      "sourceCommit": "ed06ce8053d165122a0fa550f59af7c88d3b3c6b",
       "tests": [
         "internal/datafabricconsole/console_test.go",
         "internal/datafabricapi/server_test.go"
@@ -537,7 +540,7 @@
         "internal/datafabricconsole/assets/styles.css",
         "UI_DESIGN_AUDIT.md"
       ],
-      "sourceCommit": "b218b62688ab311513b650db0659390130735cad",
+      "sourceCommit": "ed06ce8053d165122a0fa550f59af7c88d3b3c6b",
       "tests": [
         "internal/datafabricconsole/console_test.go",
         "evidence/ui/operator-console-unavailable-state-20260722.json"
@@ -567,9 +570,10 @@
         "internal/datafabricapi/account_isolation_test.go",
         "evidence/postgres/jetstream-cluster-leader-loss-clean-source-20260814.json",
         "internal/datafabricnats/cluster_leader_loss_test.go",
-        "internal/datafabricnats/cluster_partition_test.go"
+        "internal/datafabricnats/cluster_partition_test.go",
+        "scripts/data-fabric/postgres-replica-failover.sh"
       ],
-      "sourceCommit": "b218b62688ab311513b650db0659390130735cad",
+      "sourceCommit": "ed06ce8053d165122a0fa550f59af7c88d3b3c6b",
       "tests": [
         "1000 simultaneously started independently signed producers through real loopback HTTP into PostgreSQL and embedded file-backed JetStream: 1000 committed, zero business errors, peak in-flight 64, Outbox 0, Stream 1000, 98.933 committed events per second",
         "producer saturation returned 4686 retryable 429 responses without consuming nonce",
@@ -580,14 +584,15 @@
         "100 simultaneous local canonical account sessions with exact account-isolated reads under Go Race",
         "Linux release cold-start verification",
         "three-node file-backed JetStream stream leader stopped after 64 events; a new leader accepted 64 more, final Outbox 0 and Stream 128 with zero duplicates, then all three replicas became current",
-        "three live JetStream servers traversed advertised TCP route proxies; isolating the stream leader retained one failed Outbox write, the surviving quorum committed 64, healing restored three current replicas, and final Stream 192 had zero duplicates"
+        "three live JetStream servers traversed advertised TCP route proxies; isolating the stream leader retained one failed Outbox write, the surviving quorum committed 64, healing restored three current replicas, and final Stream 192 had zero duplicates",
+        "dirty-worktree PostgreSQL 17 standby caught up beyond primary flush LSN, primary stopped, manual promotion retained 1000 events and Outbox rows with RPO zero; connection and integrity RTO were 66.3 and 72.7 seconds"
       ],
       "artifact": "evidence/capacity/api-1000-producers-postgres-jetstream-clean-source-20260814.json",
       "publicProof": null,
       "blockedBy": [],
       "owner": "YNX Data Fabric and Security/SRE",
-      "nextAction": "Run sustained-duration hotspot, repeated consumer/process crash, packet-loss and PostgreSQL replica-failover tests on deployed replicated infrastructure; do not extrapolate the bounded one-host leader-loss or route-partition results.",
-      "lastUpdated": "2026-08-14T13:30:00Z"
+      "nextAction": "Bind PostgreSQL promotion to exact-source Linux CI, then run sustained-duration hotspot, repeated crash, packet-loss and automatic multi-host database failover/fencing tests; do not extrapolate bounded one-host results.",
+      "lastUpdated": "2026-08-15T00:30:00Z"
     },
     {
       "id": "DF-ECONOMICS-001",
@@ -600,7 +605,7 @@
         "GROWTH_KPI.md",
         "release/kpi-definitions.json"
       ],
-      "sourceCommit": "b218b62688ab311513b650db0659390130735cad",
+      "sourceCommit": "ed06ce8053d165122a0fa550f59af7c88d3b3c6b",
       "tests": [
         "machine JSON validation for release/kpi-definitions.json"
       ],
@@ -624,7 +629,7 @@
         "release/go-runtime-sbom.spdx.json",
         ".github/workflows/data-fabric.yml"
       ],
-      "sourceCommit": "b218b62688ab311513b650db0659390130735cad",
+      "sourceCommit": "ed06ce8053d165122a0fa550f59af7c88d3b3c6b",
       "tests": [
         "npm audit --audit-level=high",
         "govulncheck ./...",
@@ -651,7 +656,7 @@
         "scripts/data-fabric/generate-cold-start-evidence.sh",
         "latest successful Linux CI runs execute these gates"
       ],
-      "sourceCommit": "b218b62688ab311513b650db0659390130735cad",
+      "sourceCommit": "ed06ce8053d165122a0fa550f59af7c88d3b3c6b",
       "tests": [
         "testnet-release-check.sh",
         "public-testnet-release-check.sh",
@@ -677,7 +682,7 @@
         "Pay local adapter evidence exists",
         "no central acceptance receipts are present"
       ],
-      "sourceCommit": "b218b62688ab311513b650db0659390130735cad",
+      "sourceCommit": "ed06ce8053d165122a0fa550f59af7c88d3b3c6b",
       "tests": [
         "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json"
       ],
@@ -699,7 +704,7 @@
         "Pay BFT event and Ledger path is locally integrated",
         "shared cross-product Testnet receipts are absent"
       ],
-      "sourceCommit": "b218b62688ab311513b650db0659390130735cad",
+      "sourceCommit": "ed06ce8053d165122a0fa550f59af7c88d3b3c6b",
       "tests": [
         "integration/PRODUCER_TEST_VECTORS.md",
         "internal/datafabricapi/product_flow_test.go"
@@ -721,7 +726,7 @@
         "production promotion path fails closed without approval, signer, uploader, HTTPS base URL and Linux cold-start evidence",
         "loopback fixture evidence is not public evidence"
       ],
-      "sourceCommit": "b218b62688ab311513b650db0659390130735cad",
+      "sourceCommit": "ed06ce8053d165122a0fa550f59af7c88d3b3c6b",
       "tests": [
         "scripts/data-fabric/public-release-promotion-check.sh",
         "scripts/data-fabric/verify-public-release.mjs"
@@ -749,7 +754,7 @@
         "product-release.json",
         "docs/integration/INTEGRATION_HANDOFF.md"
       ],
-      "sourceCommit": "b218b62688ab311513b650db0659390130735cad",
+      "sourceCommit": "ed06ce8053d165122a0fa550f59af7c88d3b3c6b",
       "tests": [
         "quality-gates.sh public leak scan",
         "release-truth-check.mjs public boundary assertions"
@@ -772,7 +777,7 @@
         "systemd units exist",
         "Go SDK and operator console exist"
       ],
-      "sourceCommit": "b218b62688ab311513b650db0659390130735cad",
+      "sourceCommit": "ed06ce8053d165122a0fa550f59af7c88d3b3c6b",
       "tests": [
         "build-testnet-release.sh",
         "install-testnet-release.sh",
@@ -794,7 +799,7 @@
       "evidence": [
         "Data Fabric is a headless event, Saga and financial ledger infrastructure service; user interaction is provided by the responsive web operator console and product-owned clients, so native store binaries would duplicate clients without adding an authority boundary."
       ],
-      "sourceCommit": "b218b62688ab311513b650db0659390130735cad",
+      "sourceCommit": "ed06ce8053d165122a0fa550f59af7c88d3b3c6b",
       "tests": [],
       "artifact": null,
       "publicProof": null,
@@ -815,7 +820,7 @@
         "data export and erasure APIs exist",
         "scripts/data-fabric/service-stop-exit-check.sh"
       ],
-      "sourceCommit": "b218b62688ab311513b650db0659390130735cad",
+      "sourceCommit": "ed06ce8053d165122a0fa550f59af7c88d3b3c6b",
       "tests": [
         "scripts/data-fabric/service-stop-exit-check.sh",
         "internal/datafabricapi/server_test.go",
@@ -838,7 +843,7 @@
         "GROWTH_KPI.md",
         "release/kpi-definitions.json contains empty measurement fields and guardrails"
       ],
-      "sourceCommit": "b218b62688ab311513b650db0659390130735cad",
+      "sourceCommit": "ed06ce8053d165122a0fa550f59af7c88d3b3c6b",
       "tests": [
         "jq empty release/kpi-definitions.json"
       ],
@@ -860,7 +865,7 @@
         "scripts/data-fabric/release-truth-check-check.mjs",
         "five negative mutation vectors"
       ],
-      "sourceCommit": "b218b62688ab311513b650db0659390130735cad",
+      "sourceCommit": "ed06ce8053d165122a0fa550f59af7c88d3b3c6b",
       "tests": [
         "node scripts/data-fabric/release-truth-check-check.mjs"
       ],
@@ -881,7 +886,7 @@
         "local and current CI gates cover substantial subsets",
         "central and public gates remain false"
       ],
-      "sourceCommit": "b218b62688ab311513b650db0659390130735cad",
+      "sourceCommit": "ed06ce8053d165122a0fa550f59af7c88d3b3c6b",
       "tests": [
         "go test ./... with standard umask",
         "go test -race Data Fabric packages",
