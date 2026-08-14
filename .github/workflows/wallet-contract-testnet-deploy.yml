@@ -121,11 +121,22 @@ jobs:
           YNX_ERC4337_VERIFY_TIMEOUT_MS: "12000"
         run: npm --prefix packages/wallet-auth run verify:testnet-deployment
 
+      - name: Freeze and reverify exact deployment artifact bytes
+        env:
+          SOURCE_COMMIT: ${{ inputs.source_commit }}
+          YNX_WALLET_ERC4337_DEPLOYMENT_MANIFEST: ${{ runner.temp }}/wallet-contract-deployment.json
+          YNX_WALLET_ERC4337_DEPLOYMENT_INTEGRITY: ${{ runner.temp }}/wallet-contract-deployment.integrity.json
+        run: |
+          YNX_WALLET_DEPLOYMENT_ARTIFACT_INTEGRITY_MODE=create npm --prefix packages/wallet-auth run integrity:testnet-deployment > "$YNX_WALLET_ERC4337_DEPLOYMENT_INTEGRITY"
+          YNX_WALLET_DEPLOYMENT_ARTIFACT_INTEGRITY_MODE=verify npm --prefix packages/wallet-auth run integrity:testnet-deployment > /dev/null
+
       - name: Upload source-bound deployment manifest
         if: ${{ always() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: wallet-contract-testnet-${{ inputs.source_commit }}
-          path: ${{ runner.temp }}/wallet-contract-deployment.json
-          if-no-files-found: warn
+          path: |
+            ${{ runner.temp }}/wallet-contract-deployment.json
+            ${{ runner.temp }}/wallet-contract-deployment.integrity.json
+          if-no-files-found: error
           retention-days: 90

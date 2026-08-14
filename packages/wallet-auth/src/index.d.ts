@@ -1150,6 +1150,8 @@ export declare function verifyPublicERC4337Deployment(config: Readonly<Record<st
 export declare function createWalletTestnetDeploymentManifest(input: Readonly<Record<string, unknown>>): Readonly<Record<string, unknown>>;
 export declare function monitorPublicERC4337Deployment(config: Readonly<Record<string, unknown>>): Promise<Readonly<Record<string, unknown>>>;
 export declare function buildPublicERC4337MetadataCandidate(input: Readonly<Record<string, unknown>>): Readonly<Record<string, unknown>>;
+export declare function createDeploymentArtifactIntegrity(manifestText: string, sourceCommit: string): Readonly<Record<string, unknown>>;
+export declare function verifyDeploymentArtifactIntegrity(manifestText: string, integrityText: string, sourceCommit: string): Readonly<Record<string, unknown>>;
 export declare function summarizePublicGatewayMultiUserEvidence(input: unknown): Readonly<{
   environment: "public-testnet";
   intendedUsers: number;

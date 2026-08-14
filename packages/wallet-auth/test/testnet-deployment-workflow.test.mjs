@@ -20,6 +20,10 @@ test("Wallet contract deployment workflow is manual, environment-protected and s
   assert.match(source, /npm --prefix packages\/wallet-auth test/);
   assert.match(source, /npm run hardhat:deploy:wallet-smart-account/);
   assert.match(source, /npm --prefix packages\/wallet-auth run verify:testnet-deployment/);
+  assert.match(source, /YNX_WALLET_DEPLOYMENT_ARTIFACT_INTEGRITY_MODE=create npm --prefix packages\/wallet-auth run integrity:testnet-deployment/);
+  assert.match(source, /YNX_WALLET_DEPLOYMENT_ARTIFACT_INTEGRITY_MODE=verify npm --prefix packages\/wallet-auth run integrity:testnet-deployment/);
+  assert.match(source, /wallet-contract-deployment\.integrity\.json/);
+  assert.match(source, /if-no-files-found: error/);
   assert.match(source, /if: \$\{\{ always\(\) \}\}/);
   assert.doesNotMatch(source, /pull_request|git push|gh pr|Caddy|website.*deploy/i);
 });
