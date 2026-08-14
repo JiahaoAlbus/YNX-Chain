@@ -1,7 +1,7 @@
 # YNX Data Fabric Integration Handoff
 
-Source Commit: `6fbe0d33f4b4de3237391646d582e79cfee30a3c`
-Release Candidate: `ynx-data-fabric-6fbe0d33f4b4`
+Source Commit: `70c56d95ab28cdee963ad7bfc4332d0515d6418c`
+Release Candidate: `ynx-data-fabric-70c56d95ab28`
 Owner: YNX Data Fabric
 Phase: `INTEGRATE`
 Status: `ACTIVE`
@@ -33,11 +33,13 @@ Status: `ACTIVE`
 | productionSigned | false | Only test-fixture signing is exercised |
 | storeReleased | false | Native app-store delivery is not applicable to this headless service |
 
-Remote CI Run `31768273194` passed both Data Fabric jobs for the current Source Commit. PR `#92` remains blocked by unrelated protected-branch contexts that do not trigger for this base Branch. Historical Run `30488889722` remains prior-source evidence only. The workflow publishes no downloadable artifact.
+Remote CI Run `31768273194` passed both Data Fabric jobs for prior Engineering Source `6fbe0d33f4b4de3237391646d582e79cfee30a3c`. Current Source `70c56d95ab28cdee963ad7bfc4332d0515d6418c` has local verification only until its review-branch checks complete. PR `#92` now requires the two applicable Data Fabric checks and one independent approval; no protection bypass is authorized. The workflow publishes no downloadable artifact.
 
 ## Current executable integration
 
 The YNX Pay BFT bridge reads authoritative Pay state, emits canonical Pay events, drives the Pay Saga and posts receipt and refund effects to the immutable Billing Ledger. This path is locally tested but is not yet current-source CI verified, centrally accepted or shared-Testnet verified.
+
+Envelope v2 may carry optional `chainCommitmentId` as an external Chain Core Bulk Data Commitment reference. Data Fabric consumes frozen Chain Core implementation `0da66c319629a79613739df351b5000b85a1371a` bound by release commit `b481a46f6d77644d0dff13e3917a51f8503e88f4`: it accepts only an exact successful `GET /data/commitments/{id}` read from `ynx-consensus-abci` at `abci-state-v14`. Missing, unavailable or contradictory verification rejects before storage. Data Fabric neither computes the commitment ID nor accepts a write owner; Chain Core derives owner from the transaction signer. Raw content, plaintext metadata, recipient lists, access tokens and key material remain off-chain.
 
 ## Required merge and acceptance order
 
@@ -57,6 +59,7 @@ The YNX Pay BFT bridge reads authoritative Pay state, emits canonical Pay events
 - Network exactly-once delivery is not claimed; controlled effects are idempotent and Inbox-bound.
 - Corrections append new entries; history is never silently overwritten.
 - Data Fabric does not own Wallet identity, assets, prices, chain finality or product business authority.
+- A Chain Core commitment reference is read-only evidence; Data Fabric does not redefine consensus, finality, owner normalization, version ancestry or commitment-ID derivation.
 - No private key, seed, PEM, PAN, CVV, provider secret or raw private Mail, Social or Cloud content belongs in events, analytics, handoff files or logs.
 
 ## Next exact action

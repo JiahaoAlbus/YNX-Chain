@@ -2,10 +2,10 @@
   "schemaVersion": 2,
   "productId": "ynx-data-fabric",
   "productName": "YNX Data Fabric & Billing Ledger",
-  "release": "ynx-data-fabric-6fbe0d33f4b4",
+  "release": "ynx-data-fabric-70c56d95ab28",
   "channel": "testnet-preview",
-  "sourceCommit": "6fbe0d33f4b4de3237391646d582e79cfee30a3c",
-  "generatedAt": "2026-08-14T03:35:07Z",
+  "sourceCommit": "70c56d95ab28cdee963ad7bfc4332d0515d6418c",
+  "generatedAt": "2026-08-14T04:22:41Z",
   "phase": "INTEGRATE",
   "overallStatus": "ACTIVE",
   "states": {
@@ -57,6 +57,7 @@
     "productIntegration": {
       "payBFTBridge": "testedLocal",
       "payLedgerReconciliation": "testedLocal",
+      "chainCoreCommitmentReference": "testedLocal-contract-source-0da66c319629a79613739df351b5000b85a1371a-release-b481a46f6d77644d0dff13e3917a51f8503e88f4",
       "otherProducerOwners": "not-yet-integrated-central"
     },
     "releaseEngineering": {
@@ -73,7 +74,7 @@
   },
   "evidence": {
     "local": {
-      "sourceCommit": "6fbe0d33f4b4de3237391646d582e79cfee30a3c",
+      "sourceCommit": "70c56d95ab28cdee963ad7bfc4332d0515d6418c",
       "fullGoTest": "passed-with-standard-umask",
       "dataFabricRace": "passed",
       "reachableVulnerabilities": "zero-with-go1.25.13-and-govulncheck-v1.6.0",
@@ -82,16 +83,16 @@
       "typeScriptSDK": "passed"
     },
     "remoteCI": {
-      "runId": 31768273194,
+      "runId": null,
       "workflow": "data-fabric",
-      "sourceCommit": "6fbe0d33f4b4de3237391646d582e79cfee30a3c",
-      "headCommit": "759eedcfd1d631596092277a4e7469b8a70592dd",
-      "status": "completed",
-      "conclusion": "success",
-      "startedAt": "2026-08-14T03:55:40Z",
-      "duration": "4m48s",
+      "sourceCommit": "70c56d95ab28cdee963ad7bfc4332d0515d6418c",
+      "headCommit": null,
+      "status": "pending",
+      "conclusion": null,
+      "startedAt": null,
+      "duration": null,
       "artifactsPublished": false,
-      "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/31768273194"
+      "url": null
     },
     "sourceCandidate": {
       "tag": "data-fabric-v0.2.0-source-candidate",

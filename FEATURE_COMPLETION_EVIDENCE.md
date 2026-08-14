@@ -1,7 +1,7 @@
 # YNX Data Fabric Feature Completion Evidence
 
-Engineering Source Commit: `6fbe0d33f4b4de3237391646d582e79cfee30a3c`
-Release Candidate: `ynx-data-fabric-6fbe0d33f4b4`
+Engineering Source Commit: `70c56d95ab28cdee963ad7bfc4332d0515d6418c`
+Release Candidate: `ynx-data-fabric-70c56d95ab28`
 Phase: `INTEGRATE`
 Product Status: `ACTIVE`
 
@@ -22,9 +22,10 @@ This matrix reports only the strongest directly evidenced state. A successful lo
 | Atomic usage billing | testedLocal | billing runtime and PostgreSQL migration 0006 | core, API and repository tests | accepted product meters and fee schedules |
 | Pay BFT event ingestion | testedLocal | Pay bridge daemon and adapter | bridge and BFT gateway integration tests | shared-Testnet owner acceptance |
 | Pay receipt and refund Ledger | testedLocal | Pay Ledger processor | partial, full, duplicate and contradictory refund tests | chain and Pay reconciliation receipts |
+| Chain Core Bulk Data Commitment reference | testedLocal | optional Envelope v2 `chainCommitmentId`; fail-closed read adapter | exact/read-unavailable/mismatch, both ingress paths, schema and TypeScript rejection tests | accepted shared-Testnet Gateway receipt and central owner acceptance |
 | Chain, Pay, Exchange, DEX and Quant reconciliation | inProgress | generic and PostgreSQL reconciliation | generic and Pay tests | accepted Exchange, DEX and Quant observation adapters |
 | Canonical Wallet/App Gateway auth | testedLocal adapter | fail-closed authorizer and signed request tuple | replay, wrong tuple, scope, expiry and revoke vectors | central owner endpoint and trust-root acceptance |
-| API, CLI, Go and TypeScript SDKs | testedLocal | Data Fabric API, control binary and typed SDKs | Go package tests, four Node tests and cross-language HMAC vector | central endpoint and producer-owner acceptance |
+| API, CLI, Go and TypeScript SDKs | testedLocal | Data Fabric API, control binary and typed SDKs | Go package tests, five Node tests and cross-language HMAC vector | central endpoint and producer-owner acceptance |
 | PostgreSQL migrations 0001–0006 | testedLocal | checksum-locked up/down migrations | migration tests and PostgreSQL 17.10 CI | production-size upgrade and rollback drill |
 | Backup and restore | testedLocal | file and PostgreSQL logical backup | tamper, non-overwrite, balance and integrity tests | encrypted immutable remote backup, PITR and timed restore |
 | Privacy export and erasure | testedLocal | file/PostgreSQL privacy and analytics suppression | privacy and live PostgreSQL tests | downstream deletion receipts and scheduled retention |
@@ -50,9 +51,9 @@ This matrix reports only the strongest directly evidenced state. A successful lo
 - Local Data Fabric targeted tests: passed.
 - Data Fabric Race: passed.
 - Full Go repository test under standard CI permission-test `umask=022`: passed.
-- TypeScript SDK build, four Node tests and canonical-registry dependency audit: passed.
+- TypeScript SDK build, five Node tests and canonical-registry dependency audit: passed.
 - Go `1.25.13` reachable-vulnerability scan: zero reachable vulnerabilities.
-- GitHub Actions Run `31768273194` for the current Engineering Source Commit: both Data Fabric jobs passed.
+- GitHub Actions Run `31768273194` passed both Data Fabric jobs for prior Engineering Source `6fbe0d33f4b4de3237391646d582e79cfee30a3c`; current-source remote CI is pending.
 - Historical GitHub Actions Run `30488889722` passed for prior source `84872ff9042ed9f4364645750bbfa2dc3475e80b`; it is not current-source evidence.
 - Release truth positive vector and five negative mutations: passed.
 - Public artifacts published by CI: none.

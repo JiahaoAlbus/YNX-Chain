@@ -1,7 +1,7 @@
 # YNX Data Fabric Dependency Acceptance
 
-Source Commit: `6fbe0d33f4b4de3237391646d582e79cfee30a3c`
-Release Candidate: `ynx-data-fabric-6fbe0d33f4b4`
+Source Commit: `70c56d95ab28cdee963ad7bfc4332d0515d6418c`
+Release Candidate: `ynx-data-fabric-70c56d95ab28`
 Phase: `INTEGRATE`
 Overall Status: `ACTIVE`
 
@@ -14,7 +14,7 @@ A dependency is accepted only when its owner supplies a versioned contract, dire
 | YNX Wallet/Auth | Product Session, Device Challenge, introspection, expiry, revoke and nonce consumption | Data Fabric fail-closed adapter and local vectors | Pending | Execute accepted signed vectors against the canonical owner endpoint and record owner approval |
 | YNX App Gateway | Product registration, bundle and device binding, signed request forwarding | Required headers and local authorization tests | Pending | Verify wrong product, bundle, device, scope, replay and tamper against the central gateway |
 | YNX Pay | BFT invoice, authorization, receipt and refund authority | Local BFT bridge and Pay Ledger tests pass | Local only | Run the same flow on shared Testnet and retain source receipts and reconciliation evidence |
-| YNX Chain Core | Finalized chain events and settlement observations | Chain-facing Pay fixture coverage exists | Pending shared Testnet | Bind finalized event identity and execute duplicate, reorg/finality and outage vectors |
+| YNX Chain Core | Frozen Bulk Data Commitment v1 reference reads plus finalized chain observations | Contract source `0da66c319629a79613739df351b5000b85a1371a`, release binding `b481a46f6d77644d0dff13e3917a51f8503e88f4`, Envelope v2 schema, fail-closed HTTP adapter and positive/negative local tests | Contract consumed locally; shared Testnet pending | Run exact committed/unavailable/mismatch vectors against the accepted Gateway and retain owner-issued receipts |
 | Shop, Merchant, Exchange, DEX, Quant, Trust, Resource, Cloud, AI, Mail and Creator owners | Registered Envelope v2 events, fee semantics, Saga steps and compensation | Canonical contract entries exist; `integratedCentral=false` | Pending | Each owner signs one authoritative contract and passes its positive and fail-closed vector set |
 | YNX Oracle | Source-labeled market facts with as-of, version, coverage and unavailable state | Data Fabric source model can represent it | Pending | Reconciliation adapter accepts the Oracle contract without making Oracle an asset authority |
 | YNX Explorer, Monitor and Trust | Event, Ledger, Saga, alert and correction evidence surfaces | Local APIs and metrics exist | Pending | Shared Testnet receipts are visible and correlated by event, request and audit identifiers |
@@ -24,7 +24,7 @@ A dependency is accepted only when its owner supplies a versioned contract, dire
 
 ## Current accepted boundary
 
-The only product-specific integration with executable local evidence is the YNX Pay BFT source to Data Fabric to Billing Ledger path. It remains **not centrally accepted** and **not shared-Testnet verified**.
+The YNX Pay BFT source-to-Ledger path and the Chain Core Bulk Data Commitment reference boundary have executable local evidence. The Chain Core boundary is deliberately read-only: `chainCommitmentId` is an external reference, owner is not accepted from an event, and raw content, recipient lists, access tokens and key material remain off-chain. Neither path is **centrally accepted** or **shared-Testnet verified**.
 
 ## Fail-closed behavior
 

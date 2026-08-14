@@ -1,7 +1,7 @@
 # YNX Data Fabric Evidence Index
 
-Engineering Source Commit: `6fbe0d33f4b4de3237391646d582e79cfee30a3c`
-Release Candidate: `ynx-data-fabric-6fbe0d33f4b4`
+Engineering Source Commit: `70c56d95ab28cdee963ad7bfc4332d0515d6418c`
+Release Candidate: `ynx-data-fabric-70c56d95ab28`
 Phase: `INTEGRATE`
 Status: `ACTIVE`
 
@@ -9,8 +9,8 @@ Status: `ACTIVE`
 
 - Exact YNX 26 Workspace and `codex/final-data-fabric` Branch were verified before modification.
 - No concurrent Git writer was found. A CodexPro server process was observed for this Worktree and left untouched.
-- Commit `6fbe0d33f4b4de3237391646d582e79cfee30a3c` is the frozen Engineering Source Commit. Descendant checkpoint `759eedcfd1d631596092277a4e7469b8a70592dd` is verified on remote review Branch `codex/data-fabric-typescript-sdk-20260814` and PR `#92` targets the protected product Branch.
-- GitHub Actions Run `31768273194` passed both Data Fabric jobs for the current Engineering Source Commit. Historical Run `30488889722` remains prior-source evidence only.
+- Commit `70c56d95ab28cdee963ad7bfc4332d0515d6418c` is the frozen Engineering Source Commit. It adds the Chain Core commitment reference boundary; remote review Branch `codex/data-fabric-typescript-sdk-20260814` and PR `#92` target the protected product Branch.
+- GitHub Actions Run `31768273194` passed both Data Fabric jobs for prior Engineering Source `6fbe0d33f4b4de3237391646d582e79cfee30a3c`. Current-source remote CI is pending.
 - The workflow runs full Go tests, Data Fabric Race tests, vet, vulnerability analysis, Linux builds and hashes, SBOM generation, quality gates, secret scanning, JSON validation and isolated PostgreSQL 17.10 transaction and logical backup/restore tests.
 - The workflow does not upload a public artifact; `downloadHosted` and all public states remain false.
 - The two stale untracked recovery summaries discovered at takeover are preserved under `recovery/2026-07-23/` and are not current truth.
@@ -25,6 +25,7 @@ Status: `ACTIVE`
 - Product ownership and protocol policy: `integration/product-event-contracts.json`
 - Machine integration contract: `release/integration/ynx-data-fabric-contract.json`
 - Handoff and vectors: `docs/integration/INTEGRATION_HANDOFF.md`, `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json`, `docs/integration/DEPENDENCY_ACCEPTANCE.md`
+- Chain Core external commitment boundary: `internal/datafabric/chain_commitment.go`, `internal/datafabricapi/chain_commitment.go`; frozen authority is implementation `0da66c319629a79613739df351b5000b85a1371a` bound by release `b481a46f6d77644d0dff13e3917a51f8503e88f4`.
 
 ## Reliable transport, Saga and Ledger
 
@@ -83,7 +84,7 @@ node scripts/data-fabric/release-truth-check-check.mjs
 bash scripts/data-fabric/quality-gates.sh
 ```
 
-The full repository test passed under the standard CI `umask=022`. The TypeScript SDK, cross-language signature vector and current-source remote CI also passed. PR `#92` remains blocked because the target requires six unrelated check contexts whose workflows do not trigger for this base Branch; no protection bypass was attempted.
+The full repository test passed under the standard CI `umask=022`. The TypeScript SDK and cross-language signature vector passed locally. PR `#92` now requires only `data-fabric-verify`, `data-fabric-postgres-live` and one independent approval; current-source checks have not yet been recorded, and no protection bypass was attempted.
 
 ## Evidence still missing
 

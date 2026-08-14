@@ -6,9 +6,9 @@
   "slug": "data-fabric",
   "owner": "26-data-fabric",
   "serviceId": "ynx-data-fabric",
-  "release": "ynx-data-fabric-6fbe0d33f4b4",
-  "sourceCommit": "6fbe0d33f4b4de3237391646d582e79cfee30a3c",
-  "generatedAt": "2026-08-14T03:35:07Z",
+  "release": "ynx-data-fabric-70c56d95ab28",
+  "sourceCommit": "70c56d95ab28cdee963ad7bfc4332d0515d6418c",
+  "generatedAt": "2026-08-14T04:22:41Z",
   "phase": "INTEGRATE",
   "protocol": {
     "eventEnvelope": {
@@ -21,6 +21,19 @@
       "duplicate": "acknowledge-without-reapplying-effect",
       "outOfOrder": "reject-for-ordered-aggregate-and-retry-after-gap",
       "tamper": "reject-quarantine-alert"
+    },
+    "chainCommitmentReference": {
+      "field": "chainCommitmentId",
+      "envelopeVersion": "2.0",
+      "requiredShape": "32-lowercase-hex",
+      "authority": "external-YNX-Chain-Core",
+      "readContract": "GET /data/commitments/{id}",
+      "acceptedEvidence": {"source": "ynx-consensus-abci", "version": "abci-state-v14", "coverage": "exact", "failure": false},
+      "chainCoreSourceCommit": "0da66c319629a79613739df351b5000b85a1371a",
+      "chainCoreReleaseCommit": "b481a46f6d77644d0dff13e3917a51f8503e88f4",
+      "failurePolicy": "reject-before-event-store-mutation",
+      "writeOwner": "derived-by-Chain-Core-from-transaction-signer-never-accepted-from-event",
+      "excludedFromChain": ["raw-content", "plaintext-private-metadata", "recipient-lists", "access-tokens", "passwords", "seed-phrases", "private-keys", "content-encryption-keys"]
     },
     "ledger": {
       "schema": "schemas/data-fabric/journal-entry-v1.schema.json",
@@ -77,7 +90,7 @@
   "testVectors": {
     "machineReadable": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
     "producerVectors": "integration/PRODUCER_TEST_VECTORS.md",
-    "requiredNegativeClasses": ["unknown-field", "invalid-version", "duplicate", "out-of-order", "tamper", "wrong-product", "wrong-device", "scope-widening", "expiry", "revoke", "broker-outage", "consumer-crash", "schema-upgrade", "ledger-imbalance", "stale-recovery-lease"]
+    "requiredNegativeClasses": ["unknown-field", "invalid-version", "duplicate", "out-of-order", "tamper", "wrong-product", "wrong-device", "scope-widening", "expiry", "revoke", "broker-outage", "consumer-crash", "schema-upgrade", "ledger-imbalance", "stale-recovery-lease", "chain-commitment-unavailable", "chain-commitment-mismatch"]
   },
   "dependencies": [
     {
@@ -97,8 +110,8 @@
     },
     {
       "owner": "YNX Chain Core",
-      "contract": "finalized chain events and settlement observations",
-      "acceptance": "pending-shared-testnet"
+      "contract": "frozen Bulk Data Commitment v1 reference read boundary and finalized chain observations",
+      "acceptance": "contract-consumed-and-tested-local; shared-testnet-pending"
     },
     {
       "owner": "product producers",

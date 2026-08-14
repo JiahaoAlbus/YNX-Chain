@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "productId": "ynx-data-fabric",
-  "sourceCommit": "6fbe0d33f4b4de3237391646d582e79cfee30a3c",
+  "sourceCommit": "70c56d95ab28cdee963ad7bfc4332d0515d6418c",
   "eventEnvelopeVersion": "2.0",
-  "generatedAt": "2026-08-14T03:35:07Z",
+  "generatedAt": "2026-08-14T04:22:41Z",
   "vectors": [
     {
       "id": "DF-XP-001",
@@ -169,6 +169,17 @@
       "compensation": "revoke candidate and leave all public states false",
       "status": "testedLocalFixtureOnly",
       "evidence": ["scripts/data-fabric/public-release-promotion-check.sh", "scripts/data-fabric/promote-public-release.sh"]
+    },
+    {
+      "id": "DF-XP-016",
+      "class": "chain-commitment-reference-fail-closed",
+      "owners": ["YNX Chain Core", "YNX Data Fabric", "producer owner"],
+      "preconditions": ["Envelope v2 event is signed", "optional chainCommitmentId is a 32-character lowercase hexadecimal external reference", "Chain Core contract source 0da66c319629a79613739df351b5000b85a1371a and release binding b481a46f6d77644d0dff13e3917a51f8503e88f4"],
+      "input": ["exact committed read", "missing verifier", "Chain Core 5xx", "failure=true or coverage=none", "mismatched commitment ID", "v1 or malformed reference", "tampered signed event"],
+      "expected": ["accept only source ynx-consensus-abci version abci-state-v14 coverage exact failure false with the same ID", "reject unavailable or contradictory evidence before Event Store mutation", "verify event HMAC before external lookup", "never derive commitment IDs or accept a client owner for Chain Core mutation", "never put raw content, recipient lists, access tokens or encryption keys on-chain"],
+      "compensation": "resolve the exact commitment read or reissue a correctly signed Envelope v2 event; never create a new chain version blindly",
+      "status": "testedLocal",
+      "evidence": ["internal/datafabric/chain_commitment_test.go", "internal/datafabricapi/chain_commitment_test.go", "schemas/data-fabric/event-envelope-v2.schema.json", "sdk/datafabric-typescript/tests/sdk.test.mjs"]
     }
   ]
 }
