@@ -42,8 +42,7 @@
       "ciComplete": null,
       "consumedForReleaseTruth": false,
       "note": "The Android branch advanced beyond frozen evidence without an Owner terminal checkpoint; device truth remains unchanged."
-    },
-    {"owner":"desktop-cli-sdk","candidateCommit":"f46866333b031a43c60d0f759db03edf5cf04fe8","remoteFastForwardReported":true,"remoteReadbackComplete":true,"ciComplete":true,"consumedForReleaseTruth":false,"note":"Fedora arm64 RPM lifecycle handoff remains queued separately; rollback descendants are not consumed."}
+    }
   ],
   "ownerSources": [
     {
@@ -85,8 +84,8 @@
     {
       "owner": "desktop-cli-sdk",
       "branch": "codex/wallet-desktop-cli-sdk-20260813",
-      "sourceCommit": "02acde92b34ba555ed55f5b512d3dd8a48c1412e",
-      "remoteCommitObserved": "02acde92b34ba555ed55f5b512d3dd8a48c1412e",
+      "sourceCommit": "f46866333b031a43c60d0f759db03edf5cf04fe8",
+      "remoteCommitObserved": "f46866333b031a43c60d0f759db03edf5cf04fe8",
       "branchHeadObserved": "05e40267902fa17eb76b389f99e38ee181bff8e1",
       "remoteVerifiedAt": "2026-08-14T04:05:00Z",
       "verificationMode": "github-git-database-parent-tree-blob-readback"
@@ -653,6 +652,13 @@
       "type": "git-object",
       "direct": true,
       "commit": "1cdcc8fbf4b1264bec763ee6c713b353b12380ac",
+      "path": "release/integration/wallet-desktop-cli-sdk-contract.json",
+      "supports": []
+    },
+    "desktop-fedora-rpm-handoff": {
+      "type": "git-object",
+      "direct": true,
+      "commit": "f46866333b031a43c60d0f759db03edf5cf04fe8",
       "path": "release/integration/wallet-desktop-cli-sdk-contract.json",
       "supports": []
     }
