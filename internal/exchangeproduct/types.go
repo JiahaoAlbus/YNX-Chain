@@ -32,6 +32,7 @@ var BuildCommit = "development"
 
 type Config struct {
 	StatePath                      string
+	StateDatabaseURL               string
 	APIKey                         string
 	WalletCallback                 string
 	RequiredConfirmations          int64

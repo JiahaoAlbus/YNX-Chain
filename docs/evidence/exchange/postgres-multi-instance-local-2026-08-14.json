@@ -1,0 +1,37 @@
+{
+  "schemaVersion": "1.0.0",
+  "productId": "ynx-exchange",
+  "classification": "tested-local-not-publicly-deployed",
+  "database": "PostgreSQL 16 Alpine in isolated local Docker container",
+  "migration": "apps/exchange/deploy/migrations/001_exchange_state.sql",
+  "capabilities": [
+    "integrity-verified JSON snapshot bootstrap into an empty database",
+    "atomic singleton-row compare-and-swap by prior integrity hash",
+    "stale writer conflict without silent overwrite",
+    "authoritative state reload by a second Service instance",
+    "request and WebSocket poll refresh from the shared repository",
+    "file-mode cross-process lock and compare-and-swap for single-host compatibility"
+  ],
+  "verification": {
+    "postgresIntegration": "3/3 targeted repository and two-instance tests passed",
+    "fullGo": "passed",
+    "fullGoRace": "passed",
+    "webUnit": "11/11 passed",
+    "browser": "4/4 passed",
+    "releaseScan": "passed; 103 runtime files and 11 product documents"
+  },
+  "publicStatus": {
+    "enabled": false,
+    "currentReadyStateStore": "file-cas-single-host",
+    "requiredForCutover": [
+      "dedicated server PostgreSQL credentials",
+      "encrypted backup and restore drill",
+      "multi-process public staging soak",
+      "set YNX_EXCHANGE_DATABASE_URL and verify /api/ready reports postgres-cas-multi-instance"
+    ]
+  },
+  "limitations": [
+    "The snapshot remains a whole-state JSONB row; append-oriented normalized tables are still required for production-scale retention.",
+    "A concurrent stale mutation fails with a conflict and must be resubmitted using the same idempotency key after refresh; writes are never automatically replayed."
+  ]
+}

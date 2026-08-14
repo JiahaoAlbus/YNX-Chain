@@ -154,6 +154,10 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if strings.HasPrefix(r.URL.Path, "/v1/ws/") {
+		if err := s.service.refreshState(); err != nil {
+			writeError(w, http.StatusServiceUnavailable, "state_refresh_failed", "authoritative exchange state is temporarily unavailable")
+			return
+		}
 		s.mux.ServeHTTP(w, r)
 		return
 	}
@@ -161,6 +165,12 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.inFlight.Add(1)
 	started := time.Now()
 	recorder := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
+	if err := s.service.refreshState(); err != nil {
+		writeError(recorder, http.StatusServiceUnavailable, "state_refresh_failed", "authoritative exchange state is temporarily unavailable")
+		s.inFlight.Add(-1)
+		s.errors.Add(1)
+		return
+	}
 	s.mux.ServeHTTP(recorder, r)
 	s.inFlight.Add(-1)
 	duration := time.Since(started)
@@ -264,7 +274,7 @@ func (s *Server) ready(w http.ResponseWriter, r *http.Request) {
 	if s.service.cfg.DeployedPublic {
 		status = "ready_public_testnet"
 	}
-	writeJSON(w, 200, map[string]any{"status": status, "stateIntegrity": true, "schemaVersion": schema, "integrations": s.service.Integrations(), "deployedPublic": s.service.cfg.DeployedPublic})
+	writeJSON(w, 200, map[string]any{"status": status, "stateIntegrity": true, "stateStore": s.service.stateRepository.Mode(), "multiInstanceState": s.service.stateRepository.Mode() == "postgres-cas-multi-instance", "schemaVersion": schema, "integrations": s.service.Integrations(), "deployedPublic": s.service.cfg.DeployedPublic})
 }
 func (s *Server) metrics(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain; version=0.0.4")
@@ -484,6 +494,9 @@ func (s *Server) serveExecutionWebSocket(w http.ResponseWriter, r *http.Request,
 		case <-done:
 			return
 		case <-poll.C:
+			if err := s.service.refreshState(); err != nil {
+				return
+			}
 			events, current, err := s.service.ExecutionEvents(cursor, stream, account, 1000)
 			if err != nil {
 				return

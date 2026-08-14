@@ -24,6 +24,7 @@ type Service struct {
 	mu                 sync.Mutex
 	cfg                Config
 	state              persistentState
+	stateRepository    stateRepository
 	processingTriggers bool
 }
 
@@ -145,6 +146,7 @@ type WithdrawalReviewRequest struct {
 
 func New(cfg Config) (*Service, error) {
 	cfg.StatePath = strings.TrimSpace(cfg.StatePath)
+	cfg.StateDatabaseURL = strings.TrimSpace(cfg.StateDatabaseURL)
 	cfg.APIKey = strings.TrimSpace(cfg.APIKey)
 	cfg.WalletCallback = strings.TrimSpace(cfg.WalletCallback)
 	if cfg.Now == nil {
@@ -181,7 +183,7 @@ func New(cfg Config) (*Service, error) {
 	cfg.FinanceReadKey = strings.TrimSpace(cfg.FinanceReadKey)
 	dexConfigured := cfg.DEXGatewayURL != "" || cfg.DEXQuoteAssetID != "" || cfg.DEXQuoteAssetAttestationDigest != ""
 	attestationBytes, attestationErr := hex.DecodeString(cfg.DEXQuoteAssetAttestationDigest)
-	if cfg.StatePath == "" || len(cfg.APIKey) < 16 || cfg.WalletCallback == "" || cfg.RequiredConfirmations < 1 || cfg.MakerFeeBPS < 0 || cfg.TakerFeeBPS < cfg.MakerFeeBPS || cfg.TakerFeeBPS > 1000 || cfg.WithdrawalFeeMicroYNXT < 0 || cfg.DEXGasMicro < 0 || cfg.DEXLatencyMillis < 0 || cfg.DEXFinalitySeconds < 0 || (cfg.FinanceReadKey != "" && len(cfg.FinanceReadKey) < 32) || (dexConfigured && (cfg.DEXGatewayURL == "" || cfg.DEXQuoteAssetID == "" || attestationErr != nil || len(attestationBytes) != 32)) {
+	if (cfg.StatePath == "" && cfg.StateDatabaseURL == "") || len(cfg.APIKey) < 16 || cfg.WalletCallback == "" || cfg.RequiredConfirmations < 1 || cfg.MakerFeeBPS < 0 || cfg.TakerFeeBPS < cfg.MakerFeeBPS || cfg.TakerFeeBPS > 1000 || cfg.WithdrawalFeeMicroYNXT < 0 || cfg.DEXGasMicro < 0 || cfg.DEXLatencyMillis < 0 || cfg.DEXFinalitySeconds < 0 || (cfg.FinanceReadKey != "" && len(cfg.FinanceReadKey) < 32) || (dexConfigured && (cfg.DEXGatewayURL == "" || cfg.DEXQuoteAssetID == "" || attestationErr != nil || len(attestationBytes) != 32)) {
 		return nil, fmt.Errorf("%w: exchange configuration", ErrInvalid)
 	}
 	if cfg.CustodyAddress != "" {
@@ -191,10 +193,15 @@ func New(cfg Config) (*Service, error) {
 		}
 		cfg.CustodyAddress = address
 	}
-	s, existed, err := loadState(cfg.StatePath)
+	repository, err := openStateRepository(cfg.StatePath, cfg.StateDatabaseURL)
 	if err != nil {
 		return nil, err
 	}
+	s, existed, err := repository.Load()
+	if err != nil {
+		return nil, err
+	}
+	loadedIntegrity := s.IntegrityHash
 	if cfg.CustodyAddress != "" {
 		s.CustodyAddress = cfg.CustodyAddress
 	}
@@ -209,9 +216,9 @@ func New(cfg Config) (*Service, error) {
 		s.SchemaVersion = currentStateSchemaVersion
 		migrated = true
 	}
-	service := &Service{cfg: cfg, state: s}
+	service := &Service{cfg: cfg, state: s, stateRepository: repository}
 	if !existed || migrated {
-		if err := saveState(cfg.StatePath, &service.state); err != nil {
+		if err := repository.Save(loadedIntegrity, &service.state); err != nil {
 			return nil, err
 		}
 	}
@@ -3050,9 +3057,26 @@ func (s *Service) feeLocked(account, asset string, amount int64, kind, ref strin
 	s.state.Fees = append(s.state.Fees, FeeRecord{ID: s.nextIDLocked("fee"), Account: account, Asset: asset, AmountMicro: amount, Kind: kind, Reference: ref, CreatedAt: s.cfg.Now().UTC()})
 }
 func (s *Service) saveOrRollbackLocked(before persistentState) error {
-	if err := saveState(s.cfg.StatePath, &s.state); err != nil {
-		s.state = before
+	if err := s.stateRepository.Save(before.IntegrityHash, &s.state); err != nil {
+		if authoritative, exists, loadErr := s.stateRepository.Load(); loadErr == nil && exists {
+			s.state = authoritative
+		} else {
+			s.state = before
+		}
 		return err
+	}
+	return nil
+}
+
+func (s *Service) refreshState() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	authoritative, exists, err := s.stateRepository.Load()
+	if err != nil {
+		return err
+	}
+	if exists && authoritative.IntegrityHash != s.state.IntegrityHash {
+		s.state = authoritative
 	}
 	return nil
 }
