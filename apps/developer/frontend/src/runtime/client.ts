@@ -278,6 +278,32 @@ export function installContainerPackage(runtimeId: string, projectId: string, pa
     }),
   });
 }
+export type PortPreviewGrant = {
+  previewId: string;
+  runtimeId: string;
+  projectId: string;
+  port: number;
+  url: string;
+  expiresAt: string;
+  sandbox: "opaque-origin";
+  network: "container-loopback-only";
+  maximumResponseBytes: number;
+};
+export async function createPortPreview(runtimeId: string, projectId: string, port: number): Promise<PortPreviewGrant> {
+  const value = await profileFetch(`/runtime/profiles/lxd/leases/${encodeURIComponent(runtimeId)}/previews`, {
+    method: "POST",
+    body: JSON.stringify({
+      protocolVersion: "ynx-code-runtime/v1",
+      approval: "preview-port-once",
+      projectId,
+      port,
+    }),
+  });
+  return value.preview;
+}
+export function revokePortPreview(runtimeId: string, previewId: string) {
+  return profileFetch(`/runtime/profiles/lxd/leases/${encodeURIComponent(runtimeId)}/previews/${encodeURIComponent(previewId)}`, { method: "DELETE" });
+}
 export function inspectSshTarget(host: string, port: number, user: string) {
   return profileFetch("/runtime/profiles/ssh/inspect", {
     method: "POST",

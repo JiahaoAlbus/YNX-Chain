@@ -11,6 +11,7 @@ import { installContainerPackage, loadChainStatus, loadWorkspace, loadExtensions
 import { loadProject, foldersFromFiles, saveProject, validPath, type ProjectState } from "../state/workspace";
 import { SourceControlPanel } from "../scm/SourceControlPanel";
 import { InteractiveTerminal, TerminalPanel } from "../terminal/TerminalPanel";
+import { PortPreviewDialog } from "../runtime/PortPreviewDialog";
 import { AgentPanel } from "../chat/AgentPanel";
 import { WorkspaceHistoryPanel } from "../history/WorkspaceHistoryPanel";
 import { buildLiteralReplacement } from "../search/literalReplace";
@@ -115,6 +116,7 @@ export function Workbench() {
     [runReview, setRunReview] = useState(false),
     [testReview, setTestReview] = useState(false),
     [packageReview, setPackageReview] = useState(false),
+    [previewOpen, setPreviewOpen] = useState(false),
     [packageSpec, setPackageSpec] = useState(""),
     [packageBusy, setPackageBusy] = useState(false),
     [theme, setTheme] = useState<"light" | "dark">(() => (localStorage.getItem("ynx-code-theme") === "light" ? "light" : "dark")),
@@ -911,6 +913,9 @@ export function Workbench() {
             <Button variant="ghost" title={!selectedRuntime ? "Select an isolated cloud workspace to install packages" : selectedRuntime.startsWith("ssh-") ? "Use the reviewed SSH terminal for remote package installation" : "Review one exact npm package installation"} onClick={() => setPackageReview(true)} disabled={!selectedRuntime || selectedRuntime.startsWith("ssh-") || packageBusy || collaborationReadOnly}>
               <PackagePlus size={13} /> Package
             </Button>
+            <Button variant="ghost" title={!selectedRuntime ? "Select an isolated cloud workspace to preview a listening port" : selectedRuntime.startsWith("ssh-") ? "Remote SSH port forwarding is not enabled on this tier" : "Review a short-lived container loopback preview"} onClick={() => setPreviewOpen(true)} disabled={!selectedRuntime || selectedRuntime.startsWith("ssh-") || collaborationReadOnly}>
+              <Link2 size={13} /> Preview
+            </Button>
           </div>
         </div>
         <nav className="breadcrumbs" aria-label="Editor breadcrumbs">
@@ -1099,6 +1104,7 @@ export function Workbench() {
           </Dialog.Content>
         </Dialog.Portal>
       </Dialog.Root>
+      {previewOpen && selectedRuntime && !selectedRuntime.startsWith("ssh-") && <PortPreviewDialog open={previewOpen} runtimeId={selectedRuntime} projectId={project.id} onOpenChange={setPreviewOpen} />}
     </div>
   );
 }
