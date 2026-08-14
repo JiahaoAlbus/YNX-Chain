@@ -3,6 +3,8 @@
   "capturedAt": "2026-08-14T12:20:00Z",
   "origin": "https://rest.ynxweb4.com",
   "sourceCommit": "d26ed915516c97d07cb4d58e5fc4646486afc851",
+  "status": "superseded-by-cross-request-state-identity-hardening",
+  "supersededBy": "evidence/product-session-v2-state-integrity-public-deployment-20260814.json",
   "release": "ynx-product-session-v2-d26ed915516c",
   "service": "ynx-product-session-gatewayd",
   "registryRuntimeSha256": "3b1ee629685651fab161d56b99b005d1acfd101b6d84a4c0894f144b5142eb17",
