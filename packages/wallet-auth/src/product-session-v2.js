@@ -218,6 +218,8 @@ export function signProductSessionChallenge(challengeInput, deviceSecretInput) {
   return Object.freeze({ challenge, deviceSignature: encodeBase64url(signature) });
 }
 
+export function parseProductSessionChallenge(input) { return parseChallenge(input); }
+
 export class ProductSessionAuthority {
   #registry;
   #state;

@@ -4,8 +4,8 @@ import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import { p256 } from "@noble/curves/nist.js";
 import {
-  createProductSessionReturnURL, ProductSessionAuthority,
-  RecoverableProductSessionClient, signProductSessionApproval, signProductSessionChallenge,
+  canonicalJSON, createProductSessionReturnURL, httpBodyDigest, ProductSessionAuthority,
+  RecoverableProductSessionClient, signProductSessionApproval, verifyProductSessionProofV2,
   PRODUCT_SESSION_CLIENT_STATE, WalletAuthError,
 } from "../src/index.js";
 
@@ -26,11 +26,19 @@ function harness(sharedStorage = storage()) {
   let challengeIndex = 0;
   const gateway = {
     async walletInstalled() { return true; }, async schemeRegistered() { return true; },
-    async complete({ request, approval, deviceSecret: supplied }) {
-      const challenge = authority.issueChallenge({ request, approval, challenge: token(`recovery-challenge-${challengeIndex++}`) }, NOW);
-      return authority.complete({ request, approval, completion: signProductSessionChallenge(challenge, supplied) }, NOW);
+    async challenge({ requestId, request, approval }) {
+      assert.match(requestId, /^req_ps_c_[A-Za-z0-9_-]{32,64}$/);
+      return authority.issueChallenge({ request, approval, challenge: token(`recovery-challenge-${challengeIndex++}`) }, NOW);
     },
-    async introspect(binding, context) { return authority.introspect(binding, context, NOW); },
+    async complete({ requestId, ...input }) { assert.match(requestId, /^req_ps_f_[A-Za-z0-9_-]{32,64}$/); assert.equal("deviceSecret" in input, false); return authority.complete(input, NOW); },
+    async introspect({ requestId, sessionBinding, requiredScopes, proof }) {
+      assert.match(requestId, /^req_ps_i_[A-Za-z0-9_-]{32,64}$/);
+      const session = authority.snapshot().sessions.find((item) => item.sessionBinding === sessionBinding);
+      if (!session) throw new WalletAuthError("SESSION_NOT_FOUND", "missing session");
+      const body = { requiredScopes };
+      verifyProductSessionProofV2(proof, session, { method: "POST", path: "/v2/product-sessions/introspect", bodyDigest: httpBodyDigest(canonicalJSON(body)) }, NOW);
+      return authority.introspect(sessionBinding, { chainId: session.chainId, productId: session.productId, clientId: session.clientId, platform: session.platform, applicationId: session.applicationId, bundleId: session.bundleId, packageId: session.packageId, origin: session.origin, callback: session.callback, account: session.account, deviceId: session.deviceId, deviceKey: session.deviceKey, requiredScopes }, NOW);
+    },
   };
   let tokenIndex = 0;
   const client = new RecoverableProductSessionClient({ registry, productId: "social", platform: "android", storage: sharedStorage, gateway, device, tokenFactory: () => token(`client-${tokenIndex++}`), clock: () => NOW });
@@ -82,7 +90,7 @@ test("second-launch Gateway outage preserves protected session and Retry re-intr
   const gateway = {
     ...first.gateway,
     async complete(input) { completionCalls += 1; return first.gateway.complete(input); },
-    async introspect(binding, context) { if (networkUnavailable) throw new WalletAuthError("NETWORK_UNAVAILABLE", "temporary outage"); return first.gateway.introspect(binding, context); },
+    async introspect(input) { if (networkUnavailable) throw new WalletAuthError("NETWORK_UNAVAILABLE", "temporary outage"); return first.gateway.introspect(input); },
   };
   const second = new RecoverableProductSessionClient({ registry, productId: "social", platform: "android", storage: first.storage, gateway, device, tokenFactory: () => token("network-retry"), clock: () => NOW });
   const unavailable = await second.restore(true);
@@ -115,6 +123,50 @@ test("approved callback survives a completion outage and resumes from protected 
   assert.equal(await setup.storage.get(`${client.storageKey}:return`), null);
 });
 
+test("device secret never crosses the Gateway adapter boundary", async () => {
+  const setup = harness(); const seen = [];
+  const gateway = {
+    ...setup.gateway,
+    async challenge(input) { seen.push(input); return setup.gateway.challenge(input); },
+    async complete(input) { seen.push(input); return setup.gateway.complete(input); },
+    async introspect(input) { seen.push(input); return setup.gateway.introspect(input); },
+  };
+  const client = new RecoverableProductSessionClient({ registry, productId: "social", platform: "android", storage: setup.storage, gateway, device, tokenFactory: (() => { let i = 0; return () => token(`secret-boundary-${i++}`); })(), clock: () => NOW });
+  const connecting = await client.begin({ walletInstalled: true, schemeRegistered: true });
+  const approval = signProductSessionApproval(registry, connecting.request, { accountSecret, scopes: connecting.request.scopes, expiresAt: "2026-08-14T01:03:00.000Z" }, NOW);
+  assert.equal((await client.handleReturn(createProductSessionReturnURL(registry, connecting.request, { result: "approved", approval }, NOW))).status, PRODUCT_SESSION_CLIENT_STATE.CONNECTED);
+  assert.equal(JSON.stringify(seen).includes(device.secret), false);
+  assert.equal(seen.some((input) => Object.hasOwn(input, "deviceSecret")), false);
+});
+
+test("substituted Gateway challenge fails before device signing or completion", async () => {
+  const setup = harness(); let completionCalls = 0;
+  const gateway = {
+    ...setup.gateway,
+    async challenge(input) { return { ...(await setup.gateway.challenge(input)), origin: "https://attacker.example" }; },
+    async complete(input) { completionCalls += 1; return setup.gateway.complete(input); },
+  };
+  const client = new RecoverableProductSessionClient({ registry, productId: "social", platform: "android", storage: setup.storage, gateway, device, tokenFactory: (() => { let i = 0; return () => token(`challenge-substitution-${i++}`); })(), clock: () => NOW });
+  const connecting = await client.begin({ walletInstalled: true, schemeRegistered: true });
+  const approval = signProductSessionApproval(registry, connecting.request, { accountSecret, scopes: connecting.request.scopes, expiresAt: "2026-08-14T01:03:00.000Z" }, NOW);
+  const result = await client.handleReturn(createProductSessionReturnURL(registry, connecting.request, { result: "approved", approval }, NOW));
+  assert.equal(result.status, PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED);
+  assert.equal(completionCalls, 0);
+  assert.equal(await setup.storage.get(client.storageKey), null);
+});
+
+test("expired Gateway challenge is rejected before device signing", async () => {
+  const setup = harness(); let completionCalls = 0; let current = NOW;
+  const gateway = { ...setup.gateway, async complete(input) { completionCalls += 1; return setup.gateway.complete(input); } };
+  const client = new RecoverableProductSessionClient({ registry, productId: "social", platform: "android", storage: setup.storage, gateway, device, tokenFactory: (() => { let i = 0; return () => token(`challenge-expiry-${i++}`); })(), clock: () => current });
+  const connecting = await client.begin({ walletInstalled: true, schemeRegistered: true });
+  const approval = signProductSessionApproval(registry, connecting.request, { accountSecret, scopes: connecting.request.scopes, expiresAt: "2026-08-14T01:03:00.000Z" }, NOW);
+  const callback = createProductSessionReturnURL(registry, connecting.request, { result: "approved", approval }, NOW);
+  current = new Date(NOW.getTime() + 61_000);
+  assert.equal((await client.handleReturn(callback)).status, PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED);
+  assert.equal(completionCalls, 0);
+});
+
 test("dangling or malformed protected callbacks fail closed and are removed", async () => {
   const setup = harness();
   await setup.storage.set(`${setup.client.storageKey}:return`, "ynx-social://com.ynx.social?result=approved");
@@ -130,6 +182,8 @@ test("dangling or malformed protected callbacks fail closed and are removed", as
 test("insecure storage and fake Gateway adapters are rejected", () => {
   const valid = harness();
   assert.throws(() => new RecoverableProductSessionClient({ registry, productId: "social", platform: "android", storage: { securityLevel: "local", get() {}, set() {}, remove() {} }, gateway: valid.gateway, device, tokenFactory: () => token("x"), clock: () => NOW }), code("INSECURE_STORAGE"));
+  const { challenge: _challenge, ...missingChallenge } = valid.gateway;
+  assert.throws(() => new RecoverableProductSessionClient({ registry, productId: "social", platform: "android", storage: valid.storage, gateway: missingChallenge, device, tokenFactory: () => token("y"), clock: () => NOW }), code("INVALID_GATEWAY"));
 });
 
 function code(expected) { return (error) => error instanceof WalletAuthError && error.code === expected; }

@@ -1,19 +1,19 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-08-14T04:06:46.000Z",
+  "capturedAt": "2026-08-14T04:30:28.000Z",
   "scope": "local Product Session v2 protocol and router validation",
   "registrySchemaVersion": 2,
   "branch": "codex/wallet-session-router-recovery",
   "sourceBaseline": "2a78ace0a647b73dd2961fae3361189116453a7d",
   "targetedTest": {
-    "command": "node --test test/product-session-gateway.test.mjs test/product-session-migration.test.mjs test/product-session-products.test.mjs test/product-session-recovery.test.mjs test/product-session-router.test.mjs test/product-session-v2.test.mjs",
-    "passed": 39,
+    "command": "node --test test/product-session-gateway-client.test.mjs test/product-session-gateway.test.mjs test/product-session-migration.test.mjs test/product-session-products.test.mjs test/product-session-recovery.test.mjs test/product-session-router.test.mjs test/product-session-v2.test.mjs",
+    "passed": 47,
     "failed": 0,
     "concurrentSessions": 120
   },
   "fullPackageTest": {
     "command": "npm test",
-    "passed": 141,
+    "passed": 149,
     "failed": 0,
     "exitCode": 0
   },
@@ -21,8 +21,29 @@
     "command": "npm_config_cache=<isolated-temp-cache> npm pack --dry-run",
     "exitCode": 0,
     "version": "1.1.0",
-    "files": 55,
-    "shasum": "43c58700942509c10c1067033e87ae6cd0b7741f"
+    "files": 56,
+    "shasum": "598300b7a1ab19e3da99f7b508a69191fd1bade5"
+  },
+  "deviceSecretBoundary": {
+    "clientLocalSigning": [
+      "Gateway challenge validation and P-256 completion signing",
+      "sender-constrained introspection proof signing"
+    ],
+    "gatewayAdapterReceivesDeviceSecret": false,
+    "substitutedChallengeSigned": false
+  },
+  "gatewayIdempotency": {
+    "schemaVersion": 2,
+    "paths": [
+      "/v2/product-sessions/challenge",
+      "/v2/product-sessions/complete"
+    ],
+    "stableRequestIds": true,
+    "restartSafe": true,
+    "expiredEntriesPruned": true,
+    "cachedResponseCannotBypassProofPolicy": true,
+    "responseLossRecovery": "exact cached response for identical request ID, route, and canonical body",
+    "conflictingReuse": "IDEMPOTENCY_CONFLICT"
   },
   "networkRecovery": {
     "storedSessionOnIntrospectionOutage": "retained-non-authoritative-until-retry",

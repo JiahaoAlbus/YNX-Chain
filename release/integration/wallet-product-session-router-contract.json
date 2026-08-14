@@ -8,6 +8,7 @@
     "name": "YNX Product Session",
     "version": "2",
     "registrySchemaVersion": 2,
+    "gatewaySchemaVersion": 2,
     "chainId": "ynx_6423-1",
     "registry": "packages/wallet-auth/product-session-registry.json",
     "requiredBindings": [
@@ -30,10 +31,10 @@
       "expiresAt"
     ],
     "walletApprovalSignature": "secp256k1-sha256 compact low-S",
-    "productDeviceSignature": "P-256 SHA-256 DER",
+    "productDeviceSignature": "P-256 SHA-256 DER, created only inside the product client; the device secret never crosses the Gateway adapter boundary",
     "challengePolicy": "Gateway-issued, one-time, maximum 60 seconds",
     "sessionPolicy": "short-lived, sender-constrained, introspected online, fail closed",
-    "networkRecoveryPolicy": "Gateway network failures retain protected session/callback state as non-authoritative; Retry re-introspects or resumes completion before starting a new approval",
+    "networkRecoveryPolicy": "Gateway network failures retain protected session/callback state as non-authoritative; stable request IDs and restart-safe Gateway idempotency recover lost challenge/completion responses before starting a new approval",
     "secureStoragePolicy": ["hardware-backed", "os-protected"],
     "guestLimitations": ["not-signed-in", "no-wallet-balance", "no-transactions", "no-chain-authority"]
   },
@@ -44,6 +45,13 @@
     {"method": "POST", "path": "/v2/product-sessions/revoke", "proof": "fresh Product Session HTTP proof v2"},
     {"method": "POST", "path": "/v2/product-sessions/devices/revoke", "proof": "fresh Product Session HTTP proof v2"}
   ],
+  "gatewayTransport": {
+    "adapter": "ProductSessionGatewayFetchAdapter",
+    "endpointPolicy": "canonical HTTPS origin only",
+    "proofHeader": "x-ynx-product-session-proof-v2",
+    "fallback": "none",
+    "idempotentRoutes": ["/v2/product-sessions/challenge", "/v2/product-sessions/complete"]
+  },
   "actionableRouterStates": [
     "wallet-not-installed",
     "scheme-not-registered",
@@ -61,6 +69,7 @@
   },
   "tests": [
     "packages/wallet-auth/test/product-session-gateway.test.mjs",
+    "packages/wallet-auth/test/product-session-gateway-client.test.mjs",
     "packages/wallet-auth/test/product-session-migration.test.mjs",
     "packages/wallet-auth/test/product-session-products.test.mjs",
     "packages/wallet-auth/test/product-session-recovery.test.mjs",

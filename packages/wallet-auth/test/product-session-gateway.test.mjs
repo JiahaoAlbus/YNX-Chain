@@ -5,7 +5,7 @@ import { test } from "node:test";
 import { p256 } from "@noble/curves/nist.js";
 import {
   canonicalJSON, createProductSessionProofV2, createProductSessionRequest, httpBodyDigest,
-  parseProductSessionGatewaySnapshot, ProductSessionGatewayKernel, signProductSessionApproval, signProductSessionChallenge,
+  migrateProductSessionGatewaySnapshotV1, parseProductSessionGatewaySnapshot, ProductSessionGatewayKernel, signProductSessionApproval, signProductSessionChallenge,
 } from "../src/index.js";
 
 const registry = JSON.parse(readFileSync(new URL("../product-session-registry.json", import.meta.url), "utf8"));
@@ -35,6 +35,60 @@ test("App Gateway issues the challenge, completes the session and consumes sende
   assert.equal(restarted.snapshot().authority.sessions[0].sessionBinding, session.sessionBinding);
   assert.equal(restarted.snapshot().consumedProofs.length, 1);
   assert.deepEqual(restarted.snapshot().audit.map((item) => item.requestId), ["req_gateway_challenge_001", "req_gateway_complete_001", "req_gateway_introspect_01", "req_gateway_introspect_02"]);
+});
+
+test("Challenge and completion request IDs are idempotent across response loss and Gateway restart", () => {
+  const gateway = kernel(), pending = request();
+  const approval = signProductSessionApproval(registry, pending, { accountSecret: "1".padStart(64, "0"), scopes: pending.scopes, expiresAt: "2026-08-14T01:03:00.000Z" }, NOW);
+  const challengeBody = { request: pending, approval };
+  const firstChallenge = dispatch(gateway, "req_idempotent_challenge_01", "/v2/product-sessions/challenge", challengeBody);
+  const repeatedChallenge = dispatch(gateway, "req_idempotent_challenge_01", "/v2/product-sessions/challenge", challengeBody);
+  assert.equal(repeatedChallenge.body, firstChallenge.body);
+  assert.equal(gateway.snapshot().authority.issuedChallenges.length, 1);
+  const challenge = JSON.parse(firstChallenge.body).result;
+  const completeBody = { request: pending, approval, completion: signProductSessionChallenge(challenge, secretText) };
+  const firstComplete = dispatch(gateway, "req_idempotent_complete_001", "/v2/product-sessions/complete", completeBody);
+  const repeatedComplete = dispatch(gateway, "req_idempotent_complete_001", "/v2/product-sessions/complete", completeBody);
+  assert.equal(repeatedComplete.body, firstComplete.body);
+  assert.equal(gateway.snapshot().authority.sessions.length, 1);
+  const restarted = kernel(gateway.snapshot());
+  assert.equal(dispatch(restarted, "req_idempotent_complete_001", "/v2/product-sessions/complete", completeBody).body, firstComplete.body);
+  const conflict = dispatch(restarted, "req_idempotent_challenge_01", "/v2/product-sessions/challenge", { ...challengeBody, request: { ...pending, purpose: "Substituted purpose" } });
+  assert.equal(conflict.status, 409);
+  assert.equal(JSON.parse(conflict.body).error.code, "IDEMPOTENCY_CONFLICT");
+  assert.deepEqual(restarted.snapshot().audit.slice(-2).map((item) => item.outcome), ["idempotent", "rejected"]);
+});
+
+test("idempotency cache cannot bypass proof policy and expired challenge entries are replaced", () => {
+  const gateway = kernel(), pending = request();
+  const approval = signProductSessionApproval(registry, pending, { accountSecret: "1".padStart(64, "0"), scopes: pending.scopes, expiresAt: "2026-08-14T01:03:00.000Z" }, NOW);
+  const body = { request: pending, approval };
+  const first = dispatch(gateway, "req_cache_expiry_test_01", "/v2/product-sessions/challenge", body);
+  const proofBypass = dispatch(gateway, "req_cache_expiry_test_01", "/v2/product-sessions/challenge", body, {});
+  assert.equal(proofBypass.status, 400);
+  assert.equal(JSON.parse(proofBypass.body).error.code, "UNEXPECTED_PROOF");
+  const later = new Date(NOW.getTime() + 61_000);
+  const refreshed = gateway.dispatch({ requestId: "req_cache_expiry_test_01", method: "POST", path: "/v2/product-sessions/challenge", body, proof: null, networkAvailable: true }, later);
+  assert.equal(refreshed.status, 200);
+  assert.notEqual(refreshed.body, first.body);
+  assert.equal(gateway.snapshot().idempotency.length, 1);
+  assert.equal(gateway.snapshot().authority.issuedChallenges.length, 2);
+});
+
+test("Gateway snapshot v1 requires explicit migration and idempotency cache tamper fails closed", () => {
+  const current = kernel().snapshot();
+  const legacy = { schemaVersion: 1, authority: current.authority, consumedProofs: current.consumedProofs, audit: current.audit };
+  assert.throws(() => parseProductSessionGatewaySnapshot(legacy), (error) => error?.code === "UNKNOWN_OR_MISSING_FIELD" || error?.code === "INVALID_GATEWAY_STORE");
+  const migrated = migrateProductSessionGatewaySnapshotV1(legacy);
+  assert.equal(migrated.schemaVersion, 2);
+  assert.deepEqual(migrated.idempotency, []);
+
+  const gateway = kernel(), pending = request();
+  const approval = signProductSessionApproval(registry, pending, { accountSecret: "1".padStart(64, "0"), scopes: pending.scopes, expiresAt: "2026-08-14T01:03:00.000Z" }, NOW);
+  dispatch(gateway, "req_cache_tamper_test_001", "/v2/product-sessions/challenge", { request: pending, approval });
+  const snapshot = gateway.snapshot();
+  const tampered = { ...snapshot, idempotency: [{ ...snapshot.idempotency[0], responseBody: `${snapshot.idempotency[0].responseBody} ` }] };
+  assert.throws(() => parseProductSessionGatewaySnapshot(tampered), (error) => error?.code === "INVALID_GATEWAY_STORE");
 });
 
 test("App Gateway fails closed on unissued challenges, network loss and request binding substitution", () => {
