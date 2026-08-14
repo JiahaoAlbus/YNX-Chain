@@ -377,6 +377,8 @@ func TestHTTPAuthorizerFailsClosedAcrossCanonicalAuthorityBoundaries(t *testing.
 		mutate func(*Principal)
 	}{
 		{name: "revoked", mutate: func(value *Principal) { value.Active = false }},
+		{name: "missing-account", mutate: func(value *Principal) { value.AccountID = "" }},
+		{name: "noncanonical-account", mutate: func(value *Principal) { value.AccountID = "wallet account" }},
 		{name: "tampered-or-unbound", mutate: func(value *Principal) { value.RequestBound = false }},
 		{name: "wrong-session", mutate: func(value *Principal) { value.SessionID = "session.wallet.other" }},
 		{name: "wrong-device", mutate: func(value *Principal) { value.DeviceID = "device.wallet.other" }},

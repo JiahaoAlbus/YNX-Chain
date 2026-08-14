@@ -9,9 +9,12 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strings"
 	"time"
 )
+
+var canonicalPrincipalIDPattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$`)
 
 type Credential struct {
 	SessionToken     string
@@ -87,7 +90,7 @@ func (a HTTPAuthorizer) Authorize(ctx context.Context, credential Credential, re
 	if err := decoder.Decode(&principal); err != nil {
 		return Principal{}, fmt.Errorf("invalid canonical introspection response: %w", err)
 	}
-	if !principal.Active || !principal.RequestBound || principal.SessionID != credential.SessionID || principal.DeviceID != credential.DeviceID || principal.Product != credential.Product || principal.BundleID != credential.BundleID || !time.Now().UTC().Before(principal.ExpiresAt) || !contains(principal.Scopes, requiredScope) {
+	if !principal.Active || !principal.RequestBound || !canonicalPrincipalIDPattern.MatchString(principal.AccountID) || principal.SessionID != credential.SessionID || principal.DeviceID != credential.DeviceID || principal.Product != credential.Product || principal.BundleID != credential.BundleID || !time.Now().UTC().Before(principal.ExpiresAt) || !contains(principal.Scopes, requiredScope) {
 		return Principal{}, errors.New("canonical session, product, bundle, device, request binding, expiry, or scope mismatch")
 	}
 	return principal, nil
