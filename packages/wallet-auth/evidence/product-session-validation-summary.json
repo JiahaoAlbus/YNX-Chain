@@ -1,19 +1,19 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-08-14T04:45:37.000Z",
+  "capturedAt": "2026-08-14T04:53:19.000Z",
   "scope": "local Product Session v2 protocol and router validation",
   "registrySchemaVersion": 2,
   "branch": "codex/wallet-session-router-recovery",
   "sourceBaseline": "2a78ace0a647b73dd2961fae3361189116453a7d",
   "targetedTest": {
     "command": "node --test test/metamask-evm-adapter.test.mjs test/product-session-gateway-client.test.mjs test/product-session-gateway-http.test.mjs test/product-session-gateway.test.mjs test/product-session-migration.test.mjs test/product-session-products.test.mjs test/product-session-recovery.test.mjs test/product-session-router.test.mjs test/product-session-v2.test.mjs",
-    "passed": 55,
+    "passed": 56,
     "failed": 0,
     "concurrentSessions": 120
   },
   "fullPackageTest": {
     "command": "npm test",
-    "passed": 157,
+    "passed": 158,
     "failed": 0,
     "exitCode": 0
   },
@@ -22,7 +22,7 @@
     "exitCode": 0,
     "version": "1.1.0",
     "files": 58,
-    "shasum": "faea098794e3cb7771d3c1ddd2ef5f70a11acb5b"
+    "shasum": "04188ce81065ed21b6d3e8043e8fcd971c9ee177"
   },
   "deviceSecretBoundary": {
     "clientLocalSigning": [
@@ -75,8 +75,16 @@
     "provider": "explicit MetaMask EIP-1193 provider",
     "chainId": 6423,
     "chainQuantity": "0x1917",
-    "providerMethods": ["eth_chainId", "wallet_switchEthereumChain", "eth_requestAccounts"],
-    "walletAddEthereumChain": false,
+    "providerMethods": ["eth_chainId", "wallet_switchEthereumChain", "wallet_addEthereumChain", "eth_requestAccounts"],
+    "walletAddEthereumChain": {
+      "onlyAfterSwitch4902": true,
+      "chainName": "YNX Testnet",
+      "rpc": "https://evm.ynxweb4.com",
+      "explorer": "https://explorer.ynxweb4.com",
+      "callerOverride": false,
+      "rpcChainIdVerified": "0x1917",
+      "verifiedAt": "2026-08-14T04:51:06.000Z"
+    },
     "authority": "eip-1193-provider-only",
     "ynxProductSession": false,
     "localDeterministicProviderTestsPassed": true,
@@ -144,9 +152,13 @@
   },
   "installedMetaMaskObservation": {
     "evidence": "evidence/metamask-installed-observation.json",
+    "screenshot": "evidence/metamask-biometric-timeout-computercontrol.png",
     "chromeExtensionId": "nkbihfbeogaeaoehlefnkodbefgpgknn",
     "version": "13.42.0",
     "enabled": true,
+    "siteAccess": "full",
+    "unlockRouteReached": true,
+    "biometricResult": "timed-out-without-user-biometric",
     "approvalFlowValidated": false
   },
   "truthBoundary": {
@@ -156,7 +168,7 @@
       "macos-wallet-companion"
     ],
     "platformValidationBlocked": [
-      "MetaMask 13.42.0 is installed and enabled and the EIP-1193 adapter is locally tested, but no product runtime is migrated and the ComputerControl pipe closed before a real EVM connection or Product Session flow could be exercised",
+      "MetaMask 13.42.0 is installed, enabled, and granted full site access; ComputerControl reached the real unlock route, but biometric unlock timed out without user confirmation before provider connection, chain approval, account approval, or Product Session",
       "No installed YNX Wallet application was available for a real approval/session flow"
     ],
     "publicDeployment": false,

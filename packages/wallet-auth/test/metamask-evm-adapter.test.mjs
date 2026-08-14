@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import {
-  MetaMaskEvmConnectionAdapter, METAMASK_EVM_CHAIN_ID, METAMASK_EVM_CHAIN_QUANTITY,
+  MetaMaskEvmConnectionAdapter, METAMASK_EVM_CHAIN, METAMASK_EVM_CHAIN_ID, METAMASK_EVM_CHAIN_QUANTITY,
   WalletAuthError,
 } from "../src/index.js";
 
@@ -55,6 +55,36 @@ test("MetaMask adapter does not switch when the provider is already on canonical
   assert.deepEqual(methods, ["eth_chainId", "eth_requestAccounts"]);
 });
 
+test("MetaMask adapter adds the fixed canonical YNX chain after MetaMask reports 4902, then switches and connects", async () => {
+  let chain = "0x1";
+  let added = false;
+  const calls = [];
+  const adapter = new MetaMaskEvmConnectionAdapter({ registry, productId: "dex", provider: provider(async (input) => {
+    calls.push(input);
+    if (input.method === "eth_chainId") return chain;
+    if (input.method === "wallet_switchEthereumChain" && !added) throw Object.assign(new Error("unknown chain"), { code: 4902 });
+    if (input.method === "wallet_addEthereumChain") { added = true; return null; }
+    if (input.method === "wallet_switchEthereumChain") { chain = input.params[0].chainId; return null; }
+    if (input.method === "eth_requestAccounts") return [ADDRESS];
+    throw new Error("unexpected method");
+  }) });
+  const connection = await adapter.connect();
+  assert.equal(connection.address, ADDRESS.toLowerCase());
+  assert.deepEqual(calls, [
+    { method: "eth_chainId" },
+    { method: "wallet_switchEthereumChain", params: [{ chainId: "0x1917" }] },
+    { method: "wallet_addEthereumChain", params: [METAMASK_EVM_CHAIN] },
+    { method: "wallet_switchEthereumChain", params: [{ chainId: "0x1917" }] },
+    { method: "eth_chainId" },
+    { method: "eth_requestAccounts" },
+  ]);
+  assert.deepEqual(METAMASK_EVM_CHAIN, {
+    chainId: "0x1917", chainName: "YNX Testnet",
+    nativeCurrency: { name: "YNX Testnet", symbol: "YNXT", decimals: 18 },
+    rpcUrls: ["https://evm.ynxweb4.com"], blockExplorerUrls: ["https://explorer.ynxweb4.com"],
+  });
+});
+
 test("MetaMask adapter rejects unavailable, generic, and non-EVM providers before connection", async () => {
   const missing = new MetaMaskEvmConnectionAdapter({ registry, productId: "dex", provider: null });
   await assert.rejects(missing.connect(), code("METAMASK_NOT_INSTALLED"));
@@ -79,6 +109,12 @@ test("MetaMask adapter maps rejection, missing chain and disconnected provider e
     throw Object.assign(new Error("unknown chain"), { code: 4902 });
   }) });
   await assert.rejects(missingChain.connect(), code("CHAIN_NOT_AVAILABLE"));
+  const rejectsAdd = new MetaMaskEvmConnectionAdapter({ registry, productId: "dex", provider: provider(async ({ method }) => {
+    if (method === "eth_chainId") return "0x1";
+    if (method === "wallet_switchEthereumChain") throw Object.assign(new Error("unknown chain"), { code: 4902 });
+    throw Object.assign(new Error("rejected"), { code: 4001 });
+  }) });
+  await assert.rejects(rejectsAdd.connect(), code("USER_REJECTED"));
   const disconnected = new MetaMaskEvmConnectionAdapter({ registry, productId: "dex", provider: provider(async () => {
     throw Object.assign(new Error("offline"), { code: 4900 });
   }) });
