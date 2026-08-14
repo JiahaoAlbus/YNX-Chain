@@ -5,7 +5,7 @@
   "slug": "wallet-auth",
   "productSlug": "wallet-auth",
   "owner": "02-wallet-auth",
-  "sourceCommit": "0a3c048d1baf0cca51f78630dc8a26ec14fd43fd",
+  "sourceCommit": "979b791a87320718e66832cf690755792e998ab5",
   "phase": "PUBLIC-TESTNET-GATEWAY",
   "network": {
     "nativeChainId": "ynx_6423-1",
@@ -28,6 +28,7 @@
     "gatewayBackup": 1,
     "gatewayCompletionNegativeMatrix": 1,
     "productSessionHttpNegativeMatrix": 1,
+    "revocationControlHttpNegativeMatrix": 1,
     "strategyMandate": 2,
     "strategyAction": 1,
     "strategyMandateStore": 1,
@@ -296,6 +297,7 @@
     {"path": "packages/wallet-auth/testdata/product-session-http-proof-v1.json"},
     {"path": "packages/wallet-auth/testdata/gateway-completion-negative-matrix-v1.json", "domain": "YNX_GATEWAY_COMPLETION_NEGATIVE_MATRIX_V1", "cases": 15},
     {"path": "packages/wallet-auth/testdata/product-session-http-negative-matrix-v1.json", "domain": "YNX_PRODUCT_SESSION_HTTP_NEGATIVE_MATRIX_V1", "cases": 16},
+    {"path": "packages/wallet-auth/testdata/revocation-control-http-negative-matrix-v1.json", "domain": "YNX_REVOCATION_CONTROL_HTTP_NEGATIVE_MATRIX_V1", "cases": 26},
     {"path": "packages/wallet-auth/testdata/authorization-rejection-v1.json"},
     {"path": "packages/wallet-auth/testdata/central-lifecycle-v1.json"},
     {"path": "packages/wallet-auth/testdata/mobile-native-transfer-v1.json"}
@@ -324,8 +326,8 @@
     "storeReleased": false
   },
   "verification": {
-    "walletAuthPackageTests": "139/139 passed",
-    "currentWalletOwnedSuite": "137/137 passed; all package tests except Developer-owned developer-deployment.test.mjs",
+    "walletAuthPackageTests": "142/142 passed",
+    "currentWalletOwnedSuite": "140/140 passed; all package tests except Developer-owned developer-deployment.test.mjs",
     "crossOwnerTestAudit": "2/2 Developer-owned SampleEVMWriteCounter assertions passed in the full package audit; Wallet/Auth did not generate or modify the Developer-owned artifact and does not count them as Wallet-owned coverage",
     "gatewayNodeHostTests": "10/10 passed",
     "canonicalAuthorizationRejection": {
@@ -384,6 +386,31 @@
       "deployedPublic": false,
       "publicRouteVerified": false,
       "evidence": "apps/wallet/proof/product-session-http-negative-matrix-local-2026-08-14.json"
+    },
+    "revocationControlHttpNegativeMatrix": {
+      "sourceCommit": "979b791a87320718e66832cf690755792e998ab5",
+      "domain": "YNX_REVOCATION_CONTROL_HTTP_NEGATIVE_MATRIX_V1",
+      "focusedTests": "3/3 passed",
+      "cases": 26,
+      "preSuccessFailClosedCases": 20,
+      "postSuccessReplayOrRepeatCases": 6,
+      "operations": ["approvalRevoke", "deviceRevoke", "allDeviceLogout"],
+      "coverage": ["wrong-method", "wrong-path", "wrong-body", "wrong-device", "pre-session", "expiry", "replay", "repeat", "missing-wallet-scope", "non-wallet-control"],
+      "approvalAndDeviceRevocationSelfScoped": true,
+      "allDeviceLogoutWalletOnly": true,
+      "nonWalletProductWithWalletScopeRejected": true,
+      "requestAtomic": true,
+      "stateDigestUnchangedOnFailure": true,
+      "revocationsChangedOnFailure": 0,
+      "logoutRecordsChangedOnFailure": 0,
+      "auditEventsChangedOnFailure": 0,
+      "productProofsConsumedOnFailure": 0,
+      "additionalMutationOnReplayOrRepeat": false,
+      "integratedCentral": false,
+      "deployedStaging": false,
+      "deployedPublic": false,
+      "publicRouteVerified": false,
+      "evidence": "apps/wallet/proof/revocation-control-http-negative-matrix-local-2026-08-14.json"
     },
     "gatewayAdmissionObservability": {
       "sourceCommit": "6b1f1f21a79861178ee7fc168ad21c2869296fd5",
