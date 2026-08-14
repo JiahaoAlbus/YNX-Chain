@@ -6,15 +6,15 @@
   "recordedAt": "2026-08-14T03:52:00Z",
   "evidenceMatrix": {
     "path": "release/integration/wallet-auth-release-evidence-matrix.json",
-    "sha256": "b1edb654447ef6a7a29a263a62b9ceb060f2493bca95e53d528ed131c5b6241c",
+    "sha256": "68167042d1922bebf340c716055504d9e5d8700dced5565abfaefc301f332239",
     "platforms": 21,
     "gatesPerPlatform": 12,
     "trueGates": 106,
     "falseGates": 146,
-    "evidenceRecords": 104
+    "evidenceRecords": 105
   },
   "frozenOwnerSources": {
-    "coreAuthGateway": "19277165ec69c3d0dba76050c2529710d43f88b7",
+    "coreAuthGateway": "99523546c6486f65825d84aa884190fc5bd76128",
     "webPwaExtensions": "46d030c85c2b1a3d12a10c6b5dd0e521ca303f1c",
     "androidApi36": "66d321e423baedb0e030650729f1000d25a351cf",
     "iosMacos": "369578f20b0802bcfef5cfc8bcdd7f53fec0f801",
@@ -100,5 +100,6 @@
     "Website main 92a8b90 merged evidence c70bf01 through PR #34; Web 46d030c and an independent deca6f4f gate prove three visible official buttons and 9 exact downloads. PWA, Chrome/Edge and Firefox artifacts are hosted/public, but remain unsigned, non-store, and do not prove installation or provider/account/sign/tx runtime."
     ,"Android evidence 66d321e4 binds source 9f91b1f5 to a disposable API 36 arm64 AVD and directly proves fresh install, two cold PIDs, strong-biometric wrong/registered-fingerprint behavior, background relock and bounded authorization fail-close paths. The QA certificate is disposable; terminal replay, process reconstruction, authoritative balance/nonce, callback delivery, transaction, hosting, production signing and store remain false."
     ,"Core/Auth evidence 19277165 directly proves the isolated d26ed915 public v2 negative matrix: wrong product/device/bundle, scope widening, sibling device revoke and expiry fail closed. It also freezes the remaining gap: deployed state does not pin device+inode across requests and public symlink/hardlink/same-bytes inode/digest tamper vectors are unproved; aggregate/central remain false."
+    ,"Core/Auth evidence 99523546 directly proves source 37f2485 cross-restart exact-request idempotency: a 1,122-byte completion response and state SHA are identical, post-restart revoke succeeds, post-revoke returns SESSION_REVOKED, and the private retry record is removed. Product migration, visible approval, central absorption and aggregate deployment remain false."
   ]
 }
