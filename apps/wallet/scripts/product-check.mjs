@@ -5,6 +5,7 @@ const config=JSON.parse(await readFile(new URL("../app.json",import.meta.url),"u
 const source=await readFile(new URL("../App.tsx",import.meta.url),"utf8");
 const i18n=await readFile(new URL("../src/i18n/i18n.ts",import.meta.url),"utf8");
 const audit=await readFile(new URL("../src/protocol/authorizationAudit.ts",import.meta.url),"utf8");
+const actionReplayStore=await readFile(new URL("../src/protocol/actionReplayStore.ts",import.meta.url),"utf8");
 const controls=await readFile(new URL("../src/control/controlSurface.ts",import.meta.url),"utf8");
 const controlCopy=await readFile(new URL("../src/control/controlCopy.ts",import.meta.url),"utf8");
 const androidGradle=await readFile(new URL("../android/app/build.gradle",import.meta.url),"utf8");
@@ -46,6 +47,9 @@ for(const setter of ["setAuthorization(null)","setExchangeAction(null)","setDeve
 for(const required of ["attempt.generation!==current.generation","attempt.account!==current.account","now.toISOString()>=expiresAt"])assert.ok(authorizationLifecyclePolicy.includes(required),`authorization lifecycle must fail closed on ${required}`);
 assert.ok((source.match(/useAuthorizationAttemptGuard\(selected\.account,request\.expiresAt\)/g)??[]).length===5,"all five authorization/action Modals must use the lifecycle attempt guard");
 assert.ok(source.includes("parseAuthorizationRequest(activeRequest,{now,registry:PRODUCT_REGISTRY})"),"canonical authorization must revalidate expiry after private-key access and before signing");
+assert.equal((source.match(/await actionReplays\.consume\(/g)??[]).length,4,"all four signed action callbacks must persist exact-request replay state before returning");
+assert.equal((source.match(/await actionReplays\.consume\([^;]+;guard\.verify\(attempt,new Date\(\)\);await Linking\.openURL/g)??[]).length,4,"action replay consumption and lifecycle validation must precede every callback handoff");
+for(const required of ["MAX_ACTION_REPLAY_RECORDS=4096","MAX_ACTION_REPLAY_BYTES=512*1024","this.pending.then","records.some(([key])=>key===record.key)","await this.storage.setItem(ACTION_REPLAY_KEY"])assert.ok(actionReplayStore.includes(required),`action replay store must enforce ${required}`);
 assert.ok(source.includes('dispatchLock({type:"lock",reason:"restart"})'),"every repository reconstruction must relock before reading persisted state");
 assert.ok(source.includes("setManifest(null)"),"repository reconstruction must discard stale in-memory account state");
 assert.ok(source.includes("dismissAuthorizationReviews()"),"repository reconstruction must discard pending authorization reviews");
