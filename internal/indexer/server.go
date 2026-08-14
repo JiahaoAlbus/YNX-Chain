@@ -351,7 +351,7 @@ func (s *Server) handleLatestBlocks(w http.ResponseWriter, r *http.Request) {
 	if nextAfter != "" {
 		nextCursor, err = s.cursor.encode("blocks", nextAfter)
 		if err != nil {
-			writeJSON(w, http.StatusInternalServerError, map[string]any{"error": "cursor_encoding_failed"})
+			writePublicError(w, http.StatusInternalServerError, "cursor_encoding_failed", "The next pagination cursor could not be created.")
 			return
 		}
 	}
@@ -397,7 +397,7 @@ func (s *Server) handleTransactions(w http.ResponseWriter, r *http.Request) {
 	if nextAfter != "" {
 		nextCursor, err = s.cursor.encode("transactions", nextAfter)
 		if err != nil {
-			writeJSON(w, http.StatusInternalServerError, map[string]any{"error": "cursor_encoding_failed"})
+			writePublicError(w, http.StatusInternalServerError, "cursor_encoding_failed", "The next pagination cursor could not be created.")
 			return
 		}
 	}

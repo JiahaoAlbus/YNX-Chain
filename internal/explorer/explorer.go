@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"net/url"
 	"sort"
@@ -213,9 +214,18 @@ func nonEmptyPublicURLs(values ...string) []string {
 	urls := make([]string, 0, len(values))
 	for _, value := range values {
 		value = strings.TrimSpace(value)
-		if value != "" {
-			urls = append(urls, value)
+		parsed, err := url.Parse(value)
+		if err != nil || parsed.Scheme != "https" || parsed.User != nil || parsed.Hostname() == "" || parsed.RawQuery != "" || parsed.Fragment != "" {
+			continue
 		}
+		host := strings.ToLower(parsed.Hostname())
+		if host == "localhost" || strings.HasSuffix(host, ".localhost") || strings.HasSuffix(host, ".local") {
+			continue
+		}
+		if ip := net.ParseIP(host); ip != nil && (ip.IsLoopback() || ip.IsPrivate() || ip.IsUnspecified() || ip.IsLinkLocalUnicast()) {
+			continue
+		}
+		urls = append(urls, strings.TrimRight(value, "/"))
 	}
 	return urls
 }

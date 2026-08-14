@@ -156,7 +156,7 @@ func (s *Server) handleStream(w http.ResponseWriter, r *http.Request) {
 	}
 	flusher, ok := w.(http.Flusher)
 	if !ok {
-		writeJSON(w, http.StatusInternalServerError, map[string]any{"error": "streaming is unavailable"})
+		writePublicError(w, http.StatusInternalServerError, "stream_unavailable", "Live streaming is unavailable. Snapshot refresh remains available.")
 		return
 	}
 	w.Header().Set("Content-Type", "text/event-stream")
@@ -221,7 +221,7 @@ func (s *Server) runStream() {
 			event.payload, err = json.Marshal(snapshot)
 			if err != nil {
 				event.event = "upstream-error"
-				event.payload, _ = json.Marshal(map[string]string{"error": "dashboard snapshot encoding failed"})
+				event.payload, _ = json.Marshal(publicErrorPayload("stream_encoding_failed", "Live data could not be encoded. Reconnecting automatically."))
 			}
 		}
 

@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -283,6 +284,26 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 	_ = streamResp.Body.Close()
 	if streamData == "" || !strings.Contains(streamData, `"indexedTxCount":8`) || !strings.Contains(streamData, `"resource_sponsored_action"`) || !strings.Contains(streamData, `"sponsorPoolId"`) || !strings.Contains(streamData, `"blocks"`) || !strings.Contains(streamData, `"validators"`) || !strings.Contains(streamData, `"resources"`) {
 		t.Fatalf("stream did not return a live dashboard snapshot: %s", streamData)
+	}
+}
+
+func TestPublicWalletURLsRejectInternalOrUnsafeAddresses(t *testing.T) {
+	got := nonEmptyPublicURLs(
+		"http://explorer.ynxweb4.com",
+		"https://127.0.0.1:6427",
+		"https://10.0.0.8",
+		"https://192.168.1.8",
+		"https://169.254.1.2",
+		"https://localhost",
+		"https://node.internal.local",
+		"https://user:secret@rpc.ynxweb4.com",
+		"https://rpc.ynxweb4.com?internal=1",
+		"https://rpc.ynxweb4.com/",
+		"https://explorer.ynxweb4.com",
+	)
+	want := []string{"https://rpc.ynxweb4.com", "https://explorer.ynxweb4.com"}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("public URLs=%v want=%v", got, want)
 	}
 }
 
