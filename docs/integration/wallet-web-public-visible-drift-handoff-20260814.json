@@ -26,6 +26,15 @@
     "safeCurrentBranchDeploymentAuthorityProved": false,
     "deploymentAttempted": false
   },
+  "sourceBoundGate": {
+    "path": "apps/wallet-web/scripts/public-deployment-gate.mjs",
+    "evidence": "apps/wallet-web/evidence/runtime/public-deployment-source-gate-20260814.json",
+    "requiresExactFullCommit": true,
+    "browserObservedRegistryCommit": "bb751ce3",
+    "expectedCommit": "4e354148177376226153a0a6c8ead3df8d891d3e",
+    "liveCliResult": "PUBLIC_REGISTRY_UNAVAILABLE",
+    "deployedPublic": false
+  },
   "gates": {
     "deployedPublic": false,
     "pwaInstalled": false,
