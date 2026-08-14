@@ -1,0 +1,188 @@
+name: Wallet desktop Linux arm64 RPM Fedora lifecycle
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [codex/wallet-desktop-cli-sdk-20260813]
+    paths:
+      - .github/workflows/wallet-desktop-linux-arm64-rpm-fedora.yml
+
+permissions:
+  contents: read
+
+jobs:
+  fedora-package-manager-lifecycle:
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24.19.0
+          cache: npm
+          cache-dependency-path: apps/wallet-desktop/package-lock.json
+      - name: Require native arm64 and test frozen contract boundary
+        run: |
+          test "$(uname -m)" = aarch64
+          npm ci --ignore-scripts --prefix packages/wallet-auth
+          npm ci --prefix apps/wallet-desktop
+          npm test --prefix apps/wallet-desktop
+      - name: Build preflight and current arm64 RPM packages
+        env:
+          USE_SYSTEM_FPM: "true"
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y rpm
+          sudo gem install fpm --version 1.15.1 --no-document
+          pushd apps/wallet-desktop
+          npx electron-builder --linux rpm --arm64 --publish never --config.productName=YNXWalletTestnetPreview --config.rpm.packageName=ynx-wallet-testnet-preview --config.directories.output=dist-preflight-fedora --config.extraMetadata.version=0.0.9
+          npx electron-builder --linux rpm --arm64 --publish never --config.productName=YNXWalletTestnetPreview --config.rpm.packageName=ynx-wallet-testnet-preview --config.directories.output=dist-fedora
+          popd
+          test -f "$(find apps/wallet-desktop/dist-preflight-fedora -maxdepth 1 -name '*.rpm' -print -quit)"
+          test -f "$(find apps/wallet-desktop/dist-fedora -maxdepth 1 -name '*.rpm' -print -quit)"
+      - name: Fedora dnf install, scripts, upgrade, GUI lifecycle and uninstall
+        env:
+          OUT_DIR: ${{ runner.temp }}/wallet-desktop-linux-arm64-rpm-fedora-evidence
+        run: |
+          mkdir -p "$OUT_DIR"
+          chmod 0777 "$OUT_DIR"
+          docker pull --platform linux/arm64 fedora:42
+          docker image inspect fedora:42 --format '{{json .RepoDigests}}' > "$OUT_DIR/fedora-image-digests.json"
+          docker run --rm --platform linux/arm64 \
+            -v "$PWD/apps/wallet-desktop/dist-preflight-fedora:/packages/preflight:ro" \
+            -v "$PWD/apps/wallet-desktop/dist-fedora:/packages/current:ro" \
+            -v "$OUT_DIR:/evidence" \
+            fedora:42 bash -euxo pipefail -c '
+              dnf install -y findutils jq nodejs procps-ng shadow-utils xorg-x11-server-Xvfb xdotool
+              PRE_RPM="$(find /packages/preflight -maxdepth 1 -name "*.rpm" -print -quit)"
+              CURRENT_RPM="$(find /packages/current -maxdepth 1 -name "*.rpm" -print -quit)"
+              test -f "$PRE_RPM" && test -f "$CURRENT_RPM"
+              rpm -qp --scripts "$CURRENT_RPM" | tee /evidence/rpm-scripts.txt
+              test -s /evidence/rpm-scripts.txt
+              dnf install -y "$PRE_RPM" | tee /evidence/dnf-install.log
+              test "$(rpm -q --qf "%{VERSION}" ynx-wallet-testnet-preview)" = 0.0.9
+              dnf upgrade -y "$CURRENT_RPM" | tee /evidence/dnf-upgrade.log
+              test "$(rpm -q --qf "%{VERSION}" ynx-wallet-testnet-preview)" = 0.1.0
+
+              EXECUTABLE=/opt/YNXWalletTestnetPreview/ynx-wallet-desktop
+              test -x "$EXECUTABLE"
+              SANDBOX="$(dirname "$EXECUTABLE")/chrome-sandbox"
+              test "$(stat -c "%U:%G" "$SANDBOX")" = root:root
+              test "$(stat -c "%a" "$SANDBOX")" = 4755
+              useradd --create-home tester
+              chown tester:tester /evidence
+
+              run_phase() {
+                expected="$1"
+                rpc="$2"
+                phase="$3"
+                runuser -u tester -- env YNX_WALLET_EVIDENCE_PATH=/evidence/app.json YNX_WALLET_RPC_URL="$rpc" xvfb-run -a bash -c '\''
+                  executable="$1"
+                  expected="$2"
+                  phase="$3"
+                  "$executable" --disable-gpu > "/evidence/$phase.log" 2>&1 &
+                  app_pid=$!
+                  for attempt in {1..30}; do
+                    launches=$(node -e "try{process.stdout.write(String(require(process.argv[1]).launches))}catch{}" /evidence/app.json)
+                    test "$launches" = "$expected" && break
+                    sleep 1
+                  done
+                  kill -0 "$app_pid"
+                  ps -p "$app_pid" -o pid=,comm= > "/evidence/$phase-process.txt"
+                  xdotool search --name "YNX Wallet Testnet Preview" getwindowname > "/evidence/$phase-window-title.txt"
+                  cp /evidence/app.json "/evidence/$phase-app-evidence.json"
+                  kill "$app_pid"
+                  wait "$app_pid" || true
+                '\'' _ "$EXECUTABLE" "$expected" "$phase"
+              }
+
+              run_phase 1 https://evm.ynxweb4.com cold
+              node -e "const e=require(\"/evidence/app.json\");if(e.launches!==1||!e.visibleShellReady||!e.window.visible||e.window.title!==\"YNX Wallet Testnet Preview\"||!e.rpc.available||e.rpc.chainId!==\"0x1917\"||e.signingEnabled||e.accountCreated||e.balanceClaimed||e.transactionCreated)process.exit(1)"
+              run_phase 2 https://evm.ynxweb4.com second
+              node -e "const e=require(\"/evidence/app.json\");if(e.launches!==2||!e.rpc.available||e.rpc.chainId!==\"0x1917\"||e.signingEnabled)process.exit(1)"
+              run_phase 3 http://127.0.0.1:1 failed-rpc
+              node -e "const e=require(\"/evidence/app.json\");if(e.launches!==3||e.rpc.available||e.rpc.chainId!==null||e.signingEnabled)process.exit(1)"
+
+              dnf remove -y ynx-wallet-testnet-preview | tee /evidence/dnf-remove.log
+              test ! -e "$EXECUTABLE"
+              test "$(rpm -q ynx-wallet-testnet-preview >/dev/null 2>&1; echo $?)" != 0
+            '
+          CURRENT_RPM="$(find apps/wallet-desktop/dist-fedora -maxdepth 1 -name '*.rpm' -print -quit)"
+          sha256sum "$CURRENT_RPM" | tee "$OUT_DIR/SHA256SUMS.txt"
+          stat -c '%s' "$CURRENT_RPM" | tee "$OUT_DIR/BYTES.txt"
+          CURRENT_RPM="$CURRENT_RPM" node - <<'NODE'
+          const crypto = require('crypto');
+          const fs = require('fs');
+          const path = require('path');
+          const file = process.env.CURRENT_RPM;
+          const app = JSON.parse(fs.readFileSync(path.join(process.env.OUT_DIR, 'failed-rpc-app-evidence.json'), 'utf8'));
+          const result = {
+            schemaVersion: 1,
+            sourceCommit: process.env.GITHUB_SHA,
+            workflowRunId: Number(process.env.GITHUB_RUN_ID),
+            architecture: 'arm64',
+            nativeRunner: 'ubuntu-24.04-arm',
+            fedoraUserland: 'Fedora 42 arm64 container on native arm64 kernel',
+            fedoraImageDigests: JSON.parse(fs.readFileSync(path.join(process.env.OUT_DIR, 'fedora-image-digests.json'), 'utf8')),
+            packageFormat: 'rpm',
+            packageName: 'ynx-wallet-testnet-preview',
+            filename: path.basename(file),
+            bytes: fs.statSync(file).size,
+            sha256: crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex'),
+            minimumOS: 'Fedora 42 arm64 userland directly tested on Ubuntu 24.04 arm64 native runner kernel',
+            signingClass: 'unsigned_linux_rpm_testnet_candidate',
+            rpmScriptsTested: true,
+            fedoraDnfDependencyResolutionTested: true,
+            preflightInstalled: true,
+            upgradeVerified: true,
+            currentInstalled: true,
+            sandboxPostInstallStateVerified: true,
+            coldLaunch: true,
+            secondLaunch: true,
+            processObserved: true,
+            windowTitleObserved: true,
+            chainId: '0x1917',
+            rpcFailureClosed: !app.rpc.available && app.rpc.chainId === null,
+            signingEnabled: false,
+            accountCreated: false,
+            balanceClaimed: false,
+            transactionCreated: false,
+            uninstallVerified: true,
+            productionSigned: false,
+            downloadHosted: false,
+            deployedPublic: false,
+            storeReleased: false
+          };
+          fs.writeFileSync(path.join(process.env.OUT_DIR, 'lifecycle.json'), `${JSON.stringify(result, null, 2)}\n`);
+          NODE
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ynx-wallet-desktop-linux-arm64-rpm-fedora
+          path: |
+            apps/wallet-desktop/dist-fedora/*.rpm
+            ${{ runner.temp }}/wallet-desktop-linux-arm64-rpm-fedora-evidence
+          if-no-files-found: error
+
+  verify-downloaded-artifact:
+    needs: fedora-package-manager-lifecycle
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 10
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ynx-wallet-desktop-linux-arm64-rpm-fedora
+          path: downloaded
+      - name: Verify downloaded RPM and lifecycle evidence
+        run: |
+          rpm="$(find downloaded -name '*.rpm' -type f -print -quit)"
+          evidence="$(find downloaded -name lifecycle.json -type f -print -quit)"
+          test -n "$rpm" && test -n "$evidence"
+          test "$(stat -c %s "$rpm")" = "$(jq -r .bytes "$evidence")"
+          test "$(sha256sum "$rpm" | cut -d ' ' -f 1)" = "$(jq -r .sha256 "$evidence")"
+          jq -e '.rpmScriptsTested == true and .fedoraDnfDependencyResolutionTested == true and .preflightInstalled == true and .upgradeVerified == true and .currentInstalled == true and .sandboxPostInstallStateVerified == true and .coldLaunch == true and .secondLaunch == true and .processObserved == true and .windowTitleObserved == true and .chainId == "0x1917" and .rpcFailureClosed == true and .signingEnabled == false and .accountCreated == false and .balanceClaimed == false and .transactionCreated == false and .uninstallVerified == true and .productionSigned == false and .downloadHosted == false and .deployedPublic == false and .storeReleased == false' "$evidence"
+          jq -n --arg sourceCommit "$GITHUB_SHA" --argjson workflowRunId "$GITHUB_RUN_ID" --argjson bytes "$(stat -c %s "$rpm")" --arg sha256 "$(sha256sum "$rpm" | cut -d ' ' -f 1)" '{schemaVersion:1,sourceCommit:$sourceCommit,workflowRunId:$workflowRunId,downloaded:true,bytesVerified:true,sha256Verified:true,bytes:$bytes,sha256:$sha256}' > downloaded-verification.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ynx-wallet-desktop-linux-arm64-rpm-fedora-download-verification
+          path: downloaded-verification.json
+          if-no-files-found: error
