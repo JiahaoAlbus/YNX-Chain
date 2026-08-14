@@ -1,0 +1,109 @@
+name: Wallet CLI macOS arm64 native lifecycle
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [codex/wallet-desktop-cli-sdk-20260813]
+    paths:
+      - .github/workflows/wallet-cli-macos-arm64-native.yml
+      - release/wallet-cli/artifacts/ynx-wallet-cli-darwin-arm64.gz
+      - packages/wallet-auth/testdata/product-session-http-proof-v1.json
+
+permissions:
+  contents: read
+
+jobs:
+  install-and-run:
+    runs-on: macos-14
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: 1.25.0
+          cache: true
+      - name: Verify archive and native architecture
+        env:
+          ARCHIVE: release/wallet-cli/artifacts/ynx-wallet-cli-darwin-arm64.gz
+        run: |
+          test "$(uname -m)" = arm64
+          test "$(stat -f %z "$ARCHIVE")" = 4904463
+          test "$(shasum -a 256 "$ARCHIVE" | cut -d ' ' -f 1)" = 21db36f1c80d4e88520918de141a7f71921817799270ff671db88179023b5591
+      - name: Install, upgrade, cold start, second start, vector, signing, chain and uninstall
+        env:
+          ARCHIVE: release/wallet-cli/artifacts/ynx-wallet-cli-darwin-arm64.gz
+          VECTOR: packages/wallet-auth/testdata/product-session-http-proof-v1.json
+          OUT: ${{ runner.temp }}/wallet-cli-macos-arm64-evidence
+          PREFIX: ${{ runner.temp }}/wallet-cli-prefix
+        run: |
+          mkdir -p "$OUT" "$PREFIX/bin"
+          go build -trimpath -buildvcs=false -ldflags '-buildid= -X main.version=preflight' -o "$PREFIX/bin/ynx-wallet-cli" ./cmd/ynx-wallet-cli
+          "$PREFIX/bin/ynx-wallet-cli" version | tee "$OUT/preflight.json"
+          test "$(jq -r .version "$OUT/preflight.json")" = preflight
+
+          gzip -dc "$ARCHIVE" > "$PREFIX/bin/ynx-wallet-cli.new"
+          chmod 0755 "$PREFIX/bin/ynx-wallet-cli.new"
+          mv "$PREFIX/bin/ynx-wallet-cli.new" "$PREFIX/bin/ynx-wallet-cli"
+          file "$PREFIX/bin/ynx-wallet-cli" | tee "$OUT/file.txt"
+          grep -F 'arm64' "$OUT/file.txt"
+          codesign -dv --verbose=4 "$PREFIX/bin/ynx-wallet-cli" > "$OUT/artifact-codesign.stdout" 2> "$OUT/artifact-codesign.stderr"
+          grep -F 'Signature=adhoc' "$OUT/artifact-codesign.stderr"
+          codesign --verify --strict "$PREFIX/bin/ynx-wallet-cli"
+          codesign --force --sign - "$PREFIX/bin/ynx-wallet-cli"
+          codesign --verify --strict "$PREFIX/bin/ynx-wallet-cli"
+          codesign -dv --verbose=4 "$PREFIX/bin/ynx-wallet-cli" > "$OUT/installed-copy-codesign.txt" 2>&1
+
+          "$PREFIX/bin/ynx-wallet-cli" version | tee "$OUT/cold.json"
+          "$PREFIX/bin/ynx-wallet-cli" version | tee "$OUT/second.json"
+          test "$(jq -r .version "$OUT/cold.json")" = 95bd2aad56bd8b72246f3f0e9529d699f09550ad
+          test "$(jq -r .version "$OUT/second.json")" = 95bd2aad56bd8b72246f3f0e9529d699f09550ad
+          jq -e '.productionSigned == false and .protocol == "YNX_PRODUCT_SESSION_HTTP_PROOF_V1"' "$OUT/cold.json"
+          "$PREFIX/bin/ynx-wallet-cli" verify-vector -file "$VECTOR" | tee "$OUT/vector.json"
+          jq -e '.verified == true and .protocol == "YNX_PRODUCT_SESSION_HTTP_PROOF_V1"' "$OUT/vector.json"
+          "$PREFIX/bin/ynx-wallet-cli" sign-self-test | tee "$OUT/signing.json"
+          jq -e '.verified == true and .privateKeyPersisted == false' "$OUT/signing.json"
+          "$PREFIX/bin/ynx-wallet-cli" chain-status -timeout 15s | tee "$OUT/testnet.json"
+          jq -e '.connected == true and .chainId == "0x1917" and .source == "eth_chainId"' "$OUT/testnet.json"
+
+          if "$PREFIX/bin/ynx-wallet-cli" chain-status -rpc http://127.0.0.1:1 > "$OUT/http.stdout" 2> "$OUT/http.stderr"; then exit 1; fi
+          grep -F 'RPC must use HTTPS' "$OUT/http.stderr"
+          if "$PREFIX/bin/ynx-wallet-cli" chain-status -rpc https://127.0.0.1:1 -timeout 2s > "$OUT/unreachable.stdout" 2> "$OUT/unreachable.stderr"; then exit 1; fi
+          grep -F 'RPC unavailable' "$OUT/unreachable.stderr"
+          if "$PREFIX/bin/ynx-wallet-cli" unknown-command > "$OUT/unknown.stdout" 2> "$OUT/unknown.stderr"; then exit 1; fi
+          grep -F 'unknown command' "$OUT/unknown.stderr"
+
+          rm "$PREFIX/bin/ynx-wallet-cli"
+          test ! -e "$PREFIX/bin/ynx-wallet-cli"
+          jq -n --arg sourceCommit "$GITHUB_SHA" --argjson workflowRunId "$GITHUB_RUN_ID" '{schemaVersion:1,artifactSourceCommit:"95bd2aad56bd8b72246f3f0e9529d699f09550ad",workflowSourceCommit:$sourceCommit,workflowRunId:$workflowRunId,architecture:"arm64",nativeRunner:"macos-14",minimumOS:"macOS 12 Monterey",signingClass:"ad_hoc_linker_signed_local_testnet_cli_candidate",installedCopyAdHocSigned:true,archiveBytes:4904463,archiveSha256:"21db36f1c80d4e88520918de141a7f71921817799270ff671db88179023b5591",installed:true,upgradeVerified:true,coldStart:true,secondStart:true,vectorVerified:true,ephemeralSigningVerified:true,privateKeyPersisted:false,chainId:"0x1917",httpRpcFailureClosed:true,unreachableRpcFailureClosed:true,unknownCommandFailureClosed:true,uninstallVerified:true,accountClaimed:false,balanceClaimed:false,transactionCreated:false,productionSigned:false,downloadHosted:false,deployedPublic:false,storeReleased:false}' > "$OUT/lifecycle.json"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ynx-wallet-cli-macos-arm64-native
+          path: |
+            release/wallet-cli/artifacts/ynx-wallet-cli-darwin-arm64.gz
+            ${{ runner.temp }}/wallet-cli-macos-arm64-evidence
+          if-no-files-found: error
+
+  verify-downloaded-artifact:
+    needs: install-and-run
+    runs-on: macos-14
+    timeout-minutes: 10
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ynx-wallet-cli-macos-arm64-native
+          path: downloaded
+      - name: Verify downloaded archive and lifecycle evidence
+        run: |
+          test "$(uname -m)" = arm64
+          archive="$(find downloaded -name ynx-wallet-cli-darwin-arm64.gz -type f -print -quit)"
+          evidence="$(find downloaded -name lifecycle.json -type f -print -quit)"
+          test -n "$archive" && test -n "$evidence"
+          test "$(stat -f %z "$archive")" = 4904463
+          test "$(shasum -a 256 "$archive" | cut -d ' ' -f 1)" = 21db36f1c80d4e88520918de141a7f71921817799270ff671db88179023b5591
+          jq -e '.signingClass == "ad_hoc_linker_signed_local_testnet_cli_candidate" and .installedCopyAdHocSigned == true and .installed == true and .upgradeVerified == true and .coldStart == true and .secondStart == true and .vectorVerified == true and .ephemeralSigningVerified == true and .privateKeyPersisted == false and .chainId == "0x1917" and .httpRpcFailureClosed == true and .unreachableRpcFailureClosed == true and .unknownCommandFailureClosed == true and .uninstallVerified == true and .productionSigned == false and .downloadHosted == false and .deployedPublic == false and .storeReleased == false' "$evidence"
+          jq -n --arg sourceCommit "$GITHUB_SHA" --argjson workflowRunId "$GITHUB_RUN_ID" '{schemaVersion:1,sourceCommit:$sourceCommit,workflowRunId:$workflowRunId,downloaded:true,bytesVerified:true,sha256Verified:true,bytes:4904463,sha256:"21db36f1c80d4e88520918de141a7f71921817799270ff671db88179023b5591"}' > downloaded-verification.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ynx-wallet-cli-macos-arm64-native-download-verification
+          path: downloaded-verification.json
+          if-no-files-found: error
