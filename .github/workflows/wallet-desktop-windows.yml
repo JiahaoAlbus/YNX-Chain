@@ -45,10 +45,10 @@ jobs:
           $ErrorActionPreference = 'Stop'
           $preflight = (Get-ChildItem 'apps/wallet-desktop/dist-preflight/*.exe' | Select-Object -First 1).FullName
           $current = (Get-ChildItem 'apps/wallet-desktop/dist/*.exe' | Where-Object Name -NotLike '*blockmap*' | Select-Object -First 1).FullName
-          $installRoot = Join-Path $env:LOCALAPPDATA 'Programs\YNX Wallet Testnet Preview'
-          $appExe = Join-Path $installRoot 'YNX Wallet Testnet Preview.exe'
           Start-Process -FilePath $preflight -ArgumentList '/S' -Wait
-          if (-not (Test-Path $appExe)) { throw 'preflight installer did not install the application' }
+          $appExe = (Get-ChildItem $env:LOCALAPPDATA -Filter 'YNX Wallet Testnet Preview.exe' -File -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1).FullName
+          if (-not $appExe -or -not (Test-Path $appExe)) { throw 'preflight installer did not install the application' }
+          $installRoot = Split-Path $appExe -Parent
           $preflightVersion = (Get-Item $appExe).VersionInfo.ProductVersion
           Start-Process -FilePath $current -ArgumentList '/S' -Wait
           if (-not (Test-Path $appExe)) { throw 'current installer did not preserve the application' }
