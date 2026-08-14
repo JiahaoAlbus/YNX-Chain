@@ -2,6 +2,7 @@ import { walletIdentity } from "@ynx-chain/wallet-auth";
 
 export const MANIFEST_KEY = "ynx.wallet.manifest.v2";
 export const LEGACY_IDENTITY_KEY = "ynx.mobile.identity.v1";
+export const MUTATION_KEY = "ynx.wallet.mutation.v1";
 const SECRET_PREFIX = "ynx.wallet.account.v2.";
 
 export type SecureStorageAdapter = {
@@ -27,9 +28,13 @@ export type WalletManifest = Readonly<{
 export type LoadResult = Readonly<{ manifest: WalletManifest; migrated: boolean }>;
 
 export class WalletRepository {
+  private pending:Promise<void>=Promise.resolve();
   constructor(private readonly storage: SecureStorageAdapter) {}
 
-  async load(): Promise<LoadResult> {
+  load(): Promise<LoadResult> { return this.enqueue(()=>this.loadExclusive()); }
+
+  private async loadExclusive(): Promise<LoadResult> {
+    await this.recoverPendingMutation();
     const serialized = await this.storage.getItem(MANIFEST_KEY);
     if (serialized !== null) return { manifest: await this.decodeAndVerifyManifest(serialized), migrated: false };
     const migrated = await this.migrateLegacy();
@@ -37,8 +42,10 @@ export class WalletRepository {
     return { manifest: emptyManifest(), migrated: false };
   }
 
-  async addAccount(input: { secretHex: string; label: string; createdAt: string; backupConfirmed: boolean }, assertActive:()=>void=()=>{}): Promise<WalletManifest> {
-    const current = (await this.load()).manifest;
+  addAccount(input: { secretHex: string; label: string; createdAt: string; backupConfirmed: boolean }, assertActive:()=>void=()=>{}): Promise<WalletManifest> { return this.enqueue(()=>this.addAccountExclusive(input,assertActive)); }
+
+  private async addAccountExclusive(input: { secretHex: string; label: string; createdAt: string; backupConfirmed: boolean }, assertActive:()=>void): Promise<WalletManifest> {
+    const current = (await this.loadExclusive()).manifest;
     const identity = walletIdentity(input.secretHex);
     if (current.accounts.some((account) => account.account === identity.account)) throw new Error("This YNX account already exists in Wallet");
     if (current.accounts.length >= 20) throw new Error("Wallet supports at most 20 local accounts");
@@ -48,6 +55,7 @@ export class WalletRepository {
       createdAt: validTime(input.createdAt),
       backupConfirmed: input.backupConfirmed === true,
     });
+    await this.beginMutation("add",identity.account);
     assertActive();
     await this.storage.setItem(secretKey(identity.account), encodeSecret(identity.account, input.secretHex));
     const manifest = freezeManifest({
@@ -56,11 +64,14 @@ export class WalletRepository {
       accounts: [...current.accounts, account],
     });
     await this.saveManifest(manifest);
+    await this.storage.deleteItem(MUTATION_KEY);
     return manifest;
   }
 
-  async confirmBackup(account: string): Promise<WalletManifest> {
-    const current = (await this.load()).manifest;
+  confirmBackup(account: string): Promise<WalletManifest> { return this.enqueue(()=>this.confirmBackupExclusive(account)); }
+
+  private async confirmBackupExclusive(account: string): Promise<WalletManifest> {
+    const current = (await this.loadExclusive()).manifest;
     if (!current.accounts.some((item) => item.account === account)) throw new Error("Account is not stored in Wallet");
     return this.replaceManifest(current, {
       ...current,
@@ -68,29 +79,41 @@ export class WalletRepository {
     });
   }
 
-  async selectAccount(account: string): Promise<WalletManifest> {
-    const current = (await this.load()).manifest;
+  selectAccount(account: string): Promise<WalletManifest> { return this.enqueue(()=>this.selectAccountExclusive(account)); }
+
+  private async selectAccountExclusive(account: string): Promise<WalletManifest> {
+    const current = (await this.loadExclusive()).manifest;
     if (!current.accounts.some((item) => item.account === account)) throw new Error("Account is not stored in Wallet");
     return this.replaceManifest(current, { ...current, selectedAccountId: account });
   }
 
-  async renameAccount(account: string, label: string): Promise<WalletManifest> {
-    const current = (await this.load()).manifest;
+  renameAccount(account: string, label: string): Promise<WalletManifest> { return this.enqueue(()=>this.renameAccountExclusive(account,label)); }
+
+  private async renameAccountExclusive(account: string,label:string): Promise<WalletManifest> {
+    const current = (await this.loadExclusive()).manifest;
     if (!current.accounts.some((item) => item.account === account)) throw new Error("Account is not stored in Wallet");
     return this.replaceManifest(current, { ...current, accounts: current.accounts.map((item) => item.account === account ? Object.freeze({ ...item, label: validLabel(label) }) : item) });
   }
 
-  async deleteAccount(account: string, assertActive:()=>void=()=>{}): Promise<WalletManifest> {
-    const current = (await this.load()).manifest;
+  deleteAccount(account: string, assertActive:()=>void=()=>{}): Promise<WalletManifest> { return this.enqueue(()=>this.deleteAccountExclusive(account,assertActive)); }
+
+  private async deleteAccountExclusive(account: string,assertActive:()=>void): Promise<WalletManifest> {
+    const current = (await this.loadExclusive()).manifest;
     if (!current.accounts.some((item) => item.account === account)) throw new Error("Account is not stored in Wallet");
+    await this.beginMutation("delete",account);
     assertActive();
-    await this.storage.deleteItem(secretKey(account));
     const accounts = current.accounts.filter((item) => item.account !== account);
     const selectedAccountId = current.selectedAccountId === account ? accounts[0]?.account ?? null : current.selectedAccountId;
-    return this.replaceManifest(current, { ...current, selectedAccountId, accounts });
+    const manifest=freezeManifest({ ...current, selectedAccountId, accounts });
+    await this.saveManifest(manifest);
+    await this.storage.deleteItem(secretKey(account));
+    await this.storage.deleteItem(MUTATION_KEY);
+    return manifest;
   }
 
-  async accountSecret(account: string): Promise<string> {
+  accountSecret(account: string): Promise<string> { return this.enqueue(()=>this.accountSecretExclusive(account)); }
+
+  private async accountSecretExclusive(account: string): Promise<string> {
     const serialized = await this.storage.getItem(secretKey(account));
     if (serialized === null) throw new Error("Secure account material is missing; restore from the offline recovery key");
     const value = parseObject(serialized, "Secure Wallet account record");
@@ -101,7 +124,9 @@ export class WalletRepository {
     return value.secretHex;
   }
 
-  async resetCorruptStorage(): Promise<void> {
+  resetCorruptStorage(): Promise<void> { return this.enqueue(()=>this.resetCorruptStorageExclusive()); }
+
+  private async resetCorruptStorageExclusive(): Promise<void> {
     const raw = await this.storage.getItem(MANIFEST_KEY);
     if (raw) {
       try {
@@ -109,8 +134,25 @@ export class WalletRepository {
         for (const item of parsed.accounts ?? []) if (typeof item.account === "string") await this.storage.deleteItem(secretKey(item.account));
       } catch { /* unreadable manifest has no trusted account identifiers */ }
     }
+    const pending=await this.storage.getItem(MUTATION_KEY);
+    if(pending!==null){let mutation:ReturnType<typeof parseMutation>|null=null;try{mutation=parseMutation(pending)}catch{/* tampered journal has no trusted account identifier */}if(mutation)await this.storage.deleteItem(secretKey(mutation.account))}
     await this.storage.deleteItem(MANIFEST_KEY);
     await this.storage.deleteItem(LEGACY_IDENTITY_KEY);
+    await this.storage.deleteItem(MUTATION_KEY);
+  }
+
+  private async beginMutation(kind:"add"|"delete",account:string):Promise<void>{
+    if(await this.storage.getItem(MUTATION_KEY)!==null)throw new Error("Wallet account mutation recovery is already pending");
+    await this.storage.setItem(MUTATION_KEY,JSON.stringify({schemaVersion:1,kind,account}));
+  }
+
+  private async recoverPendingMutation():Promise<void>{
+    const serialized=await this.storage.getItem(MUTATION_KEY);if(serialized===null)return;
+    const mutation=parseMutation(serialized),rawManifest=await this.storage.getItem(MANIFEST_KEY);
+    const manifest=rawManifest===null?emptyManifest():await this.decodeAndVerifyManifest(rawManifest);
+    const included=manifest.accounts.some(item=>item.account===mutation.account);
+    if((mutation.kind==="add"&&!included)||(mutation.kind==="delete"&&!included))await this.storage.deleteItem(secretKey(mutation.account));
+    await this.storage.deleteItem(MUTATION_KEY);
   }
 
   private async migrateLegacy(): Promise<WalletManifest | null> {
@@ -161,10 +203,13 @@ export class WalletRepository {
   private async saveManifest(manifest: WalletManifest): Promise<void> {
     await this.storage.setItem(MANIFEST_KEY, JSON.stringify(manifest));
   }
+
+  private enqueue<T>(operation:()=>Promise<T>):Promise<T>{const result=this.pending.then(operation);this.pending=result.then(()=>undefined,()=>undefined);return result}
 }
 
 export function emptyManifest(): WalletManifest { return freezeManifest({ schemaVersion: 2, selectedAccountId: null, accounts: [] }); }
 function secretKey(account: string) { return `${SECRET_PREFIX}${account}`; }
+function parseMutation(serialized:string):Readonly<{schemaVersion:1;kind:"add"|"delete";account:string}>{const value=parseObject(serialized,"Wallet account mutation journal");exactKeys(value,["schemaVersion","kind","account"],"Wallet account mutation journal");if(value.schemaVersion!==1||(value.kind!=="add"&&value.kind!=="delete")||typeof value.account!=="string"||!/^ynx1[023456789acdefghjklmnpqrstuvwxyz]{38}$/.test(value.account))throw new Error("Wallet account mutation journal is invalid");return Object.freeze({schemaVersion:1,kind:value.kind,account:value.account})}
 function encodeSecret(account: string, secretHex: string) { walletIdentity(secretHex); return JSON.stringify({ schemaVersion: 2, account, secretHex }); }
 function freezeManifest(value: {schemaVersion:2;selectedAccountId:string|null;accounts:readonly WalletAccount[]}): WalletManifest {
   const accounts = Object.freeze(sortAccounts(value.accounts).map((item) => Object.freeze({ ...item })));

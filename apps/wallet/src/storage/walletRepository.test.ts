@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { walletIdentity } from "@ynx-chain/wallet-auth";
-import { LEGACY_IDENTITY_KEY, MANIFEST_KEY, type SecureStorageAdapter, WalletRepository } from "./walletRepository";
+import { emptyManifest, LEGACY_IDENTITY_KEY, MANIFEST_KEY, MUTATION_KEY, type SecureStorageAdapter, WalletRepository } from "./walletRepository";
 
 const SECRET_ONE = `${"00".repeat(31)}01`;
 const SECRET_TWO = `${"00".repeat(31)}02`;
@@ -81,9 +81,47 @@ test("offline recovery reconstructs only the native account and never restores p
 test("dismissed sensitive attempts cannot add or delete account material",async()=>{
   const storage=new MemorySecureStorage(),repository=new WalletRepository(storage),blocked=()=>{throw new Error("backgrounded")};
   await assert.rejects(repository.addAccount({secretHex:SECRET_ONE,label:"Main",createdAt:"2026-07-15T12:00:00.000Z",backupConfirmed:true},blocked),/backgrounded/);
+  assert.deepEqual((await repository.load()).manifest,emptyManifest());
   assert.equal(storage.values.size,0);
   const manifest=await repository.addAccount({secretHex:SECRET_ONE,label:"Main",createdAt:"2026-07-15T12:00:00.000Z",backupConfirmed:true});
   await assert.rejects(repository.deleteAccount(manifest.selectedAccountId!,blocked),/backgrounded/);
   assert.deepEqual((await repository.load()).manifest,manifest);
   assert.equal(await repository.accountSecret(manifest.selectedAccountId!),SECRET_ONE);
+});
+
+test("restart journal rolls back incomplete add and completes interrupted delete without secret leakage",async()=>{
+  const seedStorage=new MemorySecureStorage(),seedRepository=new WalletRepository(seedStorage);
+  const seeded=await seedRepository.addAccount({secretHex:SECRET_ONE,label:"Main",createdAt:"2026-07-15T12:00:00.000Z",backupConfirmed:true}),account=seeded.selectedAccountId!;
+  const secretEntry=[...seedStorage.values.entries()].find(([key])=>key.startsWith("ynx.wallet.account.v2."))!;
+
+  const interruptedAdd=new MemorySecureStorage();
+  interruptedAdd.values.set(secretEntry[0],secretEntry[1]);
+  interruptedAdd.values.set(MUTATION_KEY,JSON.stringify({schemaVersion:1,kind:"add",account}));
+  assert.deepEqual((await new WalletRepository(interruptedAdd).load()).manifest,emptyManifest());
+  assert.equal(interruptedAdd.values.has(secretEntry[0]),false);
+  assert.equal(interruptedAdd.values.has(MUTATION_KEY),false);
+
+  seedStorage.values.set(MANIFEST_KEY,JSON.stringify(emptyManifest()));
+  seedStorage.values.set(MUTATION_KEY,JSON.stringify({schemaVersion:1,kind:"delete",account}));
+  assert.deepEqual((await new WalletRepository(seedStorage).load()).manifest,emptyManifest());
+  assert.equal(seedStorage.values.has(secretEntry[0]),false);
+  assert.equal(seedStorage.values.has(MUTATION_KEY),false);
+});
+
+test("committed add journal preserves verified secret while tampered journal fails closed",async()=>{
+  const storage=new MemorySecureStorage(),repository=new WalletRepository(storage),manifest=await repository.addAccount({secretHex:SECRET_ONE,label:"Main",createdAt:"2026-07-15T12:00:00.000Z",backupConfirmed:false}),account=manifest.selectedAccountId!;
+  storage.values.set(MUTATION_KEY,JSON.stringify({schemaVersion:1,kind:"add",account}));
+  assert.deepEqual((await new WalletRepository(storage).load()).manifest,manifest);
+  assert.equal(await repository.accountSecret(account),SECRET_ONE);
+  storage.values.set(MUTATION_KEY,JSON.stringify({schemaVersion:1,kind:"add",account,unknown:true}));
+  await assert.rejects(new WalletRepository(storage).load(),/unknown|journal/);
+  assert.equal(storage.values.has(MUTATION_KEY),true);
+});
+
+test("concurrent manifest mutations serialize without lost account metadata",async()=>{
+  const storage=new MemorySecureStorage(),repository=new WalletRepository(storage),manifest=await repository.addAccount({secretHex:SECRET_ONE,label:"Main",createdAt:"2026-07-15T12:00:00.000Z",backupConfirmed:false}),account=manifest.selectedAccountId!;
+  await Promise.all([repository.renameAccount(account,"Primary"),repository.confirmBackup(account)]);
+  const current=(await repository.load()).manifest.accounts[0]!;
+  assert.equal(current.label,"Primary");
+  assert.equal(current.backupConfirmed,true);
 });
