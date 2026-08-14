@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "artifactClass": "wallet-cli-macos-x64-native-lifecycle",
+  "artifactSourceCommit": "95bd2aad56bd8b72246f3f0e9529d699f09550ad",
+  "workflowSourceCommit": "bcc5a7ee3c2da38458e8139415e89d0da8849976",
+  "workflowRunId": 31773327847,
+  "workflowRunURL": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/31773327847",
+  "jobs": {
+    "installAndRun": 94683536361,
+    "verifyDownloadedArtifact": 94683799270
+  },
+  "artifact": {
+    "path": "release/wallet-cli/artifacts/ynx-wallet-cli-darwin-amd64.gz",
+    "format": "gzip-compressed Mach-O executable",
+    "architecture": "x64",
+    "bytes": 5218699,
+    "sha256": "122e3bceae5854de9721b1e18e75bef5ce584985d0818a06fb160d9bac72aecf",
+    "minimumOS": "macOS 12 Monterey",
+    "signingClass": "unsigned_macos_testnet_cli_candidate",
+    "productionSigned": false
+  },
+  "continuousIntegrationArtifacts": {
+    "lifecycle": {
+      "id": 9208945120,
+      "archiveBytes": 5215418,
+      "archiveSha256": "6a8fa66f27620c7bcb1a0568786798f57ab7b7633f4429bc1513588e3ee1736d"
+    },
+    "downloadVerification": {
+      "id": 9208950390,
+      "archiveBytes": 365,
+      "archiveSha256": "4d82a2dfec48808427af266394293ddf8ccf0d2e12e199b860725e0ff3b54d06"
+    }
+  },
+  "evidence": {
+    "nativeRunner": "macos-15-intel",
+    "installed": true,
+    "upgradeVerified": true,
+    "coldStart": true,
+    "secondStart": true,
+    "vectorVerified": true,
+    "protocol": "YNX_PRODUCT_SESSION_HTTP_PROOF_V1",
+    "ephemeralSigningVerified": true,
+    "privateKeyPersisted": false,
+    "artifactUnsignedDirectlyObserved": true,
+    "installedCopyAdHocSigned": true,
+    "chainId": "0x1917",
+    "httpRpcFailureClosed": true,
+    "unreachableRpcFailureClosed": true,
+    "unknownCommandFailureClosed": true,
+    "uninstallVerified": true,
+    "artifactDownloadedAndReverified": true,
+    "accountClaimed": false,
+    "balanceClaimed": false,
+    "transactionCreated": false
+  },
+  "downloadHosted": false,
+  "deployedPublic": false,
+  "storeReleased": false
+}
