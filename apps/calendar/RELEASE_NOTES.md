@@ -2,15 +2,17 @@
 
 ## Current source candidate
 
-Current product source: `31a34c5736a848eb3fa6d5d3a55ea5187654af14`
+Current product source: `f1305e6b52c7484c099fe6b2f6cbc2b6d36508e2`
 Public Web runtime source: `635f6745db8b5d4e4f00253d72fd5ab97da471ac`
 Channel: public Testnet Web preview
 Overall goal: ACTIVE / FREEZE
 
 ### Added
 
-- Explicit Calendar state payload schema version 1.
-- Legacy schema-zero state normalization and future-schema fail-closed behavior.
+- Explicit Calendar state payload schema version 2.
+- Legacy schema-zero and schema-one state migration plus future-schema fail-closed behavior.
+- Transactional canonical event outbox for lifecycle, invitation, RSVP, share/revoke, reminder and AI-preview transitions.
+- Privacy-bounded canonical records with monotonic sequence, stable idempotency, bounded pull/ack, restart replay, account export/delete and fail-closed overflow rollback.
 - Deterministic authenticated backup envelope with Calendar product identity, state version, UTC creation time, SHA-256 state digest and HMAC-SHA-256.
 - Isolated restore API that refuses to overwrite live state or an existing target.
 - Path containment, symbolic-link, stale-time, wrong-product, incompatible-version, digest and HMAC rejection.
@@ -27,6 +29,7 @@ Overall goal: ACTIVE / FREEZE
 - IANA-aware conversion for guest event creation and editing, independent of the browser process time zone.
 - A real close control that cannot accidentally submit the event form.
 - Bounded request IDs plus health, readiness, version and Prometheus request telemetry using route-template labels.
+- Current-source unsigned macOS CLI/Web companion archive verification: SHA-256 `56c8bd7390148a7e6f1efcb1b1a3e97a80e07f5ca87353e8ccc51729e4b6dbed`, 3,058,403 bytes, 0.563-second cold launch and 0.018-second restart.
 
 ### Verified
 
@@ -44,7 +47,7 @@ Overall goal: ACTIVE / FREEZE
 
 ### Compatibility
 
-Existing authenticated state without an explicit payload version loads as schema 1. Existing event IDs, recurrence IDs, mutation replay state and audit data remain additive. Unknown future state schema versions are rejected rather than guessed or downgraded.
+Existing authenticated state without an explicit payload version and explicit schema-one state load as schema 2. Existing event IDs, recurrence IDs, mutation replay state and audit data remain additive; the outbox and its sequences initialize safely. Unknown future state schema versions are rejected rather than guessed or downgraded.
 
 ### Security and recovery boundary
 

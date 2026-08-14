@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "productId": "com.ynx.calendar",
   "contractVersion": "1.0.0-draft",
-  "sourceCommit": "31a34c5736a848eb3fa6d5d3a55ea5187654af14",
-  "generatedAt": "2026-08-13T12:02:00Z",
+  "sourceCommit": "f1305e6b52c7484c099fe6b2f6cbc2b6d36508e2",
+  "generatedAt": "2026-08-14T01:22:46Z",
   "vectors": [
     {
       "id": "CAL-X-001",
@@ -87,7 +87,7 @@
       "id": "CAL-X-006",
       "name": "shared permission lifecycle",
       "owners": ["36-calendar", "26-data-fabric"],
-      "status": "local-event-sharing-pass-calendar-container-pending",
+      "status": "local-pass-central-event-transport-pending",
       "preconditions": ["Alice, Bob, and Charlie have Calendar accounts"],
       "steps": ["Alice grants Charlie viewer", "Charlie attempts update", "Alice changes Charlie to editor", "Charlie previews an update", "Alice revokes Charlie", "Charlie retries view and update"],
       "expected": ["viewer cannot edit", "editor may preview authorized edits", "revoke takes effect immediately", "permission transitions emit auditable canonical events"],
@@ -98,11 +98,11 @@
       "id": "CAL-X-007",
       "name": "private free-busy disclosure",
       "owners": ["36-calendar", "29-integration"],
-      "status": "implementation-pending",
+      "status": "local-pass",
       "preconditions": ["privacy class and availability-only response schema"],
       "steps": ["create a private event", "authorize Bob for availability only", "query free/busy as Bob and as an unauthorized user"],
       "expected": ["Bob sees only busy interval plus source/asOf/version", "unauthorized user receives no event fact", "title, attendees, links, notes, and attachments never leak"],
-      "localEvidence": [],
+      "localEvidence": ["TestCalendarContainersAvailabilityPrivacyNotificationsAndComments", "TestAvailabilityConflictsAlternativesAndGuestTimeZone"],
       "centralEvidenceRequired": []
     },
     {
@@ -143,7 +143,7 @@
       "name": "current-source platform artifacts",
       "owners": ["36-calendar", "30-security-platform"],
       "status": "build-pass-install-and-host-pending",
-      "preconditions": ["current product source commit 31a34c5736a848eb3fa6d5d3a55ea5187654af14", "public Web runtime remains separately bound to 635f6745db8b5d4e4f00253d72fd5ab97da471ac"],
+      "preconditions": ["current product source commit f1305e6b52c7484c099fe6b2f6cbc2b6d36508e2", "public Web runtime remains separately bound to 635f6745db8b5d4e4f00253d72fd5ab97da471ac"],
       "steps": ["build Web/Go, Android debug, iOS simulator, and macOS test-only artifacts", "generate SBOM and provenance", "install and cold-start", "restart and resolve callback", "publish immutable hashes and bytes"],
       "expected": ["every artifact names exact source commit", "signing class is truthful", "no old e227c4f artifact is presented as current", "productionSigned remains false without production evidence"],
       "localEvidence": ["npm run build", "npm run build:android", "npm run check:ios", "npm run smoke", "npm run browser:proof"],
@@ -170,6 +170,17 @@
       "expected": ["valid backup restores without modifying live state", "restored state digest equals backup digest", "all invalid inputs fail closed", "operator output exposes only the relative target", "production encryption and offsite retention remain unclaimed"],
       "localEvidence": ["TestCalendarBackupRestoreIsAuthenticatedDeterministicAndIsolated", "TestCalendarRestoreRejectsInvalidInputs", "TestCalendarLegacyStateSchemaNormalizesAndFutureSchemaFailsClosed", "operator backup and restore drill"],
       "centralEvidenceRequired": ["Security/SRE encrypted retention policy", "independent key escrow proof", "production-scale restore drill"]
+    },
+    {
+      "id": "CAL-X-014",
+      "name": "transactional canonical event outbox",
+      "owners": ["36-calendar", "25-mail", "26-data-fabric", "29-integration"],
+      "status": "local-pass-central-envelope-and-transport-pending",
+      "preconditions": ["Calendar state schema version 2", "accepted Mail and Data Fabric transport remain external"],
+      "steps": ["approve an event with an invitee", "pull the bounded canonical batch", "inspect privacy fields and source commit", "acknowledge the first sequence", "restart Calendar", "pull the unacknowledged remainder", "try a future acknowledgement", "fill the outbox and approve another mutation"],
+      "expected": ["Calendar state and canonical events commit atomically", "sequence and acknowledgement survive restart", "duplicate idempotency keys do not duplicate events", "titles, descriptions, notes, links, handles, Wallet accounts and credentials are absent", "future acknowledgement fails", "outbox overflow aborts the Calendar mutation before evidence loss", "account export and deletion include and remove subject-scoped pending evidence"],
+      "localEvidence": ["TestCanonicalOutboxIsTransactionalPrivateReplaySafeAndPersistent", "TestCanonicalOutboxOverflowAbortsCalendarMutation", "go test -race ./internal/calendar"],
+      "centralEvidenceRequired": ["25-mail delivery envelope acceptance", "26-data-fabric v2 envelope mapping", "authenticated pull/ack transport", "shared Testnet event, request and audit IDs"]
     }
   ]
 }

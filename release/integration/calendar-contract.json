@@ -5,8 +5,8 @@
   "productId": "com.ynx.calendar",
   "productClientId": "ynx-calendar-v1",
   "bundleId": "com.ynxweb4.calendar",
-  "sourceCommit": "31a34c5736a848eb3fa6d5d3a55ea5187654af14",
-  "generatedAt": "2026-08-14T00:58:59Z",
+  "sourceCommit": "f1305e6b52c7484c099fe6b2f6cbc2b6d36508e2",
+  "generatedAt": "2026-08-14T01:22:46Z",
   "authority": {
     "calendarState": "36-calendar",
     "walletIdentityAndSessions": "02-wallet-auth",
@@ -61,7 +61,7 @@
   },
   "calendarSchemas": {
     "diskEnvelopeSchemaVersion": 1,
-    "statePayloadSchemaVersion": 1,
+    "statePayloadSchemaVersion": 2,
     "recurrenceSchema": {
       "version": 1,
       "frequencies": ["daily", "weekly", "monthly", "yearly"],
@@ -103,7 +103,7 @@
     },
     "backupRestore": {
       "backupEnvelopeVersion": 1,
-      "statePayloadSchemaVersion": 1,
+      "statePayloadSchemaVersion": 2,
       "integrity": ["HMAC-SHA-256 envelope", "SHA-256 state digest"],
       "restoreTarget": "new isolated relative path inside an existing operator-selected restore root",
       "restoreNeverOverwritesLiveState": true,
@@ -147,11 +147,26 @@
     {"name": "calendar.event.updated.v1", "owner": "36-calendar", "transportAcceptance": "pending-26-data-fabric"},
     {"name": "calendar.event.cancelled.v1", "owner": "36-calendar", "transportAcceptance": "pending-26-data-fabric"},
     {"name": "calendar.invitation.created.v1", "owner": "36-calendar", "transportAcceptance": "pending-25-mail-and-26-data-fabric"},
+    {"name": "calendar.invitation.updated.v1", "owner": "36-calendar", "transportAcceptance": "pending-25-mail-and-26-data-fabric"},
+    {"name": "calendar.invitation.cancelled.v1", "owner": "36-calendar", "transportAcceptance": "pending-25-mail-and-26-data-fabric"},
     {"name": "calendar.rsvp.updated.v1", "owner": "36-calendar", "transportAcceptance": "pending-25-mail-and-26-data-fabric"},
     {"name": "calendar.share.changed.v1", "owner": "36-calendar", "transportAcceptance": "pending-26-data-fabric"},
     {"name": "calendar.reminder.due.v1", "owner": "36-calendar", "transportAcceptance": "pending-25-mail-and-26-data-fabric"},
     {"name": "calendar.ai.previewed.v1", "owner": "36-calendar", "transportAcceptance": "pending-14-ai-and-26-data-fabric"}
   ],
+  "canonicalOutbox": {
+    "schemaVersion": "calendar-canonical-event/1.0",
+    "implementation": "Calendar-state transactional outbox with monotonic sequence and persistent acknowledgement",
+    "maximumPendingEvents": 10000,
+    "maximumBatchEvents": 1000,
+    "overflowPolicy": "abort the Calendar mutation before state or evidence is committed",
+    "delivery": "bounded internal pull/ack adapter; no unauthenticated public route",
+    "privacy": "restricted metadata only; title, description, location, links, notes, attachment names/content, handles, Wallet accounts and provider credentials are excluded",
+    "recipientIdentity": "SHA-256 reference only",
+    "sourceBinding": "build commit injected by apps/calendar main",
+    "accountLifecycle": "subject-scoped pending evidence is included in account export and removed on account deletion",
+    "centralAcceptance": "pending 25-mail, 26-data-fabric and 29-integration envelope/transport acceptance"
+  },
   "errorCodes": [
     {"code": "CALENDAR_AUTH_REQUIRED", "http": 401, "source": "calendar authorization required"},
     {"code": "CALENDAR_VERSION_CONFLICT", "http": 409, "source": "event version conflict; refresh before retrying"},
@@ -172,10 +187,10 @@
   },
   "migration": {
     "diskEnvelopeSchemaVersion": 1,
-    "statePayloadSchemaVersion": 1,
+    "statePayloadSchemaVersion": 2,
     "currentRecurrenceSchemaVersion": 1,
-    "oldClientCompatibility": "legacy state payload schema zero normalizes to version one; legacy recurring events and stored change snapshots normalize recurrence version and series lineage without replacing IDs",
-    "forwardMigrationEvidence": "authenticated legacy schema-zero fixture loads and normalizes to state schema one",
+    "oldClientCompatibility": "legacy state payload schema zero and one normalize to version two; legacy recurring events and stored change snapshots normalize recurrence version and series lineage without replacing IDs",
+    "forwardMigrationEvidence": "authenticated legacy schema-zero and schema-one fixtures load and normalize to state schema two with an initialized canonical outbox",
     "rollbackMigrationEvidence": "isolated restore writes a newly authenticated state without overwriting the live state; future schema versions fail closed",
     "nextRequiredChange": "define a production deprecation window and encrypted offsite retention with independent key escrow"
   },
@@ -217,7 +232,7 @@
     "storeReleased": false
   },
   "releaseStateNotes": {
-    "installedLocal": "Current source 31a34c57 passed clean extraction, exact-build cold start and restart for the unsigned macOS CLI/Web companion. Android interaction and iOS installation remain separate unaccepted platform gates.",
+    "installedLocal": "Current source f1305e6b passed clean extraction, exact-build cold start and restart for the unsigned macOS CLI/Web companion. Android interaction and iOS installation remain separate unaccepted platform gates.",
     "downloadHosted": "No current-source artifact is hosted. Historical e227c4f preview downloads are tracked separately in product-release.json."
   }
 }

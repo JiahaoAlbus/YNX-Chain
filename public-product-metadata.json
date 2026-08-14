@@ -4,7 +4,7 @@
   "name": "YNX Calendar",
   "aliases": ["Calendar", "YNX 日历", "YNX 日曆"],
   "canonicalRoute": "/dapp/calendar",
-  "sourceCommit": "31a34c5736a848eb3fa6d5d3a55ea5187654af14",
+  "sourceCommit": "f1305e6b52c7484c099fe6b2f6cbc2b6d36508e2",
   "title": "YNX Calendar — Private scheduling with explicit approval",
   "metaDescription": "Plan events, recurring schedules, invitations, RSVP, sharing and conflict review with timezone-aware scheduling and explicit user approval.",
   "h1": "Your time, clearly under your control",
@@ -42,12 +42,13 @@
     "Offline mutation recovery",
     "Versioned authenticated backup with isolated restore verification",
     "AI drafts with provider, model, cost and approval boundaries",
+    "Transactional privacy-bounded event outbox prepared for accepted Mail and Data Fabric transport",
     "12-language localization with Arabic RTL",
     "Web, Android, iOS and macOS-oriented delivery surfaces"
   ],
   "releaseNotes": [
     "The current source supports occurrence-only, this-and-following and entire-series recurrence mutation with stable lineage and explicit approval.",
-    "Calendar state payload schema version 1 now has deterministic authenticated backup and isolated restore verification.",
+    "Calendar state payload schema version 2 adds a transactional canonical event outbox and migrates schema-zero and schema-one state forward.",
     "Restore rejects tampered, wrong-product, incompatible-version, stale, absolute, path-escaping and symbolic-link inputs.",
     "Current source passes Calendar unit, Race, Vet, Web, browser, build and service smoke gates.",
     "The Calendar API now exposes bounded request IDs, health, readiness, version and Prometheus metrics locally; public deployment of these newer endpoints is not claimed.",
@@ -141,7 +142,7 @@
     },
     {
       "question": "Can I export or delete my Calendar data?",
-      "answer": "Local account export and deletion flows exist. State schema version 1 has authenticated backup and isolated restore verification; encrypted offsite retention and production-scale recovery evidence remain pending."
+      "answer": "Local account export and deletion flows exist. State schema version 2 has authenticated backup, isolated restore verification and pending canonical-event privacy controls; encrypted offsite retention and production-scale recovery evidence remain pending."
     }
   ],
   "structuredDataSuggestion": {
@@ -164,5 +165,5 @@
       "record Website deployment commit and public probes"
     ]
   },
-  "generatedAt": "2026-08-14T00:58:59Z"
+  "generatedAt": "2026-08-14T01:22:46Z"
 }

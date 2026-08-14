@@ -4,8 +4,8 @@
   "product": "YNX Calendar",
   "phase": "FREEZE",
   "overallStatus": "ACTIVE",
-  "runtimeSourceCommit": "31a34c5736a848eb3fa6d5d3a55ea5187654af14",
-  "lastUpdated": "2026-08-14T00:58:59Z",
+  "runtimeSourceCommit": "f1305e6b52c7484c099fe6b2f6cbc2b6d36508e2",
+  "lastUpdated": "2026-08-14T01:22:46Z",
   "items": [
     {
       "id": "CAL-RECOVER-001",
@@ -109,15 +109,15 @@
       "requirement": "Deliver truthful invitation, update, RSVP, cancellation, and reminder notifications through YNX Mail without making Calendar part of Mail.",
       "applicability": "required",
       "status": "inProgress",
-      "evidence": ["Calendar and Mail remain independent apps", "local invitation/reminder state exists", "central handoff identifies delivery as unmerged"],
-      "sourceCommit": "9cf30f16c4312b4438d087b1df58cec68df54f15",
-      "tests": [],
-      "artifact": ["docs/handoffs/mail-calendar-central-integration.json"],
+      "evidence": ["Calendar and Mail remain independent apps", "transactional privacy-bounded invitation, RSVP, cancellation and reminder records are persisted in the Calendar outbox", "central Mail delivery acknowledgement, bounce, retry and provider outcomes remain unaccepted"],
+      "sourceCommit": "f1305e6b52c7484c099fe6b2f6cbc2b6d36508e2",
+      "tests": ["TestCanonicalOutboxIsTransactionalPrivateReplaySafeAndPersistent", "TestCanonicalOutboxOverflowAbortsCalendarMutation"],
+      "artifact": ["release/integration/calendar-contract.json", "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json"],
       "publicProof": [],
       "blockedBy": ["25-mail canonical delivery contract", "29-integration acceptance"],
       "owner": "36-calendar",
-      "nextAction": "freeze a versioned Calendar-to-Mail notification envelope and contract tests",
-      "lastUpdated": "2026-07-27T14:39:45Z"
+      "nextAction": "obtain owner acceptance for the Calendar-to-Mail mapping, delivery acknowledgement, bounce and retry contract, then run the shared Testnet vector",
+      "lastUpdated": "2026-08-14T01:22:46Z"
     },
     {
       "id": "CAL-RECURRENCE-001",
@@ -301,15 +301,15 @@
       "requirement": "Persist events, invitations, reminders, sessions, mutation replay state, AI jobs, audit, and integrity protection across restart.",
       "applicability": "required",
       "status": "testedLocal",
-      "evidence": ["HMAC-protected disk envelope", "explicit Calendar state payload schema version 1", "restart persistence and store tamper rejection tests", "legacy schema-zero normalization and future-schema fail-closed tests", "recurrence exceptions, series lineage, mutation replay and split rollback survive restart"],
-      "sourceCommit": "b00f32da16218edb90fcc9f9b504607e374077ce",
-      "tests": ["TestExportDeleteCookieAndStoreTamper", "TestPersistenceEventStateConflictIdempotencyAndRestart", "TestReminderRestartRecoveryAndAICancel", "TestRecurrenceMutationScopesAreAtomicReplayableAndRecoverable", "TestLegacyRecurrenceLineageNormalizesOnRestart", "TestCalendarLegacyStateSchemaNormalizesAndFutureSchemaFailsClosed"],
+      "evidence": ["HMAC-protected disk envelope", "explicit Calendar state payload schema version 2", "restart persistence and store tamper rejection tests", "legacy schema-zero and schema-one migration plus future-schema fail-closed tests", "recurrence exceptions, series lineage, mutation replay, canonical outbox sequence/acknowledgement and split rollback survive restart"],
+      "sourceCommit": "f1305e6b52c7484c099fe6b2f6cbc2b6d36508e2",
+      "tests": ["TestExportDeleteCookieAndStoreTamper", "TestPersistenceEventStateConflictIdempotencyAndRestart", "TestReminderRestartRecoveryAndAICancel", "TestRecurrenceMutationScopesAreAtomicReplayableAndRecoverable", "TestLegacyRecurrenceLineageNormalizesOnRestart", "TestCalendarLegacyStateSchemaNormalizesAndFutureSchemaFailsClosed", "TestCanonicalOutboxIsTransactionalPrivateReplaySafeAndPersistent", "TestCanonicalOutboxOverflowAbortsCalendarMutation"],
       "artifact": [],
       "publicProof": [],
       "blockedBy": [],
       "owner": "36-calendar",
       "nextAction": "freeze production deprecation and retention semantics with Integration and Security/SRE",
-      "lastUpdated": "2026-07-29T02:50:09Z"
+      "lastUpdated": "2026-08-14T01:22:46Z"
     },
     {
       "id": "CAL-MIGRATION-001",
@@ -317,15 +317,15 @@
       "requirement": "Provide versioned schema migration, old-client compatibility, deprecation, rollback migration, and integrity evidence.",
       "applicability": "required",
       "status": "testedLocal",
-      "evidence": ["disk envelope schema version 1 remains integrity protected", "state payload schema version 1 is explicit", "authenticated legacy schema-zero state normalizes to version one", "future state schema versions fail closed", "isolated restore verifies rollback data without overwriting live state", "legacy recurrence and series lineage normalization remains additive"],
-      "sourceCommit": "b00f32da16218edb90fcc9f9b504607e374077ce",
+      "evidence": ["disk envelope schema version 1 remains integrity protected", "state payload schema version 2 is explicit", "authenticated legacy schema-zero and schema-one state normalize to version two", "future state schema versions fail closed", "isolated restore verifies rollback data without overwriting live state", "legacy recurrence and series lineage normalization remains additive", "canonical outbox and its monotonic sequences initialize without renaming legacy members"],
+      "sourceCommit": "f1305e6b52c7484c099fe6b2f6cbc2b6d36508e2",
       "tests": ["TestCalendarLegacyStateSchemaNormalizesAndFutureSchemaFailsClosed", "TestCalendarBackupRestoreIsAuthenticatedDeterministicAndIsolated", "TestLegacyRecurrenceLineageNormalizesOnRestart"],
       "artifact": [],
       "publicProof": [],
       "blockedBy": ["production deprecation window", "Security/SRE encrypted retention and key escrow"],
       "owner": "36-calendar",
       "nextAction": "obtain Integration and Security/SRE acceptance for deprecation, encrypted retention and independent key escrow",
-      "lastUpdated": "2026-07-29T02:50:09Z"
+      "lastUpdated": "2026-08-14T01:22:46Z"
     },
     {
       "id": "CAL-BACKUP-001",
@@ -382,14 +382,14 @@
       "applicability": "required",
       "status": "inProgress",
       "evidence": ["service exposes health, readiness, version and Prometheus metrics", "every API response receives a bounded X-Request-ID", "metrics labels use the matched route template rather than private URL values"],
-      "sourceCommit": "31a34c5736a848eb3fa6d5d3a55ea5187654af14",
+      "sourceCommit": "f1305e6b52c7484c099fe6b2f6cbc2b6d36508e2",
       "tests": ["go test -race ./internal/calendar", "npm run smoke"],
       "artifact": [],
       "publicProof": [],
       "blockedBy": [],
       "owner": "36-calendar",
       "nextAction": "add privacy-safe structured logs, distributed trace export, Monitor dashboard binding and alert tests",
-      "lastUpdated": "2026-08-14T00:58:59Z"
+      "lastUpdated": "2026-08-14T01:22:46Z"
     },
     {
       "id": "CAL-SECURITY-001",
@@ -556,16 +556,16 @@
       "category": "canonical-events",
       "requirement": "Publish versioned Calendar canonical events to Data Fabric with source, asOf, version, audit ID, privacy class, replay protection, and billing boundary.",
       "applicability": "required",
-      "status": "notStarted",
-      "evidence": [],
-      "sourceCommit": "9cf30f16c4312b4438d087b1df58cec68df54f15",
-      "tests": [],
-      "artifact": [],
+      "status": "testedLocal",
+      "evidence": ["Calendar mutations and canonical evidence commit atomically", "versioned privacy-bounded records use monotonic sequence and stable idempotency", "bounded pull and acknowledgement survive restart", "future acknowledgement and outbox overflow fail closed", "account export and deletion cover subject-scoped pending evidence", "central transport and billing acceptance remain explicitly separate"],
+      "sourceCommit": "f1305e6b52c7484c099fe6b2f6cbc2b6d36508e2",
+      "tests": ["TestCanonicalOutboxIsTransactionalPrivateReplaySafeAndPersistent", "TestCanonicalOutboxOverflowAbortsCalendarMutation", "CAL-X-014"],
+      "artifact": ["release/integration/calendar-contract.json", "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json"],
       "publicProof": [],
       "blockedBy": ["26-data-fabric canonical event acceptance", "29-integration freeze"],
       "owner": "36-calendar",
-      "nextAction": "define event.created/updated/cancelled/invitation/rsvp/share/revoke/reminder envelopes and replay vectors",
-      "lastUpdated": "2026-07-27T14:39:45Z"
+      "nextAction": "obtain Data Fabric and Integration acceptance for transport mapping, durable acknowledgement, retention and billing boundary, then execute CAL-X-014 centrally",
+      "lastUpdated": "2026-08-14T01:22:46Z"
     },
     {
       "id": "CAL-TESTNET-001",

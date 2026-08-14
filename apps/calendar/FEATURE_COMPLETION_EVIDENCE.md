@@ -1,6 +1,6 @@
 # YNX Calendar feature completion evidence
 
-Current product source: `31a34c5736a848eb3fa6d5d3a55ea5187654af14`
+Current product source: `f1305e6b52c7484c099fe6b2f6cbc2b6d36508e2`
 Public Web runtime source: `635f6745db8b5d4e4f00253d72fd5ab97da471ac`
 Overall status: **ACTIVE / FREEZE**
 
@@ -20,8 +20,8 @@ Overall status: **ACTIVE / FREEZE**
 
 ## Completed local recovery slice
 
-- Calendar state payload schema version 1 is explicit.
-- Missing/zero legacy state schema loads and normalizes to version 1.
+- Calendar state payload schema version 2 is explicit.
+- Missing/zero and version-1 legacy state load and normalize to version 2 with an initialized canonical outbox.
 - Negative or future state schema versions fail closed.
 - Backups are deterministic for identical state and timestamp.
 - Backup envelope includes product identity, state version, UTC creation time, state SHA-256 and HMAC-SHA-256.
@@ -31,6 +31,7 @@ Overall status: **ACTIVE / FREEZE**
 - Operator output reports the relative target and never claims that live state was modified.
 - Local CLI drill completed with matching state digest.
 - Health, readiness, version, bounded request IDs and Prometheus request telemetry are implemented and Race-tested without private URL labels.
+- Calendar lifecycle, invitation, RSVP, share/revoke, reminder and AI-preview transitions now emit transactional privacy-bounded canonical events. Monotonic sequence, idempotency, pull/ack, restart persistence, account export/delete and overflow rollback are directly tested.
 
 ## Direct tests
 
@@ -71,7 +72,8 @@ Recovery-specific tests:
 1. Security/SRE encrypted offsite retention, independent key escrow and production-scale restore drill.
 2. Integration acceptance of Calendar contract and CAL-X-013.
 3. AI, Mail and Data Fabric Testnet flows plus shared Integration acceptance; canonical Wallet already has direct public proof.
-4. Healthy-device current-source Android interaction evidence plus iOS install/cold-start evidence. The current Android redesign APK builds and rendered after installation, but the dedicated API 36 AVD produced system/Launcher ANRs and is retained as diagnostic rather than accepted evidence. Current iOS source parses and project/plist validation passes; this host has no Xcode/Simulator, so installation is not claimed. The current unsigned macOS CLI/Web companion is independently extracted, started, stopped and restarted with exact commit-bound health (`0.613 s` cold, `0.019 s` restart); it is not a signed GUI app or hosted download.
+   Calendar now supplies a local transactional canonical outbox, but Mail/Data Fabric envelope mapping and authenticated transport remain unaccepted.
+4. Healthy-device current-source Android interaction evidence plus iOS install/cold-start evidence. The current Android redesign APK builds and rendered after installation, but the dedicated API 36 AVD produced system/Launcher ANRs and is retained as diagnostic rather than accepted evidence. Current iOS source parses and project/plist validation passes; this host has no Xcode/Simulator, so installation is not claimed. The current unsigned macOS CLI/Web companion is independently extracted, started, stopped and restarted with exact commit-bound health (`0.563 s` cold, `0.018 s` restart); it is not a signed GUI app or hosted download.
 5. Current-source SBOM, provenance, immutable hashes and hosted artifacts.
 6. Continue Website product/support/privacy/security/status route probes and keep the published registry synchronized.
 7. Representative performance, capacity, RTO/RPO and unit-economics measurement.

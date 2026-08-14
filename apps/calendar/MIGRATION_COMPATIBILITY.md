@@ -1,6 +1,6 @@
 # YNX Calendar migration and compatibility
 
-Current product source: `31a34c5736a848eb3fa6d5d3a55ea5187654af14`
+Current product source: `f1305e6b52c7484c099fe6b2f6cbc2b6d36508e2`
 Public Web runtime source: `635f6745db8b5d4e4f00253d72fd5ab97da471ac`
 
 ## Versioned state
@@ -8,19 +8,19 @@ Public Web runtime source: `635f6745db8b5d4e4f00253d72fd5ab97da471ac`
 | Layer | Current version | Compatibility behavior |
 |---|---:|---|
 | Authenticated disk envelope | 1 | Any other version fails closed. |
-| Calendar state payload | 1 | Legacy missing/zero version loads as version 1; negative or future versions fail closed. |
+| Calendar state payload | 2 | Legacy missing/zero and version-1 payloads migrate to version 2 with an initialized canonical outbox; negative or future versions fail closed. |
 | Recurrence schema | 1 | Legacy version zero is normalized for supported existing rules. |
 | Backup envelope | 1 | Wrong version, product, state version, HMAC, digest, age or target policy fails closed. |
 
-The state schema addition is additive. Existing JSON members retain their names and meanings. Existing IDs, mutation replay keys, event versions, recurrence IDs, series lineage, sessions, audits, reminders and AI jobs are preserved during load normalization.
+State schema 2 adds the canonical event outbox, monotonic producer sequence and acknowledged sequence. Existing JSON members retain their names and meanings. Existing IDs, mutation replay keys, event versions, recurrence IDs, series lineage, sessions, audits, reminders and AI jobs are preserved during load normalization.
 
 ## Forward migration
 
 1. Keep the disk envelope and HMAC key together.
-2. Start the version-1 runtime against the existing authenticated state.
-3. The loader accepts a missing/zero state payload version, normalizes it in memory to version 1, and normalizes supported legacy recurrence lineage.
-4. The next successful state mutation writes version 1 under the existing authenticated disk envelope.
-5. Verify login, event reads, recurrence expansion, mutation replay, reminders, audit, export and a preview/approve/revert cycle.
+2. Start the version-2 runtime against the existing authenticated state.
+3. The loader accepts a missing/zero or version-1 state payload, normalizes it in memory to version 2, initializes an empty canonical outbox when absent, and normalizes supported legacy recurrence lineage.
+4. The next successful state mutation writes version 2 under the existing authenticated disk envelope.
+5. Verify login, event reads, recurrence expansion, mutation replay, reminders, audit, export, canonical outbox sequence/pull/ack and a preview/approve/revert cycle.
 
 Evidence:
 
@@ -30,7 +30,7 @@ Evidence:
 
 ## Incompatible future schema
 
-A state payload with `schema_version` greater than 1 is rejected before service startup. Calendar does not guess, silently discard fields, or downgrade an unknown future state. Recovery requires the matching runtime or an explicit reviewed migration tool.
+A state payload with `schema_version` greater than 2 is rejected before service startup. Calendar does not guess, silently discard fields, or downgrade an unknown future state. Recovery requires the matching runtime or an explicit reviewed migration tool.
 
 ## Rollback
 
@@ -50,7 +50,7 @@ The restore function refuses to overwrite live state or an existing target. This
 
 The current server preserves existing HTTP event, invitation, RSVP, share, AI, audit, export and delete routes. Recurrence mutation scopes are additive through `/v1/events/{id}/recurrence-preview`; existing entire-event mutation routes remain valid.
 
-Old clients that do not send recurrence scope continue to use the existing entire-event behavior. New clients must send explicit scope, action, recurrence ID and base version for occurrence or future-series operations. All mutation paths still require preview and approval.
+Old clients that do not send recurrence scope continue to use the existing entire-event behavior. New clients must send explicit scope, action, recurrence ID and base version for occurrence or future-series operations. Canonical outbox transport is internal and adds no client-facing requirement. All mutation paths still require preview and approval.
 
 ## Deprecation
 

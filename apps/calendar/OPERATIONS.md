@@ -1,6 +1,6 @@
 # YNX Calendar operations
 
-Current product source: `31a34c5736a848eb3fa6d5d3a55ea5187654af14`
+Current product source: `f1305e6b52c7484c099fe6b2f6cbc2b6d36508e2`
 Public Web runtime source: `635f6745db8b5d4e4f00253d72fd5ab97da471ac`
 Release boundary: public Testnet Web/API with canonical Wallet, not fully centrally integrated, not production scheduling and not production signed.
 
@@ -41,7 +41,7 @@ The backup includes:
 
 - backup envelope schema version 1;
 - Calendar product identity;
-- state payload schema version 1;
+- state payload schema version 2;
 - UTC creation time;
 - canonical state bytes;
 - SHA-256 state digest;
@@ -104,6 +104,12 @@ Before service shutdown:
 - document the final deletion and retention disposition.
 
 Calendar currently has local account export and delete flows, but no approved public shutdown window or offsite retention policy.
+
+## Canonical outbox operation
+
+The canonical outbox is part of the same authenticated state transaction as Calendar mutations. Operators must not edit or truncate it by hand. A transport worker may pull no more than 1,000 records per batch and may acknowledge only the highest sequence durably accepted by the central owner. Future acknowledgements fail closed, and acknowledged records compact on the next state transaction.
+
+Pending records are capped at 10,000. Reaching that boundary deliberately rejects the originating Calendar mutation so integration evidence cannot be silently lost. Treat this as a central transport incident: preserve state, pause mutation traffic if necessary, inspect the Data Fabric/Mail acknowledgement path, and resume only after a durable accepted sequence is confirmed. Never bypass the limit, synthesize acknowledgements, or log private Calendar payloads; the event envelope is intentionally limited to hashed or opaque references.
 
 ## Incident classification
 

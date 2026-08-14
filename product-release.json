@@ -3,7 +3,7 @@
   "productId": "com.ynx.calendar",
   "name": "YNX Calendar",
   "owner": "36-calendar",
-  "sourceCommit": "31a34c5736a848eb3fa6d5d3a55ea5187654af14",
+  "sourceCommit": "f1305e6b52c7484c099fe6b2f6cbc2b6d36508e2",
   "releaseRecord": "apps/calendar/product-release.json",
   "integrationContract": "release/integration/calendar-contract.json",
   "integrationHandoff": "docs/integration/INTEGRATION_HANDOFF.md",
@@ -39,7 +39,7 @@
     "androidDebugBuild": "pass",
     "iosParseAndLint": "pass",
     "serviceSmoke": "pass",
-    "stateSchemaVersion": 1,
+    "stateSchemaVersion": 2,
     "authenticatedBackupRestore": "local-pass",
     "isolatedRestoreDrill": "local-pass",
     "publicCalendarRoute": "direct-public-testnet-calendar-runtime",
@@ -48,8 +48,9 @@
     "authenticatedConcurrentReads": "100/100",
     "mobileWeekVisibleDays": "7/7 without horizontal overflow",
     "publicBinarySha256": "b74820c013771f29a5b106f7c9ec36e274c64c2501d101afbcb51492d84270ed",
-    "currentSourceInstallProof": "unsigned macOS CLI/Web companion only; exact 31a34c57 build passed clean extraction, cold start and restart",
+    "currentSourceInstallProof": "unsigned macOS CLI/Web companion only; exact f1305e6b build passed clean extraction, cold start and restart",
     "runtimeTelemetry": "local-pass: request IDs, health, readiness, version and bounded-route Prometheus metrics",
+    "canonicalOutbox": "local-pass: transactional privacy-bounded event outbox with monotonic sequence, idempotency, bounded pull/ack, overflow rollback, restart persistence, account export and deletion",
     "currentSourceHostedArtifacts": false
   },
   "repositoryPreflight": {
@@ -62,5 +63,5 @@
       "Trust signer-file permission test"
     ]
   },
-  "generatedAt": "2026-08-14T00:58:59Z"
+  "generatedAt": "2026-08-14T01:22:46Z"
 }

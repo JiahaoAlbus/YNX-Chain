@@ -1,6 +1,6 @@
 # YNX Calendar evidence index
 
-Current product source: `31a34c5736a848eb3fa6d5d3a55ea5187654af14`
+Current product source: `f1305e6b52c7484c099fe6b2f6cbc2b6d36508e2`
 Public Web runtime source: `635f6745db8b5d4e4f00253d72fd5ab97da471ac`
 
 | Evidence area | Authoritative file or command | Status |
@@ -17,7 +17,8 @@ Public Web runtime source: `635f6745db8b5d4e4f00253d72fd5ab97da471ac`
 | State operator | `apps/calendar/statectl/main.go` | local-tested backup/restore CLI |
 | Recovery tests | `internal/calendar/store_backup_test.go` | pass |
 | Operations | `apps/calendar/OPERATIONS.md` | backup, restore, rollback and incident runbook |
-| Migration | `apps/calendar/MIGRATION_COMPATIBILITY.md` | state schema 1, legacy normalization and future fail-closed |
+| Migration | `apps/calendar/MIGRATION_COMPATIBILITY.md` | state schema 2, schema-zero/one forward migration and future fail-closed |
+| Canonical events | `internal/calendar/service.go`, `TestCanonicalOutboxIsTransactionalPrivateReplaySafeAndPersistent`, `TestCanonicalOutboxOverflowAbortsCalendarMutation` | local transactional outbox pass; Mail/Data Fabric transport pending |
 | Completion evidence | `apps/calendar/FEATURE_COMPLETION_EVIDENCE.md` | local status and remaining gates |
 | UI audit | `apps/calendar/UI_DESIGN_AUDIT.md` | existing UI evidence |
 | Observability | `internal/calendar/observability.go`, `apps/calendar/OBSERVABILITY.md` | local health/readiness/version/request-ID/metrics pass; traces, dashboard and alerts remain central dependencies |

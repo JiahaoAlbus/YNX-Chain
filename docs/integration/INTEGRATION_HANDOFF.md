@@ -7,7 +7,7 @@
 - Product client: `ynx-calendar-v1`
 - Bundle ID: `com.ynxweb4.calendar`
 - Callback: `ynxcalendar://wallet-auth/callback`
-- Current product source: `31a34c5736a848eb3fa6d5d3a55ea5187654af14`
+- Current product source: `f1305e6b52c7484c099fe6b2f6cbc2b6d36508e2`
 - Public Web runtime source: `635f6745db8b5d4e4f00253d72fd5ab97da471ac`
 - Contract: `release/integration/calendar-contract.json`
 - Status: public Testnet Web runtime with canonical Wallet accepted; wider central integration remains pending
@@ -22,7 +22,13 @@ Recurrence schema version 1 supports daily, weekly, monthly, yearly, interval, c
 
 The schema and recurrence mutation API are local-tested. `occurrence`, `this_and_following`, and `entire_series` all use the preview/approval state machine. Future splits preserve stable series lineage and apply or revert the original and derived events atomically. This local proof does not imply central integration. The current-source unsigned macOS CLI/Web companion separately passed clean extraction, cold start and restart; Android interaction and iOS installation remain unaccepted platform gates.
 
-State payload schema version 1 is explicit. The operator CLI creates deterministic HMAC-authenticated backups with a SHA-256 state digest and restores only to a new isolated relative target. Tampered, wrong-product, incompatible-version, stale, absolute, path-escaping, symbolic-link and existing-target inputs fail closed. The local drill does not provide backup encryption, offsite retention, independent key escrow or production-scale RTO/RPO evidence; those remain a `30-security-platform` acceptance dependency.
+State payload schema version 2 is explicit. Schema-zero and schema-one state migrate forward without renaming existing members. Version 2 adds the canonical event outbox, producer sequence and acknowledged sequence. The operator CLI creates deterministic HMAC-authenticated backups with a SHA-256 state digest and restores only to a new isolated relative target. Tampered, wrong-product, incompatible-version, stale, absolute, path-escaping, symbolic-link and existing-target inputs fail closed. The local drill does not provide backup encryption, offsite retention, independent key escrow or production-scale RTO/RPO evidence; those remain a `30-security-platform` acceptance dependency.
+
+## Canonical event handoff
+
+Calendar mutations and their canonical evidence now commit in one authenticated state transaction. The current outbox covers event create/update/recurrence/cancel, invitation create/update/cancel, RSVP, share/revoke, reminder due and AI preview. Each record carries a versioned event type, Calendar source commit, monotonic sequence, idempotency key, subject reference, privacy class, source/as-of time, entity version and audit/request references. Titles, descriptions, notes, links, handles, Wallet accounts and credentials are intentionally absent.
+
+Consumers pull at most 1,000 records at a time and acknowledge only a produced sequence. Acknowledged records compact deterministically; stale or future acknowledgements fail. A 10,000-record pending limit aborts the originating Calendar mutation rather than losing integration evidence. `CAL-X-014` directly tests atomicity, privacy, idempotency, acknowledgement, restart replay, export/delete and overflow rollback. This is a product-owned producer boundary, not proof of Mail delivery or Data Fabric acceptance.
 
 ## Wallet/Auth handoff
 
@@ -55,7 +61,7 @@ AI may draft, explain, summarize, or preview. It may not invite, RSVP, cancel, r
 
 ## Data Fabric handoff
 
-Owner `26-data-fabric` must freeze transport for the proposed Calendar events in the contract. The envelope must preserve Calendar authority, privacy class, source/asOf/version, audit ID, idempotency/replay key, and schema version. Data Fabric may transport or index Calendar events but may not redefine Calendar event state.
+Owner `26-data-fabric` must map and freeze transport for the produced Calendar events in the contract. The envelope must preserve Calendar authority, privacy class, source/asOf/version, audit ID, idempotency/replay key, schema version and producer sequence. Its acknowledgement must map to the bounded Calendar acknowledgement rule; it may not acknowledge an unproduced sequence. Data Fabric may transport or index Calendar events but may not redefine Calendar event state.
 
 ## Shared Testnet acceptance
 
@@ -70,6 +76,7 @@ Owner `29-integration` should execute `docs/integration/CROSS_PRODUCT_TEST_VECTO
 7. authenticated backup and isolated restore with Security/SRE retention acceptance;
 8. current-source platform install/cold-start, including the still-missing accepted Android interaction and iOS installation evidence;
 9. public Website truth probes.
+10. canonical outbox atomicity, privacy, replay, acknowledgement and overflow rollback (`CAL-X-014`).
 
 Acceptance must record exact source commits, central dependency commits, request/audit IDs, artifact hashes, and public URLs. Local fixtures or the historical `e227c4f` preview release cannot be used as proof for the current runtime source.
 
@@ -82,7 +89,7 @@ Acceptance must record exact source commits, central dependency commits, request
 | installedLocal | true | current source passed clean extraction, exact-build cold start and restart on the unsigned macOS CLI/Web companion; this state means at least one supported surface has install proof, not that every native platform is accepted |
 | integratedCentral | false | Wallet/Mail/AI/Data Fabric acceptance is missing |
 | deployedStaging | false | no direct staging proof |
-| deployedPublic | true | direct Web runtime and health proof at `https://calendar-testnet.43.153.202.237.sslip.io/`; exact Web build `635f6745`, distinct from current native/product source `31a34c57` |
+| deployedPublic | true | direct Web runtime and health proof at `https://calendar-testnet.43.153.202.237.sslip.io/`; exact Web build `635f6745`, distinct from current native/product source `f1305e6b` |
 | downloadHosted | false | no current-source immutable artifact is hosted |
 | productionSigned | false | only historical debug/unsigned evidence exists |
 | storeReleased | false | no store evidence |
