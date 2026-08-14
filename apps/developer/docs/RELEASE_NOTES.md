@@ -1,5 +1,17 @@
 # YNX Developer 0.2.0 Testnet Preview release notes
 
+## 2026-08-14 workspace revision history and restore
+
+- Added immutable owner/project workspace snapshots for every accepted mutation,
+  with SHA-256 metadata, restart-safe legacy backfill and a latest-50 retention
+  ceiling.
+- Added authenticated metadata history and full JSON revision export. A reviewed
+  restore requires the exact current revision, a fresh owner-scoped one-time UUID
+  and an idempotency key, then creates a new revision instead of rewriting history.
+- Added a Workspace History activity view with explicit confirmation and honest
+  capacity language. This is server-local recovery, not replicated object-store,
+  container-volume or disaster-recovery backup.
+
 ## 2026-08-14 structured project memory
 
 - Extended owner/project/revision-isolated memory with a transactional facts

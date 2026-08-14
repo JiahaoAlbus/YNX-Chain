@@ -90,7 +90,7 @@ export function createWorkspaceRuntime(options = {}) {
       return true;
     }
     const workspaceMatch = url.pathname.match(/^\/runtime\/workspaces\/([-A-Za-z0-9_]{1,160})$/);
-    if (workspaceMatch && (request.method === "GET" || request.method === "PUT")) {
+    if (workspaceMatch && (request.method === "GET" || request.method === "PUT" || request.method === "POST")) {
       const session = readSession(request, sessionKey);
       if (!session) {
         const next = newSession();
@@ -116,6 +116,31 @@ export function createWorkspaceRuntime(options = {}) {
         projectId = workspaceMatch[1];
       try {
         if (request.method === "GET") {
+          if (url.searchParams.get("view") === "history") {
+            const value = workspaceStore.history(
+              owner,
+              projectId,
+              url.searchParams.get("cursor"),
+              url.searchParams.get("limit"),
+            );
+            json(response, 200, { protocolVersion: PROTOCOL, history: value });
+            return true;
+          }
+          if (url.searchParams.get("view") === "snapshot") {
+            const revision = Number(url.searchParams.get("revision"));
+            const value = workspaceStore.snapshot(owner, projectId, revision);
+            if (!value)
+              json(response, 404, {
+                error: "The selected workspace revision is not retained.",
+                code: "workspace_revision_not_found",
+              });
+            else
+              json(response, 200, {
+                protocolVersion: PROTOCOL,
+                workspace: value,
+              });
+            return true;
+          }
           const value = workspaceStore.get(owner, projectId);
           if (!value)
             json(response, 404, {
@@ -131,6 +156,18 @@ export function createWorkspaceRuntime(options = {}) {
         }
         const body = JSON.parse((await readBody(request, 3 * 1024 * 1024)).toString("utf8"));
         if (body.protocolVersion !== PROTOCOL) throw Object.assign(new Error("Workspace protocol version is required."), { status: 400, code: "protocol_mismatch" });
+        if (request.method === "POST") {
+          if (body.action !== "restore" || body.approval !== "restore-workspace-once")
+            throw Object.assign(new Error("An explicit one-time workspace restore approval is required."), { status: 403, code: "restore_approval_required" });
+          const value = workspaceStore.restore(owner, projectId, {
+            expectedRevision: body.expectedRevision,
+            sourceRevision: body.sourceRevision,
+            idempotencyKey: body.idempotencyKey,
+            approvalId: body.approvalId,
+          });
+          json(response, 200, { protocolVersion: PROTOCOL, workspace: value });
+          return true;
+        }
         const value = workspaceStore.put(owner, projectId, {
           expectedRevision: body.expectedRevision,
           idempotencyKey: body.idempotencyKey,

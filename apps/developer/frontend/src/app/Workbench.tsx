@@ -1,5 +1,5 @@
 import * as Dialog from "@radix-ui/react-dialog";
-import { Braces, Bug, ChevronDown, Cloud, Files, GitBranch, Link2, Play, Save, Search, Settings, Sparkles, SplitSquareHorizontal, TerminalSquare, Users, X } from "lucide-react";
+import { Braces, Bug, ChevronDown, Cloud, Files, GitBranch, History, Link2, Play, Save, Search, Settings, Sparkles, SplitSquareHorizontal, TerminalSquare, Users, X } from "lucide-react";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "../components/ui/button";
 import { DebugPanel } from "../debug/DebugPanel";
@@ -11,6 +11,7 @@ import { loadProject, foldersFromFiles, saveProject, validPath, type ProjectStat
 import { SourceControlPanel } from "../scm/SourceControlPanel";
 import { InteractiveTerminal, TerminalPanel } from "../terminal/TerminalPanel";
 import { AgentPanel } from "../chat/AgentPanel";
+import { WorkspaceHistoryPanel } from "../history/WorkspaceHistoryPanel";
 
 const CodeEditor = lazy(() => import("../editor/CodeEditor"));
 const CollaborationPanel = lazy(() =>
@@ -28,7 +29,7 @@ const ChainPanel = lazy(() =>
     default: module.ChainPanel,
   })),
 );
-type View = "files" | "search" | "source" | "run" | "extensions" | "agent" | "collaboration" | "remote" | "chain";
+type View = "files" | "search" | "source" | "run" | "extensions" | "agent" | "collaboration" | "remote" | "history" | "chain";
 const activity: [View, React.ReactNode, string][] = [
   ["files", <Files />, "Explorer"],
   ["search", <Search />, "Search"],
@@ -38,6 +39,7 @@ const activity: [View, React.ReactNode, string][] = [
   ["agent", <Sparkles />, "AI Engineer"],
   ["collaboration", <Users />, "Collaboration"],
   ["remote", <Cloud />, "Remote Explorer"],
+  ["history", <History />, "Workspace History"],
   ["chain", <Link2 />, "YNX Chain"],
 ];
 
@@ -651,6 +653,7 @@ export function Workbench() {
             <RuntimePanel projectId={project.id} selected={selectedRuntime} onSelect={setSelectedRuntime} />
           </Suspense>
         )}
+        {view === "history" && <WorkspaceHistoryPanel projectId={project.id} currentRevision={project.remoteRevision} onRestored={refreshWorkspace} />}
         {view === "chain" && (
           <Suspense fallback={<div className="editor-loading">Connecting to YNX Testnet…</div>}>
             <ChainPanel files={project.files} onAddFile={addGeneratedFile} />

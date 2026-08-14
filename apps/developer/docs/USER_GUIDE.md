@@ -37,6 +37,13 @@ TypeScript is the first project-installable compiler adapter: install the exact
 reviewed `typescript@5.9.0` package through the package approval flow, then
 Compile uses that project-local compiler without adding a global executable.
 
+Open **Workspace History** to inspect the latest 50 server-local project
+revisions. **Export** downloads the selected complete revision as JSON. **Restore**
+shows the source and current revisions for confirmation, rejects concurrent
+changes, and creates a new revision containing the selected files; it does not
+erase retained history. Export important revisions elsewhere because this
+same-server history is not an off-device or disaster-recovery backup.
+
 Open **YNX Chain** in the activity bar to inspect the live Testnet without
 leaving the workspace. Refresh network status, find a transaction hash or block
 height/hash, or run one of the listed read-only JSON-RPC methods. The panel joins

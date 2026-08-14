@@ -136,6 +136,20 @@ operation and affected path; clients resume from the last acknowledged cursor.
 Desktop and cloud use the same protocol. IndexedDB is only an offline client
 cache and crash-recovery journal, never the authoritative cloud workspace.
 
+The current server-local workspace store retains the latest 50 immutable text
+snapshots per signed owner/project. Every accepted mutation, including a restore,
+advances the monotonically increasing revision and records SHA-256, source,
+timestamp and optional `restoredFrom`; restore never overwrites an old revision.
+History listing returns metadata only. A separate authenticated revision read
+exports the full bounded snapshot, while restore requires the exact current
+revision, a fresh owner-scoped UUID approval, a separate idempotency key and one
+SQLite `BEGIN IMMEDIATE` transaction. Existing databases backfill their current
+revision on open. At the 256-file/2 MiB workspace ceiling, the explicit worst-case
+retained payload is approximately 100 MiB per project before SQLite overhead.
+These snapshots survive service restart, but remain on the same server volume:
+they are not object-store replication, container-volume backup or disaster
+recovery. Operators and users must export important revisions independently.
+
 ## 6. Editor engine
 
 Monaco owns one model per canonical file URI. The workbench implements:

@@ -20,6 +20,14 @@ Windows packaging and cold launch run on a real Windows host through
 `developer-windows.yml`; use its JSON evidence and artifact checksum, never the
 macOS structural source check, for Windows claims.
 
+The SQLite workspace store retains only the latest 50 immutable text revisions
+per owner/project (up to roughly 100 MiB of payload at the 2 MiB workspace limit,
+before SQLite overhead). History survives an application restart on the same
+volume, and the product can export an individual revision as JSON. This is not a
+backup of the SQLite volume or container filesystem. Production operations must
+still provide encrypted off-host backup, retention monitoring and a tested restore
+procedure; never infer disaster recovery from the in-product History panel.
+
 ## Public candidate transaction
 
 The reviewed Linux host deploy path is

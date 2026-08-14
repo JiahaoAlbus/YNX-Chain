@@ -29,6 +29,22 @@ export type WorkspaceSnapshot = {
   open: string[];
   active: string;
 };
+export type WorkspaceRevision = {
+  revision: number;
+  createdAt: string;
+  source: "mutation" | "restore" | "legacy-backfill";
+  restoredFrom: number | null;
+  digest: string;
+  name: string;
+  files: number;
+  bytes: number;
+};
+export type WorkspaceHistory = {
+  revisions: WorkspaceRevision[];
+  cursor: number;
+  nextCursor: number | null;
+  retention: { mode: "latest-revisions"; maximumRevisions: number; retainedRevisions: number };
+};
 type StreamEvent =
   | {
       type: "phase";
@@ -391,6 +407,45 @@ export async function saveWorkspace(projectId: string, expectedRevision: number,
   });
   const value = await response.json().catch(() => ({ error: `Workspace returned HTTP ${response.status}` }));
   if (!response.ok) throw Object.assign(new Error(value.error || "Workspace could not be saved."), { code: value.code, currentRevision: value.currentRevision });
+  return value.workspace;
+}
+export async function loadWorkspaceHistory(projectId: string, cursor = 0): Promise<WorkspaceHistory> {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const response = await boundedReadFetch(`/runtime/workspaces/${encodeURIComponent(projectId)}?view=history&cursor=${cursor}&limit=20`);
+    if (response.status === 401 && attempt === 0) { await runtimeHealth(); continue; }
+    const value = await response.json().catch(() => ({ error: `Workspace history returned HTTP ${response.status}` }));
+    if (!response.ok) throw new Error(value.error || "Workspace history could not be loaded.");
+    return value.history;
+  }
+  throw new Error("Workspace session could not be established.");
+}
+export async function loadWorkspaceSnapshot(projectId: string, revision: number): Promise<WorkspaceSnapshot> {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const response = await boundedReadFetch(`/runtime/workspaces/${encodeURIComponent(projectId)}?view=snapshot&revision=${revision}`);
+    if (response.status === 401 && attempt === 0) { await runtimeHealth(); continue; }
+    const value = await response.json().catch(() => ({ error: `Workspace revision returned HTTP ${response.status}` }));
+    if (!response.ok) throw new Error(value.error || "Workspace revision could not be loaded.");
+    return value.workspace;
+  }
+  throw new Error("Workspace session could not be established.");
+}
+export async function restoreWorkspaceRevision(projectId: string, expectedRevision: number, sourceRevision: number): Promise<WorkspaceSnapshot> {
+  const response = await fetch(`/runtime/workspaces/${encodeURIComponent(projectId)}`, {
+    method: "POST",
+    credentials: "same-origin",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      protocolVersion: "ynx-code/v1",
+      action: "restore",
+      approval: "restore-workspace-once",
+      approvalId: crypto.randomUUID(),
+      expectedRevision,
+      sourceRevision,
+      idempotencyKey: crypto.randomUUID(),
+    }),
+  });
+  const value = await response.json().catch(() => ({ error: `Workspace restore returned HTTP ${response.status}` }));
+  if (!response.ok) throw Object.assign(new Error(value.error || "Workspace revision could not be restored."), { code: value.code, currentRevision: value.currentRevision });
   return value.workspace;
 }
 export async function languageRequest(language: "cpp" | "typescript" | "python" | "go" | "rust" | "solidity", files: Record<string, string>, activePath: string, operation: "completion" | "definition" | "references" | "rename" | "format" | "diagnostics", position?: { line: number; character: number }, newName?: string, context?: { projectId: string; runtimeId?: string }) {

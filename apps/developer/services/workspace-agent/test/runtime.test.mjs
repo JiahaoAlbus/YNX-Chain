@@ -69,7 +69,7 @@ test("health creates an isolated guest session and reports sandbox truth", async
   assert.equal(typeof value.sandboxReady, "boolean");
   assert.match(response.headers.get("set-cookie"), /HttpOnly; SameSite=Strict/);
 });
-test("workspace snapshots persist with revision checks and session isolation", async (t) => {
+test("workspace history export and reviewed restore are authenticated and revision guarded", async (t) => {
   const { url } = await fixture(t),
     cookie = await session(url),
     workspace = {
@@ -91,15 +91,53 @@ test("workspace snapshots persist with revision checks and session isolation", a
     }),
     savedValue = await saved.json();
   assert.equal(savedValue.workspace.revision, 1);
+  const changedWorkspace = { ...workspace, files: { "src/main.cpp": "int main(){return 2;}" } },
+    changed = await fetch(`${url}/runtime/workspaces/project-persist`, {
+      method: "PUT",
+      headers: { cookie, "content-type": "application/json" },
+      body: JSON.stringify({ protocolVersion: "ynx-code/v1", expectedRevision: 1, idempotencyKey: "save-00000002", workspace: changedWorkspace }),
+    });
+  assert.equal((await changed.json()).workspace.revision, 2);
   const loaded = await fetch(`${url}/runtime/workspaces/project-persist`, {
     headers: { cookie },
   });
-  assert.equal((await loaded.json()).workspace.files["src/main.cpp"], workspace.files["src/main.cpp"]);
+  assert.equal((await loaded.json()).workspace.files["src/main.cpp"], changedWorkspace.files["src/main.cpp"]);
+  const history = await fetch(`${url}/runtime/workspaces/project-persist?view=history&limit=20`, { headers: { cookie } }),
+    historyValue = await history.json();
+  assert.deepEqual(historyValue.history.revisions.map(({ revision }) => revision), [2, 1]);
+  assert.equal("payload" in historyValue.history.revisions[0], false);
+  assert.equal(historyValue.history.retention.maximumRevisions, 50);
+  const exported = await fetch(`${url}/runtime/workspaces/project-persist?view=snapshot&revision=1`, { headers: { cookie } });
+  assert.equal((await exported.json()).workspace.files["src/main.cpp"], workspace.files["src/main.cpp"]);
+  const unapproved = await fetch(`${url}/runtime/workspaces/project-persist`, {
+    method: "POST",
+    headers: { cookie, "content-type": "application/json" },
+    body: JSON.stringify({ protocolVersion: "ynx-code/v1", action: "restore", expectedRevision: 2, sourceRevision: 1 }),
+  });
+  assert.equal(unapproved.status, 403);
+  const stale = await fetch(`${url}/runtime/workspaces/project-persist`, {
+    method: "POST",
+    headers: { cookie, "content-type": "application/json" },
+    body: JSON.stringify({ protocolVersion: "ynx-code/v1", action: "restore", approval: "restore-workspace-once", approvalId: "11111111-1111-4111-8111-111111111111", expectedRevision: 1, sourceRevision: 1, idempotencyKey: "restore-00000001" }),
+  });
+  assert.equal(stale.status, 409);
+  assert.equal((await stale.json()).currentRevision, 2);
+  const restored = await fetch(`${url}/runtime/workspaces/project-persist`, {
+    method: "POST",
+    headers: { cookie, "content-type": "application/json" },
+    body: JSON.stringify({ protocolVersion: "ynx-code/v1", action: "restore", approval: "restore-workspace-once", approvalId: "22222222-2222-4222-8222-222222222222", expectedRevision: 2, sourceRevision: 1, idempotencyKey: "restore-00000002" }),
+  }), restoredValue = await restored.json();
+  assert.equal(restoredValue.workspace.revision, 3);
+  assert.equal(restoredValue.workspace.restoredFrom, 1);
+  assert.equal(restoredValue.workspace.files["src/main.cpp"], workspace.files["src/main.cpp"]);
   const otherCookie = await session(url),
     isolated = await fetch(`${url}/runtime/workspaces/project-persist`, {
       headers: { cookie: otherCookie },
-    });
+    }), isolatedHistory = await fetch(`${url}/runtime/workspaces/project-persist?view=history`, { headers: { cookie: otherCookie } }),
+    isolatedSnapshot = await fetch(`${url}/runtime/workspaces/project-persist?view=snapshot&revision=1`, { headers: { cookie: otherCookie } });
   assert.equal(isolated.status, 404);
+  assert.deepEqual((await isolatedHistory.json()).history.revisions, []);
+  assert.equal(isolatedSnapshot.status, 404);
 });
 test("language handlers receive the authenticated owner context and remote target", async (t) => {
   const root = await mkdtemp(join(tmpdir(), "ynx-language-context-test-")),

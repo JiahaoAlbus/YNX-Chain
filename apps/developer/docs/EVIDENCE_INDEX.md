@@ -17,6 +17,14 @@ successful eight-runtime release record.
 
 ## Product behavior
 
+- Workspace revision evidence: `services/workspace-manager/test/store.test.mjs`
+  proves owner/project isolation, restart durability, exact idempotent replay,
+  immutable snapshots, legacy database backfill, bounded latest-50 pruning and
+  revision-guarded one-time restore that creates a new revision. The authenticated
+  HTTP gate in `services/workspace-agent/test/runtime.test.mjs` proves metadata-only
+  history, full revision export, missing/stale approval rejection and cross-owner
+  hiding. `test/workspace-history-ui.test.js` holds the visible server-local
+  retention boundary, independent export and confirmed non-destructive restore.
 - AI Software Engineer evidence:
   `services/agent-orchestrator/test/service.test.mjs` proves schema-bounded
   Planner/Coder/Reviewer work, one-time write and Tester execution, evidence-led
