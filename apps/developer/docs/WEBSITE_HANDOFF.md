@@ -35,9 +35,9 @@ and C LLDB debugging, Eclipse JDT LS-backed Java language intelligence, plus
 SHA-pinned JUnit Jupiter, dependency-free offline Cargo and pinned offline
 Hardhat Solidity project-test execution in the no-network sandbox.
 It also adds a reviewed exact Python wheel installation path with an atomic
-project venv and `requirements.ynx.lock`; source distributions and Python build
-scripts are rejected, and temporary package egress must be removed before
-success.
+project venv and SHA-256-bound `requirements.ynx.lock`; source distributions and
+Python build scripts are rejected, every installed wheel needs pip integrity
+evidence, and temporary package egress must be removed before success.
 These capabilities must remain labelled
 `pending public verification` until the protected Developer candidate transaction
 returns `passed`, the public `/healthz` version matches the exact deployed commit,

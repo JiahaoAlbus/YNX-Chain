@@ -4,7 +4,9 @@
 
 - Added an explicit npm/Python selector to the one-time package review. Python
   accepts only exact `name==version` requests and records the resolved environment
-  in `requirements.ynx.lock`.
+  in `requirements.ynx.lock`. The lock now binds each resolved binary wheel to
+  the SHA-256 supplied by pip's machine-readable install report; missing or
+  malformed integrity evidence fails before the atomic venv switch.
 - The LXD adapter forces `--only-binary=:all:` and `--no-input`, rejects source
   builds, checks the existing lock against the persisted environment, atomically
   swaps a 512 MiB-bounded project venv, and makes later isolated Python tasks use

@@ -1097,7 +1097,7 @@ export function Workbench() {
           <Dialog.Overlay className="dialog-overlay" />
           <Dialog.Content className="run-dialog package-dialog">
             <Dialog.Title>Install an exact dependency</Dialog.Title>
-            <Dialog.Description>The selected LXD workspace installs one exact npm version or one exact Python wheel plan. npm lifecycle scripts and Python source builds stay disabled. Outbound network is attached only for this approved install and must be removed before success is returned.</Dialog.Description>
+            <Dialog.Description>The selected LXD workspace installs one exact npm version or one exact Python wheel plan. npm lifecycle scripts and Python source builds stay disabled; each Python wheel is SHA-256-bound in the returned lock. Outbound network is attached only for this approved install and must be removed before success is returned.</Dialog.Description>
             <label>
               Ecosystem
               <select value={packageEcosystem} onChange={(event) => { setPackageEcosystem(event.target.value as "npm" | "python"); setPackageSpec(""); }} aria-label="Package ecosystem">
@@ -1109,7 +1109,7 @@ export function Workbench() {
               Exact package and version
               <input autoFocus value={packageSpec} onChange={(event) => setPackageSpec(event.target.value.trim())} placeholder={packageEcosystem === "npm" ? "kleur@4.1.5" : "colorama==0.4.6"} aria-label={`Exact ${packageEcosystem} package and version`} />
             </label>
-            <pre>{JSON.stringify({ task: "install-package", ecosystem: packageEcosystem, runtime: selectedRuntime, package: packageSpec || (packageEcosystem === "npm" ? "<name>@<major>.<minor>.<patch>" : "<name>==<major>.<minor>.<patch>"), approval: "install-package-once", command: packageSpec ? packageEcosystem === "npm" ? ["npm", "install", "--ignore-scripts", "--save-exact", "--no-audit", "--no-fund", packageSpec] : ["python", "-m", "pip", "install", "--only-binary=:all:", "--disable-pip-version-check", "--no-input", packageSpec] : [], existingExactDependencies: packageEcosystem === "npm" ? packageManifestReview.items : (project.files["requirements.ynx.lock"] || "").split(/\r?\n/).filter(Boolean), maximumDirectDependencies: 64, maximumStoreBytes: 512 * 1024 * 1024, network: "temporary install egress; fail closed unless removed" }, null, 2)}</pre>
+            <pre>{JSON.stringify({ task: "install-package", ecosystem: packageEcosystem, runtime: selectedRuntime, package: packageSpec || (packageEcosystem === "npm" ? "<name>@<major>.<minor>.<patch>" : "<name>==<major>.<minor>.<patch>"), approval: "install-package-once", command: packageSpec ? packageEcosystem === "npm" ? ["npm", "install", "--ignore-scripts", "--save-exact", "--no-audit", "--no-fund", packageSpec] : ["python", "-m", "pip", "install", "--only-binary=:all:", "--disable-pip-version-check", "--no-input", "--report", "<ephemeral-integrity-report>", packageSpec] : [], existingExactDependencies: packageEcosystem === "npm" ? packageManifestReview.items : (project.files["requirements.ynx.lock"] || "").split(/\r?\n/).filter(Boolean), maximumDirectDependencies: 64, maximumStoreBytes: 512 * 1024 * 1024, network: "temporary install egress; fail closed unless removed" }, null, 2)}</pre>
             {packageEcosystem === "npm" && packageManifestReview.error && <div className="collab-error">{packageManifestReview.error}</div>}
             <div>
               <Button onClick={() => setPackageReview(false)}>Cancel</Button>

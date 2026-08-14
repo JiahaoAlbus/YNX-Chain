@@ -338,8 +338,10 @@ cleanup failure stops the container. An atomic, 512 MiB project store under
 manifest and lockfile must still fit the shared 256-file/2 MiB text-workspace
 boundary. The same one-time network capability now supports exact Python wheel
 plans: source builds are rejected, an atomic project venv is persisted below the
-owner/project dependency store, the resolved environment is returned as
-`requirements.ynx.lock`, and later Python tasks use that venv in isolated mode.
+owner/project dependency store, and pip's machine-readable install report must
+bind every downloaded `.whl` to a SHA-256. The resolved `name==version
+--hash=sha256:…` environment is returned as `requirements.ynx.lock`, and later
+Python tasks use that venv in isolated mode only after its versions match that lock.
 This does not claim Cargo, Go, Maven/Gradle or Solidity framework installation.
 
 The next reviewed image recipe extends execution to Java with OpenJDK 21. Both

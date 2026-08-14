@@ -87,7 +87,9 @@ Select a project-bound LXD workspace in **Remote Explorer**, then choose
 dependencies must use exact versions; its lifecycle scripts, audit and funding
 calls are disabled. Python accepts only an exact `name==version`, rejects source
 distributions/builds with `--only-binary=:all:`, persists an atomic project venv,
-and writes its exact resolved environment to `requirements.ynx.lock`. The
+and writes its exact resolved environment plus each downloaded wheel's SHA-256
+to `requirements.ynx.lock`. A missing or malformed pip integrity report fails
+before the environment is switched into use. The
 temporary install network must be removed before either operation succeeds.
 The service links only that project's persisted dependency store into later
 tasks. The action is unavailable for the local ephemeral Web sandbox and SSH

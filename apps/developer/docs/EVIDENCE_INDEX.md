@@ -24,10 +24,12 @@ successful eight-runtime release record.
   `test/package-install-ui.test.js` holds the React review, one-time approval,
   returned manifest/lockfile mutation and fail-closed language.
 - Web Python package evidence: the same service rejects ranges, non-canonical
-  locks and cross-owner access, permits binary wheels only, atomically swaps a
-  bounded project venv, links it into later isolated Python execution and always
+  locks and cross-owner access, permits binary wheels only, requires pip report
+  SHA-256 evidence for every installed wheel, atomically swaps a bounded project
+  venv, links it into later isolated Python execution and always
   removes temporary egress. The direct wheel probe used controlled Python
-  `3.12.13`, installed and imported `colorama==0.4.6`, then produced the exact
+  `3.12.13`, installed and imported `colorama==0.4.6`, then produced wheel
+  SHA-256 `4f1d9991f5acc0ca119f9d443620b77f9d6b33703e51011c16baf57afb285fc6` and the exact
   canonical lock. This local proof does not claim the production LXD network or
   public service has been updated.
 - Breadcrumb/Outline evidence: `test/breadcrumb-outline-ui.test.js` holds path
