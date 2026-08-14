@@ -159,6 +159,19 @@ describe("Monitor authorization and approval boundaries", () => {
       ).status,
     ).toBe(403);
   });
+	it("projects required network services and StreamBFT candidate truth without internal endpoints",async()=>{
+	  const {base}=await fixture();
+	  const viewer=await token(base,"view","view-pass");
+	  const overview=await call(base,"/ops/overview",{headers:sessionHeaders(viewer)});
+	  expect(overview.status).toBe(200);
+	  for(const id of ["node","validators","peers","peer-sync","explorer","indexer","faucet","gateway"])assert(overview.body.probes.some((probe:{id:string})=>probe.id===id),`missing ${id} probe`);
+	  const text=JSON.stringify(overview.body);
+	  for(const secret of ["127.0.0.1","connection refused","/private/","/etc/"])assert.equal(text.includes(secret),false,`overview leaked ${secret}`);
+	  assert.equal(overview.body.network.expectedValidatorCount,4);
+	  assert.equal(overview.body.network.consensus.streamBFT.status,"shadow/candidate");
+	  assert.equal(overview.body.network.consensus.streamBFT.active,false);
+	  assert.equal(overview.body.alerts.every((alert:{evidenceUrl:string})=>alert.evidenceUrl==="/ops/overview"),true);
+	});
   it("requires exact operator approval and writes audit", async () => {
     const { base } = await fixture();
     const op = await token(base, "op", "op-pass");
