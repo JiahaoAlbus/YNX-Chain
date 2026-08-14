@@ -1,7 +1,7 @@
 # YNX Data Fabric Dependency Acceptance
 
-Source Commit: `2bac01e4b09f7fc83654a2400a722100ecd91368`
-Release Candidate: `ynx-data-fabric-2bac01e4b09f`
+Source Commit: `a0f92680d0df50ed131b5eb422a851f5874c9045`
+Release Candidate: `ynx-data-fabric-a0f92680d0df`
 Phase: `INTEGRATE`
 Overall Status: `ACTIVE`
 
@@ -19,7 +19,7 @@ A dependency is accepted only when its owner supplies a versioned contract, dire
 | YNX Oracle | Source-labeled market facts with as-of, version, coverage and unavailable state | Data Fabric source model can represent it | Pending | Reconciliation adapter accepts the Oracle contract without making Oracle an asset authority |
 | YNX Explorer, Monitor and Trust | Event, Ledger, Saga, alert and correction evidence surfaces | Local APIs and metrics exist | Pending | Shared Testnet receipts are visible and correlated by event, request and audit identifiers |
 | YNX Integration | Unique protocol freeze, merge order and shared Testnet | Envelope v2 and Schema Registry v2 are source-bound | Pending | Freeze the v2 contract and publish dependency acceptance receipts |
-| YNX Security/SRE | PostgreSQL, JetStream, backup, deployment, alert, signer and artifact policy | Exact-source single-primary PostgreSQL hotspot, duplicate-storm, restart, integrity and long-replay drill passes; one real consumer subprocess crash after PostgreSQL commit and before embedded JetStream ack redelivered without a duplicate effect | Pending | Run PostgreSQL-plus-replicated-JetStream signed ingress, sustained consumer/process crashes, broker partition/leader-loss and PostgreSQL replica-failover drills; approve deployment and signing classes |
+| YNX Security/SRE | PostgreSQL, JetStream, backup, deployment, alert, signer and artifact policy | Exact-source single-primary PostgreSQL hotspot, duplicate-storm, restart, integrity and long-replay drill passes; one real post-commit/pre-ack consumer crash redelivered without a duplicate effect; bounded JetStream capacity rejection retained 238 Outbox rows and drained them after explicit expansion | Pending | Run PostgreSQL-plus-replicated-JetStream signed ingress, sustained-duration pressure, automatic scaling, repeated consumer/process crashes, broker partition/leader-loss and PostgreSQL replica-failover drills; approve deployment and signing classes |
 | YNX Website | Canonical page, truthful status, downloads, status and support links | Public metadata handoff exists with all public states false | Pending | Consume the handoff only after runtime and immutable hosting receipts exist |
 
 ## Current accepted boundary

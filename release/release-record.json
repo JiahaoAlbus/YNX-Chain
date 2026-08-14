@@ -2,10 +2,10 @@
   "schemaVersion": 2,
   "productId": "ynx-data-fabric",
   "productName": "YNX Data Fabric & Billing Ledger",
-  "release": "ynx-data-fabric-2bac01e4b09f",
+  "release": "ynx-data-fabric-a0f92680d0df",
   "channel": "testnet-preview",
-  "sourceCommit": "2bac01e4b09f7fc83654a2400a722100ecd91368",
-  "generatedAt": "2026-08-14T07:36:49Z",
+  "sourceCommit": "a0f92680d0df50ed131b5eb422a851f5874c9045",
+  "generatedAt": "2026-08-14T09:17:01Z",
   "phase": "INTEGRATE",
   "overallStatus": "ACTIVE",
   "states": {
@@ -77,7 +77,7 @@
   },
   "evidence": {
     "local": {
-      "sourceCommit": "2bac01e4b09f7fc83654a2400a722100ecd91368",
+      "sourceCommit": "a0f92680d0df50ed131b5eb422a851f5874c9045",
       "fullGoTest": "passed-with-standard-umask",
       "dataFabricRace": "passed",
       "reachableVulnerabilities": "zero-with-go1.25.13-and-govulncheck-v1.6.0",
@@ -86,35 +86,29 @@
       "typeScriptSDK": "passed"
     },
     "remoteCI": {
-      "runId": 31784577273,
+      "runId": null,
       "workflow": "data-fabric",
-      "sourceCommit": "2bac01e4b09f7fc83654a2400a722100ecd91368",
-      "headCommit": "b36bff881d4c409d1fed09b654e20548249de04c",
-      "status": "completed",
-      "conclusion": "success",
-      "startedAt": "2026-08-14T08:36:12Z",
-      "duration": "4m28s",
+      "sourceCommit": "a0f92680d0df50ed131b5eb422a851f5874c9045",
+      "headCommit": null,
+      "status": "pending",
+      "conclusion": null,
+      "startedAt": null,
+      "duration": null,
       "artifactsPublished": false,
-      "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/31784577273",
-      "evidenceArtifact": {
-        "name": "data-fabric-postgres-resilience-b36bff881d4c409d1fed09b654e20548249de04c",
-        "retentionDays": 30,
-        "publicReleaseArtifact": false,
-        "seedSha256": "d84a3c11fb67c9c5ca53bede2a0330a78acb033e15f37abd4408e2a5e7d67a73",
-        "verifySha256": "7dd2b0cda79a776e58ac4c7ca7b8296c9cd45057be03869185c82fb52a92bd05",
-        "consumerCrashSha256": "80e363bcd5806db423346a11566414fdc21f16ec41dd38d86fb39c9686c4f27a"
-      }
+      "url": null,
+      "evidenceArtifact": null
     },
     "engineeringEvidenceRun": {
-      "runId": 31779789224,
-      "sourceCommit": "2bac01e4b09f7fc83654a2400a722100ecd91368",
+      "runId": 31786668608,
+      "sourceCommit": "a0f92680d0df50ed131b5eb422a851f5874c9045",
       "postgresJobConclusion": "success",
       "overallConclusion": "failure",
       "verifyFailure": "release truth rejected the not-yet-updated frozen sourceCommit",
-      "artifactName": "data-fabric-postgres-resilience-2bac01e4b09f7fc83654a2400a722100ecd91368",
-      "seedSha256": "9e3d27866ae4f710b0402d36c677db57cca8efcdaf12b94c9985ad1d2bcc0b6b",
-      "verifySha256": "19c87d20daa810d7fb6b4c48b3d4b694feb100069cd827f4658db58a75daac3b",
-      "consumerCrashSha256": "53e10aa1d1d2fd7ddc68ea9c9e48edba2b04bdf5ea27121b258aa99a32e6a122"
+      "artifactName": "data-fabric-postgres-resilience-a0f92680d0df50ed131b5eb422a851f5874c9045",
+      "seedSha256": "882013060cd825748e77ebf421f70cf9b47d9c4122c82e041fe8261c16c5ffa8",
+      "verifySha256": "bd56b767a613670d2f46503d2dec7bb5ca622a1c9f34a63702f48ab6dcea9255",
+      "consumerCrashSha256": "be1dd4c1413c5156aea6ad6b18f28ed4c3f191e3887369d6765bf26f8c871bc0",
+      "transportBackpressureSha256": "2ac5502c954caed676346ca01daa3cb35db3faacf3004ac5949db8a7edea33dc"
     },
     "sourceCandidate": {
       "tag": "data-fabric-v0.2.0-source-candidate",

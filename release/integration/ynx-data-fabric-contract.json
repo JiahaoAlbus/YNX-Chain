@@ -6,9 +6,9 @@
   "slug": "data-fabric",
   "owner": "26-data-fabric",
   "serviceId": "ynx-data-fabric",
-  "release": "ynx-data-fabric-2bac01e4b09f",
-  "sourceCommit": "2bac01e4b09f7fc83654a2400a722100ecd91368",
-  "generatedAt": "2026-08-14T07:36:49Z",
+  "release": "ynx-data-fabric-a0f92680d0df",
+  "sourceCommit": "a0f92680d0df50ed131b5eb422a851f5874c9045",
+  "generatedAt": "2026-08-14T09:17:01Z",
   "phase": "INTEGRATE",
   "protocol": {
     "eventEnvelope": {
@@ -109,8 +109,8 @@
     "requiredNegativeClasses": ["unknown-field", "invalid-version", "duplicate", "duplicate-storm", "out-of-order", "tamper", "wrong-product", "same-product-wrong-account", "missing-account", "wrong-device", "scope-widening", "expiry", "revoke", "producer-backpressure-retry", "broker-outage", "consumer-crash", "database-restart", "long-replay", "partition-hotspot", "schema-upgrade", "ledger-imbalance", "stale-recovery-lease", "chain-commitment-unavailable", "chain-commitment-mismatch"]
   },
   "capacityEvidence": {
-    "sourceCommit": "2bac01e4b09f7fc83654a2400a722100ecd91368",
-    "runId": 31779789224,
+    "sourceCommit": "a0f92680d0df50ed131b5eb422a851f5874c9045",
+    "runId": 31786668608,
     "postgresVersion": "17.10",
     "events": 10000,
     "hotAggregateShare": 0.9,
@@ -118,16 +118,16 @@
     "duplicateRejects": 1000,
     "databaseRestarted": true,
     "lostCommittedEvents": 0,
-    "acceptingConnectionsRTOMilliseconds": 2426.961,
-    "integrityValidatedRTOMilliseconds": 2950.171,
+    "acceptingConnectionsRTOMilliseconds": 411.036,
+    "integrityValidatedRTOMilliseconds": 1106.607,
     "longReplayApplied": 10000,
     "idempotentReplaySkipped": 10000,
     "scope": "single-primary-linux-ci-plus-one-embedded-single-node-jetstream-consumer-crash-no-public-scale-claim",
     "evidence": ["evidence/postgres/resilience-seed-clean-source-20260814.json", "evidence/postgres/resilience-verify-clean-source-20260814.json"]
   },
   "consumerCrashEvidence": {
-    "runId": 31779789224,
-    "sourceCommit": "2bac01e4b09f7fc83654a2400a722100ecd91368",
+    "runId": 31786668608,
+    "sourceCommit": "a0f92680d0df50ed131b5eb422a851f5874c9045",
     "boundary": "after-postgresql-effect-and-inbox-commit-before-jetstream-ack",
     "childExitCode": 86,
     "deliveredConsumerSequence": 2,
@@ -136,9 +136,27 @@
     "analyticsFacts": 1,
     "duplicateBusinessEffects": 0,
     "ackPending": 0,
-    "recoveryAfterHelperExitMilliseconds": 996.367,
+    "recoveryAfterHelperExitMilliseconds": 996.203,
     "scope": "one-event-one-process-crash-single-postgresql-primary-embedded-single-node-jetstream",
     "evidence": "evidence/postgres/consumer-process-crash-clean-source-20260814.json"
+  },
+  "transportBackpressureEvidence": {
+    "runId": 31786668608,
+    "sourceCommit": "a0f92680d0df50ed131b5eb422a851f5874c9045",
+    "canonicalEvents": 256,
+    "constrainedMaxBytes": 65536,
+    "constrainedPublished": 18,
+    "constrainedRejected": 238,
+    "outboxRetainedUnderPressure": 238,
+    "deadLettersUnderPressure": 0,
+    "expandedMaxBytes": 8388608,
+    "recoveredPublished": 238,
+    "finalOutboxPending": 0,
+    "finalDeadLetters": 0,
+    "finalStreamMessages": 256,
+    "duplicateStreamMessages": 0,
+    "scope": "bounded-256-event-batch-single-postgresql-primary-embedded-single-node-jetstream-explicit-capacity-expansion",
+    "evidence": "evidence/postgres/transport-backpressure-clean-source-20260814.json"
   },
   "dependencies": [
     {

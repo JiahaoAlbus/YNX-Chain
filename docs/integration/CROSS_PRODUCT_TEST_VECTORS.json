@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "productId": "ynx-data-fabric",
-  "sourceCommit": "2bac01e4b09f7fc83654a2400a722100ecd91368",
+  "sourceCommit": "a0f92680d0df50ed131b5eb422a851f5874c9045",
   "eventEnvelopeVersion": "2.0",
   "generatedAt": "2026-08-14T05:23:25Z",
   "vectors": [
@@ -91,7 +91,7 @@
       "expected": ["before-commit redelivery applies once", "after-commit redelivery observes Inbox and does not reapply"],
       "compensation": "leased redelivery or DLQ recovery",
       "status": "testedLocal",
-      "evidence": ["internal/datafabricnats/broker_test.go", "internal/datafabricpostgres/live_integration_test.go", "internal/datafabricnats/postgres_process_crash_live_test.go", "evidence/postgres/consumer-process-crash-clean-source-20260814.json", "GitHub Actions run 31779789224 PostgreSQL job"]
+      "evidence": ["internal/datafabricnats/broker_test.go", "internal/datafabricpostgres/live_integration_test.go", "internal/datafabricnats/postgres_process_crash_live_test.go", "evidence/postgres/consumer-process-crash-clean-source-20260814.json", "GitHub Actions run 31786668608 PostgreSQL job"]
     },
     {
       "id": "DF-XP-008",
@@ -212,7 +212,18 @@
       "expected": ["all 10000 canonical events and Outbox rows survive", "all 1000 duplicate attempts reject and create no extra event", "RPO is zero committed events", "connection and integrity RTO recorded", "first replay applies 10000 effects", "second replay applies zero and skips 10000 through Inbox idempotency", "latency throughput queue depth database bytes and per-event storage recorded"],
       "compensation": "remain fail closed on unavailable database or failed integrity; preserve the Outbox and retry only after the exact database authority recovers",
       "status": "testedLocal",
-      "evidence": ["scripts/data-fabric/postgres-resilience/main.go", "scripts/data-fabric/postgres-resilience/main_test.go", "evidence/postgres/resilience-seed-clean-source-20260814.json", "evidence/postgres/resilience-verify-clean-source-20260814.json", "GitHub Actions run 31779789224 PostgreSQL job"]
+      "evidence": ["scripts/data-fabric/postgres-resilience/main.go", "scripts/data-fabric/postgres-resilience/main_test.go", "evidence/postgres/resilience-seed-clean-source-20260814.json", "evidence/postgres/resilience-verify-clean-source-20260814.json", "GitHub Actions run 31786668608 PostgreSQL job"]
+    },
+    {
+      "id": "DF-XP-020",
+      "class": "jetstream-capacity-backpressure",
+      "owners": ["YNX Data Fabric", "Security/SRE"],
+      "preconditions": ["isolated PostgreSQL 17.10 database", "256 committed canonical events and transactional Outbox rows", "file-backed embedded JetStream constrained to 64 KiB with DiscardNew"],
+      "input": ["dispatch all 256 Outbox rows against constrained capacity", "retain rejected publications", "explicitly expand stream capacity to 8 MiB", "retry retained Outbox rows after bounded backoff"],
+      "expected": ["some publications receive acknowledgements and some reject under pressure", "every rejected event remains pending in PostgreSQL", "no pressure rejection enters DLQ after one attempt", "capacity expansion drains every retained row", "final stream has exactly 256 messages with no duplicate", "final Outbox and DLQ depth are zero"],
+      "compensation": "operators expand or restore broker capacity, then allow bounded Outbox retry; never mark an event published without a JetStream acknowledgement",
+      "status": "testedLocal",
+      "evidence": ["internal/datafabricnats/postgres_process_crash_live_test.go", "evidence/postgres/transport-backpressure-clean-source-20260814.json", "GitHub Actions run 31786668608 PostgreSQL job"]
     }
   ]
 }

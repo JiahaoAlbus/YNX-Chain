@@ -6,7 +6,7 @@
   "broker": "file-backed embedded JetStream",
   "canonicalEvents": 1,
   "childExitCode": 86,
-  "childLifetimeMilliseconds": 159.909,
+  "childLifetimeMilliseconds": 24.107,
   "crashAfterPostgresCommitBeforeBrokerAck": true,
   "database": "PostgreSQL",
   "deliveredConsumerSequence": 2,
@@ -21,6 +21,6 @@
     "single PostgreSQL primary",
     "no broker partition, leader loss, sustained load, shared Testnet or public-scale claim"
   ],
-  "redeliveryRecoveryAfterExitMilliseconds": 996.367,
-  "sourceCommit": "2bac01e4b09f7fc83654a2400a722100ecd91368"
+  "redeliveryRecoveryAfterExitMilliseconds": 996.203,
+  "sourceCommit": "a0f92680d0df50ed131b5eb422a851f5874c9045"
 }
