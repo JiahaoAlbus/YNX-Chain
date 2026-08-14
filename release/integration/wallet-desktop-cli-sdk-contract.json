@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "productSlug": "wallet-desktop-cli-sdk",
   "owner": "02-wallet-auth-desktop-cli-sdk",
-  "sourceCommit": "02acde92b34ba555ed55f5b512d3dd8a48c1412e",
+  "sourceCommit": "59e74e5369a6c193dbede6973341842157988099",
   "consumes": {
     "networkOwner": "01-chain-core",
     "authOwner": "02-wallet-auth",
@@ -37,7 +37,8 @@
     "goSdkFormalModuleArchive": "d430b44488d1c583e8983b422a825790f479add8",
     "macosX64Cli": "ddab97ee88e927558f87eddc2d4a61a09a5bdc80",
     "desktopSbomProvenance": "a65c90c459b231ebbd0250cac7490714c6ed1541",
-    "linuxArm64RpmFedoraLifecycle": "02acde92b34ba555ed55f5b512d3dd8a48c1412e"
+    "linuxArm64RpmFedoraLifecycle": "02acde92b34ba555ed55f5b512d3dd8a48c1412e",
+    "linuxArm64RpmRollbackRecovery": "59e74e5369a6c193dbede6973341842157988099"
   },
   "directEvidence": {
     "windowsArm64Cli": "release/wallet-cli/windows-arm64-native/manifest.json",
@@ -47,7 +48,8 @@
     "goSdkFormalModuleArchive": "release/wallet-cli/go-sdk/manifest.json",
     "macosX64Cli": "release/wallet-cli/macos-x64-native/manifest.json",
     "desktopSbomProvenance": "release/wallet-desktop/sbom-provenance/manifest.json",
-    "linuxArm64RpmFedoraLifecycle": "release/wallet-desktop/linux-arm64-rpm-fedora/manifest.json"
+    "linuxArm64RpmFedoraLifecycle": "release/wallet-desktop/linux-arm64-rpm-fedora/manifest.json",
+    "linuxArm64RpmRollbackRecovery": "release/wallet-desktop/linux-arm64-rpm-fedora/rollback-manifest.json"
   },
   "remainingFalse": {
     "integratedCentral": false,
