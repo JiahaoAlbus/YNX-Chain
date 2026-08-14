@@ -1273,6 +1273,7 @@ export declare function decodeProductSessionGatewayProofHeaderV2(value:unknown):
 export declare function encodeProductSessionGatewayProofHeaderV2(value:unknown):string;
 export declare const PRODUCT_SESSION_GATEWAY_HTTP_MAX_BODY_BYTES:1048576;
 export declare class ProductSessionGatewayHttpHandler{constructor(registry:unknown,tokenFactory:()=>string,snapshot?:unknown);handle(input:Readonly<{requestId:string;method:string;path:string;contentType:string;body:string;proofHeader:string|null;networkAvailable:boolean}>,at?:Date):Readonly<{status:number;headers:Readonly<Record<string,string>>;body:string}>;snapshot():Readonly<Record<string,unknown>>;}
+export declare class PersistentProductSessionGatewayNodeHost{constructor(registry:unknown,options:Readonly<{statePath:string;now?:()=>Date;tokenFactory?:()=>string}>);handler():(request:unknown,response:unknown)=>Promise<void>;snapshot():Readonly<Record<string,unknown>>;}
 export declare function createSignedIntent(input:Readonly<Record<string,unknown>&{accountSecret:string}>):Readonly<Record<string,unknown>>;
 export declare function parseSignedIntent(input:unknown):Readonly<Record<string,unknown>>;
 export declare function signedIntentDigest(input:unknown):string;

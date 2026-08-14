@@ -296,6 +296,8 @@ YNX_WALLET_GATEWAY_HTTP_ADDR=127.0.0.1
 YNX_WALLET_GATEWAY_HTTP_PORT=6439
 YNX_WALLET_GATEWAY_STATE_PATH=/var/lib/ynx-chain/wallet-gateway/state.json
 YNX_WALLET_GATEWAY_REGISTRY_PATH=/opt/ynx-chain/releases/${release}/wallet-auth/central-registry.json
+YNX_WALLET_PRODUCT_SESSION_V2_STATE_PATH=/var/lib/ynx-chain/wallet-gateway/product-session-v2.json
+YNX_WALLET_PRODUCT_SESSION_V2_REGISTRY_PATH=/opt/ynx-chain/releases/${release}/wallet-auth/product-session-registry.json
 YNX_WALLET_GATEWAY_REMOTE_DEPLOYED=true
 EOF
 cat >> "$work/config/ynx-chaind.env" <<EOF

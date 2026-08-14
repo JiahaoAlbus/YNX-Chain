@@ -26,6 +26,11 @@
       "import": "./src/sponsorship-ledger-node.js",
       "default": "./src/sponsorship-ledger-node.js"
     },
+    "./product-session-gateway-node-host": {
+      "types": "./src/index.d.ts",
+      "import": "./src/product-session-gateway-node-host.js",
+      "default": "./src/product-session-gateway-node-host.js"
+    },
     "./wallet-provider-discovery": {
       "types": "./src/index.d.ts",
       "import": "./src/wallet-provider-discovery.js",
