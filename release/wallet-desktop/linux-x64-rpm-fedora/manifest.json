@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 1,
+  "productId": "wallet-desktop",
+  "version": "0.1.0",
+  "sourceCommit": "7a05ed7625c3bd3fe8b0ac162c1623cacbe9c8fb",
+  "workflow": {
+    "runId": 31776185699,
+    "runUrl": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/31776185699",
+    "lifecycleJobId": 94691974961,
+    "downloadVerificationJobId": 94692960537,
+    "conclusion": "success",
+    "runner": "ubuntu-24.04"
+  },
+  "fedora": {
+    "imageDigest": "fedora@sha256:99e203b80b1c3d8f7e161ec10a68fd02b081ef83a3963553e513c82846b97814",
+    "userland": "Fedora 42 x64",
+    "containerBoundary": "SYS_ADMIN and seccomp=unconfined solely for Electron sandbox namespace creation; --no-sandbox was not used"
+  },
+  "artifact": {
+    "id": 9210051639,
+    "name": "ynx-wallet-desktop-linux-x64-rpm-fedora",
+    "archiveBytes": 86955896,
+    "archiveSha256": "f9ba549c4059ac08ff7bf481d728bd0ca6a67f9894532a8104a7a8a143ef2464",
+    "connectorDownloadedAndLocallyReverified": true,
+    "filename": "ynx-wallet-desktop-0.1.0-x86_64.rpm",
+    "format": "rpm",
+    "architecture": "x64",
+    "bytes": 86926281,
+    "sha256": "8cf24d83dd5da5851484eab14ce9e6cd16946c95699a7af1e11048bbd7692bea",
+    "minimumOS": "Fedora 42 x64 userland directly tested on Ubuntu 24.04 x64 native runner kernel",
+    "signingClass": "unsigned_linux_rpm_testnet_candidate",
+    "productionSigned": false
+  },
+  "downloadVerificationArtifact": {
+    "id": 9210056781,
+    "name": "ynx-wallet-desktop-linux-x64-rpm-fedora-download-verification",
+    "archiveBytes": 366,
+    "archiveSha256": "6c7db43c764397ad3db0d9f29f6384b814a53fa8fbf4942dfab948bc47cdb500",
+    "connectorDownloadedAndLocallyReverified": true,
+    "manifestPresent": true,
+    "bytesVerified": true,
+    "sha256Verified": true
+  },
+  "lifecycle": {
+    "rpmScriptsTested": true,
+    "fedoraDnfDependencyResolutionTested": true,
+    "preflightInstalled": true,
+    "upgradeVerified": true,
+    "currentInstalled": true,
+    "sandboxPostInstallStateVerified": true,
+    "sandboxMode": "unprivileged-user-namespace with chrome-sandbox root:root/0755 selected by executed RPM postinstall script",
+    "coldLaunch": true,
+    "secondLaunch": true,
+    "processObserved": true,
+    "windowTitleObserved": true,
+    "chainId": "0x1917",
+    "rpcFailureClosed": true,
+    "rollbackToPreflightVerified": true,
+    "rollbackLaunchVerified": true,
+    "reupgradeAfterRollbackVerified": true,
+    "restoredCurrentLaunchVerified": true,
+    "uninstallVerified": true,
+    "signingEnabled": false,
+    "accountCreated": false,
+    "balanceClaimed": false,
+    "transactionCreated": false
+  },
+  "releaseState": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedNativeCI": true,
+    "upgradeTestedNativeCI": true,
+    "rollbackTestedNativeCI": true,
+    "reupgradeAfterRollbackTestedNativeCI": true,
+    "uploadedArtifactDownloadedAndVerifiedNativeCI": true,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}
