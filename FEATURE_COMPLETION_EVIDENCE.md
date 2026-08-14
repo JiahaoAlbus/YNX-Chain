@@ -1,7 +1,7 @@
 # YNX Data Fabric Feature Completion Evidence
 
-Engineering Source Commit: `962e2668fa666729f210990a7ad89e5ab5b66d6f`
-Release Candidate: `ynx-data-fabric-962e2668fa66`
+Engineering Source Commit: `59c60864ac433bdf474ce16f9199533907017deb`
+Release Candidate: `ynx-data-fabric-59c60864ac43`
 Phase: `INTEGRATE`
 Product Status: `ACTIVE`
 
@@ -33,7 +33,7 @@ This matrix reports only the strongest directly evidenced state. A successful lo
 | Structured observability | testedLocal | logs, IDs, metrics, health, ready, version, alerts | API tests and local smoke | deployed trace store, dashboard, alert firing and recovery |
 | Operator console | testedLocal | embedded responsive console | console, API and unavailable-state evidence | authoritative success/recovery screenshots and AT review |
 | Twelve locales and Arabic RTL | testedLocal | locale catalog and responsive CSS | console contract tests | native-language and assistive-technology review |
-| Capacity and SLO | inProgress | capacity tools and SLO plan | bounded PostgreSQL and cold-start samples | sustained broker/database load, failure and storage curve |
+| Capacity and SLO | inProgress | bounded producer ingress, capacity tools and SLO plan | clean-source 1000-producer local HTTP run; 100-session isolation; bounded PostgreSQL and cold-start samples | PostgreSQL/JetStream 1000-producer repetition, hotspot, restart, crash, long replay, RTO/RPO and storage curve |
 | Unit economics and KPI definitions | implementedLocal | plans and machine definitions | JSON validation | complete real cohorts and posted provider costs |
 | Threat and supply-chain gates | testedLocal | threat, boundary, SBOM, provenance and workflow gates | audit, govulncheck, Race, secret and quality gates | container, DAST and independent reproducibility evidence |
 | Linux package install and cold start | testedLocal | package, systemd, install and cold-start scripts | current-source local package, install and host cold-start gates | current-source Linux CI and independent install receipts |
@@ -54,8 +54,9 @@ This matrix reports only the strongest directly evidenced state. A successful lo
 - Full Go repository test under standard CI permission-test `umask=022`: passed.
 - TypeScript SDK build, five Node tests and canonical-registry dependency audit: passed.
 - Go `1.25.13` reachable-vulnerability scan: zero reachable vulnerabilities.
-- Current-source Run `31771466255` passed `data-fabric-verify` and `data-fabric-postgres-live` at exact evidence checkpoint `7ee762137896bccf796aa5ae5c5738d929813999`.
-- One hundred simultaneous local canonical account sessions each returned exactly one account-owned event under Go Race; this is not shared-Testnet or 1000-producer evidence.
+- Current-source remote CI is pending; previous source final-head Run `31771975186` passed both Data Fabric jobs.
+- One hundred simultaneous local canonical account sessions each returned exactly one account-owned event under Go Race.
+- One thousand independently signed producers started simultaneously through real loopback HTTP and all committed with zero business errors. The 39.94-second p95, 23.37 events/s and 94.11% attempt-level backpressure rate expose the local file Store ceiling; this is not PostgreSQL, JetStream, shared-Testnet or public capacity evidence.
 - Historical GitHub Actions Run `30488889722` passed for prior source `84872ff9042ed9f4364645750bbfa2dc3475e80b`; it is not current-source evidence.
 - Release truth positive vector and five negative mutations: passed.
 - Public artifacts published by CI: none.

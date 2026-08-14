@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "productId": "ynx-data-fabric",
-  "sourceCommit": "962e2668fa666729f210990a7ad89e5ab5b66d6f",
+  "sourceCommit": "59c60864ac433bdf474ce16f9199533907017deb",
   "eventEnvelopeVersion": "2.0",
-  "generatedAt": "2026-08-14T04:48:52Z",
+  "generatedAt": "2026-08-14T05:23:25Z",
   "vectors": [
     {
       "id": "DF-XP-001",
@@ -191,6 +191,17 @@
       "compensation": "resolve the exact commitment read or reissue a correctly signed Envelope v2 event; never create a new chain version blindly",
       "status": "testedLocal",
       "evidence": ["internal/datafabric/chain_commitment_test.go", "internal/datafabricapi/chain_commitment_test.go", "schemas/data-fabric/event-envelope-v2.schema.json", "sdk/datafabric-typescript/tests/sdk.test.mjs"]
+    },
+    {
+      "id": "DF-XP-018",
+      "class": "1000-producer-backpressure",
+      "owners": ["producer owners", "YNX Data Fabric", "Security/SRE"],
+      "preconditions": ["1000 independent test-only producer keys registered", "real local HTTP server and file Store", "producer concurrency gate set to 64", "clean committed engineering source"],
+      "input": ["1000 producer clients released from one start barrier", "signed v2 capacity event per producer", "bounded retry of only 429 producer_backpressure responses while preserving the same nonce"],
+      "expected": ["1000 committed events and 1000 pending transactional Outbox records", "zero business errors", "observed server in-flight never exceeds 64", "backpressured nonce remains retryable", "p50 p95 p99 throughput queue depth and storage growth recorded", "local file Store limitations remain explicit"],
+      "compensation": "clients honor Retry-After with bounded jitter; operators lower admitted concurrency or scale the PostgreSQL and JetStream path based on production-shaped evidence",
+      "status": "testedLocal",
+      "evidence": ["internal/datafabricapi/producer_backpressure_test.go", "scripts/data-fabric/api-capacity/main.go", "evidence/capacity/api-1000-producers-clean-source-20260814.json"]
     }
   ]
 }

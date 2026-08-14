@@ -1,7 +1,7 @@
 # YNX Data Fabric Integration Handoff
 
-Source Commit: `962e2668fa666729f210990a7ad89e5ab5b66d6f`
-Release Candidate: `ynx-data-fabric-962e2668fa66`
+Source Commit: `59c60864ac433bdf474ce16f9199533907017deb`
+Release Candidate: `ynx-data-fabric-59c60864ac43`
 Owner: YNX Data Fabric
 Phase: `INTEGRATE`
 Status: `ACTIVE`
@@ -33,7 +33,7 @@ Status: `ACTIVE`
 | productionSigned | false | Only test-fixture signing is exercised |
 | storeReleased | false | Native app-store delivery is not applicable to this headless service |
 
-Current-source Run `31771466255` passed `data-fabric-verify` and `data-fabric-postgres-live` at exact evidence checkpoint `7ee762137896bccf796aa5ae5c5738d929813999`. PR `#92` is mergeable but blocked because no independent approval exists; the only review is non-approving commentary. No protection bypass is authorized. The workflow publishes no downloadable artifact.
+Current-source remote CI is pending. Previous source final-head Run `31771975186` passed both Data Fabric jobs. PR `#92` still requires both current-head checks and one independent approval; no protection bypass is authorized. The workflow publishes no downloadable artifact.
 
 ## Current executable integration
 
@@ -42,6 +42,8 @@ The YNX Pay BFT bridge reads authoritative Pay state, emits canonical Pay events
 Envelope v2 may carry optional `chainCommitmentId` as an external Chain Core Bulk Data Commitment reference. Data Fabric consumes frozen Chain Core implementation `0da66c319629a79613739df351b5000b85a1371a` bound by release commit `b481a46f6d77644d0dff13e3917a51f8503e88f4`: it accepts only an exact successful `GET /data/commitments/{id}` read from `ynx-consensus-abci` at `abci-state-v14`. Missing, unavailable or contradictory verification rejects before storage. Data Fabric neither computes the commitment ID nor accepts a write owner; Chain Core derives owner from the transaction signer. Raw content, plaintext metadata, recipient lists, access tokens and key material remain off-chain.
 
 Wallet/Auth introspection must return a non-empty canonical `accountId`. Ordinary event, Ledger, billing settlement, Saga and reconciliation APIs are product-and-account scoped; Saga authority is derived from an existing event matching product, account, aggregate and correlation. `fabric.audit.export`, redelivery management and Saga recovery remain explicitly privileged product-wide scopes, while rate plans remain product metadata. One hundred simultaneous local account sessions passed exact event isolation under the Go race detector; this does not establish shared-Testnet or 1000-producer capacity.
+
+Producer ingress admits a configurable bounded number of already signature-verified requests. Saturation returns `429 producer_backpressure` with `Retry-After: 1` before consuming the producer nonce, so bounded retries remain safe. A clean-source local run started 1000 independently signed producers together, reached the configured peak of 64, committed all 1000 with zero business errors and left exactly 1000 transactional Outbox records. The measured p95 was 39.94 seconds and throughput 23.37 events/s, so this proves local correctness and backpressure only; PostgreSQL, JetStream, hotspot, restart, crash, replay and public capacity remain open.
 
 ## Required merge and acceptance order
 

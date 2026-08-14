@@ -6,9 +6,9 @@
   "slug": "data-fabric",
   "owner": "26-data-fabric",
   "serviceId": "ynx-data-fabric",
-  "release": "ynx-data-fabric-962e2668fa66",
-  "sourceCommit": "962e2668fa666729f210990a7ad89e5ab5b66d6f",
-  "generatedAt": "2026-08-14T04:48:52Z",
+  "release": "ynx-data-fabric-59c60864ac43",
+  "sourceCommit": "59c60864ac433bdf474ce16f9199533907017deb",
+  "generatedAt": "2026-08-14T05:23:25Z",
   "phase": "INTEGRATE",
   "protocol": {
     "eventEnvelope": {
@@ -41,7 +41,15 @@
       "balanceInvariant": "sum-debits-equals-sum-credits-per-currency-and-asset",
       "correction": "new-entry-reverses-or-adjusts-history-no-in-place-overwrite"
     },
-    "exactlyOnceBoundary": "idempotent-state-transition-with-transactional-inbox-not-network-delivery"
+    "exactlyOnceBoundary": "idempotent-state-transition-with-transactional-inbox-not-network-delivery",
+    "producerBackpressure": {
+      "admission": "bounded-nonblocking-concurrency-gate-after-delivery-signature-before-replay-consumption",
+      "defaultConcurrencyLimit": 128,
+      "configuration": "YNX_DATA_FABRIC_PRODUCER_CONCURRENCY_LIMIT",
+      "saturatedResponse": {"status": 429, "code": "producer_backpressure", "retryAfterSeconds": 1},
+      "retrySafety": "a request rejected by the concurrency gate does not consume its producer nonce",
+      "metrics": ["ynx_data_fabric_producer_inflight", "ynx_data_fabric_producer_concurrency_limit", "ynx_data_fabric_producer_peak_inflight", "ynx_data_fabric_producer_backpressure_total"]
+    }
   },
   "api": {
     "basePath": "/v1",
@@ -98,7 +106,7 @@
   "testVectors": {
     "machineReadable": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
     "producerVectors": "integration/PRODUCER_TEST_VECTORS.md",
-    "requiredNegativeClasses": ["unknown-field", "invalid-version", "duplicate", "out-of-order", "tamper", "wrong-product", "same-product-wrong-account", "missing-account", "wrong-device", "scope-widening", "expiry", "revoke", "broker-outage", "consumer-crash", "schema-upgrade", "ledger-imbalance", "stale-recovery-lease", "chain-commitment-unavailable", "chain-commitment-mismatch"]
+    "requiredNegativeClasses": ["unknown-field", "invalid-version", "duplicate", "out-of-order", "tamper", "wrong-product", "same-product-wrong-account", "missing-account", "wrong-device", "scope-widening", "expiry", "revoke", "producer-backpressure-retry", "broker-outage", "consumer-crash", "schema-upgrade", "ledger-imbalance", "stale-recovery-lease", "chain-commitment-unavailable", "chain-commitment-mismatch"]
   },
   "dependencies": [
     {

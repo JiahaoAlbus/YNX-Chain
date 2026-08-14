@@ -100,6 +100,7 @@ function trackedEngineeringFiles(repoRoot) {
     "configs/data-fabric.env.example",
     "configs/data-fabric-event-keys.example.json",
     "integration/product-event-contracts.json",
+    "scripts/data-fabric/api-capacity/main.go",
     "internal/bftgateway/pay.go",
     "internal/bftgateway/pay_test.go",
     "internal/consensus/action_transaction.go",
