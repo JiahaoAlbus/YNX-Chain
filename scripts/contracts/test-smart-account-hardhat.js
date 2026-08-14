@@ -407,6 +407,27 @@ await (await paymaster.configureProduct(
 )).wait();
 await (await paymaster.setMerchant(productId, destination.address, true)).wait();
 await (await paymaster.setSponsorshipEnabled(true)).wait();
+const initialSponsorshipStatus = await paymaster.getSponsorshipStatus(
+  productId,
+  subjectId,
+  destination.address,
+);
+assert.equal(initialSponsorshipStatus.policyId, policyId);
+assert.equal(initialSponsorshipStatus.policySigner, policySigner.address);
+assert.equal(initialSponsorshipStatus.globalEnabled, true);
+assert.equal(initialSponsorshipStatus.productEnabled, true);
+assert.equal(initialSponsorshipStatus.allowedTypes, 0x0fn);
+assert.equal(initialSponsorshipStatus.requiredTarget, destination.address);
+assert.equal(initialSponsorshipStatus.dailyLimit, ethers.parseEther("10"));
+assert.equal(initialSponsorshipStatus.perOperationLimit, ethers.parseEther("0.1"));
+assert.equal(initialSponsorshipStatus.perSubjectDailyLimit, ethers.parseEther("5"));
+assert.equal(initialSponsorshipStatus.firstActionLimit, ethers.parseEther("0.1"));
+assert.equal(initialSponsorshipStatus.reservedToday, 0n);
+assert.equal(initialSponsorshipStatus.observedToday, 0n);
+assert.equal(initialSponsorshipStatus.subjectReservedToday, 0n);
+assert.equal(initialSponsorshipStatus.subjectFirstActionUsed, false);
+assert.equal(initialSponsorshipStatus.merchantApproved, true);
+assert.equal(initialSponsorshipStatus.deposit, ethers.parseEther("10"));
 const sponsorAuthType = "tuple(bytes32 authorizationId,bytes32 productId,bytes32 subjectId,bytes32 policyId,uint8 sponsorType,address destination,uint128 authorizationMaxCost,uint48 validAfter,uint48 validUntil)";
 const paymasterStatic = ethers.solidityPacked(
   ["address", "uint128", "uint128"],
@@ -592,6 +613,12 @@ budget = await paymaster.productBudgets(productId);
 const usage = await paymaster.subjectUsage(productId, subjectId);
 assert.equal(budget.reservedToday <= budget.dailyLimit, true);
 assert.equal(usage.reservedToday <= budget.perSubjectDailyLimit, true);
+const usedSponsorshipStatus = await paymaster.getSponsorshipStatus(productId, subjectId, destination.address);
+assert.equal(usedSponsorshipStatus.reservedToday, budget.reservedToday);
+assert.equal(usedSponsorshipStatus.observedToday, budget.observedToday);
+assert.equal(usedSponsorshipStatus.subjectReservedToday, usage.reservedToday);
+assert.equal(usedSponsorshipStatus.subjectFirstActionUsed, true);
+assert.equal(usedSponsorshipStatus.merchantApproved, true);
 
 await assert.rejects(
   entryPoint.handleOps(
@@ -655,6 +682,20 @@ await assert.rejects(
   /AA33|SponsorshipDisabled/,
 );
 
+const storedBudgetBeforeRolloverView = await paymaster.productBudgets(productId);
+await ethers.provider.send("evm_increaseTime", [86401]);
+await ethers.provider.send("evm_mine", []);
+const rolloverSponsorshipStatus = await paymaster.getSponsorshipStatus(productId, subjectId, destination.address);
+assert.equal(rolloverSponsorshipStatus.reservedToday, 0n);
+assert.equal(rolloverSponsorshipStatus.observedToday, 0n);
+assert.equal(rolloverSponsorshipStatus.subjectReservedToday, 0n);
+assert.equal(rolloverSponsorshipStatus.subjectFirstActionUsed, true);
+assert.equal(rolloverSponsorshipStatus.productEnabled, false);
+assert.equal(
+  (await paymaster.productBudgets(productId)).reservedToday,
+  storedBudgetBeforeRolloverView.reservedToday,
+);
+
 console.log(JSON.stringify({
   entryPoint: entryPoint.target,
   account: account.target,
@@ -685,6 +726,8 @@ console.log(JSON.stringify({
   exactSponsorPolicyIdRejection: "passed",
   loweredSubjectLimitCanonicalRejection: "passed",
   sponsoredBatchPolicyRejectionBeforeMutation: "passed",
+  sponsorshipPolicyAndCostStatusView: "passed",
+  sponsorshipStatusDayRolloverReadOnlyNormalization: "passed",
   sponsorTamperReplayDisableRejection: "passed",
   benchmark: {
     environment: "Hardhat EDR in-process local chain; excludes bundler, RPC, persistence and network latency",

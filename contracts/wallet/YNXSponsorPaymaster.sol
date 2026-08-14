@@ -43,6 +43,26 @@ contract YNXSponsorPaymaster is BasePaymaster, EIP712 {
         uint48 validUntil;
     }
 
+    struct SponsorshipStatus {
+        bytes32 policyId;
+        address policySigner;
+        bool globalEnabled;
+        bool productEnabled;
+        uint8 allowedTypes;
+        address requiredTarget;
+        uint128 dailyLimit;
+        uint128 perOperationLimit;
+        uint128 perSubjectDailyLimit;
+        uint128 firstActionLimit;
+        uint128 reservedToday;
+        uint128 observedToday;
+        uint128 subjectReservedToday;
+        bool subjectFirstActionUsed;
+        bool merchantApproved;
+        uint64 day;
+        uint256 deposit;
+    }
+
     error InvalidConfiguration();
     error SponsorshipDisabled();
     error PolicyViolation();
@@ -164,6 +184,38 @@ contract YNXSponsorPaymaster is BasePaymaster, EIP712 {
         address oldOfficer = riskOfficer;
         riskOfficer = newOfficer;
         emit RiskOfficerChanged(oldOfficer, newOfficer);
+    }
+
+    /// @notice Return the complete current-day policy and cost state without mutating stale counters.
+    function getSponsorshipStatus(bytes32 productId, bytes32 subjectId, address merchant)
+        external
+        view
+        returns (SponsorshipStatus memory status)
+    {
+        ProductBudget storage product = productBudgets[productId];
+        SubjectUsage storage subject = subjectUsage[productId][subjectId];
+        uint64 today = uint64(block.timestamp / 1 days);
+        bool productIsCurrent = product.day == today;
+        bool subjectIsCurrent = subject.day == today;
+        status = SponsorshipStatus({
+            policyId: product.policyId,
+            policySigner: policySigner,
+            globalEnabled: sponsorshipEnabled,
+            productEnabled: product.enabled,
+            allowedTypes: product.allowedTypes,
+            requiredTarget: product.requiredTarget,
+            dailyLimit: product.dailyLimit,
+            perOperationLimit: product.perOperationLimit,
+            perSubjectDailyLimit: product.perSubjectDailyLimit,
+            firstActionLimit: product.firstActionLimit,
+            reservedToday: productIsCurrent ? product.reservedToday : 0,
+            observedToday: productIsCurrent ? product.observedToday : 0,
+            subjectReservedToday: subjectIsCurrent ? subject.reservedToday : 0,
+            subjectFirstActionUsed: firstActionUsed[productId][subjectId],
+            merchantApproved: approvedMerchants[productId][merchant],
+            day: today,
+            deposit: getDeposit()
+        });
     }
 
     function getSponsorHash(PackedUserOperation calldata userOp, SponsorAuthorization memory authorization)
