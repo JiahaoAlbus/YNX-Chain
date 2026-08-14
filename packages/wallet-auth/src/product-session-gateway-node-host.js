@@ -1,49 +1,270 @@
 import { createHash, randomBytes, randomUUID } from "node:crypto";
-import { closeSync, constants, existsSync, fstatSync, fsyncSync, lstatSync, openSync, readFileSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
-import { dirname, basename, join } from "node:path";
-import { canonicalJSON, WalletAuthError } from "./canonical.js";
-import { ProductSessionGatewayHttpHandler } from "./product-session-gateway-http.js";
-import { parseProductSessionGatewaySnapshot } from "./product-session-gateway.js";
+import { closeSync, constants, fstatSync, fsyncSync, lstatSync, openSync, readFileSync, renameSync, statSync, unlinkSync, writeFileSync } from "node:fs";
+import { dirname, isAbsolute, join } from "node:path";
+import { canonicalJSON, exactFields, WalletAuthError } from "./canonical.js";
+import { PRODUCT_SESSION_GATEWAY_PROOF_HEADER_V2 } from "./product-session-gateway-client.js";
+import { ProductSessionGatewayHttpHandler, PRODUCT_SESSION_GATEWAY_HTTP_MAX_BODY_BYTES } from "./product-session-gateway-http.js";
 import { parseProductSessionRegistry } from "./product-session-registry.js";
 
-const MAXIMUM_STATE_BYTES = 64 * 1024 * 1024;
-const JSON_HEADERS = {"cache-control":"no-store","content-type":"application/json; charset=utf-8"};
+export const PRODUCT_SESSION_GATEWAY_NODE_STATE_SCHEMA_VERSION = 1;
+export const PRODUCT_SESSION_GATEWAY_NODE_SERVICE = "ynx-product-session-gatewayd";
+const STATE_FIELDS = ["registrySha256", "schemaVersion", "snapshot", "snapshotSha256"];
+const MAX_STATE_BYTES = 64 * 1024 * 1024;
+const JSON_HEADERS = Object.freeze({ "cache-control": "no-store", "content-type": "application/json; charset=utf-8", "x-content-type-options": "nosniff" });
 
-export class PersistentProductSessionGatewayNodeHost {
-  #registry; #registrySha256; #handler; #statePath; #now; #tokenFactory;
-  constructor(registryInput, options) {
-    if (!options || typeof options !== "object" || Array.isArray(options) || typeof options.statePath !== "string" || !options.statePath.startsWith("/")) fail("INVALID_CONFIG", "Product Session v2 state path must be absolute");
+export class ProductSessionGatewayNodeHost {
+  #build;
+  #emitEvent;
+  #handler;
+  #now;
+  #ready = true;
+  #registry;
+  #registrySha256;
+  #remoteDeployed;
+  #statePath;
+  #stateIdentity;
+  #tail = Promise.resolve();
+  #tokenFactory;
+
+  constructor(registryInput, options, deployment = { remoteDeployed: false }) {
+    const runtime = runtimeOptions(options);
+    const deploy = deploymentOptions(deployment);
     this.#registry = parseProductSessionRegistry(registryInput);
-    this.#registrySha256 = createHash("sha256").update(canonicalJSON(this.#registry)).digest("hex");
-    this.#statePath = options.statePath; this.#now = options.now ?? (()=>new Date()); this.#tokenFactory = options.tokenFactory ?? (()=>randomBytes(32).toString("base64url"));
-    privateDirectory(dirname(this.#statePath));
-    const snapshot = load(this.#statePath, this.#registrySha256);
-    this.#handler = new ProductSessionGatewayHttpHandler(this.#registry, this.#tokenFactory, snapshot);
-    if (snapshot === undefined) persist(this.#statePath,{schemaVersion:1,registrySha256:this.#registrySha256,snapshot:this.#handler.snapshot()});
+    this.#registrySha256 = sha256(canonicalJSON(this.#registry));
+    this.#statePath = secureStatePath(runtime.statePath);
+    this.#now = runtime.now;
+    this.#emitEvent = runtime.emitEvent;
+    this.#tokenFactory = runtime.tokenFactory;
+    this.#remoteDeployed = deploy.remoteDeployed;
+    this.#build = deploy.build;
+    const stored = loadState(this.#statePath, this.#registrySha256);
+    this.#stateIdentity = stored?.identity ?? null;
+    this.#handler = new ProductSessionGatewayHttpHandler(this.#registry, this.#tokenFactory, stored?.envelope.snapshot);
+    if (!stored) this.#persist();
   }
 
-  handler() { return async (request, response) => {
-    const requestId = header(request.headers["x-request-id"]);
-    try {
-      const body = await boundedBody(request);
-      const before = this.#handler.snapshot();
-      const result = this.#handler.handle({requestId,method:request.method,path:request.url,contentType:request.headers["content-type"]??"",body,proofHeader:header(request.headers["x-ynx-product-session-proof-v2"]),networkAvailable:true},this.#now());
-      try { this.#persist(); } catch (error) { this.#handler = new ProductSessionGatewayHttpHandler(this.#registry,this.#tokenFactory,before); throw error; }
-      response.writeHead(result.status,result.headers); response.end(result.body);
-    } catch (error) {
-      const code=error instanceof WalletAuthError?error.code:"STATE_UNAVAILABLE", message=error instanceof WalletAuthError?error.message:"Product Session v2 state is unavailable";
-      const safeId=/^req_[A-Za-z0-9_-]{12,80}$/.test(requestId??"")?requestId:"req_invalid_request_000";
-      response.writeHead(503,{...JSON_HEADERS,"x-request-id":safeId}); response.end(canonicalJSON({error:{code,message},ok:false,requestId:safeId,schemaVersion:2}));
-    }
-  }; }
+  handler() {
+    return async (request, response) => {
+      const startedAt = Date.now();
+      const requestId = requestIdHeader(request.headers["x-request-id"]);
+      let status = 500;
+      let errorCode = null;
+      try {
+        const administrative = await this.#enqueue(() => {
+          this.#assertState();
+          return this.#administrative(request);
+        });
+        if (administrative) {
+          status = administrative.status;
+          write(response, administrative);
+          return;
+        }
+        const body = await boundedBody(request);
+        const result = await this.#enqueue(() => this.#dispatch({
+          body,
+          contentType: header(request.headers["content-type"]),
+          method: request.method ?? "",
+          networkAvailable: true,
+          path: request.url ?? "",
+          proofHeader: optionalHeader(request.headers[PRODUCT_SESSION_GATEWAY_PROOF_HEADER_V2]),
+          requestId,
+        }));
+        status = result.status;
+        errorCode = responseErrorCode(result.body);
+        write(response, result);
+      } catch (error) {
+        const normalized = hostError(error);
+        status = normalized.status;
+        errorCode = normalized.code;
+        write(response, jsonResponse(status, requestId, { error: { code: normalized.code, message: normalized.message }, ok: false, requestId, schemaVersion: 2 }));
+      } finally {
+        this.#emit({
+          at: new Date().toISOString(),
+          durationMs: Math.max(0, Date.now() - startedAt),
+          errorCode,
+          event: "request",
+          method: observableMethod(request.method),
+          path: observablePath(request.url),
+          remoteDeployed: this.#remoteDeployed,
+          requestId,
+          service: PRODUCT_SESSION_GATEWAY_NODE_SERVICE,
+          sourceCommit: this.#build?.sourceCommit ?? null,
+          status,
+        });
+      }
+    };
+  }
 
-  snapshot(){return this.#handler.snapshot();}
-  #persist(){if(load(this.#statePath,this.#registrySha256)===undefined)fail("STATE_UNAVAILABLE","Product Session v2 state disappeared at runtime");persist(this.#statePath,{schemaVersion:1,registrySha256:this.#registrySha256,snapshot:this.#handler.snapshot()});}
+  snapshot() { return this.#handler.snapshot(); }
+  stateDigest() { return sha256(canonicalJSON(this.#handler.snapshot())); }
+  waitForIdle() { return this.#tail; }
+
+  #dispatch(input) {
+    if (!this.#ready) throw new WalletAuthError("SERVICE_NOT_READY", "Product Session Gateway is not ready");
+    this.#assertState();
+    const before = this.#handler.snapshot();
+    const result = this.#handler.handle(input, this.#now());
+    try {
+      this.#assertState(sha256(canonicalJSON(before)));
+      this.#persist();
+    } catch (error) {
+      this.#handler = new ProductSessionGatewayHttpHandler(this.#registry, this.#tokenFactory, before);
+      this.#ready = false;
+      if (error instanceof WalletAuthError) throw error;
+      throw new WalletAuthError("STATE_PERSISTENCE_FAILED", "Product Session Gateway could not persist authoritative state");
+    }
+    return result;
+  }
+
+  #enqueue(action) {
+    const pending = this.#tail.then(action, action);
+    this.#tail = pending.catch(() => undefined);
+    return pending;
+  }
+
+  #administrative(request) {
+    if (request.method !== "GET" || request.headers[PRODUCT_SESSION_GATEWAY_PROOF_HEADER_V2] !== undefined || request.headers["content-length"] !== undefined || request.headers["transfer-encoding"] !== undefined) return null;
+    const stateSha256 = this.stateDigest();
+    if (request.url === "/health") return jsonResponse(200, "req_administrative_health", { ok: true, remoteDeployed: this.#remoteDeployed, service: PRODUCT_SESSION_GATEWAY_NODE_SERVICE, stateSha256, truthfulStatus: this.#remoteDeployed ? "remote-product-session-v2-gateway" : "local-product-session-v2-gateway" });
+    if (request.url === "/ready") return jsonResponse(this.#ready ? 200 : 503, "req_administrative_ready_", { ok: this.#ready, remoteDeployed: this.#remoteDeployed, runtimeReady: this.#ready, service: PRODUCT_SESSION_GATEWAY_NODE_SERVICE, stateSha256 });
+    if (request.url === "/version") return jsonResponse(200, "req_administrative_version", { build: this.#build, nodeStateSchemaVersion: PRODUCT_SESSION_GATEWAY_NODE_STATE_SCHEMA_VERSION, ok: true, productSessionGatewaySchemaVersion: 2, registrySchemaVersion: 2, registrySha256: this.#registrySha256, remoteDeployed: this.#remoteDeployed, service: PRODUCT_SESSION_GATEWAY_NODE_SERVICE });
+    return null;
+  }
+
+  #persist() {
+    const snapshot = this.#handler.snapshot();
+    const envelope = Object.freeze({ registrySha256: this.#registrySha256, schemaVersion: PRODUCT_SESSION_GATEWAY_NODE_STATE_SCHEMA_VERSION, snapshot, snapshotSha256: sha256(canonicalJSON(snapshot)) });
+    atomicWrite(this.#statePath, `${canonicalJSON(envelope)}\n`);
+    const stored = loadState(this.#statePath, this.#registrySha256);
+    if (!stored || stored.envelope.snapshotSha256 !== envelope.snapshotSha256) throw new WalletAuthError("STATE_PERSISTENCE_FAILED", "Product Session Gateway could not verify persisted authoritative state");
+    this.#stateIdentity = stored.identity;
+  }
+
+  #assertState(expectedSnapshotSha256 = this.stateDigest()) {
+    const stored = loadState(this.#statePath, this.#registrySha256);
+    if (!stored) throw new WalletAuthError("STATE_FILE_CHANGED", "Product Session Gateway state file disappeared at runtime");
+    if (!this.#stateIdentity || stored.identity.dev !== this.#stateIdentity.dev || stored.identity.ino !== this.#stateIdentity.ino) throw new WalletAuthError("STATE_FILE_CHANGED", "Product Session Gateway state inode changed at runtime");
+    if (stored.envelope.snapshotSha256 !== expectedSnapshotSha256) throw new WalletAuthError("STATE_TAMPERED", "Product Session Gateway persisted and in-memory state diverged");
+  }
+
+  #emit(event) {
+    try { this.#emitEvent(Object.freeze(event)); } catch { /* observability cannot change authority */ }
+  }
 }
 
-function privateDirectory(path){const value=lstatSync(path);if(!value.isDirectory()||value.isSymbolicLink()||(value.mode&0o777)!==0o700)fail("UNSAFE_STATE_PATH","Product Session v2 state directory must be a private mode-0700 directory");}
-function load(path,registrySha256){let fd;try{fd=openSync(path,constants.O_RDONLY|constants.O_NOFOLLOW);}catch(error){if(error?.code==="ENOENT")return undefined;fail("UNSAFE_STATE_PATH","Product Session v2 state file cannot be opened safely");}try{const stat=fstatSync(fd);if(!stat.isFile()||stat.nlink!==1||(stat.mode&0o777)!==0o600||stat.size<1||stat.size>MAXIMUM_STATE_BYTES)fail("UNSAFE_STATE_PATH","Product Session v2 state file metadata is unsafe");const text=readFileSync(fd,"utf8");let value;try{value=JSON.parse(text);}catch{fail("INVALID_GATEWAY_STORE","Product Session v2 state is not JSON");}if(canonicalJSON(value)!==text||Object.keys(value).sort().join("\n")!==["registrySha256","schemaVersion","snapshot"].sort().join("\n")||value.schemaVersion!==1||value.registrySha256!==registrySha256)fail("INVALID_GATEWAY_STORE","Product Session v2 state identity is invalid");return parseProductSessionGatewaySnapshot(value.snapshot);}finally{closeSync(fd);}}
-function persist(path,value){const directory=dirname(path),temporary=join(directory,`.${basename(path)}.${randomUUID()}.tmp`);let fd;try{fd=openSync(temporary,constants.O_WRONLY|constants.O_CREAT|constants.O_EXCL|constants.O_NOFOLLOW,0o600);writeFileSync(fd,canonicalJSON(value),"utf8");fsyncSync(fd);closeSync(fd);fd=undefined;renameSync(temporary,path);const dirfd=openSync(directory,constants.O_RDONLY);try{fsyncSync(dirfd);}finally{closeSync(dirfd);}}finally{if(fd!==undefined)closeSync(fd);if(existsSync(temporary))try{unlinkSync(temporary);}catch{}}}
-async function boundedBody(request){const chunks=[];let bytes=0;for await(const chunk of request){bytes+=chunk.length;if(bytes>1_048_576)fail("BODY_TOO_LARGE","Product Session v2 body exceeds policy");chunks.push(chunk);}return Buffer.concat(chunks).toString("utf8");}
-function header(value){return Array.isArray(value)?value[0]??null:value??null;}
-function fail(code,message){throw new WalletAuthError(code,message);}
+export class PersistentProductSessionGatewayNodeHost extends ProductSessionGatewayNodeHost {
+  constructor(registry, options) {
+    super(registry, {
+      emitEvent: options.emitEvent ?? (() => undefined),
+      now: options.now,
+      statePath: options.statePath,
+      tokenFactory: options.tokenFactory ?? defaultProductSessionTokenFactory,
+    });
+  }
+}
+
+function runtimeOptions(value) {
+  exactFields(value, ["emitEvent", "now", "statePath", "tokenFactory"], "Product Session Gateway Node options");
+  if (typeof value.emitEvent !== "function" || typeof value.now !== "function" || typeof value.tokenFactory !== "function") throw new WalletAuthError("INVALID_HOST_OPTIONS", "Product Session Gateway Node callbacks are invalid");
+  return value;
+}
+
+function deploymentOptions(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) throw new WalletAuthError("INVALID_DEPLOYMENT", "Product Session Gateway deployment is invalid");
+  const expected = Object.hasOwn(value, "build") ? ["build", "remoteDeployed"] : ["remoteDeployed"];
+  exactFields(value, expected, "Product Session Gateway deployment");
+  if (typeof value.remoteDeployed !== "boolean") throw new WalletAuthError("INVALID_DEPLOYMENT", "Product Session Gateway deployment flag is invalid");
+  const build = value.build === undefined ? null : buildIdentity(value.build);
+  if (value.remoteDeployed && !build) throw new WalletAuthError("INVALID_BUILD_IDENTITY", "Remote Product Session Gateway requires exact build identity");
+  return Object.freeze({ build, remoteDeployed: value.remoteDeployed });
+}
+
+function buildIdentity(value) {
+  exactFields(value, ["buildTime", "release", "sourceCommit"], "Product Session Gateway build identity");
+  if (typeof value.sourceCommit !== "string" || !/^[0-9a-f]{40}$/.test(value.sourceCommit) || typeof value.release !== "string" || !/^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/.test(value.release) || typeof value.buildTime !== "string" || new Date(value.buildTime).toISOString() !== value.buildTime) throw new WalletAuthError("INVALID_BUILD_IDENTITY", "Product Session Gateway build identity is invalid");
+  return Object.freeze({ ...value });
+}
+
+function secureStatePath(value) {
+  if (typeof value !== "string" || !isAbsolute(value) || value.length > 1024) throw new WalletAuthError("INVALID_STATE_PATH", "Product Session Gateway state path must be absolute");
+  const parent = dirname(value);
+  const info = lstatSync(parent);
+  if (!info.isDirectory() || info.isSymbolicLink() || (info.mode & 0o777) !== 0o700 || info.uid !== process.getuid()) throw new WalletAuthError("INSECURE_STATE_DIRECTORY", "Product Session Gateway state directory must be owned by the service account with mode 0700");
+  return value;
+}
+
+function loadState(path, registrySha256) {
+  let info;
+  try { info = lstatSync(path); } catch (error) { if (error?.code === "ENOENT") return null; throw error; }
+  if (!info.isFile() || info.isSymbolicLink() || info.nlink !== 1 || (info.mode & 0o777) !== 0o600 || info.uid !== process.getuid() || info.size < 2 || info.size > MAX_STATE_BYTES) throw new WalletAuthError("INSECURE_STATE_FILE", "Product Session Gateway state file is unsafe");
+  const descriptor = openSync(path, constants.O_RDONLY | constants.O_NOFOLLOW);
+  try {
+    const current = fstatSync(descriptor);
+    if (current.ino !== info.ino || current.dev !== info.dev) throw new WalletAuthError("STATE_FILE_CHANGED", "Product Session Gateway state file changed during open");
+    const text = readFileSync(descriptor, "utf8");
+    if (!text.endsWith("\n") || text.slice(0, -1).includes("\n")) throw new WalletAuthError("INVALID_GATEWAY_STORE", "Product Session Gateway state envelope is not one canonical line");
+    let parsed;
+    try { parsed = JSON.parse(text); } catch { throw new WalletAuthError("INVALID_GATEWAY_STORE", "Product Session Gateway state envelope is not JSON"); }
+    exactFields(parsed, STATE_FIELDS, "Product Session Gateway Node state envelope");
+    if (canonicalJSON(parsed) !== text.slice(0, -1) || parsed.schemaVersion !== PRODUCT_SESSION_GATEWAY_NODE_STATE_SCHEMA_VERSION || parsed.registrySha256 !== registrySha256 || typeof parsed.snapshotSha256 !== "string" || !/^[0-9a-f]{64}$/.test(parsed.snapshotSha256) || parsed.snapshotSha256 !== sha256(canonicalJSON(parsed.snapshot))) throw new WalletAuthError("STATE_TAMPERED", "Product Session Gateway state envelope failed integrity or registry binding");
+    return Object.freeze({
+      envelope: Object.freeze(parsed),
+      identity: Object.freeze({ dev: current.dev, ino: current.ino }),
+    });
+  } finally { closeSync(descriptor); }
+}
+
+function atomicWrite(path, text) {
+  const parent = dirname(path);
+  const temporary = join(parent, `.state-${process.pid}-${randomUUID()}.tmp`);
+  let descriptor;
+  try {
+    descriptor = openSync(temporary, constants.O_CREAT | constants.O_EXCL | constants.O_WRONLY | constants.O_NOFOLLOW, 0o600);
+    writeFileSync(descriptor, text, { encoding: "utf8" });
+    fsyncSync(descriptor);
+    closeSync(descriptor); descriptor = undefined;
+    renameSync(temporary, path);
+    const directory = openSync(parent, constants.O_RDONLY | constants.O_DIRECTORY | constants.O_NOFOLLOW);
+    try { fsyncSync(directory); } finally { closeSync(directory); }
+    const written = statSync(path);
+    if (!written.isFile() || written.nlink !== 1 || (written.mode & 0o777) !== 0o600 || written.uid !== process.getuid()) throw new WalletAuthError("INSECURE_STATE_FILE", "Product Session Gateway wrote an unsafe state file");
+  } finally {
+    if (descriptor !== undefined) closeSync(descriptor);
+    try { unlinkSync(temporary); } catch (error) { if (error?.code !== "ENOENT") throw error; }
+  }
+}
+
+async function boundedBody(request) {
+  const declared = request.headers["content-length"];
+  if (declared !== undefined && (typeof declared !== "string" || !/^(0|[1-9][0-9]*)$/.test(declared) || Number(declared) > PRODUCT_SESSION_GATEWAY_HTTP_MAX_BODY_BYTES)) throw new WalletAuthError("BODY_TOO_LARGE", "Product Session Gateway body exceeds policy");
+  const chunks = [];
+  let length = 0;
+  for await (const chunk of request) {
+    length += chunk.length;
+    if (length > PRODUCT_SESSION_GATEWAY_HTTP_MAX_BODY_BYTES) throw new WalletAuthError("BODY_TOO_LARGE", "Product Session Gateway body exceeds policy");
+    chunks.push(chunk);
+  }
+  return Buffer.concat(chunks, length).toString("utf8");
+}
+
+function requestIdHeader(value) { return typeof value === "string" ? value : "req_invalid_request_000"; }
+function header(value) { return typeof value === "string" ? value : ""; }
+function optionalHeader(value) { return value === undefined ? null : typeof value === "string" ? value : "invalid"; }
+function observableMethod(value) { return typeof value === "string" && /^[A-Z]{3,10}$/.test(value) ? value : "INVALID"; }
+function observablePath(value) { return typeof value === "string" && /^\/[A-Za-z0-9/_-]{1,255}$/.test(value) ? value : "/invalid"; }
+function responseErrorCode(body) { try { const value = JSON.parse(body); return typeof value?.error?.code === "string" ? value.error.code : null; } catch { return "INVALID_RESPONSE"; } }
+function sha256(value) { return createHash("sha256").update(value).digest("hex"); }
+
+function hostError(error) {
+  if (error instanceof WalletAuthError) {
+    const stateFailure = ["INSECURE_STATE_FILE", "INVALID_GATEWAY_STORE", "SERVICE_NOT_READY", "STATE_FILE_CHANGED", "STATE_PERSISTENCE_FAILED", "STATE_TAMPERED"].includes(error.code);
+    const status = error.code === "BODY_TOO_LARGE" ? 413 : stateFailure ? 503 : 400;
+    return { code: error.code, message: error.message, status };
+  }
+  return { code: "HOST_FAILURE", message: "Product Session Gateway host failed closed", status: 500 };
+}
+
+function jsonResponse(status, requestId, value) { return Object.freeze({ body: canonicalJSON(value), headers: Object.freeze({ ...JSON_HEADERS, "x-request-id": requestId }), status }); }
+function write(response, result) { response.writeHead(result.status, result.headers); response.end(result.body); }
+
+export function defaultProductSessionTokenFactory() { return randomBytes(32).toString("base64url"); }

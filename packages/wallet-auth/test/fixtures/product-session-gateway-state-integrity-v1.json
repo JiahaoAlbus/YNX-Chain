@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "checksPerRequest": [
+    "directory-owner",
+    "directory-mode-0700",
+    "file-regular",
+    "file-no-follow",
+    "file-owner",
+    "file-mode-0600",
+    "file-nlink-1",
+    "file-size-bounded",
+    "file-device-and-inode-stable",
+    "canonical-json-envelope",
+    "registry-sha256",
+    "snapshot-sha256",
+    "persisted-snapshot-equals-in-memory"
+  ],
+  "checkpoints": [
+    "before-administrative-response",
+    "before-protocol-dispatch",
+    "immediately-before-persist"
+  ],
+  "attacks": [
+    { "name": "world-readable", "expectedCode": "INSECURE_STATE_FILE" },
+    { "name": "symlink-replacement", "expectedCode": "INSECURE_STATE_FILE" },
+    { "name": "hardlink-replacement", "expectedCode": "INSECURE_STATE_FILE" },
+    { "name": "same-bytes-inode-replacement", "expectedCode": "STATE_FILE_CHANGED" },
+    { "name": "snapshot-digest-mismatch", "expectedCode": "STATE_TAMPERED" }
+  ],
+  "requiredOutcome": {
+    "httpStatus": 503,
+    "authoritativeMutation": 0,
+    "attackerArtifactRewritten": false,
+    "hostReadyAfterDetection": false
+  }
+}

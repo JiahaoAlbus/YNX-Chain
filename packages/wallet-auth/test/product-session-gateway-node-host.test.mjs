@@ -21,7 +21,7 @@ test("persistent v2 host commits challenge before response and restores idempote
   const body = canonicalJSON({request:pending,approval});
   const original = await serve(first, "req_node_challenge_0001", "/v2/product-sessions/challenge", body);
   assert.equal(original.status, 200);
-  const persisted = readFileSync(statePath, "utf8"); assert.equal(canonicalJSON(JSON.parse(persisted)), persisted);
+  const persisted = readFileSync(statePath, "utf8"); assert.equal(`${canonicalJSON(JSON.parse(persisted))}\n`, persisted);
   const restarted = new PersistentProductSessionGatewayNodeHost(registry, { statePath, now:()=>NOW, tokenFactory:()=>randomBytes(32).toString("base64url") });
   const replay = await serve(restarted, "req_node_challenge_0001", "/v2/product-sessions/challenge", body);
   assert.equal(replay.status, 200); assert.equal(replay.body, original.body);
@@ -31,9 +31,9 @@ test("unsafe startup and runtime state replacements fail closed", async () => {
   const directory = mkdtempSync(join(tmpdir(), "ynx-product-session-v2-")); chmodSync(directory,0o700);
   const statePath=join(directory,"state.json"), host=new PersistentProductSessionGatewayNodeHost(registry,{statePath,now:()=>NOW});
   chmodSync(statePath,0o644);
-  assert.throws(()=>new PersistentProductSessionGatewayNodeHost(registry,{statePath,now:()=>NOW}),error("UNSAFE_STATE_PATH"));
+  assert.throws(()=>new PersistentProductSessionGatewayNodeHost(registry,{statePath,now:()=>NOW}),error("INSECURE_STATE_FILE"));
   const response=await serve(host,"req_node_runtime_mode_01","/v2/product-sessions/challenge","{}");
-  assert.equal(response.status,503);assert.equal(JSON.parse(response.body).error.code,"UNSAFE_STATE_PATH");
+  assert.equal(response.status,503);assert.equal(JSON.parse(response.body).error.code,"INSECURE_STATE_FILE");
   assert.equal(statSync(statePath).mode&0o777,0o644);
 });
 
