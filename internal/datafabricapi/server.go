@@ -23,36 +23,41 @@ import (
 )
 
 type Config struct {
-	Store                   *datafabric.Store
-	Repository              Repository
-	Authorizer              Authorizer
-	EventKeys               map[string][]byte
-	EventKeyProducts        map[string]string
-	PrivacyKey              []byte
-	SchemaRegistry          *datafabric.SchemaRegistry
-	ChainCommitmentVerifier datafabric.ChainCommitmentVerifier
-	BrokerKind              string
-	DatabaseKind            string
-	BrokerProbe             func(context.Context) error
-	SourceCommit            string
-	SourceRelease           string
-	MaxBodyBytes            int64
-	RateLimitPerMinute      uint32
+	Store                    *datafabric.Store
+	Repository               Repository
+	Authorizer               Authorizer
+	EventKeys                map[string][]byte
+	EventKeyProducts         map[string]string
+	PrivacyKey               []byte
+	SchemaRegistry           *datafabric.SchemaRegistry
+	ChainCommitmentVerifier  datafabric.ChainCommitmentVerifier
+	BrokerKind               string
+	DatabaseKind             string
+	BrokerProbe              func(context.Context) error
+	SourceCommit             string
+	SourceRelease            string
+	MaxBodyBytes             int64
+	RateLimitPerMinute       uint32
+	ProducerConcurrencyLimit uint32
 }
 
 type Server struct {
-	cfg             Config
-	repo            Repository
-	mux             *http.ServeMux
-	requests        atomic.Uint64
-	errors          atomic.Uint64
-	replayMu        sync.Mutex
-	replays         map[string]time.Time
-	rateMu          sync.Mutex
-	rates           map[string]rateWindow
-	durationBuckets [11]atomic.Uint64
-	durationNanos   atomic.Uint64
-	startedAt       time.Time
+	cfg                  Config
+	repo                 Repository
+	mux                  *http.ServeMux
+	requests             atomic.Uint64
+	errors               atomic.Uint64
+	replayMu             sync.Mutex
+	replays              map[string]time.Time
+	rateMu               sync.Mutex
+	rates                map[string]rateWindow
+	durationBuckets      [11]atomic.Uint64
+	durationNanos        atomic.Uint64
+	producerSlots        chan struct{}
+	producerInFlight     atomic.Uint64
+	producerPeak         atomic.Uint64
+	producerBackpressure atomic.Uint64
+	startedAt            time.Time
 }
 
 func New(cfg Config) (*Server, error) {
@@ -76,6 +81,12 @@ func New(cfg Config) (*Server, error) {
 	if cfg.RateLimitPerMinute > 10000 {
 		return nil, errors.New("rate limit must be between 1 and 10000 requests per minute")
 	}
+	if cfg.ProducerConcurrencyLimit == 0 {
+		cfg.ProducerConcurrencyLimit = 128
+	}
+	if cfg.ProducerConcurrencyLimit > 4096 {
+		return nil, errors.New("producer concurrency limit must be between 1 and 4096")
+	}
 	if cfg.SchemaRegistry == nil {
 		cfg.SchemaRegistry = datafabric.DefaultSchemaRegistry()
 	}
@@ -93,7 +104,7 @@ func New(cfg Config) (*Server, error) {
 	if repository == nil {
 		repository = LocalRepository{Store: cfg.Store}
 	}
-	s := &Server{cfg: cfg, repo: repository, mux: http.NewServeMux(), replays: make(map[string]time.Time), rates: make(map[string]rateWindow), startedAt: time.Now().UTC()}
+	s := &Server{cfg: cfg, repo: repository, mux: http.NewServeMux(), replays: make(map[string]time.Time), rates: make(map[string]rateWindow), producerSlots: make(chan struct{}, cfg.ProducerConcurrencyLimit), startedAt: time.Now().UTC()}
 	s.routes()
 	return s, nil
 }
@@ -512,6 +523,12 @@ func (s *Server) appendProducerEvent(w http.ResponseWriter, r *http.Request) {
 		s.writeError(w, http.StatusUnauthorized, string(datafabric.CodeWrongSignature), "Product producer delivery signature is invalid")
 		return
 	}
+	if !s.acquireProducerSlot() {
+		w.Header().Set("Retry-After", "1")
+		s.writeError(w, http.StatusTooManyRequests, "producer_backpressure", "Product producer concurrency limit is saturated; retry with bounded backoff")
+		return
+	}
+	defer s.releaseProducerSlot()
 	if !s.consumeReplayKey("producer\x00"+keyID+"\x00"+nonce, requestTime.Add(10*time.Minute)) {
 		s.writeError(w, http.StatusUnauthorized, string(datafabric.CodeReplay), "Product producer delivery nonce was already consumed")
 		return
@@ -554,6 +571,24 @@ func (s *Server) appendProducerEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusAccepted, map[string]any{"eventId": event.EventID, "status": "committed-to-outbox", "auditId": event.AuditID})
+}
+
+func (s *Server) acquireProducerSlot() bool {
+	select {
+	case s.producerSlots <- struct{}{}:
+		inFlight := s.producerInFlight.Add(1)
+		for peak := s.producerPeak.Load(); inFlight > peak && !s.producerPeak.CompareAndSwap(peak, inFlight); peak = s.producerPeak.Load() {
+		}
+		return true
+	default:
+		s.producerBackpressure.Add(1)
+		return false
+	}
+}
+
+func (s *Server) releaseProducerSlot() {
+	<-s.producerSlots
+	s.producerInFlight.Add(^uint64(0))
 }
 
 func (s *Server) verifyChainCommitment(w http.ResponseWriter, r *http.Request, event datafabric.EventEnvelope, key []byte) bool {
@@ -1344,6 +1379,12 @@ func (s *Server) metrics(w http.ResponseWriter, r *http.Request) {
 			"ynx_data_fabric_requests_total "+uintText(s.requests.Load())+"\n"+
 			"# TYPE ynx_data_fabric_errors_total counter\n"+
 			"ynx_data_fabric_errors_total "+uintText(s.errors.Load())+"\n"+
+			"# TYPE ynx_data_fabric_producer_inflight gauge\n"+
+			"ynx_data_fabric_producer_inflight "+uintText(s.producerInFlight.Load())+"\n"+
+			"ynx_data_fabric_producer_concurrency_limit "+uintText(uint64(s.cfg.ProducerConcurrencyLimit))+"\n"+
+			"ynx_data_fabric_producer_peak_inflight "+uintText(s.producerPeak.Load())+"\n"+
+			"# TYPE ynx_data_fabric_producer_backpressure_total counter\n"+
+			"ynx_data_fabric_producer_backpressure_total "+uintText(s.producerBackpressure.Load())+"\n"+
 			"ynx_data_fabric_events "+uintText(stats.Events)+"\n"+
 			"ynx_data_fabric_outbox_pending "+uintText(stats.OutboxPending)+"\n"+
 			"ynx_data_fabric_outbox_oldest_available_timestamp_seconds "+strconv.FormatFloat(stats.OutboxOldestUnix, 'f', 6, 64)+"\n"+

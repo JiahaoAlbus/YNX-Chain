@@ -170,7 +170,7 @@ func TestHealthAndProtectedRead(t *testing.T) {
 	}
 	response = httptest.NewRecorder()
 	server.Handler().ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/metrics", nil))
-	for _, metric := range []string{"ynx_data_fabric_events", "ynx_data_fabric_outbox_pending", "ynx_data_fabric_dead_letters", "ynx_data_fabric_billing_rate_plans", "ynx_data_fabric_billing_settlements", "ynx_data_fabric_sagas_recovery", "ynx_data_fabric_reconciliations", "ynx_data_fabric_request_duration_seconds_bucket"} {
+	for _, metric := range []string{"ynx_data_fabric_events", "ynx_data_fabric_outbox_pending", "ynx_data_fabric_dead_letters", "ynx_data_fabric_billing_rate_plans", "ynx_data_fabric_billing_settlements", "ynx_data_fabric_sagas_recovery", "ynx_data_fabric_reconciliations", "ynx_data_fabric_producer_concurrency_limit", "ynx_data_fabric_producer_backpressure_total", "ynx_data_fabric_request_duration_seconds_bucket"} {
 		if !strings.Contains(response.Body.String(), metric) {
 			t.Fatalf("metrics missing %s: %s", metric, response.Body.String())
 		}
