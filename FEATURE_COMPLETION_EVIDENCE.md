@@ -1,7 +1,7 @@
 # YNX Data Fabric Feature Completion Evidence
 
-Engineering Source Commit: `3a1bcceddc9e680761ce9563bb3d6cd823037222`
-Release Candidate: `ynx-data-fabric-3a1bcceddc9e`
+Engineering Source Commit: `314a17f96b89145b6feed6d61294f19376c2c9ef`
+Release Candidate: `ynx-data-fabric-314a17f96b89`
 Phase: `INTEGRATE`
 Product Status: `ACTIVE`
 
@@ -24,7 +24,7 @@ This matrix reports only the strongest directly evidenced state. A successful lo
 | Pay receipt and refund Ledger | testedLocal | Pay Ledger processor | partial, full, duplicate and contradictory refund tests | chain and Pay reconciliation receipts |
 | Chain, Pay, Exchange, DEX and Quant reconciliation | inProgress | generic and PostgreSQL reconciliation | generic and Pay tests | accepted Exchange, DEX and Quant observation adapters |
 | Canonical Wallet/App Gateway auth | testedLocal adapter | fail-closed authorizer and signed request tuple | replay, wrong tuple, scope, expiry and revoke vectors | central owner endpoint and trust-root acceptance |
-| API, CLI and Go SDK | testedLocal | Data Fabric API, control binary and SDK | package tests and full repository test | additional language SDK acceptance where required |
+| API, CLI, Go and TypeScript SDKs | testedLocal | Data Fabric API, control binary and typed SDKs | Go package tests, four Node tests and cross-language HMAC vector | central endpoint and producer-owner acceptance |
 | PostgreSQL migrations 0001–0006 | testedLocal | checksum-locked up/down migrations | migration tests and PostgreSQL 17.10 CI | production-size upgrade and rollback drill |
 | Backup and restore | testedLocal | file and PostgreSQL logical backup | tamper, non-overwrite, balance and integrity tests | encrypted immutable remote backup, PITR and timed restore |
 | Privacy export and erasure | testedLocal | file/PostgreSQL privacy and analytics suppression | privacy and live PostgreSQL tests | downstream deletion receipts and scheduled retention |
@@ -34,7 +34,7 @@ This matrix reports only the strongest directly evidenced state. A successful lo
 | Capacity and SLO | inProgress | capacity tools and SLO plan | bounded PostgreSQL and cold-start samples | sustained broker/database load, failure and storage curve |
 | Unit economics and KPI definitions | implementedLocal | plans and machine definitions | JSON validation | complete real cohorts and posted provider costs |
 | Threat and supply-chain gates | testedLocal | threat, boundary, SBOM, provenance and workflow gates | audit, govulncheck, Race, secret and quality gates | container, DAST and independent reproducibility evidence |
-| Linux package install and cold start | testedLocal | package, systemd, install and cold-start scripts | successful source-bound Linux CI | persist production artifact and independent install receipts |
+| Linux package install and cold start | testedLocal | package, systemd, install and cold-start scripts | current-source local package, install and host cold-start gates | current-source Linux CI and independent install receipts |
 | Fixture release promotion | testedLocal | explicit Ed25519 production contract plus loopback-only RSA portability fixture | positive and negative promotion checks under the available OpenSSL implementation and forced RSA contract mode | no production claim; approved real Ed25519 signer and immutable hosting required |
 | Central integration | inProgress | source-bound contract and test vectors | local Pay adapter only | complete owner acceptance set |
 | Shared Testnet | inProgress | deployment and remote-install tooling | local/CI fixtures only | direct cross-product receipts |
@@ -50,8 +50,10 @@ This matrix reports only the strongest directly evidenced state. A successful lo
 - Local Data Fabric targeted tests: passed.
 - Data Fabric Race: passed.
 - Full Go repository test under standard CI permission-test `umask=022`: passed.
-- GitHub Actions Run `30279794834` for the Engineering Source Commit: passed.
-- Release truth positive vector and four negative mutations: passed.
+- TypeScript SDK build, four Node tests and canonical-registry dependency audit: passed.
+- GitHub Actions for the current Engineering Source Commit: pending.
+- Historical GitHub Actions Run `30488889722` passed for prior source `84872ff9042ed9f4364645750bbfa2dc3475e80b`; it is not current-source evidence.
+- Release truth positive vector and five negative mutations: passed.
 - Public artifacts published by CI: none.
 
 ## Completion boundary

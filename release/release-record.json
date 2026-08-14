@@ -2,10 +2,10 @@
   "schemaVersion": 2,
   "productId": "ynx-data-fabric",
   "productName": "YNX Data Fabric & Billing Ledger",
-  "release": "ynx-data-fabric-84872ff9042e",
+  "release": "ynx-data-fabric-314a17f96b89",
   "channel": "testnet-preview",
-  "sourceCommit": "84872ff9042ed9f4364645750bbfa2dc3475e80b",
-  "generatedAt": "2026-07-29T20:40:02Z",
+  "sourceCommit": "314a17f96b89145b6feed6d61294f19376c2c9ef",
+  "generatedAt": "2026-08-14T03:35:07Z",
   "phase": "INTEGRATE",
   "overallStatus": "ACTIVE",
   "states": {
@@ -73,23 +73,24 @@
   },
   "evidence": {
     "local": {
-      "sourceCommit": "84872ff9042ed9f4364645750bbfa2dc3475e80b",
+      "sourceCommit": "314a17f96b89145b6feed6d61294f19376c2c9ef",
       "fullGoTest": "passed-with-standard-umask",
       "dataFabricRace": "passed",
       "schemaContract": "passed",
-      "releaseTruth": "passed"
+      "releaseTruth": "passed",
+      "typeScriptSDK": "passed"
     },
     "remoteCI": {
-      "runId": 30488889722,
+      "runId": null,
       "workflow": "data-fabric",
-      "sourceCommit": "84872ff9042ed9f4364645750bbfa2dc3475e80b",
-      "headCommit": "a737b19c92ae53f89792694cfe0d6de16567ae49",
-      "status": "completed",
-      "conclusion": "success",
-      "startedAt": "2026-07-29T20:33:05Z",
-      "duration": "3m28s",
+      "sourceCommit": "314a17f96b89145b6feed6d61294f19376c2c9ef",
+      "headCommit": null,
+      "status": "pending",
+      "conclusion": null,
+      "startedAt": null,
+      "duration": null,
       "artifactsPublished": false,
-      "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30488889722"
+      "url": null
     },
     "sourceCandidate": {
       "tag": "data-fabric-v0.2.0-source-candidate",
@@ -105,7 +106,8 @@
         "sha256": "83f7f9ab449a61dcc1fe4006889f230b0c662b4678d522b1f0e6499eb81df848"
       },
       "verification": "downloaded-all-assets-and-matched-sha256",
-      "publicStateChanged": false
+      "publicStateChanged": false,
+      "currentSourceIncluded": false
     },
     "coverage": ".ai-bridge/full-goal-coverage.json",
     "integrationContract": "release/integration/ynx-data-fabric-contract.json",
@@ -113,13 +115,6 @@
     "crossProductVectors": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
     "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md"
   },
-  "blockingEvidence": [
-    "central Wallet/Auth and App Gateway owner acceptance",
-    "shared Testnet product producer and consumer receipts",
-    "production-shaped JetStream and PostgreSQL capacity, partition and recovery drills",
-    "approved secure signer path and immutable public HTTPS hosting",
-    "public runtime, health, support, privacy, security and status URLs",
-    "production artifact, SBOM, provenance, hash, bytes and cold-install receipts"
-  ],
+  "blockingEvidence": ["central Wallet/Auth and App Gateway owner acceptance", "shared Testnet product producer and consumer receipts", "production-shaped JetStream and PostgreSQL capacity, partition and recovery drills", "approved secure signer path and immutable public HTTPS hosting", "public runtime, health, support, privacy, security and status URLs", "production artifact, SBOM, provenance, hash, bytes and cold-install receipts"],
   "nextAction": "Execute central producer acceptance and shared-Testnet Pay flow before any PUBLIC phase transition."
 }

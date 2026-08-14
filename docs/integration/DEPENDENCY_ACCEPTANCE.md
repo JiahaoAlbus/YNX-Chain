@@ -1,7 +1,7 @@
 # YNX Data Fabric Dependency Acceptance
 
-Source Commit: `3a1bcceddc9e680761ce9563bb3d6cd823037222`
-Release Candidate: `ynx-data-fabric-3a1bcceddc9e`
+Source Commit: `314a17f96b89145b6feed6d61294f19376c2c9ef`
+Release Candidate: `ynx-data-fabric-314a17f96b89`
 Phase: `INTEGRATE`
 Overall Status: `ACTIVE`
 

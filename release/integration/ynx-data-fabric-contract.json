@@ -6,9 +6,9 @@
   "slug": "data-fabric",
   "owner": "26-data-fabric",
   "serviceId": "ynx-data-fabric",
-  "release": "ynx-data-fabric-84872ff9042e",
-  "sourceCommit": "84872ff9042ed9f4364645750bbfa2dc3475e80b",
-  "generatedAt": "2026-07-29T20:25:09Z",
+  "release": "ynx-data-fabric-314a17f96b89",
+  "sourceCommit": "314a17f96b89145b6feed6d61294f19376c2c9ef",
+  "generatedAt": "2026-08-14T03:35:07Z",
   "phase": "INTEGRATE",
   "protocol": {
     "eventEnvelope": {
@@ -32,41 +32,17 @@
   },
   "api": {
     "basePath": "/v1",
-    "surfaces": [
-      "event ingestion",
-      "schema lookup and compatibility",
-      "Saga state and recovery",
-      "Ledger journal and correction",
-      "billing settlement",
-      "reconciliation",
-      "subject export and erasure",
-      "audit export",
-      "health",
-      "ready",
-      "version",
-      "metrics",
-      "operator console"
-    ],
+    "surfaces": ["event ingestion", "schema lookup and compatibility", "Saga state and recovery", "Ledger journal and correction", "billing settlement", "reconciliation", "subject export and erasure", "audit export", "health", "ready", "version", "metrics", "operator console"],
     "implementation": "internal/datafabricapi",
     "cli": "cmd/ynx-data-fabricctl",
-    "sdk": "sdk/datafabric"
+    "sdk": "sdk/datafabric",
+    "sdks": ["sdk/datafabric", "sdk/datafabric-typescript"]
   },
   "authorization": {
     "owner": "YNX Wallet/Auth and App Gateway",
     "credentialTransport": "opaque-app-session-and-device-signature-headers",
     "rejectedCredentialTransport": ["authorization-bearer", "browser-long-lived-token", "browser-cookie"],
-    "requiredScopes": [
-      "data-fabric.events.write",
-      "data-fabric.events.read",
-      "data-fabric.ledger.read",
-      "data-fabric.ledger.write",
-      "data-fabric.reconciliation.read",
-      "data-fabric.reconciliation.write",
-      "data-fabric.audit.export",
-      "data-fabric.privacy.export",
-      "data-fabric.privacy.delete",
-      "data-fabric.operator.recover"
-    ],
+    "requiredScopes": ["data-fabric.events.write", "data-fabric.events.read", "data-fabric.ledger.read", "data-fabric.ledger.write", "data-fabric.reconciliation.read", "data-fabric.reconciliation.write", "data-fabric.audit.export", "data-fabric.privacy.export", "data-fabric.privacy.delete", "data-fabric.operator.recover"],
     "walletTuple": ["sessionId", "deviceId", "product", "bundleId", "accountId", "requiredScope"],
     "signedIntentBindings": ["requestId", "requestNonce", "requestTimestamp", "requestMethod", "requestPath", "contentSha256", "requestSignature"],
     "freshness": "not-older-than-2m-and-not-more-than-30s-future",
@@ -76,21 +52,7 @@
   "canonicalEvents": {
     "registry": "schemas/data-fabric/schema-registry-v2.json",
     "productContracts": "integration/product-event-contracts.json",
-    "requiredSagas": [
-      "wallet-session-revoke",
-      "pay-invoice-receipt-refund",
-      "shop-order-inventory-payment-fulfillment",
-      "merchant-webhook-reconciliation-settlement",
-      "exchange-order-fill-funding-fee",
-      "dex-swap-lp-vault",
-      "quant-mandate-pnl-fee-kill-switch",
-      "trust-case-appeal-correction",
-      "resource-usage-settlement",
-      "cloud-usage-billing",
-      "ai-usage-cost",
-      "mail-delivery",
-      "creator-revenue"
-    ]
+    "requiredSagas": ["wallet-session-revoke", "pay-invoice-receipt-refund", "shop-order-inventory-payment-fulfillment", "merchant-webhook-reconciliation-settlement", "exchange-order-fill-funding-fee", "dex-swap-lp-vault", "quant-mandate-pnl-fee-kill-switch", "trust-case-appeal-correction", "resource-usage-settlement", "cloud-usage-billing", "ai-usage-cost", "mail-delivery", "creator-revenue"]
   },
   "errorCodes": {
     "implementation": "internal/datafabric/errors.go",
@@ -118,22 +80,48 @@
     "requiredNegativeClasses": ["unknown-field", "invalid-version", "duplicate", "out-of-order", "tamper", "wrong-product", "wrong-device", "scope-widening", "expiry", "revoke", "broker-outage", "consumer-crash", "schema-upgrade", "ledger-imbalance", "stale-recovery-lease"]
   },
   "dependencies": [
-    {"owner": "YNX Wallet/Auth", "contract": "canonical session, device challenge, introspection and revoke", "acceptance": "pending"},
-    {"owner": "YNX App Gateway", "contract": "signed request forwarding and product registration", "acceptance": "pending"},
-    {"owner": "YNX Pay", "contract": "BFT invoice, authorization, receipt and refund source", "acceptance": "testedLocal-not-central"},
-    {"owner": "YNX Chain Core", "contract": "finalized chain events and settlement observations", "acceptance": "pending-shared-testnet"},
-    {"owner": "product producers", "contract": "registered v2 events, fees and Saga compensation", "acceptance": "pending-except-local-pay-adapter"},
-    {"owner": "YNX Integration", "contract": "protocol freeze and shared Testnet ordering", "acceptance": "pending"},
-    {"owner": "YNX Security/SRE", "contract": "deployment, signer, broker, database, backup, alert and artifact policy", "acceptance": "pending"},
-    {"owner": "YNX Website", "contract": "truthful public metadata, status and download publication", "acceptance": "pending"}
+    {
+      "owner": "YNX Wallet/Auth",
+      "contract": "canonical session, device challenge, introspection and revoke",
+      "acceptance": "pending"
+    },
+    {
+      "owner": "YNX App Gateway",
+      "contract": "signed request forwarding and product registration",
+      "acceptance": "pending"
+    },
+    {
+      "owner": "YNX Pay",
+      "contract": "BFT invoice, authorization, receipt and refund source",
+      "acceptance": "testedLocal-not-central"
+    },
+    {
+      "owner": "YNX Chain Core",
+      "contract": "finalized chain events and settlement observations",
+      "acceptance": "pending-shared-testnet"
+    },
+    {
+      "owner": "product producers",
+      "contract": "registered v2 events, fees and Saga compensation",
+      "acceptance": "pending-except-local-pay-adapter"
+    },
+    {
+      "owner": "YNX Integration",
+      "contract": "protocol freeze and shared Testnet ordering",
+      "acceptance": "pending"
+    },
+    {
+      "owner": "YNX Security/SRE",
+      "contract": "deployment, signer, broker, database, backup, alert and artifact policy",
+      "acceptance": "pending"
+    },
+    {
+      "owner": "YNX Website",
+      "contract": "truthful public metadata, status and download publication",
+      "acceptance": "pending"
+    }
   ],
-  "externalInputs": [
-    "accepted central Wallet/Auth and App Gateway endpoints and trust roots",
-    "shared Testnet PostgreSQL and JetStream deployment authority",
-    "approved secure signer path",
-    "immutable HTTPS artifact hosting",
-    "public runtime, status, support, privacy and security endpoints"
-  ],
+  "externalInputs": ["accepted central Wallet/Auth and App Gateway endpoints and trust roots", "shared Testnet PostgreSQL and JetStream deployment authority", "approved secure signer path", "immutable HTTPS artifact hosting", "public runtime, status, support, privacy and security endpoints"],
   "releaseStates": {
     "implementedLocal": true,
     "testedLocal": true,

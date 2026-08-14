@@ -4,15 +4,15 @@
 - Phase: `INTEGRATE`
 - Workspace: exact configured YNX 26 Worktree verified
 - Branch: `codex/final-data-fabric`
-- Engineering Source Commit: `3a1bcceddc9e680761ce9563bb3d6cd823037222`
-- Remote Source Commit: identical after push verification
-- Source CI: GitHub Actions Run `30279794834`, completed successfully
-- Concurrent writer: none detected for this Worktree
+- Engineering Source Commit: `314a17f96b89145b6feed6d61294f19376c2c9ef`
+- Remote Source Commit: pending push and exact verification for this slice
+- Source CI: pending for the current source; historical Run `30488889722` covers prior source only
+- Concurrent writer: no Git writer detected; an existing CodexPro server process was left untouched
 - Dirty state: reviewed and verified source-bound evidence slice awaiting commit and push; legacy recovery files are preserved under `recovery/2026-07-23/`
 
 ## Verified capabilities
 
-Canonical Envelope v2 and v1 migration compatibility, Schema Registry v2, transactional Outbox and Inbox, idempotent consumers, retry, DLQ, replay, Saga recovery, immutable double-entry corrections, atomic usage billing, Pay BFT ingestion and refund reconciliation, API, SDK, CLI, PostgreSQL migrations through 0006, backup and restore, operator console, Linux package installation and cold-start gates.
+Canonical Envelope v2 and v1 migration compatibility, Schema Registry v2, transactional Outbox and Inbox, idempotent consumers, retry, DLQ, replay, Saga recovery, immutable double-entry corrections, atomic usage billing, Pay BFT ingestion and refund reconciliation, API, Go and TypeScript SDKs, CLI, PostgreSQL migrations through 0006, backup and restore, operator console, package installation and cold-start gates.
 
 ## Unverified or incomplete states
 

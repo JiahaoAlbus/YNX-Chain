@@ -2,11 +2,11 @@
   "schemaVersion": 2,
   "productId": "ynx-data-fabric",
   "productName": "YNX Data Fabric & Billing Ledger",
-  "release": "ynx-data-fabric-84872ff9042e",
+  "release": "ynx-data-fabric-314a17f96b89",
   "channel": "testnet-preview",
-  "sourceCommit": "84872ff9042ed9f4364645750bbfa2dc3475e80b",
-  "sourceRelease": "ynx-data-fabric-84872ff9042e",
-  "generatedAt": "2026-07-29T20:40:02Z",
+  "sourceCommit": "314a17f96b89145b6feed6d61294f19376c2c9ef",
+  "sourceRelease": "ynx-data-fabric-314a17f96b89",
+  "generatedAt": "2026-08-14T03:35:07Z",
   "states": {
     "implementedLocal": true,
     "testedLocal": true,
@@ -29,7 +29,7 @@
   },
   "delivery": {
     "productClass": "headless-data-plane-with-responsive-operator-console",
-    "runtimePlatforms": ["Linux server", "command line", "Go SDK", "systemd package"],
+    "runtimePlatforms": ["Linux server", "command line", "Go SDK", "systemd package", "TypeScript SDK"],
     "nativeStoreApps": "notApplicable",
     "candidateArtifactClass": "ephemeral-unsigned-testnet-package-installed-and-cold-started-in-linux-ci",
     "containerPublished": false
@@ -38,30 +38,22 @@
   "artifacts": [],
   "evidence": {
     "localVerification": {
-      "sourceCommit": "84872ff9042ed9f4364645750bbfa2dc3475e80b",
+      "sourceCommit": "314a17f96b89145b6feed6d61294f19376c2c9ef",
       "status": "passed",
       "environment": "macOS development environment with standard umask for cross-repository permission vectors",
-      "commands": [
-        "go test ./internal/datafabric -count=1",
-        "go test ./internal/datafabricapi ./internal/datafabricpay ./internal/datafabricpayledger -count=1",
-        "go test -race ./internal/datafabric -count=1",
-        "jq empty schemas/data-fabric/event-envelope-v1.schema.json schemas/data-fabric/event-envelope-v2.schema.json schemas/data-fabric/schema-registry-v2.json integration/product-event-contracts.json",
-        "bash -lc 'umask 022; exec go test ./... -count=1'",
-        "go test -race ./internal/datafabric ./internal/datafabricapi ./internal/datafabricnats ./internal/datafabricpay ./internal/datafabricpayledger ./internal/datafabricpostgres ./sdk/datafabric -count=1",
-        "bash scripts/data-fabric/quality-gates.sh"
-      ]
+      "commands": ["go test ./internal/datafabric -count=1", "go test ./internal/datafabricapi ./internal/datafabricpay ./internal/datafabricpayledger -count=1", "go test -race ./internal/datafabric -count=1", "jq empty schemas/data-fabric/event-envelope-v1.schema.json schemas/data-fabric/event-envelope-v2.schema.json schemas/data-fabric/schema-registry-v2.json integration/product-event-contracts.json", "bash -lc 'umask 022; exec go test ./... -count=1'", "go test -race ./internal/datafabric ./internal/datafabricapi ./internal/datafabricnats ./internal/datafabricpay ./internal/datafabricpayledger ./internal/datafabricpostgres ./sdk/datafabric -count=1", "bash scripts/data-fabric/quality-gates.sh", "npm test --prefix sdk/datafabric-typescript", "npm audit --audit-level=high --registry=https://registry.npmjs.org --prefix sdk/datafabric-typescript"]
     },
     "remoteCI": {
-      "runId": 30488889722,
+      "runId": null,
       "workflow": "data-fabric",
-      "sourceCommit": "84872ff9042ed9f4364645750bbfa2dc3475e80b",
-      "headCommit": "a737b19c92ae53f89792694cfe0d6de16567ae49",
-      "status": "completed",
-      "conclusion": "success",
-      "startedAt": "2026-07-29T20:33:05Z",
-      "duration": "3m28s",
+      "sourceCommit": "314a17f96b89145b6feed6d61294f19376c2c9ef",
+      "headCommit": null,
+      "status": "pending",
+      "conclusion": null,
+      "startedAt": null,
+      "duration": null,
       "artifactsPublished": false,
-      "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30488889722"
+      "url": null
     },
     "sourceCandidate": {
       "tag": "data-fabric-v0.2.0-source-candidate",
@@ -77,14 +69,10 @@
         "sha256": "83f7f9ab449a61dcc1fe4006889f230b0c662b4678d522b1f0e6499eb81df848"
       },
       "verification": "downloaded-all-assets-and-matched-sha256",
-      "publicStateChanged": false
+      "publicStateChanged": false,
+      "currentSourceIncluded": false
     }
   },
-  "limitations": [
-    "No central product-owner acceptance receipt exists for the full producer set.",
-    "No shared Testnet, staging or public runtime receipt is recorded for this source.",
-    "No immutable public download, production signature or public health endpoint is recorded.",
-    "The successful Linux CI package and cold-start path is a Testnet candidate class, not a public production release."
-  ],
+  "limitations": ["No central product-owner acceptance receipt exists for the full producer set.", "No shared Testnet, staging or public runtime receipt is recorded for this source.", "No immutable public download, production signature or public health endpoint is recorded.", "The successful Linux CI package and cold-start path is a Testnet candidate class, not a public production release."],
   "nextAction": "Continue central producer acceptance and shared-Testnet integration while keeping all public and production states false until direct receipts exist."
 }

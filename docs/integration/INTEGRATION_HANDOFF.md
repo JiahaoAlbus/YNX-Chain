@@ -1,7 +1,7 @@
 # YNX Data Fabric Integration Handoff
 
-Source Commit: `3a1bcceddc9e680761ce9563bb3d6cd823037222`
-Release Candidate: `ynx-data-fabric-3a1bcceddc9e`
+Source Commit: `314a17f96b89145b6feed6d61294f19376c2c9ef`
+Release Candidate: `ynx-data-fabric-314a17f96b89`
 Owner: YNX Data Fabric
 Phase: `INTEGRATE`
 Status: `ACTIVE`
@@ -12,6 +12,8 @@ Status: `ACTIVE`
 - Canonical Envelope v2: `schemas/data-fabric/event-envelope-v2.schema.json`
 - Compatibility Envelope v1: `schemas/data-fabric/event-envelope-v1.schema.json`
 - Schema Registry v2: `schemas/data-fabric/schema-registry-v2.json`
+- Go SDK: `sdk/datafabric`
+- TypeScript SDK: `sdk/datafabric-typescript`
 - Product event ownership: `integration/product-event-contracts.json`
 - Cross-product vectors: `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json`
 - Dependency acceptance: `docs/integration/DEPENDENCY_ACCEPTANCE.md`
@@ -21,9 +23,9 @@ Status: `ACTIVE`
 
 | State | Value | Direct basis |
 |---|---:|---|
-| implementedLocal | true | Runtime, API, SDK, CLI, Ledger, Saga, migrations, backup and release tooling are present |
+| implementedLocal | true | Runtime, API, Go and TypeScript SDKs, CLI, Ledger, Saga, migrations, backup and release tooling are present |
 | testedLocal | true | Targeted tests, Data Fabric Race and full Go test with standard umask passed |
-| installedLocal | true | Linux CI installs and cold-starts the source-bound Testnet package |
+| installedLocal | true | Current-source local package, install and host cold-start gates pass |
 | integratedCentral | false | No complete owner-acceptance receipt set exists |
 | deployedStaging | false | No staging deployment receipt exists |
 | deployedPublic | false | No public runtime or health receipt exists |
@@ -31,11 +33,11 @@ Status: `ACTIVE`
 | productionSigned | false | Only test-fixture signing is exercised |
 | storeReleased | false | Native app-store delivery is not applicable to this headless service |
 
-Remote CI Run `30279794834` completed successfully for the Source Commit. The workflow publishes no downloadable artifact.
+Remote CI is pending for the current Source Commit. Historical Run `30488889722` passed for prior source `84872ff9042ed9f4364645750bbfa2dc3475e80b`; it does not prove the current TypeScript SDK slice. The workflow publishes no downloadable artifact.
 
 ## Current executable integration
 
-The YNX Pay BFT bridge reads authoritative Pay state, emits canonical Pay events, drives the Pay Saga and posts receipt and refund effects to the immutable Billing Ledger. This path is locally and CI tested but is not yet centrally accepted or shared-Testnet verified.
+The YNX Pay BFT bridge reads authoritative Pay state, emits canonical Pay events, drives the Pay Saga and posts receipt and refund effects to the immutable Billing Ledger. This path is locally tested but is not yet current-source CI verified, centrally accepted or shared-Testnet verified.
 
 ## Required merge and acceptance order
 

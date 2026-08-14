@@ -1,16 +1,16 @@
 # YNX Data Fabric Evidence Index
 
-Engineering Source Commit: `3a1bcceddc9e680761ce9563bb3d6cd823037222`
-Release Candidate: `ynx-data-fabric-3a1bcceddc9e`
+Engineering Source Commit: `314a17f96b89145b6feed6d61294f19376c2c9ef`
+Release Candidate: `ynx-data-fabric-314a17f96b89`
 Phase: `INTEGRATE`
 Status: `ACTIVE`
 
 ## Source, Git and CI
 
 - Exact YNX 26 Workspace and `codex/final-data-fabric` Branch were verified before modification.
-- No active writer, test, commit or push process was found for this Worktree.
-- Commit `3a1bcceddc9e680761ce9563bb3d6cd823037222` was pushed without force and verified with `git ls-remote`.
-- GitHub Actions Run `30279794834` completed successfully for the Engineering Source Commit in three minutes and forty-seven seconds.
+- No concurrent Git writer was found. A CodexPro server process was observed for this Worktree and left untouched.
+- Commit `314a17f96b89145b6feed6d61294f19376c2c9ef` is the locally frozen Engineering Source Commit; push and exact remote verification are pending at this evidence checkpoint.
+- GitHub Actions is pending for the current Engineering Source Commit. Historical Run `30488889722` passed for prior source `84872ff9042ed9f4364645750bbfa2dc3475e80b` and is retained only as historical evidence.
 - The workflow runs full Go tests, Data Fabric Race tests, vet, vulnerability analysis, Linux builds and hashes, SBOM generation, quality gates, secret scanning, JSON validation and isolated PostgreSQL 17.10 transaction and logical backup/restore tests.
 - The workflow does not upload a public artifact; `downloadHosted` and all public states remain false.
 - The two stale untracked recovery summaries discovered at takeover are preserved under `recovery/2026-07-23/` and are not current truth.
@@ -48,6 +48,7 @@ Status: `ACTIVE`
 
 - API: `internal/datafabricapi`
 - Go SDK: `sdk/datafabric`
+- TypeScript SDK: `sdk/datafabric-typescript`; its producer and consumer clients enforce HTTPS outside loopback, canonical credential bindings, event and delivery HMAC verification, response byte limits and strict receipt shapes.
 - Daemon, worker and operator CLI: `cmd/ynx-data-fabricd`, `cmd/ynx-data-fabric-worker`, `cmd/ynx-data-fabricctl`
 - Structured health, ready, version and metrics surfaces: `internal/datafabricapi/server.go`
 - Alerts and dashboards: `infra/data-fabric/alerts.yml`, `infra/data-fabric/grafana-dashboard.json`
@@ -73,13 +74,15 @@ The release truth gate derives the latest Engineering Source Commit from tracked
 go test ./internal/datafabric -count=1
 go test ./internal/datafabricapi ./internal/datafabricpay ./internal/datafabricpayledger -count=1
 go test -race ./internal/datafabric -count=1
+npm test --prefix sdk/datafabric-typescript
+npm audit --audit-level=high --registry=https://registry.npmjs.org --prefix sdk/datafabric-typescript
 jq empty schemas/data-fabric/event-envelope-v1.schema.json schemas/data-fabric/event-envelope-v2.schema.json schemas/data-fabric/schema-registry-v2.json integration/product-event-contracts.json
 bash -lc 'umask 022; exec go test ./... -count=1'
 node scripts/data-fabric/release-truth-check-check.mjs
 bash scripts/data-fabric/quality-gates.sh
 ```
 
-The first full-repository run under the caller's restrictive `umask=077` invalidated three unrelated permission-negative fixtures by turning requested `0644` files into `0600`. Re-running with the standard CI `umask=022` restored the intended unsafe-file precondition and the full repository passed. This is recorded as an environment diagnosis, not hidden as a green result.
+The full repository test passed under the standard CI `umask=022`. The TypeScript SDK and cross-language signature vector also passed. Current-source remote CI remains pending and is not inferred from local results.
 
 ## Evidence still missing
 
