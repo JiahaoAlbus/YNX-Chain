@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 1,
+  "productId": "wallet-desktop",
+  "version": "0.1.0",
+  "sourceCommit": "23744b912c19b6f21bfb5544dea40f198905a15d",
+  "runtime": {"electron": "42.8.0", "node": "24.18.0"},
+  "releaseClass": "unsigned-testnet-engineering-preview",
+  "workflow": {
+    "runId": 31767726607,
+    "runUrl": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/31767726607",
+    "buildJobId": 94666935377,
+    "downloadVerificationJobId": 94667542155,
+    "conclusion": "success",
+    "runner": "windows-11-arm",
+    "runnerOS": "Microsoft Windows 11 Enterprise 10.0.26200"
+  },
+  "artifact": {
+    "id": 9206993617,
+    "name": "ynx-wallet-desktop-windows-arm64",
+    "archiveBytes": 103890371,
+    "archiveSha256": "5d52c04845f661763d78463e121c3eff169c71ad80cec382d7e21ee575a75829",
+    "downloadedAndVerifiedOnNativeRunner": true,
+    "files": [
+      {
+        "filename": "ynx-wallet-desktop-0.1.0-arm64.exe",
+        "format": "NSIS per-user installer",
+        "architecture": "arm64",
+        "bytes": 103884766,
+        "sha256": "d4a984bfec5ca5ab0f241bf1b847920d34292f87f72250363d272342488b3c39",
+        "minimumOS": "Windows 11 arm64 directly tested; earlier Windows arm64 not evidenced",
+        "signingClass": "unsigned_windows_nsis_testnet_candidate",
+        "authenticodeStatus": "NotSigned",
+        "productionSigned": false,
+        "installedOnNativeRunner": true
+      }
+    ]
+  },
+  "downloadVerificationArtifact": {
+    "id": 9206998670,
+    "name": "ynx-wallet-desktop-windows-arm64-download-verification",
+    "archiveBytes": 406,
+    "archiveSha256": "235b6d5dc73ca745a14edb3295e7f4ea6f5e4d3b8e5a11a72714b89f064b63fd",
+    "manifestPresent": true,
+    "lifecyclePresent": true,
+    "sha256Verified": true,
+    "bytesVerified": true
+  },
+  "readbackEvidence": {
+    "sourceCommit": "957e65e3a9165f5170a46f4215f6188d4ba65802",
+    "runId": 31768225384,
+    "runUrl": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/31768225384",
+    "jobId": 94668449647,
+    "conclusion": "success",
+    "verificationArtifactDownloaded": true,
+    "verificationArtifactDigestVerified": true
+  },
+  "lifecycleEvidence": {
+    "installed": true,
+    "upgraded": true,
+    "coldLaunch": true,
+    "secondLaunch": true,
+    "processObserved": true,
+    "coldWindowTitleObserved": true,
+    "secondWindowTitleObserved": true,
+    "appReportedWindowVisible": true,
+    "appReportedWindowTitle": "YNX Wallet Testnet Preview",
+    "rpcEndpoint": "https://evm.ynxweb4.com",
+    "rpcMethod": "eth_chainId",
+    "chainId": "0x1917",
+    "rpcFailureClosed": true,
+    "frozenWalletAuthImported": true,
+    "accountCreated": false,
+    "balanceClaimed": false,
+    "transactionCreated": false,
+    "signingEnabled": false,
+    "uninstalled": true,
+    "installedExecutableRemoved": true,
+    "productionSigned": false
+  },
+  "releaseState": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": false,
+    "installedNativeCI": true,
+    "upgradeTestedNativeCI": true,
+    "uploadedArtifactDownloadedAndVerifiedNativeCI": true,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}
