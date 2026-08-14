@@ -65,9 +65,9 @@
     },
     {
       "id": "macos-arm64-ad-hoc",
-      "sourceCommit": "3150165e14f38031b9a089b029b623f67cd6df85",
+      "sourceCommit": "d71c9c9626f584fcb91aadf7aa44b8928f949385",
       "artifactName": "YNX-Wallet-macOS-ad-hoc.zip",
-      "sha256": "1a4d7cbc7da0fbfac4be6ff8e7e690b1c9880ec2ca7b2407ae1efb38611ff7f5",
+      "sha256": "14c76db5ac7585f7e468fdaae08e4f82e219e524cec2c20802c29333eceba7e8",
       "signingClass": "ad-hoc-local-arm64-app",
       "publicUrl": null,
       "immutableUrl": null,
@@ -75,7 +75,7 @@
       "productionSigned": false,
       "storeReleased": false,
       "websitePublishable": false,
-      "exclusionReason": "The local ad-hoc app is not Developer ID signed, notarized, hosted or store released."
+      "exclusionReason": "The hosted-runner ad-hoc app is a temporary CI artifact, not Developer ID signed, notarized, publicly hosted or store released."
     },
     {
       "id": "linux-desktop-x64",
@@ -160,6 +160,34 @@
       "storeReleased": false,
       "websitePublishable": false,
       "exclusionReason": "Portable arm64 runtime and post-upload hash verification do not prove installation, production signing or immutable public hosting."
+    },
+    {
+      "id": "linux-arm64-deb",
+      "sourceCommit": "37dcea8fa7e35bd765025fc3c89a6af47b6b8b8a",
+      "artifactName": "ynx-wallet-desktop-0.1.0-arm64.deb",
+      "sha256": "dc5d0bd9e30fcebe1927c31a13f81fbb37fd7282175b47fef997c66499d730d5",
+      "signingClass": "unsigned-linux-deb-testnet-candidate",
+      "publicUrl": null,
+      "immutableUrl": null,
+      "downloadHosted": false,
+      "productionSigned": false,
+      "storeReleased": false,
+      "websitePublishable": false,
+      "exclusionReason": "Native arm64 CI install, upgrade, lifecycle, uninstall and redownload hashing do not prove local-user installation, signing or immutable public hosting."
+    },
+    {
+      "id": "windows-desktop-arm64",
+      "sourceCommit": "931b70fc0dd4e7ff01542065099aeaa0b3f25a51",
+      "artifactName": "ynx-wallet-desktop-0.1.0-arm64.exe",
+      "sha256": "d4a984bfec5ca5ab0f241bf1b847920d34292f87f72250363d272342488b3c39",
+      "signingClass": "unsigned-windows-desktop-testnet-candidate",
+      "publicUrl": null,
+      "immutableUrl": null,
+      "downloadHosted": false,
+      "productionSigned": false,
+      "storeReleased": false,
+      "websitePublishable": false,
+      "exclusionReason": "Native Windows 11 arm64 CI lifecycle and artifact readback do not make the Authenticode NotSigned installer a hosted or production release."
     },
     {
       "id": "typescript-sdk-0.2.0",

@@ -17,8 +17,8 @@
       "expectedErrorContains": "android-api36 forbidden artifact class cannot be productionSigned"
     },
     {
-      "id": "PENDING_IOS_CANNOT_PROMOTE",
-      "mutation": {"platformId":"ios-simulator","gate":"build","value":true},
+      "id": "PENDING_PLATFORM_CANNOT_PROMOTE",
+      "mutation": {"platformId":"ios-simulator","status":"pending-owner-evidence","gate":"build","value":true},
       "expectedExit": 1,
       "expectedErrorContains": "ios-simulator pending status cannot contain true gates"
     },

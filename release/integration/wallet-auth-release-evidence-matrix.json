@@ -33,88 +33,51 @@
     "promotionEffect": "Source and local/CI evidence advanced only where exact remote objects and Owner terminal evidence agreed. No public, hosted, production, store, callback, reconnect, signing or transaction gate was promoted without direct evidence."
   },
   "pendingOwnerCommits": [],
-  "pendingOwnerEvidence": [
-    {
-      "owner": "core-auth-gateway",
-      "candidateCommit": "394a2728a8c0737dff025dd459e91d376a5c44ff",
-      "remoteFastForwardReported": true,
-      "remoteReadbackComplete": true,
-      "ciComplete": null,
-      "consumedForReleaseTruth": false,
-      "note": "The Core branch advanced after the consumed persistence evidence freeze; no later Owner terminal evidence statement has been supplied."
-    },
-    {
-      "owner": "android-api36",
-      "candidateCommit": "ab2c137950297f58bb95b9e614ce22bea3a40ca6",
-      "remoteFastForwardReported": true,
-      "remoteReadbackComplete": true,
-      "ciComplete": null,
-      "consumedForReleaseTruth": false,
-      "note": "Android SecureStore/reconstruction continuation is source-only pending its Owner evidence checkpoint; device and transaction states remain unchanged."
-    },
-    {
-      "owner": "desktop-cli-sdk",
-      "candidateCommit": "864e72af0a33fcd2c687a7f3a0eda70b22f929e0",
-      "remoteFastForwardReported": true,
-      "remoteReadbackComplete": true,
-      "ciComplete": null,
-      "consumedForReleaseTruth": false,
-      "note": "The Desktop branch advanced into the arm64 deb install workflow; no terminal evidence manifest has been supplied."
-    },
-    {
-      "owner": "ios-macos",
-      "candidateCommit": "4c8c464dffee289fd9173569915638f873409198",
-      "remoteFastForwardReported": true,
-      "remoteReadbackComplete": true,
-      "ciComplete": false,
-      "consumedForReleaseTruth": false,
-      "note": "The branch contains the callback-log capture commits, but no Owner terminal successful current-source CI evidence has been supplied to Integration."
-    }
-  ],
+  "pendingOwnerEvidence": [],
   "ownerSources": [
     {
       "owner": "core-auth-gateway",
       "branch": "codex/wallet-core-auth-gateway-continuation-20260814",
-      "sourceCommit": "e2aaff33832507b4a5ebf44d522a9b7ffa5d5ba4",
-      "remoteCommitObserved": "e2aaff33832507b4a5ebf44d522a9b7ffa5d5ba4",
-      "branchHeadObserved": "394a2728a8c0737dff025dd459e91d376a5c44ff",
-      "remoteVerifiedAt": "2026-08-14T03:27:00Z",
+      "sourceCommit": "bdb40572570b02b913dbfb14165d35d54a1129ba",
+      "remoteCommitObserved": "bdb40572570b02b913dbfb14165d35d54a1129ba",
+      "branchHeadObserved": "bdb40572570b02b913dbfb14165d35d54a1129ba",
+      "remoteVerifiedAt": "2026-08-14T04:10:00Z",
       "verificationMode": "github-git-database-parent-tree-blob-readback"
     },
     {
       "owner": "web-pwa-extensions",
       "branch": "codex/wallet-web-pwa-extensions-20260813",
-      "sourceCommit": "d8f96c0649576cc645b3bc1651148dd0318bc243",
-      "remoteCommitObserved": "d8f96c0649576cc645b3bc1651148dd0318bc243",
-      "branchHeadObserved": "d8f96c0649576cc645b3bc1651148dd0318bc243",
+      "sourceCommit": "45e5d63c5461424a963b1f8e867f82813ba0010b",
+      "remoteCommitObserved": "45e5d63c5461424a963b1f8e867f82813ba0010b",
+      "branchHeadObserved": "45e5d63c5461424a963b1f8e867f82813ba0010b",
       "remoteVerifiedAt": "2026-08-14T03:27:00Z",
       "verificationMode": "github-git-database-parent-tree-blob-readback"
     },
     {
       "owner": "android-api36",
       "branch": "codex/wallet-android-api36-continuation2-20260814",
-      "sourceCommit": "a0101ac491c2790d5cfdef99c2e11e3807d81aca",
-      "remoteCommitObserved": "a0101ac491c2790d5cfdef99c2e11e3807d81aca",
-      "branchHeadObserved": "ab2c137950297f58bb95b9e614ce22bea3a40ca6",
-      "remoteVerifiedAt": "2026-08-14T03:27:00Z",
+      "sourceCommit": "32f65897f4d5f1cf64366c0fab38fdfd8a6768f3",
+      "remoteCommitObserved": "32f65897f4d5f1cf64366c0fab38fdfd8a6768f3",
+      "branchHeadObserved": "32f65897f4d5f1cf64366c0fab38fdfd8a6768f3",
+      "remoteVerifiedAt": "2026-08-14T03:52:00Z",
       "verificationMode": "github-git-database-parent-tree-blob-readback"
     },
     {
       "owner": "ios-macos",
       "branch": "codex/wallet-ios-macos-20260813",
-      "sourceCommit": "3150165e14f38031b9a089b029b623f67cd6df85",
-      "remoteCommitObserved": "3150165e14f38031b9a089b029b623f67cd6df85",
-      "branchHeadObserved": "4c8c464dffee289fd9173569915638f873409198",
-      "remoteVerifiedAt": "2026-08-14T02:28:00Z",
-      "verificationMode": "shared-repository-origin-ref"
+      "sourceCommit": "d71c9c9626f584fcb91aadf7aa44b8928f949385",
+      "remoteCommitObserved": "d71c9c9626f584fcb91aadf7aa44b8928f949385",
+      "branchHeadObserved": "d71c9c9626f584fcb91aadf7aa44b8928f949385",
+      "remoteVerifiedAt": "2026-08-14T04:12:00Z",
+      "verificationMode": "github-git-database-parent-tree-blob-readback"
     },
     {
       "owner": "desktop-cli-sdk",
       "branch": "codex/wallet-desktop-cli-sdk-20260813",
-      "sourceCommit": "f76a416ebde087e16f1c0c02c80dc392e8c365e8",
-      "remoteCommitObserved": "f76a416ebde087e16f1c0c02c80dc392e8c365e8",
-      "branchHeadObserved": "864e72af0a33fcd2c687a7f3a0eda70b22f929e0",
-      "remoteVerifiedAt": "2026-08-14T03:27:00Z",
+      "sourceCommit": "931b70fc0dd4e7ff01542065099aeaa0b3f25a51",
+      "remoteCommitObserved": "931b70fc0dd4e7ff01542065099aeaa0b3f25a51",
+      "branchHeadObserved": "931b70fc0dd4e7ff01542065099aeaa0b3f25a51",
+      "remoteVerifiedAt": "2026-08-14T04:05:00Z",
       "verificationMode": "github-git-database-parent-tree-blob-readback"
     }
   ],
@@ -161,6 +124,27 @@
       "path": "apps/wallet/proof/gateway-node-persistence-atomicity-local-2026-08-14.json",
       "supports": []
     },
+    "gateway-registry-state-binding": {
+      "type": "git-object",
+      "direct": true,
+      "commit": "3e9ea51349facec1b19fcb2b6f55659862d6b5d8",
+      "path": "apps/wallet/proof/gateway-registry-state-binding-local-2026-08-14.json",
+      "supports": []
+    },
+    "gateway-state-file-security": {
+      "type": "git-object",
+      "direct": true,
+      "commit": "ed9683a78a84655ff0152ee011b579d0444bf593",
+      "path": "apps/wallet/proof/gateway-state-file-security-local-2026-08-14.json",
+      "supports": []
+    },
+    "gateway-node-crash-durability": {
+      "type": "git-object",
+      "direct": true,
+      "commit": "bdb40572570b02b913dbfb14165d35d54a1129ba",
+      "path": "apps/wallet/proof/gateway-node-crash-durability-local-2026-08-14.json",
+      "supports": []
+    },
     "web-artifacts": {
       "type": "git-object",
       "direct": true,
@@ -188,6 +172,20 @@
       "commit": "d8f96c0649576cc645b3bc1651148dd0318bc243",
       "path": "apps/wallet-web/evidence/runtime/artifact-integrity-gate-20260814.json",
       "supports": []
+    },
+    "web-edge-unpacked-negative-runtime": {
+      "type": "git-object",
+      "direct": true,
+      "commit": "725269c46c29681f5fe56480053b9da8891ab493",
+      "path": "apps/wallet-web/evidence/runtime/branded-extension-visible-popup-20260814.json",
+      "supports": []
+    },
+    "web-edge-popup-live-rpc-boundary": {
+      "type": "git-object",
+      "direct": true,
+      "commit": "45e5d63c5461424a963b1f8e867f82813ba0010b",
+      "path": "apps/wallet-web/evidence/runtime/branded-popup-live-rpc-boundary-20260814.json",
+      "supports": ["browser-extension.testnet"]
     },
     "web-pwa-browser": {
       "type": "git-object",
@@ -265,6 +263,27 @@
       "path": "docs/integration/WALLET_ANDROID_API36_HANDOFF.md",
       "supports": []
     },
+    "android-canonical-callback-source": {
+      "type": "git-object",
+      "direct": true,
+      "commit": "22b5ad572df41bcb32d0432c5963fd7a4400667c",
+      "path": "docs/integration/WALLET_ANDROID_API36_HANDOFF.md",
+      "supports": []
+    },
+    "android-audit-serialization-source": {
+      "type": "git-object",
+      "direct": true,
+      "commit": "580a150d058b30d9b19efa34b71c25e0d9555606",
+      "path": "docs/integration/WALLET_ANDROID_API36_HANDOFF.md",
+      "supports": []
+    },
+    "android-account-mutation-recovery-source": {
+      "type": "git-object",
+      "direct": true,
+      "commit": "32f65897f4d5f1cf64366c0fab38fdfd8a6768f3",
+      "path": "docs/integration/WALLET_ANDROID_API36_HANDOFF.md",
+      "supports": []
+    },
     "ios-current-head-workflow": {
       "type": "git-object",
       "direct": true,
@@ -279,12 +298,32 @@
       "path": "apps/wallet/proof/ios-simulator-callback-delivery-limitation-2026-08-14.json",
       "supports": []
     },
+    "ios-current-simulator-callback-delivery": {
+      "type": "git-object",
+      "direct": true,
+      "commit": "64fb45f824cb5b3bd959997b395755de2ba5c198",
+      "path": "apps/wallet/proof/ios-simulator-callback-delivery-2026-08-14.json",
+      "supports": [
+        "ios-simulator.build",
+        "ios-simulator.install",
+        "ios-simulator.coldLaunch",
+        "ios-simulator.secondLaunch",
+        "ios-simulator.callback"
+      ]
+    },
     "macos-native": {
       "type": "git-object",
       "direct": true,
       "commit": "3150165e14f38031b9a089b029b623f67cd6df85",
       "path": "apps/wallet/proof/macos-native-local-2026-08-13.json",
       "supports": ["macos.build", "macos.install", "macos.coldLaunch", "macos.secondLaunch"]
+    },
+    "macos-native-ci-current": {
+      "type": "git-object",
+      "direct": true,
+      "commit": "d71c9c9626f584fcb91aadf7aa44b8928f949385",
+      "path": "apps/wallet/proof/macos-native-ci-evidence-2026-08-14.json",
+      "supports": ["macos.build", "macos.install", "macos.coldLaunch", "macos.secondLaunch", "macos.callback"]
     },
     "linux-desktop-action": {
       "type": "git-object",
@@ -330,10 +369,23 @@
       "commit": "f76a416ebde087e16f1c0c02c80dc392e8c365e8",
       "path": "release/wallet-desktop/linux-arm64-appimage/manifest.json",
       "supports": [
-        "linux-desktop-arm64.build",
-        "linux-desktop-arm64.coldLaunch",
-        "linux-desktop-arm64.secondLaunch",
-        "linux-desktop-arm64.testnet"
+        "linux-desktop-arm64-appimage.build",
+        "linux-desktop-arm64-appimage.coldLaunch",
+        "linux-desktop-arm64-appimage.secondLaunch",
+        "linux-desktop-arm64-appimage.testnet"
+      ]
+    },
+    "linux-arm64-deb-action": {
+      "type": "git-object",
+      "direct": true,
+      "commit": "37dcea8fa7e35bd765025fc3c89a6af47b6b8b8a",
+      "path": "release/wallet-desktop/linux-arm64-deb/manifest.json",
+      "supports": [
+        "linux-desktop-arm64-deb.build",
+        "linux-desktop-arm64-deb.install",
+        "linux-desktop-arm64-deb.coldLaunch",
+        "linux-desktop-arm64-deb.secondLaunch",
+        "linux-desktop-arm64-deb.testnet"
       ]
     },
     "windows-desktop-action": {
@@ -347,6 +399,19 @@
         "windows-desktop-x64.coldLaunch",
         "windows-desktop-x64.secondLaunch",
         "windows-desktop-x64.testnet"
+      ]
+    },
+    "windows-desktop-arm64-action": {
+      "type": "git-object",
+      "direct": true,
+      "commit": "931b70fc0dd4e7ff01542065099aeaa0b3f25a51",
+      "path": "release/wallet-desktop/windows-arm64/manifest.json",
+      "supports": [
+        "windows-desktop-arm64.build",
+        "windows-desktop-arm64.install",
+        "windows-desktop-arm64.coldLaunch",
+        "windows-desktop-arm64.secondLaunch",
+        "windows-desktop-arm64.testnet"
       ]
     },
     "linux-cli-lifecycle": {
@@ -392,8 +457,8 @@
       "artifactClass": "public-testnet-gateway",
       "status": "accepted-bounded-testnet",
       "gates": {"build":true,"install":false,"coldLaunch":false,"secondLaunch":false,"testnet":true,"sign":true,"tx":false,"callback":false,"reconnect":false,"downloadHosted":false,"productionSigned":false,"storeReleased":false},
-      "evidenceBindings": {"build":["gateway-release"],"install":[],"coldLaunch":[],"secondLaunch":[],"testnet":["gateway-public-lifecycle"],"sign":["gateway-public-lifecycle"],"tx":["gateway-public-lifecycle"],"callback":["gateway-completion-negative-matrix","gateway-session-http-negative-matrix","gateway-session-linearization-race","gateway-persistence-atomic-rollback"],"reconnect":["gateway-public-lifecycle","gateway-session-http-negative-matrix","gateway-session-linearization-race","gateway-persistence-atomic-rollback"],"downloadHosted":["gateway-release"],"productionSigned":["gateway-release"],"storeReleased":["gateway-release"]},
-      "notes": ["Public authorization completion, introspection, replay rejection and revoke are direct. Local matrices include single-Node session linearization and filesystem-failure rollback, explicitly excluding multi-process/multi-region proof; current public/staging routes remain false. No asset transaction, reconnect, native app, production signing or store release is claimed."]
+      "evidenceBindings": {"build":["gateway-release"],"install":[],"coldLaunch":[],"secondLaunch":[],"testnet":["gateway-public-lifecycle"],"sign":["gateway-public-lifecycle"],"tx":["gateway-public-lifecycle"],"callback":["gateway-completion-negative-matrix","gateway-session-http-negative-matrix","gateway-session-linearization-race","gateway-persistence-atomic-rollback","gateway-registry-state-binding","gateway-state-file-security","gateway-node-crash-durability"],"reconnect":["gateway-public-lifecycle","gateway-session-http-negative-matrix","gateway-session-linearization-race","gateway-persistence-atomic-rollback","gateway-registry-state-binding","gateway-state-file-security","gateway-node-crash-durability"],"downloadHosted":["gateway-release"],"productionSigned":["gateway-release"],"storeReleased":["gateway-release"]},
+      "notes": ["Public authorization completion, introspection, replay rejection and revoke are direct. Local matrices include 165/165 acknowledged completion/revoke then SIGKILL cold-restart durability, state-path fail-close, Registry/state v2, single-Node session linearization and persistence rollback. Power loss, network filesystems, pre-ack crash, stale-lock recovery, malicious filesystem owner, multi-process/multi-region, central integration and current staging/public deployment remain false. No asset transaction, reconnect, native app, production signing or store release is claimed."]
     },
     {
       "id": "web-pwa",
@@ -409,9 +474,9 @@
       "ownerSource": "web-pwa-extensions",
       "artifactClass": "unsigned-unpacked-extension",
       "status": "build-only",
-      "gates": {"build":true,"install":false,"coldLaunch":false,"secondLaunch":false,"testnet":false,"sign":false,"tx":false,"callback":false,"reconnect":false,"downloadHosted":false,"productionSigned":false,"storeReleased":false},
-      "evidenceBindings": {"build":["web-artifacts"],"install":["browser-install-boundary","edge-unpacked-user-gesture","web-extension-sensitive-actions-source"],"coldLaunch":["browser-install-boundary","edge-unpacked-user-gesture","web-extension-sensitive-actions-source"],"secondLaunch":["browser-install-boundary","edge-unpacked-user-gesture","web-extension-sensitive-actions-source"],"testnet":["browser-install-boundary","edge-unpacked-user-gesture","web-extension-sensitive-actions-source"],"sign":["browser-install-boundary","edge-unpacked-user-gesture","web-extension-sensitive-actions-source"],"tx":["browser-install-boundary","edge-unpacked-user-gesture","web-extension-sensitive-actions-source"],"callback":["browser-install-boundary","edge-unpacked-user-gesture","web-extension-sensitive-actions-source"],"reconnect":["browser-install-boundary","edge-unpacked-user-gesture","web-extension-sensitive-actions-source"],"downloadHosted":["web-artifacts","edge-unpacked-user-gesture","web-extension-sensitive-actions-source"],"productionSigned":["web-artifacts","edge-unpacked-user-gesture","web-extension-sensitive-actions-source"],"storeReleased":["web-artifacts","edge-unpacked-user-gesture","web-extension-sensitive-actions-source"]},
-      "notes": ["Source tests cover add/switch/reconnect/sign/tx fail-closed behavior, but real Edge has only an unpacked path/ID/process and policy rejected popup control. installedLocal, chain actions, signing, transaction, hosting and store release therefore remain false."]
+      "gates": {"build":true,"install":false,"coldLaunch":false,"secondLaunch":false,"testnet":true,"sign":false,"tx":false,"callback":false,"reconnect":false,"downloadHosted":false,"productionSigned":false,"storeReleased":false},
+      "evidenceBindings": {"build":["web-artifacts"],"install":["browser-install-boundary","edge-unpacked-user-gesture","web-extension-sensitive-actions-source","web-edge-unpacked-negative-runtime"],"coldLaunch":["browser-install-boundary","edge-unpacked-user-gesture","web-extension-sensitive-actions-source","web-edge-unpacked-negative-runtime"],"secondLaunch":["browser-install-boundary","edge-unpacked-user-gesture","web-extension-sensitive-actions-source","web-edge-unpacked-negative-runtime"],"testnet":["web-edge-popup-live-rpc-boundary"],"sign":["browser-install-boundary","edge-unpacked-user-gesture","web-extension-sensitive-actions-source","web-edge-unpacked-negative-runtime","web-edge-popup-live-rpc-boundary"],"tx":["browser-install-boundary","edge-unpacked-user-gesture","web-extension-sensitive-actions-source","web-edge-unpacked-negative-runtime","web-edge-popup-live-rpc-boundary"],"callback":["browser-install-boundary","edge-unpacked-user-gesture","web-extension-sensitive-actions-source","web-edge-unpacked-negative-runtime"],"reconnect":["browser-install-boundary","edge-unpacked-user-gesture","web-extension-sensitive-actions-source","web-edge-unpacked-negative-runtime","web-edge-popup-live-rpc-boundary"],"downloadHosted":["web-artifacts","edge-unpacked-user-gesture","web-extension-sensitive-actions-source","web-edge-unpacked-negative-runtime"],"productionSigned":["web-artifacts","edge-unpacked-user-gesture","web-extension-sensitive-actions-source","web-edge-unpacked-negative-runtime"],"storeReleased":["web-artifacts","edge-unpacked-user-gesture","web-extension-sensitive-actions-source","web-edge-unpacked-negative-runtime"]},
+      "notes": ["Direct ComputerControl evidence shows Edge developer-mode unpacked registration, two visible popups, exact ID and popup RPC eth_chainId=0x1917. The active DApp still had no EIP-1193 provider and connect/add/switch/sign/tx/reconnect all remained false. Unpacked registration is not installedLocal; hosting/production/store remain false. Chrome first unsigned unpacked install still requires action-time user confirmation."]
     },
     {
       "id": "android-api36",
@@ -419,26 +484,27 @@
       "artifactClass": "disposable-qa-release-key",
       "status": "source-bound-emulator-qa",
       "gates": {"build":true,"install":true,"coldLaunch":true,"secondLaunch":true,"testnet":true,"sign":false,"tx":false,"callback":false,"reconnect":false,"downloadHosted":false,"productionSigned":false,"storeReleased":false},
-      "evidenceBindings": {"build":["android-disposable-api36","android-auth-callback-relock-source"],"install":["android-disposable-api36","android-auth-callback-relock-source"],"coldLaunch":["android-disposable-api36","android-auth-callback-relock-source"],"secondLaunch":["android-disposable-api36","android-auth-callback-relock-source"],"testnet":["android-disposable-api36","android-auth-callback-relock-source"],"sign":["android-disposable-api36","android-onboarding-qa-pending","android-auth-callback-relock-source"],"tx":["android-disposable-api36","android-onboarding-qa-pending","android-auth-callback-relock-source"],"callback":["android-disposable-api36","android-onboarding-qa-pending","android-auth-callback-relock-source"],"reconnect":["android-disposable-api36","android-onboarding-qa-pending","android-auth-callback-relock-source"],"downloadHosted":["android-disposable-api36","android-onboarding-qa-pending","android-auth-callback-relock-source"],"productionSigned":["android-disposable-api36","android-onboarding-qa-pending","android-auth-callback-relock-source"],"storeReleased":["android-disposable-api36","android-onboarding-qa-pending","android-auth-callback-relock-source"]},
-      "notes": ["Historical API 36 install and two distinct cold-launch PIDs remain direct for the disposable artifact. Current source adds strong-biometric, callback/replay, account-relock and process-reconstruction tests, but no current-source device install or interaction; sign, tx, callback and reconnect remain false, and the disposable identity is never production/store signing."]
+      "evidenceBindings": {"build":["android-disposable-api36","android-auth-callback-relock-source"],"install":["android-disposable-api36","android-auth-callback-relock-source"],"coldLaunch":["android-disposable-api36","android-auth-callback-relock-source"],"secondLaunch":["android-disposable-api36","android-auth-callback-relock-source"],"testnet":["android-disposable-api36","android-auth-callback-relock-source"],"sign":["android-disposable-api36","android-onboarding-qa-pending","android-auth-callback-relock-source","android-audit-serialization-source","android-account-mutation-recovery-source"],"tx":["android-disposable-api36","android-onboarding-qa-pending","android-auth-callback-relock-source","android-audit-serialization-source","android-account-mutation-recovery-source"],"callback":["android-disposable-api36","android-onboarding-qa-pending","android-auth-callback-relock-source","android-audit-serialization-source","android-account-mutation-recovery-source"],"reconnect":["android-disposable-api36","android-onboarding-qa-pending","android-auth-callback-relock-source","android-audit-serialization-source","android-account-mutation-recovery-source"],"downloadHosted":["android-disposable-api36","android-onboarding-qa-pending","android-auth-callback-relock-source"],"productionSigned":["android-disposable-api36","android-onboarding-qa-pending","android-auth-callback-relock-source"],"storeReleased":["android-disposable-api36","android-onboarding-qa-pending","android-auth-callback-relock-source"]},
+      "notes": ["Historical API 36 install and two distinct cold-launch PIDs remain direct for the disposable artifact. Current source adds strong-biometric, canonical callback/replay, lifecycle guards, audit serialization and a secret-free verified-manifest mutation journal (focused 9/9, Wallet 72/72, Hermes 2,742). No current-source device install or interaction occurred; sign, tx, callback delivery and reconnect remain false, and the disposable identity is never production/store signing."]
     },
     {
       "id": "ios-simulator",
       "ownerSource": "ios-macos",
       "artifactClass": "ad-hoc-simulator-build",
-      "status": "pending-current-head-ci",
-      "gates": {"build":false,"install":false,"coldLaunch":false,"secondLaunch":false,"testnet":false,"sign":false,"tx":false,"callback":false,"reconnect":false,"downloadHosted":false,"productionSigned":false,"storeReleased":false},
-      "evidenceBindings": {"build":["ios-current-head-workflow"],"install":["ios-current-head-workflow"],"coldLaunch":["ios-current-head-workflow"],"secondLaunch":["ios-current-head-workflow"],"testnet":["ios-current-head-workflow"],"sign":["ios-current-head-workflow"],"tx":["ios-current-head-workflow"],"callback":["ios-current-head-workflow","ios-callback-boundary"],"reconnect":["ios-current-head-workflow"],"downloadHosted":["ios-current-head-workflow"],"productionSigned":["ios-current-head-workflow"],"storeReleased":["ios-current-head-workflow"]},
-      "notes": ["Current origin HEAD only changes the CI callback-log capture path. Without an exact successful current-HEAD run record in this snapshot, every current candidate gate remains false. Historical simulator successes do not promote the current HEAD."]
+      "status": "hosted-simulator-lifecycle",
+      "gates": {"build":true,"install":true,"coldLaunch":true,"secondLaunch":true,"testnet":false,"sign":false,"tx":false,"callback":true,"reconnect":false,"downloadHosted":false,"productionSigned":false,"storeReleased":false},
+      "evidenceBindings": {"build":["ios-current-simulator-callback-delivery"],"install":["ios-current-simulator-callback-delivery"],"coldLaunch":["ios-current-simulator-callback-delivery"],"secondLaunch":["ios-current-simulator-callback-delivery"],"testnet":["ios-current-simulator-callback-delivery"],"sign":["ios-current-simulator-callback-delivery"],"tx":["ios-current-simulator-callback-delivery"],"callback":["ios-current-simulator-callback-delivery"],"reconnect":["ios-current-simulator-callback-delivery"],"downloadHosted":["ios-current-simulator-callback-delivery"],"productionSigned":["ios-current-simulator-callback-delivery"],"storeReleased":["ios-current-simulator-callback-delivery"]},
+      "notes": ["Run 31766659407 directly proves Simulator install, distinct cold/second PIDs and malformed callback delivery to app followed by fail-closed rejection. It is an ad-hoc Simulator artifact only; no Testnet, physical device, successful authorization, signing, tx, public download, production signature or store release is claimed."]
     },
     {
       "id": "macos",
       "ownerSource": "ios-macos",
       "artifactClass": "ad-hoc-local-arm64-app",
-      "status": "local-only",
-      "gates": {"build":true,"install":true,"coldLaunch":true,"secondLaunch":true,"testnet":false,"sign":false,"tx":false,"callback":false,"reconnect":false,"downloadHosted":false,"productionSigned":false,"storeReleased":false},
-      "evidenceBindings": {"build":["macos-native"],"install":["macos-native"],"coldLaunch":["macos-native"],"secondLaunch":["macos-native"],"testnet":["macos-native"],"sign":["macos-native"],"tx":["macos-native"],"callback":["macos-native"],"reconnect":["macos-native"],"downloadHosted":["macos-native"],"productionSigned":["macos-native"],"storeReleased":["macos-native"]},
-      "notes": ["Second open reused the running app. The callback failed closed because the canonical bridge was unavailable; no successful callback return, signing or network submission is claimed."]
+      "status": "hosted-ad-hoc-native-ci",
+      "capabilities": {"installedHostedRunner":true,"installedLocal":false,"keychainRoundTripVerified":true,"biometricRecoverySucceeded":false,"developerIDSigned":false,"notarized":false},
+      "gates": {"build":true,"install":true,"coldLaunch":true,"secondLaunch":true,"testnet":false,"sign":false,"tx":false,"callback":true,"reconnect":false,"downloadHosted":false,"productionSigned":false,"storeReleased":false},
+      "evidenceBindings": {"build":["macos-native","macos-native-ci-current"],"install":["macos-native","macos-native-ci-current"],"coldLaunch":["macos-native","macos-native-ci-current"],"secondLaunch":["macos-native","macos-native-ci-current"],"testnet":["macos-native-ci-current"],"sign":["macos-native-ci-current"],"tx":["macos-native-ci-current"],"callback":["macos-native-ci-current"],"reconnect":["macos-native-ci-current"],"downloadHosted":["macos-native-ci-current"],"productionSigned":["macos-native-ci-current"],"storeReleased":["macos-native-ci-current"]},
+      "notes": ["Run 31768312759 proves arm64 macOS 13+ ad-hoc native CI install, distinct cold/second PIDs, Keychain canary roundtrip, malformed callback delivery and app rejection. Biometric recovery was unavailable and failed closed. No successful authorization, Testnet, signing, tx, reconnect, Developer ID, notarization, public hosting or store release is claimed."]
     },
     {
       "id": "linux-desktop-x64",
@@ -461,7 +527,7 @@
       "notes": ["macOS 15 Intel runner verified upgrade, install, cold/second launch, exact 0x1917 RPC and post-upload DMG/ZIP hashes. The packages are unsigned and unnotarized; only the temporary runner copy was ad-hoc signed, so hosted/production/store remain false."]
     },
     {
-      "id": "linux-desktop-arm64",
+      "id": "linux-desktop-arm64-appimage",
       "ownerSource": "desktop-cli-sdk",
       "artifactClass": "unsigned-portable-ci-desktop-artifact",
       "status": "native-ci-portable-lifecycle",
@@ -471,6 +537,16 @@
       "notes": ["Native Ubuntu 24.04 arm64 portable three-stage lifecycle and post-upload hash/byte verification passed. AppImage installation is not applicable and was not claimed; the artifact remains unsigned, temporary and non-hosted."]
     },
     {
+      "id": "linux-desktop-arm64-deb",
+      "ownerSource": "desktop-cli-sdk",
+      "artifactClass": "unsigned-native-ci-deb-artifact",
+      "status": "native-ci-installed-lifecycle",
+      "capabilities": {"installedNativeCI":true,"installedLocal":false,"upgradeTestedNativeCI":true,"uninstallVerifiedNativeCI":true,"postUploadRedownloadHashVerified":true},
+      "gates": {"build":true,"install":true,"coldLaunch":true,"secondLaunch":true,"testnet":true,"sign":false,"tx":false,"callback":false,"reconnect":false,"downloadHosted":false,"productionSigned":false,"storeReleased":false},
+      "evidenceBindings": {"build":["linux-arm64-deb-action"],"install":["linux-arm64-deb-action"],"coldLaunch":["linux-arm64-deb-action"],"secondLaunch":["linux-arm64-deb-action"],"testnet":["linux-arm64-deb-action"],"sign":["linux-arm64-deb-action"],"tx":["linux-arm64-deb-action"],"callback":["linux-arm64-deb-action"],"reconnect":["linux-arm64-deb-action"],"downloadHosted":["linux-arm64-deb-action"],"productionSigned":["linux-arm64-deb-action"],"storeReleased":["linux-arm64-deb-action"]},
+      "notes": ["Native Ubuntu arm64 runner verified install, upgrade, cold/second lifecycle, exact 0x1917, fail-closed RPC, uninstall and post-upload hashes. installedNativeCI is true while installedLocal remains false; the deb is unsigned, temporary and non-hosted."]
+    },
+    {
       "id": "windows-desktop-x64",
       "ownerSource": "desktop-cli-sdk",
       "artifactClass": "unsigned-ci-desktop-artifact",
@@ -478,6 +554,16 @@
       "gates": {"build":true,"install":true,"coldLaunch":true,"secondLaunch":true,"testnet":true,"sign":false,"tx":false,"callback":false,"reconnect":false,"downloadHosted":false,"productionSigned":false,"storeReleased":false},
       "evidenceBindings": {"build":["windows-desktop-action"],"install":["windows-desktop-action"],"coldLaunch":["windows-desktop-action"],"secondLaunch":["windows-desktop-action"],"testnet":["windows-desktop-action"],"sign":["windows-desktop-action"],"tx":["windows-desktop-action"],"callback":["windows-desktop-action"],"reconnect":["windows-desktop-action"],"downloadHosted":["windows-desktop-action"],"productionSigned":["windows-desktop-action"],"storeReleased":["windows-desktop-action"]},
       "notes": ["GitHub-hosted Windows x64 lifecycle passed for current HEAD. No production signature, public hosting or store release is inferred."]
+    },
+    {
+      "id": "windows-desktop-arm64",
+      "ownerSource": "desktop-cli-sdk",
+      "artifactClass": "unsigned-native-ci-windows-arm64-installer",
+      "status": "native-ci-installed-lifecycle",
+      "capabilities": {"installedNativeCI":true,"installedLocal":false,"upgradeTestedNativeCI":true,"uninstallVerifiedNativeCI":true,"postUploadRedownloadHashVerified":true,"authenticodeSigned":false},
+      "gates": {"build":true,"install":true,"coldLaunch":true,"secondLaunch":true,"testnet":true,"sign":false,"tx":false,"callback":false,"reconnect":false,"downloadHosted":false,"productionSigned":false,"storeReleased":false},
+      "evidenceBindings": {"build":["windows-desktop-arm64-action"],"install":["windows-desktop-arm64-action"],"coldLaunch":["windows-desktop-arm64-action"],"secondLaunch":["windows-desktop-arm64-action"],"testnet":["windows-desktop-arm64-action"],"sign":["windows-desktop-arm64-action"],"tx":["windows-desktop-arm64-action"],"callback":["windows-desktop-arm64-action"],"reconnect":["windows-desktop-arm64-action"],"downloadHosted":["windows-desktop-arm64-action"],"productionSigned":["windows-desktop-arm64-action"],"storeReleased":["windows-desktop-arm64-action"]},
+      "notes": ["Windows 11 arm64 native CI verified installer upgrade, cold/second lifecycle, exact 0x1917, fail-closed RPC, uninstall and post-upload/readback hashes. installedNativeCI is true while installedLocal remains false. Authenticode is NotSigned; public hosting, production signing and store release remain false."]
     },
     {
       "id": "linux-cli",

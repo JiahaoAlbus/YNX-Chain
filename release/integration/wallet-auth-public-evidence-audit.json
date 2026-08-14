@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 1,
+  "auditId": "wallet-auth-public-evidence-audit-2026-08-14",
+  "auditedAt": "2026-08-14T03:38:07Z",
+  "integrationBaseCommit": "a008ce0e8fa2ac0322198576c320441118fbae83",
+  "matrixSha256": "4dab0e769549e853c6c5a28fc92a8a2658f47516bdee4fd16dd1dc1e7bb0d7f1",
+  "publicTestnet": {
+    "rpc": {
+      "url": "https://evm.ynxweb4.com",
+      "method": "eth_chainId",
+      "observedResult": "0x1917",
+      "verified": true,
+      "responseSha256": "5c4a05f13a54a9563933c7daa16938e313e9b35240d6689abc92c1351ebaff79"
+    },
+    "gatewayHealth": {
+      "url": "https://rest.ynxweb4.com/app/health",
+      "httpStatus": 200,
+      "service": "ynx-app-gatewayd",
+      "remoteDeployed": true,
+      "responseSha256": "5e7e89da2f121d8f41440a06ec4b5779eb8337cb9c616528fb3ece148030a3f4"
+    },
+    "frozenCoreSource": "bdb40572570b02b913dbfb14165d35d54a1129ba",
+    "deployedGatewaySource": "c6ac582c8d490ef980a8cadfd9172f133d1b1a49",
+    "latestFrozenSourceDeployed": false,
+    "latestLocalRoutesPublicVerified": false,
+    "assetTransactionObserved": false
+  },
+  "officialWebsite": {
+    "requestedUrl": "https://www.ynxweb4.com/wallet",
+    "effectivePath": "/dapp/wallet",
+    "redirectStatus": 308,
+    "effectiveStatus": 200,
+    "routePublic": true,
+    "pageSha256": "fa9ffc6521978f0be61b5efb5fc26fbd864abcca9b1de3415c56c23a909c91bd",
+    "directArtifactLinks": [],
+    "currentDownloadsPublished": false
+  },
+  "githubReleases": {
+    "repository": "JiahaoAlbus/YNX-Chain",
+    "releaseCountObserved": 20,
+    "walletRelatedPrereleaseTags": [
+      "wallet-auth-v1.0.0-source-candidate",
+      "wallet-auth-v1.0.0-testnet-preview.2",
+      "wallet-auth-evidence-da82c8b"
+    ],
+    "currentCandidateExactArtifactsHosted": false,
+    "note": "Observed public assets are historical source, prerelease or test evidence and do not match the frozen current candidate set."
+  },
+  "signingAudit": {
+    "candidateCount": 14,
+    "classes": [
+      "unsigned-web-bundle",
+      "unsigned-unpacked-extension",
+      "disposable-qa-release-key",
+      "ad-hoc-local-arm64-app",
+      "unsigned-linux-desktop-testnet-candidate",
+      "unsigned-linux-deb-testnet-candidate",
+      "unsigned-windows-desktop-testnet-candidate",
+      "unsigned-unnotarized-macos-testnet-candidate",
+      "unsigned-local-testnet-sdk-candidate"
+    ],
+    "productionSignedCandidateCount": 0,
+    "notarizedCandidateCount": 0,
+    "storeReleasedCandidateCount": 0
+  },
+  "computerControl": {
+    "userAuthorizationReported": true,
+    "ownerContinuationInProgress": true,
+    "frozenWebSource": "45e5d63c5461424a963b1f8e867f82813ba0010b",
+    "exactEvidenceCommit": "45e5d63c5461424a963b1f8e867f82813ba0010b",
+    "exactEvidencePath": "apps/wallet-web/evidence/runtime/branded-popup-live-rpc-boundary-20260814.json",
+    "edgeUnpackedRegistrationId": "jgijcegbgeobldllfniaejejofobcngk",
+    "popupControlSucceeded": true,
+    "popupVisible": true,
+    "installedLocal": false,
+    "testnetRpcObserved": true,
+    "testnetChainId": "0x1917",
+    "addChainObserved": false,
+    "switchChainObserved": false,
+    "reconnectObserved": false,
+    "signObserved": false,
+    "transactionObserved": false
+  },
+  "releaseDecision": {
+    "publicTestnetRpcVerified": true,
+    "gatewayHealthPublic": true,
+    "websiteRoutePublic": true,
+    "latestFrozenGatewaySourcePublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false,
+    "computerControlAccepted": false
+  }
+}

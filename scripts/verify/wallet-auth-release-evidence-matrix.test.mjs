@@ -14,6 +14,7 @@ for (const vector of vectorSet.vectors) {
     const candidate = structuredClone(matrix);
     const platform = candidate.platforms.find((entry) => entry.id === vector.mutation.platformId);
     assert.ok(platform, `missing platform ${vector.mutation.platformId}`);
+    if (Object.hasOwn(vector.mutation, "status")) platform.status = vector.mutation.status;
     if (Object.hasOwn(vector.mutation, "value")) platform.gates[vector.mutation.gate] = vector.mutation.value;
     if (Object.hasOwn(vector.mutation, "evidenceBindings")) platform.evidenceBindings[vector.mutation.gate] = vector.mutation.evidenceBindings;
     const candidatePath = join(tmpdir(), `ynx-wallet-release-vector-${process.pid}-${vector.id}.json`);
