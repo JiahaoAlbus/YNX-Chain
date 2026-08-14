@@ -237,6 +237,45 @@ await ethers.provider.send("evm_mine", []);
 await expectTimeRangeFailed(await timeBoundOperation(56n));
 assert.equal(await entryPoint.getNonce(account.target, 0), 56n);
 
+const batchTarget = await ethers.deployContract("YNXWalletCallTarget");
+const ownerBatchCall = account.interface.encodeFunctionData("executeBatch", [[
+  { target: batchTarget.target, value: 0n, data: batchTarget.interface.encodeFunctionData("increment", [2n]) },
+  { target: batchTarget.target, value: 0n, data: batchTarget.interface.encodeFunctionData("increment", [3n]) },
+]]);
+await submit(await operation(ownerBatchCall, 56n), owner, 0);
+assert.equal(await batchTarget.count(), 5n);
+assert.equal(await entryPoint.getNonce(account.target, 0), 57n);
+
+const passkeyBatchCall = account.interface.encodeFunctionData("executeBatch", [[
+  { target: batchTarget.target, value: 0n, data: batchTarget.interface.encodeFunctionData("increment", [4n]) },
+]]);
+const passkeyBatchOp = await signPasskeyOperation(await operation(passkeyBatchCall, 57n), 0x05);
+await (await entryPoint.handleOps([passkeyBatchOp], beneficiary.address, { gasLimit: 12_000_000 })).wait();
+assert.equal(await batchTarget.count(), 9n);
+assert.equal(await entryPoint.getNonce(account.target, 0), 58n);
+
+const sessionBatchOp = await operation(ownerBatchCall, 58n);
+const sessionBatchHash = await entryPoint.getUserOpHash(sessionBatchOp);
+sessionBatchOp.signature = ethers.concat([
+  "0x02",
+  sessionKey.address,
+  sessionKey.signingKey.sign(sessionBatchHash).serialized,
+]);
+await expectValidationFailed(sessionBatchOp);
+assert.equal(await batchTarget.count(), 9n);
+assert.equal(await entryPoint.getNonce(account.target, 0), 58n);
+
+const failingBatchCall = account.interface.encodeFunctionData("executeBatch", [[
+  { target: batchTarget.target, value: 0n, data: batchTarget.interface.encodeFunctionData("increment", [7n]) },
+  { target: batchTarget.target, value: 0n, data: batchTarget.interface.encodeFunctionData("fail") },
+]]);
+const failingBatchOp = await operation(failingBatchCall, 58n);
+const failingBatchHash = await entryPoint.getUserOpHash(failingBatchOp);
+failingBatchOp.signature = ethers.concat(["0x00", owner.signingKey.sign(failingBatchHash).serialized]);
+await expectFailed(failingBatchOp);
+assert.equal(await batchTarget.count(), 9n);
+assert.equal(await entryPoint.getNonce(account.target, 0), 59n);
+
 const newOwner = ethers.Wallet.createRandom();
 const newPasskeySecret = p256.utils.randomPrivateKey();
 const newPasskeyPublic = p256.getPublicKey(newPasskeySecret, false);
@@ -247,7 +286,7 @@ await (await account.connect(guardian).requestRecovery(
 )).wait();
 assert.equal(await account.sessionEpoch(), 2n);
 assert.equal((await account.sessions(sessionKey.address)).epoch, 1n);
-const pendingRecoverySessionOp = await operation(sessionCall, 56n);
+const pendingRecoverySessionOp = await operation(sessionCall, 59n);
 const pendingRecoverySessionHash = await entryPoint.getUserOpHash(pendingRecoverySessionOp);
 pendingRecoverySessionOp.signature = ethers.concat([
   "0x02",
@@ -271,7 +310,7 @@ await (await account.executeRecovery()).wait();
 assert.equal(await account.owner(), newOwner.address);
 assert.equal(await account.sessionEpoch(), 3n);
 assert.equal((await account.sessions(sessionKey.address)).epoch, 1n);
-const revokedSessionOp = await operation(sessionCall, 56n);
+const revokedSessionOp = await operation(sessionCall, 59n);
 const revokedHash = await entryPoint.getUserOpHash(revokedSessionOp);
 revokedSessionOp.signature = ethers.concat(["0x02", sessionKey.address, sessionKey.signingKey.sign(revokedHash).serialized]);
 await expectValidationFailed(revokedSessionOp);
@@ -570,6 +609,10 @@ console.log(JSON.stringify({
   noncanonicalSessionCallRejection: "passed",
   sameBundleDailyLimitLinearization: "passed",
   sessionValidAfterAndExpiry: "passed",
+  ownerBatchUserOperation: "passed",
+  webAuthnBatchUserOperation: "passed",
+  sessionBatchBypassRejectedBeforeNonceConsumption: "passed",
+  failedBatchAtomicRollback: "passed",
   overLimitRejection: "passed",
   wrongTargetRejection: "passed",
   userVerificationRequired: "passed",
