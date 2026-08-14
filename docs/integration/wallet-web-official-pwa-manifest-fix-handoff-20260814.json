@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "owner": "Wallet Web/PWA/Extensions",
+  "baseCommit": "7355056dcc80b8b3bad9e9f5815f37d997a6fb4e",
+  "websiteOwnerScope": true,
+  "publicPage": "https://www.ynxweb4.com/dapp/wallet",
+  "requiredManifestHref": "/wallet/companion/manifest.webmanifest",
+  "frozenManifest": "release/integration/wallet-web-pwa-site/frozen-wallet-manifest.webmanifest",
+  "bindingModule": "release/integration/wallet-web-pwa-site/wallet-manifest-binding.mjs",
+  "sourcePwaArtifact": {
+    "path": "apps/wallet-web/artifacts/ynx-wallet-web-pwa-0.1.0.zip",
+    "bytes": 272706,
+    "sha256": "63d83cd20925f2d52c0f21f548fa7a857a4d056e03e5fa16244f173164a7d287"
+  },
+  "identity": {
+    "name": "YNX Wallet Testnet Companion",
+    "short_name": "YNX Wallet",
+    "id": "/wallet/companion",
+    "start_url": "./",
+    "scope": "./"
+  },
+  "icons": [
+    {"path":"/wallet/companion/ynx-icon-192.png","bytes":9838,"dimensions":"192x192","sha256":"02bd7b202a6683d83bbe4b17c246afc969b43284ee945e97167d9606e6df04af"},
+    {"path":"/wallet/companion/ynx-icon-512.png","bytes":45914,"dimensions":"512x512","sha256":"5a6fb80c48a2047ad5632cf0b69f410ebaefd8aff0bb3da7dce28c1ce8c992c7"},
+    {"path":"/wallet/companion/ynx-icon-maskable-512.png","bytes":45914,"dimensions":"512x512","sha256":"5a6fb80c48a2047ad5632cf0b69f410ebaefd8aff0bb3da7dce28c1ce8c992c7"}
+  ],
+  "websiteOwnerActions": [
+    "Materialize the exact PWA artifact contents at /wallet/companion/ without modifying the frozen manifest or icons.",
+    "Make the server-rendered /dapp/wallet HTML contain exactly one rel=manifest link to /wallet/companion/manifest.webmanifest; do not replace the site-wide YNX Chain manifest on other routes.",
+    "Run node release/integration/wallet-web-pwa-site/verify-wallet-pwa-site-binding.mjs after deployment and retain its output."
+  ],
+  "walletManifestDeployedPublic": false,
+  "installedLocal": false,
+  "coldLaunchProved": false,
+  "secondLaunchProved": false,
+  "browserProfileTouched": false
+}
