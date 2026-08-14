@@ -21,7 +21,12 @@ import { encodeGatewayProofHeader } from "../src/gateway-node-host.js";
 if (process.env.YNX_WALLET_GATEWAY_PUBLIC_MULTI_USER_PROBE !== "1") {
   throw new Error("YNX_WALLET_GATEWAY_PUBLIC_MULTI_USER_PROBE=1 is required because this probe creates and revokes four public Testnet Product Sessions");
 }
-const baseURL = publicBaseURL(process.env.YNX_WALLET_GATEWAY_PUBLIC_URL);
+const endpoint = publicBaseURL(
+  process.env.YNX_WALLET_GATEWAY_PUBLIC_URL,
+  process.env.YNX_WALLET_GATEWAY_PUBLIC_ALLOW_LOOPBACK === "1",
+);
+const { baseURL, transport } = endpoint;
+const exactSourceCommit = sourceCommit(process.env.YNX_WALLET_GATEWAY_EXACT_SOURCE_COMMIT);
 const intendedUsers = 4;
 const registry = JSON.parse(readFileSync(new URL("../central-registry.json", import.meta.url), "utf8"));
 const registration = registry.products.find(product => product.productId === "bridge-web");
@@ -30,6 +35,7 @@ assert(registration?.enabled === true && registration.reviewState === "approved"
 const subjects = Array.from({ length: intendedUsers }, () => createSubject());
 const failures = [];
 let crossSessionRejected = false;
+let verificationError = null;
 try {
   const completions = await Promise.all(subjects.map(async subject => {
     const started = performance.now();
@@ -86,6 +92,8 @@ try {
     if (subject.postRevocationResponse.status !== 403 || subject.postRevocationResponse.payload?.error?.code !== "REVOKED") failPhase("POST_REVOKE_NOT_REJECTED");
   }));
   assert(failures.length === 0, "not every revoked public Product Session failed closed");
+} catch (error) {
+  verificationError = error;
 } finally {
   await Promise.all(subjects.filter(subject => !subject.revoked).map(async subject => {
     try {
@@ -97,6 +105,29 @@ try {
       if (!subject.revoked) failPhase("CLEANUP_FAILED");
     } catch { failPhase("CLEANUP_FAILED"); }
   }));
+}
+if (verificationError) {
+  console.error(JSON.stringify({
+    schemaVersion: 1,
+    verification: "wallet-auth-public-gateway-multi-user-bounded-failure",
+    observedAt: new Date().toISOString(),
+    transport,
+    exactSourceCommit,
+    concurrency: { requested: intendedUsers, completed: count(subject => subject.completionResponse?.status === 200) },
+    errorRate: count(subject => subject.completionResponse?.status !== 200) / intendedUsers,
+    failures: [...new Set(failures)].sort(),
+    phases: subjects.map(subject => ({
+      completion: resultCode(subject.completionResponse),
+      introspection: resultCode(subject.introspectionResponse),
+      replay: resultCode(subject.replayResponse),
+      revocation: resultCode(subject.revocationResponse),
+      postRevocation: resultCode(subject.postRevocationResponse),
+      cleanupRevoked: subject.revoked === true,
+    })),
+    secretMaterialRecorded: false,
+    identifierValuesRecorded: false,
+  }));
+  throw verificationError;
 }
 
 const completed = count(subject => subject.completionResponse?.status === 200 && subject.session);
@@ -120,9 +151,13 @@ console.log(JSON.stringify({
   verification: "wallet-auth-public-gateway-multi-user-bounded",
   observedAt: new Date().toISOString(),
   baseURL,
+  transport,
+  exactSourceCommit,
   productClientId: registration.productClientId,
   summary,
-  completionLatencyMs: { p50: percentile(latencies, 0.5), p95: percentile(latencies, 0.95), max: decimal(latencies.at(-1)) },
+  concurrency: { requested: intendedUsers, completed },
+  errorRate: failures.length / intendedUsers,
+  completionLatencyMs: { p50: percentile(latencies, 0.5), p95: percentile(latencies, 0.95), p99: percentile(latencies, 0.99), max: decimal(latencies.at(-1)) },
   identifierEvidence: {
     requestIdCompleteness: identifierSummaries.every(value => value.requestIdCompleteness),
     traceIdCompleteness: identifierSummaries.every(value => value.traceIdCompleteness),
@@ -165,13 +200,20 @@ async function request(path, body, proofValue) {
   return { status: response.status, payload, requestId: response.headers.get("x-request-id"), traceId: response.headers.get("x-trace-id"), errorId: response.headers.get("x-error-id") };
 }
 
-function publicBaseURL(value) {
+function publicBaseURL(value, allowLoopback) {
   if (typeof value !== "string" || value.trim() !== value) throw new Error("YNX_WALLET_GATEWAY_PUBLIC_URL is required");
   const parsed = new URL(value);
-  if (parsed.protocol !== "https:" || parsed.hostname !== "rest.ynxweb4.com" || parsed.port || parsed.pathname !== "/" || parsed.search || parsed.hash || parsed.username || parsed.password) throw new Error("YNX_WALLET_GATEWAY_PUBLIC_URL must be exactly https://rest.ynxweb4.com/");
-  return "https://rest.ynxweb4.com";
+  const publicTls = parsed.protocol === "https:" && parsed.hostname === "rest.ynxweb4.com" && !parsed.port;
+  const operatorLoopback = allowLoopback && parsed.protocol === "http:" && parsed.hostname === "127.0.0.1" && /^[1-9][0-9]{3,4}$/.test(parsed.port);
+  if ((!publicTls && !operatorLoopback) || parsed.pathname !== "/" || parsed.search || parsed.hash || parsed.username || parsed.password) throw new Error("YNX_WALLET_GATEWAY_PUBLIC_URL must be exact public TLS or explicit operator loopback");
+  return Object.freeze({
+    baseURL: publicTls ? "https://rest.ynxweb4.com" : `http://127.0.0.1:${parsed.port}`,
+    transport: publicTls ? "public-tls" : "operator-controlled-production-loopback",
+  });
 }
 function identifiers(value) { return { status: value.status, requestId: value.requestId, traceId: value.traceId, errorId: value.errorId }; }
+function resultCode(value) { return value ? { status: value.status, code: value.payload?.error?.code ?? null } : null; }
+function sourceCommit(value) { if (typeof value !== "string" || !/^[0-9a-f]{40}$/.test(value)) throw new Error("YNX_WALLET_GATEWAY_EXACT_SOURCE_COMMIT must be an exact commit SHA"); return value; }
 function count(predicate) { return subjects.filter(predicate).length; }
 function failPhase(code) { failures.push(code); return false; }
 function nonce() { return randomBytes(24).toString("base64url"); }

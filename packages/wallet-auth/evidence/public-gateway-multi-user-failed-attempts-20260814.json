@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-08-14T13:18:00Z",
+  "verification": "wallet-auth-public-gateway-multi-user-bounded",
+  "intendedUsers": 4,
+  "attempts": [
+    {
+      "transport": "workstation-public-tls",
+      "outcome": "failed-before-canonical-completion",
+      "terminalError": "not every public Product Session completed canonically",
+      "followupReadOnlyProbe": "workstation HTTPS /version timed out after 30 seconds",
+      "classification": "restricted workstation DNS/network path; contract not disproved"
+    },
+    {
+      "observedAt": "2026-08-14T13:16:37.775Z",
+      "transport": "operator-controlled-production-loopback",
+      "outcome": "transport-failed",
+      "failureCodes": ["CLEANUP_FAILED", "COMPLETION_TRANSPORT_FAILED"],
+      "completionResponses": 0,
+      "cleanupRevoked": 0,
+      "classification": "SSH forward was closed by the remote host before requests connected"
+    }
+  ],
+  "productionReadOnlyDiagnosis": {
+    "route": "/v1/wallet/sessions/complete",
+    "emptyCanonicalBodyStatus": 400,
+    "emptyCanonicalBodyCode": "UNKNOWN_OR_MISSING_FIELD",
+    "routePresent": true,
+    "contractErrorObserved": false
+  },
+  "safety": {
+    "secretMaterialRecorded": false,
+    "identifierValuesRecorded": false,
+    "assetMoved": false,
+    "publicCapacityProven": false,
+    "aggregateDeployedPublic": false
+  }
+}

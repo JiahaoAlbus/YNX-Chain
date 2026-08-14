@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-08-14T13:15:00Z",
+  "gatewayEvidenceCommit": "404f818719b920008f88f076949a4387c5130855",
+  "deployedSourceCommit": "37f2485ed604d88ed1457bc497d50f3f7a037469",
+  "sharedContractCommit": "3387fd5bc7362f60b27b3326b10368f4ef43967b",
+  "semanticComparison": {
+    "implementationMatchesSharedContract": true,
+    "fixtureMatchesSharedContract": true,
+    "checkpoints": [
+      "before-administrative-response",
+      "before-protocol-dispatch",
+      "immediately-before-persist"
+    ],
+    "publicVectorsMatched": [
+      "world-readable",
+      "symlink-replacement",
+      "hardlink-replacement",
+      "same-bytes-inode-replacement",
+      "snapshot-digest-mismatch"
+    ],
+    "publicOutcome": {
+      "httpStatus": 503,
+      "authoritativeMutation": 0,
+      "attackerArtifactRewritten": false,
+      "postRepairLifecyclePassed": true
+    }
+  },
+  "directPublicEvidenceBoundary": {
+    "directoryOwnerTamperInjected": false,
+    "directoryModeTamperInjected": false,
+    "fileOwnerTamperInjected": false,
+    "fileRegularTypeTamperInjected": false,
+    "fileSizeBoundTamperInjected": false,
+    "noncanonicalEnvelopeTamperInjected": false,
+    "registryDigestTamperInjected": false,
+    "classification": "No semantic mismatch; these checks have exact deployed-source and owner-suite evidence but not separate public tamper injection in commit 404f8187."
+  },
+  "truth": {
+    "duplicateDeploymentRequired": false,
+    "isolatedProductSessionV2MountDeployed": true,
+    "runtimeProductsMigrated": 0,
+    "installedWalletApprovalVerified": false,
+    "aggregateDeployedPublic": false
+  }
+}
