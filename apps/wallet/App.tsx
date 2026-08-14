@@ -61,8 +61,10 @@ function WalletApp(){
   MODAL_ANIMATION=reducedMotion?"none":"slide";
   ACCESSIBILITY_SUMMARY=`${highContrast?"High":"System"} contrast · ${reducedMotion?"reduced":"standard"} motion · ${colorScheme==="dark"?"dark":"light"} appearance`;
   const [manifest,setManifest]=useState<WalletManifest|null>(null);
+  const manifestRef=useRef<WalletManifest|null>(manifest);manifestRef.current=manifest;
   const [loading,setLoading]=useState(true);
   const [error,setError]=useState<string|null>(null);
+  const storageErrorRef=useRef<string|null>(error);storageErrorRef.current=error;
   const [notice,setNotice]=useState<string|null>(null);
   const [lockState,dispatchLock]=useReducer(reduceLockState,undefined,initialLockState);
   const [onboarding,dispatchOnboarding]=useReducer(reduceOnboardingState,initialOnboardingState);
@@ -73,6 +75,7 @@ function WalletApp(){
   const [quantAction,setQuantAction]=useState<QuantActionRequest|null>(null);
   const [authorizationError,setAuthorizationError]=useState<string|null>(null);
   const [busy,setBusy]=useState(false);
+  const resetAttemptGate=useRef(new ExclusiveAttemptGate());
   const [locale,setLocale]=useState<WalletLocale>("en");
   const localeRef=useRef<WalletLocale>(locale);localeRef.current=locale;
   const [settings,setSettings]=useState(false);
@@ -110,10 +113,11 @@ function WalletApp(){
   const create=async()=>{const bytes=await getRandomBytesAsync(32);dispatchOnboarding({type:"openCreate",recoveryKey:bytesToHex(bytes),label:`Account ${(manifest?.accounts.length??0)+1}`})};
   const saved=(next:WalletManifest)=>{setManifest(next);dispatchOnboarding({type:"saveSucceeded"});dispatchLock({type:"lock",reason:"user"});setNotice("Account saved. Unlock with system biometrics to continue.")};
   const select=async(account:string)=>{try{const next=await switchAccountFailClosed(account,(selectedAccount)=>dispatchLock({type:"switch",account:selectedAccount}),(selectedAccount)=>repository.selectAccount(selectedAccount));setManifest(next)}catch(caught){setError(localizeError(locale,caught))}};
+  const resetCorrupt=async()=>{const release=resetAttemptGate.current.tryBegin();if(!release)return;setBusy(true);const assertActive=()=>{if(appStateRef.current!=="active"||manifestRef.current!==null||storageErrorRef.current===null)throw new Error("Wallet reset was dismissed or moved to the background")};try{await authorizeLocalKeyUse("wallet-reset");assertActive();await repository.resetCorruptStorage(assertActive);await load()}catch(caught){setError(localizeError(locale,caught))}finally{release();setBusy(false)}};
 
   if(!privacyState.ready)return privacyState.error?<Screen><Text style={styles.title}>Wallet privacy protection is required</Text><Text style={styles.error}>{privacyState.error}</Text><Button label="Retry screenshot protection" onPress={()=>setPrivacyAttempt((value)=>value+1)}/></Screen>:<Screen><ActivityIndicator color={ACTIVE_COLORS.blue}/><Text style={styles.muted}>Protecting Wallet screens</Text></Screen>;
   if(loading)return <Screen><ActivityIndicator color={ACTIVE_COLORS.blue}/><Text style={styles.muted}>Verifying secure Wallet storage</Text></Screen>;
-  if(error&&manifest===null)return <Screen><Text style={styles.title}>Wallet storage needs attention</Text><Text style={styles.error}>{error}</Text><Button label="Retry secure storage" onPress={()=>void load()}/><DangerButton label="Reset unreadable local Wallet" onPress={()=>Alert.alert("Reset local Wallet?","Only continue if every account has an offline recovery key.",[{text:"Cancel",style:"cancel"},{text:"Reset",style:"destructive",onPress:()=>void repository.resetCorruptStorage().then(load)}])}/></Screen>;
+  if(error&&manifest===null)return <Screen><Text style={styles.title}>Wallet storage needs attention</Text><Text style={styles.error}>{error}</Text><Button label="Retry secure storage" disabled={busy} onPress={()=>void load()}/><DangerButton label={busy?"Authorizing Wallet reset…":"Reset unreadable local Wallet"} disabled={busy} onPress={()=>Alert.alert("Reset local Wallet?","Only continue if every account has an offline recovery key.",[{text:"Cancel",style:"cancel"},{text:"Reset",style:"destructive",onPress:()=>void resetCorrupt()}])}/></Screen>;
 
   return <SafeAreaView edges={["top","left","right"]} style={[styles.safe,isRTL(locale)&&styles.rtl]}>
     <StatusBar style="auto"/>

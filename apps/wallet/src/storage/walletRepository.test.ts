@@ -105,6 +105,15 @@ test("dismissed sensitive attempts cannot add or delete account material",async(
   assert.equal((await repository.load()).manifest.accounts[0]?.label,"Main");
 });
 
+test("unreadable storage reset requires an active destructive attempt before deletion",async()=>{
+  const storage=new MemorySecureStorage(),repository=new WalletRepository(storage),manifest=await repository.addAccount({secretHex:SECRET_ONE,label:"Main",createdAt:"2026-07-15T12:00:00.000Z",backupConfirmed:true}),before=new Map(storage.values),blocked=()=>{throw new Error("backgrounded")};
+  await assert.rejects(repository.resetCorruptStorage(blocked),/backgrounded/);
+  assert.deepEqual(storage.values,before);
+  await repository.resetCorruptStorage();
+  assert.equal(storage.values.size,0);
+  assert.ok(manifest.selectedAccountId);
+});
+
 test("restart journal rolls back incomplete add and completes interrupted delete without secret leakage",async()=>{
   const seedStorage=new MemorySecureStorage(),seedRepository=new WalletRepository(seedStorage);
   const seeded=await seedRepository.addAccount({secretHex:SECRET_ONE,label:"Main",createdAt:"2026-07-15T12:00:00.000Z",backupConfirmed:true}),account=seeded.selectedAccountId!;

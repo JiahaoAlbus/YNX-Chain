@@ -22,7 +22,7 @@ function adapter(overrides: Partial<{
 }
 
 test("every private-key purpose requires strong biometrics with device fallback disabled", async () => {
-  const purposes: AuthorizationPurpose[] = ["unlock", "wallet-authorization", "exchange-order", "quant-strategy-action", "dex-transaction", "developer-contract-deployment", "transaction-sign", "recovery-view", "account-import", "account-delete"];
+  const purposes: AuthorizationPurpose[] = ["unlock", "wallet-authorization", "exchange-order", "quant-strategy-action", "dex-transaction", "developer-contract-deployment", "transaction-sign", "recovery-view", "account-import", "account-delete", "wallet-reset"];
   for (const purpose of purposes) {
     const fixture = adapter();
     await authorizeLocalKeyUseWith(fixture.value, purpose);
