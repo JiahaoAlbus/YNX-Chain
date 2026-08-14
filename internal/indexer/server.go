@@ -117,6 +117,11 @@ func (s *Server) handleVersion(w http.ResponseWriter, r *http.Request) {
 		"schemaVersion": 2,
 		"build":         s.build,
 		"startedAt":     s.startedAt,
+		"limits": map[string]any{
+			"maxConcurrent":     s.admission.limits.MaxConcurrent,
+			"maxRequestsPerSec": s.admission.limits.MaxRequestsPerSec,
+			"queueWait":         s.admission.limits.QueueWait.String(),
+		},
 	})
 }
 
