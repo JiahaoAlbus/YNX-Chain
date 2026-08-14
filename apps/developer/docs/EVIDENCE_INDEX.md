@@ -27,7 +27,10 @@ successful eight-runtime release record.
   deployment boundary. The same service/UI gates prove the graded permission
   matrix, owner-scoped approval UUID consumption, replay rejection, durable
   grant/denial decisions and fail-closed unavailable capabilities. It is not
-  evidence of a deployment or of the disabled tool adapters.
+  evidence of a deployment or of the disabled tool adapters. The orchestrator
+  test also applies a real reviewed create alongside a digest-bound edit and
+  rejects an existing-file create collision; the Web gate holds exact approved
+  create paths and keeps destructive delete disabled.
 - Git broker integration evidence: `services/git-service/test/service.test.mjs`
   runs real Git status/stage/diff/commit/history, local branch creation and
   revision-guarded switching, non-fast-forward merge persistence, conflict abort

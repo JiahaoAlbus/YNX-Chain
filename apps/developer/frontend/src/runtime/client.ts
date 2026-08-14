@@ -629,11 +629,17 @@ export type AgentRun = {
     summary: string;
     steps: Array<{ title: string; acceptance: string }>;
     contextPaths: string[];
+    createPaths: string[];
   } | null;
   approvedPaths: string[];
+  approvedCreatePaths: string[];
   proposal: {
     summary: string;
-    files: Array<{ path: string; content: string }>;
+    files: Array<{
+      path: string;
+      content: string;
+      operation: "edit" | "create";
+    }>;
   } | null;
   review: { approved: boolean; summary: string; findings: string[] } | null;
   deployment: {

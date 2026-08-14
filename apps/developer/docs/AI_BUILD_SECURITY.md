@@ -9,8 +9,10 @@ keeps the provider adapter below the product permission layer.
 The persisted lifecycle covers intent, plan, plan review, explore, context
 selection, edit, diff review, test, build, fix, package, deploy review,
 checkpoint, revert and audit. A run can pause, resume, cancel, fail and recover.
-Writes require an approved plan, approved paths, a reviewed diff and one-time
-write permission. Test/build execution, network, package install,
+Writes require an approved plan, approved existing-file read paths, exact new
+file paths, a reviewed diff and one-time write permission. A create path must
+not exist or collide with a file parent; irreversible delete remains disabled.
+Test/build execution, network, package install,
 secret-reference, Git commit, Git push and deployment are separate permissions.
 Every implemented grant combines its scope token with a caller-generated UUID.
 The broker atomically consumes that UUID in the owner-scoped SQLite approval
