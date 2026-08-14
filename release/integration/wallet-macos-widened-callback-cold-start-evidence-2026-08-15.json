@@ -1,0 +1,71 @@
+{
+  "schemaVersion": "ynx-wallet-macos-widened-callback-cold-start-evidence/v1",
+  "recordedAt": "2026-08-15T00:03:00+08:00",
+  "owner": "02-wallet-auth-ios-macos",
+  "branch": "codex/wallet-ios-macos-20260813",
+  "sourceCommit": "dc0888cd39a0b057eb98e1aa80ca6963d30825c4",
+  "workflow": {
+    "name": "wallet-macos",
+    "runId": 31813552504,
+    "jobId": 94809665816,
+    "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/31813552504",
+    "status": "completed",
+    "conclusion": "success",
+    "xcodeVersion": "26.3.0",
+    "xcodeBuild": "17C529",
+    "swiftTestsPassed": 6,
+    "swiftTestsFailed": 0,
+    "allWorkflowStepsPassed": true
+  },
+  "launchObservation": {
+    "coldLaunchPid": 5267,
+    "secondLaunchPid": 5277,
+    "canonicalRouteShapeCallbackColdStartPid": 5499,
+    "canonicalRouteShapeReceived": true,
+    "canonicalRouteShapeVisible": true,
+    "canonicalRouteShapeError": "CANONICAL_AUTH_BRIDGE_UNAVAILABLE",
+    "widenedCallbackColdStartPid": 5528,
+    "widenedCallbackURL": "ynxwallet://authorize?request=invalid&scope=wallet",
+    "widenedCallbackLaunchedTerminatedApp": true,
+    "widenedCallbackReceived": true,
+    "widenedCallbackVisible": true,
+    "widenedCallbackError": "INVALID_AUTHORIZATION_REQUEST",
+    "widenedCallbackFailedClosed": true,
+    "authorizationSucceeded": false,
+    "signingAttempted": false,
+    "networkSubmissionAttempted": false,
+    "returnCallbackAttempted": false
+  },
+  "githubArtifact": {
+    "artifactId": 9224110041,
+    "name": "ynx-wallet-macos-native",
+    "apiReportedBytes": 573492,
+    "githubDigest": "sha256:5d5b37656ea644e082144222d84ffd9c22427c8289388e6ade9fe3a989092da7",
+    "downloadInspected": false,
+    "temporaryCIArtifactOnly": true,
+    "publicProductDownload": false
+  },
+  "releaseGates": {
+    "widenedCallbackColdStartEngineeringVerified": true,
+    "widenedCallbackRejectedFailClosed": true,
+    "canonicalAuthBridgeAvailable": false,
+    "centralEndpointMatrixConsumed": false,
+    "installedAppRpcChainIdVerified": false,
+    "authorizationSucceeded": false,
+    "biometricRecoverySucceeded": false,
+    "testnetTransactionSucceeded": false,
+    "physicalDeviceVerified": false,
+    "public": false,
+    "downloadHosted": false,
+    "developerIDSigned": false,
+    "notarized": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "limitations": [
+    "This run proves semantic delivery and visible fail-closed rejection of a widened custom-scheme callback as the first event of a newly launched arm64 hosted-runner process.",
+    "It does not prove canonical authorization success, signing, network submission, a return callback, Testnet transaction, or public distribution.",
+    "The uploaded artifact metadata is direct Actions evidence, but its ZIP and screenshots were not downloaded or independently inspected in this slice.",
+    "The application remains ad-hoc and the x86_64 slice is not claimed launched."
+  ]
+}
