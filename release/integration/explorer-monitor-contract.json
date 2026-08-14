@@ -1,7 +1,7 @@
 {
   "schemaVersion": "ynx.explorer-monitor.integration.v1",
   "owner": "12-explorer-and-13-monitor",
-  "sourceCommit": null,
+  "sourceCommit": "23b3f08b48992899fdcf101dc233e95c76385ba9",
   "baseCommit": "2a78ace0a647b73dd2961fae3361189116453a7d",
   "network": {
     "name": "YNX Testnet",

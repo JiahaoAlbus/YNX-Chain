@@ -3,7 +3,7 @@
 Status: continuation candidate; not centrally accepted  
 Owner: `12-explorer-and-13-monitor`  
 Base commit: `2a78ace0a647b73dd2961fae3361189116453a7d`  
-Continuation source commit: pending first checkpoint
+Continuation source commit: `23b3f08b48992899fdcf101dc233e95c76385ba9`
 
 ## Recovered authority
 

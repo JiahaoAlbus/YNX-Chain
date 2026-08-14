@@ -8,7 +8,7 @@
   "goalState": "active",
   "phase": "PROTECT",
   "baseCommit": "2a78ace0a647b73dd2961fae3361189116453a7d",
-  "sourceCommit": null,
+  "sourceCommit": "23b3f08b48992899fdcf101dc233e95c76385ba9",
   "status": {
     "implementedLocal": true,
     "testedLocal": true,
@@ -36,6 +36,7 @@
   },
   "localEvidence": [
     "go test -race ./internal/indexer ./internal/explorer ./cmd/ynx-indexerd",
+    "implementation checkpoint 23b3f08b48992899fdcf101dc233e95c76385ba9",
     "docs/explorer-monitor/FABLE5_REQUIREMENT_EVIDENCE_MATRIX.md",
     "release/integration/explorer-monitor-contract.json"
   ],
