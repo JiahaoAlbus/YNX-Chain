@@ -6,12 +6,12 @@
   "recordedAt": "2026-08-14T03:52:00Z",
   "evidenceMatrix": {
     "path": "release/integration/wallet-auth-release-evidence-matrix.json",
-    "sha256": "3efcef7222ced1a4f855d88c90f3d597fa1467408813e610969972e86a4ccaf0",
-    "platforms": 17,
+    "sha256": "12027c8c6ca9d37f0b3cf49ae90c8fd9dd14c8e0c3530299ee643276abc1c8d5",
+    "platforms": 18,
     "gatesPerPlatform": 12,
-    "trueGates": 80,
-    "falseGates": 124,
-    "evidenceRecords": 64
+    "trueGates": 83,
+    "falseGates": 133,
+    "evidenceRecords": 65
   },
   "frozenOwnerSources": {
     "coreAuthGateway": "774a1f756890043e88626d13b6c9679a2ad6d288",
@@ -22,7 +22,6 @@
   },
   "pendingOwnerEvidence": [
     "6f096503793218ddfd9b3b1cd6403a07d4fafb97",
-    "6331265ae74a957f07958e459251fc42c9ea6b66",
     "5bf869a191877cdd83b83e90156f698ed7e2d2cc",
     "f27b5867227e172756d4a8c3638905c668874f33"
   ],

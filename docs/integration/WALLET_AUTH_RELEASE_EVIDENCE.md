@@ -19,6 +19,7 @@ This is the central Integration view of platform delivery. The authoritative mac
 | Linux desktop arm64 RPM | Ubuntu rpm --noscripts native CI with explicit root:root/4755 sandbox; upgrade/lifecycle/Testnet/fail-close/uninstall/hash | RPM scripts and Fedora/DNF not tested; installedLocal/signing/hosting/store false |
 | Windows desktop arm64 | Windows 11 arm64 native CI install/upgrade, cold/second lifecycle, exact Testnet read, fail-close, uninstall and readback hash | installedLocal false; Authenticode NotSigned, non-hosted and not store released |
 | Windows CLI arm64 | Run 31770348463: Windows 11 arm64 upgrade/install/cold/second, frozen vectors, temporary P-256 self-test, exact `0x1917`, fail-close, uninstall and hash readback | Win10/Server2016 not directly tested; temporary P-256 is not production account/tx signing; Authenticode NotSigned; local/public/hosted/production/store false |
+| Go SDK | Run 31770772805: Ubuntu 24.04/Go 1.25 source consumer compile, SDK tests, Auth vector, exact `0x1917`, fail-close and temporary device proof | formal module archive/install, production account/tx signing, public hosting, production signing and store false |
 | Linux/Windows CLI | Native package lifecycle, exact Testnet read and ephemeral P-256 device proof | Asset signing/transaction, public hosting, production signature |
 | TypeScript SDK | Reproducible local tarball, clean-consumer install/import and exact Testnet read | npm publication, automatic signing/transaction, production signature |
 

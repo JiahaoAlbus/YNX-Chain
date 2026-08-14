@@ -43,7 +43,6 @@
       "consumedForReleaseTruth": false,
       "note": "The Android branch advanced beyond frozen evidence without an Owner terminal checkpoint; device truth remains unchanged."
     },
-    {"owner":"desktop-cli-sdk","candidateCommit":"6331265ae74a957f07958e459251fc42c9ea6b66","remoteFastForwardReported":true,"remoteReadbackComplete":false,"ciComplete":true,"consumedForReleaseTruth":false,"note":"Go SDK evidence remains queued for a separate atomic slice."},
     {"owner":"desktop-cli-sdk","candidateCommit":"5bf869a191877cdd83b83e90156f698ed7e2d2cc","remoteFastForwardReported":true,"remoteReadbackComplete":false,"ciComplete":true,"consumedForReleaseTruth":false,"note":"Desktop/CLI/SDK final handoff remains queued separately."},
     {"owner":"desktop-cli-sdk","candidateCommit":"f27b5867227e172756d4a8c3638905c668874f33","remoteFastForwardReported":true,"remoteReadbackComplete":false,"ciComplete":true,"consumedForReleaseTruth":false,"note":"TypeScript SDK central handoff remains queued separately."}
   ],
@@ -608,6 +607,13 @@
       "commit": "963e07a3325dd7fff31244d90e89b2f9b13a3809",
       "path": "release/wallet-cli/typescript-sdk/manifest.json",
       "supports": ["typescript-sdk.build", "typescript-sdk.install", "typescript-sdk.testnet", "typescript-sdk.sign"]
+    },
+    "go-sdk-real-consumer": {
+      "type": "git-object",
+      "direct": true,
+      "commit": "6331265ae74a957f07958e459251fc42c9ea6b66",
+      "path": "release/wallet-cli/go-sdk/real-consumer-evidence.json",
+      "supports": ["go-sdk.build", "go-sdk.testnet", "go-sdk.sign"]
     }
   },
   "platforms": [
@@ -773,6 +779,16 @@
       "gates": {"build":true,"install":true,"coldLaunch":true,"secondLaunch":true,"testnet":true,"sign":true,"tx":false,"callback":false,"reconnect":false,"downloadHosted":false,"productionSigned":false,"storeReleased":false},
       "evidenceBindings": {"build":["windows-cli-arm64-native-lifecycle"],"install":["windows-cli-arm64-native-lifecycle"],"coldLaunch":["windows-cli-arm64-native-lifecycle"],"secondLaunch":["windows-cli-arm64-native-lifecycle"],"testnet":["windows-cli-arm64-native-lifecycle"],"sign":["windows-cli-arm64-native-lifecycle"],"tx":["windows-cli-arm64-native-lifecycle"],"callback":["windows-cli-arm64-native-lifecycle"],"reconnect":["windows-cli-arm64-native-lifecycle"],"downloadHosted":["windows-cli-arm64-native-lifecycle"],"productionSigned":["windows-cli-arm64-native-lifecycle"],"storeReleased":["windows-cli-arm64-native-lifecycle"]},
       "notes": ["Windows 11 arm64 native CI proved upgrade/install, cold/second start, frozen vectors, exact 0x1917, fail-close and uninstall. sign=true is limited to a temporary P-256 self-test with no persisted key; it is not a production account or chain transaction signature. The installer is Authenticode NotSigned and not hosted/public/store-released."]
+    },
+    {
+      "id": "go-sdk",
+      "ownerSource": "desktop-cli-sdk",
+      "artifactClass": "unsigned-source-only-sdk-evidence",
+      "status": "source-consumer-native-ci",
+      "capabilities": {"consumerCompiledNativeCI":true,"formalGoModuleArchiveBuilt":false,"installedLocal":false,"ephemeralDeviceProof":true,"privateKeyPersisted":false},
+      "gates": {"build":true,"install":false,"coldLaunch":false,"secondLaunch":false,"testnet":true,"sign":true,"tx":false,"callback":false,"reconnect":false,"downloadHosted":false,"productionSigned":false,"storeReleased":false},
+      "evidenceBindings": {"build":["go-sdk-real-consumer"],"install":["go-sdk-real-consumer"],"coldLaunch":["go-sdk-real-consumer"],"secondLaunch":["go-sdk-real-consumer"],"testnet":["go-sdk-real-consumer"],"sign":["go-sdk-real-consumer"],"tx":["go-sdk-real-consumer"],"callback":["go-sdk-real-consumer"],"reconnect":["go-sdk-real-consumer"],"downloadHosted":["go-sdk-real-consumer"],"productionSigned":["go-sdk-real-consumer"],"storeReleased":["go-sdk-real-consumer"]},
+      "notes": ["Ubuntu 24.04/Go 1.25 CI compiled the real source consumer, verified frozen Auth vectors, exact 0x1917 and an ephemeral device proof without persisting the key. formalGoModuleArchiveBuilt=false; install, tx, public hosting, production signing and store remain false."]
     }
   ]
 }
