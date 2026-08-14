@@ -10,10 +10,12 @@
         "packages/wallet-auth/src/product-session-v2.js",
         "packages/wallet-auth/src/product-session-proof-v2.js",
         "packages/wallet-auth/src/product-session-recovery.js",
+        "packages/wallet-auth/src/wallet-connection-coordinator.js",
         "packages/wallet-auth/src/product-session-gateway-client.js",
         "packages/wallet-auth/src/product-session-gateway-http.js",
         "packages/wallet-auth/test/product-session-v2.test.mjs",
-        "packages/wallet-auth/test/product-session-recovery.test.mjs"
+        "packages/wallet-auth/test/product-session-recovery.test.mjs",
+        "packages/wallet-auth/test/wallet-connection-coordinator.test.mjs"
       ],
       "verifiedBindings": [
         "chainId",
@@ -41,8 +43,10 @@
       "evidence": [
         "packages/wallet-auth/src/metamask-evm-adapter.js",
         "packages/wallet-auth/src/wallet-provider-discovery.js",
+        "packages/wallet-auth/src/wallet-connection-coordinator.js",
         "packages/wallet-auth/test/metamask-evm-adapter.test.mjs",
         "packages/wallet-auth/test/wallet-provider-discovery.test.mjs",
+        "packages/wallet-auth/test/wallet-connection-coordinator.test.mjs",
         "packages/wallet-auth/src/product-session-router.js",
         "packages/wallet-auth/test/product-session-router.test.mjs",
         "packages/wallet-auth/test/product-session-products.test.mjs",
@@ -76,8 +80,10 @@
         "packages/wallet-auth/src/index.d.ts",
         "packages/wallet-auth/src/product-session-gateway-client.js",
         "packages/wallet-auth/src/product-session-gateway-http.js",
+        "packages/wallet-auth/src/wallet-connection-coordinator.js",
         "packages/wallet-auth/test/product-session-gateway-client.test.mjs",
         "packages/wallet-auth/test/product-session-gateway-http.test.mjs",
+        "packages/wallet-auth/test/wallet-connection-coordinator.test.mjs",
         "release/integration/wallet-product-session-router-migration.json"
       ],
       "registryReadyProducts": 12,
@@ -104,19 +110,21 @@
         "packages/wallet-auth/evidence/wallet-provider-discovery-browser.png",
         "packages/wallet-auth/test/product-session-gateway-client.test.mjs",
         "packages/wallet-auth/test/product-session-gateway-http.test.mjs",
-        "packages/wallet-auth/test/product-session-migration.test.mjs"
+        "packages/wallet-auth/test/product-session-migration.test.mjs",
+        "packages/wallet-auth/test/wallet-connection-coordinator.test.mjs"
       ],
       "targetedTests": {
-        "passed": 66,
+        "passed": 76,
         "failed": 0,
         "concurrentProductSessions": 120
       },
       "fullPackageTests": {
-        "passed": 168,
+        "passed": 178,
         "failed": 0
       },
       "remaining": [
         "MetaMask was unlocked with user Touch ID, injected a provider, and the shared EIP-1193 harness loaded and triggered its real connection request; Computer Use timed out and its native pipe closed before the approval result, request ID, chain, or masked account was observable",
+        "The post-coordinator Computer Use retry timed out for Chrome, closed its native pipe by bundle identifier, and failed native-pipe startup for the MetaMask app",
         "The Wallet Companion's browser RPC preflight to https://evm.ynxweb4.com failed CORS before account approval; Wallet UI and Chain deployment configuration are outside this branch scope",
         "No installed YNX Wallet application was available for a real approval/session flow",
         "Each actually migrated product requires installed Web/desktop/mobile approval, rejection, timeout, revoke, restart, network-loss and Retry evidence"
@@ -143,6 +151,7 @@
   "blockingConditions": [
     "No migrated product runtime and installed Wallet combination is currently available for a real v2 approval/session flow",
     "Installed MetaMask approval outcome remains unverified because Computer Use lost its native pipe after the shared harness triggered the request",
+    "The post-coordinator visible retry could not inspect Chrome or MetaMask because the Computer Use native pipe closed and then failed startup",
     "Wallet Companion browser RPC preflight is blocked by external evm.ynxweb4.com CORS configuration before MetaMask account approval",
     "product consumer and native packaging migrations are owned by isolated product/platform tasks"
   ]

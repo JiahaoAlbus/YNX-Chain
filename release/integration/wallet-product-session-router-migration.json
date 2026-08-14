@@ -4,14 +4,14 @@
   "audit": {
     "sourceBaseline": "2a78ace0a647b73dd2961fae3361189116453a7d",
     "auditedAt": "2026-08-14T04:06:46.000Z",
-    "rule": "Every evidence path must exist in this branch. migrated-v2 additionally requires distinct runtime, Gateway v2 route, and visible installed/browser platform evidence. An EVM-only MetaMask adapter connection is not Product Session migration evidence."
+    "rule": "Every evidence path must exist in this branch. migrated-v2 additionally requires runtime use of WalletConnectionCoordinator, distinct Gateway v2 route evidence, and visible installed/browser platform evidence. An EVM-only MetaMask adapter connection is not Product Session migration evidence."
   },
   "meaning": {
     "registry-ready": "The central v2 registry and shared contract tests cover the product. This is not product-runtime migration evidence.",
     "shared-sdk-v1": "Current product source imports @ynx-chain/wallet-auth but still builds the v1 request/session contract.",
     "legacy-direct": "Current product source constructs or opens Wallet URLs outside the v2 router.",
     "contract-only": "Only a registry/integration contract was found; no v2 runtime consumer was found.",
-    "migrated-v2": "Product runtime imports and executes the v2 shared router/recovery client with platform evidence. No product currently meets this state."
+    "migrated-v2": "Product runtime imports and executes WalletConnectionCoordinator over the v2 recovery client with platform evidence. No product currently meets this state."
   },
   "products": [
     {"productId":"calendar","registry":"registry-ready","consumer":"contract-only","migrated":false,"evidence":["packages/wallet-auth/product-session-registry.json"]},
@@ -29,5 +29,5 @@
   ],
   "productRuntimeMigrationCount": 0,
   "fixedProductCount": 0,
-  "integrationRule": "A product may change migrated to true only when its runtime imports the v2 shared SDK, its Gateway uses the v2 routes, and the required installed or browser flow evidence exists. MetaMaskEvmConnectionAdapter provides EIP-1193 provider-only authority and cannot satisfy the Product Session or Gateway evidence requirements."
+  "integrationRule": "A product may change migrated to true only when its runtime uses WalletConnectionCoordinator, its Gateway uses the v2 routes, and the required installed or browser flow evidence exists. Lower-level provider discovery, MetaMaskEvmConnectionAdapter, or RecoverableProductSessionClient alone cannot satisfy the common-component, Product Session, or Gateway evidence requirements."
 }
