@@ -43,7 +43,9 @@ The verifier rejects a `true` gate unless a direct evidence record explicitly su
 
 The 2026-08-14 resumed snapshot was upgraded through GitHub Git-database readback. Every consumed checkpoint has an exact remote commit, parent, tree and evidence blob; Owner branches were fetched without touching the working tree. These source advances promoted no public, hosted, production, store, callback, reconnect, signing or transaction gate without direct evidence.
 
-The frozen checkpoints are Core `774a1f756890043e88626d13b6c9679a2ad6d288`, Web `7d569d1babb85e6d28bb6bfc3b3c0c5fd828255d`, Android `4739a60e1fa0e3d0b6862e129330f9e9ca202887`, iOS/macOS `50d3b2e2c5bd77456b84f348c48fa4a9ed76b5b3`, and Desktop/CLI/SDK `0985090cc5640a7bc6f614acba1f32ba24e6dc55`.
+The frozen checkpoints are Core `774a1f756890043e88626d13b6c9679a2ad6d288`, Web `7d569d1babb85e6d28bb6bfc3b3c0c5fd828255d`, Android `8666c0bb0535270e595f3db54e7d2e35b18afe66`, iOS/macOS `50d3b2e2c5bd77456b84f348c48fa4a9ed76b5b3`, and Desktop/CLI/SDK `0985090cc5640a7bc6f614acba1f32ba24e6dc55`.
+
+Android source `c1568cc2585426cda0a7705fec3766581323fc42` and checkpoint `8666c0bb0535270e595f3db54e7d2e35b18afe66` prove finally-zeroing for temporary decoded 32-byte Uint8Array keys across 8 signing domains after success or exception. Wallet/Auth 115/115, Wallet 104/104 and Hermes 2749 passed. The immutable JavaScript secret string returned by SecureStore is explicitly not claimed zeroed; no device or release truth is promoted.
 
 iOS run 31774232444 ended in failure. It preserves cold PID 30853, second PID 30975, and a malformed callback delivered through the system Open sheet to PID 39845 then rejected by the app UI. Step 15 did not execute `openurl`; recovery failed. Commit `50d3b2e2c5bd77456b84f348c48fa4a9ed76b5b3` freezes only the recovery-precondition workflow source and does not turn the failed run into a CI pass. Deep-link delivery, recovery/biometric, auth success, Universal Link and public/signing gates remain false.
 

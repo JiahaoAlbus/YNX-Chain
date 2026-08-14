@@ -36,16 +36,15 @@
   "pendingOwnerEvidence": [
     {
       "owner": "android-api36",
-      "candidateCommit": "6f096503793218ddfd9b3b1cd6403a07d4fafb97",
+      "candidateCommit": "2e4c7362f957eca80510ec48d8732ba55b4abfa7",
       "remoteFastForwardReported": true,
       "remoteReadbackComplete": true,
       "ciComplete": null,
       "consumedForReleaseTruth": false,
-      "note": "The Android branch advanced beyond frozen evidence without an Owner terminal checkpoint; device truth remains unchanged."
+      "note": "The Android branch advanced beyond the frozen zeroing checkpoint without an Owner terminal checkpoint; device truth remains unchanged."
     },
     {"owner":"ios-macos","candidateCommit":"b081dd7022f0a07499c1de91b8e3d2579363b926","remoteFastForwardReported":true,"remoteReadbackComplete":false,"ciComplete":false,"consumedForReleaseTruth":false,"note":"Universal Link path fix has no terminal successful evidence; associated-domain/public delivery remain false."},
     {"owner":"ios-macos","candidateCommit":"7115615f0fa06b75dfcf1c8d3c1c91edc2dff6d1","remoteFastForwardReported":true,"remoteReadbackComplete":true,"ciComplete":false,"consumedForReleaseTruth":false,"note":"Recovery workflow run remains in progress and promotes no biometric, recovery, auth or public gate."},
-    {"owner":"android-api36","candidateCommit":"8666c0bb0535270e595f3db54e7d2e35b18afe66","remoteFastForwardReported":true,"remoteReadbackComplete":false,"ciComplete":true,"consumedForReleaseTruth":false,"note":"Temporary Uint8Array zeroization evidence remains queued; immutable JS strings are excluded."},
     {"owner":"core-auth-gateway","candidateCommit":"b8467853060db04c2981abb7fcfa22d4cfdcf65b","remoteFastForwardReported":true,"remoteReadbackComplete":false,"ciComplete":true,"consumedForReleaseTruth":false,"note":"Smart Account batch-call evidence remains queued after platform slices."}
   ],
   "ownerSources": [
@@ -70,9 +69,9 @@
     {
       "owner": "android-api36",
       "branch": "codex/wallet-android-api36-continuation2-20260814",
-      "sourceCommit": "4739a60e1fa0e3d0b6862e129330f9e9ca202887",
-      "remoteCommitObserved": "4739a60e1fa0e3d0b6862e129330f9e9ca202887",
-      "branchHeadObserved": "6f096503793218ddfd9b3b1cd6403a07d4fafb97",
+      "sourceCommit": "8666c0bb0535270e595f3db54e7d2e35b18afe66",
+      "remoteCommitObserved": "8666c0bb0535270e595f3db54e7d2e35b18afe66",
+      "branchHeadObserved": "2e4c7362f957eca80510ec48d8732ba55b4abfa7",
       "remoteVerifiedAt": "2026-08-14T04:20:00Z",
       "verificationMode": "github-git-database-parent-tree-blob-readback"
     },
@@ -410,6 +409,13 @@
       "path": "docs/integration/WALLET_ANDROID_API36_HANDOFF.md",
       "supports": []
     },
+    "android-temporary-signing-key-zeroing": {
+      "type": "git-object",
+      "direct": true,
+      "commit": "8666c0bb0535270e595f3db54e7d2e35b18afe66",
+      "path": "release/integration/wallet-auth-contract.json",
+      "supports": []
+    },
     "ios-current-head-workflow": {
       "type": "git-object",
       "direct": true,
@@ -716,9 +722,10 @@
       "ownerSource": "android-api36",
       "artifactClass": "disposable-qa-release-key",
       "status": "source-bound-emulator-qa",
+      "capabilities": {"temporaryDecodedKeyBytesZeroedAfterSuccess":true,"temporaryDecodedKeyBytesZeroedAfterException":true,"invalidAllocatedBytesZeroedBeforeReject":true,"immutableJavaScriptSecretStringZeroed":false,"currentSourceDeviceTested":false},
       "gates": {"build":true,"install":true,"coldLaunch":true,"secondLaunch":true,"testnet":true,"sign":false,"tx":false,"callback":false,"reconnect":false,"downloadHosted":false,"productionSigned":false,"storeReleased":false},
       "evidenceBindings": {"build":["android-disposable-api36","android-auth-callback-relock-source"],"install":["android-disposable-api36","android-auth-callback-relock-source"],"coldLaunch":["android-disposable-api36","android-auth-callback-relock-source"],"secondLaunch":["android-disposable-api36","android-auth-callback-relock-source"],"testnet":["android-disposable-api36","android-auth-callback-relock-source"],"sign":["android-disposable-api36","android-onboarding-qa-pending","android-auth-callback-relock-source","android-audit-serialization-source","android-account-mutation-recovery-source","android-account-rename-lifecycle-source"],"tx":["android-disposable-api36","android-onboarding-qa-pending","android-auth-callback-relock-source","android-audit-serialization-source","android-account-mutation-recovery-source","android-account-rename-lifecycle-source"],"callback":["android-disposable-api36","android-onboarding-qa-pending","android-auth-callback-relock-source","android-audit-serialization-source","android-account-mutation-recovery-source","android-account-rename-lifecycle-source"],"reconnect":["android-disposable-api36","android-onboarding-qa-pending","android-auth-callback-relock-source","android-audit-serialization-source","android-account-mutation-recovery-source","android-account-rename-lifecycle-source"],"downloadHosted":["android-disposable-api36","android-onboarding-qa-pending","android-auth-callback-relock-source"],"productionSigned":["android-disposable-api36","android-onboarding-qa-pending","android-auth-callback-relock-source"],"storeReleased":["android-disposable-api36","android-onboarding-qa-pending","android-auth-callback-relock-source"]},
-      "notes": ["Historical API 36 install and two distinct cold-launch PIDs remain direct for the disposable artifact. Current source adds canonical callback/replay, lifecycle guards, audit serialization, secret-free mutation journal and exact-account/active-generation rename fail-close (Wallet 74/74, Hermes 2,742). No current-source device install or interaction occurred; sign, tx, callback delivery and reconnect remain false, and the disposable identity is never production/store signing."]
+      "notes": ["Historical API 36 lifecycle remains direct only for the disposable artifact. Current source adds temporary decoded 32-byte Uint8Array finally-zeroing across 8 signing domains (115/115 Wallet/Auth, 104/104 Wallet, Hermes 2,749). SecureStore's immutable JS string is explicitly not erased. No current-source device interaction occurred; sign, tx, callback delivery, reconnect and release gates remain false."]
     },
     {
       "id": "ios-simulator",
