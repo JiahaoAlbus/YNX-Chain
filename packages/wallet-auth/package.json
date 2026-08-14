@@ -45,6 +45,7 @@
     "probe:public-erc4337": "node scripts/probe-public-erc4337.mjs",
     "verify:testnet-deployment": "node scripts/verify-testnet-deployment.mjs",
     "monitor:testnet-deployment": "node scripts/monitor-testnet-deployment.mjs",
+    "promote:public-erc4337-metadata": "node scripts/promote-public-erc4337-metadata.mjs",
     "vector:strategy": "node scripts/generate-strategy-mandate-vector.mjs"
   },
   "dependencies": {

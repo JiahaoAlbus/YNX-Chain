@@ -1149,6 +1149,7 @@ export declare function gatewayStateDigest(snapshot: unknown): string;
 export declare function verifyPublicERC4337Deployment(config: Readonly<Record<string, unknown>>): Promise<Readonly<Record<string, unknown>>>;
 export declare function createWalletTestnetDeploymentManifest(input: Readonly<Record<string, unknown>>): Readonly<Record<string, unknown>>;
 export declare function monitorPublicERC4337Deployment(config: Readonly<Record<string, unknown>>): Promise<Readonly<Record<string, unknown>>>;
+export declare function buildPublicERC4337MetadataCandidate(input: Readonly<Record<string, unknown>>): Readonly<Record<string, unknown>>;
 export declare function summarizePublicGatewayMultiUserEvidence(input: unknown): Readonly<{
   environment: "public-testnet";
   intendedUsers: number;

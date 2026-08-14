@@ -20,6 +20,7 @@ export * from "./gateway-http.js";
 export * from "./bundler.js";
 export * from "./public-erc4337-readiness.js";
 export * from "./testnet-deployment-verifier.js";
+export * from "./public-erc4337-metadata.js";
 export * from "./gateway-public-evidence.js";
 export * from "./exchange-action.js";
 export * from "./developer-deployment.js";
