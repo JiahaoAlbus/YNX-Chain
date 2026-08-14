@@ -137,6 +137,7 @@ jobs:
           DEVICE="$(xcrun simctl list devices booted | awk -F '[()]' '/iPhone/{print $2; exit}')"
           test -n "$DEVICE"
           xcrun simctl biometric "$DEVICE" unenroll
+          set +e
           xcodebuild test \
             -workspace ios/YNXWallet.xcworkspace \
             -scheme YNXWallet \
@@ -145,11 +146,17 @@ jobs:
             -only-testing:YNXWalletUITests/MalformedCallbackUITests/testRecoveryRemainsEmptyWhenBiometricsAreUnavailable \
             -resultBundlePath proof/ci-ios/RecoveryFailClosed.xcresult \
             2>&1 | tee proof/ci-ios/recovery-fail-closed-xctest.log
+          XCODEBUILD_STATUS=${PIPESTATUS[0]}
+          set -e
+          if test -d proof/ci-ios/RecoveryFailClosed.xcresult; then
+            xcrun xcresulttool export attachments \
+              --path proof/ci-ios/RecoveryFailClosed.xcresult \
+              --output-path proof/ci-ios/recovery-xcresult-attachments || true
+          fi
+          test "$XCODEBUILD_STATUS" -eq 0
           grep -F "Test Case '-[YNXWalletUITests.MalformedCallbackUITests testRecoveryRemainsEmptyWhenBiometricsAreUnavailable]' passed" proof/ci-ios/recovery-fail-closed-xctest.log
-          xcrun xcresulttool export attachments \
-            --path proof/ci-ios/RecoveryFailClosed.xcresult \
-            --output-path proof/ci-ios/recovery-xcresult-attachments
       - name: Record truthful Simulator artifact facts
+        if: always()
         working-directory: apps/wallet
         run: |
           set -euo pipefail
@@ -164,6 +171,7 @@ jobs:
           shasum -a 256 proof/ci-ios/YNXWallet-iOS-Simulator.zip | tee proof/ci-ios/SHA256SUMS
           wc -c proof/ci-ios/YNXWallet-iOS-Simulator.zip | tee proof/ci-ios/BYTES
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
         with:
           name: ynx-wallet-ios-simulator
           path: |
