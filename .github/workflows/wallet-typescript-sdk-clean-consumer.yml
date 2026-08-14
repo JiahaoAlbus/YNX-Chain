@@ -1,0 +1,96 @@
+name: Wallet TypeScript SDK clean consumer
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [codex/wallet-desktop-cli-sdk-20260813]
+    paths:
+      - .github/workflows/wallet-typescript-sdk-clean-consumer.yml
+      - sdk/js/**
+      - examples/wallet-typescript-sdk-clean-consumer/**
+      - release/wallet-cli/typescript-sdk/ynx-chain-sdk-0.2.1.tgz
+
+permissions:
+  contents: read
+
+jobs:
+  build-install-and-run:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24.19.0
+          cache: npm
+          cache-dependency-path: packages/wallet-auth/package-lock.json
+      - name: Test SDK and reproduce npm tarball
+        run: |
+          npm test --prefix sdk/js
+          mkdir -p "$RUNNER_TEMP/generated" "$RUNNER_TEMP/evidence"
+          npm pack ./sdk/js --pack-destination "$RUNNER_TEMP/generated" --json > "$RUNNER_TEMP/evidence/sdk-pack.json"
+          regenerated="$RUNNER_TEMP/generated/ynx-chain-sdk-0.2.1.tgz"
+          committed="release/wallet-cli/typescript-sdk/ynx-chain-sdk-0.2.1.tgz"
+          test "$(stat -c %s "$regenerated")" = 5573
+          test "$(sha256sum "$regenerated" | cut -d ' ' -f 1)" = 6f3bc67e1382d75bb9ce31abdcfcc68a6d9f3ba36f92c36fd76b8d1a1a071174
+          cmp "$regenerated" "$committed"
+      - name: Install tarballs into an isolated clean consumer
+        run: |
+          npm pack ./packages/wallet-auth --pack-destination "$RUNNER_TEMP/generated" --json > "$RUNNER_TEMP/evidence/wallet-auth-pack.json"
+          mkdir -p "$RUNNER_TEMP/consumer"
+          cp examples/wallet-typescript-sdk-clean-consumer/package.json examples/wallet-typescript-sdk-clean-consumer/index.mjs examples/wallet-typescript-sdk-clean-consumer/typecheck.ts examples/wallet-typescript-sdk-clean-consumer/tsconfig.json "$RUNNER_TEMP/consumer/"
+          cp packages/wallet-auth/testdata/product-session-http-proof-v1.json "$RUNNER_TEMP/consumer/vector.json"
+          cd "$RUNNER_TEMP/consumer"
+          npm install --ignore-scripts "$RUNNER_TEMP/generated/ynx-chain-sdk-0.2.1.tgz" "$RUNNER_TEMP/generated/ynx-chain-wallet-auth-1.0.0.tgz" typescript@6.0.3
+          npm ls --all
+          npx tsc -p tsconfig.json
+      - name: Run frozen Auth, ephemeral signing and real Testnet
+        run: |
+          cd "$RUNNER_TEMP/consumer"
+          YNX_WALLET_AUTH_VECTOR="$RUNNER_TEMP/consumer/vector.json" node index.mjs > "$RUNNER_TEMP/evidence/clean-consumer.json"
+          jq -e '.cleanConsumer == true and .installedFromTarball == true and .vectorVerified == true and .protocol == "YNX_PRODUCT_SESSION_HTTP_PROOF_V1" and .ephemeralSigningVerified == true and .privateKeyPersisted == false and .connected == true and .chainId == "0x1917" and .accountClaimed == false and .balanceClaimed == false and .transactionCreated == false' "$RUNNER_TEMP/evidence/clean-consumer.json"
+      - name: Require HTTP, non-HTTPS and unreachable RPC to fail closed
+        run: |
+          cd "$RUNNER_TEMP/consumer"
+          for rpc in http://127.0.0.1:1 file:///tmp/fake-rpc https://127.0.0.1:1; do
+            label="$(printf '%s' "$rpc" | tr -c 'A-Za-z0-9' '_')"
+            if YNX_WALLET_AUTH_VECTOR="$RUNNER_TEMP/consumer/vector.json" YNX_EVM_RPC="$rpc" node index.mjs > "$RUNNER_TEMP/evidence/$label.stdout" 2> "$RUNNER_TEMP/evidence/$label.stderr"; then
+              echo "$rpc unexpectedly succeeded" >&2
+              exit 1
+            fi
+          done
+          grep -F 'absolute HTTPS URL without userinfo' "$RUNNER_TEMP/evidence/http___127_0_0_1_1.stderr"
+          grep -F 'absolute HTTPS URL without userinfo' "$RUNNER_TEMP/evidence/file____tmp_fake_rpc.stderr"
+          grep -E 'request failed|timed out' "$RUNNER_TEMP/evidence/https___127_0_0_1_1.stderr"
+          jq -n --arg sourceCommit "$GITHUB_SHA" --argjson workflowRunId "$GITHUB_RUN_ID" '{schemaVersion:1,sourceCommit:$sourceCommit,workflowRunId:$workflowRunId,runner:"ubuntu-24.04-x64",node:"24.19.0",minimumRuntime:"Node.js 22 for the combined Wallet Auth clean consumer; SDK package declares Node.js 18",packageBytes:5573,packageSha256:"6f3bc67e1382d75bb9ce31abdcfcc68a6d9f3ba36f92c36fd76b8d1a1a071174",signingClass:"unsigned_npm_testnet_candidate",npmPackReproducible:true,cleanInstalled:true,strictTypeConsumerCompiled:true,vectorVerified:true,ephemeralSigningVerified:true,privateKeyPersisted:false,chainId:"0x1917",httpFailureClosed:true,nonHttpsFailureClosed:true,unreachableRpcFailureClosed:true,accountClaimed:false,balanceClaimed:false,transactionCreated:false,productionSigned:false,downloadHosted:false,deployedPublic:false}' > "$RUNNER_TEMP/evidence/lifecycle.json"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ynx-wallet-typescript-sdk-clean-consumer
+          path: |
+            release/wallet-cli/typescript-sdk/ynx-chain-sdk-0.2.1.tgz
+            ${{ runner.temp }}/evidence
+          if-no-files-found: error
+
+  verify-downloaded-artifact:
+    needs: build-install-and-run
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ynx-wallet-typescript-sdk-clean-consumer
+          path: downloaded
+      - name: Verify downloaded tarball and lifecycle evidence
+        run: |
+          package="$(find downloaded -name ynx-chain-sdk-0.2.1.tgz -type f -print -quit)"
+          evidence="$(find downloaded -name lifecycle.json -type f -print -quit)"
+          test -n "$package" && test -n "$evidence"
+          test "$(stat -c %s "$package")" = 5573
+          test "$(sha256sum "$package" | cut -d ' ' -f 1)" = 6f3bc67e1382d75bb9ce31abdcfcc68a6d9f3ba36f92c36fd76b8d1a1a071174
+          jq -e '.cleanInstalled == true and .strictTypeConsumerCompiled == true and .vectorVerified == true and .ephemeralSigningVerified == true and .privateKeyPersisted == false and .chainId == "0x1917" and .httpFailureClosed == true and .nonHttpsFailureClosed == true and .unreachableRpcFailureClosed == true and .productionSigned == false and .downloadHosted == false and .deployedPublic == false' "$evidence"
+          jq -n --arg sourceCommit "$GITHUB_SHA" --argjson workflowRunId "$GITHUB_RUN_ID" '{schemaVersion:1,sourceCommit:$sourceCommit,workflowRunId:$workflowRunId,downloaded:true,bytesVerified:true,sha256Verified:true,bytes:5573,sha256:"6f3bc67e1382d75bb9ce31abdcfcc68a6d9f3ba36f92c36fd76b8d1a1a071174"}' > downloaded-verification.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ynx-wallet-typescript-sdk-clean-consumer-download-verification
+          path: downloaded-verification.json
+          if-no-files-found: error

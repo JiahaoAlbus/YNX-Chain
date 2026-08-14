@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import {after, before, test} from "node:test";
 import http from "node:http";
 import {readFile} from "node:fs/promises";
-import {YNXClient, YNXSDKError, assertYNXTestnetSnapshot, callYNXEVM, getYNXStatus, normalizeYNXAddress, toEVMAddress, toYNXAddress} from "./index.js";
+import {YNXClient, YNXSDKError, assertYNXTestnetSnapshot, callYNXEVM, getYNXStatus, normalizeYNXAddress, proveYNXTestnetRPC, toEVMAddress, toYNXAddress} from "./index.js";
 
 let baseUrl;
 let server;
@@ -53,6 +53,19 @@ test("surfaces JSON-RPC errors and invalid quantities", async () => {
 
 test("rejects unsupported endpoint protocols", () => {
   assert.throws(() => new YNXClient({restUrl: "file:///tmp/status", evmUrl: baseUrl}), /unsupported endpoint protocol/);
+});
+
+test("proves YNX Testnet only over HTTPS and fails closed on the wrong chain", async () => {
+  const successFetch = async () => new Response(JSON.stringify({jsonrpc: "2.0", id: 1, result: "0x1917"}), {status: 200});
+  assert.deepEqual(await proveYNXTestnetRPC("https://rpc.example.invalid", {fetchImpl: successFetch}), {
+    chainId: "0x1917", connected: true, network: "YNX Testnet", rpc: "https://rpc.example.invalid/",
+  });
+  await assert.rejects(proveYNXTestnetRPC("http://127.0.0.1:1"), (error) => error instanceof YNXSDKError && error.code === "RPC_HTTPS_REQUIRED");
+  await assert.rejects(proveYNXTestnetRPC("https://user@example.invalid"), (error) => error instanceof YNXSDKError && error.code === "RPC_HTTPS_REQUIRED");
+  const wrongChainFetch = async () => new Response(JSON.stringify({jsonrpc: "2.0", id: 1, result: "0x1"}), {status: 200});
+  await assert.rejects(proveYNXTestnetRPC("https://rpc.example.invalid", {fetchImpl: wrongChainFetch}), (error) => error instanceof YNXSDKError && error.code === "CHAIN_MISMATCH");
+  const unavailableFetch = async () => { throw new Error("unreachable"); };
+  await assert.rejects(proveYNXTestnetRPC("https://rpc.example.invalid", {fetchImpl: unavailableFetch}), (error) => error instanceof YNXSDKError && /request failed/.test(error.message));
 });
 
 test("converts shared YNX address vectors", async () => {

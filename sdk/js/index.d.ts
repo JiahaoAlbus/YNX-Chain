@@ -23,6 +23,7 @@ export declare function toEVMAddress(value: string): string;
 export declare function normalizeYNXAddress(value: string): Readonly<{ evmAddress: string; ynxAddress: string }>;
 export declare function getYNXStatus(baseUrl: string, options?: FetchOptions): Promise<YNXStatus>;
 export declare function callYNXEVM(evmUrl: string, method: string, params?: unknown[], options?: FetchOptions): Promise<unknown>;
+export declare function proveYNXTestnetRPC(evmUrl?: string, options?: FetchOptions): Promise<Readonly<{ chainId: "0x1917"; connected: true; network: "YNX Testnet"; rpc: string }>>;
 export declare function assertYNXTestnetSnapshot(snapshot: YNXSnapshot, options?: { maximumHeightLag?: number }): YNXSnapshot;
 export declare function ynxTestnetAddEthereumChainParameter(): object;
 export declare function ensureYNXTestnet(provider: EIP1193Provider): Promise<Readonly<{ added: boolean; chainId: string; switched: boolean }>>;

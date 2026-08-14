@@ -1,3 +1,5 @@
+import {ynxTestnet} from "./ynx-testnet.js";
+
 const DEFAULT_TIMEOUT_MS = 10_000;
 const YNX_ADDRESS_HRP = "ynx";
 const BECH32_CHARSET = "qpzry9x8gf2tvdw0s3jn54khce6mua7l";
@@ -167,6 +169,23 @@ export async function callYNXEVM(evmUrl, method, params = [], options = {}) {
   }
   if (!("result" in response)) throw new YNXSDKError("YNX EVM response is missing result");
   return response.result;
+}
+
+export async function proveYNXTestnetRPC(evmUrl = ynxTestnet.rpcUrls[0], options = {}) {
+  let url;
+  try {
+    url = new URL(evmUrl);
+  } catch (cause) {
+    throw new YNXSDKError("YNX Testnet RPC must be an absolute HTTPS URL", {cause, code: "RPC_HTTPS_REQUIRED"});
+  }
+  if (url.protocol !== "https:" || !url.hostname || url.username || url.password) {
+    throw new YNXSDKError("YNX Testnet RPC must be an absolute HTTPS URL without userinfo", {code: "RPC_HTTPS_REQUIRED"});
+  }
+  const chainId = await callYNXEVM(url.href, "eth_chainId", [], options);
+  if (chainId !== ynxTestnet.chainId) {
+    throw new YNXSDKError(`RPC did not prove YNX Testnet chain ${ynxTestnet.chainId}`, {code: "CHAIN_MISMATCH"});
+  }
+  return Object.freeze({chainId, connected: true, network: ynxTestnet.chainName, rpc: url.href});
 }
 
 function parseHexQuantity(value, name) {
