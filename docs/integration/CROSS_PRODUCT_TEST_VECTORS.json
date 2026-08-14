@@ -137,6 +137,17 @@
       "publicClaimAllowed": false
     },
     {
+      "id": "WA-GATEWAY-ACK-LOCK-RELEASE-001",
+      "category": "wallet-auth",
+      "owners": ["02-wallet-auth", "29-integration"],
+      "precondition": "A mutating canonical Gateway completion or revoke request has persisted its state while holding the shared state lock.",
+      "action": "Observe HTTP acknowledgement and immediately SIGKILL the Gateway child process.",
+      "expectedHttpStatus": 200,
+      "expectedCode": null,
+      "expectedState": "the state lock was released before the response became observable; cold restart preserves exactly one completion or revoke without stale-lock recovery",
+      "publicClaimAllowed": false
+    },
+    {
       "id": "WA-MULTIUSER-ISOLATION-001",
       "category": "wallet-auth",
       "owners": ["02-wallet-auth", "29-integration"],

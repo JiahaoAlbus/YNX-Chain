@@ -36,6 +36,7 @@
     "gatewayRegistryStateBinding": 1,
     "gatewayStateFileSecurity": 1,
     "gatewayNodeCrashDurability": 1,
+    "gatewayAcknowledgementLockRelease": 1,
     "gatewayNodeStaleLockRecovery": 1,
     "gatewayNodeRequestLifecycle": 1,
     "gatewayRevocationControlLinearization": 1,
@@ -603,6 +604,7 @@
       "publicRouteVerified": false,
       "evidence": "apps/wallet/proof/gateway-node-crash-durability-local-2026-08-14.json"
     },
+    "gatewayAcknowledgementLockRelease": {"sourceCommit":"04aad00c775943040da7fb75a024dcd884c8608d","failFirst":"183/184; acknowledged revoke observed state lock after HTTP 200","focusedTests":"2/2 plus 10 repeated runs (20/20)","walletAuthFullSuite":"184/184 passed","successResponseAfterLockRelease":true,"errorResponseAfterLockReleaseAttempt":true,"completionAndRevokeColdRestartPassed":true,"powerLossDurabilityVerified":false,"networkFilesystemDurabilityVerified":false,"multiRegionDurabilityVerified":false,"integratedCentral":false,"deployedStaging":false,"deployedPublic":false,"publicRouteVerified":false,"evidence":"apps/wallet/proof/gateway-acknowledgement-lock-release-local-2026-08-14.json"},
     "gatewayNodeStaleLockRecovery": {
       "sourceCommit": "838ced040abe13fed2f75e13724380190b0a3626",
       "focusedTests": "2/2 passed",
