@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "gateway-shared-state-linearization-local-2026-08-14",
+  "owner": "02-wallet-auth",
+  "sourceCommit": "394a2728a8c0737dff025dd459e91d376a5c44ff",
+  "observedAt": "2026-08-14T03:34:20Z",
+  "environment": "independent-node-processes-loopback-http-shared-local-filesystem",
+  "runtime": {
+    "component": "CanonicalWalletGatewayNodeHost",
+    "lockPrimitive": "atomic-mode-0700-state-path-lock-directory",
+    "lockWaitMilliseconds": 2000,
+    "reloadInsideLock": true,
+    "persistInsideLock": true,
+    "stateDigestReverifiedInsideLock": true,
+    "lockTimeoutStatus": 503,
+    "lockTimeoutCode": "STATE_LOCKED"
+  },
+  "raceCoverage": {
+    "independentProcessDistinctCompletion": true,
+    "independentProcessIntrospectionAndRevoke": true,
+    "independentProcessDuplicateRevokeDistinctProofs": true,
+    "independentProcessDuplicateRevokeExactProof": true,
+    "distinctCompletionsPreserved": 2,
+    "duplicateRevokeSuccesses": 1,
+    "revocationAuditEventsPerSubjectMax": 1,
+    "proofOrRevocationLoss": false,
+    "sessionResurrection": false,
+    "unreleasedLockFailsClosed": true,
+    "mutationOnLockTimeout": false,
+    "exactRetryAfterLockRelease": true
+  },
+  "tests": {
+    "focusedSharedState": "5/5 passed",
+    "focusedWithSingleProcessAndPersistenceRegression": "11/11 passed",
+    "walletAuthFullSuite": "156/156 passed",
+    "walletProductCheck": "passed",
+    "walletReleaseContentCheck": "passed",
+    "walletGoalCoverageCheck": "passed",
+    "jsonAndDiffChecks": "passed"
+  },
+  "sourceSha256": {
+    "packages/wallet-auth/src/gateway-node-host.js": "78505f5d6a87cdd6cc6bbd0f56ed47c98416629ed15624a85521b1944bfcecae",
+    "packages/wallet-auth/test/gateway-node-multiprocess-linearization.test.mjs": "e437fb6e1e835837be582b3f7b1668724ea747d43d53e244a31d83ebaafeb58d",
+    "packages/wallet-auth/test/helpers/gateway-node-shared-state-child.mjs": "2232fda5ccd0b2701c57d86d9f33eddb88a15e2cec5ab913559f493b5dfb92a0"
+  },
+  "releaseClaims": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": false,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "publicRouteVerified": false,
+    "publicGatewaySourceContainsSlice": false,
+    "sharedLocalFilesystemMultiProcessLinearizationVerified": true,
+    "networkFilesystemLinearizationVerified": false,
+    "multiRegionLinearizationVerified": false,
+    "automaticStaleLockRecoveryVerified": false,
+    "assetMoved": false,
+    "secretMaterialRecorded": false
+  },
+  "deployedGateway": {
+    "sourceCommit": "c6ac582c8d490ef980a8cadfd9172f133d1b1a49",
+    "release": "ynx-wallet-gateway-c6ac582c8d49",
+    "containsGatewaySharedStateLinearizationSlice": false
+  }
+}
