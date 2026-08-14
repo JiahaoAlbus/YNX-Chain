@@ -380,6 +380,7 @@ const counterfactualAccount = await ethers.getContractAt("YNXSmartAccount", pred
 assert.equal(await counterfactualAccount.owner(), factoryOwner.address);
 
 const policySigner = ethers.Wallet.createRandom();
+let activePolicySigner = policySigner;
 const sponsorOwner = ethers.Wallet.createRandom();
 const sponsoredAccount = await ethers.deployContract("YNXSmartAccount", [
   entryPoint.target,
@@ -466,7 +467,7 @@ async function sponsoredOperation(
     validUntil: sponsorshipNow + 3600n,
   };
   const sponsorHash = await paymaster.getSponsorHash(op, authorization);
-  const sponsorSignature = policySigner.signingKey.sign(sponsorHash).serialized;
+  const sponsorSignature = activePolicySigner.signingKey.sign(sponsorHash).serialized;
   const encodedAuthorization = ethers.AbiCoder.defaultAbiCoder().encode(
     [sponsorAuthType, "bytes"],
     [authorization, sponsorSignature],
@@ -476,6 +477,29 @@ async function sponsoredOperation(
   op.signature = ethers.concat(["0x00", sponsorOwner.signingKey.sign(accountHash).serialized]);
   return op;
 }
+
+const retiredSignerAuthorizationId = ethers.keccak256(ethers.toUtf8Bytes("retired-signer-authorization"));
+const retiredSignerOperation = await sponsoredOperation(0n, 0, retiredSignerAuthorizationId);
+const replacementPolicySigner = ethers.Wallet.createRandom();
+const budgetBeforeSignerRotation = await paymaster.productBudgets(productId);
+const usageBeforeSignerRotation = await paymaster.subjectUsage(productId, subjectId);
+await (await paymaster.setPolicySigner(replacementPolicySigner.address)).wait();
+activePolicySigner = replacementPolicySigner;
+assert.equal(
+  (await paymaster.getSponsorshipStatus(productId, subjectId, destination.address)).policySigner,
+  replacementPolicySigner.address,
+);
+await assert.rejects(
+  entryPoint.handleOps([retiredSignerOperation], beneficiary.address, { gasLimit: 12_000_000 }),
+  /AA34|signature error/,
+);
+const budgetAfterSignerRotationFailure = await paymaster.productBudgets(productId);
+const usageAfterSignerRotationFailure = await paymaster.subjectUsage(productId, subjectId);
+assert.equal(budgetAfterSignerRotationFailure.reservedToday, budgetBeforeSignerRotation.reservedToday);
+assert.equal(budgetAfterSignerRotationFailure.observedToday, budgetBeforeSignerRotation.observedToday);
+assert.equal(usageAfterSignerRotationFailure.reservedToday, usageBeforeSignerRotation.reservedToday);
+assert.equal(await paymaster.consumedAuthorizations(retiredSignerAuthorizationId), false);
+assert.equal(await entryPoint.getNonce(sponsoredAccount.target, 0), 0n);
 
 const sponsoredBatchAuthorizationId = ethers.keccak256(ethers.toUtf8Bytes("sponsored-batch-authorization"));
 const sponsoredBatchCall = sponsoredAccount.interface.encodeFunctionData("executeBatch", [[
@@ -728,6 +752,8 @@ console.log(JSON.stringify({
   sponsoredBatchPolicyRejectionBeforeMutation: "passed",
   sponsorshipPolicyAndCostStatusView: "passed",
   sponsorshipStatusDayRolloverReadOnlyNormalization: "passed",
+  policySignerRotationRejectedOldAuthorizationBeforeMutation: "passed",
+  replacementPolicySignerAcceptedSameAccountNonce: "passed",
   sponsorTamperReplayDisableRejection: "passed",
   benchmark: {
     environment: "Hardhat EDR in-process local chain; excludes bundler, RPC, persistence and network latency",
