@@ -30,3 +30,20 @@ func TestProducerDeliverySignatureBindsBodyNonceAndProductKey(t *testing.T) {
 		}
 	}
 }
+
+func TestProducerDeliverySignatureMatchesTypeScriptSDKVector(t *testing.T) {
+	signature, err := ProducerDeliverySignature(
+		"key.sdk.0001",
+		"2026-07-22T16:00:00Z",
+		"nonce.sdk.0001",
+		[]byte(`{"eventId":"event.test.0001"}`),
+		[]byte("0123456789abcdef0123456789abcdef"),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	const expected = "88e8d9488d71707904344a2cbf86844d845250fc54a4415f9cc7e6ecee24d1a1"
+	if signature != expected {
+		t.Fatalf("producer delivery signature drifted from the cross-language vector: got %s want %s", signature, expected)
+	}
+}

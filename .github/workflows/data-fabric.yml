@@ -22,6 +22,7 @@ on:
       - "internal/datafabricpostgres/**"
       - "internal/datafabricpgbackup/**"
       - "sdk/datafabric/**"
+      - "sdk/datafabric-typescript/**"
       - "schemas/data-fabric/**"
       - "integration/**"
       - "infra/data-fabric/**"
@@ -57,6 +58,11 @@ jobs:
         run: npm ci --ignore-scripts
       - name: Audit Node build dependencies
         run: npm audit --audit-level=high
+      - name: Install, audit and test the TypeScript SDK
+        run: |
+          npm ci --ignore-scripts --prefix sdk/datafabric-typescript
+          npm audit --audit-level=high --prefix sdk/datafabric-typescript
+          npm test --prefix sdk/datafabric-typescript
       - name: Generate contract artifacts required by repository tests
         run: |
           npm run hardhat:build

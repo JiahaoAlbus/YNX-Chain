@@ -5,6 +5,7 @@ cd "$(dirname "$0")/../.."
 
 node scripts/data-fabric/policy-scan.mjs runtime
 node scripts/data-fabric/policy-scan.mjs public
+npm test --prefix sdk/datafabric-typescript
 
 jq empty \
   schemas/data-fabric/*.json \

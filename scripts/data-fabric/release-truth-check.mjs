@@ -115,6 +115,7 @@ function trackedEngineeringFiles(repoRoot) {
     "cmd/ynx-pay-data-fabric-bridge/",
     "internal/datafabric",
     "sdk/datafabric/",
+    "sdk/datafabric-typescript/",
     "schemas/data-fabric/",
     "infra/data-fabric/",
   ];
