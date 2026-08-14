@@ -13,7 +13,7 @@
   },
   "fullPackageTest": {
     "command": "npm test",
-    "passed": 184,
+    "passed": 189,
     "failed": 0,
     "exitCode": 0
   },
@@ -21,10 +21,10 @@
     "command": "npm_config_cache=<isolated-temp-cache> npm pack --dry-run",
     "exitCode": 0,
     "version": "1.1.0",
-    "files": 61,
-    "bytes": 103670,
-    "unpackedBytes": 469498,
-    "shasum": "ed69775b812266384754d9a40ae0f8e582576a7a",
+    "files": 64,
+    "bytes": 109829,
+    "unpackedBytes": 500170,
+    "shasum": "9dd89431de7d9df2ce0a55563687edb0317af653",
     "published": false
   },
   "deviceSecretBoundary": {
@@ -56,6 +56,41 @@
     "proofHeader": "x-ynx-product-session-proof-v2",
     "loopbackEnvelopeVerified": true,
     "fetchAdapterToHandlerResponseLossRecoveryVerified": true
+  },
+  "persistentProductSessionV2NodeHost": {
+    "implementation": "src/product-session-gateway-node-host.js",
+    "service": "scripts/ynx-product-session-gatewayd.mjs",
+    "lifecycleVerifier": "scripts/verify-product-session-v2-lifecycle.mjs",
+    "stateSchemaVersion": 1,
+    "productSessionGatewaySchemaVersion": 2,
+    "atomicStateBeforeResponse": true,
+    "registryDigestBound": true,
+    "stateDigestBound": true,
+    "mode0700DirectoryRequired": true,
+    "mode0600StateRequired": true,
+    "nonRootServiceRequired": true,
+    "serializedConcurrentMutation": true,
+    "responseLossIdempotencyRestartSafe": true,
+    "remoteBuildIdentityRequired": true,
+    "dedicatedTestsPassed": 4,
+    "concurrentPersistentRequests": 100,
+    "deployedPublic": false
+  },
+  "productSessionV2DeploymentTransaction": {
+    "orchestrator": "scripts/deploy/deploy-product-session-v2-testnet.sh",
+    "remoteInstaller": "scripts/deploy/install-product-session-v2-testnet-remote.sh",
+    "separateLoopbackPort": 6441,
+    "legacyWalletGatewayPort": 6439,
+    "appGatewayPort": 6437,
+    "caddyRoute": "/v2/product-sessions/*",
+    "routeBeforeChainJsonRpcFallback": true,
+    "candidatePort": 17441,
+    "rollbackDrillRequiredBeforeDeploy": true,
+    "rollbackTargets": ["Caddy route", "systemd unit", "environment file", "dedicated v2 state"],
+    "legacyServicesReplaced": false,
+    "executed": false,
+    "rollbackVerified": false,
+    "deployedPublic": false
   },
   "networkRecovery": {
     "storedSessionOnIntrospectionOutage": "retained-non-authoritative-until-retry",

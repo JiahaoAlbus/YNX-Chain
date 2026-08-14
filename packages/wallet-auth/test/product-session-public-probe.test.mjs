@@ -72,6 +72,17 @@ test("public mount probe retries bounded transport failures with the same state-
   assert.deepEqual(observedIds, [requestId, requestId, requestId]);
 });
 
+test("public mount probe allows HTTP only for explicitly enabled loopback preflight", async () => {
+  const result = await probeProductSessionV2PublicMount({
+    allowLoopback: true,
+    endpoint: "http://127.0.0.1:17441",
+    requestId,
+    timeoutMs: 1_000,
+    fetchImplementation: async () => new Response(validBody, { status: 400, headers: { "cache-control": "no-store", "content-type": "application/json; charset=utf-8" } }),
+  });
+  assert.equal(result.mounted, true);
+});
+
 test("public mount probe rejects noncanonical origins and oversized responses before parsing", async () => {
   await assert.rejects(() => probeProductSessionV2PublicMount({ endpoint: "http://rest.ynxweb4.com", requestId, timeoutMs: 1_000, fetchImplementation: fetch }), { code: "INVALID_PUBLIC_ORIGIN" });
   await assert.rejects(() => probeProductSessionV2PublicMount({ endpoint: "https://rest.ynxweb4.com/rpc", requestId, timeoutMs: 1_000, fetchImplementation: fetch }), { code: "INVALID_PUBLIC_ORIGIN" });

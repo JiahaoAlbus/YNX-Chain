@@ -66,6 +66,25 @@
       "requiredResult": "HTTP 400 canonical schemaVersion 2 rejection bound to the exact request ID with Cache-Control no-store",
       "currentResult": "UNEXPECTED_HTTP_STATUS because the public route returned HTTP 200 from Chain JSON-RPC"
     },
+    "persistentHost": {
+      "implementation": "packages/wallet-auth/src/product-session-gateway-node-host.js",
+      "service": "packages/wallet-auth/scripts/ynx-product-session-gatewayd.mjs",
+      "stateSchemaVersion": 1,
+      "loopbackPort": 6441,
+      "candidatePort": 17441,
+      "atomicStateBeforeResponse": true,
+      "registryAndSnapshotDigestBound": true,
+      "secureStateModes": ["directory 0700", "state 0600"],
+      "legacyGatewayReplaced": false
+    },
+    "protectedTransaction": {
+      "orchestrator": "scripts/deploy/deploy-product-session-v2-testnet.sh",
+      "remoteInstaller": "scripts/deploy/install-product-session-v2-testnet-remote.sh",
+      "modes": ["dry-run", "rollback-drill", "deploy"],
+      "rollbackDrillRequiredBeforeDeploy": true,
+      "publicLifecycleVerifier": "packages/wallet-auth/scripts/verify-product-session-v2-lifecycle.mjs",
+      "currentStatus": "implemented-local-not-executed"
+    },
     "stateRequirements": [
       "persist the exact schemaVersion 2 snapshot atomically before returning a successful mutating response",
       "restore sessions, revocations, consumed proofs, idempotency responses and audit events after process restart",
@@ -157,6 +176,8 @@
     "packages/wallet-auth/test/product-session-gateway.test.mjs",
     "packages/wallet-auth/test/product-session-gateway-client.test.mjs",
     "packages/wallet-auth/test/product-session-gateway-http.test.mjs",
+    "packages/wallet-auth/test/product-session-gateway-node-host.test.mjs",
+    "packages/wallet-auth/test/product-session-public-lifecycle.test.mjs",
     "packages/wallet-auth/test/product-session-public-probe.test.mjs",
     "packages/wallet-auth/test/product-session-migration.test.mjs",
     "packages/wallet-auth/test/product-session-products.test.mjs",

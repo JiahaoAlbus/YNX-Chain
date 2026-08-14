@@ -30,7 +30,7 @@ export function verifyProductSessionV2PublicMountResponse(input) {
 }
 
 export async function probeProductSessionV2PublicMount(options = {}) {
-  const endpoint = publicOrigin(options.endpoint ?? process.env.YNX_PRODUCT_SESSION_V2_PUBLIC_URL ?? "https://rest.ynxweb4.com");
+  const endpoint = publicOrigin(options.endpoint ?? process.env.YNX_PRODUCT_SESSION_V2_PUBLIC_URL ?? "https://rest.ynxweb4.com", options.allowLoopback ?? process.env.YNX_PRODUCT_SESSION_V2_ALLOW_LOOPBACK === "1");
   const requestId = options.requestId ?? `req_public_v2_${randomBytes(18).toString("base64url")}`;
   const timeoutMs = timeout(options.timeoutMs ?? process.env.YNX_PRODUCT_SESSION_V2_PUBLIC_TIMEOUT_MS ?? 20_000);
   const attempts = attemptCount(options.attempts ?? process.env.YNX_PRODUCT_SESSION_V2_PUBLIC_ATTEMPTS ?? 3);
@@ -94,10 +94,11 @@ async function boundedResponseBody(response, limit) {
   return new TextDecoder("utf-8", { fatal: true }).decode(combined);
 }
 
-function publicOrigin(value) {
+function publicOrigin(value, allowLoopback) {
   let parsed;
   try { parsed = new URL(value); } catch { fail("INVALID_PUBLIC_ORIGIN", "Product Session v2 public mount probe URL is invalid"); }
-  if (parsed.protocol !== "https:" || parsed.username || parsed.password || parsed.search || parsed.hash || (parsed.pathname !== "/" && parsed.pathname !== "")) fail("INVALID_PUBLIC_ORIGIN", "Product Session v2 public mount probe requires a canonical HTTPS origin");
+  const loopback = allowLoopback && parsed.protocol === "http:" && ["127.0.0.1", "::1", "localhost"].includes(parsed.hostname);
+  if ((parsed.protocol !== "https:" && !loopback) || parsed.username || parsed.password || parsed.search || parsed.hash || (parsed.pathname !== "/" && parsed.pathname !== "")) fail("INVALID_PUBLIC_ORIGIN", "Product Session v2 public mount probe requires a canonical HTTPS origin or explicitly allowed loopback");
   return parsed;
 }
 

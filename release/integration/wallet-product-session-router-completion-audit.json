@@ -13,6 +13,9 @@
         "packages/wallet-auth/src/wallet-connection-coordinator.js",
         "packages/wallet-auth/src/product-session-gateway-client.js",
         "packages/wallet-auth/src/product-session-gateway-http.js",
+        "packages/wallet-auth/src/product-session-gateway-node-host.js",
+        "packages/wallet-auth/scripts/ynx-product-session-gatewayd.mjs",
+        "packages/wallet-auth/scripts/verify-product-session-v2-lifecycle.mjs",
         "packages/wallet-auth/test/product-session-v2.test.mjs",
         "packages/wallet-auth/test/product-session-recovery.test.mjs",
         "packages/wallet-auth/test/wallet-connection-coordinator.test.mjs"
@@ -85,6 +88,8 @@
         "packages/wallet-auth/src/wallet-connection-coordinator.js",
         "packages/wallet-auth/test/product-session-gateway-client.test.mjs",
         "packages/wallet-auth/test/product-session-gateway-http.test.mjs",
+        "packages/wallet-auth/test/product-session-gateway-node-host.test.mjs",
+        "packages/wallet-auth/test/product-session-public-lifecycle.test.mjs",
         "packages/wallet-auth/test/product-session-public-probe.test.mjs",
         "packages/wallet-auth/test/wallet-connection-coordinator.test.mjs",
         "release/integration/wallet-product-session-router-migration.json"
@@ -126,7 +131,7 @@
         "concurrentProductSessions": 120
       },
       "fullPackageTests": {
-        "passed": 184,
+        "passed": 189,
         "failed": 0
       },
       "remaining": [
@@ -145,7 +150,9 @@
         "docs/integration/WALLET_PRODUCT_SESSION_ROUTER_HANDOFF.md",
         "packages/wallet-auth/evidence/wallet-session-official-website-deployment.json",
         "packages/wallet-auth/evidence/product-session-v2-public-route-probe-20260814.json",
-        "packages/wallet-auth/scripts/probe-product-session-v2-public.mjs"
+        "packages/wallet-auth/scripts/probe-product-session-v2-public.mjs",
+        "scripts/deploy/deploy-product-session-v2-testnet.sh",
+        "scripts/deploy/install-product-session-v2-testnet-remote.sh"
       ],
       "pushed": true,
       "remote": "https://github.com/JiahaoAlbus/YNX-Chain.git",
@@ -172,7 +179,8 @@
       "remaining": [
         "Central Integration must merge the chain branch without claiming runtime product migration",
         "Deploy the public App Gateway only after production authority, configuration, and live health evidence are available",
-        "Mount /v2/product-sessions/* ahead of the public Chain JSON-RPC catch-all and prove the complete v2 lifecycle"
+        "Mount /v2/product-sessions/* ahead of the public Chain JSON-RPC catch-all and prove the complete v2 lifecycle",
+        "Run the protected rollback drill, then the exact public deployment transaction"
       ]
     }
   },
