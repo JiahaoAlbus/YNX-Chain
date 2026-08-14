@@ -40,19 +40,30 @@ jobs:
           mkdir -p "$OUT_DIR"
           APPIMAGE="$(find apps/wallet-desktop/dist -maxdepth 1 -name '*.AppImage' -print -quit)"
           test -n "$APPIMAGE"
+          APPIMAGE="$(realpath "$APPIMAGE")"
           chmod +x "$APPIMAGE"
+          EXTRACT_ROOT="$RUNNER_TEMP/wallet-appimage-extracted"
+          mkdir -p "$EXTRACT_ROOT"
+          (cd "$EXTRACT_ROOT" && "$APPIMAGE" --appimage-extract >/dev/null)
+          EXECUTABLE="$EXTRACT_ROOT/squashfs-root/AppRun"
+          SANDBOX="$EXTRACT_ROOT/squashfs-root/chrome-sandbox"
+          test -x "$EXECUTABLE"
+          sudo chown root:root "$SANDBOX"
+          sudo chmod 4755 "$SANDBOX"
+          test "$(stat -c '%U:%G' "$SANDBOX")" = root:root
+          test "$(stat -c '%a' "$SANDBOX")" = 4755
 
           run_phase() {
             expected_launches="$1"
             rpc_url="$2"
             phase="$3"
             YNX_WALLET_EVIDENCE_PATH="$EVIDENCE" YNX_WALLET_RPC_URL="$rpc_url" xvfb-run -a bash -c '
-              appimage="$1"
+              executable="$1"
               evidence="$2"
               expected="$3"
               log="$4"
               title_evidence="$5"
-              "$appimage" --appimage-extract-and-run --no-sandbox --disable-gpu > "$log" 2>&1 &
+              "$executable" --disable-gpu > "$log" 2>&1 &
               app_pid=$!
               for attempt in {1..30}; do
                 launches=$(node -e "try{process.stdout.write(String(require(process.argv[1]).launches))}catch{}" "$evidence")
@@ -66,7 +77,7 @@ jobs:
               xdotool search --name "YNX Wallet Testnet Preview" getwindowname > "$title_evidence"
               kill "$app_pid"
               wait "$app_pid" || true
-            ' _ "$APPIMAGE" "$EVIDENCE" "$expected_launches" "$OUT_DIR/$phase.log" "$OUT_DIR/$phase-window-title.txt"
+            ' _ "$EXECUTABLE" "$EVIDENCE" "$expected_launches" "$OUT_DIR/$phase.log" "$OUT_DIR/$phase-window-title.txt"
             cp "$EVIDENCE" "$OUT_DIR/$phase-app-evidence.json"
           }
 
@@ -85,8 +96,10 @@ jobs:
             architecture: 'x86_64',
             portableFormat: 'AppImage',
             nativeRunner: 'ubuntu-24.04',
-            runtimeLaunchFlags: ['--appimage-extract-and-run', '--no-sandbox', '--disable-gpu'],
-            chromiumProcessSandboxEnabled: false,
+            runtimeMode: 'AppImage payload extracted and executed through AppRun on the native runner',
+            runtimeLaunchFlags: ['--disable-gpu'],
+            chromiumProcessSandboxEnabled: true,
+            sandboxMode: 'setuid chrome-sandbox root:root/4755',
             coldLaunch: true,
             secondLaunch: true,
             processObserved: true,
@@ -171,7 +184,7 @@ jobs:
           EXPECTED_BYTES="$(node -p "require('./' + process.argv[1]).artifact.bytes" "$MANIFEST")"
           test "$ACTUAL_SHA256" = "$EXPECTED_SHA256"
           test "$ACTUAL_BYTES" = "$EXPECTED_BYTES"
-          node -e "const m=require('./'+process.argv[1]);const l=require('./'+process.argv[2]);if(m.sourceCommit!==process.env.GITHUB_SHA||m.artifact.minimumOS!=='Ubuntu 24.04 directly tested; broader Linux compatibility not evidenced'||m.artifact.signingClass!=='unsigned_linux_desktop_testnet_candidate'||m.artifact.productionSigned||m.artifact.installationApplicable||!m.artifact.portableRuntimeTestedOnNativeRunner||!l.coldLaunch||!l.secondLaunch||!l.processObserved||!l.coldWindowTitleObserved||!l.secondWindowTitleObserved||l.chainId!=='0x1917'||!l.rpcFailureClosed||l.signingEnabled||l.accountCreated||l.balanceClaimed||l.transactionCreated||l.productionSigned||l.chromiumProcessSandboxEnabled)process.exit(1)" "$MANIFEST" "$LIFECYCLE"
+          node -e "const m=require('./'+process.argv[1]);const l=require('./'+process.argv[2]);if(m.sourceCommit!==process.env.GITHUB_SHA||m.artifact.minimumOS!=='Ubuntu 24.04 directly tested; broader Linux compatibility not evidenced'||m.artifact.signingClass!=='unsigned_linux_desktop_testnet_candidate'||m.artifact.productionSigned||m.artifact.installationApplicable||!m.artifact.portableRuntimeTestedOnNativeRunner||!l.coldLaunch||!l.secondLaunch||!l.processObserved||!l.coldWindowTitleObserved||!l.secondWindowTitleObserved||l.chainId!=='0x1917'||!l.rpcFailureClosed||l.signingEnabled||l.accountCreated||l.balanceClaimed||l.transactionCreated||l.productionSigned||!l.chromiumProcessSandboxEnabled||l.sandboxMode!=='setuid chrome-sandbox root:root/4755')process.exit(1)" "$MANIFEST" "$LIFECYCLE"
           mkdir -p downloaded-verification
           ACTUAL_SHA256="$ACTUAL_SHA256" ACTUAL_BYTES="$ACTUAL_BYTES" node - <<'NODE'
           const fs = require('fs');
