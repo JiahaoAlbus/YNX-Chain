@@ -93,6 +93,12 @@ test("restart recovery idempotently ensures exact approval intent and returned a
   assert.deepEqual((await store.load()).map(item=>item.action),["intent-approved","approval-returned"]);
 });
 
+test("restart recovery idempotently ensures an exact rejection audit",async()=>{
+  const storage=new MemoryStorage(),store=new AuthorizationAuditStore(storage),first=await store.ensure(request,{action:"request-rejected",account,at:"2026-07-15T12:00:00.000Z"});
+  assert.equal((await new AuthorizationAuditStore(storage).ensure(request,{action:"request-rejected",account,at:"2026-07-15T12:00:01.000Z"})).hash,first.hash);
+  assert.deepEqual((await store.load()).map(item=>item.action),["request-rejected"]);
+});
+
 test("audit capacity and oversized storage fail closed without corrupting the existing chain",async()=>{
   const storage=new MemoryStorage(),store=new AuthorizationAuditStore(storage);
   await store.append(request,{action:"request-rejected",account,at:"2026-07-15T12:00:00.000Z"});

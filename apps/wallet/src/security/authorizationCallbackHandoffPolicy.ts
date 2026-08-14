@@ -10,3 +10,8 @@ export async function completePersistentAuthorizationCallbackHandoff(
   await ensureApprovalIntent();assertActive();await openCallback(responseURL);
   await ensureReturnedAudit();await store.complete(request,responseURL);complete();
 }
+
+export async function rejectPersistentAuthorizationRequest(
+  store:PersistentAuthorizationCallbackStore,request:AuthorizationRequest,account:string,now:()=>Date,assertActive:()=>void,
+  ensureRejectedAudit:()=>Promise<unknown>,complete:()=>void,
+):Promise<void>{await store.reject(request,account,now,assertActive);await ensureRejectedAudit();complete()}
