@@ -6,7 +6,7 @@
   "recordedAt": "2026-08-14T03:52:00Z",
   "evidenceMatrix": {
     "path": "release/integration/wallet-auth-release-evidence-matrix.json",
-    "sha256": "c71f9d35cd9167cae2b2ff31974e0ecd9f0e6b6b5886693ce7e8c7a957b1dfec",
+    "sha256": "9eb6a09bba5a1a6b25ec362fb8c3cedac694f88c3f467140132b201cd65a9d27",
     "platforms": 21,
     "gatesPerPlatform": 12,
     "trueGates": 102,
@@ -19,6 +19,24 @@
     "androidApi36": "f1edbec46ad4300beec406873b03db2da7c72e4b",
     "iosMacos": "7a3a110fb7cd9a33512ce4db87ddd8387cb730d5",
     "desktopCliSdk": "2802876f8470264c4a8819f1426e28f957a09289"
+  },
+  "externalDependencyAcceptance": {
+    "chainCore": {
+      "contractVersion": "1.21.0",
+      "implementationCommit": "9468a771b46f50e0e12b7567d7aa51a2f95b4e36",
+      "contractCommit": "cefb37144517e8f44fd9d0b41119bb5754bdb55d",
+      "contractTree": "cb64ea796b9ffa2db5acb7639efff623d587f332",
+      "contractBlob": "2ab1e66e72cb17c7d0b234d77a0ed020f77da102",
+      "contractContentSha256": "94f0fc819ceb1d84e02a3bb93b65e933e8bb4aaa964e7939b9866faa8ab1833c",
+      "contractBindingAccepted": true,
+      "productSessionOwner": "Wallet/Auth",
+      "chainCoreAuthDependencyAccepted": false,
+      "failClosed": true,
+      "parallelAuthProtocolAllowed": false,
+      "remoteRefVerified": false,
+      "integratedCentral": false,
+      "deployedPublic": false
+    }
   },
   "pendingOwnerEvidence": [
     "9f91b1f55d3da786198609e8c55cf26d2034b92d",
@@ -74,6 +92,7 @@
   "limitations": [
     "Consumed Owner checkpoints were verified through GitHub ref, commit parent, tree and evidence-blob readback.",
     "The dedicated Integration ref is remotely protected, but integratedCentral remains false until an authorized central merge/deployment record exists.",
-    "The macOS arm64 CLI has an immutable official YNX download, but remains ad-hoc and is not a production-signed or store artifact."
+    "The macOS arm64 CLI has an immutable official YNX download, but remains ad-hoc and is not a production-signed or store artifact.",
+    "Chain Core contract v1.21.0 is accepted as an immutable dependency identity only; its Owner commit is locally object-verified but not reachable from the shared origin, and Chain Core still reports authBoundary=dependency-not-accepted with no central or public deployment proof."
   ]
 }

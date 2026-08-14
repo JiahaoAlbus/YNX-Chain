@@ -40,3 +40,9 @@ Local acceptance is not central integration, public Testnet proof or production 
 Acceptance is enforced by `scripts/verify/wallet-auth-release-evidence-matrix.mjs`. GitHub Actions artifacts are temporary retention evidence, not `downloadHosted` product delivery.
 
 Android `9f91b1f55d3da786198609e8c55cf26d2034b92d` remains queued pending a new disposable API 36 AVD and direct lifecycle evidence; its QA-only signing identity cannot become production truth.
+
+## Chain Core contract binding
+
+Central Integration accepts Chain Core contract version `1.21.0` as the immutable dependency identity for subsequent Wallet/Auth compatibility work. The implementation is `9468a771b46f50e0e12b7567d7aa51a2f95b4e36`; contract commit `cefb37144517e8f44fd9d0b41119bb5754bdb55d` has parent `9468a771b46f50e0e12b7567d7aa51a2f95b4e36`, tree `cb64ea796b9ffa2db5acb7639efff623d587f332`, and contract blob `2ab1e66e72cb17c7d0b234d77a0ed020f77da102` at `release/integration/chain-core-contract.json` (content SHA-256 `94f0fc819ceb1d84e02a3bb93b65e933e8bb4aaa964e7939b9866faa8ab1833c`).
+
+This acceptance freezes identity and ownership, not deployment. Product Session remains Wallet/Auth authority; Chain Core declares `authBoundary.state=dependency-not-accepted`, `failClosed=true`, and `parallelAuthProtocolAllowed=false`. The Owner objects were read directly from the protected Chain Core object store, while the shared origin did not expose the contract commit. Therefore Chain Core source integration, central acceptance of the Auth dependency, staging/public deployment, hosted downloads, production signing and store release all remain false.

@@ -32,6 +32,38 @@
     "reason": "GitHub Git database refs, commits, parents, trees and evidence blobs were read back through the GitHub connector; exact Owner branches were also fetched without touching the working tree.",
     "promotionEffect": "Source and local/CI evidence advanced only where exact remote objects and Owner terminal evidence agreed. No public, hosted, production, store, callback, reconnect, signing or transaction gate was promoted without direct evidence."
   },
+  "externalDependencies": [
+    {
+      "id": "chain-core-contract-v1.21.0",
+      "owner": "01-chain-core",
+      "contractVersion": "1.21.0",
+      "implementationCommit": "9468a771b46f50e0e12b7567d7aa51a2f95b4e36",
+      "contractCommit": "cefb37144517e8f44fd9d0b41119bb5754bdb55d",
+      "contractParent": "9468a771b46f50e0e12b7567d7aa51a2f95b4e36",
+      "contractTree": "cb64ea796b9ffa2db5acb7639efff623d587f332",
+      "contractPath": "release/integration/chain-core-contract.json",
+      "contractBlob": "2ab1e66e72cb17c7d0b234d77a0ed020f77da102",
+      "contractContentSha256": "94f0fc819ceb1d84e02a3bb93b65e933e8bb4aaa964e7939b9866faa8ab1833c",
+      "verificationMode": "owner-authoritative-local-git-parent-tree-blob-readback",
+      "remoteRefVerified": false,
+      "contractBindingAccepted": true,
+      "authority": {
+        "productSessionOwner": "Wallet/Auth",
+        "chainCoreAuthDependencyState": "dependency-not-accepted",
+        "failClosed": true,
+        "parallelAuthProtocolAllowed": false
+      },
+      "releaseStatus": {
+        "integratedCentral": false,
+        "deployedStaging": false,
+        "deployedPublic": false,
+        "downloadHosted": false,
+        "productionSigned": false,
+        "storeReleased": false
+      },
+      "note": "Central Integration accepts the immutable Chain Core contract identity and authority split only. The Owner commit is present in the protected Chain Core object store but is not reachable from the shared origin, so this is not source integration or deployment evidence."
+    }
+  ],
   "pendingOwnerCommits": [],
   "pendingOwnerEvidence": [
     {

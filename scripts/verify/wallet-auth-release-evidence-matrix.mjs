@@ -68,6 +68,28 @@ for (const owner of matrix.ownerSources ?? []) {
 }
 
 const frozenSourceCommits = new Set((matrix.ownerSources ?? []).map((owner) => owner.sourceCommit));
+const dependencyIds = new Set();
+for (const dependency of matrix.externalDependencies ?? []) {
+  if (!dependency.id || dependencyIds.has(dependency.id)) fail(`duplicate or missing external dependency: ${dependency.id ?? "<missing>"}`);
+  dependencyIds.add(dependency.id);
+  for (const field of ["implementationCommit", "contractCommit", "contractParent", "contractTree", "contractBlob"]) {
+    if (!/^[0-9a-f]{40}$/.test(dependency[field] ?? "")) fail(`${dependency.id}.${field} must be a full Git object ID`);
+  }
+  if (!/^[0-9a-f]{64}$/.test(dependency.contractContentSha256 ?? "")) fail(`${dependency.id}.contractContentSha256 must be exact`);
+  if (!dependency.contractVersion) fail(`${dependency.id}.contractVersion must be non-empty`);
+  if (!dependency.contractPath || dependency.contractPath.startsWith("/") || dependency.contractPath.split("/").includes("..")) fail(`${dependency.id}.contractPath must be repository-relative`);
+  if (dependency.contractParent !== dependency.implementationCommit) fail(`${dependency.id} contract parent must equal implementation commit`);
+  if (dependency.verificationMode !== "owner-authoritative-local-git-parent-tree-blob-readback") fail(`${dependency.id} verification mode must preserve the local-owner boundary`);
+  if (dependency.remoteRefVerified !== false) fail(`${dependency.id} must not claim an unobserved remote ref`);
+  if (dependency.contractBindingAccepted !== true) fail(`${dependency.id} contract identity must be explicitly accepted`);
+  if (dependency.authority?.productSessionOwner !== "Wallet/Auth") fail(`${dependency.id} must preserve Wallet/Auth Product Session authority`);
+  if (dependency.authority?.chainCoreAuthDependencyState !== "dependency-not-accepted") fail(`${dependency.id} must preserve the Chain Core dependency-not-accepted boundary`);
+  if (dependency.authority?.failClosed !== true) fail(`${dependency.id} must remain fail-closed`);
+  if (dependency.authority?.parallelAuthProtocolAllowed !== false) fail(`${dependency.id} must forbid parallel Auth protocols`);
+  for (const field of ["integratedCentral", "deployedStaging", "deployedPublic", "downloadHosted", "productionSigned", "storeReleased"]) {
+    if (dependency.releaseStatus?.[field] !== false) fail(`${dependency.id}.${field} must remain false without direct evidence`);
+  }
+}
 for (const pending of matrix.pendingOwnerCommits ?? []) {
   if (!/^[0-9a-f]{40}$/.test(pending.commit ?? "")) fail(`${pending.owner ?? "pending owner"}.commit must be a full SHA`);
   if (pending.localCommitted !== true || pending.pushPending !== true) fail(`${pending.commit} must remain localCommitted=true and pushPending=true`);

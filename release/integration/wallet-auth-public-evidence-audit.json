@@ -3,7 +3,7 @@
   "auditId": "wallet-auth-public-evidence-audit-2026-08-14",
   "auditedAt": "2026-08-14T03:38:07Z",
   "integrationBaseCommit": "a008ce0e8fa2ac0322198576c320441118fbae83",
-  "matrixSha256": "c71f9d35cd9167cae2b2ff31974e0ecd9f0e6b6b5886693ce7e8c7a957b1dfec",
+  "matrixSha256": "9eb6a09bba5a1a6b25ec362fb8c3cedac694f88c3f467140132b201cd65a9d27",
   "publicTestnet": {
     "smartAccountDeploymentVerifier": {
       "evidenceCommit": "0c747c6030b5a475a1f12dc7e57345555c23055d",
@@ -33,6 +33,21 @@
     "latestFrozenSourceDeployed": false,
     "latestLocalRoutesPublicVerified": false,
     "assetTransactionObserved": false
+  },
+  "chainCoreContractBoundary": {
+    "contractVersion": "1.21.0",
+    "implementationCommit": "9468a771b46f50e0e12b7567d7aa51a2f95b4e36",
+    "contractCommit": "cefb37144517e8f44fd9d0b41119bb5754bdb55d",
+    "contractBlob": "2ab1e66e72cb17c7d0b234d77a0ed020f77da102",
+    "ownerObjectReadbackVerified": true,
+    "sharedOriginCommitReachable": false,
+    "productSessionOwner": "Wallet/Auth",
+    "authDependencyAcceptedByChainCore": false,
+    "failClosed": true,
+    "parallelAuthProtocolAllowed": false,
+    "matchingPublicRuntimeVerified": false,
+    "integratedCentral": false,
+    "deployedPublic": false
   },
   "officialWebsite": {
     "requestedUrl": "https://www.ynxweb4.com/wallet",
