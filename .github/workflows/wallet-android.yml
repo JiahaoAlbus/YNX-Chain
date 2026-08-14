@@ -36,6 +36,7 @@ jobs:
           node-version: "22"
           cache: npm
           cache-dependency-path: |
+            package-lock.json
             packages/wallet-auth/package-lock.json
             apps/wallet/package-lock.json
       - uses: actions/setup-java@d7793b545071e98d581d3bf084a51c3213318a07 # v5.0.0
@@ -48,6 +49,9 @@ jobs:
         run: yes | sdkmanager "platforms;android-36" "build-tools;36.0.0" "platform-tools"
       - name: Use the release-locked npm
         run: npm install --global npm@11.5.1
+      - run: npm ci
+      - name: Build Wallet Auth contract fixtures
+        run: npm run hardhat:build
       - run: npm ci
         working-directory: packages/wallet-auth
       - run: npm test
