@@ -1,5 +1,5 @@
 import * as Dialog from "@radix-ui/react-dialog";
-import { Braces, Bug, ChevronRight, CircleAlert, Cloud, Files, GitBranch, History, Info, Link2, ListTree, Play, Save, Search, Settings, Sparkles, SplitSquareHorizontal, TerminalSquare, TestTube2, TriangleAlert, Users, X } from "lucide-react";
+import { Braces, Bug, ChevronRight, CircleAlert, Cloud, Files, GitBranch, History, Info, Link2, ListTree, PackagePlus, Play, Save, Search, Settings, Sparkles, SplitSquareHorizontal, TerminalSquare, TestTube2, TriangleAlert, Users, X } from "lucide-react";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "../components/ui/button";
 import { DebugPanel } from "../debug/DebugPanel";
@@ -7,7 +7,7 @@ import { languageForPath } from "../editor/languages";
 import { ExtensionPanel } from "../extensions/ExtensionPanel";
 import { FileExplorer } from "../explorer/FileExplorer";
 import { PROJECT_BYTE_LIMIT, PROJECT_FILE_LIMIT, PROJECT_TRANSFER_SCHEMA, projectExportJSON, validateImportedProject, type ImportedProject } from "../explorer/projectTransfer";
-import { loadChainStatus, loadWorkspace, loadExtensions, runActive, runContainerActive, runProjectTests, runtimeHealth, saveWorkspace, type CollaborationRole, type InstalledExtension } from "../runtime/client";
+import { installContainerPackage, loadChainStatus, loadWorkspace, loadExtensions, runActive, runContainerActive, runProjectTests, runtimeHealth, saveWorkspace, type CollaborationRole, type InstalledExtension } from "../runtime/client";
 import { loadProject, foldersFromFiles, saveProject, validPath, type ProjectState } from "../state/workspace";
 import { SourceControlPanel } from "../scm/SourceControlPanel";
 import { InteractiveTerminal, TerminalPanel } from "../terminal/TerminalPanel";
@@ -55,6 +55,7 @@ type EditorPreferences = {
   autoSaveDelay: number;
 };
 const defaultEditorPreferences: EditorPreferences = { fontSize: 13, minimap: true, wordWrap: "off", autoSave: true, autoSaveDelay: 700 };
+const exactPackageSpec = /^(?:@[a-z0-9][a-z0-9._-]*\/)?[a-z0-9][a-z0-9._-]*@\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/;
 function loadEditorPreferences(): EditorPreferences {
   try {
     const value = JSON.parse(localStorage.getItem("ynx-code-editor-preferences/v1") || "null");
@@ -113,6 +114,9 @@ export function Workbench() {
     [editorPreferences, setEditorPreferences] = useState(loadEditorPreferences),
     [runReview, setRunReview] = useState(false),
     [testReview, setTestReview] = useState(false),
+    [packageReview, setPackageReview] = useState(false),
+    [packageSpec, setPackageSpec] = useState(""),
+    [packageBusy, setPackageBusy] = useState(false),
     [theme, setTheme] = useState<"light" | "dark">(() => (localStorage.getItem("ynx-code-theme") === "light" ? "light" : "dark")),
     [search, setSearch] = useState(""),
     [replacement, setReplacement] = useState(""),
@@ -301,6 +305,24 @@ export function Workbench() {
     () => Object.keys(project.files).filter((path) => /(?:\.(?:test|spec)\.(?:js|mjs|cjs)|(?:^|\/)(?:test_.+|.+_test)\.py|_test\.go|(?:^|\/)(?:test|tests)\/.+\.(?:cpp|cc|cxx))$/i.test(path)).sort(),
     [project.files],
   );
+  const packageManifestReview = useMemo(() => {
+    const source = project.files["package.json"];
+    if (!source) return { valid: true, items: [] as string[], error: "" };
+    try {
+      const value = JSON.parse(source), fields = [value?.dependencies, value?.devDependencies], items: string[] = [];
+      for (const field of fields) {
+        if (field === undefined) continue;
+        if (!field || typeof field !== "object" || Array.isArray(field)) return { valid: false, items, error: "Dependency fields must be objects." };
+        for (const [name, version] of Object.entries(field)) {
+          if (typeof version !== "string" || !/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(version)) return { valid: false, items, error: `${name} must use an exact version before reviewed Web installation.` };
+          items.push(`${name}@${version}`);
+        }
+      }
+      return items.length > 64 ? { valid: false, items, error: "The direct dependency plan exceeds 64 packages." } : { valid: true, items: items.sort(), error: "" };
+    } catch {
+      return { valid: false, items: [] as string[], error: "package.json must contain valid JSON." };
+    }
+  }, [project.files]);
   const problems = useMemo(
     () =>
       Object.entries(problemsByPath)
@@ -590,6 +612,29 @@ export function Workbench() {
       setRunning(false);
     }
   };
+  const installDependency = async () => {
+    if (!selectedRuntime || selectedRuntime.startsWith("ssh-") || !exactPackageSpec.test(packageSpec) || !packageManifestReview.valid || collaborationReadOnly) return;
+    setPackageReview(false);
+    setPackageBusy(true);
+    setBottom("task");
+    setOutput((current) => `${current}\n$ ynx package install ${packageSpec}\n`);
+    try {
+      const result = await installContainerPackage(selectedRuntime, project.id, packageSpec, project.files);
+      if (!result.ok || result.scripts !== false || result.network.restored !== true) throw new Error("Package service returned an invalid installation envelope.");
+      setProject((current) => ({
+        ...current,
+        revision: current.revision + 1,
+        files: { ...current.files, "package.json": result.packageJson, "package-lock.json": result.packageLock },
+      }));
+      setDirty((current) => new Set([...current, "package.json", "package-lock.json"]));
+      setOutput((current) => `${current}${result.output}\n[installed] ${result.packageSpec} · ${result.bytes} bytes · lifecycle scripts disabled · temporary network removed · ${result.durationMs} ms\n`);
+      setPackageSpec("");
+    } catch (error) {
+      setOutput((current) => `${current}\x1b[31m${error instanceof Error ? error.message : String(error)}\x1b[0m\n`);
+    } finally {
+      setPackageBusy(false);
+    }
+  };
   const refreshWorkspace = useCallback(
     async (revision: number) => {
       const remote = await loadWorkspace(project.id);
@@ -863,6 +908,9 @@ export function Workbench() {
             <Button variant="ghost" title={testCandidates.length ? `Review ${testCandidates.length} discovered project test files` : "No supported project tests discovered"} onClick={() => setTestReview(true)} disabled={!testCandidates.length || running}>
               <TestTube2 size={13} /> Test
             </Button>
+            <Button variant="ghost" title={!selectedRuntime ? "Select an isolated cloud workspace to install packages" : selectedRuntime.startsWith("ssh-") ? "Use the reviewed SSH terminal for remote package installation" : "Review one exact npm package installation"} onClick={() => setPackageReview(true)} disabled={!selectedRuntime || selectedRuntime.startsWith("ssh-") || packageBusy || collaborationReadOnly}>
+              <PackagePlus size={13} /> Package
+            </Button>
           </div>
         </div>
         <nav className="breadcrumbs" aria-label="Editor breadcrumbs">
@@ -1028,6 +1076,25 @@ export function Workbench() {
             <div>
               <Button onClick={() => setTestReview(false)}>Cancel</Button>
               <Button variant="default" onClick={executeTests}>Approve tests once</Button>
+            </div>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
+      <Dialog.Root open={packageReview} onOpenChange={setPackageReview}>
+        <Dialog.Portal>
+          <Dialog.Overlay className="dialog-overlay" />
+          <Dialog.Content className="run-dialog package-dialog">
+            <Dialog.Title>Install an exact npm dependency</Dialog.Title>
+            <Dialog.Description>The selected LXD workspace installs only an exact registry version. npm lifecycle scripts stay disabled. Outbound network is attached only for this approved install and must be removed before success is returned.</Dialog.Description>
+            <label>
+              Exact package and version
+              <input autoFocus value={packageSpec} onChange={(event) => setPackageSpec(event.target.value.trim())} placeholder="kleur@4.1.5" aria-label="Exact npm package and version" />
+            </label>
+            <pre>{JSON.stringify({ task: "install-package", runtime: selectedRuntime, package: packageSpec || "<name>@<major>.<minor>.<patch>", approval: "install-package-once", command: packageSpec ? ["npm", "install", "--ignore-scripts", "--save-exact", "--no-audit", "--no-fund", packageSpec] : [], existingExactDependencies: packageManifestReview.items, maximumDirectDependencies: 64, maximumStoreBytes: 512 * 1024 * 1024, network: "temporary install egress; fail closed unless removed" }, null, 2)}</pre>
+            {packageManifestReview.error && <div className="collab-error">{packageManifestReview.error}</div>}
+            <div>
+              <Button onClick={() => setPackageReview(false)}>Cancel</Button>
+              <Button variant="default" disabled={!exactPackageSpec.test(packageSpec) || !packageManifestReview.valid || packageBusy} onClick={installDependency}>Approve one install</Button>
             </div>
           </Dialog.Content>
         </Dialog.Portal>

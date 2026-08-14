@@ -245,6 +245,39 @@ export function runContainerActive(runtimeId: string, projectId: string, activeP
     }),
   });
 }
+export type PackageInstallResult = {
+  protocolVersion: string;
+  ok: true;
+  packageSpec: string;
+  manager: "npm";
+  scripts: false;
+  scope: "project-container";
+  bytes: number;
+  output: string;
+  packageJson: string;
+  packageLock: string;
+  durationMs: number;
+  network: { temporary: true; restored: true };
+};
+export function installContainerPackage(runtimeId: string, projectId: string, packageSpec: string, files: Record<string, string>): Promise<PackageInstallResult> {
+  const bytes = (value: string) => new TextEncoder().encode(value).byteLength;
+  return profileFetch(`/runtime/profiles/lxd/leases/${encodeURIComponent(runtimeId)}/packages`, {
+    method: "POST",
+    body: JSON.stringify({
+      protocolVersion: "ynx-code-runtime/v1",
+      approval: "install-package-once",
+      projectId,
+      packageSpec,
+      packageJson: files["package.json"],
+      workspaceBytes: Object.values(files).reduce((total, value) => total + bytes(value), 0),
+      workspaceFileCount: Object.keys(files).length,
+      previousPackageJsonBytes: bytes(files["package.json"] || ""),
+      previousPackageLockBytes: bytes(files["package-lock.json"] || ""),
+      hasPackageJson: Object.hasOwn(files, "package.json"),
+      hasPackageLock: Object.hasOwn(files, "package-lock.json"),
+    }),
+  });
+}
 export function inspectSshTarget(host: string, port: number, user: string) {
   return profileFetch("/runtime/profiles/ssh/inspect", {
     method: "POST",

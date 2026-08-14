@@ -19,6 +19,8 @@ export async function runSolidityLanguageRequest(request, options) {
     memoryBytes: 2147483648,
     addressSpaceBytes: null,
     environment: { NODE_OPTIONS: "--max-old-space-size=512" },
+    initializeTimeoutMs: 20_000,
+    requestTimeoutMs: 20_000,
     openDelayMs: 900,
     completionAttempts: 4,
     completionRetryMs: 350,

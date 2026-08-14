@@ -1,5 +1,34 @@
 # YNX Developer 0.2.0 Testnet Preview release notes
 
+## 2026-08-14 reviewed Web npm installation
+
+- Added a one-time reviewed Package action for selected project-bound LXD
+  workspaces. It accepts only one exact registry version and requires every
+  existing direct dependency to be exact before reconciliation.
+- npm runs without a shell using `--ignore-scripts --save-exact --no-audit
+  --no-fund`, a 120-second/output bound and a 512 MiB project store limit.
+  Temporary package egress is removed before success; cleanup uncertainty stops
+  the container and fails closed.
+- Installed `node_modules` persist in the owner's project container and are
+  linked into later build/run tasks. Updated `package.json` and
+  `package-lock.json` return through the 256-file/2 MiB workspace boundary.
+- This slice covers npm in an explicitly selected LXD runtime. pip, Cargo, Go,
+  Maven/Gradle and Solidity framework installers remain open adapters.
+- Full-gate retesting exposed Nomic Solidity language-server initialization
+  exceeding the generic 8-second RPC budget under load. Solidity now has a
+  bounded 20-second initialization/request budget. A later loaded run proved
+  TypeScript document symbols and concurrent completion can cross the same old
+  threshold, so all LSP initialization and request operations now use the same
+  bounded 20-second ceiling alongside existing queue, memory and process limits.
+- Repeated full-gate runs also proved cold Go project-test compilation could
+  exceed its former 20-second phase limit under concurrent load. The Go test
+  phase now has a still-bounded 90-second budget, and compiler version probes
+  have a 10-second bound; process, memory and output limits remain unchanged.
+- The workspace-agent acceptance suite now runs its independent real compiler
+  cases serially so JDK, Go and Solidity cold starts do not starve one another.
+  Its dedicated parallel-user case still executes concurrent isolated tasks and
+  continues to prove the production concurrency boundary.
+
 ## 2026-08-14 real Breadcrumb and Outline navigation
 
 - Added a path breadcrumb above Monaco using the current workspace and active

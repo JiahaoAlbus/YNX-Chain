@@ -543,6 +543,7 @@ html[data-theme="dark"] .tree-row.file.active {
   justify-content: flex-end;
   gap: 8px;
 }
+.package-dialog>label{display:grid;gap:5px;color:var(--muted);font-size:11px}.package-dialog>label>input{width:100%;border:1px solid var(--border);border-radius:4px;background:var(--panel2);color:var(--text);padding:8px}.package-dialog>label>input:focus{border-color:var(--blue);outline:2px solid color-mix(in srgb,var(--blue) 25%,transparent)}
 .settings-dialog{top:14%;padding:18px;display:grid;gap:12px}.settings-dialog>p{margin:0;color:var(--muted);font-size:11px;line-height:1.45}.settings-dialog>label{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:7px;font-size:11px}.settings-dialog>label>input[type="range"]{grid-column:1/-1;width:100%;accent-color:var(--blue)}.settings-dialog select{min-width:110px;border:1px solid var(--border);background:var(--panel2);color:var(--text);padding:6px}.settings-dialog output{color:var(--muted);font:10px monospace}.settings-dialog .settings-toggle input{accent-color:var(--blue)}.settings-dialog>div{display:flex;justify-content:flex-end;gap:8px;border-top:1px solid var(--border);padding-top:12px}
 @media (max-width: 820px) {
   .workbench {

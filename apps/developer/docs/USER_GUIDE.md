@@ -75,9 +75,21 @@ its compiler for the current user, then import a reviewed adapter manifest that
 maps safe extensions to that executable. Missing tools remain visibly unavailable;
 they are never reported as successful compilation.
 
-TypeScript is the first project-installable compiler adapter: install the exact
-reviewed `typescript@5.9.0` package through the package approval flow, then
-Compile uses that project-local compiler without adding a global executable.
+Select a project-bound LXD workspace in **Remote Explorer**, then choose
+**Package** beside Run/Test to install one exact npm dependency such as
+`kleur@4.1.5`. Review the command and every existing direct dependency before
+approving. Existing dependencies must already use exact versions. npm lifecycle
+scripts, audit and funding calls are disabled; temporary install network must be
+removed before the operation succeeds. The service persists `node_modules` only
+inside that project's container and returns updated `package.json` and
+`package-lock.json` to the revisioned text workspace. The action is unavailable
+for the local ephemeral Web sandbox and SSH profiles; use the explicitly opened
+SSH terminal under that host's own policy. Non-npm package managers do not yet
+have reviewed Web buttons.
+
+The packaged desktop product separately supports an exact project-local npm
+install. Its TypeScript adapter can use a reviewed `typescript@5.9.0` package
+without adding a global executable.
 
 Open **Workspace History** to inspect the latest 50 server-local project
 revisions. **Export** downloads the selected complete revision as JSON. **Restore**

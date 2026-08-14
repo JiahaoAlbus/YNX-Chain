@@ -301,6 +301,20 @@ the revisioned workspace store, deletes the lease and rejects any leaked runtime
 container. Active terminal and LSP processes hold a lease lock, so their backing
 container cannot be stopped while work is running.
 
+Package installation is a separate lease-locked operation, not terminal or task
+authority. The Web client sends one exact npm spec, an `install-package-once`
+approval and bounded workspace metadata. The service rejects ranges, tags,
+URLs, aliases and non-exact existing direct dependencies; creates a sanitized
+manifest; and invokes npm shell-free with lifecycle scripts, audit and funding
+disabled. A temporary reviewed LXD network device exists only during the
+120-second install. It must be removed before success; unknown add state or
+cleanup failure stops the container. An atomic, 512 MiB project store under
+`/opt/ynx-code-dependencies/<project>/node` survives later tasks, which link its
+`node_modules` only after resolving the owner/project lease. The returned
+manifest and lockfile must still fit the shared 256-file/2 MiB text-workspace
+boundary. This does not claim pip, Cargo, Go, Maven/Gradle or Solidity framework
+installation.
+
 The next reviewed image recipe extends execution to Java with OpenJDK 21. Both
 workspace-agent and LXD adapters derive the public class from the active
 filename and optional declared package, compile UTF-8 bytecode only below

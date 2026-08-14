@@ -36,8 +36,16 @@ whose HEAD is the exact pushed commit on `origin/codex/ynx-code-platform-v1`:
 
 ```bash
 sudo env YNX_CODE_DEPLOY_COMMIT=<40-hex-commit> \
+  YNX_CODE_LXD_PACKAGE_NETWORK=<reviewed-egress-network> \
   apps/developer/scripts/deploy-public-candidate-transaction.sh
 ```
+
+`YNX_CODE_LXD_PACKAGE_NETWORK` must name a dedicated LXD network whose host
+firewall policy permits registry egress but not private/control-plane targets.
+Package installation fails closed when it is absent. The runtime attaches that
+network only for an approved exact npm install and removes it before returning
+success; cleanup uncertainty stops the affected container. Preserve this value
+in the protected candidate environment rather than a repository file.
 
 The transaction builds and tests an archive of that commit before changing the
 service, creates a uniquely named OpenJDK 21 LXD image, requires its immutable

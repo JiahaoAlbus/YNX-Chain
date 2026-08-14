@@ -17,6 +17,12 @@ successful eight-runtime release record.
 
 ## Product behavior
 
+- Web npm evidence: `runtime-profile-service` exercises owner/project scoping,
+  exact-version rejection, exact existing dependency reconciliation, lifecycle
+  script denial, bounded persistent storage, runtime `node_modules` linking and
+  cleanup of temporary package egress on both success and failure.
+  `test/package-install-ui.test.js` holds the React review, one-time approval,
+  returned manifest/lockfile mutation and fail-closed language.
 - Breadcrumb/Outline evidence: `test/breadcrumb-outline-ui.test.js` holds path
   hierarchy, Outline activity, exact-content freshness and Monaco line/column
   navigation. `services/language-service/test/typescript-lsp.test.mjs` executes

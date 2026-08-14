@@ -745,7 +745,7 @@ async function projectTestSpec(workspace, files) {
         label: `test:go:${directory}`,
         command,
         args: ["test", ...sources.map((path) => safeJoin(workspace, path))],
-        timeout: 20_000,
+        timeout: 90_000,
         environment: { GOMAXPROCS: "2" },
       });
     }
@@ -886,7 +886,7 @@ async function version(command) {
   const result = await spawnBounded(command, ["--version"], {
     cwd: tmpdir(),
     env: { PATH: process.env.PATH || "/usr/bin:/bin" },
-    timeout: 3000,
+    timeout: 10_000,
   });
   return result.output.split("\n")[0].slice(0, 160);
 }

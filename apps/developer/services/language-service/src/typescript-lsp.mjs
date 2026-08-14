@@ -14,6 +14,8 @@ export async function runTypescriptLanguageRequest(request, options) {
     serverName: "typescript-language-server",
     serverArgs: ["--stdio"],
     memoryBytes: 2147483648,
+    initializeTimeoutMs: 20_000,
+    requestTimeoutMs: 20_000,
     completionAttempts: 4,
     completionRetryMs: 300,
     languageId: (path) => [".ts", ".tsx", ".mts", ".cts"].includes(extname(path).toLowerCase()) ? "typescript" : "javascript",

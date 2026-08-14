@@ -7,6 +7,7 @@ set -euo pipefail
 script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 repo_dir=$(cd "$script_dir/../../.." && pwd)
 expected_commit="${YNX_CODE_DEPLOY_COMMIT:?Set YNX_CODE_DEPLOY_COMMIT to the exact 40-hex pushed commit}"
+package_network="${YNX_CODE_LXD_PACKAGE_NETWORK:?Set YNX_CODE_LXD_PACKAGE_NETWORK to the reviewed package-egress LXD network}"
 service="${YNX_CODE_DEPLOY_SERVICE:-ynx-code-candidate.service}"
 candidate_root="${YNX_CODE_CANDIDATE_ROOT:-/opt/ynx-developer/candidates}"
 state_dir="${YNX_CODE_STATE_DIR:-/var/lib/ynx-code-candidate}"
@@ -50,6 +51,7 @@ cleanup_staging() {
 trap cleanup_staging EXIT
 
 [[ $expected_commit =~ ^[0-9a-f]{40}$ ]] || fail "YNX_CODE_DEPLOY_COMMIT must be 40 lowercase hex characters"
+[[ $package_network =~ ^[A-Za-z0-9_.-]{1,80}$ ]] || fail "YNX_CODE_LXD_PACKAGE_NETWORK must be a valid LXD network name"
 [[ $candidate_root == /opt/ynx-developer/candidates ]] || fail "candidate root is outside the reviewed boundary"
 [[ $state_dir == /var/lib/ynx-code-candidate ]] || fail "state directory is outside the reviewed boundary"
 [[ $env_file == /etc/ynx/ynx-code-candidate.env ]] || fail "environment file is outside the reviewed boundary"
@@ -126,8 +128,8 @@ stopped=true
 tar -C "$state_dir" --exclude=deploy-evidence -cpf "$backup_tar" .
 sha256sum "$backup_tar" | sed "s#$backup_tar#state-before.tar#" > "$transaction_dir/state-before.sha256"
 
-node - "$env_file" "$image_fingerprint" "$release" <<'NODE'
-const fs=require("node:fs"),[file,image,release]=process.argv.slice(2),lines=fs.readFileSync(file,"utf8").split(/\r?\n/),updates=new Map([["YNX_CODE_LXD_IMAGE",image],["YNX_CODE_RELEASE",release]]),seen=new Set(),output=[];
+node - "$env_file" "$image_fingerprint" "$release" "$package_network" <<'NODE'
+const fs=require("node:fs"),[file,image,release,packageNetwork]=process.argv.slice(2),lines=fs.readFileSync(file,"utf8").split(/\r?\n/),updates=new Map([["YNX_CODE_LXD_IMAGE",image],["YNX_CODE_RELEASE",release],["YNX_CODE_LXD_PACKAGE_NETWORK",packageNetwork]]),seen=new Set(),output=[];
 for(const line of lines){const match=line.match(/^([A-Z][A-Z0-9_]*)=/);if(match&&updates.has(match[1])){output.push(`${match[1]}=${updates.get(match[1])}`);seen.add(match[1]);}else if(line)output.push(line)}
 for(const[key,value]of updates)if(!seen.has(key))output.push(`${key}=${value}`);
 fs.writeFileSync(file,`${output.join("\n")}\n`,{mode:0o600});
