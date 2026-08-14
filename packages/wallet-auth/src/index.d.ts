@@ -40,6 +40,21 @@ export type AuthorizationResponse = Readonly<{
   expiresAt: string;
   walletSignature: string;
 }>;
+export type AuthorizationRejection = Readonly<{
+  version: "1";
+  decision: "rejected";
+  requestDigest: string;
+  nonce: string;
+  chainId: "ynx_6423-1";
+  requestingProduct: string;
+  productClientId: string;
+  bundleId: string;
+  callback: string;
+  decisionCode: "USER_REJECTED";
+  rejectedAt: string;
+  authorityGranted: false;
+  grantedScopes: readonly [];
+}>;
 export type GatewayChallenge = Readonly<{
   version: "1";
   challenge: string;
@@ -352,6 +367,16 @@ export declare function parseAuthorizationRequest(
   options: { now?: Date; registry: Record<string, ProductBinding> },
 ): AuthorizationRequest;
 export declare function requestDigest(request: AuthorizationRequest): string;
+export declare function createAuthorizationRejection(
+  request: AuthorizationRequest,
+  input: { decisionCode: "USER_REJECTED"; rejectedAt: string },
+): AuthorizationRejection;
+export declare function parseAuthorizationRejection(input: string | unknown): AuthorizationRejection;
+export declare function verifyAuthorizationRejection(
+  input: string | unknown,
+  request: AuthorizationRequest,
+  at?: Date,
+): AuthorizationRejection;
 export declare function walletIdentity(
   secretHex: string,
 ): Readonly<{ account: string; accountPublicKey: string }>;
@@ -1002,6 +1027,10 @@ export declare class CanonicalWalletGatewayAdapter {
     input: Readonly<Record<string, unknown>>,
     at?: Date,
   ): CentralWalletSession;
+  rejectAuthorization(
+    input: Readonly<Record<string, unknown>>,
+    at?: Date,
+  ): never;
   introspect(
     input: Readonly<Record<string, unknown>>,
     request: Readonly<Record<string, unknown>>,

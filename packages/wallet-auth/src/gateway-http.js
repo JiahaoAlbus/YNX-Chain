@@ -14,6 +14,7 @@ const RESPONSE_HEADERS = Object.freeze({
 
 const ROUTES = Object.freeze({
   "/v1/wallet/sessions/complete": "complete",
+  "/v1/wallet/authorizations/reject": "rejectAuthorization",
   "/v1/wallet/sessions/introspect": "introspect",
   "/v1/wallet/sessions": "sessionInventory",
   "/v1/wallet/sessions/revoke": "revokeSession",
@@ -48,6 +49,8 @@ export class CanonicalWalletGatewayHttpKernel {
       const context = Object.freeze({ method: request.method, path: request.path, bodyDigest: httpBodyDigest(request.body) });
       const result = operation === "complete"
         ? complete(this.#adapter, request.proof, payload, now)
+        : operation === "rejectAuthorization"
+          ? rejectAuthorization(this.#adapter, request.proof, payload, now)
         : this.#adapter[operation](authenticatedInput(operation, request.proof, payload), context, now);
       const snapshot = this.#adapter.snapshot();
       const stateDigest = gatewayStateDigest(snapshot);
@@ -93,6 +96,11 @@ function parseRequest(input) {
 function complete(adapter, proof, payload, at) {
   if (proof !== null) fail("UNEXPECTED_PROOF_HEADER", "Session completion must not include a Product Session proof header");
   return adapter.complete(payload, at);
+}
+
+function rejectAuthorization(adapter, proof, payload, at) {
+  if (proof !== null) fail("UNEXPECTED_PROOF_HEADER", "Authorization rejection must not include a Product Session proof header");
+  return adapter.rejectAuthorization(payload, at);
 }
 
 function authenticatedInput(operation, proof, payload) {
@@ -141,7 +149,7 @@ function errorStatus(code) {
   if (code === "UNSUPPORTED_MEDIA_TYPE") return 415;
   if (["REPLAY", "ALREADY_REVOKED", "MANDATE_EXISTS", "MANDATE_TERMINAL", "MANDATE_REVOKED", "MANDATE_KILLED", "MANDATE_EXPIRED"].includes(code)) return 409;
   if (code === "CAPACITY") return 503;
-  if (["UNKNOWN_PRODUCT", "REGISTRY_DISABLED", "DEVICE_MISMATCH", "INVALID_DEVICE_PROOF", "SESSION_BINDING_MISMATCH", "HTTP_BINDING_MISMATCH", "SCOPE_NOT_GRANTED", "SCOPE_NOT_ALLOWED", "REVOKED", "EXPIRED", "WALLET_CONTROL_REQUIRED", "MANDATE_BINDING_MISMATCH", "MANDATE_POLICY_VIOLATION", "LIMIT_EXCEEDED"].includes(code)) return 403;
+  if (["UNKNOWN_PRODUCT", "REGISTRY_DISABLED", "DEVICE_MISMATCH", "INVALID_DEVICE_PROOF", "SESSION_BINDING_MISMATCH", "HTTP_BINDING_MISMATCH", "SCOPE_NOT_GRANTED", "SCOPE_NOT_ALLOWED", "REVOKED", "EXPIRED", "WALLET_CONTROL_REQUIRED", "MANDATE_BINDING_MISMATCH", "MANDATE_POLICY_VIOLATION", "LIMIT_EXCEEDED", "AUTHORIZATION_REJECTED"].includes(code)) return 403;
   return 400;
 }
 
