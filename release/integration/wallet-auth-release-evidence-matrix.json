@@ -34,9 +34,9 @@
   },
   "pendingOwnerCommits": [],
   "pendingOwnerEvidence": [
-    {"owner":"web-pwa-extensions","candidateCommit":"a3059db5d7e08e60bfcdf6b590d8217d211e008a","remoteFastForwardReported":true,"remoteReadbackComplete":false,"ciComplete":true,"consumedForReleaseTruth":false,"note":"PWA preferences second-launch evidence remains queued for its own atomic slice."},
     {"owner":"web-pwa-extensions","candidateCommit":"f789c782c325d64234bd077f5c878b1821b2149a","remoteFastForwardReported":true,"remoteReadbackComplete":false,"ciComplete":true,"consumedForReleaseTruth":false,"note":"PWA cache-integrity lifecycle evidence remains queued; live RPC/recovery stay false."},
     {"owner":"web-pwa-extensions","candidateCommit":"7522b8162b2581c7fed216d0e4e9fef44ff4fef7","remoteFastForwardReported":true,"remoteReadbackComplete":true,"ciComplete":true,"consumedForReleaseTruth":false,"note":"Extension minimum-permissions evidence remains queued; device/provider/account/sign/tx truth stays false."},
+    {"owner":"web-pwa-extensions","candidateCommit":"1ac8c4edd2c8f1b794b3aec9b70b1cf262576f3a","remoteFastForwardReported":true,"remoteReadbackComplete":true,"ciComplete":true,"consumedForReleaseTruth":false,"note":"activeTab fallback evidence remains queued; bundled browser runtime and action injection were not proved."},
     {
       "owner": "android-api36",
       "candidateCommit": "6f096503793218ddfd9b3b1cd6403a07d4fafb97",
@@ -63,9 +63,9 @@
     {
       "owner": "web-pwa-extensions",
       "branch": "codex/wallet-web-pwa-extensions-20260813",
-      "sourceCommit": "ae55e8272018979abb6cb393307755c063f71f38",
-      "remoteCommitObserved": "ae55e8272018979abb6cb393307755c063f71f38",
-      "branchHeadObserved": "7522b8162b2581c7fed216d0e4e9fef44ff4fef7",
+      "sourceCommit": "a3059db5d7e08e60bfcdf6b590d8217d211e008a",
+      "remoteCommitObserved": "a3059db5d7e08e60bfcdf6b590d8217d211e008a",
+      "branchHeadObserved": "1ac8c4edd2c8f1b794b3aec9b70b1cf262576f3a",
       "remoteVerifiedAt": "2026-08-14T04:18:00Z",
       "verificationMode": "github-git-database-parent-tree-blob-readback"
     },
@@ -258,6 +258,13 @@
       "commit": "ae55e8272018979abb6cb393307755c063f71f38",
       "path": "apps/wallet-web/evidence/contracts/canonical-sensitive-consumer-20260814.json",
       "supports": ["web-pwa.build", "browser-extension.build"]
+    },
+    "web-pwa-preferences-second-launch": {
+      "type": "git-object",
+      "direct": true,
+      "commit": "a3059db5d7e08e60bfcdf6b590d8217d211e008a",
+      "path": "apps/wallet-web/evidence/runtime/pwa-preferences-second-launch-20260814.json",
+      "supports": ["web-pwa.build", "web-pwa.secondLaunch"]
     },
     "web-pwa-browser": {
       "type": "git-object",
@@ -579,9 +586,10 @@
       "ownerSource": "web-pwa-extensions",
       "artifactClass": "unsigned-loopback-pwa-bundle",
       "status": "edge-installed-local",
+      "capabilities": {"bundledChromiumPreferencesSecondLaunch":true,"arabicRtlDarkPersisted":true,"invalidPreferencesFailClosed":true,"brandedBrowserInstallFromThisSlice":false},
       "gates": {"build":true,"install":true,"coldLaunch":false,"secondLaunch":true,"testnet":true,"sign":false,"tx":false,"callback":false,"reconnect":false,"downloadHosted":false,"productionSigned":false,"storeReleased":false},
-      "evidenceBindings": {"build":["web-artifacts"],"install":["edge-pwa-installed"],"coldLaunch":["edge-pwa-installed"],"secondLaunch":["edge-pwa-installed"],"testnet":["web-testnet-rpc-recovered"],"sign":["edge-pwa-installed","web-session-invalidation-fail-closed"],"tx":["edge-pwa-installed","web-session-invalidation-fail-closed"],"callback":["edge-pwa-installed","web-session-invalidation-fail-closed"],"reconnect":["edge-pwa-installed","web-session-invalidation-fail-closed"],"downloadHosted":["web-artifacts","edge-pwa-installed"],"productionSigned":["web-artifacts","edge-pwa-installed"],"storeReleased":["web-artifacts","edge-pwa-installed"]},
-      "notes": ["Exact pushed proof records the Edge PWA bundle com.microsoft.edgemac.app.plkhingfjhnclbfboobaipbemoiaogde, local installation, visible first/second windows and exact 0x1917 RPC recovery. The 19/19 provider-identity invalidation tests require explicit reconnect but did not retest a real provider; coldLaunch, callback and reconnect therefore remain false."]
+      "evidenceBindings": {"build":["web-artifacts","web-pwa-preferences-second-launch"],"install":["edge-pwa-installed"],"coldLaunch":["edge-pwa-installed"],"secondLaunch":["edge-pwa-installed","web-pwa-preferences-second-launch"],"testnet":["web-testnet-rpc-recovered"],"sign":["edge-pwa-installed","web-session-invalidation-fail-closed"],"tx":["edge-pwa-installed","web-session-invalidation-fail-closed"],"callback":["edge-pwa-installed","web-session-invalidation-fail-closed"],"reconnect":["edge-pwa-installed","web-session-invalidation-fail-closed"],"downloadHosted":["web-artifacts","edge-pwa-installed"],"productionSigned":["web-artifacts","edge-pwa-installed"],"storeReleased":["web-artifacts","edge-pwa-installed"]},
+      "notes": ["Existing Edge proof records local installation, visible first/second windows and exact 0x1917 RPC recovery. The a3059db5 bundled Chromium-compatible runtime additionally proves Arabic/RTL/Dark preferences across first/second launch and invalid-record fail-close, but is not branded Chrome/Edge or an installed PWA. coldLaunch, callback and reconnect remain false."]
     },
     {
       "id": "browser-extension",
