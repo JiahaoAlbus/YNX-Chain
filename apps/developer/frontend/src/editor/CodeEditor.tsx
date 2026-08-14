@@ -48,6 +48,9 @@ type Props = {
   splitLanguage?: string;
   onSplitChange?: (value: string | undefined) => void;
   diffBase?: string;
+  fontSize: number;
+  minimap: boolean;
+  wordWrap: "off" | "on";
 };
 export default function CodeEditor({
   projectId,
@@ -70,6 +73,9 @@ export default function CodeEditor({
   splitLanguage,
   onSplitChange,
   diffBase,
+  fontSize,
+  minimap,
+  wordWrap,
 }: Props) {
   const selectedTheme = extensions
       .flatMap((extension) =>
@@ -276,9 +282,10 @@ export default function CodeEditor({
         options={{
           automaticLayout: true,
           readOnly,
-          fontSize: 13,
-          lineHeight: 20,
-          minimap: { enabled: true },
+          fontSize,
+          lineHeight: Math.round(fontSize * 1.55),
+          minimap: { enabled: minimap },
+          wordWrap,
           stickyScroll: { enabled: true },
           bracketPairColorization: { enabled: true },
           guides: { bracketPairs: true, indentation: true },
@@ -301,8 +308,9 @@ export default function CodeEditor({
           options={{
             automaticLayout: true,
             readOnly,
-            fontSize: 13,
+            fontSize,
             minimap: { enabled: false },
+            wordWrap,
             scrollBeyondLastLine: false,
           }}
         />

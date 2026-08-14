@@ -42,6 +42,28 @@ const activity: [View, React.ReactNode, string][] = [
   ["history", <History />, "Workspace History"],
   ["chain", <Link2 />, "YNX Chain"],
 ];
+type EditorPreferences = {
+  fontSize: number;
+  minimap: boolean;
+  wordWrap: "off" | "on";
+  autoSave: boolean;
+  autoSaveDelay: number;
+};
+const defaultEditorPreferences: EditorPreferences = { fontSize: 13, minimap: true, wordWrap: "off", autoSave: true, autoSaveDelay: 700 };
+function loadEditorPreferences(): EditorPreferences {
+  try {
+    const value = JSON.parse(localStorage.getItem("ynx-code-editor-preferences/v1") || "null");
+    return {
+      fontSize: Number.isInteger(value?.fontSize) ? Math.max(10, Math.min(24, value.fontSize)) : 13,
+      minimap: typeof value?.minimap === "boolean" ? value.minimap : true,
+      wordWrap: value?.wordWrap === "on" ? "on" : "off",
+      autoSave: typeof value?.autoSave === "boolean" ? value.autoSave : true,
+      autoSaveDelay: Number.isInteger(value?.autoSaveDelay) ? Math.max(300, Math.min(5000, value.autoSaveDelay)) : 700,
+    };
+  } catch {
+    return defaultEditorPreferences;
+  }
+}
 
 async function sha256Text(content: string) {
   const bytes = new TextEncoder().encode(content),
@@ -83,6 +105,8 @@ export function Workbench() {
     [split, setSplit] = useState(false),
     [diff] = useState<{ path: string; base: string } | null>(null),
     [palette, setPalette] = useState(false),
+    [settingsOpen, setSettingsOpen] = useState(false),
+    [editorPreferences, setEditorPreferences] = useState(loadEditorPreferences),
     [runReview, setRunReview] = useState(false),
     [theme, setTheme] = useState<"light" | "dark">(() => (localStorage.getItem("ynx-code-theme") === "light" ? "light" : "dark")),
     [search, setSearch] = useState(""),
@@ -128,6 +152,8 @@ export function Workbench() {
       [project.name, project.folders, project.files, project.open, project.active],
     ),
     workspaceKey = useMemo(() => JSON.stringify(workspace), [workspace]);
+  const workspaceKeyRef = useRef(workspaceKey);
+  workspaceKeyRef.current = workspaceKey;
   const languageOf = useCallback(
     (path: string) => {
       const lower = path.toLowerCase();
@@ -148,6 +174,9 @@ export function Workbench() {
     document.documentElement.dataset.theme = theme;
     localStorage.setItem("ynx-code-theme", theme);
   }, [theme]);
+  useEffect(() => {
+    localStorage.setItem("ynx-code-editor-preferences/v1", JSON.stringify(editorPreferences));
+  }, [editorPreferences]);
   useEffect(() => {
     localStorage.setItem("ynx-extension-theme", extensionTheme);
     const selected = extensions
@@ -241,7 +270,7 @@ export function Workbench() {
     return () => removeEventListener("online", handleOnline);
   }, [reconnect]);
   useEffect(() => {
-    if (!hydrated || collaborationSession || workspaceKey === lastSynced.current) return;
+    if (!hydrated || collaborationSession || !editorPreferences.autoSave || workspaceKey === lastSynced.current) return;
     const timer = setTimeout(() => {
       const expected = project.remoteRevision;
       saveWorkspace(project.id, expected, workspace)
@@ -253,9 +282,9 @@ export function Workbench() {
           }));
         })
         .catch((error) => setRuntime(error?.code === "revision_conflict" ? "save conflict" : "save unavailable"));
-    }, 700);
+    }, editorPreferences.autoSaveDelay);
     return () => clearTimeout(timer);
-  }, [collaborationSession, hydrated, project.id, project.remoteRevision, workspace, workspaceKey]);
+  }, [collaborationSession, editorPreferences.autoSave, editorPreferences.autoSaveDelay, hydrated, project.id, project.remoteRevision, workspace, workspaceKey]);
   const collaborationReadOnly = Boolean(collaborationRole && !["owner", "editor"].includes(collaborationRole));
   const activeContent = project.files[project.active] ?? "";
   const second = project.open.find((path) => path !== project.active);
@@ -280,11 +309,23 @@ export function Workbench() {
   };
   const save = () => {
     saveProject(project);
-    setDirty((current) => {
-      const next = new Set(current);
-      next.delete(project.active);
-      return next;
-    });
+    const clearActiveDirty = () =>
+      setDirty((current) => {
+        const next = new Set(current);
+        next.delete(project.active);
+        return next;
+      });
+    if (!editorPreferences.autoSave && hydrated && !collaborationSession && workspaceKey !== lastSynced.current) {
+      saveWorkspace(project.id, project.remoteRevision, workspace)
+        .then((saved) => {
+          lastSynced.current = workspaceKey;
+          setProject((current) => ({ ...current, remoteRevision: saved.revision }));
+          if (workspaceKeyRef.current === workspaceKey) clearActiveDirty();
+        })
+        .catch((error) => setRuntime(error?.code === "revision_conflict" ? "save conflict" : "save unavailable"));
+      return;
+    }
+    clearActiveDirty();
   };
   const create = (path: string, kind: "file" | "folder") => {
     if (collaborationReadOnly) return "Your collaboration role is read-only.";
@@ -613,7 +654,7 @@ export function Workbench() {
             {icon}
           </button>
         ))}
-        <button className="settings" title="Settings">
+        <button className="settings" title="Settings" aria-label="Settings" onClick={() => setSettingsOpen(true)}>
           <Settings />
         </button>
       </aside>
@@ -721,6 +762,9 @@ export function Workbench() {
                 }))
               }
               diffBase={diff?.base}
+              fontSize={editorPreferences.fontSize}
+              minimap={editorPreferences.minimap}
+              wordWrap={editorPreferences.wordWrap}
             />
           </Suspense>
         </section>
@@ -761,6 +805,44 @@ export function Workbench() {
                 {command.label}
               </button>
             ))}
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
+      <Dialog.Root open={settingsOpen} onOpenChange={setSettingsOpen}>
+        <Dialog.Portal>
+          <Dialog.Overlay className="dialog-overlay" />
+          <Dialog.Content className="settings-dialog">
+            <Dialog.Title>Editor settings</Dialog.Title>
+            <Dialog.Description>These device-local preferences apply immediately and persist across restarts.</Dialog.Description>
+            <label>
+              <span>Editor font size</span>
+              <output>{editorPreferences.fontSize}px</output>
+              <input type="range" min="10" max="24" step="1" value={editorPreferences.fontSize} onChange={(event) => setEditorPreferences((current) => ({ ...current, fontSize: Number(event.target.value) }))} />
+            </label>
+            <label className="settings-toggle">
+              <span>Minimap</span>
+              <input type="checkbox" checked={editorPreferences.minimap} onChange={(event) => setEditorPreferences((current) => ({ ...current, minimap: event.target.checked }))} />
+            </label>
+            <label>
+              <span>Word wrap</span>
+              <select value={editorPreferences.wordWrap} onChange={(event) => setEditorPreferences((current) => ({ ...current, wordWrap: event.target.value === "on" ? "on" : "off" }))}>
+                <option value="off">Off</option>
+                <option value="on">On</option>
+              </select>
+            </label>
+            <label className="settings-toggle">
+              <span>Auto save to workspace service</span>
+              <input type="checkbox" checked={editorPreferences.autoSave} onChange={(event) => setEditorPreferences((current) => ({ ...current, autoSave: event.target.checked }))} />
+            </label>
+            <label>
+              <span>Auto-save delay</span>
+              <output>{editorPreferences.autoSaveDelay}ms</output>
+              <input type="range" min="300" max="5000" step="100" disabled={!editorPreferences.autoSave} value={editorPreferences.autoSaveDelay} onChange={(event) => setEditorPreferences((current) => ({ ...current, autoSaveDelay: Number(event.target.value) }))} />
+            </label>
+            <div>
+              <Button onClick={() => setEditorPreferences(defaultEditorPreferences)}>Reset defaults</Button>
+              <Button variant="default" onClick={() => setSettingsOpen(false)}>Done</Button>
+            </div>
           </Dialog.Content>
         </Dialog.Portal>
       </Dialog.Root>

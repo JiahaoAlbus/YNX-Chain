@@ -157,6 +157,9 @@ Monaco owns one model per canonical file URI. The workbench implements:
 - multi-select explorer operations and native keyboard naming flow;
 - preview/pinned tabs, dirty markers, close/reopen and hot exit;
 - horizontal/vertical editor groups with independent selections;
+- schema-sanitized device-local editor preferences for font size, minimap, word
+  wrap and bounded auto-save delay; explicit Save remains a revision-checked
+  server mutation when auto-save is disabled;
 - Monaco diff editors for SCM, checkpoints and agent proposals;
 - workspace search/replace with preview and atomic apply;
 - command registry, keybinding resolver and command palette;

@@ -17,6 +17,11 @@ successful eight-runtime release record.
 
 ## Product behavior
 
+- Editor settings evidence: `test/editor-settings-ui.test.js` holds the formerly
+  inactive Settings control to a real dialog, sanitized restart-persistent
+  preferences, Monaco option wiring and explicit revisioned workspace save when
+  auto-save is disabled. Frontend TypeScript and production build gates compile
+  the same option contract.
 - Workspace revision evidence: `services/workspace-manager/test/store.test.mjs`
   proves owner/project isolation, restart durability, exact idempotent replay,
   immutable snapshots, legacy database backfill, bounded latest-50 pruning and

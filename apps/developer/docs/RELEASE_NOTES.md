@@ -1,5 +1,13 @@
 # YNX Developer 0.2.0 Testnet Preview release notes
 
+## 2026-08-14 real editor settings
+
+- Replaced the inactive activity-bar Settings control with an accessible dialog
+  for Monaco font size, minimap, word wrap, auto-save and bounded auto-save delay.
+- Preferences are schema-sanitized, device-local and restart-persistent. Disabling
+  auto-save makes explicit Save write through the revision-checked workspace API;
+  it does not silently downgrade to browser-only persistence.
+
 ## 2026-08-14 workspace revision history and restore
 
 - Added immutable owner/project workspace snapshots for every accepted mutation,

@@ -5,6 +5,11 @@ the pinned compile action. Output is authoritative only when it contains the rea
 chain response. Tests/tasks show their command, directory, environment class and
 risk before an installed desktop executor can run them.
 
+Open **Settings** from the bottom of the activity bar to change editor font size,
+minimap, word wrap, auto-save and its delay. These preferences are stored only on
+the current device. When auto-save is off, use **Save** or `Ctrl/Cmd+S`; the save
+still goes through the revision-checked workspace service and reports conflicts.
+
 The editor recognizes common source extensions through Monaco. The isolated
 workspace uses its reviewed pinned Solidity 0.8.36 compiler. For other registered languages, Compile asks once and the
 desktop runtime detects a broad catalog including C/C++, Objective-C, JavaScript,
