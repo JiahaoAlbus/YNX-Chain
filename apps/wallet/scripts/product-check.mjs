@@ -37,10 +37,11 @@ for(const required of ["withdrawal-queue","trading-subaccount","api-wallet","cro
 for(const locale of ["en","zh-Hans","zh-Hant","ja","ko","es","fr","de","pt","ru","ar","id"])assert.equal(i18n.includes(`\"${locale}\"`)||i18n.includes(`${locale}:`),true,`missing locale ${locale}`);
 assert.ok((source.match(/accessibilityLabel=/g)??[]).length>=14,"Wallet controls need explicit accessibility labels");
 for(const file of ["RECOVERY.md","REFERENCE.md","PARITY.md","WEB4_IDENTITY.md","FEATURE_COMPLETION_EVIDENCE.md","CAPITAL_DESIGN.md","API_REGISTRY.md","MIGRATION_COMPATIBILITY.md","SLO_CAPACITY_PLAN.md","UNIT_ECONOMICS.md","OBSERVABILITY.md","THIRD_PARTY_NOTICES.md","PRODUCT_KPIS.md","public-product-metadata.json"])await access(new URL(`../${file}`,import.meta.url));
-for(const file of ["../../../packages/wallet-auth/integration/gateway-integration.manifest.json","../../../packages/wallet-auth/integration/gateway-state.schema.json","../../../packages/wallet-auth/integration/smart-account-testnet.manifest.json","../../../packages/wallet-auth/integration/chain-erc4337-requirements.json","../../../packages/wallet-auth/integration/CHAIN_ERC4337_HANDOFF.md","../../../packages/wallet-auth/testdata/product-session-http-proof-v1.json","../proof/gateway-benchmark-local.json","../proof/smart-account-hardhat-local.json","../proof/sponsorship-bundler-hardhat-local.json","../proof/public-evm-read-probe-2026-07-22.json","../proof/wallet-control-surface-local.json","../proof/wallet-control-android-installed-2026-07-22.json","../proof/ynx-wallet-control-android-current.png","../proof/gateway-testnet-deployment-topology-2026-08-13.json"])await access(new URL(file,import.meta.url));
+for(const file of ["../../../packages/wallet-auth/integration/gateway-integration.manifest.json","../../../packages/wallet-auth/integration/gateway-state.schema.json","../../../packages/wallet-auth/integration/smart-account-testnet.manifest.json","../../../packages/wallet-auth/integration/chain-erc4337-requirements.json","../../../packages/wallet-auth/integration/CHAIN_ERC4337_HANDOFF.md","../../../packages/wallet-auth/testdata/product-session-http-proof-v1.json","../proof/gateway-benchmark-local.json","../proof/smart-account-hardhat-local.json","../proof/sponsorship-bundler-hardhat-local.json","../proof/public-evm-read-probe-2026-07-22.json","../proof/wallet-control-surface-local.json","../proof/wallet-control-android-installed-2026-07-22.json","../proof/ynx-wallet-control-android-current.png","../proof/gateway-testnet-deployment-topology-2026-08-13.json","../proof/gateway-public-multi-user-bounded-2026-08-14.json"])await access(new URL(file,import.meta.url));
 const release=JSON.parse(await readFile(new URL("../product-release.json",import.meta.url),"utf8"));
 const historicalGatewayProof=JSON.parse(await readFile(new URL("../proof/wallet-gateway-public-2026-08-11.json",import.meta.url),"utf8"));
 const deploymentTopologyProof=JSON.parse(await readFile(new URL("../proof/gateway-testnet-deployment-topology-2026-08-13.json",import.meta.url),"utf8"));
+const publicMultiUserProof=JSON.parse(await readFile(new URL("../proof/gateway-public-multi-user-bounded-2026-08-14.json",import.meta.url),"utf8"));
 assert.equal(release.integratedCentral,true);
 assert.equal(release.deployedPublic,false,"native Wallet aggregate must remain false until a current public application release exists");
 assert.equal(release.centralIntegration.registryProducts,34);
@@ -63,6 +64,13 @@ assert.equal(deploymentTopologyProof.postDeploymentPublicLifecycle.errorIdComple
 assert.equal(deploymentTopologyProof.activePublicTopology.publicLifecycleUpstream,"127.0.0.1:6437");
 assert.equal(deploymentTopologyProof.activePublicTopology.walletHealthUpstream,"127.0.0.1:6439");
 assert.equal(deploymentTopologyProof.integrationRecommendation.deployedIdentifierCompleteness,false);
+assert.equal(publicMultiUserProof.sourceCommit,release.capabilityStates.gatewayPublicMultiUserBounded.evidenceSourceCommit);
+assert.equal(publicMultiUserProof.result.boundedSamplePassed,true);
+assert.equal(publicMultiUserProof.result.cleanupComplete,true);
+assert.equal(publicMultiUserProof.publicClaims.publicCapacityProven,false);
+assert.equal(publicMultiUserProof.publicClaims.multiRegionRecoveryProven,false);
+assert.equal(publicMultiUserProof.publicClaims.publicObservabilityComplete,false);
+assert.equal(publicMultiUserProof.publicClaims.assetMoved,false);
 const metadata=JSON.parse(await readFile(new URL("../public-product-metadata.json",import.meta.url),"utf8"));
 assert.equal(metadata.productId,"wallet");
 assert.equal(metadata.canonicalRoute,"/wallet");

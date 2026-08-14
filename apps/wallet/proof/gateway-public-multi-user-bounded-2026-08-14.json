@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "wallet-gateway-public-multi-user-bounded-2026-08-14",
+  "owner": "02-wallet-auth",
+  "sourceCommit": "d13170c0697462ed821207ca8b720d48114e82d6",
+  "deployedGatewaySourceCommit": "c6ac582c8d490ef980a8cadfd9172f133d1b1a49",
+  "deployedGatewayRelease": "ynx-wallet-gateway-c6ac582c8d49",
+  "verification": "wallet-auth-public-gateway-multi-user-bounded",
+  "environment": "public-testnet",
+  "observedAt": "2026-08-14T00:33:10.134Z",
+  "baseURL": "https://rest.ynxweb4.com",
+  "probeCommand": "YNX_WALLET_GATEWAY_PUBLIC_MULTI_USER_PROBE=1 YNX_WALLET_GATEWAY_PUBLIC_URL=https://rest.ynxweb4.com/ npm --prefix packages/wallet-auth run probe:public-gateway-multi-user",
+  "exitCode": 0,
+  "isolation": {
+    "intendedUsers": 4,
+    "walletAccounts": "four fresh random secp256k1 keys generated in memory",
+    "productDevices": "four fresh random P-256 keys generated in memory",
+    "productClientId": "ynx-bridge-web-v1",
+    "preexistingUserUsed": false,
+    "providerTrafficClaimed": false,
+    "assetMoved": false,
+    "secretMaterialRecorded": false,
+    "identifierValuesRecorded": false
+  },
+  "result": {
+    "completed": 4,
+    "distinctAccounts": 4,
+    "distinctSessionBindings": 4,
+    "introspectedActive": 4,
+    "replayRejected": 4,
+    "replayStatus": 409,
+    "replayCode": "REPLAY",
+    "crossSessionRejected": true,
+    "crossSessionStatus": 403,
+    "crossSessionCode": "SESSION_BINDING_MISMATCH",
+    "revoked": 4,
+    "revocationStatus": 200,
+    "postRevokeRejected": 4,
+    "postRevokeStatus": 403,
+    "postRevokeCode": "REVOKED",
+    "cleanupComplete": true,
+    "failures": [],
+    "boundedSamplePassed": true
+  },
+  "completionLatencyMs": {
+    "p50": 1334.396,
+    "p95": 1950.908,
+    "max": 1950.908,
+    "sampleCount": 4,
+    "scope": "one bounded public ingress sample; not a capacity benchmark"
+  },
+  "publicClaims": {
+    "publicGatewayLifecycleObserved": true,
+    "publicBoundedMultiUserSampleObserved": true,
+    "publicCapacityProven": false,
+    "externalLoadBalancerCapacityProven": false,
+    "multiRegionRecoveryProven": false,
+    "requestIdentifierCompletenessPublic": false,
+    "traceIdentifierCompletenessPublic": false,
+    "errorIdentifierCompletenessPublic": false,
+    "publicObservabilityComplete": false,
+    "assetMoved": false,
+    "userClaimed": false,
+    "providerClaimed": false
+  },
+  "sourceSha256": {
+    "packages/wallet-auth/scripts/verify-public-gateway-multi-user.mjs": "fa9bb425ca45a03c3ef6dbcb30545c4d7ac080e1691e5b66b3d9a1730008c6be",
+    "packages/wallet-auth/src/gateway-public-evidence.js": "5e7302a7bd9e8bbd8367b19d0b64046ad5c93eed880ecffd45e7e9c05e75970e",
+    "packages/wallet-auth/central-registry.json": "337145be4cbdd3b642f7fd263e1b06e20f512f8cd4981033109ba65c9856becd"
+  },
+  "packageDryRun": {
+    "name": "@ynx-chain/wallet-auth",
+    "version": "1.0.0",
+    "bytes": 98508,
+    "unpackedBytes": 441573,
+    "entries": 58,
+    "archiveCaptured": false,
+    "archiveSha256": null,
+    "minimumRuntime": "Node.js 22",
+    "minimumOS": null,
+    "signingClass": "unsigned-local-npm-package-dry-run"
+  },
+  "tests": {
+    "focusedPublicEvidence": "5/5 passed",
+    "walletAuthFullSuite": "127/127 passed",
+    "walletProductCheck": "passed",
+    "walletReleaseContentCheck": "22/22 files passed"
+  },
+  "exclusions": [
+    "production capacity",
+    "external load-balancer capacity",
+    "multi-region recovery",
+    "existing users",
+    "provider traffic",
+    "asset movement",
+    "public request/trace/error identifier completeness",
+    "captured or signed release archive"
+  ]
+}

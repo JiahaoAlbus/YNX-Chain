@@ -369,6 +369,28 @@
       "evidence": "apps/wallet/proof/gateway-multi-user-loopback-2026-08-13.json",
       "publicCapacityProven": false
     },
+    "gatewayPublicMultiUserBounded": {
+      "sourceCommit": "d13170c0697462ed821207ca8b720d48114e82d6",
+      "deployedGatewaySourceCommit": "c6ac582c8d490ef980a8cadfd9172f133d1b1a49",
+      "observedAt": "2026-08-14T00:33:10.134Z",
+      "environment": "public-testnet",
+      "intendedUsers": 4,
+      "completed": 4,
+      "distinctAccounts": 4,
+      "distinctSessionBindings": 4,
+      "introspectedActive": 4,
+      "replayRejected": 4,
+      "crossSessionRejected": true,
+      "revoked": 4,
+      "postRevokeRejected": 4,
+      "cleanupComplete": true,
+      "boundedSamplePassed": true,
+      "publicCapacityProven": false,
+      "multiRegionRecoveryProven": false,
+      "publicIdentifierCompleteness": false,
+      "assetMoved": false,
+      "evidence": "apps/wallet/proof/gateway-public-multi-user-bounded-2026-08-14.json"
+    },
     "sponsoredUserOperationEvidenceVerifier": {
       "sourceCommit": "80291d53893aa6735d401c692a786fbcdbca8424",
       "focusedBundlerTests": "6/6 passed",

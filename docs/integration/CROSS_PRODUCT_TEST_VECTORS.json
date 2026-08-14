@@ -38,6 +38,17 @@
       "publicClaimAllowed": true
     },
     {
+      "id": "WA-PUBLIC-GATEWAY-MULTIUSER-BOUNDED-001",
+      "category": "wallet-auth",
+      "owners": ["02-wallet-auth", "13-monitor", "29-integration"],
+      "precondition": "Four fresh random Wallet signing keys and four fresh random P-256 product-device keys target the canonical public Testnet Gateway with no existing user, provider or asset state.",
+      "action": "Concurrently complete and introspect four isolated sessions; substitute one consumed proof onto another session binding; replay every exact proof; revoke every session; then submit a fresh proof to every revoked session.",
+      "expectedHttpStatus": 403,
+      "expectedCode": "REVOKED",
+      "expectedState": "4 unique accounts and bindings; 4 active introspections; cross-session substitution rejected with SESSION_BINDING_MISMATCH; 4 exact replays rejected with REPLAY; cleanup and post-revoke rejection 4/4; public capacity and identifier completeness remain false",
+      "publicClaimAllowed": true
+    },
+    {
       "id": "WA-ERC4337-PUBLIC-READINESS-001",
       "category": "wallet-auth",
       "owners": ["01-chain-core", "02-wallet-auth", "12-explorer", "13-monitor", "29-integration"],
