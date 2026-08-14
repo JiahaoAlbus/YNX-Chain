@@ -88,3 +88,11 @@ Commit `e6c94407a2dd8cd9da57d7233a35a19dbc7d6e4b` invalidates authorization work
 The canonical Wallet authorization request is reparsed against the current registry and clock before and after private-key access. The prior ordering that wrote `intent-approved` before final expiry validation has been removed; signing is prepared only after current request validation and replay consumption, and callback dispatch remains behind a final lifecycle check.
 
 Verification passed Wallet typecheck, 56/56 Wallet tests, 113/113 Wallet/Auth package tests, product check, Social harness contract check, release-content check, full-goal coverage, `git diff --check` and an Android Hermes export of 2,736 modules. No device command or interaction was performed; `testedOnDevice`, `installedLocal`, `downloadHosted`, native-app `deployedPublic`, `productionSigned` and `storeReleased` remain false for this exact source.
+
+## Process reconstruction and exact-account unlock checkpoint
+
+Commit `16d9eb0e35122c2c91663aaa45ae131a44c857f2` makes every Wallet repository reconstruction relock before persisted state is read, dismisses all pending authorization reviews and discards the prior in-memory manifest. A failed or unavailable SecureStore reconstruction therefore cannot preserve an old account view or unlock state.
+
+Unlock now uses a fail-closed exact-account policy: strong biometric authorization must complete first, the selected account must still match, that exact account's SecureStore secret must be readable, and the selection must still match after the asynchronous secret read. Biometric rejection, unavailable or corrupt secure material, and selection drift before or after the read never dispatch unlock. Network availability is not an unlock input and does not weaken this local self-custody boundary.
+
+Verification passed Wallet typecheck, 58/58 Wallet tests, 113/113 Wallet/Auth package tests, product check, Social harness contract check, release-content check, full-goal coverage, `git diff --check` and an Android Hermes export of 2,737 modules. No device command or interaction was performed; `testedOnDevice`, `installedLocal`, `downloadHosted`, native-app `deployedPublic`, `productionSigned` and `storeReleased` remain false for this exact source.
