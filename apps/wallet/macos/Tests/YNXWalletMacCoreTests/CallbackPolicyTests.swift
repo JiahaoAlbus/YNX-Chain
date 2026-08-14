@@ -39,4 +39,18 @@ final class CallbackPolicyTests: XCTestCase {
     XCTAssertEqual(CallbackPolicy.evaluate("ynxwallet://authorize"), .rejected(code: "INVALID_AUTHORIZATION_REQUEST"))
     XCTAssertEqual(CallbackPolicy.evaluate("ynxwallet://authorize?unknown=value"), .rejected(code: "INVALID_AUTHORIZATION_REQUEST"))
   }
+
+  func testColdStartInboxPreservesTwoCallbacksInOrder() {
+    var inbox = PendingCallbackInbox()
+    inbox.enqueue("ynxwallet://authorize?request=invalid&scope=wallet")
+    inbox.enqueue("ynxwallet://authorize?request=invalid")
+
+    XCTAssertEqual(inbox.count, 2)
+    let decisions = inbox.drain().map(CallbackPolicy.evaluate)
+    XCTAssertEqual(decisions, [
+      .rejected(code: "INVALID_AUTHORIZATION_REQUEST"),
+      .rejected(code: "CANONICAL_AUTH_BRIDGE_UNAVAILABLE"),
+    ])
+    XCTAssertEqual(inbox.count, 0)
+  }
 }

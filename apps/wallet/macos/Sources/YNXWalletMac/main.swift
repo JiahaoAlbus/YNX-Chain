@@ -78,13 +78,13 @@ struct YNXWalletMacApp: App {
 final class AppDelegate: NSObject, NSApplicationDelegate {
   weak var state: WalletState? {
     didSet {
-      if let pendingURL {
-        state?.receive(pendingURL)
-        self.pendingURL = nil
+      guard let state else { return }
+      for rawValue in pendingCallbacks.drain() {
+        state.receive(rawValue)
       }
     }
   }
-  private var pendingURL: String?
+  private var pendingCallbacks = PendingCallbackInbox()
 
   func applicationDidFinishLaunching(_ notification: Notification) {
     lifecycleLogger.notice("YNX_WALLET_MAC_LAUNCHED pid=\(getpid(), privacy: .public)")
@@ -115,7 +115,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let scheme = URLComponents(string: rawValue)?.scheme ?? "unknown"
     callbackLogger.notice("YNX_WALLET_MAC_CALLBACK_RECEIVED pid=\(getpid(), privacy: .public) scheme=\(scheme, privacy: .public)")
     let decision = CallbackPolicy.evaluate(rawValue)
-    if let state { state.receive(rawValue) } else { pendingURL = rawValue }
+    if let state { state.receive(rawValue) } else { pendingCallbacks.enqueue(rawValue) }
     if case .rejected(let code) = decision {
       NSApp.mainWindow?.title = "Request rejected · \(code)"
       callbackLogger.notice("YNX_WALLET_MAC_CALLBACK_REJECTED pid=\(getpid(), privacy: .public) code=\(code, privacy: .public)")

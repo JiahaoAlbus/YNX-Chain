@@ -5,6 +5,23 @@ public enum CallbackDecision: Equatable, Sendable {
   case rejected(code: String)
 }
 
+public struct PendingCallbackInbox: Equatable, Sendable {
+  private var rawValues: [String] = []
+
+  public init() {}
+
+  public var count: Int { rawValues.count }
+
+  public mutating func enqueue(_ rawValue: String) {
+    rawValues.append(rawValue)
+  }
+
+  public mutating func drain() -> [String] {
+    defer { rawValues.removeAll(keepingCapacity: true) }
+    return rawValues
+  }
+}
+
 public enum CallbackPolicy {
   public static func evaluate(_ rawValue: String) -> CallbackDecision {
     guard let components = URLComponents(string: rawValue),
