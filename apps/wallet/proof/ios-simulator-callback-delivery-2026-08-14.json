@@ -1,0 +1,115 @@
+{
+  "schemaVersion": 1,
+  "product": "YNX Wallet",
+  "evidenceType": "ios-simulator-malformed-callback-delivery-and-rejection",
+  "recordedAt": "2026-08-14T11:42:38+08:00",
+  "branch": "codex/wallet-ios-macos-20260813",
+  "sourceCommit": "4c8c464dffee289fd9173569915638f873409198",
+  "workflow": {
+    "name": "wallet-ios",
+    "runId": 31766659407,
+    "jobId": 94663865415,
+    "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/31766659407",
+    "conclusion": "success",
+    "runner": "macos-15-arm64",
+    "xcodeVersion": "26.3",
+    "xcodeBuild": "17C529",
+    "simulatorDevice": "iPhone 16 Pro",
+    "simulatorOS": "iOS 18.5",
+    "walletAuthTestsPassed": true,
+    "walletChecksPassed": true,
+    "simulatorBuildPassed": true,
+    "simulatorInstallPassed": true,
+    "coldLaunchPassed": true,
+    "secondLaunchPassed": true,
+    "malformedCallbackUITestPassed": true,
+    "artifactUploadPassed": true
+  },
+  "launchObservation": {
+    "bundleIdentifier": "com.ynxweb4.wallet",
+    "coldLaunchPid": 25811,
+    "secondLaunchPid": 26098,
+    "distinctLaunchPids": true,
+    "installedAppContainerObserved": true
+  },
+  "callbackObservation": {
+    "requestedURL": "ynxwallet://authorize?request=invalid",
+    "deliveryCommand": "xcrun simctl openurl",
+    "simctlOpenURLExitedZero": true,
+    "simctlOpenURLOutput": "",
+    "systemConfirmationOpenButtonObserved": true,
+    "systemConfirmationOpenButtonTappedSemantically": true,
+    "coordinateClickUsed": false,
+    "callbackDeliveredToApp": true,
+    "callbackAppPid": 34080,
+    "nativeLogMarker": "YNX_WALLET_CALLBACK_RECEIVED pid=34080 scheme=ynxwallet",
+    "appRejectedMalformedCallback": true,
+    "rejectionUI": "Invalid Wallet authorization rejected",
+    "xctestIdentifier": "MalformedCallbackUITests/testMalformedCallbackIsDeliveredAndRejected()",
+    "xctestResult": "passed",
+    "successClaimedForAuthorization": false
+  },
+  "githubArtifact": {
+    "artifactId": 9206826642,
+    "name": "ynx-wallet-ios-simulator",
+    "expired": false,
+    "apiReportedBytes": 34193510,
+    "downloadedBytes": 34193510,
+    "downloadedSha256": "e40c3f915039cda67bd56e13a74515d50f89d586848a5fae143574bbef1b2810",
+    "githubDigest": "sha256:e40c3f915039cda67bd56e13a74515d50f89d586848a5fae143574bbef1b2810",
+    "zipIntegrityVerified": true,
+    "temporaryCIArtifactOnly": true,
+    "publicProductDownload": false
+  },
+  "simulatorArchive": {
+    "pathInsideArtifact": "apps/wallet/proof/ci-ios/YNXWallet-iOS-Simulator.zip",
+    "bytes": 16777948,
+    "sha256": "7921ca45eebef91cb3e0ea27e0591fbcb0cc157f5ed29c27962e44745cfae0db",
+    "bundleIdentifier": "com.ynxweb4.wallet",
+    "architectures": ["x86_64", "arm64"],
+    "minimumOS": "iOS 16.4",
+    "signingClass": "ad-hoc-simulator-build",
+    "codeDirectoryFlags": "adhoc",
+    "teamIdentifierPresent": false,
+    "physicalDeviceInstallable": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "screenshots": {
+    "malformedCallbackFailClosed": {
+      "pathInsideArtifact": "apps/wallet/proof/ci-ios/xcresult-attachments/F44B23FD-31DC-4858-B390-28E642B3A365.png",
+      "bytes": 42134,
+      "sha256": "d2c9869502e1778c2761287ad56f2b9c4f3a7405ed6f92ff6db7f8cc782e1848",
+      "width": 1206,
+      "height": 2622,
+      "xctestAttachmentName": "malformed-callback-fail-closed",
+      "associatedWithFailure": false
+    },
+    "secondLaunch": {
+      "pathInsideArtifact": "apps/wallet/proof/ci-ios/wallet-second-launch.png",
+      "bytes": 154443,
+      "sha256": "673e0fc260df7e45777ebcc555ef96fd749fb39a4d0e6132bf3528aec6d7676e",
+      "width": 1206,
+      "height": 2622
+    }
+  },
+  "releaseStates": {
+    "implementedLocal": true,
+    "testedHostedCI": true,
+    "installedHostedSimulator": true,
+    "callbackDeliveredToApp": true,
+    "appRejectedMalformedCallback": true,
+    "integratedCentral": false,
+    "deployedTestnet": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "limitations": [
+    "This is an ad-hoc iOS Simulator engineering build, not a physical-device, App Store, or production-signed application.",
+    "The GitHub Actions artifact is temporary CI evidence and is not a public product download.",
+    "The malformed authorization callback was delivered and rejected fail-closed; no login, authorization, signing, transaction, provider, balance, user, or Testnet success is claimed.",
+    "No Universal Link association, physical biometric prompt, Testnet transaction, public deployment, or App Store release is claimed."
+  ]
+}
