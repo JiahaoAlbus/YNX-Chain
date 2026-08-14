@@ -78,19 +78,22 @@
         "packages/wallet-auth/evidence/product-session-visible-proof.json",
         "packages/wallet-auth/evidence/product-session-visible-proof.jsonl",
         "packages/wallet-auth/evidence/product-session-visible-proof-computercontrol.jpeg",
-        "packages/wallet-auth/evidence/ynx-wallet-installed-unavailable-computercontrol.jpeg"
+        "packages/wallet-auth/evidence/ynx-wallet-installed-unavailable-computercontrol.jpeg",
+        "packages/wallet-auth/evidence/metamask-installed-observation.json",
+        "packages/wallet-auth/test/product-session-migration.test.mjs"
       ],
       "targetedTests": {
-        "passed": 31,
+        "passed": 39,
         "failed": 0,
         "concurrentProductSessions": 120
       },
       "fullPackageTests": {
-        "passed": 133,
+        "passed": 141,
         "failed": 0
       },
       "remaining": [
-        "No supported YNX Wallet or MetaMask application was available for a real approval/session flow",
+        "MetaMask is installed and enabled, but no product runtime is migrated to v2 and ComputerControl closed before a real approval/session flow could be exercised",
+        "No installed YNX Wallet application was available for a real approval/session flow",
         "Each actually migrated product requires installed Web/desktop/mobile approval, rejection, timeout, revoke, restart, network-loss and Retry evidence"
       ]
     },
@@ -113,7 +116,7 @@
   },
   "completion": false,
   "blockingConditions": [
-    "No supported installed Wallet was available for a real approval/session flow",
+    "No migrated product runtime and installed Wallet combination is currently available for a real v2 approval/session flow",
     "product consumer and native packaging migrations are owned by isolated product/platform tasks"
   ]
 }

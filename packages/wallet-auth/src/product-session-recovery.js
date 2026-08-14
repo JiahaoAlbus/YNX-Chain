@@ -30,17 +30,10 @@ export class RecoverableProductSessionClient {
   async restore(networkAvailable = true) {
     this.#networkAvailable = Boolean(networkAvailable);
     if (!this.#networkAvailable) return this.#offline();
-    const raw = await this.#storage.get(this.storageKey);
-    if (raw !== null) {
-      try {
-        const session = parseProductSession(JSON.parse(raw));
-        const result = await this.#gateway.introspect(session.sessionBinding, this.#context(session.account, session.scopes));
-        if (result?.active === true) { this.#state = state(PRODUCT_SESSION_CLIENT_STATE.CONNECTED, "Authoritative Product Session restored", { session }); return this.#state; }
-        throw new WalletAuthError("SESSION_INACTIVE", "Gateway did not confirm the stored Product Session");
-      } catch {
-        await this.#storage.remove(this.storageKey);
-      }
-    }
+    const restored = await this.#restoreStoredSession();
+    if (restored !== null) return restored;
+    const pendingReturn = await this.#storage.get(`${this.storageKey}:return`);
+    if (pendingReturn !== null) return this.handleReturn(pendingReturn);
     if (!this.#autoReconnectAttempted) {
       this.#autoReconnectAttempted = true;
       return this.begin({ walletInstalled: await this.#gateway.walletInstalled(), schemeRegistered: await this.#gateway.schemeRegistered() }, true);
@@ -58,6 +51,7 @@ export class RecoverableProductSessionClient {
       deviceId: this.#device.id, deviceKey: this.#device.key, scopes: this.#device.scopes,
       purpose: this.#device.purpose, nonce: this.#tokens(), state: this.#tokens(),
     }, now);
+    await this.#clearPending();
     await this.#storage.set(`${this.storageKey}:pending`, JSON.stringify(request));
     const route = prepareWalletOpen(this.#registry, request, { networkAvailable: true, walletInstalled: environment.walletInstalled, schemeRegistered: environment.schemeRegistered }, now);
     this.#state = route.status === WALLET_ROUTE_STATUS.READY
@@ -69,34 +63,67 @@ export class RecoverableProductSessionClient {
   async handleReturn(url) {
     if (!this.#networkAvailable) return this.#offline();
     const raw = await this.#storage.get(`${this.storageKey}:pending`);
-    if (raw === null) { this.#state = state(PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED, "No pending Wallet request matches this callback", { actions: ["retry", "guest"] }); return this.#state; }
+    if (raw === null) { await this.#storage.remove(`${this.storageKey}:return`); this.#state = state(PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED, "No pending Wallet request matches this callback", { actions: ["retry", "guest"] }); return this.#state; }
     let request;
-    try { request = parseProductSessionRequest(this.#registry, JSON.parse(raw), this.#clock()); } catch { await this.#storage.remove(`${this.storageKey}:pending`); this.#state = state(PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED, "Pending Wallet request expired or is invalid", { actions: ["retry", "guest"] }); return this.#state; }
+    try { request = parseProductSessionRequest(this.#registry, JSON.parse(raw), this.#clock()); } catch { await this.#clearPending(); this.#state = state(PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED, "Pending Wallet request expired or is invalid", { actions: ["retry", "guest"] }); return this.#state; }
     const returned = parseProductSessionReturnURL(this.#registry, request, url, this.#clock());
-    if (returned.status === WALLET_ROUTE_STATUS.USER_REJECTED) { await this.#storage.remove(`${this.storageKey}:pending`); this.#state = state(PRODUCT_SESSION_CLIENT_STATE.DISCONNECTED, "Wallet approval was rejected; no session was created", { actions: returned.actions }); return this.#state; }
-    if (returned.status !== WALLET_ROUTE_STATUS.READY) { this.#state = state(PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED, returned.message, { actions: returned.actions }); return this.#state; }
+    if (returned.status === WALLET_ROUTE_STATUS.USER_REJECTED) { await this.#clearPending(); this.#state = state(PRODUCT_SESSION_CLIENT_STATE.DISCONNECTED, "Wallet approval was rejected; no session was created", { actions: returned.actions }); return this.#state; }
+    if (returned.status !== WALLET_ROUTE_STATUS.READY) { await this.#storage.remove(`${this.storageKey}:return`); this.#state = state(PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED, returned.message, { actions: returned.actions }); return this.#state; }
+    await this.#storage.set(`${this.storageKey}:return`, url);
     try {
       const session = parseProductSession(await this.#gateway.complete({ request, approval: returned.approval, deviceSecret: this.#device.secret }));
-      await this.#gateway.introspect(session.sessionBinding, this.#context(session.account, session.scopes));
       await this.#storage.set(this.storageKey, JSON.stringify(session));
-      await this.#storage.remove(`${this.storageKey}:pending`);
+      try {
+        const result = await this.#gateway.introspect(session.sessionBinding, this.#context(session.account, session.scopes));
+        if (result?.active !== true) throw new WalletAuthError("SESSION_INACTIVE", "Gateway did not confirm the issued Product Session");
+      } catch (error) {
+        if (isNetworkUnavailable(error)) return this.#offline("Network unavailable while confirming the issued Product Session; protected state was retained for Retry");
+        throw error;
+      }
+      await this.#clearPending();
       this.#state = state(PRODUCT_SESSION_CLIENT_STATE.CONNECTED, "Authoritative Product Session connected", { session });
       return this.#state;
-    } catch {
-      await this.#storage.remove(this.storageKey); await this.#storage.remove(`${this.storageKey}:pending`);
+    } catch (error) {
+      if (isNetworkUnavailable(error)) return this.#offline("Network unavailable while completing Wallet approval; the protected callback was retained for Retry");
+      await this.#storage.remove(this.storageKey); await this.#clearPending();
       this.#state = state(PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED, "Gateway did not issue or confirm a valid Product Session", { actions: ["retry", "guest"] });
       return this.#state;
     }
   }
 
-  async retry(environment) { this.#autoReconnectAttempted = false; return this.begin(environment, false); }
+  async retry(environment) {
+    this.#networkAvailable = true;
+    const restored = await this.#restoreStoredSession();
+    if (restored !== null) return restored;
+    const pendingReturn = await this.#storage.get(`${this.storageKey}:return`);
+    if (pendingReturn !== null) return this.handleReturn(pendingReturn);
+    this.#autoReconnectAttempted = false;
+    return this.begin(environment, false);
+  }
   connectionChoices(availability) { return walletConnectionChoices(this.#registry, this.#binding.productId, availability); }
   setNetworkAvailable(available) { this.#networkAvailable = Boolean(available); if (!this.#networkAvailable) return this.#offline(); this.#state = state(PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED, "Network restored; authoritative re-introspection is required", { actions: ["retry"] }); return this.#state; }
   enterGuest() { this.#state = state(PRODUCT_SESSION_CLIENT_STATE.GUEST, "Guest / Try mode: not signed in; balances, transactions and Chain authority are unavailable", { limitations: ["not-signed-in", "no-wallet-balance", "no-transactions", "no-chain-authority"] }); return this.#state; }
-  async disconnect() { await this.#storage.remove(this.storageKey); await this.#storage.remove(`${this.storageKey}:pending`); this.#state = state(PRODUCT_SESSION_CLIENT_STATE.DISCONNECTED, "Product Session removed from secure storage"); return this.#state; }
+  async disconnect() { await this.#storage.remove(this.storageKey); await this.#clearPending(); this.#state = state(PRODUCT_SESSION_CLIENT_STATE.DISCONNECTED, "Product Session removed from secure storage"); return this.#state; }
 
   #context(account, requiredScopes) { return { chainId: this.#binding.chainId, productId: this.#binding.productId, clientId: this.#binding.clientId, platform: this.#binding.platform, applicationId: this.#binding.applicationId, bundleId: this.#binding.bundleId, packageId: this.#binding.packageId, origin: this.#binding.origin, callback: this.#binding.callback, account, deviceId: this.#device.id, deviceKey: this.#device.key, requiredScopes }; }
-  #offline() { this.#state = state(PRODUCT_SESSION_CLIENT_STATE.NETWORK_UNAVAILABLE, "Network unavailable; cached Product Session is not treated as authoritative", { actions: ["retry", "guest"] }); return this.#state; }
+  async #restoreStoredSession() {
+    const raw = await this.#storage.get(this.storageKey);
+    if (raw === null) return null;
+    try {
+      const session = parseProductSession(JSON.parse(raw));
+      const result = await this.#gateway.introspect(session.sessionBinding, this.#context(session.account, session.scopes));
+      if (result?.active !== true) throw new WalletAuthError("SESSION_INACTIVE", "Gateway did not confirm the stored Product Session");
+      await this.#clearPending();
+      this.#state = state(PRODUCT_SESSION_CLIENT_STATE.CONNECTED, "Authoritative Product Session restored", { session });
+      return this.#state;
+    } catch (error) {
+      if (isNetworkUnavailable(error)) return this.#offline("Network unavailable during Product Session re-introspection; protected state was retained but is not authoritative");
+      await this.#storage.remove(this.storageKey);
+      return null;
+    }
+  }
+  async #clearPending() { await this.#storage.remove(`${this.storageKey}:pending`); await this.#storage.remove(`${this.storageKey}:return`); }
+  #offline(message = "Network unavailable; cached Product Session is not treated as authoritative") { this.#state = state(PRODUCT_SESSION_CLIENT_STATE.NETWORK_UNAVAILABLE, message, { actions: ["retry", "guest"] }); return this.#state; }
 }
 
 function state(status, message, extra = {}) { return Object.freeze({ status, message, ...extra, ...(extra.actions ? { actions: Object.freeze(extra.actions) } : {}), ...(extra.limitations ? { limitations: Object.freeze(extra.limitations) } : {}) }); }
@@ -105,4 +132,5 @@ function gateway(value) { if (!value || ["complete", "introspect", "walletInstal
 function device(value) { exactFields(value, ["id", "key", "secret", "scopes", "purpose"], "Product Session device configuration"); if (typeof value.id !== "string" || typeof value.key !== "string" || typeof value.secret !== "string" || !Array.isArray(value.scopes) || typeof value.purpose !== "string") fail("INVALID_DEVICE", "Product Session device configuration is invalid"); return Object.freeze({ ...value, scopes: Object.freeze([...value.scopes]) }); }
 function tokenFactory(value) { if (typeof value !== "function") fail("INVALID_RANDOM_SOURCE", "Product Session client requires a cryptographic token factory"); return () => { const token = value(); if (typeof token !== "string" || !/^[A-Za-z0-9_-]{32,64}$/.test(token)) fail("INVALID_RANDOM_SOURCE", "Product Session token factory returned an invalid token"); return token; }; }
 function clock(value) { if (typeof value !== "function") fail("INVALID_TIME", "Product Session client requires a clock"); return () => { const result = value(); if (!(result instanceof Date) || !Number.isFinite(result.getTime())) fail("INVALID_TIME", "Product Session clock returned invalid time"); return result; }; }
+function isNetworkUnavailable(error) { return error instanceof WalletAuthError && error.code === "NETWORK_UNAVAILABLE"; }
 function fail(code, message) { throw new WalletAuthError(code, message); }

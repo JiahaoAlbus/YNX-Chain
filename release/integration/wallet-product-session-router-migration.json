@@ -1,6 +1,11 @@
 {
   "schemaVersion": 1,
   "protocolVersion": "2",
+  "audit": {
+    "sourceBaseline": "2a78ace0a647b73dd2961fae3361189116453a7d",
+    "auditedAt": "2026-08-14T04:06:46.000Z",
+    "rule": "Every evidence path must exist in this branch. migrated-v2 additionally requires distinct runtime, Gateway v2 route, and visible installed/browser platform evidence."
+  },
   "meaning": {
     "registry-ready": "The central v2 registry and shared contract tests cover the product. This is not product-runtime migration evidence.",
     "shared-sdk-v1": "Current product source imports @ynx-chain/wallet-auth but still builds the v1 request/session contract.",
@@ -16,7 +21,7 @@
     {"productId":"dex","registry":"registry-ready","consumer":"contract-only","migrated":false,"evidence":["apps/quant-lab/integration/wallet-registry-entry.json"]},
     {"productId":"exchange","registry":"registry-ready","consumer":"shared-sdk-v1","migrated":false,"evidence":["apps/exchange/mobile/src/wallet.ts"]},
     {"productId":"finance","registry":"registry-ready","consumer":"shared-sdk-v1","migrated":false,"evidence":["apps/finance/mobile/src/wallet.ts","apps/finance/gateway/src/gateway.mjs"]},
-    {"productId":"pay","registry":"registry-ready","consumer":"legacy-direct","migrated":false,"evidence":["apps/pay/src/walletAuth.ts"]},
+    {"productId":"pay","registry":"registry-ready","consumer":"contract-only","migrated":false,"evidence":["packages/wallet-auth/product-session-registry.json"]},
     {"productId":"quant","registry":"registry-ready","consumer":"contract-only","migrated":false,"evidence":["apps/quant-lab/integration/wallet-registry-entry.json"]},
     {"productId":"shop","registry":"registry-ready","consumer":"legacy-direct","migrated":false,"evidence":["apps/shop/wallet-auth.js","apps/shop/native/android/app/src/main/java/com/ynxweb4/shop/WalletAuth.java","apps/shop/native/ios/YNXShop/WalletAuth.swift"]},
     {"productId":"social","registry":"registry-ready","consumer":"legacy-direct","migrated":false,"evidence":["apps/social/src/walletAuth.ts"]},

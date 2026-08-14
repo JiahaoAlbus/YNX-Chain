@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-14T03:57:08.181Z",
+  "generatedAt": "2026-08-14T04:13:41.741Z",
   "fixtureBoundary": "LOCAL PROTOCOL FIXTURE — deterministic test keys, no production login, balance, transaction or public deployment claim",
   "protocolVersion": "2",
   "product": {
@@ -40,6 +40,13 @@
       "outcome": "wallet-not-installed",
       "requestId": "local-router-only",
       "detail": "Install YNX Wallet or return to Guest / Try mode"
+    },
+    {
+      "id": "metamask-not-installed",
+      "label": "MetaMask not installed (EVM only)",
+      "outcome": "download-evm-wallet",
+      "requestId": "local-router-only",
+      "detail": "https://metamask.io/download"
     },
     {
       "id": "approved",

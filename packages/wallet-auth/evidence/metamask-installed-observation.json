@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-08-14T04:11:44.000Z",
+  "computerControl": {
+    "app": "Google Chrome",
+    "page": "chrome://extensions/",
+    "extension": "MetaMask",
+    "extensionId": "nkbihfbeogaeaoehlefnkodbefgpgknn",
+    "version": "13.42.0",
+    "enabled": true
+  },
+  "filesystemCorroboration": {
+    "manifestVersion": 3,
+    "extensionVersion": "13.42.0.0",
+    "updateUrl": "https://clients2.google.com/service/update2/crx"
+  },
+  "approvalFlowValidated": false,
+  "reason": "ComputerControl native pipe closed before a product connection or Wallet approval flow could be exercised; installation evidence is not session evidence."
+}
