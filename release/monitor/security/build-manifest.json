@@ -1,19 +1,24 @@
 {
   "schemaVersion": "ynx.monitor.build-manifest.v1",
-  "sourceCommit": "da552c4e86d8d895dbc10bcab38d93ee3228ddac",
+  "sourceCommit": "ce32cbd8633b8192719c6bb04c982d4ab0e287f8",
   "buildCommand": "npm run build",
   "cleanBuildsCompared": 2,
   "reproducible": true,
   "files": [
     {
-      "path": "assets/index-61zDyOf6.js",
-      "bytes": 223770,
-      "sha256": "55bcadddf49018fde609f083a3441780001fdf214a47f67b71a8387c41b5cff3"
+      "path": "assets/index-CU1vpbuu.css",
+      "bytes": 17159,
+      "sha256": "512e460fd87a10dff58c1a76b2c9ad419c184a5574aed372603241dab4407239"
     },
     {
-      "path": "assets/index-CPgntyPn.css",
-      "bytes": 15489,
-      "sha256": "4d0b3987ddee649b240f3e1abc9923f50de092d0aca984b4bc59d1dd85473f62"
+      "path": "assets/index-Dza9I6YL.js",
+      "bytes": 227002,
+      "sha256": "ec91c2a6b8b5d00ab4a35072d07ac66bf67f346b1611e0b50a8fc95a452d873b"
+    },
+    {
+      "path": "assets/ynx-logo-D80L-uL1.png",
+      "bytes": 104171,
+      "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d"
     },
     {
       "path": "icon.svg",
@@ -23,7 +28,7 @@
     {
       "path": "index.html",
       "bytes": 641,
-      "sha256": "9e71efc3e04011a625034bff09fb9e4d02f852cd280c579a105cb994ad39ba3a"
+      "sha256": "efbf2403f89259511dd861a6014e09d5fb11a7bf549a609bd17adacde41af44a"
     },
     {
       "path": "manifest.webmanifest",
