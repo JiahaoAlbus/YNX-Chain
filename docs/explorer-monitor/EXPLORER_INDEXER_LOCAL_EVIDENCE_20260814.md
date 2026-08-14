@@ -31,6 +31,12 @@ The source-bound `cmd/ynx-explorer-load` verifier was added to exercise concurre
 
 `make explorer-check` now includes a three-second controlled baseline over the transaction created by that Testnet integration run: five HTTP workers, a global 10 requests/second target, one SSE subscriber, and a real transaction-hash search. The gate requires both zero HTTP error rate and zero SSE errors; after a one-second service-settle interval it passed three consecutive full integration runs with different real transaction hashes. Unpaced mode remains available for explicit overload/search-storm evidence and is not confused with the healthy baseline.
 
+The same source-bound gate now performs a deterministic outage drill. While HTTP, real transaction search, and SSE traffic continue, it stops Explorer, holds a one-second outage, restarts the exact local candidate, and requires the subscriber that had already received an event to reconnect and receive another event. The accepted run at `2026-08-14T14:59:21Z` completed 47 HTTP requests, recorded the five deliberately unavailable HTTP attempts, bounded SSE retries to 11 with a 100 ms retry delay, and confirmed one SSE recovery in 1124.428 ms. Deliberate outage errors remain visible in the JSON instead of being converted to success.
+
+After recovery, the positive search/subscription storm ran for five seconds at a declared 200 requests/second, concurrency 20, and five SSE subscribers, using the real transaction created by the same Testnet run. It completed 997 HTTP requests at 199.35 requests/second with 997 HTTP 200 responses, 15 SSE events, zero HTTP/SSE errors, p50 0.495 ms, p95 2.261 ms, p99 6.624 ms, and maximum 31.655 ms.
+
+An intentionally unpaced local overload reached about 74,043 requests/second. The service returned 367,238 explicit HTTP 429 responses while all five SSE subscribers remained error-free. That run exited non-zero and is retained as negative backpressure evidence; it is not the passing search-storm result.
+
 The following bounded observation targeted the currently deployed older public Explorer, not the continuation release:
 
 ```text

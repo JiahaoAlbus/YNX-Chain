@@ -20,6 +20,10 @@ work="${YNX_VERIFY_WORK:-$(mktemp -d)}"
 db="$work/explorer-indexer-db.json"
 indexer_url="http://127.0.0.1:6436"
 explorer_url="http://127.0.0.1:6437"
+start_explorer() {
+  YNX_EXPLORER_RPC_URL="$YNX_REST_URL" YNX_EXPLORER_INDEXER_URL="$indexer_url" YNX_EXPLORER_HTTP_ADDR=127.0.0.1:6437 YNX_EXPLORER_PUBLIC_RPC_URL="$YNX_REST_URL" YNX_EXPLORER_PUBLIC_URL="$explorer_url" go run ./cmd/ynx-explorerd >"$work/explorer.log" 2>&1 &
+  explorer_pid=$!
+}
 
 curl -fsS -X POST "$YNX_REST_URL/faucet" -H 'content-type: application/json' -d '{"address":"ynx_explorer_alice","amount":1000}' >/dev/null
 transfer="$(curl -fsS -X POST "$YNX_REST_URL/transfer" -H 'content-type: application/json' -d '{"from":"ynx_explorer_alice","to":"ynx_explorer_bob","amount":125}')"
@@ -29,8 +33,7 @@ sleep 2
 go run ./cmd/ynx-indexerd -rpc "$YNX_REST_URL" -db "$db" -once >/dev/null
 YNX_INDEXER_RPC_URL="$YNX_REST_URL" YNX_INDEXER_DB_PATH="$db" YNX_INDEXER_HTTP_ADDR=127.0.0.1:6436 go run ./cmd/ynx-indexerd >"$work/indexer.log" 2>&1 &
 indexer_pid=$!
-YNX_EXPLORER_RPC_URL="$YNX_REST_URL" YNX_EXPLORER_INDEXER_URL="$indexer_url" YNX_EXPLORER_HTTP_ADDR=127.0.0.1:6437 YNX_EXPLORER_PUBLIC_RPC_URL="$YNX_REST_URL" YNX_EXPLORER_PUBLIC_URL="$explorer_url" go run ./cmd/ynx-explorerd >"$work/explorer.log" 2>&1 &
-explorer_pid=$!
+start_explorer
 
 for _ in {1..80}; do
   curl -fsS "$explorer_url/health" >/dev/null 2>&1 && break
@@ -67,6 +70,43 @@ go run ./cmd/ynx-explorer-load \
   --timeout 3s >"$work/explorer-load.json"
 grep -Fq '"errorRate": 0' "$work/explorer-load.json"
 grep -Fq '"sseErrors": 0' "$work/explorer-load.json"
+
+go run ./cmd/ynx-explorer-load \
+  --base-url "$explorer_url" \
+  --allow-http-local \
+  --expected-outage \
+  --duration 12s \
+  --concurrency 2 \
+  --requests-per-second 4 \
+  --sse-clients 1 \
+  --search-query "$tx_hash" \
+  --timeout 2s >"$work/explorer-recovery.json" &
+recovery_pid=$!
+sleep 4
+ynx_kill_tree "$explorer_pid"
+explorer_pid=""
+sleep 1
+start_explorer
+for _ in {1..80}; do
+  curl -fsS "$explorer_url/health" >/dev/null 2>&1 && break
+  sleep 0.25
+done
+wait "$recovery_pid"
+grep -Eq '"sseReconnects": [1-9][0-9]*' "$work/explorer-recovery.json"
+grep -Eq '"sseRecoveries": [1-9][0-9]*' "$work/explorer-recovery.json"
+grep -Eq '"sseRecoveryMillis": [1-9][0-9]*(\.[0-9]+)?' "$work/explorer-recovery.json"
+
+go run ./cmd/ynx-explorer-load \
+  --base-url "$explorer_url" \
+  --allow-http-local \
+  --duration 5s \
+  --concurrency 20 \
+  --requests-per-second 200 \
+  --sse-clients 5 \
+  --search-query "$tx_hash" \
+  --timeout 3s >"$work/explorer-search-storm.json"
+grep -Fq '"errorRate": 0' "$work/explorer-search-storm.json"
+grep -Fq '"sseErrors": 0' "$work/explorer-search-storm.json"
 
 html="$(curl -fsS "$explorer_url/")"
 grep -Fq "Open MetaMask compatibility" <<<"$html"

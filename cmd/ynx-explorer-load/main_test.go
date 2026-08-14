@@ -27,7 +27,7 @@ func TestSummarize(t *testing.T) {
 		{Latency: 30 * time.Millisecond, Status: 503, Err: "Service Unavailable"},
 		{Latency: 40 * time.Millisecond, Status: 429, Err: "Too Many Requests"},
 	}
-	got := summarize("https://explorer.ynx.invalid", started, started.Add(2*time.Second), 2, 10, 1, samples, 3, 1, 0)
+	got := summarize("https://explorer.ynx.invalid", started, started.Add(2*time.Second), 2, 10, 1, samples, 3, 1, 1, 0, started.Add(time.Second).UnixNano(), started.Add(1500*time.Millisecond).UnixNano())
 	if got.Requests != 4 || got.Errors != 2 || got.ErrorRate != 0.5 || got.RequestsPerSecond != 2 {
 		t.Fatalf("unexpected aggregate: %+v", got)
 	}
@@ -39,5 +39,23 @@ func TestSummarize(t *testing.T) {
 	}
 	if got.StatusCodes[200] != 2 || got.StatusCodes[503] != 1 || got.StatusCodes[429] != 1 {
 		t.Fatalf("unexpected status counts: %+v", got.StatusCodes)
+	}
+	if got.SSERecoveries != 1 || got.SSERecoveryMillis != 500 {
+		t.Fatalf("unexpected recovery aggregate: %+v", got)
+	}
+}
+
+func TestEvaluateReportExpectedOutage(t *testing.T) {
+	recovered := report{Requests: 12, SSEClients: 2, SSEReconnects: 4, SSERecoveries: 2, SSERecoveryMillis: 325, Errors: 3, SSEErrors: 4}
+	if err := evaluateReport(recovered, true); err != nil {
+		t.Fatalf("expected outage recovery was rejected: %v", err)
+	}
+	missingRecovery := recovered
+	missingRecovery.SSERecoveries = 1
+	if err := evaluateReport(missingRecovery, true); err == nil {
+		t.Fatal("partial SSE recovery was accepted")
+	}
+	if err := evaluateReport(recovered, false); err == nil {
+		t.Fatal("transient errors were accepted outside an expected outage drill")
 	}
 }

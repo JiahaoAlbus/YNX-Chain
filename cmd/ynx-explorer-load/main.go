@@ -49,29 +49,32 @@ type report struct {
 	Latency           latencySummary `json:"latency"`
 	SSEEvents         int64          `json:"sseEvents"`
 	SSEReconnects     int64          `json:"sseReconnects"`
+	SSERecoveries     int64          `json:"sseRecoveries"`
 	SSEErrors         int64          `json:"sseErrors"`
+	SSERecoveryMillis float64        `json:"sseRecoveryMillis"`
 }
 
 func main() {
 	var (
-		baseURL     = flag.String("base-url", "", "Explorer origin, for example https://explorer.example")
-		duration    = flag.Duration("duration", 30*time.Second, "test duration")
-		concurrency = flag.Int("concurrency", 20, "concurrent HTTP workers")
-		targetRPS   = flag.Int("requests-per-second", 0, "global target request rate; zero means unpaced storm")
-		sseClients  = flag.Int("sse-clients", 5, "concurrent SSE subscribers")
-		searchQuery = flag.String("search-query", "", "real block, transaction, address, token, or contract query")
-		timeout     = flag.Duration("timeout", 5*time.Second, "per-request timeout")
-		allowLocal  = flag.Bool("allow-http-local", false, "allow plain HTTP only for loopback local verification")
+		baseURL        = flag.String("base-url", "", "Explorer origin, for example https://explorer.example")
+		duration       = flag.Duration("duration", 30*time.Second, "test duration")
+		concurrency    = flag.Int("concurrency", 20, "concurrent HTTP workers")
+		targetRPS      = flag.Int("requests-per-second", 0, "global target request rate; zero means unpaced storm")
+		sseClients     = flag.Int("sse-clients", 5, "concurrent SSE subscribers")
+		searchQuery    = flag.String("search-query", "", "real block, transaction, address, token, or contract query")
+		timeout        = flag.Duration("timeout", 5*time.Second, "per-request timeout")
+		allowLocal     = flag.Bool("allow-http-local", false, "allow plain HTTP only for loopback local verification")
+		expectedOutage = flag.Bool("expected-outage", false, "require every SSE client to recover after an orchestrated outage; transient request errors remain recorded")
 	)
 	flag.Parse()
 
-	if err := run(*baseURL, *duration, *concurrency, *targetRPS, *sseClients, *searchQuery, *timeout, *allowLocal, os.Stdout); err != nil {
+	if err := run(*baseURL, *duration, *concurrency, *targetRPS, *sseClients, *searchQuery, *timeout, *allowLocal, *expectedOutage, os.Stdout); err != nil {
 		fmt.Fprintln(os.Stderr, "explorer load verification failed:", err)
 		os.Exit(1)
 	}
 }
 
-func run(base string, duration time.Duration, concurrency, targetRPS, sseClients int, searchQuery string, timeout time.Duration, allowLocal bool, out io.Writer) error {
+func run(base string, duration time.Duration, concurrency, targetRPS, sseClients int, searchQuery string, timeout time.Duration, allowLocal, expectedOutage bool, out io.Writer) error {
 	origin, err := validateOrigin(base, allowLocal)
 	if err != nil {
 		return err
@@ -81,6 +84,9 @@ func run(base string, duration time.Duration, concurrency, targetRPS, sseClients
 	}
 	if targetRPS > 1_000_000 {
 		return errors.New("requests-per-second cannot exceed 1000000")
+	}
+	if expectedOutage && sseClients == 0 {
+		return errors.New("expected-outage requires at least one SSE client")
 	}
 
 	paths := []string{"/api/summary", "/api/blocks/latest?limit=12", "/api/txs?limit=12"}
@@ -106,7 +112,8 @@ func run(base string, duration time.Duration, concurrency, targetRPS, sseClients
 		pace = paceTicker.C
 	}
 	samples := make(chan sample, concurrency*8)
-	var sseEvents, sseReconnects, sseErrors atomic.Int64
+	var sseEvents, sseReconnects, sseRecoveries, sseErrors atomic.Int64
+	var firstDisconnect, firstRecovery atomic.Int64
 	var workers sync.WaitGroup
 
 	for worker := 0; worker < concurrency; worker++ {
@@ -156,6 +163,8 @@ func run(base string, duration time.Duration, concurrency, targetRPS, sseClients
 		workers.Add(1)
 		go func() {
 			defer workers.Done()
+			seenEvent := false
+			hadDisconnect := false
 			for ctx.Err() == nil {
 				req, requestErr := http.NewRequestWithContext(ctx, http.MethodGet, origin+"/api/stream", nil)
 				if requestErr != nil {
@@ -168,6 +177,11 @@ func run(base string, duration time.Duration, concurrency, targetRPS, sseClients
 					if ctx.Err() == nil {
 						sseErrors.Add(1)
 						sseReconnects.Add(1)
+						hadDisconnect = true
+						firstDisconnect.CompareAndSwap(0, time.Now().UnixNano())
+					}
+					if !waitReconnect(ctx) {
+						return
 					}
 					continue
 				}
@@ -175,6 +189,11 @@ func run(base string, duration time.Duration, concurrency, targetRPS, sseClients
 					resp.Body.Close()
 					sseErrors.Add(1)
 					sseReconnects.Add(1)
+					hadDisconnect = true
+					firstDisconnect.CompareAndSwap(0, time.Now().UnixNano())
+					if !waitReconnect(ctx) {
+						return
+					}
 					continue
 				}
 				scanner := bufio.NewScanner(resp.Body)
@@ -182,6 +201,12 @@ func run(base string, duration time.Duration, concurrency, targetRPS, sseClients
 				for scanner.Scan() {
 					if strings.HasPrefix(scanner.Text(), "event:") {
 						sseEvents.Add(1)
+						if seenEvent && hadDisconnect {
+							sseRecoveries.Add(1)
+							firstRecovery.CompareAndSwap(0, time.Now().UnixNano())
+							hadDisconnect = false
+						}
+						seenEvent = true
 					}
 				}
 				resp.Body.Close()
@@ -190,6 +215,11 @@ func run(base string, duration time.Duration, concurrency, targetRPS, sseClients
 						sseErrors.Add(1)
 					}
 					sseReconnects.Add(1)
+					hadDisconnect = true
+					firstDisconnect.CompareAndSwap(0, time.Now().UnixNano())
+					if !waitReconnect(ctx) {
+						return
+					}
 				}
 			}
 		}()
@@ -205,14 +235,35 @@ func run(base string, duration time.Duration, concurrency, targetRPS, sseClients
 		collected = append(collected, entry)
 	}
 	finished := time.Now().UTC()
-	result := summarize(origin, started, finished, concurrency, targetRPS, sseClients, collected, sseEvents.Load(), sseReconnects.Load(), sseErrors.Load())
+	result := summarize(origin, started, finished, concurrency, targetRPS, sseClients, collected, sseEvents.Load(), sseReconnects.Load(), sseRecoveries.Load(), sseErrors.Load(), firstDisconnect.Load(), firstRecovery.Load())
 	encoder := json.NewEncoder(out)
 	encoder.SetIndent("", "  ")
 	if err := encoder.Encode(result); err != nil {
 		return err
 	}
+	return evaluateReport(result, expectedOutage)
+}
+
+func waitReconnect(ctx context.Context) bool {
+	timer := time.NewTimer(100 * time.Millisecond)
+	defer timer.Stop()
+	select {
+	case <-ctx.Done():
+		return false
+	case <-timer.C:
+		return true
+	}
+}
+
+func evaluateReport(result report, expectedOutage bool) error {
 	if result.Requests == 0 {
 		return errors.New("no HTTP samples were completed")
+	}
+	if expectedOutage {
+		if result.SSEReconnects < int64(result.SSEClients) || result.SSERecoveries < int64(result.SSEClients) || result.SSERecoveryMillis <= 0 {
+			return fmt.Errorf("expected outage did not recover every SSE client: reconnects=%d recoveries=%d clients=%d recoveryMillis=%.3f", result.SSEReconnects, result.SSERecoveries, result.SSEClients, result.SSERecoveryMillis)
+		}
+		return nil
 	}
 	if result.Errors > 0 || result.SSEErrors > 0 {
 		return fmt.Errorf("verification observed %d HTTP errors and %d SSE errors", result.Errors, result.SSEErrors)
@@ -237,7 +288,7 @@ func validateOrigin(raw string, allowLocal bool) (string, error) {
 	return strings.TrimSuffix(parsed.String(), "/"), nil
 }
 
-func summarize(base string, started, finished time.Time, concurrency, targetRPS, sseClients int, samples []sample, sseEvents, sseReconnects, sseErrors int64) report {
+func summarize(base string, started, finished time.Time, concurrency, targetRPS, sseClients int, samples []sample, sseEvents, sseReconnects, sseRecoveries, sseErrors, firstDisconnect, firstRecovery int64) report {
 	latencies := make([]time.Duration, 0, len(samples))
 	statuses := map[int]int{}
 	errorsSeen := 0
@@ -255,7 +306,10 @@ func summarize(base string, started, finished time.Time, concurrency, targetRPS,
 	result := report{
 		Schema: "ynx.explorer.load.v1", BaseURL: base, StartedAt: started, FinishedAt: finished,
 		DurationSeconds: elapsed, Concurrency: concurrency, TargetRPS: targetRPS, SSEClients: sseClients, Requests: len(samples),
-		Errors: errorsSeen, StatusCodes: statuses, SSEEvents: sseEvents, SSEReconnects: sseReconnects, SSEErrors: sseErrors,
+		Errors: errorsSeen, StatusCodes: statuses, SSEEvents: sseEvents, SSEReconnects: sseReconnects, SSERecoveries: sseRecoveries, SSEErrors: sseErrors,
+	}
+	if firstDisconnect > 0 && firstRecovery > firstDisconnect {
+		result.SSERecoveryMillis = float64(firstRecovery-firstDisconnect) / float64(time.Millisecond)
 	}
 	if elapsed > 0 {
 		result.RequestsPerSecond = float64(len(samples)) / elapsed
