@@ -686,9 +686,68 @@ export async function indexProjectMemory(projectId: string, expectedRevision: nu
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
       protocolVersion: "ynx-code-memory/v1",
+      action: "rebuild",
       expectedRevision,
     }),
   });
+}
+export type ProjectMemoryStatus = {
+  protocolVersion: "ynx-code-memory/v1";
+  projectId: string;
+  chunks: number;
+  revision: number | null;
+  dimensions: number;
+  indexedAt: string | null;
+  embeddingModel: string;
+  retention: {
+    mode: "current-index-only";
+    revisionsRetained: 1;
+    expiresAutomatically: false;
+    deleteTriggers: string[];
+  };
+  coverage: "text-chunks-and-semantic-vectors";
+  embeddedChunks?: number;
+  reusedChunks?: number;
+};
+export async function loadProjectMemory(projectId: string): Promise<ProjectMemoryStatus> {
+  return agentFetch(`/runtime/memory/${encodeURIComponent(projectId)}`);
+}
+export async function clearProjectMemory(
+  projectId: string,
+  expectedRevision: number | null,
+) {
+  return agentFetch(
+    `/runtime/memory/${encodeURIComponent(projectId)}?${new URLSearchParams({
+      expectedRevision: String(expectedRevision),
+      approval: "clear-memory-once",
+    })}`,
+    { method: "DELETE" },
+  );
+}
+export async function exportProjectMemory(projectId: string) {
+  const chunks: unknown[] = [];
+  let cursor: number | null = 0,
+    project: ProjectMemoryStatus | undefined,
+    exportedAt = "",
+    expectedRevision: number | null | undefined;
+  while (cursor !== null) {
+    const query = new URLSearchParams({
+      view: "export",
+      cursor: String(cursor),
+      limit: "100",
+    });
+    if (expectedRevision !== undefined)
+      query.set("expectedRevision", String(expectedRevision));
+    const page = await agentFetch(
+      `/runtime/memory/${encodeURIComponent(projectId)}?${query}`,
+    );
+    project = page.project;
+    expectedRevision = project?.revision;
+    exportedAt = page.exportedAt;
+    chunks.push(...page.chunks);
+    cursor = page.nextCursor;
+  }
+  return { protocolVersion: "ynx-code-memory/v1", exportedAt, project, chunks };
 }
 export async function searchProjectMemory(projectId: string, query: string) {
   return agentFetch(`/runtime/memory/${encodeURIComponent(projectId)}?${new URLSearchParams({ q: query, limit: "8" })}`);

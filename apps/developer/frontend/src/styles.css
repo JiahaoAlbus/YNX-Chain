@@ -1099,7 +1099,9 @@ html[data-theme="dark"] .tree-row.file.active {
 .agent-rejected,.agent-error { border-left-color:#c42b35; color:#f47067; }
 .memory-box { margin:7px 8px 0; border:1px solid var(--border); background:var(--panel2); }
 .memory-box summary { padding:7px; cursor:pointer; font-size:10px; font-weight:700; }
-.memory-box>button { margin:0 7px 7px; width:calc(100% - 14px); }
+.memory-box>small { display:block; margin:0 7px 7px; color:var(--muted); line-height:1.4; }
+.memory-actions { display:flex!important; grid-template-columns:none!important; gap:4px; }
+.memory-actions>.btn { flex:1; min-width:0; padding-inline:4px; }
 .memory-box>div { display:grid; grid-template-columns:1fr auto; gap:4px; padding:0 7px 7px; }
 .memory-box input { min-width:0; border:1px solid var(--border); background:var(--editor); color:var(--text); padding:5px; }
 .memory-box>code { display:block; margin:0 7px 5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--blue); font-size:9px; }

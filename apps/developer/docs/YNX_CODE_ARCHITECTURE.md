@@ -437,21 +437,27 @@ events. `qwen2.5:1.5b` failed the coding-quality gate and is not a coding defaul
 `qwen3:14b` exceeded the acceptable CPU-only interactive latency and is reserved
 for an explicitly selected deep task until accelerated capacity exists.
 
-Project memory contains a versioned symbol/reference graph, architecture facts,
-API schemas, decisions, test history and user-approved preferences. Embeddings
-store chunks with tenant, repository, commit/revision, path and ACL. Retrieval
-must pass tenant and file authorization before scoring. Deletion removes source,
-derived chunks and vector entries; rebuild is deterministic from the project.
+The target project-memory model includes a versioned symbol/reference graph,
+architecture facts, API schemas, decisions, test history and user-approved
+preferences. The current implementation does not yet claim those graph layers.
+Embeddings store chunks with tenant, repository, revision, path and ACL.
+Retrieval must pass tenant and file authorization before scoring. Deletion
+removes derived chunks and vector entries; rebuild is deterministic from the
+current workspace snapshot.
 
 The first real vector-memory gate is implemented in `services/project-memory`.
-It chunks only the signed owner's current workspace revision, obtains 768-axis
+It chunks only the signed owner's current workspace revision, obtains bounded
 embeddings from a fixed-loopback `nomic-embed-text` runtime, stores content,
 digest, vector, revision and ACL scope in SQLite WAL, and performs bounded cosine
-ranking after tenant/project filtering. Re-index replaces the previous revision,
-so deleted chunks cannot survive. The Coder may retrieve only paths explicitly
-approved in the Agent context step; cross-owner and non-approved retrieval are
-filtered before vector scoring. The UI exposes explicit index and semantic-search
-actions and reports the actual model, revision, dimensions and scores.
+ranking after tenant/project filtering. Re-index reuses unchanged digest vectors
+and replaces the previous revision transactionally, so deleted chunks cannot
+survive. The Coder may retrieve only paths explicitly approved in the Agent
+context step; cross-owner and non-approved retrieval are filtered before vector
+scoring. The UI exposes view, incremental rebuild, semantic search, paginated
+JSON export and one-time-confirmed clear. Export pages bind to one indexed
+revision to avoid mixed-generation archives. Retention is truthfully reported as
+one current index with no automatic expiry; rebuild and user clear are its
+deletion triggers. Source workspace files are not deleted by memory clear.
 
 ## 14. Collaboration
 

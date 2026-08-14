@@ -28,6 +28,12 @@ successful eight-runtime release record.
   gate `test/extension-lifecycle-ui.test.js` proves disabled contributions are
   filtered from consumers and the local/declarative-only trust boundary remains
   visible without executable or marketplace loading paths.
+- Project-memory lifecycle evidence: `services/project-memory/test/service.test.mjs`
+  proves unchanged-vector reuse, changed-chunk incremental rebuild, semantic
+  ranking, owner isolation, paginated full-content/vector export, revision
+  consistency, stale-clear rejection and deletion. The Web gate
+  `test/project-memory-lifecycle-ui.test.js` holds view/rebuild/export/clear and
+  the honest current-index retention/coverage boundary in the product surface.
 
 - Public full-platform gate: `scripts/live-public-candidate-check.mjs`. Against
   the deployed candidate it requires all seven real runtimes, six LSP routes,
