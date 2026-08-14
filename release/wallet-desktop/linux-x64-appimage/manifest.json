@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 1,
+  "productId": "wallet-desktop",
+  "version": "0.1.0",
+  "sourceCommit": "7a3947d0302e923ecf7699e76a5fb443fbdf4f70",
+  "runtime": {
+    "electron": "42.8.0",
+    "node": "24.18.0"
+  },
+  "releaseClass": "unsigned-testnet-engineering-preview",
+  "workflow": {
+    "runId": 31765903996,
+    "runUrl": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/31765903996",
+    "buildJobId": 94661633353,
+    "downloadVerificationJobId": 94661829327,
+    "conclusion": "success",
+    "runner": "ubuntu-24.04"
+  },
+  "artifact": {
+    "id": 9206305886,
+    "name": "ynx-wallet-desktop-linux-x64-appimage",
+    "archiveBytes": 126108896,
+    "archiveSha256": "1415f242edc20e0668b9620c1faba13e2226886d246acc9083541ec6b3a06934",
+    "downloadedAndVerifiedOnNativeRunner": true,
+    "files": [
+      {
+        "filename": "ynx-wallet-desktop-0.1.0-x86_64.AppImage",
+        "format": "AppImage",
+        "architecture": "x86_64",
+        "bytes": 126614751,
+        "sha256": "0f71d81566da947cb5e8f14362c3c7909c28192534c318f35d3853767bc11ce7",
+        "minimumOS": "Ubuntu 24.04 directly tested; broader Linux compatibility not evidenced",
+        "signingClass": "unsigned_linux_desktop_testnet_candidate",
+        "productionSigned": false,
+        "installationApplicable": false,
+        "portableRuntimeTestedOnNativeRunner": true
+      }
+    ]
+  },
+  "downloadVerificationArtifact": {
+    "id": 9206310224,
+    "name": "ynx-wallet-desktop-linux-x64-appimage-download-verification",
+    "archiveBytes": 402,
+    "archiveSha256": "97ca94084583464cb968e68a86fd6d78239a8277fd8674a8e415f73486541aa8",
+    "manifestPresent": true,
+    "lifecyclePresent": true,
+    "sha256Verified": true,
+    "bytesVerified": true
+  },
+  "lifecycleEvidence": {
+    "portableLaunchMode": "--appimage-extract-and-run",
+    "runtimeLaunchFlags": ["--appimage-extract-and-run", "--no-sandbox", "--disable-gpu"],
+    "chromiumProcessSandboxEnabled": false,
+    "coldLaunch": true,
+    "secondLaunch": true,
+    "processObserved": true,
+    "coldWindowTitleObserved": true,
+    "secondWindowTitleObserved": true,
+    "appReportedWindowVisible": true,
+    "appReportedWindowTitle": "YNX Wallet Testnet Preview",
+    "rpcEndpoint": "https://evm.ynxweb4.com",
+    "rpcMethod": "eth_chainId",
+    "chainId": "0x1917",
+    "rpcFailureClosed": true,
+    "frozenWalletAuthImported": true,
+    "accountCreated": false,
+    "balanceClaimed": false,
+    "transactionCreated": false,
+    "signingEnabled": false,
+    "productionSigned": false
+  },
+  "releaseState": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": false,
+    "portableRuntimeTestedNativeCI": true,
+    "uploadedArtifactDownloadedAndVerifiedNativeCI": true,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}
