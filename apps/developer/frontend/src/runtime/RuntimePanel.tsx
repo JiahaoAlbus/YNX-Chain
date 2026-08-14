@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Button } from "../components/ui/button";
-import { createContainerLease, inspectSshTarget, loadProjectEnvironment, loadRuntimeProfiles, loadTerminalSessions, removeContainerLease, removeSshProfile, saveSshProfile, saveProjectEnvironment, stopTerminalSession, type EnvironmentEntry, type ProjectEnvironment, type RuntimeProfiles, type TerminalSession } from "./client";
+import { createContainerLease, inspectSshTarget, loadProjectEnvironment, loadRuntimeProfiles, loadTaskActivities, loadTerminalSessions, removeContainerLease, removeSshProfile, saveSshProfile, saveProjectEnvironment, stopTerminalSession, type EnvironmentEntry, type ProjectEnvironment, type RuntimeProfiles, type TaskActivity, type TerminalSession } from "./client";
 
 export function RuntimePanel({ projectId, selected, onSelect }: { projectId: string; selected?: string; onSelect: (runtimeId: string | undefined) => void }) {
   const [data, setData] = useState<RuntimeProfiles>(),
@@ -176,23 +176,26 @@ function EnvironmentAndProcesses({ projectId }: { projectId: string }) {
   const [environment, setEnvironment] = useState<ProjectEnvironment>(),
     [entries, setEntries] = useState<EnvironmentEntry[]>([]),
     [terminals, setTerminals] = useState<TerminalSession[]>([]),
+    [tasks, setTasks] = useState<TaskActivity[]>([]),
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
   const refresh = async () => {
-    const [nextEnvironment, nextTerminals] = await Promise.all([loadProjectEnvironment(projectId), loadTerminalSessions(projectId)]);
+    const [nextEnvironment, nextTerminals, nextTasks] = await Promise.all([loadProjectEnvironment(projectId), loadTerminalSessions(projectId), loadTaskActivities(projectId)]);
     setEnvironment(nextEnvironment);
     setEntries(nextEnvironment.entries);
     setTerminals(nextTerminals);
+    setTasks(nextTasks);
   };
   useEffect(() => {
     let active = true;
     const poll = async () => {
       try {
-        const [nextEnvironment, nextTerminals] = await Promise.all([loadProjectEnvironment(projectId), loadTerminalSessions(projectId)]);
+        const [nextEnvironment, nextTerminals, nextTasks] = await Promise.all([loadProjectEnvironment(projectId), loadTerminalSessions(projectId), loadTaskActivities(projectId)]);
         if (active) {
           setEnvironment(nextEnvironment);
           setEntries(nextEnvironment.entries);
           setTerminals(nextTerminals);
+          setTasks(nextTasks);
           setError("");
         }
       } catch (value) {
@@ -202,8 +205,13 @@ function EnvironmentAndProcesses({ projectId }: { projectId: string }) {
     void poll();
     const timer = window.setInterval(
       () =>
-        void loadTerminalSessions(projectId)
-          .then((value) => active && setTerminals(value))
+        void Promise.all([loadTerminalSessions(projectId), loadTaskActivities(projectId)])
+          .then(([nextTerminals, nextTasks]) => {
+            if (active) {
+              setTerminals(nextTerminals);
+              setTasks(nextTasks);
+            }
+          })
           .catch(() => {}),
       5_000,
     );
@@ -231,7 +239,7 @@ function EnvironmentAndProcesses({ projectId }: { projectId: string }) {
     <>
       <div className="runtime-block">
         <strong>PROJECT ENVIRONMENT</strong>
-        <p>Saved per project and applied to new terminals. Literal values must be non-sensitive. For secrets, save only a broker reference—never paste a Secret value here.</p>
+        <p>Saved per project and applied to new terminals and reviewed tasks. Literal values must be non-sensitive. For secrets, save only a broker reference—never paste a Secret value here.</p>
         {entries.map((entry, index) => (
           <div className="environment-row" key={`${entry.key}:${index}`}>
             <input aria-label={`Environment key ${index + 1}`} value={entry.key} onChange={(event) => change(index, { key: event.target.value })} placeholder="PUBLIC_ORIGIN" />
@@ -250,7 +258,7 @@ function EnvironmentAndProcesses({ projectId }: { projectId: string }) {
             Add variable
           </Button>
           <Button disabled={busy || !environment} onClick={save}>
-            Save for new terminals
+            Save environment
           </Button>
         </div>
         <small>
@@ -259,9 +267,21 @@ function EnvironmentAndProcesses({ projectId }: { projectId: string }) {
         </small>
       </div>
       <div className="runtime-block">
-        <strong>TERMINAL PROCESSES</strong>
-        <p>This is the live terminal session inventory. It exposes state and bounds, never commands or environment values.</p>
-        {terminals.length === 0 && <small>No active terminal sessions.</small>}
+        <strong>RUNTIME PROCESSES</strong>
+        <p>This live inventory is driven by the task queue and terminal supervisor. It exposes state and bounds, never commands or environment values.</p>
+        {terminals.length === 0 && tasks.length === 0 && <small>No active terminal or task processes.</small>}
+        {tasks.map((task) => (
+          <div className="runtime-row" key={task.taskId}>
+            <span>
+              <b>{task.kind === "test-project" ? "Project tests" : "Build / run"}</b>
+              <small>
+                running · env r{task.environmentRevision ?? "resolving"}
+                <br />
+                started {new Date(task.startedAt).toLocaleTimeString()}
+              </small>
+            </span>
+          </div>
+        ))}
         {terminals.map((terminal) => (
           <div className="runtime-row" key={terminal.sessionId}>
             <span>

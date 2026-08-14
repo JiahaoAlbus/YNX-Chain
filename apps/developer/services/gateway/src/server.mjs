@@ -30,7 +30,7 @@ const port = Number(process.env.PORT || 4190),
   staticRoot = process.env.YNX_CODE_STATIC_ROOT || fileURLToPath(new URL("../../../frontend/dist", import.meta.url)),
   stateDir = process.env.YNX_CODE_STATE_DIR || join(process.cwd(), ".ynx-code");
 mkdirSync(stateDir, { recursive: true, mode: 0o700 });
-let runtimeProfileService;
+let runtimeProfileService, runtime;
 const routedLanguageRequest = (runner) => (request, context) =>
   request.runtimeId
     ? runner(request, {
@@ -44,20 +44,23 @@ const routedLanguageRequest = (runner) => (request, context) =>
           }),
       })
     : runner(request);
-const workspaceStore = createWorkspaceStore({
-    filename: join(stateDir, "workspaces.sqlite"),
-  }),
-  runtime = createWorkspaceRuntime({
-    workspaceStore,
-    languageRequests: {
-      cpp: routedLanguageRequest(runCppLanguageRequest),
-      typescript: routedLanguageRequest(runTypescriptLanguageRequest),
-      python: routedLanguageRequest(runPythonLanguageRequest),
-      go: routedLanguageRequest(runGoLanguageRequest),
-      rust: routedLanguageRequest(runRustLanguageRequest),
-      solidity: routedLanguageRequest(runSolidityLanguageRequest),
-    },
-  });
+const workspaceStore = createWorkspaceStore({ filename: join(stateDir, "workspaces.sqlite") });
+const environmentService = createEnvironmentService({
+  filename: join(stateDir, "environments.sqlite"),
+  ownerForRequest: (request) => runtime?.ownerForRequest(request) || null,
+});
+runtime = createWorkspaceRuntime({
+  workspaceStore,
+  environmentResolver: (owner, projectId) => environmentService.resolve(owner, projectId),
+  languageRequests: {
+    cpp: routedLanguageRequest(runCppLanguageRequest),
+    typescript: routedLanguageRequest(runTypescriptLanguageRequest),
+    python: routedLanguageRequest(runPythonLanguageRequest),
+    go: routedLanguageRequest(runGoLanguageRequest),
+    rust: routedLanguageRequest(runRustLanguageRequest),
+    solidity: routedLanguageRequest(runSolidityLanguageRequest),
+  },
+});
 const gitService = createGitService({
   workspaceStore,
   ownerForRequest: (request) => runtime.ownerForRequest(request),
@@ -92,15 +95,12 @@ const collaborationService = createCollaborationService({
 runtimeProfileService = createRuntimeProfileService({
   filename: join(stateDir, "runtime-profiles.sqlite"),
   ownerForRequest: (request) => runtime.ownerForRequest(request),
+  environmentResolver: (owner, projectId) => environmentService.resolve(owner, projectId),
 });
 const chainService = createChainService({
   ownerForRequest: (request) => runtime.ownerForRequest(request),
 });
 const walletReadinessService = createWalletReadinessService({
-  ownerForRequest: (request) => runtime.ownerForRequest(request),
-});
-const environmentService = createEnvironmentService({
-  filename: join(stateDir, "environments.sqlite"),
   ownerForRequest: (request) => runtime.ownerForRequest(request),
 });
 const terminalService = createTerminalService({

@@ -19,6 +19,7 @@ export type TaskResult = {
   }[];
   sandbox: { kind: string; network: false; writableRoot: string };
   truncated: boolean;
+  environmentRevision?: number;
 };
 export type WorkspaceSnapshot = {
   revision: number;
@@ -220,6 +221,14 @@ export type TerminalSession = {
   replayBytes: number;
   environmentRevision: number;
 };
+export type TaskActivity = {
+  taskId: string;
+  projectId: string;
+  kind: "build-run-active" | "test-project";
+  status: "running";
+  startedAt: string;
+  environmentRevision: number | null;
+};
 async function profileFetch(path: string, options: RequestInit = {}) {
   for (let attempt = 0; attempt < 2; attempt++) {
     const init = {
@@ -264,6 +273,10 @@ export async function saveProjectEnvironment(projectId: string, expectedRevision
 export async function loadTerminalSessions(projectId: string): Promise<TerminalSession[]> {
   const value = await profileFetch(`/runtime/terminals?projectId=${encodeURIComponent(projectId)}`);
   return value.terminals;
+}
+export async function loadTaskActivities(projectId: string): Promise<TaskActivity[]> {
+  const value = await profileFetch("/runtime/tasks/active");
+  return value.tasks.filter((task: TaskActivity) => task.projectId === projectId);
 }
 export function stopTerminalSession(sessionId: string) {
   return profileFetch(`/runtime/terminals/${encodeURIComponent(sessionId)}`, {

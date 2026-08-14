@@ -17,13 +17,25 @@ export function createWorkspaceRuntime(options = {}) {
   const root = options.root || join(tmpdir(), "ynx-code-runtime");
   const workspaceStore = options.workspaceStore || null;
   const languageRequests = options.languageRequests || (options.languageRequest ? { cpp: options.languageRequest } : {});
+  const environmentResolver = options.environmentResolver;
   const concurrency = boundedNumber(options.concurrency || process.env.YNX_CODE_RUNTIME_CONCURRENCY, 4, 1, 64);
   const queueLimit = boundedNumber(options.queueLimit || process.env.YNX_CODE_RUNTIME_QUEUE, 64, 1, 512);
   let active = 0;
-  const queue = [];
+  const queue = [],
+    activities = new Map();
   const sandbox = detectSandbox(options);
   async function handler(request, response) {
     const url = new URL(request.url, `http://${request.headers.host || "127.0.0.1"}`);
+    if (url.pathname === "/runtime/tasks/active" && request.method === "GET") {
+      const session = readSession(request, sessionKey);
+      if (!session) {
+        json(response, 401, { error: "A signed workspace session is required.", code: "workspace_session_required" });
+        return true;
+      }
+      const owner = ownerId(session, sessionKey);
+      json(response, 200, { protocolVersion: PROTOCOL, tasks: [...activities.values()].filter((item) => item.owner === owner).map(publicActivity) });
+      return true;
+    }
     if (url.pathname === "/runtime/health" && request.method === "GET") {
       const session = readSession(request, sessionKey) || newSession();
       json(
@@ -117,12 +129,7 @@ export function createWorkspaceRuntime(options = {}) {
       try {
         if (request.method === "GET") {
           if (url.searchParams.get("view") === "history") {
-            const value = workspaceStore.history(
-              owner,
-              projectId,
-              url.searchParams.get("cursor"),
-              url.searchParams.get("limit"),
-            );
+            const value = workspaceStore.history(owner, projectId, url.searchParams.get("cursor"), url.searchParams.get("limit"));
             json(response, 200, { protocolVersion: PROTOCOL, history: value });
             return true;
           }
@@ -157,8 +164,7 @@ export function createWorkspaceRuntime(options = {}) {
         const body = JSON.parse((await readBody(request, 3 * 1024 * 1024)).toString("utf8"));
         if (body.protocolVersion !== PROTOCOL) throw Object.assign(new Error("Workspace protocol version is required."), { status: 400, code: "protocol_mismatch" });
         if (request.method === "POST") {
-          if (body.action !== "restore" || body.approval !== "restore-workspace-once")
-            throw Object.assign(new Error("An explicit one-time workspace restore approval is required."), { status: 403, code: "restore_approval_required" });
+          if (body.action !== "restore" || body.approval !== "restore-workspace-once") throw Object.assign(new Error("An explicit one-time workspace restore approval is required."), { status: 403, code: "restore_approval_required" });
           const value = workspaceStore.restore(owner, projectId, {
             expectedRevision: body.expectedRevision,
             sourceRevision: body.sourceRevision,
@@ -232,7 +238,7 @@ export function createWorkspaceRuntime(options = {}) {
         return true;
       }
       await new Promise((resolve) => {
-        queue.push({ session, body, response, resolve, streaming });
+        queue.push({ taskId: randomUUID(), session, owner: ownerId(session, sessionKey), body, response, resolve, streaming });
         pump();
       });
       return true;
@@ -243,15 +249,21 @@ export function createWorkspaceRuntime(options = {}) {
     while (active < concurrency && queue.length) {
       const item = queue.shift();
       active++;
+      startActivity(item);
       if (item.internal) {
         execute(item.session, item.body, {
           root,
           sandbox,
           onEvent: item.onEvent,
+          owner: item.owner,
+          environmentResolver,
+          taskId: item.taskId,
+          onEnvironmentResolved: (revision) => updateActivity(item.taskId, revision),
         })
           .then(item.resolve, item.reject)
           .finally(() => {
             active--;
+            finishActivity(item.taskId);
             pump();
           });
         continue;
@@ -264,7 +276,7 @@ export function createWorkspaceRuntime(options = {}) {
           "x-accel-buffering": "no",
         });
         const send = (value) => item.response.write(`${JSON.stringify(value)}\n`);
-        execute(item.session, item.body, { root, sandbox, onEvent: send })
+        execute(item.session, item.body, { root, sandbox, onEvent: send, owner: item.owner, environmentResolver, taskId: item.taskId, onEnvironmentResolved: (revision) => updateActivity(item.taskId, revision) })
           .then(
             (value) => send({ type: "result", value }),
             (error) =>
@@ -277,11 +289,12 @@ export function createWorkspaceRuntime(options = {}) {
           .finally(() => item.response.end())
           .finally(() => {
             active--;
+            finishActivity(item.taskId);
             item.resolve();
             pump();
           });
       } else
-        execute(item.session, item.body, { root, sandbox })
+        execute(item.session, item.body, { root, sandbox, owner: item.owner, environmentResolver, taskId: item.taskId, onEnvironmentResolved: (revision) => updateActivity(item.taskId, revision) })
           .then(
             (value) => json(item.response, 200, value),
             (error) =>
@@ -292,6 +305,7 @@ export function createWorkspaceRuntime(options = {}) {
           )
           .finally(() => {
             active--;
+            finishActivity(item.taskId);
             item.resolve();
             pump();
           });
@@ -312,7 +326,9 @@ export function createWorkspaceRuntime(options = {}) {
       });
     return new Promise((resolve, reject) => {
       queue.push({
+        taskId: randomUUID(),
         session: `internal:${owner}`,
+        owner,
         body,
         onEvent,
         resolve,
@@ -321,6 +337,16 @@ export function createWorkspaceRuntime(options = {}) {
       });
       pump();
     });
+  }
+  function startActivity(item) {
+    activities.set(item.taskId, { taskId: item.taskId, owner: item.owner, projectId: item.body.projectId, kind: item.body.task, status: "running", startedAt: new Date().toISOString(), environmentRevision: null });
+  }
+  function updateActivity(taskId, environmentRevision) {
+    const item = activities.get(taskId);
+    if (item) item.environmentRevision = environmentRevision;
+  }
+  function finishActivity(taskId) {
+    activities.delete(taskId);
   }
   return {
     handler,
@@ -335,6 +361,17 @@ export function createWorkspaceRuntime(options = {}) {
       sandbox: sandbox.kind,
       sandboxReady: sandbox.ready,
     }),
+  };
+}
+
+function publicActivity(item) {
+  return {
+    taskId: item.taskId,
+    projectId: item.projectId,
+    kind: item.kind,
+    status: item.status,
+    startedAt: item.startedAt,
+    environmentRevision: item.environmentRevision,
   };
 }
 
@@ -432,10 +469,11 @@ async function compilerInventory() {
   return output;
 }
 
-async function execute(session, task, { root, sandbox, onEvent }) {
-  const taskId = randomUUID(),
-    started = performance.now(),
+async function execute(session, task, { root, sandbox, onEvent, owner, environmentResolver, taskId = randomUUID(), onEnvironmentResolved }) {
+  const started = performance.now(),
     sessionRoot = join(root, createHmac("sha256", Buffer.from(session)).update(task.projectId).digest("hex").slice(0, 32));
+  const resolvedEnvironment = environmentResolver ? await environmentResolver(owner, task.projectId) : { revision: 0, environment: {} };
+  onEnvironmentResolved?.(resolvedEnvironment.revision);
   let sequence = 0;
   const emit = (value) => onEvent?.({ ...value, taskId, sequence: ++sequence });
   await mkdir(sessionRoot, { recursive: true, mode: 0o700 });
@@ -466,6 +504,7 @@ async function execute(session, task, { root, sandbox, onEvent }) {
         maxOutputBytes: phase.maxOutputBytes,
         addressSpaceBytes: phase.addressSpaceBytes,
         environment: phase.environment,
+        projectEnvironment: resolvedEnvironment.environment,
         readOnlyBinds: phase.readOnlyBinds,
         onChunk: phase.materialize ? undefined : (channel, data) => emit({ type: "output", phase: phase.label, channel, data }),
       });
@@ -498,6 +537,7 @@ async function execute(session, task, { root, sandbox, onEvent }) {
           sandbox,
           truncated,
           artifacts: [],
+          environmentRevision: resolvedEnvironment.revision,
         });
     }
     const artifacts = spec.artifactRoot ? await collectArtifacts(sandboxWorkspace, spec.artifactRoot) : [];
@@ -510,6 +550,7 @@ async function execute(session, task, { root, sandbox, onEvent }) {
       sandbox,
       truncated,
       artifacts,
+      environmentRevision: resolvedEnvironment.revision,
     });
   } finally {
     await rm(workspace, { recursive: true, force: true });
@@ -613,11 +654,7 @@ async function taskSpec(path, workspace, files) {
       packageName = source.match(/^\s*package\s+([A-Za-z_$][A-Za-z0-9_$]*(?:\.[A-Za-z_$][A-Za-z0-9_$]*)*)\s*;/m)?.[1],
       mainClass = packageName ? `${packageName}.${className}` : className,
       output = join(workspace, ".ynx-build", "java");
-    if (!/^[A-Za-z_$][A-Za-z0-9_$]*$/.test(className))
-      throw Object.assign(
-        new Error("Java source filename must be a valid class identifier."),
-        { status: 400, code: "invalid_java_class_name" },
-      );
+    if (!/^[A-Za-z_$][A-Za-z0-9_$]*$/.test(className)) throw Object.assign(new Error("Java source filename must be a valid class identifier."), { status: 400, code: "invalid_java_class_name" });
     return {
       language: "java",
       compiler,
@@ -690,11 +727,7 @@ async function projectTestSpec(workspace, files) {
     python = paths.filter((path) => /(?:^|\/)(?:test_.+|.+_test)\.py$/i.test(path)),
     goTests = paths.filter((path) => /_test\.go$/i.test(path)),
     cpp = paths.filter((path) => /(?:^|\/)(?:test|tests)\/.+\.(?:cpp|cc|cxx)$/i.test(path));
-  if (javascript.length + python.length + goTests.length + cpp.length === 0)
-    throw Object.assign(
-      new Error("No supported JavaScript, Python, Go or C++ project tests were found."),
-      { status: 400, code: "tests_missing" },
-    );
+  if (javascript.length + python.length + goTests.length + cpp.length === 0) throw Object.assign(new Error("No supported JavaScript, Python, Go or C++ project tests were found."), { status: 400, code: "tests_missing" });
   if (javascript.length + python.length + goTests.length + cpp.length > 32)
     throw Object.assign(new Error("Project test discovery exceeds the 32-file review boundary."), {
       status: 413,
@@ -890,7 +923,7 @@ async function version(command) {
   });
   return result.output.split("\n")[0].slice(0, 160);
 }
-function resultEnvelope({ taskId, started, spec, output, code, sandbox, truncated, artifacts = [] }) {
+function resultEnvelope({ taskId, started, spec, output, code, sandbox, truncated, artifacts = [], environmentRevision = 0 }) {
   return {
     protocolVersion: PROTOCOL,
     taskId,
@@ -907,10 +940,11 @@ function resultEnvelope({ taskId, started, spec, output, code, sandbox, truncate
     artifacts,
     sandbox: { kind: sandbox.kind, network: false, writableRoot: "workspace" },
     truncated,
+    environmentRevision,
   };
 }
 
-function runSandboxed({ sandbox, workspace, command, args, stdin, timeout, maxOutputBytes, addressSpaceBytes, environment, onChunk, readOnlyBinds }) {
+function runSandboxed({ sandbox, workspace, command, args, stdin, timeout, maxOutputBytes, addressSpaceBytes, environment, projectEnvironment, onChunk, readOnlyBinds }) {
   const launch = sandboxLaunch({
     sandbox,
     workspace,
@@ -922,7 +956,7 @@ function runSandboxed({ sandbox, workspace, command, args, stdin, timeout, maxOu
   });
   return spawnBounded(launch.command, launch.args, {
     cwd: launch.cwd,
-    env: launch.env,
+    env: { ...launch.env, ...projectEnvironment },
     stdin,
     timeout,
     maxOutputBytes,

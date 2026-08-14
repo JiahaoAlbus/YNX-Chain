@@ -276,8 +276,11 @@ SQLite WAL behind an optimistic revision and a one-time reviewed update. An
 entry is either an explicitly non-sensitive literal or an opaque Secret broker
 reference. Runtime-reserved keys are rejected. The browser never submits Secret
 values; when the server has no approved resolver, any referenced Secret fails
-terminal startup closed. A resolved snapshot is injected only into a newly
-created local, LXD or SSH terminal and is not exposed by process inventory.
+process startup closed. A resolved snapshot is injected only into a newly
+created local/LXD/SSH terminal or reviewed local/LXD task. Terminal and task
+inventories expose its revision, never its keys or values. Task activity is
+derived from the real bounded execution queue and disappears on completion;
+task cancellation remains a separate unimplemented process-group protocol.
 
 Tasks are declarative records (`command`, argument array, cwd, environment class,
 problem matcher, timeout, network policy and artifact outputs). Shell parsing is

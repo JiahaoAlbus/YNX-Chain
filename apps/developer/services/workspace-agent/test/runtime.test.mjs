@@ -9,7 +9,7 @@ import { createWorkspaceRuntime } from "../src/runtime.mjs";
 import { resolveExecutable } from "../src/sandbox.mjs";
 import { createWorkspaceStore } from "../../workspace-manager/src/store.mjs";
 
-async function fixture(t) {
+async function fixture(t, runtimeOptions = {}) {
   const root = await mkdtemp(join(tmpdir(), "ynx-code-test-")),
     workspaceStore = createWorkspaceStore({
       filename: join(root, "workspaces.sqlite"),
@@ -20,6 +20,7 @@ async function fixture(t) {
       concurrency: 4,
       queueLimit: 16,
       workspaceStore,
+      ...runtimeOptions,
     }),
     server = createServer((request, response) =>
       runtime.handler(request, response).then((handled) => {
@@ -69,6 +70,29 @@ test("health creates an isolated guest session and reports sandbox truth", async
   assert.equal(typeof value.sandboxReady, "boolean");
   assert.match(response.headers.get("set-cookie"), /HttpOnly; SameSite=Strict/);
 });
+test("project environment resolves before a task starts and is reported only by revision", async (t) => {
+  const secret = "task-secret-not-returned",
+    calls = [],
+    { url } = await fixture(t, {
+      environmentResolver: async (owner, projectId) => {
+        calls.push({ owner, projectId });
+        return { revision: 9, environment: { TASK_SETTING: secret } };
+      },
+    }),
+    cookie = await session(url),
+    response = await fetch(`${url}/runtime/tasks`, {
+      method: "POST",
+      headers: { cookie, "content-type": "application/json" },
+      body: JSON.stringify(languageTask("src/environment.js", "console.log(process.env.TASK_SETTING)")),
+    }),
+    value = await response.json();
+  assert.equal(response.status, 200);
+  assert.match(value.output, new RegExp(secret));
+  assert.equal(value.environmentRevision, 9);
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].projectId, "language-src-environment-js");
+  assert.equal(JSON.stringify(value).includes("TASK_SETTING"), false);
+});
 test("workspace history export and reviewed restore are authenticated and revision guarded", async (t) => {
   const { url } = await fixture(t),
     cookie = await session(url),
@@ -104,7 +128,10 @@ test("workspace history export and reviewed restore are authenticated and revisi
   assert.equal((await loaded.json()).workspace.files["src/main.cpp"], changedWorkspace.files["src/main.cpp"]);
   const history = await fetch(`${url}/runtime/workspaces/project-persist?view=history&limit=20`, { headers: { cookie } }),
     historyValue = await history.json();
-  assert.deepEqual(historyValue.history.revisions.map(({ revision }) => revision), [2, 1]);
+  assert.deepEqual(
+    historyValue.history.revisions.map(({ revision }) => revision),
+    [2, 1],
+  );
   assert.equal("payload" in historyValue.history.revisions[0], false);
   assert.equal(historyValue.history.retention.maximumRevisions, 50);
   const exported = await fetch(`${url}/runtime/workspaces/project-persist?view=snapshot&revision=1`, { headers: { cookie } });
@@ -123,17 +150,19 @@ test("workspace history export and reviewed restore are authenticated and revisi
   assert.equal(stale.status, 409);
   assert.equal((await stale.json()).currentRevision, 2);
   const restored = await fetch(`${url}/runtime/workspaces/project-persist`, {
-    method: "POST",
-    headers: { cookie, "content-type": "application/json" },
-    body: JSON.stringify({ protocolVersion: "ynx-code/v1", action: "restore", approval: "restore-workspace-once", approvalId: "22222222-2222-4222-8222-222222222222", expectedRevision: 2, sourceRevision: 1, idempotencyKey: "restore-00000002" }),
-  }), restoredValue = await restored.json();
+      method: "POST",
+      headers: { cookie, "content-type": "application/json" },
+      body: JSON.stringify({ protocolVersion: "ynx-code/v1", action: "restore", approval: "restore-workspace-once", approvalId: "22222222-2222-4222-8222-222222222222", expectedRevision: 2, sourceRevision: 1, idempotencyKey: "restore-00000002" }),
+    }),
+    restoredValue = await restored.json();
   assert.equal(restoredValue.workspace.revision, 3);
   assert.equal(restoredValue.workspace.restoredFrom, 1);
   assert.equal(restoredValue.workspace.files["src/main.cpp"], workspace.files["src/main.cpp"]);
   const otherCookie = await session(url),
     isolated = await fetch(`${url}/runtime/workspaces/project-persist`, {
       headers: { cookie: otherCookie },
-    }), isolatedHistory = await fetch(`${url}/runtime/workspaces/project-persist?view=history`, { headers: { cookie: otherCookie } }),
+    }),
+    isolatedHistory = await fetch(`${url}/runtime/workspaces/project-persist?view=history`, { headers: { cookie: otherCookie } }),
     isolatedSnapshot = await fetch(`${url}/runtime/workspaces/project-persist?view=snapshot&revision=1`, { headers: { cookie: otherCookie } });
   assert.equal(isolated.status, 404);
   assert.deepEqual((await isolatedHistory.json()).history.revisions, []);
@@ -249,7 +278,10 @@ test("project tests are discovered, one-time approved and run without network", 
   assert.match(value.output, /pass 1/);
   assert.equal(value.sandbox.network, false);
   assert.match(value.output, /CPP-TEST-PASS/);
-  assert.deepEqual(value.compiler.evidence.runners.map(({ language }) => language), ["javascript", "python", "go", "cpp"]);
+  assert.deepEqual(
+    value.compiler.evidence.runners.map(({ language }) => language),
+    ["javascript", "python", "go", "cpp"],
+  );
   const unapproved = await fetch(`${url}/runtime/tasks`, {
     method: "POST",
     headers: { cookie, "content-type": "application/json" },
@@ -285,12 +317,7 @@ test("Java is compiled and executed when the reviewed JDK is installed", { skip:
     response = await fetch(`${url}/runtime/tasks`, {
       method: "POST",
       headers: { cookie, "content-type": "application/json" },
-      body: JSON.stringify(
-        languageTask(
-          "src/Main.java",
-          'package dev.ynx; public final class Main { public static void main(String[] args) { System.out.print("YNX-JAVA-42"); } }',
-        ),
-      ),
+      body: JSON.stringify(languageTask("src/Main.java", 'package dev.ynx; public final class Main { public static void main(String[] args) { System.out.print("YNX-JAVA-42"); } }')),
     }),
     value = await response.json();
   assert.equal(response.status, 200, JSON.stringify(value));
@@ -382,6 +409,30 @@ test("task approval, path traversal and compiler errors fail closed", async (t) 
   assert.equal(value.ok, false);
   assert.notEqual(value.code, 0);
 });
+test("active task inventory is owner scoped and redacts commands and environment", async (t) => {
+  const { url } = await fixture(t, { environmentResolver: async () => ({ revision: 6, environment: { PRIVATE_SETTING: "not-in-inventory" } }) }),
+    cookie = await session(url),
+    attackerCookie = await session(url),
+    running = fetch(`${url}/runtime/tasks`, {
+      method: "POST",
+      headers: { cookie, "content-type": "application/json" },
+      body: JSON.stringify(languageTask("src/activity.js", "setTimeout(() => console.log('done'), 700)")),
+    });
+  let tasks = [];
+  for (let attempt = 0; attempt < 30 && tasks.length === 0; attempt += 1) {
+    await new Promise((resolve) => setTimeout(resolve, 25));
+    tasks = (await (await fetch(`${url}/runtime/tasks/active`, { headers: { cookie } })).json()).tasks;
+  }
+  assert.equal(tasks.length, 1);
+  assert.equal(tasks[0].projectId, "language-src-activity-js");
+  assert.equal(tasks[0].environmentRevision, 6);
+  assert.equal(JSON.stringify(tasks).includes("PRIVATE_SETTING"), false);
+  assert.equal(JSON.stringify(tasks).includes("setTimeout"), false);
+  assert.deepEqual((await (await fetch(`${url}/runtime/tasks/active`, { headers: { cookie: attackerCookie } })).json()).tasks, []);
+  assert.equal((await (await running).json()).ok, true);
+  assert.deepEqual((await (await fetch(`${url}/runtime/tasks/active`, { headers: { cookie } })).json()).tasks, []);
+});
+
 test("parallel users receive bounded independent workspaces", async (t) => {
   const { url, runtime } = await fixture(t),
     cookies = await Promise.all(Array.from({ length: 8 }, () => session(url))),
