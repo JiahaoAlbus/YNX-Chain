@@ -110,7 +110,9 @@ Firefox extension packages, and a downloadable PWA package have no declared
 official candidate URL, so the UI exposes them only as disabled, unavailable
 choices. It never guesses a filename or converts the live `/dapp/wallet` status
 page into a package claim. The Android artifact uses the persistent testnet
-release key and therefore remains explicitly non-production-signed.
+release key and therefore remains explicitly non-production-signed. Its download
+control is bound to a visible description containing the verified byte count,
+complete SHA-256, signing class, and `productionSigned=false` boundary.
 Extension signing and transaction calls also perform the live chain/account
 preflight through that runtime channel. A replaced account prevents the
 sensitive call entirely; provider code `4001` remains a real user rejection and

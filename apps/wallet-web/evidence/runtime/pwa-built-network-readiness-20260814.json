@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "sourceCommit": "90cdfcacf0d321a4c57e0556006838ec1a053a1a",
-  "generatedAt": "2026-08-14T06:03:07.017Z",
+  "sourceCommit": "7a4800e29a1187f3da756ed5b1401f3b4284bc49",
+  "generatedAt": "2026-08-14T06:08:24.373Z",
   "gateClass": "executable provider module and UI-source contract imported from the exact built PWA ZIP; not browser runtime evidence",
   "artifact": {
     "name": "ynx-wallet-web-pwa-0.1.0.zip",
-    "bytes": 270540,
-    "sha256": "b44a635e405ffcd5c1aa271901bfd73207f28bdb593abea30060b81822754d75",
+    "bytes": 270794,
+    "sha256": "6738e713a24c46d26bfecd5cc325d9828a63909fef8726a12c1f08411a46a626",
     "signingClass": "unsigned-web-bundle"
   },
   "failures": {

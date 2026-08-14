@@ -36,7 +36,8 @@ function render() {
       <div class="controls"><label><span class="hidden">${text("language")}</span><select id="locale" aria-label="${text("language")}">${options()}</select></label><button id="theme" type="button">${state.theme === "dark" ? text("light") : text("dark")}</button></div></header>
     <section aria-labelledby="title"><h1 id="title">${text("title")}</h1><p class="intro">${text("intro")}</p></section>
     <section class="card" aria-label="Wallet connection"><div id="detected" class="eyebrow">${text("unavailable")}</div>
-      <div class="wallets"><button id="ynx" class="primary hidden" type="button">${text("connectYNX")}</button><a id="download" href="${YNX_DOWNLOAD_URL}" class="secondary" rel="noreferrer">Android · ${text("download")}</a><a id="metamask" href="${METAMASK_DOWNLOAD_URL}" class="secondary" rel="noreferrer">${text("metamask")}</a></div>
+      <div class="wallets"><button id="ynx" class="primary hidden" type="button">${text("connectYNX")}</button><a id="download" href="${YNX_DOWNLOAD_URL}" class="secondary" rel="noreferrer" aria-describedby="download-meta">Android · ${text("download")}</a><a id="metamask" href="${METAMASK_DOWNLOAD_URL}" class="secondary" rel="noreferrer">${text("metamask")}</a></div>
+      <p id="download-meta" class="download-meta mono">${escape(WALLET_DOWNLOAD_MATRIX.android.label)} · ${WALLET_DOWNLOAD_MATRIX.android.bytes.toLocaleString("en-US")} Bytes · SHA-256 ${escape(WALLET_DOWNLOAD_MATRIX.android.sha256)} · ${escape(WALLET_DOWNLOAD_MATRIX.android.signingClass)} · productionSigned=false</p>
       <details id="platforms" class="platforms"><summary>${text("download")}</summary><div class="platform-grid">${unavailablePlatforms()}</div></details>
       <div class="status" id="status" role="status" aria-live="polite"><strong>${text("status")}:</strong> ${state.account ? `${text("connected")} · <span class="mono">${escape(state.account)}</span>` : text("disconnected")}</div>
       <p class="risk">${text("rpcCheck")} ${text("testnet")}</p>
@@ -140,6 +141,7 @@ function presentAvailability(availability) {
   const presentation = walletDiscoveryPresentation(availability);
   document.querySelector("#ynx").classList.toggle("hidden", !presentation.showYNXConnect);
   document.querySelector("#download").classList.toggle("hidden", !presentation.showYNXDownload);
+  document.querySelector("#download-meta").classList.toggle("hidden", !presentation.showYNXDownload);
   document.querySelector("#platforms").classList.toggle("hidden", !presentation.showYNXDownload);
   document.querySelector("#metamask").classList.toggle("hidden", !presentation.showMetaMaskChoice);
   document.querySelector("#metamask").dataset.route = presentation.metaMaskChoice;

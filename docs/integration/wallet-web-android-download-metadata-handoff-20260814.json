@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "owner": "Wallet/Auth Web/PWA/Extensions",
+  "parentCommit": "7a4800e29a1187f3da756ed5b1401f3b4284bc49",
+  "artifact": {
+    "platform": "Android API 24+",
+    "bytes": 78392878,
+    "sha256": "fd924ef853cf17d42ca2d36504528ef879c73fcb4b01ea72b1bfe7ae85085fef",
+    "signingClass": "persistent-testnet-release-key",
+    "hosted": true,
+    "productionSigned": false
+  },
+  "uiEvidence": "The official download control references a visible metadata description; every unavailable platform remains a disabled control without a URL.",
+  "installedLocal": false,
+  "webArtifactDownloadHosted": false,
+  "productionSigned": false,
+  "storeReleased": false
+}

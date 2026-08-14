@@ -20,10 +20,11 @@ for(const name of variants){
     const app=await readFile(join(temp,"app.js"),"utf8"),styles=await readFile(join(temp,"styles.css"),"utf8"),bytes=await readFile(archive),info=await stat(archive);
     const matrix=provider.WALLET_DOWNLOAD_MATRIX;
     const checks={
-      androidExact:matrix.android?.hosted===true&&matrix.android.url===androidUrl&&matrix.android.signingClass==="persistent-testnet-release-key"&&provider.YNX_DOWNLOAD_URL===androidUrl,
+      androidExact:matrix.android?.hosted===true&&matrix.android.url===androidUrl&&matrix.android.bytes===78392878&&matrix.android.sha256==="fd924ef853cf17d42ca2d36504528ef879c73fcb4b01ea72b1bfe7ae85085fef"&&matrix.android.contentType==="application/vnd.android.package-archive"&&matrix.android.signingClass==="persistent-testnet-release-key"&&matrix.android.productionSigned===false&&provider.YNX_DOWNLOAD_URL===androidUrl,
       unavailableNullRoutes:unavailableKeys.every(key=>matrix[key]?.hosted===false&&matrix[key]?.url===null),
       pwaStatusNotPackage:matrix.pwaPackage?.publicStatusUrl==="https://www.ynxweb4.com/dapp/wallet"&&matrix.pwaPackage?.hosted===false,
       inaccessibleLinksPrevented:/disabled aria-disabled="true" data-permanent-disabled="true"/u.test(app),
+      androidMetadataVisible:/aria-describedby="download-meta"/u.test(app)&&/productionSigned=false/u.test(app),
       disabledStatePreserved:/button\.disabled = button\.dataset\.permanentDisabled === "true"/u.test(app),
       fallbackVisibilityBound:/#platforms/u.test(app)&&/showYNXDownload/u.test(app),
       narrowLayout:/@media\(max-width:520px\)[\s\S]*\.wallets,\.actions,\.platform-grid\{grid-template-columns:1fr\}/u.test(styles),

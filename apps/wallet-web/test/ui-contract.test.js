@@ -9,6 +9,8 @@ test("fallback contract always offers YNX download and MetaMask when YNX is abse
   assert.match(source, /if \(!state\.providers\?\.metamask\) return/);
   assert.match(source, /walletDiscoveryPresentation\(availability\)/);
   assert.match(source, /disabled aria-disabled="true" data-permanent-disabled="true"/);
+  assert.match(source, /aria-describedby="download-meta"/);
+  assert.match(source, /productionSigned=false/);
   assert.match(source, /button\.disabled = button\.dataset\.permanentDisabled === "true"/);
   assert.match(source, /document\.querySelector\("#platforms"\)\.classList\.toggle\("hidden", !presentation\.showYNXDownload\)/);
   assert.match(source, /state\.providers = Object\.freeze\(\{ynx:false,metamask:false\}\); state\.provider = null; state\.wallet = null; state\.account = null; state\.chainId = null; state\.rpcVerified = false; applyActionGates\(\); presentAvailability\(state\.providers\)/);

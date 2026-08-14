@@ -77,6 +77,10 @@ test("discovery presentation directly prefers YNX and gives two non-empty fallba
 test("official platform matrix exposes only the verified Android route", () => {
   assert.equal(WALLET_DOWNLOAD_MATRIX.android.hosted,true);
   assert.equal(WALLET_DOWNLOAD_MATRIX.android.url,YNX_DOWNLOAD_URL);
+  assert.equal(WALLET_DOWNLOAD_MATRIX.android.bytes,78392878);
+  assert.equal(WALLET_DOWNLOAD_MATRIX.android.sha256,"fd924ef853cf17d42ca2d36504528ef879c73fcb4b01ea72b1bfe7ae85085fef");
+  assert.equal(WALLET_DOWNLOAD_MATRIX.android.contentType,"application/vnd.android.package-archive");
+  assert.equal(WALLET_DOWNLOAD_MATRIX.android.productionSigned,false);
   assert.equal(new URL(YNX_DOWNLOAD_URL).hostname,"www.ynxweb4.com");
   for(const [platform,item] of Object.entries(WALLET_DOWNLOAD_MATRIX))if(platform!=="android")assert.deepEqual({url:item.url,hosted:item.hosted},{url:null,hosted:false});
   assert.equal(WALLET_DOWNLOAD_MATRIX.pwaPackage.publicStatusUrl,"https://www.ynxweb4.com/dapp/wallet");
