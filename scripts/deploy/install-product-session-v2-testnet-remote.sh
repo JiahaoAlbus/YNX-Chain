@@ -179,15 +179,26 @@ if [[ "$mode" == rollback-drill ]]; then
   rollback
   rollback_on_error=false
   trap - EXIT
-  [[ ! -e "$unit" && ! -e "$env_file" && ! -e "$state_dir" ]] || { echo "rollback drill did not remove new service state" >&2; exit 1; }
+  if [[ "$unit_existed" == true ]]; then
+    cmp -s "$backup_dir/service.unit" "$unit"
+    cmp -s "$backup_dir/service.env" "$env_file"
+    cmp -s "$backup_dir/state.json" "$state_file"
+    previous_commit="$(curl -fsS --max-time 5 http://127.0.0.1:6441/version | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>process.stdout.write(JSON.parse(s).build.sourceCommit))')"
+    [[ "$previous_commit" =~ ^[0-9a-f]{40}$ && "$previous_commit" != "$source_commit" ]]
+    YNX_PRODUCT_SESSION_V2_PUBLIC_PROBE=1 YNX_PRODUCT_SESSION_V2_PUBLIC_URL=https://rest.ynxweb4.com node "$release_dir/wallet-auth/scripts/probe-product-session-v2-public.mjs" >"$backup_dir/post-rollback-mount.json"
+    post_rollback_result="restored-previous-v2-source-$previous_commit"
+  else
+    [[ ! -e "$unit" && ! -e "$env_file" && ! -e "$state_dir" ]] || { echo "rollback drill did not remove new service state" >&2; exit 1; }
+    ! grep -Fq '# BEGIN YNX PRODUCT SESSION V2' "$caddy_file"
+    if YNX_PRODUCT_SESSION_V2_PUBLIC_PROBE=1 YNX_PRODUCT_SESSION_V2_PUBLIC_URL=https://rest.ynxweb4.com node "$release_dir/wallet-auth/scripts/probe-product-session-v2-public.mjs" >"$backup_dir/post-rollback-mount.stdout" 2>"$backup_dir/post-rollback-mount.json"; then echo "rollback drill left the new v2 public route mounted" >&2; exit 1; fi
+    grep -Fq 'UNEXPECTED_HTTP_STATUS' "$backup_dir/post-rollback-mount.json"
+    post_rollback_result="restored-pre-v2-public-fallback"
+  fi
   systemctl is-active --quiet ynx-wallet-gatewayd
   systemctl is-active --quiet ynx-app-gatewayd
   curl -fsS --max-time 5 http://127.0.0.1:6439/health >/dev/null
   curl -fsS --max-time 5 http://127.0.0.1:6437/health >/dev/null
-  ! grep -Fq '# BEGIN YNX PRODUCT SESSION V2' "$caddy_file"
-  if YNX_PRODUCT_SESSION_V2_PUBLIC_PROBE=1 YNX_PRODUCT_SESSION_V2_PUBLIC_URL=https://rest.ynxweb4.com node "$release_dir/wallet-auth/scripts/probe-product-session-v2-public.mjs" >"$backup_dir/post-rollback-mount.stdout" 2>"$backup_dir/post-rollback-mount.json"; then echo "rollback drill left the v2 public route mounted" >&2; exit 1; fi
-  grep -Fq 'UNEXPECTED_HTTP_STATUS' "$backup_dir/post-rollback-mount.json"
-  printf 'productSessionV2RollbackDrill=passed\nsourceCommit=%s\nrelease=%s\nbackup=%s\npublicMountBeforeRollback=%s\npublicMountAfterRollback=%s\n' "$source_commit" "$release" "$backup_dir" "$backup_dir/public-mount.json" "$backup_dir/post-rollback-mount.json"
+  printf 'productSessionV2RollbackDrill=passed\nsourceCommit=%s\nrelease=%s\nbackup=%s\npublicMountBeforeRollback=%s\npublicMountAfterRollback=%s\npostRollbackResult=%s\n' "$source_commit" "$release" "$backup_dir" "$backup_dir/public-mount.json" "$backup_dir/post-rollback-mount.json" "$post_rollback_result"
   exit 0
 fi
 
