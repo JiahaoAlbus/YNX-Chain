@@ -232,6 +232,20 @@
       "exclusionReason": "The clean-consumer tarball is not published to npm or immutable public hosting."
     },
     {
+      "id": "linux-x64-rpm-fedora",
+      "sourceCommit": "c2622ca2e18949ee83625cc97854c2f097c79eee",
+      "artifactName": "ynx-wallet-desktop-0.1.0-x86_64.rpm",
+      "sha256": "8cf24d83dd5da5851484eab14ce9e6cd16946c95699a7af1e11048bbd7692bea",
+      "signingClass": "unsigned-linux-rpm-testnet-candidate",
+      "publicUrl": null,
+      "immutableUrl": null,
+      "downloadHosted": false,
+      "productionSigned": false,
+      "storeReleased": false,
+      "websitePublishable": false,
+      "exclusionReason": "No official YNX URL or public re-download SHA/Bytes exists; native Fedora CI and GitHub artifact retention are not public hosting."
+    },
+    {
       "id": "macos-cli-x64-0.2.0",
       "sourceCommit": "ddab97ee88e927558f87eddc2d4a61a09a5bdc80",
       "artifactName": "ynx-wallet-cli-darwin-amd64.gz",

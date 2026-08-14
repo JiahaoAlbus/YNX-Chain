@@ -45,7 +45,11 @@
     },
     {"owner":"ios-macos","candidateCommit":"b081dd7022f0a07499c1de91b8e3d2579363b926","remoteFastForwardReported":true,"remoteReadbackComplete":false,"ciComplete":false,"consumedForReleaseTruth":false,"note":"Universal Link path fix has no terminal successful evidence; associated-domain/public delivery remain false."},
     {"owner":"ios-macos","candidateCommit":"7115615f0fa06b75dfcf1c8d3c1c91edc2dff6d1","remoteFastForwardReported":true,"remoteReadbackComplete":true,"ciComplete":false,"consumedForReleaseTruth":false,"note":"Recovery workflow run remains in progress and promotes no biometric, recovery, auth or public gate."},
-    {"owner":"core-auth-gateway","candidateCommit":"6425ec0c390c43de65b35529c885b353c747930d","remoteFastForwardReported":true,"remoteReadbackComplete":true,"ciComplete":null,"consumedForReleaseTruth":false,"note":"Unknown Core successor remains pending beyond the authorized batch evidence."}
+    {"owner":"core-auth-gateway","candidateCommit":"6425ec0c390c43de65b35529c885b353c747930d","remoteFastForwardReported":true,"remoteReadbackComplete":true,"ciComplete":null,"consumedForReleaseTruth":false,"note":"Unknown Core successor remains pending beyond the authorized batch evidence."},
+    {"owner":"desktop-cli-sdk","candidateCommit":"c738443079fe2519d334d7104f30dc9675673c9a","remoteFastForwardReported":true,"remoteReadbackComplete":true,"ciComplete":true,"consumedForReleaseTruth":false,"note":"Linux x64 RPM handoff remains queued separately."},
+    {"owner":"desktop-cli-sdk","candidateCommit":"fb0b1ac18b809a7b9782fdebc4f9c2c50312fb7b","remoteFastForwardReported":true,"remoteReadbackComplete":true,"ciComplete":true,"consumedForReleaseTruth":false,"note":"macOS arm64 CLI evidence remains queued separately."},
+    {"owner":"desktop-cli-sdk","candidateCommit":"ca1fc40aaadab1421b4681647e619516ff25ff9b","remoteFastForwardReported":true,"remoteReadbackComplete":true,"ciComplete":true,"consumedForReleaseTruth":false,"note":"macOS arm64 CLI handoff remains queued separately."},
+    {"owner":"android-api36","candidateCommit":"f1edbec46ad4300beec406873b03db2da7c72e4b","remoteFastForwardReported":true,"remoteReadbackComplete":false,"ciComplete":true,"consumedForReleaseTruth":false,"note":"Canonical authorization pending-to-delivered recovery remains queued after Desktop slices."}
   ],
   "ownerSources": [
     {
@@ -87,9 +91,9 @@
     {
       "owner": "desktop-cli-sdk",
       "branch": "codex/wallet-desktop-cli-sdk-20260813",
-      "sourceCommit": "0985090cc5640a7bc6f614acba1f32ba24e6dc55",
-      "remoteCommitObserved": "0985090cc5640a7bc6f614acba1f32ba24e6dc55",
-      "branchHeadObserved": "a25c4977655a28b5ae12f34604636eb75d71302c",
+      "sourceCommit": "c2622ca2e18949ee83625cc97854c2f097c79eee",
+      "remoteCommitObserved": "c2622ca2e18949ee83625cc97854c2f097c79eee",
+      "branchHeadObserved": "ca1fc40aaadab1421b4681647e619516ff25ff9b",
       "remoteVerifiedAt": "2026-08-14T04:05:00Z",
       "verificationMode": "github-git-database-parent-tree-blob-readback"
     }
@@ -692,6 +696,13 @@
       "commit": "0985090cc5640a7bc6f614acba1f32ba24e6dc55",
       "path": "release/integration/wallet-desktop-cli-sdk-contract.json",
       "supports": []
+    },
+    "linux-desktop-x64-rpm-fedora": {
+      "type": "git-object",
+      "direct": true,
+      "commit": "c2622ca2e18949ee83625cc97854c2f097c79eee",
+      "path": "release/wallet-desktop/linux-x64-rpm-fedora/manifest.json",
+      "supports": ["linux-desktop-x64-rpm.build", "linux-desktop-x64-rpm.install", "linux-desktop-x64-rpm.coldLaunch", "linux-desktop-x64-rpm.secondLaunch", "linux-desktop-x64-rpm.testnet"]
     }
   },
   "platforms": [
@@ -764,6 +775,16 @@
       "gates": {"build":true,"install":true,"coldLaunch":true,"secondLaunch":true,"testnet":true,"sign":false,"tx":false,"callback":false,"reconnect":false,"downloadHosted":false,"productionSigned":false,"storeReleased":false},
       "evidenceBindings": {"build":["linux-desktop-action","linux-appimage-portable-action"],"install":["linux-desktop-action","linux-appimage-portable-action"],"coldLaunch":["linux-desktop-action","linux-appimage-portable-action"],"secondLaunch":["linux-desktop-action","linux-appimage-portable-action"],"testnet":["linux-desktop-action","linux-appimage-portable-action"],"sign":["linux-desktop-action","linux-appimage-portable-action"],"tx":["linux-desktop-action","linux-appimage-portable-action"],"callback":["linux-desktop-action","linux-appimage-portable-action"],"reconnect":["linux-desktop-action","linux-appimage-portable-action"],"downloadHosted":["linux-desktop-action","linux-appimage-portable-action"],"productionSigned":["linux-desktop-action","linux-appimage-portable-action"],"storeReleased":["linux-desktop-action","linux-appimage-portable-action"]},
       "notes": ["Ubuntu 24.04 AppImage portable first/second lifecycle, exact 0x1917, RPC fail-close, setuid Chromium sandbox and post-upload redownload/hash verification passed. The AppImage was not installed, remains unsigned, and temporary Actions retention is not an immutable hosted product download."]
+    },
+    {
+      "id": "linux-desktop-x64-rpm",
+      "ownerSource": "desktop-cli-sdk",
+      "artifactClass": "unsigned-linux-rpm-testnet-candidate",
+      "status": "native-ci-installed-lifecycle",
+      "capabilities": {"installedNativeCI":true,"installedLocal":false,"upgradeTestedNativeCI":true,"rollbackTestedNativeCI":true,"reupgradeAfterRollbackTestedNativeCI":true,"rpmScriptsTested":true,"fedoraDnfCompatibilityTested":true,"postUploadRedownloadHashVerified":true},
+      "gates": {"build":true,"install":true,"coldLaunch":true,"secondLaunch":true,"testnet":true,"sign":false,"tx":false,"callback":false,"reconnect":false,"downloadHosted":false,"productionSigned":false,"storeReleased":false},
+      "evidenceBindings": {"build":["linux-desktop-x64-rpm-fedora"],"install":["linux-desktop-x64-rpm-fedora"],"coldLaunch":["linux-desktop-x64-rpm-fedora"],"secondLaunch":["linux-desktop-x64-rpm-fedora"],"testnet":["linux-desktop-x64-rpm-fedora"],"sign":["linux-desktop-x64-rpm-fedora"],"tx":["linux-desktop-x64-rpm-fedora"],"callback":["linux-desktop-x64-rpm-fedora"],"reconnect":["linux-desktop-x64-rpm-fedora"],"downloadHosted":["linux-desktop-x64-rpm-fedora"],"productionSigned":["linux-desktop-x64-rpm-fedora"],"storeReleased":["linux-desktop-x64-rpm-fedora"]},
+      "notes": ["Fedora 42 x64 native CI proved RPM/DNF scripts, install/upgrade/rollback/re-upgrade, sandbox, GUI cold/second lifecycle, exact 0x1917, fail-close, uninstall and rehash. The RPM is unsigned and has no official public URL; public download, deployment, central integration and store remain false."]
     },
     {
       "id": "macos-desktop-x64",
