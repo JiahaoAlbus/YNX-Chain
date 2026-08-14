@@ -136,6 +136,7 @@ jobs:
           set -euo pipefail
           DEVICE="$(xcrun simctl list devices booted | awk -F '[()]' '/iPhone/{print $2; exit}')"
           test -n "$DEVICE"
+          xcrun simctl biometric "$DEVICE" unenroll
           xcodebuild test \
             -workspace ios/YNXWallet.xcworkspace \
             -scheme YNXWallet \

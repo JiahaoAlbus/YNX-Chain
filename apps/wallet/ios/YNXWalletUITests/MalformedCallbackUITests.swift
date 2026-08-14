@@ -48,7 +48,13 @@ final class MalformedCallbackUITests: XCTestCase {
     recoveryField.typeText(String(repeating: "0", count: 64))
 
     let persist = wallet.buttons["Recover into secure storage"]
-    XCTAssertTrue(persist.isEnabled, "Recovery action did not accept the isolated 32-byte test vector")
+    let enabled = NSPredicate(format: "enabled == true")
+    let enabledExpectation = expectation(for: enabled, evaluatedWith: persist)
+    XCTAssertEqual(
+      XCTWaiter.wait(for: [enabledExpectation], timeout: 15),
+      .completed,
+      "Recovery action did not accept the isolated 32-byte test vector"
+    )
     persist.tap()
 
     let failure = wallet.staticTexts["Recovery authorization failed"]
