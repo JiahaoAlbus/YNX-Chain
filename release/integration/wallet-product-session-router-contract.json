@@ -59,7 +59,14 @@
     "provider": "explicit MetaMask EIP-1193 provider",
     "chainId": 6423,
     "chainQuantity": "0x1917",
-    "methods": ["eth_chainId", "wallet_switchEthereumChain", "eth_requestAccounts"],
+    "methods": ["eth_chainId", "wallet_switchEthereumChain", "wallet_addEthereumChain", "eth_requestAccounts"],
+    "chainRegistration": {
+      "chainName": "YNX Testnet",
+      "nativeCurrency": {"name": "YNX Testnet", "symbol": "YNXT", "decimals": 18},
+      "rpcUrls": ["https://evm.ynxweb4.com"],
+      "blockExplorerUrls": ["https://explorer.ynxweb4.com"],
+      "callerOverride": false
+    },
     "authority": "eip-1193-provider-only",
     "ynxProductSession": false,
     "fallback": "none",

@@ -140,6 +140,7 @@ export declare function walletConnectionChoices(registry:unknown,productId:strin
 export declare const METAMASK_EVM_CONNECTION_STATUS:Readonly<{CONNECTED:"connected-evm"}>;
 export declare const METAMASK_EVM_CHAIN_ID:6423;
 export declare const METAMASK_EVM_CHAIN_QUANTITY:"0x1917";
+export declare const METAMASK_EVM_CHAIN:Readonly<{chainId:"0x1917";chainName:"YNX Testnet";nativeCurrency:Readonly<{name:"YNX Testnet";symbol:"YNXT";decimals:18}>;rpcUrls:readonly ["https://evm.ynxweb4.com"];blockExplorerUrls:readonly ["https://explorer.ynxweb4.com"]}>;
 export type MetaMaskEvmConnection=Readonly<{status:"connected-evm";wallet:"metamask";connectionMode:"evm-only";authority:"eip-1193-provider-only";productId:string;chainId:6423;chainQuantity:"0x1917";address:string;ynxProductSession:false;productSession:null;limitations:readonly string[]}>;
 export declare class MetaMaskEvmConnectionAdapter{constructor(config:Readonly<{registry:unknown;productId:string;provider:unknown}>);connect():Promise<MetaMaskEvmConnection>};
 export declare function encodeProductSessionWalletURL(registry:unknown,request:unknown,at?:Date):string;

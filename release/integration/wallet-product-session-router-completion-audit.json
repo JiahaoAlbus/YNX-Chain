@@ -89,21 +89,22 @@
         "packages/wallet-auth/evidence/product-session-visible-proof-computercontrol.jpeg",
         "packages/wallet-auth/evidence/ynx-wallet-installed-unavailable-computercontrol.jpeg",
         "packages/wallet-auth/evidence/metamask-installed-observation.json",
+        "packages/wallet-auth/evidence/metamask-biometric-timeout-computercontrol.png",
         "packages/wallet-auth/test/product-session-gateway-client.test.mjs",
         "packages/wallet-auth/test/product-session-gateway-http.test.mjs",
         "packages/wallet-auth/test/product-session-migration.test.mjs"
       ],
       "targetedTests": {
-        "passed": 55,
+        "passed": 56,
         "failed": 0,
         "concurrentProductSessions": 120
       },
       "fullPackageTests": {
-        "passed": 157,
+        "passed": 158,
         "failed": 0
       },
       "remaining": [
-        "MetaMask is installed and enabled and the EIP-1193 adapter is locally tested, but no product runtime is migrated and ComputerControl closed before a real EVM connection or Product Session flow could be exercised",
+        "MetaMask is installed, enabled, and granted full site access; ComputerControl reached the real unlock route, but biometric unlock timed out without user confirmation before provider connection, chain approval, account approval, or Product Session",
         "No installed YNX Wallet application was available for a real approval/session flow",
         "Each actually migrated product requires installed Web/desktop/mobile approval, rejection, timeout, revoke, restart, network-loss and Retry evidence"
       ]

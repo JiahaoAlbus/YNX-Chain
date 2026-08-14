@@ -7,6 +7,13 @@ export const METAMASK_EVM_CONNECTION_STATUS = Object.freeze({
 
 export const METAMASK_EVM_CHAIN_ID = 6423;
 export const METAMASK_EVM_CHAIN_QUANTITY = "0x1917";
+export const METAMASK_EVM_CHAIN = Object.freeze({
+  chainId: METAMASK_EVM_CHAIN_QUANTITY,
+  chainName: "YNX Testnet",
+  nativeCurrency: Object.freeze({ name: "YNX Testnet", symbol: "YNXT", decimals: 18 }),
+  rpcUrls: Object.freeze(["https://evm.ynxweb4.com"]),
+  blockExplorerUrls: Object.freeze(["https://explorer.ynxweb4.com"]),
+});
 
 const LIMITATIONS = Object.freeze([
   "evm-provider-only",
@@ -43,7 +50,17 @@ export class MetaMaskEvmConnectionAdapter {
 
     let chainId = parseChainQuantity(await providerRequest(provider, "eth_chainId"));
     if (chainId !== METAMASK_EVM_CHAIN_ID) {
-      await providerRequest(provider, "wallet_switchEthereumChain", [{ chainId: METAMASK_EVM_CHAIN_QUANTITY }], true);
+      try {
+        await providerRequest(provider, "wallet_switchEthereumChain", [{ chainId: METAMASK_EVM_CHAIN_QUANTITY }], true);
+      } catch (error) {
+        if (!(error instanceof WalletAuthError) || error.code !== "CHAIN_NOT_AVAILABLE") throw error;
+        try { await providerRequest(provider, "wallet_addEthereumChain", [METAMASK_EVM_CHAIN]); }
+        catch (addError) {
+          if (addError instanceof WalletAuthError && addError.code === "USER_REJECTED") throw addError;
+          fail("CHAIN_NOT_AVAILABLE", "YNX EVM chain 6423 could not be added to MetaMask");
+        }
+        await providerRequest(provider, "wallet_switchEthereumChain", [{ chainId: METAMASK_EVM_CHAIN_QUANTITY }], true);
+      }
       chainId = parseChainQuantity(await providerRequest(provider, "eth_chainId"));
     }
     if (chainId !== METAMASK_EVM_CHAIN_ID) fail("WRONG_NETWORK", "MetaMask did not switch to YNX EVM chain 6423");
