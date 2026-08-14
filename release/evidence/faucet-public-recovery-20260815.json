@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 1,
+  "evidenceType": "source-bound-faucet-public-recovery",
+  "observedAt": "2026-08-15T00:40:06+08:00",
+  "authority": "Core/RPC/Faucet",
+  "source": {
+    "commit": "8fe48738f309c469bd7a16e31fbfe9e106d7de3c",
+    "release": "ynx-chain-8fe48738f309",
+    "buildTime": "2026-08-14T15:55:53Z",
+    "binary": "/usr/local/bin/ynx-faucetd",
+    "binarySha256": "6bc1b9c41095d235469be97901033d59db686601810fc8ac0fd0392e27135a26",
+    "binaryFormat": "ELF 64-bit LSB executable, x86-64, statically linked",
+    "binaryOwnerModeSizeNlink": "root:root 0755 27191197 1"
+  },
+  "failureClassification": [
+    {
+      "phase": "build",
+      "result": "failed",
+      "directOutput": "ynx-faucetd.service: Failed to execute /usr/local/bin/ynx-faucetd: Exec format error; status=203/EXEC",
+      "cause": "The first candidate was built for macOS/arm64 and could not execute on the Linux/x86-64 production host.",
+      "remoteMutation": "The candidate briefly replaced the binary and systemd attempted three starts.",
+      "recovery": "The deployment gate restored the previous service binary and restarted it.",
+      "rollbackArtifact": "/var/backups/ynx-chain/faucet/ynx-faucetd-pre-8fe48738f309-20260814T155311Z",
+      "rollbackArtifactState": "present regular file, root:root 0755, 19054776 bytes"
+    },
+    {
+      "phase": "transport",
+      "result": "failed-safe",
+      "directOutput": "The first SCP of the corrected Linux/x86-64 candidate was truncated.",
+      "remoteMutation": "The install step did not run; the restored old service remained active.",
+      "recovery": "A bounded resumable transfer completed and its remote SHA-256 was checked before install."
+    },
+    {
+      "phase": "remote-semantics",
+      "result": "passed",
+      "directOutput": "systemctl is-active ynx-faucetd => active; MainPID=550320",
+      "remoteMutation": "Only ynx-faucetd was restarted; chain, gateway and Caddy services were not replaced.",
+      "preDeployBackup": "/var/backups/ynx-chain/faucet/ynx-faucetd-pre-deploy-8fe48738f309-20260814T160446Z",
+      "preDeployBackupState": "present regular file, root:root 0755, 19054776 bytes"
+    }
+  ],
+  "rootCause": {
+    "productionOutage": "A prior funding timeout remained in the in-process lastError field. The old health implementation copied that stale error before probing the currently healthy upstream, so /health continued returning unhealthy.",
+    "fix": "CheckHealth now starts the current probe as healthy with an empty lastError and only reports an error when the current upstream status request fails.",
+    "fundingSemanticsChanged": false,
+    "rateLimitSemanticsChanged": false
+  },
+  "productionHostPublicSni": {
+    "faucetHealth": {
+      "endpoint": "https://faucet.ynxweb4.com/health",
+      "httpStatus": 200,
+      "ok": true,
+      "upstreamOk": true,
+      "chainId": 6423,
+      "height": 1020276,
+      "requests": 1,
+      "successes": 0,
+      "denied": 1,
+      "source": "8fe48738f309c469bd7a16e31fbfe9e106d7de3c"
+    },
+    "safeInvalidFaucetRequest": {
+      "endpoint": "https://faucet.ynxweb4.com/request",
+      "requestBody": { "address": "bad" },
+      "origin": "https://www.ynxweb4.com",
+      "httpStatus": 400,
+      "response": { "error": "invalid address" },
+      "accessControlAllowOrigin": "https://www.ynxweb4.com",
+      "vary": "Origin",
+      "requestId": null,
+      "requestIdReason": "No request-id header or response field was emitted.",
+      "assetMutation": false,
+      "transactionHash": null
+    },
+    "evmChainId": {
+      "endpoint": "https://evm.ynxweb4.com/",
+      "method": "eth_chainId",
+      "httpStatus": 200,
+      "result": "0x1917",
+      "decimal": 6423
+    }
+  },
+  "clientPath": {
+    "systemDnsObservation": "The workstation resolver returned a synthetic 198.18.0.0/15 address for YNX public hosts.",
+    "normalHttps": "TLS connection timeout before HTTP for https://faucet.ynxweb4.com/health",
+    "forcedOriginHttps": "TLS connection timeout before HTTP even with --resolve faucet.ynxweb4.com:443:43.153.202.237",
+    "inAppBrowser": "ERR_BLOCKED_BY_CLIENT for the Faucet health URL",
+    "classification": "client/transport path remains unproven and independently unhealthy from this workstation; it does not contradict the direct production-host SNI application proof"
+  },
+  "truthBoundary": {
+    "faucetServiceDeployed": true,
+    "faucetPublicOriginHealthyFromProductionHost": true,
+    "faucetReachableFromObservedMobileOrWorkstationPath": false,
+    "mobileVisibleSuccess": false,
+    "aggregateDeployedPublic": false,
+    "successfulFundingTransactionObserved": false,
+    "transactionHash": null
+  }
+}
