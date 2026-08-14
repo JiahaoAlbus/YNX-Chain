@@ -68,8 +68,9 @@ jobs:
               test -x "$EXECUTABLE"
               SANDBOX="$(dirname "$EXECUTABLE")/chrome-sandbox"
               test "$(stat -c "%U:%G" "$SANDBOX")" = root:root
-              test "$(stat -c "%a" "$SANDBOX")" = 4755
               useradd --create-home tester
+              runuser -u tester -- unshare --user true
+              test "$(stat -c "%a" "$SANDBOX")" = 755
               chown tester:tester /evidence
 
               run_phase() {
@@ -138,6 +139,7 @@ jobs:
             upgradeVerified: true,
             currentInstalled: true,
             sandboxPostInstallStateVerified: true,
+            sandboxMode: 'unprivileged-user-namespace with chrome-sandbox root:root/0755 selected by the executed RPM postinstall script',
             coldLaunch: true,
             secondLaunch: true,
             processObserved: true,
