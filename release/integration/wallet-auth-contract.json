@@ -5,7 +5,7 @@
   "slug": "wallet-auth",
   "productSlug": "wallet-auth",
   "owner": "02-wallet-auth",
-  "sourceCommit": "f3574cc17c53dfbe937933836ccdadf24f9e191e",
+  "sourceCommit": "7974924bdf8f7096612ae9de01c69e91e750a274",
   "phase": "PUBLIC-TESTNET-GATEWAY",
   "network": {
     "nativeChainId": "ynx_6423-1",
@@ -539,6 +539,7 @@
     },
     "gatewayStateFileSecurity": {
       "sourceCommit": "f3574cc17c53dfbe937933836ccdadf24f9e191e",
+      "boundaryEvidenceSourceCommit": "7974924bdf8f7096612ae9de01c69e91e750a274",
       "focusedTests": "3/3 passed",
       "noFollow": true,
       "regularFileRequired": true,
@@ -551,6 +552,10 @@
       "hardLinkRejected": true,
       "directoryAsStateRejected": true,
       "broadFileModeRejected": true,
+      "worldReadableModeTested": "0644",
+      "worldReadableRejected": true,
+      "testedOversizeBytes": 67108865,
+      "oversizeRejectedBeforeRead": true,
       "noncanonicalJsonRejected": true,
       "runtimeReplacementStatus": 503,
       "runtimeReplacementCode": "STATE_UNAVAILABLE",
@@ -562,7 +567,8 @@
       "deployedStaging": false,
       "deployedPublic": false,
       "publicRouteVerified": false,
-      "evidence": "apps/wallet/proof/gateway-state-file-security-local-2026-08-14.json"
+      "evidence": "apps/wallet/proof/gateway-state-file-security-local-2026-08-14.json",
+      "boundaryEvidence": "apps/wallet/proof/gateway-state-file-exact-boundaries-local-2026-08-14.json"
     },
     "gatewayAdmissionObservability": {
       "sourceCommit": "6b1f1f21a79861178ee7fc168ad21c2869296fd5",

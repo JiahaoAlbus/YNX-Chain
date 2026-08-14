@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "integrationId": "canonical-wallet-auth-v1",
   "owner": "02-wallet-auth",
-  "sourceCommit": "f3574cc17c53dfbe937933836ccdadf24f9e191e",
+  "sourceCommit": "7974924bdf8f7096612ae9de01c69e91e750a274",
   "targetService": "ynx-app-gatewayd",
   "protocol": {
     "authorization": "wallet-auth-v1",
@@ -94,7 +94,7 @@
     "legacy Ed25519 session substitution"
   ],
   "stateSchema": "gateway-state.schema.json",
-  "testVectors": ["../testdata/product-session-http-proof-v1.json", "../testdata/strategy-mandate-v2.json", "../testdata/central-lifecycle-v1.json", "../../../apps/wallet/proof/gateway-observability-local-2026-07-27.json", "../../../apps/wallet/proof/gateway-admission-observability-local-2026-08-13.json", "../../../apps/wallet/proof/gateway-registry-state-binding-local-2026-08-14.json", "../../../apps/wallet/proof/gateway-state-file-security-local-2026-08-14.json"],
+  "testVectors": ["../testdata/product-session-http-proof-v1.json", "../testdata/strategy-mandate-v2.json", "../testdata/central-lifecycle-v1.json", "../../../apps/wallet/proof/gateway-observability-local-2026-07-27.json", "../../../apps/wallet/proof/gateway-admission-observability-local-2026-08-13.json", "../../../apps/wallet/proof/gateway-registry-state-binding-local-2026-08-14.json", "../../../apps/wallet/proof/gateway-state-file-security-local-2026-08-14.json", "../../../apps/wallet/proof/gateway-state-file-exact-boundaries-local-2026-08-14.json"],
   "acceptanceCommands": [
     {"cwd":"packages/wallet-auth","command":"npm test","expected":"163/163"},
     {"cwd":"packages/wallet-auth","command":"node --test test/gateway-node-state-file-security.test.mjs","expected":"3/3"},

@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "gateway-state-file-exact-boundaries-local-2026-08-14",
+  "owner": "02-wallet-auth",
+  "sourceCommit": "7974924bdf8f7096612ae9de01c69e91e750a274",
+  "baseEvidence": "gateway-state-file-security-local-2026-08-14",
+  "baseSourceCommit": "f3574cc17c53dfbe937933836ccdadf24f9e191e",
+  "observedAt": "2026-08-14T03:52:47Z",
+  "environment": "local-private-posix-filesystem",
+  "exactBoundaries": {
+    "worldReadableMode": "0644",
+    "worldReadableRejected": true,
+    "maximumStateBytes": 67108864,
+    "testedOversizeBytes": 67108865,
+    "oversizeRejectedBeforeRead": true,
+    "noncanonicalTrailingNewlineRejected": true,
+    "rejectedFileRewritten": false,
+    "symlinkAndHardLinkStartupRegression": true,
+    "runtimeReplacementRegression": true
+  },
+  "tests": {
+    "focusedStateFileSecurity": "3/3 passed",
+    "focusedHostBackupSharedStatePersistenceRegistrySecurity": "30/30 passed",
+    "walletAuthFullSuite": "163/163 passed",
+    "walletProductCheck": "passed",
+    "walletReleaseContentCheck": "passed",
+    "walletGoalCoverageCheck": "passed",
+    "jsonAndDiffChecks": "passed"
+  },
+  "sourceSha256": {
+    "packages/wallet-auth/test/gateway-node-state-file-security.test.mjs": "dcb295bbfa86c5ebadebdaf58a4736ecdb272dc3862abe621f7e1ba50206ae6c"
+  },
+  "releaseClaims": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "publicRouteVerified": false,
+    "networkFilesystemSemanticsVerified": false,
+    "multiRegionVerified": false
+  }
+}
