@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { initialLockState, reduceLockState } from "./lockState";
+import { initialLockState, isSelectedAccountUnlocked, reduceLockState } from "./lockState";
 
 test("every process restart is locked and backgrounding clears unlocked account",()=>{
   const first=initialLockState();
@@ -17,4 +17,11 @@ test("every account switch relocks and clears the previously authorized account"
   const unlocked=reduceLockState(locked,{type:"unlock",account:"one"});
   assert.deepEqual(reduceLockState(unlocked,{type:"switch",account:"two"}),{locked:true,unlockedAccount:null,reason:"account-switch"});
   assert.deepEqual(reduceLockState(unlocked,{type:"switch",account:"one"}),{locked:true,unlockedAccount:null,reason:"account-switch"});
+});
+
+test("Dashboard authorization is bound to the exact selected account",()=>{
+  const unlocked=reduceLockState(initialLockState(),{type:"unlock",account:"one"});
+  assert.equal(isSelectedAccountUnlocked(unlocked,"one"),true);
+  assert.equal(isSelectedAccountUnlocked(unlocked,"two"),false);
+  assert.equal(isSelectedAccountUnlocked(reduceLockState(unlocked,{type:"switch",account:"two"}),"two"),false);
 });

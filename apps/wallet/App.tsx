@@ -24,7 +24,7 @@ import { WalletSessionInventoryClient, type WalletGatewayBridge, type WalletSess
 import { authorizeLocalKeyUse } from "./src/security/localAuthorization";
 import { switchAccountFailClosed } from "./src/security/accountSwitchPolicy";
 import { copyPublicValueWithExpiry } from "./src/security/clipboardPrivacy";
-import { initialLockState, reduceLockState } from "./src/state/lockState";
+import { initialLockState, isSelectedAccountUnlocked, reduceLockState } from "./src/state/lockState";
 import { beginOnboardingSave, canSaveOnboarding, initialOnboardingState, onboardingAccountInput, reduceOnboardingState, type OnboardingState } from "./src/state/onboardingState";
 import { assertSecureStorageAvailable, platformSecureStorage } from "./src/storage/secureStorage";
 import { type WalletAccount, type WalletManifest, WalletRepository } from "./src/storage/walletRepository";
@@ -70,6 +70,7 @@ function WalletApp(){
   const [privacyAttempt,setPrivacyAttempt]=useState(0);
   const [privacyState,setPrivacyState]=useState<{ready:boolean;error:string|null}>({ready:false,error:null});
   const selected=useMemo(()=>manifest?.accounts.find((item)=>item.account===manifest.selectedAccountId)??null,[manifest]);
+  const selectedAccountUnlocked=selected!==null&&isSelectedAccountUnlocked(lockState,selected.account);
 
   const load=useCallback(async()=>{
     setLoading(true);setError(null);
@@ -108,7 +109,7 @@ function WalletApp(){
     {authorizationError?<View style={styles.bannerError}><Text style={styles.error}>{authorizationError}</Text><Pressable accessibilityLabel="Dismiss invalid authorization" onPress={()=>setAuthorizationError(null)}><X size={17} color={ACTIVE_COLORS.danger}/></Pressable></View>:null}
     {!manifest?.accounts.length
       ?<EmptyWallet locale={locale} create={()=>void create()} importAccount={()=>dispatchOnboarding({type:"openImport"})} recover={()=>dispatchOnboarding({type:"openRecover"})}/>
-      :lockState.locked
+      :!selectedAccountUnlocked
         ?<Locked locale={locale} account={selected!} busy={busy} unlock={()=>void unlock()} recovery={()=>dispatchOnboarding({type:"openRecover"})}/>
         :<Dashboard locale={locale} manifest={manifest} selected={selected!} select={(account)=>void select(account)} add={()=>dispatchOnboarding({type:"openImport"})} create={()=>void create()} lock={()=>dispatchLock({type:"lock",reason:"user"})} onManifest={setManifest}/>}
     <SetupModal state={onboarding} dispatch={dispatchOnboarding} close={()=>{if(!busy)dispatchOnboarding({type:"close"})}} saved={saved} busy={busy} setBusy={setBusy} setError={setError}/>
