@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "wallet-public-erc4337-metadata-promotion-local-2026-08-14",
+  "owner": "02-wallet-auth",
+  "sourceCommit": "fb97a149250475e5df0f8265387acd9f8a2099ea",
+  "failFirst": "SyntaxError: requested module did not provide buildPublicERC4337MetadataCandidate",
+  "command": "npm --prefix packages/wallet-auth run promote:public-erc4337-metadata",
+  "requiresExplicitOptIn": true,
+  "acceptsSecrets": false,
+  "inputConsensus": [
+    "source-bound all-or-nothing public deployment verification",
+    "fresh healthy Paymaster monitor sample with event continuity",
+    "successful ERC-7769 Bundler-provider sponsored UserOperation receipt"
+  ],
+  "publicationBoundary": {
+    "candidateOnly": true,
+    "websiteMutationPerformed": false,
+    "websiteOwnerAcceptanceRequired": true,
+    "continuousMonitoringInferredFromSample": false
+  },
+  "failClosedCases": [
+    "local or incomplete deployment evidence",
+    "source, contract address or runtime hash substitution",
+    "unhealthy monitor evidence",
+    "non-authoritative or unsuccessful sponsored receipt",
+    "receipt outside the verified deployment-to-monitor block interval",
+    "credentialed, non-HTTPS or noncanonical Explorer URL"
+  ],
+  "tests": {
+    "focused": {"passed": 3, "failed": 0},
+    "walletAuthFull": {"passed": 197, "failed": 0},
+    "hardhatWallet": "passed",
+    "packageDryRun": "passed",
+    "walletProductGate": "passed",
+    "walletReleaseContentGate": "passed",
+    "walletGoalCoverageGate": "passed"
+  },
+  "sourceSha256": {
+    "packages/wallet-auth/src/public-erc4337-metadata.js": "fa20cf06d843fec0ca5c1a42461c52140976c4bc74336faf220804af040ab193",
+    "packages/wallet-auth/scripts/promote-public-erc4337-metadata.mjs": "cc116627a0cf01526c10ab53d6d78fe4d7144354cedcec8b3d3d2c613162ba5b",
+    "packages/wallet-auth/test/public-erc4337-metadata.test.mjs": "e2f56bb259f46fe2d4f85d8de610c0ac796b72196a4a6f76515e9bf5dfcfbb12"
+  },
+  "liveExecution": {
+    "candidateGenerated": false,
+    "reason": "No authoritative live deployment, continuous monitor and successful sponsored Bundler receipt evidence set was available."
+  },
+  "releaseClaims": {
+    "eligibleForWebsitePublication": false,
+    "websitePublished": false,
+    "publicMetadataPublished": false,
+    "continuousMonitoringDeployed": false,
+    "deployedPublic": false
+  },
+  "secretMaterialRecorded": false
+}
