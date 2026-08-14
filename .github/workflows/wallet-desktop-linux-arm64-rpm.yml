@@ -38,8 +38,8 @@ jobs:
           sudo gem install fpm --version 1.15.1 --no-document
           test "$(fpm --version)" = 1.15.1
           pushd apps/wallet-desktop
-          npx electron-builder --linux rpm --arm64 --publish never --config.directories.output=dist-preflight --config.extraMetadata.version=0.0.9
-          npx electron-builder --linux rpm --arm64 --publish never
+          npx electron-builder --linux rpm --arm64 --publish never --config.rpm.packageName=ynx-wallet-testnet-preview --config.directories.output=dist-preflight --config.extraMetadata.version=0.0.9
+          npx electron-builder --linux rpm --arm64 --publish never --config.rpm.packageName=ynx-wallet-testnet-preview
           popd
       - name: Install, upgrade, cold launch, second launch, fail closed and uninstall
         env:
