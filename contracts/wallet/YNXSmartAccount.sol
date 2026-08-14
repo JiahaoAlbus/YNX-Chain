@@ -223,19 +223,47 @@ contract YNXSmartAccount is BaseAccount {
                 ? SIG_VALIDATION_SUCCESS
                 : SIG_VALIDATION_FAILED;
         }
-        if (mode == 2 && signature.length == 86 && userOp.callData.length >= 36) {
+        if (mode == 2 && signature.length == 86) {
             address sessionKey = address(bytes20(signature[1:21]));
             Session storage session = sessions[sessionKey];
-            if (!session.enabled || session.epoch != sessionEpoch || bytes4(userOp.callData[:4]) != this.executeSession.selector) {
+            if (!session.enabled || session.epoch != sessionEpoch || !_sessionCallPolicyAllows(userOp.callData, session, sessionKey)) {
                 return SIG_VALIDATION_FAILED;
             }
-            address callSessionKey = address(bytes20(userOp.callData[16:36]));
-            if (callSessionKey != sessionKey) return SIG_VALIDATION_FAILED;
             (address recovered, ECDSA.RecoverError error,) = ECDSA.tryRecoverCalldata(userOpHash, signature[21:]);
             bool failed = error != ECDSA.RecoverError.NoError || recovered != sessionKey;
             return _packValidationData(failed, session.validUntil, session.validAfter);
         }
         return SIG_VALIDATION_FAILED;
+    }
+
+    function _sessionCallPolicyAllows(bytes calldata callData, Session storage session, address sessionKey)
+        internal
+        view
+        returns (bool)
+    {
+        // Canonical ABI for executeSession(address,address,uint256,bytes):
+        // selector + four head words + the dynamic bytes length word.
+        if (callData.length < 164 || bytes4(callData[:4]) != this.executeSession.selector) return false;
+        if (bytes12(callData[4:16]) != bytes12(0) || address(bytes20(callData[16:36])) != sessionKey) return false;
+        if (bytes12(callData[36:48]) != bytes12(0)) return false;
+        address target = address(bytes20(callData[48:68]));
+        uint256 value = uint256(bytes32(callData[68:100]));
+        if (uint256(bytes32(callData[100:132])) != 128) return false;
+        uint256 dataLength = uint256(bytes32(callData[132:164]));
+        if (dataLength > callData.length - 164) return false;
+        uint256 paddedLength = ((dataLength + 31) / 32) * 32;
+        if (callData.length != 164 + paddedLength || dataLength < 4) return false;
+        uint256 dataEnd = 164 + dataLength;
+        for (uint256 index = dataEnd; index < callData.length; ++index) {
+            if (callData[index] != bytes1(0)) return false;
+        }
+        bytes calldata data = callData[164:dataEnd];
+        if (target != session.target || bytes4(data[:4]) != session.selector || keccak256(data) != session.dataHash) {
+            return false;
+        }
+        if (value > session.maxValuePerCall) return false;
+        uint128 spentToday = session.day == uint64(block.timestamp / 1 days) ? session.spentToday : 0;
+        return spentToday <= session.dailyValueLimit && value <= session.dailyValueLimit - spentToday;
     }
 
     modifier onlyOwnerOrSelf() {

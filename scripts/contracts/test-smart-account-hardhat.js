@@ -98,6 +98,7 @@ const sessionCall = account.interface.encodeFunctionData("executeSession", [
 await submit(await operation(sessionCall, 1n), sessionKey, 2, sessionKey.address);
 const session = await account.sessions(sessionKey.address);
 assert.equal(session.spentToday, ethers.parseEther("0.1"));
+assert.equal(await entryPoint.getNonce(account.target, 0), 2n);
 
 const substitutedCalldataCall = account.interface.encodeFunctionData("executeSession", [
   sessionKey.address,
@@ -105,12 +106,20 @@ const substitutedCalldataCall = account.interface.encodeFunctionData("executeSes
   0n,
   ethers.concat([arbitrarySelector, ethers.zeroPadValue(owner.address, 32)]),
 ]);
-await expectFailed(await (async () => {
+await expectValidationFailed(await (async () => {
   const op = await operation(substitutedCalldataCall, 2n);
   const hash = await entryPoint.getUserOpHash(op);
   op.signature = ethers.concat(["0x02", sessionKey.address, sessionKey.signingKey.sign(hash).serialized]);
   return op;
 })());
+assert.equal(await entryPoint.getNonce(account.target, 0), 2n);
+await expectValidationFailed(await (async () => {
+  const op = await operation(ethers.concat([sessionCall, ethers.ZeroHash]), 2n);
+  const hash = await entryPoint.getUserOpHash(op);
+  op.signature = ethers.concat(["0x02", sessionKey.address, sessionKey.signingKey.sign(hash).serialized]);
+  return op;
+})());
+assert.equal(await entryPoint.getNonce(account.target, 0), 2n);
 
 const overLimitCall = account.interface.encodeFunctionData("executeSession", [
   sessionKey.address,
@@ -118,12 +127,13 @@ const overLimitCall = account.interface.encodeFunctionData("executeSession", [
   ethers.parseEther("0.25"),
   arbitrarySelector,
 ]);
-await expectFailed(await (async () => {
-  const op = await operation(overLimitCall, 3n);
+await expectValidationFailed(await (async () => {
+  const op = await operation(overLimitCall, 2n);
   const hash = await entryPoint.getUserOpHash(op);
   op.signature = ethers.concat(["0x02", sessionKey.address, sessionKey.signingKey.sign(hash).serialized]);
   return op;
 })());
+assert.equal(await entryPoint.getNonce(account.target, 0), 2n);
 
 const wrongTargetCall = account.interface.encodeFunctionData("executeSession", [
   sessionKey.address,
@@ -131,16 +141,17 @@ const wrongTargetCall = account.interface.encodeFunctionData("executeSession", [
   0n,
   arbitrarySelector,
 ]);
-await expectFailed(await (async () => {
-  const op = await operation(wrongTargetCall, 4n);
+await expectValidationFailed(await (async () => {
+  const op = await operation(wrongTargetCall, 2n);
   const hash = await entryPoint.getUserOpHash(op);
   op.signature = ethers.concat(["0x02", sessionKey.address, sessionKey.signingKey.sign(hash).serialized]);
   return op;
 })());
+assert.equal(await entryPoint.getNonce(account.target, 0), 2n);
 
 const passkeyCall = account.interface.encodeFunctionData("execute", [destination.address, 0n, "0x"]);
-await expectValidationFailed(await signPasskeyOperation(await operation(passkeyCall, 5n), 0x01));
-const passkeyOp = await signPasskeyOperation(await operation(passkeyCall, 5n), 0x05);
+await expectValidationFailed(await signPasskeyOperation(await operation(passkeyCall, 2n), 0x01));
+const passkeyOp = await signPasskeyOperation(await operation(passkeyCall, 2n), 0x05);
 await (await entryPoint.handleOps([passkeyOp], beneficiary.address, { gasLimit: 12_000_000 })).wait();
 
 const soakSamples = [];
@@ -153,7 +164,7 @@ for (let index = 0; index < soakCount; index += 1) {
     arbitrarySelector,
   ]);
   const started = performance.now();
-  await submit(await operation(zeroValueSessionCall, 6n + BigInt(index)), sessionKey, 2, sessionKey.address);
+  await submit(await operation(zeroValueSessionCall, 3n + BigInt(index)), sessionKey, 2, sessionKey.address);
   soakSamples.push(performance.now() - started);
 }
 const sortedSamples = [...soakSamples].sort((a, b) => a - b);
@@ -170,7 +181,7 @@ await (await account.connect(guardian).requestRecovery(
 )).wait();
 assert.equal(await account.sessionEpoch(), 2n);
 assert.equal((await account.sessions(sessionKey.address)).epoch, 1n);
-const pendingRecoverySessionOp = await operation(sessionCall, 56n);
+const pendingRecoverySessionOp = await operation(sessionCall, 53n);
 const pendingRecoverySessionHash = await entryPoint.getUserOpHash(pendingRecoverySessionOp);
 pendingRecoverySessionOp.signature = ethers.concat([
   "0x02",
@@ -194,7 +205,7 @@ await (await account.executeRecovery()).wait();
 assert.equal(await account.owner(), newOwner.address);
 assert.equal(await account.sessionEpoch(), 3n);
 assert.equal((await account.sessions(sessionKey.address)).epoch, 1n);
-const revokedSessionOp = await operation(sessionCall, 56n);
+const revokedSessionOp = await operation(sessionCall, 53n);
 const revokedHash = await entryPoint.getUserOpHash(revokedSessionOp);
 revokedSessionOp.signature = ethers.concat(["0x02", sessionKey.address, sessionKey.signingKey.sign(revokedHash).serialized]);
 await expectValidationFailed(revokedSessionOp);
@@ -416,6 +427,8 @@ console.log(JSON.stringify({
   webAuthnUVUserOperation: "passed",
   boundedSessionUserOperation: "passed",
   exactSessionCalldataRejection: "passed",
+  sessionPolicyRejectedBeforeNonceConsumption: "passed",
+  noncanonicalSessionCallRejection: "passed",
   overLimitRejection: "passed",
   wrongTargetRejection: "passed",
   userVerificationRequired: "passed",
