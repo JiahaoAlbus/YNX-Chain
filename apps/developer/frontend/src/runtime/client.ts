@@ -225,7 +225,7 @@ export type TaskActivity = {
   taskId: string;
   projectId: string;
   kind: "build-run-active" | "test-project";
-  status: "running";
+  status: "running" | "stopping";
   startedAt: string;
   environmentRevision: number | null;
 };
@@ -277,6 +277,9 @@ export async function loadTerminalSessions(projectId: string): Promise<TerminalS
 export async function loadTaskActivities(projectId: string): Promise<TaskActivity[]> {
   const value = await profileFetch("/runtime/tasks/active");
   return value.tasks.filter((task: TaskActivity) => task.projectId === projectId);
+}
+export function stopTaskActivity(taskId: string) {
+  return profileFetch(`/runtime/tasks/${encodeURIComponent(taskId)}`, { method: "DELETE" });
 }
 export function stopTerminalSession(sessionId: string) {
   return profileFetch(`/runtime/terminals/${encodeURIComponent(sessionId)}`, {

@@ -21,9 +21,11 @@ test("runtime process UI uses real redacted terminal and task inventories", asyn
     terminal = await source("../services/terminal-service/src/service.mjs");
   assert.match(panel, /loadTaskActivities/);
   assert.match(panel, /loadTerminalSessions/);
+  assert.match(panel, /stopTaskActivity/);
   assert.match(panel, /never commands or environment values/);
   assert.match(runtime, /\/runtime\/tasks\/active/);
   assert.match(runtime, /function publicActivity/);
+  assert.match(runtime, /activity\.controller\.abort/);
   assert.doesNotMatch(runtime.match(/function publicActivity[\s\S]*?\n\}/)?.[0] || "", /command|environment[^R]/i);
   assert.match(terminal, /function publicSession/);
 });

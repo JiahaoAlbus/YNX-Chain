@@ -279,8 +279,11 @@ values; when the server has no approved resolver, any referenced Secret fails
 process startup closed. A resolved snapshot is injected only into a newly
 created local/LXD/SSH terminal or reviewed local/LXD task. Terminal and task
 inventories expose its revision, never its keys or values. Task activity is
-derived from the real bounded execution queue and disappears on completion;
-task cancellation remains a separate unimplemented process-group protocol.
+derived from the real bounded execution queue and disappears on completion.
+An owner-bound Stop request moves a running task to `stopping`, aborts its
+detached process group, returns code 130 to the original request and removes the
+activity after workspace cleanup. Cross-owner and stale task IDs return 404;
+queued-task removal is not yet exposed.
 
 Tasks are declarative records (`command`, argument array, cwd, environment class,
 problem matcher, timeout, network policy and artifact outputs). Shell parsing is

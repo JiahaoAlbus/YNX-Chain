@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Button } from "../components/ui/button";
-import { createContainerLease, inspectSshTarget, loadProjectEnvironment, loadRuntimeProfiles, loadTaskActivities, loadTerminalSessions, removeContainerLease, removeSshProfile, saveSshProfile, saveProjectEnvironment, stopTerminalSession, type EnvironmentEntry, type ProjectEnvironment, type RuntimeProfiles, type TaskActivity, type TerminalSession } from "./client";
+import { createContainerLease, inspectSshTarget, loadProjectEnvironment, loadRuntimeProfiles, loadTaskActivities, loadTerminalSessions, removeContainerLease, removeSshProfile, saveSshProfile, saveProjectEnvironment, stopTaskActivity, stopTerminalSession, type EnvironmentEntry, type ProjectEnvironment, type RuntimeProfiles, type TaskActivity, type TerminalSession } from "./client";
 
 export function RuntimePanel({ projectId, selected, onSelect }: { projectId: string; selected?: string; onSelect: (runtimeId: string | undefined) => void }) {
   const [data, setData] = useState<RuntimeProfiles>(),
@@ -275,11 +275,29 @@ function EnvironmentAndProcesses({ projectId }: { projectId: string }) {
             <span>
               <b>{task.kind === "test-project" ? "Project tests" : "Build / run"}</b>
               <small>
-                running · env r{task.environmentRevision ?? "resolving"}
+                {task.status} · env r{task.environmentRevision ?? "resolving"}
                 <br />
                 started {new Date(task.startedAt).toLocaleTimeString()}
               </small>
             </span>
+            <Button
+              variant="ghost"
+              disabled={busy || task.status === "stopping"}
+              onClick={async () => {
+                setBusy(true);
+                setError("");
+                try {
+                  await stopTaskActivity(task.taskId);
+                  await refresh();
+                } catch (value) {
+                  setError(value instanceof Error ? value.message : "Task could not stop.");
+                } finally {
+                  setBusy(false);
+                }
+              }}
+            >
+              Stop
+            </Button>
           </div>
         ))}
         {terminals.map((terminal) => (

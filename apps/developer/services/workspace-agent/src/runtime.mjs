@@ -36,6 +36,24 @@ export function createWorkspaceRuntime(options = {}) {
       json(response, 200, { protocolVersion: PROTOCOL, tasks: [...activities.values()].filter((item) => item.owner === owner).map(publicActivity) });
       return true;
     }
+    const stopTaskMatch = url.pathname.match(/^\/runtime\/tasks\/([0-9a-f-]{36})$/);
+    if (stopTaskMatch && request.method === "DELETE") {
+      const session = readSession(request, sessionKey);
+      if (!session) {
+        json(response, 401, { error: "A signed workspace session is required.", code: "workspace_session_required" });
+        return true;
+      }
+      const activity = activities.get(stopTaskMatch[1]),
+        owner = ownerId(session, sessionKey);
+      if (!activity || activity.owner !== owner) {
+        json(response, 404, { error: "Running task was not found.", code: "task_not_found" });
+        return true;
+      }
+      activity.status = "stopping";
+      activity.controller.abort();
+      json(response, 202, { protocolVersion: PROTOCOL, stopping: activity.taskId });
+      return true;
+    }
     if (url.pathname === "/runtime/health" && request.method === "GET") {
       const session = readSession(request, sessionKey) || newSession();
       json(
@@ -259,6 +277,7 @@ export function createWorkspaceRuntime(options = {}) {
           environmentResolver,
           taskId: item.taskId,
           onEnvironmentResolved: (revision) => updateActivity(item.taskId, revision),
+          signal: item.controller.signal,
         })
           .then(item.resolve, item.reject)
           .finally(() => {
@@ -276,7 +295,7 @@ export function createWorkspaceRuntime(options = {}) {
           "x-accel-buffering": "no",
         });
         const send = (value) => item.response.write(`${JSON.stringify(value)}\n`);
-        execute(item.session, item.body, { root, sandbox, onEvent: send, owner: item.owner, environmentResolver, taskId: item.taskId, onEnvironmentResolved: (revision) => updateActivity(item.taskId, revision) })
+        execute(item.session, item.body, { root, sandbox, onEvent: send, owner: item.owner, environmentResolver, taskId: item.taskId, onEnvironmentResolved: (revision) => updateActivity(item.taskId, revision), signal: item.controller.signal })
           .then(
             (value) => send({ type: "result", value }),
             (error) =>
@@ -294,7 +313,7 @@ export function createWorkspaceRuntime(options = {}) {
             pump();
           });
       } else
-        execute(item.session, item.body, { root, sandbox, owner: item.owner, environmentResolver, taskId: item.taskId, onEnvironmentResolved: (revision) => updateActivity(item.taskId, revision) })
+        execute(item.session, item.body, { root, sandbox, owner: item.owner, environmentResolver, taskId: item.taskId, onEnvironmentResolved: (revision) => updateActivity(item.taskId, revision), signal: item.controller.signal })
           .then(
             (value) => json(item.response, 200, value),
             (error) =>
@@ -339,7 +358,8 @@ export function createWorkspaceRuntime(options = {}) {
     });
   }
   function startActivity(item) {
-    activities.set(item.taskId, { taskId: item.taskId, owner: item.owner, projectId: item.body.projectId, kind: item.body.task, status: "running", startedAt: new Date().toISOString(), environmentRevision: null });
+    item.controller = new AbortController();
+    activities.set(item.taskId, { taskId: item.taskId, owner: item.owner, projectId: item.body.projectId, kind: item.body.task, status: "running", startedAt: new Date().toISOString(), environmentRevision: null, controller: item.controller });
   }
   function updateActivity(taskId, environmentRevision) {
     const item = activities.get(taskId);
@@ -469,7 +489,7 @@ async function compilerInventory() {
   return output;
 }
 
-async function execute(session, task, { root, sandbox, onEvent, owner, environmentResolver, taskId = randomUUID(), onEnvironmentResolved }) {
+async function execute(session, task, { root, sandbox, onEvent, owner, environmentResolver, taskId = randomUUID(), onEnvironmentResolved, signal }) {
   const started = performance.now(),
     sessionRoot = join(root, createHmac("sha256", Buffer.from(session)).update(task.projectId).digest("hex").slice(0, 32));
   const resolvedEnvironment = environmentResolver ? await environmentResolver(owner, task.projectId) : { revision: 0, environment: {} };
@@ -505,6 +525,7 @@ async function execute(session, task, { root, sandbox, onEvent, owner, environme
         addressSpaceBytes: phase.addressSpaceBytes,
         environment: phase.environment,
         projectEnvironment: resolvedEnvironment.environment,
+        signal,
         readOnlyBinds: phase.readOnlyBinds,
         onChunk: phase.materialize ? undefined : (channel, data) => emit({ type: "output", phase: phase.label, channel, data }),
       });
@@ -944,7 +965,7 @@ function resultEnvelope({ taskId, started, spec, output, code, sandbox, truncate
   };
 }
 
-function runSandboxed({ sandbox, workspace, command, args, stdin, timeout, maxOutputBytes, addressSpaceBytes, environment, projectEnvironment, onChunk, readOnlyBinds }) {
+function runSandboxed({ sandbox, workspace, command, args, stdin, timeout, maxOutputBytes, addressSpaceBytes, environment, projectEnvironment, signal, onChunk, readOnlyBinds }) {
   const launch = sandboxLaunch({
     sandbox,
     workspace,
@@ -961,9 +982,10 @@ function runSandboxed({ sandbox, workspace, command, args, stdin, timeout, maxOu
     timeout,
     maxOutputBytes,
     onChunk,
+    signal,
   });
 }
-function spawnBounded(command, args, { cwd, env, stdin, timeout, maxOutputBytes = MAX_OUTPUT_BYTES, onChunk }) {
+function spawnBounded(command, args, { cwd, env, stdin, timeout, maxOutputBytes = MAX_OUTPUT_BYTES, onChunk, signal }) {
   return new Promise((resolve, reject) => {
     const detached = process.platform !== "win32",
       child = spawn(command, args, {
@@ -995,9 +1017,17 @@ function spawnBounded(command, args, { cwd, env, stdin, timeout, maxOutputBytes 
         else child.kill("SIGKILL");
       } catch {}
     };
-    const timer = setTimeout(killGroup, timeout);
+    let cancelled = false;
+    const abort = () => {
+        cancelled = true;
+        killGroup();
+      },
+      timer = setTimeout(killGroup, timeout);
+    signal?.addEventListener("abort", abort, { once: true });
+    if (signal?.aborted) abort();
     child.once("error", (error) => {
       clearTimeout(timer);
+      signal?.removeEventListener("abort", abort);
       reject(
         Object.assign(new Error("Workspace process could not start."), {
           code: "process_start_failed",
@@ -1007,9 +1037,10 @@ function spawnBounded(command, args, { cwd, env, stdin, timeout, maxOutputBytes 
     });
     child.once("close", (code) => {
       clearTimeout(timer);
+      signal?.removeEventListener("abort", abort);
       resolve({
-        code: code ?? 124,
-        output: output || "Process completed without output.\n",
+        code: cancelled ? 130 : (code ?? 124),
+        output: cancelled ? `${output}Task cancelled.\n` : output || "Process completed without output.\n",
         truncated,
       });
     });

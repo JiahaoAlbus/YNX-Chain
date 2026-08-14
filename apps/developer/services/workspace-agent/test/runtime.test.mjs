@@ -416,7 +416,7 @@ test("active task inventory is owner scoped and redacts commands and environment
     running = fetch(`${url}/runtime/tasks`, {
       method: "POST",
       headers: { cookie, "content-type": "application/json" },
-      body: JSON.stringify(languageTask("src/activity.js", "setTimeout(() => console.log('done'), 700)")),
+      body: JSON.stringify(languageTask("src/activity.js", "setTimeout(() => console.log('done'), 5000)")),
     });
   let tasks = [];
   for (let attempt = 0; attempt < 30 && tasks.length === 0; attempt += 1) {
@@ -429,7 +429,12 @@ test("active task inventory is owner scoped and redacts commands and environment
   assert.equal(JSON.stringify(tasks).includes("PRIVATE_SETTING"), false);
   assert.equal(JSON.stringify(tasks).includes("setTimeout"), false);
   assert.deepEqual((await (await fetch(`${url}/runtime/tasks/active`, { headers: { cookie: attackerCookie } })).json()).tasks, []);
-  assert.equal((await (await running).json()).ok, true);
+  assert.equal((await fetch(`${url}/runtime/tasks/${tasks[0].taskId}`, { method: "DELETE", headers: { cookie: attackerCookie } })).status, 404);
+  assert.equal((await fetch(`${url}/runtime/tasks/${tasks[0].taskId}`, { method: "DELETE", headers: { cookie } })).status, 202);
+  const result = await (await running).json();
+  assert.equal(result.ok, false);
+  assert.equal(result.code, 130);
+  assert.match(result.output, /Task cancelled/);
   assert.deepEqual((await (await fetch(`${url}/runtime/tasks/active`, { headers: { cookie } })).json()).tasks, []);
 });
 
