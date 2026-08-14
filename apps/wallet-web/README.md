@@ -70,6 +70,12 @@ storage; it never reads or deletes account/session state. Any cleanup or report
 failure blocks discovery and all wallet requests with `MIGRATION_INCOMPLETE`
 before provider injection or sensitive work.
 
+Add-chain, switch-network, and transaction controls remain disabled until the
+current page has obtained a fresh, exact `eth_chainId = 0x1917` response from
+the frozen RPC endpoint. Offline, malformed, or wrong-chain responses revoke
+that readiness immediately; add/switch do not call a wallet until the RPC
+preflight succeeds, and every mutation still rechecks the chain afterward.
+
 The PWA caches only its same-origin shell. Navigations use a network-first
 offline fallback, static assets never receive HTML as a substitute, and RPC
 POSTs plus external Wallet download routes remain network-only. Returning from

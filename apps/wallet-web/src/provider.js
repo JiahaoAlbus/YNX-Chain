@@ -214,14 +214,14 @@ export function forgetSession(storage = globalThis.localStorage) {
   storage?.removeItem?.(SESSION_KEY);
 }
 
-export function walletActionGates(provider, account, chainId) {
+export function walletActionGates(provider, account, chainId, rpcVerified = false) {
   const hasProvider = Boolean(validProvider(provider));
   const connected = hasProvider && ADDRESS.test(account || "") && chainId === YNX_CHAIN.chainId;
   return Object.freeze({
-    canAddChain: hasProvider,
-    canSwitchChain: hasProvider,
+    canAddChain: hasProvider && rpcVerified === true,
+    canSwitchChain: hasProvider && rpcVerified === true,
     canSign: connected,
-    canSendTransaction: connected,
+    canSendTransaction: connected && rpcVerified === true,
   });
 }
 

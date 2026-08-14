@@ -240,8 +240,21 @@ test("second launch invalidates account replacement and provider failure", async
 
 test("action gates require a provider and an exact connected Testnet account", () => {
   assert.deepEqual(walletActionGates(null,null,null),{canAddChain:false,canSwitchChain:false,canSign:false,canSendTransaction:false});
-  assert.deepEqual(walletActionGates(provider(),ACCOUNT,"0x1"),{canAddChain:true,canSwitchChain:true,canSign:false,canSendTransaction:false});
-  assert.deepEqual(walletActionGates(provider(),ACCOUNT,"0x1917"),{canAddChain:true,canSwitchChain:true,canSign:true,canSendTransaction:true});
+  assert.deepEqual(walletActionGates(provider(),ACCOUNT,"0x1"),{canAddChain:false,canSwitchChain:false,canSign:false,canSendTransaction:false});
+  assert.deepEqual(walletActionGates(provider(),ACCOUNT,"0x1917"),{canAddChain:false,canSwitchChain:false,canSign:true,canSendTransaction:false});
+  assert.deepEqual(walletActionGates(provider(),ACCOUNT,"0x1",true),{canAddChain:true,canSwitchChain:true,canSign:false,canSendTransaction:false});
+  assert.deepEqual(walletActionGates(provider(),ACCOUNT,"0x1917",true),{canAddChain:true,canSwitchChain:true,canSign:true,canSendTransaction:true});
+});
+
+test("network mutation readiness is revoked unless exact live RPC was proved", async () => {
+  const wallet = provider({wallet_switchEthereumChain:null,eth_chainId:"0x1917"});
+  assert.equal(walletActionGates(wallet,null,null,false).canSwitchChain,false);
+  await assert.rejects(() => switchToYNXChain(wallet,{fetcher:async()=>{throw new Error("offline")}}), (error) => error.code === "RPC_UNAVAILABLE");
+  assert.equal(wallet.calls.length,0);
+  await assert.rejects(() => switchToYNXChain(wallet,{fetcher:async()=>({ok:true,json:async()=>({result:"0x1"})})}), (error) => error.code === "WRONG_NETWORK");
+  assert.equal(wallet.calls.length,0);
+  assert.equal(await switchToYNXChain(wallet,{fetcher:rpc}),"0x1917");
+  assert.equal(walletActionGates(wallet,null,null,true).canSwitchChain,true);
 });
 
 test("only authoritative provider identity failures invalidate the connected UI session", () => {

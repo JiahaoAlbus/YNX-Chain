@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "7631c8ca666060684693af20f079f63b97385e30",
+  "generatedAt": "2026-08-14T05:36:01.319Z",
+  "gateClass": "executable provider module and UI-source contract imported from the exact built PWA ZIP; not browser runtime evidence",
+  "artifact": {
+    "name": "ynx-wallet-web-pwa-0.1.0.zip",
+    "bytes": 176236,
+    "sha256": "0868b4265f9ee06be3b8c529f323e5099fe436f12361e258af5d41f0f057fff2",
+    "signingClass": "unsigned-web-bundle"
+  },
+  "failures": {
+    "offline": {
+      "failedClosed": true,
+      "code": "RPC_UNAVAILABLE",
+      "walletCalls": 0
+    },
+    "wrongChain": {
+      "failedClosed": true,
+      "code": "WRONG_NETWORK",
+      "walletCalls": 0
+    }
+  },
+  "exact": {
+    "switched": "0x1917",
+    "added": "0x1917",
+    "switchCalls": [
+      {
+        "method": "wallet_switchEthereumChain",
+        "params": [
+          {
+            "chainId": "0x1917"
+          }
+        ]
+      },
+      {
+        "method": "eth_chainId"
+      }
+    ],
+    "addCalls": [
+      {
+        "method": "wallet_addEthereumChain",
+        "params": [
+          {
+            "chainId": "0x1917",
+            "chainName": "YNX Testnet",
+            "nativeCurrency": {
+              "name": "YNX Testnet",
+              "symbol": "YNXT",
+              "decimals": 18
+            },
+            "rpcUrls": [
+              "https://evm.ynxweb4.com"
+            ],
+            "blockExplorerUrls": [
+              "https://explorer.ynxweb4.com"
+            ]
+          }
+        ]
+      },
+      {
+        "method": "wallet_switchEthereumChain",
+        "params": [
+          {
+            "chainId": "0x1917"
+          }
+        ]
+      },
+      {
+        "method": "eth_chainId"
+      }
+    ]
+  },
+  "ui": {
+    "tracksRpcVerified": true,
+    "gatesUseRpcVerified": true,
+    "revokesOnFailure": true
+  },
+  "passed": true,
+  "chromiumCompatibleExtensionRuntimeProved": false,
+  "actionInjectionProved": false,
+  "installedLocal": false,
+  "providerConnected": false,
+  "accountAuthorized": false,
+  "messageSigned": false,
+  "transactionSubmitted": false,
+  "deployedPublic": false,
+  "downloadHosted": false,
+  "productionSigned": false,
+  "storeReleased": false
+}

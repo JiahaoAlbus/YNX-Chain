@@ -17,7 +17,9 @@
     "test:runtime:cache-integrity": "npm run build && node scripts/runtime-cache-integrity-gate.mjs",
     "test:artifact:permissions": "node scripts/artifact-extension-permission-gate.mjs",
     "test:artifact:migration": "node scripts/artifact-extension-migration-gate.mjs",
+    "test:artifact:network-readiness": "node scripts/artifact-network-readiness-gate.mjs",
     "test:runtime:active-tab": "node scripts/runtime-active-tab-gate.mjs",
+    "test:runtime:active-tab:browser": "node scripts/runtime-active-tab-browser-gate.mjs",
     "test:runtime:firefox-compatible": "npm run build && node scripts/runtime-firefox-compatible.mjs"
   },
   "devDependencies": {

@@ -4,7 +4,7 @@ import {
   METAMASK_DOWNLOAD_URL, YNX_DOWNLOAD_URL, addYNXChain, connectWallet, createExtensionProvider, discoverWallets,
   extensionWalletAvailability, forgetSession, rememberSession, restoreTestnetSession, sendTransaction,
   invalidatesConnectedSession, resolveRememberedWallet, signMessage, subscribeProviderLifecycle,
-  switchToYNXChain, walletActionGates, walletDiscoveryPresentation,
+  switchToYNXChain, verifyTestnetRpc, walletActionGates, walletDiscoveryPresentation,
 } from "./provider.js";
 
 const app = document.querySelector("#app");
@@ -18,7 +18,7 @@ const state = {
   locale: LOCALES.some(([locale]) => locale === requestedLocale) ? requestedLocale : loadedPreferences.record.locale,
   theme: ["light", "dark"].includes(requestedTheme) ? requestedTheme : loadedPreferences.record.theme,
   preferences: loadedPreferences.record,
-  provider: null, wallet: null, account: null, chainId: null, unsubscribeProvider: null,
+  provider: null, wallet: null, account: null, chainId: null, rpcVerified: false, unsubscribeProvider: null,
 };
 
 function text(key) { return catalog(state.locale)[key] || key; }
@@ -57,6 +57,7 @@ async function act(work, success) {
   for (const button of document.querySelectorAll("button")) button.disabled = true;
   try { const result = await work(); setStatus(success(result)); return result; }
   catch (error) {
+    if (["RPC_UNAVAILABLE","WRONG_NETWORK","INVALID_RPC_RESPONSE"].includes(error?.code)) state.rpcVerified = false;
     if (invalidatesConnectedSession(error)) invalidateConnectedState();
     setStatus(`${error?.code ? `${error.code}: ` : ""}${error?.message || "Request failed closed."}`, "error");
     return null;
@@ -65,7 +66,7 @@ async function act(work, success) {
 }
 
 function applyActionGates() {
-  const gates = walletActionGates(state.provider, state.account, state.chainId);
+  const gates = walletActionGates(state.provider, state.account, state.chainId, state.rpcVerified);
   const mapping = {add:gates.canAddChain,switch:gates.canSwitchChain,sign:gates.canSign,send:gates.canSendTransaction};
   for (const [id, enabled] of Object.entries(mapping)) {
     const button = document.querySelector(`#${id}`);
@@ -142,6 +143,9 @@ async function detect() {
   document.querySelector("#metamask").classList.toggle("hidden", !presentation.showMetaMaskChoice);
   document.querySelector("#metamask").dataset.route = presentation.metaMaskChoice;
   document.querySelector("#detected").textContent = presentation.ynxPresent ? text("detected") : text("unavailable");
+  try { await verifyTestnetRpc(); state.rpcVerified = true; }
+  catch (error) { state.rpcVerified = false; applyActionGates(); throw error; }
+  applyActionGates();
   const wallet = resolveRememberedWallet(availability);
   if (wallet) {
     const provider = selectProvider(wallet);

@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "owner": "wallet-web-pwa-extensions",
+  "sourceBaseline": "7631c8ca666060684693af20f079f63b97385e30",
+  "browserRuntimeAttempt": {
+    "attemptCount": 1,
+    "runtimeClass": "bundled Chrome for Testing with disposable unpacked extension and isolated temporary profile",
+    "browserPid": 86399,
+    "outcome": "Playwright CDP pipe timeout after process launch; process was reaped",
+    "serviceWorkerStarted": false,
+    "migrationGateProved": false,
+    "actionInjectionProved": false,
+    "rpcProved": false,
+    "secondLaunchProved": false,
+    "screenshotsCaptured": false,
+    "evidence": "apps/wallet-web/evidence/runtime/chromium-compatible-extension-browser-runtime-20260814.json"
+  },
+  "completedFallbackSlice": {
+    "class": "exact built-PWA executable module and UI-source gate; not browser runtime evidence",
+    "rpcRequiredForVisibleNetworkMutationControls": true,
+    "offlineCode": "RPC_UNAVAILABLE",
+    "offlineWalletCalls": 0,
+    "wrongChainCode": "WRONG_NETWORK",
+    "wrongChainWalletCalls": 0,
+    "exactChainId": "0x1917",
+    "frozenRpcUrl": "https://evm.ynxweb4.com",
+    "evidence": "apps/wallet-web/evidence/runtime/pwa-built-network-readiness-20260814.json"
+  },
+  "mustRemainFalse": {
+    "chromiumCompatibleExtensionRuntimeProved": false,
+    "actionInjectionProved": false,
+    "installedLocal": false,
+    "providerConnected": false,
+    "accountAuthorized": false,
+    "messageSigned": false,
+    "transactionSubmitted": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}
