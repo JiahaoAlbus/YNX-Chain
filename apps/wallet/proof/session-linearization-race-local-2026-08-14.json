@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "session-linearization-race-local-2026-08-14",
+  "owner": "02-wallet-auth",
+  "sourceCommit": "a3dc6d52bfba48a3d272084828764192d4c7ac34",
+  "observedAt": "2026-08-14T03:21:33Z",
+  "environment": "single-node-process-loopback-http",
+  "protocol": {
+    "domain": "YNX_SESSION_LINEARIZATION_RACE_V1",
+    "routes": ["/v1/wallet/sessions/introspect", "/v1/wallet/sessions/revoke"],
+    "sharedVector": "packages/wallet-auth/testdata/session-linearization-race-v1.json",
+    "scenarioCount": 4,
+    "linearizationPoint": "synchronous-kernel-dispatch-and-atomic-state-rename"
+  },
+  "raceCoverage": {
+    "concurrentIntrospectionAndRevoke": true,
+    "duplicateRevokeDistinctProofs": true,
+    "duplicateRevokeExactProof": true,
+    "expiryBoundaryIntrospectionAndRevoke": true,
+    "restartPreservesWinner": true
+  },
+  "invariants": {
+    "successesLinearizable": true,
+    "duplicateRevokeSuccesses": 1,
+    "revocationAuditEventsPerSubjectMax": 1,
+    "failedProofConsumed": false,
+    "stateDigestMatchesPersistedSnapshot": true,
+    "sessionResurrection": false,
+    "multiProcessOrMultiRegionClaimed": false
+  },
+  "tests": {
+    "focused": "4/4 passed",
+    "walletAuthFullSuite": "149/149 passed",
+    "walletOwnedSuite": "147/147 passed",
+    "walletProductCheck": "passed",
+    "walletReleaseContentCheck": "passed",
+    "walletGoalCoverageCheck": "passed",
+    "jsonAndDiffChecks": "passed"
+  },
+  "sourceSha256": {
+    "packages/wallet-auth/src/gateway-node-host.js": "53206430949e4193a0dbb77c973661abd867ef9c621a5c96e2b8682348109921",
+    "packages/wallet-auth/src/gateway-http.js": "fbd2ba0d4ffb46286d3d6fe51cf4f42c5a6a9858c8eb3ae20d0f37fac43b8b55",
+    "packages/wallet-auth/test/session-linearization-race.test.mjs": "cfe2b07fea0c25d5757695da8fafe2f44cfea4fde15d46c2eee6153ca0baa7c1",
+    "packages/wallet-auth/testdata/session-linearization-race-v1.json": "96a3aad3d962d8fa2fc6199ef7c89b8250ac14f89e1d41661adaa9a5939c522e"
+  },
+  "releaseClaims": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": false,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "publicRouteVerified": false,
+    "publicGatewaySourceContainsSlice": false,
+    "multiProcessLinearizationVerified": false,
+    "multiRegionLinearizationVerified": false,
+    "assetMoved": false,
+    "secretMaterialRecorded": false
+  },
+  "deployedGateway": {
+    "sourceCommit": "c6ac582c8d490ef980a8cadfd9172f133d1b1a49",
+    "release": "ynx-wallet-gateway-c6ac582c8d49",
+    "containsSessionLinearizationRaceSlice": false
+  }
+}

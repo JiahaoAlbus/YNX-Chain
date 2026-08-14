@@ -5,7 +5,7 @@
   "slug": "wallet-auth",
   "productSlug": "wallet-auth",
   "owner": "02-wallet-auth",
-  "sourceCommit": "806f342723bdc7911367b9db9a72c4f33cd0a3db",
+  "sourceCommit": "a3dc6d52bfba48a3d272084828764192d4c7ac34",
   "phase": "PUBLIC-TESTNET-GATEWAY",
   "network": {
     "nativeChainId": "ynx_6423-1",
@@ -30,6 +30,7 @@
     "productSessionHttpNegativeMatrix": 1,
     "revocationControlHttpNegativeMatrix": 1,
     "sessionInventoryHttpPrivacyMatrix": 1,
+    "sessionLinearizationRace": 1,
     "strategyMandate": 2,
     "strategyAction": 1,
     "strategyMandateStore": 1,
@@ -300,6 +301,7 @@
     {"path": "packages/wallet-auth/testdata/product-session-http-negative-matrix-v1.json", "domain": "YNX_PRODUCT_SESSION_HTTP_NEGATIVE_MATRIX_V1", "cases": 16},
     {"path": "packages/wallet-auth/testdata/revocation-control-http-negative-matrix-v1.json", "domain": "YNX_REVOCATION_CONTROL_HTTP_NEGATIVE_MATRIX_V1", "cases": 26},
     {"path": "packages/wallet-auth/testdata/session-inventory-http-privacy-matrix-v1.json", "domain": "YNX_SESSION_INVENTORY_HTTP_PRIVACY_MATRIX_V1", "cases": 12},
+    {"path": "packages/wallet-auth/testdata/session-linearization-race-v1.json", "domain": "YNX_SESSION_LINEARIZATION_RACE_V1", "scenarios": 4},
     {"path": "packages/wallet-auth/testdata/authorization-rejection-v1.json"},
     {"path": "packages/wallet-auth/testdata/central-lifecycle-v1.json"},
     {"path": "packages/wallet-auth/testdata/mobile-native-transfer-v1.json"}
@@ -328,8 +330,8 @@
     "storeReleased": false
   },
   "verification": {
-    "walletAuthPackageTests": "145/145 passed",
-    "currentWalletOwnedSuite": "143/143 passed; all package tests except Developer-owned developer-deployment.test.mjs",
+    "walletAuthPackageTests": "149/149 passed",
+    "currentWalletOwnedSuite": "147/147 passed; all package tests except Developer-owned developer-deployment.test.mjs",
     "crossOwnerTestAudit": "2/2 Developer-owned SampleEVMWriteCounter assertions passed in the full package audit; Wallet/Auth did not generate or modify the Developer-owned artifact and does not count them as Wallet-owned coverage",
     "gatewayNodeHostTests": "10/10 passed",
     "canonicalAuthorizationRejection": {
@@ -436,6 +438,30 @@
       "deployedPublic": false,
       "publicRouteVerified": false,
       "evidence": "apps/wallet/proof/session-inventory-http-privacy-matrix-local-2026-08-14.json"
+    },
+    "sessionLinearizationRace": {
+      "sourceCommit": "a3dc6d52bfba48a3d272084828764192d4c7ac34",
+      "domain": "YNX_SESSION_LINEARIZATION_RACE_V1",
+      "focusedTests": "4/4 passed",
+      "scenarios": 4,
+      "environment": "single-node-process-loopback-http",
+      "linearizationPoint": "synchronous-kernel-dispatch-and-atomic-state-rename",
+      "concurrentIntrospectionAndRevoke": true,
+      "duplicateRevokeDistinctProofs": true,
+      "duplicateRevokeExactProof": true,
+      "expiryBoundaryIntrospectionAndRevoke": true,
+      "duplicateRevokeSuccesses": 1,
+      "revocationAuditEventsPerSubjectMax": 1,
+      "failedProofConsumed": false,
+      "restartPreservesWinner": true,
+      "sessionResurrection": false,
+      "multiProcessLinearizationVerified": false,
+      "multiRegionLinearizationVerified": false,
+      "integratedCentral": false,
+      "deployedStaging": false,
+      "deployedPublic": false,
+      "publicRouteVerified": false,
+      "evidence": "apps/wallet/proof/session-linearization-race-local-2026-08-14.json"
     },
     "gatewayAdmissionObservability": {
       "sourceCommit": "6b1f1f21a79861178ee7fc168ad21c2869296fd5",
