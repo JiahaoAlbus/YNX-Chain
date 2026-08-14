@@ -5,7 +5,7 @@
   "slug": "wallet-auth",
   "productSlug": "wallet-auth",
   "owner": "02-wallet-auth",
-  "sourceCommit": "8e91c58e3f997b35da1b3d0298f174a2e8533fa2",
+  "sourceCommit": "1c306f10f0b38cc2a74cfb6ea62c7f9cc04df164",
   "phase": "PUBLIC-TESTNET-GATEWAY",
   "network": {
     "nativeChainId": "ynx_6423-1",
@@ -38,6 +38,7 @@
     "gatewayNodeStaleLockRecovery": 1,
     "gatewayNodeRequestLifecycle": 1,
     "gatewayRevocationControlLinearization": 1,
+    "gatewayKillSwitchLinearization": 1,
     "strategyMandate": 2,
     "strategyAction": 1,
     "strategyMandateStore": 1,
@@ -629,6 +630,7 @@
     },
     "gatewayNodeRequestLifecycle": {"sourceCommit":"75b0a68a03eb75cb8afb84d71abce591e544dc92","focusedTests":"3/3 passed","fullTests":"170/170 passed","bodyTimeoutStatus":408,"bodyTimeoutCode":"REQUEST_BODY_TIMEOUT","clientAbortCode":"REQUEST_ABORTED","stateMutation":false,"admissionCapacityReleased":true,"integratedCentral":false,"deployedStaging":false,"deployedPublic":false,"publicRouteVerified":false,"evidence":"apps/wallet/proof/gateway-node-request-lifecycle-local-2026-08-14.json"},
     "gatewayRevocationControlLinearization": {"sourceCommit":"8e91c58e3f997b35da1b3d0298f174a2e8533fa2","focusedTests":"1/1 passed","fullTests":"171/171 passed","concurrentApprovalAndDeviceRevoke":true,"bothCutoffsPersisted":true,"auditEventsPerControl":1,"failedProofConsumed":false,"coldRestartPreservesBoth":true,"distributedDatabaseLinearizationVerified":false,"multiRegionLinearizationVerified":false,"integratedCentral":false,"deployedStaging":false,"deployedPublic":false,"publicRouteVerified":false,"evidence":"apps/wallet/proof/gateway-revocation-control-linearization-local-2026-08-14.json"},
+    "gatewayKillSwitchLinearization": {"sourceCommit":"1c306f10f0b38cc2a74cfb6ea62c7f9cc04df164","focusedTests":"2/2 passed","fullTests":"172/172 passed","concurrentStrategyActionAndKill":true,"killSuccesses":1,"actionSuccessesMaximum":1,"postKillCode":"MANDATE_KILLED","postKillFailedProofConsumed":false,"coldRestartPreservesKill":true,"distributedDatabaseLinearizationVerified":false,"multiRegionLinearizationVerified":false,"integratedCentral":false,"deployedStaging":false,"deployedPublic":false,"publicRouteVerified":false,"evidence":"apps/wallet/proof/gateway-kill-switch-linearization-local-2026-08-14.json"},
     "gatewayAdmissionObservability": {
       "sourceCommit": "6b1f1f21a79861178ee7fc168ad21c2869296fd5",
       "focusedTests": "12/12 gateway admission and Node host tests passed",
