@@ -6,30 +6,25 @@
   "recordedAt": "2026-08-14T03:17:12Z",
   "evidenceMatrix": {
     "path": "release/integration/wallet-auth-release-evidence-matrix.json",
-    "sha256": "b12069d58b09e2a9c03ef49532df13f98a3bc6336bef9bd7160df00cddbb0193",
-    "platforms": 11,
+    "sha256": "5619046b9e8e97083e1c2df29e00d88aea0e3e751fcc7958fd340b1b4adb0c25",
+    "platforms": 13,
     "gatesPerPlatform": 12,
-    "trueGates": 42,
-    "falseGates": 90,
-    "evidenceRecords": 24
+    "trueGates": 51,
+    "falseGates": 105,
+    "evidenceRecords": 31
   },
   "frozenOwnerSources": {
-    "coreAuthGateway": "674d07c3157ce33a4ee6419fd599aac5b2703255",
-    "webPwaExtensions": "85af602dc96ae476c723f8646de55a081b89ed46",
-    "androidApi36": "52825ac7fce0d962271a920397eb838862130301",
+    "coreAuthGateway": "e2aaff33832507b4a5ebf44d522a9b7ffa5d5ba4",
+    "webPwaExtensions": "d8f96c0649576cc645b3bc1651148dd0318bc243",
+    "androidApi36": "a0101ac491c2790d5cfdef99c2e11e3807d81aca",
     "iosMacos": "3150165e14f38031b9a089b029b623f67cd6df85",
-    "desktopCliSdk": "1bdb7fb4991937eba4f74341bd123214f9776e92"
+    "desktopCliSdk": "f76a416ebde087e16f1c0c02c80dc392e8c365e8"
   },
   "pendingOwnerEvidence": [
-    "806f342723bdc7911367b9db9a72c4f33cd0a3db",
-    "63d05e8f3eacd58f50037d6759099fd22ef30e88",
-    "a3dc6d52bfba48a3d272084828764192d4c7ac34",
-    "fc8c51f8bbd72399362611a1d85a6056d9419dc2",
-    "cd52568ba4041800528dd08fcd48b9e2ec4159c4",
-    "7d70e514a6a89dbbeb6b0c772430448e7db82994",
-    "e8c88e0ffdd7ecd90f1c719e3239758cb95ee2f3",
-    "9810d6fd56c5eb71d450ee71dbc18eb86e143ea1",
-    "979b791a87320718e66832cf690755792e998ab5"
+    "394a2728a8c0737dff025dd459e91d376a5c44ff",
+    "ab2c137950297f58bb95b9e614ce22bea3a40ca6",
+    "864e72af0a33fcd2c687a7f3a0eda70b22f929e0",
+    "4c8c464dffee289fd9173569915638f873409198"
   ],
   "releaseState": {
     "implementedLocal": true,
@@ -41,7 +36,10 @@
       "linuxDesktopX64NativeCi": true,
       "linuxAppImagePortableRun": true,
       "linuxAppImageInstalled": false,
+      "linuxArm64AppImagePortableRun": true,
+      "linuxArm64AppImageInstalled": false,
       "windowsDesktopX64NativeCi": true,
+      "macosDesktopX64NativeCi": true,
       "linuxCliNativeCi": true,
       "windowsCliX64NativeCi": true,
       "typescriptSdkCleanConsumer": true,

@@ -9,9 +9,9 @@
   "candidates": [
     {
       "id": "web-pwa-0.1.0",
-      "sourceCommit": "85af602dc96ae476c723f8646de55a081b89ed46",
+      "sourceCommit": "d8f96c0649576cc645b3bc1651148dd0318bc243",
       "artifactName": "ynx-wallet-web-pwa-0.1.0.zip",
-      "sha256": "cd6f892c3cb154df9dbc41d3c683b691e8bbed4dc2c2bdb086ba4c8add10f4df",
+      "sha256": "7126713f9a47ec3297fcdb378a8d0a8a42a44c391a9f9d5995238f1b7164e765",
       "signingClass": "unsigned-web-bundle",
       "publicUrl": null,
       "immutableUrl": null,
@@ -23,9 +23,9 @@
     },
     {
       "id": "browser-extension-0.1.0",
-      "sourceCommit": "85af602dc96ae476c723f8646de55a081b89ed46",
+      "sourceCommit": "d8f96c0649576cc645b3bc1651148dd0318bc243",
       "artifactName": "ynx-wallet-chrome-edge-0.1.0.zip",
-      "sha256": "a84aadc1045fac4b46ddf92b7cfefca3ed1e30e42812f393fa1f9ad930c6526b",
+      "sha256": "1f34a933314c32b3dcdee80167a6766fb27440e27a5d21d6c7da3e58e21db097",
       "signingClass": "unsigned-unpacked-extension",
       "publicUrl": null,
       "immutableUrl": null,
@@ -34,6 +34,20 @@
       "storeReleased": false,
       "websitePublishable": false,
       "exclusionReason": "Developer-mode unpacked load is not signed installation or a store release."
+    },
+    {
+      "id": "firefox-extension-0.1.0",
+      "sourceCommit": "d8f96c0649576cc645b3bc1651148dd0318bc243",
+      "artifactName": "ynx-wallet-firefox-0.1.0.zip",
+      "sha256": "bf98f1da846464f5bcbc13300a6c1ff7f896a247eaf3d53431408406aea8dfc2",
+      "signingClass": "unsigned-unpacked-extension",
+      "publicUrl": null,
+      "immutableUrl": null,
+      "downloadHosted": false,
+      "productionSigned": false,
+      "storeReleased": false,
+      "websitePublishable": false,
+      "exclusionReason": "Package integrity does not prove real-profile installation, signing, store release or public hosting."
     },
     {
       "id": "android-api36-disposable-qa",
@@ -104,6 +118,48 @@
       "storeReleased": false,
       "websitePublishable": false,
       "exclusionReason": "Portable native CI execution and post-upload hash verification do not prove installation, production signing or immutable public hosting."
+    },
+    {
+      "id": "macos-desktop-x64-dmg",
+      "sourceCommit": "297894a4a48c26012e051d371aac54e768969e67",
+      "artifactName": "ynx-wallet-desktop-0.1.0-x64.dmg",
+      "sha256": "10bb29eea8e6bc7d220e1f370ec2b9bfeba6d2c54036879eb3f29469dd2458f1",
+      "signingClass": "unsigned-unnotarized-macos-testnet-candidate",
+      "publicUrl": null,
+      "immutableUrl": null,
+      "downloadHosted": false,
+      "productionSigned": false,
+      "storeReleased": false,
+      "websitePublishable": false,
+      "exclusionReason": "Native CI install and hash verification do not make the unsigned, unnotarized DMG a public production download."
+    },
+    {
+      "id": "macos-desktop-x64-zip",
+      "sourceCommit": "297894a4a48c26012e051d371aac54e768969e67",
+      "artifactName": "ynx-wallet-desktop-0.1.0-x64.zip",
+      "sha256": "ca625c38f54c4886cefc2a5c40e921442b3bb16529acba5bc918246b5470b827",
+      "signingClass": "unsigned-unnotarized-macos-testnet-candidate",
+      "publicUrl": null,
+      "immutableUrl": null,
+      "downloadHosted": false,
+      "productionSigned": false,
+      "storeReleased": false,
+      "websitePublishable": false,
+      "exclusionReason": "The runner-installed copy was only ad-hoc signed; the ZIP artifact is unsigned, unnotarized and not publicly hosted."
+    },
+    {
+      "id": "linux-appimage-arm64-portable",
+      "sourceCommit": "f76a416ebde087e16f1c0c02c80dc392e8c365e8",
+      "artifactName": "ynx-wallet-desktop-0.1.0-arm64.AppImage",
+      "sha256": "386a7c5991e9006bbd2b90d64d7f8dc5e545c73a4df7fe908f1f9d618099d671",
+      "signingClass": "unsigned-linux-desktop-testnet-candidate",
+      "publicUrl": null,
+      "immutableUrl": null,
+      "downloadHosted": false,
+      "productionSigned": false,
+      "storeReleased": false,
+      "websitePublishable": false,
+      "exclusionReason": "Portable arm64 runtime and post-upload hash verification do not prove installation, production signing or immutable public hosting."
     },
     {
       "id": "typescript-sdk-0.2.0",
