@@ -115,6 +115,17 @@
       "publicClaimAllowed": false
     },
     {
+      "id": "WA-PAYMASTER-POLICY-SIGNER-ROTATION-001",
+      "category": "wallet-paymaster",
+      "owners": ["02-wallet-auth", "01-chain-core", "29-integration"],
+      "precondition": "An exact sponsored UserOperation is signed by policy signer S1 before the Paymaster owner rotates authority to S2, and account nonce N remains unused.",
+      "action": "Submit the frozen S1 authorization after rotation, then submit an S2 authorization at the same nonce N.",
+      "expectedHttpStatus": null,
+      "expectedCode": "AA34 signature error",
+      "expectedState": "S1 authorization fails with zero product/subject budget, replay or account-nonce mutation; S2 authorization succeeds at N",
+      "publicClaimAllowed": false
+    },
+    {
       "id": "WA-PAYMASTER-PRODUCT-POLICY-001",
       "category": "wallet-paymaster",
       "owners": ["02-wallet-auth", "01-chain-core", "29-integration"],
