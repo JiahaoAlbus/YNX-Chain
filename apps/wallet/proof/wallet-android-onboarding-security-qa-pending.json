@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "evidenceType": "wallet-android-onboarding-security-qa",
+  "sourceCommit": "0000000000000000000000000000000000000000",
+  "package": "com.ynxweb4.wallet",
+  "artifact": {"path":null,"manifestPath":null,"sha256":null,"bytes":null,"signingClass":null},
+  "environment": {"serial":null,"apiLevel":null,"androidRelease":null,"abi":null},
+  "checks": {
+    "create": false,
+    "import": false,
+    "recover": false,
+    "duplicateImportRejected": false,
+    "multiAccountSwitch": false,
+    "backgroundLock": false,
+    "onboardingSecretDismissed": false,
+    "strongBiometricUnlock": false,
+    "biometricFailureDenied": false,
+    "rtl": false,
+    "dark": false,
+    "largeText": false,
+    "validDeepLinkReview": false,
+    "tamperedDeepLinkRejected": false,
+    "wrongCallbackRejected": false,
+    "callbackRoundTrip": false,
+    "authoritativeDataFailClosed": false
+  },
+  "observations": {"accountCount":null,"fontScale":null,"locale":null,"uiMode":null,"callbackRequestDigest":null},
+  "rawEvidence": [],
+  "releaseStates": {"testedOnDevice":false,"installedLocal":false,"productionSigned":false,"storeReleased":false,"deployedPublic":false,"downloadHosted":false},
+  "invariants": {"secretMaterialRecorded":false,"realUserMaterialUsed":false,"productSessionsRestoredByRecovery":false,"fakeBalanceObserved":false,"fakeTransactionObserved":false,"fakeSignatureObserved":false,"fakeProviderObserved":false,"fakeSuccessObserved":false}
+}

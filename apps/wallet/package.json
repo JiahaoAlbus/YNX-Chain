@@ -21,6 +21,7 @@
     "product-check": "node scripts/product-check.mjs",
     "android:qa:build": "bash scripts/build-disposable-android-qa-release.sh",
     "android:qa:verify": "node scripts/verify-android-api36-qa-receipt.mjs",
+    "android:onboarding:qa:verify-pending": "node scripts/verify-android-onboarding-qa-receipt.mjs --pending \"$PWD/proof/wallet-android-onboarding-security-qa-pending.json\"",
     "check": "npm run typecheck && npm test && npm run product-check && npm run release-content:check && npm run goal-coverage:check && npm run sbom:check && npm run bundle"
   },
   "dependencies": {
