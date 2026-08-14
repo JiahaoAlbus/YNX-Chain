@@ -56,9 +56,9 @@ jobs:
           test -n "$PACKAGE_NAME"
           sudo apt-get install -y xvfb xdotool
           sudo rpm --initdb
-          sudo rpm -ivh --nodeps "$PRE_RPM"
+          sudo rpm -ivh --nodeps --noscripts "$PRE_RPM"
           test "$(rpm -q --queryformat '%{VERSION}' "$PACKAGE_NAME")" = 0.0.9
-          sudo rpm -Uvh --nodeps "$CURRENT_RPM"
+          sudo rpm -Uvh --nodeps --noscripts "$CURRENT_RPM"
           test "$(rpm -q --queryformat '%{VERSION}' "$PACKAGE_NAME")" = 0.1.0
           test -x "$EXECUTABLE"
 
@@ -97,7 +97,7 @@ jobs:
           run_phase 3 http://127.0.0.1:1 failed-rpc
           node -e "const e=require(process.env.EVIDENCE);if(e.launches!==3||e.rpc.available||e.rpc.chainId!==null||e.signingEnabled)process.exit(1)"
 
-          sudo rpm -e "$PACKAGE_NAME"
+          sudo rpm -e --noscripts "$PACKAGE_NAME"
           test ! -e "$EXECUTABLE"
           PACKAGE_NAME="$PACKAGE_NAME" node - <<'NODE'
           const fs = require('fs');
@@ -107,7 +107,7 @@ jobs:
             architecture: 'arm64',
             nativeRunner: 'ubuntu-24.04-arm',
             packageFormat: 'rpm',
-            packageManagerBoundary: 'rpm --nodeps on Ubuntu; Fedora-family dependency-manager integration not evidenced',
+            packageManagerBoundary: 'rpm --nodeps --noscripts on Ubuntu; RPM script and Fedora-family dependency-manager integration not evidenced',
             packageName: process.env.PACKAGE_NAME,
             preflightInstalled: true,
             upgradeVerified: true,
@@ -157,7 +157,7 @@ jobs:
               architecture: 'arm64',
               bytes,
               sha256: sumMatch[1],
-              minimumOS: 'Ubuntu 24.04 arm64 directly tested with rpm --nodeps; Fedora-family compatibility not evidenced',
+              minimumOS: 'Ubuntu 24.04 arm64 directly tested with rpm --nodeps --noscripts; RPM script and Fedora-family compatibility not evidenced',
               signingClass: 'unsigned_linux_rpm_testnet_candidate',
               productionSigned: false,
               installedOnNativeRunner: true
@@ -197,7 +197,7 @@ jobs:
           EXPECTED_BYTES="$(node -p "require('./' + process.argv[1]).artifact.bytes" "$MANIFEST")"
           test "$ACTUAL_SHA256" = "$EXPECTED_SHA256"
           test "$ACTUAL_BYTES" = "$EXPECTED_BYTES"
-          node -e "const m=require('./'+process.argv[1]);const l=require('./'+process.argv[2]);if(m.sourceCommit!==process.env.GITHUB_SHA||m.artifact.minimumOS!=='Ubuntu 24.04 arm64 directly tested with rpm --nodeps; Fedora-family compatibility not evidenced'||m.artifact.signingClass!=='unsigned_linux_rpm_testnet_candidate'||m.artifact.productionSigned||!m.artifact.installedOnNativeRunner||!l.preflightInstalled||!l.upgradeVerified||!l.currentInstalled||!l.coldLaunch||!l.secondLaunch||!l.processObserved||l.chainId!=='0x1917'||!l.rpcFailureClosed||l.signingEnabled||l.accountCreated||l.balanceClaimed||l.transactionCreated||!l.uninstallVerified||l.productionSigned)process.exit(1)" "$MANIFEST" "$LIFECYCLE"
+          node -e "const m=require('./'+process.argv[1]);const l=require('./'+process.argv[2]);if(m.sourceCommit!==process.env.GITHUB_SHA||m.artifact.minimumOS!=='Ubuntu 24.04 arm64 directly tested with rpm --nodeps --noscripts; RPM script and Fedora-family compatibility not evidenced'||m.artifact.signingClass!=='unsigned_linux_rpm_testnet_candidate'||m.artifact.productionSigned||!m.artifact.installedOnNativeRunner||!l.preflightInstalled||!l.upgradeVerified||!l.currentInstalled||!l.coldLaunch||!l.secondLaunch||!l.processObserved||l.chainId!=='0x1917'||!l.rpcFailureClosed||l.signingEnabled||l.accountCreated||l.balanceClaimed||l.transactionCreated||!l.uninstallVerified||l.productionSigned)process.exit(1)" "$MANIFEST" "$LIFECYCLE"
           mkdir -p downloaded-verification
           ACTUAL_SHA256="$ACTUAL_SHA256" ACTUAL_BYTES="$ACTUAL_BYTES" node - <<'NODE'
           const fs = require('fs');
