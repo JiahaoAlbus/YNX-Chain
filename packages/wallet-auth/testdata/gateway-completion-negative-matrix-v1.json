@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "domain": "YNX_GATEWAY_COMPLETION_NEGATIVE_MATRIX_V1",
+  "route": "/v1/wallet/sessions/complete",
+  "invariants": {
+    "mutated": false,
+    "stateDigestUnchanged": true,
+    "sessionsCreated": 0,
+    "authorizationNoncesConsumed": 0,
+    "productProofsConsumed": 0
+  },
+  "cases": [
+    {"id":"wrong-network","target":"authorizationRequest.chainId","mutation":"replace","value":"ynx_1-1","status":400,"code":"WRONG_NETWORK"},
+    {"id":"unknown-product","target":"authorizationRequest.productClientId","mutation":"replace","value":"ynx-unknown-v1","status":403,"code":"UNKNOWN_PRODUCT"},
+    {"id":"wrong-product","target":"authorizationRequest.requestingProduct","mutation":"replace","value":"pay","status":400,"code":"PRODUCT_MISMATCH"},
+    {"id":"wrong-callback","target":"authorizationRequest.callback","mutation":"replace","value":"attacker://wallet-auth/callback","status":400,"code":"CALLBACK_MISMATCH"},
+    {"id":"request-scope-widening","target":"authorizationRequest.scopes","mutation":"replace","value":["account:read","payments:write","profile:link"],"status":403,"code":"SCOPE_NOT_ALLOWED"},
+    {"id":"approval-request-digest-substitution","target":"walletApproval.requestDigest","mutation":"replace","value":"0000000000000000000000000000000000000000000000000000000000000000","status":403,"code":"BINDING_MISMATCH"},
+    {"id":"approval-scope-widening","target":"walletApproval.grantedScopes","mutation":"replace","value":["account:read","payments:write","profile:link"],"status":403,"code":"BINDING_MISMATCH"},
+    {"id":"approval-signature-tamper","target":"walletApproval.walletSignature","mutation":"flip-last-byte","value":null,"status":403,"code":"INVALID_SIGNATURE"},
+    {"id":"challenge-product-substitution","target":"gatewayCompletion.challenge.productClientId","mutation":"replace","value":"ynx-pay-v1","status":403,"code":"SESSION_BINDING_MISMATCH"},
+    {"id":"challenge-device-substitution","target":"gatewayCompletion.challenge.productDeviceKey","mutation":"replace","value":"A6O9sRMzJUEJ6GsxD44JH0O1NV2_NJfTsllRvxpaID0Q","status":403,"code":"SESSION_BINDING_MISMATCH"},
+    {"id":"challenge-account-substitution","target":"gatewayCompletion.challenge.account","mutation":"replace","value":"ynx19dddt3retspx298cx9785g27yxxue4k0zst9fl","status":403,"code":"SESSION_BINDING_MISMATCH"},
+    {"id":"challenge-scope-widening","target":"gatewayCompletion.challenge.scopes","mutation":"replace","value":["account:read","payments:write","profile:link"],"status":403,"code":"SESSION_SCOPE_MISMATCH"},
+    {"id":"challenge-lifetime-extension","target":"gatewayCompletion.challenge.expiresAt","mutation":"replace","value":"2026-07-15T12:04:00.001Z","status":400,"code":"SESSION_LIFETIME_MISMATCH"},
+    {"id":"device-signature-tamper","target":"gatewayCompletion.deviceSignature","mutation":"flip-last-byte","value":null,"status":403,"code":"INVALID_DEVICE_PROOF"},
+    {"id":"exact-completion-replay","target":"completion","mutation":"replay-after-success","value":null,"status":409,"code":"REPLAY","invariant":"no additional mutation after first success"}
+  ]
+}
