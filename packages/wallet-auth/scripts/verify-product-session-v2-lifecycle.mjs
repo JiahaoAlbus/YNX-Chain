@@ -14,7 +14,8 @@ const registry = JSON.parse(readFileSync(fileURLToPath(new URL("../product-sessi
 export async function verifyProductSessionV2Lifecycle(options = {}) {
   const endpoint = lifecycleEndpoint(options.endpoint ?? process.env.YNX_PRODUCT_SESSION_V2_LIFECYCLE_URL ?? "https://rest.ynxweb4.com", options.allowLoopback ?? process.env.YNX_PRODUCT_SESSION_V2_ALLOW_LOOPBACK === "1");
   const fetchImplementation = options.fetchImplementation ?? globalThis.fetch;
-  const now = validDate(options.now ?? new Date());
+  const fixedNow = options.now === undefined ? null : validDate(options.now);
+  const now = fixedNow ?? new Date();
   const timeoutMs = boundedInteger(options.timeoutMs ?? process.env.YNX_PRODUCT_SESSION_V2_LIFECYCLE_TIMEOUT_MS ?? 20_000, 1_000, 60_000, "lifecycle timeout");
   if (typeof fetchImplementation !== "function") fail("FETCH_UNAVAILABLE", "Product Session v2 lifecycle requires fetch");
   const run = randomBytes(12).toString("base64url");
@@ -56,17 +57,17 @@ export async function verifyProductSessionV2Lifecycle(options = {}) {
   if (completeRetry.body !== completeResponse.body) fail("IDEMPOTENCY_FAILED", "Product Session completion retry did not return the exact committed response");
   const session = completeResponse.payload.result;
   const introspectionBody = { requiredScopes: ["finance.pay.read"] };
-  const introspectionProof = proof(session, "/v2/product-sessions/introspect", introspectionBody, digestToken(`proof-introspect:${run}`), now, secretText);
+  const introspectionProof = proof(session, "/v2/product-sessions/introspect", introspectionBody, digestToken(`proof-introspect:${run}`), proofTime(session, fixedNow), secretText);
   const introspection = await call(endpoint, "/v2/product-sessions/introspect", ids.introspect, introspectionBody, introspectionProof, fetchImplementation, timeoutMs);
   expect(introspection, 200, null, "introspect");
   if (introspection.payload.result.session.sessionBinding !== session.sessionBinding) fail("SESSION_BINDING_MISMATCH", "Product Session introspection returned another Session");
   const replay = await call(endpoint, "/v2/product-sessions/introspect", ids.replay, introspectionBody, introspectionProof, fetchImplementation, timeoutMs);
   expect(replay, 409, "REPLAY", "proof replay");
   const revokeBody = {};
-  const revokeProof = proof(session, "/v2/product-sessions/revoke", revokeBody, digestToken(`proof-revoke:${run}`), now, secretText);
+  const revokeProof = proof(session, "/v2/product-sessions/revoke", revokeBody, digestToken(`proof-revoke:${run}`), proofTime(session, fixedNow), secretText);
   const revoke = await call(endpoint, "/v2/product-sessions/revoke", ids.revoke, revokeBody, revokeProof, fetchImplementation, timeoutMs);
   expect(revoke, 200, null, "revoke");
-  const postRevokeProof = proof(session, "/v2/product-sessions/introspect", introspectionBody, digestToken(`proof-post-revoke:${run}`), now, secretText);
+  const postRevokeProof = proof(session, "/v2/product-sessions/introspect", introspectionBody, digestToken(`proof-post-revoke:${run}`), proofTime(session, fixedNow), secretText);
   const postRevoke = await call(endpoint, "/v2/product-sessions/introspect", ids.postRevoke, introspectionBody, postRevokeProof, fetchImplementation, timeoutMs);
   expect(postRevoke, 403, "SESSION_REVOKED", "post-revoke introspection");
   return Object.freeze({
@@ -128,6 +129,7 @@ function requestId(label, run) { return `req_psv2_${label}_${run}`; }
 function digestToken(value) { return createHash("sha256").update(value).digest("base64url"); }
 function boundedInteger(value, minimum, maximum, label) { const parsed = typeof value === "number" ? value : Number(value); if (!Number.isSafeInteger(parsed) || parsed < minimum || parsed > maximum) fail("INVALID_CONFIGURATION", `${label} is outside policy`); return parsed; }
 function validDate(value) { if (!(value instanceof Date) || !Number.isFinite(value.getTime())) fail("INVALID_TIME", "Product Session lifecycle time is invalid"); return value; }
+function proofTime(session, fixedNow) { if (fixedNow) return fixedNow; const issuedAt = Date.parse(session?.issuedAt); if (!Number.isFinite(issuedAt)) fail("INVALID_SESSION_TIME", "Product Session lifecycle received an invalid Session issue time"); return new Date(Math.max(Date.now(), issuedAt)); }
 function lifecycleEndpoint(value, allowLoopback) { let parsed; try { parsed = new URL(value); } catch { fail("INVALID_ENDPOINT", "Product Session lifecycle endpoint is invalid"); } const loopback = allowLoopback && parsed.protocol === "http:" && ["127.0.0.1", "::1", "localhost"].includes(parsed.hostname); if ((parsed.protocol !== "https:" && !loopback) || parsed.username || parsed.password || parsed.search || parsed.hash || !["", "/"].includes(parsed.pathname)) fail("INVALID_ENDPOINT", "Product Session lifecycle requires a canonical HTTPS origin or explicitly allowed loopback"); return parsed; }
 function fail(code, message) { const error = new Error(message); error.code = code; throw error; }
 

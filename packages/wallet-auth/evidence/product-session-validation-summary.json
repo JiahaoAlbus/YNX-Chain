@@ -13,7 +13,7 @@
   },
   "fullPackageTest": {
     "command": "npm test",
-    "passed": 189,
+    "passed": 190,
     "failed": 0,
     "exitCode": 0
   },

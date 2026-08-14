@@ -31,3 +31,19 @@ test("deployment lifecycle verifier proves idempotency, replay rejection and rev
   assert.equal(result.visibleWalletApproval, false);
   assert.equal(host.snapshot().authority.revokedSessions.length, 1);
 });
+
+test("deployment lifecycle verifier floors live proof time at the server-issued Session time", async (context) => {
+  const directory = mkdtempSync(join(tmpdir(), "ynx-product-session-lifecycle-live-clock-"));
+  chmodSync(directory, 0o700);
+  context.after(() => rmSync(directory, { force: true, recursive: true }));
+  let challenge = 0;
+  const host = new ProductSessionGatewayNodeHost(registry, { emitEvent: () => undefined, now: () => new Date(), statePath: join(directory, "state.json"), tokenFactory: () => token(`deployment-live-clock-${challenge++}`) }, { build: { buildTime: NOW.toISOString(), release: "lifecycle-live-clock-test", sourceCommit: "e5932a2eb0e5c01ca31a1ba6e03f9872ccf0ef7f" }, remoteDeployed: true });
+  const server = createServer(host.handler());
+  await new Promise((resolve, reject) => { server.once("error", reject); server.listen(0, "127.0.0.1", resolve); });
+  context.after(() => new Promise((resolve) => server.close(resolve)));
+  const address = server.address();
+  const result = await verifyProductSessionV2Lifecycle({ allowLoopback: true, endpoint: `http://127.0.0.1:${address.port}`, timeoutMs: 5_000 });
+  assert.equal(result.schemaVersion, 2);
+  assert.equal(result.proofReplayRejected, true);
+  assert.equal(result.revoked, true);
+});
