@@ -39,4 +39,4 @@ Local acceptance is not central integration, public Testnet proof or production 
 
 Acceptance is enforced by `scripts/verify/wallet-auth-release-evidence-matrix.mjs`. GitHub Actions artifacts are temporary retention evidence, not `downloadHosted` product delivery.
 
-Android `0ad16656c31b3078ca6a77141a857f3ceacb4875` and Desktop `6edf84f62a95aa465106194178ad27ac89ead7e0` remain queued descendants.
+Android `0ce5db709e935c67741e2322c840108464eb43f0`, iOS/macOS `106ac6760a6fc28100250ff009fa304fc6d04f4d` and Desktop `b11faa864304ac3e260c261c732d30d018fe0eb8` remain queued descendants.

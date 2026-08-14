@@ -36,21 +36,30 @@
   "pendingOwnerEvidence": [
     {
       "owner": "android-api36",
-      "candidateCommit": "0ad16656c31b3078ca6a77141a857f3ceacb4875",
+      "candidateCommit": "0ce5db709e935c67741e2322c840108464eb43f0",
       "remoteFastForwardReported": true,
       "remoteReadbackComplete": true,
       "ciComplete": null,
       "consumedForReleaseTruth": false,
-      "note": "Authorization-modal reentry work is an unapproved successor to the frozen Android evidence and changes no device truth."
+      "note": "Callback-audit account binding is an unapproved successor to the frozen Android evidence and changes no device truth."
+    },
+    {
+      "owner": "ios-macos",
+      "candidateCommit": "106ac6760a6fc28100250ff009fa304fc6d04f4d",
+      "remoteFastForwardReported": true,
+      "remoteReadbackComplete": true,
+      "ciComplete": null,
+      "consumedForReleaseTruth": false,
+      "note": "Canonical macOS authorization-link source lacks a terminal Owner evidence checkpoint; Universal Link and DApp success remain false."
     },
     {
       "owner": "desktop-cli-sdk",
-      "candidateCommit": "6edf84f62a95aa465106194178ad27ac89ead7e0",
+      "candidateCommit": "b11faa864304ac3e260c261c732d30d018fe0eb8",
       "remoteFastForwardReported": true,
       "remoteReadbackComplete": true,
       "ciComplete": null,
       "consumedForReleaseTruth": false,
-      "note": "Linux RPM database query work lacks a terminal Owner evidence checkpoint and changes no release truth."
+      "note": "Linux RPM sandbox-safe install-path work lacks a terminal Owner evidence checkpoint and changes no release truth."
     }
   ],
   "ownerSources": [
@@ -77,7 +86,7 @@
       "branch": "codex/wallet-android-api36-continuation2-20260814",
       "sourceCommit": "4739a60e1fa0e3d0b6862e129330f9e9ca202887",
       "remoteCommitObserved": "4739a60e1fa0e3d0b6862e129330f9e9ca202887",
-      "branchHeadObserved": "4739a60e1fa0e3d0b6862e129330f9e9ca202887",
+      "branchHeadObserved": "0ce5db709e935c67741e2322c840108464eb43f0",
       "remoteVerifiedAt": "2026-08-14T04:20:00Z",
       "verificationMode": "github-git-database-parent-tree-blob-readback"
     },
@@ -86,7 +95,7 @@
       "branch": "codex/wallet-ios-macos-20260813",
       "sourceCommit": "8ccb7bf9c4bf9453ed72395d1f024de9fa75fb4d",
       "remoteCommitObserved": "8ccb7bf9c4bf9453ed72395d1f024de9fa75fb4d",
-      "branchHeadObserved": "8ccb7bf9c4bf9453ed72395d1f024de9fa75fb4d",
+      "branchHeadObserved": "106ac6760a6fc28100250ff009fa304fc6d04f4d",
       "remoteVerifiedAt": "2026-08-14T04:26:00Z",
       "verificationMode": "github-git-database-parent-tree-blob-readback"
     },
@@ -95,7 +104,7 @@
       "branch": "codex/wallet-desktop-cli-sdk-20260813",
       "sourceCommit": "931b70fc0dd4e7ff01542065099aeaa0b3f25a51",
       "remoteCommitObserved": "931b70fc0dd4e7ff01542065099aeaa0b3f25a51",
-      "branchHeadObserved": "931b70fc0dd4e7ff01542065099aeaa0b3f25a51",
+      "branchHeadObserved": "b11faa864304ac3e260c261c732d30d018fe0eb8",
       "remoteVerifiedAt": "2026-08-14T04:05:00Z",
       "verificationMode": "github-git-database-parent-tree-blob-readback"
     }
