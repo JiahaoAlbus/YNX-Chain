@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "protocolVersion": "2",
+  "meaning": {
+    "registry-ready": "The central v2 registry and shared contract tests cover the product. This is not product-runtime migration evidence.",
+    "shared-sdk-v1": "Current product source imports @ynx-chain/wallet-auth but still builds the v1 request/session contract.",
+    "legacy-direct": "Current product source constructs or opens Wallet URLs outside the v2 router.",
+    "contract-only": "Only a registry/integration contract was found; no v2 runtime consumer was found.",
+    "migrated-v2": "Product runtime imports and executes the v2 shared router/recovery client with platform evidence. No product currently meets this state."
+  },
+  "products": [
+    {"productId":"calendar","registry":"registry-ready","consumer":"contract-only","migrated":false,"evidence":["packages/wallet-auth/product-session-registry.json"]},
+    {"productId":"card","registry":"registry-ready","consumer":"contract-only","migrated":false,"evidence":["packages/wallet-auth/product-session-registry.json"]},
+    {"productId":"creator-studio","registry":"registry-ready","consumer":"legacy-direct","migrated":false,"evidence":["apps/creator-studio/app.js"]},
+    {"productId":"developer","registry":"registry-ready","consumer":"contract-only","migrated":false,"evidence":["packages/wallet-auth/product-session-registry.json"]},
+    {"productId":"dex","registry":"registry-ready","consumer":"contract-only","migrated":false,"evidence":["apps/quant-lab/integration/wallet-registry-entry.json"]},
+    {"productId":"exchange","registry":"registry-ready","consumer":"shared-sdk-v1","migrated":false,"evidence":["apps/exchange/mobile/src/wallet.ts"]},
+    {"productId":"finance","registry":"registry-ready","consumer":"shared-sdk-v1","migrated":false,"evidence":["apps/finance/mobile/src/wallet.ts","apps/finance/gateway/src/gateway.mjs"]},
+    {"productId":"pay","registry":"registry-ready","consumer":"legacy-direct","migrated":false,"evidence":["apps/pay/src/walletAuth.ts"]},
+    {"productId":"quant","registry":"registry-ready","consumer":"contract-only","migrated":false,"evidence":["apps/quant-lab/integration/wallet-registry-entry.json"]},
+    {"productId":"shop","registry":"registry-ready","consumer":"legacy-direct","migrated":false,"evidence":["apps/shop/wallet-auth.js","apps/shop/native/android/app/src/main/java/com/ynxweb4/shop/WalletAuth.java","apps/shop/native/ios/YNXShop/WalletAuth.swift"]},
+    {"productId":"social","registry":"registry-ready","consumer":"legacy-direct","migrated":false,"evidence":["apps/social/src/walletAuth.ts"]},
+    {"productId":"video","registry":"registry-ready","consumer":"legacy-direct","migrated":false,"evidence":["apps/video/wallet-auth.js","apps/video/android/app/src/main/java/com/ynxweb4/video/MainActivity.java","apps/video/ios/YNXVideo/ContentView.swift"]}
+  ],
+  "productRuntimeMigrationCount": 0,
+  "fixedProductCount": 0,
+  "integrationRule": "A product may change migrated to true only when its runtime imports the v2 shared SDK, its Gateway uses the v2 routes, and the required installed or browser flow evidence exists."
+}
