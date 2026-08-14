@@ -12,9 +12,22 @@ const committedPath = path.join(walletRoot, "sbom.cdx.json");
 const packageDocument = JSON.parse(
   await readFile(path.join(walletRoot, "package.json"), "utf8"),
 );
+const packageLockDocument = JSON.parse(
+  await readFile(path.join(walletRoot, "package-lock.json"), "utf8"),
+);
 const packageManagerMatch = /^npm@(\d+\.\d+\.\d+)$/.exec(packageDocument.packageManager ?? "");
 assert.ok(packageManagerMatch, "Wallet packageManager must pin an exact npm version");
 const npmVersion = packageManagerMatch[1];
+const platformSpecificPackages = new Set(
+  Object.entries(packageLockDocument.packages ?? {})
+    .filter(([, value]) => value.optional === true && (value.os || value.cpu))
+    .map(([packagePath, value]) => {
+      const marker = "node_modules/";
+      const offset = packagePath.lastIndexOf(marker);
+      assert.ok(offset >= 0 && value.version, `invalid platform package lock entry: ${packagePath}`);
+      return `${packagePath.slice(offset + marker.length)}@${value.version}`;
+    }),
+);
 const writeMode = process.argv.includes("--write");
 const toolPath = path.join(
   walletRoot,
@@ -74,7 +87,7 @@ try {
   );
 
   const rawSbom = JSON.parse(await readFile(generatedPath, "utf8"));
-  const sbom = canonicalizeSbom(rawSbom, { npmVersion });
+  const sbom = canonicalizeSbom(rawSbom, { npmVersion, platformSpecificPackages });
   const generatedBytes = serializeCanonicalSbom(sbom);
   assert.equal(sbom.bomFormat, "CycloneDX");
   assert.equal(sbom.specVersion, "1.6");

@@ -16,7 +16,7 @@ function sortObjects(values, key) {
   values.sort((left, right) => key(left).localeCompare(key(right), "en"));
 }
 
-export function canonicalizeSbom(input, { npmVersion }) {
+export function canonicalizeSbom(input, { npmVersion, platformSpecificPackages = new Set() }) {
   const sbom = structuredClone(input);
   if (!sbom.metadata || typeof sbom.metadata !== "object") {
     throw new Error("SBOM metadata is required");
@@ -29,6 +29,22 @@ export function canonicalizeSbom(input, { npmVersion }) {
   if (!npmTool) throw new Error("SBOM npm tool identity is required");
   npmTool.version = npmVersion;
 
+  const removedRefs = new Set();
+  sbom.components = (sbom.components ?? []).filter((component) => {
+    const identity = `${component.group ? `${component.group}/` : ""}${component.name}@${component.version}`;
+    if (!platformSpecificPackages.has(identity)) return true;
+    removedRefs.add(component["bom-ref"]);
+    return false;
+  });
+  sbom.dependencies = (sbom.dependencies ?? [])
+    .filter((dependency) => !removedRefs.has(dependency.ref))
+    .map((dependency) => ({
+      ...dependency,
+      ...(Array.isArray(dependency.dependsOn)
+        ? { dependsOn: dependency.dependsOn.filter((ref) => !removedRefs.has(ref)) }
+        : {}),
+    }));
+
   sortObjects(tools, (component) => `${component.group ?? ""}/${component.name ?? ""}@${component.version ?? ""}`);
   sortObjects(sbom.components ?? [], (component) => component["bom-ref"] ?? stableKey(component));
   sortObjects(sbom.dependencies ?? [], (dependency) => dependency.ref ?? stableKey(dependency));
@@ -40,6 +56,12 @@ export function canonicalizeSbom(input, { npmVersion }) {
     }
     if (value === null || typeof value !== "object") return;
     if (Array.isArray(value.dependsOn)) value.dependsOn.sort((left, right) => left.localeCompare(right, "en"));
+    if (Array.isArray(value.properties)) {
+      value.properties = value.properties.filter(
+        (property) => property.name !== "cdx:npm:package:path",
+      );
+      if (value.properties.length === 0) delete value.properties;
+    }
     for (const key of ["externalReferences", "licenses", "properties"]) {
       if (Array.isArray(value[key])) sortObjects(value[key], stableKey);
     }

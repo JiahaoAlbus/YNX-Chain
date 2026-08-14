@@ -16,16 +16,18 @@
   "result": {
     "npmProductionTreeExitCode": 0,
     "npmTreeProblems": 0,
-    "components": 431,
-    "dependencyNodes": 504,
-    "componentsWithLicenseMetadata": 431,
+    "components": 430,
+    "dependencyNodes": 503,
+    "componentsWithLicenseMetadata": 430,
     "duplicateComponentBomRefs": 0,
-    "sha256": "f35e795bd364dc585f72e3ec1f41033b234dbe2a8b1637d618e0cc63deea2864",
+    "sha256": "a4364efe33128ff099d36a545075a7bf2adad3123d31c6df718328f344270748",
     "generationAndVerificationPassed": true,
     "node22Node24FixtureMatch": true,
     "canonicalEncoding": "UTF-8 with LF and one trailing newline",
     "canonicalVersionSource": "package.json packageManager",
-    "canonicalTimestamp": "omitted"
+    "canonicalTimestamp": "omitted",
+    "platformSpecificOptionalBinaries": "omitted from the portable runtime graph",
+    "installationPaths": "omitted"
   },
   "commands": [
     "npm run sbom:generate",
