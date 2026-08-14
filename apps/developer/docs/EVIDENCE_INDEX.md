@@ -35,14 +35,16 @@ successful eight-runtime release record.
   unavailable language servers remain outside the panel's stated coverage.
 - Project-test evidence: `services/workspace-agent/test/runtime.test.mjs` executes
   discovered JavaScript, Python unittest, same-package Go, standalone C/C++,
-  dependency-free offline Cargo and JUnit Jupiter tests through
+  dependency-free offline Cargo, JUnit Jupiter and Hardhat Solidity tests through
   the real no-network sandbox, then rejects a wrong approval and missing tests.
   `test/project-test-runner-ui.test.js` holds the UI/client to exact discovery,
   one-time review, file/phase bounds and an allowlist that never invokes package
   scripts. The JUnit runner is the SHA-pinned Console Standalone `1.14.2`
   artifact installed by the reviewed image recipe. Cargo uses a canonical
-  dependency-free manifest/lock boundary plus `--offline --locked`; Solidity
-  framework tests are not evidenced.
+  dependency-free manifest/lock boundary plus `--offline --locked`. The Solidity
+  gate compiles two real contracts with Hardhat `3.9.0`, forces the SHA-verified
+  solc `0.8.24` WASM artifact, observes one passing `.t.sol` test, and runs with
+  network disabled without evaluating workspace configuration or package scripts.
   The local real Cargo gate used the official Rust `1.92.0` macOS arm64 archive
   after SHA-256 verification (`22276ecf826b22e718f099d7bf7ddb8c88aa46230fdba74962ab3c5031472268`).
 - Project transfer evidence: `test/project-transfer-ui.test.js` holds Explorer

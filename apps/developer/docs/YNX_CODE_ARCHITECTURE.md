@@ -255,12 +255,15 @@ requires `execute-once`, while `test-project` requires `test-once`. Project test
 discovery is server-duplicated from the visible client preview and selects only
 Node built-in tests, Python unittest discovery, same-directory Go package tests and
 standalone C/C++ tests, dependency-free Cargo projects executed with a canonical
-lock plus `--offline --locked`, and JUnit Jupiter tests compiled from explicit Java
-sources and executed by a SHA-pinned Console Standalone runner. It accepts at
+lock plus `--offline --locked`, JUnit Jupiter tests compiled from explicit Java
+sources and executed by a SHA-pinned Console Standalone runner, and Solidity
+`.t.sol` tests compiled with Hardhat `3.9.0` plus the digest-verified solc `0.8.24`
+WASM artifact. Solidity sources are copied into an isolated generated Hardhat
+project; user configuration, plugins and package scripts are not executed. It accepts at
 most 32 discovered test files and 20 phases and
 uses the same no-network Bubblewrap/prlimit or sandbox-exec boundary, streaming
 and output limits. It never evaluates package-manager scripts or an arbitrary
-command string. Solidity framework adapters remain unimplemented.
+command string.
 
 The current foundation implements this boundary through
 `services/terminal-service`: a same-origin, signed-session WebSocket upgrades to

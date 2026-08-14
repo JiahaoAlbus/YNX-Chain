@@ -18,7 +18,7 @@ Website owner: `28-website`
 - Current Windows hosted-workspace client source: `76322af5e8c26a64fb6425c51d96c67d2b3df65f`
 - Browser-evidence source: `98fcbe3cff68b4b01ebfd94df2d1476b41ecf2b5`
 - Current public Web IDE source: `17ee9ae5bf50677a3316b0838884dd135de80599`
-- Pending Web IDE feature source: `dbcb097539164747c77e8983dbf3200346685845`
+- Pending Web IDE feature source: `c0d8fe2dc0c406ad70843ab4fbb8e9cd8c537c60`
 - Product metadata: `apps/developer/public-product-metadata.json`
 - Product release truth: `apps/developer/product-release.json`
 - Release class: unsigned Testnet Preview
@@ -32,8 +32,8 @@ records and Secret references, reconnectable terminal inventory and Stop,
 reviewed container loopback port previews, redacted running-task inventory and
 owner-bound queued/running-task cancellation, plus distinct C17 build/run/test
 and C LLDB debugging, Eclipse JDT LS-backed Java language intelligence, plus
-SHA-pinned JUnit Jupiter and dependency-free offline Cargo project-test
-execution in the no-network sandbox.
+SHA-pinned JUnit Jupiter, dependency-free offline Cargo and pinned offline
+Hardhat Solidity project-test execution in the no-network sandbox.
 These capabilities must remain labelled
 `pending public verification` until the protected Developer candidate transaction
 returns `passed`, the public `/healthz` version matches the exact deployed commit,

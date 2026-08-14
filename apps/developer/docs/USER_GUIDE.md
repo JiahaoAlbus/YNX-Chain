@@ -29,12 +29,14 @@ Use **Test** beside Run when the workbench discovers supported test files. Revie
 the exact list, then approve that test run once. YNX Code runs `.test.js`/`.spec.js`,
 Python unittest `test_*.py`/`*_test.py`, Go `_test.go` files with their same-directory Go
 sources, standalone C/C++ files under `test/` or `tests/`, dependency-free Rust
-projects with inline `#[test]` functions, and JUnit Jupiter
-`*Test.java`/`*Tests.java` files under `src/test/java/`. Network stays off and
+projects with inline `#[test]` functions, JUnit Jupiter
+`*Test.java`/`*Tests.java` files under `src/test/java/`, and Solidity `.t.sol`
+contracts containing `test*` functions. Network stays off and
 the server never runs a `package.json` script. Cargo runs `--offline --locked`
 and accepts only the bounded dependency-free package manifest and canonical
-lock. Solidity framework tests require a future reviewed adapter; use the explicit terminal in a
-runtime that has those tools rather than assuming the Test button supports them.
+lock. Solidity tests run with Hardhat `3.9.0` and a SHA-verified solc `0.8.24`
+WASM compiler; workspace Hardhat configuration, plugins and package scripts are
+not executed.
 
 Open **Problems** in the bottom panel to inspect current diagnostics returned for
 opened files. Entries show severity, message, source, code and exact line/column;

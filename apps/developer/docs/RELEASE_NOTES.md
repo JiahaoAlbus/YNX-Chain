@@ -1,5 +1,19 @@
 # YNX Developer 0.2.0 Testnet Preview release notes
 
+## 2026-08-14 real offline Hardhat Solidity project-test candidate
+
+- Added server-side discovery for Solidity `.t.sol` files containing `test*`
+  functions and real Hardhat `3.9.0` Solidity test execution inside the existing
+  one-time-approved, no-network project-test sandbox.
+- The runner copies only regular `.sol` sources into an isolated generated
+  Hardhat project, ignores workspace configuration/plugins/package scripts,
+  forces WASM compilation, and verifies the pinned solc `0.8.24` artifact SHA-256
+  `fb59b825b7d57f9de89cd9de2415b12aab1fcc7eb2573fd2bf5c9b969eacf4d9`.
+- The direct integration gate compiled two Solidity files with solc `0.8.24`,
+  observed one passing contract test, and joined the full workspace-agent `15/15`
+  pass. Feature source: `c0d8fe2dc0c406ad70843ab4fbb8e9cd8c537c60`.
+  Public exact-version verification remains pending.
+
 ## 2026-08-14 real offline Cargo project-test candidate
 
 - Added server-side discovery of Rust `#[test]` functions and a real Cargo test
@@ -13,7 +27,7 @@
 - The reviewed image gate now requires both `rustc` and `cargo`; the direct test
   executes with the official Rust `1.92.0` macOS arm64 archive after verifying
   SHA-256 `22276ecf826b22e718f099d7bf7ddb8c88aa46230fdba74962ab3c5031472268`.
-  Solidity-framework project tests remain open.
+  This limitation was superseded by the later pinned Hardhat Solidity test slice.
 
 ## 2026-08-14 real JUnit project-test candidate
 
@@ -26,8 +40,9 @@
   before publishing the LXD image.
 - The direct integration gate compiles a production class and JUnit test,
   observes one successful test, preserves one-time review and file/phase limits,
-  and confirms the sandbox reports network disabled. Maven/Gradle dependency
-  installation, Cargo and Solidity-framework project tests remain open.
+  and confirms the sandbox reports network disabled. At that checkpoint,
+  Maven/Gradle dependency installation, Cargo and Solidity-framework project
+  tests remained open; the later Cargo and Hardhat slices supersede the last two.
 
 ## 2026-08-14 real Java language intelligence candidate
 
