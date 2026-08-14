@@ -6,16 +6,16 @@
   "recordedAt": "2026-08-14T03:52:00Z",
   "evidenceMatrix": {
     "path": "release/integration/wallet-auth-release-evidence-matrix.json",
-    "sha256": "1b19051b7f7bb1635bd9f1c1cd21ebe02621d0e6e6215d8e86aa9eabce1445ad",
+    "sha256": "6be999bd9ada19f7e26e6cf155d26be7c04647230f8fcbda6d66385d59751da2",
     "platforms": 21,
     "gatesPerPlatform": 12,
     "trueGates": 106,
     "falseGates": 146,
-    "evidenceRecords": 109
+    "evidenceRecords": 110
   },
   "frozenOwnerSources": {
     "coreAuthGateway": "404f818719b920008f88f076949a4387c5130855",
-    "webPwaExtensions": "46d030c85c2b1a3d12a10c6b5dd0e521ca303f1c",
+    "webPwaExtensions": "020f513e5d5d12920f75201f637bdd854ccc91aa",
     "androidApi36": "66d321e423baedb0e030650729f1000d25a351cf",
     "iosMacos": "3b27b83f18799ff74252469075ec460b6665dd44",
     "desktopCliSdk": "2802876f8470264c4a8819f1426e28f957a09289",
@@ -105,6 +105,7 @@
     "Chain Core contract v1.30.0 is accepted as an immutable dependency identity only; its Owner commits and 141,977,791-byte bundle are locally object/hash-verified. Authenticated SafetyStore v2 and ValidatorVoteSigner are local evidence only; valid signed-snapshot replay lacks an external monotonic rollback anchor, and signer custody, central integration and public deployment remain false.",
     "Faucet evidence 41df1255 proves production-host public-SNI health and official-www CORS with a safe invalid request and zero mutation; the observed workstation/mobile TLS path, successful funding transaction and aggregate public availability remain false.",
     "Product Session v2 evidence 7c39f78c proves registered-origin OPTIONS/actual-response CORS, evil-suffix rejection and zero mutation; EVM RPC CORS, Wallet v1 rejection, installed mobile approval and aggregate deployment remain false.",
+    "Web source 020f513e freezes three-way discovery: injected-provider clients require a real EIP-1193/EIP-6963 provider; external-mobile YNX fails closed because its canonical callback is null and binding is disabled/pending; MetaMask uses the frozen mobile dapp-link candidate but still requires a real provider. The new 274,329/189,922/189,959-byte artifacts are not the older officially hosted set, so latest-source hosting, mobile-visible behavior, account, sign, transaction and Testnet claims remain false.",
     "The cross-ecosystem Android launcher caller gate is intentionally blocked by legacy schemes/routes and manual URI construction; product callbacks remain registry-bound and are not silently rewritten.",
     "Product Session Router v2 hardened evidence 2bcdf4f6 supersedes cc6c3936 and freezes deployed source d26ed915: isolated 6441 passes rollback, public lifecycle and a real chmod 0644 tamper with HTTP 503 INSECURE_STATE_FILE, unchanged state bytes, no silent repair and sticky fail-close until explicit 0600+restart recovery. Legacy 6437/6439 remain unchanged, runtimeProductsMigrated=0, visible Wallet approval=false, and integratedCentral plus aggregate Product Session deployment remain false.",
     "Web commit 60614bf5 directly proves first and second launch of an unsigned temporary YNX add-on in official notarized Firefox 153.0.4; install, popup DOM/background, provider/account/sign/tx, extension signing and store claims remain false.",

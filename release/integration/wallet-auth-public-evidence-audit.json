@@ -3,7 +3,7 @@
   "auditId": "wallet-auth-public-evidence-audit-2026-08-14",
   "auditedAt": "2026-08-14T03:38:07Z",
   "integrationBaseCommit": "a008ce0e8fa2ac0322198576c320441118fbae83",
-  "matrixSha256": "1b19051b7f7bb1635bd9f1c1cd21ebe02621d0e6e6215d8e86aa9eabce1445ad",
+  "matrixSha256": "6be999bd9ada19f7e26e6cf155d26be7c04647230f8fcbda6d66385d59751da2",
   "endpointServiceDiscoveryMatrix": {
     "path": "release/integration/wallet-auth-public-endpoint-service-discovery-matrix.json",
     "sha256": "a33b98e4a88492952957452ad76d1545fb33a41c7bc2ba39ed7cbacb466de8a0"
@@ -441,6 +441,33 @@
     "providerAccountSignTransactionProved": false,
     "productionSigned": false,
     "storeReleased": false
+  },
+  "webMobileDiscoveryBoundary": {
+    "commit": "020f513e5d5d12920f75201f637bdd854ccc91aa",
+    "parent": "b040fe91e414b163e95b7fd02ba0e402d1aa0be4",
+    "tree": "c67d3732e7b7b1f462963fb592db3824debb25f1",
+    "handoffPath": "docs/integration/wallet-web-mobile-discovery-handoff-20260815.json",
+    "handoffBlob": "8c5d918b303a88996a98512e7a8e566ebade98ad",
+    "modes": ["injected-provider", "ynx-wallet-canonical-authorization", "metamask-mobile-dapp-link"],
+    "injectedProviderRequired": true,
+    "ynxCanonicalCallback": null,
+    "ynxRegistryBindingEnabled": false,
+    "returnToExternalChromeIsProviderSuccess": false,
+    "metamaskMobileDappLink": "https://metamask.app.link/dapp/www.ynxweb4.com/dapp/wallet",
+    "sourceTestsPassed": 84,
+    "packageTestsPassed": 70,
+    "artifacts": {
+      "pwa": {"bytes": 274329, "sha256": "a5e8d413e037ed1e345a4af7c42fc31bc413d6514afb0c8a0a0b82b6047fe209", "signingClass": "unsigned-web-bundle"},
+      "chromeEdge": {"bytes": 189922, "sha256": "354c1d7834c4be1ec19af4f19bb69ad8f097ce7ebb713e8b639e382815495266", "signingClass": "unsigned-unpacked-extension"},
+      "firefox": {"bytes": 189959, "sha256": "4d71e5de63ed24f35b52b847743f9c60bc3dc22e3c49e3461761ee5180466cea", "signingClass": "unsigned-unpacked-extension"}
+    },
+    "latestSourceArtifactsHosted": false,
+    "latestSourceDeployedPublic": false,
+    "mobileVisibleContractProvedPublic": false,
+    "accountVerified": false,
+    "signVerified": false,
+    "transactionVerified": false,
+    "testnetVerified": false
   },
   "iosMacosEngineeringBoundary": {
     "evidenceCommit": "a1ba611635289e22f883e49c4e7b25417f94778d",
