@@ -111,10 +111,86 @@ jobs:
           APPIMAGE="$(find apps/wallet-desktop/dist -maxdepth 1 -name '*.AppImage' -print -quit)"
           sha256sum "$APPIMAGE" | tee "$OUT_DIR/SHA256SUMS.txt"
           stat -c '%n %s' "$APPIMAGE" | tee "$OUT_DIR/BYTES.txt"
+          node - <<'NODE'
+          const fs = require('fs');
+          const path = require('path');
+          const out = process.env.OUT_DIR;
+          const [sha256] = fs.readFileSync(path.join(out, 'SHA256SUMS.txt'), 'utf8').trim().split(/\s+/);
+          const bytes = Number(fs.readFileSync(path.join(out, 'BYTES.txt'), 'utf8').trim().split(/\s+/).at(-1));
+          const lifecycle = JSON.parse(fs.readFileSync(path.join(out, 'lifecycle.json'), 'utf8'));
+          const manifest = {
+            schemaVersion: 1,
+            productId: 'wallet-desktop',
+            version: '0.1.0',
+            sourceCommit: process.env.GITHUB_SHA,
+            workflowRunId: Number(process.env.GITHUB_RUN_ID),
+            artifact: {
+              filename: 'ynx-wallet-desktop-0.1.0-x86_64.AppImage',
+              format: 'AppImage',
+              architecture: 'x86_64',
+              bytes,
+              sha256,
+              minimumOS: 'Ubuntu 24.04 directly tested; broader Linux compatibility not evidenced',
+              signingClass: 'unsigned_linux_desktop_testnet_candidate',
+              productionSigned: false,
+              installationApplicable: false,
+              portableRuntimeTestedOnNativeRunner: true
+            },
+            lifecycle
+          };
+          fs.writeFileSync(path.join(out, 'artifact-manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`);
+          NODE
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: ynx-wallet-desktop-linux-x64-appimage
           path: |
             apps/wallet-desktop/dist/*.AppImage
             ${{ runner.temp }}/wallet-desktop-appimage-evidence/**
+          if-no-files-found: error
+
+  verify-uploaded-artifact:
+    needs: linux-x64-appimage-native
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ynx-wallet-desktop-linux-x64-appimage
+          path: downloaded
+      - name: Require manifest and verify every downloaded AppImage field
+        run: |
+          APPIMAGE="$(find downloaded -type f -name '*.AppImage' -print -quit)"
+          MANIFEST="$(find downloaded -type f -name 'artifact-manifest.json' -print -quit)"
+          LIFECYCLE="$(find downloaded -type f -name 'lifecycle.json' -print -quit)"
+          test -n "$APPIMAGE"
+          test -n "$MANIFEST"
+          test -n "$LIFECYCLE"
+          ACTUAL_SHA256="$(sha256sum "$APPIMAGE" | cut -d ' ' -f 1)"
+          ACTUAL_BYTES="$(stat -c '%s' "$APPIMAGE")"
+          EXPECTED_SHA256="$(node -p "require('./' + process.argv[1]).artifact.sha256" "$MANIFEST")"
+          EXPECTED_BYTES="$(node -p "require('./' + process.argv[1]).artifact.bytes" "$MANIFEST")"
+          test "$ACTUAL_SHA256" = "$EXPECTED_SHA256"
+          test "$ACTUAL_BYTES" = "$EXPECTED_BYTES"
+          node -e "const m=require('./'+process.argv[1]);const l=require('./'+process.argv[2]);if(m.sourceCommit!==process.env.GITHUB_SHA||m.artifact.minimumOS!=='Ubuntu 24.04 directly tested; broader Linux compatibility not evidenced'||m.artifact.signingClass!=='unsigned_linux_desktop_testnet_candidate'||m.artifact.productionSigned||m.artifact.installationApplicable||!m.artifact.portableRuntimeTestedOnNativeRunner||!l.coldLaunch||!l.secondLaunch||!l.processObserved||!l.coldWindowTitleObserved||!l.secondWindowTitleObserved||l.chainId!=='0x1917'||!l.rpcFailureClosed||l.signingEnabled||l.accountCreated||l.balanceClaimed||l.transactionCreated||l.productionSigned||l.chromiumProcessSandboxEnabled)process.exit(1)" "$MANIFEST" "$LIFECYCLE"
+          mkdir -p downloaded-verification
+          ACTUAL_SHA256="$ACTUAL_SHA256" ACTUAL_BYTES="$ACTUAL_BYTES" node - <<'NODE'
+          const fs = require('fs');
+          const result = {
+            schemaVersion: 1,
+            sourceCommit: process.env.GITHUB_SHA,
+            workflowRunId: Number(process.env.GITHUB_RUN_ID),
+            uploadArtifactDownloaded: true,
+            manifestPresent: true,
+            lifecyclePresent: true,
+            sha256Verified: true,
+            bytesVerified: true,
+            sha256: process.env.ACTUAL_SHA256,
+            bytes: Number(process.env.ACTUAL_BYTES)
+          };
+          fs.writeFileSync('downloaded-verification/downloaded-verification.json', `${JSON.stringify(result, null, 2)}\n`);
+          NODE
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ynx-wallet-desktop-linux-x64-appimage-download-verification
+          path: downloaded-verification/downloaded-verification.json
           if-no-files-found: error
