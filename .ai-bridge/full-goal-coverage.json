@@ -39,8 +39,9 @@
       "applicability": "applicable",
       "status": "inProgress",
       "evidence": [
-        "engineering source commit b218b62688ab311513b650db0659390130735cad is frozen locally and pending push to review branch codex/data-fabric-typescript-sdk-20260814",
+        "engineering source commit b218b62688ab311513b650db0659390130735cad and v26-bound head 58eff9dad4a0a3dc27105716928f2a9b7c4f6460 are on remote review branch codex/data-fabric-typescript-sdk-20260814",
         "GitHub Actions engineering run 31797308684 passed the PostgreSQL job at exact source and generated the three-replica stream-leader-loss receipt; final evidence-head run 31799837096 passed both jobs at v24-bound head 54c8bc0e16a5a5b3bf6321d041f8b35fea871fbb",
+        "GitHub Actions run 31811137802 passed both jobs at the v26-bound head and its route-partition artifact was downloaded and hash-verified",
         "exact-source PostgreSQL resilience, 1000 signed Producer PostgreSQL-to-JetStream, consumer-process-crash, transport-backpressure and three-replica leader-loss JSON was downloaded and SHA-256 verified",
         "Chain Core v1.26.0 bundle was imported to refs/remotes/chain-core/v26 and its SHA-256, bytes, ref and required base were verified",
         "complete verified prior Git bundles and SHA-256 manifest exist",
@@ -174,7 +175,7 @@
       "publicProof": null,
       "blockedBy": [],
       "owner": "YNX Data Fabric",
-      "nextAction": "Bind the bounded TCP route-partition drill to exact-source CI, then repeat leader loss, partition and packet-loss drills on deployed shared Testnet infrastructure.",
+      "nextAction": "Repeat leader loss, partition and packet-loss drills on deployed shared Testnet infrastructure; the bounded TCP route-partition path is exact-source CI verified.",
       "lastUpdated": "2026-08-14T13:30:00Z"
     },
     {

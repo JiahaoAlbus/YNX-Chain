@@ -700,10 +700,11 @@
         "partition failover and healing RTO are recorded"
       ],
       "compensation": "retain every unacknowledged Outbox row; heal transport and retry through a confirmed writable quorum without treating client send as publication",
-      "status": "testedLocalPendingExactSourceCI",
+      "status": "testedExactSourceLinuxCI",
       "evidence": [
         "internal/datafabricnats/cluster_partition_test.go",
-        ".github/workflows/data-fabric.yml"
+        ".github/workflows/data-fabric.yml",
+        "GitHub Actions run 31811137802 PostgreSQL job"
       ],
       "limitations": [
         "one CI host and loopback transport",

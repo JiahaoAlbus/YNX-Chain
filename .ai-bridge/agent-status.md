@@ -6,7 +6,7 @@
 - Branch: `codex/final-data-fabric`
 - Engineering Source Commit: `b218b62688ab311513b650db0659390130735cad`
 - Remote Source Commit: pending push of Engineering Source `b218b62688ab311513b650db0659390130735cad` to review Branch `codex/data-fabric-typescript-sdk-20260814`
-- Source evidence CI: Run `31797308684` PostgreSQL job passed at exact engineering source `4bb2ddfb6337e44060f57adafc7ee1cc08faedbe`, including the three-replica JetStream stream-leader-loss gate. Final evidence-head Run `31799837096` passed both jobs at v24-bound head `54c8bc0e16a5a5b3bf6321d041f8b35fea871fbb`; both evidence artifacts were downloaded and all hashes verified.
+- Source evidence CI: Run `31811137802` passed both jobs at v26-bound head `58eff9dad4a0a3dc27105716928f2a9b7c4f6460`, including the three-replica JetStream TCP route-partition/heal gate. Its eleven-file artifact was downloaded and every SHA-256 value verified. Earlier leader-loss evidence remains preserved in Runs `31797308684` and `31799837096`.
 - Concurrent writer: no Git writer detected; an existing CodexPro server process was left untouched
 - Dirty state: reviewed and verified source-bound evidence slice awaiting commit and push; legacy recovery files are preserved under `recovery/2026-07-23/`
 
