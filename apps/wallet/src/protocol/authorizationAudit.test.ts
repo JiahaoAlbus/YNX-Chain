@@ -67,6 +67,15 @@ test("authorization audit persists only public binding metadata and no secret or
   assert.deepEqual(Object.keys(JSON.parse(raw)[0]).sort(),["account","action","at","bundleId","expiresAt","hash","previousHash","productClientId","requestDigest","schemaVersion","scopes","sequence"].sort());
 });
 
+test("callback audit stays on the intent account and decisions survive store reconstruction",async()=>{
+  const storage=new MemoryStorage(),store=new AuthorizationAuditStore(storage),otherAccount=walletIdentity(`${"00".repeat(31)}02`).account;
+  await store.append(request,{action:"intent-approved",account,at:"2026-07-15T12:00:00.000Z"});
+  const restarted=new AuthorizationAuditStore(storage);
+  await assert.rejects(restarted.append(request,{action:"request-rejected",account,at:"2026-07-15T12:00:01.000Z"}),/already decided/);
+  await assert.rejects(restarted.append(request,{action:"approval-returned",account:otherAccount,at:"2026-07-15T12:00:02.000Z"}),/account differs/);
+  assert.deepEqual((await restarted.load()).map(record=>[record.action,record.account]),[["intent-approved",account]]);
+});
+
 test("concurrent audit append and duplicate revoke serialize without lost records",async()=>{
   const storage=new ControlledStorage(),store=new AuthorizationAuditStore(storage),appendBlock=storage.blockNextWrite();
   const approved=store.append(request,{action:"intent-approved",account,at:"2026-07-15T12:00:00.000Z"});
