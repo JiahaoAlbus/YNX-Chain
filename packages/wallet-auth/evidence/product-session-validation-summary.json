@@ -1,18 +1,19 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-08-14T03:56:26.000Z",
+  "capturedAt": "2026-08-14T04:06:46.000Z",
   "scope": "local Product Session v2 protocol and router validation",
+  "registrySchemaVersion": 2,
   "branch": "codex/wallet-session-router-recovery",
   "sourceBaseline": "2a78ace0a647b73dd2961fae3361189116453a7d",
   "targetedTest": {
-    "command": "node --test test/product-session-gateway.test.mjs test/product-session-products.test.mjs test/product-session-recovery.test.mjs test/product-session-router.test.mjs test/product-session-v2.test.mjs",
-    "passed": 31,
+    "command": "node --test test/product-session-gateway.test.mjs test/product-session-migration.test.mjs test/product-session-products.test.mjs test/product-session-recovery.test.mjs test/product-session-router.test.mjs test/product-session-v2.test.mjs",
+    "passed": 39,
     "failed": 0,
     "concurrentSessions": 120
   },
   "fullPackageTest": {
     "command": "npm test",
-    "passed": 133,
+    "passed": 141,
     "failed": 0,
     "exitCode": 0
   },
@@ -21,7 +22,33 @@
     "exitCode": 0,
     "version": "1.1.0",
     "files": 55,
-    "shasum": "d80c2244d74f7b47b190f73a927fe1e1e3c0f330"
+    "shasum": "43c58700942509c10c1067033e87ae6cd0b7741f"
+  },
+  "networkRecovery": {
+    "storedSessionOnIntrospectionOutage": "retained-non-authoritative-until-retry",
+    "approvedCallbackOnCompletionOutage": "retained-in-protected-storage-until-restart-or-retry",
+    "invalidOrRevokedSession": "removed-and-one-controlled-reconnect",
+    "tests": [
+      "second-launch Gateway outage preserves protected session and Retry re-introspects without new approval",
+      "approved callback survives a completion outage and resumes from protected storage after restart",
+      "dangling or malformed protected callbacks fail closed and are removed"
+    ]
+  },
+  "metaMaskDownload": {
+    "url": "https://metamask.io/download",
+    "officialPageVerifiedAt": "2026-08-14T04:02:00.000Z",
+    "availabilityRule": "EVM-compatible products show a real MetaMask option even when MetaMask must first be installed"
+  },
+  "migrationEvidenceGate": {
+    "matrix": "release/integration/wallet-product-session-router-migration.json",
+    "coveredProducts": 12,
+    "branchLocalEvidencePathsVerified": true,
+    "requiredForMigratedV2": [
+      "runtimeEvidence",
+      "gatewayEvidence",
+      "platformEvidence"
+    ],
+    "runtimeProductsMigrated": 0
   },
   "publicWalletDownload": {
     "verifiedAt": "2026-08-14T03:47:47.000Z",
@@ -71,6 +98,13 @@
     "metaMaskDownload": "https://metamask.io/download",
     "screenshot": "evidence/ynx-wallet-installed-unavailable-computercontrol.jpeg"
   },
+  "installedMetaMaskObservation": {
+    "evidence": "evidence/metamask-installed-observation.json",
+    "chromeExtensionId": "nkbihfbeogaeaoehlefnkodbefgpgknn",
+    "version": "13.42.0",
+    "enabled": true,
+    "approvalFlowValidated": false
+  },
   "truthBoundary": {
     "runtimeProductsMigrated": 0,
     "installedPlatformsValidated": [],
@@ -78,7 +112,8 @@
       "macos-wallet-companion"
     ],
     "platformValidationBlocked": [
-      "No supported YNX Wallet or MetaMask application was available for a real approval/session flow"
+      "MetaMask 13.42.0 is installed and enabled, but no product runtime is migrated to v2 and the ComputerControl pipe closed before a real approval/session flow could be exercised",
+      "No installed YNX Wallet application was available for a real approval/session flow"
     ],
     "publicDeployment": false,
     "downloadHosted": true,

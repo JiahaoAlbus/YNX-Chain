@@ -1,9 +1,10 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "chainId": "ynx_6423-1",
   "wallet": {
     "authorizeCallback": "ynxwallet://authorize",
-    "downloadUrl": "https://www.ynxweb4.com/dapp/download"
+    "downloadUrl": "https://www.ynxweb4.com/dapp/download",
+    "metaMaskDownloadUrl": "https://metamask.io/download"
   },
   "products": [
     {

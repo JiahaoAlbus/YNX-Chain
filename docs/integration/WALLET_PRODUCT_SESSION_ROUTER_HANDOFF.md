@@ -2,7 +2,7 @@
 
 ## Outcome
 
-This branch adds a central, fail-closed Product Session v2 protocol to `@ynx-chain/wallet-auth`. It does not change Wallet UI, native packaging declarations, or product business pages. It also does not claim that any product runtime, staging service, public service, signed package, or store release already uses v2.
+This branch adds a central, fail-closed Product Session v2 protocol with Product Session Registry schema v2 to `@ynx-chain/wallet-auth`. Registry schema v2 adds the required, allowlisted MetaMask download route instead of silently changing schema v1. The only v1 registry compatibility path is the explicit deterministic `migrateProductSessionRegistryV1`; direct parsing of v1, unknown fields, or substituted download hosts fails closed. It does not change Wallet UI, native packaging declarations, or product business pages. It also does not claim that any product runtime, staging service, public service, signed package, or store release already uses v2.
 
 The shared implementation is in:
 
@@ -19,7 +19,7 @@ A v2 Session is valid only when all of these values remain exact: `chainId`, `pr
 
 Wallet approval uses the selected account signature. The App Gateway, not the product, issues the one-time challenge. The exact product P-256 device signs that challenge. Every later Gateway call uses a fresh sender-constrained proof bound to method, path, body digest, device, product, origin, callback, account and a maximum sixty-second lifetime. Challenge, request, state and proof replay stores survive snapshot restore.
 
-The recovery client refuses implicit browser/local storage. It accepts only an injected adapter labelled `hardware-backed` or `os-protected`, re-introspects a restored Session online, attempts one controlled reconnect after invalidation, and then requires explicit Retry. Offline state never treats the cached Session as authoritative.
+The recovery client refuses implicit browser/local storage. It accepts only an injected adapter labelled `hardware-backed` or `os-protected`, re-introspects a restored Session online, attempts one controlled reconnect after confirmed invalidation, and then requires explicit Retry. A typed Gateway network failure preserves the protected Session as non-authoritative and Retry re-introspects it instead of forcing a new approval. If the network fails after Wallet approval, the exact validated callback is retained in protected storage and can resume after restart. Revoked, expired, malformed, or binding-mismatched state is still removed fail closed.
 
 ## Deep-link and Wallet selection rules
 
@@ -27,11 +27,11 @@ The router opens only `ynxwallet://authorize?request=<base64url canonical JSON>`
 
 The known legacy value `ynx-social` migrates only for the Social registration and becomes `ynx-social://com.ynx.social`. Unknown or cross-product legacy schemes fail with `UNKNOWN_LEGACY_SCHEME`. Known v1 requests can migrate only when their client, bundle, callback, device algorithm, chain and scopes match the same registry entry.
 
-If YNX Wallet is installed, the first option is to open it. If absent, the shared choices include the verified official `https://www.ynxweb4.com/dapp/download` download center and MetaMask only for registrations marked EVM compatible. The earlier `/wallet` value was rejected because it redirects to an informational product page rather than the real download center. Guest / Try always carries the explicit limitations `not-signed-in`, `no-wallet-balance`, `no-transactions`, and `no-chain-authority`.
+If YNX Wallet is installed, the first option is to open it. If absent, the shared choices include the verified official `https://www.ynxweb4.com/dapp/download` download center and MetaMask only for registrations marked EVM compatible. An EVM-compatible product still shows a real `https://metamask.io/download` option when MetaMask is missing; when detected, the same choice becomes an `open-evm` action. Both URLs are pinned by the registry parser's official allowlist. The earlier `/wallet` value was rejected because it redirects to an informational product page rather than the real download center. Guest / Try always carries the explicit limitations `not-signed-in`, `no-wallet-balance`, `no-transactions`, and `no-chain-authority`.
 
 ## Product migration truth
 
-See `release/integration/wallet-product-session-router-migration.json`. All twelve requested products are registry-ready and pass the shared contract matrix. None is marked runtime-migrated because this task deliberately did not edit product pages or native packaging, and current source evidence still shows v1 or handwritten consumers. Integration must coordinate product-owner changes and installed/browser evidence before changing any `migrated` flag.
+See `release/integration/wallet-product-session-router-migration.json`. All twelve requested products are registry-ready and pass the shared contract matrix. None is marked runtime-migrated because this task deliberately did not edit product pages or native packaging, and current source evidence still shows v1 or handwritten consumers. The migration test now rejects missing evidence paths and requires distinct runtime, Gateway v2 route, and visible platform evidence before any `migrated-v2` claim. The Pay entry was corrected to `contract-only` because its previously cited runtime file does not exist on this branch. Integration must coordinate product-owner changes and installed/browser evidence before changing any `migrated` flag.
 
 ## Conflict avoidance
 
@@ -49,4 +49,4 @@ Integration should merge the scoped contract and matrix files, then reconcile v2
 
 ## Release boundary
 
-The scoped implementation is preserved on `origin/codex/p0-wallet-protocol-integration-20260820`. Local implementation and automated tests prove only `implementedLocal`, `testedLocal`, and `pushedRemote`. Earlier public release-registry and artifact back-read evidence proves `downloadHosted` for the Android Testnet Preview only. Earlier ComputerControl evidence showed the macOS Wallet Companion's fail-closed `NO SUPPORTED WALLET DETECTED` state, real YNX Wallet and MetaMask choices, and no fabricated connection data; no supported installed Wallet completed approval and callback. `installedLocal`, `integratedCentral`, `deployedStaging`, `deployedPublic`, `productionSigned`, and `storeReleased` remain false for this merged candidate.
+The scoped implementation is preserved on `origin/codex/p0-wallet-protocol-integration-20260820`. Local implementation and automated tests prove only `implementedLocal`, `testedLocal`, and `pushedRemote`. Earlier public release-registry and artifact back-read evidence proves `downloadHosted` for the Android Testnet Preview only. Earlier ComputerControl evidence showed the macOS Wallet Companion's fail-closed `NO SUPPORTED WALLET DETECTED` state, real YNX Wallet and MetaMask choices, and no fabricated connection data. It also observed an enabled MetaMask 13.42.0 Chrome extension, but the control pipe closed before any product connection or approval; installation evidence is not Session evidence. No installed YNX Wallet completed a flow and no product runtime is migrated to v2. `installedLocal`, `integratedCentral`, `deployedStaging`, `deployedPublic`, `productionSigned`, and `storeReleased` remain false for this merged candidate.

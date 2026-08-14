@@ -73,6 +73,60 @@ test("network loss, rejection and Guest mode never synthesize identity, balance,
   assert.equal("session" in guest, false);
 });
 
+test("second-launch Gateway outage preserves protected session and Retry re-introspects without new approval", async () => {
+  const first = harness();
+  const connecting = await first.client.begin({ walletInstalled: true, schemeRegistered: true });
+  const approval = signProductSessionApproval(registry, connecting.request, { accountSecret, scopes: connecting.request.scopes, expiresAt: "2026-08-14T01:03:00.000Z" }, NOW);
+  assert.equal((await first.client.handleReturn(createProductSessionReturnURL(registry, connecting.request, { result: "approved", approval }, NOW))).status, PRODUCT_SESSION_CLIENT_STATE.CONNECTED);
+  let networkUnavailable = true; let completionCalls = 0;
+  const gateway = {
+    ...first.gateway,
+    async complete(input) { completionCalls += 1; return first.gateway.complete(input); },
+    async introspect(binding, context) { if (networkUnavailable) throw new WalletAuthError("NETWORK_UNAVAILABLE", "temporary outage"); return first.gateway.introspect(binding, context); },
+  };
+  const second = new RecoverableProductSessionClient({ registry, productId: "social", platform: "android", storage: first.storage, gateway, device, tokenFactory: () => token("network-retry"), clock: () => NOW });
+  const unavailable = await second.restore(true);
+  assert.equal(unavailable.status, PRODUCT_SESSION_CLIENT_STATE.NETWORK_UNAVAILABLE);
+  assert.equal("session" in unavailable, false);
+  assert.notEqual(await first.storage.get(second.storageKey), null);
+  networkUnavailable = false;
+  assert.equal((await second.retry({ walletInstalled: true, schemeRegistered: true })).status, PRODUCT_SESSION_CLIENT_STATE.CONNECTED);
+  assert.equal(completionCalls, 0);
+});
+
+test("approved callback survives a completion outage and resumes from protected storage after restart", async () => {
+  const setup = harness(); let networkUnavailable = true; let completionCalls = 0;
+  const gateway = {
+    ...setup.gateway,
+    async complete(input) { completionCalls += 1; if (networkUnavailable) throw new WalletAuthError("NETWORK_UNAVAILABLE", "temporary outage"); return setup.gateway.complete(input); },
+  };
+  const client = new RecoverableProductSessionClient({ registry, productId: "social", platform: "android", storage: setup.storage, gateway, device, tokenFactory: (() => { let i = 0; return () => token(`callback-outage-${i++}`); })(), clock: () => NOW });
+  const connecting = await client.begin({ walletInstalled: true, schemeRegistered: true });
+  const approval = signProductSessionApproval(registry, connecting.request, { accountSecret, scopes: connecting.request.scopes, expiresAt: "2026-08-14T01:03:00.000Z" }, NOW);
+  const callback = createProductSessionReturnURL(registry, connecting.request, { result: "approved", approval }, NOW);
+  assert.equal((await client.handleReturn(callback)).status, PRODUCT_SESSION_CLIENT_STATE.NETWORK_UNAVAILABLE);
+  assert.notEqual(await setup.storage.get(`${client.storageKey}:pending`), null);
+  assert.equal(await setup.storage.get(`${client.storageKey}:return`), callback);
+  networkUnavailable = false;
+  const restarted = new RecoverableProductSessionClient({ registry, productId: "social", platform: "android", storage: setup.storage, gateway, device, tokenFactory: () => token("callback-restart"), clock: () => NOW });
+  assert.equal((await restarted.restore(true)).status, PRODUCT_SESSION_CLIENT_STATE.CONNECTED);
+  assert.equal(completionCalls, 2);
+  assert.equal(await setup.storage.get(`${client.storageKey}:pending`), null);
+  assert.equal(await setup.storage.get(`${client.storageKey}:return`), null);
+});
+
+test("dangling or malformed protected callbacks fail closed and are removed", async () => {
+  const setup = harness();
+  await setup.storage.set(`${setup.client.storageKey}:return`, "ynx-social://com.ynx.social?result=approved");
+  assert.equal((await setup.client.restore(true)).status, PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED);
+  assert.equal(await setup.storage.get(`${setup.client.storageKey}:return`), null);
+  await setup.storage.set(`${setup.client.storageKey}:pending`, "not-json");
+  await setup.storage.set(`${setup.client.storageKey}:return`, "ynx-social://com.ynx.social?result=approved");
+  assert.equal((await setup.client.restore(true)).status, PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED);
+  assert.equal(await setup.storage.get(`${setup.client.storageKey}:pending`), null);
+  assert.equal(await setup.storage.get(`${setup.client.storageKey}:return`), null);
+});
+
 test("insecure storage and fake Gateway adapters are rejected", () => {
   const valid = harness();
   assert.throws(() => new RecoverableProductSessionClient({ registry, productId: "social", platform: "android", storage: { securityLevel: "local", get() {}, set() {}, remove() {} }, gateway: valid.gateway, device, tokenFactory: () => token("x"), clock: () => NOW }), code("INSECURE_STORAGE"));

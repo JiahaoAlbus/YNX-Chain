@@ -4,7 +4,7 @@ import { test } from "node:test";
 import { p256 } from "@noble/curves/nist.js";
 import {
   canonicalReturnTarget, createProductSessionRequest, createProductSessionReturnURL,
-  migrateLegacyCallback, migrateLegacyProductSessionRequest, parseProductSessionRegistry, parseProductSessionReturnURL,
+  migrateLegacyCallback, migrateLegacyProductSessionRequest, migrateProductSessionRegistryV1, parseProductSessionRegistry, parseProductSessionReturnURL,
   prepareWalletOpen, walletConnectionChoices, WalletAuthError, WALLET_ROUTE_STATUS,
 } from "../src/index.js";
 
@@ -24,6 +24,7 @@ function request(productId = "social", platform = "android") {
 }
 
 test("registry defines exact Web, macOS, Windows, Android and iOS return targets for the migration set", () => {
+  assert.equal(registry.schemaVersion, 2);
   assert.equal(registry.products.length, 12);
   for (const product of registry.products) {
     const targets = ["web", "macos", "windows", "android", "ios"].map((platform) => canonicalReturnTarget(registry, product.productId, platform));
@@ -69,9 +70,30 @@ test("Wallet selection prefers installed YNX Wallet and only offers MetaMask for
   const socialMissing = walletConnectionChoices(registry, "social", { ynxWalletInstalled: false, metaMaskAvailable: true });
   assert.deepEqual(socialMissing.map((item) => item.id), ["download-ynx-wallet", "guest"]);
   assert.equal(socialMissing[0].url, "https://www.ynxweb4.com/dapp/download");
-  assert.deepEqual(walletConnectionChoices(registry, "dex", { ynxWalletInstalled: false, metaMaskAvailable: true }).map((item) => item.id), ["download-ynx-wallet", "metamask", "guest"]);
-  const guest = walletConnectionChoices(registry, "dex", { ynxWalletInstalled: false, metaMaskAvailable: false }).at(-1);
+  const installedMetaMask = walletConnectionChoices(registry, "dex", { ynxWalletInstalled: false, metaMaskAvailable: true });
+  assert.deepEqual(installedMetaMask.map((item) => item.id), ["download-ynx-wallet", "metamask", "guest"]);
+  assert.equal(installedMetaMask[1].action, "open-evm");
+  const missingMetaMask = walletConnectionChoices(registry, "dex", { ynxWalletInstalled: false, metaMaskAvailable: false });
+  assert.deepEqual(missingMetaMask.map((item) => item.id), ["download-ynx-wallet", "metamask", "guest"]);
+  assert.equal(missingMetaMask[1].action, "download-evm-wallet");
+  assert.equal(missingMetaMask[1].url, "https://metamask.io/download");
+  const guest = missingMetaMask.at(-1);
   assert.deepEqual(guest.limitations, ["not-signed-in", "no-wallet-balance", "no-transactions", "no-chain-authority"]);
+});
+
+test("Wallet download registrations are pinned to the official allowlist", () => {
+  assert.throws(() => parseProductSessionRegistry({ ...registrySource, wallet: { ...registrySource.wallet, downloadUrl: "https://attacker.example/wallet" } }), code("INVALID_ROUTER_REGISTRY"));
+  assert.throws(() => parseProductSessionRegistry({ ...registrySource, wallet: { ...registrySource.wallet, metaMaskDownloadUrl: "https://attacker.example/metamask" } }), code("INVALID_ROUTER_REGISTRY"));
+});
+
+test("registry v1 migrates explicitly to v2 while modified or ambiguous legacy registries fail closed", () => {
+  const legacy = { ...registrySource, schemaVersion: 1, wallet: { authorizeCallback: registrySource.wallet.authorizeCallback, downloadUrl: registrySource.wallet.downloadUrl } };
+  assert.throws(() => parseProductSessionRegistry(legacy), code("INVALID_ROUTER_REGISTRY"));
+  const migrated = migrateProductSessionRegistryV1(legacy);
+  assert.equal(migrated.schemaVersion, 2);
+  assert.equal(migrated.wallet.metaMaskDownloadUrl, "https://metamask.io/download");
+  assert.throws(() => migrateProductSessionRegistryV1({ ...legacy, wallet: { ...legacy.wallet, unknown: true } }), code("UNKNOWN_OR_MISSING_FIELD"));
+  assert.throws(() => migrateProductSessionRegistryV1({ ...legacy, wallet: { ...legacy.wallet, downloadUrl: "https://attacker.example/wallet" } }), code("INVALID_ROUTER_REGISTRY"));
 });
 
 test("router returns actionable unavailable states and never opens an unregistered scheme", () => {

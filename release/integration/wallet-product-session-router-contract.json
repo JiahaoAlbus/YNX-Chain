@@ -7,6 +7,7 @@
   "protocol": {
     "name": "YNX Product Session",
     "version": "2",
+    "registrySchemaVersion": 2,
     "chainId": "ynx_6423-1",
     "registry": "packages/wallet-auth/product-session-registry.json",
     "requiredBindings": [
@@ -32,6 +33,7 @@
     "productDeviceSignature": "P-256 SHA-256 DER",
     "challengePolicy": "Gateway-issued, one-time, maximum 60 seconds",
     "sessionPolicy": "short-lived, sender-constrained, introspected online, fail closed",
+    "networkRecoveryPolicy": "Gateway network failures retain protected session/callback state as non-authoritative; Retry re-introspects or resumes completion before starting a new approval",
     "secureStoragePolicy": ["hardware-backed", "os-protected"],
     "guestLimitations": ["not-signed-in", "no-wallet-balance", "no-transactions", "no-chain-authority"]
   },
@@ -52,12 +54,14 @@
   ],
   "forbiddenFallbacks": ["local session", "canned session", "fake Wallet answer", "fake AI Gateway answer", "javascript URL", "file URL", "http downgrade", "open redirect", "callback injection", "wildcard scope"],
   "compatibility": {
+    "registryV1": "Explicit migrateProductSessionRegistryV1 upgrade only; direct v1 parsing is rejected",
     "accepted": "Only exact legacy requests and callbacks declared for the same product in the router registry",
     "unknownLegacyScheme": "UNKNOWN_LEGACY_SCHEME",
     "unknownLegacyRequest": "LEGACY_BINDING_MISMATCH"
   },
   "tests": [
     "packages/wallet-auth/test/product-session-gateway.test.mjs",
+    "packages/wallet-auth/test/product-session-migration.test.mjs",
     "packages/wallet-auth/test/product-session-products.test.mjs",
     "packages/wallet-auth/test/product-session-recovery.test.mjs",
     "packages/wallet-auth/test/product-session-router.test.mjs",

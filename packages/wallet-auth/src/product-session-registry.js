@@ -1,10 +1,11 @@
 import { exactFields, WalletAuthError } from "./canonical.js";
 
-export const PRODUCT_SESSION_REGISTRY_VERSION = 1;
+export const PRODUCT_SESSION_REGISTRY_VERSION = 2;
 export const PRODUCT_SESSION_PLATFORMS = Object.freeze(["android", "ios", "macos", "web", "windows"]);
 
 const DOCUMENT_FIELDS = ["schemaVersion", "chainId", "wallet", "products"];
-const WALLET_FIELDS = ["authorizeCallback", "downloadUrl"];
+const WALLET_FIELDS = ["authorizeCallback", "downloadUrl", "metaMaskDownloadUrl"];
+const WALLET_V1_FIELDS = ["authorizeCallback", "downloadUrl"];
 const PRODUCT_FIELDS = [
   "productId", "clientId", "displayName", "applicationId", "webOrigin", "nativeCallback",
   "legacyCallbacks", "scopes", "evmCompatible", "sessionDurationSeconds",
@@ -23,6 +24,10 @@ export function parseProductSessionRegistry(input) {
     fail("INVALID_ROUTER_REGISTRY", "Wallet authorize callback must be ynxwallet://authorize");
   }
   const downloadUrl = httpsURL(input.wallet.downloadUrl, "Wallet download URL", false);
+  const metaMaskDownloadUrl = httpsURL(input.wallet.metaMaskDownloadUrl, "MetaMask download URL", false);
+  if (downloadUrl !== "https://www.ynxweb4.com/dapp/download" || metaMaskDownloadUrl !== "https://metamask.io/download") {
+    fail("INVALID_ROUTER_REGISTRY", "Wallet download routes must match the approved official allowlist");
+  }
   if (!Array.isArray(input.products) || input.products.length < 1 || input.products.length > 64) {
     fail("INVALID_ROUTER_REGISTRY", "Product Session registry product count is invalid");
   }
@@ -38,8 +43,19 @@ export function parseProductSessionRegistry(input) {
   return Object.freeze({
     schemaVersion: PRODUCT_SESSION_REGISTRY_VERSION,
     chainId: input.chainId,
-    wallet: Object.freeze({ authorizeCallback, downloadUrl }),
+    wallet: Object.freeze({ authorizeCallback, downloadUrl, metaMaskDownloadUrl }),
     products: Object.freeze(products),
+  });
+}
+
+export function migrateProductSessionRegistryV1(input) {
+  exactFields(input, DOCUMENT_FIELDS, "Product Session router registry v1");
+  if (input.schemaVersion !== 1 || input.chainId !== "ynx_6423-1") fail("INVALID_ROUTER_REGISTRY", "Product Session router registry v1 is unsupported");
+  exactFields(input.wallet, WALLET_V1_FIELDS, "Product Session Wallet registration v1");
+  return parseProductSessionRegistry({
+    ...input,
+    schemaVersion: PRODUCT_SESSION_REGISTRY_VERSION,
+    wallet: { ...input.wallet, metaMaskDownloadUrl: "https://metamask.io/download" },
   });
 }
 
@@ -65,6 +81,7 @@ export function productPlatformBinding(registryInput, productId, platform) {
     sessionDurationSeconds: product.sessionDurationSeconds,
     walletAuthorizeCallback: registry.wallet.authorizeCallback,
     walletDownloadUrl: registry.wallet.downloadUrl,
+    metaMaskDownloadUrl: registry.wallet.metaMaskDownloadUrl,
   });
 }
 

@@ -42,6 +42,7 @@ const revokedResponse = call("req_visible_revoked_001", "/v2/product-sessions/in
 const notInstalled = prepareWalletOpen(registry, pending, { networkAvailable: true, walletInstalled: false, schemeRegistered: false }, NOW);
 const ready = prepareWalletOpen(registry, pending, { networkAvailable: true, walletInstalled: true, schemeRegistered: true }, NOW);
 const guest = walletConnectionChoices(registry, "social", { ynxWalletInstalled: false, metaMaskAvailable: true }).find((item) => item.id === "guest");
+const missingMetaMask = walletConnectionChoices(registry, "dex", { ynxWalletInstalled: false, metaMaskAvailable: false }).find((item) => item.id === "metamask");
 
 const proofDocument = {
   schemaVersion: 1,
@@ -53,6 +54,7 @@ const proofDocument = {
   flows: [
     { id: "wallet-installed", label: "YNX Wallet installed", outcome: ready.status, requestId: "local-router-only", detail: "Validated allowlisted ynxwallet://authorize route" },
     { id: "wallet-not-installed", label: "YNX Wallet not installed", outcome: notInstalled.status, requestId: "local-router-only", detail: notInstalled.message },
+    { id: "metamask-not-installed", label: "MetaMask not installed (EVM only)", outcome: missingMetaMask.action, requestId: "local-router-only", detail: missingMetaMask.url },
     { id: "approved", label: "Wallet approval + Gateway completion", outcome: completeResponse.status === 200 ? "connected" : "rejected", requestId: "req_visible_complete_001", detail: session.sessionBinding },
     { id: "rejected", label: "User rejected", outcome: rejection.status, requestId: "local-router-only", detail: rejection.message },
     { id: "introspection", label: "Sender-constrained introspection", outcome: introspectionResponse.status === 200 ? "active" : "rejected", requestId: "req_visible_introspect_001", detail: "Method, path, body, product, bundle/package, origin, callback, account and device bound" },
