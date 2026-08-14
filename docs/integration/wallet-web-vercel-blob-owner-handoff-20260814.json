@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "from": "Wallet/Auth Web/PWA/Extensions",
+  "to": "Desktop Website publishing owner",
+  "sourceCommit": "a1c680982b63f67ee04c49a2131ba62796d21a8b",
+  "evidence": "apps/wallet-web/evidence/runtime/vercel-blob-upload-boundary-20260814.json",
+  "publicationRequest": "release/integration/wallet-web-publication-request-20260814.json",
+  "provedBinding": "jiahaoalbus-projects / ynx-web4-website-new / ynx-official-downloads",
+  "blocker": "The current session can inspect the Vercel control plane but has neither Blob read-write token nor OIDC data-plane credentials. Project linking in an isolated temporary directory did not grant Blob list/put access.",
+  "ownerActions": [
+    "Upload the three exact content-addressed ZIPs to ynx-official-downloads without overwrite.",
+    "Bind immutable www.ynxweb4.com download rewrites and registry records to the returned Blob URLs.",
+    "Return public GET headers, full SHA-256 and byte counts for all three official-domain URLs.",
+    "Keep controls disabled until the exact public GET proofs pass."
+  ],
+  "uploaded": false,
+  "officialDomainHosted": false,
+  "visibleBrowserAcceptance": false
+}

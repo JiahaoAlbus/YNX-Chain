@@ -20,6 +20,8 @@
     "Return website commit, CI run, production deployment IDs, public DOM/network evidence and full-download hashes."
   ],
   "deploymentAuditEvidence": "apps/wallet-web/evidence/runtime/website-publication-capability-audit-20260814.json",
+  "blobUploadAuditEvidence": "apps/wallet-web/evidence/runtime/vercel-blob-upload-boundary-20260814.json",
+  "blobUploadHandoff": "docs/integration/wallet-web-vercel-blob-owner-handoff-20260814.json",
   "currentState": {
     "integratedCentral": false,
     "deployedPublic": false,
