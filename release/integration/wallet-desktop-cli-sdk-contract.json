@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "productSlug": "wallet-desktop-cli-sdk",
   "owner": "02-wallet-auth-desktop-cli-sdk",
-  "sourceCommit": "aa88a6e7a1bb17b5fc46799100e43acdccb26dc6",
+  "sourceCommit": "c2622ca2e18949ee83625cc97854c2f097c79eee",
   "consumes": {
     "networkOwner": "01-chain-core",
     "authOwner": "02-wallet-auth",
@@ -39,10 +39,12 @@
     "desktopSbomProvenance": "a65c90c459b231ebbd0250cac7490714c6ed1541",
     "linuxArm64RpmFedoraLifecycle": "02acde92b34ba555ed55f5b512d3dd8a48c1412e",
     "linuxArm64RpmRollbackRecovery": "59e74e5369a6c193dbede6973341842157988099",
-    "linuxX64AppImageSandboxedRuntime": "aa88a6e7a1bb17b5fc46799100e43acdccb26dc6"
+    "linuxX64AppImageSandboxedRuntime": "aa88a6e7a1bb17b5fc46799100e43acdccb26dc6",
+    "linuxX64RpmFedoraLifecycle": "c2622ca2e18949ee83625cc97854c2f097c79eee"
   },
   "directEvidence": {
     "linuxX64AppImage": "release/wallet-desktop/linux-x64-appimage/manifest.json",
+    "linuxX64RpmFedoraLifecycle": "release/wallet-desktop/linux-x64-rpm-fedora/manifest.json",
     "windowsArm64Cli": "release/wallet-cli/windows-arm64-native/manifest.json",
     "linuxArm64Rpm": "release/wallet-desktop/linux-arm64-rpm/manifest.json",
     "goSdkRealConsumer": "release/wallet-cli/go-sdk/real-consumer-evidence.json",
