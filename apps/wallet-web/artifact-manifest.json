@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "productId": "wallet-web",
   "version": "0.1.0-testnet-preview.1",
-  "sourceCommit": "fc8c51f8bbd72399362611a1d85a6056d9419dc2",
+  "sourceCommit": "cd52568ba4041800528dd08fcd48b9e2ec4159c4",
   "implementedLocal": true,
   "testedLocal": true,
   "installedLocal": false,

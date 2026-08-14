@@ -136,6 +136,30 @@ test("extension disconnect invalidates restore and reconnect requires fresh runt
   assert.deepEqual(runtime.messages.slice(-3).map(({input})=>input.method),["wallet_switchEthereumChain","eth_chainId","eth_requestAccounts"]);
 });
 
+test("extension sign and transaction require live account preflight before runtime mutation", async () => {
+  const runtime = extensionRuntime({
+    eth_chainId:{ok:true,result:"0x1917"},
+    eth_accounts:{ok:true,result:[ACCOUNT]},
+    personal_sign:{ok:true,result:SIGNATURE},
+    eth_sendTransaction:{ok:true,result:TX_HASH},
+  });
+  const extensionProvider = createExtensionProvider("ynx",runtime);
+  assert.equal(await signMessage(extensionProvider,ACCOUNT,"extension approval"),SIGNATURE);
+  assert.deepEqual(runtime.messages.map(({input})=>input.method),["eth_chainId","eth_accounts","personal_sign"]);
+  runtime.messages.length = 0;
+  assert.equal(await sendTransaction(extensionProvider,{from:ACCOUNT,to:TO,value:"0x0",data:"0x"},{fetcher:rpc}),TX_HASH);
+  assert.deepEqual(runtime.messages.map(({input})=>input.method),["eth_chainId","eth_accounts","eth_sendTransaction"]);
+});
+
+test("extension account replacement and user rejection never fabricate sensitive success", async () => {
+  const replaced = extensionRuntime({eth_chainId:{ok:true,result:"0x1917"},eth_accounts:{ok:true,result:[TO]},personal_sign:{ok:true,result:SIGNATURE}});
+  await assert.rejects(() => signMessage(createExtensionProvider("ynx",replaced),ACCOUNT,"stale"), (error) => error.code === "ACCOUNT_CHANGED");
+  assert.deepEqual(replaced.messages.map(({input})=>input.method),["eth_chainId","eth_accounts"]);
+  const rejected = extensionRuntime({eth_chainId:{ok:true,result:"0x1917"},eth_accounts:{ok:true,result:[ACCOUNT]},personal_sign:{ok:false,error:{code:4001,message:"User rejected"}}});
+  await assert.rejects(() => signMessage(createExtensionProvider("ynx",rejected),ACCOUNT,"declined"), (error) => error.code === 4001);
+  assert.equal(invalidatesConnectedSession({code:4001}),false);
+});
+
 test("network mutation fails closed before provider call when RPC is unavailable", async () => {
   const wallet = provider({wallet_switchEthereumChain:null});
   await assert.rejects(() => switchToYNXChain(wallet,{fetcher:async()=>{throw new Error("offline")}}), (error) => error.code === "RPC_UNAVAILABLE");

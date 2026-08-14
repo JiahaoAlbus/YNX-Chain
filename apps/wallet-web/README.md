@@ -48,6 +48,10 @@ The extension popup provider uses the same fail-closed operations over its
 an exact `eth_chainId` proof; wrong-chain results are rejected. A disconnected
 runtime cannot restore local session metadata, and reconnect requires a fresh
 switch, chain proof, and account approval.
+Extension signing and transaction calls also perform the live chain/account
+preflight through that runtime channel. A replaced account prevents the
+sensitive call entirely; provider code `4001` remains a real user rejection and
+is never converted into a signature, transaction hash, or disconnected claim.
 
 ```sh
 npm test
