@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "wallet-product-session-v2-app-gateway-mount-local-2026-08-14",
+  "owner": "02-wallet-auth",
+  "sourceCommit": "abb2f6ceebe2942f20af45a32583d4b73341da24",
+  "routerContractCommit": "739fca33d230d390f0c001467c39efb14450b9ec",
+  "failFirst": "POST /v2/product-sessions/challenge returned local HTTP 404 because no App Gateway mount existed",
+  "exactRoutes": ["/v2/product-sessions/challenge","/v2/product-sessions/complete","/v2/product-sessions/introspect","/v2/product-sessions/revoke","/v2/product-sessions/devices/revoke"],
+  "bindings": {"postOnly":true,"queryRejected":true,"unknownPathRejected":true,"originAllowlist":true,"v2ProofHeaderPreserved":true,"requestIdPreserved":true,"cacheControlNoStore":true,"walletUpstreamOnly":true},
+  "tests": {"focused":"passed","goAppGateway":"passed","walletAuthFull":{"passed":275,"failed":0},"walletProductGate":"passed","walletReleaseContentGate":"passed","walletGoalCoverageGate":"passed"},
+  "sourceSha256": {"internal/appgateway/server.go":"c26924b37d6f9275c3461f1fbfaa3234bc38847fd3154d5c43cd2776733c844c","internal/appgateway/product_session_v2_test.go":"687b2688157e584c57d8aadb9c2abc002c95f866c8ac2c98912f991946bcb801"},
+  "remaining": ["host ProductSessionGatewayHttpHandler behind the Wallet upstream","persist schemaVersion 2 authority atomically","prove restart and rollback gates","run complete public lifecycle"],
+  "releaseClaims": {"mountedLocal":true,"persistenceIntegrated":false,"restartVerified":false,"rollbackVerified":false,"integratedCentral":false,"deployedV2":false,"deployedPublic":false},
+  "secretMaterialRecorded": false
+}

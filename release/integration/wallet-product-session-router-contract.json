@@ -60,6 +60,7 @@
     "routePrecedence": "mount all exact Product Session v2 routes before the Chain JSON-RPC catch-all",
     "currentObservedState": "misrouted-to-chain-json-rpc-catch-all",
     "currentEvidence": "packages/wallet-auth/evidence/product-session-v2-public-route-probe-20260814.json",
+    "localMountCandidate": {"sourceCommit":"abb2f6ceebe2942f20af45a32583d4b73341da24","exactRoutesMountedBeforeFallback":true,"v2ProofAndRequestIdPreserved":true,"persistenceIntegrated":false,"restartVerified":false,"rollbackVerified":false,"deployedV2":false,"evidence":"apps/wallet/proof/product-session-v2-app-gateway-mount-local-2026-08-14.json"},
     "stateRequirements": [
       "persist the exact schemaVersion 2 snapshot atomically before returning a successful mutating response",
       "restore sessions, revocations, consumed proofs, idempotency responses and audit events after process restart",
