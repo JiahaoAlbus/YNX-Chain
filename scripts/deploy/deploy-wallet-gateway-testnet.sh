@@ -26,10 +26,13 @@ work="$(mktemp -d "${TMPDIR:-/tmp}/ynx-wallet-gateway-testnet.XXXXXX")"
 trap 'rm -rf "$work"' EXIT
 release_root="$work/$release"
 mkdir -p "$release_root/wallet-auth"
+mkdir -p "$release_root/bin"
 
 cp -R packages/wallet-auth/src "$release_root/wallet-auth/src"
 cp -R packages/wallet-auth/scripts "$release_root/wallet-auth/scripts"
 cp packages/wallet-auth/central-registry.json packages/wallet-auth/product-session-registry.json packages/wallet-auth/package.json packages/wallet-auth/package-lock.json "$release_root/wallet-auth/"
+build_flags="-s -w -X main.buildCommit=$source_commit -X main.buildRelease=$release -X main.buildTime=$build_time"
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags "$build_flags" -o "$release_root/bin/ynx-app-gatewayd" ./cmd/ynx-app-gatewayd
 install -m 0644 scripts/deploy/install-wallet-gateway-testnet-remote.sh "$release_root/install-wallet-gateway-testnet-remote.sh"
 (
   cd "$release_root/wallet-auth"
@@ -38,6 +41,7 @@ install -m 0644 scripts/deploy/install-wallet-gateway-testnet-remote.sh "$releas
 find "$release_root" -type d -exec chmod 0755 {} +
 find "$release_root" -type f -exec chmod 0644 {} +
 chmod 0755 "$release_root/wallet-auth/scripts/ynx-wallet-gatewayd.mjs"
+chmod 0755 "$release_root/bin/ynx-app-gatewayd"
 if command -v xattr >/dev/null 2>&1; then xattr -cr "$release_root"; fi
 registry_file_sha="$(sha256sum "$release_root/wallet-auth/central-registry.json" | awk '{print $1}')"
 registry_runtime_sha="$(WALLET_REGISTRY_PATH="$release_root/wallet-auth/central-registry.json" node --input-type=module -e 'import {createHash} from "node:crypto"; import {readFileSync} from "node:fs"; import {canonicalJSON,parseCentralRegistryDocument} from "./packages/wallet-auth/src/index.js"; const value=parseCentralRegistryDocument(JSON.parse(readFileSync(process.env.WALLET_REGISTRY_PATH,"utf8"))); process.stdout.write(createHash("sha256").update(canonicalJSON(value)).digest("hex"))')"
@@ -51,6 +55,7 @@ COPYFILE_DISABLE=1 tar -C "$work" -czf "$tarball" "$release"
 tarball_sha="$(sha256sum "$tarball" | awk '{print $1}')"
 tar -tzf "$tarball" | grep -Fq "$release/wallet-auth/central-registry.json"
 tar -tzf "$tarball" | grep -Fq "$release/wallet-auth/product-session-registry.json"
+tar -tzf "$tarball" | grep -Fq "$release/bin/ynx-app-gatewayd"
 tar -tzf "$tarball" | grep -Fq "$release/wallet-auth/scripts/ynx-wallet-gatewayd.mjs"
 printf 'walletGatewayPackage=passed\nrelease=%s\nsourceCommit=%s\nregistryFileSha256=%s\nregistryRuntimeSha256=%s\narchiveSha256=%s\n' "$release" "$source_commit" "$registry_file_sha" "$registry_runtime_sha" "$tarball_sha"
 

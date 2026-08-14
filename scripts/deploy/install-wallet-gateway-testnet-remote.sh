@@ -35,6 +35,8 @@ v2_state_file="$state_dir/product-session-v2.json"
 [[ -s "$unit" && ! -L "$unit" ]] || { echo "current Wallet Gateway unit is missing or unsafe" >&2; exit 1; }
 [[ -s "$env_file" && ! -L "$env_file" ]] || { echo "current Wallet Gateway env is missing or unsafe" >&2; exit 1; }
 [[ -s "$state_file" && ! -L "$state_file" ]] || { echo "current Wallet Gateway state is missing or unsafe" >&2; exit 1; }
+[[ -x /usr/local/bin/ynx-app-gatewayd && ! -L /usr/local/bin/ynx-app-gatewayd ]] || { echo "current App Gateway binary is missing or unsafe" >&2; exit 1; }
+[[ -s /etc/ynx/ynx-app-gatewayd.env && ! -L /etc/ynx/ynx-app-gatewayd.env ]] || { echo "current App Gateway env is missing or unsafe" >&2; exit 1; }
 [[ "$(stat -c '%a' "$state_dir")" == "700" ]] || { echo "Wallet Gateway state directory must be mode 0700" >&2; exit 1; }
 
 umask 077
@@ -87,6 +89,8 @@ NODE
   sleep 1
 done
 [[ "$preflight_ok" == "1" ]] || { echo "candidate Wallet Gateway failed state-migration preflight" >&2; exit 1; }
+sudo_app_check="$(set -a; source /etc/ynx/ynx-app-gatewayd.env; set +a; "$release_dir/bin/ynx-app-gatewayd" --check-config)"
+[[ "$sudo_app_check" == *"config check passed"* ]] || { echo "candidate App Gateway failed config preflight" >&2; exit 1; }
 cp -a "$preflight_state" "$candidate_state"
 chown ynx:ynx "$candidate_state"
 chmod 0600 "$candidate_state"
@@ -99,6 +103,7 @@ install -d -m 0700 "$backup_dir"
 cp -a "$unit" "$backup_dir/ynx-wallet-gatewayd.service"
 cp -a "$env_file" "$backup_dir/ynx-wallet-gatewayd.env"
 cp -a "$state_file" "$backup_dir/state.json"
+cp -a /usr/local/bin/ynx-app-gatewayd "$backup_dir/ynx-app-gatewayd"
 if [[ -e "$v2_state_file" ]]; then cp -a "$v2_state_file" "$backup_dir/product-session-v2.json"; fi
 new_unit="/etc/systemd/system/.ynx-wallet-gatewayd.service.$release"
 new_env="/etc/ynx/.ynx-wallet-gatewayd.env.$release"
@@ -128,10 +133,12 @@ rollback() {
     install -m 0644 "$backup_dir/ynx-wallet-gatewayd.service" "$unit"
     install -m 0600 "$backup_dir/ynx-wallet-gatewayd.env" "$env_file"
     install -m 0600 -o ynx -g ynx "$backup_dir/state.json" "$state_file"
+    install -m 0755 "$backup_dir/ynx-app-gatewayd" /usr/local/bin/ynx-app-gatewayd
     if [[ -e "$backup_dir/product-session-v2.json" ]]; then install -m 0600 -o ynx -g ynx "$backup_dir/product-session-v2.json" "$v2_state_file"; else rm -f "$v2_state_file"; fi
     rm -f "$new_unit" "$new_env"
     systemctl daemon-reload || true
     systemctl restart ynx-wallet-gatewayd || true
+    systemctl restart ynx-app-gatewayd || true
   fi
   if [[ -n "${runtime_v2_response:-}" ]]; then rm -f "$runtime_v2_response"; fi
   rm -f "$candidate_state"
@@ -141,9 +148,11 @@ trap rollback EXIT
 install -m 0644 "$new_unit" "$unit"
 install -m 0600 "$new_env" "$env_file"
 install -m 0600 -o ynx -g ynx "$candidate_state" "$state_file"
+install -m 0755 "$release_dir/bin/ynx-app-gatewayd" /usr/local/bin/ynx-app-gatewayd
 rm -f "$new_unit" "$new_env"
 systemctl daemon-reload
 systemctl restart ynx-wallet-gatewayd
+systemctl restart ynx-app-gatewayd
 
 runtime_ok=0
 runtime_v2_response="$state_dir/.runtime-v2-$release.response.json"
@@ -156,7 +165,7 @@ for attempt in $(seq 1 30); do
 const health=JSON.parse(process.env.HEALTH_JSON),version=JSON.parse(process.env.VERSION_JSON),app=JSON.parse(process.env.APP_HEALTH_JSON);
 if(!health.ok||health.truthfulStatus!=="remote-canonical-wallet-gateway")process.exit(1);
 if(!version.ok||version.build?.sourceCommit!==process.env.EXPECTED_COMMIT||version.build?.release!==process.env.EXPECTED_RELEASE||version.registrySha256!==process.env.EXPECTED_REGISTRY||!version.enabledProductClientIds?.includes("ynx-bridge-web-v1")||!version.enabledProductClientIds?.includes("ynx-creator-studio-web-v1")||!version.enabledProductClientIds?.includes("ynx-dex-web-v1"))process.exit(1);
-if(!app.ok||!app.upstreams?.wallet?.ok||app.walletBoundary!=="p256-product-session-proof")process.exit(1);
+if(!app.ok||!app.upstreams?.wallet?.ok||app.walletBoundary!=="p256-product-session-proof"||app.build?.commit!==process.env.EXPECTED_COMMIT||app.build?.release!==process.env.EXPECTED_RELEASE)process.exit(1);
 const v2=JSON.parse(process.env.V2_JSON);if(process.env.V2_STATUS!=="400"||v2.schemaVersion!==2||v2.requestId!=="req_runtime_v2_0000001"||v2.ok!==false)process.exit(1);
 NODE
   then
