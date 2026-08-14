@@ -81,7 +81,7 @@ test("audit capacity and oversized storage fail closed without corrupting the ex
   await store.append(request,{action:"request-rejected",account,at:"2026-07-15T12:00:00.000Z"});
   const seed=JSON.parse(storage.values.get(AUTHORIZATION_AUDIT_KEY)!)[0],records:any[]=[];
   for(let sequence=1;sequence<=1000;sequence++){
-    const unsigned={...seed,sequence,previousHash:records.at(-1)?.hash??null};delete unsigned.hash;
+    const unsigned={...seed,sequence,requestDigest:sequence.toString(16).padStart(64,"0"),previousHash:records.at(-1)?.hash??null};delete unsigned.hash;
     records.push({...unsigned,hash:digestHex("YNX_WALLET_AUTH_AUDIT_V1",unsigned)});
   }
   const full=JSON.stringify(records);storage.values.set(AUTHORIZATION_AUDIT_KEY,full);
@@ -91,6 +91,22 @@ test("audit capacity and oversized storage fail closed without corrupting the ex
 
   storage.values.set(AUTHORIZATION_AUDIT_KEY," ".repeat(1024*1024+1));
   await assert.rejects(new AuthorizationAuditStore(storage).load(),/too large/);
+});
+
+test("restart rejects semantically impossible audit history even when hashes are recomputed",async()=>{
+  const storage=new MemoryStorage(),store=new AuthorizationAuditStore(storage);
+  await store.append(request,{action:"request-rejected",account,at:"2026-07-15T12:00:00.000Z"});
+  const seed=JSON.parse(storage.values.get(AUTHORIZATION_AUDIT_KEY)!)[0];
+  const rehash=(unsigned:any)=>({...unsigned,hash:digestHex("YNX_WALLET_AUTH_AUDIT_V1",unsigned)});
+
+  const {hash:ignored,...base}=seed;
+  storage.values.set(AUTHORIZATION_AUDIT_KEY,JSON.stringify([rehash({...base,action:"approval-returned"})]));
+  await assert.rejects(new AuthorizationAuditStore(storage).load(),/no approval intent/);
+
+  const intentUnsigned={...base,action:"intent-approved"},intent=rehash(intentUnsigned),conflictUnsigned={...base,sequence:2,at:"2026-07-15T12:00:01.000Z",action:"request-rejected",previousHash:intent.hash};
+  storage.values.set(AUTHORIZATION_AUDIT_KEY,JSON.stringify([intent,rehash(conflictUnsigned)]));
+  await assert.rejects(new AuthorizationAuditStore(storage).load(),/conflicting decisions/);
+  assert.ok(ignored);
 });
 
 test("concurrent audit append and duplicate revoke serialize without lost records",async()=>{

@@ -58,7 +58,7 @@ export class AuthorizationAuditStore {
       if(item.schemaVersion!==1||item.sequence!==index+1||item.previousHash!==(records.at(-1)?.hash??null)||typeof item.hash!=="string"||item.hash!==digestHex("YNX_WALLET_AUTH_AUDIT_V1",unsigned))throw new Error("Wallet authorization audit hash chain was tampered");
       if(typeof item.requestDigest!=="string"||!/^[0-9a-f]{64}$/.test(item.requestDigest)||typeof item.productClientId!=="string"||typeof item.bundleId!=="string"||!Array.isArray(item.scopes)||item.scopes.some((scope:unknown)=>typeof scope!=="string"))throw new Error("Wallet authorization audit binding is invalid");
       strictTime(item.at,"audit time");strictTime(item.expiresAt,"authorization expiry");strictAction(item.action);strictAccount(item.account);
-      records.push(freeze(item));
+      const record=freeze(item);assertStoredTransition(records,record);records.push(record);
     }
     return Object.freeze(records);
   }
@@ -116,4 +116,22 @@ function assertDecisionTransition(records:readonly AuthorizationAuditRecord[],di
   if(intent.account!==account)throw new Error("Wallet authorization callback account differs from its approval intent");
   if(decisions.some(record=>record.action==="request-rejected"))throw new Error("Wallet authorization request was rejected");
   if(decisions.some(record=>record.action==="approval-returned"))throw new Error("Wallet authorization callback was already returned");
+}
+function assertStoredTransition(records:readonly AuthorizationAuditRecord[],record:AuthorizationAuditRecord):void{
+  const prior=records.filter(item=>item.requestDigest===record.requestDigest);
+  if(record.action==="intent-approved"||record.action==="request-rejected"){
+    if(prior.some(item=>item.action==="intent-approved"||item.action==="approval-returned"||item.action==="request-rejected"))throw new Error("Wallet authorization audit contains conflicting decisions");
+    return;
+  }
+  if(record.action==="approval-returned"){
+    const intent=prior.find(item=>item.action==="intent-approved");
+    if(!intent)throw new Error("Wallet authorization audit callback has no approval intent");
+    if(intent.account!==record.account)throw new Error("Wallet authorization audit callback account differs from its approval intent");
+    if(prior.some(item=>item.action==="request-rejected"||item.action==="approval-returned"))throw new Error("Wallet authorization audit callback transition is invalid");
+    return;
+  }
+  const returned=prior.find(item=>item.action==="approval-returned");
+  if(!returned)throw new Error("Wallet authorization audit revocation has no returned approval");
+  if(returned.account!==record.account)throw new Error("Wallet authorization audit revocation account differs from its approval");
+  if(prior.some(item=>item.action==="approval-revoked"))throw new Error("Wallet authorization audit contains duplicate revocation");
 }
