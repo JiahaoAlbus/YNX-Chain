@@ -126,6 +126,17 @@
       "publicClaimAllowed": false
     },
     {
+      "id": "WA-SPONSORSHIP-STALE-LOCK-CLI-001",
+      "category": "wallet-auth",
+      "owners": ["02-wallet-auth", "13-monitor", "29-integration"],
+      "precondition": "The packaged sponsorship stale-lock CLI is invoked with missing policy, a too-young dead-owner lock or a recoverable dead-owner lock.",
+      "action": "Run ynx-wallet-sponsorship-state-lock recover with the explicit state path and minimum-age environment contract.",
+      "expectedHttpStatus": null,
+      "expectedCode": "exit 2 with canonical bounded error for missing/unsafe input; exit 0 only after the recovery invariant passes",
+      "expectedState": "stdout/stderr expose no path, token, stack or source location; successful output is limited to ageMs, ownerPid and recovered; replay state bytes stay unchanged",
+      "publicClaimAllowed": false
+    },
+    {
       "id": "WA-MULTIUSER-ISOLATION-001",
       "category": "wallet-auth",
       "owners": ["02-wallet-auth", "29-integration"],
