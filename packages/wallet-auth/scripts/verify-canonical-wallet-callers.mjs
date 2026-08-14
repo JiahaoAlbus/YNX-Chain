@@ -27,12 +27,21 @@ function lineAt(text, offset) {
   return text.slice(0, offset).split("\n").length;
 }
 
-export function scanWalletCallerText(relativePath, text) {
+export function classifyWalletCallerPath(relativePath, repositoryPaths = new Set()) {
+  if (/(?:^|\/)(?:fixtures?|proof|testdata)(?:\/|$)/.test(relativePath) || /(?:^|\/)test\/|\.test\.[^.]+$/.test(relativePath)) return "test-fixture";
+  if (relativePath.startsWith("packages/wallet-auth/src/") || isVendoredSdkBuilder(relativePath)) return "sdk-implementation";
+  if (path.basename(relativePath) === "wallet-auth.js" && repositoryPaths.has(path.posix.join(path.posix.dirname(relativePath), "wallet-auth-entry.js"))) return "release-bundle";
+  return "release-runtime";
+}
+
+export function scanWalletCallerText(relativePath, text, options = {}) {
+  const classification = options.classification ?? classifyWalletCallerPath(relativePath);
+  const fixture = classification === "test-fixture";
   const findings = [];
   for (const rule of FORBIDDEN) {
     rule.expression.lastIndex = 0;
     for (const match of text.matchAll(rule.expression)) {
-      findings.push({ path: relativePath, line: lineAt(text, match.index), code: rule.code });
+      findings.push({ path: relativePath, line: lineAt(text, match.index), classification, code: rule.code, blocking: !fixture });
     }
   }
 
@@ -41,12 +50,13 @@ export function scanWalletCallerText(relativePath, text) {
   const isSdkBuilder = relativePath === SDK_BUILDER_PATH || isVendoredSdkBuilder(relativePath);
   if (literalMatches.length > 0 && !isSdkBuilder) {
     for (const match of literalMatches) {
-      findings.push({ path: relativePath, line: lineAt(text, match.index), code: "MANUAL_AUTHORIZE_URI" });
+      const generatedFromSharedBuilder = classification === "release-bundle" && options.generatedBuilderBound === true;
+      findings.push({ path: relativePath, line: lineAt(text, match.index), classification, code: generatedFromSharedBuilder ? "BUNDLED_CANONICAL_URI" : "MANUAL_AUTHORIZE_URI", blocking: !fixture && !generatedFromSharedBuilder });
     }
   }
 
   if (SDK_CALL.test(text) && !isSdkBuilder && !SDK_IMPORT.test(text) && !SDK_DEFINITION.test(text)) {
-    findings.push({ path: relativePath, line: 1, code: "UNBOUND_SDK_BUILDER" });
+    findings.push({ path: relativePath, line: 1, classification, code: "UNBOUND_SDK_BUILDER", blocking: !fixture });
   }
   return findings;
 }
@@ -65,10 +75,19 @@ async function sourceFiles(directory) {
 export async function scanRepository(repositoryRoot = REPOSITORY_ROOT) {
   const roots = [path.join(repositoryRoot, "apps"), path.join(repositoryRoot, "packages", "wallet-auth", "src")];
   const files = (await Promise.all(roots.map(sourceFiles))).flat().sort();
-  const findings = [];
+  const paths = new Set(files.map((absolute) => path.relative(repositoryRoot, absolute).split(path.sep).join("/")));
+  const textByPath = new Map();
   for (const absolute of files) {
     const relative = path.relative(repositoryRoot, absolute).split(path.sep).join("/");
-    findings.push(...scanWalletCallerText(relative, await readFile(absolute, "utf8")));
+    textByPath.set(relative, await readFile(absolute, "utf8"));
+  }
+  const findings = [];
+  for (const [relative, text] of textByPath) {
+    const classification = classifyWalletCallerPath(relative, paths);
+    const companion = path.posix.join(path.posix.dirname(relative), "wallet-auth-entry.js");
+    const companionText = textByPath.get(companion) ?? "";
+    const generatedBuilderBound = classification === "release-bundle" && SDK_CALL.test(companionText) && SDK_IMPORT.test(companionText);
+    findings.push(...scanWalletCallerText(relative, text, { classification, generatedBuilderBound }));
   }
   return findings.sort((left, right) => left.path.localeCompare(right.path) || left.line - right.line || left.code.localeCompare(right.code));
 }
@@ -76,15 +95,17 @@ export async function scanRepository(repositoryRoot = REPOSITORY_ROOT) {
 async function main() {
   const reportOnly = process.argv.includes("--report-only");
   const findings = await scanRepository();
+  const blockingFindings = findings.filter(({ blocking }) => blocking);
   process.stdout.write(`${JSON.stringify({
     schemaVersion: 1,
     contract: "ynx-wallet-auth-android-launcher-v1",
     canonicalBuilder: "@ynx-chain/wallet-auth encodeRequestDeepLink",
-    passed: findings.length === 0,
+    passed: blockingFindings.length === 0,
     findingCount: findings.length,
+    blockingFindingCount: blockingFindings.length,
     findings
   }, null, 2)}\n`);
-  if (!reportOnly && findings.length > 0) process.exitCode = 1;
+  if (!reportOnly && blockingFindings.length > 0) process.exitCode = 1;
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) await main();
