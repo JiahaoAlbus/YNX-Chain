@@ -10,6 +10,7 @@
         "packages/wallet-auth/src/product-session-v2.js",
         "packages/wallet-auth/src/product-session-proof-v2.js",
         "packages/wallet-auth/src/product-session-recovery.js",
+        "packages/wallet-auth/src/product-session-gateway-client.js",
         "packages/wallet-auth/test/product-session-v2.test.mjs",
         "packages/wallet-auth/test/product-session-recovery.test.mjs"
       ],
@@ -39,7 +40,8 @@
       "evidence": [
         "packages/wallet-auth/src/product-session-router.js",
         "packages/wallet-auth/test/product-session-router.test.mjs",
-        "packages/wallet-auth/test/product-session-products.test.mjs"
+        "packages/wallet-auth/test/product-session-products.test.mjs",
+        "packages/wallet-auth/evidence/metamask-installed-observation.json"
       ],
       "remaining": [
         "Verify YNX Wallet and MetaMask detection/open behavior in approved installed applications"
@@ -62,6 +64,8 @@
       "evidence": [
         "packages/wallet-auth/src/index.js",
         "packages/wallet-auth/src/index.d.ts",
+        "packages/wallet-auth/src/product-session-gateway-client.js",
+        "packages/wallet-auth/test/product-session-gateway-client.test.mjs",
         "release/integration/wallet-product-session-router-migration.json"
       ],
       "registryReadyProducts": 12,
@@ -80,15 +84,16 @@
         "packages/wallet-auth/evidence/product-session-visible-proof-computercontrol.jpeg",
         "packages/wallet-auth/evidence/ynx-wallet-installed-unavailable-computercontrol.jpeg",
         "packages/wallet-auth/evidence/metamask-installed-observation.json",
+        "packages/wallet-auth/test/product-session-gateway-client.test.mjs",
         "packages/wallet-auth/test/product-session-migration.test.mjs"
       ],
       "targetedTests": {
-        "passed": 39,
+        "passed": 47,
         "failed": 0,
         "concurrentProductSessions": 120
       },
       "fullPackageTests": {
-        "passed": 141,
+        "passed": 149,
         "failed": 0
       },
       "remaining": [

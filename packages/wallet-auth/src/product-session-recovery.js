@@ -1,5 +1,7 @@
-import { exactFields, WalletAuthError } from "./canonical.js";
-import { createProductSessionRequest, parseProductSession, parseProductSessionRequest } from "./product-session-v2.js";
+import { canonicalJSON, exactFields, WalletAuthError } from "./canonical.js";
+import { httpBodyDigest } from "./session-proof.js";
+import { createProductSessionProofV2 } from "./product-session-proof-v2.js";
+import { createProductSessionChallenge, createProductSessionRequest, parseProductSession, parseProductSessionChallenge, parseProductSessionRequest, signProductSessionChallenge } from "./product-session-v2.js";
 import { parseProductSessionRegistry, productPlatformBinding } from "./product-session-registry.js";
 import { parseProductSessionReturnURL, prepareWalletOpen, walletConnectionChoices, WALLET_ROUTE_STATUS } from "./product-session-router.js";
 
@@ -71,11 +73,15 @@ export class RecoverableProductSessionClient {
     if (returned.status !== WALLET_ROUTE_STATUS.READY) { await this.#storage.remove(`${this.storageKey}:return`); this.#state = state(PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED, returned.message, { actions: returned.actions }); return this.#state; }
     await this.#storage.set(`${this.storageKey}:return`, url);
     try {
-      const session = parseProductSession(await this.#gateway.complete({ request, approval: returned.approval, deviceSecret: this.#device.secret }));
+      const challenge = parseProductSessionChallenge(await this.#gateway.challenge({ requestId: gatewayRequestId("c", request.nonce), request, approval: returned.approval }));
+      const expectedChallenge = createProductSessionChallenge(this.#registry, request, returned.approval, { challenge: challenge.challenge }, new Date(challenge.issuedAt));
+      if (canonicalJSON(challenge) !== canonicalJSON(expectedChallenge)) fail("SESSION_BINDING_MISMATCH", "Gateway challenge did not match the exact product request and Wallet approval");
+      if (challenge.expiresAt <= this.#clock().toISOString()) fail("SESSION_EXPIRED", "Gateway challenge expired before product device signing");
+      const completion = signProductSessionChallenge(challenge, this.#device.secret);
+      const session = parseProductSession(await this.#gateway.complete({ requestId: gatewayRequestId("f", request.state), request, approval: returned.approval, completion }));
       await this.#storage.set(this.storageKey, JSON.stringify(session));
       try {
-        const result = await this.#gateway.introspect(session.sessionBinding, this.#context(session.account, session.scopes));
-        if (result?.active !== true) throw new WalletAuthError("SESSION_INACTIVE", "Gateway did not confirm the issued Product Session");
+        await this.#introspect(session);
       } catch (error) {
         if (isNetworkUnavailable(error)) return this.#offline("Network unavailable while confirming the issued Product Session; protected state was retained for Retry");
         throw error;
@@ -105,14 +111,25 @@ export class RecoverableProductSessionClient {
   enterGuest() { this.#state = state(PRODUCT_SESSION_CLIENT_STATE.GUEST, "Guest / Try mode: not signed in; balances, transactions and Chain authority are unavailable", { limitations: ["not-signed-in", "no-wallet-balance", "no-transactions", "no-chain-authority"] }); return this.#state; }
   async disconnect() { await this.#storage.remove(this.storageKey); await this.#clearPending(); this.#state = state(PRODUCT_SESSION_CLIENT_STATE.DISCONNECTED, "Product Session removed from secure storage"); return this.#state; }
 
-  #context(account, requiredScopes) { return { chainId: this.#binding.chainId, productId: this.#binding.productId, clientId: this.#binding.clientId, platform: this.#binding.platform, applicationId: this.#binding.applicationId, bundleId: this.#binding.bundleId, packageId: this.#binding.packageId, origin: this.#binding.origin, callback: this.#binding.callback, account, deviceId: this.#device.id, deviceKey: this.#device.key, requiredScopes }; }
+  async #introspect(session) {
+    const now = this.#clock();
+    const expiresAt = new Date(Math.min(now.getTime() + 30_000, Date.parse(session.expiresAt))).toISOString();
+    if (expiresAt <= now.toISOString()) fail("SESSION_EXPIRED", "Product Session expired before re-introspection");
+    const body = { requiredScopes: session.scopes };
+    const proof = createProductSessionProofV2(session, {
+      method: "POST", path: "/v2/product-sessions/introspect", bodyDigest: httpBodyDigest(canonicalJSON(body)),
+      nonce: this.#tokens(), issuedAt: now.toISOString(), expiresAt,
+    }, this.#device.secret);
+    const result = await this.#gateway.introspect({ requestId: gatewayRequestId("i", proof.nonce), sessionBinding: session.sessionBinding, requiredScopes: session.scopes, proof });
+    if (result?.active !== true || canonicalJSON(parseProductSession(result.session)) !== canonicalJSON(session)) fail("SESSION_INACTIVE", "Gateway did not confirm the exact Product Session");
+    return result;
+  }
   async #restoreStoredSession() {
     const raw = await this.#storage.get(this.storageKey);
     if (raw === null) return null;
     try {
       const session = parseProductSession(JSON.parse(raw));
-      const result = await this.#gateway.introspect(session.sessionBinding, this.#context(session.account, session.scopes));
-      if (result?.active !== true) throw new WalletAuthError("SESSION_INACTIVE", "Gateway did not confirm the stored Product Session");
+      await this.#introspect(session);
       await this.#clearPending();
       this.#state = state(PRODUCT_SESSION_CLIENT_STATE.CONNECTED, "Authoritative Product Session restored", { session });
       return this.#state;
@@ -128,9 +145,10 @@ export class RecoverableProductSessionClient {
 
 function state(status, message, extra = {}) { return Object.freeze({ status, message, ...extra, ...(extra.actions ? { actions: Object.freeze(extra.actions) } : {}), ...(extra.limitations ? { limitations: Object.freeze(extra.limitations) } : {}) }); }
 function secureStorage(value) { if (!value || !["hardware-backed", "os-protected"].includes(value.securityLevel) || ["get", "set", "remove"].some((name) => typeof value[name] !== "function")) fail("INSECURE_STORAGE", "Product Sessions require injected OS-protected or hardware-backed storage"); return value; }
-function gateway(value) { if (!value || ["complete", "introspect", "walletInstalled", "schemeRegistered"].some((name) => typeof value[name] !== "function")) fail("INVALID_GATEWAY", "Product Session client requires a real Gateway adapter"); return value; }
+function gateway(value) { if (!value || ["challenge", "complete", "introspect", "walletInstalled", "schemeRegistered"].some((name) => typeof value[name] !== "function")) fail("INVALID_GATEWAY", "Product Session client requires a real Gateway adapter"); return value; }
 function device(value) { exactFields(value, ["id", "key", "secret", "scopes", "purpose"], "Product Session device configuration"); if (typeof value.id !== "string" || typeof value.key !== "string" || typeof value.secret !== "string" || !Array.isArray(value.scopes) || typeof value.purpose !== "string") fail("INVALID_DEVICE", "Product Session device configuration is invalid"); return Object.freeze({ ...value, scopes: Object.freeze([...value.scopes]) }); }
 function tokenFactory(value) { if (typeof value !== "function") fail("INVALID_RANDOM_SOURCE", "Product Session client requires a cryptographic token factory"); return () => { const token = value(); if (typeof token !== "string" || !/^[A-Za-z0-9_-]{32,64}$/.test(token)) fail("INVALID_RANDOM_SOURCE", "Product Session token factory returned an invalid token"); return token; }; }
 function clock(value) { if (typeof value !== "function") fail("INVALID_TIME", "Product Session client requires a clock"); return () => { const result = value(); if (!(result instanceof Date) || !Number.isFinite(result.getTime())) fail("INVALID_TIME", "Product Session clock returned invalid time"); return result; }; }
 function isNetworkUnavailable(error) { return error instanceof WalletAuthError && error.code === "NETWORK_UNAVAILABLE"; }
+function gatewayRequestId(kind, token) { return `req_ps_${kind}_${token}`; }
 function fail(code, message) { throw new WalletAuthError(code, message); }

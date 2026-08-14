@@ -25,8 +25,11 @@ const pending = createProductSessionRequest(registry, {
 const approval = signProductSessionApproval(registry, pending, { accountSecret: "1".padStart(64, "0"), scopes: pending.scopes, expiresAt: "2026-08-14T01:03:00.000Z" }, NOW);
 const call = (requestId, path, body, proof = null, networkAvailable = true, target = gateway) => target.dispatch({ requestId, method: "POST", path, body, proof, networkAvailable }, NOW);
 const challengeResponse = call("req_visible_challenge_001", "/v2/product-sessions/challenge", { request: pending, approval });
+const challengeReplayResponse = call("req_visible_challenge_001", "/v2/product-sessions/challenge", { request: pending, approval });
 const challenge = JSON.parse(challengeResponse.body).result;
-const completeResponse = call("req_visible_complete_001", "/v2/product-sessions/complete", { request: pending, approval, completion: signProductSessionChallenge(challenge, secretText) });
+const completionBody = { request: pending, approval, completion: signProductSessionChallenge(challenge, secretText) };
+const completeResponse = call("req_visible_complete_001", "/v2/product-sessions/complete", completionBody);
+const completeReplayResponse = call("req_visible_complete_001", "/v2/product-sessions/complete", completionBody);
 const session = JSON.parse(completeResponse.body).result;
 const introspectionBody = { requiredScopes: ["account:read"] };
 const proof = (label, path, body) => createProductSessionProofV2(session, { method: "POST", path, bodyDigest: httpBodyDigest(canonicalJSON(body)), nonce: token(label), issuedAt: NOW.toISOString(), expiresAt: "2026-08-14T01:00:30.000Z" }, secretText);
@@ -56,6 +59,8 @@ const proofDocument = {
     { id: "wallet-not-installed", label: "YNX Wallet not installed", outcome: notInstalled.status, requestId: "local-router-only", detail: notInstalled.message },
     { id: "metamask-not-installed", label: "MetaMask not installed (EVM only)", outcome: missingMetaMask.action, requestId: "local-router-only", detail: missingMetaMask.url },
     { id: "approved", label: "Wallet approval + Gateway completion", outcome: completeResponse.status === 200 ? "connected" : "rejected", requestId: "req_visible_complete_001", detail: session.sessionBinding },
+    { id: "challenge-response-loss", label: "Challenge response lost + Retry", outcome: challengeReplayResponse.body === challengeResponse.body ? "idempotent" : "rejected", requestId: "req_visible_challenge_001", detail: "Same request ID and canonical body returned the exact issued challenge" },
+    { id: "completion-response-loss", label: "Completion response lost + Retry", outcome: completeReplayResponse.body === completeResponse.body ? "idempotent" : "rejected", requestId: "req_visible_complete_001", detail: "Same request ID returned the exact Session without consuming the request twice" },
     { id: "rejected", label: "User rejected", outcome: rejection.status, requestId: "local-router-only", detail: rejection.message },
     { id: "introspection", label: "Sender-constrained introspection", outcome: introspectionResponse.status === 200 ? "active" : "rejected", requestId: "req_visible_introspect_001", detail: "Method, path, body, product, bundle/package, origin, callback, account and device bound" },
     { id: "second-open", label: "Second app open", outcome: restartResponse.status === 200 ? "restored-after-introspection" : "rejected", requestId: "req_visible_restart_001", detail: "Gateway state snapshot restored; cached session re-introspected" },

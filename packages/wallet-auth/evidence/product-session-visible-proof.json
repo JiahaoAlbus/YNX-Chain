@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-14T04:13:41.741Z",
+  "generatedAt": "2026-08-14T04:29:24.982Z",
   "fixtureBoundary": "LOCAL PROTOCOL FIXTURE — deterministic test keys, no production login, balance, transaction or public deployment claim",
   "protocolVersion": "2",
   "product": {
@@ -54,6 +54,20 @@
       "outcome": "connected",
       "requestId": "req_visible_complete_001",
       "detail": "025f475aa68f9c60b1cce1ee6091daae52ff92d2fd234eb5d89ce5a3f583a5b8"
+    },
+    {
+      "id": "challenge-response-loss",
+      "label": "Challenge response lost + Retry",
+      "outcome": "idempotent",
+      "requestId": "req_visible_challenge_001",
+      "detail": "Same request ID and canonical body returned the exact issued challenge"
+    },
+    {
+      "id": "completion-response-loss",
+      "label": "Completion response lost + Retry",
+      "outcome": "idempotent",
+      "requestId": "req_visible_complete_001",
+      "detail": "Same request ID returned the exact Session without consuming the request twice"
     },
     {
       "id": "rejected",
