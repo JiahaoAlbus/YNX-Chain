@@ -59,7 +59,7 @@ Central integration remains false until every applicable dependency row in `DEPE
 
 The Wallet/Auth Integration thread freezes platform release truth in `release/integration/wallet-auth-release-evidence-matrix.json` and documents it in `docs/integration/WALLET_AUTH_RELEASE_EVIDENCE.md`. This slice consumes the five product Owner branches at their recorded remote SHAs; it does not redefine Chain Core network authority or the Wallet/Auth protocol.
 
-The current consumed checkpoints are Core `27416474aadd8f6ab996a2b49bfa3b28af608b03`, Web `0b3ffa8faabad2caa49b1c00db493261e2d98bca`, Android `4739a60e1fa0e3d0b6862e129330f9e9ca202887`, iOS/macOS `8ccb7bf9c4bf9453ed72395d1f024de9fa75fb4d`, and Desktop/CLI/SDK `931b70fc0dd4e7ff01542065099aeaa0b3f25a51`. Each consumed increment was checked through its remote commit parent, tree and exact evidence blob. Source-only or Owner-unauthorized descendants remain pending.
+The current consumed checkpoints are Core `75b0a68a03eb75cb8afb84d71abce591e544dc92`, Web `0b3ffa8faabad2caa49b1c00db493261e2d98bca`, Android `4739a60e1fa0e3d0b6862e129330f9e9ca202887`, iOS/macOS `8ccb7bf9c4bf9453ed72395d1f024de9fa75fb4d`, and Desktop/CLI/SDK `931b70fc0dd4e7ff01542065099aeaa0b3f25a51`. Each consumed increment was checked through its remote commit parent, tree and exact evidence blob. Source-only or Owner-unauthorized descendants remain pending.
 
 Every platform separately tracks build, install, cold launch, second launch, Testnet, signing, transaction, callback, reconnect, hosted download, production signing and store release. A true value requires an explicit direct evidence binding. Simulator, disposable, unpacked, temporary, unsigned and ad-hoc artifacts remain non-production by construction.
 

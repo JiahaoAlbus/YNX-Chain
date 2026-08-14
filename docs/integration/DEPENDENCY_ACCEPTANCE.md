@@ -31,7 +31,7 @@ Local acceptance is not central integration, public Testnet proof or production 
 
 | Owner delivery | Frozen source | Accepted boundary | Remaining false/pending boundary |
 | --- | --- | --- | --- |
-| Core Auth/Gateway | `27416474aadd8f6ab996a2b49bfa3b28af608b03` | Bounded public Testnet auth/device-proof; local linearization, persistence, state-path, acknowledged SIGKILL and explicit verified stale-lock recovery after unacknowledged crash | Latest slices absent from public source; automatic recovery, PID namespace, power loss/network filesystem, multi-process/region, asset tx, reconnect, native release, production/store |
+| Core Auth/Gateway | `75b0a68a03eb75cb8afb84d71abce591e544dc92` | Prior bounded auth/durability plus process-local request-body timeout/abort, admission release and zero mutation/lock acquisition | Public proxy/load-balancer protection, automatic recovery, power loss/network filesystem, multi-region, asset tx, reconnect, native release, production/store |
 | Web/PWA/Extensions | `0b3ffa8faabad2caa49b1c00db493261e2d98bca` | Edge-local PWA; unpacked popup RPC; isolated Edge MV3 provider injection, fixture accounts/lifecycle and wrong-chain rejection | isolated/unpacked is not installedLocal; Chrome injection, live provider RPC, connect/add/switch/sign/tx/release gates, hosting/production/store remain false |
 | Android API 36 | `4739a60e1fa0e3d0b6862e129330f9e9ca202887` | Historical disposable-QA lifecycle plus current canonical callback/replay, audit/journal and exact-account active-generation rename fail-close tests | Current-source device install/interaction, production signing, tx, callback delivery, reconnect and hosted artifact remain false |
 | iOS/macOS | `8ccb7bf9c4bf9453ed72395d1f024de9fa75fb4d` | iOS Simulator boundary; Universal x86_64+arm64 ad-hoc package plus arm64 install/cold/second, Keychain canary and malformed callback rejection | x86_64 lifecycle, physical iOS, Testnet/authorization/recovery success, asset tx, Universal Link, Developer ID/notarization, production/store remain false |
@@ -39,4 +39,4 @@ Local acceptance is not central integration, public Testnet proof or production 
 
 Acceptance is enforced by `scripts/verify/wallet-auth-release-evidence-matrix.mjs`. GitHub Actions artifacts are temporary retention evidence, not `downloadHosted` product delivery.
 
-Android `0ce5db709e935c67741e2322c840108464eb43f0`, iOS/macOS `106ac6760a6fc28100250ff009fa304fc6d04f4d` and Desktop `b11faa864304ac3e260c261c732d30d018fe0eb8` remain queued descendants.
+Core `8e91c58e3f997b35da1b3d0298f174a2e8533fa2`, Android `2299a90e12a46dd030425c6a5bf2edf4257c9c59`, iOS/macOS `8b6dee8f746456874d7a7b2913d38b3aa5591fc7` and Desktop `b11faa864304ac3e260c261c732d30d018fe0eb8` remain queued descendants.

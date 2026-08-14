@@ -35,22 +35,31 @@
   "pendingOwnerCommits": [],
   "pendingOwnerEvidence": [
     {
+      "owner": "core-auth-gateway",
+      "candidateCommit": "8e91c58e3f997b35da1b3d0298f174a2e8533fa2",
+      "remoteFastForwardReported": true,
+      "remoteReadbackComplete": true,
+      "ciComplete": true,
+      "consumedForReleaseTruth": false,
+      "note": "Revocation-control linearization is queued for its own later atomic slice after request-lifecycle and macOS two-callback consumption."
+    },
+    {
       "owner": "android-api36",
-      "candidateCommit": "0ce5db709e935c67741e2322c840108464eb43f0",
+      "candidateCommit": "2299a90e12a46dd030425c6a5bf2edf4257c9c59",
       "remoteFastForwardReported": true,
       "remoteReadbackComplete": true,
       "ciComplete": null,
       "consumedForReleaseTruth": false,
-      "note": "Callback-audit account binding is an unapproved successor to the frozen Android evidence and changes no device truth."
+      "note": "The Android branch advanced beyond frozen evidence without an Owner terminal checkpoint; device truth remains unchanged."
     },
     {
       "owner": "ios-macos",
-      "candidateCommit": "106ac6760a6fc28100250ff009fa304fc6d04f4d",
+      "candidateCommit": "8b6dee8f746456874d7a7b2913d38b3aa5591fc7",
       "remoteFastForwardReported": true,
       "remoteReadbackComplete": true,
       "ciComplete": null,
       "consumedForReleaseTruth": false,
-      "note": "Canonical macOS authorization-link source lacks a terminal Owner evidence checkpoint; Universal Link and DApp success remain false."
+      "note": "Canonical two-callback evidence is queued for the next independent macOS slice; authorization success, return callback and Universal Link remain false."
     },
     {
       "owner": "desktop-cli-sdk",
@@ -66,9 +75,9 @@
     {
       "owner": "core-auth-gateway",
       "branch": "codex/wallet-core-auth-gateway-continuation-20260814",
-      "sourceCommit": "27416474aadd8f6ab996a2b49bfa3b28af608b03",
-      "remoteCommitObserved": "27416474aadd8f6ab996a2b49bfa3b28af608b03",
-      "branchHeadObserved": "27416474aadd8f6ab996a2b49bfa3b28af608b03",
+      "sourceCommit": "75b0a68a03eb75cb8afb84d71abce591e544dc92",
+      "remoteCommitObserved": "75b0a68a03eb75cb8afb84d71abce591e544dc92",
+      "branchHeadObserved": "8e91c58e3f997b35da1b3d0298f174a2e8533fa2",
       "remoteVerifiedAt": "2026-08-14T04:32:00Z",
       "verificationMode": "github-git-database-parent-tree-blob-readback"
     },
@@ -86,7 +95,7 @@
       "branch": "codex/wallet-android-api36-continuation2-20260814",
       "sourceCommit": "4739a60e1fa0e3d0b6862e129330f9e9ca202887",
       "remoteCommitObserved": "4739a60e1fa0e3d0b6862e129330f9e9ca202887",
-      "branchHeadObserved": "0ce5db709e935c67741e2322c840108464eb43f0",
+      "branchHeadObserved": "2299a90e12a46dd030425c6a5bf2edf4257c9c59",
       "remoteVerifiedAt": "2026-08-14T04:20:00Z",
       "verificationMode": "github-git-database-parent-tree-blob-readback"
     },
@@ -95,7 +104,7 @@
       "branch": "codex/wallet-ios-macos-20260813",
       "sourceCommit": "8ccb7bf9c4bf9453ed72395d1f024de9fa75fb4d",
       "remoteCommitObserved": "8ccb7bf9c4bf9453ed72395d1f024de9fa75fb4d",
-      "branchHeadObserved": "106ac6760a6fc28100250ff009fa304fc6d04f4d",
+      "branchHeadObserved": "8b6dee8f746456874d7a7b2913d38b3aa5591fc7",
       "remoteVerifiedAt": "2026-08-14T04:26:00Z",
       "verificationMode": "github-git-database-parent-tree-blob-readback"
     },
@@ -178,6 +187,13 @@
       "direct": true,
       "commit": "27416474aadd8f6ab996a2b49bfa3b28af608b03",
       "path": "apps/wallet/proof/gateway-node-stale-lock-recovery-local-2026-08-14.json",
+      "supports": []
+    },
+    "gateway-request-body-lifecycle": {
+      "type": "git-object",
+      "direct": true,
+      "commit": "75b0a68a03eb75cb8afb84d71abce591e544dc92",
+      "path": "packages/wallet-auth/test/gateway-node-request-lifecycle.test.mjs",
       "supports": []
     },
     "web-artifacts": {
@@ -514,7 +530,7 @@
       "status": "accepted-bounded-testnet",
       "gates": {"build":true,"install":false,"coldLaunch":false,"secondLaunch":false,"testnet":true,"sign":true,"tx":false,"callback":false,"reconnect":false,"downloadHosted":false,"productionSigned":false,"storeReleased":false},
       "evidenceBindings": {"build":["gateway-release"],"install":[],"coldLaunch":[],"secondLaunch":[],"testnet":["gateway-public-lifecycle"],"sign":["gateway-public-lifecycle"],"tx":["gateway-public-lifecycle"],"callback":["gateway-completion-negative-matrix","gateway-session-http-negative-matrix","gateway-session-linearization-race","gateway-persistence-atomic-rollback","gateway-registry-state-binding","gateway-state-file-security","gateway-node-crash-durability","gateway-node-stale-lock-recovery"],"reconnect":["gateway-public-lifecycle","gateway-session-http-negative-matrix","gateway-session-linearization-race","gateway-persistence-atomic-rollback","gateway-registry-state-binding","gateway-state-file-security","gateway-node-crash-durability","gateway-node-stale-lock-recovery"],"downloadHosted":["gateway-release"],"productionSigned":["gateway-release"],"storeReleased":["gateway-release"]},
-      "notes": ["Public authorization completion, introspection, replay rejection and revoke are direct. Local matrices include 167/167 acknowledged SIGKILL durability and explicit operator stale-lock recovery after an unacknowledged crash, with exact digest/registry checks and no mutation on rejected recovery. Automatic recovery, PID namespaces, power loss, network filesystems, multi-process/multi-region, central integration and current staging/public deployment remain false. No asset transaction, reconnect, native app, production signing or store release is claimed."]
+      "notes": ["Public authorization completion, introspection, replay rejection and revoke are direct. Local evidence adds bounded non-administrative body timeout/abort with zero mutation, admission release and no state-lock acquisition, plus explicit stale-lock recovery and acknowledged SIGKILL durability. Public proxy/load-balancer protection, automatic recovery, PID namespaces, power loss, network filesystems, central/public deployment and multi-region remain false."]
     },
     {
       "id": "web-pwa",
