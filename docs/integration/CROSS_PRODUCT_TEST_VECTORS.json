@@ -49,6 +49,17 @@
       "publicClaimAllowed": false
     },
     {
+      "id": "WA-SESSION-DAILY-LIMIT-BUNDLE-001",
+      "category": "wallet-smart-account",
+      "owners": ["02-wallet-auth", "01-chain-core", "29-integration"],
+      "precondition": "The Session has 0.20 daily value remaining and one EntryPoint bundle contains two sequential 0.15-value operations that both prevalidate.",
+      "action": "Execute both operations in one handleOps call and inspect UserOperation events, target balance, session spending and account nonce.",
+      "expectedHttpStatus": null,
+      "expectedCode": "SessionPolicyViolation",
+      "expectedState": "exactly one execution succeeds; one fails; target and spending increase by only 0.15; no overspend occurs; both prevalidated nonces are consumed",
+      "publicClaimAllowed": false
+    },
+    {
       "id": "WA-PUBLIC-GATEWAY-INGRESS-IDENTIFIERS-001",
       "category": "wallet-auth",
       "owners": ["02-wallet-auth", "13-monitor", "29-integration"],
