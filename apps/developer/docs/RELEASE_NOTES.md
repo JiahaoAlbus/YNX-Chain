@@ -1,5 +1,15 @@
 # YNX Developer 0.2.0 Testnet Preview release notes
 
+## 2026-08-14 real Problems panel
+
+- Replaced the static Problems `0` placeholder with current Monaco/LSP error,
+  warning and information records, including file, line, column, source and code.
+- Problems are severity-sorted, keyboard-focusable and open their source file.
+  Each result is bound to the exact file content diagnosed, so edits invalidate
+  stale entries instead of presenting old diagnostics as current.
+- Coverage is explicitly limited to opened files for which a configured language
+  server returned diagnostics; this is not a whole-project static-analysis claim.
+
 ## 2026-08-14 reviewed project tests
 
 - Added a real `test-project` workspace task and Test action with an exact

@@ -162,6 +162,9 @@ Monaco owns one model per canonical file URI. The workbench implements:
 - versioned JSON project import/export plus browser directory import, enforcing
   safe relative paths, strict UTF-8, duplicate rejection and the shared
   256-file/2 MiB text-workspace ceiling; it does not represent an archive format;
+- a content-bound Problems model populated from actual Monaco/LSP markers, with
+  severity/location/source/code, live count and file navigation; stale content is
+  filtered and unopened-file whole-project coverage is not claimed;
 - schema-sanitized device-local editor preferences for font size, minimap, word
   wrap and bounded auto-save delay; explicit Save remains a revision-checked
   server mutation when auto-save is disabled;

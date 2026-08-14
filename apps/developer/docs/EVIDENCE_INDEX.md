@@ -17,6 +17,11 @@ successful eight-runtime release record.
 
 ## Product behavior
 
+- Problems-panel evidence: `test/problems-panel-ui.test.js` holds the Monaco/LSP
+  callback to structured severity/location/source/code records, exact-content
+  freshness filtering, live counts and source-file navigation. Existing real LSP
+  service tests provide the diagnostic payload evidence; unopened files and
+  unavailable language servers remain outside the panel's stated coverage.
 - Project-test evidence: `services/workspace-agent/test/runtime.test.mjs` executes
   discovered JavaScript, Python unittest, same-package Go and standalone C++ tests through
   the real no-network sandbox, then rejects a wrong approval and missing tests.

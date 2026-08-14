@@ -33,6 +33,13 @@ the server never runs a `package.json` script. Rust/Cargo, Java/JUnit and Solidi
 framework tests require future reviewed adapters; use the explicit terminal in a
 runtime that has those tools rather than assuming the Test button supports them.
 
+Open **Problems** in the bottom panel to inspect current diagnostics returned for
+opened files. Entries show severity, message, source, code and exact line/column;
+select one to open its file. Editing the diagnosed content invalidates its old
+entry until the language server responds again. An empty panel can also mean the
+language server for that file is not installed, so it is not proof that every
+project file passed analysis.
+
 The editor recognizes common source extensions through Monaco. The isolated
 workspace uses its reviewed pinned Solidity 0.8.36 compiler. For other registered languages, Compile asks once and the
 desktop runtime detects a broad catalog including C/C++, Objective-C, JavaScript,

@@ -1,5 +1,5 @@
 import * as Dialog from "@radix-ui/react-dialog";
-import { Braces, Bug, Cloud, Files, GitBranch, History, Link2, Play, Save, Search, Settings, Sparkles, SplitSquareHorizontal, TerminalSquare, TestTube2, Users, X } from "lucide-react";
+import { Braces, Bug, CircleAlert, Cloud, Files, GitBranch, History, Info, Link2, Play, Save, Search, Settings, Sparkles, SplitSquareHorizontal, TerminalSquare, TestTube2, TriangleAlert, Users, X } from "lucide-react";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "../components/ui/button";
 import { DebugPanel } from "../debug/DebugPanel";
@@ -14,6 +14,7 @@ import { InteractiveTerminal, TerminalPanel } from "../terminal/TerminalPanel";
 import { AgentPanel } from "../chat/AgentPanel";
 import { WorkspaceHistoryPanel } from "../history/WorkspaceHistoryPanel";
 import { buildLiteralReplacement } from "../search/literalReplace";
+import type { EditorProblem } from "../editor/CodeEditor";
 
 const CodeEditor = lazy(() => import("../editor/CodeEditor"));
 const CollaborationPanel = lazy(() =>
@@ -117,6 +118,7 @@ export function Workbench() {
     [hydrated, setHydrated] = useState(false),
     [breakpoints, setBreakpoints] = useState<Record<string, number[]>>({}),
     [debugLine, setDebugLine] = useState<number>(),
+    [problemsByPath, setProblemsByPath] = useState<Record<string, { content: string; items: EditorProblem[] }>>({}),
     [extensions, setExtensions] = useState<InstalledExtension[]>([]),
     [extensionTheme, setExtensionTheme] = useState(() => localStorage.getItem("ynx-extension-theme") || ""),
     [collaborationRole, setCollaborationRole] = useState<CollaborationRole>(),
@@ -296,6 +298,17 @@ export function Workbench() {
     () => Object.keys(project.files).filter((path) => /(?:\.(?:test|spec)\.(?:js|mjs|cjs)|(?:^|\/)(?:test_.+|.+_test)\.py|_test\.go|(?:^|\/)(?:test|tests)\/.+\.(?:cpp|cc|cxx))$/i.test(path)).sort(),
     [project.files],
   );
+  const problems = useMemo(
+    () =>
+      Object.entries(problemsByPath)
+        .filter(([path, entry]) => project.files[path] === entry.content)
+        .flatMap(([path, entry]) => entry.items.map((item) => ({ path, ...item })))
+        .sort((a, b) => ({ error: 0, warning: 1, info: 2 })[a.severity] - ({ error: 0, warning: 1, info: 2 })[b.severity] || a.path.localeCompare(b.path) || a.line - b.line),
+    [problemsByPath, project.files],
+  );
+  const receiveDiagnostics = useCallback((path: string, content: string, items: EditorProblem[]) => {
+    setProblemsByPath((current) => ({ ...current, [path]: { content, items } }));
+  }, []);
   const open = useCallback(
     (path: string) =>
       setProject((current) => ({
@@ -876,13 +889,14 @@ export function Workbench() {
               fontSize={editorPreferences.fontSize}
               minimap={editorPreferences.minimap}
               wordWrap={editorPreferences.wordWrap}
+              onDiagnostics={receiveDiagnostics}
             />
           </Suspense>
         </section>
         <section className="bottom">
           <div className="bottom-tabs">
             <button className={bottom === "problems" ? "active" : ""} onClick={() => setBottom("problems")}>
-              PROBLEMS <span>0</span>
+              PROBLEMS <span>{problems.length}</span>
             </button>
             <button className={bottom === "task" ? "active" : ""} onClick={() => setBottom("task")}>
               TASK OUTPUT
@@ -893,7 +907,7 @@ export function Workbench() {
             <span className="spacer" />
             {bottom === "task" && <button onClick={() => setOutput("YNX Code task output\n")}>Clear</button>}
           </div>
-          <div className="bottom-body">{bottom === "task" ? <TerminalPanel output={output} running={running} /> : bottom === "terminal" ? <InteractiveTerminal projectId={project.id} runtimeId={selectedRuntime} onWorkspaceSync={refreshWorkspace} /> : <div className="empty-state">Diagnostics are provided by the active language server and shown inline in the editor.</div>}</div>
+          <div className="bottom-body">{bottom === "task" ? <TerminalPanel output={output} running={running} /> : bottom === "terminal" ? <InteractiveTerminal projectId={project.id} runtimeId={selectedRuntime} onWorkspaceSync={refreshWorkspace} /> : problems.length ? <div className="problems-list" role="list" aria-label="Language server problems">{problems.map((problem, index) => <button type="button" role="listitem" key={`${problem.path}:${problem.line}:${problem.column}:${problem.code}:${index}`} onClick={() => open(problem.path)}>{problem.severity === "error" ? <CircleAlert className="problem-error" size={13} /> : problem.severity === "warning" ? <TriangleAlert className="problem-warning" size={13} /> : <Info className="problem-info" size={13} />}<span><strong>{problem.message}</strong><small>{problem.path}:{problem.line}:{problem.column} · {problem.source}{problem.code ? ` · ${problem.code}` : ""}</small></span></button>)}</div> : <div className="empty-state">No current language-server problems for opened files. Diagnostics are requested after edits and may be unavailable when that language server is not installed.</div>}</div>
         </section>
         <footer className="statusbar">
           <span>

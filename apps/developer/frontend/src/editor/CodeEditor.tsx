@@ -51,6 +51,15 @@ type Props = {
   fontSize: number;
   minimap: boolean;
   wordWrap: "off" | "on";
+  onDiagnostics?: (path: string, content: string, problems: EditorProblem[]) => void;
+};
+export type EditorProblem = {
+  message: string;
+  severity: "error" | "warning" | "info";
+  line: number;
+  column: number;
+  source: string;
+  code: string;
 };
 export default function CodeEditor({
   projectId,
@@ -76,6 +85,7 @@ export default function CodeEditor({
   fontSize,
   minimap,
   wordWrap,
+  onDiagnostics,
 }: Props) {
   const selectedTheme = extensions
       .flatMap((extension) =>
@@ -96,11 +106,13 @@ export default function CodeEditor({
     editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null),
     activePathRef = useRef(activePath),
     cursorCallbackRef = useRef(onCursorChange),
+    diagnosticsCallbackRef = useRef(onDiagnostics),
     decorations = useRef<monaco.editor.IEditorDecorationsCollection | null>(
       null,
     );
   activePathRef.current = activePath;
   cursorCallbackRef.current = onCursorChange;
+  diagnosticsCallbackRef.current = onDiagnostics;
   useEffect(() => {
     const disposables: monaco.IDisposable[] = [], context={projectId,runtimeId};
     for(const editorLanguage of ["cpp","typescript","javascript","python","go","rust","solidity"]){
@@ -182,7 +194,10 @@ export default function CodeEditor({
   }, [extensions]);
   useEffect(() => {
     const serverLanguage=language==="cpp"?"cpp":language==="typescript"||language==="javascript"?"typescript":language==="python"?"python":language==="go"?"go":language==="rust"?"rust":language==="solidity"?"solidity":null;
-    if (!serverLanguage || !activePath) return;
+    if (!serverLanguage || !activePath) {
+      if (activePath) diagnosticsCallbackRef.current?.(activePath, files[activePath] || "", []);
+      return;
+    }
     const timer = setTimeout(() => {
       languageRequest(serverLanguage,files, activePath, "diagnostics",undefined,undefined,{projectId,runtimeId})
         .then((value) => {
@@ -190,27 +205,40 @@ export default function CodeEditor({
             monaco.Uri.parse(`file:///${activePath}`),
           );
           if (!model) return;
+          const markers: monaco.editor.IMarkerData[] = (value.result || []).map((diagnostic: any) => ({
+            startLineNumber: diagnostic.range.start.line + 1,
+            startColumn: diagnostic.range.start.character + 1,
+            endLineNumber: diagnostic.range.end.line + 1,
+            endColumn: diagnostic.range.end.character + 1,
+            message: diagnostic.message,
+            severity:
+              diagnostic.severity === 1
+                ? monaco.MarkerSeverity.Error
+                : diagnostic.severity === 2
+                  ? monaco.MarkerSeverity.Warning
+                  : monaco.MarkerSeverity.Info,
+            source: diagnostic.source || "language-server",
+            code: String(diagnostic.code ?? ""),
+          }));
           monaco.editor.setModelMarkers(
             model,
             serverLanguage==="cpp"?"clangd":serverLanguage==="python"?"pyright":serverLanguage==="go"?"gopls":serverLanguage==="rust"?"rust-analyzer":serverLanguage==="solidity"?"solidity-language-server":"typescript-language-server",
-            (value.result || []).map((diagnostic: any) => ({
-              startLineNumber: diagnostic.range.start.line + 1,
-              startColumn: diagnostic.range.start.character + 1,
-              endLineNumber: diagnostic.range.end.line + 1,
-              endColumn: diagnostic.range.end.character + 1,
-              message: diagnostic.message,
-              severity:
-                diagnostic.severity === 1
-                  ? monaco.MarkerSeverity.Error
-                  : diagnostic.severity === 2
-                    ? monaco.MarkerSeverity.Warning
-                    : monaco.MarkerSeverity.Info,
-              source: diagnostic.source || "clangd",
-              code: String(diagnostic.code ?? ""),
+            markers,
+          );
+          diagnosticsCallbackRef.current?.(
+            activePath,
+            files[activePath] || "",
+            markers.map((marker) => ({
+              message: marker.message,
+              severity: marker.severity === monaco.MarkerSeverity.Error ? "error" : marker.severity === monaco.MarkerSeverity.Warning ? "warning" : "info",
+              line: marker.startLineNumber,
+              column: marker.startColumn,
+              source: marker.source || "language-server",
+              code: typeof marker.code === "string" ? marker.code : marker.code?.value || "",
             })),
           );
         })
-        .catch(() => {});
+        .catch(() => diagnosticsCallbackRef.current?.(activePath, files[activePath] || "", []));
     }, 700);
     return () => clearTimeout(timer);
   }, [activePath, files, language, projectId, runtimeId]);

@@ -415,6 +415,7 @@ html[data-theme="dark"] .tree-row.file.active {
   min-height: 0;
   overflow: hidden;
 }
+.problems-list{height:100%;overflow:auto}.problems-list button{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:start;gap:7px;width:100%;border:0;border-bottom:1px solid var(--border);background:transparent;color:var(--text);padding:7px 10px;text-align:left;cursor:pointer}.problems-list button:hover{background:var(--hover)}.problems-list button>svg{margin-top:2px}.problems-list .problem-error{color:#f47067}.problems-list .problem-warning{color:#d29922}.problems-list .problem-info{color:var(--blue)}.problems-list button:nth-child(n) span{display:grid;gap:2px;min-width:0}.problems-list strong{font-size:11px;font-weight:500;overflow-wrap:anywhere}.problems-list small{color:var(--muted);font:9px monospace;overflow-wrap:anywhere}
 .empty-state,
 .honest-boundary {
   margin: 10px;
