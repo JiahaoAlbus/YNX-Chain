@@ -355,3 +355,78 @@ jobs:
           path: /tmp/data-fabric-postgres-resilience/*.json*
           if-no-files-found: error
           retention-days: 30
+
+  postgres-failover-live:
+    name: data-fabric-postgres-failover-live
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17.10-alpine
+        env:
+          POSTGRES_DB: ynx_data_fabric_test
+          POSTGRES_USER: ynx_test
+          POSTGRES_PASSWORD: integration-only-password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ynx_test -d ynx_data_fabric_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Install Go
+        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16
+        with:
+          go-version: "1.25.13"
+          cache: true
+      - name: Promote a caught-up PostgreSQL streaming standby
+        env:
+          YNX_TEST_POSTGRES_DSN: postgres://ynx_test:integration-only-password@127.0.0.1:5432/ynx_data_fabric_test?sslmode=disable
+          YNX_TEST_POSTGRES_PASSWORD: integration-only-password
+          YNX_DATA_FABRIC_TEST_SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+          YNX_DATA_FABRIC_FAILOVER_OUTPUT_DIR: /tmp/data-fabric-postgres-failover
+          YNX_DATA_FABRIC_DIRTY_WORKING_TREE: "false"
+        run: |
+          mkdir -p "$YNX_DATA_FABRIC_FAILOVER_OUTPUT_DIR"
+          go build -trimpath -o /tmp/ynx-data-fabric-postgres-resilience ./scripts/data-fabric/postgres-resilience
+          primary_container="$(docker ps --filter ancestor=postgres:17.10-alpine --format '{{.ID}}' | head -n 1)"
+          test -n "$primary_container"
+          export YNX_TEST_POSTGRES_PRIMARY_CONTAINER="$primary_container"
+          scripts/data-fabric/postgres-replica-failover.sh
+          jq -e --arg source "$YNX_DATA_FABRIC_TEST_SOURCE_COMMIT" '
+            .schema == "ynx-data-fabric-postgres-replica-failover/v1"
+            and .sourceCommit == $source
+            and .dirtyWorkingTree == false
+            and .topology == "streaming-primary-standby"
+            and .replicationMode == "asynchronous-streaming"
+            and .standbyWasInRecovery == true
+            and .standbyWasReadOnly == true
+            and .caughtUpBeforePrimaryStop == true
+            and .primaryStopped == true
+            and .promotionMode == "manual-pg-promote"
+            and .promotedWritablePrimary == true
+            and .canonicalEvents == 1000
+            and .duplicateRejectsBeforeFailure == 100
+            and .outboxPendingBeforeFailure == 1000
+            and .recoveryPointObjectiveLostEvents == 0
+            and .replayApplied == 1000
+            and .idempotentReplaySkipped == 1000
+            and .inboxEffects == 1000
+            and .analyticsFacts == 1000
+            and .finalOutboxPending == 1000
+            and .acceptingConnectionsRTOMilliseconds >= 0
+            and .integrityValidatedRTOMilliseconds >= .acceptingConnectionsRTOMilliseconds
+          ' "$YNX_DATA_FABRIC_FAILOVER_OUTPUT_DIR/postgres-replica-failover.json"
+      - name: Upload exact-source PostgreSQL failover evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: data-fabric-postgres-failover-${{ github.event.pull_request.head.sha || github.sha }}
+          path: /tmp/data-fabric-postgres-failover/*.json
+          if-no-files-found: error
+          retention-days: 30

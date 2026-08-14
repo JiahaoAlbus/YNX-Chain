@@ -37,6 +37,7 @@ type commonReport struct {
 	SourceRelease    string    `json:"sourceRelease"`
 	DirtyWorkingTree bool      `json:"dirtyWorkingTree"`
 	DatabaseVersion  string    `json:"databaseVersion"`
+	DatabaseTopology string    `json:"databaseTopology"`
 	GOOS             string    `json:"goos"`
 	GOARCH           string    `json:"goarch"`
 	GoVersion        string    `json:"goVersion"`
@@ -68,6 +69,8 @@ type seedReport struct {
 type verifyReport struct {
 	commonReport
 	DatabaseRestarted       bool           `json:"databaseRestarted"`
+	RecoveryKind            string         `json:"recoveryKind"`
+	WritablePrimary         bool           `json:"writablePrimary"`
 	ConnectionAttempts      int            `json:"connectionAttempts"`
 	AcceptingConnectionsRTO milliseconds   `json:"acceptingConnectionsRTOMilliseconds"`
 	IntegrityValidatedRTO   milliseconds   `json:"integrityValidatedRTOMilliseconds"`
@@ -101,9 +104,14 @@ func main() {
 	sourceRelease := flag.String("source-release", "", "exact engineering source release")
 	dirty := flag.Bool("dirty-working-tree", true, "whether tracked engineering files were dirty during measurement")
 	restartStartedUnixNano := flag.Int64("restart-started-unix-nano", 0, "wall-clock instant immediately before database restart")
+	topology := flag.String("topology", "single-primary", "single-primary or streaming-primary-standby")
+	recoveryKind := flag.String("recovery-kind", "restart", "restart or standby-promotion")
 	flag.Parse()
-	if (*phase != "seed" && *phase != "verify") || *eventCount < 1000 || *eventCount > 100000 || *hotShare < 50 || *hotShare > 99 || *coldWorkers < 1 || *coldWorkers > 128 || *duplicateAttempts < 100 || *duplicateAttempts > 10000 || !isCommit(*sourceCommit) || strings.TrimSpace(*sourceRelease) == "" {
+	if (*phase != "seed" && *phase != "verify") || (*topology != "single-primary" && *topology != "streaming-primary-standby") || (*recoveryKind != "restart" && *recoveryKind != "standby-promotion") || *eventCount < 1000 || *eventCount > 100000 || *hotShare < 50 || *hotShare > 99 || *coldWorkers < 1 || *coldWorkers > 128 || *duplicateAttempts < 100 || *duplicateAttempts > 10000 || !isCommit(*sourceCommit) || strings.TrimSpace(*sourceRelease) == "" {
 		fatal("phase, events (1000..100000), hot-share-percent (50..99), cold-workers (1..128), duplicate-attempts (100..10000), exact source commit, and source release are required")
+	}
+	if *recoveryKind == "standby-promotion" && *topology != "streaming-primary-standby" {
+		fatal("standby-promotion recovery requires streaming-primary-standby topology")
 	}
 	if *phase == "seed" && *restartStartedUnixNano != 0 {
 		fatal("seed does not accept restart-started-unix-nano")
@@ -139,7 +147,7 @@ func main() {
 	common := commonReport{
 		Phase: *phase, MeasuredAt: time.Now().UTC(), SourceCommit: *sourceCommit, SourceRelease: *sourceRelease,
 		DirtyWorkingTree: *dirty, DatabaseVersion: databaseVersion, GOOS: runtime.GOOS, GOARCH: runtime.GOARCH,
-		GoVersion: runtime.Version(), CPUCount: runtime.NumCPU(), Events: *eventCount, HotEvents: hotEvents,
+		GoVersion: runtime.Version(), CPUCount: runtime.NumCPU(), DatabaseTopology: *topology, Events: *eventCount, HotEvents: hotEvents,
 		ColdEvents: coldEvents, HotEventShare: float64(hotEvents) / float64(*eventCount),
 	}
 	key := deterministicKey("event", *sourceCommit)
@@ -152,7 +160,7 @@ func main() {
 		runSeed(ctx, db, store, common, key, hotEvents, coldEvents, *coldWorkers, *duplicateAttempts)
 		return
 	}
-	runVerify(ctx, db, store, common, key, privacyKey, time.Unix(0, *restartStartedUnixNano).UTC(), connectionReady, connectionAttempts)
+	runVerify(ctx, db, store, common, key, privacyKey, *recoveryKind, time.Unix(0, *restartStartedUnixNano).UTC(), connectionReady, connectionAttempts)
 }
 
 func runSeed(ctx context.Context, db *sql.DB, store *datafabricpostgres.Store, common commonReport, key []byte, hotEvents, coldEvents, coldWorkers, duplicateAttempts int) {
@@ -250,6 +258,12 @@ func runSeed(ctx context.Context, db *sql.DB, store *datafabricpostgres.Store, c
 		fatal(fmt.Sprintf("unexpected seeded PostgreSQL state: %+v err=%v", stats, err))
 	}
 	databaseBytes := databaseSize(ctx, db)
+	limitations := []string{"90 percent ordered single-aggregate skew is a bounded hotspot workload, not a production traffic model", "duplicate writers share one local runner network", "Outbox is intentionally undrained before recovery", "deterministic test-only HMAC keys; no public-scale claim"}
+	if common.DatabaseTopology == "single-primary" {
+		limitations = append([]string{"one isolated PostgreSQL primary without replicas"}, limitations...)
+	} else {
+		limitations = append([]string{"one primary and one asynchronous streaming standby on one CI Docker host; not automatic failover or regional disaster recovery"}, limitations...)
+	}
 	emit(seedReport{
 		commonReport: common, ConcurrentStart: true, ColdWorkers: coldWorkers, AppendLatency: summarize(latencies),
 		AppendThroughput: float64(common.Events) / appendDuration.Seconds(), DuplicateStormAttempts: duplicateAttempts,
@@ -257,13 +271,20 @@ func runSeed(ctx context.Context, db *sql.DB, store *datafabricpostgres.Store, c
 		DuplicateStormThroughput: float64(duplicateAttempts) / stormDuration.Seconds(), DuplicateRejects: duplicateRejects.Load(),
 		UnexpectedErrors: unexpected.Load(), OutboxQueueDepth: stats.OutboxPending, DatabaseBytes: databaseBytes,
 		StorageBytesPerEvent: float64(databaseBytes) / float64(common.Events),
-		Limitations:          []string{"one isolated PostgreSQL primary without replicas", "90 percent ordered single-aggregate skew is a bounded hotspot workload, not a production traffic model", "duplicate writers share one local runner network", "Outbox is intentionally undrained before the restart", "deterministic test-only HMAC keys; no public-scale claim"},
+		Limitations:          limitations,
 	})
 }
 
-func runVerify(ctx context.Context, db *sql.DB, store *datafabricpostgres.Store, common commonReport, key, privacyKey []byte, restartStarted, connectionReady time.Time, connectionAttempts int) {
+func runVerify(ctx context.Context, db *sql.DB, store *datafabricpostgres.Store, common commonReport, key, privacyKey []byte, recoveryKind string, restartStarted, connectionReady time.Time, connectionAttempts int) {
 	if !connectionReady.After(restartStarted) {
 		fatal("database connection was established before the recorded restart")
+	}
+	var inRecovery, transactionReadOnly bool
+	if err := db.QueryRowContext(ctx, `SELECT pg_is_in_recovery(), current_setting('transaction_read_only')::boolean`).Scan(&inRecovery, &transactionReadOnly); err != nil {
+		fatal(fmt.Sprintf("read post-recovery database role: %v", err))
+	}
+	if inRecovery || transactionReadOnly {
+		fatal("post-recovery database is not a writable primary")
 	}
 	stats, err := store.Stats(ctx)
 	if err != nil {
@@ -318,8 +339,14 @@ func runVerify(ctx context.Context, db *sql.DB, store *datafabricpostgres.Store,
 		fatal(fmt.Sprintf("replay state is not exact: %+v err=%v", stats, err))
 	}
 	databaseBytes := databaseSize(ctx, db)
+	limitations := []string{"RTO starts immediately before the recovery action and ends at connection/integrity readiness on one CI runner", "RPO counts canonical events only and is zero for this bounded run", "Analytics replay is sequential and local to PostgreSQL", "Outbox is not published to JetStream in this drill; no availability or public-scale claim"}
+	if recoveryKind == "standby-promotion" {
+		limitations = append([]string{"manual promotion of one asynchronous streaming standby on the same Docker host; no automatic endpoint failover, fencing, synchronous quorum, cross-zone loss or regional disaster recovery claim"}, limitations...)
+	} else {
+		limitations = append([]string{"single PostgreSQL service-container restart, not failover or regional disaster recovery"}, limitations...)
+	}
 	emit(verifyReport{
-		commonReport: common, DatabaseRestarted: true, ConnectionAttempts: connectionAttempts,
+		commonReport: common, DatabaseRestarted: recoveryKind == "restart", RecoveryKind: recoveryKind, WritablePrimary: true, ConnectionAttempts: connectionAttempts,
 		AcceptingConnectionsRTO: millisecondsSince(restartStarted, connectionReady), IntegrityValidatedRTO: millisecondsSince(restartStarted, integrityReady),
 		RecoveryPointObjective: lostEvents, IntegrityAuditDuration: milliseconds(durationMilliseconds(auditDuration)),
 		ReplayScanned: uint64(len(events)), ReplayApplied: applied, ReplaySkipped: 0, ReplayLatency: summarize(replayLatencies),
@@ -327,7 +354,7 @@ func runVerify(ctx context.Context, db *sql.DB, store *datafabricpostgres.Store,
 		IdempotentLatency: summarize(idempotentLatencies), IdempotentThroughput: float64(len(events)) / idempotentDuration.Seconds(),
 		InboxEffects: stats.InboxEffects, AnalyticsFacts: stats.AnalyticsFacts, OutboxQueueDepth: stats.OutboxPending,
 		DatabaseBytes: databaseBytes, StorageBytesPerEvent: float64(databaseBytes) / float64(common.Events),
-		Limitations: []string{"single PostgreSQL service-container restart, not failover or regional disaster recovery", "RTO starts immediately before docker restart and ends at connection/integrity readiness on one CI runner", "RPO counts canonical events only and is zero for this bounded run", "Analytics replay is sequential and local to PostgreSQL", "Outbox is not published to JetStream in this drill; no availability or public-scale claim"},
+		Limitations: limitations,
 	})
 }
 
