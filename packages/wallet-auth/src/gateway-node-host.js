@@ -41,6 +41,7 @@ export class CanonicalWalletGatewayNodeHost {
   #emitEvent;
   #kernel;
   #metrics;
+  #registry;
   #remoteDeployed;
   #registrySha256;
   #enabledProductClientIds;
@@ -65,6 +66,7 @@ export class CanonicalWalletGatewayNodeHost {
       responsesByRouteStatus: new Map(),
     };
     const reviewedRegistry = parseCentralRegistryDocument(registry);
+    this.#registry = reviewedRegistry;
     this.#registrySha256 = createHash("sha256").update(canonicalJSON(reviewedRegistry)).digest("hex");
     this.#enabledProductClientIds = Object.freeze(reviewedRegistry.products.filter((product) => product.enabled).map((product) => product.productClientId).sort());
     const stored = loadState(this.#statePath);
@@ -114,6 +116,7 @@ export class CanonicalWalletGatewayNodeHost {
         }
         const body = await boundedBody(request);
         const proof = decodeGatewayProofHeader(request.headers[CANONICAL_GATEWAY_PROOF_HEADER]);
+        const before = this.#kernel.snapshot();
         const result = this.#kernel.dispatch({
           method: request.method,
           path: request.url,
@@ -121,7 +124,14 @@ export class CanonicalWalletGatewayNodeHost {
           body,
           proof,
         }, this.#now());
-        if (result.mutated) this.#persist();
+        if (result.mutated) {
+          try {
+            this.#persist();
+          } catch (caught) {
+            this.#kernel = new CanonicalWalletGatewayHttpKernel(this.#registry, before);
+            throw caught;
+          }
+        }
         status = result.status;
         errorCode = status >= 400 ? responseErrorCode(result.body) : null;
         errorId = errorCode ? randomUUID() : null;
@@ -283,7 +293,6 @@ export class CanonicalWalletGatewayNodeHost {
     writeFileSync(temporary, canonicalJSON(envelope), { encoding: "utf8", mode: 0o600, flag: "w" });
     chmodSync(temporary, 0o600);
     renameSync(temporary, this.#statePath);
-    chmodSync(this.#statePath, 0o600);
   }
 }
 
