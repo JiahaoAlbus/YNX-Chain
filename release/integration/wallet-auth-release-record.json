@@ -6,16 +6,16 @@
   "recordedAt": "2026-08-14T03:52:00Z",
   "evidenceMatrix": {
     "path": "release/integration/wallet-auth-release-evidence-matrix.json",
-    "sha256": "9173ec0e11c233bee42666b3b11d9a008d540e6dee42bf9eb2359a65fc3420ea",
+    "sha256": "3982ea3fe46482ca5cec9dbdd5274b66ed1652ee1c89f1d175184d43c08a5f12",
     "platforms": 21,
     "gatesPerPlatform": 12,
-    "trueGates": 102,
-    "falseGates": 150,
-    "evidenceRecords": 93
+    "trueGates": 104,
+    "falseGates": 148,
+    "evidenceRecords": 95
   },
   "frozenOwnerSources": {
     "coreAuthGateway": "0c747c6030b5a475a1f12dc7e57345555c23055d",
-    "webPwaExtensions": "deca6f4fe29dafdccb3736f237e6e8829e094eec",
+    "webPwaExtensions": "60614bf5e7575c7423a0f8547b5197675f449ffc",
     "androidApi36": "f1edbec46ad4300beec406873b03db2da7c72e4b",
     "iosMacos": "7a3a110fb7cd9a33512ce4db87ddd8387cb730d5",
     "desktopCliSdk": "2802876f8470264c4a8819f1426e28f957a09289",
@@ -95,6 +95,7 @@
     "The dedicated Integration ref is remotely protected, but integratedCentral remains false until an authorized central merge/deployment record exists.",
     "The macOS arm64 CLI has an immutable official YNX download, but remains ad-hoc and is not a production-signed or store artifact.",
     "Chain Core contract v1.21.0 is accepted as an immutable dependency identity only; its Owner commit is locally object-verified but not reachable from the shared origin, and Chain Core still reports authBoundary=dependency-not-accepted with no central or public deployment proof.",
-    "Product Session Router v2 commit e5932a2e is remotely frozen with a bounded executable release gate and direct negative public probe: the legacy v1 Wallet route is reachable, while /v2/product-sessions/challenge falls through to Chain JSON-RPC -32601; the gate exits 1 and no v2 challenge/session, full lifecycle, central integration or public runtime deployment is claimed."
+    "Product Session Router v2 commit e5932a2e is remotely frozen with a bounded executable release gate and direct negative public probe: the legacy v1 Wallet route is reachable, while /v2/product-sessions/challenge falls through to Chain JSON-RPC -32601; the gate exits 1 and no v2 challenge/session, full lifecycle, central integration or public runtime deployment is claimed.",
+    "Web commit 60614bf5 directly proves first and second launch of an unsigned temporary YNX add-on in official notarized Firefox 153.0.4; install, popup DOM/background, provider/account/sign/tx, hosting/publication, extension signing and store claims remain false."
   ]
 }

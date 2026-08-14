@@ -90,11 +90,11 @@
     {
       "owner": "web-pwa-extensions",
       "branch": "codex/wallet-web-pwa-extensions-20260813",
-      "sourceCommit": "deca6f4fe29dafdccb3736f237e6e8829e094eec",
-      "remoteCommitObserved": "deca6f4fe29dafdccb3736f237e6e8829e094eec",
-      "branchHeadObserved": "deca6f4fe29dafdccb3736f237e6e8829e094eec",
-      "remoteVerifiedAt": "2026-08-14T09:28:00Z",
-      "verificationMode": "github-git-database-parent-tree-blob-readback"
+      "sourceCommit": "60614bf5e7575c7423a0f8547b5197675f449ffc",
+      "remoteCommitObserved": "60614bf5e7575c7423a0f8547b5197675f449ffc",
+      "branchHeadObserved": "60614bf5e7575c7423a0f8547b5197675f449ffc",
+      "remoteVerifiedAt": "2026-08-14T10:44:00Z",
+      "verificationMode": "remote-ref-parent-tree-eleven-blob-readback"
     },
     {
       "owner": "android-api36",
@@ -134,6 +134,39 @@
     }
   ],
   "evidence": {
+    "web-firefox-official-stable-package": {
+      "type": "git-object",
+      "direct": true,
+      "commit": "60614bf5e7575c7423a0f8547b5197675f449ffc",
+      "path": "apps/wallet-web/evidence/runtime/firefox-official-stable-install-20260814.json",
+      "supports": [],
+      "browserVersion": "153.0.4",
+      "bytes": 154770807,
+      "sha256": "792b313c7e2d2b1327f76f455315dd9d68c59c96935aa5e8c67ae42fe6aeea97",
+      "architectures": ["x86_64", "arm64"],
+      "minimumOS": "macOS 10.15.0",
+      "browserSigningClass": "Developer ID Application: Mozilla Corporation (43AQ936H96)",
+      "browserNotarized": true,
+      "ynxExtensionProductionSigned": false
+    },
+    "web-firefox-temporary-addon-runtime": {
+      "type": "git-object",
+      "direct": true,
+      "commit": "60614bf5e7575c7423a0f8547b5197675f449ffc",
+      "path": "apps/wallet-web/evidence/runtime/firefox-branded-temporary-runtime-20260814.json",
+      "supports": ["browser-extension.coldLaunch", "browser-extension.secondLaunch"],
+      "browserVersion": "153.0.4",
+      "profileClass": "disposable-isolated-profile",
+      "loadMode": "temporary-addon-isolated-profile",
+      "firstPid": 53579,
+      "secondPid": 53723,
+      "sameAddonUuid": true,
+      "popupRequested": true,
+      "popupDomObserved": false,
+      "backgroundStarted": false,
+      "installedLocal": false,
+      "productionSigned": false
+    },
     "wallet-product-session-v2-public-route-gap": {
       "type": "git-object",
       "direct": true,
@@ -905,11 +938,11 @@
       "id": "browser-extension",
       "ownerSource": "web-pwa-extensions",
       "artifactClass": "unsigned-unpacked-extension",
-      "status": "build-only",
-      "capabilities": {"isolatedEdgeProviderInjection":true,"isolatedEdgeFixtureAccounts":true,"isolatedEdgeFixtureReconnect":true,"isolatedEdgeWrongChainRejected":true,"minimumPersistentPermissionsVerified":true,"persistentAllSiteContentScript":false,"webAccessibleProvider":false,"activeTabActionRequired":true,"fallbackMessageHarnessPassed":true,"chromiumCompatibleExtensionRuntimeProved":false,"actionInjectionProved":false,"chromeProviderInjection":false,"liveRpcViaProvider":false,"brandedChromeLaunched":true,"brandedChromeServiceWorkerStarted":false,"brandedEdgeLaunched":true,"brandedEdgePersistentContextStarted":false,"brandedFirefoxPresent":false,"brandedFirstOpenProved":false,"brandedSecondOpenProved":false,"installedLocal":false},
-      "gates": {"build":true,"install":false,"coldLaunch":false,"secondLaunch":false,"testnet":true,"sign":false,"tx":false,"callback":false,"reconnect":false,"downloadHosted":false,"productionSigned":false,"storeReleased":false},
-      "evidenceBindings": {"build":["web-artifacts","web-extension-minimum-permissions"],"install":["browser-install-boundary","edge-unpacked-user-gesture","web-extension-sensitive-actions-source","web-edge-unpacked-negative-runtime","web-edge-isolated-provider-bridge"],"coldLaunch":["browser-install-boundary","edge-unpacked-user-gesture","web-extension-sensitive-actions-source","web-edge-unpacked-negative-runtime","web-edge-isolated-provider-bridge"],"secondLaunch":["browser-install-boundary","edge-unpacked-user-gesture","web-extension-sensitive-actions-source","web-edge-unpacked-negative-runtime","web-edge-isolated-provider-bridge"],"testnet":["web-edge-popup-live-rpc-boundary"],"sign":["browser-install-boundary","edge-unpacked-user-gesture","web-extension-sensitive-actions-source","web-edge-unpacked-negative-runtime","web-edge-popup-live-rpc-boundary","web-edge-isolated-provider-bridge"],"tx":["browser-install-boundary","edge-unpacked-user-gesture","web-extension-sensitive-actions-source","web-edge-unpacked-negative-runtime","web-edge-popup-live-rpc-boundary","web-edge-isolated-provider-bridge"],"callback":["browser-install-boundary","edge-unpacked-user-gesture","web-extension-sensitive-actions-source","web-edge-unpacked-negative-runtime","web-edge-isolated-provider-bridge"],"reconnect":["browser-install-boundary","edge-unpacked-user-gesture","web-extension-sensitive-actions-source","web-edge-unpacked-negative-runtime","web-edge-popup-live-rpc-boundary","web-edge-isolated-provider-bridge"],"downloadHosted":["web-artifacts","edge-unpacked-user-gesture","web-extension-sensitive-actions-source","web-edge-unpacked-negative-runtime","web-edge-isolated-provider-bridge"],"productionSigned":["web-artifacts","edge-unpacked-user-gesture","web-extension-sensitive-actions-source","web-edge-unpacked-negative-runtime","web-edge-isolated-provider-bridge"],"storeReleased":["web-artifacts","edge-unpacked-user-gesture","web-extension-sensitive-actions-source","web-edge-unpacked-negative-runtime","web-edge-isolated-provider-bridge"]},
-      "notes": ["Direct ComputerControl evidence shows Edge unpacked popup RPC 0x1917 but no active-DApp provider. Current branded disposable-profile evidence records Chrome service-worker timeout, Edge persistent-context timeout and absent Firefox; no first/second open or installation was proved. Connect/add/switch/sign/tx/release gates remain false; unpacked is never production/store."]
+      "status": "temporary-firefox-runtime",
+      "capabilities": {"isolatedEdgeProviderInjection":true,"isolatedEdgeFixtureAccounts":true,"isolatedEdgeFixtureReconnect":true,"isolatedEdgeWrongChainRejected":true,"minimumPersistentPermissionsVerified":true,"persistentAllSiteContentScript":false,"webAccessibleProvider":false,"activeTabActionRequired":true,"fallbackMessageHarnessPassed":true,"chromiumCompatibleExtensionRuntimeProved":false,"actionInjectionProved":false,"chromeProviderInjection":false,"liveRpcViaProvider":false,"brandedChromeLaunched":true,"brandedChromeServiceWorkerStarted":false,"brandedEdgeLaunched":true,"brandedEdgePersistentContextStarted":false,"brandedFirefoxPresent":true,"brandedFirefoxOfficialPackageVerified":true,"brandedFirefoxTemporaryAddonRuntimeProved":true,"brandedFirstOpenProved":true,"brandedSecondOpenProved":true,"brandedFirefoxPopupRequested":true,"brandedFirefoxPopupDomObserved":false,"brandedFirefoxBackgroundStarted":false,"installedLocal":false},
+      "gates": {"build":true,"install":false,"coldLaunch":true,"secondLaunch":true,"testnet":true,"sign":false,"tx":false,"callback":false,"reconnect":false,"downloadHosted":false,"productionSigned":false,"storeReleased":false},
+      "evidenceBindings": {"build":["web-artifacts","web-extension-minimum-permissions"],"install":["browser-install-boundary","edge-unpacked-user-gesture","web-extension-sensitive-actions-source","web-edge-unpacked-negative-runtime","web-edge-isolated-provider-bridge"],"coldLaunch":["web-firefox-temporary-addon-runtime","browser-install-boundary","edge-unpacked-user-gesture","web-extension-sensitive-actions-source","web-edge-unpacked-negative-runtime","web-edge-isolated-provider-bridge"],"secondLaunch":["web-firefox-temporary-addon-runtime","browser-install-boundary","edge-unpacked-user-gesture","web-extension-sensitive-actions-source","web-edge-unpacked-negative-runtime","web-edge-isolated-provider-bridge"],"testnet":["web-edge-popup-live-rpc-boundary"],"sign":["browser-install-boundary","edge-unpacked-user-gesture","web-extension-sensitive-actions-source","web-edge-unpacked-negative-runtime","web-edge-popup-live-rpc-boundary","web-edge-isolated-provider-bridge"],"tx":["browser-install-boundary","edge-unpacked-user-gesture","web-extension-sensitive-actions-source","web-edge-unpacked-negative-runtime","web-edge-popup-live-rpc-boundary","web-edge-isolated-provider-bridge"],"callback":["browser-install-boundary","edge-unpacked-user-gesture","web-extension-sensitive-actions-source","web-edge-unpacked-negative-runtime","web-edge-isolated-provider-bridge"],"reconnect":["browser-install-boundary","edge-unpacked-user-gesture","web-extension-sensitive-actions-source","web-edge-unpacked-negative-runtime","web-edge-popup-live-rpc-boundary","web-edge-isolated-provider-bridge"],"downloadHosted":["web-artifacts","edge-unpacked-user-gesture","web-extension-sensitive-actions-source","web-edge-unpacked-negative-runtime","web-edge-isolated-provider-bridge"],"productionSigned":["web-artifacts","edge-unpacked-user-gesture","web-extension-sensitive-actions-source","web-edge-unpacked-negative-runtime","web-edge-isolated-provider-bridge"],"storeReleased":["web-artifacts","edge-unpacked-user-gesture","web-extension-sensitive-actions-source","web-edge-unpacked-negative-runtime","web-edge-isolated-provider-bridge"]},
+      "notes": ["Official Firefox 153.0.4 and one disposable isolated profile directly prove first and second launch of the same unsigned temporary YNX add-on. Popup navigation was requested, but popup DOM/background and installation were not observed. Chrome/Edge remain negative; provider/account/sign/tx/hosting/release remain false, and Mozilla's browser signature does not sign the extension."]
     },
     {
       "id": "android-api36",
