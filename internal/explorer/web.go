@@ -427,6 +427,21 @@ const indexHTML = `<!doctype html>
 	  if (values.length !== supplementalKeys.length) throw new Error('Incomplete Explorer locale: ' + locale);
 	  supplementalKeys.forEach((key,index) => { messages[locale][key] = values[index]; });
 	});
+	const rowMessages = {
+	  en:{emptyBlock:'Empty block',finalized:'Finalized',txUnit:'transactions',blockUnit:'blocks',observedAccounts:'observed accounts',publicAccounts:'public accounts',noBalances:'No verifiable indexed account balances are available yet.'},
+	  'zh-CN':{emptyBlock:'空区块',finalized:'已最终确定',txUnit:'笔交易',blockUnit:'个区块',observedAccounts:'个已观测账户',publicAccounts:'个全账本账户',noBalances:'暂未发现可验证的已索引账户余额。'},
+	  'zh-TW':{emptyBlock:'空區塊',finalized:'已最終確定',txUnit:'筆交易',blockUnit:'個區塊',observedAccounts:'個已觀測帳戶',publicAccounts:'個完整帳本帳戶',noBalances:'暫無可驗證的已索引帳戶餘額。'},
+	  ja:{emptyBlock:'空ブロック',finalized:'確定済み',txUnit:'取引',blockUnit:'ブロック',observedAccounts:'観測アカウント',publicAccounts:'公開アカウント',noBalances:'検証可能なインデックス済み残高はまだありません。'},
+	  ko:{emptyBlock:'빈 블록',finalized:'확정됨',txUnit:'거래',blockUnit:'블록',observedAccounts:'관측 계정',publicAccounts:'공개 계정',noBalances:'검증 가능한 인덱싱 계정 잔액이 아직 없습니다.'},
+	  es:{emptyBlock:'Bloque vacío',finalized:'Finalizado',txUnit:'transacciones',blockUnit:'bloques',observedAccounts:'cuentas observadas',publicAccounts:'cuentas públicas',noBalances:'Aún no hay saldos indexados verificables.'},
+	  fr:{emptyBlock:'Bloc vide',finalized:'Finalisé',txUnit:'transactions',blockUnit:'blocs',observedAccounts:'comptes observés',publicAccounts:'comptes publics',noBalances:'Aucun solde indexé vérifiable pour le moment.'},
+	  de:{emptyBlock:'Leerer Block',finalized:'Finalisiert',txUnit:'Transaktionen',blockUnit:'Blöcke',observedAccounts:'beobachtete Konten',publicAccounts:'öffentliche Konten',noBalances:'Noch keine verifizierbaren indexierten Kontostände.'},
+	  pt:{emptyBlock:'Bloco vazio',finalized:'Finalizado',txUnit:'transações',blockUnit:'blocos',observedAccounts:'contas observadas',publicAccounts:'contas públicas',noBalances:'Ainda não há saldos indexados verificáveis.'},
+	  ru:{emptyBlock:'Пустой блок',finalized:'Финализирован',txUnit:'транзакций',blockUnit:'блоков',observedAccounts:'наблюдаемых счетов',publicAccounts:'публичных счетов',noBalances:'Проверяемые индексированные балансы пока отсутствуют.'},
+	  ar:{emptyBlock:'كتلة فارغة',finalized:'نهائية',txUnit:'معاملات',blockUnit:'كتل',observedAccounts:'حسابات مرصودة',publicAccounts:'حسابات عامة',noBalances:'لا توجد أرصدة مفهرسة قابلة للتحقق بعد.'},
+	  id:{emptyBlock:'Blok kosong',finalized:'Final',txUnit:'transaksi',blockUnit:'blok',observedAccounts:'akun teramati',publicAccounts:'akun publik',noBalances:'Belum ada saldo akun terindeks yang dapat diverifikasi.'}
+	};
+	Object.entries(rowMessages).forEach(([locale,values]) => Object.assign(messages[locale],values));
 	const supportedLocales = Object.keys(messages);
 	const browserLocale = navigator.language;
 	let language = localStorage.getItem('ynx-explorer-language') || (supportedLocales.includes(browserLocale) ? browserLocale : (browserLocale.toLowerCase().startsWith('zh') ? 'zh-CN' : 'en'));
@@ -462,7 +477,7 @@ const indexHTML = `<!doctype html>
     function blockRow(block,index = 0) {
       const txs = (block.transactions || []).length;
       const isNew = index === 0 && previousHeight && Number(block.height) > previousHeight;
-	  return '<button class="live-row block-live-row' + (txs === 0 ? ' empty-block-row' : '') + (isNew ? ' new-row' : '') + '" type="button" data-query="' + escapeHTML(block.height) + '"><span class="row-icon">BK</span><span><span class="row-title"><span class="link mono">#' + escapeHTML(number(block.height)) + '</span><span class="type-tag">' + (txs === 0 ? (language.startsWith('zh') ? '空区块' : 'Empty') : (language.startsWith('zh') ? '已最终确定' : 'Finalized')) + '</span></span><span class="row-subtitle"><span class="mono hash" title="' + escapeHTML(block.hash) + '">' + escapeHTML(compact(block.hash,14,9)) + '</span></span></span><span class="row-side"><strong>' + txs + (language.startsWith('zh') ? ' 笔交易' : (txs === 1 ? ' tx' : ' txs')) + '</strong><span title="' + escapeHTML(exactTime(block.time)) + '">' + escapeHTML(relativeTime(block.time)) + '</span></span></button>';
+	  return '<button class="live-row block-live-row' + (txs === 0 ? ' empty-block-row' : '') + (isNew ? ' new-row' : '') + '" type="button" data-query="' + escapeHTML(block.height) + '"><span class="row-icon">BK</span><span><span class="row-title"><span class="link mono">#' + escapeHTML(number(block.height)) + '</span><span class="type-tag">' + escapeHTML(t(txs === 0 ? 'emptyBlock' : 'finalized')) + '</span></span><span class="row-subtitle"><span class="mono hash" title="' + escapeHTML(block.hash) + '">' + escapeHTML(compact(block.hash,14,9)) + '</span></span></span><span class="row-side"><strong>' + escapeHTML(number(txs)) + ' ' + escapeHTML(t('txUnit')) + '</strong><span title="' + escapeHTML(exactTime(block.time)) + '">' + escapeHTML(relativeTime(block.time)) + '</span></span></button>';
     }
     function txRow(tx,index = 0) {
       const isNew = index === 0 && previousTxHash && tx.hash !== previousTxHash;
@@ -493,7 +508,7 @@ const indexHTML = `<!doctype html>
       $('blockTrack').innerHTML = blocks.slice(0,8).map((block,index) => {
         const arrived = index === 0 && previousHeight && incomingHeight > previousHeight;
         const txs = (block.transactions || []).length;
-		return '<button class="block-chip' + (txs === 0 ? ' empty-block' : '') + (arrived ? ' new' : '') + '" type="button" data-query="' + escapeHTML(block.height) + '"><strong class="mono">#' + escapeHTML(number(block.height)) + '</strong><span>' + (txs === 0 ? (language.startsWith('zh') ? '空区块' : 'empty') : txs + (language.startsWith('zh') ? ' 笔' : (txs === 1 ? ' tx' : ' txs'))) + ' / ' + escapeHTML(relativeTime(block.time)) + '</span></button>';
+		return '<button class="block-chip' + (txs === 0 ? ' empty-block' : '') + (arrived ? ' new' : '') + '" type="button" data-query="' + escapeHTML(block.height) + '"><strong class="mono">#' + escapeHTML(number(block.height)) + '</strong><span>' + (txs === 0 ? escapeHTML(t('emptyBlock')) : escapeHTML(number(txs)) + ' ' + escapeHTML(t('txUnit'))) + ' / ' + escapeHTML(relativeTime(block.time)) + '</span></button>';
       }).join('') || '<div class="empty">No finalized blocks yet.</div>';
     }
     function renderIntelligence(validatorData, resources) {
@@ -525,8 +540,8 @@ const indexHTML = `<!doctype html>
 		return;
 	  }
       const observed = leaderboard?.truthfulStatus === 'observed-indexed-participant-account-ranking';
-	  $('accountTotal').textContent = number(leaderboard?.total || accounts.length) + (observed ? (language.startsWith('zh') ? ' 个已观测账户 / 展示前 ' : ' observed accounts / top ') : (language.startsWith('zh') ? ' 个全账本账户 / 展示前 ' : ' public accounts / top ')) + number(accounts.length) + ' · ' + exactTime(leaderboard?.checkedAt);
-	  $('accountsBody').innerHTML = accounts.length ? accounts.map((account,index) => '<tr data-query="' + escapeHTML(account.address) + '"><td><strong>#' + (index + 1) + '</strong></td><td><span class="link mono hash" title="' + escapeHTML(account.address) + '">' + escapeHTML(account.address) + '</span></td><td class="amount">' + escapeHTML(number(account.balance)) + ' YNXT</td><td>' + escapeHTML(number(account.staked)) + ' YNXT</td><td class="mono">' + escapeHTML(number(account.nonce)) + '</td></tr>').join('') : '<tr><td colspan="5" class="empty">' + (language.startsWith('zh') ? '暂未发现可验证的已索引账户余额。' : 'No verifiable indexed account balances are available yet.') + '</td></tr>';
+	  $('accountTotal').textContent = number(leaderboard?.total || accounts.length) + ' ' + t(observed ? 'observedAccounts' : 'publicAccounts') + ' / ' + number(accounts.length) + ' · ' + exactTime(leaderboard?.checkedAt);
+	  $('accountsBody').innerHTML = accounts.length ? accounts.map((account,index) => '<tr data-query="' + escapeHTML(account.address) + '"><td><strong>#' + (index + 1) + '</strong></td><td><span class="link mono hash" title="' + escapeHTML(account.address) + '">' + escapeHTML(account.address) + '</span></td><td class="amount">' + escapeHTML(number(account.balance)) + ' YNXT</td><td>' + escapeHTML(number(account.staked)) + ' YNXT</td><td class="mono">' + escapeHTML(number(account.nonce)) + '</td></tr>').join('') : '<tr><td colspan="5" class="empty">' + escapeHTML(t('noBalances')) + '</td></tr>';
       bindQueries();
     }
     function bindQueries() {
@@ -545,7 +560,7 @@ const indexHTML = `<!doctype html>
       $('blockTime').textContent = windowStats.blockTime.toFixed(1) + 's';
       $('txCount').textContent = number(summary.indexedTxCount);
       $('validatorCount').textContent = number(summary.validatorCount);
-	  $('syncValue').textContent = number(summary.syncLagBlocks) + (language.startsWith('zh') ? ' 个区块' : (summary.syncLagBlocks === 1 ? ' block' : ' blocks'));
+	  $('syncValue').textContent = number(summary.syncLagBlocks) + ' ' + t('blockUnit');
       $('syncState').textContent = summary.syncLagBlocks === 0 ? t('fullySynced') : t('catchingUp');
       $('syncState').className = 'metric-foot' + (summary.syncLagBlocks === 0 ? ' good' : '');
       $('blockAge').textContent = relativeTime(summary.latestBlockTime);
