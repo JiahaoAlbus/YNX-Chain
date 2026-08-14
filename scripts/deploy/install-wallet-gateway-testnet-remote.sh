@@ -42,6 +42,7 @@ preflight_state="$state_dir/.preflight-$release.json"
 preflight_log="$state_dir/.preflight-$release.log"
 preflight_v2_state="$state_dir/.preflight-v2-$release.json"
 preflight_v2_response="$state_dir/.preflight-v2-$release.response.json"
+candidate_state="$state_dir/.candidate-$release.json"
 cp -a "$state_file" "$preflight_state"
 if [[ -e "$v2_state_file" ]]; then
   [[ -s "$v2_state_file" && ! -L "$v2_state_file" && "$(stat -c '%a' "$v2_state_file")" == "600" && "$(stat -c '%h' "$v2_state_file")" == "1" ]] || { echo "Product Session v2 state is unsafe" >&2; exit 1; }
@@ -54,6 +55,7 @@ runuser -u ynx -- env \
   YNX_WALLET_GATEWAY_HTTP_ADDR=127.0.0.1 \
   YNX_WALLET_GATEWAY_HTTP_PORT=17439 \
   YNX_WALLET_GATEWAY_STATE_PATH="$preflight_state" \
+  YNX_WALLET_GATEWAY_ALLOW_LEGACY_STATE_MIGRATION=true \
   YNX_WALLET_GATEWAY_REGISTRY_PATH="$release_dir/wallet-auth/central-registry.json" \
   YNX_WALLET_PRODUCT_SESSION_V2_STATE_PATH="$preflight_v2_state" \
   YNX_WALLET_PRODUCT_SESSION_V2_REGISTRY_PATH="$release_dir/wallet-auth/product-session-registry.json" \
@@ -85,8 +87,12 @@ NODE
   sleep 1
 done
 [[ "$preflight_ok" == "1" ]] || { echo "candidate Wallet Gateway failed state-migration preflight" >&2; exit 1; }
+cp -a "$preflight_state" "$candidate_state"
+chown ynx:ynx "$candidate_state"
+chmod 0600 "$candidate_state"
 cleanup_preflight
 trap - EXIT
+trap 'rm -f "$candidate_state"' EXIT
 
 backup_dir="/var/backups/ynx-chain/wallet-gateway-predeploy-$release"
 install -d -m 0700 "$backup_dir"
@@ -128,11 +134,13 @@ rollback() {
     systemctl restart ynx-wallet-gatewayd || true
   fi
   if [[ -n "${runtime_v2_response:-}" ]]; then rm -f "$runtime_v2_response"; fi
+  rm -f "$candidate_state"
   exit "$exit_code"
 }
 trap rollback EXIT
 install -m 0644 "$new_unit" "$unit"
 install -m 0600 "$new_env" "$env_file"
+install -m 0600 -o ynx -g ynx "$candidate_state" "$state_file"
 rm -f "$new_unit" "$new_env"
 systemctl daemon-reload
 systemctl restart ynx-wallet-gatewayd
@@ -161,4 +169,5 @@ done
 rm -f "$runtime_v2_response"
 rollback_required=0
 trap - EXIT
+rm -f "$candidate_state"
 printf 'walletGatewayDeploy=passed\nrelease=%s\nsourceCommit=%s\nregistryFileSha256=%s\nregistryRuntimeSha256=%s\nbackup=%s\n' "$release" "$source_commit" "$registry_file_sha" "$registry_runtime_sha" "$backup_dir"
