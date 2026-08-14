@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-14T00:37:59.725Z",
+  "generatedAt": "2026-08-14T00:48:55.765Z",
   "specification": {
     "path": "/Users/huangjiahao/Downloads/YNX_Chain_Fable5_Coordinated_Ultimate_Goal_Prompts.md",
     "sha256": "21f86acd7de45053982eda918b2c4ae47c1e1e8409c57838723897f6e87244c1",
@@ -10,7 +10,7 @@
   "aggregate": {
     "products": 36,
     "worktreesPresent": 36,
-    "cleanWorktrees": 30,
+    "cleanWorktrees": 29,
     "specificationBranchMatches": 15,
     "productsWithCurrentRuntimeBoundReleaseRecord": 5,
     "productsProvenComplete": 0
@@ -1751,9 +1751,13 @@
       "enumeratedRequirementLines": 118,
       "worktreeExists": true,
       "actualBranch": "codex/ynx-code-platform-v1",
-      "head": "27a5fd4bc9378a6514f22c1a34a91c533055895f",
-      "clean": true,
-      "dirtyEntries": [],
+      "head": "1eee34286346aab1c0932f2aac2e8475ffb257f1",
+      "clean": false,
+      "dirtyEntries": [
+        "M apps/developer/frontend/src/collaboration/CollaborationPanel.tsx",
+        " M apps/developer/frontend/src/runtime/client.ts",
+        " M apps/developer/services/collaboration-service/src/service.mjs"
+      ],
       "branchMatchesSpecification": false,
       "releaseRecords": [
         {
@@ -1765,7 +1769,7 @@
           "sourceBoundToHead": false,
           "currentRuntimeSourceBound": false,
           "evidenceOnlyCommitsAfterRuntimeSource": false,
-          "changedPathCountAfterRuntimeSource": 43,
+          "changedPathCountAfterRuntimeSource": 47,
           "changedPathSampleAfterRuntimeSource": [
             "apps/developer/deploy/systemd/ynx-code-candidate.service",
             "apps/developer/deploy/systemd/ynx-developer-web-release.conf",
@@ -1779,14 +1783,14 @@
             "apps/developer/evidence/public/ynx-code-public-predeploy-probe-20260813.json",
             "apps/developer/evidence/public/ynx-code-reconnect-ai-17ee9ae5.json",
             "apps/developer/frontend/src/app/Workbench.tsx",
+            "apps/developer/frontend/src/chat/AgentPanel.tsx",
             "apps/developer/frontend/src/editor/languages.ts",
             "apps/developer/frontend/src/extensions/ExtensionPanel.tsx",
             "apps/developer/frontend/src/runtime/RuntimePanel.tsx",
             "apps/developer/frontend/src/runtime/client.ts",
             "apps/developer/frontend/src/scm/SourceControlPanel.tsx",
             "apps/developer/frontend/src/styles.css",
-            "apps/developer/package.json",
-            "apps/developer/product-release.json"
+            "apps/developer/package.json"
           ],
           "states": {
             "implementedLocal": true,
@@ -4039,7 +4043,7 @@
       "enumeratedRequirementLines": 151,
       "worktreeExists": true,
       "actualBranch": "codex/integration-pay-acceptance-v2",
-      "head": "d92a2bbf0a6938b8d88c816beb69776b0cf96524",
+      "head": "aaac8f893e9827fb23b931b43374b34090069009",
       "clean": true,
       "dirtyEntries": [],
       "branchMatchesSpecification": false,
@@ -5029,7 +5033,7 @@
       "enumeratedRequirementLines": 111,
       "worktreeExists": true,
       "actualBranch": "codex/final-calendar",
-      "head": "0a0d91a0472a5d2317256de0eedb7980d0b2e9f9",
+      "head": "e4e20e2494ea7a1008833e1962b565dec916a0a4",
       "clean": true,
       "dirtyEntries": [],
       "branchMatchesSpecification": true,
@@ -5043,12 +5047,16 @@
           "sourceBoundToHead": false,
           "currentRuntimeSourceBound": true,
           "evidenceOnlyCommitsAfterRuntimeSource": true,
-          "changedPathCountAfterRuntimeSource": 7,
+          "changedPathCountAfterRuntimeSource": 11,
           "changedPathSampleAfterRuntimeSource": [
             "apps/calendar/FABLE5_REQUIREMENTS.md",
             "apps/calendar/FEATURE_COMPLETION_EVIDENCE.md",
             "apps/calendar/product-release.json",
             "apps/calendar/tests/release-manifest.test.mjs",
+            "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
+            "docs/integration/DEPENDENCY_ACCEPTANCE.md",
+            "docs/integration/INTEGRATION_HANDOFF.md",
+            "docs/integration/WEBSITE_INTEGRATION_HANDOFF.md",
             "product-release.json",
             "public-product-metadata.json",
             "release/integration/calendar-contract.json"
@@ -5082,12 +5090,16 @@
           "sourceBoundToHead": false,
           "currentRuntimeSourceBound": true,
           "evidenceOnlyCommitsAfterRuntimeSource": true,
-          "changedPathCountAfterRuntimeSource": 7,
+          "changedPathCountAfterRuntimeSource": 11,
           "changedPathSampleAfterRuntimeSource": [
             "apps/calendar/FABLE5_REQUIREMENTS.md",
             "apps/calendar/FEATURE_COMPLETION_EVIDENCE.md",
             "apps/calendar/product-release.json",
             "apps/calendar/tests/release-manifest.test.mjs",
+            "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
+            "docs/integration/DEPENDENCY_ACCEPTANCE.md",
+            "docs/integration/INTEGRATION_HANDOFF.md",
+            "docs/integration/WEBSITE_INTEGRATION_HANDOFF.md",
             "product-release.json",
             "public-product-metadata.json",
             "release/integration/calendar-contract.json"
