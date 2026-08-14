@@ -65,6 +65,18 @@
     "availabilityAdapter": "walletAvailabilityFromDiscovery",
     "identityAuthority": false
   },
+  "connectionCoordinator": {
+    "implementation": "WalletConnectionCoordinator",
+    "packageSubpath": "@ynx-chain/wallet-auth/wallet-connection-coordinator",
+    "composes": ["RecoverableProductSessionClient", "discoverWalletProviders", "walletConnectionChoices", "MetaMaskEvmConnectionAdapter"],
+    "nativeAndInjectedAvailabilityMerged": true,
+    "ynxPriority": true,
+    "secondLaunchControlledOpen": "at most one automatic registered deep-link open before explicit Retry",
+    "platformOpenTimeout": "10-30000 milliseconds, fail closed",
+    "openRequestId": "req_ps_open_<Product Session nonce>",
+    "platformErrors": ["WALLET_NOT_INSTALLED", "SCHEME_NOT_REGISTERED", "NETWORK_UNAVAILABLE", "USER_REJECTED", "WALLET_OPEN_TIMEOUT"],
+    "fallback": "none"
+  },
   "metaMaskEvmConnection": {
     "adapter": "MetaMaskEvmConnectionAdapter",
     "packageSubpath": "@ynx-chain/wallet-auth/metamask-evm",
@@ -103,6 +115,7 @@
   "tests": [
     "packages/wallet-auth/test/metamask-evm-adapter.test.mjs",
     "packages/wallet-auth/test/wallet-provider-discovery.test.mjs",
+    "packages/wallet-auth/test/wallet-connection-coordinator.test.mjs",
     "packages/wallet-auth/test/product-session-gateway.test.mjs",
     "packages/wallet-auth/test/product-session-gateway-client.test.mjs",
     "packages/wallet-auth/test/product-session-gateway-http.test.mjs",

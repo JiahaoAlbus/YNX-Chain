@@ -28,6 +28,17 @@ export class RecoverableProductSessionClient {
 
   get current() { return this.#state; }
   get storageKey() { return `ynx.product-session.v2:${this.#binding.productId}:${this.#binding.platform}:${this.#binding.applicationId}`; }
+  get connectionBinding() { return Object.freeze({ productId: this.#binding.productId, platform: this.#binding.platform, applicationId: this.#binding.applicationId }); }
+
+  async detectWalletEnvironment() {
+    let walletInstalled, schemeRegistered;
+    try { [walletInstalled, schemeRegistered] = await Promise.all([this.#gateway.walletInstalled(), this.#gateway.schemeRegistered()]); }
+    catch (error) { if (error instanceof WalletAuthError) throw error; fail("WALLET_UNAVAILABLE", "Wallet availability detection failed closed"); }
+    if (typeof walletInstalled !== "boolean" || typeof schemeRegistered !== "boolean") fail("INVALID_GATEWAY_RESPONSE", "Wallet availability detection returned invalid values");
+    return Object.freeze({ walletInstalled, schemeRegistered });
+  }
+  async beginDetected(automatic = false) { return this.begin(await this.detectWalletEnvironment(), automatic); }
+  async retryDetected() { return this.retry(await this.detectWalletEnvironment()); }
 
   async restore(networkAvailable = true) {
     this.#networkAvailable = Boolean(networkAvailable);
@@ -38,7 +49,7 @@ export class RecoverableProductSessionClient {
     if (pendingReturn !== null) return this.handleReturn(pendingReturn);
     if (!this.#autoReconnectAttempted) {
       this.#autoReconnectAttempted = true;
-      return this.begin({ walletInstalled: await this.#gateway.walletInstalled(), schemeRegistered: await this.#gateway.schemeRegistered() }, true);
+      return this.beginDetected(true);
     }
     this.#state = state(PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED, "Stored Product Session is invalid; explicit Retry is required", { actions: ["retry", "guest"] });
     return this.#state;

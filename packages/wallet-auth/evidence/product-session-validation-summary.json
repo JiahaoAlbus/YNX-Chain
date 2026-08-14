@@ -1,19 +1,19 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-08-14T05:54:21.000Z",
+  "capturedAt": "2026-08-14T06:07:51.000Z",
   "scope": "local Product Session v2 protocol and router validation",
   "registrySchemaVersion": 2,
   "branch": "codex/wallet-session-router-recovery",
   "sourceBaseline": "2a78ace0a647b73dd2961fae3361189116453a7d",
   "targetedTest": {
-    "command": "node --test test/metamask-evm-adapter.test.mjs test/wallet-provider-discovery.test.mjs test/product-session-gateway-client.test.mjs test/product-session-gateway-http.test.mjs test/product-session-gateway.test.mjs test/product-session-migration.test.mjs test/product-session-products.test.mjs test/product-session-recovery.test.mjs test/product-session-router.test.mjs test/product-session-v2.test.mjs",
-    "passed": 66,
+    "command": "node --test test/metamask-evm-adapter.test.mjs test/wallet-provider-discovery.test.mjs test/wallet-connection-coordinator.test.mjs test/product-session-gateway-client.test.mjs test/product-session-gateway-http.test.mjs test/product-session-gateway.test.mjs test/product-session-migration.test.mjs test/product-session-products.test.mjs test/product-session-recovery.test.mjs test/product-session-router.test.mjs test/product-session-v2.test.mjs",
+    "passed": 76,
     "failed": 0,
     "concurrentSessions": 120
   },
   "fullPackageTest": {
     "command": "npm test",
-    "passed": 168,
+    "passed": 178,
     "failed": 0,
     "exitCode": 0
   },
@@ -21,8 +21,8 @@
     "command": "npm_config_cache=<isolated-temp-cache> npm pack --dry-run",
     "exitCode": 0,
     "version": "1.1.0",
-    "files": 59,
-    "shasum": "57204c071b03c0a8b58249edaa8f7fbe03006774"
+    "files": 60,
+    "shasum": "fb1f684094fcf9144bbed929561cb71dbf31b3e1"
   },
   "deviceSecretBoundary": {
     "clientLocalSigning": [
@@ -84,6 +84,19 @@
     "browserModuleValidated": true,
     "installedExtensionRevisionValidated": false
   },
+  "walletConnectionCoordinator": {
+    "implementation": "src/wallet-connection-coordinator.js",
+    "packageSubpath": "@ynx-chain/wallet-auth/wallet-connection-coordinator",
+    "nativeAndInjectedAvailabilityMerged": true,
+    "ynxPriority": true,
+    "platformOpenTimeoutMilliseconds": "10-30000",
+    "secondLaunchControlledOpen": "at most one automatic canonical Wallet open before explicit Retry",
+    "openRequestId": "req_ps_open_<Product Session nonce>",
+    "metaMaskEligibility": "registry evmCompatible=true only and no available YNX Wallet",
+    "actionableFailures": ["WALLET_NOT_INSTALLED", "SCHEME_NOT_REGISTERED", "NETWORK_UNAVAILABLE", "USER_REJECTED", "WALLET_OPEN_TIMEOUT"],
+    "localDeterministicTestsPassed": true,
+    "fallback": "none"
+  },
   "metaMaskEvmAdapter": {
     "implementation": "src/metamask-evm-adapter.js",
     "eligibleProducts": "registry evmCompatible=true only",
@@ -115,6 +128,7 @@
     "coveredProducts": 12,
     "branchLocalEvidencePathsVerified": true,
     "requiredForMigratedV2": [
+      "runtime WalletConnectionCoordinator usage",
       "runtimeEvidence",
       "gatewayEvidence",
       "platformEvidence"
@@ -184,6 +198,7 @@
     "liveHarnessConnectionRequestTriggered": true,
     "providerDiscoveryRevisionValidated": false,
     "liveHarnessApprovalResult": "unverified-computer-use-native-pipe-closed",
+    "coordinatorRecoveryRetry": "2026-08-14 Computer Use timed out for Chrome, then the native pipe closed by bundle identifier and failed to start for the MetaMask app; no approval result or connection authority was observed",
     "approvalFlowValidated": false
   },
   "truthBoundary": {
@@ -194,6 +209,7 @@
     ],
     "platformValidationBlocked": [
       "MetaMask 13.42.0 was unlocked with user Touch ID, injected a provider, and the central EIP-1193 harness loaded and triggered a connection request; Computer Use timed out and its native pipe closed before the approval result, request ID, chain, or masked account could be observed",
+      "The post-coordinator Computer Use retry timed out for Chrome, closed its native pipe by bundle identifier, and failed native-pipe startup for the MetaMask app",
       "The Wallet Companion detected the injected provider but its browser RPC preflight to https://evm.ynxweb4.com failed CORS before account approval; Wallet UI and Chain deployment configuration are outside this branch scope",
       "No installed YNX Wallet application was available for a real approval/session flow"
     ],

@@ -26,6 +26,7 @@ export * from "./product-session-v2.js";
 export * from "./product-session-router.js";
 export * from "./metamask-evm-adapter.js";
 export * from "./wallet-provider-discovery.js";
+export * from "./wallet-connection-coordinator.js";
 export * from "./product-session-recovery.js";
 export * from "./product-session-proof-v2.js";
 export * from "./product-session-gateway.js";

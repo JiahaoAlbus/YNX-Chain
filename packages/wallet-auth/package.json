@@ -35,6 +35,11 @@
       "types": "./src/index.d.ts",
       "import": "./src/metamask-evm-adapter.js",
       "default": "./src/metamask-evm-adapter.js"
+    },
+    "./wallet-connection-coordinator": {
+      "types": "./src/index.d.ts",
+      "import": "./src/wallet-connection-coordinator.js",
+      "default": "./src/wallet-connection-coordinator.js"
     }
   },
   "types": "./src/index.d.ts",
