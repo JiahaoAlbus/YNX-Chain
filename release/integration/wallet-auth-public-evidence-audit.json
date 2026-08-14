@@ -3,7 +3,7 @@
   "auditId": "wallet-auth-public-evidence-audit-2026-08-14",
   "auditedAt": "2026-08-14T03:38:07Z",
   "integrationBaseCommit": "a008ce0e8fa2ac0322198576c320441118fbae83",
-  "matrixSha256": "3b14a1700e7e8a14f4f91f30d2e8d2f18c5300338206f68f40cf62f5aaac1e02",
+  "matrixSha256": "0b5b28516fedbaa9b1a5ce3613a48b1bfe5d4c592c2c637d3e8ba451c149c31c",
   "publicTestnet": {
     "smartAccountDeploymentVerifier": {
       "evidenceCommit": "0c747c6030b5a475a1f12dc7e57345555c23055d",
@@ -93,6 +93,30 @@
     "visibleWalletApproval": false,
     "aggregateDeployedPublic": false,
     "integratedCentral": false
+  },
+  "androidApi36DirectDeviceBoundary": {
+    "evidenceCommit": "66d321e423baedb0e030650729f1000d25a351cf",
+    "sourceCommit": "9f91b1f55d3da786198609e8c55cf26d2034b92d",
+    "evidencePath": "apps/wallet/proof/wallet-android-api36-lifecycle-callback-qa-2026-08-14.json",
+    "evidenceBlob": "e3bda4a99d6dd7a05e92e70b4da8aaca52e11fa7",
+    "environment": "disposable-api36-arm64-avd",
+    "apkBytes": 30741119,
+    "apkSha256": "fba1c8e1cae297a2a2a89c8fee3dcf63c0930a629b6c5bc84e9ebfc4ba92365f",
+    "signingClass": "disposable-qa-release-key",
+    "certificateSha256": "bd03ab0e083308f050a12903f4ffb9a7337df0bfb1742f8308ba012a83e29c24",
+    "freshInstall": true,
+    "coldPids": [2840, 3641],
+    "strongBiometricWrongFingerprintRemainedLocked": true,
+    "strongBiometricRegisteredFingerprintUnlocked": true,
+    "backgroundRelocked": true,
+    "terminalReplayRejectedOnDevice": false,
+    "processRestartRecoveryPassed": false,
+    "authoritativeBalanceOrNonceLoaded": false,
+    "callbackDelivered": false,
+    "nativeTransactionCommitted": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
   },
   "officialWebsite": {
     "requestedUrl": "https://www.ynxweb4.com/wallet",

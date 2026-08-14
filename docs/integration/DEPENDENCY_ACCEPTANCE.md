@@ -33,13 +33,13 @@ Local acceptance is not central integration, public Testnet proof or production 
 | --- | --- | --- | --- |
 | Core Auth/Gateway | `0c747c6030b5a475a1f12dc7e57345555c23055d` | Prior evidence plus fail-closed deployment verifier: 3/3 focused, 187/187 full, exact receipt/address/runtime/EntryPoint/Bundler bindings required | verifier ran only against isolated mocked JSON-RPC; public execution, contracts, Bundler, Testnet deployment, central/staging/public remain false |
 | Web/PWA/Extensions | `46d030c85c2b1a3d12a10c6b5dd0e521ca303f1c` | Website main `92a8b90…`, PR #34, 3 public pages, 9 exact downloads, registry binding and 3 visible official buttons; prior Firefox temporary first/second launch retained | temporary add-ons are not installed; popup DOM/background, provider/account/sign/tx, production signing and store remain false |
-| Android API 36 | `f1edbec46ad4300beec406873b03db2da7c72e4b` | Canonical authorization recovery remains the last consumed evidence | pending `9f91b1f5…` defers deep links until foreground but has no new device evidence; new/old APK certificates are discontinuous, deviceValidated/callback/biometric/relock/public/production/store remain false |
+| Android API 36 | `66d321e423baedb0e030650729f1000d25a351cf` | Exact `9f91b1f5…` APK on disposable API 36 arm64 AVD: fresh install, two cold PIDs, strong-biometric wrong/registered fingerprint behavior, background relock, Social review and bounded duplicate/callback fail-close | disposable QA certificate only; terminal replay, process reconstruction, authoritative balance/nonce, callback delivery, sign/broadcast/receipt, website hosting, production signing/store remain false |
 | iOS/macOS | `369578f20b0802bcfef5cfc8bcdd7f53fec0f801` | Run 31793565880 passed Simulator install/cold/second, Keychain 0/0/0, malformed callback reject and native-unavailable recovery fail-close with empty second launch | simulated-biometric `705a7636…` run pending; biometric/recovery/auth success, physical device, public/downloadHosted/Developer ID/notarization/production/store false |
 | Desktop/CLI/SDK | `2802876f8470264c4a8819f1426e28f957a09289` | macOS arm64 CLI official YNX URL HTTP 200, 4,904,463-byte/SHA-256 readback, three alias registry/page bindings, production health recheck | ad-hoc/non-production; rollback attempt failed and is not verified; account/tx/production signing/store remain false |
 
 Acceptance is enforced by `scripts/verify/wallet-auth-release-evidence-matrix.mjs`. GitHub Actions artifacts are temporary retention evidence, not `downloadHosted` product delivery.
 
-Android `9f91b1f55d3da786198609e8c55cf26d2034b92d` remains queued pending a new disposable API 36 AVD and direct lifecycle evidence; its QA-only signing identity cannot become production truth.
+Android evidence `66d321e423baedb0e030650729f1000d25a351cf` consumes the bounded current-source AVD lifecycle. The branch has advanced to unreviewed `19d86a33…`, which remains pending and cannot change release truth. The QA-only signing identity cannot become production truth.
 
 ## Chain Core contract binding
 

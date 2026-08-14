@@ -68,12 +68,12 @@
   "pendingOwnerEvidence": [
     {
       "owner": "android-api36",
-      "candidateCommit": "9f91b1f55d3da786198609e8c55cf26d2034b92d",
+      "candidateCommit": "19d86a333cecc9f241af5a19e7f7cccd560dbe3c",
       "remoteFastForwardReported": true,
       "remoteReadbackComplete": true,
       "ciComplete": null,
       "consumedForReleaseTruth": false,
-      "note": "Foreground deep-link deferral source is remote, but the new API36 APK has a different QA certificate and no replacement-device validation; callback, biometric, relock, hosting and production truth remain unchanged."
+      "note": "The Owner branch advanced beyond evidence 66d321e4. The unknown successor is observed but not reviewed or consumed; terminal replay, process reconstruction, callback delivery, authoritative balance/nonce, transaction, hosting and production truth remain unchanged."
     },
     {"owner":"ios-macos","candidateCommit":"a6cd9677cba2bfae85bc33cfa6919e82ff7de897","workflowRunId":31795388793,"remoteFastForwardReported":true,"remoteReadbackComplete":true,"ciComplete":false,"consumedForReleaseTruth":false,"note":"The prior run failed because simctl has no biometric subcommand; a semantic Simulator-menu workflow fix has no successful hosted run. Biometric/recovery/auth success and every physical/public/download/signing claim remain false."}
   ],
@@ -99,11 +99,11 @@
     {
       "owner": "android-api36",
       "branch": "codex/wallet-android-api36-continuation2-20260814",
-      "sourceCommit": "f1edbec46ad4300beec406873b03db2da7c72e4b",
-      "remoteCommitObserved": "f1edbec46ad4300beec406873b03db2da7c72e4b",
-      "branchHeadObserved": "9f91b1f55d3da786198609e8c55cf26d2034b92d",
-      "remoteVerifiedAt": "2026-08-14T09:50:00Z",
-      "verificationMode": "github-git-database-parent-tree-blob-readback"
+      "sourceCommit": "66d321e423baedb0e030650729f1000d25a351cf",
+      "remoteCommitObserved": "66d321e423baedb0e030650729f1000d25a351cf",
+      "branchHeadObserved": "19d86a333cecc9f241af5a19e7f7cccd560dbe3c",
+      "remoteVerifiedAt": "2026-08-14T11:45:00Z",
+      "verificationMode": "remote-ref-parent-tree-device-evidence-blob-readback"
     },
     {
       "owner": "ios-macos",
@@ -1009,6 +1009,40 @@
       "commit": "f1edbec46ad4300beec406873b03db2da7c72e4b",
       "path": "release/integration/wallet-auth-contract.json",
       "supports": []
+    },
+    "android-current-source-api36-lifecycle-callback-qa": {
+      "type": "git-object",
+      "direct": true,
+      "commit": "66d321e423baedb0e030650729f1000d25a351cf",
+      "sourceCommit": "9f91b1f55d3da786198609e8c55cf26d2034b92d",
+      "path": "apps/wallet/proof/wallet-android-api36-lifecycle-callback-qa-2026-08-14.json",
+      "blob": "e3bda4a99d6dd7a05e92e70b4da8aaca52e11fa7",
+      "supports": ["android-api36.build", "android-api36.install", "android-api36.coldLaunch", "android-api36.secondLaunch"],
+      "artifactBytes": 30741119,
+      "artifactSha256": "fba1c8e1cae297a2a2a89c8fee3dcf63c0930a629b6c5bc84e9ebfc4ba92365f",
+      "minimumOS": "Android API 24",
+      "targetSdk": 36,
+      "abi": "arm64-v8a",
+      "signingClass": "disposable-qa-release-key",
+      "certificateSha256": "bd03ab0e083308f050a12903f4ffb9a7337df0bfb1742f8308ba012a83e29c24",
+      "firstColdPid": 2840,
+      "secondColdPid": 3641,
+      "strongBiometricWrongFingerprintRemainedLocked": true,
+      "strongBiometricRegisteredFingerprintUnlocked": true,
+      "backgroundRelocked": true,
+      "socialAuthorizationReviewVisible": true,
+      "concurrentPendingDuplicateBatchRejected": true,
+      "exactCallbackPackageMissingFailedClosed": true,
+      "terminalReplayRejectedOnDevice": false,
+      "processRestartRecoveryPassed": false,
+      "authoritativeBalanceOrNonceLoaded": false,
+      "nativeTransactionSigned": false,
+      "nativeTransactionBroadcast": false,
+      "nativeTransactionCommitted": false,
+      "secretMaterialRecorded": false,
+      "downloadHosted": false,
+      "productionSigned": false,
+      "storeReleased": false
     }
   },
   "platforms": [
@@ -1046,11 +1080,11 @@
       "id": "android-api36",
       "ownerSource": "android-api36",
       "artifactClass": "disposable-qa-release-key",
-      "status": "source-bound-emulator-qa",
-      "capabilities": {"temporaryDecodedKeyBytesZeroedAfterSuccess":true,"temporaryDecodedKeyBytesZeroedAfterException":true,"invalidAllocatedBytesZeroedBeforeReject":true,"immutableJavaScriptSecretStringZeroed":false,"currentSourceDeviceTested":false},
+      "status": "current-source-disposable-api36-device-qa",
+      "capabilities": {"temporaryDecodedKeyBytesZeroedAfterSuccess":true,"temporaryDecodedKeyBytesZeroedAfterException":true,"invalidAllocatedBytesZeroedBeforeReject":true,"immutableJavaScriptSecretStringZeroed":false,"currentSourceDeviceTested":true,"twoDistinctColdLaunchPids":true,"strongBiometricWrongFingerprintRemainedLocked":true,"strongBiometricRegisteredFingerprintUnlocked":true,"backgroundRelocked":true,"socialAuthorizationReviewVisible":true,"concurrentPendingDuplicateBatchRejected":true,"exactCallbackPackageMissingFailedClosed":true,"terminalReplayRejectedOnDevice":false,"processRestartRecoveryPassed":false,"authoritativeBalanceOrNonceLoaded":false},
       "gates": {"build":true,"install":true,"coldLaunch":true,"secondLaunch":true,"testnet":true,"sign":false,"tx":false,"callback":false,"reconnect":false,"downloadHosted":false,"productionSigned":false,"storeReleased":false},
-      "evidenceBindings": {"build":["android-disposable-api36","android-auth-callback-relock-source"],"install":["android-disposable-api36","android-auth-callback-relock-source"],"coldLaunch":["android-disposable-api36","android-auth-callback-relock-source"],"secondLaunch":["android-disposable-api36","android-auth-callback-relock-source"],"testnet":["android-disposable-api36","android-auth-callback-relock-source"],"sign":["android-disposable-api36","android-onboarding-qa-pending","android-auth-callback-relock-source","android-audit-serialization-source","android-account-mutation-recovery-source","android-account-rename-lifecycle-source"],"tx":["android-disposable-api36","android-onboarding-qa-pending","android-auth-callback-relock-source","android-audit-serialization-source","android-account-mutation-recovery-source","android-account-rename-lifecycle-source"],"callback":["android-disposable-api36","android-onboarding-qa-pending","android-auth-callback-relock-source","android-audit-serialization-source","android-account-mutation-recovery-source","android-account-rename-lifecycle-source"],"reconnect":["android-disposable-api36","android-onboarding-qa-pending","android-auth-callback-relock-source","android-audit-serialization-source","android-account-mutation-recovery-source","android-account-rename-lifecycle-source"],"downloadHosted":["android-disposable-api36","android-onboarding-qa-pending","android-auth-callback-relock-source"],"productionSigned":["android-disposable-api36","android-onboarding-qa-pending","android-auth-callback-relock-source"],"storeReleased":["android-disposable-api36","android-onboarding-qa-pending","android-auth-callback-relock-source"]},
-      "notes": ["Historical API 36 lifecycle remains direct only for the disposable artifact. Current source adds temporary decoded 32-byte Uint8Array finally-zeroing across 8 signing domains (115/115 Wallet/Auth, 104/104 Wallet, Hermes 2,749). SecureStore's immutable JS string is explicitly not erased. No current-source device interaction occurred; sign, tx, callback delivery, reconnect and release gates remain false."]
+      "evidenceBindings": {"build":["android-current-source-api36-lifecycle-callback-qa","android-disposable-api36","android-auth-callback-relock-source"],"install":["android-current-source-api36-lifecycle-callback-qa","android-disposable-api36","android-auth-callback-relock-source"],"coldLaunch":["android-current-source-api36-lifecycle-callback-qa","android-disposable-api36","android-auth-callback-relock-source"],"secondLaunch":["android-current-source-api36-lifecycle-callback-qa","android-disposable-api36","android-auth-callback-relock-source"],"testnet":["android-disposable-api36","android-auth-callback-relock-source"],"sign":["android-current-source-api36-lifecycle-callback-qa","android-disposable-api36","android-onboarding-qa-pending","android-auth-callback-relock-source","android-audit-serialization-source","android-account-mutation-recovery-source","android-account-rename-lifecycle-source"],"tx":["android-current-source-api36-lifecycle-callback-qa","android-disposable-api36","android-onboarding-qa-pending","android-auth-callback-relock-source","android-audit-serialization-source","android-account-mutation-recovery-source","android-account-rename-lifecycle-source"],"callback":["android-current-source-api36-lifecycle-callback-qa","android-disposable-api36","android-onboarding-qa-pending","android-auth-callback-relock-source","android-audit-serialization-source","android-account-mutation-recovery-source","android-account-rename-lifecycle-source"],"reconnect":["android-current-source-api36-lifecycle-callback-qa","android-disposable-api36","android-onboarding-qa-pending","android-auth-callback-relock-source","android-audit-serialization-source","android-account-mutation-recovery-source","android-account-rename-lifecycle-source"],"downloadHosted":["android-current-source-api36-lifecycle-callback-qa","android-disposable-api36","android-onboarding-qa-pending","android-auth-callback-relock-source"],"productionSigned":["android-current-source-api36-lifecycle-callback-qa","android-disposable-api36","android-onboarding-qa-pending","android-auth-callback-relock-source"],"storeReleased":["android-current-source-api36-lifecycle-callback-qa","android-disposable-api36","android-onboarding-qa-pending","android-auth-callback-relock-source"]},
+      "notes": ["Evidence 66d321e4 directly proves the exact 9f91b1f5 APK on a disposable API 36 arm64 AVD: fresh install, cold PIDs 2840/3641, account creation/offline-backup confirmation, wrong-fingerprint lock, registered strong-biometric unlock, background relock, Social review, duplicate-pending batch rejection and missing callback-package fail-close. The QA certificate is disposable. Terminal replay, process reconstruction, authoritative balance/nonce, sign/broadcast/receipt, callback delivery, reconnect, website hosting, production signing and store release remain false."]
     },
     {
       "id": "ios-simulator",

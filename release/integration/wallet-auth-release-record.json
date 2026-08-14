@@ -6,17 +6,17 @@
   "recordedAt": "2026-08-14T03:52:00Z",
   "evidenceMatrix": {
     "path": "release/integration/wallet-auth-release-evidence-matrix.json",
-    "sha256": "3b14a1700e7e8a14f4f91f30d2e8d2f18c5300338206f68f40cf62f5aaac1e02",
+    "sha256": "0b5b28516fedbaa9b1a5ce3613a48b1bfe5d4c592c2c637d3e8ba451c149c31c",
     "platforms": 21,
     "gatesPerPlatform": 12,
     "trueGates": 106,
     "falseGates": 146,
-    "evidenceRecords": 101
+    "evidenceRecords": 102
   },
   "frozenOwnerSources": {
     "coreAuthGateway": "0c747c6030b5a475a1f12dc7e57345555c23055d",
     "webPwaExtensions": "46d030c85c2b1a3d12a10c6b5dd0e521ca303f1c",
-    "androidApi36": "f1edbec46ad4300beec406873b03db2da7c72e4b",
+    "androidApi36": "66d321e423baedb0e030650729f1000d25a351cf",
     "iosMacos": "369578f20b0802bcfef5cfc8bcdd7f53fec0f801",
     "desktopCliSdk": "2802876f8470264c4a8819f1426e28f957a09289",
     "walletProductSessionRouter": "cd90b96271b3881bfe6db134aa54c7bb90a29a62"
@@ -40,7 +40,7 @@
     }
   },
   "pendingOwnerEvidence": [
-    "9f91b1f55d3da786198609e8c55cf26d2034b92d",
+    "19d86a333cecc9f241af5a19e7f7cccd560dbe3c",
     "a6cd9677cba2bfae85bc33cfa6919e82ff7de897"
   ],
   "releaseState": {
@@ -98,5 +98,6 @@
     "Product Session Router v2 evidence cd90b962 freezes deployed source cc6c3936 and a successful protected rollback/public deployment: isolated service 6441 is mounted ahead of legacy/Chain fallback, the state-free mount gate and direct lifecycle pass, and restart preserves the state digest. This is an accepted interim public route only; legacy 6437/6439 are unchanged, runtimeProductsMigrated=0, visible Wallet approval is false, and integratedCentral plus aggregate Product Session deployment remain false.",
     "Web commit 60614bf5 directly proves first and second launch of an unsigned temporary YNX add-on in official notarized Firefox 153.0.4; install, popup DOM/background, provider/account/sign/tx, extension signing and store claims remain false.",
     "Website main 92a8b90 merged evidence c70bf01 through PR #34; Web 46d030c and an independent deca6f4f gate prove three visible official buttons and 9 exact downloads. PWA, Chrome/Edge and Firefox artifacts are hosted/public, but remain unsigned, non-store, and do not prove installation or provider/account/sign/tx runtime."
+    ,"Android evidence 66d321e4 binds source 9f91b1f5 to a disposable API 36 arm64 AVD and directly proves fresh install, two cold PIDs, strong-biometric wrong/registered-fingerprint behavior, background relock and bounded authorization fail-close paths. The QA certificate is disposable; terminal replay, process reconstruction, authoritative balance/nonce, callback delivery, transaction, hosting, production signing and store remain false."
   ]
 }
