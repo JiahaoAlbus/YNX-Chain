@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "owner": "Wallet/Auth Web/PWA/Extensions",
+  "parentCommit": "55de187d8a8cfb2da75f925342c447b9a841ed0b",
+  "gate": "apps/wallet-web/scripts/public-artifact-hosting-gate.mjs",
+  "evidence": "apps/wallet-web/evidence/runtime/official-web-artifact-hosting-gate-20260814.json",
+  "currentMode": "truthful-unhosted-monitor",
+  "releaseMode": "npm run test:public-artifacts",
+  "requirement": "Each official-domain URL must directly return HTTP 200 application/zip attachment with exact Content-Length, downloaded bytes and SHA-256.",
+  "browserVisibleAcceptance": false,
+  "downloadHosted": false,
+  "deployedPublic": false
+}

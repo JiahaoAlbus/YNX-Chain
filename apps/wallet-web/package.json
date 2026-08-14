@@ -24,6 +24,8 @@
     "test:artifact:localized-errors": "node scripts/artifact-localized-error-gate.mjs",
     "test:artifact:localized-regions": "node scripts/artifact-localized-region-gate.mjs",
     "audit:public-deployment": "node scripts/public-deployment-gate.mjs",
+    "audit:public-artifacts": "node scripts/public-artifact-hosting-gate.mjs --expect-unhosted",
+    "test:public-artifacts": "node scripts/public-artifact-hosting-gate.mjs",
     "test:runtime:active-tab": "node scripts/runtime-active-tab-gate.mjs",
     "test:runtime:active-tab:browser": "node scripts/runtime-active-tab-browser-gate.mjs",
     "test:runtime:firefox-compatible": "npm run build && node scripts/runtime-firefox-compatible.mjs"
