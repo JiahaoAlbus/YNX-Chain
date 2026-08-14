@@ -12,13 +12,13 @@ export class PersistentActionReplayStore {
   private pending:Promise<void>=Promise.resolve();
   constructor(private readonly storage:SecureStorageAdapter){}
 
-  async consume(record:ActionReplayRecord,at=new Date()):Promise<void>{
-    const operation=this.pending.then(()=>this.consumeExclusive(record,at));
+  async consume(record:ActionReplayRecord,at=new Date(),assertActive:()=>void=()=>{}):Promise<void>{
+    const operation=this.pending.then(()=>this.consumeExclusive(record,at,assertActive));
     this.pending=operation.catch(()=>undefined);
     return operation;
   }
 
-  private async consumeExclusive(record:ActionReplayRecord,at:Date):Promise<void>{
+  private async consumeExclusive(record:ActionReplayRecord,at:Date,assertActive:()=>void):Promise<void>{
     if(!validRecord([record.key,record.expiresAt]))throw new Error("Wallet action replay binding is invalid");
     if(!(at instanceof Date)||!Number.isFinite(at.getTime())||at.toISOString()>=record.expiresAt)throw new Error("Wallet action replay binding is expired");
     const raw=await this.storage.getItem(ACTION_REPLAY_KEY);
@@ -33,6 +33,7 @@ export class PersistentActionReplayStore {
     if(records.some(([key])=>key===record.key))throw new Error("Wallet action request was already used");
     if(records.length>=MAX_ACTION_REPLAY_RECORDS)throw new Error("Wallet action replay record capacity is exhausted");
     const next=[...records,[record.key,record.expiresAt] as [string,string]].sort(([left],[right])=>left.localeCompare(right));
+    assertActive();
     await this.storage.setItem(ACTION_REPLAY_KEY,JSON.stringify(next));
   }
 }

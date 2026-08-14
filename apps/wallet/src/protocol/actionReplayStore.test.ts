@@ -27,3 +27,9 @@ test("concurrent duplicate action callbacks persist exactly one consumption",asy
   const first=store.consume(record,at);await storage.started;const second=store.consume(record,at);storage.release();await first;await assert.rejects(second,/already used/);
   assert.deepEqual(JSON.parse(storage.values.get("ynx.wallet.action-replays.v1")!),[[record.key,record.expiresAt]]);
 });
+
+test("dismissed action does not consume its replay binding",async()=>{
+  const storage=new Memory(),store=new PersistentActionReplayStore(storage);
+  await assert.rejects(store.consume(record,new Date("2026-08-14T12:00:00.000Z"),()=>{throw new Error("account changed")}),/account changed/);
+  assert.equal(storage.values.get("ynx.wallet.action-replays.v1"),undefined);
+});

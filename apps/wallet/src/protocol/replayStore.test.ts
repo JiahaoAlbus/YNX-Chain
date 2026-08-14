@@ -45,3 +45,9 @@ test("concurrent duplicate callbacks are serialized and exactly one consumes the
   await assert.rejects(second,/already used/);
   assert.deepEqual(JSON.parse(storage.values.get("ynx.wallet.auth-nonces.v1")!),[[request.nonce,request.expiresAt]]);
 });
+
+test("dismissed authorization does not consume its nonce",async()=>{
+  const storage=new Memory(),store=new PersistentNonceStore(storage);
+  await assert.rejects(store.consume(request,new Date("2026-07-15T12:00:00.000Z"),()=>{throw new Error("backgrounded")}),/backgrounded/);
+  assert.equal(storage.values.get("ynx.wallet.auth-nonces.v1"),undefined);
+});

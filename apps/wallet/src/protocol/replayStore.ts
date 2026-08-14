@@ -10,12 +10,12 @@ const EXACT_TIME=/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
 export class PersistentNonceStore {
   private pending:Promise<void>=Promise.resolve();
   constructor(private readonly storage:SecureStorageAdapter){}
-  async consume(request:AuthorizationRequest,at=new Date()):Promise<void>{
-    const operation=this.pending.then(()=>this.consumeExclusive(request,at));
+  async consume(request:AuthorizationRequest,at=new Date(),assertActive:()=>void=()=>{}):Promise<void>{
+    const operation=this.pending.then(()=>this.consumeExclusive(request,at,assertActive));
     this.pending=operation.catch(()=>undefined);
     return operation;
   }
-  private async consumeExclusive(request:AuthorizationRequest,at:Date):Promise<void>{
+  private async consumeExclusive(request:AuthorizationRequest,at:Date,assertActive:()=>void):Promise<void>{
     const raw=await this.storage.getItem(REPLAY_KEY);
     let records:readonly [string,string][]=[];
     if(raw!==null){
@@ -29,6 +29,7 @@ export class PersistentNonceStore {
     store.consume(request,at);
     const snapshot=store.snapshot();
     if(snapshot.length>MAX_REPLAY_RECORDS)throw new Error("Wallet authorization replay record capacity is exhausted");
+    assertActive();
     await this.storage.setItem(REPLAY_KEY,JSON.stringify(snapshot));
   }
 }
