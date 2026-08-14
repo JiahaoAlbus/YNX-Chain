@@ -48,7 +48,7 @@ jobs:
           chmod 0777 "$OUT_DIR"
           docker pull --platform linux/arm64 fedora:42
           docker image inspect fedora:42 --format '{{json .RepoDigests}}' > "$OUT_DIR/fedora-image-digests.json"
-          docker run --rm --platform linux/arm64 \
+          docker run --rm --platform linux/arm64 --cap-add SYS_ADMIN --security-opt seccomp=unconfined \
             -v "$PWD/apps/wallet-desktop/dist-preflight-fedora:/packages/preflight:ro" \
             -v "$PWD/apps/wallet-desktop/dist-fedora:/packages/current:ro" \
             -v "$OUT_DIR:/evidence" \
@@ -77,6 +77,7 @@ jobs:
                 rpc="$2"
                 phase="$3"
                 runuser -u tester -- env YNX_WALLET_EVIDENCE_PATH=/evidence/app.json YNX_WALLET_RPC_URL="$rpc" xvfb-run -a bash -c '\''
+                  set -euo pipefail
                   executable="$1"
                   expected="$2"
                   phase="$3"
@@ -122,7 +123,7 @@ jobs:
             workflowRunId: Number(process.env.GITHUB_RUN_ID),
             architecture: 'arm64',
             nativeRunner: 'ubuntu-24.04-arm',
-            fedoraUserland: 'Fedora 42 arm64 container on native arm64 kernel',
+            fedoraUserland: 'Fedora 42 arm64 container on native arm64 kernel; SYS_ADMIN and seccomp=unconfined enabled solely for Electron setuid sandbox namespace creation',
             fedoraImageDigests: JSON.parse(fs.readFileSync(path.join(process.env.OUT_DIR, 'fedora-image-digests.json'), 'utf8')),
             packageFormat: 'rpm',
             packageName: 'ynx-wallet-testnet-preview',
