@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "owner": "Wallet/Auth Web/PWA/Extensions",
+  "sourceBaseline": "4e354148177376226153a0a6c8ead3df8d891d3e",
+  "websiteOwnerActionRequired": true,
+  "evidence": "apps/wallet-web/evidence/browser/public-wallet-visible-audit-20260814.json",
+  "requestedUrl": {
+    "url": "https://evm.ynxweb4.com/dapp/wallet",
+    "browserResult": "ERR_BLOCKED_BY_CLIENT"
+  },
+  "reachableStatusPage": {
+    "url": "https://www.ynxweb4.com/dapp/wallet",
+    "publishedSourceLabel": "bb751ce3",
+    "currentWalletWebBranchPublished": false
+  },
+  "requiredWebsiteChanges": [
+    "Publish the reviewed Wallet Web/PWA consumer bundle through the Website owner's source-bound deployment mechanism.",
+    "Make English the default while retaining all twelve locales and Arabic RTL.",
+    "Preserve the YNX logo's natural aspect ratio.",
+    "Expose YNX detection, Android download and MetaMask fallback without claiming provider success.",
+    "Render unpublished desktop, extension and PWA package choices as disabled and unavailable.",
+    "Surface offline and network errors visibly instead of retaining a success-looking cached status shell."
+  ],
+  "deploymentAudit": {
+    "walletWebWebsiteWorkflowFound": false,
+    "safeCurrentBranchDeploymentAuthorityProved": false,
+    "deploymentAttempted": false
+  },
+  "gates": {
+    "deployedPublic": false,
+    "pwaInstalled": false,
+    "providerConnected": false,
+    "accountAuthorized": false,
+    "messageSigned": false,
+    "transactionSubmitted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

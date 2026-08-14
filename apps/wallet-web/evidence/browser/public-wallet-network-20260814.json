@@ -1,0 +1,438 @@
+{
+  "reload": {
+    "cursor": 64,
+    "events": [
+      {
+        "sequence": 31,
+        "source": {
+          "tabId": 2
+        },
+        "method": "Network.responseReceived",
+        "params": {
+          "frameId": "B08A0B626A41D31C990FCB4447A66A6E",
+          "hasExtraInfo": false,
+          "loaderId": "69FFA5E6A4D19345F2422099BB01FC1A",
+          "requestId": "69FFA5E6A4D19345F2422099BB01FC1A",
+          "response": {
+            "alternateProtocolUsage": "alternativeJobWonWithoutRace",
+            "charset": "utf-8",
+            "connectionId": 0,
+            "connectionReused": false,
+            "encodedDataLength": -1,
+            "fromDiskCache": false,
+            "fromPrefetchCache": false,
+            "fromServiceWorker": true,
+            "headers": {
+              "access-control-allow-origin": "*",
+              "age": "217028",
+              "cache-control": "public, max-age=0, must-revalidate",
+              "content-disposition": "inline",
+              "content-encoding": "br",
+              "content-security-policy": "default-src 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self'; worker-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://api.ynxweb4.com https://faucet.ynxweb4.com; manifest-src 'self'",
+              "content-type": "text/html; charset=utf-8",
+              "date": "Fri, 14 Aug 2026 06:12:36 GMT",
+              "etag": "W/\"bf1f2d653f925c05d9ff25a89401948a\"",
+              "last-modified": "Tue, 11 Aug 2026 17:54:28 GMT",
+              "permissions-policy": "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
+              "referrer-policy": "strict-origin-when-cross-origin",
+              "server": "Vercel",
+              "x-content-type-options": "nosniff",
+              "x-frame-options": "DENY",
+              "x-vercel-cache": "HIT",
+              "x-vercel-id": "iad1::7qgn2-1786687956706-d5525620f35f"
+            },
+            "mimeType": "text/html",
+            "protocol": "h2",
+            "remoteIPAddress": "",
+            "remotePort": 0,
+            "responseTime": 1786687956784.168,
+            "securityDetails": {
+              "certificateId": 0,
+              "certificateTransparencyCompliance": "unknown",
+              "cipher": "AES_128_GCM",
+              "encryptedClientHello": false,
+              "issuer": "YR2",
+              "keyExchange": "",
+              "keyExchangeGroup": "X25519MLKEM768",
+              "protocol": "TLS 1.3",
+              "sanList": [
+                "*.ynxweb4.com",
+                "ynxweb4.com"
+              ],
+              "serverSignatureAlgorithm": 2052,
+              "signedCertificateTimestampList": [],
+              "subjectName": "*.ynxweb4.com",
+              "validFrom": 1783662319,
+              "validTo": 1791438318
+            },
+            "securityState": "secure",
+            "serviceWorkerResponseSource": "network",
+            "status": 200,
+            "statusText": "",
+            "timing": {
+              "connectEnd": -1,
+              "connectStart": -1,
+              "dnsEnd": -1,
+              "dnsStart": -1,
+              "proxyEnd": -1,
+              "proxyStart": -1,
+              "pushEnd": 0,
+              "pushStart": 0,
+              "receiveHeadersEnd": 410.754,
+              "receiveHeadersStart": 410.754,
+              "requestTime": 14264.430755,
+              "sendEnd": 6.288,
+              "sendStart": 6.288,
+              "sslEnd": -1,
+              "sslStart": -1,
+              "workerFetchStart": 6.288,
+              "workerReady": -1,
+              "workerRespondWithSettled": 409.729,
+              "workerStart": -1
+            },
+            "url": "https://www.ynxweb4.com/dapp/wallet"
+          },
+          "timestamp": 14264.847554,
+          "type": "Document"
+        }
+      },
+      {
+        "sequence": 42,
+        "source": {
+          "tabId": 2
+        },
+        "method": "Network.responseReceived",
+        "params": {
+          "frameId": "B08A0B626A41D31C990FCB4447A66A6E",
+          "hasExtraInfo": false,
+          "loaderId": "69FFA5E6A4D19345F2422099BB01FC1A",
+          "requestId": "60607.16",
+          "response": {
+            "alternateProtocolUsage": "alternativeJobWonWithoutRace",
+            "cacheStorageCacheName": "ynx-web-shell-v5-native-i18n-notranslate",
+            "charset": "utf-8",
+            "connectionId": 0,
+            "connectionReused": false,
+            "encodedDataLength": 0,
+            "fromDiskCache": true,
+            "fromPrefetchCache": false,
+            "fromServiceWorker": true,
+            "headers": {
+              "access-control-allow-origin": "*",
+              "age": "0",
+              "cache-control": "public, max-age=0, must-revalidate",
+              "content-disposition": "inline; filename=\"index-CtQV8UH3.css\"",
+              "content-encoding": "br",
+              "content-security-policy": "default-src 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self'; worker-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://api.ynxweb4.com https://faucet.ynxweb4.com; manifest-src 'self'",
+              "content-type": "text/css; charset=utf-8",
+              "date": "Sat, 08 Aug 2026 17:19:45 GMT",
+              "etag": "W/\"1d0098b0a8e8826319c8233ffc1332b2\"",
+              "last-modified": "Sat, 08 Aug 2026 17:19:45 GMT",
+              "permissions-policy": "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
+              "referrer-policy": "strict-origin-when-cross-origin",
+              "server": "Vercel",
+              "strict-transport-security": "max-age=63072000",
+              "x-content-type-options": "nosniff",
+              "x-frame-options": "DENY",
+              "x-vercel-cache": "MISS",
+              "x-vercel-id": "hnd1::s9zlq-1786209585313-d3bd27eee495"
+            },
+            "mimeType": "text/css",
+            "protocol": "h2",
+            "responseTime": 1786209585508.55,
+            "securityState": "unknown",
+            "serviceWorkerResponseSource": "cache-storage",
+            "status": 200,
+            "statusText": "",
+            "timing": {
+              "connectEnd": -1,
+              "connectStart": -1,
+              "dnsEnd": -1,
+              "dnsStart": -1,
+              "proxyEnd": -1,
+              "proxyStart": -1,
+              "pushEnd": 0,
+              "pushStart": 0,
+              "receiveHeadersEnd": 3.555,
+              "receiveHeadersStart": 3.555,
+              "requestTime": 14264.881361,
+              "sendEnd": 0.548,
+              "sendStart": 0.548,
+              "sslEnd": -1,
+              "sslStart": -1,
+              "workerFetchStart": 0.548,
+              "workerReady": 0.548,
+              "workerRespondWithSettled": 3.485,
+              "workerStart": 0.001
+            },
+            "url": "https://www.ynxweb4.com/assets/index-CtQV8UH3.css"
+          },
+          "timestamp": 14264.92777,
+          "type": "Stylesheet"
+        }
+      },
+      {
+        "sequence": 46,
+        "source": {
+          "tabId": 2
+        },
+        "method": "Network.responseReceived",
+        "params": {
+          "frameId": "B08A0B626A41D31C990FCB4447A66A6E",
+          "hasExtraInfo": false,
+          "loaderId": "69FFA5E6A4D19345F2422099BB01FC1A",
+          "requestId": "60607.15",
+          "response": {
+            "alternateProtocolUsage": "alternativeJobWonWithoutRace",
+            "cacheStorageCacheName": "ynx-web-shell-v5-native-i18n-notranslate",
+            "charset": "utf-8",
+            "connectionId": 0,
+            "connectionReused": false,
+            "encodedDataLength": 0,
+            "fromDiskCache": true,
+            "fromPrefetchCache": false,
+            "fromServiceWorker": true,
+            "headers": {
+              "access-control-allow-origin": "*",
+              "age": "0",
+              "cache-control": "public, max-age=0, must-revalidate",
+              "content-disposition": "inline; filename=\"index-DpjE5Sg5.js\"",
+              "content-encoding": "br",
+              "content-security-policy": "default-src 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self'; worker-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://api.ynxweb4.com https://faucet.ynxweb4.com; manifest-src 'self'",
+              "content-type": "application/javascript; charset=utf-8",
+              "date": "Tue, 11 Aug 2026 17:21:39 GMT",
+              "etag": "W/\"29153351315814c83ae029b015242565\"",
+              "last-modified": "Tue, 11 Aug 2026 17:21:39 GMT",
+              "permissions-policy": "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
+              "referrer-policy": "strict-origin-when-cross-origin",
+              "server": "Vercel",
+              "strict-transport-security": "max-age=63072000",
+              "x-content-type-options": "nosniff",
+              "x-frame-options": "DENY",
+              "x-vercel-cache": "MISS",
+              "x-vercel-id": "sin1::v2d2d-1786468899295-1188462e7073"
+            },
+            "mimeType": "application/javascript",
+            "protocol": "h2",
+            "responseTime": 1786468899579.17,
+            "securityState": "unknown",
+            "serviceWorkerResponseSource": "cache-storage",
+            "status": 200,
+            "statusText": "",
+            "timing": {
+              "connectEnd": -1,
+              "connectStart": -1,
+              "dnsEnd": -1,
+              "dnsStart": -1,
+              "proxyEnd": -1,
+              "proxyStart": -1,
+              "pushEnd": 0,
+              "pushStart": 0,
+              "receiveHeadersEnd": 3.367,
+              "receiveHeadersStart": 3.367,
+              "requestTime": 14264.881298,
+              "sendEnd": 0.109,
+              "sendStart": 0.109,
+              "sslEnd": -1,
+              "sslStart": -1,
+              "workerFetchStart": 0.109,
+              "workerReady": 0.109,
+              "workerRespondWithSettled": 3.043,
+              "workerStart": 0.004
+            },
+            "url": "https://www.ynxweb4.com/assets/index-DpjE5Sg5.js"
+          },
+          "timestamp": 14264.93074,
+          "type": "Script"
+        }
+      },
+      {
+        "sequence": 52,
+        "source": {
+          "tabId": 2
+        },
+        "method": "Network.responseReceived",
+        "params": {
+          "frameId": "B08A0B626A41D31C990FCB4447A66A6E",
+          "hasExtraInfo": false,
+          "loaderId": "69FFA5E6A4D19345F2422099BB01FC1A",
+          "requestId": "60607.19",
+          "response": {
+            "alternateProtocolUsage": "alternativeJobWonWithoutRace",
+            "cacheStorageCacheName": "ynx-web-shell-v5-native-i18n-notranslate",
+            "charset": "",
+            "connectionId": 0,
+            "connectionReused": false,
+            "encodedDataLength": 0,
+            "fromDiskCache": true,
+            "fromPrefetchCache": false,
+            "fromServiceWorker": true,
+            "headers": {
+              "accept-ranges": "bytes",
+              "access-control-allow-origin": "*",
+              "age": "0",
+              "cache-control": "public, max-age=0, must-revalidate",
+              "content-disposition": "inline; filename=\"ynx-logo.png\"",
+              "content-length": "104171",
+              "content-security-policy": "default-src 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self'; worker-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://api.ynxweb4.com; manifest-src 'self'",
+              "content-type": "image/png",
+              "date": "Sun, 02 Aug 2026 19:27:10 GMT",
+              "etag": "\"886ac0507f3889d6fb7acf8c78bfa78c\"",
+              "last-modified": "Sat, 18 Jul 2026 19:36:07 GMT",
+              "permissions-policy": "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
+              "referrer-policy": "strict-origin-when-cross-origin",
+              "server": "Vercel",
+              "x-content-type-options": "nosniff",
+              "x-frame-options": "DENY",
+              "x-vercel-cache": "HIT",
+              "x-vercel-id": "sin1::657ln-1785698830758-93ea1b22e015"
+            },
+            "mimeType": "image/png",
+            "protocol": "h2",
+            "responseTime": 1785698830844.2,
+            "securityState": "unknown",
+            "serviceWorkerResponseSource": "cache-storage",
+            "status": 200,
+            "statusText": "",
+            "timing": {
+              "connectEnd": -1,
+              "connectStart": -1,
+              "dnsEnd": -1,
+              "dnsStart": -1,
+              "proxyEnd": -1,
+              "proxyStart": -1,
+              "pushEnd": 0,
+              "pushStart": 0,
+              "receiveHeadersEnd": 3.209,
+              "receiveHeadersStart": 3.209,
+              "requestTime": 14264.976708,
+              "sendEnd": 0.178,
+              "sendStart": 0.178,
+              "sslEnd": -1,
+              "sslStart": -1,
+              "workerFetchStart": 0.178,
+              "workerReady": 0.178,
+              "workerRespondWithSettled": 3.106,
+              "workerStart": 0.002
+            },
+            "url": "https://www.ynxweb4.com/ynx-logo.png"
+          },
+          "timestamp": 14264.998025,
+          "type": "Image"
+        }
+      },
+      {
+        "sequence": 60,
+        "source": {
+          "tabId": 2
+        },
+        "method": "Network.responseReceived",
+        "params": {
+          "frameId": "B08A0B626A41D31C990FCB4447A66A6E",
+          "hasExtraInfo": false,
+          "loaderId": "69FFA5E6A4D19345F2422099BB01FC1A",
+          "requestId": "60607.21",
+          "response": {
+            "alternateProtocolUsage": "alternativeJobWonWithoutRace",
+            "cacheStorageCacheName": "ynx-web-shell-v5-native-i18n-notranslate",
+            "charset": "",
+            "connectionId": 0,
+            "connectionReused": false,
+            "encodedDataLength": 0,
+            "fromDiskCache": true,
+            "fromPrefetchCache": false,
+            "fromServiceWorker": true,
+            "headers": {
+              "accept-ranges": "bytes",
+              "access-control-allow-origin": "*",
+              "age": "0",
+              "cache-control": "public, max-age=0, must-revalidate",
+              "content-disposition": "inline; filename=\"ynx-favicon-48.png\"",
+              "content-length": "2127",
+              "content-security-policy": "default-src 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self'; worker-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://api.ynxweb4.com; manifest-src 'self'",
+              "content-type": "image/png",
+              "date": "Tue, 11 Aug 2026 17:21:40 GMT",
+              "etag": "\"abe836149e05db83669f2a2c807eeb08\"",
+              "last-modified": "Sat, 18 Jul 2026 19:36:07 GMT",
+              "permissions-policy": "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
+              "referrer-policy": "strict-origin-when-cross-origin",
+              "server": "Vercel",
+              "x-content-type-options": "nosniff",
+              "x-frame-options": "DENY",
+              "x-vercel-cache": "HIT",
+              "x-vercel-id": "sin1::8fqkd-1786468900028-b408bd8df295"
+            },
+            "mimeType": "image/png",
+            "protocol": "h2",
+            "responseTime": 1786468899995.761,
+            "securityState": "unknown",
+            "serviceWorkerResponseSource": "cache-storage",
+            "status": 200,
+            "statusText": "",
+            "timing": {
+              "connectEnd": -1,
+              "connectStart": -1,
+              "dnsEnd": -1,
+              "dnsStart": -1,
+              "proxyEnd": -1,
+              "proxyStart": -1,
+              "pushEnd": 0,
+              "pushStart": 0,
+              "receiveHeadersEnd": 3.085,
+              "receiveHeadersStart": 3.085,
+              "requestTime": 14265.022875,
+              "sendEnd": 0.154,
+              "sendStart": 0.154,
+              "sslEnd": -1,
+              "sslStart": -1,
+              "workerFetchStart": 0.154,
+              "workerReady": 0.154,
+              "workerRespondWithSettled": 2.911,
+              "workerStart": 0.001
+            },
+            "url": "https://www.ynxweb4.com/ynx-favicon-48.png"
+          },
+          "timestamp": 14265.026322,
+          "type": "Other"
+        }
+      }
+    ],
+    "hasMore": false,
+    "truncated": false
+  },
+  "offline": {
+    "cursor": 123,
+    "events": [
+      {
+        "sequence": 121,
+        "source": {
+          "tabId": 2
+        },
+        "method": "Network.loadingFailed",
+        "params": {
+          "canceled": false,
+          "errorText": "net::ERR_INTERNET_DISCONNECTED",
+          "requestId": "60607.33",
+          "timestamp": 14313.20116,
+          "type": "Fetch"
+        }
+      },
+      {
+        "sequence": 123,
+        "source": {
+          "tabId": 2
+        },
+        "method": "Network.loadingFailed",
+        "params": {
+          "canceled": false,
+          "errorText": "net::ERR_INTERNET_DISCONNECTED",
+          "requestId": "60607.35",
+          "timestamp": 14313.209076,
+          "type": "Fetch"
+        }
+      }
+    ],
+    "hasMore": false,
+    "truncated": false
+  }
+}
