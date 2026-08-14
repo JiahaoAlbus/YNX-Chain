@@ -43,7 +43,9 @@ The verifier rejects a `true` gate unless a direct evidence record explicitly su
 
 The 2026-08-14 resumed snapshot was upgraded through GitHub Git-database readback. Every consumed checkpoint has an exact remote commit, parent, tree and evidence blob; Owner branches were fetched without touching the working tree. These source advances promoted no public, hosted, production, store, callback, reconnect, signing or transaction gate without direct evidence.
 
-The frozen checkpoints are Core `0c747c6030b5a475a1f12dc7e57345555c23055d`, Web `46d030c85c2b1a3d12a10c6b5dd0e521ca303f1c`, Android `f1edbec46ad4300beec406873b03db2da7c72e4b`, iOS/macOS `7a3a110fb7cd9a33512ce4db87ddd8387cb730d5`, and Desktop/CLI/SDK `2802876f8470264c4a8819f1426e28f957a09289`. Android `9f91b1f5…` is source-only pending; iOS recovery success remains pending.
+The frozen checkpoints are Core `0c747c6030b5a475a1f12dc7e57345555c23055d`, Web `46d030c85c2b1a3d12a10c6b5dd0e521ca303f1c`, Android `f1edbec46ad4300beec406873b03db2da7c72e4b`, iOS/macOS `369578f20b0802bcfef5cfc8bcdd7f53fec0f801`, and Desktop/CLI/SDK `2802876f8470264c4a8819f1426e28f957a09289`.
+
+iOS run 31793565880/job 94745600713 passed all steps at source `dd479d28…`: cold PID 30160, Keychain add/read/delete 0/0/0, second PID 30616, malformed callback PID 36979 visibly rejected, and recovery `native-unavailable` visibly failed closed before terminate/relaunch proved an empty Create state. Evidence commit is `369578f2…`. This does not prove biometric/recovery/auth success, physical-device behavior, Testnet, public hosting or production distribution.
 
 Website main `92a8b90e4eb652fd308436c6caf3c30ee9730c62` merges `c70bf01…` through PR #34. The unchanged `deca6f4f` production verifier independently returned HTTP 200 for three pages and verified nine full downloads plus exact registry metadata. Web `46d030c…` visibly confirms three buttons and exact content-addressed targets. PWA 272,706 / `63d83c…`, Chrome/Edge 188,846 / `c73309…`, and Firefox 188,883 / `417d9b…` are officially hosted/public; they remain unsigned, non-store, and do not establish installation or Wallet/provider/account/sign/tx behavior.
 

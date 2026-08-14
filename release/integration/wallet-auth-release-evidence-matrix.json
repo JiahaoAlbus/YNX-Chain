@@ -75,7 +75,7 @@
       "consumedForReleaseTruth": false,
       "note": "Foreground deep-link deferral source is remote, but the new API36 APK has a different QA certificate and no replacement-device validation; callback, biometric, relock, hosting and production truth remain unchanged."
     },
-    {"owner":"ios-macos","candidateCommit":"ee1457e8457177d7e21fdd81163384c15c3bec72","workflowRunId":31790750711,"remoteFastForwardReported":true,"remoteReadbackComplete":true,"ciComplete":false,"consumedForReleaseTruth":false,"note":"Semantic recovery submission fix has an in-progress run; recovery/biometric/auth success/public/download/signing remain false until terminal evidence."}
+    {"owner":"ios-macos","candidateCommit":"a6cd9677cba2bfae85bc33cfa6919e82ff7de897","workflowRunId":31795388793,"remoteFastForwardReported":true,"remoteReadbackComplete":true,"ciComplete":false,"consumedForReleaseTruth":false,"note":"The prior run failed because simctl has no biometric subcommand; a semantic Simulator-menu workflow fix has no successful hosted run. Biometric/recovery/auth success and every physical/public/download/signing claim remain false."}
   ],
   "ownerSources": [
     {
@@ -108,10 +108,10 @@
     {
       "owner": "ios-macos",
       "branch": "codex/wallet-ios-macos-20260813",
-      "sourceCommit": "7a3a110fb7cd9a33512ce4db87ddd8387cb730d5",
-      "remoteCommitObserved": "7a3a110fb7cd9a33512ce4db87ddd8387cb730d5",
-      "branchHeadObserved": "ee1457e8457177d7e21fdd81163384c15c3bec72",
-      "remoteVerifiedAt": "2026-08-14T09:42:00Z",
+      "sourceCommit": "369578f20b0802bcfef5cfc8bcdd7f53fec0f801",
+      "remoteCommitObserved": "369578f20b0802bcfef5cfc8bcdd7f53fec0f801",
+      "branchHeadObserved": "a6cd9677cba2bfae85bc33cfa6919e82ff7de897",
+      "remoteVerifiedAt": "2026-08-14T11:00:37Z",
       "verificationMode": "github-git-database-parent-tree-blob-readback"
     },
     {
@@ -134,6 +134,27 @@
     }
   ],
   "evidence": {
+    "ios-simulator-successful-failclosed-lifecycle": {
+      "type": "git-object",
+      "direct": true,
+      "commit": "369578f20b0802bcfef5cfc8bcdd7f53fec0f801",
+      "path": "release/integration/wallet-ios-simulator-evidence-2026-08-14.json",
+      "supports": ["ios-simulator.build", "ios-simulator.install", "ios-simulator.coldLaunch", "ios-simulator.secondLaunch", "ios-simulator.callback"],
+      "runId": 31793565880,
+      "jobId": 94745600713,
+      "coldPid": 30160,
+      "secondPid": 30616,
+      "callbackPid": 36979,
+      "keychainStatus": {"add":0,"read":0,"delete":0},
+      "recoveryMode": "native-unavailable",
+      "recoveryFailClosed": true,
+      "secondLaunchEmpty": true,
+      "biometricSuccess": false,
+      "recoverySuccess": false,
+      "authorizationSuccess": false,
+      "downloadHosted": false,
+      "productionSigned": false
+    },
     "web-pwa-official-public-download": {
       "type": "public-download",
       "direct": true,
@@ -1000,11 +1021,11 @@
       "id": "ios-simulator",
       "ownerSource": "ios-macos",
       "artifactClass": "ad-hoc-simulator-build",
-      "status": "hosted-simulator-lifecycle-with-latest-failure",
-      "capabilities": {"latestRunTerminalFailure":true,"latestInstallSucceeded":true,"latestFirstLaunchSucceeded":true,"latestKeychainProbeSucceeded":true,"latestSecondLaunchSucceeded":true,"latestCallbackDelivered":true,"latestMalformedCallbackRejected":true,"latestUniversalLinkPolicyFailedClosed":true,"latestRecoverySucceeded":false,"latestBiometricSucceeded":false},
+      "status": "hosted-simulator-successful-failclosed-lifecycle",
+      "capabilities": {"latestRunTerminalSuccess":true,"latestInstallSucceeded":true,"latestFirstLaunchSucceeded":true,"latestKeychainProbeSucceeded":true,"latestSecondLaunchSucceeded":true,"latestCallbackDelivered":true,"latestMalformedCallbackRejected":true,"latestRecoveryFailClosed":true,"latestRecoverySecondLaunchEmpty":true,"latestRecoverySucceeded":false,"latestBiometricSucceeded":false},
       "gates": {"build":true,"install":true,"coldLaunch":true,"secondLaunch":true,"testnet":false,"sign":false,"tx":false,"callback":true,"reconnect":false,"downloadHosted":false,"productionSigned":false,"storeReleased":false},
-      "evidenceBindings": {"build":["ios-current-simulator-callback-delivery"],"install":["ios-current-simulator-callback-delivery"],"coldLaunch":["ios-current-simulator-callback-delivery"],"secondLaunch":["ios-current-simulator-callback-delivery"],"testnet":["ios-current-simulator-callback-delivery"],"sign":["ios-current-simulator-callback-delivery"],"tx":["ios-current-simulator-callback-delivery"],"callback":["ios-current-simulator-callback-delivery"],"reconnect":["ios-current-simulator-callback-delivery"],"downloadHosted":["ios-current-simulator-callback-delivery"],"productionSigned":["ios-current-simulator-callback-delivery"],"storeReleased":["ios-current-simulator-callback-delivery"]},
-      "notes": ["Run 31786857637 directly proves install, cold PID 28338, second PID 29129, Keychain 0/0/0, malformed callback PID 35715 and Universal Link policy fail-close; only recovery step18 failed. The semantic recovery source/run remains pending. No Testnet, physical device, auth success, recovery/biometric success, public download, production signature or store release is claimed."]
+      "evidenceBindings": {"build":["ios-simulator-successful-failclosed-lifecycle"],"install":["ios-simulator-successful-failclosed-lifecycle"],"coldLaunch":["ios-simulator-successful-failclosed-lifecycle"],"secondLaunch":["ios-simulator-successful-failclosed-lifecycle"],"testnet":["ios-simulator-successful-failclosed-lifecycle"],"sign":["ios-simulator-successful-failclosed-lifecycle"],"tx":["ios-simulator-successful-failclosed-lifecycle"],"callback":["ios-simulator-successful-failclosed-lifecycle"],"reconnect":["ios-simulator-successful-failclosed-lifecycle"],"downloadHosted":["ios-simulator-successful-failclosed-lifecycle"],"productionSigned":["ios-simulator-successful-failclosed-lifecycle"],"storeReleased":["ios-simulator-successful-failclosed-lifecycle"]},
+      "notes": ["Run 31793565880/job 94745600713 passed all steps: ad-hoc Simulator install, cold PID 30160, Keychain add/read/delete 0/0/0, second PID 30616, malformed callback PID 36979 visibly rejected, and native-unavailable recovery failed closed with an empty second launch. No Testnet, physical device, auth success, recovery/biometric success, public download, production signature or store release is claimed."]
     },
     {
       "id": "macos",
