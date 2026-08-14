@@ -65,9 +65,9 @@
     },
     {
       "id": "macos-universal-ad-hoc",
-      "sourceCommit": "8ccb7bf9c4bf9453ed72395d1f024de9fa75fb4d",
+      "sourceCommit": "8b6dee8f746456874d7a7b2913d38b3aa5591fc7",
       "artifactName": "YNX-Wallet-macOS-ad-hoc.zip",
-      "sha256": "e3c0e1ed9e8d931ca06d51457e49a92c2166378af4106b314541b22638969e04",
+      "sha256": "f91cc193be9a3fa760601cc33ecbae677617ecdb7af94156eef03e650d20d64b",
       "signingClass": "ad-hoc-local-arm64-app",
       "publicUrl": null,
       "immutableUrl": null,

@@ -40,8 +40,8 @@ The verifier rejects a `true` gate unless a direct evidence record explicitly su
 
 The 2026-08-14 resumed snapshot was upgraded through GitHub Git-database readback. Every consumed checkpoint has an exact remote commit, parent, tree and evidence blob; Owner branches were fetched without touching the working tree. These source advances promoted no public, hosted, production, store, callback, reconnect, signing or transaction gate without direct evidence.
 
-The frozen checkpoints are Core `75b0a68a03eb75cb8afb84d71abce591e544dc92`, Web `0b3ffa8faabad2caa49b1c00db493261e2d98bca`, Android `4739a60e1fa0e3d0b6862e129330f9e9ca202887`, iOS/macOS `8ccb7bf9c4bf9453ed72395d1f024de9fa75fb4d`, and Desktop/CLI/SDK `931b70fc0dd4e7ff01542065099aeaa0b3f25a51`.
+The frozen checkpoints are Core `75b0a68a03eb75cb8afb84d71abce591e544dc92`, Web `0b3ffa8faabad2caa49b1c00db493261e2d98bca`, Android `4739a60e1fa0e3d0b6862e129330f9e9ca202887`, iOS/macOS `8b6dee8f746456874d7a7b2913d38b3aa5591fc7`, and Desktop/CLI/SDK `931b70fc0dd4e7ff01542065099aeaa0b3f25a51`.
 
-Core `8e91c58e3f997b35da1b3d0298f174a2e8533fa2`, Android `2299a90e12a46dd030425c6a5bf2edf4257c9c59`, iOS/macOS `8b6dee8f746456874d7a7b2913d38b3aa5591fc7` and Desktop `b11faa864304ac3e260c261c732d30d018fe0eb8` remain queued. No local/CI lifecycle changes public, hosted, production-signing or store truth.
+Core `8e91c58e3f997b35da1b3d0298f174a2e8533fa2` then `ea33b83c5cc21ebd673bdb2e20a0e996eaf28212`, Android `2299a90e12a46dd030425c6a5bf2edf4257c9c59`, iOS/macOS `33d10fa2f2422b577d3b9bf10d926e6c608893f0` and Desktop RPM `b06bf39c365408ba28e9e5f9312f293693e3f73d` remain queued. Public/hosted/production/store truth is unchanged.
 
 The public audit is machine-readable at `release/integration/wallet-auth-public-evidence-audit.json` and fail-closed verified by `scripts/verify/wallet-auth-public-evidence-audit-check.mjs`. It records public RPC/health/website observations separately from current-source deployment, exact downloads, signing level and ComputerControl evidence.

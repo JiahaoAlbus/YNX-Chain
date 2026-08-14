@@ -44,6 +44,15 @@
       "note": "Revocation-control linearization is queued for its own later atomic slice after request-lifecycle and macOS two-callback consumption."
     },
     {
+      "owner": "core-auth-gateway",
+      "candidateCommit": "ea33b83c5cc21ebd673bdb2e20a0e996eaf28212",
+      "remoteFastForwardReported": true,
+      "remoteReadbackComplete": true,
+      "ciComplete": true,
+      "consumedForReleaseTruth": false,
+      "note": "The combined Core evidence HEAD is queued after the independent revocation-control slice."
+    },
+    {
       "owner": "android-api36",
       "candidateCommit": "2299a90e12a46dd030425c6a5bf2edf4257c9c59",
       "remoteFastForwardReported": true,
@@ -54,21 +63,21 @@
     },
     {
       "owner": "ios-macos",
-      "candidateCommit": "8b6dee8f746456874d7a7b2913d38b3aa5591fc7",
+      "candidateCommit": "33d10fa2f2422b577d3b9bf10d926e6c608893f0",
       "remoteFastForwardReported": true,
       "remoteReadbackComplete": true,
       "ciComplete": null,
       "consumedForReleaseTruth": false,
-      "note": "Canonical two-callback evidence is queued for the next independent macOS slice; authorization success, return callback and Universal Link remain false."
+      "note": "The branch advanced beyond the consumed canonical two-callback evidence; the unknown successor changes no authorization or release truth."
     },
     {
       "owner": "desktop-cli-sdk",
-      "candidateCommit": "b11faa864304ac3e260c261c732d30d018fe0eb8",
+      "candidateCommit": "b06bf39c365408ba28e9e5f9312f293693e3f73d",
       "remoteFastForwardReported": true,
       "remoteReadbackComplete": true,
       "ciComplete": null,
       "consumedForReleaseTruth": false,
-      "note": "Linux RPM sandbox-safe install-path work lacks a terminal Owner evidence checkpoint and changes no release truth."
+      "note": "Linux arm64 RPM final evidence is queued for its own later atomic slice."
     }
   ],
   "ownerSources": [
@@ -77,7 +86,7 @@
       "branch": "codex/wallet-core-auth-gateway-continuation-20260814",
       "sourceCommit": "75b0a68a03eb75cb8afb84d71abce591e544dc92",
       "remoteCommitObserved": "75b0a68a03eb75cb8afb84d71abce591e544dc92",
-      "branchHeadObserved": "8e91c58e3f997b35da1b3d0298f174a2e8533fa2",
+      "branchHeadObserved": "ea33b83c5cc21ebd673bdb2e20a0e996eaf28212",
       "remoteVerifiedAt": "2026-08-14T04:32:00Z",
       "verificationMode": "github-git-database-parent-tree-blob-readback"
     },
@@ -102,9 +111,9 @@
     {
       "owner": "ios-macos",
       "branch": "codex/wallet-ios-macos-20260813",
-      "sourceCommit": "8ccb7bf9c4bf9453ed72395d1f024de9fa75fb4d",
-      "remoteCommitObserved": "8ccb7bf9c4bf9453ed72395d1f024de9fa75fb4d",
-      "branchHeadObserved": "8b6dee8f746456874d7a7b2913d38b3aa5591fc7",
+      "sourceCommit": "8b6dee8f746456874d7a7b2913d38b3aa5591fc7",
+      "remoteCommitObserved": "8b6dee8f746456874d7a7b2913d38b3aa5591fc7",
+      "branchHeadObserved": "33d10fa2f2422b577d3b9bf10d926e6c608893f0",
       "remoteVerifiedAt": "2026-08-14T04:26:00Z",
       "verificationMode": "github-git-database-parent-tree-blob-readback"
     },
@@ -113,7 +122,7 @@
       "branch": "codex/wallet-desktop-cli-sdk-20260813",
       "sourceCommit": "931b70fc0dd4e7ff01542065099aeaa0b3f25a51",
       "remoteCommitObserved": "931b70fc0dd4e7ff01542065099aeaa0b3f25a51",
-      "branchHeadObserved": "b11faa864304ac3e260c261c732d30d018fe0eb8",
+      "branchHeadObserved": "b06bf39c365408ba28e9e5f9312f293693e3f73d",
       "remoteVerifiedAt": "2026-08-14T04:05:00Z",
       "verificationMode": "github-git-database-parent-tree-blob-readback"
     }
@@ -397,6 +406,13 @@
       "path": "apps/wallet/proof/macos-native-ci-evidence-2026-08-14.json",
       "supports": ["macos.build", "macos.install", "macos.coldLaunch", "macos.secondLaunch", "macos.callback"]
     },
+    "macos-canonical-two-callback-ci": {
+      "type": "git-object",
+      "direct": true,
+      "commit": "8b6dee8f746456874d7a7b2913d38b3aa5591fc7",
+      "path": "apps/wallet/proof/macos-native-ci-evidence-2026-08-14.json",
+      "supports": ["macos.build", "macos.install", "macos.coldLaunch", "macos.secondLaunch", "macos.callback"]
+    },
     "linux-desktop-action": {
       "type": "git-object",
       "direct": true,
@@ -576,8 +592,8 @@
       "status": "hosted-ad-hoc-native-ci",
       "capabilities": {"universalPackageVerified":true,"arm64InstalledHostedRunner":true,"x86_64InstalledHostedRunner":false,"installedLocal":false,"keychainRoundTripVerified":true,"biometricRecoverySucceeded":false,"developerIDSigned":false,"notarized":false},
       "gates": {"build":true,"install":true,"coldLaunch":true,"secondLaunch":true,"testnet":false,"sign":false,"tx":false,"callback":true,"reconnect":false,"downloadHosted":false,"productionSigned":false,"storeReleased":false},
-      "evidenceBindings": {"build":["macos-native","macos-native-ci-current","macos-universal-native-ci"],"install":["macos-native","macos-native-ci-current","macos-universal-native-ci"],"coldLaunch":["macos-native","macos-native-ci-current","macos-universal-native-ci"],"secondLaunch":["macos-native","macos-native-ci-current","macos-universal-native-ci"],"testnet":["macos-native-ci-current","macos-universal-native-ci"],"sign":["macos-native-ci-current","macos-universal-native-ci"],"tx":["macos-native-ci-current","macos-universal-native-ci"],"callback":["macos-native-ci-current","macos-universal-native-ci"],"reconnect":["macos-native-ci-current","macos-universal-native-ci"],"downloadHosted":["macos-native-ci-current","macos-universal-native-ci"],"productionSigned":["macos-native-ci-current","macos-universal-native-ci"],"storeReleased":["macos-native-ci-current","macos-universal-native-ci"]},
-      "notes": ["Run 31768901687 proves an x86_64+arm64 Universal package and arm64 hosted-runner install, distinct cold/second PIDs, Keychain canary, malformed callback delivery and app rejection. x86_64 install/launch, biometric recovery, Universal Link/DApp success, Testnet, signing, tx, reconnect, Developer ID, notarization, public hosting and store release remain false."]
+      "evidenceBindings": {"build":["macos-native","macos-native-ci-current","macos-universal-native-ci","macos-canonical-two-callback-ci"],"install":["macos-native","macos-native-ci-current","macos-universal-native-ci","macos-canonical-two-callback-ci"],"coldLaunch":["macos-native","macos-native-ci-current","macos-universal-native-ci","macos-canonical-two-callback-ci"],"secondLaunch":["macos-native","macos-native-ci-current","macos-universal-native-ci","macos-canonical-two-callback-ci"],"testnet":["macos-canonical-two-callback-ci"],"sign":["macos-canonical-two-callback-ci"],"tx":["macos-canonical-two-callback-ci"],"callback":["macos-canonical-two-callback-ci"],"reconnect":["macos-canonical-two-callback-ci"],"downloadHosted":["macos-canonical-two-callback-ci"],"productionSigned":["macos-canonical-two-callback-ci"],"storeReleased":["macos-canonical-two-callback-ci"]},
+      "notes": ["Run 31769670570 proves a Universal package and arm64 lifecycle, then two canonical-scheme callbacks on PID 5083: widened query rejected INVALID_AUTHORIZATION_REQUEST and valid route/invalid Core payload rejected CANONICAL_AUTH_BRIDGE_UNAVAILABLE. Authorization success, return callback, Core native bridge, x86_64 launch, biometric recovery, Testnet/public/hosted/Developer ID/notarization/store remain false."]
     },
     {
       "id": "linux-desktop-x64",
