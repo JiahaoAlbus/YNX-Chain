@@ -51,7 +51,21 @@ jobs:
         run: npm install --global npm@11.5.1
       - run: npm ci
       - name: Build Wallet Auth contract fixtures
-        run: npm run hardhat:build
+        run: |
+          set -euo pipefail
+          npm run hardhat:build
+          dirty="$(git status --porcelain --untracked-files=no)"
+          if [[ -n "$dirty" ]]; then
+            while IFS= read -r entry; do
+              test "${entry:0:2}" = ' D'
+              case "${entry:3}" in
+                artifacts/finance/*) ;;
+                *) echo "Hardhat changed an unexpected tracked path: ${entry:3}" >&2; exit 1 ;;
+              esac
+            done <<< "$dirty"
+            git restore --source=HEAD -- artifacts/finance
+          fi
+          test -z "$(git status --porcelain)"
       - run: npm ci
         working-directory: packages/wallet-auth
       - run: npm test
