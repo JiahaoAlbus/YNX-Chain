@@ -135,3 +135,43 @@ jobs:
           YNX_TEST_POSTGRES_DSN: postgres://ynx_test:integration-only-password@127.0.0.1:5432/ynx_data_fabric_test?sslmode=disable
           YNX_TEST_POSTGRES_ALLOW_DESTRUCTIVE: "1"
         run: go test ./internal/datafabricpostgres ./internal/datafabricpgbackup -run '^TestPostgresLive(TransactionsConstraintsAndRecovery|LogicalBackupRestoreAndIntegrity)$' -count=1 -v
+      - name: Measure PostgreSQL hotspot, duplicate storm, restart and long replay
+        env:
+          YNX_TEST_POSTGRES_DSN: postgres://ynx_test:integration-only-password@127.0.0.1:5432/ynx_data_fabric_test?sslmode=disable
+          YNX_TEST_POSTGRES_ALLOW_DESTRUCTIVE: "1"
+        run: |
+          mkdir -p /tmp/data-fabric-postgres-resilience
+          go build -trimpath -o /tmp/ynx-data-fabric-postgres-resilience ./scripts/data-fabric/postgres-resilience
+          source_commit="$(git rev-parse HEAD)"
+          source_release="ynx-data-fabric-${source_commit:0:12}"
+          /tmp/ynx-data-fabric-postgres-resilience \
+            -phase seed -events 10000 -hot-share-percent 90 -cold-workers 16 -duplicate-attempts 1000 \
+            -source-commit "$source_commit" -source-release "$source_release" -dirty-working-tree=false \
+            | tee /tmp/data-fabric-postgres-resilience/seed.json
+          postgres_container="$(docker ps --filter ancestor=postgres:17.10-alpine --format '{{.ID}}' | head -n 1)"
+          test -n "$postgres_container"
+          restart_started_unix_nano="$(date +%s%N)"
+          docker restart "$postgres_container"
+          ready=0
+          for attempt in $(seq 1 120); do
+            if docker exec "$postgres_container" pg_isready -U ynx_test -d ynx_data_fabric_test; then
+              ready=1
+              break
+            fi
+            sleep 1
+          done
+          test "$ready" = 1
+          /tmp/ynx-data-fabric-postgres-resilience \
+            -phase verify -events 10000 -hot-share-percent 90 -cold-workers 16 -duplicate-attempts 1000 \
+            -source-commit "$source_commit" -source-release "$source_release" -dirty-working-tree=false \
+            -restart-started-unix-nano "$restart_started_unix_nano" \
+            | tee /tmp/data-fabric-postgres-resilience/verify.json
+          jq -e '.phase == "seed" and .events == 10000 and .duplicateRejects == 1000 and .unexpectedErrors == 0' /tmp/data-fabric-postgres-resilience/seed.json
+          jq -e '.phase == "verify" and .databaseRestarted == true and .recoveryPointObjectiveLostEvents == 0 and .longReplayApplied == 10000 and .idempotentReplaySkipped == 10000' /tmp/data-fabric-postgres-resilience/verify.json
+      - name: Upload exact-source PostgreSQL resilience evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: data-fabric-postgres-resilience-${{ github.sha }}
+          path: /tmp/data-fabric-postgres-resilience/*.json
+          if-no-files-found: error
+          retention-days: 30
