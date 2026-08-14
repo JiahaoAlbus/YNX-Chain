@@ -4,7 +4,7 @@
   "productName": "YNX Data Fabric & Billing Ledger",
   "slug": "data-fabric",
   "owner": "26-data-fabric",
-  "sourceCommit": "02e115743786d5e78adc02a1df6029891e81dfb0",
+  "sourceCommit": "2bac01e4b09f7fc83654a2400a722100ecd91368",
   "product": {
     "id": "ynx-data-fabric",
     "name": "YNX Data Fabric",
@@ -20,7 +20,7 @@
     }
   },
   "releaseStatus": {
-    "release": "ynx-data-fabric-02e115743786",
+    "release": "ynx-data-fabric-2bac01e4b09f",
     "channel": "testnet-preview",
     "implementedLocal": true,
     "testedLocal": true,
@@ -47,7 +47,7 @@
     "ar": "نسيج بيانات YNX",
     "id": "YNX Data Fabric"
   },
-  "features": ["Strict Envelope v2 events with v1 migration compatibility and product, actor, request, ordering, source, privacy, residency, retention, and audit bindings", "Transactional Outbox and consumer Inbox with idempotent effects, retry, dead letter, replay, and backfill", "Recoverable cross-product Sagas with compensation, timeout, audit, and user-visible status", "Append-only double-entry billing records and source-labeled reconciliation"],
+  "features": ["Strict Envelope v2 events with v1 migration compatibility and product, actor, request, ordering, source, privacy, residency, retention, and audit bindings", "Transactional Outbox and consumer Inbox with idempotent effects, retry, dead letter, replay, backfill, and tested post-commit/pre-ack process-crash recovery", "Recoverable cross-product Sagas with compensation, timeout, audit, and user-visible status", "Append-only double-entry billing records and source-labeled reconciliation"],
   "risks": ["An accepted HTTP request does not mean a multi-service business workflow is complete.", "Testnet evidence does not establish Mainnet, production signing, availability, capacity, or financial suitability.", "Third-party and derived observations can be unavailable or inconsistent and never replace authoritative product or ledger state.", "Operator recovery and reconciliation may require human review; historical financial records are corrected with new entries, never silently edited."],
   "faq": [
     {

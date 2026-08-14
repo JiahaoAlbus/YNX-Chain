@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "productId": "ynx-data-fabric",
-  "sourceCommit": "02e115743786d5e78adc02a1df6029891e81dfb0",
+  "sourceCommit": "2bac01e4b09f7fc83654a2400a722100ecd91368",
   "eventEnvelopeVersion": "2.0",
   "generatedAt": "2026-08-14T05:23:25Z",
   "vectors": [
@@ -91,7 +91,7 @@
       "expected": ["before-commit redelivery applies once", "after-commit redelivery observes Inbox and does not reapply"],
       "compensation": "leased redelivery or DLQ recovery",
       "status": "testedLocal",
-      "evidence": ["internal/datafabricnats/broker_test.go", "internal/datafabricpostgres/live_integration_test.go"]
+      "evidence": ["internal/datafabricnats/broker_test.go", "internal/datafabricpostgres/live_integration_test.go", "internal/datafabricnats/postgres_process_crash_live_test.go", "evidence/postgres/consumer-process-crash-clean-source-20260814.json", "GitHub Actions run 31779789224 PostgreSQL job"]
     },
     {
       "id": "DF-XP-008",
@@ -212,7 +212,7 @@
       "expected": ["all 10000 canonical events and Outbox rows survive", "all 1000 duplicate attempts reject and create no extra event", "RPO is zero committed events", "connection and integrity RTO recorded", "first replay applies 10000 effects", "second replay applies zero and skips 10000 through Inbox idempotency", "latency throughput queue depth database bytes and per-event storage recorded"],
       "compensation": "remain fail closed on unavailable database or failed integrity; preserve the Outbox and retry only after the exact database authority recovers",
       "status": "testedLocal",
-      "evidence": ["scripts/data-fabric/postgres-resilience/main.go", "scripts/data-fabric/postgres-resilience/main_test.go", "evidence/postgres/resilience-seed-clean-source-20260814.json", "evidence/postgres/resilience-verify-clean-source-20260814.json", "GitHub Actions run 31775538974"]
+      "evidence": ["scripts/data-fabric/postgres-resilience/main.go", "scripts/data-fabric/postgres-resilience/main_test.go", "evidence/postgres/resilience-seed-clean-source-20260814.json", "evidence/postgres/resilience-verify-clean-source-20260814.json", "GitHub Actions run 31779789224 PostgreSQL job"]
     }
   ]
 }

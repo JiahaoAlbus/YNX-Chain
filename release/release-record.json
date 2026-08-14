@@ -2,10 +2,10 @@
   "schemaVersion": 2,
   "productId": "ynx-data-fabric",
   "productName": "YNX Data Fabric & Billing Ledger",
-  "release": "ynx-data-fabric-02e115743786",
+  "release": "ynx-data-fabric-2bac01e4b09f",
   "channel": "testnet-preview",
-  "sourceCommit": "02e115743786d5e78adc02a1df6029891e81dfb0",
-  "generatedAt": "2026-08-14T06:18:00Z",
+  "sourceCommit": "2bac01e4b09f7fc83654a2400a722100ecd91368",
+  "generatedAt": "2026-08-14T07:36:49Z",
   "phase": "INTEGRATE",
   "overallStatus": "ACTIVE",
   "states": {
@@ -77,7 +77,7 @@
   },
   "evidence": {
     "local": {
-      "sourceCommit": "02e115743786d5e78adc02a1df6029891e81dfb0",
+      "sourceCommit": "2bac01e4b09f7fc83654a2400a722100ecd91368",
       "fullGoTest": "passed-with-standard-umask",
       "dataFabricRace": "passed",
       "reachableVulnerabilities": "zero-with-go1.25.13-and-govulncheck-v1.6.0",
@@ -86,23 +86,28 @@
       "typeScriptSDK": "passed"
     },
     "remoteCI": {
-      "runId": 31775538974,
+      "runId": null,
       "workflow": "data-fabric",
-      "sourceCommit": "02e115743786d5e78adc02a1df6029891e81dfb0",
-      "headCommit": "02e115743786d5e78adc02a1df6029891e81dfb0",
-      "status": "completed",
-      "conclusion": "success",
-      "startedAt": "2026-08-14T06:13:13Z",
-      "duration": "4m17s",
+      "sourceCommit": "2bac01e4b09f7fc83654a2400a722100ecd91368",
+      "headCommit": null,
+      "status": "pending",
+      "conclusion": null,
+      "startedAt": null,
+      "duration": null,
       "artifactsPublished": false,
-      "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/31775538974",
-      "evidenceArtifact": {
-        "name": "data-fabric-postgres-resilience-02e115743786d5e78adc02a1df6029891e81dfb0",
-        "retentionDays": 30,
-        "publicReleaseArtifact": false,
-        "seedSha256": "569d08050b801a3f49a5ec0b6fcbae87e3389a3575a383c825fb3a7593275ae8",
-        "verifySha256": "838587420fcd514b21ce3feb4753d7c93434136fbd4b3a2f83f7ffc3311970d2"
-      }
+      "url": null,
+      "evidenceArtifact": null
+    },
+    "engineeringEvidenceRun": {
+      "runId": 31779789224,
+      "sourceCommit": "2bac01e4b09f7fc83654a2400a722100ecd91368",
+      "postgresJobConclusion": "success",
+      "overallConclusion": "failure",
+      "verifyFailure": "release truth rejected the not-yet-updated frozen sourceCommit",
+      "artifactName": "data-fabric-postgres-resilience-2bac01e4b09f7fc83654a2400a722100ecd91368",
+      "seedSha256": "9e3d27866ae4f710b0402d36c677db57cca8efcdaf12b94c9985ad1d2bcc0b6b",
+      "verifySha256": "19c87d20daa810d7fb6b4c48b3d4b694feb100069cd827f4658db58a75daac3b",
+      "consumerCrashSha256": "53e10aa1d1d2fd7ddc68ea9c9e48edba2b04bdf5ea27121b258aa99a32e6a122"
     },
     "sourceCandidate": {
       "tag": "data-fabric-v0.2.0-source-candidate",
@@ -127,6 +132,6 @@
     "crossProductVectors": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
     "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md"
   },
-  "blockingEvidence": ["central Wallet/Auth and App Gateway owner acceptance", "shared Testnet product producer and consumer receipts", "PostgreSQL plus JetStream signed-producer E2E, consumer/process crash, replica failover and sustained recovery drills", "approved secure signer path and immutable public HTTPS hosting", "public runtime, health, support, privacy, security and status URLs", "production artifact, SBOM, provenance, hash, bytes and cold-install receipts"],
+  "blockingEvidence": ["central Wallet/Auth and App Gateway owner acceptance", "shared Testnet product producer and consumer receipts", "PostgreSQL plus replicated JetStream signed-producer E2E, repeated consumer/process crash, replica failover and sustained recovery drills", "approved secure signer path and immutable public HTTPS hosting", "public runtime, health, support, privacy, security and status URLs", "production artifact, SBOM, provenance, hash, bytes and cold-install receipts"],
   "nextAction": "Execute central producer acceptance and shared-Testnet Pay flow before any PUBLIC phase transition."
 }

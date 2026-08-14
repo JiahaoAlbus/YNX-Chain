@@ -1,8 +1,8 @@
 {
   "phase": "seed",
-  "measuredAt": "2026-08-14T06:14:06.498880429Z",
-  "sourceCommit": "02e115743786d5e78adc02a1df6029891e81dfb0",
-  "sourceRelease": "ynx-data-fabric-02e115743786",
+  "measuredAt": "2026-08-14T07:25:04.871586117Z",
+  "sourceCommit": "2bac01e4b09f7fc83654a2400a722100ecd91368",
+  "sourceRelease": "ynx-data-fabric-2bac01e4b09f",
   "dirtyWorkingTree": false,
   "databaseVersion": "PostgreSQL 17.10 on x86_64-pc-linux-musl, compiled by gcc (Alpine 15.2.0) 15.2.0, 64-bit",
   "goos": "linux",
@@ -16,26 +16,26 @@
   "concurrentStart": true,
   "coldWorkers": 16,
   "appendLatency": {
-    "p50Milliseconds": 2.254,
-    "p95Milliseconds": 14.612,
-    "p99Milliseconds": 63.929,
-    "maxMilliseconds": 174.098
+    "p50Milliseconds": 2.645,
+    "p95Milliseconds": 56.78,
+    "p99Milliseconds": 165.479,
+    "maxMilliseconds": 570.205
   },
-  "appendThroughputPerSecond": 357.7570436259807,
+  "appendThroughputPerSecond": 127.99930458325979,
   "duplicateStormAttempts": 1000,
   "duplicateStormConcurrentStart": true,
   "duplicateStormLatency": {
-    "p50Milliseconds": 324.925,
-    "p95Milliseconds": 586.807,
-    "p99Milliseconds": 623.971,
-    "maxMilliseconds": 633.366
+    "p50Milliseconds": 327.191,
+    "p95Milliseconds": 562.706,
+    "p99Milliseconds": 583.936,
+    "maxMilliseconds": 591.196
   },
-  "duplicateStormThroughputPerSecond": 1566.7276039101296,
+  "duplicateStormThroughputPerSecond": 1664.4407933493126,
   "duplicateRejects": 1000,
   "unexpectedErrors": 0,
   "transactionalOutboxQueueDepth": 10000,
-  "databaseBytes": 38208015,
-  "storageBytesPerEvent": 3820.8015,
+  "databaseBytes": 38319795,
+  "storageBytesPerEvent": 3831.9795,
   "limitations": [
     "one isolated PostgreSQL primary without replicas",
     "90 percent ordered single-aggregate skew is a bounded hotspot workload, not a production traffic model",
