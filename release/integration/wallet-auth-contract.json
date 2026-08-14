@@ -810,6 +810,7 @@
   },
   "androidStorageResetEpochCheckpoint": {
     "sourceCommit": "90673222491e5b942c967d22fbf4b09e2edea491",
+    "perDeletionRevalidationCommit": "02004c99ba5baa1be0156d97e3d89a4f69cbc0ce",
     "branch": "codex/wallet-android-api36-continuation2-20260814",
     "strongBiometricRemainsRequired": true,
     "exactUnlockAndPrivacyEpochRequired": true,
@@ -817,7 +818,9 @@
     "screenshotProtectionRequired": true,
     "unreadableStorageStateRequired": true,
     "invalidatedAttemptDeletesNothingFurther": true,
-    "walletTests": "87/87 passed",
+    "manifestLegacyAndJournalDeletionRevalidatedSeparately": true,
+    "lifecycleErrorsAreNotSwallowedByManifestParseRecovery": true,
+    "walletTests": "88/88 passed",
     "androidHermesModules": 2744,
     "implementedLocal": true,
     "testedLocal": true,
