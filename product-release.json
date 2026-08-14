@@ -44,17 +44,25 @@
       "commands": ["go test ./internal/datafabric -count=1", "go test ./internal/datafabricapi ./internal/datafabricpay ./internal/datafabricpayledger -count=1", "go test -race ./internal/datafabric -count=1", "jq empty schemas/data-fabric/event-envelope-v1.schema.json schemas/data-fabric/event-envelope-v2.schema.json schemas/data-fabric/schema-registry-v2.json integration/product-event-contracts.json", "bash -lc 'umask 022; exec go test ./... -count=1'", "go test -race ./internal/datafabric ./internal/datafabricapi ./internal/datafabricnats ./internal/datafabricpay ./internal/datafabricpayledger ./internal/datafabricpostgres ./sdk/datafabric -count=1", "go test -race ./scripts/data-fabric/postgres-resilience -count=1", "go run ./scripts/data-fabric/api-capacity -producers 1000 -server-concurrency 64 -source-commit 59c60864ac433bdf474ce16f9199533907017deb -source-release ynx-data-fabric-59c60864ac43 -dirty-working-tree=false", "GitHub Actions run 31786668608 data-fabric-postgres-live: PostgreSQL hotspot, duplicate storm, restart, replay, post-commit/pre-ack process crash and JetStream capacity-backpressure recovery", "go run golang.org/x/vuln/cmd/govulncheck@v1.6.0 ./...", "bash scripts/data-fabric/quality-gates.sh", "npm test --prefix sdk/datafabric-typescript", "npm audit --audit-level=high --registry=https://registry.npmjs.org --prefix sdk/datafabric-typescript"]
     },
     "remoteCI": {
-      "runId": null,
+      "runId": 31788198895,
       "workflow": "data-fabric",
       "sourceCommit": "a0f92680d0df50ed131b5eb422a851f5874c9045",
-      "headCommit": null,
-      "status": "pending",
-      "conclusion": null,
-      "startedAt": null,
-      "duration": null,
+      "headCommit": "d0d7e4d6ce5bfbeeafcc21d3c9186aa6e52434dc",
+      "status": "completed",
+      "conclusion": "success",
+      "startedAt": "2026-08-14T09:28:11Z",
+      "duration": "4m25s",
       "artifactsPublished": false,
-      "url": null,
-      "evidenceArtifact": null
+      "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/31788198895",
+      "evidenceArtifact": {
+        "name": "data-fabric-postgres-resilience-d0d7e4d6ce5bfbeeafcc21d3c9186aa6e52434dc",
+        "retentionDays": 30,
+        "publicReleaseArtifact": false,
+        "seedSha256": "f5caa144db7ced72cc2393b9398fa667a43a98ae9e691d3841a7c6293c75fb26",
+        "verifySha256": "3817d23708eab54b8555f69f9311882555a7f07fa45b03410b33670ce1c90472",
+        "consumerCrashSha256": "97aef19b48166befd120b16b3831f9879dbfdbec444cdf74c6c562b8c5a8e47a",
+        "transportBackpressureSha256": "67fb0c5725187345e6dffb608ee4785b8be1bdf20b549f2d5b29e146de6ba92a"
+      }
     },
     "engineeringEvidenceRun": {
       "runId": 31786668608,

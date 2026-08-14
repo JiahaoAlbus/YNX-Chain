@@ -6,7 +6,7 @@
 - Branch: `codex/final-data-fabric`
 - Engineering Source Commit: `a0f92680d0df50ed131b5eb422a851f5874c9045`
 - Remote Source Commit: current Engineering Source `a0f92680d0df50ed131b5eb422a851f5874c9045` is on review Branch `codex/data-fabric-typescript-sdk-20260814`
-- Source evidence CI: Run `31786668608` PostgreSQL job passed at exact engineering source `a0f92680d0df50ed131b5eb422a851f5874c9045`; restart/replay, consumer-process-crash and transport-backpressure artifacts were downloaded and SHA-256 verified. Overall verify correctly rejected the then-stale frozen source binding; final evidence-head CI is pending.
+- Source CI: final evidence-head Run `31788198895` passed both jobs at `d0d7e4d6ce5bfbeeafcc21d3c9186aa6e52434dc`; engineering source remains `a0f92680d0df50ed131b5eb422a851f5874c9045`, and restart/replay, consumer-process-crash and transport-backpressure artifacts were downloaded and SHA-256 verified.
 - Concurrent writer: no Git writer detected; an existing CodexPro server process was left untouched
 - Dirty state: reviewed and verified source-bound evidence slice awaiting commit and push; legacy recovery files are preserved under `recovery/2026-07-23/`
 
@@ -20,4 +20,4 @@ Central owner acceptance, complete product adapter set, shared Testnet E2E, stag
 
 ## Exact next action
 
-Protect the source-bound transport-backpressure evidence and obtain a successful final evidence-head CI, then repeat signed Producer traffic across PostgreSQL plus JetStream with sustained and replicated-service failure drills. Prepare the existing Website handoff for publication, but keep public URLs and downloads false until runtime, signer, immutable-hosting and Website receipts exist. Require independent approval before merging PR `#92`.
+Refresh the verified recovery bundle, then repeat signed Producer traffic across PostgreSQL plus JetStream with sustained and replicated-service failure drills. Prepare the existing Website handoff for publication, but keep public URLs and downloads false until runtime, signer, immutable-hosting and Website receipts exist. Require independent approval before merging PR `#92`.
