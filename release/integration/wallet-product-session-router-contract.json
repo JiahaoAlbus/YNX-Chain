@@ -58,13 +58,13 @@
     "handler": "ProductSessionGatewayHttpHandler",
     "requiredRoutePrefix": "/v2/product-sessions/",
     "routePrecedence": "mount all exact Product Session v2 routes before the Chain JSON-RPC catch-all",
-    "currentObservedState": "misrouted-to-chain-json-rpc-catch-all",
-    "currentEvidence": "packages/wallet-auth/evidence/product-session-v2-public-route-probe-20260814.json",
+    "currentObservedState": "mounted-to-independent-persistent-v2-gateway",
+    "currentEvidence": "packages/wallet-auth/evidence/product-session-v2-public-deployment-20260814.json",
     "releaseGate": {
       "command": "YNX_PRODUCT_SESSION_V2_PUBLIC_PROBE=1 YNX_PRODUCT_SESSION_V2_PUBLIC_URL=https://rest.ynxweb4.com node packages/wallet-auth/scripts/probe-product-session-v2-public.mjs",
       "proofStrength": "route mount only; never substitutes for the full lifecycle acceptance",
       "requiredResult": "HTTP 400 canonical schemaVersion 2 rejection bound to the exact request ID with Cache-Control no-store",
-      "currentResult": "UNEXPECTED_HTTP_STATUS because the public route returned HTTP 200 from Chain JSON-RPC"
+      "currentResult": "passed with HTTP 400 canonical schemaVersion 2 rejection, exact request-ID echo and Cache-Control no-store"
     },
     "persistentHost": {
       "implementation": "packages/wallet-auth/src/product-session-gateway-node-host.js",
@@ -83,7 +83,10 @@
       "modes": ["dry-run", "rollback-drill", "deploy"],
       "rollbackDrillRequiredBeforeDeploy": true,
       "publicLifecycleVerifier": "packages/wallet-auth/scripts/verify-product-session-v2-lifecycle.mjs",
-      "currentStatus": "implemented-local-not-executed"
+      "currentStatus": "rollback-drill-and-public-deploy-passed",
+      "deployedSourceCommit": "cc6c393608a11022f8617eede753af4c578d0ecd",
+      "rollbackEvidenceDirectory": "/var/backups/ynx-chain/product-session-v2-ynx-product-session-v2-cc6c393608a1-rollback-drill-20260814T112358Z",
+      "deploymentEvidenceDirectory": "/var/backups/ynx-chain/product-session-v2-ynx-product-session-v2-cc6c393608a1-deploy-20260814T112433Z"
     },
     "stateRequirements": [
       "persist the exact schemaVersion 2 snapshot atomically before returning a successful mutating response",
@@ -196,10 +199,12 @@
     "deployedPublicMeaning": "Product Session v2 App Gateway routes and migrated product runtimes",
     "publicAppGatewayReachable": true,
     "legacyWalletSessionRoutesReachable": true,
-    "productSessionV2RoutesDeployedPublic": false,
+    "productSessionV2RoutesDeployedPublic": true,
     "sourcePackageDeployedPublic": true,
     "sourcePackageCommit": "d8863f6b28752f427929a1c953dd035e096820ff",
     "currentHeadReleaseGateDeployedPublic": false,
+    "deployedProductSessionV2SourceCommit": "cc6c393608a11022f8617eede753af4c578d0ecd",
+    "productSessionV2DeploymentEvidence": "packages/wallet-auth/evidence/product-session-v2-public-deployment-20260814.json",
     "officialWebsiteCommit": "11f53023a419701e240f7e0980440d848a9f5af2",
     "officialWebsiteDocs": "https://www.ynxweb4.com/docs",
     "sourcePackageUrl": "https://www.ynxweb4.com/releases/wallet-session-router/d8863f6b2875/ynx-chain-wallet-auth-1.1.0.tgz",

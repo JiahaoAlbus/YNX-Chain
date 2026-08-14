@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-08-14T10:39:34Z",
-  "scope": "local Product Session v2 protocol and router validation",
+  "capturedAt": "2026-08-14T11:31:02Z",
+  "scope": "Product Session v2 protocol, router, protected deployment and public runtime validation",
   "registrySchemaVersion": 2,
   "branch": "codex/wallet-session-router-recovery",
   "sourceBaseline": "2a78ace0a647b73dd2961fae3361189116453a7d",
@@ -72,9 +72,11 @@
     "serializedConcurrentMutation": true,
     "responseLossIdempotencyRestartSafe": true,
     "remoteBuildIdentityRequired": true,
-    "dedicatedTestsPassed": 4,
+    "dedicatedTestsPassed": 5,
     "concurrentPersistentRequests": 100,
-    "deployedPublic": false
+    "deployedPublic": true,
+    "deployedSourceCommit": "cc6c393608a11022f8617eede753af4c578d0ecd",
+    "deploymentEvidence": "evidence/product-session-v2-public-deployment-20260814.json"
   },
   "productSessionV2DeploymentTransaction": {
     "orchestrator": "scripts/deploy/deploy-product-session-v2-testnet.sh",
@@ -88,9 +90,12 @@
     "rollbackDrillRequiredBeforeDeploy": true,
     "rollbackTargets": ["Caddy route", "systemd unit", "environment file", "dedicated v2 state"],
     "legacyServicesReplaced": false,
-    "executed": false,
-    "rollbackVerified": false,
-    "deployedPublic": false
+    "executed": true,
+    "rollbackVerified": true,
+    "deployedPublic": true,
+    "deployedSourceCommit": "cc6c393608a11022f8617eede753af4c578d0ecd",
+    "rollbackEvidenceDirectory": "/var/backups/ynx-chain/product-session-v2-ynx-product-session-v2-cc6c393608a1-rollback-drill-20260814T112358Z",
+    "deploymentEvidenceDirectory": "/var/backups/ynx-chain/product-session-v2-ynx-product-session-v2-cc6c393608a1-deploy-20260814T112433Z"
   },
   "networkRecovery": {
     "storedSessionOnIntrospectionOutage": "retained-non-authoritative-until-retry",
@@ -211,13 +216,16 @@
     "legacyWalletSessionRouteReached": true,
     "v2ChallengeProbeStatus": 200,
     "v2ChallengeProbeResponse": "JSON-RPC -32601 method not implemented",
-    "v2RoutingOutcome": "misrouted-to-chain-json-rpc-catch-all",
-    "productSessionV2RoutesDeployedPublic": false,
+    "v2RoutingOutcome": "historical-pre-deployment-misroute-to-chain-json-rpc-catch-all",
+    "supersededBy": "evidence/product-session-v2-public-deployment-20260814.json",
+    "productSessionV2RoutesDeployedPublicAtCapture": false,
+    "productSessionV2RoutesDeployedPublicCurrent": true,
     "stateCreated": false,
     "mountReleaseGate": "scripts/probe-product-session-v2-public.mjs",
-    "mountReleaseGateUnitTestsPassed": 6,
-    "mountReleaseGateLiveResult": "UNEXPECTED_HTTP_STATUS",
-    "mountReleaseGateLiveExitCode": 1
+    "mountReleaseGateUnitTestsPassed": 7,
+    "mountReleaseGateLiveResultAtCapture": "UNEXPECTED_HTTP_STATUS",
+    "mountReleaseGateLiveExitCodeAtCapture": 1,
+    "mountReleaseGateCurrentResult": "passed"
   },
   "visibleComputerControl": {
     "app": "Microsoft Edge",
@@ -306,7 +314,9 @@
     "appGatewayDeployedPublic": false,
     "publicAppGatewayReachable": true,
     "legacyWalletSessionRoutesReachable": true,
-    "productSessionV2RoutesDeployedPublic": false,
+    "productSessionV2RoutesDeployedPublic": true,
+    "productSessionV2DeployedSourceCommit": "cc6c393608a11022f8617eede753af4c578d0ecd",
+    "productSessionV2GatewayBoundary": "independent 6441 service; legacy 6437 and 6439 binaries not replaced",
     "downloadHosted": true,
     "downloadHostedScope": "Android Testnet Preview artifact only",
     "productionSigned": false,
