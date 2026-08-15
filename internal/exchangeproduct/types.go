@@ -31,28 +31,32 @@ const (
 var BuildCommit = "development"
 
 type Config struct {
-	StatePath                      string
-	StateDatabaseURL               string
-	APIKey                         string
-	WalletCallback                 string
-	RequiredConfirmations          int64
-	MakerFeeBPS                    int64
-	TakerFeeBPS                    int64
-	WithdrawalFeeMicroYNXT         int64
-	Now                            func() time.Time
-	Chain                          ChainReader
-	CustodyAddress                 string
-	GatewayURL                     string
-	GatewayClientID                string
-	GatewayBundleID                string
-	QuantGatewayClientID           string
-	QuantGatewayBundleID           string
-	Gateway                        GatewayAuthorizer
-	WalletSessionAttested          bool
-	IndexerURL                     string
-	MaxOrderNotionalMicro          int64
-	MaxWithdrawalMicro             int64
-	DeployedPublic                 bool
+	StatePath              string
+	StateDatabaseURL       string
+	APIKey                 string
+	WalletCallback         string
+	RequiredConfirmations  int64
+	MakerFeeBPS            int64
+	TakerFeeBPS            int64
+	WithdrawalFeeMicroYNXT int64
+	Now                    func() time.Time
+	Chain                  ChainReader
+	CustodyAddress         string
+	GatewayURL             string
+	GatewayClientID        string
+	GatewayBundleID        string
+	QuantGatewayClientID   string
+	QuantGatewayBundleID   string
+	Gateway                GatewayAuthorizer
+	WalletSessionAttested  bool
+	IndexerURL             string
+	MaxOrderNotionalMicro  int64
+	MaxWithdrawalMicro     int64
+	DeployedPublic         bool
+	// StrategyVaultExecutionEvidence is a product-owned release gate. Public
+	// routing stays read-only until the Exchange has evidence for Chain Core
+	// v1.35 custody invariants; it is never implied by DeployedPublic.
+	StrategyVaultExecutionEvidence bool
 	DEXGatewayURL                  string
 	DEXQuoteAssetID                string
 	DEXQuoteAssetAttestationDigest string

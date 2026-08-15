@@ -48,6 +48,29 @@ func TestHTTPWriteBoundaryAndStrictSchema(t *testing.T) {
 	}
 }
 
+func TestProductionServerRejectsTestnetExecutionWithoutCustodyEvidence(t *testing.T) {
+	service, err := New(Config{StatePath: filepath.Join(t.TempDir(), "state.json")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	server := httptest.NewServer(NewProductionRoleServer(service, "all", false))
+	defer server.Close()
+	request, err := http.NewRequest(http.MethodPost, server.URL+"/v1/testnet/orders", strings.NewReader(`{}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("X-YNX-Preview-Mode", "local-paper")
+	response, err := http.DefaultClient.Do(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusServiceUnavailable {
+		t.Fatalf("status=%d", response.StatusCode)
+	}
+}
+
 func TestPublicResearchIsRemoteSafeAndDoesNotMutateSharedState(t *testing.T) {
 	service, err := New(Config{StatePath: filepath.Join(t.TempDir(), "shared.json"), MarketData: fixtureMarket{bars: bars()}})
 	if err != nil {

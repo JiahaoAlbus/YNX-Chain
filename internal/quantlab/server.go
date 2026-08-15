@@ -15,12 +15,13 @@ import (
 )
 
 type Server struct {
-	service       *Service
-	mux           *http.ServeMux
-	role          string
-	logger        *slog.Logger
-	metrics       serverMetrics
-	researchSlots chan struct{}
+	service                 *Service
+	mux                     *http.ServeMux
+	role                    string
+	logger                  *slog.Logger
+	metrics                 serverMetrics
+	researchSlots           chan struct{}
+	testnetExecutionEnabled bool
 }
 
 func NewServer(s *Service) *Server {
@@ -32,11 +33,22 @@ func NewRoleServer(s *Service, role string) *Server {
 }
 
 func NewObservedRoleServer(s *Service, role string, logWriter io.Writer) *Server {
+	return newObservedRoleServer(s, role, logWriter, true)
+}
+
+// NewProductionRoleServer creates a server with an explicit product-owned
+// custody evidence gate.  Public delivery passes false until its Chain Core
+// v1.35 Strategy Vault evidence is independently recorded.
+func NewProductionRoleServer(s *Service, role string, executionEnabled bool) *Server {
+	return newObservedRoleServer(s, role, os.Stderr, executionEnabled)
+}
+
+func newObservedRoleServer(s *Service, role string, logWriter io.Writer, executionEnabled bool) *Server {
 	allowed := map[string]bool{"all": true, "research": true, "paper": true, "risk": true}
 	if !allowed[role] {
 		panic("invalid quant service role")
 	}
-	v := &Server{service: s, mux: http.NewServeMux(), role: role, logger: newJSONLogger(logWriter), researchSlots: make(chan struct{}, 32)}
+	v := &Server{service: s, mux: http.NewServeMux(), role: role, logger: newJSONLogger(logWriter), researchSlots: make(chan struct{}, 32), testnetExecutionEnabled: executionEnabled}
 	v.mux.HandleFunc("GET /health", v.health)
 	v.mux.HandleFunc("GET /version", v.version)
 	v.mux.HandleFunc("GET /v1/public/status", v.publicStatus)
@@ -351,6 +363,10 @@ func (s *Server) orderSigningPayload(w http.ResponseWriter, r *http.Request) {
 	write(w, http.StatusOK, map[string]string{"domain": "ynx-exchange-order-v1", "payload": string(payload), "digest": hashBytes(payload)})
 }
 func (s *Server) testnet(w http.ResponseWriter, r *http.Request) {
+	if !s.testnetExecutionEnabled {
+		writeProblem(w, r, http.StatusServiceUnavailable, "strategy_vault_custody_evidence_required")
+		return
+	}
 	var q struct {
 		MandateDigest   string                 `json:"mandateDigest"`
 		Side            string                 `json:"side"`

@@ -253,6 +253,32 @@ func TestServerEmptyTokenRegistryIsStableJSONArray(t *testing.T) {
 	}
 }
 
+func TestServerExecutionRequiresCustodyEvidence(t *testing.T) {
+	store, err := OpenStore(filepath.Join(t.TempDir(), "state.json"), testSecret)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.Append(fixture(99, "liquidity-add")); err != nil {
+		t.Fatal(err)
+	}
+	server, err := NewServer(store, buildinfo.Info{}, strings.Repeat("k", 32), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	server.SetRuntimeBoundary(true, true)
+	recorder := httptest.NewRecorder()
+	server.Handler().ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/health", nil))
+	if !strings.Contains(recorder.Body.String(), `"executionAvailable":false`) || !strings.Contains(recorder.Body.String(), `"executionGateSatisfied":false`) {
+		t.Fatalf("custody gate must fail closed: %s", recorder.Body.String())
+	}
+	server.SetStrategyVaultExecutionEvidence(true)
+	recorder = httptest.NewRecorder()
+	server.Handler().ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/health", nil))
+	if !strings.Contains(recorder.Body.String(), `"executionAvailable":true`) {
+		t.Fatalf("accepted custody evidence not reflected: %s", recorder.Body.String())
+	}
+}
+
 func TestServerRejectsUnreviewedAndDuplicateTokenMetadata(t *testing.T) {
 	store, _ := OpenStore(filepath.Join(t.TempDir(), "state.json"), testSecret)
 	valid := Token{ChainID: ChainID, Address: "0x00000000000000000000000000000000000000ab", Symbol: "ONE", Name: "Test Token One", Decimals: 18, Standard: "ERC-20", ReviewStatus: "owner-reviewed-testnet"}

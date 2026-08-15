@@ -135,6 +135,12 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("X-Request-ID", requestID)
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.Header().Set("Cache-Control", "no-store")
+	if s.service.cfg.DeployedPublic && !s.service.cfg.StrategyVaultExecutionEvidence && exchangeExecutionMutation(r) {
+		writeError(w, http.StatusServiceUnavailable, "strategy_vault_custody_evidence_required", "Exchange routing and Testnet execution are disabled until product-owned Chain Core Strategy Vault v1.35 custody evidence is recorded")
+		s.requests.Add(1)
+		s.errors.Add(1)
+		return
+	}
 	if !s.allowPeer(rateLimitPeer(r), time.Now().UTC()) {
 		w.Header().Set("Retry-After", "60")
 		writeError(w, http.StatusTooManyRequests, "rate_limited", "request rate limit exceeded")
@@ -255,7 +261,21 @@ func validRequestID(value string) bool {
 	return true
 }
 func (s *Server) health(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, 200, map[string]any{"status": "live", "productId": ProductID, "version": Version, "commit": BuildCommit, "venue": "owned deterministic testnet only", "chainId": ChainID, "productionCustody": false})
+	writeJSON(w, 200, map[string]any{"status": "live", "productId": ProductID, "version": Version, "commit": BuildCommit, "venue": "owned deterministic testnet only", "chainId": ChainID, "productionCustody": false, "routingAvailable": s.service.cfg.StrategyVaultExecutionEvidence, "executionGate": "chain_core_strategy_vault_v1_35_product_evidence"})
+}
+
+// exchangeExecutionMutation lists routes that can create, amend, route, move,
+// or settle financial state. Read-only POST adapters remain available for
+// Quant research, but cannot submit an order while this gate is closed.
+func exchangeExecutionMutation(r *http.Request) bool {
+	if r.Method != http.MethodPost && r.Method != http.MethodPut && r.Method != http.MethodDelete {
+		return false
+	}
+	p := r.URL.Path
+	if p == "/v1/quant-adapter/account" || p == "/v1/quant-adapter/orderbook" || p == "/v1/support" || strings.HasPrefix(p, "/v1/ai/") {
+		return false
+	}
+	return strings.HasPrefix(p, "/v1/orders") || strings.HasPrefix(p, "/v1/perpetual/") || strings.HasPrefix(p, "/v1/liquidity/execute") || strings.HasPrefix(p, "/v1/margin/transfer") || strings.HasPrefix(p, "/v1/deposit") || strings.HasPrefix(p, "/v1/withdrawal") || strings.HasPrefix(p, "/v1/conditional-orders") || strings.HasPrefix(p, "/v1/oco") || strings.HasPrefix(p, "/v1/twap") || strings.HasPrefix(p, "/v1/iceberg") || strings.HasPrefix(p, "/v1/scale") || strings.HasPrefix(p, "/v1/dead-man") || strings.HasPrefix(p, "/v1/quant-adapter/orders") || strings.HasPrefix(p, "/v1/quant-adapter/conditional") || strings.HasPrefix(p, "/v1/quant-adapter/oco") || strings.HasPrefix(p, "/v1/quant-adapter/twap") || strings.HasPrefix(p, "/v1/quant-adapter/iceberg") || strings.HasPrefix(p, "/v1/quant-adapter/scale") || strings.HasPrefix(p, "/v1/quant-adapter/control") || strings.HasPrefix(p, "/v1/quant-adapter/kill") || strings.HasPrefix(p, "/v1/quant-adapter/reconcile")
 }
 func (s *Server) ready(w http.ResponseWriter, r *http.Request) {
 	s.service.mu.Lock()

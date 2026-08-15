@@ -23,15 +23,16 @@ var tenantIDPattern = regexp.MustCompile(`^[0-9a-f]{64}$`)
 // and Wallet/Exchange adapters. Tenant IDs are 256-bit unguessable device
 // bindings; Wallet and order signatures remain independently mandatory.
 type TenantServer struct {
-	mu                 sync.Mutex
-	config             Config
-	role               string
-	root               string
-	base               http.Handler
-	servers            map[string]tenantRuntime
-	maxOpen            int
-	financeRead        *readintegration.Verifier
-	financeConcurrency chan struct{}
+	mu                      sync.Mutex
+	config                  Config
+	role                    string
+	root                    string
+	base                    http.Handler
+	servers                 map[string]tenantRuntime
+	maxOpen                 int
+	financeRead             *readintegration.Verifier
+	financeConcurrency      chan struct{}
+	testnetExecutionEnabled bool
 }
 
 type tenantRuntime struct {
@@ -40,6 +41,16 @@ type tenantRuntime struct {
 }
 
 func NewTenantServer(config Config, role string) (*TenantServer, error) {
+	return newTenantServer(config, role, true)
+}
+
+// NewProductionTenantServer binds the custody gate to both the public base
+// server and each isolated tenant runtime.
+func NewProductionTenantServer(config Config, role string, executionEnabled bool) (*TenantServer, error) {
+	return newTenantServer(config, role, executionEnabled)
+}
+
+func newTenantServer(config Config, role string, executionEnabled bool) (*TenantServer, error) {
 	if config.Now == nil {
 		config.Now = func() time.Time { return time.Now().UTC() }
 	}
@@ -54,7 +65,7 @@ func NewTenantServer(config Config, role string) (*TenantServer, error) {
 	if err := os.Chmod(root, 0o700); err != nil {
 		return nil, err
 	}
-	server := &TenantServer{config: config, role: role, root: root, base: NewRoleServer(base, role), servers: map[string]tenantRuntime{}, maxOpen: 1024, financeConcurrency: make(chan struct{}, 16)}
+	server := &TenantServer{config: config, role: role, root: root, base: NewProductionRoleServer(base, role, executionEnabled), servers: map[string]tenantRuntime{}, maxOpen: 1024, financeConcurrency: make(chan struct{}, 16), testnetExecutionEnabled: executionEnabled}
 	if strings.TrimSpace(config.FinanceReadKey) != "" {
 		server.financeRead, err = readintegration.NewVerifier(strings.TrimSpace(config.FinanceReadKey), "finance", "quant", config.Now)
 		if err != nil {
@@ -101,7 +112,7 @@ func (s *TenantServer) tenant(id string) (http.Handler, error) {
 	if err != nil {
 		return nil, err
 	}
-	server := NewRoleServer(service, s.role)
+	server := NewProductionRoleServer(service, s.role, s.testnetExecutionEnabled)
 	s.servers[id] = tenantRuntime{service: service, handler: server}
 	return server, nil
 }

@@ -28,6 +28,28 @@ var (
 	carol, carolKey = testIdentity(3)
 )
 
+func TestExecutionRequiresStrategyVaultCustodyEvidence(t *testing.T) {
+	s, _, _ := newTestService(t)
+	s.cfg.DeployedPublic = true
+	server := httptest.NewServer(NewServer(s))
+	defer server.Close()
+	response, err := http.Post(server.URL+"/v1/orders", "application/json", strings.NewReader(`{}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusServiceUnavailable {
+		t.Fatalf("status=%d", response.StatusCode)
+	}
+	var body map[string]any
+	if err := json.NewDecoder(response.Body).Decode(&body); err != nil {
+		t.Fatal(err)
+	}
+	if body["code"] != "strategy_vault_custody_evidence_required" {
+		t.Fatalf("body=%v", body)
+	}
+}
+
 func testIdentity(seed byte) (string, *secp256k1.PrivateKey) {
 	secret := make([]byte, 32)
 	secret[31] = seed
