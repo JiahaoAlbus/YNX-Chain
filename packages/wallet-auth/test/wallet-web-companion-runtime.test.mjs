@@ -38,7 +38,7 @@ function runtime(options = {}) {
   const requests = [];
   const fetch = async (url, init) => {
     const parsed = new URL(url); requests.push({ path: parsed.pathname, body: init.body, headers: { ...init.headers } });
-    if (options.networkUnavailable?.()) throw new TypeError("offline");
+    if (options.networkUnavailable?.(parsed.pathname)) throw new TypeError("offline");
     await options.beforeRequest?.(parsed.pathname);
     const response = handler.handle({
       requestId: init.headers["x-request-id"], method: init.method, path: parsed.pathname,
@@ -195,6 +195,22 @@ test("Web companion revoke outage retains protected state until Retry re-introsp
   assert.equal((await setup.client.disconnect()).status, PRODUCT_SESSION_CLIENT_STATE.DISCONNECTED);
   assert.equal(await setup.storage.get(setup.client.storageKey), null);
   assert.equal(setup.handler.snapshot().authority.revokedSessions.length, 1);
+});
+
+test("disconnect revokes a protected session issued before an introspection outage instead of orphaning authority", async () => {
+  let introspectionOffline = true;
+  const setup = runtime({ networkUnavailable: (path) => introspectionOffline && path === "/v2/product-sessions/introspect" });
+  const connecting = await setup.client.begin({ walletInstalled: true, schemeRegistered: true });
+  const approval = signProductSessionApproval(registry, connecting.request, { accountSecret: "1".padStart(64, "0"), scopes: connecting.request.scopes, expiresAt: "2026-08-15T09:03:00.000Z" }, NOW);
+  const returned = createProductSessionReturnURL(registry, connecting.request, { result: "approved", approval }, NOW);
+  assert.equal((await setup.client.handleReturn(returned)).status, PRODUCT_SESSION_CLIENT_STATE.NETWORK_UNAVAILABLE);
+  assert.equal(setup.handler.snapshot().authority.sessions.length, 1);
+  assert.notEqual(await setup.storage.get(setup.client.storageKey), null);
+  introspectionOffline = false;
+  assert.equal((await setup.client.disconnect()).status, PRODUCT_SESSION_CLIENT_STATE.DISCONNECTED);
+  assert.equal(setup.handler.snapshot().authority.revokedSessions.length, 1);
+  assert.deepEqual(setup.requests.map((item) => item.path), ["/v2/product-sessions/challenge", "/v2/product-sessions/complete", "/v2/product-sessions/introspect", "/v2/product-sessions/revoke"]);
+  assert.equal(await setup.storage.get(setup.client.storageKey), null);
 });
 
 test("Web companion callback, product, device and scope substitutions fail before session mutation", async () => {

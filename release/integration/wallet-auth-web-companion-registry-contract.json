@@ -87,6 +87,7 @@
     "concurrentDisconnectLinearizedCandidate": true,
     "concurrentCallbackLinearizedCandidate": true,
     "callbackDisconnectNoResurrectionCandidate": true,
+    "postCompletionOutageRevokeCandidate": true,
     "integratedCentral": false,
     "gatewayLoadedPublic": false,
     "deployedPublicRegistry": false,
