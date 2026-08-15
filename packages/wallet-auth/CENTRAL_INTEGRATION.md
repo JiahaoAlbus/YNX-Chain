@@ -6,7 +6,7 @@ This is the merge-ready central protocol candidate implemented and tested by `@y
 
 ## Canonical registry
 
-`central-registry.json` is the only 29-registration candidate inventory. The top-level schema is exact: `registryVersion`, `chainId`, `products`. It requires version `2`, chain `ynx_6423-1`, exactly 29 alphabetically sorted registrations, and globally unique product IDs, client IDs, bundle IDs, and callbacks. Registry v1 migrates only through the exact deterministic migration that replaces the obsolete generic Browser tuple with four disabled platform-bound Browser registrations and adds disabled, pending-review Quant.
+`central-registry.json` is the only 35-registration candidate inventory. The top-level schema is exact: `registryVersion`, `chainId`, `products`. It requires version `2`, chain `ynx_6423-1`, exactly 35 alphabetically sorted registrations, and globally unique product IDs, client IDs, bundle IDs, and callbacks. Registry v1 migrates only through the exact deterministic migration and adds the distinct official Wallet Web companion registration; the generic native Wallet registration remains disabled and cannot authorize the website.
 
 Each product registration uses exact schema v3 fields:
 
@@ -52,7 +52,7 @@ separate human-review and Gateway boundaries. The public Web Developer cannot
 receive the native `ynxdeveloper://` callback, and the central Gateway lifecycle
 is not deployed or attested; those flows must remain unavailable instead of
 falling back to a bearer token, browser-injected signer, or simulated success.
-All other products remain disabled until equivalent product-owned evidence exists.
+The distinct `wallet-web-companion` registration is approved only for the exact HTTPS callback and four least-privilege scopes frozen in `release/integration/wallet-auth-web-companion-registry-contract.json`. Its add-chain, switch-chain and Product Session intents use the canonical authorization envelope and must not reuse an Exchange action. Registry approval is not public deployment: callback routing, Gateway registry loading and installed Android/iOS approve/reject/session flows remain false until direct evidence. All other products remain disabled until equivalent product-owned evidence exists.
 
 ## Canonical envelope and verifier
 

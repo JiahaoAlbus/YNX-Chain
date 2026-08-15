@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "frozenAt": "2026-08-15T08:01:00.000Z",
+  "authority": "Core/Auth",
+  "registry": {
+    "productId": "wallet-web-companion",
+    "displayName": "YNX Wallet Web Companion",
+    "reviewState": "approved",
+    "enabled": true,
+    "productClientId": "ynx-wallet-web-companion-v1",
+    "requestingProduct": "wallet-web-companion",
+    "bundleId": "web.ynx.wallet.companion",
+    "callbacks": ["https://www.ynxweb4.com/dapp/wallet/wallet-auth/callback"],
+    "scopes": ["account:read", "chain:network:add", "chain:network:switch", "wallet:session:request"],
+    "maxScopes": 4,
+    "productDeviceAlgorithms": ["p256-sha256"],
+    "sessionDurationSeconds": 180
+  },
+  "transport": {
+    "androidPackage": "com.ynxweb4.wallet",
+    "androidActivity": ".MainActivity",
+    "deepLink": "ynxwallet://authorize?request=<base64url-canonical-authorization-request>",
+    "builder": "encodeRequestDeepLink",
+    "parsers": {"android": "parseWalletDeepLink", "ios": "parseWalletDeepLink"},
+    "callbackBuilder": "createCallbackURL",
+    "callbackParser": "parseCallbackURL",
+    "operationFieldForbidden": true,
+    "exchangeActionReuseForbidden": true,
+    "note": "Operation intent is represented only by the exact registry scopes and human-readable purpose in a canonical Wallet authorization request; no parallel action route or per-app URI concatenation is permitted."
+  },
+  "operations": {
+    "add-chain": {
+      "scopes": ["account:read", "chain:network:add"],
+      "purpose": "Review adding YNX Testnet to this browser wallet connection.",
+      "requestDigest": "52a952d42730808d32942fdc29c33a88f898561fa555401c04cd82f4f13b8f24",
+      "deepLink": {"length": 822, "sha256": "d8ec9463d97be9e4e8f9d491526badf036d8aced00da632b41a84f1a15464ec8"}
+    },
+    "switch-chain": {
+      "scopes": ["account:read", "chain:network:switch"],
+      "purpose": "Review switching this browser wallet connection to YNX Testnet.",
+      "requestDigest": "323dcc0d4362ba25de2637229c2ed6d52c1e71f78406b77938c758970d76cb25",
+      "deepLink": {"length": 834, "sha256": "ec15d83117ab2353c1958e339f142ed919b48fe0b6b03869f1339b62b5390e7b"}
+    },
+    "product-session": {
+      "scopes": ["account:read", "wallet:session:request"],
+      "purpose": "Review a short-lived Product Session for the official YNX Wallet Web companion.",
+      "requestDigest": "5574b7edbdb69b05875dde66b917a0a4a110a99c02c8e16651a400275b1b74ec",
+      "deepLink": {"length": 862, "sha256": "88d6f706b1596d4f019666025d48f5339f8b8750e221287c4594a324c735c28d"},
+      "approvalCallback": {"length": 1408, "sha256": "2795d6e05105e6d9ddd7cb6bf94f627d97cc6ef0298041590552a06a7fb1d882"},
+      "rejectionCallback": {"length": 758, "sha256": "8351fab904cc4ce431bbeefedd69949c5c58ad1e8b94e7a7a608db6548c33282"}
+    }
+  },
+  "failClosed": [
+    "unknown or disabled product client",
+    "wrong requesting product",
+    "wrong bundle",
+    "wrong HTTPS callback",
+    "scope outside the exact allowlist",
+    "scope widening or wildcard",
+    "expired or replayed request",
+    "callback substitution",
+    "provider absent or Wallet intent unresolved"
+  ],
+  "handoff": {
+    "webOwner": "Consume the exact registry tuple, callback and shared encode/callback APIs; do not report injected-provider success after returning to external Chrome.",
+    "androidOwner": "Consume the existing canonical com.ynxweb4.wallet intent contract; resolve before explicit launch and show safe Wallet download/MetaMask alternatives when absent.",
+    "iosOwner": "Consume the same canonical authorization request and exact HTTPS callback; associated-domain enablement remains a separately frozen Core input.",
+    "gatewayOwner": "Load the exact enabled registry and attest its digest/client list before accepting Product Session lifecycle requests."
+  },
+  "truthBoundary": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "integratedCentral": false,
+    "deployedPublicRegistry": false,
+    "callbackRouteDeployed": false,
+    "androidVisibleApproveRejectCallbackSession": false,
+    "iosVisibleApproveRejectCallbackSession": false,
+    "webCompanionVisibleSuccess": false,
+    "aggregatePublic": false
+  }
+}

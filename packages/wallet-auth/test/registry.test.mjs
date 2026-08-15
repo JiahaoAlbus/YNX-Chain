@@ -5,11 +5,11 @@ import { centralRegistrationByProduct, migrateCentralRegistryDocumentV1, parseCe
 
 const source = JSON.parse(readFileSync(new URL("../central-registry.json", import.meta.url), "utf8"));
 
-test("central registry contains 34 unique, least-privilege products including platform-bound Bridge, Browser, Cloud, Docs, Music and Video registrations", () => {
+test("central registry contains 35 unique, least-privilege products including the distinct official Wallet Web companion", () => {
   const registry = parseCentralRegistryDocument(source);
-  assert.equal(registry.products.length, 34);
+  assert.equal(registry.products.length, 35);
   const approved = registry.products.filter((product) => product.enabled);
-  assert.deepEqual(approved.map((product) => product.productId), ["bridge-web", "browser-android", "browser-ios", "browser-macos", "browser-windows", "calendar", "cloud-mobile", "cloud-web", "creator-studio", "developer", "dex", "docs-mobile", "docs-web", "exchange", "finance", "mail", "merchant-console", "music-mobile", "music-web", "pay", "quant", "search", "seller-console", "shop", "social", "video-mobile", "video-web"]);
+  assert.deepEqual(approved.map((product) => product.productId), ["bridge-web", "browser-android", "browser-ios", "browser-macos", "browser-windows", "calendar", "cloud-mobile", "cloud-web", "creator-studio", "developer", "dex", "docs-mobile", "docs-web", "exchange", "finance", "mail", "merchant-console", "music-mobile", "music-web", "pay", "quant", "search", "seller-console", "shop", "social", "video-mobile", "video-web", "wallet-web-companion"]);
   assert.equal(approved.every((product) => product.reviewState === "approved"), true);
   assert.equal(registry.products.filter((product) => !product.enabled).every((product) => product.reviewState === "pending-review"), true);
   assert.equal(registry.products.every((product) => product.scopes.length <= product.maxScopes && product.scopes.every((scope) => !scope.includes("*"))), true);
@@ -132,12 +132,22 @@ test("central registry contains 34 unique, least-privilege products including pl
   assert.equal(search.bundleId, "com.ynxweb4.search.web");
   assert.deepEqual(search.callbacks, ["https://web4.ynxweb4.com/search/auth/callback"]);
   assert.deepEqual(search.scopes, ["account:read", "search:cases"]);
+  const nativeWallet = centralRegistrationByProduct(registry, "wallet", { requireEnabled: false });
+  assert.equal(nativeWallet.enabled, false);
+  assert.equal(nativeWallet.reviewState, "pending-review");
+  const companion = centralRegistrationByProduct(registry, "wallet-web-companion");
+  assert.equal(companion.productClientId, "ynx-wallet-web-companion-v1");
+  assert.equal(companion.requestingProduct, "wallet-web-companion");
+  assert.equal(companion.bundleId, "web.ynx.wallet.companion");
+  assert.deepEqual(companion.callbacks, ["https://www.ynxweb4.com/dapp/wallet/wallet-auth/callback"]);
+  assert.deepEqual(companion.scopes, ["account:read", "chain:network:add", "chain:network:switch", "wallet:session:request"]);
+  assert.equal(companion.sessionDurationSeconds, 180);
 });
 
 test("registry v1 migrates deterministically with disabled platform-specific Browser and Cloud registrations", () => {
   const legacy = structuredClone(source);
   legacy.registryVersion = 1;
-  legacy.products = legacy.products.filter(product => product.productId !== "quant" && product.productId !== "bridge-web" && !product.productId.startsWith("browser-") && !product.productId.startsWith("cloud-") && !product.productId.startsWith("docs-") && !product.productId.startsWith("music-") && !product.productId.startsWith("video-"));
+  legacy.products = legacy.products.filter(product => product.productId !== "quant" && product.productId !== "bridge-web" && product.productId !== "wallet-web-companion" && !product.productId.startsWith("browser-") && !product.productId.startsWith("cloud-") && !product.productId.startsWith("docs-") && !product.productId.startsWith("music-") && !product.productId.startsWith("video-"));
   legacy.products.push({schemaVersion:3,productId:"cloud",displayName:"YNX Cloud",reviewState:"pending-review",enabled:false,productClientId:"ynx-cloud-mobile-v1",requestingProduct:"cloud",bundleId:"com.ynxweb4.cloud",callbacks:["ynxcloud://wallet-auth/callback"],scopes:["ai.use","audit.read","files.read","files.write","permissions.manage"],maxScopes:5,productDeviceAlgorithms:["p256-sha256"],sessionDurationSeconds:240,revocationPolicy:{session:true,approval:true,device:true,accountAllDevices:true}});
   legacy.products.push({schemaVersion:3,productId:"browser",displayName:"YNX Browser",reviewState:"pending-review",enabled:false,productClientId:"ynx-browser-v1",requestingProduct:"browser",bundleId:"com.ynxweb4.browser",callbacks:["ynxbrowser://wallet-auth/callback"],scopes:["browser:account","browser:sync"],maxScopes:2,productDeviceAlgorithms:["p256-sha256"],sessionDurationSeconds:240,revocationPolicy:{session:true,approval:true,device:true,accountAllDevices:true}});
   legacy.products.push({schemaVersion:3,productId:"docs",displayName:"YNX Docs",reviewState:"pending-review",enabled:false,productClientId:"ynx-docs-mobile-v1",requestingProduct:"docs",bundleId:"com.ynxweb4.docs",callbacks:["ynxdocs://wallet-auth/callback"],scopes:["comments.write","documents.read","documents.write","sharing.manage"],maxScopes:4,productDeviceAlgorithms:["p256-sha256"],sessionDurationSeconds:240,revocationPolicy:{session:true,approval:true,device:true,accountAllDevices:true}});

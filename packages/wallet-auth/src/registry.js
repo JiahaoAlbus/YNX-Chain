@@ -17,7 +17,7 @@ const REGISTRY_V1_PRODUCT_IDS = Object.freeze([
 ]);
 
 export const CENTRAL_REGISTRY_DOCUMENT_VERSION = 2;
-export const CENTRAL_REGISTRY_PRODUCT_COUNT = 34;
+export const CENTRAL_REGISTRY_PRODUCT_COUNT = 35;
 export const CENTRAL_PRODUCT_SCHEMA_VERSION = 3;
 
 export function parseCentralRegistryDocument(input) {
@@ -53,6 +53,7 @@ export function migrateCentralRegistryDocumentV1(input) {
     canonicalBridgeRegistration(),
     canonicalQuantRegistration(),
     canonicalSearchRegistration(),
+    canonicalWalletWebCompanionRegistration(),
   ]
     .sort((left, right) => left.productId.localeCompare(right.productId));
   return parseCentralRegistryDocument({
@@ -60,6 +61,25 @@ export function migrateCentralRegistryDocumentV1(input) {
     chainId: YNX_NATIVE_CHAIN_ID,
     products: migratedProducts,
   });
+}
+
+function canonicalWalletWebCompanionRegistration() {
+  return {
+    schemaVersion: CENTRAL_PRODUCT_SCHEMA_VERSION,
+    productId: "wallet-web-companion",
+    displayName: "YNX Wallet Web Companion",
+    reviewState: "approved",
+    enabled: true,
+    productClientId: "ynx-wallet-web-companion-v1",
+    requestingProduct: "wallet-web-companion",
+    bundleId: "web.ynx.wallet.companion",
+    callbacks: ["https://www.ynxweb4.com/dapp/wallet/wallet-auth/callback"],
+    scopes: ["account:read", "chain:network:add", "chain:network:switch", "wallet:session:request"],
+    maxScopes: 4,
+    productDeviceAlgorithms: ["p256-sha256"],
+    sessionDurationSeconds: 180,
+    revocationPolicy: { session: true, approval: true, device: true, accountAllDevices: true },
+  };
 }
 
 function canonicalBridgeRegistration() {

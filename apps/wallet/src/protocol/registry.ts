@@ -171,6 +171,12 @@ const REVIEWED_ENTRIES = [
     scopes: ["video.comment", "video.history", "video.read", "video.report", "video.subscribe"], maxScopes: 5,
     productDeviceAlgorithms: ["p256-sha256"],
   },
+  {
+    schemaVersion: 2, productClientId: "ynx-wallet-web-companion-v1", requestingProduct: "wallet-web-companion",
+    bundleId: "web.ynx.wallet.companion", callbacks: ["https://www.ynxweb4.com/dapp/wallet/wallet-auth/callback"],
+    scopes: ["account:read", "chain:network:add", "chain:network:switch", "wallet:session:request"], maxScopes: 4,
+    productDeviceAlgorithms: ["p256-sha256"],
+  },
 ] as const;
 
 export const PRODUCT_REGISTRY:Readonly<Record<string,ProductBinding>>=Object.freeze(Object.assign({},...REVIEWED_ENTRIES.map((entry)=>registryParserBinding(parseCentralRegistryEntry(entry)))));
@@ -179,6 +185,8 @@ export const SCOPE_EXPLANATIONS: Readonly<Record<string, string>> = Object.freez
   "ai.video.propose": "Create reviewable Creator Studio AI proposals; AI cannot publish, claim rights, moderate accounts or move YNXT.",
   "account:read": "Share this account's public ynx1 address. No secret or recovery material leaves Wallet.",
   "browser:wallet-request": "Review one exact Browser-originated Wallet request. Browser cannot sign, move funds, widen scopes or create a Wallet session by itself.",
+  "chain:network:add": "Review adding the exact YNX Testnet chain metadata to the official Web companion connection. This cannot select another chain or submit a transaction.",
+  "chain:network:switch": "Review switching the official Web companion connection to YNX Testnet. This cannot add an unregistered network or submit a transaction.",
   "bridge:quote:read": "Request a fresh, account-bound Bridge route quote. A quote cannot sign, submit or move an asset.",
   "bridge:review:create": "Create an exact Wallet review of a fresh Bridge quote. The review cannot submit externally or replace the final transfer signature.",
   "calendar:account": "Connect this account to Calendar events, invitations and settings without sharing keys or recovery material.",
@@ -235,4 +243,5 @@ export const SCOPE_EXPLANATIONS: Readonly<Record<string, string>> = Object.freez
   "video.read": "Read this account's Creator Studio records and authoritative persisted analytics.",
   "video.report": "Submit an evidence-bound Video report for human review; it cannot automatically remove content or penalize an account.",
   "video.subscribe": "Manage this account's Video channel subscriptions and no other account's subscription state.",
+  "wallet:session:request": "Request a short-lived, device-bound Product Session for the official Wallet Web companion. Every scope remains registry-bound and revocable.",
 });
