@@ -66,7 +66,8 @@
     "consumedRouterSource": "48ca620105d07a78b1abb8bd02648ed7b0fe4772",
     "networkEpochSemanticsConsumed": true,
     "completionOrderingStrengthened": "An issued Session is protected before a network-epoch transition can return, preventing orphan authority.",
-    "secureSignerReconciliationPending": true
+    "secureSignerSemanticsConsumed": true,
+    "secureSignerReconciliationPending": false
   },
   "failClosed": [
     "unknown or disabled product client",
@@ -97,6 +98,7 @@
     "restoreDisconnectNoResurrectionCandidate": true,
     "networkEpochCandidate": true,
     "completionNetworkTransitionProtectedCandidate": true,
+    "platformSecureSignerCandidate": true,
     "integratedCentral": false,
     "gatewayLoadedPublic": false,
     "deployedPublicRegistry": false,
