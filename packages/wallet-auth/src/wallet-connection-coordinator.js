@@ -1,7 +1,7 @@
 import { exactFields, WalletAuthError } from "./canonical.js";
 import { MetaMaskEvmConnectionAdapter } from "./metamask-evm-adapter.js";
 import { PRODUCT_SESSION_CLIENT_STATE, RecoverableProductSessionClient } from "./product-session-recovery.js";
-import { parseProductSessionRegistry } from "./product-session-registry.js";
+import { migrateLegacyCallback, parseProductSessionRegistry } from "./product-session-registry.js";
 import { discoverWalletProviders, walletAvailabilityFromDiscovery } from "./wallet-provider-discovery.js";
 
 export const WALLET_CONNECTION_COORDINATOR_STATUS = Object.freeze({
@@ -42,6 +42,10 @@ export class WalletConnectionCoordinator {
 
   async restore(networkAvailable = true) { return this.#openIfConnecting(await this.#client.restore(networkAvailable)); }
   async beginYNX() { return this.#openIfConnecting(await this.#client.beginDetected(false)); }
+  async beginLegacyYNX(legacyCallback) {
+    const migration = migrateLegacyCallback(this.#registry, legacyCallback, { productId: this.#productId, platform: this.#client.connectionBinding.platform });
+    return frozen({ ...(await this.beginYNX()), migration });
+  }
   async retryYNX() { return this.#openIfConnecting(await this.#client.retryDetected()); }
   async handleReturn(url) { return frozen({ status: WALLET_CONNECTION_COORDINATOR_STATUS.SESSION_STATE, sessionState: await this.#client.handleReturn(url) }); }
   setNetworkAvailable(available) { return frozen({ status: WALLET_CONNECTION_COORDINATOR_STATUS.SESSION_STATE, sessionState: this.#client.setNetworkAvailable(available) }); }

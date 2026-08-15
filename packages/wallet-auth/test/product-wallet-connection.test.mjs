@@ -82,6 +82,20 @@ test("factory owns cryptographic nonce generation across 120 concurrent connecti
   assert.equal(states.every((value) => /^[A-Za-z0-9_-]{43}$/.test(value)), true);
 });
 
+test("factory migrates only the registered product legacy scheme before opening", async () => {
+  const opened = [];
+  const connection = createProductWalletConnection(config({ platform: "android", openWallet: async (input) => { opened.push(input); return { opened: true }; } }));
+  const result = await connection.beginLegacyYNX("ynx-social");
+  assert.equal(result.status, WALLET_CONNECTION_COORDINATOR_STATUS.WALLET_OPENED);
+  assert.deepEqual(result.migration, {
+    migrated: true, legacyValue: "ynx-social", callback: "ynx-social://com.ynx.social",
+    productId: "social", clientId: "ynx-social-v1", platform: "android",
+  });
+  assert.match(opened[0].url, /^ynxwallet:\/\/authorize\?request=/);
+  assert.equal(opened[0].url.includes("ynx-social"), false);
+  await assert.rejects(() => connection.beginLegacyYNX("ynx-unknown"), code("UNKNOWN_LEGACY_SCHEME"));
+});
+
 test("factory rejects callback, origin, session and unknown configuration injection", () => {
   for (const hostile of [
     { callback: "ynx-social" },
