@@ -17,7 +17,7 @@ const secret = Buffer.alloc(32, 29);
 const deviceKey = Buffer.from(p256.getPublicKey(secret, true)).toString("base64url");
 function token(value) { return createHash("sha256").update(value).digest("base64url"); }
 function storage() { const values = new Map(); return { securityLevel: "os-protected", async get(key) { return values.get(key) ?? null; }, async set(key, value) { values.set(key, value); }, async remove(key) { values.delete(key); } }; }
-function config(overrides = {}) { return { registry, productId: "social", platform: "web", fetch: async () => { throw new Error("not used"); }, walletInstalled: async () => true, schemeRegistered: async () => true, gatewayTimeoutMs: 5_000, storage: storage(), device: { id: "social-device-factory-001", key: deviceKey, secret: secret.toString("base64url"), scopes: ["account:read", "profile:link"], purpose: "Connect Social through the canonical public SDK factory." }, scope: {}, discoveryWaitMs: 0, openWallet: async () => ({ opened: true }), openTimeoutMs: 1_000, ...overrides }; }
+function config(overrides = {}) { return { registry, productId: "social", platform: "web", walletInstalled: async () => true, schemeRegistered: async () => true, gatewayTimeoutMs: 5_000, storage: storage(), device: { id: "social-device-factory-001", key: deviceKey, secret: secret.toString("base64url"), scopes: ["account:read", "profile:link"], purpose: "Connect Social through the canonical public SDK factory." }, scope: {}, discoveryWaitMs: 0, openWallet: async () => ({ opened: true }), openTimeoutMs: 1_000, ...overrides }; }
 
 test("public subpath exposes the single product connection factory", () => {
   assert.equal(productConnectionSubpath.createProductWalletConnection, createProductWalletConnection);
@@ -51,29 +51,35 @@ test("factory completes the real Gateway lifecycle and restores it after a secon
     }, new Date());
     return new Response(response.body, { status: response.status, headers: response.headers });
   };
-  const protectedStorage = storage();
-  const opened = [];
-  const first = createProductWalletConnection(config({ fetch, storage: protectedStorage, openWallet: async (input) => { opened.push(input); return { opened: true }; } }));
-  const pending = await first.beginYNX();
-  const approvalTime = new Date(pending.sessionState.request.issuedAt);
-  const approvalExpiresAt = new Date(approvalTime.getTime() + 180_000).toISOString();
-  const approval = signProductSessionApproval(registry, pending.sessionState.request, {
-    accountSecret: "1".padStart(64, "0"), scopes: pending.sessionState.request.scopes,
-    expiresAt: approvalExpiresAt,
-  }, approvalTime);
-  const callback = createProductSessionReturnURL(registry, pending.sessionState.request, { result: "approved", approval }, approvalTime);
-  const connected = await first.handleReturn(callback);
-  assert.equal(connected.sessionState.status, PRODUCT_SESSION_CLIENT_STATE.CONNECTED);
-  assert.equal(connected.sessionState.session.productId, "social");
-  assert.equal(handler.snapshot().authority.sessions.length, 1);
-  assert.equal(opened.length, 1);
-  assert.equal(gatewayOrigins.every((origin) => origin === PRODUCT_SESSION_PUBLIC_GATEWAY_ORIGIN), true);
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = fetch;
+  try {
+    const protectedStorage = storage();
+    const opened = [];
+    const first = createProductWalletConnection(config({ storage: protectedStorage, openWallet: async (input) => { opened.push(input); return { opened: true }; } }));
+    const pending = await first.beginYNX();
+    const approvalTime = new Date(pending.sessionState.request.issuedAt);
+    const approvalExpiresAt = new Date(approvalTime.getTime() + 180_000).toISOString();
+    const approval = signProductSessionApproval(registry, pending.sessionState.request, {
+      accountSecret: "1".padStart(64, "0"), scopes: pending.sessionState.request.scopes,
+      expiresAt: approvalExpiresAt,
+    }, approvalTime);
+    const callback = createProductSessionReturnURL(registry, pending.sessionState.request, { result: "approved", approval }, approvalTime);
+    const connected = await first.handleReturn(callback);
+    assert.equal(connected.sessionState.status, PRODUCT_SESSION_CLIENT_STATE.CONNECTED);
+    assert.equal(connected.sessionState.session.productId, "social");
+    assert.equal(handler.snapshot().authority.sessions.length, 1);
+    assert.equal(opened.length, 1);
+    assert.equal(gatewayOrigins.every((origin) => origin === PRODUCT_SESSION_PUBLIC_GATEWAY_ORIGIN), true);
 
-  const restarted = createProductWalletConnection(config({ fetch, storage: protectedStorage }));
-  const restored = await restarted.restore(true);
-  assert.equal(restored.status, WALLET_CONNECTION_COORDINATOR_STATUS.SESSION_STATE);
-  assert.equal(restored.sessionState.status, PRODUCT_SESSION_CLIENT_STATE.CONNECTED);
-  assert.equal(restored.sessionState.session.sessionBinding, connected.sessionState.session.sessionBinding);
+    const restarted = createProductWalletConnection(config({ storage: protectedStorage }));
+    const restored = await restarted.restore(true);
+    assert.equal(restored.status, WALLET_CONNECTION_COORDINATOR_STATUS.SESSION_STATE);
+    assert.equal(restored.sessionState.status, PRODUCT_SESSION_CLIENT_STATE.CONNECTED);
+    assert.equal(restored.sessionState.session.sessionBinding, connected.sessionState.session.sessionBinding);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });
 
 test("factory owns cryptographic nonce generation across 120 concurrent connections", async () => {
@@ -107,6 +113,7 @@ test("factory rejects callback, origin, session and unknown configuration inject
     { session: { account: "fake" } },
     { walletUrl: "javascript:alert(1)" },
     { gatewayEndpoint: "https://attacker.example" },
+    { fetch: async () => new Response("{}") },
     { tokenFactory: () => "predictable" },
     { clock: () => new Date(0) },
   ]) assert.throws(() => createProductWalletConnection(config(hostile)), code("UNKNOWN_OR_MISSING_FIELD"));
@@ -115,6 +122,10 @@ test("factory rejects callback, origin, session and unknown configuration inject
 test("factory fails closed on unknown products and insecure storage", () => {
   assert.throws(() => createProductWalletConnection(config({ productId: "unknown" })), code("UNKNOWN_PRODUCT"));
   assert.throws(() => createProductWalletConnection(config({ storage: { securityLevel: "local", async get() { return null; }, async set() {}, async remove() {} } })), code("INSECURE_STORAGE"));
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = undefined;
+  try { assert.throws(() => createProductWalletConnection(config()), code("INVALID_GATEWAY")); }
+  finally { globalThis.fetch = originalFetch; }
 });
 
 function code(expected) { return (error) => error instanceof WalletAuthError && error.code === expected; }
