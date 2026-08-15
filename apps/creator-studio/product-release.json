@@ -1,7 +1,7 @@
 {
   "productId": "ynx-creator-studio",
   "name": "YNX Creator Studio",
-  "branch": "codex/creator-central-20260804",
+  "branch": "codex/creator-studio-central-wallet-20260809",
   "commit": "3353bdfada4435f2acdbe09d82d2603a7af796ac",
   "version": "0.3.0-testnet-preview.1",
   "surfaces": ["web"],
@@ -23,18 +23,19 @@
   "minOS": {"browser": "current evergreen browser"},
   "installEvidence": {
     "web": "public Testnet route plus 100/100 concurrent API health, Viewer and Creator Studio requests",
-    "boundary": "single-host public Testnet preview; unauthenticated creator operations return 401 and central Wallet/Gateway registration remains pending"
+    "boundary": "single-host public Testnet preview; the current public build still rejects Creator Studio Wallet sessions until this exact registry, callback, Gateway completion and service-introspection change is reviewed and deployed"
   },
   "centralIntegration": {
-    "status": "integration-request-only",
-    "registryCandidate": "internal/video/integration/registry-v2.json",
-    "gatewayManifest": "internal/video/integration/appgateway-video-manifest.json"
+    "status": "implemented-and-locally-tested-review-required",
+    "registryCandidate": "packages/wallet-auth/central-registry.json",
+    "gatewayCompletion": "apps/creator-studio/creator-wallet-auth.js",
+    "serviceIntrospection": "internal/video/central_gateway_auth.go"
   },
   "knownLimitations": [
-    "Central Wallet/Gateway registration remains pending, so private creator operations fail closed",
+    "The public deployment still has the old disabled registry and broken callback; private operations remain unavailable until the reviewed change is deployed",
     "Public service is a single-host Testnet preview, not an HA production deployment",
     "No live provider AI, Trust delegated appeal or Pay settlement",
     "Analytics and revenue remain zero without authoritative persisted events"
   ],
-  "generatedAt": "2026-08-04T02:38:00Z"
+  "generatedAt": "2026-08-09T05:27:00Z"
 }
