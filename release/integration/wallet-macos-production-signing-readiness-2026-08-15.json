@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "owner": "02-wallet-auth-ios-macos-native",
+  "workflow": ".github/workflows/wallet-macos-notarized-release.yml",
+  "trigger": "workflow_dispatch only",
+  "protectedEnvironment": "wallet-macos-production",
+  "requiredInputs": ["expected_source_sha", "release_tag", "publish_release"],
+  "requiredSecrets": [
+    "YNX_APPLE_TEAM_ID",
+    "YNX_MACOS_DEVELOPER_ID_APPLICATION",
+    "YNX_MACOS_DEVELOPER_ID_P12_BASE64",
+    "YNX_MACOS_DEVELOPER_ID_P12_PASSWORD",
+    "YNX_APPLE_NOTARY_KEY_ID",
+    "YNX_APPLE_NOTARY_ISSUER_ID",
+    "YNX_APPLE_NOTARY_PRIVATE_KEY_P8_BASE64"
+  ],
+  "failClosedChecks": [
+    "exact 40-character checked-out source SHA",
+    "immutable non-existing release tag",
+    "real 10-character Apple Team ID and explicit FAKETEAMID rejection",
+    "Developer ID Application identity bound to the exact Team ID",
+    "isolated temporary keychain",
+    "hardened runtime and timestamped codesign",
+    "notarytool Accepted response",
+    "stapler validation",
+    "Gatekeeper source=Notarized Developer ID",
+    "explicit publish_release=true before GitHub Release creation"
+  ],
+  "currentEvidence": {
+    "workflowDispatched": false,
+    "secretsPresenceInspected": false,
+    "developerIDSignedArtifact": false,
+    "notarizationAccepted": false,
+    "stapled": false,
+    "gatekeeperAccepted": false,
+    "productionReleasePublished": false
+  },
+  "gates": {
+    "productionSigningWorkflowReadyInSource": true,
+    "developerIDSigned": false,
+    "notarized": false,
+    "productionSigned": false,
+    "storeReleased": false,
+    "officialWebsiteDownloadListed": false
+  }
+}
