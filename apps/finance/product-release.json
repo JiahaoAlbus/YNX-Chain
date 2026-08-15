@@ -13,7 +13,7 @@
     "android": true,
     "ios": false
   },
-  "integratedCentral": true,
+  "integratedCentral": false,
   "deployedStaging": false,
   "deployedPublic": true,
   "downloadHosted": true,
@@ -23,7 +23,7 @@
     "implementedLocal": true,
     "testedLocal": true,
     "installedLocal": true,
-    "integratedCentral": true,
+    "integratedCentral": false,
     "deployedStaging": false,
     "deployedPublic": true,
     "downloadHosted": true,
@@ -101,7 +101,12 @@
     "envelopeVersion": "finance-source-read-envelope-v1",
     "schema": "release/integration/finance-source-read-envelope.schema.json",
     "contractStatus": "consumer-proposal",
-    "ownerContractsAccepted": {"exchange": false, "dex": false, "quant": false, "economics": false},
+    "ownerContractsAccepted": {
+      "exchange": false,
+      "dex": false,
+      "quant": false,
+      "economics": false
+    },
     "integratedCentral": false,
     "readOnly": true,
     "wrongBindingRejected": true,
@@ -109,6 +114,15 @@
     "unsafeActionUrlsRejected": true,
     "pendingSourcesAvailable": false,
     "sourceCommit": "592195a1a4c5bed434d984482a1e87202de213ce"
+  },
+  "publicOwnerProductNavigation": {
+    "deployedAt": "2026-08-10T01:29:24Z",
+    "exchange": "https://exchange.ynxweb4.com/",
+    "dex": "https://dex.ynxweb4.com/",
+    "quant": "https://quant.ynxweb4.com/",
+    "readOnlyNavigation": true,
+    "grantsOwnerCapability": false,
+    "ownerDataContractsAccepted": false
   },
   "activityCursor": {
     "version": 1,

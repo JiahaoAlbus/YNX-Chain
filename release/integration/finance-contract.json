@@ -5,7 +5,7 @@
   "productSlug": "finance",
   "owner": "24-finance",
   "sourceBranch": "codex/final-finance",
-  "sourceCommit": "5cd7e5761c830b5cf766da30a39e0727f4cf54c9",
+  "sourceCommit": "307273b93df29bf064cb64324109571c00a63dc2",
   "network": {
     "cosmosChainId": "ynx_6423-1",
     "evmChainId": 6423,
@@ -17,10 +17,17 @@
     "bundleId": "com.ynxweb4.finance",
     "callback": "ynxfinance://wallet-auth/callback",
     "requiredScopes": ["finance.portfolio.read"],
-    "optionalScopes": ["finance.ai.draft", "finance.pay.read", "finance.profile.write"],
+    "optionalScopes": [
+      "finance.ai.draft",
+      "finance.pay.read",
+      "finance.profile.write"
+    ],
     "canonicalManifest": "apps/finance/integration/wallet-auth/integration-manifest.json",
     "canonicalVector": "apps/finance/integration/wallet-auth/test-vector.json",
-    "centralIntegration": false
+    "centralIntegration": false,
+    "registryMerged": true,
+    "gatewayDeployed": true,
+    "installedApprovalTested": false
   },
   "runtime": {
     "health": "/health",
@@ -51,7 +58,8 @@
       "YNX_FINANCE_DEX_ACTION_URL",
       "YNX_FINANCE_QUANT_ACTION_URL",
       "YNX_FINANCE_ECONOMICS_ACTION_URL"
-    ]
+    ],
+    "publicEvidence": "artifacts/finance/remote-public-probe-20260809.json"
   },
   "operations": {
     "stateVersion": 1,
@@ -126,14 +134,29 @@
     "keyMinimumCharacters": 32,
     "keySource": "operator secret manager",
     "rotationEffect": "Outstanding cursors are intentionally invalidated and clients restart pagination.",
-    "rejections": ["tamper", "wrong account", "stale snapshot", "unsupported version", "negative offset"]
+    "rejections": [
+      "tamper",
+      "wrong account",
+      "stale snapshot",
+      "unsupported version",
+      "negative offset"
+    ]
   },
   "payAdapter": {
     "owner": "04-pay",
     "route": "/pay/events?limit=200",
     "authentication": "X-YNX-Pay-Key supplied server-side only",
     "adapterVersion": "finance-pay-events-v1",
-    "ownershipFilter": ["account", "signer", "payer", "buyer", "merchant", "seller", "from", "to"],
+    "ownershipFilter": [
+      "account",
+      "signer",
+      "payer",
+      "buyer",
+      "merchant",
+      "seller",
+      "from",
+      "to"
+    ],
     "failureState": "unavailable; no placeholder receipt",
     "remoteAuthorizedSmoke": false
   },
@@ -145,9 +168,30 @@
     "integratedCentral": false,
     "readOnly": true,
     "maximumEnvelopeBytes": 2097152,
-    "requiredBindings": ["sourceId", "owner", "network", "nativeAsset", "authorizedAccount", "ownerContractVersion", "payloadSchema"],
+    "requiredBindings": [
+      "sourceId",
+      "owner",
+      "network",
+      "nativeAsset",
+      "authorizedAccount",
+      "ownerContractVersion",
+      "payloadSchema"
+    ],
     "requiredProvenance": ["asOf", "asOfKind", "coverage", "syncStatus"],
-    "failClosed": ["owner contract not accepted", "wrong source owner", "wrong account", "wrong network", "wrong native asset", "wrong owner contract version", "wrong payload schema", "unknown field", "future asOf", "empty payload", "capability not accepted", "mutation capability"],
+    "failClosed": [
+      "owner contract not accepted",
+      "wrong source owner",
+      "wrong account",
+      "wrong network",
+      "wrong native asset",
+      "wrong owner contract version",
+      "wrong payload schema",
+      "unknown field",
+      "future asOf",
+      "empty payload",
+      "capability not accepted",
+      "mutation capability"
+    ],
     "actionLinks": "Optional reviewed HTTPS navigation only; they do not configure an adapter, grant capability or make a source available."
   },
   "futureReadDependencies": [
@@ -200,8 +244,8 @@
     },
     "integratedCentral": false,
     "deployedStaging": false,
-    "deployedPublic": false,
-    "downloadHosted": false,
+    "deployedPublic": true,
+    "downloadHosted": true,
     "productionSigned": false,
     "storeReleased": false
   }

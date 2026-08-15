@@ -7,7 +7,9 @@ Reviewed 2026-07-29 for the 1.2.0 Testnet candidate.
 - Native request, callback parsing, approval verification, request digest and P-256 product-device proof delegate to the shared canonical Wallet package.
 - The edge Gateway verifies exact registry bindings, scopes, expiry and nonce once, issues an opaque scoped token, provides internal-key-protected introspection/revoke routes and rejects tamper/replay.
 - The Go API accepts no address identity or locally signed assertion. Every request introspects the bearer session and verifies verifier, session/request bindings, client, bundle, account, scopes and expiry.
-- Local edge replay/revocation state is in memory. A production deployment must use shared persistent storage before `gatewayDeployed` or `integratedCentral` can become true.
+- Public Testnet Gateway replay/revocation state is in memory. A production
+  Gateway must use shared persistent storage; `integratedCentral` also remains
+  false until the installed strong-biometric approval/callback flow passes.
 
 ## Data protection and privacy
 

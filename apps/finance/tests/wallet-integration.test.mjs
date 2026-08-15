@@ -28,8 +28,8 @@ test('Finance request digest matches the canonical cross-product test vector',()
   assert.equal(vector.session.verifierVersion,'wallet-auth-v1');
 });
 
-test('central status remains false until registry merge, deployment and installed approval pass',()=>{
-  assert.equal(manifest.centralIntegration.registryMerged,false);
-  assert.equal(manifest.centralIntegration.gatewayDeployed,false);
+test('central status remains false until installed strong-biometric approval and callback pass',()=>{
+  assert.equal(manifest.centralIntegration.registryMerged,true);
+  assert.equal(manifest.centralIntegration.gatewayDeployed,true);
   assert.equal(manifest.centralIntegration.walletApprovalTestedOnInstalledBuild,false);
 });
