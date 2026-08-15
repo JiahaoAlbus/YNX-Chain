@@ -6,15 +6,15 @@
   "recordedAt": "2026-08-14T03:52:00Z",
   "evidenceMatrix": {
     "path": "release/integration/wallet-auth-release-evidence-matrix.json",
-    "sha256": "50f1b286821ad96d1e5ad4bfdb0f06bd0e73c04677839ff9dc7a8d37b6d4c607",
+    "sha256": "3bf3f145e41f0f33ffbd6d58cd1c973cd1310dbe5427761effcf651ef398e73a",
     "platforms": 21,
     "gatesPerPlatform": 12,
     "trueGates": 106,
     "falseGates": 146,
-    "evidenceRecords": 114
+    "evidenceRecords": 115
   },
   "frozenOwnerSources": {
-    "coreAuthGateway": "404f818719b920008f88f076949a4387c5130855",
+    "coreAuthGateway": "a46d5456432550072fe7eaea747866d6fd966a4d",
     "webPwaExtensions": "020f513e5d5d12920f75201f637bdd854ccc91aa",
     "androidApi36": "dedfcb67fbb714e8aeefdf552a683c38bba0478f",
     "iosMacos": "3b27b83f18799ff74252469075ec460b6665dd44",
@@ -110,6 +110,7 @@
     "The cross-ecosystem Android launcher caller gate is intentionally blocked by legacy schemes/routes and manual URI construction; product callbacks remain registry-bound and are not silently rewritten.",
     "Core/Auth contract 94c7f3c9 and blob 714c2b36 classify 30 blocking release-runtime callers while generated bundles have zero legacy blockers and four shared-builder-bound canonical literals. Both strict caller gates remain red; owners must migrate runtime concatenation through encodeRequestDeepLink and preserve registry callbacks. Pixel 9, integratedCentral and public acceptance remain false.",
     "Wallet/Auth source cdf56db7 freezes createProductWalletConnection as the sole product factory, with factory-owned callback/origin/session/Wallet URL, crypto nonce/state and system time plus same-product/platform legacy registry migration. Local 211/211 and 120 unique concurrent states do not migrate any of 12 products; PR CI, 6439 deployment, visible platform lifecycle, integratedCentral and public remain false.",
+    "Core/Auth a46d5456 binds the Web-only wallet-web-companion registry tuple and real local handler/fetch-adapter lifecycle. Its approved/enabled registry status is local candidate truth only; product migration, public Gateway registry load, callback deployment, visible Web/mobile lifecycle, integratedCentral and aggregate public remain false.",
     "Product Session Router v2 hardened evidence 2bcdf4f6 supersedes cc6c3936 and freezes deployed source d26ed915: isolated 6441 passes rollback, public lifecycle and a real chmod 0644 tamper with HTTP 503 INSECURE_STATE_FILE, unchanged state bytes, no silent repair and sticky fail-close until explicit 0600+restart recovery. Legacy 6437/6439 remain unchanged, runtimeProductsMigrated=0, visible Wallet approval=false, and integratedCentral plus aggregate Product Session deployment remain false.",
     "Web commit 60614bf5 directly proves first and second launch of an unsigned temporary YNX add-on in official notarized Firefox 153.0.4; install, popup DOM/background, provider/account/sign/tx, extension signing and store claims remain false.",
     "Website main 92a8b90 merged evidence c70bf01 through PR #34; Web 46d030c and an independent deca6f4f gate prove three visible official buttons and 9 exact downloads. PWA, Chrome/Edge and Firefox artifacts are hosted/public, but remain unsigned, non-store, and do not prove installation or provider/account/sign/tx runtime."

@@ -3,7 +3,7 @@
   "auditId": "wallet-auth-public-evidence-audit-2026-08-14",
   "auditedAt": "2026-08-14T03:38:07Z",
   "integrationBaseCommit": "a008ce0e8fa2ac0322198576c320441118fbae83",
-  "matrixSha256": "50f1b286821ad96d1e5ad4bfdb0f06bd0e73c04677839ff9dc7a8d37b6d4c607",
+  "matrixSha256": "3bf3f145e41f0f33ffbd6d58cd1c973cd1310dbe5427761effcf651ef398e73a",
   "endpointServiceDiscoveryMatrix": {
     "path": "release/integration/wallet-auth-public-endpoint-service-discovery-matrix.json",
     "sha256": "98ef4460ea75411cc529a3dbcd8fa85a7d47e57d7332ee5b4dc6c5d2c23c72b8"
@@ -138,6 +138,33 @@
     "gateway6439Deployed": false,
     "deployedPublic": false,
     "visiblePlatformLifecycleVerified": false
+  },
+  "walletWebCompanionCoreRuntimeCandidate": {
+    "commit": "a46d5456432550072fe7eaea747866d6fd966a4d",
+    "parent": "9a5cb8fc954eba031546e06608944939226fefb2",
+    "tree": "14ca5aaf817767e7be59879cdaa936a657e61adf",
+    "contractPath": "release/integration/wallet-auth-web-companion-registry-contract.json",
+    "contractBlob": "9bffb1530ba71db26b04650035c2515d402ea8ec",
+    "contractSha256": "13026f36c30122c8f65b085e68fc882e3af2e98d4dd0d5211ebb0819272dce31",
+    "registryBlob": "a59f7aba930e6643363e7c0b5bb27028c1ecc43a",
+    "registrySha256": "f8a25702bdc7e3bd12b0cdecd6ac513b0a3d3ac25832a112efbe6b788ff8de9b",
+    "migrationBlob": "259f25d82ddf32714202f7947e82f892b53b426f",
+    "productId": "wallet-web-companion",
+    "clientId": "ynx-wallet-web-companion-v1",
+    "bundleId": "web.ynx.wallet.companion",
+    "callback": "https://www.ynxweb4.com/dapp/wallet/wallet-auth/callback",
+    "approvedAndEnabledLocalRegistry": true,
+    "genericNativeWalletEntryEnabled": false,
+    "walletAuthTestsPassed": 315,
+    "walletAppTestsPassed": 40,
+    "coreRuntimeCandidate": true,
+    "migrated": false,
+    "integratedCentral": false,
+    "gatewayLoadedPublic": false,
+    "deployedPublicRegistry": false,
+    "callbackRouteDeployed": false,
+    "visibleWebOrMobileLifecycleVerified": false,
+    "aggregatePublic": false
   },
   "chainCoreContractBoundary": {
     "contractVersion": "1.32.0",
