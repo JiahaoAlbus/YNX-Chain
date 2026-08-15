@@ -77,8 +77,12 @@ clock plus cryptographic nonce/state generation. Its exact configuration rejects
 product-supplied callbacks, origins, sessions, Wallet URLs, clocks and token
 factories.
 
-The product supplies only its approved secure-storage/device capabilities,
-platform Wallet detection/opener and browser provider scope. The factory binds the
+The product supplies only its approved secure-storage capabilities and an
+asynchronous platform device-signing bridge. The raw device private key never
+enters the shared JavaScript client; the SDK binds canonical challenge bytes and
+verifies the returned P-256 signature against the registered device key before
+completion. Products also supply platform Wallet detection/opener and browser
+provider scope. The factory binds the
 runtime HTTPS transport and pins every v2 call to `https://rest.ynxweb4.com`;
 products cannot inject or replace
 the Gateway origin. `restore()` re-introspects protected state on every second launch;
@@ -134,7 +138,7 @@ The kernel freezes the parsed registry at construction, rejects alternate JSON e
 6. Deploy registry, kernel host and durable state migration atomically to staging; record registry hash, source commit, release, canonical build time, deployment ID and restore evidence, then run real Wallet↔product flows.
 7. Have Monitor accept the bounded metric/event contract, prove dashboard and alert behavior, and correlate request/error IDs to authoritative audit IDs without logging custody or proof material.
 
-Current branch verification is Wallet/Auth 213/213, including 120 concurrent
+Current branch verification is Wallet/Auth 214/214, including 120 concurrent
 factory connections, full Product Session concurrency/isolation, real v2 Gateway
 approval/completion/introspection, second-launch restore, registered legacy
 migration, network-transition races and negative injection tests. `npm pack --dry-run --json` includes the

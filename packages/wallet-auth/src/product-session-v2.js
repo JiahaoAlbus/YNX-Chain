@@ -218,6 +218,20 @@ export function signProductSessionChallenge(challengeInput, deviceSecretInput) {
   return Object.freeze({ challenge, deviceSignature: encodeBase64url(signature) });
 }
 
+export async function signProductSessionChallengeWith(challengeInput, signer) {
+  const challenge = parseChallenge(challengeInput);
+  if (typeof signer !== "function") fail("INVALID_DEVICE", "Product Session requires a platform device signer");
+  const payload = encodeBase64url(utf8ToBytes(challengeSignBytes(challenge)));
+  let deviceSignature;
+  try { deviceSignature = await signer(Object.freeze({ purpose: "challenge", algorithm: "p256-sha256", deviceKey: challenge.deviceKey, payload })); }
+  catch { fail("DEVICE_SIGNING_FAILED", "Platform device signing failed closed"); }
+  if (typeof deviceSignature !== "string") fail("INVALID_DEVICE_PROOF", "Platform device signature is invalid");
+  let valid = false;
+  try { valid = p256.verify(decodeBase64url(deviceSignature, "deviceSignature"), decodeBase64url(payload, "device signing payload"), decodeBase64url(challenge.deviceKey, "deviceKey"), { format: "der", lowS: false }); } catch { valid = false; }
+  if (!valid) fail("INVALID_DEVICE_PROOF", "Platform device signature does not match the registered device key");
+  return Object.freeze({ challenge, deviceSignature });
+}
+
 export function parseProductSessionChallenge(input) { return parseChallenge(input); }
 
 export class ProductSessionAuthority {

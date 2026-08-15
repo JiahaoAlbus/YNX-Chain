@@ -17,7 +17,7 @@ const secret = Buffer.alloc(32, 29);
 const deviceKey = Buffer.from(p256.getPublicKey(secret, true)).toString("base64url");
 function token(value) { return createHash("sha256").update(value).digest("base64url"); }
 function storage() { const values = new Map(); return { securityLevel: "os-protected", async get(key) { return values.get(key) ?? null; }, async set(key, value) { values.set(key, value); }, async remove(key) { values.delete(key); } }; }
-function config(overrides = {}) { return { registry, productId: "social", platform: "web", walletInstalled: async () => true, schemeRegistered: async () => true, gatewayTimeoutMs: 5_000, storage: storage(), device: { id: "social-device-factory-001", key: deviceKey, secret: secret.toString("base64url"), scopes: ["account:read", "profile:link"], purpose: "Connect Social through the canonical public SDK factory." }, scope: {}, discoveryWaitMs: 0, openWallet: async () => ({ opened: true }), openTimeoutMs: 1_000, ...overrides }; }
+function config(overrides = {}) { return { registry, productId: "social", platform: "web", walletInstalled: async () => true, schemeRegistered: async () => true, gatewayTimeoutMs: 5_000, storage: storage(), device: { id: "social-device-factory-001", key: deviceKey, async sign({ purpose, algorithm, deviceKey: requestedKey, payload }) { assert.ok(["challenge", "http-proof"].includes(purpose)); assert.equal(algorithm, "p256-sha256"); assert.equal(requestedKey, deviceKey); return Buffer.from(p256.sign(Buffer.from(payload, "base64url"), secret, { format: "der" })).toString("base64url"); }, scopes: ["account:read", "profile:link"], purpose: "Connect Social through the canonical public SDK factory." }, scope: {}, discoveryWaitMs: 0, openWallet: async () => ({ opened: true }), openTimeoutMs: 1_000, ...overrides }; }
 
 test("public subpath exposes the single product connection factory", () => {
   assert.equal(productConnectionSubpath.createProductWalletConnection, createProductWalletConnection);
@@ -56,7 +56,8 @@ test("factory completes the real Gateway lifecycle and restores it after a secon
   try {
     const protectedStorage = storage();
     const opened = [];
-    const first = createProductWalletConnection(config({ storage: protectedStorage, openWallet: async (input) => { opened.push(input); return { opened: true }; } }));
+    const signingPurposes = []; const secureDevice = config().device;
+    const first = createProductWalletConnection(config({ storage: protectedStorage, device: { ...secureDevice, async sign(input) { signingPurposes.push(input.purpose); return secureDevice.sign(input); } }, openWallet: async (input) => { opened.push(input); return { opened: true }; } }));
     const pending = await first.beginYNX();
     const approvalTime = new Date(pending.sessionState.request.issuedAt);
     const approvalExpiresAt = new Date(approvalTime.getTime() + 180_000).toISOString();
@@ -71,6 +72,7 @@ test("factory completes the real Gateway lifecycle and restores it after a secon
     assert.equal(handler.snapshot().authority.sessions.length, 1);
     assert.equal(opened.length, 1);
     assert.equal(gatewayOrigins.every((origin) => origin === PRODUCT_SESSION_PUBLIC_GATEWAY_ORIGIN), true);
+    assert.deepEqual(signingPurposes, ["challenge", "http-proof"]);
 
     const restarted = createProductWalletConnection(config({ storage: protectedStorage }));
     const restored = await restarted.restore(true);
@@ -114,6 +116,7 @@ test("factory rejects callback, origin, session and unknown configuration inject
     { walletUrl: "javascript:alert(1)" },
     { gatewayEndpoint: "https://attacker.example" },
     { fetch: async () => new Response("{}") },
+    { device: { ...config().device, secret: secret.toString("base64url") } },
     { tokenFactory: () => "predictable" },
     { clock: () => new Date(0) },
   ]) assert.throws(() => createProductWalletConnection(config(hostile)), code("UNKNOWN_OR_MISSING_FIELD"));

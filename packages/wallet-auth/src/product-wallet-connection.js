@@ -19,6 +19,8 @@ export const PRODUCT_SESSION_PUBLIC_GATEWAY_ORIGIN = "https://rest.ynxweb4.com";
 export function createProductWalletConnection(config) {
   exactFields(config, CONFIG_FIELDS, "Product Wallet connection configuration");
   assertProductRuntime();
+  exactFields(config.device, ["id", "key", "sign", "scopes", "purpose"], "Product Wallet secure device signer");
+  if (typeof config.device.sign !== "function") throw new WalletAuthError("INVALID_DEVICE", "Product Wallet connection requires a platform secure device signer");
   const gateway = new ProductSessionGatewayFetchAdapter({
     endpoint: PRODUCT_SESSION_PUBLIC_GATEWAY_ORIGIN,
     fetch: globalThis.fetch.bind(globalThis),

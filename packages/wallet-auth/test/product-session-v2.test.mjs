@@ -5,7 +5,7 @@ import { test } from "node:test";
 import { p256 } from "@noble/curves/nist.js";
 import {
   createProductSessionChallenge, createProductSessionRequest, deviceBinding, parseProductSessionRequest, ProductSessionAuthority,
-  signProductSessionApproval, signProductSessionChallenge, WalletAuthError, walletIdentity,
+  signProductSessionApproval, signProductSessionChallenge, signProductSessionChallengeWith, WalletAuthError, walletIdentity,
 } from "../src/index.js";
 
 const registry = JSON.parse(readFileSync(new URL("../product-session-registry.json", import.meta.url), "utf8"));
@@ -34,6 +34,24 @@ function issued(authority, input) {
 }
 
 function context(session, overrides = {}) { return { chainId: session.chainId, productId: session.productId, clientId: session.clientId, platform: session.platform, applicationId: session.applicationId, bundleId: session.bundleId, packageId: session.packageId, origin: session.origin, callback: session.callback, account: session.account, deviceId: session.deviceId, deviceKey: session.deviceKey, requiredScopes: session.scopes, ...overrides }; }
+
+test("platform signer receives only canonical challenge bytes and must match the registered device key", async () => {
+  const input = completion(399, "social", "ios");
+  const secret = deviceSecret(399); const calls = [];
+  const signed = await signProductSessionChallengeWith(input.challenge, async (request) => {
+    calls.push(request);
+    return Buffer.from(p256.sign(Buffer.from(request.payload, "base64url"), secret, { format: "der" })).toString("base64url");
+  });
+  assert.deepEqual(signed, input.completion);
+  assert.equal(calls.length, 1);
+  assert.deepEqual(Object.keys(calls[0]).sort(), ["algorithm", "deviceKey", "payload", "purpose"]);
+  assert.equal(calls[0].purpose, "challenge");
+  assert.equal(calls[0].algorithm, "p256-sha256");
+  assert.equal(calls[0].deviceKey, input.request.deviceKey);
+  assert.equal(JSON.stringify(calls).includes(secret.toString("base64url")), false);
+  await assert.rejects(() => signProductSessionChallengeWith(input.challenge, async ({ payload }) => Buffer.from(p256.sign(Buffer.from(payload, "base64url"), deviceSecret(998), { format: "der" })).toString("base64url")), code("INVALID_DEVICE_PROOF"));
+  await assert.rejects(() => signProductSessionChallengeWith(input.challenge, async () => { throw new Error("secure enclave unavailable"); }), code("DEVICE_SIGNING_FAILED"));
+});
 
 test("120 concurrent Product Session completions preserve nonce uniqueness and tenant/account isolation", async () => {
   const authority = new ProductSessionAuthority(registry);
