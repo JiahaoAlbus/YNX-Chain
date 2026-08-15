@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "owner": "02-wallet-auth-ios-macos-native",
+  "implementationCommit": "1c25d329814cc7b222ebd4a0dfae7c89c99c7866",
+  "workflow": {
+    "name": "wallet-macos",
+    "runId": 31856016716,
+    "jobId": 94940815441,
+    "headSha": "1c25d329814cc7b222ebd4a0dfae7c89c99c7866",
+    "event": "push",
+    "status": "completed",
+    "conclusion": "success",
+    "xcode": "26.3 (17C529)",
+    "runner": "macos-15-arm64"
+  },
+  "frozenRegistry": {
+    "source": "packages/wallet-auth/central-registry.json",
+    "gitBlob": "754737194f02834da9f5833a493f4633b4cc18eb",
+    "sha256": "337145be4cbdd3b642f7fd263e1b06e20f512f8cd4981033109ba65c9856becd",
+    "bundledExactMatch": true,
+    "authorizationSuccess": false,
+    "signing": false,
+    "callbackEmitted": false
+  },
+  "tests": {
+    "xctestExecuted": 13,
+    "xctestFailures": 0,
+    "validEnabledRequestResult": "CANONICAL_AUTH_BRIDGE_UNAVAILABLE",
+    "disabledRequestResult": "REGISTRY_DISABLED",
+    "unknownAndScopeMismatchFailClosed": true
+  },
+  "nativeRuntime": {
+    "coldLaunchPid": 18812,
+    "secondLaunchPid": 19073,
+    "coldRpcChainId": "0x1917",
+    "coldRpcResponseBytes": 43,
+    "coldRestStatus": 200,
+    "coldRestResponseBytes": 2193,
+    "secondRpcChainId": "0x1917",
+    "secondRpcResponseBytes": 43,
+    "secondRestStatus": 200,
+    "secondRestResponseBytes": 2193,
+    "runningCallbackPid": 19073,
+    "malformedResult": "INVALID_DEEP_LINK",
+    "callbackColdStartPid": 19151,
+    "callbackColdStartVisible": true,
+    "widenedCallbackColdStartPid": 19177,
+    "widenedResult": "INVALID_AUTHORIZATION_REQUEST",
+    "widenedVisible": true
+  },
+  "deviceSecurity": {
+    "keychainRoundTripVerified": true,
+    "biometricPolicyAvailable": false,
+    "biometricErrorCode": -7,
+    "recoveryCreated": false,
+    "recoveryMaterialPersisted": false,
+    "recoveryFailedClosed": true
+  },
+  "installable": {
+    "artifactId": 9239049958,
+    "artifactName": "ynx-wallet-macos-native",
+    "artifactBytes": 893110,
+    "artifactDigest": "sha256:f464aa6e99de94c58ce2b20106e242b95ffe05df80298792e5f712ed0d7a8eeb",
+    "artifactDownloadedAndInspected": true,
+    "appArchiveSha256": "e7d576fe0e079e4525fd4b389486d47ee6467126baafc38ee57065c0de04014c",
+    "appArchiveBytes": 220320,
+    "architectures": ["x86_64", "arm64"],
+    "minimumOS": "13.0",
+    "bundleIdentifier": "com.ynxweb4.wallet.macos",
+    "signingClass": "ad-hoc",
+    "teamIdentifier": null,
+    "developerIDSigned": false,
+    "notarized": false,
+    "storeDistributed": false,
+    "publicDownloadHosted": false
+  },
+  "screenshots": [
+    {"name":"malformed-callback-fail-closed.png","bytes":124083,"sha256":"2d86239a67a9633c7a8ddb577c68ba3d00762dd8a54ff946c628d2eacb1b70dd"},
+    {"name":"callback-cold-start-fail-closed.png","bytes":162521,"sha256":"cbaf3a855fdd590134c35e30ad2f53fe83ab45889ee30973cfa3c368d1a16e0d"},
+    {"name":"widened-callback-cold-start-fail-closed.png","bytes":181482,"sha256":"ae7c3e34bb1079b8b145d3d58a000125a05c2de1a503fc94ef5367ae2ebc0d3c"}
+  ],
+  "publicEvidence": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/31856016716",
+  "gates": {
+    "nativeEnvelopeAndRegistryFailClosedVerified": true,
+    "macOSAdHocInstallLaunchSecondLaunchVerified": true,
+    "macOSRPCAndRESTReachabilityVerified": true,
+    "authorizationSuccess": false,
+    "accountAvailable": false,
+    "signSuccess": false,
+    "sendSuccess": false,
+    "recoverySuccess": false,
+    "physicalBiometricVerified": false,
+    "productionSigned": false,
+    "notarized": false,
+    "publicDownloadHosted": false
+  }
+}
