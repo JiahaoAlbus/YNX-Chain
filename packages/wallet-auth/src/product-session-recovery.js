@@ -11,7 +11,7 @@ export const PRODUCT_SESSION_CLIENT_STATE = Object.freeze({
 });
 
 export class RecoverableProductSessionClient {
-  #registry; #binding; #storage; #gateway; #device; #tokens; #clock; #state; #autoReconnectAttempted; #networkAvailable; #disconnectPromise;
+  #registry; #binding; #storage; #gateway; #device; #tokens; #clock; #state; #autoReconnectAttempted; #networkAvailable; #disconnectPromise; #returnOperation;
   constructor(config) {
     exactFields(config, ["registry", "productId", "platform", "storage", "gateway", "device", "tokenFactory", "clock"], "Recoverable Product Session client configuration");
     this.#registry = parseProductSessionRegistry(config.registry);
@@ -25,6 +25,7 @@ export class RecoverableProductSessionClient {
     this.#autoReconnectAttempted = false;
     this.#networkAvailable = true;
     this.#disconnectPromise = null;
+    this.#returnOperation = null;
   }
 
   get current() { return this.#state; }
@@ -75,6 +76,16 @@ export class RecoverableProductSessionClient {
   }
 
   async handleReturn(url) {
+    if (this.#returnOperation !== null) {
+      if (this.#returnOperation.url !== url) fail("CONCURRENT_CALLBACK", "A different Wallet callback is already being verified");
+      return this.#returnOperation.promise;
+    }
+    const operation = this.#handleReturn(url);
+    this.#returnOperation = { url, promise: operation };
+    try { return await operation; }
+    finally { if (this.#returnOperation?.promise === operation) this.#returnOperation = null; }
+  }
+  async #handleReturn(url) {
     if (!this.#networkAvailable) return this.#offline();
     const raw = await this.#storage.get(`${this.storageKey}:pending`);
     if (raw === null) { await this.#storage.remove(`${this.storageKey}:return`); this.#state = state(PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED, "No pending Wallet request matches this callback", { actions: ["retry", "guest"] }); return this.#state; }
