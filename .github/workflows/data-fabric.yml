@@ -127,6 +127,10 @@ jobs:
             --arg ctl "$(sha256sum builders/a/ynx-data-fabricctl | cut -d' ' -f1)" \
             --arg worker "$(sha256sum builders/a/ynx-data-fabric-worker | cut -d' ' -f1)" \
             --arg bridge "$(sha256sum builders/a/ynx-pay-data-fabric-bridge | cut -d' ' -f1)" \
+            --argjson daemonModuleFindings "$(jq -s '[.[] | select(has("finding"))] | length' evidence/ynx-data-fabricd.govulncheck.jsonl)" \
+            --argjson ctlModuleFindings "$(jq -s '[.[] | select(has("finding"))] | length' evidence/ynx-data-fabricctl.govulncheck.jsonl)" \
+            --argjson workerModuleFindings "$(jq -s '[.[] | select(has("finding"))] | length' evidence/ynx-data-fabric-worker.govulncheck.jsonl)" \
+            --argjson bridgeModuleFindings "$(jq -s '[.[] | select(has("finding"))] | length' evidence/ynx-pay-data-fabric-bridge.govulncheck.jsonl)" \
             --argjson daemonBytes "$(stat -c %s builders/a/ynx-data-fabricd)" \
             --argjson ctlBytes "$(stat -c %s builders/a/ynx-data-fabricctl)" \
             --argjson workerBytes "$(stat -c %s builders/a/ynx-data-fabric-worker)" \
@@ -137,16 +141,29 @@ jobs:
               verifiedAt:$verifiedAt,
               builders:{count:2,isolation:"separate-github-hosted-runners",toolchain:"go1.25.13",target:"linux/amd64"},
               byteIdentical:true,
-              artifactScan:{scanner:"govulncheck",version:"v1.6.0",mode:"binary",scanned:4,knownVulnerabilitiesAffectingCode:0},
+              artifactScan:{
+                scanner:"govulncheck",
+                version:"v1.6.0",
+                mode:"binary",
+                scanned:4,
+                knownVulnerabilitiesAffectingCode:0,
+                rawModuleFindings:{
+                  "ynx-data-fabricd":$daemonModuleFindings,
+                  "ynx-data-fabricctl":$ctlModuleFindings,
+                  "ynx-data-fabric-worker":$workerModuleFindings,
+                  "ynx-pay-data-fabric-bridge":$bridgeModuleFindings
+                },
+                findingBoundary:"raw module findings can include imported modules whose vulnerable symbols are not called; successful symbol scan proves only zero known reachable vulnerabilities"
+              },
               binaries:{
                 "ynx-data-fabricd":{sha256:$daemon,bytes:$daemonBytes},
                 "ynx-data-fabricctl":{sha256:$ctl,bytes:$ctlBytes},
                 "ynx-data-fabric-worker":{sha256:$worker,bytes:$workerBytes},
                 "ynx-pay-data-fabric-bridge":{sha256:$bridge,bytes:$bridgeBytes}
               },
-              limitations:["same GitHub-hosted runner image family","same pinned Go toolchain","not a public release or production signature"]
+              limitations:["same GitHub-hosted runner image family","same pinned Go toolchain","module-only advisories still require dependency-owner review","not a public release or production signature"]
             }' > evidence/data-fabric-reproducible-build.json
-          jq -e '.byteIdentical == true and .builders.count == 2 and (.binaries | length) == 4 and .artifactScan.scanned == 4 and .artifactScan.knownVulnerabilitiesAffectingCode == 0' evidence/data-fabric-reproducible-build.json
+          jq -e '.byteIdentical == true and .builders.count == 2 and (.binaries | length) == 4 and .artifactScan.scanned == 4 and .artifactScan.knownVulnerabilitiesAffectingCode == 0 and (.artifactScan.rawModuleFindings | length) == 4' evidence/data-fabric-reproducible-build.json
       - name: Upload reproducibility receipt
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:

@@ -646,7 +646,7 @@
       "publicProof": null,
       "blockedBy": [],
       "owner": "YNX Data Fabric and Security/SRE",
-      "nextAction": "Retain the exact-source binary artifact-scan receipt, then add a container scan after Security/SRE accepts a production container boundary.",
+      "nextAction": "Retain the transparent exact-source binary artifact-scan receipt, route module-only advisory drift to the dependency owner, then add a container scan after Security/SRE accepts a production container boundary.",
       "lastUpdated": "2026-08-15T00:00:00Z"
     },
     {
