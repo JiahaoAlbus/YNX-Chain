@@ -20,7 +20,7 @@
     "release-content:check": "node scripts/release-content-check.mjs",
     "goal-coverage:check": "node scripts/full-goal-coverage-check.mjs",
     "product-check": "node scripts/product-check.mjs",
-    "social-harness:check": "node scripts/social-harness-contract-check.mjs",
+    "social-harness:check": "node scripts/social-harness-contract-check.mjs && node --test proof/social-harness/generate-canonical-request.test.mjs",
     "wallet-auth-callers:check": "node scripts/verify-wallet-auth-caller-migration.mjs",
     "wallet-auth-callers:strict": "node scripts/verify-wallet-auth-caller-migration.mjs --strict",
     "android:intent-filter:test": "node --test scripts/android-intent-filter.test.mjs",
