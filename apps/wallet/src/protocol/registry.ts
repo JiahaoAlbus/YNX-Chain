@@ -10,8 +10,14 @@ const REVIEWED_ENTRIES = [
     productDeviceAlgorithms: ["p256-sha256"],
   },
   {
+    schemaVersion: 2, productClientId: "ynx-developer-v1", requestingProduct: "developer",
+    bundleId: "com.ynxweb4.developer.testnetpreview", callbacks: ["ynxdeveloper://wallet-auth/callback"],
+    scopes: ["account:read", "developer:deploy"], maxScopes: 2,
+    productDeviceAlgorithms: ["p256-sha256"],
+  },
+  {
     schemaVersion: 2, productClientId: "ynx-exchange-v1", requestingProduct: "exchange",
-    bundleId: "com.ynxweb4.exchange", callbacks: ["ynxexchange://wallet-auth/callback"],
+    bundleId: "com.ynxweb4.exchange", callbacks: ["https://exchange.ynxweb4.com/wallet-auth/callback", "ynxexchange://wallet-auth/callback"],
     scopes: ["exchange:ai", "exchange:deposit", "exchange:read", "exchange:trade", "exchange:withdrawal-review"], maxScopes: 5,
     productDeviceAlgorithms: ["p256-sha256"],
   },
@@ -29,7 +35,7 @@ const REVIEWED_ENTRIES = [
   },
   {
     schemaVersion: 2, productClientId: "ynx-quant-v1", requestingProduct: "quant",
-    bundleId: "com.ynxweb4.quant", callbacks: ["ynxquant://wallet-auth/callback"],
+    bundleId: "com.ynxweb4.quant", callbacks: ["https://quant.ynxweb4.com/wallet-auth/callback", "ynxquant://wallet-auth/callback"],
     scopes: ["quant:account", "quant:mandate:create", "quant:mandate:execute", "quant:mandate:revoke"], maxScopes: 4,
     productDeviceAlgorithms: ["p256-sha256"],
   },
@@ -54,6 +60,7 @@ export const SCOPE_EXPLANATIONS: Readonly<Record<string, string>> = Object.freez
   "card:application:write": "Create or update only this account's sandbox Card application.",
   "card:controls:write": "Manage only this account's Card controls after a separate review.",
   "card:dispute:write": "Create and update this account's Card disputes; it cannot move funds.",
+  "developer:deploy": "Allow Developer to prepare an exact Testnet deployment for a separate Wallet review. This session cannot sign, broadcast or bypass the final transaction approval.",
   "exchange:ai": "Allow Exchange to create reviewable AI drafts; AI cannot sign, trade, deposit or withdraw.",
   "exchange:deposit": "Read and reconcile this account's Testnet deposit evidence; this approval is not a transfer signature.",
   "exchange:read": "Read this account's Exchange balances, orders, trades and audit evidence.",

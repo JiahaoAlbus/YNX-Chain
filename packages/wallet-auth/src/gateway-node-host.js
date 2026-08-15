@@ -1,8 +1,9 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { chmodSync, mkdirSync, readFileSync, renameSync, statSync, writeFileSync } from "node:fs";
 import { dirname, isAbsolute } from "node:path";
 import { canonicalJSON, exactFields, WalletAuthError } from "./canonical.js";
 import { CANONICAL_GATEWAY_HTTP_SCHEMA_VERSION, CanonicalWalletGatewayHttpKernel, gatewayStateDigest } from "./gateway-http.js";
+import { parseCentralRegistryDocument } from "./registry.js";
 
 export const CANONICAL_GATEWAY_PROOF_HEADER = "x-ynx-product-session-proof";
 export const CANONICAL_GATEWAY_NODE_STATE_SCHEMA_VERSION = 1;
@@ -39,6 +40,8 @@ export class CanonicalWalletGatewayNodeHost {
   #kernel;
   #metrics;
   #remoteDeployed;
+  #registrySha256;
+  #enabledProductClientIds;
   #statePath;
   #now;
 
@@ -58,8 +61,11 @@ export class CanonicalWalletGatewayNodeHost {
       requestsTotal: 0,
       responsesByRouteStatus: new Map(),
     };
+    const reviewedRegistry = parseCentralRegistryDocument(registry);
+    this.#registrySha256 = createHash("sha256").update(canonicalJSON(reviewedRegistry)).digest("hex");
+    this.#enabledProductClientIds = Object.freeze(reviewedRegistry.products.filter((product) => product.enabled).map((product) => product.productClientId).sort());
     const stored = loadState(this.#statePath);
-    this.#kernel = new CanonicalWalletGatewayHttpKernel(registry, stored?.snapshot);
+    this.#kernel = new CanonicalWalletGatewayHttpKernel(reviewedRegistry, stored?.snapshot);
     if (stored && stored.stateDigest !== gatewayStateDigest(this.#kernel.snapshot())) {
       throw new WalletAuthError("STATE_TAMPERED", "Canonical Gateway persisted state digest is invalid");
     }
@@ -172,10 +178,12 @@ export class CanonicalWalletGatewayNodeHost {
     if (request.url === "/version") {
       return jsonResponse({
         build: this.#build,
+        enabledProductClientIds: this.#enabledProductClientIds,
         gatewayHttpSchemaVersion: CANONICAL_GATEWAY_HTTP_SCHEMA_VERSION,
         nodeStateSchemaVersion: CANONICAL_GATEWAY_NODE_STATE_SCHEMA_VERSION,
         observabilitySchemaVersion: CANONICAL_GATEWAY_OBSERVABILITY_SCHEMA_VERSION,
         ok: true,
+        registrySha256: this.#registrySha256,
         remoteDeployed: this.#remoteDeployed,
         service: "ynx-wallet-gatewayd",
       });
