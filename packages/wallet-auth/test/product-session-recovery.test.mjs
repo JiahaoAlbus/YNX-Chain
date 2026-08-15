@@ -132,6 +132,72 @@ test("approved callback survives a completion outage and resumes from protected 
   assert.equal(await setup.storage.get(`${client.storageKey}:return`), null);
 });
 
+test("network transition during Gateway challenge cannot publish a late connected state", async () => {
+  const setup = harness(); let releaseChallenge; let completionCalls = 0;
+  const challengeReady = new Promise((resolve) => { releaseChallenge = resolve; });
+  const gateway = {
+    ...setup.gateway,
+    async challenge(input) { await challengeReady; return setup.gateway.challenge(input); },
+    async complete(input) { completionCalls += 1; return setup.gateway.complete(input); },
+  };
+  const client = new RecoverableProductSessionClient({ registry, productId: "social", platform: "android", storage: setup.storage, gateway, device, tokenFactory: (() => { let i = 0; return () => token(`network-race-${i++}`); })(), clock: () => NOW });
+  const connecting = await client.begin({ walletInstalled: true, schemeRegistered: true });
+  const approval = signProductSessionApproval(registry, connecting.request, { accountSecret, scopes: connecting.request.scopes, expiresAt: "2026-08-14T01:03:00.000Z" }, NOW);
+  const callback = createProductSessionReturnURL(registry, connecting.request, { result: "approved", approval }, NOW);
+  const returning = client.handleReturn(callback);
+  assert.equal(client.setNetworkAvailable(false).status, PRODUCT_SESSION_CLIENT_STATE.NETWORK_UNAVAILABLE);
+  releaseChallenge();
+  const result = await returning;
+  assert.equal(result.status, PRODUCT_SESSION_CLIENT_STATE.NETWORK_UNAVAILABLE);
+  assert.equal(completionCalls, 0);
+  assert.equal(await setup.storage.get(client.storageKey), null);
+  assert.notEqual(await setup.storage.get(`${client.storageKey}:return`), null);
+  assert.equal("session" in result, false);
+});
+
+test("network transition during second-launch introspection retains storage without publishing connection", async () => {
+  const first = harness();
+  const connecting = await first.client.begin({ walletInstalled: true, schemeRegistered: true });
+  const approval = signProductSessionApproval(registry, connecting.request, { accountSecret, scopes: connecting.request.scopes, expiresAt: "2026-08-14T01:03:00.000Z" }, NOW);
+  const callback = createProductSessionReturnURL(registry, connecting.request, { result: "approved", approval }, NOW);
+  assert.equal((await first.client.handleReturn(callback)).status, PRODUCT_SESSION_CLIENT_STATE.CONNECTED);
+  let releaseIntrospection; let markStarted;
+  const introspectionStarted = new Promise((resolve) => { markStarted = resolve; });
+  const release = new Promise((resolve) => { releaseIntrospection = resolve; });
+  const gateway = { ...first.gateway, async introspect(input) { markStarted(); await release; return first.gateway.introspect(input); } };
+  const second = new RecoverableProductSessionClient({ registry, productId: "social", platform: "android", storage: first.storage, gateway, device, tokenFactory: () => token("restore-network-race"), clock: () => NOW });
+  const restoring = second.restore(true);
+  await introspectionStarted;
+  assert.equal(second.setNetworkAvailable(false).status, PRODUCT_SESSION_CLIENT_STATE.NETWORK_UNAVAILABLE);
+  releaseIntrospection();
+  const result = await restoring;
+  assert.equal(result.status, PRODUCT_SESSION_CLIENT_STATE.NETWORK_UNAVAILABLE);
+  assert.equal("session" in result, false);
+  assert.notEqual(await first.storage.get(second.storageKey), null);
+});
+
+test("network transition during completion preserves the issued binding for Retry and revoke", async () => {
+  const setup = harness(); let releaseCompletion; let markStarted;
+  const completionStarted = new Promise((resolve) => { markStarted = resolve; });
+  const release = new Promise((resolve) => { releaseCompletion = resolve; });
+  const gateway = { ...setup.gateway, async complete(input) { markStarted(); await release; return setup.gateway.complete(input); } };
+  const client = new RecoverableProductSessionClient({ registry, productId: "social", platform: "android", storage: setup.storage, gateway, device, tokenFactory: (() => { let i = 0; return () => token(`completion-network-race-${i++}`); })(), clock: () => NOW });
+  const connecting = await client.begin({ walletInstalled: true, schemeRegistered: true });
+  const approval = signProductSessionApproval(registry, connecting.request, { accountSecret, scopes: connecting.request.scopes, expiresAt: "2026-08-14T01:03:00.000Z" }, NOW);
+  const returning = client.handleReturn(createProductSessionReturnURL(registry, connecting.request, { result: "approved", approval }, NOW));
+  await completionStarted;
+  assert.equal(client.setNetworkAvailable(false).status, PRODUCT_SESSION_CLIENT_STATE.NETWORK_UNAVAILABLE);
+  releaseCompletion();
+  assert.equal((await returning).status, PRODUCT_SESSION_CLIENT_STATE.NETWORK_UNAVAILABLE);
+  assert.equal(setup.authority.snapshot().sessions.length, 1);
+  assert.notEqual(await setup.storage.get(client.storageKey), null);
+  client.setNetworkAvailable(true);
+  assert.equal((await client.retry({ walletInstalled: true, schemeRegistered: true })).status, PRODUCT_SESSION_CLIENT_STATE.CONNECTED);
+  assert.equal((await client.disconnect()).status, PRODUCT_SESSION_CLIENT_STATE.DISCONNECTED);
+  assert.equal(setup.authority.snapshot().revokedSessions.length, 1);
+  assert.equal(await setup.storage.get(client.storageKey), null);
+});
+
 test("device secret never crosses the Gateway adapter boundary", async () => {
   const setup = harness(); const seen = [];
   const gateway = {
