@@ -35,8 +35,12 @@ for(const required of [
   '!base64url(decoded).equals(encoded)',
   'issued.isBefore(requestIssued)',
   'issued.isAfter(now.plusSeconds(30))',
-  'preferences.getBoolean("consumed."+nonce,false)',
-  'preferences.edit().putBoolean("consumed."+nonce,true).apply()',
+  'persistPendingRequest(request)',
+  'another authorization request is already pending',
+  'putString(PENDING_REQUEST,canonical).commit()',
+  'if(!consumeCallbackNonce(nonce))',
+  'preferences.edit().putBoolean(key,true).commit()',
+  'callback replay state was not durably stored',
   'verifyWalletRejection(response,request,Instant.now())',
   '"USER_REJECTED".equals(rejection.getString("decisionCode"))',
   'rejection.getBoolean("authorityGranted")',
@@ -49,5 +53,6 @@ for(const required of [
 for(const required of ['from "@ynx-chain/wallet-auth"','encodeRequestDeepLink(request)','parseAuthorizationRequest(','callback:"ynx-social://com.ynx.social"'])assert.ok(requestGenerator.includes(required),`Social harness shared request generator is missing ${required}`);
 assert.equal(activity.includes('"ynxwallet://authorize?request="+'),false,"Social harness Android runtime must not concatenate an authorization URI");
 assert.equal(activity.includes('getQueryParameter("response")'),false,"Social harness must not collapse duplicate response parameters");
+assert.equal(activity.includes('.apply()'),false,"Social harness replay-critical state must not rely on asynchronous SharedPreferences apply");
 assert.equal(activity.includes("createGatewayChallenge(response"),false,"Social harness must not fabricate a Product Session while the public Core mobile route is unproved");
 console.log("Social Android harness contract passed: shared request builder, exact Android resolution, safe absence UI, authority-free rejection, replay safety, and zero fabricated Product Sessions");
