@@ -1,17 +1,21 @@
 import assert from "node:assert/strict";
+import {execFileSync} from "node:child_process";
 import {readFile} from "node:fs/promises";
 import test from "node:test";
-import {deriveCoreWalletAuthBinding,requireCanonicalAuthorizationContext} from "../src/core-auth-consumer.js";
+import {deriveWalletWebCompanionBinding,requireCanonicalAuthorizationContext} from "../src/core-auth-consumer.js";
 import {SENSITIVE_REPLAY_KEY,consumeSensitiveRequest,parseSensitiveRequest,validateSensitiveResult} from "../src/extension-sensitive-policy.js";
 
 const ID="ynx-11111111-1111-4111-8111-111111111111",ACCOUNT="0x1111111111111111111111111111111111111111",deadline=Date.now()+18000;
 const message=(method,params)=>({requestId:ID,deadlineAt:deadline,method,params});
 const memoryStorage=()=>{const state={};return{state,async get(key){return{[key]:state[key]}},async set(value){Object.assign(state,value)}}};
 
-test("build consumes the frozen Core registry and keeps Wallet Web authorization unavailable",async()=>{
-  const registry=JSON.parse(await readFile(new URL("../../../packages/wallet-auth/central-registry.json",import.meta.url),"utf8")),binding=deriveCoreWalletAuthBinding(registry);
-  assert.equal(binding.productClientId,"ynx-wallet-v1");assert.equal(binding.enabled,false);assert.deepEqual(binding.webCallbacks,[]);
-  assert.throws(()=>requireCanonicalAuthorizationContext(binding,null),error=>error.code==="CANONICAL_AUTH_UNAVAILABLE");
+test("build consumes exact Core Web companion authority while public Gateway remains closed",()=>{
+  const contract=JSON.parse(execFileSync("git",["show","39c80021b87730a20569b61f6ccd3f80092523c4:release/integration/wallet-auth-web-companion-registry-contract.json"],{encoding:"utf8"}));
+  const binding=deriveWalletWebCompanionBinding(contract,{coreCommit:"39c80021b87730a20569b61f6ccd3f80092523c4"});
+  assert.equal(binding.productClientId,"ynx-wallet-web-companion-v1");assert.equal(binding.enabled,true);
+  assert.deepEqual(binding.webCallbacks,["https://www.ynxweb4.com/dapp/wallet/wallet-auth/callback"]);
+  assert.equal(binding.publicGatewayRegistryReady,false);assert.equal(binding.trustedRuntimeAvailable,false);
+  assert.throws(()=>requireCanonicalAuthorizationContext(binding,null),error=>error.code==="CANONICAL_AUTH_REQUIRED");
 });
 
 test("sensitive request parser binds exact method parameters, account and deadline",()=>{

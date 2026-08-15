@@ -21,17 +21,17 @@ for (const artifact of manifest.artifacts) {
   for (const required of requiredFiles) if (!entries.includes(required)) throw new Error(`Missing ${required}: ${artifact.name}`);
 
   if (artifact.browsers.includes("PWA")) {
-    for (const required of ["manifest.webmanifest", "preferences.js", "mobile-wallet-routing.js", "core-auth-binding.js", "sw.js", "service-worker-policy.js", "asset-integrity.js", "ynx-icon-192.png", "ynx-icon-512.png", "ynx-icon-maskable-512.png"]) if (!entries.includes(required)) throw new Error(`Missing ${required}: ${artifact.name}`);
+    for (const required of ["manifest.webmanifest", "preferences.js", "mobile-wallet-routing.js", "core-auth-consumer.js", "wallet-web-companion-lifecycle.js", "core-auth-binding.js", "sw.js", "service-worker-policy.js", "asset-integrity.js", "ynx-icon-192.png", "ynx-icon-512.png", "ynx-icon-maskable-512.png"]) if (!entries.includes(required)) throw new Error(`Missing ${required}: ${artifact.name}`);
     const integritySource=execFileSync("unzip",["-p",archive,"asset-integrity.js"],{encoding:"utf8"}),match=integritySource.match(/^export const ASSET_INTEGRITY=Object\.freeze\((\{.*\})\);\n$/u);
     if(!match)throw new Error(`Invalid PWA asset integrity module: ${artifact.name}`);
-    const integrity=JSON.parse(match[1]),expected=["./","./index.html","./styles.css","./accessibility.css","./app.js","./provider.js","./i18n.js","./preferences.js","./mobile-wallet-routing.js","./core-auth-binding.js","./service-worker-policy.js","./ynx-logo.png","./ynx-icon-192.png","./ynx-icon-512.png","./ynx-icon-maskable-512.png","./manifest.webmanifest"];
+    const integrity=JSON.parse(match[1]),expected=["./","./index.html","./styles.css","./accessibility.css","./app.js","./provider.js","./i18n.js","./preferences.js","./mobile-wallet-routing.js","./core-auth-consumer.js","./wallet-web-companion-lifecycle.js","./core-auth-binding.js","./service-worker-policy.js","./ynx-logo.png","./ynx-icon-192.png","./ynx-icon-512.png","./ynx-icon-maskable-512.png","./manifest.webmanifest"];
     if(JSON.stringify(Object.keys(integrity).sort())!==JSON.stringify(expected.sort()))throw new Error(`Invalid PWA asset integrity set: ${artifact.name}`);
     for(const [key,digest] of Object.entries(integrity)){const file=key==="./"?"index.html":key.slice(2),content=execFileSync("unzip",["-p",archive,file]);if(createHash("sha256").update(content).digest("hex")!==digest)throw new Error(`PWA asset integrity mismatch for ${key}: ${artifact.name}`)}
     continue;
   }
 
   const extension = JSON.parse(execFileSync("unzip", ["-p", archive, "manifest.json"], {encoding: "utf8"}));
-  for (const required of ["preferences.js", "mobile-wallet-routing.js", "content-script.js", "page-provider.js", "active-tab-policy.js", "extension-migration.js", "extension-bridge.js", "extension-rpc.js", "core-auth-consumer.js", "core-auth-binding.js", "extension-sensitive-policy.js", "service-worker.js"]) if (!entries.includes(required)) throw new Error(`Missing ${required}: ${artifact.name}`);
+  for (const required of ["preferences.js", "mobile-wallet-routing.js", "wallet-web-companion-lifecycle.js", "content-script.js", "page-provider.js", "active-tab-policy.js", "extension-migration.js", "extension-bridge.js", "extension-rpc.js", "core-auth-consumer.js", "core-auth-binding.js", "extension-sensitive-policy.js", "service-worker.js"]) if (!entries.includes(required)) throw new Error(`Missing ${required}: ${artifact.name}`);
   if (extension.manifest_version !== 3 || extension.action?.default_popup !== "index.html") throw new Error(`Invalid MV3 entrypoint: ${artifact.name}`);
   if (extension.content_security_policy?.extension_pages !== "script-src 'self'; object-src 'self'; connect-src https://evm.ynxweb4.com") throw new Error(`Invalid extension RPC CSP: ${artifact.name}`);
   if (JSON.stringify(extension.host_permissions) !== JSON.stringify(["https://evm.ynxweb4.com/*"])) throw new Error(`Invalid host permissions: ${artifact.name}`);

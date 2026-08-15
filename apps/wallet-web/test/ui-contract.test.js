@@ -7,9 +7,9 @@ test("fallback contract always offers YNX download and MetaMask when YNX is abse
   assert.match(source, /id="download" href="\$\{YNX_DOWNLOAD_URL\}"/);
   assert.match(source, /id="metamask" href="\$\{METAMASK_DOWNLOAD_URL\}"/);
   assert.match(source, /if \(state\.providers\?\.metamask\) \{ event\.preventDefault\(\); return connect\("metamask"\); \}/);
-  assert.match(source, /CANONICAL_AUTH_UNAVAILABLE/);
-  assert.match(source, /mobileWalletPresentation\(availability, mobileBrowser, CORE_WALLET_AUTH_BINDING\)/);
-  assert.doesNotMatch(source, /handleMobileWalletReturn/);
+  assert.match(source, /companionLifecycle\.begin\(\)/);
+  assert.match(source, /mobileWalletPresentation\(availability, mobileBrowser, CORE_WALLET_AUTH_BINDING,companionLifecycle\.publicAuthAvailable\?companionLifecycle\.callback:null\)/);
+  assert.match(source, /companionLifecycle\.handleReturn\(location\.href\)/);
   assert.doesNotMatch(source, /pageshow|visibilitychange/);
   assert.match(source, /walletDiscoveryPresentation\(availability\)/);
   assert.match(source, /function localizedError\(error\)/);

@@ -4,6 +4,7 @@ import {
   isMobileWalletBrowser, mobileWalletPresentation,
 } from "./mobile-wallet-routing.js";
 import {CORE_WALLET_AUTH_BINDING} from "./core-auth-binding.js";
+import {createWalletWebCompanionLifecycle} from "./wallet-web-companion-lifecycle.js";
 import {
   METAMASK_DOWNLOAD_URL, WALLET_DOWNLOAD_MATRIX, YNX_DOWNLOAD_URL, addYNXChain, connectWallet, createExtensionProvider, discoverWallets,
   extensionWalletAvailability, forgetSession, rememberSession, restoreTestnetSession, sendTransaction,
@@ -15,6 +16,7 @@ const app = document.querySelector("#app");
 const isExtension = location.protocol === "chrome-extension:" || location.protocol === "moz-extension:";
 const mobileBrowser = !isExtension && isMobileWalletBrowser(navigator);
 const preview = new URLSearchParams(location.search);
+const companionLifecycle=createWalletWebCompanionLifecycle({binding:CORE_WALLET_AUTH_BINDING});
 const requestedLocale = preview.get("lang");
 const requestedTheme = preview.get("theme");
 const requestedText = preview.get("text");
@@ -131,9 +133,10 @@ async function connect(wallet) {
 function bind() {
   document.querySelector("#locale").addEventListener("change", (event) => {state.locale = event.target.value; state.preferences=savePreferences(localStorage,state.preferences,{locale:state.locale}); render(); detect();});
   document.querySelector("#theme").addEventListener("click", () => {state.theme = state.theme === "dark" ? "light" : "dark"; state.preferences=savePreferences(localStorage,state.preferences,{theme:state.theme}); render(); detect();});
-  document.querySelector("#ynx").addEventListener("click", () => {
+  document.querySelector("#ynx").addEventListener("click", async () => {
     if (state.providers?.ynx) return connect("ynx");
-    setStatus(`CANONICAL_AUTH_UNAVAILABLE: ${text("requestFailed")}`, "error");
+    const result=await companionLifecycle.begin();
+    setStatus(`${result.code||result.status}: ${text("requestFailed")}`, "error");
   });
   document.querySelector("#metamask").addEventListener("click", (event) => {
     if (state.providers?.metamask) { event.preventDefault(); return connect("metamask"); }
@@ -146,7 +149,7 @@ function bind() {
 
 function presentAvailability(availability) {
   const presentation = walletDiscoveryPresentation(availability);
-  const mobile = mobileWalletPresentation(availability, mobileBrowser, CORE_WALLET_AUTH_BINDING);
+  const mobile = mobileWalletPresentation(availability, mobileBrowser, CORE_WALLET_AUTH_BINDING,companionLifecycle.publicAuthAvailable?companionLifecycle.callback:null);
   document.querySelector("#ynx").classList.toggle("hidden", mobile.ynxRoute === "hidden");
   document.querySelector("#ynx").dataset.route = mobile.ynxRoute;
   document.querySelector("#ynx").textContent = mobile.ynxRoute === "canonical-auth-unavailable" ? `${text("connectYNX")} · ${text("unavailable")}` : text("connectYNX");
@@ -178,5 +181,8 @@ async function detect() {
 
 const discoveryError=(error)=>localizedError(error);
 render(); detect().then(()=>{if(loadedPreferences.status==="rejected")setStatus(text("preferencesRejected"),"error")}).catch((error) => setStatus(discoveryError(error), "error"));
+if(!isExtension&&`${location.origin}${location.pathname}`===companionLifecycle.callback&&location.search){
+  companionLifecycle.handleReturn(location.href).then((result)=>setStatus(`${result.code||result.status}: ${result.authoritative?text("connected"):text("requestFailed")}`,result.authoritative?"info":"error"));
+}
 addEventListener("storage",(event)=>{if(event.key!==PREFERENCES_KEY)return;try{const next=acceptPreferenceUpdate(state.preferences,event.newValue);state.preferences=next;state.locale=next.locale;state.theme=next.theme;render();detect().catch((error)=>setStatus(discoveryError(error),"error"))}catch(error){setStatus(`${error?.code||"PREFERENCES_REJECTED"}: ${text("preferencesRejected")}`,"error")}});
 if (!isExtension && "serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js", {type:"module"}).catch(() => {});

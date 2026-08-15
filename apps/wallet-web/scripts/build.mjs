@@ -4,7 +4,7 @@ import {cp, mkdir, readFile, rm, writeFile} from "node:fs/promises";
 import {dirname, join, resolve} from "node:path";
 import {fileURLToPath} from "node:url";
 import {chromiumManifest, firefoxManifest} from "../src/extension-manifest.js";
-import {deriveCoreWalletAuthBinding} from "../src/core-auth-consumer.js";
+import {deriveWalletWebCompanionBinding} from "../src/core-auth-consumer.js";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const dist = join(root, "dist");
@@ -19,16 +19,36 @@ for(const contract of centralMobileContracts){
   const bytes=execFileSync("git",["show",`${centralMobileCommit}:${contract.path}`],{cwd:repository});
   if(object!==contract.blob||createHash("sha256").update(bytes).digest("hex")!==contract.sha256)throw new Error(`Central mobile Wallet contract mismatch: ${contract.path}`);
 }
-const coreRegistry=JSON.parse(await readFile(resolve(root,"..","..","packages","wallet-auth","central-registry.json"),"utf8"));
-const coreAuthBinding=deriveCoreWalletAuthBinding(coreRegistry);
+const centralCallerCommit="38c9c0ce1400ad6ba8dc5e0c1aa1d657a6c9748d";
+const centralCallerContract={path:"release/integration/wallet-auth-android-launcher-contract.json",blob:"0e0d702f9245fae42daec7d0a3a3fd5fe83f9a42",sha256:"27449c80300acd463574d5d7bb016e2273cfd7d24f6669c9da00505559393a58"};
+const coreCommit="39c80021b87730a20569b61f6ccd3f80092523c4";
+const coreContracts=[
+  {path:"release/integration/wallet-auth-web-companion-registry-contract.json",blob:"a1db56d51f3afe795faace17e4e7bb51cae66ff7",sha256:"6584e439783d6c83e8aef712af95488e75cfa034c259d63356cb7bdc731f684f"},
+  {path:"packages/wallet-auth/product-session-registry.json",blob:"a59f7aba930e6643363e7c0b5bb27028c1ecc43a",sha256:"f8a25702bdc7e3bd12b0cdecd6ac513b0a3d3ac25832a112efbe6b788ff8de9b"},
+  {path:"packages/wallet-auth/src/product-session-recovery.js",blob:"9e5af333b5873a36ab0884917a21a17675b36456",sha256:"84ea01c9d36e2de70928e42881aaa33e4883dbbeeb0072a34e9849e72f6b824c"},
+  {path:"packages/wallet-auth/src/product-session-gateway-client.js",blob:"89b12a5f54725b2dfc2194495f228cc1b265bacf",sha256:"671f85b00b1f3a6e40d0c43e6a631d3e15edbe99cb242056be289b91f11a8ca0"},
+];
+function immutableObject(commit,contract){
+  const object=execFileSync("git",["rev-parse",`${commit}:${contract.path}`],{cwd:repository,encoding:"utf8"}).trim();
+  const bytes=execFileSync("git",["show",`${commit}:${contract.path}`],{cwd:repository});
+  if(object!==contract.blob||createHash("sha256").update(bytes).digest("hex")!==contract.sha256)throw new Error(`Immutable authority mismatch: ${contract.path}`);
+  return bytes;
+}
+const centralCaller=JSON.parse(immutableObject(centralCallerCommit,centralCallerContract));
+if(centralCaller?.authority?.walletPackage!=="com.ynxweb4.wallet"||centralCaller?.authority?.uriTemplate!=="ynxwallet://authorize?request=<base64url-canonical-authorization-request>"||centralCaller?.sharedCallerRequirements?.singleBuilder!=="@ynx-chain/wallet-auth encodeRequestDeepLink")throw new Error("Central caller authority mismatch");
+const [coreContractBytes]=coreContracts.map((contract)=>immutableObject(coreCommit,contract));
+const coreAuthBinding=deriveWalletWebCompanionBinding(JSON.parse(coreContractBytes),{
+  coreCommit,coreContractBlob:coreContracts[0].blob,centralCallerCommit,centralCallerBlob:centralCallerContract.blob,
+  publicGatewayRegistryReady:false,trustedRuntimeAvailable:false,
+});
 await rm(dist, {recursive: true, force: true});
 await mkdir(join(dist, "pwa"), {recursive: true});
 await writeFile(join(dist,"pwa","core-auth-binding.js"),`export const CORE_WALLET_AUTH_BINDING=Object.freeze(${JSON.stringify(coreAuthBinding)});\n`);
 for (const file of ["index.html", "manifest.webmanifest", "sw.js", "styles.css", "accessibility.css", "app.js"]) await cp(join(root, "public", file), join(dist, "pwa", file));
-for (const file of ["provider.js", "i18n.js", "preferences.js", "mobile-wallet-routing.js"]) await cp(join(root, "src", file), join(dist, "pwa", file));
+for (const file of ["provider.js", "i18n.js", "preferences.js", "mobile-wallet-routing.js", "core-auth-consumer.js", "wallet-web-companion-lifecycle.js"]) await cp(join(root, "src", file), join(dist, "pwa", file));
 await cp(join(root, "src", "service-worker-policy.js"), join(dist, "pwa", "service-worker-policy.js"));
 for(const icon of ["ynx-logo.png","ynx-icon-192.png","ynx-icon-512.png","ynx-icon-maskable-512.png"])await cp(join(root,"public",icon),join(dist,"pwa",icon));
-const pwaIntegrityFiles=["index.html","styles.css","accessibility.css","app.js","provider.js","i18n.js","preferences.js","mobile-wallet-routing.js","core-auth-binding.js","service-worker-policy.js","ynx-logo.png","ynx-icon-192.png","ynx-icon-512.png","ynx-icon-maskable-512.png","manifest.webmanifest"],assetIntegrity={};
+const pwaIntegrityFiles=["index.html","styles.css","accessibility.css","app.js","provider.js","i18n.js","preferences.js","mobile-wallet-routing.js","core-auth-consumer.js","wallet-web-companion-lifecycle.js","core-auth-binding.js","service-worker-policy.js","ynx-logo.png","ynx-icon-192.png","ynx-icon-512.png","ynx-icon-maskable-512.png","manifest.webmanifest"],assetIntegrity={};
 for(const file of pwaIntegrityFiles)assetIntegrity[`./${file}`]=createHash("sha256").update(await readFile(join(dist,"pwa",file))).digest("hex");
 assetIntegrity["./"]=assetIntegrity["./index.html"];
 await writeFile(join(dist,"pwa","asset-integrity.js"),`export const ASSET_INTEGRITY=Object.freeze(${JSON.stringify(assetIntegrity)});\n`);
@@ -40,7 +60,7 @@ const variants = [
 for (const [name, manifest] of variants) {
   const target = join(dist, name); await mkdir(target, {recursive: true});
   for (const file of ["index.html", "styles.css", "accessibility.css", "app.js"]) await cp(join(root, "public", file), join(target, file));
-  for (const file of ["provider.js", "i18n.js", "preferences.js", "mobile-wallet-routing.js"]) await cp(join(root, "src", file), join(target, file));
+  for (const file of ["provider.js", "i18n.js", "preferences.js", "mobile-wallet-routing.js", "wallet-web-companion-lifecycle.js"]) await cp(join(root, "src", file), join(target, file));
   for (const file of ["service-worker.js", "content-script.js", "page-provider.js"]) await cp(join(root, "extension", file), join(target, file));
   await cp(join(root, "src", "extension-bridge.js"), join(target, "extension-bridge.js"));
   await cp(join(root, "src", "extension-rpc.js"), join(target, "extension-rpc.js"));
