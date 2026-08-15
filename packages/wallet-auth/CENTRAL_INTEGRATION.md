@@ -138,11 +138,11 @@ The kernel freezes the parsed registry at construction, rejects alternate JSON e
 6. Deploy registry, kernel host and durable state migration atomically to staging; record registry hash, source commit, release, canonical build time, deployment ID and restore evidence, then run real Wallet↔product flows.
 7. Have Monitor accept the bounded metric/event contract, prove dashboard and alert behavior, and correlate request/error IDs to authoritative audit IDs without logging custody or proof material.
 
-Current branch verification is Wallet/Auth 230/230, including 120 concurrent
+Current branch verification is Wallet/Auth 232/232, including 120 concurrent
 factory connections, full Product Session concurrency/isolation, real v2 Gateway
 approval/completion/introspection, second-launch restore, registered legacy
 migration, authoritative disconnect revocation, callback/disconnect races,
-network-transition races (including asynchronous platform signing) and negative injection tests. `npm pack --dry-run --json` includes the
+network-transition races (including asynchronous platform signing), lost-revoke acknowledgement recovery and negative injection tests. `npm pack --dry-run --json` includes the
 shared factory through the existing package root export. Until product-owned runtime migration,
 central merge and direct Testnet/public evidence exist, truthful status remains
 `implemented-local` and `tested-local`, not `integrated-central` or

@@ -34,6 +34,7 @@
     "completionOrderingStrengthened": "An issued Session is protected before a network-epoch transition can return, preventing orphan authority.",
     "secureSignerSemanticsConsumed": true,
     "networkEpochFencesAsyncSigner": true,
+    "lostRevokeAcknowledgementRecovery": "Only an exact SESSION_REVOKED response after a lost revoke acknowledgement is terminal; every other error retains protected state for Retry.",
     "secureSignerReconciliationPending": false
   },
   "truthBoundary": {
@@ -50,6 +51,7 @@
     "completionNetworkTransitionProtectedCandidate": true,
     "platformSecureSignerCandidate": true,
     "asyncSignerNetworkEpochFenceCandidate": true,
+    "lostRevokeAcknowledgementRecoveryCandidate": true,
     "integratedCentral": false,
     "gatewayLoadedPublic": false,
     "deployedPublicRegistry": false,

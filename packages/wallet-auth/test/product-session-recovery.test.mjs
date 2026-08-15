@@ -103,6 +103,42 @@ test("disconnect revokes the authoritative Gateway session before removing prote
   assert.equal(await setup.storage.get(setup.client.storageKey), null);
 });
 
+test("lost revoke acknowledgement clears protected state only after exact SESSION_REVOKED retry", async () => {
+  const setup = harness(); let loseAcknowledgement = true;
+  const gateway = {
+    ...setup.gateway,
+    async revoke(input) {
+      if (loseAcknowledgement) {
+        loseAcknowledgement = false;
+        await setup.gateway.revoke(input);
+        throw new WalletAuthError("NETWORK_UNAVAILABLE", "revoke persisted but acknowledgement was lost");
+      }
+      return setup.gateway.revoke(input);
+    },
+  };
+  const client = new RecoverableProductSessionClient({ registry, productId: "social", platform: "android", storage: setup.storage, gateway, device, tokenFactory: (() => { let i = 0; return () => token(`lost-revoke-ack-${i++}`); })(), clock: () => NOW });
+  const connecting = await client.begin({ walletInstalled: true, schemeRegistered: true });
+  const approval = signProductSessionApproval(registry, connecting.request, { accountSecret, scopes: connecting.request.scopes, expiresAt: "2026-08-14T01:03:00.000Z" }, NOW);
+  assert.equal((await client.handleReturn(createProductSessionReturnURL(registry, connecting.request, { result: "approved", approval }, NOW))).status, PRODUCT_SESSION_CLIENT_STATE.CONNECTED);
+  assert.equal((await client.disconnect()).status, PRODUCT_SESSION_CLIENT_STATE.NETWORK_UNAVAILABLE);
+  assert.notEqual(await setup.storage.get(client.storageKey), null);
+  assert.equal((await client.disconnect()).status, PRODUCT_SESSION_CLIENT_STATE.DISCONNECTED);
+  assert.equal(await setup.storage.get(client.storageKey), null);
+});
+
+test("revoke retries retain protected state for SESSION_NOT_FOUND and every non-terminal error", async () => {
+  for (const code of ["SESSION_NOT_FOUND", "SESSION_EXPIRED", "INVALID_GATEWAY_RESPONSE"]) {
+    const setup = harness();
+    const gateway = { ...setup.gateway, async revoke() { throw new WalletAuthError(code, "must remain fail closed"); } };
+    const client = new RecoverableProductSessionClient({ registry, productId: "social", platform: "android", storage: setup.storage, gateway, device, tokenFactory: (() => { let i = 0; return () => token(`revoke-nonterminal-${code}-${i++}`); })(), clock: () => NOW });
+    const connecting = await client.begin({ walletInstalled: true, schemeRegistered: true });
+    const approval = signProductSessionApproval(registry, connecting.request, { accountSecret, scopes: connecting.request.scopes, expiresAt: "2026-08-14T01:03:00.000Z" }, NOW);
+    assert.equal((await client.handleReturn(createProductSessionReturnURL(registry, connecting.request, { result: "approved", approval }, NOW))).status, PRODUCT_SESSION_CLIENT_STATE.CONNECTED);
+    assert.equal((await client.disconnect()).status, PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED);
+    assert.notEqual(await setup.storage.get(client.storageKey), null);
+  }
+});
+
 test("callback verification is single-flight and rejects a different concurrent return", async () => {
   const setup = harness(); let releaseChallenge; let challengeStarted; let challengeCalls = 0;
   const blocked = new Promise((resolve) => { releaseChallenge = resolve; });
