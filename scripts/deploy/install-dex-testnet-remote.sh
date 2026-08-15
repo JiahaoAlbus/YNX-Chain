@@ -84,7 +84,7 @@ for attempt in $(seq 1 20); do
     VERSION_JSON="$version_json" HEALTH_JSON="$health_json" TOKENS_JSON="$tokens_json" EXPECTED_COMMIT="$source_commit" EXPECTED_RELEASE="$release" node <<'NODE'
 const version=JSON.parse(process.env.VERSION_JSON),health=JSON.parse(process.env.HEALTH_JSON),tokens=JSON.parse(process.env.TOKENS_JSON);
 if(version.commit!==process.env.EXPECTED_COMMIT||version.release!==process.env.EXPECTED_RELEASE)process.exit(1);
-if(health.status!=="ok"||health.productId!=="ynx-dex"||health.chainId!==6423||health.marketSourceConfigured!==true||health.marketAvailable!==(health.indexedPools>0)||health.executionAvailable!==health.marketAvailable)process.exit(1);
+if(health.status!=="ok"||health.productId!=="ynx-dex"||health.chainId!==6423||health.marketSourceConfigured!==true||health.marketAvailable!==(health.indexedPools>0)||health.executionAvailable!==false||health.executionGate!=="chain_core_strategy_vault_v1_35_product_evidence"||health.executionGateSatisfied!==false)process.exit(1);
 if(tokens.chainId!==6423||tokens.mainnet!==false||!Array.isArray(tokens.items)||tokens.items.length<1||tokens.items[0]?.address!=="YNXT")process.exit(1);
 NODE
   then
@@ -191,7 +191,7 @@ for attempt in $(seq 1 30); do
     VERSION_JSON="$version_json" HEALTH_JSON="$health_json" TOKENS_JSON="$tokens_json" GATEWAY_JSON="$gateway_json" EXPECTED_COMMIT="$source_commit" EXPECTED_RELEASE="$release" node <<'NODE'
 const version=JSON.parse(process.env.VERSION_JSON),health=JSON.parse(process.env.HEALTH_JSON),tokens=JSON.parse(process.env.TOKENS_JSON),gateway=JSON.parse(process.env.GATEWAY_JSON);
 if(version.commit!==process.env.EXPECTED_COMMIT||version.release!==process.env.EXPECTED_RELEASE)process.exit(1);
-if(health.status!=="ok"||health.marketSourceConfigured!==true||health.marketAvailable!==(health.indexedPools>0)||health.executionAvailable!==health.marketAvailable)process.exit(1);
+if(health.status!=="ok"||health.marketSourceConfigured!==true||health.marketAvailable!==(health.indexedPools>0)||health.executionAvailable!==false||health.executionGate!=="chain_core_strategy_vault_v1_35_product_evidence"||health.executionGateSatisfied!==false)process.exit(1);
 if(!Array.isArray(tokens.items)||tokens.items.length<1||tokens.items[0]?.address!=="YNXT")process.exit(1);
 if(!gateway.ok||gateway.service!=="ynx-wallet-gatewayd"||gateway.truthfulStatus!=="remote-canonical-wallet-gateway")process.exit(1);
 NODE
