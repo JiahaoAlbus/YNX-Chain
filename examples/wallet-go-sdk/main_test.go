@@ -39,3 +39,17 @@ func TestNonHTTPSRPCFailsBeforeNetwork(t *testing.T) {
 		t.Fatalf("expected HTTPS failure, got %v", err)
 	}
 }
+
+func TestDefaultRPCConsumesCentralEndpointMatrix(t *testing.T) {
+	var requested string
+	client := &http.Client{Transport: roundTripFunc(func(request *http.Request) (*http.Response, error) {
+		requested = request.URL.String()
+		return &http.Response{StatusCode: http.StatusOK, Header: make(http.Header), Body: io.NopCloser(strings.NewReader(`{"jsonrpc":"2.0","id":1,"result":"0x1917"}`))}, nil
+	})}
+	if err := run([]string{"-vector", "../../packages/wallet-auth/testdata/product-session-http-proof-v1.json"}, &bytes.Buffer{}, client); err != nil {
+		t.Fatal(err)
+	}
+	if requested != "https://rpc.ynxweb4.com/evm" {
+		t.Fatalf("unexpected default RPC %q", requested)
+	}
+}

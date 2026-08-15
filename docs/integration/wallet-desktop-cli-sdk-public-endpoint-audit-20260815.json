@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "owner": "Wallet Desktop CLI SDK",
+  "recordedAt": "2026-08-15",
+  "sourceBaseline": "2802876f8470264c4a8819f1426e28f957a09289",
+  "centralAuthority": {
+    "commit": "d0f89797d13c7667cc187b0c64d5c9e1cb1d8f59",
+    "path": "release/integration/wallet-auth-public-endpoint-service-discovery-matrix.json",
+    "blob": "d402fcdc844aa39bd5ee351a99d93acb4852dc37",
+    "sha256": "d344c607c2bbbf7bb0d9d3662b424976d0d6c4ff20428025dd1e2fb92bf31392",
+    "canonicalRpcUrl": "https://rpc.ynxweb4.com/evm",
+    "legacyRpcUrl": "https://evm.ynxweb4.com",
+    "rpcUrlConflictResolvedByCentral": false
+  },
+  "ownerConsumers": [
+    "apps/wallet-desktop/src/main.mjs",
+    "cmd/ynx-wallet-cli/main.go",
+    "sdk/js/index.js",
+    "examples/wallet-typescript-sdk-clean-consumer/index.mjs",
+    "examples/wallet-go-sdk/main.go"
+  ],
+  "directRpcBackread": {
+    "method": "eth_chainId",
+    "canonical": {
+      "url": "https://rpc.ynxweb4.com/evm",
+      "httpStatus": 200,
+      "contentType": "application/json",
+      "bytes": 43,
+      "result": "0x1917"
+    },
+    "legacy": {
+      "url": "https://evm.ynxweb4.com",
+      "httpStatus": 200,
+      "contentType": "application/json",
+      "bytes": 43,
+      "result": "0x1917"
+    },
+    "browserCorsProved": false,
+    "faucetAvailable": false,
+    "walletCallbackUrl": null
+  },
+  "verification": {
+    "sdkTests": "14/14 passed",
+    "sdkPackDryRunPassed": true,
+    "goCliAndExampleTestsPassed": true,
+    "desktopTests": "2/2 passed after installing the file dependency's own locked Wallet Auth dependencies",
+    "desktopFirstAttempt": {
+      "passed": false,
+      "error": "ERR_MODULE_NOT_FOUND @noble/hashes in isolated worktree before packages/wallet-auth npm ci"
+    },
+    "cleanConsumerTarballs": {
+      "sdk": {
+        "bytes": 5902,
+        "sha256": "fb003b2446f19e9601750c04ac353e9e0a7978c385cac916cadb956c3d87191c",
+        "signingClass": "unsigned-local-npm-pack-candidate"
+      },
+      "walletAuth": {
+        "bytes": 87662,
+        "sha256": "5fd07c03a74a8f1e62fa2aa89ba7eae357a69b51d964a95dde59fce24ee1c98c",
+        "signingClass": "unsigned-local-npm-pack-candidate"
+      },
+      "installedInIsolatedConsumer": true,
+      "canonicalRpcRuntimeProved": false,
+      "firstAttempt": "YNXSDKError: YNX endpoint timed out after 10000ms",
+      "secondAttempt": "process returned zero with no stdout after the 20000ms bounded call; treated as ambiguous and not proof"
+    }
+  },
+  "truthBoundary": {
+    "desktopCliAndNodeDefaultUseCanonicalRpc": true,
+    "cleanConsumerCanonicalRpcProved": false,
+    "fallbackToLegacyOnFailure": false,
+    "failClosedWhenRpcUnavailable": true,
+    "accountProved": false,
+    "balanceProved": false,
+    "signProved": false,
+    "transactionProved": false,
+    "faucetProved": false,
+    "walletAuthPublicCallbackProved": false,
+    "integratedCentral": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false
+  }
+}

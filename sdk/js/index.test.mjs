@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import {after, before, test} from "node:test";
 import http from "node:http";
 import {readFile} from "node:fs/promises";
-import {YNXClient, YNXSDKError, assertYNXTestnetSnapshot, callYNXEVM, getYNXStatus, normalizeYNXAddress, proveYNXTestnetRPC, toEVMAddress, toYNXAddress} from "./index.js";
+import {YNXClient, YNXSDKError, assertYNXTestnetSnapshot, callYNXEVM, getYNXStatus, normalizeYNXAddress, proveYNXTestnetRPC, toEVMAddress, toYNXAddress, ynxPublicEndpoints} from "./index.js";
 
 let baseUrl;
 let server;
@@ -66,6 +66,21 @@ test("proves YNX Testnet only over HTTPS and fails closed on the wrong chain", a
   await assert.rejects(proveYNXTestnetRPC("https://rpc.example.invalid", {fetchImpl: wrongChainFetch}), (error) => error instanceof YNXSDKError && error.code === "CHAIN_MISMATCH");
   const unavailableFetch = async () => { throw new Error("unreachable"); };
   await assert.rejects(proveYNXTestnetRPC("https://rpc.example.invalid", {fetchImpl: unavailableFetch}), (error) => error instanceof YNXSDKError && /request failed/.test(error.message));
+});
+
+test("consumes the immutable Central public endpoint matrix without promoting unavailable services", async () => {
+  assert.equal(ynxPublicEndpoints.rpcUrl, "https://rpc.ynxweb4.com/evm");
+  assert.equal(ynxPublicEndpoints.walletCallbackUrl, null);
+  assert.equal(ynxPublicEndpoints.allRequiredServicesAvailable, false);
+  assert.equal(ynxPublicEndpoints.allRequiredServicesCorsReady, false);
+  assert.equal(ynxPublicEndpoints.integratedCentral, false);
+  let requested;
+  const fetchImpl = async (url) => {
+    requested = String(url);
+    return new Response(JSON.stringify({jsonrpc: "2.0", id: 1, result: "0x1917"}), {status: 200});
+  };
+  assert.equal((await proveYNXTestnetRPC(undefined, {fetchImpl})).chainId, "0x1917");
+  assert.equal(requested, "https://rpc.ynxweb4.com/evm");
 });
 
 test("converts shared YNX address vectors", async () => {

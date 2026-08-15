@@ -7,7 +7,7 @@ import {
   productSessionProofSignBytes,
   verifyProductSessionProof,
 } from "@ynx-chain/wallet-auth";
-import {proveYNXTestnetRPC} from "@ynx-chain/sdk";
+import {proveYNXTestnetRPC, ynxPublicEndpoints} from "@ynx-chain/sdk";
 
 const vectorPath = process.env.YNX_WALLET_AUTH_VECTOR;
 if (!vectorPath) throw new Error("YNX_WALLET_AUTH_VECTOR is required");
@@ -46,7 +46,7 @@ verifyProductSessionProof(ephemeralProof, ephemeralSession, {
   bodyDigest: ephemeralProof.bodyDigest,
 }, new Date("2026-07-15T12:00:10.000Z"));
 
-const rpc = process.env.YNX_EVM_RPC || "https://evm.ynxweb4.com";
+const rpc = process.env.YNX_EVM_RPC || ynxPublicEndpoints.rpcUrl;
 const chain = await proveYNXTestnetRPC(rpc, {timeoutMs: 15_000});
 console.log(JSON.stringify({
   cleanConsumer: true,
