@@ -180,6 +180,30 @@ test("Web companion session restores across Gateway restart and expiry removes a
   assert.deepEqual(expired.requests, []);
 });
 
+test("disconnect racing restart introspection cannot resurrect or auto-reconnect a Product Session", async () => {
+  const first = runtime();
+  const connecting = await first.client.begin({ walletInstalled: true, schemeRegistered: true });
+  const approval = signProductSessionApproval(registry, connecting.request, { accountSecret: "1".padStart(64, "0"), scopes: connecting.request.scopes, expiresAt: "2026-08-15T09:03:00.000Z" }, NOW);
+  await first.client.handleReturn(createProductSessionReturnURL(registry, connecting.request, { result: "approved", approval }, NOW));
+  let releaseIntrospection;
+  const introspectionBlocked = new Promise((resolve) => { releaseIntrospection = resolve; });
+  let introspectionStarted;
+  const introspectionSeen = new Promise((resolve) => { introspectionStarted = resolve; });
+  const restarted = runtime({ snapshot: first.handler.snapshot(), storage: first.storage, beforeRequest: async (path) => {
+    if (path === "/v2/product-sessions/introspect") { introspectionStarted(); await introspectionBlocked; }
+  } });
+  const restoring = restarted.client.restore(true);
+  await introspectionSeen;
+  const disconnect = restarted.client.disconnect();
+  releaseIntrospection();
+  await restoring;
+  assert.equal((await disconnect).status, PRODUCT_SESSION_CLIENT_STATE.DISCONNECTED);
+  assert.equal(restarted.client.current.status, PRODUCT_SESSION_CLIENT_STATE.DISCONNECTED);
+  assert.deepEqual(restarted.requests.map((item) => item.path), ["/v2/product-sessions/introspect", "/v2/product-sessions/revoke"]);
+  assert.equal(restarted.handler.snapshot().authority.revokedSessions.length, 1);
+  assert.equal(await restarted.storage.get(restarted.client.storageKey), null);
+});
+
 test("Web companion revoke outage retains protected state until Retry re-introspects and revokes", async () => {
   let offline = false;
   const setup = runtime({ networkUnavailable: () => offline });

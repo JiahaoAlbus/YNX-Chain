@@ -11,7 +11,7 @@ export const PRODUCT_SESSION_CLIENT_STATE = Object.freeze({
 });
 
 export class RecoverableProductSessionClient {
-  #registry; #binding; #storage; #gateway; #device; #tokens; #clock; #state; #autoReconnectAttempted; #networkAvailable; #disconnectPromise; #returnOperation;
+  #registry; #binding; #storage; #gateway; #device; #tokens; #clock; #state; #autoReconnectAttempted; #networkAvailable; #disconnectPromise; #returnOperation; #recoveryPromise;
   constructor(config) {
     exactFields(config, ["registry", "productId", "platform", "storage", "gateway", "device", "tokenFactory", "clock"], "Recoverable Product Session client configuration");
     this.#registry = parseProductSessionRegistry(config.registry);
@@ -26,6 +26,7 @@ export class RecoverableProductSessionClient {
     this.#networkAvailable = true;
     this.#disconnectPromise = null;
     this.#returnOperation = null;
+    this.#recoveryPromise = null;
   }
 
   get current() { return this.#state; }
@@ -43,6 +44,9 @@ export class RecoverableProductSessionClient {
   async retryDetected() { return this.retry(await this.detectWalletEnvironment()); }
 
   async restore(networkAvailable = true) {
+    return this.#recover(() => this.#restore(networkAvailable));
+  }
+  async #restore(networkAvailable) {
     this.#networkAvailable = Boolean(networkAvailable);
     if (!this.#networkAvailable) return this.#offline();
     const restored = await this.#restoreStoredSession();
@@ -121,6 +125,9 @@ export class RecoverableProductSessionClient {
   }
 
   async retry(environment) {
+    return this.#recover(() => this.#retry(environment));
+  }
+  async #retry(environment) {
     this.#networkAvailable = true;
     const restored = await this.#restoreStoredSession();
     if (restored !== null) return restored;
@@ -140,6 +147,10 @@ export class RecoverableProductSessionClient {
     finally { if (this.#disconnectPromise === operation) this.#disconnectPromise = null; }
   }
   async #disconnect() {
+    const pendingRecovery = this.#recoveryPromise;
+    if (pendingRecovery !== null) {
+      try { await pendingRecovery; } catch { /* Disconnect still clears a failed recovery transaction. */ }
+    }
     const pendingReturn = this.#returnOperation?.promise ?? null;
     if (pendingReturn !== null) {
       try { await pendingReturn; } catch { /* Disconnect still clears a rejected or invalid pending callback. */ }
@@ -200,6 +211,13 @@ export class RecoverableProductSessionClient {
     }
   }
   async #clearPending() { await this.#storage.remove(`${this.storageKey}:pending`); await this.#storage.remove(`${this.storageKey}:return`); }
+  async #recover(operation) {
+    if (this.#recoveryPromise !== null) return this.#recoveryPromise;
+    const pending = operation();
+    this.#recoveryPromise = pending;
+    try { return await pending; }
+    finally { if (this.#recoveryPromise === pending) this.#recoveryPromise = null; }
+  }
   #offline(message = "Network unavailable; cached Product Session is not treated as authoritative") { this.#state = state(PRODUCT_SESSION_CLIENT_STATE.NETWORK_UNAVAILABLE, message, { actions: ["retry", "guest"] }); return this.#state; }
 }
 
