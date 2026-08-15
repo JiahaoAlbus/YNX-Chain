@@ -6,6 +6,7 @@ import YNXWalletMacCore
 private let lifecycleLogger = Logger(subsystem: "com.ynxweb4.wallet.macos", category: "lifecycle")
 private let callbackLogger = Logger(subsystem: "com.ynxweb4.wallet.macos", category: "callback")
 private let networkLogger = Logger(subsystem: "com.ynxweb4.wallet.macos", category: "network")
+private let recoveryLogger = Logger(subsystem: "com.ynxweb4.wallet.macos", category: "recovery")
 
 @MainActor
 final class WalletState: ObservableObject {
@@ -14,15 +15,79 @@ final class WalletState: ObservableObject {
   @Published var errorCode: String?
   @Published var securityBoundary = "Checking Keychain and biometric availability…"
   @Published var networkBoundary = "Loading verified YNX Testnet endpoint matrix…"
+  @Published var recoveryBoundary = "Checking device recovery material…"
+  @Published var recoveryMaterialPresent = false
+  @Published var recoveryOperationInProgress = false
+  @Published var recoveryActionAvailable = false
+  private let recoveryVault = KeychainRecoveryVault()
 
   func refreshSecurityBoundary() {
     let capability = DeviceSecurityProbe.run()
     if capability.keychainRoundTripVerified && capability.biometricPolicyAvailable {
       securityBoundary = "Device-only Keychain round-trip verified. System biometric policy is available."
+      recoveryActionAvailable = true
     } else if capability.keychainRoundTripVerified {
       securityBoundary = "Device-only Keychain round-trip verified. System biometric policy is unavailable; recovery and signing remain locked."
+      recoveryActionAvailable = false
     } else {
       securityBoundary = "Keychain verification failed. Recovery and signing remain locked."
+      recoveryActionAvailable = false
+    }
+    refreshRecoveryBoundary()
+  }
+
+  func prepareDeviceRecovery() async {
+    guard recoveryActionAvailable, !recoveryOperationInProgress else { return }
+    recoveryOperationInProgress = true
+    defer { recoveryOperationInProgress = false }
+    recoveryLogger.notice("YNX_WALLET_MAC_DEVICE_RECOVERY_ATTEMPTED pid=\(getpid(), privacy: .public) productRecovery=false")
+    do {
+      try await recoveryVault.create(
+        reason: recoveryMaterialPresent
+          ? "Rotate YNX Wallet device recovery material"
+          : "Create YNX Wallet device recovery material"
+      )
+      let absent = try recoveryVault.isAbsentWithoutAuthentication()
+      guard !absent else {
+        recoveryBoundary = "Device recovery creation was not persisted. Product recovery remains unavailable."
+        recoveryLogger.error("YNX_WALLET_MAC_DEVICE_RECOVERY_REJECTED pid=\(getpid(), privacy: .public) code=RECOVERY_NOT_PERSISTED productRecovery=false")
+        return
+      }
+      recoveryMaterialPresent = true
+      recoveryBoundary = "Biometric-bound device recovery material is stored in this Mac's Keychain. Product account recovery remains unavailable."
+      recoveryLogger.notice("YNX_WALLET_MAC_DEVICE_RECOVERY_PERSISTED pid=\(getpid(), privacy: .public) bytes=32 productRecovery=false")
+    } catch DeviceSecurityError.biometricUnavailable(let code) {
+      recoveryBoundary = "Biometric authorization was unavailable or cancelled. No recovery success is recorded."
+      recoveryLogger.error("YNX_WALLET_MAC_DEVICE_RECOVERY_REJECTED pid=\(getpid(), privacy: .public) code=BIOMETRIC_UNAVAILABLE errorCode=\(code, privacy: .public) productRecovery=false")
+      recoveryMaterialPresent = ((try? recoveryVault.isAbsentWithoutAuthentication()) == false)
+    } catch DeviceSecurityError.keychain(let code) {
+      recoveryBoundary = "Keychain rejected the device recovery operation. Existing material was not deleted."
+      recoveryLogger.error("YNX_WALLET_MAC_DEVICE_RECOVERY_REJECTED pid=\(getpid(), privacy: .public) code=KEYCHAIN_REJECTED errorCode=\(code, privacy: .public) productRecovery=false")
+      recoveryMaterialPresent = ((try? recoveryVault.isAbsentWithoutAuthentication()) == false)
+    } catch {
+      recoveryBoundary = "Device recovery failed closed. No product recovery success is recorded."
+      recoveryLogger.error("YNX_WALLET_MAC_DEVICE_RECOVERY_REJECTED pid=\(getpid(), privacy: .public) code=UNEXPECTED_ERROR productRecovery=false")
+      recoveryMaterialPresent = ((try? recoveryVault.isAbsentWithoutAuthentication()) == false)
+    }
+  }
+
+  private func refreshRecoveryBoundary() {
+    defer {
+      recoveryLogger.notice(
+        "YNX_WALLET_MAC_DEVICE_RECOVERY_STATUS pid=\(getpid(), privacy: .public) present=\(recoveryMaterialPresent, privacy: .public) actionAvailable=\(recoveryActionAvailable, privacy: .public) productRecovery=false"
+      )
+    }
+    do {
+      recoveryMaterialPresent = !(try recoveryVault.isAbsentWithoutAuthentication())
+      recoveryBoundary = recoveryMaterialPresent
+        ? "Biometric-bound device recovery material is present. Product account recovery remains unavailable."
+        : "No device recovery material is stored. Product account recovery remains unavailable."
+    } catch DeviceSecurityError.keychain(let code) {
+      recoveryMaterialPresent = false
+      recoveryBoundary = "Device recovery status is unavailable because Keychain returned \(code)."
+    } catch {
+      recoveryMaterialPresent = false
+      recoveryBoundary = "Device recovery status is unavailable."
     }
   }
 
@@ -91,13 +156,19 @@ struct WalletView: View {
       Divider()
       Text(state.networkBoundary).font(.callout.weight(.medium))
       Text(state.securityBoundary).font(.callout.weight(.medium))
-      Text("Recovery material can be bound to the current biometric set in the device-only Keychain. Account derivation, signing and asset actions remain unavailable until the frozen native bridge is integrated and verified.")
+      Text(state.recoveryBoundary).font(.callout.weight(.medium))
+      Button(state.recoveryMaterialPresent ? "Rotate device recovery material" : "Prepare device recovery") {
+        Task { await state.prepareDeviceRecovery() }
+      }
+      .disabled(!state.recoveryActionAvailable || state.recoveryOperationInProgress)
+      .accessibilityIdentifier("YNX device recovery action")
+      Text("Device recovery material is not an account, seed phrase, balance, transaction, authorization, or product recovery success. Account derivation, signing and asset actions remain unavailable until the frozen native bridge is integrated and verified.")
         .font(.callout)
         .foregroundStyle(.secondary)
       Spacer()
     }
     .padding(28)
-    .frame(minWidth: 560, minHeight: 360)
+    .frame(minWidth: 620, minHeight: 500)
   }
 }
 
@@ -114,7 +185,7 @@ struct YNXWalletMacApp: App {
         Task { await state.refreshNetworkBoundary() }
       }
     }
-    .defaultSize(width: 620, height: 420)
+    .defaultSize(width: 680, height: 540)
   }
 }
 

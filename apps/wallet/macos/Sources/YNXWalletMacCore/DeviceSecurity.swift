@@ -112,7 +112,6 @@ public final class KeychainRecoveryVault {
   }
 
   private func replace(_ material: Data, context: LAContext) throws {
-    _ = SecItemDelete(baseQuery(context: context) as CFDictionary)
     var accessError: Unmanaged<CFError>?
     guard let access = SecAccessControlCreateWithFlags(
       nil,
@@ -121,6 +120,15 @@ public final class KeychainRecoveryVault {
       &accessError
     ) else {
       throw DeviceSecurityError.keychain(code: errSecParam)
+    }
+    let update: [CFString: Any] = [
+      kSecValueData: material,
+      kSecAttrAccessControl: access,
+    ]
+    let updateStatus = SecItemUpdate(baseQuery(context: context) as CFDictionary, update as CFDictionary)
+    if updateStatus == errSecSuccess { return }
+    guard updateStatus == errSecItemNotFound else {
+      throw DeviceSecurityError.keychain(code: updateStatus)
     }
     var query = baseQuery(context: context)
     query[kSecValueData] = material
