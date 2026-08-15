@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "owner": "02-wallet-auth-ios-macos-native",
+  "implementationCommit": "a5a563b1d1d4563dccf26142130a2f41a60925e3",
+  "workflow": {
+    "name": "wallet-macos",
+    "runId": 31857537620,
+    "jobId": 94945020968,
+    "headSha": "a5a563b1d1d4563dccf26142130a2f41a60925e3",
+    "event": "push",
+    "status": "completed",
+    "conclusion": "success",
+    "xctestStepConclusion": "success",
+    "xcode": "26.3 (17C529)"
+  },
+  "canonicalRequestRuntime": {
+    "transport": "ynxwallet://authorize?request=<base64url-canonical-json>",
+    "fixtureOnly": true,
+    "requestingProduct": "social",
+    "productClientId": "ynx-social-v1",
+    "bundleId": "com.ynx.social",
+    "callback": "ynx-social://com.ynx.social",
+    "scopes": ["account:read", "profile:link"],
+    "registryGitBlob": "754737194f02834da9f5833a493f4633b4cc18eb",
+    "registrySha256": "337145be4cbdd3b642f7fd263e1b06e20f512f8cd4981033109ba65c9856becd",
+    "coldLaunchPid": 6331,
+    "secondLaunchPid": 6574,
+    "deliveredToPid": 6574,
+    "nativeLogReceived": true,
+    "nativeResult": "CANONICAL_AUTH_BRIDGE_UNAVAILABLE",
+    "uiVisible": true,
+    "uiText": "Request rejected · CANONICAL_AUTH_BRIDGE_UNAVAILABLE",
+    "authorizationSuccess": false,
+    "accountAvailable": false,
+    "signing": false,
+    "callbackEmitted": false
+  },
+  "installable": {
+    "artifactId": 9239523380,
+    "artifactName": "ynx-wallet-macos-native",
+    "artifactBytes": 1068760,
+    "artifactDigest": "sha256:36c3d53899b51a1f440e62ae72d9746870806abfc1e61e2cf0886df760253f18",
+    "artifactDownloadedAndInspected": true,
+    "appArchiveSha256": "dab37d037ae5fe78e8bec509a5b5fc435e310e25e55f709e2bf0f5caad1938e3",
+    "appArchiveBytes": 220324,
+    "architectures": ["x86_64", "arm64"],
+    "minimumOS": "13.0",
+    "bundleIdentifier": "com.ynxweb4.wallet.macos",
+    "signingClass": "ad-hoc",
+    "teamIdentifier": null,
+    "developerIDSigned": false,
+    "notarized": false,
+    "storeDistributed": false,
+    "publicDownloadHosted": false
+  },
+  "screenshot": {
+    "name": "canonical-enabled-callback-fail-closed.png",
+    "bytes": 164161,
+    "sha256": "d5528854fa71919643a97b4505a9d7f2bbfb291b931c766f6fb03e52b729250f"
+  },
+  "deviceBoundary": {
+    "keychainRoundTripVerified": true,
+    "biometricPolicyAvailable": false,
+    "recoveryCreated": false,
+    "recoveryMaterialPersisted": false
+  },
+  "publicEvidence": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/31857537620",
+  "gates": {
+    "canonicalRequestDeliveredAndRegistryBound": true,
+    "nativeAuthBridgeFailClosedVisible": true,
+    "authorizationSuccess": false,
+    "accountAvailable": false,
+    "signSuccess": false,
+    "sendSuccess": false,
+    "recoverySuccess": false,
+    "physicalBiometricVerified": false,
+    "productionSigned": false,
+    "notarized": false,
+    "publicDownloadHosted": false
+  }
+}
