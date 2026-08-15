@@ -11,7 +11,7 @@ export const PRODUCT_SESSION_CLIENT_STATE = Object.freeze({
 });
 
 export class RecoverableProductSessionClient {
-  #registry; #binding; #storage; #gateway; #device; #tokens; #clock; #state; #autoReconnectAttempted; #networkAvailable;
+  #registry; #binding; #storage; #gateway; #device; #tokens; #clock; #state; #autoReconnectAttempted; #networkAvailable; #networkEpoch;
   constructor(config) {
     exactFields(config, ["registry", "productId", "platform", "storage", "gateway", "device", "tokenFactory", "clock"], "Recoverable Product Session client configuration");
     this.#registry = parseProductSessionRegistry(config.registry);
@@ -24,6 +24,7 @@ export class RecoverableProductSessionClient {
     this.#state = state(PRODUCT_SESSION_CLIENT_STATE.DISCONNECTED, "No authoritative Product Session is active");
     this.#autoReconnectAttempted = false;
     this.#networkAvailable = true;
+    this.#networkEpoch = 0;
   }
 
   get current() { return this.#state; }
@@ -58,6 +59,7 @@ export class RecoverableProductSessionClient {
   async begin(environment, automatic = false) {
     exactFields(environment, ["walletInstalled", "schemeRegistered"], "Product Session connection environment");
     if (!this.#networkAvailable) return this.#offline();
+    const networkEpoch = this.#networkEpoch;
     const now = this.#clock();
     const request = createProductSessionRequest(this.#registry, {
       productId: this.#binding.productId, platform: this.#binding.platform,
@@ -65,7 +67,9 @@ export class RecoverableProductSessionClient {
       purpose: this.#device.purpose, nonce: this.#tokens(), state: this.#tokens(),
     }, now);
     await this.#clearPending();
+    if (networkEpoch !== this.#networkEpoch) return this.#networkTransition("Network changed while preparing the Wallet request; explicit Retry is required");
     await this.#storage.set(`${this.storageKey}:pending`, JSON.stringify(request));
+    if (networkEpoch !== this.#networkEpoch) return this.#networkTransition("Network changed while protecting the Wallet request; explicit Retry is required");
     const route = prepareWalletOpen(this.#registry, request, { networkAvailable: true, walletInstalled: environment.walletInstalled, schemeRegistered: environment.schemeRegistered }, now);
     this.#state = route.status === WALLET_ROUTE_STATUS.READY
       ? state(PRODUCT_SESSION_CLIENT_STATE.CONNECTING, automatic ? "Controlled reconnect requires Wallet approval" : "Wallet approval is pending", { request, route, automatic })
@@ -75,6 +79,7 @@ export class RecoverableProductSessionClient {
 
   async handleReturn(url) {
     if (!this.#networkAvailable) return this.#offline();
+    const networkEpoch = this.#networkEpoch;
     const raw = await this.#storage.get(`${this.storageKey}:pending`);
     if (raw === null) { await this.#storage.remove(`${this.storageKey}:return`); this.#state = state(PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED, "No pending Wallet request matches this callback", { actions: ["retry", "guest"] }); return this.#state; }
     let request;
@@ -85,18 +90,22 @@ export class RecoverableProductSessionClient {
     await this.#storage.set(`${this.storageKey}:return`, url);
     try {
       const challenge = parseProductSessionChallenge(await this.#gateway.challenge({ requestId: gatewayRequestId("c", request.nonce), request, approval: returned.approval }));
+      if (networkEpoch !== this.#networkEpoch) return this.#networkTransition("Network changed while receiving the Gateway challenge; protected callback was retained for Retry");
       const expectedChallenge = createProductSessionChallenge(this.#registry, request, returned.approval, { challenge: challenge.challenge }, new Date(challenge.issuedAt));
       if (canonicalJSON(challenge) !== canonicalJSON(expectedChallenge)) fail("SESSION_BINDING_MISMATCH", "Gateway challenge did not match the exact product request and Wallet approval");
       if (challenge.expiresAt <= this.#clock().toISOString()) fail("SESSION_EXPIRED", "Gateway challenge expired before product device signing");
       const completion = signProductSessionChallenge(challenge, this.#device.secret);
       const session = parseProductSession(await this.#gateway.complete({ requestId: gatewayRequestId("f", request.state), request, approval: returned.approval, completion }));
+      if (networkEpoch !== this.#networkEpoch) return this.#networkTransition("Network changed while completing Wallet approval; protected callback was retained for Retry");
       await this.#storage.set(this.storageKey, JSON.stringify(session));
+      if (networkEpoch !== this.#networkEpoch) return this.#networkTransition("Network changed while protecting the issued Product Session; authoritative Retry is required");
       try {
         await this.#introspect(session);
       } catch (error) {
         if (isNetworkUnavailable(error)) return this.#offline("Network unavailable while confirming the issued Product Session; protected state was retained for Retry");
         throw error;
       }
+      if (networkEpoch !== this.#networkEpoch) return this.#networkTransition("Network changed while confirming the Product Session; authoritative Retry is required");
       await this.#clearPending();
       this.#state = state(PRODUCT_SESSION_CLIENT_STATE.CONNECTED, "Authoritative Product Session connected", { session });
       return this.#state;
@@ -118,7 +127,7 @@ export class RecoverableProductSessionClient {
     return this.begin(environment, false);
   }
   connectionChoices(availability) { return walletConnectionChoices(this.#registry, this.#binding.productId, availability); }
-  setNetworkAvailable(available) { this.#networkAvailable = Boolean(available); if (!this.#networkAvailable) return this.#offline(); this.#state = state(PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED, "Network restored; authoritative re-introspection is required", { actions: ["retry"] }); return this.#state; }
+  setNetworkAvailable(available) { this.#networkEpoch += 1; this.#networkAvailable = Boolean(available); if (!this.#networkAvailable) return this.#offline(); this.#state = state(PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED, "Network restored; authoritative re-introspection is required", { actions: ["retry"] }); return this.#state; }
   enterGuest() { this.#state = state(PRODUCT_SESSION_CLIENT_STATE.GUEST, "Guest / Try mode: not signed in; balances, transactions and Chain authority are unavailable", { limitations: ["not-signed-in", "no-wallet-balance", "no-transactions", "no-chain-authority"] }); return this.#state; }
   async disconnect() { await this.#storage.remove(this.storageKey); await this.#clearPending(); this.#state = state(PRODUCT_SESSION_CLIENT_STATE.DISCONNECTED, "Product Session removed from secure storage"); return this.#state; }
 
@@ -138,10 +147,13 @@ export class RecoverableProductSessionClient {
   async #restoreStoredSession() {
     const raw = await this.#storage.get(this.storageKey);
     if (raw === null) return null;
+    const networkEpoch = this.#networkEpoch;
     try {
       const session = parseProductSession(JSON.parse(raw));
       await this.#introspect(session);
+      if (networkEpoch !== this.#networkEpoch) return this.#networkTransition("Network changed during Product Session re-introspection; protected state was retained for Retry");
       await this.#clearPending();
+      if (networkEpoch !== this.#networkEpoch) return this.#networkTransition("Network changed while restoring the Product Session; protected state was retained for Retry");
       this.#state = state(PRODUCT_SESSION_CLIENT_STATE.CONNECTED, "Authoritative Product Session restored", { session });
       return this.#state;
     } catch (error) {
@@ -152,6 +164,7 @@ export class RecoverableProductSessionClient {
   }
   async #clearPending() { await this.#storage.remove(`${this.storageKey}:pending`); await this.#storage.remove(`${this.storageKey}:return`); }
   #offline(message = "Network unavailable; cached Product Session is not treated as authoritative") { this.#state = state(PRODUCT_SESSION_CLIENT_STATE.NETWORK_UNAVAILABLE, message, { actions: ["retry", "guest"] }); return this.#state; }
+  #networkTransition(message) { if (!this.#networkAvailable) return this.#offline(message); this.#state = state(PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED, message, { actions: ["retry", "guest"] }); return this.#state; }
 }
 
 function state(status, message, extra = {}) { return Object.freeze({ status, message, ...extra, ...(extra.actions ? { actions: Object.freeze(extra.actions) } : {}), ...(extra.limitations ? { limitations: Object.freeze(extra.limitations) } : {}) }); }

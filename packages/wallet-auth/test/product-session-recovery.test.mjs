@@ -81,6 +81,50 @@ test("network loss, rejection and Guest mode never synthesize identity, balance,
   assert.equal("session" in guest, false);
 });
 
+test("network transition during Gateway challenge cannot publish a late connected state", async () => {
+  const setup = harness(); let releaseChallenge; let completionCalls = 0;
+  const challengeReady = new Promise((resolve) => { releaseChallenge = resolve; });
+  const gateway = {
+    ...setup.gateway,
+    async challenge(input) { await challengeReady; return setup.gateway.challenge(input); },
+    async complete(input) { completionCalls += 1; return setup.gateway.complete(input); },
+  };
+  const client = new RecoverableProductSessionClient({ registry, productId: "social", platform: "android", storage: setup.storage, gateway, device, tokenFactory: (() => { let i = 0; return () => token(`network-race-${i++}`); })(), clock: () => NOW });
+  const connecting = await client.begin({ walletInstalled: true, schemeRegistered: true });
+  const approval = signProductSessionApproval(registry, connecting.request, { accountSecret, scopes: connecting.request.scopes, expiresAt: "2026-08-14T01:03:00.000Z" }, NOW);
+  const callback = createProductSessionReturnURL(registry, connecting.request, { result: "approved", approval }, NOW);
+  const returning = client.handleReturn(callback);
+  assert.equal(client.setNetworkAvailable(false).status, PRODUCT_SESSION_CLIENT_STATE.NETWORK_UNAVAILABLE);
+  releaseChallenge();
+  const result = await returning;
+  assert.equal(result.status, PRODUCT_SESSION_CLIENT_STATE.NETWORK_UNAVAILABLE);
+  assert.equal(completionCalls, 0);
+  assert.equal(await setup.storage.get(client.storageKey), null);
+  assert.notEqual(await setup.storage.get(`${client.storageKey}:return`), null);
+  assert.equal("session" in result, false);
+});
+
+test("network transition during second-launch introspection retains storage without publishing connection", async () => {
+  const first = harness();
+  const connecting = await first.client.begin({ walletInstalled: true, schemeRegistered: true });
+  const approval = signProductSessionApproval(registry, connecting.request, { accountSecret, scopes: connecting.request.scopes, expiresAt: "2026-08-14T01:03:00.000Z" }, NOW);
+  const callback = createProductSessionReturnURL(registry, connecting.request, { result: "approved", approval }, NOW);
+  assert.equal((await first.client.handleReturn(callback)).status, PRODUCT_SESSION_CLIENT_STATE.CONNECTED);
+  let releaseIntrospection; let markStarted;
+  const introspectionStarted = new Promise((resolve) => { markStarted = resolve; });
+  const release = new Promise((resolve) => { releaseIntrospection = resolve; });
+  const gateway = { ...first.gateway, async introspect(input) { markStarted(); await release; return first.gateway.introspect(input); } };
+  const second = new RecoverableProductSessionClient({ registry, productId: "social", platform: "android", storage: first.storage, gateway, device, tokenFactory: () => token("restore-network-race"), clock: () => NOW });
+  const restoring = second.restore(true);
+  await introspectionStarted;
+  assert.equal(second.setNetworkAvailable(false).status, PRODUCT_SESSION_CLIENT_STATE.NETWORK_UNAVAILABLE);
+  releaseIntrospection();
+  const result = await restoring;
+  assert.equal(result.status, PRODUCT_SESSION_CLIENT_STATE.NETWORK_UNAVAILABLE);
+  assert.equal("session" in result, false);
+  assert.notEqual(await first.storage.get(second.storageKey), null);
+});
+
 test("second-launch Gateway outage preserves protected session and Retry re-introspects without new approval", async () => {
   const first = harness();
   const connecting = await first.client.begin({ walletInstalled: true, schemeRegistered: true });
