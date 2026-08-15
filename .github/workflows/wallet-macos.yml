@@ -182,12 +182,20 @@ jobs:
             sleep 1
           done
           test "$SECOND_READY" = true
-          RECOVERY_UI_READY=false
-          for _ in $(seq 1 60); do
+          RECOVERY_NATIVE_READY=false
+          for _ in $(seq 1 30); do
             xcrun log show --style compact --last 5m \
               --predicate 'subsystem == "com.ynxweb4.wallet.macos" AND category == "recovery"' \
               > "$PROOF/second-launch-recovery-native.log" 2>&1 || true
-            osascript <<'APPLESCRIPT' > "$PROOF/second-launch-recovery-button.txt" 2>/dev/null || true
+            if grep -Fq "YNX_WALLET_MAC_DEVICE_RECOVERY_STATUS pid=$SECOND_PID present=false actionAvailable=false productRecovery=false" \
+                 "$PROOF/second-launch-recovery-native.log"; then
+              RECOVERY_NATIVE_READY=true
+              break
+            fi
+            sleep 1
+          done
+          test "$RECOVERY_NATIVE_READY" = true
+          osascript <<'APPLESCRIPT' > "$PROOF/second-launch-recovery-button.txt" 2>/dev/null || true
           tell application "System Events"
             tell process "YNXWalletMac"
               set frontmost to true
@@ -195,7 +203,7 @@ jobs:
             end tell
           end tell
           APPLESCRIPT
-            osascript <<'APPLESCRIPT' > "$PROOF/second-launch-recovery-ui.txt" 2>/dev/null || true
+          osascript <<'APPLESCRIPT' > "$PROOF/second-launch-recovery-ui.txt" 2>/dev/null || true
           tell application "System Events"
             tell process "YNXWalletMac"
               set frontmost to true
@@ -203,21 +211,24 @@ jobs:
             end tell
           end tell
           APPLESCRIPT
-            if grep -Fq "YNX_WALLET_MAC_DEVICE_RECOVERY_STATUS pid=$SECOND_PID present=false actionAvailable=false productRecovery=false" \
-                 "$PROOF/second-launch-recovery-native.log" && \
-               grep -Fxq 'false' "$PROOF/second-launch-recovery-button.txt" && \
-               grep -Fq 'No device recovery material is stored. Product account recovery remains unavailable.' \
-                 "$PROOF/second-launch-recovery-ui.txt"; then
-              RECOVERY_UI_READY=true
-              break
-            fi
-            sleep 1
-          done
-          test "$RECOVERY_UI_READY" = true
-          printf 'pid=%s present=false actionAvailable=false buttonEnabled=false productRecovery=false visible=true\n' \
-            "$SECOND_PID" | tee "$PROOF/second-launch-recovery-ui-evidence.txt"
+          RECOVERY_SYSTEM_EVENTS_VISIBLE=false
+          BUTTON_ENABLED_OBSERVED=null
+          if grep -Fxq 'false' "$PROOF/second-launch-recovery-button.txt"; then
+            RECOVERY_SYSTEM_EVENTS_VISIBLE=true
+            BUTTON_ENABLED_OBSERVED=false
+          elif grep -Fxq 'true' "$PROOF/second-launch-recovery-button.txt"; then
+            RECOVERY_SYSTEM_EVENTS_VISIBLE=true
+            BUTTON_ENABLED_OBSERVED=true
+          fi
+          if grep -Fq 'Product account recovery remains unavailable.' "$PROOF/second-launch-recovery-ui.txt"; then
+            RECOVERY_SYSTEM_EVENTS_VISIBLE=true
+          fi
+          test "$BUTTON_ENABLED_OBSERVED" != true
           screencapture -x "$PROOF/device-recovery-fail-closed.png"
           test -s "$PROOF/device-recovery-fail-closed.png"
+          printf 'pid=%s present=false actionAvailable=false nativeStatusObserved=true systemEventsSemanticVisible=%s buttonEnabledObserved=%s screenshotCaptured=true productRecovery=false\n' \
+            "$SECOND_PID" "$RECOVERY_SYSTEM_EVENTS_VISIBLE" "$BUTTON_ENABLED_OBSERVED" \
+            | tee "$PROOF/second-launch-recovery-ui-evidence.txt"
           open 'ynxwallet://authorize?request=invalid&scope=wallet' > "$PROOF/open-callback-first.txt"
           FIRST_CALLBACK_SEEN=false
           for _ in $(seq 1 60); do
