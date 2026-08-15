@@ -111,6 +111,7 @@ export class RecoverableProductSessionClient {
       const completion = this.#device.sign
         ? await signProductSessionChallengeWith(challenge, this.#device.sign)
         : signProductSessionChallenge(challenge, this.#device.secret);
+      if (networkEpoch !== this.#networkEpoch) return this.#networkTransition("Network changed during platform challenge signing; protected callback was retained for Retry");
       const session = parseProductSession(await this.#gateway.complete({ requestId: gatewayRequestId("f", request.state), request, approval: returned.approval, completion }));
       await this.#storage.set(this.storageKey, JSON.stringify(session));
       if (networkEpoch !== this.#networkEpoch) return this.#networkTransition("Network changed while protecting the issued Product Session; authoritative Retry is required");
@@ -178,8 +179,11 @@ export class RecoverableProductSessionClient {
     }
     if (session !== null && session.expiresAt > this.#clock().toISOString()) {
       try {
+        const networkEpoch = this.#networkEpoch;
+        if (!this.#networkAvailable) fail("NETWORK_UNAVAILABLE", "Network unavailable before Product Session revocation");
         const body = {};
         const proof = await this.#proof(session, "/v2/product-sessions/revoke", body);
+        if (networkEpoch !== this.#networkEpoch || !this.#networkAvailable) fail("NETWORK_UNAVAILABLE", "Network changed during Product Session revocation signing");
         const result = await this.#gateway.revoke({ requestId: gatewayRequestId("r", proof.nonce), sessionBinding: session.sessionBinding, proof });
         if (result?.revoked !== session.sessionBinding) fail("INVALID_GATEWAY_RESPONSE", "Gateway did not confirm the exact Product Session revocation");
       } catch (error) {
@@ -196,8 +200,11 @@ export class RecoverableProductSessionClient {
   }
 
   async #introspect(session) {
+    const networkEpoch = this.#networkEpoch;
+    if (!this.#networkAvailable) fail("NETWORK_UNAVAILABLE", "Network unavailable before Product Session introspection");
     const body = { requiredScopes: session.scopes };
     const proof = await this.#proof(session, "/v2/product-sessions/introspect", body);
+    if (networkEpoch !== this.#networkEpoch || !this.#networkAvailable) fail("NETWORK_UNAVAILABLE", "Network changed during Product Session introspection signing");
     const result = await this.#gateway.introspect({ requestId: gatewayRequestId("i", proof.nonce), sessionBinding: session.sessionBinding, requiredScopes: session.scopes, proof });
     if (result?.active !== true || canonicalJSON(parseProductSession(result.session)) !== canonicalJSON(session)) fail("SESSION_INACTIVE", "Gateway did not confirm the exact Product Session");
     return result;

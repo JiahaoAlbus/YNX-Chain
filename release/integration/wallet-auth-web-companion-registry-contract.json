@@ -28,10 +28,28 @@
     "productOwnerConsumptionRequired": true,
     "visibleBrowserOrMobileEvidenceRequired": true
   },
+  "reconciliation": {
+    "consumedRouterSource": "48ca620105d07a78b1abb8bd02648ed7b0fe4772",
+    "networkEpochSemanticsConsumed": true,
+    "completionOrderingStrengthened": "An issued Session is protected before a network-epoch transition can return, preventing orphan authority.",
+    "secureSignerSemanticsConsumed": true,
+    "networkEpochFencesAsyncSigner": true,
+    "secureSignerReconciliationPending": false
+  },
   "truthBoundary": {
     "implementedLocal": true,
     "testedLocal": true,
     "coreRuntimeCandidate": true,
+    "restartExpiryRevokeCandidate": true,
+    "concurrentDisconnectLinearizedCandidate": true,
+    "concurrentCallbackLinearizedCandidate": true,
+    "callbackDisconnectNoResurrectionCandidate": true,
+    "postCompletionOutageRevokeCandidate": true,
+    "restoreDisconnectNoResurrectionCandidate": true,
+    "networkEpochCandidate": true,
+    "completionNetworkTransitionProtectedCandidate": true,
+    "platformSecureSignerCandidate": true,
+    "asyncSignerNetworkEpochFenceCandidate": true,
     "integratedCentral": false,
     "gatewayLoadedPublic": false,
     "deployedPublicRegistry": false,
