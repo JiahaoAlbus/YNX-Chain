@@ -5,6 +5,7 @@ const activity=await readFile(new URL("../proof/social-harness/app/src/main/java
 const manifest=await readFile(new URL("../proof/social-harness/app/src/main/AndroidManifest.xml",import.meta.url),"utf8");
 const build=await readFile(new URL("../proof/social-harness/app/build.gradle",import.meta.url),"utf8");
 const requestGenerator=await readFile(new URL("../proof/social-harness/generate-canonical-request.mjs",import.meta.url),"utf8");
+const endpointMatrix=JSON.parse(await readFile(new URL("../../../release/integration/wallet-auth-public-endpoint-service-discovery-matrix.json",import.meta.url),"utf8"));
 
 for(const required of [
   'applicationId "com.ynx.social"',
@@ -27,6 +28,13 @@ for(const required of [
   'WALLET_APP_UNAVAILABLE',
   'Download YNX Wallet',
   'Use MetaMask Mobile',
+  'YNX_WALLET_DOWNLOAD_URL="https://www.ynxweb4.com/dapp/wallet"',
+  'METAMASK_MOBILE_CANDIDATE_URL="https://metamask.app.link/dapp/www.ynxweb4.com/dapp/wallet"',
+  'openWebAlternative(YNX_WALLET_DOWNLOAD_URL,"YNX Wallet download page")',
+  'openWebAlternative(METAMASK_MOBILE_CANDIDATE_URL,"unverified MetaMask Mobile candidate")',
+  'queryIntentActivities(view,PackageManager.MATCH_DEFAULT_ONLY)',
+  'Intent.createChooser(view,label)',
+  'Completion is not verified.',
   'verifyRequestBinding(request,Instant.now())',
   'String encodedQuery=uri.getEncodedQuery()',
   'encodedQuery.matches("^response=[A-Za-z0-9_-]+$")',
@@ -57,5 +65,9 @@ for(const required of ['from "@ynx-chain/wallet-auth"','encodeRequestDeepLink(re
 assert.equal(activity.includes('"ynxwallet://authorize?request="+'),false,"Social harness Android runtime must not concatenate an authorization URI");
 assert.equal(activity.includes('getQueryParameter("response")'),false,"Social harness must not collapse duplicate response parameters");
 assert.equal(activity.includes('.apply()'),false,"Social harness replay-critical state must not rely on asynchronous SharedPreferences apply");
+assert.ok(activity.includes(`YNX_WALLET_DOWNLOAD_URL="${endpointMatrix.canonical.websiteUrl}"`),"Social harness YNX Wallet download action must consume the frozen website endpoint");
+const metamaskCandidate=endpointMatrix.discoveryContract.modes.find(({id})=>id==="metamask-mobile-dapp-link")?.candidateUrl;
+assert.equal(typeof metamaskCandidate,"string","frozen endpoint matrix must retain the MetaMask Mobile candidate");
+assert.ok(activity.includes(`METAMASK_MOBILE_CANDIDATE_URL="${metamaskCandidate}"`),"Social harness MetaMask action must consume the frozen candidate without promoting it to verified");
 assert.equal(activity.includes("createGatewayChallenge(response"),false,"Social harness must not fabricate a Product Session while the public Core mobile route is unproved");
 console.log("Social Android harness contract passed: shared request builder, exact Android resolution, safe absence UI, authority-free rejection, replay safety, and zero fabricated Product Sessions");
