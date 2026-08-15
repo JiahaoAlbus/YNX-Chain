@@ -15,7 +15,7 @@ const secret = Buffer.alloc(32, 11);
 const key = Buffer.from(p256.getPublicKey(secret, true)).toString("base64url");
 function token(value) { return createHash("sha256").update(value).digest("base64url"); }
 function memory() { const values = new Map(); return { securityLevel:"os-protected", async get(k){return values.get(k)??null}, async set(k,v){values.set(k,v)}, async remove(k){values.delete(k)}, values }; }
-function gateway(overrides = {}) { return { async walletInstalled(){return true}, async schemeRegistered(){return true}, async challenge(){throw new Error("not used")}, async complete(){throw new Error("not used")}, async introspect(){throw new Error("not used")}, ...overrides }; }
+function gateway(overrides = {}) { return { async walletInstalled(){return true}, async schemeRegistered(){return true}, async challenge(){throw new Error("not used")}, async complete(){throw new Error("not used")}, async introspect(){throw new Error("not used")}, async revoke(){throw new Error("not used")}, ...overrides }; }
 function client(productId = "social", gatewayValue = gateway(), storage = memory()) {
   let index = 0;
   const product = registry.products.find((item) => item.productId === productId);

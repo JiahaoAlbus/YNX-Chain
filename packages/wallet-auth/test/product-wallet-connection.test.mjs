@@ -57,7 +57,8 @@ test("factory completes the real Gateway lifecycle and restores it after a secon
     const protectedStorage = storage();
     const opened = [];
     const signingPurposes = []; const secureDevice = config().device;
-    const first = createProductWalletConnection(config({ storage: protectedStorage, device: { ...secureDevice, async sign(input) { signingPurposes.push(input.purpose); return secureDevice.sign(input); } }, openWallet: async (input) => { opened.push(input); return { opened: true }; } }));
+    const signingDevice = { ...secureDevice, async sign(input) { signingPurposes.push(input.purpose); return secureDevice.sign(input); } };
+    const first = createProductWalletConnection(config({ storage: protectedStorage, device: signingDevice, openWallet: async (input) => { opened.push(input); return { opened: true }; } }));
     const pending = await first.beginYNX();
     const approvalTime = new Date(pending.sessionState.request.issuedAt);
     const approvalExpiresAt = new Date(approvalTime.getTime() + 180_000).toISOString();
@@ -74,11 +75,15 @@ test("factory completes the real Gateway lifecycle and restores it after a secon
     assert.equal(gatewayOrigins.every((origin) => origin === PRODUCT_SESSION_PUBLIC_GATEWAY_ORIGIN), true);
     assert.deepEqual(signingPurposes, ["challenge", "http-proof"]);
 
-    const restarted = createProductWalletConnection(config({ storage: protectedStorage }));
+    const restarted = createProductWalletConnection(config({ storage: protectedStorage, device: signingDevice }));
     const restored = await restarted.restore(true);
     assert.equal(restored.status, WALLET_CONNECTION_COORDINATOR_STATUS.SESSION_STATE);
     assert.equal(restored.sessionState.status, PRODUCT_SESSION_CLIENT_STATE.CONNECTED);
     assert.equal(restored.sessionState.session.sessionBinding, connected.sessionState.session.sessionBinding);
+    const disconnected = await restarted.disconnect();
+    assert.equal(disconnected.sessionState.status, PRODUCT_SESSION_CLIENT_STATE.DISCONNECTED);
+    assert.deepEqual(handler.snapshot().authority.revokedSessions, [connected.sessionState.session.sessionBinding]);
+    assert.deepEqual(signingPurposes, ["challenge", "http-proof", "http-proof", "http-proof"]);
   } finally {
     globalThis.fetch = originalFetch;
   }

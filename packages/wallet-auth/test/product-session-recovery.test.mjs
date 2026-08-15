@@ -39,6 +39,15 @@ function harness(sharedStorage = storage()) {
       verifyProductSessionProofV2(proof, session, { method: "POST", path: "/v2/product-sessions/introspect", bodyDigest: httpBodyDigest(canonicalJSON(body)) }, NOW);
       return authority.introspect(sessionBinding, { chainId: session.chainId, productId: session.productId, clientId: session.clientId, platform: session.platform, applicationId: session.applicationId, bundleId: session.bundleId, packageId: session.packageId, origin: session.origin, callback: session.callback, account: session.account, deviceId: session.deviceId, deviceKey: session.deviceKey, requiredScopes }, NOW);
     },
+    async revoke({ requestId, sessionBinding, proof }) {
+      assert.match(requestId, /^req_ps_r_[A-Za-z0-9_-]{32,64}$/);
+      const session = authority.snapshot().sessions.find((item) => item.sessionBinding === sessionBinding);
+      if (!session) throw new WalletAuthError("SESSION_NOT_FOUND", "missing session");
+      verifyProductSessionProofV2(proof, session, { method: "POST", path: "/v2/product-sessions/revoke", bodyDigest: httpBodyDigest(canonicalJSON({})) }, NOW);
+      authority.introspect(sessionBinding, { chainId: session.chainId, productId: session.productId, clientId: session.clientId, platform: session.platform, applicationId: session.applicationId, bundleId: session.bundleId, packageId: session.packageId, origin: session.origin, callback: session.callback, account: session.account, deviceId: session.deviceId, deviceKey: session.deviceKey, requiredScopes: [] }, NOW);
+      authority.revokeSession(sessionBinding);
+      return { revoked: sessionBinding };
+    },
   };
   let tokenIndex = 0;
   const client = new RecoverableProductSessionClient({ registry, productId: "social", platform: "android", storage: sharedStorage, gateway, device, tokenFactory: () => token(`client-${tokenIndex++}`), clock: () => NOW });
@@ -79,6 +88,67 @@ test("network loss, rejection and Guest mode never synthesize identity, balance,
   assert.equal(guest.status, PRODUCT_SESSION_CLIENT_STATE.GUEST);
   assert.deepEqual(guest.limitations, ["not-signed-in", "no-wallet-balance", "no-transactions", "no-chain-authority"]);
   assert.equal("session" in guest, false);
+});
+
+test("disconnect revokes the authoritative Gateway session before removing protected state", async () => {
+  const setup = harness();
+  const connecting = await setup.client.begin({ walletInstalled: true, schemeRegistered: true });
+  const approval = signProductSessionApproval(registry, connecting.request, { accountSecret, scopes: connecting.request.scopes, expiresAt: "2026-08-14T01:03:00.000Z" }, NOW);
+  const callback = createProductSessionReturnURL(registry, connecting.request, { result: "approved", approval }, NOW);
+  const connected = await setup.client.handleReturn(callback);
+  assert.equal(connected.status, PRODUCT_SESSION_CLIENT_STATE.CONNECTED);
+  const disconnected = await setup.client.disconnect();
+  assert.equal(disconnected.status, PRODUCT_SESSION_CLIENT_STATE.DISCONNECTED);
+  assert.deepEqual(setup.authority.snapshot().revokedSessions, [connected.session.sessionBinding]);
+  assert.equal(await setup.storage.get(setup.client.storageKey), null);
+});
+
+test("callback verification is single-flight and rejects a different concurrent return", async () => {
+  const setup = harness(); let releaseChallenge; let challengeStarted; let challengeCalls = 0;
+  const blocked = new Promise((resolve) => { releaseChallenge = resolve; });
+  const started = new Promise((resolve) => { challengeStarted = resolve; });
+  const gateway = { ...setup.gateway, async challenge(input) { challengeCalls += 1; challengeStarted(); await blocked; return setup.gateway.challenge(input); } };
+  const client = new RecoverableProductSessionClient({ registry, productId: "social", platform: "android", storage: setup.storage, gateway, device, tokenFactory: (() => { let i = 0; return () => token(`callback-single-flight-${i++}`); })(), clock: () => NOW });
+  const connecting = await client.begin({ walletInstalled: true, schemeRegistered: true });
+  const approval = signProductSessionApproval(registry, connecting.request, { accountSecret, scopes: connecting.request.scopes, expiresAt: "2026-08-14T01:03:00.000Z" }, NOW);
+  const callback = createProductSessionReturnURL(registry, connecting.request, { result: "approved", approval }, NOW);
+  const first = client.handleReturn(callback);
+  await started;
+  const duplicate = client.handleReturn(callback);
+  await assert.rejects(() => client.handleReturn(`${callback}x`), code("CONCURRENT_CALLBACK"));
+  releaseChallenge();
+  assert.equal((await first).status, PRODUCT_SESSION_CLIENT_STATE.CONNECTED);
+  assert.equal((await duplicate).status, PRODUCT_SESSION_CLIENT_STATE.CONNECTED);
+  assert.equal(challengeCalls, 1);
+  assert.equal(setup.authority.snapshot().sessions.length, 1);
+});
+
+test("disconnect racing Wallet approval revokes once and cannot resurrect the Product Session", async () => {
+  const setup = harness(); let releaseChallenge; let challengeStarted; let revokeCalls = 0;
+  const blocked = new Promise((resolve) => { releaseChallenge = resolve; });
+  const started = new Promise((resolve) => { challengeStarted = resolve; });
+  const gateway = {
+    ...setup.gateway,
+    async challenge(input) { challengeStarted(); await blocked; return setup.gateway.challenge(input); },
+    async revoke(input) { revokeCalls += 1; return setup.gateway.revoke(input); },
+  };
+  const client = new RecoverableProductSessionClient({ registry, productId: "social", platform: "android", storage: setup.storage, gateway, device, tokenFactory: (() => { let i = 0; return () => token(`disconnect-race-${i++}`); })(), clock: () => NOW });
+  const connecting = await client.begin({ walletInstalled: true, schemeRegistered: true });
+  const approval = signProductSessionApproval(registry, connecting.request, { accountSecret, scopes: connecting.request.scopes, expiresAt: "2026-08-14T01:03:00.000Z" }, NOW);
+  const callback = createProductSessionReturnURL(registry, connecting.request, { result: "approved", approval }, NOW);
+  const completion = client.handleReturn(callback);
+  await started;
+  const firstDisconnect = client.disconnect();
+  const duplicateDisconnect = client.disconnect();
+  releaseChallenge();
+  assert.equal((await completion).status, PRODUCT_SESSION_CLIENT_STATE.CONNECTED);
+  assert.equal((await firstDisconnect).status, PRODUCT_SESSION_CLIENT_STATE.DISCONNECTED);
+  assert.equal((await duplicateDisconnect).status, PRODUCT_SESSION_CLIENT_STATE.DISCONNECTED);
+  assert.equal(client.current.status, PRODUCT_SESSION_CLIENT_STATE.DISCONNECTED);
+  assert.equal(revokeCalls, 1);
+  assert.equal(setup.authority.snapshot().sessions.length, 1);
+  assert.equal(setup.authority.snapshot().revokedSessions.length, 1);
+  assert.equal(await setup.storage.get(client.storageKey), null);
 });
 
 test("network transition during Gateway challenge cannot publish a late connected state", async () => {

@@ -36,6 +36,13 @@ export class ProductSessionGatewayFetchAdapter {
     return this.#post(input.requestId, "/v2/product-sessions/introspect", { requiredScopes: input.requiredScopes }, proof);
   }
 
+  async revoke(input) {
+    exactFields(input, ["requestId", "sessionBinding", "proof"], "Product Session Gateway revoke request");
+    const proof = parseProductSessionProofV2(input.proof);
+    if (proof.sessionBinding !== input.sessionBinding) fail("CROSS_PRODUCT_SESSION", "Product Session proof does not match the requested session binding");
+    return this.#post(input.requestId, "/v2/product-sessions/revoke", {}, proof);
+  }
+
   async #post(requestId, path, body, proof) {
     if (typeof requestId !== "string" || !/^req_[A-Za-z0-9_-]{12,80}$/.test(requestId)) fail("INVALID_REQUEST_ID", "Product Session Gateway request ID is invalid");
     const encodedBody = canonicalJSON(body);
