@@ -74,7 +74,7 @@ final class WalletState: ObservableObject {
   private func refreshRecoveryBoundary() {
     defer {
       recoveryLogger.notice(
-        "YNX_WALLET_MAC_DEVICE_RECOVERY_STATUS pid=\(getpid(), privacy: .public) present=\(recoveryMaterialPresent, privacy: .public) actionAvailable=\(recoveryActionAvailable, privacy: .public) productRecovery=false"
+        "YNX_WALLET_MAC_DEVICE_RECOVERY_STATUS pid=\(getpid(), privacy: .public) present=\(self.recoveryMaterialPresent, privacy: .public) actionAvailable=\(self.recoveryActionAvailable, privacy: .public) productRecovery=false"
       )
     }
     do {
