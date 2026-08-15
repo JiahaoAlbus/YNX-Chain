@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "owner": "Wallet Web/PWA/Extensions",
-  "sourceCommit": "ed38e4d9bb5b4aa37526adec641b430c2e7e8369",
+  "sourceCommit": "f6906e991901e4cea64ec84c03bb78fe4bfc3fac",
   "consumer": {
     "productId": "wallet-web-companion",
     "webOrigin": "https://www.ynxweb4.com",
@@ -22,7 +22,7 @@
     "publicAuth": false
   },
   "verification": {
-    "walletWeb": "cd apps/wallet-web && npm test && YNX_WALLET_WEB_SOURCE_COMMIT=ed38e4d9bb5b4aa37526adec641b430c2e7e8369 npm run package && npm run verify:package",
+    "walletWeb": "cd apps/wallet-web && npm test && YNX_WALLET_WEB_SOURCE_COMMIT=f6906e991901e4cea64ec84c03bb78fe4bfc3fac npm run package && npm run verify:package",
     "expected": {"sourceTests": "88/88", "artifactTests": "74/74", "artifacts": "3/3"},
     "evidence": "apps/wallet-web/evidence/contracts/wallet-web-companion-lifecycle-20260815.json"
   },
