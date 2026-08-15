@@ -3,6 +3,14 @@ import { secp256k1 } from "@noble/curves/secp256k1.js";
 import { sha256 } from "@noble/hashes/sha2.js";
 import { keccak_256 } from "@noble/hashes/sha3.js";
 import { bytesToHex, hexToBytes, utf8ToBytes } from "@noble/hashes/utils.js";
+import {
+  encodeRequestDeepLink,
+  parseCallbackURL,
+  requestDigest as canonicalRequestDigest,
+  verifyAuthorization,
+  verifyAuthorizationRejection,
+  type AuthorizationRejection,
+} from "@ynx-chain/wallet-auth";
 
 export const REQUESTING_PRODUCT = "social";
 export const PRODUCT_CLIENT_ID = "ynx-social-v1";
@@ -68,6 +76,9 @@ export type WalletLogin = Readonly<{
   chatRegistrationSignature: string;
   squareRegistrationSignature: string;
 }>;
+export type WalletAuthorizationDecision =
+  | Readonly<{ kind: "approved"; approval: WalletApproval }>
+  | Readonly<{ kind: "rejected"; rejection: AuthorizationRejection }>;
 
 const REQUEST_FIELDS = [
   "version",
@@ -145,15 +156,40 @@ export function createWalletRequest(
 
 export function walletRequestURL(request: WalletAuthorizationRequest): string {
   validateRequest(request, new Date(Date.parse(request.issuedAt)));
-  return `ynxwallet://authorize?request=${encodeBase64URL(utf8ToBytes(canonicalJSON(request)))}`;
+  return encodeRequestDeepLink(request);
 }
 
 export function requestDigest(request: WalletAuthorizationRequest): string {
-  return bytesToHex(
-    sha256(
-      utf8ToBytes(`YNX_WALLET_AUTH_REQUEST_V1\n${canonicalJSON(request)}`),
-    ),
-  );
+  validateRequest(request, new Date(Date.parse(request.issuedAt)));
+  return canonicalRequestDigest(request);
+}
+
+export function parseWalletDecision(
+  value: string,
+  expected: WalletAuthorizationRequest,
+  now = new Date(),
+): WalletAuthorizationDecision {
+  validateRequest(expected, now);
+  const response = parseCallbackURL(value, expected.callback);
+  if (
+    response &&
+    typeof response === "object" &&
+    !Array.isArray(response) &&
+    (response as Record<string, unknown>).decision === "rejected"
+  ) {
+    return Object.freeze({
+      kind: "rejected" as const,
+      rejection: verifyAuthorizationRejection(response, expected, now),
+    });
+  }
+  return Object.freeze({
+    kind: "approved" as const,
+    approval: verifyAuthorization(response, {
+      ...expected,
+      requestDigest: canonicalRequestDigest(expected),
+      now,
+    }) as WalletApproval,
+  });
 }
 
 export function parseWalletCallback(
@@ -161,87 +197,10 @@ export function parseWalletCallback(
   expected: WalletAuthorizationRequest,
   now = new Date(),
 ): WalletApproval {
-  validateRequest(expected, now);
-  const url = new URL(value),
-    origin = new URL(CALLBACK),
-    response = url.searchParams.get("response");
-  url.search = "";
-  if (
-    !response ||
-    url.toString() !== origin.toString() ||
-    [...new URL(value).searchParams.keys()].join(",") !== "response"
-  )
-    throw new Error("Wallet callback route or envelope fields are invalid");
-  let raw: unknown;
-  try {
-    raw = JSON.parse(
-      new TextDecoder("utf-8", { fatal: true }).decode(
-        decodeBase64URL(response),
-      ),
-    );
-  } catch {
-    throw new Error("Wallet response envelope is invalid");
-  }
-  exactFields(raw, APPROVAL_FIELDS, "Wallet approval");
-  const approval = raw as WalletApproval;
-  if (
-    approval.version !== "1" ||
-    approval.requestDigest !== requestDigest(expected) ||
-    approval.nonce !== expected.nonce ||
-    approval.chainId !== expected.chainId ||
-    approval.requestingProduct !== expected.requestingProduct ||
-    approval.productClientId !== expected.productClientId ||
-    approval.bundleId !== expected.bundleId ||
-    approval.productDeviceAlgorithm !== expected.productDeviceAlgorithm ||
-    approval.productDeviceKey !== expected.productDeviceKey ||
-    approval.callback !== expected.callback ||
-    approval.purpose !== expected.purpose ||
-    approval.grantedScopes.join("\n") !== expected.scopes.join("\n")
-  )
-    throw new Error(
-      "Wallet approval binding does not match the exact Social request",
-    );
-  if (
-    !/^ynx1[023456789acdefghjklmnpqrstuvwxyz]{38}$/.test(approval.account) ||
-    !/^(02|03)[0-9a-f]{64}$/.test(approval.accountPublicKey) ||
-    !/^[0-9a-f]{128}$/.test(approval.walletSignature)
-  )
-    throw new Error("Wallet approval cryptography is malformed");
-  const issued = parseExactTime(approval.issuedAt),
-    expires = parseExactTime(approval.expiresAt);
-  if (
-    issued > now.getTime() + 30_000 ||
-    expires <= now.getTime() ||
-    expires > parseExactTime(expected.expiresAt) ||
-    expires <= issued
-  )
-    throw new Error("Wallet approval is stale or too broad");
-  const unsigned = Object.fromEntries(
-      Object.entries(approval).filter(([key]) => key !== "walletSignature"),
-    ),
-    digest = sha256(
-      utf8ToBytes(`YNX_WALLET_AUTH_APPROVAL_V1\n${canonicalJSON(unsigned)}`),
-    );
-  let verified = false;
-  try {
-    verified = secp256k1.verify(
-      hexToBytes(approval.walletSignature),
-      digest,
-      hexToBytes(approval.accountPublicKey),
-      { prehash: false, format: "compact", lowS: true },
-    );
-  } catch {
-    verified = false;
-  }
-  if (
-    !verified ||
-    accountFromPublicKey(approval.accountPublicKey) !== approval.account
-  )
-    throw new Error("Wallet approval signature is invalid");
-  return Object.freeze({
-    ...approval,
-    grantedScopes: Object.freeze([...approval.grantedScopes]),
-  });
+  const decision = parseWalletDecision(value, expected, now);
+  if (decision.kind === "rejected")
+    throw new Error("YNX Wallet authorization was rejected");
+  return decision.approval;
 }
 
 export function signGatewayChallenge(
