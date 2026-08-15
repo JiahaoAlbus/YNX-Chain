@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "ynx-wallet-ios-endpoint-consumer-local-validation-2026-08-15",
+  "recordedAt": "2026-08-15T11:14:10+08:00",
+  "source": {
+    "remoteBranch": "codex/wallet-ios-macos-20260813",
+    "observedRemoteHead": "39bcfa423654e42fea07e6270f7830ceec4279b8",
+    "pathFixCommit": "d18fa6e55d48677baa1a436ba2a766ca2e26c160",
+    "pathFixContainedByObservedRemoteHead": true,
+    "pathFixIsRemoteTip": false,
+    "centralEndpointMatrixCommit": "d0f89797d13c7667cc187b0c64d5c9e1cb1d8f59",
+    "centralEndpointMatrixBlob": "d402fcdc844aa39bd5ee351a99d93acb4852dc37",
+    "centralEndpointMatrixSha256": "d344c607c2bbbf7bb0d9d3662b424976d0d6c4ff20428025dd1e2fb92bf31392"
+  },
+  "workflowTriggerAudit": {
+    "workflow": ".github/workflows/wallet-ios.yml",
+    "pushBranchIncluded": true,
+    "walletPathIncluded": true,
+    "workflowDispatchAvailable": true,
+    "exactPathFixRunDirectlyVisible": false,
+    "hostedVerification": false,
+    "alternateRead": "unauthenticated GitHub Actions REST workflow-runs query",
+    "alternateReadSemanticResult": false,
+    "boundedReadAbandoned": true
+  },
+  "localToolchain": {
+    "activeDeveloperDirectory": "/Library/Developer/CommandLineTools",
+    "xcodeAppPresent": false,
+    "xcodebuildAvailable": false,
+    "simctlAvailable": false,
+    "localXcodeBuild": false,
+    "localSimulatorInstall": false,
+    "reason": "No Xcode.app is installed; the active developer directory is CommandLineTools. No build or install success is inferred."
+  },
+  "consumerValidation": {
+    "projectFilePlistLint": true,
+    "endpointMatrixSwiftSourcePathResolved": true,
+    "endpointMatrixResourcePathResolved": true,
+    "resourceBlobMatched": true,
+    "resourceSha256Matched": true,
+    "matrixIdentityMatched": true,
+    "chainIdDecimal": 6423,
+    "chainIdHex": "0x1917",
+    "rpcConfiguredAvailable": true,
+    "appHealthConfiguredAvailable": true,
+    "walletCallbackConfiguredAvailable": false,
+    "integratedCentral": false
+  },
+  "liveObservation": {
+    "appHealth": {
+      "url": "https://rest.ynxweb4.com/app/health",
+      "observed": true,
+      "statusCode": 200,
+      "responseBytes": 2193,
+      "responseSha256": "5e7e89da2f121d8f41440a06ec4b5779eb8337cb9c616528fb3ece148030a3f4"
+    },
+    "chainRpc": {
+      "url": "https://rpc.ynxweb4.com/evm",
+      "method": "eth_chainId",
+      "observed": false,
+      "statusCode": 0,
+      "responseBytes": 0,
+      "error": "curl: (28) SSL connection timeout"
+    }
+  },
+  "gates": {
+    "endpointConsumerPathsValidated": true,
+    "hostedVerification": false,
+    "localXcodeBuild": false,
+    "localSimulatorInstall": false,
+    "liveRpcChainIdVerified": false,
+    "testnetFlowVerified": false,
+    "authorizationSuccess": false,
+    "callbackSuccess": false,
+    "recoverySuccess": false,
+    "biometricSuccess": false,
+    "productionSigned": false,
+    "publicDownloadHosted": false
+  }
+}
