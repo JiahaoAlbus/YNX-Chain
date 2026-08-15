@@ -87,8 +87,8 @@ git_safe=(git -c "safe.directory=$repo_dir")
 
 install -d -m 0700 "$transaction_dir"
 install -d -m 0700 "$rollback_dir"
-lxc network show "$package_network" --format json > "$transaction_dir/lxd-package-network.json"
-lxc network acl show "$package_acl" --format json > "$transaction_dir/lxd-package-network-acl.json"
+lxc query "/1.0/networks/$package_network" > "$transaction_dir/lxd-package-network.json"
+lxc query "/1.0/network-acls/$package_acl" > "$transaction_dir/lxd-package-network-acl.json"
 node "$repo_dir/apps/developer/scripts/verify-package-egress-network.mjs" \
   --network "$transaction_dir/lxd-package-network.json" \
   --acl "$transaction_dir/lxd-package-network-acl.json" \

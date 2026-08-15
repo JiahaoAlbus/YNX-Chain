@@ -19,8 +19,8 @@ const root = new URL("../", import.meta.url),
 test("public candidate transaction is exact-source, preflighted and rollback-safe", () => {
   assert.match(transaction, /YNX_CODE_DEPLOY_COMMIT:\?/);
   assert.match(transaction, /package_network == ynx-pkg-egress/);
-  assert.match(transaction, /lxc network show "\$package_network" --format json/);
-  assert.match(transaction, /lxc network acl show "\$package_acl" --format json/);
+  assert.match(transaction, /lxc query "\/1\.0\/networks\/\$package_network"/);
+  assert.match(transaction, /lxc query "\/1\.0\/network-acls\/\$package_acl"/);
   assert.match(transaction, /verify-package-egress-network\.mjs/);
   assert.ok(
     transaction.indexOf("verify-package-egress-network.mjs") <

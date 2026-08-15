@@ -72,8 +72,8 @@ deployment transaction performs these same checks before dependency installation
 image creation, service stop, symlink change, or public traffic verification.
 
 ```bash
-sudo lxc network show ynx-pkg-egress --format json > /tmp/ynx-pkg-egress.json
-sudo lxc network acl show ynx-code-package-egress-acl --format json > /tmp/ynx-code-package-egress-acl.json
+sudo lxc query /1.0/networks/ynx-pkg-egress > /tmp/ynx-pkg-egress.json
+sudo lxc query /1.0/network-acls/ynx-code-package-egress-acl > /tmp/ynx-code-package-egress-acl.json
 node apps/developer/scripts/verify-package-egress-network.mjs \
   --network /tmp/ynx-pkg-egress.json \
   --acl /tmp/ynx-code-package-egress-acl.json
