@@ -639,13 +639,14 @@
         "go test -race Data Fabric packages",
         "quality-gates.sh",
         "local-smoke.sh live HTTP DAST",
-        "two isolated builders plus byte comparison"
+        "two isolated builders plus byte comparison",
+        "govulncheck binary-mode artifact scan"
       ],
       "artifact": "release/go-runtime-sbom.spdx.json",
       "publicProof": null,
       "blockedBy": [],
       "owner": "YNX Data Fabric and Security/SRE",
-      "nextAction": "Retain the exact-source two-builder CI receipt, then add a container scan after Security/SRE accepts a production container boundary.",
+      "nextAction": "Retain the exact-source binary artifact-scan receipt, then add a container scan after Security/SRE accepts a production container boundary.",
       "lastUpdated": "2026-08-15T00:00:00Z"
     },
     {
