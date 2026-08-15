@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "owner": "Wallet Web/PWA/Extensions",
+  "sourceCommit": "ed38e4d9bb5b4aa37526adec641b430c2e7e8369",
+  "consumer": {
+    "productId": "wallet-web-companion",
+    "webOrigin": "https://www.ynxweb4.com",
+    "callback": "https://www.ynxweb4.com/dapp/wallet/wallet-auth/callback",
+    "coreAuthority": "39c80021b87730a20569b61f6ccd3f80092523c4",
+    "centralCallerAuthority": "38c9c0ce1400ad6ba8dc5e0c1aa1d657a6c9748d"
+  },
+  "implemented": [
+    "Exact immutable authority/blob/SHA verification during every build",
+    "Thin begin/return/reject/disconnect/restart adapter over RecoverableProductSessionClient",
+    "Exact HTTPS callback binding before delegation",
+    "No account, signing or transaction authority manufactured from Product Session state",
+    "Mobile YNX action and callback route remain visibly fail closed until both public registry and trusted Core runtime gates are true"
+  ],
+  "gatewayDeploymentDependency": {
+    "required": "Deploy the 6441 registry containing wallet-web-companion and allow https://www.ynxweb4.com CORS on all four frozen Product Session routes.",
+    "currentDirectEvidence": "social OPTIONS=204; www OPTIONS=403",
+    "publicAuth": false
+  },
+  "verification": {
+    "walletWeb": "cd apps/wallet-web && npm test && YNX_WALLET_WEB_SOURCE_COMMIT=ed38e4d9bb5b4aa37526adec641b430c2e7e8369 npm run package && npm run verify:package",
+    "expected": {"sourceTests": "88/88", "artifactTests": "74/74", "artifacts": "3/3"},
+    "evidence": "apps/wallet-web/evidence/contracts/wallet-web-companion-lifecycle-20260815.json"
+  },
+  "releaseTruth": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "integratedCentral": false,
+    "deployedPublic": false,
+    "publicAuth": false,
+    "account": false,
+    "sign": false,
+    "sendTransaction": false,
+    "installedLocal": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}
