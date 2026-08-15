@@ -5,7 +5,7 @@ import { pathToFileURL } from "node:url";
 
 export const PACKAGE_EGRESS_POLICY = Object.freeze({
   version: "ynx-code-package-egress/v1",
-  network: "ynx-code-package-egress",
+  network: "ynx-pkg-egress",
   acl: "ynx-code-package-egress-acl",
   address: "10.251.0.1/24",
   description: "YNX Code temporary reviewed package egress",

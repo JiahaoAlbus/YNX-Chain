@@ -1,7 +1,7 @@
 # YNX Code production package-egress network review
 
 Status: proposed production change; **not applied**. The production operator must
-approve the exact network name `ynx-code-package-egress` before running any
+approve the exact network name `ynx-pkg-egress` before running any
 mutation below.
 
 YNX Code workspaces have no network by default. An exact npm or Python package
@@ -55,13 +55,13 @@ egress:
     state: enabled
 YAML
 
-sudo lxc network create ynx-code-package-egress --type bridge \
+sudo lxc network create ynx-pkg-egress --type bridge \
   ipv4.address=10.251.0.1/24 ipv4.nat=true ipv6.address=none \
   security.acls=ynx-code-package-egress-acl \
   security.acls.default.ingress.action=reject \
   security.acls.default.egress.action=reject \
   user.ynx-code-policy=ynx-code-package-egress/v1
-sudo lxc network set ynx-code-package-egress --property \
+sudo lxc network set ynx-pkg-egress --property \
   description='YNX Code temporary reviewed package egress'
 ```
 
@@ -72,10 +72,10 @@ deployment transaction performs these same checks before dependency installation
 image creation, service stop, symlink change, or public traffic verification.
 
 ```bash
-sudo lxc network show ynx-code-package-egress --format json > /tmp/ynx-code-package-egress.json
+sudo lxc network show ynx-pkg-egress --format json > /tmp/ynx-pkg-egress.json
 sudo lxc network acl show ynx-code-package-egress-acl --format json > /tmp/ynx-code-package-egress-acl.json
 node apps/developer/scripts/verify-package-egress-network.mjs \
-  --network /tmp/ynx-code-package-egress.json \
+  --network /tmp/ynx-pkg-egress.json \
   --acl /tmp/ynx-code-package-egress-acl.json
 ```
 
@@ -90,7 +90,7 @@ If creation succeeds but verification fails, do not deploy Developer. After
 confirming `used_by` is empty, delete only these two newly created objects:
 
 ```bash
-sudo lxc network delete ynx-code-package-egress
+sudo lxc network delete ynx-pkg-egress
 sudo lxc network acl delete ynx-code-package-egress-acl
 ```
 

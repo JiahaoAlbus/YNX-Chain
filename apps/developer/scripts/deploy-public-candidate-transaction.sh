@@ -66,7 +66,7 @@ trap cleanup_staging EXIT
 
 [[ $expected_commit =~ ^[0-9a-f]{40}$ ]] || fail "YNX_CODE_DEPLOY_COMMIT must be 40 lowercase hex characters"
 [[ $package_network =~ ^[A-Za-z0-9_.-]{1,80}$ ]] || fail "YNX_CODE_LXD_PACKAGE_NETWORK must be a valid LXD network name"
-[[ $package_network == ynx-code-package-egress ]] || fail "YNX_CODE_LXD_PACKAGE_NETWORK does not match the reviewed production network"
+[[ $package_network == ynx-pkg-egress ]] || fail "YNX_CODE_LXD_PACKAGE_NETWORK does not match the reviewed production network"
 [[ $candidate_root == /opt/ynx-developer/candidates ]] || fail "candidate root is outside the reviewed boundary"
 [[ $state_dir == /var/lib/ynx-code-candidate ]] || fail "state directory is outside the reviewed boundary"
 [[ $env_file == /etc/ynx/ynx-code-candidate.env ]] || fail "environment file is outside the reviewed boundary"

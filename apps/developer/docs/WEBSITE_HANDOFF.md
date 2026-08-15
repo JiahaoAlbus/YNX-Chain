@@ -43,7 +43,7 @@ project venv and SHA-256-bound `requirements.ynx.lock`; source distributions and
 Python build scripts are rejected, every installed wheel needs pip integrity
 evidence, and temporary package egress must be removed before success.
 The pending production transaction additionally requires the fixed
-`ynx-code-package-egress` bridge to pass its default-reject DNS/HTTPS-only ACL
+`ynx-pkg-egress` bridge to pass its default-reject DNS/HTTPS-only ACL
 verifier before any service or release mutation. The network is not yet present
 and the default LXD bridge is not an acceptable substitute.
 After the candidate starts, the transaction must also install and run one exact
