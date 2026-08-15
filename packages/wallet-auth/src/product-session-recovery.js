@@ -184,8 +184,10 @@ export class RecoverableProductSessionClient {
         if (result?.revoked !== session.sessionBinding) fail("INVALID_GATEWAY_RESPONSE", "Gateway did not confirm the exact Product Session revocation");
       } catch (error) {
         if (isNetworkUnavailable(error)) return this.#offline("Network unavailable while revoking the Product Session; protected state was retained for Retry");
-        this.#state = state(PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED, "Gateway did not confirm Product Session revocation; protected state was retained", { actions: ["retry"] });
-        return this.#state;
+        if (!(error instanceof WalletAuthError) || error.code !== "SESSION_REVOKED") {
+          this.#state = state(PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED, "Gateway did not confirm Product Session revocation; protected state was retained", { actions: ["retry"] });
+          return this.#state;
+        }
       }
     }
     await this.#storage.remove(this.storageKey); await this.#clearPending();

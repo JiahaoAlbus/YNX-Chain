@@ -329,6 +329,45 @@ test("network transition during platform proof signing sends no late introspecti
   assert.equal(revokeCalls, 1);
 });
 
+test("lost revoke acknowledgement reconciles only an exact SESSION_REVOKED terminal response", async () => {
+  const setup = harness(); let loseAcknowledgement = true; let revokeCalls = 0;
+  const gateway = {
+    ...setup.gateway,
+    async revoke(input) {
+      revokeCalls += 1;
+      const result = await setup.gateway.revoke(input);
+      if (loseAcknowledgement) { loseAcknowledgement = false; throw new WalletAuthError("NETWORK_UNAVAILABLE", "revoke acknowledgement lost"); }
+      return result;
+    },
+  };
+  let tokenIndex = 0;
+  const client = new RecoverableProductSessionClient({ registry, productId: "social", platform: "android", storage: setup.storage, gateway, device, tokenFactory: () => token(`lost-revoke-ack-${tokenIndex++}`), clock: () => NOW });
+  const connecting = await client.begin({ walletInstalled: true, schemeRegistered: true });
+  const approval = signProductSessionApproval(registry, connecting.request, { accountSecret, scopes: connecting.request.scopes, expiresAt: "2026-08-14T01:03:00.000Z" }, NOW);
+  assert.equal((await client.handleReturn(createProductSessionReturnURL(registry, connecting.request, { result: "approved", approval }, NOW))).status, PRODUCT_SESSION_CLIENT_STATE.CONNECTED);
+  assert.equal((await client.disconnect()).status, PRODUCT_SESSION_CLIENT_STATE.NETWORK_UNAVAILABLE);
+  assert.equal(setup.authority.snapshot().revokedSessions.length, 1);
+  assert.notEqual(await setup.storage.get(client.storageKey), null);
+  client.setNetworkAvailable(true);
+  assert.equal((await client.disconnect()).status, PRODUCT_SESSION_CLIENT_STATE.DISCONNECTED);
+  assert.equal(revokeCalls, 2);
+  assert.equal(await setup.storage.get(client.storageKey), null);
+});
+
+test("SESSION_NOT_FOUND is not accepted as lost-revoke terminal evidence", async () => {
+  const setup = harness(); let missing = false;
+  const gateway = { ...setup.gateway, async revoke(input) { if (missing) throw new WalletAuthError("SESSION_NOT_FOUND", "unknown session"); return setup.gateway.revoke(input); } };
+  let tokenIndex = 0;
+  const client = new RecoverableProductSessionClient({ registry, productId: "social", platform: "android", storage: setup.storage, gateway, device, tokenFactory: () => token(`missing-revoke-${tokenIndex++}`), clock: () => NOW });
+  const connecting = await client.begin({ walletInstalled: true, schemeRegistered: true });
+  const approval = signProductSessionApproval(registry, connecting.request, { accountSecret, scopes: connecting.request.scopes, expiresAt: "2026-08-14T01:03:00.000Z" }, NOW);
+  assert.equal((await client.handleReturn(createProductSessionReturnURL(registry, connecting.request, { result: "approved", approval }, NOW))).status, PRODUCT_SESSION_CLIENT_STATE.CONNECTED);
+  missing = true;
+  assert.equal((await client.disconnect()).status, PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED);
+  assert.notEqual(await setup.storage.get(client.storageKey), null);
+  assert.deepEqual(setup.authority.snapshot().revokedSessions, []);
+});
+
 test("substituted Gateway challenge fails before device signing or completion", async () => {
   const setup = harness(); let completionCalls = 0;
   const gateway = {
