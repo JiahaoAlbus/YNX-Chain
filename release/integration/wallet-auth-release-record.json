@@ -6,7 +6,7 @@
   "recordedAt": "2026-08-14T03:52:00Z",
   "evidenceMatrix": {
     "path": "release/integration/wallet-auth-release-evidence-matrix.json",
-    "sha256": "470c2598a8f9861d80bb23166c09da60489002aef67634ef2a9154a6d82d8d12",
+    "sha256": "863b129509931469405439c17a727cec0921e23dfc809faad0626f255c554138",
     "platforms": 21,
     "gatesPerPlatform": 12,
     "trueGates": 106,
@@ -14,7 +14,7 @@
     "evidenceRecords": 116
   },
   "frozenOwnerSources": {
-    "coreAuthGateway": "edcfc86bb29efad278264b3e2ae39daae9fc2b39",
+    "coreAuthGateway": "ae8e24658efbf9dea6afce5526d3938d3b8c80cd",
     "webPwaExtensions": "020f513e5d5d12920f75201f637bdd854ccc91aa",
     "androidApi36": "dedfcb67fbb714e8aeefdf552a683c38bba0478f",
     "iosMacos": "3b27b83f18799ff74252469075ec460b6665dd44",
@@ -112,7 +112,7 @@
     "Wallet/Auth source 04e5554d supersedes 4d4749c6: the factory also requires an async platform secure-device signer, rejects raw P-256 keys and locally verifies returned challenge/proof signatures. Local 214/214 and 120 unique concurrent states do not migrate any of 12 products; PR CI, 6439 deployment, visible platform lifecycle, integratedCentral and public remain false.",
     "Core/Auth f5e0ef31 retains the exact protected session after completion succeeds but introspection transport fails, and requires sender-constrained revoke before disconnect can clear it. Public source 577f8120 permits Social OPTIONS 204 but rejects the official Web companion www Origin with 403 ORIGIN_NOT_ALLOWED, so public registry readiness, Web auth/account/sign/send, mobile, integratedCentral and aggregate public remain false.",
     "Core/Auth a731d67b freezes the owner-only isolated-6441 deployment and exact post-deploy acceptance contract for candidate f5e0ef31 and registry digest f8a25702. The command has not been executed and no SSH/deploy was performed; deployedByCore, gatewayLoadedPublic, Web companion visible success, integratedCentral and aggregate public remain false.",
-    "Core/Auth edcfc86b completes Router 48ca6201 platform secure-signer reconciliation across challenge, introspection, restart and revoke while retaining network-epoch and recovery no-resurrection guarantees. Raw secrets stay out of the shared client; signer throw or wrong-key output fails before completion. Local 332/332 and App 40/40 do not change current 577f www-origin 403, public/staging/mobile/integrated/gateway-loaded or aggregate truth.",
+    "Core/Auth ae8e2465 fences asynchronous platform signing by network epoch before complete, introspect and revoke. Network change during signing causes zero late Gateway mutation, retains protected callback/session state for Retry, and a later stable attempt completes or revokes exactly once. Local 334/334 and App 40/40 do not change current 577f www-origin 403, public/staging/mobile/integrated/gateway-loaded or aggregate truth.",
     "Product Session Router v2 hardened evidence 2bcdf4f6 supersedes cc6c3936 and freezes deployed source d26ed915: isolated 6441 passes rollback, public lifecycle and a real chmod 0644 tamper with HTTP 503 INSECURE_STATE_FILE, unchanged state bytes, no silent repair and sticky fail-close until explicit 0600+restart recovery. Legacy 6437/6439 remain unchanged, runtimeProductsMigrated=0, visible Wallet approval=false, and integratedCentral plus aggregate Product Session deployment remain false.",
     "Web commit 60614bf5 directly proves first and second launch of an unsigned temporary YNX add-on in official notarized Firefox 153.0.4; install, popup DOM/background, provider/account/sign/tx, extension signing and store claims remain false.",
     "Website main 92a8b90 merged evidence c70bf01 through PR #34; Web 46d030c and an independent deca6f4f gate prove three visible official buttons and 9 exact downloads. PWA, Chrome/Edge and Firefox artifacts are hosted/public, but remain unsigned, non-store, and do not prove installation or provider/account/sign/tx runtime."
