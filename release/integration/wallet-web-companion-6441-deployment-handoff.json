@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "authority": "Core/Auth",
+  "target": {
+    "service": "ynx-product-session-gatewayd",
+    "loopbackPort": 6441,
+    "publicOrigin": "https://rest.ynxweb4.com",
+    "publicRoute": "/v2/product-sessions/*"
+  },
+  "coreCandidate": {
+    "commit": "f5e0ef319b0fe8ff0993021e435fdc6627b0d931",
+    "tree": "7ca58e9f94f48e77a6c42cf42cbe3c72818dc695",
+    "productSessionRegistryPath": "packages/wallet-auth/product-session-registry.json",
+    "productSessionRegistrySha256": "f8a25702bdc7e3bd12b0cdecd6ac513b0a3d3ac25832a112efbe6b788ff8de9b",
+    "webCompanionProductId": "wallet-web-companion",
+    "webCompanionOrigin": "https://www.ynxweb4.com",
+    "webCompanionCallback": "https://www.ynxweb4.com/dapp/wallet/wallet-auth/callback"
+  },
+  "observedPublicMismatch": {
+    "observedSourcePrefix": "577f",
+    "exactSourceUnverifiedByCore": true,
+    "socialOriginPreflightStatus": 204,
+    "webCompanionOriginPreflightStatus": 403,
+    "webCompanionErrorCode": "ORIGIN_NOT_ALLOWED",
+    "gatewayLoadedPublic": false
+  },
+  "ownerDeploymentRequirements": [
+    "Deploy only the existing isolated 6441 ynx-product-session-gatewayd unit; do not modify 6437 or 6439.",
+    "Load the exact Core candidate Product Session registry bytes and attest the fixed SHA-256 before start.",
+    "Add only https://www.ynxweb4.com to the existing hardened Product Session CORS allowlist while preserving previously approved origins.",
+    "Allow OPTIONS and POST with Content-Type, X-Request-Id and X-YNX-Product-Session-Proof-V2; emit Vary: Origin; never use wildcard credentials.",
+    "Keep unapproved Origin and DELETE preflight fail closed without Access-Control-Allow-Origin.",
+    "Use the existing 6441 backup, rollback drill, atomic unit replacement, state inode/mode/nlink/digest checks and post-restart lifecycle controls.",
+    "Record the final deployed full source commit; Core does not accept an abbreviated or self-reported source value."
+  ],
+  "acceptance": {
+    "script": "packages/wallet-auth/scripts/verify-wallet-web-companion-6441-acceptance.mjs",
+    "packageScript": "npm run verify:web-companion-6441 --prefix packages/wallet-auth",
+    "command": "YNX_WALLET_WEB_COMPANION_6441_ACCEPTANCE=1 YNX_WALLET_WEB_COMPANION_6441_URL=https://rest.ynxweb4.com YNX_WALLET_WEB_COMPANION_6441_SOURCE=$DEPLOYED_SOURCE_COMMIT YNX_WALLET_WEB_COMPANION_6441_REGISTRY_SHA256=f8a25702bdc7e3bd12b0cdecd6ac513b0a3d3ac25832a112efbe6b788ff8de9b npm run verify:web-companion-6441 --prefix packages/wallet-auth",
+    "covers": [
+      "exact /version source and registry digest",
+      "approved Web companion OPTIONS 204",
+      "unapproved Origin 403",
+      "wrong preflight method fail closed",
+      "Origin-bound challenge, completion, introspection, replay rejection, revoke and post-revoke denial",
+      "expiry, wrong product, device, bundle and scope",
+      "devices/revoke cascade"
+    ]
+  },
+  "truthBoundary": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "deployedByCore": false,
+    "gatewayLoadedPublic": false,
+    "webCompanionVisibleSuccess": false,
+    "aggregatePublic": false
+  }
+}

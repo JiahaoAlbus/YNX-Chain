@@ -62,6 +62,7 @@
     "benchmark:gateway": "node scripts/benchmark-gateway.mjs",
     "probe:public-gateway": "node scripts/verify-public-gateway.mjs",
     "probe:public-gateway-multi-user": "node scripts/verify-public-gateway-multi-user.mjs",
+    "verify:web-companion-6441": "node scripts/verify-wallet-web-companion-6441-acceptance.mjs",
     "probe:public-erc4337": "node scripts/probe-public-erc4337.mjs",
     "verify:canonical-wallet-callers": "node scripts/verify-canonical-wallet-callers.mjs",
     "report:canonical-wallet-callers": "node scripts/verify-canonical-wallet-callers.mjs --report-only",
