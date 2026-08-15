@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "b9b7ce00054b3ed8d4f149b4471aab088d60c902",
+  "generatedAt": "2026-08-15T02:56:11.224Z",
+  "runtimeClass": "Playwright Chromium Pixel 9-sized external mobile browser with controlled RPC transport failure; not a physical device or public service success",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "passed": true,
+  "providerInjected": false,
+  "ynxAuthorizationOpened": false,
+  "metaMaskOpened": false,
+  "account": false,
+  "sign": false,
+  "transaction": false,
+  "testnetConnected": false,
+  "deployedPublic": false,
+  "presentation": {
+    "ynxVisible": true,
+    "ynxRoute": "canonical-auth-unavailable",
+    "downloadVisible": true,
+    "metaMaskVisible": true,
+    "metaMaskRoute": "mobile-dapp",
+    "metaMaskHref": "https://metamask.app.link/dapp/www.ynxweb4.com/dapp/wallet"
+  },
+  "actions": {
+    "add": true,
+    "switch": true,
+    "sign": true,
+    "send": true
+  },
+  "ynxStatus": "Status: CANONICAL_AUTH_UNAVAILABLE: The request failed closed. No wallet state was changed.",
+  "screenshot": {
+    "path": "evidence/browser/wallet-web-mobile-routing-fail-closed-390-20260815.png",
+    "bytes": 152943,
+    "sha256": "213992e930199e38e5eb7afd0c04b18d437dcc5c1d85c71242b8873cd07791d6"
+  }
+}

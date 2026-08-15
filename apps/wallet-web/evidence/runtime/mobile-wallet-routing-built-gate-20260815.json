@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-14T17:31:48.681Z",
+  "generatedAt": "2026-08-15T02:54:53.646Z",
   "immutableCentralDependency": {
     "commit": "d0f89797d13c7667cc187b0c64d5c9e1cb1d8f59",
     "endpointMatrix": {
@@ -13,19 +13,30 @@
     }
   },
   "coreBinding": {
-    "registryVersion": 2,
-    "chainId": "ynx_6423-1",
-    "productClientId": "ynx-wallet-v1",
-    "requestingProduct": "wallet",
-    "bundleId": "com.ynxweb4.wallet",
-    "enabled": false,
-    "reviewState": "pending-review",
+    "productId": "wallet-web-companion",
+    "productClientId": "ynx-wallet-web-companion-v1",
+    "requestingProduct": "wallet-web-companion",
+    "bundleId": "web.ynx.wallet.companion",
+    "enabled": true,
+    "reviewState": "approved",
     "scopes": [
-      "wallet:account",
-      "wallet:audit",
-      "wallet:sessions"
+      "account:read",
+      "chain:network:add",
+      "chain:network:switch",
+      "wallet:session:request"
     ],
-    "webCallbacks": []
+    "webOrigin": "https://www.ynxweb4.com",
+    "webCallbacks": [
+      "https://www.ynxweb4.com/dapp/wallet/wallet-auth/callback"
+    ],
+    "callback": "https://www.ynxweb4.com/dapp/wallet/wallet-auth/callback",
+    "sessionDurationSeconds": 180,
+    "coreCommit": "39c80021b87730a20569b61f6ccd3f80092523c4",
+    "coreContractBlob": null,
+    "centralCallerCommit": null,
+    "centralCallerBlob": null,
+    "publicGatewayRegistryReady": false,
+    "trustedRuntimeAvailable": false
   },
   "ynxAuthorization": {
     "route": "canonical-auth-unavailable",
