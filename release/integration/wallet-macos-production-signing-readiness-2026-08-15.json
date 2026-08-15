@@ -27,6 +27,10 @@
     "explicit publish_release=true before GitHub Release creation"
   ],
   "currentEvidence": {
+    "registeredOnDefaultBranch": false,
+    "workflowDispatchAvailable": false,
+    "registrationAudit": "GitHub Actions workflow lookup returned HTTP 404 because the workflow is not present on the default branch.",
+    "requiredIntegration": "Central must merge the exact workflow blob into the default branch before an authorized production environment owner can inspect secrets or dispatch it.",
     "workflowDispatched": false,
     "secretsPresenceInspected": false,
     "developerIDSignedArtifact": false,
