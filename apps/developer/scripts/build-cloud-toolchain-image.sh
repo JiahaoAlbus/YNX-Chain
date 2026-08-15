@@ -35,8 +35,10 @@ done
 lxc exec "$builder" -- getent hosts archive.ubuntu.com >/dev/null
 lxc exec "$builder" -- env DEBIAN_FRONTEND=noninteractive apt-get update -qq
 lxc exec "$builder" -- env DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-  clangd-18=1:18.1.3-1ubuntu1 ca-certificates curl gzip openjdk-21-jdk-headless python3-pip python3-venv
+  clangd-18=1:18.1.3-1ubuntu1 lldb-18=1:18.1.3-1ubuntu1 ca-certificates curl gzip openjdk-21-jdk-headless python3-pip python3-venv
 lxc exec "$builder" -- ln -sfn /usr/bin/clangd-18 /usr/local/bin/clangd
+lxc exec "$builder" -- test -x /usr/bin/lldb-dap-18
+lxc exec "$builder" -- sh -c 'dpkg-query -W -f="\${Package}=\${Version}\n" lldb-18 liblldb-18 > /etc/ynx-code-lldb-packages.txt'
 lxc exec "$builder" -- npm install -g --ignore-scripts pyright@1.1.411
 lxc exec "$builder" -- ln -sfn /opt/node-v22.23.1/bin/pyright /usr/local/bin/pyright
 lxc exec "$builder" -- ln -sfn /opt/node-v22.23.1/bin/pyright-langserver /usr/local/bin/pyright-langserver
@@ -78,7 +80,7 @@ lxc file push "$probe_path" "$builder/tmp/lsp-server-probe.mjs"
 lxc exec "$builder" -- node /tmp/lsp-server-probe.mjs
 lxc exec "$builder" -- sh -c "apt-get clean; rm -rf /var/lib/apt/lists/* /root/.cache/go-build /root/go/pkg/mod/cache/download /tmp/rust-analyzer.gz /tmp/rust-analyzer-asset /tmp/lsp-server-probe.mjs '/tmp/$jdtls_archive' '/tmp/debugpy-${debugpy_version}-py2.py3-none-any.whl'"
 lxc stop "$builder"
-lxc publish "$builder" --alias "$target_alias" description="YNX Code Ubuntu 24.04 reviewed nine-language toolchain, Python package runtime, debugpy DAP, JUnit and seven LSP servers"
+lxc publish "$builder" --alias "$target_alias" description="YNX Code Ubuntu 24.04 reviewed nine-language toolchain, Python debugpy and Rust LLDB DAP, JUnit and seven LSP servers"
 fingerprint="$(lxc image info "$target_alias" | awk '/^Fingerprint:/{print $2}')"
 test "${#fingerprint}" -eq 64
 cleanup

@@ -391,18 +391,20 @@ bounded; adapter `runInTerminal` requests return to the permission broker.
 Variables, watches and evaluations are scoped to a paused session. Debugging a
 remote or chain transaction uses a separate read-only transaction debugger.
 
-The first adapter gates are implemented for C/C++ and Python in
+The first adapter gates are implemented for C/C++, Python and Rust in
 `services/debug-service`. C/C++ builds the selected source with debug symbols
 and launches LLDB DAP in the default-deny-network sandbox. Python requires the
 selected owner/project-bound LXD lease and launches the SHA-pinned debugpy
 runtime inside that container; its internal loopback remains available while
-the container has no external network device. Both routes rewrite source and
-program paths to the owned workspace and allow only a bounded DAP request set.
+the container has no external network device. Rust compiles with debug info in
+the same lease and starts the pinned Ubuntu `lldb-dap-18`. All routes rewrite
+source and program paths to the owned workspace and allow only a bounded DAP request set.
 The workbench exposes gutter breakpoints, continue/step controls, call stack,
 variables and the current stopped line. A real debugpy gate hits line 2 and
-reads `value = 7`; the protected live-container gate repeats that sequence in
-the published image. Target-Ubuntu LLDB evidence and Node.js, Go and Rust
-adapters remain explicit acceptance gaps.
+reads `value = 7`; the protected live-container gate repeats that sequence and
+requires a Rust line-3 breakpoint with `value = 9` in the published image.
+Executing that target-Ubuntu Rust gate and adding Node.js and Go adapters remain
+explicit acceptance gaps.
 
 ## 10. Git and review
 

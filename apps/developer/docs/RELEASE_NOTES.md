@@ -1,6 +1,6 @@
 # YNX Developer 0.2.0 Testnet Preview release notes
 
-## 2026-08-15 Python DAP in the isolated cloud runtime
+## 2026-08-15 Python and Rust DAP in the isolated cloud runtime
 
 - Python files can now start a real debugpy DAP session after the user selects
   an owner/project-bound LXD runtime. Breakpoints, stack frames, scopes and
@@ -11,6 +11,9 @@
   both the candidate verifier and immutable cloud image.
 - The protected live-container gate now stops at Python line 2 and proves the
   local variable `value = 7` before accepting the candidate.
+- Rust files use the same project-bound container, compile with debug info and
+  overflow checks, then launch Ubuntu's pinned `lldb-dap-18`. The protected
+  gate stops at Rust line 3 and requires the local variable `value = 9`.
 
 ## 2026-08-15 production package-egress policy candidate
 

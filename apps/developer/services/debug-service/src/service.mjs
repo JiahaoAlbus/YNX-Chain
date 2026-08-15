@@ -3,8 +3,9 @@ import { access, mkdir, mkdtemp, realpath, rm } from "node:fs/promises";
 import { constants as fsConstants } from "node:fs";
 import { tmpdir } from "node:os";
 import { extname, join } from "node:path";
-import { spawn } from "node:child_process";
+import { execFile, spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { promisify } from "node:util";
 import { WebSocketServer } from "ws";
 import {
   detectSandbox,
@@ -21,6 +22,7 @@ const PROTOCOL = "ynx-code-dap-v1",
   DEFAULT_DEBUGPY_ROOT = fileURLToPath(
     new URL("../../../.ynx-debugpy", import.meta.url),
   ),
+  execFileAsync = promisify(execFile),
   ALLOWED = new Set([
     "initialize",
     "launch",
@@ -66,13 +68,13 @@ export function createDebugService(options) {
       !validId(projectId) ||
       !safePath(activePath) ||
       !language ||
-      (language === "python" &&
+      (containerDebugLanguage(language) &&
         options.containerDebugBroker &&
         !validRuntimeId(runtimeId)) ||
       !sameOrigin(request) ||
       request.headers["sec-websocket-protocol"] !== PROTOCOL ||
       (!sandbox.ready &&
-        !(language === "python" && options.containerDebugBroker)) ||
+        !(containerDebugLanguage(language) && options.containerDebugBroker)) ||
       sessions.size >= maxSessions ||
       [...sessions.values()].filter((value) => value.owner === owner).length >=
         maxOwnerSessions
@@ -111,13 +113,14 @@ export function createDebugService(options) {
         "workspace_not_found",
       );
     const language = debugLanguage(activePath);
-    if (language === "python" && options.containerDebugBroker) {
+    if (containerDebugLanguage(language) && options.containerDebugBroker) {
       const handle = await options.containerDebugBroker.openContainerDebugProcess({
         owner,
         runtimeId,
         projectId,
         files: snapshot.files,
         activePath,
+        language,
       });
       attach(websocket, {
         owner,
@@ -125,17 +128,21 @@ export function createDebugService(options) {
         activePath,
         language,
         workspace: null,
-        program: `${handle.visibleRoot}/${activePath}`,
+        program: handle.program,
         visibleRoot: handle.visibleRoot,
         child: handle.child,
         cleanup: handle.cleanup,
-        adapterId: "debugpy",
+        adapterId: handle.adapterId,
         sandboxKind: handle.sandbox.kind,
       });
       return;
     }
-    const
-      toolchain = await resolveToolchain(language, options);
+    if (language === "rust")
+      throw fault(
+        "Rust debugging requires a selected reviewed LXD runtime.",
+        "debug_runtime_required",
+      );
+    const toolchain = await resolveToolchain(language, options);
     if (!toolchain)
       throw fault(
         language === "python"
@@ -163,12 +170,14 @@ export function createDebugService(options) {
       visibleRoot =
         sandbox.kind === "macos-sandbox-exec" ? workspace : "/workspace";
     if (language !== "python") {
+      const platformArgs = await compilerPlatformArgs();
       const compileLaunch = createLaunch({
           sandbox,
           workspace,
           command: toolchain.compiler,
           args: [
             language === "c" ? "-std=c17" : "-std=c++20",
+            ...platformArgs,
             "-g",
             "-O0",
             "-fno-omit-frame-pointer",
@@ -206,7 +215,10 @@ export function createDebugService(options) {
       activePath,
       language,
       workspace,
-      program,
+      program:
+        language === "python"
+          ? `${visibleRoot}/${activePath}`
+          : `${visibleRoot}/.ynx-build/debug-program`,
       visibleRoot,
       child,
       cleanup: null,
@@ -231,10 +243,7 @@ export function createDebugService(options) {
       adapter: state.adapterId,
       language: state.language,
       sandbox: { kind: state.sandboxKind, network: false },
-      program:
-        state.language === "python"
-          ? `${state.visibleRoot}/${state.activePath}`
-          : `${state.visibleRoot}/.ynx-build/debug-program`,
+      program: state.program,
     });
     state.child.stdout.on("data", (chunk) => parse(state, chunk));
     state.child.stderr.on("data", (chunk) =>
@@ -288,10 +297,7 @@ export function createDebugService(options) {
     const next = structuredClone(message);
     if (next.command === "launch") {
       const shared = {
-        program:
-          state.language === "python"
-            ? `${state.visibleRoot}/${state.activePath}`
-            : `${state.visibleRoot}/.ynx-build/debug-program`,
+        program: state.program,
         cwd: state.visibleRoot,
         args: validArgs(next.arguments?.args),
         stopOnEntry: Boolean(next.arguments?.stopOnEntry),
@@ -447,9 +453,13 @@ function safePath(value) {
 function debugLanguage(value) {
   const extension = extname(value).toLowerCase();
   if (extension === ".py") return "python";
+  if (extension === ".rs") return "rust";
   if (extension === ".c") return "c";
   if ([".cpp", ".cc", ".cxx"].includes(extension)) return "cpp";
   return null;
+}
+function containerDebugLanguage(language) {
+  return language === "python" || language === "rust";
 }
 async function resolveToolchain(language, options) {
   if (language === "python") {
@@ -484,6 +494,26 @@ async function resolveToolchain(language, options) {
         readOnlyBinds: [],
       }
     : null;
+}
+async function compilerPlatformArgs() {
+  if (process.platform !== "darwin") return [];
+  try {
+    const { stdout } = await execFileAsync(
+      "/usr/bin/xcrun",
+      ["--sdk", "macosx", "--show-sdk-path"],
+      { timeout: 5_000, maxBuffer: 16 * 1024 },
+    );
+    const sdk = stdout.trim();
+    if (
+      !/^\/Library\/Developer\/[A-Za-z0-9_./+-]+\.sdk$/.test(sdk) ||
+      sdk.includes("..")
+    )
+      return [];
+    await access(sdk);
+    return ["-isysroot", sdk];
+  } catch {
+    return [];
+  }
 }
 function validId(value) {
   return typeof value === "string" && /^[A-Za-z0-9_-]{1,160}$/.test(value);

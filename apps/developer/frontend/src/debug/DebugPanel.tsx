@@ -47,8 +47,10 @@ export function DebugPanel({
     [frames, setFrames] = useState<Frame[]>([]),
     [variables, setVariables] = useState<Variable[]>([]),
     [log, setLog] = useState("");
-  const supported = /\.(c|cpp|cc|cxx|py)$/i.test(activePath),
-    python = /\.py$/i.test(activePath);
+  const supported = /\.(c|cpp|cc|cxx|py|rs)$/i.test(activePath),
+    python = /\.py$/i.test(activePath),
+    rust = /\.rs$/i.test(activePath),
+    containerRequired = python || rust;
   useEffect(
     () => () => {
       socket.current?.close();
@@ -67,15 +69,17 @@ export function DebugPanel({
     return id;
   };
   const start = async () => {
-    if (!supported || (python && !runtimeId)) return;
+    if (!supported || (containerRequired && !runtimeId)) return;
     socket.current?.close();
     setState("connecting");
     setFrames([]);
     setVariables([]);
     setLog(
       python
-        ? "Starting Python inside the isolated debug workspace…\n"
-        : "Building a debug binary inside the isolated workspace…\n",
+        ? "Starting Python inside the isolated cloud debug workspace…\n"
+        : rust
+          ? "Building Rust inside the isolated cloud debug workspace…\n"
+          : "Building a debug binary inside the isolated workspace…\n",
     );
     onStoppedLine();
     try {
@@ -246,7 +250,7 @@ export function DebugPanel({
       <div className="debug-controls">
         <button
           onClick={start}
-          disabled={!supported || (python && !runtimeId) || state === "connecting" || state === "running"}
+          disabled={!supported || (containerRequired && !runtimeId) || state === "connecting" || state === "running"}
           title="Start debugging"
         >
           <Play />
@@ -282,14 +286,15 @@ export function DebugPanel({
       </div>
       {!supported && (
         <div className="honest-boundary">
-          Reviewed DAP adapters support Python via debugpy and C/C++ via LLDB.
-          Select a .py, .c, .cpp, .cc or .cxx file.
+          Reviewed DAP adapters support Python via debugpy and Rust/C/C++ via
+          LLDB. Select a .py, .rs, .c, .cpp, .cc or .cxx file.
         </div>
       )}
-      {python && !runtimeId && (
+      {containerRequired && !runtimeId && (
         <div className="honest-boundary">
-          Select an isolated LXD cloud runtime before starting Python debug.
-          debugpy needs container loopback for its internal adapter channel.
+          Select an isolated LXD cloud runtime before starting Python or Rust
+          debug. Python uses container loopback internally; neither adapter gets
+          an external network device.
         </div>
       )}
       <DebugSection title={`BREAKPOINTS (${breakpoints.length})`}>

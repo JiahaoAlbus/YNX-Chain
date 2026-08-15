@@ -140,7 +140,7 @@ test("authenticated C debug bridge compiles and forwards bounded DAP frames", as
   websocket.close();
 });
 
-test("authenticated Python bridge skips compilation and fixes debugpy launch paths", async (t) => {
+test("authenticated container bridge fixes Python and Rust adapter launch paths", async (t) => {
   const root = await mkdtemp(join(tmpdir(), "ynx-debug-python-test-")),
     adapter = join(root, "debugpy-adapter.mjs");
   await writeFile(
@@ -176,6 +176,11 @@ test("authenticated Python bridge skips compilation and fixes debugpy launch pat
           return {
             child,
             visibleRoot: "/workspaces/python-project/.ynx-debug/session",
+            program:
+              value.language === "python"
+                ? "/workspaces/python-project/.ynx-debug/session/src/main.py"
+                : "/workspaces/python-project/.ynx-debug/session/.ynx-build/debug-program",
+            adapterId: value.language === "python" ? "debugpy" : "lldb-dap",
             sandbox: { kind: "lxd-container", network: false },
             cleanup: async () => child.kill("SIGKILL"),
           };
@@ -247,6 +252,57 @@ test("authenticated Python bridge skips compilation and fixes debugpy launch pat
     "/workspaces/python-project/.ynx-debug/session/src/main.py",
   );
   websocket.close();
+  await new Promise((resolve) => setTimeout(resolve, 100));
+  await fetch(`${base}/runtime/workspaces/python-project`, {
+    method: "PUT",
+    headers: { cookie, "content-type": "application/json" },
+    body: JSON.stringify({
+      protocolVersion: "ynx-code/v1",
+      expectedRevision: 1,
+      idempotencyKey: "rust-debug-seed-0001",
+      workspace: {
+        name: "Rust Debug",
+        folders: ["src"],
+        files: { "src/main.rs": "fn main() { let value = 9; }\n" },
+        open: ["src/main.rs"],
+        active: "src/main.rs",
+      },
+    }),
+  });
+  const rustMessages = [],
+    rustSocket = new WebSocket(
+      `ws://127.0.0.1:${address.port}/runtime/debug?projectId=python-project&activePath=src%2Fmain.rs&runtimeId=0123456789abcdef01234567`,
+      "ynx-code-dap-v1",
+      { headers: { cookie, origin: base } },
+    );
+  rustSocket.on("message", (raw) =>
+    rustMessages.push(JSON.parse(String(raw))),
+  );
+  await waitFor(() => rustMessages.some((value) => value.type === "ready"));
+  const rustReady = rustMessages.find((value) => value.type === "ready");
+  assert.equal(rustReady.language, "rust");
+  assert.equal(rustReady.adapter, "lldb-dap");
+  assert.match(rustReady.program, /\.ynx-build\/debug-program$/);
+  rustSocket.send(
+    JSON.stringify({
+      type: "dap",
+      message: { seq: 3, type: "request", command: "launch", arguments: {} },
+    }),
+  );
+  await waitFor(
+    () =>
+      rustMessages.some(
+        (value) =>
+          value.type === "dap" && value.message.request_seq === 3,
+      ),
+  );
+  assert.match(
+    rustMessages.find(
+      (value) => value.type === "dap" && value.message.request_seq === 3,
+    ).message.body.program,
+    /\.ynx-build\/debug-program$/,
+  );
+  rustSocket.close();
 });
 
 test("installed debugpy stops a real Python process and exposes local variables", async (t) => {
@@ -328,7 +384,14 @@ test("installed debugpy stops a real Python process and exposes local variables"
     }));
     return id;
   };
-  await waitFor(() => messages.some((value) => value.type === "ready"), 10_000);
+  await waitFor(
+    () => messages.some((value) => value.type === "ready" || value.type === "error"),
+    10_000,
+  );
+  assert.ok(
+    messages.some((value) => value.type === "ready"),
+    JSON.stringify(messages),
+  );
   const initialize = request("initialize", {
     clientID: "ynx-code",
     adapterID: "python",
@@ -337,8 +400,17 @@ test("installed debugpy stops a real Python process and exposes local variables"
     pathFormat: "path",
   });
   await waitFor(() => response(messages, initialize)?.success === true, 10_000);
-  request("launch", { args: [] });
-  await waitFor(() => event(messages, "initialized"), 10_000);
+  const launch = request("launch", { args: [] });
+  await waitFor(
+    () =>
+      event(messages, "initialized") ||
+      response(messages, launch) ||
+      messages.some((value) =>
+        ["adapter-stderr", "exit", "error"].includes(value.type),
+      ),
+    10_000,
+  );
+  assert.ok(event(messages, "initialized"), JSON.stringify(messages));
   const breakpoints = request("setBreakpoints", {
     source: { path: "src/main.py" },
     breakpoints: [{ line: 2 }],
@@ -429,7 +501,7 @@ test("installed LLDB DAP stops a real C++ process at a source breakpoint", async
         folders: ["src"],
         files: {
           "src/main.cpp":
-            "#include <iostream>\nint main() {\n  int value = 7;\n  std::cout << value << std::endl;\n  return 0;\n}\n",
+            "int main() {\n  int value = 7;\n  return value;\n}\n",
         },
         open: ["src/main.cpp"],
         active: "src/main.cpp",
@@ -454,7 +526,14 @@ test("installed LLDB DAP stops a real C++ process at a source breakpoint", async
     );
     return id;
   };
-  await waitFor(() => messages.some((value) => value.type === "ready"), 10_000);
+  await waitFor(
+    () => messages.some((value) => value.type === "ready" || value.type === "error"),
+    10_000,
+  );
+  assert.ok(
+    messages.some((value) => value.type === "ready"),
+    JSON.stringify(messages),
+  );
   const initialize = request("initialize", {
     clientID: "ynx-code",
     adapterID: "lldb",
@@ -463,11 +542,20 @@ test("installed LLDB DAP stops a real C++ process at a source breakpoint", async
     pathFormat: "path",
   });
   await waitFor(() => response(messages, initialize)?.success === true);
-  request("launch", { args: [] });
-  await waitFor(() => event(messages, "initialized"), 10_000);
+  const launch = request("launch", { args: [] });
+  await waitFor(
+    () =>
+      event(messages, "initialized") ||
+      response(messages, launch) ||
+      messages.some((value) =>
+        ["adapter-stderr", "exit", "error"].includes(value.type),
+      ),
+    10_000,
+  );
+  assert.ok(event(messages, "initialized"), JSON.stringify(messages));
   const breakpoints = request("setBreakpoints", {
     source: { path: "src/main.cpp" },
-    breakpoints: [{ line: 3 }],
+    breakpoints: [{ line: 2 }],
   });
   await waitFor(() => response(messages, breakpoints)?.success === true);
   assert.equal(
@@ -483,7 +571,7 @@ test("installed LLDB DAP stops a real C++ process at a source breakpoint", async
   const threadId = response(messages, threads).body.threads[0].id,
     stack = request("stackTrace", { threadId, startFrame: 0, levels: 20 });
   await waitFor(() => response(messages, stack)?.success === true);
-  assert.equal(response(messages, stack).body.stackFrames[0].line, 3);
+  assert.equal(response(messages, stack).body.stackFrames[0].line, 2);
   request("disconnect", { terminateDebuggee: true });
   websocket.close();
 });
