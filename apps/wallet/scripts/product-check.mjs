@@ -83,6 +83,8 @@ assert.equal(sha256(canonicalCallerMigrationBytes),CENTRAL_FREEZE.canonicalCalle
 assert.equal(endpointMatrix.canonical.restUrl,"https://rest.ynxweb4.com");
 assert.equal(endpointMatrix.canonical.rpcUrl,"https://rpc.ynxweb4.com/evm");
 assert.ok(nativeTransfer.includes('DEFAULT_CHAIN_API="https://rest.ynxweb4.com"'),"native account/transaction REST must consume the frozen REST endpoint");
+assert.ok(nativeTransfer.includes('DEFAULT_CHAIN_RPC="https://rpc.ynxweb4.com/evm"'),"unmaterialized native accounts must consume the frozen path-bearing RPC endpoint");
+assert.ok(source.includes("new NativeChainClient(runtime?.baseURL,runtime?.evmRpcURL)"),"Wallet runtime must keep canonical REST and EVM RPC endpoints separate");
 assert.ok(evmSimulation.includes('DEFAULT_EVM_RPC_URL = "https://rpc.ynxweb4.com/evm"'),"EVM JSON-RPC must consume the frozen path-bearing RPC endpoint");
 assert.deepEqual(androidLauncher.authority,{protocolSource:"packages/wallet-auth/src/deep-link.js",requestProtocolSource:"packages/wallet-auth/src/protocol.js",walletPackage:"com.ynxweb4.wallet",walletActivity:"com.ynxweb4.wallet/.MainActivity",scheme:"ynxwallet",host:"authorize",path:"",queryFields:["request"],uriTemplate:"ynxwallet://authorize?request=<base64url-canonical-authorization-request>",androidAction:"android.intent.action.VIEW",androidCategories:["android.intent.category.DEFAULT","android.intent.category.BROWSABLE"],activityExported:true});
 assert.equal(androidLauncher.callerMigrationGate.authoritativeCoreContract.blob,CENTRAL_FREEZE.canonicalCallerMigration.blob);
