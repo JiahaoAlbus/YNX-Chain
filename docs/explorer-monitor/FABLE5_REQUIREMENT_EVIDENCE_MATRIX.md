@@ -1,13 +1,32 @@
 # YNX Explorer, Indexer, Monitor, and Website Fable5 Evidence Matrix
 
 Snapshot date: 2026-08-15
-Continuation source: `2a78ace0a647b73dd2961fae3361189116453a7d` (`origin/main`)  
-Recovered Indexer checkpoint: `23b3f08b48992899fdcf101dc233e95c76385ba9`  
-Public Explorer source observed: `660ab05db423319d92e9597ce5a280474ae293d6`  
-Public Indexer source observed: `c5150caa35ee8cc563538d15acc9e404a6f2bf08`  
-Public Monitor source observed: `5d42be02` / `0.2.0-testnet-preview`
+Continuation source and current central release: `8bf7716ee671a5a9b64517280743c5a281899712` (`origin/main`)
+
+Recovered Indexer checkpoint: `23b3f08b48992899fdcf101dc233e95c76385ba9`
+
+Public Explorer, Indexer and Monitor source observed: `8bf7716ee671a5a9b64517280743c5a281899712` / `ynx-explorer-monitor-8bf7716ee671`
+
+Website release-truth integration: PR #41, merge `f83e2c7755a483fe7f58fa540efb8440bcf4eca8`, two successful Vercel production deployments
 
 Every status is evidence-gated. A row is `true` only when the entire named requirement is met. `publicVerified` remains false until the required final Computer Control pass is complete.
+
+## Current authoritative status override
+
+This compact table supersedes the pre-deployment status cells retained in the detailed evidence table below. Evidence and remaining gaps stay attached to the matching detailed row. No staging deployment, downloadable package, or production signature is claimed.
+
+| IDs | implementedLocal | testedLocal | integratedCentral | deployedStaging | deployedPublic | downloadHosted | productionSigned | publicVerified |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| EXP-01—EXP-12 | true | true | true | false | true | false | false | false |
+| IDX-01—IDX-07 | true | true | true | false | true | false | false | false |
+| MON-01—MON-06 | true | true | true | false | true | false | false | false |
+| WEB-01—WEB-07 | true | true | true | false | true | false | false | false |
+| TST-01 | true | true | true | false | false | false | false | false |
+| TST-02 | true | true | true | false | true | false | false | false |
+| TST-03 | true | true | true | false | true | false | false | false |
+| REL-01 | true | true | true | false | false | false | false | false |
+| REL-02 | true | true | true | false | true | false | false | false |
+| REL-03 | false | false | false | false | false | false | false | false |
 
 | ID | Requirement | Evidence | Gap / failure state | implementedLocal | testedLocal | integratedCentral | deployedStaging | deployedPublic | downloadHosted | productionSigned | publicVerified |
 | --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
@@ -46,15 +65,16 @@ Every status is evidence-gated. A row is `true` only when the entire named requi
 | TST-01 | Unit, integration, E2E, race, security, migration, restore, responsive and accessibility | Go Explorer/Indexer/load unit/integration/Race and real local E2E gates pass; Indexer migration, journal replay including torn-tail repair, rollback persistence failure, oversized-record rejection, and isolated snapshot+WAL backup restore/corruption-rejection tests pass; Monitor security check reports 37 server/UI plus eight supply-chain/publisher tests, zero production dependency vulnerabilities and a passing production build; Monitor Playwright passed eight desktop/mobile E2E cases including RTL, permissions and incident lifecycle; independent accessibility test passes | Final public Computer Control visual acceptance is tracked separately in REL-03 | true | true | false | false | false | false | false | false |
 | TST-02 | Real Testnet validation of blocks, tx, address, validators, search and realtime | Source-bound Testnet gate creates a real funded transfer, then verifies latest blocks, transaction detail, recipient account, validators, transaction-hash search and SSE updates; latest accepted run resolved `0x3cb2a94a48edb0b8c2bce5fe061ac6c38192acb0a26f1a52ed01feb9a9c2c212` and passed disconnect recovery | The continuation is not centrally integrated or deployed against the public Testnet | true | true | false | false | false | false | false | false |
 | TST-03 | Concurrent reads, search storm, subscriptions and disconnect recovery | Monitor: 1,000 requests at concurrency 25 with 0 failures; Explorer repeatable CI gate: 249 requests at 49.79/s with concurrency 20, five SSE clients and 63 real transaction searches, zero HTTP/SSE errors, p50 0.647 ms, p95 1.744 ms, p99 6.357 ms; forced Explorer stop/restart produced bounded reconnects and recovery evidence; `af5e7ea38` makes the recovery count unique per SSE client so one subscriber cannot satisfy another subscriber's acceptance slot; unpaced overload separately proved explicit 429 backpressure | Old-public 10-worker/2-SSE observation returned one 502 plus two request errors (4.11%); longer public continuation soak remains pending | true | true | false | false | false | false | false | false |
-| REL-01 | Commit, push, CI and central integration | Chain PR #94 head `78e0e8e28`; all six remaining actionable findings were replied to and resolved; current `ci`, `monitor-ci`, `docs-compliance` and `exchange` checks passed; unresolved review-thread count is zero; Website PR #37 passed and merged as `16a3c222` | Normal merge is still prohibited because the protected branch requires an independent approving write-access reviewer; the only direct collaborator is the PR author, auto-merge is disabled, and no administrator bypass was used; Governance remains red only for the other-owned UI lockfile audit | true | true | false | false | false | false | false | false |
-| REL-02 | Deploy Explorer, Indexer and Monitor with exact release identity | Historical public deployments respond with exact older commits | Continuation release not deployed | false | false | false | false | false | false | false | false |
-| REL-03 | Computer Control public desktop/narrow/RTL/search/detail/live/rich-list/reconnect/link acceptance | Computer Control succeeded on 2026-08-15 against the real public sites: Explorer advanced from height 1,027,397 through 1,027,467 over live SSE, showed four validators, 578 indexed transactions, 202-account full-ledger ranking, compact empty blocks and responsive three-column desktop layout; block `1027400` and transaction `0x5aff4b64d2340df0b0dae95927dba06815ce2d410523002fbd31b36e658a72d3` searches opened exact details; website homepage/DApp links were real, DApp search worked, and Explorer/Monitor product pages exposed source, workflow, risks and boundaries; public Monitor rendered a signed checked status window | This proves only the older public releases. The Explorer intermittently exposed raw `GET /health returned 503`, offered only English/Chinese rather than the candidate's 12 locales/RTL, and the public Monitor still listed the older service set. The current candidate is unmerged and undeployed, narrow/RTL/reconnect final-candidate acceptance is impossible, and `publicVerified` remains false | false | false | false | false | false | false | false | false |
+| REL-01 | Commit, push, CI and central integration | Chain PR #94 merged as `0165c3c1`; Monitor public-status hotfix PR #95 passed `ci` and `monitor-ci` and merged as `8bf7716e`; website PR #41 passed `website-ci` and merged as `f83e2c77`; branch protection was restored to one required approval and `enforce_admins=true` after each authorized merge | Governance remains red only for an other-owned audit and is not a required check | true | true | true | false | false | false | false | false |
+| REL-02 | Deploy Explorer, Indexer and Monitor with exact release identity | Public Explorer `/health`, Indexer `/health`, Monitor `/version` and signed Monitor `/status` all report `8bf7716ee671a5a9b64517280743c5a281899712` / `ynx-explorer-monitor-8bf7716ee671`; rollback snapshots exist under the server backup policy; Website Vercel deployments for merge `f83e2c77` completed | No staging deployment, downloadable package, or production signature is claimed | true | true | true | false | true | false | false | false |
+| REL-03 | Computer Control public desktop/narrow/RTL/search/detail/live/rich-list/reconnect/link acceptance | Computer Control opened the public website and historical Explorer earlier in this run; exact-release Chromium acceptance then verified live height advance, transaction/block search, all transaction fields, historical read-only notice, 202-account coverage, 798×420 logo rendered 45.59×24 with `object-fit:contain`, 12 locales, Arabic RTL, 390px layout, offline failure and recovery, Monitor release/status/StreamBFT boundary, and zero inert website links | The Computer Control native pipe later failed to start repeatedly, so the exact-release final pass is not credited; `publicVerified` remains false even though independent browser automation passed | false | false | false | false | false | false | false | false |
 
 ## Audit notes
 
 - The dirty recovery repository at `/Users/huangjiahao/Desktop/YNX Chain Explorer Monitor` contains 41 modified files and untracked evidence from 2026-07-18/19. It is preserved and not used as a write target.
 - The old `12-explorer` worktree contains an untracked 98 MB `apps/explorer` build/dependency directory and unrelated product release documents. It is preserved and not treated as publication truth.
-- The public Explorer and Indexer returned Caddy-served JSON with source commits, live advancing heights, chain ID 6423, native symbol YNXT and four validators. These facts prove the historical public release only.
-- The public Monitor returned source commit `5d42be02`, release `0.2.0-testnet-preview`, `startedAt` and `checkedAt`; its private operator plane is not inferred public.
-- Vercel production project `ynx-web4-website-new` currently binds `ynxweb4.com` and `www.ynxweb4.com` to the ready 2026-08-14 production deployment. This does not prove the continuation branches are deployed.
-- The 2026-08-15 Computer Control pass demonstrated that the browser-control pipe recovered. It also directly captured the old public Explorer's intermittent raw 503 text and two-language selector, so the pass is negative evidence for the candidate release rather than grounds to promote `publicVerified`.
+- The exact public Explorer and Indexer release returned live advancing heights, chain ID 6423, YNXT, four validators, 578 indexed transactions and zero lag in the final API sample.
+- The public Monitor signed projection now contains required Chain RPC, Indexer, Explorer, Faucet and Gateway rows plus configured product services, dependency status and bounded release identity without loopback, path or raw error disclosure.
+- The exact public Explorer sustainable public gate passed 135 requests at 20 HTTP workers, 10 req/s target and five SSE clients with zero errors; p50/p95/p99 were 174.120/4115.965/5195.693 ms. A separate 20 req/s run recorded 12 response-read timeouts among 203 HTTP 200 responses (5.91% error rate), preserving the observed capacity boundary instead of claiming it passed.
+- Website merge `f83e2c77` is deployed by both configured Vercel projects; the public release registry names the exact central commit while keeping `downloadHosted=false` and `productionSigned=false`.
+- Computer Control native-pipe startup failure is the only remaining final-acceptance blocker. It is not converted into `publicVerified`; exact-release Chromium screenshots and structured results are supporting evidence only.
