@@ -1,7 +1,7 @@
-export const EXTENSION_MIGRATION_VERSION=2;
-export const EXTENSION_MIGRATION_KEY="ynx.extension.migration.v2";
-export const REQUIRED_RPC_ORIGIN="https://evm.ynxweb4.com/*";
-export const LEGACY_ORIGIN_GRANTS=Object.freeze(["https://*/*","http://localhost/*","http://127.0.0.1/*"]);
+export const EXTENSION_MIGRATION_VERSION=3;
+export const EXTENSION_MIGRATION_KEY="ynx.extension.migration.v3";
+export const REQUIRED_RPC_ORIGIN="https://rpc.ynxweb4.com/*";
+export const LEGACY_ORIGIN_GRANTS=Object.freeze(["https://evm.ynxweb4.com/*","https://*/*","http://localhost/*","http://127.0.0.1/*"]);
 
 function fail(code,message,cause){throw Object.assign(new Error(message),{code,cause})}
 async function requireCall(target,name,...args){if(typeof target?.[name]!=="function")fail("MIGRATION_API_UNAVAILABLE",`Extension migration API ${name} is unavailable.`);try{return await target[name](...args)}catch(error){fail("MIGRATION_CLEANUP_FAILED",`Extension migration ${name} failed.`,error)}}

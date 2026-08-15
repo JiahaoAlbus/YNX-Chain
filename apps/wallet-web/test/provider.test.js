@@ -9,7 +9,10 @@ import {
 } from "../src/provider.js";
 import {
   canonicalYNXAuthorizationState, isMobileWalletBrowser, metaMaskMobileDappUrl, mobileWalletPresentation,
+  openCanonicalYNXWalletRoute, validateCanonicalYNXWalletRoute,
 } from "../src/mobile-wallet-routing.js";
+import {derivePublicEndpointBinding, PUBLIC_ENDPOINT_BINDING} from "../src/public-endpoint-consumer.js";
+import {execFileSync} from "node:child_process";
 
 const ACCOUNT = `0x${"1".repeat(40)}`;
 const TO = `0x${"2".repeat(40)}`;
@@ -52,7 +55,16 @@ function extensionRuntime(responses = {}) {
 }
 
 test("frozen chain metadata is exact and complete", () => {
-  assert.deepEqual(YNX_CHAIN, {chainId:"0x1917",chainName:"YNX Testnet",nativeCurrency:{name:"YNX Testnet",symbol:"YNXT",decimals:18},rpcUrls:["https://evm.ynxweb4.com"],blockExplorerUrls:["https://explorer.ynxweb4.com"]});
+  assert.deepEqual(YNX_CHAIN, {chainId:"0x1917",chainName:"YNX Testnet",nativeCurrency:{name:"YNX Testnet",symbol:"YNXT",decimals:18},rpcUrls:["https://rpc.ynxweb4.com/evm"],blockExplorerUrls:["https://explorer.ynxweb4.com"]});
+});
+
+test("runtime REST/RPC endpoints are the exact projection of Central's immutable matrix", () => {
+  const matrix=JSON.parse(execFileSync("git",["show","d0f89797d13c7667cc187b0c64d5c9e1cb1d8f59:release/integration/wallet-auth-public-endpoint-service-discovery-matrix.json"],{encoding:"utf8"}));
+  assert.deepEqual(derivePublicEndpointBinding(matrix),PUBLIC_ENDPOINT_BINDING);
+  assert.deepEqual({rpcUrl:PUBLIC_ENDPOINT_BINDING.rpcUrl,restUrl:PUBLIC_ENDPOINT_BINDING.restUrl},{rpcUrl:"https://rpc.ynxweb4.com/evm",restUrl:"https://rest.ynxweb4.com"});
+  assert.deepEqual(PUBLIC_ENDPOINT_BINDING.rpc,{availability:true,cors:false,mobileReachable:false});
+  assert.equal(PUBLIC_ENDPOINT_BINDING.aggregatePublic,false);
+  assert.throws(()=>derivePublicEndpointBinding({...matrix,canonical:{...matrix.canonical,rpcUrl:"https://evm.ynxweb4.com"}}),(error)=>error.code==="PUBLIC_ENDPOINT_MATRIX_MISMATCH");
 });
 
 test("injected discovery prefers YNX and keeps MetaMask explicit", () => {
@@ -102,6 +114,22 @@ test("mobile browser detection covers phone and iPad desktop UA without affectin
   assert.equal(isMobileWalletBrowser({userAgent:"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",maxTouchPoints:0}),false);
 });
 
+test("external YNX Wallet launch accepts only the frozen canonical route and never fabricates provider success", () => {
+  const route="ynxwallet://authorize?request=YWJjMTIzXw";
+  assert.equal(validateCanonicalYNXWalletRoute(route),route);
+  const opened=[];
+  assert.deepEqual(openCanonicalYNXWalletRoute(route,{assign:value=>opened.push(value)}),{
+    status:"handoff-started",authoritative:false,providerInjected:false,route,
+  });
+  assert.deepEqual(opened,[route]);
+  for(const invalid of [
+    "ynxwallet://open?request=YWJj", "ynxwallet://authorize/path?request=YWJj",
+    "ynxwallet://authorize?request=YWJj&operation=connect", "https://www.ynxweb4.com/?request=YWJj",
+    "ynxwallet://authorize?request=not%20canonical",
+  ]) assert.throws(()=>validateCanonicalYNXWalletRoute(invalid),(error)=>error.code==="INVALID_WALLET_ROUTE");
+  assert.throws(()=>openCanonicalYNXWalletRoute(route,{}),(error)=>error.code==="WALLET_APP_UNAVAILABLE");
+});
+
 test("canonical YNX mobile authorization stays closed until Core freezes the exact HTTPS callback", () => {
   const unavailable={enabled:false,reviewState:"pending-review",webCallbacks:[]};
   assert.deepEqual(canonicalYNXAuthorizationState(unavailable),{route:"canonical-auth-unavailable",available:false,callback:null,error:"CANONICAL_AUTH_UNAVAILABLE"});
@@ -132,7 +160,7 @@ test("extension discovery propagates runtime failure and rejects malformed respo
 
 test("RPC verification accepts only exact YNX Testnet", async () => {
   const evidence = await verifyTestnetRpc(rpc);
-  assert.equal(evidence.chainId, "0x1917"); assert.equal(evidence.source, "https://evm.ynxweb4.com");
+  assert.equal(evidence.chainId, "0x1917"); assert.equal(evidence.source, "https://rpc.ynxweb4.com/evm");
   await assert.rejects(() => verifyTestnetRpc(async()=>({ok:true,json:async()=>({jsonrpc:"2.0",id:1,result:"0x1"})})), (error) => error instanceof WalletWebError && error.code === "WRONG_NETWORK");
 });
 

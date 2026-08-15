@@ -15,8 +15,8 @@ test("extension packages expose truthful install metadata without hosted-update 
     assert.equal("content_scripts" in manifest,false);
     assert.equal("web_accessible_resources" in manifest,false);
     assert.equal("optional_host_permissions" in manifest,false);
-    assert.deepEqual(manifest.host_permissions,["https://evm.ynxweb4.com/*"]);
-    assert.equal(manifest.content_security_policy.extension_pages,"script-src 'self'; object-src 'self'; connect-src https://evm.ynxweb4.com");
+    assert.deepEqual(manifest.host_permissions,["https://rpc.ynxweb4.com/*"]);
+    assert.equal(manifest.content_security_policy.extension_pages,"script-src 'self'; object-src 'self'; connect-src https://rpc.ynxweb4.com");
     assert.equal(manifest.host_permissions.includes("http://*/*"),false);
     assert.equal(manifest.host_permissions.some((pattern)=>pattern.startsWith("file:")),false);
     assert.equal("update_url" in manifest, false);

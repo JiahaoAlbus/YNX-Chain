@@ -10,7 +10,7 @@ test("PWA routes only same-origin GET navigation and assets into cache strategie
   assert.equal(PWA_CACHE,"ynx-wallet-web-v6");
   assert.equal(serviceWorkerRoute(request(`${origin}/wallet`,"GET","navigate"),origin),"navigation-network-first");
   assert.equal(serviceWorkerRoute(request(`${origin}/app.js`),origin),"asset-cache-first");
-  assert.equal(serviceWorkerRoute(request("https://evm.ynxweb4.com","POST"),origin),"network-only");
+  assert.equal(serviceWorkerRoute(request("https://rpc.ynxweb4.com/evm","POST"),origin),"network-only");
   assert.equal(serviceWorkerRoute(request("https://metamask.io/download"),origin),"network-only");
   assert.equal(serviceWorkerRoute(request("https://www.ynxweb4.com/downloads/wallet.apk"),origin),"network-only");
 });
@@ -19,7 +19,7 @@ test("only obsolete YNX caches are purged and requests resolve to canonical asse
   assert.deepEqual(obsoletePwaCaches(["ynx-wallet-web-v2","ynx-wallet-web-v5",PWA_CACHE,"another-product-v1","ynx-wallet-web-preview"]),["ynx-wallet-web-v2","ynx-wallet-web-v5"]);
   assert.equal(assetKeyForRequest(request(`${origin}/`),origin),"./index.html");
   assert.equal(assetKeyForRequest(request(`${origin}/app.js?rollback=1`),origin),"./app.js");
-  assert.equal(assetKeyForRequest(request("https://evm.ynxweb4.com"),origin),null);
+  assert.equal(assetKeyForRequest(request("https://rpc.ynxweb4.com/evm"),origin),null);
 });
 
 test("nested official scope resolves canonical keys and rejects same-origin paths outside Wallet",()=>{

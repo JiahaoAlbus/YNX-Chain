@@ -1,5 +1,5 @@
 import {BRIDGE_VERSION,PROVIDER_EVENTS,REQUEST_METHODS,RUNTIME_EVENT,RUNTIME_REQUEST,publicBridgeError,validateRuntimeRequest} from "./extension-bridge.js";
-import {YNX_CHAIN_ID,verifyExtensionRpc} from "./extension-rpc.js";
+import {YNX_CHAIN_ID,YNX_RPC_URL,verifyExtensionRpc} from "./extension-rpc.js";
 import {CORE_WALLET_AUTH_BINDING} from "./core-auth-binding.js";
 import {requireCanonicalAuthorizationContext} from "./core-auth-consumer.js";
 import {consumeSensitiveRequest,parseSensitiveRequest,validateSensitiveResult} from "./extension-sensitive-policy.js";
@@ -9,7 +9,7 @@ import {runExtensionMigration} from "./extension-migration.js";
 const extensionApi=globalThis.browser||globalThis.chrome,CHAIN_ID=YNX_CHAIN_ID;
 const migrationPromise=runExtensionMigration(extensionApi,{alarmsDeclared:false}).then(report=>({ok:true,report}),error=>({ok:false,error}));
 async function requireMigrationReady(){const state=await migrationPromise;if(!state.ok)throw Object.assign(new Error("Extension upgrade cleanup is incomplete; wallet access remains disabled."),{code:"MIGRATION_INCOMPLETE",cause:state.error});return state.report}
-const YNX_CHAIN=Object.freeze({chainId:CHAIN_ID,chainName:"YNX Testnet",nativeCurrency:Object.freeze({name:"YNX Testnet",symbol:"YNXT",decimals:18}),rpcUrls:Object.freeze(["https://evm.ynxweb4.com"]),blockExplorerUrls:Object.freeze(["https://explorer.ynxweb4.com"])});
+const YNX_CHAIN=Object.freeze({chainId:CHAIN_ID,chainName:"YNX Testnet",nativeCurrency:Object.freeze({name:"YNX Testnet",symbol:"YNXT",decimals:18}),rpcUrls:Object.freeze([YNX_RPC_URL]),blockExplorerUrls:Object.freeze(["https://explorer.ynxweb4.com"])});
 
 function pageWalletRequest(preference,input){
   const ethereum=globalThis.ethereum;

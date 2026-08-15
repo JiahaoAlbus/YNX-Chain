@@ -25,6 +25,7 @@
     "test:artifact:localized-errors": "node scripts/artifact-localized-error-gate.mjs",
     "test:artifact:localized-regions": "node scripts/artifact-localized-region-gate.mjs",
     "test:artifact:mobile-wallet-routing": "node scripts/artifact-mobile-wallet-routing-gate.mjs",
+    "test:runtime:mobile-wallet-routing": "npm run build && node scripts/runtime-mobile-discovery-gate.mjs",
     "audit:public-deployment": "node scripts/public-deployment-gate.mjs",
     "audit:public-artifacts": "node scripts/public-artifact-hosting-gate.mjs --expect-unhosted",
     "test:public-artifacts": "node scripts/public-artifact-hosting-gate.mjs",

@@ -1,8 +1,10 @@
+import {PUBLIC_ENDPOINT_BINDING} from "./public-endpoint-consumer.js";
+
 export const YNX_CHAIN = Object.freeze({
   chainId: "0x1917",
   chainName: "YNX Testnet",
   nativeCurrency: Object.freeze({name: "YNX Testnet", symbol: "YNXT", decimals: 18}),
-  rpcUrls: Object.freeze(["https://evm.ynxweb4.com"]),
+  rpcUrls: Object.freeze([PUBLIC_ENDPOINT_BINDING.rpcUrl]),
   blockExplorerUrls: Object.freeze(["https://explorer.ynxweb4.com"]),
 });
 

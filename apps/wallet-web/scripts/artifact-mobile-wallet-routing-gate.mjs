@@ -1,15 +1,16 @@
 import assert from "node:assert/strict";
 import {execFileSync} from "node:child_process";
-import {readFile,writeFile} from "node:fs/promises";
+import {writeFile} from "node:fs/promises";
 import {dirname,resolve} from "node:path";
 import {fileURLToPath} from "node:url";
-import {deriveCoreWalletAuthBinding} from "../src/core-auth-consumer.js";
+import {deriveWalletWebCompanionBinding} from "../src/core-auth-consumer.js";
 import {canonicalYNXAuthorizationState,metaMaskMobileDappUrl} from "../src/mobile-wallet-routing.js";
 
 const root=resolve(dirname(fileURLToPath(import.meta.url)),"..");
 const repository=resolve(root,"..","..");
-const registry=JSON.parse(await readFile(resolve(repository,"packages/wallet-auth/central-registry.json"),"utf8"));
-const binding=deriveCoreWalletAuthBinding(registry);
+const coreCommit="39c80021b87730a20569b61f6ccd3f80092523c4";
+const contract=JSON.parse(execFileSync("git",["show",`${coreCommit}:release/integration/wallet-auth-web-companion-registry-contract.json`],{cwd:repository,encoding:"utf8"}));
+const binding=deriveWalletWebCompanionBinding(contract,{coreCommit,publicGatewayRegistryReady:false,trustedRuntimeAvailable:false});
 const ynxAuth=canonicalYNXAuthorizationState(binding);
 const artifacts=["ynx-wallet-web-pwa-0.1.0.zip","ynx-wallet-chrome-edge-0.1.0.zip","ynx-wallet-firefox-0.1.0.zip"];
 const checks=[];
@@ -22,12 +23,14 @@ for(const artifact of artifacts){
   const app=execFileSync("unzip",["-p",path,"app.js"],{encoding:"utf8"});
   const frozen=execFileSync("unzip",["-p",path,"core-auth-binding.js"],{encoding:"utf8"});
   assert.match(routing,/canonical-auth-unavailable/);
+  assert.match(routing,/validateCanonicalYNXWalletRoute/);
   assert.match(routing,/https:\/\/metamask\.app\.link/);
   assert.doesNotMatch(app,/ynxwallet:\/\/open/);
-  assert.match(app,/CANONICAL_AUTH_UNAVAILABLE/);
+  assert.match(app,/openCanonicalYNXWalletRoute/);
   assert.doesNotMatch(app,/handleMobileWalletReturn|pageshow|visibilitychange/);
-  assert.match(frozen,/"enabled":false/);
-  assert.match(frozen,/"webCallbacks":\[\]/);
+  assert.match(frozen,/"enabled":true/);
+  assert.match(frozen,/"publicGatewayRegistryReady":false/);
+  assert.match(frozen,/"trustedRuntimeAvailable":false/);
   checks.push({artifact,mobileRoutingPresent:true,coreBindingPresent:true,ynxLauncherMisrepresentedAsConnect:false});
 }
 assert.deepEqual(ynxAuth,{route:"canonical-auth-unavailable",available:false,callback:null,error:"CANONICAL_AUTH_UNAVAILABLE"});

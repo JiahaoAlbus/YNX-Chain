@@ -12,6 +12,26 @@ export function metaMaskMobileDappUrl() {
   return `${METAMASK_MOBILE_DAPP_ORIGIN}/dapp/${target.host}${target.pathname}`;
 }
 
+export function validateCanonicalYNXWalletRoute(value) {
+  let parsed;
+  try { parsed = new URL(value); } catch { throw Object.assign(new Error("Wallet authorization route is invalid."), {code:"INVALID_WALLET_ROUTE"}); }
+  const keys = [...parsed.searchParams.keys()];
+  const request = keys.length === 1 && keys[0] === "request" ? parsed.searchParams.get("request") : null;
+  if (parsed.protocol !== "ynxwallet:" || parsed.hostname !== "authorize" || parsed.pathname !== "" || parsed.hash || parsed.username || parsed.password || !request || !/^[A-Za-z0-9_-]+$/.test(request)) {
+    throw Object.assign(new Error("Wallet authorization route does not match the frozen launcher contract."), {code:"INVALID_WALLET_ROUTE"});
+  }
+  return parsed.toString();
+}
+
+export function openCanonicalYNXWalletRoute(value, locationLike = globalThis.location) {
+  const route = validateCanonicalYNXWalletRoute(value);
+  if (!locationLike || typeof locationLike.assign !== "function") {
+    throw Object.assign(new Error("The browser cannot open the Wallet authorization route."), {code:"WALLET_APP_UNAVAILABLE"});
+  }
+  locationLike.assign(route);
+  return Object.freeze({status:"handoff-started",authoritative:false,providerInjected:false,route});
+}
+
 export function canonicalYNXAuthorizationState(binding, publicCallback = null) {
   const callback = binding?.webCallbacks?.length === 1 ? binding.webCallbacks[0] : null;
   const available = binding?.enabled === true && binding?.reviewState === "approved" && typeof publicCallback === "string" && callback === publicCallback;

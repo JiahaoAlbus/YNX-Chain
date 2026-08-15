@@ -1,7 +1,7 @@
 import {LOCALES, catalog, isRTL} from "./i18n.js";
 import {PREFERENCES_KEY,acceptPreferenceUpdate,loadPreferences,savePreferences} from "./preferences.js";
 import {
-  isMobileWalletBrowser, mobileWalletPresentation,
+  isMobileWalletBrowser, mobileWalletPresentation, openCanonicalYNXWalletRoute,
 } from "./mobile-wallet-routing.js";
 import {CORE_WALLET_AUTH_BINDING} from "./core-auth-binding.js";
 import {createWalletWebCompanionLifecycle} from "./wallet-web-companion-lifecycle.js";
@@ -16,7 +16,7 @@ const app = document.querySelector("#app");
 const isExtension = location.protocol === "chrome-extension:" || location.protocol === "moz-extension:";
 const mobileBrowser = !isExtension && isMobileWalletBrowser(navigator);
 const preview = new URLSearchParams(location.search);
-const companionLifecycle=createWalletWebCompanionLifecycle({binding:CORE_WALLET_AUTH_BINDING});
+const companionLifecycle=createWalletWebCompanionLifecycle({binding:CORE_WALLET_AUTH_BINDING,open:(route)=>openCanonicalYNXWalletRoute(route)});
 const requestedLocale = preview.get("lang");
 const requestedTheme = preview.get("theme");
 const requestedText = preview.get("text");
@@ -136,7 +136,7 @@ function bind() {
   document.querySelector("#ynx").addEventListener("click", async () => {
     if (state.providers?.ynx) return connect("ynx");
     const result=await companionLifecycle.begin();
-    setStatus(`${result.code||result.status}: ${text("requestFailed")}`, "error");
+    setStatus(`${result.code||result.status}: ${result.status === "connecting" ? text("working") : text("requestFailed")}`, result.status === "connecting" ? "info" : "error");
   });
   document.querySelector("#metamask").addEventListener("click", (event) => {
     if (state.providers?.metamask) { event.preventDefault(); return connect("metamask"); }
@@ -156,7 +156,7 @@ function presentAvailability(availability) {
   document.querySelector("#download").classList.toggle("hidden", !presentation.showYNXDownload);
   document.querySelector("#download-meta").classList.toggle("hidden", !presentation.showYNXDownload);
   document.querySelector("#platforms").classList.toggle("hidden", !presentation.showYNXDownload);
-  document.querySelector("#metamask").classList.toggle("hidden", !presentation.showMetaMaskChoice);
+  document.querySelector("#metamask").classList.toggle("hidden", mobileBrowser ? false : !presentation.showMetaMaskChoice);
   document.querySelector("#metamask").dataset.route = mobile.metaMaskRoute;
   document.querySelector("#metamask").href = mobile.metaMaskHref || METAMASK_DOWNLOAD_URL;
   document.querySelector("#detected").textContent = presentation.ynxPresent ? text("detected") : text("unavailable");

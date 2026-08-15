@@ -1,4 +1,6 @@
-export const YNX_RPC_URL = "https://evm.ynxweb4.com";
+import {PUBLIC_ENDPOINT_BINDING} from "./public-endpoint-consumer.js";
+
+export const YNX_RPC_URL = PUBLIC_ENDPOINT_BINDING.rpcUrl;
 export const YNX_CHAIN_ID = "0x1917";
 export const RPC_TIMEOUT_MS = 12000;
 export const RPC_REQUEST_ID = 6423;
