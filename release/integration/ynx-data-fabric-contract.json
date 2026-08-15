@@ -37,13 +37,13 @@
         "coverage": "exact",
         "failure": false
       },
-      "chainCoreContractVersion": "1.34.0",
-      "chainCoreSourceCommit": "c3ddcec34234d1ac575a417a03f937c2bff22a4f",
-      "chainCoreContractCommit": "1c50fc3ad987b5dd6df54530c330aff9add34e26",
+      "chainCoreContractVersion": "1.35.0",
+      "chainCoreSourceCommit": "6f380265c7d3cc055984e33082f877b4e75303d5",
+      "chainCoreContractCommit": "144bc1a354ba390c0ae4e17a93597f799e57c3d6",
       "chainCoreLocalDelivery": {
-        "bundle": "release/local-delivery/chain-core-data-commitment-v34.bundle",
-        "sha256": "d5f2aa10307075c48f6e0a16c3a69d34d7b6aefbce9cada48606f3fb2c1b76ff",
-        "bytes": 1482719301,
+        "bundle": "release/local-delivery/chain-core-data-commitment-v35.bundle",
+        "sha256": "340d7572eee0a36b2cb9b0402abd36ad9ff7d206a56ad92d0db22728e7af607f",
+        "bytes": 2913495533,
         "verified": true,
         "public": false,
         "deployed": false
@@ -52,7 +52,7 @@
         "serviceCount": 13,
         "publicSmokeFailsClosed": true,
         "candidateGatewayExactBuildIdentity": true,
-        "integrationVectorCount": 109,
+        "integrationVectorCount": 110,
         "additiveMandateBoundStrategyExecution": true,
         "bulkDataCommitmentSemanticsChanged": false,
         "publicRuntimeMatchesSource": false,
@@ -201,6 +201,14 @@
           "remoteRecoveryDrillComplete": false,
           "deployedPublic": false,
           "scope": "chain-core-validator-safety-only"
+        },
+        "strategyVaultCustodyInvariants": {
+          "persistedVaultOwnerMustMatchReferencedMandateOwner": true,
+          "closedVaultRequiresZeroYNXTBalance": true,
+          "raceAndCapacityEvidencePassedLocal": true,
+          "streamBFTEvidenceSourceCommit": "c3ddcec34234d1ac575a417a03f937c2bff22a4f",
+          "scope": "chain-core-strategy-vault-only",
+          "deployedPublic": false
         },
         "notProvenByThisEvidence": ["full-state-machine-safety", "chain-core-real-network-partition", "packet-loss", "ddos", "state-sync-restore", "cometbft-or-public-differential-replay", "independent-tlc-or-apalache", "wan-soak", "public-promotion"]
       },
