@@ -385,25 +385,29 @@ the remote terminal.
 ## 9. Debugging
 
 The Workspace Agent hosts Debug Adapter Protocol sessions. Initial adapters are
-Node.js, Python and Rust/C++ via reviewed adapters. Breakpoints are persisted by
+Python, Go and Rust/C++ via reviewed adapters. Breakpoints are persisted by
 workspace-relative path and source revision. DAP traffic is validated and
 bounded; adapter `runInTerminal` requests return to the permission broker.
 Variables, watches and evaluations are scoped to a paused session. Debugging a
 remote or chain transaction uses a separate read-only transaction debugger.
 
-The first adapter gates are implemented for C/C++, Python and Rust in
+The first adapter gates are implemented for C/C++, Python, Go and Rust in
 `services/debug-service`. C/C++ builds the selected source with debug symbols
 and launches LLDB DAP in the default-deny-network sandbox. Python requires the
 selected owner/project-bound LXD lease and launches the SHA-pinned debugpy
 runtime inside that container; its internal loopback remains available while
 the container has no external network device. Rust compiles with debug info in
-the same lease and starts the pinned Ubuntu `lldb-dap-18`. All routes rewrite
+the same lease and starts the pinned Ubuntu `lldb-dap-18`. Go starts pinned
+Delve 1.25.2 through a reviewed stdio bridge; the bridge chooses a fresh
+container-loopback port per session and Delve never receives an external NIC.
+All routes rewrite
 source and program paths to the owned workspace and allow only a bounded DAP request set.
 The workbench exposes gutter breakpoints, continue/step controls, call stack,
 variables and the current stopped line. A real debugpy gate hits line 2 and
 reads `value = 7`; the protected live-container gate repeats that sequence and
 requires a Rust line-3 breakpoint with `value = 9` in the published image.
-Executing that target-Ubuntu Rust gate and adding Node.js and Go adapters remain
+The same protected gate requires a Go line-5 breakpoint with `value = 11`.
+Executing the target-Ubuntu Rust/Go gates and adding the Node.js adapter remain
 explicit acceptance gaps.
 
 ## 10. Git and review

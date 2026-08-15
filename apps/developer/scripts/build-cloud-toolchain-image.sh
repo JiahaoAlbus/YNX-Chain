@@ -6,6 +6,7 @@ source_alias="${YNX_CODE_SOURCE_IMAGE:-ynx-code-ubuntu-24.04-v2}"
 target_alias="${YNX_CODE_TARGET_IMAGE:-ynx-code-ubuntu-24.04-v3}"
 probe_path="${YNX_CODE_LSP_PROBE:-$(cd "$(dirname "$0")" && pwd)/lsp-server-probe.mjs}"
 jdtls_launcher_path="$(cd "$(dirname "$0")" && pwd)/jdtls-launcher.sh"
+delve_bridge_path="$(cd "$(dirname "$0")" && pwd)/delve-dap-stdio-bridge.mjs"
 rust_analyzer_release="2026-07-27"
 jdtls_archive="jdt-language-server-1.61.0-202607142124.tar.gz"
 jdtls_sha256="4dc0747f22fb86dfada4c9214d3ef94c94f1e84eb57ce52126c26ecf2f17dce4"
@@ -18,6 +19,7 @@ debugpy_url="https://files.pythonhosted.org/packages/95/51/67e7cf11a53e40694f720
 command -v lxc >/dev/null
 test -f "$probe_path"
 test -f "$jdtls_launcher_path"
+test -f "$delve_bridge_path"
 if lxc image info "$target_alias" >/dev/null 2>&1; then
   echo "Target image alias already exists: $target_alias" >&2
   exit 1
@@ -43,6 +45,9 @@ lxc exec "$builder" -- npm install -g --ignore-scripts pyright@1.1.411
 lxc exec "$builder" -- ln -sfn /opt/node-v22.23.1/bin/pyright /usr/local/bin/pyright
 lxc exec "$builder" -- ln -sfn /opt/node-v22.23.1/bin/pyright-langserver /usr/local/bin/pyright-langserver
 lxc exec "$builder" -- env GOBIN=/usr/local/bin GOTOOLCHAIN=local go install golang.org/x/tools/gopls@v0.16.2
+lxc exec "$builder" -- env GOBIN=/usr/local/bin GOTOOLCHAIN=local go install github.com/go-delve/delve/cmd/dlv@v1.25.2
+lxc exec "$builder" -- sh -c '/usr/local/bin/dlv version | grep "Version: 1.25.2"'
+lxc exec "$builder" -- sh -c 'go version -m /usr/local/bin/dlv | tee /etc/ynx-code-delve-build.txt | grep "github.com/go-delve/delve.*v1.25.2"'
 
 lxc exec "$builder" -- env RUST_ANALYZER_RELEASE="$rust_analyzer_release" node -e '
   const fs=require("node:fs"),release=process.env.RUST_ANALYZER_RELEASE;
@@ -64,6 +69,9 @@ lxc file push "$jdtls_launcher_path" "$builder/usr/local/lib/ynx-code-jdtls/bin/
 lxc exec "$builder" -- chmod 0755 /usr/local/lib/ynx-code-jdtls/bin/ynx-jdtls
 lxc exec "$builder" -- ln -sfn /usr/local/lib/ynx-code-jdtls/bin/ynx-jdtls /usr/local/bin/jdtls
 lxc exec "$builder" -- mkdir -p /usr/local/share/ynx-code
+lxc exec "$builder" -- mkdir -p /usr/local/lib/ynx-code
+lxc file push "$delve_bridge_path" "$builder/usr/local/lib/ynx-code/delve-dap-stdio-bridge.mjs"
+lxc exec "$builder" -- chmod 0755 /usr/local/lib/ynx-code/delve-dap-stdio-bridge.mjs
 lxc exec "$builder" -- curl --http1.1 -fL --retry 10 --retry-all-errors --connect-timeout 20 "https://repo1.maven.org/maven2/org/junit/platform/junit-platform-console-standalone/$junit_version/junit-platform-console-standalone-$junit_version.jar" -o /usr/local/share/ynx-code/junit-platform-console-standalone.jar
 lxc exec "$builder" -- sh -c "printf '%s  %s\n' '$junit_sha256' /usr/local/share/ynx-code/junit-platform-console-standalone.jar | sha256sum -c -"
 lxc exec "$builder" -- java -jar /usr/local/share/ynx-code/junit-platform-console-standalone.jar --version
@@ -80,7 +88,7 @@ lxc file push "$probe_path" "$builder/tmp/lsp-server-probe.mjs"
 lxc exec "$builder" -- node /tmp/lsp-server-probe.mjs
 lxc exec "$builder" -- sh -c "apt-get clean; rm -rf /var/lib/apt/lists/* /root/.cache/go-build /root/go/pkg/mod/cache/download /tmp/rust-analyzer.gz /tmp/rust-analyzer-asset /tmp/lsp-server-probe.mjs '/tmp/$jdtls_archive' '/tmp/debugpy-${debugpy_version}-py2.py3-none-any.whl'"
 lxc stop "$builder"
-lxc publish "$builder" --alias "$target_alias" description="YNX Code Ubuntu 24.04 reviewed nine-language toolchain, Python debugpy and Rust LLDB DAP, JUnit and seven LSP servers"
+lxc publish "$builder" --alias "$target_alias" description="YNX Code Ubuntu 24.04 reviewed nine-language toolchain, Python debugpy, Rust LLDB and Go Delve DAP, JUnit and seven LSP servers"
 fingerprint="$(lxc image info "$target_alias" | awk '/^Fingerprint:/{print $2}')"
 test "${#fingerprint}" -eq 64
 cleanup

@@ -47,10 +47,11 @@ export function DebugPanel({
     [frames, setFrames] = useState<Frame[]>([]),
     [variables, setVariables] = useState<Variable[]>([]),
     [log, setLog] = useState("");
-  const supported = /\.(c|cpp|cc|cxx|py|rs)$/i.test(activePath),
+  const supported = /\.(c|cpp|cc|cxx|py|rs|go)$/i.test(activePath),
     python = /\.py$/i.test(activePath),
     rust = /\.rs$/i.test(activePath),
-    containerRequired = python || rust;
+    go = /\.go$/i.test(activePath),
+    containerRequired = python || rust || go;
   useEffect(
     () => () => {
       socket.current?.close();
@@ -79,7 +80,9 @@ export function DebugPanel({
         ? "Starting Python inside the isolated cloud debug workspace…\n"
         : rust
           ? "Building Rust inside the isolated cloud debug workspace…\n"
-          : "Building a debug binary inside the isolated workspace…\n",
+          : go
+            ? "Starting Delve inside the isolated cloud debug workspace…\n"
+            : "Building a debug binary inside the isolated workspace…\n",
     );
     onStoppedLine();
     try {
@@ -286,15 +289,16 @@ export function DebugPanel({
       </div>
       {!supported && (
         <div className="honest-boundary">
-          Reviewed DAP adapters support Python via debugpy and Rust/C/C++ via
-          LLDB. Select a .py, .rs, .c, .cpp, .cc or .cxx file.
+          Reviewed DAP adapters support Python via debugpy, Go via Delve and
+          Rust/C/C++ via LLDB. Select a .py, .go, .rs, .c, .cpp, .cc or .cxx
+          file.
         </div>
       )}
       {containerRequired && !runtimeId && (
         <div className="honest-boundary">
-          Select an isolated LXD cloud runtime before starting Python or Rust
-          debug. Python uses container loopback internally; neither adapter gets
-          an external network device.
+          Select an isolated LXD cloud runtime before starting Python, Go or
+          Rust debug. Python and Go use container loopback internally; no
+          adapter gets an external network device.
         </div>
       )}
       <DebugSection title={`BREAKPOINTS (${breakpoints.length})`}>

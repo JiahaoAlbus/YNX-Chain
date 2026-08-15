@@ -1,6 +1,6 @@
 # YNX Developer 0.2.0 Testnet Preview release notes
 
-## 2026-08-15 Python and Rust DAP in the isolated cloud runtime
+## 2026-08-15 Python, Rust and Go DAP in the isolated cloud runtime
 
 - Python files can now start a real debugpy DAP session after the user selects
   an owner/project-bound LXD runtime. Breakpoints, stack frames, scopes and
@@ -14,6 +14,11 @@
 - Rust files use the same project-bound container, compile with debug info and
   overflow checks, then launch Ubuntu's pinned `lldb-dap-18`. The protected
   gate stops at Rust line 3 and requires the local variable `value = 9`.
+- Go files use pinned Delve 1.25.2 through a reviewed stdio-to-loopback bridge
+  wholly inside the no-NIC LXD lease. Each session gets a dynamically selected
+  loopback port, an owner/project-bound temporary source tree and deterministic
+  cleanup. The protected gate requires a Go line-5 breakpoint and `value = 11`;
+  target-image evidence remains pending until the protected transaction runs.
 
 ## 2026-08-15 production package-egress policy candidate
 

@@ -310,7 +310,15 @@ export function createDebugService(options) {
               subProcess: false,
               console: "internalConsole",
             }
-          : shared;
+          : state.language === "go"
+            ? {
+                ...shared,
+                mode: "debug",
+                showGlobalVariables: false,
+                showRegisters: false,
+                hideSystemGoroutines: true,
+              }
+            : shared;
     }
     if (next.command === "setBreakpoints") {
       const path = next.arguments?.source?.path;
@@ -454,12 +462,13 @@ function debugLanguage(value) {
   const extension = extname(value).toLowerCase();
   if (extension === ".py") return "python";
   if (extension === ".rs") return "rust";
+  if (extension === ".go") return "go";
   if (extension === ".c") return "c";
   if ([".cpp", ".cc", ".cxx"].includes(extension)) return "cpp";
   return null;
 }
 function containerDebugLanguage(language) {
-  return language === "python" || language === "rust";
+  return language === "python" || language === "rust" || language === "go";
 }
 async function resolveToolchain(language, options) {
   if (language === "python") {

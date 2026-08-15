@@ -140,12 +140,12 @@ test("authenticated C debug bridge compiles and forwards bounded DAP frames", as
   websocket.close();
 });
 
-test("authenticated container bridge fixes Python and Rust adapter launch paths", async (t) => {
+test("authenticated container bridge fixes Python, Rust and Go adapter launch paths", async (t) => {
   const root = await mkdtemp(join(tmpdir(), "ynx-debug-python-test-")),
     adapter = join(root, "debugpy-adapter.mjs");
   await writeFile(
     adapter,
-    `#!/usr/bin/env node\nlet b=Buffer.alloc(0);process.stdin.on('data',c=>{b=Buffer.concat([b,c]);for(;;){const s=b.indexOf('\\r\\n\\r\\n');if(s<0)return;const h=b.subarray(0,s).toString(),n=Number(h.match(/Content-Length:\\s*(\\d+)/i)?.[1]),e=s+4+n;if(b.length<e)return;const q=JSON.parse(b.subarray(s+4,e));b=b.subarray(e);const m={seq:q.seq+100,type:'response',request_seq:q.seq,success:true,command:q.command,body:{program:q.arguments?.program,cwd:q.arguments?.cwd,source:q.arguments?.source?.path,justMyCode:q.arguments?.justMyCode,subProcess:q.arguments?.subProcess}};const out=JSON.stringify(m);process.stdout.write('Content-Length: '+Buffer.byteLength(out)+'\\r\\n\\r\\n'+out)}});`,
+    `#!/usr/bin/env node\nlet b=Buffer.alloc(0);process.stdin.on('data',c=>{b=Buffer.concat([b,c]);for(;;){const s=b.indexOf('\\r\\n\\r\\n');if(s<0)return;const h=b.subarray(0,s).toString(),n=Number(h.match(/Content-Length:\\s*(\\d+)/i)?.[1]),e=s+4+n;if(b.length<e)return;const q=JSON.parse(b.subarray(s+4,e));b=b.subarray(e);const m={seq:q.seq+100,type:'response',request_seq:q.seq,success:true,command:q.command,body:{program:q.arguments?.program,cwd:q.arguments?.cwd,source:q.arguments?.source?.path,justMyCode:q.arguments?.justMyCode,subProcess:q.arguments?.subProcess,mode:q.arguments?.mode,hideSystemGoroutines:q.arguments?.hideSystemGoroutines}};const out=JSON.stringify(m);process.stdout.write('Content-Length: '+Buffer.byteLength(out)+'\\r\\n\\r\\n'+out)}});`,
   );
   await chmod(adapter, 0o755);
   const store = createWorkspaceStore({ filename: join(root, "workspaces.sqlite") }),
@@ -179,8 +179,15 @@ test("authenticated container bridge fixes Python and Rust adapter launch paths"
             program:
               value.language === "python"
                 ? "/workspaces/python-project/.ynx-debug/session/src/main.py"
-                : "/workspaces/python-project/.ynx-debug/session/.ynx-build/debug-program",
-            adapterId: value.language === "python" ? "debugpy" : "lldb-dap",
+                : value.language === "go"
+                  ? "/workspaces/python-project/.ynx-debug/session/main.go"
+                  : "/workspaces/python-project/.ynx-debug/session/.ynx-build/debug-program",
+            adapterId:
+              value.language === "python"
+                ? "debugpy"
+                : value.language === "go"
+                  ? "delve-dap"
+                  : "lldb-dap",
             sandbox: { kind: "lxd-container", network: false },
             cleanup: async () => child.kill("SIGKILL"),
           };
@@ -303,6 +310,49 @@ test("authenticated container bridge fixes Python and Rust adapter launch paths"
     /\.ynx-build\/debug-program$/,
   );
   rustSocket.close();
+  await new Promise((resolve) => setTimeout(resolve, 100));
+  await fetch(`${base}/runtime/workspaces/python-project`, {
+    method: "PUT",
+    headers: { cookie, "content-type": "application/json" },
+    body: JSON.stringify({
+      protocolVersion: "ynx-code/v1",
+      expectedRevision: 2,
+      idempotencyKey: "go-debug-seed-0001",
+      workspace: {
+        name: "Go Debug",
+        folders: [],
+        files: {
+          "main.go":
+            'package main\nimport "fmt"\nfunc main(){ value := 11; fmt.Println(value) }\n',
+        },
+        open: ["main.go"],
+        active: "main.go",
+      },
+    }),
+  });
+  const goMessages = [],
+    goSocket = new WebSocket(
+      `ws://127.0.0.1:${address.port}/runtime/debug?projectId=python-project&activePath=main.go&runtimeId=0123456789abcdef01234567`,
+      "ynx-code-dap-v1",
+      { headers: { cookie, origin: base } },
+    );
+  goSocket.on("message", (raw) => goMessages.push(JSON.parse(String(raw))));
+  await waitFor(() => goMessages.some((value) => value.type === "ready"));
+  const goReady = goMessages.find((value) => value.type === "ready");
+  assert.equal(goReady.language, "go");
+  assert.equal(goReady.adapter, "delve-dap");
+  assert.match(goReady.program, /main\.go$/);
+  goSocket.send(
+    JSON.stringify({
+      type: "dap",
+      message: { seq: 4, type: "request", command: "launch", arguments: {} },
+    }),
+  );
+  await waitFor(() => response(goMessages, 4)?.success === true);
+  assert.equal(response(goMessages, 4).body.mode, "debug");
+  assert.equal(response(goMessages, 4).body.hideSystemGoroutines, true);
+  assert.match(response(goMessages, 4).body.program, /main\.go$/);
+  goSocket.close();
 });
 
 test("installed debugpy stops a real Python process and exposes local variables", async (t) => {
