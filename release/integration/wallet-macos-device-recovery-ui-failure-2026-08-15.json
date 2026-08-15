@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "ynx-wallet-macos-device-recovery-ui-failure-2026-08-15",
+  "recordedAt": "2026-08-15T13:56:01+08:00",
+  "sourceCommit": "a710d16d174a66120b8b49f6737de17de930a504",
+  "run": {
+    "id": 31867942210,
+    "jobId": 94971852948,
+    "workflow": "wallet-macos",
+    "conclusion": "failure",
+    "failedStep": 8,
+    "failedStepName": "Install, cold launch, second launch and reject callback",
+    "stepsBeforeFailure": {
+      "swiftTests": true,
+      "adhocUniversalBuild": true,
+      "keychainAndRecoveryProbe": true
+    }
+  },
+  "runtime": {
+    "coldLaunchPid": 50593,
+    "secondLaunchPid": 50643,
+    "coldLaunchObserved": true,
+    "secondLaunchObserved": true,
+    "nativeRecoveryStatusObservedForColdPid": true,
+    "nativeRecoveryStatusObservedForSecondPid": true,
+    "recoveryMaterialPresent": false,
+    "recoveryActionAvailable": false,
+    "productRecovery": false,
+    "systemEventsButtonOutput": "",
+    "systemEventsStaticTextOutput": "YNX Wallet",
+    "systemEventsRecoverySemanticVisible": false,
+    "recoveryScreenshotCaptured": false,
+    "failureBoundary": "Hosted System Events did not expose the SwiftUI recovery button or recovery status text. Native PID/log state was directly observed. No coordinate click or test-only UI seam was used."
+  },
+  "securityProbe": {
+    "keychainAvailable": true,
+    "keychainRoundTripVerified": true,
+    "biometricPolicyAvailable": false,
+    "biometricErrorCode": -7,
+    "recoveryCreateAttempted": true,
+    "recoveryCreated": false,
+    "recoveryMaterialPersisted": false,
+    "recoveryAbsentBeforeAttempt": true,
+    "recoveryAbsentAfterAttempt": true,
+    "failedClosed": true
+  },
+  "artifact": {
+    "id": 9242595582,
+    "uploadedBytes": 493584,
+    "uploadedDigest": "sha256:67b0f4ba84b123c90c1e0681b098b7fe91e8a5ea70a636e0f3c72fcdab540711",
+    "downloadInspected": true,
+    "installableZipBytes": 242368,
+    "installableZipSha256": "da84b50869052961354728b819101b54916da7fb4a831f12d4659d19252bd857",
+    "architectures": ["x86_64", "arm64"],
+    "minimumMacOS": "13.0",
+    "signingClass": "ad-hoc",
+    "teamIdentifier": null,
+    "developerIdSigned": false,
+    "notarized": false,
+    "storeDistributed": false
+  },
+  "gates": {
+    "deviceRecoveryFailClosed": true,
+    "deviceRecoveryPositive": false,
+    "productRecovery": false,
+    "physicalBiometric": false,
+    "authorizationSuccess": false,
+    "accountSuccess": false,
+    "signSuccess": false,
+    "sendSuccess": false,
+    "publicDownloadHosted": false,
+    "productionSigned": false
+  }
+}
