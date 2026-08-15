@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "owner": "02-wallet-auth-android",
+  "checkedAt": "2026-08-15T05:50:00Z",
+  "product": "YNX Wallet Android",
+  "requiredSourceCommit": "018cf5abfc2ef80c88ed8897265718ed85176a0e",
+  "fix": {
+    "id": "account-not-found-rpc-fallback",
+    "summary": "Only the exact native REST account-not-found response may use canonical EVM JSON-RPC evidence for chainId, balance and nonce. Other HTTP errors, wrong chain, malformed RPC and timeouts fail closed.",
+    "canonicalRestUrl": "https://rest.ynxweb4.com",
+    "canonicalRpcUrl": "https://rpc.ynxweb4.com/evm",
+    "chainId": "0x1917"
+  },
+  "artifactAcceptance": {
+    "sourceCommitMustEqual": "018cf5abfc2ef80c88ed8897265718ed85176a0e",
+    "expectedArtifactType": "wallet-android-disposable-qa-release",
+    "package": "com.ynxweb4.wallet",
+    "minimumOS": "Android API 24",
+    "targetSdk": 36,
+    "abi": "arm64-v8a",
+    "signingClass": "disposable-qa-release-key",
+    "productionSigned": false,
+    "storeReleased": false,
+    "mustProvideBeforeWebsiteDownload": ["apk.bytes", "apk.sha256", "apkSignatureSchemeV2", "signerCertificateSha256", "exact-source CI run", "direct install and cold/second-launch evidence"],
+    "rejectOlderSourceArtifacts": true
+  },
+  "currentExactSourceEvidence": {
+    "githubActionsRun": 31867652567,
+    "githubActionsUrl": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/31867652567",
+    "statusAtWrite": "in_progress",
+    "artifactProduced": false,
+    "apkBytes": null,
+    "apkSha256": null,
+    "signerCertificateSha256": null,
+    "directInstallVerified": false,
+    "coldLaunchVerified": false,
+    "secondLaunchVerified": false
+  },
+  "websiteInstruction": {
+    "action": "Do not publish or replace an official Android download yet.",
+    "futureListingRequirement": "After all artifactAcceptance fields are directly evidenced, list only the exact requiredSourceCommit artifact and disclose it as a disposable QA build, not production, Play Store, or Developer-signed software.",
+    "downloadHosted": false,
+    "deployedPublic": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}
