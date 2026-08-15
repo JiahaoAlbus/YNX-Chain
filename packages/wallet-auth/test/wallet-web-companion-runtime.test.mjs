@@ -39,6 +39,7 @@ function runtime(options = {}) {
   const fetch = async (url, init) => {
     const parsed = new URL(url); requests.push({ path: parsed.pathname, body: init.body, headers: { ...init.headers } });
     if (options.networkUnavailable?.()) throw new TypeError("offline");
+    await options.beforeRequest?.(parsed.pathname);
     const response = handler.handle({
       requestId: init.headers["x-request-id"], method: init.method, path: parsed.pathname,
       contentType: init.headers["content-type"], body: init.body,
@@ -97,6 +98,30 @@ test("a different concurrent Web companion callback fails closed without joining
   await assert.rejects(setup.client.handleReturn(returned.replace("/wallet-auth/callback", "/wallet-auth/attacker")), code("CONCURRENT_CALLBACK"));
   assert.equal((await valid).status, PRODUCT_SESSION_CLIENT_STATE.CONNECTED);
   assert.deepEqual(setup.requests.map((item) => item.path), ["/v2/product-sessions/challenge", "/v2/product-sessions/complete", "/v2/product-sessions/introspect"]);
+});
+
+test("disconnect racing an approved callback revokes the issued Product Session without resurrection", async () => {
+  let releaseChallenge;
+  const challengeBlocked = new Promise((resolve) => { releaseChallenge = resolve; });
+  let challengeStarted;
+  const challengeSeen = new Promise((resolve) => { challengeStarted = resolve; });
+  const setup = runtime({ beforeRequest: async (path) => {
+    if (path === "/v2/product-sessions/challenge") { challengeStarted(); await challengeBlocked; }
+  } });
+  const connecting = await setup.client.begin({ walletInstalled: true, schemeRegistered: true });
+  const approval = signProductSessionApproval(registry, connecting.request, { accountSecret: "1".padStart(64, "0"), scopes: connecting.request.scopes, expiresAt: "2026-08-15T09:03:00.000Z" }, NOW);
+  const returned = createProductSessionReturnURL(registry, connecting.request, { result: "approved", approval }, NOW);
+  const completion = setup.client.handleReturn(returned);
+  await challengeSeen;
+  const disconnect = setup.client.disconnect();
+  releaseChallenge();
+  assert.equal((await completion).status, PRODUCT_SESSION_CLIENT_STATE.CONNECTED);
+  assert.equal((await disconnect).status, PRODUCT_SESSION_CLIENT_STATE.DISCONNECTED);
+  assert.equal(setup.client.current.status, PRODUCT_SESSION_CLIENT_STATE.DISCONNECTED);
+  assert.deepEqual(setup.requests.map((item) => item.path), ["/v2/product-sessions/challenge", "/v2/product-sessions/complete", "/v2/product-sessions/introspect", "/v2/product-sessions/revoke"]);
+  assert.equal(setup.handler.snapshot().authority.sessions.length, 1);
+  assert.equal(setup.handler.snapshot().authority.revokedSessions.length, 1);
+  assert.equal(await setup.storage.get(setup.client.storageKey), null);
 });
 
 test("Web companion rejection creates no challenge, session or Gateway mutation", async () => {

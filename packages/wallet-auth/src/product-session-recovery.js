@@ -140,6 +140,10 @@ export class RecoverableProductSessionClient {
     finally { if (this.#disconnectPromise === operation) this.#disconnectPromise = null; }
   }
   async #disconnect() {
+    const pendingReturn = this.#returnOperation?.promise ?? null;
+    if (pendingReturn !== null) {
+      try { await pendingReturn; } catch { /* Disconnect still clears a rejected or invalid pending callback. */ }
+    }
     const session = this.#state.status === PRODUCT_SESSION_CLIENT_STATE.CONNECTED ? this.#state.session : null;
     if (session !== null && session.expiresAt > this.#clock().toISOString()) {
       try {
