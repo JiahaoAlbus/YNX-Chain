@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "owner": "02-wallet-auth-android",
+  "checkedAt": "2026-08-15T03:50:48Z",
+  "source": {
+    "base": "263089309bd091d6e9dd3b2a985b046dab71884d",
+    "implementation": "6bc79d6b174bf0251c656eceb96d842e1c88b108",
+    "branch": "codex/wallet-android-account-rpc-20260815",
+    "remoteReadbackExact": true
+  },
+  "frozenEndpointContract": {
+    "commit": "d0f89797d13c7667cc187b0c64d5c9e1cb1d8f59",
+    "path": "release/integration/wallet-auth-public-endpoint-service-discovery-matrix.json",
+    "blob": "d402fcdc844aa39bd5ee351a99d93acb4852dc37",
+    "sha256": "d344c607c2bbbf7bb0d9d3662b424976d0d6c4ff20428025dd1e2fb92bf31392",
+    "restUrl": "https://rest.ynxweb4.com",
+    "rpcUrl": "https://rpc.ynxweb4.com/evm",
+    "chainIdHex": "0x1917"
+  },
+  "behavior": {
+    "exactRestAccountNotFoundUsesRpc": true,
+    "rpcChainIdentityRequired": true,
+    "rpcExactAddressParametersRequired": true,
+    "rpcBalanceAndNonceRequired": true,
+    "canonicalSafeQuantitiesRequired": true,
+    "boundedTransportAttempts": 2,
+    "rest500FailsClosed": true,
+    "unrelatedRest404FailsClosed": true,
+    "wrongChainFailsClosed": true,
+    "malformedRpcFailsClosed": true,
+    "timeoutFailsClosed": true,
+    "fabricatedZero": false
+  },
+  "localVerification": {
+    "focusedTests": {"passed": 7, "failed": 0},
+    "walletTests": {"passed": 137, "failed": 0},
+    "typecheck": true,
+    "productCheck": true,
+    "androidIntentFilterTests": {"passed": 2, "failed": 0},
+    "walletAuthCallerGate": true,
+    "socialHarness": true,
+    "releaseContentCheck": true,
+    "goalCoverageCheck": true,
+    "sbomCanonicalTests": {"passed": 2, "failed": 0},
+    "sbomCheck": true,
+    "androidHermesBundle": {"passed": true, "modules": 2750}
+  },
+  "publicReadOnlySmoke": {
+    "passed": true,
+    "testVectorOnly": true,
+    "ynxAddress": "ynx1zg69v7ys40x77y352eufp27daufrg4ncgjmhe7",
+    "evmAddress": "0x1234567890abcdef1234567890abcdef12345678",
+    "result": {"balance": 0, "nonce": 0, "source": "evm-json-rpc", "materialized": false},
+    "elapsedMs": 22773,
+    "interpretation": "REST account absence was replaced only by successful public RPC chainId, balance and nonce responses; this is not a fabricated balance."
+  },
+  "latestOwnerCompatibility": {
+    "ownerHead": "58bb26c359e2eb75a065eaefda73c430b3afda54",
+    "relevantOwnerFileDiffFromBase": 0,
+    "mergeTreeConflictFree": true,
+    "mergeTree": "e652373fb948533f1177ad2bb8ae6108692d1553",
+    "integrationCommand": "git cherry-pick 6bc79d6b174bf0251c656eceb96d842e1c88b108"
+  },
+  "artifactVerification": {
+    "exactSourceQaBuildPassed": false,
+    "apkProduced": false,
+    "reason": "Gradle remained in Kotlin compilation without new output for approximately 45 minutes and was safely interrupted with exit 130; no artifact directory or APK was produced.",
+    "installed": false,
+    "coldLaunch": false,
+    "secondLaunch": false,
+    "physicalPixel9": false
+  },
+  "releaseTruth": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": false,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}
