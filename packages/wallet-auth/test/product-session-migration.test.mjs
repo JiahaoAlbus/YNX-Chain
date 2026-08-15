@@ -41,8 +41,8 @@ test("migrated-v2 requires separate runtime, Gateway and visible platform eviden
     }
     const runtime = product.runtimeEvidence.map((path) => readFileSync(resolve(repositoryRoot, path), "utf8")).join("\n");
     const gateway = product.gatewayEvidence.map((path) => readFileSync(resolve(repositoryRoot, path), "utf8")).join("\n");
-    assert.match(runtime, /WalletConnectionCoordinator/);
-    assert.match(runtime, /RecoverableProductSessionClient/);
+    assert.match(runtime, /createProductWalletConnection/);
+    assert.doesNotMatch(runtime, /new\s+(WalletConnectionCoordinator|RecoverableProductSessionClient|ProductSessionGatewayFetchAdapter)\s*\(/);
     assert.match(gateway, /\/v2\/product-sessions\/(challenge|complete|introspect)/);
   }
 });
