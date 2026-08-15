@@ -1,0 +1,11 @@
+# Wallet/Auth public mobile route handoff — 2026-08-15
+
+This read-only audit binds the frozen endpoint matrix at `d0f89797d13c7667cc187b0c64d5c9e1cb1d8f59` to direct public observations. It did not use SSH or change production.
+
+The failure is a four-layer integration gap, not a single Wallet UI fault. Public Product Session v2 still runs source `577f81202a85ff7314dd862f60aa337b0f2fd1f1`: Social preflight is correctly accepted, while the unregistered `https://www.ynxweb4.com` origin is correctly rejected with `403 ORIGIN_NOT_ALLOWED`. Core candidate `39c80021b87730a20569b61f6ccd3f80092523c4` has the exact Wallet Web Companion registration, but it is not loaded publicly. Broadly allowing the website origin is forbidden; the exact product/client/application/callback tuple must be deployed.
+
+Public 6439 still returns `404 ROUTE_NOT_FOUND` for `POST /v1/wallet/authorizations/reject`. EVM `OPTIONS /evm` returns `405`, although a bounded POST can return chain `0x1917`; TLS was also intermittently slower than ten seconds. The production Wallet page CSP permits only self, API and Faucet, not canonical REST/RPC. Its registered callback URL currently returns the generic SPA shell and the production JavaScript bundle contains no canonical Product Session callback runtime.
+
+The shared caller ratchet also fails at Core candidate head: 35 findings, 30 blocking. Social still owns `ynxwallet://authorize?request=` construction at `apps/social/src/walletAuth.ts:148`. Every release caller must consume `@ynx-chain/wallet-auth` and perform platform resolution before launch; Android must select only `com.ynxweb4.wallet` after unique resolution and convert absence into safe product UI instead of exposing `No Activity found`.
+
+The exact deployment order and truth booleans are recorded in `release/integration/wallet-public-auth-route-audit-20260815.json`. Aggregate public/mobile integration remains false until the hardened 6441 line and Core companion commits are merged, 6439 Reject is deployed, EVM preflight and latency are fixed, Website publishes the callback runtime/CSP, all blocking callers pass the ratchet, and a physical Pixel 9 proves approve, reject, callback, session and second launch.

@@ -1,0 +1,185 @@
+{
+  "schemaVersion": 1,
+  "evidenceType": "wallet-auth-public-mobile-route-audit",
+  "capturedAt": "2026-08-15T02:38:34Z/2026-08-15T02:45:51Z",
+  "owner": "02-wallet-auth-integration-read-only-audit",
+  "productionMutated": false,
+  "sshUsed": false,
+  "inputs": {
+    "frozenEndpointMatrix": {
+      "commit": "d0f89797d13c7667cc187b0c64d5c9e1cb1d8f59",
+      "path": "release/integration/wallet-auth-public-endpoint-service-discovery-matrix.json",
+      "gitBlob": "d402fcdc844aa39bd5ee351a99d93acb4852dc37",
+      "sha256": "d344c607c2bbbf7bb0d9d3662b424976d0d6c4ff20428025dd1e2fb92bf31392"
+    },
+    "coreCandidate": "39c80021b87730a20569b61f6ccd3f80092523c4",
+    "publicProductSessionSource": "577f81202a85ff7314dd862f60aa337b0f2fd1f1",
+    "gatewayPr93ReadinessFix": "90767c4e40b9dbc0cc3d7f55cb221995e3201132",
+    "walletRejectionCandidate": "f6beef6a33010b548c0a9cf8df53129ee0a7b663"
+  },
+  "observations": {
+    "productSessionV2": {
+      "endpoint": "https://rest.ynxweb4.com/v2/product-sessions/challenge",
+      "socialPreflight": {
+        "origin": "https://social.ynxweb4.com",
+        "status": 204,
+        "allowOrigin": "https://social.ynxweb4.com",
+        "allowMethods": "POST, OPTIONS",
+        "credentialsAllowed": false,
+        "passed": true
+      },
+      "socialMalformedPost": {
+        "status": 400,
+        "requestId": "req_public_audit_social_20260815",
+        "responseErrorCode": "UNKNOWN_OR_MISSING_FIELD",
+        "responseBytes": 212,
+        "responseSha256": "1a1d646a52273e9b2fc293791f0fecd9226d11aee60de2b7a1b4f66c90820576",
+        "stateAuthoritySuccessClaimed": false
+      },
+      "wwwPreflight": {
+        "origin": "https://www.ynxweb4.com",
+        "status": 403,
+        "allowOriginPresent": false,
+        "responseErrorCode": "ORIGIN_NOT_ALLOWED",
+        "passed": false
+      },
+      "wwwMalformedPost": {
+        "status": 403,
+        "requestId": "req_public_audit_www_20260815",
+        "responseErrorCode": "ORIGIN_NOT_ALLOWED",
+        "responseBytes": 181,
+        "responseSha256": "c6523202f8321566344f48bf589a095b414f63948d6e2b609b66f79adfbbdad8",
+        "passed": false
+      },
+      "publicRuntime": {
+        "url": "https://www.ynxweb4.com/releases/wallet-session-router/577f81202a85/runtime.json",
+        "status": 200,
+        "bytes": 2587,
+        "sourceCommit": "577f81202a85ff7314dd862f60aa337b0f2fd1f1",
+        "registrySha256": "3b1ee629685651fab161d56b99b005d1acfd101b6d84a4c0894f144b5142eb17",
+        "integratedCentral": false,
+        "productRuntimeMigrationCount": 0,
+        "visibleInstalledWalletApproval": false
+      },
+      "registryDelta": {
+        "publicSourceProductCount": 12,
+        "publicSourceHasWalletWebCompanion": false,
+        "coreCandidateProductCount": 13,
+        "coreCandidateHasWalletWebCompanion": true,
+        "coreCandidateWebOrigin": "https://www.ynxweb4.com",
+        "coreCandidateApplicationId": "web.ynx.wallet.companion",
+        "coreCandidateCallback": "https://www.ynxweb4.com/dapp/wallet/wallet-auth/callback"
+      }
+    },
+    "walletGatewayV1": {
+      "endpoint": "https://rest.ynxweb4.com/v1/wallet/authorizations/reject",
+      "method": "POST",
+      "status": 404,
+      "responseErrorCode": "ROUTE_NOT_FOUND",
+      "responseBytes": 203,
+      "responseSha256": "9840804b11067fb3e4a9830ecc87f25f89f5493fa3a19ea59fd81cd0e38454c6",
+      "candidateDeployed": false
+    },
+    "evmRpc": {
+      "endpoint": "https://rpc.ynxweb4.com/evm",
+      "postEthChainIdObserved": "0x1917",
+      "postReachabilityIntermittent": true,
+      "observedSuccessfulTlsSeconds": 8.732,
+      "observedTimeoutSeconds": 10.009,
+      "wwwPreflightStatus": 405,
+      "socialPreflightStatus": 405,
+      "allowHeader": "POST",
+      "corsReady": false
+    },
+    "websiteWallet": {
+      "url": "https://www.ynxweb4.com/dapp/wallet",
+      "status": 200,
+      "bytes": 1018,
+      "cspConnectSrc": [
+        "'self'",
+        "https://api.ynxweb4.com",
+        "https://faucet.ynxweb4.com"
+      ],
+      "restAllowedByCsp": false,
+      "rpcAllowedByCsp": false,
+      "callbackUrl": "https://www.ynxweb4.com/dapp/wallet/wallet-auth/callback",
+      "callbackStatus": 200,
+      "callbackResponseIsGenericSpaShell": true,
+      "productionBundleCanonicalCallbackRuntimeFound": false
+    },
+    "faucet": {
+      "url": "https://faucet.ynxweb4.com/health",
+      "status": 200,
+      "upstreamOk": true,
+      "chainId": 6423,
+      "sourceCommit": "8fe48738f309c469bd7a16e31fbfe9e106d7de3c",
+      "requests": 2,
+      "successes": 0,
+      "denied": 2,
+      "realFundingTransactionProved": false
+    },
+    "canonicalCallerGate": {
+      "command": "node packages/wallet-auth/scripts/verify-canonical-wallet-callers.mjs --report-only",
+      "coreCandidatePassed": false,
+      "findingCount": 35,
+      "blockingFindingCount": 30,
+      "socialManualAuthorizeUriFinding": "apps/social/src/walletAuth.ts:148",
+      "legacySchemeFindingsRemain": true,
+      "allProductsUsingSharedBuilder": false,
+      "pixel9ResolveActivityVerified": false
+    }
+  },
+  "rootCauses": [
+    "The public 6441 registry predates the exact wallet-web-companion product registration, so the www origin is correctly rejected rather than broadly allowed.",
+    "The public 6439 Wallet Gateway has not deployed the canonical authorization rejection route.",
+    "The EVM endpoint accepts POST but has no browser preflight route, while its TLS establishment is intermittently slower than current client timeouts.",
+    "The production Wallet website CSP does not allow either canonical REST or RPC and the registered HTTPS callback currently resolves only to the generic site SPA without the companion callback runtime.",
+    "Thirty release-runtime callers still construct Wallet URIs themselves or retain a legacy scheme instead of consuming the single shared launcher contract."
+  ],
+  "lowestRiskIntegrationOrder": [
+    {
+      "order": 1,
+      "owner": "Central Integration/Core/Auth",
+      "action": "Integrate the public hardened 577f8120 CORS/state-integrity line with exact Core companion commits 9a5cb8fc9, a46d54564, bb2d9d4f1, 8a7accfee, 9e753b33b and 39c80021b; build a new 6441 artifact, run rollback/state-integrity/full lifecycle tests, then deploy it with an attested registry digest.",
+      "broadOriginAllowlistForbidden": true
+    },
+    {
+      "order": 2,
+      "owner": "Wallet Gateway",
+      "action": "Complete the protected rollback drill and deploy exact 6439 rejection candidate f6beef6a33010b548c0a9cf8df53129ee0a7b663 without changing 6437 or 6441; verify USER_REJECTED, zero authority, idempotency and terminal replay publicly."
+    },
+    {
+      "order": 3,
+      "owner": "Chain Edge/Central Integration",
+      "action": "Add an exact OPTIONS/CORS boundary for the canonical EVM /evm route and address bounded TLS latency; validate exact approved origins, POST eth_chainId 0x1917, no credentials and no wildcard Product Session origin policy."
+    },
+    {
+      "order": 4,
+      "owner": "Website",
+      "action": "Publish the exact Wallet Web Companion runtime and callback handler, and add only canonical rest/rpc/faucet origins to the Wallet route CSP; production backread must prove callback parsing and Product Session completion."
+    },
+    {
+      "order": 5,
+      "owner": "Every product with Wallet entry",
+      "action": "Consume @ynx-chain/wallet-auth encodeRequestDeepLink plus platform resolve/query before explicit com.ynxweb4.wallet launch; remove all 30 blocking caller findings and show safe YNX Wallet download/MetaMask alternatives when absent."
+    },
+    {
+      "order": 6,
+      "owner": "Android/Web acceptance",
+      "action": "On the physical Pixel 9, prove Social and at least one additional product resolve, approve, reject, callback, Product Session introspection, second launch, EVM add/switch/sign/send and fail-closed offline states."
+    }
+  ],
+  "truthBoundary": {
+    "socialProductSessionCorsPublic": true,
+    "walletWebCompanionCorsPublic": false,
+    "walletWebCompanionRegistryLoadedPublic": false,
+    "walletRejectionRoutePublic": false,
+    "evmBrowserCorsPublic": false,
+    "websiteCallbackRuntimePublic": false,
+    "allCanonicalCallersMigrated": false,
+    "pixel9CrossAppFlow": false,
+    "realFaucetFundingTransaction": false,
+    "integratedCentral": false,
+    "deployedPublicAggregate": false
+  }
+}
