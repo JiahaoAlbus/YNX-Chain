@@ -1,6 +1,6 @@
 # YNX Monitor Third-Party Notices
 
-Source commit: `ce32cbd8633b8192719c6bb04c982d4ab0e287f8`
+Source commit: `af5e7ea388c5e88e7a235d71892721546cbe6b5a`
 
 This inventory is generated from the locked production dependency graph. It records package metadata and does not replace the license text distributed by each dependency.
 

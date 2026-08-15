@@ -1,7 +1,7 @@
 {
   "schemaVersion": "ynx.monitor.provenance.v1",
-  "sourceCommit": "ce32cbd8633b8192719c6bb04c982d4ab0e287f8",
-  "sourceDate": "2026-08-14T21:22:18+08:00",
+  "sourceCommit": "af5e7ea388c5e88e7a235d71892721546cbe6b5a",
+  "sourceDate": "2026-08-15T09:14:28+08:00",
   "product": "@ynx/monitor",
   "builder": {
     "id": "local://ynx-monitor-supply-chain-gate-v1",
@@ -25,23 +25,23 @@
     },
     {
       "path": "release/monitor/security/sbom.cdx.json",
-      "sha256": "e7b79799e3f87867d81e7e441cf596f04b003f77514753c1e1a506fedfd4417e"
+      "sha256": "f1d36c3b64e5f16ccfafaea05fa4df4bdcab6e06f171422e71f471c706a2da67"
     },
     {
       "path": "release/monitor/security/THIRD_PARTY_NOTICES.md",
-      "sha256": "204322e6a8b52617d4e6e278ecf2b9c4d1e163b849fa715adc780312e13691f5"
+      "sha256": "64ade620fca067a96a206ed4ae4be3385da01ccd3f3a33095124da2305f13fa9"
     },
     {
       "path": "release/monitor/security/dependency-review.json",
-      "sha256": "f6b54304abd0c0701b8dbdbaec4863ad3ef18d23d8cd570751e23b8acb4a2640"
+      "sha256": "3404f94e1972bfec0d39865ceed8a9087a83e816567d4573e144605bec93b0c6"
     },
     {
       "path": "release/monitor/security/dast-plan.json",
-      "sha256": "6862f6381ccc5abc007d1011054cddf3ad7559d5e06d1be3fb7e32300c276f9c"
+      "sha256": "37410535501e26bf03d66cd466da9814f9cdc8aa2945ce9773bad1b678c204f5"
     },
     {
       "path": "release/monitor/security/build-manifest.json",
-      "sha256": "506cef0459b5261b1e1787c10215ff1e0dcc4b69780ec280f268ab2608a173ce"
+      "sha256": "b47b9f068d5128040d1e6c669cd8409a8ac10a0ed89c6b899b0b8da86beaba68"
     }
   ],
   "signing": {
