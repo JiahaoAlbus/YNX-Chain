@@ -16,7 +16,7 @@ Canonical Envelope v2 and v1 migration compatibility, fail-closed external Chain
 
 ## Unverified or incomplete states
 
-Central owner acceptance, complete product adapter set, shared Testnet E2E, staging deployment, public deployment, immutable public download, production signing, sustained PostgreSQL-plus-replicated-JetStream signed HTTP Producer traffic, sustained hotspot duration, repeated consumer/process crash on replicated infrastructure, deployed partition/packet-loss and repeated leader loss, downloaded/hash-verified PostgreSQL failover artifact plus automated endpoint/fencing and multi-host/regional failure, production-shaped capacity, live support and status endpoints.
+Central owner acceptance, complete product adapter set, shared Testnet E2E, staging deployment, public deployment, immutable public download, production signing, sustained PostgreSQL-plus-replicated-JetStream signed HTTP Producer traffic, sustained hotspot duration, repeated consumer/process crash on replicated infrastructure, deployed partition/packet-loss and repeated leader loss, automated PostgreSQL endpoint/fencing and multi-host/regional failure, production-shaped capacity, live support and status endpoints.
 
 ## Exact next action
 

@@ -39,12 +39,12 @@
       "applicability": "applicable",
       "status": "inProgress",
       "evidence": [
-        "engineering source commit ed06ce8053d165122a0fa550f59af7c88d3b3c6b and v29-bound head 8994818f1937a1ece7839328f4d938bfc87bbb82 are protected on remote review branch codex/data-fabric-typescript-sdk-20260814; the v30 forward binding is pending push",
+        "engineering source commit ed06ce8053d165122a0fa550f59af7c88d3b3c6b, v30-bound exact-CI head 1216adcfd889af371f52c96dbb2d1d3112b291ea and receipt head 53bd8d69d are protected on remote review branch codex/data-fabric-typescript-sdk-20260814; the v31 forward binding is pending push",
         "GitHub Actions engineering run 31797308684 passed the PostgreSQL job at exact source and generated the three-replica stream-leader-loss receipt; final evidence-head run 31799837096 passed both jobs at v24-bound head 54c8bc0e16a5a5b3bf6321d041f8b35fea871fbb",
         "GitHub Actions run 31811137802 passed both jobs at the v26-bound head and its route-partition artifact was downloaded and hash-verified",
         "exact-source PostgreSQL resilience, 1000 signed Producer PostgreSQL-to-JetStream, consumer-process-crash, transport-backpressure and three-replica leader-loss JSON was downloaded and SHA-256 verified",
-        "GitHub Actions Run 31838660585 passed all three jobs at exact head 1216adcfd889af371f52c96dbb2d1d3112b291ea, including the new PostgreSQL standby-promotion job; two artifacts are listed but their download/hash verification is pending after repeated TLS timeouts",
-        "Chain Core v1.30.0 bundle was imported to refs/remotes/chain-core/v30 and its SHA-256, bytes, ref and required base were verified",
+        "GitHub Actions Run 31838660585 passed all three jobs at exact head 1216adcfd889af371f52c96dbb2d1d3112b291ea, including the new PostgreSQL standby-promotion job; both artifacts were downloaded and all 14 files SHA-256 verified",
+        "Chain Core v1.31.0 bundle was imported to refs/remotes/chain-core/v31 and its SHA-256, bytes, ref and required base were verified",
         "complete verified prior Git bundles and SHA-256 manifest exist",
         "protected target requires one independent approval"
       ],
@@ -56,7 +56,7 @@
         "TestJetStreamThreeReplicaRoutePartitionRetainsOutboxAndRecovers passed twice under the race detector",
         "dirty-worktree PostgreSQL 17 streaming standby catch-up, primary stop, manual promotion, RPO-zero integrity and replay drill",
         "GitHub Actions run 31797308684 PostgreSQL job and final run 31799837096 both jobs",
-        "git bundle verify chain-core-data-commitment-v30.bundle",
+        "git bundle verify chain-core-data-commitment-v31.bundle",
         "git bundle verify and shasum -a 256 -c SHA256SUMS"
       ],
       "artifact": null,
@@ -179,7 +179,7 @@
       "publicProof": null,
       "blockedBy": [],
       "owner": "YNX Data Fabric",
-      "nextAction": "Download and hash-verify the exact-source PostgreSQL promotion artifact, then repeat broker/database failure with automatic endpoints and fencing on deployed shared Testnet infrastructure.",
+      "nextAction": "Repeat broker/database failure with automatic endpoints and fencing on deployed shared Testnet infrastructure.",
       "lastUpdated": "2026-08-15T00:30:00Z"
     },
     {
@@ -592,7 +592,7 @@
       "publicProof": null,
       "blockedBy": [],
       "owner": "YNX Data Fabric and Security/SRE",
-      "nextAction": "Download and hash-verify the exact-source PostgreSQL promotion artifact, then run sustained-duration hotspot, repeated crash, packet-loss and automatic multi-host database failover/fencing tests; do not extrapolate bounded one-host results.",
+      "nextAction": "Run sustained-duration hotspot, repeated crash, packet-loss and automatic multi-host database failover/fencing tests; do not extrapolate bounded one-host results.",
       "lastUpdated": "2026-08-15T00:30:00Z"
     },
     {

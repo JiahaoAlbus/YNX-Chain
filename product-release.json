@@ -90,10 +90,15 @@
       "evidenceArtifact": {
         "resilienceName": "data-fabric-postgres-resilience-1216adcfd889af371f52c96dbb2d1d3112b291ea",
         "resilienceBytes": 9757,
+        "resilienceZipSha256": "1f97c89c443b660ac088a1026fd32ede31fbd4436023de21da997e5405959e48",
         "failoverName": "data-fabric-postgres-failover-1216adcfd889af371f52c96dbb2d1d3112b291ea",
         "failoverBytes": 3213,
-        "downloadVerified": false,
-        "downloadBlockedBy": "intermittent-github-api-and-artifact-blob-tls-timeouts"
+        "failoverZipSha256": "72aed9c9b47c639a85a843786fdbbcb9b35c410a109e091bb84e5200ecee630f",
+        "failoverSeedSha256": "f751be035a257e19c4bb2b5a51810f508445331dc2353fea2b8cd6aa9475d477",
+        "failoverVerifySha256": "0d348846d4823700407c4abcf5be514d8946146996656e65d2aec3b7a70704a8",
+        "failoverSummarySha256": "411de3ac29339c8cb7ec3a72af69a3a5288e0e71a313edafe0d7fa6097ee6b72",
+        "downloadVerified": true,
+        "downloadBlockedBy": null
       }
     },
     "engineeringEvidenceRun": {
