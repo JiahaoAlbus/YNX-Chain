@@ -138,7 +138,7 @@ The kernel freezes the parsed registry at construction, rejects alternate JSON e
 6. Deploy registry, kernel host and durable state migration atomically to staging; record registry hash, source commit, release, canonical build time, deployment ID and restore evidence, then run real Wallet↔product flows.
 7. Have Monitor accept the bounded metric/event contract, prove dashboard and alert behavior, and correlate request/error IDs to authoritative audit IDs without logging custody or proof material.
 
-Current branch verification is Wallet/Auth 217/217, including 120 concurrent
+Current branch verification is Wallet/Auth 220/220, including 120 concurrent
 factory connections, full Product Session concurrency/isolation, real v2 Gateway
 approval/completion/introspection, second-launch restore, registered legacy
 migration, authoritative disconnect revocation, callback/disconnect races,

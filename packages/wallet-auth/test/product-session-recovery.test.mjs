@@ -151,6 +151,62 @@ test("disconnect racing Wallet approval revokes once and cannot resurrect the Pr
   assert.equal(await setup.storage.get(client.storageKey), null);
 });
 
+test("disconnect revokes a protected session issued before an introspection outage", async () => {
+  const setup = harness(); let introspectionOffline = true;
+  const gateway = { ...setup.gateway, async introspect(input) { if (introspectionOffline) throw new WalletAuthError("NETWORK_UNAVAILABLE", "temporary confirm outage"); return setup.gateway.introspect(input); } };
+  const client = new RecoverableProductSessionClient({ registry, productId: "social", platform: "android", storage: setup.storage, gateway, device, tokenFactory: (() => { let i = 0; return () => token(`confirm-outage-revoke-${i++}`); })(), clock: () => NOW });
+  const connecting = await client.begin({ walletInstalled: true, schemeRegistered: true });
+  const approval = signProductSessionApproval(registry, connecting.request, { accountSecret, scopes: connecting.request.scopes, expiresAt: "2026-08-14T01:03:00.000Z" }, NOW);
+  const callback = createProductSessionReturnURL(registry, connecting.request, { result: "approved", approval }, NOW);
+  assert.equal((await client.handleReturn(callback)).status, PRODUCT_SESSION_CLIENT_STATE.NETWORK_UNAVAILABLE);
+  assert.equal(setup.authority.snapshot().sessions.length, 1);
+  assert.notEqual(await setup.storage.get(client.storageKey), null);
+  introspectionOffline = false;
+  assert.equal((await client.disconnect()).status, PRODUCT_SESSION_CLIENT_STATE.DISCONNECTED);
+  assert.equal(setup.authority.snapshot().revokedSessions.length, 1);
+  assert.equal(await setup.storage.get(client.storageKey), null);
+});
+
+test("restore and Retry share one second-launch re-introspection", async () => {
+  const first = harness();
+  const connecting = await first.client.begin({ walletInstalled: true, schemeRegistered: true });
+  const approval = signProductSessionApproval(registry, connecting.request, { accountSecret, scopes: connecting.request.scopes, expiresAt: "2026-08-14T01:03:00.000Z" }, NOW);
+  assert.equal((await first.client.handleReturn(createProductSessionReturnURL(registry, connecting.request, { result: "approved", approval }, NOW))).status, PRODUCT_SESSION_CLIENT_STATE.CONNECTED);
+  let releaseIntrospection; let markStarted; let introspectionCalls = 0;
+  const introspectionStarted = new Promise((resolve) => { markStarted = resolve; });
+  const release = new Promise((resolve) => { releaseIntrospection = resolve; });
+  const gateway = { ...first.gateway, async introspect(input) { introspectionCalls += 1; markStarted(); await release; return first.gateway.introspect(input); } };
+  const second = new RecoverableProductSessionClient({ registry, productId: "social", platform: "android", storage: first.storage, gateway, device, tokenFactory: () => token("recovery-single-flight"), clock: () => NOW });
+  const restoring = second.restore(true);
+  await introspectionStarted;
+  const retrying = second.retry({ walletInstalled: true, schemeRegistered: true });
+  releaseIntrospection();
+  assert.equal((await restoring).status, PRODUCT_SESSION_CLIENT_STATE.CONNECTED);
+  assert.equal((await retrying).status, PRODUCT_SESSION_CLIENT_STATE.CONNECTED);
+  assert.equal(introspectionCalls, 1);
+});
+
+test("disconnect waits a second-launch recovery and cannot leave it connected", async () => {
+  const first = harness();
+  const connecting = await first.client.begin({ walletInstalled: true, schemeRegistered: true });
+  const approval = signProductSessionApproval(registry, connecting.request, { accountSecret, scopes: connecting.request.scopes, expiresAt: "2026-08-14T01:03:00.000Z" }, NOW);
+  assert.equal((await first.client.handleReturn(createProductSessionReturnURL(registry, connecting.request, { result: "approved", approval }, NOW))).status, PRODUCT_SESSION_CLIENT_STATE.CONNECTED);
+  let releaseIntrospection; let markStarted;
+  const introspectionStarted = new Promise((resolve) => { markStarted = resolve; });
+  const release = new Promise((resolve) => { releaseIntrospection = resolve; });
+  const gateway = { ...first.gateway, async introspect(input) { markStarted(); await release; return first.gateway.introspect(input); } };
+  const second = new RecoverableProductSessionClient({ registry, productId: "social", platform: "android", storage: first.storage, gateway, device, tokenFactory: () => token("disconnect-recovery-race"), clock: () => NOW });
+  const restoring = second.restore(true);
+  await introspectionStarted;
+  const disconnecting = second.disconnect();
+  releaseIntrospection();
+  assert.equal((await restoring).status, PRODUCT_SESSION_CLIENT_STATE.CONNECTED);
+  assert.equal((await disconnecting).status, PRODUCT_SESSION_CLIENT_STATE.DISCONNECTED);
+  assert.equal(second.current.status, PRODUCT_SESSION_CLIENT_STATE.DISCONNECTED);
+  assert.equal(first.authority.snapshot().revokedSessions.length, 1);
+  assert.equal(await first.storage.get(second.storageKey), null);
+});
+
 test("network transition during Gateway challenge cannot publish a late connected state", async () => {
   const setup = harness(); let releaseChallenge; let completionCalls = 0;
   const challengeReady = new Promise((resolve) => { releaseChallenge = resolve; });

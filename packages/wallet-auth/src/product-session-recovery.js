@@ -11,7 +11,7 @@ export const PRODUCT_SESSION_CLIENT_STATE = Object.freeze({
 });
 
 export class RecoverableProductSessionClient {
-  #registry; #binding; #storage; #gateway; #device; #tokens; #clock; #state; #autoReconnectAttempted; #networkAvailable; #networkEpoch; #disconnectPromise; #returnOperation;
+  #registry; #binding; #storage; #gateway; #device; #tokens; #clock; #state; #autoReconnectAttempted; #networkAvailable; #networkEpoch; #disconnectPromise; #returnOperation; #recoveryPromise;
   constructor(config) {
     exactFields(config, ["registry", "productId", "platform", "storage", "gateway", "device", "tokenFactory", "clock"], "Recoverable Product Session client configuration");
     this.#registry = parseProductSessionRegistry(config.registry);
@@ -27,6 +27,7 @@ export class RecoverableProductSessionClient {
     this.#networkEpoch = 0;
     this.#disconnectPromise = null;
     this.#returnOperation = null;
+    this.#recoveryPromise = null;
   }
 
   get current() { return this.#state; }
@@ -43,7 +44,8 @@ export class RecoverableProductSessionClient {
   async beginDetected(automatic = false) { return this.begin(await this.detectWalletEnvironment(), automatic); }
   async retryDetected() { return this.retry(await this.detectWalletEnvironment()); }
 
-  async restore(networkAvailable = true) {
+  async restore(networkAvailable = true) { return this.#recover(() => this.#restore(networkAvailable)); }
+  async #restore(networkAvailable) {
     this.#networkAvailable = Boolean(networkAvailable);
     if (!this.#networkAvailable) return this.#offline();
     const restored = await this.#restoreStoredSession();
@@ -131,7 +133,8 @@ export class RecoverableProductSessionClient {
     }
   }
 
-  async retry(environment) {
+  async retry(environment) { return this.#recover(() => this.#retry(environment)); }
+  async #retry(environment) {
     this.#networkAvailable = true;
     const restored = await this.#restoreStoredSession();
     if (restored !== null) return restored;
@@ -139,6 +142,14 @@ export class RecoverableProductSessionClient {
     if (pendingReturn !== null) return this.handleReturn(pendingReturn);
     this.#autoReconnectAttempted = false;
     return this.begin(environment, false);
+  }
+  async #recover(run) {
+    if (this.#disconnectPromise !== null) return this.#disconnectPromise;
+    if (this.#recoveryPromise !== null) return this.#recoveryPromise;
+    const operation = run();
+    this.#recoveryPromise = operation;
+    try { return await operation; }
+    finally { if (this.#recoveryPromise === operation) this.#recoveryPromise = null; }
   }
   connectionChoices(availability) { return walletConnectionChoices(this.#registry, this.#binding.productId, availability); }
   setNetworkAvailable(available) { this.#networkEpoch += 1; this.#networkAvailable = Boolean(available); if (!this.#networkAvailable) return this.#offline(); this.#state = state(PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED, "Network restored; authoritative re-introspection is required", { actions: ["retry"] }); return this.#state; }
@@ -151,11 +162,21 @@ export class RecoverableProductSessionClient {
     finally { if (this.#disconnectPromise === operation) this.#disconnectPromise = null; }
   }
   async #disconnect() {
+    const pendingRecovery = this.#recoveryPromise;
+    if (pendingRecovery !== null) {
+      try { await pendingRecovery; } catch { /* Disconnect still clears a failed second-launch recovery. */ }
+    }
     const pendingReturn = this.#returnOperation?.promise ?? null;
     if (pendingReturn !== null) {
       try { await pendingReturn; } catch { /* Disconnect still clears a rejected or invalid pending callback. */ }
     }
-    const session = this.#state.status === PRODUCT_SESSION_CLIENT_STATE.CONNECTED ? this.#state.session : null;
+    let session = this.#state.status === PRODUCT_SESSION_CLIENT_STATE.CONNECTED ? this.#state.session : null;
+    if (session === null) {
+      const raw = await this.#storage.get(this.storageKey);
+      if (raw !== null) {
+        try { session = parseProductSession(JSON.parse(raw)); } catch { /* Invalid protected state grants no revocation authority. */ }
+      }
+    }
     if (session !== null && session.expiresAt > this.#clock().toISOString()) {
       try {
         const body = {};
