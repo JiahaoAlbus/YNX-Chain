@@ -3,8 +3,9 @@ package finance
 import "time"
 
 const (
-	ChainID = "ynx_6423-1"
-	Product = "finance"
+	ChainID              = "ynx_6423-1"
+	Product              = "finance"
+	FinanceDomainVersion = "ynx-finance-domain-v1"
 )
 
 func allowedLocale(value string) bool {
@@ -156,6 +157,33 @@ type Portfolio struct {
 	ReadSources    map[string]ReadSourceDescriptor `json:"readSources"`
 	ReadOnly       bool                            `json:"readOnly"`
 	AsOf           time.Time                       `json:"asOf"`
+}
+
+type DomainSource struct {
+	Owner          string `json:"owner"`
+	System         string `json:"system"`
+	Version        string `json:"version"`
+	AsOf           string `json:"asOf"`
+	Classification string `json:"classification"`
+	Status         string `json:"status"`
+}
+
+type DomainHolding struct {
+	AssetID   string `json:"assetId"`
+	Available string `json:"available"`
+	Staked    string `json:"staked"`
+	Total     string `json:"total"`
+	ValueUSD  string `json:"valueUsd,omitempty"`
+}
+
+type DomainPortfolio struct {
+	SchemaVersion    string          `json:"schemaVersion"`
+	Source           DomainSource    `json:"source"`
+	PortfolioID      string          `json:"portfolioId"`
+	AccountID        string          `json:"accountId"`
+	ValuationAssetID string          `json:"valuationAssetId"`
+	TotalValue       string          `json:"totalValue"`
+	Holdings         []DomainHolding `json:"holdings"`
 }
 
 type SourceStatus struct {

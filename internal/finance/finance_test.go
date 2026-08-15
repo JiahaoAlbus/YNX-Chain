@@ -310,6 +310,68 @@ func TestUnavailableSourcesStayUnavailableAndOriginFailsClosed(t *testing.T) {
 	resp.Body.Close()
 }
 
+func TestDomainPortfolioEndpointReturnsStableSchema(t *testing.T) {
+	store, _ := OpenStore("")
+	explorer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case strings.HasPrefix(r.URL.Path, "/api/accounts/"):
+			_ = json.NewEncoder(w).Encode(map[string]any{"account": map[string]any{"address": testAccount, "balance": 777, "staked": 99, "nonce": 0, "resourceUsage": map[string]any{}, "lots": map[string]any{}}})
+		case r.URL.Path == "/health":
+			_ = json.NewEncoder(w).Encode(map[string]any{"ok": true, "rpcHeight": 120, "indexedHeight": 120, "syncLagBlocks": 0, "nativeSymbol": "YNXT", "truthfulStatus": "indexed-with-reported-lag", "lastCheckedAt": time.Now().UTC(), "build": map[string]any{"release": "ynx-explorer-suite-test"}})
+		case r.URL.Path == "/api/txs":
+			_ = json.NewEncoder(w).Encode(map[string]any{"transactions": []any{}})
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer explorer.Close()
+	upstreams, _ := NewUpstreams(explorer.URL, "", "", "")
+	service := &Service{
+		Store:     store,
+		Upstreams: upstreams,
+		AI:        fakeAI{},
+		Support:   SupportLinks{HelpURL: "https://support.example/help", PrivacyURL: "https://support.example/privacy", DisputeURL: "https://support.example/disputes"},
+	}
+	auth, session := testAuthenticator(t, "domain-portfolio-proof")
+	server, err := NewServer(service, auth, ServerConfig{
+		AllowedOrigins:   []string{"https://finance.example"},
+		CursorSigningKey: testCursorKey,
+		OperationsKey:    testOperationsKey,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ts := httptest.NewServer(server.Handler())
+	defer ts.Close()
+
+	var portfolio DomainPortfolio
+	requestJSON(t, ts.URL+"/v1/domain/portfolio", http.MethodGet, nil, session.Token, "", 200, &portfolio)
+	if portfolio.SchemaVersion != FinanceDomainVersion {
+		t.Fatalf("unexpected domain schema version: %q", portfolio.SchemaVersion)
+	}
+	if portfolio.Source.System != "ynx-finance" || portfolio.Source.Owner != "finance-consumer" || portfolio.Source.AsOf == "" {
+		t.Fatalf("unexpected source payload: %+v", portfolio.Source)
+	}
+	if portfolio.PortfolioID != "finance:"+ChainID+":"+testAccount {
+		t.Fatalf("unexpected portfolio id: %q", portfolio.PortfolioID)
+	}
+	if portfolio.AccountID != testAccount {
+		t.Fatalf("unexpected account id: %q", portfolio.AccountID)
+	}
+	if portfolio.ValuationAssetID != "YNXT" {
+		t.Fatalf("unexpected valuation asset: %q", portfolio.ValuationAssetID)
+	}
+	if len(portfolio.Holdings) != 1 {
+		t.Fatalf("unexpected holding length: %d", len(portfolio.Holdings))
+	}
+	if portfolio.Holdings[0].AssetID != "YNXT" || portfolio.Holdings[0].Available != "777" || portfolio.Holdings[0].Staked != "99" || portfolio.Holdings[0].Total != "876" {
+		t.Fatalf("unexpected holding shape: %#v", portfolio.Holdings[0])
+	}
+	if portfolio.Source.Status != "partial" {
+		t.Fatalf("expected partial status for current upstream setup, got %q", portfolio.Source.Status)
+	}
+}
+
 func TestAIBudgetDraftOnlyAppliesAfterReview(t *testing.T) {
 	store, _ := OpenStore("")
 	categoryService := &Service{Store: store}

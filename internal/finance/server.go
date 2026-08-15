@@ -89,6 +89,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /api/auth/logout", s.protected("", s.logout))
 	s.mux.HandleFunc("GET /api/overview", s.protected("finance.portfolio.read", s.overview))
 	s.mux.HandleFunc("GET /api/portfolio", s.protected("finance.portfolio.read", s.portfolio))
+	s.mux.HandleFunc("GET /v1/domain/portfolio", s.protected("finance.portfolio.read", s.domainPortfolio))
 	s.mux.HandleFunc("GET /api/sources", s.protected("finance.portfolio.read", s.sources))
 	s.mux.HandleFunc("GET /api/activity", s.protected("finance.portfolio.read", s.activityPage))
 	s.mux.HandleFunc("GET /api/profile", s.protected("finance.portfolio.read", s.profile))
@@ -276,6 +277,15 @@ func (s *Server) overview(w http.ResponseWriter, r *http.Request, session Sessio
 func (s *Server) portfolio(w http.ResponseWriter, r *http.Request, session Session) {
 	state := s.service.Store.Account(session.Account)
 	writeJSON(w, http.StatusOK, s.observedPortfolio(r.Context(), session.Account, state.Classifications))
+}
+
+func (s *Server) domainPortfolio(w http.ResponseWriter, r *http.Request, session Session) {
+	observed := s.observedPortfolio(r.Context(), session.Account, s.service.Store.Account(session.Account).Classifications)
+	domain := s.service.DomainPortfolio(session.Account, observed, s.build.Release)
+	if domain.TotalValue == "" {
+		domain.TotalValue = "0"
+	}
+	writeJSON(w, http.StatusOK, domain)
 }
 
 func (s *Server) sources(w http.ResponseWriter, r *http.Request, session Session) {
