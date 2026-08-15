@@ -168,11 +168,11 @@
     {
       "owner": "wallet-product-session-router",
       "branch": "codex/wallet-session-router-recovery",
-      "sourceCommit": "2bcdf4f646177fe2419f1af3ac9e66bb3c218194",
-      "remoteCommitObserved": "2bcdf4f646177fe2419f1af3ac9e66bb3c218194",
-      "branchHeadObserved": "2bcdf4f646177fe2419f1af3ac9e66bb3c218194",
-      "remoteVerifiedAt": "2026-08-14T12:20:00Z",
-      "verificationMode": "remote-ref-parent-tree-hardened-public-evidence-blob-readback"
+      "sourceCommit": "cdf56db727158c55a36f9ae3cad316b243149a7b",
+      "remoteCommitObserved": "cdf56db727158c55a36f9ae3cad316b243149a7b",
+      "branchHeadObserved": "cdf56db727158c55a36f9ae3cad316b243149a7b",
+      "remoteVerifiedAt": "2026-08-15T03:20:00Z",
+      "verificationMode": "remote-sha-parent-tree-shared-factory-handoff-blob-readback"
     }
   ],
   "evidence": {
@@ -562,6 +562,14 @@
       "path": "release/integration/wallet-auth-canonical-mobile-launcher-migration-contract.json",
       "blob": "714c2b36017004c1ced8e6eafb6274488d71b9a5",
       "supports": []
+    },
+    "product-wallet-connection-shared-factory": {
+      "type": "git-object",
+      "direct": true,
+      "commit": "cdf56db727158c55a36f9ae3cad316b243149a7b",
+      "path": "packages/wallet-auth/CENTRAL_INTEGRATION.md",
+      "blob": "9dd9b7987c06d6c8ca27fe7a19a0a46d7d7c2475",
+      "supports": ["gateway.build"]
     },
     "gateway-completion-negative-matrix": {
       "type": "git-object",

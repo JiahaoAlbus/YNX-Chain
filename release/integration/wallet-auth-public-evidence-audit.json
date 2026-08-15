@@ -3,7 +3,7 @@
   "auditId": "wallet-auth-public-evidence-audit-2026-08-14",
   "auditedAt": "2026-08-14T03:38:07Z",
   "integrationBaseCommit": "a008ce0e8fa2ac0322198576c320441118fbae83",
-  "matrixSha256": "78b36bb42d07c02284dfcd6b98b0d2f292cfed7ed8be77c4ab7712e99279a7f7",
+  "matrixSha256": "50f1b286821ad96d1e5ad4bfdb0f06bd0e73c04677839ff9dc7a8d37b6d4c607",
   "endpointServiceDiscoveryMatrix": {
     "path": "release/integration/wallet-auth-public-endpoint-service-discovery-matrix.json",
     "sha256": "98ef4460ea75411cc529a3dbcd8fa85a7d47e57d7332ee5b4dc6c5d2c23c72b8"
@@ -116,6 +116,28 @@
     "pixel9Validated": false,
     "integratedCentral": false,
     "deployedPublic": false
+  },
+  "productWalletConnectionFactoryBoundary": {
+    "commit": "cdf56db727158c55a36f9ae3cad316b243149a7b",
+    "parent": "3b818047212b052e9b90285492e21f81af441c66",
+    "tree": "e50319add1539fa507d7126fb4c2c5faadc73e63",
+    "handoffPath": "packages/wallet-auth/CENTRAL_INTEGRATION.md",
+    "handoffBlob": "9dd9b7987c06d6c8ca27fe7a19a0a46d7d7c2475",
+    "factory": "createProductWalletConnection",
+    "factoryOwnsCallbackOriginSessionWalletUrl": true,
+    "factoryOwnsCryptographicNonceAndState": true,
+    "factoryOwnsSystemTime": true,
+    "concurrentUniqueNonceAndStateCount": 120,
+    "legacyRequiresSameProductPlatformRegistryBinding": true,
+    "unknownOrCrossProductLegacyRejected": true,
+    "walletAuthTestsPassed": 211,
+    "runtimeProductsMigrated": 0,
+    "runtimeProductsRequired": 12,
+    "prCiPassed": false,
+    "integratedCentral": false,
+    "gateway6439Deployed": false,
+    "deployedPublic": false,
+    "visiblePlatformLifecycleVerified": false
   },
   "chainCoreContractBoundary": {
     "contractVersion": "1.32.0",
