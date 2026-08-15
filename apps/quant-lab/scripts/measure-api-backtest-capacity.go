@@ -1,3 +1,8 @@
+//go:build ignore
+
+// This is an independently executed capacity-measurement program. Keeping it
+// out of normal package builds avoids colliding with the worker measurement
+// program, which intentionally has its own main and evidence types.
 package main
 
 import (
