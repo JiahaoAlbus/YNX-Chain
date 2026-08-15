@@ -5,6 +5,7 @@ import { test } from "node:test";
 import { p256 } from "@noble/curves/nist.js";
 import {
   createProductSessionReturnURL, createProductWalletConnection,
+  PRODUCT_SESSION_PUBLIC_GATEWAY_ORIGIN,
   PRODUCT_SESSION_CLIENT_STATE, PRODUCT_SESSION_GATEWAY_PROOF_HEADER_V2,
   ProductSessionGatewayHttpHandler, signProductSessionApproval,
   WALLET_CONNECTION_COORDINATOR_STATUS, WalletAuthError,
@@ -16,7 +17,7 @@ const secret = Buffer.alloc(32, 29);
 const deviceKey = Buffer.from(p256.getPublicKey(secret, true)).toString("base64url");
 function token(value) { return createHash("sha256").update(value).digest("base64url"); }
 function storage() { const values = new Map(); return { securityLevel: "os-protected", async get(key) { return values.get(key) ?? null; }, async set(key, value) { values.set(key, value); }, async remove(key) { values.delete(key); } }; }
-function config(overrides = {}) { return { registry, productId: "social", platform: "web", gatewayEndpoint: "https://gateway.test", fetch: async () => { throw new Error("not used"); }, walletInstalled: async () => true, schemeRegistered: async () => true, gatewayTimeoutMs: 5_000, storage: storage(), device: { id: "social-device-factory-001", key: deviceKey, secret: secret.toString("base64url"), scopes: ["account:read", "profile:link"], purpose: "Connect Social through the canonical public SDK factory." }, scope: {}, discoveryWaitMs: 0, openWallet: async () => ({ opened: true }), openTimeoutMs: 1_000, ...overrides }; }
+function config(overrides = {}) { return { registry, productId: "social", platform: "web", fetch: async () => { throw new Error("not used"); }, walletInstalled: async () => true, schemeRegistered: async () => true, gatewayTimeoutMs: 5_000, storage: storage(), device: { id: "social-device-factory-001", key: deviceKey, secret: secret.toString("base64url"), scopes: ["account:read", "profile:link"], purpose: "Connect Social through the canonical public SDK factory." }, scope: {}, discoveryWaitMs: 0, openWallet: async () => ({ opened: true }), openTimeoutMs: 1_000, ...overrides }; }
 
 test("public subpath exposes the single product connection factory", () => {
   assert.equal(productConnectionSubpath.createProductWalletConnection, createProductWalletConnection);
@@ -38,8 +39,10 @@ test("factory derives the exact registered callback and opens no product-supplie
 test("factory completes the real Gateway lifecycle and restores it after a second launch", async () => {
   let gatewayToken = 0;
   const handler = new ProductSessionGatewayHttpHandler(registry, () => token(`factory-gateway-${gatewayToken++}`));
+  const gatewayOrigins = [];
   const fetch = async (url, init) => {
     const parsed = new URL(url);
+    gatewayOrigins.push(parsed.origin);
     const response = handler.handle({
       requestId: init.headers["x-request-id"], method: init.method, path: parsed.pathname,
       contentType: init.headers["content-type"], body: init.body,
@@ -64,6 +67,7 @@ test("factory completes the real Gateway lifecycle and restores it after a secon
   assert.equal(connected.sessionState.session.productId, "social");
   assert.equal(handler.snapshot().authority.sessions.length, 1);
   assert.equal(opened.length, 1);
+  assert.equal(gatewayOrigins.every((origin) => origin === PRODUCT_SESSION_PUBLIC_GATEWAY_ORIGIN), true);
 
   const restarted = createProductWalletConnection(config({ fetch, storage: protectedStorage }));
   const restored = await restarted.restore(true);
@@ -102,15 +106,15 @@ test("factory rejects callback, origin, session and unknown configuration inject
     { origin: "https://evil.example" },
     { session: { account: "fake" } },
     { walletUrl: "javascript:alert(1)" },
+    { gatewayEndpoint: "https://attacker.example" },
     { tokenFactory: () => "predictable" },
     { clock: () => new Date(0) },
   ]) assert.throws(() => createProductWalletConnection(config(hostile)), code("UNKNOWN_OR_MISSING_FIELD"));
 });
 
-test("factory fails closed on unknown products, insecure storage and non-HTTPS Gateway", () => {
+test("factory fails closed on unknown products and insecure storage", () => {
   assert.throws(() => createProductWalletConnection(config({ productId: "unknown" })), code("UNKNOWN_PRODUCT"));
   assert.throws(() => createProductWalletConnection(config({ storage: { securityLevel: "local", async get() { return null; }, async set() {}, async remove() {} } })), code("INSECURE_STORAGE"));
-  assert.throws(() => createProductWalletConnection(config({ gatewayEndpoint: "http://gateway.test" })), code("INVALID_GATEWAY"));
 });
 
 function code(expected) { return (error) => error instanceof WalletAuthError && error.code === expected; }

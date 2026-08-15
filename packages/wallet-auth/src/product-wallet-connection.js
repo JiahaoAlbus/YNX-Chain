@@ -5,11 +5,12 @@ import { RecoverableProductSessionClient } from "./product-session-recovery.js";
 import { WalletConnectionCoordinator } from "./wallet-connection-coordinator.js";
 
 const CONFIG_FIELDS = [
-  "registry", "productId", "platform", "gatewayEndpoint", "fetch",
+  "registry", "productId", "platform", "fetch",
   "walletInstalled", "schemeRegistered", "gatewayTimeoutMs", "storage",
   "device", "scope", "discoveryWaitMs",
   "openWallet", "openTimeoutMs",
 ];
+export const PRODUCT_SESSION_PUBLIC_GATEWAY_ORIGIN = "https://rest.ynxweb4.com";
 
 /**
  * Constructs the only supported product-facing Wallet connection surface.
@@ -19,7 +20,7 @@ export function createProductWalletConnection(config) {
   exactFields(config, CONFIG_FIELDS, "Product Wallet connection configuration");
   assertSecureRuntime();
   const gateway = new ProductSessionGatewayFetchAdapter({
-    endpoint: config.gatewayEndpoint,
+    endpoint: PRODUCT_SESSION_PUBLIC_GATEWAY_ORIGIN,
     fetch: config.fetch,
     walletInstalled: config.walletInstalled,
     schemeRegistered: config.schemeRegistered,

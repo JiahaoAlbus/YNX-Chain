@@ -78,8 +78,9 @@ product-supplied callbacks, origins, sessions, Wallet URLs, clocks and token
 factories.
 
 The product supplies only its approved secure-storage/device capabilities,
-platform Wallet detection/opener, browser provider scope, fixed Gateway origin and
-transport. `restore()` re-introspects protected state on every second launch;
+platform Wallet detection/opener, browser provider scope and transport. The factory
+pins every v2 call to `https://rest.ynxweb4.com`; products cannot inject or replace
+the Gateway origin. `restore()` re-introspects protected state on every second launch;
 invalid state attempts one controlled Wallet reconnect and then requires explicit
 `retryYNX()`. `enterGuest()` is the only offline/unsigned mode and never contains
 account, balance, transaction or Chain authority.
