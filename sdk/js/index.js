@@ -8,6 +8,20 @@ const BECH32_REVERSE = Object.freeze(Object.fromEntries([...BECH32_CHARSET].map(
 export {ynxTestnet} from "./ynx-testnet.js";
 export {YNXWalletError, ensureYNXTestnet, ynxTestnetAddEthereumChainParameter} from "./wallet.js";
 
+export const ynxPublicEndpoints = Object.freeze({
+  authorityCommit: "d0f89797d13c7667cc187b0c64d5c9e1cb1d8f59",
+  authoritySha256: "d344c607c2bbbf7bb0d9d3662b424976d0d6c4ff20428025dd1e2fb92bf31392",
+  rpcUrl: "https://rpc.ynxweb4.com/evm",
+  restUrl: "https://rest.ynxweb4.com",
+  faucetUrl: "https://faucet.ynxweb4.com",
+  websiteUrl: "https://www.ynxweb4.com/dapp/wallet",
+  explorerUrl: "https://explorer.ynxweb4.com",
+  walletCallbackUrl: null,
+  allRequiredServicesAvailable: false,
+  allRequiredServicesCorsReady: false,
+  integratedCentral: false,
+});
+
 export class YNXSDKError extends Error {
   constructor(message, {cause, status, code} = {}) {
     super(message, {cause});
@@ -171,7 +185,7 @@ export async function callYNXEVM(evmUrl, method, params = [], options = {}) {
   return response.result;
 }
 
-export async function proveYNXTestnetRPC(evmUrl = ynxTestnet.rpcUrls[0], options = {}) {
+export async function proveYNXTestnetRPC(evmUrl = ynxPublicEndpoints.rpcUrl, options = {}) {
   let url;
   try {
     url = new URL(evmUrl);

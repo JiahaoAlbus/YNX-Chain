@@ -16,6 +16,19 @@ export interface YNXStatus { chainId: number; nativeCurrencySymbol: string; publ
 export interface YNXSnapshot { status: YNXStatus; evmChainId: string; evmBlockHex: string; evmBlockNumber: number }
 
 export declare const ynxTestnet: YNXNetworkMetadata;
+export declare const ynxPublicEndpoints: Readonly<{
+  authorityCommit: "d0f89797d13c7667cc187b0c64d5c9e1cb1d8f59";
+  authoritySha256: "d344c607c2bbbf7bb0d9d3662b424976d0d6c4ff20428025dd1e2fb92bf31392";
+  rpcUrl: "https://rpc.ynxweb4.com/evm";
+  restUrl: "https://rest.ynxweb4.com";
+  faucetUrl: "https://faucet.ynxweb4.com";
+  websiteUrl: "https://www.ynxweb4.com/dapp/wallet";
+  explorerUrl: "https://explorer.ynxweb4.com";
+  walletCallbackUrl: null;
+  allRequiredServicesAvailable: false;
+  allRequiredServicesCorsReady: false;
+  integratedCentral: false;
+}>;
 export declare class YNXSDKError extends Error { readonly status?: number; readonly code?: number | string }
 export declare class YNXWalletError extends Error { readonly code?: number | string; readonly method?: string }
 export declare function toYNXAddress(value: string): string;

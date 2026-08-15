@@ -17,7 +17,8 @@ import (
 
 var version = "dev"
 
-const defaultRPC = "https://evm.ynxweb4.com"
+// Central endpoint matrix d0f89797 freezes this as the canonical public EVM RPC.
+const defaultRPC = "https://rpc.ynxweb4.com/evm"
 
 func main() {
 	if err := run(os.Args[1:], os.Stdout, &http.Client{}); err != nil {

@@ -5,7 +5,8 @@ import { fileURLToPath } from "node:url";
 import { YNX_TESTNET_CHAIN_QUANTITY } from "@ynx-chain/wallet-auth";
 
 const directory = path.dirname(fileURLToPath(import.meta.url));
-const rpcUrl = process.env.YNX_WALLET_RPC_URL || "https://evm.ynxweb4.com";
+// Canonical public RPC from Central endpoint matrix d0f89797d13c7667cc187b0c64d5c9e1cb1d8f59.
+const rpcUrl = process.env.YNX_WALLET_RPC_URL || "https://rpc.ynxweb4.com/evm";
 const evidencePath = process.env.YNX_WALLET_EVIDENCE_PATH;
 
 async function rpcStatus() {

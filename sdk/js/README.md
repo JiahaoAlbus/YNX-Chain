@@ -5,9 +5,9 @@ Dependency-free TypeScript/JavaScript client for read-only YNX Testnet status, s
 Requires Node.js 18 or later. The package is an unsigned Testnet SDK candidate and is not published to a public npm registry.
 
 ```ts
-import { proveYNXTestnetRPC, ynxTestnet } from "@ynx-chain/sdk";
+import { proveYNXTestnetRPC, ynxPublicEndpoints } from "@ynx-chain/sdk";
 
-const result = await proveYNXTestnetRPC(ynxTestnet.rpcUrls[0]);
+const result = await proveYNXTestnetRPC(ynxPublicEndpoints.rpcUrl);
 console.log(result);
 ```
 
