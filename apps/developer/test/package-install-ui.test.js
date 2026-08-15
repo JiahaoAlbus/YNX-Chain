@@ -33,6 +33,9 @@ test("Web npm and Python package installation is exact, reviewed, persistent and
   assert.match(python, /package_network_cleanup_failed/);
   assert.doesNotMatch(python, /shell:\s*true/);
   assert.match(image, /python3-pip python3-venv/);
+  assert.match(image, /lxc init "\$source_alias" "\$builder" --no-profiles --storage "\$storage_pool"/);
+  assert.match(image, /lxc config device add "\$builder" ynx-package-egress nic network="\$package_network" name=eth0/);
+  assert.match(image, /package_network == ynx-pkg-egress/);
   assert.match(deploy, /YNX_CODE_LXD_PACKAGE_NETWORK/);
   assert.doesNotMatch(workbench, /npm install.*shell/);
 });

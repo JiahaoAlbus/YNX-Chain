@@ -19,21 +19,29 @@ debugpy_url="https://files.pythonhosted.org/packages/95/51/67e7cf11a53e40694f720
 js_debug_version="1.117.0"
 js_debug_sha256="ad8d04ede9d4b75cc290fd5438a65047a06f786d04f604b6112485b36f090772"
 js_debug_url="https://github.com/microsoft/vscode-js-debug/releases/download/v${js_debug_version}/js-debug-dap-v${js_debug_version}.tar.gz"
+package_network="${YNX_CODE_LXD_PACKAGE_NETWORK:?Set YNX_CODE_LXD_PACKAGE_NETWORK to the reviewed package-egress LXD network}"
+storage_pool="${YNX_CODE_IMAGE_STORAGE_POOL:-default}"
 
 command -v lxc >/dev/null
 test -f "$probe_path"
 test -f "$jdtls_launcher_path"
 test -f "$delve_bridge_path"
 test -f "$js_debug_bridge_path"
+[[ $package_network == ynx-pkg-egress ]] || { echo "YNX_CODE_LXD_PACKAGE_NETWORK does not match the reviewed production network" >&2; exit 1; }
+[[ $storage_pool =~ ^[A-Za-z0-9_.-]{1,80}$ ]] || { echo "YNX_CODE_IMAGE_STORAGE_POOL is invalid" >&2; exit 1; }
 if lxc image info "$target_alias" >/dev/null 2>&1; then
   echo "Target image alias already exists: $target_alias" >&2
   exit 1
 fi
-if ! lxc info "$builder" >/dev/null 2>&1; then
-  lxc launch "$source_alias" "$builder" --profile default
-fi
 cleanup() { lxc delete --force "$builder" >/dev/null 2>&1 || true; }
 trap cleanup ERR INT TERM
+if lxc info "$builder" >/dev/null 2>&1; then
+  echo "Builder instance already exists: $builder" >&2
+  exit 1
+fi
+lxc init "$source_alias" "$builder" --no-profiles --storage "$storage_pool"
+lxc config device add "$builder" ynx-package-egress nic network="$package_network" name=eth0
+lxc start "$builder"
 
 for _ in $(seq 1 60); do
   if lxc exec "$builder" -- getent hosts archive.ubuntu.com >/dev/null 2>&1; then break; fi
