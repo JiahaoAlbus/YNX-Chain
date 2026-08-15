@@ -10,6 +10,7 @@ const PRODUCT_FIELDS = [
   "productId", "clientId", "displayName", "applicationId", "webOrigin", "nativeCallback",
   "legacyCallbacks", "scopes", "evmCompatible", "sessionDurationSeconds",
 ];
+const EXPLICIT_WEB_PRODUCT_FIELDS = [...PRODUCT_FIELDS, "platforms", "webApplicationId", "webCallback"];
 const FORBIDDEN_CALLBACK_SCHEMES = new Set(["data:", "file:", "http:", "javascript:"]);
 
 export function parseProductSessionRegistry(input) {
@@ -35,7 +36,9 @@ export function parseProductSessionRegistry(input) {
   uniqueSorted(products.map((item) => item.productId), "productId");
   unique(products.map((item) => item.clientId), "clientId");
   unique(products.map((item) => item.applicationId), "applicationId");
+  unique(products.map((item) => item.webApplicationId), "web applicationId");
   unique(products.map((item) => item.webOrigin), "webOrigin");
+  unique(products.map((item) => item.webCallback), "web callback");
   unique(products.map((item) => new URL(item.nativeCallback).protocol), "native callback scheme");
   const legacy = products.flatMap((item) => item.legacyCallbacks.map((value) => `${value}\n${item.productId}`));
   const legacyNames = legacy.map((value) => value.split("\n", 1)[0]);
@@ -64,6 +67,7 @@ export function productPlatformBinding(registryInput, productId, platform) {
   if (!PRODUCT_SESSION_PLATFORMS.includes(platform)) fail("INVALID_PLATFORM", "Product Session platform is unsupported");
   const product = registry.products.find((item) => item.productId === productId);
   if (!product) fail("UNKNOWN_PRODUCT", "Product is not registered for Product Sessions");
+  if (!product.platforms.includes(platform)) fail("INVALID_PLATFORM", "Product is not registered for Product Sessions on this platform");
   const web = platform === "web";
   return Object.freeze({
     chainId: registry.chainId,
@@ -71,11 +75,11 @@ export function productPlatformBinding(registryInput, productId, platform) {
     clientId: product.clientId,
     displayName: product.displayName,
     platform,
-    applicationId: web ? `${product.applicationId}.web` : product.applicationId,
+    applicationId: web ? product.webApplicationId : product.applicationId,
     bundleId: ["ios", "macos"].includes(platform) ? product.applicationId : null,
     packageId: ["android", "windows"].includes(platform) ? product.applicationId : null,
     origin: web ? product.webOrigin : `app://${platform}/${product.applicationId}`,
-    callback: web ? `${product.webOrigin}/wallet-auth/callback` : product.nativeCallback,
+    callback: web ? product.webCallback : product.nativeCallback,
     scopes: product.scopes,
     evmCompatible: product.evmCompatible,
     sessionDurationSeconds: product.sessionDurationSeconds,
@@ -110,12 +114,26 @@ export function migrateLegacyCallback(registryInput, legacyValue, context) {
 }
 
 function parseProduct(input) {
-  exactFields(input, PRODUCT_FIELDS, "Product Session product registration");
+  const explicitWeb = Object.hasOwn(input, "platforms") || Object.hasOwn(input, "webApplicationId") || Object.hasOwn(input, "webCallback");
+  exactFields(input, explicitWeb ? EXPLICIT_WEB_PRODUCT_FIELDS : PRODUCT_FIELDS, "Product Session product registration");
   const productId = pattern(input.productId, "productId", /^[a-z][a-z0-9-]{1,31}$/);
   const clientId = pattern(input.clientId, "clientId", /^[a-z][a-z0-9._-]{2,63}$/);
   const displayName = text(input.displayName, "displayName", 2, 64);
   const applicationId = pattern(input.applicationId, "applicationId", /^[A-Za-z][A-Za-z0-9.-]{2,127}$/);
   const webOrigin = httpsURL(input.webOrigin, "webOrigin", true);
+  const platforms = explicitWeb
+    ? stringList(input.platforms, "platforms", 1, PRODUCT_SESSION_PLATFORMS.length, (value) => {
+      const platform = text(value, "platform", 3, 16);
+      if (!PRODUCT_SESSION_PLATFORMS.includes(platform)) fail("INVALID_ROUTER_REGISTRY", "Product Session platform is unsupported");
+      return platform;
+    })
+    : [...PRODUCT_SESSION_PLATFORMS];
+  const webApplicationId = explicitWeb ? pattern(input.webApplicationId, "webApplicationId", /^[A-Za-z][A-Za-z0-9.-]{2,131}$/) : `${applicationId}.web`;
+  const webCallback = explicitWeb ? callback(input.webCallback, "webCallback", { allowHttps: true }) : `${webOrigin}/wallet-auth/callback`;
+  const parsedWebCallback = new URL(webCallback);
+  if (parsedWebCallback.protocol !== "https:" || parsedWebCallback.origin !== webOrigin || parsedWebCallback.search) {
+    fail("INVALID_ROUTER_REGISTRY", "Web callback must be an exact HTTPS path on the registered Web origin");
+  }
   const nativeCallback = callback(input.nativeCallback, "nativeCallback", { allowHttps: false });
   const native = new URL(nativeCallback);
   if (native.search || native.hash || native.username || native.password || !native.hostname) {
@@ -130,7 +148,7 @@ function parseProduct(input) {
     fail("INVALID_ROUTER_REGISTRY", "Product Session duration must be between 60 and 300 seconds");
   }
   return Object.freeze({
-    productId, clientId, displayName, applicationId, webOrigin, nativeCallback,
+    productId, clientId, displayName, applicationId, webOrigin, nativeCallback, platforms: Object.freeze(platforms), webApplicationId, webCallback,
     legacyCallbacks: Object.freeze(legacyCallbacks), scopes: Object.freeze(scopes),
     evmCompatible: input.evmCompatible, sessionDurationSeconds: input.sessionDurationSeconds,
   });

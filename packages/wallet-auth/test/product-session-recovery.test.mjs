@@ -167,6 +167,30 @@ test("disconnect revokes a protected session issued before an introspection outa
   assert.equal(await setup.storage.get(client.storageKey), null);
 });
 
+test("network transition after Gateway completion protects the session for Retry and disconnect", async () => {
+  const protectedStorage = storage(); let client; let transitionAfterSessionWrite = true;
+  const set = protectedStorage.set.bind(protectedStorage);
+  protectedStorage.set = async (key, value) => {
+    await set(key, value);
+    if (transitionAfterSessionWrite && key === client.storageKey) {
+      transitionAfterSessionWrite = false;
+      client.setNetworkAvailable(false);
+    }
+  };
+  const setup = harness(protectedStorage); client = setup.client;
+  const connecting = await client.begin({ walletInstalled: true, schemeRegistered: true });
+  const approval = signProductSessionApproval(registry, connecting.request, { accountSecret, scopes: connecting.request.scopes, expiresAt: "2026-08-14T01:03:00.000Z" }, NOW);
+  const callback = createProductSessionReturnURL(registry, connecting.request, { result: "approved", approval }, NOW);
+  assert.equal((await client.handleReturn(callback)).status, PRODUCT_SESSION_CLIENT_STATE.NETWORK_UNAVAILABLE);
+  assert.equal(setup.authority.snapshot().sessions.length, 1);
+  assert.notEqual(await protectedStorage.get(client.storageKey), null);
+  client.setNetworkAvailable(true);
+  assert.equal((await client.retry({ walletInstalled: true, schemeRegistered: true })).status, PRODUCT_SESSION_CLIENT_STATE.CONNECTED);
+  assert.equal((await client.disconnect()).status, PRODUCT_SESSION_CLIENT_STATE.DISCONNECTED);
+  assert.equal(setup.authority.snapshot().revokedSessions.length, 1);
+  assert.equal(await protectedStorage.get(client.storageKey), null);
+});
+
 test("restore and Retry share one second-launch re-introspection", async () => {
   const first = harness();
   const connecting = await first.client.begin({ walletInstalled: true, schemeRegistered: true });

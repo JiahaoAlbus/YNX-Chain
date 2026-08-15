@@ -17,6 +17,7 @@ function token(label) { return createHash("sha256").update(label).digest("base64
 function deviceSecret(index) { const value = Buffer.alloc(32); value.writeUInt32BE(index + 1, 28); return value; }
 function completion(index, productId = PRODUCTS[index % PRODUCTS.length], platform = PLATFORMS[index % PLATFORMS.length], accountSecret = `${(index % 2) + 1}`.padStart(64, "0")) {
   const product = registry.products.find((item) => item.productId === productId);
+  if (!product.platforms?.includes(platform)) platform = product.platforms?.[index % product.platforms.length] ?? platform;
   const secret = deviceSecret(index);
   const request = createProductSessionRequest(registry, {
     productId, platform, deviceId: `device-${String(index).padStart(6, "0")}`,

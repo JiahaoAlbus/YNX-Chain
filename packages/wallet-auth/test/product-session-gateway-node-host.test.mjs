@@ -67,24 +67,26 @@ test("Node host exposes an exact registry-bound browser preflight without mutati
   const running = await start(fixture.statePath, () => token("cors-unused"));
   const beforeState = readFileSync(fixture.statePath);
   const beforeSnapshot = running.host.snapshot();
-  const origin = "https://finance.ynxweb4.com";
-  const preflight = await fetch(`${running.origin}/v2/product-sessions/challenge`, {
-    headers: {
-      "access-control-request-headers": "accept, content-type, x-request-id, x-ynx-product-session-proof-v2",
-      "access-control-request-method": "POST",
-      origin,
-    },
-    method: "OPTIONS",
-  });
-  assert.equal(preflight.status, 204);
-  assert.equal(await preflight.text(), "");
-  assert.equal(preflight.headers.get("access-control-allow-origin"), origin);
-  assert.equal(preflight.headers.get("access-control-allow-methods"), "POST, OPTIONS");
-  assert.equal(preflight.headers.get("access-control-allow-headers"), "Accept, Content-Type, X-Request-Id, X-YNX-Product-Session-Proof-V2");
-  assert.equal(preflight.headers.get("vary"), "Origin");
+  for (const origin of ["https://finance.ynxweb4.com", "https://www.ynxweb4.com"]) {
+    const preflight = await fetch(`${running.origin}/v2/product-sessions/challenge`, {
+      headers: {
+        "access-control-request-headers": "accept, content-type, x-request-id, x-ynx-product-session-proof-v2",
+        "access-control-request-method": "POST",
+        origin,
+      },
+      method: "OPTIONS",
+    });
+    assert.equal(preflight.status, 204);
+    assert.equal(await preflight.text(), "");
+    assert.equal(preflight.headers.get("access-control-allow-origin"), origin);
+    assert.equal(preflight.headers.get("access-control-allow-methods"), "POST, OPTIONS");
+    assert.equal(preflight.headers.get("access-control-allow-headers"), "Accept, Content-Type, X-Request-Id, X-YNX-Product-Session-Proof-V2");
+    assert.equal(preflight.headers.get("vary"), "Origin");
+  }
   assert.deepEqual(readFileSync(fixture.statePath), beforeState);
   assert.deepEqual(running.host.snapshot(), beforeSnapshot);
 
+  const origin = "https://finance.ynxweb4.com";
   const rejected = await fetch(`${running.origin}/v2/product-sessions/challenge`, {
     body: "{}",
     headers: { "content-type": "application/json", origin, "x-request-id": "req_cors_actual_error_01" },
@@ -100,32 +102,35 @@ test("Node host exposes an exact registry-bound browser preflight without mutati
 test("Node host rejects unregistered origins and widened preflights without state mutation", async (context) => {
   const fixture = stateFixture(context);
   const running = await start(fixture.statePath, () => token("cors-negative-unused"));
-  const cases = [
-    { origin: "https://www.ynxweb4.com", path: "/v2/product-sessions/challenge", method: "POST", headers: "content-type", code: "ORIGIN_NOT_ALLOWED" },
-    { origin: "https://finance.ynxweb4.com.evil.example", path: "/v2/product-sessions/challenge", method: "POST", headers: "content-type", code: "ORIGIN_NOT_ALLOWED" },
-    { origin: "https://finance.ynxweb4.com", path: "/v2/product-sessions/challenge", method: "DELETE", headers: "content-type", code: "PREFLIGHT_NOT_ALLOWED" },
-    { origin: "https://finance.ynxweb4.com", path: "/v2/product-sessions/challenge", method: "POST", headers: "authorization", code: "PREFLIGHT_NOT_ALLOWED" },
-    { origin: "https://finance.ynxweb4.com", path: "/v2/product-sessions/not-registered", method: "POST", headers: "content-type", code: "ROUTE_NOT_FOUND" },
-  ];
-  const beforeState = readFileSync(fixture.statePath);
-  const beforeSnapshot = running.host.snapshot();
-  for (const item of cases) {
-    const response = await fetch(`${running.origin}${item.path}`, {
-      headers: {
-        "access-control-request-headers": item.headers,
-        "access-control-request-method": item.method,
-        origin: item.origin,
-      },
-      method: "OPTIONS",
-    });
-    assert.equal(response.status, item.code === "ROUTE_NOT_FOUND" ? 404 : 403);
-    const payload = await response.json();
-    assert.equal(payload.error.code, item.code);
-    if (item.code === "ORIGIN_NOT_ALLOWED") assert.equal(response.headers.get("access-control-allow-origin"), null);
+  try {
+    const cases = [
+      { origin: "https://attacker.example", path: "/v2/product-sessions/challenge", method: "POST", headers: "content-type", code: "ORIGIN_NOT_ALLOWED" },
+      { origin: "https://finance.ynxweb4.com.evil.example", path: "/v2/product-sessions/challenge", method: "POST", headers: "content-type", code: "ORIGIN_NOT_ALLOWED" },
+      { origin: "https://finance.ynxweb4.com", path: "/v2/product-sessions/challenge", method: "DELETE", headers: "content-type", code: "PREFLIGHT_NOT_ALLOWED" },
+      { origin: "https://finance.ynxweb4.com", path: "/v2/product-sessions/challenge", method: "POST", headers: "authorization", code: "PREFLIGHT_NOT_ALLOWED" },
+      { origin: "https://finance.ynxweb4.com", path: "/v2/product-sessions/not-registered", method: "POST", headers: "content-type", code: "ROUTE_NOT_FOUND" },
+    ];
+    const beforeState = readFileSync(fixture.statePath);
+    const beforeSnapshot = running.host.snapshot();
+    for (const item of cases) {
+      const response = await fetch(`${running.origin}${item.path}`, {
+        headers: {
+          "access-control-request-headers": item.headers,
+          "access-control-request-method": item.method,
+          origin: item.origin,
+        },
+        method: "OPTIONS",
+      });
+      assert.equal(response.status, item.code === "ROUTE_NOT_FOUND" ? 404 : 403);
+      const payload = await response.json();
+      assert.equal(payload.error.code, item.code);
+      if (item.code === "ORIGIN_NOT_ALLOWED") assert.equal(response.headers.get("access-control-allow-origin"), null);
+    }
+    assert.deepEqual(readFileSync(fixture.statePath), beforeState);
+    assert.deepEqual(running.host.snapshot(), beforeSnapshot);
+  } finally {
+    await running.close();
   }
-  assert.deepEqual(readFileSync(fixture.statePath), beforeState);
-  assert.deepEqual(running.host.snapshot(), beforeSnapshot);
-  await running.close();
 });
 
 test("Node host exposes exact build identity on loopback and rejects remote identity gaps and state tamper", async (context) => {

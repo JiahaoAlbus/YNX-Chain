@@ -150,6 +150,21 @@
       "scopes": ["video:account", "video:library", "video:playback"],
       "evmCompatible": false,
       "sessionDurationSeconds": 300
+    },
+    {
+      "productId": "wallet-web-companion",
+      "clientId": "ynx-wallet-web-companion-v1",
+      "displayName": "YNX Wallet Web Companion",
+      "applicationId": "web.ynx.wallet.companion",
+      "webOrigin": "https://www.ynxweb4.com",
+      "nativeCallback": "ynxwalletcompanion://wallet-auth/callback",
+      "legacyCallbacks": ["ynxwalletcompanion://wallet-auth/callback"],
+      "scopes": ["account:read", "chain:network:add", "chain:network:switch", "wallet:session:request"],
+      "evmCompatible": true,
+      "sessionDurationSeconds": 180,
+      "platforms": ["web"],
+      "webApplicationId": "web.ynx.wallet.companion",
+      "webCallback": "https://www.ynxweb4.com/dapp/wallet/wallet-auth/callback"
     }
   ]
 }

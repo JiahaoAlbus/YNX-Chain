@@ -112,7 +112,6 @@ export class RecoverableProductSessionClient {
         ? await signProductSessionChallengeWith(challenge, this.#device.sign)
         : signProductSessionChallenge(challenge, this.#device.secret);
       const session = parseProductSession(await this.#gateway.complete({ requestId: gatewayRequestId("f", request.state), request, approval: returned.approval, completion }));
-      if (networkEpoch !== this.#networkEpoch) return this.#networkTransition("Network changed while completing Wallet approval; protected callback was retained for Retry");
       await this.#storage.set(this.storageKey, JSON.stringify(session));
       if (networkEpoch !== this.#networkEpoch) return this.#networkTransition("Network changed while protecting the issued Product Session; authoritative Retry is required");
       try {

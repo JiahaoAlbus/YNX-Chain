@@ -25,7 +25,8 @@
     {"productId":"quant","registry":"registry-ready","consumer":"contract-only","migrated":false,"evidence":["apps/quant-lab/integration/wallet-registry-entry.json"]},
     {"productId":"shop","registry":"registry-ready","consumer":"legacy-direct","migrated":false,"evidence":["apps/shop/wallet-auth.js","apps/shop/native/android/app/src/main/java/com/ynxweb4/shop/WalletAuth.java","apps/shop/native/ios/YNXShop/WalletAuth.swift"]},
     {"productId":"social","registry":"registry-ready","consumer":"legacy-direct","migrated":false,"evidence":["apps/social/src/walletAuth.ts"]},
-    {"productId":"video","registry":"registry-ready","consumer":"legacy-direct","migrated":false,"evidence":["apps/video/wallet-auth.js","apps/video/android/app/src/main/java/com/ynxweb4/video/MainActivity.java","apps/video/ios/YNXVideo/ContentView.swift"]}
+    {"productId":"video","registry":"registry-ready","consumer":"legacy-direct","migrated":false,"evidence":["apps/video/wallet-auth.js","apps/video/android/app/src/main/java/com/ynxweb4/video/MainActivity.java","apps/video/ios/YNXVideo/ContentView.swift"]},
+    {"productId":"wallet-web-companion","registry":"registry-ready","consumer":"core-runtime-candidate","migrated":false,"evidence":["packages/wallet-auth/test/wallet-web-companion-runtime.test.mjs","release/integration/wallet-auth-web-companion-registry-contract.json"]}
   ],
   "productRuntimeMigrationCount": 0,
   "fixedProductCount": 0,

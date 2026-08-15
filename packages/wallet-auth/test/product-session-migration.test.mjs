@@ -14,7 +14,7 @@ test("migration matrix covers the exact registry and cites only branch-local evi
   assert.equal(matrix.productRuntimeMigrationCount, matrix.products.filter((item) => item.migrated).length);
   assert.equal(matrix.fixedProductCount, matrix.products.filter((item) => item.migrated).length);
   for (const product of matrix.products) {
-    assert.ok(["contract-only", "legacy-direct", "shared-sdk-v1", "migrated-v2"].includes(product.consumer));
+    assert.ok(["contract-only", "core-runtime-candidate", "legacy-direct", "shared-sdk-v1", "migrated-v2"].includes(product.consumer));
     assert.ok(Array.isArray(product.evidence) && product.evidence.length > 0);
     for (const path of product.evidence) assert.equal(existsSync(resolve(repositoryRoot, path)), true, `${product.productId} evidence is missing: ${path}`);
   }
@@ -28,6 +28,7 @@ test("legacy and shared-v1 consumers cannot be presented as v2 migrations", () =
       assert.match(sources, /@ynx-chain\/wallet-auth/);
       assert.doesNotMatch(sources, /RecoverableProductSessionClient|\/v2\/product-sessions\//);
     }
+    if (product.consumer === "core-runtime-candidate") assert.equal(product.migrated, false);
     if (product.consumer !== "migrated-v2") assert.equal(product.migrated, false);
   }
 });
