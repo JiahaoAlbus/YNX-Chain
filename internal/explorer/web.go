@@ -584,6 +584,10 @@ const indexHTML = `<!doctype html>
       const seen = new Set(incoming.map(identity));
       return [...incoming, ...accumulated.filter(row => !seen.has(identity(row)))];
     }
+    function canonicalHistoryChanged(incoming, accumulated) {
+      const known = new Map(accumulated.map(block => [String(block.height), String(block.hash || '')]));
+      return incoming.some(block => known.has(String(block.height)) && known.get(String(block.height)) !== String(block.hash || ''));
+    }
     function bindQueries() {
       document.querySelectorAll('[data-query]').forEach(node => node.onclick = () => search(node.dataset.query));
       document.querySelectorAll('[data-account]').forEach(node => node.onclick = event => { event.preventDefault(); event.stopPropagation(); search(node.dataset.account); });
@@ -664,10 +668,16 @@ const indexHTML = `<!doctype html>
         $('streamClock').className = 'stream-clock live';
 		$('streamClockText').textContent = t('live');
       };
-      eventSource.addEventListener('dashboard', event => {
+	  eventSource.addEventListener('dashboard', event => {
         try {
           const snapshot = JSON.parse(event.data);
           lastStreamAt = Date.now();
+		  if (canonicalHistoryChanged(snapshot.blocks || [], latestBlocks)) {
+			blockDisplayLimit = 5;
+			transactionDisplayLimit = 5;
+			load().then(stopFallbackPolling).catch(showLoadError);
+			return;
+		  }
 		  const blocks = mergeLiveRows(snapshot.blocks || [], latestBlocks, block => String(block.height));
 		  const transactions = mergeLiveRows(snapshot.transactions || [], latestTransactions, tx => tx.hash);
 		  renderDashboard(snapshot.summary, blocks, transactions, snapshot.validators, snapshot.resources, 'live');
@@ -783,8 +793,18 @@ const indexHTML = `<!doctype html>
 		try {
 		  const address = currentDetail.account?.address || currentDetailQuery;
 		  const next = await get('/api/accounts/' + encodeURIComponent(address) + '/activity?limit=25&cursor=' + encodeURIComponent(pageButton.dataset.activityCursor));
-		  currentDetail.activity.transactions = [...(currentDetail.activity.transactions || []),...(next.transactions || [])];
-		  currentDetail.activity.nextCursor = next.nextCursor;
+		  const previousFlow = currentDetail.activity.fundsFlow || {};
+		  const nextFlow = next.fundsFlow || {};
+		  currentDetail.activity = {
+			...currentDetail.activity,
+			...next,
+			transactions: [...(currentDetail.activity.transactions || []),...(next.transactions || [])],
+			contractActivityCount: Number(currentDetail.activity.contractActivityCount || 0) + Number(next.contractActivityCount || 0),
+			fundsFlow: {
+			  inboundYnxt: Number(previousFlow.inboundYnxt || 0) + Number(nextFlow.inboundYnxt || 0),
+			  outboundYnxt: Number(previousFlow.outboundYnxt || 0) + Number(nextFlow.outboundYnxt || 0)
+			}
+		  };
 		  showDrawer('account',currentDetailQuery,currentDetail);
 		} catch (_) { showToast(t('unavailable')); pageButton.disabled = false; }
 		return;

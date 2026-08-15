@@ -4,6 +4,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -63,6 +64,17 @@ func TestEvaluateReportExpectedOutage(t *testing.T) {
 	}
 	if err := evaluateReport(recovered, false); err == nil {
 		t.Fatal("transient errors were accepted outside an expected outage drill")
+	}
+}
+
+func TestSSERecoveryCountsEachClientOnlyOnce(t *testing.T) {
+	clients := make([]atomic.Bool, 2)
+	var total atomic.Int64
+	if !markSSERecovered(clients, 0, &total) || markSSERecovered(clients, 0, &total) {
+		t.Fatal("one subscriber was allowed to satisfy multiple recovery slots")
+	}
+	if !markSSERecovered(clients, 1, &total) || total.Load() != 2 {
+		t.Fatalf("distinct subscriber recoveries were not counted: %d", total.Load())
 	}
 }
 

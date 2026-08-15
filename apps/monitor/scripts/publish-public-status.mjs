@@ -79,7 +79,7 @@ export async function buildSnapshot({ probes, key, source, approvalId, timeoutMs
   if (!/^[a-z0-9][a-z0-9._:-]{0,119}$/i.test(source || "")) throw new Error("YNX_MONITOR_PUBLIC_STATUS_EXPECTED_SOURCE is invalid");
   if (!/^[a-z0-9][a-z0-9._:-]{0,119}$/i.test(approvalId || "")) throw new Error("YNX_MONITOR_PUBLIC_STATUS_APPROVAL_ID is invalid");
   const asOf = now.toISOString();
-  const services = await Promise.all(probes.map(async (probe) => {
+  const rawServices = await Promise.all(probes.map(async (probe) => {
     if (!probe || !/^[a-z0-9][a-z0-9._:-]{0,79}$/i.test(probe.id || "") || typeof probe.name !== "string" || !probe.name.trim() || typeof probe.url !== "string") throw new Error("invalid public status probe");
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), timeoutMs);
@@ -93,13 +93,33 @@ export async function buildSnapshot({ probes, key, source, approvalId, timeoutMs
 	  const identity = identityFrom(version, health);
 	  const reportedDependencies = record(health.dependencies);
 	  const dependencyIDs = [...new Set([...(Array.isArray(probe.dependencies) ? probe.dependencies : []), ...Object.keys(reportedDependencies)])].filter((id) => /^[a-z0-9][a-z0-9._:-]{0,79}$/i.test(id)).slice(0, 20);
-	  const dependencies = dependencyIDs.map((id) => ({ id, status: id in reportedDependencies ? publicDependencyStatus(reportedDependencies[id]) : "unknown" }));
-	  const status = healthStatus(response, health, dependencies);
-	  return { id: probe.id, name: probe.name.slice(0, 120), status, asOf, checkedAt: asOf, ...identity, dependencies, message: status === "operational" ? "Bounded public probe returned verified healthy evidence." : "Bounded public probe did not return verified healthy evidence." };
+	  const baseStatus = healthStatus(response, health, []);
+	  return { id: probe.id, name: probe.name.slice(0, 120), baseStatus, asOf, checkedAt: asOf, ...identity, dependencyIDs, reportedDependencies };
     } catch {
-	  return { id: probe.id, name: probe.name.slice(0, 120), status: "major_outage", asOf, checkedAt: asOf, sourceCommit: null, release: null, startedAt: null, dependencies: (Array.isArray(probe.dependencies) ? probe.dependencies : []).filter((id) => /^[a-z0-9][a-z0-9._:-]{0,79}$/i.test(id)).slice(0,20).map((id) => ({ id, status: "unknown" })), message: "Bounded public probe was unavailable before its timeout." };
+	  return { id: probe.id, name: probe.name.slice(0, 120), baseStatus: "major_outage", asOf, checkedAt: asOf, sourceCommit: null, release: null, startedAt: null, dependencyIDs: (Array.isArray(probe.dependencies) ? probe.dependencies : []).filter((id) => /^[a-z0-9][a-z0-9._:-]{0,79}$/i.test(id)).slice(0,20), reportedDependencies: {} };
     } finally { clearTimeout(timeout); }
   }));
+  // Resolve configured dependency IDs from the corresponding probes. Iterate to
+  // a fixed point so a failed RPC propagates through indexer and explorer even
+  // when those health payloads omit their own dependency maps.
+  const resolvedStatuses = new Map(rawServices.map((service) => [service.id, service.baseStatus]));
+  for (let pass = 0; pass < rawServices.length; pass++) {
+	let changed = false;
+	for (const service of rawServices) {
+	  let status = service.baseStatus;
+	  for (const id of service.dependencyIDs) {
+		const dependencyStatus = id in service.reportedDependencies ? publicDependencyStatus(service.reportedDependencies[id]) : (resolvedStatuses.get(id) || "unknown");
+		if (status !== "major_outage" && ranks[dependencyStatus] > ranks[status]) status = dependencyStatus;
+	  }
+	  if (resolvedStatuses.get(service.id) !== status) { resolvedStatuses.set(service.id, status); changed = true; }
+	}
+	if (!changed) break;
+  }
+  const services = rawServices.map(({ baseStatus, dependencyIDs, reportedDependencies, ...service }) => {
+	const dependencies = dependencyIDs.map((id) => ({ id, status: id in reportedDependencies ? publicDependencyStatus(reportedDependencies[id]) : (resolvedStatuses.get(id) || "unknown") }));
+	const status = resolvedStatuses.get(service.id) || "unknown";
+	return { ...service, status, dependencies, message: status === "operational" ? "Bounded public probe returned verified healthy evidence." : baseStatus === "major_outage" ? "Bounded public probe was unavailable or unhealthy." : "A configured dependency did not return verified healthy evidence." };
+  });
   const status = services.reduce((worst, service) => ranks[service.status] > ranks[worst] ? service.status : worst, "operational");
   return signSnapshot({
 	  schemaVersion: "ynx.monitor.public-status-source.v2",

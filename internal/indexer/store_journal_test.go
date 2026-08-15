@@ -75,6 +75,34 @@ func TestStoreRejectsJournalSequenceGap(t *testing.T) {
 	}
 }
 
+func TestStoreRepairsIncompleteFinalJournalFrame(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "index.json")
+	store := NewStore(path)
+	if err := store.Save(Database{Version: 2, Blocks: map[string]chain.Block{}, Transactions: map[string]chain.Transaction{}}); err != nil {
+		t.Fatal(err)
+	}
+	status := Status{Network: "YNX Testnet", ChainID: 6423, NativeCurrencySymbol: "YNXT", Height: 1, LatestBlockHash: blockHash(1)}
+	if _, err := store.UpsertBlock("https://rpc.ynx.invalid", status, chain.Block{Height: 1, Hash: blockHash(1)}); err != nil {
+		t.Fatal(err)
+	}
+	journalPath := path + ".journal"
+	complete, err := os.ReadFile(journalPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(journalPath, append(append([]byte{}, complete...), []byte(`{"version":1,"sequence":2`)...), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	db, err := NewStore(path).Load()
+	if err != nil || db.LastIndexedHeight != 1 || db.JournalSequence != 1 {
+		t.Fatalf("torn final frame prevented recovery: db=%+v err=%v", db, err)
+	}
+	repaired, err := os.ReadFile(journalPath)
+	if err != nil || !bytes.Equal(repaired, complete) {
+		t.Fatalf("torn final frame was not truncated: got=%d want=%d err=%v", len(repaired), len(complete), err)
+	}
+}
+
 func TestStoreBackupRestoresSnapshotAndJournalInIsolation(t *testing.T) {
 	sourcePath := filepath.Join(t.TempDir(), "index.json")
 	store := NewStore(sourcePath)

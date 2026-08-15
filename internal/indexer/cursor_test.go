@@ -68,6 +68,19 @@ func TestLatestPagesRemainStableWhenNewRecordsArrive(t *testing.T) {
 	}
 }
 
+func TestLatestBlocksStopsAtRetainedLowerBound(t *testing.T) {
+	const earliest = uint64(1_000_000)
+	db := Database{
+		Blocks:               map[string]chain.Block{strconv.FormatUint(earliest, 10): {Height: earliest, Hash: "retained"}},
+		LastIndexedHeight:    earliest,
+		SourceEarliestHeight: earliest,
+	}
+	blocks, cursor, err := LatestBlocksPage(db, 25, "")
+	if err != nil || len(blocks) != 1 || blocks[0].Height != earliest || cursor != "" {
+		t.Fatalf("retained-window pagination escaped its lower bound: blocks=%+v cursor=%q err=%v", blocks, cursor, err)
+	}
+}
+
 func TestAccountTransactionsPageFiltersAndPaginatesCanonicalActivity(t *testing.T) {
 	base := time.Unix(100, 0).UTC()
 	db := Database{Transactions: map[string]chain.Transaction{

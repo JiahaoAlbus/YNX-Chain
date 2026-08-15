@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -403,7 +404,7 @@ func (s *Store) appendJournalLocked(record storeJournalRecord) error {
 }
 
 func (s *Store) replayJournalLocked(db *Database) (uint64, error) {
-	journal, err := os.Open(s.journalPath)
+	journal, err := os.OpenFile(s.journalPath, os.O_RDWR, 0o600)
 	if os.IsNotExist(err) {
 		return 0, nil
 	}
@@ -411,11 +412,42 @@ func (s *Store) replayJournalLocked(db *Database) (uint64, error) {
 		return 0, err
 	}
 	defer journal.Close()
-	scanner := bufio.NewScanner(journal)
-	scanner.Buffer(make([]byte, 64*1024), storeJournalRecordBytes)
+	reader := bufio.NewReaderSize(journal, 64*1024)
 	var records uint64
-	for scanner.Scan() {
-		line := scanner.Bytes()
+	var completeBytes int64
+	for {
+		line := make([]byte, 0, 64*1024)
+		var readErr error
+		for {
+			fragment, fragmentErr := reader.ReadSlice('\n')
+			if len(line)+len(fragment) > storeJournalRecordBytes {
+				return records, fmt.Errorf("index journal record %d exceeds size limit", records+1)
+			}
+			line = append(line, fragment...)
+			if fragmentErr == bufio.ErrBufferFull {
+				continue
+			}
+			readErr = fragmentErr
+			break
+		}
+		if readErr == io.EOF {
+			if len(line) > 0 {
+				// appendJournalLocked always terminates and fsyncs complete frames.
+				// An unterminated EOF fragment is therefore a torn final write, not
+				// a record that is safe to replay.
+				if err := journal.Truncate(completeBytes); err != nil {
+					return records, fmt.Errorf("truncate incomplete index journal tail: %w", err)
+				}
+				if err := journal.Sync(); err != nil {
+					return records, fmt.Errorf("sync repaired index journal: %w", err)
+				}
+			}
+			break
+		}
+		if readErr != nil {
+			return records, readErr
+		}
+		completeBytes += int64(len(line))
 		if len(strings.TrimSpace(string(line))) == 0 {
 			continue
 		}
@@ -442,9 +474,6 @@ func (s *Store) replayJournalLocked(db *Database) (uint64, error) {
 		default:
 			return records, fmt.Errorf("unsupported index journal operation %q", record.Operation)
 		}
-	}
-	if err := scanner.Err(); err != nil {
-		return records, err
 	}
 	return records, nil
 }
@@ -767,6 +796,10 @@ func LatestBlocksPage(db Database, limit int, after string) ([]chain.Block, stri
 		}
 		startHeight = position - 1
 	}
+	lowerBound := db.SourceEarliestHeight
+	if lowerBound > startHeight {
+		return []chain.Block{}, "", nil
+	}
 
 	// Indexed block heights are canonical and monotonically increasing. Walk the
 	// height-keyed map directly instead of allocating and sorting every retained
@@ -781,7 +814,7 @@ func LatestBlocksPage(db Database, limit int, after string) ([]chain.Block, stri
 				break
 			}
 		}
-		if height == 0 {
+		if height == lowerBound || height == 0 {
 			break
 		}
 	}

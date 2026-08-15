@@ -66,3 +66,27 @@ test("publisher fails closed on invalid, negative, and dependency-failed HTTP 20
     assert.deepEqual(snapshot.services.map((service) => service.status), ["major_outage", "major_outage", "major_outage"]);
   } finally { await new Promise((resolve) => server.close(resolve)); }
 });
+
+test("publisher resolves configured dependencies from probes and propagates failure", async () => {
+  const server = createServer((request, response) => {
+	const ok = request.url !== "/rpc";
+	response.writeHead(200, { "content-type": "application/json" }).end(JSON.stringify({ ok }));
+  });
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const address = server.address();
+  try {
+	const origin = `http://127.0.0.1:${address.port}`;
+	const snapshot = await buildSnapshot({
+	  probes: [
+		{ id: "rpc", name: "RPC", url: `${origin}/rpc` },
+		{ id: "indexer", name: "Indexer", url: `${origin}/indexer`, dependencies: ["rpc"] },
+		{ id: "explorer", name: "Explorer", url: `${origin}/explorer`, dependencies: ["indexer"] },
+	  ],
+	  key: "k".repeat(32), source: "ynx.status.publisher", approvalId: "dependency-probes-v1", timeoutMs: 1_000,
+	  now: new Date("2026-08-03T02:00:00.000Z"),
+	});
+	assert.deepEqual(snapshot.services.map((service) => service.status), ["major_outage", "major_outage", "major_outage"]);
+	assert.deepEqual(snapshot.services[1].dependencies, [{ id: "rpc", status: "major_outage" }]);
+	assert.deepEqual(snapshot.services[2].dependencies, [{ id: "indexer", status: "major_outage" }]);
+  } finally { await new Promise((resolve) => server.close(resolve)); }
+});

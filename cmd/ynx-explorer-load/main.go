@@ -129,6 +129,7 @@ func run(base string, duration time.Duration, concurrency, targetRPS, sseClients
 	}
 	samples := make(chan sample, concurrency*8)
 	var sseEvents, sseReconnects, sseRecoveries, sseErrors atomic.Int64
+	sseRecoveredClients := make([]atomic.Bool, sseClients)
 	var firstDisconnect, firstRecovery atomic.Int64
 	var workers sync.WaitGroup
 
@@ -175,7 +176,7 @@ func run(base string, duration time.Duration, concurrency, targetRPS, sseClients
 
 	for subscriber := 0; subscriber < sseClients; subscriber++ {
 		workers.Add(1)
-		go func() {
+		go func(subscriber int) {
 			defer workers.Done()
 			seenEvent := false
 			hadDisconnect := false
@@ -216,8 +217,9 @@ func run(base string, duration time.Duration, concurrency, targetRPS, sseClients
 					if strings.HasPrefix(scanner.Text(), "event:") {
 						sseEvents.Add(1)
 						if seenEvent && hadDisconnect {
-							sseRecoveries.Add(1)
-							firstRecovery.CompareAndSwap(0, time.Now().UnixNano())
+							if markSSERecovered(sseRecoveredClients, subscriber, &sseRecoveries) {
+								firstRecovery.CompareAndSwap(0, time.Now().UnixNano())
+							}
 							hadDisconnect = false
 						}
 						seenEvent = true
@@ -236,7 +238,7 @@ func run(base string, duration time.Duration, concurrency, targetRPS, sseClients
 					}
 				}
 			}
-		}()
+		}(subscriber)
 	}
 
 	go func() {
@@ -296,6 +298,14 @@ func waitReconnect(ctx context.Context) bool {
 	case <-timer.C:
 		return true
 	}
+}
+
+func markSSERecovered(clients []atomic.Bool, subscriber int, total *atomic.Int64) bool {
+	if subscriber < 0 || subscriber >= len(clients) || !clients[subscriber].CompareAndSwap(false, true) {
+		return false
+	}
+	total.Add(1)
+	return true
 }
 
 func evaluateReport(result report, expectedOutage bool) error {
