@@ -4,8 +4,8 @@
   "product": "YNX Finance",
   "productSlug": "finance",
   "owner": "24-finance",
-  "sourceBranch": "codex/integrate-finance-suite",
-  "sourceCommit": "7262eb5c45eb06b44b8713b9160eec66ffcba04c",
+  "sourceBranch": "codex/final-finance-suite",
+  "sourceCommit": "3b2383f5c18ab3eb5ce7f7f6a267d2cfe7c7e6a4",
   "network": {
     "cosmosChainId": "ynx_6423-1",
     "evmChainId": 6423,
@@ -66,6 +66,19 @@
       "YNX_FINANCE_QUANT_READ_KEY"
     ],
     "publicEvidence": "artifacts/finance/remote-public-probe-20260809.json"
+  },
+  "domainPortfolio": {
+    "endpoint": "GET /v1/domain/portfolio",
+    "schemaVersion": "ynx-finance-domain-v1",
+    "authentication": "canonical Wallet Product Session proof with finance.portfolio.read",
+    "response": "account-bound YNXT Portfolio with source provenance and truthful live/partial/stale/unavailable status",
+    "writeCapability": false,
+    "implementedLocal": true,
+    "testedLocal": true,
+    "deployedPublic": true,
+    "publicRelease": "ynx-finance-3b2383f5c18a",
+    "handoff": "docs/handoffs/finance-suite-v1/DOMAIN_PORTFOLIO_WEBSITE_HANDOFF.md",
+    "evidence": "docs/evidence/finance/domain-portfolio-public-deployment-2026-08-15.json"
   },
   "operations": {
     "stateVersion": 1,

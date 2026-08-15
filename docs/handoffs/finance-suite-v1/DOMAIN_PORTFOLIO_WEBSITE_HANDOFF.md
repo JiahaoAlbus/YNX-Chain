@@ -19,6 +19,17 @@ The central site may link to the canonical product URL for signed-out browsing.
 It must not proxy account data, request a seed phrase, manufacture a portfolio,
 or treat the public landing page as an authenticated portfolio view.
 
+## Current public Testnet release
+
+- Release: `ynx-finance-3b2383f5c18a`
+- Runtime source commit: `3b2383f5c18ab3eb5ce7f7f6a267d2cfe7c7e6a4`
+- Binary SHA-256: `0cc43c8a77c12975a0fcbada65971f08f2bc3a52345d547ea194dd3ccd60d83f`
+- Deployment/public-probe evidence:
+  `docs/evidence/finance/domain-portfolio-public-deployment-2026-08-15.json`
+
+This is a public Testnet deployment, not a production-signing, download-hosting,
+or store-release claim.
+
 ## Endpoint response contract
 
 `/v1/domain/portfolio` returns `ynx-finance-domain-v1` with:

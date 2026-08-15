@@ -1,0 +1,56 @@
+{
+  "schemaVersion": "ynx-finance-public-deployment-evidence-v1",
+  "recordedAt": "2026-08-15T05:39:14Z",
+  "product": "YNX Finance",
+  "network": "YNX Testnet (ynx_6423-1)",
+  "truthfulReleaseState": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "deployedPublic": true,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "deployment": {
+    "script": "scripts/deploy/deploy-finance-testnet.sh",
+    "release": "ynx-finance-3b2383f5c18a",
+    "sourceCommit": "3b2383f5c18ab3eb5ce7f7f6a267d2cfe7c7e6a4",
+    "binarySha256": "0cc43c8a77c12975a0fcbada65971f08f2bc3a52345d547ea194dd3ccd60d83f",
+    "webTreeSha256": "030db73821a12741e1f8271902b6f5b42eec0ddf4e1d65978868671d5e4a77fa",
+    "archiveSha256": "ee151000f60d2ce1f008fdcb94334bcbdee87b6f8aa435287859bf8aed79d92f",
+    "rollbackBackup": "/var/backups/ynx-finance/20260815T052739Z-pre-ynx-finance-3b2383f5c18a"
+  },
+  "publicEndpoints": {
+    "website": "https://finance.ynxweb4.com/",
+    "health": "https://finance.ynxweb4.com/health",
+    "version": "https://finance.ynxweb4.com/version",
+    "domainPortfolio": "https://finance.ynxweb4.com/v1/domain/portfolio"
+  },
+  "verification": {
+    "localTest": "go test ./internal/finance/...",
+    "localTestResult": "passed",
+    "publicIpv4Health": {
+      "httpStatus": 200,
+      "commit": "3b2383f5c18ab3eb5ce7f7f6a267d2cfe7c7e6a4",
+      "release": "ynx-finance-3b2383f5c18a",
+      "service": "ynx-finance",
+      "custody": "none",
+      "portfolio": "read-only"
+    },
+    "reverseProxyHealth": {
+      "httpStatus": 200,
+      "commit": "3b2383f5c18ab3eb5ce7f7f6a267d2cfe7c7e6a4",
+      "release": "ynx-finance-3b2383f5c18a"
+    },
+    "domainRoute": {
+      "authentication": "required; no public account data is exposed",
+      "localAuthenticatedContractTest": "TestDomainPortfolioEndpointReturnsStableSchema"
+    }
+  },
+  "websiteIntegration": {
+    "globalRegistryModifiedByFinance": false,
+    "handoff": "docs/handoffs/finance-suite-v1/DOMAIN_PORTFOLIO_WEBSITE_HANDOFF.md",
+    "centralIntegrationOwner": "29-integration",
+    "status": "handoff-ready; central navigation registration remains owner-controlled"
+  }
+}
