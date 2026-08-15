@@ -6,7 +6,7 @@
   "recordedAt": "2026-08-14T03:52:00Z",
   "evidenceMatrix": {
     "path": "release/integration/wallet-auth-release-evidence-matrix.json",
-    "sha256": "3bf3f145e41f0f33ffbd6d58cd1c973cd1310dbe5427761effcf651ef398e73a",
+    "sha256": "840beb99e6fea1761812e2b98c0fa2bbe16a8262b0accab82128f5d3422c180e",
     "platforms": 21,
     "gatesPerPlatform": 12,
     "trueGates": 106,
@@ -19,7 +19,7 @@
     "androidApi36": "dedfcb67fbb714e8aeefdf552a683c38bba0478f",
     "iosMacos": "3b27b83f18799ff74252469075ec460b6665dd44",
     "desktopCliSdk": "2802876f8470264c4a8819f1426e28f957a09289",
-    "walletProductSessionRouter": "cdf56db727158c55a36f9ae3cad316b243149a7b",
+    "walletProductSessionRouter": "04e5554d616cdd9ee3a3fdc6f7bccaa2e61d3907",
     "walletProductSessionWebsitePublication": "24c0589e729a2a1ae59400600c346e6f18dd7864"
   },
   "externalDependencyAcceptance": {
@@ -109,7 +109,7 @@
     "Web source 020f513e freezes three-way discovery: injected-provider clients require a real EIP-1193/EIP-6963 provider; external-mobile YNX fails closed because its canonical callback is null and binding is disabled/pending; MetaMask uses the frozen mobile dapp-link candidate but still requires a real provider. The new 274,329/189,922/189,959-byte artifacts are not the older officially hosted set, so latest-source hosting, mobile-visible behavior, account, sign, transaction and Testnet claims remain false.",
     "The cross-ecosystem Android launcher caller gate is intentionally blocked by legacy schemes/routes and manual URI construction; product callbacks remain registry-bound and are not silently rewritten.",
     "Core/Auth contract 94c7f3c9 and blob 714c2b36 classify 30 blocking release-runtime callers while generated bundles have zero legacy blockers and four shared-builder-bound canonical literals. Both strict caller gates remain red; owners must migrate runtime concatenation through encodeRequestDeepLink and preserve registry callbacks. Pixel 9, integratedCentral and public acceptance remain false.",
-    "Wallet/Auth source cdf56db7 freezes createProductWalletConnection as the sole product factory, with factory-owned callback/origin/session/Wallet URL, crypto nonce/state and system time plus same-product/platform legacy registry migration. Local 211/211 and 120 unique concurrent states do not migrate any of 12 products; PR CI, 6439 deployment, visible platform lifecycle, integratedCentral and public remain false.",
+    "Wallet/Auth source 04e5554d supersedes 4d4749c6: the factory also requires an async platform secure-device signer, rejects raw P-256 keys and locally verifies returned challenge/proof signatures. Local 214/214 and 120 unique concurrent states do not migrate any of 12 products; PR CI, 6439 deployment, visible platform lifecycle, integratedCentral and public remain false.",
     "Core/Auth a46d5456 binds the Web-only wallet-web-companion registry tuple and real local handler/fetch-adapter lifecycle. Its approved/enabled registry status is local candidate truth only; product migration, public Gateway registry load, callback deployment, visible Web/mobile lifecycle, integratedCentral and aggregate public remain false.",
     "Product Session Router v2 hardened evidence 2bcdf4f6 supersedes cc6c3936 and freezes deployed source d26ed915: isolated 6441 passes rollback, public lifecycle and a real chmod 0644 tamper with HTTP 503 INSECURE_STATE_FILE, unchanged state bytes, no silent repair and sticky fail-close until explicit 0600+restart recovery. Legacy 6437/6439 remain unchanged, runtimeProductsMigrated=0, visible Wallet approval=false, and integratedCentral plus aggregate Product Session deployment remain false.",
     "Web commit 60614bf5 directly proves first and second launch of an unsigned temporary YNX add-on in official notarized Firefox 153.0.4; install, popup DOM/background, provider/account/sign/tx, extension signing and store claims remain false.",

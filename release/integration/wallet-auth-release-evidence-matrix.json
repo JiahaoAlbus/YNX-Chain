@@ -168,11 +168,11 @@
     {
       "owner": "wallet-product-session-router",
       "branch": "codex/wallet-session-router-recovery",
-      "sourceCommit": "cdf56db727158c55a36f9ae3cad316b243149a7b",
-      "remoteCommitObserved": "cdf56db727158c55a36f9ae3cad316b243149a7b",
-      "branchHeadObserved": "cdf56db727158c55a36f9ae3cad316b243149a7b",
+      "sourceCommit": "04e5554d616cdd9ee3a3fdc6f7bccaa2e61d3907",
+      "remoteCommitObserved": "04e5554d616cdd9ee3a3fdc6f7bccaa2e61d3907",
+      "branchHeadObserved": "04e5554d616cdd9ee3a3fdc6f7bccaa2e61d3907",
       "remoteVerifiedAt": "2026-08-15T03:20:00Z",
-      "verificationMode": "remote-sha-parent-tree-shared-factory-handoff-blob-readback"
+      "verificationMode": "remote-sha-parent-tree-endpoint-transport-pin-handoff-blob-readback"
     }
   ],
   "evidence": {
@@ -566,9 +566,9 @@
     "product-wallet-connection-shared-factory": {
       "type": "git-object",
       "direct": true,
-      "commit": "cdf56db727158c55a36f9ae3cad316b243149a7b",
+      "commit": "04e5554d616cdd9ee3a3fdc6f7bccaa2e61d3907",
       "path": "packages/wallet-auth/CENTRAL_INTEGRATION.md",
-      "blob": "9dd9b7987c06d6c8ca27fe7a19a0a46d7d7c2475",
+      "blob": "14c1db947590fd70b59a12fec83858f7a55c67a2",
       "supports": ["gateway.build"]
     },
     "wallet-web-companion-core-runtime-candidate": {
