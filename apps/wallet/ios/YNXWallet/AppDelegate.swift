@@ -19,12 +19,21 @@ private func verifyFrozenEndpointMatrixAndChain() async {
     return
   }
 
+  let configuration: WalletEndpointConfiguration
   do {
-    let configuration = try EndpointMatrixPolicy.parse(Data(contentsOf: matrixURL))
+    configuration = try EndpointMatrixPolicy.parse(Data(contentsOf: matrixURL))
     let rpcHost = configuration.rpcURL.host ?? "unknown"
     walletNetworkLogger.notice(
       "YNX_WALLET_ENDPOINT_MATRIX_LOADED pid=\(getpid(), privacy: .public) matrixId=\(configuration.matrixID, privacy: .public) rpcHost=\(rpcHost, privacy: .public) rpcPath=\(configuration.rpcURL.path, privacy: .public) integratedCentral=\(configuration.integratedCentral, privacy: .public)"
     )
+  } catch {
+    walletNetworkLogger.error(
+      "YNX_WALLET_ENDPOINT_MATRIX_UNAVAILABLE pid=\(getpid(), privacy: .public) code=MATRIX_REJECTED"
+    )
+    return
+  }
+
+  do {
     let observation = try await ChainRPCProbe().run(configuration: configuration)
     walletNetworkLogger.notice(
       "YNX_WALLET_RPC_CHAIN_ID_VERIFIED pid=\(getpid(), privacy: .public) chainId=\(observation.chainIDHex, privacy: .public) bytes=\(observation.responseBytes, privacy: .public)"
@@ -32,6 +41,17 @@ private func verifyFrozenEndpointMatrixAndChain() async {
   } catch {
     walletNetworkLogger.error(
       "YNX_WALLET_RPC_CHAIN_ID_UNAVAILABLE pid=\(getpid(), privacy: .public) code=ENDPOINT_OR_RESPONSE_REJECTED"
+    )
+  }
+
+  do {
+    let observation = try await AppGatewayReachabilityProbe().run(configuration: configuration)
+    walletNetworkLogger.notice(
+      "YNX_WALLET_REST_APP_GATEWAY_REACHABLE pid=\(getpid(), privacy: .public) status=\(observation.statusCode, privacy: .public) bytes=\(observation.responseBytes, privacy: .public)"
+    )
+  } catch {
+    walletNetworkLogger.error(
+      "YNX_WALLET_REST_APP_GATEWAY_UNAVAILABLE pid=\(getpid(), privacy: .public) code=ENDPOINT_OR_RESPONSE_REJECTED"
     )
   }
 }

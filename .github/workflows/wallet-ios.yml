@@ -138,6 +138,8 @@ jobs:
             if grep -Fq "YNX_WALLET_ENDPOINT_MATRIX_LOADED pid=$COLD_PID matrixId=ynx-wallet-auth-public-endpoint-service-discovery-v1 rpcHost=rpc.ynxweb4.com rpcPath=/evm integratedCentral=false" \
                  proof/ci-ios/cold-launch-network-native.log && \
                grep -Fq "YNX_WALLET_RPC_CHAIN_ID_VERIFIED pid=$COLD_PID chainId=0x1917" \
+                 proof/ci-ios/cold-launch-network-native.log && \
+               grep -Fq "YNX_WALLET_REST_APP_GATEWAY_REACHABLE pid=$COLD_PID status=200" \
                  proof/ci-ios/cold-launch-network-native.log; then
               NETWORK_READY=true
               break
@@ -167,6 +169,8 @@ jobs:
             if grep -Fq "YNX_WALLET_ENDPOINT_MATRIX_LOADED pid=$SECOND_PID matrixId=ynx-wallet-auth-public-endpoint-service-discovery-v1 rpcHost=rpc.ynxweb4.com rpcPath=/evm integratedCentral=false" \
                  proof/ci-ios/second-launch-network-native.log && \
                grep -Fq "YNX_WALLET_RPC_CHAIN_ID_VERIFIED pid=$SECOND_PID chainId=0x1917" \
+                 proof/ci-ios/second-launch-network-native.log && \
+               grep -Fq "YNX_WALLET_REST_APP_GATEWAY_REACHABLE pid=$SECOND_PID status=200" \
                  proof/ci-ios/second-launch-network-native.log; then
               SECOND_NETWORK_READY=true
               break

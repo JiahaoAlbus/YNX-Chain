@@ -8,6 +8,7 @@ public enum EndpointMatrixError: Error, Equatable, Sendable {
   case endpointUnavailable
   case responseTooLarge
   case invalidRPCResponse
+  case invalidHTTPResponse
   case wrongChain
 }
 
@@ -20,6 +21,8 @@ public struct WalletEndpointConfiguration: Equatable, Sendable {
   public let restURL: URL
   public let rpcURL: URL
   public let rpcAvailable: Bool
+  public let appHealthURL: URL
+  public let appHealthAvailable: Bool
   public let faucetAvailable: Bool
   public let walletCallbackAvailable: Bool
   public let integratedCentral: Bool
@@ -29,6 +32,8 @@ public struct WalletEndpointConfiguration: Equatable, Sendable {
     restURL: URL,
     rpcURL: URL,
     rpcAvailable: Bool,
+    appHealthURL: URL,
+    appHealthAvailable: Bool,
     faucetAvailable: Bool,
     walletCallbackAvailable: Bool,
     integratedCentral: Bool
@@ -37,6 +42,8 @@ public struct WalletEndpointConfiguration: Equatable, Sendable {
     self.restURL = restURL
     self.rpcURL = rpcURL
     self.rpcAvailable = rpcAvailable
+    self.appHealthURL = appHealthURL
+    self.appHealthAvailable = appHealthAvailable
     self.faucetAvailable = faucetAvailable
     self.walletCallbackAvailable = walletCallbackAvailable
     self.integratedCentral = integratedCentral
@@ -66,18 +73,25 @@ public enum EndpointMatrixPolicy {
           let rpc = endpoint("chain-rpc-canonical", in: endpoints),
           rpc["url"] as? String == rpcRaw,
           let rpcAvailable = rpc["availability"] as? Bool,
+          let appHealth = endpoint("app-gateway-v1", in: endpoints),
+          let appHealthRaw = appHealth["url"] as? String,
+          let appHealthURL = strictHTTPSURL(appHealthRaw, requireOrigin: false),
+          appHealthURL.absoluteString == restURL.appendingPathComponent("app/health").absoluteString,
+          let appHealthAvailable = appHealth["availability"] as? Bool,
           let faucetAvailable = endpoint("faucet", in: endpoints)?["availability"] as? Bool,
           let callbackAvailable = endpoint("wallet-callback", in: endpoints)?["availability"] as? Bool,
           let aggregate = root["aggregate"] as? [String: Any],
           let integratedCentral = aggregate["integratedCentral"] as? Bool else {
       throw EndpointMatrixError.invalidCanonicalEndpoint
     }
-    guard rpcAvailable else { throw EndpointMatrixError.endpointUnavailable }
+    guard rpcAvailable, appHealthAvailable else { throw EndpointMatrixError.endpointUnavailable }
     return WalletEndpointConfiguration(
       matrixID: matrixID,
       restURL: restURL,
       rpcURL: rpcURL,
       rpcAvailable: rpcAvailable,
+      appHealthURL: appHealthURL,
+      appHealthAvailable: appHealthAvailable,
       faucetAvailable: faucetAvailable,
       walletCallbackAvailable: callbackAvailable,
       integratedCentral: integratedCentral
@@ -100,6 +114,51 @@ public enum EndpointMatrixPolicy {
           components.port == nil else { return nil }
     if requireOrigin && !(components.path.isEmpty || components.path == "/") { return nil }
     return components.url
+  }
+}
+
+public struct HTTPReachabilityObservation: Equatable, Sendable {
+  public let statusCode: Int
+  public let responseBytes: Int
+
+  public init(statusCode: Int, responseBytes: Int) {
+    self.statusCode = statusCode
+    self.responseBytes = responseBytes
+  }
+}
+
+public enum HTTPReachabilityResponsePolicy {
+  public static let maximumBytes = 256 * 1024
+
+  public static func verify(statusCode: Int, data: Data) throws -> HTTPReachabilityObservation {
+    guard data.count <= maximumBytes else { throw EndpointMatrixError.responseTooLarge }
+    guard statusCode == 200 else { throw EndpointMatrixError.invalidHTTPResponse }
+    return HTTPReachabilityObservation(statusCode: statusCode, responseBytes: data.count)
+  }
+}
+
+public struct AppGatewayReachabilityProbe: Sendable {
+  private let session: URLSession
+
+  public init(session: URLSession = .shared) {
+    self.session = session
+  }
+
+  public func run(configuration: WalletEndpointConfiguration) async throws -> HTTPReachabilityObservation {
+    guard configuration.appHealthAvailable else { throw EndpointMatrixError.endpointUnavailable }
+    var request = URLRequest(url: configuration.appHealthURL)
+    request.httpMethod = "GET"
+    request.timeoutInterval = 20
+    request.setValue("application/json", forHTTPHeaderField: "Accept")
+    let (data, response) = try await session.data(for: request)
+    guard let http = response as? HTTPURLResponse else {
+      throw EndpointMatrixError.invalidHTTPResponse
+    }
+    if let declared = http.value(forHTTPHeaderField: "Content-Length"),
+       let bytes = Int(declared), bytes > HTTPReachabilityResponsePolicy.maximumBytes {
+      throw EndpointMatrixError.responseTooLarge
+    }
+    return try HTTPReachabilityResponsePolicy.verify(statusCode: http.statusCode, data: data)
   }
 }
 

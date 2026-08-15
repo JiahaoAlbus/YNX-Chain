@@ -42,14 +42,18 @@ final class WalletState: ObservableObject {
       networkLogger.notice(
         "YNX_WALLET_MAC_ENDPOINT_MATRIX_LOADED pid=\(getpid(), privacy: .public) matrixId=\(configuration.matrixID, privacy: .public) rpcHost=\(rpcHost, privacy: .public) rpcPath=\(configuration.rpcURL.path, privacy: .public) integratedCentral=\(configuration.integratedCentral, privacy: .public)"
       )
-      let observation = try await ChainRPCProbe().run(configuration: configuration)
-      networkBoundary = "YNX Testnet RPC verified · chain \(observation.chainIDHex)"
+      let chainObservation = try await ChainRPCProbe().run(configuration: configuration)
       networkLogger.notice(
-        "YNX_WALLET_MAC_RPC_CHAIN_ID_VERIFIED pid=\(getpid(), privacy: .public) chainId=\(observation.chainIDHex, privacy: .public) bytes=\(observation.responseBytes, privacy: .public)"
+        "YNX_WALLET_MAC_RPC_CHAIN_ID_VERIFIED pid=\(getpid(), privacy: .public) chainId=\(chainObservation.chainIDHex, privacy: .public) bytes=\(chainObservation.responseBytes, privacy: .public)"
       )
+      let restObservation = try await AppGatewayReachabilityProbe().run(configuration: configuration)
+      networkLogger.notice(
+        "YNX_WALLET_MAC_REST_APP_GATEWAY_REACHABLE pid=\(getpid(), privacy: .public) status=\(restObservation.statusCode, privacy: .public) bytes=\(restObservation.responseBytes, privacy: .public)"
+      )
+      networkBoundary = "YNX Testnet endpoints verified · chain \(chainObservation.chainIDHex) · REST HTTP \(restObservation.statusCode)"
     } catch {
-      networkBoundary = "Testnet endpoint unavailable: matrix or chain response rejected."
-      networkLogger.error("YNX_WALLET_MAC_RPC_CHAIN_ID_UNAVAILABLE pid=\(getpid(), privacy: .public) code=ENDPOINT_OR_RESPONSE_REJECTED")
+      networkBoundary = "Testnet endpoint unavailable: matrix, RPC, or REST response rejected."
+      networkLogger.error("YNX_WALLET_MAC_ENDPOINTS_UNAVAILABLE pid=\(getpid(), privacy: .public) code=ENDPOINT_OR_RESPONSE_REJECTED")
     }
   }
 
