@@ -65,7 +65,7 @@ jobs:
           CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -buildvcs=true -o dist/ynx-pay-data-fabric-bridge ./cmd/ynx-pay-data-fabric-bridge
           sha256sum dist/*
       - name: Upload isolated builder output
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: data-fabric-repro-builder-${{ matrix.builder }}-${{ github.event.pull_request.head.sha || github.sha }}
           path: dist/*
@@ -84,12 +84,12 @@ jobs:
           go-version: "1.25.13"
           cache: false
       - name: Download builder A output
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           name: data-fabric-repro-builder-a-${{ github.event.pull_request.head.sha || github.sha }}
           path: builders/a
       - name: Download builder B output
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           name: data-fabric-repro-builder-b-${{ github.event.pull_request.head.sha || github.sha }}
           path: builders/b
@@ -165,7 +165,7 @@ jobs:
             }' > evidence/data-fabric-reproducible-build.json
           jq -e '.byteIdentical == true and .builders.count == 2 and (.binaries | length) == 4 and .artifactScan.scanned == 4 and .artifactScan.knownVulnerabilitiesAffectingCode == 0 and (.artifactScan.rawModuleFindings | length) == 4' evidence/data-fabric-reproducible-build.json
       - name: Upload reproducibility receipt
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: data-fabric-reproducible-build-${{ github.event.pull_request.head.sha || github.sha }}
           path: |
@@ -488,7 +488,7 @@ jobs:
             and .partitionHealRTOMilliseconds >= 0
           ' /tmp/data-fabric-postgres-resilience/jetstream-cluster-partition.json
       - name: Upload exact-source PostgreSQL resilience evidence
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: data-fabric-postgres-resilience-${{ github.event.pull_request.head.sha || github.sha }}
           path: /tmp/data-fabric-postgres-resilience/*.json*
@@ -563,7 +563,7 @@ jobs:
             and .integrityValidatedRTOMilliseconds >= .acceptingConnectionsRTOMilliseconds
           ' "$YNX_DATA_FABRIC_FAILOVER_OUTPUT_DIR/postgres-replica-failover.json"
       - name: Upload exact-source PostgreSQL failover evidence
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: data-fabric-postgres-failover-${{ github.event.pull_request.head.sha || github.sha }}
           path: /tmp/data-fabric-postgres-failover/*.json
