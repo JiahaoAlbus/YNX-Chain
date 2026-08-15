@@ -1,4 +1,5 @@
-import { exactFields } from "./canonical.js";
+import { exactFields, WalletAuthError } from "./canonical.js";
+import { encodeBase64url } from "./base64url.js";
 import { ProductSessionGatewayFetchAdapter } from "./product-session-gateway-client.js";
 import { RecoverableProductSessionClient } from "./product-session-recovery.js";
 import { WalletConnectionCoordinator } from "./wallet-connection-coordinator.js";
@@ -6,7 +7,7 @@ import { WalletConnectionCoordinator } from "./wallet-connection-coordinator.js"
 const CONFIG_FIELDS = [
   "registry", "productId", "platform", "gatewayEndpoint", "fetch",
   "walletInstalled", "schemeRegistered", "gatewayTimeoutMs", "storage",
-  "device", "tokenFactory", "clock", "scope", "discoveryWaitMs",
+  "device", "scope", "discoveryWaitMs",
   "openWallet", "openTimeoutMs",
 ];
 
@@ -16,6 +17,7 @@ const CONFIG_FIELDS = [
  */
 export function createProductWalletConnection(config) {
   exactFields(config, CONFIG_FIELDS, "Product Wallet connection configuration");
+  assertSecureRuntime();
   const gateway = new ProductSessionGatewayFetchAdapter({
     endpoint: config.gatewayEndpoint,
     fetch: config.fetch,
@@ -30,8 +32,8 @@ export function createProductWalletConnection(config) {
     storage: config.storage,
     gateway,
     device: config.device,
-    tokenFactory: config.tokenFactory,
-    clock: config.clock,
+    tokenFactory: secureToken,
+    clock: systemClock,
   });
   return new WalletConnectionCoordinator({
     registry: config.registry,
@@ -43,3 +45,11 @@ export function createProductWalletConnection(config) {
     openTimeoutMs: config.openTimeoutMs,
   });
 }
+
+function secureToken() {
+  assertSecureRuntime();
+  return encodeBase64url(globalThis.crypto.getRandomValues(new Uint8Array(32)));
+}
+
+function systemClock() { return new Date(); }
+function assertSecureRuntime() { if (!globalThis.crypto || typeof globalThis.crypto.getRandomValues !== "function") throw new WalletAuthError("INVALID_RANDOM_SOURCE", "Product Wallet connection requires a cryptographic runtime"); }
