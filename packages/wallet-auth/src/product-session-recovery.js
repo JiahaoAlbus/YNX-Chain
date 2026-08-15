@@ -1,7 +1,7 @@
 import { canonicalJSON, exactFields, WalletAuthError } from "./canonical.js";
 import { httpBodyDigest } from "./session-proof.js";
-import { createProductSessionProofV2 } from "./product-session-proof-v2.js";
-import { createProductSessionChallenge, createProductSessionRequest, parseProductSession, parseProductSessionChallenge, parseProductSessionRequest, signProductSessionChallenge } from "./product-session-v2.js";
+import { createProductSessionProofV2, createProductSessionProofV2With } from "./product-session-proof-v2.js";
+import { createProductSessionChallenge, createProductSessionRequest, parseProductSession, parseProductSessionChallenge, parseProductSessionRequest, signProductSessionChallenge, signProductSessionChallengeWith } from "./product-session-v2.js";
 import { parseProductSessionRegistry, productPlatformBinding } from "./product-session-registry.js";
 import { parseProductSessionReturnURL, prepareWalletOpen, walletConnectionChoices, WALLET_ROUTE_STATUS } from "./product-session-router.js";
 
@@ -110,7 +110,9 @@ export class RecoverableProductSessionClient {
       const expectedChallenge = createProductSessionChallenge(this.#registry, request, returned.approval, { challenge: challenge.challenge }, new Date(challenge.issuedAt));
       if (canonicalJSON(challenge) !== canonicalJSON(expectedChallenge)) fail("SESSION_BINDING_MISMATCH", "Gateway challenge did not match the exact product request and Wallet approval");
       if (challenge.expiresAt <= this.#clock().toISOString()) fail("SESSION_EXPIRED", "Gateway challenge expired before product device signing");
-      const completion = signProductSessionChallenge(challenge, this.#device.secret);
+      const completion = this.#device.sign
+        ? await signProductSessionChallengeWith(challenge, this.#device.sign)
+        : signProductSessionChallenge(challenge, this.#device.secret);
       const session = parseProductSession(await this.#gateway.complete({ requestId: gatewayRequestId("f", request.state), request, approval: returned.approval, completion }));
       await this.#storage.set(this.storageKey, JSON.stringify(session));
       if (networkEpoch !== this.#networkEpoch) return this.#networkTransition("Network changed while protecting the issued Product Session; authoritative Retry is required");
@@ -173,7 +175,7 @@ export class RecoverableProductSessionClient {
     if (session !== null && session.expiresAt > this.#clock().toISOString()) {
       try {
         const body = {};
-        const proof = this.#proof(session, "/v2/product-sessions/revoke", body);
+        const proof = await this.#proof(session, "/v2/product-sessions/revoke", body);
         const result = await this.#gateway.revoke({ requestId: gatewayRequestId("r", proof.nonce), sessionBinding: session.sessionBinding, proof });
         if (result?.revoked !== session.sessionBinding) fail("INVALID_GATEWAY_RESPONSE", "Gateway did not confirm the exact Product Session revocation");
       } catch (error) {
@@ -189,19 +191,22 @@ export class RecoverableProductSessionClient {
 
   async #introspect(session) {
     const body = { requiredScopes: session.scopes };
-    const proof = this.#proof(session, "/v2/product-sessions/introspect", body);
+    const proof = await this.#proof(session, "/v2/product-sessions/introspect", body);
     const result = await this.#gateway.introspect({ requestId: gatewayRequestId("i", proof.nonce), sessionBinding: session.sessionBinding, requiredScopes: session.scopes, proof });
     if (result?.active !== true || canonicalJSON(parseProductSession(result.session)) !== canonicalJSON(session)) fail("SESSION_INACTIVE", "Gateway did not confirm the exact Product Session");
     return result;
   }
-  #proof(session, path, body) {
+  async #proof(session, path, body) {
     const now = this.#clock();
     const expiresAt = new Date(Math.min(now.getTime() + 30_000, Date.parse(session.expiresAt))).toISOString();
     if (expiresAt <= now.toISOString()) fail("SESSION_EXPIRED", "Product Session expired before sender-constrained authorization");
-    return createProductSessionProofV2(session, {
+    const input = {
       method: "POST", path, bodyDigest: httpBodyDigest(canonicalJSON(body)),
       nonce: this.#tokens(), issuedAt: now.toISOString(), expiresAt,
-    }, this.#device.secret);
+    };
+    return this.#device.sign
+      ? createProductSessionProofV2With(session, input, this.#device.sign)
+      : createProductSessionProofV2(session, input, this.#device.secret);
   }
   async #restoreStoredSession() {
     const raw = await this.#storage.get(this.storageKey);
@@ -236,7 +241,14 @@ export class RecoverableProductSessionClient {
 function state(status, message, extra = {}) { return Object.freeze({ status, message, ...extra, ...(extra.actions ? { actions: Object.freeze(extra.actions) } : {}), ...(extra.limitations ? { limitations: Object.freeze(extra.limitations) } : {}) }); }
 function secureStorage(value) { if (!value || !["hardware-backed", "os-protected"].includes(value.securityLevel) || ["get", "set", "remove"].some((name) => typeof value[name] !== "function")) fail("INSECURE_STORAGE", "Product Sessions require injected OS-protected or hardware-backed storage"); return value; }
 function gateway(value) { if (!value || ["challenge", "complete", "introspect", "revoke", "walletInstalled", "schemeRegistered"].some((name) => typeof value[name] !== "function")) fail("INVALID_GATEWAY", "Product Session client requires a real Gateway adapter"); return value; }
-function device(value) { exactFields(value, ["id", "key", "secret", "scopes", "purpose"], "Product Session device configuration"); if (typeof value.id !== "string" || typeof value.key !== "string" || typeof value.secret !== "string" || !Array.isArray(value.scopes) || typeof value.purpose !== "string") fail("INVALID_DEVICE", "Product Session device configuration is invalid"); return Object.freeze({ ...value, scopes: Object.freeze([...value.scopes]) }); }
+function device(value) {
+  const fields = Object.keys(value ?? {}).sort().join("\n");
+  const secretFields = ["id", "key", "secret", "scopes", "purpose"].sort().join("\n");
+  const signerFields = ["id", "key", "sign", "scopes", "purpose"].sort().join("\n");
+  if (fields !== secretFields && fields !== signerFields) fail("UNKNOWN_OR_MISSING_FIELD", "Product Session device configuration fields do not match the protocol schema");
+  if (typeof value.id !== "string" || typeof value.key !== "string" || !Array.isArray(value.scopes) || typeof value.purpose !== "string" || (fields === secretFields ? typeof value.secret !== "string" : typeof value.sign !== "function")) fail("INVALID_DEVICE", "Product Session device configuration is invalid");
+  return Object.freeze({ ...value, scopes: Object.freeze([...value.scopes]) });
+}
 function tokenFactory(value) { if (typeof value !== "function") fail("INVALID_RANDOM_SOURCE", "Product Session client requires a cryptographic token factory"); return () => { const token = value(); if (typeof token !== "string" || !/^[A-Za-z0-9_-]{32,64}$/.test(token)) fail("INVALID_RANDOM_SOURCE", "Product Session token factory returned an invalid token"); return token; }; }
 function clock(value) { if (typeof value !== "function") fail("INVALID_TIME", "Product Session client requires a clock"); return () => { const result = value(); if (!(result instanceof Date) || !Number.isFinite(result.getTime())) fail("INVALID_TIME", "Product Session clock returned invalid time"); return result; }; }
 function isNetworkUnavailable(error) { return error instanceof WalletAuthError && error.code === "NETWORK_UNAVAILABLE"; }

@@ -16,6 +16,21 @@ export function createProductSessionProofV2(sessionInput, input, deviceSecretInp
   return parseProductSessionProofV2({ ...unsigned, signature });
 }
 
+export async function createProductSessionProofV2With(sessionInput, input, signer) {
+  const session = parseProductSession(sessionInput); exactFields(input, INPUT_FIELDS, "Product Session v2 proof input");
+  if (typeof signer !== "function") fail("INVALID_DEVICE", "Product Session proof requires a platform device signer");
+  const unsigned = parseUnsigned({ version: "2", sessionBinding: session.sessionBinding, productId: session.productId, clientId: session.clientId, applicationId: session.applicationId, bundleId: session.bundleId, packageId: session.packageId, origin: session.origin, callback: session.callback, account: session.account, deviceId: session.deviceId, deviceKey: session.deviceKey, ...input });
+  const payload = encodeBase64url(utf8ToBytes(productSessionProofV2SignBytes(unsigned)));
+  let signature;
+  try { signature = await signer(Object.freeze({ purpose: "http-proof", algorithm: "p256-sha256", deviceKey: session.deviceKey, payload })); }
+  catch { fail("DEVICE_SIGNING_FAILED", "Platform device proof signing failed closed"); }
+  const proof = parseProductSessionProofV2({ ...unsigned, signature });
+  let valid = false;
+  try { valid = p256.verify(decodeBase64url(proof.signature, "signature"), decodeBase64url(payload, "device signing payload"), decodeBase64url(session.deviceKey, "deviceKey"), { format: "der", lowS: false }); } catch { valid = false; }
+  if (!valid) fail("INVALID_DEVICE_PROOF", "Platform device proof signature does not match the registered device key");
+  return proof;
+}
+
 export function parseProductSessionProofV2(input) {
   exactFields(input, PROOF_FIELDS, "Product Session v2 proof"); const { signature, ...unsigned } = input;
   const bytes = decodeBase64url(pattern(signature, "signature", /^[A-Za-z0-9_-]{90,96}$/), "signature");
