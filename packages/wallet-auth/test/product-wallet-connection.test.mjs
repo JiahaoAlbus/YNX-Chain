@@ -4,7 +4,9 @@ import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import { p256 } from "@noble/curves/nist.js";
 import {
-  createProductWalletConnection, PRODUCT_SESSION_CLIENT_STATE,
+  createProductSessionReturnURL, createProductWalletConnection,
+  PRODUCT_SESSION_CLIENT_STATE, PRODUCT_SESSION_GATEWAY_PROOF_HEADER_V2,
+  ProductSessionGatewayHttpHandler, signProductSessionApproval,
   WALLET_CONNECTION_COORDINATOR_STATUS, WalletAuthError,
 } from "../src/index.js";
 import * as productConnectionSubpath from "@ynx-chain/wallet-auth/product-wallet-connection";
@@ -32,6 +34,41 @@ test("factory derives the exact registered callback and opens no product-supplie
   assert.equal(opened.length, 1);
   assert.equal(opened[0].url, result.url);
   assert.equal(Object.hasOwn(opened[0], "session"), false);
+});
+
+test("factory completes the real Gateway lifecycle and restores it after a second launch", async () => {
+  let gatewayToken = 0;
+  const handler = new ProductSessionGatewayHttpHandler(registry, () => token(`factory-gateway-${gatewayToken++}`));
+  const fetch = async (url, init) => {
+    const parsed = new URL(url);
+    const response = handler.handle({
+      requestId: init.headers["x-request-id"], method: init.method, path: parsed.pathname,
+      contentType: init.headers["content-type"], body: init.body,
+      proofHeader: init.headers[PRODUCT_SESSION_GATEWAY_PROOF_HEADER_V2] ?? null,
+      networkAvailable: true,
+    }, now);
+    return new Response(response.body, { status: response.status, headers: response.headers });
+  };
+  const protectedStorage = storage();
+  const opened = [];
+  const first = createProductWalletConnection(config({ fetch, storage: protectedStorage, openWallet: async (input) => { opened.push(input); return { opened: true }; } }));
+  const pending = await first.beginYNX();
+  const approval = signProductSessionApproval(registry, pending.sessionState.request, {
+    accountSecret: "1".padStart(64, "0"), scopes: pending.sessionState.request.scopes,
+    expiresAt: "2026-08-15T00:03:00.000Z",
+  }, now);
+  const callback = createProductSessionReturnURL(registry, pending.sessionState.request, { result: "approved", approval }, now);
+  const connected = await first.handleReturn(callback);
+  assert.equal(connected.sessionState.status, PRODUCT_SESSION_CLIENT_STATE.CONNECTED);
+  assert.equal(connected.sessionState.session.productId, "social");
+  assert.equal(handler.snapshot().authority.sessions.length, 1);
+  assert.equal(opened.length, 1);
+
+  const restarted = createProductWalletConnection(config({ fetch, storage: protectedStorage, tokenFactory: (() => { let index = 0; return () => token(`factory-restart-${index++}`); })() }));
+  const restored = await restarted.restore(true);
+  assert.equal(restored.status, WALLET_CONNECTION_COORDINATOR_STATUS.SESSION_STATE);
+  assert.equal(restored.sessionState.status, PRODUCT_SESSION_CLIENT_STATE.CONNECTED);
+  assert.equal(restored.sessionState.session.sessionBinding, connected.sessionState.session.sessionBinding);
 });
 
 test("factory rejects callback, origin, session and unknown configuration injection", () => {
