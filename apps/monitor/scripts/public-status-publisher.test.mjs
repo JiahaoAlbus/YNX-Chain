@@ -42,6 +42,8 @@ test("publisher records real identity, dependencies, success and failure without
 	assert.equal(snapshot.services[0].release, "testnet-release");
 	assert.equal(snapshot.services[0].startedAt, startedAt);
 	assert.deepEqual(snapshot.services[0].dependencies, [{ id: "chainRpc", status: "operational" }]);
+	assert.equal(snapshot.services[0].message, "Bounded public probe returned a verified healthy response.");
+	assert.doesNotMatch(snapshot.services[0].message, /\bevidence\b/i);
 	assert.equal(snapshot.services[1].sourceCommit, null);
     assert.match(snapshot.integrity.digest, /^[a-f0-9]{64}$/);
   } finally { await new Promise((resolve) => server.close(resolve)); }
@@ -88,5 +90,7 @@ test("publisher resolves configured dependencies from probes and propagates fail
 	assert.deepEqual(snapshot.services.map((service) => service.status), ["major_outage", "major_outage", "major_outage"]);
 	assert.deepEqual(snapshot.services[1].dependencies, [{ id: "rpc", status: "major_outage" }]);
 	assert.deepEqual(snapshot.services[2].dependencies, [{ id: "indexer", status: "major_outage" }]);
+	assert.equal(snapshot.services[2].message, "A configured dependency did not return a verified healthy response.");
+	assert.doesNotMatch(snapshot.services[2].message, /\bevidence\b/i);
   } finally { await new Promise((resolve) => server.close(resolve)); }
 });
