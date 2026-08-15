@@ -50,11 +50,18 @@ jobs:
           cp "$PACKAGE/Info.plist" "$APP/Contents/Info.plist"
           cp "$GITHUB_WORKSPACE/release/integration/wallet-auth-public-endpoint-service-discovery-matrix.json" \
             "$APP/Contents/Resources/wallet-auth-public-endpoint-service-discovery-matrix.json"
+          cp "$GITHUB_WORKSPACE/packages/wallet-auth/central-registry.json" \
+            "$APP/Contents/Resources/central-registry.json"
           MATRIX="$APP/Contents/Resources/wallet-auth-public-endpoint-service-discovery-matrix.json"
           test "$(git hash-object "$MATRIX")" = d402fcdc844aa39bd5ee351a99d93acb4852dc37
           test "$(shasum -a 256 "$MATRIX" | awk '{print $1}')" = d344c607c2bbbf7bb0d9d3662b424976d0d6c4ff20428025dd1e2fb92bf31392
           git hash-object "$MATRIX" | tee "$PROOF/endpoint-matrix-git-blob.txt"
           shasum -a 256 "$MATRIX" | tee "$PROOF/endpoint-matrix-sha256.txt"
+          REGISTRY="$APP/Contents/Resources/central-registry.json"
+          test "$(git hash-object "$REGISTRY")" = 754737194f02834da9f5833a493f4633b4cc18eb
+          test "$(shasum -a 256 "$REGISTRY" | awk '{print $1}')" = 337145be4cbdd3b642f7fd263e1b06e20f512f8cd4981033109ba65c9856becd
+          git hash-object "$REGISTRY" | tee "$PROOF/central-registry-git-blob.txt"
+          shasum -a 256 "$REGISTRY" | tee "$PROOF/central-registry-sha256.txt"
           lipo -create \
             "$ARM_BIN/YNXWalletMac" \
             "$X86_BIN/YNXWalletMac" \
@@ -198,14 +205,14 @@ jobs:
               --predicate 'subsystem == "com.ynxweb4.wallet.macos" AND (category == "callback" OR category == "lifecycle")' \
               > "$PROOF/native.log" 2>&1 || true
             if test "$(grep -Fc "YNX_WALLET_MAC_CALLBACK_RECEIVED pid=$SECOND_PID scheme=ynxwallet" "$PROOF/native.log")" -ge 2 && \
-               grep -Fq "YNX_WALLET_MAC_CALLBACK_REJECTED pid=$SECOND_PID code=CANONICAL_AUTH_BRIDGE_UNAVAILABLE" "$PROOF/native.log"; then
+               grep -Fq "YNX_WALLET_MAC_CALLBACK_REJECTED pid=$SECOND_PID code=INVALID_DEEP_LINK" "$PROOF/native.log"; then
               CALLBACK_SEEN=true
               break
             fi
             sleep 1
           done
           test "$CALLBACK_SEEN" = true
-          printf 'pid=%s error=CANONICAL_AUTH_BRIDGE_UNAVAILABLE failedClosed=true\n' "$SECOND_PID" \
+          printf 'pid=%s error=INVALID_DEEP_LINK failedClosed=true\n' "$SECOND_PID" \
             > "$PROOF/second-callback.txt"
           open "$APP"
           sleep 2
@@ -234,7 +241,7 @@ jobs:
               > "$PROOF/callback-cold-start-native.log" 2>&1 || true
             if grep -Fq "YNX_WALLET_MAC_LAUNCHED pid=$CALLBACK_COLD_PID" "$PROOF/callback-cold-start-native.log" && \
                grep -Fq "YNX_WALLET_MAC_CALLBACK_RECEIVED pid=$CALLBACK_COLD_PID scheme=ynxwallet" "$PROOF/callback-cold-start-native.log" && \
-               grep -Fq "YNX_WALLET_MAC_CALLBACK_REJECTED pid=$CALLBACK_COLD_PID code=CANONICAL_AUTH_BRIDGE_UNAVAILABLE" "$PROOF/callback-cold-start-native.log"; then
+               grep -Fq "YNX_WALLET_MAC_CALLBACK_REJECTED pid=$CALLBACK_COLD_PID code=INVALID_DEEP_LINK" "$PROOF/callback-cold-start-native.log"; then
               CALLBACK_COLD_SEEN=true
             fi
             osascript <<'APPLESCRIPT' > "$PROOF/callback-cold-start-ui.txt" 2>/dev/null || true
@@ -246,7 +253,7 @@ jobs:
           end tell
           APPLESCRIPT
             if grep -Fq 'Request rejected' "$PROOF/callback-cold-start-ui.txt" && \
-               grep -Fq 'CANONICAL_AUTH_BRIDGE_UNAVAILABLE' "$PROOF/callback-cold-start-ui.txt"; then
+               grep -Fq 'INVALID_DEEP_LINK' "$PROOF/callback-cold-start-ui.txt"; then
               CALLBACK_COLD_UI=true
             fi
             if test "$CALLBACK_COLD_SEEN" = true && test "$CALLBACK_COLD_UI" = true; then break; fi
@@ -254,7 +261,7 @@ jobs:
           done
           test "$CALLBACK_COLD_SEEN" = true
           test "$CALLBACK_COLD_UI" = true
-          printf 'pid=%s launchedByCallback=true received=true error=CANONICAL_AUTH_BRIDGE_UNAVAILABLE visible=true failedClosed=true\n' \
+          printf 'pid=%s launchedByCallback=true received=true error=INVALID_DEEP_LINK visible=true failedClosed=true\n' \
             "$CALLBACK_COLD_PID" | tee "$PROOF/callback-cold-start.txt"
           screencapture -x "$PROOF/callback-cold-start-fail-closed.png"
           test -s "$PROOF/callback-cold-start-fail-closed.png"

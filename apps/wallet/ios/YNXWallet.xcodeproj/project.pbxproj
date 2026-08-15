@@ -12,6 +12,8 @@
 		A20000000000000000000002 /* InboundLinkPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000003 /* InboundLinkPolicy.swift */; };
 		A30000000000000000000001 /* EndpointMatrix.swift in Sources */ = {isa = PBXBuildFile; fileRef = A30000000000000000000003 /* EndpointMatrix.swift */; };
 		A30000000000000000000002 /* wallet-auth-public-endpoint-service-discovery-matrix.json in Resources */ = {isa = PBXBuildFile; fileRef = A30000000000000000000004 /* wallet-auth-public-endpoint-service-discovery-matrix.json */; };
+		A40000000000000000000001 /* AuthorizationRequestPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = A40000000000000000000003 /* AuthorizationRequestPolicy.swift */; };
+		A40000000000000000000002 /* central-registry.json in Resources */ = {isa = PBXBuildFile; fileRef = A40000000000000000000004 /* central-registry.json */; };
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
@@ -34,6 +36,8 @@
 		A20000000000000000000003 /* InboundLinkPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YNXWallet/InboundLinkPolicy.swift; sourceTree = SOURCE_ROOT; };
 		A30000000000000000000003 /* EndpointMatrix.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = EndpointMatrix.swift; path = ../macos/Sources/YNXWalletMacCore/EndpointMatrix.swift; sourceTree = SOURCE_ROOT; };
 		A30000000000000000000004 /* wallet-auth-public-endpoint-service-discovery-matrix.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; name = wallet-auth-public-endpoint-service-discovery-matrix.json; path = ../../../release/integration/wallet-auth-public-endpoint-service-discovery-matrix.json; sourceTree = SOURCE_ROOT; };
+		A40000000000000000000003 /* AuthorizationRequestPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AuthorizationRequestPolicy.swift; path = ../macos/Sources/YNXWalletMacCore/AuthorizationRequestPolicy.swift; sourceTree = SOURCE_ROOT; };
+		A40000000000000000000004 /* central-registry.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; name = central-registry.json; path = ../../../packages/wallet-auth/central-registry.json; sourceTree = SOURCE_ROOT; };
 		13B07F961A680F5B00A75B9A /* YNXWallet.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = YNXWallet.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = YNXWallet/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = YNXWallet/Info.plist; sourceTree = "<group>"; };
@@ -77,6 +81,8 @@
 				A20000000000000000000003 /* InboundLinkPolicy.swift */,
 				A30000000000000000000003 /* EndpointMatrix.swift */,
 				A30000000000000000000004 /* wallet-auth-public-endpoint-service-discovery-matrix.json */,
+				A40000000000000000000003 /* AuthorizationRequestPolicy.swift */,
+				A40000000000000000000004 /* central-registry.json */,
 				F11748442D0722820044C1D9 /* YNXWallet-Bridging-Header.h */,
 				BB2F792B24A3F905000567C9 /* Supporting */,
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
@@ -226,6 +232,7 @@
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */,
 				A30000000000000000000002 /* wallet-auth-public-endpoint-service-discovery-matrix.json in Resources */,
+				A40000000000000000000002 /* central-registry.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -312,6 +319,7 @@
 				F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */,
 				A20000000000000000000001 /* InboundLinkPolicy.swift in Sources */,
 				A30000000000000000000001 /* EndpointMatrix.swift in Sources */,
+				A40000000000000000000001 /* AuthorizationRequestPolicy.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

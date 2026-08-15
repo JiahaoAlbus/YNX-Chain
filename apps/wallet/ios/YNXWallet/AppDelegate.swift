@@ -128,6 +128,10 @@ class AppDelegate: ExpoAppDelegate {
     options: [UIApplication.OpenURLOptionsKey: Any] = [:]
   ) -> Bool {
     walletCallbackLogger.notice("YNX_WALLET_CALLBACK_RECEIVED pid=\(getpid(), privacy: .public) scheme=\(url.scheme ?? "unknown", privacy: .public)")
+    switch NativeAuthorizationPolicy.evaluate(url.absoluteString) {
+    case .rejected(let code):
+      walletCallbackLogger.notice("YNX_WALLET_NATIVE_AUTHORIZATION_REJECTED pid=\(getpid(), privacy: .public) code=\(code, privacy: .public) authorizationSuccess=false signing=false callbackEmitted=false")
+    }
     return super.application(app, open: url, options: options) || RCTLinkingManager.application(app, open: url, options: options)
   }
 

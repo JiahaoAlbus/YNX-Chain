@@ -36,9 +36,8 @@ public enum CallbackPolicy {
           let request = items[0].value, !request.isEmpty else {
       return .rejected(code: "INVALID_AUTHORIZATION_REQUEST")
     }
-    // This companion must consume the frozen Wallet/Auth request through the
-    // canonical native bridge before approval. Until that bridge is present,
-    // every request fails closed and no signature or callback is emitted.
-    return .rejected(code: "CANONICAL_AUTH_BRIDGE_UNAVAILABLE")
+    switch NativeAuthorizationPolicy.evaluate(rawValue) {
+    case .rejected(let code): return .rejected(code: code)
+    }
   }
 }
