@@ -48,3 +48,40 @@ NODE
   cleanup_debugpy_stage
   trap - EXIT
 fi
+
+# Microsoft publishes a standalone DAP server as a digest-bearing release
+# asset. Keep the reviewed bundle outside npm resolution so install scripts and
+# mutable transitive dependency selection are not involved.
+js_debug_version=1.117.0
+js_debug_sha256=ad8d04ede9d4b75cc290fd5438a65047a06f786d04f604b6112485b36f090772
+js_debug_url=https://github.com/microsoft/vscode-js-debug/releases/download/v${js_debug_version}/js-debug-dap-v${js_debug_version}.tar.gz
+js_debug_root="$project_dir/.ynx-js-debug"
+node_runtime="${YNX_CODE_NODE:-$(command -v node || true)}"
+[[ -n "$node_runtime" && -x "$node_runtime" ]] || { printf 'A working Node.js runtime is required for the reviewed JavaScript DAP adapter.\n' >&2; exit 1; }
+if [[ ! -f "$js_debug_root/.ynx-reviewed-version" ]] ||
+  [[ "$(<"$js_debug_root/.ynx-reviewed-version")" != "$js_debug_version" ]] ||
+  ! "$node_runtime" "$js_debug_root/src/dapDebugServer.js" --help >/dev/null; then
+  stage=$(mktemp -d "$project_dir/.ynx-js-debug-stage.XXXXXX")
+  cleanup_js_debug_stage() { find "$stage" -depth -delete 2>/dev/null || true; }
+  trap cleanup_js_debug_stage EXIT
+  archive="$stage/js-debug-${js_debug_version}.tar.gz"
+  curl --http1.1 --proto '=https' --tlsv1.2 -fL --retry 10 --retry-all-errors --connect-timeout 20 "$js_debug_url" -o "$archive"
+  node - "$archive" "$js_debug_sha256" <<'NODE'
+const fs = require("node:fs"), crypto = require("node:crypto");
+const [file, expected] = process.argv.slice(2);
+const actual = crypto.createHash("sha256").update(fs.readFileSync(file)).digest("hex");
+if (actual !== expected) throw new Error(`js-debug archive digest mismatch: ${actual}`);
+NODE
+  mkdir "$stage/runtime"
+  tar -xzf "$archive" --strip-components=1 -C "$stage/runtime"
+  [[ -f "$stage/runtime/LICENSE" && -f "$stage/runtime/src/dapDebugServer.js" ]]
+  # The upstream standalone bundle is CommonJS. Preserve that interpretation
+  # even though the enclosing YNX Code repository is ESM.
+  printf '{"type":"commonjs"}\n' > "$stage/runtime/package.json"
+  printf '%s\n' "$js_debug_version" > "$stage/runtime/.ynx-reviewed-version"
+  "$node_runtime" "$stage/runtime/src/dapDebugServer.js" --help >/dev/null
+  [[ ! -e "$js_debug_root" ]] || { printf 'Existing JavaScript DAP runtime failed verification.\n' >&2; exit 1; }
+  mv "$stage/runtime" "$js_debug_root"
+  cleanup_js_debug_stage
+  trap - EXIT
+fi

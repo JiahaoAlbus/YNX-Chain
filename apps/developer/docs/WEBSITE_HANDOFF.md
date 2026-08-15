@@ -34,9 +34,10 @@ owner-bound queued/running-task cancellation, plus distinct C17 build/run/test
 and C LLDB debugging, Eclipse JDT LS-backed Java language intelligence, plus
 SHA-pinned JUnit Jupiter, dependency-free offline Cargo and pinned offline
 Hardhat Solidity project-test execution in the no-network sandbox.
-The pending source also routes Python, Rust and Go DAP through a selected
-owner/project LXD lease using pinned debugpy, Ubuntu LLDB 18 and Delve 1.25.2;
-the Go bridge is loopback-only and chooses a fresh per-session port.
+The pending source also routes Node.js, Python, Rust and Go DAP through a
+selected owner/project LXD lease using SHA-pinned js-debug, debugpy, Ubuntu LLDB
+18 and Delve 1.25.2; Node uses per-session Unix sockets and Go uses a fresh
+loopback-only port.
 It also adds a reviewed exact Python wheel installation path with an atomic
 project venv and SHA-256-bound `requirements.ynx.lock`; source distributions and
 Python build scripts are rejected, every installed wheel needs pip integrity

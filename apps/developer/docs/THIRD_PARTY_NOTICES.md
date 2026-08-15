@@ -45,6 +45,18 @@ embedded `META-INF/LICENSE*` files and bundled-dependency notices. The artifact
 is used only as the no-network Java project-test compiler classpath and console
 runner; it is not included in the current desktop downloads.
 
+## Cloud JavaScript debug adapter
+
+- Upstream: `https://github.com/microsoft/vscode-js-debug`
+- Standalone DAP release: `v1.117.0`
+- Release asset SHA-256: `ad8d04ede9d4b75cc290fd5438a65047a06f786d04f604b6112485b36f090772`
+- License: MIT
+
+The reviewed cloud image retains the upstream `LICENSE` alongside the exact
+standalone DAP bundle. YNX Code starts it only inside an owner/project-bound
+no-NIC LXD lease and reaches its per-session Unix socket through the bounded
+YNX stdio bridge; it is not included in the current desktop downloads.
+
 ## Hardhat Solidity project-test runtime
 
 - Hardhat: `3.9.0`, MIT License, `https://hardhat.org/`

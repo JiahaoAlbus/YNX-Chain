@@ -114,14 +114,15 @@ export function createDebugService(options) {
       );
     const language = debugLanguage(activePath);
     if (containerDebugLanguage(language) && options.containerDebugBroker) {
-      const handle = await options.containerDebugBroker.openContainerDebugProcess({
-        owner,
-        runtimeId,
-        projectId,
-        files: snapshot.files,
-        activePath,
-        language,
-      });
+      const handle =
+        await options.containerDebugBroker.openContainerDebugProcess({
+          owner,
+          runtimeId,
+          projectId,
+          files: snapshot.files,
+          activePath,
+          language,
+        });
       attach(websocket, {
         owner,
         projectId,
@@ -189,9 +190,12 @@ export function createDebugService(options) {
         compiled = await run(compileLaunch, 30_000);
       if (compiled.code !== 0) {
         await rm(workspace, { recursive: true, force: true });
-        throw Object.assign(fault("Debug build failed.", "debug_build_failed"), {
-          publicMessage: `Debug build failed:\n${compiled.output.slice(0, 32_000)}`,
-        });
+        throw Object.assign(
+          fault("Debug build failed.", "debug_build_failed"),
+          {
+            publicMessage: `Debug build failed:\n${compiled.output.slice(0, 32_000)}`,
+          },
+        );
       }
     }
     const adapterLaunch = createLaunch({
@@ -318,7 +322,25 @@ export function createDebugService(options) {
                 showRegisters: false,
                 hideSystemGoroutines: true,
               }
-            : shared;
+            : state.language === "node"
+              ? {
+                  ...shared,
+                  type: "pwa-node",
+                  request: "launch",
+                  name: "YNX Node Debug",
+                  runtimeExecutable:
+                    options.containerNodePath || "/opt/node-v22.23.1/bin/node",
+                  runtimeArgs: [],
+                  console: "internalConsole",
+                  outputCapture: "std",
+                  autoAttachChildProcesses: false,
+                  sourceMaps: true,
+                  // The standalone server creates a child DAP session. Pause
+                  // that target until the reviewed bridge reapplies the
+                  // already-approved source breakpoints to the child session.
+                  stopOnEntry: true,
+                }
+              : shared;
     }
     if (next.command === "setBreakpoints") {
       const path = next.arguments?.source?.path;
@@ -463,17 +485,31 @@ function debugLanguage(value) {
   if (extension === ".py") return "python";
   if (extension === ".rs") return "rust";
   if (extension === ".go") return "go";
+  if ([".js", ".mjs", ".cjs"].includes(extension)) return "node";
   if (extension === ".c") return "c";
   if ([".cpp", ".cc", ".cxx"].includes(extension)) return "cpp";
   return null;
 }
 function containerDebugLanguage(language) {
-  return language === "python" || language === "rust" || language === "go";
+  return (
+    language === "python" ||
+    language === "rust" ||
+    language === "go" ||
+    language === "node"
+  );
 }
 async function resolveToolchain(language, options) {
   if (language === "python") {
-    const root = options.pythonRoot || process.env.YNX_CODE_DEBUGPY_ROOT || DEFAULT_DEBUGPY_ROOT,
-      executable = options.pythonPath || join(root, process.platform === "win32" ? "Scripts/python.exe" : "bin/python");
+    const root =
+        options.pythonRoot ||
+        process.env.YNX_CODE_DEBUGPY_ROOT ||
+        DEFAULT_DEBUGPY_ROOT,
+      executable =
+        options.pythonPath ||
+        join(
+          root,
+          process.platform === "win32" ? "Scripts/python.exe" : "bin/python",
+        );
     try {
       await access(executable, fsConstants.X_OK);
     } catch {
@@ -490,7 +526,9 @@ async function resolveToolchain(language, options) {
   }
   const compiler =
       options.compilerPath ||
-      (await resolveExecutable(language === "c" ? ["clang", "gcc"] : ["clang++", "g++"])),
+      (await resolveExecutable(
+        language === "c" ? ["clang", "gcc"] : ["clang++", "g++"],
+      )),
     adapter =
       options.adapterPath ||
       (await resolveExecutable(["lldb-dap-18", "lldb-dap", "lldb-vscode"]));

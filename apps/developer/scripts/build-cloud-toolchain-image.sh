@@ -7,6 +7,7 @@ target_alias="${YNX_CODE_TARGET_IMAGE:-ynx-code-ubuntu-24.04-v3}"
 probe_path="${YNX_CODE_LSP_PROBE:-$(cd "$(dirname "$0")" && pwd)/lsp-server-probe.mjs}"
 jdtls_launcher_path="$(cd "$(dirname "$0")" && pwd)/jdtls-launcher.sh"
 delve_bridge_path="$(cd "$(dirname "$0")" && pwd)/delve-dap-stdio-bridge.mjs"
+js_debug_bridge_path="$(cd "$(dirname "$0")" && pwd)/js-debug-dap-stdio-bridge.mjs"
 rust_analyzer_release="2026-07-27"
 jdtls_archive="jdt-language-server-1.61.0-202607142124.tar.gz"
 jdtls_sha256="4dc0747f22fb86dfada4c9214d3ef94c94f1e84eb57ce52126c26ecf2f17dce4"
@@ -15,11 +16,15 @@ junit_sha256="5566ffe2aa48263867bca745925f73bf7b01591b30d9a60f191c0b16fa0955e9"
 debugpy_version="1.8.21"
 debugpy_sha256="b1e37d333663c8851516a47364ef473da127f9caebe4417e6df6f5825a7e9a92"
 debugpy_url="https://files.pythonhosted.org/packages/95/51/67e7cf11a53e40694f720457d5b3a1cdaaa3d5a9a633e482f225456b93ff/debugpy-1.8.21-py2.py3-none-any.whl"
+js_debug_version="1.117.0"
+js_debug_sha256="ad8d04ede9d4b75cc290fd5438a65047a06f786d04f604b6112485b36f090772"
+js_debug_url="https://github.com/microsoft/vscode-js-debug/releases/download/v${js_debug_version}/js-debug-dap-v${js_debug_version}.tar.gz"
 
 command -v lxc >/dev/null
 test -f "$probe_path"
 test -f "$jdtls_launcher_path"
 test -f "$delve_bridge_path"
+test -f "$js_debug_bridge_path"
 if lxc image info "$target_alias" >/dev/null 2>&1; then
   echo "Target image alias already exists: $target_alias" >&2
   exit 1
@@ -72,6 +77,15 @@ lxc exec "$builder" -- mkdir -p /usr/local/share/ynx-code
 lxc exec "$builder" -- mkdir -p /usr/local/lib/ynx-code
 lxc file push "$delve_bridge_path" "$builder/usr/local/lib/ynx-code/delve-dap-stdio-bridge.mjs"
 lxc exec "$builder" -- chmod 0755 /usr/local/lib/ynx-code/delve-dap-stdio-bridge.mjs
+lxc file push "$js_debug_bridge_path" "$builder/usr/local/lib/ynx-code/js-debug-dap-stdio-bridge.mjs"
+lxc exec "$builder" -- chmod 0755 /usr/local/lib/ynx-code/js-debug-dap-stdio-bridge.mjs
+lxc exec "$builder" -- curl --http1.1 --proto '=https' --tlsv1.2 -fL --retry 10 --retry-all-errors --connect-timeout 20 "$js_debug_url" -o "/tmp/js-debug-${js_debug_version}.tar.gz"
+lxc exec "$builder" -- sh -c "printf '%s  %s\n' '$js_debug_sha256' '/tmp/js-debug-${js_debug_version}.tar.gz' | sha256sum -c -"
+lxc exec "$builder" -- mkdir -p /opt/ynx-js-debug
+lxc exec "$builder" -- tar -xzf "/tmp/js-debug-${js_debug_version}.tar.gz" --strip-components=1 -C /opt/ynx-js-debug
+lxc exec "$builder" -- sh -c 'printf '\''{"type":"commonjs"}\n'\'' > /opt/ynx-js-debug/package.json'
+lxc exec "$builder" -- test -f /opt/ynx-js-debug/LICENSE
+lxc exec "$builder" -- /opt/node-v22.23.1/bin/node /opt/ynx-js-debug/src/dapDebugServer.js --help
 lxc exec "$builder" -- curl --http1.1 -fL --retry 10 --retry-all-errors --connect-timeout 20 "https://repo1.maven.org/maven2/org/junit/platform/junit-platform-console-standalone/$junit_version/junit-platform-console-standalone-$junit_version.jar" -o /usr/local/share/ynx-code/junit-platform-console-standalone.jar
 lxc exec "$builder" -- sh -c "printf '%s  %s\n' '$junit_sha256' /usr/local/share/ynx-code/junit-platform-console-standalone.jar | sha256sum -c -"
 lxc exec "$builder" -- java -jar /usr/local/share/ynx-code/junit-platform-console-standalone.jar --version
@@ -86,9 +100,9 @@ lxc exec "$builder" -- /opt/ynx-debugpy/bin/python -c "import debugpy,sys; sys.e
 
 lxc file push "$probe_path" "$builder/tmp/lsp-server-probe.mjs"
 lxc exec "$builder" -- node /tmp/lsp-server-probe.mjs
-lxc exec "$builder" -- sh -c "apt-get clean; rm -rf /var/lib/apt/lists/* /root/.cache/go-build /root/go/pkg/mod/cache/download /tmp/rust-analyzer.gz /tmp/rust-analyzer-asset /tmp/lsp-server-probe.mjs '/tmp/$jdtls_archive' '/tmp/debugpy-${debugpy_version}-py2.py3-none-any.whl'"
+lxc exec "$builder" -- sh -c "apt-get clean; rm -rf /var/lib/apt/lists/* /root/.cache/go-build /root/go/pkg/mod/cache/download /tmp/rust-analyzer.gz /tmp/rust-analyzer-asset /tmp/lsp-server-probe.mjs '/tmp/$jdtls_archive' '/tmp/debugpy-${debugpy_version}-py2.py3-none-any.whl' '/tmp/js-debug-${js_debug_version}.tar.gz'"
 lxc stop "$builder"
-lxc publish "$builder" --alias "$target_alias" description="YNX Code Ubuntu 24.04 reviewed nine-language toolchain, Python debugpy, Rust LLDB and Go Delve DAP, JUnit and seven LSP servers"
+lxc publish "$builder" --alias "$target_alias" description="YNX Code Ubuntu 24.04 reviewed nine-language toolchain, Python debugpy, Rust LLDB, Go Delve and Node js-debug DAP, JUnit and seven LSP servers"
 fingerprint="$(lxc image info "$target_alias" | awk '/^Fingerprint:/{print $2}')"
 test "${#fingerprint}" -eq 64
 cleanup

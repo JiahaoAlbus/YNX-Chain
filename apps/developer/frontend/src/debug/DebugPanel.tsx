@@ -47,11 +47,12 @@ export function DebugPanel({
     [frames, setFrames] = useState<Frame[]>([]),
     [variables, setVariables] = useState<Variable[]>([]),
     [log, setLog] = useState("");
-  const supported = /\.(c|cpp|cc|cxx|py|rs|go)$/i.test(activePath),
+  const supported = /\.(c|cpp|cc|cxx|py|rs|go|js|mjs|cjs)$/i.test(activePath),
     python = /\.py$/i.test(activePath),
     rust = /\.rs$/i.test(activePath),
     go = /\.go$/i.test(activePath),
-    containerRequired = python || rust || go;
+    node = /\.(js|mjs|cjs)$/i.test(activePath),
+    containerRequired = python || rust || go || node;
   useEffect(
     () => () => {
       socket.current?.close();
@@ -82,7 +83,9 @@ export function DebugPanel({
           ? "Building Rust inside the isolated cloud debug workspace…\n"
           : go
             ? "Starting Delve inside the isolated cloud debug workspace…\n"
-            : "Building a debug binary inside the isolated workspace…\n",
+            : node
+              ? "Starting js-debug inside the isolated cloud debug workspace…\n"
+              : "Building a debug binary inside the isolated workspace…\n",
     );
     onStoppedLine();
     try {
@@ -120,7 +123,14 @@ export function DebugPanel({
       request("initialize", {
         clientID: "ynx-code",
         clientName: "YNX Code",
-        adapterID: envelope.language === "python" ? "python" : "lldb",
+        adapterID:
+          envelope.language === "python"
+            ? "python"
+            : envelope.language === "go"
+              ? "go"
+              : envelope.language === "node"
+                ? "node"
+                : "lldb",
         linesStartAt1: true,
         columnsStartAt1: true,
         pathFormat: "path",
@@ -253,7 +263,12 @@ export function DebugPanel({
       <div className="debug-controls">
         <button
           onClick={start}
-          disabled={!supported || (containerRequired && !runtimeId) || state === "connecting" || state === "running"}
+          disabled={
+            !supported ||
+            (containerRequired && !runtimeId) ||
+            state === "connecting" ||
+            state === "running"
+          }
           title="Start debugging"
         >
           <Play />
@@ -289,16 +304,17 @@ export function DebugPanel({
       </div>
       {!supported && (
         <div className="honest-boundary">
-          Reviewed DAP adapters support Python via debugpy, Go via Delve and
-          Rust/C/C++ via LLDB. Select a .py, .go, .rs, .c, .cpp, .cc or .cxx
-          file.
+          Reviewed DAP adapters support Node.js via js-debug, Python via
+          debugpy, Go via Delve and Rust/C/C++ via LLDB. Select a .js, .mjs,
+          .cjs, .py, .go, .rs, .c, .cpp, .cc or .cxx file.
         </div>
       )}
       {containerRequired && !runtimeId && (
         <div className="honest-boundary">
-          Select an isolated LXD cloud runtime before starting Python, Go or
-          Rust debug. Python and Go use container loopback internally; no
-          adapter gets an external network device.
+          Select an isolated LXD cloud runtime before starting Node.js, Python,
+          Go or Rust debug. Node.js uses a per-session Unix socket and Python/Go
+          use container loopback internally; no adapter gets an external network
+          device.
         </div>
       )}
       <DebugSection title={`BREAKPOINTS (${breakpoints.length})`}>

@@ -1,6 +1,6 @@
 # YNX Developer 0.2.0 Testnet Preview release notes
 
-## 2026-08-15 Python, Rust and Go DAP in the isolated cloud runtime
+## 2026-08-15 Python, Rust, Go and Node.js DAP in the isolated cloud runtime
 
 - Python files can now start a real debugpy DAP session after the user selects
   an owner/project-bound LXD runtime. Breakpoints, stack frames, scopes and
@@ -19,6 +19,11 @@
   loopback port, an owner/project-bound temporary source tree and deterministic
   cleanup. The protected gate requires a Go line-5 breakpoint and `value = 11`;
   target-image evidence remains pending until the protected transaction runs.
+- JavaScript files use Microsoft's official standalone js-debug 1.117.0 asset,
+  verified by SHA-256 before atomic installation. A bounded bridge handles the
+  adapter's child DAP session, reapplies only already-approved breakpoints and
+  uses per-session Unix sockets rather than TCP. A real local gate stops at
+  Node line 3 and reads `value = 13`; the protected image gate repeats it.
 
 ## 2026-08-15 production package-egress policy candidate
 
