@@ -17,6 +17,7 @@ export function createWorkspaceRuntime(options = {}) {
   const sessionKey = Buffer.from(options.sessionKey || process.env.YNX_CODE_WORKSPACE_SESSION_KEY || randomBytes(32));
   const root = options.root || join(tmpdir(), "ynx-code-runtime");
   const workspaceStore = options.workspaceStore || null;
+  const release = publicRelease(options.release ?? process.env.YNX_CODE_RELEASE);
   const languageRequests = options.languageRequests || (options.languageRequest ? { cpp: options.languageRequest } : {});
   const environmentResolver = options.environmentResolver;
   const concurrency = boundedNumber(options.concurrency || process.env.YNX_CODE_RUNTIME_CONCURRENCY, 4, 1, 64);
@@ -95,6 +96,7 @@ export function createWorkspaceRuntime(options = {}) {
           maxConcurrent: concurrency,
           maxQueued: queueLimit,
           sessionClass: "ephemeral-guest",
+          release,
           workspacePersistence: workspaceStore ? "sqlite-wal" : "disabled",
           durability: workspaceStore ? "server-local recovery; production object-store migration required" : "runtime-local; restart invalidates guest session",
         },
@@ -413,6 +415,9 @@ export function createWorkspaceRuntime(options = {}) {
       sandboxReady: sandbox.ready,
     }),
   };
+}
+function publicRelease(value) {
+  return typeof value === "string" && /^[A-Za-z0-9._-]{1,160}$/.test(value) ? value : null;
 }
 
 function publicActivity(item) {

@@ -62,11 +62,12 @@ function languageTask(activePath, source) {
   };
 }
 test("health creates an isolated guest session and reports sandbox truth", async (t) => {
-  const { url } = await fixture(t),
+  const { url } = await fixture(t, { release: "0.2.0-testnet-preview-deadbeefcafe-candidate" }),
     response = await fetch(`${url}/runtime/health`),
     value = await response.json();
   assert.equal(value.protocolVersion, "ynx-code/v1");
   assert.equal(value.sessionClass, "ephemeral-guest");
+  assert.equal(value.release, "0.2.0-testnet-preview-deadbeefcafe-candidate");
   assert.equal(typeof value.sandboxReady, "boolean");
   assert.match(response.headers.get("set-cookie"), /HttpOnly; SameSite=Strict/);
 });
