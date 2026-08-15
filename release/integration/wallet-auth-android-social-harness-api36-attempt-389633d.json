@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "observedAt": "2026-08-15T01:46:30Z",
+  "observedAt": "2026-08-15T01:51:00Z",
   "sourceCommit": "389633da64dba25f7cb98c75ed1cee22ed11fd36",
   "integrationAuthority": {
     "commit": "38c9c0ce1400ad6ba8dc5e0c1aa1d657a6c9748d",
@@ -54,8 +54,30 @@
       "adbStateAtBoundedTerminal": "offline",
       "walletInstalled": false,
       "instanceStopped": true
+    },
+    {
+      "name": "YNX_WALLET_389633D_SOCIAL_API36_LOW_QA",
+      "home": "/private/tmp/ynx-wallet-389633d-social-api36-low-resource-avd",
+      "profile": "pixel_9-low-resource",
+      "systemImage": "android-36/google_apis/arm64-v8a",
+      "emulatorVersion": "36.6.11.0",
+      "memoryMiBRequested": 1536,
+      "coresRequested": 2,
+      "headless": true,
+      "wipeData": true,
+      "snapshotReused": false,
+      "staleYnxEmulatorPresentBeforeStart": false,
+      "adbStateAtBoundedTerminal": "offline",
+      "walletInstalled": false,
+      "instanceStopped": true,
+      "finalPermittedFreshBootAttempt": true
     }
   ],
+  "physicalDeviceAudit": {
+    "command": "adb devices -l",
+    "authorizedDevicePresent": false,
+    "physicalPixel9Present": false
+  },
   "directDeviceGates": {
     "api36Booted": false,
     "walletInstalled": false,
