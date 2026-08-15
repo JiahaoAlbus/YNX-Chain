@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-08-15T01:46:30Z",
+  "sourceCommit": "389633da64dba25f7cb98c75ed1cee22ed11fd36",
+  "integrationAuthority": {
+    "commit": "38c9c0ce1400ad6ba8dc5e0c1aa1d657a6c9748d",
+    "launcherBlob": "0e0d702f9245fae42daec7d0a3a3fd5fe83f9a42",
+    "launcherSha256": "27449c80300acd463574d5d7bb016e2273cfd7d24f6669c9da00505559393a58",
+    "callerMigrationBlob": "714c2b36017004c1ced8e6eafb6274488d71b9a5",
+    "callerMigrationSha256": "84ac73763d56facd110c9bcc18fb5300659381cdeca26fa0580996480ba99f8f"
+  },
+  "localExactSourceWalletArtifact": {
+    "path": "/private/tmp/ynx-wallet-389633d-api36-local-exact/ynx-wallet-1.0.1-api36-disposable-qa.apk",
+    "sha256": "fc2c70005c3227514cff593021656236cb582f91ec037fc214609b10f2773af9",
+    "bytes": 25627335,
+    "minimumOS": "Android API 24",
+    "targetSdk": 36,
+    "abi": "arm64-v8a",
+    "signingClass": "disposable-qa-release-key",
+    "signerCertificateSha256": "442b027eacc2712cd077c7f4efd749dcf68dfadcaf43a75500402d97c7821333",
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "canonicalSocialHarnessArtifact": {
+    "path": "apps/wallet/proof/social-harness/app/build/outputs/apk/debug/app-debug.apk",
+    "sha256": "3242b8f814d61b51262a7cba9a277d503fc8724c97dc61e7f0223ebb89e02057",
+    "bytes": 3297725,
+    "package": "com.ynx.social",
+    "targetSdk": 36,
+    "signingClass": "Android debug QA-only",
+    "signerCertificateSha256": "d4e562610ecb4e304fa00ee07e7adae7da862ce108bda7bdfe933c28831f154e"
+  },
+  "freshAvdAttempts": [
+    {
+      "name": "YNX_WALLET_389633D_SOCIAL_API36_QA",
+      "home": "/private/tmp/ynx-wallet-389633d-social-api36-avd-home",
+      "profile": "pixel_9",
+      "systemImage": "android-36/google_apis/arm64-v8a",
+      "emulatorVersion": "36.6.11.0",
+      "wipeData": true,
+      "snapshotReused": false,
+      "adbStateAtBoundedTerminal": "offline",
+      "walletInstalled": false,
+      "instanceStopped": true
+    },
+    {
+      "name": "YNX_WALLET_389633D_SOCIAL_API36_SDKHOME_QA",
+      "home": "/private/tmp/ynx-wallet-389633d-social-api36-sdkhome-avd",
+      "profile": "pixel_9",
+      "systemImage": "android-36/google_apis/arm64-v8a",
+      "emulatorVersion": "35.6.11.0",
+      "wipeData": true,
+      "snapshotReused": false,
+      "adbStateAtBoundedTerminal": "offline",
+      "walletInstalled": false,
+      "instanceStopped": true
+    }
+  ],
+  "directDeviceGates": {
+    "api36Booted": false,
+    "walletInstalled": false,
+    "resolveActivityVerified": false,
+    "queryIntentActivitiesVerified": false,
+    "walletReviewIdentityScopeVerified": false,
+    "explicitRejectCallbackVerified": false,
+    "zeroSessionAfterRejectVerified": false,
+    "approveCallbackVerified": false,
+    "productSessionVerified": false,
+    "absentWalletSafeAlternativesVerified": false
+  },
+  "publicEndpointBoundary": {
+    "walletGateway6439AvailabilityRecorded": true,
+    "walletGateway6439MobileReachable": false,
+    "productSession6441AvailabilityRecorded": true,
+    "productSession6441MobileReachable": false,
+    "approvalMayCreateProductSession": false
+  },
+  "systemBootFailureCountedAsWalletFailure": false,
+  "systemBootFailureCountedAsWalletSuccess": false,
+  "secretMaterialRecorded": false
+}
