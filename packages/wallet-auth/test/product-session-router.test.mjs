@@ -23,18 +23,16 @@ function request(productId = "social", platform = "android") {
   }, NOW);
 }
 
-test("registry defines exact Web, macOS, Windows, Android and iOS return targets for the migration set", () => {
+test("registry defines exact platform-bounded return targets including an explicit Web-only companion callback", () => {
   assert.equal(registry.schemaVersion, 2);
-  assert.equal(registry.products.length, 12);
+  assert.equal(registry.products.length, 13);
   for (const product of registry.products) {
-    const targets = ["web", "macos", "windows", "android", "ios"].map((platform) => canonicalReturnTarget(registry, product.productId, platform));
-    assert.equal(targets[0].callback, `${product.webOrigin}/wallet-auth/callback`);
-    assert.equal(new Set(targets.slice(1).map((item) => item.callback)).size, 1);
+    const targets = product.platforms.map((platform) => canonicalReturnTarget(registry, product.productId, platform));
     assert.equal(targets.every((item) => item.productId === product.productId), true);
-    assert.deepEqual(targets.map((item) => [item.bundleId, item.packageId]), [
-      [null, null], [product.applicationId, null], [null, product.applicationId],
-      [null, product.applicationId], [product.applicationId, null],
-    ]);
+    if (product.platforms.includes("web")) assert.equal(targets.find((item) => item.platform === "web").callback, product.webCallback);
+    for (const platform of ["web", "macos", "windows", "android", "ios"].filter((item) => !product.platforms.includes(item))) {
+      assert.throws(() => canonicalReturnTarget(registry, product.productId, platform), code("INVALID_PLATFORM"));
+    }
   }
 });
 

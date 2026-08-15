@@ -50,6 +50,18 @@
       "rejectionCallback": {"length": 758, "sha256": "8351fab904cc4ce431bbeefedd69949c5c58ad1e8b94e7a7a608db6548c33282"}
     }
   },
+  "runtimeIntegration": {
+    "productSessionRegistry": "packages/wallet-auth/product-session-registry.json",
+    "platforms": ["web"],
+    "webApplicationId": "web.ynx.wallet.companion",
+    "webCallback": "https://www.ynxweb4.com/dapp/wallet/wallet-auth/callback",
+    "client": "RecoverableProductSessionClient",
+    "gatewayAdapter": "ProductSessionGatewayFetchAdapter",
+    "gatewayRoutes": ["/v2/product-sessions/challenge", "/v2/product-sessions/complete", "/v2/product-sessions/introspect"],
+    "directTest": "packages/wallet-auth/test/wallet-web-companion-runtime.test.mjs",
+    "productOwnerConsumptionRequired": true,
+    "visibleBrowserOrMobileEvidenceRequired": true
+  },
   "failClosed": [
     "unknown or disabled product client",
     "wrong requesting product",
@@ -70,7 +82,9 @@
   "truthBoundary": {
     "implementedLocal": true,
     "testedLocal": true,
+    "coreRuntimeCandidate": true,
     "integratedCentral": false,
+    "gatewayLoadedPublic": false,
     "deployedPublicRegistry": false,
     "callbackRouteDeployed": false,
     "androidVisibleApproveRejectCallbackSession": false,

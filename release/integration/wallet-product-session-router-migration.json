@@ -11,6 +11,7 @@
     "shared-sdk-v1": "Current product source imports @ynx-chain/wallet-auth but still builds the v1 request/session contract.",
     "legacy-direct": "Current product source constructs or opens Wallet URLs outside the v2 router.",
     "contract-only": "Only a registry/integration contract was found; no v2 runtime consumer was found.",
+    "core-runtime-candidate": "Core has direct shared v2 runtime and Gateway tests, but no product-owner consumer or visible installed/browser platform evidence; migrated and public remain false.",
     "migrated-v2": "Product runtime imports and executes WalletConnectionCoordinator over the v2 recovery client with platform evidence. No product currently meets this state."
   },
   "products": [
@@ -25,7 +26,8 @@
     {"productId":"quant","registry":"registry-ready","consumer":"contract-only","migrated":false,"evidence":["apps/quant-lab/integration/wallet-registry-entry.json"]},
     {"productId":"shop","registry":"registry-ready","consumer":"legacy-direct","migrated":false,"evidence":["apps/shop/wallet-auth.js","apps/shop/native/android/app/src/main/java/com/ynxweb4/shop/WalletAuth.java","apps/shop/native/ios/YNXShop/WalletAuth.swift"]},
     {"productId":"social","registry":"registry-ready","consumer":"legacy-direct","migrated":false,"evidence":["apps/social/src/walletAuth.ts"]},
-    {"productId":"video","registry":"registry-ready","consumer":"legacy-direct","migrated":false,"evidence":["apps/video/wallet-auth.js","apps/video/android/app/src/main/java/com/ynxweb4/video/MainActivity.java","apps/video/ios/YNXVideo/ContentView.swift"]}
+    {"productId":"video","registry":"registry-ready","consumer":"legacy-direct","migrated":false,"evidence":["apps/video/wallet-auth.js","apps/video/android/app/src/main/java/com/ynxweb4/video/MainActivity.java","apps/video/ios/YNXVideo/ContentView.swift"]},
+    {"productId":"wallet-web-companion","registry":"registry-ready","consumer":"core-runtime-candidate","migrated":false,"evidence":["packages/wallet-auth/test/wallet-web-companion-runtime.test.mjs","release/integration/wallet-auth-web-companion-registry-contract.json"]}
   ],
   "productRuntimeMigrationCount": 0,
   "fixedProductCount": 0,

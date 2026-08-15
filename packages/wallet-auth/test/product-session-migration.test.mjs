@@ -14,7 +14,7 @@ test("migration matrix covers the exact registry and cites only branch-local evi
   assert.equal(matrix.productRuntimeMigrationCount, matrix.products.filter((item) => item.migrated).length);
   assert.equal(matrix.fixedProductCount, matrix.products.filter((item) => item.migrated).length);
   for (const product of matrix.products) {
-    assert.ok(["contract-only", "legacy-direct", "shared-sdk-v1", "migrated-v2"].includes(product.consumer));
+    assert.ok(["contract-only", "core-runtime-candidate", "legacy-direct", "shared-sdk-v1", "migrated-v2"].includes(product.consumer));
     assert.ok(Array.isArray(product.evidence) && product.evidence.length > 0);
     for (const path of product.evidence) assert.equal(existsSync(resolve(repositoryRoot, path)), true, `${product.productId} evidence is missing: ${path}`);
   }

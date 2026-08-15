@@ -68,7 +68,9 @@ test("Web companion freeze keeps every public and device-visible gate false", ()
   assert.equal(contract.registry.enabled, true);
   assert.equal(contract.transport.operationFieldForbidden, true);
   assert.equal(contract.transport.exchangeActionReuseForbidden, true);
-  assert.equal(Object.values(contract.truthBoundary).filter(Boolean).length, 2);
+  assert.equal(Object.values(contract.truthBoundary).filter(Boolean).length, 3);
+  assert.equal(contract.truthBoundary.coreRuntimeCandidate, true);
+  assert.deepEqual(contract.runtimeIntegration.gatewayRoutes, ["/v2/product-sessions/challenge", "/v2/product-sessions/complete", "/v2/product-sessions/introspect"]);
   assert.equal(contract.truthBoundary.deployedPublicRegistry, false);
   assert.equal(contract.truthBoundary.webCompanionVisibleSuccess, false);
 });
