@@ -218,6 +218,62 @@ jobs:
           sleep 2
           screencapture -x "$PROOF/malformed-callback-fail-closed.png"
           test -s "$PROOF/malformed-callback-fail-closed.png"
+
+          python3 - <<'PY' > "$PROOF/canonical-enabled-request-url.txt"
+          import base64, datetime, json
+          now = datetime.datetime.now(datetime.timezone.utc)
+          request = {
+            "version":"1",
+            "nonce":"ci_native_bridge_boundary_nonce_01",
+            "chainId":"ynx_6423-1",
+            "requestingProduct":"social",
+            "productClientId":"ynx-social-v1",
+            "bundleId":"com.ynx.social",
+            "productDeviceAlgorithm":"p256-sha256",
+            "productDeviceKey":"AzrThhqVYhOSUWu1k-8FWD7S5YZvXLYmCjAXI3_Ym5Cv",
+            "callback":"ynx-social://com.ynx.social",
+            "scopes":["account:read","profile:link"],
+            "purpose":"Verify the frozen native bridge fail-closed boundary.",
+            "issuedAt":(now-datetime.timedelta(seconds=5)).isoformat(timespec="milliseconds").replace("+00:00","Z"),
+            "expiresAt":(now+datetime.timedelta(minutes=4)).isoformat(timespec="milliseconds").replace("+00:00","Z"),
+          }
+          payload = json.dumps(request, sort_keys=True, separators=(",", ":")).encode()
+          encoded = base64.urlsafe_b64encode(payload).decode().rstrip("=")
+          print(f"ynxwallet://authorize?request={encoded}")
+          PY
+          IFS= read -r CANONICAL_ENABLED_URL < "$PROOF/canonical-enabled-request-url.txt"
+          open "$CANONICAL_ENABLED_URL" > "$PROOF/open-canonical-enabled-callback.txt"
+          CANONICAL_ENABLED_SEEN=false
+          CANONICAL_ENABLED_UI=false
+          for _ in $(seq 1 60); do
+            xcrun log show --style compact --last 5m \
+              --predicate 'subsystem == "com.ynxweb4.wallet.macos" AND (category == "callback" OR category == "lifecycle")' \
+              > "$PROOF/canonical-enabled-callback-native.log" 2>&1 || true
+            if test "$(grep -Fc "YNX_WALLET_MAC_CALLBACK_RECEIVED pid=$SECOND_PID scheme=ynxwallet" "$PROOF/canonical-enabled-callback-native.log")" -ge 3 && \
+               grep -Fq "YNX_WALLET_MAC_CALLBACK_REJECTED pid=$SECOND_PID code=CANONICAL_AUTH_BRIDGE_UNAVAILABLE" "$PROOF/canonical-enabled-callback-native.log"; then
+              CANONICAL_ENABLED_SEEN=true
+            fi
+            osascript <<'APPLESCRIPT' > "$PROOF/canonical-enabled-callback-ui.txt" 2>/dev/null || true
+          tell application "System Events"
+            tell process "YNXWalletMac"
+              set frontmost to true
+              return name of every static text of window 1
+            end tell
+          end tell
+          APPLESCRIPT
+            if grep -Fq 'Request rejected' "$PROOF/canonical-enabled-callback-ui.txt" && \
+               grep -Fq 'CANONICAL_AUTH_BRIDGE_UNAVAILABLE' "$PROOF/canonical-enabled-callback-ui.txt"; then
+              CANONICAL_ENABLED_UI=true
+            fi
+            if test "$CANONICAL_ENABLED_SEEN" = true && test "$CANONICAL_ENABLED_UI" = true; then break; fi
+            sleep 1
+          done
+          test "$CANONICAL_ENABLED_SEEN" = true
+          test "$CANONICAL_ENABLED_UI" = true
+          printf 'pid=%s canonicalRequest=true registryBound=true error=CANONICAL_AUTH_BRIDGE_UNAVAILABLE visible=true authorizationSuccess=false signing=false callbackEmitted=false\n' \
+            "$SECOND_PID" | tee "$PROOF/canonical-enabled-callback.txt"
+          screencapture -x "$PROOF/canonical-enabled-callback-fail-closed.png"
+          test -s "$PROOF/canonical-enabled-callback-fail-closed.png"
           kill "$SECOND_PID"
           for _ in $(seq 1 30); do
             kill -0 "$SECOND_PID" 2>/dev/null || break
