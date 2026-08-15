@@ -3,7 +3,7 @@
   "auditId": "wallet-auth-public-evidence-audit-2026-08-14",
   "auditedAt": "2026-08-14T03:38:07Z",
   "integrationBaseCommit": "a008ce0e8fa2ac0322198576c320441118fbae83",
-  "matrixSha256": "d849bbec8aac1fb5777d9aed944777981d9ba68b6369d85ea0569912caa6b946",
+  "matrixSha256": "62e8c5ffbdfb1824df6a4427d78e307c205b7af3699f2589b6c26f20fc4a2219",
   "endpointServiceDiscoveryMatrix": {
     "path": "release/integration/wallet-auth-public-endpoint-service-discovery-matrix.json",
     "sha256": "54dc61a0f80ee8cd53e2e5a24674f90fb7c081ff6cddab40da233a406cbc9ad1"
@@ -201,6 +201,26 @@
     "deployedPublicRegistry": false,
     "callbackRouteDeployed": false,
     "visibleWebOrMobileLifecycleVerified": false,
+    "aggregatePublic": false
+  },
+  "walletWebCompanion6441DeploymentAcceptance": {
+    "commit": "a731d67b474650c0e6a7ddcf1aa4464f714484f0",
+    "parent": "f5e0ef319b0fe8ff0993021e435fdc6627b0d931",
+    "tree": "8d1708092f8ba6e6886a85121a91b296b9617ed2",
+    "handoffPath": "release/integration/wallet-web-companion-6441-deployment-handoff.json",
+    "handoffBlob": "9fa31baa81bbdab08e3d83e8e0f76e3d5b34b07a",
+    "targetPort": 6441,
+    "targetOrigin": "https://rest.ynxweb4.com",
+    "candidateSource": "f5e0ef319b0fe8ff0993021e435fdc6627b0d931",
+    "registrySha256": "f8a25702bdc7e3bd12b0cdecd6ac513b0a3d3ac25832a112efbe6b788ff8de9b",
+    "acceptanceScript": "packages/wallet-auth/scripts/verify-wallet-web-companion-6441-acceptance.mjs",
+    "walletAuthTestsPassed": 326,
+    "walletAppTestsPassed": 40,
+    "deployedByCore": false,
+    "acceptanceExecutedPublic": false,
+    "gatewayLoadedPublic": false,
+    "webCompanionVisibleSuccess": false,
+    "integratedCentral": false,
     "aggregatePublic": false
   },
   "chainCoreContractBoundary": {

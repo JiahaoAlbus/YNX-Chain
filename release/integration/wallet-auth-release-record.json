@@ -6,15 +6,15 @@
   "recordedAt": "2026-08-14T03:52:00Z",
   "evidenceMatrix": {
     "path": "release/integration/wallet-auth-release-evidence-matrix.json",
-    "sha256": "d849bbec8aac1fb5777d9aed944777981d9ba68b6369d85ea0569912caa6b946",
+    "sha256": "62e8c5ffbdfb1824df6a4427d78e307c205b7af3699f2589b6c26f20fc4a2219",
     "platforms": 21,
     "gatesPerPlatform": 12,
     "trueGates": 106,
     "falseGates": 146,
-    "evidenceRecords": 115
+    "evidenceRecords": 116
   },
   "frozenOwnerSources": {
-    "coreAuthGateway": "f5e0ef319b0fe8ff0993021e435fdc6627b0d931",
+    "coreAuthGateway": "a731d67b474650c0e6a7ddcf1aa4464f714484f0",
     "webPwaExtensions": "020f513e5d5d12920f75201f637bdd854ccc91aa",
     "androidApi36": "dedfcb67fbb714e8aeefdf552a683c38bba0478f",
     "iosMacos": "3b27b83f18799ff74252469075ec460b6665dd44",
@@ -111,6 +111,7 @@
     "Core/Auth contract 94c7f3c9 and blob 714c2b36 classify 30 blocking release-runtime callers while generated bundles have zero legacy blockers and four shared-builder-bound canonical literals. Both strict caller gates remain red; owners must migrate runtime concatenation through encodeRequestDeepLink and preserve registry callbacks. Pixel 9, integratedCentral and public acceptance remain false.",
     "Wallet/Auth source 04e5554d supersedes 4d4749c6: the factory also requires an async platform secure-device signer, rejects raw P-256 keys and locally verifies returned challenge/proof signatures. Local 214/214 and 120 unique concurrent states do not migrate any of 12 products; PR CI, 6439 deployment, visible platform lifecycle, integratedCentral and public remain false.",
     "Core/Auth f5e0ef31 retains the exact protected session after completion succeeds but introspection transport fails, and requires sender-constrained revoke before disconnect can clear it. Public source 577f8120 permits Social OPTIONS 204 but rejects the official Web companion www Origin with 403 ORIGIN_NOT_ALLOWED, so public registry readiness, Web auth/account/sign/send, mobile, integratedCentral and aggregate public remain false.",
+    "Core/Auth a731d67b freezes the owner-only isolated-6441 deployment and exact post-deploy acceptance contract for candidate f5e0ef31 and registry digest f8a25702. The command has not been executed and no SSH/deploy was performed; deployedByCore, gatewayLoadedPublic, Web companion visible success, integratedCentral and aggregate public remain false.",
     "Product Session Router v2 hardened evidence 2bcdf4f6 supersedes cc6c3936 and freezes deployed source d26ed915: isolated 6441 passes rollback, public lifecycle and a real chmod 0644 tamper with HTTP 503 INSECURE_STATE_FILE, unchanged state bytes, no silent repair and sticky fail-close until explicit 0600+restart recovery. Legacy 6437/6439 remain unchanged, runtimeProductsMigrated=0, visible Wallet approval=false, and integratedCentral plus aggregate Product Session deployment remain false.",
     "Web commit 60614bf5 directly proves first and second launch of an unsigned temporary YNX add-on in official notarized Firefox 153.0.4; install, popup DOM/background, provider/account/sign/tx, extension signing and store claims remain false.",
     "Website main 92a8b90 merged evidence c70bf01 through PR #34; Web 46d030c and an independent deca6f4f gate prove three visible official buttons and 9 exact downloads. PWA, Chrome/Edge and Firefox artifacts are hosted/public, but remain unsigned, non-store, and do not prove installation or provider/account/sign/tx runtime."
