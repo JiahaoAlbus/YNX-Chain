@@ -68,6 +68,7 @@
     "completionOrderingStrengthened": "An issued Session is protected before a network-epoch transition can return, preventing orphan authority.",
     "secureSignerSemanticsConsumed": true,
     "secureSignerNetworkEpochLinearized": true,
+    "lostRevokeAcknowledgementReconciledByExactTerminalCode": "SESSION_REVOKED",
     "secureSignerReconciliationPending": false
   },
   "failClosed": [
@@ -101,6 +102,7 @@
     "completionNetworkTransitionProtectedCandidate": true,
     "platformSecureSignerCandidate": true,
     "secureSignerNetworkEpochCandidate": true,
+    "lostRevokeAcknowledgementCandidate": true,
     "integratedCentral": false,
     "gatewayLoadedPublic": false,
     "deployedPublicRegistry": false,
