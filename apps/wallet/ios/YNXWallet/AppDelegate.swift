@@ -131,8 +131,30 @@ class AppDelegate: ExpoAppDelegate {
     switch NativeAuthorizationPolicy.evaluate(url.absoluteString) {
     case .rejected(let code):
       walletCallbackLogger.notice("YNX_WALLET_NATIVE_AUTHORIZATION_REJECTED pid=\(getpid(), privacy: .public) code=\(code, privacy: .public) authorizationSuccess=false signing=false callbackEmitted=false")
+      presentNativeAuthorizationRejection(code: code)
+      return true
     }
-    return super.application(app, open: url, options: options) || RCTLinkingManager.application(app, open: url, options: options)
+  }
+
+  private func presentNativeAuthorizationRejection(code: String) {
+    DispatchQueue.main.async { [weak self] in
+      guard let root = self?.window?.rootViewController else {
+        walletCallbackLogger.error("YNX_WALLET_NATIVE_AUTHORIZATION_UI_UNAVAILABLE pid=\(getpid(), privacy: .public) code=\(code, privacy: .public)")
+        return
+      }
+      var presenter = root
+      while let presented = presenter.presentedViewController { presenter = presented }
+      let alert = UIAlertController(
+        title: "Request rejected",
+        message: code,
+        preferredStyle: .alert
+      )
+      alert.view.accessibilityIdentifier = "YNX native authorization rejection"
+      alert.addAction(UIAlertAction(title: "Dismiss", style: .default))
+      presenter.present(alert, animated: false) {
+        walletCallbackLogger.notice("YNX_WALLET_NATIVE_AUTHORIZATION_UI_VISIBLE pid=\(getpid(), privacy: .public) code=\(code, privacy: .public)")
+      }
+    }
   }
 
   // Universal Links

@@ -224,10 +224,64 @@ jobs:
             2>&1 | tee proof/ci-ios/malformed-callback-native.log || true
           grep -E 'YNX_WALLET_CALLBACK_RECEIVED pid=[0-9]+ scheme=ynxwallet' proof/ci-ios/malformed-callback-native.log
           grep -E 'YNX_WALLET_NATIVE_AUTHORIZATION_REJECTED pid=[0-9]+ code=INVALID_DEEP_LINK authorizationSuccess=false signing=false callbackEmitted=false' proof/ci-ios/malformed-callback-native.log
+          grep -E 'YNX_WALLET_NATIVE_AUTHORIZATION_UI_VISIBLE pid=[0-9]+ code=INVALID_DEEP_LINK' proof/ci-ios/malformed-callback-native.log
           grep -F "Test Case '-[YNXWalletUITests.MalformedCallbackUITests testMalformedCallbackIsDeliveredAndRejected]' passed" proof/ci-ios/malformed-callback-xctest.log
           xcrun xcresulttool export attachments \
             --path proof/ci-ios/MalformedCallback.xcresult \
             --output-path proof/ci-ios/xcresult-attachments
+      - name: Deliver canonical registry request and prove native bridge stops before JS
+        timeout-minutes: 15
+        working-directory: apps/wallet
+        run: |
+          set -euo pipefail
+          DEVICE="$(xcrun simctl list devices booted | awk -F '[()]' '/iPhone/{print $2; exit}')"
+          test -n "$DEVICE"
+          node --input-type=module <<'NODE' > proof/ci-ios/canonical-registry-request-url.txt
+          const now = Date.now();
+          const request = {
+            version:"1", nonce:"ci_native_bridge_boundary_nonce_01", chainId:"ynx_6423-1",
+            requestingProduct:"social", productClientId:"ynx-social-v1", bundleId:"com.ynx.social",
+            productDeviceAlgorithm:"p256-sha256",
+            productDeviceKey:"AzrThhqVYhOSUWu1k-8FWD7S5YZvXLYmCjAXI3_Ym5Cv",
+            callback:"ynx-social://com.ynx.social", scopes:["account:read","profile:link"],
+            purpose:"Verify the frozen native bridge fail-closed boundary.",
+            issuedAt:new Date(now-5000).toISOString(), expiresAt:new Date(now+240000).toISOString(),
+          };
+          const canonical = Object.fromEntries(Object.entries(request).sort(([left],[right]) => left.localeCompare(right)));
+          process.stdout.write(`ynxwallet://authorize?request=${Buffer.from(JSON.stringify(canonical)).toString("base64url")}\n`);
+          NODE
+          xcodebuild test \
+            -workspace ios/YNXWallet.xcworkspace \
+            -scheme YNXWallet \
+            -configuration Release \
+            -destination "platform=iOS Simulator,id=$DEVICE" \
+            -only-testing:YNXWalletUITests/MalformedCallbackUITests/testCanonicalRegistryRequestStopsAtNativeBridge \
+            -resultBundlePath proof/ci-ios/CanonicalRegistryNativeBridge.xcresult \
+            2>&1 | tee proof/ci-ios/canonical-registry-native-bridge-xctest.log &
+          XCODEBUILD_PID=$!
+          READY=false
+          for _ in $(seq 1 240); do
+            if grep -Fq 'YNX_WALLET_CANONICAL_UI_READY_FOR_SIMCTL_OPENURL' proof/ci-ios/canonical-registry-native-bridge-xctest.log; then
+              READY=true
+              break
+            fi
+            if ! kill -0 "$XCODEBUILD_PID" 2>/dev/null; then break; fi
+            sleep 1
+          done
+          test "$READY" = true
+          IFS= read -r CANONICAL_URL < proof/ci-ios/canonical-registry-request-url.txt
+          xcrun simctl openurl "$DEVICE" "$CANONICAL_URL" | tee proof/ci-ios/canonical-registry-openurl.txt
+          wait "$XCODEBUILD_PID"
+          xcrun simctl spawn "$DEVICE" log show --style compact --last 10m \
+            --predicate 'subsystem == "com.ynxweb4.wallet" AND category == "callback"' \
+            2>&1 | tee proof/ci-ios/canonical-registry-native.log
+          grep -E 'YNX_WALLET_NATIVE_AUTHORIZATION_REJECTED pid=[0-9]+ code=CANONICAL_AUTH_BRIDGE_UNAVAILABLE authorizationSuccess=false signing=false callbackEmitted=false' proof/ci-ios/canonical-registry-native.log
+          grep -E 'YNX_WALLET_NATIVE_AUTHORIZATION_UI_VISIBLE pid=[0-9]+ code=CANONICAL_AUTH_BRIDGE_UNAVAILABLE' proof/ci-ios/canonical-registry-native.log
+          grep -F "Test Case '-[YNXWalletUITests.MalformedCallbackUITests testCanonicalRegistryRequestStopsAtNativeBridge]' passed" proof/ci-ios/canonical-registry-native-bridge-xctest.log
+          mkdir -p proof/ci-ios/canonical-registry-xcresult-attachments
+          xcrun xcresulttool export attachments \
+            --path proof/ci-ios/CanonicalRegistryNativeBridge.xcresult \
+            --output-path proof/ci-ios/canonical-registry-xcresult-attachments
       - name: Prove Universal Link remains fail-closed without a frozen associated domain
         timeout-minutes: 10
         working-directory: apps/wallet

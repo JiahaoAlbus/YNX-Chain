@@ -10,7 +10,6 @@ final class MalformedCallbackUITests: XCTestCase {
     let wallet = XCUIApplication()
     wallet.launch()
 
-    let rejection = wallet.staticTexts["Invalid Wallet authorization rejected"]
     FileHandle.standardError.write(Data("YNX_WALLET_UI_READY_FOR_SIMCTL_OPENURL\n".utf8))
 
     let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
@@ -21,13 +20,31 @@ final class MalformedCallbackUITests: XCTestCase {
     )
     openButton.tap()
 
-    XCTAssertTrue(
-      rejection.waitForExistence(timeout: 45),
-      "YNX Wallet did not expose its fail-closed rejection after callback delivery"
-    )
+    XCTAssertTrue(wallet.alerts["Request rejected"].waitForExistence(timeout: 45))
+    XCTAssertTrue(wallet.staticTexts["INVALID_DEEP_LINK"].exists)
+    XCTAssertTrue(wallet.buttons["Dismiss"].exists)
 
     let screenshot = XCTAttachment(screenshot: wallet.screenshot())
     screenshot.name = "malformed-callback-fail-closed"
+    screenshot.lifetime = .keepAlways
+    add(screenshot)
+  }
+
+  func testCanonicalRegistryRequestStopsAtNativeBridge() throws {
+    let wallet = XCUIApplication()
+    wallet.launch()
+    FileHandle.standardError.write(Data("YNX_WALLET_CANONICAL_UI_READY_FOR_SIMCTL_OPENURL\n".utf8))
+
+    let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+    let openButton = springboard.buttons["Open"]
+    XCTAssertTrue(openButton.waitForExistence(timeout: 60), "Canonical simctl openurl did not expose Open")
+    openButton.tap()
+
+    XCTAssertTrue(wallet.alerts["Request rejected"].waitForExistence(timeout: 45))
+    XCTAssertTrue(wallet.staticTexts["CANONICAL_AUTH_BRIDGE_UNAVAILABLE"].exists)
+    XCTAssertTrue(wallet.buttons["Dismiss"].exists)
+    let screenshot = XCTAttachment(screenshot: wallet.screenshot())
+    screenshot.name = "canonical-registry-native-bridge-fail-closed"
     screenshot.lifetime = .keepAlways
     add(screenshot)
   }
