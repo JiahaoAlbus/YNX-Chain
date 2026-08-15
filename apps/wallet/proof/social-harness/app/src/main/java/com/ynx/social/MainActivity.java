@@ -113,7 +113,7 @@ public final class MainActivity extends Activity {
     }catch(Exception error){status.setText("Callback rejected: "+detail(error));}
   }
 
-  private JSONObject pendingRequest() throws Exception {String value=preferences.getString(PENDING_REQUEST,null);if(value==null)throw new SecurityException("pending request missing");JSONObject request=new JSONObject(value);requireExactFields(request,REQUEST_FIELDS,"pending request");return request;}
+  private JSONObject pendingRequest() throws Exception {String value=preferences.getString(PENDING_REQUEST,null);if(value==null)throw new SecurityException("pending request missing");JSONObject request=new JSONObject(value);if(!canonical(request).equals(value))throw new SecurityException("pending request storage is not canonical");verifyRequestBinding(request,Instant.now());return request;}
   private void persistPendingRequest(JSONObject request) throws Exception {String canonical=canonical(request),existing=preferences.getString(PENDING_REQUEST,null);if(existing!=null&&!canonical(new JSONObject(existing)).equals(canonical))throw new SecurityException("another authorization request is already pending");if(existing==null&&!preferences.edit().putString(PENDING_REQUEST,canonical).commit())throw new SecurityException("pending authorization request was not durably stored");}
   private boolean consumeCallbackNonce(String nonce){String key="consumed."+nonce;if(preferences.getBoolean(key,false))return false;if(!preferences.edit().putBoolean(key,true).commit())throw new SecurityException("callback replay state was not durably stored");return true;}
 
@@ -121,6 +121,7 @@ public final class MainActivity extends Activity {
     requireExactFields(response,RESPONSE_FIELDS,"Wallet approval");
     for(String key:List.of("version","nonce","chainId","requestingProduct","productClientId","bundleId","productDeviceAlgorithm","productDeviceKey","callback","purpose"))if(!request.getString(key).equals(response.getString(key)))throw new SecurityException("Wallet approval "+key+" binding mismatch");
     if(!"1".equals(response.getString("version"))||!"ynx_6423-1".equals(response.getString("chainId"))||!DEVICE_ALGORITHM.equals(response.getString("productDeviceAlgorithm")))throw new SecurityException("Wallet approval protocol mismatch");
+    if(!devicePublicKey().equals(response.getString("productDeviceKey")))throw new SecurityException("Wallet approval is not bound to this Android Keystore device");
     requireExactScopes(response.getJSONArray("grantedScopes"),request.getJSONArray("scopes"));
     String expectedDigest=hex(sha256(("YNX_WALLET_AUTH_REQUEST_V1\n"+canonical(request)).getBytes(StandardCharsets.UTF_8)));
     if(!expectedDigest.equals(response.getString("requestDigest")))throw new SecurityException("Wallet approval request digest mismatch");
