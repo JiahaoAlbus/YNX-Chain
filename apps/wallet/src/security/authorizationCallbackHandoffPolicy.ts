@@ -13,5 +13,5 @@ export async function completePersistentAuthorizationCallbackHandoff(
 
 export async function rejectPersistentAuthorizationRequest(
   store:PersistentAuthorizationCallbackStore,request:AuthorizationRequest,account:string,now:()=>Date,assertActive:()=>void,
-  ensureRejectedAudit:()=>Promise<unknown>,complete:()=>void,
-):Promise<void>{await store.reject(request,account,now,assertActive);await ensureRejectedAudit();complete()}
+  createResponse:()=>Promise<string>,ensureRejectedAudit:()=>Promise<unknown>,openCallback:(url:string)=>Promise<unknown>,complete:()=>void,
+):Promise<void>{const responseURL=await store.prepare(request,account,createResponse,now,assertActive);await ensureRejectedAudit();assertActive();await openCallback(responseURL);await store.complete(request,responseURL);complete()}
