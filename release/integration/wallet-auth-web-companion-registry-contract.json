@@ -85,6 +85,7 @@
     "coreRuntimeCandidate": true,
     "restartExpiryRevokeCandidate": true,
     "concurrentDisconnectLinearizedCandidate": true,
+    "concurrentCallbackLinearizedCandidate": true,
     "integratedCentral": false,
     "gatewayLoadedPublic": false,
     "deployedPublicRegistry": false,

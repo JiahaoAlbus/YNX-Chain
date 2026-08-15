@@ -76,6 +76,29 @@ test("Web companion approval completes challenge, Product Session and introspect
   assert.equal(setup.handler.snapshot().authority.sessions.length, 1);
 });
 
+test("concurrent identical Web companion callbacks linearize to one Product Session lifecycle", async () => {
+  const setup = runtime();
+  const connecting = await setup.client.begin({ walletInstalled: true, schemeRegistered: true });
+  const approval = signProductSessionApproval(registry, connecting.request, { accountSecret: "1".padStart(64, "0"), scopes: connecting.request.scopes, expiresAt: "2026-08-15T09:03:00.000Z" }, NOW);
+  const returned = createProductSessionReturnURL(registry, connecting.request, { result: "approved", approval }, NOW);
+  const [first, second] = await Promise.all([setup.client.handleReturn(returned), setup.client.handleReturn(returned)]);
+  assert.equal(first.status, PRODUCT_SESSION_CLIENT_STATE.CONNECTED);
+  assert.deepEqual(second, first);
+  assert.deepEqual(setup.requests.map((item) => item.path), ["/v2/product-sessions/challenge", "/v2/product-sessions/complete", "/v2/product-sessions/introspect"]);
+  assert.equal(setup.handler.snapshot().authority.sessions.length, 1);
+});
+
+test("a different concurrent Web companion callback fails closed without joining the valid approval", async () => {
+  const setup = runtime();
+  const connecting = await setup.client.begin({ walletInstalled: true, schemeRegistered: true });
+  const approval = signProductSessionApproval(registry, connecting.request, { accountSecret: "1".padStart(64, "0"), scopes: connecting.request.scopes, expiresAt: "2026-08-15T09:03:00.000Z" }, NOW);
+  const returned = createProductSessionReturnURL(registry, connecting.request, { result: "approved", approval }, NOW);
+  const valid = setup.client.handleReturn(returned);
+  await assert.rejects(setup.client.handleReturn(returned.replace("/wallet-auth/callback", "/wallet-auth/attacker")), code("CONCURRENT_CALLBACK"));
+  assert.equal((await valid).status, PRODUCT_SESSION_CLIENT_STATE.CONNECTED);
+  assert.deepEqual(setup.requests.map((item) => item.path), ["/v2/product-sessions/challenge", "/v2/product-sessions/complete", "/v2/product-sessions/introspect"]);
+});
+
 test("Web companion rejection creates no challenge, session or Gateway mutation", async () => {
   const setup = runtime();
   const connecting = await setup.client.begin({ walletInstalled: true, schemeRegistered: true });
