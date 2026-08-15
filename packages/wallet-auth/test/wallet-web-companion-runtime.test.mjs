@@ -103,6 +103,19 @@ test("Web companion disconnect revokes the authoritative Product Session before 
   assert.deepEqual(setup.handler.snapshot().consumedProofs, beforeReplay.consumedProofs);
 });
 
+test("concurrent Web companion disconnects linearize to one authoritative revoke", async () => {
+  const setup = runtime();
+  const connecting = await setup.client.begin({ walletInstalled: true, schemeRegistered: true });
+  const approval = signProductSessionApproval(registry, connecting.request, { accountSecret: "1".padStart(64, "0"), scopes: connecting.request.scopes, expiresAt: "2026-08-15T09:03:00.000Z" }, NOW);
+  const connected = await setup.client.handleReturn(createProductSessionReturnURL(registry, connecting.request, { result: "approved", approval }, NOW));
+  const [first, second] = await Promise.all([setup.client.disconnect(), setup.client.disconnect()]);
+  assert.equal(first.status, PRODUCT_SESSION_CLIENT_STATE.DISCONNECTED);
+  assert.deepEqual(second, first);
+  assert.equal(setup.requests.filter((item) => item.path === "/v2/product-sessions/revoke").length, 1);
+  assert.deepEqual(setup.handler.snapshot().authority.revokedSessions, [connected.session.sessionBinding]);
+  assert.equal(await setup.storage.get(setup.client.storageKey), null);
+});
+
 test("Web companion session restores across Gateway restart and expiry removes authority locally without a network call", async () => {
   const first = runtime();
   const connecting = await first.client.begin({ walletInstalled: true, schemeRegistered: true });

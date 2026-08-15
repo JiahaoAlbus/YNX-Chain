@@ -11,7 +11,7 @@ export const PRODUCT_SESSION_CLIENT_STATE = Object.freeze({
 });
 
 export class RecoverableProductSessionClient {
-  #registry; #binding; #storage; #gateway; #device; #tokens; #clock; #state; #autoReconnectAttempted; #networkAvailable;
+  #registry; #binding; #storage; #gateway; #device; #tokens; #clock; #state; #autoReconnectAttempted; #networkAvailable; #disconnectPromise;
   constructor(config) {
     exactFields(config, ["registry", "productId", "platform", "storage", "gateway", "device", "tokenFactory", "clock"], "Recoverable Product Session client configuration");
     this.#registry = parseProductSessionRegistry(config.registry);
@@ -24,6 +24,7 @@ export class RecoverableProductSessionClient {
     this.#state = state(PRODUCT_SESSION_CLIENT_STATE.DISCONNECTED, "No authoritative Product Session is active");
     this.#autoReconnectAttempted = false;
     this.#networkAvailable = true;
+    this.#disconnectPromise = null;
   }
 
   get current() { return this.#state; }
@@ -121,6 +122,13 @@ export class RecoverableProductSessionClient {
   setNetworkAvailable(available) { this.#networkAvailable = Boolean(available); if (!this.#networkAvailable) return this.#offline(); this.#state = state(PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED, "Network restored; authoritative re-introspection is required", { actions: ["retry"] }); return this.#state; }
   enterGuest() { this.#state = state(PRODUCT_SESSION_CLIENT_STATE.GUEST, "Guest / Try mode: not signed in; balances, transactions and Chain authority are unavailable", { limitations: ["not-signed-in", "no-wallet-balance", "no-transactions", "no-chain-authority"] }); return this.#state; }
   async disconnect() {
+    if (this.#disconnectPromise !== null) return this.#disconnectPromise;
+    const operation = this.#disconnect();
+    this.#disconnectPromise = operation;
+    try { return await operation; }
+    finally { if (this.#disconnectPromise === operation) this.#disconnectPromise = null; }
+  }
+  async #disconnect() {
     const session = this.#state.status === PRODUCT_SESSION_CLIENT_STATE.CONNECTED ? this.#state.session : null;
     if (session !== null && session.expiresAt > this.#clock().toISOString()) {
       try {

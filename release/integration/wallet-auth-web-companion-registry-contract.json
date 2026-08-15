@@ -84,6 +84,7 @@
     "testedLocal": true,
     "coreRuntimeCandidate": true,
     "restartExpiryRevokeCandidate": true,
+    "concurrentDisconnectLinearizedCandidate": true,
     "integratedCentral": false,
     "gatewayLoadedPublic": false,
     "deployedPublicRegistry": false,
