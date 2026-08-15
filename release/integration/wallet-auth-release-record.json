@@ -6,17 +6,17 @@
   "recordedAt": "2026-08-14T03:52:00Z",
   "evidenceMatrix": {
     "path": "release/integration/wallet-auth-release-evidence-matrix.json",
-    "sha256": "e81d11ba5b8fbf25ee77bc221ca9513434c9755bb12d23692ca42dd6aaaa2ec1",
+    "sha256": "3f397c6edb5d69eb2861a063eaf9378fdaf66b438d2c13114795836bde436399",
     "platforms": 21,
     "gatesPerPlatform": 12,
     "trueGates": 106,
     "falseGates": 146,
-    "evidenceRecords": 112
+    "evidenceRecords": 113
   },
   "frozenOwnerSources": {
     "coreAuthGateway": "404f818719b920008f88f076949a4387c5130855",
     "webPwaExtensions": "020f513e5d5d12920f75201f637bdd854ccc91aa",
-    "androidApi36": "66d321e423baedb0e030650729f1000d25a351cf",
+    "androidApi36": "dedfcb67fbb714e8aeefdf552a683c38bba0478f",
     "iosMacos": "3b27b83f18799ff74252469075ec460b6665dd44",
     "desktopCliSdk": "2802876f8470264c4a8819f1426e28f957a09289",
     "walletProductSessionRouter": "2bcdf4f646177fe2419f1af3ac9e66bb3c218194",
@@ -113,6 +113,7 @@
     "Web commit 60614bf5 directly proves first and second launch of an unsigned temporary YNX add-on in official notarized Firefox 153.0.4; install, popup DOM/background, provider/account/sign/tx, extension signing and store claims remain false.",
     "Website main 92a8b90 merged evidence c70bf01 through PR #34; Web 46d030c and an independent deca6f4f gate prove three visible official buttons and 9 exact downloads. PWA, Chrome/Edge and Firefox artifacts are hosted/public, but remain unsigned, non-store, and do not prove installation or provider/account/sign/tx runtime."
     ,"Android evidence 66d321e4 binds source 9f91b1f5 to a disposable API 36 arm64 AVD and directly proves fresh install, two cold PIDs, strong-biometric wrong/registered-fingerprint behavior, background relock and bounded authorization fail-close paths. The QA certificate is disposable; terminal replay, process reconstruction, authoritative balance/nonce, callback delivery, transaction, hosting, production signing and store remain false."
+    ,"Android source dedfcb67 and exact-head CI 31850349002 bind a 25,623,359-byte disposable-QA APK to fresh-wiped API36 startup evidence: cold PID 5249, second PID 5391, no Wallet ANR/FATAL/crash, and malformed authorization fail-close. Physical device, RPC/Faucet, approve/reject/callback/Product Session, transaction, hosting, production signing and store remain false."
     ,"Core/Auth evidence 19277165 directly proves the isolated d26ed915 public v2 negative matrix: wrong product/device/bundle, scope widening, sibling device revoke and expiry fail closed. It also freezes the remaining gap: deployed state does not pin device+inode across requests and public symlink/hardlink/same-bytes inode/digest tamper vectors are unproved; aggregate/central remain false."
     ,"Core/Auth evidence 99523546 directly proves source 37f2485 cross-restart exact-request idempotency: a 1,122-byte completion response and state SHA are identical, post-restart revoke succeeds, post-revoke returns SESSION_REVOKED, and the private retry record is removed. Product migration, visible approval, central absorption and aggregate deployment remain false."
     ,"Core/Auth evidence 404f8187 directly proves deployed source 37f2485 rejects runtime 0644, hardlink, symlink, same-byte inode replacement and digest tamper with exact HTTP 503 codes and zero mutation. Repair restores 0600 ynx:ynx nlink=1 and the public lifecycle. Existing 6437/6439, zero product migration, absent visible Wallet approval, central absorption and aggregate deployment remain unchanged and false."
