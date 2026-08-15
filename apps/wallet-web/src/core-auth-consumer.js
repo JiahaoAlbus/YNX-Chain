@@ -71,6 +71,7 @@ export function deriveCoreWalletAuthBinding(registry) {
 
 export function requireCanonicalAuthorizationContext(binding, context) {
   if (!binding?.enabled || binding.reviewState !== "approved" || !same(binding.webCallbacks, [WALLET_WEB_COMPANION_CALLBACK])) authFailure("CANONICAL_AUTH_UNAVAILABLE", "Canonical Wallet authorization is unavailable for this Web companion.");
+  if (binding.publicGatewayRegistryReady === false || binding.trustedRuntimeAvailable === false) authFailure("CANONICAL_AUTH_UNAVAILABLE", "The public Gateway registry or trusted Core runtime is unavailable.");
   if (!context) authFailure("CANONICAL_AUTH_REQUIRED", "A verified canonical Wallet authorization context is required.");
   authFailure("CANONICAL_AUTH_UNVERIFIED", "The Web companion cannot verify this canonical Wallet authorization context.");
 }

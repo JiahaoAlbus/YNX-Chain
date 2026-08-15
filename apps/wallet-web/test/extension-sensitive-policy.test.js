@@ -15,7 +15,7 @@ test("build consumes exact Core Web companion authority while public Gateway rem
   assert.equal(binding.productClientId,"ynx-wallet-web-companion-v1");assert.equal(binding.enabled,true);
   assert.deepEqual(binding.webCallbacks,["https://www.ynxweb4.com/dapp/wallet/wallet-auth/callback"]);
   assert.equal(binding.publicGatewayRegistryReady,false);assert.equal(binding.trustedRuntimeAvailable,false);
-  assert.throws(()=>requireCanonicalAuthorizationContext(binding,null),error=>error.code==="CANONICAL_AUTH_REQUIRED");
+  assert.throws(()=>requireCanonicalAuthorizationContext(binding,null),error=>error.code==="CANONICAL_AUTH_UNAVAILABLE");
 });
 
 test("sensitive request parser binds exact method parameters, account and deadline",()=>{
