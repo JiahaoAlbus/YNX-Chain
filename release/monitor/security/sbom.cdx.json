@@ -15,7 +15,7 @@
         },
         {
           "name": "ynx:sourceCommit",
-          "value": "da552c4e86d8d895dbc10bcab38d93ee3228ddac"
+          "value": "af5e7ea388c5e88e7a235d71892721546cbe6b5a"
         }
       ]
     },
@@ -4179,13 +4179,13 @@
     {
       "type": "library",
       "name": "nanoid",
-      "version": "3.3.16",
-      "bom-ref": "pkg:npm/nanoid@3.3.16?lock_path=node_modules%2Fnanoid",
-      "purl": "pkg:npm/nanoid@3.3.16",
+      "version": "3.3.18",
+      "bom-ref": "pkg:npm/nanoid@3.3.18?lock_path=node_modules%2Fnanoid",
+      "purl": "pkg:npm/nanoid@3.3.18",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "6f394a4f2349efe2dd188230cbc8a316922a11022f69f6a157b798ca427c0af878d8474978e0e827a814257a5026f7a3d4175d1fc3aa4d764d13f29f6d602ef1"
+          "content": "0d38383096c631691f8ba55915d36ddbf71a31b432e0ebbe3a9fe1250bc611672755fa00d5003ec7344a033c3d8c3ebe19538e798aff98872e0d276e83a17afb"
         }
       ],
       "licenses": [
@@ -4202,7 +4202,7 @@
         },
         {
           "name": "ynx:registryHost",
-          "value": "registry.npmmirror.com"
+          "value": "registry.npmjs.org"
         },
         {
           "name": "ynx:optional",
@@ -4485,13 +4485,13 @@
     {
       "type": "library",
       "name": "postcss",
-      "version": "8.5.19",
-      "bom-ref": "pkg:npm/postcss@8.5.19?lock_path=node_modules%2Fpostcss",
-      "purl": "pkg:npm/postcss@8.5.19",
+      "version": "8.5.26",
+      "bom-ref": "pkg:npm/postcss@8.5.26?lock_path=node_modules%2Fpostcss",
+      "purl": "pkg:npm/postcss@8.5.26",
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "333f126a894c77c9c1f86d775a439173140a1d9fcd138c577afb6424756e1be82ea3dff060a948313280a867449983974768a33e34d8347b2c8b375a55250d75"
+          "content": "bbcd8def82c5cc6f1c6be743f29b8f9e99535e8187e1f4cfa551ae21bb77e86deabcd964bdf0f49440194b16a5cb7297f134bf2f503582c0849af2a605c55b91"
         }
       ],
       "licenses": [
@@ -4508,7 +4508,7 @@
         },
         {
           "name": "ynx:registryHost",
-          "value": "registry.npmmirror.com"
+          "value": "registry.npmjs.org"
         },
         {
           "name": "ynx:optional",

@@ -2,6 +2,7 @@ package indexer
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -11,6 +12,7 @@ import (
 	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 )
 
 type Server struct {
@@ -20,8 +22,13 @@ type Server struct {
 	lastResult   SyncResult
 	lastError    string
 	errorCount   int64
+	reorgCount   int64
 	lastSyncedAt time.Time
+	startedAt    time.Time
 	build        buildinfo.Info
+	cursor       *cursorCodec
+	admission    *admissionController
+	syncMu       sync.Mutex
 }
 
 func NewServer(indexer *Indexer) *Server {
@@ -29,16 +36,34 @@ func NewServer(indexer *Indexer) *Server {
 }
 
 func NewServerWithBuild(indexer *Indexer, build buildinfo.Info) *Server {
-	s := &Server{indexer: indexer, mux: http.NewServeMux(), build: buildinfo.Normalize(build)}
+	server, err := NewServerWithBuildCursorKeyAndLimits(indexer, build, nil, Limits{})
+	if err != nil {
+		panic(err)
+	}
+	return server
+}
+
+func NewServerWithBuildAndCursorKey(indexer *Indexer, build buildinfo.Info, cursorKey []byte) (*Server, error) {
+	return NewServerWithBuildCursorKeyAndLimits(indexer, build, cursorKey, Limits{})
+}
+
+func NewServerWithBuildCursorKeyAndLimits(indexer *Indexer, build buildinfo.Info, cursorKey []byte, limits Limits) (*Server, error) {
+	codec, err := newCursorCodec(cursorKey)
+	if err != nil {
+		return nil, err
+	}
+	s := &Server{indexer: indexer, mux: http.NewServeMux(), startedAt: time.Now().UTC(), build: buildinfo.Normalize(build), cursor: codec, admission: newAdmissionController(limits)}
 	s.routes()
-	return s
+	return s, nil
 }
 
 func (s *Server) Handler() http.Handler {
-	return s.mux
+	return s.admission.wrap(s.mux)
 }
 
 func (s *Server) SyncOnce(ctx context.Context) (SyncResult, error) {
+	s.syncMu.Lock()
+	defer s.syncMu.Unlock()
 	result, err := s.indexer.SyncOnce(ctx)
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -49,6 +74,9 @@ func (s *Server) SyncOnce(ctx context.Context) (SyncResult, error) {
 	}
 	s.lastError = ""
 	s.lastResult = result
+	if result.ReorgDetected {
+		s.reorgCount++
+	}
 	s.lastSyncedAt = time.Now().UTC()
 	return result, nil
 }
@@ -72,6 +100,7 @@ func (s *Server) StartPolling(ctx context.Context, interval time.Duration) {
 
 func (s *Server) routes() {
 	s.mux.HandleFunc("GET /health", s.handleHealth)
+	s.mux.HandleFunc("GET /version", s.handleVersion)
 	s.mux.HandleFunc("GET /ynx/overview", s.handleOverview)
 	s.mux.HandleFunc("GET /metrics", s.handleMetrics)
 	s.mux.HandleFunc("POST /sync", s.handleSync)
@@ -79,19 +108,91 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /blocks/{height}", s.handleBlock)
 	s.mux.HandleFunc("GET /txs", s.handleTransactions)
 	s.mux.HandleFunc("GET /txs/{hash}", s.handleTransaction)
+	s.mux.HandleFunc("GET /accounts/{address}/activity", s.handleAccountActivity)
+}
+
+func (s *Server) handleVersion(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, map[string]any{
+		"service":       "ynx-indexerd",
+		"schemaVersion": 2,
+		"build":         s.build,
+		"startedAt":     s.startedAt,
+		"limits": map[string]any{
+			"maxConcurrent":     s.admission.limits.MaxConcurrent,
+			"maxRequestsPerSec": s.admission.limits.MaxRequestsPerSec,
+			"queueWait":         s.admission.limits.QueueWait.String(),
+		},
+	})
+}
+
+type databaseSummary struct {
+	Network              string
+	ChainID              int64
+	NativeSymbol         string
+	LastIndexedHeight    uint64
+	LastSourceHeight     uint64
+	SourceEarliestHeight uint64
+	SourceEarliestHash   string
+	SourceEarliestTime   time.Time
+	IndexedBlockCount    int
+	IndexedTxCount       int
+}
+
+func summarizeDatabase(store *Store) (databaseSummary, error) {
+	var summary databaseSummary
+	err := store.View(func(db Database) error {
+		summary = databaseSummary{
+			Network:              db.Network,
+			ChainID:              db.ChainID,
+			NativeSymbol:         db.NativeSymbol,
+			LastIndexedHeight:    db.LastIndexedHeight,
+			LastSourceHeight:     db.LastSourceHeight,
+			SourceEarliestHeight: db.SourceEarliestHeight,
+			SourceEarliestHash:   db.SourceEarliestHash,
+			SourceEarliestTime:   db.SourceEarliestTime,
+			IndexedBlockCount:    len(db.Blocks),
+			IndexedTxCount:       len(db.Transactions),
+		}
+		return nil
+	})
+	return summary, err
+}
+
+func trySummarizeDatabase(store *Store) (databaseSummary, bool, error) {
+	var summary databaseSummary
+	ready, err := store.TryView(func(db Database) error {
+		summary = databaseSummary{
+			Network:              db.Network,
+			ChainID:              db.ChainID,
+			NativeSymbol:         db.NativeSymbol,
+			LastIndexedHeight:    db.LastIndexedHeight,
+			LastSourceHeight:     db.LastSourceHeight,
+			SourceEarliestHeight: db.SourceEarliestHeight,
+			SourceEarliestHash:   db.SourceEarliestHash,
+			SourceEarliestTime:   db.SourceEarliestTime,
+			IndexedBlockCount:    len(db.Blocks),
+			IndexedTxCount:       len(db.Transactions),
+		}
+		return nil
+	})
+	return summary, ready, err
 }
 
 func (s *Server) handleOverview(w http.ResponseWriter, r *http.Request) {
-	db, err := s.indexer.Store().Load()
+	db, err := summarizeDatabase(s.indexer.Store())
 	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]any{"ok": false, "error": err.Error()})
+		writePublicError(w, http.StatusServiceUnavailable, "store_unavailable", "The canonical index is temporarily unavailable.")
 		return
 	}
 	s.mu.RLock()
-	lastError, lastSyncedAt := s.lastError, s.lastSyncedAt
+	lastError, lastSyncedAt, lastResult := s.lastError, s.lastSyncedAt, s.lastResult
 	s.mu.RUnlock()
-	writeJSON(w, http.StatusOK, map[string]any{
-		"ok":                   lastError == "",
+	status := http.StatusOK
+	if lastError != "" || lastSyncedAt.IsZero() {
+		status = http.StatusServiceUnavailable
+	}
+	writeJSON(w, status, map[string]any{
+		"ok":                   lastError == "" && !lastSyncedAt.IsZero(),
 		"service":              "ynx-indexerd",
 		"network":              db.Network,
 		"chainId":              db.ChainID,
@@ -101,27 +202,59 @@ func (s *Server) handleOverview(w http.ResponseWriter, r *http.Request) {
 		"sourceEarliestHeight": db.SourceEarliestHeight,
 		"sourceEarliestHash":   db.SourceEarliestHash,
 		"sourceEarliestTime":   db.SourceEarliestTime,
-		"indexedBlockCount":    len(db.Blocks),
-		"indexedTxCount":       len(db.Transactions),
+		"indexedBlockCount":    db.IndexedBlockCount,
+		"indexedTxCount":       db.IndexedTxCount,
 		"lastSyncedAt":         lastSyncedAt,
-		"lastError":            lastError,
+		"lastErrorCode":        publicSyncErrorCode(lastError),
+		"lastRecoveryMode":     lastResult.RecoveryMode,
+		"lastReorgDetected":    lastResult.ReorgDetected,
+		"lastCommonAncestor":   lastResult.CommonAncestorHeight,
+		"lastRollbackFrom":     lastResult.RollbackFromHeight,
+		"lastRolledBackBlocks": lastResult.RolledBackBlockCount,
+		"lastRolledBackTxs":    lastResult.RolledBackTxCount,
+		"maxReorgDepth":        lastResult.MaxReorgDepth,
 		"build":                s.build,
+		"cursorVersion":        cursorVersion,
+		"cursorPersistence":    cursorPersistence(s.cursor),
 		"truthfulStatus":       "local-indexer",
 	})
 }
 
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
-	db, err := s.indexer.Store().Load()
+	store := s.indexer.Store()
+	var db databaseSummary
+	var storeReady bool
+	var err error
+	if store.Ready() {
+		db, err = summarizeDatabase(store)
+		storeReady = err == nil
+	} else {
+		db, storeReady, err = trySummarizeDatabase(store)
+	}
 	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]any{"ok": false, "error": err.Error()})
+		writePublicError(w, http.StatusServiceUnavailable, "store_unavailable", "The canonical index is temporarily unavailable.")
 		return
 	}
 	s.mu.RLock()
-	lastError, lastSyncedAt, errorCount := s.lastError, s.lastSyncedAt, s.errorCount
+	lastError, lastSyncedAt, errorCount, reorgCount, lastResult := s.lastError, s.lastSyncedAt, s.errorCount, s.reorgCount, s.lastResult
 	s.mu.RUnlock()
-	writeJSON(w, http.StatusOK, map[string]any{
-		"ok":                   lastError == "",
+	ready := storeReady && lastError == "" && !lastSyncedAt.IsZero()
+	dependencyStatus := "healthy"
+	if !storeReady {
+		dependencyStatus = "warming"
+	} else if lastError != "" {
+		dependencyStatus = "unavailable"
+	} else if lastSyncedAt.IsZero() {
+		dependencyStatus = "not-yet-synced"
+	}
+	status := http.StatusOK
+	if !ready {
+		status = http.StatusServiceUnavailable
+	}
+	writeJSON(w, status, map[string]any{
+		"ok":                   ready,
 		"service":              "ynx-indexerd",
+		"startedAt":            s.startedAt,
 		"network":              db.Network,
 		"chainId":              db.ChainID,
 		"nativeSymbol":         db.NativeSymbol,
@@ -129,24 +262,37 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 		"lastSourceHeight":     db.LastSourceHeight,
 		"sourceEarliestHeight": db.SourceEarliestHeight,
 		"sourceEarliestHash":   db.SourceEarliestHash,
-		"indexedBlockCount":    len(db.Blocks),
-		"indexedTxCount":       len(db.Transactions),
+		"indexedBlockCount":    db.IndexedBlockCount,
+		"indexedTxCount":       db.IndexedTxCount,
 		"lastSyncedAt":         lastSyncedAt,
-		"lastError":            lastError,
+		"lastErrorCode":        publicSyncErrorCode(lastError),
 		"syncErrorCount":       errorCount,
+		"reorgRecoveryCount":   reorgCount,
+		"lastRecoveryMode":     lastResult.RecoveryMode,
+		"lastReorgDetected":    lastResult.ReorgDetected,
+		"lastCommonAncestor":   lastResult.CommonAncestorHeight,
+		"lastRollbackFrom":     lastResult.RollbackFromHeight,
+		"lastRolledBackBlocks": lastResult.RolledBackBlockCount,
+		"lastRolledBackTxs":    lastResult.RolledBackTxCount,
+		"maxReorgDepth":        lastResult.MaxReorgDepth,
 		"build":                s.build,
-		"truthfulStatus":       "local-indexer",
+		"cursorVersion":        cursorVersion,
+		"cursorPersistence":    cursorPersistence(s.cursor),
+		"dependencies": map[string]any{
+			"chainRpc": map[string]any{"status": dependencyStatus},
+		},
+		"truthfulStatus": "local-indexer",
 	})
 }
 
 func (s *Server) handleMetrics(w http.ResponseWriter, r *http.Request) {
-	db, err := s.indexer.Store().Load()
+	db, err := summarizeDatabase(s.indexer.Store())
 	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]any{"error": err.Error()})
+		writePublicError(w, http.StatusServiceUnavailable, "metrics_unavailable", "Indexer metrics are temporarily unavailable.")
 		return
 	}
 	s.mu.RLock()
-	errorCount := s.errorCount
+	errorCount, reorgCount, lastResult := s.errorCount, s.reorgCount, s.lastResult
 	s.mu.RUnlock()
 	lag := int64(db.LastSourceHeight) - int64(db.LastIndexedHeight)
 	if lag < 0 {
@@ -168,68 +314,173 @@ func (s *Server) handleMetrics(w http.ResponseWriter, r *http.Request) {
 	_, _ = fmt.Fprintf(w, "ynx_indexer_sync_lag_blocks{%s} %d\n", labels, lag)
 	_, _ = fmt.Fprintf(w, "# HELP ynx_indexer_blocks_total Blocks stored by ynx-indexerd.\n")
 	_, _ = fmt.Fprintf(w, "# TYPE ynx_indexer_blocks_total gauge\n")
-	_, _ = fmt.Fprintf(w, "ynx_indexer_blocks_total{%s} %d\n", labels, len(db.Blocks))
+	_, _ = fmt.Fprintf(w, "ynx_indexer_blocks_total{%s} %d\n", labels, db.IndexedBlockCount)
 	_, _ = fmt.Fprintf(w, "# HELP ynx_indexer_transactions_total Transactions stored by ynx-indexerd.\n")
 	_, _ = fmt.Fprintf(w, "# TYPE ynx_indexer_transactions_total gauge\n")
-	_, _ = fmt.Fprintf(w, "ynx_indexer_transactions_total{%s} %d\n", labels, len(db.Transactions))
+	_, _ = fmt.Fprintf(w, "ynx_indexer_transactions_total{%s} %d\n", labels, db.IndexedTxCount)
 	_, _ = fmt.Fprintf(w, "# HELP ynx_indexer_sync_errors_total Sync errors observed by ynx-indexerd.\n")
 	_, _ = fmt.Fprintf(w, "# TYPE ynx_indexer_sync_errors_total counter\n")
 	_, _ = fmt.Fprintf(w, "ynx_indexer_sync_errors_total{%s} %d\n", labels, errorCount)
+	_, _ = fmt.Fprintf(w, "# HELP ynx_indexer_reorg_recoveries_total Canonical fork or source-height rollback recoveries completed by ynx-indexerd.\n")
+	_, _ = fmt.Fprintf(w, "# TYPE ynx_indexer_reorg_recoveries_total counter\n")
+	_, _ = fmt.Fprintf(w, "ynx_indexer_reorg_recoveries_total{%s} %d\n", labels, reorgCount)
+	_, _ = fmt.Fprintf(w, "# HELP ynx_indexer_last_common_ancestor_height Common ancestor height used by the latest recovery.\n")
+	_, _ = fmt.Fprintf(w, "# TYPE ynx_indexer_last_common_ancestor_height gauge\n")
+	_, _ = fmt.Fprintf(w, "ynx_indexer_last_common_ancestor_height{%s} %d\n", labels, lastResult.CommonAncestorHeight)
+	_, _ = fmt.Fprintf(w, "# HELP ynx_indexer_last_rolled_back_blocks Blocks removed by the latest recovery.\n")
+	_, _ = fmt.Fprintf(w, "# TYPE ynx_indexer_last_rolled_back_blocks gauge\n")
+	_, _ = fmt.Fprintf(w, "ynx_indexer_last_rolled_back_blocks{%s} %d\n", labels, lastResult.RolledBackBlockCount)
+	_, _ = fmt.Fprintf(w, "# HELP ynx_indexer_last_rolled_back_transactions Transactions removed by the latest recovery.\n")
+	_, _ = fmt.Fprintf(w, "# TYPE ynx_indexer_last_rolled_back_transactions gauge\n")
+	_, _ = fmt.Fprintf(w, "ynx_indexer_last_rolled_back_transactions{%s} %d\n", labels, lastResult.RolledBackTxCount)
 }
 
 func (s *Server) handleSync(w http.ResponseWriter, r *http.Request) {
 	result, err := s.SyncOnce(r.Context())
 	if err != nil {
-		writeJSON(w, http.StatusBadGateway, map[string]any{"error": err.Error()})
+		writePublicError(w, http.StatusBadGateway, publicSyncErrorCode(err.Error()), "Indexer synchronization failed closed. Retry after the chain dependency recovers.")
 		return
 	}
 	writeJSON(w, http.StatusOK, result)
 }
 
 func (s *Server) handleLatestBlocks(w http.ResponseWriter, r *http.Request) {
-	db, err := s.indexer.Store().Load()
+	after, err := s.cursor.decode(r.URL.Query().Get("cursor"), "blocks")
 	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]any{"error": err.Error()})
+		writePublicError(w, http.StatusBadRequest, "invalid_cursor", "The pagination cursor is invalid or expired.")
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"blocks": LatestBlocks(db, intQuery(r, "limit", 25))})
+	var blocks []chain.Block
+	var nextAfter string
+	err = s.indexer.Store().View(func(db Database) error {
+		var pageErr error
+		blocks, nextAfter, pageErr = LatestBlocksPage(db, intQuery(r, "limit", 25), after)
+		return pageErr
+	})
+	if err != nil {
+		writePublicError(w, http.StatusBadRequest, "invalid_cursor", "The pagination cursor is invalid or expired.")
+		return
+	}
+	nextCursor := ""
+	if nextAfter != "" {
+		nextCursor, err = s.cursor.encode("blocks", nextAfter)
+		if err != nil {
+			writePublicError(w, http.StatusInternalServerError, "cursor_encoding_failed", "The next pagination cursor could not be created.")
+			return
+		}
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"blocks": blocks, "nextCursor": nextCursor, "cursorVersion": cursorVersion})
 }
 
 func (s *Server) handleBlock(w http.ResponseWriter, r *http.Request) {
-	db, err := s.indexer.Store().Load()
+	var block chain.Block
+	var ok bool
+	err := s.indexer.Store().View(func(db Database) error {
+		block, ok = db.Blocks[r.PathValue("height")]
+		return nil
+	})
 	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]any{"error": err.Error()})
+		writePublicError(w, http.StatusServiceUnavailable, "store_unavailable", "The canonical index is temporarily unavailable.")
 		return
 	}
-	block, ok := db.Blocks[r.PathValue("height")]
 	if !ok {
-		writeJSON(w, http.StatusNotFound, map[string]any{"error": "indexed block not found"})
+		writePublicError(w, http.StatusNotFound, "block_not_found", "That block was not found in the canonical index.")
 		return
 	}
 	writeJSON(w, http.StatusOK, block)
 }
 
 func (s *Server) handleTransactions(w http.ResponseWriter, r *http.Request) {
-	db, err := s.indexer.Store().Load()
+	after, err := s.cursor.decode(r.URL.Query().Get("cursor"), "transactions")
 	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]any{"error": err.Error()})
+		writePublicError(w, http.StatusBadRequest, "invalid_cursor", "The pagination cursor is invalid or expired.")
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"transactions": LatestTransactions(db, intQuery(r, "limit", 25))})
+	var transactions []chain.Transaction
+	var nextAfter string
+	err = s.indexer.Store().View(func(db Database) error {
+		var pageErr error
+		transactions, nextAfter, pageErr = LatestTransactionsPage(db, intQuery(r, "limit", 25), after)
+		return pageErr
+	})
+	if err != nil {
+		writePublicError(w, http.StatusBadRequest, "invalid_cursor", "The pagination cursor is invalid or expired.")
+		return
+	}
+	nextCursor := ""
+	if nextAfter != "" {
+		nextCursor, err = s.cursor.encode("transactions", nextAfter)
+		if err != nil {
+			writePublicError(w, http.StatusInternalServerError, "cursor_encoding_failed", "The next pagination cursor could not be created.")
+			return
+		}
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"transactions": transactions, "nextCursor": nextCursor, "cursorVersion": cursorVersion})
 }
 
 func (s *Server) handleTransaction(w http.ResponseWriter, r *http.Request) {
-	db, err := s.indexer.Store().Load()
+	var tx chain.Transaction
+	var ok bool
+	err := s.indexer.Store().View(func(db Database) error {
+		tx, ok = db.Transactions[r.PathValue("hash")]
+		return nil
+	})
 	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]any{"error": err.Error()})
+		writePublicError(w, http.StatusServiceUnavailable, "store_unavailable", "The canonical index is temporarily unavailable.")
 		return
 	}
-	tx, ok := db.Transactions[r.PathValue("hash")]
 	if !ok {
-		writeJSON(w, http.StatusNotFound, map[string]any{"error": "indexed transaction not found"})
+		writePublicError(w, http.StatusNotFound, "transaction_not_found", "That transaction was not found in the canonical index.")
 		return
 	}
 	writeJSON(w, http.StatusOK, tx)
+}
+
+func (s *Server) handleAccountActivity(w http.ResponseWriter, r *http.Request) {
+	address := strings.TrimSpace(r.PathValue("address"))
+	if address == "" || len(address) > 256 {
+		writePublicError(w, http.StatusBadRequest, "invalid_address", "A valid account address is required.")
+		return
+	}
+	feed := fmt.Sprintf("account-transactions:%x", sha256.Sum256([]byte(strings.ToLower(address))))
+	after, err := s.cursor.decode(r.URL.Query().Get("cursor"), feed)
+	if err != nil {
+		writePublicError(w, http.StatusBadRequest, "invalid_cursor", "The pagination cursor is invalid or expired.")
+		return
+	}
+	var transactions []chain.Transaction
+	var nextAfter string
+	var lastIndexedHeight uint64
+	var indexedTxCount int
+	err = s.indexer.Store().View(func(db Database) error {
+		lastIndexedHeight = db.LastIndexedHeight
+		indexedTxCount = len(db.Transactions)
+		var pageErr error
+		transactions, nextAfter, pageErr = AccountTransactionsPage(db, address, intQuery(r, "limit", 25), after)
+		return pageErr
+	})
+	if err != nil {
+		writePublicError(w, http.StatusBadRequest, "invalid_cursor", "The pagination cursor is invalid or expired.")
+		return
+	}
+	nextCursor := ""
+	if nextAfter != "" {
+		nextCursor, err = s.cursor.encode(feed, nextAfter)
+		if err != nil {
+			writePublicError(w, http.StatusInternalServerError, "cursor_encoding_failed", "The next page could not be prepared.")
+			return
+		}
+	}
+	writeJSON(w, http.StatusOK, map[string]any{
+		"address":           address,
+		"transactions":      transactions,
+		"nextCursor":        nextCursor,
+		"cursorVersion":     cursorVersion,
+		"lastIndexedHeight": lastIndexedHeight,
+		"indexedTxCount":    indexedTxCount,
+		"checkedAt":         time.Now().UTC(),
+		"truthfulStatus":    "canonical-indexed-account-activity",
+	})
 }
 
 func writeJSON(w http.ResponseWriter, status int, payload any) {
@@ -238,13 +489,37 @@ func writeJSON(w http.ResponseWriter, status int, payload any) {
 	_ = json.NewEncoder(w).Encode(payload)
 }
 
+type publicError struct {
+	Code    string `json:"code"`
+	Message string `json:"message"`
+}
+
+func writePublicError(w http.ResponseWriter, status int, code, message string) {
+	writeJSON(w, status, publicError{Code: code, Message: message})
+}
+
+func publicSyncErrorCode(raw string) string {
+	if raw == "" {
+		return ""
+	}
+	lower := strings.ToLower(raw)
+	switch {
+	case strings.Contains(lower, "rebuild required"), strings.Contains(lower, "divergence"), strings.Contains(lower, "common ancestor"):
+		return "canonical_recovery_required"
+	case strings.Contains(lower, "journal"), strings.Contains(lower, "snapshot"), strings.Contains(lower, "store"):
+		return "store_unavailable"
+	default:
+		return "chain_rpc_unavailable"
+	}
+}
+
 func intQuery(r *http.Request, key string, fallback int) int {
 	raw := r.URL.Query().Get(key)
 	if raw == "" {
 		return fallback
 	}
 	parsed, err := strconv.Atoi(raw)
-	if err != nil {
+	if err != nil || parsed <= 0 || parsed > 100 {
 		return fallback
 	}
 	return parsed

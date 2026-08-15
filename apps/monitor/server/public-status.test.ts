@@ -15,18 +15,22 @@ const publicStatusIntegrityKey='p'.repeat(32);
 const users=[{username:'viewer',role:'viewer' as const,passwordHash:hashPassword('viewer-pass')}];
 after(async()=>{await Promise.all(servers.splice(0).map(server=>new Promise<void>(resolve=>server.close(()=>resolve()))));});
 
+function publicService(id:string,name:string,status:string,asOf:string,extra:Record<string,unknown>={}){
+	return {id,name,status,asOf,checkedAt:asOf,sourceCommit:'a'.repeat(40),release:'testnet-release',startedAt:new Date(Date.parse(asOf)-60_000).toISOString(),dependencies:[],...extra};
+}
+
 function publicPayload(overrides:Record<string,unknown>={}){
   const asOf=new Date(Date.now()-1_000).toISOString();
   return {
-    schemaVersion:'ynx.monitor.public-status-source.v1',
+	  schemaVersion:'ynx.monitor.public-status-source.v2',
     source:'ynx.status.publisher',
     version:'status-2026-07-28.1',
     asOf,
     status:'degraded',
     message:'Some public services are degraded.',
     services:[
-      {id:'rpc',name:'YNX RPC',status:'degraded',asOf,message:'Elevated request latency.'},
-      {id:'explorer',name:'YNX Explorer',status:'operational',asOf},
+	  publicService('rpc','YNX RPC','degraded',asOf,{message:'Elevated request latency.'}),
+	  publicService('explorer','YNX Explorer','operational',asOf,{dependencies:[{id:'rpc',status:'degraded'}]}),
     ],
     incidents:[
       {id:'public-incident-1',title:'RPC latency',severity:'minor',status:'monitoring',message:'Mitigation is active and latency is improving.',startedAt:new Date(Date.now()-60_000).toISOString(),updatedAt:asOf,affectedServices:['rpc']},
@@ -130,7 +134,7 @@ describe('YNX Monitor public status projection',()=>{
   it('serves only the signed, approved public projection without private OpsStore data',async()=>{
     const response=await status(await fixture({publicStatusSource:async()=>publicSource()}));
     assert.equal(response.status,200);
-    assert.equal(response.body.schemaVersion,'ynx.monitor.public-status.v1');
+	assert.equal(response.body.schemaVersion,'ynx.monitor.public-status.v2');
     assert.equal(response.body.availability,'available');
     assert.equal(response.body.status,'degraded');
     assert.equal(Array.isArray(response.body.services),true);
@@ -175,7 +179,7 @@ describe('YNX Monitor public status projection',()=>{
     const makeSnapshot=(asOfOffset:number,approvedOffset:number,version:string)=>publicSource({
       version,
       asOf:signedAt(asOfOffset),
-      services:[{id:'rpc',name:'YNX RPC',status:'degraded',asOf:signedAt(asOfOffset)}],
+	  services:[publicService('rpc','YNX RPC','degraded',signedAt(asOfOffset))],
       incidents:[],
       approval:{status:'approved',approvalId:`approval-${version}`,approvedAt:signedAt(approvedOffset),approvedByRole:'incident_commander'},
     });
@@ -190,6 +194,22 @@ describe('YNX Monitor public status projection',()=>{
     assert.equal(replayed.body.error,'public_status_replayed');
     assertNoPrivateLeak(replayed.body);
   });
+
+	it('records bounded process-scoped failure and recovery trends from accepted signed snapshots',async()=>{
+	  const now=Date.now(),at=(offset:number)=>new Date(now+offset).toISOString();
+	  const degradedAt=at(-4_000),recoveredAt=at(-2_000);
+	  const degraded=publicSource({version:'status-degraded',asOf:degradedAt,status:'degraded',services:[publicService('rpc','YNX RPC','degraded',degradedAt)],incidents:[],approval:{status:'approved',approvalId:'trend-degraded',approvedAt:at(-3_000),approvedByRole:'incident_commander'}});
+	  const recovered=publicSource({version:'status-recovered',asOf:recoveredAt,status:'operational',services:[publicService('rpc','YNX RPC','operational',recoveredAt)],incidents:[],approval:{status:'approved',approvalId:'trend-recovered',approvedAt:at(-1_000),approvedByRole:'incident_commander'}});
+	  const sequence=[degraded,recovered];
+	  const base=await fixture({publicStatusSource:async()=>sequence.shift()!});
+	  const first=await status(base),second=await status(base);
+	  assert.equal(first.body.historyPersistence,'process-scoped');
+	  assert.equal((first.body.history as Array<Record<string,unknown>>).length,1);
+	  const history=second.body.history as Array<Record<string,unknown>>;
+	  assert.equal(history.length,2);
+	  assert.equal(history[0].transition,'initial');
+	  assert.equal(history[1].transition,'recovery');
+	});
 
   it('rejects unknown private fields instead of projecting or echoing them',async()=>{
     const payload=publicPayload();
@@ -222,7 +242,7 @@ describe('YNX Monitor public status projection',()=>{
 
   it('rejects stale, unapproved, and wrong-role snapshots without exposing source content',async()=>{
     const staleAt=new Date(Date.now()-600_000).toISOString();
-    const stale=publicSource({asOf:staleAt,services:[{id:'rpc',name:'YNX RPC',status:'unknown',asOf:staleAt}],incidents:[]});
+	const stale=publicSource({asOf:staleAt,services:[publicService('rpc','YNX RPC','unknown',staleAt)],incidents:[]});
     const staleResponse=await status(await fixture({publicStatusSource:async()=>stale,publicStatusMaxAgeSeconds:60}));
     assert.equal(staleResponse.status,503);
     assert.equal(staleResponse.body.error,'public_status_stale');

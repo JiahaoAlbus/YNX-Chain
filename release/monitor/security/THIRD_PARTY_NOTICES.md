@@ -1,6 +1,6 @@
 # YNX Monitor Third-Party Notices
 
-Source commit: `da552c4e86d8d895dbc10bcab38d93ee3228ddac`
+Source commit: `af5e7ea388c5e88e7a235d71892721546cbe6b5a`
 
 This inventory is generated from the locked production dependency graph. It records package metadata and does not replace the license text distributed by each dependency.
 
@@ -128,7 +128,7 @@ This inventory is generated from the locked production dependency graph. It reco
 | mime-db | 1.54.0 | MIT | registry.npmmirror.com |
 | mime-types | 3.0.2 | MIT | registry.npmmirror.com |
 | ms | 2.1.3 | MIT | registry.npmmirror.com |
-| nanoid | 3.3.16 | MIT | registry.npmmirror.com |
+| nanoid | 3.3.18 | MIT | registry.npmjs.org |
 | negotiator | 1.0.0 | MIT | registry.npmmirror.com |
 | object-inspect | 1.13.4 | MIT | registry.npmmirror.com |
 | on-finished | 2.4.1 | MIT | registry.npmmirror.com |
@@ -137,7 +137,7 @@ This inventory is generated from the locked production dependency graph. It reco
 | path-to-regexp | 8.4.2 | MIT | registry.npmmirror.com |
 | picocolors | 1.1.1 | ISC | registry.npmmirror.com |
 | picomatch | 4.0.5 | MIT | registry.npmmirror.com |
-| postcss | 8.5.19 | MIT | registry.npmmirror.com |
+| postcss | 8.5.26 | MIT | registry.npmjs.org |
 | proxy-addr | 2.0.7 | MIT | registry.npmmirror.com |
 | qs | 6.15.3 | BSD-3-Clause | registry.npmmirror.com |
 | range-parser | 1.3.0 | MIT | registry.npmmirror.com |

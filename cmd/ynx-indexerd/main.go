@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"strings"
 	"time"
 
@@ -26,14 +27,23 @@ func main() {
 	httpAddr := flag.String("http", envOrDefault("YNX_INDEXER_HTTP_ADDR", "127.0.0.1:6426"), "indexer HTTP listen address")
 	storePath := flag.String("db", envOrDefault("YNX_INDEXER_DB_PATH", "tmp/indexer/indexer-db.json"), "local index database path")
 	pollInterval := flag.Duration("poll-interval", envDurationOrDefault("YNX_INDEXER_POLL_INTERVAL", 2*time.Second), "RPC polling interval")
+	maxReorgDepth := flag.Uint64("max-reorg-depth", envUint64OrDefault("YNX_INDEXER_MAX_REORG_DEPTH", 128), "maximum retained blocks to inspect for a common ancestor")
+	maxBlocksPerRun := flag.Uint64("max-blocks-per-run", envUint64OrDefault("YNX_INDEXER_MAX_BLOCKS_PER_RUN", 250), "maximum blocks persisted per sync cycle")
+	maxConcurrent := flag.Int("max-concurrent", envIntOrDefault("YNX_INDEXER_MAX_CONCURRENT", 64), "maximum concurrent HTTP requests")
+	maxRequestsPerSec := flag.Int("max-requests-per-second", envIntOrDefault("YNX_INDEXER_MAX_REQUESTS_PER_SECOND", 500), "global public HTTP request rate")
+	queueWait := flag.Duration("queue-wait", envDurationOrDefault("YNX_INDEXER_QUEUE_WAIT", 150*time.Millisecond), "maximum bounded request queue wait")
 	once := flag.Bool("once", false, "run one sync cycle and exit")
 	flag.Parse()
 
-	idx, err := indexer.New(indexer.Config{RPCURL: *rpcURL, StorePath: *storePath})
+	idx, err := indexer.New(indexer.Config{RPCURL: *rpcURL, StorePath: *storePath, MaxReorgDepth: *maxReorgDepth, MaxBlocksPerRun: *maxBlocksPerRun})
 	if err != nil {
 		log.Fatal(err)
 	}
-	server := indexer.NewServerWithBuild(idx, currentBuildInfo())
+	limits := indexer.Limits{MaxConcurrent: *maxConcurrent, MaxRequestsPerSec: *maxRequestsPerSec, QueueWait: *queueWait}
+	server, err := indexer.NewServerWithBuildCursorKeyAndLimits(idx, currentBuildInfo(), nil, limits)
+	if err != nil {
+		log.Fatal(err)
+	}
 	if *once {
 		result, err := server.SyncOnce(context.Background())
 		if err != nil {
@@ -47,7 +57,7 @@ func main() {
 	defer stop()
 	go server.StartPolling(ctx, *pollInterval)
 
-	srv := &http.Server{Addr: *httpAddr, Handler: server.Handler(), ReadHeaderTimeout: 5 * time.Second}
+	srv := &http.Server{Addr: *httpAddr, Handler: server.Handler(), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 45 * time.Second, IdleTimeout: 60 * time.Second, MaxHeaderBytes: 32 * 1024}
 	go func() {
 		<-ctx.Done()
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -86,4 +96,24 @@ func envDurationOrDefault(key string, fallback time.Duration) time.Duration {
 		return fallback
 	}
 	return parsed
+}
+
+func envUint64OrDefault(key string, fallback uint64) uint64 {
+	value := strings.TrimSpace(os.Getenv(key))
+	if value == "" {
+		return fallback
+	}
+	parsed, err := strconv.ParseUint(value, 10, 64)
+	if err != nil || parsed == 0 {
+		return fallback
+	}
+	return parsed
+}
+
+func envIntOrDefault(key string, fallback int) int {
+	value, err := strconv.Atoi(strings.TrimSpace(os.Getenv(key)))
+	if err != nil || value <= 0 {
+		return fallback
+	}
+	return value
 }

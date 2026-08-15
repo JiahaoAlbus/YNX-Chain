@@ -15,9 +15,12 @@ import (
 )
 
 type Server struct {
-	service *Service
-	mux     *http.ServeMux
-	build   buildinfo.Info
+	service     *Service
+	mux         *http.ServeMux
+	build       buildinfo.Info
+	startedAt   time.Time
+	admission   *admissionController
+	streamSlots chan struct{}
 
 	streamMu      sync.Mutex
 	streamClients map[chan streamEvent]struct{}
@@ -35,10 +38,18 @@ func NewServer(service *Service) *Server {
 }
 
 func NewServerWithBuild(service *Service, build buildinfo.Info) *Server {
+	return NewServerWithBuildAndLimits(service, build, Limits{})
+}
+
+func NewServerWithBuildAndLimits(service *Service, build buildinfo.Info, limits Limits) *Server {
+	limits = normalizeLimits(limits)
 	s := &Server{
 		service:       service,
 		mux:           http.NewServeMux(),
 		build:         buildinfo.Normalize(build),
+		startedAt:     time.Now().UTC(),
+		admission:     newAdmissionController(limits),
+		streamSlots:   make(chan struct{}, limits.MaxStreamClients),
 		streamClients: make(map[chan streamEvent]struct{}),
 	}
 	s.routes()
@@ -46,7 +57,7 @@ func NewServerWithBuild(service *Service, build buildinfo.Info) *Server {
 }
 
 func (s *Server) Handler() http.Handler {
-	return s.mux
+	return s.admission.wrap(s.mux)
 }
 
 func (s *Server) routes() {
@@ -54,6 +65,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /assets/ynx-logo.png", s.handleLogo)
 	s.mux.HandleFunc("GET /assets/ynx-icon.png", s.handleIcon)
 	s.mux.HandleFunc("GET /health", s.handleHealth)
+	s.mux.HandleFunc("GET /version", s.handleVersion)
 	s.mux.HandleFunc("GET /metrics", s.handleMetrics)
 	s.mux.HandleFunc("GET /api/summary", s.handleSummary)
 	s.mux.HandleFunc("GET /api/stream", s.handleStream)
@@ -63,7 +75,9 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /api/txs/{hash}", s.handleTransaction)
 	s.mux.HandleFunc("GET /api/accounts", s.handleAccountLeaderboard)
 	s.mux.HandleFunc("GET /api/accounts/{address}", s.handleAccount)
+	s.mux.HandleFunc("GET /api/accounts/{address}/activity", s.handleAccountActivity)
 	s.mux.HandleFunc("GET /api/tokens/{symbol}", s.handleToken)
+	s.mux.HandleFunc("GET /api/contracts/{address}", s.handleContract)
 	s.mux.HandleFunc("GET /api/validators", s.handleValidators)
 	s.mux.HandleFunc("GET /api/resources/{address}", s.handleResources)
 	s.mux.HandleFunc("GET /api/resource-market/analytics", s.handleResourceAnalytics)
@@ -120,11 +134,11 @@ func (s *Server) dashboardSnapshot(ctx context.Context) (dashboardSnapshot, erro
 	}
 	warnings := []string{}
 	if validatorsErr != nil {
-		warnings = append(warnings, "validator state unavailable: "+validatorsErr.Error())
+		warnings = append(warnings, "Validator state is temporarily unavailable.")
 		validators = map[string]any{}
 	}
 	if resourceAnalyticsErr != nil {
-		warnings = append(warnings, "resource analytics unavailable: "+resourceAnalyticsErr.Error())
+		warnings = append(warnings, "Resource analytics are temporarily unavailable.")
 		resources = map[string]any{}
 	}
 	summary.Build = s.build
@@ -132,9 +146,17 @@ func (s *Server) dashboardSnapshot(ctx context.Context) (dashboardSnapshot, erro
 }
 
 func (s *Server) handleStream(w http.ResponseWriter, r *http.Request) {
+	select {
+	case s.streamSlots <- struct{}{}:
+		defer func() { <-s.streamSlots }()
+	default:
+		w.Header().Set("Retry-After", "2")
+		writePublicError(w, http.StatusServiceUnavailable, "stream_capacity_exhausted", "Live subscriptions are temporarily full. Snapshot refresh remains available.")
+		return
+	}
 	flusher, ok := w.(http.Flusher)
 	if !ok {
-		writeJSON(w, http.StatusInternalServerError, map[string]any{"error": "streaming is unavailable"})
+		writePublicError(w, http.StatusInternalServerError, "stream_unavailable", "Live streaming is unavailable. Snapshot refresh remains available.")
 		return
 	}
 	w.Header().Set("Content-Type", "text/event-stream")
@@ -193,13 +215,13 @@ func (s *Server) runStream() {
 		event := streamEvent{event: "dashboard"}
 		if err != nil {
 			event.event = "upstream-error"
-			event.payload, _ = json.Marshal(map[string]string{"error": err.Error()})
+			event.payload, _ = json.Marshal(publicErrorPayload("dependency_unavailable", "Live chain data is temporarily unavailable. Reconnecting automatically."))
 		} else {
 			event.id = fmt.Sprintf("%d-%d-%d", snapshot.Summary.RPCHeight, snapshot.Summary.IndexedHeight, snapshot.Summary.IndexedTxCount)
 			event.payload, err = json.Marshal(snapshot)
 			if err != nil {
 				event.event = "upstream-error"
-				event.payload, _ = json.Marshal(map[string]string{"error": "dashboard snapshot encoding failed"})
+				event.payload, _ = json.Marshal(publicErrorPayload("stream_encoding_failed", "Live data could not be encoded. Reconnecting automatically."))
 			}
 		}
 
@@ -227,7 +249,7 @@ func (s *Server) broadcastStream(event streamEvent) bool {
 }
 
 func (s *Server) handleWeb(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path != "/" {
+	if !isExplorerWebPath(r.URL.Path) {
 		http.NotFound(w, r)
 		return
 	}
@@ -236,20 +258,51 @@ func (s *Server) handleWeb(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write([]byte(indexHTML))
 }
 
+func isExplorerWebPath(path string) bool {
+	if path == "/" {
+		return true
+	}
+	for _, prefix := range []string{"/block/", "/tx/", "/address/", "/token/", "/contract/"} {
+		if strings.HasPrefix(path, prefix) && len(strings.TrimPrefix(path, prefix)) > 0 {
+			return true
+		}
+	}
+	return false
+}
+
+func (s *Server) handleVersion(w http.ResponseWriter, _ *http.Request) {
+	writeJSON(w, http.StatusOK, map[string]any{
+		"service":       "ynx-explorerd",
+		"schemaVersion": 2,
+		"build":         s.build,
+		"startedAt":     s.startedAt,
+		"limits": map[string]any{
+			"maxConcurrent":     s.admission.limits.MaxConcurrent,
+			"maxRequestsPerSec": s.admission.limits.MaxRequestsPerSec,
+			"maxStreamClients":  cap(s.streamSlots),
+			"queueWait":         s.admission.limits.QueueWait.String(),
+		},
+	})
+}
+
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 	summary, err := s.service.Summary(r.Context())
 	if err != nil {
-		writeJSON(w, http.StatusBadGateway, map[string]any{"ok": false, "service": "ynx-explorerd", "error": err.Error()})
+		writePublicError(w, http.StatusBadGateway, "dependency_unavailable", "Explorer data is temporarily unavailable.")
 		return
 	}
 	summary.Build = s.build
-	writeJSON(w, http.StatusOK, summary)
+	status := http.StatusOK
+	if !summary.OK {
+		status = http.StatusServiceUnavailable
+	}
+	writeJSON(w, status, summary)
 }
 
 func (s *Server) handleSummary(w http.ResponseWriter, r *http.Request) {
 	summary, err := s.service.Summary(r.Context())
 	if err != nil {
-		writeJSON(w, http.StatusBadGateway, map[string]any{"error": err.Error()})
+		writePublicError(w, http.StatusBadGateway, "dependency_unavailable", "Explorer summary is temporarily unavailable.")
 		return
 	}
 	summary.Build = s.build
@@ -257,45 +310,59 @@ func (s *Server) handleSummary(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleLatestBlocks(w http.ResponseWriter, r *http.Request) {
-	blocks, err := s.service.LatestBlocks(r.Context(), intQuery(r, "limit", 10))
+	page, err := s.service.BlocksPage(r.Context(), intQuery(r, "limit", 10), r.URL.Query().Get("cursor"))
 	if err != nil {
-		writeJSON(w, http.StatusBadGateway, map[string]any{"error": err.Error()})
+		writePublicError(w, http.StatusBadGateway, "indexer_unavailable", "Indexed blocks are temporarily unavailable.")
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"blocks": blocks})
+	writeJSON(w, http.StatusOK, page)
 }
 
 func (s *Server) handleBlock(w http.ResponseWriter, r *http.Request) {
 	block, err := s.service.Block(r.Context(), r.PathValue("height"))
 	if err != nil {
-		writeJSON(w, http.StatusNotFound, map[string]any{"error": err.Error()})
+		writePublicError(w, http.StatusNotFound, "block_not_found", "That block was not found in the canonical index.")
 		return
 	}
 	writeJSON(w, http.StatusOK, block)
 }
 
 func (s *Server) handleTransactions(w http.ResponseWriter, r *http.Request) {
-	txs, err := s.service.Transactions(r.Context(), intQuery(r, "limit", 10))
+	page, err := s.service.TransactionsPage(r.Context(), intQuery(r, "limit", 10), r.URL.Query().Get("cursor"))
 	if err != nil {
-		writeJSON(w, http.StatusBadGateway, map[string]any{"error": err.Error()})
+		writePublicError(w, http.StatusBadGateway, "indexer_unavailable", "Indexed transactions are temporarily unavailable.")
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"transactions": txs})
+	writeJSON(w, http.StatusOK, page)
 }
 
 func (s *Server) handleTransaction(w http.ResponseWriter, r *http.Request) {
-	tx, err := s.service.Transaction(r.Context(), r.PathValue("hash"))
+	tx, err := s.service.TransactionDetail(r.Context(), r.PathValue("hash"))
 	if err != nil {
-		writeJSON(w, http.StatusNotFound, map[string]any{"error": err.Error()})
+		writePublicError(w, http.StatusNotFound, "transaction_not_found", "That transaction was not found in the canonical index.")
 		return
 	}
 	writeJSON(w, http.StatusOK, tx)
 }
 
+func (s *Server) handleAccountActivity(w http.ResponseWriter, r *http.Request) {
+	address, err := normalizeExplorerAddress(r.PathValue("address"))
+	if err != nil {
+		writePublicError(w, http.StatusBadRequest, "invalid_address", "A valid account address is required.")
+		return
+	}
+	activity, err := s.service.AccountActivity(r.Context(), address, intQuery(r, "limit", 25), r.URL.Query().Get("cursor"))
+	if err != nil {
+		writePublicError(w, http.StatusBadGateway, "indexer_unavailable", "Account activity is temporarily unavailable.")
+		return
+	}
+	writeJSON(w, http.StatusOK, activity)
+}
+
 func (s *Server) handleAccount(w http.ResponseWriter, r *http.Request) {
 	account, err := s.service.Account(r.Context(), r.PathValue("address"))
 	if err != nil {
-		writeJSON(w, http.StatusNotFound, map[string]any{"error": err.Error()})
+		writePublicError(w, http.StatusNotFound, "account_not_found", "That account was not found on this network.")
 		return
 	}
 	writeJSON(w, http.StatusOK, account)
@@ -304,7 +371,7 @@ func (s *Server) handleAccount(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleAccountLeaderboard(w http.ResponseWriter, r *http.Request) {
 	leaderboard, err := s.service.AccountLeaderboard(r.Context(), intQuery(r, "limit", 25))
 	if err != nil {
-		writeJSON(w, http.StatusBadGateway, map[string]any{"error": err.Error()})
+		writePublicError(w, http.StatusBadGateway, "leaderboard_unavailable", "The account leaderboard is temporarily unavailable.")
 		return
 	}
 	writeJSON(w, http.StatusOK, leaderboard)
@@ -313,16 +380,25 @@ func (s *Server) handleAccountLeaderboard(w http.ResponseWriter, r *http.Request
 func (s *Server) handleToken(w http.ResponseWriter, r *http.Request) {
 	token, err := s.service.Token(r.Context(), r.PathValue("symbol"))
 	if err != nil {
-		writeJSON(w, http.StatusNotFound, map[string]any{"error": err.Error()})
+		writePublicError(w, http.StatusNotFound, "token_not_found", "That token is not indexed on this network.")
 		return
 	}
 	writeJSON(w, http.StatusOK, token)
 }
 
+func (s *Server) handleContract(w http.ResponseWriter, r *http.Request) {
+	contract, err := s.service.Contract(r.Context(), r.PathValue("address"))
+	if err != nil {
+		writePublicError(w, http.StatusNotFound, "contract_not_found", "That contract was not found in the chain registry.")
+		return
+	}
+	writeJSON(w, http.StatusOK, contract)
+}
+
 func (s *Server) handleValidators(w http.ResponseWriter, r *http.Request) {
 	validators, err := s.service.Validators(r.Context())
 	if err != nil {
-		writeJSON(w, http.StatusBadGateway, map[string]any{"error": err.Error()})
+		writePublicError(w, http.StatusBadGateway, "validators_unavailable", "Validator data is temporarily unavailable.")
 		return
 	}
 	writeJSON(w, http.StatusOK, validators)
@@ -331,7 +407,7 @@ func (s *Server) handleValidators(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleResources(w http.ResponseWriter, r *http.Request) {
 	resources, err := s.service.Resources(r.Context(), r.PathValue("address"))
 	if err != nil {
-		writeJSON(w, http.StatusNotFound, map[string]any{"error": err.Error()})
+		writePublicError(w, http.StatusNotFound, "resources_unavailable", "Resource data is unavailable for that account.")
 		return
 	}
 	writeJSON(w, http.StatusOK, resources)
@@ -340,7 +416,7 @@ func (s *Server) handleResources(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleResourceAnalytics(w http.ResponseWriter, r *http.Request) {
 	analytics, err := s.service.ResourceAnalytics(r.Context())
 	if err != nil {
-		writeJSON(w, http.StatusBadGateway, map[string]any{"error": err.Error()})
+		writePublicError(w, http.StatusBadGateway, "resource_analytics_unavailable", "Resource analytics are temporarily unavailable.")
 		return
 	}
 	writeJSON(w, http.StatusOK, analytics)
@@ -349,7 +425,7 @@ func (s *Server) handleResourceAnalytics(w http.ResponseWriter, r *http.Request)
 func (s *Server) handleFee(w http.ResponseWriter, r *http.Request) {
 	tx, err := s.service.Transaction(r.Context(), r.PathValue("hash"))
 	if err != nil {
-		writeJSON(w, http.StatusNotFound, map[string]any{"error": err.Error()})
+		writePublicError(w, http.StatusNotFound, "transaction_not_found", "Fee data is unavailable because the transaction was not found.")
 		return
 	}
 	writeJSON(w, http.StatusOK, FeeDetailFromTx(tx))
@@ -358,7 +434,7 @@ func (s *Server) handleFee(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleSearch(w http.ResponseWriter, r *http.Request) {
 	result, err := s.service.Search(r.Context(), r.URL.Query().Get("q"))
 	if err != nil {
-		writeJSON(w, http.StatusNotFound, map[string]any{"error": err.Error()})
+		writePublicError(w, http.StatusNotFound, "search_not_found", "No canonical indexed result matched that query.")
 		return
 	}
 	writeJSON(w, http.StatusOK, result)
@@ -367,7 +443,7 @@ func (s *Server) handleSearch(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleMetrics(w http.ResponseWriter, r *http.Request) {
 	summary, err := s.service.Summary(context.Background())
 	if err != nil {
-		writeJSON(w, http.StatusBadGateway, map[string]any{"error": err.Error()})
+		writePublicError(w, http.StatusBadGateway, "metrics_unavailable", "Explorer metrics are temporarily unavailable.")
 		return
 	}
 	labels := fmt.Sprintf(`network="%s",chain_id="%d",native_symbol="%s"`, prometheusLabel(summary.Network.Name), summary.Network.ChainID, prometheusLabel(summary.NativeSymbol))
@@ -390,6 +466,19 @@ func writeJSON(w http.ResponseWriter, status int, payload any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(payload)
+}
+
+type publicError struct {
+	Code    string `json:"code"`
+	Message string `json:"message"`
+}
+
+func publicErrorPayload(code, message string) publicError {
+	return publicError{Code: code, Message: message}
+}
+
+func writePublicError(w http.ResponseWriter, status int, code, message string) {
+	writeJSON(w, status, publicErrorPayload(code, message))
 }
 
 func intQuery(r *http.Request, key string, fallback int) int {

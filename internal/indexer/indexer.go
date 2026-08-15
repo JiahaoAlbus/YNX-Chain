@@ -1,9 +1,11 @@
 package indexer
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -11,14 +13,19 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 )
 
+const defaultMaxReorgDepth uint64 = 128
+
 type Config struct {
-	RPCURL    string
-	StorePath string
+	RPCURL          string
+	StorePath       string
+	MaxReorgDepth   uint64
+	MaxBlocksPerRun uint64
 }
 
 type Client struct {
@@ -82,13 +89,20 @@ type Status struct {
 }
 
 type Store struct {
-	path string
-	mu   sync.Mutex
+	path           string
+	journalPath    string
+	mu             sync.RWMutex
+	loaded         bool
+	ready          atomic.Bool
+	db             Database
+	journalRecords uint64
 }
 
 func NewStore(path string) *Store {
-	return &Store{path: path}
+	return &Store{path: path, journalPath: path + ".journal"}
 }
+
+func (s *Store) Ready() bool { return s.ready.Load() }
 
 type Database struct {
 	Version              int                          `json:"version"`
@@ -103,6 +117,7 @@ type Database struct {
 	SourceEarliestTime   time.Time                    `json:"sourceEarliestTime,omitempty"`
 	LastBlockHash        string                       `json:"lastBlockHash"`
 	LastSyncAt           time.Time                    `json:"lastSyncAt"`
+	JournalSequence      uint64                       `json:"journalSequence,omitempty"`
 	Blocks               map[string]chain.Block       `json:"blocks"`
 	Transactions         map[string]chain.Transaction `json:"transactions"`
 }
@@ -110,54 +125,148 @@ type Database struct {
 func (s *Store) Load() (Database, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return s.loadLocked()
+	if err := s.ensureLoadedLocked(); err != nil {
+		return Database{}, err
+	}
+	return s.db, nil
+}
+
+func (s *Store) View(fn func(Database) error) error {
+	s.mu.RLock()
+	if s.loaded {
+		defer s.mu.RUnlock()
+		return fn(s.db)
+	}
+	s.mu.RUnlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if err := s.ensureLoadedLocked(); err != nil {
+		return err
+	}
+	return fn(s.db)
+}
+
+// TryView serves lock-independent readiness checks without queueing behind the
+// initial checkpoint load or a long snapshot compaction. A false return means
+// the store is warming or momentarily busy; callers must not present it as
+// healthy.
+func (s *Store) TryView(fn func(Database) error) (bool, error) {
+	if !s.mu.TryRLock() {
+		return false, nil
+	}
+	defer s.mu.RUnlock()
+	if !s.loaded {
+		return false, nil
+	}
+	return true, fn(s.db)
 }
 
 func (s *Store) Save(db Database) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return s.saveLocked(db)
+	normalizeDatabase(&db)
+	if s.loaded && db.JournalSequence < s.db.JournalSequence {
+		db.JournalSequence = s.db.JournalSequence
+	}
+	if err := s.saveSnapshotLocked(db); err != nil {
+		return err
+	}
+	s.db = db
+	s.loaded = true
+	if err := s.resetJournalLocked(); err != nil {
+		return err
+	}
+	s.ready.Store(true)
+	return nil
 }
 
 func (s *Store) UpsertBlock(sourceURL string, status Status, block chain.Block) (Database, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	db, err := s.loadLocked()
-	if err != nil {
+	if err := s.ensureLoadedLocked(); err != nil {
 		return Database{}, err
 	}
-	if db.Blocks == nil {
-		db.Blocks = map[string]chain.Block{}
+	recordedAt := time.Now().UTC()
+	record := storeJournalRecord{
+		Version:    storeJournalVersion,
+		Sequence:   s.db.JournalSequence + 1,
+		Operation:  "upsert-block",
+		SourceURL:  sourceURL,
+		Status:     &status,
+		Block:      &block,
+		RecordedAt: recordedAt,
 	}
-	if db.Transactions == nil {
-		db.Transactions = map[string]chain.Transaction{}
-	}
-	applySourceStatus(&db, sourceURL, status)
-	db.Blocks[strconv.FormatUint(block.Height, 10)] = block
-	db.LastIndexedHeight = block.Height
-	db.LastBlockHash = block.Hash
-	db.LastSyncAt = time.Now().UTC()
-	for _, tx := range block.Transactions {
-		db.Transactions[tx.Hash] = tx
-	}
-	if err := s.saveLocked(db); err != nil {
+	if err := s.appendJournalLocked(record); err != nil {
 		return Database{}, err
 	}
-	return db, nil
+	applyUpsertRecord(&s.db, record)
+	if err := s.compactJournalIfNeededLocked(); err != nil {
+		return Database{}, err
+	}
+	return s.db, nil
+}
+
+func (s *Store) RollbackTo(height uint64) (Database, int, int, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if err := s.ensureLoadedLocked(); err != nil {
+		return Database{}, 0, 0, err
+	}
+	ancestor, ok := s.db.Blocks[strconv.FormatUint(height, 10)]
+	if !ok || ancestor.Hash == "" {
+		return Database{}, 0, 0, fmt.Errorf("stored common ancestor at height %d is unavailable; indexer rebuild required", height)
+	}
+	candidate := s.db
+	candidate.Blocks = make(map[string]chain.Block, len(s.db.Blocks))
+	for rawHeight, block := range s.db.Blocks {
+		candidate.Blocks[rawHeight] = block
+	}
+	removedBlocks := 0
+	for rawHeight := range candidate.Blocks {
+		blockHeight, err := strconv.ParseUint(rawHeight, 10, 64)
+		if err != nil {
+			return Database{}, 0, 0, fmt.Errorf("stored block height %q is invalid; indexer rebuild required", rawHeight)
+		}
+		if blockHeight > height {
+			delete(candidate.Blocks, rawHeight)
+			removedBlocks++
+		}
+	}
+	previousTxCount := len(s.db.Transactions)
+	candidate.Transactions = make(map[string]chain.Transaction)
+	for _, block := range candidate.Blocks {
+		for _, tx := range block.Transactions {
+			candidate.Transactions[tx.Hash] = tx
+		}
+	}
+	removedTransactions := previousTxCount - len(candidate.Transactions)
+	if removedTransactions < 0 {
+		removedTransactions = 0
+	}
+	candidate.LastIndexedHeight = height
+	candidate.LastBlockHash = ancestor.Hash
+	candidate.LastSyncAt = time.Now().UTC()
+	candidate.JournalSequence++
+	if err := s.saveSnapshotLocked(candidate); err != nil {
+		return Database{}, 0, 0, err
+	}
+	// The canonical candidate is now durable. Publish it before journal cleanup so
+	// memory and the restart snapshot cannot diverge if cleanup itself fails.
+	s.db = candidate
+	if err := s.resetJournalLocked(); err != nil {
+		return Database{}, 0, 0, err
+	}
+	return s.db, removedBlocks, removedTransactions, nil
 }
 
 func (s *Store) RecordSourceStatus(sourceURL string, status Status) (Database, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	db, err := s.loadLocked()
-	if err != nil {
+	if err := s.ensureLoadedLocked(); err != nil {
 		return Database{}, err
 	}
-	applySourceStatus(&db, sourceURL, status)
-	if err := s.saveLocked(db); err != nil {
-		return Database{}, err
-	}
-	return db, nil
+	applySourceStatus(&s.db, sourceURL, status)
+	return s.db, nil
 }
 
 func applySourceStatus(db *Database, sourceURL string, status Status) {
@@ -172,7 +281,43 @@ func applySourceStatus(db *Database, sourceURL string, status Status) {
 	db.SourceEarliestTime = status.EarliestBlockTime
 }
 
-func (s *Store) loadLocked() (Database, error) {
+const (
+	storeJournalVersion       = 1
+	storeJournalRecordBytes   = 8 << 20
+	storeJournalCompactBytes  = 64 << 20
+	storeJournalCompactEvents = 100_000
+)
+
+type storeJournalRecord struct {
+	Version    int          `json:"version"`
+	Sequence   uint64       `json:"sequence"`
+	Operation  string       `json:"operation"`
+	SourceURL  string       `json:"sourceUrl"`
+	Status     *Status      `json:"status,omitempty"`
+	Block      *chain.Block `json:"block,omitempty"`
+	RecordedAt time.Time    `json:"recordedAt"`
+}
+
+func (s *Store) ensureLoadedLocked() error {
+	if s.loaded {
+		return nil
+	}
+	db, err := s.loadSnapshotLocked()
+	if err != nil {
+		return err
+	}
+	records, err := s.replayJournalLocked(&db)
+	if err != nil {
+		return err
+	}
+	s.db = db
+	s.loaded = true
+	s.ready.Store(true)
+	s.journalRecords = records
+	return nil
+}
+
+func (s *Store) loadSnapshotLocked() (Database, error) {
 	db := Database{Version: 2, Blocks: map[string]chain.Block{}, Transactions: map[string]chain.Transaction{}}
 	if strings.TrimSpace(s.path) == "" {
 		return db, nil
@@ -187,16 +332,23 @@ func (s *Store) loadLocked() (Database, error) {
 	if err := json.Unmarshal(payload, &db); err != nil {
 		return Database{}, err
 	}
+	normalizeDatabase(&db)
+	return db, nil
+}
+
+func normalizeDatabase(db *Database) {
+	if db.Version == 0 {
+		db.Version = 2
+	}
 	if db.Blocks == nil {
 		db.Blocks = map[string]chain.Block{}
 	}
 	if db.Transactions == nil {
 		db.Transactions = map[string]chain.Transaction{}
 	}
-	return db, nil
 }
 
-func (s *Store) saveLocked(db Database) error {
+func (s *Store) saveSnapshotLocked(db Database) error {
 	if strings.TrimSpace(s.path) == "" {
 		return nil
 	}
@@ -214,10 +366,165 @@ func (s *Store) saveLocked(db Database) error {
 	return os.Rename(tmp, s.path)
 }
 
+func (s *Store) appendJournalLocked(record storeJournalRecord) error {
+	if strings.TrimSpace(s.path) == "" {
+		return nil
+	}
+	if err := os.MkdirAll(filepath.Dir(s.path), 0o700); err != nil {
+		return err
+	}
+	payload, err := json.Marshal(record)
+	if err != nil {
+		return err
+	}
+	payload = append(payload, '\n')
+	if len(payload) > storeJournalRecordBytes {
+		return fmt.Errorf("index journal record exceeds the %d byte replay limit", storeJournalRecordBytes)
+	}
+	journal, err := os.OpenFile(s.journalPath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o600)
+	if err != nil {
+		return err
+	}
+	n, writeErr := journal.Write(payload)
+	if writeErr == nil && n != len(payload) {
+		writeErr = fmt.Errorf("short index journal write: wrote %d of %d bytes", n, len(payload))
+	}
+	if writeErr == nil {
+		writeErr = journal.Sync()
+	}
+	closeErr := journal.Close()
+	if writeErr != nil {
+		return writeErr
+	}
+	if closeErr != nil {
+		return closeErr
+	}
+	s.journalRecords++
+	return nil
+}
+
+func (s *Store) replayJournalLocked(db *Database) (uint64, error) {
+	journal, err := os.OpenFile(s.journalPath, os.O_RDWR, 0o600)
+	if os.IsNotExist(err) {
+		return 0, nil
+	}
+	if err != nil {
+		return 0, err
+	}
+	defer journal.Close()
+	reader := bufio.NewReaderSize(journal, 64*1024)
+	var records uint64
+	var completeBytes int64
+	for {
+		line := make([]byte, 0, 64*1024)
+		var readErr error
+		for {
+			fragment, fragmentErr := reader.ReadSlice('\n')
+			if len(line)+len(fragment) > storeJournalRecordBytes {
+				return records, fmt.Errorf("index journal record %d exceeds size limit", records+1)
+			}
+			line = append(line, fragment...)
+			if fragmentErr == bufio.ErrBufferFull {
+				continue
+			}
+			readErr = fragmentErr
+			break
+		}
+		if readErr == io.EOF {
+			if len(line) > 0 {
+				// appendJournalLocked always terminates and fsyncs complete frames.
+				// An unterminated EOF fragment is therefore a torn final write, not
+				// a record that is safe to replay.
+				if err := journal.Truncate(completeBytes); err != nil {
+					return records, fmt.Errorf("truncate incomplete index journal tail: %w", err)
+				}
+				if err := journal.Sync(); err != nil {
+					return records, fmt.Errorf("sync repaired index journal: %w", err)
+				}
+			}
+			break
+		}
+		if readErr != nil {
+			return records, readErr
+		}
+		completeBytes += int64(len(line))
+		if len(strings.TrimSpace(string(line))) == 0 {
+			continue
+		}
+		var record storeJournalRecord
+		if err := json.Unmarshal(line, &record); err != nil {
+			return records, fmt.Errorf("decode index journal record %d: %w", records+1, err)
+		}
+		if record.Version != storeJournalVersion || record.Sequence == 0 {
+			return records, fmt.Errorf("invalid index journal record %d", records+1)
+		}
+		records++
+		if record.Sequence <= db.JournalSequence {
+			continue
+		}
+		if record.Sequence != db.JournalSequence+1 {
+			return records, fmt.Errorf("index journal sequence gap: snapshot=%d record=%d", db.JournalSequence, record.Sequence)
+		}
+		switch record.Operation {
+		case "upsert-block":
+			if record.Status == nil || record.Block == nil {
+				return records, fmt.Errorf("index journal upsert record %d is incomplete", record.Sequence)
+			}
+			applyUpsertRecord(db, record)
+		default:
+			return records, fmt.Errorf("unsupported index journal operation %q", record.Operation)
+		}
+	}
+	return records, nil
+}
+
+func applyUpsertRecord(db *Database, record storeJournalRecord) {
+	normalizeDatabase(db)
+	applySourceStatus(db, record.SourceURL, *record.Status)
+	block := *record.Block
+	db.Blocks[strconv.FormatUint(block.Height, 10)] = block
+	db.LastIndexedHeight = block.Height
+	db.LastBlockHash = block.Hash
+	db.LastSyncAt = record.RecordedAt
+	db.JournalSequence = record.Sequence
+	for _, tx := range block.Transactions {
+		db.Transactions[tx.Hash] = tx
+	}
+}
+
+func (s *Store) compactJournalIfNeededLocked() error {
+	if s.journalRecords < storeJournalCompactEvents {
+		if info, err := os.Stat(s.journalPath); err == nil && info.Size() < storeJournalCompactBytes {
+			return nil
+		} else if os.IsNotExist(err) {
+			return nil
+		} else if err != nil {
+			return err
+		}
+	}
+	if err := s.saveSnapshotLocked(s.db); err != nil {
+		return err
+	}
+	return s.resetJournalLocked()
+}
+
+func (s *Store) resetJournalLocked() error {
+	s.journalRecords = 0
+	if strings.TrimSpace(s.path) == "" {
+		return nil
+	}
+	tmp := s.journalPath + ".tmp"
+	if err := os.WriteFile(tmp, nil, 0o600); err != nil {
+		return err
+	}
+	return os.Rename(tmp, s.journalPath)
+}
+
 type Indexer struct {
 	cfg    Config
 	client *Client
 	store  *Store
+	syncMu sync.Mutex
 }
 
 func New(cfg Config) (*Indexer, error) {
@@ -226,6 +533,15 @@ func New(cfg Config) (*Indexer, error) {
 	}
 	if strings.TrimSpace(cfg.StorePath) == "" {
 		return nil, fmt.Errorf("indexer store path is required")
+	}
+	if cfg.MaxReorgDepth == 0 {
+		cfg.MaxReorgDepth = defaultMaxReorgDepth
+	}
+	if cfg.MaxBlocksPerRun == 0 {
+		cfg.MaxBlocksPerRun = 250
+	}
+	if cfg.MaxBlocksPerRun > 10_000 {
+		return nil, fmt.Errorf("indexer max blocks per run must not exceed 10000")
 	}
 	return &Indexer{cfg: cfg, client: NewClient(cfg.RPCURL), store: NewStore(cfg.StorePath)}, nil
 }
@@ -244,9 +560,28 @@ type SyncResult struct {
 	ResumeFromHeight     uint64 `json:"resumeFromHeight"`
 	NativeSymbol         string `json:"nativeSymbol"`
 	TruthfulStatus       string `json:"truthfulStatus"`
+	ReorgDetected        bool   `json:"reorgDetected"`
+	RecoveryMode         string `json:"recoveryMode"`
+	CommonAncestorHeight uint64 `json:"commonAncestorHeight,omitempty"`
+	RollbackFromHeight   uint64 `json:"rollbackFromHeight,omitempty"`
+	RolledBackBlockCount int    `json:"rolledBackBlockCount"`
+	RolledBackTxCount    int    `json:"rolledBackTxCount"`
+	MaxReorgDepth        uint64 `json:"maxReorgDepth"`
+}
+
+type canonicalRecovery struct {
+	detected         bool
+	mode             string
+	commonAncestor   uint64
+	rollbackFrom     uint64
+	rolledBackBlocks int
+	rolledBackTxs    int
 }
 
 func (i *Indexer) SyncOnce(ctx context.Context) (SyncResult, error) {
+	i.syncMu.Lock()
+	defer i.syncMu.Unlock()
+
 	status, err := i.client.Status(ctx)
 	if err != nil {
 		return SyncResult{}, err
@@ -264,7 +599,6 @@ func (i *Indexer) SyncOnce(ctx context.Context) (SyncResult, error) {
 	if db.ChainID != 0 && db.ChainID != status.ChainID {
 		return SyncResult{}, fmt.Errorf("source chain identity changed from %d to %d; indexer rebuild required", db.ChainID, status.ChainID)
 	}
-	start := status.EarliestBlockHeight
 	if len(db.Blocks) > 0 {
 		lastBlock, ok := db.Blocks[strconv.FormatUint(db.LastIndexedHeight, 10)]
 		if !ok || lastBlock.Hash == "" || lastBlock.Hash != db.LastBlockHash {
@@ -273,19 +607,42 @@ func (i *Indexer) SyncOnce(ctx context.Context) (SyncResult, error) {
 		if db.LastIndexedHeight == ^uint64(0) {
 			return SyncResult{}, fmt.Errorf("stored index height is exhausted; indexer rebuild required")
 		}
-		start = db.LastIndexedHeight + 1
-	}
-	if db.LastIndexedHeight > status.Height && len(db.Blocks) > 0 {
-		return SyncResult{}, fmt.Errorf("source height %d is below indexed tip %d; indexer rebuild required", status.Height, db.LastIndexedHeight)
 	}
 	db, err = i.store.RecordSourceStatus(i.cfg.RPCURL, status)
 	if err != nil {
 		return SyncResult{}, err
 	}
-	if status.EarliestBlockHeight > 0 && start < status.EarliestBlockHeight {
+	if len(db.Blocks) > 0 && db.LastIndexedHeight+1 < status.EarliestBlockHeight {
+		return SyncResult{}, fmt.Errorf("resume height %d is below source earliest retained height %d; indexer rebuild required", db.LastIndexedHeight+1, status.EarliestBlockHeight)
+	}
+	recovery := canonicalRecovery{mode: "none"}
+	if len(db.Blocks) > 0 {
+		db, recovery, err = i.reconcileCanonical(ctx, db, status)
+		if err != nil {
+			return SyncResult{}, err
+		}
+	}
+	start := status.EarliestBlockHeight
+	if len(db.Blocks) > 0 {
+		start = db.LastIndexedHeight + 1
+	}
+	if start < status.EarliestBlockHeight {
 		return SyncResult{}, fmt.Errorf("resume height %d is below source earliest retained height %d; indexer rebuild required", start, status.EarliestBlockHeight)
 	}
-	result := SyncResult{SourceHeight: status.Height, SourceEarliestHeight: status.EarliestBlockHeight, ResumeFromHeight: start, NativeSymbol: status.NativeCurrencySymbol, TruthfulStatus: "local-indexer"}
+	result := SyncResult{
+		SourceHeight:         status.Height,
+		SourceEarliestHeight: status.EarliestBlockHeight,
+		ResumeFromHeight:     start,
+		NativeSymbol:         status.NativeCurrencySymbol,
+		TruthfulStatus:       "local-indexer",
+		ReorgDetected:        recovery.detected,
+		RecoveryMode:         recovery.mode,
+		CommonAncestorHeight: recovery.commonAncestor,
+		RollbackFromHeight:   recovery.rollbackFrom,
+		RolledBackBlockCount: recovery.rolledBackBlocks,
+		RolledBackTxCount:    recovery.rolledBackTxs,
+		MaxReorgDepth:        i.cfg.MaxReorgDepth,
+	}
 	if start > status.Height {
 		result.LastIndexedHeight = db.LastIndexedHeight
 		result.IndexedBlockCount = len(db.Blocks)
@@ -296,19 +653,17 @@ func (i *Indexer) SyncOnce(ctx context.Context) (SyncResult, error) {
 	if len(db.Blocks) > 0 {
 		expectedParent = db.LastBlockHash
 	}
-	for height := start; height <= status.Height; height++ {
+	end := status.Height
+	if remaining := end - start + 1; remaining > i.cfg.MaxBlocksPerRun {
+		end = start + i.cfg.MaxBlocksPerRun - 1
+	}
+	for height := start; height <= end; height++ {
 		block, err := i.client.Block(ctx, height)
 		if err != nil {
 			return SyncResult{}, err
 		}
-		if block.Height != height || block.Hash == "" {
-			return SyncResult{}, fmt.Errorf("source returned invalid block for requested height %d", height)
-		}
-		if height == status.EarliestBlockHeight && status.EarliestBlockHash != "" && block.Hash != status.EarliestBlockHash {
-			return SyncResult{}, fmt.Errorf("source earliest block hash mismatch at height %d; indexer rebuild required", height)
-		}
-		if height == status.Height && status.LatestBlockHash != "" && block.Hash != status.LatestBlockHash {
-			return SyncResult{}, fmt.Errorf("source latest block hash mismatch at height %d; indexer rebuild required", height)
+		if err := validateSourceBlock(status, height, block); err != nil {
+			return SyncResult{}, err
 		}
 		if expectedParent != "" && block.ParentHash != expectedParent {
 			return SyncResult{}, fmt.Errorf("source chain divergence at height %d: parent %s does not match indexed hash %s; indexer rebuild required", height, block.ParentHash, expectedParent)
@@ -326,39 +681,213 @@ func (i *Indexer) SyncOnce(ctx context.Context) (SyncResult, error) {
 	return result, nil
 }
 
-func LatestBlocks(db Database, limit int) []chain.Block {
-	if limit <= 0 || limit > 100 {
-		limit = 25
+func (i *Indexer) reconcileCanonical(ctx context.Context, db Database, status Status) (Database, canonicalRecovery, error) {
+	recovery := canonicalRecovery{mode: "none"}
+	overlapTip := db.LastIndexedHeight
+	if status.Height < overlapTip {
+		overlapTip = status.Height
 	}
-	heights := make([]int, 0, len(db.Blocks))
-	for raw := range db.Blocks {
-		height, err := strconv.Atoi(raw)
-		if err == nil {
-			heights = append(heights, height)
+	if overlapTip < status.EarliestBlockHeight {
+		return Database{}, recovery, fmt.Errorf("canonical overlap tip %d is below source earliest retained height %d; indexer rebuild required", overlapTip, status.EarliestBlockHeight)
+	}
+	localTip, ok := db.Blocks[strconv.FormatUint(overlapTip, 10)]
+	if !ok || localTip.Hash == "" {
+		return Database{}, recovery, fmt.Errorf("stored overlap block at height %d is unavailable; indexer rebuild required", overlapTip)
+	}
+	sourceTip, err := i.client.Block(ctx, overlapTip)
+	if err != nil {
+		return Database{}, recovery, err
+	}
+	if err := validateSourceBlock(status, overlapTip, sourceTip); err != nil {
+		return Database{}, recovery, err
+	}
+	if localTip.Hash == sourceTip.Hash {
+		if db.LastIndexedHeight == overlapTip {
+			return db, recovery, nil
+		}
+		recovery.detected = true
+		recovery.mode = "source-height-rollback"
+		recovery.commonAncestor = overlapTip
+		recovery.rollbackFrom = overlapTip + 1
+		db, recovery.rolledBackBlocks, recovery.rolledBackTxs, err = i.store.RollbackTo(overlapTip)
+		return db, recovery, err
+	}
+
+	lowerBound := status.EarliestBlockHeight
+	if overlapTip > i.cfg.MaxReorgDepth {
+		depthBound := overlapTip - i.cfg.MaxReorgDepth
+		if depthBound > lowerBound {
+			lowerBound = depthBound
 		}
 	}
-	sort.Sort(sort.Reverse(sort.IntSlice(heights)))
-	blocks := make([]chain.Block, 0, min(limit, len(heights)))
-	for _, height := range heights {
-		if len(blocks) >= limit {
+	for height := overlapTip; ; height-- {
+		localBlock, ok := db.Blocks[strconv.FormatUint(height, 10)]
+		if !ok || localBlock.Hash == "" {
+			return Database{}, recovery, fmt.Errorf("stored block at height %d is unavailable during reorg recovery; indexer rebuild required", height)
+		}
+		sourceBlock, err := i.client.Block(ctx, height)
+		if err != nil {
+			return Database{}, recovery, err
+		}
+		if err := validateSourceBlock(status, height, sourceBlock); err != nil {
+			return Database{}, recovery, err
+		}
+		if localBlock.Hash == sourceBlock.Hash {
+			recovery.detected = true
+			recovery.mode = "fork-rollback-and-reindex"
+			recovery.commonAncestor = height
+			recovery.rollbackFrom = height + 1
+			db, recovery.rolledBackBlocks, recovery.rolledBackTxs, err = i.store.RollbackTo(height)
+			return db, recovery, err
+		}
+		if height == lowerBound {
 			break
 		}
-		blocks = append(blocks, db.Blocks[strconv.Itoa(height)])
 	}
+	return Database{}, recovery, fmt.Errorf("source fork has no common ancestor within retained range and max reorg depth %d; indexer rebuild required", i.cfg.MaxReorgDepth)
+}
+
+func validateSourceBlock(status Status, height uint64, block chain.Block) error {
+	if block.Height != height || block.Hash == "" {
+		return fmt.Errorf("source returned invalid block for requested height %d", height)
+	}
+	if height == status.EarliestBlockHeight && status.EarliestBlockHash != "" && block.Hash != status.EarliestBlockHash {
+		return fmt.Errorf("source earliest block hash mismatch at height %d; indexer rebuild required", height)
+	}
+	if height == status.Height && status.LatestBlockHash != "" && block.Hash != status.LatestBlockHash {
+		return fmt.Errorf("source latest block hash mismatch at height %d; indexer rebuild required", height)
+	}
+	return nil
+}
+
+func LatestBlocks(db Database, limit int) []chain.Block {
+	blocks, _, _ := LatestBlocksPage(db, limit, "")
 	return blocks
 }
 
-func LatestTransactions(db Database, limit int) []chain.Transaction {
-	if limit <= 0 || limit > 100 {
-		limit = 25
+func LatestBlocksPage(db Database, limit int, after string) ([]chain.Block, string, error) {
+	limit = normalizePageLimit(limit)
+	if len(db.Blocks) == 0 {
+		return []chain.Block{}, "", nil
 	}
+
+	startHeight := db.LastIndexedHeight
+	if _, found := db.Blocks[strconv.FormatUint(startHeight, 10)]; !found {
+		// Older fixtures and imported snapshots may omit LastIndexedHeight. A
+		// one-pass maximum lookup keeps those databases readable without putting
+		// the production hot path back on a full sort.
+		for rawHeight := range db.Blocks {
+			height, err := strconv.ParseUint(rawHeight, 10, 64)
+			if err == nil && height > startHeight {
+				startHeight = height
+			}
+		}
+	}
+	if after != "" {
+		position, err := strconv.ParseUint(after, 10, 64)
+		if err != nil {
+			return nil, "", fmt.Errorf("block cursor position is invalid")
+		}
+		if _, found := db.Blocks[strconv.FormatUint(position, 10)]; !found {
+			return nil, "", fmt.Errorf("block cursor position is no longer retained")
+		}
+		if position == 0 {
+			return []chain.Block{}, "", nil
+		}
+		startHeight = position - 1
+	}
+	lowerBound := db.SourceEarliestHeight
+	if lowerBound > startHeight {
+		return []chain.Block{}, "", nil
+	}
+
+	// Indexed block heights are canonical and monotonically increasing. Walk the
+	// height-keyed map directly instead of allocating and sorting every retained
+	// height for each request. The old O(total blocks log total blocks) query held
+	// the store read lock long enough to starve sync writes and, through RWMutex
+	// writer preference, health checks as well.
+	blocks := make([]chain.Block, 0, limit+1)
+	for height := startHeight; ; height-- {
+		if block, found := db.Blocks[strconv.FormatUint(height, 10)]; found {
+			blocks = append(blocks, block)
+			if len(blocks) > limit {
+				break
+			}
+		}
+		if height == lowerBound || height == 0 {
+			break
+		}
+	}
+
+	nextAfter := ""
+	if len(blocks) > limit {
+		blocks = blocks[:limit]
+		nextAfter = strconv.FormatUint(blocks[len(blocks)-1].Height, 10)
+	}
+	return blocks, nextAfter, nil
+}
+
+func LatestTransactions(db Database, limit int) []chain.Transaction {
+	txs, _, _ := LatestTransactionsPage(db, limit, "")
+	return txs
+}
+
+func LatestTransactionsPage(db Database, limit int, after string) ([]chain.Transaction, string, error) {
+	return filteredTransactionsPage(db, limit, after, func(chain.Transaction) bool { return true })
+}
+
+func AccountTransactionsPage(db Database, address string, limit int, after string) ([]chain.Transaction, string, error) {
+	address = strings.TrimSpace(address)
+	if address == "" {
+		return nil, "", fmt.Errorf("account address is required")
+	}
+	return filteredTransactionsPage(db, limit, after, func(tx chain.Transaction) bool {
+		return strings.EqualFold(strings.TrimSpace(tx.From), address) ||
+			strings.EqualFold(strings.TrimSpace(tx.To), address) ||
+			strings.EqualFold(strings.TrimSpace(tx.Sponsor), address)
+	})
+}
+
+func filteredTransactionsPage(db Database, limit int, after string, include func(chain.Transaction) bool) ([]chain.Transaction, string, error) {
+	limit = normalizePageLimit(limit)
 	txs := make([]chain.Transaction, 0, len(db.Transactions))
 	for _, tx := range db.Transactions {
-		txs = append(txs, tx)
+		if include(tx) {
+			txs = append(txs, tx)
+		}
 	}
-	sort.Slice(txs, func(a, b int) bool { return txs[a].Timestamp.After(txs[b].Timestamp) })
-	if len(txs) > limit {
-		txs = txs[:limit]
+	sort.Slice(txs, func(a, b int) bool {
+		if txs[a].Timestamp.Equal(txs[b].Timestamp) {
+			return txs[a].Hash < txs[b].Hash
+		}
+		return txs[a].Timestamp.After(txs[b].Timestamp)
+	})
+	start := 0
+	if after != "" {
+		found := false
+		for index, tx := range txs {
+			if tx.Hash == after {
+				start = index + 1
+				found = true
+				break
+			}
+		}
+		if !found {
+			return nil, "", fmt.Errorf("transaction cursor position is no longer retained")
+		}
 	}
-	return txs
+	end := min(start+limit, len(txs))
+	page := append([]chain.Transaction(nil), txs[start:end]...)
+	nextAfter := ""
+	if end < len(txs) && len(page) > 0 {
+		nextAfter = page[len(page)-1].Hash
+	}
+	return page, nextAfter, nil
+}
+
+func normalizePageLimit(limit int) int {
+	if limit <= 0 || limit > 100 {
+		return 25
+	}
+	return limit
 }

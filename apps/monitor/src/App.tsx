@@ -6,13 +6,12 @@ import ynxLogo from "../../../assets/brand/ynx-logo.png";
 interface Probe {
   id: string;
   label: string;
-  url: string;
   status: "healthy" | "unavailable";
   checkedAt: string;
   latencyMs?: number;
   httpStatus?: number;
   data?: any;
-  error?: string;
+	errorCode?: string;
 }
 interface Alert {
   id: string;
@@ -53,6 +52,7 @@ interface Incident {
 interface Overview {
   checkedAt: string;
   probes: Probe[];
+	network:{expectedValidatorCount:number;observedValidatorCount:number;validatorSetStatus:string;canonicalHeight:number|null;indexedHeight:number|null;indexLag:number|null;finality:{status:string;height:number|null};blockIntervalSeconds:number|null;tps:number|null;peerCount:number;validators:Record<string,unknown>[];consensus:{streamBFT:{status:string;active:boolean;statement:string}}};
   slo: { definition: string; passing: number; total: number };
   incidents: Incident[];
   alerts: Alert[];
@@ -73,7 +73,9 @@ interface PublicStatus {
   status: string;
   asOf: string;
   message?: string;
-  services: Array<{ id: string; name: string; status: string; asOf: string; message?: string }>;
+	services: Array<{ id: string; name: string; status: string; asOf: string; checkedAt:string; sourceCommit:string|null; release:string|null; startedAt:string|null; dependencies:Array<{id:string;status:string}>; message?: string }>;
+	history:Array<{asOf:string;status:string;operational:number;degraded:number;outage:number;unknown:number;transition:string}>;
+	historyPersistence:"process-scoped";
 }
 const views = [
   "Overview",
@@ -320,7 +322,7 @@ export function App() {
               <ProbeView
                 title="Node surfaces"
                 probes={probes.filter((x) =>
-                  ["node", "explorer", "indexer", "ai"].includes(x.id),
+				  ["node", "explorer", "indexer", "faucet", "gateway"].includes(x.id),
                 )}
               />
             )}
@@ -469,12 +471,15 @@ function Login({
             <>
               <p>{publicStatus.message || "Current approved public probe projection."}</p>
               <div className="public-service-list">
-                {publicStatus.services.map((service) => <div key={service.id}><span>{service.name}</span><strong className={`public-service ${service.status}`}>{service.status.replaceAll("_", " ")}</strong></div>)}
+				{publicStatus.services.map((service) => <article key={service.id} className="public-service-row"><div><span>{service.name}</span><strong className={`public-service ${service.status}`}>{service.status.replaceAll("_", " ")}</strong></div><dl><div><dt>Source</dt><dd>{service.sourceCommit ? short(service.sourceCommit,12) : "Unavailable"}</dd></div><div><dt>Release</dt><dd>{service.release || "Unavailable"}</dd></div><div><dt>Started</dt><dd>{service.startedAt ? new Date(service.startedAt).toLocaleString(locale) : "Unavailable"}</dd></div><div><dt>Checked</dt><dd>{new Date(service.checkedAt).toLocaleString(locale)}</dd></div><div><dt>Dependencies</dt><dd>{service.dependencies.length ? service.dependencies.map((dependency) => `${dependency.id}: ${dependency.status.replaceAll("_"," ")}`).join(" · ") : "None declared"}</dd></div></dl></article>)}
               </div>
+			  <div className="public-trend" aria-label="Process-scoped service trend">{publicStatus.history.map((sample,index)=><span key={`${sample.asOf}-${index}`} className={sample.status} title={`${new Date(sample.asOf).toLocaleString(locale)} · ${sample.status} · ${sample.transition}`} style={{height:`${Math.max(8,12+(sample.outage+sample.degraded)*6)}px`}} />)}</div>
               <small>As of {new Date(publicStatus.asOf).toLocaleString()} · process health and owner facts remain separate.</small>
+			  <small>Trend retention: {publicStatus.historyPersistence}; failure and recovery transitions use accepted signed snapshots only.</small>
             </>
           ) : <p>{publicStatusError || "Loading signed, approved public evidence…"}</p>}
         </section>
+		<p className="boundary">Consensus status: StreamBFT is a shadow/candidate and is not reported as active consensus.</p>
       </section>
       <form className="login-card" onSubmit={submit}>
         <div className="login-locales">
@@ -675,13 +680,17 @@ function OverviewView({
           <PanelTitle eyebrow="Release control" title="Identity" />
           <KeyValue
             data={{
-              release: identity?.data?.build?.release,
-              commit: identity?.data?.build?.commit,
-              buildTime: identity?.data?.build?.buildTime,
-              replicationMode: identity?.data?.replicationMode,
+			  release: identity?.data?.release,
+			  commit: identity?.data?.sourceCommit,
+			  startedAt: identity?.data?.startedAt,
             }}
           />
         </div>
+		<div className="ops-panel">
+		  <PanelTitle eyebrow="Canonical network evidence" title="Finality & throughput" />
+		  <KeyValue data={{canonicalHeight:overview.network.canonicalHeight,indexedHeight:overview.network.indexedHeight,indexLag:overview.network.indexLag,finality:overview.network.finality.status,finalityHeight:overview.network.finality.height,blockIntervalSeconds:overview.network.blockIntervalSeconds,tps:overview.network.tps,peerCount:overview.network.peerCount,validators:`${overview.network.observedValidatorCount}/${overview.network.expectedValidatorCount}`}} />
+		  <p className="boundary">{overview.network.consensus.streamBFT.statement}</p>
+		</div>
         <div className="ops-panel">
           <PanelTitle eyebrow="Attention queue" title="Incidents & alerts" />
           <div className="attention">
@@ -706,7 +715,7 @@ function ProbeRows({ probes }: { probes: Probe[] }) {
         <div key={p.id}>
           <span className={`health ${p.status}`}>{p.status}</span>
           <strong>{p.label}</strong>
-          <code>{p.url}</code>
+		  <code>Bounded configured endpoint</code>
           <span>{p.latencyMs === undefined ? "—" : `${p.latencyMs} ms`}</span>
           <time>{new Date(p.checkedAt).toLocaleTimeString()}</time>
         </div>
@@ -781,14 +790,12 @@ function ReleaseView({ identity }: { identity?: Probe }) {
       />
       <KeyValue
         data={{
-          source: identity?.url,
+		  source: identity?.id,
           status: identity?.status,
           httpStatus: identity?.httpStatus,
-          commit: identity?.data?.build?.commit,
-          release: identity?.data?.build?.release,
-          buildTime: identity?.data?.build?.buildTime,
-          validatorAddress: identity?.data?.validatorAddress,
-          replicationMode: identity?.data?.replicationMode,
+		  commit: identity?.data?.sourceCommit,
+		  release: identity?.data?.release,
+		  startedAt: identity?.data?.startedAt,
         }}
       />
       <p className="boundary">
@@ -1285,7 +1292,7 @@ function RollbackView({
     await request("/ops/rollback-proposals", session, {
       method: "POST",
       body: JSON.stringify({
-        release: identity?.data?.build?.release || "unknown-current-release",
+		release: identity?.data?.release || "unknown-current-release",
         reason,
         approvalPhrase: phrase,
       }),

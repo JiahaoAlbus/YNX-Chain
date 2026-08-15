@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -35,6 +36,10 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 		t.Fatal(err)
 	}
 	if _, err := devnet.Faucet(canonicalAddress, 50); err != nil {
+		t.Fatal(err)
+	}
+	contract, _, err := devnet.DeployContract(canonicalAddress, "ExplorerEvents", "pragma solidity ^0.8.24; contract ExplorerEvents { event Audit(bytes32 indexed id); }")
+	if err != nil {
 		t.Fatal(err)
 	}
 	ownerKey := secp256k1.PrivKeyFromBytes(append(make([]byte, 31), 91))
@@ -78,7 +83,7 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 	server := httptest.NewServer(NewServerWithBuild(svc, buildinfo.Info{Commit: "abc123", Release: "ynx-chain-abc123", BuildTime: "2026-07-10T00:00:00Z"}).Handler())
 	defer server.Close()
 
-	for _, path := range []string{"/health", "/api/summary", "/api/blocks/latest", "/api/txs", "/api/accounts?limit=10", "/api/accounts/ynx_explorer_bob", "/api/accounts/" + ynxAddress, "/api/tokens/YNXT", "/api/validators", "/api/resources/ynx_explorer_bob", "/api/resource-market/analytics", "/api/fees/" + tx.Hash, "/api/fees/" + sponsoredTx.Hash, "/api/search?q=" + tx.Hash, "/api/search?q=" + ynxAddress, "/metrics"} {
+	for _, path := range []string{"/health", "/version", "/api/summary", "/api/blocks/latest", "/api/txs", "/api/accounts?limit=10", "/api/accounts/ynx_explorer_bob", "/api/accounts/" + ynxAddress, "/api/accounts/" + ynxAddress + "/activity?limit=2", "/api/tokens/YNXT", "/api/contracts/" + contract.Address, "/api/validators", "/api/resources/ynx_explorer_bob", "/api/resource-market/analytics", "/api/fees/" + tx.Hash, "/api/fees/" + sponsoredTx.Hash, "/api/search?q=" + tx.Hash, "/api/search?q=" + ynxAddress, "/api/search?q=YNXT", "/api/search?q=" + contract.Address, "/metrics"} {
 		resp, err := http.Get(server.URL + path)
 		if err != nil {
 			t.Fatal(err)
@@ -101,6 +106,33 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 	}
 	if aliasDetail.Account.Address != canonicalAddress || aliasDetail.AddressFormats == nil || aliasDetail.AddressFormats.YNX != ynxAddress || aliasDetail.AddressFormats.EVM != canonicalAddress {
 		t.Fatalf("explorer did not expose equivalent address formats: %+v", aliasDetail)
+	}
+	if aliasDetail.Activity.TruthfulStatus != "canonical-indexed-account-activity" || aliasDetail.Activity.LastIndexedHeight == 0 || len(aliasDetail.Activity.Transactions) == 0 || len(aliasDetail.Holdings) != 1 || aliasDetail.Holdings[0].Symbol != "YNXT" {
+		t.Fatalf("account detail omitted indexed history or native holdings: %+v", aliasDetail)
+	}
+	txResponse, err := http.Get(server.URL + "/api/txs/" + tx.Hash)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer txResponse.Body.Close()
+	var transactionDetail TransactionDetail
+	if err := json.NewDecoder(txResponse.Body).Decode(&transactionDetail); err != nil {
+		t.Fatal(err)
+	}
+	if transactionDetail.Status != "finalized-indexed" || transactionDetail.From == "" || transactionDetail.To == "" || transactionDetail.BlockNum == 0 || transactionDetail.Gas.TruthfulStatus == "" || transactionDetail.HistoricalNotice == "" {
+		t.Fatalf("transaction detail omitted canonical status, direction, block, gas, or history semantics: %+v", transactionDetail)
+	}
+	pageResponse, err := http.Get(server.URL + "/api/txs?limit=2")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer pageResponse.Body.Close()
+	var transactionPage TransactionPage
+	if err := json.NewDecoder(pageResponse.Body).Decode(&transactionPage); err != nil {
+		t.Fatal(err)
+	}
+	if len(transactionPage.Transactions) != 2 || transactionPage.NextCursor == "" || transactionPage.CursorVersion == 0 {
+		t.Fatalf("transaction pagination did not expose an opaque continuation: %+v", transactionPage)
 	}
 	feeResponse, err := http.Get(server.URL + "/api/fees/" + sponsoredTx.Hash)
 	if err != nil {
@@ -132,6 +164,12 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 		"Open MetaMask compatibility",
 		"/api/summary",
 		"new EventSource('/api/stream')",
+		"mergeLiveRows(snapshot.blocks || [], latestBlocks",
+		"mergeLiveRows(snapshot.transactions || [], latestTransactions",
+		"canonicalHistoryChanged(snapshot.blocks || [], latestBlocks)",
+		"load().then(stopFallbackPolling).catch(showLoadError)",
+		"contractActivityCount: Number(currentDetail.activity.contractActivityCount || 0) + Number(next.contractActivityCount || 0)",
+		"inboundYnxt: Number(previousFlow.inboundYnxt || 0) + Number(nextFlow.inboundYnxt || 0)",
 		"Network TPS",
 		"Real-time transactions",
 		"Five newest finalized blocks, updated live",
@@ -146,15 +184,43 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 		"ynx-explorer-language",
 		"id=\"detailBackdrop\"",
 		"Resource economy",
-		"Live finalized block stream",
+		"data-i18n-aria=\"latestBlocks\"",
 		"id=\"blockTrack\"",
-		"No event for ",
+		"relativeTime(new Date(lastStreamAt))",
 		"/assets/ynx-logo.png",
 		"/assets/ynx-icon.png",
-		"YNX native address (default)",
+		"const fieldKeys = ['delegatedYnxt'",
+		"Incomplete Explorer detail locale:",
+		"أُرسل إلى",
+		"indexedCoverage",
 		"EVM compatibility address",
 		"tx.sponsor",
 		"sponsorPoolId",
+		"option value=\"zh-TW\"",
+		"option value=\"ar\"",
+		"document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr'",
+		"html[dir=\"rtl\"] .drawer",
+		"html[dir=\"rtl\"] .nav-links",
+		".brand span { display:none; }",
+		"history.pushState",
+		"openDeepLink",
+		"data-activity-cursor",
+		"A block is not a fixed YNXT reward",
+		"Observed YNXT funds flow",
+		"id=\"olderBlocks\"",
+		"id=\"olderTransactions\"",
+		"const supplementalKeys = ['testnet','rpcIndexerVerified'",
+		"Incomplete Explorer locale:",
+		"data-i18n=\"identityTitle\"",
+		"data-i18n=\"footerBoundary\"",
+		"data-i18n-aria=\"searchPlaceholder\"",
+		"data-i18n-aria=\"intelligenceTitle\"",
+		"data-i18n-aria=\"networkMetrics\"",
+		"networkMetrics:'مقاييس الشبكة'",
+		"localStorage.getItem('ynx-explorer-language') || 'en'",
+		"document.querySelectorAll('[data-i18n-aria]')",
+		"هوية YNX الأصلية أولًا.",
+		"Aucun lancement mainnet n’est revendiqué.",
 	} {
 		if !strings.Contains(html, marker) {
 			t.Fatalf("explorer web is missing live interaction marker %q", marker)
@@ -177,7 +243,7 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if summary.NativeSymbol != "YNXT" || summary.IndexedTxCount != 7 || summary.Wallet.ChainIDHex != "0x1917" {
+	if summary.NativeSymbol != "YNXT" || summary.IndexedTxCount != 8 || summary.Wallet.ChainIDHex != "0x1917" {
 		t.Fatalf("unexpected summary: %+v", summary)
 	}
 	fallbackHandler := api.NewServerWithConfig(devnet, api.ServerConfig{ResourceGatewayUpstreamKey: resourceUpstreamKey})
@@ -239,8 +305,28 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 	}
 	cancelStream()
 	_ = streamResp.Body.Close()
-	if streamData == "" || !strings.Contains(streamData, `"indexedTxCount":7`) || !strings.Contains(streamData, `"resource_sponsored_action"`) || !strings.Contains(streamData, `"sponsorPoolId"`) || !strings.Contains(streamData, `"blocks"`) || !strings.Contains(streamData, `"validators"`) || !strings.Contains(streamData, `"resources"`) {
+	if streamData == "" || !strings.Contains(streamData, `"indexedTxCount":8`) || !strings.Contains(streamData, `"resource_sponsored_action"`) || !strings.Contains(streamData, `"sponsorPoolId"`) || !strings.Contains(streamData, `"blocks"`) || !strings.Contains(streamData, `"validators"`) || !strings.Contains(streamData, `"resources"`) {
 		t.Fatalf("stream did not return a live dashboard snapshot: %s", streamData)
+	}
+}
+
+func TestPublicWalletURLsRejectInternalOrUnsafeAddresses(t *testing.T) {
+	got := nonEmptyPublicURLs(
+		"http://explorer.ynxweb4.com",
+		"https://127.0.0.1:6427",
+		"https://10.0.0.8",
+		"https://192.168.1.8",
+		"https://169.254.1.2",
+		"https://localhost",
+		"https://node.internal.local",
+		"https://user:secret@rpc.ynxweb4.com",
+		"https://rpc.ynxweb4.com?internal=1",
+		"https://rpc.ynxweb4.com/",
+		"https://explorer.ynxweb4.com",
+	)
+	want := []string{"https://rpc.ynxweb4.com", "https://explorer.ynxweb4.com"}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("public URLs=%v want=%v", got, want)
 	}
 }
 
@@ -253,5 +339,48 @@ func TestFeeDetailUsesRealSponsorTransactionEvidence(t *testing.T) {
 	direct := FeeDetailFromTx(chain.Transaction{Hash: "direct", From: tx.From, Fee: 1})
 	if direct.Sponsor != "" || direct.ResourceSource != "direct-ynxt-fee-or-resource-endpoint" {
 		t.Fatalf("direct transaction was mislabeled as sponsored: %+v", direct)
+	}
+}
+
+func TestPublicFailuresDoNotExposeInternalDependencyDetails(t *testing.T) {
+	service, err := New(Config{
+		RPCURL:     "http://127.0.0.1:1/private-rpc",
+		IndexerURL: "http://127.0.0.1:2/private-indexer",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	server := httptest.NewServer(NewServer(service).Handler())
+	defer server.Close()
+
+	for _, path := range []string{"/health", "/api/summary", "/api/blocks/latest", "/api/txs", "/api/accounts", "/metrics"} {
+		response, err := http.Get(server.URL + path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		body, readErr := io.ReadAll(response.Body)
+		_ = response.Body.Close()
+		if readErr != nil {
+			t.Fatal(readErr)
+		}
+		text := string(body)
+		if response.StatusCode < 400 || strings.Contains(text, "127.0.0.1") || strings.Contains(text, "private-rpc") || strings.Contains(text, "private-indexer") || strings.Contains(text, "connection refused") {
+			t.Fatalf("%s leaked an internal dependency failure: status=%d body=%s", path, response.StatusCode, text)
+		}
+		var failure map[string]any
+		if err := json.Unmarshal(body, &failure); err != nil || failure["code"] == "" || failure["message"] == "" {
+			t.Fatalf("%s did not return a bounded public failure: %s", path, text)
+		}
+	}
+
+	for _, path := range []string{"/tx/0xabc", "/block/42", "/address/ynx1test", "/token/YNXT", "/contract/0xabc"} {
+		response, err := http.Get(server.URL + path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_ = response.Body.Close()
+		if response.StatusCode != http.StatusOK {
+			t.Fatalf("deep link %s returned %d", path, response.StatusCode)
+		}
 	}
 }

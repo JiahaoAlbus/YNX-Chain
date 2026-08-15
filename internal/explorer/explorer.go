@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"net/url"
 	"sort"
@@ -43,12 +44,6 @@ func New(cfg Config) (*Service, error) {
 	}
 	if strings.TrimSpace(cfg.IndexerURL) == "" {
 		return nil, fmt.Errorf("explorer indexer URL is required")
-	}
-	if cfg.PublicRPCURL == "" {
-		cfg.PublicRPCURL = cfg.RPCURL
-	}
-	if cfg.PublicExplorerURL == "" {
-		cfg.PublicExplorerURL = "http://127.0.0.1:6427"
 	}
 	return &Service{cfg: cfg, rpcClient: newClient(cfg.RPCURL), indexerClient: newClient(cfg.IndexerURL)}, nil
 }
@@ -169,6 +164,10 @@ func (s *Service) Summary(ctx context.Context) (Summary, error) {
 	if status.Height > health.LastIndexedHeight {
 		lag = status.Height - health.LastIndexedHeight
 	}
+	indexerError := ""
+	if !health.OK || health.LastError != "" {
+		indexerError = "indexer_sync_failed"
+	}
 	network := chain.NetworkConfig{
 		Name:                 status.Network,
 		Slug:                 status.Slug,
@@ -194,21 +193,41 @@ func (s *Service) Summary(ctx context.Context) (Summary, error) {
 		PendingTxCount:    status.PendingTxCount,
 		NativeSymbol:      status.NativeCurrencySymbol,
 		IndexerOK:         health.OK,
-		IndexerError:      health.LastError,
+		IndexerError:      indexerError,
 		Wallet: WalletConfig{
 			ChainIDHex:         fmt.Sprintf("0x%x", status.ChainID),
 			ChainName:          status.Network,
 			NativeCurrencyName: status.NativeCoinName,
 			NativeSymbol:       status.NativeCurrencySymbol,
 			Decimals:           status.Decimals,
-			RPCURLs:            []string{s.cfg.PublicRPCURL},
-			BlockExplorerURLs:  []string{s.cfg.PublicExplorerURL},
+			RPCURLs:            nonEmptyPublicURLs(s.cfg.PublicRPCURL),
+			BlockExplorerURLs:  nonEmptyPublicURLs(s.cfg.PublicExplorerURL),
 		},
 		ResourceStatus: "available-through-resource-endpoints",
 		FeeStatus:      "available-per-transaction",
 		TruthfulStatus: "rpc-and-indexer-backed",
 		LastCheckedAt:  time.Now().UTC(),
 	}, nil
+}
+
+func nonEmptyPublicURLs(values ...string) []string {
+	urls := make([]string, 0, len(values))
+	for _, value := range values {
+		value = strings.TrimSpace(value)
+		parsed, err := url.Parse(value)
+		if err != nil || parsed.Scheme != "https" || parsed.User != nil || parsed.Hostname() == "" || parsed.RawQuery != "" || parsed.Fragment != "" {
+			continue
+		}
+		host := strings.ToLower(parsed.Hostname())
+		if host == "localhost" || strings.HasSuffix(host, ".localhost") || strings.HasSuffix(host, ".local") {
+			continue
+		}
+		if ip := net.ParseIP(host); ip != nil && (ip.IsLoopback() || ip.IsPrivate() || ip.IsUnspecified() || ip.IsLinkLocalUnicast()) {
+			continue
+		}
+		urls = append(urls, strings.TrimRight(value, "/"))
+	}
+	return urls
 }
 
 func (s *Service) Status(ctx context.Context) (Status, error) {
@@ -228,13 +247,29 @@ func (s *Service) IndexerHealth(ctx context.Context) (IndexerHealth, error) {
 }
 
 func (s *Service) LatestBlocks(ctx context.Context, limit int) ([]chain.Block, error) {
-	var out struct {
-		Blocks []chain.Block `json:"blocks"`
-	}
-	if err := s.indexerClient.getJSON(ctx, "/blocks/latest?limit="+strconv.Itoa(limit), &out); err != nil {
+	out, err := s.BlocksPage(ctx, limit, "")
+	if err != nil {
 		return nil, err
 	}
 	return out.Blocks, nil
+}
+
+type BlockPage struct {
+	Blocks        []chain.Block `json:"blocks"`
+	NextCursor    string        `json:"nextCursor,omitempty"`
+	CursorVersion int           `json:"cursorVersion"`
+}
+
+func (s *Service) BlocksPage(ctx context.Context, limit int, cursor string) (BlockPage, error) {
+	var out BlockPage
+	query := url.Values{"limit": []string{strconv.Itoa(limit)}}
+	if cursor != "" {
+		query.Set("cursor", cursor)
+	}
+	if err := s.indexerClient.getJSON(ctx, "/blocks/latest?"+query.Encode(), &out); err != nil {
+		return BlockPage{}, err
+	}
+	return out, nil
 }
 
 func (s *Service) Block(ctx context.Context, height string) (chain.Block, error) {
@@ -246,13 +281,29 @@ func (s *Service) Block(ctx context.Context, height string) (chain.Block, error)
 }
 
 func (s *Service) Transactions(ctx context.Context, limit int) ([]chain.Transaction, error) {
-	var out struct {
-		Transactions []chain.Transaction `json:"transactions"`
-	}
-	if err := s.indexerClient.getJSON(ctx, "/txs?limit="+strconv.Itoa(limit), &out); err != nil {
+	out, err := s.TransactionsPage(ctx, limit, "")
+	if err != nil {
 		return nil, err
 	}
 	return out.Transactions, nil
+}
+
+type TransactionPage struct {
+	Transactions  []chain.Transaction `json:"transactions"`
+	NextCursor    string              `json:"nextCursor,omitempty"`
+	CursorVersion int                 `json:"cursorVersion"`
+}
+
+func (s *Service) TransactionsPage(ctx context.Context, limit int, cursor string) (TransactionPage, error) {
+	var out TransactionPage
+	query := url.Values{"limit": []string{strconv.Itoa(limit)}}
+	if cursor != "" {
+		query.Set("cursor", cursor)
+	}
+	if err := s.indexerClient.getJSON(ctx, "/txs?"+query.Encode(), &out); err != nil {
+		return TransactionPage{}, err
+	}
+	return out, nil
 }
 
 func (s *Service) Transaction(ctx context.Context, hash string) (chain.Transaction, error) {
@@ -263,17 +314,99 @@ func (s *Service) Transaction(ctx context.Context, hash string) (chain.Transacti
 	return tx, nil
 }
 
+type TransactionGas struct {
+	FeeYNXT          int64  `json:"feeYnxt"`
+	ResourceSource   string `json:"resourceSource,omitempty"`
+	ResourceType     string `json:"resourceType,omitempty"`
+	ResourceConsumed int64  `json:"resourceConsumed,omitempty"`
+	TruthfulStatus   string `json:"truthfulStatus"`
+}
+
+type TransactionDetail struct {
+	chain.Transaction
+	Status           string         `json:"status"`
+	Gas              TransactionGas `json:"gas"`
+	Events           []chain.EVMLog `json:"events"`
+	TruthfulStatus   string         `json:"truthfulStatus"`
+	HistoricalNotice string         `json:"historicalNotice"`
+}
+
+func (s *Service) TransactionDetail(ctx context.Context, hash string) (TransactionDetail, error) {
+	tx, err := s.Transaction(ctx, hash)
+	if err != nil {
+		return TransactionDetail{}, err
+	}
+	return TransactionDetail{
+		Transaction: tx,
+		Status:      "finalized-indexed",
+		Gas: TransactionGas{
+			FeeYNXT: tx.Fee, ResourceSource: tx.ResourceSource, ResourceType: tx.ResourceType,
+			ResourceConsumed: tx.ResourceConsumed, TruthfulStatus: "observed-from-indexed-transaction",
+		},
+		Events:           append([]chain.EVMLog(nil), tx.Logs...),
+		TruthfulStatus:   "canonical-indexed-transaction",
+		HistoricalNotice: "Historical data is read-only. Viewing an older block or transaction does not recreate chain state or authorize a new transaction.",
+	}, nil
+}
+
+func (s *Service) Contract(ctx context.Context, address string) (chain.ContractArtifact, error) {
+	normalized, err := normalizeExplorerAddress(address)
+	if err != nil {
+		return chain.ContractArtifact{}, err
+	}
+	var contract chain.ContractArtifact
+	if err := s.rpcClient.getJSON(ctx, "/contracts/"+url.PathEscape(normalized), &contract); err != nil {
+		return chain.ContractArtifact{}, err
+	}
+	if strings.TrimSpace(contract.Address) == "" {
+		return chain.ContractArtifact{}, errors.New("contract not found")
+	}
+	return contract, nil
+}
+
 type AccountDetail struct {
 	Account        chain.Account         `json:"account"`
 	AddressFormats *AddressFormats       `json:"addressFormats,omitempty"`
 	Resources      chain.ResourceBalance `json:"resources"`
 	Trace          chain.TrustTrace      `json:"trace"`
+	Activity       AccountActivity       `json:"activity"`
+	Holdings       []TokenHolding        `json:"tokenHoldings"`
+}
+
+type AccountActivity struct {
+	Transactions      []chain.Transaction `json:"transactions"`
+	NextCursor        string              `json:"nextCursor,omitempty"`
+	CursorVersion     int                 `json:"cursorVersion"`
+	LastIndexedHeight uint64              `json:"lastIndexedHeight"`
+	IndexedTxCount    int                 `json:"indexedTxCount"`
+	CheckedAt         time.Time           `json:"checkedAt"`
+	TruthfulStatus    string              `json:"truthfulStatus"`
+	Flow              FundsFlow           `json:"fundsFlow"`
+	ContractActions   int                 `json:"contractActivityCount"`
+}
+
+type FundsFlow struct {
+	InboundYNXT  int64 `json:"inboundYnxt"`
+	OutboundYNXT int64 `json:"outboundYnxt"`
+	NetYNXT      int64 `json:"netYnxt"`
+	IncomingTxs  int   `json:"incomingTransactions"`
+	OutgoingTxs  int   `json:"outgoingTransactions"`
+}
+
+type TokenHolding struct {
+	Symbol         string `json:"symbol"`
+	Type           string `json:"type"`
+	Liquid         int64  `json:"liquid"`
+	Staked         int64  `json:"staked"`
+	TruthfulStatus string `json:"truthfulStatus"`
 }
 
 type AccountLeaderboard struct {
 	Accounts       []chain.Account `json:"accounts"`
 	Total          int             `json:"total"`
 	Ranking        string          `json:"ranking"`
+	Coverage       string          `json:"coverage"`
+	CheckedAt      time.Time       `json:"checkedAt"`
 	TruthfulStatus string          `json:"truthfulStatus"`
 }
 
@@ -291,6 +424,8 @@ func (s *Service) AccountLeaderboard(ctx context.Context, limit int) (AccountLea
 		if leaderboard.Ranking != "liquid-ynxt-balance-descending" || leaderboard.TruthfulStatus != "authoritative-public-ledger-account-ranking" {
 			return AccountLeaderboard{}, errors.New("RPC returned an unverifiable account ranking")
 		}
+		leaderboard.Coverage = "full-public-ledger-account-state"
+		leaderboard.CheckedAt = time.Now().UTC()
 		s.cacheLeaderboard(leaderboard, limit)
 		return leaderboardPage(leaderboard, limit), nil
 	}
@@ -356,6 +491,8 @@ func (s *Service) AccountLeaderboard(ctx context.Context, limit int) (AccountLea
 		Accounts:       accounts,
 		Total:          total,
 		Ranking:        "indexed-participant-liquid-ynxt-balance-descending",
+		Coverage:       "accounts-observed-in-the-current-indexed-transaction-retention-window",
+		CheckedAt:      time.Now().UTC(),
 		TruthfulStatus: "observed-indexed-participant-account-ranking",
 	}
 	s.cacheLeaderboard(leaderboard, limit)
@@ -390,6 +527,23 @@ func (s *Service) Account(ctx context.Context, address string) (AccountDetail, e
 	if err != nil {
 		return AccountDetail{}, err
 	}
+	account, err := s.accountFromRPC(ctx, address)
+	if err != nil {
+		return AccountDetail{}, err
+	}
+	activity, err := s.AccountActivity(ctx, account.Account.Address, 25, "")
+	if err != nil {
+		return AccountDetail{}, err
+	}
+	account.Activity = activity
+	account.Holdings = []TokenHolding{{
+		Symbol: "YNXT", Type: "native", Liquid: account.Account.Balance, Staked: account.Account.Staked,
+		TruthfulStatus: "native-holding-from-chain-account-state",
+	}}
+	return account, nil
+}
+
+func (s *Service) accountFromRPC(ctx context.Context, address string) (AccountDetail, error) {
 	var account AccountDetail
 	if err := s.rpcClient.getJSON(ctx, "/accounts/"+url.PathEscape(address), &account); err != nil {
 		return AccountDetail{}, err
@@ -402,6 +556,32 @@ func (s *Service) Account(ctx context.Context, address string) (AccountDetail, e
 		account.AddressFormats = &AddressFormats{EVM: account.Account.Address, YNX: alias}
 	}
 	return account, nil
+}
+
+func (s *Service) AccountActivity(ctx context.Context, address string, limit int, cursor string) (AccountActivity, error) {
+	query := url.Values{"limit": []string{strconv.Itoa(limit)}}
+	if cursor != "" {
+		query.Set("cursor", cursor)
+	}
+	var activity AccountActivity
+	if err := s.indexerClient.getJSON(ctx, "/accounts/"+url.PathEscape(address)+"/activity?"+query.Encode(), &activity); err != nil {
+		return AccountActivity{}, err
+	}
+	for _, tx := range activity.Transactions {
+		if strings.EqualFold(tx.To, address) {
+			activity.Flow.InboundYNXT += tx.Amount
+			activity.Flow.IncomingTxs++
+		}
+		if strings.EqualFold(tx.From, address) {
+			activity.Flow.OutboundYNXT += tx.Amount + tx.Fee
+			activity.Flow.OutgoingTxs++
+		}
+		if len(tx.Logs) > 0 {
+			activity.ContractActions++
+		}
+	}
+	activity.Flow.NetYNXT = activity.Flow.InboundYNXT - activity.Flow.OutboundYNXT
+	return activity, nil
 }
 
 func (s *Service) Validators(ctx context.Context) (map[string]any, error) {
@@ -522,6 +702,7 @@ type SearchResult struct {
 	Query             string `json:"query"`
 	Type              string `json:"type"`
 	Path              string `json:"path"`
+	DeepLink          string `json:"deepLink"`
 	NormalizedAddress string `json:"normalizedAddress,omitempty"`
 	TruthfulStatus    string `json:"truthfulStatus"`
 }
@@ -535,11 +716,20 @@ func (s *Service) Search(ctx context.Context, query string) (SearchResult, error
 		if _, err := s.Block(ctx, query); err != nil {
 			return SearchResult{}, err
 		}
-		return SearchResult{Query: query, Type: "block", Path: "/api/blocks/" + query, TruthfulStatus: "resolved-from-indexer"}, nil
+		return SearchResult{Query: query, Type: "block", Path: "/api/blocks/" + query, DeepLink: "/block/" + query, TruthfulStatus: "resolved-from-indexer"}, nil
+	}
+	if strings.EqualFold(query, "YNXT") {
+		if _, err := s.Token(ctx, query); err != nil {
+			return SearchResult{}, err
+		}
+		return SearchResult{Query: query, Type: "token", Path: "/api/tokens/YNXT", DeepLink: "/token/YNXT", TruthfulStatus: "resolved-from-rpc-native-token-status"}, nil
 	}
 	if strings.HasPrefix(query, "0x") {
 		if _, err := s.Transaction(ctx, query); err == nil {
-			return SearchResult{Query: query, Type: "transaction", Path: "/api/txs/" + query, TruthfulStatus: "resolved-from-indexer"}, nil
+			return SearchResult{Query: query, Type: "transaction", Path: "/api/txs/" + query, DeepLink: "/tx/" + query, TruthfulStatus: "resolved-from-indexer"}, nil
+		}
+		if contract, err := s.Contract(ctx, query); err == nil {
+			return SearchResult{Query: query, Type: "contract", Path: "/api/contracts/" + url.PathEscape(contract.Address), DeepLink: "/contract/" + url.PathEscape(contract.Address), NormalizedAddress: contract.Address, TruthfulStatus: "resolved-from-chain-rpc-contract-registry"}, nil
 		}
 	}
 	normalized, err := normalizeExplorerAddress(query)
@@ -547,7 +737,7 @@ func (s *Service) Search(ctx context.Context, query string) (SearchResult, error
 		return SearchResult{}, err
 	}
 	if _, err := s.Account(ctx, normalized); err == nil {
-		return SearchResult{Query: query, Type: "account", Path: "/api/accounts/" + url.PathEscape(normalized), NormalizedAddress: normalized, TruthfulStatus: "resolved-from-rpc"}, nil
+		return SearchResult{Query: query, Type: "account", Path: "/api/accounts/" + url.PathEscape(normalized), DeepLink: "/address/" + url.PathEscape(normalized), NormalizedAddress: normalized, TruthfulStatus: "resolved-from-rpc-and-indexer"}, nil
 	}
 	return SearchResult{}, fmt.Errorf("query not found")
 }

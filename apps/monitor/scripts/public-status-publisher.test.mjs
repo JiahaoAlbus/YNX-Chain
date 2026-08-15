@@ -1,27 +1,92 @@
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import { test } from "node:test";
-import { buildSnapshot } from "./publish-public-status.mjs";
+import { boundedJSON, buildSnapshot } from "./publish-public-status.mjs";
 
-test("publisher records real success and failure without inventing healthy state", async () => {
-  const server = createServer((_request, response) => response.writeHead(200, { "content-type": "application/json" }).end('{"ok":true}'));
+test("bounded probe reader cancels before buffering an oversized response", async () => {
+  let cancelled = false;
+  const response = new Response(new ReadableStream({
+    pull(controller) { controller.enqueue(new Uint8Array(262_145)); },
+    cancel() { cancelled = true; },
+  }));
+  await assert.rejects(boundedJSON(response), /exceeded its limit/);
+  assert.equal(cancelled, true);
+});
+
+test("publisher records real identity, dependencies, success and failure without inventing healthy state", async () => {
+  const startedAt = "2026-08-02T23:00:00.000Z";
+  const server = createServer((request, response) => {
+    const body = request.url === "/version"
+      ? { commit: "a".repeat(40), release: "testnet-release", startedAt }
+      : { ok: true, dependencies: { chainRpc: { status: "healthy" } } };
+    response.writeHead(200, { "content-type": "application/json" }).end(JSON.stringify(body));
+  });
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
   const address = server.address();
   try {
     const snapshot = await buildSnapshot({
       probes: [
-        { id: "available", name: "Available service", url: `http://127.0.0.1:${address.port}/health` },
-        { id: "unavailable", name: "Unavailable service", url: "http://127.0.0.1:1/health" },
+		{ id: "available", name: "Available service", url: `http://127.0.0.1:${address.port}/health`, versionUrl: `http://127.0.0.1:${address.port}/version`, dependencies: ["chainRpc"] },
+		{ id: "unavailable", name: "Unavailable service", url: "http://127.0.0.1:1/health", dependencies: ["chainRpc"] },
       ],
       key: "k".repeat(32),
       source: "ynx.status.publisher",
       approvalId: "public-probes-v1",
-      timeoutMs: 100,
+      timeoutMs: 1_000,
       now: new Date("2026-08-03T00:00:00.000Z"),
     });
     assert.equal(snapshot.status, "major_outage");
     assert.equal(snapshot.services[0].status, "operational");
     assert.equal(snapshot.services[1].status, "major_outage");
+	assert.equal(snapshot.services[0].sourceCommit, "a".repeat(40));
+	assert.equal(snapshot.services[0].release, "testnet-release");
+	assert.equal(snapshot.services[0].startedAt, startedAt);
+	assert.deepEqual(snapshot.services[0].dependencies, [{ id: "chainRpc", status: "operational" }]);
+	assert.equal(snapshot.services[1].sourceCommit, null);
     assert.match(snapshot.integrity.digest, /^[a-f0-9]{64}$/);
+  } finally { await new Promise((resolve) => server.close(resolve)); }
+});
+
+test("publisher fails closed on invalid, negative, and dependency-failed HTTP 200 health bodies", async () => {
+  const server = createServer((request, response) => {
+    response.writeHead(200, { "content-type": "application/json" });
+    if (request.url === "/malformed") return response.end("not-json");
+    if (request.url === "/negative") return response.end(JSON.stringify({ ok: false }));
+    return response.end(JSON.stringify({ ok: true, dependencies: { rpc: { status: "failed" } } }));
+  });
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const address = server.address();
+  try {
+    const snapshot = await buildSnapshot({
+      probes: ["malformed", "negative", "dependency"].map((id) => ({ id, name: id, url: `http://127.0.0.1:${address.port}/${id}` })),
+      key: "k".repeat(32), source: "ynx.status.publisher", approvalId: "fail-closed-health-v1", timeoutMs: 1_000,
+      now: new Date("2026-08-03T01:00:00.000Z"),
+    });
+    assert.equal(snapshot.status, "major_outage");
+    assert.deepEqual(snapshot.services.map((service) => service.status), ["major_outage", "major_outage", "major_outage"]);
+  } finally { await new Promise((resolve) => server.close(resolve)); }
+});
+
+test("publisher resolves configured dependencies from probes and propagates failure", async () => {
+  const server = createServer((request, response) => {
+	const ok = request.url !== "/rpc";
+	response.writeHead(200, { "content-type": "application/json" }).end(JSON.stringify({ ok }));
+  });
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const address = server.address();
+  try {
+	const origin = `http://127.0.0.1:${address.port}`;
+	const snapshot = await buildSnapshot({
+	  probes: [
+		{ id: "rpc", name: "RPC", url: `${origin}/rpc` },
+		{ id: "indexer", name: "Indexer", url: `${origin}/indexer`, dependencies: ["rpc"] },
+		{ id: "explorer", name: "Explorer", url: `${origin}/explorer`, dependencies: ["indexer"] },
+	  ],
+	  key: "k".repeat(32), source: "ynx.status.publisher", approvalId: "dependency-probes-v1", timeoutMs: 1_000,
+	  now: new Date("2026-08-03T02:00:00.000Z"),
+	});
+	assert.deepEqual(snapshot.services.map((service) => service.status), ["major_outage", "major_outage", "major_outage"]);
+	assert.deepEqual(snapshot.services[1].dependencies, [{ id: "rpc", status: "major_outage" }]);
+	assert.deepEqual(snapshot.services[2].dependencies, [{ id: "indexer", status: "major_outage" }]);
   } finally { await new Promise((resolve) => server.close(resolve)); }
 });

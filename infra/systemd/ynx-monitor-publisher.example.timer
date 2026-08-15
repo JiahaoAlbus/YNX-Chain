@@ -1,0 +1,12 @@
+[Unit]
+Description=Refresh signed YNX Network Monitor service status
+
+[Timer]
+OnBootSec=10s
+OnUnitActiveSec=30s
+AccuracySec=2s
+Persistent=true
+Unit=ynx-monitor-publisher.service
+
+[Install]
+WantedBy=timers.target

@@ -1,7 +1,7 @@
 {
   "schemaVersion": "ynx.monitor.provenance.v1",
-  "sourceCommit": "da552c4e86d8d895dbc10bcab38d93ee3228ddac",
-  "sourceDate": "2026-07-29T12:08:24+08:00",
+  "sourceCommit": "af5e7ea388c5e88e7a235d71892721546cbe6b5a",
+  "sourceDate": "2026-08-15T09:14:28+08:00",
   "product": "@ynx/monitor",
   "builder": {
     "id": "local://ynx-monitor-supply-chain-gate-v1",
@@ -17,31 +17,31 @@
   "materials": [
     {
       "path": "apps/monitor/package.json",
-      "sha256": "ea2a76e50df377a264711ceea2558fef4a2a89ac1a033f943b767ba322bfbf66"
+      "sha256": "e5ad785ec9c7106faaba1819edc91335a8c76b4ab43d2e9199447e1f34406ea0"
     },
     {
       "path": "apps/monitor/package-lock.json",
-      "sha256": "23a8ecc8db98fcdcbe9572e44ebae3d4fee40a1e662273905e64ca3f625f64b6"
+      "sha256": "191ee403bac8a6a7a5f4addc2287cd9f5a8c9cd87b8e735e9fa0ec438b732157"
     },
     {
       "path": "release/monitor/security/sbom.cdx.json",
-      "sha256": "de5d021880fab5e494a5174dfb9f982da097682cbc0eeefa7adf7f65d72b84db"
+      "sha256": "f1d36c3b64e5f16ccfafaea05fa4df4bdcab6e06f171422e71f471c706a2da67"
     },
     {
       "path": "release/monitor/security/THIRD_PARTY_NOTICES.md",
-      "sha256": "24b1bd2aa0ac3c7ac7fe92a54dc43ef81e289d72b7f4f670b955724115285106"
+      "sha256": "64ade620fca067a96a206ed4ae4be3385da01ccd3f3a33095124da2305f13fa9"
     },
     {
       "path": "release/monitor/security/dependency-review.json",
-      "sha256": "e2afa9f0dd37e04be4963929d1ce63c3cf455ded45058567bb125c0b29eddb9d"
+      "sha256": "3404f94e1972bfec0d39865ceed8a9087a83e816567d4573e144605bec93b0c6"
     },
     {
       "path": "release/monitor/security/dast-plan.json",
-      "sha256": "c106536fa780d8eed8379953dbe3de643bb813e02b8187fff0927c75bb787b02"
+      "sha256": "37410535501e26bf03d66cd466da9814f9cdc8aa2945ce9773bad1b678c204f5"
     },
     {
       "path": "release/monitor/security/build-manifest.json",
-      "sha256": "72553c9616105d99b20d63b1adbfbcdfc07d36c9fc82865149efd1807d749dc3"
+      "sha256": "b47b9f068d5128040d1e6c669cd8409a8ac10a0ed89c6b899b0b8da86beaba68"
     }
   ],
   "signing": {
