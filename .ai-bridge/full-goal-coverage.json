@@ -628,7 +628,8 @@
         "SECURITY_BOUNDARIES.md",
         "THIRD_PARTY_NOTICES.md",
         "release/go-runtime-sbom.spdx.json",
-        ".github/workflows/data-fabric.yml"
+        ".github/workflows/data-fabric.yml",
+        "scripts/data-fabric/local-smoke.sh"
       ],
       "sourceCommit": "ed06ce8053d165122a0fa550f59af7c88d3b3c6b",
       "tests": [
@@ -636,14 +637,16 @@
         "govulncheck ./...",
         "make secret-scan",
         "go test -race Data Fabric packages",
-        "quality-gates.sh"
+        "quality-gates.sh",
+        "local-smoke.sh live HTTP DAST",
+        "two isolated builders plus byte comparison"
       ],
       "artifact": "release/go-runtime-sbom.spdx.json",
       "publicProof": null,
       "blockedBy": [],
       "owner": "YNX Data Fabric and Security/SRE",
-      "nextAction": "Add container and DAST scans plus independent two-builder reproducibility evidence.",
-      "lastUpdated": "2026-07-29T20:25:09Z"
+      "nextAction": "Retain the exact-source two-builder CI receipt, then add a container scan after Security/SRE accepts a production container boundary.",
+      "lastUpdated": "2026-08-15T00:00:00Z"
     },
     {
       "id": "DF-ARTIFACT-001",

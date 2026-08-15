@@ -63,7 +63,7 @@
     "productIntegration": {
       "payBFTBridge": "testedLocal",
       "payLedgerReconciliation": "testedLocal",
-      "chainCoreCommitmentReference": "testedLocal-contract-v1.31.0-implementation-3af591a2fe110b953da6b109580738bf894a4852-contract-ee45c0700179addadfe1b9c845d2b1b475eea12a",
+      "chainCoreCommitmentReference": "testedLocal-contract-v1.32.0-implementation-1974dba384a2f0ac1124f4de7025f772fe94bd03-contract-93a95c0005e09ba21f61245f0e001e2acf4a1080",
       "otherProducerOwners": "not-yet-integrated-central"
     },
     "releaseEngineering": {
