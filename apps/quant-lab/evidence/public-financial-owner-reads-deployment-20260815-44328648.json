@@ -1,0 +1,63 @@
+{
+  "schemaVersion": "ynx-quant-public-owner-read-deployment-v1",
+  "observedAt": "2026-08-15T05:46:21Z",
+  "productId": "ynx-quant-lab",
+  "network": "YNX Testnet (ynx_6423-1)",
+  "truthfulReleaseState": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "deployedPublic": true,
+    "downloadHosted": true,
+    "productionSigned": false,
+    "storeReleased": false,
+    "liveFundsEnabled": false
+  },
+  "deployment": {
+    "script": "scripts/deploy/deploy-financial-owner-reads-testnet.sh",
+    "release": "ynx-financial-owner-reads-443286487e05",
+    "sourceCommit": "443286487e057d78cb6b1a686d14bb37be8b3c23",
+    "quantBinarySha256": "ae0d9d632eccca0b44cc92534e595a989a29fb3801f02bbba84feda8214553fb",
+    "quantWalletAuthWebSha256": "e3c4e0197f2da880bd1a792ef717b98899647b1086e48c990d88817b2158bfe1",
+    "exchangeBinarySha256": "41b9c4854b77b9fc2dd30e3c4471a4b25f54fac949e67a1abf2b908f48838293",
+    "archiveSha256": "fe96926d3fcec53107f14978697844292e2d755cc184e09c6b376a42eb7aada1",
+    "rollbackBackup": "/var/backups/ynx-financial-owner-reads/20260815T054621Z-443286487e05"
+  },
+  "verification": {
+    "preDeploy": [
+      "go test -race ./internal/quantlab ./apps/quant-lab/server",
+      "npm test --prefix apps/quant-lab",
+      "npm run test:browser --prefix apps/quant-lab"
+    ],
+    "remoteInstaller": [
+      "release SHA256SUMS verified",
+      "Quant health ready with live funds disabled",
+      "Quant Finance owner-read contract verified before and after switch",
+      "Exchange Finance owner-read contract verified before and after switch"
+    ],
+    "publicHealth": {
+      "url": "https://quant.ynxweb4.com/api/health",
+      "httpStatus": 200,
+      "commit": "443286487e057d78cb6b1a686d14bb37be8b3c23",
+      "ready": true,
+      "mode": "simulated_testnet_only",
+      "liveFundsEnabled": false
+    },
+    "computerControl": {
+      "url": "https://quant.ynxweb4.com/",
+      "desktopViewport": "Chrome desktop",
+      "verified": [
+        "English default UI",
+        "Wallet, download and MetaMask entry points",
+        "Research, Strategies, Experiments, Paper, Testnet, Risk and Audit navigation",
+        "Authoritative tape source and explicit live-funds-disabled state",
+        "Reproducible OOS backtest controls with fee and slippage assumptions"
+      ]
+    }
+  },
+  "websiteIntegration": {
+    "canonicalUrl": "https://quant.ynxweb4.com/",
+    "globalRegistryModifiedByFinanceSuite": false,
+    "owner": "29-integration",
+    "state": "public product URL is live; central global-navigation integration remains owner-controlled"
+  }
+}

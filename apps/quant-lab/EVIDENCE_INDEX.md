@@ -70,6 +70,21 @@ Current candidates built from source commit
   macOS archive remains ad-hoc test signed; the Windows archive remains an
   unsigned cross-compile without Windows launch evidence.
 
+## Public Testnet runtime refresh collected 2026-08-15
+
+- Quant and its Exchange owner-read peer were deployed from
+  `443286487e057d78cb6b1a686d14bb37be8b3c23` by the guarded
+  `scripts/deploy/deploy-financial-owner-reads-testnet.sh` path. The remote
+  installer verified the signed, account-bound, replay-protected Quant Finance
+  owner-read contract before and after the service switch.
+- Public `https://quant.ynxweb4.com/api/health` returned HTTP 200 with the
+  deployed commit, `ready:true`, `mode:simulated_testnet_only` and
+  `liveFundsEnabled:false`. ComputerControl confirmed the public desktop
+  Research view displays an authoritative tape, a reproducible OOS workflow,
+  explicit fee/slippage assumptions, isolated state and no live funds.
+- Immutable deployment inputs, binary/web hashes and rollback backup are in
+  `apps/quant-lab/evidence/public-financial-owner-reads-deployment-20260815-44328648.json`.
+
 Browser screenshots are generated under ignored `tmp/quant-lab-evidence` and are
 not immutable release evidence. A final release must copy selected evidence into
 a commit-addressed artifact, hash it, and attach a hosted immutable URL.
