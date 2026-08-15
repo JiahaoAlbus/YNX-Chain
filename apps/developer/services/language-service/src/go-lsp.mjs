@@ -14,6 +14,7 @@ export async function runGoLanguageRequest(request, options) {
     // startup failures even while resident memory is low. The service-wide
     // queue, process/thread limits, CPU timeout and GOMAXPROCS remain enforced.
     addressSpaceBytes: null,
+    requestTimeoutMs: 60000,
     environment: { GOMAXPROCS: "2" },
   }, options);
 }
