@@ -1,8 +1,11 @@
 package com.ynx.social;
 
 import android.app.Activity;
+import android.content.ComponentName;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
@@ -50,13 +53,17 @@ public final class MainActivity extends Activity {
   private static final String CALLBACK="ynx-social://com.ynx.social";
   private static final String PREFERENCES="ynx-social-wallet-auth-proof";
   private static final String PENDING_REQUEST="pending-request";
+  private static final String EXTRA_CANONICAL_AUTHORIZE_URL="canonical_authorize_url";
+  private static final ComponentName WALLET_ACTIVITY=new ComponentName("com.ynxweb4.wallet","com.ynxweb4.wallet.MainActivity");
   private static final DateTimeFormatter MILLIS=new DateTimeFormatterBuilder().appendInstant(3).toFormatter();
   private static final Set<String> REQUEST_FIELDS=Set.of("version","nonce","chainId","requestingProduct","productClientId","bundleId","productDeviceAlgorithm","productDeviceKey","callback","scopes","purpose","issuedAt","expiresAt");
   private static final Set<String> RESPONSE_FIELDS=Set.of("version","requestDigest","nonce","chainId","requestingProduct","productClientId","bundleId","productDeviceAlgorithm","productDeviceKey","callback","account","accountPublicKey","grantedScopes","purpose","issuedAt","expiresAt","walletSignature");
+  private static final Set<String> REJECTION_FIELDS=Set.of("version","decision","requestDigest","nonce","chainId","requestingProduct","productClientId","bundleId","callback","decisionCode","rejectedAt","authorityGranted","grantedScopes");
   private static final Set<String> CHALLENGE_FIELDS=Set.of("version","challenge","requestDigest","productClientId","bundleId","productDeviceAlgorithm","productDeviceKey","account","scopes","issuedAt","expiresAt");
 
   private TextView status;
   private Button replayButton;
+  private LinearLayout unavailableActions;
   private KeyPair deviceKey;
   private SharedPreferences preferences;
 
@@ -67,10 +74,11 @@ public final class MainActivity extends Activity {
     LinearLayout root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);root.setGravity(Gravity.CENTER_HORIZONTAL);root.setPadding(64,120,64,64);root.setBackgroundColor(Color.WHITE);
     root.addView(text("CROSS-APP PROOF",14,Color.parseColor(BLUE)));
     TextView title=text("YNX Social",34,Color.rgb(16,24,40));title.setPadding(0,24,0,18);root.addView(title);
-    TextView identity=text("Package com.ynx.social\nProduct client ynx-social-v1\nP-256 device key remains in Android Keystore",16,Color.rgb(102,112,133));identity.setGravity(Gravity.CENTER);root.addView(identity);
+    TextView identity=text("Package com.ynx.social\nProduct client ynx-social-v1\nP-256 device key remains in Android Keystore\nPublic device key: "+devicePublicKey(),16,Color.rgb(102,112,133));identity.setGravity(Gravity.CENTER);root.addView(identity);
     Button button=new Button(this);button.setText("Sign in with YNX Wallet");button.setContentDescription("Social starts Sign in with YNX Wallet");button.setTextColor(Color.WHITE);button.setBackgroundColor(Color.parseColor(BLUE));LinearLayout.LayoutParams buttonParams=new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,140);buttonParams.setMargins(0,70,0,42);root.addView(button,buttonParams);button.setOnClickListener(view->startWallet());
     status=text("Ready. Social owns its P-256 device private key; Wallet owns the account key.",16,Color.rgb(52,64,84));status.setGravity(Gravity.CENTER);root.addView(status);
     replayButton=new Button(this);replayButton.setText("Replay exact Wallet callback");replayButton.setContentDescription("Replay exact Wallet callback");replayButton.setVisibility(View.GONE);replayButton.setOnClickListener(view->handle(getIntent()));LinearLayout.LayoutParams replayParams=new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,140);replayParams.setMargins(0,42,0,0);root.addView(replayButton,replayParams);
+    unavailableActions=new LinearLayout(this);unavailableActions.setOrientation(LinearLayout.VERTICAL);unavailableActions.setVisibility(View.GONE);Button ynx=new Button(this);ynx.setText("Download YNX Wallet");ynx.setContentDescription("Download YNX Wallet safe alternative");Button metamask=new Button(this);metamask.setText("Use MetaMask Mobile");metamask.setContentDescription("Use MetaMask Mobile safe alternative");unavailableActions.addView(ynx);unavailableActions.addView(metamask);root.addView(unavailableActions);ynx.setOnClickListener(view->status.setText("WALLET_APP_UNAVAILABLE\nYNX Wallet download handoff selected.\nNo Product Session created."));metamask.setOnClickListener(view->status.setText("WALLET_APP_UNAVAILABLE\nMetaMask Mobile alternative selected.\nNo Product Session created."));
     setContentView(root);
   }
 
@@ -78,15 +86,16 @@ public final class MainActivity extends Activity {
 
   private void startWallet(){
     try{
-      Instant now=Instant.now();String nonce="social_emulator_nonce_"+Long.toUnsignedString(System.nanoTime(),36);
-      if(nonce.length()<32)nonce=(nonce+"abcdefghijklmnopqrstuvwxyz").substring(0,32);if(nonce.length()>64)nonce=nonce.substring(0,64);
-      JSONObject request=new JSONObject();
-      request.put("version","1");request.put("nonce",nonce);request.put("chainId","ynx_6423-1");request.put("requestingProduct","social");request.put("productClientId","ynx-social-v1");request.put("bundleId",getPackageName());request.put("productDeviceAlgorithm",DEVICE_ALGORITHM);request.put("productDeviceKey",devicePublicKey());request.put("callback",CALLBACK);request.put("scopes",new JSONArray().put("account:read").put("profile:link"));request.put("purpose","Link this exact Social emulator device to the selected YNX account.");request.put("issuedAt",format(now.minusSeconds(30)));request.put("expiresAt",format(now.plusSeconds(240)));
-      requireExactFields(request,REQUEST_FIELDS,"request");preferences.edit().putString(PENDING_REQUEST,request.toString()).apply();
-      String payload=base64url(request.toString().getBytes(StandardCharsets.UTF_8));
-      startActivity(new Intent(Intent.ACTION_VIEW,Uri.parse("ynxwallet://authorize?request="+payload)));
+      String canonicalURL=getIntent().getStringExtra(EXTRA_CANONICAL_AUTHORIZE_URL);if(canonicalURL==null)throw new SecurityException("canonical request from shared encodeRequestDeepLink is missing");
+      Uri uri=Uri.parse(canonicalURL);String encodedQuery=uri.getEncodedQuery();if(!"ynxwallet".equals(uri.getScheme())||!"authorize".equals(uri.getHost())||uri.getUserInfo()!=null||uri.getPort()!=-1||(uri.getPath()!=null&&!uri.getPath().isEmpty())||uri.getFragment()!=null||encodedQuery==null||!encodedQuery.matches("^request=[A-Za-z0-9_-]+$")||!uri.getQueryParameterNames().equals(Set.of("request")))throw new SecurityException("canonical Wallet route is invalid");
+      String encoded=encodedQuery.substring("request=".length());byte[] decoded=Base64.decode(encoded,Base64.URL_SAFE|Base64.NO_WRAP|Base64.NO_PADDING);if(!base64url(decoded).equals(encoded))throw new SecurityException("request encoding is not canonical");JSONObject request=new JSONObject(new String(decoded,StandardCharsets.UTF_8));verifyRequestBinding(request,Instant.now());preferences.edit().putString(PENDING_REQUEST,request.toString()).apply();
+      Intent implicit=new Intent(Intent.ACTION_VIEW,uri);PackageManager manager=getPackageManager();ResolveInfo resolved=manager.resolveActivity(implicit,PackageManager.MATCH_DEFAULT_ONLY);List<ResolveInfo> candidates=manager.queryIntentActivities(implicit,PackageManager.MATCH_DEFAULT_ONLY);if(resolved==null||candidates.size()!=1||!exactWallet(candidates.get(0))||!exactWallet(resolved)){showWalletUnavailable();return;}implicit.setComponent(WALLET_ACTIVITY);unavailableActions.setVisibility(View.GONE);startActivity(implicit);
     }catch(Exception error){status.setText("Request failed: "+detail(error));}
   }
+
+  private void verifyRequestBinding(JSONObject request,Instant now) throws Exception {requireExactFields(request,REQUEST_FIELDS,"request");if(!"1".equals(request.getString("version"))||!"ynx_6423-1".equals(request.getString("chainId"))||!"social".equals(request.getString("requestingProduct"))||!"ynx-social-v1".equals(request.getString("productClientId"))||!getPackageName().equals(request.getString("bundleId"))||!DEVICE_ALGORITHM.equals(request.getString("productDeviceAlgorithm"))||!devicePublicKey().equals(request.getString("productDeviceKey"))||!CALLBACK.equals(request.getString("callback")))throw new SecurityException("request product/device/callback binding mismatch");requireExactScopes(request.getJSONArray("scopes"),new JSONArray().put("account:read").put("profile:link"));Instant issued=strictTime(request.getString("issuedAt")),expires=strictTime(request.getString("expiresAt"));if(issued.isAfter(now.plusSeconds(30))||!expires.isAfter(now)||!expires.isAfter(issued)||expires.isAfter(issued.plusSeconds(300)))throw new SecurityException("request lifetime is invalid");}
+  private static boolean exactWallet(ResolveInfo info){return info.activityInfo!=null&&WALLET_ACTIVITY.getPackageName().equals(info.activityInfo.packageName)&&WALLET_ACTIVITY.getClassName().equals(info.activityInfo.name)&&info.activityInfo.exported;}
+  private void showWalletUnavailable(){unavailableActions.setVisibility(View.VISIBLE);status.setText("WALLET_APP_UNAVAILABLE\nNo exact exported YNX Wallet activity resolved.\nDownload YNX Wallet or use MetaMask Mobile.\nNo Product Session created.");}
 
   private void handle(Intent intent){
     Uri uri=intent.getData();if(uri==null)return;
@@ -96,14 +105,11 @@ public final class MainActivity extends Activity {
       String encoded=encodedQuery.substring("response=".length());byte[] decoded=Base64.decode(encoded,Base64.URL_SAFE|Base64.NO_WRAP|Base64.NO_PADDING);if(!base64url(decoded).equals(encoded))throw new SecurityException("callback response encoding is not canonical");
       JSONObject response=new JSONObject(new String(decoded,StandardCharsets.UTF_8));
       JSONObject request=pendingRequest();
+      if("rejected".equals(response.optString("decision"))){verifyWalletRejection(response,request,Instant.now());String nonce=response.getString("nonce");if(preferences.getBoolean("consumed."+nonce,false)){status.setText("Replay rejected: verified Wallet rejection nonce was already consumed.\nNo Product Session created.");return;}preferences.edit().putBoolean("consumed."+nonce,true).apply();status.setText("USER_REJECTED verified.\nAuthority granted: false\nGranted scopes: 0\nProduct Session count: 0");replayButton.setVisibility(View.VISIBLE);return;}
       verifyWalletApproval(response,request,Instant.now());
       String nonce=response.getString("nonce");if(preferences.getBoolean("consumed."+nonce,false)){status.setText("Replay rejected: verified Wallet response nonce was already consumed.");return;}
       preferences.edit().putBoolean("consumed."+nonce,true).apply();
-      JSONObject challenge=createGatewayChallenge(response,Instant.now());
-      byte[] signBytes=("YNX_PRODUCT_SESSION_CHALLENGE_V1\n"+canonical(challenge)).getBytes(StandardCharsets.UTF_8);
-      Signature signer=Signature.getInstance("SHA256withECDSA");signer.initSign(deviceKey.getPrivate());signer.update(signBytes);byte[] deviceSignature=signer.sign();
-      verifyGatewayCompletion(challenge,deviceSignature,response,Instant.now());
-      status.setText("Wallet approval verified.\nGateway verifier accepted the P-256 device proof.\nProduct-limited session: ynx-social-v1\nAccount: "+response.getString("account")+"\nNo Wallet secret entered Social.");
+      status.setText("Wallet approval verified locally.\nPublic Core mobile route is not proven available.\nProduct Session count: 0\nAccount: "+response.getString("account")+"\nNo Wallet secret entered Social.");
       replayButton.setVisibility(View.VISIBLE);
     }catch(Exception error){status.setText("Callback rejected: "+detail(error));}
   }
@@ -124,6 +130,8 @@ public final class MainActivity extends Activity {
     if(!verifySecp256k1(digest,hexBytes(signature),hexBytes(publicKey)))throw new SecurityException("Wallet approval signature invalid");
     if(!response.getString("account").equals(nativeAccount(hexBytes(publicKey))))throw new SecurityException("Wallet approval account/public-key mismatch");
   }
+
+  private void verifyWalletRejection(JSONObject rejection,JSONObject request,Instant now) throws Exception {requireExactFields(rejection,REJECTION_FIELDS,"Wallet rejection");for(String key:List.of("nonce","chainId","requestingProduct","productClientId","bundleId","callback"))if(!request.getString(key).equals(rejection.getString(key)))throw new SecurityException("Wallet rejection "+key+" binding mismatch");if(!"1".equals(rejection.getString("version"))||!"rejected".equals(rejection.getString("decision"))||!"USER_REJECTED".equals(rejection.getString("decisionCode"))||rejection.getBoolean("authorityGranted")||rejection.getJSONArray("grantedScopes").length()!=0)throw new SecurityException("Wallet rejection granted authority or is invalid");String expectedDigest=hex(sha256(("YNX_WALLET_AUTH_REQUEST_V1\n"+canonical(request)).getBytes(StandardCharsets.UTF_8)));if(!expectedDigest.equals(rejection.getString("requestDigest")))throw new SecurityException("Wallet rejection request digest mismatch");Instant rejectedAt=strictTime(rejection.getString("rejectedAt")),issued=strictTime(request.getString("issuedAt")),expires=strictTime(request.getString("expiresAt"));if(rejectedAt.isBefore(issued)||!rejectedAt.isBefore(expires)||rejectedAt.isAfter(now.plusSeconds(30)))throw new SecurityException("Wallet rejection time mismatch");}
 
   private JSONObject createGatewayChallenge(JSONObject approval,Instant now) throws Exception {
     Instant approvalExpiry=strictTime(approval.getString("expiresAt"));Instant expires=now.plusSeconds(60);if(expires.isAfter(approvalExpiry))expires=approvalExpiry;if(!expires.isAfter(now))throw new SecurityException("approval expired before challenge");
