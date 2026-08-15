@@ -18,7 +18,6 @@ export class PersistentAuthorizationCallbackStore{
     return this.enqueue(()=>this.prepareExclusive(binding(request,account),createResponse,now,assertActive));
   }
   complete(request:AuthorizationRequest,responseURL:string):Promise<void>{return this.enqueue(()=>this.completeExclusive(requestDigest(request),responseURL))}
-  reject(request:AuthorizationRequest,account:string,now:()=>Date=()=>new Date(),assertActive:()=>void=()=>{}):Promise<void>{return this.enqueue(()=>this.rejectExclusive(binding(request,account),now,assertActive))}
   discardExpired(at=new Date()):Promise<number>{return this.enqueue(()=>this.discardExpiredExclusive(at))}
 
   private async prepareExclusive(bound:Binding,createResponse:()=>Promise<string>,now:()=>Date,assertActive:()=>void):Promise<string>{
@@ -34,12 +33,6 @@ export class PersistentAuthorizationCallbackStore{
     if(!DIGEST.test(digest))throw new Error("Wallet authorization callback digest is invalid");const {records}=await this.load(),index=records.findIndex(item=>item.requestDigest===digest);if(index<0)throw new Error("Wallet pending authorization callback is missing");const current=records[index]!;
     if(current.state!=="pending"||current.responseURL===null)throw new Error("Wallet authorization callback was already delivered");if(current.responseURL!==responseURL)throw new Error("Wallet authorization callback completion response differs from pending state");
     await this.save(records.map((item,i)=>i===index?Object.freeze({...item,state:"delivered" as const,responseURL:null}):item));
-  }
-  private async rejectExclusive(bound:Binding,now:()=>Date,assertActive:()=>void):Promise<void>{
-    assertBinding(bound,now());const {records,legacyNonces}=await this.load();const existing=records.find(item=>item.requestDigest===bound.requestDigest);
-    if(existing){if(!sameBinding(existing,bound))throw new Error("Wallet pending authorization callback binding differs from this request");assertActive();assertBinding(bound,now());if(existing.state==="delivered")return;await this.save(records.map(item=>item.requestDigest===bound.requestDigest?Object.freeze({...item,state:"delivered" as const,responseURL:null}):item));return}
-    if(records.some(item=>item.nonce===bound.nonce))throw new Error("Wallet authorization nonce was already used by another request");if(legacyNonces.has(bound.nonce)){assertActive();return}if(records.length+legacyNonces.size>=MAX_RECORDS)throw new Error("Wallet authorization callback capacity is exhausted");
-    assertActive();assertBinding(bound,now());await this.save([...records,Object.freeze({...bound,state:"delivered" as const,responseURL:null})].sort((a,b)=>a.requestDigest.localeCompare(b.requestDigest)));
   }
   private async discardExpiredExclusive(at:Date):Promise<number>{
     if(!(at instanceof Date)||!Number.isFinite(at.getTime()))throw new Error("Wallet authorization callback cleanup time is invalid");const {records}=await this.load();let discarded=0;const timestamp=at.toISOString();
