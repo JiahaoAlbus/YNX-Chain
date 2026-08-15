@@ -39,6 +39,15 @@ function harness(sharedStorage = storage()) {
       verifyProductSessionProofV2(proof, session, { method: "POST", path: "/v2/product-sessions/introspect", bodyDigest: httpBodyDigest(canonicalJSON(body)) }, NOW);
       return authority.introspect(sessionBinding, { chainId: session.chainId, productId: session.productId, clientId: session.clientId, platform: session.platform, applicationId: session.applicationId, bundleId: session.bundleId, packageId: session.packageId, origin: session.origin, callback: session.callback, account: session.account, deviceId: session.deviceId, deviceKey: session.deviceKey, requiredScopes }, NOW);
     },
+    async revoke({ requestId, sessionBinding, proof }) {
+      assert.match(requestId, /^req_ps_r_[A-Za-z0-9_-]{32,64}$/);
+      const session = authority.snapshot().sessions.find((item) => item.sessionBinding === sessionBinding);
+      if (!session) throw new WalletAuthError("SESSION_NOT_FOUND", "missing session");
+      verifyProductSessionProofV2(proof, session, { method: "POST", path: "/v2/product-sessions/revoke", bodyDigest: httpBodyDigest(canonicalJSON({})) }, NOW);
+      authority.introspect(sessionBinding, { chainId: session.chainId, productId: session.productId, clientId: session.clientId, platform: session.platform, applicationId: session.applicationId, bundleId: session.bundleId, packageId: session.packageId, origin: session.origin, callback: session.callback, account: session.account, deviceId: session.deviceId, deviceKey: session.deviceKey, requiredScopes: [] }, NOW);
+      authority.revokeSession(sessionBinding);
+      return { revoked: sessionBinding };
+    },
   };
   let tokenIndex = 0;
   const client = new RecoverableProductSessionClient({ registry, productId: "social", platform: "android", storage: sharedStorage, gateway, device, tokenFactory: () => token(`client-${tokenIndex++}`), clock: () => NOW });

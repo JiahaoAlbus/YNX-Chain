@@ -57,7 +57,7 @@
     "webCallback": "https://www.ynxweb4.com/dapp/wallet/wallet-auth/callback",
     "client": "RecoverableProductSessionClient",
     "gatewayAdapter": "ProductSessionGatewayFetchAdapter",
-    "gatewayRoutes": ["/v2/product-sessions/challenge", "/v2/product-sessions/complete", "/v2/product-sessions/introspect"],
+    "gatewayRoutes": ["/v2/product-sessions/challenge", "/v2/product-sessions/complete", "/v2/product-sessions/introspect", "/v2/product-sessions/revoke"],
     "directTest": "packages/wallet-auth/test/wallet-web-companion-runtime.test.mjs",
     "productOwnerConsumptionRequired": true,
     "visibleBrowserOrMobileEvidenceRequired": true
@@ -83,6 +83,7 @@
     "implementedLocal": true,
     "testedLocal": true,
     "coreRuntimeCandidate": true,
+    "restartExpiryRevokeCandidate": true,
     "integratedCentral": false,
     "gatewayLoadedPublic": false,
     "deployedPublicRegistry": false,
