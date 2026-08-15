@@ -24,7 +24,15 @@ public struct WalletEndpointConfiguration: Equatable, Sendable {
   public let appHealthURL: URL
   public let appHealthAvailable: Bool
   public let faucetAvailable: Bool
+  public let walletApprovalAvailable: Bool
   public let walletCallbackAvailable: Bool
+  public let allRequiredServicesAvailable: Bool
+  public let allRequiredServicesCorsReady: Bool
+  public let mobileWalletDiscoveryVerified: Bool
+  public let mobileAccountVerified: Bool
+  public let mobileSignVerified: Bool
+  public let mobileSendVerified: Bool
+  public let deployedPublic: Bool
   public let integratedCentral: Bool
 
   public init(
@@ -35,7 +43,15 @@ public struct WalletEndpointConfiguration: Equatable, Sendable {
     appHealthURL: URL,
     appHealthAvailable: Bool,
     faucetAvailable: Bool,
+    walletApprovalAvailable: Bool,
     walletCallbackAvailable: Bool,
+    allRequiredServicesAvailable: Bool,
+    allRequiredServicesCorsReady: Bool,
+    mobileWalletDiscoveryVerified: Bool,
+    mobileAccountVerified: Bool,
+    mobileSignVerified: Bool,
+    mobileSendVerified: Bool,
+    deployedPublic: Bool,
     integratedCentral: Bool
   ) {
     self.matrixID = matrixID
@@ -45,9 +61,41 @@ public struct WalletEndpointConfiguration: Equatable, Sendable {
     self.appHealthURL = appHealthURL
     self.appHealthAvailable = appHealthAvailable
     self.faucetAvailable = faucetAvailable
+    self.walletApprovalAvailable = walletApprovalAvailable
     self.walletCallbackAvailable = walletCallbackAvailable
+    self.allRequiredServicesAvailable = allRequiredServicesAvailable
+    self.allRequiredServicesCorsReady = allRequiredServicesCorsReady
+    self.mobileWalletDiscoveryVerified = mobileWalletDiscoveryVerified
+    self.mobileAccountVerified = mobileAccountVerified
+    self.mobileSignVerified = mobileSignVerified
+    self.mobileSendVerified = mobileSendVerified
+    self.deployedPublic = deployedPublic
     self.integratedCentral = integratedCentral
   }
+
+  public var nativeCapabilities: WalletNativeCapabilities {
+    let authorizationCompletionAvailable = walletApprovalAvailable
+      && walletCallbackAvailable
+      && allRequiredServicesAvailable
+      && mobileWalletDiscoveryVerified
+      && deployedPublic
+      && integratedCentral
+    let accountAvailable = authorizationCompletionAvailable && mobileAccountVerified
+    let signAvailable = accountAvailable && mobileSignVerified
+    return WalletNativeCapabilities(
+      authorizationCompletionAvailable: authorizationCompletionAvailable,
+      accountAvailable: accountAvailable,
+      signAvailable: signAvailable,
+      sendAvailable: signAvailable && mobileSendVerified
+    )
+  }
+}
+
+public struct WalletNativeCapabilities: Equatable, Sendable {
+  public let authorizationCompletionAvailable: Bool
+  public let accountAvailable: Bool
+  public let signAvailable: Bool
+  public let sendAvailable: Bool
 }
 
 public enum EndpointMatrixPolicy {
@@ -79,8 +127,16 @@ public enum EndpointMatrixPolicy {
           appHealthURL.absoluteString == restURL.appendingPathComponent("app/health").absoluteString,
           let appHealthAvailable = appHealth["availability"] as? Bool,
           let faucetAvailable = endpoint("faucet", in: endpoints)?["availability"] as? Bool,
+          let walletApprovalAvailable = endpoint("wallet-approval-deep-link", in: endpoints)?["availability"] as? Bool,
           let callbackAvailable = endpoint("wallet-callback", in: endpoints)?["availability"] as? Bool,
           let aggregate = root["aggregate"] as? [String: Any],
+          let allRequiredServicesAvailable = aggregate["allRequiredServicesAvailable"] as? Bool,
+          let allRequiredServicesCorsReady = aggregate["allRequiredServicesCorsReady"] as? Bool,
+          let mobileWalletDiscoveryVerified = aggregate["mobileWalletDiscoveryVerified"] as? Bool,
+          let mobileAccountVerified = aggregate["mobileAccountVerified"] as? Bool,
+          let mobileSignVerified = aggregate["mobileSignVerified"] as? Bool,
+          let mobileSendVerified = aggregate["mobileSendVerified"] as? Bool,
+          let deployedPublic = aggregate["deployedPublic"] as? Bool,
           let integratedCentral = aggregate["integratedCentral"] as? Bool else {
       throw EndpointMatrixError.invalidCanonicalEndpoint
     }
@@ -93,7 +149,15 @@ public enum EndpointMatrixPolicy {
       appHealthURL: appHealthURL,
       appHealthAvailable: appHealthAvailable,
       faucetAvailable: faucetAvailable,
+      walletApprovalAvailable: walletApprovalAvailable,
       walletCallbackAvailable: callbackAvailable,
+      allRequiredServicesAvailable: allRequiredServicesAvailable,
+      allRequiredServicesCorsReady: allRequiredServicesCorsReady,
+      mobileWalletDiscoveryVerified: mobileWalletDiscoveryVerified,
+      mobileAccountVerified: mobileAccountVerified,
+      mobileSignVerified: mobileSignVerified,
+      mobileSendVerified: mobileSendVerified,
+      deployedPublic: deployedPublic,
       integratedCentral: integratedCentral
     )
   }

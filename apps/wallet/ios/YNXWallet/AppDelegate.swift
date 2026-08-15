@@ -23,8 +23,12 @@ private func verifyFrozenEndpointMatrixAndChain() async {
   do {
     configuration = try EndpointMatrixPolicy.parse(Data(contentsOf: matrixURL))
     let rpcHost = configuration.rpcURL.host ?? "unknown"
+    let capabilities = configuration.nativeCapabilities
     walletNetworkLogger.notice(
       "YNX_WALLET_ENDPOINT_MATRIX_LOADED pid=\(getpid(), privacy: .public) matrixId=\(configuration.matrixID, privacy: .public) rpcHost=\(rpcHost, privacy: .public) rpcPath=\(configuration.rpcURL.path, privacy: .public) integratedCentral=\(configuration.integratedCentral, privacy: .public)"
+    )
+    walletNetworkLogger.notice(
+      "YNX_WALLET_NATIVE_PRODUCT_GATES pid=\(getpid(), privacy: .public) authorizationCompletion=\(capabilities.authorizationCompletionAvailable, privacy: .public) account=\(capabilities.accountAvailable, privacy: .public) sign=\(capabilities.signAvailable, privacy: .public) send=\(capabilities.sendAvailable, privacy: .public)"
     )
   } catch {
     walletNetworkLogger.error(

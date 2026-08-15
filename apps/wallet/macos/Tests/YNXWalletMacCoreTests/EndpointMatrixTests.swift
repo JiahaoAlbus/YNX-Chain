@@ -13,8 +13,84 @@ final class EndpointMatrixTests: XCTestCase {
     XCTAssertTrue(configuration.rpcAvailable)
     XCTAssertTrue(configuration.appHealthAvailable)
     XCTAssertFalse(configuration.faucetAvailable)
+    XCTAssertFalse(configuration.walletApprovalAvailable)
     XCTAssertFalse(configuration.walletCallbackAvailable)
+    XCTAssertFalse(configuration.allRequiredServicesAvailable)
+    XCTAssertFalse(configuration.allRequiredServicesCorsReady)
+    XCTAssertFalse(configuration.mobileWalletDiscoveryVerified)
+    XCTAssertFalse(configuration.mobileAccountVerified)
+    XCTAssertFalse(configuration.mobileSignVerified)
+    XCTAssertFalse(configuration.mobileSendVerified)
+    XCTAssertFalse(configuration.deployedPublic)
     XCTAssertFalse(configuration.integratedCentral)
+    XCTAssertEqual(
+      configuration.nativeCapabilities,
+      WalletNativeCapabilities(
+        authorizationCompletionAvailable: false,
+        accountAvailable: false,
+        signAvailable: false,
+        sendAvailable: false
+      )
+    )
+  }
+
+  func testNativeProductCapabilitiesRequireEveryFrozenPositiveGate() throws {
+    let original = try JSONSerialization.jsonObject(with: Data(contentsOf: centralMatrixURL())) as! [String: Any]
+    let enabled = try EndpointMatrixPolicy.parse(try mutated(original) {
+      var endpoints = $0["endpoints"] as! [[String: Any]]
+      for id in ["wallet-approval-deep-link", "wallet-callback"] {
+        let index = endpoints.firstIndex { $0["id"] as? String == id }!
+        endpoints[index]["availability"] = true
+      }
+      $0["endpoints"] = endpoints
+      var aggregate = $0["aggregate"] as! [String: Any]
+      for key in [
+        "allRequiredServicesAvailable", "mobileWalletDiscoveryVerified", "mobileAccountVerified",
+        "mobileSignVerified", "mobileSendVerified", "deployedPublic", "integratedCentral",
+      ] {
+        aggregate[key] = true
+      }
+      $0["aggregate"] = aggregate
+    })
+    XCTAssertEqual(
+      enabled.nativeCapabilities,
+      WalletNativeCapabilities(
+        authorizationCompletionAvailable: true,
+        accountAvailable: true,
+        signAvailable: true,
+        sendAvailable: true
+      )
+    )
+
+    let missingCallback = try EndpointMatrixPolicy.parse(try mutated(original) {
+      var endpoints = $0["endpoints"] as! [[String: Any]]
+      let approval = endpoints.firstIndex { $0["id"] as? String == "wallet-approval-deep-link" }!
+      endpoints[approval]["availability"] = true
+      $0["endpoints"] = endpoints
+      var aggregate = $0["aggregate"] as! [String: Any]
+      for key in [
+        "allRequiredServicesAvailable", "mobileWalletDiscoveryVerified", "mobileAccountVerified",
+        "mobileSignVerified", "mobileSendVerified", "deployedPublic", "integratedCentral",
+      ] {
+        aggregate[key] = true
+      }
+      $0["aggregate"] = aggregate
+    })
+    XCTAssertFalse(missingCallback.nativeCapabilities.authorizationCompletionAvailable)
+    XCTAssertFalse(missingCallback.nativeCapabilities.accountAvailable)
+    XCTAssertFalse(missingCallback.nativeCapabilities.signAvailable)
+    XCTAssertFalse(missingCallback.nativeCapabilities.sendAvailable)
+  }
+
+  func testMissingFrozenProductGateRejectsTheMatrix() throws {
+    let original = try JSONSerialization.jsonObject(with: Data(contentsOf: centralMatrixURL())) as! [String: Any]
+    XCTAssertThrowsError(try EndpointMatrixPolicy.parse(try mutated(original) {
+      var aggregate = $0["aggregate"] as! [String: Any]
+      aggregate.removeValue(forKey: "mobileSignVerified")
+      $0["aggregate"] = aggregate
+    })) {
+      XCTAssertEqual($0 as? EndpointMatrixError, .invalidCanonicalEndpoint)
+    }
   }
 
   func testMatrixIdentityNetworkAndAvailabilityFailClosed() throws {

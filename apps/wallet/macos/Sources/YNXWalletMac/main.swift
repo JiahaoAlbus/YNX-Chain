@@ -50,7 +50,11 @@ final class WalletState: ObservableObject {
       networkLogger.notice(
         "YNX_WALLET_MAC_REST_APP_GATEWAY_REACHABLE pid=\(getpid(), privacy: .public) status=\(restObservation.statusCode, privacy: .public) bytes=\(restObservation.responseBytes, privacy: .public)"
       )
-      networkBoundary = "YNX Testnet endpoints verified · chain \(chainObservation.chainIDHex) · REST HTTP \(restObservation.statusCode)"
+      let capabilities = configuration.nativeCapabilities
+      networkLogger.notice(
+        "YNX_WALLET_MAC_NATIVE_PRODUCT_GATES pid=\(getpid(), privacy: .public) authorizationCompletion=\(capabilities.authorizationCompletionAvailable, privacy: .public) account=\(capabilities.accountAvailable, privacy: .public) sign=\(capabilities.signAvailable, privacy: .public) send=\(capabilities.sendAvailable, privacy: .public)"
+      )
+      networkBoundary = "YNX Testnet transport reachable · chain \(chainObservation.chainIDHex) · REST HTTP \(restObservation.statusCode). Frozen Central account, sign, send, and callback gates remain unavailable."
     } catch {
       networkBoundary = "Testnet endpoint unavailable: matrix, RPC, or REST response rejected."
       networkLogger.error("YNX_WALLET_MAC_ENDPOINTS_UNAVAILABLE pid=\(getpid(), privacy: .public) code=ENDPOINT_OR_RESPONSE_REJECTED")
