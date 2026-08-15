@@ -5,12 +5,15 @@ import { access, readFile } from "node:fs/promises";
 const CENTRAL_FREEZE=Object.freeze({
   commit:"d0f89797d13c7667cc187b0c64d5c9e1cb1d8f59",
   endpointMatrix:Object.freeze({blob:"d402fcdc844aa39bd5ee351a99d93acb4852dc37",sha256:"d344c607c2bbbf7bb0d9d3662b424976d0d6c4ff20428025dd1e2fb92bf31392"}),
-  androidLauncher:Object.freeze({blob:"83c9f91779701288861cff5e4dc6c487ffcdc26c",sha256:"d296732141a4029b1811b655f0001cc7d81a1d45019a4bd87d21b2b4b256d1a6"}),
+  androidLauncher:Object.freeze({commit:"38c9c0ce1400ad6ba8dc5e0c1aa1d657a6c9748d",blob:"0e0d702f9245fae42daec7d0a3a3fd5fe83f9a42",sha256:"27449c80300acd463574d5d7bb016e2273cfd7d24f6669c9da00505559393a58"}),
+  canonicalCallerMigration:Object.freeze({commit:"94c7f3c92caeff6a2e00b4eb311d4145e262823d",blob:"714c2b36017004c1ced8e6eafb6274488d71b9a5",sha256:"84ac73763d56facd110c9bcc18fb5300659381cdeca26fa0580996480ba99f8f"}),
 });
 const endpointMatrixBytes=await readFile(new URL("../../../release/integration/wallet-auth-public-endpoint-service-discovery-matrix.json",import.meta.url));
 const androidLauncherBytes=await readFile(new URL("../../../release/integration/wallet-auth-android-launcher-contract.json",import.meta.url));
+const canonicalCallerMigrationBytes=await readFile(new URL("../../../release/integration/wallet-auth-canonical-mobile-launcher-migration-contract.json",import.meta.url));
 const endpointMatrix=JSON.parse(endpointMatrixBytes.toString("utf8"));
 const androidLauncher=JSON.parse(androidLauncherBytes.toString("utf8"));
+const canonicalCallerMigration=JSON.parse(canonicalCallerMigrationBytes.toString("utf8"));
 const sha256=(bytes)=>createHash("sha256").update(bytes).digest("hex");
 
 const config=JSON.parse(await readFile(new URL("../app.json",import.meta.url),"utf8")).expo;
@@ -75,13 +78,20 @@ assert.equal(config.android.intentFilters[0].data[0].host,"authorize");
 assert.equal(config.android.intentFilters[0].data[1].host,"action");
 assert.equal(config.android.intentFilters[0].data[2].host,"open");
 assert.equal(sha256(endpointMatrixBytes),CENTRAL_FREEZE.endpointMatrix.sha256,`Central endpoint matrix must remain exact blob ${CENTRAL_FREEZE.endpointMatrix.blob} from ${CENTRAL_FREEZE.commit}`);
-assert.equal(sha256(androidLauncherBytes),CENTRAL_FREEZE.androidLauncher.sha256,`Central Android launcher must remain exact blob ${CENTRAL_FREEZE.androidLauncher.blob} from ${CENTRAL_FREEZE.commit}`);
+assert.equal(sha256(androidLauncherBytes),CENTRAL_FREEZE.androidLauncher.sha256,`Central Android launcher must remain exact blob ${CENTRAL_FREEZE.androidLauncher.blob} from ${CENTRAL_FREEZE.androidLauncher.commit}`);
+assert.equal(sha256(canonicalCallerMigrationBytes),CENTRAL_FREEZE.canonicalCallerMigration.sha256,`Core/Auth caller migration contract must remain exact blob ${CENTRAL_FREEZE.canonicalCallerMigration.blob} from ${CENTRAL_FREEZE.canonicalCallerMigration.commit}`);
 assert.equal(endpointMatrix.canonical.restUrl,"https://rest.ynxweb4.com");
 assert.equal(endpointMatrix.canonical.rpcUrl,"https://rpc.ynxweb4.com/evm");
 assert.ok(nativeTransfer.includes('DEFAULT_CHAIN_API="https://rest.ynxweb4.com"'),"native account/transaction REST must consume the frozen REST endpoint");
 assert.ok(evmSimulation.includes('DEFAULT_EVM_RPC_URL = "https://rpc.ynxweb4.com/evm"'),"EVM JSON-RPC must consume the frozen path-bearing RPC endpoint");
 assert.deepEqual(androidLauncher.authority,{protocolSource:"packages/wallet-auth/src/deep-link.js",requestProtocolSource:"packages/wallet-auth/src/protocol.js",walletPackage:"com.ynxweb4.wallet",walletActivity:"com.ynxweb4.wallet/.MainActivity",scheme:"ynxwallet",host:"authorize",path:"",queryFields:["request"],uriTemplate:"ynxwallet://authorize?request=<base64url-canonical-authorization-request>",androidAction:"android.intent.action.VIEW",androidCategories:["android.intent.category.DEFAULT","android.intent.category.BROWSABLE"],activityExported:true});
-for(const gate of [endpointMatrix.aggregate.allRequiredServicesAvailable,endpointMatrix.aggregate.mobileWalletDiscoveryVerified,endpointMatrix.aggregate.mobileAccountVerified,endpointMatrix.aggregate.mobileSignVerified,endpointMatrix.aggregate.mobileSendVerified,endpointMatrix.aggregate.deployedPublic,endpointMatrix.aggregate.integratedCentral,androidLauncher.walletConsumerRequirements.currentInstalledPixel9IntentResolutionVerified,androidLauncher.crossProductAcceptance.accepted,androidLauncher.releaseTruth.deviceValidated,androidLauncher.releaseTruth.deployedPublic,androidLauncher.releaseTruth.productionSigned,androidLauncher.releaseTruth.storeReleased])assert.equal(gate,false,"unproved Central endpoint/Pixel/release gates must remain false");
+assert.equal(androidLauncher.callerMigrationGate.authoritativeCoreContract.blob,CENTRAL_FREEZE.canonicalCallerMigration.blob);
+assert.deepEqual(canonicalCallerMigration.authority,{walletPackage:"com.ynxweb4.wallet",walletActivity:"com.ynxweb4.wallet/.MainActivity",scheme:"ynxwallet",host:"authorize",path:"",queryFields:["request"],uriTemplate:"ynxwallet://authorize?request=<base64url-canonical-authorization-request>"});
+assert.equal(canonicalCallerMigration.sharedApis.encode.name,"encodeRequestDeepLink");
+assert.equal(canonicalCallerMigration.sharedApis.encode.callerMayConcatenateUri,false);
+assert.deepEqual(canonicalCallerMigration.sharedApis.resolveAndOpen.androidRequiredCalls,["resolveActivity","queryIntentActivities"]);
+assert.equal(canonicalCallerMigration.sharedApis.callback.rejectVerify,"verifyAuthorizationRejection");
+for(const gate of [endpointMatrix.aggregate.allRequiredServicesAvailable,endpointMatrix.aggregate.mobileWalletDiscoveryVerified,endpointMatrix.aggregate.mobileAccountVerified,endpointMatrix.aggregate.mobileSignVerified,endpointMatrix.aggregate.mobileSendVerified,endpointMatrix.aggregate.deployedPublic,endpointMatrix.aggregate.integratedCentral,androidLauncher.walletConsumerRequirements.currentInstalledPixel9IntentResolutionVerified,androidLauncher.callerMigrationGate.gatePassed,androidLauncher.crossProductAcceptance.accepted,androidLauncher.releaseTruth.deviceValidated,androidLauncher.releaseTruth.deployedPublic,androidLauncher.releaseTruth.productionSigned,androidLauncher.releaseTruth.storeReleased,canonicalCallerMigration.migrationGate.currentPassed,canonicalCallerMigration.truthBoundary.allCallersMigrated,canonicalCallerMigration.truthBoundary.pixel9Validated,canonicalCallerMigration.truthBoundary.integratedCentral,canonicalCallerMigration.truthBoundary.deployedPublic])assert.equal(gate,false,"unproved Central endpoint/caller/Pixel/release gates must remain false");
 assert.equal(source.includes("if(isExactWalletOpenLink(url))"),true,"Wallet must route the safe launcher through its byte-exact policy");
 assert.equal(walletOpenLinkPolicy.includes('url==="ynxwallet://open"'),true,"Wallet must support only the exact safe launcher without treating ambiguous URL variants as open");
 assert.ok(source.includes("appStateRef.current=next"),"deep-link foreground admission must track AppState changes synchronously");

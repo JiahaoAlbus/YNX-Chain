@@ -66,5 +66,36 @@
     "secretFreeEvidenceRequired": true,
     "accepted": false
   },
+  "callerMigrationGate": {
+    "verifier": "scripts/verify/wallet-auth-android-launcher-callers-check.mjs",
+    "requiredBuilder": "@ynx-chain/wallet-auth encodeRequestDeepLink",
+    "scanReleaseAppSourcesAndBundles": true,
+    "productSpecificCallbackRewriteAllowed": false,
+    "knownNoncanonicalCallers": [
+      {"path":"apps/monitor/src/App.tsx","pattern":"ynx-wallet://authorize?challenge=","migrated":false},
+      {"path":"apps/trust-center/mobile/android/app/src/main/java/com/ynxweb4/trust/MainActivity.java","pattern":"ynxwallet://sign-app-session","migrated":false},
+      {"path":"apps/mobile/src/api/mobileSession.ts","pattern":"ynx-wallet://com.ynxweb4.wallet","migrated":false}
+    ],
+    "allReleaseCallersCanonical": false,
+    "gatePassed": false,
+    "authoritativeCoreContract": {
+      "commit": "94c7f3c92caeff6a2e00b4eb311d4145e262823d",
+      "parent": "377ad72218f303c03c8120a4e503d754551f3c0a",
+      "tree": "13581671573c16d171f34804f3b474867940ef65",
+      "path": "release/integration/wallet-auth-canonical-mobile-launcher-migration-contract.json",
+      "blob": "714c2b36017004c1ced8e6eafb6274488d71b9a5",
+      "strictGate": "packages/wallet-auth/scripts/verify-canonical-wallet-callers.mjs",
+      "walletAuthTestsPassed": 304,
+      "blockingReleaseRuntimeFindings": 30,
+      "generatedReleaseBundleLegacyBlockers": 0,
+      "generatedReleaseBundleBoundCanonicalLiterals": 4,
+      "fixtureBlockingFindings": 0,
+      "strictGatePassed": false,
+      "allCallersMigrated": false,
+      "pixel9Validated": false,
+      "integratedCentral": false,
+      "deployedPublic": false
+    }
+  },
   "releaseTruth": {"implementedShared":false,"deviceValidated":false,"integratedCentral":false,"deployedPublic":false,"productionSigned":false,"storeReleased":false}
 }

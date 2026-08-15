@@ -1,0 +1,106 @@
+{
+  "schemaVersion": 1,
+  "contractId": "ynx-wallet-auth-canonical-mobile-launcher-migration-v1",
+  "owner": "Core/Auth",
+  "sourceContract": {
+    "commit": "d0f89797d13c7667cc187b0c64d5c9e1cb1d8f59",
+    "path": "release/integration/wallet-auth-android-launcher-contract.json",
+    "sha256": "d296732141a4029b1811b655f0001cc7d81a1d45019a4bd87d21b2b4b256d1a6"
+  },
+  "authority": {
+    "walletPackage": "com.ynxweb4.wallet",
+    "walletActivity": "com.ynxweb4.wallet/.MainActivity",
+    "scheme": "ynxwallet",
+    "host": "authorize",
+    "path": "",
+    "queryFields": ["request"],
+    "uriTemplate": "ynxwallet://authorize?request=<base64url-canonical-authorization-request>"
+  },
+  "sharedApis": {
+    "encode": {
+      "module": "@ynx-chain/wallet-auth",
+      "name": "encodeRequestDeepLink",
+      "callerMayConcatenateUri": false
+    },
+    "walletParse": {
+      "module": "@ynx-chain/wallet-auth",
+      "name": "parseWalletDeepLink",
+      "platforms": ["android", "ios"],
+      "requiresExactRegistry": true
+    },
+    "resolveAndOpen": {
+      "module": "@ynx-chain/wallet-auth/wallet-connection-coordinator",
+      "name": "WalletConnectionCoordinator openWallet adapter",
+      "androidRequiredCalls": ["resolveActivity", "queryIntentActivities"],
+      "explicitComponentAfterExactResolution": "com.ynxweb4.wallet/.MainActivity",
+      "allowedResults": [
+        {"opened": true},
+        {"opened": false, "code": "WALLET_NOT_INSTALLED"},
+        {"opened": false, "code": "SCHEME_NOT_REGISTERED"},
+        {"opened": false, "code": "USER_REJECTED"},
+        {"opened": false, "code": "NETWORK_UNAVAILABLE"}
+      ],
+      "rawActivityNotFoundExposed": false,
+      "unavailableActions": ["download-ynx-wallet", "download-metamask", "guest", "return-to-product"]
+    },
+    "callback": {
+      "create": "createCallbackURL",
+      "parse": "parseCallbackURL",
+      "approveVerify": "verifyAuthorization",
+      "rejectVerify": "verifyAuthorizationRejection",
+      "queryFields": ["response"],
+      "registrySubstitutionAllowed": false,
+      "callbackSubstitutionAllowed": false
+    }
+  },
+  "vectors": {
+    "fixture": "packages/wallet-auth/test/fixtures.mjs request()",
+    "requestDigest": "325a60c9502489c92d2f42a413166b84302cf27821dcf3110b04484da3900930",
+    "deepLink": {"length": 722, "sha256": "d380a9f198cae16fface348ce7610e6e03687b946d10048be389d6f80cc2e828"},
+    "approvalCallback": {"length": 1239, "sha256": "7a4ab4134836480f83a66c8d58abe3804753c3cdb96ea8dae2191b7dfbe5fd38"},
+    "rejectionCallback": {"length": 617, "sha256": "0847cb538a9fe71e0c9c71ffd2999e535bbd7fa95d37f948971ea7b51ba08367"},
+    "negative": [
+      "wrong scheme",
+      "wrong host",
+      "nonempty path",
+      "additional query field",
+      "wrong product",
+      "wrong bundle/package",
+      "wrong device",
+      "scope widening",
+      "callback substitution",
+      "ambiguous Android resolution",
+      "missing Wallet activity"
+    ]
+  },
+  "migrationGate": {
+    "command": "npm run verify:canonical-wallet-callers",
+    "releaseRuntimeMustHaveZeroBlockingFindings": true,
+    "releaseBundlesMustHaveZeroLegacySchemesOrPaths": true,
+    "generatedCanonicalLiteralAllowedOnlyWhenCompanionSourceImportsSharedBuilder": true,
+    "testsDocsFixturesMayContainExpectedNegativeStrings": true,
+    "currentBlockingFindingCount": 30,
+    "currentPassed": false
+  },
+  "handoff": {
+    "platformOwnersMustImplement": [
+      "exact manifest/URL registration",
+      "resolveActivity and queryIntentActivities before launch",
+      "explicit package/component launch only after exact unique resolution",
+      "safe YNX Wallet and MetaMask alternatives when unavailable",
+      "approve, reject, callback, Product Session and second-launch device evidence"
+    ],
+    "productOwnersMustImplement": [
+      "replace every runtime URI concatenation with the shared builder",
+      "retain the exact registry callback and scopes",
+      "regenerate release bundles from migrated sources",
+      "submit strict-gate-zero evidence"
+    ]
+  },
+  "truthBoundary": {
+    "allCallersMigrated": false,
+    "pixel9Validated": false,
+    "integratedCentral": false,
+    "deployedPublic": false
+  }
+}
