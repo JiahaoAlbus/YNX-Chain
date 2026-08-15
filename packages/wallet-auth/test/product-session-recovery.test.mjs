@@ -255,6 +255,80 @@ test("platform signer failure or wrong-key signature fails closed before complet
   }
 });
 
+test("network transition during platform challenge signing sends no late completion", async () => {
+  const setup = harness(); let releaseSigning; let markSigning; let completionCalls = 0; let shouldBlock = true;
+  const signingStarted = new Promise((resolve) => { markSigning = resolve; });
+  const signingRelease = new Promise((resolve) => { releaseSigning = resolve; });
+  const secureDevice = {
+    id: device.id, key: device.key, scopes: device.scopes, purpose: device.purpose,
+    async sign(input) {
+      if (input.purpose === "challenge" && shouldBlock) { shouldBlock = false; markSigning(); await signingRelease; }
+      return Buffer.from(p256.sign(Buffer.from(input.payload, "base64url"), deviceSecret, { format: "der" })).toString("base64url");
+    },
+  };
+  const gateway = { ...setup.gateway, async complete(input) { completionCalls += 1; return setup.gateway.complete(input); } };
+  let tokenIndex = 0;
+  const client = new RecoverableProductSessionClient({ registry, productId: "social", platform: "android", storage: setup.storage, gateway, device: secureDevice, tokenFactory: () => token(`signing-network-complete-${tokenIndex++}`), clock: () => NOW });
+  const connecting = await client.begin({ walletInstalled: true, schemeRegistered: true });
+  const approval = signProductSessionApproval(registry, connecting.request, { accountSecret, scopes: connecting.request.scopes, expiresAt: "2026-08-14T01:03:00.000Z" }, NOW);
+  const returning = client.handleReturn(createProductSessionReturnURL(registry, connecting.request, { result: "approved", approval }, NOW));
+  await signingStarted;
+  client.setNetworkAvailable(false); releaseSigning();
+  assert.equal((await returning).status, PRODUCT_SESSION_CLIENT_STATE.NETWORK_UNAVAILABLE);
+  assert.equal(completionCalls, 0);
+  assert.notEqual(await setup.storage.get(`${client.storageKey}:return`), null);
+  client.setNetworkAvailable(true);
+  assert.equal((await client.retry({ walletInstalled: true, schemeRegistered: true })).status, PRODUCT_SESSION_CLIENT_STATE.CONNECTED);
+});
+
+test("network transition during platform proof signing sends no late introspection or revoke", async () => {
+  const setup = harness(); let blockPurpose = null; let releaseSigning; let markSigning; let signingStarted; let introspectionCalls = 0; let revokeCalls = 0;
+  function blockNextProof() {
+    blockPurpose = "http-proof";
+    signingStarted = new Promise((resolve) => { markSigning = resolve; });
+    return signingStarted;
+  }
+  const secureDevice = {
+    id: device.id, key: device.key, scopes: device.scopes, purpose: device.purpose,
+    async sign(input) {
+      if (input.purpose === blockPurpose) {
+        blockPurpose = null; markSigning();
+        await new Promise((resolve) => { releaseSigning = resolve; });
+      }
+      return Buffer.from(p256.sign(Buffer.from(input.payload, "base64url"), deviceSecret, { format: "der" })).toString("base64url");
+    },
+  };
+  const gateway = {
+    ...setup.gateway,
+    async introspect(input) { introspectionCalls += 1; return setup.gateway.introspect(input); },
+    async revoke(input) { revokeCalls += 1; return setup.gateway.revoke(input); },
+  };
+  let tokenIndex = 0;
+  const first = new RecoverableProductSessionClient({ registry, productId: "social", platform: "android", storage: setup.storage, gateway, device: secureDevice, tokenFactory: () => token(`signing-network-proof-${tokenIndex++}`), clock: () => NOW });
+  const connecting = await first.begin({ walletInstalled: true, schemeRegistered: true });
+  const approval = signProductSessionApproval(registry, connecting.request, { accountSecret, scopes: connecting.request.scopes, expiresAt: "2026-08-14T01:03:00.000Z" }, NOW);
+  assert.equal((await first.handleReturn(createProductSessionReturnURL(registry, connecting.request, { result: "approved", approval }, NOW))).status, PRODUCT_SESSION_CLIENT_STATE.CONNECTED);
+
+  const second = new RecoverableProductSessionClient({ registry, productId: "social", platform: "android", storage: setup.storage, gateway, device: secureDevice, tokenFactory: () => token(`signing-network-proof-${tokenIndex++}`), clock: () => NOW });
+  const restoreSigning = blockNextProof(); const restoring = second.restore(true); await restoreSigning;
+  const introspectionBefore = introspectionCalls;
+  second.setNetworkAvailable(false); releaseSigning();
+  assert.equal((await restoring).status, PRODUCT_SESSION_CLIENT_STATE.NETWORK_UNAVAILABLE);
+  assert.equal(introspectionCalls, introspectionBefore);
+  assert.notEqual(await setup.storage.get(second.storageKey), null);
+  second.setNetworkAvailable(true);
+  assert.equal((await second.retry({ walletInstalled: true, schemeRegistered: true })).status, PRODUCT_SESSION_CLIENT_STATE.CONNECTED);
+
+  const revokeSigning = blockNextProof(); const disconnecting = second.disconnect(); await revokeSigning;
+  second.setNetworkAvailable(false); releaseSigning();
+  assert.equal((await disconnecting).status, PRODUCT_SESSION_CLIENT_STATE.NETWORK_UNAVAILABLE);
+  assert.equal(revokeCalls, 0);
+  assert.notEqual(await setup.storage.get(second.storageKey), null);
+  second.setNetworkAvailable(true);
+  assert.equal((await second.disconnect()).status, PRODUCT_SESSION_CLIENT_STATE.DISCONNECTED);
+  assert.equal(revokeCalls, 1);
+});
+
 test("substituted Gateway challenge fails before device signing or completion", async () => {
   const setup = harness(); let completionCalls = 0;
   const gateway = {

@@ -68,7 +68,7 @@ test("Web companion freeze keeps every public and device-visible gate false", ()
   assert.equal(contract.registry.enabled, true);
   assert.equal(contract.transport.operationFieldForbidden, true);
   assert.equal(contract.transport.exchangeActionReuseForbidden, true);
-  assert.equal(Object.values(contract.truthBoundary).filter(Boolean).length, 12);
+  assert.equal(Object.values(contract.truthBoundary).filter(Boolean).length, 13);
   assert.equal(contract.truthBoundary.coreRuntimeCandidate, true);
   assert.equal(contract.truthBoundary.restartExpiryRevokeCandidate, true);
   assert.equal(contract.truthBoundary.concurrentDisconnectLinearizedCandidate, true);
@@ -79,8 +79,10 @@ test("Web companion freeze keeps every public and device-visible gate false", ()
   assert.equal(contract.truthBoundary.networkEpochCandidate, true);
   assert.equal(contract.truthBoundary.completionNetworkTransitionProtectedCandidate, true);
   assert.equal(contract.truthBoundary.platformSecureSignerCandidate, true);
+  assert.equal(contract.truthBoundary.secureSignerNetworkEpochCandidate, true);
   assert.equal(contract.reconciliation.consumedRouterSource, "48ca620105d07a78b1abb8bd02648ed7b0fe4772");
   assert.equal(contract.reconciliation.secureSignerSemanticsConsumed, true);
+  assert.equal(contract.reconciliation.secureSignerNetworkEpochLinearized, true);
   assert.equal(contract.reconciliation.secureSignerReconciliationPending, false);
   assert.deepEqual(contract.runtimeIntegration.gatewayRoutes, ["/v2/product-sessions/challenge", "/v2/product-sessions/complete", "/v2/product-sessions/introspect", "/v2/product-sessions/revoke"]);
   assert.equal(contract.truthBoundary.deployedPublicRegistry, false);

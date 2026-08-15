@@ -67,6 +67,7 @@
     "networkEpochSemanticsConsumed": true,
     "completionOrderingStrengthened": "An issued Session is protected before a network-epoch transition can return, preventing orphan authority.",
     "secureSignerSemanticsConsumed": true,
+    "secureSignerNetworkEpochLinearized": true,
     "secureSignerReconciliationPending": false
   },
   "failClosed": [
@@ -99,6 +100,7 @@
     "networkEpochCandidate": true,
     "completionNetworkTransitionProtectedCandidate": true,
     "platformSecureSignerCandidate": true,
+    "secureSignerNetworkEpochCandidate": true,
     "integratedCentral": false,
     "gatewayLoadedPublic": false,
     "deployedPublicRegistry": false,
