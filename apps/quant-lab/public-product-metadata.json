@@ -26,7 +26,13 @@
   "privacyUrl": null,
   "securityUrl": null,
   "statusUrl": "https://quant.ynxweb4.com/api/health",
+  "runtime": {
+    "sourceCommit": "443286487e057d78cb6b1a686d14bb37be8b3c23",
+    "deploymentEvidence": "apps/quant-lab/evidence/public-financial-owner-reads-deployment-20260815-44328648.json",
+    "mode": "simulated_testnet_only",
+    "liveFundsEnabled": false
+  },
   "screenshots": [],
   "structuredDataRecommendation": {"type": "SoftwareApplication", "applicationCategory": "FinanceApplication", "operatingSystem": "Web, macOS candidate, Windows candidate"},
-  "websiteHandoffState": "public-web-and-direct-downloads-live"
+  "websiteHandoffState": "public-web-and-direct-downloads-live; central global-navigation registration remains owner-controlled"
 }
