@@ -68,8 +68,8 @@ The returned session additionally binds `sessionBinding`, `approvalDigest`, and 
 
 ## Product-facing shared connection
 
-Products must import `createProductWalletConnection` from
-`@ynx-chain/wallet-auth/product-wallet-connection`. This is the only supported
+Products must import `createProductWalletConnection` from the existing package
+root, `@ynx-chain/wallet-auth`. This is the only supported
 product-facing constructor. It derives product, client, application, origin and
 callback bindings from `product-session-registry.json`; assembles the HTTPS v2
 Gateway adapter, recoverable client and Wallet coordinator; and owns the system
