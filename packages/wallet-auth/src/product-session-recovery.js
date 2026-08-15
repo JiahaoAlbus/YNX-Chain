@@ -144,7 +144,13 @@ export class RecoverableProductSessionClient {
     if (pendingReturn !== null) {
       try { await pendingReturn; } catch { /* Disconnect still clears a rejected or invalid pending callback. */ }
     }
-    const session = this.#state.status === PRODUCT_SESSION_CLIENT_STATE.CONNECTED ? this.#state.session : null;
+    let session = this.#state.status === PRODUCT_SESSION_CLIENT_STATE.CONNECTED ? this.#state.session : null;
+    if (session === null) {
+      const raw = await this.#storage.get(this.storageKey);
+      if (raw !== null) {
+        try { session = parseProductSession(JSON.parse(raw)); } catch { /* Invalid protected state grants no revocation authority. */ }
+      }
+    }
     if (session !== null && session.expiresAt > this.#clock().toISOString()) {
       try {
         const body = {};
