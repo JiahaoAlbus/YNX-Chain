@@ -118,7 +118,7 @@ export async function buildSnapshot({ probes, key, source, approvalId, timeoutMs
   const services = rawServices.map(({ baseStatus, dependencyIDs, reportedDependencies, ...service }) => {
 	const dependencies = dependencyIDs.map((id) => ({ id, status: id in reportedDependencies ? publicDependencyStatus(reportedDependencies[id]) : (resolvedStatuses.get(id) || "unknown") }));
 	const status = resolvedStatuses.get(service.id) || "unknown";
-	return { ...service, status, dependencies, message: status === "operational" ? "Bounded public probe returned verified healthy evidence." : baseStatus === "major_outage" ? "Bounded public probe was unavailable or unhealthy." : "A configured dependency did not return verified healthy evidence." };
+	return { ...service, status, dependencies, message: status === "operational" ? "Bounded public probe returned a verified healthy response." : baseStatus === "major_outage" ? "Bounded public probe was unavailable or unhealthy." : "A configured dependency did not return a verified healthy response." };
   });
   const status = services.reduce((worst, service) => ranks[service.status] > ranks[worst] ? service.status : worst, "operational");
   return signSnapshot({
