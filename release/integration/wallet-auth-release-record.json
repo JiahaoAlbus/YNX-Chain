@@ -6,12 +6,12 @@
   "recordedAt": "2026-08-14T03:52:00Z",
   "evidenceMatrix": {
     "path": "release/integration/wallet-auth-release-evidence-matrix.json",
-    "sha256": "cdf35a2429c013507ee6a7cf26f4fa8515accd6cddb3fda6fd6294dc1f2a9869",
+    "sha256": "e81d11ba5b8fbf25ee77bc221ca9513434c9755bb12d23692ca42dd6aaaa2ec1",
     "platforms": 21,
     "gatesPerPlatform": 12,
     "trueGates": 106,
     "falseGates": 146,
-    "evidenceRecords": 111
+    "evidenceRecords": 112
   },
   "frozenOwnerSources": {
     "coreAuthGateway": "404f818719b920008f88f076949a4387c5130855",
@@ -95,7 +95,7 @@
     "publicDownloadGate": "scripts/verify/wallet-auth-public-download-metadata-check.mjs",
     "publicEvidenceAuditGate": "scripts/verify/wallet-auth-public-evidence-audit-check.mjs"
     ,"publicEndpointServiceDiscoveryMatrix": {"path":"release/integration/wallet-auth-public-endpoint-service-discovery-matrix.json","sha256":"98ef4460ea75411cc529a3dbcd8fa85a7d47e57d7332ee5b4dc6c5d2c23c72b8"}
-    ,"androidLauncherContract": {"path":"release/integration/wallet-auth-android-launcher-contract.json","sha256":"d1752b74f1b83dd3d5d789cb68263750243bbe7bb6bc6bcbea6294954b385441"}
+    ,"androidLauncherContract": {"path":"release/integration/wallet-auth-android-launcher-contract.json","sha256":"27449c80300acd463574d5d7bb016e2273cfd7d24f6669c9da00505559393a58"}
     ,"androidLauncherCallerGate": "scripts/verify/wallet-auth-android-launcher-callers-check.mjs"
   },
   "limitations": [
@@ -108,6 +108,7 @@
     "EVM CORS candidate c2a34c92 and evidence blob 35d280a6 are frozen as pending/failure truth only: last approved and hostile OPTIONS were both HTTP 405 without ACAO, and every transfer attempt failed before a remote command. Candidate validation, backup, reload, deployment, browser CORS and mobile reachability remain false.",
     "Web source 020f513e freezes three-way discovery: injected-provider clients require a real EIP-1193/EIP-6963 provider; external-mobile YNX fails closed because its canonical callback is null and binding is disabled/pending; MetaMask uses the frozen mobile dapp-link candidate but still requires a real provider. The new 274,329/189,922/189,959-byte artifacts are not the older officially hosted set, so latest-source hosting, mobile-visible behavior, account, sign, transaction and Testnet claims remain false.",
     "The cross-ecosystem Android launcher caller gate is intentionally blocked by legacy schemes/routes and manual URI construction; product callbacks remain registry-bound and are not silently rewritten.",
+    "Core/Auth contract 94c7f3c9 and blob 714c2b36 classify 30 blocking release-runtime callers while generated bundles have zero legacy blockers and four shared-builder-bound canonical literals. Both strict caller gates remain red; owners must migrate runtime concatenation through encodeRequestDeepLink and preserve registry callbacks. Pixel 9, integratedCentral and public acceptance remain false.",
     "Product Session Router v2 hardened evidence 2bcdf4f6 supersedes cc6c3936 and freezes deployed source d26ed915: isolated 6441 passes rollback, public lifecycle and a real chmod 0644 tamper with HTTP 503 INSECURE_STATE_FILE, unchanged state bytes, no silent repair and sticky fail-close until explicit 0600+restart recovery. Legacy 6437/6439 remain unchanged, runtimeProductsMigrated=0, visible Wallet approval=false, and integratedCentral plus aggregate Product Session deployment remain false.",
     "Web commit 60614bf5 directly proves first and second launch of an unsigned temporary YNX add-on in official notarized Firefox 153.0.4; install, popup DOM/background, provider/account/sign/tx, extension signing and store claims remain false.",
     "Website main 92a8b90 merged evidence c70bf01 through PR #34; Web 46d030c and an independent deca6f4f gate prove three visible official buttons and 9 exact downloads. PWA, Chrome/Edge and Firefox artifacts are hosted/public, but remain unsigned, non-store, and do not prove installation or provider/account/sign/tx runtime."

@@ -3,14 +3,14 @@
   "auditId": "wallet-auth-public-evidence-audit-2026-08-14",
   "auditedAt": "2026-08-14T03:38:07Z",
   "integrationBaseCommit": "a008ce0e8fa2ac0322198576c320441118fbae83",
-  "matrixSha256": "cdf35a2429c013507ee6a7cf26f4fa8515accd6cddb3fda6fd6294dc1f2a9869",
+  "matrixSha256": "e81d11ba5b8fbf25ee77bc221ca9513434c9755bb12d23692ca42dd6aaaa2ec1",
   "endpointServiceDiscoveryMatrix": {
     "path": "release/integration/wallet-auth-public-endpoint-service-discovery-matrix.json",
     "sha256": "98ef4460ea75411cc529a3dbcd8fa85a7d47e57d7332ee5b4dc6c5d2c23c72b8"
   },
   "androidLauncherContract": {
     "path": "release/integration/wallet-auth-android-launcher-contract.json",
-    "sha256": "d1752b74f1b83dd3d5d789cb68263750243bbe7bb6bc6bcbea6294954b385441"
+    "sha256": "27449c80300acd463574d5d7bb016e2273cfd7d24f6669c9da00505559393a58"
   },
   "publicTestnet": {
     "smartAccountDeploymentVerifier": {
@@ -97,6 +97,25 @@
     "deployed": false,
     "mobileReachable": false,
     "aggregateDeployedPublic": false
+  },
+  "canonicalMobileLauncherMigration": {
+    "scannerEvidenceCommit": "377ad72218f303c03c8120a4e503d754551f3c0a",
+    "contractCommit": "94c7f3c92caeff6a2e00b4eb311d4145e262823d",
+    "contractParent": "377ad72218f303c03c8120a4e503d754551f3c0a",
+    "contractTree": "13581671573c16d171f34804f3b474867940ef65",
+    "contractPath": "release/integration/wallet-auth-canonical-mobile-launcher-migration-contract.json",
+    "contractBlob": "714c2b36017004c1ced8e6eafb6274488d71b9a5",
+    "strictGate": "packages/wallet-auth/scripts/verify-canonical-wallet-callers.mjs",
+    "walletAuthTestsPassed": 304,
+    "blockingReleaseRuntimeFindings": 30,
+    "generatedReleaseBundleLegacyBlockers": 0,
+    "generatedReleaseBundleBoundCanonicalLiterals": 4,
+    "fixtureBlockingFindings": 0,
+    "strictGatePassed": false,
+    "allCallersMigrated": false,
+    "pixel9Validated": false,
+    "integratedCentral": false,
+    "deployedPublic": false
   },
   "chainCoreContractBoundary": {
     "contractVersion": "1.30.0",

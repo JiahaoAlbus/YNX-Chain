@@ -551,6 +551,14 @@
       "blob": "35d280a689f47b58812b7b4ba346913f7a06e20f",
       "supports": []
     },
+    "canonical-mobile-launcher-migration-contract": {
+      "type": "git-object",
+      "direct": true,
+      "commit": "94c7f3c92caeff6a2e00b4eb311d4145e262823d",
+      "path": "release/integration/wallet-auth-canonical-mobile-launcher-migration-contract.json",
+      "blob": "714c2b36017004c1ced8e6eafb6274488d71b9a5",
+      "supports": []
+    },
     "gateway-completion-negative-matrix": {
       "type": "git-object",
       "direct": true,
