@@ -5,12 +5,17 @@ import { secp256k1 } from "@noble/curves/secp256k1.js";
 import { sha256 } from "@noble/hashes/sha2.js";
 import { bytesToHex, utf8ToBytes } from "@noble/hashes/utils.js";
 import {
+  createAuthorizationRejection,
+  createCallbackURL,
+} from "@ynx-chain/wallet-auth";
+import {
   BUNDLE_ID,
   CALLBACK,
   PRODUCT_CLIENT_ID,
   createWalletRequest,
   encodeBase64URL,
   parseWalletCallback,
+  parseWalletDecision,
   requestDigest,
   signGatewayChallenge,
   walletRequestURL,
@@ -94,7 +99,7 @@ test("verifies exact callback binding, account derivation, and compact low-S sig
   );
   assert.throws(
     () => parseWalletCallback(`${CALLBACK}?assertion=legacy`, request, now),
-    /route|fields/,
+    /callback|route|fields/i,
   );
   assert.throws(
     () =>
@@ -107,7 +112,7 @@ test("verifies exact callback binding, account derivation, and compact low-S sig
         request,
         now,
       ),
-    /binding/,
+    /binding|match/i,
   );
   const tampered = approval();
   assert.throws(
@@ -121,6 +126,31 @@ test("verifies exact callback binding, account derivation, and compact low-S sig
         now,
       ),
     /signature/,
+  );
+});
+test("verifies a bound USER_REJECTED callback as zero authority and never treats replay as approval", () => {
+  const rejection = createAuthorizationRejection(request, {
+      decisionCode: "USER_REJECTED",
+      rejectedAt: now.toISOString(),
+    }),
+    value = createCallbackURL(rejection),
+    first = parseWalletDecision(value, request, now),
+    replay = parseWalletDecision(value, request, now);
+  assert.equal(first.kind, "rejected");
+  assert.equal(replay.kind, "rejected");
+  if (first.kind === "rejected") {
+    assert.equal(first.rejection.authorityGranted, false);
+    assert.deepEqual(first.rejection.grantedScopes, []);
+  }
+  assert.throws(() => parseWalletCallback(value, request, now), /rejected/i);
+  assert.throws(
+    () =>
+      parseWalletDecision(
+        createCallbackURL({ ...rejection, nonce: `${rejection.nonce}x` }),
+        request,
+        now,
+      ),
+    /mismatch|nonce|request/i,
   );
 });
 test("signs the server challenge with the exact bound P-256 product key", () => {
