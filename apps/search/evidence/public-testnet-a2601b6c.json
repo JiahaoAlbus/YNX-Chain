@@ -1,0 +1,46 @@
+{
+  "schema": "ynx-search-public-testnet-evidence/v1",
+  "observedAt": "2026-08-04T06:22:04Z",
+  "sourceCommit": "a2601b6c1c49203fe386c8de55b5378fa86d1ff4",
+  "version": "0.2.0",
+  "releaseChannel": "public-testnet-preview",
+  "publicUrl": "https://web4.ynxweb4.com/search/",
+  "healthUrl": "https://web4.ynxweb4.com/search/api/health",
+  "runtime": {
+    "service": "ynx-search.service",
+    "activeState": "active",
+    "subState": "running",
+    "bind": "127.0.0.1:6497",
+    "reverseProxy": "Caddy /search prefix strip",
+    "caddyBackup": "/etc/caddy/ynx-chain.caddy.backup-20260804T061625Z"
+  },
+  "index": {
+    "coverage": "registered-authorized-sources-only",
+    "globalCoverage": false,
+    "neutralityClaim": false,
+    "authorizedSources": 7,
+    "documents": 7,
+    "dataSha256": "17726ae1fbe9d935f3742df7933b62a2048aa9579a4be91710271161d09ae45c",
+    "statusResponseSha256": "e4608e7b096e02772fe4607a536a997b8979cd0be4c9a22831d83a1a9e1f8f98",
+    "authorizationBoundary": "YNX-owned public pages and release/evidence registries only"
+  },
+  "verification": {
+    "nodeTests": "13/13",
+    "playwrightLocal": "6/6",
+    "publicHealthConcurrency": "100/100 HTTP 200 at concurrency 20",
+    "publicSearchConcurrency": "100/100 HTTP 200 at concurrency 20",
+    "publicBrowserFlow": {
+      "viewport": "1440x900",
+      "query": "YNX",
+      "resultCount": 5,
+      "languageChangedTo": "zh-Hans",
+      "localizedHeading": "搜索结果始终附带来源。"
+    }
+  },
+  "integrationBoundaries": {
+    "aiGateway": "unavailable",
+    "walletGateway": "unavailable",
+    "trustGateway": "unavailable",
+    "reason": "No unreviewed central integration is represented as connected. Developer integration work remains intentionally deferred."
+  }
+}
