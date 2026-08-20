@@ -1,0 +1,151 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "P0-WALLET-CONNECTIVITY-p0055-atomic-no-replace-materializer-082afce9",
+  "owner": "Core/Auth/Gateway",
+  "status": "SOURCE_AND_OFFLINE_ARTIFACT_CANDIDATE_AWAITING_INTEGRATION_REVIEW",
+  "source": {
+    "branch": "codex/wallet-core-auth-gateway-continuation-20260814",
+    "commit": "082afce922bf7cef90843cfe3f65d6596dc79a57",
+    "tree": "f9eefa608f477e32c40db5d0be8c6e19df73c721",
+    "parent": "198f326ce9cb4256433374bd8efb0c337359c603",
+    "remoteReadbackExact": true,
+    "packageLockSha256": "8929316677769e7a6ad703583c12a07dd4d4dcbf4d87c597983f6ab6955a87b6"
+  },
+  "priorRejectedCandidate": {
+    "sourceCommit": "785ed7e8337e46e3286fc3068ef5c68d004e1b6b",
+    "evidenceCommit": "198f326ce9cb4256433374bd8efb0c337359c603",
+    "blocker": "POSIX_RENAME_REPLACED_CONCURRENT_TARGET",
+    "atomicNoOverwriteClaimWithdrawn": true,
+    "executionLeaseExists": false,
+    "productionAccessAfterReview": false,
+    "deploymentAttemptedAfterReview": false
+  },
+  "correction": {
+    "scope": "Atomic no-replace publication of privileged migrated Product Session state only",
+    "modulePath": "packages/wallet-auth/src/product-session-state-materializer.js",
+    "moduleSha256": "b52d54ef7e4384ac06f501380e2c4605e076a0c8cfbbe12982217be31c94a077",
+    "testPath": "packages/wallet-auth/test/product-session-state-materializer.test.mjs",
+    "testSha256": "916804cb8faa4321723012df392924ad4a8338e19d94b6ce61af7d76765c3610",
+    "publicationPrimitive": "same-directory link(2) followed by unlink(temp) and fsync(directory)",
+    "renameFallbackAllowed": false,
+    "requirements": {
+      "effectiveRootRequiredBeforeSourceMetadataOrRead": true,
+      "sourceOwner": "root:root",
+      "sourceMode": "0600",
+      "sourceNlink": 1,
+      "sourceRegularFile": true,
+      "sourceNoFollow": true,
+      "sourceInodeStableAcrossOpen": true,
+      "sourceFileSha256Required": true,
+      "canonicalMigratedEnvelopeRequired": true,
+      "registryStateBindingRequired": true,
+      "snapshotDigestRequired": true,
+      "targetDirectoryOwnerBoundMode0700": true,
+      "descriptorFchownAndFchmod": true,
+      "temporaryInodeStableBeforePublication": true,
+      "atomicNoReplace": true,
+      "unsupportedAtomicPrimitiveFailsClosed": true,
+      "temporaryEntryRemovedAndDirectorySyncedOnFailure": true,
+      "finalOwnerChecked": true,
+      "finalMode0600Checked": true,
+      "finalNlinkOneChecked": true,
+      "finalBytesAndShaReadbackChecked": true,
+      "sourcePermissionsWeakened": false
+    }
+  },
+  "tests": {
+    "focused": { "passed": 6, "failed": 0 },
+    "fullWalletAuth": { "passed": 354, "failed": 0 },
+    "cleanCloneWalletAuth": {
+      "commit": "082afce922bf7cef90843cfe3f65d6596dc79a57",
+      "trackedStatusClean": true,
+      "offlineRuntimeOverlay": true,
+      "networkInstallUsed": false,
+      "passed": 354,
+      "failed": 0
+    },
+    "raceBoundary": {
+      "targetCreatedAfterAbsenceCheckBeforePublication": true,
+      "errorCode": "OUTPUT_EXISTS",
+      "receiptReturned": false,
+      "concurrentTargetBytesPreserved": true,
+      "concurrentTargetInodePreserved": true,
+      "concurrentTargetModePreserved": true,
+      "concurrentTargetNlinkPreserved": true,
+      "temporaryEntryRemoved": true
+    },
+    "negativeBoundary": {
+      "existingRegularTargetPreserved": true,
+      "existingSymlinkTargetPreserved": true,
+      "existingHardlinkTargetPreserved": true,
+      "sourceHardlinkRejected": true,
+      "canonicalByteChangeRejected": true,
+      "unsupportedPrimitiveErrorCode": "ATOMIC_PUBLISH_UNAVAILABLE",
+      "unsupportedPrimitiveLeavesNoTargetOrTemporaryEntry": true
+    },
+    "pack": {
+      "repeatBuildByteIdentical": true,
+      "sha256": "da9ecdeaf4ee514c401880c6791960ec13c10c09a2b2a40eb9dce39af5f741d8",
+      "bytes": 183302,
+      "entries": 102,
+      "moduleIncluded": true,
+      "cliIncluded": true
+    }
+  },
+  "offlineArtifacts": {
+    "directory": "release/integration/p0-wallet-connectivity/artifacts/wallet-auth-082afce9",
+    "repeatBuildByteIdentical": true,
+    "cleanExtractionColdImportPassed": true,
+    "cleanExtractionCliPrivilegeGatePassed": true,
+    "inventoryExtractionReadbackPassed": true,
+    "noSecretScanPassed": true,
+    "sourceArchive": {
+      "name": "wallet-auth-source-082afce9.tar.gz",
+      "sha256": "c0cced6d0657eb18ea80217863c9a06b451b209c5d9fac3b4a056c50fd5cd3ab",
+      "bytes": 194066,
+      "entries": 111,
+      "fileEntries": 103,
+      "extractionRoot": "ynx-wallet-auth-082afce9/source"
+    },
+    "sourceInventory": {
+      "name": "wallet-auth-source-082afce9.inventory.json",
+      "sha256": "e1361b7e7ce2ecdd98bba399e4a88c8b92d896d77654f2b4ea9a8c06e96752e1",
+      "bytes": 24907
+    },
+    "runtimeArchive": {
+      "name": "wallet-auth-runtime-dependencies-082afce9.tar.gz",
+      "sha256": "ba3c5ccb83ff955106c6c39915c7284fcc41398cca4f22b5500026769198b952",
+      "bytes": 713225,
+      "entries": 224,
+      "fileEntries": 212,
+      "overlayRoot": "ynx-wallet-auth-082afce9/source/packages/wallet-auth/node_modules"
+    },
+    "runtimeInventory": {
+      "name": "wallet-auth-runtime-dependencies-082afce9.inventory.json",
+      "sha256": "88f8653835f3d629e658d45eadfdbeb40ed0c783e071d50ae7c1fa52da4fb851",
+      "bytes": 52591
+    },
+    "sbom": {
+      "name": "wallet-auth-runtime-082afce9.cdx.json",
+      "sha256": "ade6438edfe429ed66d9e474eabe9998bbaac6d6f5dcff8fd7f12227acb06b4e",
+      "bytes": 2265,
+      "format": "CycloneDX 1.5",
+      "components": 3,
+      "dependencyNodes": 3
+    }
+  },
+  "truth": {
+    "integrationAccepted": false,
+    "executionLeaseExists": false,
+    "productionReadPerformed": false,
+    "deploymentAttempted": false,
+    "candidateActivated": false,
+    "publicSourceCommit": "6cf3ef845202bd879ed94515a71b323dd2fc9e14",
+    "registryV3Public": false,
+    "productMigrationsComplete": 0,
+    "productMigrationsTotal": 12,
+    "computerControlVerified": false,
+    "deployedPublic": false,
+    "integrated": false
+  }
+}
