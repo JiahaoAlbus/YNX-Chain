@@ -1,7 +1,7 @@
 {
   "taskId": "P0-014",
   "owner": "integration",
-  "status": "IN_PROGRESS",
+  "status": "DEFERRED_EXISTING_PRODUCT",
   "scope": ["apps/calendar/**", "internal/calendar/**"],
   "recoveredSource": {
     "branch": "codex/final-calendar",
@@ -18,11 +18,7 @@
     "Standard Wallet Connection is independent of Product Session. Product Session failure may degrade private Calendar features but must not remove standard connection or public data.",
     "No fake production, mail delivery, AI execution, public deployment or installed-client claim."
   ],
-  "firstCheckpoint": [
-    "Verify recovered source and its stated tests.",
-    "Inventory legacy connection/runtime endpoints and classify each through the accepted error and endpoint contracts.",
-    "Commit one Calendar-only compatibility/evidence slice with an exact rollback."
-  ],
+  "deferral": "Calendar's core product scope is already implemented. This P0 scheduling correction releases its path without source changes so Explorer/Monitor can receive the next bounded Heavy Slice.",
   "prohibitions": [
     "Do not modify Wallet Protocol, Gateway kernel, SDK source, Website source, Chain Core, Finance or Card.",
     "Do not hard-code RPC/Gateway endpoints or use localhost in a release.",
