@@ -1,7 +1,7 @@
 {
   "taskId": "P0-004",
   "owner": "financial-apps",
-  "status": "IN_PROGRESS_FINANCE_RESUME_ONLY",
+  "status": "IN_PROGRESS_EXCHANGE_ONLY",
   "acceptedContracts": [
     "walletTransport@p0-wallet-connection-v1",
     "errorContract@p0-wallet-connection-v1",
@@ -12,29 +12,20 @@
   "endpointManifest": "release/integration/p0-wallet-connectivity/public-endpoint-manifest.json",
   "endpointRule": "Consume only VERIFIED or explicitly DEGRADED endpoints according to the manifest. Product APIs marked PENDING or UNAVAILABLE are not callable and must surface their exact classification rather than Offline.",
   "executionOrder": ["finance", "exchange", "pay", "dex", "quant"],
-  "firstProduct": {
-    "id": "finance",
-    "pathLock": "apps/finance/**",
-    "status": "RESUMED_RELEASE_EVIDENCE",
-    "commit": "4af744a90cb6351ead09a3130244791b71d34a84",
-    "tests": [
-      "8 Finance tests",
-      "Finance security scan over 192 text files",
-      "frontend smoke",
-      "mobile TypeScript/7 tests/manifest verification/Android and iOS Expo bundles",
-      "Android release build",
-      "emulator install and 303 ms cold start"
-    ],
-    "handoff": "apps/finance/P0_WALLET_CONNECTIVITY_HANDOFF.md",
-    "completedSteps": ["accepted SDK", "accepted manifest", "standard Wallet Connection migration", "standalone networking classification", "error classification", "tests", "build", "install/cold-start"],
-    "remainingSteps": ["real connectivity verification", "artifact hash", "release evidence", "isolated next checkpoint"]
+  "financeCheckpoint": {
+    "commit": "f7efbd9e9658aaea75f8d9fbbb58f79ee1a48365",
+    "status": "RELEASE_EVIDENCE_CHECKPOINT",
+    "evidence": ["APK hash d18771c498fb94c5a5893a5899686e62ce864c72a877bd9f9dde7695033025be", "local debug install and 244 ms cold start", "real Wallet deep-link invocation", "eight non-product manifest health endpoints HTTP 200"],
+    "unresolved": ["Finance product API is PENDING", "unlocked Wallet account authorization not yet directly evidenced", "no public download, production signature or website claim"]
   },
-  "resume": {
-    "resumedAt": "2026-08-20T09:53:30Z",
-    "heavyLeasePreviousOwner": "explorer-monitor",
-    "explorerCheckpoint": "6d62c399a279c57e8883b300a4cf6d782c8e1673",
-    "scope": "FINANCE_RELEASE_EVIDENCE_SLICE",
-    "rule": "Do not redo the completed migration and do not start Exchange, Pay, DEX or Quant before Integration issues a separate product lock."
+  "activeProduct": {
+    "id": "exchange",
+    "pathLock": "apps/exchange/**",
+    "branch": "codex/exchange-wallet-actions-20260809",
+    "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/07-exchange-public",
+    "baselineCommit": "d4c5be1c74dfbcd67ad90d435720a8ca456ade79",
+    "scope": "Audit and migrate only Exchange standard Wallet Connection, endpoint manifest networking, exact error classification and installed-client evidence.",
+    "requiredSteps": ["audit current Exchange sources", "consume accepted SDK/manifest", "remove direct legacy/gateway coupling", "test", "build", "install/cold-start", "record actual connection state", "artifact hash", "handoff", "commit/push"]
   },
   "prohibitions": [
     "do not rewrite Wallet Protocol",
@@ -43,7 +34,8 @@
     "do not hard-code Gateway or RPC",
     "do not put localhost in a release",
     "do not substitute Web success for installed-platform proof",
-    "do not classify Product Session failure as whole-app Offline"
+    "do not classify Product Session failure as whole-app Offline",
+    "do not start Pay, DEX or Quant"
   ],
-  "nextAction": "Perform only the remaining Finance verification/evidence slice; produce a safe checkpoint before any later financial product is considered."
+  "nextAction": "Perform exactly the Exchange Wallet Connectivity slice, then stop at a safe checkpoint."
 }
