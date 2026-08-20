@@ -1,10 +1,14 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import { test } from "node:test";
 import { p256 } from "@noble/curves/nist.js";
 import {
-  canonicalJSON, createProductSessionRequest, migrateProductSessionGatewayNodeStateRegistryV2, parseProductSessionRegistry,
+  canonicalJSON, createProductSessionRequest, migrateLegacy6cfProductSessionGatewayNodeState, migrateProductSessionGatewayNodeStateRegistryV2, parseProductSessionRegistry,
   productSessionRegistryV2MigrationSource, ProductSessionGatewayKernel, signProductSessionApproval, signProductSessionChallenge,
 } from "../src/index.js";
 
@@ -41,6 +45,61 @@ test("reviewed registry v2 copied state migrates deterministically to v3 and pur
   assert.equal(migrated.snapshot.idempotency.length, 0);
   assert.equal(migrated.snapshotSha256, sha256(canonicalJSON(migrated.snapshot)));
   assert.deepEqual(migrateProductSessionGatewayNodeStateRegistryV2({ currentRegistry, previousRegistry, stateEnvelope: sourceEnvelope }), migrated);
+});
+
+test("exact canonical 6cf envelope migrates only with mandatory source and registry file digests", () => {
+  const snapshot = new ProductSessionGatewayKernel(previousRuntimeRegistry, () => token("unused")).snapshot();
+  const stateBytes = `${canonicalJSON({ schemaVersion: 1, snapshot, snapshotDigest: sha256(canonicalJSON(snapshot)) })}\n`;
+  const previousRegistryBytes = `${canonicalJSON(previousRegistry)}\n`;
+  const currentRegistryBytes = `${canonicalJSON(currentRegistry)}\n`;
+  const input = {
+    currentRegistryBytes,
+    expectedCurrentRegistryFileSha256: sha256(currentRegistryBytes),
+    expectedPreviousRegistryFileSha256: sha256(previousRegistryBytes),
+    expectedSourceStateFileSha256: sha256(stateBytes),
+    previousRegistryBytes,
+    stateBytes,
+  };
+  const migrated = migrateLegacy6cfProductSessionGatewayNodeState(input);
+  assert.equal(migrated.registrySha256, sha256(canonicalJSON(parseProductSessionRegistry(currentRegistry))));
+  assert.equal(migrated.snapshotSha256, sha256(canonicalJSON(migrated.snapshot)));
+  assert.deepEqual(migrateLegacy6cfProductSessionGatewayNodeState(input), migrated);
+  for (const changed of [
+    { expectedSourceStateFileSha256: "00".repeat(32) },
+    { expectedPreviousRegistryFileSha256: "00".repeat(32) },
+    { expectedCurrentRegistryFileSha256: "00".repeat(32) },
+    { stateBytes: stateBytes.replace("snapshotDigest", "snapshotSha256") },
+    { stateBytes: ` ${stateBytes}` },
+  ]) assert.throws(() => migrateLegacy6cfProductSessionGatewayNodeState({ ...input, ...changed }));
+});
+
+test("offline 6cf migration artifact creates one private output and rejects digest mismatch without output", () => {
+  const directory = mkdtempSync(join(tmpdir(), "ynx-product-session-migrate-")); chmodSync(directory, 0o700);
+  const snapshot = new ProductSessionGatewayKernel(previousRuntimeRegistry, () => token("unused")).snapshot();
+  const paths = {
+    current: join(directory, "current.json"), previous: join(directory, "previous.json"), source: join(directory, "source.json"),
+    output: join(directory, "migrated.json"), rejected: join(directory, "rejected.json"),
+  };
+  writeFileSync(paths.current, `${canonicalJSON(currentRegistry)}\n`);
+  writeFileSync(paths.previous, `${canonicalJSON(previousRegistry)}\n`);
+  writeFileSync(paths.source, `${canonicalJSON({ schemaVersion: 1, snapshot, snapshotDigest: sha256(canonicalJSON(snapshot)) })}\n`, { mode: 0o600 });
+  const base = [
+    "--current-registry", paths.current,
+    "--expected-current-registry-file-sha256", sha256(readFileSync(paths.current, "utf8")),
+    "--expected-previous-registry-file-sha256", sha256(readFileSync(paths.previous, "utf8")),
+    "--expected-source-state-file-sha256", sha256(readFileSync(paths.source, "utf8")),
+    "--previous-registry", paths.previous,
+    "--source-state", paths.source,
+  ];
+  const migrationScript = fileURLToPath(new URL("../scripts/ynx-wallet-product-session-state-migrate.mjs", import.meta.url));
+  const success = spawnSync(process.execPath, [migrationScript, ...base, "--output-state", paths.output], { encoding: "utf8" });
+  assert.equal(success.status, 0, success.stderr);
+  const receipt = JSON.parse(success.stdout), output = JSON.parse(readFileSync(paths.output, "utf8"));
+  assert.equal(receipt.migratedStateFileSha256, sha256(readFileSync(paths.output, "utf8")));
+  assert.equal(output.registrySha256, receipt.registryStateBindingSha256);
+  const failure = spawnSync(process.execPath, [migrationScript, ...base.map((value) => value === sha256(readFileSync(paths.source, "utf8")) ? "00".repeat(32) : value), "--output-state", paths.rejected], { encoding: "utf8" });
+  assert.notEqual(failure.status, 0);
+  assert.equal(existsSync(paths.rejected), false);
 });
 
 test("unreviewed registry or copied-state tamper fails closed without changing its bytes", () => {

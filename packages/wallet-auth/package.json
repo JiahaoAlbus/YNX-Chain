@@ -56,6 +56,7 @@
   "files": ["src", "scripts", "testdata", "integration", "central-registry.json", "product-session-registry.json", "registry-conflict-evidence.json", "CENTRAL_INTEGRATION.md"],
   "bin": {
     "ynx-wallet-gatewayd": "scripts/ynx-wallet-gatewayd.mjs",
+    "ynx-wallet-product-session-state-migrate": "scripts/ynx-wallet-product-session-state-migrate.mjs",
     "ynx-wallet-gateway-backup": "scripts/ynx-wallet-gateway-backup.mjs",
     "ynx-wallet-gateway-state-lock": "scripts/ynx-wallet-gateway-state-lock.mjs",
     "ynx-wallet-sponsorship-state-lock": "scripts/ynx-wallet-sponsorship-state-lock.mjs"

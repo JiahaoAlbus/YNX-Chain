@@ -19,6 +19,7 @@ export class ProductSessionGatewayNodeHost {
   #now;
   #ready = true;
   #registry;
+  #registryFileSha256;
   #registrySha256;
   #remoteDeployed;
   #statePath;
@@ -31,6 +32,7 @@ export class ProductSessionGatewayNodeHost {
     const deploy = deploymentOptions(deployment);
     this.#registry = parseProductSessionRegistry(registryInput);
     this.#registrySha256 = sha256(canonicalJSON(this.#registry));
+    this.#registryFileSha256 = deploy.registryFileSha256;
     this.#statePath = secureStatePath(runtime.statePath);
     this.#now = runtime.now;
     this.#emitEvent = runtime.emitEvent;
@@ -123,11 +125,14 @@ export class ProductSessionGatewayNodeHost {
   }
 
   #administrative(request) {
-    if (request.method !== "GET" || request.headers[PRODUCT_SESSION_GATEWAY_PROOF_HEADER_V2] !== undefined || request.headers["content-length"] !== undefined || request.headers["transfer-encoding"] !== undefined) return null;
+    const administrative = administrativeName(request.url);
+    if (!administrative) return null;
+    if (request.method !== "GET") return jsonResponse(405, "req_administrative_method_", { error: { code: "METHOD_NOT_ALLOWED", message: "Product Session administrative routes require GET" }, ok: false });
+    if (request.headers[PRODUCT_SESSION_GATEWAY_PROOF_HEADER_V2] !== undefined || request.headers["content-length"] !== undefined || request.headers["transfer-encoding"] !== undefined) return jsonResponse(400, "req_administrative_request", { error: { code: "INVALID_ADMIN_REQUEST", message: "Product Session administrative routes do not accept proof or body headers" }, ok: false });
     const stateSha256 = this.stateDigest();
-    if (request.url === "/health") return jsonResponse(200, "req_administrative_health", { ok: true, remoteDeployed: this.#remoteDeployed, service: PRODUCT_SESSION_GATEWAY_NODE_SERVICE, stateSha256, truthfulStatus: this.#remoteDeployed ? "remote-product-session-v2-gateway" : "local-product-session-v2-gateway" });
-    if (request.url === "/ready") return jsonResponse(this.#ready ? 200 : 503, "req_administrative_ready_", { ok: this.#ready, remoteDeployed: this.#remoteDeployed, runtimeReady: this.#ready, service: PRODUCT_SESSION_GATEWAY_NODE_SERVICE, stateSha256 });
-    if (request.url === "/version") return jsonResponse(200, "req_administrative_version", { build: this.#build, nodeStateSchemaVersion: PRODUCT_SESSION_GATEWAY_NODE_STATE_SCHEMA_VERSION, ok: true, productSessionGatewaySchemaVersion: 2, registrySchemaVersion: PRODUCT_SESSION_REGISTRY_VERSION, registrySha256: this.#registrySha256, remoteDeployed: this.#remoteDeployed, service: PRODUCT_SESSION_GATEWAY_NODE_SERVICE });
+    if (administrative === "health") return jsonResponse(200, "req_administrative_health", { ok: true, remoteDeployed: this.#remoteDeployed, service: PRODUCT_SESSION_GATEWAY_NODE_SERVICE, stateSha256, truthfulStatus: this.#remoteDeployed ? "remote-product-session-v2-gateway" : "local-product-session-v2-gateway" });
+    if (administrative === "ready") return jsonResponse(this.#ready ? 200 : 503, "req_administrative_ready_", { ok: this.#ready, remoteDeployed: this.#remoteDeployed, runtimeReady: this.#ready, service: PRODUCT_SESSION_GATEWAY_NODE_SERVICE, stateSha256 });
+    if (administrative === "version") return jsonResponse(200, "req_administrative_version", { build: this.#build, nodeStateSchemaVersion: PRODUCT_SESSION_GATEWAY_NODE_STATE_SCHEMA_VERSION, ok: true, productSessionGatewaySchemaVersion: 2, registryFileSha256: this.#registryFileSha256, registrySchemaVersion: PRODUCT_SESSION_REGISTRY_VERSION, registrySha256: this.#registrySha256, registryStateBindingSha256: this.#registrySha256, remoteDeployed: this.#remoteDeployed, service: PRODUCT_SESSION_GATEWAY_NODE_SERVICE });
     return null;
   }
 
@@ -153,13 +158,13 @@ export class ProductSessionGatewayNodeHost {
 }
 
 export class PersistentProductSessionGatewayNodeHost extends ProductSessionGatewayNodeHost {
-  constructor(registry, options) {
+  constructor(registry, options, deployment = { remoteDeployed: false }) {
     super(registry, {
       emitEvent: options.emitEvent ?? (() => undefined),
       now: options.now,
       statePath: options.statePath,
       tokenFactory: options.tokenFactory ?? defaultProductSessionTokenFactory,
-    });
+    }, deployment);
   }
 }
 
@@ -171,12 +176,21 @@ function runtimeOptions(value) {
 
 function deploymentOptions(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new WalletAuthError("INVALID_DEPLOYMENT", "Product Session Gateway deployment is invalid");
-  const expected = Object.hasOwn(value, "build") ? ["build", "remoteDeployed"] : ["remoteDeployed"];
+  const expected = ["remoteDeployed"];
+  if (Object.hasOwn(value, "build")) expected.push("build");
+  if (Object.hasOwn(value, "registryFileSha256")) expected.push("registryFileSha256");
   exactFields(value, expected, "Product Session Gateway deployment");
   if (typeof value.remoteDeployed !== "boolean") throw new WalletAuthError("INVALID_DEPLOYMENT", "Product Session Gateway deployment flag is invalid");
   const build = value.build === undefined ? null : buildIdentity(value.build);
+  const registryFileSha256 = value.registryFileSha256 === undefined ? null : value.registryFileSha256;
+  if (registryFileSha256 !== null && (typeof registryFileSha256 !== "string" || !/^[0-9a-f]{64}$/.test(registryFileSha256))) throw new WalletAuthError("INVALID_REGISTRY_DIGEST", "Product Session Gateway registry file digest is invalid");
   if (value.remoteDeployed && !build) throw new WalletAuthError("INVALID_BUILD_IDENTITY", "Remote Product Session Gateway requires exact build identity");
-  return Object.freeze({ build, remoteDeployed: value.remoteDeployed });
+  return Object.freeze({ build, registryFileSha256, remoteDeployed: value.remoteDeployed });
+}
+
+function administrativeName(path) {
+  for (const name of ["health", "ready", "version"]) if (path === `/${name}` || path === `/v2/product-sessions/${name}`) return name;
+  return null;
 }
 
 function buildIdentity(value) {

@@ -40,14 +40,31 @@ test("unsafe startup and runtime state replacements fail closed", async () => {
 test("version evidence reports the exact registry v3 digest without promoting remote deployment", async () => {
   const directory = mkdtempSync(join(tmpdir(), "ynx-product-session-v2-")); chmodSync(directory, 0o700);
   const statePath = join(directory, "state.json");
-  const host = new PersistentProductSessionGatewayNodeHost(registry, { statePath, now: () => NOW });
-  const response = await serveGet(host, "/version");
+  const registryBytes = readFileSync(new URL("../product-session-registry.json", import.meta.url));
+  const registryFileSha256 = createHash("sha256").update(registryBytes).digest("hex");
+  const host = new PersistentProductSessionGatewayNodeHost(registry, { statePath, now: () => NOW }, { remoteDeployed: false, registryFileSha256 });
+  const response = await serveGet(host, "/v2/product-sessions/version");
   const body = JSON.parse(response.body);
   assert.equal(response.status, 200);
   assert.equal(body.registrySchemaVersion, 3);
   assert.equal(body.registrySha256, createHash("sha256").update(canonicalJSON(parseProductSessionRegistry(registry))).digest("hex"));
+  assert.equal(body.registryStateBindingSha256, body.registrySha256);
+  assert.equal(body.registryFileSha256, registryFileSha256);
   assert.equal(body.remoteDeployed, false);
   assert.equal(body.build, null);
+});
+
+test("prefixed administrative routes are exact GET-only and do not mutate state", async () => {
+  const directory = mkdtempSync(join(tmpdir(), "ynx-product-session-v2-")); chmodSync(directory, 0o700);
+  const statePath = join(directory, "state.json");
+  const host = new PersistentProductSessionGatewayNodeHost(registry, { statePath, now: () => NOW });
+  const before = readFileSync(statePath);
+  for (const path of ["/v2/product-sessions/health", "/v2/product-sessions/ready", "/v2/product-sessions/version"]) {
+    assert.equal((await serveGet(host, path)).status, 200);
+    assert.deepEqual(readFileSync(statePath), before);
+  }
+  assert.equal((await serve(host, "req_bad_admin_method_01", "/v2/product-sessions/version", "{}")).status, 405);
+  assert.deepEqual(readFileSync(statePath), before);
 });
 
 function request(){const secret=Buffer.alloc(32,21);return createProductSessionRequest(registry,{productId:"finance",platform:"web",deviceId:"node-host-device-001",deviceKey:Buffer.from(p256.getPublicKey(secret,true)).toString("base64url"),scopes:["finance.pay.read"],purpose:"Persistent Product Session v2 host test.",nonce:randomBytes(32).toString("base64url"),state:randomBytes(32).toString("base64url")},NOW)}
