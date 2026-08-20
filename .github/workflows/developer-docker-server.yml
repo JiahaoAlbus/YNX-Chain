@@ -29,7 +29,7 @@ jobs:
       - name: Cold-launch unprivileged Docker server image
         run: |
           runtime_checkpoint=$(node -e 'const fs=require("fs");process.stdout.write(JSON.parse(fs.readFileSync("apps/developer/product-release.json","utf8")).currentPublicCandidate.sourceCommit)')
-          ./apps/developer/scripts/verify-docker-server-image.sh "ynx-code-server:$GITHUB_SHA" "$GITHUB_SHA" "$runtime_checkpoint" ./apps/developer/.ynx-developer-docker
+          bash ./apps/developer/scripts/verify-docker-server-image.sh "ynx-code-server:$GITHUB_SHA" "$GITHUB_SHA" "$runtime_checkpoint" ./apps/developer/.ynx-developer-docker
       - name: Export Docker image archive
         run: docker save ynx-code-server:"$GITHUB_SHA" | gzip -n > apps/developer/.ynx-developer-docker/ynx-code-server-linux-amd64.tar.gz
       - uses: actions/upload-artifact@v4
