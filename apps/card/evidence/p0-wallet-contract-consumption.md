@@ -50,6 +50,18 @@ The Card adapter preserves any `x-request-id`, `x-trace-id`, and `x-error-id`
 received from a future Gateway response. Until a real Card completion exists,
 this section is `NOT_EVIDENCED`.
 
+### Accepted endpoint consumer boundary
+
+Card bundles the accepted `public-endpoint-manifest@1.0.0-p0.2` source snapshot
+from `bfd850a2c7bd238e3febc7267ff31be17890888d` and accepts only its fixed
+`https://gateway.ynxweb4.com` origin when the manifest marks `appGateway` as
+`VERIFIED` or `DEGRADED`. No Card caller or environment variable can supply a
+Gateway host, credentials, path, or query. The currently bundled manifest marks
+`appGateway` as `UNAVAILABLE`; Card therefore fails closed before any private
+session request and reports private-service degradation while Standard Wallet
+remains connected. `/app/card/session/*` is an existing legacy private route,
+not Card v2 evidence.
+
 ## 3. Visible platform evidence
 
 `App.tsx` renders `Standard wallet CONNECTED` independently from the private

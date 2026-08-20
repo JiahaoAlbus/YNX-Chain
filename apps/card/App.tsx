@@ -11,7 +11,6 @@ import{approveTestnetTopup,classifyCardWalletError,completeCentralSession,connec
 import{isFailure,recoverLastFailed,replayAwareAppend,SimulationAuditRecord,TESTNET_SIMULATION_CURRENCY,TESTNET_SIMULATION_MAX_EVENTS,type SimulationInput as LedgerSimulationInput}from"./src/simulation";
 
 const BLUE="#002FA7",RED="#B42318",GREEN="#067647",ORANGE="#B54708";
-const GATEWAY=process.env.EXPO_PUBLIC_YNX_CARD_GATEWAY_URL??"";
 type Tab="card"|"activity"|"controls"|"simulation"|"support";
 type SimulationAction="authorization"|"capture"|"reversal"|"refund";
 
@@ -78,7 +77,7 @@ export default function App(){
       if(!saved)throw new Error("Wallet authorization request expired or was already consumed");
       const approval=verifiedApproval(url,saved);
       if(!walletSession){if(mounted.current){setPrivateSession({state:"PRIVATE_SERVICE_DEGRADED",...classifyCardWalletError({code:"ACCOUNT_REQUIRED"})});setPending(false);}return;}
-      const outcome=await enhanceCardProductSession(walletSession,()=>completeCentralSession(GATEWAY,saved,approval));
+      const outcome=await enhanceCardProductSession(walletSession,()=>completeCentralSession(saved,approval));
       await savePendingAuthorization(null);
       if(outcome.state==="PRIVATE_SERVICE_DEGRADED"){if(mounted.current){setPrivateSession(outcome);setPending(false);}return;}
       await saveSession(outcome.session);
