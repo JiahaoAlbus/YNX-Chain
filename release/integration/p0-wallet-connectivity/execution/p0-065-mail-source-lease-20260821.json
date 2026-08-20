@@ -1,0 +1,15 @@
+{
+  "schemaVersion":1,
+  "campaignId":"P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId":"P0-065",
+  "leaseId":"P0-065_LIGHT_SOURCE_ONLY",
+  "status":"ACTIVE_BOUNDED_MAIL_SOURCE_ONLY",
+  "owner":"integration",
+  "branch":"codex/p0-mail-wallet-connectivity-20260821",
+  "worktree":"/Users/huangjiahao/Desktop/YNX Final Worktrees/42-mail-p0",
+  "startingCommit":"2c8b885e81b594dae3244255614ecc9405e790c3",
+  "leasedAt":"2026-08-20T21:18:00Z",
+  "scope":["apps/mail/**"],
+  "requirements":["recover exact clean owner source","compare against Fable5 Mail","consume accepted SDK without copying shared protocol","prefer YNX Wallet and support standard EVM fallback","preserve guest reading and local draft","isolate unavailable private/delivery services","test build local-browser verify push release"],
+  "forbidden":["shared Wallet/Auth, Mail authority kernel or SDK changes","provider credentials or DNS changes","public deployment","installed or Computer Control claim","fake send or Internet delivery success","whole-app Offline on Product Session failure"]
+}
