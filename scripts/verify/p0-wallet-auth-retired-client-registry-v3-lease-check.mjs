@@ -38,10 +38,10 @@ assert.equal(evidence.ownerSource.versionReportsRegistrySchemaVersion, 3);
 assert.equal(evidence.artifactIdentity.sourceArchiveSha256, lease.source.sourceArchiveSha256);
 assert.equal(evidence.artifactIdentity.inventorySha256, lease.source.sourceInventorySha256);
 assert.equal(evidence.artifactIdentity.packageLockSha256, lease.source.packageLockSha256);
-assert.equal(lease.status, "ISSUED_ACTIVE_SINGLE_USE");
+assert.equal(lease.status, "INVALIDATED_FAILED_PREFLIGHT");
 assert.equal(lease.singleUse, true);
 assert.equal(lease.reusable, false);
-assert.equal(lease.authorization.executionAuthorized, true);
+assert.equal(lease.authorization.executionAuthorized, false);
 assert.equal(lease.authorization.caddyChangeAllowed, false);
 assert.equal(lease.authorization.baseSystemdUnitChangeAllowed, false);
 assert.equal(lease.authorization.readWritePathsExpansionAllowed, false);
@@ -51,21 +51,23 @@ assert.equal(lease.rollbackDrill.requiredBeforeFinalActivation, true);
 assert.equal(lease.publicAcceptance.versionRegistrySchemaVersion, 3);
 assert.deepEqual(lease.publicAcceptance.actionsExact, ["open-replacement", "return-to-product"]);
 assert.equal(lease.executionState.deploymentStarted, false);
-assert.equal(lease.executionState.leaseConsumed, false);
+assert.equal(lease.executionState.leaseConsumed, true);
+assert.equal(lease.issuanceBlocker.productionMutation, false);
+assert.equal(lease.issuanceBlocker.blockers.length, 5);
 validateTruth(lease.truth);
 
 const task = queue.tasks.find((item) => item.taskId === "P0-039");
 assert.ok(task);
-assert.equal(task.status, "SINGLE_USE_RUNTIME_LEASE_ISSUED");
-assert.equal(task.executionLeaseIssued, true);
+assert.equal(task.status, "LEASE_INVALIDATED_FAILED_CLOSED_PREFLIGHT");
+assert.equal(task.executionLeaseIssued, false);
 assert.equal(task.executionLeaseId, lease.leaseId);
 assert.equal(task.leaseCandidateId, lease.leaseCandidateId);
 assert.equal(task.productsMigrated, 0);
 assert.equal(leases.heavy.taskId, "P0-039");
-assert.equal(leases.heavy.owner, "wallet-auth-core");
-assert.equal(leases.heavy.status, "ACTIVE");
-assert.equal(leases.epoch, 12);
-assert.ok(leases.queue.includes("wallet-auth-core:registry-v3@active-single-use"));
+assert.equal(leases.heavy.owner, null);
+assert.equal(leases.heavy.status, "RELEASED_FAILED_PREFLIGHT");
+assert.equal(leases.epoch, 13);
+assert.ok(leases.queue.includes("wallet-auth-core:registry-v3@failed-preflight-890ef0f8"));
 
 if (process.argv.includes("--self-test")) {
   const mutations = [
@@ -83,4 +85,4 @@ if (process.argv.includes("--self-test")) {
   console.log("PASS 5/5 retired-client public-truth mutations rejected");
 }
 
-console.log("PASS reconciled retired-client runtime artifact accepted; bounded single-use lease issued after Explorer checkpoint");
+console.log("PASS Registry v3 lease invalidated after read-only failed preflight; Heavy released and public truth remains false");

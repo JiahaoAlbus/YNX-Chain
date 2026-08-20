@@ -1,20 +1,20 @@
 {
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-  "epoch": 12,
-  "updatedAt": "2026-08-20T17:40:54Z",
+  "epoch": 13,
+  "updatedAt": "2026-08-20T17:56:31Z",
   "heavy": {
-    "owner": "wallet-auth-core",
-    "status": "ACTIVE",
+    "owner": null,
+    "status": "RELEASED_FAILED_PREFLIGHT",
     "branch": "codex/wallet-core-auth-gateway-continuation-20260814",
     "worktree": "/Users/huangjiahao/.codex/worktrees/30cb/YNX Chain",
     "taskId": "P0-039",
     "leasedAt": "2026-08-20T17:40:54Z",
     "expiresAt": "2026-08-20T19:40:54Z",
-    "releasedAt": null,
+    "releasedAt": "2026-08-20T17:56:31Z",
     "previousOwner": "explorer-monitor",
     "previousCheckpoint": "f8db7632fb37e9363858a4d4d977eea7b3585c7e",
-    "reason": "Explorer/Monitor reached a clean pushed checkpoint. The pre-bound deb2cefb Registry v3 retirement candidate is granted one exclusive, single-use runtime migration, rollback and public acceptance transaction.",
-    "executionScope": "WALLET_AUTH_REGISTRY_V3_RETIREMENT_SINGLE_USE",
+    "reason": "The single-use Registry v3 lease failed closed during read-only preflight at owner checkpoint 890ef0f8. No production mutation occurred. The lease is invalidated and cannot be reused.",
+    "executionScope": "RELEASED_WALLET_AUTH_REGISTRY_V3_FAILED_PREFLIGHT",
     "onSafeCheckpoint": [
       "execute only the exact pre-bound source and offline dependency archives",
       "copy current state only while the service is stopped and keep shared production state unchanged during the drill",
@@ -76,7 +76,7 @@
     }
   ],
   "queue": [
-    "wallet-auth-core:registry-v3@active-single-use",
+    "wallet-auth-core:registry-v3@failed-preflight-890ef0f8",
     "financial-apps:pay@assigned-no-active-lease",
     "data-fabric:error-aggregation-checkpoint@da095e24",
     "explorer-monitor:source-policy-checkpoint@f8db7632",

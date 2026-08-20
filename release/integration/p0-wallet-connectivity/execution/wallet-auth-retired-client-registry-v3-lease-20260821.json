@@ -3,7 +3,7 @@
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-retired-client-registry-v3-20260820T174054Z",
   "leaseCandidateId": "P0-WALLET-CONNECTIVITY-2026-08-retired-client-registry-v3-candidate-20260820T172528Z",
-  "status": "ISSUED_ACTIVE_SINGLE_USE",
+  "status": "INVALIDATED_FAILED_PREFLIGHT",
   "singleUse": true,
   "reusable": false,
   "issuedAt": "2026-08-20T17:40:54Z",
@@ -12,7 +12,7 @@
   "deploymentOwner": "wallet-auth-gateway-runtime-owner",
   "deploymentChannel": "exclusive-wallet-auth-registry-v3-retirement-transaction",
   "authorization": {
-    "executionAuthorized": true,
+    "executionAuthorized": false,
     "singleControlledTransaction": true,
     "exclusiveProductionWindowRequired": true,
     "automaticRollbackRequired": true,
@@ -27,7 +27,20 @@
     "otherRegistryMutationAllowed": false,
     "forbiddenTargets": ["6437", "6439", "6441", "Wallet UI or platform", "Chain Core", "Website", "Developer SDK", "Shop source", "other products"]
   },
-  "issuanceBlocker": null,
+  "issuanceBlocker": {
+    "detectedAt": "2026-08-20T17:56:31Z",
+    "ownerCheckpoint": "890ef0f8b31ba467c5a347b83b0ec8bdca5497cf",
+    "evidenceSha256": "1509a0cf3f08fe2ee2d9a86a4a6fc5c06e0be96a69f8b2c56b6b88254bb2e0",
+    "classification": "READ_ONLY_PREFLIGHT_FAILED_CLOSED",
+    "productionMutation": false,
+    "blockers": [
+      "deb2cefb does not contain the mandatory copied-state v2-to-v3 migration artifact",
+      "the public Product Session host cannot expose the required exact deb2 version proof through the current routing boundary",
+      "the lease conflates the raw registry file SHA-256 with the parsed canonical state-binding digest",
+      "the current 6cf state envelope has no accepted conversion path into the candidate v3 state",
+      "the pre-bound candidate environment naming does not match the existing production candidate state layout"
+    ]
+  },
   "source": {
     "currentPublicRuntimeCommit": "6cf3ef845202bd879ed94515a71b323dd2fc9e14",
     "currentPublicRelease": "p0-v2-state-isolated-6cf3ef84",
@@ -109,13 +122,16 @@
     "wrongProductBundleCallbackScopeOriginMethodRouteHeaderQueryZeroMutation": true
   },
   "executionState": {
+    "preflightAttempted": true,
     "preflightComplete": false,
     "backupComplete": false,
     "deploymentStarted": false,
     "rollbackDrillComplete": false,
     "finalActivationStarted": false,
     "publicAcceptanceComplete": false,
-    "leaseConsumed": false
+    "leaseConsumed": true,
+    "leaseInvalidatedAt": "2026-08-20T17:56:31Z",
+    "ownerCheckpoint": "890ef0f8b31ba467c5a347b83b0ec8bdca5497cf"
   },
   "truth": {
     "candidateDeployedPublic": false,
