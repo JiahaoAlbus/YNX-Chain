@@ -58,7 +58,7 @@
   "integrationVerification": {
     "exactHeadMaterialized": "49e30d999e9a9cbdd2c565021009f2cab0dc125c",
     "dependencyMode": "isolated git archive with read-only workspace node_modules",
-    "walletAuthTestsPassed": 121,
+    "walletAuthTestsPassed": 122,
     "walletAuthTestsFailed": 0,
     "packageDryRunPassed": true,
     "packageName": "@ynx-chain/wallet-auth",
@@ -70,7 +70,9 @@
     "productionStateCompatibilityPreflightPassed": true,
     "runtimeSourceTestsPassed": 119,
     "publicEvidenceTestsPassed": 2,
-    "exactEvidenceHeadMaterialized": "b30775951dcea09bf6b72aeb4806f47ff81b3bef"
+    "exactEvidenceHeadMaterialized": "b30775951dcea09bf6b72aeb4806f47ff81b3bef",
+    "installedClientPreflightEvidenceTestsPassed": 1,
+    "exactLatestEvidenceHeadMaterialized": "2d6c9aa354a459b224b79c11c69aab670336a41d"
   },
   "requiredReconciliation": {
     "currentPublicSourceCommit": "6ed04310383ed924065d23affc71f3e4d4c29d49",
@@ -204,5 +206,23 @@
     "installedClientVerified": false,
     "websitePublished": false,
     "aggregatePublic": false
+  },
+  "installedClientPreflight": {
+    "status": "PRECHECK_REJECTED_NO_ELIGIBLE_INSTALLED_CLIENT",
+    "recordedAt": "2026-08-20T10:17:05Z",
+    "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-installed-client-computer-control-lease-20260820T101002Z",
+    "preflightRejectedReason": "NO_ELIGIBLE_SIGNED_INSTALLED_CLIENT",
+    "evidencePath": "release/integration/p0-wallet-protocol-installed-client-preflight-evidence.json",
+    "evidenceBlob": "8974960c4a2511bc8706311f3106a144505ace4f",
+    "clientFlowStarted": false,
+    "acceptanceComplete": false,
+    "cleanupRequired": false,
+    "cleanupState": "NOT_STARTED_NO_MUTATION",
+    "publicRuntimeRemainsVerified": true,
+    "runtimeRollbackTriggered": false,
+    "ownerEvidenceCommit": "2d6c9aa354a459b224b79c11c69aab670336a41d",
+    "ownerEvidenceTree": "edb441f1d69078bb8a7fbe58d92a66439e5af635",
+    "ownerEvidencePath": "packages/wallet-auth/integration/p0-wallet-protocol-installed-client-preflight-20260820.json",
+    "preflightComplete": false
   }
 }

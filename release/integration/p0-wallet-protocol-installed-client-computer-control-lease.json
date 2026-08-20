@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-installed-client-computer-control-lease-20260820T101002Z",
-  "status": "ISSUED_NOT_EXECUTED",
+  "status": "PRECHECK_REJECTED_NO_ELIGIBLE_INSTALLED_CLIENT",
   "issuedBy": "02-wallet-auth-central-integration",
   "issuedAt": "2026-08-20T10:10:02Z",
   "expiresAt": "2026-08-20T12:10:02Z",
@@ -16,7 +16,7 @@
     "publicRuntimeVerified": true
   },
   "authorization": {
-    "executionAuthorized": true,
+    "executionAuthorized": false,
     "singleInstalledClientWindow": true,
     "maximumWindowSeconds": 1800,
     "targetPlatformMustBeDeclaredBeforeExecution": true,
@@ -69,6 +69,17 @@
     "preflightComplete": false,
     "computerControlStarted": false,
     "acceptanceComplete": false,
-    "cleanupComplete": false
+    "cleanupRequired": false,
+    "cleanupComplete": false,
+    "cleanupState": "NOT_STARTED_NO_MUTATION"
+  },
+  "closedAt": "2026-08-20T10:17:05Z",
+  "preflightRejectedReason": "NO_ELIGIBLE_SIGNED_INSTALLED_CLIENT",
+  "preflightEvidence": {
+    "frozenPath": "release/integration/p0-wallet-protocol-installed-client-preflight-evidence.json",
+    "blob": "8974960c4a2511bc8706311f3106a144505ace4f",
+    "ownerEvidenceCommit": "2d6c9aa354a459b224b79c11c69aab670336a41d",
+    "ownerEvidencePath": "packages/wallet-auth/integration/p0-wallet-protocol-installed-client-preflight-20260820.json",
+    "status": "PRECHECK_REJECTED_NO_ELIGIBLE_INSTALLED_CLIENT"
   }
 }
