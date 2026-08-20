@@ -21,7 +21,7 @@ The web shell is also fail-closed: it contains no `fetch` or `/api/` product rou
 ## Focused evidence
 
 - `npm run check --prefix apps/exchange/mobile`: TypeScript, 8 mobile tests, 12-locale/RTL audit, and Android/iOS Expo export passed.
-- `npm test --prefix apps/exchange`: 6 static web tests passed.
+- `npm test --prefix apps/exchange`: product-scoped UI and release-evidence tests run together, independent of the caller's working directory.
 - `npm run test:browser --prefix apps/exchange`: 2 desktop/mobile responsive browser tests passed.
 - `node --test apps/exchange/tests/release-evidence.test.mjs`: passed.
 - `npm run verify:release-evidence --prefix apps/exchange -- --apk mobile/android/app/build/outputs/apk/release/app-release.apk`: binds the exact accepted manifest and APK hash while rejecting direct product routes and public-release claims.
