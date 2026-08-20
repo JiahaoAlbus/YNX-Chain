@@ -1,0 +1,126 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "P0-WALLET-CONNECTIVITY-p0055-receiver-bound-close-71a27c69",
+  "owner": "Core/Auth/Gateway",
+  "status": "SOURCE_AND_OFFLINE_ARTIFACT_CANDIDATE_AWAITING_INTEGRATION_REVIEW",
+  "source": {
+    "branch": "codex/wallet-core-auth-gateway-continuation-20260814",
+    "commit": "71a27c691c24aa8431eabd0bb838c0eec27f61d5",
+    "tree": "732e0a2a7329e320fb19bb05910807b2003a862c",
+    "parent": "d9e68d6cc10421cd75d66e1473ea6fc87ff6b6c0",
+    "remoteReadbackExact": true,
+    "packageLockSha256": "8929316677769e7a6ad703583c12a07dd4d4dcbf4d87c597983f6ab6955a87b6"
+  },
+  "priorRejectedCandidate": {
+    "sourceCommit": "31f0bb4722be4ead8c989d35265acfe22a600b31",
+    "evidenceCommit": "d9e68d6cc10421cd75d66e1473ea6fc87ff6b6c0",
+    "blocker": "CAPTURED_CLOSE_CALLABLE_WAS_NOT_BOUND_TO_SYSTEM_RECEIVER",
+    "sourceAccepted": false,
+    "executionLeaseExists": false
+  },
+  "correction": {
+    "scope": "Receiver binding for the single post-commit directory close only",
+    "modulePath": "packages/wallet-auth/src/product-session-state-materializer.js",
+    "moduleSha256": "dcd175fedf9a63a4ed6f7318a944f938ac015cd02fe1a96de990072ecd08d5ac",
+    "testPath": "packages/wallet-auth/test/product-session-state-materializer.test.mjs",
+    "testSha256": "73cd280811481d4080024f8ebcf749dce453df7d029785ae11c5a7ccc4dca211",
+    "closeCallableValidatedBeforeCommit": true,
+    "closeCallableBoundToExactSystemBeforeCommit": true,
+    "bindingPrimitive": "closeOperation.bind(system)",
+    "irreversibleCommitPoint": "successful directory fchown",
+    "postCommitDirectoryCloseCalls": 1,
+    "postCommitCloseRetryAllowed": false,
+    "receiverDependentCloseActuallyClosesFd": true,
+    "receiverDependentCloseThrowIsNonFatal": true,
+    "returnedReceiptIsExactPreFrozenReference": true,
+    "preservedControls": {
+      "receiptConstructedValidatedAndFrozenBeforeCommit": true,
+      "postCommitHooksOrPathChecks": 0,
+      "directoryFdRelativeCreateLstatUnlink": true,
+      "atomicOExclNoFollow": true,
+      "sameOutputDescriptorVerification": true,
+      "preCommitExactInodeRollback": true,
+      "cleanupNeverRemovesReplacement": true
+    }
+  },
+  "tests": {
+    "focused": { "passed": 18, "failed": 0 },
+    "fullWalletAuth": { "passed": 366, "failed": 0 },
+    "cleanCloneWalletAuth": {
+      "commit": "71a27c691c24aa8431eabd0bb838c0eec27f61d5",
+      "trackedStatusClean": true,
+      "offlineRuntimeOverlay": true,
+      "networkInstallUsed": false,
+      "passed": 366,
+      "failed": 0
+    },
+    "receiverSensitiveClose": {
+      "normalCloseCalls": 1,
+      "normalDirectoryFdOpenAfterReturn": false,
+      "throwAfterCloseCalls": 1,
+      "throwAfterCloseDirectoryFdOpenAfterReturn": false,
+      "throwAfterCloseReceiptReturned": true,
+      "doubleCloseAttempted": false
+    },
+    "pack": {
+      "repeatBuildByteIdentical": true,
+      "sha256": "968649b6317a57e94fce5d6e9f9a95a4248ccd58f22cfa4a1cc65acd3b962cbb",
+      "bytes": 184260,
+      "entries": 102
+    }
+  },
+  "offlineArtifacts": {
+    "directory": "release/integration/p0-wallet-connectivity/artifacts/wallet-auth-71a27c69",
+    "repeatBuildByteIdentical": true,
+    "cleanExtractionColdImportPassed": true,
+    "cleanExtractionCliPrivilegeGatePassed": true,
+    "inventoryExtractionReadbackPassed": true,
+    "noSecretLiteralScanPassed": true,
+    "sourceArchive": {
+      "name": "wallet-auth-source-71a27c69.tar.gz",
+      "sha256": "aeb8ea8b7b133cdc3b0cad458c241c5f9e7e8555f0812fa363de105b0fc2e8d2",
+      "bytes": 193745,
+      "entries": 111,
+      "fileEntries": 103
+    },
+    "sourceInventory": {
+      "name": "wallet-auth-source-71a27c69.inventory.json",
+      "sha256": "d9e8dc4243b90e6c62686c67bff1a633ead58fed3737145ccbd7f853f4b983ab",
+      "bytes": 24908
+    },
+    "runtimeArchive": {
+      "name": "wallet-auth-runtime-dependencies-71a27c69.tar.gz",
+      "sha256": "ddbd1f9746ff636333f1615b310238dcb648a0e1b7e9e842f17169d31abfdaf8",
+      "bytes": 707208,
+      "entries": 224,
+      "fileEntries": 212
+    },
+    "runtimeInventory": {
+      "name": "wallet-auth-runtime-dependencies-71a27c69.inventory.json",
+      "sha256": "ad724a09961ee217b5e5b69fcfd12c320ed7246e90650b9b3f75420e20e32fc7",
+      "bytes": 52591
+    },
+    "sbom": {
+      "name": "wallet-auth-runtime-71a27c69.cdx.json",
+      "sha256": "2b6e53377830c3279816034cc2a555fff38c9c40c41eac1ea4157132a0d490c7",
+      "bytes": 2265,
+      "format": "CycloneDX 1.5",
+      "components": 3,
+      "dependencyNodes": 3
+    }
+  },
+  "truth": {
+    "integrationAccepted": false,
+    "executionLeaseExists": false,
+    "productionReadPerformed": false,
+    "deploymentAttempted": false,
+    "candidateActivated": false,
+    "publicSourceCommit": "6cf3ef845202bd879ed94515a71b323dd2fc9e14",
+    "registryV3Public": false,
+    "productMigrationsComplete": 0,
+    "productMigrationsTotal": 12,
+    "computerControlVerified": false,
+    "deployedPublic": false,
+    "integrated": false
+  }
+}
