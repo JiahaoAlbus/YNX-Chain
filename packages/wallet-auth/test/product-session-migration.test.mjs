@@ -29,7 +29,7 @@ test("migration matrix covers the exact registry and cites only branch-local evi
   assert.equal(matrix.productRuntimeMigrationCount, matrix.products.filter((item) => item.migrated).length);
   assert.equal(matrix.fixedProductCount, matrix.products.filter((item) => item.migrated).length);
   for (const product of matrix.products) {
-    assert.ok(["contract-only", "core-runtime-candidate", "legacy-direct", "shared-sdk-v1", "canonical-launcher-v1", "standard-wallet-only", "root-factory-source-only", "root-factory-platform-negative", "android-retired-web-legacy", "migrated-v2"].includes(product.consumer));
+    assert.ok(["contract-only", "core-runtime-candidate", "legacy-direct", "shared-sdk-v1", "canonical-launcher-v1", "standard-wallet-only", "root-factory-source-only", "root-factory-owner-source-only", "root-factory-platform-negative", "android-retired-web-legacy", "migrated-v2"].includes(product.consumer));
     assert.ok(Array.isArray(product.evidence) && product.evidence.length > 0);
     for (const path of product.evidence) assert.equal(existsSync(resolve(repositoryRoot, path)), true, `${product.productId} evidence is missing: ${path}`);
   }
@@ -60,6 +60,14 @@ test("legacy and shared-v1 consumers cannot be presented as v2 migrations", () =
       assert.match(sources, /"rootFactoryConsumed": true/);
       assert.match(sources, /"publicGatewayLifecycleForCardVerified": false/);
       assert.match(sources, /"installedOrBrowserVisibleFlowVerified": false/);
+      assert.match(sources, /"migratedV2": false/);
+    }
+    if (product.consumer === "root-factory-owner-source-only") {
+      assert.match(sources, /"rootFactoryConsumed": true/);
+      assert.match(sources, /"runtimeRootFactoryVerified": false/);
+      assert.match(sources, /"distinctPublicV2RouteVerified": false/);
+      assert.match(sources, /"installedOrBrowserApprovalVerified": false/);
+      assert.match(sources, /"networkLossRetryVerified": false/);
       assert.match(sources, /"migratedV2": false/);
     }
     if (product.consumer === "root-factory-platform-negative") {
