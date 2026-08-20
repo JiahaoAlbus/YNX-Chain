@@ -38,7 +38,10 @@
     "signedNativeTransferReviewVisible": true,
     "signedNativeTransferBiometricConfirmed": true,
     "signedNativeTransferBroadcastAccepted": true,
-    "postBroadcastWalletRefreshVisible": true
+    "postBroadcastWalletRefreshVisible": true,
+    "postBroadcastColdLaunch": true,
+    "postBroadcastColdLaunchBiometricUnlock": true,
+    "postBroadcastColdLaunchTestnetStateVisible": true
   },
   "privacyPreservingUiEvidence": {
     "walletSecureScreenCaptureEnabled": true,
@@ -74,6 +77,13 @@
         "23 YNXT",
         "Nonce 1 · 2 recent account transactions"
       ]
+    },
+    "postBroadcastColdLaunch": {
+      "lockedUiXmlSha256": "13f5d00b316e86bef03978e60ad781fe5d1b441696f3699098b12b573ab4a36a",
+      "unlockedUiXmlSha256": "9bef6e80cfd83400a113079e29edb22d38c28045bda357d5c5071adf7ecb74de",
+      "launchState": "COLD",
+      "totalTimeMs": 184,
+      "waitTimeMs": 187
     }
   },
   "testnetTransaction": {
