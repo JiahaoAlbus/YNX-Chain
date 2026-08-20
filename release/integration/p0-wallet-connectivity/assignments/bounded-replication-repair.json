@@ -1,0 +1,14 @@
+{
+  "taskId":"P0-015",
+  "owner":"integration",
+  "status":"IN_PROGRESS",
+  "branch":"codex/p0-bounded-replication-repair-20260820",
+  "worktree":"29-chain-replication-p0",
+  "paths":["cmd/ynx-chaind/replication*.go","internal/api/server*.go","internal/chain/replication*.go"],
+  "observedFailure":"All follower nodes are behind the primary and repeatedly reject an authenticated replication response above the fixed 268435456-byte ceiling.",
+  "objective":"Bound each suffix by bytes as well as block count so a follower can make authenticated forward progress without raising the decompressed response ceiling.",
+  "invariants":["the active 256 MiB maximum remains enforced on fetch and apply","every response remains HMAC authenticated","every batch retains base/end continuity and integrity verification","final state remains separately sealed and validated","no service, deployment, manifest or public status changes in this source slice"],
+  "requiredEvidence":["focused chain and daemon tests including oversized-history progress","go build ./cmd/ynx-chaind","diff check","candidate rollback commit","separate protected deployment acceptance before any remote mutation"],
+  "rollback":"Revert the dedicated candidate commit; keep the current production release untouched until a separate deployment gate accepts exact source and follower convergence.",
+  "publicVerified":false
+}
