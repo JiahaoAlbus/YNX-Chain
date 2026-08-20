@@ -5,7 +5,7 @@
   "productId": "ynx-seller-console",
   "name": "YNX Seller Console",
   "branch": "codex/p0-seller-console-wallet-connectivity-20260821",
-  "sourceCommit": "pending-checkpoint",
+  "sourceCommit": "2bfa3d3d7923410b02e02c9d243ef70e88653c66",
   "version": "0.5.0-testnet-candidate",
   "goalStatus": "active",
   "stage": "SOURCE_CANDIDATE",
