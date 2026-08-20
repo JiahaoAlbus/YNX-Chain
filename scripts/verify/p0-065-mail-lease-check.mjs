@@ -13,5 +13,5 @@ assert.equal(locks.locks.find(x=>x.taskId==="P0-065").status,"CHECKPOINT_REACHED
 assert.equal(locks.locks.find(x=>x.taskId==="P0-065").checkpointCommit,"783f14a55796539702edc2104d0f1ce333c23fc5");
 assert.equal(queue.tasks.find(x=>x.taskId==="P0-065").status,"SOURCE_CHECKPOINT_REACHED_LIGHT_RELEASED");
 assert.equal(queue.tasks.find(x=>x.taskId==="P0-065").installedClientVerified,false);
-assert.equal(queue.tasks.find(x=>x.taskId==="P0-066").sourceAccepted,false);
-console.log("PASS P0-065 Mail source checkpoint is released and P0-066 remains NO_GO");
+assert.equal(queue.tasks.find(x=>x.taskId==="P0-067").sourceAccepted,false);
+console.log("PASS P0-065 Mail source checkpoint is released and P0-067 remains NO_GO");
