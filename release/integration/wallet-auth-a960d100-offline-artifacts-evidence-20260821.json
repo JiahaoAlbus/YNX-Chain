@@ -1,0 +1,126 @@
+{
+  "schemaVersion": 1,
+  "owner": "Core/Auth/Gateway",
+  "status": "offline-artifacts-frozen-no-execution-lease",
+  "central": {
+    "acceptanceCommit": "813eedbc758cb64363eb2045e91da6fe647c2295",
+    "noGoCommit": "5bf0b9a10fe75752bb1ef21efed2c0f051821655",
+    "record": "P0-048",
+    "p0_039Reusable": false,
+    "heavyLeaseIssued": false,
+    "sshLeaseIssued": false
+  },
+  "sourceBinding": {
+    "sourceCommit": "a960d1007e7952c2af591d39e3673f1d9fe50e62",
+    "sourceTree": "8170c4d8c24955564bf1cbe7852b8a883a44f1b4",
+    "packageLockPath": "packages/wallet-auth/package-lock.json",
+    "packageLockSha256": "c32e52b9c87743ee5870ec146590f203f0084926dfbf9a66b7edb5a9224ce606",
+    "packageLockVersion": 3,
+    "packageNodes": 3,
+    "dependencies": [
+      {"name": "@noble/curves", "version": "2.2.0"},
+      {"name": "@noble/hashes", "version": "2.2.0"}
+    ],
+    "builderPath": "scripts/package/wallet-auth-offline-release.mjs",
+    "builderSha256": "9cbb12f8abf68c9a4dab2358494c04e92810b13f5b9843d26264cbf9987e2210"
+  },
+  "artifacts": {
+    "directory": "release/integration/p0-wallet-connectivity/artifacts/wallet-auth-a960d100",
+    "deployableSourceArchive": {
+      "path": "wallet-auth-source-a960d100.tar.gz",
+      "sha256": "f1916b5ab272cd6c301d949de8123e14d90b7ff6cd4212c77e881acab206862f",
+      "bytes": 180370,
+      "archiveEntries": 108,
+      "fileEntries": 100,
+      "extractionRoot": "ynx-wallet-auth-a960d100/source",
+      "containsExactPackageLock": true
+    },
+    "deployableSourceInventory": {
+      "path": "wallet-auth-source-a960d100.inventory.json",
+      "sha256": "f2276b64be3c61568fdd7d61d65cca52d06a4f2f0f4513b5a64e282b87c4e3be",
+      "bytes": 24162,
+      "entryFields": ["bytes", "mode", "path", "sha256", "target", "type"]
+    },
+    "offlineDependencyRuntimeArchive": {
+      "path": "wallet-auth-runtime-dependencies-a960d100.tar.gz",
+      "sha256": "7c57e29b46fcd09dcfc2f5f13e81bb43400947f41113c604220804c20703fd46",
+      "bytes": 662946,
+      "archiveEntries": 224,
+      "fileEntries": 212,
+      "extractionRoot": "ynx-wallet-auth-a960d100/source",
+      "overlayPath": "ynx-wallet-auth-a960d100/source/packages/wallet-auth/node_modules",
+      "networkInstallRequiredAtDeploy": false
+    },
+    "offlineDependencyRuntimeInventory": {
+      "path": "wallet-auth-runtime-dependencies-a960d100.inventory.json",
+      "sha256": "e873bc9555b4b1d4067b8899c7aae3cbb36dd2b5b67ae7247665e23874273137",
+      "bytes": 52591,
+      "entryFields": ["bytes", "mode", "path", "sha256", "target", "type"]
+    },
+    "offlineDependencySbom": {
+      "path": "wallet-auth-runtime-a960d100.cdx.json",
+      "sha256": "72f65bd1cf1561a641b71ae3d735a32932f17ab1f685c3d7975538547e9368f5",
+      "bytes": 2265,
+      "format": "CycloneDX",
+      "specVersion": "1.5",
+      "components": 3,
+      "dependencyNodes": 3,
+      "sourceCommitBound": true,
+      "packageLockSha256Bound": true
+    }
+  },
+  "reproducibility": {
+    "independentBuildDirectories": 2,
+    "sourceArchiveByteIdentical": true,
+    "sourceInventoryByteIdentical": true,
+    "runtimeArchiveByteIdentical": true,
+    "runtimeInventoryByteIdentical": true,
+    "sbomByteIdentical": true,
+    "normalizedTar": {"format": "ustar", "mtime": 0, "uid": 0, "gid": 0, "uname": "root", "gname": "root", "gzipMtime": 0}
+  },
+  "extractionVerification": {
+    "sourceThenRuntimeOverlay": true,
+    "exactPackageLockDigestVerifiedAfterExtraction": true,
+    "directModuleImportsPassed": true,
+    "coldStartWithoutNetworkInstallPassed": true,
+    "versionRoute": "/v2/product-sessions/version",
+    "versionRegistryFileSha256": "810c58777a62a798e286d2d30e0430334b88603653f672821642e80e3553c46c",
+    "versionRegistryStateBindingSha256": "f300fb098c832161aaeb2bcf62b61a7b5b674ea0b443ebd9ca0189592e0b10d7",
+    "remoteDeployedDuringVerification": false,
+    "daemonShutdownCleanly": true
+  },
+  "security": {
+    "secretFilenameScanPassed": true,
+    "secretContentPatternScanPassed": true,
+    "privateKeysIncluded": false,
+    "tokensIncluded": false,
+    "productionStateContentsIncluded": false,
+    "productionStateRead": false,
+    "sshUsed": false,
+    "networkInstallRequiredAtDeployment": false
+  },
+  "hermeticFixtureBoundary": {
+    "generatedArtifactSha256Meaning": "metadata binding between the accepted hermetic fixture and the previously generated artifact bytes",
+    "independentCompilerProvenanceClaimed": false,
+    "compilerRebuildClaimed": false
+  },
+  "existingAcceptedChecks": {
+    "cleanSourceWalletAuthPassed": 347,
+    "cleanSourceWalletAuthFailed": 0,
+    "npmPackSha256": "e354a19c155cfb0573113cffdcf9c639bc214e650a574a2b61e3339677a4bf1e",
+    "npmPackBytes": 180317,
+    "npmPackEntries": 99
+  },
+  "truth": {
+    "migrationReceipt": "PREPARED_NOT_EXECUTED",
+    "rollbackReceipt": "PREPARED_NOT_EXECUTED",
+    "freshProductionStateDigestRequiredBeforeFutureCopy": true,
+    "publicSource": "6cf3ef845202bd879ed94515a71b323dd2fc9e14",
+    "registryV3Public": false,
+    "productMigrationsComplete": 0,
+    "productMigrationsTotal": 12,
+    "computerControlVerified": false,
+    "deployedPublic": false,
+    "integrated": false
+  }
+}
