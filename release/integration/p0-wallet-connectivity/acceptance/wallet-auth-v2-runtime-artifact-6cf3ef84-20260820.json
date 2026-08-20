@@ -3,7 +3,11 @@
   "acceptanceId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-auth-v2-runtime-artifact-6cf3ef84",
   "recordedAt": "2026-08-20T12:24:41Z",
   "decision": "ACCEPTED_EXACT_DETERMINISTIC_RUNTIME_ARTIFACT_FOR_GATED_TRANSACTION",
-  "activeLeasePath": "release/integration/p0-wallet-connectivity/execution/wallet-auth-v2-runtime-artifact-lease-v3-20260820.json",
+  "activeLeasePath": "release/integration/p0-wallet-connectivity/execution/wallet-auth-v2-runtime-artifact-lease-v4-20260820.json",
+  "failedConsumedLeases": [
+    "P0-WALLET-CONNECTIVITY-2026-08-wallet-auth-v2-runtime-artifact-lease-v2-20260820T123316Z",
+    "P0-WALLET-CONNECTIVITY-2026-08-wallet-auth-v2-runtime-artifact-lease-v3-20260820T124935Z"
+  ],
   "failedConsumedLease": "P0-WALLET-CONNECTIVITY-2026-08-wallet-auth-v2-runtime-artifact-lease-v2-20260820T123316Z",
   "supersededVerifierLease": "P0-WALLET-CONNECTIVITY-2026-08-wallet-auth-v2-runtime-artifact-lease-20260820T122441Z",
   "supersedesLease": "P0-WALLET-CONNECTIVITY-2026-08-wallet-auth-v2-full-subtree-lease-20260820T121054Z",
@@ -58,6 +62,14 @@
     "rollbackMustLeaveSharedLegacyV1ByteExact": true,
     "accepted": true,
     "verifiedPublic": false
+  },
+  "systemdEnvironmentContract": {
+    "baseEnvironmentFile": "/etc/ynx/wallet-gateway.env",
+    "candidateEnvironmentFile": "/etc/ynx/wallet/wallet-gateway-candidate-6cf3ef84.env",
+    "candidateLoadedAfterBase": true,
+    "dropInOnlyAppendsCandidateEnvironmentFile": true,
+    "effectiveSixOverridesVerified": false,
+    "productionServiceStartAllowedBeforeVerification": false
   },
   "truth": {
     "candidateDeployedPublic": false,

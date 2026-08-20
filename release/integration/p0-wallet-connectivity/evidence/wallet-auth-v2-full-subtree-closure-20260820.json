@@ -107,5 +107,29 @@
     "candidateDeployedPublic": false,
     "finalActivationClaimed": false,
     "requiredFix": "independent candidate v1 state initialized byte-exact under stopped service plus independent v2 state; shared legacy v1 path must remain byte-exact"
+  },
+  "v3SystemdEnvironmentPrecedenceFailure": {
+    "reportedAt": "2026-08-20T13:00:28Z",
+    "lease": "P0-WALLET-CONNECTIVITY-2026-08-wallet-auth-v2-runtime-artifact-lease-v3-20260820T124935Z",
+    "leaseConsumed": true,
+    "leaseReusable": false,
+    "rootCause": "main unit EnvironmentFile overrides same-name Environment settings from candidate drop-in",
+    "baseEnvironmentFile": "/etc/ynx/wallet-gateway.env",
+    "candidateCodeRanFrom6cfSymlink": true,
+    "v2NewVariableApplied": true,
+    "v1StateSourceReleaseBuildRetainedOldEnvironment": true,
+    "effectiveV1StatePath": "/var/lib/ynx-wallet-gateway/state.json",
+    "candidateV1StateSha256": "ba386fb9e474ea0886c2e41184db7fac3fcf6aea6dd02f5fe47122a62d3a8c9e",
+    "candidateV2StateSha256Prefix": "0c9c",
+    "candidateV2FullSha256Provided": false,
+    "sharedV1CandidateMutationSha256": "d2a7dae9d66f0df7f6d231d3da91e26c0c5a91071494f2388bb7d4e29a12e599",
+    "waitSource6cfTimedOut": true,
+    "sharedV1RestoredSha256": "ba386fb9e474ea0886c2e41184db7fac3fcf6aea6dd02f5fe47122a62d3a8c9e",
+    "recoveredSource": "49e30d999e9a9cbdd2c565021009f2cab0dc125c",
+    "recoveredVersionExact": true,
+    "recoveredHealthStatus": 200,
+    "recoveredReadyStatus": 200,
+    "recoveredSocialOptionsStatus": 204,
+    "finalActivationClaimed": false
   }
 }
