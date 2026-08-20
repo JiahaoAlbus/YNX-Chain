@@ -6,20 +6,26 @@ const root = new URL("../", import.meta.url);
 const read = (path) => readFile(new URL(path, root), "utf8");
 
 test("current public candidate and Wallet v2 evidence do not promote missing lifecycle proof", async () => {
-  const [release, metadata, evidence, handoff, vectors, acceptance, matrix, compatibility] = await Promise.all([
+  const [release, metadata, evidence, macArtifact, handoff, vectors, acceptance, matrix, compatibility] = await Promise.all([
     read("product-release.json"),
     read("public-product-metadata.json"),
     read("evidence/public/current-public-candidate-bc8a37bc6f2b.json"),
+    read("evidence/desktop/macos-current-cb57e10f.json"),
     read("docs/integration/INTEGRATION_HANDOFF.md"),
     read("docs/integration/CROSS_PRODUCT_TEST_VECTORS.json"),
     read("docs/integration/DEPENDENCY_ACCEPTANCE.md"),
     read("docs/FEATURE_COMPLETION_EVIDENCE.md"),
     read("docs/MIGRATION_COMPATIBILITY.md"),
   ]);
-  const truth = JSON.parse(release), current = JSON.parse(evidence), publicMetadata = JSON.parse(metadata), crossProduct = JSON.parse(vectors);
+  const truth = JSON.parse(release), current = JSON.parse(evidence), localMac = JSON.parse(macArtifact), publicMetadata = JSON.parse(metadata), crossProduct = JSON.parse(vectors);
   assert.equal(truth.currentPublicCandidate.sourceCommit, "bc8a37bc6f2bcfcbe9415cb0e9da17a5294046a3");
   assert.equal(current.deploymentTransaction.result, "passed");
   assert.equal(current.truthBoundaries.externalBrowserVisible, false);
+  assert.equal(localMac.artifact.sourceCommit, "cb57e10f7f92b01b73942879dedc98f059a1e20b");
+  assert.equal(localMac.verification.keychainStorageRoundTripAndCleanup, true);
+  assert.equal(localMac.publication.downloadHosted, false);
+  assert.equal(truth.currentLocalMacArtifact.sha256, localMac.artifact.sha256);
+  assert.equal(publicMetadata.localEvidence.currentLocalMacArtifact.hosted, false);
   assert.equal(publicMetadata.fullPlatformPublicEvidence.nineRuntimes, true);
   assert.equal(publicMetadata.fullPlatformPublicEvidence.independentBrowserVisible, false);
   assert.equal(truth.walletProductSessionV2.publicV2RouteVerified, true);

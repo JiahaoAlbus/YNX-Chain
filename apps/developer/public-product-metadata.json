@@ -53,6 +53,15 @@
       "currentFullPlatform": true,
       "downloadUrl": "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-76322af5-macos-arm64-unsigned.zip"
     },
+    "currentLocalMacArtifact": {
+      "evidence": "apps/developer/evidence/desktop/macos-current-cb57e10f.json",
+      "sourceCommit": "cb57e10f7f92b01b73942879dedc98f059a1e20b",
+      "sha256": "f4759ecc6bb5240a972bc7cd9909b35869bb756cce5a22f1a23bf1f718f522f9",
+      "bytes": 168157234,
+      "hosted": false,
+      "signingClass": "adhoc-no-team-id",
+      "verification": "embedded provenance, ad-hoc signature, Keychain write-read-cleanup, cold launch, bounded C++ compile, persisted second launch and child cleanup passed"
+    },
     "windowsX64": {
       "sourceCommit": "76322af5e8c26a64fb6425c51d96c67d2b3df65f",
       "runId": 31513885748,

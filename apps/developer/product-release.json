@@ -17,6 +17,14 @@
     "observedAt": "2026-08-20T16:12:04Z",
     "evidenceManifestSha256": "ae67d74070ebabee7001a1212a65bf27b549f9be195244e1f91ae7e94ce3e82b"
   },
+  "currentLocalMacArtifact": {
+    "evidence": "apps/developer/evidence/desktop/macos-current-cb57e10f.json",
+    "sourceCommit": "cb57e10f7f92b01b73942879dedc98f059a1e20b",
+    "sha256": "f4759ecc6bb5240a972bc7cd9909b35869bb756cce5a22f1a23bf1f718f522f9",
+    "bytes": 168157234,
+    "downloadHosted": false,
+    "productionSigned": false
+  },
   "walletProductSessionV2": {
     "acceptedSourceCommit": "203be5e108be468350591615a64d5d36ab87a8f1",
     "acceptedSourceTree": "94e291a6757447f89c7cf6b8f01bbf811cb7d1f7",

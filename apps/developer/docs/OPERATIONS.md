@@ -69,10 +69,11 @@ and are deleted after success or restoration. Persistent evidence contains no
 secrets or workspace contents and is written under
 `/var/lib/ynx-code-candidate/deploy-evidence/<transaction>`.
 
-The current public service remains the seven-runtime `17ee9ae5` candidate until
-this transaction returns `passed`, the immutable image fingerprint and evidence
-hashes are copied into the release record, and an independent public probe sees
-the exact new release string.
+The current protected public service is `0.2.0-testnet-preview-bc8a37bc6f2b-candidate` from
+`bc8a37bc6f2bcfcbe9415cb0e9da17a5294046a3`; its passed transaction, immutable image
+fingerprint and evidence-manifest hash are recorded in `product-release.json` and
+`evidence/public/current-public-candidate-bc8a37bc6f2b.json`. Independent external browser
+visibility remains a separate false gate and must not be inferred from host-side health evidence.
 
 Production release requires owner-controlled Developer ID and Authenticode
 identities, notarization/installer policy, signed update metadata, rollback,
