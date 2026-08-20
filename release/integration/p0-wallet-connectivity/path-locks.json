@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "locks": [
     {"path":"packages/wallet-auth/**","owner":"wallet-protocol","branch":"codex/final-wallet-auth","worktree":"02-wallet-auth","taskId":"P0-001","status":"RESERVED","allowedExceptions":["proposal-only"]},
     {"path":"apps/wallet/**","owner":"wallet-platform","branch":"codex/final-wallet-auth","worktree":"02-wallet-auth","taskId":"P0-002","status":"RESERVED","allowedExceptions":["proposal-only"]},
@@ -14,6 +14,7 @@
     {"path":"{internal,apps}/explorer/**","owner":"explorer-monitor","branch":"codex/p0-explorer-monitor-20260820","worktree":"/Users/huangjiahao/Desktop/YNX Final Worktrees/12-13-explorer-monitor-fable5","taskId":"P0-006","status":"CHECKPOINT_REACHED","checkpointCommit":"f8db7632fb37e9363858a4d4d977eea7b3585c7e","releasedAt":"2026-08-20T17:40:54Z","allowedExceptions":["read-only source and public runtime evidence until a future bounded deployment lease"]},
     {"path":"apps/monitor/**","owner":"explorer-monitor","branch":"codex/p0-explorer-monitor-20260820","worktree":"/Users/huangjiahao/Desktop/YNX Final Worktrees/12-13-explorer-monitor-fable5","taskId":"P0-006","status":"CHECKPOINT_REACHED","checkpointCommit":"f8db7632fb37e9363858a4d4d977eea7b3585c7e","releasedAt":"2026-08-20T17:40:54Z","allowedExceptions":["read-only source and public runtime evidence until a future bounded deployment lease"]},
     {"path":"{apps/calendar/**,internal/calendar/**}","owner":"integration","branch":"codex/final-calendar","worktree":"/Users/huangjiahao/Desktop/YNX Final Worktrees/36-calendar","taskId":"P0-043","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"CHECKPOINT_REACHED","acquiredAt":"2026-08-20T18:05:00Z","releasedAt":"2026-08-20T18:09:42Z","checkpointCommit":"106668aacaf9299c4b0c401a04f2921dcea8f72b","allowedExceptions":["read-only Calendar source and audit evidence until the accepted SDK can be consumed without copying provider logic"]},
+    {"path":"apps/video/**","owner":"integration","branch":"codex/final-video","worktree":"/Users/huangjiahao/Desktop/YNX Final Worktrees/33-video","taskId":"P0-047","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"ACTIVE","acquiredAt":"2026-08-20T18:44:00Z","allowedExceptions":["Video-only Standard Wallet consumer migration; do not modify Wallet/Auth, Gateway, Website, Social or Creator Studio paths"]},
     {"path":"{docs/coordination/p0-wallet-connectivity,docs/handoffs/p0-wallet-connectivity,release/integration/p0-wallet-connectivity}/**","owner":"integration","branch":"codex/final-integration","worktree":"29-integration","taskId":"P0-000","status":"ACTIVE","allowedExceptions":[]},
     {"path":"apps/shop/**","owner":"integration","branch":"codex/p0-shop-android-retirement-20260820","worktree":"09-shop","taskId":"P0-011","status":"ACTIVE","allowedExceptions":["historical-evidence-preservation"]},
     {"path":"YNX-Chain-website:{vercel.json,src/lib/ecosystemCatalog.js,public/releases/ecosystem-release-registry.json}","owner":"integration","branch":"codex/p0-shop-android-retirement-20260820","worktree":"28-website","taskId":"P0-011","status":"ACTIVE","allowedExceptions":["historical-evidence-preservation"]},
