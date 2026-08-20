@@ -36,3 +36,23 @@ loopback endpoints, generic Device Proof messaging and local session fallback.
 Run `npm run validate:artwork -- artwork.json` to check that each installable
 product declares an independent vector, icon, splash, download cover and real
 screenshots. This validates metadata only; it is not public release proof.
+
+## Unified consumer API and Compatibility Lab
+
+`DAppConnectClient` is the one consumer API for discovery, normal wallet
+connection, reconnect/disconnect, accounts, signing, transactions, wallet
+permissions and assets, optional Product Session upgrade/revoke, endpoint
+diagnostics, and platform-approved wallet opening. It never owns a private key.
+
+`examples/index.mjs` includes nine executable recipes: plain EIP-1193,
+WalletConnect, SIWE, first-party Product Session, external wallet to YNX,
+YNX Wallet to an external EVM DApp, Faucet Deep Link, Gateway-down degradation,
+and multi-wallet EIP-6963 selection. The Faucet example deliberately returns a
+typed `FAUCET_DEEP_LINK_NOT_ACCEPTED` error until Integration accepts a signed
+Endpoint Manifest.
+
+Run `npm run lab -- path/to/real-adapters.mjs` to execute the Compatibility Lab
+against real adapters. A run without an adapter module reports explicit skips;
+it never creates a simulated success. `npm run release:gate -- product-path`
+produces the migration scanner report and preserves the endpoint-activation
+block until the central manifest is accepted and signed.
