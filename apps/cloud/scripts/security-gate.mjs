@@ -35,7 +35,7 @@ for(const [file,allowed] of Object.entries(allowlist.packages)){
   for(const lifecycle of allowlist.forbiddenLifecycleScripts)if(pkg.scripts?.[lifecycle])fail(`${file}: forbidden lifecycle script ${lifecycle}`);
 }
 
-for(const file of ['apps/cloud/mobile/pnpm-lock.yaml','apps/docs/mobile/pnpm-lock.yaml']){
+for(const file of ['apps/cloud/mobile/pnpm-lock.yaml']){
   const body=await read(file);if(!body.startsWith("lockfileVersion: '9.0'"))fail(`${file}: unexpected lock schema`);if(!/integrity: sha512-/.test(body))fail(`${file}: package integrity records absent`);
 }
 for(const file of ['apps/cloud/evidence/SBOM.cdx.json','apps/cloud/evidence/ARTIFACT_PROVENANCE.json','apps/cloud/evidence/ARTIFACT_MANIFEST.json','apps/cloud/security/build-script-allowlist.json']){
@@ -49,15 +49,24 @@ for(const item of manifest.artifacts){
 }
 const provenance=JSON.parse(await read('apps/cloud/evidence/ARTIFACT_PROVENANCE.json'));
 if(provenance.subject.sha256!==manifest.artifacts[0].sha256||provenance.subject.bytes!==manifest.artifacts[0].bytes||provenance.source.commit!==manifest.artifacts[0].verifiedAtSourceCommit)fail('provenance subject/source differs from artifact manifest');
-for(const material of provenance.materials){const body=await readFile(path.join(root,material.uri));if(sha256(body)!==material.digest.sha256)fail(`${material.uri}: provenance material digest is stale`)}
-try{execFileSync('git',['merge-base','--is-ancestor',provenance.source.commit,'HEAD'],{cwd:root,stdio:'pipe'})}catch{fail('provenance source commit is not an ancestor of HEAD')}
+for(const material of provenance.materials){
+  let body;
+  try{body=execFileSync('git',['show',`${provenance.source.commit}:${material.uri}`],{cwd:root,stdio:['ignore','pipe','pipe']})}
+  catch{fail(`${material.uri}: provenance material is unavailable at its source commit`);continue}
+  if(sha256(body)!==material.digest.sha256)fail(`${material.uri}: provenance material digest is stale`)
+}
+try{execFileSync('git',['cat-file','-e',`${provenance.source.commit}^{commit}`],{cwd:root,stdio:'pipe'})}catch{fail('historical artifact provenance source commit is unavailable')}
 const sbom=JSON.parse(await read('apps/cloud/evidence/SBOM.cdx.json'));
 if(sbom.bomFormat!=='CycloneDX'||sbom.components.length<100)fail('SBOM coverage is unexpectedly small');
-const purls=new Set(sbom.components.map(x=>x.purl));
+const currentSbom=JSON.parse(await read('apps/cloud/evidence/p0-071/SBOM.cdx.json'));
+if(currentSbom.bomFormat!=='CycloneDX'||currentSbom.specVersion!=='1.5')fail('current-source SBOM is invalid');
+const currentSource=currentSbom.metadata?.properties?.find(x=>x.name==='ynx:sourceCommit')?.value;
+try{execFileSync('git',['merge-base','--is-ancestor',currentSource,'HEAD'],{cwd:root,stdio:'pipe'})}catch{fail('current-source SBOM commit is not an ancestor of HEAD')}
+const purls=new Set(currentSbom.components.map(x=>x.purl));
 for(const line of execFileSync('go',['list','-m','all'],{cwd:root,encoding:'utf8'}).trim().split('\n').slice(1)){
   const [name,version]=line.split(/\s+/);if(name&&version&&!purls.has(`pkg:golang/${encodeURIComponent(name)}@${encodeURIComponent(version)}`))fail(`SBOM missing Go module ${name}@${version}`);
 }
-for(const file of ['apps/cloud/mobile/pnpm-lock.yaml','apps/docs/mobile/pnpm-lock.yaml']){
+for(const file of ['apps/cloud/mobile/pnpm-lock.yaml']){
   const body=await read(file),section=body.slice(body.indexOf('\npackages:\n'),body.indexOf('\nsnapshots:\n'));
   for(const match of section.matchAll(/^  '([^']+)':$/gm)){
     const key=match[1],at=key.lastIndexOf('@');if(at<=0)continue;const name=key.slice(0,at),version=key.slice(at+1);if(version.includes('('))continue;
@@ -75,4 +84,4 @@ try{
 }catch(error){fail(`APK archive inspection failed: ${error.message}`)}
 
 if(failures.length){for(const failure of failures)console.error(`SECURITY_GATE: ${failure}`);process.exit(1)}
-console.log(`YNX Cloud security gate passed: ${runtimeFiles.length} runtime files, ${sbom.components.length} locked components, exact artifact evidence`);
+console.log(`YNX Cloud security gate passed: ${runtimeFiles.length} runtime files, ${currentSbom.components.length} current locked components, historical artifact evidence preserved`);

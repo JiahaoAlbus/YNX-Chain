@@ -1,0 +1,13 @@
+**
+!go.mod
+!go.sum
+!internal/
+!internal/cloud/
+!internal/cloud/**
+!apps/
+!apps/cloud/
+!apps/cloud/cmd/
+!apps/cloud/cmd/ynx-cloudd/
+!apps/cloud/cmd/ynx-cloudd/**
+!apps/cloud/web/
+!apps/cloud/web/**

@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "taskId": "P0-071",
+  "at": "2026-08-20T22:07:51.634Z",
+  "origin": "http://127.0.0.1:18092",
+  "apiBase": "/api/v1",
+  "publicRuntimeClaim": false,
+  "productSessionV2": false,
+  "computerControl": false,
+  "cases": [
+    {
+      "name": "cloud-guest-desktop",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "walletInjected": false,
+      "initialStatus": "Sign in to load your authorized workspace.",
+      "dialogVisible": true,
+      "walletLabel": "",
+      "authState": "Connect a standard EVM Wallet. Private Cloud files remain closed until a separate Product Session v2 is available.",
+      "consoleErrors": [],
+      "pageErrors": [],
+      "privateApiRequests": []
+    },
+    {
+      "name": "cloud-wallet-mobile",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "walletInjected": true,
+      "initialStatus": "Sign in to load your authorized workspace.",
+      "dialogVisible": true,
+      "walletLabel": "0x111111…111917",
+      "authState": "Standard Wallet connected on 0x1917. Private Cloud files, uploads, sharing and deletion remain unavailable until Product Session v2 is active. No local or canned session was created.",
+      "consoleErrors": [],
+      "pageErrors": [],
+      "privateApiRequests": []
+    }
+  ]
+}

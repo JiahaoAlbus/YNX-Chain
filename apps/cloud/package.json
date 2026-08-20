@@ -3,9 +3,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "check": "node scripts/check.mjs",
+    "build:web": "esbuild web/app.js --bundle --format=iife --platform=browser --target=es2022 --outfile=web/app.bundle.js",
+    "check": "npm run build:web && node scripts/check.mjs",
     "security": "node scripts/security-gate.mjs",
     "test": "node --test tests/*.test.mjs",
     "smoke": "bash scripts/smoke.sh"
-  }
+  },
+  "devDependencies": {"esbuild":"0.25.12","playwright":"^1.61.1"}
 }

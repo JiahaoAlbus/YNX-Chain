@@ -15,7 +15,7 @@ test('Cloud container is bounded, non-root, and health checked', async () => {
   assert.match(dockerfile, /VOLUME \["\/var\/lib\/ynx-cloud"\]/)
   assert.match(dockerfile, /\/health\/live/)
   assert.match(dockerfile, /COPY --chown=10001:10001 apps\/cloud\/web/)
-  assert.match(dockerfile, /COPY --chown=10001:10001 apps\/docs\/web/)
+  assert.doesNotMatch(dockerfile, /apps\/docs/)
   assert.doesNotMatch(dockerfile, /dev-wallet/)
 })
 
@@ -25,7 +25,7 @@ test('Cloud Docker context excludes unrelated repository products', async () => 
   assert.equal(ignore.split('\n')[0], '**')
   assert.match(ignore, /!internal\/cloud\/\*\*/)
   assert.match(ignore, /!apps\/cloud\/web\/\*\*/)
-  assert.match(ignore, /!apps\/docs\/web\/\*\*/)
+  assert.doesNotMatch(ignore, /apps\/docs/)
 })
 
 test('Compose runs Cloud with least privilege and persistent state', async () => {
@@ -43,5 +43,6 @@ test('Compose runs Cloud with least privilege and persistent state', async () =>
   assert.match(cloud, /no-new-privileges:true/)
   assert.match(cloud, /ynx-cloud-data:\/var\/lib\/ynx-cloud/)
   assert.match(cloud, /127\.0\.0\.1:8092\/health\/live/)
+  assert.doesNotMatch(cloud, /docs-ui/)
   assert.doesNotMatch(cloud, /dev-wallet/)
 })

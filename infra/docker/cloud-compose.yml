@@ -1,0 +1,35 @@
+services:
+  ynx-cloudd:
+    build:
+      context: ../..
+      dockerfile: infra/docker/ynx-cloudd.Dockerfile
+    environment:
+      YNX_RELEASE_VERSION: "${YNX_CLOUD_RELEASE_VERSION:-1.0.0-testnet-preview}"
+      YNX_RELEASE_COMMIT: "${YNX_CLOUD_RELEASE_COMMIT:-local-unverified}"
+    command:
+      - -addr
+      - 0.0.0.0:8092
+      - -data
+      - /var/lib/ynx-cloud
+      - -cloud-ui
+      - /opt/ynx/cloud-web
+    ports:
+      - "8092:8092"
+    volumes:
+      - ynx-cloud-data:/var/lib/ynx-cloud
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=16m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8092/health/live"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+
+volumes:
+  ynx-cloud-data:

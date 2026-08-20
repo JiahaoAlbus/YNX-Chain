@@ -1,0 +1,1 @@
+window.YNX_CLOUD_RUNTIME=Object.freeze({manifestVersion:'1.0.0-p0.2',manifestSha256:'3c606cad1d9bfa71fc507f54b6ad8184a6580c7df75440675b5db921b7e67bb5',cosmosChainId:'ynx_6423-1',evmChainId:'0x1917',evmRpc:'https://evm.ynxweb4.com',explorer:'https://explorer.ynxweb4.com',apiBase:'/api/v1',appGatewayStatus:'UNAVAILABLE'});
