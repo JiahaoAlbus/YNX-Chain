@@ -6,14 +6,17 @@ export type GatewayChallenge = Readonly<{version:"2";challenge:string;requestDig
 export type GatewayCompletion = Readonly<{challenge:GatewayChallenge;deviceSignature:string}>;
 export type CentralRegistryEntryV1 = Readonly<{schemaVersion:1;productClientId:string;requestingProduct:string;bundleId:string;callback:string;scopes:readonly string[];maxScopes:number}>;
 export type CentralRegistryEntry = Readonly<{schemaVersion:3;productClientId:string;requestingProduct:string;bundleId:string;callbacks:readonly string[];origins:readonly string[];scopes:readonly string[];maxScopes:number;productDeviceAlgorithms:readonly ProductDeviceAlgorithm[]}>;
-export type CentralReviewState = "approved"|"pending-review"|"disabled";
-export type CentralProductRegistration = Readonly<Omit<CentralRegistryEntry,"schemaVersion"|"origins"> & {schemaVersion:4;productId:string;displayName:string;reviewState:CentralReviewState;enabled:boolean;webOrigins:readonly string[];sessionDurationSeconds:number;revocationPolicy:Readonly<{session:true;approval:true;device:true;accountAllDevices:true}>}>;
+export type CentralReviewState = "approved"|"pending-review"|"disabled"|"retired";
+export type ClientLifecycleActive=Readonly<{status:"active"}>;
+export type ClientLifecycleRetired=Readonly<{status:"retired";clientId:string;replacementURL:string;minimumClientVersion:string;lastSupportedVersion:string;retiredAt:string;disabledCallbacks:readonly string[];disabledAppLinks:readonly string[]}>;
+export type ClientRetirementRecord=Readonly<Omit<ClientLifecycleRetired,"status">&{productId:string;requestingProduct:string;productClientId:string;bundleId:string}>;
+export type CentralProductRegistration = Readonly<Omit<CentralRegistryEntry,"schemaVersion"|"origins"> & {schemaVersion:5;productId:string;displayName:string;reviewState:CentralReviewState;enabled:boolean;webOrigins:readonly string[];clientLifecycle:ClientLifecycleActive|ClientLifecycleRetired;sessionDurationSeconds:number;revocationPolicy:Readonly<{session:true;approval:true;device:true;accountAllDevices:true}>}>;
 export type CentralRegistryDocument = Readonly<{registryVersion:2;chainId:"ynx_6423-1";products:readonly CentralProductRegistration[]}>;
 export type CentralWalletSession = Readonly<{verifierVersion:"wallet-auth-v2";sessionBinding:string;chainId:"ynx_6423-1";requestingProduct:string;productClientId:string;bundleId:string;origin:string;callback:string;productDeviceAlgorithm:ProductDeviceAlgorithm;productDeviceKey:string;deviceBinding:string;account:string;scopes:readonly string[];nonce:string;purpose:string;requestDigest:string;approvalDigest:string;issuedAt:string;expiresAt:string}>;
 export type LegacyCentralWalletSession = Readonly<{verifierVersion:"wallet-auth-v1";sessionBinding:string;chainId:"ynx_6423-1";requestingProduct:string;productClientId:string;bundleId:string;callback:string;productDeviceAlgorithm:ProductDeviceAlgorithm;productDeviceKey:string;deviceBinding:string;account:string;scopes:readonly string[];nonce:string;purpose:string;requestDigest:string;approvalDigest:string;issuedAt:string;expiresAt:string}>;
 export type CentralRevocationState = Readonly<{revokedSessionBindings:readonly string[];revokedApprovalDigests:readonly string[];revokedDeviceBindings:readonly string[];accountLogoutRecords:readonly Readonly<{account:string;before:string}>[]}>;
-export type CentralWalletStoreSnapshot = Readonly<{schemaVersion:1;consumedNonces:readonly string[];consumedRequestDigests:readonly string[];consumedChallenges:readonly string[];sessions:readonly (CentralWalletSession|LegacyCentralWalletSession)[];revokedSessionBindings:readonly string[];revokedApprovalDigests:readonly string[];revokedDeviceBindings:readonly string[];accountLogoutRecords:readonly Readonly<{account:string;before:string}>[];audit:readonly Readonly<{sequence:number;type:string;subject:string;at:string;previousHash:string|null;hash:string}>[]}>;
-export type CentralWalletSessionInactiveReason="issued-in-future"|"expired"|"session-revoked"|"approval-revoked"|"device-revoked"|"account-logout"|"origin-binding-retired";
+export type CentralWalletStoreSnapshot = Readonly<{schemaVersion:2;consumedNonces:readonly string[];consumedRequestDigests:readonly string[];consumedChallenges:readonly string[];sessions:readonly (CentralWalletSession|LegacyCentralWalletSession)[];revokedSessionBindings:readonly string[];revokedApprovalDigests:readonly string[];revokedDeviceBindings:readonly string[];accountLogoutRecords:readonly Readonly<{account:string;before:string}>[];retiredClients:readonly ClientRetirementRecord[];audit:readonly Readonly<{sequence:number;type:string;subject:string;at:string;previousHash:string|null;hash:string}>[]}>;
+export type CentralWalletSessionInactiveReason="issued-in-future"|"expired"|"session-revoked"|"approval-revoked"|"device-revoked"|"account-logout"|"origin-binding-retired"|"client-retired";
 export type CentralWalletSessionInventoryItem=Readonly<Pick<CentralWalletSession,"sessionBinding"|"requestingProduct"|"productClientId"|"bundleId"|"origin"|"callback"|"productDeviceAlgorithm"|"productDeviceKey"|"deviceBinding"|"approvalDigest"|"scopes"|"purpose"|"issuedAt"|"expiresAt">&{active:boolean;inactiveReasons:readonly CentralWalletSessionInactiveReason[]}>;
 export type CentralWalletConnectedApp=Readonly<{requestingProduct:string;productClientId:string;bundleId:string;sessionBindings:readonly string[];activeSessionBindings:readonly string[];approvalDigests:readonly string[];deviceBindings:readonly string[];active:boolean}>;
 export type CentralWalletApprovalInventoryItem=Readonly<{approvalDigest:string;requestingProduct:string;productClientId:string;bundleId:string;sessionBindings:readonly string[];activeSessionBindings:readonly string[];revoked:boolean}>;
@@ -28,12 +31,14 @@ export declare const CENTRAL_REGISTRY_SCHEMA_VERSION:3;
 export declare const CENTRAL_VERIFIER_VERSION:"wallet-auth-v2";
 export declare const CENTRAL_REGISTRY_DOCUMENT_VERSION:2;
 export declare const CENTRAL_REGISTRY_PRODUCT_COUNT:26;
-export declare const CENTRAL_PRODUCT_SCHEMA_VERSION:4;
+export declare const CENTRAL_PRODUCT_SCHEMA_VERSION:5;
 export declare const CENTRAL_WALLET_SESSION_INVENTORY_SCHEMA_VERSION:1;
+export declare const CENTRAL_WALLET_SESSION_STORE_SCHEMA_VERSION:2;
 export declare const NATIVE_TRANSACTION_DOMAIN:"YNX_NATIVE_TX_V1";
 export declare const NATIVE_TRANSACTION_CHAIN_ID:6423;
 export declare const NATIVE_TRANSACTION_FEE_YNXT:1;
-export declare class WalletAuthError extends Error {readonly code:string}
+export declare class WalletAuthError extends Error {readonly code:string;readonly details?:unknown}
+export declare class ClientRetiredError extends WalletAuthError {readonly details:Readonly<{clientId:string;replacementURL:string;minimumClientVersion:string}>}
 export declare function canonicalJSON(value:unknown):string;
 export declare function digestHex(domain:string,value:unknown):string;
 export declare function parseAuthorizationRequest(input:string|unknown,options:{now?:Date;registry:Record<string,ProductBinding>}):AuthorizationRequest;
@@ -65,7 +70,7 @@ export declare function assertCentralWalletSessionActive(session:CentralWalletSe
 export declare function parseCentralRegistryDocument(input:unknown):CentralRegistryDocument;
 export declare function migrateCentralRegistryDocumentV1(input:unknown):CentralRegistryDocument;
 export declare function parseCentralProductRegistration(input:unknown):CentralProductRegistration;
-export declare function centralProtocolEntry(registration:CentralProductRegistration,options?:{requireEnabled?:boolean}):CentralRegistryEntry;
+export declare function centralProtocolEntry(registration:CentralProductRegistration,options?:{requireEnabled?:boolean;allowRetired?:boolean}):CentralRegistryEntry;
 export declare function centralRegistrationByProduct(document:CentralRegistryDocument,productId:string,options?:{requireEnabled?:boolean}):CentralProductRegistration;
 export declare function centralRegisteredWebOrigins(document:CentralRegistryDocument):readonly string[];
 export declare class CentralWalletSessionStore {
@@ -76,11 +81,20 @@ export declare class CentralWalletSessionStore {
   revokeSession(sessionBinding:string,at?:Date):string;
   revokeApproval(approvalDigest:string,at?:Date):string;
   revokeDevice(deviceBinding:string,at?:Date):string;
+  retireClient(registration:CentralProductRegistration,at?:Date):Readonly<{clientId:string;changed:boolean;revokedSessionBindings:readonly string[];revokedApprovalDigests:readonly string[];revokedDeviceBindings:readonly string[]}>;
   logoutAllDevices(account:string,at?:Date):Readonly<{account:string;before:string}>;
   revocationState():CentralRevocationState;
   snapshot():CentralWalletStoreSnapshot;
 }
 export declare function parseCentralWalletStoreSnapshot(input:unknown):CentralWalletStoreSnapshot;
+export declare const CLIENT_LIFECYCLE_ACTIVE:ClientLifecycleActive;
+export declare function parseClientLifecycle(input:unknown,identity:{callbacks:readonly string[]}):ClientLifecycleActive|ClientLifecycleRetired;
+export declare function clientRetirementRecord(registration:CentralProductRegistration):ClientRetirementRecord;
+export declare function parseClientRetirementRecord(input:unknown):ClientRetirementRecord;
+export declare function assertClientLifecycleActive<T extends CentralProductRegistration>(registration:T):T;
+export declare function assertSessionClientActive<T extends CentralWalletSession|LegacyCentralWalletSession>(session:T,retiredClients:readonly ClientRetirementRecord[]):T;
+export declare function assertClientReturnTargetActive(target:string,retiredClients:readonly ClientRetirementRecord[]):string;
+export declare function retirementMatchesSession(record:ClientRetirementRecord,session:CentralWalletSession|LegacyCentralWalletSession):boolean;
 export declare function createSignedNativeTransfer(input:Readonly<{accountSecret:string;to:string;amount:number;nonce:number}>):Readonly<{transaction:SignedNativeTransfer;payload:string;hash:string}>;
 export declare function parseSignedNativeTransfer(input:string|unknown):SignedNativeTransfer;
 export declare function nativeTransferSignJSON(transaction:Omit<SignedNativeTransfer,"signature">|SignedNativeTransfer):string;
@@ -136,6 +150,7 @@ export declare function verifyProductSessionProof(proof:unknown,session:CentralW
 export declare const CANONICAL_GATEWAY_ADAPTER_SCHEMA_VERSION:2;
 export declare class CanonicalWalletGatewayAdapter{constructor(registry:unknown,snapshot?:unknown);complete(input:Readonly<Record<string,unknown>>,at?:Date):CentralWalletSession;introspect(input:Readonly<Record<string,unknown>>,request:Readonly<Record<string,unknown>>,at?:Date):Readonly<{active:true;session:CentralWalletSession}>;sessionInventory(input:Readonly<Record<string,unknown>>,request:Readonly<Record<string,unknown>>,at?:Date):CentralWalletSessionInventory;revokeSession(input:Readonly<Record<string,unknown>>,request:Readonly<Record<string,unknown>>,at?:Date):string;revokeApproval(input:Readonly<Record<string,unknown>>,request:Readonly<Record<string,unknown>>,at?:Date):string;revokeDevice(input:Readonly<Record<string,unknown>>,request:Readonly<Record<string,unknown>>,at?:Date):string;logoutAllDevices(input:Readonly<Record<string,unknown>>,request:Readonly<Record<string,unknown>>,at?:Date):Readonly<{account:string;before:string}>;activateMandate(input:Readonly<Record<string,unknown>>,request:Readonly<Record<string,unknown>>,at?:Date):Readonly<Record<string,unknown>>;authorizeMandateAction(input:Readonly<Record<string,unknown>>,request:Readonly<Record<string,unknown>>,at?:Date):Readonly<Record<string,unknown>>;mandateInventory(input:Readonly<Record<string,unknown>>,request:Readonly<Record<string,unknown>>,at?:Date):readonly Readonly<Record<string,unknown>>[];revokeMandate(input:Readonly<Record<string,unknown>>,request:Readonly<Record<string,unknown>>,at?:Date):string;killMandate(input:Readonly<Record<string,unknown>>,request:Readonly<Record<string,unknown>>,at?:Date):string;emergencyExitMandate(input:Readonly<Record<string,unknown>>,request:Readonly<Record<string,unknown>>,at?:Date):Readonly<Record<string,unknown>>;snapshot():Readonly<Record<string,unknown>>}
 export declare function parseGatewayAdapterSnapshot(input:unknown,registryVersion:number):Readonly<Record<string,unknown>>;
+export declare function applyClientRetirementToGatewaySnapshot(registry:unknown,snapshot:unknown,productId:string,at?:Date):Readonly<{result:Readonly<{clientId:string;changed:boolean;revokedSessionBindings:readonly string[];revokedApprovalDigests:readonly string[];revokedDeviceBindings:readonly string[]}>;snapshot:Readonly<Record<string,unknown>>}>;
 export declare const CANONICAL_GATEWAY_HTTP_SCHEMA_VERSION:1;
 export declare const CANONICAL_GATEWAY_HTTP_MAX_BODY_BYTES:1048576;
 export type CanonicalGatewayHttpInput=Readonly<{method:string;path:string;contentType:string;body:string;proof:Readonly<Record<string,unknown>>|null;origin:string}>;

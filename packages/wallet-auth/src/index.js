@@ -19,3 +19,4 @@ export * from "./gateway-adapter.js";
 export * from "./gateway-http.js";
 export * from "./bundler.js";
 export * from "./standard-wallet-connection.js";
+export * from "./client-retirement.js";

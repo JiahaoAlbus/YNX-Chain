@@ -34,3 +34,19 @@ export declare function restoreGatewayStateBackup(options:Readonly<{
   statePath:string;
 }>&CanonicalGatewayBackupPolicy):CanonicalGatewayBackupSummary&Readonly<{restored:true;restoredStateDigest:string}>;
 export declare function readGatewayStateEnvelope(path:string):Readonly<{schemaVersion:1;snapshot:unknown;stateDigest:string}>;
+export declare function retireGatewayClientState(options:Readonly<{
+  backupPath:string;
+  expectedStateDigest:string;
+  key:Uint8Array;
+  productId:string;
+  registry:unknown;
+  statePath:string;
+  at?:string;
+  now?:()=>Date;
+}>):Readonly<{
+  backup:CanonicalGatewayBackupSummary;
+  changed:boolean;
+  previousStateDigest:string;
+  stateDigest:string;
+  result:Readonly<{clientId:string;changed:boolean;revokedSessionBindings:readonly string[];revokedApprovalDigests:readonly string[];revokedDeviceBindings:readonly string[]}>;
+}>;

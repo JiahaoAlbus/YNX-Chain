@@ -36,7 +36,7 @@ test("central registry rejects enablement without approval and identity tamper",
   assert.throws(() => parseCentralRegistryDocument(wildcard), code("INVALID_REGISTRY"));
 });
 
-test("registry v4 binds exact HTTPS web origins and migrates v3 to no browser access", () => {
+test("registry v4 binds exact HTTPS web origins and migrates to v5 without inferred browser access", () => {
   const v4 = structuredClone(source);
   for (const product of v4.products) { product.schemaVersion = 4; product.webOrigins = []; }
   const social = v4.products.find(product => product.productId === "social");
@@ -44,7 +44,7 @@ test("registry v4 binds exact HTTPS web origins and migrates v3 to no browser ac
   social.enabled = true;
   social.webOrigins = ["https://social.ynxweb4.com"];
   const parsed = parseCentralRegistryDocument(v4);
-  assert.equal(parsed.products.find(product => product.productId === "social").schemaVersion, 4);
+  assert.equal(parsed.products.find(product => product.productId === "social").schemaVersion, 5);
   assert.deepEqual(centralRegisteredWebOrigins(parsed), ["https://social.ynxweb4.com"]);
   assert.deepEqual(centralRegisteredWebOrigins(source), []);
   const insecure = structuredClone(v4);

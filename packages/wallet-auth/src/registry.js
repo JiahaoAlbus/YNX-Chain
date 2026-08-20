@@ -1,4 +1,5 @@
 import { exactFields, WalletAuthError } from "./canonical.js";
+import { assertClientLifecycleActive, CLIENT_LIFECYCLE_ACTIVE, parseClientLifecycle } from "./client-retirement.js";
 import { YNX_NATIVE_CHAIN_ID } from "./protocol.js";
 import { parseCentralRegistryEntry } from "./integration.js";
 
@@ -9,8 +10,9 @@ const PRODUCT_FIELDS_V3 = [
   "maxScopes", "productDeviceAlgorithms", "sessionDurationSeconds", "revocationPolicy",
 ];
 const PRODUCT_FIELDS_V4 = [...PRODUCT_FIELDS_V3, "webOrigins"];
+const PRODUCT_FIELDS_V5 = [...PRODUCT_FIELDS_V4, "clientLifecycle"];
 const REVOCATION_FIELDS = ["session", "approval", "device", "accountAllDevices"];
-const REVIEW_STATES = new Set(["approved", "pending-review", "disabled"]);
+const REVIEW_STATES = new Set(["approved", "pending-review", "disabled", "retired"]);
 const REGISTRY_V1_PRODUCT_IDS = Object.freeze([
   "ai", "browser", "calendar", "card", "cloud", "creator-studio", "developer", "dex", "docs", "exchange",
   "explorer", "finance", "mail", "merchant-console", "monitor", "music", "pay", "resource-market", "search",
@@ -19,7 +21,7 @@ const REGISTRY_V1_PRODUCT_IDS = Object.freeze([
 
 export const CENTRAL_REGISTRY_DOCUMENT_VERSION = 2;
 export const CENTRAL_REGISTRY_PRODUCT_COUNT = 26;
-export const CENTRAL_PRODUCT_SCHEMA_VERSION = 4;
+export const CENTRAL_PRODUCT_SCHEMA_VERSION = 5;
 
 export function parseCentralRegistryDocument(input) {
   exactFields(input, DOCUMENT_FIELDS, "Central Wallet registry document");
@@ -56,8 +58,9 @@ export function migrateCentralRegistryDocumentV1(input) {
 export function parseCentralProductRegistration(input) {
   const sourceVersion = input?.schemaVersion;
   if (sourceVersion === 3) exactFields(input, PRODUCT_FIELDS_V3, "Central Wallet product registration v3");
-  else exactFields(input, PRODUCT_FIELDS_V4, "Central Wallet product registration");
-  if (sourceVersion !== 3 && sourceVersion !== CENTRAL_PRODUCT_SCHEMA_VERSION) throw new WalletAuthError("INVALID_REGISTRY", "Central Wallet product schema is unsupported");
+  else if (sourceVersion === 4) exactFields(input, PRODUCT_FIELDS_V4, "Central Wallet product registration v4");
+  else exactFields(input, PRODUCT_FIELDS_V5, "Central Wallet product registration");
+  if (![3, 4, CENTRAL_PRODUCT_SCHEMA_VERSION].includes(sourceVersion)) throw new WalletAuthError("INVALID_REGISTRY", "Central Wallet product schema is unsupported");
   if (typeof input.productId !== "string" || !/^[a-z][a-z0-9-]{1,31}$/.test(input.productId)) throw new WalletAuthError("INVALID_REGISTRY", "productId is invalid");
   if (typeof input.displayName !== "string" || input.displayName.trim() !== input.displayName || input.displayName.length < 2 || input.displayName.length > 64) throw new WalletAuthError("INVALID_REGISTRY", "displayName is invalid");
   if (!REVIEW_STATES.has(input.reviewState) || typeof input.enabled !== "boolean" || input.enabled !== (input.reviewState === "approved")) throw new WalletAuthError("INVALID_REGISTRY", "Only approved registrations may be enabled");
@@ -77,6 +80,10 @@ export function parseCentralProductRegistration(input) {
     origins: webOrigins,
   });
   const { origins: _origins, ...protocolFields } = protocol;
+  const clientLifecycle = sourceVersion < CENTRAL_PRODUCT_SCHEMA_VERSION
+    ? CLIENT_LIFECYCLE_ACTIVE
+    : parseClientLifecycle(input.clientLifecycle, { callbacks: protocol.callbacks });
+  if ((clientLifecycle.status === "retired") !== (input.reviewState === "retired")) throw new WalletAuthError("INVALID_REGISTRY", "Retired Wallet lifecycle and review state must agree");
   return Object.freeze({
     productId: input.productId,
     displayName: input.displayName,
@@ -85,6 +92,7 @@ export function parseCentralProductRegistration(input) {
     ...protocolFields,
     schemaVersion: CENTRAL_PRODUCT_SCHEMA_VERSION,
     webOrigins,
+    clientLifecycle,
     sessionDurationSeconds: input.sessionDurationSeconds,
     revocationPolicy: Object.freeze({ session: true, approval: true, device: true, accountAllDevices: true }),
   });
@@ -92,6 +100,7 @@ export function parseCentralProductRegistration(input) {
 
 export function centralProtocolEntry(registration, options = {}) {
   const product = parseCentralProductRegistration(registration);
+  if (options.allowRetired !== true) assertClientLifecycleActive(product);
   if (options.requireEnabled !== false && !product.enabled) throw new WalletAuthError("REGISTRY_DISABLED", `Central Wallet product ${product.productId} is ${product.reviewState}`);
   return Object.freeze({
     schemaVersion: 3,
@@ -114,13 +123,14 @@ export function centralRegistrationByProduct(document, productId, options = {}) 
   return product;
 }
 
-// Only enabled product registrations may receive browser CORS access.  A v3
-// registry intentionally migrates to an empty allowlist; deployment must not
-// infer a web origin from a callback, bundle identifier, or product name.
+// Enabled registrations receive normal browser CORS access. Retired clients
+// may retain only their explicitly reviewed origins so the Gateway can return
+// a typed CLIENT_RETIRED response; the lifecycle policy still rejects every
+// private operation. A v3 registry never infers an origin.
 export function centralRegisteredWebOrigins(document) {
   const registry = parseCentralRegistryDocument(document);
   return Object.freeze([...new Set(registry.products
-    .filter(product => product.enabled)
+    .filter(product => product.enabled || product.clientLifecycle.status === "retired")
     .flatMap(product => product.webOrigins))].sort());
 }
 

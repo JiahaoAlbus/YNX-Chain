@@ -1,7 +1,8 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
-import { closeSync, constants, existsSync, fstatSync, fsyncSync, linkSync, lstatSync, mkdirSync, openSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
+import { closeSync, constants, existsSync, fstatSync, fsyncSync, linkSync, lstatSync, mkdirSync, openSync, readFileSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
 import { dirname, isAbsolute } from "node:path";
 import { canonicalJSON, exactFields, WalletAuthError } from "./canonical.js";
+import { applyClientRetirementToGatewaySnapshot } from "./gateway-adapter.js";
 import { gatewayStateDigest } from "./gateway-http.js";
 import { CANONICAL_GATEWAY_NODE_STATE_SCHEMA_VERSION } from "./gateway-node-host.js";
 
@@ -76,7 +77,35 @@ export function restoreGatewayStateBackup(options) {
 
 export function readGatewayStateEnvelope(value) {
   const statePath = absoluteFilePath(value, "Canonical Gateway state path");
-  const serialized = readSecureFile(statePath, "Canonical Gateway state", MAX_BACKUP_BYTES);
+  return readSecureStateIdentity(statePath).state;
+}
+
+export function retireGatewayClientState(options) {
+  optionFields(options, ["backupPath", "expectedStateDigest", "key", "productId", "registry", "statePath"], ["at", "now"], "Canonical Gateway client retirement options");
+  const statePath = absoluteFilePath(options.statePath, "Canonical Gateway state path");
+  const expectedStateDigest = strictStateDigest(options.expectedStateDigest, "Canonical Gateway expected state digest");
+  if (typeof options.productId !== "string" || !/^[a-z][a-z0-9-]{1,31}$/.test(options.productId)) throw new WalletAuthError("INVALID_RETIREMENT", "Canonical Gateway retirement productId is invalid");
+  const at = options.at === undefined ? currentDate(options.now) : canonicalPolicyTime(options.at, "Canonical Gateway client retirement time");
+  const before = readSecureStateIdentity(statePath);
+  if (before.state.stateDigest !== expectedStateDigest) throw new WalletAuthError("STATE_PRECONDITION", "Canonical Gateway state digest does not match the accepted retirement precondition");
+  const backup = createGatewayStateBackup({ backupPath: options.backupPath, key: options.key, statePath, now: options.now });
+  if (backup.sourceStateDigest !== expectedStateDigest) throw new WalletAuthError("STATE_RACE", "Canonical Gateway state changed while the retirement backup was created");
+  const migrated = applyClientRetirementToGatewaySnapshot(options.registry, before.state.snapshot, options.productId, at);
+  const afterDigest = gatewayStateDigest(migrated.snapshot);
+  if (!migrated.result.changed) {
+    return Object.freeze({ backup, changed: false, previousStateDigest: before.state.stateDigest, stateDigest: afterDigest, result: migrated.result });
+  }
+  const envelope = Object.freeze({ schemaVersion: CANONICAL_GATEWAY_NODE_STATE_SCHEMA_VERSION, snapshot: migrated.snapshot, stateDigest: afterDigest });
+  replaceSecureStateFile(statePath, before, canonicalJSON(envelope));
+  const verified = readSecureStateIdentity(statePath);
+  if (verified.state.stateDigest !== afterDigest) {
+    replaceSecureStateFile(statePath, verified, before.serialized);
+    throw new WalletAuthError("STATE_MIGRATION", "Canonical Gateway client retirement verification failed and the prior state was restored");
+  }
+  return Object.freeze({ backup, changed: true, previousStateDigest: before.state.stateDigest, stateDigest: afterDigest, result: migrated.result });
+}
+
+function parseGatewayStateEnvelope(serialized) {
   let state;
   try { state = JSON.parse(serialized); } catch { throw new WalletAuthError("STATE_TAMPERED", "Canonical Gateway state is invalid JSON"); }
   try { exactFields(state, STATE_FIELDS, "Canonical Gateway state"); } catch { throw new WalletAuthError("STATE_TAMPERED", "Canonical Gateway state envelope is invalid"); }
@@ -189,6 +218,50 @@ function canonicalPolicyTime(value, label) {
 function absoluteFilePath(value, label) {
   if (typeof value !== "string" || !isAbsolute(value) || value === "/") throw new WalletAuthError("INVALID_BACKUP_PATH", `${label} must be an absolute file path`);
   return value;
+}
+function strictStateDigest(value, label) {
+  if (typeof value !== "string" || !/^[0-9a-f]{64}$/.test(value)) throw new WalletAuthError("INVALID_RETIREMENT", `${label} is invalid`);
+  return value;
+}
+function readSecureStateIdentity(path) {
+  secureDirectoryInfo(dirname(path), "Canonical Gateway state");
+  let descriptor;
+  try {
+    descriptor = openSync(path, constants.O_RDONLY | constants.O_NOFOLLOW);
+    const info = fstatSync(descriptor);
+    const expectedUid = typeof process.geteuid === "function" ? process.geteuid() : info.uid;
+    const expectedGid = typeof process.getegid === "function" ? process.getegid() : info.gid;
+    if (!info.isFile() || info.nlink !== 1 || (info.mode & 0o777) !== 0o600 || info.uid !== expectedUid || info.gid !== expectedGid || info.size < 2 || info.size > MAX_BACKUP_BYTES) {
+      throw new WalletAuthError("BACKUP_PERMISSIONS", "Canonical Gateway state must be an owner-bound mode 0600 single-link regular file within the size policy");
+    }
+    const serialized = readFileSync(descriptor, "utf8");
+    return Object.freeze({ dev: info.dev, ino: info.ino, serialized, state: parseGatewayStateEnvelope(serialized) });
+  } catch (caught) {
+    if (caught instanceof WalletAuthError) throw caught;
+    throw new WalletAuthError("BACKUP_UNAVAILABLE", "Canonical Gateway state is unavailable");
+  } finally {
+    if (descriptor !== undefined) closeSync(descriptor);
+  }
+}
+function replaceSecureStateFile(path, expected, serialized) {
+  const directory = dirname(path);
+  secureDirectoryInfo(directory, "Canonical Gateway state");
+  const temporary = `${path}.${process.pid}.${randomBytes(8).toString("hex")}.tmp`;
+  let descriptor;
+  try {
+    descriptor = openSync(temporary, constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW, 0o600);
+    writeFileSync(descriptor, serialized, "utf8");
+    fsyncSync(descriptor);
+    closeSync(descriptor);
+    descriptor = undefined;
+    const current = readSecureStateIdentity(path);
+    if (current.dev !== expected.dev || current.ino !== expected.ino || current.serialized !== expected.serialized) throw new WalletAuthError("STATE_RACE", "Canonical Gateway state changed during client retirement");
+    renameSync(temporary, path);
+    fsyncDirectory(directory);
+  } finally {
+    if (descriptor !== undefined) closeSync(descriptor);
+    try { unlinkSync(temporary); } catch { /* temporary file may not exist */ }
+  }
 }
 function readSecureFile(path, label, maximumBytes) {
   secureDirectoryInfo(dirname(path), label);

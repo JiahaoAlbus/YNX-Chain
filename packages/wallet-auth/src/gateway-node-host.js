@@ -68,10 +68,8 @@ export class CanonicalWalletGatewayNodeHost {
     };
     const stored = loadState(this.#statePath);
     this.#kernel = new CanonicalWalletGatewayHttpKernel(registry, stored?.snapshot);
-    if (stored && stored.stateDigest !== gatewayStateDigest(this.#kernel.snapshot())) {
-      throw new WalletAuthError("STATE_TAMPERED", "Canonical Gateway persisted state digest is invalid");
-    }
-    if (!stored || stored.needsRewrite) this.#persist();
+    const normalizedStateDigest = gatewayStateDigest(this.#kernel.snapshot());
+    if (!stored || stored.needsRewrite || stored.stateDigest !== normalizedStateDigest) this.#persist();
   }
 
   handler() {
@@ -114,10 +112,11 @@ export class CanonicalWalletGatewayNodeHost {
         }, this.#now());
         if (result.mutated) this.#persist();
         status = result.status;
-        errorCode = status >= 400 ? responseErrorCode(result.body) : null;
+        const responseBody = status >= 400 ? bindErrorCorrelation(result.body, requestId) : result.body;
+        errorCode = status >= 400 ? responseErrorCode(responseBody) : null;
         errorId = errorCode ? randomUUID() : null;
         response.writeHead(status, observabilityHeaders({ ...result.headers, ...corsHeaders }, requestId, traceId, errorId));
-        response.end(result.body);
+        response.end(responseBody);
       } catch (caught) {
         const error = hostError(caught);
         status = error.status;
@@ -379,6 +378,13 @@ function responseErrorCode(body) {
   }
 }
 
+function bindErrorCorrelation(body, requestId) {
+  let parsed;
+  try { parsed = JSON.parse(body); } catch { return body; }
+  if (parsed?.error?.code !== "CLIENT_RETIRED") return body;
+  return canonicalJSON({ ...parsed, error: { ...parsed.error, correlationId: requestId } });
+}
+
 function increment(map, key) {
   map.set(key, (map.get(key) ?? 0) + 1);
 }
@@ -441,6 +447,7 @@ function loadState(path) {
   if (value.schemaVersion !== CANONICAL_GATEWAY_NODE_STATE_SCHEMA_VERSION || !/^[0-9a-f]{64}$/.test(value.stateDigest)) {
     throw new WalletAuthError("STATE_TAMPERED", "Canonical Gateway persisted state envelope is invalid");
   }
+  if (gatewayStateDigest(value.snapshot) !== value.stateDigest) throw new WalletAuthError("STATE_TAMPERED", "Canonical Gateway persisted state digest is invalid");
   return { schemaVersion: value.schemaVersion, stateDigest: value.stateDigest, snapshot: value.snapshot, needsRewrite };
 }
 

@@ -1,4 +1,5 @@
 import { exactFields, WalletAuthError } from "./canonical.js";
+import { assertClientLifecycleActive } from "./client-retirement.js";
 import { CentralWalletSessionStore, parseCentralWalletStoreSnapshot } from "./lifecycle.js";
 import { StrategyMandateStore, parseStrategyMandateStoreSnapshot } from "./mandate-lifecycle.js";
 import { parseStrategyAction, parseStrategyMandate } from "./mandate.js";
@@ -197,6 +198,9 @@ export class CanonicalWalletGatewayAdapter {
   #sessionForProof(proofInput) {
     const session = this.#store.snapshot().sessions.find(item => item.sessionBinding === proofInput?.sessionBinding);
     if (!session) fail("SESSION_NOT_FOUND", "Canonical Gateway Product Session was not found");
+    const registration = this.#registry.products.find((product) => product.productClientId === session.productClientId && product.bundleId === session.bundleId && product.callbacks.includes(session.callback));
+    if (!registration) fail("UNKNOWN_PRODUCT", "Canonical Gateway Product Session registration was not found");
+    assertClientLifecycleActive(registration);
     return session;
   }
 
@@ -209,6 +213,28 @@ export class CanonicalWalletGatewayAdapter {
     this.#proofs.push(productSessionProofDigest(proof));
     this.#proofs.sort();
   }
+}
+
+export function applyClientRetirementToGatewaySnapshot(registryInput, snapshot, productId, at = new Date()) {
+  const registry = parseCentralRegistryDocument(registryInput);
+  const registration = registry.products.find((product) => product.productId === productId);
+  if (!registration) fail("UNKNOWN_PRODUCT", "Canonical Gateway retirement product is not registered");
+  if (registration.clientLifecycle.status !== "retired") fail("INVALID_REGISTRY", "Canonical Gateway retirement product is not retired");
+  const parsed = snapshot === undefined
+    ? emptySnapshot(registry.registryVersion)
+    : parseGatewayAdapterSnapshot(snapshot, registry.registryVersion);
+  const store = new CentralWalletSessionStore(parsed.sessionStore);
+  const result = store.retireClient(registration, at);
+  return Object.freeze({
+    result,
+    snapshot: Object.freeze({
+      schemaVersion: CANONICAL_GATEWAY_ADAPTER_SCHEMA_VERSION,
+      registryVersion: parsed.registryVersion,
+      sessionStore: store.snapshot(),
+      consumedProductProofs: parsed.consumedProductProofs,
+      mandateStore: parsed.mandateStore,
+    }),
+  });
 }
 
 export function parseGatewayAdapterSnapshot(input, registryVersion) {

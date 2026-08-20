@@ -59,7 +59,7 @@ export class CanonicalWalletGatewayHttpKernel {
       const error = publicError(caught);
       const stateDigest = gatewayStateDigest(this.#adapter.snapshot());
       return response(error.status, false, {
-        error: { code: error.code, message: error.message },
+        error: { code: error.code, message: error.message, ...(error.details ?? {}) },
         ok: false,
         schemaVersion: CANONICAL_GATEWAY_HTTP_SCHEMA_VERSION,
         stateDigest,
@@ -141,17 +141,24 @@ function response(status, mutated, payload) {
 function publicError(caught) {
   if (!(caught instanceof WalletAuthError)) return Object.freeze({ status: 500, code: "INTERNAL", message: "Canonical Wallet Gateway failed closed" });
   const status = errorStatus(caught.code);
-  return Object.freeze({ status, code: caught.code, message: boundedMessage(caught.message) });
+  const details = caught.code === "CLIENT_RETIRED" ? retiredErrorDetails(caught.details) : null;
+  return Object.freeze({ status, code: caught.code, message: boundedMessage(caught.message), details });
 }
 
 function errorStatus(code) {
   if (code === "ROUTE_NOT_FOUND" || code === "SESSION_NOT_FOUND" || code === "MANDATE_NOT_FOUND") return 404;
   if (code === "METHOD_NOT_ALLOWED") return 405;
+  if (code === "CLIENT_RETIRED") return 410;
   if (code === "UNSUPPORTED_MEDIA_TYPE") return 415;
   if (["REPLAY", "ALREADY_REVOKED", "MANDATE_EXISTS", "MANDATE_TERMINAL", "MANDATE_REVOKED", "MANDATE_KILLED", "MANDATE_EXPIRED"].includes(code)) return 409;
   if (code === "CAPACITY") return 503;
   if (["UNKNOWN_PRODUCT", "REGISTRY_DISABLED", "DEVICE_MISMATCH", "INVALID_DEVICE_PROOF", "SESSION_BINDING_MISMATCH", "HTTP_BINDING_MISMATCH", "ORIGIN_MISMATCH", "SCOPE_NOT_GRANTED", "SCOPE_NOT_ALLOWED", "REVOKED", "EXPIRED", "WALLET_CONTROL_REQUIRED", "MANDATE_BINDING_MISMATCH", "MANDATE_POLICY_VIOLATION", "LIMIT_EXCEEDED"].includes(code)) return 403;
   return 400;
+}
+
+function retiredErrorDetails(value) {
+  exactFields(value, ["clientId", "replacementURL", "minimumClientVersion"], "Retired Wallet client error details");
+  return Object.freeze({ clientId: value.clientId, replacementURL: value.replacementURL, minimumClientVersion: value.minimumClientVersion });
 }
 
 function boundedMessage(value) {
