@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-059",
+  "ownerTaskLabel": "P0-055",
+  "decision": "SOURCE_ARTIFACTS_FROZEN_NO_GO_TEMP_ENTRY_SWAP_RACE",
+  "source": {
+    "commit": "082afce922bf7cef90843cfe3f65d6596dc79a57",
+    "tree": "f9eefa608f477e32c40db5d0be8c6e19df73c721",
+    "parent": "198f326ce9cb4256433374bd8efb0c337359c603",
+    "remoteReadbackExact": true,
+    "packageLockSha256": "8929316677769e7a6ad703583c12a07dd4d4dcbf4d87c597983f6ab6955a87b6"
+  },
+  "ownerEvidence": {
+    "commit": "7d8afd52c4a426abfcb5fed3b01acdc063955999",
+    "tree": "fea6e8f1df7ad8654f92a4045c665b9625c62a67",
+    "parent": "082afce922bf7cef90843cfe3f65d6596dc79a57",
+    "path": "release/integration/wallet-auth-p0055-atomic-no-replace-materializer-candidate-20260821.json",
+    "blob": "57ff0f73f75d7dc24d94eeb03681766e08d3a114",
+    "sha256": "50c32581f1c6f41bf3fdddbf8b4ec7199f302ccae785a9b9250e78d687135777",
+    "remoteReadbackExact": true
+  },
+  "artifacts": {
+    "sourceArchive": {"sha256": "c0cced6d0657eb18ea80217863c9a06b451b209c5d9fac3b4a056c50fd5cd3ab", "bytes": 194066, "entries": 111, "fileEntries": 103},
+    "sourceInventory": {"sha256": "e1361b7e7ce2ecdd98bba399e4a88c8b92d896d77654f2b4ea9a8c06e96752e1"},
+    "runtimeArchive": {"sha256": "ba3c5ccb83ff955106c6c39915c7284fcc41398cca4f22b5500026769198b952", "bytes": 713225, "entries": 224, "fileEntries": 212},
+    "runtimeInventory": {"sha256": "88f8653835f3d629e658d45eadfdbeb40ed0c783e071d50ae7c1fa52da4fb851"},
+    "sbom": {"sha256": "ade6438edfe429ed66d9e474eabe9998bbaac6d6f5dcff8fd7f12227acb06b4e", "bytes": 2265, "format": "CycloneDX 1.5", "components": 3, "dependencyNodes": 3},
+    "archivePathsSafe": true,
+    "contentHashesIndependentlyMatched": true
+  },
+  "tests": {
+    "ownerFocused": "6/6",
+    "ownerFull": "354/354",
+    "independentFocused": "6/6",
+    "independentFull": "354/354",
+    "exactSourceWithOfflineRuntime": true,
+    "concurrentDestinationPreserved": true,
+    "unsupportedLinkPrimitiveFailsClosed": true
+  },
+  "blockingFinding": {
+    "code": "TEMP_ENTRY_SWAP_PUBLISHES_UNTRUSTED_OUTPUT",
+    "module": "packages/wallet-auth/src/product-session-state-materializer.js",
+    "operation": "close and lstat the temporary file, then publish it later by pathname with link(2)",
+    "directReproduction": true,
+    "reproductionOutcome": "a replacement of the service-owned temporary directory entry before link caused OUTPUT_MISMATCH while leaving attacker-controlled bytes at the final output path",
+    "impact": "a failed materialization can still publish an unreviewed state file because the verified temporary inode is not bound atomically to publication and verification failure does not remove the new output",
+    "requiredCorrection": "bind publication to the verified temporary inode or use a root-controlled same-filesystem staging directory, and prove an injected temp-entry swap leaves no final output and preserves no attacker authority"
+  },
+  "lease": {
+    "issued": false,
+    "id": null,
+    "p0039Reusable": false,
+    "p0050Reusable": false,
+    "p0054Reusable": false
+  },
+  "truth": {
+    "sourceIdentityFrozen": true,
+    "artifactIdentityFrozen": true,
+    "implementationAccepted": false,
+    "executionReady": false,
+    "sshUsed": false,
+    "productionRead": false,
+    "deploymentAttempted": false,
+    "registryV3Public": false,
+    "productsMigratedV2": 0,
+    "productsRequired": 12,
+    "computerControlVerified": false,
+    "deployedPublic": false,
+    "integratedCentral": false
+  }
+}
