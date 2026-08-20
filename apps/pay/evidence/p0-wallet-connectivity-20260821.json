@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "product": "pay",
+  "lease": "P0-WALLET-CONNECTIVITY-2026-08-pay-source-build-install-20260820T191521Z",
+  "sourceOnly": true,
+  "publicDeployed": false,
+  "installed": false,
+  "coldStartVerified": false,
+  "productSessionMigratedV2": false,
+  "walletAuthSourceCommit": "203be5e108be468350591615a64d5d36ab87a8f1",
+  "walletAuthArchiveSha256": "8d0e8e35d8f387948d44666efdc6322e9b57968b5987728dffbddd11b54928eb",
+  "dappConnectArchiveSha256": "4a3c47f017a6932015686f20adfd29990a8c317ffdbb3f6fc5c4c9f16be5bc53",
+  "manifestPayloadSha256": "3c606cad1d9bfa71fc507f54b6ad8184a6580c7df75440675b5db921b7e67bb5",
+  "manifestPayEndpoint": "PENDING",
+  "tests": {"typecheck": "passed", "unit": "13/13", "web": "2/2", "expoExport": "android-ios-web passed", "releaseScan": "passed"},
+  "artifacts": {
+    "androidHermesSha256": "9989b9019e5f923fb6bd266c832d18a49293b1e76da44dad83f05426e9986986",
+    "iosHermesSha256": "ec199b9201997e3584c743e5a2d86f5666b4f9c88f94958c2692045b2c5e87b3",
+    "webMainSha256": "b7d02a7f95bef4e301ab9e231b8e724ae79462bfc673905b3de693eda947d448"
+  },
+  "androidInstall": {
+    "emulator": "emulator-5560",
+    "status": "not-installed",
+    "blocker": "Android SDK duplicate Android 36 system-image package directories blocked configureCMakeDebug before APK creation"
+  }
+}
