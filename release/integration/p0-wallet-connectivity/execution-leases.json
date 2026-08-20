@@ -1,7 +1,7 @@
 {
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "epoch": 17,
-  "updatedAt": "2026-08-20T19:37:06Z",
+  "updatedAt": "2026-08-20T19:45:00Z",
   "heavy": {
     "owner": null,
     "status": "RELEASED_CHECKPOINT",
@@ -26,17 +26,17 @@
     ]
   },
   "light": {
-    "owner": "integration",
-    "status": "ACTIVE_BOUNDED_SOURCE_ONLY",
+    "owner": null,
+    "status": "RELEASED_SOURCE_CHECKPOINT",
     "branch": "codex/p0-merchant-console-wallet-connectivity-20260821",
     "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/05-merchant-console-p0",
     "taskId": "P0-052",
     "leasedAt": "2026-08-20T19:26:00Z",
-    "releasedAt": null,
+    "releasedAt": "2026-08-20T19:45:00Z",
     "previousOwner": "data-fabric",
-    "previousCheckpoint": "e977677c61626448e0707c375b799b3f7b65b470",
-    "reason": "Merchant Console is an existing registered unassigned product with only legacy private Product Session sign-in and no Standard Wallet connection. Integration owns unassigned-product migration and can execute a source-only slice without competing with Pay Heavy.",
-    "executionScope": "MERCHANT_CONSOLE_STANDARD_WALLET_SOURCE_ONLY",
+    "previousCheckpoint": "f3d36ab5785f910f3114c4a080f2c2551aabe656",
+    "reason": "Merchant Console consumed the accepted Standard Wallet SDK and endpoint manifest, passed 13/13 tests and build, and was verified in local Browser with English UI, guest preview, private degradation and zero console errors. Actual provider, Product Session v2, public and Computer Control remain false.",
+    "executionScope": "RELEASED_MERCHANT_CONSOLE_STANDARD_WALLET_SOURCE_CHECKPOINT",
     "onSafeCheckpoint": [
       "modify only apps/merchant-console and its owner evidence",
       "consume the accepted DApp Connect SDK and endpoint manifest without copying shared protocol",

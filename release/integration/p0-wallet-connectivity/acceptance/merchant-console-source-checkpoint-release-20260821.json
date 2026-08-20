@@ -1,0 +1,20 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-052",
+  "decision": "SOURCE_CHECKPOINT_RELEASED_VISIBLE_LOCAL_ONLY",
+  "owner": "integration",
+  "branch": "codex/p0-merchant-console-wallet-connectivity-20260821",
+  "implementationCommit": "a59974d52b8c4fadaf1cd34db624f94b377f7cc5",
+  "checkpointCommit": "f3d36ab5785f910f3114c4a080f2c2551aabe656",
+  "tests": "13/13 and browser build PASS",
+  "browserLocalVerified": true,
+  "actualProviderApprovalVisible": false,
+  "productSessionMigratedV2": false,
+  "installedClientVerified": false,
+  "deployedPublic": false,
+  "publicVerified": false,
+  "computerControlVerified": false,
+  "releasedAt": "2026-08-20T19:45:00Z",
+  "nextAction": "Resume only for an actual provider approve/reject/account/chain/disconnect lifecycle; do not promote private Product Session until accepted public v2 Gateway and Pay product API evidence exist."
+}
