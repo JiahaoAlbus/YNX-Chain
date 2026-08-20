@@ -1,7 +1,7 @@
 {
   "taskId": "P0-004",
   "owner": "financial-apps",
-  "status": "IN_PROGRESS_EXCHANGE_ONLY",
+  "status": "IN_PROGRESS_PAY_ONLY",
   "acceptedContracts": [
     "walletTransport@p0-wallet-connection-v1",
     "errorContract@p0-wallet-connection-v1",
@@ -19,12 +19,12 @@
     "unresolved": ["Finance product API is PENDING", "unlocked Wallet account authorization not yet directly evidenced", "no public download, production signature or website claim"]
   },
   "activeProduct": {
-    "id": "exchange",
-    "pathLock": "apps/exchange/**",
-    "branch": "codex/exchange-wallet-actions-20260809",
-    "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/07-exchange-public",
-    "baselineCommit": "d4c5be1c74dfbcd67ad90d435720a8ca456ade79",
-    "scope": "Audit and migrate only Exchange standard Wallet Connection, endpoint manifest networking, exact error classification and installed-client evidence.",
+    "id": "pay",
+    "pathLock": "apps/pay/**",
+    "branch": "codex/final-finance-suite",
+    "worktree": "finance-suite",
+    "baselineCommit": "PENDING_OWNER_RECOVERY",
+    "scope": "Audit and migrate only Pay standard Wallet Connection, endpoint manifest networking, exact error classification and installed-client evidence.",
     "requiredSteps": ["audit current Exchange sources", "consume accepted SDK/manifest", "remove direct legacy/gateway coupling", "test", "build", "install/cold-start", "record actual connection state", "artifact hash", "handoff", "commit/push"]
   },
   "prohibitions": [
@@ -37,5 +37,6 @@
     "do not classify Product Session failure as whole-app Offline",
     "do not start Pay, DEX or Quant"
   ],
-  "nextAction": "Before the Exchange safe checkpoint can release its path lock, add the evidence verifier to a product-scoped automated test entrypoint and make its test resolve the product root rather than process.cwd(); rerun the focused test and APK-bound verifier, record the new commit/push/handoff, then stop at the safe checkpoint."
+  "exchangeCheckpoint": {"commit":"c78f0954f9137a3faf3ce4abb4ff69ed21facafd","status":"RELEASE_EVIDENCE_CHECKPOINT","publicVerified":false},
+  "nextAction": "Perform exactly the Pay Wallet Connectivity slice, then stop at a safe checkpoint. Do not restart Finance or Exchange and do not start DEX or Quant."
 }

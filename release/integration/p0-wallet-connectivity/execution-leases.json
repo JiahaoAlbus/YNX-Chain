@@ -7,13 +7,13 @@
     "status": "ACTIVE",
     "branch": "codex/exchange-wallet-actions-20260809",
     "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/07-exchange-public",
-    "taskId": "P0-004-EXCHANGE",
+    "taskId": "P0-004-PAY",
     "leasedAt": "2026-08-20T10:10:07Z",
     "expiresAt": "2026-08-20T14:10:07Z",
     "previousOwner": "financial-apps",
     "previousCheckpoint": "f7efbd9e9658aaea75f8d9fbbb58f79ee1a48365",
     "reason": "Finance completed its bounded release-evidence safe checkpoint with exact APK hash, installation/cold-start, Wallet-handoff and endpoint evidence. Finance retains public API and unlocked-Wallet authorization blockers; Financial Apps advances in the declared order to Exchange without claiming Finance deployment.",
-    "executionScope": "EXCHANGE_WALLET_CONNECTIVITY_SLICE",
+    "executionScope": "PAY_WALLET_CONNECTIVITY_SLICE",
     "onSafeCheckpoint": [
       "commit and push Exchange-owned standard wallet/networking/error-classification changes",
       "record tests, build, installed evidence and handoff",
@@ -60,7 +60,7 @@
   "waveB": [
     {
       "owner": "financial-apps",
-      "status": "ACTIVE_EXCHANGE_ONLY",
+      "status": "ACTIVE_PAY_ONLY",
       "dependsOn": "dappConnectSDK@0.1.0-p0.0",
       "scope": "Finance checkpoint retained at f7efbd9e; Exchange only is active. Pay, DEX and Quant remain reserved"
     },
@@ -72,7 +72,7 @@
     }
   ],
   "queue": [
-    "financial-apps:exchange@d4c5be1c",
+    "financial-apps:pay@pending",
     "data-fabric:checkpoint@353fffbc",
     "explorer-monitor:checkpoint@6d62c399",
     "card-testnet-e2e:dependencies-prepared",
