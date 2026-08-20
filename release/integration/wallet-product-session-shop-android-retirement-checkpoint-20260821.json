@@ -5,6 +5,13 @@
   "owner": "wallet-protocol",
   "sourceOwner": "shop",
   "shopOwnerRetirementCommit": "1752f12534166b6216e5c91c9ce87ab11caea072",
+  "walletProtocolSourceCommit": "95253de9c502335285dbb626ebd7ae37c14d6e5f",
+  "centralSourceAcceptance": {
+    "commit": "c92bbee670649b5ee55d01184c92d9830d59e659",
+    "blobReadbackPassed": 4,
+    "blobReadbackFailed": 0,
+    "deploymentLeaseIssued": false
+  },
   "protocol": {
     "registrySchemaVersion": 3,
     "productId": "shop",
@@ -47,6 +54,8 @@
   "truth": {
     "implementedSource": true,
     "testedLocal": true,
+    "centralSourceAccepted": true,
+    "centralDeploymentAuthorized": false,
     "currentPublicRuntimeUsesRegistryV3": false,
     "websiteAndroidDownloadRemovalVerified": false,
     "installedHistoricalApkRemotelyUninstalled": false,
