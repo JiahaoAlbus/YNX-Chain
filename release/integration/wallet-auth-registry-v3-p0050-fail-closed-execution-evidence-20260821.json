@@ -1,0 +1,169 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "P0-WALLET-CONNECTIVITY-registry-v3-a960-p0050-fail-closed-20260821",
+  "owner": "Core/Auth/Gateway",
+  "outcome": "FAILED_CLOSED_BEFORE_SERVICE_STOP_OR_ACTIVATION",
+  "lease": {
+    "centralCommit": "281b0cdfdb334a9b75b9805229791ff46158538f",
+    "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-registry-v3-a960-20260820T190040Z",
+    "leaseArtifact": "release/integration/p0-wallet-connectivity/execution/wallet-auth-registry-v3-a960-lease-20260821.json",
+    "leaseBlob": "041a588a3135f67e6b017ffdc5b514e773002243",
+    "leaseContentSha256": "782bebd408e98fb8d24cfc76d95fe1f08776f283e8339b57b3363dcdc2e24cc7",
+    "executionStartedUtc": "2026-08-20T19:04:18Z",
+    "singleUseConsumed": true,
+    "reusable": false,
+    "p0039Reusable": false,
+    "releaseRequested": true,
+    "release": {
+      "centralCommit": "ac09fc006497f9ed33b2f1753ea00fe88670b968",
+      "releasedAtUtc": "2026-08-20T19:12:42Z",
+      "status": "CONSUMED_RELEASED_FAILED_CLOSED_INVALID_MIGRATION",
+      "heavyOwner": null,
+      "remoteReadbackVerifiedByIntegration": true
+    }
+  },
+  "acceptedInputs": {
+    "sourceCommit": "a960d1007e7952c2af591d39e3673f1d9fe50e62",
+    "artifactCheckpoint": "79a87d87cd819672e65dd42546da997d8a80985e",
+    "sourceArchiveSha256": "f1916b5ab272cd6c301d949de8123e14d90b7ff6cd4212c77e881acab206862f",
+    "runtimeArchiveSha256": "7c57e29b46fcd09dcfc2f5f13e81bb43400947f41113c604220804c20703fd46",
+    "packageLockSha256": "c32e52b9c87743ee5870ec146590f203f0084926dfbf9a66b7edb5a9224ce606",
+    "candidateRegistryFileSha256": "810c58777a62a798e286d2d30e0430334b88603653f672821642e80e3553c46c"
+  },
+  "preWriteReadback": {
+    "passed": true,
+    "activeSymlinkTarget": "/opt/ynx/wallet-auth-6cf3ef84",
+    "service": "ynx-wallet-gateway.service",
+    "serviceActive": true,
+    "nRestarts": 0,
+    "readWritePaths": "/var/lib/ynx-wallet-gateway",
+    "publicSourceCommit": "6cf3ef845202bd879ed94515a71b323dd2fc9e14",
+    "productSessionStateSha256": "343f4cbbce0aed1e3cc5894156c4480e69dfc4775e0b347c63d555bd51790d23",
+    "gatewayStateSha256": "ac6b6523851c37c3d8b5472179fd218bc5d839e20d5a75177dcd2ac9494ea4ba",
+    "sharedStateSha256": "ba386fb9e474ea0886c2e41184db7fac3fcf6aea6dd02f5fe47122a62d3a8c9e",
+    "candidateEnvironmentSha256": "5117b5fe5fb58f77cc385fc59440b02042c9d455b2f92c6996283c9becd12437",
+    "runtimeDropInSha256": "ee9540a1f8265a8d8589db6c433d0294f000c952d87318ea124da4adbf3d2c3a",
+    "baseUnitSha256": "b465463185b1539d04a3091c349f2b8bca4286be3521e1975091089cd6603ec4",
+    "caddyfileSha256": "077fe80ea9aab24a32d64ba1fab3584e8aab10304e200e58d976d2c33edfb39f"
+  },
+  "backup": {
+    "createdBeforeAnyServiceStop": true,
+    "path": "/var/backups/ynx-chain/wallet-auth-registry-v3-a960d100",
+    "directoryMode": "0700",
+    "files": {
+      "active-symlink-target.txt": "d8cee92d31401fc968151813a0eefde7d3f1cb2ef640b62e6f90e8d6cc831e8f",
+      "wallet-gateway-candidate-6cf3ef84.env": "5117b5fe5fb58f77cc385fc59440b02042c9d455b2f92c6996283c9becd12437",
+      "90-candidate-runtime.conf": "ee9540a1f8265a8d8589db6c433d0294f000c952d87318ea124da4adbf3d2c3a",
+      "v1-state.json": "ac6b6523851c37c3d8b5472179fd218bc5d839e20d5a75177dcd2ac9494ea4ba",
+      "v2-state.json": "343f4cbbce0aed1e3cc5894156c4480e69dfc4775e0b347c63d555bd51790d23"
+    },
+    "allFilesMode": "0600",
+    "stateContentsReadOrExported": false
+  },
+  "offlineCandidateStaging": {
+    "releaseRoot": "/opt/ynx/wallet-auth-a960d100",
+    "dependencyOverlayImportPassed": true,
+    "networkInstallUsed": false,
+    "sourceArchiveRemoteSha256": "f1916b5ab272cd6c301d949de8123e14d90b7ff6cd4212c77e881acab206862f",
+    "runtimeArchiveRemoteSha256": "7c57e29b46fcd09dcfc2f5f13e81bb43400947f41113c604220804c20703fd46",
+    "candidateStateDirectory": "/var/lib/ynx-wallet-gateway/candidate-a960d100",
+    "copiedProductSessionStateSha256": "343f4cbbce0aed1e3cc5894156c4480e69dfc4775e0b347c63d555bd51790d23",
+    "copiedGatewayStateSha256": "ac6b6523851c37c3d8b5472179fd218bc5d839e20d5a75177dcd2ac9494ea4ba"
+  },
+  "migration": {
+    "status": "FAILED_CLOSED",
+    "firstAttempt": {
+      "outputCreated": false,
+      "failureClass": "INPUT_OWNERSHIP_PRECONDITION",
+      "message": "previous registry is not a safe owned regular file",
+      "recovery": "Copied the exact hash-bound registries and copied private v2 state into a root-owned mode-0700 migration workspace; no active source or state metadata was changed."
+    },
+    "boundWorkspaceInputs": {
+      "previousRegistryFileSha256": "d2826eb419abca4444ccb50d79537fa7f6a3643948d82ed9b52914b7169c107b",
+      "currentRegistryFileSha256": "810c58777a62a798e286d2d30e0430334b88603653f672821642e80e3553c46c",
+      "sourceStateFileSha256": "343f4cbbce0aed1e3cc5894156c4480e69dfc4775e0b347c63d555bd51790d23"
+    },
+    "terminalFailure": {
+      "errorType": "WalletAuthError",
+      "code": "INVALID_MIGRATION",
+      "message": "Legacy 6cf Product Session state must be one canonical JSON line",
+      "migratedOutputCreated": false,
+      "candidateOutputCreated": false,
+      "sourceStateMutated": false
+    },
+    "retryProhibited": true
+  },
+  "activation": {
+    "serviceStopped": false,
+    "symlinkChanged": false,
+    "environmentChanged": false,
+    "dropInChanged": false,
+    "daemonReloaded": false,
+    "candidateActivated": false,
+    "rollbackDrillExecuted": false,
+    "rollbackReason": "No activation mutation occurred; the exact public baseline was directly re-read instead of introducing a service interruption after the migration gate failed."
+  },
+  "finalReadback": {
+    "observedAtUtc": "2026-08-20T19:13:21Z",
+    "activeSymlinkTarget": "/opt/ynx/wallet-auth-6cf3ef84",
+    "serviceActive": true,
+    "nRestarts": 0,
+    "productSessionStateSha256": "343f4cbbce0aed1e3cc5894156c4480e69dfc4775e0b347c63d555bd51790d23",
+    "gatewayStateSha256": "ac6b6523851c37c3d8b5472179fd218bc5d839e20d5a75177dcd2ac9494ea4ba",
+    "sharedStateSha256": "ba386fb9e474ea0886c2e41184db7fac3fcf6aea6dd02f5fe47122a62d3a8c9e",
+    "candidateEnvironmentSha256": "5117b5fe5fb58f77cc385fc59440b02042c9d455b2f92c6996283c9becd12437",
+    "runtimeDropInSha256": "ee9540a1f8265a8d8589db6c433d0294f000c952d87318ea124da4adbf3d2c3a",
+    "baseUnitSha256": "b465463185b1539d04a3091c349f2b8bca4286be3521e1975091089cd6603ec4",
+    "caddyfileSha256": "077fe80ea9aab24a32d64ba1fab3584e8aab10304e200e58d976d2c33edfb39f"
+  },
+  "publicReadback": {
+    "rootVersion": {
+      "httpStatus": 200,
+      "bodyBytes": 301,
+      "bodySha256": "5ec386007e0b3e24bfd7d1f1afd37b4e98aedf7f4e1f7b2b39efca136a5d52d0",
+      "requestId": "517e62b2-7046-4525-b248-7e4277bcd858",
+      "sourceCommit": "6cf3ef845202bd879ed94515a71b323dd2fc9e14"
+    },
+    "health": {
+      "httpStatus": 200,
+      "bodyBytes": 197,
+      "bodySha256": "0982a2bed4752ff2917d74fe45fc3a09db9a3504515eb7d757a1b42b3f472474",
+      "requestId": "5e6cb702-c6a2-44dd-bd75-5dfa9089c674"
+    },
+    "ready": {
+      "httpStatus": 200,
+      "bodyBytes": 195,
+      "bodySha256": "5f0829533f9b6f8aa244dae349fd4dbcd776bdbbd45f55ad9f5f5b45c0a16a49",
+      "requestId": "2ab2e0c7-48af-4dec-a507-fd425e847263"
+    },
+    "candidateV2Version": {
+      "httpStatus": 404,
+      "bodyBytes": 163,
+      "bodySha256": "097c1c6383ff9a9035e9b3828c3c133ed076f209d1e039aeb1bde41eb563405e",
+      "requestId": "req_invalid_request_000",
+      "reason": "Candidate was not activated; the public 6cf baseline does not register this route."
+    }
+  },
+  "prohibitedMutations": {
+    "caddyChanged": false,
+    "baseUnitChanged": false,
+    "readWritePathsChanged": false,
+    "sharedStateChanged": false,
+    "otherServiceChanged": false,
+    "npmOrNetworkInstallUsed": false
+  },
+  "truth": {
+    "migrationReceiptComplete": false,
+    "rollbackReceiptComplete": false,
+    "finalActivationComplete": false,
+    "publicLifecycleExecuted": false,
+    "shopAndroidRetiredClientPublicVerified": false,
+    "shopWebPreservationPublicVerified": false,
+    "registryV3Public": false,
+    "productMigrationsComplete": 0,
+    "productMigrationsTotal": 12,
+    "computerControlVerified": false,
+    "deployedPublic": false,
+    "integrated": false
+  }
+}
