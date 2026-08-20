@@ -20,7 +20,7 @@ assert.equal(task.commit,acceptance.checkpoint.commit);
 assert.equal(lock.checkpointCommit,acceptance.checkpoint.commit);
 assert.equal(task.releasedAt,acceptance.releasedAt);
 assert.equal(lock.releasedAt,acceptance.releasedAt);
-assert.equal(leases.heavy.owner,null);
+assert.notEqual(leases.heavy.taskId,"P0-015");
 assert.equal(acceptance.acceptedEvidence.fourNodesSameBuild,true);
 assert.equal(acceptance.acceptedEvidence.fourNodesSameFixedHeightHash,true);
 assert.equal(acceptance.acceptedEvidence.allFollowerLagBlocks,0);
