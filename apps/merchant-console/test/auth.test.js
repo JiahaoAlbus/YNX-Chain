@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createCallbackURL, createGatewayChallenge, encodeRequestDeepLink, parseWalletDeepLink, registryParserBinding, signAuthorization, verifyGatewayCompletion } from "@ynx-chain/wallet-auth";
-import { beginWalletSignIn, finishWalletSignIn, MERCHANT_REGISTRY } from "../src/auth.js";
+import { beginWalletSignIn, connectStandardWallet, finishWalletSignIn, MERCHANT_REGISTRY, privateServiceDegraded, WALLET_INSTALL_OPTIONS } from "../src/auth.js";
 
 const records=new Map();
 globalThis.sessionStorage={getItem:key=>records.get(key)??null,setItem:(key,value)=>records.set(key,value),removeItem:key=>records.delete(key)};
@@ -32,4 +32,36 @@ test("cross-product callback and scope escalation fail closed",()=>{
   const request=parseWalletDeepLink(link,"android",{now,registry:registryParserBinding(MERCHANT_REGISTRY)}).request;
   assert.throws(()=>parseWalletDeepLink(encodeRequestDeepLink({...request,scopes:["account:read","card:controls:write"]}),"android",{now,registry:registryParserBinding(MERCHANT_REGISTRY)}),/scope/i);
   assert.throws(()=>parseWalletDeepLink(encodeRequestDeepLink({...request,callback:"ynxcard://wallet-auth/callback"}),"android",{now,registry:registryParserBinding(MERCHANT_REGISTRY)}),/callback/i);
+});
+
+test("standard connection prefers announced YNX Wallet and switches to YNX Testnet",async()=>{
+  const calls=[];
+  const ynxProvider={request:async request=>{calls.push(request);if(request.method==="eth_requestAccounts")return ["0x1111111111111111111111111111111111111111"];if(request.method==="eth_chainId")return calls.filter(value=>value.method==="eth_chainId").length<=2?"0x1":"0x1917";if(request.method==="wallet_switchEthereumChain")return null;throw new Error(`unexpected ${request.method}`)}};
+  const metaMaskProvider={request:async()=>{throw new Error("MetaMask must not be selected while YNX Wallet is announced")}};
+  const listeners=new Map();
+  const windowLike={
+    addEventListener:(name,listener)=>listeners.set(name,listener),
+    removeEventListener:name=>listeners.delete(name),
+    dispatchEvent:event=>{if(event.type==="eip6963:requestProvider"){listeners.get("eip6963:announceProvider")?.({detail:{info:{uuid:"metamask",name:"MetaMask",rdns:"io.metamask"},provider:metaMaskProvider}});listeners.get("eip6963:announceProvider")?.({detail:{info:{uuid:"ynx",name:"YNX Wallet",rdns:"com.ynx.wallet"},provider:ynxProvider}})}},
+  };
+  const result=await connectStandardWallet({windowLike,timeoutMs:0,network:{rpcUrl:"https://evm.ynxweb4.com",explorerUrl:"https://explorer.ynxweb4.com"}});
+  assert.equal(result.state,"STANDARD_CONNECTED");
+  assert.equal(result.account,"0x1111111111111111111111111111111111111111");
+  assert.equal(result.chainId,"0x1917");
+  assert.equal(result.providerInfo.name,"YNX Wallet");
+  assert.equal(calls.some(value=>value.method==="wallet_switchEthereumChain"),true);
+});
+
+test("missing provider returns real install choices and no fabricated connection",async()=>{
+  const listeners=new Map();
+  const windowLike={addEventListener:(name,listener)=>listeners.set(name,listener),removeEventListener:name=>listeners.delete(name),dispatchEvent:()=>{}};
+  await assert.rejects(()=>connectStandardWallet({windowLike,timeoutMs:0}),error=>error.code==="WALLET_NOT_FOUND"&&error.details.installOptions.ynx===WALLET_INSTALL_OPTIONS.ynx&&error.details.installOptions.metamask===WALLET_INSTALL_OPTIONS.metamask);
+});
+
+test("private service degradation preserves an established standard connection",()=>{
+  const state=privateServiceDegraded(Object.assign(new Error("gateway unavailable"),{status:503}),{account:"0x2222222222222222222222222222222222222222"});
+  assert.equal(state.standardConnection,"STANDARD_CONNECTED");
+  assert.equal(state.account,"0x2222222222222222222222222222222222222222");
+  assert.equal(state.privateService.state,"PRIVATE_SERVICE_DEGRADED");
+  assert.equal(state.privateService.code,"PRODUCT_SESSION_GATEWAY_UNREACHABLE");
 });

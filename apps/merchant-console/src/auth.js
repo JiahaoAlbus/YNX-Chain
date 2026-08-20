@@ -1,4 +1,7 @@
 import { p256 } from "@noble/curves/nist.js";
+import {discoverEIP6963} from "../../../packages/dapp-connect-sdk/src/discovery.js";
+import {DAppConnectError, productSessionStateFromError} from "../../../packages/dapp-connect-sdk/src/errors.js";
+import {StandardWalletConnection} from "../../../packages/dapp-connect-sdk/src/provider.js";
 import {
   encodeBase64url,
   encodeRequestDeepLink,
@@ -11,7 +14,24 @@ import {
 } from "@ynx-chain/wallet-auth";
 
 export const MERCHANT_REGISTRY=Object.freeze({schemaVersion:2,productClientId:"ynx-merchant-console-v1",requestingProduct:"pay-merchant",bundleId:"com.ynxweb4.merchant-console",callbacks:Object.freeze(["https://pay.ynxweb4.com/merchant/wallet-auth/callback"]),scopes:Object.freeze(["account:read","merchant:session:create"]),maxScopes:2,productDeviceAlgorithms:Object.freeze(["p256-sha256"])});
+export const WALLET_INSTALL_OPTIONS=Object.freeze({ynx:"https://ynxweb4.com/dapp/download",metamask:"https://metamask.io/download/"});
 const STORAGE="ynx-merchant-wallet-auth-v1";
+
+export async function connectStandardWallet({windowLike=globalThis,timeoutMs=250,network=globalThis.YNX_STANDARD_WALLET_NETWORK}={}){
+  const announced=await discoverEIP6963(windowLike,{timeoutMs});
+  const preferred=[...announced].sort((left,right)=>walletRank(left)-walletRank(right))[0];
+  const provider=preferred?.provider??windowLike.ethereum;
+  if(!provider?.request)throw new DAppConnectError("WALLET_NOT_FOUND","No standard EVM wallet was found.",{details:{installOptions:WALLET_INSTALL_OPTIONS}});
+  const connection=new StandardWalletConnection(provider);
+  const connected=await connection.connect();
+  const addChain=network?.rpcUrl?{chainId:"0x1917",chainName:"YNX Testnet",nativeCurrency:{name:"YNX Testnet",symbol:"YNXT",decimals:18},rpcUrls:[network.rpcUrl],blockExplorerUrls:network.explorerUrl?[network.explorerUrl]:[]}:undefined;
+  const chain=await connection.ensureYNXTestnet({addChain});
+  return Object.freeze({connection,providerInfo:preferred?.info??null,account:connected.account,chainId:chain.chainId,state:"STANDARD_CONNECTED"});
+}
+
+export function privateServiceDegraded(error,standardConnection){
+  return Object.freeze({standardConnection:standardConnection?.account?"STANDARD_CONNECTED":"NOT_CONNECTED",account:standardConnection?.account??null,privateService:productSessionStateFromError(error)});
+}
 
 export function beginWalletSignIn(merchantId,now=new Date()){
   if(!/^mrc_[A-Za-z0-9._:-]{3,127}$/.test(merchantId))throw new Error("A valid merchant ID is required");
@@ -35,3 +55,4 @@ export async function finishWalletSignIn(callbackURL,gatewayBase,now=new Date())
 export function hasWalletCallback(url=location.href){try{return new URL(url).searchParams.has("response")}catch{return false}}
 async function gatewayRequest(base,path,body){if(!base)throw new Error("YNX App Gateway URL is not configured");const response=await fetch(base.replace(/\/$/,"")+path,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});const value=await response.json().catch(()=>({error:"Invalid Gateway response"}));if(!response.ok)throw new Error(value.error||`YNX Gateway returned ${response.status}`);return value}
 function randomNonce(){return encodeBase64url(crypto.getRandomValues(new Uint8Array(24)))}
+function walletRank(detail){const identity=`${detail?.info?.name??""} ${detail?.info?.rdns??""}`.toLowerCase();return identity.includes("ynx")?0:identity.includes("metamask")?1:2}

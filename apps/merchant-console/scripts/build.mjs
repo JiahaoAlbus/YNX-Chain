@@ -1,4 +1,4 @@
-import { cp, mkdir, rm } from "node:fs/promises";
+import { cp, mkdir, readFile, rm } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { build } from "esbuild";
@@ -7,4 +7,6 @@ await rm(resolve(root,"dist"),{recursive:true,force:true});
 await mkdir(resolve(root,"dist"),{recursive:true});
 for(const file of ["index.html","styles.css","manifest.webmanifest","runtime-config.js"]){await cp(resolve(root,"src",file),resolve(root,"dist",file))}
 await build({entryPoints:[resolve(root,"src/app.js")],outfile:resolve(root,"dist/app.js"),bundle:true,minify:true,format:"esm",platform:"browser",target:["es2022"],sourcemap:false,legalComments:"eof"});
+const bundle=await readFile(resolve(root,"dist/app.js"),"utf8");
+if(/node:crypto|node:fs|node:path/.test(bundle))throw new Error("Browser bundle retained a Node-only dependency");
 console.log("merchant console built: dist/ with canonical Wallet client");
