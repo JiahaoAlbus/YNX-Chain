@@ -1,17 +1,18 @@
 import { digestHex, exactFields, WalletAuthError } from "./canonical.js";
 import { requestDigest, parseAuthorizationRequest, parseAuthorizationResponse, PRODUCT_DEVICE_ALGORITHM, YNX_NATIVE_CHAIN_ID } from "./protocol.js";
-import { verifyAuthorization } from "./crypto.js";
+import { verifyAuthorization, walletIdentityFromPublicKey } from "./crypto.js";
 import { verifyGatewayCompletion } from "./session.js";
 
 const REGISTRY_V1_FIELDS = ["schemaVersion", "productClientId", "requestingProduct", "bundleId", "callback", "scopes", "maxScopes"];
 const REGISTRY_V2_FIELDS = ["schemaVersion", "productClientId", "requestingProduct", "bundleId", "callbacks", "scopes", "maxScopes", "productDeviceAlgorithms"];
 const REGISTRY_V3_FIELDS = [...REGISTRY_V2_FIELDS, "origins"];
 const VERIFY_FIELDS = ["registryEntry", "authorizationRequest", "walletApproval", "gatewayCompletion"];
-const SESSION_V1_FIELDS = [
+const SESSION_V1_BASE_FIELDS = [
   "verifierVersion", "sessionBinding", "chainId", "requestingProduct", "productClientId", "bundleId",
   "callback", "productDeviceAlgorithm", "productDeviceKey", "deviceBinding", "account", "scopes", "nonce",
   "purpose", "requestDigest", "approvalDigest", "issuedAt", "expiresAt",
 ];
+const SESSION_V1_FIELDS = [...SESSION_V1_BASE_FIELDS, "accountPublicKey"];
 const SESSION_FIELDS = [
   "verifierVersion", "sessionBinding", "chainId", "requestingProduct", "productClientId", "bundleId",
   "origin", "callback", "productDeviceAlgorithm", "productDeviceKey", "deviceBinding", "account", "scopes", "nonce",
@@ -121,7 +122,8 @@ export function assertCentralWalletSessionActive(session, input, at = new Date()
 
 export function parseCentralWalletSession(input) {
   const legacy = input?.verifierVersion === "wallet-auth-v1";
-  exactFields(input, legacy ? SESSION_V1_FIELDS : SESSION_FIELDS, "Central Wallet session");
+  const legacyHasAccountPublicKey=legacy&&Object.hasOwn(input,"accountPublicKey");
+  exactFields(input, legacy ? (legacyHasAccountPublicKey ? SESSION_V1_FIELDS : SESSION_V1_BASE_FIELDS) : SESSION_FIELDS, "Central Wallet session");
   const session={
     verifierVersion:requiredPattern(input.verifierVersion,"verifierVersion",/^wallet-auth-v[12]$/),
     sessionBinding:requiredPattern(input.sessionBinding,"sessionBinding",/^[0-9a-f]{64}$/),
@@ -137,13 +139,19 @@ export function parseCentralWalletSession(input) {
     requestDigest:requiredPattern(input.requestDigest,"requestDigest",/^[0-9a-f]{64}$/),
     approvalDigest:requiredPattern(input.approvalDigest,"approvalDigest",/^[0-9a-f]{64}$/),
     account:requiredPattern(input.account,"account",/^ynx1[023456789acdefghjklmnpqrstuvwxyz]{38}$/),
+    ...(legacyHasAccountPublicKey ? { accountPublicKey:requiredPattern(input.accountPublicKey,"accountPublicKey",/^(02|03)[0-9a-f]{64}$/) } : {}),
     scopes:stringList(input.scopes,"scopes",1,8,(value)=>requiredPattern(value,"scope",/^[a-z][a-z0-9._:-]{1,63}$/)),
     nonce:requiredPattern(input.nonce,"nonce",/^[A-Za-z0-9_-]{32,64}$/),
     purpose:requiredPattern(input.purpose,"purpose",/^.{1,180}$/u),
     issuedAt:strictTime(input.issuedAt,"issuedAt"),expiresAt:strictTime(input.expiresAt,"expiresAt"),
   };
   if(session.expiresAt<=session.issuedAt)throw new WalletAuthError("INVALID_SESSION","Wallet product session lifetime is invalid");
-  if(session.chainId!==YNX_NATIVE_CHAIN_ID||session.deviceBinding!==centralDeviceBinding(session,session.account))throw new WalletAuthError("INVALID_SESSION","Wallet product session security binding is invalid");
+  let legacyAccountMatches=true;
+  if(legacyHasAccountPublicKey){
+    try{legacyAccountMatches=walletIdentityFromPublicKey(session.accountPublicKey)===session.account;}
+    catch{legacyAccountMatches=false;}
+  }
+  if(session.chainId!==YNX_NATIVE_CHAIN_ID||session.deviceBinding!==centralDeviceBinding(session,session.account)||!legacyAccountMatches)throw new WalletAuthError("INVALID_SESSION","Wallet product session security binding is invalid");
   return Object.freeze({...session,scopes:Object.freeze([...session.scopes])});
 }
 

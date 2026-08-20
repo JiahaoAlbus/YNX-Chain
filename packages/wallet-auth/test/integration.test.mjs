@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
-  assertCentralWalletSessionActive, createGatewayChallenge, migrateCentralRegistryEntry,
-  parseCentralRegistryEntry, parseAuthorizationRequest, signAuthorization, signGatewayChallenge,
-  verifyCentralWalletSession, WalletAuthError,
+  assertCentralWalletSessionActive, centralDeviceBinding, createGatewayChallenge, migrateCentralRegistryEntry,
+  parseCentralRegistryEntry, parseCentralWalletSession, parseAuthorizationRequest, signAuthorization, signGatewayChallenge,
+  verifyCentralWalletSession, walletIdentity, WalletAuthError,
 } from "../src/index.js";
 import { ACCOUNT_SECRET, NOW, PRODUCT_DEVICE_SECRET, request } from "./fixtures.mjs";
 
@@ -70,6 +70,34 @@ test("central integration rejects registry migration tamper and approval substit
 test("origin-empty registry migrations and persisted v1 sessions load but retire fail closed", () => {
   const migrated = migrateCentralRegistryEntry(REGISTRY_V1);
   assert.throws(() => parseAuthorizationRequest(request(), { now: NOW, registry: { "ynx-social-v1": { requestingProduct: "social", bundleId: "com.ynx.social", origins: migrated.origins, callbacks: migrated.callbacks, scopes: migrated.scopes, maxScopes: 2 } } }), code("ORIGIN_NOT_ALLOWED"));
+  const identity = walletIdentity(ACCOUNT_SECRET);
+  const legacy = {
+    verifierVersion: "wallet-auth-v1",
+    sessionBinding: "11".repeat(32),
+    chainId: "ynx_6423-1",
+    requestingProduct: "social",
+    productClientId: "ynx-social-v1",
+    bundleId: "com.ynx.social",
+    callback: "ynx-social://com.ynx.social",
+    productDeviceAlgorithm: "p256-sha256",
+    productDeviceKey: request().productDeviceKey,
+    deviceBinding: null,
+    account: identity.account,
+    accountPublicKey: identity.accountPublicKey,
+    scopes: ["account:read", "profile:link"],
+    nonce: "legacy_session_nonce_abcdefghijkl",
+    purpose: "Recover and retire a pre-origin Product Session.",
+    requestDigest: "22".repeat(32),
+    approvalDigest: "33".repeat(32),
+    issuedAt: "2026-07-15T11:59:00.000Z",
+    expiresAt: "2026-07-15T12:04:00.000Z",
+  };
+  legacy.deviceBinding = centralDeviceBinding(legacy, legacy.account);
+  assert.deepEqual(parseCentralWalletSession(legacy), legacy);
+  const active = { revokedSessionBindings: [], revokedApprovalDigests: [], revokedDeviceBindings: [], accountLogoutRecords: [] };
+  assert.throws(() => assertCentralWalletSessionActive(legacy, active, NOW), code("SESSION_RETIRED"));
+  assert.throws(() => parseCentralWalletSession({ ...legacy, accountPublicKey: undefined }), code("INVALID_REGISTRY"));
+  assert.throws(() => parseCentralWalletSession({ ...legacy, accountPublicKey: `02${"00".repeat(32)}` }), code("INVALID_SESSION"));
 });
 
 function code(expected) { return (error) => error instanceof WalletAuthError && error.code === expected; }
