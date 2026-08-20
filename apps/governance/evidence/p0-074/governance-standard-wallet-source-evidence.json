@@ -1,0 +1,80 @@
+{
+  "schemaVersion": "ynx-governance-p0-wallet-evidence/v1",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-074",
+  "product": "governance",
+  "generatedAt": "2026-08-20T22:38:11Z",
+  "implementationCommit": "f596ffd6eec4f6d060c9cd656772fb89beb14927",
+  "implementationTree": "6fe5e827d3f6f69b9813a6b2a696d3951d00d3ce",
+  "branch": "codex/p0-governance-wallet-connectivity-20260821",
+  "contractsConsumed": {
+    "dappConnectSDK": {
+      "status": "ACCEPTED",
+      "version": "0.1.0-p0.0",
+      "sourceCommit": "315897e75c0ffe3e63435fe73cfec42244b851cc",
+      "imports": [
+        "packages/dapp-connect-sdk/src/discovery.js",
+        "packages/dapp-connect-sdk/src/provider.js"
+      ]
+    },
+    "publicEndpointManifest": {
+      "status": "ACCEPTED",
+      "version": "1.0.0-p0.2",
+      "integrity": "sha256:3c606cad1d9bfa71fc507f54b6ad8184a6580c7df75440675b5db921b7e67bb5",
+      "consumedVerifiedEndpoints": ["evmRpc", "explorer"],
+      "evmChainId": "0x1917"
+    }
+  },
+  "implemented": [
+    "EIP-6963 discovery with YNX Wallet preference",
+    "MetaMask as an explicit standard EVM fallback",
+    "EIP-1193 account request and YNX Testnet chain verification",
+    "official YNX Wallet download action",
+    "guest proposal browsing without wallet or Product Session",
+    "visible separation between Standard Wallet Connection and private governance authority"
+  ],
+  "tests": {
+    "unit": { "command": "npm test", "passed": 4, "failed": 0 },
+    "productionBuild": { "command": "npm run build", "passed": true, "bundle": "dist/assets/index-GXhYwi42.js", "bytes": 192024 },
+    "browser": { "command": "npm run test:browser", "passed": 2, "failed": 0, "browser": "Google Chrome" },
+    "productionDependencyAudit": { "command": "npm audit --omit=dev --audit-level=high --registry=https://registry.npmjs.org", "vulnerabilities": 0 },
+    "diffCheck": { "command": "git diff --check", "passed": true }
+  },
+  "visibleEvidence": {
+    "guestScreenshot": {
+      "path": "apps/governance/evidence/p0-074/governance-guest.png",
+      "bytes": 244361,
+      "sha256": "c7808d9b2d0cb27a2a20ba2b1ef97f4ade5f73a4b0a56d236b769a66d9fc20f2"
+    },
+    "connectedScreenshot": {
+      "path": "apps/governance/evidence/p0-074/governance-standard-wallet-connected.png",
+      "bytes": 244685,
+      "sha256": "f0967f2fd238ec39260af62d3ebb3eb6079bf22d371995b75964ee7e3df89b88"
+    },
+    "assertions": [
+      "Standard wallet connected",
+      "YNX Wallet",
+      "0x1917",
+      "Private governance authority: unavailable",
+      "Governance Proposals"
+    ],
+    "consoleErrors": 0,
+    "computerControl": false
+  },
+  "truth": {
+    "standardWalletSourceIntegrated": true,
+    "guestReadingWorks": true,
+    "productSessionV2": false,
+    "governanceVotingEnabledInWeb": false,
+    "delegationEnabledInWeb": false,
+    "proposalSubmissionEnabledInWeb": false,
+    "treasuryOrEmergencyAuthorityEnabledInWeb": false,
+    "installedClientVerified": false,
+    "deployedPublic": false,
+    "publicVerified": false,
+    "computerControl": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "nextAction": "Integration reviews this source-only Standard Wallet consumer; Governance mutations remain closed until an accepted runtime authorization and public transaction evidence exist."
+}

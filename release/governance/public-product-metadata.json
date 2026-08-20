@@ -1,7 +1,7 @@
 {
   "schemaVersion": "ynx-public-product-metadata/v1",
-  "sourceCommit": "5640209e9c7df9789916bd99f61124db566842b4",
-  "sourceCommitScope": "frozen Governance source candidate after product-scoped main reconciliation and immutable workflow hardening",
+  "sourceCommit": "f596ffd6eec4f6d060c9cd656772fb89beb14927",
+  "sourceCommitScope": "Governance source candidate with accepted Standard Wallet SDK consumption; no public deployment or governance mutation authority",
   "name": "YNX Governance",
   "aliases": ["YNX Protocol Governance", "YNX Protocol Control"],
   "canonicalRoute": "/governance",
@@ -11,6 +11,7 @@
   "logo": "/assets/brand/ynx-logo.png",
   "screenshots": [],
   "features": [
+    "Guest proposal reading with optional YNX Wallet-first standard EVM connection and MetaMask fallback",
     "Readable proposals and machine diffs",
     "Technical and economic simulation evidence",
     "Vote, quorum, threshold, and delegation records",
@@ -54,6 +55,10 @@
     {
       "question": "Is this governance service publicly deployed?",
       "answer": "No. The current release record describes a locally verified integration candidate; shared-Testnet acceptance and public deployment are still pending."
+    },
+    {
+      "question": "Does connecting a wallet let me vote?",
+      "answer": "No. The current source-only connection exposes an approved 0x account on YNX Testnet, while voting, delegation, proposal submission, treasury, and emergency authority remain unavailable in the Web client."
     }
   ],
   "structuredDataSuggestion": {

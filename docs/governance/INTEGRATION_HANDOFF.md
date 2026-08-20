@@ -1,12 +1,23 @@
 # Governance Integration Handoff
 
 Owner: `31-governance`
-Source commit: `5640209e9c7df9789916bd99f61124db566842b4`
-Branch: `codex/final-governance`
+Source commit: `f596ffd6eec4f6d060c9cd656772fb89beb14927`
+Branch: `codex/p0-governance-wallet-connectivity-20260821`
 Lifecycle: `ACTIVE`
 Current phase: `INTEGRATE`
 
 ## Accepted local facts
+
+- P0-074 consumes the accepted DApp Connect SDK source for EIP-6963 and
+  EIP-1193. YNX Wallet is preferred, MetaMask is an explicit fallback, YNX
+  Testnet is verified as `0x1917`, and the official Wallet download is linked.
+- Guest proposal reading remains independent of Wallet and Product Session.
+  Standard connection does not enable voting, delegation, proposal submission,
+  treasury, or emergency authority. Product Session v2 remains unavailable.
+- Source evidence is
+  `apps/governance/evidence/p0-074/governance-standard-wallet-source-evidence.json`.
+  Local Chrome screenshots are evidence of source behavior only; public,
+  installed-client, and Computer Control verification remain false.
 
 - Governance owns proposal, vote, delegation, timelock, upgrade, canary,
   emergency, appeal and governance-audit semantics.

@@ -2,14 +2,19 @@
   "schemaVersion": "ynx-product-release/v1",
   "product": "YNX Governance & Protocol Control",
   "slug": "governance",
-  "version": "0.4.2-testnet-source-candidate",
-  "generatedAt": "2026-07-30T07:44:07Z",
-  "sourceCommit": "5640209e9c7df9789916bd99f61124db566842b4",
-  "sourceCommitScope": "frozen Governance source candidate after product-scoped main reconciliation and immutable workflow hardening",
-  "branch": "codex/final-governance",
+  "version": "0.4.3-testnet-standard-wallet-source-candidate",
+  "generatedAt": "2026-08-20T22:38:11Z",
+  "sourceCommit": "f596ffd6eec4f6d060c9cd656772fb89beb14927",
+  "sourceCommitScope": "Governance source candidate with accepted Standard Wallet SDK consumption; private governance authority and public deployment remain disabled",
+  "branch": "codex/p0-governance-wallet-connectivity-20260821",
   "phase": "INTEGRATE",
   "status": "Active",
   "completedWork": [
+    {
+      "id": "standard-wallet-source-consumer",
+      "status": "complete-source-only",
+      "details": "The Governance Web client consumes the accepted EIP-6963/EIP-1193 SDK source, prefers YNX Wallet, offers MetaMask explicitly, verifies YNX Testnet 0x1917, links the official Wallet download, preserves guest proposal reading, and never promotes a standard account connection into voting or private governance authority."
+    },
     {
       "id": "runtime-control-registries",
       "status": "complete",
@@ -106,6 +111,21 @@
     "downloadHosted": false,
     "productionSigned": false,
     "storeReleased": false
+  },
+  "p0WalletConnectivity": {
+    "taskId": "P0-074",
+    "implementationCommit": "f596ffd6eec4f6d060c9cd656772fb89beb14927",
+    "standardWalletSourceIntegrated": true,
+    "ynxWalletPreferred": true,
+    "metaMaskFallback": true,
+    "guestReading": true,
+    "productSessionV2": false,
+    "governanceMutationAuthority": false,
+    "installedClientVerified": false,
+    "deployedPublic": false,
+    "publicVerified": false,
+    "computerControl": false,
+    "evidence": "apps/governance/evidence/p0-074/governance-standard-wallet-source-evidence.json"
   },
   "ci": {
     "workflow": "governance",
@@ -225,7 +245,7 @@
   },
   "dependencies": {
     "chainCore": "centrally_accepted_source_and_canonical_execution_adapter_locally_verified",
-    "walletAuth": "centrally_accepted_source_and_exact_product_device_scope_expiry_revocation_and_replay_contract_locally_verified",
+    "walletAuth": "accepted_standard_wallet_sdk_consumed_source_only; private_product_session_and_governance_authority_unavailable",
     "explorer": "not_integrated",
     "monitor": "not_integrated",
     "trust": "local_appeal_adapter_only",
@@ -235,6 +255,8 @@
     "website": "not_integrated"
   },
   "truthfulClaims": [
+    "The Governance Web source consumes the accepted Standard Wallet SDK for YNX Wallet-first EIP-6963/EIP-1193 connection with an explicit MetaMask fallback; this does not grant or claim voting authority.",
+    "Guest proposal reading remains available without a Wallet, and the UI explicitly marks private governance authority unavailable.",
     "Signed vote integrity is implemented and tested locally.",
     "Persistent signed delegation integrity and electorate snapshot binding are implemented and tested locally.",
     "Persistent Timelock integrity, Grace expiry, exact ActionHash cancellation, and single execution submission are implemented and tested locally.",
