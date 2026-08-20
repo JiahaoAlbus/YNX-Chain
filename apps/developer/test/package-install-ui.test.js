@@ -38,6 +38,7 @@ test("Web npm and Python package installation is exact, reviewed, persistent and
   assert.match(image, /package_network == ynx-pkg-egress/);
   assert.match(image, /Ubuntu APT sources must use HTTPS under reviewed package egress/);
   assert.match(image, /apt\/ubuntu\.sources/);
+  assert.match(image, /timeout 180 cloud-init status --wait/);
   assert.match(image, /lxc file push "\$apt_sources_path" "\$builder\/etc\/apt\/sources\.list\.d\/ubuntu\.sources"/);
   assert.match(image, /lxc exec "\$builder" -- grep -R -E/);
   assert.match(image, /rm -rf \/var\/lib\/apt\/lists\/\*/);
@@ -46,6 +47,9 @@ test("Web npm and Python package installation is exact, reviewed, persistent and
   assert.ok(
     image.indexOf("rm -rf /var/lib/apt/lists/*") <
       image.indexOf("update -qq"),
+  );
+  assert.ok(
+    image.indexOf("cloud-init status --wait") < image.indexOf("lxc file push"),
   );
   assert.match(deploy, /YNX_CODE_LXD_PACKAGE_NETWORK/);
   assert.doesNotMatch(workbench, /npm install.*shell/);
