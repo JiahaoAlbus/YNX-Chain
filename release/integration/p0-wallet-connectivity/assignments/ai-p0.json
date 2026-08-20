@@ -1,0 +1,11 @@
+{
+  "schemaVersion":1,
+  "campaignId":"P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId":"P0-068",
+  "owner":"integration",
+  "status":"ACTIVE_BOUNDED_AI_SOURCE_ONLY",
+  "branch":"codex/p0-ai-wallet-connectivity-20260821",
+  "startingCommit":"a781300124b8f31c910aeb182f9b1b13e1ab4893",
+  "acceptedContracts":["walletTransport","errorContract","dappConnectSDK","publicEndpointManifest"],
+  "truth":{"historicalPublicRuntime":true,"currentSourcePublicVerified":false,"generationLive":false,"installedCurrentSource":false,"computerControlVerified":false}
+}
