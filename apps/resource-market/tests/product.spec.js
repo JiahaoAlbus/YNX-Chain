@@ -40,6 +40,40 @@ test('Resource Market saves pending capacity and reports honest AI failure', asy
   await expect(page.locator('#ai-result')).toContainText('Provider failure');
 });
 
+test('guest sees real Wallet choices and no missing-provider session is fabricated', async ({page}) => {
+  await page.goto('/');
+  await page.locator('#wallet-open').click();
+  await expect(page.getByRole('button', {name: 'Connect YNX Wallet'})).toBeVisible();
+  await expect(page.getByRole('button', {name: 'Use MetaMask'})).toBeVisible();
+  await expect(page.getByRole('link', {name: 'Download YNX Wallet'})).toHaveAttribute('href', 'https://ynxweb4.com/dapp/download#wallet');
+  await page.getByRole('button', {name: 'Connect YNX Wallet'}).click();
+  await expect(page.locator('#wallet-result')).toContainText('not detected');
+  await expect(page.locator('#wallet-result')).not.toContainText('session created');
+});
+
+test('EIP-6963 YNX Wallet connects while private Resource service stays degraded', async ({page}) => {
+  const errors = [];
+  page.on('console', (message) => { if (message.type() === 'error') errors.push(message.text()); });
+  await page.addInitScript(() => {
+    const account = '0x1111111111111111111111111111111111111111';
+    const provider = {request: async ({method}) => {
+      if (method === 'eth_requestAccounts') return [account];
+      if (method === 'eth_chainId') return '0x1917';
+      throw new Error(`unexpected wallet method ${method}`);
+    }};
+    window.addEventListener('eip6963:requestProvider', () => window.dispatchEvent(new CustomEvent('eip6963:announceProvider', {
+      detail: {info: {uuid: 'ynx-visible-test', name: 'YNX Wallet'}, provider},
+    })));
+  });
+  await page.goto('/');
+  await page.locator('#wallet-open').click();
+  await page.getByRole('button', {name: 'Connect YNX Wallet'}).click();
+  await expect(page.locator('#wallet-result')).toContainText('connected on 0x1917');
+  await expect(page.locator('#wallet-result')).toContainText('private orders, provider operations and settlement are still degraded', {ignoreCase: true});
+  await expect(page.locator('#wallet-open')).toContainText('0x111111');
+  expect(errors).toEqual([]);
+});
+
 test('provider and buyer workspaces create verified offer, quote and accepted intent', async ({page}) => {
   await page.goto('/');
   await page.locator('.dev-identity summary').click();

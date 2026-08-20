@@ -4,9 +4,12 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test:ui": "playwright test"
+    "build:web": "esbuild web/wallet-connectivity.js --bundle --format=iife --platform=browser --target=es2022 --global-name=YNXResourceWallet --outfile=web/wallet-connectivity.bundle.js",
+    "test": "npm run build:web && node --test tests/wallet-connectivity.test.mjs",
+    "test:ui": "npm run build:web && playwright test"
   },
   "devDependencies": {
-    "@playwright/test": "^1.55.0"
+    "@playwright/test": "^1.55.0",
+    "esbuild": "0.25.12"
   }
 }

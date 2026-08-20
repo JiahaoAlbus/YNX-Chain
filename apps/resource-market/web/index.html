@@ -38,7 +38,7 @@
 </details>
 <button id="text-size" aria-pressed="false">Text size</button>
 <button id="theme-toggle" aria-pressed="false">Appearance</button>
-<button id="wallet-open" data-i18n="wallet">Sign in with YNX Wallet</button>
+<button id="wallet-open" data-i18n="wallet">Connect Wallet</button>
 <details class="dev-identity">
 <summary>Local test identity</summary>
 <div>
@@ -98,13 +98,14 @@
 </div>
 <section id="wallet" class="wallet-panel hidden">
 <button class="wallet-close">Close</button>
-<p class="eyebrow">CANONICAL WALLET V1</p>
-<h2 data-i18n="wallet">Sign in with YNX Wallet</h2>
-<p>Generate a product-device-bound request. This market never accepts a seed phrase, private key, unsigned asset instruction or cross-product token.</p>
+<p class="eyebrow">STANDARD EVM WALLET</p>
+<h2 data-i18n="wallet">Connect Wallet</h2>
+<p>Connect an approved 0x account through EIP-6963 / EIP-1193. Public market education stays available without a Wallet. Private orders and settlement remain unavailable until a separate Product Session v2 is active.</p>
 <div id="wallet-bindings" class="mono-grid">
 </div>
-<button id="wallet-create" class="primary">Create canonical authorization request</button>
-<a id="wallet-launch" class="launch hidden">Open exact request in YNX Wallet</a>
+<button id="wallet-connect-ynx" class="primary">Connect YNX Wallet</button>
+<button id="wallet-connect-metamask">Use MetaMask</button>
+<a id="wallet-download" class="launch" href="https://ynxweb4.com/dapp/download#wallet">Download YNX Wallet</a>
 <div id="wallet-result" class="message">
 </div>
 </section>
@@ -465,6 +466,8 @@
 </script>
 <script src="/i18n-runtime.js">
 </script>
+<script src="/runtime-config.js"></script>
+<script src="/wallet-connectivity.bundle.js"></script>
 <script src="/app.js">
 </script>
 <script src="/market.js">
