@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-063",
+  "product": "trust-center",
+  "sourceCommit": "eb07330465f3c02b5ad62375d9b2d977110aa450",
+  "branch": "codex/p0-trust-center-wallet-connectivity-20260821",
+  "acceptedInputs": {
+    "walletProtocolSource": "66003e76e804da16d472255efde50cb879055b96",
+    "dappConnectSDK": "packages/dapp-connect-sdk/src",
+    "endpointManifestVersion": "1.0.0-p0.2",
+    "endpointManifestPayloadSha256": "3c606cad1d9bfa71fc507f54b6ad8184a6580c7df75440675b5db921b7e67bb5"
+  },
+  "implemented": {
+    "standardWalletConnection": true,
+    "eip6963Discovery": true,
+    "eip1193Provider": true,
+    "ynxWalletPreferred": true,
+    "metamaskFallback": true,
+    "ynxWalletDownload": "https://ynxweb4.com/dapp/download",
+    "metamaskDownload": "https://metamask.io/download/",
+    "chainHex": "0x1917",
+    "externalAccountFormat": "0x-prefixed EVM account only",
+    "guestPublicAccess": true,
+    "syntheticLocalIdentityRemoved": true,
+    "privateServiceState": "DEGRADED_APP_GATEWAY_UNAVAILABLE",
+    "standardConnectionPreservedWhenPrivateDegraded": true,
+    "localOrCannedProductSession": false
+  },
+  "verification": {
+    "goTests": "PASS apps/trust-center and internal/trustproduct",
+    "playwright": "5/5",
+    "sdkConnectionVector": "PASS 0x1111111111111111111111111111111111111111 on 0x1917",
+    "responsiveViewports": ["1440x900", "390x844"],
+    "productionDependencyAudit": "0 vulnerabilities",
+    "deterministicBundleSha256": "d5038ebd3304e256f870193bd68c50a29e754e3ae316da02720b9762aaab5ed6",
+    "releaseLoopbackScan": "PASS",
+    "legacyHeaderIdentityScan": "PASS"
+  },
+  "truth": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": false,
+    "integratedCentral": false,
+    "deployedPublic": false,
+    "publicVerified": false,
+    "computerControlVerified": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

@@ -1,9 +1,9 @@
 {
   "productId": "ynx-trust-center-v1",
   "name": "YNX Trust Center",
-  "branch": "codex/ecosystem-trust-resource",
-  "commit": "PENDING_SOURCE_COMMIT",
-  "version": "0.2.0-candidate",
+  "branch": "codex/p0-trust-center-wallet-connectivity-20260821",
+  "commit": "eb07330465f3c02b5ad62375d9b2d977110aa450",
+  "version": "0.3.0-p0.1",
   "surfaces": ["web", "api", "android", "ios-source"],
   "implementedLocal": true,
   "testedLocal": true,
@@ -23,15 +23,32 @@
   "minOS": {"android": 26, "ios": "16.0"},
   "installEvidence": [],
   "centralIntegration": {
-    "status": "pending-owner-merge-and-deployment",
+    "status": "standard-wallet-source-migrated-private-service-degraded",
     "registry": "integration/canonical-wallet-registry.json",
     "manifest": "integration/central-integration-manifest.json",
     "failClosed": true
   },
+  "walletConnectivity": {
+    "acceptedSDKConsumed": true,
+    "protocolSourceCommit": "66003e76e804da16d472255efde50cb879055b96",
+    "endpointManifestVersion": "1.0.0-p0.2",
+    "endpointManifestPayloadSha256": "3c606cad1d9bfa71fc507f54b6ad8184a6580c7df75440675b5db921b7e67bb5",
+    "standardWalletSourceVerified": true,
+    "eip6963": true,
+    "eip1193": true,
+    "evmChainHex": "0x1917",
+    "privateProductSession": "DEGRADED_APP_GATEWAY_UNAVAILABLE",
+    "standardConnectionSurvivesPrivateFailure": true,
+    "localOrSyntheticSessionCreated": false,
+    "installedVerified": false,
+    "publicVerified": false,
+    "computerControlVerified": false
+  },
   "knownLimitations": [
-    "No live central Wallet/Gateway endpoint or authoritative Trust deployment was provided.",
+    "The accepted endpoint manifest marks App Gateway unavailable, so private Trust submissions fail closed while public guest records and Standard Wallet Connection remain available.",
+    "No public Trust Center deployment is claimed from this source checkpoint.",
     "Host Android emulators expose ADB but remain in boot animation with package service unavailable; APK install is not claimed.",
     "Full Xcode, Simulator runtimes, signing identities, staging hosting and public artifact hosting are unavailable."
   ],
-  "generatedAt": "2026-07-19T03:50:00+08:00"
+  "generatedAt": "2026-08-21T05:10:00+08:00"
 }
