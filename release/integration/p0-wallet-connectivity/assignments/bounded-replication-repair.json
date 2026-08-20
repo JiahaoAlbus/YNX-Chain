@@ -1,17 +1,17 @@
 {
   "taskId":"P0-015",
   "owner":"integration",
-  "status":"CANDIDATE_READY",
+  "status":"IN_PROGRESS_RELEASE_TOOLING",
   "branch":"codex/p0-bounded-replication-repair-20260820",
   "worktree":"29-chain-replication-p0",
   "commit":"85174f75f05ae1e9ad84f2f0ec6ecfe0a6ede188",
   "draftPR":"https://github.com/JiahaoAlbus/YNX-Chain/pull/128",
-  "paths":["cmd/ynx-chaind/replication*.go","internal/api/server*.go","internal/chain/replication*.go"],
+  "paths":["cmd/ynx-chaind/replication*.go","internal/api/server*.go","internal/chain/replication*.go","scripts/ops/deploy-bounded-replication-recovery.sh"],
   "observedFailure":"All follower nodes are behind the primary and repeatedly reject an authenticated replication response above the fixed 268435456-byte ceiling.",
   "objective":"Bound each suffix by bytes as well as block count so a follower can make authenticated forward progress without raising the decompressed response ceiling.",
-  "invariants":["the active 256 MiB maximum remains enforced on fetch and apply","every response remains HMAC authenticated","every batch retains base/end continuity and integrity verification","final state remains separately sealed and validated","no service, deployment, manifest or public status changes in this source slice"],
+  "invariants":["the active 256 MiB maximum remains enforced on fetch and apply","every response remains HMAC authenticated","every batch retains base/end continuity and integrity verification","final state remains separately sealed and validated","the recovery tool may touch only the existing ynx-chaind binary and its release-manifest; it preserves units, environment, state and every other service","no public status changes occur before protected deployment acceptance"],
   "requiredEvidence":["focused chain and daemon tests including oversized-history progress","go build ./cmd/ynx-chaind","race check for chain and daemon","diff check","candidate rollback commit","separate protected deployment acceptance before any remote mutation"],
   "localEvidence":{"tests":"passed: go test ./internal/chain ./internal/api ./cmd/ynx-chaind; go build ./cmd/ynx-chaind; go test -race ./internal/chain ./cmd/ynx-chaind; git diff --check","behavior":"non-final replication suffixes select the largest HMAC-authenticated contiguous block range fitting the 64 MiB transport target; the 256 MiB fetch/apply ceiling and final-state seal are retained"},
-  "rollback":"Revert the dedicated candidate commit; keep the current production release untouched until a separate deployment gate accepts exact source and follower convergence.",
+  "rollback":"Revert the dedicated candidate commit. The node-only recovery tool creates a per-node copy of the preexisting binary before restart and restores it on a failed post-restart health check; keep the current production release untouched until a separate deployment gate accepts exact source and follower convergence.",
   "publicVerified":false
 }
