@@ -1,12 +1,12 @@
 {
   "schemaVersion": "1.0.0",
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-  "taskId": "P0-058",
+  "taskId": "P0-084",
   "productId": "ynx-creator-studio",
   "name": "YNX Creator Studio",
   "version": "0.4.0-testnet-candidate",
-  "implementationCommit": "b8bd715d06c9522bdd07a051ddcf1670fd44c3aa",
-  "implementationTree": "a296e89d6b068d3b982bc2a2fdafc8f0de70faf2",
+  "implementationCommit": "db80d901805e98d53627d6c97252b8d107961291",
+  "implementationTree": "67040b9a6053631c08ce5b64bc4b37fbdb47b89f",
   "surfaces": ["web"],
   "endpointManifest": {
     "version": "1.0.0-p0.2",
@@ -29,8 +29,10 @@
   "testedLocal": true,
   "builtLocal": true,
   "browserQALocal": true,
-  "providerApprovalVerified": false,
-  "accountVerified": false,
+  "providerApprovalVerified": true,
+  "providerApprovalEvidenceClass": "deterministic-browser-injected-provider-only",
+  "accountVerified": true,
+  "accountEvidenceClass": "deterministic-browser-injected-provider-only",
   "signingVerified": false,
   "transactionVerified": false,
   "productSessionV2Verified": false,
@@ -48,7 +50,8 @@
   "knownLimitations": [
     "The accepted endpoint manifest declares appGateway UNAVAILABLE and creatorProductApi PENDING.",
     "The retained private Product Session client is legacy v1 and is not promoted as v2.",
-    "The local Browser QA did not approve a Wallet account and is not ComputerControl evidence.",
+    "Deterministic Chromium QA verified approve and reject behavior with an injected EIP-1193 provider; it is not an installed Wallet or ComputerControl claim.",
+    "Upload, publish, monetization, payout and creator content APIs remain unverified and no content was fabricated.",
     "No candidate public deployment or exact public runtime readback exists yet."
   ]
 }

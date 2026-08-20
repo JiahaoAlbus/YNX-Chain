@@ -1,0 +1,78 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-084",
+  "productId": "ynx-creator-studio",
+  "startingCommit": "2b1103063b47d2cfbf060837056e6b33fc7ecad3",
+  "verificationCommit": "db80d901805e98d53627d6c97252b8d107961291",
+  "verificationTree": "67040b9a6053631c08ce5b64bc4b37fbdb47b89f",
+  "generatedAt": "2026-08-21T00:30:00Z",
+  "gates": {
+    "nodeTests": "6/6 passed",
+    "productionBuild": "passed",
+    "smoke": "passed",
+    "chromiumVisibleTests": "2/2 passed",
+    "productionEndpointAudit": "0 findings"
+  },
+  "artifacts": [
+    {
+      "path": "dist/app.js",
+      "bytes": 47469,
+      "sha256": "801ca003089d9c8820a9036354f3f6dd14901dd34633a9e6c0ffc33fd6d2b2d0"
+    },
+    {
+      "path": "runtime-config.js",
+      "bytes": 506,
+      "sha256": "53b8ae0d81d4a81716d79041c698b8183c92e60eb013c241acd7336913320cd8"
+    },
+    {
+      "path": "package-lock.json",
+      "bytes": 16634,
+      "sha256": "ed5961a380a3fbbb53348eda3cfd6ddac366eecad7655036666241023fb65fdf"
+    }
+  ],
+  "visibleEvidence": [
+    {
+      "path": "evidence/visible/creator-wallet-approved-private-degraded-1440x900.png",
+      "bytes": 80525,
+      "sha256": "b3c4fe0bdb8fa7043a376abadb13ffb50a5a2cbcd89dd3259a48a480a4adb2bd",
+      "proves": [
+        "deterministic EIP-1193 approval on chain 0x1917",
+        "approved account is visibly connected",
+        "guest tour remains available",
+        "private Creator service is separately PRIVATE_SERVICE_DEGRADED"
+      ]
+    },
+    {
+      "path": "evidence/visible/creator-wallet-rejected-guest-tour-1440x900.png",
+      "bytes": 80902,
+      "sha256": "23b4e3cbc705df81f8ea3b8b88fd89e61c25f672dc82bf6041631fb61bf07f96",
+      "proves": [
+        "EIP-1193 rejection code 4001 creates no account or private session",
+        "guest tour remains available",
+        "official YNX Wallet download route remains visible"
+      ]
+    }
+  ],
+  "truth": {
+    "deterministicProviderApproval": true,
+    "deterministicProviderRejection": true,
+    "standardConnectionPreservedWhenPrivateFails": true,
+    "realInstalledWallet": false,
+    "productSessionV2": false,
+    "creatorProductApi": false,
+    "upload": false,
+    "publish": false,
+    "monetization": false,
+    "payout": false,
+    "publicDeployment": false,
+    "computerControl": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "notes": [
+    "No creator content, upload, publish result, payout, balance or transaction was fabricated.",
+    "Chromium evidence is deterministic local browser evidence and is not installed Wallet or public runtime evidence.",
+    "The retained Product Session client is legacy v1 and appGateway remains unavailable in the accepted endpoint manifest."
+  ]
+}
