@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   METAMASK_DOWNLOAD_URL, SESSION_KEY, WALLET_DOWNLOAD_MATRIX, WalletWebError, YNX_CHAIN, YNX_DOWNLOAD_URL,
-  addYNXChain, connectWallet, createExtensionProvider, discoverInjectedProviders, extensionWalletAvailability,
+  addYNXChain, connectWallet, createExtensionProvider, discoverEip6963, discoverInjectedProviders, extensionWalletAvailability,
   forgetSession, readRememberedSession, rememberSession, resolveRememberedWallet,
   invalidatesConnectedSession, restoreTestnetSession, sendTransaction, signMessage, subscribeProviderLifecycle,
   switchToYNXChain, verifyTestnetRpc, walletActionGates, walletDiscoveryPresentation,
@@ -54,6 +54,23 @@ function extensionRuntime(responses = {}) {
   };
 }
 
+class DetailEvent extends Event {
+  constructor(type, detail) { super(type); this.detail = detail; }
+}
+
+function eip6963Scope(announcements) {
+  const target = new EventTarget();
+  target.Event = Event;
+  target.addEventListener("eip6963:requestProvider", () => {
+    for (const detail of announcements) target.dispatchEvent(new DetailEvent("eip6963:announceProvider", detail));
+  });
+  return target;
+}
+
+function providerInfo(uuid, overrides = {}) {
+  return {uuid, name:"YNX Wallet", icon:"data:image/svg+xml,%3Csvg/%3E", rdns:"com.ynx.wallet.companion", ...overrides};
+}
+
 test("frozen chain metadata is exact and complete", () => {
   assert.deepEqual(YNX_CHAIN, {chainId:"0x1917",chainName:"YNX Testnet",nativeCurrency:{name:"YNX Testnet",symbol:"YNXT",decimals:18},rpcUrls:["https://rpc.ynxweb4.com/evm"],blockExplorerUrls:["https://explorer.ynxweb4.com"]});
 });
@@ -79,6 +96,26 @@ test("provider identity does not trust an arbitrary rdns substring", () => {
   const ynx = Object.assign(provider(),{isYNXWallet:true});
   const result = discoverInjectedProviders({ethereum:{providers:[spoofed,ynx]}});
   assert.equal(result.ynx,ynx);assert.equal(result.metamask,spoofed);
+});
+
+test("EIP-6963 discovery keeps immutable valid metadata and rejects conflicting UUID announcements", async () => {
+  const uuid = "6f4e2a77-7878-4f29-9c0d-191700000001";
+  const canonical = provider();
+  const competing = provider();
+  const mutableInfo = providerInfo("7f4e2a77-7878-4f29-9c0d-191700000001");
+  const announcements = [
+    {info:providerInfo(uuid), provider:canonical},
+    {info:providerInfo(uuid), provider:canonical},
+    {info:providerInfo(uuid,{name:"Counterfeit"}), provider:competing},
+    {info:mutableInfo, provider:canonical},
+    {info:providerInfo("8f4e2a77-7878-4f29-9c0d-191700000001",{rdns:"not an rdns"}), provider:canonical},
+  ];
+  const discovered = await discoverEip6963(eip6963Scope(announcements), 0);
+  mutableInfo.name = "mutated after announcement";
+  assert.equal(discovered.length, 1);
+  assert.deepEqual(discovered[0].info, providerInfo("7f4e2a77-7878-4f29-9c0d-191700000001"));
+  assert.equal(Object.isFrozen(discovered[0].info), true);
+  assert.equal(discovered[0].provider, canonical);
 });
 
 test("discovery presentation directly prefers YNX and gives two non-empty fallbacks", () => {

@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "asOf": "2026-08-21",
+  "owner": "Wallet Web / Browser Extension",
+  "source": {
+    "baseCommit": "4da26d1a743154e03751734a0421bf9eb4069860",
+    "standardWalletContract": "66003e76e804da16d472255efde50cb879055b96",
+    "sdkContract": "203be5e108be468350591615a64d5d36ab87a8f1",
+    "errorContract": "24cc3218c2cdc00c50dc3caa563652083afbd861"
+  },
+  "change": {
+    "area": "EIP-6963 provider discovery",
+    "guarantees": [
+      "Requires a complete UUID, name, icon and reverse-DNS provider-info record before accepting an announcement.",
+      "Clones and freezes accepted provider metadata before returning it.",
+      "Rejects every provider for a UUID when conflicting announcements reuse that UUID; a later announcement cannot replace an earlier provider."
+    ]
+  },
+  "verification": {
+    "walletWebTests": "91/91 passed",
+    "build": "passed",
+    "artifactIntegrity": "3 fail-closed artifact packages verified"
+  },
+  "truth": {
+    "browserVisibleEip6963": false,
+    "extensionInstalled": false,
+    "extensionProviderInjected": false,
+    "realProviderConnection": false,
+    "accountAuthorized": false,
+    "signatureProved": false,
+    "transactionProved": false,
+    "walletConnectIntegrated": false,
+    "publicDeployment": false,
+    "downloadHosted": false,
+    "productionSigned": false
+  }
+}

@@ -27,6 +27,8 @@ export const SESSION_KEY = "ynx.wallet.web.session.v1";
 const ADDRESS = /^0x[0-9a-fA-F]{40}$/;
 const HASH = /^0x[0-9a-fA-F]{64}$/;
 const SIGNATURE = /^0x[0-9a-fA-F]{130}$/;
+const EIP6963_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
+const EIP6963_RDNS = /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/u;
 
 export class WalletWebError extends Error {
   constructor(code, message, cause) {
@@ -38,6 +40,17 @@ export class WalletWebError extends Error {
 
 function fail(code, message, cause) { throw new WalletWebError(code, message, cause); }
 function validProvider(provider) { return provider && typeof provider.request === "function"; }
+function eip6963Info(info) {
+  if (!info || typeof info !== "object" || Array.isArray(info)) return null;
+  const {uuid, name, icon, rdns} = info;
+  if (
+    typeof uuid !== "string" || !EIP6963_UUID.test(uuid) ||
+    typeof name !== "string" || name.length < 1 || name.length > 128 || /[\u0000-\u001f]/u.test(name) ||
+    typeof icon !== "string" || icon.length < 1 || icon.length > 8_192 ||
+    typeof rdns !== "string" || !EIP6963_RDNS.test(rdns)
+  ) return null;
+  return Object.freeze({uuid: uuid.toLowerCase(), name, icon, rdns: rdns.toLowerCase()});
+}
 function providerList(ethereum) {
   if (!ethereum) return [];
   const candidates = Array.isArray(ethereum.providers) ? ethereum.providers : [ethereum];
@@ -58,13 +71,24 @@ export function discoverInjectedProviders(scope = globalThis) {
 
 export async function discoverEip6963(scope = globalThis, waitMs = 160) {
   const found = new Map();
+  const conflicted = new Set();
   if (typeof scope.addEventListener !== "function" || typeof scope.dispatchEvent !== "function") {
     return Object.freeze([...found.values()]);
   }
   const listener = (event) => {
     const detail = event?.detail;
-    if (!validProvider(detail?.provider) || typeof detail?.info?.uuid !== "string") return;
-    found.set(detail.info.uuid, Object.freeze({info: detail.info, provider: detail.provider}));
+    const info = eip6963Info(detail?.info);
+    if (!validProvider(detail?.provider) || !info || conflicted.has(info.uuid)) return;
+    const next = Object.freeze({info, provider: detail.provider});
+    const previous = found.get(info.uuid);
+    if (!previous) {
+      found.set(info.uuid, next);
+      return;
+    }
+    if (previous.provider !== next.provider || JSON.stringify(previous.info) !== JSON.stringify(next.info)) {
+      found.delete(info.uuid);
+      conflicted.add(info.uuid);
+    }
   };
   scope.addEventListener("eip6963:announceProvider", listener);
   try {
