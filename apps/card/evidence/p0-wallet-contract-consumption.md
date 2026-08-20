@@ -8,6 +8,7 @@ Wallet Protocol, the DApp SDK, Gateway, or central control-plane:
 | Wallet Protocol public/runtime checkpoint | `d003a71b7658bbe530c5a9f646e6d3e908e22287` | Reference only; it does not prove Card runtime consumption. |
 | Standard Wallet contract | `66003e76e804da16d472255efde50cb879055b96` | SDK constant reference and Card runtime behavior use `p0-wallet-connection-v1`, `0x1917`, and standard `0x…` accounts. |
 | Developer DApp SDK | `315897e75c0ffe3e63435fe73cfec42244b851cc` | Immutable vendor tarball `vendor/ynx-dapp-connect-sdk-0.1.0-p0.0-315897e7.tgz`, SHA-256 `4a3c47f017a6932015686f20adfd29990a8c317ffdbb3f6fc5c4c9f16be5bc53`. |
+| Canonical Wallet error contract | `24cc3218c2cdc00c50dc3caa563652083afbd861` | Immutable vendor tarball `vendor/ynx-chain-wallet-auth-1.0.0-24cc3218.tgz`, SHA-256 `d94eda02e7e76bde6a56159a50fe515fe310b3e17baa6674dbdd00b2b252f4dd`. |
 
 ## 1. Card runtime evidence
 
@@ -21,6 +22,21 @@ session remains `CONNECTED` with its `0x…` account and chain.
 
 This is Card unit/runtime evidence, not a public device proof or a Card
 Gateway-completion claim.
+
+## Canonical Wallet error contract
+
+Card calls `walletErrorResponse` from the exact `24cc3218` Wallet/Auth package
+to obtain bounded safe error fields. It maps explicit SDK compatibility states
+to canonical Wallet codes, preserves all EIP-1193 identities `4001`, `4100`,
+`4200`, `4900`, `4901`, and `4902`, and maps no unknown code to a Gateway or
+Offline state. Unknown or malformed codes fail closed as
+`UNKNOWN_WALLET_ERROR`; the Card UI never receives `developerMessage`.
+
+The Card runtime test covers provider identity, device-proof-safe output,
+correlation IDs, an unavailable private Gateway while standard Wallet remains
+connected, and malformed/unknown error failure. This consumes the source-only
+contract locally; it does not change the observed `6cf` public runtime truth,
+deployment state, or Product Session migration claim.
 
 ## 2. v2 Gateway evidence
 

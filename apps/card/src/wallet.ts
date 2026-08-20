@@ -1,6 +1,7 @@
 import { p256 } from "@noble/curves/nist.js";
 import * as WalletAuth from "@ynx-chain/wallet-auth";
 import {StandardWalletConnection,enhanceWithProductSession} from "@ynx/dapp-connect-sdk";
+import {walletErrorResponse} from "@ynx-chain/wallet-auth";
 import {
   encodeRequestDeepLink,
   parseAuthorizationRequest,
@@ -32,7 +33,8 @@ export const YNX_TESTNET_CHAIN_NAME="YNX Testnet";
 export type PendingAuthorization=Readonly<{request:AuthorizationRequest;deviceSecret:string}>;
 export type CardSession=Readonly<{token:string;sessionBinding:string;requestDigest:string;account:string;productClientId:"ynx-card-v1";bundleId:"com.ynxweb4.card";scopes:readonly string[];issuedAt:string;expiresAt:string;deviceId:string}>;
 export type Eip1193WalletSession=Readonly<{address:string;chainId:string;connectedAt:string;provider:"eip1193"}>;
-export type ProductSessionRuntime=Readonly<{state:"PRODUCT_SESSION_READY";session:CardSession}|{state:"PRIVATE_SERVICE_DEGRADED";code:string;requestId?:string;traceId?:string;errorId?:string}>;
+export type CardWalletError=Readonly<{code:string;retryable:boolean;safeMessage:string;monitoringClass:string;userAction:string;requestId?:string;traceId?:string;errorId?:string}>;
+export type ProductSessionRuntime=Readonly<{state:"PRODUCT_SESSION_READY";session:CardSession}>|Readonly<{state:"PRIVATE_SERVICE_DEGRADED"}&CardWalletError>;
 export type TestnetTopupIntent=Readonly<{id:string;chainId:string;recipient:string;amountWei:string;minConfirmations:number;expiresAt:string}>;
 export type TopupEvidence=Readonly<{chainId:string;txHash:string;blockNumber:string;blockHash:string;from:string;to:string;valueWei:string;confirmations:number}>;
 
@@ -69,8 +71,21 @@ export async function completeCentralSession(gatewayURL:string,pending:PendingAu
 export async function enhanceCardProductSession(standard:Eip1193WalletSession,complete:()=>Promise<CardSession>):Promise<ProductSessionRuntime>{
   const outcome=await enhanceWithProductSession({standardConnection:{account:standard.address},complete});
   if(outcome.state==="PRODUCT_SESSION_READY")return Object.freeze({state:"PRODUCT_SESSION_READY",session:outcome.session as CardSession});
-  return Object.freeze({state:"PRIVATE_SERVICE_DEGRADED",code:outcome.code??"PRODUCT_SESSION_GATEWAY_UNREACHABLE",requestId:outcome.requestId,traceId:outcome.traceId,errorId:outcome.errorId});
+  return Object.freeze({state:"PRIVATE_SERVICE_DEGRADED",...classifyCardWalletError({code:outcome.code??"PRODUCT_SESSION_GATEWAY_UNREACHABLE",requestId:outcome.requestId,traceId:outcome.traceId,errorId:outcome.errorId})});
 }
+
+const ERROR_ALIASES:Readonly<Record<string,string>>=Object.freeze({WALLET_USER_REJECTED:"USER_REJECTED",WALLET_UNAUTHORIZED:"UNAUTHORIZED",WALLET_UNSUPPORTED_METHOD:"UNSUPPORTED_METHOD",WALLET_DISCONNECTED:"PROVIDER_DISCONNECTED",WALLET_CHAIN_DISCONNECTED:"CHAIN_DISCONNECTED",WRONG_CHAIN:"UNKNOWN_CHAIN",ACCOUNT_REQUIRED:"UNAUTHORIZED",PRODUCT_SESSION_GATEWAY_UNREACHABLE:"GATEWAY_UNAVAILABLE",PRODUCT_SESSION_DEVICE_PROOF_REJECTED:"INVALID_DEVICE_PROOF",PRODUCT_SESSION_EXPIRED_OR_CLOCK_SKEW:"PRODUCT_SESSION_EXPIRED",CALLBACK_PENDING_MISSING:"CALLBACK_MISMATCH",CALLBACK_MISMATCH:"CALLBACK_MISMATCH",CALLBACK_REPLAY:"REPLAY",CALLBACK_EXPIRED:"PRODUCT_SESSION_EXPIRED"});
+
+export function classifyCardWalletError(input:unknown):CardWalletError{
+  const source=object(input)?input:{};
+  const raw=typeof input==="number"||typeof input==="string"?input:source.code;
+  const code=typeof raw==="string"?ERROR_ALIASES[raw]??raw:raw;
+  if([source.requestId,source.traceId,source.errorId].some(value=>value!==undefined&&typeof value!=="string"))return unknownWalletError();
+  const correlation={requestId:source.requestId as string|undefined,traceId:source.traceId as string|undefined,errorId:source.errorId as string|undefined};
+  try{const response=walletErrorResponse(code,correlation),body=response.body;return Object.freeze({code:body.code,retryable:body.retryable,safeMessage:body.safeMessage,monitoringClass:body.monitoringClass,userAction:body.userAction,requestId:body.requestId,traceId:body.traceId,errorId:body.errorId});}
+  catch{return unknownWalletError();}
+}
+function unknownWalletError():CardWalletError{return Object.freeze({code:"UNKNOWN_WALLET_ERROR",retryable:false,safeMessage:"Wallet error could not be verified.",monitoringClass:"wallet-contract",userAction:"return-to-product"});}
 
 export function verifiedApproval(callbackURL:string,pending:PendingAuthorization,now=new Date()):AuthorizationResponse{
   const raw=parseCallbackURL(callbackURL,CALLBACK);
