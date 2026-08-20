@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "4cc6e636362d40766ff7275a0bbb22612a06d038",
+  "product": "social",
+  "platform": "android",
+  "build": {
+    "variant": "debug",
+    "versionCode": 3,
+    "versionName": "1.0.2-testnet-preview",
+    "minSdk": 24,
+    "targetSdk": 36,
+    "apkSha256": "16b324073cf2b6e101cc44245b2f42dc81252195771eecf880a7a8c5dba262e0"
+  },
+  "device": {
+    "serial": "emulator-5560",
+    "apiLevel": 36,
+    "abi": "arm64-v8a"
+  },
+  "callback": {
+    "canonicalUrl": "ynx-social://com.ynx.social?response=invalid",
+    "resolvedActivity": "com.ynx.social/.MainActivity",
+    "coldLaunch": true,
+    "launchStatus": "ok",
+    "launchTimeMs": 1234,
+    "noActivityFound": false
+  },
+  "truth": {
+    "nativeCallbackRouteProved": true,
+    "walletApprovalProved": false,
+    "productSessionGatewayProved": false,
+    "socialLoginProved": false,
+    "productionSigned": false,
+    "publicDownloadHosted": false
+  },
+  "limitations": [
+    "The Debug variant displayed a missing bundled JavaScript error after native launch; it is not a release artifact or UI-success proof.",
+    "The test uses an intentionally invalid response and proves only Android callback routing, not authorization success."
+  ]
+}
