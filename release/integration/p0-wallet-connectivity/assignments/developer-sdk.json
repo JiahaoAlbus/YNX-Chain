@@ -1,7 +1,7 @@
 {
   "taskId": "P0-003",
   "owner": "developer-sdk",
-  "status": "CHECKPOINT_REACHED_LIGHT_LEASE_RELEASED",
+  "status": "MANIFEST_DELTA_VERIFIED_REBASE_REQUIRED",
   "inheritedBranch": "codex/p0-developer-sdk-20260820",
   "inheritedCommit": "315897e75c0ffe3e63435fe73cfec42244b851cc",
   "remoteHeadObserved": "0a03050c305eb2f7f0d53513bcf3ea6073ba3371",
@@ -18,5 +18,44 @@
     "per-product migrations",
     "platform E2E"
   ],
-  "nextAction": "Developer SDK retains product ownership but no longer holds the P0 Light Lease."
+  "nextAction": "Create a new Developer SDK owner branch from the latest accepted central SDK snapshot. Reapply the manifest-acceptance behavior while preserving current central SDK behavior. Keep the replacement commit to the same five packages/dapp-connect-sdk paths and exclude apps/developer and .ynx artifacts. Return exact parent, commit, tree, five blobs, 12/12 or stronger tests, clean package-only migration scan and BUNDLED_SHA256_ACCEPTED against the current manifest. Repair PR #105/#110 topology; do not ask Integration to merge either current head.",
+  "manifestCandidate": {
+    "commit": "24773900321b944444f37c7fcb2ea91b6f928d7e",
+    "parent": "0a03050c305eb2f7f0d53513bcf3ea6073ba3371",
+    "scopeFiles": 5,
+    "tests": "12/12",
+    "manifestResult": "BUNDLED_SHA256_ACCEPTED",
+    "releaseId": "P0-WALLET-CONNECTIVITY-2026-08-endpoints-2",
+    "consumed": false
+  },
+  "blocker": {
+    "code": "CENTRAL_SDK_BASE_DIVERGED_FIVE_PATH_CHERRY_PICK_CONFLICT",
+    "centralParent": "8aa3924a11747d8613f14523f66f4ba5e9dc054f",
+    "actualMergeBase": "315897e75c0ffe3e63435fe73cfec42244b851cc",
+    "conflicts": [
+      "packages/dapp-connect-sdk/README.md",
+      "packages/dapp-connect-sdk/src/endpoints.js",
+      "packages/dapp-connect-sdk/src/index.js",
+      "packages/dapp-connect-sdk/test/consumer-sdk.test.mjs",
+      "packages/dapp-connect-sdk/tools/release-gate.mjs"
+    ]
+  },
+  "prTopology": {
+    "pr105CurrentHead": "7f4597f3bd8877b5946957f3e5379ada30fcd1e4",
+    "pr105AcceptedBase": "315897e75c0ffe3e63435fe73cfec42244b851cc",
+    "pr105UnsafeWholeTree": true,
+    "pr105ObservedDiff": {
+      "files": 180,
+      "insertions": 300561,
+      "deletions": 17,
+      "includesDeveloperArtifacts": true
+    },
+    "pr110ExactHead": "24773900321b944444f37c7fcb2ea91b6f928d7e",
+    "pr110VsPr105": {
+      "leftUnique": 1,
+      "rightUnique": 4,
+      "mergeBase": "0a03050c305eb2f7f0d53513bcf3ea6073ba3371"
+    },
+    "mergeEitherCurrentHead": false
+  }
 }

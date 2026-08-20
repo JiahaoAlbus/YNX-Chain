@@ -1,0 +1,120 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-003",
+  "owner": "developer-sdk",
+  "auditedBy": "02-wallet-auth-central-integration",
+  "auditedAt": "2026-08-20T11:04:00Z",
+  "decision": "EXACT_DELTA_VERIFIED_REBASE_REQUIRED_NOT_CONSUMED",
+  "safeCandidate": {
+    "commit": "24773900321b944444f37c7fcb2ea91b6f928d7e",
+    "parent": "0a03050c305eb2f7f0d53513bcf3ea6073ba3371",
+    "tree": "4845e513d8e1ecb1c587e2926605e8707ef6f143",
+    "scope": "packages/dapp-connect-sdk/**",
+    "changedFiles": [
+      {
+        "path": "packages/dapp-connect-sdk/README.md",
+        "blob": "5be0f1dc1cc64be2d371c50c84f4f30ff26be48f"
+      },
+      {
+        "path": "packages/dapp-connect-sdk/src/endpoints.js",
+        "blob": "ecf7dbc662541eb70ba659a6d2bb6e5bac600f4f"
+      },
+      {
+        "path": "packages/dapp-connect-sdk/src/index.js",
+        "blob": "9ccef58cd31436cc26a593f6447313af6bc41a0a"
+      },
+      {
+        "path": "packages/dapp-connect-sdk/test/consumer-sdk.test.mjs",
+        "blob": "6a015445e2ecbaef0e67d940325a555c4fad138f"
+      },
+      {
+        "path": "packages/dapp-connect-sdk/tools/release-gate.mjs",
+        "blob": "6ec8a0134fbda4617dfae3ffa8c5acfa4359f5d6"
+      }
+    ],
+    "diffStats": {
+      "files": 5,
+      "insertions": 45,
+      "deletions": 13
+    },
+    "verification": {
+      "testsPassed": 12,
+      "testsFailed": 0,
+      "packageOnlyMigrationFindings": 0,
+      "diffCheck": "passed"
+    }
+  },
+  "acceptedManifestVerification": {
+    "centralSourceCommit": "8aa3924a11747d8613f14523f66f4ba5e9dc054f",
+    "path": "release/integration/p0-wallet-connectivity/public-endpoint-manifest.json",
+    "blob": "7362ac2f99c34a89ef5db6b0a5ee2b2af8d4b747",
+    "releaseId": "P0-WALLET-CONNECTIVITY-2026-08-endpoints-2",
+    "result": "BUNDLED_SHA256_ACCEPTED",
+    "remoteSignatureStatus": "PENDING_PROTECTED_SIGNER"
+  },
+  "centralReconciliation": {
+    "authoritativeParent": "8aa3924a11747d8613f14523f66f4ba5e9dc054f",
+    "candidateParentIsAncestor": false,
+    "actualMergeBase": "315897e75c0ffe3e63435fe73cfec42244b851cc",
+    "cherryPickAttempt": "CONFLICT",
+    "conflicts": [
+      {
+        "path": "packages/dapp-connect-sdk/README.md",
+        "type": "content"
+      },
+      {
+        "path": "packages/dapp-connect-sdk/src/endpoints.js",
+        "type": "content"
+      },
+      {
+        "path": "packages/dapp-connect-sdk/src/index.js",
+        "type": "content"
+      },
+      {
+        "path": "packages/dapp-connect-sdk/test/consumer-sdk.test.mjs",
+        "type": "content"
+      },
+      {
+        "path": "packages/dapp-connect-sdk/tools/release-gate.mjs",
+        "type": "modify-delete"
+      }
+    ],
+    "candidatePostImagesCopied": false,
+    "sdkFilesChangedByCentral": false,
+    "reason": "Resolving five owner-code conflicts in Integration would recreate Developer SDK semantics and could overwrite the current central SDK snapshot."
+  },
+  "prTopology": {
+    "pr105CurrentHead": "7f4597f3bd8877b5946957f3e5379ada30fcd1e4",
+    "pr105AcceptedBase": "315897e75c0ffe3e63435fe73cfec42244b851cc",
+    "pr105UnsafeWholeTree": true,
+    "pr105ObservedDiff": {
+      "files": 180,
+      "insertions": 300561,
+      "deletions": 17,
+      "includesDeveloperArtifacts": true
+    },
+    "pr110ExactHead": "24773900321b944444f37c7fcb2ea91b6f928d7e",
+    "pr110VsPr105": {
+      "leftUnique": 1,
+      "rightUnique": 4,
+      "mergeBase": "0a03050c305eb2f7f0d53513bcf3ea6073ba3371"
+    },
+    "mergeEitherCurrentHead": false
+  },
+  "ownerActionRequired": [
+    "Create a new Developer SDK owner branch from the latest accepted central SDK snapshot.",
+    "Reapply the manifest-acceptance behavior while preserving current central SDK behavior.",
+    "Keep the replacement commit to the same five packages/dapp-connect-sdk paths and exclude apps/developer and .ynx artifacts.",
+    "Return exact parent, commit, tree, five blobs, 12/12 or stronger tests, clean package-only migration scan and BUNDLED_SHA256_ACCEPTED against the current manifest.",
+    "Repair PR #105/#110 topology; do not ask Integration to merge either current head."
+  ],
+  "truth": {
+    "candidateConsumed": false,
+    "productMigration": false,
+    "publicSdkReleased": false,
+    "deployedPublic": false,
+    "integratedCentral": false,
+    "remoteManifestReplacementEnabled": false
+  }
+}
