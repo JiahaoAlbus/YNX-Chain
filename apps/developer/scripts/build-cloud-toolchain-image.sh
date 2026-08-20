@@ -117,8 +117,8 @@ lxc exec "$builder" -- /opt/node-v22.23.1/bin/node /opt/ynx-js-debug/src/dapDebu
 lxc exec "$builder" -- curl --http1.1 -fL --retry 10 --retry-all-errors --connect-timeout 20 "https://repo1.maven.org/maven2/org/junit/platform/junit-platform-console-standalone/$junit_version/junit-platform-console-standalone-$junit_version.jar" -o /usr/local/share/ynx-code/junit-platform-console-standalone.jar
 lxc exec "$builder" -- sh -c "printf '%s  %s\n' '$junit_sha256' /usr/local/share/ynx-code/junit-platform-console-standalone.jar | sha256sum -c -"
 lxc exec "$builder" -- java -jar /usr/local/share/ynx-code/junit-platform-console-standalone.jar --version
-lxc exec "$builder" -- sh -c 'rustc --version | grep "^rustc 1.92.0 "'
-lxc exec "$builder" -- sh -c 'cargo --version | grep "^cargo 1.92.0 "'
+lxc exec "$builder" -- sh -c 'rustc --version | grep "^rustc 1.75.0 "'
+lxc exec "$builder" -- sh -c 'cargo --version | grep "^cargo 1.75.0 "'
 lxc exec "$builder" -- rustfmt --version
 lxc exec "$builder" -- sh -c 'python3 -m venv --copies /tmp/ynx-python-package-probe && /tmp/ynx-python-package-probe/bin/python -m pip --version && rm -rf /tmp/ynx-python-package-probe && dpkg-query -W -f="\${Package}=\${Version}\n" python3-pip python3-venv > /etc/ynx-code-python-packages.txt'
 lxc exec "$builder" -- curl --proto '=https' --tlsv1.2 -fL --retry 4 --connect-timeout 20 "$debugpy_url" -o "/tmp/debugpy-${debugpy_version}-py2.py3-none-any.whl"
