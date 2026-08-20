@@ -25,9 +25,12 @@ It never creates a local fallback session.
 
 ## Endpoint manifests
 
-`validateEndpointManifest` is deliberately only an interface until Integration
-accepts and signs the public endpoint manifest. A caller must supply a signature
-verifier, and invalid/expired/loopback/wrong-chain manifests cannot activate.
+`validateEndpointManifest` requires a protected remote-signature verifier. For
+the separately accepted bundled consumer contract, `loadBundledManifest`
+instead verifies Integration's canonical SHA-256 payload, expiry, chain identity
+and public HTTPS locations. A remote replacement still needs a protected
+signature verifier; invalid, expired, loopback, wrong-chain, or hash-mismatched
+manifests cannot activate.
 
 ## Migration and artwork gates
 
@@ -48,11 +51,12 @@ diagnostics, and platform-approved wallet opening. It never owns a private key.
 WalletConnect, SIWE, first-party Product Session, external wallet to YNX,
 YNX Wallet to an external EVM DApp, Faucet Deep Link, Gateway-down degradation,
 and multi-wallet EIP-6963 selection. The Faucet example deliberately returns a
-typed `FAUCET_DEEP_LINK_NOT_ACCEPTED` error until Integration accepts a signed
-Endpoint Manifest.
+typed `FAUCET_DEEP_LINK_NOT_ACCEPTED` error until its separate deep-link
+contract is accepted.
 
 Run `npm run lab -- path/to/real-adapters.mjs` to execute the Compatibility Lab
 against real adapters. A run without an adapter module reports explicit skips;
-it never creates a simulated success. `npm run release:gate -- product-path`
-produces the migration scanner report and preserves the endpoint-activation
-block until the central manifest is accepted and signed.
+it never creates a simulated success. `npm run release:gate -- product-path manifest.json`
+produces the migration scanner report and verifies an accepted bundled manifest
+when one is supplied; remote-manifest replacement remains blocked without a
+protected signer.
