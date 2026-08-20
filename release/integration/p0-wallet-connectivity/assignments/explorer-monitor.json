@@ -1,11 +1,14 @@
 {
   "taskId": "P0-006",
   "owner": "explorer-monitor",
-  "status": "CHECKPOINT_REACHED",
+  "status": "ACTIVE",
   "branch": "codex/p0-explorer-monitor-20260820",
   "checkpoint": "6d62c399a279c57e8883b300a4cf6d782c8e1673",
   "candidatePR": "https://github.com/JiahaoAlbus/YNX-Chain/pull/107",
   "completedScope": "CODEQL_AND_CONNECTIVITY_SLICE",
+  "activeScope": "MONITOR_TRUTH_AND_CONNECTIVITY_DEPLOY_SLICE",
+  "leaseGrantedAt": "2026-08-20T17:28:11Z",
+  "leaseExpiresAt": "2026-08-20T19:28:11Z",
   "evidence": {
     "local": "48 application tests, 8 scripts, build and audit passed",
     "remote": "CodeQL, JavaScript/TypeScript, Go, dependency review, build-script audit and Go static analysis passed",
@@ -14,6 +17,7 @@
   },
   "publicVerified": false,
   "deployment": "not performed",
-  "pathState": "CHECKPOINT_REACHED; read-only evidence until the next Integration Heavy Lease",
-  "nextAction": "Do not rebuild probes or deploy. Resume only when Integration grants the next bounded Explorer/Monitor lease."
+  "pathState": "WRITABLE_ACTIVE for Explorer/Monitor owner paths only",
+  "firstTask": "ENFORCE_PUBLIC_ENDPOINT_AND_SOURCE_IDENTITY_POLICY",
+  "nextAction": "Continue from 6d62c399 without rebuilding probes: enforce HTTPS/public/same-origin health-version policy, add negative tests, consume four-node convergence evidence, build, push and return exact official-domain runtime evidence plus rollback. Keep publicVerified false until ComputerControl succeeds."
 }
