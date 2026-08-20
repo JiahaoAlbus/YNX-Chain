@@ -2,13 +2,13 @@
   "schemaVersion": "1.0.0",
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "owner": "integration",
-  "status": "WAVE_C_ACTIVE",
+  "status": "WAVE_B_FINANCE_RESUMED",
   "scope": ["founder-control", "wallet-connectivity", "installed-client-networking", "shop-android-retirement", "artwork-governance"],
   "frozen": ["independent-ynx-id", "nonessential-new-products", "extra-finance-features", "shop-android"],
   "integrationBranch": "codex/final-integration",
   "baselineCommit": "10b877b5b18f9cb0026a6382cdd6588054fd16db",
   "protectedHistory": [{"branch": "codex/recovery/final-integration-pre-p0", "reason": "preserved divergent pre-P0 integration history"}],
   "network": {"cosmosChainId": "ynx_6423-1", "evmChainId": 6423, "evmChainHex": "0x1917", "nativeAsset": "YNXT", "nativeAddressPrefix": "ynx1"},
-  "firstStop": {"complete": true, "publicConnectivityClaim": false, "nextAction": "Explorer/Monitor owns the active bounded CODEQL_AND_CONNECTIVITY_SLICE from PR #107. Finance is PAUSED_CHECKPOINT at 4af744a90 and retains product ownership. Data Fabric owns the independent CONNECTION_EVENTS_RUNTIME_ADAPTER_SLICE under accepted connectionEvents@1.0.0-p0.0."},
-  "wave": {"id": "C", "owner": "explorer-monitor", "executionScope": "CODEQL_AND_CONNECTIVITY_SLICE", "firstTask": "PR107_CODEQL_RATE_LIMIT_REMEDIATION", "startingPR": "https://github.com/JiahaoAlbus/YNX-Chain/pull/107", "startingCheckpoint": "4c6ee998954fdc2d83a7e7cfc56c2391ada80730", "activatedAt": "2026-08-20T09:20:09Z"}
+  "firstStop": {"complete": true, "publicConnectivityClaim": false, "nextAction": "Explorer/Monitor completed the bounded PR #107 CodeQL checkpoint at 6d62c399 with green remote gates; Finance resumes only its remaining Finance release-evidence slice from 4af744a90. Data Fabric continues its independent CONNECTION_EVENTS_RUNTIME_ADAPTER_SLICE."},
+  "wave": {"id": "B-resume", "owner": "financial-apps", "executionScope": "FINANCE_RELEASE_EVIDENCE_SLICE", "firstTask": "FINANCE_RESUME_FROM_4AF744A90", "startingPR": "https://github.com/JiahaoAlbus/YNX-Chain/pull/107", "startingCheckpoint": "4af744a90cb6351ead09a3130244791b71d34a84", "activatedAt": "2026-08-20T09:53:30Z", "previousWave": {"id":"C","owner":"explorer-monitor","checkpoint":"6d62c399a279c57e8883b300a4cf6d782c8e1673","pr":"https://github.com/JiahaoAlbus/YNX-Chain/pull/107","publicVerified":false}}
 }
