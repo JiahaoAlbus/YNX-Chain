@@ -1,0 +1,123 @@
+{
+  "schemaVersion": "ynx-p0-product-evidence/1",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-080",
+  "productId": "ynx-oracle-market-data",
+  "owner": "integration",
+  "generatedAt": "2026-08-20T23:35:00Z",
+  "sourceCommit": "8e5907ac1a1c4cb7bc4d91831e49487aee691dfa",
+  "sourceBranch": "codex/p0-oracle-public-data-verification-20260821",
+  "startingCommit": "a059d573ed128a704ec447561711a13cb1e3d9dd",
+  "productBoundary": {
+    "access": "anonymous read-only",
+    "walletRequired": false,
+    "walletAdded": false,
+    "identityHeadersConsumed": false,
+    "privateProviderCredentialsShipped": false,
+    "samplePriceAllowed": false,
+    "http200AloneMeansAccepted": false
+  },
+  "sourceCorrections": [
+    {
+      "commit": "385e743d",
+      "description": "Restored the prior exact Chrome skip-link visibility wait that was absent from the latest owner branch; no product behavior was weakened."
+    },
+    {
+      "commit": "8e5907ac1a1c4cb7bc4d91831e49487aee691dfa",
+      "description": "Pinned patched PostCSS 8.5.26 and Nanoid 3.3.18 production dependency overrides."
+    }
+  ],
+  "verification": {
+    "lint": true,
+    "build": true,
+    "renderedHtml": {"passed": 2, "failed": 0},
+    "realChromeAccessibility": {
+      "passed": 1,
+      "failed": 0,
+      "coverage": ["keyboard", "skip-link", "RTL", "reduced-motion", "dark-theme", "200-percent-text", "390px-layout"]
+    },
+    "productionDependencyAudit": {
+      "command": "npm_config_registry=https://registry.npmjs.org npm audit --omit=dev --audit-level=high",
+      "vulnerabilities": 0
+    },
+    "unconfiguredPublicEndpoint": {
+      "guestSurfaceRenders": true,
+      "marketQueryDisabled": true,
+      "samplePriceDisplayed": false
+    },
+    "diffCheck": true
+  },
+  "publicApiReadback": {
+    "origin": "https://oracle-testnet.43.153.202.237.sslip.io",
+    "observedAt": "2026-08-20T23:34:51Z",
+    "runtimeSourceCommit": "10f391cf87b5854b77680d1411476c919efe3f10",
+    "runtimeRelease": "0.1.0-testnet",
+    "runtimeMatchesCurrentWebSource": false,
+    "version": {
+      "httpStatus": 200,
+      "bytes": 860,
+      "sha256": "a91ce9d38e8af91e412acb311b9a52f8bbe23484202e7350c8f63fb8643ba7c6",
+      "cacheControl": "no-store"
+    },
+    "health": {
+      "httpStatus": 503,
+      "bytes": 1271,
+      "sha256": "d1d3ee783389ba1ab11d24ea327ad7b1c0cad52ffd0e6dce5934a7027671cca0",
+      "status": "degraded",
+      "activeProviderCount": 0,
+      "requiredProviderCount": 3,
+      "cacheControl": "no-store"
+    },
+    "providers": {
+      "httpStatus": 200,
+      "bytes": 5058,
+      "sha256": "13d6721f193a2450d08c04a4387868ee56e8d5800412ab20503630af796b0f6e",
+      "registeredCount": 3,
+      "activeCount": 0,
+      "licensingAndHealthRequired": true
+    },
+    "ynxtPrice": {
+      "request": "GET /prices?market=YNXT%2FYUSD_TEST&type=spot_price",
+      "httpStatus": 503,
+      "bytes": 822,
+      "sha256": "7d4fcd8afac694073aafe998ae699c3fa3ee7df57f0cc4ea76675dff677798c0",
+      "error": "no observations",
+      "qualityStatus": "unavailable",
+      "sourceCount": 0,
+      "requiredSourceCount": 3,
+      "circuitBreaker": true,
+      "displayedAsPriceByWeb": false
+    }
+  },
+  "oracleWebReadback": {
+    "url": "https://ynx-oracle-control.jeohuang.chatgpt.site/oracle",
+    "httpStatus": 401,
+    "bytes": 3140,
+    "sha256": "80cd037951222107a59e6fbe219bec42218c1976a7037077da364eb65f274c0d",
+    "countsAsPublicDeployment": false
+  },
+  "truth": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "anonymousGuestSurfaceVerified": true,
+    "publicApiReachable": true,
+    "publicApiHealthy": false,
+    "authoritativePriceAvailable": false,
+    "activeProviderCount": 0,
+    "walletRequired": false,
+    "walletConnected": false,
+    "deployedPublicCurrentWebSource": false,
+    "publicVerifiedCurrentWebSource": false,
+    "productionSigned": false,
+    "storeReleased": false,
+    "computerControl": false,
+    "integratedCentral": false
+  },
+  "remainingBlockers": [
+    "At least three approved independent providers and reporter signers with verified data rights",
+    "Healthy authoritative aggregation and non-stale price lineage",
+    "Current-web-source public deployment on an unauthenticated official origin",
+    "Exact deployment identity, official-domain readback and final ComputerControl verification",
+    "Production signing and formal Security/SRE acceptance"
+  ]
+}
