@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { lxcClientEnvironment } from "../src/service.mjs";
 
@@ -29,4 +30,10 @@ test("persistent LXD client processes reject malformed configuration paths", () 
     if (previousLxdConf === undefined) delete process.env.LXD_CONF;
     else process.env.LXD_CONF = previousLxdConf;
   }
+});
+
+test("container compilers use a workspace-owned temporary directory", async () => {
+  const source = await readFile(new URL("../src/service.mjs", import.meta.url), "utf8");
+  assert.match(source, /`\$\{remote\}\/\.tmp`,\s*`\$\{remote\}\/\.ynx-build`/);
+  assert.match(source, /\.\.\.variables,\s*"--env",\s*`TMPDIR=\$\{remote\}\/\.tmp`/);
 });
