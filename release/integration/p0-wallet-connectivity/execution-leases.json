@@ -1,7 +1,7 @@
 {
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-  "epoch": 36,
-  "updatedAt": "2026-08-20T22:58:46Z",
+  "epoch": 37,
+  "updatedAt": "2026-08-20T23:05:27Z",
   "heavy": {
     "owner": null,
     "status": "AVAILABLE_AFTER_P0070_FAILED_CLOSED_TRANSPORT",
@@ -26,21 +26,21 @@
   "light": {
     "owner": "integration",
     "status": "ACTIVE_BOUNDED_SOURCE_ONLY",
-    "branch": "codex/p0-video-wallet-visible-20260821",
-    "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/50-video-p0",
-    "taskId": "P0-077",
-    "leasedAt": "2026-08-20T22:58:46Z",
+    "branch": "codex/p0-bridge-wallet-connectivity-20260821",
+    "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/51-bridge-p0",
+    "taskId": "P0-078",
+    "leasedAt": "2026-08-20T23:05:27Z",
     "releasedAt": null,
-    "checkpointCommit": "1d4532ffca4eabdc15f2ec66f3d1143f67e159fa",
+    "checkpointCommit": "fc82c236cf8e2d8a9c69834b5985895170249aa4",
     "previousOwner": "integration",
-    "previousCheckpoint": "df0bd07667d33dbf97635b881033db65129c32c6",
-    "reason": "Video already has an accepted Standard Wallet source checkpoint. P0-077 verifies deterministic visible approval and rejection without rebuilding source or claiming an installed Wallet.",
-    "executionScope": "VIDEO_EXISTING_STANDARD_WALLET_VISIBLE_VERIFICATION",
+    "previousCheckpoint": "2e516baac89278a767397b29e72eed67a97e60db",
+    "reason": "Bridge Web exposes real public route evidence and a disabled transfer surface but no Standard Wallet connection. Its one ahead protected owner checkpoint is remotely preserved before P0-078.",
+    "executionScope": "BRIDGE_STANDARD_WALLET_SOURCE_ONLY",
     "onSafeCheckpoint": [
-      "modify only apps/video tests and Video owner evidence",
-      "do not rebuild the accepted Standard Wallet implementation",
-      "prove deterministic EIP-6963 approve and reject behavior in a local browser",
-      "preserve guest public video behavior and private-service degradation",
+      "modify only Bridge Web and Bridge owner evidence",
+      "consume the accepted DApp Connect SDK without copying Wallet Protocol or creating a local Product Session",
+      "preserve public route and provider evidence independently of Wallet",
+      "keep transfer and bridge execution unavailable without exact accepted authority",
       "do not claim Product Session v2, installed clients, public deployment or Computer Control",
       "commit, force-false push, update handoff and release at a clean checkpoint"
     ]

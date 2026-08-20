@@ -2,14 +2,175 @@
   "schemaVersion": "1.0.0",
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "owner": "integration",
-  "status": "P0070_FAILED_CLOSED_HEAVY_RELEASED_P0076_MUSIC_RELEASED_P0077_VIDEO_LIGHT_ACTIVE",
-  "scope": ["founder-control", "wallet-connectivity", "installed-client-networking", "shop-android-retirement", "artwork-governance"],
-  "frozen": ["independent-ynx-id", "nonessential-new-products", "extra-finance-features", "shop-android"],
+  "status": "P0070_FAILED_CLOSED_HEAVY_RELEASED_P0077_VIDEO_RELEASED_P0078_BRIDGE_LIGHT_ACTIVE",
+  "scope": [
+    "founder-control",
+    "wallet-connectivity",
+    "installed-client-networking",
+    "shop-android-retirement",
+    "artwork-governance"
+  ],
+  "frozen": [
+    "independent-ynx-id",
+    "nonessential-new-products",
+    "extra-finance-features",
+    "shop-android"
+  ],
   "integrationBranch": "codex/final-integration",
   "baselineCommit": "10b877b5b18f9cb0026a6382cdd6588054fd16db",
-  "protectedHistory": [{"branch": "codex/recovery/final-integration-pre-p0", "reason": "preserved divergent pre-P0 integration history"}],
-  "network": {"cosmosChainId": "ynx_6423-1", "evmChainId": 6423, "evmChainHex": "0x1917", "nativeAsset": "YNXT", "nativeAddressPrefix": "ynx1"},
-  "firstStop": {"complete": true, "publicConnectivityClaim": false, "nextAction": "P0-070 is consumed/nonreusable and Heavy is null. Music P0-076 is released at df0bd07667d33dbf97635b881033db65129c32c6 with accepted Standard Wallet source and deterministic visible approve/reject evidence; installed Wallet, Product Session v2 and current-source public deployment remain false. Video P0-077 now owns only a deterministic visible-provider verification slice from accepted source 1d4532ffca4eabdc15f2ec66f3d1143f67e159fa."},
-  "lightLeases": [{"owner":"data-fabric","taskId":"P0-005","status":"RELEASED_CHECKPOINT","grantedAt":"2026-08-20T14:55:00Z","releasedAt":"2026-08-20T17:50:14Z","checkpointCommit":"da095e240be52023ecef19c162c869398bf9fbea","scope":"wallet-canonical-error-to-connectivity-aggregation","constraints":["asynchronous only","aggregate class and retryability only","do not persist raw error, developerMessage or identity","no Wallet, Gateway, Card UI, Finance UI or Explorer UI changes"]},{"owner":"integration","taskId":"P0-056","status":"RELEASED_CHECKPOINT","grantedAt":"2026-08-20T20:00:00Z","releasedAt":"2026-08-20T20:15:00Z","checkpointCommit":"8809abcd7c39d47650086ae8895ecb307dcd0fdc","scope":"seller-console-standard-wallet-source-only","constraints":["no public deployment","no provider approval claim","no Product Session v2 claim","no Computer Control claim"]},{"owner":"integration","taskId":"P0-074","status":"RELEASED_CHECKPOINT","grantedAt":"2026-08-20T22:31:17Z","releasedAt":"2026-08-20T22:40:00Z","checkpointCommit":"b6f3184653eaef4275d5719686a2dffc724d5218","scope":"governance-standard-wallet-source-only","constraints":["no public deployment","no installed-client claim","no real vote, delegation or privileged control","no Product Session v2 claim","no Computer Control claim"]},{"owner":"integration","taskId":"P0-075","status":"RELEASED_CHECKPOINT","grantedAt":"2026-08-20T22:40:00Z","releasedAt":"2026-08-20T22:46:48Z","checkpointCommit":"573989195f8b4f2f08bb4fb4c3bf9f245f8f2d68","scope":"calendar-existing-standard-wallet-source-verification","constraints":["deterministic provider evidence is not installed Wallet evidence","no shared calendar, Product Session v2, public or Computer Control claim"]},{"owner":"integration","taskId":"P0-076","status":"RELEASED_CHECKPOINT","grantedAt":"2026-08-20T22:46:48Z","releasedAt":"2026-08-20T22:58:46Z","checkpointCommit":"df0bd07667d33dbf97635b881033db65129c32c6","scope":"music-standard-wallet-source-only","constraints":["preserve dirty historical Music worktree","clean remote baseline only","guest catalog and playback remain available","no private library, settlement, Product Session v2, installed/public or Computer Control claim"]},{"owner":"integration","taskId":"P0-077","status":"ACTIVE_LIGHT_VISIBLE_EVIDENCE_ONLY","grantedAt":"2026-08-20T22:58:46Z","scope":"video-existing-standard-wallet-visible-verification","constraints":["do not rebuild accepted Video Standard Wallet source","deterministic provider evidence is not installed Wallet evidence","no Creator Studio, Product Session v2, public deployment or Computer Control claim"]}],
-  "wave": {"id": "B-financial-apps-pay", "owner": "financial-apps", "executionScope": "PAY_WALLET_CONNECTIVITY_SOURCE_BUILD_INSTALL_SLICE", "firstTask": "MIGRATE_PAY_FROM_CLEAN_A153_BASELINE", "startingCheckpoint": "a153ef9014e421c70ece70cdbffd8fe5ee3094b9", "checkpointCommit":"851dc5b834e0d824f4891dc6e572da1e8d71ca75", "assignedAt": "2026-08-20T19:15:21Z", "releasedAt":"2026-08-20T19:37:06Z", "executionLease": "P0-WALLET-CONNECTIVITY-2026-08-pay-source-build-install-20260820T191521Z", "leaseExpiresAt":"2026-08-20T21:15:21Z", "productionMutation":false, "deployedPublic":false, "publicVerified":false, "parallelSourceOnly": [{"owner":"wallet-auth-core","task":"P0-053 source and offline artifacts accepted; fresh production read and a wholly new lease still required","executionLease":"NONE_P0_050_AND_P0_039_NONREUSABLE"},{"owner":"integration","task":"Merchant Console source checkpoint released at f3d36ab5785f910f3114c4a080f2c2551aabe656; provider-visible and public gates remain false","executionLease":"NONE_P0_052_RELEASED"}], "previousWave": {"id":"P0-wallet-auth-registry-v3","owner":"wallet-auth-core","checkpoint":"P0-050 INVALID_MIGRATION","releasedAt":"2026-08-20T19:12:42Z","deployedPublic":false,"publicVerified":false}}
+  "protectedHistory": [
+    {
+      "branch": "codex/recovery/final-integration-pre-p0",
+      "reason": "preserved divergent pre-P0 integration history"
+    }
+  ],
+  "network": {
+    "cosmosChainId": "ynx_6423-1",
+    "evmChainId": 6423,
+    "evmChainHex": "0x1917",
+    "nativeAsset": "YNXT",
+    "nativeAddressPrefix": "ynx1"
+  },
+  "firstStop": {
+    "complete": true,
+    "publicConnectivityClaim": false,
+    "nextAction": "P0-070 is consumed/nonreusable and Heavy is null. Video P0-077 is released at 2e516baac89278a767397b29e72eed67a97e60db with deterministic visible approve/reject evidence only; installed Wallet, Product Session v2 and current-source public deployment remain false. Bridge P0-078 owns a bounded Standard Wallet source slice from protected exact owner checkpoint fc82c236cf8e2d8a9c69834b5985895170249aa4; bridge execution and transfer remain unavailable."
+  },
+  "lightLeases": [
+    {
+      "owner": "data-fabric",
+      "taskId": "P0-005",
+      "status": "RELEASED_CHECKPOINT",
+      "grantedAt": "2026-08-20T14:55:00Z",
+      "releasedAt": "2026-08-20T17:50:14Z",
+      "checkpointCommit": "da095e240be52023ecef19c162c869398bf9fbea",
+      "scope": "wallet-canonical-error-to-connectivity-aggregation",
+      "constraints": [
+        "asynchronous only",
+        "aggregate class and retryability only",
+        "do not persist raw error, developerMessage or identity",
+        "no Wallet, Gateway, Card UI, Finance UI or Explorer UI changes"
+      ]
+    },
+    {
+      "owner": "integration",
+      "taskId": "P0-056",
+      "status": "RELEASED_CHECKPOINT",
+      "grantedAt": "2026-08-20T20:00:00Z",
+      "releasedAt": "2026-08-20T20:15:00Z",
+      "checkpointCommit": "8809abcd7c39d47650086ae8895ecb307dcd0fdc",
+      "scope": "seller-console-standard-wallet-source-only",
+      "constraints": [
+        "no public deployment",
+        "no provider approval claim",
+        "no Product Session v2 claim",
+        "no Computer Control claim"
+      ]
+    },
+    {
+      "owner": "integration",
+      "taskId": "P0-074",
+      "status": "RELEASED_CHECKPOINT",
+      "grantedAt": "2026-08-20T22:31:17Z",
+      "releasedAt": "2026-08-20T22:40:00Z",
+      "checkpointCommit": "b6f3184653eaef4275d5719686a2dffc724d5218",
+      "scope": "governance-standard-wallet-source-only",
+      "constraints": [
+        "no public deployment",
+        "no installed-client claim",
+        "no real vote, delegation or privileged control",
+        "no Product Session v2 claim",
+        "no Computer Control claim"
+      ]
+    },
+    {
+      "owner": "integration",
+      "taskId": "P0-075",
+      "status": "RELEASED_CHECKPOINT",
+      "grantedAt": "2026-08-20T22:40:00Z",
+      "releasedAt": "2026-08-20T22:46:48Z",
+      "checkpointCommit": "573989195f8b4f2f08bb4fb4c3bf9f245f8f2d68",
+      "scope": "calendar-existing-standard-wallet-source-verification",
+      "constraints": [
+        "deterministic provider evidence is not installed Wallet evidence",
+        "no shared calendar, Product Session v2, public or Computer Control claim"
+      ]
+    },
+    {
+      "owner": "integration",
+      "taskId": "P0-076",
+      "status": "RELEASED_CHECKPOINT",
+      "grantedAt": "2026-08-20T22:46:48Z",
+      "releasedAt": "2026-08-20T22:58:46Z",
+      "checkpointCommit": "df0bd07667d33dbf97635b881033db65129c32c6",
+      "scope": "music-standard-wallet-source-only",
+      "constraints": [
+        "preserve dirty historical Music worktree",
+        "clean remote baseline only",
+        "guest catalog and playback remain available",
+        "no private library, settlement, Product Session v2, installed/public or Computer Control claim"
+      ]
+    },
+    {
+      "owner": "integration",
+      "taskId": "P0-077",
+      "status": "RELEASED_CHECKPOINT",
+      "grantedAt": "2026-08-20T22:58:46Z",
+      "releasedAt": "2026-08-20T23:05:27Z",
+      "checkpointCommit": "2e516baac89278a767397b29e72eed67a97e60db",
+      "scope": "video-existing-standard-wallet-visible-verification",
+      "constraints": [
+        "do not rebuild accepted Video Standard Wallet source",
+        "deterministic provider evidence is not installed Wallet evidence",
+        "no Creator Studio, Product Session v2, public deployment or Computer Control claim"
+      ]
+    },
+    {
+      "owner": "integration",
+      "taskId": "P0-078",
+      "status": "ACTIVE_LIGHT_SOURCE_ONLY",
+      "grantedAt": "2026-08-20T23:05:27Z",
+      "scope": "bridge-standard-wallet-source-only",
+      "constraints": [
+        "preserve the protected Bridge checkpoint",
+        "public route evidence stays guest-readable",
+        "no bridge execution, transfer, Product Session v2, public deployment or Computer Control claim"
+      ]
+    }
+  ],
+  "wave": {
+    "id": "B-financial-apps-pay",
+    "owner": "financial-apps",
+    "executionScope": "PAY_WALLET_CONNECTIVITY_SOURCE_BUILD_INSTALL_SLICE",
+    "firstTask": "MIGRATE_PAY_FROM_CLEAN_A153_BASELINE",
+    "startingCheckpoint": "a153ef9014e421c70ece70cdbffd8fe5ee3094b9",
+    "checkpointCommit": "851dc5b834e0d824f4891dc6e572da1e8d71ca75",
+    "assignedAt": "2026-08-20T19:15:21Z",
+    "releasedAt": "2026-08-20T19:37:06Z",
+    "executionLease": "P0-WALLET-CONNECTIVITY-2026-08-pay-source-build-install-20260820T191521Z",
+    "leaseExpiresAt": "2026-08-20T21:15:21Z",
+    "productionMutation": false,
+    "deployedPublic": false,
+    "publicVerified": false,
+    "parallelSourceOnly": [
+      {
+        "owner": "wallet-auth-core",
+        "task": "P0-053 source and offline artifacts accepted; fresh production read and a wholly new lease still required",
+        "executionLease": "NONE_P0_050_AND_P0_039_NONREUSABLE"
+      },
+      {
+        "owner": "integration",
+        "task": "Merchant Console source checkpoint released at f3d36ab5785f910f3114c4a080f2c2551aabe656; provider-visible and public gates remain false",
+        "executionLease": "NONE_P0_052_RELEASED"
+      }
+    ],
+    "previousWave": {
+      "id": "P0-wallet-auth-registry-v3",
+      "owner": "wallet-auth-core",
+      "checkpoint": "P0-050 INVALID_MIGRATION",
+      "releasedAt": "2026-08-20T19:12:42Z",
+      "deployedPublic": false,
+      "publicVerified": false
+    }
+  }
 }
