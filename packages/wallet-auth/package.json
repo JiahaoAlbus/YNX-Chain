@@ -20,10 +20,15 @@
       "types": "./src/gateway-backup.d.ts",
       "import": "./src/gateway-backup.js",
       "default": "./src/gateway-backup.js"
+    },
+    "./standard-wallet-connection": {
+      "types": "./src/index.d.ts",
+      "import": "./src/standard-wallet-connection.js",
+      "default": "./src/standard-wallet-connection.js"
     }
   },
   "types": "./src/index.d.ts",
-  "files": ["src", "scripts", "testdata", "integration", "central-registry.json", "registry-conflict-evidence.json", "CENTRAL_INTEGRATION.md"],
+  "files": ["src", "scripts", "testdata", "integration", "proposals", "central-registry.json", "registry-conflict-evidence.json", "CENTRAL_INTEGRATION.md"],
   "bin": {
     "ynx-wallet-gatewayd": "scripts/ynx-wallet-gatewayd.mjs",
     "ynx-wallet-gateway-backup": "scripts/ynx-wallet-gateway-backup.mjs"
