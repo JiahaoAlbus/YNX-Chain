@@ -48,16 +48,12 @@ for _ in $(seq 1 60); do
   sleep 1
 done
 lxc exec "$builder" -- getent hosts archive.ubuntu.com >/dev/null
-lxc exec "$builder" -- sh -ec '
-  for source in /etc/apt/sources.list /etc/apt/sources.list.d/*.list /etc/apt/sources.list.d/*.sources; do
-    [ -f "$source" ] || continue
-    sed -i "s#http://#https://#g" "$source"
-  done
-  if grep -R -E "^[[:space:]]*(deb[[:space:]]+|URIs:[[:space:]]*)http://" /etc/apt/sources.list /etc/apt/sources.list.d 2>/dev/null; then
-    echo "Ubuntu APT sources must use HTTPS under reviewed package egress" >&2
-    exit 1
-  fi
-'
+lxc exec "$builder" -- find /etc/apt -type f \( -name "*.list" -o -name "*.sources" \) -exec sed -i 's#http://#https://#g' {} +
+if lxc exec "$builder" -- grep -R -E "^[[:space:]]*(deb[[:space:]]+|URIs:[[:space:]]*)http://" /etc/apt/sources.list /etc/apt/sources.list.d 2>/dev/null; then
+  echo "Ubuntu APT sources must use HTTPS under reviewed package egress" >&2
+  exit 1
+fi
+lxc exec "$builder" -- grep -R -E "^[[:space:]]*(deb[[:space:]]+|URIs:[[:space:]]*)https://" /etc/apt/sources.list /etc/apt/sources.list.d
 lxc exec "$builder" -- rm -rf /var/lib/apt/lists/*
 lxc exec "$builder" -- env DEBIAN_FRONTEND=noninteractive apt-get -o Acquire::ForceIPv4=true -o Acquire::Retries=3 update -qq
 lxc exec "$builder" -- env DEBIAN_FRONTEND=noninteractive apt-get -o Acquire::ForceIPv4=true -o Acquire::Retries=3 install -y --no-install-recommends \
