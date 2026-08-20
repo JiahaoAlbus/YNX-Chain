@@ -94,11 +94,16 @@ remote_release='__REMOTE_RELEASE__'
 backup='__BACKUP__'
 stage=$(mktemp -d /tmp/ynx-bounded-replication.XXXXXX)
 installed=0
+manifest_preexisting=0
 rollback() {
   code=$?
   if [ "$installed" = 1 ] && sudo test -f "$backup/ynx-chaind"; then
     sudo install -m 0755 "$backup/ynx-chaind" /usr/local/bin/ynx-chaind
     sudo systemctl restart ynx-chaind || true
+  fi
+  if [ "$manifest_preexisting" = 0 ]; then
+    sudo rm -f "$remote_release/config/release-manifest.json"
+    sudo rmdir "$remote_release/config" "$remote_release" 2>/dev/null || true
   fi
   rm -rf "$stage"
   exit "$code"
@@ -121,18 +126,33 @@ sudo install -d -m 0755 "$remote_release/config"
 if sudo test -f "$remote_release/config/release-manifest.json"; then
   existing_manifest=$(sudo sha256sum "$remote_release/config/release-manifest.json" 2>/dev/null | awk '{print $1}' || sudo shasum -a 256 "$remote_release/config/release-manifest.json" | awk '{print $1}')
   [ "$existing_manifest" = "$expected_manifest" ]
+  existing_binary=$(sudo sha256sum /usr/local/bin/ynx-chaind 2>/dev/null | awk '{print $1}' || sudo shasum -a 256 /usr/local/bin/ynx-chaind | awk '{print $1}')
+  if [ "$existing_binary" = "$expected_binary" ]; then
+    rm -rf "$stage"
+    trap - ERR
+    echo "bounded replication release already active: role=__ROLE__ release=$release binarySha256=$existing_binary"
+    exit 0
+  fi
 fi
 sudo install -m 0644 "$stage/config/release-manifest.json" "$remote_release/config/release-manifest.json"
 sudo install -m 0755 "$stage/bin/ynx-chaind" /usr/local/bin/ynx-chaind.next
 sudo mv /usr/local/bin/ynx-chaind.next /usr/local/bin/ynx-chaind
 installed=1
 sudo systemctl restart ynx-chaind
-sleep 2
-systemctl is-active --quiet ynx-chaind
-curl -fsS --max-time 12 http://127.0.0.1:6420/status >/dev/null
+ready=0
+for attempt in $(seq 1 20); do
+  if systemctl is-active --quiet ynx-chaind && curl -fsS --max-time 3 http://127.0.0.1:6420/status >/dev/null; then
+    ready=1
+    break
+  fi
+  sleep 2
+done
+[ "$ready" = 1 ]
+running_binary=$(sudo sha256sum /usr/local/bin/ynx-chaind 2>/dev/null | awk '{print $1}' || sudo shasum -a 256 /usr/local/bin/ynx-chaind | awk '{print $1}')
+[ "$running_binary" = "$expected_binary" ]
 rm -rf "$stage"
 trap - ERR
-echo "bounded replication release installed: role=__ROLE__ release=$release binarySha256=$actual_binary"
+echo "bounded replication release installed: role=__ROLE__ release=$release binarySha256=$running_binary"
 REMOTE
 )"
   command="${command//__RELEASE__/$release}"
