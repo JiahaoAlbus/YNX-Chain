@@ -89,7 +89,7 @@ lxc exec "$builder" -- sh -c 'javac -version && java -version && dpkg-query -W -
 lxc exec "$builder" -- curl --http1.1 -fL --retry 10 --retry-all-errors --connect-timeout 20 "https://download.eclipse.org/jdtls/snapshots/$jdtls_archive" -o "/tmp/$jdtls_archive"
 lxc exec "$builder" -- sh -c "printf '%s  %s\n' '$jdtls_sha256' '/tmp/$jdtls_archive' | sha256sum -c -"
 lxc exec "$builder" -- mkdir -p /usr/local/lib/ynx-code-jdtls
-lxc exec "$builder" -- tar -xzf "/tmp/$jdtls_archive" -C /usr/local/lib/ynx-code-jdtls
+lxc exec "$builder" -- tar --no-same-owner -xzf "/tmp/$jdtls_archive" -C /usr/local/lib/ynx-code-jdtls
 lxc file push "$jdtls_launcher_path" "$builder/usr/local/lib/ynx-code-jdtls/bin/ynx-jdtls"
 lxc exec "$builder" -- chmod 0755 /usr/local/lib/ynx-code-jdtls/bin/ynx-jdtls
 lxc exec "$builder" -- ln -sfn /usr/local/lib/ynx-code-jdtls/bin/ynx-jdtls /usr/local/bin/jdtls
@@ -102,7 +102,7 @@ lxc exec "$builder" -- chmod 0755 /usr/local/lib/ynx-code/js-debug-dap-stdio-bri
 lxc exec "$builder" -- curl --http1.1 --proto '=https' --tlsv1.2 -fL --retry 10 --retry-all-errors --connect-timeout 20 "$js_debug_url" -o "/tmp/js-debug-${js_debug_version}.tar.gz"
 lxc exec "$builder" -- sh -c "printf '%s  %s\n' '$js_debug_sha256' '/tmp/js-debug-${js_debug_version}.tar.gz' | sha256sum -c -"
 lxc exec "$builder" -- mkdir -p /opt/ynx-js-debug
-lxc exec "$builder" -- tar -xzf "/tmp/js-debug-${js_debug_version}.tar.gz" --strip-components=1 -C /opt/ynx-js-debug
+lxc exec "$builder" -- tar --no-same-owner -xzf "/tmp/js-debug-${js_debug_version}.tar.gz" --strip-components=1 -C /opt/ynx-js-debug
 lxc exec "$builder" -- sh -c 'printf '\''{"type":"commonjs"}\n'\'' > /opt/ynx-js-debug/package.json'
 lxc exec "$builder" -- test -f /opt/ynx-js-debug/LICENSE
 lxc exec "$builder" -- /opt/node-v22.23.1/bin/node /opt/ynx-js-debug/src/dapDebugServer.js --help
