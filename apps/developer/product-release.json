@@ -5,6 +5,29 @@
   "commit": "17ee9ae5bf50677a3316b0838884dd135de80599",
   "version": "0.2.0",
   "sourceCheckpoint": "ynx-code-reconnect-and-ai-cancellation-runtime-2026-08-12",
+  "currentPublicCandidate": {
+    "sourceCommit": "a29ca148fc3d6815e6257cbb9e9fc2045b5c9692",
+    "release": "0.2.0-testnet-preview-a29ca148fc3d-candidate",
+    "publicHealth": "https://developer.ynxweb4.com/healthz",
+    "evidencePath": "/var/lib/ynx-code-candidate/deploy-evidence/20260820T152800Z-a29ca148fc3d",
+    "imageFingerprint": "7667a45536aa5b7c33f6ea80b80be079d92095150571782c9ac0845ae848b99a",
+    "result": "passed",
+    "evidenceSha256Verified": true,
+    "packageEgressDetached": true
+  },
+  "walletProductSessionV2": {
+    "acceptedSourceCommit": "203be5e108be468350591615a64d5d36ab87a8f1",
+    "acceptedSourceTree": "94e291a6757447f89c7cf6b8f01bbf811cb7d1f7",
+    "acceptedPackageTree": "02eb7176e2de175a68cf5a5ef27e55968cc17fea",
+    "authoritativeOrigin": "https://wallet-auth.ynxweb4.com",
+    "npmRegistryPublished": false,
+    "rootFactorySourceIntegrated": true,
+    "runtimeFactoryVerified": false,
+    "publicV2RouteVerified": false,
+    "visibleLifecycleVerified": false,
+    "migratedV2": false,
+    "reason": "Native Keychain/root-factory source is present, but public v2 route and installed/browser lifecycle evidence remain required."
+  },
   "surfaces": [
     "web-ide",
     "api-studio",

@@ -1,5 +1,12 @@
 export type DeveloperWalletBridge = {
   openAuthorization: (deepLink: string) => Promise<void>;
+  walletAvailability?: () => Promise<{ walletInstalled: boolean; schemeRegistered: boolean }>;
+  protectedStorage?: {
+    securityLevel: "os-protected";
+    get: (key: string) => Promise<string | null>;
+    set: (key: string, value: string) => Promise<void>;
+    remove: (key: string) => Promise<void>;
+  };
 };
 
 declare global {
@@ -40,6 +47,21 @@ function base64url(bytes: Uint8Array) {
 export function desktopWalletBridge(): DeveloperWalletBridge | undefined {
   const candidate = window.ynxDesktopWallet;
   return candidate && typeof candidate.openAuthorization === "function" ? candidate : undefined;
+}
+
+export async function developerWalletV2Device() {
+  const pair = await productDeviceKeyPair(), key = await productDevicePublicKey();
+  return Object.freeze({
+    id: "ynx-developer-macos-device-v2",
+    key,
+    scopes: Object.freeze(["account:read", "developer:deploy"]),
+    purpose: "Connect YNX Developer through the canonical Wallet Product Session v2 factory.",
+    async sign(input: { purpose: "challenge" | "http-proof"; algorithm: "p256-sha256"; deviceKey: string; payload: string }) {
+      if ((input.purpose !== "challenge" && input.purpose !== "http-proof") || input.algorithm !== "p256-sha256" || input.deviceKey !== key) throw new Error("Developer Wallet v2 signer request is not bound to this device.");
+      const signature = new Uint8Array(await crypto.subtle.sign({ name: "ECDSA", hash: "SHA-256" }, pair.privateKey, decodeBase64url(input.payload)));
+      return base64url(derSignature(signature));
+    },
+  });
 }
 
 export async function openDeveloperWalletReview(bridge: DeveloperWalletBridge, now = new Date()) {

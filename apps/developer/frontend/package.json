@@ -9,6 +9,8 @@
     "check": "tsc -b --pretty false"
   },
   "dependencies": {
+    "@noble/curves": "2.2.0",
+    "@noble/hashes": "2.2.0",
     "@monaco-editor/react": "4.7.0",
     "@radix-ui/react-dialog": "1.1.23",
     "@radix-ui/react-tooltip": "1.2.16",
