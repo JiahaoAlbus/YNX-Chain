@@ -46,4 +46,4 @@ try {
   fs.rmSync(temp, { recursive: true, force: true });
 }
 
-console.log(`PASS ${manifest.artifactId}: original npm tarballs, deterministic runtime archive, 211-file manifest and CycloneDX SBOM verified; production activation remains blocked on copied-49e cold-start`);
+console.log(`PASS ${manifest.artifactId}: original npm tarballs, deterministic runtime archive, 211-file manifest and CycloneDX SBOM verified; deployment truth is governed separately by the consumed v7 lease and exact public evidence`);
