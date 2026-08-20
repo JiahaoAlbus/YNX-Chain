@@ -3,7 +3,7 @@
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "proposalId": "P0-PROPOSAL-SHOP-ANDROID-CLIENT-RETIREMENT-001",
   "owner": "wallet-protocol",
-  "status": "IDENTITY_SPLIT_CANDIDATE_READY_INTEGRATION_REVIEW",
+  "status": "IDENTITY_SPLIT_CAPABILITY_CONSUMED_OWNER_RECORDS_REQUIRED",
   "activation": "prohibited until Integration ACCEPTED",
   "featureSourceCommit": "aff86fc5fb536039ea1eca0e76330bc87d626b44",
   "supersedesFeatureSourceCommit": "c614501353d7631a6e20da7431ac858c2e5a8868",
@@ -37,6 +37,25 @@
       "the retired product must remain represented by an active product registration"
     ],
     "authorizationOrSessionSchemaChanged": false
+  },
+  "identitySplitCentralConsumption": {
+    "commit": "0c668adc257046924d4d631e03eb151986910462",
+    "parent": "3873288b78c94274eb43fdef38961cf4a7c2de83",
+    "tree": "b11d57266150fca1524fee8fa3851abbe1dba659",
+    "blobReadback": "7/7",
+    "ownerTests": "131/131",
+    "centralExactSourceTests": "131/131",
+    "decision": "IDENTITY_SPLIT_CAPABILITY_CONSUMED_OWNER_RECORDS_REQUIRED",
+    "ownerRecordsRequested": [
+      "supported Shop productClientId",
+      "supported exact callback",
+      "authoritative retiredAt",
+      "retired client and package-or-bundle",
+      "disabled callbacks and App Links",
+      "replacementURL",
+      "minimumClientVersion"
+    ],
+    "executionLeaseIssued": false
   },
   "implemented": [
     "registry-v5-explicit-client-lifecycle",
