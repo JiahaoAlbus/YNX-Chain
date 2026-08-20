@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-08-20T12:45:00Z",
+  "scope": "YNX Wallet Android API 36 installed testnet account read after the REST account-not-found safe RPC fallback release",
+  "source": {
+    "walletCommit": "53fc3df02a65be1c4214c41ef87be307b39a1625",
+    "networkReadImplementation": "ec0b8295464f2164af1a6245646be24046f5e97a"
+  },
+  "artifact": {
+    "sha256": "99360e01307a64c7faa3060d72474f2fc3d43031fcb59a69751b836faa465e0b",
+    "bytes": 78226626,
+    "minSdk": 24,
+    "targetSdk": 36,
+    "abi": "arm64",
+    "signingClass": "local-test-signed",
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "environment": {
+    "serial": "emulator-5560",
+    "profile": "Pixel 9 equivalent",
+    "apiLevel": 36,
+    "physicalDevice": false
+  },
+  "directAcceptance": {
+    "walletInstalled": true,
+    "walletLaunch": true,
+    "lockedStateVisible": true,
+    "androidBiometricPromptVisible": true,
+    "simulatorFingerprintAuthenticated": true,
+    "unlockedNativeAccountVisible": true,
+    "testnetIdentityVisible": "ynx_6423-1",
+    "networkUnavailableVisible": false,
+    "accountReadVisible": true,
+    "visibleBalanceYNXT": 25,
+    "visibleNonce": 0,
+    "visibleRecentAccountTransactions": 1
+  },
+  "privacyPreservingUiEvidence": {
+    "walletSecureScreenCaptureEnabled": true,
+    "lockedUiXml": {
+      "sha256": "13f5d00b316e86bef03978e60ad781fe5d1b441696f3699098b12b573ab4a36a",
+      "bytes": 18383
+    },
+    "unlockedUiXml": {
+      "sha256": "62e0f3c31dbc33f5863ec07010fff34474626385a62760691644d129479b5c0a",
+      "bytes": 32528,
+      "requiredVisibleLabels": [
+        "YNX TESTNET · ynx_6423-1",
+        "NATIVE ACCOUNT",
+        "Native asset · authoritative testnet",
+        "25 YNXT",
+        "Nonce 0 · 1 recent account transaction"
+      ]
+    }
+  },
+  "implementationBoundary": {
+    "restEndpoint": "https://rest.ynxweb4.com",
+    "rpcEndpoint": "https://rpc.ynxweb4.com/evm",
+    "accountNotFoundFallback": "only exact REST 404 account-not-found invokes eth_chainId, eth_getBalance and eth_getTransactionCount",
+    "readTransportRetry": "one bounded retry only for REST GET account/activity reads",
+    "signedBroadcastRetry": false
+  },
+  "truthBoundary": {
+    "physicalPixel9Verified": false,
+    "rawNetworkResponseCapturedFromInstalledApp": false,
+    "walletTransactionSigningVerified": false,
+    "walletTransactionBroadcastVerified": false,
+    "faucetClaimVerified": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}
