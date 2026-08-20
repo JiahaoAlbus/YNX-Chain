@@ -9,8 +9,9 @@ const leases=read("release/integration/p0-wallet-connectivity/execution-leases.j
 const queue=read("release/integration/p0-wallet-connectivity/integration-queue.json");
 const locks=read("release/integration/p0-wallet-connectivity/path-locks.json");
 const lease=read("release/integration/p0-wallet-connectivity/execution/p0-052-merchant-console-source-lease-20260821.json");
-assert.equal(leases.heavy.owner,"financial-apps");
+assert.equal(leases.heavy.owner,null);
 assert.equal(leases.heavy.taskId,"P0-051");
+assert.equal(leases.heavy.status,"RELEASED_CHECKPOINT");
 assert.equal(leases.light.owner,"integration");
 assert.equal(leases.light.taskId,"P0-052");
 assert.equal(lease.status,"ACTIVE_BOUNDED_MERCHANT_CONSOLE_SOURCE_ONLY");
@@ -21,4 +22,4 @@ const lock=locks.locks.find(item=>item.taskId==="P0-052");
 assert.equal(lock.path,"apps/merchant-console/**");
 assert.equal(lock.status,"ACTIVE_LIGHT_SOURCE_ONLY");
 assert.equal(queue.tasks.find(item=>item.taskId==="P0-050").p0050LeaseReusable,false);
-console.log("PASS P0-052 is a Merchant Console source-only Light slice while Pay alone owns Heavy");
+console.log("PASS P0-052 remains a Merchant Console source-only Light slice after exact P0-051 Pay release");

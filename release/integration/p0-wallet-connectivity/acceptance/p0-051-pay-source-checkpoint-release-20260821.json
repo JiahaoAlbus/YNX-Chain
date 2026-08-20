@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "decision": "RELEASED_CHECKPOINT",
+  "taskId": "P0-051",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-pay-source-build-install-20260820T191521Z",
+  "releasedAt": "2026-08-20T19:37:06Z",
+  "ownerCommit": "851dc5b834e0d824f4891dc6e572da1e8d71ca75",
+  "ownerTree": "93896134aa235e462a8dc37ddf03cc3a01ae055a",
+  "ownerParent": "a153ef9014e421c70ece70cdbffd8fe5ee3094b9",
+  "scopeExact": true,
+  "sourceOnly": true,
+  "independentVerification": {"remoteReadbackExact":true,"typecheck":"passed","unit":"13/13","bundlePlatforms":["android","ios","web"],"web":"2/2","cleanDetachedCheckout":true},
+  "truth": {"installed":false,"coldStartVerified":false,"productSessionMigratedV2":false,"deployedPublic":false,"publicVerified":false,"computerControlVerified":false}
+}

@@ -10,7 +10,7 @@ const evidence=read(acceptance.sourceEvidence.path);
 const leases=read("release/integration/p0-wallet-connectivity/execution-leases.json");
 const queue=read("release/integration/p0-wallet-connectivity/integration-queue.json");
 const validate=c=>{
-  assert.equal(c.decision,"SOURCE_AND_OFFLINE_ARTIFACTS_ACCEPTED_HEAVY_SLOT_BLOCKED_NO_LEASE");
+  assert.equal(c.decision,"SOURCE_AND_OFFLINE_ARTIFACTS_ACCEPTED_FRESH_PRODUCTION_READ_REQUIRED_NO_LEASE");
   assert.equal(c.executionLeaseIssued,false); assert.equal(c.executionLeaseId,null);
   assert.equal(c.p0039LeaseReusable,false); assert.equal(c.p0050LeaseReusable,false);
   assert.equal(c.productsMigratedV2,0); assert.equal(c.registryV3Public,false);
@@ -27,8 +27,8 @@ assert.equal(evidence.repairBoundary.trimmingOrNormalizationAllowed,false);
 assert.equal(evidence.independentVerification.focusedTests,"5/5");
 assert.equal(evidence.independentVerification.fullWalletAuthTests,"348/348");
 assert.equal(evidence.independentVerification.repeatPackSha256,"f9e1e6ef072e4c15716617d992a5c47ee79c139fbdeff79fc28cd7d42e52e944");
-assert.equal(evidence.heavySlot.taskId,"P0-051"); assert.equal(evidence.heavySlot.available,false);
-assert.equal(leases.heavy.taskId,"P0-051"); assert.equal(leases.heavy.owner,"financial-apps");
+assert.equal(evidence.heavySlot.taskId,"P0-051"); assert.equal(evidence.heavySlot.available,true);
+assert.equal(leases.heavy.taskId,"P0-051"); assert.equal(leases.heavy.owner,null); assert.equal(leases.heavy.status,"RELEASED_CHECKPOINT");
 assert.equal(evidence.concurrentLightSlice.taskId,"P0-052"); assert.equal(evidence.concurrentLightSlice.preserved,true);
 for(const key of ["executionLeaseIssued","productionStateReadAfterP0050","sshUsed","deploymentAttempted","migrationExecuted","rollbackExecuted","candidateActivated"]) assert.equal(evidence.truth[key],false);
 assert.equal(queue.tasks.filter(item=>item.taskId==="P0-053").length,1);
@@ -38,4 +38,4 @@ if(process.argv.includes("--self-test")){
   for(const mutate of mutations){const candidate=structuredClone(acceptance);mutate(candidate);assert.throws(()=>validate(candidate));}
   console.log("PASS 5/5 P0-053 lease/public promotion mutations rejected");
 }
-console.log("PASS P0-053 exact legacy 6cf migration remediation source/artifacts accepted; P0-051 keeps Heavy occupied and no lease exists");
+console.log("PASS P0-053 exact legacy 6cf migration remediation source/artifacts accepted; P0-051 is released but fresh production read is still required and no lease exists");

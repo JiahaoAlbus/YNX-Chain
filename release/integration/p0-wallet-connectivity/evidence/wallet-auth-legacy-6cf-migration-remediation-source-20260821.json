@@ -19,7 +19,7 @@
     "runtimeInventory":{"sha256":"491a62410c00052dcf09f2a338b325bcea0de53446da90cdd7d63b1560191422","bytes":52591},
     "sbom":{"sha256":"2130384170ee1a56b13b3472891e7d476b3864f32f2e6875cff94df786736b66","bytes":2265,"format":"CycloneDX 1.5","components":3,"dependencyNodes":3}
   },
-  "heavySlot":{"maxHeavyOwner":1,"owner":"financial-apps","taskId":"P0-051","status":"ACTIVE_BOUNDED_SOURCE_BUILD_INSTALL","releasedAt":null,"available":false},
+  "heavySlot":{"maxHeavyOwner":1,"owner":null,"taskId":"P0-051","status":"RELEASED_CHECKPOINT","releasedAt":"2026-08-20T19:37:06Z","available":true},
   "concurrentLightSlice":{"taskId":"P0-052","owner":"integration","status":"ACTIVE_BOUNDED_MERCHANT_CONSOLE_SOURCE_ONLY","preserved":true},
   "truth":{"sourceAccepted":true,"executionLeaseIssued":false,"executionLeaseId":null,"productionStateReadAfterP0050":false,"sshUsed":false,"deploymentAttempted":false,"migrationExecuted":false,"rollbackExecuted":false,"candidateActivated":false,"publicRuntimeSource":"6cf3ef845202bd879ed94515a71b323dd2fc9e14","registryV3Public":false,"productsMigratedV2":0,"computerControlVerified":false,"deployedPublic":false,"integratedCentral":false}
 }
