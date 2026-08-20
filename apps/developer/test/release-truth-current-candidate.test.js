@@ -32,6 +32,7 @@ test("current public candidate and Wallet v2 evidence do not promote missing lif
   assert.equal(linux.artifact.sourceCommit, truth.currentPublicCandidate.sourceCommit);
   assert.equal(linux.verification.coldStart, true);
   assert.equal(linux.publication.downloadHosted, true);
+  assert.match(linux.publication.sha256SumsUrl, /linux-x64-server-SHA256SUMS\.txt$/);
   assert.match(linuxSums, new RegExp(linux.artifact.sha256));
   assert.equal(truth.currentLinuxServerArtifact.sha256, linux.artifact.sha256);
   assert.equal(publicMetadata.localEvidence.currentLinuxX64ServerArtifact.hosted, true);

@@ -111,3 +111,17 @@ ID signature, notarization or update channel exists. The ZIP, matching SBOM and 
 production Caddy HTTP 200/hash-readback evidence at `developer.ynxweb4.com/downloads`; this does
 not claim an independent external-browser proof. The full record is
 `apps/developer/evidence/desktop/macos-current-cb57e10f.json`.
+
+## 2026-08-20 current Linux x64 Server package addendum
+
+The current self-hosted Linux x64 Server appliance is available at the Developer official-domain
+download route. Its exact protected source is `bc8a37bc6f2bcfcbe9415cb0e9da17a5294046a3`,
+TAR.GZ SHA-256 is `aab9fb6ea976fffab0ae66382401bf8e9886a05fb377f483dc46103fd8be4c05`, and size is
+138,538,840 bytes. It requires Linux x86_64 and Node.js 22 or newer, carries application
+dependencies and built frontend, and deliberately excludes workspace state and operator environment.
+
+The archive passed protected-evidence integrity binding, extraction, a separate cold start and
+`healthz` check. The TAR.GZ, provenance and SHA-256 manifest are immutable official-domain
+downloads. It is an unsigned Testnet Preview server appliance, not a signed container image or
+production-signed release. The machine-readable evidence is
+`apps/developer/evidence/platform/linux-server-current-bc8a37bc.json`.

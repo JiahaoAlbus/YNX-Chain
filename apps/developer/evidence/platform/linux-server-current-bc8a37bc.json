@@ -36,6 +36,7 @@
     "downloadHosted": true,
     "publicUrl": "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-bc8a37bc-linux-x64-server.tar.gz",
     "provenanceUrl": "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-bc8a37bc-linux-x64-server-PROVENANCE.json",
+    "sha256SumsUrl": "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-bc8a37bc-linux-x64-server-SHA256SUMS.txt",
     "officialRouteHashReadback": true,
     "productionSigned": false,
     "notarized": false,
