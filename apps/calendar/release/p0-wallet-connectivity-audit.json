@@ -26,6 +26,8 @@
     "standardConnectionPreservedWhenPrivateServiceUnavailable": true,
     "privateServiceState": "PRIVATE_SERVICE_DEGRADED",
     "browserMissingWalletFlowVerified": true,
+    "deterministicProviderApprovalAndRejectionVisible": true,
+    "deterministicProviderEvidence": "release/evidence/p0-075/calendar-standard-wallet-visible-evidence.json",
     "browserProviderApprovalVerified": false,
     "nativeCanonicalLauncherV1": true,
     "legacyCompletionRoute": "/v1/wallet/sessions/complete",
@@ -39,13 +41,15 @@
   ],
   "requiredNext": [
     "migrate private completion only after an accepted and deployed Product Session v2 Gateway successor",
-    "prove an actual browser provider approval and account/chain event lifecycle",
+    "prove a real installed YNX Wallet or standard EVM extension approval and account/chain/disconnect lifecycle",
     "prove durable callback and installed Android/iOS lifecycle evidence"
   ],
   "truth": {
     "standardWalletConnected": false,
     "standardWalletSourceImplemented": true,
     "browserMissingWalletFlowVerified": true,
+    "deterministicProviderLifecycleVisible": true,
+    "realInstalledWalletProviderVerified": false,
     "productSessionV2": false,
     "installedApprovalVerified": false,
     "deployedPublic": false,

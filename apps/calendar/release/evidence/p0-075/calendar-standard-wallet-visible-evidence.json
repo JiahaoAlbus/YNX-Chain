@@ -1,0 +1,73 @@
+{
+  "schemaVersion": "ynx-calendar-p0-wallet-visible-evidence/v1",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-075",
+  "product": "calendar",
+  "generatedAt": "2026-08-20T22:45:05Z",
+  "acceptedProductSourceCommit": "8ff6eb24705155fbbeddf983d44f87e9e20d944f",
+  "verificationImplementationCommit": "c6575ea13a3553b2799b64566106797b3bc59154",
+  "verificationTree": "712b2ff36ba268759aed3461abea1717dee6b37d",
+  "branch": "codex/p0-calendar-wallet-evidence-20260821",
+  "contractsConsumed": {
+    "dappConnectSDK": {
+      "status": "ACCEPTED",
+      "sourceCommit": "315897e75c0ffe3e63435fe73cfec42244b851cc",
+      "browserSafeModulesByteIdentical": true,
+      "verifiedModuleCount": 4
+    },
+    "publicEndpointManifest": {
+      "status": "ACCEPTED",
+      "version": "1.0.0-p0.2",
+      "evmChainId": "0x1917"
+    }
+  },
+  "tests": {
+    "calendar": { "command": "npm test", "passed": 17, "failed": 0 },
+    "go": { "command": "go test ./apps/calendar ./internal/calendar", "passed": true },
+    "build": { "command": "npm --prefix apps/calendar run build", "passed": true },
+    "visibleWallet": {
+      "command": "node apps/calendar/tests/wallet-visible-proof.cjs",
+      "browser": "Google Chrome",
+      "providerType": "deterministic-eip6963-browser-provider",
+      "approvalVisible": true,
+      "rejectionFailClosedVisible": true,
+      "guestStillAvailable": true,
+      "privateServiceState": "PRIVATE_SERVICE_DEGRADED",
+      "consoleErrors": 0
+    },
+    "productionDependencyAudit": { "command": "npm audit --omit=dev --audit-level=high --registry=https://registry.npmjs.org", "vulnerabilities": 0 },
+    "diffCheck": { "command": "git diff --check", "passed": true }
+  },
+  "visibleEvidence": {
+    "connected": {
+      "path": "apps/calendar/release/evidence/p0-075/calendar-standard-wallet-connected.png",
+      "bytes": 96703,
+      "sha256": "8cf562f184b4b7bf0022ca3ac62288db726203904e7165428d1ccbd10d690199",
+      "accountBoundary": "YNX Wallet 0x1111…1111 connected on YNX Testnet. Calendar sync remains unavailable."
+    },
+    "rejected": {
+      "path": "apps/calendar/release/evidence/p0-075/calendar-standard-wallet-rejected.png",
+      "bytes": 60193,
+      "sha256": "5967cdace03631bee5a9737c77ef0da5e4a836b349ed283e69e616026ceff858",
+      "message": "Wallet connection was rejected. No account or Calendar session was created."
+    },
+    "computerControl": false
+  },
+  "truth": {
+    "standardWalletSourceImplemented": true,
+    "deterministicProviderLifecycleVisible": true,
+    "realInstalledWalletProviderVerified": false,
+    "standardWalletConnectedPublic": false,
+    "guestTrialAvailable": true,
+    "sharedCalendarPublicSyncVerified": false,
+    "productSessionV2": false,
+    "installedAndroidVerifiedCurrentSource": false,
+    "installedIosVerifiedCurrentSource": false,
+    "deployedPublicCurrentSource": false,
+    "publicVerifiedCurrentSource": false,
+    "computerControlVerified": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "nextAction": "A future owner slice must prove a real installed YNX Wallet or standard EVM extension lifecycle and migrate private Calendar sync only after public Product Session v2 is accepted."
+}
