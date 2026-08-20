@@ -99,18 +99,18 @@ Creating this handoff does not prove Website integration or deployment.
 ## 2026-08-20 current local macOS package addendum
 
 The current Developer-owned macOS package is hosted at its immutable Developer official-domain
-URL. Its exact source is `cb57e10f7f92b01b73942879dedc98f059a1e20b`, ZIP SHA-256 is
-`f4759ecc6bb5240a972bc7cd9909b35869bb756cce5a22f1a23bf1f718f522f9`, size is
-168,157,234 bytes and embedded SBOM SHA-256 is
-`e18beb766cc8cbb288a24a1a29d2b25ae0e36adc63469484e47a4d92a7261575`.
+URL. Its exact source is `e01b9e4a8cc00be2e590e86e8f043fd746696adf`, ZIP SHA-256 is
+`af4c57b89ad5d7cca6c42af47f33d156d182a92870e4d43ed1d558f51de1b01f`, size is
+168,157,529 bytes and embedded SBOM SHA-256 is
+`37436588278850c5052d2032f917572dade2af7cf56c4228d4f79f5359568e9f`.
 
 The package passed extracted provenance, no-Team-ID ad-hoc signing, a native Keychain
-write/read/cleanup self-test, cold launch, real bounded C++ compilation, workspace persistence
+write/read/cleanup self-test, native absent-Wallet scheme discovery, cold launch, real bounded C++ compilation, workspace persistence
 on a second launch and child-process cleanup. It remains an unsigned Testnet Preview: no Developer
 ID signature, notarization or update channel exists. The ZIP, matching SBOM and provenance have
 production Caddy HTTP 200/hash-readback evidence at `developer.ynxweb4.com/downloads`; this does
 not claim an independent external-browser proof. The full record is
-`apps/developer/evidence/desktop/macos-current-cb57e10f.json`.
+`apps/developer/evidence/desktop/macos-current-e01b9e4a.json`.
 
 ## 2026-08-20 current Linux x64 Server package addendum
 

@@ -18,12 +18,12 @@
     "evidenceManifestSha256": "ae67d74070ebabee7001a1212a65bf27b549f9be195244e1f91ae7e94ce3e82b"
   },
   "currentLocalMacArtifact": {
-    "evidence": "apps/developer/evidence/desktop/macos-current-cb57e10f.json",
-    "sourceCommit": "cb57e10f7f92b01b73942879dedc98f059a1e20b",
-    "sha256": "f4759ecc6bb5240a972bc7cd9909b35869bb756cce5a22f1a23bf1f718f522f9",
-    "bytes": 168157234,
+    "evidence": "apps/developer/evidence/desktop/macos-current-e01b9e4a.json",
+    "sourceCommit": "e01b9e4a8cc00be2e590e86e8f043fd746696adf",
+    "sha256": "af4c57b89ad5d7cca6c42af47f33d156d182a92870e4d43ed1d558f51de1b01f",
+    "bytes": 168157529,
     "downloadHosted": true,
-    "downloadUrl": "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-cb57e10f-macos-arm64-unsigned.zip",
+    "downloadUrl": "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-e01b9e4a-macos-arm64-unsigned.zip",
     "productionSigned": false
   },
   "currentLinuxServerArtifact": {
@@ -103,7 +103,7 @@
       "windowsCurrent": false,
       "linuxX64ServerCurrent": true,
       "webSourceCommit": "bc8a37bc6f2bcfcbe9415cb0e9da17a5294046a3",
-      "macosArm64SourceCommit": "cb57e10f7f92b01b73942879dedc98f059a1e20b",
+      "macosArm64SourceCommit": "e01b9e4a8cc00be2e590e86e8f043fd746696adf",
       "windowsX64HistoricalSourceCommit": "76322af5e8c26a64fb6425c51d96c67d2b3df65f",
       "capabilities": [
         "React, TypeScript and Monaco multi-file workbench with tabs, split and diff views, search, replace, command palette, shortcuts and themes",
@@ -142,7 +142,7 @@
         "sameOriginProxy": "passed",
         "placeholderGate": "passed with grep fallback because rg was unavailable",
         "credentialLeakGate": "passed with grep fallback because rg was unavailable",
-        "macosCurrentSourcePackage": "source cb57e10f7f92b01b73942879dedc98f059a1e20b: full YNX Code resources, 269-component SBOM, extracted Keychain write/read/cleanup self-test, ad-hoc classification, cold launch, JavaScript/C++ toolchains, real bounded C++ compilation, workspace save, child cleanup and persistent second launch passed; artifact is hosted on the official Developer domain",
+        "macosCurrentSourcePackage": "source e01b9e4a8cc00be2e590e86e8f043fd746696adf: full YNX Code resources, 269-component SBOM, extracted Keychain write/read/cleanup and native YNX Wallet scheme-absence self-tests, ad-hoc classification, cold launch, JavaScript/C++ toolchains, real bounded C++ compilation, workspace save, child cleanup and persistent second launch passed; artifact is hosted on the official Developer domain",
         "windowsHistoricalSourcePackage": "GitHub Actions run 31513885748 for source 76322af5e8c26a64fb6425c51d96c67d2b3df65f: client and Web tests, build, precise runtime inventory, portable extraction, Authenticode NotSigned classification, WPF cold launch, public workspace connection, real remote C++ compile, second GUI launch and artifact upload passed; this package is historical and not evidence for the current candidate",
         "browserAccessibilityAudit": "15/15 checks and six hashed screenshots passed on Chrome 151 from clean source 98fcbe3cff68b4b01ebfd94df2d1476b41ecf2b5"
       },

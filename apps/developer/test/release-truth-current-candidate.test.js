@@ -10,8 +10,8 @@ test("current public candidate and Wallet v2 evidence do not promote missing lif
     read("product-release.json"),
     read("public-product-metadata.json"),
     read("evidence/public/current-public-candidate-bc8a37bc6f2b.json"),
-    read("evidence/desktop/macos-current-cb57e10f.json"),
-    read("release/ynx-developer-0.2.0-testnet-preview-cb57e10f-macos-arm64-SHA256SUMS.txt"),
+    read("evidence/desktop/macos-current-e01b9e4a.json"),
+    read("release/ynx-developer-0.2.0-testnet-preview-e01b9e4a-macos-arm64-SHA256SUMS.txt"),
     read("evidence/platform/linux-server-current-bc8a37bc.json"),
     read("release/ynx-developer-0.2.0-testnet-preview-bc8a37bc-linux-x64-server-SHA256SUMS.txt"),
     read("docs/integration/INTEGRATION_HANDOFF.md"),
@@ -24,10 +24,13 @@ test("current public candidate and Wallet v2 evidence do not promote missing lif
   assert.equal(truth.currentPublicCandidate.sourceCommit, "bc8a37bc6f2bcfcbe9415cb0e9da17a5294046a3");
   assert.equal(current.deploymentTransaction.result, "passed");
   assert.equal(current.truthBoundaries.externalBrowserVisible, false);
-  assert.equal(localMac.artifact.sourceCommit, "cb57e10f7f92b01b73942879dedc98f059a1e20b");
+  assert.equal(localMac.artifact.sourceCommit, "e01b9e4a8cc00be2e590e86e8f043fd746696adf");
   assert.equal(localMac.verification.keychainStorageRoundTripAndCleanup, true);
+  assert.equal(localMac.verification.nativeWalletAvailability.ynxWalletInstalled, false);
+  assert.equal(localMac.walletProductSessionV2.migratedV2, false);
   assert.equal(localMac.publication.downloadHosted, true);
   assert.equal(localMac.publication.officialRouteHashReadback, true);
+  assert.match(localMac.publication.sha256SumsUrl, /macos-arm64-SHA256SUMS\.txt$/);
   assert.match(macSums, new RegExp(localMac.artifact.sha256));
   assert.equal(linux.artifact.sourceCommit, truth.currentPublicCandidate.sourceCommit);
   assert.equal(linux.verification.coldStart, true);
