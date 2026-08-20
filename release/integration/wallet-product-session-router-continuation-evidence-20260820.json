@@ -7,6 +7,9 @@
   "sourceBaseline": "9759576afdd4e02fa5375dde371acd41be038c2c",
   "acceptedArchitecture": {
     "standardWalletProtocolCommit": "66003e76e804da16d472255efde50cb879055b96",
+    "standardWalletProtocolContentConsumed": true,
+    "standardWalletProtocolContractPath": "packages/wallet-auth/integration/p0-wallet-connectivity-candidate.json",
+    "standardWalletProtocolTestPath": "packages/wallet-auth/test/p0-wallet-connectivity-candidate.test.mjs",
     "standardWalletProtocolAcceptanceCommit": "9b6e101f29c9028b9d5a477258e341aa05ebc89f",
     "standardWalletConsumerSdkCommit": "315897e75c0ffe3e63435fe73cfec42244b851cc",
     "standardConnectionSurvivesProductSessionFailure": true,
@@ -54,7 +57,12 @@
   "tests": {
     "walletAuth": {
       "command": "npm test --prefix packages/wallet-auth",
-      "passed": 233,
+      "passed": 236,
+      "failed": 0
+    },
+    "acceptedProtocolContract": {
+      "command": "node --test packages/wallet-auth/test/p0-wallet-connectivity-candidate.test.mjs packages/wallet-auth/test/product-session-migration.test.mjs",
+      "passed": 7,
       "failed": 0
     },
     "migrationContract": {

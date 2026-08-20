@@ -7,8 +7,13 @@
     "P0_standardWalletConnection": {
       "status": "protocol-and-consumer-sdk-contracts-accepted-product-consumption-incomplete",
       "acceptedProtocolCommit": "66003e76e804da16d472255efde50cb879055b96",
+      "acceptedProtocolContentConsumedCommit": "66782e91e36125f1a8b9985f652ca849d5a6117e",
       "acceptedByIntegrationCommit": "9b6e101f29c9028b9d5a477258e341aa05ebc89f",
       "acceptedConsumerSdkCommit": "315897e75c0ffe3e63435fe73cfec42244b851cc",
+      "protocolContractPath": "packages/wallet-auth/integration/p0-wallet-connectivity-candidate.json",
+      "protocolTestPath": "packages/wallet-auth/test/p0-wallet-connectivity-candidate.test.mjs",
+      "historicalObservedRuntimeInAcceptedContractSuperseded": true,
+      "currentPublicRuntimeSource": "6cf3ef845202bd879ed94515a71b323dd2fc9e14",
       "gatewayIndependent": true,
       "productSessionOptional": true,
       "productSessionFailurePreservesStandardConnection": true,
@@ -150,7 +155,7 @@
         "concurrentProductSessions": 120
       },
       "fullPackageTests": {
-        "passed": 233,
+        "passed": 236,
         "failed": 0
       },
       "remaining": [
