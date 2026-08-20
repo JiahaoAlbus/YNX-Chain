@@ -1,5 +1,6 @@
 import { p256 } from "@noble/curves/nist.js";
 import * as WalletAuth from "@ynx-chain/wallet-auth";
+import {StandardWalletConnection,enhanceWithProductSession} from "@ynx/dapp-connect-sdk";
 import {
   encodeRequestDeepLink,
   parseAuthorizationRequest,
@@ -31,6 +32,7 @@ export const YNX_TESTNET_CHAIN_NAME="YNX Testnet";
 export type PendingAuthorization=Readonly<{request:AuthorizationRequest;deviceSecret:string}>;
 export type CardSession=Readonly<{token:string;sessionBinding:string;requestDigest:string;account:string;productClientId:"ynx-card-v1";bundleId:"com.ynxweb4.card";scopes:readonly string[];issuedAt:string;expiresAt:string;deviceId:string}>;
 export type Eip1193WalletSession=Readonly<{address:string;chainId:string;connectedAt:string;provider:"eip1193"}>;
+export type ProductSessionRuntime=Readonly<{state:"PRODUCT_SESSION_READY";session:CardSession}|{state:"PRIVATE_SERVICE_DEGRADED";code:string;requestId?:string;traceId?:string;errorId?:string}>;
 export type TestnetTopupIntent=Readonly<{id:string;chainId:string;recipient:string;amountWei:string;minConfirmations:number;expiresAt:string}>;
 export type TopupEvidence=Readonly<{chainId:string;txHash:string;blockNumber:string;blockHash:string;from:string;to:string;valueWei:string;confirmations:number}>;
 
@@ -64,6 +66,12 @@ export async function completeCentralSession(gatewayURL:string,pending:PendingAu
   return parseSession(value);
 }
 
+export async function enhanceCardProductSession(standard:Eip1193WalletSession,complete:()=>Promise<CardSession>):Promise<ProductSessionRuntime>{
+  const outcome=await enhanceWithProductSession({standardConnection:{account:standard.address},complete});
+  if(outcome.state==="PRODUCT_SESSION_READY")return Object.freeze({state:"PRODUCT_SESSION_READY",session:outcome.session as CardSession});
+  return Object.freeze({state:"PRIVATE_SERVICE_DEGRADED",code:outcome.code??"PRODUCT_SESSION_GATEWAY_UNREACHABLE",requestId:outcome.requestId,traceId:outcome.traceId,errorId:outcome.errorId});
+}
+
 export function verifiedApproval(callbackURL:string,pending:PendingAuthorization,now=new Date()):AuthorizationResponse{
   const raw=parseCallbackURL(callbackURL,CALLBACK);
   return verifyAuthorization(raw,{...pending.request,requestDigest:requestDigest(pending.request),now});
@@ -79,28 +87,12 @@ export function resolveEip1193Provider():Eip1193Provider|null{
 
 export async function connectEip1193Wallet(provider:Eip1193Provider|null=resolveEip1193Provider(),now=new Date()):Promise<Eip1193WalletSession>{
   if(!provider) throw new Error("EIP-1193 wallet provider is not available");
-  const requestAccounts=await provider.request({method:"eth_requestAccounts",params:[]}).catch((error:WalletRequestResult)=>{throw new Error(error?.error?.message??"Wallet account request rejected")});
-  if(!Array.isArray(requestAccounts)||typeof requestAccounts[0]!=="string"||!/^0x[0-9a-fA-F]{40}$/.test(requestAccounts[0])) throw new Error("Wallet returned an invalid account");
-  const address=requestAccounts[0].toLowerCase();
-
-  const requestedChain=String(await provider.request({method:"eth_chainId",params:[]})??"");
-  if(requestedChain!==YNX_TESTNET_CHAIN_ID){
-    try{
-      await provider.request({method:"wallet_switchEthereumChain",params:[{chainId:YNX_TESTNET_CHAIN_ID}]});
-    }catch(error:unknown){
-      const code=(error as WalletRequestResult).error?.code;
-      if(code===4902||code===-32603){
-        await provider.request({method:"wallet_addEthereumChain",params:[ynxChainParameters]});
-        await provider.request({method:"wallet_switchEthereumChain",params:[{chainId:YNX_TESTNET_CHAIN_ID}]});
-      }else{
-        throw error instanceof Error?error:new Error("Wallet is not connected to YNX Testnet");
-      }
-    }
-  }
-  const chainId=String(await provider.request({method:"eth_chainId",params:[]})??"");
-  if(chainId!==YNX_TESTNET_CHAIN_ID) throw new Error("Wallet is not connected to YNX Testnet");
-
-  return Object.freeze({address,chainId,connectedAt:now.toISOString(),provider:"eip1193"});
+  const connection=new StandardWalletConnection(provider);
+  const standard=await connection.connect();
+  await connection.ensureYNXTestnet({addChain:ynxChainParameters});
+  const chainId=String(await provider.request({method:"eth_chainId",params:[]})??"").toLowerCase();
+  if(chainId!==YNX_TESTNET_CHAIN_ID)throw new Error("Wallet is not connected to YNX Testnet");
+  return Object.freeze({address:standard.account.toLowerCase(),chainId,connectedAt:now.toISOString(),provider:"eip1193"});
 }
 
 export function parseYnxtAmountToWei(value:string):string{
@@ -158,6 +150,6 @@ function parseSession(value:unknown):CardSession{
   return Object.freeze(value as CardSession);
 }
 function requiredGateway(value:string):string{const raw=value.trim().replace(/\/$/,"");let parsed:URL;try{parsed=new URL(raw)}catch{throw new Error("YNX Card Gateway is not configured")};if(!["https:","http:"].includes(parsed.protocol)||parsed.username||parsed.password||parsed.pathname!=="/"||parsed.search||parsed.hash)throw new Error("YNX Card Gateway URL is invalid");if(parsed.protocol==="http:"&&!( ["127.0.0.1","localhost","10.0.2.2"].includes(parsed.hostname)))throw new Error("YNX Card Gateway requires HTTPS");return raw}
-async function json(url:string,input:{method:string;body:unknown}):Promise<unknown>{const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),10_000);try{const response=await fetch(url,{method:input.method,headers:{"Content-Type":"application/json","X-YNX-Client":CLIENT_ID},body:JSON.stringify(input.body),signal:controller.signal});const value=await response.json().catch(()=>({error:"Invalid Gateway response"}));if(!response.ok)throw new Error(object(value)&&typeof value.error==="string"?value.error:`Gateway returned ${response.status}`);return value}finally{clearTimeout(timer)}}
+async function json(url:string,input:{method:string;body:unknown}):Promise<unknown>{const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),10_000);try{const response=await fetch(url,{method:input.method,headers:{"Content-Type":"application/json","X-YNX-Client":CLIENT_ID},body:JSON.stringify(input.body),signal:controller.signal});const value=await response.json().catch(()=>({error:"Invalid Gateway response"}));if(!response.ok){const failure=Object.assign(new Error(object(value)&&typeof value.error==="string"?value.error:`Gateway returned ${response.status}`),{status:response.status,code:object(value)&&typeof value.code==="string"?value.code:undefined,requestId:response.headers.get("x-request-id")??undefined,traceId:response.headers.get("x-trace-id")??undefined,errorId:response.headers.get("x-error-id")??undefined});throw failure}return value}catch(error){const failure=error instanceof Error?error:new Error("Gateway request failed");if(!("status" in failure))Object.assign(failure,{network:true});throw failure}finally{clearTimeout(timer)}}
 async function productRandom():Promise<Readonly<{secret:Uint8Array;nonce:Uint8Array}>>{const crypto=await import("expo-crypto");return{secret:await crypto.getRandomBytesAsync(32),nonce:await crypto.getRandomBytesAsync(32)}}
 function object(value:unknown):value is Record<string,unknown>{return typeof value==="object"&&value!==null&&!Array.isArray(value)}

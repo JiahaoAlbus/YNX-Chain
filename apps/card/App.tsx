@@ -7,7 +7,7 @@ import{ArrowUpRight,CreditCard,Globe2,LifeBuoy,LockKeyhole,ReceiptText,RefreshCw
 import{action,apply as applyForCard,createTestnetTopupIntent,dispute as openDispute,explain,reviewAI,state as loadState,topupTestnet,type Card,type CardEvent,type CardState,type TestnetTopupIntent,type TopupInput, simulateAuthorization, simulateCapture, simulateReversal, simulateRefund, updateControls}from"./src/api";
 import{catalogs,date,detectLocale,isLocale,isRTL,localeNames,locales,money,t as translate,type Locale}from"./src/i18n";
 import{loadLocale,loadPendingAuthorization,loadSession,loadSimulationAudit,saveLocale,savePendingAuthorization,saveSession,saveSimulationAudit}from"./src/secureState";
-import{approveTestnetTopup,completeCentralSession,connectEip1193Wallet,createAuthorization,loadTestnetTopupEvidence,parseYnxtAmountToWei,resolveEip1193Provider,verifiedApproval,walletDeepLink,type CardSession,type Eip1193WalletSession,type TopupEvidence}from"./src/wallet";
+import{approveTestnetTopup,completeCentralSession,connectEip1193Wallet,createAuthorization,enhanceCardProductSession,loadTestnetTopupEvidence,parseYnxtAmountToWei,resolveEip1193Provider,verifiedApproval,walletDeepLink,type CardSession,type Eip1193WalletSession,type ProductSessionRuntime,type TopupEvidence}from"./src/wallet";
 import{isFailure,recoverLastFailed,replayAwareAppend,SimulationAuditRecord,TESTNET_SIMULATION_CURRENCY,TESTNET_SIMULATION_MAX_EVENTS,type SimulationInput as LedgerSimulationInput}from"./src/simulation";
 
 const BLUE="#002FA7",RED="#B42318",GREEN="#067647",ORANGE="#B54708";
@@ -36,6 +36,7 @@ export default function App(){
   const[walletSession,setWalletSession]=useState<Eip1193WalletSession|null>(null);
   const[walletBusy,setWalletBusy]=useState(false);
   const[walletError,setWalletError]=useState("");
+  const[privateSession,setPrivateSession]=useState<ProductSessionRuntime|null>(null);
 
   const[topupAmount,setTopupAmount]=useState("1");
   const[topupIntent,setTopupIntent]=useState<TestnetTopupIntent|null>(null);
@@ -76,17 +77,19 @@ export default function App(){
       const saved=await loadPendingAuthorization();
       if(!saved)throw new Error("Wallet authorization request expired or was already consumed");
       const approval=verifiedApproval(url,saved);
-      const next=await completeCentralSession(GATEWAY,saved,approval);
+      if(!walletSession){if(mounted.current){setPrivateSession({state:"PRIVATE_SERVICE_DEGRADED",code:"ACCOUNT_REQUIRED"});setPending(false);}return;}
+      const outcome=await enhanceCardProductSession(walletSession,()=>completeCentralSession(GATEWAY,saved,approval));
       await savePendingAuthorization(null);
-      await saveSession(next);
-      if(mounted.current){setSession(next);setPending(false);await refresh(next);}    
+      if(outcome.state==="PRIVATE_SERVICE_DEGRADED"){if(mounted.current){setPrivateSession(outcome);setPending(false);}return;}
+      await saveSession(outcome.session);
+      if(mounted.current){setPrivateSession(outcome);setSession(outcome.session);setPending(false);await refresh(outcome.session);}    
     }catch(e){
       await savePendingAuthorization(null);
       if(mounted.current){setPending(false);setError(message(e,tr("gatewayUnavailable")));}
     }finally{
       if(mounted.current)setBusy(false);
     }
-  },[refresh,tr]);
+  },[refresh,tr,walletSession]);
 
   useEffect(()=>{
     mounted.current=true;
@@ -124,6 +127,7 @@ export default function App(){
       if(!provider){setWalletError(tr("walletNotAvailable"));return;}
       const next=await connectEip1193Wallet(provider,new Date());
       setWalletSession(next);
+      setPrivateSession(null);
       setTopupIntent(null);
       setTopupHash("");
       setTopupEvidence(null);
@@ -295,6 +299,7 @@ export default function App(){
   };
 
   const signIn=async()=>{
+    if(!walletSession){setError(tr("connectWalletFirst"));return;}
     setBusy(true);
     setError("");
     try{
@@ -333,7 +338,7 @@ export default function App(){
     </View>
 
     {!session?
-      <SignedOut c={c} tr={tr} busy={busy} pending={pending} error={error} signIn={signIn}/>
+      <SignedOut c={c} tr={tr} busy={busy} pending={pending} error={error} signIn={signIn} walletSession={walletSession} walletBusy={walletBusy} walletError={walletError} privateSession={privateSession} connectWallet={connectEvmWallet}/>
     :
       <>
         <View style={s.stage}>
@@ -382,13 +387,17 @@ export default function App(){
   </SafeAreaView>
 }
 
-function SignedOut({c,tr,busy,pending,error,signIn}:{c:Colors;tr:T;busy:boolean;pending:boolean;error:string;signIn:()=>Promise<void>}){
+function SignedOut({c,tr,busy,pending,error,signIn,walletSession,walletBusy,walletError,privateSession,connectWallet}:{c:Colors;tr:T;busy:boolean;pending:boolean;error:string;signIn:()=>Promise<void>;walletSession:Eip1193WalletSession|null;walletBusy:boolean;walletError:string;privateSession:ProductSessionRuntime|null;connectWallet:()=>Promise<void>}){
   return <ScrollView contentContainerStyle={s.center}>
     <View style={[s.securityMark,{backgroundColor:c.surface}]}><ShieldCheck color={BLUE} size={38}/></View>
     <Text style={[s.heroTitle,{color:c.text}]}>{tr("app")}</Text>
     <Text style={[s.heroBody,{color:c.secondary}]}>{tr("security")}</Text>
     <View style={[s.truth,{backgroundColor:c.surface,borderColor:c.separator}]}><Text style={[s.truthText,{color:c.secondary}]}>{tr("unavailableTruth")}</Text></View>
+    {walletSession?<View style={[s.truth,{backgroundColor:c.surface,borderColor:c.separator}]}><Text style={[s.truthText,{color:c.secondary}]}>{tr("standardConnected")} · {walletSession.address.slice(0,6)}...{walletSession.address.slice(-4)} · {walletSession.chainId}</Text></View>:null}
+    {privateSession?.state==="PRIVATE_SERVICE_DEGRADED"?<View style={[s.truth,{backgroundColor:c.surface,borderColor:c.separator}]}><Text accessibilityRole="alert" style={[s.truthText,{color:ORANGE}]}>{tr("privateServiceDegraded")} · {privateSession.code}{privateSession.requestId?` · ${privateSession.requestId}`:""}</Text></View>:null}
+    {walletError?<Text accessibilityRole="alert" style={s.error}>{walletError}</Text>:null}
     {error?<Text accessibilityRole="alert" style={s.error}>{error}</Text>:null}
+    <Pressable accessibilityRole="button" disabled={walletBusy||Boolean(walletSession)} onPress={()=>void connectWallet()} style={[s.secondary,(walletBusy||Boolean(walletSession))&&s.disabled]}>{walletBusy?<ActivityIndicator color={BLUE}/>:<Text style={s.secondaryText}>{walletSession?tr("standardConnected"):tr("walletConnect")}</Text>}</Pressable>
     <Pressable accessibilityRole="button" accessibilityLabel={tr("signIn")} disabled={busy||pending} onPress={()=>void signIn()} style={[s.primary,(busy||pending)&&s.disabled]}>
       {busy?<ActivityIndicator color="white"/>:<><WalletCards color="white" size={20}/><Text style={s.primaryText}>{pending?tr("signingIn"):tr("signIn")}</Text></>}
     </Pressable>

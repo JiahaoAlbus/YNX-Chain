@@ -7,7 +7,7 @@
   "title": "YNX Card — Testnet Payment Simulation",
   "metaDescription": "Explore the YNX Card Testnet payment simulation with a sandbox card lifecycle and simulated merchant ledger. No real-world payment capability is available.",
   "h1": "YNX Testnet Card Payment Simulation",
-  "sourceCommit": "6cc977709e48f5363bdd6e49209c2edf110bea8e",
+  "sourceCommit": "324de225314b9118abe2d19565b31e63c966764d",
   "releaseVersion": "1.0.1-testnet-simulation",
   "status": {
     "label": "Testnet Payment Simulation",
