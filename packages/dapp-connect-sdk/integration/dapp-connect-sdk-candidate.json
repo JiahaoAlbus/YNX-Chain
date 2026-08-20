@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "proposalId": "P0-WALLET-CONNECTIVITY-2026-08-dapp-connect-sdk-v1",
+  "status": "CANDIDATE",
+  "owner": "developer-sdk",
+  "version": "0.1.0-p0.0",
+  "sourceWalletProtocol": {
+    "version": "p0-wallet-connection-v1",
+    "sourceCommit": "66003e76e804da16d472255efde50cb879055b96",
+    "contractPath": "packages/wallet-auth/integration/p0-wallet-connectivity-candidate.json",
+    "acceptedBy": "15d046bf5d54c1145d437f5561d7c83b54038d322"
+  },
+  "consumes": ["walletTransport", "eip1193Provider", "eip6963Discovery", "walletConnect", "siwe", "typedDataSigning", "productSession", "callback", "errorContract"],
+  "guarantees": [
+    "YNX first-party DApps can use any approved standard EIP-1193 provider.",
+    "External EVM DApps can discover and use YNX Wallet without YNX product registration.",
+    "Product Session failures degrade only private first-party capabilities and never fabricate a local session.",
+    "No endpoint manifest is activated unless its integrity verifier succeeds."
+  ],
+  "nonGoals": ["wallet private-key custody", "wallet UI", "gateway implementation", "public release proof"],
+  "testVectorPath": "packages/dapp-connect-sdk/test/consumer-sdk.test.mjs",
+  "migration": "Run scan:migration, replace direct provider calls with StandardWalletConnection, persist pending callbacks before launch, and opt in to ProductSessionEnhancer only for private routes."
+}
