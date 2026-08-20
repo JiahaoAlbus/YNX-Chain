@@ -1,7 +1,7 @@
 {
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-  "epoch": 23,
-  "updatedAt": "2026-08-20T20:50:00Z",
+  "epoch": 24,
+  "updatedAt": "2026-08-20T21:05:00Z",
   "heavy": {
     "owner": null,
     "status": "CONSUMED_RELEASED_FAILED_CLOSED_INSTALL_PERMISSION",
@@ -27,21 +27,21 @@
     ]
   },
   "light": {
-    "owner": null,
-    "status": "RELEASED_SEARCH_SOURCE_CHECKPOINT",
-    "branch": "codex/p0-search-wallet-connectivity-20260821",
-    "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/35-search-p0",
-    "taskId": "P0-060",
-    "leasedAt": "2026-08-20T20:36:00Z",
-    "releasedAt": "2026-08-20T20:50:00Z",
+    "owner": "integration",
+    "status": "ACTIVE_BOUNDED_SOURCE_ONLY",
+    "branch": "codex/p0-trust-center-wallet-connectivity-20260821",
+    "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/38-trust-center-p0",
+    "taskId": "P0-063",
+    "leasedAt": "2026-08-20T21:05:00Z",
+    "releasedAt": null,
     "previousOwner": "integration",
-    "previousCheckpoint": "2b1103063b47d2cfbf060837056e6b33fc7ecad3",
-    "reason": "Search source checkpoint is pushed at a3b78490 with accepted Standard EIP-6963/EIP-1193 connection, English-first guest Search, truthful private-service degradation, 18/18 tests, build/smoke and local responsive Browser evidence. Public, installed and ComputerControl gates remain false.",
-    "executionScope": "SEARCH_STANDARD_WALLET_SOURCE_ONLY",
+    "previousCheckpoint": "a3b78490a7945fa982bfe78c8be75396b013a649",
+    "reason": "Trust Center currently exposes a legacy private challenge plus local test identity. Integration may add accepted Standard Wallet discovery, preserve public transparency/guest review, remove release-visible fake identity authority, and isolate private Trust service degradation.",
+    "executionScope": "TRUST_CENTER_STANDARD_WALLET_SOURCE_ONLY",
     "onSafeCheckpoint": [
-      "modify only apps/search and its owner evidence",
+      "modify only apps/trust-center and its owner evidence",
       "consume the accepted DApp Connect SDK and endpoint manifest without copying shared protocol",
-      "keep public Search and guest use independent of Standard Wallet and private Product Session",
+      "keep public Trust transparency and guest review independent of Standard Wallet and private Product Session",
       "keep Product Session failure isolated as private-service degradation",
       "run tests, build and release scans; do not deploy publicly or claim installed evidence",
       "commit, force-false push, update handoff and release at a clean checkpoint"
