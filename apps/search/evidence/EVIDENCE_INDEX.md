@@ -13,13 +13,18 @@
 
 `ui/` contains exact-viewport Playwright captures for desktop light/dark
 success, mobile empty, 150% mobile text, Arabic RTL tablet, and failure/retry.
+The two `search-wallet-*` captures freeze deterministic EIP-6963 approval and
+rejection while guest Search remains usable; they are not installed-Wallet or
+public-deployment evidence. `p0-search-wallet-visible-20260821.json` records
+their exact bytes, SHA-256 values, test gates, and false release boundaries.
 `staging/` contains 1440×900 and 390×844 captures of the deployed empty-index
 preview. Each visual is paired with an assertion in `test/e2e/search.spec.mjs`
 or an HTTPS smoke response.
 
 ## Verification
 
-- `npm run check`: 12 unit/integration/race/replay tests plus API smoke.
-- `npm run test:e2e`: 6 Chromium Playwright scenarios.
+- `npm test`: 19 unit/integration/race/replay/release tests.
+- `npm run smoke`: service health, bounded retrieval, CSRF and privacy clear.
+- `npm run test:e2e`: 8 Chromium Playwright scenarios.
 - `npm audit --omit=dev --audit-level=high`: zero vulnerabilities.
 - `UI_DESIGN_AUDIT.md`: manual visual/a11y/RTL review and fixed issues.
