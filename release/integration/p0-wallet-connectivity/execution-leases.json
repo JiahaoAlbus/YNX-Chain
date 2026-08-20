@@ -1,7 +1,7 @@
 {
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-  "epoch": 30,
-  "updatedAt": "2026-08-20T22:01:00Z",
+  "epoch": 31,
+  "updatedAt": "2026-08-20T22:12:43Z",
   "heavy": {
     "owner": null,
     "status": "AVAILABLE_AFTER_P0070_FAILED_CLOSED_TRANSPORT",
@@ -24,25 +24,23 @@
     ]
   },
   "light": {
-    "owner": "integration",
-    "status": "ACTIVE_BOUNDED_SOURCE_ONLY",
-    "branch": "codex/p0-cloud-wallet-connectivity-20260821",
-    "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/44-cloud-p0",
+    "owner": null,
+    "status": "AVAILABLE_AFTER_P0071_SOURCE_CHECKPOINT",
+    "branch": null,
+    "worktree": null,
     "taskId": "P0-071",
     "leasedAt": "2026-08-20T21:54:29Z",
-    "releasedAt": null,
-    "checkpointCommit": null,
+    "releasedAt": "2026-08-20T22:12:43Z",
+    "checkpointCommit": "1abece5158573b10eae6c084f3653a225c6590cb",
     "previousOwner": "integration",
-    "previousCheckpoint": "2cbd93564255e25c2c861eeab68d7b8ef9831014",
-    "reason": "YNX Cloud has a clean exact owner checkpoint and historical public runtime, but its public Web source still builds a local P-256 proof and private session rather than consuming the accepted Standard Wallet SDK. Integration may migrate only the Cloud product surface and preserve private fail-closed behavior.",
-    "executionScope": "CLOUD_STANDARD_WALLET_SOURCE_ONLY",
+    "previousCheckpoint": "9816f9ba2556eadea7fd9ad5061f67c5a05e64dd",
+    "reason": "YNX Cloud consumed the accepted Standard Wallet SDK, removed the public local self-signed session flow, preserved private fail-closed behavior, fixed the API base and product-isolated container, and froze source-bound browser, SBOM and release truth evidence.",
+    "executionScope": null,
     "onSafeCheckpoint": [
-      "modify only apps/cloud, internal/cloud, infra/docker/ynx-cloudd.Dockerfile, infra/docker/ynx-cloudd.Dockerfile.dockerignore, infra/docker/cloud-compose.yml and Cloud owner evidence",
-      "consume the accepted DApp Connect SDK and endpoint manifest without copying shared protocol",
-      "keep public product explanation and health independent of Standard Wallet and private Product Session",
-      "keep private objects, uploads, shares and mutations unavailable unless backed by exact accepted Gateway and session evidence",
-      "run tests, build and release scans; do not deploy publicly or claim installed evidence",
-      "commit, force-false push, update handoff and release at a clean checkpoint"
+      "implementation 9816f9ba and evidence 1abece51 are force-false pushed and remote-read back",
+      "15/15 tests, static checks, current-source security gate, canonical API and backup/restore smoke, Go tests and production dependency audit passed",
+      "desktop guest and mobile injected EIP-6963 Wallet evidence have zero browser errors and zero private API requests",
+      "Product Session v2, installed-client, current-source public deployment, public verification and Computer Control remain false"
     ]
   },
   "explorerMonitor": {
