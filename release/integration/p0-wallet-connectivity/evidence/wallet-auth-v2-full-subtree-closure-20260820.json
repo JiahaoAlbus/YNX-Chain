@@ -9,5 +9,61 @@
   "archive": {"format":"tar.gz","prefix":"ynx-wallet-auth-6cf3ef84/","bytes":462902,"sha256":"fac046697f8cc3902976764f959d69f83e13067c37abfe2b37f9b8adf7ba2da0"},
   "integrationReproduced": true,
   "sevenFileLease": {"status":"SUPERSEDED_BEFORE_START_DEPENDENCY_CLOSURE","deploymentStarted":false,"productionMutationObserved":false},
-  "currentPublic": {"source":"49e30d999e9a9cbdd2c565021009f2cab0dc125c","serviceActive":true,"runtimeTarget":"wallet-auth-49e30d99","v1StateMode":"0600","v1StateOwner":"ubuntu:ubuntu","v1StateNlink":1,"v1StateSha256Prefix":"93b18583","centralRegistrySha256":"ae156b317b9a97bfd42397cca634021deefe10ffb009102899e24276d8721e31","caddyChanged":false}
+  "currentPublic": {"source":"49e30d999e9a9cbdd2c565021009f2cab0dc125c","serviceActive":true,"runtimeSymlink":"/opt/ynx/wallet-auth","runtimeTarget":"wallet-auth-49e30d99","v1StateMode":"0600","v1StateOwner":"ubuntu:ubuntu","v1StateNlink":1,"v1StateSha256":"93b18583abac95d040e5feca6c1db778f9193ac3471c5415d38e411b60ac63cb","centralRegistrySha256":"ae156b317b9a97bfd42397cca634021deefe10ffb009102899e24276d8721e31","caddyChanged":false},
+  "copiedRuntimeColdStart": {
+    "attempted": true,
+    "passed": false,
+    "nodeVersion": "v22.23.1",
+    "errorCode": "ERR_MODULE_NOT_FOUND",
+    "missingPackage": "@noble/hashes",
+    "importedFromSuffix": "packages/wallet-auth/src/canonical.js",
+    "v1StateSha256": "93b18583abac95d040e5feca6c1db778f9193ac3471c5415d38e411b60ac63cb",
+    "currentRuntimeSymlink": "/opt/ynx/wallet-auth",
+    "currentRuntimeTarget": "wallet-auth-49e30d99",
+    "serviceActive": true,
+    "productionRestarted": false,
+    "productionMutationObserved": false,
+    "npmInstallAttempted": false,
+    "unreviewedNodeModulesCopied": false
+  },
+  "ownerIsolatedDependencyClosure": {
+    "candidateCommit": "6cf3ef845202bd879ed94515a71b323dd2fc9e14",
+    "installMode": "npm ci --offline --ignore-scripts --omit=dev --no-audit --no-fund in isolated temporary directory",
+    "packages": 2,
+    "files": 212,
+    "unpackedBytes": 3207168,
+    "sortedUnpackedFileManifestSha256": "a3ac48aac90383bac3e172528956f75ec404b35965c915bd684d6ab9bb640453",
+    "packagesExact": [
+      {
+        "name": "@noble/curves",
+        "version": "2.2.0",
+        "integrity": "sha512-T/BoHgFXirb0ENSPBquzX0rcjXeM6Lo892a2jlYJkqk83LqZx0l1Of7DzlKJ6jkpvMrkHSnAcgb5JegL8SeIkQ==",
+        "runtimeDependencies": ["@noble/hashes@2.2.0"]
+      },
+      {
+        "name": "@noble/hashes",
+        "version": "2.2.0",
+        "integrity": "sha512-IYqDGiTXab6FniAgnSdZwgWbomxpy9FtYvLKs7wCUs2a8RkITG+DFGO1DM9cr+E3/RgADRpFjrKVaJ1z6sjtEg==",
+        "runtimeDependencies": []
+      }
+    ],
+    "isolatedDaemonColdStart": {
+      "passed": true,
+      "versionHttpStatus": 200,
+      "versionSource": "6cf3ef845202bd879ed94515a71b323dd2fc9e14",
+      "release": "p0-v2-closure-coldstart",
+      "financeOriginOptionsStatus": 204,
+      "financeOriginExactAcao": true,
+      "invalidV2ChallengeStatus": 400,
+      "invalidV2ChallengeCode": "UNKNOWN_OR_MISSING_FIELD"
+    },
+    "productionUploadOccurred": false,
+    "productionInstallOccurred": false,
+    "productionSwitchOccurred": false,
+    "dependencyArchiveSha256": null,
+    "dependencyArchiveBytes": null,
+    "sbomSha256": null,
+    "immutableArtifactSourcePath": null,
+    "acceptedForDeployment": false
+  }
 }

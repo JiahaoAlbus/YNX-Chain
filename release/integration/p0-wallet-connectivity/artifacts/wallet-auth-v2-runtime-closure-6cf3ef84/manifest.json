@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "artifactId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-auth-v2-runtime-closure-6cf3ef84",
+  "createdAt": "2026-08-20T12:24:41Z",
+  "candidateCommit": "6cf3ef845202bd879ed94515a71b323dd2fc9e14",
+  "candidateWalletAuthTree": "4c544d2e2ddb63caef536ea67c8f27b45044fd89",
+  "nodeRuntime": "v22.23.1",
+  "files": [
+    {
+      "path": "noble-curves-2.2.0.tgz",
+      "bytes": 436285,
+      "sha256": "6daf47e557e070b0657eda25549466bae3d07df555de4f702363355e8fb92ec8",
+      "sha512": "4ff0681e01578ab6f410d48f06abb35f4adc8d778ce8ba3cf766b68e560992a93cdcba99c7497539fec3ce5289ea3929bccae41d29c07206f925e80bf1278891",
+      "npmIntegrity": "sha512-T/BoHgFXirb0ENSPBquzX0rcjXeM6Lo892a2jlYJkqk83LqZx0l1Of7DzlKJ6jkpvMrkHSnAcgb5JegL8SeIkQ=="
+    },
+    {
+      "path": "noble-hashes-2.2.0.tgz",
+      "bytes": 180002,
+      "sha256": "018b38bd7af36645fa0ece8f89eba21c828f3e4d219da5aacadd78bd0e654606",
+      "sha512": "218a831a24d769be859e20209d2759c2059ba26c69cbd16d62f2cab3bc0252cd9af119084c6f831463b50ccf5cafe137fd18000d1a458eb295689d73eac8ed12",
+      "npmIntegrity": "sha512-IYqDGiTXab6FniAgnSdZwgWbomxpy9FtYvLKs7wCUs2a8RkITG+DFGO1DM9cr+E3/RgADRpFjrKVaJ1z6sjtEg=="
+    },
+    {
+      "path": "wallet-auth-v2-noble-runtime-closure-6cf3ef84.tar.gz",
+      "bytes": 665983,
+      "sha256": "2a2f29218914580bce70dcc31852186223965b8cf1c5cd34c3cb66c7edf69a54",
+      "contents": "node_modules/@noble/curves@2.2.0 and node_modules/@noble/hashes@2.2.0 only"
+    },
+    {
+      "path": "unpacked-files.sha256",
+      "bytes": 22946,
+      "sha256": "83bbdec577d08afcb822660897501cf632f605f12f5296c056a17e73ffaffb4a",
+      "entries": 211
+    },
+    {
+      "path": "sbom.cdx.json",
+      "bytes": 1855,
+      "sha256": "b3588ecf29e24242c621509bb5ee34b9d4bca6ea8583fead01d14c5c3efbcfad",
+      "format": "CycloneDX 1.5"
+    }
+  ],
+  "ownerIsolatedEvidence": {
+    "npmOfflinePackages": 2,
+    "npmOfflineFiles": 212,
+    "npmOfflineUnpackedBytes": 3207168,
+    "npmOfflineSortedManifestSha256": "a3ac48aac90383bac3e172528956f75ec404b35965c915bd684d6ab9bb640453",
+    "isolatedDaemonColdStartPassed": true
+  },
+  "integrationArtifact": {
+    "sourceTarballsAreOriginalNpmCacheBytes": true,
+    "lockIntegrityMatches": true,
+    "runtimeArchiveDeterministic": true,
+    "runtimeArchiveContainsNpmMetadataFile": false,
+    "runtimePackageFiles": 211,
+    "acceptedForCopied49ePreflight": true,
+    "acceptedForProductionActivation": false
+  },
+  "requiredNextGate": "copied-49e no-network cold-start with exact source subtree, exact runtime archive, exact v1 state, exact v1 registry, exact v2 registry and independent v2 state path"
+}

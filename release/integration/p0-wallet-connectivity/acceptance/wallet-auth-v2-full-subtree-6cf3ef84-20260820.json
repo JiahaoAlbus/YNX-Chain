@@ -2,7 +2,9 @@
   "schemaVersion": 1,
   "acceptanceId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-auth-v2-full-subtree-6cf3ef84",
   "recordedAt": "2026-08-20T12:10:54Z",
-  "decision": "ACCEPTED_EXACT_FULL_SUBTREE_FOR_GATED_RUNTIME_TRANSACTION",
+  "decision": "REVOKED_RUNTIME_DEPENDENCY_CLOSURE_MISSING",
+  "revokedAt": "2026-08-20T12:19:25Z",
+  "revocationReason": "Copied-49e no-network cold start exited with ERR_MODULE_NOT_FOUND because @noble/hashes was absent from the copied production node_modules; no production activation or mutation occurred.",
   "authoritativeControlPlane": {
     "branch": "codex/p0-wallet-connectivity-control-plane-20260820",
     "baseCommit": "472804d283925a0cc020932a533390bd3f76e179"
@@ -68,6 +70,24 @@
     "sdk": "13/13",
     "packageAndDiffPassed": true,
     "inventoryAndArchiveReproducedByIntegration": true
+  },
+  "dependencyClosureGap": {
+    "runtime": "Node v22.23.1",
+    "errorCode": "ERR_MODULE_NOT_FOUND",
+    "missingPackage": "@noble/hashes",
+    "importedFromSuffix": "packages/wallet-auth/src/canonical.js",
+    "requiredExactPackages": ["@noble/hashes@2.2.0", "@noble/curves@2.2.0"],
+    "lockGraphIdentified": true,
+    "sortedUnpackedManifestSha256": "a3ac48aac90383bac3e172528956f75ec404b35965c915bd684d6ab9bb640453",
+    "dependencyArchiveSha256": null,
+    "dependencyArchiveBytes": null,
+    "sbomSha256": null,
+    "immutableArtifactSourcePath": null,
+    "transitiveDependencyClosureFrozen": false,
+    "deterministicRuntimeArtifactAccepted": false,
+    "isolatedOfflineColdStartPassed": true,
+    "copied49eNoNetworkColdStartPassed": false,
+    "productionActivationAuthorized": false
   },
   "truth": {
     "candidateDeployedPublic": false,

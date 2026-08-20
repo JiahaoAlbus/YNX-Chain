@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "acceptanceId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-auth-v2-runtime-artifact-6cf3ef84",
+  "recordedAt": "2026-08-20T12:24:41Z",
+  "decision": "ACCEPTED_EXACT_DETERMINISTIC_RUNTIME_ARTIFACT_FOR_GATED_TRANSACTION",
+  "supersedesLease": "P0-WALLET-CONNECTIVITY-2026-08-wallet-auth-v2-full-subtree-lease-20260820T121054Z",
+  "supersededLeaseReusable": false,
+  "source": {
+    "commit": "6cf3ef845202bd879ed94515a71b323dd2fc9e14",
+    "walletAuthTree": "4c544d2e2ddb63caef536ea67c8f27b45044fd89",
+    "handoffCommit": "0ed75659e8fd3e1556d8a9b3789b22b1ac94c89e",
+    "fullOwnerSubtreeRequired": true,
+    "wholeTreeMergeAccepted": false
+  },
+  "dependencyArtifact": {
+    "root": "release/integration/p0-wallet-connectivity/artifacts/wallet-auth-v2-runtime-closure-6cf3ef84",
+    "manifestPath": "release/integration/p0-wallet-connectivity/artifacts/wallet-auth-v2-runtime-closure-6cf3ef84/manifest.json",
+    "manifestBlob": "5ff28f4ddd552bd76db44480dc256f33f4ebe959",
+    "runtimeArchivePath": "release/integration/p0-wallet-connectivity/artifacts/wallet-auth-v2-runtime-closure-6cf3ef84/wallet-auth-v2-noble-runtime-closure-6cf3ef84.tar.gz",
+    "runtimeArchiveBlob": "2c9b4195ef7de5fbb32cff9bb45c7aa30efa399d",
+    "runtimeArchiveBytes": 665983,
+    "runtimeArchiveSha256": "2a2f29218914580bce70dcc31852186223965b8cf1c5cd34c3cb66c7edf69a54",
+    "runtimePackageFiles": 211,
+    "unpackedManifestSha256": "83bbdec577d08afcb822660897501cf632f605f12f5296c056a17e73ffaffb4a",
+    "sbomPath": "release/integration/p0-wallet-connectivity/artifacts/wallet-auth-v2-runtime-closure-6cf3ef84/sbom.cdx.json",
+    "sbomBlob": "1a22ea62c30f5386fc369d4e7cb45392453bab48",
+    "sbomBytes": 1855,
+    "sbomSha256": "b3588ecf29e24242c621509bb5ee34b9d4bca6ea8583fead01d14c5c3efbcfad",
+    "packages": ["@noble/curves@2.2.0", "@noble/hashes@2.2.0"],
+    "networkInstallRequired": false,
+    "unreviewedNodeModulesAccepted": false
+  },
+  "coldStartGate": {
+    "staticVerifier": "node scripts/verify/p0-wallet-auth-v2-runtime-artifact-check.mjs",
+    "copiedRuntimeVerifier": "node scripts/verify/p0-wallet-auth-v2-copied-runtime-cold-start.mjs",
+    "currentRuntimeSource": "49e30d999e9a9cbdd2c565021009f2cab0dc125c",
+    "requiredV1StateSha256": "93b18583abac95d040e5feca6c1db778f9193ac3471c5415d38e411b60ac63cb",
+    "networkAllowed": false,
+    "productionPathForbidden": true,
+    "mustPassBeforeBackupOrActivation": true,
+    "passed": false
+  },
+  "truth": {
+    "candidateDeployedPublic": false,
+    "publicV2LifecycleVerified": false,
+    "installedClientVerified": false,
+    "productRuntimeMigrations": 0,
+    "integratedCentral": false,
+    "aggregatePublic": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}
