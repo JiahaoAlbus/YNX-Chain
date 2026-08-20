@@ -7,9 +7,30 @@ cd "$(dirname "$0")/../.."
 # shellcheck source=../deploy/lib.sh
 source scripts/deploy/lib.sh
 
+mode="${1:---deploy}"
+[[ "$mode" == "--deploy" || "$mode" == "--preflight" ]] || {
+  echo "usage: $0 [--preflight|--deploy]" >&2
+  exit 64
+}
+
+fail() { echo "bounded replication recovery: $*" >&2; exit 1; }
+
 candidate_commit="$(git rev-parse HEAD)"
-candidate_short="$(git rev-parse --short=12 HEAD)"
-release="ynx-chain-${candidate_short}"
+release_dir="${YNX_BOUNDED_REPLICATION_RELEASE_DIR:-}"
+if [[ -z "$release_dir" ]]; then
+  release_dirs=()
+  for candidate in tmp/deploy/ynx-chain-*; do
+    [[ -d "$candidate" ]] && release_dirs+=("$candidate")
+  done
+  [[ "${#release_dirs[@]}" == "1" ]] || fail "set YNX_BOUNDED_REPLICATION_RELEASE_DIR to one exact prepared release directory"
+  release_dir="${release_dirs[0]}"
+fi
+[[ -d "$release_dir" ]] || fail "prepared release directory not found: $release_dir"
+release="$(basename "$release_dir")"
+[[ "$release" =~ ^ynx-chain-[0-9a-f]{12}$ ]] || fail "prepared release directory name is invalid: $release"
+release_short="${release#ynx-chain-}"
+release_commit="$(node -e 'const x=JSON.parse(require("fs").readFileSync(process.argv[1])); process.stdout.write(x.commit)' "$release_dir/config/release-manifest.json")"
+[[ "$release_commit" =~ ^[0-9a-f]{12}$ && "$release_commit" == "$release_short" ]] || fail "prepared release manifest commit does not match its release directory"
 bundle="${YNX_BOUNDED_REPLICATION_BUNDLE:-tmp/deploy/${release}.tar.gz}"
 expected_bundle_sha="${YNX_BOUNDED_REPLICATION_BUNDLE_SHA256:-}"
 dry_run="${DEPLOY_DRY_RUN:-0}"
@@ -27,7 +48,6 @@ seoul_host="${SEOUL_NODE_HOST:-43.164.132.81}"
 seoul_user="${SEOUL_NODE_USER:-root}"
 seoul_key="${SEOUL_NODE_SSH_KEY:-$primary_key}"
 
-fail() { echo "bounded replication recovery: $*" >&2; exit 1; }
 sha256_file() { shasum -a 256 "$1" | awk '{print $1}'; }
 
 remote_exec() {
@@ -52,6 +72,7 @@ upload_bundle() {
 
 preflight_node() {
   local role="$1" user="$2" host="$3" key="$4"
+  echo "bounded replication recovery preflight: role=${role}"
   remote_exec "$role" "$user" "$host" "$key" "set -euo pipefail; systemctl is-active --quiet ynx-chaind; test -x /usr/local/bin/ynx-chaind; test -r /etc/ynx/ynx-chaind.env; command -v tar >/dev/null; command -v sha256sum >/dev/null || command -v shasum >/dev/null; curl -fsS --max-time 8 http://127.0.0.1:6420/status >/dev/null; echo 'ynx-chaind preflight passed'"
 }
 
@@ -128,19 +149,19 @@ REMOTE
 [[ -f "$bundle" ]] || fail "candidate bundle not found: $bundle"
 [[ "$expected_bundle_sha" =~ ^[0-9a-f]{64}$ ]] || fail "YNX_BOUNDED_REPLICATION_BUNDLE_SHA256 must be an exact SHA-256 digest"
 [[ "$(sha256_file "$bundle")" == "$expected_bundle_sha" ]] || fail "local candidate bundle digest mismatch"
-node scripts/verify/release-manifest-check.mjs "tmp/deploy/${release}" "$candidate_short" "$release" >/dev/null
-binary_sha="$(sha256_file "tmp/deploy/${release}/bin/ynx-chaind")"
-manifest_sha="$(sha256_file "tmp/deploy/${release}/config/release-manifest.json")"
+node scripts/verify/release-manifest-check.mjs "$release_dir" "$release_short" "$release" >/dev/null
+binary_sha="$(sha256_file "$release_dir/bin/ynx-chaind")"
+manifest_sha="$(sha256_file "$release_dir/config/release-manifest.json")"
 
 for value in "$primary_host" "$primary_user" "$primary_key" "$singapore_host" "$singapore_user" "$singapore_key" "$silicon_host" "$silicon_user" "$silicon_key" "$seoul_host" "$seoul_user" "$seoul_key"; do [[ -n "$value" ]] || fail "all four node host, user and SSH-key inputs are required"; done
-if [[ "$dry_run" != "1" && "${YNX_BOUNDED_REPLICATION_DEPLOY:-}" != "yes" ]]; then
+if [[ "$mode" == "--deploy" && "$dry_run" != "1" && "${YNX_BOUNDED_REPLICATION_DEPLOY:-}" != "yes" ]]; then
   fail "set YNX_BOUNDED_REPLICATION_DEPLOY=yes only after the protected deployment gate accepts this exact candidate"
 fi
-if [[ "$dry_run" != "1" && "${YNX_BOUNDED_REPLICATION_GATE_COMMIT:-}" != "$candidate_commit" ]]; then
+if [[ "$mode" == "--deploy" && "$dry_run" != "1" && "${YNX_BOUNDED_REPLICATION_GATE_COMMIT:-}" != "$candidate_commit" ]]; then
   fail "YNX_BOUNDED_REPLICATION_GATE_COMMIT must bind the accepted protected gate to ${candidate_commit}"
 fi
 
-echo "bounded replication recovery plan: commit=${candidate_commit} release=${release} bundleSha256=${expected_bundle_sha}"
+echo "bounded replication recovery plan: toolingCommit=${candidate_commit} releaseCommit=${release_commit} release=${release} bundleSha256=${expected_bundle_sha}"
 echo "scope: existing ynx-chaind binary plus source-bound release manifest only; units, environment, chain state and other services are preserved"
 
 # Followers first, then the primary. No two nodes are restarted concurrently.
@@ -148,6 +169,10 @@ preflight_node singapore "$singapore_user" "$singapore_host" "$singapore_key"
 preflight_node silicon-valley "$silicon_user" "$silicon_host" "$silicon_key"
 preflight_node seoul "$seoul_user" "$seoul_host" "$seoul_key"
 preflight_node primary "$primary_user" "$primary_host" "$primary_key"
+if [[ "$mode" == "--preflight" ]]; then
+  echo "bounded replication recovery preflight passed; no node was altered"
+  exit 0
+fi
 install_node singapore "$singapore_user" "$singapore_host" "$singapore_key"
 install_node silicon-valley "$silicon_user" "$silicon_host" "$silicon_key"
 install_node seoul "$seoul_user" "$seoul_host" "$seoul_key"
