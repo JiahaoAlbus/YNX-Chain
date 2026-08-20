@@ -46,7 +46,7 @@
     "android": {
       "status": "LOCAL_TESTNET_CANDIDATE_ONLY",
       "path": "apps/finance/mobile/android/app/build/outputs/apk/release/app-release.apk",
-      "sourceCommit": "UNCOMMITTED_FINANCE_P0_V2_CHECKPOINT",
+      "sourceCommit": "1fff241a319dbc5b969c818a46bbdc0ecf1fc869",
       "sha256": "c830de2665d11d685b26f0c01dfd6ed5098cefba6f708d460a0993f5df0600f1",
       "installedOn": "emulator-5560",
       "coldStart": {
