@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-08-20T15:44:00Z",
+  "scope": "YNX Social Android canonical Wallet authorization, Gateway completion, callback, and second cold launch",
+  "source": {
+    "socialBranchHead": "7399d5da139c240b93cfa2bdf0940e3e7dd3788c",
+    "socialRuntimeSource": "c6b911656b9dbc711bfce06ec7f18c403527037e",
+    "socialApkSha256": "adc5332a4e3c21f3c0ceff9f10dc5fb41a76116d574461e9f71950c8e58fe024",
+    "socialApkBytes": 103997712,
+    "socialSigningClass": "local-test-signed"
+  },
+  "environment": {
+    "serial": "emulator-5560",
+    "profile": "Pixel 9 equivalent",
+    "apiLevel": 36,
+    "abi": "arm64-v8a",
+    "walletPackage": "com.ynxweb4.wallet",
+    "walletVersion": "1.0.4-testnet-preview",
+    "socialPackage": "com.ynx.social",
+    "socialVersion": "1.0.0"
+  },
+  "attempts": [
+    {
+      "sequence": 1,
+      "walletReviewVisible": true,
+      "biometricAuthenticated": true,
+      "callbackReturnedToSocial": true,
+      "result": "failed-closed",
+      "directError": "fetch failed: javax.net.ssl.SSLHandshakeException: connection closed",
+      "sessionCreated": false
+    },
+    {
+      "sequence": 2,
+      "walletReviewVisible": true,
+      "reviewBinding": {
+        "requestingProduct": "social",
+        "productClientId": "ynx-social-v1",
+        "bundleId": "com.ynx.social",
+        "chainId": "ynx_6423-1",
+        "scopes": ["account:read", "profile:link"]
+      },
+      "biometricAuthenticated": true,
+      "callbackReturnedToSocial": true,
+      "authenticatedMessagesVisible": true,
+      "sessionCreated": true
+    }
+  ],
+  "secondLaunch": {
+    "forceStopped": true,
+    "launchState": "COLD",
+    "totalTimeMs": 175,
+    "waitTimeMs": 177,
+    "authenticatedMessagesVisible": true,
+    "screenshotSha256": "0418e36e370b0f34aeb06112863aa62b50180cb14a3f6802090f094971df02d2",
+    "uiTreeSha256": "0b06f2c3f2d2c555be366820fdba5a4106f67474645e4215c66faefe25fa9438"
+  },
+  "truthBoundary": {
+    "physicalPixelVerified": false,
+    "productionSigned": false,
+    "storeReleased": false,
+    "publicHostedArtifactVerified": false,
+    "walletBalanceVerified": false,
+    "walletTransactionSigningVerified": false,
+    "walletTransactionBroadcastVerified": false,
+    "productSessionPublicLifecycleVerified": false
+  }
+}
