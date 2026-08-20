@@ -34,6 +34,8 @@ release_commit="$(node -e 'const x=JSON.parse(require("fs").readFileSync(process
 bundle="${YNX_BOUNDED_REPLICATION_BUNDLE:-tmp/deploy/${release}.tar.gz}"
 expected_bundle_sha="${YNX_BOUNDED_REPLICATION_BUNDLE_SHA256:-}"
 dry_run="${DEPLOY_DRY_RUN:-0}"
+attempt_id="${YNX_BOUNDED_REPLICATION_ATTEMPT_ID:-$(date -u +%Y%m%dT%H%M%SZ)}"
+[[ "$attempt_id" =~ ^[0-9]{8}T[0-9]{6}Z$ ]] || fail "YNX_BOUNDED_REPLICATION_ATTEMPT_ID must be UTC timestamp form YYYYMMDDTHHMMSSZ"
 
 primary_host="${PRIMARY_NODE_HOST:-}"
 primary_user="${PRIMARY_NODE_USER:-}"
@@ -80,7 +82,7 @@ install_node() {
   local role="$1" user="$2" host="$3" key="$4"
   local remote_bundle="/tmp/${release}-${role}.tar.gz"
   local remote_release="/opt/ynx-chain/releases/${release}"
-  local backup="/var/backups/ynx-chain/${release}-${role}-ynx-chaind"
+  local backup="/var/backups/ynx-chain/${release}-${role}-${attempt_id}-ynx-chaind"
   local command
   upload_bundle "$role" "$user" "$host" "$key" "$remote_bundle"
   command="$(cat <<'REMOTE'
