@@ -10,4 +10,7 @@ test("public candidate gate distinguishes host tools from the reviewed cloud too
   assert.match(source, /protected cloud gate separately verifies all 9 runtime languages/);
   assert.match(source, /approval: "model-request-once", approvalId: randomUUID\(\)/);
   assert.match(source, /ai-live-probe-\$\{randomUUID\(\)\.replaceAll/);
+  assert.match(source, /attempt < 3/);
+  assert.match(source, /contextPaths must be exactly/);
+  assert.match(source, /unsafe_workspace_path/);
 });

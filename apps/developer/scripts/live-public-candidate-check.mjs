@@ -129,16 +129,26 @@ assert.equal(wallet.gateway.publicDeploymentReady, false);
 const models = await json(cookie, "/runtime/models");
 assert.equal(models.hosted.available, true);
 assert.equal(models.hosted.model, "qwen3:4b");
-const aiProjectId = `ai-live-probe-${randomUUID().replaceAll("-", "")}`;
-await json(cookie, `/runtime/workspaces/${aiProjectId}`, {
-  method: "PUT",
-  body: JSON.stringify({ protocolVersion: "ynx-code/v1", expectedRevision: 0, idempotencyKey: "ai-live-probe-0001", workspace: { name: "AI live probe", folders: ["src"], files: { "src/main.js": 'console.log("before")' }, open: ["src/main.js"], active: "src/main.js" } }),
-});
-const agent = await json(cookie, "/runtime/agent/runs", {
-  method: "POST",
-  expectedStatus: 201,
-  body: JSON.stringify({ protocolVersion: "ynx-code-agent/v1", projectId: aiProjectId, intent: "Plan a minimal change that prints after instead of before.", provider: "ynx-hosted", outputLanguage: "en", approval: "model-request-once", approvalId: randomUUID() }),
-});
+let agent;
+for (let attempt = 0; attempt < 3 && !agent; attempt++) {
+  const aiProjectId = `ai-live-probe-${randomUUID().replaceAll("-", "")}`;
+  await json(cookie, `/runtime/workspaces/${aiProjectId}`, {
+    method: "PUT",
+    body: JSON.stringify({ protocolVersion: "ynx-code/v1", expectedRevision: 0, idempotencyKey: `ai-live-probe-${attempt}`, workspace: { name: "AI live probe", folders: ["src"], files: { "src/main.js": 'console.log("before")' }, open: ["src/main.js"], active: "src/main.js" } }),
+  });
+  const response = await fetch(`${base}/runtime/agent/runs`, {
+    method: "POST",
+    headers: { cookie, "content-type": "application/json" },
+    body: JSON.stringify({ protocolVersion: "ynx-code-agent/v1", projectId: aiProjectId, intent: "Return a minimal plan that changes only existing src/main.js to print after. contextPaths must be exactly [\"src/main.js\"] and createPaths/deletePaths must be empty arrays.", provider: "ynx-hosted", outputLanguage: "en", approval: "model-request-once", approvalId: randomUUID() }),
+  });
+  const value = await response.json();
+  if (response.status === 201) agent = value;
+  else {
+    assert.equal(response.status, 400, `/runtime/agent/runs: ${JSON.stringify(value)}`);
+    assert.equal(value.code, "unsafe_workspace_path", JSON.stringify(value));
+  }
+}
+assert.ok(agent, "Hosted Planner returned no safe workspace plan after three isolated attempts.");
 assert.equal(agent.run.status, "plan_review");
 assert.ok(agent.run.plan.steps.length > 0);
 
