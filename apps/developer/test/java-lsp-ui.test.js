@@ -23,6 +23,7 @@ test("Java language intelligence is routed through pinned Eclipse JDT LS", async
   assert.match(service, /"-data", "\.ynx-build\/jdtls"/);
   assert.match(bridge, /workspace\/configuration/);
   assert.match(image, /jdt-language-server-1\.61\.0-202607142124\.tar\.gz/);
+  assert.match(image, /tar --no-same-owner -xzf "\/tmp\/\$jdtls_archive"/);
   assert.match(image, /4dc0747f22fb86dfada4c9214d3ef94c94f1e84eb57ce52126c26ecf2f17dce4/);
   assert.match(live, /8 language requests across 7 LSP routes/);
 });
