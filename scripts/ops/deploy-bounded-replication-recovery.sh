@@ -37,7 +37,7 @@ dry_run="${DEPLOY_DRY_RUN:-0}"
 attempt_id="${YNX_BOUNDED_REPLICATION_ATTEMPT_ID:-$(date -u +%Y%m%dT%H%M%SZ)}"
 [[ "$attempt_id" =~ ^[0-9]{8}T[0-9]{6}Z$ ]] || fail "YNX_BOUNDED_REPLICATION_ATTEMPT_ID must be UTC timestamp form YYYYMMDDTHHMMSSZ"
 node_scope="${YNX_BOUNDED_REPLICATION_NODE_SCOPE:-all}"
-[[ "$node_scope" == "all" || "$node_scope" == "primary" || "$node_scope" == "followers" ]] || fail "YNX_BOUNDED_REPLICATION_NODE_SCOPE must be all, primary, or followers"
+[[ "$node_scope" == "all" || "$node_scope" == "primary" || "$node_scope" == "followers" || "$node_scope" == "singapore" || "$node_scope" == "silicon-valley" || "$node_scope" == "seoul" ]] || fail "YNX_BOUNDED_REPLICATION_NODE_SCOPE must be all, primary, followers, singapore, silicon-valley, or seoul"
 
 primary_host="${PRIMARY_NODE_HOST:-}"
 primary_user="${PRIMARY_NODE_USER:-}"
@@ -205,9 +205,13 @@ echo "node scope: ${node_scope}; every selected node is preflighted before its b
 # A legacy primary can emit an unbounded historical suffix. Upgrade it alone
 # before followers, so its new endpoint establishes the bounded transport
 # contract without restarting or mutating a follower during this transition.
-if [[ "$node_scope" == "all" || "$node_scope" == "followers" ]]; then
+if [[ "$node_scope" == "all" || "$node_scope" == "followers" || "$node_scope" == "singapore" ]]; then
   preflight_node singapore "$singapore_user" "$singapore_host" "$singapore_key"
+fi
+if [[ "$node_scope" == "all" || "$node_scope" == "followers" || "$node_scope" == "silicon-valley" ]]; then
   preflight_node silicon-valley "$silicon_user" "$silicon_host" "$silicon_key"
+fi
+if [[ "$node_scope" == "all" || "$node_scope" == "followers" || "$node_scope" == "seoul" ]]; then
   preflight_node seoul "$seoul_user" "$seoul_host" "$seoul_key"
 fi
 if [[ "$node_scope" == "all" || "$node_scope" == "primary" ]]; then
@@ -219,6 +223,12 @@ if [[ "$mode" == "--preflight" ]]; then
 fi
 if [[ "$node_scope" == "primary" ]]; then
   install_node primary "$primary_user" "$primary_host" "$primary_key"
+elif [[ "$node_scope" == "singapore" ]]; then
+  install_node singapore "$singapore_user" "$singapore_host" "$singapore_key"
+elif [[ "$node_scope" == "silicon-valley" ]]; then
+  install_node silicon-valley "$silicon_user" "$silicon_host" "$silicon_key"
+elif [[ "$node_scope" == "seoul" ]]; then
+  install_node seoul "$seoul_user" "$seoul_host" "$seoul_key"
 elif [[ "$node_scope" == "followers" ]]; then
   install_node singapore "$singapore_user" "$singapore_host" "$singapore_key"
   install_node silicon-valley "$silicon_user" "$silicon_host" "$silicon_key"
