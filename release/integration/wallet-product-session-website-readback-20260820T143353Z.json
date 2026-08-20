@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "P0-WALLET-PROTOCOL-WEBSITE-READBACK-20260820T143353Z",
+  "capturedAt": "2026-08-20T14:33:53Z",
+  "owner": "wallet-protocol",
+  "readOnly": true,
+  "websiteSourceWasModified": false,
+  "officialOrigins": [
+    {
+      "origin": "https://ynxweb4.com",
+      "docs": {
+        "status": 200,
+        "bytes": 4748,
+        "sha256": "76d6b0048592ab9b0773b0f8dccaea8c89d0b588b533a0be0ecc573eebabec04"
+      },
+      "runtimeRecord": {
+        "status": 200,
+        "bytes": 1900,
+        "sha256": "635fefdcc1cd5675a1787a9bf17c87102ccadd1c8232450be7b847333fe75941"
+      }
+    },
+    {
+      "origin": "https://www.ynxweb4.com",
+      "docs": {
+        "status": 200,
+        "bytes": 4748,
+        "sha256": "76d6b0048592ab9b0773b0f8dccaea8c89d0b588b533a0be0ecc573eebabec04"
+      },
+      "runtimeRecord": {
+        "status": 200,
+        "bytes": 1900,
+        "sha256": "635fefdcc1cd5675a1787a9bf17c87102ccadd1c8232450be7b847333fe75941"
+      }
+    }
+  ],
+  "runtimeRecordUrl": "/releases/wallet-auth-runtime/6cf3ef845202bd879ed94515a71b323dd2fc9e14/runtime-publication.json",
+  "runtimeRecordMatchesAcceptedEvidence": true,
+  "runtimeSourceCommit": "6cf3ef845202bd879ed94515a71b323dd2fc9e14",
+  "docsMatchAcrossOfficialOrigins": true,
+  "runtimeRecordMatchesAcrossOfficialOrigins": true,
+  "docsBytesMatchAcceptedEvidence": true,
+  "docsSha256MatchesAcceptedEvidence": false,
+  "docsObservation": "The official docs page remains 200 and byte-identical across apex and www, but its content SHA changed from the earlier accepted readback. This read-only check does not attribute or overwrite the Website Owner change. The immutable Wallet/Auth runtime record remains byte- and SHA-identical.",
+  "truth": {
+    "walletRuntimeRecordStillPublished": true,
+    "websiteOwnerDeploymentReplacedByThisTask": false,
+    "directVercelDeploymentUrlContentVerified": false,
+    "productMigrationImplied": false,
+    "installedClientImplied": false
+  }
+}
