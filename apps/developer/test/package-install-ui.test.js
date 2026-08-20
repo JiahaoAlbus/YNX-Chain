@@ -46,6 +46,7 @@ test("Web npm and Python package installation is exact, reviewed, persistent and
   assert.match(image, /Acquire::Retries=3/);
   assert.match(image, /rustc 1\.75\.0/);
   assert.match(image, /cargo 1\.75\.0/);
+  assert.match(image, /cargo --version \| grep "\^cargo 1\.75\.0\$"/);
   assert.match(image, /YNX_CODE_IMAGE_BUILD_FAILED status=%s line=%s/);
   assert.ok(
     image.indexOf("rm -rf /var/lib/apt/lists/*") <
