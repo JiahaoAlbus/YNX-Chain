@@ -111,6 +111,18 @@
       "seoul"
     ]
   },
+  "soakReadback": {
+    "checkedAt": "2026-08-20T17:31:32Z",
+    "observedHeightRange": [1131085, 1131086],
+    "allBuildsExact": true,
+    "allReadyValidatorCount": 4,
+    "allPostRolloutRestarts": 0,
+    "allConsecutiveReplicationFailures": 0,
+    "allFollowerLagBlocks": 0,
+    "newOomObserved": false,
+    "seoulV2PeerActive": true,
+    "samplingBoundary": "Node status requests were concurrent but not atomic. Primary was sampled one block before the three followers; Silicon reported syncing during an in-progress fetch while its source and local lag were both zero. These observations are not treated as a fixed-height comparison; fixedHeightConvergence above is the exact cross-node equality proof."
+  },
   "acceptance": {
     "fourNodesSameBuild": true,
     "fourNodesSameFixedHeightHash": true,
