@@ -56,12 +56,14 @@ const report = {
 
 if (apkPath) {
   const apk = await readFile(apkPath);
-  report.artifact = {
+  const artifact = {
     path: apkPath,
     bytes: apk.byteLength,
     sha256: hash(apk),
     classification: 'LOCAL_TESTNET_CANDIDATE_ONLY',
   };
+  assert(release.artifact?.android?.sha256 === artifact.sha256, 'release metadata APK hash does not match the verified artifact');
+  report.artifact = artifact;
 }
 
 process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);

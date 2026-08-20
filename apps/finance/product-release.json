@@ -5,18 +5,19 @@
   "owner": "financial-apps",
   "branch": "codex/p0-finance-wallet-connectivity-20260820",
   "p0WalletConnectivity": {
-    "status": "LOCAL_MIGRATION_COMPLETE_AWAITING_INTEGRATION_HANDOFF",
+    "status": "LOCAL_RELEASE_EVIDENCE_COMPLETE_AWAITING_INTEGRATION_HANDOFF",
     "acceptedContracts": {
       "walletTransport": "p0-wallet-connection-v1",
       "errorContract": "p0-wallet-connection-v1",
       "dappConnectSDK": "@ynx/dapp-connect-sdk@0.1.0-p0.0",
-      "endpointManifest": "1.0.0-p0.2"
+      "endpointManifest": "1.0.0-p0.2",
+      "connectionEvents": "connectionEvents@1.0.0-p0.0"
     },
     "endpointManifestSourceCommit": "fa0ffd9bbbcc831438078be8e19cebff51b07e5e",
     "endpointManifestPayloadSha256": "3c606cad1d9bfa71fc507f54b6ad8184a6580c7df75440675b5db921b7e67bb5",
     "productApiStatus": "PENDING",
     "productApiRule": "No Finance product API request may be sent until the central manifest is updated with direct product release evidence.",
-    "standardWalletConnection": "implemented locally; installed-platform evidence pending",
+    "standardWalletConnection": "source-verified EIP-1193 only; Android candidate invokes installed YNX Wallet, but successful account authorization is not verified because the Wallet was locked",
     "legacyDeviceProof": "removed from Finance runtime",
     "selfHostedGateway": "removed from Finance runtime"
   },
@@ -35,13 +36,26 @@
     "android": {
       "status": "LOCAL_TESTNET_CANDIDATE_ONLY",
       "path": "apps/finance/mobile/android/app/build/outputs/apk/release/app-release.apk",
-      "sha256": "5f1ca2dc0f7e92232661e7b2ff55e31dd4a844ad0da0a296b52ec22db92e3f86",
+      "sourceCommit": "0bc77a9427261ca2113ab75d62c40e301598bf56",
+      "sha256": "d18771c498fb94c5a5893a5899686e62ce864c72a877bd9f9dde7695033025be",
+      "bytes": 77149970,
       "installedOn": "emulator-5560",
       "coldStart": {
         "activity": "com.ynxweb4.finance/.MainActivity",
-        "totalTimeMs": 303
+        "totalTimeMs": 244
       },
-      "signing": "local Android Debug certificate only; not production signing or hosted download"
+      "walletInvocation": {
+        "attempted": true,
+        "walletPackage": "com.ynxweb4.wallet",
+        "walletState": "LOCKED",
+        "accountAuthorizationVerified": false,
+        "productSessionCreated": false
+      },
+      "screenshot": {
+        "path": "apps/finance/evidence/p0-finance-android-cold-start.png",
+        "sha256": "fa12f575693b85dfd5a39efdc79e28825490f936f6e30331c623a72420f42cb8"
+      },
+      "signing": "local Android Debug certificate only (v2; certificate SHA-256 5bef19088fb2aaee0cc5dbc3b2fc68b292151abae5832c3ea8f181aee3e2a9bb); not production signing or hosted download"
     },
     "windows": "NOT_OWNED_BY_FINANCE_MOBILE; no Finance Windows installer is declared"
   },

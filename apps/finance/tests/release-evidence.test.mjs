@@ -13,6 +13,7 @@ test('release evidence verifier keeps Finance fail-closed and does not assert an
     "installedWalletSuccess: 'NOT_ASSERTED_BY_THIS_VERIFIER'",
     "release.releaseStates?.deployedPublic === false",
     "release.releaseStates?.downloadHosted === false",
+    "release.artifact?.android?.sha256 === artifact.sha256",
   ]) assert.ok(verifier.includes(marker), marker);
 });
 
