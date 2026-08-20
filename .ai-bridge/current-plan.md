@@ -2,8 +2,8 @@
 
 Status: `ACTIVE`
 Phase: `INTEGRATE`
-Engineering Source Commit: `36beab9f670de4738205ffcb42d5a17630c37dfb`
-Release Candidate: `ynx-data-fabric-36beab9f670d`
+Engineering Source Commit: `61c49d32fa7d1c5632134adda386a2574d8831bf`
+Release Candidate: `ynx-data-fabric-61c49d32fa7d`
 
 ## Completed and protected
 

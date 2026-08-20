@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "productId": "ynx-data-fabric",
-  "sourceCommit": "36beab9f670de4738205ffcb42d5a17630c37dfb",
+  "sourceCommit": "61c49d32fa7d1c5632134adda386a2574d8831bf",
   "eventEnvelopeVersion": "2.0",
   "generatedAt": "2026-08-14T11:46:16Z",
   "vectors": [
