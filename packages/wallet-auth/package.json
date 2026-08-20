@@ -31,6 +31,11 @@
       "import": "./src/product-session-gateway-node-host.js",
       "default": "./src/product-session-gateway-node-host.js"
     },
+    "./product-session-gateway-node-state-migration": {
+      "types": "./src/index.d.ts",
+      "import": "./src/product-session-gateway-node-state-migration.js",
+      "default": "./src/product-session-gateway-node-state-migration.js"
+    },
     "./wallet-provider-discovery": {
       "types": "./src/index.d.ts",
       "import": "./src/wallet-provider-discovery.js",
