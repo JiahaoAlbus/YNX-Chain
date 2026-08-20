@@ -26,9 +26,10 @@ Registry and runtime. It records asynchronous, privacy-safe observations only;
 it cannot block or downgrade a DApp standard wallet connection. Integration
 must accept it and grant the Data Fabric light lease before activation.
 
-The predecessor candidate source passed all six Data Fabric jobs in Run
-`32349107899`; exact-source CI for this expanded candidate is pending. Neither
-is Integration acceptance, runtime activation, or public deployment evidence.
+Exact-source CI Run `32352699826` passed all six Data Fabric jobs at evidence
+head `0567be8b314c798d687af13ce317a2ef7b2f3c28`. This validates source and
+release-truth binding only; it is not Integration acceptance, runtime
+activation, or public deployment evidence.
 
 ## Release state
 
