@@ -1,0 +1,15 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "observedAt": "2026-08-20T00:00:00Z",
+  "method": "direct HTTPS reachability and GitHub release inventory; no public runtime identity is inferred from repository metadata",
+  "publicRuntimeIdentity": {"status": "UNVERIFIED", "sourceCommit": null, "reason": "No signed runtime identity endpoint was successfully read during this inventory."},
+  "endpointObservations": [
+    {"endpoint":"https://ynxweb4.com","result":"HTTP_200","classification":"PUBLIC_WEB_REACHABLE"},
+    {"endpoint":"https://explorer.ynxweb4.com","result":"HTTP_200","classification":"PUBLIC_WEB_REACHABLE"},
+    {"endpoint":"https://wallet.ynxweb4.com","result":"HTTP_200","classification":"PUBLIC_WEB_REACHABLE"},
+    {"endpoint":"https://rpc.ynxweb4.com/status","result":"TLS_CONNECTION_TIMEOUT","classification":"RPC_UNREACHABLE_OR_TLS_DEGRADED","clientMessage":"Chain RPC is unavailable or its TLS connection is degraded; this is not a Product Session failure."}
+  ],
+  "hostedArtifacts": {"status":"GITHUB_PRERELEASES_OBSERVED","notProductionProof":true,"examples":["YNX Wallet macOS Testnet engineering preview a5a563b1","YNX Wallet/Auth v1.0.0 Source Candidate","YNX Finance 1.2.0 Testnet Preview","YNX Developer 0.2.0 Testnet Preview 1","YNX Mail + Calendar 0.2.0 Testnet Preview"],"note":"A prerelease or source candidate cannot be classified as a verified installed public client without artifact, endpoint, and E2E evidence."},
+  "requiredNextEvidence":["verified RPC health and chain ID 6423 response","Gateway health/version/source identity","remote signed endpoint manifest","installed-client platform matrix","Wallet standard connection plus Product Session failure separation"]
+}
