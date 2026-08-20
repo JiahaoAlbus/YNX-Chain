@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "P0-048-WALLET-AUTH-REGISTRY-V3-LEASE-DECISION-20260821",
+  "checkedAt": "2026-08-20T18:31:18Z",
+  "authoritativeParent": {
+    "commit": "f32df414a75fc2c179add368f53b4085b44fad9c",
+    "tree": "03d833ac43dd5e46634d1f203d37942b813de23f",
+    "parent": "813eedbc758cb64363eb2045e91da6fe647c2295"
+  },
+  "acceptedSuccessor": {
+    "taskId": "P0-046",
+    "sourceCommit": "a960d1007e7952c2af591d39e3673f1d9fe50e62",
+    "sourceTree": "8170c4d8c24955564bf1cbe7852b8a883a44f1b4",
+    "evidenceCommit": "98150b1fe0a985142c5717dcc478a918e0fe7bf9",
+    "evidenceTree": "8bb5cbb779a7e4d8d642502e723ef6c462d7f569",
+    "evidenceBlob": "ef7388c8679ea3efb88923d0f5dcd30d6ad98a94",
+    "evidenceSha256": "bb3e68987d89a8d4f5937c6d13b7d097441e8a5e87d7959e707e419edb2ada86",
+    "independentWalletAuthTests": "347/347",
+    "packageLockNobleHashes": "2.2.0",
+    "packageLockNobleCurves": "2.2.0",
+    "migrationStatus": "PREPARED_NOT_EXECUTED",
+    "rollbackStatus": "PREPARED_NOT_EXECUTED",
+    "registryArtifactSha256": "810c58777a62a798e286d2d30e0430334b88603653f672821642e80e3553c46c",
+    "registryStateBindingSha256": "f300fb098c832161aaeb2bcf62b61a7b5b674ea0b443ebd9ca0189592e0b10d7"
+  },
+  "artifactBlocker": {
+    "deployableSourceArchiveFrozen": false,
+    "deployableSourceInventoryFrozen": false,
+    "offlineDependencyRuntimeArchiveFrozen": false,
+    "offlineDependencySbomFrozen": false,
+    "copiedRuntimeExtractionLayoutVerified": false,
+    "code": "A960_DEPLOYABLE_SOURCE_AND_OFFLINE_DEPENDENCY_ARTIFACTS_NOT_FROZEN"
+  },
+  "heavySlotBlocker": {
+    "executionLeasesHeavyOwner": null,
+    "taskId": "P0-015",
+    "queueStatus": "ACTIVE_PROTECTED_SEQUENTIAL_FOLLOWER_DEPLOYMENT",
+    "pathLockStatus": "ACTIVE_PROTECTED_SEQUENTIAL_FOLLOWER_DEPLOYMENT",
+    "explicitReleaseObserved": false,
+    "elapsedTimeInfersRelease": false,
+    "heavySlotAvailable": false,
+    "code": "P0_015_ACTIVE_PROTECTED_SEQUENTIAL_FOLLOWER_DEPLOYMENT_NOT_RELEASED",
+    "reason": "A null generic heavy owner cannot override a still-active protected sequential production task and path lock."
+  },
+  "requiredBeforeAnyFreshLease": [
+    "freeze and independently verify exact a960 deployable source archive, inventory, offline dependency runtime archive and SBOM",
+    "observe an explicit terminal or released checkpoint for P0-015",
+    "re-read the latest authoritative control-plane parent and MAX_HEAVY_OWNER=1 state",
+    "re-read the current public 6cf source and production state SHA before any copy",
+    "issue a wholly new bounded single-use lease; never reuse P0-039"
+  ],
+  "truth": {
+    "p0039LeaseReusable": false,
+    "executionLeaseIssued": false,
+    "sshUsed": false,
+    "deploymentAttempted": false,
+    "productionMutation": false,
+    "migrationExecuted": false,
+    "rollbackExecuted": false,
+    "publicRuntimeSource": "6cf3ef845202bd879ed94515a71b323dd2fc9e14",
+    "publicRegistryV3": false,
+    "productsMigratedV2": 0,
+    "integratedCentral": false,
+    "aggregateDeployedPublic": false
+  }
+}
