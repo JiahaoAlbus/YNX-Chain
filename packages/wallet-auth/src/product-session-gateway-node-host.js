@@ -4,7 +4,7 @@ import { dirname, isAbsolute, join } from "node:path";
 import { canonicalJSON, exactFields, WalletAuthError } from "./canonical.js";
 import { PRODUCT_SESSION_GATEWAY_PROOF_HEADER_V2 } from "./product-session-gateway-client.js";
 import { ProductSessionGatewayHttpHandler, PRODUCT_SESSION_GATEWAY_HTTP_MAX_BODY_BYTES } from "./product-session-gateway-http.js";
-import { parseProductSessionRegistry } from "./product-session-registry.js";
+import { parseProductSessionRegistry, PRODUCT_SESSION_REGISTRY_VERSION } from "./product-session-registry.js";
 
 export const PRODUCT_SESSION_GATEWAY_NODE_STATE_SCHEMA_VERSION = 1;
 export const PRODUCT_SESSION_GATEWAY_NODE_SERVICE = "ynx-product-session-gatewayd";
@@ -127,7 +127,7 @@ export class ProductSessionGatewayNodeHost {
     const stateSha256 = this.stateDigest();
     if (request.url === "/health") return jsonResponse(200, "req_administrative_health", { ok: true, remoteDeployed: this.#remoteDeployed, service: PRODUCT_SESSION_GATEWAY_NODE_SERVICE, stateSha256, truthfulStatus: this.#remoteDeployed ? "remote-product-session-v2-gateway" : "local-product-session-v2-gateway" });
     if (request.url === "/ready") return jsonResponse(this.#ready ? 200 : 503, "req_administrative_ready_", { ok: this.#ready, remoteDeployed: this.#remoteDeployed, runtimeReady: this.#ready, service: PRODUCT_SESSION_GATEWAY_NODE_SERVICE, stateSha256 });
-    if (request.url === "/version") return jsonResponse(200, "req_administrative_version", { build: this.#build, nodeStateSchemaVersion: PRODUCT_SESSION_GATEWAY_NODE_STATE_SCHEMA_VERSION, ok: true, productSessionGatewaySchemaVersion: 2, registrySchemaVersion: 2, registrySha256: this.#registrySha256, remoteDeployed: this.#remoteDeployed, service: PRODUCT_SESSION_GATEWAY_NODE_SERVICE });
+    if (request.url === "/version") return jsonResponse(200, "req_administrative_version", { build: this.#build, nodeStateSchemaVersion: PRODUCT_SESSION_GATEWAY_NODE_STATE_SCHEMA_VERSION, ok: true, productSessionGatewaySchemaVersion: 2, registrySchemaVersion: PRODUCT_SESSION_REGISTRY_VERSION, registrySha256: this.#registrySha256, remoteDeployed: this.#remoteDeployed, service: PRODUCT_SESSION_GATEWAY_NODE_SERVICE });
     return null;
   }
 
