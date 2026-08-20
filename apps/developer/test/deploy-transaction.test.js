@@ -27,6 +27,8 @@ test("public candidate transaction is exact-source, preflighted and rollback-saf
       transaction.indexOf("install-reviewed-dependencies.sh"),
   );
   assert.match(transaction, /git_safe=.*safe\.directory/);
+  assert.match(transaction, /runuser_bin=\/usr\/sbin\/runuser/);
+  assert.match(transaction, /reviewed runuser binary is missing/);
   assert.match(transaction, /merge-base --is-ancestor/);
   assert.match(transaction, /status --porcelain=v1 --untracked-files=normal/);
   assert.match(transaction, /candidate_dir="\$candidate_root\/\$expected_commit"/);

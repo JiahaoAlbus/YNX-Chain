@@ -73,7 +73,9 @@ trap cleanup_staging EXIT
 [[ $evidence_root == "$state_dir/deploy-evidence" ]] || fail "evidence directory is outside the reviewed state boundary"
 [[ $(id -u) -eq 0 ]] || fail "run as root on the reviewed candidate host"
 
-for tool in git node npm lxc systemctl tar sha256sum install runuser; do require "$tool"; done
+for tool in git node npm lxc systemctl tar sha256sum install; do require "$tool"; done
+runuser_bin=/usr/sbin/runuser
+[[ -x $runuser_bin ]] || fail "reviewed runuser binary is missing: $runuser_bin"
 cd "$repo_dir"
 git_safe=(git -c "safe.directory=$repo_dir")
 "${git_safe[@]}" fetch --prune origin codex/ynx-code-platform-v1
@@ -99,8 +101,8 @@ install -d -o ubuntu -g ubuntu -m 0755 "$staging_dir"
 "${git_safe[@]}" archive --format=tar "$expected_commit" | tar -xf - -C "$staging_dir"
 chown -R ubuntu:ubuntu "$staging_dir"
 
-runuser -u ubuntu -- bash -lc "cd '$staging_dir/apps/developer' && bash scripts/install-reviewed-dependencies.sh"
-runuser -u ubuntu -- bash -lc "cd '$staging_dir/apps/developer' && npm run code:check && npm run code:build && npm test"
+"$runuser_bin" -u ubuntu -- bash -lc "cd '$staging_dir/apps/developer' && bash scripts/install-reviewed-dependencies.sh"
+"$runuser_bin" -u ubuntu -- bash -lc "cd '$staging_dir/apps/developer' && npm run code:check && npm run code:build && npm test"
 
 image_output=$(YNX_CODE_TARGET_IMAGE="$image_alias" "$staging_dir/apps/developer/scripts/build-cloud-toolchain-image.sh")
 image_fingerprint=$(printf '%s\n' "$image_output" | awk -F= '/^YNX_CODE_LXD_IMAGE=/{print $2}')
