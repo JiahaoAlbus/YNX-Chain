@@ -44,6 +44,7 @@ test("Web npm and Python package installation is exact, reviewed, persistent and
   assert.match(image, /rm -rf \/var\/lib\/apt\/lists\/\*/);
   assert.match(image, /Acquire::ForceIPv4=true/);
   assert.match(image, /Acquire::Retries=3/);
+  assert.match(image, /YNX_CODE_IMAGE_BUILD_FAILED status=%s line=%s/);
   assert.ok(
     image.indexOf("rm -rf /var/lib/apt/lists/*") <
       image.indexOf("update -qq"),
