@@ -31,7 +31,8 @@ export const YNX_TESTNET_CHAIN_NAME="YNX Testnet";
 export type PendingAuthorization=Readonly<{request:AuthorizationRequest;deviceSecret:string}>;
 export type CardSession=Readonly<{token:string;sessionBinding:string;requestDigest:string;account:string;productClientId:"ynx-card-v1";bundleId:"com.ynxweb4.card";scopes:readonly string[];issuedAt:string;expiresAt:string;deviceId:string}>;
 export type Eip1193WalletSession=Readonly<{address:string;chainId:string;connectedAt:string;provider:"eip1193"}>;
-export type TopupEvidence=Readonly<{chainId:string;txHash:string;blockNumber:string;blockHash:string;from:string;to:string}>;
+export type TestnetTopupIntent=Readonly<{id:string;chainId:string;recipient:string;amountWei:string;minConfirmations:number;expiresAt:string}>;
+export type TopupEvidence=Readonly<{chainId:string;txHash:string;blockNumber:string;blockHash:string;from:string;to:string;valueWei:string;confirmations:number}>;
 
 const ynxChainParameters={chainId:YNX_TESTNET_CHAIN_ID,chainName:YNX_TESTNET_CHAIN_NAME,nativeCurrency:{name:"YNX",symbol:"YNXT",decimals:18},rpcUrls:[],blockExplorerUrls:[]};
 
@@ -102,15 +103,55 @@ export async function connectEip1193Wallet(provider:Eip1193Provider|null=resolve
   return Object.freeze({address,chainId,connectedAt:now.toISOString(),provider:"eip1193"});
 }
 
-export async function loadTestnetTopupEvidence(provider:Eip1193Provider,txHash:string):Promise<TopupEvidence>{
+export function parseYnxtAmountToWei(value:string):string{
+  const match=/^(0|[1-9][0-9]*)(?:\.([0-9]{1,18}))?$/.exec(value.trim());
+  if(!match)throw new Error("YNXT amount must use up to 18 decimal places");
+  const wei=BigInt(match[1]!+((match[2]??"").padEnd(18,"0")));
+  if(wei<=0n)throw new Error("YNXT amount must be greater than zero");
+  return wei.toString();
+}
+
+export async function approveTestnetTopup(provider:Eip1193Provider,wallet:Eip1193WalletSession,intent:TestnetTopupIntent):Promise<string>{
+  const expected=validatedTopupIntent(intent);
+  if(wallet.chainId!==YNX_TESTNET_CHAIN_ID)throw new Error("Wallet is not connected to YNX Testnet");
+  const chainId=String(await provider.request({method:"eth_chainId",params:[]})??"");
+  if(chainId!==YNX_TESTNET_CHAIN_ID)throw new Error("Wallet is not connected to YNX Testnet");
+  const txHash=await provider.request({method:"eth_sendTransaction",params:[{from:wallet.address,to:expected.recipient,value:toRpcQuantity(expected.amountWei),chainId:YNX_TESTNET_CHAIN_ID}]});
+  if(typeof txHash!=="string"||!/^0x[0-9a-fA-F]{64}$/.test(txHash))throw new Error("Wallet did not return a Testnet transaction hash");
+  return txHash.toLowerCase();
+}
+
+export async function loadTestnetTopupEvidence(provider:Eip1193Provider,txHash:string,input:TestnetTopupIntent&Readonly<{sender:string}>):Promise<TopupEvidence>{
   if(!/^0x[0-9a-fA-F]{64}$/.test(txHash)) throw new Error("Top-up transaction hash must be 0x-prefixed");
+  const expected=validatedTopupIntent(input);
+  if(!address(input.sender))throw new Error("Top-up wallet account is invalid");
   const tx=await provider.request({method:"eth_getTransactionByHash",params:[txHash]});
   const receipt=await provider.request({method:"eth_getTransactionReceipt",params:[txHash]});
-  if(!object(tx)||!object(receipt)||typeof (receipt as {blockHash?:unknown}).blockHash!=="string"||typeof tx.from!=="string"||typeof tx.to!=="string"||typeof tx.blockNumber!="string") throw new Error("Could not read chain evidence");
+  if(!object(tx)||!object(receipt)||typeof (receipt as {blockHash?:unknown}).blockHash!=="string"||typeof (receipt as {blockNumber?:unknown}).blockNumber!=="string"||typeof (receipt as {status?:unknown}).status!=="string"||typeof tx.from!=="string"||typeof tx.to!=="string"||typeof tx.value!=="string"||typeof tx.blockNumber!=="string") throw new Error("Could not read chain evidence");
   const chainId=String((await provider.request({method:"eth_chainId",params:[]})??""));
   if(chainId!==YNX_TESTNET_CHAIN_ID) throw new Error("Top-up transaction is not on YNX Testnet");
-  return Object.freeze({chainId,txHash:txHash.toLowerCase(),blockHash:(receipt as {blockHash:string}).blockHash,blockNumber:tx.blockNumber,from:tx.from.toLowerCase(),to:tx.to.toLowerCase()});
+  const receiptValue=receipt as {blockHash:string;blockNumber:string;status:string;transactionHash?:unknown};
+  if(parseRpcQuantity(receiptValue.status)!==1n)throw new Error("Top-up transaction failed on YNX Testnet");
+  if(typeof receiptValue.transactionHash==="string"&&receiptValue.transactionHash.toLowerCase()!==txHash.toLowerCase())throw new Error("Top-up receipt hash does not match transaction");
+  if(!sameAddress(tx.from,input.sender))throw new Error("Top-up sender does not match connected wallet");
+  if(!sameAddress(tx.to,expected.recipient))throw new Error("Top-up recipient does not match Card funding intent");
+  if(parseRpcQuantity(tx.value)!==BigInt(expected.amountWei))throw new Error("Top-up amount does not match Card funding intent");
+  if(tx.blockNumber!==receiptValue.blockNumber)throw new Error("Top-up transaction and receipt block do not match");
+  const head=await provider.request({method:"eth_blockNumber",params:[]});
+  const confirmations=confirmationCount(String(head??""),tx.blockNumber);
+  if(confirmations<expected.minConfirmations)throw new Error(`Top-up requires ${expected.minConfirmations} confirmation(s)`);
+  return Object.freeze({chainId,txHash:txHash.toLowerCase(),blockHash:receiptValue.blockHash,blockNumber:tx.blockNumber,from:tx.from.toLowerCase(),to:tx.to.toLowerCase(),valueWei:expected.amountWei,confirmations});
 }
+
+function validatedTopupIntent(value:TestnetTopupIntent):TestnetTopupIntent{
+  if(!value||typeof value.id!=="string"||!value.id.trim()||value.chainId!==YNX_TESTNET_CHAIN_ID||!address(value.recipient)||!/^([1-9][0-9]*)$/.test(value.amountWei)||!Number.isSafeInteger(value.minConfirmations)||value.minConfirmations<1||Date.parse(value.expiresAt)<=Date.now())throw new Error("Card funding intent is invalid or expired");
+  return Object.freeze({...value,recipient:value.recipient.toLowerCase()});
+}
+function address(value:unknown):value is string{return typeof value==="string"&&/^0x[0-9a-fA-F]{40}$/.test(value)}
+function sameAddress(left:string,right:string):boolean{return left.toLowerCase()===right.toLowerCase()}
+function parseRpcQuantity(value:string):bigint{if(!/^0x[0-9a-fA-F]+$/.test(value))throw new Error("Chain quantity is invalid");return BigInt(value)}
+function toRpcQuantity(value:string):string{return `0x${BigInt(value).toString(16)}`}
+function confirmationCount(head:string,block:string):number{const latest=parseRpcQuantity(head),included=parseRpcQuantity(block);if(latest<included)throw new Error("Chain head precedes top-up receipt");const count=latest-included+1n;if(count>BigInt(Number.MAX_SAFE_INTEGER))throw new Error("Top-up confirmation count is invalid");return Number(count)}
 
 function parseSession(value:unknown):CardSession{
   if(!object(value)||value.productClientId!==CLIENT_ID||value.bundleId!==BUNDLE_ID||typeof value.token!="string"||typeof value.sessionBinding!="string"||typeof value.requestDigest!="string"||typeof value.account!="string"||!Array.isArray(value.scopes)||value.scopes.join("\n")!==SCOPES.join("\n")||typeof value.issuedAt!="string"||typeof value.expiresAt!="string"||typeof value.deviceId!="string"||Date.parse(value.expiresAt)<=Date.now())throw new Error("Central Wallet session binding is invalid");

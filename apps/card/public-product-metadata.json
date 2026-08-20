@@ -4,13 +4,13 @@
   "productName": "YNX Card",
   "aliases": ["Card", "YNX Card Testnet Preview"],
   "canonicalRoute": "/card",
-  "title": "YNX Card — Controlled Testnet Card Preview",
-  "metaDescription": "Explore the YNX Card Testnet Preview with sandbox card lifecycle, user-configurable controls, signed provider events, privacy export and bounded account-data deletion.",
-  "h1": "A controlled Card preview for YNX Testnet",
-  "sourceCommit": "d79872f5df4da0566e11ef40e5314ea68d9846f4",
-  "releaseVersion": "1.0.0-testnet-preview",
+  "title": "YNX Card — Testnet Payment Simulation",
+  "metaDescription": "Explore the YNX Card Testnet payment simulation with a sandbox card lifecycle and simulated merchant ledger. No real-world payment capability is available.",
+  "h1": "YNX Testnet Card Payment Simulation",
+  "sourceCommit": "63f954e3fce7fbdcf7c988273a49a32cd66355f8",
+  "releaseVersion": "1.0.1-testnet-simulation",
   "status": {
-    "label": "Testnet Preview",
+    "label": "Testnet Payment Simulation",
     "implementedLocal": true,
     "testedLocal": true,
     "installedLocal": false,
@@ -79,5 +79,5 @@
     "releaseNotesSource": "apps/card/product-release.json"
   },
   "websiteIntegrationOwner": "28-website",
-  "generatedAt": "2026-07-29"
+  "generatedAt": "2026-08-20"
 }

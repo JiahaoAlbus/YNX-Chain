@@ -4,10 +4,10 @@ import{SafeAreaView}from"react-native-safe-area-context";
 import{StatusBar}from"expo-status-bar";
 import* as LocalAuthentication from"expo-local-authentication";
 import{ArrowUpRight,CreditCard,Globe2,LifeBuoy,LockKeyhole,ReceiptText,RefreshCw,ShieldCheck,SlidersHorizontal,WalletCards,X}from"lucide-react-native";
-import{action,apply as applyForCard,dispute as openDispute,explain,reviewAI,state as loadState,topupTestnet,type Card,type CardEvent,type CardState,type TopupInput,type TopupEvidence, simulateAuthorization, simulateCapture, simulateReversal, simulateRefund, updateControls}from"./src/api";
+import{action,apply as applyForCard,createTestnetTopupIntent,dispute as openDispute,explain,reviewAI,state as loadState,topupTestnet,type Card,type CardEvent,type CardState,type TestnetTopupIntent,type TopupInput, simulateAuthorization, simulateCapture, simulateReversal, simulateRefund, updateControls}from"./src/api";
 import{catalogs,date,detectLocale,isLocale,isRTL,localeNames,locales,money,t as translate,type Locale}from"./src/i18n";
 import{loadLocale,loadPendingAuthorization,loadSession,loadSimulationAudit,saveLocale,savePendingAuthorization,saveSession,saveSimulationAudit}from"./src/secureState";
-import{completeCentralSession,connectEip1193Wallet,createAuthorization,loadTestnetTopupEvidence,resolveEip1193Provider,verifiedApproval,walletDeepLink,type CardSession,type Eip1193WalletSession}from"./src/wallet";
+import{approveTestnetTopup,completeCentralSession,connectEip1193Wallet,createAuthorization,loadTestnetTopupEvidence,parseYnxtAmountToWei,resolveEip1193Provider,verifiedApproval,walletDeepLink,type CardSession,type Eip1193WalletSession,type TopupEvidence}from"./src/wallet";
 import{isFailure,recoverLastFailed,replayAwareAppend,SimulationAuditRecord,TESTNET_SIMULATION_CURRENCY,TESTNET_SIMULATION_MAX_EVENTS,type SimulationInput as LedgerSimulationInput}from"./src/simulation";
 
 const BLUE="#002FA7",RED="#B42318",GREEN="#067647",ORANGE="#B54708";
@@ -37,6 +37,8 @@ export default function App(){
   const[walletBusy,setWalletBusy]=useState(false);
   const[walletError,setWalletError]=useState("");
 
+  const[topupAmount,setTopupAmount]=useState("1");
+  const[topupIntent,setTopupIntent]=useState<TestnetTopupIntent|null>(null);
   const[topupHash,setTopupHash]=useState("");
   const[topupEvidence,setTopupEvidence]=useState<TopupEvidence|null>(null);
 
@@ -114,14 +116,6 @@ export default function App(){
   };
   const replaceRecord=(records:readonly SimulationAuditRecord[],entry:SimulationAuditRecord)=>Object.freeze(records.map(item=>item.id===entry.id?entry:item));
 
-  const updateTopupHash=(value:string)=>{
-    setTopupHash(value);
-    if(!value.trim()){
-      setTopupEvidence(null);
-      setSimulationMessage("");
-    }
-  };
-
   const connectEvmWallet=async()=>{
     setWalletBusy(true);
     setWalletError("");
@@ -130,6 +124,8 @@ export default function App(){
       if(!provider){setWalletError(tr("walletNotAvailable"));return;}
       const next=await connectEip1193Wallet(provider,new Date());
       setWalletSession(next);
+      setTopupIntent(null);
+      setTopupHash("");
       setTopupEvidence(null);
     }catch(e){
       setWalletError(message(e,tr("walletNotAvailable")));
@@ -138,14 +134,46 @@ export default function App(){
     }
   };
 
-  const verifyTopup=async()=>{
-    if(!topupHash.trim())throw new Error(tr("topupTxHash"));
+  const requestTopupIntent=async()=>{
+    if(!session)throw new Error(tr("sessionExpired"));
+    if(!walletSession)throw new Error(tr("walletNotAvailable"));
+    setWalletBusy(true);
+    setWalletError("");
+    try{
+      const amountWei=parseYnxtAmountToWei(topupAmount);
+      const intent=await createTestnetTopupIntent(session,{amountWei,idempotencyKey:`topup-intent-${walletSession.address}-${amountWei}`});
+      setTopupIntent(intent);
+      setTopupHash("");
+      setTopupEvidence(null);
+      setSimulationMessage(tr("topupIntentReady"));
+    }catch(e){setWalletError(message(e,tr("topupNoIntent")));}
+    finally{if(mounted.current)setWalletBusy(false);}
+  };
+
+  const approveTopup=async()=>{
+    if(!walletSession)throw new Error(tr("walletNotAvailable"));
+    if(!topupIntent)throw new Error(tr("topupNoIntent"));
     const provider=resolveEip1193Provider();
     if(!provider){setWalletError(tr("walletNotAvailable"));return;}
     setWalletBusy(true);
     setWalletError("");
     try{
-      const evidence=await loadTestnetTopupEvidence(provider,topupHash.trim());
+      const txHash=await approveTestnetTopup(provider,walletSession,topupIntent);
+      setTopupHash(txHash);
+      setTopupEvidence(null);
+      setSimulationMessage(tr("topupPending"));
+    }catch(e){setWalletError(message(e,tr("topupPending")));}
+    finally{if(mounted.current)setWalletBusy(false);}
+  };
+
+  const verifyTopup=async()=>{
+    if(!topupHash.trim()||!topupIntent||!walletSession)throw new Error(tr("topupNoIntent"));
+    const provider=resolveEip1193Provider();
+    if(!provider){setWalletError(tr("walletNotAvailable"));return;}
+    setWalletBusy(true);
+    setWalletError("");
+    try{
+      const evidence=await loadTestnetTopupEvidence(provider,topupHash.trim(),{...topupIntent,sender:walletSession.address});
       setTopupEvidence(evidence);
       setSimulationMessage(tr("topupEvidence"));
     }catch(e){setWalletError(message(e,tr("topupMissing")));}
@@ -154,12 +182,12 @@ export default function App(){
 
   const submitTopup=async()=>{
     if(!session)throw new Error(tr("sessionExpired"));
-    if(!topupEvidence)throw new Error(tr("topupMissing"));
+    if(!topupEvidence||!topupIntent)throw new Error(tr("topupMissing"));
     if(!walletSession)throw new Error(tr("walletNotAvailable"));
     setSimulationBusy(true);
     setSimulationMessage("");
     try{
-      const input:TopupInput={txHash:topupEvidence.txHash,idempotencyKey:`topup-${topupEvidence.txHash}`};
+      const input:TopupInput={intentId:topupIntent.id,txHash:topupEvidence.txHash,idempotencyKey:`topup-${topupIntent.id}-${topupEvidence.txHash}`};
       await topupTestnet(session,input);
       setSimulationMessage(tr("topupEvidence"));
       await refresh();
@@ -320,10 +348,14 @@ export default function App(){
             walletSession={walletSession}
             walletBusy={walletBusy}
             walletError={walletError}
+            topupAmount={topupAmount}
+            setTopupAmount={setTopupAmount}
+            topupIntent={topupIntent}
             topupHash={topupHash}
-            setTopupHash={updateTopupHash}
             topupEvidence={topupEvidence}
             connectWallet={connectEvmWallet}
+            requestTopupIntent={requestTopupIntent}
+            approveTopup={approveTopup}
             verifyTopup={verifyTopup}
             submitTopup={submitTopup}
             simulationBusy={simulationBusy}
@@ -440,9 +472,9 @@ function ControlInput({label,value,setValue,c}:{label:string;value:string;setVal
 }
 
 function SimulationPanel({
-  c,tr,session,card,walletSession,walletBusy,walletError,topupHash,setTopupHash,topupEvidence,connectWallet,verifyTopup,submitTopup,simulationBusy,simulationMessage,simulationLedger,opMerchant,setOpMerchant,opAmount,setOpAmount,opIdempotency,setOpIdempotency,opAction,setOpAction,runSimulation,recoverSimulations,
+  c,tr,session,card,walletSession,walletBusy,walletError,topupAmount,setTopupAmount,topupIntent,topupHash,topupEvidence,connectWallet,requestTopupIntent,approveTopup,verifyTopup,submitTopup,simulationBusy,simulationMessage,simulationLedger,opMerchant,setOpMerchant,opAmount,setOpAmount,opIdempotency,setOpIdempotency,opAction,setOpAction,runSimulation,recoverSimulations,
 }:{
-  c:Colors;tr:T;session:CardSession;card:Card|null;walletSession:Eip1193WalletSession|null;walletBusy:boolean;walletError:string;topupHash:string;setTopupHash:(v:string)=>void;topupEvidence:TopupEvidence|null;connectWallet:()=>Promise<void>;verifyTopup:()=>Promise<void>;submitTopup:()=>Promise<void>;simulationBusy:boolean;simulationMessage:string;simulationLedger:readonly SimulationAuditRecord[];opMerchant:string;setOpMerchant:(v:string)=>void;opAmount:string;setOpAmount:(v:string)=>void;opIdempotency:string;setOpIdempotency:(v:string)=>void;opAction:SimulationAction;setOpAction:(v:SimulationAction)=>void;runSimulation:(operation:SimulationAction,merchant:string,amount:string,idempotency:string)=>Promise<void>;recoverSimulations:()=>Promise<void>;
+  c:Colors;tr:T;session:CardSession;card:Card|null;walletSession:Eip1193WalletSession|null;walletBusy:boolean;walletError:string;topupAmount:string;setTopupAmount:(v:string)=>void;topupIntent:TestnetTopupIntent|null;topupHash:string;topupEvidence:TopupEvidence|null;connectWallet:()=>Promise<void>;requestTopupIntent:()=>Promise<void>;approveTopup:()=>Promise<void>;verifyTopup:()=>Promise<void>;submitTopup:()=>Promise<void>;simulationBusy:boolean;simulationMessage:string;simulationLedger:readonly SimulationAuditRecord[];opMerchant:string;setOpMerchant:(v:string)=>void;opAmount:string;setOpAmount:(v:string)=>void;opIdempotency:string;setOpIdempotency:(v:string)=>void;opAction:SimulationAction;setOpAction:(v:SimulationAction)=>void;runSimulation:(operation:SimulationAction,merchant:string,amount:string,idempotency:string)=>Promise<void>;recoverSimulations:()=>Promise<void>;
 }){
   const failed=simulationLedger.filter(isFailure);
   const operationLabel:(operation:SimulationAction)=>string=operation=>"authorization"===operation?tr("simulateAuthorization"):operation==="capture"?tr("simulateCapture"):operation==="reversal"?tr("simulateReversal"):tr("simulateRefund");
@@ -460,9 +492,13 @@ function SimulationPanel({
     </View>
 
     <View style={s.simSection}>
-      <Text style={[s.label,{color:c.secondary}]}>{tr("topupTxHash")}</Text>
-      <TextInput autoCapitalize="none" keyboardType="default" value={topupHash} onChangeText={setTopupHash} style={[s.input,{color:c.text,backgroundColor:c.surface,borderColor:c.separator}]}/>
-      <Pressable accessibilityRole="button" disabled={walletBusy||!topupHash.trim()} onPress={()=>void verifyTopup()} style={[s.primary,(walletBusy||!topupHash.trim())&&s.disabled]}>{walletBusy?<ActivityIndicator color="white"/>:<Text style={s.primaryText}>{tr("verifyTopup")}</Text>}</Pressable>
+      <Text style={[s.label,{color:c.secondary}]}>{tr("topupAmount")}</Text>
+      <TextInput autoCapitalize="none" keyboardType="decimal-pad" value={topupAmount} onChangeText={setTopupAmount} style={[s.input,{color:c.text,backgroundColor:c.surface,borderColor:c.separator}]}/>
+      <Pressable accessibilityRole="button" disabled={walletBusy||!walletSession||!session} onPress={()=>void requestTopupIntent()} style={[s.primary,(walletBusy||!walletSession||!session)&&s.disabled]}>{walletBusy?<ActivityIndicator color="white"/>:<Text style={s.primaryText}>{tr("topupIntent")}</Text>}</Pressable>
+      {topupIntent?<Text style={[s.caption,{color:c.secondary}]}>{tr("topupIntentReady")} · {topupIntent.recipient} · {topupIntent.amountWei} wei</Text>:null}
+      <Pressable accessibilityRole="button" disabled={walletBusy||!walletSession||!topupIntent} onPress={()=>void approveTopup()} style={[s.secondary,(walletBusy||!walletSession||!topupIntent)&&s.disabled]}>{walletBusy?<ActivityIndicator color={BLUE}/>:<Text style={s.secondaryText}>{tr("approveTopup")}</Text>}</Pressable>
+      {topupHash?<Text style={[s.caption,{color:c.secondary}]}>{tr("topupTxHash")}: {topupHash}</Text>:null}
+      <Pressable accessibilityRole="button" disabled={walletBusy||!topupHash.trim()||!topupIntent} onPress={()=>void verifyTopup()} style={[s.primary,(walletBusy||!topupHash.trim()||!topupIntent)&&s.disabled]}>{walletBusy?<ActivityIndicator color="white"/>:<Text style={s.primaryText}>{tr("verifyTopup")}</Text>}</Pressable>
       {topupEvidence?
         <Text style={[s.caption,{color:c.secondary}]}>Chain {tr("topupEvidence")}: {topupEvidence.txHash} ({topupEvidence.chainId})</Text>
         :null}

@@ -1,12 +1,12 @@
 {
   "productId": "ynx-card",
   "name": "YNX Card",
-  "branch": "codex/final-card",
-  "sourceCommit": "d79872f5df4da0566e11ef40e5314ea68d9846f4",
-  "commit": "d79872f5df4da0566e11ef40e5314ea68d9846f4",
+  "branch": "codex/p0-card-testnet-virtual-20260820-fix",
+  "sourceCommit": "63f954e3fce7fbdcf7c988273a49a32cd66355f8",
+  "commit": "63f954e3fce7fbdcf7c988273a49a32cd66355f8",
   "recoveredFromCommit": "c20beda",
   "recoveryCheckpoint": "bdd5ca02ad42b712db66a5173ecfad09340aa42c",
-  "version": "1.0.0-testnet-preview",
+  "version": "1.0.1-testnet-simulation",
   "surfaces": [
     "android",
     "ios-simulator-source",
@@ -93,9 +93,10 @@
     "No official provider-specific webhook signature or secure-display integration is selected.",
     "Local backup/restore and account data lifecycle enforcement are verified, but scheduled encrypted off-host backup retention and timed RPO/RTO evidence are not complete.",
     "Data lifecycle endpoints are local-only; central privacy workflow acceptance and scheduled retention invocation are not evidenced.",
+    "No verified real Testnet YNXT top-up exists yet. Card funding cannot be credited until the locked central service issues an exact funding intent and independently verifies transaction recipient, amount, success receipt and confirmations.",
     "No current native APK install/cold-launch evidence.",
     "No staging, production signing, hosted download, store release or external security review.",
     "Issuer credential and legal/provider agreement remain external inputs for a real issuer sandbox."
   ],
-  "generatedAt": "2026-07-29"
+  "generatedAt": "2026-08-20"
 }

@@ -1,8 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {parseState}from"./api";
+import {parseState,parseTestnetTopupIntent}from"./api";
 
 const safe={eligibility:{reference:"kyc_ref",status:"eligible_sandbox",provider:"sandbox",updatedAt:"2026-07-18T06:00:00Z"},applications:[],cards:[{id:"card_1",account:"ynx1account",applicationId:"cap_1",providerCardId:"pcard_1",provider:"YNX Card Testnet Sandbox",network:"YNX Testnet Sandbox",last4:"1234",expiryMonth:12,expiryYear:2029,status:"active",controls:{spendLimitMinor:10000,currency:"USD",online:true,international:false,atm:false,allowedMcc:[],blockedMcc:[],allowedCountries:[]},createdAt:"2026-07-18T06:00:00Z",updatedAt:"2026-07-18T06:00:00Z"}],events:[],disputes:[],notifications:[],aiRuns:[],audit:[]};
 test("Card API accepts only safe provider references",()=>{const parsed=parseState(safe);assert.equal(parsed.cards[0]?.last4,"1234");assert.equal((parsed.cards[0] as any).pan,undefined)});
 test("Card API rejects PAN, CVV, PIN and identity material at any depth",()=>{for(const field of ["pan","cvv","pin","trackData","identityDocument","passportImage"]){assert.throws(()=>parseState({...safe,cards:[{...safe.cards[0],[field]:"secret"}]}),/Sensitive issuer data rejected/)}});
 test("Card API refuses unlabelled or non-sandbox cards",()=>{assert.throws(()=>parseState({...safe,cards:[{...safe.cards[0],network:"Visa"}]}),/Invalid safe Card reference/);assert.throws(()=>parseState({...safe,cards:[{...safe.cards[0],last4:"abcd"}]}),/Invalid safe Card reference/)});
+test("Card API accepts only exact YNX Testnet funding intents",()=>{const intent=parseTestnetTopupIntent({id:"intent_1",chainId:"0x1917",recipient:"0x1111111111111111111111111111111111111111",amountWei:"1000000000000000000",minConfirmations:2,expiresAt:"2026-08-21T00:00:00.000Z"});assert.equal(intent.chainId,"0x1917");assert.throws(()=>parseTestnetTopupIntent({...intent,chainId:"0x1"}),/Invalid Testnet top-up intent/);assert.throws(()=>parseTestnetTopupIntent({...intent,amountWei:"0"}),/Invalid Testnet top-up intent/)});
