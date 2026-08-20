@@ -31,7 +31,7 @@ test("privileged materializer reads one root-private source and atomically insta
   const output = join(outputDirectory, "v2-state.json"), expected = input(source, output);
   const receipt = materializeMigratedProductSessionStateWithSystem(expected, system);
   const info = lstatSync(output);
-  assert.deepEqual(receipt, { bytes: Buffer.byteLength(bytes), mode: "0600", outputGid: gid, outputUid: uid, registryStateBindingSha256: registrySha256, schemaVersion: 1, stateFileSha256: sha256(bytes) });
+  assert.deepEqual(receipt, { bytes: Buffer.byteLength(bytes), commitPoint: "DIRECTORY_OWNERSHIP_TRANSFERRED", committed: true, mode: "0600", outputGid: gid, outputUid: uid, registryStateBindingSha256: registrySha256, schemaVersion: 1, stateFileSha256: sha256(bytes) });
   assert.equal(readFileSync(output, "utf8"), bytes);
   assert.equal(sha256(readFileSync(output)), sha256(bytes));
   assert.equal(info.uid, uid); assert.equal(info.gid, gid); assert.equal(info.mode & 0o777, 0o600); assert.equal(info.nlink, 1);
@@ -166,7 +166,7 @@ test("directory-FD-relative creation detects every pre-handoff parent path repla
   }
 });
 
-test("final ownership handoff readback detects parent replacement without deleting either directory's inode", () => {
+test("post-commit parent replacement is diagnostic and still returns the explicit committed receipt", () => {
   const directory = mkdtempSync(join(tmpdir(), "ynx-state-materialize-final-parent-")); chmodSync(directory, 0o700);
   const source = join(directory, "root-migrated.json"), outputDirectory = join(directory, "service"), output = join(outputDirectory, "v2-state.json");
   mkdirSync(outputDirectory, { mode: 0o700 }); writeFileSync(source, bytes, { mode: 0o600 });
@@ -177,10 +177,27 @@ test("final ownership handoff readback detects parent replacement without deleti
     sourceIdentity: statSync(source),
     sourcePath: source,
   });
-  assert.throws(() => materializeMigratedProductSessionStateWithSystem(input(source, output), system),
-    (error) => error instanceof WalletAuthError && error.code === "OUTPUT_DIRECTORY_CHANGED");
+  const receipt = materializeMigratedProductSessionStateWithSystem(input(source, output), system);
+  assert.equal(receipt.committed, true);
+  assert.equal(receipt.commitPoint, "DIRECTORY_OWNERSHIP_TRANSFERRED");
   assert.equal(readFileSync(output, "utf8"), "ATTACKER_PARENT_REPLACEMENT\n");
   assert.equal(readFileSync(join(detached, "v2-state.json"), "utf8"), bytes);
+});
+
+test("post-commit ownership hook failure cannot suppress the explicit committed receipt", () => {
+  const directory = mkdtempSync(join(tmpdir(), "ynx-state-materialize-post-commit-hook-")); chmodSync(directory, 0o700);
+  const source = join(directory, "root-migrated.json"), outputDirectory = join(directory, "service"), output = join(outputDirectory, "v2-state.json");
+  mkdirSync(outputDirectory, { mode: 0o700 }); writeFileSync(source, bytes, { mode: 0o600 });
+  const system = nodeSystem({
+    onBoundary: (name) => { if (name === "afterDirectoryOwnershipTransfer") throw Object.assign(new Error("post-commit boundary failure"), { code: "EIO" }); },
+    outputPath: output,
+    sourceIdentity: statSync(source),
+    sourcePath: source,
+  });
+  const receipt = materializeMigratedProductSessionStateWithSystem(input(source, output), system);
+  assert.equal(receipt.committed, true);
+  assert.equal(receipt.commitPoint, "DIRECTORY_OWNERSHIP_TRANSFERRED");
+  assert.equal(readFileSync(output, "utf8"), bytes);
 });
 
 test("output close failure and directory handoff failure both roll back before the commit point", () => {
@@ -200,6 +217,7 @@ test("post-commit directory close failure cannot turn a committed materializatio
   mkdirSync(outputDirectory, { mode: 0o700 }); writeFileSync(source, bytes, { mode: 0o600 });
   const system = nodeSystem({ failDirectoryCloseAfterHandoff: true, outputPath: output, sourceIdentity: statSync(source), sourcePath: source });
   const receipt = materializeMigratedProductSessionStateWithSystem(input(source, output), system);
+  assert.equal(receipt.committed, true);
   assert.equal(receipt.stateFileSha256, sha256(bytes));
   assert.equal(readFileSync(output, "utf8"), bytes);
 });

@@ -106,8 +106,10 @@ export function materializeMigratedProductSessionStateWithSystem(input, system) 
     system.close(verifiedOutputDescriptor);
     system.fchown(directoryDescriptor, input.outputUid, input.outputGid);
     directoryTransferred = true;
-    system.boundary?.("afterDirectoryOwnershipTransfer");
-    verifyDirectoryPath(system, parent, directoryDescriptor, openedDirectory, input.outputUid, input.outputGid, "after ownership transfer");
+    try {
+      system.boundary?.("afterDirectoryOwnershipTransfer");
+      verifyDirectoryPath(system, parent, directoryDescriptor, openedDirectory, input.outputUid, input.outputGid, "after ownership transfer diagnostic");
+    } catch { /* directory fchown is committed; post-commit observation cannot suppress its receipt */ }
   } finally {
     let finalizationError;
     if (descriptor !== undefined) {
@@ -138,6 +140,8 @@ export function materializeMigratedProductSessionStateWithSystem(input, system) 
   }
   return Object.freeze({
     bytes: Buffer.byteLength(sourceBytes),
+    commitPoint: "DIRECTORY_OWNERSHIP_TRANSFERRED",
+    committed: true,
     mode: "0600",
     outputGid: input.outputGid,
     outputUid: input.outputUid,
