@@ -39,9 +39,12 @@ test("Web npm and Python package installation is exact, reviewed, persistent and
   assert.match(image, /Ubuntu APT sources must use HTTPS under reviewed package egress/);
   assert.match(image, /for source in \/etc\/apt\/sources\.list/);
   assert.match(image, /sed -i "s#http:\/\/#https:\/\/#g" "\$source"/);
+  assert.match(image, /rm -rf \/var\/lib\/apt\/lists\/\*/);
+  assert.match(image, /Acquire::ForceIPv4=true/);
+  assert.match(image, /Acquire::Retries=3/);
   assert.ok(
-    image.indexOf("Ubuntu APT sources must use HTTPS under reviewed package egress") <
-      image.indexOf("apt-get update -qq"),
+    image.indexOf("rm -rf /var/lib/apt/lists/*") <
+      image.indexOf("update -qq"),
   );
   assert.match(deploy, /YNX_CODE_LXD_PACKAGE_NETWORK/);
   assert.doesNotMatch(workbench, /npm install.*shell/);
