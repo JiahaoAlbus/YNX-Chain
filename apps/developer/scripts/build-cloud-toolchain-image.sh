@@ -70,7 +70,7 @@ lxc exec "$builder" -- grep -R -E "^[[:space:]]*(deb[[:space:]]+|URIs:[[:space:]
 lxc exec "$builder" -- rm -rf /var/lib/apt/lists/*
 lxc exec "$builder" -- env DEBIAN_FRONTEND=noninteractive apt-get -o Acquire::ForceIPv4=true -o Acquire::Retries=3 update -qq
 lxc exec "$builder" -- env DEBIAN_FRONTEND=noninteractive apt-get -o Acquire::ForceIPv4=true -o Acquire::Retries=3 install -y --no-install-recommends \
-  clangd-18=1:18.1.3-1ubuntu1 lldb-18=1:18.1.3-1ubuntu1 ca-certificates curl gzip openjdk-21-jdk-headless python3-pip python3-venv
+  clangd-18=1:18.1.3-1ubuntu1 lldb-18=1:18.1.3-1ubuntu1 rustfmt=1.75.0+dfsg0ubuntu1-0ubuntu7.4 ca-certificates curl gzip openjdk-21-jdk-headless python3-pip python3-venv
 lxc exec "$builder" -- ln -sfn /usr/bin/clangd-18 /usr/local/bin/clangd
 lxc exec "$builder" -- test -x /usr/bin/lldb-dap-18
 lxc exec "$builder" -- sh -c 'dpkg-query -W -f="\${Package}=\${Version}\n" lldb-18 liblldb-18 > /etc/ynx-code-lldb-packages.txt'
@@ -119,7 +119,7 @@ lxc exec "$builder" -- sh -c "printf '%s  %s\n' '$junit_sha256' /usr/local/share
 lxc exec "$builder" -- java -jar /usr/local/share/ynx-code/junit-platform-console-standalone.jar --version
 lxc exec "$builder" -- sh -c 'rustc --version | grep "^rustc 1.75.0 "'
 lxc exec "$builder" -- sh -c 'cargo --version | grep "^cargo 1.75.0$"'
-lxc exec "$builder" -- rustfmt --version
+lxc exec "$builder" -- sh -c 'rustfmt --version | grep "^rustfmt 1.75.0"'
 lxc exec "$builder" -- sh -c 'python3 -m venv --copies /tmp/ynx-python-package-probe && /tmp/ynx-python-package-probe/bin/python -m pip --version && rm -rf /tmp/ynx-python-package-probe && dpkg-query -W -f="\${Package}=\${Version}\n" python3-pip python3-venv > /etc/ynx-code-python-packages.txt'
 lxc exec "$builder" -- curl --proto '=https' --tlsv1.2 -fL --retry 4 --connect-timeout 20 "$debugpy_url" -o "/tmp/debugpy-${debugpy_version}-py2.py3-none-any.whl"
 lxc exec "$builder" -- sh -c "printf '%s  %s\n' '$debugpy_sha256' '/tmp/debugpy-${debugpy_version}-py2.py3-none-any.whl' | sha256sum -c -"
