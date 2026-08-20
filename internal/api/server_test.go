@@ -133,12 +133,15 @@ func TestStatusReturnsSeededSnapshotWithoutWaitingForRefresh(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/status", nil)
 	response := httptest.NewRecorder()
 	started := time.Now()
-	server.handleStatus(response, req)
+	server.withHeaders(server.mux).ServeHTTP(response, req)
 	if elapsed := time.Since(started); elapsed > 100*time.Millisecond {
 		t.Fatalf("cached status unexpectedly waited %s", elapsed)
 	}
 	if response.Code != http.StatusOK || response.Header().Get("X-YNX-Status-Observed-At") == "" {
 		t.Fatalf("cached status response is not observable: code=%d headers=%v", response.Code, response.Header())
+	}
+	if response.Header().Get("X-YNX-Network") != "testnet" || response.Header().Get("X-YNX-Truthful-Status") == "" {
+		t.Fatalf("cached network headers are missing: %v", response.Header())
 	}
 	var status map[string]any
 	if err := json.Unmarshal(response.Body.Bytes(), &status); err != nil || status["chainId"].(float64) != 6423 {

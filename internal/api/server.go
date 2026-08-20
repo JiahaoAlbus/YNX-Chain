@@ -26,6 +26,8 @@ import (
 type Server struct {
 	devnet                     *chain.Devnet
 	mux                        *http.ServeMux
+	networkConfig              chain.NetworkConfig
+	truthfulStatus             string
 	aiGatewayUpstreamKey       string
 	payGatewayUpstreamKey      string
 	trustGatewayUpstreamKey    string
@@ -75,9 +77,12 @@ func NewServerWithConfig(devnet *chain.Devnet, cfg ServerConfig) http.Handler {
 }
 
 func newServerWithConfig(devnet *chain.Devnet, cfg ServerConfig) *Server {
+	networkConfig := devnet.Config()
 	s := &Server{
 		devnet:                     devnet,
 		mux:                        http.NewServeMux(),
+		networkConfig:              networkConfig,
+		truthfulStatus:             chain.TruthfulStatus(networkConfig),
 		aiGatewayUpstreamKey:       strings.TrimSpace(cfg.AIGatewayUpstreamKey),
 		payGatewayUpstreamKey:      strings.TrimSpace(cfg.PayGatewayUpstreamKey),
 		trustGatewayUpstreamKey:    strings.TrimSpace(cfg.TrustGatewayUpstreamKey),
@@ -275,9 +280,8 @@ func normalizeAccountInput(value string) (string, error) {
 
 func (s *Server) withHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		cfg := s.devnet.Config()
-		w.Header().Set("X-YNX-Network", cfg.Slug)
-		w.Header().Set("X-YNX-Truthful-Status", chain.TruthfulStatus(cfg))
+		w.Header().Set("X-YNX-Network", s.networkConfig.Slug)
+		w.Header().Set("X-YNX-Truthful-Status", s.truthfulStatus)
 		if s.readOnlyReplica && r.Method != http.MethodGet && r.Method != http.MethodHead {
 			writeError(w, http.StatusConflict, "replicated follower is read-only; submit mutations to the authoritative producer")
 			return
@@ -287,7 +291,7 @@ func (s *Server) withHeaders(next http.Handler) http.Handler {
 }
 
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]any{"ok": true, "service": "ynx-chaind", "network": s.devnet.Config(), "timestamp": time.Now().UTC()})
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true, "service": "ynx-chaind", "network": s.networkConfig, "timestamp": time.Now().UTC()})
 }
 func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
 	s.refreshStatusCacheBounded(statusRefreshMaxWait)
