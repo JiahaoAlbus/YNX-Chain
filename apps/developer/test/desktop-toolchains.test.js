@@ -39,6 +39,11 @@ test("desktop runtime detects toolchains and returns real bounded compiler exits
 });
 
 test("macOS package linker includes the Security framework required by the Keychain bridge",async()=>{
+  const native=await (await import("node:fs/promises")).readFile(`${root}/desktop/macos/main.m`,`utf8`);
   const packager=await (await import("node:fs/promises")).readFile(`${root}/scripts/package-local-macos.sh`,`utf8`);
   assert.match(packager,/-framework Cocoa -framework Security -framework WebKit/);
+  assert.match(native,/YNXWalletStorageSelfTest/);
+  assert.match(native,/SecItemAdd/);
+  assert.match(native,/SecItemCopyMatching/);
+  assert.match(native,/SecItemDelete/);
 });
