@@ -25,6 +25,23 @@
         "Installed YNX Wallet, other EVM Wallet and WalletConnect interoperability require direct platform evidence"
       ]
     },
+    "P0_unifiedErrorContract": {
+      "status": "implemented-and-tested-local",
+      "implementation": "packages/wallet-auth/src/wallet-error-contract.js",
+      "types": "packages/wallet-auth/src/index.d.ts",
+      "test": "packages/wallet-auth/test/wallet-error-contract.test.mjs",
+      "providerErrorsDefined": 6,
+      "ynxErrorsDefined": 20,
+      "requiredFieldsDefinedForEveryError": true,
+      "genericOfflineCollapseAllowed": false,
+      "safeHttpResponseExposesDeveloperMessage": false,
+      "productConsumersMigrated": 0,
+      "deployedPublic": false,
+      "remaining": [
+        "Product and platform owners must consume the canonical descriptor instead of flattening errors to Offline",
+        "Public runtime adoption requires an exact deployed source and direct response evidence"
+      ]
+    },
     "A_productSession": {
       "status": "implemented-and-public-v2-gateway-deployed",
       "evidence": [
@@ -155,7 +172,7 @@
         "concurrentProductSessions": 120
       },
       "fullPackageTests": {
-        "passed": 236,
+        "passed": 240,
         "failed": 0
       },
       "remaining": [

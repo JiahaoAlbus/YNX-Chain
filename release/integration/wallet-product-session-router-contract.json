@@ -47,6 +47,45 @@
     "mayReplaceStandardWalletConnection": false,
     "mayCreateLocalOrCannedSession": false
   },
+  "errorContract": {
+    "implementation": "packages/wallet-auth/src/wallet-error-contract.js",
+    "types": "packages/wallet-auth/src/index.d.ts",
+    "test": "packages/wallet-auth/test/wallet-error-contract.test.mjs",
+    "providerCodes": [4001, 4100, 4200, 4900, 4901, 4902],
+    "ynxCodes": [
+      "GATEWAY_UNAVAILABLE",
+      "ROUTE_NOT_MOUNTED",
+      "DEVICE_NOT_REGISTERED",
+      "INVALID_DEVICE_PROOF",
+      "DEVICE_KEY_MISMATCH",
+      "REGISTRY_VERSION_MISMATCH",
+      "ORIGIN_NOT_REGISTERED",
+      "ORIGIN_MISMATCH",
+      "CALLBACK_MISMATCH",
+      "PACKAGE_MISMATCH",
+      "UNKNOWN_PRODUCT",
+      "CLIENT_RETIRED",
+      "PRODUCT_SESSION_REQUIRED",
+      "PRODUCT_SESSION_EXPIRED",
+      "PRODUCT_SESSION_REVOKED",
+      "SCOPE_NOT_ALLOWED",
+      "REPLAY",
+      "CLOCK_SKEW",
+      "VERSION_INCOMPATIBLE",
+      "UPGRADE_REQUIRED"
+    ],
+    "requiredFields": [
+      "httpStatus",
+      "retryable",
+      "safeMessage",
+      "developerMessage",
+      "monitoringClass",
+      "userAction"
+    ],
+    "genericOfflineCollapseAllowed": false,
+    "developerMessageExposedToHttpClient": false,
+    "correlationIdsPreserved": ["requestId", "traceId", "errorId"]
+  },
   "deliveryCommitResolution": "git rev-parse HEAD after merge",
   "protocol": {
     "name": "YNX Product Session",
@@ -225,6 +264,7 @@
   },
   "tests": [
     "packages/wallet-auth/test/metamask-evm-adapter.test.mjs",
+    "packages/wallet-auth/test/wallet-error-contract.test.mjs",
     "packages/wallet-auth/test/wallet-provider-discovery.test.mjs",
     "packages/wallet-auth/test/wallet-connection-coordinator.test.mjs",
     "packages/wallet-auth/test/product-session-gateway.test.mjs",

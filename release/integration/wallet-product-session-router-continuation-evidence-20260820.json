@@ -57,8 +57,16 @@
   "tests": {
     "walletAuth": {
       "command": "npm test --prefix packages/wallet-auth",
-      "passed": 236,
+      "passed": 240,
       "failed": 0
+    },
+    "unifiedErrorContract": {
+      "command": "node --test packages/wallet-auth/test/wallet-error-contract.test.mjs",
+      "passed": 4,
+      "failed": 0,
+      "providerErrors": 6,
+      "ynxErrors": 20,
+      "packDryRunIncludesImplementationAndTypes": true
     },
     "acceptedProtocolContract": {
       "command": "node --test packages/wallet-auth/test/p0-wallet-connectivity-candidate.test.mjs packages/wallet-auth/test/product-session-migration.test.mjs",
