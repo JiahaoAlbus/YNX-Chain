@@ -1,15 +1,59 @@
+import {StandardWalletConnection} from "../../../packages/dapp-connect-sdk/src/provider.js";
+import {discoverEIP6963} from "../../../packages/dapp-connect-sdk/src/discovery.js";
+import {YNX_TESTNET} from "../../../packages/dapp-connect-sdk/src/constants.js";
+
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
-const state={token:sessionStorage.getItem('ynx-ai-token')||'',deviceId:sessionStorage.getItem('ynx-ai-device')||'',account:sessionStorage.getItem('ynx-ai-account')||'',challengeId:'',conversationId:'',conversationArchived:false,conversations:[],generationId:'',abort:null,lastPrompt:'',archived:false,provider:null};
+const state={token:'',deviceId:'',account:'',challengeId:'',conversationId:'',conversationArchived:false,conversations:[],generationId:'',abort:null,lastPrompt:'',archived:false,provider:null,standardWallet:null,guestPreview:false};
 const scopes=['ai:conversations','ai:generate','ai:permissions','ai:data-control'];
 async function api(path,options={}){const headers={...(options.body?{'Content-Type':'application/json'}:{}),...(state.token?{Authorization:`Bearer ${state.token}`,'X-YNX-Device-ID':state.deviceId}:{})};const response=await fetch(path,{...options,headers:{...headers,...options.headers}});if(response.status===204)return null;const data=await response.json().catch(()=>({error:`HTTP ${response.status}`}));if(!response.ok)throw new Error(data.error||`HTTP ${response.status}`);return data}
 async function loadPublicStatus(){const badge=$('#public-status-badge');try{const response=await fetch('/api/public-status',{headers:{Accept:'application/json'}});const data=await response.json();if(!response.ok||!data.gatewayReady)throw new Error(data.status||'Gateway unavailable');badge.textContent='Gateway ready';badge.className='runtime-badge available';$('#public-gateway').textContent='Operational';$('#public-provider').textContent=`${data.provider} · ${data.model}`;$('#public-status-detail').textContent=`${data.status} ${data.providerGenerationEvidence}.`;badge.title=`Source: ${data.source} · ${data.asOf}`}catch(error){badge.textContent='Unavailable';badge.className='runtime-badge unavailable';$('#public-gateway').textContent='Unavailable';$('#public-provider').textContent='No substitute model';$('#public-status-detail').textContent=error.message}}
 function toast(message){const node=$('#toast');node.textContent=message;node.classList.add('show');setTimeout(()=>node.classList.remove('show'),2200)}
 function escapeHTML(value=''){return value.replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
 
-$('#challenge-form').addEventListener('submit',async event=>{event.preventDefault();$('#auth-error').textContent='';try{const meta=await api('/api/meta');if(!meta.localFixtureAuthEnabled)throw new Error('Canonical YNX Wallet integration is not deployed. Sign-in is fail-closed; no local session was created.');const out=await api('/api/auth/challenges',{method:'POST',body:JSON.stringify({account:$('#account').value,deviceId:$('#device-id').value,deviceSigningPublicKey:$('#device-public').value,callback:meta.walletCallback,scopes})});state.challengeId=out.challengeId;state.deviceId=$('#device-id').value;$('#wallet-link').href=out.walletUrl;$('#proof-step').classList.remove('hidden')}catch(error){$('#auth-error').textContent=error.message}});
-$('#verify-form').addEventListener('submit',async event=>{event.preventDefault();$('#auth-error').textContent='';try{const out=await api(`/api/auth/challenges/${encodeURIComponent(state.challengeId)}/verify`,{method:'POST',body:JSON.stringify({accountPublicKey:$('#account-public').value,accountSignature:$('#account-signature').value,deviceSignature:$('#device-signature').value})});state.token=out.token;state.account=out.account;state.deviceId=out.deviceId;sessionStorage.setItem('ynx-ai-token',out.token);sessionStorage.setItem('ynx-ai-account',out.account);sessionStorage.setItem('ynx-ai-device',out.deviceId);await enterApp()}catch(error){$('#auth-error').textContent=error.message}});
+async function walletProviders(){
+ const providers=await discoverEIP6963(window,{timeoutMs:220});
+ if(window.ethereum?.request&&!providers.some(entry=>entry.provider===window.ethereum))providers.push({info:{uuid:'legacy-injected',name:'Injected wallet'},provider:window.ethereum});
+ return providers;
+}
+async function beginStandardWallet(metamaskOnly=false){
+ const status=$('#wallet-standard-state');
+ status.textContent='Looking for a standard EVM wallet…';
+ $('#auth-error').textContent='';
+ try{
+  const providers=await walletProviders();
+  const selected=(metamaskOnly?providers.find(entry=>/metamask/i.test(entry.info?.name||'')):providers.find(entry=>/ynx/i.test(entry.info?.name||'')))||providers[0];
+  if(!selected){status.innerHTML='No compatible wallet was detected. <a href="https://ynxweb4.com/dapp/download" target="_blank" rel="noopener noreferrer">Download YNX Wallet</a> or <a href="https://metamask.io/download/" target="_blank" rel="noopener noreferrer">install MetaMask</a>.';return}
+  const connection=new StandardWalletConnection(selected.provider,{chain:YNX_TESTNET});
+  const connected=await connection.connect();
+  await connection.ensureYNXTestnet({addChain:{chainId:'0x1917',chainName:'YNX Testnet',nativeCurrency:{name:'YNX Testnet',symbol:'YNXT',decimals:18},rpcUrls:[YNX_AI_RUNTIME.evmRpc],blockExplorerUrls:[YNX_AI_RUNTIME.explorer]}});
+  state.standardWallet=connection;state.account=connected.account;
+  status.textContent=`CONNECTED · ${connected.account.slice(0,8)}…${connected.account.slice(-6)} · 0x1917`;
+  $('#private-service-state').textContent='Standard Wallet is connected. Private YNX AI Product Session is degraded; no local or canned session was created.';
+  enterGuest(true);
+ }catch(error){status.textContent=`Wallet connection failed: ${error.code||'WALLET_CONNECTION_FAILED'}. Public status and guest preview remain available.`}
+}
+function enterGuest(fromWallet=false){
+ state.guestPreview=true;
+ $('#signin').classList.add('hidden');$('#app').classList.remove('hidden');
+ $('#account-label').textContent=fromWallet&&state.account?`${state.account.slice(0,8)}…${state.account.slice(-6)}`:'Guest preview';
+ $('#conversation-list').innerHTML='<p class="cost-line">Private conversations require an available first-party Product Session. No substitute session was created.</p>';
+ $('#conversation-title').textContent='Explore YNX AI safely';
+ $('#conversation-kicker').textContent=fromWallet?'Standard Wallet connected · private service degraded':'Guest preview · no account data loaded';
+ $('#empty-state h2').innerHTML='Inspect provider truth.<br>Keep private context closed.';
+ $('#empty-state p:last-child').textContent='You can inspect runtime availability, model status, safety boundaries and estimated-cost policy without signing in. Generation and private data remain unavailable.';
+ $('#prompt').disabled=true;$('#prompt').placeholder='Generation requires an available private Product Session';
+ $$('.rail-button[data-panel],#new-conversation').forEach(button=>button.disabled=true);
+ void loadPublicProvider();
+}
+async function loadPublicProvider(){
+ try{const response=await fetch('/api/public-status',{headers:{Accept:'application/json'}});const data=await response.json();if(!response.ok)throw new Error(data.status||'Unavailable');state.provider=data;$('#provider-dot').classList.toggle('offline',!data.gatewayReady);$('#provider-label').textContent=data.gatewayReady?'Gateway reachable':'Gateway unavailable';$('#model-label').textContent=`${data.provider||'Provider unknown'} · ${data.model||'model unknown'} · generation ${data.generationLive?'available':'unproven'}`}
+ catch{$('#provider-dot').classList.add('offline');$('#provider-label').textContent='Provider unavailable';$('#model-label').textContent='No substitute answers'}
+}
+$('#connect-ynx-wallet').addEventListener('click',()=>void beginStandardWallet(false));
+$('#connect-metamask').addEventListener('click',()=>void beginStandardWallet(true));
+$('#guest-preview').addEventListener('click',()=>enterGuest(false));
 async function enterApp(){$('#signin').classList.add('hidden');$('#app').classList.remove('hidden');$('#account-label').textContent=state.account;await Promise.all([loadConversations(),loadProvider(),loadPrivacy()])}
-$('#signout').addEventListener('click',async()=>{try{await api('/api/auth/revoke',{method:'POST'})}catch{}sessionStorage.clear();location.reload()});
+$('#signout').addEventListener('click',async()=>{if(state.token){try{await api('/api/auth/revoke',{method:'POST'})}catch{}}sessionStorage.clear();location.reload()});
 
 async function loadConversations(){const query=$('#conversation-search')?.value?.trim()||'';const data=await api(`/api/conversations?archived=${state.archived}&q=${encodeURIComponent(query)}`);state.conversations=data.conversations;renderConversationList();if(!state.conversationId&&state.conversations.length)await selectConversation(state.conversations[0].id)}
 $('#conversation-search').addEventListener('input',()=>{void loadConversations().catch(error=>toast(error.message))});
@@ -51,5 +95,4 @@ $('#new-appeal').onclick=()=>openModal('Submit Trust appeal','<label>Reason<text
 
 function openModal(title,body,onSubmit){$('#modal-title').textContent=title;$('#modal-body').innerHTML=body;$('#modal-error').textContent='';const modal=$('#modal');const form=$('#modal-form');form.onsubmit=async event=>{event.preventDefault();if(event.submitter?.value==='cancel'){modal.close();return}const data=Object.fromEntries(new FormData(form));try{await onSubmit(data);modal.close()}catch(error){$('#modal-error').textContent=error.message}};modal.showModal()}
 
-if(state.token)enterApp().catch(()=>{sessionStorage.clear();location.reload()});
-else loadPublicStatus();
+loadPublicStatus();

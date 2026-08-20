@@ -1,0 +1,16 @@
+{
+  "name": "@ynx/ai-product",
+  "version": "0.2.1-p0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build:web": "esbuild web/app.js --bundle --format=iife --platform=browser --target=es2022 --outfile=web/app.bundle.js",
+    "test": "npm run build:web && node --check web/app.js && node --test tests/*.test.mjs",
+    "smoke": "bash scripts/smoke.sh",
+    "browser:proof": "node tests/browser-proof.cjs"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.12",
+    "playwright": "^1.61.1"
+  }
+}

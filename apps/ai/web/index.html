@@ -25,31 +25,20 @@
         <dl>
           <div><dt>Gateway</dt><dd id="public-gateway">Checking</dd></div>
           <div><dt>Provider / model</dt><dd id="public-provider">Checking</dd></div>
-          <div><dt>Access boundary</dt><dd>YNX Wallet product session required</dd></div>
+          <div><dt>Access boundary</dt><dd>Standard Wallet optional · private Product Session separate</dd></div>
         </dl>
       </section>
       </div>
       <div class="auth-access">
-      <p class="notice"><strong>Canonical integration status:</strong> production sign-in stays fail-closed until the shared Wallet verifier and AI registry entry are deployed. The fields below are available only when a developer explicitly starts local fixture mode.</p>
-      <form id="challenge-form" class="auth-grid">
-        <label>Native account <input id="account" required placeholder="ynx1…" autocomplete="off"></label>
-        <label>Device ID <input id="device-id" required value="ynx-ai-browser" autocomplete="off"></label>
-        <label>Device Ed25519 public key <input id="device-public" required placeholder="base64url public key" autocomplete="off"></label>
-        <button class="primary" type="submit">Continue with YNX Wallet</button>
-      </form>
-      <div id="proof-step" class="proof-step hidden">
-        <p class="notice"><strong>Review in YNX Wallet.</strong> The request expires in five minutes and is bound to this product, callback, device, chain, and exact scopes.</p>
-        <a id="wallet-link" class="wallet-link" href="#">Open YNX Wallet</a>
-        <details>
-          <summary>Complete with signed proof</summary>
-          <form id="verify-form" class="auth-grid compact">
-            <label>Account public key <input id="account-public" required placeholder="compressed secp256k1 hex"></label>
-            <label>Account signature <input id="account-signature" required placeholder="DER low-S hex"></label>
-            <label>Device signature <input id="device-signature" required placeholder="base64url signature"></label>
-            <button class="primary" type="submit">Verify and enter</button>
-          </form>
-        </details>
+      <p class="notice"><strong>Two independent layers:</strong> Standard Wallet connection works without the YNX private Gateway. Conversations and generation require a separate first-party Product Session and remain degraded when that service is unavailable.</p>
+      <div class="auth-grid wallet-actions">
+        <button id="connect-ynx-wallet" class="primary" type="button">Connect YNX Wallet</button>
+        <button id="connect-metamask" class="secondary" type="button">Connect MetaMask</button>
+        <a class="wallet-download" href="https://ynxweb4.com/dapp/download" target="_blank" rel="noopener noreferrer">Download YNX Wallet</a>
+        <button id="guest-preview" class="guest-button" type="button">Continue with guest preview</button>
       </div>
+      <p id="wallet-standard-state" class="connection-state" role="status">No wallet connected. Public status remains available.</p>
+      <p id="private-service-state" class="private-state" role="status">Private YNX AI Product Session is not established.</p>
       <p id="auth-error" class="error" role="alert"></p>
       </div>
       </div>
@@ -75,7 +64,7 @@
       <div class="session-tabs" role="tablist"><button class="active" data-archive="false">Active</button><button data-archive="true">Archive</button></div>
       <label class="search-label"><span>Search</span><input id="conversation-search" type="search" maxlength="120" placeholder="Title or encrypted content"></label>
       <div id="conversation-list" class="conversation-list"></div>
-      <div class="account-chip"><span class="live-dot"></span><div><strong id="account-label">ynx1…</strong><small>Wallet-bound session</small></div></div>
+      <div class="account-chip"><span class="live-dot"></span><div><strong id="account-label">Guest preview</strong><small>Standard Wallet only · private session separate</small></div></div>
     </aside>
 
     <main class="workspace">
@@ -143,6 +132,7 @@
 
   <dialog id="modal"><form method="dialog" id="modal-form"><header><p class="eyebrow" id="modal-kicker">Review</p><h2 id="modal-title">Action review</h2></header><div id="modal-body"></div><p id="modal-error" class="error"></p><footer><button value="cancel">Cancel</button><button id="modal-submit" class="primary" value="default">Continue</button></footer></form></dialog>
   <div id="toast" class="toast" role="status"></div>
-  <script src="/app.js" defer></script>
+  <script src="/runtime-config.js"></script>
+  <script src="/app.bundle.js" defer></script>
 </body>
 </html>

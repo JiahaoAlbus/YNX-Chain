@@ -16,6 +16,7 @@ cleanup() {
 trap cleanup EXIT
 
 cd "${ROOT}"
+npm run build:web --prefix apps/ai
 go test ./internal/aiproduct ./apps/ai
 node --check apps/ai/web/app.js
 go build -trimpath -o "${TMP_DIR}/ynx-ai-clientd" ./apps/ai
@@ -39,6 +40,8 @@ curl --fail --silent "http://127.0.0.1:${PORT}/" >"${TMP_DIR}/index.html"
 grep -q '"product":"ynx-ai"' "${TMP_DIR}/meta.json"
 grep -q '"chainId":6423' "${TMP_DIR}/meta.json"
 grep -q 'Bring your Wallet' "${TMP_DIR}/index.html"
+grep -q 'Connect YNX Wallet' "${TMP_DIR}/index.html"
+grep -q 'app.bundle.js' "${TMP_DIR}/index.html"
 grep -q 'No substitute answers' "${ROOT}/apps/ai/web/app.js"
 
 echo "YNX AI smoke passed: tests, JavaScript, build, cold start, embedded UI, and truthful metadata"

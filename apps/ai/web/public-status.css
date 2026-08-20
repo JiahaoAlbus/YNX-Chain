@@ -113,6 +113,14 @@
 .runtime-badge.available { color: #087443; background: #e8f7ef; }
 .runtime-badge.unavailable { color: #a15c00; background: #fff4db; }
 
+.wallet-actions { gap: 10px; }
+.secondary, .guest-button { min-height: 46px; border: 1px solid var(--blue); background: #fff; color: var(--blue); font-weight: 800; }
+.guest-button { border-color: var(--line); color: var(--ink); }
+.wallet-download { display: grid; place-items: center; min-height: 44px; color: var(--blue); font-weight: 800; text-decoration: none; }
+.connection-state, .private-state { margin: 12px 0 0; padding: 12px; border: 1px solid var(--line); background: #fff; color: var(--muted); font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
+.private-state { margin-top: 8px; border-inline-start: 3px solid #a15c00; }
+.rail-button:disabled, .icon-button:disabled, textarea:disabled { cursor: not-allowed; opacity: .48; }
+
 @media (max-width: 600px) {
   .auth-layout { grid-template-columns: 1fr; }
   .auth-intro, .auth-access { padding: 28px 20px; }
