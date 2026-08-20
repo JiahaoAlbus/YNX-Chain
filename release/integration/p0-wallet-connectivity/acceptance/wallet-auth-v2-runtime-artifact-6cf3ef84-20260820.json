@@ -3,7 +3,11 @@
   "acceptanceId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-auth-v2-runtime-artifact-6cf3ef84",
   "recordedAt": "2026-08-20T12:24:41Z",
   "decision": "ACCEPTED_EXACT_DETERMINISTIC_RUNTIME_ARTIFACT_FOR_GATED_TRANSACTION",
-  "activeLeasePath": "release/integration/p0-wallet-connectivity/execution/wallet-auth-v2-runtime-artifact-lease-v4-20260820.json",
+  "activeLeasePath": "release/integration/p0-wallet-connectivity/execution/wallet-auth-v2-runtime-artifact-lease-v5-20260820.json",
+  "supersededBeforeStartLeases": [
+    "P0-WALLET-CONNECTIVITY-2026-08-wallet-auth-v2-runtime-artifact-lease-20260820T122441Z",
+    "P0-WALLET-CONNECTIVITY-2026-08-wallet-auth-v2-runtime-artifact-lease-v4-20260820T130028Z"
+  ],
   "failedConsumedLeases": [
     "P0-WALLET-CONNECTIVITY-2026-08-wallet-auth-v2-runtime-artifact-lease-v2-20260820T123316Z",
     "P0-WALLET-CONNECTIVITY-2026-08-wallet-auth-v2-runtime-artifact-lease-v3-20260820T124935Z"
@@ -68,7 +72,17 @@
     "candidateEnvironmentFile": "/etc/ynx/wallet/wallet-gateway-candidate-6cf3ef84.env",
     "candidateLoadedAfterBase": true,
     "dropInOnlyAppendsCandidateEnvironmentFile": true,
-    "effectiveSixOverridesVerified": false,
+    "exactOverrideCount": 7,
+    "effectiveSevenOverridesVerified": false,
+    "v1RegistryPath": "/etc/ynx/wallet/central-registry-ae156b31.json",
+    "v1RegistrySha256": "ae156b317b9a97bfd42397cca634021deefe10ffb009102899e24276d8721e31",
+    "v1RegistryBytes": 20037,
+    "v1RegistryOwner": "root:root",
+    "v1RegistryMode": "0644",
+    "v1RegistryNlink": 1,
+    "v1RegistryNonSymlink": true,
+    "candidatePackageDefaultRegistrySha256": "294119abb2f3e31dd6e1834440e2d0c7cd20dd11a2ba2a3849cee4b30ca7301c",
+    "candidatePackageDefaultRegistryAllowed": false,
     "productionServiceStartAllowedBeforeVerification": false
   },
   "truth": {
