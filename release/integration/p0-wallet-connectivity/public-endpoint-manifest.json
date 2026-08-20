@@ -4,7 +4,7 @@
   "status": "ACCEPTED_BUNDLED_CONSUMER_CONTRACT",
   "environment": "testnet",
   "releaseId": "P0-WALLET-CONNECTIVITY-2026-08-endpoints-2",
-  "sourceCommit": "bfd850a2c7bd238e3febc7267ff31be17890888d",
+  "sourceCommit": "fa0ffd9bbbcc831438078be8e19cebff51b07e5e",
   "issuedAt": "2026-08-20T08:45:00Z",
   "expiresAt": "2026-09-20T08:45:00Z",
   "cosmosChainId": "ynx_6423-1",
@@ -36,7 +36,7 @@
   },
   "minimumClientVersion": {"wallet":"PENDING_PLATFORM_RELEASE_EVIDENCE","financialApps":"PENDING_PER_PRODUCT_RELEASE_EVIDENCE","policy":"A product must reject itself only when its own accepted release matrix declares a minimum version; unknown values may not be invented."},
   "fallbacks": {"rpc":[],"evmRpc":[],"rest":[],"walletGateway":[],"appGateway":[],"faucet":[],"reason":"No same-chain verified fallback endpoint is currently proven. Clients must fail closed for unavailable endpoints and may retry only the declared origin."},
-  "integrity": {"status":"BUNDLED_SHA256_ACCEPTED","algorithm":"SHA-256","canonicalization":"UTF-8 JSON.stringify(parsed manifest with integrity omitted)","payloadSha256":"85731dc3c55a6fade3311d7d1e2ac325b1c24f9f24f6f7d6e63557ba682aba4d","remoteSignature":{"status":"PENDING_PROTECTED_SIGNER","failClosed":true,"reason":"No protected remote manifest signing key is available in Integration. Consumers may use only this bundled, hash-pinned manifest; remote manifest replacement remains forbidden until an independent protected signer is registered."}},
+  "integrity": {"status":"BUNDLED_SHA256_ACCEPTED","algorithm":"SHA-256","canonicalization":"UTF-8 JSON.stringify(parsed manifest with integrity omitted)","payloadSha256":"3c606cad1d9bfa71fc507f54b6ad8184a6580c7df75440675b5db921b7e67bb5","remoteSignature":{"status":"PENDING_PROTECTED_SIGNER","failClosed":true,"reason":"No protected remote manifest signing key is available in Integration. Consumers may use only this bundled, hash-pinned manifest; remote manifest replacement remains forbidden until an independent protected signer is registered."}},
   "clientPolicy": {"bundledManifestFallback":"this exact accepted hash-pinned manifest only until expiry; remote replacement requires protected-signature verification","endpointUse":"A consumer may use an endpoint only when its endpointStates status is VERIFIED or DEGRADED under the stated retry/degradation rule. UNAVAILABLE and PENDING endpoints must not be called.","reject":["localhost","127.0.0.1","0.0.0.0","10.0.2.2","example.com","http-production","relative-api","empty-env","wrong-chain","expired","unverified-remote-signature"],"failover":"same-chain verified endpoints only; this manifest currently declares no fallback."},
   "acceptanceBoundary":"ACCEPTED means this schema, exact HTTPS locations, chain identity, degradation semantics and bundled integrity rule are safe as a consumer contract. It does not mean every endpoint, product API, installed client, Faucet, remote signer or public deployment is healthy."
 }
