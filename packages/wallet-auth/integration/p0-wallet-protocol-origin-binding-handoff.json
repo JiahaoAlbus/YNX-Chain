@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "handoffId": "P0-WALLET-CONNECTIVITY-2026-08-origin-binding-v2",
+  "owner": "wallet-protocol",
+  "status": "RUNTIME_CANDIDATE_READY",
+  "acceptedContract": {
+    "version": "p0-wallet-connection-v1",
+    "sourceCommit": "66003e76e804da16d472255efde50cb879055b96",
+    "pullRequest": "https://github.com/JiahaoAlbus/YNX-Chain/pull/104",
+    "acceptanceBoundary": "Shared behavior only; it is not a public deployment, installed-client, SDK, or Wallet UI acceptance."
+  },
+  "runtimeSourceCommit": "5231e7509d6218bbbf25029cf73d456992cc37bd",
+  "protocol": {
+    "authorizationVersion": "2",
+    "registryEntrySchema": 3,
+    "verifierVersion": "wallet-auth-v2",
+    "binding": ["chainId", "requestingProduct", "productClientId", "bundleId", "origin", "callback", "productDeviceAlgorithm", "productDeviceKey", "account", "scopes", "nonce", "issuedAt", "expiresAt"],
+    "originPolicy": "Only an exact canonical HTTPS origin present in the enabled product registry may authorize, complete, prove, introspect, or revoke a Product Session. Completion additionally requires the HTTP Origin to equal the signed authorization origin.",
+    "legacyRecovery": "Persisted wallet-auth-v1 sessions remain readable for inventory and revocation after restart but are marked origin-binding-retired and return SESSION_RETIRED until a controlled reconnect issues a v2 session. No v1 proof can be created.",
+    "nonInference": "No origin is derived from productId, bundleId, callback, URL scheme, or a local fallback."
+  },
+  "verification": {
+    "localTests": "npm test --prefix packages/wallet-auth: 116/116 passed",
+    "packageDryRun": "npm pack --dry-run --json in packages/wallet-auth: @ynx-chain/wallet-auth@1.0.0, 71 entries, no package generated",
+    "covered": ["origin registration", "authorization approval and challenge signatures", "HTTP Origin completion mismatch zero mutation", "proof origin mismatch", "replay", "session approval device revoke", "restart persistence", "legacy session retirement", "CORS preflight", "backup recovery", "2,000 proof soak", "Card Pay Quant local protocol paths"],
+    "notVerified": ["public route mount", "public CORS", "installed Wallet approval/callback", "wallet UI", "mobile or desktop package", "Developer SDK integration", "per-product application migration", "central deployment", "ComputerControl visible flow"]
+  },
+  "migrationMatrix": [
+    {"product":"Social","status":"LOCAL_PROTOCOL_TESTED_NOT_PRODUCT_MIGRATED"},
+    {"product":"Pay","status":"LOCAL_PROTOCOL_TESTED_NOT_PRODUCT_MIGRATED"},
+    {"product":"Shop","status":"NOT_MIGRATED_NO_EVIDENCE"},
+    {"product":"Exchange","status":"NOT_MIGRATED_NO_EVIDENCE"},
+    {"product":"Quant","status":"LOCAL_PROTOCOL_TESTED_NOT_PRODUCT_MIGRATED"},
+    {"product":"Developer","status":"NOT_MIGRATED_NO_EVIDENCE"},
+    {"product":"Video","status":"NOT_MIGRATED_NO_EVIDENCE"},
+    {"product":"Creator Studio","status":"NOT_MIGRATED_NO_EVIDENCE"},
+    {"product":"Calendar","status":"NOT_MIGRATED_NO_EVIDENCE"},
+    {"product":"Finance","status":"NOT_MIGRATED_NO_EVIDENCE"},
+    {"product":"DEX","status":"NOT_MIGRATED_NO_EVIDENCE"},
+    {"product":"Card","status":"LOCAL_PROTOCOL_TESTED_NOT_PRODUCT_MIGRATED"}
+  ],
+  "releaseTruth": {
+    "deployedPublic": false,
+    "gatewayLoadedPublic": false,
+    "integratedCentral": false,
+    "installedClientVerified": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "integrationRequest": "Integration must provision reviewed enabled registry webOrigins, mount the exact candidate through its controlled transaction, then obtain direct public and installed-client evidence before changing any false release truth."
+}
