@@ -81,5 +81,31 @@
     "correctErrorJsonPath": "error.code",
     "replacementLease": "P0-WALLET-CONNECTIVITY-2026-08-wallet-auth-v2-runtime-artifact-lease-v2-20260820T123316Z",
     "schemaSelfTestPassed": true
+  },
+  "productionRollbackStateIsolationFailure": {
+    "reportedAt": "2026-08-20T12:49:35Z",
+    "lease": "P0-WALLET-CONNECTIVITY-2026-08-wallet-auth-v2-runtime-artifact-lease-v2-20260820T123316Z",
+    "leaseConsumed": true,
+    "leaseReusable": false,
+    "candidateSource": "6cf3ef845202bd879ed94515a71b323dd2fc9e14",
+    "candidateTemporarilyStarted": true,
+    "sharedV1StatePath": "/var/lib/ynx-wallet-gateway/state.json",
+    "preDrillStateSha256": "ba386fb9e474ea0886c2e41184db7fac3fcf6aea6dd02f5fe47122a62d3a8c9e",
+    "candidateMutatedStateSha256": "d2a7dae9d66f0df7f6d231d3da91e26c0c5a91071494f2388bb7d4e29a12e599",
+    "rollbackRuntimeError": "UNKNOWN_OR_MISSING_FIELD",
+    "candidateMutatedStatePreservedAtBackup": true,
+    "exactPreDrillBackupAtomicallyRestored": true,
+    "recoveredSource": "49e30d999e9a9cbdd2c565021009f2cab0dc125c",
+    "recoveredVersionExact": true,
+    "recoveredHealthStatus": 200,
+    "recoveredReadyStatus": 200,
+    "recoveredSocialOptionsStatus": 204,
+    "serviceActive": true,
+    "caddyChanged": false,
+    "environmentChanged": false,
+    "otherServicesChanged": false,
+    "candidateDeployedPublic": false,
+    "finalActivationClaimed": false,
+    "requiredFix": "independent candidate v1 state initialized byte-exact under stopped service plus independent v2 state; shared legacy v1 path must remain byte-exact"
   }
 }
