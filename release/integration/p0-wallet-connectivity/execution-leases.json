@@ -1,7 +1,7 @@
 {
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-  "epoch": 26,
-  "updatedAt": "2026-08-20T21:31:04Z",
+  "epoch": 27,
+  "updatedAt": "2026-08-20T21:43:16Z",
   "heavy": {
     "owner": null,
     "status": "CONSUMED_RELEASED_FAILED_CLOSED_INSTALL_PERMISSION",
@@ -27,13 +27,14 @@
     ]
   },
   "light": {
-    "owner": "integration",
-    "status": "ACTIVE_BOUNDED_SOURCE_ONLY",
+    "owner": null,
+    "status": "SOURCE_CHECKPOINT_REACHED_LIGHT_RELEASED",
     "branch": "codex/p0-ai-wallet-connectivity-20260821",
     "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/43-ai-p0",
     "taskId": "P0-068",
     "leasedAt": "2026-08-20T21:31:04Z",
-    "releasedAt": null,
+    "releasedAt": "2026-08-20T21:43:16Z",
+    "checkpointCommit": "2cbd93564255e25c2c861eeab68d7b8ef9831014",
     "previousOwner": "integration",
     "previousCheckpoint": "783f14a55796539702edc2104d0f1ce333c23fc5",
     "reason": "YNX AI has an exact clean owner checkpoint and public runtime, but its product source still uses fixture-only auth and has not consumed the accepted Standard Wallet SDK. Integration may recover exact AI product source and perform only its Wallet/guest/private-service migration.",
