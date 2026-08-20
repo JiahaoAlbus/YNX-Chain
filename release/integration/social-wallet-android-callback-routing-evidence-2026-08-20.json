@@ -1,0 +1,53 @@
+{
+  "schema": "ynx-social-wallet-callback-routing-evidence/v1",
+  "recordedAt": "2026-08-20",
+  "source": {
+    "commit": "a2cc7464e5ee535224c4ca4a7b48d9f1ae7d33c5",
+    "parent": "56c2c7d5a5c3cdb36fa80bf97cef549d2a272e17",
+    "change": "Registers the canonical Social Wallet callback while retaining the existing ynxsocial profile-link scheme."
+  },
+  "androidArtifact": {
+    "packageName": "com.ynx.social",
+    "versionCode": 2,
+    "versionName": "1.0.1-testnet-preview",
+    "bytes": 103989232,
+    "sha256": "c4206147c259ec016c276d6709946ded67f35897a6fd7f96f6440c2ff3e046da",
+    "minimumApi": 24,
+    "targetApi": 36,
+    "signature": {
+      "schemeV2Verified": true,
+      "signingClass": "local-test-signed",
+      "certificateSha256": "d4e562610ecb4e304fa00ee07e7adae7da862ce108bda7bdfe933c28831f154e",
+      "productionSigned": false,
+      "storeReleased": false
+    }
+  },
+  "directAndroidEvidence": {
+    "deviceClass": "API 36 arm64 emulator (not a physical Pixel device)",
+    "socialCallbackUri": "ynx-social://com.ynx.social?response=e30",
+    "socialResolvedActivity": "com.ynx.social/.MainActivity",
+    "socialCallbackLaunchStatus": "ok",
+    "socialCallbackLaunchTimeMs": 287,
+    "walletAuthorizeUri": "ynxwallet://authorize?request=e30",
+    "walletResolvedActivity": "com.ynxweb4.wallet/.MainActivity"
+  },
+  "verification": {
+    "typecheck": true,
+    "tests": "20/20 passed",
+    "smoke": true,
+    "androidNoActivityFoundForCanonicalSocialCallback": false
+  },
+  "truthBoundary": {
+    "malformedCallbackAccepted": false,
+    "visibleWalletApproval": false,
+    "productSessionCreated": false,
+    "authorizationCompleted": false,
+    "accountOrSigningAuthority": false,
+    "physicalDeviceVerified": false,
+    "publicDownloadHosted": false
+  },
+  "notes": [
+    "The response=e30 input is deliberately malformed and proves routing only; it is not an approval or Product Session success.",
+    "Current product registry review and enabled-client gates remain separate from Android URI resolution."
+  ]
+}
