@@ -22,10 +22,40 @@ export class DAppConnectClient {
     this.productSession = productSession;
     this.opener = opener;
     this.listeners = new Set();
+    this.unbindProviderEvents = null;
   }
 
   emit(event) { for (const listener of this.listeners) listener(Object.freeze({...event})); }
   watchConnection(listener) { if (typeof listener !== "function") throw new DAppConnectError("CONNECTION_LISTENER_REQUIRED", "A connection listener is required."); this.listeners.add(listener); return () => this.listeners.delete(listener); }
+  bindProviderEvents(connection) {
+    this.unbindProviderEvents?.();
+    this.unbindProviderEvents = null;
+    const provider = connection?.provider;
+    if (!provider || typeof provider.on !== "function") return;
+    const removers = [];
+    const listen = (event, listener) => {
+      provider.on(event, listener);
+      removers.push(() => provider.removeListener?.(event, listener));
+    };
+    listen("accountsChanged", accounts => {
+      if (this.connection !== connection) return;
+      connection.account = Array.isArray(accounts) && typeof accounts[0] === "string" ? accounts[0] : null;
+      this.emit({type: "accountsChanged", accounts: this.getAccounts()});
+    });
+    listen("chainChanged", chainId => {
+      if (this.connection !== connection) return;
+      connection.chainId = chainId;
+      this.emit({type: "chainChanged", chainId});
+    });
+    listen("disconnect", error => {
+      if (this.connection !== connection) return;
+      this.connection = null;
+      this.unbindProviderEvents?.();
+      this.unbindProviderEvents = null;
+      this.emit({type: "disconnected", error: error ? classifyWalletError(error) : null});
+    });
+    this.unbindProviderEvents = () => { for (const remove of removers.splice(0)) remove(); };
+  }
   getConnection() { return this.connection; }
   async discoverWallets(windowLike, options) { return discoverEIP6963(windowLike, options); }
   async connectWallet({provider, walletConnect, request, addChain} = {}) {
@@ -35,14 +65,17 @@ export class DAppConnectClient {
       const connection = requireConnection(this.connection);
       const result = await connection.connect();
       if (addChain) await connection.ensureYNXTestnet({addChain});
+      this.bindProviderEvents(connection);
       this.emit({type: "connected", ...result});
       return result;
     } catch (error) { throw classifyWalletError(error); }
   }
-  async reconnectWallet(options) { return this.connectWallet(options); }
+  async reconnectWallet(options = {}) { return this.connectWallet(options); }
   async disconnectWallet({disconnectWalletConnect} = {}) {
     const previous = this.connection;
     if (disconnectWalletConnect) await disconnectWalletConnect();
+    this.unbindProviderEvents?.();
+    this.unbindProviderEvents = null;
     this.connection = null;
     this.emit({type: "disconnected", account: previous?.account ?? null});
     return {state: "STANDARD_DISCONNECTED"};
