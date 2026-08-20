@@ -48,7 +48,7 @@ func TestPostgresLiveTransactionsConstraintsAndRecovery(t *testing.T) {
 	})
 	applied, err := Migrate(ctx, db)
 	migrationFiles, migrationErr := MigrationFiles()
-	if err != nil || migrationErr != nil || len(applied) != len(migrationFiles) || applied[len(applied)-1].Version != 6 {
+	if err != nil || migrationErr != nil || len(applied) != len(migrationFiles) || applied[len(applied)-1].Version != 7 {
 		t.Fatalf("live migration failed: applied=%+v err=%v", applied, err)
 	}
 	if err := VerifySchema(ctx, db); err != nil {
