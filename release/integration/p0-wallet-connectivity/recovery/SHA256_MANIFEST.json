@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "1.0.0",
+  "createdAt": "2026-08-20T00:00:00Z",
+  "baseRef": "origin/codex/final-integration",
+  "baseCommit": "038600d05bbb797352d25be96d0829bde07a70b7",
+  "protectedHead": "86e20fb9d96ddb6cdbf9d8a5f33133b2ecfa0630",
+  "files": [
+    {"path":"p0-wallet-connectivity-20260820.bundle","sha256":"57e34123381ac3b4a86845cc0a9dde1b99e621e11d888fe5a2ff88fb8b34e472","purpose":"incremental Git recovery bundle"},
+    {"path":"COMMIT_LIST.txt","purpose":"exact preserved commit list"},
+    {"path":"RECOVERY_INSTRUCTIONS.md","purpose":"protected-branch recovery procedure"}
+  ],
+  "diffStat": {"commits":26,"filesChanged":294,"insertions":74058,"deletions":3966},
+  "pushAttempts": [{"target":"origin/codex/final-integration","result":"REJECTED_PROTECTED_BRANCH"},{"target":"HEAD:refs/heads/codex/final-integration","result":"REJECTED_PROTECTED_BRANCH"}]
+}
