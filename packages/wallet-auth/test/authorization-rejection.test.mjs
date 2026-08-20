@@ -16,6 +16,10 @@ import { NOW, REGISTRY, request } from "./fixtures.mjs";
 
 function approvedRegistry() {
   const value = JSON.parse(readFileSync(new URL("../central-registry.json", import.meta.url), "utf8"));
+  for (const product of value.products) {
+    product.schemaVersion = 4;
+    product.webOrigins = product.productId === "social" ? ["https://social.ynxweb4.com"] : product.productId === "wallet" ? ["https://wallet.ynxweb4.com"] : [];
+  }
   const social = value.products.find(product => product.productId === "social");
   social.reviewState = "approved";
   social.enabled = true;
@@ -71,7 +75,7 @@ test("HTTP rejection route is request-atomic and rejects proof or request substi
   const before = kernel.snapshot();
   const input = fixture();
   const body = canonicalJSON(input);
-  const response = kernel.dispatch({ method: "POST", path: "/v1/wallet/authorizations/reject", contentType: "application/json", body, proof: null }, NOW);
+  const response = kernel.dispatch({ method: "POST", path: "/v1/wallet/authorizations/reject", contentType: "application/json", body, proof: null, origin: input.authorizationRequest.origin }, NOW);
   const payload = JSON.parse(response.body);
   assert.equal(response.status, 403);
   assert.equal(response.mutated, false);
@@ -79,11 +83,11 @@ test("HTTP rejection route is request-atomic and rejects proof or request substi
   assert.equal(payload.stateDigest, gatewayStateDigest(before));
   assert.deepEqual(kernel.snapshot(), before);
 
-  const proofInjected = kernel.dispatch({ method: "POST", path: "/v1/wallet/authorizations/reject", contentType: "application/json", body, proof: {} }, NOW);
+  const proofInjected = kernel.dispatch({ method: "POST", path: "/v1/wallet/authorizations/reject", contentType: "application/json", body, proof: {}, origin: input.authorizationRequest.origin }, NOW);
   assert.equal(proofInjected.status, 400);
   assert.equal(JSON.parse(proofInjected.body).error.code, "UNEXPECTED_PROOF_HEADER");
   const substituted = { ...input, walletRejection: { ...input.walletRejection, requestDigest: "0".repeat(64) } };
-  const mismatch = kernel.dispatch({ method: "POST", path: "/v1/wallet/authorizations/reject", contentType: "application/json", body: canonicalJSON(substituted), proof: null }, NOW);
+  const mismatch = kernel.dispatch({ method: "POST", path: "/v1/wallet/authorizations/reject", contentType: "application/json", body: canonicalJSON(substituted), proof: null, origin: input.authorizationRequest.origin }, NOW);
   assert.equal(mismatch.status, 400);
   assert.equal(JSON.parse(mismatch.body).error.code, "AUTHORIZATION_REJECTION_MISMATCH");
   assert.deepEqual(kernel.snapshot(), before);

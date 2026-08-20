@@ -3,11 +3,12 @@ import { YNX_NATIVE_CHAIN_ID } from "./protocol.js";
 import { parseCentralRegistryEntry } from "./integration.js";
 
 const DOCUMENT_FIELDS = ["registryVersion", "chainId", "products"];
-const PRODUCT_FIELDS = [
+const PRODUCT_FIELDS_V3 = [
   "schemaVersion", "productId", "displayName", "reviewState", "enabled",
   "productClientId", "requestingProduct", "bundleId", "callbacks", "scopes",
   "maxScopes", "productDeviceAlgorithms", "sessionDurationSeconds", "revocationPolicy",
 ];
+const PRODUCT_FIELDS_V4 = [...PRODUCT_FIELDS_V3, "webOrigins"];
 const REVOCATION_FIELDS = ["session", "approval", "device", "accountAllDevices"];
 const REVIEW_STATES = new Set(["approved", "pending-review", "disabled"]);
 const REGISTRY_V1_PRODUCT_IDS = Object.freeze([
@@ -18,7 +19,7 @@ const REGISTRY_V1_PRODUCT_IDS = Object.freeze([
 
 export const CENTRAL_REGISTRY_DOCUMENT_VERSION = 2;
 export const CENTRAL_REGISTRY_PRODUCT_COUNT = 26;
-export const CENTRAL_PRODUCT_SCHEMA_VERSION = 3;
+export const CENTRAL_PRODUCT_SCHEMA_VERSION = 4;
 
 export function parseCentralRegistryDocument(input) {
   exactFields(input, DOCUMENT_FIELDS, "Central Wallet registry document");
@@ -53,16 +54,19 @@ export function migrateCentralRegistryDocumentV1(input) {
 }
 
 export function parseCentralProductRegistration(input) {
-  exactFields(input, PRODUCT_FIELDS, "Central Wallet product registration");
-  if (input.schemaVersion !== CENTRAL_PRODUCT_SCHEMA_VERSION) throw new WalletAuthError("INVALID_REGISTRY", "Central Wallet product schema is unsupported");
+  const sourceVersion = input?.schemaVersion;
+  if (sourceVersion === 3) exactFields(input, PRODUCT_FIELDS_V3, "Central Wallet product registration v3");
+  else exactFields(input, PRODUCT_FIELDS_V4, "Central Wallet product registration");
+  if (sourceVersion !== 3 && sourceVersion !== CENTRAL_PRODUCT_SCHEMA_VERSION) throw new WalletAuthError("INVALID_REGISTRY", "Central Wallet product schema is unsupported");
   if (typeof input.productId !== "string" || !/^[a-z][a-z0-9-]{1,31}$/.test(input.productId)) throw new WalletAuthError("INVALID_REGISTRY", "productId is invalid");
   if (typeof input.displayName !== "string" || input.displayName.trim() !== input.displayName || input.displayName.length < 2 || input.displayName.length > 64) throw new WalletAuthError("INVALID_REGISTRY", "displayName is invalid");
   if (!REVIEW_STATES.has(input.reviewState) || typeof input.enabled !== "boolean" || input.enabled !== (input.reviewState === "approved")) throw new WalletAuthError("INVALID_REGISTRY", "Only approved registrations may be enabled");
   if (!Number.isInteger(input.sessionDurationSeconds) || input.sessionDurationSeconds < 60 || input.sessionDurationSeconds > 300) throw new WalletAuthError("INVALID_REGISTRY", "Session duration must be between 60 and 300 seconds");
   exactFields(input.revocationPolicy, REVOCATION_FIELDS, "Central Wallet revocation policy");
   if (REVOCATION_FIELDS.some(field => input.revocationPolicy[field] !== true)) throw new WalletAuthError("INVALID_REGISTRY", "Every central Wallet revocation control is mandatory");
+  const webOrigins = sourceVersion === 3 ? Object.freeze([]) : canonicalWebOrigins(input.webOrigins);
   const protocol = parseCentralRegistryEntry({
-    schemaVersion: 2,
+    schemaVersion: 3,
     productClientId: input.productClientId,
     requestingProduct: input.requestingProduct,
     bundleId: input.bundleId,
@@ -70,14 +74,17 @@ export function parseCentralProductRegistration(input) {
     scopes: input.scopes,
     maxScopes: input.maxScopes,
     productDeviceAlgorithms: input.productDeviceAlgorithms,
+    origins: webOrigins,
   });
+  const { origins: _origins, ...protocolFields } = protocol;
   return Object.freeze({
     productId: input.productId,
     displayName: input.displayName,
     reviewState: input.reviewState,
     enabled: input.enabled,
-    ...protocol,
+    ...protocolFields,
     schemaVersion: CENTRAL_PRODUCT_SCHEMA_VERSION,
+    webOrigins,
     sessionDurationSeconds: input.sessionDurationSeconds,
     revocationPolicy: Object.freeze({ session: true, approval: true, device: true, accountAllDevices: true }),
   });
@@ -87,11 +94,12 @@ export function centralProtocolEntry(registration, options = {}) {
   const product = parseCentralProductRegistration(registration);
   if (options.requireEnabled !== false && !product.enabled) throw new WalletAuthError("REGISTRY_DISABLED", `Central Wallet product ${product.productId} is ${product.reviewState}`);
   return Object.freeze({
-    schemaVersion: 2,
+    schemaVersion: 3,
     productClientId: product.productClientId,
     requestingProduct: product.requestingProduct,
     bundleId: product.bundleId,
     callbacks: product.callbacks,
+    origins: product.webOrigins,
     scopes: product.scopes,
     maxScopes: product.maxScopes,
     productDeviceAlgorithms: product.productDeviceAlgorithms,
@@ -121,7 +129,8 @@ function parseRegistryProducts(input) {
 
 function canonicalQuantRegistration() {
   return {
-    schemaVersion: CENTRAL_PRODUCT_SCHEMA_VERSION,
+    // Historical v3 is upgraded to v4 with no inferred browser origin.
+    schemaVersion: 3,
     productId: "quant",
     displayName: "YNX Quant",
     reviewState: "pending-review",
@@ -136,6 +145,23 @@ function canonicalQuantRegistration() {
     sessionDurationSeconds: 180,
     revocationPolicy: { session: true, approval: true, device: true, accountAllDevices: true },
   };
+}
+
+function canonicalWebOrigins(value) {
+  return Object.freeze(stringList(value, "webOrigins", 0, 8, (origin) => {
+    if (typeof origin !== "string" || origin.length > 255 || origin.trim() !== origin) throw new WalletAuthError("INVALID_REGISTRY", "web origin is invalid");
+    let parsed;
+    try { parsed = new URL(origin); } catch { throw new WalletAuthError("INVALID_REGISTRY", "web origin is invalid"); }
+    if (parsed.protocol !== "https:" || parsed.username || parsed.password || parsed.pathname !== "/" || parsed.search || parsed.hash || parsed.toString() !== `${origin}/`) throw new WalletAuthError("INVALID_REGISTRY", "web origin must be a canonical HTTPS origin");
+    return origin;
+  }));
+}
+
+function stringList(value, label, minimum, maximum, normalize) {
+  if (!Array.isArray(value) || value.length < minimum || value.length > maximum) throw new WalletAuthError("INVALID_REGISTRY", `${label} has an invalid item count`);
+  const values = value.map(normalize);
+  if (new Set(values).size !== values.length || [...values].sort().join("\n") !== values.join("\n")) throw new WalletAuthError("INVALID_REGISTRY", `${label} must be unique and sorted`);
+  return values;
 }
 
 function assertUnique(products, field) {

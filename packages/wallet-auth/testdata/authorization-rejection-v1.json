@@ -1,8 +1,8 @@
 {
-  "schemaVersion": 1,
-  "domain": "YNX_WALLET_AUTH_REJECTION_V1",
+  "schemaVersion": 2,
+  "domain": "YNX_WALLET_AUTH_REJECTION_V2",
   "authorizationRequest": {
-    "version": "1",
+    "version": "2",
     "nonce": "nonce_abcdefghijklmnopqrstuvwxyz12",
     "chainId": "ynx_6423-1",
     "requestingProduct": "social",
@@ -10,6 +10,7 @@
     "bundleId": "com.ynx.social",
     "productDeviceAlgorithm": "p256-sha256",
     "productDeviceKey": "AzrThhqVYhOSUWu1k-8FWD7S5YZvXLYmCjAXI3_Ym5Cv",
+    "origin": "https://social.ynxweb4.com",
     "callback": "ynx-social://com.ynx.social",
     "scopes": ["account:read", "profile:link"],
     "purpose": "Link this YNX account to the selected Social profile on this device.",
@@ -17,9 +18,9 @@
     "expiresAt": "2026-07-15T12:04:00.000Z"
   },
   "walletRejection": {
-    "version": "1",
+    "version": "2",
     "decision": "rejected",
-    "requestDigest": "325a60c9502489c92d2f42a413166b84302cf27821dcf3110b04484da3900930",
+    "requestDigest": "04f8b963e449530a5a6ce60eb3412d63c8f57bf9ed344bfbd24419efbb020df2",
     "nonce": "nonce_abcdefghijklmnopqrstuvwxyz12",
     "chainId": "ynx_6423-1",
     "requestingProduct": "social",
