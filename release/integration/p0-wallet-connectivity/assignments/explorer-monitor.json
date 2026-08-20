@@ -1,12 +1,12 @@
 {
   "taskId": "P0-006",
   "owner": "explorer-monitor",
-  "status": "ACTIVE",
+  "status": "CHECKPOINT_REACHED_RUNTIME_DEPLOYMENT_BLOCKED",
   "branch": "codex/p0-explorer-monitor-20260820",
   "checkpoint": "6d62c399a279c57e8883b300a4cf6d782c8e1673",
   "candidatePR": "https://github.com/JiahaoAlbus/YNX-Chain/pull/107",
   "completedScope": "CODEQL_AND_CONNECTIVITY_SLICE",
-  "activeScope": "MONITOR_TRUTH_AND_CONNECTIVITY_DEPLOY_SLICE",
+  "activeScope": null,
   "leaseGrantedAt": "2026-08-20T17:28:11Z",
   "leaseExpiresAt": "2026-08-20T19:28:11Z",
   "evidence": {
@@ -17,7 +17,9 @@
   },
   "publicVerified": false,
   "deployment": "not performed",
-  "pathState": "WRITABLE_ACTIVE for Explorer/Monitor owner paths only",
-  "firstTask": "ENFORCE_PUBLIC_ENDPOINT_AND_SOURCE_IDENTITY_POLICY",
-  "nextAction": "Continue from 6d62c399 without rebuilding probes: enforce HTTPS/public/same-origin health-version policy, add negative tests, consume four-node convergence evidence, build, push and return exact official-domain runtime evidence plus rollback. Keep publicVerified false until ComputerControl succeeds."
+  "releasedAt": "2026-08-20T17:40:54Z",
+  "checkpoint": "f8db7632fb37e9363858a4d4d977eea7b3585c7e",
+  "pathState": "CHECKPOINT_REACHED; read-only until a future deployment lease",
+  "firstTask": "WAIT_FOR_RUNTIME_DEPLOYMENT_AUTHORITY",
+  "nextAction": "Do not rebuild the policy slice. A future deployment owner must publish exact f8db7632 and return official-domain /version, /connectivity and /status evidence; keep publicVerified false until ComputerControl succeeds."
 }

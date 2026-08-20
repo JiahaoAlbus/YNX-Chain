@@ -38,10 +38,10 @@ assert.equal(evidence.ownerSource.versionReportsRegistrySchemaVersion, 3);
 assert.equal(evidence.artifactIdentity.sourceArchiveSha256, lease.source.sourceArchiveSha256);
 assert.equal(evidence.artifactIdentity.inventorySha256, lease.source.sourceInventorySha256);
 assert.equal(evidence.artifactIdentity.packageLockSha256, lease.source.packageLockSha256);
-assert.equal(lease.status, "READY_NOT_ISSUED_BLOCKED_ACTIVE_HEAVY_LEASE");
+assert.equal(lease.status, "ISSUED_ACTIVE_SINGLE_USE");
 assert.equal(lease.singleUse, true);
 assert.equal(lease.reusable, false);
-assert.equal(lease.authorization.executionAuthorized, false);
+assert.equal(lease.authorization.executionAuthorized, true);
 assert.equal(lease.authorization.caddyChangeAllowed, false);
 assert.equal(lease.authorization.baseSystemdUnitChangeAllowed, false);
 assert.equal(lease.authorization.readWritePathsExpansionAllowed, false);
@@ -56,16 +56,16 @@ validateTruth(lease.truth);
 
 const task = queue.tasks.find((item) => item.taskId === "P0-039");
 assert.ok(task);
-assert.equal(task.status, "RECONCILED_RUNTIME_ARTIFACT_BOUND_LEASE_BLOCKED_ACTIVE_HEAVY");
-assert.equal(task.executionLeaseIssued, false);
-assert.equal(task.executionLeaseId, null);
+assert.equal(task.status, "SINGLE_USE_RUNTIME_LEASE_ISSUED");
+assert.equal(task.executionLeaseIssued, true);
+assert.equal(task.executionLeaseId, lease.leaseId);
 assert.equal(task.leaseCandidateId, lease.leaseCandidateId);
 assert.equal(task.productsMigrated, 0);
-assert.equal(leases.heavy.taskId, "P0-006");
-assert.equal(leases.heavy.owner, "explorer-monitor");
+assert.equal(leases.heavy.taskId, "P0-039");
+assert.equal(leases.heavy.owner, "wallet-auth-core");
 assert.equal(leases.heavy.status, "ACTIVE");
-assert.equal(leases.epoch, 11);
-assert.ok(leases.queue.includes("wallet-auth-core:registry-v3@ready-blocked-active-heavy"));
+assert.equal(leases.epoch, 12);
+assert.ok(leases.queue.includes("wallet-auth-core:registry-v3@active-single-use"));
 
 if (process.argv.includes("--self-test")) {
   const mutations = [
@@ -83,4 +83,4 @@ if (process.argv.includes("--self-test")) {
   console.log("PASS 5/5 retired-client public-truth mutations rejected");
 }
 
-console.log("PASS reconciled retired-client runtime artifact accepted; lease ready but not issued while Heavy Lease is active");
+console.log("PASS reconciled retired-client runtime artifact accepted; bounded single-use lease issued after Explorer checkpoint");
