@@ -1,12 +1,15 @@
 {
   "taskId":"P0-012",
   "owner":"integration",
-  "status":"IN_PROGRESS",
+  "status":"CANDIDATE_READY",
   "branch":"codex/p0-faucet-runtime-20260820",
   "worktree":"29-faucet-runtime-p0",
+  "commit":"3b80a2fc84af93b5ff5ec9c668a18c0e8d8be011",
+  "candidatePR":"https://github.com/JiahaoAlbus/YNX-Chain/pull/108",
   "paths":["cmd/ynx-faucetd/**","internal/faucet/**","infra/systemd/ynx-faucetd.example.service","infra/docker/ynx-faucetd.Dockerfile","scripts/verify/faucet-check.sh"],
   "objective":"Remove internal topology from public Faucet health, expose a truthful public /version response and preserve real fault classification.",
   "requiredEvidence":["focused tests","diff check","public response does not reveal loopback or private topology","isolated branch and PR"],
+  "currentPublicRuntime":"2026-08-20 probe still returned rpcUrl=http://127.0.0.1:6420 and /version did not respond; candidate is not deployed.",
   "prohibitedClaims":["deployed","public verified","Wallet Faucet works"],
   "rollback":"revert the isolated Faucet runtime commit; do not alter the endpoint manifest until runtime deployment is independently observed."
 }
