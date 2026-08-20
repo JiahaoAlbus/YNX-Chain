@@ -8,6 +8,7 @@ const required = [
   "product-session-contract.json", "device-proof-contract.json", "callback-contract.json", "faucet-deeplink-contract.json", "error-contract.json", "client-retirement-contract.json",
 ];
 const vectors = JSON.parse(readFileSync(new URL("CROSS_PLATFORM_CONNECTION_VECTORS.json", root), "utf8"));
+const retirementHandoff = JSON.parse(readFileSync(new URL("client-retirement-implementation-handoff.json", root), "utf8"));
 
 test("P0 Wallet protocol candidate contracts remain owner-local, complete and unaccepted", () => {
   assert.deepEqual(required.filter((file) => !readdirSync(root).includes(file)), []);
@@ -33,4 +34,17 @@ test("P0 enhanced error contract gives each published error a complete non-offli
     assert.equal(typeof item.retryable, "boolean"); assert.match(item.safeMessage, /\S/);
     assert.notEqual(item.diagnosticClass, "offline");
   }
+});
+
+test("client retirement implementation handoff preserves activation and public truth boundaries", () => {
+  assert.equal(retirementHandoff.featureSourceCommit, "c614501353d7631a6e20da7431ac858c2e5a8868");
+  assert.equal(retirementHandoff.status, "CANDIDATE");
+  assert.equal(retirementHandoff.activation, "prohibited until Integration ACCEPTED");
+  assert.equal(retirementHandoff.retiredResponse.httpStatus, 410);
+  assert.deepEqual(retirementHandoff.retiredResponse.requiredFields, ["clientId", "replacementURL", "minimumClientVersion", "correlationId"]);
+  assert.equal(retirementHandoff.truth.deployedPublic, false);
+  assert.equal(retirementHandoff.truth.integratedCentral, false);
+  assert.equal(retirementHandoff.truth.currentPublicRuntimeContainsThisFeature, false);
+  assert.equal(retirementHandoff.truth.remoteUninstallClaim, false);
+  assert.equal(retirementHandoff.integrationAcceptanceRequired.some((item) => item.includes("shares the exact")), true);
 });
