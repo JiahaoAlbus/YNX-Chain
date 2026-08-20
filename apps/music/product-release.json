@@ -138,6 +138,31 @@
     "fakeRoyalty": false,
     "guaranteedIncome": false
   },
+  "p0WalletConnectivity": {
+    "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+    "taskId": "P0-076",
+    "sourceCommit": "b7d989c892ec22eb5b893f8ee54ce6f09897590d",
+    "evidence": "apps/music/release/evidence/p0-076/music-standard-wallet-visible-evidence.json",
+    "dappConnectSDK": {
+      "status": "ACCEPTED_SOURCE_CONSUMED",
+      "sourceCommit": "315897e75c0ffe3e63435fe73cfec42244b851cc"
+    },
+    "standardWallet": {
+      "eip1193": true,
+      "eip6963": true,
+      "ynxWalletPreferred": true,
+      "metaMaskExplicitFallback": true,
+      "evmChainId": "0x1917",
+      "guestModeIndependent": true
+    },
+    "privateMusicService": "PRIVATE_SERVICE_DEGRADED",
+    "installedWalletVerified": false,
+    "productSessionV2Migrated": false,
+    "deployedPublic": false,
+    "publicVerified": false,
+    "computerControl": false,
+    "integratedCentral": false
+  },
   "ci": {
     "workflow": "music-platforms",
     "runId": 30417406111,
