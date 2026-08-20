@@ -3,7 +3,7 @@
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "product": "calendar",
   "sourceBaseline": "ab2db4a4c07dc153fc10a42686ef7cdad6715820",
-  "classification": "legacy-private-session-audited-standard-wallet-not-yet-consumed",
+  "classification": "standard-wallet-sdk-consumed-browser-missing-wallet-flow-verified-product-session-v2-blocked",
   "guestTrial": {
     "available": true,
     "deviceOnly": true,
@@ -11,7 +11,22 @@
     "chainWrite": false
   },
   "currentWallet": {
-    "webConnectActionFunctional": false,
+    "webConnectActionFunctional": true,
+    "acceptedSdkSource": "315897e75c0ffe3e63435fe73cfec42244b851cc",
+    "centralCleanRebase": "f4ef7d56a8dcc8dc8e96dc7a5925fc0e132a4c05",
+    "sdkConsumption": "byte-identical browser-safe source vendor; no provider reimplementation",
+    "eip6963Discovery": true,
+    "eip1193AccountAndChain": true,
+    "ynxWalletPreferred": true,
+    "metaMaskFallback": true,
+    "walletInstallChoices": [
+      "https://www.ynxweb4.com/dapp/download",
+      "https://metamask.io/download/"
+    ],
+    "standardConnectionPreservedWhenPrivateServiceUnavailable": true,
+    "privateServiceState": "PRIVATE_SERVICE_DEGRADED",
+    "browserMissingWalletFlowVerified": true,
+    "browserProviderApprovalVerified": false,
     "nativeCanonicalLauncherV1": true,
     "legacyCompletionRoute": "/v1/wallet/sessions/complete",
     "failsClosed": true
@@ -23,13 +38,14 @@
     "publicEndpointManifest"
   ],
   "requiredNext": [
-    "consume accepted DApp Connect SDK without copying provider logic",
-    "separate Standard Wallet state from optional private Product Session",
     "migrate private completion only after an accepted and deployed Product Session v2 Gateway successor",
-    "prove durable callback and installed Web/Android/iOS lifecycle evidence"
+    "prove an actual browser provider approval and account/chain event lifecycle",
+    "prove durable callback and installed Android/iOS lifecycle evidence"
   ],
   "truth": {
     "standardWalletConnected": false,
+    "standardWalletSourceImplemented": true,
+    "browserMissingWalletFlowVerified": true,
     "productSessionV2": false,
     "installedApprovalVerified": false,
     "deployedPublic": false,

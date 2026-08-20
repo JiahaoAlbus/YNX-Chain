@@ -1,3 +1,5 @@
+import {connectCalendarWallet, WALLET_INSTALLATION_OPTIONS} from "./wallet-connection.js";
+
 const state = {
   token: "",
   user: null,
@@ -15,6 +17,7 @@ const state = {
   recurrenceEdit: null,
   calendars: [],
   notifications: [],
+  wallet: null,
 };
 const guestEventsKey = "ynx.calendar.guestEvents";
 if ((navigator.language || "").toLowerCase().startsWith("ar")) {
@@ -108,8 +111,36 @@ async function api(path, options = {}) {
   return body;
 }
 async function beginSignIn(recovery = false) {
-  $("#signin-state").textContent =
-    `The Web companion does not accept Wallet callbacks. Use the installed YNX Calendar app and its canonical request envelope to ${recovery ? "recover" : "sign in"}. It fails closed until the central registry and Gateway are available.`;
+  const status = $("#signin-state");
+  const button = recovery ? $("#wallet-recover") : $("#wallet-signin");
+  button.disabled = true;
+  status.textContent = "Discovering a standard EVM Wallet…";
+  try {
+    const wallet = await connectCalendarWallet(window);
+    state.wallet = wallet;
+    enterGuest();
+    const short = `${wallet.account.slice(0, 6)}…${wallet.account.slice(-4)}`;
+    $("#account").textContent = short.slice(2, 4).toUpperCase();
+    $("#account").setAttribute("aria-label", `${wallet.walletName} ${short} connected on YNX Testnet. Calendar sync remains unavailable.`);
+    toast(`${wallet.walletName} connected · ${short} · private Calendar sync is degraded`);
+  } catch (error) {
+    state.wallet = null;
+    const code = error?.code || "WALLET_CONNECTION_FAILED";
+    if (code === "WALLET_NOT_INSTALLED") {
+      status.replaceChildren(document.createTextNode("No Wallet found. "));
+      const ynx = document.createElement("a");
+      ynx.href = WALLET_INSTALLATION_OPTIONS.ynxWallet; ynx.textContent = "Download YNX Wallet"; ynx.rel = "noopener noreferrer";
+      const metamask = document.createElement("a");
+      metamask.href = WALLET_INSTALLATION_OPTIONS.metaMask; metamask.textContent = "install MetaMask"; metamask.rel = "noopener noreferrer";
+      status.append(ynx, document.createTextNode(" or "), metamask, document.createTextNode(", then retry."));
+    } else if (code === "WALLET_USER_REJECTED") {
+      status.textContent = "Wallet connection was rejected. No account or Calendar session was created.";
+    } else {
+      status.textContent = `${error?.message || "Wallet connection failed"} (${code}). Guest trial is still available.`;
+    }
+  } finally {
+    button.disabled = false;
+  }
 }
 async function restoreSession() {
   try {
