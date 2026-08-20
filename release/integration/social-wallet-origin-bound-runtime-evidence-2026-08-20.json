@@ -36,7 +36,8 @@
       "bytes": 78225838,
       "sha256": "43dfe20665c62f0c963f0d06dc6fca9800d49543b613678a76988879537924c5",
       "apkV2SignatureVerified": true,
-      "embeddedAndroidBundle": true
+      "embeddedAndroidBundle": true,
+      "downloadedArtifactInstalledOnAndroidApi36": true
     },
     "artifactHostedOnOfficialBlob": false,
     "hostingNote": "The official website supplies the immutable download entry and redirects to the exact GitHub prerelease asset because the Vercel Blob quota was full."
