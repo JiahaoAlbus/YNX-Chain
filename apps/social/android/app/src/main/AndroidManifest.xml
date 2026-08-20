@@ -39,6 +39,15 @@
         <category android:name="android.intent.category.BROWSABLE"/>
         <data android:scheme="ynxsocial"/>
       </intent-filter>
+      <!-- Exact Wallet Auth return route. Keep the legacy ynxsocial profile
+           route above separate so a Wallet approval cannot be routed by a
+           broad Social URI handler. -->
+      <intent-filter>
+        <action android:name="android.intent.action.VIEW"/>
+        <category android:name="android.intent.category.DEFAULT"/>
+        <category android:name="android.intent.category.BROWSABLE"/>
+        <data android:scheme="ynx-social" android:host="com.ynx.social"/>
+      </intent-filter>
     </activity>
   </application>
 </manifest>

@@ -23,6 +23,11 @@ module.exports = {
     android: {
       package: "com.ynx.social",
       allowBackup: false,
+      intentFilters: [{
+        action: "VIEW",
+        category: ["BROWSABLE", "DEFAULT"],
+        data: [{ scheme: "ynx-social", host: "com.ynx.social" }]
+      }],
       adaptiveIcon: { foregroundImage: path.resolve(__dirname, "assets/adaptive-icon.png"), backgroundColor: "#FFFFFF" },
       permissions: ["READ_CONTACTS", "READ_MEDIA_IMAGES", "CAMERA"],
       blockedPermissions: [

@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-08-20T10:25:00.000Z",
+  "purpose": "Direct Android regression evidence for the exact Social-to-Wallet authorization callback route.",
+  "source": {
+    "baseCanonicalLauncherCommit": "56c2c7d5a5c3cdb36fa80bf97cef549d2a272e17",
+    "callbackRoute": "ynx-social://com.ynx.social",
+    "walletRoute": "ynxwallet://authorize?request=<canonical-base64url>"
+  },
+  "rootCause": {
+    "before": "Social registered ynxsocial only, while the frozen Wallet registry callback is ynx-social://com.ynx.social.",
+    "systemFailure": "No Activity found to handle the signed ynx-social callback.",
+    "repair": "Register the exact BROWSABLE/DEFAULT ynx-social scheme and com.ynx.social host in the native manifest and Expo config; preserve the unrelated ynxsocial profile route."
+  },
+  "artifacts": {
+    "social": {
+      "applicationId": "com.ynx.social",
+      "bytes": 103989136,
+      "sha256": "80319668a08ac8e0a2b8e119c705d1b82b2f853cd2561071990fdcb5f542e570",
+      "minimumApi": 24,
+      "targetApi": 36,
+      "signingClass": "release-build-debug-keystore-qa",
+      "productionSigned": false,
+      "officialWebsiteHosted": false
+    },
+    "wallet": {
+      "sourceCommit": "f1ff2d6c84fb6b87a766e2ad81f81f785654066c",
+      "applicationId": "com.ynxweb4.wallet",
+      "bytes": 78216474,
+      "sha256": "462ac9528eaa167c9c46edecd7676477d8ab1b8066df11e643ffb1fb4a3fcf9b",
+      "signingClass": "release-build-debug-keystore-qa",
+      "productionSigned": false
+    }
+  },
+  "environment": {
+    "class": "Android Emulator",
+    "profile": "Pixel 9 equivalent",
+    "apiLevel": 36,
+    "abi": "arm64-v8a",
+    "physicalDevice": false,
+    "biometric": "simulated emulator fingerprint"
+  },
+  "directAcceptance": {
+    "exactCallbackResolver": "com.ynx.social/.MainActivity",
+    "socialFreshLaunch": {"state": "COLD", "totalTimeMs": 621},
+    "socialCanonicalRequestOpenedWallet": true,
+    "walletReviewDisplayedExactProduct": true,
+    "walletReviewDisplayedExactScopes": ["account:read", "profile:link"],
+    "walletApprovalRequiredBiometric": true,
+    "walletApprovalReturnedAutomaticallyToSocial": true,
+    "systemNoActivityFoundAfterRepair": false,
+    "socialLoggedInHomeVisible": true,
+    "socialSecondLaunch": {"state": "COLD", "totalTimeMs": 125, "persistedSessionHomeVisible": true}
+  },
+  "truthBoundaries": {
+    "physicalPixelEvidence": false,
+    "productionSigning": false,
+    "officialDownload": false,
+    "centralProductSessionV2PublicLifecycleProven": false,
+    "walletDappAccountSignOrTransactionAuthority": false,
+    "externalEvmDappApproval": false,
+    "oldArtifactSubstitution": false
+  }
+}
