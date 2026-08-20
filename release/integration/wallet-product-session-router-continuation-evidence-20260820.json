@@ -104,12 +104,23 @@
     "financeStandardWalletSdkOnly": true,
     "financeProductSessionUnavailableAndNotFabricated": true
   },
+  "computerControl": {
+    "evidencePath": "release/integration/wallet-auth-website-computercontrol-evidence-20260820.json",
+    "screenshotPath": "release/integration/evidence/wallet-auth-website-computercontrol-20260820T145755Z.jpeg",
+    "channelAvailable": true,
+    "websiteWalletAuthPublicationCardVisible": true,
+    "visibleDocsRuntimeSource": "49e30d999e9a9cbdd2c565021009f2cab0dc125c",
+    "visibleDocsRuntimeSourceMatchesCurrentPublicVersion": false,
+    "websiteRecordStatus": "WEBSITE_VISIBLE_RECORD_STALE",
+    "productSessionFlowVerified": false
+  },
   "truth": {
     "walletAuthGatewayDeployedPublic": true,
     "productSessionV2PublicLifecycleVerifiedByPriorAcceptedEvidence": true,
     "currentReadbackMatchesAcceptedSource": true,
     "productRuntimeMigrationComplete": false,
     "standardWalletProductConsumptionComplete": false,
+    "computerControlWebsitePublicationVisible": true,
     "computerControlVisibleFlowVerified": false,
     "installedWalletApprovalVerified": false,
     "aggregateDeployedPublic": false,
