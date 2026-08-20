@@ -46,6 +46,10 @@ test("macOS package linker includes the Security framework required by the Keych
   assert.match(native,/SecItemAdd/);
   assert.match(native,/SecItemCopyMatching/);
   assert.match(native,/SecItemDelete/);
+  assert.match(native,/YNXWalletAvailability/);
+  assert.match(native,/URLForApplicationToOpenURL/);
+  const verifier=await (await import("node:fs/promises")).readFile(`${root}/scripts/verify-local-macos-package.sh`,`utf8`);
+  assert.match(verifier,/YNX Wallet scheme state: installed=/);
 });
 
 test("Linux server appliance scripts require a protected source and verify a bounded cold start",async()=>{

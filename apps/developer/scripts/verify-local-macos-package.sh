@@ -56,7 +56,9 @@ for bundled_binary in "$app/Contents/Resources/runtime/node" "$app/Contents/Reso
   grep -Fq 'Signature=adhoc' <<<"$bundled_signature"
   grep -Fq 'TeamIdentifier=not set' <<<"$bundled_signature"
 done
-"$app/Contents/MacOS/YNXDeveloper" --self-test "$app/Contents/Resources"
+self_test_output=$("$app/Contents/MacOS/YNXDeveloper" --self-test "$app/Contents/Resources")
+printf '%s\n' "$self_test_output"
+grep -Eq '^YNX Wallet scheme state: installed=(true|false) schemeRegistered=(true|false)$' <<<"$self_test_output"
 export YNX_CODE_DESKTOP_SUPPORT_DIR="$work/support"
 "$app/Contents/MacOS/YNXDeveloper" >"$work/cold-launch.log" 2>&1 &
 app_pid=$!
