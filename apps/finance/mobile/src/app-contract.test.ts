@@ -22,8 +22,9 @@ test('AI drafts require selected owned evidence, consent, and apply or reject',(
   assert.equal(app.includes("decision(aiJob.id,'approved')"),false);
 });
 
-test('Wallet request is exact and the client carries no fake finance claims',()=>{
-  for(const value of ["chainId:'ynx_6423-1'","requestingProduct:'finance'","productClientId:'ynx-finance-v1'","bundleId:'com.ynxweb4.finance'","callback:'ynxfinance://wallet-auth/callback'","productDeviceAlgorithm:'p256-sha256'"])assert.ok(wallet.includes(value),value);
+test('Wallet migration keeps standard connection and never creates a local Product Session',()=>{
+  for(const value of ['connectStandardWallet','StandardWalletConnection','PRODUCT_SESSION_UNAVAILABLE','WALLET_NOT_FOUND'])assert.ok(wallet.includes(value),value);
+  for(const prohibited of ['p256','createGatewayChallenge','sessions/complete','createProductSessionProof','encodeRequestDeepLink'])assert.equal(wallet.includes(prohibited),false,prohibited);
   for(const prohibited of ['Guaranteed return','APY 8%','USD balance','Visa card','insured deposit'])assert.equal(app.includes(prohibited),false,prohibited);
   assert.ok(app.includes('no fiat value is inferred'));
   assert.ok(i18n.toLowerCase().includes('cannot move assets'));

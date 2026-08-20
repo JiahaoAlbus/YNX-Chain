@@ -1,207 +1,49 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "productId": "finance",
   "product": "YNX Finance",
-  "owner": "24-finance",
-  "version": "1.2.0",
-  "branch": "codex/finance-release-evidence",
-  "sourceCommit": "307273b93df29bf064cb64324109571c00a63dc2",
-  "generatedAt": "2026-08-03T23:28:38Z",
-  "implementedLocal": true,
-  "testedLocal": true,
-  "installedLocal": {
-    "android": true,
-    "ios": false
+  "owner": "financial-apps",
+  "branch": "codex/p0-finance-wallet-connectivity-20260820",
+  "p0WalletConnectivity": {
+    "status": "LOCAL_MIGRATION_COMPLETE_AWAITING_INTEGRATION_HANDOFF",
+    "acceptedContracts": {
+      "walletTransport": "p0-wallet-connection-v1",
+      "errorContract": "p0-wallet-connection-v1",
+      "dappConnectSDK": "@ynx/dapp-connect-sdk@0.1.0-p0.0",
+      "endpointManifest": "1.0.0-p0.2"
+    },
+    "endpointManifestSourceCommit": "fa0ffd9bbbcc831438078be8e19cebff51b07e5e",
+    "endpointManifestPayloadSha256": "3c606cad1d9bfa71fc507f54b6ad8184a6580c7df75440675b5db921b7e67bb5",
+    "productApiStatus": "PENDING",
+    "productApiRule": "No Finance product API request may be sent until the central manifest is updated with direct product release evidence.",
+    "standardWalletConnection": "implemented locally; installed-platform evidence pending",
+    "legacyDeviceProof": "removed from Finance runtime",
+    "selfHostedGateway": "removed from Finance runtime"
   },
-  "integratedCentral": false,
-  "deployedStaging": false,
-  "deployedPublic": true,
-  "downloadHosted": true,
-  "productionSigned": false,
-  "storeReleased": false,
   "releaseStates": {
     "implementedLocal": true,
     "testedLocal": true,
     "installedLocal": true,
     "integratedCentral": false,
     "deployedStaging": false,
-    "deployedPublic": true,
-    "downloadHosted": true,
+    "deployedPublic": false,
+    "downloadHosted": false,
     "productionSigned": false,
     "storeReleased": false
   },
-  "signingClass": {
-    "android": "android-test-signed-testnet-preview",
-    "ios": "unsigned-simulator-target"
-  },
-  "minimumOS": {
-    "androidApi": 24,
-    "ios": "16.4"
-  },
-  "identifiers": {
-    "bundleId": "com.ynxweb4.finance",
-    "scheme": "ynxfinance",
-    "callback": "ynxfinance://wallet-auth/callback",
-    "productClientId": "ynx-finance-v1"
-  },
-  "androidInstallEvidence": {
-    "device": "emulator-5554",
-    "versionCode": 3,
-    "versionName": "1.2.0",
-    "launchState": "COLD",
-    "activity": "com.ynxweb4.finance/.MainActivity",
-    "totalTimeMs": 1163,
-    "waitTimeMs": 1175,
-    "apkBytes": 77516038,
-    "sha256": "c795f8b5e94ca51b40844f9c736b281a407a709bfc384e0dc7c5cdd215e60dc1",
-    "officialDownload": "https://www.ynxweb4.com/downloads/ynx-finance-1.2.0-testnet-preview-307273b9-test-signed.apk",
-    "officialDownloadVerified": true
-  },
-  "centralWallet": {
-    "registryMerged": true,
-    "walletRegistrySourceCommit": "ccaf878cdeebe2801e1b096124d9ea9ddc2edd64",
-    "gatewayDeployed": true,
-    "gatewayUrl": "https://finance.ynxweb4.com",
-    "installedApprovalTested": false,
-    "installedRequestReviewTested": true,
-    "strongBiometricGateReached": true,
-    "approvalTestBoundary": "The Android emulator had no enrolled strong biometric, so Wallet correctly rejected final approval; request parsing, exact binding, scope review, scrollable actions and biometric enforcement were verified.",
-    "failClosed": true,
-    "manifest": "integration/wallet-auth/integration-manifest.json"
-  },
-  "sourceSmoke": {
-    "explorerHealth": true,
-    "explorerPublicTransactions": true,
-    "payHealth": true,
-    "payAuthorizedReceipts": false,
-    "payFailure": "Remote endpoint correctly returned HTTP 401 because no authorized Pay read key was available."
-  },
-  "sourceTruth": {
-    "explorerHealthRequired": true,
-    "explorerNativeSymbolRequired": "YNXT",
-    "statusFields": [
-      "available",
-      "source",
-      "version",
-      "asOf",
-      "asOfKind",
-      "coverage",
-      "syncStatus",
-      "rpcHeight",
-      "indexedHeight",
-      "syncLagBlocks",
-      "error"
-    ],
-    "completeHistory": false,
-    "activityCoverage": "latest 100 indexed transactions filtered to the authorized Wallet account",
-    "payAdapterVersion": "finance-pay-events-v1"
-  },
-  "readSourceConsumerBoundary": {
-    "endpoint": "/api/sources",
-    "envelopeVersion": "finance-source-read-envelope-v1",
-    "schema": "release/integration/finance-source-read-envelope.schema.json",
-    "contractStatus": "consumer-proposal",
-    "ownerContractsAccepted": {
-      "exchange": false,
-      "dex": false,
-      "quant": false,
-      "economics": false
+  "artifact": {
+    "android": {
+      "status": "LOCAL_TESTNET_CANDIDATE_ONLY",
+      "path": "apps/finance/mobile/android/app/build/outputs/apk/release/app-release.apk",
+      "sha256": "5f1ca2dc0f7e92232661e7b2ff55e31dd4a844ad0da0a296b52ec22db92e3f86",
+      "installedOn": "emulator-5560",
+      "coldStart": {
+        "activity": "com.ynxweb4.finance/.MainActivity",
+        "totalTimeMs": 303
+      },
+      "signing": "local Android Debug certificate only; not production signing or hosted download"
     },
-    "integratedCentral": false,
-    "readOnly": true,
-    "wrongBindingRejected": true,
-    "mutationCapabilitiesRejected": true,
-    "unsafeActionUrlsRejected": true,
-    "pendingSourcesAvailable": false,
-    "sourceCommit": "592195a1a4c5bed434d984482a1e87202de213ce"
+    "windows": "NOT_OWNED_BY_FINANCE_MOBILE; no Finance Windows installer is declared"
   },
-  "publicOwnerProductNavigation": {
-    "deployedAt": "2026-08-10T01:29:24Z",
-    "exchange": "https://exchange.ynxweb4.com/",
-    "dex": "https://dex.ynxweb4.com/",
-    "quant": "https://quant.ynxweb4.com/",
-    "readOnlyNavigation": true,
-    "grantsOwnerCapability": false,
-    "ownerDataContractsAccepted": false
-  },
-  "activityCursor": {
-    "version": 1,
-    "algorithm": "HMAC-SHA-256",
-    "opaque": true,
-    "boundTo": ["walletAccount", "offset", "activitySnapshot"],
-    "cursorSigningKeyExternalized": true,
-    "minimumKeyCharacters": 32,
-    "rotationInvalidatesOutstandingCursors": true,
-    "tamperRejected": true,
-    "staleSnapshotRejected": true
-  },
-  "recovery": {
-    "stateVersion": 1,
-    "backupSchemaVersion": 1,
-    "backupFormat": "ynx-finance-backup-v1",
-    "authentication": "HMAC-SHA-256",
-    "minimumAuthenticationKeyBytes": 32,
-    "encrypted": false,
-    "privateAtomicWrites": true,
-    "localBackupVerifyRestoreTested": true,
-    "wrongKeyRejected": true,
-    "tamperRejected": true,
-    "unknownFieldsRejected": true,
-    "unsupportedVersionsRejected": true,
-    "preRestoreHashAndBytesRecorded": true,
-    "deployedRestoreDrill": false,
-    "rtoMeasured": false,
-    "rpoMeasured": false,
-    "sourceCommit": "23bcdea565bcfcb7d211512e654f916faf817df3"
-  },
-  "observability": {
-    "contractVersion": "finance-observability-v1",
-    "metricsSchemaVersion": "finance-metrics-v1",
-    "requestId": true,
-    "stableErrorId": true,
-    "structuredJsonAccessLogs": true,
-    "financialDataExcludedFromLogsAndMetrics": true,
-    "metricsRoute": "/metrics",
-    "metricsProtectedByDistinctOperationsKey": true,
-    "minimumOperationsKeyCharacters": 32,
-    "processScopedCounters": true,
-    "restartResetTested": true,
-    "centralMonitorIntegrated": false,
-    "deployedAlerting": false,
-    "sourceCommit": "d2e20f4dcb17012b3d30eae7aa348ab245f37324"
-  },
-  "verification": {
-    "goTargeted": "passed: go test ./internal/finance ./apps/finance/cmd/server ./apps/finance/cmd/admin -count=1",
-    "goRace": "passed: go test -race ./internal/finance ./apps/finance/cmd/server ./apps/finance/cmd/admin -count=1",
-    "financeSmoke": "passed: npm run smoke --prefix apps/finance; Finance security gate passed across 91 text files, Go server/admin builds passed and 8/8 product/Web/Wallet contract tests passed",
-    "financeSecurityGate": "passed across 91 product, integration, recovery and operator-template text files",
-    "repositoryPlaceholderGate": "passed with explicit grep fallback because ripgrep is absent",
-    "repositorySensitiveMaterialGate": "passed with explicit grep fallback because ripgrep is absent",
-    "readSourceContractTests": "passed: pending-owner state, exact binding, strict provenance, capability allowlist, mutation disguise and unsafe action URL rejection",
-    "contractTests": "passed: 8/8 Finance product/Web/Wallet vectors",
-    "walletAuthTests": "passed: 21/21",
-    "financeGatewayTests": "passed: 2/2",
-    "publicConcurrency": "passed: 10 independent Wallet accounts, 100 concurrent public requests, 100/100 success with no account-data leakage",
-    "mobileCheck": "current run: TypeScript and 6/6 tests passed; Android and iOS Hermes export passed with Expo 57",
-    "dependencyAudit": "high-severity audit gate passed after lockfile-compatible brace-expansion fix; 10 moderate Expo/xcode uuid development-tool advisories remain because npm proposes only an incompatible Expo 46 downgrade",
-    "goVulnerabilityCheck": "passed: zero reachable vulnerabilities in Finance runtime and commands",
-    "supplyChain": "passed: deterministic 529-component CycloneDX SBOM, third-party notices and local unsigned input provenance generated",
-    "capacity": "passed: 1,000 requests at concurrency 25 with zero failures; 163,793.5 req/s, p50 13.042us, p95 872.792us, p99 1.94625ms",
-    "fullGoPreflight": "failed outside Finance ownership: consensus key-permission tests, missing IDE contract artifact, Faucet and Trust signer-permission tests; internal/finance and Finance admin passed",
-    "sourceCommit": "d2e20f4dcb17012b3d30eae7aa348ab245f37324"
-  },
-  "knownLimitations": [
-    "Central Finance registry and public Gateway deployment are complete. Final installed approval callback still requires a device or emulator with an enrolled strong biometric; the no-biometric emulator correctly failed closed after the exact Finance review screen.",
-    "Authorized remote Pay receipt smoke is blocked on an operator-provided Pay read credential.",
-    "Explorer reports indexer lag and Finance truthfully bounds activity to the latest 100 indexed records.",
-    "The Finance consumer envelope and fail-closed UI are tested locally, but Exchange, DEX, Quant and full Economics payload adapters remain unavailable because no canonical owner contract or shared Testnet vector has been accepted.",
-    "YNX_FINANCE_CURSOR_SIGNING_KEY must come from shared secret management; rotation intentionally invalidates outstanding pagination cursors.",
-    "YNX_FINANCE_OPERATIONS_KEY must be separately secret-managed; metrics are process-scoped, reset on restart and are not yet persisted or integrated with central Monitor alerting.",
-    "Finance backups are authenticated but not encrypted; production requires encrypted access-controlled storage, retention approval and an isolated deployed restore drill with measured RTO/RPO.",
-    "The high brace-expansion advisory is fixed and both platform bundles pass. Ten moderate uuid advisories remain in Expo/xcode development tooling because npm proposes only an incompatible Expo 46 downgrade; production promotion remains blocked pending an upstream-compatible fix and independent scanning.",
-    "The local edge Gateway uses in-memory replay and revocation state; production requires persistent shared storage.",
-    "iOS local install is unavailable because this host has CommandLineTools rather than full Xcode; CI Simulator evidence is pending.",
-    "The Android APK uses a local test signature and is not a production or store artifact.",
-    "The public Web surface remains a signed-out explanatory companion; canonical account sessions are issued through the registered native Finance client and Wallet flow."
-  ]
+  "rollback": "Revert only the separate P0 migration commit after central Integration confirms the SDK or manifest rollback; do not restore a legacy device-proof or Product Session implementation."
 }

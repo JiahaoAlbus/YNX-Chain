@@ -1,16 +1,16 @@
-const state={token:sessionStorage.getItem('ynx.finance.session')||'',overview:null,aiJob:null,aiTimer:null};
+const state={token:'',overview:null,aiJob:null,aiTimer:null};
 const $=(s)=>document.querySelector(s),$$=(s)=>[...document.querySelectorAll(s)];
 const esc=(v)=>String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
 const fmt=(v)=>new Intl.NumberFormat().format(Number(v||0));
 const short=(v)=>v?`${v.slice(0,8)}…${v.slice(-6)}`:'—';
 const date=(v)=>v?new Intl.DateTimeFormat(undefined,{dateStyle:'medium',timeStyle:'short'}).format(new Date(v)):'Date unavailable';
 
-async function api(path,options={}){const headers={'Content-Type':'application/json',...(options.headers||{})};if(state.token)headers.Authorization=`Bearer ${state.token}`;const response=await fetch(path,{...options,headers});if(response.status===204)return null;const type=response.headers.get('content-type')||'';const body=type.includes('json')?await response.json():await response.text();if(!response.ok){const error=new Error(body.error||`Request failed (${response.status})`);error.code=body.code;error.status=response.status;throw error}return body}
+async function api(_path,_options={}){throw Object.assign(new Error('API_UNAVAILABLE: Finance product API is PENDING in the accepted endpoint manifest. No request was sent.'),{code:'API_UNAVAILABLE',nonRetryable:true})}
 function notify(message,error=false){const box=$('#notice');box.textContent=message;box.classList.toggle('error',error);box.classList.remove('hidden');clearTimeout(box.timer);box.timer=setTimeout(()=>box.classList.add('hidden'),6500)}
 
 async function signIn(){notify('Canonical Wallet sign-in is available in the installed Android/iOS Finance app. This Web companion does not create a browser or legacy fallback session.',true)}
 async function consumeCallback(){if(location.search)history.replaceState({},'',location.pathname)}
-async function logout(){try{await api('/api/auth/logout',{method:'POST'})}catch{}sessionStorage.removeItem('ynx.finance.session');state.token='';state.overview=null;renderSignedOut()}
+async function logout(){state.token='';state.overview=null;renderSignedOut()}
 function renderSignedOut(){document.body.classList.add('signed-out-state');$('#signed-out').classList.remove('hidden');$('#workspace').classList.add('hidden');$('#signin').classList.add('hidden');$('#logout').classList.add('hidden');$('#source-pill').textContent='Not connected';$('#source-pill').className='pill neutral';$('#page-title').textContent='Your money, with its evidence attached.'}
 
 async function load(){if(!state.token){renderSignedOut();return}try{$('#source-pill').textContent='Checking sources';const data=await api('/api/overview');state.overview=data;render(data)}catch(error){if(error.status===401){logout();notify('Your Finance session expired. Reauthorize in YNX Wallet.',true)}else notify(error.message,true)}}
@@ -31,7 +31,7 @@ $('#reminder-form').addEventListener('submit',e=>{e.preventDefault();const f=new
 $('#privacy-form').addEventListener('submit',async e=>{e.preventDefault();const f=e.currentTarget;try{await api('/api/privacy',{method:'PUT',body:JSON.stringify({includePayInStatements:f.includePayInStatements.checked,allowAiActivityContext:f.allowAiActivityContext.checked,alertsEnabled:f.alertsEnabled.checked})});notify('Privacy settings saved.');await load()}catch(error){notify(error.message,true)}});
 $('#statement-form').addEventListener('submit',async e=>{e.preventDefault();const f=new FormData(e.currentTarget);try{const from=new Date(`${f.get('from')}T00:00:00Z`).toISOString(),toDate=new Date(`${f.get('to')}T00:00:00Z`);toDate.setUTCDate(toDate.getUTCDate()+1);const s=await api(`/api/statements?from=${encodeURIComponent(from)}&to=${encodeURIComponent(toDate.toISOString())}`);$('#statement').innerHTML=`<p><strong>${esc(s.network)} · ${esc(s.symbol)}</strong><br>${esc(date(s.from))} through ${esc(date(new Date(new Date(s.toExclusive).getTime()-1)))}</p><div class="statement-grid"><div class="stat"><small>Incoming</small><strong>${fmt(s.totals.incomingYnxt)} YNXT</strong></div><div class="stat"><small>Outgoing</small><strong>${fmt(s.totals.outgoingYnxt)} YNXT</strong></div><div class="stat"><small>Fees</small><strong>${fmt(s.totals.feesYnxt)} YNXT</strong></div><div class="stat"><small>Records</small><strong>${s.activity.length}</strong></div></div><p><small>${esc(s.openingBalance)}. This is not a bank statement.</small></p>`}catch(error){notify(error.message,true)}});
 
-async function download(path,name){try{const response=await fetch(path,{headers:{Authorization:`Bearer ${state.token}`}});if(!response.ok)throw new Error(`Export failed (${response.status})`);const blob=await response.blob(),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;a.click();URL.revokeObjectURL(url)}catch(error){notify(error.message,true)}}
+async function download(path,name){try{await api(path,{method:'GET'});throw new Error(`API_UNAVAILABLE: ${name} cannot be created until the Finance product API is accepted.`)}catch(error){notify(error.message,true)}}
 $('#export-json').addEventListener('click',()=>download('/api/export?format=json','ynx-finance-export.json'));$$('[data-auth-download]').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();download(a.getAttribute('href'),'ynx-finance-activity.csv')}));
 
 async function startAI(){const recordIds=$$('#ai-records input:checked').map(x=>x.value);try{state.aiJob=await api('/api/ai/jobs',{method:'POST',body:JSON.stringify({kind:$('#ai-kind').value,recordIds,contextClasses:['owned_activity'],consent:$('#ai-consent').checked})});renderAIJob();pollAI()}catch(error){notify(error.message,true)}}

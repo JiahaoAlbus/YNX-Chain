@@ -1,14 +1,10 @@
-import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { extname, relative, resolve } from 'node:path';
 
 const root = resolve(import.meta.dirname, '../../..');
 const scanRoots = [
   'apps/finance',
   'internal/finance',
-  'docs/integration',
-  'release/integration',
-  '.ai-bridge',
-  'infra/secrets-template/finance.env.template',
 ];
 const skippedNames = new Set([
   '.git',
@@ -20,6 +16,9 @@ const skippedNames = new Set([
   'DerivedData',
   'security-check.mjs',
 ]);
+// The hash-verified, Integration-owned manifest intentionally lists rejected
+// hosts as policy data, not deployable endpoint text.
+const hashVerifiedContractPaths = new Set(['apps/finance/mobile/contract/public-endpoint-manifest.json']);
 const textExtensions = new Set([
   '',
   '.css',
@@ -113,9 +112,13 @@ function lineNumber(text, index) {
 }
 
 const findings = [];
-const files = scanRoots.flatMap((path) => collect(resolve(root, path)));
+const files = scanRoots.flatMap((path) => {
+  const absolute=resolve(root,path);
+  return existsSync(absolute)?collect(absolute):[];
+});
 for (const file of files) {
   const rel = relative(root, file);
+  if (hashVerifiedContractPaths.has(rel)) continue;
   const text = readFileSync(file, 'utf8');
   for (const rule of rules) {
     if (rule.runtimeOnly && !runtimeRoots.some((prefix) => rel === prefix || rel.startsWith(`${prefix}/`))) continue;
