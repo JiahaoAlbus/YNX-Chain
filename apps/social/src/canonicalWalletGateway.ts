@@ -8,10 +8,10 @@ import {
   type CentralWalletSession,
   type GatewayCompletion,
 } from "@ynx-chain/wallet-auth";
-import { encodeBase64URL } from "./walletAuth";
+import { encodeBase64URL, ORIGIN } from "./walletAuth";
 
 export const CANONICAL_WALLET_GATEWAY_URL = "https://wallet-auth.ynxweb4.com";
-export const SOCIAL_ORIGIN = "https://social.ynxweb4.com";
+export const SOCIAL_ORIGIN = ORIGIN;
 export const CANONICAL_SESSION_COMPLETE_PATH = "/v1/wallet/sessions/complete";
 
 type GatewayFetch = (input: string, init?: RequestInit) => Promise<Pick<Response, "ok" | "status" | "text">>;
@@ -91,6 +91,7 @@ function assertSessionBinding(session: CentralWalletSession, payload: Completion
     session.requestingProduct !== request.requestingProduct ||
     session.productClientId !== request.productClientId ||
     session.bundleId !== request.bundleId ||
+    session.origin !== request.origin ||
     session.callback !== request.callback ||
     session.productDeviceAlgorithm !== request.productDeviceAlgorithm ||
     session.productDeviceKey !== request.productDeviceKey ||

@@ -6,7 +6,7 @@ import { httpBodyDigest } from "./session-proof.js";
 export const CANONICAL_GATEWAY_HTTP_SCHEMA_VERSION = 1;
 export const CANONICAL_GATEWAY_HTTP_MAX_BODY_BYTES = 1_048_576;
 
-const REQUEST_FIELDS = ["method", "path", "contentType", "body", "proof"];
+const REQUEST_FIELDS = ["method", "path", "contentType", "body", "proof", "origin"];
 const RESPONSE_HEADERS = Object.freeze({
   "cache-control": "no-store",
   "content-type": "application/json; charset=utf-8",
@@ -46,9 +46,9 @@ export class CanonicalWalletGatewayHttpKernel {
       const payload = parseCanonicalBody(request.body);
       const operation = ROUTES[request.path];
       if (!operation) fail("ROUTE_NOT_FOUND", "Canonical Wallet Gateway route was not found");
-      const context = Object.freeze({ method: request.method, path: request.path, bodyDigest: httpBodyDigest(request.body) });
+      const context = Object.freeze({ method: request.method, path: request.path, bodyDigest: httpBodyDigest(request.body), origin: request.origin });
       const result = operation === "complete"
-        ? complete(this.#adapter, request.proof, payload, now)
+        ? complete(this.#adapter, request.proof, payload, now, request.origin)
         : operation === "rejectAuthorization"
           ? rejectAuthorization(this.#adapter, request.proof, payload, now)
         : this.#adapter[operation](authenticatedInput(operation, request.proof, payload), context, now);
@@ -90,11 +90,20 @@ function parseRequest(input) {
   const bytes = new TextEncoder().encode(input.body).length;
   if (bytes < 2 || bytes > CANONICAL_GATEWAY_HTTP_MAX_BODY_BYTES) fail("INVALID_BODY", "Canonical Wallet Gateway body size is outside policy");
   if (input.proof !== null && (typeof input.proof !== "object" || input.proof === null || Array.isArray(input.proof))) fail("INVALID_PROOF_HEADER", "Product Session proof header must be a JSON object or null");
-  return Object.freeze({ method: input.method, path: input.path, contentType: input.contentType, body: input.body, proof: input.proof });
+  return Object.freeze({ method: input.method, path: input.path, contentType: input.contentType, body: input.body, proof: input.proof, origin: strictOrigin(input.origin) });
 }
 
-function complete(adapter, proof, payload, at) {
+function strictOrigin(value) {
+  if (typeof value !== "string" || value.length < 8 || value.length > 255 || value.trim() !== value) fail("INVALID_ORIGIN", "Canonical Wallet Gateway origin is invalid");
+  let parsed;
+  try { parsed = new URL(value); } catch { fail("INVALID_ORIGIN", "Canonical Wallet Gateway origin is invalid"); }
+  if (parsed.protocol !== "https:" || parsed.username || parsed.password || parsed.pathname !== "/" || parsed.search || parsed.hash || parsed.toString() !== `${value}/`) fail("INVALID_ORIGIN", "Canonical Wallet Gateway origin is invalid");
+  return value;
+}
+
+function complete(adapter, proof, payload, at, origin) {
   if (proof !== null) fail("UNEXPECTED_PROOF_HEADER", "Session completion must not include a Product Session proof header");
+  if (payload?.authorizationRequest?.origin !== origin) fail("ORIGIN_MISMATCH", "Session completion origin must exactly match its signed authorization request");
   return adapter.complete(payload, at);
 }
 
@@ -149,7 +158,7 @@ function errorStatus(code) {
   if (code === "UNSUPPORTED_MEDIA_TYPE") return 415;
   if (["REPLAY", "ALREADY_REVOKED", "MANDATE_EXISTS", "MANDATE_TERMINAL", "MANDATE_REVOKED", "MANDATE_KILLED", "MANDATE_EXPIRED"].includes(code)) return 409;
   if (code === "CAPACITY") return 503;
-  if (["UNKNOWN_PRODUCT", "REGISTRY_DISABLED", "BINDING_MISMATCH", "INVALID_SIGNATURE", "DEVICE_MISMATCH", "INVALID_DEVICE_PROOF", "SESSION_BINDING_MISMATCH", "SESSION_SCOPE_MISMATCH", "HTTP_BINDING_MISMATCH", "SCOPE_NOT_GRANTED", "SCOPE_NOT_ALLOWED", "REVOKED", "EXPIRED", "WALLET_CONTROL_REQUIRED", "MANDATE_BINDING_MISMATCH", "MANDATE_POLICY_VIOLATION", "LIMIT_EXCEEDED", "AUTHORIZATION_REJECTED"].includes(code)) return 403;
+  if (["UNKNOWN_PRODUCT", "REGISTRY_DISABLED", "DEVICE_MISMATCH", "INVALID_DEVICE_PROOF", "SESSION_BINDING_MISMATCH", "HTTP_BINDING_MISMATCH", "ORIGIN_MISMATCH", "SCOPE_NOT_GRANTED", "SCOPE_NOT_ALLOWED", "REVOKED", "EXPIRED", "WALLET_CONTROL_REQUIRED", "MANDATE_BINDING_MISMATCH", "MANDATE_POLICY_VIOLATION", "LIMIT_EXCEEDED", "AUTHORIZATION_REJECTED"].includes(code)) return 403;
   return 400;
 }
 

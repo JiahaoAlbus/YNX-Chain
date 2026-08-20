@@ -15,12 +15,13 @@ import {
 export const REQUESTING_PRODUCT = "social";
 export const PRODUCT_CLIENT_ID = "ynx-social-v1";
 export const BUNDLE_ID = "com.ynx.social";
+export const ORIGIN = "https://social.ynxweb4.com";
 export const CALLBACK = "ynx-social://com.ynx.social";
 export const WALLET_SCOPES = Object.freeze(["account:read", "profile:link"]);
 export const PRODUCT_DEVICE_ALGORITHM = "p256-sha256";
 
 export type WalletAuthorizationRequest = Readonly<{
-  version: "1";
+  version: "2";
   nonce: string;
   chainId: "ynx_6423-1";
   requestingProduct: typeof REQUESTING_PRODUCT;
@@ -28,6 +29,7 @@ export type WalletAuthorizationRequest = Readonly<{
   bundleId: typeof BUNDLE_ID;
   productDeviceAlgorithm: typeof PRODUCT_DEVICE_ALGORITHM;
   productDeviceKey: string;
+  origin: typeof ORIGIN;
   callback: typeof CALLBACK;
   scopes: readonly string[];
   purpose: string;
@@ -35,7 +37,7 @@ export type WalletAuthorizationRequest = Readonly<{
   expiresAt: string;
 }>;
 export type WalletApproval = Readonly<{
-  version: "1";
+  version: "2";
   requestDigest: string;
   nonce: string;
   chainId: "ynx_6423-1";
@@ -44,6 +46,7 @@ export type WalletApproval = Readonly<{
   bundleId: typeof BUNDLE_ID;
   productDeviceAlgorithm: typeof PRODUCT_DEVICE_ALGORITHM;
   productDeviceKey: string;
+  origin: typeof ORIGIN;
   callback: typeof CALLBACK;
   account: string;
   accountPublicKey: string;
@@ -54,13 +57,14 @@ export type WalletApproval = Readonly<{
   walletSignature: string;
 }>;
 export type ProductSessionChallenge = Readonly<{
-  version: "1";
+  version: "2";
   challenge: string;
   requestDigest: string;
   productClientId: string;
   bundleId: string;
   productDeviceAlgorithm: string;
   productDeviceKey: string;
+  origin: typeof ORIGIN;
   account: string;
   scopes: readonly string[];
   issuedAt: string;
@@ -89,6 +93,7 @@ const REQUEST_FIELDS = [
   "bundleId",
   "productDeviceAlgorithm",
   "productDeviceKey",
+  "origin",
   "callback",
   "scopes",
   "purpose",
@@ -105,6 +110,7 @@ const APPROVAL_FIELDS = [
   "bundleId",
   "productDeviceAlgorithm",
   "productDeviceKey",
+  "origin",
   "callback",
   "account",
   "accountPublicKey",
@@ -122,6 +128,7 @@ const CHALLENGE_FIELDS = [
   "bundleId",
   "productDeviceAlgorithm",
   "productDeviceKey",
+  "origin",
   "account",
   "scopes",
   "issuedAt",
@@ -138,7 +145,7 @@ export function createWalletRequest(
   const issuedAt = exactTime(now),
     expiresAt = exactTime(new Date(now.getTime() + 5 * 60_000));
   return Object.freeze({
-    version: "1",
+    version: "2",
     nonce,
     chainId: "ynx_6423-1",
     requestingProduct: REQUESTING_PRODUCT,
@@ -146,6 +153,7 @@ export function createWalletRequest(
     bundleId: BUNDLE_ID,
     productDeviceAlgorithm: PRODUCT_DEVICE_ALGORITHM,
     productDeviceKey,
+    origin: ORIGIN,
     callback: CALLBACK,
     scopes: WALLET_SCOPES,
     purpose: "Sign in to YNX Social. No recovery key is shared.",
@@ -211,12 +219,13 @@ export function signGatewayChallenge(
   exactFields(challenge, CHALLENGE_FIELDS, "Gateway challenge");
   validP256Key(challenge.productDeviceKey);
   if (
-    challenge.version !== "1" ||
+    challenge.version !== "2" ||
     challenge.productClientId !== PRODUCT_CLIENT_ID ||
     challenge.bundleId !== BUNDLE_ID ||
     challenge.productDeviceAlgorithm !== PRODUCT_DEVICE_ALGORITHM ||
     challenge.productDeviceKey !==
       encodeBase64URL(p256.getPublicKey(productSecret, true)) ||
+    challenge.origin !== ORIGIN ||
     challenge.scopes.join("\n") !== WALLET_SCOPES.join("\n") ||
     parseExactTime(challenge.issuedAt) > now.getTime() + 30_000 ||
     parseExactTime(challenge.expiresAt) <= now.getTime()
@@ -224,7 +233,7 @@ export function signGatewayChallenge(
     throw new Error("Gateway challenge binding is invalid");
   const signature = p256.sign(
     utf8ToBytes(
-      `YNX_PRODUCT_SESSION_CHALLENGE_V1\n${canonicalJSON(challenge)}`,
+      `YNX_PRODUCT_SESSION_CHALLENGE_V2\n${canonicalJSON(challenge)}`,
     ),
     productSecret,
     { format: "der" },
@@ -300,12 +309,13 @@ function validateRequest(request: WalletAuthorizationRequest, now: Date) {
   validNonce(request.nonce);
   validP256Key(request.productDeviceKey);
   if (
-    request.version !== "1" ||
+    request.version !== "2" ||
     request.chainId !== "ynx_6423-1" ||
     request.requestingProduct !== REQUESTING_PRODUCT ||
     request.productClientId !== PRODUCT_CLIENT_ID ||
     request.bundleId !== BUNDLE_ID ||
     request.productDeviceAlgorithm !== PRODUCT_DEVICE_ALGORITHM ||
+    request.origin !== ORIGIN ||
     request.callback !== CALLBACK ||
     request.scopes.join("\n") !== WALLET_SCOPES.join("\n")
   )

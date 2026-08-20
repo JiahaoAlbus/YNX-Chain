@@ -48,7 +48,7 @@ function canonical(value: unknown): string {
 }
 function approval(overrides: Partial<WalletApproval> = {}): WalletApproval {
   const unsigned = {
-    version: "1",
+    version: "2",
     requestDigest: requestDigest(request),
     nonce: request.nonce,
     chainId: request.chainId,
@@ -57,6 +57,7 @@ function approval(overrides: Partial<WalletApproval> = {}): WalletApproval {
     bundleId: request.bundleId,
     productDeviceAlgorithm: request.productDeviceAlgorithm,
     productDeviceKey: request.productDeviceKey,
+    origin: request.origin,
     callback: request.callback,
     account: "ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80",
     accountPublicKey:
@@ -68,7 +69,7 @@ function approval(overrides: Partial<WalletApproval> = {}): WalletApproval {
     ...overrides,
   };
   const signature = secp256k1.sign(
-    sha256(utf8ToBytes(`YNX_WALLET_AUTH_APPROVAL_V1\n${canonical(unsigned)}`)),
+    sha256(utf8ToBytes(`YNX_WALLET_AUTH_APPROVAL_V2\n${canonical(unsigned)}`)),
     walletSecret,
     { prehash: false, format: "compact", lowS: true },
   );
@@ -155,13 +156,14 @@ test("verifies a bound USER_REJECTED callback as zero authority and never treats
 });
 test("signs the server challenge with the exact bound P-256 product key", () => {
   const challenge: ProductSessionChallenge = {
-    version: "1",
+    version: "2",
     challenge: "gateway_challenge_nonce_000000000001",
     requestDigest: requestDigest(request),
     productClientId: PRODUCT_CLIENT_ID,
     bundleId: BUNDLE_ID,
     productDeviceAlgorithm: "p256-sha256",
     productDeviceKey: request.productDeviceKey,
+    origin: request.origin,
     account: approval().account,
     scopes: [...request.scopes],
     issuedAt: "2026-07-15T12:00:00.000Z",

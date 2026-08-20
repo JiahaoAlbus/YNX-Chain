@@ -1,13 +1,14 @@
 export type ProductBinding = Readonly<{
   requestingProduct: string;
   bundleId: string;
+  origins: readonly string[];
   callbacks: readonly string[];
   scopes: readonly string[];
   maxScopes?: number;
 }>;
 export type ProductDeviceAlgorithm = "p256-sha256";
 export type AuthorizationRequest = Readonly<{
-  version: "1";
+  version: "2";
   nonce: string;
   chainId: "ynx_6423-1";
   requestingProduct: string;
@@ -15,6 +16,7 @@ export type AuthorizationRequest = Readonly<{
   bundleId: string;
   productDeviceAlgorithm: ProductDeviceAlgorithm;
   productDeviceKey: string;
+  origin: string;
   callback: string;
   scopes: readonly string[];
   purpose: string;
@@ -22,7 +24,7 @@ export type AuthorizationRequest = Readonly<{
   expiresAt: string;
 }>;
 export type AuthorizationResponse = Readonly<{
-  version: "1";
+  version: "2";
   requestDigest: string;
   nonce: string;
   chainId: "ynx_6423-1";
@@ -31,6 +33,7 @@ export type AuthorizationResponse = Readonly<{
   bundleId: string;
   productDeviceAlgorithm: ProductDeviceAlgorithm;
   productDeviceKey: string;
+  origin: string;
   callback: string;
   account: string;
   accountPublicKey: string;
@@ -41,7 +44,7 @@ export type AuthorizationResponse = Readonly<{
   walletSignature: string;
 }>;
 export type AuthorizationRejection = Readonly<{
-  version: "1";
+  version: "2";
   decision: "rejected";
   requestDigest: string;
   nonce: string;
@@ -56,13 +59,14 @@ export type AuthorizationRejection = Readonly<{
   grantedScopes: readonly [];
 }>;
 export type GatewayChallenge = Readonly<{
-  version: "1";
+  version: "2";
   challenge: string;
   requestDigest: string;
   productClientId: string;
   bundleId: string;
   productDeviceAlgorithm: ProductDeviceAlgorithm;
   productDeviceKey: string;
+  origin: string;
   account: string;
   scopes: readonly string[];
   issuedAt: string;
@@ -214,18 +218,18 @@ export type CentralRegistryDocument = Readonly<{
   products: readonly CentralProductRegistration[];
 }>;
 export type CentralWalletSession = Readonly<{
-  verifierVersion: "wallet-auth-v1";
+  verifierVersion: "wallet-auth-v2";
   sessionBinding: string;
   chainId: "ynx_6423-1";
   requestingProduct: string;
   productClientId: string;
   bundleId: string;
+  origin: string;
   callback: string;
   productDeviceAlgorithm: ProductDeviceAlgorithm;
   productDeviceKey: string;
   deviceBinding: string;
   account: string;
-  accountPublicKey: string;
   scopes: readonly string[];
   nonce: string;
   purpose: string;
@@ -344,12 +348,12 @@ export type SignedNativeTransfer = Readonly<{
   publicKey: string;
   signature: string;
 }>;
-export declare const WALLET_AUTH_VERSION: "1";
+export declare const WALLET_AUTH_VERSION: "2";
 export declare const YNX_NATIVE_CHAIN_ID: "ynx_6423-1";
 export declare const YNX_EVM_CHAIN_ID: 6423;
 export declare const PRODUCT_DEVICE_ALGORITHM: "p256-sha256";
 export declare const CENTRAL_REGISTRY_SCHEMA_VERSION: 2;
-export declare const CENTRAL_VERIFIER_VERSION: "wallet-auth-v1";
+export declare const CENTRAL_VERIFIER_VERSION: "wallet-auth-v2";
 export declare const CENTRAL_REGISTRY_DOCUMENT_VERSION: 2;
 export declare const CENTRAL_REGISTRY_PRODUCT_COUNT: 35;
 export declare const CENTRAL_PRODUCT_SCHEMA_VERSION: 3;
@@ -1130,6 +1134,7 @@ export type CanonicalGatewayHttpInput = Readonly<{
   contentType: string;
   body: string;
   proof: Readonly<Record<string, unknown>> | null;
+  origin: string;
 }>;
 export type CanonicalGatewayHttpResponse = Readonly<{
   status: number;

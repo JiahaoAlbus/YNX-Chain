@@ -106,7 +106,7 @@ func (s *Service) CreateWalletChallenge(in WalletChallengeRequest) (ProductSessi
 	if approvalExpires.Before(expires) {
 		expires = approvalExpires
 	}
-	challenge := ProductSessionChallenge{Version: "1", Challenge: base64.RawURLEncoding.EncodeToString(randomBytes(32)), RequestDigest: in.Approval.RequestDigest, ProductClientID: ProductClientID, BundleID: BundleID, ProductDeviceAlgorithm: ProductDeviceAlgorithm, ProductDeviceKey: in.Approval.ProductDeviceKey, Account: in.Approval.Account, Scopes: append([]string(nil), in.Approval.GrantedScopes...), IssuedAt: now.Format(protocolTimeLayout), ExpiresAt: expires.Format(protocolTimeLayout)}
+	challenge := ProductSessionChallenge{Version: "2", Challenge: base64.RawURLEncoding.EncodeToString(randomBytes(32)), RequestDigest: in.Approval.RequestDigest, ProductClientID: ProductClientID, BundleID: BundleID, ProductDeviceAlgorithm: ProductDeviceAlgorithm, ProductDeviceKey: in.Approval.ProductDeviceKey, Origin: Origin, Account: in.Approval.Account, Scopes: append([]string(nil), in.Approval.GrantedScopes...), IssuedAt: now.Format(protocolTimeLayout), ExpiresAt: expires.Format(protocolTimeLayout)}
 	before := cloneState(s.state)
 	s.state.WalletChallenges[challenge.Challenge] = PendingWalletChallenge{Challenge: challenge, Approval: in.Approval}
 	s.appendAuditLocked("wallet_challenge_created", "wallet_challenge", challenge.Challenge, in.Approval.Account, objectDigest(challenge), now)
@@ -132,7 +132,7 @@ func (s *Service) Login(a WalletLogin) (LoginResult, error) {
 		return LoginResult{}, fmt.Errorf("%w: product challenge replay or substitution", ErrConflict)
 	}
 	approval := pending.Approval
-	if a.Challenge.RequestDigest != approval.RequestDigest || a.Challenge.ProductClientID != ProductClientID || a.Challenge.BundleID != BundleID || a.Challenge.ProductDeviceAlgorithm != ProductDeviceAlgorithm || a.Challenge.ProductDeviceKey != approval.ProductDeviceKey || a.Challenge.Account != approval.Account || strings.Join(a.Challenge.Scopes, "\n") != strings.Join(approval.GrantedScopes, "\n") {
+	if a.Challenge.Version != "2" || a.Challenge.RequestDigest != approval.RequestDigest || a.Challenge.ProductClientID != ProductClientID || a.Challenge.BundleID != BundleID || a.Challenge.ProductDeviceAlgorithm != ProductDeviceAlgorithm || a.Challenge.ProductDeviceKey != approval.ProductDeviceKey || a.Challenge.Origin != approval.Origin || a.Challenge.Account != approval.Account || strings.Join(a.Challenge.Scopes, "\n") != strings.Join(approval.GrantedScopes, "\n") {
 		return LoginResult{}, fmt.Errorf("%w: product challenge binding", ErrUnauthorized)
 	}
 	if !verifyProductDeviceSignature(a.Challenge, a.DeviceSignature) {

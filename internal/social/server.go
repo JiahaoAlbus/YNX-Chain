@@ -46,7 +46,7 @@ func (s *Server) health(w http.ResponseWriter, r *http.Request) {
 		writeError(w, 405, "method not allowed")
 		return
 	}
-	writeJSON(w, 200, map[string]any{"ok": true, "service": "ynx-social", "persistence": "integrity-checked-atomic-mode-0600", "walletAuth": "canonical-signed-envelope-v1", "walletGateway": "persistent-p256-challenge-v1", "recoveryKeysAccepted": false, "chatContract": "internal/chat-v2", "feedContract": "internal/square-v2", "attachmentPolicy": s.service.AttachmentPolicy()})
+	writeJSON(w, 200, map[string]any{"ok": true, "service": "ynx-social", "persistence": "integrity-checked-atomic-mode-0600", "walletAuth": "canonical-signed-envelope-v2-origin-bound", "walletGateway": "persistent-p256-challenge-v2-origin-bound", "recoveryKeysAccepted": false, "chatContract": "internal/chat-v2", "feedContract": "internal/square-v2", "attachmentPolicy": s.service.AttachmentPolicy()})
 }
 func (s *Server) walletChallenge(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {

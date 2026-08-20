@@ -1,5 +1,6 @@
 package com.ynx.social
 
+import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 
@@ -17,6 +18,17 @@ class MainActivity : ReactActivity() {
     // This is required for expo-splash-screen.
     setTheme(R.style.AppTheme);
     super.onCreate(null)
+  }
+
+  /**
+   * A Wallet approval returns to this existing singleTask Activity. React
+   * Native's Linking module reads the Activity's current intent for that
+   * return, so retain the new deep-link intent instead of leaving the stale
+   * launcher intent in place.
+   */
+  override fun onNewIntent(intent: Intent) {
+    super.onNewIntent(intent)
+    setIntent(intent)
   }
 
   /**

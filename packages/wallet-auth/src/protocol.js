@@ -2,7 +2,7 @@ import { canonicalJSON, digestHex, exactFields, isPlainObject, WalletAuthError }
 import { decodeBase64url, encodeBase64url } from "./base64url.js";
 import { p256 } from "@noble/curves/nist.js";
 
-export const WALLET_AUTH_VERSION = "1";
+export const WALLET_AUTH_VERSION = "2";
 export const YNX_NATIVE_CHAIN_ID = "ynx_6423-1";
 export const YNX_EVM_CHAIN_ID = 6423;
 export const PRODUCT_DEVICE_ALGORITHM = "p256-sha256";
@@ -10,11 +10,11 @@ export const MAX_REQUEST_LIFETIME_MS = 5 * 60 * 1000;
 
 const REQUEST_FIELDS = [
   "version", "nonce", "chainId", "requestingProduct", "productClientId", "bundleId",
-  "productDeviceAlgorithm", "productDeviceKey", "callback", "scopes", "purpose", "issuedAt", "expiresAt",
+  "productDeviceAlgorithm", "productDeviceKey", "origin", "callback", "scopes", "purpose", "issuedAt", "expiresAt",
 ];
 const RESPONSE_FIELDS = [
   "version", "requestDigest", "nonce", "chainId", "requestingProduct", "productClientId",
-  "bundleId", "productDeviceAlgorithm", "productDeviceKey", "callback", "account", "accountPublicKey", "grantedScopes",
+  "bundleId", "productDeviceAlgorithm", "productDeviceKey", "origin", "callback", "account", "accountPublicKey", "grantedScopes",
   "purpose", "issuedAt", "expiresAt", "walletSignature",
 ];
 const REJECTION_FIELDS = [
@@ -35,6 +35,7 @@ export function parseAuthorizationRequest(input, options) {
     bundleId: requiredPattern(raw.bundleId, "bundleId", /^[A-Za-z][A-Za-z0-9.-]{2,127}$/),
     productDeviceAlgorithm: requiredString(raw.productDeviceAlgorithm, "productDeviceAlgorithm", 32),
     productDeviceKey: strictProductDeviceKey(raw.productDeviceKey),
+    origin: strictOrigin(raw.origin),
     callback: strictURL(raw.callback, "callback"),
     scopes: strictScopes(raw.scopes),
     purpose: requiredString(raw.purpose, "purpose", 180),
@@ -54,6 +55,7 @@ export function parseAuthorizationRequest(input, options) {
   if (!binding) throw new WalletAuthError("UNKNOWN_PRODUCT", "Requesting product client is not registered");
   if (binding.requestingProduct !== request.requestingProduct || binding.bundleId !== request.bundleId) throw new WalletAuthError("PRODUCT_MISMATCH", "Requesting product identity does not match its registered client");
   if (!binding.callbacks.includes(request.callback)) throw new WalletAuthError("CALLBACK_MISMATCH", "Callback is not registered for this exact product client");
+  if (!Array.isArray(binding.origins) || !binding.origins.includes(request.origin)) throw new WalletAuthError("ORIGIN_NOT_ALLOWED", "Origin is not registered for this exact product client");
   const allowed = new Set(binding.scopes);
   if (request.scopes.some((scope) => !allowed.has(scope))) throw new WalletAuthError("SCOPE_NOT_ALLOWED", "Request contains a scope outside the product allowlist");
   if (request.scopes.length > (binding.maxScopes ?? binding.scopes.length)) throw new WalletAuthError("SCOPE_TOO_BROAD", "Request contains too many scopes");
@@ -62,7 +64,7 @@ export function parseAuthorizationRequest(input, options) {
 
 export function requestDigest(request) {
   exactFields(request, REQUEST_FIELDS, "Wallet authorization request");
-  return digestHex("YNX_WALLET_AUTH_REQUEST_V1", request);
+  return digestHex("YNX_WALLET_AUTH_REQUEST_V2", request);
 }
 
 export function createApprovalPayload(request, approval) {
@@ -81,6 +83,7 @@ export function createApprovalPayload(request, approval) {
     bundleId: request.bundleId,
     productDeviceAlgorithm: request.productDeviceAlgorithm,
     productDeviceKey: request.productDeviceKey,
+    origin: request.origin,
     callback: request.callback,
     account,
     accountPublicKey,
@@ -92,7 +95,7 @@ export function createApprovalPayload(request, approval) {
 }
 
 export function approvalSignBytes(payload) {
-  return `YNX_WALLET_AUTH_APPROVAL_V1\n${canonicalJSON(payload)}`;
+  return `YNX_WALLET_AUTH_APPROVAL_V2\n${canonicalJSON(payload)}`;
 }
 
 export function createAuthorizationRejection(request, input) {
@@ -155,6 +158,7 @@ export function parseAuthorizationResponse(input) {
   requiredPattern(raw.accountPublicKey, "accountPublicKey", /^(02|03)[0-9a-f]{64}$/);
   if (raw.productDeviceAlgorithm !== PRODUCT_DEVICE_ALGORITHM) throw new WalletAuthError("UNSUPPORTED_DEVICE_ALGORITHM", "Wallet authorization response device algorithm is unsupported");
   strictProductDeviceKey(raw.productDeviceKey);
+  strictOrigin(raw.origin);
   strictScopes(raw.grantedScopes);
   strictURL(raw.callback, "callback");
   strictTime(raw.issuedAt, "issuedAt");
@@ -194,6 +198,16 @@ function strictURL(value, label) {
   try { parsed = new URL(normalized); } catch { throw new WalletAuthError("INVALID_CALLBACK", `${label} is invalid`); }
   if (!/^[a-z][a-z0-9+.-]*:$/.test(parsed.protocol) || parsed.username || parsed.password || parsed.hash) throw new WalletAuthError("INVALID_CALLBACK", `${label} is invalid`);
   if (parsed.toString() !== normalized) throw new WalletAuthError("INVALID_CALLBACK", `${label} must be canonical`);
+  return normalized;
+}
+
+function strictOrigin(value) {
+  const normalized = requiredString(value, "origin", 255);
+  let parsed;
+  try { parsed = new URL(normalized); } catch { throw new WalletAuthError("INVALID_ORIGIN", "origin is invalid"); }
+  if (parsed.protocol !== "https:" || parsed.username || parsed.password || parsed.pathname !== "/" || parsed.search || parsed.hash || parsed.toString() !== `${normalized}/`) {
+    throw new WalletAuthError("INVALID_ORIGIN", "origin must be a canonical HTTPS origin");
+  }
   return normalized;
 }
 

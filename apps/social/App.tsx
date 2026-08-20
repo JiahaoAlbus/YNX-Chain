@@ -335,7 +335,12 @@ function SocialApp() {
         setWalletUnavailable(false);
         setError(null);
       } catch (caught) {
-        setError(message(caught));
+        const detail = message(caught);
+        // This is intentionally a code/message-only diagnostic. It contains
+        // neither the callback response nor any account, device, or session
+        // secret, and makes a real mobile callback failure actionable.
+        console.warn("YNX_SOCIAL_CANONICAL_WALLET_CALLBACK_FAILED", detail);
+        setError(detail);
       }
     },
     [api],
