@@ -35,10 +35,16 @@ test("REST account-not-found uses exact RPC zero balance and nonce without inven
   for(const request of requests.slice(1))assert.deepEqual(request.params,[address,"latest"],"RPC lookup must bind the selected account's exact 0x identity");
 });
 
+test("REST account-not-found preserves the exact nonzero RPC balance and nonce",async()=>{
+  const client=new NativeChainClient(undefined,undefined,rpcFallback({balance:"0x2a",nonce:"0x7"}));
+  assert.deepEqual(await client.account(account),{address,balance:42,nonce:7,source:"evm-json-rpc",materialized:false});
+});
+
 test("account fallback fails closed on wrong chain, malformed response, unsafe quantity, and RPC error",async()=>{
   await assert.rejects(()=>new NativeChainClient(undefined,undefined,rpcFallback({chainId:"0x1"})).account(account),/chain identity/);
   await assert.rejects(()=>new NativeChainClient(undefined,undefined,async(url,init)=>url.startsWith(DEFAULT_CHAIN_API)?response({error:"ACCOUNT_NOT_FOUND"},404):response({jsonrpc:"2.0",id:999,result:YNX_EVM_CHAIN_ID})).account(account),/response is invalid/);
   await assert.rejects(()=>new NativeChainClient(undefined,undefined,rpcFallback({balance:"0x00"})).account(account),/canonical quantity/);
+  await assert.rejects(()=>new NativeChainClient(undefined,undefined,async(url,init)=>{if(url.startsWith(DEFAULT_CHAIN_API))return response({error:"account not found"},404);const request=JSON.parse(String(init?.body));return response({jsonrpc:"2.0",id:request.id,error:{code:-32000,message:"unavailable"}})}).account(account),/response is invalid/);
 });
 
 test("only exact REST account absence may fall back; other failures remain closed",async()=>{
