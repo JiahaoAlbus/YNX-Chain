@@ -2,7 +2,7 @@
   "schemaVersion": "1.0.0",
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "owner": "integration",
-  "status": "P0070_FAILED_CLOSED_HEAVY_RELEASED_P0080_ORACLE_RELEASED_P0081_SEARCH_VISIBLE_ACTIVE",
+  "status": "P0070_FAILED_CLOSED_HEAVY_RELEASED_P0081_SEARCH_RELEASED_P0082_MERCHANT_VISIBLE_ACTIVE",
   "scope": [
     "founder-control",
     "wallet-connectivity",
@@ -34,7 +34,7 @@
   "firstStop": {
     "complete": true,
     "publicConnectivityClaim": false,
-    "nextAction": "P0-070 is consumed/nonreusable and Heavy is null. Oracle P0-080 is released at d3038abbec4a393fd1d66b54dec4f0027f0c8962 with anonymous read-only UI, production dependency audit 0 and exact degraded public API readback; active providers, authoritative prices, current-web-source public deployment and ComputerControl remain false. Search P0-081 owns a visible deterministic Provider verification slice from accepted exact Search checkpoint a3b78490a7945fa982bfe78c8be75396b013a649; do not rebuild or promote installed/public/Product Session state."
+    "nextAction": "P0-070 is consumed/nonreusable and Heavy is null. Search P0-081 is released at c9de2692aad9f0e99edce5c49366265480b369da after fixing the unbundled-browser startup defect and proving deterministic approval/rejection with guest Search preserved; installed Wallet, Product Session v2, public deployment and ComputerControl remain false. Merchant Console P0-082 owns the next visible deterministic Provider verification slice from exact checkpoint f3d36ab5785f910f3114c4a080f2c2551aabe656."
   },
   "lightLeases": [
     {
@@ -172,14 +172,29 @@
     {
       "owner": "integration",
       "taskId": "P0-081",
-      "status": "ACTIVE_LIGHT_VISIBLE_EVIDENCE_ONLY",
+      "status": "RELEASED_CHECKPOINT",
       "grantedAt": "2026-08-20T23:38:00Z",
+      "releasedAt": "2026-08-20T23:52:00Z",
+      "checkpointCommit": "c9de2692aad9f0e99edce5c49366265480b369da",
       "scope": "search-existing-standard-wallet-visible-verification",
       "constraints": [
         "do not rebuild accepted Search Standard Wallet source",
         "guest Search remains independent from private service",
         "deterministic Provider evidence is not installed Wallet evidence",
         "no Product Session v2, public deployment, indexing completeness or Computer Control claim"
+      ]
+    },
+    {
+      "owner": "integration",
+      "taskId": "P0-082",
+      "status": "ACTIVE_LIGHT_VISIBLE_EVIDENCE_ONLY",
+      "grantedAt": "2026-08-20T23:52:00Z",
+      "scope": "merchant-console-existing-standard-wallet-visible-verification",
+      "constraints": [
+        "do not rebuild accepted Merchant Console Standard Wallet source",
+        "merchant read-only/public surfaces remain independent from private service",
+        "deterministic Provider evidence is not installed Wallet evidence",
+        "no settlement, Product Session v2, public deployment or Computer Control claim"
       ]
     }
   ],
