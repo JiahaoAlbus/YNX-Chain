@@ -81,6 +81,7 @@
     "retentionClass": {"enum": ["transient", "operational", "financial-7y", "audit-7y", "legal-hold"]},
     "residencyClass": {"enum": ["global", "regional", "account-home", "legal-hold"]},
     "auditId": {"$ref": "#/$defs/id"},
+    "chainCommitmentId": {"type": "string", "pattern": "^[0-9a-f]{32}$"},
     "idempotencyKey": {"$ref": "#/$defs/id"},
     "partitionKey": {"$ref": "#/$defs/id"},
     "orderingKey": {"$ref": "#/$defs/id"},

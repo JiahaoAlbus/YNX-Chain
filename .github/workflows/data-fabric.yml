@@ -22,6 +22,7 @@ on:
       - "internal/datafabricpostgres/**"
       - "internal/datafabricpgbackup/**"
       - "sdk/datafabric/**"
+      - "sdk/datafabric-typescript/**"
       - "schemas/data-fabric/**"
       - "integration/**"
       - "infra/data-fabric/**"
@@ -34,6 +35,145 @@ permissions:
   contents: read
 
 jobs:
+  reproducible-build:
+    name: data-fabric-repro-builder-${{ matrix.builder }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        builder: [a, b]
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Install exact Go toolchain
+        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16
+        with:
+          go-version: "1.25.13"
+          cache: true
+      - name: Build isolated Linux artifacts
+        env:
+          SOURCE_DATE_EPOCH: "0"
+        run: |
+          mkdir -p dist
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -buildvcs=true -o dist/ynx-data-fabricd ./cmd/ynx-data-fabricd
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -buildvcs=true -o dist/ynx-data-fabricctl ./cmd/ynx-data-fabricctl
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -buildvcs=true -o dist/ynx-data-fabric-worker ./cmd/ynx-data-fabric-worker
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -buildvcs=true -o dist/ynx-pay-data-fabric-bridge ./cmd/ynx-pay-data-fabric-bridge
+          sha256sum dist/*
+      - name: Upload isolated builder output
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: data-fabric-repro-builder-${{ matrix.builder }}-${{ github.event.pull_request.head.sha || github.sha }}
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 7
+
+  reproducible-build-compare:
+    name: data-fabric-reproducible-build
+    needs: reproducible-build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Install exact Go toolchain for artifact scanning
+        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16
+        with:
+          go-version: "1.25.13"
+          cache: false
+      - name: Download builder A output
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: data-fabric-repro-builder-a-${{ github.event.pull_request.head.sha || github.sha }}
+          path: builders/a
+      - name: Download builder B output
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: data-fabric-repro-builder-b-${{ github.event.pull_request.head.sha || github.sha }}
+          path: builders/b
+      - name: Require byte-identical binaries and write receipt
+        env:
+          SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          mkdir -p evidence
+          binaries=(ynx-data-fabricd ynx-data-fabricctl ynx-data-fabric-worker ynx-pay-data-fabric-bridge)
+          for binary in "${binaries[@]}"; do
+            test -f "builders/a/$binary"
+            test -f "builders/b/$binary"
+            cmp "builders/a/$binary" "builders/b/$binary"
+          done
+          mkdir -p /tmp/data-fabric-tools
+          GOBIN=/tmp/data-fabric-tools go install golang.org/x/vuln/cmd/govulncheck@v1.6.0
+          for binary in "${binaries[@]}"; do
+            scanned=false
+            for attempt in 1 2 3; do
+              if /tmp/data-fabric-tools/govulncheck -mode=binary -format=json "builders/a/$binary" \
+                > "evidence/$binary.govulncheck.$attempt.partial"; then
+                mv "evidence/$binary.govulncheck.$attempt.partial" "evidence/$binary.govulncheck.jsonl"
+                scanned=true
+                break
+              fi
+            done
+            test "$scanned" = true
+            test -s "evidence/$binary.govulncheck.jsonl"
+          done
+          jq -n \
+            --arg sourceCommit "$SOURCE_COMMIT" \
+            --arg verifiedAt "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" \
+            --arg daemon "$(sha256sum builders/a/ynx-data-fabricd | cut -d' ' -f1)" \
+            --arg ctl "$(sha256sum builders/a/ynx-data-fabricctl | cut -d' ' -f1)" \
+            --arg worker "$(sha256sum builders/a/ynx-data-fabric-worker | cut -d' ' -f1)" \
+            --arg bridge "$(sha256sum builders/a/ynx-pay-data-fabric-bridge | cut -d' ' -f1)" \
+            --argjson daemonModuleFindings "$(jq -s '[.[] | select(has("finding"))] | length' evidence/ynx-data-fabricd.govulncheck.jsonl)" \
+            --argjson ctlModuleFindings "$(jq -s '[.[] | select(has("finding"))] | length' evidence/ynx-data-fabricctl.govulncheck.jsonl)" \
+            --argjson workerModuleFindings "$(jq -s '[.[] | select(has("finding"))] | length' evidence/ynx-data-fabric-worker.govulncheck.jsonl)" \
+            --argjson bridgeModuleFindings "$(jq -s '[.[] | select(has("finding"))] | length' evidence/ynx-pay-data-fabric-bridge.govulncheck.jsonl)" \
+            --argjson daemonBytes "$(stat -c %s builders/a/ynx-data-fabricd)" \
+            --argjson ctlBytes "$(stat -c %s builders/a/ynx-data-fabricctl)" \
+            --argjson workerBytes "$(stat -c %s builders/a/ynx-data-fabric-worker)" \
+            --argjson bridgeBytes "$(stat -c %s builders/a/ynx-pay-data-fabric-bridge)" \
+            '{
+              schema:"ynx-data-fabric-reproducible-build/v1",
+              sourceCommit:$sourceCommit,
+              verifiedAt:$verifiedAt,
+              builders:{count:2,isolation:"separate-github-hosted-runners",toolchain:"go1.25.13",target:"linux/amd64"},
+              byteIdentical:true,
+              artifactScan:{
+                scanner:"govulncheck",
+                version:"v1.6.0",
+                mode:"binary",
+                scanned:4,
+                knownVulnerabilitiesAffectingCode:0,
+                rawModuleFindings:{
+                  "ynx-data-fabricd":$daemonModuleFindings,
+                  "ynx-data-fabricctl":$ctlModuleFindings,
+                  "ynx-data-fabric-worker":$workerModuleFindings,
+                  "ynx-pay-data-fabric-bridge":$bridgeModuleFindings
+                },
+                findingBoundary:"raw module findings can include imported modules whose vulnerable symbols are not called; successful symbol scan proves only zero known reachable vulnerabilities"
+              },
+              binaries:{
+                "ynx-data-fabricd":{sha256:$daemon,bytes:$daemonBytes},
+                "ynx-data-fabricctl":{sha256:$ctl,bytes:$ctlBytes},
+                "ynx-data-fabric-worker":{sha256:$worker,bytes:$workerBytes},
+                "ynx-pay-data-fabric-bridge":{sha256:$bridge,bytes:$bridgeBytes}
+              },
+              limitations:["same GitHub-hosted runner image family","same pinned Go toolchain","module-only advisories still require dependency-owner review","not a public release or production signature"]
+            }' > evidence/data-fabric-reproducible-build.json
+          jq -e '.byteIdentical == true and .builders.count == 2 and (.binaries | length) == 4 and .artifactScan.scanned == 4 and .artifactScan.knownVulnerabilitiesAffectingCode == 0 and (.artifactScan.rawModuleFindings | length) == 4' evidence/data-fabric-reproducible-build.json
+      - name: Upload reproducibility receipt
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: data-fabric-reproducible-build-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            evidence/data-fabric-reproducible-build.json
+            evidence/*.govulncheck.jsonl
+          if-no-files-found: error
+          retention-days: 30
+
   verify:
     name: data-fabric-verify
     runs-on: ubuntu-latest
@@ -43,10 +183,11 @@ jobs:
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
         with:
           fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - name: Install Go
         uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16
         with:
-          go-version: "1.25.12"
+          go-version: "1.25.13"
           cache: true
       - name: Install Node
         uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
@@ -57,6 +198,11 @@ jobs:
         run: npm ci --ignore-scripts
       - name: Audit Node build dependencies
         run: npm audit --audit-level=high
+      - name: Install, audit and test the TypeScript SDK
+        run: |
+          npm ci --ignore-scripts --prefix sdk/datafabric-typescript
+          npm audit --audit-level=high --prefix sdk/datafabric-typescript
+          npm test --prefix sdk/datafabric-typescript
       - name: Generate contract artifacts required by repository tests
         run: |
           npm run hardhat:build
@@ -119,13 +265,307 @@ jobs:
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
         with:
           fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - name: Install Go
         uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16
         with:
-          go-version: "1.25.12"
+          go-version: "1.25.13"
           cache: true
       - name: Run destructive-isolated PostgreSQL integration
         env:
           YNX_TEST_POSTGRES_DSN: postgres://ynx_test:integration-only-password@127.0.0.1:5432/ynx_data_fabric_test?sslmode=disable
           YNX_TEST_POSTGRES_ALLOW_DESTRUCTIVE: "1"
         run: go test ./internal/datafabricpostgres ./internal/datafabricpgbackup -run '^TestPostgresLive(TransactionsConstraintsAndRecovery|LogicalBackupRestoreAndIntegrity)$' -count=1 -v
+      - name: Measure PostgreSQL hotspot, duplicate storm, restart and long replay
+        env:
+          YNX_TEST_POSTGRES_DSN: postgres://ynx_test:integration-only-password@127.0.0.1:5432/ynx_data_fabric_test?sslmode=disable
+          YNX_TEST_POSTGRES_ALLOW_DESTRUCTIVE: "1"
+        run: |
+          mkdir -p /tmp/data-fabric-postgres-resilience
+          go build -trimpath -o /tmp/ynx-data-fabric-postgres-resilience ./scripts/data-fabric/postgres-resilience
+          source_commit="$(git rev-parse HEAD)"
+          source_release="ynx-data-fabric-${source_commit:0:12}"
+          /tmp/ynx-data-fabric-postgres-resilience \
+            -phase seed -events 10000 -hot-share-percent 90 -cold-workers 16 -duplicate-attempts 1000 \
+            -source-commit "$source_commit" -source-release "$source_release" -dirty-working-tree=false \
+            | tee /tmp/data-fabric-postgres-resilience/seed.json
+          postgres_container="$(docker ps --filter ancestor=postgres:17.10-alpine --format '{{.ID}}' | head -n 1)"
+          test -n "$postgres_container"
+          restart_started_unix_nano="$(date +%s%N)"
+          docker restart "$postgres_container"
+          ready=0
+          for attempt in $(seq 1 120); do
+            if docker exec "$postgres_container" pg_isready -U ynx_test -d ynx_data_fabric_test; then
+              ready=1
+              break
+            fi
+            sleep 1
+          done
+          test "$ready" = 1
+          /tmp/ynx-data-fabric-postgres-resilience \
+            -phase verify -events 10000 -hot-share-percent 90 -cold-workers 16 -duplicate-attempts 1000 \
+            -source-commit "$source_commit" -source-release "$source_release" -dirty-working-tree=false \
+            -restart-started-unix-nano "$restart_started_unix_nano" \
+            | tee /tmp/data-fabric-postgres-resilience/verify.json
+          jq -e '.phase == "seed" and .events == 10000 and .duplicateRejects == 1000 and .unexpectedErrors == 0' /tmp/data-fabric-postgres-resilience/seed.json
+          jq -e '.phase == "verify" and .databaseRestarted == true and .recoveryPointObjectiveLostEvents == 0 and .longReplayApplied == 10000 and .idempotentReplaySkipped == 10000' /tmp/data-fabric-postgres-resilience/verify.json
+      - name: Crash PostgreSQL-backed JetStream consumer after commit before ack
+        env:
+          YNX_TEST_POSTGRES_DSN: postgres://ynx_test:integration-only-password@127.0.0.1:5432/ynx_data_fabric_test?sslmode=disable
+          YNX_TEST_POSTGRES_ALLOW_DESTRUCTIVE: "1"
+          YNX_DATA_FABRIC_TEST_SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -o pipefail
+          go test -json ./internal/datafabricnats -run '^TestPostgresJetStreamConsumerProcessCrashRedelivery$' -count=1 \
+            | tee /tmp/data-fabric-postgres-resilience/consumer-process-crash.jsonl
+          jq -s -e 'any(.[]; .Action == "pass" and .Test == "TestPostgresJetStreamConsumerProcessCrashRedelivery")' \
+            /tmp/data-fabric-postgres-resilience/consumer-process-crash.jsonl
+          jq -s --arg source "$YNX_DATA_FABRIC_TEST_SOURCE_COMMIT" '
+            [
+              .[]
+              | select((.Output? // "") | contains("consumerCrashEvidence="))
+              | (.Output | capture("consumerCrashEvidence=(?<evidence>\\{.*\\})").evidence | fromjson)
+            ]
+            | if length != 1 then error("expected one consumer crash evidence object") else .[0] end
+            | if .sourceCommit != $source then error("consumer crash evidence source commit mismatch") else . end
+          ' /tmp/data-fabric-postgres-resilience/consumer-process-crash.jsonl \
+            > /tmp/data-fabric-postgres-resilience/consumer-process-crash.json
+          jq -e '
+            .childExitCode == 86
+            and .crashAfterPostgresCommitBeforeBrokerAck == true
+            and .canonicalEvents == 1
+            and .inboxEffects == 1
+            and .analyticsFacts == 1
+            and .duplicateBusinessEffects == 0
+            and .deliveredConsumerSequence >= 2
+            and .deliveredStreamSequence == 1
+            and .ackFloorConsumerSequence >= 2
+            and .ackFloorStreamSequence == 1
+            and .ackPending == 0
+          ' /tmp/data-fabric-postgres-resilience/consumer-process-crash.json
+      - name: Retain PostgreSQL Outbox under JetStream capacity backpressure
+        env:
+          YNX_TEST_POSTGRES_DSN: postgres://ynx_test:integration-only-password@127.0.0.1:5432/ynx_data_fabric_test?sslmode=disable
+          YNX_TEST_POSTGRES_ALLOW_DESTRUCTIVE: "1"
+          YNX_DATA_FABRIC_TEST_SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -o pipefail
+          go test -json ./internal/datafabricnats -run '^TestPostgresJetStreamCapacityBackpressureRetainsOutbox$' -count=1 \
+            | tee /tmp/data-fabric-postgres-resilience/transport-backpressure.jsonl
+          jq -s -e 'any(.[]; .Action == "pass" and .Test == "TestPostgresJetStreamCapacityBackpressureRetainsOutbox")' \
+            /tmp/data-fabric-postgres-resilience/transport-backpressure.jsonl
+          jq -s --arg source "$YNX_DATA_FABRIC_TEST_SOURCE_COMMIT" '
+            [
+              .[]
+              | select((.Output? // "") | contains("transportBackpressureEvidence="))
+              | (.Output | capture("transportBackpressureEvidence=(?<evidence>\\{.*\\})").evidence | fromjson)
+            ]
+            | if length != 1 then error("expected one transport backpressure evidence object") else .[0] end
+            | if .sourceCommit != $source then error("transport backpressure evidence source commit mismatch") else . end
+          ' /tmp/data-fabric-postgres-resilience/transport-backpressure.jsonl \
+            > /tmp/data-fabric-postgres-resilience/transport-backpressure.json
+          jq -e '
+            .canonicalEvents == 256
+            and .constrainedPublished > 0
+            and .constrainedRejected > 0
+            and .constrainedPublished + .constrainedRejected == .canonicalEvents
+            and .outboxRetainedUnderPressure == .constrainedRejected
+            and .deadLettersUnderPressure == 0
+            and .recoveredPublished == .constrainedRejected
+            and .finalOutboxPending == 0
+            and .finalDeadLetters == 0
+            and .finalStreamMessages == .canonicalEvents
+            and .duplicateStreamMessages == 0
+          ' /tmp/data-fabric-postgres-resilience/transport-backpressure.json
+      - name: Run 1000 signed Producers through PostgreSQL and JetStream
+        env:
+          YNX_TEST_POSTGRES_DSN: postgres://ynx_test:integration-only-password@127.0.0.1:5432/ynx_data_fabric_test?sslmode=disable
+          YNX_DATA_FABRIC_TEST_SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          go run ./scripts/data-fabric/api-capacity \
+            -producers 1000 \
+            -server-concurrency 64 \
+            -source-commit "$YNX_DATA_FABRIC_TEST_SOURCE_COMMIT" \
+            -source-release "ynx-data-fabric-${YNX_DATA_FABRIC_TEST_SOURCE_COMMIT:0:12}" \
+            -dirty-working-tree=false \
+            -postgres-dsn "$YNX_TEST_POSTGRES_DSN" \
+            -embedded-jetstream \
+            -allow-destructive-test-database \
+            | tee /tmp/data-fabric-postgres-resilience/producer-postgres-jetstream.json
+          jq -e --arg source "$YNX_DATA_FABRIC_TEST_SOURCE_COMMIT" '
+            .sourceCommit == $source
+            and .dirtyWorkingTree == false
+            and .producers == 1000
+            and .succeeded == 1000
+            and .businessErrors == 0
+            and .producerConcurrencyLimit == 64
+            and .observedPeakServerInFlight > 0
+            and .observedPeakServerInFlight <= .producerConcurrencyLimit
+            and .backpressureResponses > 0
+            and .database == "PostgreSQL"
+            and .broker == "file-backed embedded JetStream"
+            and .transactionalOutboxQueueDepth == 1000
+            and .brokerPublished == 1000
+            and .finalTransactionalOutboxQueueDepth == 0
+            and .streamMessages == 1000
+          ' /tmp/data-fabric-postgres-resilience/producer-postgres-jetstream.json
+      - name: Fail over a three-replica JetStream stream leader
+        env:
+          YNX_DATA_FABRIC_TEST_SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -o pipefail
+          go test -json ./internal/datafabricnats -run '^TestJetStreamThreeReplicaLeaderLossRetainsOutboxAndRecovers$' -count=1 \
+            | tee /tmp/data-fabric-postgres-resilience/jetstream-cluster-leader-loss.jsonl
+          jq -s -e 'any(.[]; .Action == "pass" and .Test == "TestJetStreamThreeReplicaLeaderLossRetainsOutboxAndRecovers")' \
+            /tmp/data-fabric-postgres-resilience/jetstream-cluster-leader-loss.jsonl
+          jq -s --arg source "$YNX_DATA_FABRIC_TEST_SOURCE_COMMIT" '
+            [
+              .[]
+              | select((.Output? // "") | contains("jetStreamClusterLeaderLossEvidence="))
+              | (.Output | capture("jetStreamClusterLeaderLossEvidence=(?<evidence>\\{.*\\})").evidence | fromjson)
+            ]
+            | if length != 1 then error("expected one JetStream cluster leader-loss evidence object") else .[0] end
+            | if .sourceCommit != $source then error("JetStream cluster leader-loss source commit mismatch") else . end
+          ' /tmp/data-fabric-postgres-resilience/jetstream-cluster-leader-loss.jsonl \
+            > /tmp/data-fabric-postgres-resilience/jetstream-cluster-leader-loss.json
+          jq -e '
+            .broker == "three-node file-backed JetStream cluster"
+            and .clusterNodes == 3
+            and .streamReplicas == 3
+            and .canonicalEvents == 128
+            and .publishedBeforeLeaderLoss == 64
+            and .streamLeaderChanged == true
+            and .publishedAfterLeaderLoss == 64
+            and .finalOutboxPending == 0
+            and .finalStreamMessages == 128
+            and .duplicateStreamMessages == 0
+            and .currentReplicaCount == 3
+            and .leaderFailoverRTOMilliseconds >= 0
+            and .restartedReplicaCatchupRTOMilliseconds >= 0
+          ' /tmp/data-fabric-postgres-resilience/jetstream-cluster-leader-loss.json
+      - name: Partition and heal a three-replica JetStream route mesh
+        env:
+          YNX_DATA_FABRIC_TEST_SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -o pipefail
+          go test -json ./internal/datafabricnats -run '^TestJetStreamThreeReplicaRoutePartitionRetainsOutboxAndRecovers$' -count=1 \
+            | tee /tmp/data-fabric-postgres-resilience/jetstream-cluster-partition.jsonl
+          jq -s -e 'any(.[]; .Action == "pass" and .Test == "TestJetStreamThreeReplicaRoutePartitionRetainsOutboxAndRecovers")' \
+            /tmp/data-fabric-postgres-resilience/jetstream-cluster-partition.jsonl
+          jq -s --arg source "$YNX_DATA_FABRIC_TEST_SOURCE_COMMIT" '
+            [
+              .[]
+              | select(.Test == "TestJetStreamThreeReplicaRoutePartitionRetainsOutboxAndRecovers")
+              | (.Output? // "")
+            ]
+            | join("")
+            | capture("jetStreamClusterPartitionEvidence=(?<evidence>\\{[^\\n]*\\})").evidence
+            | fromjson
+            | if .sourceCommit != $source then error("JetStream cluster partition source commit mismatch") else . end
+          ' /tmp/data-fabric-postgres-resilience/jetstream-cluster-partition.jsonl \
+            > /tmp/data-fabric-postgres-resilience/jetstream-cluster-partition.json
+          jq -e '
+            .broker == "three-node file-backed JetStream cluster"
+            and .faultMechanism == "bidirectional TCP route isolation at advertised per-node proxies"
+            and .clusterNodes == 3
+            and .streamReplicas == 3
+            and .canonicalEvents == 192
+            and .publishedBeforePartition == 64
+            and .streamLeaderChanged == true
+            and .allServerProcessesRunning == true
+            and .isolatedServerRouteCount == 0
+            and .rejectedOnIsolatedServer == 1
+            and .outboxPendingDuringPartition == 128
+            and .publishedDuringPartition == 64
+            and .streamMessagesDuringPartition == 128
+            and .currentReplicaCountDuringPartition == 2
+            and .publishedAfterHeal == 64
+            and .finalOutboxPending == 0
+            and .finalStreamMessages == 192
+            and .duplicateStreamMessages == 0
+            and .currentReplicaCount == 3
+            and .partitionFailoverRTOMilliseconds >= 0
+            and .partitionHealRTOMilliseconds >= 0
+          ' /tmp/data-fabric-postgres-resilience/jetstream-cluster-partition.json
+      - name: Upload exact-source PostgreSQL resilience evidence
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: data-fabric-postgres-resilience-${{ github.event.pull_request.head.sha || github.sha }}
+          path: /tmp/data-fabric-postgres-resilience/*.json*
+          if-no-files-found: error
+          retention-days: 30
+
+  postgres-failover-live:
+    name: data-fabric-postgres-failover-live
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17.10-alpine
+        env:
+          POSTGRES_DB: ynx_data_fabric_test
+          POSTGRES_USER: ynx_test
+          POSTGRES_PASSWORD: integration-only-password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ynx_test -d ynx_data_fabric_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Install Go
+        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16
+        with:
+          go-version: "1.25.13"
+          cache: true
+      - name: Promote a caught-up PostgreSQL streaming standby
+        env:
+          YNX_TEST_POSTGRES_DSN: postgres://ynx_test:integration-only-password@127.0.0.1:5432/ynx_data_fabric_test?sslmode=disable
+          YNX_TEST_POSTGRES_PASSWORD: integration-only-password
+          YNX_DATA_FABRIC_TEST_SOURCE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+          YNX_DATA_FABRIC_FAILOVER_OUTPUT_DIR: /tmp/data-fabric-postgres-failover
+          YNX_DATA_FABRIC_DIRTY_WORKING_TREE: "false"
+        run: |
+          mkdir -p "$YNX_DATA_FABRIC_FAILOVER_OUTPUT_DIR"
+          go build -trimpath -o /tmp/ynx-data-fabric-postgres-resilience ./scripts/data-fabric/postgres-resilience
+          primary_container="$(docker ps --filter ancestor=postgres:17.10-alpine --format '{{.ID}}' | head -n 1)"
+          test -n "$primary_container"
+          export YNX_TEST_POSTGRES_PRIMARY_CONTAINER="$primary_container"
+          scripts/data-fabric/postgres-replica-failover.sh
+          jq -e --arg source "$YNX_DATA_FABRIC_TEST_SOURCE_COMMIT" '
+            .schema == "ynx-data-fabric-postgres-replica-failover/v1"
+            and .sourceCommit == $source
+            and .dirtyWorkingTree == false
+            and .topology == "streaming-primary-standby"
+            and .replicationMode == "asynchronous-streaming"
+            and .standbyWasInRecovery == true
+            and .standbyWasReadOnly == true
+            and .caughtUpBeforePrimaryStop == true
+            and .primaryStopped == true
+            and .promotionMode == "manual-pg-promote"
+            and .promotedWritablePrimary == true
+            and .canonicalEvents == 1000
+            and .duplicateRejectsBeforeFailure == 100
+            and .outboxPendingBeforeFailure == 1000
+            and .recoveryPointObjectiveLostEvents == 0
+            and .replayApplied == 1000
+            and .idempotentReplaySkipped == 1000
+            and .inboxEffects == 1000
+            and .analyticsFacts == 1000
+            and .finalOutboxPending == 1000
+            and .acceptingConnectionsRTOMilliseconds >= 0
+            and .integrityValidatedRTOMilliseconds >= .acceptingConnectionsRTOMilliseconds
+          ' "$YNX_DATA_FABRIC_FAILOVER_OUTPUT_DIR/postgres-replica-failover.json"
+      - name: Upload exact-source PostgreSQL failover evidence
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: data-fabric-postgres-failover-${{ github.event.pull_request.head.sha || github.sha }}
+          path: /tmp/data-fabric-postgres-failover/*.json
+          if-no-files-found: error
+          retention-days: 30

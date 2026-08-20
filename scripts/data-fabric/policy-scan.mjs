@@ -21,6 +21,7 @@ const runtimePaths = [
   "internal/datafabricpayledger",
   "internal/datafabricpostgres",
   "sdk/datafabric",
+  "sdk/datafabric-typescript",
   "schemas/data-fabric",
   "configs/data-fabric.env.example",
   "configs/data-fabric-event-keys.example.json",

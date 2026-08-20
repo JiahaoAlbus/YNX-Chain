@@ -45,6 +45,7 @@ func main() {
 	sourceCommit := flag.String("source-commit", os.Getenv("YNX_DATA_FABRIC_SOURCE_COMMIT"), "source commit")
 	sourceRelease := flag.String("source-release", os.Getenv("YNX_DATA_FABRIC_SOURCE_RELEASE"), "source release")
 	rateLimitPerMinute := flag.Uint("rate-limit-per-minute", envUint("YNX_DATA_FABRIC_RATE_LIMIT_PER_MINUTE", 120), "per canonical session/device/product request limit per minute")
+	producerConcurrencyLimit := flag.Uint("producer-concurrency-limit", envUint("YNX_DATA_FABRIC_PRODUCER_CONCURRENCY_LIMIT", 128), "maximum producer ingress requests admitted concurrently before bounded 429 backpressure")
 	flag.Parse()
 
 	if _, _, err := net.SplitHostPort(*listen); err != nil {
@@ -52,6 +53,9 @@ func main() {
 	}
 	if *rateLimitPerMinute == 0 || *rateLimitPerMinute > 10000 {
 		fail("rate limit must be between 1 and 10000 requests per minute")
+	}
+	if *producerConcurrencyLimit == 0 || *producerConcurrencyLimit > 4096 {
+		fail("producer concurrency limit must be between 1 and 4096")
 	}
 	if !filepath.IsAbs(*keyRegistryPath) || !filepath.IsAbs(*privacyKeyPath) {
 		fail("privacy key and event key registry paths must be absolute")
@@ -66,7 +70,7 @@ func main() {
 	}
 	shutdownContext, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
-	apiConfig := datafabricapi.Config{Authorizer: datafabricapi.HTTPAuthorizer{Endpoint: *introspectionURL}, EventKeys: keys, EventKeyProducts: keyProducts, PrivacyKey: privacyKey, SourceCommit: *sourceCommit, SourceRelease: *sourceRelease, RateLimitPerMinute: uint32(*rateLimitPerMinute)}
+	apiConfig := datafabricapi.Config{Authorizer: datafabricapi.HTTPAuthorizer{Endpoint: *introspectionURL}, EventKeys: keys, EventKeyProducts: keyProducts, PrivacyKey: privacyKey, SourceCommit: *sourceCommit, SourceRelease: *sourceRelease, RateLimitPerMinute: uint32(*rateLimitPerMinute), ProducerConcurrencyLimit: uint32(*producerConcurrencyLimit)}
 	closeBackend := func() {}
 	switch *storeMode {
 	case "postgres":

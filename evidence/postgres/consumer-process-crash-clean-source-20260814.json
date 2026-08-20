@@ -1,0 +1,26 @@
+{
+  "ackFloorConsumerSequence": 2,
+  "ackFloorStreamSequence": 1,
+  "ackPending": 0,
+  "analyticsFacts": 1,
+  "broker": "file-backed embedded JetStream",
+  "canonicalEvents": 1,
+  "childExitCode": 86,
+  "childLifetimeMilliseconds": 26.6,
+  "crashAfterPostgresCommitBeforeBrokerAck": true,
+  "database": "PostgreSQL",
+  "deliveredConsumerSequence": 2,
+  "deliveredStreamSequence": 1,
+  "duplicateBusinessEffects": 0,
+  "durable": "postgres-analytics-process-crash-v1",
+  "eventId": "event.pay.invoice.created.0001",
+  "inboxEffects": 1,
+  "limitations": [
+    "one event and one consumer crash",
+    "embedded single-node JetStream",
+    "single PostgreSQL primary",
+    "no broker partition, leader loss, sustained load, shared Testnet or public-scale claim"
+  ],
+  "redeliveryRecoveryAfterExitMilliseconds": 995.225,
+  "sourceCommit": "4bb2ddfb6337e44060f57adafc7ee1cc08faedbe"
+}
