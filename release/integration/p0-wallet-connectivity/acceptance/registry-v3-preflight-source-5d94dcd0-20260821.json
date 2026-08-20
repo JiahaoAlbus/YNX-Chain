@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "acceptanceId": "P0-042-REGISTRY-V3-PREFLIGHT-SOURCE-5D94DCD0-20260821",
+  "acceptanceId": "P0-044-REGISTRY-V3-PREFLIGHT-SOURCE-5D94DCD0-20260821",
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "status": "SOURCE_ACCEPTED_EXECUTION_LEASE_BLOCKED",
   "owner": "wallet-auth-core",

@@ -34,7 +34,7 @@ assert.equal(acceptance.productsMigrated, 0);
 assert.equal(evidence.truthBoundary.currentPublicRuntimeSource, "6cf3ef845202bd879ed94515a71b323dd2fc9e14");
 assert.equal(evidence.truthBoundary.registryV3DeployedPublic, false);
 assert.equal(evidence.truthBoundary.productionMutation, false);
-const task = queue.tasks.find((item) => item.taskId === "P0-042");
+const task = queue.tasks.find((item) => item.taskId === "P0-044");
 assert.ok(task);
 assert.equal(task.sourceCommit, acceptance.sourceCommit);
 assert.equal(task.status, acceptance.status);
