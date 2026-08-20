@@ -5,7 +5,7 @@ import {join} from "node:path";
 import {test} from "node:test";
 import {
   DAppConnectClient, DAppConnectError, PendingCallbackStore, StandardWalletConnection, YNX_TESTNET,
-  classifyWalletError, compatibilityCheck, createSiweMessage, discoverEIP6963, enhanceWithProductSession, loadBundledManifest, runCompatibilityLab, selectHealthyEndpoint, validateEndpointManifest
+  classifyWalletError, compatibilityCheck, createSiweMessage, discoverEIP6963, enhanceWithProductSession, loadBundledManifest, manifestPayloadSha256, runCompatibilityLab, selectHealthyEndpoint, validateEndpointManifest
 } from "../src/index.js";
 
 const account = "0x1111111111111111111111111111111111111111";
@@ -93,6 +93,14 @@ test("candidate manifests are diagnosable but cannot activate endpoints or Fauce
   assert.deepEqual(compatibilityCheck({...candidate, expiresAt: null}), {compatible: false, code: "ENDPOINT_MANIFEST_EXPIRED"});
   const client = new DAppConnectClient({endpointManifest: candidate, opener: async value => value});
   await assert.rejects(() => client.openWalletFaucet(), error => error.code === "ENDPOINT_MANIFEST_NOT_ACCEPTED");
+});
+
+test("accepted bundled endpoint manifest activates only after its canonical SHA-256 check", async () => {
+  const manifest = {schemaVersion: "1.0.0", status: "ACCEPTED_BUNDLED_CONSUMER_CONTRACT", expiresAt: "2026-09-20T08:45:00.000Z", cosmosChainId: "ynx_6423-1", evmChainId: 6423, evmChainHex: "0x1917", nativeAsset: "YNXT", rpc: "https://rpc.ynxweb4.com", evmRpc: "https://evm.ynxweb4.com", rest: "https://rest.ynxweb4.com", walletGateway: "https://wallet-auth.ynxweb4.com", appGateway: "https://gateway.ynxweb4.com", faucet: "https://faucet.ynxweb4.com", explorer: "https://explorer.ynxweb4.com", indexer: "https://indexer.ynxweb4.com", monitor: "https://monitor.ynxweb4.com", healthUrl: "https://monitor.ynxweb4.com/health", versionUrl: "https://monitor.ynxweb4.com/version", endpointStates: {evmRpc: {status: "VERIFIED"}, faucet: {status: "DEGRADED"}}};
+  manifest.integrity = {status: "BUNDLED_SHA256_ACCEPTED", payloadSha256: manifestPayloadSha256(manifest)};
+  const accepted = await loadBundledManifest(manifest, {now: Date.parse("2026-08-20T00:00:00.000Z")});
+  assert.equal(accepted.verification, "BUNDLED_SHA256_ACCEPTED");
+  await assert.rejects(() => loadBundledManifest({...manifest, rpc: "https://tampered.example"}, {now: Date.parse("2026-08-20T00:00:00.000Z")}), error => error.code === "ENDPOINT_MANIFEST_INTEGRITY_FAILED");
 });
 
 test("endpoint health selection and Compatibility Lab report real outcomes without invented passes", async () => {
