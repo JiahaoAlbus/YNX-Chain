@@ -7,25 +7,17 @@ import (
 	"io"
 	"net/http"
 	"strings"
-
-	"github.com/JiahaoAlbus/YNX-Chain/internal/resourcemarket"
 )
 
 func (s *Service) Handler(assets http.Handler) http.Handler {
 	mux := http.NewServeMux()
 	s.registerAuthorityRoutes(mux)
-	s.registerMarketRoutes(mux)
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
 		authMode := "session-registry"
 		if s.cfg.AllowHeaderAuth {
 			authMode = "development-trusted-header"
 		}
-		writeJSON(w, 200, map[string]any{"ok": true, "status": "ready", "service": "ynx-resource-market", "checks": map[string]string{"process": "pass", "marketEngineInitialized": "pass", "persistencePathConfigured": "pass"}, "coverage": "local process initialization only", "authMode": authMode, "centralGatewayConfigured": s.cfg.CentralGatewayURL != "", "aiProviderConfigured": s.cfg.AIURL != "" && s.cfg.AIKey != "", "truthBoundary": "Sponsorship moves bounded resource capacity only and never user assets."})
-	})
-	mux.HandleFunc("GET /metrics", s.handleMetrics)
-	mux.HandleFunc("GET /status", s.handleOperationalStatus)
-	mux.HandleFunc("GET /version", func(w http.ResponseWriter, _ *http.Request) {
-		writeJSON(w, 200, map[string]any{"service": "ynx-resource-market", "version": "0.3.0-candidate", "marketSchemaVersion": resourcemarket.SchemaVersion, "releaseClass": "unreleased-local-candidate"})
+		writeJSON(w, 200, map[string]any{"ok": true, "service": "ynx-resource-market", "persistent": true, "authMode": authMode, "centralGatewayConfigured": s.cfg.CentralGatewayURL != "", "aiProviderConfigured": s.cfg.AIURL != "" && s.cfg.AIKey != "", "truthBoundary": "Sponsorship moves bounded resource capacity only and never user assets."})
 	})
 	mux.HandleFunc("GET /api/state", func(w http.ResponseWriter, r *http.Request) {
 		v, err := s.View(s.actorFrom(r))
@@ -52,7 +44,7 @@ func (s *Service) Handler(assets http.Handler) http.Handler {
 	if assets != nil {
 		mux.Handle("/", assets)
 	}
-	return securityHeaders(s.observe(s.productSessionProofs(mux)))
+	return securityHeaders(mux)
 }
 
 func decodeActionBody(r *http.Request, out any) error {
@@ -72,12 +64,14 @@ func decodeActionBody(r *http.Request, out any) error {
 	return nil
 }
 func (s *Service) actorFrom(r *http.Request) Actor {
-	if verified, ok := productSessionFrom(r); ok {
-		return verified.Actor
-	}
 	token := strings.TrimSpace(strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer "))
 	if actor, ok := s.sessions[token]; ok && token != "" {
 		return actor
+	}
+	if token != "" {
+		if actor, err := s.authenticateCentral("Bearer "+token, strings.TrimSpace(r.Header.Get("X-YNX-Product-Device-Key"))); err == nil {
+			return actor
+		}
 	}
 	if s.cfg.AllowHeaderAuth {
 		return Actor{ID: strings.TrimSpace(r.Header.Get("X-YNX-Actor")), Role: strings.TrimSpace(r.Header.Get("X-YNX-Role"))}
@@ -90,20 +84,11 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 	_ = json.NewEncoder(w).Encode(v)
 }
 func writeErr(w http.ResponseWriter, err error) {
-	writeCodedErr(w, err, "RESOURCE_REQUEST_REJECTED")
-}
-
-func writeCodedErr(w http.ResponseWriter, err error, code string) {
 	status := 500
 	if e, ok := err.(apiError); ok {
 		status = e.Status
 	}
-	if strings.TrimSpace(code) == "" {
-		code = "RESOURCE_INTERNAL_ERROR"
-	}
-	errorID := "err_" + newTraceID()
-	w.Header().Set("X-Error-ID", errorID)
-	writeJSON(w, status, map[string]string{"code": code, "error": err.Error(), "errorId": errorID, "requestId": w.Header().Get("X-Request-ID"), "traceId": w.Header().Get("X-Trace-ID")})
+	writeJSON(w, status, map[string]string{"error": err.Error()})
 }
 func securityHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

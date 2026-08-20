@@ -20,7 +20,7 @@ type authorityResponse struct {
 	Body   []byte
 }
 
-func (s *Service) centralRequest(r *http.Request, method, path string, body []byte, proof string) (authorityResponse, error) {
+func (s *Service) centralRequest(r *http.Request, method, path string, body []byte, session, device string) (authorityResponse, error) {
 	if s.cfg.CentralGatewayURL == "" {
 		return authorityResponse{}, errors.New("central Wallet/Gateway is unavailable or not configured")
 	}
@@ -32,9 +32,11 @@ func (s *Service) centralRequest(r *http.Request, method, path string, body []by
 		return authorityResponse{}, err
 	}
 	req.Header.Set("X-YNX-Client", s.cfg.CentralClientID)
-	if proof != "" {
-		req.Header.Set(canonicalwallet.ProductSessionProofHeader, proof)
-		req.Header.Set("X-YNX-Product-Request-Path", r.URL.Path)
+	if session != "" {
+		req.Header.Set("X-YNX-Session-Binding", strings.TrimSpace(strings.TrimPrefix(session, "Bearer ")))
+	}
+	if device != "" {
+		req.Header.Set("X-YNX-Product-Device-Key", device)
 	}
 	if len(body) > 0 {
 		req.Header.Set("Content-Type", "application/json")
@@ -59,7 +61,6 @@ func (s *Service) registerAuthorityRoutes(mux *http.ServeMux) {
 	})
 	mux.HandleFunc("POST /api/auth/challenges", legacyWalletGone)
 	mux.HandleFunc("POST /api/auth/challenges/{id}/verify", legacyWalletGone)
-	mux.HandleFunc("POST /api/auth/session/challenge", s.handleCentralChallenge)
 	mux.HandleFunc("POST /api/auth/session/complete", s.handleCanonicalComplete)
 	mux.HandleFunc("POST /api/auth/revoke", s.handleCentralRevoke)
 	mux.HandleFunc("POST /api/authority/intents", s.handleIntentCreate)
@@ -96,7 +97,7 @@ func (s *Service) handleCanonicalComplete(w http.ResponseWriter, r *http.Request
 	if !ok {
 		return
 	}
-	resp, err := s.centralRequest(r, http.MethodPost, "/app/session/wallet-v1/complete", raw, "")
+	resp, err := s.centralRequest(r, http.MethodPost, "/app/session/wallet-v1/complete", raw, "", "")
 	if err != nil {
 		writeJSON(w, 503, map[string]string{"error": "canonical Wallet/Gateway unavailable", "state": "unavailable", "authority": "no local session created"})
 		return
@@ -121,7 +122,7 @@ func (s *Service) handleCentralChallenge(w http.ResponseWriter, r *http.Request)
 	if !ok {
 		return
 	}
-	resp, err := s.centralRequest(r, http.MethodPost, "/app/session/wallet-v1/challenge", raw, "")
+	resp, err := s.centralRequest(r, http.MethodPost, "/app/session/challenges", raw, "", "")
 	if err != nil {
 		writeJSON(w, 503, map[string]string{"error": err.Error(), "state": "unavailable", "retry": "safe"})
 		return
@@ -133,7 +134,7 @@ func (s *Service) handleCentralVerify(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	resp, err := s.centralRequest(r, http.MethodPost, "/app/session/challenges/"+url.PathEscape(r.PathValue("id"))+"/verify", raw, "")
+	resp, err := s.centralRequest(r, http.MethodPost, "/app/session/challenges/"+url.PathEscape(r.PathValue("id"))+"/verify", raw, "", "")
 	if err != nil {
 		writeJSON(w, 503, map[string]string{"error": err.Error(), "state": "unavailable", "retry": "safe"})
 		return
@@ -157,28 +158,28 @@ func (s *Service) handleCentralVerify(w http.ResponseWriter, r *http.Request) {
 	copyCentral(w, resp)
 }
 func (s *Service) handleCentralRevoke(w http.ResponseWriter, r *http.Request) {
-	auth, err := requireProductSession(r)
-	if err != nil {
+	token, device := r.Header.Get("Authorization"), r.Header.Get("X-YNX-Product-Device-Key")
+	if _, err := s.authenticateCentral(token, device); err != nil {
 		writeErr(w, err)
 		return
 	}
-	resp, err := s.centralRequest(r, http.MethodPost, "/app/session/wallet-v1/revoke", nil, auth.Proof)
+	resp, err := s.centralRequest(r, http.MethodPost, "/app/session/wallet-v1/revoke", nil, token, device)
 	if err != nil {
 		writeJSON(w, 503, map[string]string{"error": err.Error(), "state": "unavailable", "retry": "safe"})
 		return
 	}
 	if resp.Status/100 == 2 {
-		_ = s.revokeCentral(auth.Binding, auth.DeviceKey)
+		_ = s.revokeCentral(token, device)
 	}
 	copyCentral(w, resp)
 }
 func (s *Service) handleAuthorityProxy(w http.ResponseWriter, r *http.Request, path string) {
-	auth, err := requireProductSession(r)
+	token, device := r.Header.Get("Authorization"), r.Header.Get("X-YNX-Product-Device-Key")
+	actor, err := s.authenticateCentral(token, device)
 	if err != nil {
 		writeErr(w, err)
 		return
 	}
-	actor := auth.Actor
 	var raw []byte
 	if r.Method != http.MethodGet {
 		var ok bool
@@ -191,7 +192,7 @@ func (s *Service) handleAuthorityProxy(w http.ResponseWriter, r *http.Request, p
 	if r.Method == http.MethodGet && r.URL.RawQuery != "" {
 		requestPath += "?" + r.URL.RawQuery
 	}
-	resp, err := s.centralRequest(r, r.Method, requestPath, raw, auth.Proof)
+	resp, err := s.centralRequest(r, r.Method, requestPath, raw, token, device)
 	if err != nil {
 		s.recordAuthority(actor, r.Method, path, raw, nil, 502, "unavailable")
 		writeJSON(w, 503, map[string]string{"error": "central Gateway or authoritative Resource API is unavailable", "state": "unavailable", "retry": "safe", "settlement": "not asserted"})
@@ -244,12 +245,12 @@ func (s *Service) handleIntentRetry(w http.ResponseWriter, r *http.Request) {
 	s.handleIntent(w, r, r.PathValue("id"))
 }
 func (s *Service) handleIntent(w http.ResponseWriter, r *http.Request, retryID string) {
-	auth, err := requireProductSession(r)
+	token, device := r.Header.Get("Authorization"), r.Header.Get("X-YNX-Product-Device-Key")
+	actor, err := s.authenticateCentral(token, device)
 	if err != nil {
 		writeErr(w, err)
 		return
 	}
-	actor := auth.Actor
 	raw, ok := readBoundedBody(w, r)
 	if !ok {
 		return
@@ -306,7 +307,7 @@ func (s *Service) handleIntent(w http.ResponseWriter, r *http.Request, retryID s
 	s.data.Intents[intent.ID] = intent
 	_ = s.saveLocked()
 	s.mu.Unlock()
-	resp, callErr := s.centralRequest(r, http.MethodPost, path, in.Payload, auth.Proof)
+	resp, callErr := s.centralRequest(r, http.MethodPost, path, in.Payload, token, device)
 	s.mu.Lock()
 	intent = s.data.Intents[intent.ID]
 	if callErr != nil {
@@ -390,12 +391,11 @@ func extractEvidence(data map[string]any, kind string) (string, string, string) 
 	return tx, id, proof
 }
 func (s *Service) handleIntentGet(w http.ResponseWriter, r *http.Request) {
-	auth, err := requireProductSession(r)
+	actor, err := s.authenticateCentral(r.Header.Get("Authorization"), r.Header.Get("X-YNX-Product-Device-Key"))
 	if err != nil {
 		writeErr(w, err)
 		return
 	}
-	actor := auth.Actor
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	v, ok := s.data.Intents[r.PathValue("id")]

@@ -124,22 +124,5 @@
     "purpose": "Read authoritative capacity and submit one Wallet-reviewed resource intent",
     "issuedAt": "2026-07-18T06:00:00.000Z",
     "expiresAt": "2026-07-18T06:03:00.000Z"
-  },
-  "productSessionProof": {
-    "body": "{\"kind\":\"resource\"}",
-    "proof": {
-      "version": "1",
-      "sessionBinding": "9c62a542457262f4d435959866607e81c8534c33828165caea9f0278bb867181",
-      "productClientId": "ynx-resource-market-v1",
-      "bundleId": "com.ynxweb4.resource",
-      "productDeviceKey": "AzrThhqVYhOSUWu1k-8FWD7S5YZvXLYmCjAXI3_Ym5Cv",
-      "method": "POST",
-      "path": "/api/authority/intents",
-      "bodyDigest": "db20dfa2bc962cc27ebc1c9d7ea4c50f2b8371e718694ab481269399595dd05e",
-      "nonce": "proof_resource_abcdefghijklmnopqrstuvwxyz",
-      "issuedAt": "2026-07-18T06:00:00.000Z",
-      "expiresAt": "2026-07-18T06:00:30.000Z",
-      "signature": "MEUCIQCchERTggsruppYTlNVP8QgwRUlAOxLNFTV2YZjuPrqKAIgSGtB4mJEPl9PSYWEUz4SyqDuD732v9G8pWWtzOaevCU"
-    }
   }
 }

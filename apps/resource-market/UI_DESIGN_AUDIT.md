@@ -1,12 +1,12 @@
 # YNX Resource Market UI design audit
 
-Audited on 2026-07-29 against the running Web product, not a static mock.
+Audited on 2026-07-19 against the running Web product, not a static mock.
 
 ## Information architecture
 
-Resource Market is an execution console, deliberately distinct from Trust Center. The default view now separates Provider and Buyer workspaces. Providers register evidence, undergo independent verification and publish resource-unit offers. Buyers match providers, create a quote and accept an exact intent. The execution ledger keeps reservation, service, metering and settlement visibly separate.
+Resource Market is an execution console, deliberately distinct from Trust Center. The primary flow is Quote Composer → exact signed intent → authority acceptance → capacity evidence → settlement proof. Capacity, delegation/rental, and settlement/income views use dense metrics, position rows, and a chronological proof rail rather than a dashboard card wall.
 
-Desktop uses horizontal product navigation and a centered two-column provider/buyer workspace. Mobile uses a compact header, single-column workspace, and six-destination bottom navigation. The shell stays LTR-first; Arabic localizes reviewed text direction without reversing quote-stage chronology or market structure.
+Desktop uses horizontal product navigation and a centered two-column quote/intent workspace. Mobile uses a compact header, single-column navigation stack, and bottom navigation. The shell stays LTR-first; Arabic localizes text direction without reversing quote-stage chronology or market structure.
 
 ## Visual system
 
@@ -17,7 +17,7 @@ Desktop uses horizontal product navigation and a centered two-column provider/bu
 
 ## Accessibility and responsive checks
 
-- Skip link, semantic navigation/headings, labelled inputs, live status, keyboard focus, 44-pixel touch targets, reduced motion, dark mode, and a persistent large-text control. The browser gate audits every operator form control for an accessible name.
+- Skip link, semantic navigation/headings, labelled inputs, live status, keyboard focus, 44-pixel touch targets, reduced motion, dark mode, and a persistent large-text control.
 - 12 locales and independent AI-language persistence; Arabic critical settlement copy is RTL while `.market-shell` remains LTR.
 - Current-run browser tests passed at 1440×900 and 390×844 with no horizontal overflow.
 
@@ -29,10 +29,10 @@ Desktop uses horizontal product navigation and a centered two-column provider/bu
 - `docs/handoffs/evidence/ui-audit-current/resource-desktop-final-dark.png`
 - `docs/handoffs/evidence/ui-audit-current/resource-mobile-390x844.jpg`
 
-Six browser tests exercise desktop/mobile empty state, provider registration, independent verification, offer publication, matching, quote creation, exact intent acceptance, sealed-auction bidding, pending legacy capacity, honest AI failure, 12-locale static-market coverage and persistence, Arabic direction, large text at 390 pixels and no horizontal overflow. They also audit every operator form control for an accessible name and prove that Arabic runtime failures show a localized safe label, stable error code and request ID without leaking server-originated English prose. The accepted-intent test explicitly verifies that asset settlement remains unconfirmed.
+Core states exercised in automation: loading, empty, pending-capacity success, quote unavailable, provider unavailable, exact retry, and no-substitute wording. Server-backed status rendering also covers authority rejection, replay conflict, tamper failure, recovery, expiry, partial completion, audit, and settlement evidence.
 
 ## Fixed issues and limits
 
 Fixed: generic left-heavy dashboard composition, oversized modules, always-expanded language choices, whole-shell Arabic reversal, weak quote-versus-settlement distinction, and mobile header overflow.
 
-Remaining product limitations: the 143 canonical static market strings and safe runtime status/error boundary have functional coverage in all 12 locales, but the translations still require professional linguistic review and manual VoiceOver/TalkBack validation. No authoritative central Gateway or settlement service is deployed, so the UI never upgrades a quote or local intent to settled without evidence.
+Remaining external limitation: no authoritative central Gateway or settlement service is deployed for this branch; therefore the UI never upgrades a quote or local draft to settled.
