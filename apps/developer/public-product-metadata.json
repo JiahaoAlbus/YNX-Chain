@@ -63,6 +63,17 @@
       "signingClass": "adhoc-no-team-id",
       "verification": "embedded provenance, ad-hoc signature, Keychain write-read-cleanup, cold launch, bounded C++ compile, persisted second launch and child cleanup passed"
     },
+    "currentLinuxX64ServerArtifact": {
+      "evidence": "apps/developer/evidence/platform/linux-server-current-bc8a37bc.json",
+      "sourceCommit": "bc8a37bc6f2bcfcbe9415cb0e9da17a5294046a3",
+      "sha256": "aab9fb6ea976fffab0ae66382401bf8e9886a05fb377f483dc46103fd8be4c05",
+      "bytes": 138538840,
+      "hosted": true,
+      "downloadUrl": "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-bc8a37bc-linux-x64-server.tar.gz",
+      "signingClass": "unsigned-server-archive",
+      "minimumRuntime": "Linux x86_64 with Node.js 22 or newer",
+      "verification": "protected evidence binding, extracted archive cold start and health check passed; workspace state and operator environment are excluded"
+    },
     "windowsX64": {
       "sourceCommit": "76322af5e8c26a64fb6425c51d96c67d2b3df65f",
       "runId": 31513885748,

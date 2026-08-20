@@ -26,6 +26,15 @@
     "downloadUrl": "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-cb57e10f-macos-arm64-unsigned.zip",
     "productionSigned": false
   },
+  "currentLinuxServerArtifact": {
+    "evidence": "apps/developer/evidence/platform/linux-server-current-bc8a37bc.json",
+    "sourceCommit": "bc8a37bc6f2bcfcbe9415cb0e9da17a5294046a3",
+    "sha256": "aab9fb6ea976fffab0ae66382401bf8e9886a05fb377f483dc46103fd8be4c05",
+    "bytes": 138538840,
+    "downloadHosted": true,
+    "downloadUrl": "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-bc8a37bc-linux-x64-server.tar.gz",
+    "productionSigned": false
+  },
   "walletProductSessionV2": {
     "acceptedSourceCommit": "203be5e108be468350591615a64d5d36ab87a8f1",
     "acceptedSourceTree": "94e291a6757447f89c7cf6b8f01bbf811cb7d1f7",
@@ -54,6 +63,7 @@
     "api-studio",
     "macos-arm64-testnet-preview",
     "windows-x64-testnet-preview",
+    "linux-x64-server-testnet-preview",
     "ynx-ai-build"
   ],
   "implementedLocal": true,
@@ -91,6 +101,7 @@
       "macosArm64Current": true,
       "webCurrent": true,
       "windowsCurrent": false,
+      "linuxX64ServerCurrent": true,
       "webSourceCommit": "bc8a37bc6f2bcfcbe9415cb0e9da17a5294046a3",
       "macosArm64SourceCommit": "cb57e10f7f92b01b73942879dedc98f059a1e20b",
       "windowsX64HistoricalSourceCommit": "76322af5e8c26a64fb6425c51d96c67d2b3df65f",
@@ -101,7 +112,7 @@
         "YNX Chain inspection, Wallet-authenticated deployment review, contract templates and receipt-bound transaction debugging"
       ],
       "verification": "The current official-domain macOS ZIP has embedded provenance, a 269-component CycloneDX SBOM, strict no-Team-ID ad-hoc signing, Keychain write/read/cleanup, cold launch, JavaScript/C++ toolchain detection, a real bounded C++ compilation, workspace save, child cleanup and persisted second launch. Windows remains historical source evidence.",
-      "publicBoundary": "The public Web IDE is the protected bc8a37bc candidate and the current macOS arm64 package is a full local YNX Code workbench. The Windows x64 WebView2 hosted-workspace package has historical evidence only; it must not be presented as current until rebuilt, installed and revalidated against the current candidate.",
+      "publicBoundary": "The public Web IDE is the protected bc8a37bc candidate, the current macOS arm64 package is a full local YNX Code workbench, and the Linux x64 Server archive cold-starts as a self-hosted appliance with no workspace state or operator environment. The Windows x64 WebView2 hosted-workspace package has historical evidence only; it must not be presented as current until rebuilt, installed and revalidated against the current candidate.",
       "publicDeployment": {
         "sourceCommit": "bc8a37bc6f2bcfcbe9415cb0e9da17a5294046a3",
         "service": "ynx-code-candidate.service",
