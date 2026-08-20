@@ -36,6 +36,8 @@ expected_bundle_sha="${YNX_BOUNDED_REPLICATION_BUNDLE_SHA256:-}"
 dry_run="${DEPLOY_DRY_RUN:-0}"
 attempt_id="${YNX_BOUNDED_REPLICATION_ATTEMPT_ID:-$(date -u +%Y%m%dT%H%M%SZ)}"
 [[ "$attempt_id" =~ ^[0-9]{8}T[0-9]{6}Z$ ]] || fail "YNX_BOUNDED_REPLICATION_ATTEMPT_ID must be UTC timestamp form YYYYMMDDTHHMMSSZ"
+node_scope="${YNX_BOUNDED_REPLICATION_NODE_SCOPE:-all}"
+[[ "$node_scope" == "all" || "$node_scope" == "primary" || "$node_scope" == "followers" ]] || fail "YNX_BOUNDED_REPLICATION_NODE_SCOPE must be all, primary, or followers"
 
 primary_host="${PRIMARY_NODE_HOST:-}"
 primary_user="${PRIMARY_NODE_USER:-}"
@@ -185,20 +187,37 @@ fi
 
 echo "bounded replication recovery plan: toolingCommit=${candidate_commit} releaseCommit=${release_commit} release=${release} bundleSha256=${expected_bundle_sha}"
 echo "scope: existing ynx-chaind binary plus source-bound release manifest only; units, environment, chain state and other services are preserved"
+echo "node scope: ${node_scope}; every selected node is preflighted before its binary is replaced"
 
-# Followers first, then the primary. No two nodes are restarted concurrently.
-preflight_node singapore "$singapore_user" "$singapore_host" "$singapore_key"
-preflight_node silicon-valley "$silicon_user" "$silicon_host" "$silicon_key"
-preflight_node seoul "$seoul_user" "$seoul_host" "$seoul_key"
-preflight_node primary "$primary_user" "$primary_host" "$primary_key"
+# A legacy primary can emit an unbounded historical suffix. Upgrade it alone
+# before followers, so its new endpoint establishes the bounded transport
+# contract without restarting or mutating a follower during this transition.
+if [[ "$node_scope" == "all" || "$node_scope" == "followers" ]]; then
+  preflight_node singapore "$singapore_user" "$singapore_host" "$singapore_key"
+  preflight_node silicon-valley "$silicon_user" "$silicon_host" "$silicon_key"
+  preflight_node seoul "$seoul_user" "$seoul_host" "$seoul_key"
+fi
+if [[ "$node_scope" == "all" || "$node_scope" == "primary" ]]; then
+  preflight_node primary "$primary_user" "$primary_host" "$primary_key"
+fi
 if [[ "$mode" == "--preflight" ]]; then
   echo "bounded replication recovery preflight passed; no node was altered"
   exit 0
 fi
-install_node singapore "$singapore_user" "$singapore_host" "$singapore_key"
-install_node silicon-valley "$silicon_user" "$silicon_host" "$silicon_key"
-install_node seoul "$seoul_user" "$seoul_host" "$seoul_key"
-install_node primary "$primary_user" "$primary_host" "$primary_key"
+if [[ "$node_scope" == "primary" ]]; then
+  install_node primary "$primary_user" "$primary_host" "$primary_key"
+elif [[ "$node_scope" == "followers" ]]; then
+  install_node singapore "$singapore_user" "$singapore_host" "$singapore_key"
+  install_node silicon-valley "$silicon_user" "$silicon_host" "$silicon_key"
+  install_node seoul "$seoul_user" "$seoul_host" "$seoul_key"
+else
+  # Primary first is intentional: it establishes byte-bounded batches before
+  # any follower is restarted. No two nodes are restarted concurrently.
+  install_node primary "$primary_user" "$primary_host" "$primary_key"
+  install_node singapore "$singapore_user" "$singapore_host" "$singapore_key"
+  install_node silicon-valley "$silicon_user" "$silicon_host" "$silicon_key"
+  install_node seoul "$seoul_user" "$seoul_host" "$seoul_key"
+fi
 if [[ "$dry_run" == "1" ]]; then
   echo "bounded replication recovery dry run passed; no node was altered"
 else
