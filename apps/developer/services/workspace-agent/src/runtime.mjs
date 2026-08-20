@@ -705,7 +705,7 @@ async function taskSpec(path, workspace, files) {
       language: "go",
       compiler,
       version: await version(compiler),
-      phases: [{ label: "run", command: compiler, args: ["run", file] }],
+      phases: [{ label: "run", command: compiler, args: ["run", "-p", "1", file] }],
     };
   }
   if (extension === ".rs") {
@@ -858,7 +858,7 @@ async function projectTestSpec(workspace, files) {
       phases.push({
         label: `test:go:${directory}`,
         command,
-        args: ["test", ...sources.map((path) => safeJoin(workspace, path))],
+        args: ["test", "-p", "1", ...sources.map((path) => safeJoin(workspace, path))],
         timeout: 90_000,
         environment: { GOMAXPROCS: "2" },
       });
