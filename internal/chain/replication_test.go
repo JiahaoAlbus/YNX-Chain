@@ -144,6 +144,58 @@ func TestReplicationBatchCatchesUpInBoundedSuffixes(t *testing.T) {
 	}
 }
 
+func TestReplicationIntermediateSuffixReplaysAfterRestart(t *testing.T) {
+	cfg := DefaultNetworkConfig("testnet")
+	source := NewDevnet(cfg)
+	for range MaxReplicationBatchBlocks + 2 {
+		source.ProduceBlock()
+	}
+	dir := t.TempDir()
+	destination, err := NewPersistentDevnet(cfg, dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	base := destination.LatestBlock()
+	payload, err := source.ReplicationBatchJSON(base.Height, base.Hash)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := destination.ApplyReplicationBatchJSON(payload); err != nil {
+		t.Fatal(err)
+	}
+	if destination.LatestHeight() != MaxReplicationBatchBlocks {
+		t.Fatalf("intermediate suffix did not advance in memory: %d", destination.LatestHeight())
+	}
+
+	// An incomplete suffix is intentionally not a durable application-state
+	// checkpoint. A cold start resumes safely from the previous complete state.
+	restarted, err := NewPersistentDevnet(cfg, dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if restarted.LatestHeight() != base.Height || restarted.LatestBlock().Hash != base.Hash {
+		t.Fatalf("restart did not resume from the last complete checkpoint: %+v", restarted.LatestBlock())
+	}
+
+	for restarted.LatestBlock().Hash != source.LatestBlock().Hash {
+		local := restarted.LatestBlock()
+		next, err := source.ReplicationBatchJSON(local.Height, local.Hash)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := restarted.ApplyReplicationBatchJSON(next); err != nil {
+			t.Fatal(err)
+		}
+	}
+	reloaded, err := NewPersistentDevnet(cfg, dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if reloaded.LatestBlock().Hash != source.LatestBlock().Hash {
+		t.Fatal("final authoritative suffix did not create a durable checkpoint")
+	}
+}
+
 func TestReplicationBatchHonorsPayloadBudgetBeforeBlockLimit(t *testing.T) {
 	cfg := DefaultNetworkConfig("testnet")
 	source := NewDevnet(cfg)

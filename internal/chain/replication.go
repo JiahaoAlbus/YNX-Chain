@@ -190,38 +190,52 @@ func (d *Devnet) ApplyReplicationBatchJSON(payload []byte) (ReplicationApplyResu
 		d.mu.RUnlock()
 		return result, nil
 	}
+	if !batch.Complete {
+		// Intermediate suffixes carry authenticated history only; authoritative
+		// application state arrives with the final suffix. Commit the bounded
+		// history window directly and defer the expensive full-history snapshot
+		// rewrite until convergence. If the process exits before the final durable
+		// checkpoint, restart simply resumes from the last complete snapshot.
+		// This keeps low-memory followers from retaining the old history, a full
+		// copied history and a 300+ MiB JSON checkpoint at the same time.
+		d.mu.RUnlock()
+		d.mu.Lock()
+		defer d.mu.Unlock()
+		current = d.blocks[len(d.blocks)-1]
+		if current.Height != batch.BaseHeight || current.Hash != batch.BaseBlockHash {
+			return ReplicationApplyResult{}, fmt.Errorf("replication batch base %d/%s does not match local tip %d/%s", batch.BaseHeight, batch.BaseBlockHash, current.Height, current.Hash)
+		}
+		d.blocks = append(d.blocks, batch.Blocks...)
+		result.Applied = true
+		return result, nil
+	}
 
-	blocks := make([]Block, 0, len(d.blocks)+len(batch.Blocks))
-	blocks = append(blocks, d.blocks...)
-	blocks = append(blocks, batch.Blocks...)
-	candidate := d.snapshotLocked()
+	// Intermediate appends normally leave spare capacity, so the final suffix
+	// can reuse the existing history backing array instead of forcing another
+	// complete copy. d.blocks keeps its old length until the durable snapshot is
+	// written and the short commit lock succeeds.
+	blocks := append(d.blocks, batch.Blocks...)
+	candidate := *batch.State
 	candidate.Blocks = blocks
-	candidate.Validators = append([]Validator(nil), d.validators...)
-	candidate.Peers = copyValidatorPeers(d.validatorPeers)
-	candidate.PeerSyncs = copyValidatorPeerSyncs(d.validatorPeerSyncs)
 	currentHeight, currentHash := current.Height, current.Hash
 	d.mu.RUnlock()
 
-	if batch.Complete {
-		candidate = *batch.State
-		candidate.Blocks = blocks
-		if err := validateReplicationState(*batch.State, d.cfg); err != nil {
-			return ReplicationApplyResult{}, fmt.Errorf("validate final replication state: %w", err)
-		}
-		candidate.StateIntegrity = ""
-		if err := validateResourceSponsorSnapshot(candidate); err != nil {
-			return ReplicationApplyResult{}, fmt.Errorf("validate final replication Resource sponsor state: %w", err)
-		}
-		if err := validateReplicationBlockHistory(candidate, d.cfg); err != nil {
-			return ReplicationApplyResult{}, fmt.Errorf("validate final replication block history: %w", err)
-		}
-		// Peer observations are local operational evidence and are not part of
-		// the producer's authoritative application state.
-		d.mu.RLock()
-		candidate.Peers = copyValidatorPeers(d.validatorPeers)
-		candidate.PeerSyncs = copyValidatorPeerSyncs(d.validatorPeerSyncs)
-		d.mu.RUnlock()
+	if err := validateReplicationState(*batch.State, d.cfg); err != nil {
+		return ReplicationApplyResult{}, fmt.Errorf("validate final replication state: %w", err)
 	}
+	candidate.StateIntegrity = ""
+	if err := validateResourceSponsorSnapshot(candidate); err != nil {
+		return ReplicationApplyResult{}, fmt.Errorf("validate final replication Resource sponsor state: %w", err)
+	}
+	if err := validateReplicationBlockHistory(candidate, d.cfg); err != nil {
+		return ReplicationApplyResult{}, fmt.Errorf("validate final replication block history: %w", err)
+	}
+	// Peer observations are local operational evidence and are not part of
+	// the producer's authoritative application state.
+	d.mu.RLock()
+	candidate.Peers = copyValidatorPeers(d.validatorPeers)
+	candidate.PeerSyncs = copyValidatorPeerSyncs(d.validatorPeerSyncs)
+	d.mu.RUnlock()
 	sealed, err := sealDevnetSnapshot(candidate)
 	if err != nil {
 		return ReplicationApplyResult{}, fmt.Errorf("seal replication batch snapshot: %w", err)
