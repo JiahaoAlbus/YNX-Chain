@@ -23,9 +23,11 @@ test("current public candidate and Wallet v2 evidence do not promote missing lif
   assert.equal(current.truthBoundaries.externalBrowserVisible, false);
   assert.equal(localMac.artifact.sourceCommit, "cb57e10f7f92b01b73942879dedc98f059a1e20b");
   assert.equal(localMac.verification.keychainStorageRoundTripAndCleanup, true);
-  assert.equal(localMac.publication.downloadHosted, false);
+  assert.equal(localMac.publication.downloadHosted, true);
+  assert.equal(localMac.publication.officialRouteHashReadback, true);
   assert.equal(truth.currentLocalMacArtifact.sha256, localMac.artifact.sha256);
-  assert.equal(publicMetadata.localEvidence.currentLocalMacArtifact.hosted, false);
+  assert.equal(truth.currentLocalMacArtifact.downloadHosted, true);
+  assert.equal(publicMetadata.localEvidence.currentLocalMacArtifact.hosted, true);
   assert.equal(publicMetadata.fullPlatformPublicEvidence.nineRuntimes, true);
   assert.equal(publicMetadata.fullPlatformPublicEvidence.independentBrowserVisible, false);
   assert.equal(truth.walletProductSessionV2.publicV2RouteVerified, true);

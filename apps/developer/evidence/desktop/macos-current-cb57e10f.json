@@ -26,9 +26,12 @@
   },
   "publication": {
     "builtLocally": true,
-    "downloadHosted": false,
-    "publicUrl": null,
-    "websiteOwnerHandoffRequired": true,
+    "downloadHosted": true,
+    "publicUrl": "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-cb57e10f-macos-arm64-unsigned.zip",
+    "sbomUrl": "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-cb57e10f-macos-arm64-sbom.cdx.json",
+    "provenanceUrl": "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-cb57e10f-macos-arm64-PROVENANCE.json",
+    "officialRouteHashReadback": true,
+    "websiteOwnerHandoffRequired": false,
     "productionSigned": false,
     "notarized": false
   },

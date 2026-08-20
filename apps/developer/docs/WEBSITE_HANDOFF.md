@@ -98,8 +98,8 @@ Creating this handoff does not prove Website integration or deployment.
 
 ## 2026-08-20 current local macOS package addendum
 
-The current Developer-owned macOS package is ready for website-owner intake but is **not yet
-hosted**. Its exact source is `cb57e10f7f92b01b73942879dedc98f059a1e20b`, ZIP SHA-256 is
+The current Developer-owned macOS package is hosted at its immutable Developer official-domain
+URL. Its exact source is `cb57e10f7f92b01b73942879dedc98f059a1e20b`, ZIP SHA-256 is
 `f4759ecc6bb5240a972bc7cd9909b35869bb756cce5a22f1a23bf1f718f522f9`, size is
 168,157,234 bytes and embedded SBOM SHA-256 is
 `e18beb766cc8cbb288a24a1a29d2b25ae0e36adc63469484e47a4d92a7261575`.
@@ -107,7 +107,7 @@ hosted**. Its exact source is `cb57e10f7f92b01b73942879dedc98f059a1e20b`, ZIP SH
 The package passed extracted provenance, no-Team-ID ad-hoc signing, a native Keychain
 write/read/cleanup self-test, cold launch, real bounded C++ compilation, workspace persistence
 on a second launch and child-process cleanup. It remains an unsigned Testnet Preview: no Developer
-ID signature, notarization, update channel or public URL exists. Owner 28 must upload exactly this
-ZIP to an immutable YNX-domain URL, publish matching checksum/provenance/SBOM metadata and return
-public HTTP hash evidence before `downloadHosted` can become true for this artifact. The full record
-is `apps/developer/evidence/desktop/macos-current-cb57e10f.json`.
+ID signature, notarization or update channel exists. The ZIP, matching SBOM and provenance have
+production Caddy HTTP 200/hash-readback evidence at `developer.ynxweb4.com/downloads`; this does
+not claim an independent external-browser proof. The full record is
+`apps/developer/evidence/desktop/macos-current-cb57e10f.json`.

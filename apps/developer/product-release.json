@@ -22,7 +22,8 @@
     "sourceCommit": "cb57e10f7f92b01b73942879dedc98f059a1e20b",
     "sha256": "f4759ecc6bb5240a972bc7cd9909b35869bb756cce5a22f1a23bf1f718f522f9",
     "bytes": 168157234,
-    "downloadHosted": false,
+    "downloadHosted": true,
+    "downloadUrl": "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-cb57e10f-macos-arm64-unsigned.zip",
     "productionSigned": false
   },
   "walletProductSessionV2": {
