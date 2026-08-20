@@ -618,6 +618,29 @@ func TestPersistenceRestartTamperMigrationExportAndDelete(t *testing.T) {
 	}
 }
 
+func TestLegacyWalletRecordsKeepTheirPreOriginIntegrityEncoding(t *testing.T) {
+	state := newState()
+	state.WalletChallenges["legacy"] = PendingWalletChallenge{
+		Challenge: ProductSessionChallenge{Version: "1", Challenge: "legacy-challenge", RequestDigest: "legacy-digest"},
+		Approval:  WalletApproval{Version: "1", RequestDigest: "legacy-digest", Nonce: "legacy-nonce"},
+	}
+	encoded, err := json.Marshal(state)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bytes.Contains(encoded, []byte(`"origin"`)) {
+		t.Fatalf("legacy empty origins changed the persisted HMAC preimage: %s", encoded)
+	}
+	key := bytes.Repeat([]byte{31}, 32)
+	path := filepath.Join(t.TempDir(), "social.json")
+	if err := saveState(path, &state, key); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := New(Config{StatePath: path, TokenKey: key}); err != nil {
+		t.Fatalf("legacy state must pass integrity verification before v2 requests are accepted: %v", err)
+	}
+}
+
 func TestIdempotencyKeysAreAccountIsolated(t *testing.T) {
 	s, now := testService(t)
 	alice := loginFixture(t, s, newFixture(t, 51), now)

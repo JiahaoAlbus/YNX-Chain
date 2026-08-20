@@ -45,20 +45,22 @@ type AIProvider struct {
 }
 
 type WalletAuthorizationRequest struct {
-	Version                string   `json:"version"`
-	Nonce                  string   `json:"nonce"`
-	ChainID                string   `json:"chainId"`
-	RequestingProduct      string   `json:"requestingProduct"`
-	ProductClientID        string   `json:"productClientId"`
-	BundleID               string   `json:"bundleId"`
-	ProductDeviceAlgorithm string   `json:"productDeviceAlgorithm"`
-	ProductDeviceKey       string   `json:"productDeviceKey"`
-	Origin                 string   `json:"origin"`
-	Callback               string   `json:"callback"`
-	Scopes                 []string `json:"scopes"`
-	Purpose                string   `json:"purpose"`
-	IssuedAt               string   `json:"issuedAt"`
-	ExpiresAt              string   `json:"expiresAt"`
+	Version                string `json:"version"`
+	Nonce                  string `json:"nonce"`
+	ChainID                string `json:"chainId"`
+	RequestingProduct      string `json:"requestingProduct"`
+	ProductClientID        string `json:"productClientId"`
+	BundleID               string `json:"bundleId"`
+	ProductDeviceAlgorithm string `json:"productDeviceAlgorithm"`
+	ProductDeviceKey       string `json:"productDeviceKey"`
+	// Omit only the empty legacy persistence value. New authorization requests
+	// are still required to carry the exact origin by protocol validation.
+	Origin    string   `json:"origin,omitempty"`
+	Callback  string   `json:"callback"`
+	Scopes    []string `json:"scopes"`
+	Purpose   string   `json:"purpose"`
+	IssuedAt  string   `json:"issuedAt"`
+	ExpiresAt string   `json:"expiresAt"`
 }
 
 type WalletApproval struct {
@@ -71,7 +73,7 @@ type WalletApproval struct {
 	BundleID               string   `json:"bundleId"`
 	ProductDeviceAlgorithm string   `json:"productDeviceAlgorithm"`
 	ProductDeviceKey       string   `json:"productDeviceKey"`
-	Origin                 string   `json:"origin"`
+	Origin                 string   `json:"origin,omitempty"`
 	Callback               string   `json:"callback"`
 	Account                string   `json:"account"`
 	AccountPublicKey       string   `json:"accountPublicKey"`
@@ -95,7 +97,7 @@ type ProductSessionChallenge struct {
 	BundleID               string   `json:"bundleId"`
 	ProductDeviceAlgorithm string   `json:"productDeviceAlgorithm"`
 	ProductDeviceKey       string   `json:"productDeviceKey"`
-	Origin                 string   `json:"origin"`
+	Origin                 string   `json:"origin,omitempty"`
 	Account                string   `json:"account"`
 	Scopes                 []string `json:"scopes"`
 	IssuedAt               string   `json:"issuedAt"`
