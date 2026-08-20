@@ -20,7 +20,8 @@
     "iosMacos": "3b27b83f18799ff74252469075ec460b6665dd44",
     "desktopCliSdk": "2802876f8470264c4a8819f1426e28f957a09289",
     "walletProductSessionRouter": "04e5554d616cdd9ee3a3fdc6f7bccaa2e61d3907",
-    "walletProductSessionWebsitePublication": "24c0589e729a2a1ae59400600c346e6f18dd7864"
+    "walletProductSessionWebsitePublication": "24c0589e729a2a1ae59400600c346e6f18dd7864",
+    "p0WalletProtocolEvidenceHead": "460353c654cd6fb907c734a884d54c21806cef23"
   },
   "externalDependencyAcceptance": {
     "chainCore": {
@@ -97,6 +98,9 @@
     ,"publicEndpointServiceDiscoveryMatrix": {"path":"release/integration/wallet-auth-public-endpoint-service-discovery-matrix.json","sha256":"54dc61a0f80ee8cd53e2e5a24674f90fb7c081ff6cddab40da233a406cbc9ad1"}
     ,"androidLauncherContract": {"path":"release/integration/wallet-auth-android-launcher-contract.json","sha256":"27449c80300acd463574d5d7bb016e2273cfd7d24f6669c9da00505559393a58"}
     ,"androidLauncherCallerGate": "scripts/verify/wallet-auth-android-launcher-callers-check.mjs"
+    ,"p0WalletProtocolRuntimeAcceptance": "release/integration/p0-wallet-protocol-runtime-acceptance.json"
+    ,"p0WalletProtocolExecutionLease": "release/integration/p0-wallet-protocol-execution-lease.json"
+    ,"p0WalletProtocolExecutionLeaseGate": "scripts/verify/p0-wallet-protocol-execution-lease-check.mjs"
   },
   "limitations": [
     "Consumed Owner checkpoints were verified through GitHub ref, commit parent, tree and evidence-blob readback.",
@@ -113,6 +117,7 @@
     "Core/Auth f5e0ef31 retains the exact protected session after completion succeeds but introspection transport fails, and requires sender-constrained revoke before disconnect can clear it. Public source 577f8120 permits Social OPTIONS 204 but rejects the official Web companion www Origin with 403 ORIGIN_NOT_ALLOWED, so public registry readiness, Web auth/account/sign/send, mobile, integratedCentral and aggregate public remain false.",
     "Core/Auth a731d67b freezes the owner-only isolated-6441 deployment and exact post-deploy acceptance contract for candidate f5e0ef31 and registry digest f8a25702. The command has not been executed and no SSH/deploy was performed; deployedByCore, gatewayLoadedPublic, Web companion visible success, integratedCentral and aggregate public remain false.",
     "Core/Auth 92ae5404 reconciles a lost revoke acknowledgement: only exact SESSION_REVOKED is accepted as terminal and clears protected local state, while SESSION_NOT_FOUND and every other error retain state fail-closed. Local 336/336 and App 40/40 do not change current 577f www-origin 403, public/staging/mobile/integrated/gateway-loaded or aggregate truth.",
+    "P0 Wallet Protocol contract 66003e76 and exact evidence head 460353c6 are accepted only for a two-hour, owner-scoped Wallet/Auth runtime transaction. The divergent branch cannot be whole-tree merged; only packages/wallet-auth at 5231e750 may be materialized with b28609ab CORS provenance. Current public source 6ed04310 and registered-Origin OPTIONS 405 keep integratedCentral, deployedPublic, publicCorsVerified, runtime lifecycle, installed-client and aggregate truth false.",
     "Product Session Router v2 hardened evidence 2bcdf4f6 supersedes cc6c3936 and freezes deployed source d26ed915: isolated 6441 passes rollback, public lifecycle and a real chmod 0644 tamper with HTTP 503 INSECURE_STATE_FILE, unchanged state bytes, no silent repair and sticky fail-close until explicit 0600+restart recovery. Legacy 6437/6439 remain unchanged, runtimeProductsMigrated=0, visible Wallet approval=false, and integratedCentral plus aggregate Product Session deployment remain false.",
     "Web commit 60614bf5 directly proves first and second launch of an unsigned temporary YNX add-on in official notarized Firefox 153.0.4; install, popup DOM/background, provider/account/sign/tx, extension signing and store claims remain false.",
     "Website main 92a8b90 merged evidence c70bf01 through PR #34; Web 46d030c and an independent deca6f4f gate prove three visible official buttons and 9 exact downloads. PWA, Chrome/Edge and Firefox artifacts are hosted/public, but remain unsigned, non-store, and do not prove installation or provider/account/sign/tx runtime."
