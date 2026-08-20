@@ -2,13 +2,13 @@
   "schemaVersion": "1.0.0",
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "owner": "integration",
-  "status": "WAVE_B_EXCHANGE_ACTIVE",
+  "status": "WAVE_B_PAY_ASSIGNED",
   "scope": ["founder-control", "wallet-connectivity", "installed-client-networking", "shop-android-retirement", "artwork-governance"],
   "frozen": ["independent-ynx-id", "nonessential-new-products", "extra-finance-features", "shop-android"],
   "integrationBranch": "codex/final-integration",
   "baselineCommit": "10b877b5b18f9cb0026a6382cdd6588054fd16db",
   "protectedHistory": [{"branch": "codex/recovery/final-integration-pre-p0", "reason": "preserved divergent pre-P0 integration history"}],
   "network": {"cosmosChainId": "ynx_6423-1", "evmChainId": 6423, "evmChainHex": "0x1917", "nativeAsset": "YNXT", "nativeAddressPrefix": "ynx1"},
-  "firstStop": {"complete": true, "publicConnectivityClaim": false, "nextAction": "Finance remains in its bounded release-evidence checkpoint while Financial Apps owns the Exchange migration slice. Data Fabric completed its independent connection-events runtime-adapter checkpoint at 353fffbc with all six PR checks passing; its Light Lease is released without any public, installed-client or Card-funding claim."},
-  "wave": {"id": "B-exchange", "owner": "financial-apps", "executionScope": "EXCHANGE_WALLET_CONNECTIVITY_SLICE", "firstTask": "EXCHANGE_AUDIT_AND_STANDARD_WALLET_MIGRATION", "startingCheckpoint": "d4c5be1c74dfbcd67ad90d435720a8ca456ade79", "activatedAt": "2026-08-20T10:10:07Z", "previousWave": {"id":"B-finance","owner":"financial-apps","checkpoint":"f7efbd9e9658aaea75f8d9fbbb58f79ee1a48365","publicVerified":false}}
+  "firstStop": {"complete": true, "publicConnectivityClaim": false, "nextAction": "Finance and Exchange remain at their bounded release-evidence checkpoints. Pay is assigned but no Pay-owned migration commit, tests, build or installed-client evidence has been recorded; it requires a new bounded Financial Apps execution lease before any write. Data Fabric completed its independent connection-events runtime-adapter checkpoint at 353fffbc with all six PR checks passing; its Light Lease is released without any public, installed-client or Card-funding claim."},
+  "wave": {"id": "B-pay", "owner": "financial-apps", "executionScope": "PAY_WALLET_CONNECTIVITY_SLICE", "firstTask": "PAY_AUDIT_AND_STANDARD_WALLET_MIGRATION", "startingCheckpoint": "a153ef9014e421c70ece70cdbffd8fe5ee3094b9", "assignedAt": "2026-08-20T10:54:00Z", "executionLease": "NOT_ACTIVE", "previousWave": {"id":"B-exchange","owner":"financial-apps","checkpoint":"c78f0954f9137a3faf3ce4abb4ff69ed21facafd","publicVerified":false}}
 }

@@ -1,7 +1,7 @@
 {
   "taskId": "P0-004",
   "owner": "financial-apps",
-  "status": "IN_PROGRESS_PAY_ONLY",
+  "status": "ASSIGNED_PAY_LEASE_NOT_ACTIVE",
   "acceptedContracts": [
     "walletTransport@p0-wallet-connection-v1",
     "errorContract@p0-wallet-connection-v1",
@@ -23,7 +23,7 @@
     "pathLock": "apps/pay/**",
     "branch": "codex/final-finance-suite",
     "worktree": "finance-suite",
-    "baselineCommit": "PENDING_OWNER_RECOVERY",
+    "baselineCommit": "a153ef9014e421c70ece70cdbffd8fe5ee3094b9",
     "scope": "Audit and migrate only Pay standard Wallet Connection, endpoint manifest networking, exact error classification and installed-client evidence.",
     "requiredSteps": ["audit current Exchange sources", "consume accepted SDK/manifest", "remove direct legacy/gateway coupling", "test", "build", "install/cold-start", "record actual connection state", "artifact hash", "handoff", "commit/push"]
   },
@@ -35,7 +35,8 @@
     "do not put localhost in a release",
     "do not substitute Web success for installed-platform proof",
     "do not classify Product Session failure as whole-app Offline",
-    "do not start Pay, DEX or Quant"
+    "do not start DEX or Quant",
+    "do not modify Pay until Integration issues the next bounded Heavy Lease"
   ],
   "exchangeCheckpoint": {"commit":"c78f0954f9137a3faf3ce4abb4ff69ed21facafd","status":"RELEASE_EVIDENCE_CHECKPOINT","publicVerified":false},
   "nextAction": "Perform exactly the Pay Wallet Connectivity slice, then stop at a safe checkpoint. Do not restart Finance or Exchange and do not start DEX or Quant."
