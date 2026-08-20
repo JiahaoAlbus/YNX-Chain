@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-08-20T10:02:00.000Z",
+  "purpose": "Direct regression evidence for the Wallet offline transport error and subsequent Testnet reconnection.",
+  "source": {
+    "ignoredAbortDeadlineRepairCommit": "8d9109881",
+    "nativeTransportNormalizationCommit": "f1ff2d6c84fb6b87a766e2ad81f81f785654066c",
+    "implementation": "apps/wallet/src/chain/nativeTransfer.ts",
+    "uiStaleBalanceClear": "apps/wallet/App.tsx"
+  },
+  "artifact": {
+    "applicationId": "com.ynxweb4.wallet",
+    "versionName": "1.0.0",
+    "bytes": 78216474,
+    "sha256": "462ac9528eaa167c9c46edecd7676477d8ab1b8066df11e643ffb1fb4a3fcf9b",
+    "minimumApi": 24,
+    "targetApi": 36,
+    "abiUnderTest": "arm64-v8a",
+    "signingClass": "release-build-debug-keystore-qa",
+    "signerSha256": "d4e562610ecb4e304fa00ee07e7adae7da862ce108bda7bdfe933c28831f154e",
+    "v2Verified": true,
+    "v1Verified": false,
+    "v3Verified": false,
+    "productionSigned": false,
+    "officialWebsiteHosted": false
+  },
+  "environment": {
+    "class": "Android Emulator",
+    "profile": "Pixel 9 equivalent",
+    "apiLevel": 36,
+    "abi": "arm64-v8a",
+    "physicalDevice": false,
+    "systemBiometric": "simulated emulator fingerprint"
+  },
+  "offlineRegression": {
+    "networkDisabled": ["wifi", "mobile-data"],
+    "launchState": "COLD",
+    "coldLaunchTotalTimeMs": 360,
+    "unlockCompleted": true,
+    "waitBeforeReadMs": 18000,
+    "visibleError": "Network unavailable: RPC_UNAVAILABLE: YNX Testnet transport is unavailable",
+    "visibleBalance": "— YNXT",
+    "staleAccountBalanceCleared": true,
+    "genericNativeExceptionExposed": false
+  },
+  "reconnect": {
+    "networkRestored": ["wifi", "mobile-data"],
+    "launchState": "COLD",
+    "coldLaunchTotalTimeMs": 217,
+    "lockedBeforeUnlock": true,
+    "unlockCompleted": true,
+    "visibleAccountMode": "NATIVE ACCOUNT",
+    "visibleBalance": "25 YNXT",
+    "visibleNonce": 0,
+    "visibleRecentAccountTransactions": 1,
+    "networkUnavailableVisible": false,
+    "testnetAccountDataRestored": true
+  },
+  "sourceValidation": {
+    "typecheck": "PASS",
+    "walletTests": "53/53 PASS",
+    "productCheck": "PASS",
+    "diffCheck": "PASS"
+  },
+  "truthBoundaries": {
+    "physicalPixelEvidence": false,
+    "productionSigning": false,
+    "officialDownload": false,
+    "dappAuthorizationSuccess": false,
+    "productSessionSuccess": false,
+    "externalDappApproval": false,
+    "faucetFromThisRegressionRun": false
+  }
+}
