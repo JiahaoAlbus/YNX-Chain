@@ -22,7 +22,7 @@
     "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/developer-v0.2.0-testnet-preview.1",
     "prerelease": true
   },
-  "summary": "The Developer web candidate is deployed with a service-based React and Monaco workbench. Historical unsigned macOS and Windows artifacts have separate source-bound evidence and are not represented as current artifacts for this candidate.",
+  "summary": "The Developer web candidate is deployed with a service-based React and Monaco workbench. A current unsigned macOS arm64 artifact has separate source-bound evidence and an immutable official-domain download; the Windows artifact remains historical and is not represented as current for this candidate.",
   "surfaces": [
     "web-ide",
     "api-studio",

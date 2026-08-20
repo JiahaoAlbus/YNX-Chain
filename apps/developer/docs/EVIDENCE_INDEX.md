@@ -6,7 +6,8 @@
 Developer candidate `bc8a37bc6f2bcfcbe9415cb0e9da17a5294046a3` to its protected
 deployment transaction, immutable LXD image, health/version response and
 evidence-manifest SHA-256. It is direct host-side release evidence. Independent
-external browser visibility and current desktop artifact evidence remain false.
+external browser visibility and current Windows desktop artifact evidence remain false; the
+current macOS artifact has separate extracted-install and official-domain hash evidence.
 
 The current cross-product contract and gaps are maintained in
 `release/integration/developer-contract.json`,
@@ -232,17 +233,17 @@ independent accessibility certification or installed-desktop recapture.
 
 - macOS build: `scripts/package-local-macos.sh`
 - macOS extracted install/cold start: `scripts/verify-local-macos-package.sh`
-- Current macOS source commit/runtime checkpoint: `89286b8a6e302c75bd398dd9bf8f2f26160248a6`
-- Current macOS source tree: `c6d83999d4da084784e3990bd23b3b320ed0c567`
-- Current full YNX Code macOS ZIP: SHA-256 `14564fd3a62f21ceb9ac90282a5e2fb41d7b0e2deb70c8d0f6d7e63abd317448`, 177,937,024 bytes, `adhoc-no-team-id`, hosted at the immutable `89286b8a` YNX-domain URL.
-- Embedded 267-component SBOM SHA-256: `26c03adeea1121319cf73b1eea402fdba0a718dd31c2e188d6168610c7146bff`
+- Historical macOS source/runtime checkpoint: `89286b8a6e302c75bd398dd9bf8f2f26160248a6`
+- Historical macOS source tree: `c6d83999d4da084784e3990bd23b3b320ed0c567`
+- Historical full YNX Code macOS ZIP: SHA-256 `14564fd3a62f21ceb9ac90282a5e2fb41d7b0e2deb70c8d0f6d7e63abd317448`, 177,937,024 bytes, `adhoc-no-team-id`, hosted at the immutable `89286b8a` YNX-domain URL.
+- Historical embedded 267-component SBOM SHA-256: `26c03adeea1121319cf73b1eea402fdba0a718dd31c2e188d6168610c7146bff`
 - Windows build: `scripts/package-windows.ps1`
 - Windows portable install/cold start: `scripts/verify-windows-package.ps1`
 - Windows host workflow: `.github/workflows/developer-windows.yml`
 - Successful current hosted-workspace Windows host run:
   `https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/31342901937`
 - Windows source `90da333dc98ccb9b98d49d17187d4ea5c47c5050`, run `31342901937`, job `93319490655`, transient Artifact `9046377906`, inner ZIP SHA-256 `890f4e4bb331934a81fb9269aec552b3f55e147cd7cc7c04bcef4166e9c61886`, SBOM SHA-256 `d47f774c89c5097aff5c50ca8b14983463726eca5d29d60376634a4aaf8925e2`, outer digest `sha256:3ba7a4307897a239fc2ebec4081676bc9022c5d70c763ecc4bbae55842d9115d`; the transient Actions artifact expires `2026-08-23T23:52:14Z`, while the exact inner ZIP is hosted by the YNX download domain. It cold-launched twice and completed a real remote C++ compile through the public YNX Code workspace.
-- Current macOS source `89286b8a6e302c75bd398dd9bf8f2f26160248a6`, ZIP SHA-256 `14564fd3a62f21ceb9ac90282a5e2fb41d7b0e2deb70c8d0f6d7e63abd317448`, 177,937,024 bytes; extracted provenance/SBOM/signing checks, cold launch, JavaScript/C++ toolchain discovery, real bounded C++ compilation, workspace save, child cleanup and persistent second launch passed.
+- Historical macOS source `89286b8a6e302c75bd398dd9bf8f2f26160248a6`, ZIP SHA-256 `14564fd3a62f21ceb9ac90282a5e2fb41d7b0e2deb70c8d0f6d7e63abd317448`, 177,937,024 bytes; extracted provenance/SBOM/signing checks, cold launch, JavaScript/C++ toolchain discovery, real bounded C++ compilation, workspace save, child cleanup and persistent second launch passed.
 - Current macOS source `cb57e10f7f92b01b73942879dedc98f059a1e20b`, ZIP SHA-256 `f4759ecc6bb5240a972bc7cd9909b35869bb756cce5a22f1a23bf1f718f522f9`, 168,157,234 bytes; its 269-component SBOM is `e18beb766cc8cbb288a24a1a29d2b25ae0e36adc63469484e47a4d92a7261575`. Extracted verification additionally performed an actual Keychain session-storage write/read/cleanup before cold launch, bounded C++ compile and persisted second launch. The unsigned ZIP, SBOM and provenance are now immutable official-domain downloads, and production Caddy hash-readback passed; notarization remains false. The exact machine-readable record is `evidence/desktop/macos-current-cb57e10f.json`.
 
 ## Supply chain

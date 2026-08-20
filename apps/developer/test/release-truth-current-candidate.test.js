@@ -30,6 +30,9 @@ test("current public candidate and Wallet v2 evidence do not promote missing lif
   assert.equal(truth.currentLocalMacArtifact.sha256, localMac.artifact.sha256);
   assert.equal(truth.currentLocalMacArtifact.downloadHosted, true);
   assert.equal(publicMetadata.localEvidence.currentLocalMacArtifact.hosted, true);
+  assert.equal(truth.featureStatus.ynxCodePlatform.webSourceCommit, truth.currentPublicCandidate.sourceCommit);
+  assert.equal(truth.featureStatus.ynxCodePlatform.macosArm64SourceCommit, localMac.artifact.sourceCommit);
+  assert.equal(truth.featureStatus.ynxCodePlatform.windowsCurrent, false);
   assert.equal(publicMetadata.fullPlatformPublicEvidence.nineRuntimes, true);
   assert.equal(publicMetadata.fullPlatformPublicEvidence.independentBrowserVisible, false);
   assert.equal(truth.walletProductSessionV2.publicV2RouteVerified, true);
