@@ -43,6 +43,13 @@
     "npmRegistryPublished": false,
     "rootFactorySourceIntegrated": true,
     "runtimeFactoryVerified": false,
+    "nativeAbsentWalletVerified": true,
+    "nativeAbsentWalletProof": {
+      "artifactSourceCommit": "e01b9e4a8cc00be2e590e86e8f043fd746696adf",
+      "method": "NSWorkspace URLForApplicationToOpenURL",
+      "ynxWalletInstalled": false,
+      "schemeRegistered": false
+    },
     "publicV2RouteVerified": true,
     "publicV2RouteProof": {
       "kind": "state-free-fail-closed-mount-probe",
@@ -56,7 +63,7 @@
     },
     "visibleLifecycleVerified": false,
     "migratedV2": false,
-    "reason": "Native Keychain/root-factory source and a state-free public v2 mount proof exist, but native installed/approve/reject/timeout/revoke/second-launch/network-loss lifecycle evidence remains required."
+    "reason": "Native Keychain storage, an actual native absent-Wallet scheme lookup and a state-free public v2 mount proof exist, but native installed/approve/reject/timeout/revoke/second-launch/network-loss lifecycle evidence remains required."
   },
   "surfaces": [
     "web-ide",

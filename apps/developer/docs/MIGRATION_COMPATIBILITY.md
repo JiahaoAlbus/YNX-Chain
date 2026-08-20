@@ -5,6 +5,9 @@ The prior Developer Wallet deployment surface remains present only as a
 fail-closed compatibility path while v2 lacks native lifecycle evidence.
 
 - Browser sessions cannot claim OS-protected v2 storage.
+- The current macOS package actually found `ynxwallet` unavailable through
+  `NSWorkspace URLForApplicationToOpenURL`; this proves only the absent-Wallet
+  path, not a simulated installed Wallet.
 - An unavailable `ynxwallet` scheme exposes download and Guest choices; Guest
   mode has no balance, transaction or Chain authority.
 - Optional Product Session degradation never disconnects Standard Wallet.

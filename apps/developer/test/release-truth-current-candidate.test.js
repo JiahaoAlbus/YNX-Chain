@@ -48,6 +48,8 @@ test("current public candidate and Wallet v2 evidence do not promote missing lif
   assert.equal(publicMetadata.fullPlatformPublicEvidence.nineRuntimes, true);
   assert.equal(publicMetadata.fullPlatformPublicEvidence.independentBrowserVisible, false);
   assert.equal(truth.walletProductSessionV2.publicV2RouteVerified, true);
+  assert.equal(truth.walletProductSessionV2.nativeAbsentWalletVerified, true);
+  assert.equal(truth.walletProductSessionV2.nativeAbsentWalletProof.ynxWalletInstalled, false);
   assert.equal(truth.walletProductSessionV2.visibleLifecycleVerified, false);
   assert.equal(truth.walletProductSessionV2.migratedV2, false);
   assert.equal(crossProduct.walletProductSessionV2.vectors.filter((item) => item.status === "requires-reviewed-device-evidence").length, 6);
