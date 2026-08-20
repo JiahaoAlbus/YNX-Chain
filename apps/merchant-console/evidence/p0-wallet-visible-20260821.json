@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-082",
+  "product": "pay-merchant",
+  "owner": "integration",
+  "status": "VISIBLE_DETERMINISTIC_PROVIDER_CHECKPOINT_NOT_PUBLIC",
+  "startingCommit": "f3d36ab5785f910f3114c4a080f2c2551aabe656",
+  "verificationCommit": "204c1ec27efb9f937bd2effdbbaa1253796c871a",
+  "verificationTree": "159f551bd9a2ae177f6415dbbd7111710e46b930",
+  "recordedAt": "2026-08-20T23:58:00Z",
+  "acceptedContracts": ["walletTransport", "errorContract", "dappConnectSDK", "publicEndpointManifest"],
+  "tests": {
+    "node": "13/13",
+    "build": "PASS",
+    "chromium": "2/2",
+    "productionDependencyAudit": "0 vulnerabilities",
+    "forbiddenEndpointScan": "PASS",
+    "browserBundleNodeBuiltinScan": "PASS",
+    "diffCheck": "PASS"
+  },
+  "browserEvidence": {
+    "surface": "Playwright Chromium local deterministic provider harness",
+    "approved": {
+      "provider": "YNX Test Wallet",
+      "account": "0x1111111111111111111111111111111111111111",
+      "chainId": "0x1917",
+      "standardConnectionVisible": true,
+      "publicPreviewVisible": true,
+      "privateServiceState": "PRIVATE_SERVICE_DEGRADED",
+      "privateSessionActionDisabled": true,
+      "merchantRecordsFabricated": false,
+      "consoleErrors": 0,
+      "screenshot": "evidence/visible/merchant-wallet-approved-private-degraded-1440x900.png",
+      "bytes": 117954,
+      "sha256": "c1b58994fb15b4f80ffa8cdb711c65dd6dc3dccf7d99ff84db2d060d80b9dacf"
+    },
+    "rejected": {
+      "providerErrorCode": 4001,
+      "accountCreated": false,
+      "productSessionCreated": false,
+      "privateSessionActionDisabled": true,
+      "publicPreviewVisible": true,
+      "merchantRecordsFabricated": false,
+      "consoleErrors": 0,
+      "screenshot": "evidence/visible/merchant-wallet-rejected-public-preview-1440x900.png",
+      "bytes": 119302,
+      "sha256": "bdbece2dec2650cd11ceae5554c36bc8b9218b4794d9eef534fc0601c47b93e9"
+    }
+  },
+  "artifacts": {
+    "webBundle": {"bytes": 132449, "sha256": "0c2a373b28f884578c626b0dd5f06ad1510fb8e94eaaf8c496d3fd9a389bc25a"},
+    "runtimeConfig": {"bytes": 585, "sha256": "c848319c7f105cd55bc096d7dbb612bb6cc2bd960c94fc02e1ee99eb479fdee3"},
+    "packageLock": {"bytes": 18426, "sha256": "ec125fbc2d2b0a793cbaaf6b815dd6db5bfcdc28d4592c0003729730e920e976"}
+  },
+  "truth": {
+    "standardWalletSourceImplemented": true,
+    "deterministicProviderLifecycleVisible": true,
+    "realInstalledWalletProviderVerified": false,
+    "productSessionV2": false,
+    "settlementVerified": false,
+    "installedClientVerified": false,
+    "deployedPublicCurrentSource": false,
+    "publicVerifiedCurrentSource": false,
+    "computerControlVerified": false,
+    "integratedCentral": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "nextAction": "Preserve this exact checkpoint. A future slice requires a real installed YNX Wallet or standard EVM extension, accepted Pay product API and public Product Session v2 before private merchant or settlement promotion."
+}
