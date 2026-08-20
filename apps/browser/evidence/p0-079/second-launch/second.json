@@ -1,0 +1,9 @@
+{
+  "appearance" : "system",
+  "height" : 900,
+  "minimumHeight" : 620,
+  "minimumWidth" : 920,
+  "schemaVersion" : "ynx-browser-window-evidence-v1",
+  "usable" : true,
+  "width" : 1440
+}

@@ -1,0 +1,107 @@
+{
+  "schemaVersion": "ynx-p0-product-evidence/1",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-079",
+  "productId": "ynx-browser",
+  "owner": "integration",
+  "generatedAt": "2026-08-20T23:27:27Z",
+  "sourceCommit": "ad890f0a2fe562536216c2834b25a7ad2aa398f6",
+  "sourceBranch": "codex/p0-browser-current-source-verification-20260821",
+  "startingCommit": "284faf7807dc1fe6f1ea245fff5956f32b2e5d7a",
+  "productBoundary": {
+    "ynxBrowser": "independent general browser product",
+    "walletDAppBrowser": "separate Wallet-owned secure connection surface",
+    "walletProviderImplemented": false,
+    "productSessionV2": false
+  },
+  "closedGap": {
+    "description": "Published metadata no longer relabels historical macOS install evidence as the newer Browser source checkpoint.",
+    "test": "apps/browser/test/macos-install-evidence.test.js",
+    "historicalInstallCommit": "2beece6f66a330811f474f24189e53aacb5bb636",
+    "currentSourceCommit": "ad890f0a2fe562536216c2834b25a7ad2aa398f6"
+  },
+  "verification": {
+    "package": {
+      "command": "cd apps/browser && npm run check",
+      "nodeTests": {"passed": 18, "failed": 0},
+      "swiftTests": {"passed": 20, "failed": 0},
+      "smoke": true,
+      "sourceGate": true,
+      "dependencyAuditVulnerabilities": 0,
+      "sameHostReproducible": true,
+      "zipPath": "apps/browser/dist/macos/YNX-Browser-Testnet-Preview-macOS.zip",
+      "zipBytes": 143157,
+      "zipSha256": "a696f743a86518d8cc98d1a1335fd80fcbf3eed593491e53e7ed67589f019ba4"
+    },
+    "macosInstall": {
+      "command": "node scripts/install-macos-evidence.mjs --skip-build --evidence-output evidence/p0-079/macos-install-ad890f0.json",
+      "evidence": "apps/browser/evidence/p0-079/macos-install-ad890f0.json",
+      "evidenceBytes": 10042,
+      "evidenceSha256": "2bdf08893cc640fd06d02d2ec61b4c48aea79e0e6d4992d45349132d57fdfcb3",
+      "installedPath": "~/Applications/YNX Browser Testnet Preview-ad890f0a2fe5-aaed312ef608.app",
+      "binarySha256": "aaed312ef608445504ba1cc21ff24d14bc5b4e48c2d6b505dc3cfb545daa0de5",
+      "signingClass": "adhoc",
+      "codesignVerify": true,
+      "launchServicesExactReviewedBinary": true,
+      "collisionPreservation": true
+    },
+    "firstAndSecondLaunch": {
+      "sameInstalledBinary": true,
+      "stateHome": "isolated test state",
+      "first": {
+        "evidence": "apps/browser/evidence/p0-079/second-launch/first.json",
+        "bytes": 187,
+        "sha256": "cef0f1f4d412080431c4f116ab7324604b207ae2b21410fbabc8556cc24e63ac",
+        "width": 1440,
+        "height": 900,
+        "usable": true
+      },
+      "second": {
+        "evidence": "apps/browser/evidence/p0-079/second-launch/second.json",
+        "bytes": 187,
+        "sha256": "cef0f1f4d412080431c4f116ab7324604b207ae2b21410fbabc8556cc24e63ac",
+        "width": 1440,
+        "height": 900,
+        "usable": true
+      }
+    },
+    "windowServerVisibleAttempt": {
+      "result": "BLOCKED_NO_ONSCREEN_LAYER_ZERO_WINDOW",
+      "internalGeometryEvidence": "apps/browser/evidence/p0-079/macos-window-ad890f0a/standard-self.json",
+      "internalGeometryBytes": 186,
+      "internalGeometrySha256": "fb583dd1efd79453d85eccefd4e2638d8b7581d12c9c63305ccac4b31b416373",
+      "internalWidth": 1440,
+      "internalHeight": 900,
+      "minimumWidth": 920,
+      "minimumHeight": 620,
+      "screenshotProduced": false,
+      "visibleVerified": false,
+      "computerControl": false
+    },
+    "diffCheck": true
+  },
+  "truth": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocalMacosEvidenceHost": true,
+    "secondLaunchInternalGeometryVerified": true,
+    "collapsedWindowReproduced": false,
+    "windowServerVisibleVerified": false,
+    "androidCurrentSourceInstalled": false,
+    "iosCurrentSourceInstalled": false,
+    "windowsCurrentSourceInstalled": false,
+    "deployedPublicCurrentSource": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "notarized": false,
+    "storeReleased": false,
+    "computerControl": false,
+    "integratedCentral": false
+  },
+  "remainingBlockers": [
+    "Unlocked on-screen macOS WindowServer screenshot and final ComputerControl verification",
+    "Current-source Android, iOS and Windows build/install/cold-start evidence on their target platforms",
+    "Developer ID signing, notarization, production signing and immutable official hosting",
+    "Independent public download hash readback and store release"
+  ]
+}

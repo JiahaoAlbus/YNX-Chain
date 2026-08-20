@@ -137,6 +137,25 @@
     "platformEvidence": "apps/browser/PLATFORM_EVIDENCE.md",
     "boundary": "Previous evidence remains historical and is not automatically attributed to this checkpoint"
   },
+  "p0CurrentSourceVerification": {
+    "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+    "taskId": "P0-079",
+    "sourceCommit": "ad890f0a2fe562536216c2834b25a7ad2aa398f6",
+    "evidence": "apps/browser/evidence/p0-079/browser-current-source-evidence.json",
+    "nodeTests": "18/18",
+    "swiftTests": "20/20",
+    "sameHostReproducible": true,
+    "installedLocalMacosEvidenceHost": true,
+    "secondLaunchInternalGeometryVerified": true,
+    "windowServerVisibleVerified": false,
+    "collapsedWindowReproduced": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "notarized": false,
+    "storeReleased": false,
+    "computerControl": false,
+    "integratedCentral": false
+  },
   "externalInputs": [],
   "nextAction": "Obtain Developer ID signing/notarization and immutable public hosting, then rerun cross-host install, shared-Testnet Wallet callback and platform evidence before offering a Browser download."
 }

@@ -1,0 +1,198 @@
+{
+  "schemaVersion": "ynx.browser.macos-install-evidence.v1",
+  "product": "YNX Browser",
+  "platform": "macOS",
+  "sourceCommit": "ad890f0a2fe562536216c2834b25a7ad2aa398f6",
+  "generatedAt": "2026-08-20T23:26:42.257Z",
+  "bundleId": "com.ynxweb4.browser.macos",
+  "reviewedArtifact": {
+    "app": "apps/browser/dist/macos/YNX Browser Testnet Preview.app",
+    "executableSha256": "aaed312ef608445504ba1cc21ff24d14bc5b4e48c2d6b505dc3cfb545daa0de5",
+    "bytes": 463248,
+    "signingClass": "adhoc"
+  },
+  "collisionAudit": {
+    "before": [
+      {
+        "path": "~/Applications/YNX Browser Evidence/YNX Browser Testnet Preview-49c9ba14057b-cae76c48e0ac.app",
+        "role": "collision",
+        "binarySha256": "cae76c48e0acb8241f3501115cee118865c3d2b54ee945b7091d4894208943a9",
+        "matchesReviewedBinary": false
+      },
+      {
+        "path": "~/Applications/YNX Browser Preserved/YNX Browser Testnet Preview-preserved-95ddf592badb.app",
+        "role": "collision",
+        "binarySha256": "95ddf592badbdb3cdf4babc31c0febdd186e917d1b1ca81a4a400c2f8839d81e",
+        "matchesReviewedBinary": false
+      },
+      {
+        "path": "~/Applications/YNX Browser Testnet Preview-2beece6f66a3-cae76c48e0ac.app",
+        "role": "collision",
+        "binarySha256": "cae76c48e0acb8241f3501115cee118865c3d2b54ee945b7091d4894208943a9",
+        "matchesReviewedBinary": false
+      },
+      {
+        "path": "~/Applications/YNX Browser Testnet Preview-49c9ba14057b-cae76c48e0ac.app",
+        "role": "collision",
+        "binarySha256": "cae76c48e0acb8241f3501115cee118865c3d2b54ee945b7091d4894208943a9",
+        "matchesReviewedBinary": false
+      },
+      {
+        "path": "~/Applications/YNX Browser Testnet Preview-96dfc528ddd6-b774dba5db30.app",
+        "role": "collision",
+        "binarySha256": "b774dba5db302158a370ebb51349edcfc92cd360178487141b59fd8e543ba185",
+        "matchesReviewedBinary": false
+      },
+      {
+        "path": "~/Desktop/YNX Final Worktrees/52-browser-p0/apps/browser/dist/macos/YNX Browser Testnet Preview.app",
+        "role": "source-artifact",
+        "binarySha256": "aaed312ef608445504ba1cc21ff24d14bc5b4e48c2d6b505dc3cfb545daa0de5",
+        "matchesReviewedBinary": true
+      }
+    ],
+    "after": [
+      {
+        "path": "~/Applications/YNX Browser Preserved/YNX Browser Testnet Preview-2beece6f66a3-cae76c48e0ac-preserved-cae76c48e0ac.app",
+        "role": "collision",
+        "binarySha256": "cae76c48e0acb8241f3501115cee118865c3d2b54ee945b7091d4894208943a9",
+        "matchesReviewedBinary": false
+      },
+      {
+        "path": "~/Applications/YNX Browser Preserved/YNX Browser Testnet Preview-49c9ba14057b-cae76c48e0ac-preserved-cae76c48e0ac-2.app",
+        "role": "collision",
+        "binarySha256": "cae76c48e0acb8241f3501115cee118865c3d2b54ee945b7091d4894208943a9",
+        "matchesReviewedBinary": false
+      },
+      {
+        "path": "~/Applications/YNX Browser Preserved/YNX Browser Testnet Preview-49c9ba14057b-cae76c48e0ac-preserved-cae76c48e0ac.app",
+        "role": "collision",
+        "binarySha256": "cae76c48e0acb8241f3501115cee118865c3d2b54ee945b7091d4894208943a9",
+        "matchesReviewedBinary": false
+      },
+      {
+        "path": "~/Applications/YNX Browser Preserved/YNX Browser Testnet Preview-96dfc528ddd6-b774dba5db30-preserved-b774dba5db30.app",
+        "role": "collision",
+        "binarySha256": "b774dba5db302158a370ebb51349edcfc92cd360178487141b59fd8e543ba185",
+        "matchesReviewedBinary": false
+      },
+      {
+        "path": "~/Applications/YNX Browser Preserved/YNX Browser Testnet Preview-preserved-95ddf592badb.app",
+        "role": "collision",
+        "binarySha256": "95ddf592badbdb3cdf4babc31c0febdd186e917d1b1ca81a4a400c2f8839d81e",
+        "matchesReviewedBinary": false
+      },
+      {
+        "path": "~/Applications/YNX Browser Testnet Preview-ad890f0a2fe5-aaed312ef608.app",
+        "role": "reviewed-install",
+        "binarySha256": "aaed312ef608445504ba1cc21ff24d14bc5b4e48c2d6b505dc3cfb545daa0de5",
+        "matchesReviewedBinary": true
+      },
+      {
+        "path": "~/Desktop/YNX Final Worktrees/52-browser-p0/apps/browser/dist/macos/YNX Browser Testnet Preview.app",
+        "role": "source-artifact",
+        "binarySha256": "aaed312ef608445504ba1cc21ff24d14bc5b4e48c2d6b505dc3cfb545daa0de5",
+        "matchesReviewedBinary": true
+      }
+    ],
+    "preservationMoves": [
+      {
+        "originalPath": "~/Applications/YNX Browser Evidence/YNX Browser Testnet Preview-49c9ba14057b-cae76c48e0ac.app",
+        "preservedPath": "~/Applications/YNX Browser Preserved/YNX Browser Testnet Preview-49c9ba14057b-cae76c48e0ac-preserved-cae76c48e0ac.app",
+        "binarySha256": "cae76c48e0acb8241f3501115cee118865c3d2b54ee945b7091d4894208943a9",
+        "result": "pass"
+      },
+      {
+        "originalPath": "~/Applications/YNX Browser Testnet Preview-2beece6f66a3-cae76c48e0ac.app",
+        "preservedPath": "~/Applications/YNX Browser Preserved/YNX Browser Testnet Preview-2beece6f66a3-cae76c48e0ac-preserved-cae76c48e0ac.app",
+        "binarySha256": "cae76c48e0acb8241f3501115cee118865c3d2b54ee945b7091d4894208943a9",
+        "result": "pass"
+      },
+      {
+        "originalPath": "~/Applications/YNX Browser Testnet Preview-49c9ba14057b-cae76c48e0ac.app",
+        "preservedPath": "~/Applications/YNX Browser Preserved/YNX Browser Testnet Preview-49c9ba14057b-cae76c48e0ac-preserved-cae76c48e0ac-2.app",
+        "binarySha256": "cae76c48e0acb8241f3501115cee118865c3d2b54ee945b7091d4894208943a9",
+        "result": "pass"
+      },
+      {
+        "originalPath": "~/Applications/YNX Browser Testnet Preview-96dfc528ddd6-b774dba5db30.app",
+        "preservedPath": "~/Applications/YNX Browser Preserved/YNX Browser Testnet Preview-96dfc528ddd6-b774dba5db30-preserved-b774dba5db30.app",
+        "binarySha256": "b774dba5db302158a370ebb51349edcfc92cd360178487141b59fd8e543ba185",
+        "result": "pass"
+      }
+    ],
+    "collisionRollback": [],
+    "preservedExistingCopies": [
+      {
+        "originalPath": "~/Applications/YNX Browser Evidence/YNX Browser Testnet Preview-49c9ba14057b-cae76c48e0ac.app",
+        "preservedPath": "~/Applications/YNX Browser Preserved/YNX Browser Testnet Preview-49c9ba14057b-cae76c48e0ac-preserved-cae76c48e0ac.app",
+        "beforeSha256": "cae76c48e0acb8241f3501115cee118865c3d2b54ee945b7091d4894208943a9",
+        "afterSha256": "cae76c48e0acb8241f3501115cee118865c3d2b54ee945b7091d4894208943a9",
+        "preserved": true
+      },
+      {
+        "originalPath": "~/Applications/YNX Browser Preserved/YNX Browser Testnet Preview-preserved-95ddf592badb.app",
+        "preservedPath": "~/Applications/YNX Browser Preserved/YNX Browser Testnet Preview-preserved-95ddf592badb.app",
+        "beforeSha256": "95ddf592badbdb3cdf4babc31c0febdd186e917d1b1ca81a4a400c2f8839d81e",
+        "afterSha256": "95ddf592badbdb3cdf4babc31c0febdd186e917d1b1ca81a4a400c2f8839d81e",
+        "preserved": true
+      },
+      {
+        "originalPath": "~/Applications/YNX Browser Testnet Preview-2beece6f66a3-cae76c48e0ac.app",
+        "preservedPath": "~/Applications/YNX Browser Preserved/YNX Browser Testnet Preview-2beece6f66a3-cae76c48e0ac-preserved-cae76c48e0ac.app",
+        "beforeSha256": "cae76c48e0acb8241f3501115cee118865c3d2b54ee945b7091d4894208943a9",
+        "afterSha256": "cae76c48e0acb8241f3501115cee118865c3d2b54ee945b7091d4894208943a9",
+        "preserved": true
+      },
+      {
+        "originalPath": "~/Applications/YNX Browser Testnet Preview-49c9ba14057b-cae76c48e0ac.app",
+        "preservedPath": "~/Applications/YNX Browser Preserved/YNX Browser Testnet Preview-49c9ba14057b-cae76c48e0ac-preserved-cae76c48e0ac-2.app",
+        "beforeSha256": "cae76c48e0acb8241f3501115cee118865c3d2b54ee945b7091d4894208943a9",
+        "afterSha256": "cae76c48e0acb8241f3501115cee118865c3d2b54ee945b7091d4894208943a9",
+        "preserved": true
+      },
+      {
+        "originalPath": "~/Applications/YNX Browser Testnet Preview-96dfc528ddd6-b774dba5db30.app",
+        "preservedPath": "~/Applications/YNX Browser Preserved/YNX Browser Testnet Preview-96dfc528ddd6-b774dba5db30-preserved-b774dba5db30.app",
+        "beforeSha256": "b774dba5db302158a370ebb51349edcfc92cd360178487141b59fd8e543ba185",
+        "afterSha256": "b774dba5db302158a370ebb51349edcfc92cd360178487141b59fd8e543ba185",
+        "preserved": true
+      }
+    ],
+    "preservationVerified": true
+  },
+  "install": {
+    "result": "installed-new",
+    "path": "~/Applications/YNX Browser Testnet Preview-ad890f0a2fe5-aaed312ef608.app",
+    "immutableName": "YNX Browser Testnet Preview-ad890f0a2fe5-aaed312ef608.app",
+    "executableSha256": "aaed312ef608445504ba1cc21ff24d14bc5b4e48c2d6b505dc3cfb545daa0de5",
+    "exactArtifactHash": true,
+    "codesignVerify": "pass"
+  },
+  "launchServices": {
+    "registration": "explicit-path-launch-registration-after-preserving-user-collision",
+    "launchCleanup": {
+      "result": "pass",
+      "pids": [
+        {
+          "pid": 43767,
+          "result": "pass",
+          "exitCode": 0
+        }
+      ]
+    },
+    "registrationRollback": [],
+    "protocolProbe": "ynxbrowser://com.ynxweb4.browser.macos/evidence/handler-resolution?source=ad890f0a2fe5",
+    "resolvedApp": "~/Applications/YNX Browser Testnet Preview-ad890f0a2fe5-aaed312ef608.app",
+    "resolvedExecutableSha256": "aaed312ef608445504ba1cc21ff24d14bc5b4e48c2d6b505dc3cfb545daa0de5",
+    "resolvesReviewedInstall": true,
+    "exactReviewedBinaryHash": true
+  },
+  "verifiedStates": {
+    "installedLocalMacosEvidenceHost": true,
+    "productionSigned": false,
+    "notarized": false,
+    "storeReleased": false,
+    "downloadHosted": false
+  },
+  "truthBoundary": "This proves a non-destructive user-local installation of the exact reviewed ad-hoc Testnet Preview and LaunchServices resolution to that installed executable on this evidence host. It does not prove Developer ID signing, notarization, public hosting, store release, cross-host reproducibility or central Wallet/Auth acceptance."
+}
