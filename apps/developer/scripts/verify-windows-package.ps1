@@ -33,9 +33,10 @@ $expectedSourceTree = if ($env:YNX_DEVELOPER_EXPECTED_SOURCE_TREE) {
   (& git -C $repoRoot rev-parse "${expectedSourceCommit}^{tree}").Trim()
 }
 $release = Get-Content (Join-Path $app "product-release.json") -Raw | ConvertFrom-Json
-$expectedRuntimeCheckpoint = [string]$release.featureStatus.ynxCodePlatform.sourceCommit
-if ([string]::IsNullOrWhiteSpace($expectedRuntimeCheckpoint)) {
-  throw "product-release.json does not expose featureStatus.ynxCodePlatform.sourceCommit"
+$expectedRuntimeCheckpoint = [string]$release.featureStatus.ynxCodePlatform.webSourceCommit
+$publicDeploymentCommit = [string]$release.featureStatus.ynxCodePlatform.publicDeployment.sourceCommit
+if ([string]::IsNullOrWhiteSpace($expectedRuntimeCheckpoint) -or [string]::IsNullOrWhiteSpace($publicDeploymentCommit) -or $expectedRuntimeCheckpoint -ne $publicDeploymentCommit) {
+  throw "product-release.json does not expose one exact current public YNX Code runtime checkpoint"
 }
 
 $actualZipHash = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLowerInvariant()

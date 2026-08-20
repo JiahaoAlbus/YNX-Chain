@@ -20,9 +20,10 @@ if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($sourceCommit) -or [str
 }
 
 $release = Get-Content (Join-Path $app "product-release.json") -Raw | ConvertFrom-Json
-$runtimeCheckpoint = [string]$release.featureStatus.ynxCodePlatform.sourceCommit
-if ([string]::IsNullOrWhiteSpace($runtimeCheckpoint)) {
-  throw "product-release.json does not expose featureStatus.ynxCodePlatform.sourceCommit"
+$runtimeCheckpoint = [string]$release.featureStatus.ynxCodePlatform.webSourceCommit
+$publicDeploymentCommit = [string]$release.featureStatus.ynxCodePlatform.publicDeployment.sourceCommit
+if ([string]::IsNullOrWhiteSpace($runtimeCheckpoint) -or [string]::IsNullOrWhiteSpace($publicDeploymentCommit) -or $runtimeCheckpoint -ne $publicDeploymentCommit) {
+  throw "product-release.json does not expose one exact current public YNX Code runtime checkpoint"
 }
 
 $outRoot = Join-Path $app ".ynx-developer-windows"

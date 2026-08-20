@@ -90,6 +90,7 @@ test("Windows proof requires a real Windows build, portable install and cold lau
   assert.match(verify,/--self-test/);assert.match(verify,/CloseMainWindow/);assert.match(verify,/realCppCompile/);assert.match(verify,/runtime\/tasks/);assert.match(verify,/second launch/);assert.match(verify,/YNX_DEVELOPER_EXPECTED_SOURCE_COMMIT/);
   assert.match(verify,/provenance sourceCommit/);assert.match(verify,/artifactSha256/);assert.match(verify,/authenticodeStatus/);assert.match(nativeSelfTest,/build-provenance\.json/);assert.match(nativeSelfTest,/sbom\.cdx\.json/);
   assert.match(nativeSelfTest,/hosted-workspace-client/);assert.match(nativeSelfTest,/MainWindow\.WorkspaceUrl/);assert.match(windowsHost,/https:\/\/developer\.ynxweb4\.com\//);assert.match(windowsHost,/healthz/);
+  for(const script of [packageScript,verify]) { assert.match(script,/featureStatus\.ynxCodePlatform\.webSourceCommit/);assert.match(script,/publicDeployment\.sourceCommit/);assert.doesNotMatch(script,/ynxCodePlatform\.sourceCommit/); }
   assert.match(workflow,/runs-on: windows-latest/);assert.match(workflow,/codex\/ynx-code-platform-v1/);assert.match(workflow,/developer-windows-\$\{\{ github\.ref \}\}/);
   assert.match(workflow,/Install pinned Developer dependencies/);assert.match(workflow,/working-directory: apps\/developer\s+run: npm ci --ignore-scripts/);
   assert.match(workflow,/package-windows\.ps1/);assert.match(workflow,/verify-windows-package\.ps1/);assert.match(workflow,/upload-artifact@v4/);
