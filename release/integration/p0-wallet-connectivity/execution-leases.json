@@ -1,7 +1,7 @@
 {
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-  "epoch": 34,
-  "updatedAt": "2026-08-20T22:29:02Z",
+  "epoch": 35,
+  "updatedAt": "2026-08-20T22:31:17Z",
   "heavy": {
     "owner": null,
     "status": "AVAILABLE_AFTER_P0070_FAILED_CLOSED_TRANSPORT",
@@ -24,23 +24,23 @@
     ]
   },
   "light": {
-    "owner": null,
-    "status": "AVAILABLE_AFTER_P0072_RESOURCE_CHECKPOINT",
-    "branch": null,
-    "worktree": null,
-    "taskId": "P0-072",
-    "leasedAt": "2026-08-20T22:14:59Z",
-    "releasedAt": "2026-08-20T22:29:02Z",
-    "checkpointCommit": "5f0a6eea4aef0c1b374e971bd99f41a6e71d6596",
+    "owner": "integration",
+    "status": "ACTIVE_BOUNDED_SOURCE_ONLY",
+    "branch": "codex/p0-governance-wallet-connectivity-20260821",
+    "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/47-governance-p0",
+    "taskId": "P0-074",
+    "leasedAt": "2026-08-20T22:31:17Z",
+    "releasedAt": null,
+    "checkpointCommit": "2b8e8e46077d8092449182df2dd7614f9485295e",
     "previousOwner": "integration",
-    "previousCheckpoint": "1abece5158573b10eae6c084f3653a225c6590cb",
-    "reason": "Resource P0-072 reached a clean remote checkpoint. The Web source consumes accepted EIP-6963/EIP-1193 SDK connection, prefers YNX Wallet, offers MetaMask and official Wallet download, preserves guest exploration, and removes the reload-fragile browser P-256/sessionStorage flow. Private Product Session, installed, public and settlement gates remain false.",
-    "executionScope": null,
+    "previousCheckpoint": "5f0a6eea4aef0c1b374e971bd99f41a6e71d6596",
+    "reason": "Governance is an existing product with proposal and voting UI but no accepted Standard Wallet consumer. Its clean owner branch differs from the current central baseline only by whitespace, so P0-074 proceeds from the newer central baseline without dropping owner functionality.",
+    "executionScope": "GOVERNANCE_STANDARD_WALLET_SOURCE_ONLY",
     "onSafeCheckpoint": [
-      "modify only apps/resource-market, internal/resourceproduct and Resource owner evidence",
+      "modify only apps/governance and Governance owner evidence",
       "consume the accepted DApp Connect SDK without copying Wallet Protocol or creating a local Product Session",
-      "preserve public marketplace explanation and guest exploration independently of Wallet and private settlement",
-      "keep orders, provider actions, private data and settlement unavailable without exact accepted private authority",
+      "preserve public proposal reading and governance education independently of Wallet",
+      "keep voting, delegation, proposal submission and privileged controls unavailable without exact accepted authority",
       "run product tests, build, release scans and local-browser evidence; do not claim deployment or installed clients",
       "commit, force-false push, update handoff and release at a clean checkpoint"
     ]
