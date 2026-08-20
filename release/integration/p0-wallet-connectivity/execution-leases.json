@@ -24,16 +24,17 @@
     ]
   },
   "light": {
-    "owner": "data-fabric",
-    "status": "ACTIVE",
+    "owner": null,
+    "status": "RELEASED_CHECKPOINT",
     "branch": "codex/final-data-fabric",
     "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/26-data-fabric",
     "taskId": "P0-005",
     "leasedAt": "2026-08-20T14:55:00Z",
+    "releasedAt": "2026-08-20T17:50:14Z",
     "previousOwner": "developer-sdk",
-    "previousCheckpoint": "353fffbc55e1e309978e0e9dff59b3aa3cfd1bf8",
-    "reason": "Bounded asynchronous Wallet canonical error-to-connectivity aggregation slice granted; the matching Data Fabric path lock is WRITABLE_ACTIVE.",
-    "executionScope": "WALLET_CANONICAL_ERROR_TO_CONNECTIVITY_AGGREGATION",
+    "previousCheckpoint": "da095e240be52023ecef19c162c869398bf9fbea",
+    "reason": "Data Fabric completed the bounded privacy-safe aggregation slice, pushed a clean handoff and passed focused and remote CI checks. No public or product migration claim is implied.",
+    "executionScope": "RELEASED_WALLET_ERROR_AGGREGATION_CHECKPOINT",
     "onSafeCheckpoint": [
       "commit, push, test and update the owner handoff before release",
       "retain asynchronous-only Data Fabric boundary and never persist raw errors, developerMessage or identity"
@@ -54,10 +55,10 @@
   },
   "dataFabric": {
     "owner": "data-fabric",
-    "status": "LIGHT_SLICE_ACTIVE",
+    "status": "CANDIDATE_READY",
     "pr": "https://github.com/JiahaoAlbus/YNX-Chain/pull/92",
     "acceptedContract": "connectionEvents@1.0.0-p0.0",
-    "checkpointCommit": "353fffbc55e1e309978e0e9dff59b3aa3cfd1bf8",
+    "checkpointCommit": "da095e240be52023ecef19c162c869398bf9fbea",
     "activationBoundary": "asynchronous errorClass and retryable aggregation only; no Wallet, Gateway, Card UI, Finance UI or Explorer UI ownership"
   },
   "waveB": [
@@ -77,7 +78,7 @@
   "queue": [
     "wallet-auth-core:registry-v3@active-single-use",
     "financial-apps:pay@assigned-no-active-lease",
-    "data-fabric:error-aggregation-light-slice@active-from-353fffbc",
+    "data-fabric:error-aggregation-checkpoint@da095e24",
     "explorer-monitor:source-policy-checkpoint@f8db7632",
     "card-testnet-e2e:dependencies-prepared",
     "wallet-platform:checkpoint",

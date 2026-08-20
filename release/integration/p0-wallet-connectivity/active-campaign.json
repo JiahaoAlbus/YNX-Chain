@@ -2,7 +2,7 @@
   "schemaVersion": "1.0.0",
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "owner": "integration",
-  "status": "WALLET_AUTH_REGISTRY_V3_HEAVY_AND_DATA_FABRIC_LIGHT_ACTIVE",
+  "status": "WALLET_AUTH_REGISTRY_V3_HEAVY_ACTIVE_DATA_FABRIC_CHECKPOINT_READY",
   "scope": ["founder-control", "wallet-connectivity", "installed-client-networking", "shop-android-retirement", "artwork-governance"],
   "frozen": ["independent-ynx-id", "nonessential-new-products", "extra-finance-features", "shop-android"],
   "integrationBranch": "codex/final-integration",
@@ -10,6 +10,6 @@
   "protectedHistory": [{"branch": "codex/recovery/final-integration-pre-p0", "reason": "preserved divergent pre-P0 integration history"}],
   "network": {"cosmosChainId": "ynx_6423-1", "evmChainId": 6423, "evmChainHex": "0x1917", "nativeAsset": "YNXT", "nativeAddressPrefix": "ynx1"},
   "firstStop": {"complete": true, "publicConnectivityClaim": false, "nextAction": "Four-node chain runtime is verified at source be9f0383 with exact fixed-height convergence and zero post-rollout restarts. Finance and Exchange remain bounded checkpoints; Pay has no active execution lease. Continue Product Session consumer migration, Data Fabric light-slice completion and exact installed/public evidence without promoting any 0/12 product migration flag."},
-  "lightLeases": [{"owner":"data-fabric","taskId":"P0-005","status":"ACTIVE","grantedAt":"2026-08-20T14:55:00Z","checkpointCommit":"353fffbc55e1e309978e0e9dff59b3aa3cfd1bf8","scope":"wallet-canonical-error-to-connectivity-aggregation","constraints":["asynchronous only","aggregate class and retryability only","do not persist raw error, developerMessage or identity","no Wallet, Gateway, Card UI, Finance UI or Explorer UI changes"]}],
+  "lightLeases": [{"owner":"data-fabric","taskId":"P0-005","status":"RELEASED_CHECKPOINT","grantedAt":"2026-08-20T14:55:00Z","releasedAt":"2026-08-20T17:50:14Z","checkpointCommit":"da095e240be52023ecef19c162c869398bf9fbea","scope":"wallet-canonical-error-to-connectivity-aggregation","constraints":["asynchronous only","aggregate class and retryability only","do not persist raw error, developerMessage or identity","no Wallet, Gateway, Card UI, Finance UI or Explorer UI changes"]}],
   "wave": {"id": "P0-wallet-auth-registry-v3", "owner": "wallet-auth-core", "executionScope": "WALLET_AUTH_REGISTRY_V3_RETIREMENT_SINGLE_USE", "firstTask": "COPY_STATE_AND_COMPLETE_ROLLBACK_DRILL", "startingCheckpoint": "deb2cefb00b52e5c2ab9c357201d690918320424", "assignedAt": "2026-08-20T17:40:54Z", "executionLease": "ACTIVE_SINGLE_USE", "previousWave": {"id":"C-explorer-monitor","owner":"explorer-monitor","checkpoint":"f8db7632fb37e9363858a4d4d977eea7b3585c7e","deployedPublic":false,"publicVerified":false}}
 }

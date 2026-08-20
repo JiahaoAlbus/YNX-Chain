@@ -18,8 +18,12 @@ assert.equal(task.executionLeaseIssued, false);
 assert.equal(acceptance.focusedTests.passed, 26);
 assert.equal(acceptance.focusedTests.failed, 0);
 assert.equal(acceptance.ownerFullTests.independentlyReplayed, false);
-assert.equal(leases.light.owner, 'data-fabric');
-assert.equal(leases.light.status, 'ACTIVE');
-assert.equal(dataFabricLock.status, 'WRITABLE_ACTIVE');
+assert.equal(leases.light.owner, null);
+assert.equal(leases.light.status, 'RELEASED_CHECKPOINT');
+assert.equal(leases.light.previousCheckpoint, 'da095e240be52023ecef19c162c869398bf9fbea');
+assert.equal(leases.dataFabric.status, 'CANDIDATE_READY');
+assert.equal(leases.dataFabric.checkpointCommit, 'da095e240be52023ecef19c162c869398bf9fbea');
+assert.equal(dataFabricLock.status, 'CHECKPOINT_REACHED');
+assert.equal(dataFabricLock.checkpointCommit, 'da095e240be52023ecef19c162c869398bf9fbea');
 
-console.log('P0 Core source acceptance and Data Fabric light lease consistency verified');
+console.log('P0 Core source acceptance and released Data Fabric checkpoint consistency verified');
