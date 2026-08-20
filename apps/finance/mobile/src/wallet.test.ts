@@ -4,11 +4,15 @@ import {readFileSync} from 'node:fs';
 
 const wallet=readFileSync(new URL('./wallet.ts',import.meta.url),'utf8');
 const manifest=readFileSync(new URL('../contract/public-endpoint-manifest.json',import.meta.url),'utf8');
+const walletAuth=readFileSync(new URL('../node_modules/@ynx-chain/wallet-auth/src/product-wallet-connection.js',import.meta.url),'utf8');
 
-test('mobile consumes the accepted standard wallet SDK and never creates a device proof',()=>{
+test('mobile preserves Standard Wallet and consumes the source-pinned Product Session root factory',()=>{
   assert.ok(wallet.includes("@ynx/dapp-connect-sdk"));
   assert.ok(wallet.includes('StandardWalletConnection'));
-  for(const prohibited of ['p256','createGatewayChallenge','signGatewayChallenge','createProductSessionProof','sessions/complete','encodeRequestDeepLink','SecureStore'])assert.equal(wallet.includes(prohibited),false,prohibited);
+  for(const required of ["@ynx-chain/wallet-auth",'createProductWalletConnection','FinanceSecureDevice','PRODUCT_SESSION_PUBLIC_GATEWAY_ORIGIN','PRIVATE_SERVICE_DEGRADED'])assert.ok(wallet.includes(required),required);
+  assert.ok(walletAuth.includes('https://wallet-auth.ynxweb4.com'));
+  for(const prohibited of ['createGatewayChallenge','signGatewayChallenge','createProductSessionProof','sessions/complete','encodeRequestDeepLink','gatewayEndpoint','https://rest.ynxweb4.com'])assert.equal(wallet.includes(prohibited),false,prohibited);
+  assert.equal(wallet.includes('deviceSecret'),false,'a product-device private key must not enter Finance JavaScript');
 });
 
 test('mobile bundles the accepted endpoint contract and fails closed for a pending Finance API',()=>{

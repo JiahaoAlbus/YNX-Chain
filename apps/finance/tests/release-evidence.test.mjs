@@ -9,7 +9,7 @@ const probe = await readFile(new URL('scripts/probe-accepted-connectivity.mjs', 
 test('release evidence verifier keeps Finance fail-closed and does not assert an installed wallet success', () => {
   for (const marker of [
     "financeProductStatus: manifest.endpointStates.products.finance.status",
-    "productSession: 'PENDING_AND_NOT_CALLED'",
+    "productSession: 'OPTIONAL_ROOT_FACTORY_V2_WITH_MIGRATION_FALSE'",
     "installedWalletSuccess: 'NOT_ASSERTED_BY_THIS_VERIFIER'",
     "release.releaseStates?.deployedPublic === false",
     "release.releaseStates?.downloadHosted === false",

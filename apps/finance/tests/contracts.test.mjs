@@ -16,9 +16,9 @@ test('product states its non-bank and non-custodial boundary',()=>{
   for(const prohibited of ['APY 8%','Guaranteed return','Visa card balance']) assert.equal(html.includes(prohibited),false);
 });
 
-test('wallet consumes the accepted standard SDK and pending product routes fail closed',()=>{
-  for(const marker of ['@ynx/dapp-connect-sdk','StandardWalletConnection','PRODUCT_SESSION_UNAVAILABLE','WALLET_NOT_FOUND']) assert.ok(wallet.includes(marker),marker);
-  for(const prohibited of ['createGatewayChallenge','signGatewayChallenge','createProductSessionProof','sessions/complete','p256']) assert.equal(wallet.includes(prohibited),false,prohibited);
+test('wallet preserves Standard Wallet and consumes only the accepted Product Session root factory',()=>{
+  for(const marker of ['@ynx/dapp-connect-sdk','StandardWalletConnection','@ynx-chain/wallet-auth','createProductWalletConnection','PRODUCT_SESSION_UNAVAILABLE','WALLET_NOT_FOUND']) assert.ok(wallet.includes(marker),marker);
+  for(const prohibited of ['createGatewayChallenge','signGatewayChallenge','createProductSessionProof','sessions/complete','gatewayEndpoint','deviceSecret']) assert.equal(wallet.includes(prohibited),false,prohibited);
   assert.ok(js.includes('API_UNAVAILABLE'));
   assert.equal(js.includes('Bearer '),false,'legacy browser bearer session must be absent');
   assert.ok(manifest.includes('1.0.0-p0.2'));
