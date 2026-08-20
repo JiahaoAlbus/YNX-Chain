@@ -13,11 +13,11 @@
   "deploymentGate":{
     "checkedAt":"2026-08-20T10:44:07Z",
     "status":"BLOCKED_FAIL_CLOSED",
-    "blockers":["remote smoke requires release-manifest evidence bound to the candidate","public RPC source identity is a986a30c5a4ed8cfd66f7f08dd2d6f032b1cfdc8 rather than candidate ea0e068becd9","remote smoke cannot produce valid release evidence while the public runtime remains old"],
+    "blockers":["remote smoke requires release-manifest evidence bound to the candidate","public RPC source identity is a986a30c5a4ed8cfd66f7f08dd2d6f032b1cfdc8 rather than candidate ea0e068becd9","three follower nodes are materially behind the primary and report replication response exceeds 268435456 bytes","remote smoke cannot produce valid release evidence while the public runtime remains old and follower convergence is unproven"],
     "verifiedPreconditions":["strict SSH host-key audit passed for primary, Singapore, Silicon Valley and Seoul","four-node pre-mutation recovery checkpoint is complete and integrity-checked","candidate branch is clean and pushed","non-mutating candidate package dry-run passed with release checksum da7b13dd03163c238d2e57c2cde8dda99846a713f9f576d88e61f86cca1f3b95"]
   },
   "legacyRuntimeBaseline":"release/integration/p0-wallet-connectivity/acceptance/legacy-runtime-baseline-20260820.json",
   "prohibitedClaims":["deployed","public verified","Wallet Faucet works"],
   "rollback":"revert the isolated Faucet runtime commit; do not alter the endpoint manifest until runtime deployment is independently observed.",
-  "nextAction":"Produce the candidate-bound release manifest evidence, rerun the non-mutating remote smoke until it accepts candidate source identity, then and only then run the normal deploy gate and deployment path."
+  "nextAction":"Repair and verify bounded follower replication without bypassing the release gate; then produce the candidate-bound release manifest evidence, rerun the non-mutating remote smoke until it accepts candidate source identity, and only then run the normal deploy gate and deployment path."
 }
