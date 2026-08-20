@@ -2,16 +2,18 @@
   "schemaVersion": 1,
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-auth-recovery-runtime-lease-20260820T114911Z",
-  "status": "ISSUED_NOT_STARTED",
+  "status": "REVOKED_BEFORE_START",
   "singleUse": true,
   "issuedAt": "2026-08-20T11:49:11Z",
   "expiresAt": "2026-08-20T13:49:11Z",
+  "revokedAt": "2026-08-20T11:56:24Z",
+  "revokedReason": "Candidate a5a2841e does not mount /v2/product-sessions/* in scripts/ynx-wallet-gatewayd.mjs; modules and tests alone are not a production runtime mount.",
   "leaseOwner": "wallet-protocol",
   "deploymentOwner": "wallet-auth-gateway-runtime-owner",
   "deploymentChannel": "controlled-wallet-auth-runtime-transaction",
   "acceptancePath": "release/integration/p0-wallet-connectivity/acceptance/wallet-auth-recovery-runtime-a5a2841e-20260820.json",
   "authorization": {
-    "executionAuthorized": true,
+    "executionAuthorized": false,
     "singleControlledTransaction": true,
     "exclusiveProductionWindowRequired": true,
     "automaticRollbackRequired": true,
@@ -71,7 +73,9 @@
     "rollbackDrillComplete": false,
     "publicAcceptanceComplete": false,
     "installedClientAcceptanceComplete": false,
-    "leaseConsumed": false
+    "leaseConsumed": false,
+    "revokedBeforeStart": true,
+    "productionMutationObserved": false
   },
   "truthBoundary": {
     "priorRuntimePublicVerified": true,

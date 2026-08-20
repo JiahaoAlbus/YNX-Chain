@@ -2,7 +2,9 @@
   "schemaVersion": 1,
   "acceptanceId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-auth-recovery-runtime-a5a2841e",
   "recordedAt": "2026-08-20T11:49:11Z",
-  "decision": "ACCEPTED_FOR_SINGLE_USE_CONTROLLED_RUNTIME_EXECUTION",
+  "decision": "REVOKED_RUNTIME_MOUNT_GAP",
+  "revokedAt": "2026-08-20T11:56:24Z",
+  "revocationReason": "The production entry scripts/ynx-wallet-gatewayd.mjs mounts only CanonicalWalletGatewayNodeHost v1; the accepted source contains Product Session v2 modules and tests but does not publicly mount /v2/product-sessions/*.",
   "authoritativeControlPlane": {
     "branch": "codex/p0-wallet-connectivity-control-plane-20260820",
     "baseCommit": "5b176f56731831669f641f7f1aaddb94c6900d5b"
@@ -27,6 +29,15 @@
     "requiredWalletAuthTreeAfterDeploy": "53790596eeba9388b02cb43ac8cc51939f00ce5d",
     "preserveUnrelatedRuntimeFiles": true,
     "preserveStateAndRegistry": true
+  },
+  "runtimeMountGap": {
+    "productionEntry": "scripts/ynx-wallet-gatewayd.mjs",
+    "observedHost": "CanonicalWalletGatewayNodeHost v1 only",
+    "requiredRoutes": "/v2/product-sessions/*",
+    "requiredRoutesMounted": false,
+    "runtimeReady": false,
+    "deploymentAuthorized": false,
+    "replacementRequired": "new exact pushed Wallet/Auth source with durable v2 Node host, reviewed v2 registry/state environment, registered-origin CORS, restart idempotency and zero-mutation state-integrity gates"
   },
   "deploymentRegistry": {
     "path": "release/integration/p0-wallet-protocol-deployment-registry-v4.json",
@@ -63,7 +74,7 @@
     "priorRuntimeSourceStillPublic": true,
     "priorRuntimeSource": "49e30d999e9a9cbdd2c565021009f2cab0dc125c",
     "candidateImplemented": true,
-    "candidateAcceptedForControlledExecution": true,
+    "candidateAcceptedForControlledExecution": false,
     "candidateDeployedPublic": false,
     "currentHeadDeployedPublic": false,
     "runtimeProductsMigrated": 0,

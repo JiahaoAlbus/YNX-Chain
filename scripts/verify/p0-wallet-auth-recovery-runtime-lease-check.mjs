@@ -20,7 +20,7 @@ const walletAuthTree = "53790596eeba9388b02cb43ac8cc51939f00ce5d";
 const priorRuntime = "49e30d999e9a9cbdd2c565021009f2cab0dc125c";
 const registrySha = "ae156b317b9a97bfd42397cca634021deefe10ffb009102899e24276d8721e31";
 
-if (acceptance.decision !== "ACCEPTED_FOR_SINGLE_USE_CONTROLLED_RUNTIME_EXECUTION") fail("acceptance decision mismatch");
+if (acceptance.decision !== "REVOKED_RUNTIME_MOUNT_GAP" || acceptance.runtimeMountGap?.requiredRoutesMounted !== false || acceptance.runtimeMountGap?.runtimeReady !== false || acceptance.runtimeMountGap?.deploymentAuthorized !== false) fail("runtime mount-gap revocation mismatch");
 if (acceptance.ownerCandidate?.acceptedCommit !== candidate || acceptance.ownerCandidate?.walletAuthTree !== walletAuthTree) fail("accepted source identity mismatch");
 if (acceptance.ownerCandidate?.wholeTreeMergeAccepted !== false || acceptance.ownerCandidate?.unknownSuccessorCommitsAccepted !== false || acceptance.ownerCandidate?.remoteHeadDriftAccepted !== false) fail("source scope widened");
 if (acceptance.reconciliation?.mode !== "MATERIALIZE_EXACT_PACKAGES_WALLET_AUTH_SUBTREE_NO_WHOLE_TREE_MERGE" || acceptance.reconciliation?.requiredCurrentPublicRuntimeSource !== priorRuntime || acceptance.reconciliation?.requiredCandidateSourceAfterDeploy !== candidate) fail("reconciliation mismatch");
@@ -28,7 +28,7 @@ if (acceptance.integrationVerification?.walletAuthTests?.passed !== 222 || accep
 if (acceptance.deploymentRegistry?.sha256 !== registrySha || acceptance.deploymentRegistry?.blob !== "f11f73bb10943e6ae4e3ecd9f4e5bcedfb7b4701" || acceptance.deploymentRegistry?.mutationAuthorized !== false) fail("registry binding mismatch");
 if (createHash("sha256").update(registryBytes).digest("hex") !== registrySha || registryBytes.length !== 20037) fail("registry bytes mismatch");
 
-if (lease.status !== "ISSUED_NOT_STARTED" || lease.singleUse !== true || lease.authorization?.executionAuthorized !== true) fail("lease is not a fresh single-use authorization");
+if (lease.status !== "REVOKED_BEFORE_START" || lease.singleUse !== true || lease.authorization?.executionAuthorized !== false || lease.executionState?.revokedBeforeStart !== true || lease.executionState?.productionMutationObserved !== false) fail("lease was not revoked before start");
 if (lease.acceptancePath !== acceptancePath || lease.source?.candidateRuntimeCommit !== candidate || lease.source?.candidateWalletAuthTree !== walletAuthTree || lease.source?.currentPublicRuntimeCommit !== priorRuntime) fail("lease source mismatch");
 if (lease.source?.materializationMode !== "EXACT_PACKAGES_WALLET_AUTH_SUBTREE_ONLY" || JSON.stringify(lease.authorization?.allowedRoots) !== JSON.stringify(["packages/wallet-auth"])) fail("lease scope mismatch");
 for (const target of ["6437", "6439", "6441", "Chain Core", "Website", "Developer SDK", "Shop"]) if (!lease.authorization?.forbiddenTargets?.includes(target)) fail(`missing forbidden target ${target}`);
@@ -37,10 +37,10 @@ const issued = Date.parse(lease.issuedAt); const expires = Date.parse(lease.expi
 if (!Number.isFinite(issued) || !Number.isFinite(expires) || expires <= issued || expires - issued > 2 * 60 * 60 * 1000) fail("lease expiry invalid");
 for (const field of ["preflightComplete", "backupComplete", "deploymentStarted", "deploymentComplete", "rollbackDrillComplete", "publicAcceptanceComplete", "installedClientAcceptanceComplete", "leaseConsumed"]) if (lease.executionState?.[field] !== false) fail(`executionState.${field} must start false`);
 
-if (evidence.sourceCommit !== candidate || evidence.walletAuthTree !== walletAuthTree || evidence.reviewFindings?.runtimeProductsMigrated !== 0 || evidence.reviewFindings?.candidatePublicRuntimeVerified !== false) fail("review evidence mismatch");
+if (evidence.sourceCommit !== candidate || evidence.walletAuthTree !== walletAuthTree || evidence.reviewFindings?.runtimeProductsMigrated !== 0 || evidence.reviewFindings?.candidatePublicRuntimeVerified !== false || evidence.reviewFindings?.productSessionV2RoutesMounted !== false || evidence.reviewFindings?.runtimeReady !== false || evidence.reviewFindings?.leaseRevokedBeforeStart !== true) fail("review evidence mismatch");
 for (const truth of [acceptance.currentTruth, lease.truthBoundary]) {
   for (const field of ["candidateDeployedPublic", "currentHeadDeployedPublic", "installedClientVerified", "accountVerified", "signVerified", "sendVerified", "transactionVerified", "integratedCentral", "aggregatePublic", "productionSigned", "storeReleased"]) if (truth?.[field] !== false) fail(`${field} must remain false`);
   if (truth?.runtimeProductsMigrated !== 0) fail("runtimeProductsMigrated must remain zero");
 }
 
-console.log(`PASS ${lease.leaseId}: exact Wallet/Auth ${candidate.slice(0, 12)} lease is single-use, unstarted, registry-bound, and all client/product/aggregate gates remain false`);
+console.log(`PASS ${lease.leaseId}: revoked before start because ${candidate.slice(0, 12)} does not mount Product Session v2; old public runtime and every client/product/aggregate gate remain unchanged`);

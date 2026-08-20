@@ -21,6 +21,11 @@
     "runtimeProductsMigrated": 0,
     "publicRuntimeSourceAtReview": "49e30d999e9a9cbdd2c565021009f2cab0dc125c",
     "candidatePublicRuntimeVerified": false,
+    "productionRuntimeEntryReviewedAfterLeaseIssue": true,
+    "productionRuntimeEntry": "scripts/ynx-wallet-gatewayd.mjs",
+    "productSessionV2RoutesMounted": false,
+    "runtimeReady": false,
+    "leaseRevokedBeforeStart": true,
     "installedClientVerified": false,
     "aggregatePublic": false
   }
