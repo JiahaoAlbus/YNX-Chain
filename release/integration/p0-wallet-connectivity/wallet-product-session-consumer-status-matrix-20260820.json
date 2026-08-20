@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "updatedByCheckpoint": "644f977c678f99f786d4c9c527d9519db51ff8cf",
+  "productsRequired": 12,
+  "productsMigratedV2": 0,
+  "standardWalletOnlyProducts": ["card"],
+  "products": {
+    "card": {
+      "classification": "standard-wallet-only",
+      "sourceCommit": "a0ae3567337a69f43a33eb3d0bd33f55a0591b18",
+      "standardWalletConnectedOnPrivateFailure": true,
+      "privateFailureState": "PRIVATE_SERVICE_DEGRADED",
+      "canonicalErrorContractConsumed": true,
+      "productSessionV2GatewayEvidenced": false,
+      "visiblePlatformEvidenced": false,
+      "migratedV2": false,
+      "blockers": [
+        "caller-supplied arbitrary HTTPS Gateway",
+        "legacy /app/card/session/challenges and /app/card/session/complete routes",
+        "no v2 Gateway lifecycle evidence",
+        "no visible installed or browser platform evidence"
+      ]
+    }
+  },
+  "truth": {
+    "integratedCentral": false,
+    "aggregatePublic": false
+  }
+}

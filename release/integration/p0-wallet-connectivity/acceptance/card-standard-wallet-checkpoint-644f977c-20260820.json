@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "acceptanceId": "P0-CARD-STANDARD-WALLET-CHECKPOINT-644F977C-20260820",
+  "decision": "ACCEPTED_STANDARD_WALLET_ONLY_NOT_V2_MIGRATED",
+  "ownerCheckpointCommit": "644f977c678f99f786d4c9c527d9519db51ff8cf",
+  "ownerCheckpointParent": "24cc3218c2cdc00c50dc3caa563652083afbd861",
+  "ownerCheckpointTree": "aacbc155ce274bf0fabbfc71bcc5a79b8979e2c5",
+  "productSourceCommit": "a0ae3567337a69f43a33eb3d0bd33f55a0591b18",
+  "productSourceTree": "8a67dd96f899cb53624adc216be6b73629783802",
+  "checkpointEvidence": {
+    "path": "release/integration/wallet-product-session-card-owner-checkpoint-20260820.json",
+    "blob": "1dc72883973f687e1ae2befa93a96fd37653f000",
+    "bytes": 1963,
+    "sha256": "05afe60116c4072bed07dc97979b8ac626d5e1b352abd988d45bb5ef54cec7a5"
+  },
+  "walletAuthConsumption": {
+    "sourceCommit": "24cc3218c2cdc00c50dc3caa563652083afbd861",
+    "tarballSha256": "d94eda02e7e76bde6a56159a50fe515fe310b3e17baa6674dbdd00b2b252f4dd",
+    "tests": "21/21",
+    "typecheckPassed": true,
+    "standardWalletChainHex": "0x1917",
+    "standardWalletRemainsConnected": true,
+    "privateServiceState": "PRIVATE_SERVICE_DEGRADED",
+    "canonicalErrorIdentityPreserved": true,
+    "developerMessageExposed": false
+  },
+  "blockingAudit": {
+    "callerSuppliedArbitraryHttpsGatewayAccepted": true,
+    "function": "completeCentralSession(gatewayURL, pending, approval)",
+    "legacyRoutes": ["/app/card/session/challenges", "/app/card/session/complete"],
+    "productSessionV2GatewayEvidenced": false,
+    "visiblePlatformEvidenced": false
+  },
+  "matrix": {
+    "path": "release/integration/p0-wallet-connectivity/wallet-product-session-consumer-status-matrix-20260820.json",
+    "standardWalletOnlyProducts": ["card"],
+    "productsMigratedV2": 0,
+    "productsRequired": 12
+  },
+  "truth": {
+    "cardStandardWalletConsumerAccepted": true,
+    "cardMigratedV2": false,
+    "cardDeployedPublic": false,
+    "cardInstalledClientVerified": false,
+    "integratedCentral": false,
+    "aggregatePublic": false
+  }
+}
