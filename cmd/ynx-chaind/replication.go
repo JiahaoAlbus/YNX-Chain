@@ -11,6 +11,8 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"runtime"
+	"runtime/debug"
 	"strconv"
 	"strings"
 	"time"
@@ -44,12 +46,22 @@ func startReplicationPolling(ctx context.Context, devnet *chain.Devnet, sourceUR
 			return
 		}
 		result, err := devnet.ApplyReplicationBatchJSON(payload)
+		payload = nil
 		if err != nil {
 			devnet.RecordReplicationFailure("apply", err)
 			log.Printf("authoritative replication apply failed source=%s: %v", sourceURL, err)
 			return
 		}
 		devnet.RecordReplicationSuccess(result)
+		if result.Applied && !result.Complete {
+			// Large public-history catch-up windows leave decoded transport and
+			// replaced slice backing arrays eligible for collection. Reclaim them
+			// before requesting the next suffix so 2 GiB recovery nodes do not
+			// accumulate several windows and enter swap/OOM churn. Steady-state
+			// synchronized polls do not pay this cost.
+			runtime.GC()
+			debug.FreeOSMemory()
+		}
 		if result.Applied {
 			log.Printf("authoritative replication applied source=%s height=%d hash=%s", sourceURL, result.Height, result.BlockHash)
 		}

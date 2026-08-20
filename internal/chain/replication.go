@@ -36,6 +36,7 @@ const (
 
 type ReplicationApplyResult struct {
 	Applied    bool      `json:"applied"`
+	Complete   bool      `json:"complete"`
 	Height     uint64    `json:"height"`
 	BlockHash  string    `json:"blockHash"`
 	SnapshotAt time.Time `json:"snapshotAt"`
@@ -180,7 +181,7 @@ func (d *Devnet) ApplyReplicationBatchJSON(payload []byte) (ReplicationApplyResu
 	d.mu.RLock()
 	current := d.blocks[len(d.blocks)-1]
 	result := ReplicationApplyResult{
-		Height: batch.SourceHeight, BlockHash: batch.SourceBlockHash, SnapshotAt: batch.SavedAt,
+		Complete: batch.Complete, Height: batch.SourceHeight, BlockHash: batch.SourceBlockHash, SnapshotAt: batch.SavedAt,
 	}
 	if current.Height != batch.BaseHeight || current.Hash != batch.BaseBlockHash {
 		d.mu.RUnlock()
