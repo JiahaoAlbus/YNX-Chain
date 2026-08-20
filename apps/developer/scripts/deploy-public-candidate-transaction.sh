@@ -118,7 +118,10 @@ cp -a "/etc/systemd/system/$service" "$unit_backup"
 
 rollback() {
   status=$?
-  trap - ERR INT TERM
+  trap - ERR EXIT HUP INT TERM
+  # The success path removes this trap.  Any remaining exit, including a
+  # disconnected SSH session (HUP), must restore the prior public candidate.
+  if [[ $status -eq 0 ]]; then status=1; fi
   if [[ $status -ne 0 ]]; then
     printf 'Deployment gate failed; restoring prior candidate.\n' >&2
     if [[ $stopped == false ]]; then systemctl stop "$service" || true; fi
@@ -143,10 +146,11 @@ rollback() {
         node "$repo_dir/apps/developer/scripts/live-package-install-check.mjs" cleanup || true
     fi
     printf 'rolled-back\n' > "$transaction_dir/result.txt"
+    cleanup_staging
   fi
   exit "$status"
 }
-trap rollback ERR INT TERM
+trap rollback ERR EXIT HUP INT TERM
 
 systemctl stop "$service"
 stopped=true
@@ -179,7 +183,9 @@ run_cloud_container_gate() {
 }
 if ! run_cloud_container_gate "$transaction_dir/live-container.log"; then
   printf '%s\n' 'Cloud runtime gate failed once; retrying from a fresh isolated runtime.' | tee "$transaction_dir/live-container-retry-notice.log"
-  run_cloud_container_gate "$transaction_dir/live-container-retry.log"
+  if ! run_cloud_container_gate "$transaction_dir/live-container-retry.log"; then
+    fail 'Cloud runtime gate failed in both fresh isolated runtime attempts.'
+  fi
 fi
 YNX_CODE_CHECK_BASE=http://127.0.0.1:18113 node scripts/live-chain-tools-check.mjs | tee "$transaction_dir/live-chain.log"
 YNX_CODE_CHECK_BASE=http://127.0.0.1:18113 node scripts/live-wallet-readiness-check.mjs | tee "$transaction_dir/live-wallet.log"
@@ -205,6 +211,5 @@ printf 'passed\n' > "$transaction_dir/result.txt"
 sha256sum "$transaction_dir"/*.json "$transaction_dir"/*.log "$transaction_dir"/*.txt > "$transaction_dir/evidence-sha256.txt"
 find "$rollback_dir" -depth -delete
 completed=true
-trap - ERR INT TERM
-trap - EXIT
+trap - ERR EXIT HUP INT TERM
 printf 'YNX Code candidate deployed: %s\nImage: %s\nEvidence: %s\n' "$expected_commit" "$image_fingerprint" "$transaction_dir"

@@ -42,6 +42,9 @@ test("public candidate transaction is exact-source, preflighted and rollback-saf
   assert.match(transaction, /live-container-check\.mjs/);
   assert.match(transaction, /Cloud runtime gate failed once; retrying from a fresh isolated runtime/);
   assert.match(transaction, /live-container-retry\.log/);
+  assert.match(transaction, /Cloud runtime gate failed in both fresh isolated runtime attempts/);
+  assert.match(transaction, /trap rollback ERR EXIT HUP INT TERM/);
+  assert.match(transaction, /trap - ERR EXIT HUP INT TERM/);
   assert.match(transaction, /live-package-install-check\.mjs prepare/);
   assert.match(transaction, /package-devices-after-install\.json/);
   assert.match(transaction, /Temporary package egress remains attached/);
