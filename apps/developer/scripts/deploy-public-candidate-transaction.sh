@@ -40,7 +40,7 @@ assert_package_egress_detached() {
   local evidence_file=$1
   lxc query '/1.0/instances?recursion=1' > "$evidence_file"
   node - "$evidence_file" <<'NODE'
-const fs=require("node:fs"),value=JSON.parse(fs.readFileSync(process.argv[2],"utf8")),instances=value?.metadata;
+const fs=require("node:fs"),value=JSON.parse(fs.readFileSync(process.argv[2],"utf8")),instances=Array.isArray(value)?value:value?.metadata;
 if(!Array.isArray(instances))throw new Error("LXD instance inventory is invalid");
 for(const instance of instances){
   const devices={...(instance.devices||{}),...(instance.expanded_devices||{})};
