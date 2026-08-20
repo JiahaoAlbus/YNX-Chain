@@ -1,0 +1,14 @@
+import assert from 'node:assert/strict';
+import {createHash} from 'node:crypto';
+import {readFile} from 'node:fs/promises';
+import test from 'node:test';
+import {connectBridgeWallet,WALLET_INSTALLATION_OPTIONS} from './wallet-connection.js';
+
+const account='0x1111111111111111111111111111111111111111';
+function provider({reject=false}={}){const calls=[];return{calls,async request({method}){calls.push(method);if(method==='eth_requestAccounts'){if(reject)throw Object.assign(new Error('User rejected the request'),{code:4001});return[account]}if(method==='eth_chainId')return'0x1917';throw new Error(`Unexpected ${method}`)}}}
+function browser(details,{ethereum}={}){const target=new EventTarget();target.ethereum=ethereum;target.addEventListener('eip6963:requestProvider',()=>{for(const detail of details){const event=new Event('eip6963:announceProvider');Object.defineProperty(event,'detail',{value:detail});target.dispatchEvent(event)}});return target}
+
+test('explicit YNX Wallet connects without enabling bridge execution',async()=>{const ynx=provider(),meta=Object.assign(provider(),{isMetaMask:true});const result=await connectBridgeWallet('ynx',browser([{info:{uuid:'meta',name:'MetaMask',rdns:'io.metamask'},provider:meta},{info:{uuid:'ynx',name:'YNX Wallet',rdns:'com.ynx.wallet'},provider:ynx}]),{timeoutMs:0});assert.equal(result.account,account);assert.equal(result.chainId,'0x1917');assert.equal(result.standardConnection,'CONNECTED');assert.equal(result.productSession,'PRIVATE_SERVICE_DEGRADED');assert.equal(meta.calls.length,0)});
+test('MetaMask is used only after explicit selection',async()=>{const ynx=provider(),meta=Object.assign(provider(),{isMetaMask:true});const result=await connectBridgeWallet('metamask',browser([{info:{uuid:'ynx',name:'YNX Wallet',rdns:'com.ynx.wallet'},provider:ynx}],{ethereum:meta}),{timeoutMs:0});assert.equal(result.walletName,'MetaMask');assert.equal(ynx.calls.length,0)});
+test('missing and rejected Wallet never create a fallback',async()=>{await assert.rejects(()=>connectBridgeWallet('ynx',browser([]),{timeoutMs:0}),error=>error.code==='WALLET_NOT_INSTALLED'&&error.details.ynx===WALLET_INSTALLATION_OPTIONS.ynx);const denied=provider({reject:true});await assert.rejects(()=>connectBridgeWallet('ynx',browser([{info:{uuid:'ynx',name:'YNX Wallet',rdns:'com.ynx.wallet'},provider:denied}]),{timeoutMs:0}),error=>error.code==='WALLET_USER_REJECTED')});
+test('browser SDK bytes match the accepted source manifest',async()=>{const manifest=JSON.parse(await readFile(new URL('./ynx-dapp-connect-sdk/manifest.json',import.meta.url)));for(const[file,expected]of Object.entries(manifest.files)){const bytes=await readFile(new URL(`./ynx-dapp-connect-sdk/${file}`,import.meta.url));assert.equal(createHash('sha256').update(bytes).digest('hex'),expected,file)}});

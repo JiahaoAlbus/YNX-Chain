@@ -7,11 +7,12 @@
   <title>YNX Bridge — Testnet route monitor</title>
   <link rel="icon" href="/ynx-logo.png">
   <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/wallet.css">
 </head>
 <body>
   <header class="topbar">
     <a class="brand" href="/" aria-label="YNX Bridge home"><img src="/ynx-logo.png" alt="YNX" width="58" height="38"><span><small>TESTNET</small>YNX Bridge</span></a>
-    <nav aria-label="Bridge navigation"><a href="#routes">Routes</a><a href="#providers">Providers</a><a href="https://explorer.ynxweb4.com" rel="noreferrer">Explorer</a><button id="refresh" type="button">Refresh</button></nav>
+    <nav aria-label="Bridge navigation"><a href="#routes">Routes</a><a href="#providers">Providers</a><a href="https://explorer.ynxweb4.com" rel="noreferrer">Explorer</a><button id="refresh" type="button">Refresh</button><button id="wallet-button" type="button">Connect Wallet</button></nav>
   </header>
 
   <main>
@@ -58,6 +59,7 @@
     <section id="routes" class="data-section"><div class="section-heading"><div><p class="eyebrow">ROUTE REGISTRY</p><h2>Configured candidates</h2></div><p>Live coordinator data—not a marketing list.</p></div><div id="route-list" class="cards"><p class="loading">Loading routes…</p></div></section>
     <section id="providers" class="data-section"><div class="section-heading"><div><p class="eyebrow">PROVIDER REGISTRY</p><h2>Connectivity and review state</h2></div></div><div id="provider-list" class="cards"><p class="loading">Loading providers…</p></div></section>
   </main>
-  <script src="/app.js" defer></script>
+  <dialog id="wallet-dialog" aria-labelledby="wallet-title"><button id="wallet-close" class="dialog-close" type="button" aria-label="Close Wallet connection">×</button><p class="eyebrow">STANDARD EVM CONNECTION</p><h2 id="wallet-title">Connect to YNX Bridge</h2><p>Choose a Wallet. Connecting exposes only your approved 0x account and YNX Testnet chain to this public route monitor.</p><div class="wallet-actions"><button type="button" data-wallet="ynx">Connect YNX Wallet</button><button type="button" class="secondary" data-wallet="metamask">Use MetaMask</button></div><p id="wallet-status" role="status" aria-live="polite">Route and provider evidence remains available without a Wallet.</p><div class="wallet-installs"><a id="ynx-wallet-download" rel="noopener noreferrer">Download YNX Wallet</a><a id="metamask-download" rel="noopener noreferrer">Install MetaMask</a></div><p class="wallet-boundary"><strong>Execution status: unavailable.</strong> Wallet connection does not create a Product Session, quote, bridge route, signature request, or transfer.</p></dialog>
+  <script src="/app.js" type="module"></script>
 </body>
 </html>

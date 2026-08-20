@@ -1,0 +1,16 @@
+.topbar nav{gap:18px}
+dialog{border:0;border-radius:16px;width:min(560px,calc(100% - 28px));padding:30px;color:#101828;box-shadow:0 28px 80px #10182855}
+dialog::backdrop{background:#101828aa}
+.dialog-close{position:absolute;right:14px;top:12px;border:0;background:transparent;color:#344054;font-size:26px}
+.wallet-actions,.wallet-installs{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0}
+.wallet-actions button{appearance:none;border:1px solid #0047cc;border-radius:9px;background:#0047cc;color:#fff;min-height:42px;padding:0 16px;font:inherit;font-size:14px;font-weight:750;cursor:pointer;box-shadow:0 1px 2px #10182818;transition:background .16s ease,border-color .16s ease,transform .16s ease}
+.wallet-actions button:hover{background:#003aa6;border-color:#003aa6;transform:translateY(-1px)}
+.wallet-actions button:focus-visible{outline:3px solid #9cc2ff;outline-offset:2px}
+.wallet-actions button:disabled{cursor:progress;opacity:.6;transform:none}
+.wallet-actions .secondary{background:#fff;color:#003fb8;border-color:#a9bde8}
+.wallet-actions .secondary:hover{background:#eef4ff;border-color:#0047cc}
+.wallet-installs a{color:#003fb8;font-weight:750}
+.wallet-boundary{border-left:3px solid #f79009;background:#fff8ea;padding:12px 14px;color:#7a4b00;font-size:13px;line-height:1.5}
+#wallet-status{min-height:22px;color:#667085;font-size:13px;line-height:1.45}
+#wallet-status.error{color:#b42318}
+@media(max-width:620px){.topbar nav{gap:6px}.topbar nav a{display:none}.topbar nav button{padding:8px 9px}.wallet-actions{display:grid}.wallet-actions button{width:100%}}
