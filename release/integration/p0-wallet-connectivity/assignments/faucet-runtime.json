@@ -1,0 +1,12 @@
+{
+  "taskId":"P0-012",
+  "owner":"integration",
+  "status":"IN_PROGRESS",
+  "branch":"codex/p0-faucet-runtime-20260820",
+  "worktree":"29-faucet-runtime-p0",
+  "paths":["cmd/ynx-faucetd/**","internal/faucet/**","infra/systemd/ynx-faucetd.example.service","infra/docker/ynx-faucetd.Dockerfile","scripts/verify/faucet-check.sh"],
+  "objective":"Remove internal topology from public Faucet health, expose a truthful public /version response and preserve real fault classification.",
+  "requiredEvidence":["focused tests","diff check","public response does not reveal loopback or private topology","isolated branch and PR"],
+  "prohibitedClaims":["deployed","public verified","Wallet Faucet works"],
+  "rollback":"revert the isolated Faucet runtime commit; do not alter the endpoint manifest until runtime deployment is independently observed."
+}

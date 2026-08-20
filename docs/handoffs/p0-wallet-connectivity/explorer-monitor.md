@@ -10,9 +10,10 @@
   `heavy.owner` is not `explorer-monitor`; no further feature expansion,
   activation, deployment, or public-success claim is authorized until
   Integration grants the exact Wave C lease.
-- The candidate consumes only the accepted `errorContract`
+- The candidate consumes the accepted `errorContract`
   (`p0-wallet-connection-v1`, source `66003e76e804da16d472255efde50cb879055b96`).
-  `monitorProbe` is its proposal, while `publicEndpointManifest` and
+  `monitorProbe` is accepted for source-level probe behavior only, while
+  `publicEndpointManifest` and
   `clientRetirement` remain candidates and must not be activated as truth.
 
 ## Implemented candidate scope
@@ -48,6 +49,8 @@ is the authoritative read-only sample for this checkpoint. It records:
   `FAUCET_INTERNAL_DETAIL_LEAK`, not `HEALTHY`. The Runtime Owner must supply
   a public, source-identifiable version endpoint and remove the leaked detail;
   Explorer/Monitor must not patch the Faucet runtime.
+- Native RPC identity data also contains internal configuration and is not a
+  safe public identity input; the candidate must not republish it.
 - The candidate public endpoint manifest is unsigned and
   `CANDIDATE_NOT_ACCEPTED`; its pending identity inputs cannot be used to mark
   any endpoint, app, artifact, or public deployment verified.

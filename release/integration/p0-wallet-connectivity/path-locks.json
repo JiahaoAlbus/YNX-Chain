@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "locks": [
     {"path":"packages/wallet-auth/**","owner":"wallet-protocol","branch":"codex/final-wallet-auth","worktree":"02-wallet-auth","taskId":"P0-001","status":"RESERVED","allowedExceptions":["proposal-only"]},
     {"path":"apps/wallet/**","owner":"wallet-platform","branch":"codex/final-wallet-auth","worktree":"02-wallet-auth","taskId":"P0-002","status":"RESERVED","allowedExceptions":["proposal-only"]},
@@ -11,6 +11,7 @@
     {"path":"{internal,apps}/explorer/**","owner":"explorer-monitor","branch":"codex/explorer-monitor-fable5-20260814","worktree":"12-13-explorer-monitor-fable5","taskId":"P0-006","status":"RESERVED","allowedExceptions":["proposal-only"]},
     {"path":"{docs/coordination/p0-wallet-connectivity,docs/handoffs/p0-wallet-connectivity,release/integration/p0-wallet-connectivity}/**","owner":"integration","branch":"codex/final-integration","worktree":"29-integration","taskId":"P0-000","status":"ACTIVE","allowedExceptions":[]},
     {"path":"apps/shop/**","owner":"integration","branch":"codex/p0-shop-android-retirement-20260820","worktree":"09-shop","taskId":"P0-011","status":"ACTIVE","allowedExceptions":["historical-evidence-preservation"]},
-    {"path":"YNX-Chain-website:{vercel.json,src/lib/ecosystemCatalog.js,public/releases/ecosystem-release-registry.json}","owner":"integration","branch":"codex/p0-shop-android-retirement-20260820","worktree":"28-website","taskId":"P0-011","status":"ACTIVE","allowedExceptions":["historical-evidence-preservation"]}
+    {"path":"YNX-Chain-website:{vercel.json,src/lib/ecosystemCatalog.js,public/releases/ecosystem-release-registry.json}","owner":"integration","branch":"codex/p0-shop-android-retirement-20260820","worktree":"28-website","taskId":"P0-011","status":"ACTIVE","allowedExceptions":["historical-evidence-preservation"]},
+    {"path":"{cmd/ynx-faucetd/**,internal/faucet/**,infra/systemd/ynx-faucetd.example.service,infra/docker/ynx-faucetd.Dockerfile,scripts/verify/faucet-check.sh}","owner":"integration","branch":"codex/p0-faucet-runtime-20260820","worktree":"29-faucet-runtime-p0","taskId":"P0-012","status":"ACTIVE","allowedExceptions":["public-safe-health-version-only"]}
   ]
 }
