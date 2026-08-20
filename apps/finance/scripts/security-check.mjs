@@ -20,6 +20,9 @@ const skippedNames = new Set([
   'DerivedData',
   'security-check.mjs',
 ]);
+// The hash-verified, Integration-owned manifest intentionally lists rejected
+// hosts (including example.com) as policy data, not deployable endpoint text.
+const hashVerifiedContractPaths = new Set(['apps/finance/mobile/contract/public-endpoint-manifest.json']);
 const textExtensions = new Set([
   '',
   '.css',
@@ -116,6 +119,7 @@ const findings = [];
 const files = scanRoots.flatMap((path) => collect(resolve(root, path)));
 for (const file of files) {
   const rel = relative(root, file);
+  if (hashVerifiedContractPaths.has(rel)) continue;
   const text = readFileSync(file, 'utf8');
   for (const rule of rules) {
     if (rule.runtimeOnly && !runtimeRoots.some((prefix) => rel === prefix || rel.startsWith(`${prefix}/`))) continue;

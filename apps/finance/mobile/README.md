@@ -1,6 +1,6 @@
 # YNX Finance native app
 
-Native-first Expo/React Native client for Android and iOS. It uses the independent identifiers `com.ynxweb4.finance` and `ynxfinance://wallet-auth/callback`.
+Native-first Expo/React Native client for Android and iOS. It uses the accepted standard EIP-1193 connection through `@ynx/dapp-connect-sdk`.
 
 ```bash
 npm ci
@@ -21,6 +21,6 @@ JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home" \
 ./android/gradlew -p android assembleRelease --no-daemon
 ```
 
-The release default is the public Testnet service at `https://finance.ynxweb4.com`; local development can override it with `EXPO_PUBLIC_YNX_FINANCE_API_URL` or change it in Settings. The client never creates a local substitute session: Wallet approval must complete through the canonical Wallet Gateway. If the registered Finance client, requested scopes, device proof or account binding is not accepted, sign-in fails closed.
+The bundled Testnet endpoint manifest is the only endpoint source. Finance currently consumes verified REST/EVM RPC/Explorer endpoints for public connectivity; its Product API is `PENDING` and Product Session is `UNAVAILABLE`, so private Finance requests are not sent. Standard Wallet Connection remains available and is not removed when private services are unavailable. The client never creates a local session, device proof, callback, or Gateway completion request.
 
 Cached data is labelled offline and never presented as live. Import accepts only the versioned Finance export envelope. Export includes public account evidence and private planning data and should be stored securely.

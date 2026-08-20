@@ -1,1 +1,1 @@
-{"compilerOptions":{"strict":true,"jsx":"react-jsx","moduleResolution":"bundler","module":"esnext","target":"es2022","allowSyntheticDefaultImports":true,"skipLibCheck":true,"types":["node"]},"include":["**/*.ts","**/*.tsx"]}
+{"compilerOptions":{"strict":true,"jsx":"react-jsx","moduleResolution":"bundler","module":"esnext","target":"es2022","allowSyntheticDefaultImports":true,"resolveJsonModule":true,"skipLibCheck":true,"types":["node"]},"include":["**/*.ts","**/*.tsx"]}

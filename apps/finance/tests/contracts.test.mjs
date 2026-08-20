@@ -15,14 +15,14 @@ test('product states its non-bank and non-custodial boundary',()=>{
   for(const disclosure of ['Counterparty','Custody','Contract','Principal-loss risk','Fee','Liquidity risk','Jurisdiction risk','Signature boundary']) assert.ok(html.includes(disclosure),disclosure);
   for(const prohibited of ['APY 8%','Guaranteed return','Visa card balance']) assert.equal(html.includes(prohibited),false);
 });
-test('wallet, real-source, export and AI review paths are wired',()=>{
-  for(const path of ['/v1/wallet/sessions/complete','/v1/wallet/sessions/introspect']) assert.ok(wallet.includes(path),path);
-  assert.ok(wallet.includes('createProductSessionProof'));
-  for(const path of ['/api/overview','/api/statements','/api/export?format=json','/api/ai/jobs']) assert.ok(js.includes(path),path);
+test('wallet uses the accepted standard SDK while private service routes degrade',()=>{
+  for(const marker of ['@ynx/dapp-connect-sdk','StandardWalletConnection','PRODUCT_SESSION_UNAVAILABLE','WALLET_NOT_FOUND']) assert.ok(wallet.includes(marker),marker);
+  for(const prohibited of ['createGatewayChallenge','signGatewayChallenge','createProductSessionProof','sessions/complete','p256']) assert.equal(wallet.includes(prohibited),false,prohibited);
+  assert.ok(js.includes('API_UNAVAILABLE'));
   assert.equal(js.includes('/api/auth/session'),false,'legacy local auth must be absent');
-  assert.ok(webWallet.includes('createProductSessionProof'));
-  assert.ok(webWallet.includes('/v1/wallet/sessions/revoke'));
-  assert.ok(webWallet.includes('https://finance.ynxweb4.com/wallet-auth/callback'));
+  assert.ok(webWallet.includes('StandardWalletConnection'));
+  assert.ok(webWallet.includes('PRODUCT_SESSION_UNAVAILABLE'));
+  assert.ok(webWallet.includes("productApi:'PENDING'"));
   assert.equal(js.includes('Bearer '),false,'legacy browser bearer session must be absent');
   assert.ok(js.includes("crypto.randomUUID()"));
   assert.ok(js.includes("No receipt placeholders are shown"));
@@ -30,14 +30,14 @@ test('wallet, real-source, export and AI review paths are wired',()=>{
   assert.ok(js.includes("Delete draft data"));
   assert.ok(js.includes("window.confirm"));
 });
-test('web wallet chooser offers the official Wallet release and bounded MetaMask compatibility',()=>{
-  for(const marker of ['Download YNX Wallet','Connect MetaMask','Wallet version details','id="connect-metamask"']) assert.ok(html.includes(marker),marker);
-  for(const marker of ['ynx-wallet-1.0.1-testnet-preview-dc31c9a8-test-signed.apk','0x1917','wallet_switchEthereumChain','wallet_addEthereumChain','eth_chainId','eth_requestAccounts']) assert.ok(webWallet.includes(marker),marker);
-  assert.ok(webWallet.includes('only for EVM compatibility'));
+test('web wallet chooser links to the centrally managed downloads page and standard connection',()=>{
+  for(const marker of ['Download YNX Wallet','Connect compatible wallet','Wallet version details','id="connect-metamask"']) assert.ok(html.includes(marker),marker);
+  for(const marker of ['0x1917','evmRpc','StandardWalletConnection','WALLET_NOT_FOUND']) assert.ok(webWallet.includes(marker),marker);
+  assert.equal(html.includes('test-signed.apk'),false);
 });
 test('public and private read reconnect are bounded and mutations are never automatically replayed',()=>{
   for(const marker of ['id="network-retry"','Reconnect YNX Chain']) assert.ok(html.includes(marker),marker);
-  for(const marker of ['READ_RETRY_DELAYS=[0,600,1600]','readOnly?READ_RETRY_DELAYS.length:1',"method==='GET'",'AbortSignal.timeout(10_000)',"window.addEventListener('online'",'Connection unavailable',"fetch('/health'",'YNX Testnet reachable · Wallet not connected']) assert.ok(js.includes(marker),marker);
+  for(const marker of ['READ_RETRY_DELAYS=[0,600,1600]','AbortSignal.timeout(10_000)',"window.addEventListener('online'",'REST_UNAVAILABLE','cosmos/base/tendermint/v1beta1/blocks/latest','YNX Testnet reachable · Wallet not connected']) assert.ok(js.includes(marker),marker);
 });
 test('responsive and accessibility contracts exist',()=>{
   assert.ok(html.includes('class="skip"'));
