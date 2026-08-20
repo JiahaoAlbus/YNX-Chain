@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "P0-SHOP-RETIRED-APK-WEBSITE-DRIFT-432A0992-20260821",
+  "capturedAt": "2026-08-20T16:31:47Z",
+  "ownerEvidence": {
+    "branch": "codex/wallet-session-router-recovery",
+    "commit": "432a0992b368e88995db350f25eba4680aa8f888",
+    "parent": "bfc11ecb4100725ae8f42c86d220fa0bc2d8212a",
+    "tree": "27af26a866ee80be37d789645f2478bc92487deb",
+    "remoteReadable": true,
+    "evidenceBlob": "516f664005146f6194421cd4bb1ea980316ec0b2",
+    "screenshotBlob": "b08803c55d66d19d7a9785891f799a7cf3c792ee",
+    "screenshotBytes": 1364388,
+    "screenshotSha256": "4b4a47297e6c6af527503da2e9e0aa59a6a29079d8fe6ae271725d0f895ae743",
+    "browserVisible": true,
+    "computerControlPassed": false,
+    "computerControlFailure": "MAC_LOCKED_AUTOMATIC_UNLOCK_FAILED"
+  },
+  "publicDownloadPage": {
+    "url": "https://www.ynxweb4.com/dapp/download",
+    "shopAndroidListed": true,
+    "label": "Debug-signed Android Testnet Preview",
+    "source": "6fa2d6c5",
+    "downloadUrl": "https://www.ynxweb4.com/downloads/ynx-shop-0.3.0-testnet-preview-6fa2d6c5-debug-signed.apk"
+  },
+  "retiredApkDirectHead": {
+    "checkedAt": "2026-08-20T16:31:47Z",
+    "httpStatus": 200,
+    "contentType": "application/vnd.android.package-archive",
+    "contentLength": 253733,
+    "contentDisposition": "attachment; filename=\"ynx-shop-0.3.0-testnet-preview-6fa2d6c5-debug-signed.apk\"",
+    "cacheControl": "public, max-age=31536000",
+    "ownerObservedVercelRequestId": "sin1:sin1:sin1::ctcmx-1787243366763-f3543b265896",
+    "centralObservedVercelRequestId": "sin1:sin1:sin1::zr25c-1787243495607-9ea390e8ac42"
+  },
+  "replacementWeb": {
+    "url": "https://shop.ynxweb4.com/shop/",
+    "ownerBrowserVisible": true,
+    "ownerObservedProductCount": 3,
+    "walletLoginClicked": false,
+    "walletApprovalAttempted": false,
+    "centralFollowupTransportSucceeded": false,
+    "centralFollowupFailure": "TLS_HANDSHAKE_FAILED_BEFORE_HTTP",
+    "centralFollowupUsedAsSuccessEvidence": false
+  },
+  "requiredRemediation": {
+    "owner": "website",
+    "removeAndroidListing": true,
+    "removePublicApkRouteAndArtifact": true,
+    "keepWebPwaReplacement": true,
+    "requiredPostdeployEvidence": [
+      "official page no longer lists Shop Android",
+      "retired APK returns 404 or 410",
+      "apex and www are consistent",
+      "replacement Web/PWA remains reachable"
+    ]
+  },
+  "truthBoundary": {
+    "registryV3SourceAccepted": true,
+    "registryV3DeployedPublic": false,
+    "websiteRetirementConsistentWithRegistry": false,
+    "publicClientRetirementVerified": false,
+    "productsMigratedV2": 0,
+    "installedApprovalVerified": false,
+    "integratedCentral": false,
+    "aggregateDeployedPublic": false
+  }
+}
