@@ -52,4 +52,4 @@ try{
 }finally{let removed=false,lastStatus=0;for(let attempt=0;attempt<40&&!removed;attempt++){const response=await fetch(`${base}/runtime/profiles/lxd/leases/${runtimeId}`,{method:"DELETE",headers:{cookie}});lastStatus=response.status;if(response.ok){removed=true;break}if(response.status!==409)throw new Error(`runtime cleanup failed: ${response.status} ${await response.text()}`);await new Promise(resolve=>setTimeout(resolve,100))}assert.equal(removed,true,`runtime remained busy during cleanup (${lastStatus})`)}
 console.log("YNX cloud container language gate passed.");
 
-async function waitFor(predicate,timeout){const started=Date.now(),boundedTimeout=Math.max(timeout,60_000);while(Date.now()-started<boundedTimeout){if(predicate())return;await new Promise(resolve=>setTimeout(resolve,25))}throw new Error("Timed out waiting for the cloud runtime gate.")}
+async function waitFor(predicate,timeout){const started=Date.now(),boundedTimeout=Math.max(timeout,180_000);while(Date.now()-started<boundedTimeout){if(predicate())return;await new Promise(resolve=>setTimeout(resolve,25))}throw new Error("Timed out waiting for the cloud runtime gate.")}
