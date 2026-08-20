@@ -1,0 +1,9 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "version": "1.0.0",
+  "activationRule": "Only ACCEPTED contracts may be activated by consumers.",
+  "contracts": [
+    {"id":"walletTransport","owner":"wallet-protocol","status":"DRAFT"},{"id":"eip1193Provider","owner":"wallet-protocol","status":"DRAFT"},{"id":"eip6963Discovery","owner":"wallet-protocol","status":"DRAFT"},{"id":"walletConnect","owner":"wallet-protocol","status":"DRAFT"},{"id":"siwe","owner":"wallet-protocol","status":"DRAFT"},{"id":"typedDataSigning","owner":"wallet-protocol","status":"DRAFT"},{"id":"productSession","owner":"wallet-protocol","status":"DRAFT"},{"id":"deviceProof","owner":"wallet-protocol","status":"DRAFT"},{"id":"callback","owner":"wallet-protocol","status":"DRAFT"},{"id":"errorContract","owner":"wallet-protocol","status":"DRAFT"},{"id":"publicEndpointManifest","owner":"integration","status":"CANDIDATE","schemaVersion":"1.0.0","contractPath":"public-endpoint-manifest.json","compatibility":"new P0 contract; not active until endpoint identity is verified"},{"id":"faucetDeepLink","owner":"wallet-platform","status":"DRAFT"},{"id":"dappConnectSDK","owner":"developer-sdk","status":"DRAFT"},{"id":"connectionEvents","owner":"data-fabric","status":"DRAFT"},{"id":"monitorProbe","owner":"explorer-monitor","status":"DRAFT"},{"id":"clientRetirement","owner":"integration","status":"CANDIDATE","schemaVersion":"1.0.0","contractPath":"client-retirement.json"},{"id":"artworkManifest","owner":"integration","status":"CANDIDATE","schemaVersion":"1.0.0","contractPath":"artwork-registry.json"}
+  ]
+}

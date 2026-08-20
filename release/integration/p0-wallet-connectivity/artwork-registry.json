@@ -1,0 +1,8 @@
+{
+  "schemaVersion":"1.0.0",
+  "campaignId":"P0-WALLET-CONNECTIVITY-2026-08",
+  "policy":{"brand":"YNX Klein Blue, white, neutral black and gray","requirements":["original-vector-source","product-specific-motif","non-distorted-logo","app-icon","launch-splash","download-cover","installer-cover","platform-icons","real-screenshots","sha256","source-commit"],"prohibited":["shared-generic-blue-square","default-framework-icons","stretched-logo","copied-third-party-branding","low-resolution-assets"]},
+  "inventoryAuthority":"release/integration/product-registry.json",
+  "status":"PENDING_PRODUCT_BY_PRODUCT_INVENTORY",
+  "entries":[]
+}

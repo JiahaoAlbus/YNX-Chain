@@ -1,0 +1,16 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "tasks": [
+    {"taskId":"P0-000","owner":"integration","status":"ACCEPTED","paths":["release/integration/p0-wallet-connectivity/**","docs/coordination/p0-wallet-connectivity/**"],"dependencies":[],"acceptedContracts":[],"rollback":"revert the isolated control-plane commit","nextAction":"receive wallet-protocol candidate"},
+    {"taskId":"P0-001","owner":"wallet-protocol","status":"ASSIGNED","paths":["packages/wallet-auth/**"],"dependencies":["P0-000"],"acceptedContracts":[],"blocker":"shared protocol development may start only after CAMPAIGN_READY publication","nextAction":"submit Device Proof 400 root-cause, standard-connection separation, callback and error vectors"},
+    {"taskId":"P0-002","owner":"wallet-platform","status":"ASSIGNED","paths":["apps/wallet/**"],"dependencies":["P0-001"],"acceptedContracts":[],"nextAction":"prepare platform connectivity matrix and artwork inventory without activating draft protocol"},
+    {"taskId":"P0-003","owner":"developer-sdk","status":"ASSIGNED","paths":["packages/dapp-connect-sdk/**"],"dependencies":["P0-001"],"acceptedContracts":[],"nextAction":"prepare SDK migration and compatibility proposal"},
+    {"taskId":"P0-004","owner":"financial-apps","status":"ASSIGNED","paths":["apps/{finance,exchange,dex,pay,quant}/**"],"dependencies":["P0-003"],"acceptedContracts":[],"nextAction":"inventory installed endpoints and client errors"},
+    {"taskId":"P0-005","owner":"data-fabric","status":"ASSIGNED","paths":["data-fabric/**"],"dependencies":["P0-001"],"acceptedContracts":[],"nextAction":"propose asynchronous connection event contract"},
+    {"taskId":"P0-006","owner":"explorer-monitor","status":"ASSIGNED","paths":["{internal,apps}/explorer/**"],"dependencies":["P0-001"],"acceptedContracts":[],"nextAction":"propose public probe and runtime identity evidence"},
+    {"taskId":"P0-007","owner":"integration","status":"BLOCKED","paths":["unassigned product paths from product registry"],"dependencies":["P0-003","P0-010"],"acceptedContracts":[],"blocker":"await accepted SDK and verified endpoint manifest","nextAction":"acquire one product lock at a time"},
+    {"taskId":"P0-010","owner":"integration","status":"CANDIDATE_READY","paths":["public-endpoint-manifest.json"],"dependencies":[],"acceptedContracts":[],"nextAction":"verify endpoint health, TLS, CORS, version, and chain identity before acceptance"},
+    {"taskId":"P0-011","owner":"integration","status":"CANDIDATE_READY","paths":["client-retirement.json"],"dependencies":[],"acceptedContracts":[],"nextAction":"enforce Shop Android retirement across build, download, callback, approvals, and grants"}
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "owner": "integration",
+  "status": "CAMPAIGN_READY",
+  "scope": ["founder-control", "wallet-connectivity", "installed-client-networking", "shop-android-retirement", "artwork-governance"],
+  "frozen": ["independent-ynx-id", "nonessential-new-products", "extra-finance-features", "shop-android"],
+  "integrationBranch": "codex/final-integration",
+  "baselineCommit": "10b877b5b18f9cb0026a6382cdd6588054fd16db",
+  "protectedHistory": [{"branch": "codex/recovery/final-integration-pre-p0", "reason": "preserved divergent pre-P0 integration history"}],
+  "network": {"cosmosChainId": "ynx_6423-1", "evmChainId": 6423, "evmChainHex": "0x1917", "nativeAsset": "YNXT", "nativeAddressPrefix": "ynx1"},
+  "firstStop": {"complete": true, "publicConnectivityClaim": false, "nextAction": "wallet-protocol must submit a Device Proof 400 root-cause proposal and standard-connection fallback vectors"}
+}

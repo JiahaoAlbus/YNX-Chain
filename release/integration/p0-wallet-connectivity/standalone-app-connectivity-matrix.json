@@ -1,0 +1,15 @@
+{
+  "schemaVersion":"1.0.0",
+  "campaignId":"P0-WALLET-CONNECTIVITY-2026-08",
+  "truthRule":"A web result never proves Android, iOS, desktop, extension, or PWA connectivity.",
+  "requiredFields":["product","platform","packageOrBundleId","sourceSha","artifactVersion","artifactUrl","sha256","apiUrl","rpcUrl","gatewayUrl","faucetUrl","walletTransport","deepLink","publicDataWorks","standardWalletConnectionWorks","productSessionWorks","signingWorks","transactionWorks","currentError","exactErrorCode","offlineClassification","endpointManifestVersion","artworkVersion","owner","nextAction"],
+  "entries":[
+    {"product":"wallet","platform":"android","owner":"wallet-platform","status":"UNSCANNED","currentError":"UNKNOWN","offlineClassification":"UNCLASSIFIED","nextAction":"record installed artifact and run standard connection plus faucet flow"},
+    {"product":"wallet","platform":"ios","owner":"wallet-platform","status":"UNSCANNED","currentError":"UNKNOWN","offlineClassification":"UNCLASSIFIED","nextAction":"record installed artifact and run standard connection plus faucet flow"},
+    {"product":"wallet","platform":"macos","owner":"wallet-platform","status":"UNSCANNED","currentError":"UNKNOWN","offlineClassification":"UNCLASSIFIED","nextAction":"record installed artifact and run standard connection plus faucet flow"},
+    {"product":"wallet","platform":"windows","owner":"wallet-platform","status":"UNSCANNED","currentError":"UNKNOWN","offlineClassification":"UNCLASSIFIED","nextAction":"record installed artifact and run standard connection plus faucet flow"},
+    {"product":"wallet","platform":"browser-extension","owner":"wallet-platform","status":"UNSCANNED","currentError":"UNKNOWN","offlineClassification":"UNCLASSIFIED","nextAction":"test EIP-6963 discovery and external EVM DApp connection"},
+    {"product":"finance-suite","platform":"installed-clients","owner":"financial-apps","status":"UNSCANNED","currentError":"UNKNOWN","offlineClassification":"UNCLASSIFIED","nextAction":"enumerate Finance, Exchange, DEX, Pay, and Quant artifacts"},
+    {"product":"unassigned-products","platform":"all-installed-clients","owner":"integration","status":"BLOCKED","currentError":"UNKNOWN","offlineClassification":"UNCLASSIFIED","nextAction":"scan Product Registry after accepted SDK and endpoint manifest"}
+  ]
+}

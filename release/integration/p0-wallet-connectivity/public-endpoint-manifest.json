@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "1.0.0",
+  "status": "CANDIDATE_NOT_ACCEPTED",
+  "environment": "testnet",
+  "releaseId": "P0-WALLET-CONNECTIVITY-2026-08-candidate-1",
+  "sourceCommit": "10b877b5b18f9cb0026a6382cdd6588054fd16db",
+  "issuedAt": "2026-08-20T00:00:00Z",
+  "expiresAt": null,
+  "integrity": {"status":"UNSIGNED_CANDIDATE","requiredBeforeActivation":true},
+  "network": {"cosmosChainId":"ynx_6423-1","evmChainId":6423,"nativeAsset":"YNXT"},
+  "endpoints": {"rpc":{"url":"https://rpc.ynxweb4.com","health":"https://rpc.ynxweb4.com/status","version":null,"verification":"PENDING"},"explorer":{"url":"https://explorer.ynxweb4.com","health":null,"version":null,"verification":"PENDING"},"evmRpc":null,"rest":null,"walletGateway":null,"appGateway":null,"faucet":null,"indexer":null,"monitor":null,"products":{}},
+  "clientPolicy": {"bundledManifestFallback":"only while unexpired after signature verification","reject":["localhost","127.0.0.1","0.0.0.0","10.0.2.2","example.com","http-production","relative-api","empty-env","wrong-chain","expired","missing-health-or-version"],"failover":"same-chain verified endpoints only"},
+  "releaseGate":"BLOCKED_PENDING_PUBLIC_ENDPOINT_VERIFICATION"
+}

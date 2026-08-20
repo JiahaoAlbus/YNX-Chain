@@ -1,0 +1,5 @@
+{
+  "schemaVersion":"1.0.0",
+  "campaignId":"P0-WALLET-CONNECTIVITY-2026-08",
+  "clients":[{"product":"shop","platform":"android","status":"RETIREMENT_REQUIRED","retiredAt":null,"lastSupportedVersion":null,"lastSourceCommit":null,"replacementURL":"https://ynxweb4.com/dapp/shop","reason":"Founder decision: retain Shop Web/PWA and withdraw Shop Android","requiredEnforcement":["stop-build-and-publish","remove-download-listing","disable-package-and-callback","revoke-sessions-approvals-device-grants","return-CLIENT_RETIRED","preserve-historical-evidence"],"publicClaim":"not retired yet; enforcement evidence pending"}]
+}
