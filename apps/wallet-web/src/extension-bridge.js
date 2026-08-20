@@ -8,7 +8,8 @@ export const REQUEST_TIMEOUT_MS = 18000;
 
 export const REQUEST_METHODS = Object.freeze([
   "eth_chainId", "eth_accounts", "eth_requestAccounts", "wallet_addEthereumChain",
-  "wallet_switchEthereumChain", "wallet_revokePermissions", "personal_sign",
+  "wallet_switchEthereumChain", "wallet_requestPermissions", "wallet_getPermissions",
+  "wallet_revokePermissions", "wallet_watchAsset", "personal_sign", "eth_signTypedData_v4",
   "eth_sendTransaction", "ynx_disconnect",
 ]);
 export const PROVIDER_EVENTS = Object.freeze(["accountsChanged", "chainChanged", "disconnect"]);

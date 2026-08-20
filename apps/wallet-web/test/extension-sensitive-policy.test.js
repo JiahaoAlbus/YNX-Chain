@@ -22,7 +22,11 @@ test("sensitive request parser binds exact method parameters, account and deadli
   assert.deepEqual(parseSensitiveRequest(message("eth_requestAccounts",[])),{method:"eth_requestAccounts",expectedAccount:null});
   assert.equal(parseSensitiveRequest(message("personal_sign",["0x00",ACCOUNT])).expectedAccount,ACCOUNT);
   assert.equal(parseSensitiveRequest(message("eth_sendTransaction",[{from:ACCOUNT,to:ACCOUNT,value:"0x0",data:"0x"}])).expectedAccount,ACCOUNT);
-  for(const invalid of [message("eth_requestAccounts",[1]),message("personal_sign",["hello",ACCOUNT]),message("eth_sendTransaction",[{from:ACCOUNT,to:ACCOUNT,value:"0x00",data:"0x"}]),{...message("personal_sign",["0x00",ACCOUNT]),deadlineAt:Date.now()-1}])assert.throws(()=>parseSensitiveRequest(invalid));
+  assert.equal(parseSensitiveRequest(message("wallet_requestPermissions",[{eth_accounts:{}}])).method,"wallet_requestPermissions");
+  assert.equal(parseSensitiveRequest(message("wallet_revokePermissions",[{eth_accounts:{}}])).method,"wallet_revokePermissions");
+  assert.equal(parseSensitiveRequest(message("wallet_watchAsset",[{type:"ERC20",options:{address:ACCOUNT,symbol:"YNXT",decimals:18,image:"https://assets.example/ynxt.png"}}])).method,"wallet_watchAsset");
+  assert.equal(parseSensitiveRequest(message("eth_signTypedData_v4",[ACCOUNT,JSON.stringify({types:{Mail:[{name:"contents",type:"string"}]},primaryType:"Mail",domain:{name:"YNX Testnet",chainId:"0x1917"},message:{contents:"hello"}})])).expectedAccount,ACCOUNT);
+  for(const invalid of [message("eth_requestAccounts",[1]),message("personal_sign",["hello",ACCOUNT]),message("eth_sendTransaction",[{from:ACCOUNT,to:ACCOUNT,value:"0x00",data:"0x"}]),message("wallet_requestPermissions",[{eth_accounts:{},eth_sendTransaction:{}}]),message("wallet_watchAsset",[{type:"ERC20",options:{address:ACCOUNT,symbol:"YNXT",image:"http://assets.example/a.png"}}]),message("eth_signTypedData_v4",[ACCOUNT,JSON.stringify({types:{Mail:[{name:"contents",type:"string"}]},primaryType:"Mail",domain:{name:"YNX",chainId:"0x1"},message:{contents:"hello"}})]),{...message("personal_sign",["0x00",ACCOUNT]),deadlineAt:Date.now()-1}])assert.throws(()=>parseSensitiveRequest(invalid));
 });
 
 test("sensitive request IDs are consumed once in bounded session storage",async()=>{
@@ -36,9 +40,13 @@ test("sensitive results never accept fabricated accounts, signatures or transact
   assert.throws(()=>validateSensitiveResult("eth_requestAccounts",[]),error=>error.code==="INVALID_ACCOUNT");
   assert.throws(()=>validateSensitiveResult("personal_sign","0x1234"),error=>error.code==="INVALID_SIGNATURE");
   assert.throws(()=>validateSensitiveResult("eth_sendTransaction","0x1234"),error=>error.code==="INVALID_TRANSACTION_HASH");
+  assert.equal(validateSensitiveResult("eth_signTypedData_v4",`0x${"a".repeat(130)}`),`0x${"a".repeat(130)}`);
+  assert.deepEqual(validateSensitiveResult("wallet_requestPermissions",[{parentCapability:"eth_accounts"}]),[{parentCapability:"eth_accounts"}]);
+  assert.equal(validateSensitiveResult("wallet_revokePermissions",null),null);
+  assert.equal(validateSensitiveResult("wallet_watchAsset",true),true);
 });
 
-test("service worker consumes replay state and Core authorization before a wallet backend call",async()=>{
+test("service worker consumes replay state before a standard Wallet backend call without making Gateway authorization a prerequisite",async()=>{
   const worker=await readFile(new URL("../extension/service-worker.js",import.meta.url),"utf8"),guard=worker.indexOf("consumeSensitiveRequest"),backend=worker.indexOf("executeInTab(tabId,origin,\"any\",input)");
-  assert.ok(guard>0&&backend>guard);assert.match(worker,/requireCanonicalAuthorizationContext\(CORE_WALLET_AUTH_BINDING,null\)/);
+  assert.ok(guard>0&&backend>guard);assert.doesNotMatch(worker,/requireCanonicalAuthorizationContext/);
 });

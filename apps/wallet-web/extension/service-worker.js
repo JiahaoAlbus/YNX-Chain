@@ -1,7 +1,5 @@
 import {BRIDGE_VERSION,PROVIDER_EVENTS,REQUEST_METHODS,RUNTIME_EVENT,RUNTIME_REQUEST,publicBridgeError,validateRuntimeRequest} from "./extension-bridge.js";
 import {YNX_CHAIN_ID,YNX_RPC_URL,verifyExtensionRpc} from "./extension-rpc.js";
-import {CORE_WALLET_AUTH_BINDING} from "./core-auth-binding.js";
-import {requireCanonicalAuthorizationContext} from "./core-auth-consumer.js";
 import {consumeSensitiveRequest,parseSensitiveRequest,validateSensitiveResult} from "./extension-sensitive-policy.js";
 import {activeTabInjectionPlans,requireActiveDappTab} from "./active-tab-policy.js";
 import {runExtensionMigration} from "./extension-migration.js";
@@ -55,7 +53,7 @@ async function handleDappRequest(message,sender){
   if(!Number.isInteger(sender?.tab?.id)||sender?.frameId!==0||!validateRuntimeRequest(message,senderUrl))throw Object.assign(new Error("Rejected invalid DApp bridge request."),{code:"INVALID_BRIDGE_REQUEST"});
   const tabId=sender.tab.id,origin=message.origin,input={method:message.method,params:message.params};
   const sensitive=parseSensitiveRequest(message);
-  if(sensitive){await consumeSensitiveRequest(extensionApi.storage?.session,message);requireCanonicalAuthorizationContext(CORE_WALLET_AUTH_BINDING,null)}
+  if(sensitive)await consumeSensitiveRequest(extensionApi.storage?.session,message);
   if(message.method==="eth_chainId")return liveChainId();
   if(message.method==="ynx_disconnect"){await emitToTab(tabId,origin,"accountsChanged",[]);await emitToTab(tabId,origin,"disconnect",{code:4900,message:"YNX Wallet companion disconnected."});return null}
   if(message.method==="wallet_addEthereumChain"||message.method==="wallet_switchEthereumChain"){

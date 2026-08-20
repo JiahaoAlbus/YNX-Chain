@@ -2,7 +2,7 @@
   "use strict";
   const expectedOrigin=location.origin;if(!/^https?:$/u.test(location.protocol)||globalThis.__YNX_COMPANION_PROVIDER_V1__)return;
   const PAGE_REQUEST="YNX_PAGE_REQUEST_V1",PAGE_RESPONSE="YNX_PAGE_RESPONSE_V1",PAGE_EVENT="YNX_PAGE_EVENT_V1",VERSION=1,TIMEOUT_MS=18000;
-  const METHODS=new Set(["eth_chainId","eth_accounts","eth_requestAccounts","wallet_addEthereumChain","wallet_switchEthereumChain","wallet_revokePermissions","personal_sign","eth_sendTransaction","ynx_disconnect"]),EVENTS=new Set(["accountsChanged","chainChanged","disconnect"]),pending=new Map(),listeners=new Map();
+  const METHODS=new Set(["eth_chainId","eth_accounts","eth_requestAccounts","wallet_addEthereumChain","wallet_switchEthereumChain","wallet_requestPermissions","wallet_getPermissions","wallet_revokePermissions","wallet_watchAsset","personal_sign","eth_signTypedData_v4","eth_sendTransaction","ynx_disconnect"]),EVENTS=new Set(["accountsChanged","chainChanged","disconnect"]),pending=new Map(),listeners=new Map();
   const emit=(event,payload)=>{for(const listener of listeners.get(event)||[]){try{listener(payload)}catch{}}};
   function bridgeRequest(input){
     if(!input||typeof input!=="object"||!METHODS.has(input.method)||(input.params!==undefined&&!Array.isArray(input.params)))return Promise.reject(Object.assign(new Error("Unsupported or malformed wallet method."),{code:4200}));
