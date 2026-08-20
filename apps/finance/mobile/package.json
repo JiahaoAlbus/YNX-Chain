@@ -13,6 +13,7 @@
     "check": "npm run typecheck && npm test && npm run bundle-check"
   },
   "dependencies": {
+    "@ynx-chain/wallet-auth": "file:vendor/ynx-chain-wallet-auth-1.0.0.tgz",
     "@ynx/dapp-connect-sdk": "file:vendor/ynx-dapp-connect-sdk-0.1.0-p0.0.tgz",
     "expo": "~57.0.4",
     "expo-clipboard": "57.0.0",

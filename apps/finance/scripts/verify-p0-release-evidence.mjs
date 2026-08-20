@@ -30,12 +30,12 @@ assert(manifest.integrity?.payloadSha256 === expectedManifestHash, 'endpoint man
 assert(manifest.sourceCommit === 'fa0ffd9bbbcc831438078be8e19cebff51b07e5e', 'endpoint manifest source commit mismatch');
 assert(manifest.endpointStates?.products?.finance?.status === 'PENDING', 'Finance product endpoint may not be treated as released');
 assert(release.releaseStates?.deployedPublic === false && release.releaseStates?.downloadHosted === false && release.releaseStates?.productionSigned === false && release.releaseStates?.storeReleased === false, 'release metadata attempts an unproven public claim');
-for (const forbidden of ['createGatewayChallenge', 'createProductSessionProof', 'sessions/complete', 'p256']) {
+for (const forbidden of ['createGatewayChallenge', 'createProductSessionProof', 'sessions/complete', 'gatewayEndpoint', 'deviceSecret']) {
   assert(!walletSource.includes(forbidden), `wallet runtime contains prohibited legacy route: ${forbidden}`);
 }
 assert(apiSource.includes('API_UNAVAILABLE: Finance product API is PENDING'), 'pending Finance API does not fail closed');
 assert(appSource.includes('productSessionUnavailable().message'), 'installed UI does not render the private-service degradation result');
-assert(appSource.includes('Standard Wallet Connection only'), 'installed UI does not label standard wallet boundary');
+assert(appSource.includes('Standard Wallet and optional Product Session are separate'), 'installed UI does not label the separate wallet boundary');
 
 const report = {
   schemaVersion: 1,
@@ -48,7 +48,7 @@ const report = {
   },
   connectivityBoundary: {
     standardWalletRuntime: 'SOURCE_VERIFIED_EIP1193_ONLY',
-    productSession: 'PENDING_AND_NOT_CALLED',
+    productSession: 'OPTIONAL_ROOT_FACTORY_V2_WITH_MIGRATION_FALSE',
     installedWalletSuccess: 'NOT_ASSERTED_BY_THIS_VERIFIER',
   },
   releaseStates: release.releaseStates,

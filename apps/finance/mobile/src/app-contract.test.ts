@@ -22,16 +22,16 @@ test('AI drafts require selected owned evidence, consent, and apply or reject',(
   assert.equal(app.includes("decision(aiJob.id,'approved')"),false);
 });
 
-test('Wallet migration keeps standard connection and never creates a local Product Session',()=>{
-  for(const value of ['connectStandardWallet','StandardWalletConnection','PRODUCT_SESSION_UNAVAILABLE','WALLET_NOT_FOUND'])assert.ok(wallet.includes(value),value);
-  for(const prohibited of ['p256','createGatewayChallenge','sessions/complete','createProductSessionProof','encodeRequestDeepLink'])assert.equal(wallet.includes(prohibited),false,prohibited);
+test('Wallet migration preserves Standard Wallet while optional private services use only the root factory',()=>{
+  for(const value of ['connectStandardWallet','StandardWalletConnection','createProductWalletConnection','FinanceSecureDevice','PRIVATE_SERVICE_DEGRADED','WALLET_NOT_FOUND'])assert.ok(wallet.includes(value),value);
+  for(const prohibited of ['createGatewayChallenge','sessions/complete','createProductSessionProof','encodeRequestDeepLink','gatewayEndpoint','deviceSecret'])assert.equal(wallet.includes(prohibited),false,prohibited);
   for(const prohibited of ['Guaranteed return','APY 8%','USD balance','Visa card','insured deposit'])assert.equal(app.includes(prohibited),false,prohibited);
   assert.ok(app.includes('no fiat value is inferred'));
   assert.ok(i18n.toLowerCase().includes('cannot move assets'));
 });
 
-test('native privacy copy does not retain the removed Wallet authorization artifacts',()=>{
+test('native privacy copy does not retain Wallet secrets or authorization artifacts',()=>{
   assert.ok(app.includes('SecureStore holds local settings and the visibly non-live cache only.'));
   assert.equal(app.includes('session, pending Wallet request, device proof'),false);
-  assert.ok(app.includes('Wallet authorization requests, and Product Sessions are never requested or stored.'));
+  assert.ok(app.includes('Wallet recovery material and raw device private keys are never requested or stored.'));
 });
