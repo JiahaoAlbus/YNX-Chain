@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-08-20T08:44:00.000Z",
+  "source": {
+    "commit": "e01b2b353847f29f6724a718f67430c8b786b2f0",
+    "contains": [
+      "bdbb0d106658c8d0042e087e43c6a26054484582: exact REST account-not-found fallback to verified EVM RPC",
+      "e01b2b353847f29f6724a718f67430c8b786b2f0: EVM simulation preserves the frozen /evm RPC path"
+    ]
+  },
+  "validation": {
+    "typecheck": true,
+    "chainFocusedTests": "51 passing",
+    "productCheck": true,
+    "releaseBuild": {
+      "task": ":app:assembleRelease",
+      "result": "BUILD_SUCCESSFUL",
+      "duration": "30s",
+      "java24PrefabWorkaround": "--enable-native-access=ALL-UNNAMED"
+    }
+  },
+  "artifact": {
+    "path": "/private/tmp/ynx-wallet-platform-p0-e01b2b353-qa.apk",
+    "applicationId": "com.ynxweb4.wallet",
+    "versionName": "1.0.0",
+    "versionCode": 1,
+    "bytes": 78301669,
+    "sha256": "38890b476c9bdd9f0a8ea1ac484326b463d546f6a9039be3c12aeb30fe20afbb",
+    "minimumApi": 24,
+    "targetApi": 36,
+    "abis": ["arm64-v8a", "armeabi-v7a", "x86", "x86_64"],
+    "v2Verified": true,
+    "v3Verified": true,
+    "signingClass": "disposable-qa-debug-keystore",
+    "signerSha256": "d4e562610ecb4e304fa00ee07e7adae7da862ce108bda7bdfe933c28831f154e",
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "requiredNextEvidence": {
+    "adbAuthorizedPixel": false,
+    "installed": false,
+    "coldLaunch": false,
+    "secondLaunch": false,
+    "unmaterializedAccountReadViaEvmRpc": false,
+    "installedAppTestnetConnection": false,
+    "websiteHosted": false
+  }
+}
