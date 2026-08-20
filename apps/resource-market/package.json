@@ -1,1 +1,12 @@
-{"name":"ynx-resource-market-ui","private":true,"type":"module","scripts":{"test:ui":"playwright test"},"devDependencies":{"@playwright/test":"^1.55.0"}}
+{
+  "name": "ynx-resource-market-ui",
+  "version": "0.3.0-candidate.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test:ui": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.55.0"
+  }
+}

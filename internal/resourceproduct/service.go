@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/canonicalwallet"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/productstore"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/resourcemarket"
 	"io"
 	"net/http"
 	"sort"
@@ -23,12 +24,12 @@ const maxBody = 1 << 20
 var resourceTypes = map[string]bool{"Bandwidth": true, "Compute": true, "AI Credits": true, "Trust Credits": true, "Pay Credits": true}
 
 type Config struct {
-	StorePath, AIURL, AIKey, AIModel string
-	Sessions                         map[string]Actor
-	AllowHeaderAuth                  bool
-	CentralGatewayURL                string
-	CentralClientID                  string
-	Now                              func() time.Time
+	StorePath, MarketStorePath, AIURL, AIKey, AIModel string
+	Sessions                                          map[string]Actor
+	AllowHeaderAuth                                   bool
+	CentralGatewayURL                                 string
+	CentralClientID                                   string
+	Now                                               func() time.Time
 }
 type Actor struct{ ID, Role string }
 type Audit struct {
@@ -152,18 +153,22 @@ type snapshot struct {
 	AI             map[string]AIRecord       `json:"ai"`
 	Audit          []Audit                   `json:"audit"`
 	Sessions       map[string]CentralSession `json:"sessions"`
+	SessionProofs  map[string]time.Time      `json:"sessionProofs"`
 	AuthorityAudit []AuthorityAudit          `json:"authorityAudit"`
 	Intents        map[string]PurchaseIntent `json:"intents"`
 	Replay         map[string]replay         `json:"replay"`
 	Sequence       uint64                    `json:"sequence"`
 }
 type Service struct {
-	mu       sync.Mutex
-	cfg      Config
-	data     snapshot
-	client   *http.Client
-	sessions map[string]Actor
-	cancels  map[string]context.CancelFunc
+	mu        sync.Mutex
+	cfg       Config
+	data      snapshot
+	client    *http.Client
+	sessions  map[string]Actor
+	cancels   map[string]context.CancelFunc
+	market    *resourcemarket.Engine
+	metrics   serviceMetrics
+	startedAt time.Time
 }
 
 func New(cfg Config) (*Service, error) {
@@ -185,7 +190,14 @@ func New(cfg Config) (*Service, error) {
 			return nil, errors.New("central Gateway client ID is required")
 		}
 	}
-	s := &Service{cfg: cfg, client: &http.Client{Timeout: 20 * time.Second}, sessions: map[string]Actor{}, cancels: map[string]context.CancelFunc{}, data: snapshot{Version: 1, Pools: map[string]Pool{}, Records: map[string]Record{}, AI: map[string]AIRecord{}, Replay: map[string]replay{}, Sessions: map[string]CentralSession{}, Intents: map[string]PurchaseIntent{}}}
+	s := &Service{cfg: cfg, client: &http.Client{Timeout: 20 * time.Second}, sessions: map[string]Actor{}, cancels: map[string]context.CancelFunc{}, startedAt: cfg.Now().UTC(), data: snapshot{Version: 1, Pools: map[string]Pool{}, Records: map[string]Record{}, AI: map[string]AIRecord{}, Replay: map[string]replay{}, Sessions: map[string]CentralSession{}, SessionProofs: map[string]time.Time{}, Intents: map[string]PurchaseIntent{}}}
+	if strings.TrimSpace(cfg.MarketStorePath) != "" {
+		market, err := resourcemarket.New(cfg.MarketStorePath, cfg.Now)
+		if err != nil {
+			return nil, fmt.Errorf("initialize resource market engine: %w", err)
+		}
+		s.market = market
+	}
 	for token, actor := range cfg.Sessions {
 		if strings.TrimSpace(token) == "" || strings.TrimSpace(actor.ID) == "" || strings.TrimSpace(actor.Role) == "" {
 			return nil, errors.New("Resource session registry contains an invalid token or actor")
@@ -223,6 +235,9 @@ func (s *Service) load() error {
 	}
 	if d.Sessions == nil {
 		d.Sessions = map[string]CentralSession{}
+	}
+	if d.SessionProofs == nil {
+		d.SessionProofs = map[string]time.Time{}
 	}
 	if d.Intents == nil {
 		d.Intents = map[string]PurchaseIntent{}
