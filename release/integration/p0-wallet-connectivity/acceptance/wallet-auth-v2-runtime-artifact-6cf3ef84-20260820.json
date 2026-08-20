@@ -4,6 +4,7 @@
   "recordedAt": "2026-08-20T12:24:41Z",
   "decision": "ACCEPTED_EXACT_DETERMINISTIC_RUNTIME_ARTIFACT_FOR_GATED_TRANSACTION",
   "activeLeasePath": "release/integration/p0-wallet-connectivity/execution/wallet-auth-v2-runtime-artifact-lease-v7-20260820.json",
+  "activeLeaseStatus": "ACTIVE_SINGLE_TRANSACTION_ROLLBACK_DRILL_PASSED",
   "supersededBeforeStartLeases": [
     "P0-WALLET-CONNECTIVITY-2026-08-wallet-auth-v2-runtime-artifact-lease-20260820T122441Z",
     "P0-WALLET-CONNECTIVITY-2026-08-wallet-auth-v2-runtime-artifact-lease-v4-20260820T130028Z"
@@ -106,6 +107,22 @@
     "systemdUnitPermissionExpansionAllowed": false,
     "caddyChangeAllowed": false,
     "productionServiceStartAllowedBeforeVerification": false
+  },
+  "v7RollbackDrillCheckpoint": {
+    "recordedAt": "2026-08-20T13:36:00Z",
+    "passed": true,
+    "candidateSourceReached": "6cf3ef845202bd879ed94515a71b323dd2fc9e14",
+    "candidateSocialV1OptionsStatus": 204,
+    "candidateFinanceV2OptionsStatus": 204,
+    "candidateAttackerOriginStatus": 403,
+    "rollbackRestoredSource": "49e30d999e9a9cbdd2c565021009f2cab0dc125c",
+    "rollbackRestoredActive": true,
+    "sharedV1StateSha256Unchanged": "ba386fb9e474ea0886c2e41184db7fac3fcf6aea6dd02f5fe47122a62d3a8c9e",
+    "noCaddyOrUnitPermissionOr6437Or6439Or6441Changes": true,
+    "currentSingleTransactionMayContinue": true,
+    "leaseMayBeRestartedFromBeginning": false,
+    "finalActivationVerified": false,
+    "publicAcceptanceVerified": false
   },
   "truth": {
     "candidateDeployedPublic": false,
