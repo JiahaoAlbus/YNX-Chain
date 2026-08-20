@@ -10,8 +10,9 @@ async function session() {
   const value = await response.json();
   assert.equal(response.status, 200, JSON.stringify(value));
   assert.equal(value.sandboxReady, true);
-  for (const language of ["c", "cpp", "javascript", "typescript", "python", "go", "rust", "java", "solidity"])
+  for (const language of ["cpp", "javascript", "typescript", "python", "go", "rust", "solidity"])
     assert.equal(value.compilers[language], true, `${language} compiler missing`);
+  assert.equal(Object.hasOwn(value.compilers, "java"), false, "Java must be routed through the reviewed cloud runtime.");
   const cookie = response.headers.get("set-cookie")?.split(";")[0];
   assert.ok(cookie);
   return cookie;
@@ -74,14 +75,12 @@ assert.match(await page.text(), /<div id="root"><\/div>/);
 
 const cookie = await session();
 const compilers = [
-  ["c", "src/main.c", '#include <stdio.h>\nint main(void){fputs("YNX-LIVE-C",stdout);return 0;}'],
   ["cpp", "src/main.cpp", '#include <iostream>\nint main(){std::cout<<"YNX-LIVE-CPP";}'],
   ["javascript", "src/main.js", 'console.log("YNX-LIVE-JS")'],
   ["typescript", "src/main.ts", 'const value:number=42; console.log(`YNX-LIVE-TS-${value}`);'],
   ["python", "src/main.py", 'print("YNX-LIVE-PY")'],
   ["go", "src/main.go", 'package main\nimport "fmt"\nfunc main(){fmt.Print("YNX-LIVE-GO")}'],
   ["rust", "src/main.rs", 'fn main(){println!("YNX-LIVE-RUST");}'],
-  ["java", "src/Main.java", 'public final class Main { public static void main(String[] args) { System.out.print("YNX-LIVE-JAVA"); } }'],
   ["solidity", "contracts/Counter.sol", '// SPDX-License-Identifier: MIT\npragma solidity ^0.8.20; contract Counter { uint256 public value; function set(uint256 next) external { value=next; } }'],
 ];
 for (const [language, activePath, source] of compilers) {
@@ -98,7 +97,6 @@ const languageRequests = [
   ["python", { files: { "src/main.py": "def add(a: int,b: int)->int: return a+b\nad" }, activePath: "src/main.py", operation: "completion", position: { line: 1, character: 2 } }],
   ["go", { files: { "main.go": "package main\nimport \"fmt\"\nfunc main(){ fmt.Pr }" }, activePath: "main.go", operation: "completion", position: { line: 2, character: 20 } }],
   ["rust", { files: { "Cargo.toml": "[package]\nname='probe'\nversion='0.1.0'\nedition='2021'\n", "src/main.rs": "fn main(){ let values=Vec::<i32>::new(); values. }" }, activePath: "src/main.rs", operation: "completion", position: { line: 0, character: 48 } }],
-  ["java", { files: { "src/Main.java": "package dev.ynx; final class Main { static int add(int a,int b){return a+b;} public static void main(String[] args){int value=ad;} }" }, activePath: "src/Main.java", operation: "completion", position: { line: 0, character: 128 } }],
   ["solidity", { files: { "contracts/Counter.sol": "pragma solidity ^0.8.20; contract Counter { uint value; function set(uint next) external { val } }" }, activePath: "contracts/Counter.sol", operation: "completion", position: { line: 0, character: 94 } }],
 ];
 for (const [language, request] of languageRequests) {
@@ -141,4 +139,4 @@ const agent = await json(cookie, "/runtime/agent/runs", {
 assert.equal(agent.run.status, "plan_review");
 assert.ok(agent.run.plan.steps.length > 0);
 
-console.log(`YNX Code public candidate passed 9 runtimes, 8 language requests across 7 LSP routes, 12 concurrent tenants, isolation, Chain ${chain.status.height}, a hosted AI Planner run and fail-closed Wallet readiness.`);
+console.log(`YNX Code public candidate passed 7 declared host runtimes, 6 declared host LSP routes, 12 concurrent tenants, isolation, Chain ${chain.status.height}, a hosted AI Planner run and fail-closed Wallet readiness; the protected cloud gate separately verifies all 9 runtime languages and 7 LSP routes.`);
