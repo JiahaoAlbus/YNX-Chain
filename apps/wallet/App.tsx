@@ -13,6 +13,7 @@ import {
 } from "@ynx-chain/wallet-auth";
 import { GatewaySecurityReviewProvider, SecurityReviewController, type ReviewSnapshot } from "./src/ai/securityReview";
 import { NativeChainClient, type ChainAccount, type ChainActivity } from "./src/chain/nativeTransfer";
+import { readAuthoritativeChainAccount } from "./src/chain/chainRead";
 import { EvmSimulationClient, type EvmSimulationResult } from "./src/chain/evmSimulation";
 import { buildWalletControlView, type CapitalReview } from "./src/control/controlSurface";
 import { controlCopy } from "./src/control/controlCopy";
@@ -120,7 +121,7 @@ function Dashboard({locale,manifest,selected,select,add,create,lock,onManifest}:
   const [accountsOpen,setAccountsOpen]=useState(false),[copied,setCopied]=useState(false),[qr,setQR]=useState(false),[send,setSend]=useState(false),[evm,setEvm]=useState(false),[center,setCenter]=useState(false),[faucet,setFaucet]=useState(false),[controls,setControls]=useState(false),[remove,setRemove]=useState(false),[rename,setRename]=useState(false),[recovery,setRecovery]=useState(false),[auditOpen,setAuditOpen]=useState(false),[records,setRecords]=useState<readonly AuthorizationAuditRecord[]>([]),[auditError,setAuditError]=useState<string|null>(null);
   const cancelClipboardClear=useRef<null|(()=>void)>(null);
   const [chainState,setChainState]=useState<ChainReadState>({phase:"loading",activity:[]});
-  const refreshChain=useCallback(async()=>{setChainState((state)=>({phase:"loading",account:state.account,activity:state.activity,activityError:state.activityError}));try{const client=chainClient();const account=await client.account(selected.account);try{const activity=await client.activity(selected.account);setChainState({phase:"ready",account,activity})}catch(caught){setChainState({phase:"ready",account,activity:[],activityError:message(caught)})}}catch(caught){setChainState({phase:"failed",activity:[],error:message(caught)})}},[selected.account]);
+  const refreshChain=useCallback(async()=>{setChainState((state)=>({phase:"loading",account:state.account,activity:state.activity,activityError:state.activityError}));try{const result=await readAuthoritativeChainAccount(chainClient(),selected.account);setChainState({phase:"ready",...result})}catch(caught){setChainState({phase:"failed",activity:[],error:message(caught)})}},[selected.account]);
   useEffect(()=>{void refreshChain()},[refreshChain]);
   const copy=async()=>{cancelClipboardClear.current?.();cancelClipboardClear.current=await copyPublicValueWithExpiry(Clipboard,selected.account);setCopied(true);setTimeout(()=>setCopied(false),1500)};
   const openAudit=async()=>{setAuditError(null);try{setRecords(await authorizationAudit.load());setAuditOpen(true)}catch(caught){setAuditError(localizeError(locale,caught));setAuditOpen(true)}};
