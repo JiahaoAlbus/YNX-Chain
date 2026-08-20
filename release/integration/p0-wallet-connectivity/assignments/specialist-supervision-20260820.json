@@ -1,0 +1,92 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "observedAt": "2026-08-20T14:57:00Z",
+  "truthBoundary": "A branch, PR, CI result, local test, or source candidate is not public completion. Public completion requires the specialist objective plus deployed runtime, installed-platform evidence when applicable, and any required Computer Control verification.",
+  "specialists": [
+    {
+      "owner": "wallet-protocol",
+      "status": "CANDIDATE_READY",
+      "checkpoint": "24cc3218c2cdc00c50dc3caa563652083afbd861",
+      "evidence": "canonical Wallet error contract; focused 11/11 and Wallet/Auth 240/240 owner-reported",
+      "publicVerified": false,
+      "remaining": ["accepted consumer integration", "product migrations", "installed Wallet and external-DApp evidence"],
+      "nextAction": "Integration records the source contract without changing current deployed Gateway truth; consumers adopt it only through their accepted scope."
+    },
+    {
+      "owner": "wallet-platform",
+      "status": "ACTIVE",
+      "checkpoint": "713bfe0f61dd3aa821eea0dba73801a6e723685a",
+      "publicVerified": false,
+      "remaining": ["installed Android/iOS cold-start and deep-link E2E", "real DApp bridge and WalletConnect", "extension and DApp Browser", "desktop clients", "Faucet runtime and distinct artwork"],
+      "nextAction": "Continue the owner-scoped platform objective; never promote source-only connection state as installed-wallet success."
+    },
+    {
+      "owner": "developer-sdk",
+      "status": "ACTIVE",
+      "checkpoint": "315897e75c0ffe3e63435fe73cfec42244b851cc",
+      "publicVerified": false,
+      "remaining": ["rebase exact accepted five-path manifest delta", "repair PR topology", "product migrations and platform E2E"],
+      "nextAction": "Produce the bounded rebase against the latest accepted central SDK snapshot; do not activate an unaccepted SDK candidate."
+    },
+    {
+      "owner": "financial-apps",
+      "status": "WAITING_SHARED_DEPENDENCY",
+      "checkpoint": "Finance f7efbd9e9658aaea75f8d9fbbb58f79ee1a48365; Exchange c78f0954f9137a3faf3ce4abb4ff69ed21facafd",
+      "publicVerified": false,
+      "remaining": ["accepted SDK rebase", "bounded product execution lease", "sequential Finance/Exchange/Pay/DEX/Quant migration", "installed runtime and trading evidence"],
+      "supervision": "Continuation handoff sent; do not rebuild Finance or Exchange while their product locks are checkpoints.",
+      "nextAction": "Return a precise next-slice proposal with paths, dependency, test, runtime and rollback evidence; await a bounded lease."
+    },
+    {
+      "owner": "data-fabric",
+      "status": "WAITING_SHARED_DEPENDENCY",
+      "checkpoint": "353fffbc55e1e309978e0e9dff59b3aa3cfd1bf8; PR #92 CI owner-reported 6/6",
+      "publicVerified": false,
+      "remaining": ["remote publication of the bounded Light Lease", "asynchronous canonical-error aggregate mapping and vectors", "authentic product producer migrations", "runtime deployment"],
+      "supervision": "Continuation handoff sent. Local central grant b13da81c is preserved but GitHub TLS has prevented remote publication.",
+      "nextAction": "After remote lock readback, implement only aggregate errorClass/retryable mapping; never persist raw error, developerMessage or identity."
+    },
+    {
+      "owner": "explorer-monitor",
+      "status": "WAITING_SHARED_DEPENDENCY",
+      "checkpoint": "6d62c399a279c57e8883b300a4cf6d782c8e1673; PR #107",
+      "publicVerified": false,
+      "remaining": ["bounded owner lease", "runtime/source mismatch closure", "public deployment", "Computer Control evidence"],
+      "supervision": "Continuation handoff sent; no product rebuild is authorized while its paths are checkpointed.",
+      "nextAction": "Maintain a deployment-ready, source-identity proposal and resume only under its own path lock."
+    },
+    {
+      "owner": "card-testnet-virtual",
+      "status": "CANDIDATE_READY",
+      "checkpoint": "Router b789ec97374c6bc2fe926797f1fb35b4bfbba971; owner endpoint-injection source 2c2e117e42b4daacf96cd74abc6844c72398c522",
+      "publicVerified": false,
+      "remaining": ["accepted Gateway v2 Card session contract", "finalized YNXT funding transaction", "Explorer/ledger reconciliation", "visible-platform E2E"],
+      "nextAction": "Keep Standard Wallet independent and fail closed when the accepted manifest marks App Gateway unavailable; do not promote virtual-card availability."
+    },
+    {
+      "owner": "integration-chain-core",
+      "status": "ACTIVE",
+      "checkpoint": "runtime release 7ff61276507448fb6732c1055612f4caca406793; recovery tooling f1831b7dee59b75e0c04d341a7181c7a19670aaa",
+      "publicVerified": false,
+      "remaining": ["Silicon and Seoul convergence status readback", "four-node integrity evidence", "status responsiveness diagnosis", "central acceptance and public evidence"],
+      "nextAction": "Do not restart active followers; observe their final bounded-state application, then record only verified convergence."
+    },
+    {
+      "owner": "website",
+      "status": "INTEGRATION_READY",
+      "checkpoint": "website a7313313014bb8792f38e649e9f556dbee983c8c; deployment dpl_8NdwMFePJyymJC34bfvTa8G3SaEQ",
+      "publicVerified": false,
+      "remaining": ["separate product migrations", "installed-client evidence", "Computer Control verification"],
+      "nextAction": "Preserve the visible Wallet Gateway v2 runtime facts and all false boundaries; do not convert source evidence into product-success claims."
+    },
+    {
+      "owner": "calendar",
+      "status": "WAITING_SHARED_DEPENDENCY",
+      "checkpoint": "ab2db4a4c07dc153fc10a42686ef7cdad6715820",
+      "publicVerified": false,
+      "remaining": ["targeted accepted-contract migration", "external integration and public evidence"],
+      "nextAction": "Do not rebuild Calendar: its Fable5 functional core exists; resume only after the active Wallet Connectivity wave."
+    }
+  ]
+}
