@@ -8,4 +8,5 @@ test("public candidate gate distinguishes host tools from the reviewed cloud too
   assert.doesNotMatch(source, /\["java", "src\/Main\.java"/);
   assert.match(source, /optional Java advertisement is schema-checked here/);
   assert.match(source, /protected cloud gate separately verifies all 9 runtime languages/);
+  assert.match(source, /approval: "model-request-once", approvalId: randomUUID\(\)/);
 });

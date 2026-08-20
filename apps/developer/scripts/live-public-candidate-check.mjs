@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { randomUUID } from "node:crypto";
 import { readFile, rm, writeFile } from "node:fs/promises";
 
 const base = process.env.YNX_CODE_CHECK_BASE || "http://127.0.0.1:18113";
@@ -135,7 +136,7 @@ await json(cookie, "/runtime/workspaces/ai-live-probe", {
 const agent = await json(cookie, "/runtime/agent/runs", {
   method: "POST",
   expectedStatus: 201,
-  body: JSON.stringify({ protocolVersion: "ynx-code-agent/v1", projectId: "ai-live-probe", intent: "Plan a minimal change that prints after instead of before.", provider: "ynx-hosted", outputLanguage: "en" }),
+  body: JSON.stringify({ protocolVersion: "ynx-code-agent/v1", projectId: "ai-live-probe", intent: "Plan a minimal change that prints after instead of before.", provider: "ynx-hosted", outputLanguage: "en", approval: "model-request-once", approvalId: randomUUID() }),
 });
 assert.equal(agent.run.status, "plan_review");
 assert.ok(agent.run.plan.steps.length > 0);
