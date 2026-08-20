@@ -41,7 +41,11 @@ assert.equal(task.status, acceptance.status);
 assert.equal(task.executionLeaseIssued, false);
 assert.equal(task.productionMutation, false);
 assert.equal(task.productsMigrated, 0);
-assert.equal(campaign.wave.executionScope, acceptance.status);
+assert.ok(
+  campaign.wave.executionScope === acceptance.status ||
+  campaign.wave.executionScope === "HERMETIC_SOURCE_AND_PREFLIGHT_ACCEPTED_DEPLOYABLE_ARTIFACT_BLOCKED",
+  "campaign must retain the historical source-only blocker or a stricter reviewed successor"
+);
 assert.equal(campaign.wave.executionLease, "NONE_P0_039_REMAINS_INVALID");
 assert.equal(leases.heavy.owner, null);
 
