@@ -20,7 +20,7 @@ const [labels, expectedCommit, expectedRuntime] = process.argv.slice(1); const v
 for (const [key, expected] of Object.entries({"org.opencontainers.image.title":"YNX Code Server","org.opencontainers.image.revision":expectedCommit,"io.ynx.runtime-checkpoint":expectedRuntime,"io.ynx.artifact-class":"unsigned-testnet-preview"})) if(value[key]!==expected) throw new Error(`${key} mismatch`);
 ' "$labels" "$expected_commit" "$expected_runtime"
 
-docker run --detach --name "$name" --user 10001:10001 --read-only --tmpfs /tmp:rw,nosuid,nodev,size=64m --tmpfs /var/lib/ynx-code:rw,nosuid,nodev,size=256m --cap-drop=ALL --security-opt no-new-privileges -e YNX_CODE_WORKSPACE_SESSION_KEY=ci-nonsecret-session-key -p "127.0.0.1:$port:4190" "$image" >/dev/null
+docker run --detach --name "$name" --user 10001:10001 --read-only --tmpfs /tmp:rw,nosuid,nodev,size=64m --tmpfs /var/lib/ynx-code:rw,nosuid,nodev,uid=10001,gid=10001,mode=0700,size=256m --cap-drop=ALL --security-opt no-new-privileges -e YNX_CODE_WORKSPACE_SESSION_KEY=ci-nonsecret-session-key -p "127.0.0.1:$port:4190" "$image" >/dev/null
 health=""
 for _ in {1..100}; do
   if health=$(curl --fail --silent --show-error "http://127.0.0.1:$port/healthz" 2>/dev/null); then break; fi
