@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ProposalList } from './components/ProposalList';
 import { ProposalDetail } from './components/ProposalDetail';
 import { I18nProvider, Locale, supportedLocales, useI18n } from './i18n';
+import { WalletPanel } from './wallet/WalletPanel';
 
 type View = 'list' | 'detail';
 
@@ -50,6 +51,7 @@ const GovernanceApp: React.FC = () => {
       </nav>
 
       <main style={styles.main}>
+        <WalletPanel />
         {view === 'list' && <ProposalList onSelectProposal={handleSelectProposal} />}
         {view === 'detail' && selectedProposalId && (
           <ProposalDetail proposalId={selectedProposalId} onBack={handleBackToList} />

@@ -73,3 +73,35 @@ test('supports keyboard navigation, 390px layout, and Arabic RTL', async ({ page
   await expect(page.getByRole('heading', { name: 'حالة التنفيذ' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'مسار التدقيق' })).toBeVisible();
 });
+
+test('keeps guest reading available and connects an announced YNX EIP-6963 wallet', async ({ page }) => {
+  await page.addInitScript(() => {
+    const account = '0x1111111111111111111111111111111111111111';
+    const provider = {
+      request: async ({ method }: { method: string }) => {
+        if (method === 'eth_requestAccounts') return [account];
+        if (method === 'eth_chainId') return '0x1917';
+        throw Object.assign(new Error(`Unsupported ${method}`), { code: 4200 });
+      },
+      on: () => undefined,
+      removeListener: () => undefined,
+    };
+    window.addEventListener('eip6963:requestProvider', () => {
+      window.dispatchEvent(new CustomEvent('eip6963:announceProvider', {
+        detail: {
+          info: { uuid: '11111111-1111-4111-8111-111111111111', name: 'YNX Wallet', rdns: 'com.ynx.wallet', icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg"/> ' },
+          provider,
+        },
+      }));
+    });
+  });
+
+  await page.goto('/');
+  await expect(page.getByText(/Guest mode/)).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Governance Proposals' })).toBeVisible();
+  await page.getByRole('button', { name: 'Connect YNX Wallet' }).click();
+  await expect(page.getByText(/Standard wallet connected/)).toBeVisible();
+  await expect(page.getByText(/0x1917/)).toBeVisible();
+  await expect(page.getByText(/Private governance authority: unavailable/)).toBeVisible();
+  await expect(page.getByRole('button', { name: /Open proposal/ })).toBeVisible();
+});

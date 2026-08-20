@@ -11,7 +11,12 @@ describe('App', () => {
     expect(html).toContain('Governance');
     expect(html).toContain('Loading proposals…');
     expect(html).toContain('Operator guide');
-    expect(html).not.toContain('Connect Wallet');
+    expect(html).toContain('Connect a wallet');
+    expect(html).toContain('Connect YNX Wallet');
+    expect(html).toContain('Use MetaMask');
+    expect(html).toContain('Get YNX Wallet');
+    expect(html).toContain('Guest mode');
+    expect(html).toContain('Private governance authority: unavailable');
     expect(html).toContain('aria-label="Language"');
     expect(html).toContain('role="status"');
   });
