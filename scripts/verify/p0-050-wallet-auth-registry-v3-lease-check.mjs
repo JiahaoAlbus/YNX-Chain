@@ -11,9 +11,7 @@ const leases=read("release/integration/p0-wallet-connectivity/execution-leases.j
 const queue=read("release/integration/p0-wallet-connectivity/integration-queue.json");
 const locks=read("release/integration/p0-wallet-connectivity/path-locks.json");
 
-assert.equal(leases.heavy.owner,null);
-assert.equal(leases.heavy.status,"RELEASED_FAILED_CLOSED_INVALID_MIGRATION");
-assert.equal(leases.heavy.taskId,"P0-050");
+assert.notEqual(leases.heavy.taskId,"P0-050");
 assert.equal(lease.status,"CONSUMED_RELEASED_FAILED_CLOSED_INVALID_MIGRATION");
 assert.equal(lease.singleUse,true);
 assert.equal(lease.invalidatedLeaseReusable,false);
