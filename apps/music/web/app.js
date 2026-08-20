@@ -1,9 +1,29 @@
+import {connectMusicWallet,WALLET_INSTALLATION_OPTIONS} from './wallet-connection.js';
+
 const $=selector=>document.querySelector(selector);
 const $$=selector=>[...document.querySelectorAll(selector)];
 const status=$('#status');
 const audio=$('#audio');
+let wallet=null;
 
 function tell(message,error=false){status.textContent=message;status.classList.toggle('error',error)}
+function walletMessage(message,error=false){const target=$('#walletStatus');target.textContent=message;target.classList.toggle('error',error)}
+async function connectWallet(choice){
+  const buttons=$$('#walletDialog button[data-wallet]');
+  buttons.forEach(button=>button.disabled=true);
+  walletMessage(`Discovering ${choice==='ynx'?'YNX Wallet':'MetaMask'}…`);
+  try{
+    wallet=await connectMusicWallet(choice);
+    const short=`${wallet.account.slice(0,6)}…${wallet.account.slice(-4)}`;
+    $('#authButton').textContent=short;
+    $('#authButton').setAttribute('aria-label',`${wallet.walletName} account ${short} connected on YNX Testnet; private Music services are unavailable`);
+    walletMessage(`${wallet.walletName} connected to YNX Testnet as ${short}. Private library, upload, royalties and settlement remain unavailable.`);
+    tell(`Standard Wallet connected · ${short} · public catalog remains available · private Music service degraded.`);
+  }catch(error){
+    const missing=error?.code==='WALLET_NOT_INSTALLED';
+    walletMessage(missing?`${choice==='ynx'?'YNX Wallet':'MetaMask'} was not found. Choose the official install link below, then reconnect.`:`Connection was not completed: ${error?.message||'Wallet request failed'}. No Music account or private session was created.`,true);
+  }finally{buttons.forEach(button=>button.disabled=false)}
+}
 function showView(view){
   $$('nav a').forEach(link=>link.classList.toggle('active',link.dataset.view===view));
   $('#libraryPanel').classList.toggle('hidden',view!=='library');
@@ -24,4 +44,9 @@ $('#volume').oninput=event=>audio.volume=Number(event.target.value);
 for(const form of $$('form'))form.addEventListener('submit',event=>{event.preventDefault();tell('Creator and settlement changes require the installed app and a canonical Wallet session.',true)});
 for(const button of $$('#libraryPanel button, #creatorPanel button, #trackDialog button:not(.close)'))button.onclick=()=>tell('This action is available after canonical Wallet sign-in in the installed app.',true);
 $('#trackDialog .close').onclick=()=>$('#trackDialog').close();
+$('#authButton').onclick=()=>$('#walletDialog').showModal();
+$('#walletDialog .close').onclick=()=>$('#walletDialog').close();
+$$('#walletDialog button[data-wallet]').forEach(button=>button.onclick=()=>connectWallet(button.dataset.wallet));
+$('#ynxWalletDownload').href=WALLET_INSTALLATION_OPTIONS.ynx;
+$('#metaMaskDownload').href=WALLET_INSTALLATION_OPTIONS.metamask;
 fetch('health').then(async response=>{const health=await response.json();if(!response.ok)throw new Error('service integrity check failed');const release=health.build?.release||'local';tell(`Service healthy · ${release} · central registry merge pending. No licensed public catalog or production streaming is claimed.`)}).catch(error=>tell(`Service unavailable · ${error.message}`,true));

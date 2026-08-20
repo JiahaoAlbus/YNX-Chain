@@ -22,6 +22,8 @@ done
 grep -q '"ok":true' "$tmp/health.json"
 grep -q '"licensedPublicCatalog":false' "$tmp/health.json"
 curl --fail --silent "http://127.0.0.1:$port/" | grep -q 'YNX Music'
+curl --fail --silent "http://127.0.0.1:$port/wallet-connection.js" | grep -q 'connectMusicWallet'
+curl --fail --silent "http://127.0.0.1:$port/ynx-dapp-connect-sdk/provider.js" | grep -q 'StandardWalletConnection'
 status="$(curl --silent --output /dev/null --write-out '%{http_code}' "http://127.0.0.1:$port/api/me")"
 test "$status" = "401"
-echo "YNX Music smoke passed: health, embedded Web, truthful catalog boundary, fail-closed auth"
+echo "YNX Music smoke passed: health, embedded Wallet modules, truthful catalog boundary, fail-closed private auth"
