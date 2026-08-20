@@ -125,9 +125,9 @@ actual_manifest=$(sha256sum "$stage/config/release-manifest.json" 2>/dev/null | 
 sudo test ! -e "$backup"
 sudo install -d -m 0700 "$backup"
 sudo install -m 0755 /usr/local/bin/ynx-chaind "$backup/ynx-chaind"
-# Keep the redirection inside the elevated shell: the backup directory is
-# intentionally root-only, so a caller's shell must never attempt this write.
-sudo sh -c "(sha256sum /usr/local/bin/ynx-chaind 2>/dev/null || shasum -a 256 /usr/local/bin/ynx-chaind) > '$backup/ynx-chaind.sha256'"
+# The backup directory is intentionally root-only. Elevate the output writer,
+# not just the checksum command, so the caller shell never owns this write.
+(sha256sum /usr/local/bin/ynx-chaind 2>/dev/null || shasum -a 256 /usr/local/bin/ynx-chaind) | sudo tee "$backup/ynx-chaind.sha256" >/dev/null
 sudo install -d -m 0755 "$remote_release/config"
 if sudo test -f "$remote_release/config/release-manifest.json"; then
   existing_manifest=$(sudo sha256sum "$remote_release/config/release-manifest.json" 2>/dev/null | awk '{print $1}' || sudo shasum -a 256 "$remote_release/config/release-manifest.json" | awk '{print $1}')
