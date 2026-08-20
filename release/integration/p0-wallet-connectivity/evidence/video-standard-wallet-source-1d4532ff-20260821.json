@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "P0-047-VIDEO-STANDARD-WALLET-SOURCE-1D4532FF-20260821",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "owner": "integration",
+  "branch": "codex/final-video",
+  "startingCommit": "4c78d470837cbc7e36631d61e0f7459acd133d83",
+  "implementationCommit": "e5ce33550bbd8a4be09a55a6bb3dd73cd3cb8833",
+  "releaseTruthCommit": "1d4532ffca4eabdc15f2ec66f3d1143f67e159fa",
+  "remoteReadbackExact": true,
+  "changedPaths": ["apps/video/**"],
+  "acceptedSdk": {
+    "sourceCommit": "315897e75c0ffe3e63435fe73cfec42244b851cc",
+    "protocolCommit": "66003e76e804da16d472255efde50cb879055b96",
+    "browserModulesByteExact": true,
+    "productSessionIncluded": false
+  },
+  "closedGaps": [
+    "removed the legacy v1 wallet authorization URL generator from the Video Web runtime",
+    "legacy URL-fragment gateway_session values are cleared and are never accepted as authority",
+    "implemented real EIP-6963 discovery and EIP-1193 account connection",
+    "YNX Wallet is preferred and a standard injected or MetaMask provider is supported",
+    "YNX Testnet 0x1917 add/switch flow is implemented",
+    "official YNX Wallet and MetaMask installation choices are exact",
+    "guest playback remains available when no Wallet or private Product Session exists",
+    "Standard Wallet state and private Product Session degradation are separate"
+  ],
+  "tests": {
+    "videoWeb": "4/4",
+    "i18n": "12 locales, 22 exact keys, RTL and critical semantics",
+    "smoke": "viewer smoke ok; wallet-connection.js and accepted provider.js served",
+    "go": "go test ./internal/video/... passed",
+    "goRace": "go test -race ./internal/video/... passed",
+    "goVet": "go vet ./internal/video/... passed"
+  },
+  "truth": {
+    "standardWalletSourceImplemented": true,
+    "standardWalletUnitTested": true,
+    "actualProviderApprovalVisible": false,
+    "productSessionV2": false,
+    "installedClientVerified": false,
+    "currentCandidateDeployedPublic": false,
+    "publicVerified": false,
+    "computerControlVerified": false,
+    "productsMigrated": 0,
+    "productsRequired": 12
+  },
+  "verificationBoundary": "Browser and Computer Control JavaScript control interfaces were unavailable in this task. Unit and HTTP smoke evidence is not relabeled as visible UI or installed-client proof.",
+  "nextAction": "Verify an actual YNX Wallet or MetaMask approve/reject/account/chain/disconnect lifecycle in a visible browser. Product Session v2 remains a separate dependency and must not be fabricated."
+}
