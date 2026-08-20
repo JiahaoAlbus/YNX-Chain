@@ -29,3 +29,9 @@ test('Wallet migration keeps standard connection and never creates a local Produ
   assert.ok(app.includes('no fiat value is inferred'));
   assert.ok(i18n.toLowerCase().includes('cannot move assets'));
 });
+
+test('native privacy copy does not retain the removed Wallet authorization artifacts',()=>{
+  assert.ok(app.includes('SecureStore holds local settings and the visibly non-live cache only.'));
+  assert.equal(app.includes('session, pending Wallet request, device proof'),false);
+  assert.ok(app.includes('Wallet authorization requests, and Product Sessions are never requested or stored.'));
+});
