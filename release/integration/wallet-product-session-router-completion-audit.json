@@ -1,0 +1,226 @@
+{
+  "schemaVersion": 1,
+  "authority": "/Users/huangjiahao/Downloads/YNX_Chain_Fable5_Coordinated_Ultimate_Goal_Prompts.md",
+  "branch": "codex/wallet-session-router-recovery",
+  "sourceBaseline": "9759576afdd4e02fa5375dde371acd41be038c2c",
+  "audit": {
+    "P0_standardWalletConnection": {
+      "status": "protocol-and-consumer-sdk-contracts-accepted-product-consumption-incomplete",
+      "acceptedProtocolCommit": "66003e76e804da16d472255efde50cb879055b96",
+      "acceptedByIntegrationCommit": "9b6e101f29c9028b9d5a477258e341aa05ebc89f",
+      "acceptedConsumerSdkCommit": "315897e75c0ffe3e63435fe73cfec42244b851cc",
+      "gatewayIndependent": true,
+      "productSessionOptional": true,
+      "productSessionFailurePreservesStandardConnection": true,
+      "fabricatedLocalProductSession": false,
+      "runtimeProductsConsumed": 0,
+      "installedInteroperabilityVerified": false,
+      "remaining": [
+        "Product owners must consume the accepted Developer SDK without making Product Session a prerequisite for standard EVM signing or transactions",
+        "Installed YNX Wallet, other EVM Wallet and WalletConnect interoperability require direct platform evidence"
+      ]
+    },
+    "A_productSession": {
+      "status": "implemented-and-public-v2-gateway-deployed",
+      "evidence": [
+        "packages/wallet-auth/src/product-session-v2.js",
+        "packages/wallet-auth/src/product-session-proof-v2.js",
+        "packages/wallet-auth/src/product-session-recovery.js",
+        "packages/wallet-auth/src/wallet-connection-coordinator.js",
+        "packages/wallet-auth/src/product-session-gateway-client.js",
+        "packages/wallet-auth/src/product-session-gateway-http.js",
+        "packages/wallet-auth/src/product-session-gateway-node-host.js",
+        "packages/wallet-auth/scripts/ynx-product-session-gatewayd.mjs",
+        "packages/wallet-auth/scripts/verify-product-session-v2-lifecycle.mjs",
+        "packages/wallet-auth/test/product-session-v2.test.mjs",
+        "packages/wallet-auth/test/product-session-recovery.test.mjs",
+        "packages/wallet-auth/test/wallet-connection-coordinator.test.mjs"
+      ],
+      "verifiedBindings": [
+        "chainId",
+        "productId",
+        "clientId",
+        "platform",
+        "applicationId",
+        "bundleId",
+        "packageId",
+        "origin",
+        "callback",
+        "account",
+        "deviceId",
+        "deviceKey",
+        "nonce",
+        "state",
+        "scopes",
+        "issuedAt",
+        "expiresAt"
+      ],
+      "remaining": []
+    },
+    "B_walletSelection": {
+      "status": "implemented-local-download-verified",
+      "evidence": [
+        "packages/wallet-auth/src/metamask-evm-adapter.js",
+        "packages/wallet-auth/src/wallet-provider-discovery.js",
+        "packages/wallet-auth/src/wallet-connection-coordinator.js",
+        "packages/wallet-auth/test/metamask-evm-adapter.test.mjs",
+        "packages/wallet-auth/test/wallet-provider-discovery.test.mjs",
+        "packages/wallet-auth/test/wallet-connection-coordinator.test.mjs",
+        "packages/wallet-auth/src/product-session-router.js",
+        "packages/wallet-auth/test/product-session-router.test.mjs",
+        "packages/wallet-auth/test/product-session-products.test.mjs",
+        "packages/wallet-auth/evidence/metamask-installed-observation.json",
+        "packages/wallet-auth/evidence/metamask-eip1193-live.html",
+        "packages/wallet-auth/evidence/metamask-eip1193-live-observation.json",
+        "packages/wallet-auth/evidence/wallet-provider-discovery-browser.json",
+        "packages/wallet-auth/evidence/wallet-provider-discovery-browser.png",
+        "packages/wallet-auth/evidence/ynx-wallet-android-deeplink-observation.json"
+      ],
+      "remaining": [
+        "Verify YNX Wallet detection/open behavior in approved installed applications",
+        "Repeat the installed MetaMask harness after Computer Use recovers and observe the approval result, request ID, chain, and masked account"
+      ]
+    },
+    "C_deepLinkRouter": {
+      "status": "implemented-local",
+      "evidence": [
+        "packages/wallet-auth/product-session-registry.json",
+        "packages/wallet-auth/src/product-session-registry.js",
+        "packages/wallet-auth/src/product-session-router.js",
+        "packages/wallet-auth/test/product-session-router.test.mjs",
+        "packages/wallet-auth/evidence/ynx-wallet-android-deeplink-observation.json"
+      ],
+      "remaining": [
+        "Product and Wallet packaging owners must declare the canonical schemes on each remaining installed platform; the public Android Wallet APK resolved the central ynxwallet route"
+      ]
+    },
+    "D_sharedSdkAndMigration": {
+      "status": "sdk-complete-consumer-migration-incomplete",
+      "evidence": [
+        "packages/wallet-auth/src/index.js",
+        "packages/wallet-auth/src/index.d.ts",
+        "packages/wallet-auth/src/product-session-gateway-client.js",
+        "packages/wallet-auth/src/product-session-gateway-http.js",
+        "packages/wallet-auth/src/wallet-connection-coordinator.js",
+        "packages/wallet-auth/test/product-session-gateway-client.test.mjs",
+        "packages/wallet-auth/test/product-session-gateway-http.test.mjs",
+        "packages/wallet-auth/test/product-session-gateway-node-host.test.mjs",
+        "packages/wallet-auth/test/product-session-public-lifecycle.test.mjs",
+        "packages/wallet-auth/test/product-session-public-probe.test.mjs",
+        "packages/wallet-auth/test/wallet-connection-coordinator.test.mjs",
+        "release/integration/wallet-product-session-router-migration.json"
+      ],
+      "registryReadyProducts": 12,
+      "runtimeMigratedProducts": 0,
+      "remaining": [
+        "Product-owner tasks must replace each v1 or handwritten consumer with the shared v2 SDK",
+        "Integration must reconcile the overlapping App Gateway and product adapter files before enabling any migrated flag"
+      ]
+    },
+    "E_validation": {
+      "status": "protocol-and-public-gateway-verified-installed-platforms-incomplete",
+      "evidence": [
+        "packages/wallet-auth/evidence/product-session-validation-summary.json",
+        "packages/wallet-auth/evidence/product-session-visible-proof.json",
+        "packages/wallet-auth/evidence/product-session-visible-proof.jsonl",
+        "packages/wallet-auth/evidence/product-session-visible-proof-computercontrol.jpeg",
+        "packages/wallet-auth/evidence/ynx-wallet-installed-unavailable-computercontrol.jpeg",
+        "packages/wallet-auth/evidence/metamask-installed-observation.json",
+        "packages/wallet-auth/evidence/metamask-biometric-timeout-computercontrol.png",
+        "packages/wallet-auth/evidence/metamask-eip1193-live.html",
+        "packages/wallet-auth/evidence/metamask-eip1193-live-observation.json",
+        "packages/wallet-auth/evidence/wallet-provider-discovery-browser.html",
+        "packages/wallet-auth/evidence/wallet-provider-discovery-browser.json",
+        "packages/wallet-auth/evidence/wallet-provider-discovery-browser.png",
+        "packages/wallet-auth/evidence/ynx-wallet-android-deeplink-observation.json",
+        "packages/wallet-auth/evidence/wallet-session-official-website-deployment.json",
+        "packages/wallet-auth/evidence/wallet-session-official-website-visible-20260814.png",
+        "packages/wallet-auth/evidence/product-session-v2-public-route-probe-20260814.json",
+        "packages/wallet-auth/evidence/product-session-v2-public-deployment-20260814.json",
+        "packages/wallet-auth/evidence/product-session-v2-hardened-public-deployment-20260814.json",
+        "packages/wallet-auth/evidence/product-session-v2-state-integrity-public-deployment-20260814.json",
+        "packages/wallet-auth/test/product-session-gateway-client.test.mjs",
+        "packages/wallet-auth/test/product-session-gateway-http.test.mjs",
+        "packages/wallet-auth/test/product-session-migration.test.mjs",
+        "packages/wallet-auth/test/wallet-connection-coordinator.test.mjs"
+      ],
+      "targetedTests": {
+        "passed": 76,
+        "failed": 0,
+        "concurrentProductSessions": 120
+      },
+      "fullPackageTests": {
+        "passed": 233,
+        "failed": 0
+      },
+      "remaining": [
+        "MetaMask was unlocked with user Touch ID, injected a provider, and the shared EIP-1193 harness loaded and triggered its real connection request; Computer Use timed out and its native pipe closed before the approval result, request ID, chain, or masked account was observable",
+        "The post-coordinator Computer Use retry timed out for Chrome, closed its native pipe by bundle identifier, and failed native-pipe startup for the MetaMask app",
+        "Android 16 installed the hash-verified YNX Wallet APK, resolved the canonical ynxwallet scheme and accepted ACTION_VIEW delivery; headless UI remained black, so approval and Product Session remain unverified",
+        "The Wallet Companion's browser RPC preflight to https://evm.ynxweb4.com failed CORS before account approval; Wallet UI and Chain deployment configuration are outside this branch scope",
+        "No installed YNX Wallet application was available for a real approval/session flow",
+        "Each actually migrated product requires installed Web/desktop/mobile approval, rejection, timeout, revoke, restart, network-loss and Retry evidence"
+      ]
+    },
+    "F_releaseTruth": {
+      "status": "wallet-auth-gateway-and-website-public-consumer-migration-incomplete",
+      "evidence": [
+        "release/integration/wallet-product-session-router-contract.json",
+        "docs/integration/WALLET_PRODUCT_SESSION_ROUTER_HANDOFF.md",
+        "release/integration/wallet-product-session-v2-public-deployment-evidence.json",
+        "release/integration/wallet-product-session-router-continuation-evidence-20260820.json",
+        "docs/integration/P0_WALLET_PRODUCT_SESSION_V2_PUBLIC_HANDOFF_20260820.md"
+      ],
+      "pushed": true,
+      "remote": "https://github.com/JiahaoAlbus/YNX-Chain.git",
+      "remoteBranch": "codex/wallet-session-router-recovery",
+      "deployedPublic": false,
+      "deployedPublicMeaning": "aggregate Gateway, migrated product runtimes and installed-client acceptance",
+      "sourcePackageDeployedPublic": true,
+      "sourcePackageCommit": "d8863f6b28752f427929a1c953dd035e096820ff",
+      "currentHeadReleaseGateDeployedPublic": false,
+      "officialWebsiteReleaseMetadataDeployedPublic": true,
+      "walletAuthGatewayDeployedPublic": true,
+      "productSessionV2PublicLifecycleVerified": true,
+      "appGatewayDeployedPublic": false,
+      "appGatewayDeploymentBoundary": "wallet-auth.ynxweb4.com serves v1 and v2 from source 6cf3ef84; unrelated 6437, 6439 and 6441 services were not changed by this transaction",
+      "publicAppGatewayReachable": true,
+      "legacyWalletSessionRoutesReachable": true,
+      "productSessionV2RoutesDeployedPublic": true,
+      "productSessionV2RoutingOutcome": "dedicated-wallet-auth-origin-with-no-chain-fallback",
+      "productSessionV2DeployedSourceCommit": "6cf3ef845202bd879ed94515a71b323dd2fc9e14",
+      "productSessionV2RollbackVerified": true,
+      "productSessionV2RestartStateVerified": true,
+      "productSessionV2RuntimePermissionTamperZeroMutationVerifiedLocally": true,
+      "productSessionV2RuntimePermissionTamperZeroMutationVerifiedPublic": false,
+      "productSessionV2RuntimeStateIsolationVerifiedPublic": true,
+      "productSessionV2RestartIdempotencyVerified": true,
+      "runtimeProductsMigrated": 0,
+      "runtimeProductsRequired": 12,
+      "officialWebsiteCommit": "a7313313014bb8792f38e649e9f556dbee983c8c",
+      "websiteAcceptanceCommit": "907bce373effc529d1ca9cb0b5374135ccb00b27",
+      "vercelProductionDeploymentId": "dpl_3DuzTMQFt9GbLPp3Vt1t3D2gfQyx",
+      "vercelProductionDeploymentUrl": "https://ynx-web4-website-fo3hlvfsv-jiahaoalbus-projects.vercel.app",
+      "vercelDirectUrlContentVerified": false,
+      "officialDocsUrl": "https://www.ynxweb4.com/docs",
+      "sourcePackageUrl": "https://www.ynxweb4.com/releases/wallet-session-router/d8863f6b2875/ynx-chain-wallet-auth-1.1.0.tgz",
+      "productionSigned": false,
+      "storeReleased": false,
+      "remaining": [
+        "Central accepted only the public Wallet/Auth Gateway and Website runtime record; this does not claim product migration",
+        "Product owners must migrate runtime consumers and provide installed-platform approval evidence",
+        "ComputerControl and installed-client acceptance must be repeated after the Mac UI control channel becomes available"
+      ]
+    }
+  },
+  "completion": false,
+  "blockingConditions": [
+    "No migrated product runtime and installed Wallet combination is currently available for a real v2 approval/session flow",
+    "Installed MetaMask approval outcome remains unverified because Computer Use lost its native pipe after the shared harness triggered the request",
+    "The post-coordinator visible retry could not inspect Chrome or MetaMask because the Computer Use native pipe closed and then failed startup",
+    "The official website source-package release was visibly verified with the in-app browser, but Sky Computer Use still failed native-pipe startup and therefore did not pass",
+    "The public Product Session v2 Gateway is active at wallet-auth.ynxweb4.com, but no product runtime is yet classified migrated-v2",
+    "Wallet Companion browser RPC preflight is blocked by external evm.ynxweb4.com CORS configuration before MetaMask account approval",
+    "product consumer and native packaging migrations are owned by isolated product/platform tasks"
+  ]
+}
