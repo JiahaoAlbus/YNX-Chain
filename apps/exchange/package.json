@@ -5,7 +5,8 @@
   "description": "YNX-owned deterministic testnet exchange terminal",
   "scripts": {
 	"test": "node --test tests/ui.test.mjs",
-	"test:browser": "node --test tests/browser.test.mjs",
+    "test:browser": "node --test tests/browser.test.mjs",
+    "verify:release-evidence": "node scripts/verify-p0-release-evidence.mjs",
     "smoke": "bash smoke.sh"
   },
   "engines": {
