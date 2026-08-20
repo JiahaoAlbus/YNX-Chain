@@ -110,6 +110,7 @@ export class CanonicalWalletGatewayNodeHost {
           contentType: request.headers["content-type"] ?? "",
           body,
           proof,
+          origin: request.headers.origin,
         }, this.#now());
         if (result.mutated) this.#persist();
         status = result.status;

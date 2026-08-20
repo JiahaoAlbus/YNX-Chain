@@ -23,14 +23,14 @@ const BUILD={buildTime:"2026-07-27T12:00:00.000Z",release:"wallet-auth-test",sou
 
 function approvedRegistry(webOrigins = {}) {
   const registry=JSON.parse(readFileSync(new URL("../central-registry.json",import.meta.url),"utf8"));
-  for(const product of registry.products){product.schemaVersion=4;product.webOrigins=webOrigins[product.productId]??[]}
+  for(const product of registry.products){product.schemaVersion=4;product.webOrigins=webOrigins[product.productId]??(product.productId==="social"?["https://social.ynxweb4.com"]:product.productId==="wallet"?["https://wallet.ynxweb4.com"]:[])}
   for(const id of ["social","wallet"]){const product=registry.products.find(item=>item.productId===id);product.reviewState="approved";product.enabled=true}
   return registry;
 }
 
 function completion(registry,productId,nonce,challenge) {
   const registration=registry.products.find(item=>item.productId===productId);
-  const authorizationRequest=parseAuthorizationRequest(request({nonce,requestingProduct:registration.requestingProduct,productClientId:registration.productClientId,bundleId:registration.bundleId,callback:registration.callbacks[0],scopes:[...registration.scopes],purpose:`Authorize ${productId} through the canonical persisted Gateway.`}),{now:NOW,registry:{[registration.productClientId]:centralProtocolEntry(registration)}});
+  const authorizationRequest=parseAuthorizationRequest(request({nonce,requestingProduct:registration.requestingProduct,productClientId:registration.productClientId,bundleId:registration.bundleId,origin:registration.webOrigins[0],callback:registration.callbacks[0],scopes:[...registration.scopes],purpose:`Authorize ${productId} through the canonical persisted Gateway.`}),{now:NOW,registry:{[registration.productClientId]:centralProtocolEntry(registration)}});
   const walletApproval=signAuthorization(authorizationRequest,{accountSecret:ACCOUNT_SECRET,issuedAt:NOW.toISOString()});
   return {authorizationRequest,walletApproval,gatewayCompletion:signGatewayChallenge(createGatewayChallenge(walletApproval,{challenge,expiresAt:"2026-07-15T12:03:00.000Z"},NOW),PRODUCT_DEVICE_SECRET)};
 }
@@ -51,7 +51,7 @@ test("Node host mounts the existing kernel and preserves inventory across restar
   await serve(host,async(base)=>{
     const health=await fetch(`${base}/health`);assert.equal(health.status,200);assert.equal((await health.json()).truthfulStatus,"canonical-wallet-gateway-local-runtime");
     for(const [id,nonce,challenge] of [["social","social_node_host_nonce_abcdefghijkl","social_node_host_challenge_abcdef"],["wallet","wallet_node_host_nonce_abcdefghijkl","wallet_node_host_challenge_abcdef"]]){
-      const response=await fetch(`${base}/v1/wallet/sessions/complete`,{method:"POST",headers:{"content-type":"application/json"},body:canonicalJSON(completion(registry,id,nonce,challenge))});
+      const complete=completion(registry,id,nonce,challenge),response=await fetch(`${base}/v1/wallet/sessions/complete`,{method:"POST",headers:{origin:complete.authorizationRequest.origin,"content-type":"application/json"},body:canonicalJSON(complete)});
       assert.equal(response.status,200,await response.text());
     }
   });
@@ -59,7 +59,7 @@ test("Node host mounts the existing kernel and preserves inventory across restar
   const restarted=new CanonicalWalletGatewayNodeHost(registry,{statePath,now:()=>NOW});
   const sessions=restarted.snapshot().sessionStore.sessions,wallet=sessions.find(item=>item.productClientId==="ynx-wallet-v1");
   await serve(restarted,async(base)=>{
-    const response=await fetch(`${base}/v1/wallet/sessions`,{method:"POST",headers:{"content-type":"application/json","x-ynx-product-session-proof":proof(wallet,"/v1/wallet/sessions","node_inventory_proof_abcdefghijkl")},body:"{}"});
+    const response=await fetch(`${base}/v1/wallet/sessions`,{method:"POST",headers:{origin:wallet.origin,"content-type":"application/json","x-ynx-product-session-proof":proof(wallet,"/v1/wallet/sessions","node_inventory_proof_abcdefghijkl")},body:"{}"});
     assert.equal(response.status,200);const payload=await response.json();assert.equal(payload.result.connectedApps.length,2);assert.equal(payload.result.account,wallet.account);
   });
   const remote=new CanonicalWalletGatewayNodeHost(registry,{statePath,now:()=>NOW},{build:BUILD,remoteDeployed:true});

@@ -16,7 +16,7 @@ const MANDATE_ACTIVATE_FIELDS = ["proof", "mandate"];
 const MANDATE_ACTION_FIELDS = ["proof", "mandateId", "action"];
 const MANDATE_TERMINAL_FIELDS = ["proof", "mandateId"];
 const MANDATE_EXIT_FIELDS = ["proof", "mandateId", "reason"];
-const REQUEST_FIELDS = ["method", "path", "bodyDigest"];
+const REQUEST_FIELDS = ["method", "path", "bodyDigest", "origin"];
 
 export class CanonicalWalletGatewayAdapter {
   #registry;
@@ -188,6 +188,7 @@ export class CanonicalWalletGatewayAdapter {
       productClientId: proof.productClientId,
       bundleId: proof.bundleId,
       productDeviceKey: proof.productDeviceKey,
+      origin: proof.origin,
       requiredScopes,
     }, at);
     return Object.freeze({ proof, session: result.session, result });
@@ -276,7 +277,7 @@ function assertSessionSubject(subject, session) {
 
 function parseRequest(input) {
   exactFields(input, REQUEST_FIELDS, "Canonical Gateway HTTP request context");
-  return Object.freeze({ method: input.method, path: input.path, bodyDigest: input.bodyDigest });
+  return Object.freeze({ method: input.method, path: input.path, bodyDigest: input.bodyDigest, origin: input.origin });
 }
 
 function fail(code, message) {

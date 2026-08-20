@@ -19,6 +19,7 @@ const ROUTER = "0x7777777777777777777777777777777777777777";
 const QUANT_BINDING = Object.freeze({
   requestingProduct: "quant",
   bundleId: "com.ynxweb4.quant",
+  origins: Object.freeze(["https://quant.ynxweb4.com"]),
   callbacks: Object.freeze(["ynxquant://wallet-auth/callback"]),
   scopes: Object.freeze(["quant:account", "quant:mandate:create", "quant:mandate:execute", "quant:mandate:revoke"]),
   maxScopes: 4,
@@ -27,9 +28,11 @@ const QUANT_REGISTRY = Object.freeze({ "ynx-quant-v1": QUANT_BINDING });
 
 function approvedRegistry() {
   const value = JSON.parse(readFileSync(new URL("../central-registry.json", import.meta.url), "utf8"));
+  for (const product of value.products) { product.schemaVersion = 4; product.webOrigins = []; }
   const quant = value.products.find(product => product.productId === "quant");
   quant.reviewState = "approved";
   quant.enabled = true;
+  quant.webOrigins = ["https://quant.ynxweb4.com"];
   return value;
 }
 
@@ -40,6 +43,7 @@ function completion(overrides = {}) {
     requestingProduct: "quant",
     productClientId: "ynx-quant-v1",
     bundleId: "com.ynxweb4.quant",
+    origin: QUANT_BINDING.origins[0],
     productDeviceKey: PRODUCT_DEVICE_KEY,
     callback: "ynxquant://wallet-auth/callback",
     scopes,
@@ -154,7 +158,7 @@ function proof(session, path, body, nonce) {
 }
 
 function context(path, body) {
-  return { method: "POST", path, bodyDigest: httpBodyDigest(body) };
+  return { method: "POST", path, bodyDigest: httpBodyDigest(body), origin: QUANT_BINDING.origins[0] };
 }
 
 function code(expected) {

@@ -64,8 +64,9 @@ export function parseCentralProductRegistration(input) {
   if (!Number.isInteger(input.sessionDurationSeconds) || input.sessionDurationSeconds < 60 || input.sessionDurationSeconds > 300) throw new WalletAuthError("INVALID_REGISTRY", "Session duration must be between 60 and 300 seconds");
   exactFields(input.revocationPolicy, REVOCATION_FIELDS, "Central Wallet revocation policy");
   if (REVOCATION_FIELDS.some(field => input.revocationPolicy[field] !== true)) throw new WalletAuthError("INVALID_REGISTRY", "Every central Wallet revocation control is mandatory");
+  const webOrigins = sourceVersion === 3 ? Object.freeze([]) : canonicalWebOrigins(input.webOrigins);
   const protocol = parseCentralRegistryEntry({
-    schemaVersion: 2,
+    schemaVersion: 3,
     productClientId: input.productClientId,
     requestingProduct: input.requestingProduct,
     bundleId: input.bundleId,
@@ -73,15 +74,17 @@ export function parseCentralProductRegistration(input) {
     scopes: input.scopes,
     maxScopes: input.maxScopes,
     productDeviceAlgorithms: input.productDeviceAlgorithms,
+    origins: webOrigins,
   });
+  const { origins: _origins, ...protocolFields } = protocol;
   return Object.freeze({
     productId: input.productId,
     displayName: input.displayName,
     reviewState: input.reviewState,
     enabled: input.enabled,
-    ...protocol,
+    ...protocolFields,
     schemaVersion: CENTRAL_PRODUCT_SCHEMA_VERSION,
-    webOrigins: sourceVersion === 3 ? Object.freeze([]) : canonicalWebOrigins(input.webOrigins),
+    webOrigins,
     sessionDurationSeconds: input.sessionDurationSeconds,
     revocationPolicy: Object.freeze({ session: true, approval: true, device: true, accountAllDevices: true }),
   });
@@ -91,11 +94,12 @@ export function centralProtocolEntry(registration, options = {}) {
   const product = parseCentralProductRegistration(registration);
   if (options.requireEnabled !== false && !product.enabled) throw new WalletAuthError("REGISTRY_DISABLED", `Central Wallet product ${product.productId} is ${product.reviewState}`);
   return Object.freeze({
-    schemaVersion: 2,
+    schemaVersion: 3,
     productClientId: product.productClientId,
     requestingProduct: product.requestingProduct,
     bundleId: product.bundleId,
     callbacks: product.callbacks,
+    origins: product.webOrigins,
     scopes: product.scopes,
     maxScopes: product.maxScopes,
     productDeviceAlgorithms: product.productDeviceAlgorithms,
