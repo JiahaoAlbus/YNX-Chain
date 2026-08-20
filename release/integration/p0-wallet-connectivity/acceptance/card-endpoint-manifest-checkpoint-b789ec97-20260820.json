@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "acceptanceId": "P0-CARD-ENDPOINT-MANIFEST-B789EC97-20260820",
+  "decision": "ACCEPTED_ENDPOINT_INJECTION_FIX_V2_STILL_BLOCKED",
+  "ownerCheckpointCommit": "b789ec97374c6bc2fe926797f1fb35b4bfbba971",
+  "ownerCheckpointParent": "644f977c678f99f786d4c9c527d9519db51ff8cf",
+  "ownerCheckpointTree": "3d28db3a01db4cdb05f329fe9aea8617df734423",
+  "productSourceCommit": "2c2e117e42b4daacf96cd74abc6844c72398c522",
+  "productSourceParent": "a0ae3567337a69f43a33eb3d0bd33f55a0591b18",
+  "productSourceTree": "f713559fdd369ddbfc57ad412c6a7ae34eadde14",
+  "checkpointEvidence": {
+    "path": "release/integration/wallet-product-session-card-endpoint-manifest-checkpoint-20260820.json",
+    "blob": "eefd71b9cab804768bff9d6f2b5d31da7adaf56a",
+    "bytes": 2225,
+    "sha256": "20974220c5f70005999c9bf1184a22948664bccc780c9c2a8f26479a1515d9b1"
+  },
+  "endpointManifest": {
+    "version": "1.0.0-p0.2",
+    "sourceCommit": "bfd850a2c7bd238e3febc7267ff31be17890888d",
+    "sha256": "d559741a20fe37cf1e0a9fec2bf00d144709a1bfe579a13ec139354fa1fe0e74",
+    "appGateway": "https://gateway.ynxweb4.com",
+    "currentAppGatewayState": "UNAVAILABLE"
+  },
+  "consumerStatusMatrix": "release/integration/p0-wallet-connectivity/wallet-product-session-consumer-status-matrix-v2-20260820.json",
+  "acceptedFix": {
+    "callerOrEnvironmentGatewayRemoved": true,
+    "hostileHostCredentialsPathQueryRejected": true,
+    "unavailableFailsClosedBeforeNetwork": true,
+    "standardWalletConnectionPreserved": true,
+    "tests": "22/22",
+    "typecheckPassed": true
+  },
+  "remainingBoundary": {
+    "legacyCardRoutesAreV2": false,
+    "productSessionV2GatewayEvidenced": false,
+    "visiblePlatformEvidenced": false,
+    "cardMigratedV2": false,
+    "productsMigratedV2": 0,
+    "productsRequired": 12,
+    "integratedCentral": false,
+    "aggregatePublic": false
+  }
+}
