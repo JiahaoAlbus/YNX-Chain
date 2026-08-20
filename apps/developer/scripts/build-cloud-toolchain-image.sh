@@ -48,7 +48,7 @@ for _ in $(seq 1 60); do
   sleep 1
 done
 lxc exec "$builder" -- getent hosts archive.ubuntu.com >/dev/null
-lxc exec "$builder" -- find /etc/apt -type f \( -name "*.list" -o -name "*.sources" \) -exec sed -i 's#http://#https://#g' {} +
+lxc exec "$builder" -- sed -i 's#http://#https://#g' /etc/apt/sources.list.d/ubuntu.sources
 if lxc exec "$builder" -- grep -R -E "^[[:space:]]*(deb[[:space:]]+|URIs:[[:space:]]*)http://" /etc/apt/sources.list /etc/apt/sources.list.d 2>/dev/null; then
   echo "Ubuntu APT sources must use HTTPS under reviewed package egress" >&2
   exit 1
