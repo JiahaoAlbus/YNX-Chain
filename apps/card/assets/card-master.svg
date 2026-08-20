@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="760" viewBox="0 0 1200 760" role="img" aria-labelledby="title desc">
+  <title id="title">YNX Card Testnet Simulation</title>
+  <desc id="desc">A non-payment Testnet simulation card artwork without account or card credentials.</desc>
+  <defs>
+    <linearGradient id="surface" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#071A40"/>
+      <stop offset="0.52" stop-color="#0D4FC5"/>
+      <stop offset="1" stop-color="#00A6A6"/>
+    </linearGradient>
+    <linearGradient id="signal" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#9FF7E6" stop-opacity="0"/>
+      <stop offset="0.5" stop-color="#9FF7E6"/>
+      <stop offset="1" stop-color="#9FF7E6" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="760" rx="64" fill="url(#surface)"/>
+  <circle cx="1010" cy="106" r="245" fill="#72E1D1" opacity=".14"/>
+  <circle cx="112" cy="706" r="256" fill="#001A64" opacity=".32"/>
+  <path d="M0 540C230 370 472 685 735 507S1010 290 1200 370" fill="none" stroke="url(#signal)" stroke-width="5" opacity=".75"/>
+  <path d="M0 572C230 402 472 717 735 539S1010 322 1200 402" fill="none" stroke="#D8FFF8" stroke-width="1.5" opacity=".44"/>
+  <g fill="#E9FFFA">
+    <text x="88" y="132" font-family="Georgia, serif" font-size="54" letter-spacing="13">YNX</text>
+    <text x="90" y="205" font-family="Arial, sans-serif" font-size="20" font-weight="700" letter-spacing="5">CARD</text>
+    <text x="90" y="334" font-family="Arial, sans-serif" font-size="26" font-weight="700" letter-spacing="4">TESTNET SIMULATION</text>
+    <text x="90" y="662" font-family="Arial, sans-serif" font-size="19" letter-spacing="2">NO REAL-WORLD PAYMENTS</text>
+  </g>
+  <g transform="translate(980 612)" fill="none" stroke="#E9FFFA" stroke-width="7" opacity=".9">
+    <path d="M0 0h70v48H0z"/>
+    <path d="M16 0v-17a19 19 0 0 1 38 0V0"/>
+  </g>
+</svg>

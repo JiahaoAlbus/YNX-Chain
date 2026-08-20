@@ -1,6 +1,6 @@
 # YNX Card Testnet Product Requirement Audit
 
-Checkpoint: `337c10541603f00ca5e13bccb97aeb76371f0b3d` plus this pending Card-only
+Checkpoint: `6cc977709e48f5363bdd6e49209c2edf110bea8e` plus this pending Card-only
 evidence update. Product status is `YNX TESTNET CARD PAYMENT SIMULATION`.
 
 | Requirement | Card-owned evidence | Status |

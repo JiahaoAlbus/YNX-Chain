@@ -3,6 +3,7 @@
   "product": "YNX Card Testnet Payment Simulation",
   "downloadClaim": false,
   "assets": [
+    {"path":"assets/card-master.svg","role":"master vector for the Testnet-only virtual card visual","sha256":"99a9ec851ee8d51aa61095b30fa096bca5b63ee68572549a01d70668430ded68"},
     {"path":"assets/icon.png","role":"PWA and Expo app icon","sha256":"6252153a2fd0d12cb61a1223cea3277ceff863eb82b6073049419459b359f86f"},
     {"path":"android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.webp","role":"Android launcher icon","sha256":"ae7641e4bf46aa5dc207cc7d4de8a3a52a32f1ecc816ba1551603177d92bc627"},
     {"path":"ios/YNXCard/Images.xcassets/AppIcon.appiconset/App-Icon-1024x1024@1x.png","role":"iOS app icon source","sha256":"a1585e6b97f5d11794cebfe4c6dd28dae017650eb21808391bde9dcdf3e53e82"},
