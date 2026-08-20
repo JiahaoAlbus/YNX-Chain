@@ -11,10 +11,10 @@ const leases=read("release/integration/p0-wallet-connectivity/execution-leases.j
 const queue=read("release/integration/p0-wallet-connectivity/integration-queue.json");
 const locks=read("release/integration/p0-wallet-connectivity/path-locks.json");
 
-assert.equal(leases.heavy.owner,"wallet-auth-core");
-assert.equal(leases.heavy.status,"ACTIVE_BOUNDED_SINGLE_USE");
+assert.equal(leases.heavy.owner,null);
+assert.equal(leases.heavy.status,"RELEASED_FAILED_CLOSED_INVALID_MIGRATION");
 assert.equal(leases.heavy.taskId,"P0-050");
-assert.equal(lease.status,"ACTIVE_BOUNDED_SINGLE_USE");
+assert.equal(lease.status,"CONSUMED_RELEASED_FAILED_CLOSED_INVALID_MIGRATION");
 assert.equal(lease.singleUse,true);
 assert.equal(lease.invalidatedLeaseReusable,false);
 assert.equal(lease.source.commit,"a960d1007e7952c2af591d39e3673f1d9fe50e62");
@@ -30,8 +30,16 @@ assert.equal(lease.transaction.caddyChangeAllowed,false);
 assert.equal(lease.transaction.baseUnitChangeAllowed,false);
 assert.equal(lease.transaction.sharedStateMutationAllowed,false);
 assert.equal(queue.tasks.filter(item=>item.taskId==="P0-050").length,1);
-assert.equal(queue.tasks.find(item=>item.taskId==="P0-050").executionLeaseIssued,true);
+assert.equal(queue.tasks.find(item=>item.taskId==="P0-050").executionLeaseIssued,false);
+assert.equal(queue.tasks.find(item=>item.taskId==="P0-050").p0050LeaseReusable,false);
+assert.equal(lease.result.code,"INVALID_MIGRATION");
+assert.equal(lease.result.serviceStopped,false);
+assert.equal(lease.result.activeSymlinkChanged,false);
+assert.equal(lease.result.candidateActivated,false);
+assert.equal(lease.result.retryAllowed,false);
+assert.equal(lease.truthAfterRelease.currentPublicSource,"6cf3ef845202bd879ed94515a71b323dd2fc9e14");
+assert.equal(lease.truthAfterRelease.serviceActive,true);
 assert.equal(queue.tasks.find(item=>item.taskId==="P0-015").status,"RELEASED_CHECKPOINT");
 assert.equal(locks.locks.find(item=>item.taskId==="P0-015").status,"RELEASED_CHECKPOINT");
 
-console.log("PASS P0-050 exact a960 single-use lease; P0-015 released, P0-039 nonreusable, rollback-first and no unrelated mutation");
+console.log("PASS P0-050 consumed and released fail-closed on INVALID_MIGRATION; public 6cf stayed active and the lease is nonreusable");
