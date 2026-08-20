@@ -1,7 +1,7 @@
 {
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "epoch": 10,
-  "updatedAt": "2026-08-20T10:10:07Z",
+  "updatedAt": "2026-08-20T10:28:20Z",
   "heavy": {
     "owner": "financial-apps",
     "status": "ACTIVE",
@@ -22,22 +22,20 @@
     ]
   },
   "light": {
-    "owner": "data-fabric",
-    "status": "ACTIVE",
+    "owner": null,
+    "status": "RELEASED_CHECKPOINT",
     "branch": "codex/data-fabric-typescript-sdk-20260814",
     "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/26-data-fabric",
     "taskId": "P0-005",
     "leasedAt": "2026-08-20T09:45:38Z",
-    "expiresAt": "2026-08-20T13:45:38Z",
+    "releasedAt": "2026-08-20T10:28:20Z",
     "previousOwner": "developer-sdk",
     "previousCheckpoint": "315897e75c0ffe3e63435fe73cfec42244b851cc",
-    "reason": "Developer SDK protected checkpoint released the Light Lease after Integration accepted connectionEvents.",
-    "executionScope": "CONNECTION_EVENTS_RUNTIME_ADAPTER_SLICE",
+    "reason": "Data Fabric reached its isolated safe checkpoint at 353fffbc. PR #92 passed all six remote CI jobs; no public, installed-client or Card-funding claim is implied.",
+    "executionScope": "RELEASED_CONNECTION_EVENTS_RUNTIME_ADAPTER_CHECKPOINT",
     "onSafeCheckpoint": [
-      "commit and push Data Fabric-owned runtime adapter changes",
-      "record Outbox/Inbox, retry/replay and negative-vector tests",
-      "update Data Fabric handoff",
-      "release the Light Lease"
+      "assign a new bounded light slice only through Integration",
+      "retain asynchronous-only Data Fabric boundary"
     ]
   },
   "explorerMonitor": {
@@ -53,9 +51,10 @@
   },
   "dataFabric": {
     "owner": "data-fabric",
-    "status": "CONNECTION_EVENTS_RUNTIME_ADAPTER_SLICE_ACTIVE",
+    "status": "CONNECTION_EVENTS_RUNTIME_ADAPTER_CHECKPOINT",
     "pr": "https://github.com/JiahaoAlbus/YNX-Chain/pull/92",
     "acceptedContract": "connectionEvents@1.0.0-p0.0",
+    "checkpointCommit": "353fffbc55e1e309978e0e9dff59b3aa3cfd1bf8",
     "activationBoundary": "asynchronous only; no Wallet, Gateway, Card UI, Finance UI or Explorer UI ownership"
   },
   "waveB": [
@@ -67,14 +66,14 @@
     },
     {
       "owner": "data-fabric",
-      "status": "ACTIVE_LIGHT_SLICE",
+      "status": "CHECKPOINT_REMOTE_CI_PASSED",
       "dependsOn": "connectionEvents@1.0.0-p0.0",
-      "scope": "asynchronous privacy-safe connection events only"
+      "scope": "asynchronous privacy-safe runtime adapter checkpoint completed; Light Lease released"
     }
   ],
   "queue": [
     "financial-apps:exchange@d4c5be1c",
-    "data-fabric:connection-events-runtime-adapter",
+    "data-fabric:checkpoint@353fffbc",
     "explorer-monitor:checkpoint@6d62c399",
     "card-testnet-e2e:dependencies-prepared",
     "wallet-platform:checkpoint",

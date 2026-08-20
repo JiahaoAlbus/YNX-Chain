@@ -1,0 +1,17 @@
+{
+  "checkpointId": "P0-005-CONNECTION-EVENTS-RUNTIME-ADAPTER-20260820",
+  "owner": "data-fabric",
+  "sourceCommit": "353fffbc55e1e309978e0e9dff59b3aa3cfd1bf8",
+  "pullRequest": "https://github.com/JiahaoAlbus/YNX-Chain/pull/92",
+  "status": "CHECKPOINT_REMOTE_CI_PASSED",
+  "verified": {
+    "cleanWorktree": true,
+    "remoteHeadMatches": true,
+    "ciJobsPassed": ["data-fabric-verify", "data-fabric-repro-builder-a", "data-fabric-repro-builder-b", "data-fabric-reproducible-build", "data-fabric-postgres-live", "data-fabric-postgres-failover-live"],
+    "localRecord": ["go test ./...", "go test -race ./internal/datafabric ./internal/datafabricpostgres", "go vet ./internal/datafabric ./internal/datafabricpostgres", "git diff --check"]
+  },
+  "boundary": "Accepted connectionEvents remains asynchronous and privacy-safe. This checkpoint is not a public deployment, installed-client verification, Wallet connection proof or Card funding proof.",
+  "lease": {"releasedAt": "2026-08-20T10:28:20Z", "reason": "SAFE_CHECKPOINT_REMOTE_CI_PASSED"},
+  "rollback": "Disable Data Fabric producers and consumers while retaining Outbox records for replay; do not change Wallet connection or chain transaction behavior.",
+  "publicVerified": false
+}

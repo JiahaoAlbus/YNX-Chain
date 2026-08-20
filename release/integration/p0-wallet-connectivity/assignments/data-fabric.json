@@ -1,7 +1,7 @@
 {
   "taskId": "P0-005",
   "owner": "data-fabric",
-  "status": "ACTIVE",
+  "status": "CHECKPOINT_REMOTE_CI_PASSED",
   "executionScope": "CONNECTION_EVENTS_RUNTIME_ADAPTER_SLICE",
   "branch": "codex/data-fabric-typescript-sdk-20260814",
   "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/26-data-fabric",
@@ -14,7 +14,7 @@
   "acceptedEvidence": {
     "candidateSourceCommit": "63a7d633a10bcb8f7f929a2aa67af32074f49ea7",
     "candidateReleaseBinding": "f393d373e473822d5d3dedb5e617d4c28a86c951",
-    "currentEvidenceCommit": "766e1a66352eecaf88f024088e6a9dfcdc2d01d8",
+    "currentEvidenceCommit": "353fffbc55e1e309978e0e9dff59b3aa3cfd1bf8",
     "pr": "https://github.com/JiahaoAlbus/YNX-Chain/pull/92",
     "ci": "six Data Fabric workflow jobs completed successfully on the current PR head",
     "focusedVerification": "go test ./internal/datafabric -run wallet/card candidate tests; schema privacy and activation gate passed"
@@ -38,5 +38,6 @@
     "release the Light Lease"
   ],
   "publicVerified": false,
-  "nextAction": "Implement only the accepted Data Fabric runtime adapter slice, then provide an isolated safe checkpoint."
+  "releasedAt": "2026-08-20T10:28:20Z",
+  "nextAction": "Wait for a new bounded Integration lease before modifying Data Fabric-owned paths; consumers may use the accepted asynchronous contract without making Data Fabric synchronous."
 }

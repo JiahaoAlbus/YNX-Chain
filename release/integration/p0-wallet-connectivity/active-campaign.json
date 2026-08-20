@@ -9,6 +9,6 @@
   "baselineCommit": "10b877b5b18f9cb0026a6382cdd6588054fd16db",
   "protectedHistory": [{"branch": "codex/recovery/final-integration-pre-p0", "reason": "preserved divergent pre-P0 integration history"}],
   "network": {"cosmosChainId": "ynx_6423-1", "evmChainId": 6423, "evmChainHex": "0x1917", "nativeAsset": "YNXT", "nativeAddressPrefix": "ynx1"},
-  "firstStop": {"complete": true, "publicConnectivityClaim": false, "nextAction": "Finance completed its bounded release-evidence checkpoint at f7efbd9e while retaining explicit blockers for a public Finance API and unlocked-Wallet authorization. Financial Apps now owns the bounded Exchange migration slice; Data Fabric continues its independent connection-events adapter slice."},
+  "firstStop": {"complete": true, "publicConnectivityClaim": false, "nextAction": "Finance remains in its bounded release-evidence checkpoint while Financial Apps owns the Exchange migration slice. Data Fabric completed its independent connection-events runtime-adapter checkpoint at 353fffbc with all six PR checks passing; its Light Lease is released without any public, installed-client or Card-funding claim."},
   "wave": {"id": "B-exchange", "owner": "financial-apps", "executionScope": "EXCHANGE_WALLET_CONNECTIVITY_SLICE", "firstTask": "EXCHANGE_AUDIT_AND_STANDARD_WALLET_MIGRATION", "startingCheckpoint": "d4c5be1c74dfbcd67ad90d435720a8ca456ade79", "activatedAt": "2026-08-20T10:10:07Z", "previousWave": {"id":"B-finance","owner":"financial-apps","checkpoint":"f7efbd9e9658aaea75f8d9fbbb58f79ee1a48365","publicVerified":false}}
 }

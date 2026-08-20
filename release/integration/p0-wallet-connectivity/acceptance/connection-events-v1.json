@@ -9,7 +9,7 @@
     "branch": "codex/data-fabric-typescript-sdk-20260814",
     "candidateCommit": "63a7d633a10bcb8f7f929a2aa67af32074f49ea7",
     "releaseBindingCommit": "f393d373e473822d5d3dedb5e617d4c28a86c951",
-    "currentEvidenceCommit": "766e1a66352eecaf88f024088e6a9dfcdc2d01d8",
+    "currentEvidenceCommit": "353fffbc55e1e309978e0e9dff59b3aa3cfd1bf8",
     "pr": "https://github.com/JiahaoAlbus/YNX-Chain/pull/92"
   },
   "artifacts": {
@@ -26,7 +26,7 @@
     "lifecycleSeparation": "pass; Product Session events do not imply wallet revoke and no Data Fabric outage gates standard Wallet connection",
     "cardAndFaucet": "pass; Card uses tokenized reference and finalized proof; Faucet completion requires acceptance, receipt, transaction hash and finality",
     "backwardCompatibility": "non-breaking new asynchronous contract",
-    "tests": "PR #92 current CI six jobs passed; focused candidate Go tests passed"
+    "tests": "PR #92 head 353fffbc: all six CI jobs passed; focused candidate Go tests passed"
   },
   "consumers": ["data-fabric", "wallet-platform", "financial-apps", "card-testnet-virtual", "explorer-monitor"],
   "migration": "Producers emit after their own authoritative outcome to the durable Outbox. Consumers apply a single Inbox effect keyed by event and product pseudonym. No runtime consumer may add a synchronous Wallet/Gateway dependency.",
