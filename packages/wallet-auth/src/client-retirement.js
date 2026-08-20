@@ -65,6 +65,12 @@ export function clientRetirementRecord(registration) {
   });
 }
 
+export function retirementRecord(input) {
+  return input?.clientLifecycle?.status === "retired"
+    ? clientRetirementRecord(input)
+    : parseClientRetirementRecord(input);
+}
+
 export function parseClientRetirementRecord(input) {
   exactFields(input, RECORD_FIELDS, "Wallet client retirement record");
   return Object.freeze({
@@ -109,6 +115,13 @@ export function retirementMatchesSession(record, session) {
     && record.productClientId === session.productClientId
     && record.bundleId === session.bundleId
     && record.disabledCallbacks.includes(session.callback);
+}
+
+export function retirementMatchesAuthorization(record, request) {
+  return record.requestingProduct === request?.requestingProduct
+    && record.productClientId === request?.productClientId
+    && record.bundleId === request?.bundleId
+    && record.disabledCallbacks.includes(request?.callback);
 }
 
 function parsedTarget(value, label) {

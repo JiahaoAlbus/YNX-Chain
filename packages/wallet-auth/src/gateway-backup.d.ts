@@ -36,6 +36,7 @@ export declare function restoreGatewayStateBackup(options:Readonly<{
 export declare function readGatewayStateEnvelope(path:string):Readonly<{schemaVersion:1;snapshot:unknown;stateDigest:string}>;
 export declare function retireGatewayClientState(options:Readonly<{
   backupPath:string;
+  clientId:string;
   expectedStateDigest:string;
   key:Uint8Array;
   productId:string;

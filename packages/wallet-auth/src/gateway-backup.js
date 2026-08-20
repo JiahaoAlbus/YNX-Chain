@@ -81,16 +81,17 @@ export function readGatewayStateEnvelope(value) {
 }
 
 export function retireGatewayClientState(options) {
-  optionFields(options, ["backupPath", "expectedStateDigest", "key", "productId", "registry", "statePath"], ["at", "now"], "Canonical Gateway client retirement options");
+  optionFields(options, ["backupPath", "clientId", "expectedStateDigest", "key", "productId", "registry", "statePath"], ["at", "now"], "Canonical Gateway client retirement options");
   const statePath = absoluteFilePath(options.statePath, "Canonical Gateway state path");
   const expectedStateDigest = strictStateDigest(options.expectedStateDigest, "Canonical Gateway expected state digest");
   if (typeof options.productId !== "string" || !/^[a-z][a-z0-9-]{1,31}$/.test(options.productId)) throw new WalletAuthError("INVALID_RETIREMENT", "Canonical Gateway retirement productId is invalid");
+  if (typeof options.clientId !== "string" || !/^[a-z][a-z0-9-]{2,63}$/.test(options.clientId)) throw new WalletAuthError("INVALID_RETIREMENT", "Canonical Gateway retirement clientId is invalid");
   const at = options.at === undefined ? currentDate(options.now) : canonicalPolicyTime(options.at, "Canonical Gateway client retirement time");
   const before = readSecureStateIdentity(statePath);
   if (before.state.stateDigest !== expectedStateDigest) throw new WalletAuthError("STATE_PRECONDITION", "Canonical Gateway state digest does not match the accepted retirement precondition");
   const backup = createGatewayStateBackup({ backupPath: options.backupPath, key: options.key, statePath, now: options.now });
   if (backup.sourceStateDigest !== expectedStateDigest) throw new WalletAuthError("STATE_RACE", "Canonical Gateway state changed while the retirement backup was created");
-  const migrated = applyClientRetirementToGatewaySnapshot(options.registry, before.state.snapshot, options.productId, at);
+  const migrated = applyClientRetirementToGatewaySnapshot(options.registry, before.state.snapshot, options.productId, options.clientId, at);
   const afterDigest = gatewayStateDigest(migrated.snapshot);
   if (!migrated.result.changed) {
     return Object.freeze({ backup, changed: false, previousStateDigest: before.state.stateDigest, stateDigest: afterDigest, result: migrated.result });

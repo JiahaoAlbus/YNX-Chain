@@ -1,9 +1,10 @@
 import { exactFields, WalletAuthError } from "./canonical.js";
-import { assertClientLifecycleActive, CLIENT_LIFECYCLE_ACTIVE, parseClientLifecycle } from "./client-retirement.js";
+import { assertClientLifecycleActive, clientRetirementRecord, CLIENT_LIFECYCLE_ACTIVE, parseClientLifecycle, parseClientRetirementRecord } from "./client-retirement.js";
 import { YNX_NATIVE_CHAIN_ID } from "./protocol.js";
 import { parseCentralRegistryEntry } from "./integration.js";
 
-const DOCUMENT_FIELDS = ["registryVersion", "chainId", "products"];
+const DOCUMENT_FIELDS_V2 = ["registryVersion", "chainId", "products"];
+const DOCUMENT_FIELDS = [...DOCUMENT_FIELDS_V2, "retiredClients"];
 const PRODUCT_FIELDS_V3 = [
   "schemaVersion", "productId", "displayName", "reviewState", "enabled",
   "productClientId", "requestingProduct", "bundleId", "callbacks", "scopes",
@@ -19,25 +20,34 @@ const REGISTRY_V1_PRODUCT_IDS = Object.freeze([
   "seller-console", "shop", "social", "trust-center", "video", "wallet",
 ]);
 
-export const CENTRAL_REGISTRY_DOCUMENT_VERSION = 2;
+export const CENTRAL_REGISTRY_DOCUMENT_VERSION = 3;
 export const CENTRAL_REGISTRY_PRODUCT_COUNT = 26;
 export const CENTRAL_PRODUCT_SCHEMA_VERSION = 5;
 
 export function parseCentralRegistryDocument(input) {
-  exactFields(input, DOCUMENT_FIELDS, "Central Wallet registry document");
-  if (input.registryVersion !== CENTRAL_REGISTRY_DOCUMENT_VERSION || input.chainId !== YNX_NATIVE_CHAIN_ID || !Array.isArray(input.products) || input.products.length !== CENTRAL_REGISTRY_PRODUCT_COUNT) {
-    throw new WalletAuthError("INVALID_REGISTRY", `Central Wallet registry v${CENTRAL_REGISTRY_DOCUMENT_VERSION} must contain exactly ${CENTRAL_REGISTRY_PRODUCT_COUNT} products for ${YNX_NATIVE_CHAIN_ID}`);
+  const sourceVersion = input?.registryVersion;
+  const hasRetiredClients = Object.hasOwn(input ?? {}, "retiredClients");
+  exactFields(input, sourceVersion === 2 && !hasRetiredClients ? DOCUMENT_FIELDS_V2 : DOCUMENT_FIELDS, "Central Wallet registry document");
+  if (![2, CENTRAL_REGISTRY_DOCUMENT_VERSION].includes(sourceVersion) || input.chainId !== YNX_NATIVE_CHAIN_ID || !Array.isArray(input.products) || input.products.length !== CENTRAL_REGISTRY_PRODUCT_COUNT) {
+    throw new WalletAuthError("INVALID_REGISTRY", "Central Wallet registry v2 or v3 must contain exactly 26 products for ynx_6423-1");
   }
   const products = parseRegistryProducts(input.products);
+  const retiredClients = parseRegistryRetirements(
+    sourceVersion === 2 && !hasRetiredClients
+      ? products.filter(product => product.clientLifecycle.status === "retired").map(clientRetirementRecord)
+      : input.retiredClients,
+    products,
+  );
   return Object.freeze({
-    registryVersion: CENTRAL_REGISTRY_DOCUMENT_VERSION,
+    registryVersion: sourceVersion,
     chainId: YNX_NATIVE_CHAIN_ID,
     products,
+    retiredClients,
   });
 }
 
 export function migrateCentralRegistryDocumentV1(input) {
-  exactFields(input, DOCUMENT_FIELDS, "Central Wallet registry document v1");
+  exactFields(input, DOCUMENT_FIELDS_V2, "Central Wallet registry document v1");
   if (input.registryVersion !== 1 || input.chainId !== YNX_NATIVE_CHAIN_ID || !Array.isArray(input.products) || input.products.length !== REGISTRY_V1_PRODUCT_IDS.length) {
     throw new WalletAuthError("INVALID_REGISTRY", `Central Wallet registry v1 must contain exactly ${REGISTRY_V1_PRODUCT_IDS.length} products for ${YNX_NATIVE_CHAIN_ID}`);
   }
@@ -52,6 +62,7 @@ export function migrateCentralRegistryDocumentV1(input) {
     registryVersion: CENTRAL_REGISTRY_DOCUMENT_VERSION,
     chainId: YNX_NATIVE_CHAIN_ID,
     products: migratedProducts,
+    retiredClients: [],
   });
 }
 
@@ -145,6 +156,23 @@ function parseRegistryProducts(input) {
     throw new WalletAuthError("INVALID_REGISTRY", "Central Wallet products must be sorted by productId");
   }
   return Object.freeze(products);
+}
+
+function parseRegistryRetirements(input, products) {
+  if (!Array.isArray(input) || input.length > 1000) throw new WalletAuthError("INVALID_REGISTRY", "Central Wallet retiredClients has an invalid item count");
+  const retiredClients = input.map(parseClientRetirementRecord);
+  assertUnique(retiredClients, "clientId");
+  assertUnique(retiredClients, "productClientId");
+  if ([...retiredClients].sort((left, right) => left.clientId.localeCompare(right.clientId)).map(item => item.clientId).join("\n") !== retiredClients.map(item => item.clientId).join("\n")) {
+    throw new WalletAuthError("INVALID_REGISTRY", "Central Wallet retiredClients must be sorted by clientId");
+  }
+  const activeProducts = products.filter(product => product.clientLifecycle.status === "active");
+  for (const retired of retiredClients) {
+    if (!products.some(product => product.productId === retired.productId)) throw new WalletAuthError("INVALID_REGISTRY", "Retired Wallet client product is not registered");
+    if (activeProducts.some(product => product.productClientId === retired.productClientId)) throw new WalletAuthError("INVALID_REGISTRY", "Retired and active Wallet clients must not share productClientId");
+    if (activeProducts.some(product => product.callbacks.some(callback => retired.disabledCallbacks.includes(callback)))) throw new WalletAuthError("INVALID_REGISTRY", "Retired callbacks must not remain registered by an active Wallet client");
+  }
+  return Object.freeze(retiredClients);
 }
 
 function canonicalQuantRegistration() {

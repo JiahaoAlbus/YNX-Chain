@@ -73,7 +73,7 @@ test("retirement migration atomically tombstones the client and revokes sessions
   assert.equal(active.dispatch(requestInput("/v1/wallet/sessions/complete", completionBody), NOW).status, 200);
   const session = active.snapshot().sessionStore.sessions[0];
 
-  const migrated = applyClientRetirementToGatewaySnapshot(retiredShopRegistry(), active.snapshot(), "shop", RETIRED_AT);
+  const migrated = applyClientRetirementToGatewaySnapshot(retiredShopRegistry(), active.snapshot(), "shop", "shop-android", RETIRED_AT);
   assert.equal(migrated.result.changed, true);
   assert.deepEqual(migrated.result.revokedSessionBindings, [session.sessionBinding]);
   assert.deepEqual(migrated.result.revokedApprovalDigests, [session.approvalDigest]);
@@ -81,7 +81,7 @@ test("retirement migration atomically tombstones the client and revokes sessions
   assert.equal(migrated.snapshot.sessionStore.retiredClients[0].clientId, "shop-android");
   assert.equal(migrated.snapshot.sessionStore.audit.at(-1).type, "client-retired");
 
-  const repeated = applyClientRetirementToGatewaySnapshot(retiredShopRegistry(), migrated.snapshot, "shop", RETIRED_AT);
+  const repeated = applyClientRetirementToGatewaySnapshot(retiredShopRegistry(), migrated.snapshot, "shop", "shop-android", RETIRED_AT);
   assert.equal(repeated.result.changed, false);
   assert.equal(gatewayStateDigest(repeated.snapshot), gatewayStateDigest(migrated.snapshot));
 
@@ -105,12 +105,47 @@ test("retirement migration atomically tombstones the client and revokes sessions
   assert.equal(gatewayStateDigest(retiredKernel.snapshot()), before);
 });
 
+test("registry v3 separates the supported Shop client before retiring the legacy shared tuple", () => {
+  const legacyRegistry = activeShopRegistry();
+  const legacyKernel = new CanonicalWalletGatewayHttpKernel(legacyRegistry);
+  const legacyCompletion = shopCompletion(legacyRegistry);
+  const legacyBody = canonicalJSON(legacyCompletion);
+  assert.equal(legacyKernel.dispatch(requestInput("/v1/wallet/sessions/complete", legacyBody), NOW).status, 200);
+
+  const splitRegistry = splitShopRegistry();
+  const parsed = parseCentralRegistryDocument(splitRegistry);
+  assert.equal(parsed.registryVersion, 3);
+  assert.equal(parsed.products.find(product => product.productId === "shop").productClientId, "ynx-shop-supported-v2");
+  assert.equal(parsed.retiredClients[0].productClientId, "ynx-shop-v1");
+  const migrated = applyClientRetirementToGatewaySnapshot(splitRegistry, legacyKernel.snapshot(), "shop", "shop-android", RETIRED_AT);
+  assert.equal(migrated.snapshot.registryVersion, 3);
+  assert.equal(migrated.result.revokedSessionBindings.length, 1);
+  const kernel = new CanonicalWalletGatewayHttpKernel(splitRegistry, migrated.snapshot);
+  assert.equal(kernel.dispatch(requestInput("/v1/wallet/sessions/complete", legacyBody), AFTER_RETIREMENT).status, 410);
+
+  const supportedBody = canonicalJSON(shopCompletion(
+    splitRegistry,
+    "shop_supported_client_nonce_abcdefghij",
+    "shop_supported_challenge_abcdefgh",
+  ));
+  const supported = kernel.dispatch(requestInput("/v1/wallet/sessions/complete", supportedBody), AFTER_RETIREMENT);
+  assert.equal(supported.status, 200);
+  assert.equal(decoded(supported).result.productClientId, "ynx-shop-supported-v2");
+
+  const unsplitClient = structuredClone(splitRegistry);
+  unsplitClient.products.find(product => product.productId === "shop").productClientId = "ynx-shop-v1";
+  assert.throws(() => parseCentralRegistryDocument(unsplitClient), code("INVALID_REGISTRY"));
+  const unsplitCallback = structuredClone(splitRegistry);
+  unsplitCallback.products.find(product => product.productId === "shop").callbacks = ["ynxshop://wallet-auth/callback"];
+  assert.throws(() => parseCentralRegistryDocument(unsplitCallback), code("INVALID_REGISTRY"));
+});
+
 test("Node host returns correlation-bound CLIENT_RETIRED and never rewrites state for the rejected client", async () => {
   const activeRegistry = activeShopRegistry();
   const active = new CanonicalWalletGatewayHttpKernel(activeRegistry);
   const completionBody = canonicalJSON(shopCompletion(activeRegistry));
   active.dispatch(requestInput("/v1/wallet/sessions/complete", completionBody), NOW);
-  const migrated = applyClientRetirementToGatewaySnapshot(retiredShopRegistry(), active.snapshot(), "shop", RETIRED_AT);
+  const migrated = applyClientRetirementToGatewaySnapshot(retiredShopRegistry(), active.snapshot(), "shop", "shop-android", RETIRED_AT);
   const directory = mkdtempSync(join(tmpdir(), "ynx-client-retirement-"));
   chmodSync(directory, 0o700);
   const statePath = join(directory, "state.json");
@@ -172,6 +207,7 @@ test("operator migration requires an exact state precondition, creates a verifie
     const wrongDigest = "0".repeat(64);
     assert.throws(() => retireGatewayClientState({
       backupPath: fixture.backupPath,
+      clientId: "shop-android",
       expectedStateDigest: wrongDigest,
       key,
       productId: "shop",
@@ -184,6 +220,7 @@ test("operator migration requires an exact state precondition, creates a verifie
 
     const result = retireGatewayClientState({
       backupPath: fixture.backupPath,
+      clientId: "shop-android",
       expectedStateDigest: fixture.stateDigest,
       key,
       productId: "shop",
@@ -219,6 +256,7 @@ test("operator migration refuses mode, hardlink, and symlink tamper with zero st
       }
       assert.throws(() => retireGatewayClientState({
         backupPath: fixture.backupPath,
+        clientId: "shop-android",
         expectedStateDigest: fixture.stateDigest,
         key: Buffer.alloc(32, 9),
         productId: "shop",
@@ -238,7 +276,7 @@ test("operator CLI emits only canonical retirement evidence and applies the acce
   const fixture = migratableState();
   try {
     const registryPath = join(fixture.directory, "registry.json");
-    writeFileSync(registryPath, JSON.stringify(retiredShopRegistry()), { mode: 0o600 });
+    writeFileSync(registryPath, JSON.stringify(splitShopRegistry()), { mode: 0o600 });
     const key = Buffer.alloc(32, 11).toString("base64url");
     const result = spawnSync(process.execPath, [fileURLToPath(new URL("../scripts/apply-client-retirement.mjs", import.meta.url))], {
       encoding: "utf8",
@@ -247,6 +285,7 @@ test("operator CLI emits only canonical retirement evidence and applies the acce
         YNX_WALLET_GATEWAY_BACKUP_KEY: key,
         YNX_WALLET_GATEWAY_EXPECT_STATE_DIGEST: fixture.stateDigest,
         YNX_WALLET_GATEWAY_REGISTRY_PATH: registryPath,
+        YNX_WALLET_GATEWAY_RETIRE_CLIENT_ID: "shop-android",
         YNX_WALLET_GATEWAY_RETIRE_AT: RETIRED_AT.toISOString(),
         YNX_WALLET_GATEWAY_RETIRE_PRODUCT_ID: "shop",
         YNX_WALLET_GATEWAY_RETIREMENT_BACKUP_PATH: fixture.backupPath,
@@ -260,6 +299,7 @@ test("operator CLI emits only canonical retirement evidence and applies the acce
     assert.equal(payload.ok, true);
     assert.equal(payload.changed, true);
     assert.equal(payload.result.clientId, "shop-android");
+    assert.equal(JSON.parse(readFileSync(fixture.statePath, "utf8")).snapshot.registryVersion, 3);
     assert.equal(Object.values(payload).includes(fixture.statePath), false);
     assert.equal(Object.values(payload).includes(key), false);
   } finally {
@@ -311,10 +351,32 @@ function retiredShopRegistry() {
   return registry;
 }
 
-function shopCompletion(registry) {
+function splitShopRegistry() {
+  const registry = activeShopRegistry();
+  registry.registryVersion = 3;
+  const shop = registry.products.find((product) => product.productId === "shop");
+  shop.productClientId = "ynx-shop-supported-v2";
+  shop.callbacks = ["ynxshopsupported://wallet-auth/callback"];
+  registry.retiredClients = [{
+    clientId: "shop-android",
+    productId: "shop",
+    requestingProduct: "shop",
+    productClientId: "ynx-shop-v1",
+    bundleId: "com.ynxweb4.shop",
+    replacementURL: "https://shop.ynxweb4.com/shop/",
+    minimumClientVersion: "web-pwa",
+    lastSupportedVersion: "0.3.0-testnet-preview",
+    retiredAt: RETIRED_AT.toISOString(),
+    disabledCallbacks: ["ynxshop://wallet-auth/callback"],
+    disabledAppLinks: ["ynxshop://orders"],
+  }];
+  return registry;
+}
+
+function shopCompletion(registry, nonce = "shop_android_retirement_nonce_abcdefghij", challengeValue = "shop_retirement_challenge_abcdefgh") {
   const shop = registry.products.find((product) => product.productId === "shop");
   const authorizationRequest = parseAuthorizationRequest(request({
-    nonce: "shop_android_retirement_nonce_abcdefghij",
+    nonce,
     requestingProduct: shop.requestingProduct,
     productClientId: shop.productClientId,
     bundleId: shop.bundleId,
@@ -324,7 +386,7 @@ function shopCompletion(registry) {
     purpose: "Verify Shop Android retirement revokes private authorization without affecting standard connection.",
   }), { now: NOW, registry: { [shop.productClientId]: centralProtocolEntry(shop) } });
   const walletApproval = signAuthorization(authorizationRequest, { accountSecret: ACCOUNT_SECRET, issuedAt: NOW.toISOString() });
-  const challenge = createGatewayChallenge(walletApproval, { challenge: "shop_retirement_challenge_abcdefgh", expiresAt: "2026-07-15T12:03:00.000Z" }, NOW);
+  const challenge = createGatewayChallenge(walletApproval, { challenge: challengeValue, expiresAt: "2026-07-15T12:03:00.000Z" }, NOW);
   return { authorizationRequest, walletApproval, gatewayCompletion: signGatewayChallenge(challenge, PRODUCT_DEVICE_SECRET) };
 }
 

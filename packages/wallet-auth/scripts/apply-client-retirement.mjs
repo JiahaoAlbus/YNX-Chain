@@ -8,6 +8,7 @@ try {
   const registry = JSON.parse(readFileSync(registryPath, "utf8"));
   const result = retireGatewayClientState({
     backupPath: required("YNX_WALLET_GATEWAY_RETIREMENT_BACKUP_PATH"),
+    clientId: required("YNX_WALLET_GATEWAY_RETIRE_CLIENT_ID"),
     expectedStateDigest: required("YNX_WALLET_GATEWAY_EXPECT_STATE_DIGEST"),
     key: decodeGatewayBackupKey(required("YNX_WALLET_GATEWAY_BACKUP_KEY")),
     productId: required("YNX_WALLET_GATEWAY_RETIRE_PRODUCT_ID"),

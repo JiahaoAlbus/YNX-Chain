@@ -1,5 +1,5 @@
 import { digestHex, exactFields, WalletAuthError } from "./canonical.js";
-import { assertSessionClientActive, clientRetirementRecord, parseClientRetirementRecord, retirementMatchesSession } from "./client-retirement.js";
+import { assertSessionClientActive, parseClientRetirementRecord, retirementMatchesSession, retirementRecord } from "./client-retirement.js";
 import { parseCentralWalletSession, verifyCentralWalletSession, assertCentralWalletSessionActive } from "./integration.js";
 
 const SNAPSHOT_V1_FIELDS = [
@@ -77,7 +77,7 @@ export class CentralWalletSessionStore {
 
   retireClient(registration, at = new Date()) {
     validDate(at);
-    const retirement = clientRetirementRecord(registration);
+    const retirement = retirementRecord(registration);
     const existing = this.#state.retiredClients.find((record) => record.clientId === retirement.clientId);
     if (existing) {
       if (digestHex("YNX_WALLET_CLIENT_RETIREMENT_V1", existing) !== digestHex("YNX_WALLET_CLIENT_RETIREMENT_V1", retirement)) throw new WalletAuthError("INVALID_STORE", "Wallet client retirement record conflicts with persisted state");

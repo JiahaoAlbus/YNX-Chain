@@ -53,6 +53,7 @@
   "operatorEntryPoint": "packages/wallet-auth/scripts/apply-client-retirement.mjs",
   "operatorRequiredEnvironment": [
     "YNX_WALLET_GATEWAY_BACKUP_KEY",
+    "YNX_WALLET_GATEWAY_RETIRE_CLIENT_ID",
     "YNX_WALLET_GATEWAY_EXPECT_STATE_DIGEST",
     "YNX_WALLET_GATEWAY_REGISTRY_PATH",
     "YNX_WALLET_GATEWAY_RETIRE_AT",
