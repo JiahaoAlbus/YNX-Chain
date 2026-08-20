@@ -1,7 +1,7 @@
 {
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-  "epoch": 32,
-  "updatedAt": "2026-08-20T22:14:59Z",
+  "epoch": 33,
+  "updatedAt": "2026-08-20T22:18:57Z",
   "heavy": {
     "owner": null,
     "status": "AVAILABLE_AFTER_P0070_FAILED_CLOSED_TRANSPORT",
@@ -26,15 +26,15 @@
   "light": {
     "owner": "integration",
     "status": "ACTIVE_BOUNDED_SOURCE_ONLY",
-    "branch": "codex/p0-resource-wallet-connectivity-20260821",
-    "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/45-resource-p0",
+    "branch": "codex/p0-resource-wallet-connectivity-clean-20260821",
+    "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/46-resource-p0-clean",
     "taskId": "P0-072",
     "leasedAt": "2026-08-20T22:14:59Z",
     "releasedAt": null,
-    "checkpointCommit": null,
+    "checkpointCommit": "51c480af27401d9d170391db8d13cb1d4197b4a0",
     "previousOwner": "integration",
     "previousCheckpoint": "1abece5158573b10eae6c084f3653a225c6590cb",
-    "reason": "The protected Trust/Resource recovery checkpoint proves the Resource Web client still creates an in-memory P-256 device key and legacy private session. Reload or deep-link return loses that key, while accepted Standard Wallet SDK consumption remains absent. Integration may migrate only the Resource product surface and keep private trading and settlement fail closed.",
+    "reason": "The original dirty Trust/Resource work was protected at 43ffbd7e. A direct directory overlay onto the newer accepted central baseline would have removed 27 newer Resource files, so that attempt was preserved then reverted normally at 51c480af. P0-072 continues only from this clean central-equivalent checkpoint to migrate the Resource surface without losing newer product work.",
     "executionScope": "RESOURCE_STANDARD_WALLET_SOURCE_ONLY",
     "onSafeCheckpoint": [
       "modify only apps/resource-market, internal/resourceproduct and Resource owner evidence",
