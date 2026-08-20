@@ -4,7 +4,7 @@ import {mkdir} from 'node:fs/promises';
 const evidence = '../../docs/handoffs/evidence/ui-audit-current';
 const locales = ['en', 'zh-Hans', 'zh-Hant', 'ja', 'ko', 'es', 'fr', 'de', 'pt', 'ru', 'ar', 'id'];
 
-test.beforeAll(async () => mkdir(evidence, {recursive: true}));
+test.beforeAll(async () => Promise.all([mkdir(evidence, {recursive: true}), mkdir('evidence/p0-072', {recursive: true})]));
 
 for (const viewport of [{name: 'desktop', width: 1440, height: 900}, {name: 'mobile', width: 390, height: 844}]) {
   test(`Resource Market ${viewport.name} responsive and accessible`, async ({page}) => {
@@ -49,6 +49,7 @@ test('guest sees real Wallet choices and no missing-provider session is fabricat
   await page.getByRole('button', {name: 'Connect YNX Wallet'}).click();
   await expect(page.locator('#wallet-result')).toContainText('not detected');
   await expect(page.locator('#wallet-result')).not.toContainText('session created');
+  await page.screenshot({path: 'evidence/p0-072/resource-guest-wallet-choices.png', fullPage: true});
 });
 
 test('EIP-6963 YNX Wallet connects while private Resource service stays degraded', async ({page}) => {
@@ -72,6 +73,7 @@ test('EIP-6963 YNX Wallet connects while private Resource service stays degraded
   await expect(page.locator('#wallet-result')).toContainText('private orders, provider operations and settlement are still degraded', {ignoreCase: true});
   await expect(page.locator('#wallet-open')).toContainText('0x111111');
   expect(errors).toEqual([]);
+  await page.screenshot({path: 'evidence/p0-072/resource-standard-wallet-connected.png', fullPage: true});
 });
 
 test('provider and buyer workspaces create verified offer, quote and accepted intent', async ({page}) => {

@@ -2,16 +2,16 @@
   "schemaVersion": 2,
   "productId": "ynx-resource-market-v1",
   "name": "YNX Resource Market",
-  "branch": "codex/final-resource-market",
-  "sourceCommit": "d683c7d28ce129daad358c84680e5980cf8ad069",
+  "branch": "codex/p0-resource-wallet-connectivity-clean-20260821",
+  "sourceCommit": "e92bccb9c35fa9d78dd21417af8fe7eea9e85828",
   "sourceBaselineCommit": "c7e4445598a74e60aa0ed05b9580790527bf71be",
-  "candidateSourceCommit": "d683c7d28ce129daad358c84680e5980cf8ad069",
+  "candidateSourceCommit": "e92bccb9c35fa9d78dd21417af8fe7eea9e85828",
   "workingTreeDirty": false,
-  "version": "0.3.0-candidate",
+  "version": "0.3.1-p0.072-candidate",
   "surfaces": ["web", "api", "android-debug-source", "ios-source"],
-  "implementedLocal": false,
-  "testedLocal": false,
-  "installedLocal": true,
+  "implementedLocal": true,
+  "testedLocal": true,
+  "installedLocal": false,
   "integratedCentral": false,
   "deployedStaging": false,
   "deployedPublic": false,
@@ -19,15 +19,32 @@
   "productionSigned": false,
   "storeReleased": false,
   "states": {
-    "implementedLocal": false,
-    "testedLocal": false,
-    "installedLocal": true,
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": false,
     "integratedCentral": false,
     "deployedStaging": false,
     "deployedPublic": false,
     "downloadHosted": false,
     "productionSigned": false,
     "storeReleased": false
+  },
+  "p0WalletConnectivity": {
+    "acceptedSdkConsumed": true,
+    "eip6963Discovery": true,
+    "eip1193StandardConnection": true,
+    "ynxWalletPreferred": true,
+    "metamaskFallback": true,
+    "officialWalletDownload": "https://ynxweb4.com/dapp/download#wallet",
+    "guestExploration": true,
+    "privateServiceState": "PRIVATE_SERVICE_DEGRADED",
+    "localOrCannedSessionCreated": false,
+    "legacyWebP256SessionRemoved": true,
+    "productSessionV2": false,
+    "installedClientVerifiedForThisSource": false,
+    "deployedPublicCurrentSource": false,
+    "publicVerifiedCurrentSource": false,
+    "computerControlVerified": false
   },
   "componentEvidence": {
     "providerMarketDomainTested": true,
@@ -61,7 +78,9 @@
     "twelveLocaleRuntimeBoundaryTested": true,
     "operatorFormAccessibleNamesTested": true,
     "rtlLargeTextResponsiveTested": true,
-    "publicSettlementReceiptVerified": false
+    "publicSettlementReceiptVerified": false,
+    "standardWalletUnitTestsPassed": true,
+    "standardWalletVisibleBrowserTestsPassed": true
   },
   "publicUrls": [],
   "healthUrls": [],
@@ -79,10 +98,10 @@
   "operatorInputs": "operator-inputs.request.json",
   "knownLimitations": [
     "The provider/buyer Web UI covers provider continuity, quote/intent, sealed reverse/batch auctions, worker-key, execution, dispute and receipt actions. A 143-string catalog and safe runtime status/error boundary are functionally browser-tested in 12 locales, including Arabic RTL, large text and accessible operator controls; professional linguistic and manual assistive-technology review remain external.",
-    "The Android debug client implements the canonical SDK response callback, central challenge request, Android Keystore P-256 device proof and replay-resistant per-request Product Session proofs. Missing Wallet handler and malformed callbacks fail closed; live completion remains unproven until central routes are merged.",
+    "The current Web source uses accepted Standard Wallet discovery/connection and no longer creates a reload-fragile browser P-256 Product Session. The historical Android debug client remains a separate older canonical-v1 artifact; it is not evidence for this Web source and is not promoted as current installed success.",
     "No live central Wallet/Gateway or authoritative public settlement endpoint is connected.",
     "A current Android debug APK is installed and cold-started on an Android 16 emulator; iOS installation, production signature, public deployment and hosted download are not proven.",
     "Local measured capacity evidence covers matching reads; offer-scoped reservation, release integrity and fail-closed amount overflow are locally tested but do not establish public or settlement capacity."
   ],
-  "generatedAt": "2026-07-29T02:54:25Z"
+  "generatedAt": "2026-08-20T22:27:30Z"
 }
