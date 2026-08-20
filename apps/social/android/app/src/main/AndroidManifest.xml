@@ -39,6 +39,15 @@
         <category android:name="android.intent.category.BROWSABLE"/>
         <data android:scheme="ynxsocial"/>
       </intent-filter>
+      <!-- Canonical Wallet/Auth registry callback. Keep ynxsocial above for
+           existing Social profile links; Wallet approvals return through this
+           exact, product-bound scheme. -->
+      <intent-filter>
+        <action android:name="android.intent.action.VIEW"/>
+        <category android:name="android.intent.category.DEFAULT"/>
+        <category android:name="android.intent.category.BROWSABLE"/>
+        <data android:scheme="ynx-social" android:host="com.ynx.social"/>
+      </intent-filter>
     </activity>
   </application>
 </manifest>

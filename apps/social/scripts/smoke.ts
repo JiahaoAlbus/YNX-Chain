@@ -22,7 +22,8 @@ const androidLauncher = readFileSync(
 );
 assert.match(config, /bundleIdentifier:\s*"com\.ynx\.social"/);
 assert.match(config, /package:\s*"com\.ynx\.social"/);
-assert.match(config, /scheme:\s*"ynxsocial"/);
+assert.match(config, /version:\s*"1\.0\.2-testnet-preview"/);
+assert.match(config, /scheme:\s*\["ynxsocial", "ynx-social"\]/);
 assert.match(manifest, /ynxsocial/);
 for (const forbidden of [
   'label="Wallet"',
@@ -60,6 +61,10 @@ for (const required of [
   assert.match(androidLauncher, new RegExp(required));
 assert.match(manifest, /android:scheme="ynxwallet" android:host="authorize"/);
 assert.match(wallet, /ynx-social:\/\/com\.ynx\.social/);
+assert.match(
+  manifest,
+  /android:scheme="ynx-social" android:host="com\.ynx\.social"/,
+);
 assert.doesNotMatch(wallet, /searchParams\.get\("assertion"\)/);
 assert.match(app, /CameraView/);
 assert.match(manifest, /android\.permission\.CAMERA/);

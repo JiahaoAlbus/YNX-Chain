@@ -4,11 +4,14 @@ module.exports = {
   expo: {
     name: "YNX Social",
     slug: "ynx-social",
-    version: "1.0.0",
+    version: "1.0.2-testnet-preview",
     orientation: "portrait",
     icon: path.resolve(__dirname, "assets/icon.png"),
     userInterfaceStyle: "light",
-    scheme: "ynxsocial",
+    // Keep the Social profile scheme and register the frozen Wallet/Auth
+    // callback as a second scheme. The latter is not interchangeable with a
+    // generic Social link: its host is checked by the native manifest.
+    scheme: ["ynxsocial", "ynx-social"],
     splash: { image: path.resolve(__dirname, "assets/splash.png"), resizeMode: "contain", backgroundColor: "#FFFFFF" },
     ios: {
       bundleIdentifier: "com.ynx.social",
