@@ -6,7 +6,7 @@ const root = new URL("../", import.meta.url);
 const read = (path) => readFile(new URL(path, root), "utf8");
 
 test("current public candidate and Wallet v2 evidence do not promote missing lifecycle proof", async () => {
-  const [release, metadata, evidence, macArtifact, macSums, linuxArtifact, linuxSums, windowsArtifact, windowsSums, handoff, vectors, acceptance, matrix, compatibility] = await Promise.all([
+  const [release, metadata, evidence, macArtifact, macSums, linuxArtifact, linuxSums, windowsArtifact, windowsSums, sdkCandidate, handoff, vectors, acceptance, matrix, compatibility] = await Promise.all([
     read("product-release.json"),
     read("public-product-metadata.json"),
     read("evidence/public/current-public-candidate-bc8a37bc6f2b.json"),
@@ -16,13 +16,14 @@ test("current public candidate and Wallet v2 evidence do not promote missing lif
     read("release/ynx-developer-0.2.0-testnet-preview-bc8a37bc-linux-x64-server-SHA256SUMS.txt"),
     read("evidence/desktop/windows-current-6ac39fd1.json"),
     read("release/ynx-developer-0.2.0-testnet-preview-6ac39fd1-windows-x64-SHA256SUMS.txt"),
+    read("evidence/integration/dapp-connect-sdk-pr130-8cfb3265.json"),
     read("docs/integration/INTEGRATION_HANDOFF.md"),
     read("docs/integration/CROSS_PRODUCT_TEST_VECTORS.json"),
     read("docs/integration/DEPENDENCY_ACCEPTANCE.md"),
     read("docs/FEATURE_COMPLETION_EVIDENCE.md"),
     read("docs/MIGRATION_COMPATIBILITY.md"),
   ]);
-  const truth = JSON.parse(release), current = JSON.parse(evidence), localMac = JSON.parse(macArtifact), linux = JSON.parse(linuxArtifact), windows = JSON.parse(windowsArtifact), publicMetadata = JSON.parse(metadata), crossProduct = JSON.parse(vectors);
+  const truth = JSON.parse(release), current = JSON.parse(evidence), localMac = JSON.parse(macArtifact), linux = JSON.parse(linuxArtifact), windows = JSON.parse(windowsArtifact), sdk = JSON.parse(sdkCandidate), publicMetadata = JSON.parse(metadata), crossProduct = JSON.parse(vectors);
   assert.equal(truth.currentPublicCandidate.sourceCommit, "bc8a37bc6f2bcfcbe9415cb0e9da17a5294046a3");
   assert.equal(current.deploymentTransaction.result, "passed");
   assert.equal(current.truthBoundaries.externalBrowserVisible, false);
@@ -65,6 +66,15 @@ test("current public candidate and Wallet v2 evidence do not promote missing lif
   assert.equal(truth.walletProductSessionV2.nativeAbsentWalletProof.ynxWalletInstalled, false);
   assert.equal(truth.walletProductSessionV2.visibleLifecycleVerified, false);
   assert.equal(truth.walletProductSessionV2.migratedV2, false);
+  assert.equal(sdk.classification, "source-only-draft-not-consumed");
+  assert.equal(sdk.verification.sdkTests.passed, 12);
+  assert.equal(sdk.verification.migrationScanner, "clean");
+  assert.equal(sdk.verification.releaseGate, "BUNDLED_SHA256_ACCEPTED");
+  assert.equal(sdk.boundaries.developerProductConsumesCandidate, false);
+  assert.equal(sdk.boundaries.publicSdkArtifact, false);
+  assert.equal(sdk.boundaries.installedProductVerified, false);
+  assert.equal(sdk.boundaries.computerControlVerified, false);
+  assert.equal(sdk.boundaries.productMigratedV2, false);
   assert.equal(crossProduct.walletProductSessionV2.vectors.filter((item) => item.status === "requires-reviewed-device-evidence").length, 6);
   for (const value of ["createProductWalletConnection", "migratedV2", "requires-reviewed-device-evidence", "current unsigned Testnet Preview", "fail-closed compatibility path"]) {
     assert.match(`${handoff}\n${JSON.stringify(crossProduct)}\n${acceptance}\n${matrix}\n${compatibility}`, new RegExp(value));

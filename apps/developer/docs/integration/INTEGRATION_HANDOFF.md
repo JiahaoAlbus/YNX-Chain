@@ -24,6 +24,21 @@ The state-free public mount probe passed for
 `migratedV2` remains false until the native runtime and visible installed
 Lifecycle sequence are independently evidenced.
 
+## DApp Connect SDK source boundary
+
+`evidence/integration/dapp-connect-sdk-pr130-8cfb3265.json` records the
+clean Developer SDK source candidate as a separate, draft-only handoff. It is
+based on the accepted SDK base `315897e75c0ffe3e63435fe73cfec42244b851cc` and
+its exact bundled-manifest delta is the five-path commit
+`3437be2f3e4d174cd8a35949e08de673f31942b8`. The candidate has no public SDK
+artifact, npm publication, Faucet activation, endpoint activation, installed
+product proof, ComputerControl proof, or Developer product migration claim.
+
+Developer continues to consume only the accepted Wallet/Auth root factory. It
+does not consume this draft SDK candidate until Integration accepts a specific
+source checkpoint; it never uses the candidate as a reason to promote Web,
+macOS, Windows, AI Build, Wallet lifecycle, or public availability status.
+
 ## Requested central actions
 
 - `29-integration`: freeze the supplied contract and test vectors.

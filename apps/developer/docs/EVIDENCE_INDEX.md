@@ -16,6 +16,12 @@ The current cross-product contract and gaps are maintained in
 `docs/integration/DEPENDENCY_ACCEPTANCE.md`,
 `FEATURE_COMPLETION_EVIDENCE.md` and `MIGRATION_COMPATIBILITY.md`.
 
+- DApp Connect SDK handoff: `evidence/integration/dapp-connect-sdk-pr130-8cfb3265.json`
+  captures the clean PR #130 source candidate, its exact five-path manifest
+  delta, central base and replayed 12/12/scanner/release-gate evidence. It is
+  explicitly source-only and records no public SDK, npm, Faucet, endpoint,
+  installed-product, ComputerControl or migration success.
+
 - Production package-egress policy: `scripts/verify-package-egress-network.mjs`
   checks the exact dedicated bridge and ACL before any protected deployment
   mutation. `test/package-egress-network.test.js` proves the reviewed
