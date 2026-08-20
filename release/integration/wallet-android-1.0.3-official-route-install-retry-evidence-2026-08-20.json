@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-08-20T15:09:00Z",
+  "sourceCommit": "3ab8c24cac04b8a5a745cdf8736cf0bffbd88274",
+  "officialArtifact": {
+    "url": "https://www.ynxweb4.com/downloads/wallet/sha256-afd686851ef07fbb07823295d07179b79e1a4a078d1b528bc149bd619c8689e0/ynx-wallet-1.0.3-testnet-preview-3ab8c24c-local-test-signed.apk",
+    "bytes": 78233954,
+    "sha256": "afd686851ef07fbb07823295d07179b79e1a4a078d1b528bc149bd619c8689e0",
+    "downloadedFromOfficialRoute": true
+  },
+  "api36OfficialRouteInstall": {
+    "target": "emulator-5560 sdk_gphone64_arm64",
+    "installed": true,
+    "coldLaunch": {
+      "pid": 26746,
+      "totalTimeMs": 672,
+      "lockedBeforeBiometric": true,
+      "biometricUnlock": true
+    },
+    "networkFailure": {
+      "visible": true,
+      "code": "RPC_UNAVAILABLE",
+      "balanceFabricated": false,
+      "nonceFabricated": false
+    },
+    "directRetry": {
+      "visible": true,
+      "accessibilityLabel": "Retry Testnet connection",
+      "invoked": true,
+      "result": "failed_closed_rpc_unavailable"
+    }
+  },
+  "correlatedSameHashRun": {
+    "evidence": "release/integration/wallet-android-1.0.3-api36-testnet-reconnect-evidence-2026-08-20.json",
+    "authoritativeTestnetRead": true,
+    "visibleBalance": "23 YNXT",
+    "visibleNonce": 1,
+    "visibleRecentAccountTransactions": 2
+  },
+  "truthBoundary": {
+    "officialRouteInstallVerified": true,
+    "officialRouteCurrentTransportStable": false,
+    "productionSigned": false,
+    "physicalPixel9Verified": false,
+    "authorizationRoundTrip": false,
+    "signedTransaction": false,
+    "reason": "The exact official-route APK installed and the direct retry executed. The Testnet read remained fail-closed during this later intermittent local transport window; it must not be promoted to stable connectivity."
+  }
+}
