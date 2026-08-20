@@ -37,7 +37,7 @@
     "reason": "YNX Cloud has a clean exact owner checkpoint and historical public runtime, but its public Web source still builds a local P-256 proof and private session rather than consuming the accepted Standard Wallet SDK. Integration may migrate only the Cloud product surface and preserve private fail-closed behavior.",
     "executionScope": "CLOUD_STANDARD_WALLET_SOURCE_ONLY",
     "onSafeCheckpoint": [
-      "modify only apps/cloud, internal/cloud and Cloud owner evidence",
+      "modify only apps/cloud, internal/cloud, infra/docker/ynx-cloudd.Dockerfile, infra/docker/ynx-cloudd.Dockerfile.dockerignore, infra/docker/cloud-compose.yml and Cloud owner evidence",
       "consume the accepted DApp Connect SDK and endpoint manifest without copying shared protocol",
       "keep public product explanation and health independent of Standard Wallet and private Product Session",
       "keep private objects, uploads, shares and mutations unavailable unless backed by exact accepted Gateway and session evidence",
