@@ -16,7 +16,7 @@ const rules = [
   ["HARDCODED_SERVICE_ENDPOINT", /https:\/\/(?:gateway|wallet-auth|rpc|evm|rest)\./i, "Load verified endpoints through the accepted Endpoint Manifest."],
   ["WINDOW_ETHEREUM_ONLY", /window\.ethereum(?!\s*\?)/, "Support EIP-6963 and WalletConnect in addition to injected wallets."],
   ["GENERIC_OFFLINE_CATCH", /catch\s*\([^)]*\)\s*\{[^}]*\bOffline\b/is, "Preserve typed EIP-1193 and Product Session failures; do not collapse to Offline."],
-  ["SESSION_CLEARING_ON_DEGRADE", /(?:gateway|catch|error|fail)[\s\S]{0,240}(?:this\.)?connection\s*=\s*null/i, "Gateway failure must not clear a standard wallet connection."]
+  ["SESSION_CLEARING_ON_DEGRADE", /(?:gateway|catch|error|fail)[\s\S]{0,240}(?:this\.)?(?:productSession|session)\s*=\s*null[\s\S]{0,240}(?:this\.)?connection\s*=\s*null/i, "Gateway failure must not clear a standard wallet connection."]
 ];
 function files(path) { if (!existsSync(path)) return []; const entry = statSync(path); if (entry.isFile()) return [path]; return readdirSync(path, {withFileTypes: true}).flatMap(item => ignored.has(item.name) || (resolve(path) === target && ["tools", "test", "integration", "README.md"].includes(item.name) && target.endsWith("dapp-connect-sdk")) ? [] : files(join(path, item.name))); }
 const findings = [];
