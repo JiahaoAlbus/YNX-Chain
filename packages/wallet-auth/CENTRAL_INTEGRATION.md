@@ -1,14 +1,16 @@
 # Central Wallet Auth integration contract
 
-The executable integration boundary is `src/gateway-http.js`, backed by `src/gateway-adapter.js`; `src/gateway-node-host.js` adds fail-closed local persistence and bounded observability. The merge manifest, versioned state schema and central patch instructions are in `integration/`. `testdata/product-session-http-proof-v1.json` is the deterministic P-256 sender-constrained HTTP proof vector. These artifacts supersede any assumption that possession of a session binding or legacy opaque token is sufficient for canonical introspection. Source commit `2eb3198a99fcd98a1c6d56e3e99e97166ceab7f6` is the current locally tested candidate.
+The executable integration boundary is `src/gateway-http.js`, backed by `src/gateway-adapter.js`; `src/gateway-node-host.js` adds fail-closed local persistence and bounded observability. The merge manifest, versioned state schema and central patch instructions are in `integration/`. `testdata/product-session-http-proof-v1.json` is the deterministic P-256 sender-constrained HTTP proof vector. These artifacts supersede any assumption that possession of a session binding or legacy opaque token is sufficient for canonical introspection. Release evidence must record the exact checked-out source commit; this document deliberately does not carry a mutable source pointer.
 
 This is the merge-ready central protocol candidate implemented and tested by `@ynx-chain/wallet-auth`. It is **not** evidence of central review, central integration, staging deployment, or public deployment. The candidate registry therefore keeps every product disabled.
 
 ## Canonical registry
 
-`central-registry.json` is the only 26-product candidate inventory. The top-level schema is exact: `registryVersion`, `chainId`, `products`. It requires version `2`, chain `ynx_6423-1`, exactly 26 alphabetically sorted products, and globally unique client IDs, bundle IDs, and callbacks. Registry v1 migrates only through the exact deterministic migration that adds disabled, pending-review Quant.
+`central-registry.json` is the only 26-product candidate inventory. Its checked-in legacy shape is exact: `registryVersion`, `chainId`, `products`. Registry v2 requires chain `ynx_6423-1`, exactly 26 alphabetically sorted products, and globally unique client IDs, bundle IDs, and callbacks. Registry v1 migrates only through the exact deterministic migration that adds disabled, pending-review Quant.
 
-Each product registration uses exact schema v3 fields:
+Accepted registry v3 adds the exact top-level `retiredClients` array. It permits an active product registration and a retired client record to carry different product client IDs, bundle/package IDs and callbacks without weakening uniqueness. Every active/retired client ID, bundle ID and callback remains globally unique. A v2 registry becomes v3 only in the exact-digest client-retirement transaction; callers cannot inject a retired tuple or infer one from a product name.
+
+The checked-in v2 candidate contains legacy schema v3 product registrations:
 
 ```json
 {
@@ -29,7 +31,7 @@ Each product registration uses exact schema v3 fields:
 }
 ```
 
-`reviewState` is `approved`, `pending-review`, or `disabled`; `enabled` must be true exactly when approved. `centralRegistrationByProduct` and `centralProtocolEntry` reject disabled entries by default. Callers may pass `{requireEnabled:false}` only for review tooling and tests, never for session issuance. No wildcard scope, callback, client, or bundle is allowed.
+The parser normalizes these to schema v5, which adds `webOrigins` and exact `clientLifecycle`. `reviewState` is `approved`, `pending-review`, `disabled`, or `retired`; `enabled` must be true exactly when approved and active. `centralRegistrationByProduct` and `centralProtocolEntry` reject disabled or retired entries by default. Callers may pass `{requireEnabled:false}` only for review tooling and tests, never for session issuance. No wildcard origin, scope, callback, client, or bundle is allowed.
 
 Schema v2 remains the exact protocol projection consumed by the verifier: `schemaVersion`, `productClientId`, `requestingProduct`, `bundleId`, `callbacks`, `scopes`, `maxScopes`, and `productDeviceAlgorithms`. `migrateCentralRegistryEntry` converts the exact legacy single-callback v1 shape to v2 and rejects extra fields.
 
@@ -98,4 +100,6 @@ The kernel freezes the parsed registry at construction, rejects alternate JSON e
 6. Deploy registry, kernel host and durable state migration atomically to staging; record registry hash, source commit, release, canonical build time, deployment ID and restore evidence, then run real Wallet↔product flows.
 7. Have Monitor accept the bounded metric/event contract, prove dashboard and alert behavior, and correlate request/error IDs to authoritative audit IDs without logging custody or proof material.
 
-Current local verification is Wallet/Auth 94/94, Node host 8/8, Browser SDK 7/7, JS SDK 5/5, loopback CLI smoke passed, package dry-run passed and `umask 0022; go test ./...` passed. Until central merge and direct Testnet/public evidence exist, truthful status remains `implemented-local` and `tested-local`, not `integrated-central` or `deployed-staging`.
+`integration/product-migration-matrix-v2.json` is the machine-verifiable downstream migration ledger. A product may be `MIGRATED` only with exact product and shared-SDK source commits plus visible, request-bound evidence for Wallet absent, Wallet present, approval, rejection, timeout, revocation, second open and temporary Chain disconnect/Retry on every declared platform. Web evidence is mandatory. `PROTOCOL_ONLY` means protocol tests exist but no product migration is claimed; `NO_EVIDENCE` means no product evidence exists. The parser rejects status inflation and incomplete evidence.
+
+Verification counts are release evidence, not documentation constants. Until central merge and direct Testnet/public evidence exist, truthful status remains `implemented-local` and `tested-local`, not `integrated-central`, `deployed-staging`, or `deployed-public`.
