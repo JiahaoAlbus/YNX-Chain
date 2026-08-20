@@ -38,7 +38,7 @@ test("P0 enhanced error contract gives each published error a complete non-offli
 
 test("client retirement implementation handoff preserves activation and public truth boundaries", () => {
   assert.equal(retirementHandoff.featureSourceCommit, "c614501353d7631a6e20da7431ac858c2e5a8868");
-  assert.equal(retirementHandoff.status, "CANDIDATE");
+  assert.equal(retirementHandoff.status, "CANDIDATE_CONSUMED_ACTIVATION_BLOCKED_SHARED_TUPLE");
   assert.equal(retirementHandoff.activation, "prohibited until Integration ACCEPTED");
   assert.equal(retirementHandoff.retiredResponse.httpStatus, 410);
   assert.deepEqual(retirementHandoff.retiredResponse.requiredFields, ["clientId", "replacementURL", "minimumClientVersion", "correlationId"]);
@@ -47,4 +47,8 @@ test("client retirement implementation handoff preserves activation and public t
   assert.equal(retirementHandoff.truth.currentPublicRuntimeContainsThisFeature, false);
   assert.equal(retirementHandoff.truth.remoteUninstallClaim, false);
   assert.equal(retirementHandoff.integrationAcceptanceRequired.some((item) => item.includes("shares the exact")), true);
+  assert.equal(retirementHandoff.centralConsumption.commit, "7329521f7936171ee45bd6f9d89f46ea96b9642e");
+  assert.equal(retirementHandoff.centralConsumption.blobReadback, "6/6");
+  assert.equal(retirementHandoff.centralConsumption.exactSourceTests.passed, 130);
+  assert.equal(retirementHandoff.centralConsumption.executionLeaseIssued, false);
 });

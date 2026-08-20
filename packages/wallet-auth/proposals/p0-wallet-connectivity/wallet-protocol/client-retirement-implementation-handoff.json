@@ -3,11 +3,28 @@
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "proposalId": "P0-PROPOSAL-SHOP-ANDROID-CLIENT-RETIREMENT-001",
   "owner": "wallet-protocol",
-  "status": "CANDIDATE",
+  "status": "CANDIDATE_CONSUMED_ACTIVATION_BLOCKED_SHARED_TUPLE",
   "activation": "prohibited until Integration ACCEPTED",
   "featureSourceCommit": "c614501353d7631a6e20da7431ac858c2e5a8868",
   "featureParentCommit": "2d6c9aa354a459b224b79c11c69aab670336a41d",
   "integrationRequestSourceCommit": "78ef845ddfee175ee7aad4b0fa48d5d6fb1a704f",
+  "centralConsumption": {
+    "commit": "7329521f7936171ee45bd6f9d89f46ea96b9642e",
+    "parent": "9c243aa7f4d6af92531fdb9f5b4a7e484bf79976",
+    "tree": "e32c1ffbcbe05fc2ef54c5300e7f64fe5816d74d",
+    "blobReadback": "6/6",
+    "exactSourceTests": {
+      "passed": 130,
+      "failed": 0
+    },
+    "decision": "CANDIDATE_CONSUMED_ACTIVATION_BLOCKED_SHARED_TUPLE",
+    "blockingFacts": [
+      "Android, supported iOS, and Web/PWA use the same shop / ynx-shop-v1 / com.ynxweb4.shop / ynxshop://wallet-auth/callback tuple.",
+      "The accepted registry has no platform discriminator for an Android-only retirement.",
+      "The authoritative retirement record still has retiredAt null."
+    ],
+    "executionLeaseIssued": false
+  },
   "implemented": [
     "registry-v5-explicit-client-lifecycle",
     "typed-http-410-client-retired",
