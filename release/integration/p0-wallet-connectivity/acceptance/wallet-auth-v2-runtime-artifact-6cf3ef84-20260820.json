@@ -3,7 +3,7 @@
   "acceptanceId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-auth-v2-runtime-artifact-6cf3ef84",
   "recordedAt": "2026-08-20T12:24:41Z",
   "decision": "ACCEPTED_EXACT_DETERMINISTIC_RUNTIME_ARTIFACT_FOR_GATED_TRANSACTION",
-  "activeLeasePath": "release/integration/p0-wallet-connectivity/execution/wallet-auth-v2-runtime-artifact-lease-v6-20260820.json",
+  "activeLeasePath": "release/integration/p0-wallet-connectivity/execution/wallet-auth-v2-runtime-artifact-lease-v7-20260820.json",
   "supersededBeforeStartLeases": [
     "P0-WALLET-CONNECTIVITY-2026-08-wallet-auth-v2-runtime-artifact-lease-20260820T122441Z",
     "P0-WALLET-CONNECTIVITY-2026-08-wallet-auth-v2-runtime-artifact-lease-v4-20260820T130028Z"
@@ -11,7 +11,8 @@
   "failedConsumedLeases": [
     "P0-WALLET-CONNECTIVITY-2026-08-wallet-auth-v2-runtime-artifact-lease-v2-20260820T123316Z",
     "P0-WALLET-CONNECTIVITY-2026-08-wallet-auth-v2-runtime-artifact-lease-v3-20260820T124935Z",
-    "P0-WALLET-CONNECTIVITY-2026-08-wallet-auth-v2-runtime-artifact-lease-v5-20260820T130757Z"
+    "P0-WALLET-CONNECTIVITY-2026-08-wallet-auth-v2-runtime-artifact-lease-v5-20260820T130757Z",
+    "P0-WALLET-CONNECTIVITY-2026-08-wallet-auth-v2-runtime-artifact-lease-v6-20260820T131625Z"
   ],
   "failedConsumedLease": "P0-WALLET-CONNECTIVITY-2026-08-wallet-auth-v2-runtime-artifact-lease-v2-20260820T123316Z",
   "supersededVerifierLease": "P0-WALLET-CONNECTIVITY-2026-08-wallet-auth-v2-runtime-artifact-lease-20260820T122441Z",
@@ -57,10 +58,20 @@
     "passed": false
   },
   "productionTransactionIsolation": {
+    "systemdProtectSystem": "strict",
+    "exactReadWritePathsRoot": "/var/lib/ynx-wallet-gateway",
+    "readWritePathsExpansionAllowed": false,
     "sharedLegacyV1StatePath": "/var/lib/ynx-wallet-gateway/state.json",
     "sharedLegacyV1StateSha256": "ba386fb9e474ea0886c2e41184db7fac3fcf6aea6dd02f5fe47122a62d3a8c9e",
     "candidateV1StateRequired": true,
     "candidateV2StateRequired": true,
+    "candidateStateDirectory": "/var/lib/ynx-wallet-gateway/candidate-6cf3ef84",
+    "candidateStateDirectoryOwner": "ubuntu:ubuntu",
+    "candidateStateDirectoryMode": "0700",
+    "candidateV1StatePath": "/var/lib/ynx-wallet-gateway/candidate-6cf3ef84/v1-state.json",
+    "candidateV2StatePath": "/var/lib/ynx-wallet-gateway/candidate-6cf3ef84/v2-state.json",
+    "candidatePathsMustBeStrictDescendantsOfReadWriteRoot": true,
+    "candidateTraversalAndParentSymlinksAllowed": false,
     "allThreeStatePathsMustBeDistinct": true,
     "candidateV1CopyMustOccurWhileServiceStopped": true,
     "sharedLegacyV1MutationAllowed": false,
@@ -92,6 +103,8 @@
     "etcYnxPermissionBroadeningAllowed": false,
     "ubuntuReadabilityAndNoStartJsonHashProbeRequired": true,
     "actualCandidateServiceRegistryReadProofRequired": true,
+    "systemdUnitPermissionExpansionAllowed": false,
+    "caddyChangeAllowed": false,
     "productionServiceStartAllowedBeforeVerification": false
   },
   "truth": {

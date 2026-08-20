@@ -15,9 +15,9 @@ const authoritativeV2RegistryBytes = 6130;
 const authoritativeV2RegistrySha256 = "d2826eb419abca4444ccb50d79537fa7f6a3643948d82ed9b52914b7169c107b";
 const registryParents = ["/opt", "/opt/ynx", "/opt/ynx/wallet-auth-6cf3ef84", "/opt/ynx/wallet-auth-6cf3ef84/runtime-config", "/opt/ynx/wallet-auth-6cf3ef84/packages", "/opt/ynx/wallet-auth-6cf3ef84/packages/wallet-auth"];
 const expected = {
-  YNX_WALLET_GATEWAY_STATE_PATH: "/var/lib/ynx-wallet-gateway-candidate-6cf3ef84/v1-state.json",
+  YNX_WALLET_GATEWAY_STATE_PATH: "/var/lib/ynx-wallet-gateway/candidate-6cf3ef84/v1-state.json",
   YNX_WALLET_GATEWAY_REGISTRY_PATH: authoritativeV1Registry,
-  YNX_PRODUCT_SESSION_GATEWAY_STATE_PATH: "/var/lib/ynx-wallet-gateway-candidate-6cf3ef84/v2-state.json",
+  YNX_PRODUCT_SESSION_GATEWAY_STATE_PATH: "/var/lib/ynx-wallet-gateway/candidate-6cf3ef84/v2-state.json",
   YNX_PRODUCT_SESSION_GATEWAY_REGISTRY_PATH: authoritativeV2Registry,
   YNX_WALLET_GATEWAY_SOURCE_COMMIT: "6cf3ef845202bd879ed94515a71b323dd2fc9e14",
   YNX_WALLET_GATEWAY_RELEASE: "p0-v2-state-isolated-6cf3ef84",
