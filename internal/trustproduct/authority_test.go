@@ -3,6 +3,7 @@ package trustproduct
 import (
 	"bytes"
 	"encoding/json"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/canonicalwallet"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -15,8 +16,9 @@ import (
 
 func TestCentralWalletAndAuthoritativeTrustLifecycle(t *testing.T) {
 	now := time.Date(2026, 7, 16, 1, 0, 0, 0, time.UTC)
-	token := "central-secret-session-token"
-	device := "trust-device-1"
+	binding := strings.Repeat("a", 64)
+	device := "A-trust-p256-device-key"
+	session := canonicalwallet.Session{VerifierVersion: "wallet-auth-v1", SessionBinding: binding, ChainID: canonicalwallet.ChainID, RequestingProduct: "trust-center", ProductClientID: "ynx-trust-center-v1", BundleID: "com.ynxweb4.trust", Callback: "ynxtrust://wallet-auth/callback", ProductDeviceAlgorithm: "p256-sha256", ProductDeviceKey: device, DeviceBinding: strings.Repeat("b", 64), Account: "ynx1subject", Scopes: []string{"account:read", "trust:appeal", "trust:evidence:read", "trust:evidence:write", "trust:transparency"}, Nonce: "nonce-trust", Purpose: "bounded trust request", RequestDigest: strings.Repeat("c", 64), ApprovalDigest: strings.Repeat("d", 64), IssuedAt: now.Add(-time.Minute), ExpiresAt: now.Add(5 * time.Minute)}
 	seen := []string{}
 	central := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		seen = append(seen, r.Method+" "+r.URL.Path)
@@ -24,12 +26,10 @@ func TestCentralWalletAndAuthoritativeTrustLifecycle(t *testing.T) {
 			t.Errorf("client binding=%q", r.Header.Get("X-YNX-Client"))
 		}
 		switch {
-		case r.URL.Path == "/app/session/challenges":
-			writeJSON(w, 201, map[string]any{"challengeId": "challenge-1", "walletUrl": "ynxwallet://authorize?request=test"})
-		case r.URL.Path == "/app/session/challenges/challenge-1/verify":
-			writeJSON(w, 201, map[string]any{"sessionId": "central-session-1", "token": token, "account": "ynx1subject", "deviceId": device, "scopes": []string{"trust:evidence:write", "trust:evidence:read", "trust:appeal", "trust:transparency"}, "expiresAt": now.Add(time.Hour)})
+		case r.URL.Path == "/app/session/wallet-v1/complete":
+			writeJSON(w, 201, session)
 		default:
-			if r.Header.Get("X-YNX-App-Session") != token || r.Header.Get("X-YNX-Device-ID") != device {
+			if r.Header.Get("X-YNX-Session-Binding") != binding || r.Header.Get("X-YNX-Product-Device-Key") != device {
 				t.Errorf("authority session binding missing")
 			}
 			switch r.URL.Path {
@@ -63,8 +63,8 @@ func TestCentralWalletAndAuthoritativeTrustLifecycle(t *testing.T) {
 		req, _ := http.NewRequest(http.MethodPost, server.URL+path, bytes.NewReader(raw))
 		req.Header.Set("Content-Type", "application/json")
 		if auth {
-			req.Header.Set("Authorization", "Bearer "+token)
-			req.Header.Set("X-YNX-Device-ID", device)
+			req.Header.Set("Authorization", "Bearer "+binding)
+			req.Header.Set("X-YNX-Product-Device-Key", device)
 		}
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
@@ -72,12 +72,7 @@ func TestCentralWalletAndAuthoritativeTrustLifecycle(t *testing.T) {
 		}
 		return resp
 	}
-	resp := post("/api/auth/challenges", map[string]any{"account": "ynx1subject", "deviceId": device}, false)
-	if resp.StatusCode != 201 {
-		t.Fatalf("challenge=%d", resp.StatusCode)
-	}
-	resp.Body.Close()
-	resp = post("/api/auth/challenges/challenge-1/verify", map[string]string{"walletApproval": "signed", "deviceSignature": "signed"}, false)
+	resp := post("/api/auth/session/complete", map[string]any{"registryEntry": map[string]any{}, "authorizationRequest": map[string]any{}, "walletApproval": map[string]any{}, "gatewayCompletion": map[string]any{}}, false)
 	if resp.StatusCode != 201 {
 		b, _ := io.ReadAll(resp.Body)
 		t.Fatalf("verify=%d %s", resp.StatusCode, b)
@@ -89,8 +84,8 @@ func TestCentralWalletAndAuthoritativeTrustLifecycle(t *testing.T) {
 	}
 	resp.Body.Close()
 	req, _ := http.NewRequest(http.MethodGet, server.URL+"/api/authority/evidence/evidence-authority-1", nil)
-	req.Header.Set("Authorization", "Bearer "+token)
-	req.Header.Set("X-YNX-Device-ID", device)
+	req.Header.Set("Authorization", "Bearer "+binding)
+	req.Header.Set("X-YNX-Product-Device-Key", device)
 	resp, _ = http.DefaultClient.Do(req)
 	if resp.StatusCode != 200 {
 		t.Fatalf("lookup=%d", resp.StatusCode)
@@ -112,8 +107,8 @@ func TestCentralWalletAndAuthoritativeTrustLifecycle(t *testing.T) {
 	}
 	resp.Body.Close()
 	bad, _ := http.NewRequest(http.MethodGet, server.URL+"/api/authority/transparency", nil)
-	bad.Header.Set("Authorization", "Bearer "+token)
-	bad.Header.Set("X-YNX-Device-ID", "substituted-device")
+	bad.Header.Set("Authorization", "Bearer "+binding)
+	bad.Header.Set("X-YNX-Product-Device-Key", "substituted-device")
 	resp, _ = http.DefaultClient.Do(bad)
 	if resp.StatusCode != 401 {
 		t.Fatalf("device substitution=%d", resp.StatusCode)
@@ -123,22 +118,19 @@ func TestCentralWalletAndAuthoritativeTrustLifecycle(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if bytes.Contains(raw, []byte(token)) {
-		t.Fatal("central session token persisted in plaintext")
-	}
-	if !bytes.Contains(raw, []byte("tokenHash")) || len(svc.data.AuthorityAudit) < 4 {
-		t.Fatalf("missing session hash or authority audit")
+	if !bytes.Contains(raw, []byte("requestDigest")) || len(svc.data.AuthorityAudit) < 4 {
+		t.Fatalf("missing canonical binding audit or authority audit")
 	}
 	restarted, err := New(Config{StorePath: path, CentralGatewayURL: central.URL, CentralClientID: "ynx-trust-center-v1", Now: func() time.Time { return now }})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := restarted.authenticateCentral("Bearer "+token, device); err != nil {
+	if _, err := restarted.authenticateCentral("Bearer "+binding, device); err != nil {
 		t.Fatalf("restart session recovery: %v", err)
 	}
 	stateReq, _ := http.NewRequest(http.MethodGet, server.URL+"/api/state", nil)
-	stateReq.Header.Set("Authorization", "Bearer "+token)
-	stateReq.Header.Set("X-YNX-Device-ID", device)
+	stateReq.Header.Set("Authorization", "Bearer "+binding)
+	stateReq.Header.Set("X-YNX-Product-Device-Key", device)
 	stateResp, _ := http.DefaultClient.Do(stateReq)
 	if stateResp.StatusCode != http.StatusOK {
 		t.Fatalf("central session not accepted by local product read: %d", stateResp.StatusCode)
@@ -153,7 +145,7 @@ func TestTrustAuthorityUnavailableDoesNotCreateConclusion(t *testing.T) {
 	svc, _ := New(Config{StorePath: filepath.Join(t.TempDir(), "s.json"), CentralGatewayURL: "http://127.0.0.1:1", CentralClientID: "ynx-trust-center-v1"})
 	ts := httptest.NewServer(svc.Handler(nil))
 	defer ts.Close()
-	resp, err := http.Post(ts.URL+"/api/auth/challenges", "application/json", strings.NewReader(`{"account":"ynx1x"}`))
+	resp, err := http.Post(ts.URL+"/api/auth/session/complete", "application/json", strings.NewReader(`{"registryEntry":{},"authorizationRequest":{},"walletApproval":{},"gatewayCompletion":{}}`))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -162,7 +154,7 @@ func TestTrustAuthorityUnavailableDoesNotCreateConclusion(t *testing.T) {
 		t.Fatalf("status=%d", resp.StatusCode)
 	}
 	b, _ := io.ReadAll(resp.Body)
-	if !bytes.Contains(b, []byte(`"state":"unavailable"`)) || !bytes.Contains(b, []byte(`"retry":"safe"`)) {
+	if !bytes.Contains(b, []byte(`"state":"unavailable"`)) || !bytes.Contains(b, []byte(`"authority":"no local session created"`)) {
 		t.Fatalf("unavailable response=%s", b)
 	}
 }

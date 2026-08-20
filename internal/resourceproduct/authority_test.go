@@ -3,6 +3,7 @@ package resourceproduct
 import (
 	"bytes"
 	"encoding/json"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/canonicalwallet"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -16,7 +17,8 @@ import (
 
 func TestCentralWalletQuoteIntentFailureRetrySettlementBoundary(t *testing.T) {
 	now := time.Date(2026, 7, 16, 1, 0, 0, 0, time.UTC)
-	token, device := "resource-central-session", "resource-device-1"
+	binding, device := strings.Repeat("a", 64), "A-resource-p256-device-key"
+	session := canonicalwallet.Session{VerifierVersion: "wallet-auth-v1", SessionBinding: binding, ChainID: canonicalwallet.ChainID, RequestingProduct: "resource-market", ProductClientID: "ynx-resource-market-v1", BundleID: "com.ynxweb4.resource", Callback: "ynxresource://wallet-auth/callback", ProductDeviceAlgorithm: "p256-sha256", ProductDeviceKey: device, DeviceBinding: strings.Repeat("b", 64), Account: "ynx1buyer", Scopes: []string{"account:read", "resource:analytics", "resource:capacity:read", "resource:dispute", "resource:history", "resource:intent", "resource:quote"}, Nonce: "nonce-resource", Purpose: "bounded resource request", RequestDigest: strings.Repeat("c", 64), ApprovalDigest: strings.Repeat("d", 64), IssuedAt: now.Add(-time.Minute), ExpiresAt: now.Add(5 * time.Minute)}
 	var fail atomic.Bool
 	seen := []string{}
 	central := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -25,15 +27,13 @@ func TestCentralWalletQuoteIntentFailureRetrySettlementBoundary(t *testing.T) {
 			t.Errorf("client=%q", r.Header.Get("X-YNX-Client"))
 		}
 		switch r.URL.Path {
-		case "/app/session/challenges":
-			writeJSON(w, 201, map[string]any{"challengeId": "challenge-1", "walletUrl": "ynxwallet://authorize?request=test"})
-		case "/app/session/challenges/challenge-1/verify":
-			writeJSON(w, 201, map[string]any{"sessionId": "session-1", "token": token, "account": "ynx1buyer", "deviceId": device, "scopes": []string{"resource:read", "resource:quote", "resource:intent"}, "expiresAt": now.Add(time.Hour)})
+		case "/app/session/wallet-v1/complete":
+			writeJSON(w, 201, session)
 		case "/app/resource-market/quote":
 			if r.URL.Query().Get("resourceType") != "compute" || r.URL.Query().Get("amount") != "25" {
 				t.Errorf("quote query not forwarded: %s", r.URL.RawQuery)
 			}
-			if r.Header.Get("X-YNX-App-Session") != token {
+			if r.Header.Get("X-YNX-Session-Binding") != binding || r.Header.Get("X-YNX-Product-Device-Key") != device {
 				t.Error("quote session missing")
 			}
 			writeJSON(w, 200, map[string]any{"resourceType": "compute", "amount": 25, "fee": 50, "currency": "YNXT", "source": "authoritative-policy"})
@@ -60,8 +60,8 @@ func TestCentralWalletQuoteIntentFailureRetrySettlementBoundary(t *testing.T) {
 		req, _ := http.NewRequest(http.MethodPost, ts.URL+path, bytes.NewReader(raw))
 		req.Header.Set("Content-Type", "application/json")
 		if auth {
-			req.Header.Set("Authorization", "Bearer "+token)
-			req.Header.Set("X-YNX-Device-ID", device)
+			req.Header.Set("Authorization", "Bearer "+binding)
+			req.Header.Set("X-YNX-Product-Device-Key", device)
 		}
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
@@ -69,16 +69,14 @@ func TestCentralWalletQuoteIntentFailureRetrySettlementBoundary(t *testing.T) {
 		}
 		return resp
 	}
-	resp := post("/api/auth/challenges", map[string]string{"account": "ynx1buyer", "deviceId": device}, false)
-	resp.Body.Close()
-	resp = post("/api/auth/challenges/challenge-1/verify", map[string]string{"walletApproval": "signed", "deviceSignature": "signed"}, false)
+	resp := post("/api/auth/session/complete", map[string]any{"registryEntry": map[string]any{}, "authorizationRequest": map[string]any{}, "walletApproval": map[string]any{}, "gatewayCompletion": map[string]any{}}, false)
 	if resp.StatusCode != 201 {
 		t.Fatalf("verify=%d", resp.StatusCode)
 	}
 	resp.Body.Close()
 	req, _ := http.NewRequest(http.MethodGet, ts.URL+"/api/authority/quote?resourceType=compute&amount=25", nil)
-	req.Header.Set("Authorization", "Bearer "+token)
-	req.Header.Set("X-YNX-Device-ID", device)
+	req.Header.Set("Authorization", "Bearer "+binding)
+	req.Header.Set("X-YNX-Product-Device-Key", device)
 	resp, _ = http.DefaultClient.Do(req)
 	if resp.StatusCode != 200 {
 		t.Fatalf("quote=%d", resp.StatusCode)
@@ -116,8 +114,8 @@ func TestCentralWalletQuoteIntentFailureRetrySettlementBoundary(t *testing.T) {
 	}
 	resp.Body.Close()
 	raw, _ := os.ReadFile(path)
-	if bytes.Contains(raw, []byte(token)) || bytes.Contains(raw, []byte("wallet-signed-envelope")) {
-		t.Fatal("session token or signed intent payload persisted")
+	if bytes.Contains(raw, []byte("wallet-signed-envelope")) {
+		t.Fatal("signed intent payload persisted")
 	}
 	if !bytes.Contains(raw, []byte("requestHash")) || len(svc.data.AuthorityAudit) < 3 {
 		t.Fatal("hash-only audit missing")
@@ -126,12 +124,12 @@ func TestCentralWalletQuoteIntentFailureRetrySettlementBoundary(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := restarted.authenticateCentral(token, device); err != nil {
+	if _, err := restarted.authenticateCentral(binding, device); err != nil {
 		t.Fatalf("restart session: %v", err)
 	}
 	stateReq, _ := http.NewRequest(http.MethodGet, ts.URL+"/api/state", nil)
-	stateReq.Header.Set("Authorization", "Bearer "+token)
-	stateReq.Header.Set("X-YNX-Device-ID", device)
+	stateReq.Header.Set("Authorization", "Bearer "+binding)
+	stateReq.Header.Set("X-YNX-Product-Device-Key", device)
 	stateResp, _ := http.DefaultClient.Do(stateReq)
 	if stateResp.StatusCode != http.StatusOK {
 		t.Fatalf("central session not accepted by local product read: %d", stateResp.StatusCode)
@@ -146,7 +144,7 @@ func TestResourceAuthorityUnavailableAndNoFakeSettlement(t *testing.T) {
 	svc, _ := New(Config{StorePath: filepath.Join(t.TempDir(), "s.json"), CentralGatewayURL: "http://127.0.0.1:1", CentralClientID: "ynx-resource-market-v1"})
 	ts := httptest.NewServer(svc.Handler(nil))
 	defer ts.Close()
-	resp, err := http.Post(ts.URL+"/api/auth/challenges", "application/json", strings.NewReader(`{"account":"ynx1x"}`))
+	resp, err := http.Post(ts.URL+"/api/auth/session/complete", "application/json", strings.NewReader(`{"registryEntry":{},"authorizationRequest":{},"walletApproval":{},"gatewayCompletion":{}}`))
 	if err != nil {
 		t.Fatal(err)
 	}

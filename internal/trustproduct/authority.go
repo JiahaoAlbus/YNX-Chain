@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/canonicalwallet"
 	"io"
 	"net/http"
 	"net/url"
@@ -32,10 +33,10 @@ func (s *Service) centralRequest(r *http.Request, method, path string, body []by
 	}
 	req.Header.Set("X-YNX-Client", s.cfg.CentralClientID)
 	if session != "" {
-		req.Header.Set("X-YNX-App-Session", strings.TrimSpace(strings.TrimPrefix(session, "Bearer ")))
+		req.Header.Set("X-YNX-Session-Binding", strings.TrimSpace(strings.TrimPrefix(session, "Bearer ")))
 	}
 	if device != "" {
-		req.Header.Set("X-YNX-Device-ID", device)
+		req.Header.Set("X-YNX-Product-Device-Key", device)
 	}
 	if len(body) > 0 {
 		req.Header.Set("Content-Type", "application/json")
@@ -57,10 +58,11 @@ func (s *Service) centralRequest(r *http.Request, method, path string, body []by
 
 func (s *Service) registerAuthorityRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/meta", func(w http.ResponseWriter, r *http.Request) {
-		writeJSON(w, 200, map[string]any{"product": "ynx-trust-center", "chainId": "ynx_6423-1", "evmChainId": 6423, "nativeAsset": "YNXT", "centralGatewayConfigured": s.cfg.CentralGatewayURL != "", "centralClientId": s.cfg.CentralClientID, "walletCallback": "ynxtrust://auth/callback", "scopes": []string{"trust:evidence:write", "trust:evidence:read", "trust:appeal", "trust:transparency"}, "authority": "Governance and Trust status comes only from the central Gateway and authoritative Trust API."})
+		writeJSON(w, 200, map[string]any{"product": "ynx-trust-center", "productId": "ynx-trust-center", "chainId": canonicalwallet.ChainID, "evmChainId": 6423, "nativeAsset": "YNXT", "centralGatewayConfigured": s.cfg.CentralGatewayURL != "", "integratedCentral": false, "registry": s.walletRegistry(), "walletTransport": "ynxwallet://authorize?request=<base64url(canonical JSON)>", "authority": "Governance and Trust status comes only from the central Gateway and authoritative Trust API."})
 	})
-	mux.HandleFunc("POST /api/auth/challenges", s.handleCentralChallenge)
-	mux.HandleFunc("POST /api/auth/challenges/{id}/verify", s.handleCentralVerify)
+	mux.HandleFunc("POST /api/auth/challenges", legacyWalletGone)
+	mux.HandleFunc("POST /api/auth/challenges/{id}/verify", legacyWalletGone)
+	mux.HandleFunc("POST /api/auth/session/complete", s.handleCanonicalComplete)
 	mux.HandleFunc("POST /api/auth/revoke", s.handleCentralRevoke)
 	for _, route := range []struct{ pattern, path string }{
 		{"POST /api/authority/evidence", "/app/trust/evidence"}, {"GET /api/authority/evidence/{id}", "/app/trust/evidence/{id}"},
@@ -84,6 +86,34 @@ func readBoundedBody(w http.ResponseWriter, r *http.Request) ([]byte, bool) {
 		return nil, false
 	}
 	return raw, true
+}
+func legacyWalletGone(w http.ResponseWriter, _ *http.Request) {
+	writeJSON(w, http.StatusGone, map[string]string{"error": "legacy challenge login is disabled; use canonical Wallet V1 authorization envelope", "state": "migration_required"})
+}
+func (s *Service) handleCanonicalComplete(w http.ResponseWriter, r *http.Request) {
+	raw, ok := readBoundedBody(w, r)
+	if !ok {
+		return
+	}
+	resp, err := s.centralRequest(r, http.MethodPost, "/app/session/wallet-v1/complete", raw, "", "")
+	if err != nil {
+		writeJSON(w, 503, map[string]string{"error": "canonical Wallet/Gateway unavailable", "state": "unavailable", "authority": "no local session created"})
+		return
+	}
+	if resp.Status/100 != 2 {
+		copyCentral(w, resp)
+		return
+	}
+	session, err := canonicalwallet.ParseVerifiedSession(resp.Body, s.walletRegistry(), s.cfg.Now().UTC())
+	if err != nil {
+		writeJSON(w, 502, map[string]string{"error": err.Error(), "state": "tampered_or_incompatible", "authority": "session rejected"})
+		return
+	}
+	if err := s.storeCentralSession(session); err != nil {
+		writeJSON(w, 500, map[string]string{"error": "canonical session persistence failed"})
+		return
+	}
+	copyCentral(w, resp)
 }
 func (s *Service) handleCentralChallenge(w http.ResponseWriter, r *http.Request) {
 	raw, ok := readBoundedBody(w, r)
@@ -120,20 +150,18 @@ func (s *Service) handleCentralVerify(w http.ResponseWriter, r *http.Request) {
 			writeJSON(w, 502, map[string]string{"error": "central Gateway returned an invalid session binding"})
 			return
 		}
-		if err := s.storeCentralSession(out.Token, CentralSession{ID: out.SessionID, Account: out.Account, DeviceID: out.DeviceID, Scopes: out.Scopes, ExpiresAt: out.ExpiresAt}); err != nil {
-			writeJSON(w, 500, map[string]string{"error": "central session audit persistence failed"})
-			return
-		}
+		writeJSON(w, http.StatusGone, map[string]string{"error": "legacy central session response rejected"})
+		return
 	}
 	copyCentral(w, resp)
 }
 func (s *Service) handleCentralRevoke(w http.ResponseWriter, r *http.Request) {
-	token, device := r.Header.Get("Authorization"), r.Header.Get("X-YNX-Device-ID")
+	token, device := r.Header.Get("Authorization"), r.Header.Get("X-YNX-Product-Device-Key")
 	if _, err := s.authenticateCentral(token, device); err != nil {
 		writeErr(w, err)
 		return
 	}
-	resp, err := s.centralRequest(r, http.MethodPost, "/app/session/revoke", nil, token, device)
+	resp, err := s.centralRequest(r, http.MethodPost, "/app/session/wallet-v1/revoke", nil, token, device)
 	if err != nil {
 		writeJSON(w, 503, map[string]string{"error": err.Error(), "state": "unavailable", "retry": "safe"})
 		return
@@ -144,7 +172,7 @@ func (s *Service) handleCentralRevoke(w http.ResponseWriter, r *http.Request) {
 	copyCentral(w, resp)
 }
 func (s *Service) handleAuthorityProxy(w http.ResponseWriter, r *http.Request, path string) {
-	token, device := r.Header.Get("Authorization"), r.Header.Get("X-YNX-Device-ID")
+	token, device := r.Header.Get("Authorization"), r.Header.Get("X-YNX-Product-Device-Key")
 	actor, err := s.authenticateCentral(token, device)
 	if err != nil {
 		writeErr(w, err)

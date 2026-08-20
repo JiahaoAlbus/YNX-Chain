@@ -1,0 +1,8 @@
+{
+  "generatedAt": "2026-07-19T03:50:00+08:00",
+  "sourceCommit": "PENDING_SOURCE_COMMIT",
+  "artifacts": [
+    {"productId":"ynx-trust-center-v1","kind":"android-debug-apk","path":"apps/trust-center/mobile/android/app/build/outputs/apk/debug/app-debug.apk","sha256":"3303230854efd5f30f7f813352f28a30ffdd54088232e3a336be70bc98b9f6d2","bytes":20544,"signingClass":"debug","hosted":false},
+    {"productId":"ynx-resource-market-v1","kind":"android-debug-apk","path":"apps/resource-market/mobile/android/app/build/outputs/apk/debug/app-debug.apk","sha256":"b122486677e480685c193be1c7c4c0ec3e2768be6f18f61f9401a015762f44db","bytes":20716,"signingClass":"debug","hosted":false}
+  ]
+}

@@ -8,15 +8,95 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 )
 
 func evidence() []Evidence {
-	return []Evidence{{Source: "signed transaction record", Digest: "sha256:001122", Summary: "A bounded event with source provenance", VisibleToSubject: true}}
+	return []Evidence{{Packet: "sha256:" + strings.Repeat("a", 64), Source: "signed transaction record", Digest: "sha256:" + strings.Repeat("b", 64), SourceHash: "sha256:" + strings.Repeat("c", 64), Authority: "YNX evidence authority", Jurisdiction: "YNX testnet", Scope: "one account and event", Assets: []string{"YNXT evidence only"}, ExpiresAt: time.Date(2030, 1, 1, 0, 0, 0, 0, time.UTC), Summary: "A bounded event with source provenance", VisibleToSubject: true}}
+}
+
+func TestAI429EmptyAndCancellationRemainHonest(t *testing.T) {
+	now := time.Now().UTC()
+	makeCase := func(t *testing.T, provider *httptest.Server) (*Service, Actor, string) {
+		t.Helper()
+		cfg := Config{StorePath: filepath.Join(t.TempDir(), "state.json"), Now: func() time.Time { return now }, AIModel: "test-model"}
+		if provider != nil {
+			cfg.AIURL, cfg.AIKey = provider.URL, "server-key"
+		}
+		svc, err := New(cfg)
+		if err != nil {
+			t.Fatal(err)
+		}
+		c := do(t, svc, Actor{"reporter", "reporter"}, Action{Type: "submit_case", IdempotencyKey: "case", Subject: "subject", Purpose: "explain", RequestScope: "one event", RequestedAction: "review", Evidence: evidence()}).Case
+		return svc, Actor{"subject", "user"}, c.ID
+	}
+	for name, handler := range map[string]http.HandlerFunc{
+		"rate_limited": func(w http.ResponseWriter, _ *http.Request) {
+			writeJSON(w, http.StatusTooManyRequests, map[string]string{"error": "rate limited"})
+		},
+		"empty": func(w http.ResponseWriter, _ *http.Request) {
+			w.Header().Set("Content-Type", "text/event-stream")
+			w.WriteHeader(http.StatusOK)
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			provider := httptest.NewServer(handler)
+			defer provider.Close()
+			svc, actor, caseID := makeCase(t, provider)
+			prepared := do(t, svc, actor, Action{Type: "ai_prepare", IdempotencyKey: "prepare", CaseID: caseID, Purpose: "explain", Context: []string{"evidence_summary"}}).AI
+			got := do(t, svc, actor, Action{Type: "ai_run", IdempotencyKey: "run", AIID: prepared.ID, Permission: true}).AI
+			if got.Status != "failed" || got.Error == "" {
+				t.Fatalf("dishonest provider result: %+v", got)
+			}
+		})
+	}
+	started := make(chan struct{})
+	release := make(chan struct{})
+	var once sync.Once
+	provider := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		once.Do(func() { close(started) })
+		select {
+		case <-r.Context().Done():
+			return
+		case <-release:
+			w.Header().Set("Content-Type", "text/event-stream")
+			_, _ = w.Write([]byte("data: {\"text\":\"late\"}\n\n"))
+		}
+	}))
+	defer provider.Close()
+	defer close(release)
+	svc, actor, caseID := makeCase(t, provider)
+	prepared := do(t, svc, actor, Action{Type: "ai_prepare", IdempotencyKey: "prepare-cancel", CaseID: caseID, Purpose: "explain", Context: []string{"appeal"}}).AI
+	done := make(chan Result, 1)
+	go func() {
+		r, _ := svc.Do(actor, Action{Type: "ai_run", IdempotencyKey: "run-cancel", AIID: prepared.ID, Permission: true})
+		done <- r
+	}()
+	<-started
+	cancelled := do(t, svc, actor, Action{Type: "ai_cancel", IdempotencyKey: "cancel", AIID: prepared.ID}).AI
+	if cancelled.Status != "cancelled" {
+		t.Fatalf("cancel=%+v", cancelled)
+	}
+	select {
+	case result := <-done:
+		if result.AI == nil || result.AI.Status != "cancelled" {
+			t.Fatalf("late provider overwrote cancel: %+v", result)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("AI cancellation did not interrupt provider request")
+	}
 }
 func do(t *testing.T, s *Service, a Actor, in Action) Result {
 	t.Helper()
+	if in.Type == "submit_case" {
+		in.Requester = a.ID
+		in.Authority = "YNX evidence authority"
+		in.Jurisdiction = "YNX testnet"
+		in.AssetBoundary = "YNXT advisory record only; no freeze, seize, transfer or blacklist"
+		in.RequestExpiresAt = time.Date(2030, 1, 1, 0, 0, 0, 0, time.UTC)
+	}
 	r, err := s.Do(a, in)
 	if err != nil {
 		t.Fatal(err)
@@ -35,11 +115,11 @@ func TestCaseLifecycleRoleSeparationCorrectionExpiryReplayRestart(t *testing.T) 
 	reviewer := Actor{"ynx1reviewer", "reviewer"}
 	appeals := Actor{"ynx1appeals", "appeal_reviewer"}
 	illegal := do(t, svc, reporter, Action{Type: "submit_case", IdempotencyKey: "illegal", Subject: user.ID, Purpose: "request", RequestScope: "one event", RequestedAction: "freeze native YNXT", Evidence: evidence()}).Case
-	if illegal.Status != "rejected_illegal" || !strings.Contains(illegal.ValidityReason, "cannot") && !strings.Contains(illegal.ValidityReason, "illegal") {
+	if illegal.Status != "illegal_or_abusive" || !strings.Contains(illegal.ValidityReason, "cannot") && !strings.Contains(illegal.ValidityReason, "prohibited") {
 		t.Fatalf("illegal request not rejected: %+v", illegal)
 	}
 	overbroad := do(t, svc, reporter, Action{Type: "submit_case", IdempotencyKey: "broad", Subject: user.ID, Purpose: "request", RequestScope: "all accounts", RequestedAction: "review", Evidence: evidence()}).Case
-	if overbroad.Status != "rejected_overbroad" {
+	if overbroad.Status != "overbroad" {
 		t.Fatalf("overbroad=%s", overbroad.Status)
 	}
 	if _, err := svc.Do(reviewer, Action{Type: "review", IdempotencyKey: "illegal-valid", CaseID: illegal.ID, Decision: "valid", Reason: "override", Classification: "allowed"}); err == nil {
@@ -63,7 +143,7 @@ func TestCaseLifecycleRoleSeparationCorrectionExpiryReplayRestart(t *testing.T) 
 		t.Fatal("owner reviewed own case")
 	}
 	reviewed := do(t, svc, reviewer, Action{Type: "review", IdempotencyKey: "review", CaseID: submitted.ID, Decision: "valid", Reason: "Evidence supports a bounded classification", Classification: "reviewed event"}).Case
-	labelled := do(t, svc, reviewer, Action{Type: "set_label", IdempotencyKey: "label", CaseID: reviewed.ID, LabelValue: "reviewed", LabelSource: "case evidence records", ExpiresAt: now.Add(time.Hour)}).Case
+	labelled := do(t, svc, reviewer, Action{Type: "set_label", IdempotencyKey: "label", CaseID: reviewed.ID, LabelValue: "reviewed", LabelSource: "case evidence records", Confidence: "high", Severity: "advisory", ExpiresAt: now.Add(time.Hour)}).Case
 	if labelled.Label == nil || labelled.Label.Source == "" {
 		t.Fatal("visible label source missing")
 	}
@@ -98,7 +178,7 @@ func TestLabelExpiryAndEvidenceRequired(t *testing.T) {
 	}
 	c := do(t, svc, Actor{"r", "reporter"}, Action{Type: "submit_case", IdempotencyKey: "c", Subject: "s", Purpose: "p", RequestScope: "one", RequestedAction: "review", Evidence: evidence()}).Case
 	c = do(t, svc, Actor{"v", "reviewer"}, Action{Type: "review", IdempotencyKey: "v", CaseID: c.ID, Decision: "valid", Reason: "bounded", Classification: "reviewed"}).Case
-	do(t, svc, Actor{"v", "reviewer"}, Action{Type: "set_label", IdempotencyKey: "l", CaseID: c.ID, LabelValue: "reviewed", LabelSource: "evidence", ExpiresAt: now.Add(time.Minute)})
+	do(t, svc, Actor{"v", "reviewer"}, Action{Type: "set_label", IdempotencyKey: "l", CaseID: c.ID, LabelValue: "reviewed", LabelSource: "evidence", Confidence: "medium", Severity: "advisory", ExpiresAt: now.Add(time.Minute)})
 	now = now.Add(2 * time.Minute)
 	do(t, svc, Actor{"system", "system"}, Action{Type: "expire_labels", IdempotencyKey: "x"})
 	view, _ := svc.View(Actor{"s", "user"})
@@ -139,7 +219,7 @@ func TestAIProviderPermissionFailureAndNoCaseMutation(t *testing.T) {
 		t.Fatalf("AI run %+v", run)
 	}
 	view, _ := svc.View(Actor{"s", "user"})
-	if view["cases"].([]Case)[0].Status != "submitted" {
+	if view["cases"].([]Case)[0].Status != "governance_review" {
 		t.Fatal("AI changed case state")
 	}
 	unavailable, _ := New(Config{StorePath: filepath.Join(t.TempDir(), "u.json")})

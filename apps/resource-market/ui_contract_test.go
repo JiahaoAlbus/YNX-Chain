@@ -21,7 +21,7 @@ func TestResourceUIAccessibilityResponsiveAndBoundaryContract(t *testing.T) {
 			t.Errorf("missing UI contract %q", want)
 		}
 	}
-	for _, want := range []string{"#002FA7", "@media(max-width:720px)", "prefers-reduced-motion", "focus-visible"} {
+	for _, want := range []string{"--brand: #002fa7", "--success: #287254", "@media (max-width: 700px)", "prefers-reduced-motion", "focus-visible", "prefers-color-scheme: dark", "grid-template-columns: repeat(5, 1fr)"} {
 		if !strings.Contains(c, want) {
 			t.Errorf("missing CSS contract %q", want)
 		}

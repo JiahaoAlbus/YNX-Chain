@@ -2,16 +2,16 @@ package trustproduct
 
 import (
 	"bytes"
+	"context"
 	"crypto/sha256"
-	"crypto/subtle"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/canonicalwallet"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/productstore"
 	"io"
 	"net/http"
-	"os"
-	"path/filepath"
 	"sort"
 	"strings"
 	"sync"
@@ -36,18 +36,28 @@ type Actor struct{ ID, Role string }
 
 type Evidence struct {
 	ID               string    `json:"id"`
+	Packet           string    `json:"packet"`
 	Source           string    `json:"source"`
 	Digest           string    `json:"digest"`
+	SourceHash       string    `json:"sourceHash"`
+	Authority        string    `json:"authority"`
+	Jurisdiction     string    `json:"jurisdiction"`
+	Scope            string    `json:"scope"`
+	Assets           []string  `json:"assets"`
+	ExpiresAt        time.Time `json:"expiresAt"`
 	Summary          string    `json:"summary"`
 	CollectedAt      time.Time `json:"collectedAt"`
 	VisibleToSubject bool      `json:"visibleToSubject"`
 }
 
 type Label struct {
-	Value     string    `json:"value"`
-	Source    string    `json:"source"`
-	ExpiresAt time.Time `json:"expiresAt"`
-	Active    bool      `json:"active"`
+	Value        string    `json:"value"`
+	Source       string    `json:"source"`
+	Confidence   string    `json:"confidence"`
+	Severity     string    `json:"severity"`
+	AdvisoryOnly bool      `json:"advisoryOnly"`
+	ExpiresAt    time.Time `json:"expiresAt"`
+	Active       bool      `json:"active"`
 }
 
 type Notice struct {
@@ -69,22 +79,28 @@ type Appeal struct {
 }
 
 type Case struct {
-	ID              string     `json:"id"`
-	Owner           string     `json:"owner"`
-	Subject         string     `json:"subject"`
-	RequestScope    string     `json:"requestScope"`
-	Purpose         string     `json:"purpose"`
-	RequestedAction string     `json:"requestedAction"`
-	Evidence        []Evidence `json:"evidence"`
-	Status          string     `json:"status"`
-	ValidityReason  string     `json:"validityReason"`
-	Classification  string     `json:"classification,omitempty"`
-	Reviewer        string     `json:"reviewer,omitempty"`
-	Label           *Label     `json:"label,omitempty"`
-	Notice          *Notice    `json:"notice,omitempty"`
-	Appeals         []Appeal   `json:"appeals"`
-	CreatedAt       time.Time  `json:"createdAt"`
-	UpdatedAt       time.Time  `json:"updatedAt"`
+	ID               string     `json:"id"`
+	Owner            string     `json:"owner"`
+	Subject          string     `json:"subject"`
+	RequestScope     string     `json:"requestScope"`
+	Purpose          string     `json:"purpose"`
+	RequestedAction  string     `json:"requestedAction"`
+	Requester        string     `json:"requester"`
+	Authority        string     `json:"authority"`
+	Jurisdiction     string     `json:"jurisdiction"`
+	AssetBoundary    string     `json:"assetBoundary"`
+	RequestExpiresAt time.Time  `json:"requestExpiresAt"`
+	Evidence         []Evidence `json:"evidence"`
+	Status           string     `json:"status"`
+	ValidityReason   string     `json:"validityReason"`
+	Validity         string     `json:"validity"`
+	Classification   string     `json:"classification,omitempty"`
+	Reviewer         string     `json:"reviewer,omitempty"`
+	Label            *Label     `json:"label,omitempty"`
+	Notice           *Notice    `json:"notice,omitempty"`
+	Appeals          []Appeal   `json:"appeals"`
+	CreatedAt        time.Time  `json:"createdAt"`
+	UpdatedAt        time.Time  `json:"updatedAt"`
 }
 
 type AIRecord struct {
@@ -117,13 +133,8 @@ type Audit struct {
 	At      time.Time `json:"at"`
 }
 type CentralSession struct {
-	ID        string    `json:"id"`
-	TokenHash string    `json:"tokenHash"`
-	Account   string    `json:"account"`
-	DeviceID  string    `json:"deviceId"`
-	Scopes    []string  `json:"scopes"`
-	ExpiresAt time.Time `json:"expiresAt"`
-	Status    string    `json:"status"`
+	canonicalwallet.Session
+	Status string `json:"status"`
 }
 type AuthorityAudit struct {
 	ID           string    `json:"id"`
@@ -155,6 +166,7 @@ type Service struct {
 	data     snapshot
 	client   *http.Client
 	sessions map[string]Actor
+	cancels  map[string]context.CancelFunc
 }
 
 func New(cfg Config) (*Service, error) {
@@ -176,7 +188,7 @@ func New(cfg Config) (*Service, error) {
 			return nil, errors.New("central Gateway client ID is required")
 		}
 	}
-	s := &Service{cfg: cfg, client: &http.Client{Timeout: 20 * time.Second}, sessions: map[string]Actor{}, data: snapshot{Version: 1, Cases: map[string]Case{}, AI: map[string]AIRecord{}, Replay: map[string]replay{}, Sessions: map[string]CentralSession{}}}
+	s := &Service{cfg: cfg, client: &http.Client{Timeout: 20 * time.Second}, sessions: map[string]Actor{}, cancels: map[string]context.CancelFunc{}, data: snapshot{Version: 1, Cases: map[string]Case{}, AI: map[string]AIRecord{}, Replay: map[string]replay{}, Sessions: map[string]CentralSession{}}}
 	for token, actor := range cfg.Sessions {
 		if strings.TrimSpace(token) == "" || !validActor(actor) {
 			return nil, errors.New("Trust session registry contains an invalid token or actor")
@@ -191,16 +203,12 @@ func New(cfg Config) (*Service, error) {
 }
 
 func (s *Service) load() error {
-	b, err := os.ReadFile(s.cfg.StorePath)
-	if errors.Is(err, os.ErrNotExist) {
-		return nil
-	}
-	if err != nil {
-		return fmt.Errorf("read trust store: %w", err)
-	}
 	var d snapshot
-	if err := json.Unmarshal(b, &d); err != nil {
-		return fmt.Errorf("decode trust store: %w", err)
+	if _, err := productstore.Load(s.cfg.StorePath, &d); err != nil {
+		return fmt.Errorf("load trust store: %w", err)
+	}
+	if d.Version == 0 {
+		return nil
 	}
 	if d.Version != 1 {
 		return fmt.Errorf("unsupported trust store version %d", d.Version)
@@ -222,18 +230,7 @@ func (s *Service) load() error {
 }
 
 func (s *Service) saveLocked() error {
-	if err := os.MkdirAll(filepath.Dir(s.cfg.StorePath), 0o700); err != nil {
-		return err
-	}
-	b, err := json.MarshalIndent(s.data, "", "  ")
-	if err != nil {
-		return err
-	}
-	tmp := s.cfg.StorePath + ".tmp"
-	if err := os.WriteFile(tmp, b, 0o600); err != nil {
-		return err
-	}
-	return os.Rename(tmp, s.cfg.StorePath)
+	return productstore.Save(s.cfg.StorePath, s.data)
 }
 
 func (s *Service) nextLocked(prefix string) string {
@@ -254,25 +251,32 @@ func role(a Actor, roles ...string) bool {
 }
 
 type Action struct {
-	Type            string     `json:"type"`
-	IdempotencyKey  string     `json:"idempotencyKey"`
-	CaseID          string     `json:"caseId,omitempty"`
-	AppealID        string     `json:"appealId,omitempty"`
-	Subject         string     `json:"subject,omitempty"`
-	RequestScope    string     `json:"requestScope,omitempty"`
-	Purpose         string     `json:"purpose,omitempty"`
-	RequestedAction string     `json:"requestedAction,omitempty"`
-	Evidence        []Evidence `json:"evidence,omitempty"`
-	Decision        string     `json:"decision,omitempty"`
-	Reason          string     `json:"reason,omitempty"`
-	Classification  string     `json:"classification,omitempty"`
-	LabelValue      string     `json:"labelValue,omitempty"`
-	LabelSource     string     `json:"labelSource,omitempty"`
-	ExpiresAt       time.Time  `json:"expiresAt,omitempty"`
-	Context         []string   `json:"context,omitempty"`
-	Permission      bool       `json:"permission,omitempty"`
-	Language        string     `json:"language,omitempty"`
-	AIID            string     `json:"aiId,omitempty"`
+	Type             string     `json:"type"`
+	IdempotencyKey   string     `json:"idempotencyKey"`
+	CaseID           string     `json:"caseId,omitempty"`
+	AppealID         string     `json:"appealId,omitempty"`
+	Subject          string     `json:"subject,omitempty"`
+	RequestScope     string     `json:"requestScope,omitempty"`
+	Purpose          string     `json:"purpose,omitempty"`
+	RequestedAction  string     `json:"requestedAction,omitempty"`
+	Requester        string     `json:"requester,omitempty"`
+	Authority        string     `json:"authority,omitempty"`
+	Jurisdiction     string     `json:"jurisdiction,omitempty"`
+	AssetBoundary    string     `json:"assetBoundary,omitempty"`
+	RequestExpiresAt time.Time  `json:"requestExpiresAt,omitempty"`
+	Evidence         []Evidence `json:"evidence,omitempty"`
+	Decision         string     `json:"decision,omitempty"`
+	Reason           string     `json:"reason,omitempty"`
+	Classification   string     `json:"classification,omitempty"`
+	LabelValue       string     `json:"labelValue,omitempty"`
+	LabelSource      string     `json:"labelSource,omitempty"`
+	Confidence       string     `json:"confidence,omitempty"`
+	Severity         string     `json:"severity,omitempty"`
+	ExpiresAt        time.Time  `json:"expiresAt,omitempty"`
+	Context          []string   `json:"context,omitempty"`
+	Permission       bool       `json:"permission,omitempty"`
+	Language         string     `json:"language,omitempty"`
+	AIID             string     `json:"aiId,omitempty"`
 }
 
 type Result struct {
@@ -288,12 +292,17 @@ func (s *Service) Do(a Actor, in Action) (Result, error) {
 	if strings.TrimSpace(in.IdempotencyKey) == "" {
 		return Result{}, apiError{400, "idempotencyKey is required"}
 	}
+	if len(in.IdempotencyKey) > 128 {
+		return Result{}, apiError{400, "idempotencyKey exceeds 128 characters"}
+	}
 	b, _ := json.Marshal(in)
 	sum := sha256.Sum256(append([]byte(a.ID+"|"+a.Role+"|"), b...))
 	digest := hex.EncodeToString(sum[:])
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if old, ok := s.data.Replay[in.IdempotencyKey]; ok {
+	previous := cloneSnapshot(s.data)
+	replayKey := a.ID + "|" + in.IdempotencyKey
+	if old, ok := s.data.Replay[replayKey]; ok {
 		if old.Digest != digest {
 			return Result{}, apiError{409, "idempotency key reused with different input"}
 		}
@@ -301,6 +310,7 @@ func (s *Service) Do(a Actor, in Action) (Result, error) {
 	}
 	res, err := s.doLocked(a, in)
 	if err != nil {
+		s.data = previous
 		return Result{}, err
 	}
 	kind, id := "", ""
@@ -310,11 +320,19 @@ func (s *Service) Do(a Actor, in Action) (Result, error) {
 	if res.AI != nil {
 		kind, id = "ai", res.AI.ID
 	}
-	s.data.Replay[in.IdempotencyKey] = replay{Digest: digest, Kind: kind, ID: id}
+	s.data.Replay[replayKey] = replay{Digest: digest, Kind: kind, ID: id}
 	if err := s.saveLocked(); err != nil {
+		s.data = previous
 		return Result{}, err
 	}
 	return res, nil
+}
+
+func cloneSnapshot(in snapshot) snapshot {
+	b, _ := json.Marshal(in)
+	var out snapshot
+	_ = json.Unmarshal(b, &out)
+	return out
 }
 
 func (s *Service) replayLocked(r replay) Result {
@@ -345,53 +363,43 @@ func (s *Service) auditLocked(a Actor, action, target, outcome string) {
 	s.data.Audit = append(s.data.Audit, Audit{ID: s.nextLocked("audit"), Actor: a.ID, Role: a.Role, Action: action, Target: target, Outcome: outcome, At: s.cfg.Now().UTC()})
 }
 
-func (s *Service) storeCentralSession(token string, v CentralSession) error {
-	sum := sha256.Sum256([]byte(token))
-	v.TokenHash = hex.EncodeToString(sum[:])
-	v.Status = "active"
+func (s *Service) walletRegistry() canonicalwallet.Registry {
+	return canonicalwallet.Registry{SchemaVersion: 2, ProductClientID: s.cfg.CentralClientID, RequestingProduct: "trust-center", BundleID: "com.ynxweb4.trust", Callbacks: []string{"ynxtrust://wallet-auth/callback"}, Scopes: []string{"account:read", "trust:appeal", "trust:evidence:read", "trust:evidence:write", "trust:transparency"}, MaxScopes: 5, ProductDeviceAlgorithms: []string{"p256-sha256"}}
+}
+func (s *Service) storeCentralSession(v canonicalwallet.Session) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.data.Sessions[v.ID] = v
+	s.data.Sessions[v.SessionBinding] = CentralSession{Session: v, Status: "active"}
 	return s.saveLocked()
 }
-func (s *Service) authenticateCentral(token, device string) (Actor, error) {
-	token = strings.TrimSpace(strings.TrimPrefix(token, "Bearer "))
-	if token == "" || device == "" {
-		return Actor{}, apiError{401, "central Wallet session and device are required"}
-	}
-	sum := sha256.Sum256([]byte(token))
-	want := hex.EncodeToString(sum[:])
+func (s *Service) authenticateCentral(binding, deviceKey string) (Actor, error) {
+	binding = strings.TrimSpace(strings.TrimPrefix(binding, "Bearer "))
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	now := s.cfg.Now().UTC()
-	for _, v := range s.data.Sessions {
-		if len(v.TokenHash) == len(want) && subtle.ConstantTimeCompare([]byte(v.TokenHash), []byte(want)) == 1 {
-			if v.Status != "active" || v.DeviceID != device || !now.Before(v.ExpiresAt) {
-				break
-			}
-			return Actor{ID: v.Account, Role: "user"}, nil
-		}
+	v, ok := s.data.Sessions[binding]
+	if !ok || v.Status != "active" {
+		return Actor{}, apiError{401, "canonical Wallet session is missing, revoked or unknown"}
 	}
-	return Actor{}, apiError{401, "central Wallet session is invalid, expired or revoked"}
+	if err := canonicalwallet.AssertActive(v.Session, binding, strings.TrimSpace(deviceKey), []string{"account:read"}, s.cfg.Now().UTC()); err != nil {
+		return Actor{}, apiError{401, err.Error()}
+	}
+	return Actor{ID: v.Account, Role: "user"}, nil
 }
-func (s *Service) revokeCentral(token, device string) error {
-	a, err := s.authenticateCentral(token, device)
+func (s *Service) revokeCentral(binding, deviceKey string) error {
+	a, err := s.authenticateCentral(binding, deviceKey)
 	if err != nil {
 		return err
 	}
-	clean := strings.TrimSpace(strings.TrimPrefix(token, "Bearer "))
-	sum := sha256.Sum256([]byte(clean))
-	want := hex.EncodeToString(sum[:])
+	clean := strings.TrimSpace(strings.TrimPrefix(binding, "Bearer "))
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	for id, v := range s.data.Sessions {
-		if len(v.TokenHash) == len(want) && subtle.ConstantTimeCompare([]byte(v.TokenHash), []byte(want)) == 1 && v.Account == a.ID {
-			v.Status = "revoked"
-			s.data.Sessions[id] = v
-			return s.saveLocked()
-		}
+	v, ok := s.data.Sessions[clean]
+	if !ok || v.Account != a.ID {
+		return apiError{404, "central session not found"}
 	}
-	return apiError{404, "central session not found"}
+	v.Status = "revoked"
+	s.data.Sessions[clean] = v
+	return s.saveLocked()
 }
 
 func normalizeEvidence(e []Evidence, now time.Time, next func(string) string) ([]Evidence, error) {
@@ -409,6 +417,9 @@ func normalizeEvidence(e []Evidence, now time.Time, next func(string) string) ([
 		if len(x.Source) > 512 || len(x.Digest) > 256 || len(x.Summary) > 4096 {
 			return nil, apiError{422, "evidence field limit exceeded"}
 		}
+		if !validHexDigest(x.Digest) || !validHexDigest(x.SourceHash) || !validHexDigest(x.Packet) {
+			return nil, apiError{422, "evidence packet, digest and sourceHash must be SHA-256 hex digests"}
+		}
 		if !x.VisibleToSubject {
 			return nil, apiError{422, "evidence used by this workflow must be visible to the subject"}
 		}
@@ -421,9 +432,18 @@ func normalizeEvidence(e []Evidence, now time.Time, next func(string) string) ([
 	return out, nil
 }
 
+func validHexDigest(v string) bool {
+	v = strings.TrimPrefix(strings.ToLower(strings.TrimSpace(v)), "sha256:")
+	if len(v) != 64 {
+		return false
+	}
+	_, err := hex.DecodeString(v)
+	return err == nil
+}
+
 func forbiddenAction(v string) bool {
 	v = strings.ToLower(v)
-	for _, x := range []string{"freeze", "seize", "confiscate", "blacklist", "transfer ynxt", "冻结", "没收", "转移"} {
+	for _, x := range []string{"freeze", "seize", "confiscate", "blacklist", "transfer ynxt", "private key", "seed phrase", "bypass signature", "delete audit", "hidden record", "fake risk", "track every", "automatic punishment", "冻结", "扣押", "拉黑", "没收", "转移", "私钥", "助记词", "删除审计", "隐瞒记录", "自动处罚"} {
 		if strings.Contains(v, x) {
 			return true
 		}
@@ -433,6 +453,31 @@ func forbiddenAction(v string) bool {
 func overbroad(v string) bool {
 	v = strings.ToLower(strings.TrimSpace(v))
 	return v == "*" || strings.Contains(v, "all account") || strings.Contains(v, "entire network") || strings.Contains(v, "所有用户")
+}
+
+func classifyValidity(in Action, evidence []Evidence, now time.Time) (string, string) {
+	joined := in.Purpose + " " + in.RequestScope + " " + in.RequestedAction
+	if forbiddenAction(joined) {
+		return "illegal_or_abusive", "The request asks for prohibited secret material, surveillance, hidden records, automatic punishment, or native YNXT control. Trust Center rejects it and cannot freeze, seize, transfer or blacklist native assets."
+	}
+	if overbroad(in.RequestScope) {
+		return "overbroad", "The request exceeds a specific subject, evidence set, purpose and expiry; it is rejected until narrowed."
+	}
+	if strings.TrimSpace(in.AssetBoundary) == "" || !strings.Contains(strings.ToUpper(in.AssetBoundary), "YNXT") {
+		return "out_of_scope", "The asset boundary is absent or ambiguous. Native YNXT is outside Trust Center control."
+	}
+	if strings.TrimSpace(in.Authority) == "" || strings.TrimSpace(in.Jurisdiction) == "" || in.RequestExpiresAt.IsZero() || !in.RequestExpiresAt.After(now) {
+		return "insufficient_evidence", "Authority, jurisdiction, a future request expiry and a visible evidence packet are required before review."
+	}
+	for _, e := range evidence {
+		if !validHexDigest(e.Digest) || !validHexDigest(e.SourceHash) || !validHexDigest(e.Packet) || e.Authority == "" || e.Jurisdiction == "" || e.Scope == "" || len(e.Assets) == 0 || e.ExpiresAt.IsZero() || !e.ExpiresAt.After(now) {
+			return "insufficient_evidence", "Evidence packets require a source hash, packet hash, authority, jurisdiction, bounded scope, named assets and future expiry."
+		}
+		if !strings.Contains(strings.ToUpper(strings.Join(e.Assets, ",")), "YNXT") {
+			return "out_of_scope", "Evidence does not identify the affected asset boundary."
+		}
+	}
+	return "governance_review", "The request is bounded and evidence-complete; independent governance review and user notice are required before any advisory label."
 }
 
 func (s *Service) doLocked(a Actor, in Action) (Result, error) {
@@ -453,15 +498,12 @@ func (s *Service) doLocked(a Actor, in Action) (Result, error) {
 			return Result{}, err
 		}
 		id := s.nextLocked("case")
-		status, reason := "submitted", "Evidence received; independent review is required."
-		if forbiddenAction(in.RequestedAction) {
-			status = "rejected_illegal"
-			reason = "Native YNXT freeze, seizure, blacklist or transfer requests are illegal in Trust Center."
-		} else if overbroad(in.RequestScope) {
-			status = "rejected_overbroad"
-			reason = "The request exceeds a specific subject and bounded purpose."
+		status, reason := classifyValidity(in, ev, now)
+		requester := strings.TrimSpace(in.Requester)
+		if requester == "" {
+			requester = a.ID
 		}
-		c := Case{ID: id, Owner: a.ID, Subject: in.Subject, RequestScope: in.RequestScope, Purpose: in.Purpose, RequestedAction: in.RequestedAction, Evidence: ev, Status: status, ValidityReason: reason, Appeals: []Appeal{}, CreatedAt: now, UpdatedAt: now}
+		c := Case{ID: id, Owner: a.ID, Subject: in.Subject, RequestScope: in.RequestScope, Purpose: in.Purpose, RequestedAction: in.RequestedAction, Requester: requester, Authority: in.Authority, Jurisdiction: in.Jurisdiction, AssetBoundary: in.AssetBoundary, RequestExpiresAt: in.RequestExpiresAt.UTC(), Evidence: ev, Status: status, Validity: status, ValidityReason: reason, Appeals: []Appeal{}, CreatedAt: now, UpdatedAt: now}
 		c.Notice = &Notice{Recipient: in.Subject, Reason: reason, SentAt: now}
 		s.data.Cases[id] = c
 		s.auditLocked(a, in.Type, id, status)
@@ -483,20 +525,24 @@ func (s *Service) doLocked(a Actor, in Action) (Result, error) {
 		if strings.TrimSpace(in.Reason) == "" {
 			return Result{}, apiError{422, "review reason is required"}
 		}
-		allowed := map[string]bool{"valid": true, "rejected_illegal": true, "rejected_overbroad": true, "needs_evidence": true}
+		allowed := map[string]bool{"valid": true, "rejected": true, "illegal_or_abusive": true, "overbroad": true, "out_of_scope": true, "insufficient_evidence": true, "governance_review": true}
 		if !allowed[in.Decision] {
 			return Result{}, apiError{422, "invalid review decision"}
 		}
 		if in.Decision == "valid" && strings.TrimSpace(in.Classification) == "" {
 			return Result{}, apiError{422, "classification required for valid decision"}
 		}
-		if in.Decision == "valid" && forbiddenAction(c.RequestedAction) {
+		if in.Decision == "valid" && forbiddenAction(c.Purpose+" "+c.RequestScope+" "+c.RequestedAction) {
 			return Result{}, apiError{422, "an illegal native YNXT control request cannot be reviewed as valid"}
 		}
 		if in.Decision == "valid" && overbroad(c.RequestScope) {
 			return Result{}, apiError{422, "an overbroad request cannot be reviewed as valid"}
 		}
+		if in.Decision == "valid" && c.Validity != "governance_review" {
+			return Result{}, apiError{422, "only an evidence-complete bounded request may be reviewed as valid"}
+		}
 		c.Status = in.Decision
+		c.Validity = in.Decision
 		c.ValidityReason = in.Reason
 		c.Classification = in.Classification
 		c.Reviewer = a.ID
@@ -516,10 +562,10 @@ func (s *Service) doLocked(a Actor, in Action) (Result, error) {
 		if c.Reviewer != a.ID || c.Status != "valid" {
 			return Result{}, apiError{403, "only the deciding reviewer may label a valid case"}
 		}
-		if in.LabelValue == "" || in.LabelSource == "" || in.ExpiresAt.Before(now) || in.ExpiresAt.After(now.Add(90*24*time.Hour)) {
-			return Result{}, apiError{422, "label value, visible source and expiry within 90 days are required"}
+		if in.LabelValue == "" || in.LabelSource == "" || !map[string]bool{"low": true, "medium": true, "high": true}[in.Confidence] || !map[string]bool{"informational": true, "advisory": true, "elevated": true}[in.Severity] || in.ExpiresAt.Before(now) || in.ExpiresAt.After(now.Add(90*24*time.Hour)) {
+			return Result{}, apiError{422, "label value, visible source, confidence, severity and expiry within 90 days are required"}
 		}
-		c.Label = &Label{Value: in.LabelValue, Source: in.LabelSource, ExpiresAt: in.ExpiresAt.UTC(), Active: true}
+		c.Label = &Label{Value: in.LabelValue, Source: in.LabelSource, Confidence: in.Confidence, Severity: in.Severity, AdvisoryOnly: true, ExpiresAt: in.ExpiresAt.UTC(), Active: true}
 		c.UpdatedAt = now
 		s.data.Cases[c.ID] = c
 		s.auditLocked(a, in.Type, c.ID, "label_recorded")
@@ -664,13 +710,20 @@ func (s *Service) doLocked(a Actor, in Action) (Result, error) {
 		x.Status = "running"
 		x.UpdatedAt = now
 		s.data.AI[x.ID] = x
+		ctx, cancel := context.WithCancel(context.Background())
+		s.cancels[x.ID] = cancel
 		if err := s.saveLocked(); err != nil {
 			return Result{}, err
 		}
 		s.mu.Unlock()
-		answer, err := s.askAI(x)
+		answer, err := s.askAI(ctx, x)
 		s.mu.Lock()
 		x = s.data.AI[x.ID]
+		delete(s.cancels, x.ID)
+		cancel()
+		if x.Status == "cancelled" {
+			return Result{AI: &x}, nil
+		}
 		if err != nil {
 			x.Status = "failed"
 			x.Error = err.Error()
@@ -694,6 +747,9 @@ func (s *Service) doLocked(a Actor, in Action) (Result, error) {
 			return Result{}, apiError{409, "reviewed explanation cannot be cancelled"}
 		}
 		x.Status = "cancelled"
+		if cancel := s.cancels[x.ID]; cancel != nil {
+			cancel()
+		}
 		x.UpdatedAt = now
 		s.data.AI[x.ID] = x
 		s.auditLocked(a, in.Type, x.ID, "cancelled")
@@ -727,10 +783,10 @@ func (s *Service) doLocked(a Actor, in Action) (Result, error) {
 	}
 }
 
-func (s *Service) askAI(x AIRecord) (string, error) {
+func (s *Service) askAI(ctx context.Context, x AIRecord) (string, error) {
 	prompt := fmt.Sprintf("Explain Trust case %s for intent %s using only context classes %s. Respond in %s. Do not decide guilt, change labels, punish, freeze or transfer assets.", x.CaseID, x.Intent, strings.Join(x.Context, ","), x.OutputLanguage)
 	body, _ := json.Marshal(map[string]any{"session": x.ID, "prompt": prompt, "context": x.Context, "outputLanguage": x.OutputLanguage})
-	req, err := http.NewRequest(http.MethodPost, strings.TrimRight(s.cfg.AIURL, "/")+"/ai/stream", bytes.NewReader(body))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, strings.TrimRight(s.cfg.AIURL, "/")+"/ai/stream", bytes.NewReader(body))
 	if err != nil {
 		return "", err
 	}

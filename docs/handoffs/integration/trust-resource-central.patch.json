@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "operation": "atomic-wallet-registry-and-route-rollout",
+  "requires": {
+    "package": "@ynx-chain/wallet-auth@1.0.0",
+    "network": "ynx_6423-1",
+    "verifier": "verifyCentralWalletSession",
+    "activeGuard": "assertCentralWalletSessionActive"
+  },
+  "registryAdds": [
+    "../../../apps/trust-center/integration/canonical-wallet-registry.json",
+    "../../../apps/resource-market/integration/canonical-wallet-registry.json"
+  ],
+  "routeAdds": [
+    "POST /app/session/wallet-v1/complete",
+    "POST /app/session/wallet-v1/revoke",
+    "/app/trust/*",
+    "/app/governance/*",
+    "/app/resource-market/*"
+  ],
+  "requiredCI": [
+    "canonical-wallet-v1-test-vector.json acceptance",
+    "unknown-field rejection",
+    "nonce and request-digest replay rejection",
+    "callback and scope substitution rejection",
+    "cross-product and cross-device reuse rejection",
+    "expiry and revocation rejection",
+    "quote/intent/capacity/settlement invariant"
+  ],
+  "rollout": "Publish v2 registry entries and verifier routes in one transaction. Until both health checks pass, products remain integratedCentral=false and adapters return unavailable without local substitution."
+}

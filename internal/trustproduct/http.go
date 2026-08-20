@@ -1,7 +1,9 @@
 package trustproduct
 
 import (
+	"bytes"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"strings"
@@ -29,8 +31,8 @@ func (s *Service) Handler(assets http.Handler) http.Handler {
 	mux.HandleFunc("POST /api/actions", func(w http.ResponseWriter, r *http.Request) {
 		defer r.Body.Close()
 		var in Action
-		if err := json.NewDecoder(io.LimitReader(r.Body, maxBody)).Decode(&in); err != nil {
-			writeJSON(w, 400, map[string]string{"error": "invalid JSON"})
+		if err := decodeActionBody(r, &in); err != nil {
+			writeJSON(w, 400, map[string]string{"error": err.Error()})
 			return
 		}
 		res, err := s.Do(s.actorFrom(r), in)
@@ -46,13 +48,30 @@ func (s *Service) Handler(assets http.Handler) http.Handler {
 	return securityHeaders(mux)
 }
 
+func decodeActionBody(r *http.Request, out any) error {
+	b, err := io.ReadAll(io.LimitReader(r.Body, maxBody+1))
+	if err != nil || len(b) > maxBody {
+		return errors.New("bounded JSON body required")
+	}
+	dec := json.NewDecoder(bytes.NewReader(b))
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(out); err != nil {
+		return errors.New("invalid or unknown JSON field")
+	}
+	var extra any
+	if err := dec.Decode(&extra); !errors.Is(err, io.EOF) {
+		return errors.New("exactly one JSON object is required")
+	}
+	return nil
+}
+
 func (s *Service) actorFrom(r *http.Request) Actor {
 	token := strings.TrimSpace(strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer "))
 	if actor, ok := s.sessions[token]; ok && token != "" {
 		return actor
 	}
 	if token != "" {
-		if actor, err := s.authenticateCentral("Bearer "+token, strings.TrimSpace(r.Header.Get("X-YNX-Device-ID"))); err == nil {
+		if actor, err := s.authenticateCentral("Bearer "+token, strings.TrimSpace(r.Header.Get("X-YNX-Product-Device-Key"))); err == nil {
 			return actor
 		}
 	}
