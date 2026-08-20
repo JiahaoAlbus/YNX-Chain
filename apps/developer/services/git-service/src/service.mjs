@@ -509,6 +509,10 @@ function gitLaunch({ git, sandbox, workspace, repository, args }) {
     workspace,
     command: git,
     args: common,
+    // Git checkout and merge must materialize the selected revision into this
+    // per-request snapshot before persistWorktree validates and saves it.
+    // The temporary workspace is never a user-owned host path.
+    writeWorkspace: true,
     writableBinds: [{ host: repository, guest: "/repo" }],
   });
 }
