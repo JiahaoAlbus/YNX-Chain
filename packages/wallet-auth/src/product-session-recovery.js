@@ -1,7 +1,7 @@
 import { canonicalJSON, exactFields, WalletAuthError } from "./canonical.js";
 import { httpBodyDigest } from "./session-proof.js";
 import { createProductSessionProofV2, createProductSessionProofV2With } from "./product-session-proof-v2.js";
-import { createProductSessionChallenge, createProductSessionRequest, parseProductSession, parseProductSessionChallenge, parseProductSessionRequest, signProductSessionChallenge, signProductSessionChallengeWith } from "./product-session-v2.js";
+import { createProductSessionChallenge, createProductSessionRequest, parseProductSession, parseProductSessionChallenge, parseProductSessionChallengeCompletion, parseProductSessionRequest, signProductSessionChallenge, signProductSessionChallengeWith } from "./product-session-v2.js";
 import { parseProductSessionRegistry, productPlatformBinding } from "./product-session-registry.js";
 import { parseProductSessionReturnURL, prepareWalletOpen, walletConnectionChoices, WALLET_ROUTE_STATUS } from "./product-session-router.js";
 
@@ -105,14 +105,20 @@ export class RecoverableProductSessionClient {
     if (returned.status !== WALLET_ROUTE_STATUS.READY) { await this.#storage.remove(`${this.storageKey}:return`); this.#state = state(PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED, returned.message, { actions: returned.actions }); return this.#state; }
     await this.#storage.set(`${this.storageKey}:return`, url);
     try {
-      const challenge = parseProductSessionChallenge(await this.#gateway.challenge({ requestId: gatewayRequestId("c", request.nonce), request, approval: returned.approval }));
+      const completionKey = `${this.storageKey}:completion`;
+      const protectedCompletion = await this.#storage.get(completionKey);
+      const storedCompletion = protectedCompletion === null ? null : JSON.parse(protectedCompletion);
+      const challenge = storedCompletion === null
+        ? parseProductSessionChallenge(await this.#gateway.challenge({ requestId: gatewayRequestId("c", request.nonce), request, approval: returned.approval }))
+        : parseProductSessionChallenge(storedCompletion.challenge);
       if (networkEpoch !== this.#networkEpoch) return this.#networkTransition("Network changed while receiving the Gateway challenge; protected callback was retained for Retry");
       const expectedChallenge = createProductSessionChallenge(this.#registry, request, returned.approval, { challenge: challenge.challenge }, new Date(challenge.issuedAt));
       if (canonicalJSON(challenge) !== canonicalJSON(expectedChallenge)) fail("SESSION_BINDING_MISMATCH", "Gateway challenge did not match the exact product request and Wallet approval");
       if (challenge.expiresAt <= this.#clock().toISOString()) fail("SESSION_EXPIRED", "Gateway challenge expired before product device signing");
-      const completion = this.#device.sign
-        ? await signProductSessionChallengeWith(challenge, this.#device.sign)
-        : signProductSessionChallenge(challenge, this.#device.secret);
+      const completion = protectedCompletion === null
+        ? (this.#device.sign ? await signProductSessionChallengeWith(challenge, this.#device.sign) : signProductSessionChallenge(challenge, this.#device.secret))
+        : parseProductSessionChallengeCompletion(challenge, storedCompletion);
+      if (protectedCompletion === null) await this.#storage.set(completionKey, JSON.stringify(completion));
       if (networkEpoch !== this.#networkEpoch) return this.#networkTransition("Network changed during platform challenge signing; protected callback was retained for Retry");
       const session = parseProductSession(await this.#gateway.complete({ requestId: gatewayRequestId("f", request.state), request, approval: returned.approval, completion }));
       await this.#storage.set(this.storageKey, JSON.stringify(session));
@@ -235,7 +241,7 @@ export class RecoverableProductSessionClient {
       return null;
     }
   }
-  async #clearPending() { await this.#storage.remove(`${this.storageKey}:pending`); await this.#storage.remove(`${this.storageKey}:return`); }
+  async #clearPending() { await this.#storage.remove(`${this.storageKey}:pending`); await this.#storage.remove(`${this.storageKey}:return`); await this.#storage.remove(`${this.storageKey}:completion`); }
   async #recover(operation) {
     if (this.#recoveryPromise !== null) return this.#recoveryPromise;
     const pending = operation();

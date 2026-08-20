@@ -232,6 +232,17 @@ export async function signProductSessionChallengeWith(challengeInput, signer) {
   return Object.freeze({ challenge, deviceSignature });
 }
 
+export function parseProductSessionChallengeCompletion(challengeInput, input) {
+  const challenge = parseChallenge(challengeInput);
+  exactFields(input, COMPLETION_FIELDS, "Product Session device completion");
+  const signedChallenge = parseChallenge(input.challenge);
+  if (canonicalJSON(signedChallenge) !== canonicalJSON(challenge)) fail("SESSION_BINDING_MISMATCH", "Product Session completion challenge does not match the issued challenge");
+  let valid = false;
+  try { valid = p256.verify(decodeBase64url(input.deviceSignature, "deviceSignature"), utf8ToBytes(challengeSignBytes(challenge)), decodeBase64url(challenge.deviceKey, "deviceKey"), { format: "der", lowS: false }); } catch { valid = false; }
+  if (!valid) fail("INVALID_DEVICE_PROOF", "Product Session device proof is invalid");
+  return Object.freeze({ challenge, deviceSignature: input.deviceSignature });
+}
+
 export function parseProductSessionChallenge(input) { return parseChallenge(input); }
 
 export class ProductSessionAuthority {
@@ -252,16 +263,13 @@ export class ProductSessionAuthority {
     exactFields(input, ["request", "approval", "completion"], "Product Session completion");
     const request = parseProductSessionRequest(this.#registry, input.request, at);
     const approval = parseProductSessionApproval(this.#registry, request, input.approval, at);
-    exactFields(input.completion, COMPLETION_FIELDS, "Product Session device completion");
-    const challenge = parseChallenge(input.completion.challenge);
+    const completion = parseProductSessionChallengeCompletion(input.completion.challenge, input.completion);
+    const challenge = completion.challenge;
     const expected = createProductSessionChallenge(this.#registry, request, approval, { challenge: challenge.challenge }, new Date(challenge.issuedAt));
     if (canonicalJSON(challenge) !== canonicalJSON(expected)) fail("SESSION_BINDING_MISMATCH", "Gateway challenge fields were substituted");
     const issued = this.#state.issuedChallenges.find((item) => item.challenge === challenge.challenge);
     if (!issued || canonicalJSON(issued) !== canonicalJSON(challenge)) fail("CHALLENGE_NOT_ISSUED", "Product Session challenge was not issued by this Gateway");
     if (challenge.expiresAt <= validDate(at).toISOString()) fail("SESSION_EXPIRED", "Product Session challenge expired");
-    let valid = false;
-    try { valid = p256.verify(decodeBase64url(input.completion.deviceSignature, "deviceSignature"), utf8ToBytes(challengeSignBytes(challenge)), decodeBase64url(challenge.deviceKey, "deviceKey"), { format: "der", lowS: false }); } catch { valid = false; }
-    if (!valid) fail("INVALID_DEVICE_PROOF", "Product Session device proof is invalid");
     if (this.#state.consumedNonces.includes(request.nonce) || this.#state.consumedStates.includes(request.state) || this.#state.consumedRequests.includes(approval.requestDigest) || this.#state.consumedChallenges.includes(challenge.challenge)) fail("REPLAY", "Product Session request, state or challenge was already consumed");
     const session = parseSession({
       version: PRODUCT_SESSION_PROTOCOL_VERSION,

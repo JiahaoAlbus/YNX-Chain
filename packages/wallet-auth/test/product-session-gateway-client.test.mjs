@@ -22,7 +22,7 @@ const device = {
 const token = (label) => createHash("sha256").update(label).digest("base64url");
 const storage = () => { const values = new Map(); return { securityLevel: "os-protected", async get(key) { return values.get(key) ?? null; }, async set(key, value) { values.set(key, value); }, async remove(key) { values.delete(key); }, values }; };
 
-test("fetch adapter recovers lost completion response idempotently without exposing the device secret", async () => {
+test("fetch adapter recovers lost completion response with one platform signature and byte-identical idempotent replay", async () => {
   let challengeIndex = 0; let loseCompletionResponse = true;
   const handler = new ProductSessionGatewayHttpHandler(registry, () => token(`fetch-gateway-${challengeIndex++}`));
   const captured = [];
@@ -34,8 +34,10 @@ test("fetch adapter recovers lost completion response idempotently without expos
     return new Response(response.body, { status: response.status, headers: response.headers });
   };
   const adapter = new ProductSessionGatewayFetchAdapter({ endpoint: "https://gateway.test", fetch: fakeFetch, walletInstalled: async () => true, schemeRegistered: async () => true, timeoutMs: 5_000 });
+  const purposes = [];
+  const secureDevice = { id: device.id, key: device.key, scopes: device.scopes, purpose: device.purpose, async sign(input) { purposes.push(input.purpose); return Buffer.from(p256.sign(Buffer.from(input.payload, "base64url"), deviceSecret, { format: "der" })).toString("base64url"); } };
   const protectedStorage = storage(); let tokenIndex = 0;
-  const client = new RecoverableProductSessionClient({ registry, productId: "dex", platform: "web", storage: protectedStorage, gateway: adapter, device, tokenFactory: () => token(`fetch-client-${tokenIndex++}`), clock: () => NOW });
+  const client = new RecoverableProductSessionClient({ registry, productId: "dex", platform: "web", storage: protectedStorage, gateway: adapter, device: secureDevice, tokenFactory: () => token(`fetch-client-${tokenIndex++}`), clock: () => NOW });
   const connecting = await client.begin({ walletInstalled: true, schemeRegistered: true });
   const approval = signProductSessionApproval(registry, connecting.request, { accountSecret: "1".padStart(64, "0"), scopes: connecting.request.scopes, expiresAt: "2026-08-14T01:03:00.000Z" }, NOW);
   const callback = createProductSessionReturnURL(registry, connecting.request, { result: "approved", approval }, NOW);
@@ -44,11 +46,16 @@ test("fetch adapter recovers lost completion response idempotently without expos
   assert.equal(connected.status, PRODUCT_SESSION_CLIENT_STATE.CONNECTED);
   assert.equal(handler.snapshot().authority.sessions.length, 1);
   assert.equal(handler.snapshot().idempotency.length, 2);
-  assert.ok(handler.snapshot().audit.filter((item) => item.outcome === "idempotent").length >= 2);
+  assert.equal(handler.snapshot().audit.filter((item) => item.outcome === "idempotent").length, 1);
+  assert.equal(captured.filter((item) => new URL(item.url).pathname === "/v2/product-sessions/challenge").length, 1);
+  assert.equal(purposes.filter((purpose) => purpose === "challenge").length, 1);
+  const completions = captured.filter((item) => new URL(item.url).pathname === "/v2/product-sessions/complete");
+  assert.equal(completions.length, 2);
+  assert.deepEqual(completions[1].body, completions[0].body);
   assert.equal(JSON.stringify(captured).includes(device.secret), false);
   assert.equal(captured.every((item) => item.headers["content-type"] === "application/json" && item.headers["x-request-id"].startsWith("req_ps_")), true);
 
-  const restarted = new RecoverableProductSessionClient({ registry, productId: "dex", platform: "web", storage: protectedStorage, gateway: adapter, device, tokenFactory: () => token(`fetch-restart-${tokenIndex++}`), clock: () => NOW });
+  const restarted = new RecoverableProductSessionClient({ registry, productId: "dex", platform: "web", storage: protectedStorage, gateway: adapter, device: secureDevice, tokenFactory: () => token(`fetch-restart-${tokenIndex++}`), clock: () => NOW });
   assert.equal((await restarted.restore(true)).status, PRODUCT_SESSION_CLIENT_STATE.CONNECTED);
 });
 

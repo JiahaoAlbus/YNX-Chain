@@ -69,6 +69,7 @@
     "secureSignerSemanticsConsumed": true,
     "secureSignerNetworkEpochLinearized": true,
     "lostRevokeAcknowledgementReconciledByExactTerminalCode": "SESSION_REVOKED",
+    "lostCompletionAcknowledgementReusesProtectedExactCompletion": true,
     "secureSignerReconciliationPending": false
   },
   "failClosed": [
@@ -103,6 +104,7 @@
     "platformSecureSignerCandidate": true,
     "secureSignerNetworkEpochCandidate": true,
     "lostRevokeAcknowledgementCandidate": true,
+    "lostCompletionAcknowledgementCandidate": true,
     "integratedCentral": false,
     "gatewayLoadedPublic": false,
     "deployedPublicRegistry": false,
