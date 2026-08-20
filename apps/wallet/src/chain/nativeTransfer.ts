@@ -1,7 +1,10 @@
 import { evmAddressFromYNX, type SignedNativeTransfer } from "@ynx-chain/wallet-auth";
 
 export const DEFAULT_CHAIN_API="https://rest.ynxweb4.com";
-export const DEFAULT_CHAIN_RPC="https://rpc.ynxweb4.com/evm";
+// The accepted Testnet manifest marks this EVM JSON-RPC origin as verified.
+// `rpc.ynxweb4.com` remains a distinct, degraded read endpoint and must not be
+// used as a silent fallback for a Wallet account read.
+export const DEFAULT_CHAIN_RPC="https://evm.ynxweb4.com";
 export const YNX_EVM_CHAIN_ID="0x1917";
 export type ChainAccount=Readonly<{address:string;balance:number;nonce:number;source:"native-rest"|"evm-json-rpc";materialized:boolean}>;
 export type ChainActivity=Readonly<{hash:string;type:string;from:string;to:string;amount:number;fee:number;nonce:number;timestamp?:string}>;

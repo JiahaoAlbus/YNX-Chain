@@ -16,7 +16,7 @@ test("native client loads exact REST account/activity and broadcasts only matchi
   assert.equal((await client.broadcast(signed.payload,signed.transaction,signed.hash)).hash,signed.hash);
   assert.equal(calls[2]?.init?.method,"POST");assert.equal(calls[2]?.init?.body,signed.payload);
   assert.equal(DEFAULT_CHAIN_API,"https://rest.ynxweb4.com");
-  assert.equal(DEFAULT_CHAIN_RPC,"https://rpc.ynxweb4.com/evm");
+  assert.equal(DEFAULT_CHAIN_RPC,"https://evm.ynxweb4.com");
   assert.ok(calls.every(({url})=>url.startsWith(`${DEFAULT_CHAIN_API}/`)),"materialized native REST calls must never be sent to the JSON-RPC host");
 });
 
@@ -71,8 +71,8 @@ test("native client rejects mismatched authoritative identity, broadcast, and un
   await assert.rejects(()=>mismatch.account(account),/identity/);
   const broadcast=new NativeChainClient("https://rest.ynxweb4.com",undefined,async()=>response({transaction:{hash:"0x"+"0".repeat(64),from:signed.transaction.from,to:signed.transaction.to,amount:25,fee:1,nonce:7},replayed:false,truthfulStatus:"signature-verified-authoritative-native-transfer"}));
   await assert.rejects(()=>broadcast.broadcast(signed.payload,signed.transaction,signed.hash),/does not match/);
-  assert.throws(()=>new NativeChainClient("http://rpc.ynxweb4.com"),/HTTPS/);
-  assert.throws(()=>new NativeChainClient(undefined,"http://rpc.ynxweb4.com/evm"),/HTTPS/);
+  assert.throws(()=>new NativeChainClient("http://evm.ynxweb4.com"),/HTTPS/);
+  assert.throws(()=>new NativeChainClient(undefined,"http://evm.ynxweb4.com"),/HTTPS/);
 });
 
 test("native client independently times out if the React Native fetch implementation ignores AbortController",async()=>{

@@ -107,8 +107,8 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         // Keep the public Testnet Preview upgradeable over the published 1.0.0
         // package.  This is not a production or Play Store version claim.
-        versionCode 2
-        versionName "1.0.1-testnet-preview"
+        versionCode 3
+        versionName "1.0.2-testnet-preview"
 
         buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\"${findProperty('reactNativeReleaseLevel') ?: 'stable'}\""
     }

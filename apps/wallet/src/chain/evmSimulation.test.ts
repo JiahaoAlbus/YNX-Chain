@@ -31,7 +31,7 @@ test("default simulation transport is the frozen EVM RPC endpoint, never the nat
 });
 
 test("simulation RPC URL rejects credentials, query fragments and noncanonical paths", () => {
-  for (const endpoint of ["https://rpc.ynxweb4.com/other", "https://rpc.ynxweb4.com/evm?debug=1", "https://user:pass@rpc.ynxweb4.com/evm"]) {
+  for (const endpoint of ["https://evm.ynxweb4.com/other", "https://evm.ynxweb4.com/?debug=1", "https://user:pass@evm.ynxweb4.com"]) {
     assert.throws(() => new EvmSimulationClient(endpoint), /exact root or \/evm endpoint/);
   }
 });
