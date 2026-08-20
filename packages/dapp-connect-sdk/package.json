@@ -8,7 +8,9 @@
   "scripts": {
     "test": "node --test ./test/*.test.mjs",
     "scan:migration": "node ./tools/scan-legacy-wallet-integration.mjs",
-    "validate:artwork": "node ./tools/validate-artwork-manifest.mjs"
+    "validate:artwork": "node ./tools/validate-artwork-manifest.mjs",
+    "lab": "node ./tools/run-compatibility-lab.mjs",
+    "release:gate": "node ./tools/release-gate.mjs"
   },
   "engines": {"node": ">=20"}
 }
