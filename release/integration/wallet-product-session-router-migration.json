@@ -11,6 +11,7 @@
     "standard-wallet-only": "The product runtime consumes the accepted Standard Wallet and canonical error contracts and keeps Wallet connected when private Product Session degrades, but has no v2 Gateway and visible-platform evidence.",
     "root-factory-source-only": "The product owner has consumed the accepted createProductWalletConnection root factory and passed local handler tests, but lacks the distinct public Gateway and installed/browser visible evidence required for migrated-v2.",
     "root-factory-platform-negative": "The product owner has consumed the root factory and directly opened an installed Wallet, but the visible platform flow failed closed before approval or Session creation and the full public lifecycle is absent.",
+    "android-retired-web-legacy": "The shared registry rejects the retired Android client with CLIENT_RETIRED while Web/PWA remains registered, but the Web/PWA runtime still uses its legacy Wallet adapter.",
     "shared-sdk-v1": "Current product source imports @ynx-chain/wallet-auth but still builds the v1 request/session contract.",
     "canonical-launcher-v1": "Current product source uses the shared canonical deep-link builder and fail-closed platform preflight, but still builds and completes the v1 request/session contract.",
     "legacy-direct": "Current product source constructs or opens Wallet URLs outside the v2 router.",
@@ -27,7 +28,7 @@
     {"productId":"finance","registry":"registry-ready","consumer":"root-factory-platform-negative","migrated":false,"evidence":["release/integration/wallet-product-session-finance-platform-negative-checkpoint-20260820.json"]},
     {"productId":"pay","registry":"registry-ready","consumer":"contract-only","migrated":false,"evidence":["packages/wallet-auth/product-session-registry.json"]},
     {"productId":"quant","registry":"registry-ready","consumer":"contract-only","migrated":false,"evidence":["apps/quant-lab/integration/wallet-registry-entry.json"]},
-    {"productId":"shop","registry":"registry-ready","consumer":"legacy-direct","migrated":false,"evidence":["apps/shop/wallet-auth.js","apps/shop/native/android/app/src/main/java/com/ynxweb4/shop/WalletAuth.java","apps/shop/native/ios/YNXShop/WalletAuth.swift"]},
+    {"productId":"shop","registry":"registry-ready","consumer":"android-retired-web-legacy","migrated":false,"evidence":["release/integration/wallet-product-session-shop-android-retirement-checkpoint-20260821.json","apps/shop/wallet-auth.js"]},
     {"productId":"social","registry":"registry-ready","consumer":"canonical-launcher-v1","migrated":false,"evidence":["apps/social/src/walletAuth.ts","apps/social/src/walletLauncherCore.ts","apps/social/src/walletLauncher.test.ts","apps/social/src/walletFlow.integration.test.ts"]},
     {"productId":"video","registry":"registry-ready","consumer":"legacy-direct","migrated":false,"evidence":["apps/video/wallet-auth.js","apps/video/android/app/src/main/java/com/ynxweb4/video/MainActivity.java","apps/video/ios/YNXVideo/ContentView.swift"]},
     {"productId":"wallet-web-companion","registry":"registry-ready","consumer":"core-runtime-candidate","migrated":false,"evidence":["packages/wallet-auth/test/wallet-web-companion-runtime.test.mjs","release/integration/wallet-auth-web-companion-registry-contract.json"]}

@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "P0-WALLET-PRODUCT-SESSION-SHOP-ANDROID-RETIREMENT-20260821",
+  "capturedAt": "2026-08-21T00:00:00+08:00",
+  "owner": "wallet-protocol",
+  "sourceOwner": "shop",
+  "shopOwnerRetirementCommit": "1752f12534166b6216e5c91c9ce87ab11caea072",
+  "protocol": {
+    "registrySchemaVersion": 3,
+    "productId": "shop",
+    "clientId": "ynx-shop-v1",
+    "retiredPlatform": "android",
+    "applicationId": "com.ynxweb4.shop",
+    "callback": "ynxshop://wallet-auth/callback",
+    "retiredAt": "2026-08-20T00:00:00.000Z",
+    "lastSupportedVersion": "0.3.0-testnet-preview",
+    "replacementUrl": "https://shop.ynxweb4.com/shop",
+    "newAuthorizationResult": "CLIENT_RETIRED",
+    "httpStatus": 410,
+    "webPwaRemainsRegistered": true
+  },
+  "stateMigration": {
+    "existingAndroidSessionsRevoked": true,
+    "existingAndroidDeviceGrantsRevoked": true,
+    "pendingAndroidChallengesRemoved": true,
+    "consumedApprovalCannotBeReused": true,
+    "retiredChallengeAndCompletionIdempotencyPurged": true,
+    "legacyRegistryV1AndV2MigrationPreservesRetirement": true
+  },
+  "verification": {
+    "focusedCommand": "node --test packages/wallet-auth/test/product-session-gateway.test.mjs packages/wallet-auth/test/product-session-router.test.mjs packages/wallet-auth/test/product-session-v2.test.mjs",
+    "passed": 24,
+    "failed": 0,
+    "concurrentProductSessions": 120,
+    "fullWalletAuthCommand": "npm test --prefix packages/wallet-auth",
+    "fullWalletAuthPassed": 243,
+    "fullWalletAuthFailed": 0,
+    "packageDryRun": {
+      "name": "@ynx-chain/wallet-auth",
+      "version": "1.0.0",
+      "files": 69,
+      "packedBytesApprox": 125200,
+      "unpackedBytesApprox": 562800,
+      "registryImplementationAndTypesIncluded": true
+    }
+  },
+  "truth": {
+    "implementedSource": true,
+    "testedLocal": true,
+    "currentPublicRuntimeUsesRegistryV3": false,
+    "websiteAndroidDownloadRemovalVerified": false,
+    "installedHistoricalApkRemotelyUninstalled": false,
+    "shopWebPwaRootFactoryMigrated": false,
+    "deployedPublic": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

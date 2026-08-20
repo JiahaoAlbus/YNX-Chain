@@ -176,10 +176,11 @@
         "concurrentProductSessions": 120
       },
       "fullPackageTests": {
-        "passed": 240,
+        "passed": 243,
         "failed": 0
       },
       "remaining": [
+        "Registry v3 Shop Android retirement is source-tested but not deployed to the current public 6cf Wallet/Auth runtime",
         "MetaMask was unlocked with user Touch ID, injected a provider, and the shared EIP-1193 harness loaded and triggered its real connection request; Computer Use timed out and its native pipe closed before the approval result, request ID, chain, or masked account was observable",
         "The post-coordinator Computer Use retry timed out for Chrome, closed its native pipe by bundle identifier, and failed native-pipe startup for the MetaMask app",
         "Android 16 installed the hash-verified YNX Wallet APK, resolved the canonical ynxwallet scheme and accepted ACTION_VIEW delivery; headless UI remained black, so approval and Product Session remain unverified",

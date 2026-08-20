@@ -237,7 +237,10 @@ export function parseProductSessionChallenge(input) { return parseChallenge(inpu
 export class ProductSessionAuthority {
   #registry;
   #state;
-  constructor(registryInput, snapshot = emptySnapshot()) { this.#registry = parseProductSessionRegistry(registryInput); this.#state = parseSnapshot(snapshot); }
+  constructor(registryInput, snapshot = emptySnapshot()) {
+    this.#registry = parseProductSessionRegistry(registryInput);
+    this.#state = applyRegistryRetirements(this.#registry, parseSnapshot(snapshot));
+  }
 
   issueChallenge(input, at = new Date()) {
     exactFields(input, ["request", "approval", "challenge"], "Product Session challenge issuance");
@@ -316,6 +319,20 @@ function parseChallenge(input) {
   return value;
 }
 function parseSession(input) { exactFields(input, SESSION_FIELDS, "Product Session"); const value = Object.freeze({ ...input, version: pattern(input.version, "version", /^2$/), sessionBinding: digest(input.sessionBinding, "sessionBinding"), chainId: pattern(input.chainId, "chainId", /^ynx_6423-1$/), productId: pattern(input.productId, "productId", /^[a-z][a-z0-9-]{1,31}$/), clientId: pattern(input.clientId, "clientId", /^[a-z][a-z0-9._-]{2,63}$/), platform: pattern(input.platform, "platform", /^(android|ios|macos|web|windows)$/), applicationId: pattern(input.applicationId, "applicationId", /^[A-Za-z][A-Za-z0-9.-]{2,131}$/), bundleId: platformIdentity(input.bundleId, "bundleId"), packageId: platformIdentity(input.packageId, "packageId"), origin: canonicalOrigin(input.origin), callback: canonicalCallback(input.callback), account: pattern(input.account, "account", /^ynx1[023456789acdefghjklmnpqrstuvwxyz]{38}$/), deviceId: opaque(input.deviceId, "deviceId"), deviceAlgorithm: pattern(input.deviceAlgorithm, "deviceAlgorithm", /^p256-sha256$/), deviceKey: deviceKey(input.deviceKey), deviceBinding: digest(input.deviceBinding, "deviceBinding"), nonce: token(input.nonce, "nonce"), state: token(input.state, "state"), scopes: Object.freeze(scopes(input.scopes, input.scopes)), requestDigest: digest(input.requestDigest, "requestDigest"), approvalDigest: digest(input.approvalDigest, "approvalDigest"), issuedAt: time(input.issuedAt, "issuedAt"), expiresAt: time(input.expiresAt, "expiresAt") }); validatePlatformIdentifiers(value); if (value.expiresAt <= value.issuedAt || value.deviceBinding !== deviceBinding(value, value.account)) fail("INVALID_SESSION", "Product Session security binding or lifetime is invalid"); return value; }
+function applyRegistryRetirements(registry, snapshot) {
+  const next = clone(snapshot);
+  const retired = (item) => {
+    const product = registry.products.find((candidate) => candidate.productId === item.productId && candidate.clientId === item.clientId);
+    return product?.retiredClients.some((client) => client.platform === item.platform && client.applicationId === item.applicationId && client.callback === item.callback) === true;
+  };
+  for (const session of next.sessions.filter(retired)) {
+    if (!next.revokedSessions.includes(session.sessionBinding)) next.revokedSessions.push(session.sessionBinding);
+    if (!next.revokedDevices.includes(session.deviceBinding)) next.revokedDevices.push(session.deviceBinding);
+  }
+  next.issuedChallenges = next.issuedChallenges.filter((challenge) => !retired(challenge));
+  sortSnapshot(next);
+  return parseSnapshot(next);
+}
 function parseSnapshot(input) { exactFields(input, SNAPSHOT_FIELDS, "Product Session authority snapshot"); if (input.schemaVersion !== PRODUCT_SESSION_AUTHORITY_SCHEMA_VERSION) fail("INVALID_SESSION_STORE", "Product Session authority snapshot version is unsupported"); const value = { schemaVersion: input.schemaVersion, sessions: sortedUnique(input.sessions.map(parseSession), (item) => item.sessionBinding, "sessions"), issuedChallenges: sortedUnique(input.issuedChallenges.map(parseChallenge), (item) => item.challenge, "issuedChallenges"), consumedNonces: stringSet(input.consumedNonces, /^[A-Za-z0-9_-]{32,64}$/, "consumedNonces"), consumedStates: stringSet(input.consumedStates, /^[A-Za-z0-9_-]{32,64}$/, "consumedStates"), consumedRequests: stringSet(input.consumedRequests, /^[0-9a-f]{64}$/, "consumedRequests"), consumedChallenges: stringSet(input.consumedChallenges, /^[A-Za-z0-9_-]{32,64}$/, "consumedChallenges"), revokedSessions: stringSet(input.revokedSessions, /^[0-9a-f]{64}$/, "revokedSessions"), revokedDevices: stringSet(input.revokedDevices, /^[0-9a-f]{64}$/, "revokedDevices"), revokedAccounts: sortedUnique(input.revokedAccounts.map((item) => { exactFields(item, ["account", "before"], "revoked account"); return Object.freeze({ account: pattern(item.account, "account", /^ynx1[023456789acdefghjklmnpqrstuvwxyz]{38}$/), before: time(item.before, "before") }); }), (item) => item.account, "revokedAccounts") }; if (value.sessions.length !== value.consumedNonces.length || value.sessions.length !== value.consumedStates.length || value.sessions.length !== value.consumedRequests.length || value.sessions.length !== value.consumedChallenges.length || value.issuedChallenges.some((item) => value.consumedChallenges.includes(item.challenge))) fail("INVALID_SESSION_STORE", "Issued and consumed records must exactly cover Product Sessions without overlap"); return freezeSnapshot(value); }
 function emptySnapshot() { return { schemaVersion: PRODUCT_SESSION_AUTHORITY_SCHEMA_VERSION, sessions: [], issuedChallenges: [], consumedNonces: [], consumedStates: [], consumedRequests: [], consumedChallenges: [], revokedSessions: [], revokedDevices: [], revokedAccounts: [] }; }
 function sortSnapshot(value) { value.sessions.sort((a, b) => a.sessionBinding.localeCompare(b.sessionBinding)); value.issuedChallenges.sort((a, b) => a.challenge.localeCompare(b.challenge)); for (const field of ["consumedNonces", "consumedStates", "consumedRequests", "consumedChallenges", "revokedSessions", "revokedDevices"]) value[field].sort(); value.revokedAccounts.sort((a, b) => a.account.localeCompare(b.account)); }

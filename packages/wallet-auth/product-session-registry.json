@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "chainId": "ynx_6423-1",
   "wallet": {
     "authorizeCallback": "ynxwallet://authorize",
@@ -17,7 +17,8 @@
       "legacyCallbacks": ["ynxcalendar", "ynxcalendar://wallet-auth/callback"],
       "scopes": ["calendar:account", "calendar:recover"],
       "evmCompatible": false,
-      "sessionDurationSeconds": 240
+      "sessionDurationSeconds": 240,
+      "retiredClients": []
     },
     {
       "productId": "card",
@@ -29,7 +30,8 @@
       "legacyCallbacks": ["ynxcard", "ynxcard://wallet-auth/callback"],
       "scopes": ["account:read", "card:application:write", "card:controls:write", "card:dispute:write"],
       "evmCompatible": true,
-      "sessionDurationSeconds": 180
+      "sessionDurationSeconds": 180,
+      "retiredClients": []
     },
     {
       "productId": "creator-studio",
@@ -41,7 +43,8 @@
       "legacyCallbacks": ["ynxcreator", "ynxcreator://wallet-auth/callback"],
       "scopes": ["creator:account", "creator:publish", "creator:revenue"],
       "evmCompatible": false,
-      "sessionDurationSeconds": 240
+      "sessionDurationSeconds": 240,
+      "retiredClients": []
     },
     {
       "productId": "developer",
@@ -53,7 +56,8 @@
       "legacyCallbacks": ["ynxdeveloper", "ynxdeveloper://wallet-auth/callback"],
       "scopes": ["account:read", "developer:deploy"],
       "evmCompatible": true,
-      "sessionDurationSeconds": 180
+      "sessionDurationSeconds": 180,
+      "retiredClients": []
     },
     {
       "productId": "dex",
@@ -65,7 +69,8 @@
       "legacyCallbacks": ["ynxdex", "ynxdex://wallet-auth/callback"],
       "scopes": ["dex:account", "dex:orders", "dex:trade"],
       "evmCompatible": true,
-      "sessionDurationSeconds": 180
+      "sessionDurationSeconds": 180,
+      "retiredClients": []
     },
     {
       "productId": "exchange",
@@ -77,7 +82,8 @@
       "legacyCallbacks": ["ynxexchange", "ynxexchange://wallet-auth/callback"],
       "scopes": ["exchange:ai", "exchange:deposit", "exchange:read", "exchange:trade", "exchange:withdrawal-review"],
       "evmCompatible": true,
-      "sessionDurationSeconds": 180
+      "sessionDurationSeconds": 180,
+      "retiredClients": []
     },
     {
       "productId": "finance",
@@ -89,7 +95,8 @@
       "legacyCallbacks": ["ynxfinance", "ynxfinance://wallet-auth/callback"],
       "scopes": ["finance.ai.draft", "finance.pay.read", "finance.portfolio.read", "finance.profile.write"],
       "evmCompatible": true,
-      "sessionDurationSeconds": 240
+      "sessionDurationSeconds": 240,
+      "retiredClients": []
     },
     {
       "productId": "pay",
@@ -101,7 +108,8 @@
       "legacyCallbacks": ["ynxpay", "ynxpay://wallet-auth/callback"],
       "scopes": ["account:read", "pay:case:create", "pay:settlement:submit"],
       "evmCompatible": true,
-      "sessionDurationSeconds": 180
+      "sessionDurationSeconds": 180,
+      "retiredClients": []
     },
     {
       "productId": "quant",
@@ -113,7 +121,8 @@
       "legacyCallbacks": ["ynxquant", "ynxquant://wallet-auth/callback"],
       "scopes": ["quant:account", "quant:mandate:create", "quant:mandate:execute", "quant:mandate:revoke"],
       "evmCompatible": true,
-      "sessionDurationSeconds": 180
+      "sessionDurationSeconds": 180,
+      "retiredClients": []
     },
     {
       "productId": "shop",
@@ -125,7 +134,17 @@
       "legacyCallbacks": ["ynxshop", "ynxshop://wallet-auth/callback"],
       "scopes": ["account:read", "shop:orders:write", "shop:profile:write"],
       "evmCompatible": true,
-      "sessionDurationSeconds": 240
+      "sessionDurationSeconds": 240,
+      "retiredClients": [
+        {
+          "platform": "android",
+          "applicationId": "com.ynxweb4.shop",
+          "callback": "ynxshop://wallet-auth/callback",
+          "retiredAt": "2026-08-20T00:00:00.000Z",
+          "lastSupportedVersion": "0.3.0-testnet-preview",
+          "replacementUrl": "https://shop.ynxweb4.com/shop"
+        }
+      ]
     },
     {
       "productId": "social",
@@ -137,7 +156,8 @@
       "legacyCallbacks": ["ynx-social", "ynx-social://com.ynx.social"],
       "scopes": ["account:read", "profile:link"],
       "evmCompatible": false,
-      "sessionDurationSeconds": 240
+      "sessionDurationSeconds": 240,
+      "retiredClients": []
     },
     {
       "productId": "video",
@@ -149,7 +169,8 @@
       "legacyCallbacks": ["ynxvideo", "ynxvideo://wallet-auth/callback"],
       "scopes": ["video:account", "video:library", "video:playback"],
       "evmCompatible": false,
-      "sessionDurationSeconds": 300
+      "sessionDurationSeconds": 300,
+      "retiredClients": []
     },
     {
       "productId": "wallet-web-companion",
@@ -162,6 +183,7 @@
       "scopes": ["account:read", "chain:network:add", "chain:network:switch", "wallet:session:request"],
       "evmCompatible": true,
       "sessionDurationSeconds": 180,
+      "retiredClients": [],
       "platforms": ["web"],
       "webApplicationId": "web.ynx.wallet.companion",
       "webCallback": "https://www.ynxweb4.com/dapp/wallet/wallet-auth/callback"

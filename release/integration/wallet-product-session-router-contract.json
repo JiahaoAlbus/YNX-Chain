@@ -90,7 +90,7 @@
   "protocol": {
     "name": "YNX Product Session",
     "version": "2",
-    "registrySchemaVersion": 2,
+    "registrySchemaVersion": 3,
     "gatewaySchemaVersion": 2,
     "chainId": "ynx_6423-1",
     "registry": "packages/wallet-auth/product-session-registry.json",
@@ -120,6 +120,16 @@
     "networkRecoveryPolicy": "Gateway network failures retain protected session/callback state as non-authoritative; stable request IDs and restart-safe Gateway idempotency recover lost challenge/completion responses before starting a new approval",
     "secureStoragePolicy": ["hardware-backed", "os-protected"],
     "guestLimitations": ["not-signed-in", "no-wallet-balance", "no-transactions", "no-chain-authority"]
+  },
+  "clientRetirement": {
+    "implementation": "packages/wallet-auth/src/product-session-registry.js",
+    "platformScoped": true,
+    "newAuthorizationFailsWith": "CLIENT_RETIRED",
+    "existingSessionsAndDevicesRevokedOnRegistryLoad": true,
+    "pendingChallengesAndCachedSuccessesPurged": true,
+    "shopAndroidRetired": true,
+    "shopWebPwaActive": true,
+    "currentPublicRuntimeUsesRegistryV3": false
   },
   "gatewayRoutes": [
     {"method": "POST", "path": "/v2/product-sessions/challenge", "proof": "Wallet approval plus registry-bound request"},

@@ -29,7 +29,7 @@ test("migration matrix covers the exact registry and cites only branch-local evi
   assert.equal(matrix.productRuntimeMigrationCount, matrix.products.filter((item) => item.migrated).length);
   assert.equal(matrix.fixedProductCount, matrix.products.filter((item) => item.migrated).length);
   for (const product of matrix.products) {
-    assert.ok(["contract-only", "core-runtime-candidate", "legacy-direct", "shared-sdk-v1", "canonical-launcher-v1", "standard-wallet-only", "root-factory-source-only", "root-factory-platform-negative", "migrated-v2"].includes(product.consumer));
+    assert.ok(["contract-only", "core-runtime-candidate", "legacy-direct", "shared-sdk-v1", "canonical-launcher-v1", "standard-wallet-only", "root-factory-source-only", "root-factory-platform-negative", "android-retired-web-legacy", "migrated-v2"].includes(product.consumer));
     assert.ok(Array.isArray(product.evidence) && product.evidence.length > 0);
     for (const path of product.evidence) assert.equal(existsSync(resolve(repositoryRoot, path)), true, `${product.productId} evidence is missing: ${path}`);
   }
@@ -68,6 +68,12 @@ test("legacy and shared-v1 consumers cannot be presented as v2 migrations", () =
       assert.match(sources, /"installedVisibleNegativeVerified": true/);
       assert.match(sources, /"installedVisibleSuccessVerified": false/);
       assert.match(sources, /"migratedV2": false/);
+    }
+    if (product.consumer === "android-retired-web-legacy") {
+      assert.match(sources, /"newAuthorizationResult": "CLIENT_RETIRED"/);
+      assert.match(sources, /"webPwaRemainsRegistered": true/);
+      assert.match(sources, /"currentPublicRuntimeUsesRegistryV3": false/);
+      assert.match(sources, /"shopWebPwaRootFactoryMigrated": false/);
     }
     if (product.consumer === "core-runtime-candidate") assert.equal(product.migrated, false);
     if (product.consumer !== "migrated-v2") assert.equal(product.migrated, false);

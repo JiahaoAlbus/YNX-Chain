@@ -1,6 +1,6 @@
 import { exactFields, WalletAuthError } from "./canonical.js";
 
-export const PRODUCT_SESSION_REGISTRY_VERSION = 2;
+export const PRODUCT_SESSION_REGISTRY_VERSION = 3;
 export const PRODUCT_SESSION_PLATFORMS = Object.freeze(["android", "ios", "macos", "web", "windows"]);
 
 const DOCUMENT_FIELDS = ["schemaVersion", "chainId", "wallet", "products"];
@@ -8,9 +8,12 @@ const WALLET_FIELDS = ["authorizeCallback", "downloadUrl", "metaMaskDownloadUrl"
 const WALLET_V1_FIELDS = ["authorizeCallback", "downloadUrl"];
 const PRODUCT_FIELDS = [
   "productId", "clientId", "displayName", "applicationId", "webOrigin", "nativeCallback",
-  "legacyCallbacks", "scopes", "evmCompatible", "sessionDurationSeconds",
+  "legacyCallbacks", "scopes", "evmCompatible", "sessionDurationSeconds", "retiredClients",
 ];
 const EXPLICIT_WEB_PRODUCT_FIELDS = [...PRODUCT_FIELDS, "platforms", "webApplicationId", "webCallback"];
+const PRODUCT_V2_FIELDS = PRODUCT_FIELDS.filter((field) => field !== "retiredClients");
+const EXPLICIT_WEB_PRODUCT_V2_FIELDS = EXPLICIT_WEB_PRODUCT_FIELDS.filter((field) => field !== "retiredClients");
+const RETIRED_CLIENT_FIELDS = ["platform", "applicationId", "callback", "retiredAt", "lastSupportedVersion", "replacementUrl"];
 const FORBIDDEN_CALLBACK_SCHEMES = new Set(["data:", "file:", "http:", "javascript:"]);
 
 export function parseProductSessionRegistry(input) {
@@ -55,11 +58,24 @@ export function migrateProductSessionRegistryV1(input) {
   exactFields(input, DOCUMENT_FIELDS, "Product Session router registry v1");
   if (input.schemaVersion !== 1 || input.chainId !== "ynx_6423-1") fail("INVALID_ROUTER_REGISTRY", "Product Session router registry v1 is unsupported");
   exactFields(input.wallet, WALLET_V1_FIELDS, "Product Session Wallet registration v1");
-  return parseProductSessionRegistry({
+  return migrateProductSessionRegistryV2({
     ...input,
-    schemaVersion: PRODUCT_SESSION_REGISTRY_VERSION,
+    schemaVersion: 2,
     wallet: { ...input.wallet, metaMaskDownloadUrl: "https://metamask.io/download" },
   });
+}
+
+export function migrateProductSessionRegistryV2(input) {
+  exactFields(input, DOCUMENT_FIELDS, "Product Session router registry v2");
+  if (input.schemaVersion !== 2 || input.chainId !== "ynx_6423-1") fail("INVALID_ROUTER_REGISTRY", "Product Session router registry v2 is unsupported");
+  exactFields(input.wallet, WALLET_FIELDS, "Product Session Wallet registration v2");
+  if (!Array.isArray(input.products)) fail("INVALID_ROUTER_REGISTRY", "Product Session router registry v2 products are invalid");
+  const products = input.products.map((product) => {
+    const explicitWeb = Object.hasOwn(product, "platforms") || Object.hasOwn(product, "webApplicationId") || Object.hasOwn(product, "webCallback");
+    exactFields(product, explicitWeb ? EXPLICIT_WEB_PRODUCT_V2_FIELDS : PRODUCT_V2_FIELDS, "Product Session product registration v2");
+    return { ...product, retiredClients: legacyRetirements(product) };
+  });
+  return parseProductSessionRegistry({ ...input, schemaVersion: PRODUCT_SESSION_REGISTRY_VERSION, products });
 }
 
 export function productPlatformBinding(registryInput, productId, platform) {
@@ -68,6 +84,9 @@ export function productPlatformBinding(registryInput, productId, platform) {
   const product = registry.products.find((item) => item.productId === productId);
   if (!product) fail("UNKNOWN_PRODUCT", "Product is not registered for Product Sessions");
   if (!product.platforms.includes(platform)) fail("INVALID_PLATFORM", "Product is not registered for Product Sessions on this platform");
+  if (product.retiredClients.some((item) => item.platform === platform)) {
+    fail("CLIENT_RETIRED", "The exact product client and callback are retired; use the registered replacement");
+  }
   const web = platform === "web";
   return Object.freeze({
     chainId: registry.chainId,
@@ -147,11 +166,46 @@ function parseProduct(input) {
   if (!Number.isInteger(input.sessionDurationSeconds) || input.sessionDurationSeconds < 60 || input.sessionDurationSeconds > 300) {
     fail("INVALID_ROUTER_REGISTRY", "Product Session duration must be between 60 and 300 seconds");
   }
+  const retiredClients = retiredClientList(input.retiredClients, { applicationId, nativeCallback, platforms, webApplicationId, webCallback });
   return Object.freeze({
     productId, clientId, displayName, applicationId, webOrigin, nativeCallback, platforms: Object.freeze(platforms), webApplicationId, webCallback,
     legacyCallbacks: Object.freeze(legacyCallbacks), scopes: Object.freeze(scopes),
-    evmCompatible: input.evmCompatible, sessionDurationSeconds: input.sessionDurationSeconds,
+    evmCompatible: input.evmCompatible, sessionDurationSeconds: input.sessionDurationSeconds, retiredClients,
   });
+}
+
+function retiredClientList(input, product) {
+  if (!Array.isArray(input) || input.length > PRODUCT_SESSION_PLATFORMS.length) fail("INVALID_ROUTER_REGISTRY", "retiredClients must be a bounded array");
+  const result = input.map((item) => {
+    exactFields(item, RETIRED_CLIENT_FIELDS, "retired Product Session client");
+    const platform = text(item.platform, "retired client platform", 3, 16);
+    if (!PRODUCT_SESSION_PLATFORMS.includes(platform) || !product.platforms.includes(platform)) fail("INVALID_ROUTER_REGISTRY", "retired client platform is not registered for the product");
+    const web = platform === "web";
+    const expectedApplicationId = web ? product.webApplicationId : product.applicationId;
+    const expectedCallback = web ? product.webCallback : product.nativeCallback;
+    if (item.applicationId !== expectedApplicationId || item.callback !== expectedCallback) fail("INVALID_ROUTER_REGISTRY", "retired client application or callback does not match the registered platform binding");
+    const retiredAt = canonicalTime(item.retiredAt, "retiredAt");
+    const lastSupportedVersion = pattern(item.lastSupportedVersion, "lastSupportedVersion", /^[0-9A-Za-z][0-9A-Za-z.+-]{0,63}$/);
+    const replacementUrl = httpsURL(item.replacementUrl, "retired client replacementUrl", false);
+    return Object.freeze({ platform, applicationId: expectedApplicationId, callback: expectedCallback, retiredAt, lastSupportedVersion, replacementUrl });
+  });
+  uniqueSorted(result.map((item) => item.platform), "retired client platform");
+  return Object.freeze(result);
+}
+
+function legacyRetirements(product) {
+  if (product.productId !== "shop") return [];
+  if (product.clientId !== "ynx-shop-v1" || product.applicationId !== "com.ynxweb4.shop" || product.nativeCallback !== "ynxshop://wallet-auth/callback") {
+    fail("INVALID_ROUTER_REGISTRY", "legacy Shop client tuple cannot be retired safely");
+  }
+  return [{
+    platform: "android",
+    applicationId: "com.ynxweb4.shop",
+    callback: "ynxshop://wallet-auth/callback",
+    retiredAt: "2026-08-20T00:00:00.000Z",
+    lastSupportedVersion: "0.3.0-testnet-preview",
+    replacementUrl: "https://shop.ynxweb4.com/shop",
+  }];
 }
 
 function callback(value, label, options) {
@@ -175,6 +229,7 @@ function httpsURL(value, label, originOnly) {
   }
   return originOnly ? parsed.origin : parsed.toString().replace(/\/$/, "");
 }
+function canonicalTime(value, label) { const result = text(value, label, 20, 30); const parsed = new Date(result); if (!Number.isFinite(parsed.getTime()) || parsed.toISOString() !== result) fail("INVALID_ROUTER_REGISTRY", `${label} must be canonical UTC`); return result; }
 
 function stringList(value, label, minimum, maximum, normalize) {
   if (!Array.isArray(value) || value.length < minimum || value.length > maximum) fail("INVALID_ROUTER_REGISTRY", `${label} item count is invalid`);

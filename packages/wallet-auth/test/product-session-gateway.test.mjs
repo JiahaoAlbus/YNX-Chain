@@ -91,6 +91,45 @@ test("Gateway snapshot v1 requires explicit migration and idempotency cache tamp
   assert.throws(() => parseProductSessionGatewaySnapshot(tampered), (error) => error?.code === "INVALID_GATEWAY_STORE");
 });
 
+test("Shop Android retirement purges cached authority and returns canonical 410 without affecting Web", () => {
+  const priorRegistry = structuredClone(registry);
+  priorRegistry.products.find((item) => item.productId === "shop").retiredClients = [];
+  let retirementToken = 0;
+  const prior = new ProductSessionGatewayKernel(priorRegistry, () => token(`shop-retirement-${retirementToken++}`));
+  const shop = priorRegistry.products.find((item) => item.productId === "shop");
+  const pending = createProductSessionRequest(priorRegistry, {
+    productId: "shop", platform: "android", deviceId: "shop-retired-device-001", deviceKey,
+    scopes: shop.scopes, purpose: "Connect the exact retired Shop Android client.",
+    nonce: token("shop-retired-nonce"), state: token("shop-retired-state"),
+  }, NOW);
+  const approval = signProductSessionApproval(priorRegistry, pending, { accountSecret: "1".padStart(64, "0"), scopes: pending.scopes, expiresAt: "2026-08-14T01:03:00.000Z" }, NOW);
+  const challengeBody = { request: pending, approval };
+  const challengeResponse = prior.dispatch({ requestId: "req_shop_retired_challenge_001", method: "POST", path: "/v2/product-sessions/challenge", body: challengeBody, proof: null, networkAvailable: true }, NOW);
+  const challenge = JSON.parse(challengeResponse.body).result;
+  const completeBody = { request: pending, approval, completion: signProductSessionChallenge(challenge, secretText) };
+  const completeResponse = prior.dispatch({ requestId: "req_shop_retired_complete_001", method: "POST", path: "/v2/product-sessions/complete", body: completeBody, proof: null, networkAvailable: true }, NOW);
+  assert.equal(completeResponse.status, 200);
+  assert.equal(prior.snapshot().idempotency.length, 2);
+
+  const retired = new ProductSessionGatewayKernel(registry, () => token("unused-shop-retirement-token"), prior.snapshot());
+  assert.equal(retired.snapshot().idempotency.length, 0);
+  assert.equal(retired.snapshot().authority.revokedSessions.length, 1);
+  assert.equal(retired.snapshot().authority.revokedDevices.length, 1);
+  for (const [requestId, body, path] of [
+    ["req_shop_retired_challenge_001", challengeBody, "/v2/product-sessions/challenge"],
+    ["req_shop_retired_complete_001", completeBody, "/v2/product-sessions/complete"],
+  ]) {
+    const response = retired.dispatch({ requestId, method: "POST", path, body, proof: null, networkAvailable: true }, NOW);
+    assert.equal(response.status, 410);
+    assert.equal(JSON.parse(response.body).error.code, "CLIENT_RETIRED");
+  }
+  assert.doesNotThrow(() => createProductSessionRequest(registry, {
+    productId: "shop", platform: "web", deviceId: "shop-web-device-001", deviceKey,
+    scopes: shop.scopes, purpose: "Connect Shop Web after Android retirement.",
+    nonce: token("shop-web-nonce"), state: token("shop-web-state"),
+  }, NOW));
+});
+
 test("App Gateway fails closed on unissued challenges, network loss and request binding substitution", () => {
   const gateway = kernel(), pending = request();
   const approval = signProductSessionApproval(registry, pending, { accountSecret: "1".padStart(64, "0"), scopes: pending.scopes, expiresAt: "2026-08-14T01:03:00.000Z" }, NOW);

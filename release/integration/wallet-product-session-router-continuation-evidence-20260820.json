@@ -69,7 +69,7 @@
   "tests": {
     "walletAuth": {
       "command": "npm test --prefix packages/wallet-auth",
-      "passed": 240,
+      "passed": 243,
       "failed": 0
     },
     "unifiedErrorContract": {
@@ -84,7 +84,7 @@
       "focusedCommand": "node --test packages/wallet-auth/test/product-wallet-connection.test.mjs packages/wallet-auth/test/product-session-public-probe.test.mjs packages/wallet-auth/test/product-session-migration.test.mjs",
       "focusedPassed": 18,
       "focusedFailed": 0,
-      "fullWalletAuthPassed": 240,
+      "fullWalletAuthPassed": 243,
       "fullWalletAuthFailed": 0,
       "defaultPublicMountProbePassed": true,
       "packageDryRunIncludesFactoryAndTypes": true
@@ -98,6 +98,16 @@
       "command": "node --test packages/wallet-auth/test/product-session-migration.test.mjs",
       "passed": 4,
       "failed": 0
+    },
+    "shopAndroidRetirement": {
+      "evidencePath": "release/integration/wallet-product-session-shop-android-retirement-checkpoint-20260821.json",
+      "focusedPassed": 24,
+      "focusedFailed": 0,
+      "fullWalletAuthPassed": 243,
+      "fullWalletAuthFailed": 0,
+      "newAuthorizationHttpStatus": 410,
+      "newAuthorizationCode": "CLIENT_RETIRED",
+      "publicRuntimeVerified": false
     },
     "socialReadOnlyCheckpoint": {
       "sourceCommit": "9759576afdd4e02fa5375dde371acd41be038c2c",
@@ -131,7 +141,11 @@
     "financeInstalledWalletOpened": true,
     "financeInstalledWalletResult": "PROTOCOL_SCHEMA_FIELD_MISMATCH_WHILE_LOCKED",
     "financeInstalledVisibleSuccessVerified": false,
-    "financeProductSessionUnavailableAndNotFabricated": true
+    "financeProductSessionUnavailableAndNotFabricated": true,
+    "shopAndroidRetirementCheckpoint": "source-only-registry-v3",
+    "shopAndroidClientRetiredInSource": true,
+    "shopWebPwaRemainsRegistered": true,
+    "shopRegistryV3DeployedPublic": false
   },
   "computerControl": {
     "evidencePath": "release/integration/wallet-auth-website-computercontrol-evidence-20260820.json",

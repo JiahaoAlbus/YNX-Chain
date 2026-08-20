@@ -119,7 +119,7 @@ export declare function credentialCandidateDigest(input:unknown,at?:Date):string
 
 export type ProductSessionPlatform="android"|"ios"|"macos"|"web"|"windows";
 export type ProductSessionV2=Readonly<{version:"2";sessionBinding:string;chainId:"ynx_6423-1";productId:string;clientId:string;platform:ProductSessionPlatform;applicationId:string;bundleId:string|null;packageId:string|null;origin:string;callback:string;account:string;deviceId:string;deviceAlgorithm:"p256-sha256";deviceKey:string;deviceBinding:string;nonce:string;state:string;scopes:readonly string[];requestDigest:string;approvalDigest:string;issuedAt:string;expiresAt:string}>;
-export declare const PRODUCT_SESSION_REGISTRY_VERSION:2;
+export declare const PRODUCT_SESSION_REGISTRY_VERSION:3;
 export declare const PRODUCT_SESSION_PROTOCOL_VERSION:"2";
 export declare const PRODUCT_SESSION_AUTHORITY_SCHEMA_VERSION:2;
 export declare const PRODUCT_SESSION_PLATFORMS:readonly ProductSessionPlatform[];
@@ -127,6 +127,7 @@ export declare const WALLET_ROUTE_STATUS:Readonly<Record<string,string>>;
 export declare const PRODUCT_SESSION_CLIENT_STATE:Readonly<Record<string,string>>;
 export declare function parseProductSessionRegistry(input:unknown):Readonly<Record<string,unknown>>;
 export declare function migrateProductSessionRegistryV1(input:unknown):Readonly<Record<string,unknown>>;
+export declare function migrateProductSessionRegistryV2(input:unknown):Readonly<Record<string,unknown>>;
 export declare function productPlatformBinding(registry:unknown,productId:string,platform:ProductSessionPlatform):Readonly<Record<string,unknown>>;
 export declare function migrateLegacyCallback(registry:unknown,legacyValue:string,context:{productId:string;platform:ProductSessionPlatform}):Readonly<Record<string,unknown>>;
 export declare function migrateLegacyProductSessionRequest(registry:unknown,legacy:unknown,context:{productId:string;platform:ProductSessionPlatform;deviceId:string;state:string},at?:Date):Readonly<Record<string,unknown>>;

@@ -15,17 +15,18 @@ const PLATFORMS = ["web", "macos", "windows", "android", "ios"];
 
 function token(label) { return createHash("sha256").update(label).digest("base64url"); }
 function deviceSecret(index) { const value = Buffer.alloc(32); value.writeUInt32BE(index + 1, 28); return value; }
-function completion(index, productId = PRODUCTS[index % PRODUCTS.length], platform = PLATFORMS[index % PLATFORMS.length], accountSecret = `${(index % 2) + 1}`.padStart(64, "0")) {
-  const product = registry.products.find((item) => item.productId === productId);
-  if (!product.platforms?.includes(platform)) platform = product.platforms?.[index % product.platforms.length] ?? platform;
+function completion(index, productId = PRODUCTS[index % PRODUCTS.length], platform = PLATFORMS[index % PLATFORMS.length], accountSecret = `${(index % 2) + 1}`.padStart(64, "0"), registryInput = registry) {
+  const product = registryInput.products.find((item) => item.productId === productId);
+  const activePlatforms = (product.platforms ?? PLATFORMS).filter((candidate) => !product.retiredClients?.some((retired) => retired.platform === candidate));
+  if (!activePlatforms.includes(platform)) platform = activePlatforms[index % activePlatforms.length];
   const secret = deviceSecret(index);
-  const request = createProductSessionRequest(registry, {
+  const request = createProductSessionRequest(registryInput, {
     productId, platform, deviceId: `device-${String(index).padStart(6, "0")}`,
     deviceKey: Buffer.from(p256.getPublicKey(secret, true)).toString("base64url"), scopes: product.scopes,
     purpose: `Authorize ${product.displayName} on this exact device.`, nonce: token(`nonce:${index}`), state: token(`state:${index}`),
   }, NOW);
-  const approval = signProductSessionApproval(registry, request, { accountSecret, scopes: request.scopes, expiresAt: "2026-08-14T01:03:00.000Z" }, NOW);
-  const challenge = createProductSessionChallenge(registry, request, approval, { challenge: token(`challenge:${index}`) }, NOW);
+  const approval = signProductSessionApproval(registryInput, request, { accountSecret, scopes: request.scopes, expiresAt: "2026-08-14T01:03:00.000Z" }, NOW);
+  const challenge = createProductSessionChallenge(registryInput, request, approval, { challenge: token(`challenge:${index}`) }, NOW);
   return { request, approval, challenge, completion: signProductSessionChallenge(challenge, secret.toString("base64url")) };
 }
 
@@ -111,6 +112,24 @@ test("expiry, session revoke, device revoke and account revoke survive restart",
   }
   const authority = new ProductSessionAuthority(registry); const session = authority.complete(issued(authority, completion(9999)), NOW);
   assert.throws(() => authority.introspect(session.sessionBinding, context(session), new Date("2026-08-14T01:06:00.000Z")), code("SESSION_EXPIRED"));
+});
+
+test("registry retirement revokes existing Shop Android authority and cancels pending approval", () => {
+  const priorRegistry = structuredClone(registry);
+  priorRegistry.products.find((item) => item.productId === "shop").retiredClients = [];
+  const prior = new ProductSessionAuthority(priorRegistry);
+  const completed = completion(12000, "shop", "android", "1".padStart(64, "0"), priorRegistry);
+  const session = prior.complete(issued(prior, completed), NOW);
+  const pending = completion(12001, "shop", "android", "1".padStart(64, "0"), priorRegistry);
+  prior.issueChallenge({ request: pending.request, approval: pending.approval, challenge: pending.challenge.challenge }, NOW);
+
+  const retired = new ProductSessionAuthority(registry, prior.snapshot());
+  const snapshot = retired.snapshot();
+  assert.equal(snapshot.revokedSessions.includes(session.sessionBinding), true);
+  assert.equal(snapshot.revokedDevices.includes(session.deviceBinding), true);
+  assert.equal(snapshot.issuedChallenges.some((item) => item.challenge === pending.challenge.challenge), false);
+  assert.throws(() => retired.introspect(session.sessionBinding, context(session), NOW), code("SESSION_REVOKED"));
+  assert.throws(() => retired.complete({ request: pending.request, approval: pending.approval, completion: pending.completion }, NOW), code("CLIENT_RETIRED"));
 });
 
 function code(expected) { return (error) => error instanceof WalletAuthError && error.code === expected; }
