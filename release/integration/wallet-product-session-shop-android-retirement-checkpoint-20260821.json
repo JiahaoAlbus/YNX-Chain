@@ -132,8 +132,37 @@
     "productionStateDigestRefreshRequiredUnderFreshLease": true,
     "migrationReceiptStatus": "PREPARED_NOT_EXECUTED",
     "rollbackReceiptStatus": "PREPARED_NOT_EXECUTED",
-    "centralAcceptancePending": true,
+    "centralAcceptanceTask": "P0-046",
+    "centralSourceAccepted": true,
+    "centralAcceptancePending": false,
     "executionLeaseIssued": false,
+    "sshOrDeploymentPerformed": false,
+    "candidateDeployedPublic": false
+  },
+  "centralSuccessorLeaseDecision": {
+    "taskId": "P0-048",
+    "commit": "5bf0b9a10fe75752bb1ef21efed2c0f051821655",
+    "parent": "f32df414a75fc2c179add368f53b4085b44fad9c",
+    "tree": "154cd2b54aa0ae7498c17d4623f31ab9263c4023",
+    "decision": "NO_GO_DEPLOYABLE_ARTIFACT_AND_HEAVY_SLOT_BLOCKED",
+    "evidenceBlob": "ecee08c64ca8ffb55bdd9203f515df404c3c551c",
+    "evidenceSha256": "5bd42257183024c07ffafdb5168acb0c4d6accd29bd137d17d5994eb679dcc36",
+    "artifactBlockers": {
+      "deployableSourceArchiveFrozen": false,
+      "deployableSourceInventoryFrozen": false,
+      "offlineDependencyRuntimeArchiveFrozen": false,
+      "offlineDependencySbomFrozen": false,
+      "copiedRuntimeExtractionLayoutVerified": false
+    },
+    "heavySlotBlocker": {
+      "taskId": "P0-015",
+      "status": "ACTIVE_PROTECTED_SEQUENTIAL_FOLLOWER_DEPLOYMENT",
+      "explicitReleaseObserved": false,
+      "elapsedTimeInfersRelease": false,
+      "heavySlotAvailable": false
+    },
+    "executionLeaseIssued": false,
+    "executionLeaseId": null,
     "sshOrDeploymentPerformed": false,
     "candidateDeployedPublic": false
   },
