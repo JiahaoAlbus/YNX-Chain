@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-052",
+  "product": "pay-merchant",
+  "branch": "codex/p0-merchant-console-wallet-connectivity-20260821",
+  "implementationCommit": "a59974d52b8c4fadaf1cd34db624f94b377f7cc5",
+  "implementationTree": "387d600a87d4ea5073b64a391bacbdf1d6802a7a",
+  "remoteReadbackExact": true,
+  "acceptedContracts": ["walletTransport", "errorContract", "dappConnectSDK", "publicEndpointManifest"],
+  "implemented": ["EIP-6963 discovery", "EIP-1193 account request", "YNX Wallet preference", "standard wallet fallback", "0x1917 add/switch", "wallet account and chain events", "official YNX Wallet and MetaMask install choices", "guest capability preview", "private service degradation independent from Standard Wallet"],
+  "tests": {"node":"13/13", "build":"PASS", "forbiddenEndpointScan":"PASS", "browserBundleNodeBuiltinScan":"PASS"},
+  "artifacts": {"webBundle":{"sha256":"0c2a373b28f884578c626b0dd5f06ad1510fb8e94eaaf8c496d3fd9a389bc25a","bytes":132449},"runtimeConfig":{"sha256":"c848319c7f105cd55bc096d7dbb612bb6cc2bd960c94fc02e1ee99eb479fdee3","bytes":585},"packageLock":{"sha256":"66f61a4bc54ade1e9b1f9798c9b75dad51296a71c97a6eab191a7abc3870abfc","bytes":16416}},
+  "browserEvidence": {"surface":"local Browser","url":"http://127.0.0.1:4187/","englishPrimary":true,"guestPreviewVisible":true,"privateServiceDegradedVisible":true,"privateSessionButtonDisabled":true,"consoleErrors":0,"actualProviderApproval":false,"computerControl":false},
+  "truth": {"standardWalletSourceImplemented":true,"productSessionV2":false,"installedClientVerified":false,"deployedPublic":false,"publicVerified":false,"computerControlVerified":false,"integratedCentral":false},
+  "nextAction": "After product checkpoint acceptance, verify one actual provider approve/reject/account/chain/disconnect lifecycle. Private Product Session remains blocked until an accepted public v2 Gateway and Pay product API exist."
+}

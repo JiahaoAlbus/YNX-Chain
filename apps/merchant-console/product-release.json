@@ -1,8 +1,8 @@
 {
   "productId": "pay-merchant",
   "name": "YNX Merchant Console",
-  "branch": "codex/ecosystem-pay",
-  "commit": "WORKTREE_PENDING_COMMIT",
+  "branch": "codex/p0-merchant-console-wallet-connectivity-20260821",
+  "commit": "a59974d52b8c4fadaf1cd34db624f94b377f7cc5",
   "version": "1.0.0",
   "surfaces": ["web"],
   "implementedLocal": true,
@@ -17,12 +17,12 @@
   "publicUrls": [],
   "healthUrls": [],
   "artifactUrls": [],
-  "sha256": {},
-  "bytes": {},
+  "sha256": {"webBundle":"0c2a373b28f884578c626b0dd5f06ad1510fb8e94eaaf8c496d3fd9a389bc25a","runtimeConfig":"c848319c7f105cd55bc096d7dbb612bb6cc2bd960c94fc02e1ee99eb479fdee3","packageLock":"66f61a4bc54ade1e9b1f9798c9b75dad51296a71c97a6eab191a7abc3870abfc"},
+  "bytes": {"webBundle":132449,"runtimeConfig":585,"packageLock":16416},
   "signingClass": {"web": "unsigned static production bundle"},
   "minOS": {"web": "current evergreen browsers"},
   "installEvidence": [],
-  "centralIntegration": "Canonical pay-merchant Wallet entry and same-origin /app/pay-merchant proxy are requested but not deployed.",
-  "knownLimitations": ["No staging URL or current browser screenshot matrix.", "Existing proof screenshots predate canonical Wallet integration.", "Browser visual check was blocked by local URL policy; static production build and tests pass."],
-  "generatedAt": "2026-07-19T04:00:00+08:00"
+  "centralIntegration": "Accepted DApp Connect SDK source is consumed for EIP-6963/EIP-1193 Standard Wallet. The accepted Endpoint Manifest marks App Gateway UNAVAILABLE and Pay API PENDING, so private merchant service fails closed without disconnecting Standard Wallet.",
+  "knownLimitations": ["No actual provider approval/account event was performed in the source-only lease.", "Product Session v2, public deployment, installed-client evidence and Computer Control remain false.", "Local Browser verified English UI, guest capability preview, private degradation and zero console errors; this is not public evidence."],
+  "generatedAt": "2026-08-20T19:40:00Z"
 }
