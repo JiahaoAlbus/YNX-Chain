@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "acceptanceId": "P0-WALLET-STANDARD-PROTOCOL-66782E91-20260820",
+  "decision": "ACCEPTED_EXACT_PROTOCOL_SOURCE_SLICE",
+  "sourceCommit": "66003e76e804da16d472255efde50cb879055b96",
+  "consumedCommit": "66782e91e36125f1a8b9985f652ca849d5a6117e",
+  "consumedParent": "8155175f60320376a37a700ec52000f56fb5cd4a",
+  "consumedTree": "04085c0e2b9b329b632aac2bf1a2ff7f22d1c15c",
+  "files": [
+    {"path":"packages/wallet-auth/integration/P0_WALLET_CONNECTIVITY_CANDIDATE.md","blob":"31982e13356e0e6b7ceda3d990cdcd333bdb2c67","bytes":4665,"sha256":"d8707f58d52ed4b9ac58375c4fba2fdafe9a85eb7ecee38072a2c65125d2fd25"},
+    {"path":"packages/wallet-auth/integration/p0-wallet-connectivity-candidate.json","blob":"113f4c03e06fd6148b86fbaf62a494a6b2aace00","bytes":9596,"sha256":"5844f0227819743adaf6909ed9ed1c281cc541f8a0ece6d57cae1dfd8c25df4e"},
+    {"path":"packages/wallet-auth/test/p0-wallet-connectivity-candidate.test.mjs","blob":"f293561a8e4978fab44dd403d54194baca05dcad","bytes":2721,"sha256":"dbd98207b6c1c583c3b3e2d5866a7d3e62ce0af782d8c767c2f731f777f5922c"}
+  ],
+  "boundary": {
+    "historicalRuntimeObservationSupersededBy": "6cf3ef845202bd879ed94515a71b323dd2fc9e14",
+    "standardWalletConnectionIndependent": true,
+    "productSessionOptionalPrivateEnhancement": true,
+    "productSessionFailurePreservesStandardConnection": true,
+    "localOrCannedProductSessionForbidden": true,
+    "productsMigrated": 0,
+    "productsRequired": 12,
+    "installedInteropVerified": false,
+    "integratedCentral": false,
+    "aggregatePublic": false
+  }
+}
