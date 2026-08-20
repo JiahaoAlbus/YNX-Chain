@@ -49,6 +49,7 @@ test("current public candidate and Wallet v2 evidence do not promote missing lif
   assert.equal(windows.verification.secondLaunch, true);
   assert.equal(windows.verification.realCppCompile, true);
   assert.equal(windows.publication.officialRouteHashReadback, true);
+  assert.equal(windows.publication.publicRangeProbe.contentRange, "bytes 0-0/72538901");
   assert.match(windowsSums, new RegExp(windows.artifact.sha256));
   assert.equal(truth.currentLocalWindowsArtifact.sha256, windows.artifact.sha256);
   assert.equal(truth.currentLocalWindowsArtifact.downloadHosted, true);

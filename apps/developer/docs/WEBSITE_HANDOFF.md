@@ -142,3 +142,8 @@ SBOM, provenance, package record, CI install evidence and SHA-256 list received 
 Caddy HTTP 200/hash-readback checks at `developer.ynxweb4.com/downloads`. The machine-readable
 record is `apps/developer/evidence/desktop/windows-current-6ac39fd1.json`; it is not
 Authenticode-signed, store-released or centrally integrated.
+
+An independent public range request also returned `206`, `Content-Range: bytes 0-0/72538901`,
+`Content-Disposition: attachment`, `application/zip` and `X-Content-Type-Options: nosniff`.
+That proves public reachability and byte size only; the full SHA-256 remains bound by the
+production Caddy readback and published checksum file.

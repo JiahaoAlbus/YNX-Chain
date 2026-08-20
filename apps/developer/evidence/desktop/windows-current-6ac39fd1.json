@@ -40,7 +40,14 @@
     "sbomUrl": "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-6ac39fd1-windows-x64-sbom.cdx.json",
     "provenanceUrl": "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-6ac39fd1-windows-x64-PROVENANCE.json",
     "sha256SumsUrl": "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-6ac39fd1-windows-x64-SHA256SUMS.txt",
-    "officialRouteHashReadback": true
+    "officialRouteHashReadback": true,
+    "publicRangeProbe": {
+      "httpStatus": 206,
+      "contentRange": "bytes 0-0/72538901",
+      "contentType": "application/zip",
+      "contentDisposition": "attachment",
+      "nosniff": true
+    }
   },
   "truthBoundaries": {
     "hostedWorkspaceClient": true,
