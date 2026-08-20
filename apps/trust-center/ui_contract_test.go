@@ -16,7 +16,7 @@ func TestTrustUIAccessibilityResponsiveAndBoundaryContract(t *testing.T) {
 		t.Fatal(err)
 	}
 	h, c := string(html), string(css)
-	for _, want := range []string{`lang="en"`, `name="viewport"`, `href="#main"`, `aria-live="polite"`, `aria-label="Trust Center sections"`, `Evidence · Procedure · Appeal`, `cannot freeze, seize, blacklist, confiscate or transfer native YNXT`, `Review & appeal`, `EVIDENCE INSPECTOR`, `CANONICAL WALLET V1`} {
+	for _, want := range []string{`lang="en"`, `name="viewport"`, `href="#main"`, `aria-live="polite"`, `aria-label="Trust Center sections"`, `Evidence · Procedure · Appeal`, `cannot freeze, seize, blacklist, confiscate or transfer native YNXT`, `Review & appeal`, `EVIDENCE INSPECTOR`, `STANDARD EVM CONNECTION`, `https://ynxweb4.com/dapp/download`, `https://metamask.io/download/`} {
 		if !strings.Contains(h, want) {
 			t.Errorf("missing UI contract %q", want)
 		}
@@ -28,5 +28,8 @@ func TestTrustUIAccessibilityResponsiveAndBoundaryContract(t *testing.T) {
 	}
 	if strings.Contains(h, "Resource Market") || strings.Contains(h, "capacity market") {
 		t.Fatal("Trust Center was merged with Resource Market")
+	}
+	if strings.Contains(h, "Local test identity") || strings.Contains(h, `id="actor"`) || strings.Contains(h, `id="role"`) {
+		t.Fatal("release UI must not expose a synthetic local identity")
 	}
 }

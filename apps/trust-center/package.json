@@ -1,1 +1,13 @@
-{"name":"ynx-trust-center-ui","private":true,"type":"module","scripts":{"test:ui":"playwright test"},"devDependencies":{"@playwright/test":"^1.55.0"}}
+{
+  "name": "ynx-trust-center-ui",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "esbuild web/app.js --bundle --format=iife --platform=browser --target=es2022 --outfile=web/app.bundle.js",
+    "test:ui": "npm run build && playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.55.0",
+    "esbuild": "0.25.12"
+  }
+}

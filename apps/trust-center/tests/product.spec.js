@@ -22,7 +22,7 @@ for (const viewport of [{name: 'desktop', width: 1440, height: 900}, {name: 'mob
   });
 }
 
-test('Trust Center runs bounded intake and honest AI failure', async ({page}) => {
+test('Trust Center keeps guest access and fails private intake closed', async ({page}) => {
   await page.goto('/');
   await expect(page.getByText('No accessible cases')).toBeVisible();
   await page.locator('.nav[data-view="submit"]').click();
@@ -41,13 +41,30 @@ test('Trust Center runs bounded intake and honest AI failure', async ({page}) =>
   await page.getByLabel('Evidence scope').fill('one signed event');
   await page.getByLabel('Evidence expiry').fill('2027-07-15T09:00');
   await page.locator('#case-form').getByLabel('Evidence summary').fill('Evidence summary visible to the subject.');
-  await page.getByRole('button', {name: 'Submit for independent review'}).click();
-  await expect(page.locator('#case-detail').getByText('governance review', {exact: true})).toBeVisible();
-  await page.locator('.nav[data-view="ai"]').click();
-  await page.getByRole('button', {name: 'Preview context and cost'}).click();
-  await expect(page.locator('#ai-result')).toContainText('Privacy preview');
-  await page.getByRole('button', {name: 'Allow explanation'}).click();
-  await expect(page.locator('#ai-result')).toContainText('AI provider unavailable');
+  await page.locator('#case-form button[type="submit"]').click();
+  await expect(page.locator('#status')).toContainText('App Gateway is unavailable');
+  await expect(page.locator('#case-list')).toContainText('No accessible cases');
+  await expect(page.locator('body')).not.toContainText('Local test identity');
+});
+
+test('accepted SDK connects a standard 0x account while private service stays degraded', async ({page}) => {
+  await page.addInitScript(() => {
+    const provider = {
+      request: async ({method}) => {
+        if (method === 'eth_requestAccounts') return ['0x1111111111111111111111111111111111111111'];
+        if (method === 'eth_chainId') return '0x1917';
+        throw Object.assign(new Error('unsupported'), {code: 4200});
+      },
+      on() {}
+    };
+    addEventListener('eip6963:requestProvider', () => dispatchEvent(new CustomEvent('eip6963:announceProvider', {detail: {info: {uuid: 'ynx-test-provider', name: 'YNX Wallet'}, provider}})));
+  });
+  await page.goto('/');
+  await page.locator('#wallet-open').click();
+  await page.locator('#wallet-connect').click();
+  await expect(page.locator('#wallet-standard-state')).toHaveText('CONNECTED · 0x1917');
+  await expect(page.locator('#wallet-private-state')).toContainText('DEGRADED');
+  await expect(page.locator('#wallet-result')).toContainText('did not remove it');
 });
 
 test('all locales persist, Arabic keeps an LTR shell, and due-process text never blanks', async ({page}) => {
