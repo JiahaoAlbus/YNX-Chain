@@ -98,6 +98,18 @@ func TestFaucetServerEndpoints(t *testing.T) {
 		}
 		_ = resp.Body.Close()
 	}
+	root, err := http.Get(server.URL + "/")
+	if err != nil {
+		t.Fatal(err)
+	}
+	rootBody, err := io.ReadAll(root.Body)
+	_ = root.Body.Close()
+	if err != nil || root.StatusCode != http.StatusOK || !strings.Contains(string(rootBody), "YNX Testnet Faucet") || !strings.Contains(string(rootBody), "'/request'") {
+		t.Fatalf("public faucet page is invalid: status=%d err=%v body=%s", root.StatusCode, err, rootBody)
+	}
+	if root.Header.Get("Content-Security-Policy") == "" || root.Header.Get("Referrer-Policy") != "no-referrer" {
+		t.Fatalf("public faucet page is missing response hardening: %v", root.Header)
+	}
 	resp, err := http.Post(server.URL+"/request", "application/json", strings.NewReader(`{"address":"ynx_faucet_server"}`))
 	if err != nil {
 		t.Fatal(err)
@@ -110,13 +122,17 @@ func TestFaucetServerEndpoints(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var health Health
+	var health PublicHealth
 	if err := json.NewDecoder(resp.Body).Decode(&health); err != nil {
 		t.Fatal(err)
 	}
 	_ = resp.Body.Close()
 	if health.Build.Commit != "abc123" || health.Build.Release != "ynx-chain-abc123" || health.Build.BuildTime != "2026-07-10T00:00:00Z" {
 		t.Fatalf("health missing build identity: %+v", health.Build)
+	}
+	publicPayload, err := json.Marshal(health)
+	if err != nil || strings.Contains(string(publicPayload), "rpcUrl") || strings.Contains(string(publicPayload), "requestLog") || strings.Contains(string(publicPayload), "127.0.0.1") {
+		t.Fatalf("public health leaks an internal runtime field: err=%v payload=%s", err, publicPayload)
 	}
 	resp, err = http.Post(server.URL+"/request", "application/json", strings.NewReader(`{"address":"bad"}`))
 	if err != nil {
