@@ -22,7 +22,7 @@
     "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/developer-v0.2.0-testnet-preview.1",
     "prerelease": true
   },
-  "summary": "The Developer web candidate is deployed with a service-based React and Monaco workbench. A current unsigned macOS arm64 artifact has separate source-bound evidence and an immutable official-domain download; the Windows artifact remains historical and is not represented as current for this candidate.",
+  "summary": "The Developer web candidate is deployed with a service-based React and Monaco workbench. Current unsigned macOS arm64 and Windows x64 artifacts have separate source-bound evidence and immutable official-domain downloads; Windows is a hosted-workspace client, not a local compiler sandbox.",
   "surfaces": [
     "web-ide",
     "api-studio",
@@ -62,6 +62,20 @@
       "downloadUrl": "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-e01b9e4a-macos-arm64-unsigned.zip",
       "signingClass": "adhoc-no-team-id",
       "verification": "embedded provenance, ad-hoc signature, Keychain write-read-cleanup, native absent-Wallet scheme discovery, cold launch, bounded C++ compile, persisted second launch and child cleanup passed"
+    },
+    "currentLocalWindowsArtifact": {
+      "evidence": "apps/developer/evidence/desktop/windows-current-6ac39fd1.json",
+      "sourceCommit": "6ac39fd140a54675526583c4c3ca6b07fc03af19",
+      "runtimeCheckpoint": "bc8a37bc6f2bcfcbe9415cb0e9da17a5294046a3",
+      "sha256": "10b6914614a86f694d9e58b21e311148b1dd0dc4b21ff39612c4a2486c5e0627",
+      "bytes": 72538901,
+      "sbomSha256": "8223b35dd1abb7a0a948af4360070b369afe278059d8a9ee7f3ff6ce931bf403",
+      "signingClass": "unsigned-no-authenticode",
+      "hosted": true,
+      "deliveryMode": "hosted-workspace-client",
+      "localCompilerSandbox": false,
+      "downloadUrl": "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-6ac39fd1-windows-x64-unsigned.zip",
+      "verification": "CI portable extraction, resource self-test, Authenticode NotSigned, public workspace connection, remote C++ compile and two WPF cold launches passed"
     },
     "currentLinuxX64ServerArtifact": {
       "evidence": "apps/developer/evidence/platform/linux-server-current-bc8a37bc.json",

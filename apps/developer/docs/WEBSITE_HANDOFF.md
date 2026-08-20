@@ -125,3 +125,20 @@ The archive passed protected-evidence integrity binding, extraction, a separate 
 downloads. It is an unsigned Testnet Preview server appliance, not a signed container image or
 production-signed release. The machine-readable evidence is
 `apps/developer/evidence/platform/linux-server-current-bc8a37bc.json`.
+
+## 2026-08-21 current Windows x64 package addendum
+
+The current Windows x64 hosted-workspace client is hosted on the immutable Developer
+official-domain route. Its exact source is `6ac39fd140a54675526583c4c3ca6b07fc03af19`,
+its protected Web IDE runtime checkpoint is `bc8a37bc6f2bcfcbe9415cb0e9da17a5294046a3`,
+the ZIP SHA-256 is `10b6914614a86f694d9e58b21e311148b1dd0dc4b21ff39612c4a2486c5e0627`,
+and it is 72,538,901 bytes. The package is an unsigned (`NotSigned`) WPF/WebView2
+hosted-workspace client, not a locally bundled compiler sandbox.
+
+GitHub Actions run `32396185202` passed the client tests, all 67 Developer tests,
+self-contained package build, portable extraction and resource checks, public workspace
+connection, a real remote C++ compilation, and two WPF cold launches. The exact ZIP,
+SBOM, provenance, package record, CI install evidence and SHA-256 list received production
+Caddy HTTP 200/hash-readback checks at `developer.ynxweb4.com/downloads`. The machine-readable
+record is `apps/developer/evidence/desktop/windows-current-6ac39fd1.json`; it is not
+Authenticode-signed, store-released or centrally integrated.
