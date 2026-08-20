@@ -1,0 +1,166 @@
+{
+  "productId": "com.ynx.mail",
+  "name": "YNX Mail",
+  "branch": "codex/final-mail",
+  "commit": "682bdb075803a77c9591fc59b83708944ea76fdf",
+  "version": "0.3.0-testnet-preview-source",
+  "surfaces": [
+    "android-native",
+    "ios-native",
+    "web-companion",
+    "go-api",
+    "macos-cli-web-companion"
+  ],
+  "implementedLocal": true,
+  "testedLocal": true,
+  "installedLocal": {
+    "android": true,
+    "ios": false,
+    "desktop": true
+  },
+  "integratedCentral": false,
+  "deployedStaging": false,
+  "deployedPublic": false,
+  "downloadHosted": false,
+  "productionSigned": false,
+  "storeReleased": false,
+  "publicUrls": [],
+  "healthUrls": [],
+  "artifactUrls": [],
+  "sha256": {
+    "app-debug.apk": "92214dd2f1a086ef586a834be7a8c2e2cd611d758788d734e41d1f9c3bf81448",
+    "ynx-mail-0.3.0-testnet-preview-source-darwin-arm64.tar.gz": "42c8cde2f71ab967adaa2116493830586a1b241bb2f60240dd91b2b8a0ebaf73"
+  },
+  "bytes": {
+    "app-debug.apk": 6393187,
+    "ynx-mail-0.3.0-testnet-preview-source-darwin-arm64.tar.gz": 2782558
+  },
+  "signingClass": {
+    "android": "debug-test-signed",
+    "ios": "not-built-for-current-source",
+    "desktop": "unsigned-local"
+  },
+  "minOS": {
+    "android": 26,
+    "ios": "17.0",
+    "macOS": "13.0"
+  },
+  "installEvidence": [
+    "apps/mail/evidence/android-install-682bdb0.json",
+    "apps/mail/evidence/desktop-install-682bdb0.json"
+  ],
+  "platformEvidence": {
+    "android": "apps/mail/evidence/android-install-682bdb0.json",
+    "ios": "apps/mail/evidence/ios-verification-682bdb0.json",
+    "desktop": "apps/mail/evidence/desktop-install-682bdb0.json"
+  },
+  "currentSourcePlatformEvidence": {
+    "ios": {
+      "sourceCommit": "771fa4751e01d264e6e995a16fc5d458ba1021e5",
+      "workflowRunId": 30418420264,
+      "jobId": 90469841717,
+      "build": true,
+      "installedSimulator": true,
+      "installedPhysicalDevice": false,
+      "coldLaunch": true,
+      "callbackResolution": true,
+      "artifactName": "YNXMail-unsigned-simulator.app.zip",
+      "sha256": "09d2c2fc4f2f94f8b23d9aa279e7cf61da5a35daa7f676205b1c9d5ec3cacfe2",
+      "bytes": 387434,
+      "signingClass": "unsigned-simulator",
+      "actionsArtifactId": 8711049496,
+      "actionsArtifactExpiresAt": "2026-10-27T03:01:43Z",
+      "publicImmutableDownload": false,
+      "evidence": "apps/mail/evidence/ios-cloud-simulator-771fa47.json"
+    }
+  },
+  "centralIntegration": "docs/integration/INTEGRATION_HANDOFF.md",
+  "integrationContract": "release/integration/mail-contract.json",
+  "crossProductTestVectors": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
+  "dependencyAcceptance": "docs/integration/DEPENDENCY_ACCEPTANCE.md",
+  "publicProductMetadata": "apps/mail/public-product-metadata.json",
+  "runtimeEvidence": {
+    "mailRace": "go test -race ./internal/mail: pass",
+    "mailVet": "go vet ./internal/mail: pass",
+    "mailWeb": "npm test --prefix apps/mail: 9/9 pass",
+    "mailBuild": "npm run build --prefix apps/mail: pass",
+    "mailSmoke": "npm run smoke --prefix apps/mail: pass",
+    "mailCi": "GitHub Actions YNX Mail CI run 30417833956 at 771fa475: success",
+    "desktopInstall": "current-source unsigned local package extracted, cold-started and restarted: pass",
+    "androidBuildInstall": "current-source debug/test APK built with JDK 17, installed on API 36 emulator, cold-started, restarted and callback route resolved: pass",
+    "iosVerification": "local Swift/project/plist checks pass; GitHub Actions run 30418420264 built, installed, cold-launched and resolved Wallet callback for unsigned iOS Simulator source 771fa475",
+    "fullRepositoryPreflight": "Mail passes; shared preflight is blocked only by missing Developer-owned SampleEVMWriteCounter.json artifacts in BFT/Consensus IDE tests",
+    "securityScanGate": "shared placeholder and secret scripts are invalid on this host because missing rg produced false-green exit code 0; not counted as pass"
+  },
+  "dataFabric": {
+    "implementationCommit": "f6868eccc2e47a2cde137b7b4238fa6bcce3a657",
+    "ciDefinitionCommit": "771fa4751e01d264e6e995a16fc5d458ba1021e5",
+    "transactionalOutboxImplementedLocal": true,
+    "persistentSequenceAndAcknowledgement": true,
+    "boundedPendingEvents": 10000,
+    "boundedBatchEvents": 1000,
+    "privacyMinimizationTested": true,
+    "restartReplayTested": true,
+    "providerTruthTested": true,
+    "publicTransportRoute": false,
+    "authenticatedCentralTransportAccepted": false,
+    "integratedCentral": false,
+    "evidence": [
+      "internal/mail/data_fabric_test.go",
+      "release/integration/mail-contract.json",
+      "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json"
+    ]
+  },
+  "backupRestore": {
+    "format": "ynx-mail-backup-v1",
+    "implementedLocal": true,
+    "testedLocal": true,
+    "sourceCommit": "0e087bc1fe7f71732d28dab1a6c7414e28d424ce",
+    "directoryMode": "0700",
+    "fileMode": "0600",
+    "sameByteValidationAndInstall": true,
+    "noReplaceDestination": true,
+    "providerRecoveryStatePreserved": true,
+    "legacyStateForwardLoadVerified": true,
+    "oldBinaryRollbackVerified": false,
+    "encryptedBoundaryRequired": true,
+    "evidence": "apps/mail/MIGRATION_COMPATIBILITY.md"
+  },
+  "internetBridge": {
+    "providerAdapter": "resend",
+    "submissionImplementedLocal": true,
+    "signedWebhookImplementedLocal": true,
+    "persistentReplayProtection": true,
+    "outOfOrderProtection": true,
+    "providerAcceptanceSeparatedFromDelivery": true,
+    "providerEngagementSeparatedFromUserRead": true,
+    "persistentSuppressionRegistry": true,
+    "boundedDeadLetterQueue": true,
+    "providerHealthLocalEvidence": true,
+    "providerCredentialConfigured": false,
+    "senderDomainVerified": false,
+    "dnsReady": false,
+    "sandboxVerified": false,
+    "publicWebhookVerified": false,
+    "providerHealthVerified": false
+  },
+  "historicalHostedArtifact": {
+    "version": "0.2.0-testnet-preview",
+    "commit": "e227c4f0505537b19f4588ea26478c54518f0a4c",
+    "releaseTag": "ynx-mail-calendar-v0.2.0-testnet-preview-e227c4f",
+    "downloadHosted": true,
+    "note": "Historical artifacts remain hosted but do not contain the current Internet Bridge source."
+  },
+  "knownLimitations": [
+    "Current-source Android and desktop artifacts are built and installed locally only; they are not hosted or production signed. Current-source iOS Simulator build/install/cold-launch/callback is verified on GitHub Actions, but the artifact is unsigned, ephemeral and not a physical-device, TestFlight or App Store proof. Historical 0.2.0 artifacts do not include the Internet Bridge.",
+    "No provider credential, verified sender domain, DNS/SPF/DKIM/DMARC evidence, public webhook, reputation proof or sandbox delivery evidence is present.",
+    "Central Wallet registry/verifier and AI POST route are not merged or deployed.",
+    "No production signing, persistent staging Web/API, public product URL or store release.",
+    "Message bodies and attachments are authenticated against state tamper but are not end-to-end encrypted.",
+    "The self-contained backup includes the state HMAC key and sender identity key and therefore requires an approved encrypted operator backup boundary; it is not a hostile-storage authenticity proof.",
+    "Legacy state forward loading is verified, but prior strict-decoder binaries reject the new Data Fabric fields; a versioned rollback export and exact old-binary drill remain incomplete.",
+    "The Mail-owned Data Fabric outbox is locally implemented and tested, but authenticated central transport, schema acceptance, billing mapping and central replay handling are not integrated.",
+    "Malware scanning, operator unsuppression with central RBAC, active provider health polling and Monitor alerts remain incomplete."
+  ],
+  "generatedAt": "2026-07-29T02:50:29Z"
+}

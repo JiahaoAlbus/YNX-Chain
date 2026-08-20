@@ -1,0 +1,102 @@
+{
+  "schemaVersion": "1.1.0",
+  "productId": "com.ynx.mail",
+  "productNumber": 25,
+  "name": "YNX Mail",
+  "aliases": [
+    "Mail",
+    "YNX Native Mail"
+  ],
+  "runtimeSourceCommit": "682bdb075803a77c9591fc59b83708944ea76fdf",
+  "currentSourceCapabilities": {
+    "dataFabricImplementationCommit": "f6868eccc2e47a2cde137b7b4238fa6bcce3a657",
+    "transactionalCanonicalEventOutbox": true,
+    "authenticatedCentralTransport": false,
+    "integratedCentral": false
+  },
+  "canonicalRoute": "/mail",
+  "canonicalUrl": null,
+  "seo": {
+    "title": "YNX Mail — Signed communication for YNX identities",
+    "metaDescription": "YNX Mail provides signed @handle communication with drafts, threads, attachments, recovery controls and an optional provider bridge whose delivery states remain explicitly separated.",
+    "h1": "Signed communication for YNX identities"
+  },
+  "publicStatus": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "websitePublished": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false,
+    "statusLabel": "Testnet source verified locally; not publicly deployed"
+  },
+  "features": [
+    "Canonical Wallet-scoped Mail sessions",
+    "Signed @handle native delivery with threads, replies, drafts, search, archive, spam and block controls",
+    "Bounded attachments and selected-context AI draft workflows requiring review",
+    "Provider-neutral Internet Mail Bridge with truthful queued, accepted, delivered, bounced, complained and failed states",
+    "Persistent webhook replay protection, recipient-hash suppression and bounded dead-letter recovery",
+    "Transactional private-minimized canonical event outbox with persistent sequence and acknowledgement",
+    "Mode-restricted backup and verified restore of Mail state and sender identity"
+  ],
+  "riskAndStatus": [
+    "Internet provider delivery is not publicly enabled and no verified sender domain or DNS evidence exists.",
+    "Provider acceptance does not mean delivered or read; open and click telemetry never establishes YNX user-read state.",
+    "Current Android and desktop artifacts are built and installed locally but are not hosted or production signed. Current-source iOS Simulator build, install, cold launch and Wallet callback are verified in GitHub Actions, but the artifact is unsigned, ephemeral and not physical-device, TestFlight or App Store evidence.",
+    "The self-contained backup contains sensitive key material and requires an approved encrypted operator boundary.",
+    "Message bodies and attachments are not end-to-end encrypted.",
+    "The Mail-owned Data Fabric outbox is local-only; authenticated central transport, schema acceptance, billing mapping and replay handling remain incomplete.",
+    "Central Wallet, Cloud malware scanning, Trust operations and Monitor alerts remain incomplete."
+  ],
+  "assets": {
+    "logo": null,
+    "icon": null,
+    "screenshots": [],
+    "artifactManifest": [],
+    "note": "No current-source public logo, icon, screenshot or download artifact is claimed by this package."
+  },
+  "links": {
+    "supportUrl": null,
+    "privacyUrl": null,
+    "securityUrl": null,
+    "statusUrl": null,
+    "suggestedRoutes": {
+      "support": "/support",
+      "privacy": "/privacy",
+      "security": "/security",
+      "status": "/status"
+    }
+  },
+  "faq": [
+    {
+      "question": "Is YNX Mail publicly available?",
+      "answer": "No. The current source is tested locally, but no public runtime, current-source download or store release is verified."
+    },
+    {
+      "question": "Does provider acceptance mean the recipient received or read the message?",
+      "answer": "No. Provider acceptance, receiving-server delivery and YNX user-read are separate facts. YNX Mail does not infer user-read from provider open or click telemetry."
+    },
+    {
+      "question": "Can YNX Mail send Internet email?",
+      "answer": "A provider adapter and signed webhook flow are implemented locally. Internet delivery remains disabled until a provider account, verified sender domain, DNS records, public webhook and abuse operations are verified."
+    },
+    {
+      "question": "Can AI send or delete messages automatically?",
+      "answer": "No. AI is limited to selected-context assistance and drafts that require user review; it cannot send, delete or silently change recipients."
+    },
+    {
+      "question": "How is Mail recovery handled?",
+      "answer": "A local operator backup and restore drill preserves authenticated state, provider recovery records, canonical outbox state and sender identity inside a restricted encrypted backup boundary. Prior strict-decoder rollback requires a versioned export and remains unverified."
+    }
+  ],
+  "structuredDataSuggestion": {
+    "type": "SoftwareApplication",
+    "applicationCategory": "CommunicationApplication",
+    "operatingSystem": "Web, Android, iOS, macOS",
+    "offers": null,
+    "releaseStatus": "Testnet source verified locally; not publicly deployed"
+  },
+  "websiteIntegrationHandoff": "docs/integration/INTEGRATION_HANDOFF.md",
+  "generatedAt": "2026-07-29T02:50:29Z"
+}

@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<resources>
+  <string name="app_name">YNX Mail</string>
+  <string name="sign_in">Se connecter avec YNX Wallet</string>
+  <string name="inbox">Bo&#xEE;te de r&#xE9;ception</string>
+  <string name="search">Rechercher</string>
+  <string name="compose">R&#xE9;diger</string>
+  <string name="drafts">Brouillons</string>
+  <string name="archive">Archiver</string>
+  <string name="spam">Ind&#xE9;sirables</string>
+  <string name="offline">Hors ligne &#x2014; les modifications restent sur cet appareil</string>
+  <string name="empty">Aucun message</string>
+  <string name="retry">R&#xE9;essayer</string>
+  <string name="privacy">Seules les conversations s&#xE9;lectionn&#xE9;es sont envoy&#xE9;es &#xE0; l&#x2019;IA apr&#xE8;s approbation.</string>
+  <string name="ai">Espace IA</string>
+  <string name="ai_language">Langue de sortie de l&#x2019;IA</string>
+  <string name="approve">Approuver le contexte s&#xE9;lectionn&#xE9;</string>
+  <string name="recover">R&#xE9;cup&#xE9;rer avec YNX Wallet</string>
+  <string name="unavailable">Passerelle indisponible</string>
+  <string name="security">L&#x2019;approbation Wallet ne partage jamais les donn&#xE9;es de r&#xE9;cup&#xE9;ration.</string>
+  <string name="attachment">Ajouter une pi&#xE8;ce jointe (limite 10 Mo)</string>
+  <string name="send_preview">V&#xE9;rifier et envoyer</string>
+  <string name="a11y_nav">Navigation de la messagerie</string>
+  <string name="thread">Conversation</string>
+  <string name="delivery_failure">Échec de livraison — brouillon conservé</string>
+  <string name="block_sender">Bloquer l’expéditeur</string>
+  <string name="report_trust">Signaler à Trust</string>
+  <string name="appeal">Contester le signalement</string>
+</resources>

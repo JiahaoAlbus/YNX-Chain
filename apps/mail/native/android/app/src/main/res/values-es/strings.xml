@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<resources>
+  <string name="app_name">YNX Mail</string>
+  <string name="sign_in">Iniciar sesi&#xF3;n con YNX Wallet</string>
+  <string name="inbox">Bandeja de entrada</string>
+  <string name="search">Buscar correo</string>
+  <string name="compose">Redactar</string>
+  <string name="drafts">Borradores</string>
+  <string name="archive">Archivar</string>
+  <string name="spam">Spam</string>
+  <string name="offline">Sin conexi&#xF3;n: los cambios permanecen en este dispositivo</string>
+  <string name="empty">No hay mensajes</string>
+  <string name="retry">Reintentar</string>
+  <string name="privacy">Solo los hilos seleccionados se env&#xED;an a la IA tras la aprobaci&#xF3;n.</string>
+  <string name="ai">Espacio de IA</string>
+  <string name="ai_language">Idioma de salida de IA</string>
+  <string name="approve">Aprobar contexto seleccionado</string>
+  <string name="recover">Recuperar con YNX Wallet</string>
+  <string name="unavailable">Gateway no disponible</string>
+  <string name="security">La aprobaci&#xF3;n de Wallet nunca comparte material de recuperaci&#xF3;n.</string>
+  <string name="attachment">A&#xF1;adir archivo adjunto (l&#xED;mite de 10 MB)</string>
+  <string name="send_preview">Revisar y enviar</string>
+  <string name="a11y_nav">Navegaci&#xF3;n de correo</string>
+  <string name="thread">Conversación</string>
+  <string name="delivery_failure">Error de entrega: se conservó el borrador</string>
+  <string name="block_sender">Bloquear remitente</string>
+  <string name="report_trust">Denunciar a Trust</string>
+  <string name="appeal">Apelar denuncia</string>
+</resources>
