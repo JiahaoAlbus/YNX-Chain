@@ -33,21 +33,53 @@ assert.equal(exchange.remoteReadable, true);
 assert.equal(exchange.centralSourceAccepted, true);
 assert.equal(exchange.rootFactoryConsumed, true);
 assert.equal(exchange.migratedV2, false);
-for (const pending of [dex, quant]) {
-  assert.equal(pending.remoteReadable, false);
-  assert.equal(pending.localAheadCount, 1);
-  assert.equal(pending.centralSourceAccepted, false);
-  assert.equal(pending.migratedV2, false);
+assert.deepEqual(
+  {
+    commit: dex.sourceCommit,
+    parent: dex.sourceParent,
+    tree: dex.sourceTree,
+    branch: dex.remoteBranch,
+    readback: dex.changedBlobReadback
+  },
+  {
+    commit: "aa5d4e5b5999a1dee28ce41adcc509abe96f95e9",
+    parent: "acee458bdf19bd460d73a20ddfb3ed62cb9da80f",
+    tree: "3e5afc0576cb0abb23dd3d614a30da95e589829a",
+    branch: "codex/final-dex",
+    readback: "8/8"
+  }
+);
+assert.deepEqual(
+  {
+    commit: quant.sourceCommit,
+    parent: quant.sourceParent,
+    tree: quant.sourceTree,
+    branch: quant.remoteBranch,
+    readback: quant.changedBlobReadback
+  },
+  {
+    commit: "f66fd4d14ff047efa6bb7e66fc2e140773826b16",
+    parent: "5cd5a9a9efc2883f6e1fab7378bee7e581cf38d6",
+    tree: "ab2cb8c7704e680fcf8451f9bd44103aaef163ff",
+    branch: "codex/quant-owner-contract-snapshot",
+    readback: "8/8"
+  }
+);
+for (const acceptedSource of [dex, quant]) {
+  assert.equal(acceptedSource.remoteReadable, true);
+  assert.equal(acceptedSource.localAheadCount, 0);
+  assert.equal(acceptedSource.centralSourceAccepted, true);
+  assert.equal(acceptedSource.migratedV2, false);
 }
 assert.equal(evidence.websiteTimelineAudit.ownerReportedSourceIsRemoteMain, false);
 assert.equal(evidence.websiteTimelineAudit.ownerObservationOverridesCentralP0023, false);
 assert.equal(evidence.websiteTimelineAudit.currentPublicReadback.runtimeSource, "6cf3ef845202bd879ed94515a71b323dd2fc9e14");
-assert.equal(acceptance.accepted.dexRemoteSourceAccepted, false);
-assert.equal(acceptance.accepted.quantRemoteSourceAccepted, false);
+assert.equal(acceptance.accepted.dexRemoteSourceAccepted, true);
+assert.equal(acceptance.accepted.quantRemoteSourceAccepted, true);
 validateTruth(acceptance);
 const task = queue.tasks.find((entry) => entry.taskId === "P0-029");
 assert.ok(task);
-assert.equal(task.status, "EXCHANGE_SOURCE_ACCEPTED_DEX_QUANT_REMOTE_REQUIRED");
+assert.equal(task.status, "FINANCIAL_OWNER_SOURCES_ACCEPTED_PRODUCTS_UNMIGRATED");
 assert.equal(task.productsMigrated, 0);
 
 if (process.argv.includes("--self-test")) {
@@ -65,4 +97,4 @@ if (process.argv.includes("--self-test")) {
   }
   console.log("PASS 5/5 financial-adapter promotion mutations rejected");
 }
-console.log("PASS Exchange source accepted; DEX/Quant remain local-only pending and all migration/public gates remain false");
+console.log("PASS Exchange/DEX/Quant sources accepted; all migration/public gates remain false");
