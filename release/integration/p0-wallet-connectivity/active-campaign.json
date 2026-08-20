@@ -2,7 +2,7 @@
   "schemaVersion": "1.0.0",
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "owner": "integration",
-  "status": "P0070_WALLET_AUTH_HEAVY_ACTIVE_AI_LIGHT_RELEASED",
+  "status": "P0070_WALLET_AUTH_HEAVY_ACTIVE_P0071_CLOUD_LIGHT_ACTIVE",
   "scope": ["founder-control", "wallet-connectivity", "installed-client-networking", "shop-android-retirement", "artwork-governance"],
   "frozen": ["independent-ynx-id", "nonessential-new-products", "extra-finance-features", "shop-android"],
   "integrationBranch": "codex/final-integration",
