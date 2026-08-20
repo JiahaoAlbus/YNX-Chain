@@ -1,23 +1,33 @@
-import * as Crypto from "expo-crypto";
-import * as Linking from "expo-linking";
-import * as SecureStore from "expo-secure-store";
-import {p256} from "@noble/curves/nist.js";
-import {hexToBytes} from "@noble/hashes/utils.js";
-import {canonicalJSON,createGatewayChallenge,createProductSessionProof,encodeExchangeOrderActionDeepLink,encodeRequestDeepLink,httpBodyDigest,parseCallbackURL,requestDigest,signGatewayChallenge,verifyAuthorization,verifyExchangeOrderActionResponse,type AuthorizationRequest,type AuthorizationResponse,type CentralWalletSession,type ExchangeOrderActionRequest,type ExchangeOrderActionResponse,type ExchangeOrderParameters} from "@ynx-chain/wallet-auth";
-import {BUNDLE_ID,CALLBACK,CLIENT_ID,SCOPES} from "./wallet-config";
+import {DAppConnectError, StandardWalletConnection, classifyWalletError} from '@ynx/dapp-connect-sdk';
+import {assertExchangeConsumerContract} from './endpoint-manifest';
 
-const DEVICE="ynx-exchange-device-p256-v1", PENDING="ynx-exchange-wallet-request-v1", PENDING_ORDER="ynx-exchange-order-action-v1", SESSION="ynx-exchange-central-session-v1";
-function encodeBase64url(bytes:Uint8Array){return btoa(String.fromCharCode(...bytes)).replace(/=+$/g,"").replace(/\+/g,"-").replace(/\//g,"_")}
-function decodeBase64url(value:string){const normalized=value.replace(/-/g,"+").replace(/_/g,"/")+"=".repeat((4-value.length%4)%4);return Uint8Array.from(atob(normalized),character=>character.charCodeAt(0))}
-export type CentralSession=CentralWalletSession;
-async function deviceSecret(){let value=await SecureStore.getItemAsync(DEVICE);if(value&&/^[A-Za-z0-9_-]{43}$/.test(value)){const bytes=decodeBase64url(value);if(bytes.length===32&&p256.utils.isValidSecretKey(bytes))return value}if(value&&/^[0-9a-f]{64}$/.test(value)){const bytes=hexToBytes(value);if(p256.utils.isValidSecretKey(bytes)){value=encodeBase64url(bytes);await SecureStore.setItemAsync(DEVICE,value);return value}}for(;;){const bytes=await Crypto.getRandomBytesAsync(32);if(p256.utils.isValidSecretKey(bytes)){value=encodeBase64url(bytes);await SecureStore.setItemAsync(DEVICE,value);return value}}}
-export async function beginWalletSignIn(){const secret=await deviceSecret();const now=new Date();const request:AuthorizationRequest={version:"1",nonce:encodeBase64url(await Crypto.getRandomBytesAsync(24)),chainId:"ynx_6423-1",requestingProduct:"exchange",productClientId:CLIENT_ID,bundleId:BUNDLE_ID,productDeviceAlgorithm:"p256-sha256",productDeviceKey:encodeBase64url(p256.getPublicKey(decodeBase64url(secret),true)),callback:CALLBACK,scopes:[...SCOPES],purpose:"Sign in to the YNX-owned deterministic testnet exchange; authorize only reviewed actions and never share a recovery key",issuedAt:now.toISOString(),expiresAt:new Date(now.getTime()+5*60_000).toISOString()};await SecureStore.deleteItemAsync(PENDING_ORDER);await SecureStore.setItemAsync(PENDING,JSON.stringify(request));await Linking.openURL(encodeRequestDeepLink(request));return request}
-export async function finishWalletSignIn(url:string):Promise<CentralSession>{const raw=await SecureStore.getItemAsync(PENDING);if(!raw)throw new Error("No pending Wallet request exists.");const request=JSON.parse(raw) as AuthorizationRequest;const now=new Date(),approval=verifyAuthorization(parseCallbackURL(url,CALLBACK),{...request,requestDigest:requestDigest(request),now}) as AuthorizationResponse;const gateway=(process.env.EXPO_PUBLIC_YNX_EXCHANGE_GATEWAY_URL||"https://wallet-auth.ynxweb4.com").replace(/\/$/,"");const expiresAt=new Date(Math.min(Date.parse(approval.expiresAt),now.getTime()+120_000)).toISOString(),challenge=createGatewayChallenge(approval,{challenge:encodeBase64url(await Crypto.getRandomBytesAsync(24)),expiresAt},now),gatewayCompletion=signGatewayChallenge(challenge,await deviceSecret());const envelope=await post(`${gateway}/v1/wallet/sessions/complete`,{authorizationRequest:request,walletApproval:approval,gatewayCompletion});const session=envelope?.result as CentralSession;if(!envelope?.ok||!session?.sessionBinding)throw new Error("Central Gateway did not issue a canonical Product Session.");await SecureStore.setItemAsync(SESSION,canonicalJSON(session));await SecureStore.deleteItemAsync(PENDING);return session}
-export async function restoreSession(){const raw=await SecureStore.getItemAsync(SESSION);if(!raw)return null;try{const v=JSON.parse(raw) as CentralSession;if(Date.parse(v.expiresAt)>Date.now())return v}catch{}await SecureStore.deleteItemAsync(SESSION);return null}
-export async function signOut(){await SecureStore.deleteItemAsync(SESSION)}
-export async function beginExchangeOrder(session:CentralSession,parameters:Omit<ExchangeOrderParameters,"market"|"type"|"idempotencyKey">){const now=new Date(),request:ExchangeOrderActionRequest={version:"1",chainId:"ynx_6423-1",productClientId:CLIENT_ID,bundleId:BUNDLE_ID,callback:CALLBACK,sessionBinding:session.sessionBinding,account:session.account,action:"exchange.order.place",parameters:{market:"YNXT-YUSD_TEST",type:"limit",side:parameters.side,priceMicro:parameters.priceMicro,amountMicro:parameters.amountMicro,idempotencyKey:`mobile-${encodeBase64url(await Crypto.getRandomBytesAsync(18))}`},nonce:encodeBase64url(await Crypto.getRandomBytesAsync(24)),issuedAt:now.toISOString(),expiresAt:new Date(now.getTime()+5*60_000).toISOString()};await SecureStore.deleteItemAsync(PENDING);await SecureStore.setItemAsync(PENDING_ORDER,canonicalJSON(request));await Linking.openURL(encodeExchangeOrderActionDeepLink(request));return request}
-export async function hasPendingExchangeOrder(){return Boolean(await SecureStore.getItemAsync(PENDING_ORDER))}
-export async function finishExchangeOrder(url:string,at=new Date()):Promise<{request:ExchangeOrderActionRequest;response:ExchangeOrderActionResponse}>{const raw=await SecureStore.getItemAsync(PENDING_ORDER);if(!raw)throw new Error("No pending Exchange order review exists.");const request=JSON.parse(raw) as ExchangeOrderActionRequest,response=verifyExchangeOrderActionResponse(parseCallbackURL(url,CALLBACK),request,at);return{request,response}}
-export async function clearPendingExchangeOrder(){await SecureStore.deleteItemAsync(PENDING_ORDER)}
-export async function gatewayProof(session:CentralSession,scope:string){const body=canonicalJSON({requiredScopes:[scope]}),now=new Date(),expiresAt=new Date(Math.min(Date.parse(session.expiresAt),now.getTime()+30_000)).toISOString();if(Date.parse(expiresAt)<=now.getTime())throw new Error("Wallet session expired. Reauthorize in YNX Wallet.");const proof=createProductSessionProof(session,{method:"POST",path:"/v1/wallet/sessions/introspect",bodyDigest:httpBodyDigest(body),nonce:encodeBase64url(await Crypto.getRandomBytesAsync(24)),issuedAt:now.toISOString(),expiresAt},await deviceSecret());return encodeBase64url(new TextEncoder().encode(canonicalJSON(proof)))}
-async function post(url:string,body:unknown){const response=await fetch(url,{method:"POST",headers:{"content-type":"application/json"},body:canonicalJSON(body)});const value=await response.json().catch(()=>({}));if(!response.ok)throw new Error(value?.error?.message||`Central Gateway returned ${response.status}`);return value}
+type EIP1193Provider={request:(args:{method:string;params?:unknown[]})=>Promise<unknown>};
+export type CentralSession={account:string;chainId:string;state:'STANDARD_CONNECTED'};
+
+function runtimeProvider(){return (globalThis as unknown as {ethereum?:EIP1193Provider}).ethereum}
+
+export function exchangeConnectionError(error:unknown){
+  const classified=error instanceof DAppConnectError?error:classifyWalletError(error);
+  const code=classified.code==='PROVIDER_REQUIRED'?'WALLET_NOT_FOUND':classified.code==='WALLET_DISCONNECTED'?'CONNECTION_REVOKED':classified.code;
+  return new Error(`${code}: ${classified.message}`);
+}
+
+/** Standard EIP-1193 only. Exchange must not bootstrap a Product Session. */
+export async function connectStandardWallet(provider:EIP1193Provider|undefined=runtimeProvider()):Promise<CentralSession>{
+  const manifest=assertExchangeConsumerContract();
+  if(!provider)throw new Error('WALLET_NOT_FOUND: No EIP-1193 provider is available. Open Exchange in YNX Wallet, connect a compatible wallet, or install YNX Wallet.');
+  try{
+    const connection=new StandardWalletConnection(provider);
+    await connection.connect();
+    await connection.ensureYNXTestnet({addChain:{chainId:manifest.evmChainHex,chainName:'YNX Testnet',nativeCurrency:{name:'YNX Testnet',symbol:'YNXT',decimals:18},rpcUrls:[manifest.evmRpc],blockExplorerUrls:[manifest.explorer]}});
+    return {account:connection.account!,chainId:connection.chainId!,state:'STANDARD_CONNECTED'};
+  }catch(error){throw exchangeConnectionError(error)}
+}
+
+export function productSessionUnavailable(){
+  return new Error('PRODUCT_SESSION_UNAVAILABLE: Exchange private services are not activated in the accepted endpoint manifest. Your standard wallet connection remains available.');
+}
+
+export const beginWalletSignIn=connectStandardWallet;
+export const restoreSession=async():Promise<null>=>null;
+export async function beginExchangeOrder(_session?:CentralSession,_parameters?:unknown){throw productSessionUnavailable()}

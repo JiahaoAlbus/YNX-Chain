@@ -1,5 +1,22 @@
-import test from "node:test";import assert from "node:assert/strict";import {readFileSync} from "node:fs";import {resolve} from "node:path";import {BUNDLE_ID,CALLBACK,CLIENT_ID,SCOPES} from "./wallet-config";
-test("central Wallet product binding is stable and least privilege",()=>{assert.equal(CLIENT_ID,"ynx-exchange-v1");assert.equal(BUNDLE_ID,"com.ynxweb4.exchange");assert.equal(CALLBACK,"ynxexchange://wallet-auth/callback");assert.deepEqual([...SCOPES],[...SCOPES].sort());assert.equal(SCOPES.includes("exchange:withdrawal-review"),true)});
-test("Exchange registration request exactly matches the canonical registry",()=>{const registry=JSON.parse(readFileSync(resolve(process.cwd(),"../../../packages/wallet-auth/central-registry.json"),"utf8")),request=JSON.parse(readFileSync(resolve(process.cwd(),"../integration/wallet-registry-entry.json"),"utf8"));assert.deepEqual(request,registry.products.find((v:any)=>v.productId==="exchange"));assert.equal(request.enabled,true);assert.equal(request.reviewState,"approved")});
-test("mobile uses proof-bound Gateway completion and introspection without bearer tokens",()=>{const wallet=readFileSync(resolve(process.cwd(),"src/wallet.ts"),"utf8"),api=readFileSync(resolve(process.cwd(),"src/api.ts"),"utf8");assert.match(wallet,/\/v1\/wallet\/sessions\/complete/);assert.match(wallet,/createProductSessionProof/);assert.match(wallet,/\/v1\/wallet\/sessions\/introspect/);assert.match(api,/X-YNX-Product-Session-Proof/);assert.doesNotMatch(wallet+api,/Bearer |authorization:/)});
-test("mobile order flow is exact, Wallet-reviewed and callback-verified",()=>{const wallet=readFileSync(resolve(process.cwd(),"src/wallet.ts"),"utf8"),api=readFileSync(resolve(process.cwd(),"src/api.ts"),"utf8");for(const value of ["beginExchangeOrder","encodeExchangeOrderActionDeepLink","finishExchangeOrder","verifyExchangeOrderActionResponse","clearPendingExchangeOrder"])assert.ok(wallet.includes(value),value);for(const value of ['post<Order>("/v1/orders"','walletPublicKey','walletSignature','"exchange:trade"'])assert.ok(api.includes(value),value)});
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {resolve} from 'node:path';
+
+const source=(path:string)=>readFileSync(resolve(process.cwd(),path),'utf8');
+const wallet=source('src/wallet.ts');
+const api=source('src/api.ts');
+const manifest=source('contract/public-endpoint-manifest.json');
+
+test('Exchange consumes the accepted standard Wallet SDK and classifies connection errors',()=>{
+  for(const marker of ['@ynx/dapp-connect-sdk','StandardWalletConnection','WALLET_NOT_FOUND','CONNECTION_REVOKED','ensureYNXTestnet'])assert.ok(wallet.includes(marker),marker);
+  for(const prohibited of ['createGatewayChallenge','createProductSessionProof','sessions/complete','sessions/introspect','p256','SecureStore','Linking.openURL'])assert.equal(wallet.includes(prohibited),false,prohibited);
+});
+
+test('Exchange bundles the accepted endpoint contract and keeps its product API pending',()=>{
+  for(const marker of ['1.0.0-p0.2','3c606cad1d9bfa71fc507f54b6ad8184a6580c7df75440675b5db921b7e67bb5','fa0ffd9bbbcc831438078be8e19cebff51b07e5e','"exchange":{"status":"PENDING"'])assert.ok(manifest.includes(marker),marker);
+  assert.ok(wallet.includes('PRODUCT_SESSION_UNAVAILABLE'));
+  assert.ok(api.includes('API_UNAVAILABLE: Exchange product API is PENDING'));
+  assert.equal(api.includes('https://exchange.ynxweb4.com'),false);
+  assert.equal(api.includes('EXPO_PUBLIC_YNX_EXCHANGE'),false);
+});
