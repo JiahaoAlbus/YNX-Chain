@@ -1,10 +1,16 @@
-import{walletAuthorizationURL}from"./wallet-auth.js";
+import{connectVideoWallet,WALLET_INSTALLATION_OPTIONS}from"./wallet-connection.js";
 import{ready as i18nReady,t}from"./i18n.js";
 const publicAPI=`${location.origin}/video/api`,localAPI="http://127.0.0.1:8423";
 const API=localStorage.getItem("ynx.video.api")||(location.hostname==="127.0.0.1"||location.hostname==="localhost"?localAPI:publicAPI);
 const $=selector=>document.querySelector(selector);
-let current=null,lastWatchPosition=0;
-const session=()=>sessionStorage.getItem("ynx.video.session")||new URLSearchParams(location.hash.slice(1)).get("gateway_session");
+let current=null,lastWatchPosition=0,standardWallet=null;
+const session=()=>null;
+
+function maskAccount(account){return account.slice(0,6)+"…"+account.slice(-4)}
+function clearLegacySession(){sessionStorage.removeItem("ynx.video.session");if(new URLSearchParams(location.hash.slice(1)).has("gateway_session"))history.replaceState(null,"",location.pathname+location.search)}
+function showInstallOptions(show){const box=$("#wallet-install");box.hidden=!show;if(show)box.innerHTML='<span>No compatible Wallet detected.</span> <a href="'+WALLET_INSTALLATION_OPTIONS.ynxWallet+'">Download YNX Wallet</a> <span>or</span> <a href="'+WALLET_INSTALLATION_OPTIONS.metaMask+'">Install MetaMask</a>'}
+function resetWallet(message="Wallet disconnected. Guest playback remains available."){standardWallet=null;$("#signin").textContent="Connect Wallet";$("#session").textContent=message+" Private YNX Video actions remain unavailable until Product Session v2 is active."}
+function bindWalletEvents(result){for(const event of ["accountsChanged","chainChanged","disconnect"]){try{result.connection.on(event,()=>resetWallet())}catch{break}}}
 
 export async function api(path,options={}){
   const headers={...(options.headers||{})},method=(options.method||"GET").toUpperCase();if(session())headers["X-YNX-App-Session"]=session();if(!["GET","HEAD"].includes(method))headers["Idempotency-Key"]||=crypto.randomUUID();
@@ -42,8 +48,8 @@ async function showChannel(channelID){try{const view=await api(`/v1/channels/${c
 async function showPlaylists(button){activate(button);try{const lists=await api("/v1/playlists");const box=$("#content");box.replaceChildren();if(!lists.length){empty("Playlists are empty");return}for(const list of lists){const ids=list.VideoIDs||list.video_ids||[];const article=document.createElement("article");article.className="card";article.innerHTML=`<div class="thumb thumb-fallback">Playlist</div><h2>${esc(list.Name||list.name)}</h2><p class="meta">${ids.length} saved video(s)</p>`;box.append(article)}}catch(error){notice(error.message,true)}}
 async function showHistory(button){activate(button);try{const events=await api("/v1/history");const box=$("#content");box.replaceChildren();if(!events.length){empty("History is empty");return}for(const event of events){const article=document.createElement("article");article.className="card";article.innerHTML=`<h2>${esc(event.VideoID||event.video_id)}</h2><p>${event.Seconds||event.seconds} watched second(s)</p><p class="meta">${esc(event.CreatedAt||event.created_at)}</p>`;box.append(article)}}catch(error){notice(error.message,true)}}
 
-$("#signin").onclick=async()=>{try{location.href=await walletAuthorizationURL({requestingProduct:"ynx-video",productClientId:"ynx-video-web-v1",bundleId:"com.ynxweb4.video.web",callback:"https://web4.ynxweb4.com/video/wallet-auth/callback",scopes:["video.comment","video.history","video.read","video.report","video.subscribe"],purpose:"Sign in to watch, comment, report, subscribe, and persist personal history. Wallet keys never leave YNX Wallet."})}catch(error){notice(error.message,true)}};
-if(session()){sessionStorage.setItem("ynx.video.session",session());history.replaceState(null,"",location.pathname);$("#session").textContent="Wallet-authorized product session active. No account secret is stored here.";$("#signin").textContent="Wallet connected"}
+clearLegacySession();
+$("#signin").onclick=async()=>{try{showInstallOptions(false);standardWallet=await connectVideoWallet(window);$("#signin").textContent=standardWallet.walletName+" · "+maskAccount(standardWallet.account);$("#session").textContent="Standard Wallet connected on YNX Testnet ("+standardWallet.chainId+"). Private history, comments, subscriptions and publishing remain degraded until Product Session v2 is active.";bindWalletEvents(standardWallet);notice("Wallet connection succeeded. Guest playback remains available; no private Product Session was fabricated.")}catch(error){showInstallOptions(error?.code==="WALLET_NOT_INSTALLED");resetWallet(error?.code==="WALLET_USER_REJECTED"?"Wallet approval was rejected.":error.message);notice(error.message,true)}};
 $("#search").onsubmit=event=>{event.preventDefault();loadVideos($("#query").value)};
 $("#close").onclick=async()=>{await flushWatch(false);$("#video").pause();$("#player").close()};
 $("#video").addEventListener("pause",()=>flushWatch(false));$("#video").addEventListener("ended",()=>flushWatch(true));

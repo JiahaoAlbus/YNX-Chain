@@ -31,6 +31,7 @@ main{min-width:0;padding:36px clamp(22px,4vw,64px) 72px}
 .page-heading h1{margin:0;font-size:clamp(1.9rem,3vw,2.7rem);letter-spacing:-.04em}
 .lede{color:var(--muted);max-width:650px;margin:9px 0 0;line-height:1.55}
 .session{max-width:330px;padding:13px 15px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--muted);font-size:.83rem;line-height:1.45}
+.wallet-install{margin-top:.5rem;font-size:.82rem;text-align:right;color:var(--muted)}.wallet-install a{color:var(--blue);font-weight:700;margin-inline:.2rem}
 #notice{min-height:48px;padding:16px 2px;color:var(--muted);font-size:.88rem}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,270px),1fr));gap:24px}
 .card{min-width:0}

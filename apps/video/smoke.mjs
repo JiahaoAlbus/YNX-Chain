@@ -10,7 +10,9 @@ try {
     await new Promise(resolve=>setTimeout(resolve,100));
   }
   if(!response?.ok||!(await response.text()).includes("YNX Video"))throw new Error("viewer smoke failed");
-  const wallet=await fetch(`http://127.0.0.1:${port}/wallet-auth.js`);
-  if(!wallet.ok||!(await wallet.text()).includes("p256-sha256"))throw new Error("Wallet v1 client unavailable");
+  const wallet=await fetch(`http://127.0.0.1:${port}/wallet-connection.js`);
+  if(!wallet.ok||!(await wallet.text()).includes("connectVideoWallet"))throw new Error("Standard Wallet consumer unavailable");
+  const provider=await fetch(`http://127.0.0.1:${port}/ynx-dapp-connect-sdk/provider.js`);
+  if(!provider.ok||!(await provider.text()).includes("StandardWalletConnection"))throw new Error("Accepted EIP-1193 provider module unavailable");
   console.log("viewer smoke ok");
 } finally { child.kill(); }
