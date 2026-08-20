@@ -1,0 +1,76 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "proposalId": "P0-PROPOSAL-SHOP-ANDROID-CLIENT-RETIREMENT-001",
+  "owner": "wallet-protocol",
+  "status": "CANDIDATE",
+  "activation": "prohibited until Integration ACCEPTED",
+  "featureSourceCommit": "c614501353d7631a6e20da7431ac858c2e5a8868",
+  "featureParentCommit": "2d6c9aa354a459b224b79c11c69aab670336a41d",
+  "integrationRequestSourceCommit": "78ef845ddfee175ee7aad4b0fa48d5d6fb1a704f",
+  "implemented": [
+    "registry-v5-explicit-client-lifecycle",
+    "typed-http-410-client-retired",
+    "correlation-id-bound-to-x-request-id",
+    "new-product-session-completion-rejected",
+    "existing-product-sessions-approvals-device-grants-atomically-revoked",
+    "persisted-retirement-tombstone-survives-restart-and-policy-rollback",
+    "legacy-callback-and-app-link-return-targets-blocked",
+    "standard-eip1193-connection-remains-gateway-independent",
+    "v1-store-digest-authenticated-before-v2-normalization",
+    "exact-state-digest-precondition",
+    "encrypted-rollback-backup",
+    "mode-0600-owner-single-link-no-symlink-state-migration"
+  ],
+  "retiredResponse": {
+    "httpStatus": 410,
+    "code": "CLIENT_RETIRED",
+    "requiredFields": [
+      "clientId",
+      "replacementURL",
+      "minimumClientVersion",
+      "correlationId"
+    ],
+    "cacheControl": "no-store"
+  },
+  "operatorEntryPoint": "packages/wallet-auth/scripts/apply-client-retirement.mjs",
+  "operatorRequiredEnvironment": [
+    "YNX_WALLET_GATEWAY_BACKUP_KEY",
+    "YNX_WALLET_GATEWAY_EXPECT_STATE_DIGEST",
+    "YNX_WALLET_GATEWAY_REGISTRY_PATH",
+    "YNX_WALLET_GATEWAY_RETIRE_AT",
+    "YNX_WALLET_GATEWAY_RETIRE_PRODUCT_ID",
+    "YNX_WALLET_GATEWAY_RETIREMENT_BACKUP_PATH",
+    "YNX_WALLET_GATEWAY_STATE_PATH"
+  ],
+  "tests": {
+    "command": "npm test --prefix packages/wallet-auth",
+    "passed": 129,
+    "failed": 0,
+    "packCommand": "npm pack --dry-run --json --prefix packages/wallet-auth",
+    "packIncludedRetirementScript": true,
+    "diffCheck": "passed"
+  },
+  "integrationAcceptanceRequired": [
+    "Accept the exact feature source before changing the runtime registry or state.",
+    "Supply a reviewed retirement registry record with the real retiredAt, clientId, package or bundle, callback, App Link routes, replacementURL, and minimumClientVersion; test-vector dates are not production values.",
+    "Confirm no still-supported native client shares the exact requestingProduct, productClientId, bundleId, and callback tuple; otherwise Android-only retirement is not distinguishable and must remain blocked.",
+    "Stop the Gateway, record the current source and state digest, create and verify the encrypted rollback backup, then apply the exact-digest migration once.",
+    "Restart with the accepted source and prove health, ready, exact version, restart persistence, and rollback restoration.",
+    "Prove registered Shop Origin OPTIONS and an actual retired-client request return canonical 410 CLIENT_RETIRED with correlationId and zero post-retirement mutation.",
+    "Prove existing matching Product Sessions, approvals, and device grants are inactive and legacy callback or App Link routes cannot restore them.",
+    "Prove Standard EIP-1193 remains usable without Product Session and Shop Web/PWA replacement remains reachable.",
+    "Only after runtime proof may Integration unblock the bounded Website retirement candidate."
+  ],
+  "truth": {
+    "deployedPublic": false,
+    "publicRetirementVerified": false,
+    "installedClientVerified": false,
+    "integratedCentral": false,
+    "productionSigned": false,
+    "storeReleased": false,
+    "remoteUninstallClaim": false,
+    "currentPublicRuntimeSource": "49e30d999e9a9cbdd2c565021009f2cab0dc125c",
+    "currentPublicRuntimeContainsThisFeature": false
+  }
+}
