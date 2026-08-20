@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "relatedTaskId": "P0-054",
+  "status": "SOURCE_CANDIDATE_REJECTED",
+  "sourceCommit": "785ed7e8337e46e3286fc3068ef5c68d004e1b6b",
+  "evidenceCommit": "198f326ce9cb4256433374bd8efb0c337359c603",
+  "reviewedClaimsPassed": ["root-before-source-read", "O_NOFOLLOW", "stable source inode", "root-root mode0600 nlink1", "canonical registry and snapshot binding", "351/351 tests", "reproducible package and evidence hashes"],
+  "blockingFinding": {"code": "ATOMIC_NO_REPLACE_TOCTOU", "detail": "The implementation checks output ENOENT and later uses ordinary POSIX rename, which can overwrite a target concurrently created between those operations.", "independentReproduction": {"raced": true, "receiptReturned": true, "concurrentFileOverwritten": true}},
+  "requiredFix": "Use an atomic no-replace publication primitive and add a race test proving EEXIST preserves the concurrent target bytes.",
+  "executionLeaseIssued": false,
+  "sshUsed": false,
+  "deployedPublic": false,
+  "publicRuntimeSource": "6cf3ef845202bd879ed94515a71b323dd2fc9e14"
+}

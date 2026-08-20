@@ -6,15 +6,15 @@
   "specialists": [
     {
       "owner": "wallet-protocol",
-      "status": "INTEGRATION_READY",
+      "status": "ACTIVE",
       "branch": "codex/wallet-core-auth-gateway-continuation-20260814",
-      "checkpoint": "P0-050 released fail-closed at Central ac09fc006497f9ed33b2f1753ea00fe88670b968; remediation source ff395e3d1d7c012784e81eb02c3ae8782fbf1298; evidence bbaa11f3f3217bafd7492d2e19b2646753204788",
+      "checkpoint": "P0-054 failed closed and exact 6cf was restored; permission-safe source 785ed7e8 / evidence 198f326c independently rejected for atomic no-replace TOCTOU",
       "runtime": "wallet-auth.ynxweb4.com remains exact source 6cf3ef845202bd879ed94515a71b323dd2fc9e14 after INVALID_MIGRATION before service stop or symlink activation",
       "publicVerified": false,
-      "lastActivity": "2026-08-20T19:24:00Z",
-      "remainingBlockers": ["fresh production identity and state-digest preflight", "wholly new single-use deployment lease", "product migrations 0/12", "installed Wallet and external-DApp evidence"],
-      "supervision": "Central accepted exact ff395e3d/bbaa11f3 source and offline artifacts after independent review; no SSH, deployment, state read or new Heavy Lease is authorized.",
-      "nextAction": "Perform a fresh read-only prelease check of public 6cf identity and current production state digest; never reuse P0-039 or P0-050."
+      "lastActivity": "2026-08-20T20:15:00Z",
+      "remainingBlockers": ["atomic no-replace materializer and race test", "fresh production identity and state-digest preflight after source acceptance", "wholly new single-use deployment lease", "product migrations 0/12", "installed Wallet and external-DApp evidence"],
+      "supervision": "Integration independently reproduced concurrent target overwrite and rejected 785ed7e8 without deployment. Exact continuation was sent to the existing Owner task; no SSH, production read or lease is authorized.",
+      "nextAction": "Fix only the no-replace race, return new source/full tests/pack/evidence hashes, then undergo independent review. Never reuse P0-039, P0-050 or P0-054."
     },
     {
       "owner": "wallet-platform",
@@ -123,6 +123,18 @@
       "remainingBlockers": ["separate product migrations", "installed-client evidence", "current-deployment Computer Control"],
       "supervision": "Visible runtime facts are preserved with installed, aggregate, signing and store-release gates false.",
       "nextAction": "Publish only newly accepted product runtime facts; never convert source evidence into product success."
+    },
+    {
+      "owner": "seller-console",
+      "status": "CANDIDATE_READY",
+      "branch": "codex/p0-seller-console-wallet-connectivity-20260821",
+      "checkpoint": "implementation 2bfa3d3d7923410b02e02c9d243ef70e88653c66; evidence 8809abcd7c39d47650086ae8895ecb307dcd0fdc",
+      "runtime": "local built Web only; Standard Wallet source and guest preview verified, Seller Product API remains PENDING and App Gateway UNAVAILABLE",
+      "publicVerified": false,
+      "lastActivity": "2026-08-20T20:15:00Z",
+      "remainingBlockers": ["real provider approval/account/chain/disconnect lifecycle", "accepted available Seller Product API", "Product Session v2", "public deployment", "Computer Control"],
+      "supervision": "Integration completed the bounded source slice, verified desktop and 390x844 local Browser UI, pushed exact checkpoint and released Light. No approval, signing, transaction, public or Computer Control success was inferred.",
+      "nextAction": "Preserve exact 8809abcd. Resume only under a new bounded provider or deployment slice after the relevant endpoint becomes available."
     },
     {
       "owner": "calendar",

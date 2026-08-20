@@ -1,7 +1,7 @@
 {
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-  "epoch": 18,
-  "updatedAt": "2026-08-20T20:00:00Z",
+  "epoch": 19,
+  "updatedAt": "2026-08-20T20:15:00Z",
   "heavy": {
     "owner": null,
     "status": "CONSUMED_RELEASED_FAILED_CLOSED_INSTALL_PERMISSION",
@@ -27,16 +27,17 @@
     ]
   },
   "light": {
-    "owner": "integration",
-    "status": "ACTIVE_BOUNDED_SOURCE_ONLY",
+    "owner": null,
+    "status": "RELEASED_CHECKPOINT",
     "branch": "codex/p0-seller-console-wallet-connectivity-20260821",
     "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/10-seller-console",
     "taskId": "P0-056",
     "leasedAt": "2026-08-20T20:00:00Z",
-    "releasedAt": null,
+    "releasedAt": "2026-08-20T20:15:00Z",
     "previousOwner": null,
     "previousCheckpoint": "0dc06695e67347e3e77fbf9d0709a6c35513a758",
-    "reason": "Seller Console is a registered product with legacy private Wallet launcher/session behavior and no Standard EVM Wallet connection. Integration may perform one bounded source-only migration after P0-054 released Heavy.",
+    "reason": "Seller Console now has an isolated Standard EIP-6963/EIP-1193 source checkpoint with YNX preference, standard EVM fallback, honest guest preview and private-service degradation that preserves Standard Wallet. Tests, build and local Browser checks passed; public and Computer Control gates remain false.",
+    "checkpointCommit": "8809abcd7c39d47650086ae8895ecb307dcd0fdc",
     "executionScope": "SELLER_CONSOLE_STANDARD_WALLET_SOURCE_ONLY",
     "onSafeCheckpoint": [
     "modify only apps/seller-console and its owner evidence",
