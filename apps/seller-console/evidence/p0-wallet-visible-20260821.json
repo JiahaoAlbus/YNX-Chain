@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-083",
+  "product": "ynx-seller-console",
+  "owner": "integration",
+  "status": "VISIBLE_DETERMINISTIC_PROVIDER_CHECKPOINT_NOT_PUBLIC",
+  "startingCommit": "8809abcd7c39d47650086ae8895ecb307dcd0fdc",
+  "verificationCommit": "59b8719c71e441f6507b64f99796c3f63dc69450",
+  "verificationTree": "1e3e7196e7b725d4b186fdffce59678a0b5cc98b",
+  "recordedAt": "2026-08-21T00:15:00Z",
+  "acceptedContracts": ["walletTransport", "errorContract", "dappConnectSDK", "publicEndpointManifest"],
+  "tests": {
+    "node": "9/9",
+    "build": "PASS",
+    "chromium": "2/2",
+    "productionDependencyAudit": "0 vulnerabilities",
+    "releaseScan": "PASS",
+    "diffCheck": "PASS",
+    "externalShopSmoke": "BLOCKED_LOCAL_SERVICE_127_0_0_1_8095_NOT_RUNNING"
+  },
+  "browserEvidence": {
+    "surface": "Playwright Chromium local deterministic provider harness",
+    "approved": {
+      "provider": "YNX Test Wallet",
+      "account": "0x1111111111111111111111111111111111111111",
+      "chainId": "0x1917",
+      "standardConnectionVisible": true,
+      "guestPreviewVisible": true,
+      "privateServiceState": "PRIVATE_SERVICE_DEGRADED",
+      "standardConnectionPreserved": true,
+      "sellerRecordsFabricated": false,
+      "ordersFabricated": false,
+      "consoleErrors": 0,
+      "screenshot": "evidence/visible/seller-wallet-approved-private-degraded-1440x900.png",
+      "bytes": 125389,
+      "sha256": "3992b993001acf39bb37ff3ecc0a4ffe8a4f466e5e662ea5b2425d8356deb6f7"
+    },
+    "rejected": {
+      "providerErrorCode": 4001,
+      "accountCreated": false,
+      "productSessionCreated": false,
+      "privateServiceEnabled": false,
+      "guestPreviewVisible": true,
+      "sellerRecordsFabricated": false,
+      "ordersFabricated": false,
+      "consoleErrors": 0,
+      "screenshot": "evidence/visible/seller-wallet-rejected-guest-preview-1440x900.png",
+      "bytes": 127878,
+      "sha256": "d29095f042562e8f33f065e5e1374f8a04ab3183c9a529f17b12e8af82f9ce9d"
+    }
+  },
+  "artifacts": {
+    "webBundle": {"bytes": 63370, "sha256": "0bedfaf666c70dfe3fdf31f3c7fa54cbde0fbdffe7c0f5df89eb55f62f4734d7"},
+    "runtimeConfig": {"bytes": 504, "sha256": "9e011f3c5d2a941397069193c554cda07d4f4602ac503e148de6b25edf7354b1"},
+    "packageLock": {"bytes": 16685, "sha256": "8abd15964a2a87075002904deca30d1341b5fe42c55edb2b197b08b6704e9e75"}
+  },
+  "truth": {
+    "standardWalletSourceImplemented": true,
+    "deterministicProviderLifecycleVisible": true,
+    "realInstalledWalletProviderVerified": false,
+    "productSessionV2": false,
+    "sellerProductApiAvailable": false,
+    "ordersVerified": false,
+    "settlementVerified": false,
+    "installedClientVerified": false,
+    "deployedPublicCurrentSource": false,
+    "publicVerifiedCurrentSource": false,
+    "computerControlVerified": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "nextAction": "Preserve exact checkpoint. A future slice requires a real installed YNX Wallet or standard EVM extension, accepted Seller Product API and public Product Session v2 before orders, settlement, installed or public promotion."
+}

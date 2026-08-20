@@ -4,8 +4,8 @@
   "taskId": "P0-056",
   "productId": "ynx-seller-console",
   "name": "YNX Seller Console",
-  "branch": "codex/p0-seller-console-wallet-connectivity-20260821",
-  "sourceCommit": "2bfa3d3d7923410b02e02c9d243ef70e88653c66",
+  "branch": "codex/p0-seller-console-visible-20260821",
+  "sourceCommit": "59b8719c71e441f6507b64f99796c3f63dc69450",
   "version": "0.5.0-testnet-candidate",
   "goalStatus": "active",
   "stage": "SOURCE_CANDIDATE",
@@ -38,7 +38,7 @@
     "productSessionOptional": true,
     "productSessionStatus": "DEGRADED",
     "standardConnectionPreservedWhenPrivateDegraded": true,
-    "visibleProviderApprovalVerified": false,
+    "visibleProviderApprovalVerified": true,
     "signingVerified": false,
     "transactionVerified": false
   },
@@ -54,7 +54,7 @@
     "releaseScan": "passed",
     "desktopBrowser": "English first-run UI, guest preview, private degraded state, zero console warnings/errors",
     "mobileBrowser": "390x844 responsive viewport, no horizontal overflow, English UI",
-    "providerApproval": "not clicked"
+    "providerApproval": "deterministic EIP-6963 approval and rejection verified in Chromium; not a real installed Wallet"
   },
   "historicalPublicRuntime": {
     "url": "https://seller.ynxweb4.com/seller/",
@@ -64,7 +64,7 @@
   "remainingBlockers": [
     "Seller Product API is PENDING in the accepted endpoint manifest.",
     "App Gateway is UNAVAILABLE; no private Product Session success is claimed.",
-    "No visible Wallet approval, signature, transaction, public deployment, or ComputerControl evidence exists for this candidate."
+    "No real installed Wallet, signature, transaction, public deployment, or ComputerControl evidence exists for this candidate."
   ],
-  "generatedAt": "2026-08-20T20:12:03Z"
+  "generatedAt": "2026-08-21T00:15:00Z"
 }
