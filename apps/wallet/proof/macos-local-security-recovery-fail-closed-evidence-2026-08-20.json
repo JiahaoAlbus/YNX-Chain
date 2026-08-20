@@ -76,6 +76,28 @@
       "authorizationSucceeded": false,
       "screenshotObserved": true,
       "screenshotRetained": false
+    },
+    "canonicalAuthorizationBridgeBoundary": {
+      "registryTuple": {
+        "requestingProduct": "social",
+        "productClientId": "ynx-social-v1",
+        "bundleId": "com.ynx.social",
+        "callback": "ynx-social://com.ynx.social",
+        "scopes": ["account:read", "profile:link"]
+      },
+      "canonicalBase64URLRequest": true,
+      "issuedAndExpiresWithinPolicyWindow": true,
+      "deliveredToTemporaryApp": true,
+      "pid": 18473,
+      "computerControlWindowTitle": "Request rejected · CANONICAL_AUTH_BRIDGE_UNAVAILABLE",
+      "computerControlVisibleErrorCode": "CANONICAL_AUTH_BRIDGE_UNAVAILABLE",
+      "failedBeforeKeyAccessSigningNetworkOrCallback": true,
+      "authorizationSucceeded": false,
+      "signatureCreated": false,
+      "productSessionCreated": false,
+      "returnCallbackEmitted": false,
+      "screenshotObserved": true,
+      "screenshotRetained": false
     }
   },
   "truthBoundaries": {
