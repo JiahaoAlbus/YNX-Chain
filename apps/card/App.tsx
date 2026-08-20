@@ -388,9 +388,9 @@ function CardHome({c,tr,card,state,busy,error,revealed,reveal,refresh,openApply,
       </View>
     </View>
     <Pressable onPress={()=>void reveal()} style={s.reveal}><LockKeyhole color={BLUE} size={17}/><Text style={s.revealText}>{revealed?tr("hide"):tr("reveal")}</Text></Pressable>
-    <View style={[s.statusRow,{borderColor:c.separator}]}> 
+      <View style={[s.statusRow,{borderColor:c.separator}]}>
       <View><Text style={[s.caption,{color:c.secondary}]}>{tr("network")}</Text><Text style={[s.rowValue,{color:c.text}]}>{card.network}</Text></View>
-      <Text style={[s.status,statusColor(card.status)]}>{statusLabel(card.status,tr)}</Text>
+      <Text style={[s.status,{color:statusColor(card.status)}]}>{statusLabel(card.status,tr)}</Text>
     </View>
     {error?<Text style={s.error}>{error}</Text>:null}
     <View style={s.actionRow}>
@@ -445,7 +445,7 @@ function SimulationPanel({
   c:Colors;tr:T;session:CardSession;card:Card|null;walletSession:Eip1193WalletSession|null;walletBusy:boolean;walletError:string;topupHash:string;setTopupHash:(v:string)=>void;topupEvidence:TopupEvidence|null;connectWallet:()=>Promise<void>;verifyTopup:()=>Promise<void>;submitTopup:()=>Promise<void>;simulationBusy:boolean;simulationMessage:string;simulationLedger:readonly SimulationAuditRecord[];opMerchant:string;setOpMerchant:(v:string)=>void;opAmount:string;setOpAmount:(v:string)=>void;opIdempotency:string;setOpIdempotency:(v:string)=>void;opAction:SimulationAction;setOpAction:(v:SimulationAction)=>void;runSimulation:(operation:SimulationAction,merchant:string,amount:string,idempotency:string)=>Promise<void>;recoverSimulations:()=>Promise<void>;
 }){
   const failed=simulationLedger.filter(isFailure);
-  const operationLabel:(SimulationAction)=>string=(operation)=>operation==="authorization"?tr("simulateAuthorization"):operation==="capture"?tr("simulateCapture"):operation==="reversal"?tr("simulateReversal"):tr("simulateRefund");
+  const operationLabel:(operation:SimulationAction)=>string=operation=>"authorization"===operation?tr("simulateAuthorization"):operation==="capture"?tr("simulateCapture"):operation==="reversal"?tr("simulateReversal"):tr("simulateRefund");
   const shortAddress=(address:string)=>`${address.slice(0,6)}...${address.slice(-4)}`;
 
   return <ScrollView contentContainerStyle={s.content}>
@@ -491,7 +491,7 @@ function SimulationPanel({
     <View style={s.simSection}>
       <View style={s.rowBetween}><Text style={[s.label,{color:c.secondary}]}>{tr("simulationAudit")}</Text><Text style={s.badge}>{failed.length?`${failed.length} failed`:""}</Text></View>
       {(!simulationLedger.length)?<Text style={[s.caption,{color:c.secondary}]}>{tr("noAuditRecords")}</Text>:null}
-      <FlatList data={simulationLedger} keyExtractor={item=>item.id} renderItem={({item})=><View style={[s.simItem,{borderBottomColor:c.separator}]}><View style={s.simItemHeader}><Text style={[s.rowValue,{color:c.text}]}>{item.kind} · {item.merchant}</Text><Text style={[s.smallTag, statusColor(item.status)]}>{item.status}</Text></View><Text style={[s.caption,{color:c.secondary}]}>${money("en",item.amountMinor,item.currency)} · {item.idempotencyKey} · {item.reason}</Text></View>} contentContainerStyle={s.list}/>
+      <FlatList data={simulationLedger} keyExtractor={item=>item.id} renderItem={({item})=><View style={[s.simItem,{borderBottomColor:c.separator}]}><View style={s.simItemHeader}><Text style={[s.rowValue,{color:c.text}]}>{item.kind} · {item.merchant}</Text><Text style={[s.smallTag,{color:statusColor(item.status)}]}>{item.status}</Text></View><Text style={[s.caption,{color:c.secondary}]}>${money("en",item.amountMinor,item.currency)} · {item.idempotencyKey} · {item.reason}</Text></View>} contentContainerStyle={s.list}/>
       <Pressable accessibilityRole="button" disabled={!failed.length||simulationBusy} onPress={()=>void recoverSimulations()} style={[s.secondary,(!failed.length||simulationBusy)&&s.disabled]}><Text style={s.secondaryText}>{tr("recoverSimulations")}</Text></Pressable>
     </View>
   </ScrollView>
@@ -553,7 +553,7 @@ async function confirmClose(text:string,cancel:string,close:string):Promise<bool
 function message(error:unknown,fallback:string):string{return error instanceof Error&&error.message?error.message:fallback}
 function statusLabel(value:string,tr:T):string{const map:Record<string,keyof typeof catalogs.en>={provider_unavailable:"providerUnavailable",pending_review:"pendingReview",rejected:"rejected",issued_sandbox:"issued",active:"active",frozen:"frozen",closed:"closed"};return tr(map[value]??"providerUnavailable")}
 function eventLabel(value:CardEvent["type"],tr:T):string{return tr(({authorization:"authorized",reversal:"reversed",clearing:"cleared",decline:"declined",refund:"refunded"}as const)[value])}
-function statusColor(value:string){return{color:value==="active"?GREEN:value==="frozen"?ORANGE:value==="closed"?RED:BLUE}[value]??BLUE}
+function statusColor(value:string):string{return value==="active"?GREEN:value==="frozen"?ORANGE:value==="closed"?RED:BLUE}
 type T=(key:keyof typeof catalogs.en)=>string;type Colors={canvas:string;surface:string;text:string;secondary:string;separator:string};
 const lightColors={canvas:"#F7F7F8",surface:"#FFFFFF",text:"#1D1D1F",secondary:"#6E6E73",separator:"#D2D2D7"};
 const darkColors={canvas:"#000000",surface:"#1C1C1E",text:"#F5F5F7",secondary:"#AEAEB2",separator:"#38383A"};
