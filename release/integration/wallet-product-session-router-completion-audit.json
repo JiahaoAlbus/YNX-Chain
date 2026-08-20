@@ -2,8 +2,24 @@
   "schemaVersion": 1,
   "authority": "/Users/huangjiahao/Downloads/YNX_Chain_Fable5_Coordinated_Ultimate_Goal_Prompts.md",
   "branch": "codex/wallet-session-router-recovery",
-  "sourceBaseline": "2a78ace0a647b73dd2961fae3361189116453a7d",
+  "sourceBaseline": "9759576afdd4e02fa5375dde371acd41be038c2c",
   "audit": {
+    "P0_standardWalletConnection": {
+      "status": "protocol-and-consumer-sdk-contracts-accepted-product-consumption-incomplete",
+      "acceptedProtocolCommit": "66003e76e804da16d472255efde50cb879055b96",
+      "acceptedByIntegrationCommit": "9b6e101f29c9028b9d5a477258e341aa05ebc89f",
+      "acceptedConsumerSdkCommit": "315897e75c0ffe3e63435fe73cfec42244b851cc",
+      "gatewayIndependent": true,
+      "productSessionOptional": true,
+      "productSessionFailurePreservesStandardConnection": true,
+      "fabricatedLocalProductSession": false,
+      "runtimeProductsConsumed": 0,
+      "installedInteroperabilityVerified": false,
+      "remaining": [
+        "Product owners must consume the accepted Developer SDK without making Product Session a prerequisite for standard EVM signing or transactions",
+        "Installed YNX Wallet, other EVM Wallet and WalletConnect interoperability require direct platform evidence"
+      ]
+    },
     "A_productSession": {
       "status": "implemented-and-public-v2-gateway-deployed",
       "evidence": [
@@ -134,7 +150,7 @@
         "concurrentProductSessions": 120
       },
       "fullPackageTests": {
-        "passed": 191,
+        "passed": 233,
         "failed": 0
       },
       "remaining": [
@@ -147,50 +163,53 @@
       ]
     },
     "F_releaseTruth": {
-      "status": "source-package-hosted-public-v2-gateway-deployed-awaiting-consumer-and-central-integration",
+      "status": "wallet-auth-gateway-and-website-public-consumer-migration-incomplete",
       "evidence": [
         "release/integration/wallet-product-session-router-contract.json",
         "docs/integration/WALLET_PRODUCT_SESSION_ROUTER_HANDOFF.md",
-        "packages/wallet-auth/evidence/wallet-session-official-website-deployment.json",
-        "packages/wallet-auth/evidence/product-session-v2-public-route-probe-20260814.json",
-        "packages/wallet-auth/evidence/product-session-v2-public-deployment-20260814.json",
-        "packages/wallet-auth/scripts/probe-product-session-v2-public.mjs",
-        "scripts/deploy/deploy-product-session-v2-testnet.sh",
-        "scripts/deploy/install-product-session-v2-testnet-remote.sh"
+        "release/integration/wallet-product-session-v2-public-deployment-evidence.json",
+        "release/integration/wallet-product-session-router-continuation-evidence-20260820.json",
+        "docs/integration/P0_WALLET_PRODUCT_SESSION_V2_PUBLIC_HANDOFF_20260820.md"
       ],
       "pushed": true,
       "remote": "https://github.com/JiahaoAlbus/YNX-Chain.git",
       "remoteBranch": "codex/wallet-session-router-recovery",
       "deployedPublic": false,
-      "deployedPublicMeaning": "App Gateway and migrated product runtimes",
+      "deployedPublicMeaning": "aggregate Gateway, migrated product runtimes and installed-client acceptance",
       "sourcePackageDeployedPublic": true,
       "sourcePackageCommit": "d8863f6b28752f427929a1c953dd035e096820ff",
       "currentHeadReleaseGateDeployedPublic": false,
       "officialWebsiteReleaseMetadataDeployedPublic": true,
+      "walletAuthGatewayDeployedPublic": true,
+      "productSessionV2PublicLifecycleVerified": true,
       "appGatewayDeployedPublic": false,
-      "appGatewayDeploymentBoundary": "independent Product Session v2 Gateway is publicly mounted on 6441; legacy 6437 App Gateway binary was not replaced",
+      "appGatewayDeploymentBoundary": "wallet-auth.ynxweb4.com serves v1 and v2 from source 6cf3ef84; unrelated 6437, 6439 and 6441 services were not changed by this transaction",
       "publicAppGatewayReachable": true,
       "legacyWalletSessionRoutesReachable": true,
       "productSessionV2RoutesDeployedPublic": true,
-      "productSessionV2RoutingOutcome": "mounted-to-independent-persistent-v2-gateway-before-chain-fallback",
-      "productSessionV2DeployedSourceCommit": "37f2485ed604d88ed1457bc497d50f3f7a037469",
+      "productSessionV2RoutingOutcome": "dedicated-wallet-auth-origin-with-no-chain-fallback",
+      "productSessionV2DeployedSourceCommit": "6cf3ef845202bd879ed94515a71b323dd2fc9e14",
       "productSessionV2RollbackVerified": true,
       "productSessionV2RestartStateVerified": true,
-      "productSessionV2RuntimePermissionTamperZeroMutationVerified": true,
-      "productSessionV2RuntimeStateReplacementZeroMutationVerified": true,
+      "productSessionV2RuntimePermissionTamperZeroMutationVerifiedLocally": true,
+      "productSessionV2RuntimePermissionTamperZeroMutationVerifiedPublic": false,
+      "productSessionV2RuntimeStateIsolationVerifiedPublic": true,
       "productSessionV2RestartIdempotencyVerified": true,
       "runtimeProductsMigrated": 0,
-      "officialWebsiteCommit": "11f53023a419701e240f7e0980440d848a9f5af2",
-      "vercelProductionDeploymentId": "dpl_764jDRPtfWyGCivuoqq8eEf4Fnng",
-      "vercelProductionDeploymentUrl": "https://ynx-web4-website-9vt02xxkm-jiahaoalbus-projects.vercel.app",
+      "runtimeProductsRequired": 12,
+      "officialWebsiteCommit": "a7313313014bb8792f38e649e9f556dbee983c8c",
+      "websiteAcceptanceCommit": "907bce373effc529d1ca9cb0b5374135ccb00b27",
+      "vercelProductionDeploymentId": "dpl_3DuzTMQFt9GbLPp3Vt1t3D2gfQyx",
+      "vercelProductionDeploymentUrl": "https://ynx-web4-website-fo3hlvfsv-jiahaoalbus-projects.vercel.app",
+      "vercelDirectUrlContentVerified": false,
       "officialDocsUrl": "https://www.ynxweb4.com/docs",
       "sourcePackageUrl": "https://www.ynxweb4.com/releases/wallet-session-router/d8863f6b2875/ynx-chain-wallet-auth-1.1.0.tgz",
       "productionSigned": false,
       "storeReleased": false,
       "remaining": [
-        "Central Integration must merge the chain branch without claiming runtime product migration",
+        "Central accepted only the public Wallet/Auth Gateway and Website runtime record; this does not claim product migration",
         "Product owners must migrate runtime consumers and provide installed-platform approval evidence",
-        "Integration must decide whether to retain the isolated 6441 public v2 mount or atomically absorb it into the actively owned 6437/6439 binaries"
+        "ComputerControl and installed-client acceptance must be repeated after the Mac UI control channel becomes available"
       ]
     }
   },
@@ -200,7 +219,7 @@
     "Installed MetaMask approval outcome remains unverified because Computer Use lost its native pipe after the shared harness triggered the request",
     "The post-coordinator visible retry could not inspect Chrome or MetaMask because the Computer Use native pipe closed and then failed startup",
     "The official website source-package release was visibly verified with the in-app browser, but Sky Computer Use still failed native-pipe startup and therefore did not pass",
-    "The public v2 Product Session Gateway is deployed independently on 6441; the actively owned legacy 6437 App Gateway and 6439 Wallet Gateway binaries were intentionally not replaced, and a separate Core/Auth handoff requests a future dual-side atomic integration",
+    "The public Product Session v2 Gateway is active at wallet-auth.ynxweb4.com, but no product runtime is yet classified migrated-v2",
     "Wallet Companion browser RPC preflight is blocked by external evm.ynxweb4.com CORS configuration before MetaMask account approval",
     "product consumer and native packaging migrations are owned by isolated product/platform tasks"
   ]

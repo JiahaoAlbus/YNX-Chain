@@ -8,13 +8,28 @@ const packageRoot = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const repositoryRoot = resolve(packageRoot, "../..");
 const registry = JSON.parse(readFileSync(resolve(packageRoot, "product-session-registry.json"), "utf8"));
 const matrix = JSON.parse(readFileSync(resolve(repositoryRoot, "release/integration/wallet-product-session-router-migration.json"), "utf8"));
+const contract = JSON.parse(readFileSync(resolve(repositoryRoot, "release/integration/wallet-product-session-router-contract.json"), "utf8"));
+
+test("accepted Standard Wallet Connection remains independent from optional Product Session", () => {
+  assert.equal(contract.standardWalletConnection.acceptedProtocolCommit, "66003e76e804da16d472255efde50cb879055b96");
+  assert.equal(contract.standardWalletConnection.acceptedConsumerSdkCommit, "315897e75c0ffe3e63435fe73cfec42244b851cc");
+  assert.deepEqual(contract.standardWalletConnection.productSessionFailureOutcome, {
+    standardConnection: "CONNECTED",
+    privateYnxService: "DEGRADED",
+    fabricatedLocalProductSession: false,
+  });
+  assert.equal(contract.enhancedProductSession.mayReplaceStandardWalletConnection, false);
+  assert.equal(contract.enhancedProductSession.mayCreateLocalOrCannedSession, false);
+  assert.equal(contract.standardWalletConnection.productConsumptionVerified, false);
+  assert.equal(contract.standardWalletConnection.installedInteroperabilityVerified, false);
+});
 
 test("migration matrix covers the exact registry and cites only branch-local evidence", () => {
   assert.deepEqual(matrix.products.map((item) => item.productId), registry.products.map((item) => item.productId));
   assert.equal(matrix.productRuntimeMigrationCount, matrix.products.filter((item) => item.migrated).length);
   assert.equal(matrix.fixedProductCount, matrix.products.filter((item) => item.migrated).length);
   for (const product of matrix.products) {
-    assert.ok(["contract-only", "core-runtime-candidate", "legacy-direct", "shared-sdk-v1", "migrated-v2"].includes(product.consumer));
+    assert.ok(["contract-only", "core-runtime-candidate", "legacy-direct", "shared-sdk-v1", "canonical-launcher-v1", "migrated-v2"].includes(product.consumer));
     assert.ok(Array.isArray(product.evidence) && product.evidence.length > 0);
     for (const path of product.evidence) assert.equal(existsSync(resolve(repositoryRoot, path)), true, `${product.productId} evidence is missing: ${path}`);
   }
@@ -27,6 +42,12 @@ test("legacy and shared-v1 consumers cannot be presented as v2 migrations", () =
     if (product.consumer === "shared-sdk-v1") {
       assert.match(sources, /@ynx-chain\/wallet-auth/);
       assert.doesNotMatch(sources, /RecoverableProductSessionClient|\/v2\/product-sessions\//);
+    }
+    if (product.consumer === "canonical-launcher-v1") {
+      assert.match(sources, /@ynx-chain\/wallet-auth/);
+      assert.match(sources, /encodeRequestDeepLink/);
+      assert.match(sources, /WALLET_NOT_INSTALLED|SCHEME_NOT_REGISTERED/);
+      assert.doesNotMatch(sources, /createProductWalletConnection|\/v2\/product-sessions\//);
     }
     if (product.consumer === "core-runtime-candidate") assert.equal(product.migrated, false);
     if (product.consumer !== "migrated-v2") assert.equal(product.migrated, false);
