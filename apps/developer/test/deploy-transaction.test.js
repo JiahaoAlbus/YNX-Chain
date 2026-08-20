@@ -64,6 +64,7 @@ test("public candidate transaction is exact-source, preflighted and rollback-saf
 test("candidate release and image identity come only from the protected environment", () => {
   assert.doesNotMatch(unit, /^Environment=YNX_CODE_RELEASE=/m);
   assert.match(unit, /^EnvironmentFile=\/etc\/ynx\/ynx-code-candidate\.env$/m);
+  assert.match(unit, /^Environment=PATH=.*:\/snap\/bin$/m);
   assert.match(image, /ynx-code-ubuntu-24\.04-v3/);
   assert.match(image, /openjdk-21-jdk-headless/);
   assert.match(image, /ynx-code-jdk-packages\.txt/);
