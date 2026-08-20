@@ -1,0 +1,13 @@
+{
+  "taskId":"P0-013",
+  "owner":"card-testnet-virtual",
+  "status":"IN_PROGRESS",
+  "scope":"apps/card/**",
+  "branch":"codex/p0-card-testnet-virtual-20260820",
+  "acceptedContracts":["walletTransport@p0-wallet-connection-v1","errorContract@p0-wallet-connection-v1","dappConnectSDK@0.1.0-p0.0","publicEndpointManifest@1.0.0-p0.2"],
+  "productTruth":"Testnet virtual-card simulation. It may use YNXT Testnet top-up and a simulated merchant authorization/capture/refund ledger only after direct test evidence. It must never claim fiat payment, a payment-card network, real merchant acceptance, a PAN/CVV, PCI certification, Mainnet availability or production release.",
+  "connectionRule":"Use standard EIP-1193 Wallet connection independently of Product Session; Product Session failure is private-service degradation, not Wallet disconnection or global Offline.",
+  "requiredEvidence":["actual YNXT Testnet top-up transaction or an explicit chain-integration blocker","idempotent test authorization/capture/reversal/refund tests","persistent audit/recovery tests","build/cold-start evidence where supported","artifact hash and individual artwork inventory before any download claim"],
+  "prohibitions":["real payment processing","fiat","real card network","real PAN/CVV","hard-coded endpoint","localhost release","shared wallet protocol changes"],
+  "nextAction":"Card owner audits the existing implementation, then commits an isolated candidate and updates only its product handoff/proposal."
+}
