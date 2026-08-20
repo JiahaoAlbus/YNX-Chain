@@ -14,7 +14,7 @@ Verified locally after consuming the exact candidate chain
 `0a03050c305eb2f7f0d53513bcf3ea6073ba3371` →
 `24773900321b944444f37c7fcb2ea91b6f928d7e`:
 
-- `npm test` — 12 tests passed.
+- `npm test` — 13 tests passed.
 - `npm run scan:migration` — no findings for the SDK source.
 - `release:gate` against Integration commit
   `0c668adc257046924d4d631e03eb151986910462` —

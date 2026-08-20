@@ -2,9 +2,9 @@
   "schemaVersion": 1,
   "protocolVersion": "2",
   "audit": {
-    "sourceBaseline": "2a78ace0a647b73dd2961fae3361189116453a7d",
-    "auditedAt": "2026-08-14T04:06:46.000Z",
-    "rule": "Every evidence path must exist in this branch. migrated-v2 additionally requires runtime use of WalletConnectionCoordinator, distinct Gateway v2 route evidence, and visible installed/browser platform evidence. An EVM-only MetaMask adapter connection is not Product Session migration evidence."
+    "sourceBaseline": "b14ebc971b51421927d50e1c172dbc3cefe2fa95",
+    "auditedAt": "2026-08-20T11:39:14.000Z",
+    "rule": "Every evidence path must exist in this branch. Product-owned source absent from this owner worktree is contract-only and cannot inherit a consumer classification from another branch. migrated-v2 additionally requires runtime use of WalletConnectionCoordinator, distinct Gateway v2 route evidence, and visible installed/browser platform evidence. An EVM-only MetaMask adapter connection is not Product Session migration evidence."
   },
   "meaning": {
     "registry-ready": "The central v2 registry and shared contract tests cover the product. This is not product-runtime migration evidence.",
@@ -16,16 +16,16 @@
   "products": [
     {"productId":"calendar","registry":"registry-ready","consumer":"contract-only","migrated":false,"evidence":["packages/wallet-auth/product-session-registry.json"]},
     {"productId":"card","registry":"registry-ready","consumer":"contract-only","migrated":false,"evidence":["packages/wallet-auth/product-session-registry.json"]},
-    {"productId":"creator-studio","registry":"registry-ready","consumer":"legacy-direct","migrated":false,"evidence":["apps/creator-studio/app.js"]},
+    {"productId":"creator-studio","registry":"registry-ready","consumer":"contract-only","migrated":false,"evidence":["packages/wallet-auth/product-session-registry.json"]},
     {"productId":"developer","registry":"registry-ready","consumer":"contract-only","migrated":false,"evidence":["packages/wallet-auth/product-session-registry.json"]},
-    {"productId":"dex","registry":"registry-ready","consumer":"contract-only","migrated":false,"evidence":["apps/quant-lab/integration/wallet-registry-entry.json"]},
-    {"productId":"exchange","registry":"registry-ready","consumer":"shared-sdk-v1","migrated":false,"evidence":["apps/exchange/mobile/src/wallet.ts"]},
-    {"productId":"finance","registry":"registry-ready","consumer":"shared-sdk-v1","migrated":false,"evidence":["apps/finance/mobile/src/wallet.ts","apps/finance/gateway/src/gateway.mjs"]},
+    {"productId":"dex","registry":"registry-ready","consumer":"contract-only","migrated":false,"evidence":["packages/wallet-auth/product-session-registry.json"]},
+    {"productId":"exchange","registry":"registry-ready","consumer":"contract-only","migrated":false,"evidence":["packages/wallet-auth/product-session-registry.json"]},
+    {"productId":"finance","registry":"registry-ready","consumer":"contract-only","migrated":false,"evidence":["packages/wallet-auth/product-session-registry.json"]},
     {"productId":"pay","registry":"registry-ready","consumer":"contract-only","migrated":false,"evidence":["packages/wallet-auth/product-session-registry.json"]},
-    {"productId":"quant","registry":"registry-ready","consumer":"contract-only","migrated":false,"evidence":["apps/quant-lab/integration/wallet-registry-entry.json"]},
-    {"productId":"shop","registry":"registry-ready","consumer":"legacy-direct","migrated":false,"evidence":["apps/shop/wallet-auth.js","apps/shop/native/android/app/src/main/java/com/ynxweb4/shop/WalletAuth.java","apps/shop/native/ios/YNXShop/WalletAuth.swift"]},
-    {"productId":"social","registry":"registry-ready","consumer":"legacy-direct","migrated":false,"evidence":["apps/social/src/walletAuth.ts"]},
-    {"productId":"video","registry":"registry-ready","consumer":"legacy-direct","migrated":false,"evidence":["apps/video/wallet-auth.js","apps/video/android/app/src/main/java/com/ynxweb4/video/MainActivity.java","apps/video/ios/YNXVideo/ContentView.swift"]}
+    {"productId":"quant","registry":"registry-ready","consumer":"contract-only","migrated":false,"evidence":["packages/wallet-auth/product-session-registry.json"]},
+    {"productId":"shop","registry":"registry-ready","consumer":"contract-only","migrated":false,"evidence":["packages/wallet-auth/product-session-registry.json"]},
+    {"productId":"social","registry":"registry-ready","consumer":"contract-only","migrated":false,"evidence":["packages/wallet-auth/product-session-registry.json"]},
+    {"productId":"video","registry":"registry-ready","consumer":"contract-only","migrated":false,"evidence":["packages/wallet-auth/product-session-registry.json"]}
   ],
   "productRuntimeMigrationCount": 0,
   "fixedProductCount": 0,

@@ -15,7 +15,7 @@
     "remoteReplacement": "PENDING_PROTECTED_SIGNER"
   },
   "verification": {
-    "sdkTests": "12/12 passed",
+    "sdkTests": "13/13 passed",
     "migrationFindings": 0,
     "compatibilityLabPassed": 0,
     "compatibilityLabSkipped": 10,
