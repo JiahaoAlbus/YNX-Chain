@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-065",
+  "owner": "integration",
+  "status": "SOURCE_CHECKPOINT_REACHED_LIGHT_RELEASED",
+  "branch": "codex/p0-mail-wallet-connectivity-20260821",
+  "implementationCommit": "9d8d2510dcdd2b39dbc5dea5f02376178ae7aa2c",
+  "checkpointCommit": "783f14a55796539702edc2104d0f1ce333c23fc5",
+  "acceptedContracts": ["walletTransport", "errorContract", "dappConnectSDK", "publicEndpointManifest"],
+  "completed": ["source recovery", "Standard Wallet SDK consumption", "YNX Wallet preference", "MetaMask fallback", "guest preview", "private-service degradation isolation", "tests/build/smoke/local browser proof"],
+  "remaining": ["accepted Mail Product API", "real provider approval", "current-source installed-client proof", "public deployment", "ComputerControl verification", "production signing and store release"],
+  "truth": {"installedClientVerified": false, "deployedPublic": false, "publicVerified": false, "computerControlVerified": false, "productionSigned": false, "storeReleased": false}
+}

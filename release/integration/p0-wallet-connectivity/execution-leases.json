@@ -1,7 +1,7 @@
 {
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "epoch": 26,
-  "updatedAt": "2026-08-20T21:18:00Z",
+  "updatedAt": "2026-08-20T21:24:36Z",
   "heavy": {
     "owner": null,
     "status": "CONSUMED_RELEASED_FAILED_CLOSED_INSTALL_PERMISSION",
@@ -27,16 +27,16 @@
     ]
   },
   "light": {
-    "owner": "integration",
-    "status": "ACTIVE_BOUNDED_SOURCE_ONLY",
+    "owner": null,
+    "status": "CHECKPOINT_REACHED_LIGHT_RELEASED",
     "branch": "codex/p0-mail-wallet-connectivity-20260821",
     "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/42-mail-p0",
     "taskId": "P0-065",
     "leasedAt": "2026-08-20T21:18:00Z",
-    "releasedAt": null,
+    "releasedAt": "2026-08-20T21:24:36Z",
     "previousOwner": "integration",
     "previousCheckpoint": "5ff4cd57667de7c87197aa0982bca6addf007a28",
-    "reason": "YNX Mail has a clean owner checkpoint but is absent from the central baseline and has not consumed the accepted Standard Wallet SDK. Integration may recover exact Mail source and perform only its Wallet connectivity migration.",
+    "reason": "Mail source was recovered without replacing owner history, consumed the accepted Standard Wallet SDK and endpoint manifest, preserved guest/local-draft access and private-service degradation, passed product gates, and was force-false pushed at a clean source checkpoint.",
     "executionScope": "MAIL_STANDARD_WALLET_SOURCE_ONLY",
     "onSafeCheckpoint": [
       "modify only apps/mail and its owner evidence",
