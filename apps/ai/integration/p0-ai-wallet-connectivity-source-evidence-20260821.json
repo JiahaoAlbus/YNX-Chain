@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-068",
+  "product": "ai",
+  "branch": "codex/p0-ai-wallet-connectivity-20260821",
+  "recoveryCommit": "353e0c5feae10af56bf59620f261c5f4dd44a825",
+  "implementationCommit": "e38d222131e89a924dcba13d4e2bd4a32cc0c536",
+  "acceptedContracts": [
+    "walletTransport",
+    "errorContract",
+    "dappConnectSDK",
+    "publicEndpointManifest"
+  ],
+  "runtimeManifest": {
+    "version": "1.0.0-p0.2",
+    "sha256": "3c606cad1d9bfa71fc507f54b6ad8184a6580c7df75440675b5db921b7e67bb5",
+    "evmChainId": "0x1917",
+    "evmRpc": "https://evm.ynxweb4.com",
+    "appGatewayStatus": "UNAVAILABLE"
+  },
+  "implemented": {
+    "acceptedSdkDirectConsumption": true,
+    "eip6963Discovery": true,
+    "eip1193Connection": true,
+    "ynxWalletPreferred": true,
+    "metamaskFallback": true,
+    "officialWalletDownload": "https://ynxweb4.com/dapp/download",
+    "guestPreviewWithoutAccountData": true,
+    "privateServiceDegradedPreservesStandardConnection": true,
+    "localOrCannedProductSessionCreated": false
+  },
+  "tests": {
+    "walletConnectivity": "3/3",
+    "go": "internal/aiproduct passed; apps/ai compiled",
+    "smoke": true,
+    "browserProof": {
+      "guestDesktop": true,
+      "guestMobile": true,
+      "standardWalletConnected": true,
+      "privateProductSession": "DEGRADED",
+      "consoleErrors": 0
+    },
+    "productionDependencyAudit": "0 vulnerabilities",
+    "diffCheck": true
+  },
+  "screenshots": [
+    {"name":"ai-wallet-connected-private-degraded.png","sha256":"602cc80f3bd1af52ea0d291ccc4e7902efb7df4c2b8e261faf9e0caf929213f4","bytes":105846},
+    {"name":"ai-guest-mobile.png","sha256":"25a0e26d1696fe6b19c3c6dbadc44278eaac878cab2a77c42728ae4d7cdc6cec","bytes":60792},
+    {"name":"ai-guest-desktop.png","sha256":"133ef18ef1c95d1032aef360d9e5c98573e1b2d09b09809e888811fea16801bc","bytes":103925}
+  ],
+  "truth": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedCurrentSource": false,
+    "productSessionV2": false,
+    "providerApprovalVisible": false,
+    "integratedCentral": false,
+    "deployedPublicCurrentSource": false,
+    "publicVerifiedCurrentSource": false,
+    "computerControlVerified": false,
+    "productionSigned": false,
+    "storeReleased": false,
+    "generationLive": false,
+    "historicalRuntimeSource": "16d6d71e2f93418e37fe9d024f58c492ca1baad4",
+    "historicalPublicRuntimeInherited": false
+  }
+}

@@ -3,6 +3,7 @@
   "product": "YNX AI",
   "slug": "ai",
   "owner": "14-ai",
+  "truthScope": "historical_public_runtime_with_separate_current_source_checkpoint",
   "sourceCommit": "16d6d71e2f93418e37fe9d024f58c492ca1baad4",
   "name": "YNX AI",
   "branch": "codex/final-ai",
@@ -82,6 +83,29 @@
     "health": { "success": "100/100", "p95Ms": 120.8, "p99Ms": 123.0 },
     "publicStatus": { "success": "100/100", "p95Ms": 46.1, "p99Ms": 47.0 },
     "web": { "success": "100/100", "p95Ms": 17.4, "p99Ms": 18.0 }
+  },
+  "currentSourceCheckpoint": {
+    "branch": "codex/p0-ai-wallet-connectivity-20260821",
+    "commit": "e38d222131e89a924dcba13d4e2bd4a32cc0c536",
+    "version": "0.2.1-p0.1",
+    "implementedLocal": true,
+    "testedLocal": true,
+    "standardWalletConnection": true,
+    "ynxWalletPreferred": true,
+    "metamaskFallback": true,
+    "guestPreview": true,
+    "privateServiceDegradedPreservesStandardConnection": true,
+    "productSessionV2": false,
+    "installedCurrentSource": false,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "publicVerified": false,
+    "computerControlVerified": false,
+    "productionSigned": false,
+    "storeReleased": false,
+    "generationLive": false,
+    "historicalPublicRuntimeInherited": false
   },
   "generatedAt": "2026-08-02"
 }

@@ -13,6 +13,7 @@ const productRegistry=await json("../../internal/aiproduct/product-ai-registry.j
 const required=["productId","name","branch","commit","version","surfaces","implementedLocal","testedLocal","installedLocal","integratedCentral","deployedStaging","deployedPublic","downloadHosted","productionSigned","storeReleased","publicUrls","healthUrls","artifactUrls","sha256","bytes","signingClass","minOS","installEvidence","centralIntegration","knownLimitations","generatedAt"];
 for(const field of required)assert.ok(Object.hasOwn(release,field),`product-release missing ${field}`);
 assert.equal(release.productId,"ynx-ai");
+assert.equal(release.truthScope,"historical_public_runtime_with_separate_current_source_checkpoint");
 assert.equal(release.branch,"codex/final-ai");
 assert.equal(release.integratedCentral,false);
 assert.equal(release.deployedStaging,true);
@@ -21,6 +22,18 @@ assert.equal(release.downloadHosted,false);
 assert.equal(release.productionSigned,false);
 assert.equal(release.storeReleased,false);
 assert.equal(release.generationLive,false);
+assert.deepEqual(release.currentSourceCheckpoint,{
+  branch:"codex/p0-ai-wallet-connectivity-20260821",
+  commit:"e38d222131e89a924dcba13d4e2bd4a32cc0c536",
+  version:"0.2.1-p0.1",
+  implementedLocal:true,testedLocal:true,standardWalletConnection:true,
+  ynxWalletPreferred:true,metamaskFallback:true,guestPreview:true,
+  privateServiceDegradedPreservesStandardConnection:true,productSessionV2:false,
+  installedCurrentSource:false,integratedCentral:false,deployedStaging:false,
+  deployedPublic:false,publicVerified:false,computerControlVerified:false,
+  productionSigned:false,storeReleased:false,generationLive:false,
+  historicalPublicRuntimeInherited:false
+});
 assert.deepEqual(release.publicUrls,["https://assistant.ynxweb4.com/"]);
 assert.ok(release.healthUrls.includes("https://assistant.ynxweb4.com/api/public-status"));
 assert.deepEqual(release.artifactUrls,[]);
