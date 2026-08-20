@@ -2,7 +2,7 @@
   "schemaVersion": "1.0.0",
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "owner": "integration",
-  "status": "NO_HEAVY_OWNER_WALLET_AUTH_PREFLIGHT_FAILED_DATA_FABRIC_CHECKPOINT_READY",
+  "status": "NO_HEAVY_OWNER_CALENDAR_BOUNDED_SLICE_ACTIVE_WALLET_AUTH_PREFLIGHT_FAILED",
   "scope": ["founder-control", "wallet-connectivity", "installed-client-networking", "shop-android-retirement", "artwork-governance"],
   "frozen": ["independent-ynx-id", "nonessential-new-products", "extra-finance-features", "shop-android"],
   "integrationBranch": "codex/final-integration",
