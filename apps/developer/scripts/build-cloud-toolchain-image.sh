@@ -49,8 +49,10 @@ for _ in $(seq 1 60); do
 done
 lxc exec "$builder" -- getent hosts archive.ubuntu.com >/dev/null
 lxc exec "$builder" -- sh -ec '
-  find /etc/apt -type f \( -name "*.list" -o -name "*.sources" \) -print0 |
-    xargs -0r sed -i -E "s#http://(archive|security|ports)\\.ubuntu\\.com/#https://\\1.ubuntu.com/#g"
+  for source in /etc/apt/sources.list /etc/apt/sources.list.d/*.list /etc/apt/sources.list.d/*.sources; do
+    [ -f "$source" ] || continue
+    sed -i "s#http://#https://#g" "$source"
+  done
   if grep -R -E "^[[:space:]]*(deb[[:space:]]+|URIs:[[:space:]]*)http://" /etc/apt/sources.list /etc/apt/sources.list.d 2>/dev/null; then
     echo "Ubuntu APT sources must use HTTPS under reviewed package egress" >&2
     exit 1
