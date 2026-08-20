@@ -2,7 +2,7 @@
   "expo": {
     "name": "YNX Wallet",
     "slug": "ynx-wallet",
-    "version": "1.0.0",
+    "version": "1.0.3",
     "orientation": "portrait",
     "scheme": "ynxwallet",
     "userInterfaceStyle": "automatic",
