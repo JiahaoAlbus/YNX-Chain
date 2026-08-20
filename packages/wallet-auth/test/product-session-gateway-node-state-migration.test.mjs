@@ -9,10 +9,11 @@ import { test } from "node:test";
 import { p256 } from "@noble/curves/nist.js";
 import {
   canonicalJSON, createProductSessionRequest, migrateLegacy6cfProductSessionGatewayNodeState, migrateProductSessionGatewayNodeStateRegistryV2, parseProductSessionRegistry,
-  productSessionRegistryV2MigrationSource, ProductSessionGatewayKernel, signProductSessionApproval, signProductSessionChallenge,
+  productSessionRegistryV2MigrationSource, ProductSessionGatewayKernel, signProductSessionApproval, signProductSessionChallenge, WalletAuthError,
 } from "../src/index.js";
 
 const currentRegistry = JSON.parse(readFileSync(new URL("../product-session-registry.json", import.meta.url), "utf8"));
+const production6cfFormat = JSON.parse(readFileSync(new URL("../testdata/product-session-legacy-6cf-production-format-v1.json", import.meta.url), "utf8"));
 const previousRegistry = { ...currentRegistry, schemaVersion: 2, products: currentRegistry.products.filter((product) => product.productId !== "wallet-web-companion").map(({ retiredClients: _retiredClients, ...product }) => product) };
 const previousRuntimeRegistry = { ...currentRegistry, products: currentRegistry.products.filter((product) => product.productId !== "wallet-web-companion").map((product) => ({ ...product, retiredClients: [] })) };
 const NOW = new Date("2026-08-14T01:00:00.000Z");
@@ -47,9 +48,9 @@ test("reviewed registry v2 copied state migrates deterministically to v3 and pur
   assert.deepEqual(migrateProductSessionGatewayNodeStateRegistryV2({ currentRegistry, previousRegistry, stateEnvelope: sourceEnvelope }), migrated);
 });
 
-test("exact canonical 6cf envelope migrates only with mandatory source and registry file digests", () => {
+test("exact production-format canonical 6cf envelope migrates only with mandatory source and registry file digests", () => {
   const snapshot = new ProductSessionGatewayKernel(previousRuntimeRegistry, () => token("unused")).snapshot();
-  const stateBytes = `${canonicalJSON({ schemaVersion: 1, snapshot, snapshotDigest: sha256(canonicalJSON(snapshot)) })}\n`;
+  const stateBytes = canonicalJSON({ schemaVersion: 1, snapshot, snapshotDigest: sha256(canonicalJSON(snapshot)) });
   const previousRegistryBytes = `${canonicalJSON(previousRegistry)}\n`;
   const currentRegistryBytes = `${canonicalJSON(currentRegistry)}\n`;
   const input = {
@@ -70,7 +71,43 @@ test("exact canonical 6cf envelope migrates only with mandatory source and regis
     { expectedCurrentRegistryFileSha256: "00".repeat(32) },
     { stateBytes: stateBytes.replace("snapshotDigest", "snapshotSha256") },
     { stateBytes: ` ${stateBytes}` },
+    { stateBytes: `${stateBytes}\n` },
+    { stateBytes: stateBytes.replace("{", '{"schemaVersion":1,') },
+    { stateBytes: stateBytes.replace("{", '{"unknown":true,') },
+    { stateBytes: `${stateBytes}{}` },
   ]) assert.throws(() => migrateLegacy6cfProductSessionGatewayNodeState({ ...input, ...changed }));
+  for (const [label, malformed, code] of [
+    ["trailing newline", `${stateBytes}\n`, "REGISTRY_STATE_MISMATCH"],
+    ["duplicate root key", stateBytes.replace("{", '{"schemaVersion":1,'), "REGISTRY_STATE_MISMATCH"],
+    ["unknown root key", stateBytes.replace("{", '{"unknown":true,'), "UNKNOWN_OR_MISSING_FIELD"],
+    ["trailing JSON token", `${stateBytes}{}`, "INVALID_MIGRATION"],
+  ]) {
+    const before = malformed;
+    assert.throws(
+      () => migrateLegacy6cfProductSessionGatewayNodeState({ ...input, stateBytes: malformed, expectedSourceStateFileSha256: sha256(malformed) }),
+      (error) => error instanceof WalletAuthError && error.code === code,
+      label,
+    );
+    assert.equal(malformed, before);
+  }
+});
+
+test("production 343f state fixture is bound to the exact 6cf no-trailing-byte writer without exporting private state", () => {
+  assert.deepEqual(production6cfFormat, {
+    schemaVersion: 1,
+    fixtureClass: "digest-bound-production-format-without-state-contents",
+    publicSourceCommit: "6cf3ef845202bd879ed94515a71b323dd2fc9e14",
+    writerPath: "packages/wallet-auth/src/product-session-gateway-node-host.js",
+    writerGitBlob: "07b55e35596a18b388e8e723b9f8b78a5c332db2",
+    writerFileSha256: "7d05ffd24406b1702096beebacaeea54a43df03b52deba251a239d8252ca1b4b",
+    stateFileSha256: "343f4cbbce0aed1e3cc5894156c4480e69dfc4775e0b347c63d555bd51790d23",
+    stateFileBytes: 7608,
+    stateRootFields: ["schemaVersion", "snapshot", "snapshotDigest"],
+    encoding: "utf8-canonical-json-exactly-one-value-no-bom-no-trailing-bytes",
+    trailingNewline: false,
+    stateContentsIncluded: false,
+    stateContentsExclusionReason: "Production Product Session state remains private; this fixture binds the directly read file digest and the exact public 6cf writer implementation without exporting state contents.",
+  });
 });
 
 test("offline 6cf migration artifact creates one private output and rejects digest mismatch without output", () => {
@@ -82,7 +119,7 @@ test("offline 6cf migration artifact creates one private output and rejects dige
   };
   writeFileSync(paths.current, `${canonicalJSON(currentRegistry)}\n`);
   writeFileSync(paths.previous, `${canonicalJSON(previousRegistry)}\n`);
-  writeFileSync(paths.source, `${canonicalJSON({ schemaVersion: 1, snapshot, snapshotDigest: sha256(canonicalJSON(snapshot)) })}\n`, { mode: 0o600 });
+  writeFileSync(paths.source, canonicalJSON({ schemaVersion: 1, snapshot, snapshotDigest: sha256(canonicalJSON(snapshot)) }), { mode: 0o600 });
   const base = [
     "--current-registry", paths.current,
     "--expected-current-registry-file-sha256", sha256(readFileSync(paths.current, "utf8")),

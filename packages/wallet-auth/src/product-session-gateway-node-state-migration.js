@@ -87,10 +87,9 @@ function parseEnvelope(input, registrySha256) {
 }
 
 function parseCanonicalLegacy6cfEnvelope(bytes) {
-  if (!bytes.endsWith("\n") || bytes.slice(0, -1).includes("\n")) fail("INVALID_MIGRATION", "Legacy 6cf Product Session state must be one canonical JSON line");
   const parsed = parseJson(bytes, "legacy 6cf Product Session state");
   exactFields(parsed, LEGACY_6CF_ENVELOPE_FIELDS, "Legacy 6cf Product Session state envelope");
-  if (canonicalJSON(parsed) !== bytes.slice(0, -1) || parsed.schemaVersion !== 1 || typeof parsed.snapshotDigest !== "string" || !/^[0-9a-f]{64}$/.test(parsed.snapshotDigest) || parsed.snapshotDigest !== sha256(canonicalJSON(parsed.snapshot))) {
+  if (canonicalJSON(parsed) !== bytes || parsed.schemaVersion !== 1 || typeof parsed.snapshotDigest !== "string" || !/^[0-9a-f]{64}$/.test(parsed.snapshotDigest) || parsed.snapshotDigest !== sha256(canonicalJSON(parsed.snapshot))) {
     fail("REGISTRY_STATE_MISMATCH", "Legacy 6cf Product Session copied state failed canonical digest verification");
   }
   return parsed;
