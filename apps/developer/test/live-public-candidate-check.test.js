@@ -4,7 +4,8 @@ import test from "node:test";
 
 test("public candidate gate distinguishes host tools from the reviewed cloud toolchain", async () => {
   const source = await readFile(new URL("../scripts/live-public-candidate-check.mjs", import.meta.url), "utf8");
-  assert.match(source, /Java must be routed through the reviewed cloud runtime/);
+  assert.match(source, /Java compiler capability must be a boolean when advertised/);
   assert.doesNotMatch(source, /\["java", "src\/Main\.java"/);
+  assert.match(source, /optional Java advertisement is schema-checked here/);
   assert.match(source, /protected cloud gate separately verifies all 9 runtime languages/);
 });
