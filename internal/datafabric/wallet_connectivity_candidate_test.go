@@ -30,12 +30,12 @@ func TestWalletConnectivityCandidateRemainsUnactivatedAndPrivacyBounded(t *testi
 	if document.Status != "CANDIDATE" || document.Activation != "PROHIBITED_UNTIL_INTEGRATION_ACCEPTANCE" {
 		t.Fatalf("candidate activation boundary changed: status=%q activation=%q", document.Status, document.Activation)
 	}
-	for _, required := range []string{"eventId", "eventType", "connectionId", "correlationId", "causationId", "sourceCommit", "releaseId", "privacyClass", "retention", "auditId", "status"} {
+	for _, required := range []string{"eventId", "eventType", "tenant", "connectionId", "correlationId", "causationId", "sequence", "effectiveAt", "sourceCommit", "releaseId", "privacyClass", "retention", "auditId", "payloadHash", "status"} {
 		if !containsCandidateField(document.Required, required) {
 			t.Fatalf("candidate omitted required field %q", required)
 		}
 	}
-	for _, forbidden := range []string{"seed", "privateKey", "deviceSecret", "bearerToken", "walletConnectSymmetricKey", "signature", "privateMessage", "accountId", "walletAddress"} {
+	for _, forbidden := range []string{"seed", "privateKey", "deviceSecret", "bearerToken", "walletConnectSymmetricKey", "signature", "privateMessage", "siwePrivateContent", "accountId", "walletAddress", "pan", "cvv"} {
 		if _, exists := document.Properties[forbidden]; exists {
 			t.Fatalf("candidate exposes forbidden field %q", forbidden)
 		}

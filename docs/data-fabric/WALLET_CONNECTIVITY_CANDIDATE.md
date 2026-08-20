@@ -18,10 +18,12 @@ Candidate artifacts:
 - `schemas/data-fabric/wallet-connectivity-events-v1.candidate.schema.json`
 - `schemas/data-fabric/wallet-connectivity-events-v1.candidate.vectors.json`
 
-The candidate requires a per-product keyed pseudonymous connection ID. It has
-no account address, public user ID, device identifier, secret, bearer token,
-WalletConnect symmetric key, full signature, or private message field. Only
-aggregate counters may leave Data Fabric diagnostics.
+The candidate requires a tenant partition, per-product keyed pseudonymous
+connection ID, delivery sequence, effective timestamp, and SHA-256 payload
+integrity reference. It has no account address, public user ID, device
+identifier, secret, bearer token, WalletConnect symmetric key, full signature,
+private SIWE content, PAN, CVV, or private message field. Only aggregate
+counters may leave Data Fabric diagnostics.
 
 `faucet.requested` is not a payment or finality claim. `faucet.completed` is
 valid only with a Faucet acceptance identifier, transaction hash, authoritative
