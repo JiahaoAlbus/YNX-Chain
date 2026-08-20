@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "handoffId": "P0-WALLET-CONNECTIVITY-2026-08-v2-runtime-mount-20260820",
+  "owner": "wallet-protocol",
+  "status": "CANDIDATE_PENDING_INTEGRATION_ACCEPTANCE_AND_NEW_EXECUTION_LEASE",
+  "supersedesCandidate": {
+    "sourceCommit": "a5a2841e870d7d21df0f761179f2c47d9ca83ccc",
+    "reason": "The production daemon contained the v2 protocol modules but did not mount /v2/product-sessions/*; owner withdrew the lease request before deployment."
+  },
+  "candidate": {
+    "sourceCommit": "6cf3ef845202bd879ed94515a71b323dd2fc9e14",
+    "walletAuthTree": "4c544d2e2ddb63caef536ea67c8f27b45044fd89",
+    "branch": "codex/p0-wallet-protocol-integration-20260820",
+    "scope": [
+      "packages/wallet-auth/package.json",
+      "packages/wallet-auth/scripts/ynx-wallet-gatewayd.mjs",
+      "packages/wallet-auth/src/product-session-gateway.js",
+      "packages/wallet-auth/src/product-session-gateway-node-host.d.ts",
+      "packages/wallet-auth/src/product-session-gateway-node-host.js",
+      "packages/wallet-auth/test/product-session-gateway-daemon.test.mjs",
+      "packages/wallet-auth/test/product-session-gateway-node-host.test.mjs"
+    ]
+  },
+  "runtimeBoundary": {
+    "v1AdministrationPreserved": true,
+    "v2RoutesMounted": [
+      "/v2/product-sessions/challenge",
+      "/v2/product-sessions/complete",
+      "/v2/product-sessions/introspect",
+      "/v2/product-sessions/revoke",
+      "/v2/product-sessions/devices/revoke"
+    ],
+    "remoteRequiresExplicitReviewedRegistryPath": true,
+    "remoteRequiresExplicitV2StatePath": true,
+    "defaultOrImplicitRemoteActivation": false,
+    "stateProtections": ["owner-bound", "mode-0600", "O_NOFOLLOW", "nlink-1", "device-inode-pinned", "canonical-envelope", "snapshot-sha256", "atomic-rename", "file-and-directory-fsync"]
+  },
+  "verification": {
+    "walletAuthTests": "231/231 passed",
+    "v2GatewayFocusedTests": "19/19 passed",
+    "v2NodeHostTests": "6/6 passed",
+    "daemonMountTests": "2/2 passed",
+    "dappConnectSdkTests": "13/13 passed",
+    "packDryRun": "passed",
+    "diffCheck": "passed",
+    "concurrentProductSessions": 120,
+    "directLocalHttpLifecycle": ["registered-origin-options", "unregistered-origin", "wrong-header", "wrong-method", "wrong-route", "wrong-query", "challenge", "complete", "restart", "introspect", "revoke", "post-revoke"],
+    "runtimeTamperZeroMutation": ["mode-0644", "symlink", "hardlink", "same-bytes-inode-replacement", "snapshot-digest"]
+  },
+  "publicReadback": {
+    "observedAt": "2026-08-20T11:47:53.000Z",
+    "sourceCommit": "49e30d999e9a9cbdd2c565021009f2cab0dc125c",
+    "healthStatus": 200,
+    "readyStatus": 200,
+    "registeredSocialOriginOptionsStatus": 204,
+    "candidateObservedPublic": false
+  },
+  "lease": {
+    "prior49eLeaseReusable": false,
+    "candidateAcceptedByIntegration": false,
+    "newExactExecutionLeaseIssued": false
+  },
+  "truth": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "pushedRemote": true,
+    "deployedPublic": false,
+    "publicV2LifecycleVerified": false,
+    "installedClientVerified": false,
+    "productRuntimeMigrations": 0,
+    "enhancedSdkAccepted": false,
+    "integratedCentral": false,
+    "aggregatePublicReady": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}
