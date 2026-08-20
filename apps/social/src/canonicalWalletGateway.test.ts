@@ -48,3 +48,24 @@ test("canonical Gateway completion rejects invalid entropy before opening the ne
     now,
   }), /entropy/);
 });
+
+test("canonical Gateway retries one transport failure with the exact same signed request", async () => {
+  const observed: Array<{ url: string; init?: RequestInit }> = [];
+  let attempts = 0;
+  await assert.rejects(() => completeCanonicalWalletSession({
+    authorizationRequest: request,
+    walletApproval: approval,
+    productDeviceSecret: productSecret,
+    randomChallenge: new Uint8Array(24).fill(0x24),
+    now,
+    fetcher: async (url, init) => {
+      observed.push({ url, init });
+      attempts += 1;
+      if (attempts === 1) throw new TypeError("connection closed");
+      return new Response(JSON.stringify({ ok: false, error: { code: "ORIGIN_MISMATCH" } }), { status: 403 });
+    },
+  }), /ORIGIN_MISMATCH/);
+  assert.equal(attempts, 2);
+  assert.equal(observed[0]?.url, `${CANONICAL_WALLET_GATEWAY_URL}${CANONICAL_SESSION_COMPLETE_PATH}`);
+  assert.deepEqual(observed[1], observed[0]);
+});

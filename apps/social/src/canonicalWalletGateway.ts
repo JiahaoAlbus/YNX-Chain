@@ -13,6 +13,7 @@ import { encodeBase64URL, ORIGIN } from "./walletAuth";
 export const CANONICAL_WALLET_GATEWAY_URL = "https://wallet-auth.ynxweb4.com";
 export const SOCIAL_ORIGIN = ORIGIN;
 export const CANONICAL_SESSION_COMPLETE_PATH = "/v1/wallet/sessions/complete";
+const TRANSPORT_RETRY_DELAY_MS = 250;
 
 type GatewayFetch = (input: string, init?: RequestInit) => Promise<Pick<Response, "ok" | "status" | "text">>;
 
@@ -40,7 +41,7 @@ export async function completeCanonicalWalletSession(input: CanonicalWalletGatew
   const payload = createCanonicalWalletCompletion(input, now);
   const body = canonicalJSON(payload);
   const fetcher = input.fetcher ?? fetch;
-  const response = await fetcher(`${CANONICAL_WALLET_GATEWAY_URL}${CANONICAL_SESSION_COMPLETE_PATH}`, {
+  const request: RequestInit = {
     method: "POST",
     headers: {
       Accept: "application/json",
@@ -48,7 +49,11 @@ export async function completeCanonicalWalletSession(input: CanonicalWalletGatew
       Origin: SOCIAL_ORIGIN,
     },
     body,
-  });
+  };
+  // Android's TLS stack can lose an otherwise valid first connection while the
+  // network is changing. Retry exactly once with the same signed completion;
+  // HTTP and envelope failures are deliberately never retried or downgraded.
+  const response = await fetchCompletionWithSingleTransportRetry(fetcher, request);
   const text = await response.text();
   const envelope = parseEnvelope(text, response.status);
   if (!response.ok || envelope.ok !== true) throw new Error(`Canonical Wallet Gateway session completion failed: ${gatewayCode(envelope)}`);
@@ -56,6 +61,16 @@ export async function completeCanonicalWalletSession(input: CanonicalWalletGatew
   const session = parseCentralWalletSession(envelope.result);
   assertSessionBinding(session, payload);
   return session;
+}
+
+async function fetchCompletionWithSingleTransportRetry(fetcher: GatewayFetch, request: RequestInit): Promise<Pick<Response, "ok" | "status" | "text">> {
+  const url = `${CANONICAL_WALLET_GATEWAY_URL}${CANONICAL_SESSION_COMPLETE_PATH}`;
+  try {
+    return await fetcher(url, request);
+  } catch {
+    await new Promise<void>((resolve) => setTimeout(resolve, TRANSPORT_RETRY_DELAY_MS));
+    return fetcher(url, request);
+  }
 }
 
 export function createCanonicalWalletCompletion(input: Omit<CanonicalWalletGatewayInput, "fetcher">, now = checkedNow(input.now ?? new Date())): CompletionPayload {
