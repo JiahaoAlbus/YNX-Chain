@@ -50,6 +50,9 @@ for _ in $(seq 1 60); do
   sleep 1
 done
 lxc exec "$builder" -- getent hosts archive.ubuntu.com >/dev/null
+if lxc exec "$builder" -- test -x /usr/bin/cloud-init; then
+  lxc exec "$builder" -- timeout 180 cloud-init status --wait
+fi
 lxc file push "$apt_sources_path" "$builder/etc/apt/sources.list.d/ubuntu.sources"
 if lxc exec "$builder" -- grep -R -E "^[[:space:]]*(deb[[:space:]]+|URIs:[[:space:]]*)http://" /etc/apt/sources.list /etc/apt/sources.list.d 2>/dev/null; then
   echo "Ubuntu APT sources must use HTTPS under reviewed package egress" >&2
