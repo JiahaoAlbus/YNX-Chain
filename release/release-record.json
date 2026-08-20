@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "productId": "ynx-data-fabric",
   "productName": "YNX Data Fabric & Billing Ledger",
-  "release": "ynx-data-fabric-61c49d32fa7d",
+  "release": "ynx-data-fabric-2a5233ee9560",
   "channel": "testnet-preview",
-  "sourceCommit": "61c49d32fa7d1c5632134adda386a2574d8831bf",
+  "sourceCommit": "2a5233ee9560e8855271d9681c1f7f41142cf117",
   "generatedAt": "2026-08-14T11:46:16Z",
   "phase": "INTEGRATE",
   "overallStatus": "ACTIVE",
@@ -80,7 +80,7 @@
   },
   "evidence": {
     "local": {
-      "sourceCommit": "61c49d32fa7d1c5632134adda386a2574d8831bf",
+      "sourceCommit": "2a5233ee9560e8855271d9681c1f7f41142cf117",
       "fullGoTest": "passed-with-standard-umask",
       "dataFabricRace": "passed",
       "reachableVulnerabilities": "zero-with-go1.25.13-and-govulncheck-v1.6.0",
@@ -94,7 +94,7 @@
     "remoteCI": {
       "runId": null,
       "workflow": "data-fabric",
-      "sourceCommit": "61c49d32fa7d1c5632134adda386a2574d8831bf",
+      "sourceCommit": "2a5233ee9560e8855271d9681c1f7f41142cf117",
       "headCommit": null,
       "status": "pending",
       "conclusion": null,
