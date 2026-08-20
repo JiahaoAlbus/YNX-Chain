@@ -1,0 +1,52 @@
+{
+  "schema": "ynx-product-session-client-activation-request/v1",
+  "requestedAt": "2026-08-20",
+  "requester": {
+    "product": "YNX Social",
+    "sourceCommit": "a2cc7464e5ee535224c4ca4a7b48d9f1ae7d33c5",
+    "routingEvidenceCommit": "30babec0997f3cb3143edc013efa2f4c626c2060"
+  },
+  "exactClientTuple": {
+    "requestingProduct": "social",
+    "productClientId": "ynx-social-v1",
+    "bundleId": "com.ynx.social",
+    "origin": "https://social.ynxweb4.com",
+    "callback": "ynx-social://com.ynx.social",
+    "productDeviceAlgorithm": "p256-sha256",
+    "orderedScopes": ["account:read", "profile:link"],
+    "sessionDurationSeconds": 240
+  },
+  "sourceOfTruth": {
+    "gatewayRegistryCommit": "d003a71b7658bbe530c5a9f646e6d3e908e22287",
+    "gatewayRegistryPath": "packages/wallet-auth/product-session-registry.json",
+    "centralRegistryPath": "packages/wallet-auth/central-registry.json",
+    "centralRegistryCurrentState": {
+      "reviewState": "pending-review",
+      "enabled": false
+    }
+  },
+  "directEvidence": {
+    "androidCallbackResolvedTo": "com.ynx.social/.MainActivity",
+    "walletAuthorizeResolvedTo": "com.ynxweb4.wallet/.MainActivity",
+    "deviceClass": "API 36 arm64 emulator only",
+    "validWalletApprovalCompleted": false,
+    "productSessionCompleted": false,
+    "mobileGatewayReachable": false
+  },
+  "requiredCoreDecision": {
+    "owner": "02-wallet-auth",
+    "allowOnlyExactTuple": true,
+    "doNotAllowApexOrigin": true,
+    "doNotAllowWildcardScopes": true,
+    "doNotAllowLegacyCallbackAliases": true,
+    "requiresPublicRegistryReloadAndDirectLifecycleProof": true,
+    "requiresVisibleInstalledWalletApproveRejectCallbackProof": true
+  },
+  "truthBoundary": {
+    "requestIsNotAnApproval": true,
+    "requestIsNotARegistryActivation": true,
+    "requestIsNotProductMigrationEvidence": true,
+    "productMigrationCompleted": false,
+    "integratedCentral": false
+  }
+}
