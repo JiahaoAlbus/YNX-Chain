@@ -1,8 +1,8 @@
-import { createHash, randomUUID } from "node:crypto";
+import { createHash } from "node:crypto";
 import {
-  closeSync, constants, fchmodSync, fchownSync, fstatSync, fsyncSync, linkSync, lstatSync, openSync, readFileSync, unlinkSync, writeFileSync,
+  closeSync, constants, fchmodSync, fchownSync, fstatSync, fsyncSync, lstatSync, openSync, readFileSync, readSync, unlinkSync, writeFileSync,
 } from "node:fs";
-import { dirname, isAbsolute, join } from "node:path";
+import { dirname, isAbsolute } from "node:path";
 import { canonicalJSON, exactFields, WalletAuthError } from "./canonical.js";
 
 const INPUT_FIELDS = ["expectedRegistryStateBindingSha256", "expectedSourceStateFileSha256", "outputGid", "outputPath", "outputUid", "sourcePath"];
@@ -16,10 +16,19 @@ const NODE_SYSTEM = Object.freeze({
   fchown: fchownSync,
   fstat: fstatSync,
   fsync: fsyncSync,
-  link: linkSync,
   lstat: lstatSync,
   open: openSync,
   read: (descriptor) => readFileSync(descriptor, "utf8"),
+  readAt: (descriptor, size) => {
+    const bytes = Buffer.alloc(size);
+    let offset = 0;
+    while (offset < size) {
+      const count = readSync(descriptor, bytes, offset, size - offset, offset);
+      if (count === 0) break;
+      offset += count;
+    }
+    return bytes.subarray(0, offset).toString("utf8");
+  },
   unlink: unlinkSync,
   write: (descriptor, bytes) => writeFileSync(descriptor, bytes, "utf8"),
 });
@@ -46,44 +55,56 @@ export function materializeMigratedProductSessionStateWithSystem(input, system) 
   } finally { system.close(sourceDescriptor); }
   validateSourceBytes(sourceBytes, input.expectedSourceStateFileSha256, input.expectedRegistryStateBindingSha256);
 
+  requireLinuxPublicationFlags();
   const parent = dirname(input.outputPath), directory = system.lstat(parent);
-  if (!directory.isDirectory() || directory.isSymbolicLink() || directory.uid !== input.outputUid || directory.gid !== input.outputGid || (directory.mode & 0o777) !== 0o700) {
-    fail("UNSAFE_OUTPUT_DIRECTORY", "Product Session output directory must be the target service identity's private mode-0700 directory");
-  }
-  try { system.lstat(input.outputPath); fail("OUTPUT_EXISTS", "Product Session materializer never overwrites an output state file"); }
-  catch (error) { if (error?.code !== "ENOENT") throw error; }
-
-  const temporary = join(parent, `.materialize-${process.pid}-${randomUUID()}.tmp`);
-  let descriptor, temporaryExists = false;
+  requirePrivateDirectory(directory, 0, 0, "protected output");
+  const directoryDescriptor = system.open(parent, constants.O_RDONLY | directoryFlag() | noFollow());
+  let descriptor, createdIdentity, directoryTransferred = false;
   try {
-    descriptor = system.open(temporary, constants.O_CREAT | constants.O_EXCL | constants.O_WRONLY | noFollow(), 0o600);
-    temporaryExists = true;
-    system.write(descriptor, sourceBytes);
-    system.fchown(descriptor, input.outputUid, input.outputGid);
-    system.fchmod(descriptor, 0o600);
-    system.fsync(descriptor);
-    const temporaryOpened = system.fstat(descriptor);
-    requirePrivateFile(temporaryOpened, input.outputUid, input.outputGid, "temporary output");
-    system.close(descriptor); descriptor = undefined;
-    const temporaryPath = system.lstat(temporary);
-    requirePrivateFile(temporaryPath, input.outputUid, input.outputGid, "temporary output path");
-    if (temporaryPath.dev !== temporaryOpened.dev || temporaryPath.ino !== temporaryOpened.ino) fail("OUTPUT_CHANGED", "Materialized Product Session temporary output changed before publication");
-    try { system.link(temporary, input.outputPath); }
+    const openedDirectory = system.fstat(directoryDescriptor);
+    requirePrivateDirectory(openedDirectory, 0, 0, "opened protected output");
+    if (openedDirectory.dev !== directory.dev || openedDirectory.ino !== directory.ino) fail("OUTPUT_DIRECTORY_CHANGED", "Product Session protected output directory changed during privileged open");
+    try { descriptor = system.open(input.outputPath, constants.O_CREAT | constants.O_EXCL | constants.O_RDWR | noFollow(), 0o600); }
     catch (error) {
       if (error?.code === "EEXIST") fail("OUTPUT_EXISTS", "Product Session materializer never overwrites an output state file");
-      if (["ENOSYS", "ENOTSUP", "EOPNOTSUPP", "EXDEV"].includes(error?.code)) fail("ATOMIC_PUBLISH_UNAVAILABLE", "Product Session materializer requires an atomic no-replace publication primitive");
+      if (["EINVAL", "ENOSYS", "ENOTSUP", "EOPNOTSUPP"].includes(error?.code)) fail("ATOMIC_PUBLISH_UNAVAILABLE", "Product Session materializer requires atomic O_EXCL no-replace creation");
       throw error;
     }
-    system.unlink(temporary); temporaryExists = false;
-    fsyncDirectory(system, parent);
-    verifyOutput(system, input, sourceBytes);
+    createdIdentity = system.fstat(descriptor);
+    requirePrivateFile(createdIdentity, 0, 0, "new protected output");
+    system.boundary?.("afterAtomicOutputCreate");
+    system.write(descriptor, sourceBytes);
+    system.boundary?.("afterOutputWrite");
+    system.fchmod(descriptor, 0o600);
+    system.boundary?.("afterOutputFchmod");
+    system.fsync(descriptor);
+    verifyDescriptor(system, descriptor, createdIdentity, 0, 0, sourceBytes, input.expectedSourceStateFileSha256, "protected output");
+    system.boundary?.("afterProtectedDescriptorVerification");
+    system.fchown(descriptor, input.outputUid, input.outputGid);
+    system.boundary?.("afterOutputFchown");
+    system.fchmod(descriptor, 0o600);
+    system.fsync(descriptor);
+    verifyDescriptor(system, descriptor, createdIdentity, input.outputUid, input.outputGid, sourceBytes, input.expectedSourceStateFileSha256, "service output");
+    system.boundary?.("afterServiceDescriptorVerification");
+    const finalPath = system.lstat(input.outputPath);
+    requirePrivateFile(finalPath, input.outputUid, input.outputGid, "service output path");
+    if (finalPath.dev !== createdIdentity.dev || finalPath.ino !== createdIdentity.ino) fail("OUTPUT_CHANGED", "Materialized Product Session output path changed while its directory was protected");
+    system.fsync(directoryDescriptor);
+    system.fchmod(directoryDescriptor, 0o700);
+    system.boundary?.("beforeDirectoryOwnershipTransfer");
+    system.fchown(directoryDescriptor, input.outputUid, input.outputGid);
+    directoryTransferred = true;
   } finally {
     if (descriptor !== undefined) system.close(descriptor);
-    if (temporaryExists) {
-      try { system.unlink(temporary); temporaryExists = false; }
-      catch (error) { if (error?.code !== "ENOENT") throw error; }
-      fsyncDirectory(system, parent);
+    if (createdIdentity && !directoryTransferred) {
+      let current;
+      try { current = system.lstat(input.outputPath); } catch (error) { if (error?.code !== "ENOENT") throw error; }
+      if (current && current.dev === createdIdentity.dev && current.ino === createdIdentity.ino) {
+        system.unlink(input.outputPath);
+        system.fsync(directoryDescriptor);
+      }
     }
+    system.close(directoryDescriptor);
   }
   return Object.freeze({
     bytes: Buffer.byteLength(sourceBytes),
@@ -94,11 +115,6 @@ export function materializeMigratedProductSessionStateWithSystem(input, system) 
     schemaVersion: 1,
     stateFileSha256: input.expectedSourceStateFileSha256,
   });
-}
-
-function fsyncDirectory(system, path) {
-  const descriptor = system.open(path, constants.O_RDONLY | directoryFlag() | noFollow());
-  try { system.fsync(descriptor); } finally { system.close(descriptor); }
 }
 
 function validateInput(input) {
@@ -117,22 +133,22 @@ function validateSourceBytes(bytes, expectedFileSha256, expectedRegistrySha256) 
   }
 }
 
-function verifyOutput(system, input, sourceBytes) {
-  const info = system.lstat(input.outputPath);
-  requirePrivateFile(info, input.outputUid, input.outputGid, "output");
-  if (info.size !== Buffer.byteLength(sourceBytes)) fail("OUTPUT_MISMATCH", "Materialized Product Session state size changed");
-  const descriptor = system.open(input.outputPath, constants.O_RDONLY | noFollow());
-  try {
-    const opened = system.fstat(descriptor);
-    requirePrivateFile(opened, input.outputUid, input.outputGid, "opened output");
-    if (opened.dev !== info.dev || opened.ino !== info.ino || sha256(system.read(descriptor)) !== input.expectedSourceStateFileSha256) fail("OUTPUT_MISMATCH", "Materialized Product Session state did not read back exactly");
-  } finally { system.close(descriptor); }
+function verifyDescriptor(system, descriptor, identity, uid, gid, sourceBytes, expectedSha256, label) {
+  const opened = system.fstat(descriptor);
+  requirePrivateFile(opened, uid, gid, label);
+  if (opened.dev !== identity.dev || opened.ino !== identity.ino || opened.size !== Buffer.byteLength(sourceBytes) || sha256(system.readAt(descriptor, opened.size)) !== expectedSha256) fail("OUTPUT_MISMATCH", "Materialized Product Session state did not remain exact on its verified descriptor");
 }
 
 function requirePrivateFile(info, uid, gid, label) {
   if (!info.isFile() || info.isSymbolicLink() || info.nlink !== 1 || info.uid !== uid || info.gid !== gid || (info.mode & 0o777) !== 0o600) fail("UNSAFE_MIGRATED_STATE", `Migrated Product Session ${label} must be one owner-bound mode-0600 regular file`);
 }
-function noFollow() { return constants.O_NOFOLLOW ?? 0; }
-function directoryFlag() { return constants.O_DIRECTORY ?? 0; }
+function requirePrivateDirectory(info, uid, gid, label) {
+  if (!info.isDirectory() || info.isSymbolicLink() || info.uid !== uid || info.gid !== gid || (info.mode & 0o777) !== 0o700) fail("UNSAFE_OUTPUT_DIRECTORY", `Product Session ${label} directory must be owner-bound mode 0700`);
+}
+function requireLinuxPublicationFlags() {
+  if (!Number.isInteger(constants.O_NOFOLLOW) || !Number.isInteger(constants.O_DIRECTORY) || !Number.isInteger(constants.O_EXCL)) fail("ATOMIC_PUBLISH_UNAVAILABLE", "Product Session materializer requires Linux no-follow and atomic no-replace flags");
+}
+function noFollow() { return constants.O_NOFOLLOW; }
+function directoryFlag() { return constants.O_DIRECTORY; }
 function sha256(value) { return createHash("sha256").update(value).digest("hex"); }
 function fail(code, message) { throw new WalletAuthError(code, message); }

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import {
-  chmodSync, closeSync, fchmodSync, fstatSync, fsyncSync, lstatSync, linkSync, mkdirSync, mkdtempSync, openSync, readFileSync, readdirSync, statSync, symlinkSync, unlinkSync, writeFileSync,
+  chmodSync, closeSync, constants, fchmodSync, fstatSync, fsyncSync, lstatSync, linkSync, mkdirSync, mkdtempSync, openSync, readFileSync, readdirSync, readSync, statSync, symlinkSync, unlinkSync, writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -75,35 +75,77 @@ test("materializer preserves existing regular, symlink and hard-linked targets",
   }
 });
 
-test("materializer atomically refuses a target created after its absence check and preserves the concurrent bytes", () => {
-  const directory = mkdtempSync(join(tmpdir(), "ynx-state-materialize-race-")); chmodSync(directory, 0o700);
+test("materializer rejects a service-owned output directory before creating a formal output", () => {
+  const directory = mkdtempSync(join(tmpdir(), "ynx-state-materialize-service-dir-")); chmodSync(directory, 0o700);
   const source = join(directory, "root-migrated.json"), outputDirectory = join(directory, "service"), output = join(outputDirectory, "v2-state.json");
   mkdirSync(outputDirectory, { mode: 0o700 }); writeFileSync(source, bytes, { mode: 0o600 });
-  const concurrentBytes = "concurrent-owner-state\n", sourceIdentity = statSync(source);
-  let concurrentIdentity;
-  const system = nodeSystem({
-    beforeLink: () => {
-      writeFileSync(output, concurrentBytes, { flag: "wx", mode: 0o640 });
-      concurrentIdentity = lstatSync(output);
+  const system = nodeSystem({ outputPath: output, protectOutputDirectory: false, sourceIdentity: statSync(source), sourcePath: source });
+  assert.throws(() => materializeMigratedProductSessionStateWithSystem(input(source, output), system),
+    (error) => error instanceof WalletAuthError && error.code === "UNSAFE_OUTPUT_DIRECTORY");
+  assert.deepEqual(readdirSync(outputDirectory), []);
+});
+
+test("root-protected direct O_EXCL creation keeps the verified descriptor open and denies service substitution at every publication boundary", () => {
+  const directory = mkdtempSync(join(tmpdir(), "ynx-state-materialize-protected-")); chmodSync(directory, 0o700);
+  const source = join(directory, "root-migrated.json"), outputDirectory = join(directory, "service"), output = join(outputDirectory, "v2-state.json");
+  mkdirSync(outputDirectory, { mode: 0o700 }); writeFileSync(source, bytes, { mode: 0o600 });
+  const denied = [], sourceIdentity = statSync(source), system = nodeSystem({
+    onBoundary: (name, state) => {
+      assert.equal(state.directoryTransferred, false);
+      assert.equal(state.outputDescriptorOpen, true);
+      const error = state.attemptServiceReplacement("ATTACKER_REPLACEMENT\n");
+      assert.equal(error.code, "EACCES"); denied.push(name);
     },
+    outputPath: output,
     sourceIdentity,
     sourcePath: source,
   });
-  assert.throws(() => materializeMigratedProductSessionStateWithSystem(input(source, output), system),
-    (error) => error instanceof WalletAuthError && error.code === "OUTPUT_EXISTS");
-  const after = lstatSync(output);
-  assert.equal(readFileSync(output, "utf8"), concurrentBytes);
-  assert.equal(after.ino, concurrentIdentity.ino); assert.equal(after.mode, concurrentIdentity.mode); assert.equal(after.nlink, concurrentIdentity.nlink);
-  assert.equal(readFileSync(source, "utf8"), bytes);
+  const receipt = materializeMigratedProductSessionStateWithSystem(input(source, output), system);
+  assert.equal(receipt.stateFileSha256, sha256(bytes));
+  assert.equal(readFileSync(output, "utf8"), bytes);
+  assert.deepEqual(denied, ["afterAtomicOutputCreate", "afterOutputWrite", "afterOutputFchmod", "afterProtectedDescriptorVerification", "afterOutputFchown", "afterServiceDescriptorVerification", "beforeDirectoryOwnershipTransfer"]);
+  assert.equal(system.state().outputDescriptorClosedAfterDirectoryTransfer, true);
   assert.deepEqual(readdirSync(outputDirectory), ["v2-state.json"]);
 });
 
-test("materializer fails closed and removes its temporary file when atomic no-replace publication is unavailable", () => {
+test("every injected pre-handoff failure removes only the descriptor-bound output and leaves no bad formal state", () => {
+  const boundaries = ["afterAtomicOutputCreate", "afterOutputWrite", "afterOutputFchmod", "afterProtectedDescriptorVerification", "afterOutputFchown", "afterServiceDescriptorVerification", "beforeDirectoryOwnershipTransfer"];
+  for (const boundary of boundaries) {
+    const directory = mkdtempSync(join(tmpdir(), "ynx-state-materialize-boundary-")); chmodSync(directory, 0o700);
+    const source = join(directory, "root-migrated.json"), outputDirectory = join(directory, "service"), output = join(outputDirectory, "v2-state.json");
+    mkdirSync(outputDirectory, { mode: 0o700 }); writeFileSync(source, bytes, { mode: 0o600 });
+    const sourceIdentity = statSync(source), system = nodeSystem({ failBoundary: boundary, outputPath: output, sourceIdentity, sourcePath: source });
+    assert.throws(() => materializeMigratedProductSessionStateWithSystem(input(source, output), system), /injected boundary failure/);
+    assert.deepEqual(readdirSync(outputDirectory), []);
+    assert.equal(readFileSync(source, "utf8"), bytes);
+  }
+});
+
+test("a reported service substitution attempt after descriptor verification rejects the transaction with no formal output", () => {
+  const directory = mkdtempSync(join(tmpdir(), "ynx-state-materialize-replacement-")); chmodSync(directory, 0o700);
+  const source = join(directory, "root-migrated.json"), outputDirectory = join(directory, "service"), output = join(outputDirectory, "v2-state.json");
+  mkdirSync(outputDirectory, { mode: 0o700 }); writeFileSync(source, bytes, { mode: 0o600 });
+  const system = nodeSystem({
+    onBoundary: (name, state) => {
+      if (name !== "afterProtectedDescriptorVerification") return;
+      const denied = state.attemptServiceReplacement("ATTACKER_REPLACEMENT\n");
+      assert.equal(denied.code, "EACCES");
+      throw denied;
+    },
+    outputPath: output,
+    sourceIdentity: statSync(source),
+    sourcePath: source,
+  });
+  assert.throws(() => materializeMigratedProductSessionStateWithSystem(input(source, output), system), { code: "EACCES" });
+  assert.deepEqual(readdirSync(outputDirectory), []);
+  assert.equal(readFileSync(source, "utf8"), bytes);
+});
+
+test("materializer fails closed when atomic O_EXCL publication is unavailable", () => {
   const directory = mkdtempSync(join(tmpdir(), "ynx-state-materialize-unsupported-")); chmodSync(directory, 0o700);
   const source = join(directory, "root-migrated.json"), outputDirectory = join(directory, "service"), output = join(outputDirectory, "v2-state.json");
   mkdirSync(outputDirectory, { mode: 0o700 }); writeFileSync(source, bytes, { mode: 0o600 });
-  const sourceIdentity = statSync(source), system = nodeSystem({ sourceIdentity, sourcePath: source });
-  system.link = () => { const error = new Error("unsupported"); error.code = "ENOSYS"; throw error; };
+  const sourceIdentity = statSync(source), system = nodeSystem({ atomicCreateUnsupported: true, outputPath: output, sourceIdentity, sourcePath: source });
   assert.throws(() => materializeMigratedProductSessionStateWithSystem(input(source, output), system),
     (error) => error instanceof WalletAuthError && error.code === "ATOMIC_PUBLISH_UNAVAILABLE");
   assert.deepEqual(readdirSync(outputDirectory), []);
@@ -113,15 +155,50 @@ test("materializer fails closed and removes its temporary file when atomic no-re
 function input(sourcePath, outputPath) {
   return { expectedRegistryStateBindingSha256: registrySha256, expectedSourceStateFileSha256: sha256(bytes), outputGid: gid, outputPath, outputUid: uid, sourcePath };
 }
-function nodeSystem({ beforeLink, sourceIdentity, sourcePath }) {
-  const identity = (path, value) => path === sourcePath || value.dev === sourceIdentity.dev && value.ino === sourceIdentity.ino ? Object.assign(Object.create(Object.getPrototypeOf(value)), value, { uid: 0, gid: 0 }) : value;
-  return {
+function nodeSystem({ atomicCreateUnsupported = false, failBoundary, onBoundary, outputPath, protectOutputDirectory = true, sourceIdentity, sourcePath }) {
+  let createdIdentity, directoryIdentity, directoryTransferred = false, fileTransferred = false, outputDescriptor, outputDescriptorClosedAfterDirectoryTransfer = false;
+  const identity = (path, value) => {
+    const source = path === sourcePath || value.dev === sourceIdentity.dev && value.ino === sourceIdentity.ino;
+    const directory = value.isDirectory() && (!directoryIdentity || value.dev === directoryIdentity.dev && value.ino === directoryIdentity.ino);
+    const created = createdIdentity && value.dev === createdIdentity.dev && value.ino === createdIdentity.ino;
+    if (source || protectOutputDirectory && directory && !directoryTransferred || created && !fileTransferred) return Object.assign(Object.create(Object.getPrototypeOf(value)), value, { uid: 0, gid: 0 });
+    return value;
+  };
+  const state = () => ({
+    attemptServiceReplacement: () => Object.assign(new Error("protected directory"), { code: directoryTransferred ? "UNEXPECTED_ACCESS" : "EACCES" }),
+    directoryTransferred,
+    outputDescriptorClosedAfterDirectoryTransfer,
+    outputDescriptorOpen: outputDescriptor !== undefined,
+  });
+  const system = {
     close: closeSync, effectiveUid: () => 0, fchmod: fchmodSync,
-    fchown: (_descriptor, targetUid, targetGid) => { assert.equal(targetUid, uid); assert.equal(targetGid, gid); },
+    fchown: (descriptor, targetUid, targetGid) => {
+      assert.equal(targetUid, uid); assert.equal(targetGid, gid);
+      if (fstatSync(descriptor).isDirectory()) directoryTransferred = true;
+      else fileTransferred = true;
+    },
     fstat: (descriptor) => identity(null, fstatSync(descriptor)), fsync: fsyncSync,
-    link: (source, target) => { beforeLink?.(); linkSync(source, target); },
-    lstat: (path) => identity(path, lstatSync(path)), open: openSync, read: (descriptor) => readFileSync(descriptor, "utf8"),
+    lstat: (path) => identity(path, lstatSync(path)),
+    open: (path, flags, mode) => {
+      const createsOutput = Boolean(flags & constants.O_CREAT) && path !== sourcePath;
+      if (createsOutput && atomicCreateUnsupported) { const error = new Error("unsupported"); error.code = "EINVAL"; throw error; }
+      const descriptor = openSync(path, flags, mode);
+      const info = fstatSync(descriptor);
+      if (info.isDirectory()) directoryIdentity = info;
+      if (createsOutput) { createdIdentity = info; outputDescriptor = descriptor; }
+      return descriptor;
+    },
+    read: (descriptor) => readFileSync(descriptor, "utf8"),
+    readAt: (descriptor, size) => {
+      const buffer = Buffer.alloc(size); let offset = 0;
+      while (offset < size) { const count = readSync(descriptor, buffer, offset, size - offset, offset); if (count === 0) break; offset += count; }
+      return buffer.subarray(0, offset).toString("utf8");
+    },
     unlink: unlinkSync, write: (descriptor, value) => writeFileSync(descriptor, value, "utf8"),
   };
+  system.close = (descriptor) => { if (descriptor === outputDescriptor) { outputDescriptorClosedAfterDirectoryTransfer = directoryTransferred; outputDescriptor = undefined; } closeSync(descriptor); };
+  system.boundary = (name) => { if (name === failBoundary) throw new Error(`injected boundary failure: ${name}`); onBoundary?.(name, state()); };
+  system.state = state;
+  return system;
 }
 function sha256(value) { return createHash("sha256").update(value).digest("hex"); }
