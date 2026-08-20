@@ -123,11 +123,11 @@
     {
       "owner": "core-auth-gateway",
       "branch": "codex/wallet-core-auth-gateway-continuation-20260814",
-      "sourceCommit": "ae8e24658efbf9dea6afce5526d3938d3b8c80cd",
-      "remoteCommitObserved": "ae8e24658efbf9dea6afce5526d3938d3b8c80cd",
-      "branchHeadObserved": "ae8e24658efbf9dea6afce5526d3938d3b8c80cd",
+      "sourceCommit": "92ae5404da908c0d649a3a62fd51bcc772e14efd",
+      "remoteCommitObserved": "92ae5404da908c0d649a3a62fd51bcc772e14efd",
+      "branchHeadObserved": "92ae5404da908c0d649a3a62fd51bcc772e14efd",
       "remoteVerifiedAt": "2026-08-15T09:45:00Z",
-      "verificationMode": "remote-sha-parent-tree-four-blob-secure-signer-network-epoch-readback"
+      "verificationMode": "remote-sha-parent-tree-four-blob-lost-revoke-ack-readback"
     },
     {
       "owner": "web-pwa-extensions",
@@ -574,9 +574,9 @@
     "wallet-web-companion-core-runtime-candidate": {
       "type": "git-object",
       "direct": true,
-      "commit": "ae8e24658efbf9dea6afce5526d3938d3b8c80cd",
+      "commit": "92ae5404da908c0d649a3a62fd51bcc772e14efd",
       "path": "release/integration/wallet-auth-web-companion-registry-contract.json",
-      "blob": "79b2a7944edfcc8eda6dfcdfec57b1905e5ced10",
+      "blob": "acb1182f3f0e0eb289ee0ea53211d9ebb43bd231",
       "supports": ["gateway.build"]
     },
     "wallet-web-companion-6441-deployment-acceptance": {
