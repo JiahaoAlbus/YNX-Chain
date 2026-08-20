@@ -21,8 +21,9 @@ import { ACCOUNT_SECRET, NOW, PRODUCT_DEVICE_SECRET, request } from "./fixtures.
 
 const BUILD={buildTime:"2026-07-27T12:00:00.000Z",release:"wallet-auth-test",sourceCommit:"a".repeat(40)};
 
-function approvedRegistry() {
+function approvedRegistry(webOrigins = {}) {
   const registry=JSON.parse(readFileSync(new URL("../central-registry.json",import.meta.url),"utf8"));
+  for(const product of registry.products){product.schemaVersion=4;product.webOrigins=webOrigins[product.productId]??[]}
   for(const id of ["social","wallet"]){const product=registry.products.find(item=>item.productId===id);product.reviewState="approved";product.enabled=true}
   return registry;
 }
@@ -76,6 +77,22 @@ test("Node host rejects noncanonical proof transport and persisted-state tamper"
   });
   const stored=JSON.parse(readFileSync(statePath,"utf8"));stored.stateDigest="0".repeat(64);writeFileSync(statePath,JSON.stringify(stored),{mode:0o600});
   assert.throws(()=>new CanonicalWalletGatewayNodeHost(registry,{statePath,now:()=>NOW}),/state digest/);
+});
+
+test("Node host permits only an enabled registered HTTPS origin and preflight cannot mutate Product Session state",async()=>{
+  const directory=mkdtempSync(join(tmpdir(),"ynx-wallet-gateway-cors-")),statePath=join(directory,"state.json"),origin="https://social.ynxweb4.com",registry=approvedRegistry({social:[origin]}),host=new CanonicalWalletGatewayNodeHost(registry,{statePath,now:()=>NOW});
+  const before=host.snapshot();
+  await serve(host,async(base)=>{
+    const preflight=await fetch(`${base}/v1/wallet/sessions/complete`,{method:"OPTIONS",headers:{origin,"access-control-request-method":"POST","access-control-request-headers":"content-type"}});
+    assert.equal(preflight.status,204);assert.equal(preflight.headers.get("access-control-allow-origin"),origin);assert.equal(preflight.headers.get("access-control-allow-methods"),"POST");assert.equal(preflight.headers.get("access-control-allow-headers"),"content-type, x-ynx-product-session-proof");
+    const attacker=await fetch(`${base}/v1/wallet/sessions/complete`,{method:"POST",headers:{origin:"https://attacker.example","content-type":"application/json"},body:canonicalJSON(completion(registry,"social","cors_attacker_nonce_abcdefghijklmnop","cors_attacker_challenge_abcdefghijklmnop"))});
+    assert.equal(attacker.status,403);assert.equal((await attacker.json()).error.code,"ORIGIN_NOT_ALLOWED");assert.equal(attacker.headers.get("access-control-allow-origin"),null);
+    const complete=await fetch(`${base}/v1/wallet/sessions/complete`,{method:"POST",headers:{origin,"content-type":"application/json"},body:canonicalJSON(completion(registry,"social","cors_registered_nonce_abcdefghijklmnop","cors_registered_challenge_abcdefghijklmnop"))});
+    assert.equal(complete.status,200,await complete.text());assert.equal(complete.headers.get("access-control-allow-origin"),origin);assert.equal(complete.headers.get("access-control-expose-headers"),"x-error-id, x-request-id, x-trace-id");
+    const badHeader=await fetch(`${base}/v1/wallet/sessions/complete`,{method:"OPTIONS",headers:{origin,"access-control-request-method":"POST","access-control-request-headers":"authorization"}});
+    assert.equal(badHeader.status,400);assert.equal((await badHeader.json()).error.code,"INVALID_CORS_REQUEST");
+  });
+  assert.deepEqual(before.sessionStore.sessions,[]);assert.equal(host.snapshot().sessionStore.sessions.length,1);
 });
 
 test("Node host validates and atomically normalizes the legacy timestamped state envelope",()=>{

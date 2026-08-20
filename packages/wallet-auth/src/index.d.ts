@@ -7,7 +7,7 @@ export type GatewayCompletion = Readonly<{challenge:GatewayChallenge;deviceSigna
 export type CentralRegistryEntryV1 = Readonly<{schemaVersion:1;productClientId:string;requestingProduct:string;bundleId:string;callback:string;scopes:readonly string[];maxScopes:number}>;
 export type CentralRegistryEntry = Readonly<{schemaVersion:2;productClientId:string;requestingProduct:string;bundleId:string;callbacks:readonly string[];scopes:readonly string[];maxScopes:number;productDeviceAlgorithms:readonly ProductDeviceAlgorithm[]}>;
 export type CentralReviewState = "approved"|"pending-review"|"disabled";
-export type CentralProductRegistration = Readonly<Omit<CentralRegistryEntry,"schemaVersion"> & {schemaVersion:3;productId:string;displayName:string;reviewState:CentralReviewState;enabled:boolean;sessionDurationSeconds:number;revocationPolicy:Readonly<{session:true;approval:true;device:true;accountAllDevices:true}>}>;
+export type CentralProductRegistration = Readonly<Omit<CentralRegistryEntry,"schemaVersion"> & {schemaVersion:4;productId:string;displayName:string;reviewState:CentralReviewState;enabled:boolean;webOrigins:readonly string[];sessionDurationSeconds:number;revocationPolicy:Readonly<{session:true;approval:true;device:true;accountAllDevices:true}>}>;
 export type CentralRegistryDocument = Readonly<{registryVersion:2;chainId:"ynx_6423-1";products:readonly CentralProductRegistration[]}>;
 export type CentralWalletSession = Readonly<{verifierVersion:"wallet-auth-v1";sessionBinding:string;chainId:"ynx_6423-1";requestingProduct:string;productClientId:string;bundleId:string;callback:string;productDeviceAlgorithm:ProductDeviceAlgorithm;productDeviceKey:string;deviceBinding:string;account:string;scopes:readonly string[];nonce:string;purpose:string;requestDigest:string;approvalDigest:string;issuedAt:string;expiresAt:string}>;
 export type CentralRevocationState = Readonly<{revokedSessionBindings:readonly string[];revokedApprovalDigests:readonly string[];revokedDeviceBindings:readonly string[];accountLogoutRecords:readonly Readonly<{account:string;before:string}>[]}>;
@@ -27,7 +27,7 @@ export declare const CENTRAL_REGISTRY_SCHEMA_VERSION:2;
 export declare const CENTRAL_VERIFIER_VERSION:"wallet-auth-v1";
 export declare const CENTRAL_REGISTRY_DOCUMENT_VERSION:2;
 export declare const CENTRAL_REGISTRY_PRODUCT_COUNT:26;
-export declare const CENTRAL_PRODUCT_SCHEMA_VERSION:3;
+export declare const CENTRAL_PRODUCT_SCHEMA_VERSION:4;
 export declare const CENTRAL_WALLET_SESSION_INVENTORY_SCHEMA_VERSION:1;
 export declare const NATIVE_TRANSACTION_DOMAIN:"YNX_NATIVE_TX_V1";
 export declare const NATIVE_TRANSACTION_CHAIN_ID:6423;
@@ -66,6 +66,7 @@ export declare function migrateCentralRegistryDocumentV1(input:unknown):CentralR
 export declare function parseCentralProductRegistration(input:unknown):CentralProductRegistration;
 export declare function centralProtocolEntry(registration:CentralProductRegistration,options?:{requireEnabled?:boolean}):CentralRegistryEntry;
 export declare function centralRegistrationByProduct(document:CentralRegistryDocument,productId:string,options?:{requireEnabled?:boolean}):CentralProductRegistration;
+export declare function centralRegisteredWebOrigins(document:CentralRegistryDocument):readonly string[];
 export declare class CentralWalletSessionStore {
   constructor(snapshot?:CentralWalletStoreSnapshot);
   complete(input:Readonly<{registryEntry:CentralRegistryEntry;authorizationRequest:AuthorizationRequest;walletApproval:AuthorizationResponse;gatewayCompletion:GatewayCompletion}>,at?:Date):CentralWalletSession;

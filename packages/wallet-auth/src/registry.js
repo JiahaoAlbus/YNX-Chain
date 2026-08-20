@@ -3,11 +3,12 @@ import { YNX_NATIVE_CHAIN_ID } from "./protocol.js";
 import { parseCentralRegistryEntry } from "./integration.js";
 
 const DOCUMENT_FIELDS = ["registryVersion", "chainId", "products"];
-const PRODUCT_FIELDS = [
+const PRODUCT_FIELDS_V3 = [
   "schemaVersion", "productId", "displayName", "reviewState", "enabled",
   "productClientId", "requestingProduct", "bundleId", "callbacks", "scopes",
   "maxScopes", "productDeviceAlgorithms", "sessionDurationSeconds", "revocationPolicy",
 ];
+const PRODUCT_FIELDS_V4 = [...PRODUCT_FIELDS_V3, "webOrigins"];
 const REVOCATION_FIELDS = ["session", "approval", "device", "accountAllDevices"];
 const REVIEW_STATES = new Set(["approved", "pending-review", "disabled"]);
 const REGISTRY_V1_PRODUCT_IDS = Object.freeze([
@@ -18,7 +19,7 @@ const REGISTRY_V1_PRODUCT_IDS = Object.freeze([
 
 export const CENTRAL_REGISTRY_DOCUMENT_VERSION = 2;
 export const CENTRAL_REGISTRY_PRODUCT_COUNT = 26;
-export const CENTRAL_PRODUCT_SCHEMA_VERSION = 3;
+export const CENTRAL_PRODUCT_SCHEMA_VERSION = 4;
 
 export function parseCentralRegistryDocument(input) {
   exactFields(input, DOCUMENT_FIELDS, "Central Wallet registry document");
@@ -53,8 +54,10 @@ export function migrateCentralRegistryDocumentV1(input) {
 }
 
 export function parseCentralProductRegistration(input) {
-  exactFields(input, PRODUCT_FIELDS, "Central Wallet product registration");
-  if (input.schemaVersion !== CENTRAL_PRODUCT_SCHEMA_VERSION) throw new WalletAuthError("INVALID_REGISTRY", "Central Wallet product schema is unsupported");
+  const sourceVersion = input?.schemaVersion;
+  if (sourceVersion === 3) exactFields(input, PRODUCT_FIELDS_V3, "Central Wallet product registration v3");
+  else exactFields(input, PRODUCT_FIELDS_V4, "Central Wallet product registration");
+  if (sourceVersion !== 3 && sourceVersion !== CENTRAL_PRODUCT_SCHEMA_VERSION) throw new WalletAuthError("INVALID_REGISTRY", "Central Wallet product schema is unsupported");
   if (typeof input.productId !== "string" || !/^[a-z][a-z0-9-]{1,31}$/.test(input.productId)) throw new WalletAuthError("INVALID_REGISTRY", "productId is invalid");
   if (typeof input.displayName !== "string" || input.displayName.trim() !== input.displayName || input.displayName.length < 2 || input.displayName.length > 64) throw new WalletAuthError("INVALID_REGISTRY", "displayName is invalid");
   if (!REVIEW_STATES.has(input.reviewState) || typeof input.enabled !== "boolean" || input.enabled !== (input.reviewState === "approved")) throw new WalletAuthError("INVALID_REGISTRY", "Only approved registrations may be enabled");
@@ -78,6 +81,7 @@ export function parseCentralProductRegistration(input) {
     enabled: input.enabled,
     ...protocol,
     schemaVersion: CENTRAL_PRODUCT_SCHEMA_VERSION,
+    webOrigins: sourceVersion === 3 ? Object.freeze([]) : canonicalWebOrigins(input.webOrigins),
     sessionDurationSeconds: input.sessionDurationSeconds,
     revocationPolicy: Object.freeze({ session: true, approval: true, device: true, accountAllDevices: true }),
   });
@@ -106,6 +110,16 @@ export function centralRegistrationByProduct(document, productId, options = {}) 
   return product;
 }
 
+// Only enabled product registrations may receive browser CORS access.  A v3
+// registry intentionally migrates to an empty allowlist; deployment must not
+// infer a web origin from a callback, bundle identifier, or product name.
+export function centralRegisteredWebOrigins(document) {
+  const registry = parseCentralRegistryDocument(document);
+  return Object.freeze([...new Set(registry.products
+    .filter(product => product.enabled)
+    .flatMap(product => product.webOrigins))].sort());
+}
+
 function parseRegistryProducts(input) {
   const products = input.map(parseCentralProductRegistration);
   assertUnique(products, "productId");
@@ -121,7 +135,10 @@ function parseRegistryProducts(input) {
 
 function canonicalQuantRegistration() {
   return {
-    schemaVersion: CENTRAL_PRODUCT_SCHEMA_VERSION,
+    // v1 migration is deliberately staged through the historical v3 shape;
+    // parseCentralProductRegistration then upgrades it to v4 with no browser
+    // origin inferred from a package or deep-link callback.
+    schemaVersion: 3,
     productId: "quant",
     displayName: "YNX Quant",
     reviewState: "pending-review",
@@ -141,4 +158,29 @@ function canonicalQuantRegistration() {
 function assertUnique(products, field) {
   const values = products.map(product => product[field]);
   if (new Set(values).size !== values.length) throw new WalletAuthError("INVALID_REGISTRY", `Central Wallet ${field} values must be unique`);
+}
+
+function canonicalWebOrigins(value) {
+  return Object.freeze(stringList(value, "webOrigins", 0, 8, (origin) => {
+    if (typeof origin !== "string" || origin.length > 255 || origin.trim() !== origin) {
+      throw new WalletAuthError("INVALID_REGISTRY", "web origin is invalid");
+    }
+    let parsed;
+    try { parsed = new URL(origin); } catch { throw new WalletAuthError("INVALID_REGISTRY", "web origin is invalid"); }
+    if (parsed.protocol !== "https:" || parsed.username || parsed.password || parsed.pathname !== "/" || parsed.search || parsed.hash || parsed.toString() !== `${origin}/`) {
+      throw new WalletAuthError("INVALID_REGISTRY", "web origin must be a canonical HTTPS origin");
+    }
+    return origin;
+  }));
+}
+
+function stringList(value, label, minimum, maximum, normalize) {
+  if (!Array.isArray(value) || value.length < minimum || value.length > maximum) {
+    throw new WalletAuthError("INVALID_REGISTRY", `${label} has an invalid item count`);
+  }
+  const values = value.map(normalize);
+  if (new Set(values).size !== values.length || [...values].sort().join("\n") !== values.join("\n")) {
+    throw new WalletAuthError("INVALID_REGISTRY", `${label} must be unique and sorted`);
+  }
+  return values;
 }
