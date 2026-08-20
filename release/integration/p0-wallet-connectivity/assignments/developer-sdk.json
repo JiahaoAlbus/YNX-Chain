@@ -1,7 +1,7 @@
 {
   "taskId": "P0-003",
   "owner": "developer-sdk",
-  "status": "MANIFEST_DELTA_VERIFIED_REBASE_REQUIRED",
+  "status": "SDK_ONLY_CLEAN_REBASE_SOURCE_ACCEPTED",
   "inheritedBranch": "codex/p0-developer-sdk-20260820",
   "inheritedCommit": "315897e75c0ffe3e63435fe73cfec42244b851cc",
   "remoteHeadObserved": "0a03050c305eb2f7f0d53513bcf3ea6073ba3371",
@@ -18,7 +18,7 @@
     "per-product migrations",
     "platform E2E"
   ],
-  "nextAction": "Create a new Developer SDK owner branch from the latest accepted central SDK snapshot. Reapply the manifest-acceptance behavior while preserving current central SDK behavior. Keep the replacement commit to the same five packages/dapp-connect-sdk paths and exclude apps/developer and .ynx artifacts. Return exact parent, commit, tree, five blobs, 12/12 or stronger tests, clean package-only migration scan and BUNDLED_SHA256_ACCEPTED against the current manifest. Repair PR #105/#110 topology; do not ask Integration to merge either current head.",
+  "nextAction": "Keep this as source-only SDK acceptance. Run Compatibility Lab only with real adapters, publish only through a separately signed release, and require each product owner to return runtime, public Gateway and visible platform evidence before migration changes.",
   "manifestCandidate": {
     "commit": "24773900321b944444f37c7fcb2ea91b6f928d7e",
     "parent": "0a03050c305eb2f7f0d53513bcf3ea6073ba3371",
@@ -26,9 +26,10 @@
     "tests": "12/12",
     "manifestResult": "BUNDLED_SHA256_ACCEPTED",
     "releaseId": "P0-WALLET-CONNECTIVITY-2026-08-endpoints-2",
-    "consumed": false
+    "consumed": true,
+    "supersededBy": "3437be2f3e4d174cd8a35949e08de673f31942b8"
   },
-  "blocker": {
+  "historicalBlocker": {
     "code": "CENTRAL_SDK_BASE_DIVERGED_FIVE_PATH_CHERRY_PICK_CONFLICT",
     "centralParent": "8aa3924a11747d8613f14523f66f4ba5e9dc054f",
     "actualMergeBase": "315897e75c0ffe3e63435fe73cfec42244b851cc",
@@ -40,7 +41,7 @@
       "packages/dapp-connect-sdk/tools/release-gate.mjs"
     ]
   },
-  "prTopology": {
+  "historicalPrTopology": {
     "pr105CurrentHead": "7f4597f3bd8877b5946957f3e5379ada30fcd1e4",
     "pr105AcceptedBase": "315897e75c0ffe3e63435fe73cfec42244b851cc",
     "pr105UnsafeWholeTree": true,
@@ -57,5 +58,19 @@
       "mergeBase": "0a03050c305eb2f7f0d53513bcf3ea6073ba3371"
     },
     "mergeEitherCurrentHead": false
+  },
+  "cleanRebase": {
+    "pr": "https://github.com/JiahaoAlbus/YNX-Chain/pull/130",
+    "head": "e649cd7cddf753d732033e24c9c3b73ecf7b807a",
+    "manifestCommit": "3437be2f3e4d174cd8a35949e08de673f31942b8",
+    "manifestParentActual": "a6d69e118c84b7b8df4d38198ae353fec6d2cd38",
+    "centralMergeParent": "c0a66cb6bfe42d2f1f658ebd93f41eec0f245f2d",
+    "sdkTree": "c526fd89d08024cc955a12055b9d5d5643e1cb6f",
+    "materializedWithoutMergeHistory": true,
+    "appsDeveloperPathsChanged": false,
+    "tests": "12/12",
+    "compatibilityLabExplicitSkips": 10,
+    "simulatedPasses": 0,
+    "manifestResult": "BUNDLED_SHA256_ACCEPTED"
   }
 }

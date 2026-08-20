@@ -4,8 +4,8 @@ import {tmpdir} from "node:os";
 import {join} from "node:path";
 import {test} from "node:test";
 import {
-  DAppConnectError, PendingCallbackStore, StandardWalletConnection, YNX_TESTNET,
-  classifyWalletError, createSiweMessage, discoverEIP6963, enhanceWithProductSession, validateEndpointManifest
+  DAppConnectClient, DAppConnectError, PendingCallbackStore, StandardWalletConnection, YNX_TESTNET,
+  classifyWalletError, compatibilityCheck, createSiweMessage, discoverEIP6963, enhanceWithProductSession, loadBundledManifest, manifestPayloadSha256, runCompatibilityLab, selectHealthyEndpoint, validateEndpointManifest
 } from "../src/index.js";
 
 const account = "0x1111111111111111111111111111111111111111";
@@ -78,6 +78,37 @@ test("SIWE is standard EVM message creation and requires no YNX product registra
   assert.match(message, /external-dapp\.example wants you to sign in/); assert.match(message, /Chain ID: 6423/);
 });
 
+test("the unified client keeps a standard connection when Product Session enhancement fails", async () => {
+  const client = new DAppConnectClient({provider: provider()});
+  assert.deepEqual(await client.connectWallet(), {account, chainId: "0x1917", state: "STANDARD_CONNECTED"});
+  const degraded = await client.upgradeToYNXProductSession({complete: async () => { throw {status: 503, requestId: "upgrade-1"}; }});
+  assert.equal(degraded.state, "PRIVATE_SERVICE_DEGRADED");
+  assert.deepEqual(client.getAccounts(), [account]);
+  assert.equal(client.getServiceStatus().standardConnection, "CONNECTED");
+});
+
+test("candidate manifests are diagnosable but cannot activate endpoints or Faucet deep links", async () => {
+  const candidate = {schemaVersion: "1.0.0", status: "CANDIDATE_NOT_ACCEPTED", integrity: {status: "UNSIGNED_CANDIDATE"}, network: {evmChainId: 6423}, endpoints: {faucet: "https://faucet.ynxweb4.com"}};
+  await assert.rejects(() => loadBundledManifest(candidate), error => error.code === "ENDPOINT_MANIFEST_NOT_ACCEPTED");
+  assert.deepEqual(compatibilityCheck({...candidate, expiresAt: null}), {compatible: false, code: "ENDPOINT_MANIFEST_EXPIRED"});
+  const client = new DAppConnectClient({endpointManifest: candidate, opener: async value => value});
+  await assert.rejects(() => client.openWalletFaucet(), error => error.code === "ENDPOINT_MANIFEST_NOT_ACCEPTED");
+});
+
+test("accepted bundled endpoint manifest activates only after its canonical SHA-256 check", async () => {
+  const manifest = {schemaVersion: "1.0.0", status: "ACCEPTED_BUNDLED_CONSUMER_CONTRACT", expiresAt: "2026-09-20T08:45:00.000Z", cosmosChainId: "ynx_6423-1", evmChainId: 6423, evmChainHex: "0x1917", nativeAsset: "YNXT", rpc: "https://rpc.ynxweb4.com", evmRpc: "https://evm.ynxweb4.com", rest: "https://rest.ynxweb4.com", walletGateway: "https://wallet-auth.ynxweb4.com", appGateway: "https://gateway.ynxweb4.com", faucet: "https://faucet.ynxweb4.com", explorer: "https://explorer.ynxweb4.com", indexer: "https://indexer.ynxweb4.com", monitor: "https://monitor.ynxweb4.com", healthUrl: "https://monitor.ynxweb4.com/health", versionUrl: "https://monitor.ynxweb4.com/version", endpointStates: {evmRpc: {status: "VERIFIED"}, faucet: {status: "DEGRADED"}}};
+  manifest.integrity = {status: "BUNDLED_SHA256_ACCEPTED", payloadSha256: manifestPayloadSha256(manifest)};
+  const accepted = await loadBundledManifest(manifest, {now: Date.parse("2026-08-20T00:00:00.000Z")});
+  assert.equal(accepted.verification, "BUNDLED_SHA256_ACCEPTED");
+  await assert.rejects(() => loadBundledManifest({...manifest, rpc: "https://tampered.example"}, {now: Date.parse("2026-08-20T00:00:00.000Z")}), error => error.code === "ENDPOINT_MANIFEST_INTEGRITY_FAILED");
+});
+
+test("endpoint health selection and Compatibility Lab report real outcomes without invented passes", async () => {
+  assert.equal(await selectHealthyEndpoint(["https://first.example", "https://second.example"], {healthCheck: async value => value.includes("second")}), "https://second.example/");
+  const report = await runCompatibilityLab({scenarios: {"eip6963-discovery": async () => ({providers: 1})}});
+  assert.equal(report.passed, 1); assert.equal(report.skipped, 9);
+});
+
 test("migration scanner and artwork validator flag release hazards", async () => {
   const directory = mkdtempSync(join(tmpdir(), "ynx-dapp-sdk-"));
   try {
@@ -87,6 +118,6 @@ test("migration scanner and artwork validator flag release hazards", async () =>
     assert.equal(scan.status, 2); assert.match(scan.stdout, /LOOPBACK_ENDPOINT/);
     writeFileSync(join(directory, "art.json"), JSON.stringify({productId: "calendar", artworkVersion: "1", sourceVector: "a.svg", appIcon: "a.png", launchSplash: "s.png", screenshots: ["x.png"]}));
     const art = spawnSync(process.execPath, ["tools/validate-artwork-manifest.mjs", join(directory, "art.json")], {cwd: new URL("..", import.meta.url), encoding: "utf8"});
-    assert.equal(art.status, 2); assert.match(art.stdout, /ARTWORK_FIELD_MISSING/);
+    assert.equal(art.status, 2); assert.match(art.stdout, /ARTWORK_VALIDATION_FAILED/);
   } finally { rmSync(directory, {recursive: true, force: true}); }
 });
