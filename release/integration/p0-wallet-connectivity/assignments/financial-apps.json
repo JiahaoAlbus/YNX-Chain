@@ -37,5 +37,5 @@
     "do not classify Product Session failure as whole-app Offline",
     "do not start Pay, DEX or Quant"
   ],
-  "nextAction": "Perform exactly the Exchange Wallet Connectivity slice, then stop at a safe checkpoint."
+  "nextAction": "Before the Exchange safe checkpoint can release its path lock, add the evidence verifier to a product-scoped automated test entrypoint and make its test resolve the product root rather than process.cwd(); rerun the focused test and APK-bound verifier, record the new commit/push/handoff, then stop at the safe checkpoint."
 }
