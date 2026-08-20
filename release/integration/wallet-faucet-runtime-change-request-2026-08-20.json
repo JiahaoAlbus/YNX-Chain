@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "kind": "runtime-change-request",
+  "requestedAt": "2026-08-20T09:23:00.000Z",
+  "requester": {
+    "owner": "wallet-platform",
+    "sourceCommit": "ddf686743d36943d4be18a7632d137ba8821ecb5"
+  },
+  "targetOwner": "chain-faucet-runtime-and-integration",
+  "service": "https://faucet.ynxweb4.com",
+  "directPublicEvidence": {
+    "health": {
+      "status": 200,
+      "chainId": 6423,
+      "nativeSymbol": "YNXT",
+      "upstreamOk": true,
+      "responseLeaksLoopbackRpcUrl": true
+    },
+    "root": { "status": 404 },
+    "version": { "status": 404 },
+    "request": {
+      "status": 201,
+      "testnetOnly": true,
+      "walletReceiptEvidence": "apps/wallet/proof/android-api36-faucet-balance-evidence-2026-08-20.json"
+    }
+  },
+  "requiredRuntimeChanges": [
+    "Publish a public no-store version endpoint with build identity, chainId, nativeSymbol and compatibility schema; never expose loopback or internal service addresses.",
+    "Make the official Faucet web route return a real HTTPS page or documented API response instead of a root 404.",
+    "Freeze and publish the signed endpoint manifest consumed by Wallet, including HTTPS health, version, request route, CORS and mobile availability.",
+    "Provide public backread and rollback evidence before Wallet can mark Faucet AVAILABLE."
+  ],
+  "walletBehaviorUntilAccepted": {
+    "state": "DEGRADED",
+    "code": "FAUCET_VERSION_INCOMPATIBLE",
+    "walletNativeFaucetProtocolVerified": false,
+    "directServiceRequestDoesNotElevateProtocolGate": true
+  }
+}
