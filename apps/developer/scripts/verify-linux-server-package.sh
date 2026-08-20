@@ -16,6 +16,7 @@ bundle=$(find "$work" -mindepth 1 -maxdepth 1 -type d -name 'ynx-developer-*-lin
 node -e '
 const fs=require("fs"); const [file,expected]=process.argv.slice(1); const value=JSON.parse(fs.readFileSync(file,"utf8"));
 for(const [key,expectedValue] of Object.entries({schemaVersion:1,productId:"ynx-developer-v1",artifactClass:"unsigned-testnet-preview",platform:"linux-x64-server",deliveryMode:"self-hosted-server-appliance",sourceCommit:expected,productionSigned:false})) if(value[key]!==expectedValue) throw new Error(`${key} mismatch`);
+if(!/^[0-9a-f]{64}$/.test(value.sourceEvidenceManifestSha256||"")) throw new Error("protected deployment evidence digest is missing");
 if(value.minimumRuntime?.node!==">=22"||value.bundled?.applicationDependencies!==true||value.bundled?.workspaceState!==false||value.bundled?.operatorEnvironment!==false) throw new Error("unsafe or incomplete server manifest");
 ' "$bundle/release-manifest.json" "$expected_commit"
 port=$(node -e 'const net=require("net");const server=net.createServer();server.listen(0,"127.0.0.1",()=>{process.stdout.write(String(server.address().port));server.close()})')
