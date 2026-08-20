@@ -35,7 +35,7 @@ export type PendingAuthorization=Readonly<{request:AuthorizationRequest;deviceSe
 export type CardSession=Readonly<{token:string;sessionBinding:string;requestDigest:string;account:string;productClientId:"ynx-card-v1";bundleId:"com.ynxweb4.card";scopes:readonly string[];issuedAt:string;expiresAt:string;deviceId:string}>;
 export type Eip1193WalletSession=Readonly<{address:string;chainId:string;connectedAt:string;provider:"eip1193"}>;
 export type CardWalletError=Readonly<{code:string;retryable:boolean;safeMessage:string;monitoringClass:string;userAction:string;requestId?:string;traceId?:string;errorId?:string}>;
-export type ProductSessionRuntime=Readonly<{state:"PRODUCT_SESSION_READY";session:CardSession}>|Readonly<{state:"PRIVATE_SERVICE_DEGRADED"}&CardWalletError>;
+export type ProductSessionRuntime=Readonly<{state:"PRODUCT_SESSION_READY";session:CardSession}>|Readonly<{state:"PRIVATE_SESSION_V2_CONNECTED_SOURCE_ONLY";sessionBinding:string;expiresAt:string}>|Readonly<{state:"PRIVATE_SERVICE_DEGRADED"}&CardWalletError>;
 export type TestnetTopupIntent=Readonly<{id:string;chainId:string;recipient:string;amountWei:string;minConfirmations:number;expiresAt:string}>;
 export type TopupEvidence=Readonly<{chainId:string;txHash:string;blockNumber:string;blockHash:string;from:string;to:string;valueWei:string;confirmations:number}>;
 
@@ -61,7 +61,9 @@ export async function createAuthorization(now=new Date(),random?:Readonly<{secre
 
 export function walletDeepLink(pending:PendingAuthorization):string{return encodeRequestDeepLink(pending.request)}
 
-export async function completeCentralSession(pending:PendingAuthorization,approval:AuthorizationResponse):Promise<CardSession>{
+// Legacy private route retained only for compatibility evidence. Card runtime
+// now uses createProductWalletConnection and the canonical /v2 routes.
+export async function completeLegacyCentralSession(pending:PendingAuthorization,approval:AuthorizationResponse):Promise<CardSession>{
   const base=acceptedCardGatewayEndpoint();
   const challenge=await json(`${base}/app/card/session/challenges`,{method:"POST",body:{authorizationRequest:pending.request,walletApproval:approval}}) as {challenge:GatewayChallenge};
   const completion=signGatewayChallenge(challenge.challenge,pending.deviceSecret);

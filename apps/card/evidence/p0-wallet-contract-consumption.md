@@ -9,6 +9,7 @@ Wallet Protocol, the DApp SDK, Gateway, or central control-plane:
 | Standard Wallet contract | `66003e76e804da16d472255efde50cb879055b96` | SDK constant reference and Card runtime behavior use `p0-wallet-connection-v1`, `0x1917`, and standard `0x…` accounts. |
 | Developer DApp SDK | `315897e75c0ffe3e63435fe73cfec42244b851cc` | Immutable vendor tarball `vendor/ynx-dapp-connect-sdk-0.1.0-p0.0-315897e7.tgz`, SHA-256 `4a3c47f017a6932015686f20adfd29990a8c317ffdbb3f6fc5c4c9f16be5bc53`. |
 | Canonical Wallet error contract | `24cc3218c2cdc00c50dc3caa563652083afbd861` | Immutable vendor tarball `vendor/ynx-chain-wallet-auth-1.0.0-24cc3218.tgz`, SHA-256 `d94eda02e7e76bde6a56159a50fe515fe310b3e17baa6674dbdd00b2b252f4dd`. |
+| Product Wallet root factory source | `203be5e108be468350591615a64d5d36ab87a8f1` / tree `94e291a6` | Immutable vendor tarball `vendor/ynx-chain-wallet-auth-1.0.0-203be5e1.tgz`, source package dry-run `69 files / 123903 bytes`; not an npm-public package claim. |
 
 ## 1. Card runtime evidence
 
@@ -40,11 +41,21 @@ deployment state, or Product Session migration claim.
 
 ## 2. v2 Gateway evidence
 
-Card remains `registry-ready/contract-only`; `migrated-v2=false`. The public
-Wallet Auth source checkpoint `6cf3ef84` and lifecycle availability are not
-treated as Card consumption proof. This Card branch has no accepted Card
-registry entry, no Card v2 Gateway completion receipt, no canonical Card
-Product Session, and no Card API response carrying v2 correlation IDs.
+Card consumes `createProductWalletConnection` from the accepted exact source.
+The factory alone owns `https://wallet-auth.ynxweb4.com`; Card supplies no
+endpoint, callback, origin, route, session, fetch, clock, or token injection.
+The Card-owned vector drives the fixed routes
+`/v2/product-sessions/challenge`, `/v2/product-sessions/complete`,
+`/v2/product-sessions/introspect`, and `/v2/product-sessions/revoke` against
+the package Gateway handler. It covers source-level installed/absent, approve,
+reject, opener timeout, revoke, second launch/restore, network loss, and Retry
+states while the standard EIP-1193 test remains independently connected.
+
+This is local runtime factory and exact-route evidence only. It is not a Card
+v2 Gateway deployment receipt, Card registry activation receipt, public route
+probe, or API response carrying v2 correlation IDs. Card remains
+`registry-ready/contract-only`; `migrated-v2=false`. `/app/card/session/*`
+remains a legacy private route and is not v2 evidence.
 
 The Card adapter preserves any `x-request-id`, `x-trace-id`, and `x-error-id`
 received from a future Gateway response. Until a real Card completion exists,
@@ -64,11 +75,13 @@ not Card v2 evidence.
 
 ## 3. Visible platform evidence
 
-`App.tsx` renders `Standard wallet CONNECTED` independently from the private
-Card service state. On private-session failure it renders `Degraded` and the
-safe error code/request ID while retaining the connected `0x…` account and
-`0x1917` chain. This source behavior has an executable Card runtime vector but
-has no fresh device/emulator screenshot with an injected Wallet provider.
+`App.tsx` invokes the root factory only after the standard EIP-1193 wallet is
+connected. It renders `Standard wallet CONNECTED` independently from optional
+private failure; a root-factory v2 result is labelled `source-only` and never
+becomes a Card API session. This source behavior has executable Card runtime
+vectors but has no fresh installed-device or browser evidence for absent,
+installed, approve, reject, timeout, revoke, second launch, network loss, or
+Retry.
 
 Therefore visible-platform status is `SOURCE_AND_UNIT_TEST_ONLY`, not a public
 or installed-platform claim.

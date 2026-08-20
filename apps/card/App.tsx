@@ -6,8 +6,9 @@ import* as LocalAuthentication from"expo-local-authentication";
 import{ArrowUpRight,CreditCard,Globe2,LifeBuoy,LockKeyhole,ReceiptText,RefreshCw,ShieldCheck,SlidersHorizontal,WalletCards,X}from"lucide-react-native";
 import{action,apply as applyForCard,createTestnetTopupIntent,dispute as openDispute,explain,reviewAI,state as loadState,topupTestnet,type Card,type CardEvent,type CardState,type TestnetTopupIntent,type TopupInput, simulateAuthorization, simulateCapture, simulateReversal, simulateRefund, updateControls}from"./src/api";
 import{catalogs,date,detectLocale,isLocale,isRTL,localeNames,locales,money,t as translate,type Locale}from"./src/i18n";
-import{loadLocale,loadPendingAuthorization,loadSession,loadSimulationAudit,saveLocale,savePendingAuthorization,saveSession,saveSimulationAudit}from"./src/secureState";
-import{approveTestnetTopup,classifyCardWalletError,completeCentralSession,connectEip1193Wallet,createAuthorization,enhanceCardProductSession,loadTestnetTopupEvidence,parseYnxtAmountToWei,resolveEip1193Provider,verifiedApproval,walletDeepLink,type CardSession,type Eip1193WalletSession,type ProductSessionRuntime,type TopupEvidence}from"./src/wallet";
+import{loadLocale,loadSession,loadSimulationAudit,saveLocale,saveSession,saveSimulationAudit}from"./src/secureState";
+import{createRuntimeCardProductWalletConnection,type CardProductWalletConnection}from"./src/productWalletRuntime";
+import{approveTestnetTopup,classifyCardWalletError,connectEip1193Wallet,loadTestnetTopupEvidence,parseYnxtAmountToWei,resolveEip1193Provider,type CardSession,type Eip1193WalletSession,type ProductSessionRuntime,type TopupEvidence}from"./src/wallet";
 import{isFailure,recoverLastFailed,replayAwareAppend,SimulationAuditRecord,TESTNET_SIMULATION_CURRENCY,TESTNET_SIMULATION_MAX_EVENTS,type SimulationInput as LedgerSimulationInput}from"./src/simulation";
 
 const BLUE="#002FA7",RED="#B42318",GREEN="#067647",ORANGE="#B54708";
@@ -51,6 +52,7 @@ export default function App(){
   const[opAction,setOpAction]=useState<SimulationAction>("authorization");
 
   const mounted=useRef(true);
+  const productWallet=useRef<CardProductWalletConnection|null>(null);
   const persistSimulationLedger=useCallback(async(next:readonly SimulationAuditRecord[])=>{
     const normalized=Object.freeze(next.slice(0,TESTNET_SIMULATION_MAX_EVENTS));
     await saveSimulationAudit(normalized);
@@ -70,20 +72,14 @@ export default function App(){
 
   const handleURL=useCallback(async(url:string)=>{
     if(!url.startsWith("ynxcard://wallet-auth/callback"))return;
+    const connection=productWallet.current;
+    if(!connection)return;
     setBusy(true);
     setError("");
     try{
-      const saved=await loadPendingAuthorization();
-      if(!saved)throw new Error("Wallet authorization request expired or was already consumed");
-      const approval=verifiedApproval(url,saved);
-      if(!walletSession){if(mounted.current){setPrivateSession({state:"PRIVATE_SERVICE_DEGRADED",...classifyCardWalletError({code:"ACCOUNT_REQUIRED"})});setPending(false);}return;}
-      const outcome=await enhanceCardProductSession(walletSession,()=>completeCentralSession(saved,approval));
-      await savePendingAuthorization(null);
-      if(outcome.state==="PRIVATE_SERVICE_DEGRADED"){if(mounted.current){setPrivateSession(outcome);setPending(false);}return;}
-      await saveSession(outcome.session);
-      if(mounted.current){setPrivateSession(outcome);setSession(outcome.session);setPending(false);await refresh(outcome.session);}    
+      const outcome=await connection.handleReturn(url);
+      if(mounted.current){setPrivateSession(productRuntime(outcome));setPending(false);}
     }catch(e){
-      await savePendingAuthorization(null);
       if(mounted.current){const classified=classifyCardWalletError(e);if(walletSession)setPrivateSession({state:"PRIVATE_SERVICE_DEGRADED",...classified});setPending(false);setError(classified.safeMessage);}
     }finally{
       if(mounted.current)setBusy(false);
@@ -93,16 +89,14 @@ export default function App(){
   useEffect(()=>{
     mounted.current=true;
     void(async()=>{
-      const[savedLocale,savedSession,savedPending,savedLedger]=await Promise.all([
+      const[savedLocale,savedSession,savedLedger]=await Promise.all([
         loadLocale(),
         loadSession(),
-        loadPendingAuthorization(),
         loadSimulationAudit(),
       ]);
       if(!mounted.current)return;
       if(isLocale(savedLocale))setLocaleState(savedLocale);
       setSession(savedSession);
-      setPending(Boolean(savedPending));
       setSimulationLedger(savedLedger);
       if(savedSession)await refresh(savedSession);
     })();
@@ -302,10 +296,10 @@ export default function App(){
     setBusy(true);
     setError("");
     try{
-      const request=await createAuthorization();
-      await savePendingAuthorization(request);
-      setPending(true);
-      await Linking.openURL(walletDeepLink(request));
+      const connection=await createRuntimeCardProductWalletConnection();
+      productWallet.current=connection;
+      const outcome=await connection.beginYNX();
+      if(mounted.current){setPrivateSession(productRuntime(outcome));setPending(productRuntimeState(outcome)==="connecting");}
     }catch(e){
       setPending(false);
       setError(classifyCardWalletError(e).safeMessage);
@@ -386,6 +380,14 @@ export default function App(){
   </SafeAreaView>
 }
 
+function productRuntime(value:unknown):ProductSessionRuntime{
+  const result=record(value),state=record(result?.sessionState),session=record(state?.session);
+  if(state?.status==="connected"&&typeof session?.sessionBinding==="string"&&typeof session?.expiresAt==="string")return{state:"PRIVATE_SESSION_V2_CONNECTED_SOURCE_ONLY",sessionBinding:session.sessionBinding,expiresAt:session.expiresAt};
+  return{state:"PRIVATE_SERVICE_DEGRADED",...classifyCardWalletError({code:productRuntimeState(value)==="disconnected"?"USER_REJECTED":"PRODUCT_SESSION_GATEWAY_UNREACHABLE"})};
+}
+function productRuntimeState(value:unknown):string|undefined{return record(record(value)?.sessionState)?.status as string|undefined}
+function record(value:unknown):Record<string,unknown>|null{return typeof value==="object"&&value!==null&&!Array.isArray(value)?value as Record<string,unknown>:null}
+
 function SignedOut({c,tr,busy,pending,error,signIn,walletSession,walletBusy,walletError,privateSession,connectWallet}:{c:Colors;tr:T;busy:boolean;pending:boolean;error:string;signIn:()=>Promise<void>;walletSession:Eip1193WalletSession|null;walletBusy:boolean;walletError:string;privateSession:ProductSessionRuntime|null;connectWallet:()=>Promise<void>}){
   return <ScrollView contentContainerStyle={s.center}>
     <View style={[s.securityMark,{backgroundColor:c.surface}]}><ShieldCheck color={BLUE} size={38}/></View>
@@ -394,6 +396,7 @@ function SignedOut({c,tr,busy,pending,error,signIn,walletSession,walletBusy,wall
     <View style={[s.truth,{backgroundColor:c.surface,borderColor:c.separator}]}><Text style={[s.truthText,{color:c.secondary}]}>{tr("unavailableTruth")}</Text></View>
     {walletSession?<View style={[s.truth,{backgroundColor:c.surface,borderColor:c.separator}]}><Text style={[s.truthText,{color:c.secondary}]}>{tr("standardConnected")} · {walletSession.address.slice(0,6)}...{walletSession.address.slice(-4)} · {walletSession.chainId}</Text></View>:null}
     {privateSession?.state==="PRIVATE_SERVICE_DEGRADED"?<View style={[s.truth,{backgroundColor:c.surface,borderColor:c.separator}]}><Text accessibilityRole="alert" style={[s.truthText,{color:ORANGE}]}>{tr("privateServiceDegraded")} · {privateSession.safeMessage} · {privateSession.userAction} · {privateSession.code}{privateSession.requestId?` · ${privateSession.requestId}`:""}</Text></View>:null}
+    {privateSession?.state==="PRIVATE_SESSION_V2_CONNECTED_SOURCE_ONLY"?<View style={[s.truth,{backgroundColor:c.surface,borderColor:c.separator}]}><Text accessibilityRole="alert" style={[s.truthText,{color:ORANGE}]}>Private Product Session v2 source-only · Card migration remains disabled · {privateSession.sessionBinding.slice(0,12)}...</Text></View>:null}
     {walletError?<Text accessibilityRole="alert" style={s.error}>{walletError}</Text>:null}
     {error?<Text accessibilityRole="alert" style={s.error}>{error}</Text>:null}
     <Pressable accessibilityRole="button" disabled={walletBusy||Boolean(walletSession)} onPress={()=>void connectWallet()} style={[s.secondary,(walletBusy||Boolean(walletSession))&&s.disabled]}>{walletBusy?<ActivityIndicator color={BLUE}/>:<Text style={s.secondaryText}>{walletSession?tr("standardConnected"):tr("walletConnect")}</Text>}</Pressable>
