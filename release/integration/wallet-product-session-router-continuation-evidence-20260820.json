@@ -111,7 +111,12 @@
     "websiteWalletAuthPublicationCardVisible": true,
     "visibleDocsRuntimeSource": "49e30d999e9a9cbdd2c565021009f2cab0dc125c",
     "visibleDocsRuntimeSourceMatchesCurrentPublicVersion": false,
-    "websiteRecordStatus": "WEBSITE_VISIBLE_RECORD_STALE",
+    "websiteRecordStatus": "PREDEPLOY_VISIBLE_RECORD_STALE",
+    "postDeploymentEvidencePath": "release/integration/wallet-auth-website-postdeploy-readback-20260820.json",
+    "websiteProductionDeploymentReady": true,
+    "publishedFrontendAssetUsesCurrentRuntimeSource": true,
+    "postDeploymentRenderedCardVerified": false,
+    "postDeploymentRenderedCardFailure": "MAC_LOCKED_AUTOMATIC_UNLOCK_FAILED",
     "productSessionFlowVerified": false
   },
   "truth": {
