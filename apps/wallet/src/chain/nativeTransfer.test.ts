@@ -65,7 +65,7 @@ test("native client independently times out if the React Native fetch implementa
 });
 
 test("native client exposes a canonical unavailable code for immediate React Native transport failure",async()=>{
-  const client=new NativeChainClient(undefined,undefined,async()=>{throw new TypeError("Network request failed")});
+  const client=new NativeChainClient(undefined,undefined,async()=>{throw new Error("fetch failed: java.net.UnknownHostException")});
   await assert.rejects(()=>client.account(account),(caught:unknown)=>caught instanceof ChainNetworkError&&caught.code==="RPC_UNAVAILABLE"&&caught.reason==="transport");
 });
 

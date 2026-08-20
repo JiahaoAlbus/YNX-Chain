@@ -86,8 +86,11 @@ export class NativeChainClient{
     try{return await Promise.race([request,deadline])}
     catch(error){
       if(error instanceof ChainNetworkError)throw error;
-      if(error instanceof TypeError||error instanceof Error&&error.name==="AbortError")throw new ChainNetworkError(controller.signal.aborted?"timeout":"transport");
-      throw error;
+      // React Native's platform fetch rejects DNS/TLS failures as generic
+      // Error instances (for example UnknownHostException), not TypeError.
+      // This boundary only wraps the fetch invocation, so every rejection is
+      // a transport failure and must expose the same user-safe code.
+      throw new ChainNetworkError(controller.signal.aborted?"timeout":"transport");
     }finally{if(timeout!==undefined)clearTimeout(timeout)}
   }
 }
