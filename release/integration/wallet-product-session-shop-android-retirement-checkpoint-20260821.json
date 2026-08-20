@@ -80,6 +80,40 @@
     "sshOrDeploymentPerformed": false,
     "publicRuntimeSource": "6cf3ef845202bd879ed94515a71b323dd2fc9e14"
   },
+  "centralSourceBlockerClosure": {
+    "acceptanceId": "P0-041",
+    "commit": "645eb41e6b4db3f0ce813231541e475071b389f6",
+    "parent": "651ae60e91b811c6686d9c513c70fd13080b5a16",
+    "tree": "5f93172704b41c51cc301d917c4ce0b14c091745",
+    "status": "SOURCE_BLOCKERS_CLOSED_NO_EXECUTION_LEASE",
+    "candidateSource": "5d94dcd0b25595df478ffe45a84cc346306ad4d4",
+    "candidateParent": "890ef0f8b31ba467c5a347b83b0ec8bdca5497cf",
+    "candidateTree": "b908a8054a2d321f75855f8030114cf9f1cba9ff",
+    "candidateWalletAuthTree": "3d638e6bf36a96bd5b861ef423cf51fbd394c2ba",
+    "ownerEvidenceCommit": "0f8cb1da72742cb988d72868f5b2acc4ff34a93a",
+    "ownerChangedBlobReadback": "12/12",
+    "centralChangedBlobReadback": "4/4",
+    "fiveSourceBlockersClosed": true,
+    "executionLeaseIssued": false,
+    "deploymentAttempted": false,
+    "productionMutation": false
+  },
+  "centralExecutionReadiness": {
+    "taskId": "P0-042",
+    "status": "SOURCE_ACCEPTED_EXECUTION_LEASE_BLOCKED",
+    "focusedTests": "10/10 independently reproduced",
+    "cleanCloneFullTests": "345/347",
+    "ownerFullTestClaimHermetic": false,
+    "blockers": [
+      "full Wallet/Auth suite is not reproducible from the exact clean source",
+      "no production-bound current-state digest and candidate environment layout bundle",
+      "no copied-production-state migration and rollback receipts",
+      "no remote version readback for this source"
+    ],
+    "executionLeaseIssued": false,
+    "executionLeaseId": null,
+    "candidateDeployedPublic": false
+  },
   "protocol": {
     "registrySchemaVersion": 3,
     "productId": "shop",
