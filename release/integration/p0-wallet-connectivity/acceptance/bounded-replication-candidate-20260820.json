@@ -1,0 +1,12 @@
+{
+  "schemaVersion":"1.0.0",
+  "campaignId":"P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId":"P0-015",
+  "status":"CANDIDATE_READY_NOT_DEPLOYED",
+  "candidate":{"branch":"codex/p0-bounded-replication-repair-20260820","commit":"85174f75f05ae1e9ad84f2f0ec6ecfe0a6ede188","baseCommit":"ea0e068becd9103f5f0a2a6c3a0d20ab7932d006"},
+  "scope":{"changedPaths":["internal/chain/replication.go","internal/chain/replication_test.go"],"behavior":"Non-final authenticated replication suffixes select the largest contiguous block range fitting a 64 MiB payload target. The existing 256 MiB decompressed fetch/apply ceiling remains enforced; HMAC authentication, base/end continuity, per-batch integrity, and final-state seal validation are unchanged."},
+  "validation":{"tests":["go test ./internal/chain ./internal/api ./cmd/ynx-chaind","go build ./cmd/ynx-chaind","go test -race ./internal/chain ./cmd/ynx-chaind","git diff --check"],"releaseDryRun":"passed without remote mutation","release":{"id":"ynx-chain-85174f75f05a","archive":"tmp/deploy/ynx-chain-85174f75f05a.tar.gz","sha256":"4be396cff469bc6c265356e07de61e282633242d44d8ef3682d24c035eda2e34","releaseManifestCheck":"passed"}},
+  "rollback":{"source":"git revert 85174f75f05ae1e9ad84f2f0ec6ecfe0a6ede188 on the dedicated candidate branch","runtime":"not applicable until an independently authorized protected deployment begins; use the already verified four-node recovery checkpoint and the normal immutable release rollback procedure"},
+  "deploymentGate":{"status":"BLOCKED_FAIL_CLOSED","requiredBeforeMutation":["accepted code review of exact candidate","candidate-bound immutable release-manifest evidence on every node","remote smoke bound to candidate identity","demonstrated follower convergence with no oversized-response failure","post-deploy source and artifact identity readback"],"currentBlockers":["all active nodes lack a release manifest for their running source","public runtime is older than the candidate","followers are not converged"]},
+  "claimBoundary":{"deployed":false,"followersRecovered":false,"faucetFixedPublicly":false,"walletFaucetWorks":false,"publicVerified":false}
+}
