@@ -82,6 +82,7 @@ import {
   squareRegistrationPayload,
   type WalletAuthorizationRequest,
 } from "./src/walletAuth";
+import { completeCanonicalWalletSession } from "./src/canonicalWalletGateway";
 import {
   METAMASK_MOBILE_DAPP_URL,
   YNX_WALLET_DOWNLOAD_URL,
@@ -266,6 +267,12 @@ function SocialApp() {
         };
         const seed = hexBytes(keys.signingSeed),
           productSecret = hexBytes(keys.productSecret),
+          canonicalGatewaySession = await completeCanonicalWalletSession({
+            authorizationRequest: pending.request,
+            walletApproval: approval,
+            productDeviceSecret: encodeBase64URL(productSecret),
+            randomChallenge: await getRandomBytesAsync(24),
+          }),
           challenge = (await api.walletChallenge(pending.request, approval))
             .challenge,
           completion = signGatewayChallenge(challenge, productSecret),
@@ -277,6 +284,8 @@ function SocialApp() {
             "social-chat",
             approval.requestDigest,
           );
+        if (canonicalGatewaySession.account !== approval.account)
+          throw new Error("Canonical Wallet Gateway session account does not match Social approval");
         const proofInput = {
             approval,
             challenge,
