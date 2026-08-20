@@ -311,6 +311,28 @@
     "productsMigratedAtCheckpoint": 0,
     "productsRequired": 12
   },
+  "p0054ExecutionResult": {
+    "outcome": "FAILED_CLOSED_AFTER_MIGRATION_BEFORE_CONFIG_OR_CANDIDATE_START",
+    "centralReleaseCommit": "cd6de59de0a3181a86810c663e031eecaeb324fc",
+    "leaseStatus": "CONSUMED_RELEASED_FAILED_CLOSED_INSTALL_PERMISSION",
+    "ownerEvidenceCommit": "c569da458265a5684555d5e902dc650942a7f632",
+    "ownerEvidenceTree": "8df6775d11c1d3973a94c2ca67402af52da32234",
+    "ownerEvidenceBlob": "fbc767883e36b0a4ea95de4f8fdc2cc39e359b3f",
+    "ownerEvidenceSha256": "1823393cb9e61de7b7271851d262b8e578708caa98ca59e6f1b02f9a5db436db",
+    "migrationSucceeded": true,
+    "migrationReceiptSha256": "82a41535b16e3326b2a9d104f1062504532d6249fce71a347ef7c82e636e1923",
+    "migratedStateSha256": "1fe58d249c9d548b7fd8486d280209d485090b02d3d49ab4a2c6618481614a55",
+    "failureCode": "INSTALL_PERMISSION_DENIED",
+    "candidateStarted": false,
+    "candidateOutputCreated": false,
+    "configChanged": false,
+    "symlinkChanged": false,
+    "finalPublicSource": "6cf3ef845202bd879ed94515a71b323dd2fc9e14",
+    "finalServiceActive": true,
+    "finalServiceRestarts": 0,
+    "leaseReusable": false,
+    "registryV3Public": false
+  },
   "protocol": {
     "registrySchemaVersion": 3,
     "productId": "shop",
