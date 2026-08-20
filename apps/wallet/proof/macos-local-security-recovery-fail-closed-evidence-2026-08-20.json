@@ -62,6 +62,20 @@
       "screenshotObserved": true,
       "screenshotRetained": false,
       "reasonScreenshotNotRetained": "ComputerControl service temporary screenshot files were cleaned when the temporary app exited."
+    },
+    "malformedAuthorizationDeepLink": {
+      "input": "ynxwallet://authorize?request=not-base64url",
+      "deliveredToTemporaryApp": true,
+      "pid": 15772,
+      "computerControlWindowTitle": "Request rejected · INVALID_DEEP_LINK",
+      "computerControlVisibleErrorCode": "INVALID_DEEP_LINK",
+      "failedBeforeKeyAccessSigningNetworkOrCallback": true,
+      "accountCreated": false,
+      "signatureCreated": false,
+      "productSessionCreated": false,
+      "authorizationSucceeded": false,
+      "screenshotObserved": true,
+      "screenshotRetained": false
     }
   },
   "truthBoundaries": {
