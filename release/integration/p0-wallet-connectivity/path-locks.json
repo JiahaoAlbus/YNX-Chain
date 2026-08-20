@@ -9,6 +9,8 @@
     {"path":"apps/{finance,exchange,dex,pay,quant}/**","owner":"financial-apps","branch":"codex/final-finance-suite","worktree":"finance-suite","taskId":"P0-004","status":"RESERVED","allowedExceptions":["proposal-only"]},
     {"path":"{internal,data-fabric,packages}/data-fabric/**","owner":"data-fabric","branch":"codex/final-data-fabric","worktree":"26-data-fabric","taskId":"P0-005","status":"RESERVED","allowedExceptions":["proposal-only"]},
     {"path":"{internal,apps}/explorer/**","owner":"explorer-monitor","branch":"codex/explorer-monitor-fable5-20260814","worktree":"12-13-explorer-monitor-fable5","taskId":"P0-006","status":"RESERVED","allowedExceptions":["proposal-only"]},
-    {"path":"{docs/coordination/p0-wallet-connectivity,docs/handoffs/p0-wallet-connectivity,release/integration/p0-wallet-connectivity}/**","owner":"integration","branch":"codex/final-integration","worktree":"29-integration","taskId":"P0-000","status":"ACTIVE","allowedExceptions":[]}
+    {"path":"{docs/coordination/p0-wallet-connectivity,docs/handoffs/p0-wallet-connectivity,release/integration/p0-wallet-connectivity}/**","owner":"integration","branch":"codex/final-integration","worktree":"29-integration","taskId":"P0-000","status":"ACTIVE","allowedExceptions":[]},
+    {"path":"apps/shop/**","owner":"integration","branch":"codex/p0-shop-android-retirement-20260820","worktree":"09-shop","taskId":"P0-011","status":"ACTIVE","allowedExceptions":["historical-evidence-preservation"]},
+    {"path":"YNX-Chain-website:{vercel.json,src/lib/ecosystemCatalog.js,public/releases/ecosystem-release-registry.json}","owner":"integration","branch":"codex/p0-shop-android-retirement-20260820","worktree":"28-website","taskId":"P0-011","status":"ACTIVE","allowedExceptions":["historical-evidence-preservation"]}
   ]
 }
