@@ -153,7 +153,11 @@ sudo mv /usr/local/bin/ynx-chaind.next /usr/local/bin/ynx-chaind
 installed=1
 sudo systemctl restart ynx-chaind
 ready=0
-for attempt in $(seq 1 20); do
+# A million-block JSON snapshot can require more than 40 seconds to stream,
+# validate and index on the smaller recovery nodes. Keep the restart bounded,
+# but do not roll back a healthy source-bound binary merely because its durable
+# state is large.
+for attempt in $(seq 1 90); do
   if systemctl is-active --quiet ynx-chaind && curl -fsS --max-time 3 http://127.0.0.1:6420/status >/dev/null; then
     ready=1
     break
