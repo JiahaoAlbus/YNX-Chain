@@ -4,6 +4,8 @@
   "capturedAt": "2026-08-20T16:29:27Z",
   "owner": "wallet-protocol",
   "readOnly": true,
+  "historicalObservation": true,
+  "supersededBy": "release/integration/wallet-shop-retired-apk-website-remediation-20260821.json",
   "authoritativeWebsiteSource": "a7313313014bb8792f38e649e9f556dbee983c8c",
   "downloadPage": {
     "url": "https://www.ynxweb4.com/dapp/download",
@@ -61,5 +63,6 @@
     "registryV3DeployedPublic": false,
     "installedApprovalVerified": false,
     "productMigratedV2": false
-  }
+  },
+  "currentTruthMovedToRemediationEvidence": true
 }

@@ -165,6 +165,7 @@
         "packages/wallet-auth/evidence/product-session-v2-public-deployment-20260814.json",
         "packages/wallet-auth/evidence/product-session-v2-hardened-public-deployment-20260814.json",
         "packages/wallet-auth/evidence/product-session-v2-state-integrity-public-deployment-20260814.json",
+        "release/integration/wallet-shop-retired-apk-website-remediation-20260821.json",
         "packages/wallet-auth/test/product-session-gateway-client.test.mjs",
         "packages/wallet-auth/test/product-session-gateway-http.test.mjs",
         "packages/wallet-auth/test/product-session-migration.test.mjs",
@@ -181,7 +182,7 @@
       },
       "remaining": [
         "Registry v3 Shop Android retirement is source-tested but not deployed to the current public 6cf Wallet/Auth runtime",
-        "The authoritative Website download page still lists and serves the retired Shop Android 0.3.0 APK with HTTP 200; the replacement Shop Web/PWA is public, but Website retirement is not yet consistent with Registry v3",
+        "The Website now removes the retired Shop Android download and returns actionable HTTP 410 CLIENT_RETIRED with the Shop Web replacement; Registry v3 remains source-tested but is not deployed to the current public 6cf Wallet/Auth runtime",
         "MetaMask was unlocked with user Touch ID, injected a provider, and the shared EIP-1193 harness loaded and triggered its real connection request; Computer Use timed out and its native pipe closed before the approval result, request ID, chain, or masked account was observable",
         "The post-coordinator Computer Use retry timed out for Chrome, closed its native pipe by bundle identifier, and failed native-pipe startup for the MetaMask app",
         "Android 16 visibly opened Wallet 1.0.4 from Social 1.0.0, displayed the exact Social/client/package/chain/scope approval, rejected without creating a Session, and cold-restarted without resurrection; Social still uses the v1 request contract and its initial backend fetch failed TLS, so v2 approval and migration remain unverified",
