@@ -75,7 +75,7 @@ upload_bundle() {
 preflight_node() {
   local role="$1" user="$2" host="$3" key="$4"
   echo "bounded replication recovery preflight: role=${role}"
-  remote_exec "$role" "$user" "$host" "$key" "set -euo pipefail; systemctl is-active --quiet ynx-chaind; test -x /usr/local/bin/ynx-chaind; sudo test -r /etc/ynx/ynx-chaind.env; service_user=\$(systemctl show --property=User --value ynx-chaind); [[ \"\$service_user\" =~ ^[A-Za-z_][A-Za-z0-9_-]*\$ ]]; sudo -u \"\$service_user\" test -rw /var/lib/ynx-chain/testnet/devnet-state.json; sudo -u \"\$service_user\" test -rw /var/lib/ynx-chain/testnet/devnet-state.integrity-version; command -v tar >/dev/null; command -v sha256sum >/dev/null || command -v shasum >/dev/null; curl -fsS --max-time 8 http://127.0.0.1:6420/status >/dev/null; echo 'ynx-chaind preflight passed'"
+  remote_exec "$role" "$user" "$host" "$key" "set -euo pipefail; systemctl is-active --quiet ynx-chaind; test -x /usr/local/bin/ynx-chaind; sudo test -r /etc/ynx/ynx-chaind.env; service_user=\$(systemctl show --property=User --value ynx-chaind); [[ \"\$service_user\" =~ ^[A-Za-z_][A-Za-z0-9_-]*\$ ]]; sudo -u \"\$service_user\" test -r /var/lib/ynx-chain/testnet/devnet-state.json; sudo -u \"\$service_user\" test -w /var/lib/ynx-chain/testnet/devnet-state.json; sudo -u \"\$service_user\" test -r /var/lib/ynx-chain/testnet/devnet-state.integrity-version; sudo -u \"\$service_user\" test -w /var/lib/ynx-chain/testnet/devnet-state.integrity-version; command -v tar >/dev/null; command -v sha256sum >/dev/null || command -v shasum >/dev/null; curl -fsS --max-time 8 http://127.0.0.1:6420/status >/dev/null; echo 'ynx-chaind preflight passed'"
 }
 
 install_node() {
