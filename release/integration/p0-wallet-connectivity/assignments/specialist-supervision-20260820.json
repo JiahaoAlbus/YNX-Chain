@@ -30,15 +30,15 @@
     },
     {
       "owner": "developer-sdk",
-      "status": "ACTIVE",
+      "status": "CANDIDATE_READY",
       "branch": "codex/p0-developer-sdk-rebase-clean",
-      "checkpoint": "PR #130 head 8cfb3265b5b594cd98702abf6b36d453157f112e; six security checks SUCCESS; Draft",
-      "runtime": "Developer product public and installed completion not proved",
+      "checkpoint": "Developer product handoff 2e619a1932a7600d57bb1d8c396a5a98289662f7; SDK PR #130 head 8cfb3265b5b594cd98702abf6b36d453157f112e; six security checks SUCCESS; Draft",
+      "runtime": "Candidate service reported active at bc8a37bc source and local language/build gates passed, but external browser, installed platforms and aggregate completion remain unproved",
       "publicVerified": false,
-      "lastActivity": "2026-08-20T19:20:00Z",
-      "remainingBlockers": ["Developer product capability beyond SDK rebase", "macOS and Windows compilation/networking evidence", "public runtime", "Computer Control"],
-      "supervision": "Exact continuation sent to the existing Developer task after live PR and CI readback.",
-      "nextAction": "Continue from PR #130 without rebuilding it; produce one recoverable Developer-owned language/build/runtime checkpoint with platform-specific evidence."
+      "lastActivity": "2026-08-20T19:48:00Z",
+      "remainingBlockers": ["external browser visibility", "macOS and Windows install/cold-start/networking", "Wallet v2 visible lifecycle", "production signing and store release", "Computer Control"],
+      "supervision": "Remote Developer handoff 2e619a19 and PR #130 exact 8cfb3265 with six successful security checks were independently read back. Draft SDK and local compiler evidence are not product completion.",
+      "nextAction": "Resume the existing Developer task from exact 2e619a19 only for the first missing visible platform gate; do not rebuild PR #130 or promote Draft SDK/public/install claims."
     },
     {
       "owner": "financial-apps",
