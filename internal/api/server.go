@@ -15,6 +15,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/accountaddress"
@@ -33,9 +34,20 @@ type Server struct {
 	readOnlyReplica            bool
 	replicationCacheMu         sync.Mutex
 	replicationCache           replicationResponseCache
+	statusCacheMu              sync.RWMutex
+	statusCache                []byte
+	statusCacheObservedAt      time.Time
+	statusRefreshInFlight      atomic.Bool
 }
 
-const replicationResponseCacheTTL = 5 * time.Second
+const (
+	replicationResponseCacheTTL = 5 * time.Second
+	// A status read gets a short chance to refresh while the node is idle. If a
+	// complete replicated state currently owns the Devnet write lock, callers
+	// get the last complete observation instead of joining that long critical
+	// section.
+	statusRefreshMaxWait = 25 * time.Millisecond
+)
 
 type replicationResponseCache struct {
 	createdAt time.Time
@@ -58,6 +70,11 @@ type ServerConfig struct {
 }
 
 func NewServerWithConfig(devnet *chain.Devnet, cfg ServerConfig) http.Handler {
+	s := newServerWithConfig(devnet, cfg)
+	return s.withHeaders(s.mux)
+}
+
+func newServerWithConfig(devnet *chain.Devnet, cfg ServerConfig) *Server {
 	s := &Server{
 		devnet:                     devnet,
 		mux:                        http.NewServeMux(),
@@ -68,8 +85,13 @@ func NewServerWithConfig(devnet *chain.Devnet, cfg ServerConfig) http.Handler {
 		replicationKey:             strings.TrimSpace(cfg.ReplicationKey),
 		readOnlyReplica:            cfg.ReadOnlyReplica,
 	}
+	// Seed the cache before the server accepts requests. Subsequent refreshes are
+	// intentionally asynchronous: applying a complete bounded replication state
+	// holds the Devnet write lock while it validates and persists, but a public
+	// status read must remain available and clearly identify its observation time.
+	s.refreshStatusCache()
 	s.routes()
-	return s.withHeaders(s.mux)
+	return s
 }
 
 func (s *Server) routes() {
@@ -268,7 +290,51 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"ok": true, "service": "ynx-chaind", "network": s.devnet.Config(), "timestamp": time.Now().UTC()})
 }
 func (s *Server) handleStatus(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, s.devnet.Status())
+	s.refreshStatusCacheBounded(statusRefreshMaxWait)
+	s.statusCacheMu.RLock()
+	payload := append([]byte(nil), s.statusCache...)
+	observedAt := s.statusCacheObservedAt
+	s.statusCacheMu.RUnlock()
+	if len(payload) == 0 {
+		writeError(w, http.StatusServiceUnavailable, "status cache is not initialized")
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Cache-Control", "no-store")
+	w.Header().Set("X-YNX-Status-Observed-At", observedAt.Format(time.RFC3339Nano))
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(payload)
+}
+
+func (s *Server) refreshStatusCacheBounded(wait time.Duration) {
+	if !s.statusRefreshInFlight.CompareAndSwap(false, true) {
+		return
+	}
+	done := make(chan struct{})
+	go func() {
+		defer s.statusRefreshInFlight.Store(false)
+		defer close(done)
+		s.refreshStatusCache()
+	}()
+	timer := time.NewTimer(wait)
+	defer timer.Stop()
+	select {
+	case <-done:
+	case <-timer.C:
+	}
+}
+
+func (s *Server) refreshStatusCache() {
+	payload, err := json.Marshal(s.devnet.Status())
+	if err != nil {
+		return
+	}
+	payload = append(payload, '\n')
+	now := time.Now().UTC()
+	s.statusCacheMu.Lock()
+	s.statusCache = payload
+	s.statusCacheObservedAt = now
+	s.statusCacheMu.Unlock()
 }
 func (s *Server) handleNodeIdentity(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, s.devnet.NodeIdentity())

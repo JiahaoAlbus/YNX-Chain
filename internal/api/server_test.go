@@ -126,6 +126,26 @@ func TestReplicationSnapshotAuthenticationAndReadOnlyFollower(t *testing.T) {
 	doJSON(t, http.MethodPost, server.URL+"/faucet", map[string]any{"address": "ynx_replica_write", "amount": 1}, http.StatusConflict, &blocked)
 }
 
+func TestStatusReturnsSeededSnapshotWithoutWaitingForRefresh(t *testing.T) {
+	devnet := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))
+	server := newServerWithConfig(devnet, ServerConfig{})
+	server.statusRefreshInFlight.Store(true)
+	req := httptest.NewRequest(http.MethodGet, "/status", nil)
+	response := httptest.NewRecorder()
+	started := time.Now()
+	server.handleStatus(response, req)
+	if elapsed := time.Since(started); elapsed > 100*time.Millisecond {
+		t.Fatalf("cached status unexpectedly waited %s", elapsed)
+	}
+	if response.Code != http.StatusOK || response.Header().Get("X-YNX-Status-Observed-At") == "" {
+		t.Fatalf("cached status response is not observable: code=%d headers=%v", response.Code, response.Header())
+	}
+	var status map[string]any
+	if err := json.Unmarshal(response.Body.Bytes(), &status); err != nil || status["chainId"].(float64) != 6423 {
+		t.Fatalf("cached status payload is not a valid testnet response: %v %v", status, err)
+	}
+}
+
 func TestReplicationSnapshotGzipKeepsUncompressedSignature(t *testing.T) {
 	devnet := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))
 	devnet.ProduceBlock()
