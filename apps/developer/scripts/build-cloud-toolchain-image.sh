@@ -8,6 +8,7 @@ probe_path="${YNX_CODE_LSP_PROBE:-$(cd "$(dirname "$0")" && pwd)/lsp-server-prob
 jdtls_launcher_path="$(cd "$(dirname "$0")" && pwd)/jdtls-launcher.sh"
 delve_bridge_path="$(cd "$(dirname "$0")" && pwd)/delve-dap-stdio-bridge.mjs"
 js_debug_bridge_path="$(cd "$(dirname "$0")" && pwd)/js-debug-dap-stdio-bridge.mjs"
+apt_sources_path="$(cd "$(dirname "$0")" && pwd)/apt/ubuntu.sources"
 rust_analyzer_release="2026-07-27"
 jdtls_archive="jdt-language-server-1.61.0-202607142124.tar.gz"
 jdtls_sha256="4dc0747f22fb86dfada4c9214d3ef94c94f1e84eb57ce52126c26ecf2f17dce4"
@@ -27,6 +28,7 @@ test -f "$probe_path"
 test -f "$jdtls_launcher_path"
 test -f "$delve_bridge_path"
 test -f "$js_debug_bridge_path"
+test -f "$apt_sources_path"
 [[ $package_network == ynx-pkg-egress ]] || { echo "YNX_CODE_LXD_PACKAGE_NETWORK does not match the reviewed production network" >&2; exit 1; }
 [[ $storage_pool =~ ^[A-Za-z0-9_.-]{1,80}$ ]] || { echo "YNX_CODE_IMAGE_STORAGE_POOL is invalid" >&2; exit 1; }
 if lxc image info "$target_alias" >/dev/null 2>&1; then
@@ -48,7 +50,7 @@ for _ in $(seq 1 60); do
   sleep 1
 done
 lxc exec "$builder" -- getent hosts archive.ubuntu.com >/dev/null
-lxc exec "$builder" -- sed -i 's#http://#https://#g' /etc/apt/sources.list.d/ubuntu.sources
+lxc file push "$apt_sources_path" "$builder/etc/apt/sources.list.d/ubuntu.sources"
 if lxc exec "$builder" -- grep -R -E "^[[:space:]]*(deb[[:space:]]+|URIs:[[:space:]]*)http://" /etc/apt/sources.list /etc/apt/sources.list.d 2>/dev/null; then
   echo "Ubuntu APT sources must use HTTPS under reviewed package egress" >&2
   exit 1
