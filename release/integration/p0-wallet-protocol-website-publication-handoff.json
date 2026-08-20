@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "handoffId": "P0-WALLET-CONNECTIVITY-2026-08-public-runtime-website-publication",
-  "status": "READY_FOR_WEBSITE_OWNER_REVIEW_NOT_PUBLISHED",
+  "status": "PUBLISHED_PENDING_NONDISRUPTIVE_ROLLBACK_EXERCISE",
   "issuedBy": "02-wallet-auth-central-integration",
   "issuedAt": "2026-08-20T10:10:02Z",
   "owner": "website-owner",
@@ -35,13 +35,43 @@
     "rollback anchor and post-rollback verification recorded"
   ],
   "releaseTruth": {
-    "websitePublished": false,
-    "visibleBrowserAcceptance": false,
+    "websitePublished": true,
+    "visibleBrowserAcceptance": true,
     "installedClientVerified": false,
     "standardWalletConnectionClientVerified": false,
     "integratedCentral": false,
     "aggregatePublic": false,
     "productionSigned": false,
     "storeReleased": false
+  },
+  "websitePublication": {
+    "websiteRepository": "https://github.com/JiahaoAlbus/YNX-Chain-website",
+    "websiteCommit": "c7e70361a1f6d814591ccce7d5cdd49049e484c3",
+    "productionDeployment": "https://ynx-web4-website-88vglhwmw-jiahaoalbus-projects.vercel.app",
+    "officialAliases": ["https://ynxweb4.com", "https://www.ynxweb4.com", "https://wallet.ynxweb4.com"],
+    "metadataPath": "/releases/wallet-auth-runtime/49e30d999e9a9cbdd2c565021009f2cab0dc125c/runtime-publication.json",
+    "metadataBackread": {
+      "httpStatus": 200,
+      "bytes": 1545,
+      "sha256": "738bcfb51730d8f26ad08390b92c5d4be387948aa8dbaecd5220e103440b119c",
+      "allOfficialAliasesMatched": true
+    },
+    "visibleBrowserAcceptance": {
+      "exactRuntimeSourceVisible": true,
+      "exactEvidenceLinkVisible": true,
+      "installedWalletClientVerified": false,
+      "standardWalletConnectionVerified": false,
+      "accountSignSendTransactionVerified": false,
+      "integratedCentral": false,
+      "aggregatePublicReady": false,
+      "productionSigned": false,
+      "storeReleased": false
+    },
+    "rollback": {
+      "websiteCommitAnchor": "c256c450bd09223db5c42f81f73d07bcbe7cde02",
+      "previousProductionDeployment": "https://ynx-web4-website-lupaut1o9-jiahaoalbus-projects.vercel.app",
+      "recoveryMethod": "revert c7e70361a1f6d814591ccce7d5cdd49049e484c3 on main, verify, then use the repository production deployment command",
+      "postRollbackVerification": "NOT_EXECUTED: a production rollback would temporarily remove a verified public record and was not needed to publish it."
+    }
   }
 }
