@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "productId": "ynx-developer-v1",
+  "version": "0.2.0",
+  "artifactClass": "unsigned-testnet-preview",
+  "platform": "macos-arm64",
+  "signingClass": "adhoc-no-team-id",
+  "sourceRepository": "https://github.com/JiahaoAlbus/YNX-Chain",
+  "sourceCommit": "76322af5e8c26a64fb6425c51d96c67d2b3df65f",
+  "sourceTree": "dc7e76e917da31ac27f5fe45fac1513a0e26d0bc",
+  "sourceCommitDate": "2026-08-12T00:43:13+08:00",
+  "runtimeCheckpoint": "17ee9ae5bf50677a3316b0838884dd135de80599",
+  "sourceDirty": false,
+  "sbomPath": "Contents/Resources/sbom.cdx.json",
+  "sbomSha256": "1ce156c73e3c9b1bd6543111d387ecb31bb05a3db92295574644c8390daaba8c"
+}

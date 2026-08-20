@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "productId": "ynx-developer-v1",
+  "surface": "windows-x64-testnet-preview",
+  "sourceCommit": "f179654dd6e1361711ee480e2c6f3f614ad38002",
+  "sourceTree": "35b05e1a86d39083cc6aa6393be436df3d4f8aca",
+  "runtimeCheckpoint": "8f352d0159eef0ab60fb6411e949cfcf3aafb551",
+  "artifactSha256": "5ea83a0dc3c9e377c1358c13910b7dd9ef6d812558f19956f608cfd6b1344822",
+  "artifactBytes": 114789406,
+  "sbomSha256": "15a29bf7e746a9b8cb9cfa10eed21c24c6bb53686cb3f45c00384390c2897e4c",
+  "provenanceEmbedded": true,
+  "signingClass": "unsigned-no-authenticode",
+  "authenticodeStatus": "NotSigned",
+  "portableExtraction": true,
+  "resourcesVerified": true,
+  "coldLaunch": true,
+  "bundledServerObserved": true,
+  "childCleanup": true,
+  "hosted": false,
+  "productionSigned": false,
+  "nativeRuntime": "v22.17.0",
+  "generatedAt": "2026-08-09T01:39:57.6392087+00:00"
+}

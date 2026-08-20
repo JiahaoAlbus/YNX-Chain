@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "artifact": "ynx-developer-testnet-preview-windows-x64-unsigned.zip",
+  "sha256": "5ea83a0dc3c9e377c1358c13910b7dd9ef6d812558f19956f608cfd6b1344822",
+  "bytes": 114789406,
+  "signingClass": "unsigned-no-authenticode",
+  "authenticodeStatus": "NotSigned",
+  "architecture": "win-x64",
+  "installClass": "portable-extract",
+  "sourceCommit": "f179654dd6e1361711ee480e2c6f3f614ad38002",
+  "sourceTree": "35b05e1a86d39083cc6aa6393be436df3d4f8aca",
+  "sourceCommitDate": "2026-08-09T09:35:49+08:00",
+  "runtimeCheckpoint": "8f352d0159eef0ab60fb6411e949cfcf3aafb551",
+  "sourceDirty": false,
+  "sbomSha256": "15a29bf7e746a9b8cb9cfa10eed21c24c6bb53686cb3f45c00384390c2897e4c",
+  "provenanceEmbedded": true,
+  "hosted": false,
+  "productionSigned": false
+}

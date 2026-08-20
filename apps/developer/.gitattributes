@@ -1,0 +1,5 @@
+# Preserve the pre-existing desktop release artifacts without exceeding Git's
+# normal object-size limit. Source files remain ordinary Git text files.
+.ynx-developer-local/ynx-developer-testnet-preview-macos-unsigned.zip filter=lfs diff=lfs merge=lfs -text
+".ynx-developer-local/YNX Developer Testnet Preview.app/Contents/Resources/runtime/node" filter=lfs diff=lfs merge=lfs -text
+.ynx-developer-windows/ynx-developer-testnet-preview-windows-x64-unsigned.zip filter=lfs diff=lfs merge=lfs -text
