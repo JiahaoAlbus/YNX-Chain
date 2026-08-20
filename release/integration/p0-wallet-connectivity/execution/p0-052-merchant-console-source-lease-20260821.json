@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-052",
+  "leaseId": "P0-052_LIGHT_SOURCE_ONLY",
+  "status": "ACTIVE_BOUNDED_MERCHANT_CONSOLE_SOURCE_ONLY",
+  "owner": "integration",
+  "branch": "codex/p0-merchant-console-wallet-connectivity-20260821",
+  "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/05-merchant-console-p0",
+  "startingCommit": "e977677c61626448e0707c375b799b3f7b65b470",
+  "leasedAt": "2026-08-20T19:26:00Z",
+  "scope": ["apps/merchant-console/**"],
+  "requirements": ["accepted EIP-6963 and EIP-1193 Standard Wallet consumer", "YNX Wallet preference with standard wallet fallback", "guest and public surfaces independent", "private Product Session isolated as degraded", "tests, build and release endpoint scan", "clean commit, force-false push and handoff"],
+  "forbidden": ["shared Wallet/Auth or SDK changes", "Pay or other product changes", "public deployment", "installed or Computer Control claim", "caller supplied Gateway or RPC", "whole-app Offline on Product Session failure"],
+  "truthAtGrant": {"legacyPrivateSessionOnly":true,"standardWalletSourceImplemented":false,"productSessionV2":false,"installedClientVerified":false,"deployedPublic":false,"publicVerified":false,"computerControlVerified":false}
+}

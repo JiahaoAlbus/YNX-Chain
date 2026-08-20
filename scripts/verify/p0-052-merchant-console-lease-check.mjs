@@ -1,0 +1,24 @@
+#!/usr/bin/env node
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
+import {fileURLToPath} from "node:url";
+const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"../..");
+const read=relative=>JSON.parse(fs.readFileSync(path.join(root,relative),"utf8"));
+const leases=read("release/integration/p0-wallet-connectivity/execution-leases.json");
+const queue=read("release/integration/p0-wallet-connectivity/integration-queue.json");
+const locks=read("release/integration/p0-wallet-connectivity/path-locks.json");
+const lease=read("release/integration/p0-wallet-connectivity/execution/p0-052-merchant-console-source-lease-20260821.json");
+assert.equal(leases.heavy.owner,"financial-apps");
+assert.equal(leases.heavy.taskId,"P0-051");
+assert.equal(leases.light.owner,"integration");
+assert.equal(leases.light.taskId,"P0-052");
+assert.equal(lease.status,"ACTIVE_BOUNDED_MERCHANT_CONSOLE_SOURCE_ONLY");
+assert.equal(lease.truthAtGrant.standardWalletSourceImplemented,false);
+assert.equal(lease.truthAtGrant.deployedPublic,false);
+assert.equal(queue.tasks.filter(item=>item.taskId==="P0-052").length,1);
+const lock=locks.locks.find(item=>item.taskId==="P0-052");
+assert.equal(lock.path,"apps/merchant-console/**");
+assert.equal(lock.status,"ACTIVE_LIGHT_SOURCE_ONLY");
+assert.equal(queue.tasks.find(item=>item.taskId==="P0-050").p0050LeaseReusable,false);
+console.log("PASS P0-052 is a Merchant Console source-only Light slice while Pay alone owns Heavy");

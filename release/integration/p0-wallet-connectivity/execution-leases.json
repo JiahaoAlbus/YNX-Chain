@@ -26,20 +26,24 @@
     ]
   },
   "light": {
-    "owner": null,
-    "status": "RELEASED_CHECKPOINT",
-    "branch": "codex/final-data-fabric",
-    "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/26-data-fabric",
-    "taskId": "P0-005",
-    "leasedAt": "2026-08-20T14:55:00Z",
-    "releasedAt": "2026-08-20T17:50:14Z",
-    "previousOwner": "developer-sdk",
-    "previousCheckpoint": "da095e240be52023ecef19c162c869398bf9fbea",
-    "reason": "Data Fabric completed the bounded privacy-safe aggregation slice, pushed a clean handoff and passed focused and remote CI checks. No public or product migration claim is implied.",
-    "executionScope": "RELEASED_WALLET_ERROR_AGGREGATION_CHECKPOINT",
+    "owner": "integration",
+    "status": "ACTIVE_BOUNDED_SOURCE_ONLY",
+    "branch": "codex/p0-merchant-console-wallet-connectivity-20260821",
+    "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/05-merchant-console-p0",
+    "taskId": "P0-052",
+    "leasedAt": "2026-08-20T19:26:00Z",
+    "releasedAt": null,
+    "previousOwner": "data-fabric",
+    "previousCheckpoint": "e977677c61626448e0707c375b799b3f7b65b470",
+    "reason": "Merchant Console is an existing registered unassigned product with only legacy private Product Session sign-in and no Standard Wallet connection. Integration owns unassigned-product migration and can execute a source-only slice without competing with Pay Heavy.",
+    "executionScope": "MERCHANT_CONSOLE_STANDARD_WALLET_SOURCE_ONLY",
     "onSafeCheckpoint": [
-      "commit, push, test and update the owner handoff before release",
-      "retain asynchronous-only Data Fabric boundary and never persist raw errors, developerMessage or identity"
+      "modify only apps/merchant-console and its owner evidence",
+      "consume the accepted DApp Connect SDK and endpoint manifest without copying shared protocol",
+      "keep guest and public merchant surfaces independent of Standard Wallet and private Product Session",
+      "keep Product Session failure isolated as private-service degradation",
+      "run tests, build and release scans; do not deploy publicly or claim installed evidence",
+      "commit, force-false push, update handoff and release at a clean checkpoint"
     ]
   },
   "explorerMonitor": {
