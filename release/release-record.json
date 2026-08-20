@@ -92,16 +92,16 @@
       "postgresStreamingStandbyPromotion": "passed-exact-source-linux-ci-one-host-manual-promotion"
     },
     "remoteCI": {
-      "runId": null,
+      "runId": 32349107899,
       "workflow": "data-fabric",
       "sourceCommit": "63a7d633a10bcb8f7f929a2aa67af32074f49ea7",
-      "headCommit": null,
-      "status": "pending",
-      "conclusion": null,
-      "startedAt": null,
-      "duration": null,
+      "headCommit": "7b9a87ad093481aaf635c5f1f98bbf904581b992",
+      "status": "completed",
+      "conclusion": "success",
+      "startedAt": "2026-08-20T08:29:58Z",
+      "duration": "5m26s",
       "artifactsPublished": false,
-      "url": null
+      "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/32349107899"
     },
     "engineeringEvidenceRun": {
       "runId": 31797308684,
