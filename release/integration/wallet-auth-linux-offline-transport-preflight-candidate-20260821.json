@@ -1,0 +1,121 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "P0-WALLET-CONNECTIVITY-linux-offline-transport-preflight-5bdbf033",
+  "owner": "wallet-auth-core",
+  "supersedesFailure": {
+    "taskId": "P0-070",
+    "centralReleaseCommit": "46ca64ba1f88ac8a2c8840b92b6ff5c8b53bcd1e",
+    "status": "CONSUMED_RELEASED_FAILED_CLOSED_TRANSPORT",
+    "reusable": false,
+    "failureEvidenceCommit": "9e0b8d800e83f14c6c31135b54857b90ed5c0b73",
+    "failureEvidenceSha256": "33c3cda91223cbf8b4487d2358c8b4240f443626093a5dd012208eb20ec2484c"
+  },
+  "source": {
+    "transportCommit": "5bdbf03358ffc1c4d454b53d09a379acb0e94451",
+    "transportTree": "dd0f51438f002dde016e542db088db5921170d66",
+    "parent": "9e0b8d800e83f14c6c31135b54857b90ed5c0b73",
+    "deploymentCandidateCommit": "dda13e65e67e06f7fb45daa54a311daa96e0155a",
+    "builderPath": "packages/wallet-auth/scripts/build-linux-offline-stage-command.mjs",
+    "builderSha256": "c09b3cec47b9240f1930afb0e4838d4a451588d2ba4a6296ef5421cc558dd0d9",
+    "receiverPath": "packages/wallet-auth/scripts/ynx-wallet-stage-offline-artifact-linux.mjs",
+    "receiverSha256": "8b5f1321cb35f87708c0b385f77cd0558177045579c367312b44c57d11bfec28",
+    "packageLockSha256": "8929316677769e7a6ad703583c12a07dd4d4dcbf4d87c597983f6ab6955a87b6"
+  },
+  "acceptedOfflineArtifacts": {
+    "source": {
+      "name": "wallet-auth-source-dda13e65.tar.gz",
+      "sha256": "6a10469371a550b33a6b2f37a483309fa7ddfbbd4451273f070148dd6ed624f9",
+      "bytes": 193810
+    },
+    "runtimeDependencies": {
+      "name": "wallet-auth-runtime-dependencies-dda13e65.tar.gz",
+      "sha256": "a17794bd15592f3eae1caab34094bc52ec70ce89efa0cbd9995219e94bc7bd86",
+      "bytes": 707204
+    }
+  },
+  "linuxTransportContract": {
+    "transport": "SSH stdin to a lease-reviewed sudo command; no scp destination and no pre-existing remote upload path",
+    "stagingPathPattern": "/var/tmp/ynx-wallet-auth-p0NNN-<lease-bound-lowercase-id>",
+    "stagingDirectory": {
+      "createdByReceiver": true,
+      "mustNotExistBeforeFirstArtifact": true,
+      "owner": "root:root",
+      "mode": "0700",
+      "symlinkRejected": true
+    },
+    "artifact": {
+      "input": "stdin",
+      "temporaryCreation": "O_CREAT|O_EXCL|O_NOFOLLOW in the verified root-only staging directory",
+      "mode": "0600",
+      "owner": "root:root",
+      "regularFileRequired": true,
+      "nlinkAfterPublish": 1,
+      "expectedBytesRequired": true,
+      "expectedSha256Required": true,
+      "publication": "same-directory hard-link no-replace followed by exact-inode temporary unlink and directory fsync",
+      "existingFinalPreserved": true,
+      "exactInodeCleanup": true
+    },
+    "commandGeneration": {
+      "sourceFirstInitializeFlag": "1",
+      "runtimeSecondInitializeFlag": "0",
+      "clearsTestOverrideBeforePrivilegeBoundary": true,
+      "remoteExecutable": "/usr/bin/node",
+      "networkInstall": false,
+      "exampleOnlyNotAuthorized": "node packages/wallet-auth/scripts/build-linux-offline-stage-command.mjs <fresh-lease-staging-directory> <artifact-name> <expected-sha256> <expected-bytes> <0-or-1>"
+    },
+    "failureRule": "Any receiver, digest, byte-count, directory, ownership, mode, link-count, publication or readback error consumes the future lease; do not retry or substitute a path."
+  },
+  "verification": {
+    "focused": {
+      "command": "node --test packages/wallet-auth/test/linux-offline-artifact-staging.test.mjs",
+      "passed": 4,
+      "failed": 0
+    },
+    "full": {
+      "command": "cd packages/wallet-auth && npm test",
+      "passed": 372,
+      "failed": 0
+    },
+    "cleanClone": {
+      "source": "exact local commit 5bdbf033 with accepted offline dependency overlay",
+      "networkInstall": false,
+      "passed": 372,
+      "failed": 0
+    },
+    "pack": {
+      "repeatBuildByteIdentical": true,
+      "sha256": "9c94eb245b739c984ce3a37e37e3ebe7aa84e991af8e4ea15d7dc324cfacd13a",
+      "bytes": 186148,
+      "entries": 104,
+      "cleanCloneReadbackMatched": true
+    },
+    "negativeCoverage": [
+      "digest mismatch removes the exact temporary inode and publishes no artifact",
+      "pre-existing staging directory rejects initialization",
+      "pre-existing final artifact is preserved byte-for-byte",
+      "world-traversable staging mode rejects the second artifact",
+      "command contains no scp or /private/tmp assumption",
+      "generated remote shell command passes syntax validation"
+    ]
+  },
+  "futureExecutionRequirements": {
+    "freshProductionDigestReadRequired": true,
+    "newSingleUseLeaseRequired": true,
+    "p0070MayBeReused": false,
+    "integrationMustFreezeExactStagingDirectory": true,
+    "integrationMustFreezeGeneratedCommandSha256": true,
+    "productionReadPerformedInThisSlice": false,
+    "sshUsedInThisSlice": false,
+    "deploymentAttemptedInThisSlice": false
+  },
+  "truth": {
+    "publicSourceCommit": "6cf3ef845202bd879ed94515a71b323dd2fc9e14",
+    "registryV3Public": false,
+    "productsMigrated": 0,
+    "productsTotal": 12,
+    "computerControl": false,
+    "deployedPublic": false,
+    "integrated": false
+  }
+}
