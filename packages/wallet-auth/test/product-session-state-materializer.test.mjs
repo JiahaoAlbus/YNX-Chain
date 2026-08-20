@@ -265,6 +265,38 @@ test("poisoned own close bind getter or property cannot intercept intrinsic rece
   }
 });
 
+test("runtime Reflect.apply replacement cannot alter the module-captured close binding intrinsic", () => {
+  const directory = mkdtempSync(join(tmpdir(), "ynx-state-materialize-poison-apply-")); chmodSync(directory, 0o700);
+  const source = join(directory, "root-migrated.json"), outputDirectory = join(directory, "service"), output = join(outputDirectory, "v2-state.json");
+  mkdirSync(outputDirectory, { mode: 0o700 }); writeFileSync(source, bytes, { mode: 0o600 });
+  const originalApply = Reflect.apply;
+  let applyPoisoned = false;
+  const system = nodeSystem({
+    onBoundary: (name) => {
+      if (name === "beforeDirectoryOwnershipTransfer") {
+        Reflect.apply = () => { throw new Error("poisoned global Reflect.apply"); };
+        applyPoisoned = true;
+      }
+    },
+    outputPath: output,
+    poisonCloseBind: "getter",
+    requireCloseContext: true,
+    sourceIdentity: statSync(source),
+    sourcePath: source,
+  });
+  let receipt;
+  try { receipt = materializeMigratedProductSessionStateWithSystem(input(source, output), system); }
+  finally { Reflect.apply = originalApply; }
+  const finalState = system.state();
+  assert.equal(applyPoisoned, true);
+  assert.strictEqual(receipt, finalState.frozenReceipt);
+  assert.equal(finalState.closeCalls, 3);
+  assert.equal(finalState.directoryCloseCallsAfterTransfer, 1);
+  assert.equal(finalState.directoryDescriptorOpen, false);
+  assert.equal(finalState.poisonCloseBindAccesses, 0);
+  assert.equal(readFileSync(output, "utf8"), bytes);
+});
+
 test("output close failure and directory handoff failure both roll back before the commit point", () => {
   for (const failure of ["output-close", "directory-fchown"]) {
     const directory = mkdtempSync(join(tmpdir(), "ynx-state-materialize-commit-failure-")); chmodSync(directory, 0o700);
