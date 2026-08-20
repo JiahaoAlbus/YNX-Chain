@@ -1,0 +1,34 @@
+# YNX Cloud feature completion evidence
+
+Evidence baseline: source commit `e05db0b5663c151c1805c99ff3f55f433127aa92`; the latest durable lifecycle Runtime is pinned separately to `e7cb63a311115fb8ff643d3cfa4ca1b1c8a89556`. GitHub Actions run `30417551695` verifies the exact source's security/recovery workflow, client-encryption SDK tests, least-privilege image cold-start, configured Critical/High vulnerability gate and retained JSON report Artifact `8710704746`; staging, public deployment, immutable hosted artifacts, reproducible provenance, secure production key custody and production signing remain separately unproven.
+
+| Capability | Implemented | Tested | Direct evidence | Remaining proof |
+| --- | --- | --- | --- | --- |
+| Files, folders, search, metadata, trash | yes | local | `internal/cloud/service_test.go`, canonical smoke | staging/public |
+| Download, Range, preview, checksum | yes | local | content tests, HTTP `ServeContent`, canonical smoke | CDN benchmark |
+| Versions and restore | yes | local | service tests and canonical smoke | remote migration drill |
+| ACL, expiring links, revoke | yes | local | service/server tests and failure vectors | central Wallet staging |
+| Quota, usage, and audit | partial | local | schema-v5 product-scoped persistent ingress/egress/scan/AI counters and exact storage byte-seconds, exact current storage, zero-charge report, migration/service/server tests | attributable backup/replication, provider invoice, approved pricing and reviewed byte-hour rounding |
+| Offline queue and conflict UI | yes | local | Web/native tests; Docs 409 smoke | multi-device staging |
+| Backup/restore | yes | local | `scripts/smoke.sh`, `internal/cloud/recovery.go` | cross-region drill |
+| Quant/product artifact metadata | yes | local | typed object metadata and multipart lifecycle test | staging consumer proof |
+| JavaScript/TypeScript SDK | yes | local + exact-SHA CI | dependency-free ESM/types package, `tests/sdk.test.mjs`, and run `30417551695` | publish immutable package and run staging consumer proof |
+| Client-side encryption candidate | yes, user-held key boundary | local + exact-SHA CI | commit `e05db0b`; `evidence/CLIENT_ENCRYPTION_e05db0b.json`; Web Crypto AES-256-GCM envelope; exact product/account/context/version AAD; tamper and mismatch rejection | production key custody/recovery/rotation UX, hardware-backed storage, independent audit and staging consumer proof |
+| Multipart/resume/cancel | yes, bounded | local | durable upload/part state, restart resume and integrity tests | provider-native streaming; pause is client-side stop/resume |
+| Presigned direct upload | yes, adapter contract | local | fail-closed remote adapter, restart/verify tests, Web 8–64 MiB route | provisioned S3-compatible provider and remote proof |
+| Production object storage | no | no | local/remote adapter contracts only | provisioned provider, KMS, SLA |
+| Content-addressed deduplication | yes, owner+product scoped | local | commit `7759586`; `dedup_scope_test.go`; Race suite; ordinary, multipart, document-version, direct-upload scope and final-reference deletion paths | provider acceptance of opaque scope, remote migration drill and provider-side isolation evidence |
+| Versioned hot/cold/archive lifecycle | partial, provider-neutral | local + exact-SHA CI | commits `d11c382` and `e7cb63a`; `lifecycle*.go`; `evidence/LIFECYCLE_d11c382.json`; schema-v7 migration; durable restart-safe worker; Account/Product and provider-result binding; retry; dedup copy-on-write; archive restore-required reads; pending/failed delete and erasure barriers; run `30386653191` | provisioned provider idempotency, CDN/cache behavior, replication or erasure coding and cross-region restore proof |
+| Millions-of-objects candidate | partial | local | 1m-object/100-sample p50/p95/p99 evidence at exact commit | concurrent, persisted, sharded and remote benchmark |
+| AI selected-file boundary | yes | local | product-bound job and selected-object service/client tests | configured gateway staging |
+| Export/delete | yes, control-plane | local | product-scoped verified portable ZIP; schema-v6 dedicated-scope product-account erasure with retention-atomic preflight, session/job/upload/collaboration cleanup, hashed receipts, provider pending/retry truth, 12-locale Web/native export-first UI, API/SDK/client/smoke tests | provisioned-provider media-sanitization and backup/replica erasure proof |
+| Retention/legal hold | yes, control-plane | local | future-expiry validation, active-window denial, post-expiry deletion, indefinite legal-hold tests | provider-native object-lock proof |
+| Service cessation user exit | yes, control-plane | local | HTTP exit-mode test proves sign-in/read/export/trash/delete remain while new writes return 423 | announced remote exit drill and support/status evidence |
+| Logs, IDs, health, readiness, metrics, traces | partial | local | integrity-checked persistent RED bins, normalized routes, correlated bounded traces, fail-closed readiness, evaluated alerts, machine-readable dashboard and tests | provider child spans, distributed export/aggregation, hosted dashboard/paging/status integration |
+| Security and supply chain | partial | local + exact-SHA CI | threat model, security boundaries, deterministic 468-component CycloneDX inventory, script allowlist, Go vet/secret/lock/artifact gate, local APK provenance record, `evidence/CONTAINER_SCAN_e05db0b.json`, retained exact report `evidence/ci-e05db0b/trivy-ynx-cloud.json`, and GitHub Actions run `30417551695`; Trivy 0.70.0 reported zero configured-scope Critical/High OS/library findings and retained Artifact `8710704746` | external SAST/DAST/penetration report, immutable image publication, continuous monitoring, reproducible published artifact, production attestation/signing |
+| Rate limit and backpressure | yes, single-process | local | deterministic forwarded-IP, reset, saturation, retry and metric tests | distributed limiter and measured tuning |
+| State migration and rollback | partial | local | legacy v1-v6 fixtures, byte-identical backups, product, usage, storage-time, erasure-receipt and schema-v7 lifecycle migrations, metadata-only compatibility, current→legacy rollback hash and tamper tests | previous-binary and remote drill evidence |
+| Docker/Server delivery | yes, candidate | local contract + exact-SHA CI | non-root multi-stage image, bounded per-Dockerfile context, read-only least-privilege Compose profile, 3 container contract tests, and GitHub Actions run `30417551695` image build/cold-start plus configured Critical/High scan for `e05db0b` | hosted immutable image; reproducible provenance; production attestation/signing |
+| Public `/cloud` Testnet | no | no | none | domain, deployment, remote smoke |
+
+No row marked “local” proves staging, public deployment, production durability, production signing, or store release.
