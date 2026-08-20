@@ -121,3 +121,13 @@ test("migration scanner and artwork validator flag release hazards", async () =>
     assert.equal(art.status, 2); assert.match(art.stdout, /ARTWORK_VALIDATION_FAILED/);
   } finally { rmSync(directory, {recursive: true, force: true}); }
 });
+
+test("manifest handoff preserves SDK, Faucet, installed-client and public acceptance boundaries", () => {
+  const handoff = JSON.parse(readFileSync(new URL("../integration/manifest-acceptance-handoff.json", import.meta.url), "utf8"));
+  assert.equal(handoff.status, "CANDIDATE_PENDING_INTEGRATION_ACCEPTANCE");
+  assert.equal(handoff.centralManifest.verification, "BUNDLED_SHA256_ACCEPTED");
+  assert.equal(handoff.centralManifest.payloadSha256, "3c606cad1d9bfa71fc507f54b6ad8184a6580c7df75440675b5db921b7e67bb5");
+  assert.equal(handoff.verification.compatibilityLabPassed, 0);
+  assert.equal(handoff.verification.compatibilityLabSkipped, 10);
+  assert.ok(Object.values(handoff.truth).every(value => value === false));
+});

@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "status": "CANDIDATE_PENDING_INTEGRATION_ACCEPTANCE",
+  "acceptedSdkBase": "315897e75c0ffe3e63435fe73cfec42244b851cc",
+  "upstreamCandidateChain": [
+    "0a03050c305eb2f7f0d53513bcf3ea6073ba3371",
+    "24773900321b944444f37c7fcb2ea91b6f928d7e"
+  ],
+  "centralManifest": {
+    "sourceCommit": "0c668adc257046924d4d631e03eb151986910462",
+    "path": "release/integration/p0-wallet-connectivity/public-endpoint-manifest.json",
+    "releaseId": "P0-WALLET-CONNECTIVITY-2026-08-endpoints-2",
+    "payloadSha256": "3c606cad1d9bfa71fc507f54b6ad8184a6580c7df75440675b5db921b7e67bb5",
+    "verification": "BUNDLED_SHA256_ACCEPTED",
+    "remoteReplacement": "PENDING_PROTECTED_SIGNER"
+  },
+  "verification": {
+    "sdkTests": "12/12 passed",
+    "migrationFindings": 0,
+    "compatibilityLabPassed": 0,
+    "compatibilityLabSkipped": 10,
+    "packageDryRunPassed": true
+  },
+  "truth": {
+    "enhancedSdkAcceptedByIntegration": false,
+    "installedWalletVerified": false,
+    "externalWalletInteroperabilityVerified": false,
+    "faucetDeepLinkActivated": false,
+    "productMigrationVerified": false,
+    "deployedPublic": false
+  }
+}
