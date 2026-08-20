@@ -8,9 +8,17 @@ const wallet=source('src/wallet.ts');
 const api=source('src/api.ts');
 const manifest=source('contract/public-endpoint-manifest.json');
 
-test('Exchange consumes the accepted standard Wallet SDK and classifies connection errors',()=>{
-  for(const marker of ['@ynx/dapp-connect-sdk','StandardWalletConnection','WALLET_NOT_FOUND','CONNECTION_REVOKED','ensureYNXTestnet'])assert.ok(wallet.includes(marker),marker);
-  for(const prohibited of ['createGatewayChallenge','createProductSessionProof','sessions/complete','sessions/introspect','p256','SecureStore','Linking.openURL'])assert.equal(wallet.includes(prohibited),false,prohibited);
+test('Exchange separates Standard Wallet from the accepted v2 root factory',()=>{
+  for(const marker of ['@ynx/dapp-connect-sdk','StandardWalletConnection','WALLET_NOT_FOUND','CONNECTION_REVOKED','ensureYNXTestnet','createProductWalletConnection','PRODUCT_SESSION_PUBLIC_GATEWAY_ORIGIN','exchangeProductSessionRegistry','PRIVATE_SERVICE_DEGRADED'])assert.ok(wallet.includes(marker),marker);
+  for(const prohibited of ['createGatewayChallenge','createProductSessionProof','sessions/complete','sessions/introspect','wallet-auth.ynxweb4.com/v2','callback:capabilities','endpoint:'])assert.equal(wallet.includes(prohibited),false,prohibited);
+  assert.ok(wallet.includes('standard wallet connection remains available'));
+});
+
+test('Exchange source-pins the accepted Product Session v2 factory without asserting migration',()=>{
+  const registry=source('src/product-session-registry.ts');
+  for(const marker of ['203be5e108be468350591615a64d5d36ab87a8f1','productId:\'exchange\'','ynxexchange://wallet-auth/callback','https://exchange.ynxweb4.com'])assert.ok(registry.includes(marker),marker);
+  assert.ok(wallet.includes("'exchange'"));
+  assert.equal(wallet.includes('migrated-v2=true'),false);
 });
 
 test('Exchange bundles the accepted endpoint contract and keeps its product API pending',()=>{
