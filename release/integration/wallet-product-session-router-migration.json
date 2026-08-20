@@ -9,6 +9,7 @@
   "meaning": {
     "registry-ready": "The central v2 registry and shared contract tests cover the product. This is not product-runtime migration evidence.",
     "standard-wallet-only": "The product runtime consumes the accepted Standard Wallet and canonical error contracts and keeps Wallet connected when private Product Session degrades, but has no v2 Gateway and visible-platform evidence.",
+    "root-factory-source-only": "The product owner has consumed the accepted createProductWalletConnection root factory and passed local handler tests, but lacks the distinct public Gateway and installed/browser visible evidence required for migrated-v2.",
     "shared-sdk-v1": "Current product source imports @ynx-chain/wallet-auth but still builds the v1 request/session contract.",
     "canonical-launcher-v1": "Current product source uses the shared canonical deep-link builder and fail-closed platform preflight, but still builds and completes the v1 request/session contract.",
     "legacy-direct": "Current product source constructs or opens Wallet URLs outside the v2 router.",
@@ -17,7 +18,7 @@
   },
   "products": [
     {"productId":"calendar","registry":"registry-ready","consumer":"contract-only","migrated":false,"evidence":["packages/wallet-auth/product-session-registry.json"]},
-    {"productId":"card","registry":"registry-ready","consumer":"standard-wallet-only","migrated":false,"evidence":["release/integration/wallet-product-session-card-owner-checkpoint-20260820.json","release/integration/wallet-product-session-card-endpoint-manifest-checkpoint-20260820.json"]},
+    {"productId":"card","registry":"registry-ready","consumer":"root-factory-source-only","migrated":false,"evidence":["release/integration/wallet-product-session-card-owner-checkpoint-20260820.json","release/integration/wallet-product-session-card-endpoint-manifest-checkpoint-20260820.json","release/integration/wallet-product-session-card-root-factory-checkpoint-20260820.json"]},
     {"productId":"creator-studio","registry":"registry-ready","consumer":"legacy-direct","migrated":false,"evidence":["apps/creator-studio/app.js"]},
     {"productId":"developer","registry":"registry-ready","consumer":"contract-only","migrated":false,"evidence":["packages/wallet-auth/product-session-registry.json"]},
     {"productId":"dex","registry":"registry-ready","consumer":"contract-only","migrated":false,"evidence":["apps/quant-lab/integration/wallet-registry-entry.json"]},

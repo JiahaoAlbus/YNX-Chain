@@ -4,15 +4,15 @@
   "capturedAt": "2026-08-20T15:04:00Z",
   "owner": "wallet-protocol",
   "readOnly": true,
-  "priorWebsiteDeploymentHandoff": {
+  "currentAuthoritativeWebsiteDeployment": {
     "sourceCommit": "a7313313014bb8792f38e649e9f556dbee983c8c",
     "deploymentId": "dpl_5oP2L2ZHvP13YH3ZYWySLD49pj3P",
     "deploymentUrl": "https://ynx-web4-website-4bjg8s2d1-jiahaoalbus-projects.vercel.app",
     "productionReady": true,
     "sourceModifiedByWalletProtocolOwner": false
   },
-  "centralReadback": {
-    "supersededByFinalCentralAcceptance": true,
+  "currentAuthoritativeWebsiteReadback": {
+    "superseded": false,
     "apexAndWwwRuntimeStatus": 200,
     "apexAndWwwRuntimeBytes": 1899,
     "apexAndWwwRuntimeSha256": "d8556c46e81e430d408d0f2504f3379d152430be9406feac36838ac0423e75fa",
@@ -22,7 +22,7 @@
     "apexDocsSha256": "8451463823b838b4f84057f277d6272585820f4030f0da4097c76f6aafa501ba",
     "wwwDocsDirectTlsSucceededInCentralPass": false
   },
-  "finalCentralAcceptance": {
+  "priorCentralVisibleAcceptance": {
     "commit": "8a4dc39b2979356b73d7610499f7e8d3d7fe4cc3",
     "centralHead": "8db659b8e55e54d3b49d4ff7479448877b97ff40",
     "evidencePath": "release/integration/p0-wallet-connectivity/evidence/wallet-auth-website-runtime-source-production-20260820.json",
@@ -41,7 +41,8 @@
     "runtimeSourceCommit": "6cf3ef845202bd879ed94515a71b323dd2fc9e14",
     "visibleBrowserCardVerified": true,
     "visibleBrowserRuntimeSourceMatches": true,
-    "productSessionFlowExecuted": false
+    "productSessionFlowExecuted": false,
+    "inheritedByCurrentAuthoritativeDeployment": false
   },
   "independentReadback": {
     "apexDocs": {
@@ -78,7 +79,9 @@
     "postDeploymentAttempted": true,
     "ownerChannelRenderedCardVerified": false,
     "ownerChannelFailure": "MAC_LOCKED_AUTOMATIC_UNLOCK_FAILED",
-    "centralVisibleBrowserRenderedCardVerified": true,
+    "centralVisibleBrowserRenderedCardVerifiedOnPriorDeployment": true,
+    "currentAuthoritativeDeploymentRenderedCardVerified": false,
+    "currentAuthoritativeDeploymentFailure": "CG_WINDOW_NOT_FOUND",
     "centralProductSessionFlowExecuted": false,
     "preDeploymentDriftEvidencePath": "release/integration/wallet-auth-website-computercontrol-evidence-20260820.json"
   },
@@ -86,8 +89,8 @@
     "websiteProductionDeploymentReady": true,
     "publishedFrontendAssetUsesCurrentRuntimeSource": true,
     "publishedFrontendAssetContainsHistoricalRuntimeSource": false,
-    "renderedVisibleCardVerifiedAfterDeployment": true,
-    "renderedVisibleCardUsesCurrentRuntimeSource": true,
+    "renderedVisibleCardVerifiedAfterCurrentAuthoritativeDeployment": false,
+    "renderedVisibleCardUsesCurrentRuntimeSourceOnCurrentAuthoritativeDeployment": false,
     "installedWalletClientVerified": false,
     "walletApprovalVerified": false,
     "standardConnectionAccountSignSendOrTransactionVerified": false,
