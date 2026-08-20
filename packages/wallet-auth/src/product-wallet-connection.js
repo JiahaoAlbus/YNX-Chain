@@ -10,7 +10,7 @@ const CONFIG_FIELDS = [
   "device", "scope", "discoveryWaitMs",
   "openWallet", "openTimeoutMs",
 ];
-export const PRODUCT_SESSION_PUBLIC_GATEWAY_ORIGIN = "https://rest.ynxweb4.com";
+export const PRODUCT_SESSION_PUBLIC_GATEWAY_ORIGIN = "https://wallet-auth.ynxweb4.com";
 
 /**
  * Constructs the only supported product-facing Wallet connection surface.

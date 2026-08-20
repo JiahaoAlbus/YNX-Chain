@@ -34,7 +34,7 @@ test("public mount verifier rejects wrong request binding, schema, cache and non
 test("public mount probe sends only canonical empty JSON and validates the mounted response", async () => {
   let observed;
   const result = await probeProductSessionV2PublicMount({
-    endpoint: "https://rest.ynxweb4.com",
+    endpoint: "https://wallet-auth.ynxweb4.com",
     requestId,
     timeoutMs: 1_000,
     fetchImplementation: async (url, init) => {
@@ -49,7 +49,7 @@ test("public mount probe sends only canonical empty JSON and validates the mount
     contentType: "application/json",
     method: "POST",
     requestId,
-    url: "https://rest.ynxweb4.com/v2/product-sessions/challenge",
+    url: "https://wallet-auth.ynxweb4.com/v2/product-sessions/challenge",
   });
 });
 
@@ -58,7 +58,7 @@ test("public mount probe retries bounded transport failures with the same state-
   const observedIds = [];
   const result = await probeProductSessionV2PublicMount({
     attempts: 3,
-    endpoint: "https://rest.ynxweb4.com",
+    endpoint: "https://wallet-auth.ynxweb4.com",
     requestId,
     timeoutMs: 1_000,
     fetchImplementation: async (_url, init) => {
@@ -84,7 +84,7 @@ test("public mount probe allows HTTP only for explicitly enabled loopback prefli
 });
 
 test("public mount probe rejects noncanonical origins and oversized responses before parsing", async () => {
-  await assert.rejects(() => probeProductSessionV2PublicMount({ endpoint: "http://rest.ynxweb4.com", requestId, timeoutMs: 1_000, fetchImplementation: fetch }), { code: "INVALID_PUBLIC_ORIGIN" });
-  await assert.rejects(() => probeProductSessionV2PublicMount({ endpoint: "https://rest.ynxweb4.com/rpc", requestId, timeoutMs: 1_000, fetchImplementation: fetch }), { code: "INVALID_PUBLIC_ORIGIN" });
-  await assert.rejects(() => probeProductSessionV2PublicMount({ endpoint: "https://rest.ynxweb4.com", requestId, timeoutMs: 1_000, fetchImplementation: async () => new Response("x", { status: 400, headers: { "cache-control": "no-store", "content-length": "65537", "content-type": "application/json" } }) }), { code: "RESPONSE_TOO_LARGE" });
+  await assert.rejects(() => probeProductSessionV2PublicMount({ endpoint: "http://wallet-auth.ynxweb4.com", requestId, timeoutMs: 1_000, fetchImplementation: fetch }), { code: "INVALID_PUBLIC_ORIGIN" });
+  await assert.rejects(() => probeProductSessionV2PublicMount({ endpoint: "https://wallet-auth.ynxweb4.com/rpc", requestId, timeoutMs: 1_000, fetchImplementation: fetch }), { code: "INVALID_PUBLIC_ORIGIN" });
+  await assert.rejects(() => probeProductSessionV2PublicMount({ endpoint: "https://wallet-auth.ynxweb4.com", requestId, timeoutMs: 1_000, fetchImplementation: async () => new Response("x", { status: 400, headers: { "cache-control": "no-store", "content-length": "65537", "content-type": "application/json" } }) }), { code: "RESPONSE_TOO_LARGE" });
 });

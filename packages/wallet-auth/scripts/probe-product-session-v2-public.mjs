@@ -30,7 +30,7 @@ export function verifyProductSessionV2PublicMountResponse(input) {
 }
 
 export async function probeProductSessionV2PublicMount(options = {}) {
-  const endpoint = publicOrigin(options.endpoint ?? process.env.YNX_PRODUCT_SESSION_V2_PUBLIC_URL ?? "https://rest.ynxweb4.com", options.allowLoopback ?? process.env.YNX_PRODUCT_SESSION_V2_ALLOW_LOOPBACK === "1");
+  const endpoint = publicOrigin(options.endpoint ?? process.env.YNX_PRODUCT_SESSION_V2_PUBLIC_URL ?? "https://wallet-auth.ynxweb4.com", options.allowLoopback ?? process.env.YNX_PRODUCT_SESSION_V2_ALLOW_LOOPBACK === "1");
   const requestId = options.requestId ?? `req_public_v2_${randomBytes(18).toString("base64url")}`;
   const timeoutMs = timeout(options.timeoutMs ?? process.env.YNX_PRODUCT_SESSION_V2_PUBLIC_TIMEOUT_MS ?? 20_000);
   const attempts = attemptCount(options.attempts ?? process.env.YNX_PRODUCT_SESSION_V2_PUBLIC_ATTEMPTS ?? 3);

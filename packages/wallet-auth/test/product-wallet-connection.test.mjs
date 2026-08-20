@@ -21,6 +21,7 @@ function config(overrides = {}) { return { registry, productId: "social", platfo
 
 test("public package root exposes the single product connection factory", () => {
   assert.equal(walletAuthRoot.createProductWalletConnection, createProductWalletConnection);
+  assert.equal(PRODUCT_SESSION_PUBLIC_GATEWAY_ORIGIN, "https://wallet-auth.ynxweb4.com");
 });
 
 test("factory derives the exact registered callback and opens no product-supplied URL", async () => {

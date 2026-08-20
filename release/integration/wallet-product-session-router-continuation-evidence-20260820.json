@@ -54,6 +54,14 @@
     },
     "transportObservation": "The first local TLS handshake failed with LibreSSL SSL_ERROR_SYSCALL; the bounded retry recovered and returned the exact accepted source and CORS results. No protocol request was sent by the failed handshake."
   },
+  "authoritativeProductFactoryOrigin": {
+    "evidencePath": "release/integration/wallet-product-session-authoritative-origin-audit-20260820.json",
+    "origin": "https://wallet-auth.ynxweb4.com",
+    "buildSource": "6cf3ef845202bd879ed94515a71b323dd2fc9e14",
+    "historicalRestOriginStillMounted": true,
+    "historicalRestOriginBuildIdentifiable": false,
+    "callerOverrideAllowed": false
+  },
   "tests": {
     "walletAuth": {
       "command": "npm test --prefix packages/wallet-auth",
@@ -67,6 +75,15 @@
       "providerErrors": 6,
       "ynxErrors": 20,
       "packDryRunIncludesImplementationAndTypes": true
+    },
+    "authoritativeProductFactoryOrigin": {
+      "focusedCommand": "node --test packages/wallet-auth/test/product-wallet-connection.test.mjs packages/wallet-auth/test/product-session-public-probe.test.mjs packages/wallet-auth/test/product-session-migration.test.mjs",
+      "focusedPassed": 18,
+      "focusedFailed": 0,
+      "fullWalletAuthPassed": 240,
+      "fullWalletAuthFailed": 0,
+      "defaultPublicMountProbePassed": true,
+      "packageDryRunIncludesFactoryAndTypes": true
     },
     "acceptedProtocolContract": {
       "command": "node --test packages/wallet-auth/test/p0-wallet-connectivity-candidate.test.mjs packages/wallet-auth/test/product-session-migration.test.mjs",

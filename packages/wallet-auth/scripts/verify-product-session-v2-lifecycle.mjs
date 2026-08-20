@@ -12,7 +12,7 @@ import { httpBodyDigest } from "../src/session-proof.js";
 const registry = JSON.parse(readFileSync(fileURLToPath(new URL("../product-session-registry.json", import.meta.url)), "utf8"));
 
 export async function verifyProductSessionV2Lifecycle(options = {}) {
-  const endpoint = lifecycleEndpoint(options.endpoint ?? process.env.YNX_PRODUCT_SESSION_V2_LIFECYCLE_URL ?? "https://rest.ynxweb4.com", options.allowLoopback ?? process.env.YNX_PRODUCT_SESSION_V2_ALLOW_LOOPBACK === "1");
+  const endpoint = lifecycleEndpoint(options.endpoint ?? process.env.YNX_PRODUCT_SESSION_V2_LIFECYCLE_URL ?? "https://wallet-auth.ynxweb4.com", options.allowLoopback ?? process.env.YNX_PRODUCT_SESSION_V2_ALLOW_LOOPBACK === "1");
   const fetchImplementation = options.fetchImplementation ?? globalThis.fetch;
   const fixedNow = options.now === undefined ? null : validDate(options.now);
   const now = fixedNow ?? new Date();

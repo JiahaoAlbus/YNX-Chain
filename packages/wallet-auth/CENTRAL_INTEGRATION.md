@@ -83,7 +83,8 @@ enters the shared JavaScript client; the SDK binds canonical challenge bytes and
 verifies the returned P-256 signature against the registered device key before
 completion. Products also supply platform Wallet detection/opener and browser
 provider scope. The factory binds the
-runtime HTTPS transport and pins every v2 call to `https://rest.ynxweb4.com`;
+runtime HTTPS transport and pins every v2 call to the accepted, build-identifiable
+`https://wallet-auth.ynxweb4.com` origin;
 products cannot inject or replace
 the Gateway origin. `restore()` re-introspects protected state on every second launch;
 invalid state attempts one controlled Wallet reconnect and then requires explicit
