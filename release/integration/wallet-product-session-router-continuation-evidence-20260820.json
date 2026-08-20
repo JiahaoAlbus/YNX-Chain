@@ -54,6 +54,13 @@
     },
     "transportObservation": "The first local TLS handshake failed with LibreSSL SSL_ERROR_SYSCALL; the bounded retry recovered and returned the exact accepted source and CORS results. No protocol request was sent by the failed handshake."
   },
+  "websitePublicReadback20260821": {
+    "evidencePath": "release/integration/wallet-auth-website-public-readback-20260821.json",
+    "apexAndWwwDocsMatch": true,
+    "apexAndWwwRuntimePublicationMatch": true,
+    "runtimeSourceCommit": "6cf3ef845202bd879ed94515a71b323dd2fc9e14",
+    "registryV3ShopRetirementDeployedPublic": false
+  },
   "authoritativeProductFactoryOrigin": {
     "evidencePath": "release/integration/wallet-product-session-authoritative-origin-audit-20260820.json",
     "origin": "https://wallet-auth.ynxweb4.com",
