@@ -26,3 +26,11 @@ test("release-facing browser files contain no loopback or development endpoints"
   const files=await Promise.all(["src/public/app.js","src/public/index.html","src/public/runtime-config.js","src/public/standard-wallet.js"].map(read));
   for(const body of files)assert.doesNotMatch(body,/(localhost|127\.0\.0\.1|0\.0\.0\.0|10\.0\.2\.2|example\.com)/);
 });
+
+test("local and staging launch serve the bundled browser application",async()=>{
+  const [packageJson,environment]=await Promise.all([read("package.json"),read("deploy/search-staging.env.example")]);
+  const scripts=JSON.parse(packageJson).scripts;
+  assert.match(scripts.start,/npm run build/);
+  assert.match(scripts.start,/YNX_SEARCH_STATIC_DIR=dist/);
+  assert.match(environment,/^YNX_SEARCH_STATIC_DIR=dist$/m);
+});

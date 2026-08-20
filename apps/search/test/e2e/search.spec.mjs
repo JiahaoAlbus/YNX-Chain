@@ -6,6 +6,29 @@ const evidence = resolve("evidence/ui");
 test.beforeAll(async () => mkdir(evidence, { recursive: true }));
 test.beforeEach(async ({ page }) => { await page.emulateMedia({ reducedMotion: "reduce", colorScheme: "light" }); await page.goto("/"); });
 
+async function installDeterministicWallet(page, { reject = false } = {}) {
+  await page.addInitScript(({ reject }) => {
+    const account = "0x1111111111111111111111111111111111111111";
+    const provider = {
+      async request({ method }) {
+        if (method === "eth_requestAccounts") {
+          if (reject) throw Object.assign(new Error("User rejected the request."), { code: 4001 });
+          return [account];
+        }
+        if (method === "eth_chainId") return "0x1917";
+        throw Object.assign(new Error(`Unsupported deterministic method: ${method}`), { code: 4200 });
+      },
+      on() {},
+      removeListener() {}
+    };
+    const detail = Object.freeze({
+      info: Object.freeze({ uuid: reject ? "ynx-search-reject" : "ynx-search-approve", name: "YNX Test Wallet", icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg'/>", rdns: "com.ynxweb4.wallet.test" }),
+      provider
+    });
+    addEventListener("eip6963:requestProvider", () => dispatchEvent(new CustomEvent("eip6963:announceProvider", { detail })));
+  }, { reject });
+}
+
 test("desktop success, filters, pagination and cited AI permission preview", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.locator("#query").fill("wallet authorization");
@@ -63,4 +86,46 @@ test("service failure offers retry and preserves the query", async ({ page }) =>
   await expect(page.getByRole("button", { name: "Retry" })).toBeVisible();
   await expect(page.locator("#query")).toHaveValue("wallet");
   await page.screenshot({ path: resolve(evidence, "search-desktop-failure-retry-1440x900.png") });
+});
+
+test("deterministic YNX Wallet approval preserves guest Search and separates degraded private service", async ({ browser }) => {
+  const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, colorScheme: "light", reducedMotion: "reduce" });
+  const consoleErrors = [];
+  page.on("console", message => { if (message.type() === "error") consoleErrors.push(message.text()); });
+  await installDeterministicWallet(page);
+  await page.goto("/");
+  await page.locator("#query").fill("wallet authorization");
+  await page.locator("#query").press("Enter");
+  await expect(page.getByRole("heading", { name: "Review every Wallet authorization" })).toBeVisible();
+  await page.locator("#wallet-button").click();
+  await expect(page.locator("#wallet-button")).toContainText("YNX Test Wallet");
+  await expect(page.locator("#network")).toContainText("Standard Wallet connected on 0x1917");
+  await page.locator("#private-wallet-button").click();
+  await expect(page.locator("#network")).toContainText("remains connected");
+  await expect(page.locator("#network")).toContainText("PRIVATE_SERVICE_DEGRADED");
+  await expect(page.getByRole("heading", { name: "Review every Wallet authorization" })).toBeVisible();
+  await page.screenshot({ path: resolve(evidence, "search-wallet-approved-private-degraded-1440x900.png"), fullPage: true });
+  expect(consoleErrors).toEqual([]);
+  await page.close();
+});
+
+test("deterministic Wallet rejection creates no account and guest Search remains usable", async ({ browser }) => {
+  const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, colorScheme: "light", reducedMotion: "reduce" });
+  const consoleErrors = [];
+  page.on("console", message => { if (message.type() === "error") consoleErrors.push(message.text()); });
+  await installDeterministicWallet(page, { reject: true });
+  await page.goto("/");
+  await page.locator("#query").fill("wallet authorization");
+  await page.locator("#query").press("Enter");
+  await page.locator("#wallet-button").click();
+  await expect(page.locator("#wallet-button")).toHaveText("Connect Wallet");
+  await expect(page.locator("#private-wallet-button")).toBeDisabled();
+  await expect(page.locator("#wallet-recovery")).toBeVisible();
+  await expect(page.locator("#wallet-recovery")).toContainText("Download YNX Wallet");
+  await expect(page.locator("#wallet-recovery")).toContainText("Use MetaMask");
+  await expect(page.locator("#network")).toContainText("User rejected the request");
+  await expect(page.getByRole("heading", { name: "Review every Wallet authorization" })).toBeVisible();
+  await page.screenshot({ path: resolve(evidence, "search-wallet-rejected-guest-search-1440x900.png"), fullPage: true });
+  expect(consoleErrors).toEqual([]);
+  await page.close();
 });
