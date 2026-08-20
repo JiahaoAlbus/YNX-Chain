@@ -15,7 +15,7 @@ Environment=PORT=18113
 Environment=YNX_CODE_STATE_DIR=/var/lib/ynx-code-candidate
 Environment=YNX_CODE_STATIC_ROOT=/opt/ynx-developer/candidates/current/apps/developer/frontend/dist
 Environment=YNX_CODE_DEBUGPY_ROOT=/opt/ynx-developer/candidates/current/apps/developer/.ynx-debugpy
-Environment=PATH=/opt/ynx-developer/candidates/current/apps/developer/node_modules/.bin:/usr/local/bin:/usr/bin:/bin
+Environment=PATH=/opt/ynx-developer/candidates/current/apps/developer/node_modules/.bin:/usr/local/bin:/usr/bin:/bin:/snap/bin
 Environment=YNX_CODE_CHAIN_URL=http://127.0.0.1:6420
 Environment=YNX_CODE_WALLET_GATEWAY_URL=http://127.0.0.1:18447
 Environment=YNX_CODE_IDE_ACTION_PUBLIC_READY=false
