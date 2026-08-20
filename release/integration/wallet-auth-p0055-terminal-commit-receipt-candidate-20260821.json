@@ -1,0 +1,153 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "P0-WALLET-CONNECTIVITY-p0055-terminal-commit-receipt-2bd7a13d",
+  "owner": "Core/Auth/Gateway",
+  "status": "SOURCE_AND_OFFLINE_ARTIFACT_CANDIDATE_AWAITING_INTEGRATION_REVIEW",
+  "source": {
+    "branch": "codex/wallet-core-auth-gateway-continuation-20260814",
+    "commit": "2bd7a13d4e8fb12dfda6e98900504c0f2edeaaf0",
+    "tree": "7a20dc435d83fd27c76a095eabfa3d55f751d91f",
+    "parent": "ad57ed5dcddb56d49605699bd07b364e17a43a8f",
+    "remoteReadbackExact": true,
+    "packageLockSha256": "8929316677769e7a6ad703583c12a07dd4d4dcbf4d87c597983f6ab6955a87b6"
+  },
+  "priorRejectedCandidate": {
+    "sourceCommit": "695b1330575e5f29e25cef7dd7f97caa2253f59e",
+    "evidenceCommit": "ad57ed5dcddb56d49605699bd07b364e17a43a8f",
+    "blockers": [
+      "THROWABLE_POST_COMMIT_BOUNDARY_COULD_SUPPRESS_RECEIPT",
+      "THROWABLE_POST_COMMIT_PARENT_VERIFICATION_COULD_SUPPRESS_RECEIPT"
+    ],
+    "sourceAccepted": false,
+    "executionLeaseExists": false,
+    "productionAccessAfterReview": false,
+    "deploymentAttemptedAfterReview": false
+  },
+  "correction": {
+    "scope": "Terminal Product Session state materialization commit and receipt semantics only",
+    "modulePath": "packages/wallet-auth/src/product-session-state-materializer.js",
+    "moduleSha256": "2ec403432d0052371becf461ab4e3db0c9e7895fc3305ee14f3d12c5d7404148",
+    "testPath": "packages/wallet-auth/test/product-session-state-materializer.test.mjs",
+    "testSha256": "ea3cb99f328bdcbb153e0eb0e1cbb4b8bc2cba37ac64af0e789a44953f688896",
+    "linuxDirectoryFdBinding": "/proc/self/fd/<verified-directory-fd>/<basename>",
+    "publicationPrimitive": "directory-FD-relative open with O_CREAT|O_EXCL|O_RDWR|O_NOFOLLOW",
+    "cleanupPrimitive": "directory-FD-relative lstat and unlink guarded by exact dev/inode",
+    "irreversibleCommitPoint": "successful directory fchown",
+    "committedReceiptFields": {
+      "committed": true,
+      "commitPoint": "DIRECTORY_OWNERSHIP_TRANSFERRED"
+    },
+    "requirements": {
+      "effectiveRootRequiredBeforeSourceMetadataOrRead": true,
+      "sourceRootOwnerMode0600NlinkOne": true,
+      "sourceNoFollowAndStableInode": true,
+      "sourceCanonicalBytesAndDigestsRequired": true,
+      "outputDirectoryInitiallyRootOwnedMode0700": true,
+      "directoryDescriptorIdentityVerified": true,
+      "allAuthoritativeParentChecksBeforeCommit": true,
+      "atomicFinalNameNoReplace": true,
+      "outputDescriptorVerifiedBeforeAndAfterFileOwnershipTransfer": true,
+      "outputDescriptorCloseConfirmedBeforeDirectoryHandoff": true,
+      "directoryFchownIsIrreversibleCommitPoint": true,
+      "noPostCommitOperationCanChangeCommittedReturnOutcome": true,
+      "postCommitHookFailureReturnsCommittedReceipt": true,
+      "postCommitParentReplacementReturnsCommittedReceipt": true,
+      "postCommitDirectoryCloseFailureReturnsCommittedReceipt": true,
+      "preCommitOutputCloseFailureRollsBack": true,
+      "directoryFchownFailureRollsBack": true,
+      "cleanupNeverUnlinksDifferentInode": true,
+      "unsupportedDirectoryFdRelativeOperationsFailClosed": true,
+      "sourcePermissionsWeakened": false
+    }
+  },
+  "tests": {
+    "focused": { "passed": 15, "failed": 0 },
+    "fullWalletAuth": { "passed": 363, "failed": 0 },
+    "cleanCloneWalletAuth": {
+      "commit": "2bd7a13d4e8fb12dfda6e98900504c0f2edeaaf0",
+      "trackedStatusClean": true,
+      "offlineRuntimeOverlay": true,
+      "networkInstallUsed": false,
+      "passed": 363,
+      "failed": 0
+    },
+    "commitBoundary": {
+      "outputClosePreHandoffFailureReceiptReturned": false,
+      "outputClosePreHandoffFailureLeavesOutput": false,
+      "directoryFchownFailureReceiptReturned": false,
+      "directoryFchownFailureLeavesOutput": false,
+      "postCommitHookFailureReceiptReturned": true,
+      "postCommitHookFailureOutputExact": true,
+      "postCommitParentReplacementReceiptReturned": true,
+      "postCommitParentReplacementOutputExact": true,
+      "postCommitDirectoryCloseErrorReceiptReturned": true,
+      "postCommitDirectoryCloseErrorOutputExact": true,
+      "cleanupReplacementInodePreserved": true
+    },
+    "pack": {
+      "repeatBuildByteIdentical": true,
+      "sha256": "f4fb923e4904ebdfd42142eea6569f98c75037041eac4920a2af70b22b2aae35",
+      "bytes": 184139,
+      "entries": 102,
+      "moduleIncluded": true,
+      "cliIncluded": true
+    }
+  },
+  "offlineArtifacts": {
+    "directory": "release/integration/p0-wallet-connectivity/artifacts/wallet-auth-2bd7a13d",
+    "repeatBuildByteIdentical": true,
+    "gzipTimestampAndFilenameHeaderDisabled": true,
+    "cleanExtractionColdImportPassed": true,
+    "cleanExtractionCliPrivilegeGatePassed": true,
+    "inventoryExtractionReadbackPassed": true,
+    "noSecretScanPassed": true,
+    "sourceArchive": {
+      "name": "wallet-auth-source-2bd7a13d.tar.gz",
+      "sha256": "c7f1d97998c8d367eb28e4f8384893a511cb46963b9bb3ea8502a093635cce18",
+      "bytes": 193613,
+      "entries": 111,
+      "fileEntries": 103,
+      "extractionRoot": "ynx-wallet-auth-2bd7a13d/source"
+    },
+    "sourceInventory": {
+      "name": "wallet-auth-source-2bd7a13d.inventory.json",
+      "sha256": "671b6fcf3f29f78c3ec1186540abc91c9494ef8b791c46b283a73a0b898df906",
+      "bytes": 24908
+    },
+    "runtimeArchive": {
+      "name": "wallet-auth-runtime-dependencies-2bd7a13d.tar.gz",
+      "sha256": "d70068b1d67204d141f5d1c226b9e381c96ebe390d12e8535862eb1ce0a64b0f",
+      "bytes": 707219,
+      "entries": 224,
+      "fileEntries": 212,
+      "overlayRoot": "ynx-wallet-auth-2bd7a13d/source/packages/wallet-auth/node_modules"
+    },
+    "runtimeInventory": {
+      "name": "wallet-auth-runtime-dependencies-2bd7a13d.inventory.json",
+      "sha256": "8ca649017bb93b83c2be908d9ad1dbad43b4e252efe240428e7bf2b3a34236a3",
+      "bytes": 52591
+    },
+    "sbom": {
+      "name": "wallet-auth-runtime-2bd7a13d.cdx.json",
+      "sha256": "b764ea3d514b49ae7834e212b55c02173e205310a28fb9d528e68e275bff6db7",
+      "bytes": 2265,
+      "format": "CycloneDX 1.5",
+      "components": 3,
+      "dependencyNodes": 3
+    }
+  },
+  "truth": {
+    "integrationAccepted": false,
+    "executionLeaseExists": false,
+    "productionReadPerformed": false,
+    "deploymentAttempted": false,
+    "candidateActivated": false,
+    "publicSourceCommit": "6cf3ef845202bd879ed94515a71b323dd2fc9e14",
+    "registryV3Public": false,
+    "productMigrationsComplete": 0,
+    "productMigrationsTotal": 12,
+    "computerControlVerified": false,
+    "deployedPublic": false,
+    "integrated": false
+  }
+}
