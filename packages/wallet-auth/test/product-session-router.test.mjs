@@ -5,7 +5,7 @@ import { p256 } from "@noble/curves/nist.js";
 import {
   canonicalReturnTarget, createProductSessionRequest, createProductSessionReturnURL,
   migrateLegacyCallback, migrateLegacyProductSessionRequest, migrateProductSessionRegistryV1, migrateProductSessionRegistryV2, parseProductSessionRegistry, parseProductSessionReturnURL,
-  prepareWalletOpen, productPlatformBinding, walletConnectionChoices, WalletAuthError, WALLET_ROUTE_STATUS,
+  prepareWalletOpen, productPlatformBinding, productPlatformStatus, walletConnectionChoices, WalletAuthError, WALLET_ROUTE_STATUS,
 } from "../src/index.js";
 
 const registrySource = JSON.parse(readFileSync(new URL("../product-session-registry.json", import.meta.url), "utf8"));
@@ -124,7 +124,34 @@ test("Shop Android is retired without disabling Shop Web/PWA", () => {
     replacementUrl: "https://shop.ynxweb4.com/shop",
   }]);
   assert.throws(() => request("shop", "android"), code("CLIENT_RETIRED"));
+  assert.deepEqual(productPlatformStatus(registry, "shop", "android"), {
+    status: "retired",
+    code: "CLIENT_RETIRED",
+    productId: "shop",
+    clientId: "ynx-shop-v1",
+    displayName: "YNX Shop",
+    platform: "android",
+    applicationId: "com.ynxweb4.shop",
+    callback: "ynxshop://wallet-auth/callback",
+    retiredAt: "2026-08-20T00:00:00.000Z",
+    lastSupportedVersion: "0.3.0-testnet-preview",
+    replacementUrl: "https://shop.ynxweb4.com/shop",
+    actions: ["open-replacement", "return-to-product"],
+    authority: "none",
+    productSession: false,
+  });
+  assert.deepEqual(productPlatformStatus(registry, "shop", "web"), {
+    status: "active",
+    productId: "shop",
+    clientId: "ynx-shop-v1",
+    displayName: "YNX Shop",
+    platform: "web",
+    actions: [],
+  });
   assert.equal(canonicalReturnTarget(registry, "shop", "web").callback, "https://shop.ynxweb4.com/wallet-auth/callback");
+  const tampered = structuredClone(registrySource);
+  tampered.products.find((item) => item.productId === "shop").retiredClients[0].replacementUrl = "https://attacker.example/shop";
+  assert.throws(() => parseProductSessionRegistry(tampered), code("INVALID_ROUTER_REGISTRY"));
 });
 
 test("router returns actionable unavailable states and never opens an unregistered scheme", () => {

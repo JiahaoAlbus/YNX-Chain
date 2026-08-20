@@ -129,6 +129,9 @@
     "pendingChallengesAndCachedSuccessesPurged": true,
     "shopAndroidRetired": true,
     "shopWebPwaActive": true,
+    "replacementBoundToRegisteredWebOrigin": true,
+    "sharedSdkExposesActionableRetirementStatus": true,
+    "automaticReplacementRedirectAllowed": false,
     "currentPublicRuntimeUsesRegistryV3": false
   },
   "gatewayRoutes": [

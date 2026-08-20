@@ -129,6 +129,8 @@ export declare function parseProductSessionRegistry(input:unknown):Readonly<Reco
 export declare function migrateProductSessionRegistryV1(input:unknown):Readonly<Record<string,unknown>>;
 export declare function migrateProductSessionRegistryV2(input:unknown):Readonly<Record<string,unknown>>;
 export declare function productPlatformBinding(registry:unknown,productId:string,platform:ProductSessionPlatform):Readonly<Record<string,unknown>>;
+export type ProductPlatformStatus=Readonly<{status:"active";productId:string;clientId:string;displayName:string;platform:ProductSessionPlatform;actions:readonly []}|{status:"retired";code:"CLIENT_RETIRED";productId:string;clientId:string;displayName:string;platform:ProductSessionPlatform;applicationId:string;callback:string;retiredAt:string;lastSupportedVersion:string;replacementUrl:string;actions:readonly ["open-replacement","return-to-product"];authority:"none";productSession:false}>;
+export declare function productPlatformStatus(registry:unknown,productId:string,platform:ProductSessionPlatform):ProductPlatformStatus;
 export declare function migrateLegacyCallback(registry:unknown,legacyValue:string,context:{productId:string;platform:ProductSessionPlatform}):Readonly<Record<string,unknown>>;
 export declare function migrateLegacyProductSessionRequest(registry:unknown,legacy:unknown,context:{productId:string;platform:ProductSessionPlatform;deviceId:string;state:string},at?:Date):Readonly<Record<string,unknown>>;
 export declare function createProductSessionRequest(registry:unknown,input:Readonly<{productId:string;platform:ProductSessionPlatform;deviceId:string;deviceKey:string;scopes:readonly string[];purpose:string;nonce:string;state:string}>,at?:Date):Readonly<Record<string,unknown>>;

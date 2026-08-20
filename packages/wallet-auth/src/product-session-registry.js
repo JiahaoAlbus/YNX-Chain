@@ -108,6 +108,41 @@ export function productPlatformBinding(registryInput, productId, platform) {
   });
 }
 
+export function productPlatformStatus(registryInput, productId, platform) {
+  const registry = parseProductSessionRegistry(registryInput);
+  if (!PRODUCT_SESSION_PLATFORMS.includes(platform)) fail("INVALID_PLATFORM", "Product Session platform is unsupported");
+  const product = registry.products.find((item) => item.productId === productId);
+  if (!product) fail("UNKNOWN_PRODUCT", "Product is not registered for Product Sessions");
+  if (!product.platforms.includes(platform)) fail("INVALID_PLATFORM", "Product is not registered for Product Sessions on this platform");
+  const retired = product.retiredClients.find((item) => item.platform === platform);
+  if (retired) {
+    return Object.freeze({
+      status: "retired",
+      code: "CLIENT_RETIRED",
+      productId: product.productId,
+      clientId: product.clientId,
+      displayName: product.displayName,
+      platform,
+      applicationId: retired.applicationId,
+      callback: retired.callback,
+      retiredAt: retired.retiredAt,
+      lastSupportedVersion: retired.lastSupportedVersion,
+      replacementUrl: retired.replacementUrl,
+      actions: Object.freeze(["open-replacement", "return-to-product"]),
+      authority: "none",
+      productSession: false,
+    });
+  }
+  return Object.freeze({
+    status: "active",
+    productId: product.productId,
+    clientId: product.clientId,
+    displayName: product.displayName,
+    platform,
+    actions: Object.freeze([]),
+  });
+}
+
 export function migrateLegacyCallback(registryInput, legacyValue, context) {
   const registry = parseProductSessionRegistry(registryInput);
   exactFields(context, ["productId", "platform"], "Legacy callback migration context");
@@ -166,7 +201,7 @@ function parseProduct(input) {
   if (!Number.isInteger(input.sessionDurationSeconds) || input.sessionDurationSeconds < 60 || input.sessionDurationSeconds > 300) {
     fail("INVALID_ROUTER_REGISTRY", "Product Session duration must be between 60 and 300 seconds");
   }
-  const retiredClients = retiredClientList(input.retiredClients, { applicationId, nativeCallback, platforms, webApplicationId, webCallback });
+  const retiredClients = retiredClientList(input.retiredClients, { applicationId, nativeCallback, platforms, webApplicationId, webCallback, webOrigin });
   return Object.freeze({
     productId, clientId, displayName, applicationId, webOrigin, nativeCallback, platforms: Object.freeze(platforms), webApplicationId, webCallback,
     legacyCallbacks: Object.freeze(legacyCallbacks), scopes: Object.freeze(scopes),
@@ -187,6 +222,7 @@ function retiredClientList(input, product) {
     const retiredAt = canonicalTime(item.retiredAt, "retiredAt");
     const lastSupportedVersion = pattern(item.lastSupportedVersion, "lastSupportedVersion", /^[0-9A-Za-z][0-9A-Za-z.+-]{0,63}$/);
     const replacementUrl = httpsURL(item.replacementUrl, "retired client replacementUrl", false);
+    if (new URL(replacementUrl).origin !== product.webOrigin) fail("INVALID_ROUTER_REGISTRY", "retired client replacementUrl must remain on the registered product Web origin");
     return Object.freeze({ platform, applicationId: expectedApplicationId, callback: expectedCallback, retiredAt, lastSupportedVersion, replacementUrl });
   });
   uniqueSorted(result.map((item) => item.platform), "retired client platform");
