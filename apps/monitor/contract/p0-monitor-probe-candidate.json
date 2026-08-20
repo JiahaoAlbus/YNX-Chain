@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "proposalId": "P0-WALLET-CONNECTIVITY-2026-08-explorer-monitor-probe-v1",
+  "status": "CANDIDATE",
+  "owner": "explorer-monitor",
+  "scope": [
+    "public endpoint reachability classification",
+    "safe source/release identity projection",
+    "accepted Product Session error aggregation",
+    "EVM chain identity and transient RPC TLS recovery observation"
+  ],
+  "consumes": {
+    "errorContract": {
+      "status": "ACCEPTED",
+      "version": "p0-wallet-connection-v1",
+      "sourceCommit": "66003e76e804da16d472255efde50cb879055b96"
+    }
+  },
+  "doesNotClaim": [
+    "public deployment or installed-client repair",
+    "Wallet connection, signing, transaction, or Product Session success",
+    "internal endpoint topology or credentials"
+  ],
+  "rules": [
+    "A Gateway/Product Session error must not be projected as a Standard Wallet disconnection or a public-chain Offline condition.",
+    "Only accepted Device Proof, protocol, expiry/clock and gateway categories are mapped from Gateway responses.",
+    "RPC recovery following an observed TLS error is reported as degraded with RPC_TRANSIENT_TLS_FAILURE, not as a Gateway error.",
+    "A successful eth_chainId result that differs from 6423 is EVM_CHAIN_MISMATCH.",
+    "HTTP 410 or CLIENT_RETIRED is CLIENT_RETIRED, not Offline.",
+    "Public responses expose only HTTPS origins and validated source commit/release/start time fields."
+  ],
+  "testVectorPath": "apps/monitor/server/p0-connectivity.test.ts",
+  "consumerActivation": "Requires Integration acceptance and a signed, accepted public endpoint manifest before public production activation."
+}
