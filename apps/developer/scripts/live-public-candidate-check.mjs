@@ -129,14 +129,15 @@ assert.equal(wallet.gateway.publicDeploymentReady, false);
 const models = await json(cookie, "/runtime/models");
 assert.equal(models.hosted.available, true);
 assert.equal(models.hosted.model, "qwen3:4b");
-await json(cookie, "/runtime/workspaces/ai-live-probe", {
+const aiProjectId = `ai-live-probe-${randomUUID().replaceAll("-", "")}`;
+await json(cookie, `/runtime/workspaces/${aiProjectId}`, {
   method: "PUT",
   body: JSON.stringify({ protocolVersion: "ynx-code/v1", expectedRevision: 0, idempotencyKey: "ai-live-probe-0001", workspace: { name: "AI live probe", folders: ["src"], files: { "src/main.js": 'console.log("before")' }, open: ["src/main.js"], active: "src/main.js" } }),
 });
 const agent = await json(cookie, "/runtime/agent/runs", {
   method: "POST",
   expectedStatus: 201,
-  body: JSON.stringify({ protocolVersion: "ynx-code-agent/v1", projectId: "ai-live-probe", intent: "Plan a minimal change that prints after instead of before.", provider: "ynx-hosted", outputLanguage: "en", approval: "model-request-once", approvalId: randomUUID() }),
+  body: JSON.stringify({ protocolVersion: "ynx-code-agent/v1", projectId: aiProjectId, intent: "Plan a minimal change that prints after instead of before.", provider: "ynx-hosted", outputLanguage: "en", approval: "model-request-once", approvalId: randomUUID() }),
 });
 assert.equal(agent.run.status, "plan_review");
 assert.ok(agent.run.plan.steps.length > 0);
