@@ -2,20 +2,21 @@
   "schemaVersion": "1.0.0",
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "taskId": "P0-011",
-  "decision": "CANDIDATE_CONSUMED_ACTIVATION_BLOCKED_SHARED_TUPLE",
+  "decision": "IDENTITY_SPLIT_CAPABILITY_CONSUMED_OWNER_RECORDS_REQUIRED",
   "reviewedBy": "02-wallet-auth-central-integration",
-  "reviewedAt": "2026-08-20T10:41:00Z",
+  "reviewedAt": "2026-08-20T10:52:00Z",
   "ownerCandidate": {
     "branch": "codex/p0-wallet-protocol-integration-20260820",
-    "featureCommit": "c614501353d7631a6e20da7431ac858c2e5a8868",
-    "featureParent": "2d6c9aa354a459b224b79c11c69aab670336a41d",
-    "featureTree": "96747f4fb06c79df3cb18702634a5db41b6970ac",
-    "handoffCommit": "dd121d1676b321d817ca3f862f2aee1b157a90c9",
-    "handoffTree": "0bc8060ef6df8db6dc84ce2edc28e273ecf42b7a",
+    "featureCommit": "aff86fc5fb536039ea1eca0e76330bc87d626b44",
+    "featureParent": "19ffc5c6e8a5330bad7a4670b41c63c6b1d54ccf",
+    "featureTree": "08540bd1bfc2f5da7ccbb11d57551791efc9782e",
+    "supersedesFeatureCommit": "c614501353d7631a6e20da7431ac858c2e5a8868",
+    "handoffCommit": "a34d8a7b27d9b4179d259d1ecdb4078b408d0270",
+    "handoffTree": "ec3585459bfe4aed27655afcb7f7ea2c4133c9cb",
     "handoffPath": "packages/wallet-auth/proposals/p0-wallet-connectivity/wallet-protocol/client-retirement-implementation-handoff.json",
-    "handoffBlob": "2d8f3b528b73e7d429913f314353a6716ac127d5",
+    "handoffBlob": "9f94f52e6d344db0415c415bcecc4098c91fc2fb",
     "contractPath": "packages/wallet-auth/proposals/p0-wallet-connectivity/wallet-protocol/client-retirement-contract.json",
-    "contractBlob": "06e466bdfd38f689f65726c3f3b1e4bc7d699074",
+    "contractBlob": "a80fb3891e93691d37c53ca1b43e64c1e56b04fa",
     "frozenHandoffPath": "release/integration/p0-wallet-connectivity/evidence/shop-android-client-retirement-owner-handoff.json",
     "frozenContractPath": "release/integration/p0-wallet-connectivity/evidence/shop-android-client-retirement-contract.json",
     "changedScope": "packages/wallet-auth/** only"
@@ -52,23 +53,19 @@
   },
   "verification": {
     "ownerReported": {
-      "walletAuthPassed": 129,
+      "walletAuthPassed": 131,
       "walletAuthFailed": 0,
       "packageDryRunIncludes": "scripts/apply-client-retirement.mjs",
-      "diffCheck": "passed"
+      "diffCheck": "passed",
+      "cliMigration": "atomic registryVersion2-to-3 proved"
     },
     "centralReplay": {
-      "walletAuthPassed": 130,
+      "walletAuthPassed": 131,
       "walletAuthFailed": 0,
       "packageDryRunIncludes": "scripts/apply-client-retirement.mjs",
       "diffCheck": "passed",
       "dependencySource": "existing read-only packages/wallet-auth/node_modules; no install or lockfile mutation"
-    },
-    "firstReplayFailuresPreserved": [
-      "isolated archive had no @noble/hashes",
-      "root workspace dependency version did not export @noble/hashes/sha2.js"
-    ],
-    "firstReplayClassification": "test environment dependency mismatch; exact package dependency replay passed"
+    }
   },
   "tupleReview": {
     "currentDeploymentRegistryPath": "release/integration/p0-wallet-protocol-deployment-registry-v4.json",
@@ -109,19 +106,27 @@
       }
     ],
     "tupleUniquenessProved": false,
-    "conclusion": "Android-only retirement is not distinguishable with the current registry identity. Activating this record would also retire or revoke still-supported iOS and Web/PWA Product Session authority."
+    "conclusion": "Protocol capability can distinguish a retired legacy tuple after supported Shop clients move. No owner-supplied non-colliding supported productClientId/callback or authoritative retiredAt/disabled routes exists yet, so activation remains blocked.",
+    "capabilityToSplitAvailable": true,
+    "currentProductionTupleStillShared": true,
+    "reviewedSupportedProductClientId": null,
+    "reviewedSupportedCallback": null,
+    "authoritativeRetiredAt": null,
+    "reviewedDisabledCallbacks": null,
+    "reviewedDisabledAppLinks": null
   },
   "executionLease": {
     "issued": false,
     "leaseId": null,
     "status": "BLOCKED_BEFORE_ISSUE",
-    "blocker": "SHOP_ANDROID_TUPLE_SHARED_WITH_SUPPORTED_IOS_AND_WEB_CLIENTS_AND_RETIRED_AT_NULL"
+    "blocker": "SUPPORTED_SHOP_IDENTITY_AND_AUTHORITATIVE_RETIREMENT_RECORDS_NOT_ACCEPTED"
   },
   "requiredBeforeLease": [
-    "Create and owner-review a distinct Android productClientId plus exact package or bundle and callback/App-Link identity.",
-    "Preserve the existing supported iOS and Web/PWA tuple or migrate them to separately reviewed identities.",
-    "Supply a real reviewed retiredAt, replacementURL and minimumClientVersion; do not use test-vector dates.",
-    "Prove no supported client shares the retired tuple, then rerun 410, atomic revocation, restart and rollback gates."
+    "Shop owner supplies a reviewed supported productClientId and exact callback using existing signed fields.",
+    "iOS owner confirms and implements the supported Shop identity or explicitly records that iOS is retired separately.",
+    "Web/PWA owner confirms and implements its supported Shop identity and preserves the public replacement route.",
+    "Shop retirement owner supplies authoritative retiredAt, old clientId/package-or-bundle, disabled callbacks, disabled App Links, replacementURL and minimumClientVersion.",
+    "Integration verifies zero active/retired productClientId and callback collisions, then issues a separate bounded execution lease."
   ],
   "truth": {
     "featureIntegratedCentral": false,
@@ -134,5 +139,60 @@
     "existingPublicRuntimeSource": "49e30d999e9a9cbdd2c565021009f2cab0dc125c",
     "existingPublicRuntimeRemainsVerified": true,
     "currentPublicRuntimeContainsFeature": false
+  },
+  "identitySplitCapability": {
+    "registryDocumentVersion": 3,
+    "retiredClientsIndependentTombstones": true,
+    "activeProductRegistrationRetained": true,
+    "supportedClientMustMoveBeforeRetirement": true,
+    "activeRetiredProductClientIdCollisionRejected": true,
+    "activeCallbackInDisabledCallbacksRejected": true,
+    "authorizationSchemaChanged": false,
+    "productSessionSchemaChanged": false,
+    "oldRegistryV2Migration": "only inside exact-digest encrypted-backup retirement transaction",
+    "existingOldTupleAuthorityRevokedAtomically": [
+      "sessions",
+      "approvals",
+      "deviceGrants"
+    ],
+    "oldCompletion": "410 CLIENT_RETIRED",
+    "migratedSupportedCompletion": "200",
+    "standardEip1193Independent": true
+  },
+  "ownerCoordination": {
+    "status": "AWAITING_THREE_OWNER_RECORDS",
+    "requests": [
+      {
+        "owner": "shop",
+        "required": [
+          "supportedProductClientId",
+          "supportedCallback",
+          "retiredClientId",
+          "retiredPackageOrBundle",
+          "retiredAt",
+          "disabledCallbacks",
+          "disabledAppLinks",
+          "replacementURL",
+          "minimumClientVersion"
+        ]
+      },
+      {
+        "owner": "ios-shop",
+        "required": [
+          "supportedIdentityConfirmation",
+          "implementationSourceCommit",
+          "callbackBinding"
+        ]
+      },
+      {
+        "owner": "web-pwa-shop",
+        "required": [
+          "supportedIdentityConfirmation",
+          "implementationSourceCommit",
+          "publicReplacementRoute"
+        ]
+      }
+    ],
+    "inventValues": false
   }
 }

@@ -67,17 +67,28 @@
       "remoteUninstallClaim": false,
       "publicClaim": "not retired on public runtime until both retirement PRs are deployed and remaining Gateway enforcement is independently verified",
       "walletProtocolCandidate": {
-        "featureCommit": "c614501353d7631a6e20da7431ac858c2e5a8868",
-        "handoffCommit": "dd121d1676b321d817ca3f862f2aee1b157a90c9",
+        "featureCommit": "aff86fc5fb536039ea1eca0e76330bc87d626b44",
+        "handoffCommit": "a34d8a7b27d9b4179d259d1ecdb4078b408d0270",
+        "supersedesFeatureCommit": "c614501353d7631a6e20da7431ac858c2e5a8868",
         "implementationVerified": true,
-        "activationDecision": "BLOCKED_SHARED_TUPLE_AND_RETIRED_AT_NULL",
+        "identitySplitCapabilityVerified": true,
+        "activationDecision": "BLOCKED_PENDING_SUPPORTED_IDENTITY_AND_AUTHORITATIVE_RETIREMENT_RECORDS",
         "executionLeaseIssued": false,
         "tupleUniquenessProved": false,
-        "sharedWith": [
+        "currentTupleSharedWith": [
           "shop-ios",
           "shop-web-pwa"
         ],
-        "nextAction": "split Android registry identity from supported iOS/Web clients and supply reviewed real retirement metadata"
+        "requiredOwnerRecords": [
+          "supported productClientId",
+          "supported callback",
+          "retiredAt",
+          "retired clientId/package-or-bundle",
+          "disabled callbacks",
+          "disabled App Links",
+          "replacementURL",
+          "minimumClientVersion"
+        ]
       }
     }
   ]
