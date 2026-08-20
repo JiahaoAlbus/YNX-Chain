@@ -1,14 +1,16 @@
 {
   "taskId":"P0-015",
   "owner":"integration",
-  "status":"IN_PROGRESS",
+  "status":"CANDIDATE_READY",
   "branch":"codex/p0-bounded-replication-repair-20260820",
   "worktree":"29-chain-replication-p0",
+  "commit":"85174f75f05ae1e9ad84f2f0ec6ecfe0a6ede188",
   "paths":["cmd/ynx-chaind/replication*.go","internal/api/server*.go","internal/chain/replication*.go"],
   "observedFailure":"All follower nodes are behind the primary and repeatedly reject an authenticated replication response above the fixed 268435456-byte ceiling.",
   "objective":"Bound each suffix by bytes as well as block count so a follower can make authenticated forward progress without raising the decompressed response ceiling.",
   "invariants":["the active 256 MiB maximum remains enforced on fetch and apply","every response remains HMAC authenticated","every batch retains base/end continuity and integrity verification","final state remains separately sealed and validated","no service, deployment, manifest or public status changes in this source slice"],
-  "requiredEvidence":["focused chain and daemon tests including oversized-history progress","go build ./cmd/ynx-chaind","diff check","candidate rollback commit","separate protected deployment acceptance before any remote mutation"],
+  "requiredEvidence":["focused chain and daemon tests including oversized-history progress","go build ./cmd/ynx-chaind","race check for chain and daemon","diff check","candidate rollback commit","separate protected deployment acceptance before any remote mutation"],
+  "localEvidence":{"tests":"passed: go test ./internal/chain ./internal/api ./cmd/ynx-chaind; go build ./cmd/ynx-chaind; go test -race ./internal/chain ./cmd/ynx-chaind; git diff --check","behavior":"non-final replication suffixes select the largest HMAC-authenticated contiguous block range fitting the 64 MiB transport target; the 256 MiB fetch/apply ceiling and final-state seal are retained"},
   "rollback":"Revert the dedicated candidate commit; keep the current production release untouched until a separate deployment gate accepts exact source and follower convergence.",
   "publicVerified":false
 }
