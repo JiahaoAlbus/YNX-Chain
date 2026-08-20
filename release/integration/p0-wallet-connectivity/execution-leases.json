@@ -1,7 +1,7 @@
 {
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "epoch": 18,
-  "updatedAt": "2026-08-20T19:56:33Z",
+  "updatedAt": "2026-08-20T20:00:00Z",
   "heavy": {
     "owner": null,
     "status": "CONSUMED_RELEASED_FAILED_CLOSED_INSTALL_PERMISSION",
@@ -27,21 +27,21 @@
     ]
   },
   "light": {
-    "owner": null,
-    "status": "RELEASED_SOURCE_CHECKPOINT",
-    "branch": "codex/p0-merchant-console-wallet-connectivity-20260821",
-    "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/05-merchant-console-p0",
-    "taskId": "P0-052",
-    "leasedAt": "2026-08-20T19:26:00Z",
-    "releasedAt": "2026-08-20T19:45:00Z",
-    "previousOwner": "data-fabric",
-    "previousCheckpoint": "f3d36ab5785f910f3114c4a080f2c2551aabe656",
-    "reason": "Merchant Console consumed the accepted Standard Wallet SDK and endpoint manifest, passed 13/13 tests and build, and was verified in local Browser with English UI, guest preview, private degradation and zero console errors. Actual provider, Product Session v2, public and Computer Control remain false.",
-    "executionScope": "RELEASED_MERCHANT_CONSOLE_STANDARD_WALLET_SOURCE_CHECKPOINT",
+    "owner": "integration",
+    "status": "ACTIVE_BOUNDED_SOURCE_ONLY",
+    "branch": "codex/p0-seller-console-wallet-connectivity-20260821",
+    "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/10-seller-console",
+    "taskId": "P0-056",
+    "leasedAt": "2026-08-20T20:00:00Z",
+    "releasedAt": null,
+    "previousOwner": null,
+    "previousCheckpoint": "0dc06695e67347e3e77fbf9d0709a6c35513a758",
+    "reason": "Seller Console is a registered product with legacy private Wallet launcher/session behavior and no Standard EVM Wallet connection. Integration may perform one bounded source-only migration after P0-054 released Heavy.",
+    "executionScope": "SELLER_CONSOLE_STANDARD_WALLET_SOURCE_ONLY",
     "onSafeCheckpoint": [
-      "modify only apps/merchant-console and its owner evidence",
+    "modify only apps/seller-console and its owner evidence",
       "consume the accepted DApp Connect SDK and endpoint manifest without copying shared protocol",
-      "keep guest and public merchant surfaces independent of Standard Wallet and private Product Session",
+    "keep guest and public seller surfaces independent of Standard Wallet and private Product Session",
       "keep Product Session failure isolated as private-service degradation",
       "run tests, build and release scans; do not deploy publicly or claim installed evidence",
       "commit, force-false push, update handoff and release at a clean checkpoint"
