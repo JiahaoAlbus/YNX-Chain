@@ -37,9 +37,8 @@ test("Web npm and Python package installation is exact, reviewed, persistent and
   assert.match(image, /lxc config device add "\$builder" ynx-package-egress nic network="\$package_network" name=eth0/);
   assert.match(image, /package_network == ynx-pkg-egress/);
   assert.match(image, /Ubuntu APT sources must use HTTPS under reviewed package egress/);
-  assert.match(image, /sed -i -E/);
-  assert.match(image, /http:\/\/\(archive\|security\|ports\)/);
-  assert.match(image, /https:\/\/\\\\1\.ubuntu\.com/);
+  assert.match(image, /for source in \/etc\/apt\/sources\.list/);
+  assert.match(image, /sed -i "s#http:\/\/#https:\/\/#g" "\$source"/);
   assert.ok(
     image.indexOf("Ubuntu APT sources must use HTTPS under reviewed package egress") <
       image.indexOf("apt-get update -qq"),
