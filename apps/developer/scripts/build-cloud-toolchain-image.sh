@@ -36,7 +36,15 @@ if lxc image info "$target_alias" >/dev/null 2>&1; then
   exit 1
 fi
 cleanup() { lxc delete --force "$builder" >/dev/null 2>&1 || true; }
-trap cleanup ERR INT TERM
+on_error() {
+  local status=$? line=${BASH_LINENO[0]:-unknown}
+  printf 'YNX_CODE_IMAGE_BUILD_FAILED status=%s line=%s\n' "$status" "$line" >&2
+  cleanup
+  exit "$status"
+}
+trap on_error ERR
+trap 'cleanup; exit 130' INT
+trap 'cleanup; exit 143' TERM
 if lxc info "$builder" >/dev/null 2>&1; then
   echo "Builder instance already exists: $builder" >&2
   exit 1
