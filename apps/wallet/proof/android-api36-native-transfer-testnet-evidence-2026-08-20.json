@@ -67,6 +67,12 @@
       "recipientBalanceAfterRestart": 25,
       "recipientRecentAccountTransactionsAfterRestart": 1
     },
+    "screenshotPrivacy": {
+      "adbScreenCaptureWasProtected": true,
+      "capturedBytes": 15733,
+      "capturedSha256": "2ad1f80253fe85d8758d65b8bcce08f3cf1c7311b9fd99e6d8a240378361274b",
+      "contentWasNotUsedAsVisualSuccessEvidence": true
+    },
     "walletFatalOrAnrObserved": false
   },
   "truthBoundaries": {
