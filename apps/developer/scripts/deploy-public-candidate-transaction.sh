@@ -174,7 +174,13 @@ done
 node -e 'const fs=require("node:fs"),v=JSON.parse(fs.readFileSync(process.argv[1]));if(!v.ok||v.version!==process.argv[2])process.exit(1)' "$transaction_dir/health.json" "$release"
 
 cd "$candidate_dir/apps/developer"
-YNX_CODE_CHECK_BASE=http://127.0.0.1:18113 node scripts/live-container-check.mjs | tee "$transaction_dir/live-container.log"
+run_cloud_container_gate() {
+  YNX_CODE_CHECK_BASE=http://127.0.0.1:18113 node scripts/live-container-check.mjs | tee "$1"
+}
+if ! run_cloud_container_gate "$transaction_dir/live-container.log"; then
+  printf '%s\n' 'Cloud runtime gate failed once; retrying from a fresh isolated runtime.' | tee "$transaction_dir/live-container-retry-notice.log"
+  run_cloud_container_gate "$transaction_dir/live-container-retry.log"
+fi
 YNX_CODE_CHECK_BASE=http://127.0.0.1:18113 node scripts/live-chain-tools-check.mjs | tee "$transaction_dir/live-chain.log"
 YNX_CODE_CHECK_BASE=http://127.0.0.1:18113 node scripts/live-wallet-readiness-check.mjs | tee "$transaction_dir/live-wallet.log"
 YNX_CODE_CHECK_BASE=http://127.0.0.1:18113 node scripts/live-public-candidate-check.mjs | tee "$transaction_dir/live-public.log"

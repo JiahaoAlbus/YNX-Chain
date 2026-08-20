@@ -40,6 +40,8 @@ test("public candidate transaction is exact-source, preflighted and rollback-saf
   assert.match(transaction, /ln -sfn "\$previous_target" "\$current_link"/);
   assert.match(transaction, /lxc image delete "\$image_fingerprint"/);
   assert.match(transaction, /live-container-check\.mjs/);
+  assert.match(transaction, /Cloud runtime gate failed once; retrying from a fresh isolated runtime/);
+  assert.match(transaction, /live-container-retry\.log/);
   assert.match(transaction, /live-package-install-check\.mjs prepare/);
   assert.match(transaction, /package-devices-after-install\.json/);
   assert.match(transaction, /Temporary package egress remains attached/);
