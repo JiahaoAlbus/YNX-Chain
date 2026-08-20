@@ -1,7 +1,7 @@
 # YNX Data Fabric Integration Handoff
 
-Source Commit: `63a7d633a10bcb8f7f929a2aa67af32074f49ea7`
-Release Candidate: `ynx-data-fabric-63a7d633a10b`
+Source Commit: `33609cca6c79fc48765d8a4f29d8362560dbb3f7`
+Release Candidate: `ynx-data-fabric-33609cca6c79`
 Owner: YNX Data Fabric
 Phase: `INTEGRATE`
 Status: `ACTIVE`
@@ -18,17 +18,17 @@ Status: `ACTIVE`
 - Cross-product vectors: `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json`
 - Dependency acceptance: `docs/integration/DEPENDENCY_ACCEPTANCE.md`
 - Full goal coverage: `.ai-bridge/full-goal-coverage.json`
-- Wallet Connectivity candidate only: `schemas/data-fabric/wallet-connectivity-events-v1.candidate.schema.json`
+- Wallet Connectivity candidate: `schemas/data-fabric/wallet-connectivity-events-v1.candidate.schema.json`
+- Durable Ledger and Card candidates: `schemas/data-fabric/durable-ledger-v1.candidate.schema.json`, `schemas/data-fabric/card-ledger-events-v1.candidate.schema.json`
 
 The Wallet Connectivity candidate is intentionally outside the active Schema
 Registry and runtime. It records asynchronous, privacy-safe observations only;
 it cannot block or downgrade a DApp standard wallet connection. Integration
 must accept it and grant the Data Fabric light lease before activation.
 
-Exact-source CI Run `32349107899` passed all six Data Fabric jobs at evidence
-head `7b9a87ad093481aaf635c5f1f98bbf904581b992`. This validates the candidate
-source and release-truth binding only; it is not Integration acceptance,
-runtime activation, or public deployment evidence.
+The predecessor candidate source passed all six Data Fabric jobs in Run
+`32349107899`; exact-source CI for this expanded candidate is pending. Neither
+is Integration acceptance, runtime activation, or public deployment evidence.
 
 ## Release state
 

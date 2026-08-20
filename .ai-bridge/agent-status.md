@@ -4,8 +4,8 @@
 - Phase: `INTEGRATE`
 - Workspace: exact configured YNX 26 Worktree verified
 - Branch: `codex/final-data-fabric`
-- Engineering Source Commit: `63a7d633a10bcb8f7f929a2aa67af32074f49ea7`
-- Remote Source Commit: pushed to review Branch `codex/data-fabric-typescript-sdk-20260814`; exact-source CI Run `32349107899` passed all six jobs at evidence head `7b9a87ad093481aaf635c5f1f98bbf904581b992`
+- Engineering Source Commit: `33609cca6c79fc48765d8a4f29d8362560dbb3f7`
+- Remote Source Commit: pending push and exact-source CI; predecessor source `63a7d633a10bcb8f7f929a2aa67af32074f49ea7` passed all six jobs in Run `32349107899`
 - Source evidence CI: Run `31811137802` passed both jobs at v26-bound head `58eff9dad4a0a3dc27105716928f2a9b7c4f6460`, including the three-replica JetStream TCP route-partition/heal gate. Its eleven-file artifact was downloaded and every SHA-256 value verified. Earlier leader-loss evidence remains preserved in Runs `31797308684` and `31799837096`.
 - Concurrent writer: no Git writer detected; an existing CodexPro server process was left untouched
 - Dirty state: reviewed and verified source-bound evidence slice awaiting commit and push; legacy recovery files are preserved under `recovery/2026-07-23/`
