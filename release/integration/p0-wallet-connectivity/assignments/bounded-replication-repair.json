@@ -1,10 +1,10 @@
 {
   "taskId":"P0-015",
   "owner":"integration",
-  "status":"CANDIDATE_READY",
+  "status":"BLOCKED_ENVIRONMENT_RECOVERY",
   "branch":"codex/p0-bounded-replication-repair-20260820",
   "worktree":"29-chain-replication-p0",
-  "commit":"a5e9162dec73b048e1ef9195c550ce65313eb00b",
+  "commit":"996f58e8a6269dae60ed4652ba8d11459f6fbdb1",
   "draftPR":"https://github.com/JiahaoAlbus/YNX-Chain/pull/128",
   "paths":["cmd/ynx-chaind/replication*.go","internal/api/server*.go","internal/chain/replication*.go","scripts/ops/deploy-bounded-replication-recovery.sh"],
   "observedFailure":"All follower nodes are behind the primary and repeatedly reject an authenticated replication response above the fixed 268435456-byte ceiling.",
@@ -12,6 +12,7 @@
   "invariants":["the active 256 MiB maximum remains enforced on fetch and apply","every response remains HMAC authenticated","every batch retains base/end continuity and integrity verification","final state remains separately sealed and validated","the recovery tool may touch only the existing ynx-chaind binary and its release-manifest; it preserves units, environment, state and every other service","no public status changes occur before protected deployment acceptance"],
   "requiredEvidence":["focused chain and daemon tests including oversized-history progress","go build ./cmd/ynx-chaind","race check for chain and daemon","diff check","candidate rollback commit","node-only deployment-tool syntax and dry run","separate protected deployment acceptance before any remote mutation"],
   "localEvidence":{"tests":"passed: go test ./internal/chain ./internal/api ./cmd/ynx-chaind; go build ./cmd/ynx-chaind; go test -race ./internal/chain ./cmd/ynx-chaind; make static-check; git diff --check","behavior":"non-final replication suffixes select the largest HMAC-authenticated contiguous block range fitting the 64 MiB transport target; the 256 MiB fetch/apply ceiling and final-state seal are retained","releaseTool":"scripts/ops/deploy-bounded-replication-recovery.sh passed bash -n and a four-node DEPLOY_DRY_RUN. It validates the exact package, binary and manifest digests, backs up only the current ynx-chaind binary per node, restores it when post-restart status fails, preserves units, state, environment and all other services, and requires a gate-bound full commit before a real mutation."},
-  "rollback":"Revert the dedicated candidate commit. The node-only recovery tool creates a per-node copy of the preexisting binary before restart and restores it on a failed post-restart health check; keep the current production release untouched until a separate deployment gate accepts exact source and follower convergence.",
+  "rollback":"Revert the dedicated candidate commits. The node-only recovery tool creates a per-node copy of the preexisting binary before restart and restores it on a failed post-restart health check; keep the current production release untouched until a separate deployment gate accepts exact source and follower convergence.",
+  "blocker":{"code":"NODE_ENVIRONMENT_FILE_MISSING","nodes":["primary","silicon-valley"],"detail":"The running systemd unit requires /etc/ynx/ynx-chaind.env, but the file is absent on these two nodes. The active processes were started before loss; restarting without an exact restored environment can make them unavailable. The candidate package contains unrelated secret-bearing environment files and is not an authorized recovery source.","evidence":"The node-only read-only preflight passed Singapore, then stopped at Silicon Valley. Direct read-only checks confirmed the binary and status endpoint work but the required environment file is missing on Primary and Silicon Valley; follower backups contain their own environment snapshots while Primary and Silicon Valley do not.","nextAction":"Locate an approved, node-specific secret recovery authority or use a governed local process-environment recovery procedure without exposing values; only then extend the candidate tool and repeat preflight."},
   "publicVerified":false
 }
