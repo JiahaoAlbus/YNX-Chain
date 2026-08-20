@@ -74,6 +74,7 @@
     }
   ],
   "queue": [
+    "wallet-auth-core:registry-v3@ready-blocked-active-heavy",
     "financial-apps:pay@assigned-no-active-lease",
     "data-fabric:error-aggregation-light-slice@active-from-353fffbc",
     "explorer-monitor:truth-connectivity-deploy-slice@active-from-6d62c399",

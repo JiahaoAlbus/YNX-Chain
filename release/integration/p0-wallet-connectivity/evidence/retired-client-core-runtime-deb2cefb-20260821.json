@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "P0-RETIRED-CLIENT-CORE-RUNTIME-DEB2CEFB-20260821",
+  "capturedAt": "2026-08-20T17:25:28Z",
+  "ownerSource": {
+    "commit": "deb2cefb00b52e5c2ab9c357201d690918320424",
+    "parent": "84308a6ded969c71c9f32e2ab4f25424822feb84",
+    "tree": "06290f63aa0d2dd5c8c4aaa968516b094c2db0f0",
+    "walletAuthTree": "36a944555bbd20354489aaf12620bdee4063790b",
+    "remoteReadback": true,
+    "semanticReconciliation": "bfc11ecb4100725ae8f42c86d220fa0bc2d8212a",
+    "registryBytesMatchAcceptedSource": true,
+    "registrySha256": "810c58777a62a798e286d2d30e0430334b88603653f672821642e80e3553c46c",
+    "versionReportsRegistrySchemaVersion": 3,
+    "versionReportsParsedRegistryDigest": true,
+    "versionRemoteDeployedRemainsFalse": true
+  },
+  "artifactIdentity": {
+    "sourceArchivePrefix": "ynx-wallet-auth-deb2cefb/",
+    "sourceArchiveBytes": 594891,
+    "sourceArchiveSha256": "3648100f1d63a7799f5e1558f269fbe169eb99b01023f0c75b2d6ef0dbfeb3c4",
+    "inventoryEntries": 204,
+    "inventoryBytes": 22793,
+    "inventorySha256": "7ebefcafc9f31781832dc74ae00ccaf871dd99baee233e32398b266dba89087c",
+    "packageLockSha256": "c32e52b9c87743ee5870ec146590f203f0084926dfbf9a66b7edb5a9224ce606",
+    "runtimeDependencyLockUnchangedFromPublic6cf": true,
+    "acceptedOfflineDependencyArchiveSha256": "2a2f29218914580bce70dcc31852186223965b8cf1c5cd34c3cb66c7edf69a54",
+    "acceptedOfflineDependencyArchiveBytes": 665983,
+    "acceptedOfflineDependencySbomSha256": "b3588ecf29e24242c621509bb5ee34b9d4bca6ea8583fead01d14c5c3efbcfad"
+  },
+  "ownerGates": {
+    "retiredClientFocused": "23/23",
+    "recoveryAndStateIntegrity": "38/38",
+    "walletAuthFull": "340/340",
+    "export": "pass",
+    "npmPackFiles": 95
+  },
+  "acceptedSemantics": {
+    "shopAndroidHttpStatus": 410,
+    "shopAndroidCode": "CLIENT_RETIRED",
+    "authority": "none",
+    "productSession": false,
+    "automaticRedirect": false,
+    "actions": ["open-replacement", "return-to-product"],
+    "sameOriginHttpsReplacementRequired": true,
+    "unknownOrUnsafeReplacementFailsClosed": true,
+    "existingRetiredSessionsAndDevicesRevoked": true,
+    "pendingChallengesPurged": true,
+    "cachedSuccessPurged": true,
+    "shopWebRemainsActive": true
+  },
+  "currentPublicBoundary": {
+    "sourceCommit": "6cf3ef845202bd879ed94515a71b323dd2fc9e14",
+    "release": "p0-v2-state-isolated-6cf3ef84",
+    "registryV3DeployedPublic": false,
+    "candidatePublicAcceptanceRun": false,
+    "productsMigrated": 0,
+    "productsRequired": 12,
+    "installedClientVerified": false,
+    "integratedCentral": false,
+    "aggregateDeployedPublic": false
+  }
+}
