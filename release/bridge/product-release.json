@@ -80,6 +80,28 @@
     "productSpecificMetadataVerified": false,
     "metadataGap": "The fetched SPA shell still publishes the root canonical URL and generic site metadata."
   },
+  "p0WalletConnectivity": {
+    "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+    "taskId": "P0-078",
+    "sourceCommit": "fe8c466a456d42ecd5088938e9e8623826a296c0",
+    "evidence": "apps/bridge-web/evidence/p0-078/bridge-standard-wallet-visible-evidence.json",
+    "standardWallet": {
+      "eip1193": true,
+      "eip6963": true,
+      "ynxWalletPreferred": true,
+      "metaMaskExplicitFallback": true,
+      "evmChainId": "0x1917",
+      "guestModeIndependent": true
+    },
+    "privateBridgeService": "PRIVATE_SERVICE_DEGRADED",
+    "bridgeExecutionAvailable": false,
+    "installedWalletVerified": false,
+    "productSessionV2Migrated": false,
+    "deployedPublicCurrentSource": false,
+    "publicVerified": false,
+    "computerControl": false,
+    "integratedCentral": false
+  },
   "externalInputs": [
     "approved YNX Provider or proof route and contracts",
     "funded Testnet assets and gas",

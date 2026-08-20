@@ -1,0 +1,102 @@
+{
+  "schemaVersion": "ynx-p0-product-evidence/1",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-078",
+  "productId": "ynx-bridge",
+  "owner": "integration",
+  "generatedAt": "2026-08-20T23:18:33Z",
+  "sourceCommit": "fe8c466a456d42ecd5088938e9e8623826a296c0",
+  "sourceBranch": "codex/p0-bridge-wallet-connectivity-20260821",
+  "contractsConsumed": {
+    "dappConnectSDK": {
+      "status": "ACCEPTED_SOURCE_ONLY",
+      "sourceCommit": "315897e75c0ffe3e63435fe73cfec42244b851cc",
+      "distribution": "byte-identical browser-safe source",
+      "manifest": "apps/bridge-web/ynx-dapp-connect-sdk/manifest.json"
+    },
+    "standardWalletConnection": {
+      "status": "SOURCE_CONSUMED",
+      "transports": ["EIP-1193", "EIP-6963"],
+      "chainId": "0x1917",
+      "accountShape": "0x EVM account only"
+    },
+    "productSessionV2": {
+      "status": "NOT_CONSUMED",
+      "privateServiceState": "PRIVATE_SERVICE_DEGRADED"
+    }
+  },
+  "userFlows": {
+    "guestRouteEvidence": true,
+    "ynxWalletPreferred": true,
+    "metaMaskExplicitFallback": true,
+    "officialYNXWalletDownload": "https://www.ynxweb4.com/dapp/download#wallet",
+    "walletMissingShowsInstallChoice": true,
+    "walletRejectionCreatesAccount": false,
+    "walletRejectionCreatesProductSession": false,
+    "publicEvidenceBlockedByPrivateService": false,
+    "bridgeExecutionAvailable": false,
+    "quoteAvailable": false,
+    "signatureRequested": false,
+    "transferCreated": false
+  },
+  "verification": {
+    "unit": {
+      "command": "node --test apps/bridge-web/wallet-connection.test.mjs",
+      "passed": 4,
+      "failed": 0
+    },
+    "go": {
+      "command": "go test ./internal/bridgegateway/... ./cmd/ynx-bridged/...",
+      "passed": true
+    },
+    "sdk": {
+      "command": "node --test sdk/bridge/index.test.mjs",
+      "passed": 4,
+      "failed": 0
+    },
+    "browser": {
+      "command": "NODE_PATH=<local-playwright-dependency> node apps/bridge-web/wallet-visible.cjs",
+      "passed": true,
+      "browser": "Chromium",
+      "flows": ["wallet-approved", "wallet-rejected"],
+      "guestEvidenceReadable": true,
+      "transferButtonDisabled": true,
+      "consoleErrors": 0,
+      "computerControl": false
+    },
+    "diffCheck": true
+  },
+  "screenshots": [
+    {
+      "path": "apps/bridge-web/evidence/p0-078/screenshots/bridge-wallet-approved.png",
+      "bytes": 189593,
+      "sha256": "ce67b6aa7dd4e30e69fd8f51fc6f157dec9515aedfb91370ba77decaf481b635"
+    },
+    {
+      "path": "apps/bridge-web/evidence/p0-078/screenshots/bridge-wallet-rejected.png",
+      "bytes": 188331,
+      "sha256": "a584adb42722ee9a4e836fd7b21d3f3fc0b24177499d987e5952936626e19dd0"
+    }
+  ],
+  "truth": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "standardWalletSourceConsumed": true,
+    "installedWalletVerified": false,
+    "productSessionV2Migrated": false,
+    "bridgeTransferVerified": false,
+    "deployedPublicCurrentSource": false,
+    "publicVerified": false,
+    "computerControl": false,
+    "integratedCentral": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "remainingBlockers": [
+    "Real installed YNX Wallet approval and transaction evidence",
+    "Accepted Product Session v2 runtime migration for private Bridge services",
+    "Verified executable Testnet route, destination contract, quote, signer and funded transfer",
+    "Current-source public deployment and official-domain readback",
+    "Final all-products ComputerControl verification"
+  ]
+}
