@@ -2,7 +2,9 @@
   "schemaVersion": 1,
   "acceptanceId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-auth-v2-runtime-6cf3ef84",
   "recordedAt": "2026-08-20T12:02:55Z",
-  "decision": "ACCEPTED_FOR_SINGLE_USE_CONTROLLED_V2_RUNTIME_TRANSACTION",
+  "decision": "SUPERSEDED_DEPENDENCY_CLOSURE_INCOMPLETE",
+  "supersededAt": "2026-08-20T12:10:54Z",
+  "supersededReason": "The seven changed files are not a deployable dependency closure on current public source 49e30d999; required Product Session v2 modules and registry are absent from that runtime.",
   "authoritativeControlPlane": {
     "branch": "codex/p0-wallet-connectivity-control-plane-20260820",
     "baseCommit": "a82e1094a4373760a9e77ec3ba8bb8827bf5487e"
@@ -82,7 +84,7 @@
     "priorRuntimePublicVerified": true,
     "priorRuntimeSource": "49e30d999e9a9cbdd2c565021009f2cab0dc125c",
     "candidateImplemented": true,
-    "candidateAcceptedForControlledExecution": true,
+    "candidateAcceptedForControlledExecution": false,
     "candidateDeployedPublic": false,
     "publicV2LifecycleVerified": false,
     "installedClientVerified": false,

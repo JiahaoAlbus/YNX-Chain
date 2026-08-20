@@ -26,6 +26,10 @@
     "candidateObservedPublic": false,
     "productRuntimeMigrations": 0,
     "installedClientVerified": false,
-    "aggregatePublic": false
+    "aggregatePublic": false,
+    "sevenFileDependencyClosureCompleteOn49e": false,
+    "preflightFailedClosed": true,
+    "deploymentStarted": false,
+    "productionMutationObserved": false
   }
 }

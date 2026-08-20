@@ -2,16 +2,18 @@
   "schemaVersion": 1,
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-auth-v2-runtime-lease-20260820T120255Z",
-  "status": "ISSUED_NOT_STARTED",
+  "status": "SUPERSEDED_BEFORE_START_DEPENDENCY_CLOSURE",
   "singleUse": true,
   "issuedAt": "2026-08-20T12:02:55Z",
   "expiresAt": "2026-08-20T14:02:55Z",
+  "supersededAt": "2026-08-20T12:10:54Z",
+  "supersededReason": "EXACT_SEVEN cannot cold-start on public 49e because its imported Product Session v2 dependency closure and product-session-registry.json are absent.",
   "leaseOwner": "wallet-protocol",
   "deploymentOwner": "wallet-auth-gateway-runtime-owner",
   "deploymentChannel": "exclusive-wallet-auth-v1-plus-v2-runtime-transaction",
   "acceptancePath": "release/integration/p0-wallet-connectivity/acceptance/wallet-auth-v2-runtime-6cf3ef84-20260820.json",
   "authorization": {
-    "executionAuthorized": true,
+    "executionAuthorized": false,
     "singleControlledTransaction": true,
     "exclusiveProductionWindowRequired": true,
     "automaticRollbackRequired": true,
@@ -81,7 +83,9 @@
     "rollbackDrillComplete": false,
     "publicAcceptanceComplete": false,
     "installedClientAcceptanceComplete": false,
-    "leaseConsumed": false
+    "leaseConsumed": false,
+    "supersededBeforeStart": true,
+    "productionMutationObserved": false
   },
   "truth": {
     "priorRuntimePublicVerified": true,
