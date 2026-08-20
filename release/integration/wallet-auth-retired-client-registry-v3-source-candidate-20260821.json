@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "owner": "Core/Auth/Gateway",
+  "status": "source-candidate-tested-no-execution-lease",
+  "controlPlane": {
+    "centralReleaseCommit": "28fb5430c35dbc14216140d5ecd791bf21995c61",
+    "epoch": 13,
+    "previousLeaseStatus": "LEASE_INVALIDATED_FAILED_CLOSED_PREFLIGHT",
+    "heavyOwner": null,
+    "productionMutation": false
+  },
+  "source": {
+    "commit": "5d94dcd0b25595df478ffe45a84cc346306ad4d4",
+    "tree": "b908a8054a2d321f75855f8030114cf9f1cba9ff",
+    "parent": "890ef0f8b31ba467c5a347b83b0ec8bdca5497cf",
+    "walletAuthTree": "3d638e6bf36a96bd5b861ef423cf51fbd394c2ba",
+    "branch": "codex/wallet-core-auth-gateway-continuation-20260814"
+  },
+  "closedBlockers": [
+    {
+      "code": "AUTHORIZED_SOURCE_HAS_NO_STATE_MIGRATION",
+      "resolution": "The packaged offline ynx-wallet-product-session-state-migrate CLI requires exact old state, previous registry and current registry file SHA-256 values; reads safe owned files with O_NOFOLLOW; accepts only the canonical 6cf envelope; writes one new private 0600 output without overwrite."
+    },
+    {
+      "code": "PUBLIC_VERSION_ROUTE_UNREACHABLE",
+      "resolution": "The Product Session host now serves exact GET-only health, ready and version responses on both standalone root paths and aggregate /v2/product-sessions/* paths. Wrong method or body/proof headers fail closed without state mutation."
+    },
+    {
+      "code": "REGISTRY_DIGEST_SEMANTICS_MISMATCH",
+      "resolution": "Version evidence exposes registryFileSha256 for raw file bytes and registryStateBindingSha256 for canonical parsed registry state binding; registrySha256 remains the parsed binding compatibility field."
+    },
+    {
+      "code": "CURRENT_STATE_ENVELOPE_INCOMPATIBLE",
+      "resolution": "The explicit migration accepts only schemaVersion,snapshot,snapshotDigest canonical 6cf state, verifies snapshotDigest and the entire source file SHA-256, then emits the registry-bound schemaVersion,registrySha256,snapshot,snapshotSha256 envelope."
+    },
+    {
+      "code": "PRODUCTION_ENVIRONMENT_NAME_MISMATCH",
+      "resolution": "Runtime path binding accepts the current YNX_WALLET_PRODUCT_SESSION_V2_* names or the deployed YNX_PRODUCT_SESSION_GATEWAY_* names; if both are present they must resolve to the same exact absolute paths or startup fails closed."
+    }
+  ],
+  "fileSha256": {
+    "productSessionRegistryRaw": "810c58777a62a798e286d2d30e0430334b88603653f672821642e80e3553c46c",
+    "migrationCli": "acecf553c59ae8193d7ebb45f82effdb6ec7fa6d7f9e87fcfb37f61f3f53a3b4",
+    "nodeHost": "5964a99268cfcafc4229f2173d31378e42dcca75bd5a7c03138b93b5b9736dc6",
+    "stateMigration": "2ae2a8f4844f45b3b31ea8cc38a5cf0667b0b62ad65eb73502770d7bae1109cc",
+    "runtimeConfig": "fcd76b639d8e03fef8243476a95adab0cf1c522e6d265a0350d95f46e94d2a0c"
+  },
+  "tests": {
+    "focused": {
+      "command": "node --test packages/wallet-auth/test/product-session-gateway-node-host.test.mjs packages/wallet-auth/test/product-session-gateway-node-state-migration.test.mjs packages/wallet-auth/test/product-session-gateway-runtime-config.test.mjs",
+      "passed": 10,
+      "failed": 0
+    },
+    "fullWalletAuth": {
+      "command": "npm test --prefix packages/wallet-auth",
+      "passed": 347,
+      "failed": 0
+    },
+    "pack": {
+      "command": "npm pack --pack-destination <private-temp-dir> --json",
+      "passed": true,
+      "package": "@ynx-chain/wallet-auth@1.1.0",
+      "entryCount": 98,
+      "bytes": 179690,
+      "sha256": "5c4713c50fe7cbcbca6dad673a689960c53822c68910db9701a3376d8269c126",
+      "repeatSha256Matched": true,
+      "requiredNewFilesIncluded": true,
+      "migrationSubpathExportVerified": true
+    }
+  },
+  "deploymentBoundary": {
+    "sshUsedForCandidate": false,
+    "deploymentAttempted": false,
+    "productionStateMutated": false,
+    "candidateDeployedPublic": false,
+    "publicRegistryV3": false,
+    "shopAndroidRetired410Public": false,
+    "shopWebPreservedOnRegistryV3Public": false,
+    "productMigrationsComplete": 0,
+    "productMigrationsTotal": 12,
+    "computerControlVerified": false,
+    "integratedCentral": false,
+    "aggregatePublic": false,
+    "nextAction": "Integration must review this exact source candidate and issue a fresh bounded single-use lease before any SSH or deployment action."
+  }
+}
