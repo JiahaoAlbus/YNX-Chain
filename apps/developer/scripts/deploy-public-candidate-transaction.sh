@@ -182,6 +182,11 @@ YNX_CODE_CHECK_BASE=http://127.0.0.1:18113 YNX_CODE_CHECK_STATE="$package_probe_
 assert_package_egress_detached "$transaction_dir/package-devices-after-install.json"
 YNX_CODE_CHECK_BASE=http://127.0.0.1:18113 YNX_CODE_CHECK_STATE="$state_dir/.persistence-probe-$transaction_id" node scripts/live-public-candidate-check.mjs prepare | tee "$transaction_dir/restart-prepare.log"
 systemctl restart "$service"
+for _ in $(seq 1 30); do
+  if curl -fsS --max-time 3 http://127.0.0.1:18113/healthz > "$transaction_dir/health-after-restart.json"; then break; fi
+  sleep 1
+done
+node -e 'const fs=require("node:fs"),v=JSON.parse(fs.readFileSync(process.argv[1]));if(!v.ok||v.version!==process.argv[2])process.exit(1)' "$transaction_dir/health-after-restart.json" "$release"
 YNX_CODE_CHECK_BASE=http://127.0.0.1:18113 YNX_CODE_CHECK_STATE="$state_dir/.persistence-probe-$transaction_id" node scripts/live-public-candidate-check.mjs resume | tee "$transaction_dir/restart-resume.log"
 YNX_CODE_CHECK_BASE=http://127.0.0.1:18113 YNX_CODE_CHECK_STATE="$package_probe_state" node scripts/live-package-install-check.mjs resume | tee "$transaction_dir/package-resume.log"
 assert_package_egress_detached "$transaction_dir/package-devices-after-restart.json"

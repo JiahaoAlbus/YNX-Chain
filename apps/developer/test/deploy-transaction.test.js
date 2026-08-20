@@ -46,6 +46,7 @@ test("public candidate transaction is exact-source, preflighted and rollback-saf
   assert.match(transaction, /Array\.isArray\(value\)\?value:value\?\.metadata/);
   assert.match(transaction, /live-public-candidate-check\.mjs prepare/);
   assert.match(transaction, /systemctl restart "\$service"/);
+  assert.match(transaction, /health-after-restart\.json/);
   assert.match(transaction, /live-public-candidate-check\.mjs resume/);
   assert.match(transaction, /live-package-install-check\.mjs resume/);
   assert.match(transaction, /package-devices-after-restart\.json/);
