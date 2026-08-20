@@ -60,7 +60,11 @@
     "buildSource": "6cf3ef845202bd879ed94515a71b323dd2fc9e14",
     "historicalRestOriginStillMounted": true,
     "historicalRestOriginBuildIdentifiable": false,
-    "callerOverrideAllowed": false
+    "callerOverrideAllowed": false,
+    "centralAcceptanceCommit": "8db659b8e55e54d3b49d4ff7479448877b97ff40",
+    "centralDecision": "ACCEPTED_SOURCE_ONLY_SDK_PACKAGE_CHECKPOINT",
+    "artifactPublished": false,
+    "npmRegistryPublished": false
   },
   "tests": {
     "walletAuth": {
@@ -132,8 +136,10 @@
     "postDeploymentEvidencePath": "release/integration/wallet-auth-website-postdeploy-readback-20260820.json",
     "websiteProductionDeploymentReady": true,
     "publishedFrontendAssetUsesCurrentRuntimeSource": true,
-    "postDeploymentRenderedCardVerified": false,
-    "postDeploymentRenderedCardFailure": "MAC_LOCKED_AUTOMATIC_UNLOCK_FAILED",
+    "ownerPostDeploymentRenderedCardVerified": false,
+    "ownerPostDeploymentRenderedCardFailure": "MAC_LOCKED_AUTOMATIC_UNLOCK_FAILED",
+    "centralPostDeploymentRenderedCardVerified": true,
+    "centralVisibleRuntimeSource": "6cf3ef845202bd879ed94515a71b323dd2fc9e14",
     "productSessionFlowVerified": false
   },
   "truth": {

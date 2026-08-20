@@ -4,7 +4,7 @@
   "capturedAt": "2026-08-20T15:04:00Z",
   "owner": "wallet-protocol",
   "readOnly": true,
-  "websiteOwnerDeployment": {
+  "priorWebsiteDeploymentHandoff": {
     "sourceCommit": "a7313313014bb8792f38e649e9f556dbee983c8c",
     "deploymentId": "dpl_5oP2L2ZHvP13YH3ZYWySLD49pj3P",
     "deploymentUrl": "https://ynx-web4-website-4bjg8s2d1-jiahaoalbus-projects.vercel.app",
@@ -12,6 +12,7 @@
     "sourceModifiedByWalletProtocolOwner": false
   },
   "centralReadback": {
+    "supersededByFinalCentralAcceptance": true,
     "apexAndWwwRuntimeStatus": 200,
     "apexAndWwwRuntimeBytes": 1899,
     "apexAndWwwRuntimeSha256": "d8556c46e81e430d408d0f2504f3379d152430be9406feac36838ac0423e75fa",
@@ -20,6 +21,27 @@
     "apexDocsBytes": 4747,
     "apexDocsSha256": "8451463823b838b4f84057f277d6272585820f4030f0da4097c76f6aafa501ba",
     "wwwDocsDirectTlsSucceededInCentralPass": false
+  },
+  "finalCentralAcceptance": {
+    "commit": "8a4dc39b2979356b73d7610499f7e8d3d7fe4cc3",
+    "centralHead": "8db659b8e55e54d3b49d4ff7479448877b97ff40",
+    "evidencePath": "release/integration/p0-wallet-connectivity/evidence/wallet-auth-website-runtime-source-production-20260820.json",
+    "evidenceBlob": "c0cc986d51931004b44077a6ac797a4fc6c011b9",
+    "websiteSourceCommit": "09d5be41436404bba74315d0013c0229cab1e32b",
+    "websiteSourceTree": "8b104a6b98c286534b549c8c4146bb945ecfebbb",
+    "deploymentId": "dpl_awLjPQTGudm2huQmNHPk9UpmugfV",
+    "deploymentUrl": "https://ynx-web4-website-qpxf97xly-jiahaoalbus-projects.vercel.app",
+    "readyState": "READY",
+    "apexAndWwwDocsStatus": 200,
+    "apexAndWwwDocsBytes": 4748,
+    "apexAndWwwDocsSha256": "d4ab589c6b113e95168d0d2d2032c1792c7d1ad990d287f298efb8b130bafa1f",
+    "apexAndWwwRuntimeStatus": 200,
+    "apexAndWwwRuntimeBytes": 1900,
+    "apexAndWwwRuntimeSha256": "635fefdcc1cd5675a1787a9bf17c87102ccadd1c8232450be7b847333fe75941",
+    "runtimeSourceCommit": "6cf3ef845202bd879ed94515a71b323dd2fc9e14",
+    "visibleBrowserCardVerified": true,
+    "visibleBrowserRuntimeSourceMatches": true,
+    "productSessionFlowExecuted": false
   },
   "independentReadback": {
     "apexDocs": {
@@ -54,15 +76,18 @@
   },
   "computerControl": {
     "postDeploymentAttempted": true,
-    "postDeploymentRenderedCardVerified": false,
-    "failure": "MAC_LOCKED_AUTOMATIC_UNLOCK_FAILED",
+    "ownerChannelRenderedCardVerified": false,
+    "ownerChannelFailure": "MAC_LOCKED_AUTOMATIC_UNLOCK_FAILED",
+    "centralVisibleBrowserRenderedCardVerified": true,
+    "centralProductSessionFlowExecuted": false,
     "preDeploymentDriftEvidencePath": "release/integration/wallet-auth-website-computercontrol-evidence-20260820.json"
   },
   "truth": {
     "websiteProductionDeploymentReady": true,
     "publishedFrontendAssetUsesCurrentRuntimeSource": true,
     "publishedFrontendAssetContainsHistoricalRuntimeSource": false,
-    "renderedVisibleCardVerifiedAfterDeployment": false,
+    "renderedVisibleCardVerifiedAfterDeployment": true,
+    "renderedVisibleCardUsesCurrentRuntimeSource": true,
     "installedWalletClientVerified": false,
     "walletApprovalVerified": false,
     "standardConnectionAccountSignSendOrTransactionVerified": false,
