@@ -420,6 +420,11 @@
     "runtimeArchiveSha256": "ca4a48a87c45a2414d6312d58500cc85ce7ddf28d719788b1c056107aadb7855",
     "sbomSha256": "6761d681aed5bf2f5268d283fb12aa41d9abff59bb328d999a82fec23cbad418",
     "centralAcceptancePending": true,
+    "centralReviewAttemptsInterruptedByPlatform": 2,
+    "centralDecisionRecorded": false,
+    "centralStaticReviewGap": "FULL_OUTPUT_PATH_RERESOLVED_AFTER_DIRECTORY_FD_VERIFICATION",
+    "directoryOwnershipHandoffFinalIdentityReadbackPresent": false,
+    "successorCorrectionRequested": true,
     "executionLeaseIssued": false,
     "sshOrDeploymentPerformed": false,
     "registryV3Public": false
