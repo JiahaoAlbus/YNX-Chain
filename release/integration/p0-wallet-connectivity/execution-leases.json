@@ -1,7 +1,7 @@
 {
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-  "epoch": 21,
-  "updatedAt": "2026-08-20T20:31:43Z",
+  "epoch": 22,
+  "updatedAt": "2026-08-20T20:36:00Z",
   "heavy": {
     "owner": null,
     "status": "CONSUMED_RELEASED_FAILED_CLOSED_INSTALL_PERMISSION",
@@ -27,21 +27,21 @@
     ]
   },
   "light": {
-    "owner": null,
-    "status": "CHECKPOINT_REACHED_LIGHT_RELEASED",
-    "branch": "codex/p0-creator-studio-wallet-connectivity-20260821",
-    "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/34-creator-studio-p0",
-    "taskId": "P0-058",
-    "leasedAt": "2026-08-20T20:20:00Z",
-    "releasedAt": "2026-08-20T20:31:43Z",
+    "owner": "integration",
+    "status": "ACTIVE_BOUNDED_SOURCE_ONLY",
+    "branch": "codex/p0-search-wallet-connectivity-20260821",
+    "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/35-search-p0",
+    "taskId": "P0-060",
+    "leasedAt": "2026-08-20T20:36:00Z",
+    "releasedAt": null,
     "previousOwner": "integration",
-    "previousCheckpoint": "8809abcd7c39d47650086ae8895ecb307dcd0fdc",
-    "reason": "Creator Studio source now has accepted EIP-6963/EIP-1193 connection, official YNX Wallet and MetaMask recovery, English-first guest preview and separate private-service degradation at exact remote checkpoint 2b110306. Public deployment and provider approval remain unverified.",
-    "executionScope": "CREATOR_STUDIO_STANDARD_WALLET_SOURCE_ONLY",
+    "previousCheckpoint": "2b1103063b47d2cfbf060837056e6b33fc7ecad3",
+    "reason": "YNX Search still exposes only a legacy private Wallet v1 deep-link flow. Integration may add one bounded Standard EIP-6963/EIP-1193 connection, preserve public search/guest use, and isolate private service degradation.",
+    "executionScope": "SEARCH_STANDARD_WALLET_SOURCE_ONLY",
     "onSafeCheckpoint": [
-      "modify only apps/creator-studio and its owner evidence",
+      "modify only apps/search and its owner evidence",
       "consume the accepted DApp Connect SDK and endpoint manifest without copying shared protocol",
-      "keep guest Creator Studio preview independent of Standard Wallet and private Product Session",
+      "keep public Search and guest use independent of Standard Wallet and private Product Session",
       "keep Product Session failure isolated as private-service degradation",
       "run tests, build and release scans; do not deploy publicly or claim installed evidence",
       "commit, force-false push, update handoff and release at a clean checkpoint"

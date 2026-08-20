@@ -1,0 +1,22 @@
+#!/usr/bin/env node
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
+import {fileURLToPath} from "node:url";
+const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"../..");
+const read=p=>JSON.parse(fs.readFileSync(path.join(root,p),"utf8"));
+const leases=read("release/integration/p0-wallet-connectivity/execution-leases.json");
+const locks=read("release/integration/p0-wallet-connectivity/path-locks.json");
+const queue=read("release/integration/p0-wallet-connectivity/integration-queue.json");
+const lease=read("release/integration/p0-wallet-connectivity/execution/p0-060-search-source-lease-20260821.json");
+assert.equal(leases.heavy.owner,null);
+assert.equal(leases.light.owner,"integration");
+assert.equal(leases.light.taskId,"P0-060");
+assert.equal(lease.status,"ACTIVE_BOUNDED_SEARCH_SOURCE_ONLY");
+const lock=locks.locks.find(x=>x.taskId==="P0-060");
+assert.equal(lock.path,"apps/search/**");
+assert.equal(lock.status,"ACTIVE_LIGHT_SOURCE_ONLY");
+assert.equal(queue.tasks.filter(x=>x.taskId==="P0-060").length,1);
+assert.equal(queue.tasks.find(x=>x.taskId==="P0-060").publicVerified,false);
+assert.equal(queue.tasks.find(x=>x.taskId==="P0-059").sourceAccepted,false);
+console.log("PASS P0-060 is a bounded Search source-only Light slice while Wallet/Auth P0-059 remains NO_GO");
