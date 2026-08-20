@@ -2,13 +2,14 @@
   "schemaVersion": "1.0.0",
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "owner": "integration",
-  "status": "WAVE_B_PAY_ASSIGNED",
+  "status": "CHAIN_RECOVERY_ACTIVE_DATA_FABRIC_LIGHT_SLICE_GRANTED",
   "scope": ["founder-control", "wallet-connectivity", "installed-client-networking", "shop-android-retirement", "artwork-governance"],
   "frozen": ["independent-ynx-id", "nonessential-new-products", "extra-finance-features", "shop-android"],
   "integrationBranch": "codex/final-integration",
   "baselineCommit": "10b877b5b18f9cb0026a6382cdd6588054fd16db",
   "protectedHistory": [{"branch": "codex/recovery/final-integration-pre-p0", "reason": "preserved divergent pre-P0 integration history"}],
   "network": {"cosmosChainId": "ynx_6423-1", "evmChainId": 6423, "evmChainHex": "0x1917", "nativeAsset": "YNXT", "nativeAddressPrefix": "ynx1"},
-  "firstStop": {"complete": true, "publicConnectivityClaim": false, "nextAction": "Finance and Exchange remain at their bounded release-evidence checkpoints. Pay is assigned but no Pay-owned migration commit, tests, build or installed-client evidence has been recorded; it requires a new bounded Financial Apps execution lease before any write. Data Fabric completed its independent connection-events runtime-adapter checkpoint at 353fffbc with all six PR checks passing; its Light Lease is released without any public, installed-client or Card-funding claim."},
+  "firstStop": {"complete": true, "publicConnectivityClaim": false, "nextAction": "Protected four-node chain recovery remains active. Finance and Exchange remain at their bounded release-evidence checkpoints; Pay remains assigned but has no active execution lease. Data Fabric is granted one asynchronous, privacy-safe error-aggregation Light Slice from checkpoint 353fffbc; it must not activate a Wallet critical path or claim public, installed-client or Card-funding evidence."},
+  "lightLeases": [{"owner":"data-fabric","taskId":"P0-005","status":"ACTIVE","grantedAt":"2026-08-20T14:55:00Z","checkpointCommit":"353fffbc55e1e309978e0e9dff59b3aa3cfd1bf8","scope":"wallet-canonical-error-to-connectivity-aggregation","constraints":["asynchronous only","aggregate class and retryability only","do not persist raw error, developerMessage or identity","no Wallet, Gateway, Card UI, Finance UI or Explorer UI changes"]}],
   "wave": {"id": "B-pay", "owner": "financial-apps", "executionScope": "PAY_WALLET_CONNECTIVITY_SLICE", "firstTask": "PAY_AUDIT_AND_STANDARD_WALLET_MIGRATION", "startingCheckpoint": "a153ef9014e421c70ece70cdbffd8fe5ee3094b9", "assignedAt": "2026-08-20T10:54:00Z", "executionLease": "NOT_ACTIVE", "previousWave": {"id":"B-exchange","owner":"financial-apps","checkpoint":"c78f0954f9137a3faf3ce4abb4ff69ed21facafd","publicVerified":false}}
 }
