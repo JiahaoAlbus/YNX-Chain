@@ -37,8 +37,9 @@ test("P0 enhanced error contract gives each published error a complete non-offli
 });
 
 test("client retirement implementation handoff preserves activation and public truth boundaries", () => {
-  assert.equal(retirementHandoff.featureSourceCommit, "c614501353d7631a6e20da7431ac858c2e5a8868");
-  assert.equal(retirementHandoff.status, "CANDIDATE_CONSUMED_ACTIVATION_BLOCKED_SHARED_TUPLE");
+  assert.equal(retirementHandoff.featureSourceCommit, "aff86fc5fb536039ea1eca0e76330bc87d626b44");
+  assert.equal(retirementHandoff.supersedesFeatureSourceCommit, "c614501353d7631a6e20da7431ac858c2e5a8868");
+  assert.equal(retirementHandoff.status, "IDENTITY_SPLIT_CANDIDATE_READY_INTEGRATION_REVIEW");
   assert.equal(retirementHandoff.activation, "prohibited until Integration ACCEPTED");
   assert.equal(retirementHandoff.retiredResponse.httpStatus, 410);
   assert.deepEqual(retirementHandoff.retiredResponse.requiredFields, ["clientId", "replacementURL", "minimumClientVersion", "correlationId"]);
@@ -51,4 +52,7 @@ test("client retirement implementation handoff preserves activation and public t
   assert.equal(retirementHandoff.centralConsumption.blobReadback, "6/6");
   assert.equal(retirementHandoff.centralConsumption.exactSourceTests.passed, 130);
   assert.equal(retirementHandoff.centralConsumption.executionLeaseIssued, false);
+  assert.equal(retirementHandoff.identitySplitCandidate.registryVersion, 3);
+  assert.equal(retirementHandoff.identitySplitCandidate.authorizationOrSessionSchemaChanged, false);
+  assert.equal(retirementHandoff.tests.passed, 131);
 });

@@ -3,10 +3,11 @@
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "proposalId": "P0-PROPOSAL-SHOP-ANDROID-CLIENT-RETIREMENT-001",
   "owner": "wallet-protocol",
-  "status": "CANDIDATE_CONSUMED_ACTIVATION_BLOCKED_SHARED_TUPLE",
+  "status": "IDENTITY_SPLIT_CANDIDATE_READY_INTEGRATION_REVIEW",
   "activation": "prohibited until Integration ACCEPTED",
-  "featureSourceCommit": "c614501353d7631a6e20da7431ac858c2e5a8868",
-  "featureParentCommit": "2d6c9aa354a459b224b79c11c69aab670336a41d",
+  "featureSourceCommit": "aff86fc5fb536039ea1eca0e76330bc87d626b44",
+  "supersedesFeatureSourceCommit": "c614501353d7631a6e20da7431ac858c2e5a8868",
+  "featureParentCommit": "19ffc5c6e8a5330bad7a4670b41c63c6b1d54ccf",
   "integrationRequestSourceCommit": "78ef845ddfee175ee7aad4b0fa48d5d6fb1a704f",
   "centralConsumption": {
     "commit": "7329521f7936171ee45bd6f9d89f46ea96b9642e",
@@ -24,6 +25,18 @@
       "The authoritative retirement record still has retiredAt null."
     ],
     "executionLeaseIssued": false
+  },
+  "identitySplitCandidate": {
+    "registryVersion": 3,
+    "activeClientRequirement": "The supported Shop client must use a new reviewed productClientId and callback before the old tuple is retired.",
+    "retiredClientLocation": "registry.retiredClients",
+    "oldSnapshotMigration": "registryVersion 2 to 3 is allowed only inside the exact-digest retirement transaction",
+    "collisionPolicy": [
+      "active and retired clients cannot share productClientId",
+      "an active callback cannot remain in a retired client's disabledCallbacks",
+      "the retired product must remain represented by an active product registration"
+    ],
+    "authorizationOrSessionSchemaChanged": false
   },
   "implemented": [
     "registry-v5-explicit-client-lifecycle",
@@ -63,7 +76,7 @@
   ],
   "tests": {
     "command": "npm test --prefix packages/wallet-auth",
-    "passed": 129,
+    "passed": 131,
     "failed": 0,
     "packCommand": "npm pack --dry-run --json --prefix packages/wallet-auth",
     "packIncludedRetirementScript": true,
