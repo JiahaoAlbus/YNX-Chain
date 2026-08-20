@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
 import {
-  closeSync, constants, fchmodSync, fchownSync, fstatSync, fsyncSync, lstatSync, openSync, readFileSync, renameSync, unlinkSync, writeFileSync,
+  closeSync, constants, fchmodSync, fchownSync, fstatSync, fsyncSync, linkSync, lstatSync, openSync, readFileSync, unlinkSync, writeFileSync,
 } from "node:fs";
 import { dirname, isAbsolute, join } from "node:path";
 import { canonicalJSON, exactFields, WalletAuthError } from "./canonical.js";
@@ -16,10 +16,10 @@ const NODE_SYSTEM = Object.freeze({
   fchown: fchownSync,
   fstat: fstatSync,
   fsync: fsyncSync,
+  link: linkSync,
   lstat: lstatSync,
   open: openSync,
   read: (descriptor) => readFileSync(descriptor, "utf8"),
-  rename: renameSync,
   unlink: unlinkSync,
   write: (descriptor, bytes) => writeFileSync(descriptor, bytes, "utf8"),
 });
@@ -54,9 +54,10 @@ export function materializeMigratedProductSessionStateWithSystem(input, system) 
   catch (error) { if (error?.code !== "ENOENT") throw error; }
 
   const temporary = join(parent, `.materialize-${process.pid}-${randomUUID()}.tmp`);
-  let descriptor;
+  let descriptor, temporaryExists = false;
   try {
     descriptor = system.open(temporary, constants.O_CREAT | constants.O_EXCL | constants.O_WRONLY | noFollow(), 0o600);
+    temporaryExists = true;
     system.write(descriptor, sourceBytes);
     system.fchown(descriptor, input.outputUid, input.outputGid);
     system.fchmod(descriptor, 0o600);
@@ -66,14 +67,23 @@ export function materializeMigratedProductSessionStateWithSystem(input, system) 
     system.close(descriptor); descriptor = undefined;
     const temporaryPath = system.lstat(temporary);
     requirePrivateFile(temporaryPath, input.outputUid, input.outputGid, "temporary output path");
-    if (temporaryPath.dev !== temporaryOpened.dev || temporaryPath.ino !== temporaryOpened.ino) fail("OUTPUT_CHANGED", "Materialized Product Session temporary output changed before rename");
-    system.rename(temporary, input.outputPath);
-    const directoryDescriptor = system.open(parent, constants.O_RDONLY | directoryFlag() | noFollow());
-    try { system.fsync(directoryDescriptor); } finally { system.close(directoryDescriptor); }
+    if (temporaryPath.dev !== temporaryOpened.dev || temporaryPath.ino !== temporaryOpened.ino) fail("OUTPUT_CHANGED", "Materialized Product Session temporary output changed before publication");
+    try { system.link(temporary, input.outputPath); }
+    catch (error) {
+      if (error?.code === "EEXIST") fail("OUTPUT_EXISTS", "Product Session materializer never overwrites an output state file");
+      if (["ENOSYS", "ENOTSUP", "EOPNOTSUPP", "EXDEV"].includes(error?.code)) fail("ATOMIC_PUBLISH_UNAVAILABLE", "Product Session materializer requires an atomic no-replace publication primitive");
+      throw error;
+    }
+    system.unlink(temporary); temporaryExists = false;
+    fsyncDirectory(system, parent);
     verifyOutput(system, input, sourceBytes);
   } finally {
     if (descriptor !== undefined) system.close(descriptor);
-    try { system.unlink(temporary); } catch (error) { if (error?.code !== "ENOENT") throw error; }
+    if (temporaryExists) {
+      try { system.unlink(temporary); temporaryExists = false; }
+      catch (error) { if (error?.code !== "ENOENT") throw error; }
+      fsyncDirectory(system, parent);
+    }
   }
   return Object.freeze({
     bytes: Buffer.byteLength(sourceBytes),
@@ -84,6 +94,11 @@ export function materializeMigratedProductSessionStateWithSystem(input, system) 
     schemaVersion: 1,
     stateFileSha256: input.expectedSourceStateFileSha256,
   });
+}
+
+function fsyncDirectory(system, path) {
+  const descriptor = system.open(path, constants.O_RDONLY | directoryFlag() | noFollow());
+  try { system.fsync(descriptor); } finally { system.close(descriptor); }
 }
 
 function validateInput(input) {
