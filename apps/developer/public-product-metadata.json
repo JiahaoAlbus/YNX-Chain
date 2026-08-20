@@ -5,11 +5,11 @@
   "productName": "YNX Developer / YNX AI Build",
   "version": "0.2.0",
   "branch": "codex/ynx-code-platform-v1",
-  "sourceCommit": "76322af5e8c26a64fb6425c51d96c67d2b3df65f",
+  "sourceCommit": "bc8a37bc6f2bcfcbe9415cb0e9da17a5294046a3",
   "officialDomain": "https://ynxweb4.com",
   "canonicalPath": "/developer",
   "canonicalUrl": "https://ynxweb4.com/developer",
-  "routeStatus": "public-full-platform-live",
+  "routeStatus": "protected-public-candidate-live; independent-browser-proof-pending",
   "deployedPublic": true,
   "publicRouteVerified": true,
   "releaseClass": "unsigned-testnet-preview",
@@ -22,7 +22,7 @@
     "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/developer-v0.2.0-testnet-preview.1",
     "prerelease": true
   },
-  "summary": "The public Web IDE and macOS arm64 Testnet Preview run the full React, Monaco and service-based YNX Code workbench. The current Windows x64 WebView2 client opens that same hosted workspace and has passed a real remote C++ compile and two-launch verification.",
+  "summary": "The Developer web candidate is deployed with a service-based React and Monaco workbench. Historical unsigned macOS and Windows artifacts have separate source-bound evidence and are not represented as current artifacts for this candidate.",
   "surfaces": [
     "web-ide",
     "api-studio",
@@ -125,17 +125,20 @@
     "mainnetReleased": false
   },
   "fullPlatformPublicEvidence": {
-    "sourceCommit": "17ba15d6617ec83d7befe7cba4f064f0edecccf6",
-    "deployedAt": "2026-08-10T07:25:37+08:00",
-    "sevenRuntimes": true,
-    "sixLanguageServers": true,
+    "sourceCommit": "bc8a37bc6f2bcfcbe9415cb0e9da17a5294046a3",
+    "deployedAt": "2026-08-20T15:57:18Z",
+    "nineRuntimes": true,
+    "sevenLanguageServers": true,
     "concurrentTenantsVerified": 12,
     "restartPersistence": true,
     "hostedAiPlanner": "qwen3:4b",
     "walletBindingAttested": true,
     "walletPublicDeploymentReady": false,
     "bftIdeActionPublicReady": false,
-    "rollbackUpstream": "127.0.0.1:18111"
+    "rollbackUpstream": "prior immutable candidate a29ca148fc3d6815e6257cbb9e9fc2045b5c9692",
+    "imageFingerprint": "e0a8aba3b87cb995a8e5e039f0d489dda9fb0dc79c44006df030dbca28a994b8",
+    "evidenceManifestSha256": "ae67d74070ebabee7001a1212a65bf27b549f9be195244e1f91ae7e94ce3e82b",
+    "independentBrowserVisible": false
   },
   "generatedAt": "2026-08-12T01:00:00+08:00"
 }

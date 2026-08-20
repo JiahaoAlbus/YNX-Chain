@@ -2,18 +2,20 @@
   "productId": "ynx-developer-v1",
   "name": "YNX Developer / YNX AI Build",
   "branch": "codex/ynx-code-platform-v1",
-  "commit": "17ee9ae5bf50677a3316b0838884dd135de80599",
+  "commit": "bc8a37bc6f2bcfcbe9415cb0e9da17a5294046a3",
   "version": "0.2.0",
-  "sourceCheckpoint": "ynx-code-reconnect-and-ai-cancellation-runtime-2026-08-12",
+  "sourceCheckpoint": "ynx-code-wallet-product-session-v2-root-factory-2026-08-20",
   "currentPublicCandidate": {
-    "sourceCommit": "a29ca148fc3d6815e6257cbb9e9fc2045b5c9692",
-    "release": "0.2.0-testnet-preview-a29ca148fc3d-candidate",
+    "sourceCommit": "bc8a37bc6f2bcfcbe9415cb0e9da17a5294046a3",
+    "release": "0.2.0-testnet-preview-bc8a37bc6f2b-candidate",
     "publicHealth": "https://developer.ynxweb4.com/healthz",
-    "evidencePath": "/var/lib/ynx-code-candidate/deploy-evidence/20260820T152800Z-a29ca148fc3d",
-    "imageFingerprint": "7667a45536aa5b7c33f6ea80b80be079d92095150571782c9ac0845ae848b99a",
+    "evidencePath": "/var/lib/ynx-code-candidate/deploy-evidence/20260820T155718Z-bc8a37bc6f2b",
+    "imageFingerprint": "e0a8aba3b87cb995a8e5e039f0d489dda9fb0dc79c44006df030dbca28a994b8",
     "result": "passed",
     "evidenceSha256Verified": true,
-    "packageEgressDetached": true
+    "packageEgressDetached": true,
+    "observedAt": "2026-08-20T16:12:04Z",
+    "evidenceManifestSha256": "ae67d74070ebabee7001a1212a65bf27b549f9be195244e1f91ae7e94ce3e82b"
   },
   "walletProductSessionV2": {
     "acceptedSourceCommit": "203be5e108be468350591615a64d5d36ab87a8f1",
@@ -23,10 +25,20 @@
     "npmRegistryPublished": false,
     "rootFactorySourceIntegrated": true,
     "runtimeFactoryVerified": false,
-    "publicV2RouteVerified": false,
+    "publicV2RouteVerified": true,
+    "publicV2RouteProof": {
+      "kind": "state-free-fail-closed-mount-probe",
+      "path": "/v2/product-sessions/challenge",
+      "origin": "https://wallet-auth.ynxweb4.com",
+      "httpStatus": 400,
+      "responseSchemaVersion": 2,
+      "responseErrorCode": "UNKNOWN_OR_MISSING_FIELD",
+      "stateCreated": false,
+      "attemptsUsed": 2
+    },
     "visibleLifecycleVerified": false,
     "migratedV2": false,
-    "reason": "Native Keychain/root-factory source is present, but public v2 route and installed/browser lifecycle evidence remain required."
+    "reason": "Native Keychain/root-factory source and a state-free public v2 mount proof exist, but native installed/approve/reject/timeout/revoke/second-launch/network-loss lifecycle evidence remains required."
   },
   "surfaces": [
     "web-ide",

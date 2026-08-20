@@ -1,5 +1,20 @@
 # Evidence index
 
+## 2026-08-20 current public candidate
+
+`evidence/public/current-public-candidate-bc8a37bc6f2b.json` binds the current
+Developer candidate `bc8a37bc6f2bcfcbe9415cb0e9da17a5294046a3` to its protected
+deployment transaction, immutable LXD image, health/version response and
+evidence-manifest SHA-256. It is direct host-side release evidence. Independent
+external browser visibility and current desktop artifact evidence remain false.
+
+The current cross-product contract and gaps are maintained in
+`release/integration/developer-contract.json`,
+`docs/integration/INTEGRATION_HANDOFF.md`,
+`docs/integration/CROSS_PRODUCT_TEST_VECTORS.json`,
+`docs/integration/DEPENDENCY_ACCEPTANCE.md`,
+`FEATURE_COMPLETION_EVIDENCE.md` and `MIGRATION_COMPATIBILITY.md`.
+
 - Production package-egress policy: `scripts/verify-package-egress-network.mjs`
   checks the exact dedicated bridge and ACL before any protected deployment
   mutation. `test/package-egress-network.test.js` proves the reviewed

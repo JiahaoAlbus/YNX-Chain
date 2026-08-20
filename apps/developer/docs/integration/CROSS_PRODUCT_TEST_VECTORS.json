@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "product": "ynx-developer-v1",
+  "walletProductSessionV2": {
+    "acceptedSourceCommit": "203be5e108be468350591615a64d5d36ab87a8f1",
+    "origin": "https://wallet-auth.ynxweb4.com",
+    "factory": "createProductWalletConnection",
+    "productId": "developer",
+    "platform": "macos",
+    "scopes": ["account:read", "developer:deploy"],
+    "forbiddenCallerInputs": ["endpoint", "callback", "origin", "session", "transport", "clock"],
+    "vectors": [
+      {"id": "public-mount-invalid-body", "path": "/v2/product-sessions/challenge", "expect": {"status": 400, "schemaVersion": 2, "stateCreated": false}},
+      {"id": "native-wallet-absent", "expect": {"walletInstalled": false, "guestLimitations": ["not-signed-in", "no-wallet-balance", "no-transactions", "no-chain-authority"]}},
+      {"id": "native-wallet-approved", "status": "requires-reviewed-device-evidence"},
+      {"id": "native-wallet-rejected", "status": "requires-reviewed-device-evidence"},
+      {"id": "native-wallet-timeout", "status": "requires-reviewed-device-evidence"},
+      {"id": "native-session-revoked", "status": "requires-reviewed-device-evidence"},
+      {"id": "native-second-launch", "status": "requires-reviewed-device-evidence"},
+      {"id": "network-loss-retry", "status": "requires-reviewed-device-evidence"}
+    ]
+  },
+  "developerCandidate": {
+    "sourceCommit": "bc8a37bc6f2bcfcbe9415cb0e9da17a5294046a3",
+    "healthUrl": "https://developer.ynxweb4.com/healthz",
+    "release": "0.2.0-testnet-preview-bc8a37bc6f2b-candidate"
+  }
+}

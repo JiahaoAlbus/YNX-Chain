@@ -29,8 +29,10 @@ test("Developer consumes the accepted Wallet v2 package through its root factory
   assert.match(panel, /browser sessions are not relabeled as secure/);
   const truth = JSON.parse(release);
   assert.equal(truth.currentPublicCandidate.result, "passed");
-  assert.equal(truth.currentPublicCandidate.sourceCommit, "a29ca148fc3d6815e6257cbb9e9fc2045b5c9692");
+  assert.equal(truth.currentPublicCandidate.sourceCommit, "bc8a37bc6f2bcfcbe9415cb0e9da17a5294046a3");
   assert.equal(truth.walletProductSessionV2.migratedV2, false);
   assert.equal(truth.walletProductSessionV2.runtimeFactoryVerified, false);
+  assert.equal(truth.walletProductSessionV2.publicV2RouteVerified, true);
+  assert.equal(truth.walletProductSessionV2.publicV2RouteProof.stateCreated, false);
   assert.equal(truth.walletProductSessionV2.authoritativeOrigin, "https://wallet-auth.ynxweb4.com");
 });
