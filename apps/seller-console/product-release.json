@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 2,
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-056",
+  "productId": "ynx-seller-console",
+  "name": "YNX Seller Console",
+  "branch": "codex/p0-seller-console-wallet-connectivity-20260821",
+  "sourceCommit": "pending-checkpoint",
+  "version": "0.5.0-testnet-candidate",
+  "goalStatus": "active",
+  "stage": "SOURCE_CANDIDATE",
+  "surfaces": ["web"],
+  "implementedLocal": true,
+  "testedLocal": true,
+  "localBrowserVerified": true,
+  "installedLocal": false,
+  "integratedCentral": false,
+  "deployedPublic": false,
+  "publicVerified": false,
+  "computerControlVerified": false,
+  "downloadHosted": false,
+  "productionSigned": false,
+  "storeReleased": false,
+  "acceptedContractsConsumed": {
+    "standardWalletConnection": true,
+    "dappConnectSDK": true,
+    "publicEndpointManifestVersion": "1.0.0-p0.2",
+    "publicEndpointManifestPayloadSha256": "3c606cad1d9bfa71fc507f54b6ad8184a6580c7df75440675b5db921b7e67bb5"
+  },
+  "walletConnectivity": {
+    "eip1193SourceImplemented": true,
+    "eip6963SourceImplemented": true,
+    "ynxProviderPreferred": true,
+    "otherEvmWalletFallback": true,
+    "ynxWalletDownload": "https://ynxweb4.com/dapp/download",
+    "metamaskDownload": "https://metamask.io/download/",
+    "ynxTestnetChainId": "0x1917",
+    "productSessionOptional": true,
+    "productSessionStatus": "DEGRADED",
+    "standardConnectionPreservedWhenPrivateDegraded": true,
+    "visibleProviderApprovalVerified": false,
+    "signingVerified": false,
+    "transactionVerified": false
+  },
+  "endpointTruth": {
+    "evmRpc": {"url": "https://evm.ynxweb4.com", "status": "VERIFIED_BY_ACCEPTED_MANIFEST"},
+    "explorer": {"url": "https://explorer.ynxweb4.com", "status": "VERIFIED_BY_ACCEPTED_MANIFEST"},
+    "appGateway": {"status": "UNAVAILABLE"},
+    "sellerProductApi": {"status": "PENDING"}
+  },
+  "localEvidence": {
+    "tests": "9/9",
+    "build": "passed",
+    "releaseScan": "passed",
+    "desktopBrowser": "English first-run UI, guest preview, private degraded state, zero console warnings/errors",
+    "mobileBrowser": "390x844 responsive viewport, no horizontal overflow, English UI",
+    "providerApproval": "not clicked"
+  },
+  "historicalPublicRuntime": {
+    "url": "https://seller.ynxweb4.com/seller/",
+    "historicalSource": "88c0f3a546b463fb270c4bea5d944178865660a5",
+    "provesCurrentCandidate": false
+  },
+  "remainingBlockers": [
+    "Seller Product API is PENDING in the accepted endpoint manifest.",
+    "App Gateway is UNAVAILABLE; no private Product Session success is claimed.",
+    "No visible Wallet approval, signature, transaction, public deployment, or ComputerControl evidence exists for this candidate."
+  ],
+  "generatedAt": "2026-08-20T20:12:03Z"
+}

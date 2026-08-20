@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-056",
+  "observedAt": "2026-08-20T20:12:03Z",
+  "surface": "local-built-web",
+  "url": "http://127.0.0.1:4178/",
+  "browser": "Chrome extension session",
+  "desktop": {
+    "englishDefault": true,
+    "connectWalletVisible": true,
+    "privateServiceDegradedVisible": true,
+    "privateServiceButtonEnabled": false,
+    "guestPreviewActivated": true,
+    "guestPreviewFabricatedRecords": false,
+    "consoleWarningsOrErrors": 0
+  },
+  "mobile": {
+    "viewport": {"width": 390, "height": 844},
+    "reportedInnerWidth": 390,
+    "documentScrollWidth": 375,
+    "horizontalOverflowObserved": false,
+    "connectWalletVisible": true,
+    "language": "en"
+  },
+  "walletProviderApprovalClicked": false,
+  "computerControl": false,
+  "publicDeployment": false,
+  "truthBoundary": "This proves the local built UI only. It does not prove an installed Wallet, approval, signing, transaction, private Product Session, public runtime, or ComputerControl acceptance."
+}

@@ -1,0 +1,8 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+
+const read=name=>readFile(new URL(`../${name}`,import.meta.url),'utf8');
+test('release consumes the accepted endpoint manifest without claiming unavailable services',async()=>{const runtime=await read('runtime-config.js');for(const exact of ['1.0.0-p0.2','3c606cad1d9bfa71fc507f54b6ad8184a6580c7df75440675b5db921b7e67bb5','0x1917','https://evm.ynxweb4.com','appGateway:Object.freeze({status:"UNAVAILABLE"})','sellerProductApi:Object.freeze({status:"PENDING"})'])assert.ok(runtime.includes(exact),exact);assert.ok(!/(localhost|127\.0\.0\.1|0\.0\.0\.0|10\.0\.2\.2|http:\/\/)/.test(runtime))});
+test('UI separates Standard Wallet, private degradation and honest guest preview',async()=>{const [html,app,wallet]=await Promise.all([read('index.html'),read('app.js'),read('standard-wallet.js')]);for(const text of ['Connect Wallet','Private service degraded','Explore without signing in'])assert.ok(html.includes(text),text);for(const text of ['Standard Wallet remains connected','No seller records, balances, orders, accounts, or permissions are fabricated','privateServiceDegraded'])assert.ok((app+wallet).includes(text),text);for(const url of ['https://ynxweb4.com/dapp/download','https://metamask.io/download/'])assert.ok(wallet.includes(url),url)});
+test('English is the first-run interface while the existing language chooser remains available',async()=>{const i18n=await read('i18n.js');assert.ok(i18n.includes("localStorage.getItem('ynx-ui-language')||'en'"));for(const language of ['zh-CN','zh-TW','ja','ko','es','fr','de','pt','ru','ar','id'])assert.ok(i18n.includes(language),language)});
