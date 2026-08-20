@@ -1,7 +1,7 @@
 {
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-  "epoch": 31,
-  "updatedAt": "2026-08-20T22:12:43Z",
+  "epoch": 32,
+  "updatedAt": "2026-08-20T22:14:59Z",
   "heavy": {
     "owner": null,
     "status": "AVAILABLE_AFTER_P0070_FAILED_CLOSED_TRANSPORT",
@@ -24,23 +24,25 @@
     ]
   },
   "light": {
-    "owner": null,
-    "status": "AVAILABLE_AFTER_P0071_SOURCE_CHECKPOINT",
-    "branch": null,
-    "worktree": null,
-    "taskId": "P0-071",
-    "leasedAt": "2026-08-20T21:54:29Z",
-    "releasedAt": "2026-08-20T22:12:43Z",
-    "checkpointCommit": "1abece5158573b10eae6c084f3653a225c6590cb",
+    "owner": "integration",
+    "status": "ACTIVE_BOUNDED_SOURCE_ONLY",
+    "branch": "codex/p0-resource-wallet-connectivity-20260821",
+    "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/45-resource-p0",
+    "taskId": "P0-072",
+    "leasedAt": "2026-08-20T22:14:59Z",
+    "releasedAt": null,
+    "checkpointCommit": null,
     "previousOwner": "integration",
-    "previousCheckpoint": "9816f9ba2556eadea7fd9ad5061f67c5a05e64dd",
-    "reason": "YNX Cloud consumed the accepted Standard Wallet SDK, removed the public local self-signed session flow, preserved private fail-closed behavior, fixed the API base and product-isolated container, and froze source-bound browser, SBOM and release truth evidence.",
-    "executionScope": null,
+    "previousCheckpoint": "1abece5158573b10eae6c084f3653a225c6590cb",
+    "reason": "The protected Trust/Resource recovery checkpoint proves the Resource Web client still creates an in-memory P-256 device key and legacy private session. Reload or deep-link return loses that key, while accepted Standard Wallet SDK consumption remains absent. Integration may migrate only the Resource product surface and keep private trading and settlement fail closed.",
+    "executionScope": "RESOURCE_STANDARD_WALLET_SOURCE_ONLY",
     "onSafeCheckpoint": [
-      "implementation 9816f9ba and evidence 1abece51 are force-false pushed and remote-read back",
-      "15/15 tests, static checks, current-source security gate, canonical API and backup/restore smoke, Go tests and production dependency audit passed",
-      "desktop guest and mobile injected EIP-6963 Wallet evidence have zero browser errors and zero private API requests",
-      "Product Session v2, installed-client, current-source public deployment, public verification and Computer Control remain false"
+      "modify only apps/resource-market, internal/resourceproduct and Resource owner evidence",
+      "consume the accepted DApp Connect SDK without copying Wallet Protocol or creating a local Product Session",
+      "preserve public marketplace explanation and guest exploration independently of Wallet and private settlement",
+      "keep orders, provider actions, private data and settlement unavailable without exact accepted private authority",
+      "run product tests, build, release scans and local-browser evidence; do not claim deployment or installed clients",
+      "commit, force-false push, update handoff and release at a clean checkpoint"
     ]
   },
   "explorerMonitor": {
