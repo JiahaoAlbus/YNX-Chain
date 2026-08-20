@@ -23,7 +23,7 @@ export class NativeChainClient{
   async account(account:string):Promise<ChainAccount>{
     const address=evmAddressFromYNX(account);
     try{
-      const value=await this.#json(`/accounts/${encodeURIComponent(account)}`,{method:"GET"});
+      const value=await this.#readJSON(`/accounts/${encodeURIComponent(account)}`);
       const record=object(value)&&object(value.account)?value.account:null;
       if(!record||typeof record.address!=="string"||!/^0x[0-9a-f]{40}$/.test(record.address)||!Number.isSafeInteger(record.balance)||record.balance<0||!Number.isSafeInteger(record.nonce)||record.nonce<0)throw new Error("Authoritative account response is invalid");
       if(record.address!==address)throw new Error("Authoritative account identity does not match the selected ynx1 account");
@@ -35,7 +35,7 @@ export class NativeChainClient{
   }
 
   async activity(account:string):Promise<readonly ChainActivity[]>{
-    const value=await this.#json("/txs?limit=25",{method:"GET"});
+    const value=await this.#readJSON("/txs?limit=25");
     if(!object(value)||!Array.isArray(value.transactions))throw new Error("Authoritative activity response is invalid");
     const address=evmAddressFromYNX(account);
     return Object.freeze(value.transactions.filter((item)=>object(item)&&(item.from===address||item.to===address)).map(parseActivity));
@@ -51,6 +51,14 @@ export class NativeChainClient{
 
   async #json(path:string,init:RequestInit):Promise<unknown>{
     const response=await this.#request(`${this.#baseURL}${path}`,{...init,headers:{Accept:"application/json",...(init.headers??{})}});const text=await response.text();let value:unknown;try{value=JSON.parse(text)}catch{throw new Error(`YNX chain returned non-JSON (${response.status})`)}if(!response.ok)throw new ChainHTTPError(response.status,value);return value
+  }
+
+  async #readJSON(path:string):Promise<unknown>{
+    for(let attempt=0;attempt<2;attempt+=1){
+      try{return await this.#json(path,{method:"GET"})}
+      catch(error){if(!(error instanceof ChainNetworkError)||attempt===1)throw error}
+    }
+    throw new Error("unreachable")
   }
 
   async #rpcAccount(address:string):Promise<ChainAccount>{

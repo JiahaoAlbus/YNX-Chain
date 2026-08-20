@@ -40,6 +40,16 @@ test("REST account-not-found preserves the exact nonzero RPC balance and nonce",
   assert.deepEqual(await client.account(account),{address,balance:42,nonce:7,source:"evm-json-rpc",materialized:false});
 });
 
+test("idempotent REST reads retry one transport failure, while broadcasts never retry",async()=>{
+  let reads=0;let broadcasts=0;
+  const reader=new NativeChainClient(undefined,undefined,async(url)=>{if(url.startsWith(DEFAULT_CHAIN_API)){reads+=1;if(reads===1)throw new TypeError("TLS transport reset");return response({account:{address,balance:9,nonce:2}})}throw new Error("RPC must not be used when the REST read recovers")});
+  assert.deepEqual(await reader.account(account),{address,balance:9,nonce:2,source:"native-rest",materialized:true});
+  assert.equal(reads,2);
+  const writer=new NativeChainClient(undefined,undefined,async()=>{broadcasts+=1;throw new TypeError("TLS transport reset")});
+  await assert.rejects(()=>writer.broadcast(signed.payload,signed.transaction,signed.hash),caught=>caught instanceof ChainNetworkError&&caught.reason==="transport");
+  assert.equal(broadcasts,1,"a signed transfer POST must never be retried automatically");
+});
+
 test("account fallback fails closed on wrong chain, malformed response, unsafe quantity, and RPC error",async()=>{
   await assert.rejects(()=>new NativeChainClient(undefined,undefined,rpcFallback({chainId:"0x1"})).account(account),/chain identity/);
   await assert.rejects(()=>new NativeChainClient(undefined,undefined,async(url,init)=>url.startsWith(DEFAULT_CHAIN_API)?response({error:"ACCOUNT_NOT_FOUND"},404):response({jsonrpc:"2.0",id:999,result:YNX_EVM_CHAIN_ID})).account(account),/response is invalid/);
