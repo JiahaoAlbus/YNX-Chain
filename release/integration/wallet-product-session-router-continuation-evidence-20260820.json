@@ -126,7 +126,11 @@
     "cardAcceptedAppGatewayState": "UNAVAILABLE",
     "socialCanonicalLauncherV1Only": true,
     "financeOwnerCheckpoint": "f7efbd9e9658aaea75f8d9fbbb58f79ee1a48365",
-    "financeStandardWalletSdkOnly": true,
+    "financeRootFactoryRemoteCheckpoint": "f711745dc44cea17ac46abd6332af87f6db2ffa6",
+    "financeRootFactoryConsumed": true,
+    "financeInstalledWalletOpened": true,
+    "financeInstalledWalletResult": "PROTOCOL_SCHEMA_FIELD_MISMATCH_WHILE_LOCKED",
+    "financeInstalledVisibleSuccessVerified": false,
     "financeProductSessionUnavailableAndNotFabricated": true
   },
   "computerControl": {
