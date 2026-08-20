@@ -170,26 +170,27 @@ test("post-commit parent replacement is diagnostic and still returns the explici
   const directory = mkdtempSync(join(tmpdir(), "ynx-state-materialize-final-parent-")); chmodSync(directory, 0o700);
   const source = join(directory, "root-migrated.json"), outputDirectory = join(directory, "service"), output = join(outputDirectory, "v2-state.json");
   mkdirSync(outputDirectory, { mode: 0o700 }); writeFileSync(source, bytes, { mode: 0o600 });
-  let detached;
   const system = nodeSystem({
-    onBoundary: (name, state) => { if (name === "afterDirectoryOwnershipTransfer") detached = state.replaceParentPath(); },
     outputPath: output,
+    replaceParentOnDirectoryCloseAfterHandoff: true,
     sourceIdentity: statSync(source),
     sourcePath: source,
   });
   const receipt = materializeMigratedProductSessionStateWithSystem(input(source, output), system);
+  const detached = system.state().postCommitDetached;
   assert.equal(receipt.committed, true);
   assert.equal(receipt.commitPoint, "DIRECTORY_OWNERSHIP_TRANSFERRED");
   assert.equal(readFileSync(output, "utf8"), "ATTACKER_PARENT_REPLACEMENT\n");
   assert.equal(readFileSync(join(detached, "v2-state.json"), "utf8"), bytes);
 });
 
-test("post-commit ownership hook failure cannot suppress the explicit committed receipt", () => {
+test("no post-commit ownership hook can run after the irreversible handoff", () => {
   const directory = mkdtempSync(join(tmpdir(), "ynx-state-materialize-post-commit-hook-")); chmodSync(directory, 0o700);
   const source = join(directory, "root-migrated.json"), outputDirectory = join(directory, "service"), output = join(outputDirectory, "v2-state.json");
   mkdirSync(outputDirectory, { mode: 0o700 }); writeFileSync(source, bytes, { mode: 0o600 });
+  let postCommitHookCalled = false;
   const system = nodeSystem({
-    onBoundary: (name) => { if (name === "afterDirectoryOwnershipTransfer") throw Object.assign(new Error("post-commit boundary failure"), { code: "EIO" }); },
+    onBoundary: (name) => { if (name === "afterDirectoryOwnershipTransfer") { postCommitHookCalled = true; throw Object.assign(new Error("post-commit boundary failure"), { code: "EIO" }); } },
     outputPath: output,
     sourceIdentity: statSync(source),
     sourcePath: source,
@@ -197,6 +198,36 @@ test("post-commit ownership hook failure cannot suppress the explicit committed 
   const receipt = materializeMigratedProductSessionStateWithSystem(input(source, output), system);
   assert.equal(receipt.committed, true);
   assert.equal(receipt.commitPoint, "DIRECTORY_OWNERSHIP_TRANSFERRED");
+  assert.equal(postCommitHookCalled, false);
+  assert.equal(readFileSync(output, "utf8"), bytes);
+});
+
+test("receipt freeze failure rolls back before the irreversible directory handoff", () => {
+  const directory = mkdtempSync(join(tmpdir(), "ynx-state-materialize-receipt-freeze-")); chmodSync(directory, 0o700);
+  const source = join(directory, "root-migrated.json"), outputDirectory = join(directory, "service"), output = join(outputDirectory, "v2-state.json");
+  mkdirSync(outputDirectory, { mode: 0o700 }); writeFileSync(source, bytes, { mode: 0o600 });
+  const system = nodeSystem({ failReceiptFreeze: true, outputPath: output, sourceIdentity: statSync(source), sourcePath: source });
+  assert.throws(() => materializeMigratedProductSessionStateWithSystem(input(source, output), system), { code: "EIO" });
+  assert.equal(system.state().directoryTransferred, false);
+  assert.equal(system.state().frozenReceipt, undefined);
+  assert.deepEqual(readdirSync(outputDirectory), []);
+});
+
+test("post-commit finally returns the exact pre-frozen receipt reference", () => {
+  const directory = mkdtempSync(join(tmpdir(), "ynx-state-materialize-final-receipt-")); chmodSync(directory, 0o700);
+  const source = join(directory, "root-migrated.json"), outputDirectory = join(directory, "service"), output = join(outputDirectory, "v2-state.json");
+  mkdirSync(outputDirectory, { mode: 0o700 }); writeFileSync(source, bytes, { mode: 0o600 });
+  const system = nodeSystem({
+    failDirectoryCloseAfterHandoff: true,
+    onBoundary: (name) => { if (name === "afterDirectoryOwnershipTransfer") throw Object.assign(new Error("post-commit diagnostic failed"), { code: "EIO" }); },
+    outputPath: output,
+    sourceIdentity: statSync(source),
+    sourcePath: source,
+  });
+  const receipt = materializeMigratedProductSessionStateWithSystem(input(source, output), system);
+  assert.strictEqual(receipt, system.state().frozenReceipt);
+  assert.equal(Object.isFrozen(receipt), true);
+  assert.equal(receipt.committed, true);
   assert.equal(readFileSync(output, "utf8"), bytes);
 });
 
@@ -250,8 +281,8 @@ test("materializer fails closed when atomic O_EXCL publication is unavailable", 
 function input(sourcePath, outputPath) {
   return { expectedRegistryStateBindingSha256: registrySha256, expectedSourceStateFileSha256: sha256(bytes), outputGid: gid, outputPath, outputUid: uid, sourcePath };
 }
-function nodeSystem({ atomicCreateUnsupported = false, failBoundary, failDirectoryCloseAfterHandoff = false, failDirectoryFchown = false, failOutputClose = false, onBoundary, outputPath, protectOutputDirectory = true, sourceIdentity, sourcePath }) {
-  let anchorPath, createdIdentity, directoryDescriptor, directoryIdentity, directoryTransferred = false, fileTransferred = false, formalParentPath, outputDescriptor, outputDescriptorClosedAfterDirectoryTransfer = false;
+function nodeSystem({ atomicCreateUnsupported = false, failBoundary, failDirectoryCloseAfterHandoff = false, failDirectoryFchown = false, failOutputClose = false, failReceiptFreeze = false, onBoundary, outputPath, protectOutputDirectory = true, replaceParentOnDirectoryCloseAfterHandoff = false, sourceIdentity, sourcePath }) {
+  let anchorPath, createdIdentity, directoryDescriptor, directoryIdentity, directoryTransferred = false, fileTransferred = false, formalParentPath, frozenReceipt, outputDescriptor, outputDescriptorClosedAfterDirectoryTransfer = false, postCommitDetached;
   const identity = (path, value) => {
     const source = path === sourcePath || value.dev === sourceIdentity.dev && value.ino === sourceIdentity.ino;
     const directory = value.isDirectory() && (!directoryIdentity || value.dev === directoryIdentity.dev && value.ino === directoryIdentity.ino);
@@ -270,8 +301,10 @@ function nodeSystem({ atomicCreateUnsupported = false, failBoundary, failDirecto
       return detached;
     },
     directoryTransferred,
+    frozenReceipt,
     outputDescriptorClosedAfterDirectoryTransfer,
     outputDescriptorOpen: outputDescriptor !== undefined,
+    postCommitDetached,
   });
   const system = {
     close: closeSync, effectiveUid: () => 0, fchmod: fchmodSync,
@@ -280,7 +313,13 @@ function nodeSystem({ atomicCreateUnsupported = false, failBoundary, failDirecto
       if (fstatSync(descriptor).isDirectory()) { if (failDirectoryFchown) throw Object.assign(new Error("directory handoff failed"), { code: "EIO" }); directoryTransferred = true; }
       else fileTransferred = true;
     },
-    fstat: (descriptor) => identity(null, fstatSync(descriptor)), fsync: fsyncSync,
+    fstat: (descriptor) => identity(null, fstatSync(descriptor)),
+    freezeReceipt: (value) => {
+      if (failReceiptFreeze) throw Object.assign(new Error("receipt freeze failed"), { code: "EIO" });
+      frozenReceipt = Object.freeze(value);
+      return frozenReceipt;
+    },
+    fsync: fsyncSync,
     lstat: (path) => identity(path, lstatSync(path)),
     open: (path, flags, mode) => {
       const createsOutput = Boolean(flags & constants.O_CREAT) && path !== sourcePath;
@@ -314,6 +353,7 @@ function nodeSystem({ atomicCreateUnsupported = false, failBoundary, failDirecto
       return;
     }
     if (descriptor === directoryDescriptor) {
+      if (directoryTransferred && replaceParentOnDirectoryCloseAfterHandoff) postCommitDetached = state().replaceParentPath();
       directoryDescriptor = undefined; closeSync(descriptor);
       if (directoryTransferred && failDirectoryCloseAfterHandoff) throw Object.assign(new Error("post-handoff directory close failed"), { code: "EIO" });
       return;

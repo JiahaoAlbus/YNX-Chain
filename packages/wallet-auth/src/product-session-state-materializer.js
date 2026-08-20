@@ -6,6 +6,7 @@ import { basename, dirname, isAbsolute } from "node:path";
 import { canonicalJSON, exactFields, WalletAuthError } from "./canonical.js";
 
 const INPUT_FIELDS = ["expectedRegistryStateBindingSha256", "expectedSourceStateFileSha256", "outputGid", "outputPath", "outputUid", "sourcePath"];
+const RECEIPT_FIELDS = ["bytes", "commitPoint", "committed", "mode", "outputGid", "outputUid", "registryStateBindingSha256", "schemaVersion", "stateFileSha256"];
 const STATE_FIELDS = ["registrySha256", "schemaVersion", "snapshot", "snapshotSha256"];
 const MAXIMUM_STATE_BYTES = 64 * 1024 * 1024;
 
@@ -15,6 +16,7 @@ const NODE_SYSTEM = Object.freeze({
   fchmod: fchmodSync,
   fchown: fchownSync,
   fstat: fstatSync,
+  freezeReceipt: Object.freeze,
   fsync: fsyncSync,
   lstat: lstatSync,
   lstatAt: (directoryDescriptor, name) => lstatSync(fdRelativePath(directoryDescriptor, name)),
@@ -63,7 +65,7 @@ export function materializeMigratedProductSessionStateWithSystem(input, system) 
   const parent = dirname(input.outputPath), outputName = basename(input.outputPath), directory = system.lstat(parent);
   requirePrivateDirectory(directory, 0, 0, "protected output");
   let directoryDescriptor = system.open(parent, constants.O_RDONLY | directoryFlag() | noFollow());
-  let descriptor, createdIdentity, directoryTransferred = false;
+  let committedReceipt, descriptor, createdIdentity, directoryTransferred = false;
   try {
     const openedDirectory = system.fstat(directoryDescriptor);
     requirePrivateDirectory(openedDirectory, 0, 0, "opened protected output");
@@ -104,12 +106,26 @@ export function materializeMigratedProductSessionStateWithSystem(input, system) 
     const verifiedOutputDescriptor = descriptor;
     descriptor = undefined;
     system.close(verifiedOutputDescriptor);
+    const receipt = {
+      bytes: Buffer.byteLength(sourceBytes),
+      commitPoint: "DIRECTORY_OWNERSHIP_TRANSFERRED",
+      committed: true,
+      mode: "0600",
+      outputGid: input.outputGid,
+      outputUid: input.outputUid,
+      registryStateBindingSha256: input.expectedRegistryStateBindingSha256,
+      schemaVersion: 1,
+      stateFileSha256: input.expectedSourceStateFileSha256,
+    };
+    exactFields(receipt, RECEIPT_FIELDS, "Product Session state materialization committed receipt");
+    committedReceipt = system.freezeReceipt(receipt);
+    if (committedReceipt !== receipt || !Object.isFrozen(committedReceipt)) fail("RECEIPT_CONSTRUCTION_FAILED", "Product Session state materialization receipt must be exact and immutable before commit");
     system.fchown(directoryDescriptor, input.outputUid, input.outputGid);
     directoryTransferred = true;
-    try {
-      system.boundary?.("afterDirectoryOwnershipTransfer");
-      verifyDirectoryPath(system, parent, directoryDescriptor, openedDirectory, input.outputUid, input.outputGid, "after ownership transfer diagnostic");
-    } catch { /* directory fchown is committed; post-commit observation cannot suppress its receipt */ }
+    const committedDirectoryDescriptor = directoryDescriptor;
+    directoryDescriptor = undefined;
+    try { system.close(committedDirectoryDescriptor); } catch { /* the pre-frozen committed receipt remains authoritative */ }
+    return committedReceipt;
   } finally {
     let finalizationError;
     if (descriptor !== undefined) {
@@ -130,25 +146,10 @@ export function materializeMigratedProductSessionStateWithSystem(input, system) 
     if (directoryDescriptor !== undefined) {
       const finalDirectoryDescriptor = directoryDescriptor;
       directoryDescriptor = undefined;
-      if (directoryTransferred) {
-        try { system.close(finalDirectoryDescriptor); } catch { /* committed receipt remains authoritative */ }
-      } else {
-        try { system.close(finalDirectoryDescriptor); } catch (error) { finalizationError ??= error; }
-      }
+      try { system.close(finalDirectoryDescriptor); } catch (error) { finalizationError ??= error; }
     }
     if (finalizationError) throw finalizationError;
   }
-  return Object.freeze({
-    bytes: Buffer.byteLength(sourceBytes),
-    commitPoint: "DIRECTORY_OWNERSHIP_TRANSFERRED",
-    committed: true,
-    mode: "0600",
-    outputGid: input.outputGid,
-    outputUid: input.outputUid,
-    registryStateBindingSha256: input.expectedRegistryStateBindingSha256,
-    schemaVersion: 1,
-    stateFileSha256: input.expectedSourceStateFileSha256,
-  });
 }
 
 function validateInput(input) {
