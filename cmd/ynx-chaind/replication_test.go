@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -18,7 +19,8 @@ import (
 func TestFetchReplicationSnapshotVerifiesSignature(t *testing.T) {
 	source := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))
 	source.ProduceBlock()
-	payload, err := source.ReplicationSnapshotJSON()
+	genesis, _ := source.BlockByHeight(0)
+	payload, err := source.ReplicationBatchJSON(genesis.Height, genesis.Hash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -33,7 +35,7 @@ func TestFetchReplicationSnapshotVerifiesSignature(t *testing.T) {
 	}))
 	defer server.Close()
 
-	got, err := fetchReplicationSnapshot(context.Background(), server.Client(), server.URL, "replication-key")
+	got, err := fetchReplicationSnapshot(context.Background(), server.Client(), server.URL, "replication-key", genesis.Height, genesis.Hash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -48,7 +50,7 @@ func TestFetchReplicationSnapshotRejectsBadSignature(t *testing.T) {
 		_, _ = w.Write([]byte(`{"version":1}`))
 	}))
 	defer server.Close()
-	_, err := fetchReplicationSnapshot(context.Background(), server.Client(), server.URL, "replication-key")
+	_, err := fetchReplicationSnapshot(context.Background(), server.Client(), server.URL, "replication-key", 0, strings.Repeat("0", sha256.Size*2))
 	if err == nil || !strings.Contains(err.Error(), "signature mismatch") {
 		t.Fatalf("expected signature mismatch, got %v", err)
 	}
@@ -57,14 +59,20 @@ func TestFetchReplicationSnapshotRejectsBadSignature(t *testing.T) {
 func TestReplicationPollingReportsFailureRecoveryAndRestart(t *testing.T) {
 	source := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))
 	source.ProduceBlock()
-	payload, err := source.ReplicationSnapshotJSON()
-	if err != nil {
-		t.Fatal(err)
-	}
 	var available atomic.Bool
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !available.Load() {
 			http.Error(w, "source unavailable", http.StatusServiceUnavailable)
+			return
+		}
+		afterHeight, err := strconv.ParseUint(r.URL.Query().Get("afterHeight"), 10, 64)
+		if err != nil {
+			http.Error(w, "invalid replication height", http.StatusBadRequest)
+			return
+		}
+		payload, err := source.ReplicationBatchJSON(afterHeight, r.URL.Query().Get("afterHash"))
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusConflict)
 			return
 		}
 		mac := hmac.New(sha256.New, []byte("replication-key"))

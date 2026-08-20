@@ -278,22 +278,56 @@ func (s *Server) handleReplicationSnapshot(w http.ResponseWriter, r *http.Reques
 		writeError(w, http.StatusUnauthorized, "replication snapshot requires node authentication")
 		return
 	}
-	cached, err := s.replicationResponse()
-	if err != nil {
-		writeError(w, http.StatusInternalServerError, "replication snapshot unavailable")
+	afterValue := strings.TrimSpace(r.URL.Query().Get("afterHeight"))
+	if afterValue == "" {
+		cached, err := s.replicationResponse()
+		if err != nil {
+			writeError(w, http.StatusConflict, "replication snapshot unavailable: "+err.Error())
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("X-YNX-Replication-SHA256", cached.digest)
+		if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
+			w.Header().Set("Content-Encoding", "gzip")
+			w.Header().Set("Vary", "Accept-Encoding")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write(cached.gzip)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(cached.payload)
 		return
 	}
+
+	afterHeight, parseErr := strconv.ParseUint(afterValue, 10, 64)
+	afterHash := strings.TrimSpace(r.URL.Query().Get("afterHash"))
+	afterHashBytes, hashErr := hex.DecodeString(afterHash)
+	if parseErr != nil || hashErr != nil || len(afterHashBytes) != sha256.Size {
+		writeError(w, http.StatusBadRequest, "replication batch requires valid afterHeight and afterHash")
+		return
+	}
+	payload, err := s.devnet.ReplicationBatchJSON(afterHeight, afterHash)
+	if err != nil {
+		writeError(w, http.StatusConflict, "replication batch unavailable: "+err.Error())
+		return
+	}
+	mac := hmac.New(sha256.New, []byte(s.replicationKey))
+	_, _ = mac.Write(payload)
 	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("X-YNX-Replication-SHA256", cached.digest)
+	w.Header().Set("X-YNX-Replication-SHA256", hex.EncodeToString(mac.Sum(nil)))
 	if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
+		var compressed bytes.Buffer
+		gzipWriter := gzip.NewWriter(&compressed)
+		if _, err := gzipWriter.Write(payload); err != nil || gzipWriter.Close() != nil {
+			writeError(w, http.StatusInternalServerError, "replication batch compression failed")
+			return
+		}
 		w.Header().Set("Content-Encoding", "gzip")
 		w.Header().Set("Vary", "Accept-Encoding")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write(cached.gzip)
+		_, _ = w.Write(compressed.Bytes())
 		return
 	}
-	w.WriteHeader(http.StatusOK)
-	_, _ = w.Write(cached.payload)
+	_, _ = w.Write(payload)
 }
 
 func (s *Server) replicationResponse() (replicationResponseCache, error) {
