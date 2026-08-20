@@ -4,8 +4,8 @@
   "taskId": "P0-003",
   "owner": "developer-sdk",
   "auditedBy": "02-wallet-auth-central-integration",
-  "auditedAt": "2026-08-20T11:04:00Z",
-  "decision": "EXACT_DELTA_VERIFIED_REBASE_REQUIRED_NOT_CONSUMED",
+  "auditedAt": "2026-08-20T18:18:00Z",
+  "decision": "SDK_ONLY_CLEAN_REBASE_ACCEPTED_SOURCE_ONLY",
   "safeCandidate": {
     "commit": "24773900321b944444f37c7fcb2ea91b6f928d7e",
     "parent": "0a03050c305eb2f7f0d53513bcf3ea6073ba3371",
@@ -53,7 +53,30 @@
     "result": "BUNDLED_SHA256_ACCEPTED",
     "remoteSignatureStatus": "PENDING_PROTECTED_SIGNER"
   },
-  "centralReconciliation": {
+  "cleanRebaseAcceptance": {
+    "pr": "https://github.com/JiahaoAlbus/YNX-Chain/pull/130",
+    "prHead": "e649cd7cddf753d732033e24c9c3b73ecf7b807a",
+    "prHeadTree": "cb1a6f287d2ec2121b3b981124f8508def821be5",
+    "manifestCommit": "3437be2f3e4d174cd8a35949e08de673f31942b8",
+    "manifestParentActual": "a6d69e118c84b7b8df4d38198ae353fec6d2cd38",
+    "reportedBaseImplementationWasNotAnObject": "a6d69e11d98d71da19f02ba81f33636a0f9b7f25",
+    "centralMergeParent": "c0a66cb6bfe42d2f1f658ebd93f41eec0f245f2d",
+    "sdkTree": "c526fd89d08024cc955a12055b9d5d5643e1cb6f",
+    "centralParentSdkMatchedCentralMergeParent": true,
+    "materialization": "EXACT_PR_HEAD_SDK_SUBTREE_WITHOUT_MERGE_HISTORY",
+    "changedPaths": 13,
+    "allPathsUnder": "packages/dapp-connect-sdk/",
+    "appsDeveloperPathsChanged": false,
+    "manifestDeltaPaths": 5,
+    "testsPassed": 12,
+    "testsFailed": 0,
+    "compatibilityLabExplicitSkips": 10,
+    "simulatedCompatibilityPasses": 0,
+    "packageOnlyMigrationFindings": 0,
+    "manifestResult": "BUNDLED_SHA256_ACCEPTED",
+    "releaseId": "P0-WALLET-CONNECTIVITY-2026-08-endpoints-2"
+  },
+  "historicalCentralReconciliation": {
     "authoritativeParent": "8aa3924a11747d8613f14523f66f4ba5e9dc054f",
     "candidateParentIsAncestor": false,
     "actualMergeBase": "315897e75c0ffe3e63435fe73cfec42244b851cc",
@@ -84,7 +107,7 @@
     "sdkFilesChangedByCentral": false,
     "reason": "Resolving five owner-code conflicts in Integration would recreate Developer SDK semantics and could overwrite the current central SDK snapshot."
   },
-  "prTopology": {
+  "historicalPrTopology": {
     "pr105CurrentHead": "7f4597f3bd8877b5946957f3e5379ada30fcd1e4",
     "pr105AcceptedBase": "315897e75c0ffe3e63435fe73cfec42244b851cc",
     "pr105UnsafeWholeTree": true,
@@ -102,15 +125,13 @@
     },
     "mergeEitherCurrentHead": false
   },
-  "ownerActionRequired": [
-    "Create a new Developer SDK owner branch from the latest accepted central SDK snapshot.",
-    "Reapply the manifest-acceptance behavior while preserving current central SDK behavior.",
-    "Keep the replacement commit to the same five packages/dapp-connect-sdk paths and exclude apps/developer and .ynx artifacts.",
-    "Return exact parent, commit, tree, five blobs, 12/12 or stronger tests, clean package-only migration scan and BUNDLED_SHA256_ACCEPTED against the current manifest.",
-    "Repair PR #105/#110 topology; do not ask Integration to merge either current head."
+  "remainingOwnerAction": [
+    "Provide real adapters before any Compatibility Lab scenario can pass.",
+    "Provide separately signed public SDK release evidence before publicSdkReleased changes.",
+    "Each product owner must separately prove runtime consumption, public lifecycle and visible platform behavior before product migration changes."
   ],
   "truth": {
-    "candidateConsumed": false,
+    "candidateConsumed": true,
     "productMigration": false,
     "publicSdkReleased": false,
     "deployedPublic": false,
