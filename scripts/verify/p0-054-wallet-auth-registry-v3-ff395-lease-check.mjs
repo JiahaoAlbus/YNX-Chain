@@ -20,7 +20,7 @@ assert.equal(fresh.ssh.hostKeyMatched,true);assert.equal(fresh.ssh.readOnly,true
 assert.equal(lease.result.failureCode,"INSTALL_PERMISSION_DENIED");assert.equal(lease.result.migrationSucceeded,true);assert.equal(lease.result.candidateStarted,false);assert.equal(lease.result.rollbackRestored6cf,true);
 assert.equal(leases.heavy.taskId,"P0-054");assert.equal(leases.heavy.owner,null);assert.equal(leases.heavy.status,"CONSUMED_RELEASED_FAILED_CLOSED_INSTALL_PERMISSION");
 assert.equal(queue.tasks.filter(x=>x.taskId==="P0-054").length,1);assert.equal(queue.tasks.find(x=>x.taskId==="P0-054").executionLeaseIssued,false);assert.equal(queue.tasks.find(x=>x.taskId==="P0-054").p0054LeaseReusable,false);
-assert.equal(acceptance.rollback.publicSource,"6cf3ef845202bd879ed94515a71b323dd2fc9e14");assert.equal(acceptance.ownerEvidence.pending,true);
+assert.equal(acceptance.rollback.publicSource,"6cf3ef845202bd879ed94515a71b323dd2fc9e14");assert.equal(acceptance.ownerEvidence.pending,false);assert.equal(acceptance.ownerEvidence.commit,"c569da458265a5684555d5e902dc650942a7f632");assert.equal(acceptance.ownerEvidence.sha256,"1823393cb9e61de7b7271851d262b8e578708caa98ca59e6f1b02f9a5db436db");
 assert.equal(queue.tasks.find(x=>x.taskId==="P0-050").p0050LeaseReusable,false);
 if(process.argv.includes("--self-test")){for(const mutate of [c=>c.reusable=true,c=>c.failurePolicy.autoRollback=false,c=>c.truth.deployedPublic=true,c=>c.truth.productsMigratedV2=1,c=>c.singleUse=false]){const c=structuredClone(lease);mutate(c);assert.throws(()=>validate(c));}console.log("PASS 5/5 P0-054 lease safety mutations rejected");}
 console.log("PASS P0-054 consumed once, failed closed on install permission, restored exact 6cf and released Heavy");
