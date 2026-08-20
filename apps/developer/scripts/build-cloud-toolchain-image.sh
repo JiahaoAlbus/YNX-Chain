@@ -119,7 +119,7 @@ lxc exec "$builder" -- sh -c "printf '%s  %s\n' '$junit_sha256' /usr/local/share
 lxc exec "$builder" -- java -jar /usr/local/share/ynx-code/junit-platform-console-standalone.jar --version
 lxc exec "$builder" -- sh -c 'rustc --version | grep "^rustc 1.75.0 "'
 lxc exec "$builder" -- sh -c 'cargo --version | grep "^cargo 1.75.0$"'
-lxc exec "$builder" -- sh -c 'rustfmt --version | grep "^rustfmt 1.75.0"'
+lxc exec "$builder" -- sh -c 'rustfmt --version | grep "^rustfmt 1.7.0-stable "'
 lxc exec "$builder" -- sh -c 'python3 -m venv --copies /tmp/ynx-python-package-probe && /tmp/ynx-python-package-probe/bin/python -m pip --version && rm -rf /tmp/ynx-python-package-probe && dpkg-query -W -f="\${Package}=\${Version}\n" python3-pip python3-venv > /etc/ynx-code-python-packages.txt'
 lxc exec "$builder" -- curl --proto '=https' --tlsv1.2 -fL --retry 4 --connect-timeout 20 "$debugpy_url" -o "/tmp/debugpy-${debugpy_version}-py2.py3-none-any.whl"
 lxc exec "$builder" -- sh -c "printf '%s  %s\n' '$debugpy_sha256' '/tmp/debugpy-${debugpy_version}-py2.py3-none-any.whl' | sha256sum -c -"
