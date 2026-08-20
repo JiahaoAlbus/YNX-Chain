@@ -1,38 +1,18 @@
-name: shop-native
+name: shop-ios-evidence
 
 on:
   pull_request:
     paths:
-      - "apps/shop/native/**"
+      - "apps/shop/native/ios/**"
       - ".github/workflows/shop-native.yml"
   push:
     branches: [main, codex/ecosystem-shop]
     paths:
-      - "apps/shop/native/**"
+      - "apps/shop/native/ios/**"
       - ".github/workflows/shop-native.yml"
   workflow_dispatch:
 
 jobs:
-  android:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: apps/shop/native/android
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: "17"
-      - uses: android-actions/setup-android@v3
-      - run: ./gradlew --no-daemon testDebugUnitTest assembleDebug assembleRelease
-      - uses: actions/upload-artifact@v4
-        with:
-          name: ynx-shop-android-unsigned
-          path: |
-            apps/shop/native/android/app/build/outputs/apk/debug/app-debug.apk
-            apps/shop/native/android/app/build/outputs/apk/release/app-release-unsigned.apk
-
   ios-simulator:
     runs-on: macos-15
     timeout-minutes: 10

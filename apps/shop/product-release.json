@@ -4,14 +4,14 @@
   "branch": "codex/shop-0.3-android",
   "commit": "6fa2d6c5",
   "version": "0.3.0-testnet-preview",
-  "surfaces": ["web", "pwa", "android", "ios"],
+  "surfaces": ["web", "pwa", "ios"],
   "implementedLocal": true,
   "testedLocal": true,
   "installedLocal": true,
   "integratedCentral": false,
   "deployedStaging": true,
   "deployedPublic": true,
-  "downloadHosted": true,
+  "downloadHosted": false,
   "productionSigned": false,
   "storeReleased": false,
   "publicUrls": [
@@ -22,35 +22,34 @@
     "https://shop-api.ynxweb4.com/health",
     "https://shop-api.ynxweb4.com/version"
   ],
-  "artifactUrls": [
-    "https://www.ynxweb4.com/downloads/ynx-shop-0.3.0-testnet-preview-6fa2d6c5-debug-signed.apk"
-  ],
-  "sha256": {
-    "androidTestnetPreviewApk": "a7466e02f3735c561af403a83c8377e1f1ee3bbdfdd76d4f691bf595cd72c72d"
+  "artifactUrls": [],
+  "retirement": {
+    "platform": "android",
+    "status": "RETIREMENT_IN_PROGRESS",
+    "reason": "P0 founder decision: retain Shop Web/PWA and withdraw Shop Android.",
+    "publicDownload": "withdrawn",
+    "buildWorkflow": "disabled",
+    "historicalArtifact": {
+      "name": "ynx-shop-0.3.0-testnet-preview-6fa2d6c5-debug-signed.apk",
+      "sha256": "a7466e02f3735c561af403a83c8377e1f1ee3bbdfdd76d4f691bf595cd72c72d",
+      "bytes": 253733,
+      "signingClass": "android-debug-testnet-preview",
+      "preservedAs": "historical evidence only"
+    },
+    "remainingEnforcement": [
+      "Website route and catalog removal",
+      "Wallet/Gateway client retirement response, session, approval, and device-grant revocation",
+      "Callback and App Link retirement confirmation"
+    ],
+    "replacementURL": "https://shop.ynxweb4.com/shop/",
+    "remoteUninstallClaim": false
   },
-  "bytes": {
-    "androidTestnetPreviewApk": 253733
-  },
-  "signingClass": "android-debug-testnet-preview",
   "minOS": {
-    "androidApi": 26,
     "ios": "17.0",
     "web": "current evergreen browser"
   },
   "installEvidence": {
-    "android": {
-      "installed": true,
-      "device": "Medium Phone API 36 emulator-5554",
-      "package": "com.ynxweb4.shop.debug",
-      "install": "Success",
-      "coldLaunch": "LaunchState: COLD; TotalTime: 4203 ms",
-      "verifiedFlows": [
-        "public catalog returned three persistent demo products",
-        "official catalog media rendered from shop.ynxweb4.com",
-        "add-to-cart updated the local encrypted cart badge",
-        "order review showed exact 24 YNXT subtotal and address fields"
-      ]
-    },
+    "android": {"historicalOnly": true,"retirementStatus": "RETIRED_FROM_NEW_DISTRIBUTION","package": "com.ynxweb4.shop.debug","note": "Past emulator evidence is retained. No claim is made that an already installed APK can be remotely uninstalled."},
     "ios": {
       "installed": true,
       "evidence": "macos-15 CI built, booted, installed, launched, exercised the callback deep link, and captured a screenshot"
