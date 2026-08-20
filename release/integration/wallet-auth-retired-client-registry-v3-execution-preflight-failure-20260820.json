@@ -1,0 +1,100 @@
+{
+  "schemaVersion": 1,
+  "owner": "Core/Auth/Gateway",
+  "observedAtUtc": "2026-08-20T17:54:32Z",
+  "status": "blocked-before-transaction-no-production-mutation",
+  "controlPlane": {
+    "centralCommit": "835781a5759850857cde58126a714eeb49acc3b3",
+    "epoch": 12,
+    "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-retired-client-registry-v3-20260820T174054Z",
+    "leaseArtifact": "release/integration/p0-wallet-connectivity/execution/wallet-auth-retired-client-registry-v3-lease-20260821.json",
+    "leaseExpiresAtUtc": "2026-08-20T19:40:54Z",
+    "authorizedSourceCommit": "deb2cefb00b52e5c2ab9c357201d690918320424",
+    "authorizedSourceTree": "06290f63",
+    "authorizedWalletAuthTree": "36a94455",
+    "authorizedRegistryFileSha256": "810c58777a62a798e286d2d30e0430334b88603653f672821642e80e3553c46c"
+  },
+  "preflight": {
+    "result": "fail-closed",
+    "phase": "read-only-before-backup-or-service-stop",
+    "blockers": [
+      {
+        "code": "AUTHORIZED_SOURCE_HAS_NO_STATE_MIGRATION",
+        "detail": "The exact authorized deb2cefb source contains no v2-to-v3 copied-current-state migration entry point, while the lease requires mandatory old-digest migration before activation.",
+        "requiredResolution": "Authorize a reviewed source that contains the exact migration, or provide a separately source-bound deterministic migration artifact and acceptance digest."
+      },
+      {
+        "code": "PUBLIC_VERSION_ROUTE_UNREACHABLE",
+        "detail": "The aggregate daemon sends only /v2/product-sessions/* to the Product Session handler, but that handler exposes its administrative version response only at /version. Public /v2/product-sessions/version therefore returns ROUTE_NOT_FOUND and cannot prove the lease-required Product Session source and registry fields.",
+        "observedPublicStatus": 404,
+        "observedPublicCode": "ROUTE_NOT_FOUND",
+        "requiredResolution": "Source-bind a non-conflicting Product Session version route and its exact public acceptance request."
+      },
+      {
+        "code": "REGISTRY_DIGEST_SEMANTICS_MISMATCH",
+        "detail": "The lease requires the raw registry-file SHA-256 810c5877..., while exact deb2 runtime reports the SHA-256 of canonical JSON for the parsed registry, f300fb09....",
+        "leaseExpectedSha256": "810c58777a62a798e286d2d30e0430334b88603653f672821642e80e3553c46c",
+        "runtimeReportedSha256": "f300fb098c832161aaeb2bcf62b61a7b5b674ea0b443ebd9ca0189592e0b10d7",
+        "requiredResolution": "Freeze distinct raw-file and parsed-state-binding fields, then make acceptance compare each field to its matching digest."
+      },
+      {
+        "code": "CURRENT_STATE_ENVELOPE_INCOMPATIBLE",
+        "detail": "The copied current 6cf Product Session state has root keys schemaVersion,snapshot,snapshotDigest and no registrySha256. Exact deb2 requires registrySha256,schemaVersion,snapshot,snapshotSha256 and rejects the copied state before serving.",
+        "currentStateSha256": "343f4cbbce0aed1e3cc5894156c4480e69dfc4775e0b347c63d555bd51790d23",
+        "requiredResolution": "Run a source-bound offline migration against a copy and prove canonical output plus retired-client revocation before activation."
+      },
+      {
+        "code": "PRODUCTION_ENVIRONMENT_NAME_MISMATCH",
+        "detail": "The current candidate environment exports YNX_PRODUCT_SESSION_GATEWAY_REGISTRY_PATH and YNX_PRODUCT_SESSION_GATEWAY_STATE_PATH; exact deb2 consumes YNX_WALLET_PRODUCT_SESSION_V2_REGISTRY_PATH and YNX_WALLET_PRODUCT_SESSION_V2_STATE_PATH.",
+        "requiredResolution": "Freeze and hash-bind a candidate-only environment mapping without changing the base unit or Caddy."
+      }
+    ]
+  },
+  "publicBefore": {
+    "baseUrl": "https://wallet-auth.ynxweb4.com",
+    "versionHttpStatus": 200,
+    "healthHttpStatus": 200,
+    "readyHttpStatus": 200,
+    "sourceCommit": "6cf3ef845202bd879ed94515a71b323dd2fc9e14",
+    "release": "p0-v2-state-isolated-6cf3ef84",
+    "activeSymlinkTarget": "/opt/ynx/wallet-auth-6cf3ef84",
+    "caddyfileSha256": "077fe80ea9aab24a32d64ba1fab3584e8aab10304e200e58d976d2c33edfb39f",
+    "baseUnitSha256": "b465463185b1539d04a3091c349f2b8bca4286be3521e1975091089cd6603ec4"
+  },
+  "protectedStateBefore": {
+    "sharedStateSha256": "ba386fb9e474ea0886c2e41184db7fac3fcf6aea6dd02f5fe47122a62d3a8c9e",
+    "candidateV1StateSha256": "ac6b6523851c37c3d8b5472179fd218bc5d839e20d5a75177dcd2ac9494ea4ba",
+    "candidateV2StateSha256": "343f4cbbce0aed1e3cc5894156c4480e69dfc4775e0b347c63d555bd51790d23",
+    "candidateV2StateMode": "0600",
+    "candidateV2StateOwner": "ubuntu:ubuntu",
+    "candidateV2StateNlink": 1,
+    "candidateV2StateBytes": 7608
+  },
+  "transaction": {
+    "backupCreated": false,
+    "candidateMaterialized": false,
+    "copiedCurrentStateDrillRun": false,
+    "serviceStopped": false,
+    "activeSymlinkChanged": false,
+    "serviceRestarted": false,
+    "rollbackRequired": false,
+    "rollbackExecuted": false,
+    "finalActivationAttempted": false,
+    "productionStateMutated": false,
+    "caddyChanged": false,
+    "baseUnitChanged": false
+  },
+  "truth": {
+    "leaseDeploymentConsumed": false,
+    "candidateDeployedPublic": false,
+    "publicRegistryV3": false,
+    "shopAndroidRetired410Public": false,
+    "shopWebPreservedOnRegistryV3Public": false,
+    "productMigrationsComplete": 0,
+    "productMigrationsTotal": 12,
+    "computerControlVerified": false,
+    "integratedCentral": false,
+    "aggregatePublic": false,
+    "heavyLeaseReleaseRequired": true
+  }
+}
