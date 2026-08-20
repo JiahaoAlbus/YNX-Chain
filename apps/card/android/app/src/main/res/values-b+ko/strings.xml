@@ -1,0 +1,4 @@
+<resources>
+  <string name="CFBundleDisplayName">"YNX 카드"</string>
+  <string name="NSFaceIDUsageDescription">"안전한 YNX 카드 참조를 표시하기 전에 인증합니다."</string>
+</resources>

@@ -1,0 +1,101 @@
+{
+  "productId": "ynx-card",
+  "name": "YNX Card",
+  "branch": "codex/final-card",
+  "sourceCommit": "d79872f5df4da0566e11ef40e5314ea68d9846f4",
+  "commit": "d79872f5df4da0566e11ef40e5314ea68d9846f4",
+  "recoveredFromCommit": "c20beda",
+  "recoveryCheckpoint": "bdd5ca02ad42b712db66a5173ecfad09340aa42c",
+  "version": "1.0.0-testnet-preview",
+  "surfaces": [
+    "android",
+    "ios-simulator-source",
+    "card-product-api"
+  ],
+  "implementedLocal": true,
+  "testedLocal": true,
+  "builtLocal": true,
+  "installedLocal": false,
+  "migrationVerified": true,
+  "restoreVerified": true,
+  "integratedCentral": false,
+  "testnetVerified": false,
+  "deployedStaging": false,
+  "deployedPublic": false,
+  "releasePublished": false,
+  "downloadHosted": false,
+  "productionSigned": false,
+  "storeReleased": false,
+  "mainnetReleased": false,
+  "releaseStates": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "builtLocal": true,
+    "installedLocal": false,
+    "migrationVerified": true,
+    "restoreVerified": true,
+    "integratedCentral": false,
+    "testnetVerified": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "releasePublished": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false,
+    "mainnetReleased": false
+  },
+  "websitePublished": false,
+  "publicUrls": [],
+  "healthUrls": [],
+  "artifactUrls": [],
+  "localArtifacts": [
+    "release/card/sbom-npm.cdx.json",
+    "release/card/sbom-npm.provenance.json"
+  ],
+  "artifactHashes": {
+    "release/card/sbom-npm.cdx.json": "sha256:90b5c06d17bba8460554ec3d24a5e7f7b75a7fc811bb8329535396a45cf6654f",
+    "release/card/sbom-npm.provenance.json": "sha256:b64b143853c93c9f18780d2ce3a7a77ae77293820d0093df5558408f91459097"
+  },
+  "artifactBytes": {
+    "release/card/sbom-npm.cdx.json": 563134,
+    "release/card/sbom-npm.provenance.json": 929
+  },
+  "signingClass": {
+    "android": "unsigned unless operator supplies all YNX_CARD_RELEASE_* variables through an approved signing path",
+    "ios": "unsigned Simulator/source only"
+  },
+  "minOS": {
+    "androidSdk": 24,
+    "ios": "16.4"
+  },
+  "verification": {
+    "cardGoTests": "go test ./internal/cardproduct/... passed",
+    "cardRace": "go test -race ./internal/cardproduct/... passed",
+    "cardVet": "go vet ./internal/cardproduct/... passed",
+    "providerCapabilityContract": "passed at 8cd6a721b0ffe007ddaa5855337aa2dfc26c0d9b",
+    "providerEventNegativeVectors": "tamper, expiry, replay, ordering, relation and key rotation passed at 13f90c5f6dae6fb002560574b4c481b5e1477f9d",
+    "backupRestore": "versioned HMAC backup, tamper rejection, rollback, migration, corrupt-primary quarantine and missing-primary cold restore passed at 01415dc4413dd8d4e33756a52682ca0f2a6675ec",
+    "dataLifecycle": "account export redaction, bounded retention, fail-closed issuer closure, deletion pseudonymization, audit rehashing, idempotency and dedicated card:data:delete scope passed at 719337289bfa9c28bee3acd86279b1bac61e9815",
+    "mainCompatibility": "origin/main merged at d79872f5df4da0566e11ef40e5314ea68d9846f4; Card packages and race tests passed after merge",
+    "adminCliBuild": "go build ./internal/cardproduct/cmd/ynx-card-product-admin passed at 01415dc4413dd8d4e33756a52682ca0f2a6675ec",
+    "mobileTests": "npm test passed 8/8 on 2026-07-29",
+    "typecheck": "npm run typecheck passed on 2026-07-29",
+    "expoBundle": "npm run bundle-check exported Android and iOS Hermes bundles on 2026-07-29",
+    "cardSecurityCheck": "npm run security-check passed on 2026-07-29",
+    "npmSbom": "deterministic CycloneDX 1.5 inventory generated with 533 components and sha256:90b5c06d17bba8460554ec3d24a5e7f7b75a7fc811bb8329535396a45cf6654f",
+    "performanceBaseline": "Apple M2 local benchmark: Card state read 54236 ns/op; account export 145528 ns/op after no-op persistence elimination",
+    "repositoryWideGoTest": "not green because unrelated BFT/consensus packages require artifacts/contracts/devtools/SampleEVMWriteCounter.sol/SampleEVMWriteCounter.json; Card packages passed",
+    "androidNativeReleaseBuild": "not verified; three earlier MCP upstream 502 failures returned no Gradle result"
+  },
+  "centralIntegration": "Canonical Card identity, Gateway assertion bindings and the dedicated card:data:delete scope are implemented locally; central registry/proxy acceptance and deployment are not evidenced.",
+  "knownLimitations": [
+    "Sandbox or unavailable issuer only; no BIN, real processor, fiat balance or spendable-card claim.",
+    "No official provider-specific webhook signature or secure-display integration is selected.",
+    "Local backup/restore and account data lifecycle enforcement are verified, but scheduled encrypted off-host backup retention and timed RPO/RTO evidence are not complete.",
+    "Data lifecycle endpoints are local-only; central privacy workflow acceptance and scheduled retention invocation are not evidenced.",
+    "No current native APK install/cold-launch evidence.",
+    "No staging, production signing, hosted download, store release or external security review.",
+    "Issuer credential and legal/provider agreement remain external inputs for a real issuer sandbox."
+  ],
+  "generatedAt": "2026-07-29"
+}

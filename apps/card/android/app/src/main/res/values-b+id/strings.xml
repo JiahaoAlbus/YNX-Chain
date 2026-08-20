@@ -1,0 +1,4 @@
+<resources>
+  <string name="CFBundleDisplayName">"Kartu YNX"</string>
+  <string name="NSFaceIDUsageDescription">"Autentikasi sebelum menampilkan referensi aman YNX Card."</string>
+</resources>

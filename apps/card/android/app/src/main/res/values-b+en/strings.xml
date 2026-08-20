@@ -1,0 +1,4 @@
+<resources>
+  <string name="CFBundleDisplayName">"YNX Card"</string>
+  <string name="NSFaceIDUsageDescription">"Authenticate before revealing safe YNX Card references."</string>
+</resources>

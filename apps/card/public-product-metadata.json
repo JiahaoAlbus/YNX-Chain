@@ -1,0 +1,83 @@
+{
+  "schemaVersion": "ynx.public-product.v1",
+  "productId": "ynx-card",
+  "productName": "YNX Card",
+  "aliases": ["Card", "YNX Card Testnet Preview"],
+  "canonicalRoute": "/card",
+  "title": "YNX Card — Controlled Testnet Card Preview",
+  "metaDescription": "Explore the YNX Card Testnet Preview with sandbox card lifecycle, user-configurable controls, signed provider events, privacy export and bounded account-data deletion.",
+  "h1": "A controlled Card preview for YNX Testnet",
+  "sourceCommit": "d79872f5df4da0566e11ef40e5314ea68d9846f4",
+  "releaseVersion": "1.0.0-testnet-preview",
+  "status": {
+    "label": "Testnet Preview",
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": false,
+    "integratedCentral": false,
+    "websitePublished": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "runtimeTruth": {
+    "issuerModes": ["unavailable", "YNX deterministic sandbox"],
+    "officialIssuerSelected": false,
+    "realWorldSpendable": false,
+    "fiatBalance": false,
+    "secureDisplay": "Provider-hosted secure display is required for any future official issuer; YNX does not persist PAN, CVV, PIN or track data."
+  },
+  "features": [
+    "Sandbox application, issuance, activation, freeze, unfreeze, replacement and closure",
+    "Spend, online, international, ATM, MCC and country controls",
+    "Signed, replay-protected provider event timeline",
+    "Bounded webhook-key rotation and fail-closed event ordering",
+    "Privacy export with provider-sensitive reference redaction",
+    "Bounded retention and account deletion with issuer closure, pseudonymized audit and dedicated authorization scope",
+    "Dispute initiation and review-only AI explanations",
+    "Twelve locales including Arabic RTL"
+  ],
+  "risks": [
+    "This preview is not a real-world payment card and has no BIN or production issuer relationship.",
+    "Issuer availability, fees, rewards, jurisdiction and consumer protections depend on a future approved provider program.",
+    "No hosted download, public runtime, production signature or store release is currently evidenced."
+  ],
+  "faq": [
+    {
+      "question": "Can YNX Card be used for real purchases?",
+      "answer": "No. The current product is a Testnet Preview using an unavailable or deterministic sandbox issuer and is not a spendable real-world card."
+    },
+    {
+      "question": "Does YNX store card numbers or CVV data?",
+      "answer": "No. PAN, CVV, PIN and track data are forbidden from YNX application state, logs, analytics, AI context and public evidence."
+    },
+    {
+      "question": "What happens when the issuer is unavailable?",
+      "answer": "The product fails closed, reports degraded health and returns not-ready status instead of fabricating a card or successful provider state."
+    },
+    {
+      "question": "Is the mobile app available to download?",
+      "answer": "Not yet. Source and local bundle evidence exist, but native install, hosted artifact, production signing and store-release evidence remain incomplete."
+    }
+  ],
+  "brand": {
+    "primaryColor": "#002FA7",
+    "backgroundColor": "#FFFFFF",
+    "logoAsset": "assets/brand/ynx-logo.png"
+  },
+  "screenshots": [],
+  "downloads": [],
+  "supportUrl": null,
+  "privacyUrl": null,
+  "securityUrl": null,
+  "statusUrl": null,
+  "structuredDataSuggestion": {
+    "types": ["SoftwareApplication", "Product"],
+    "applicationCategory": "FinanceApplication",
+    "operatingSystem": "Android; iOS Simulator source",
+    "releaseNotesSource": "apps/card/product-release.json"
+  },
+  "websiteIntegrationOwner": "28-website",
+  "generatedAt": "2026-07-29"
+}
