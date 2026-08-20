@@ -1,0 +1,49 @@
+{
+  "schemaVersion": "1.0.0",
+  "recordedAt": "2026-08-20T11:54:00Z",
+  "scope": "Social Android canonical Wallet authorization recovery",
+  "source": {
+    "socialCommit": "6894cbc2d533fba41d5b2ee7b32810062ecf218c",
+    "walletPlatformCommit": "8e8d56445cf54b3ac84cb8c26c55b13dbd49857d"
+  },
+  "publicRuntime": {
+    "url": "https://api.ynxweb4.com/social/health",
+    "verified": true,
+    "walletAuth": "canonical-signed-envelope-v2-origin-bound",
+    "walletGateway": "persistent-p256-challenge-v2-origin-bound",
+    "deployedBinarySha256": "15ca411618ae17195c00c764364191e22ff3366ef1959423c4a38499ed6a7af8",
+    "rollbackBackup": "/var/backups/ynx-chain/social-wallet-v2-6894cbc2-20260820T114544Z"
+  },
+  "installedArtifacts": {
+    "socialAndroidRelease": {
+      "sha256": "adc5332a4e3c21f3c0ceff9f10dc5fb41a76116d574461e9f71950c8e58fe024",
+      "bytes": 103997712,
+      "installed": true
+    },
+    "walletAndroidRelease": {
+      "sha256": "43dfe20665c62f0c963f0d06dc6fca9800d49543b613678a76988879537924c5",
+      "bytes": 78225838,
+      "embeddedAndroidBundle": true,
+      "localTestSignerOnly": true,
+      "installed": true
+    }
+  },
+  "directAcceptance": {
+    "androidIntentResolvedToWallet": true,
+    "walletApprovalInvoked": true,
+    "systemFingerprintAccepted": true,
+    "callbackReturnedToSocial": true,
+    "socialSignedInUiVisible": true,
+    "successScreenshotSha256": "d63781112df27f2bcdea8174698dbf2ad8c06958d877cadb646889b7eacbda1a",
+    "legacyV1BodyErrorObservedAfterFix": false,
+    "physicalPixel9": false,
+    "secondLaunchSessionDirectlyProved": false,
+    "productionSigned": false,
+    "officialWebsiteDownloadHosted": false
+  },
+  "boundaries": [
+    "The Wallet protected its screen capture surface; a blank host screenshot is not a Wallet render failure.",
+    "This proves one Android emulator approval and callback only. It does not prove a physical Pixel 9, external EVM DApp, WalletConnect, faucet, transaction broadcast, or official-download release.",
+    "The local test signer is not a production signing assertion."
+  ]
+}
