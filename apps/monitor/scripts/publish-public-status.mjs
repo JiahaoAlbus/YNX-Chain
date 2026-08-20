@@ -7,6 +7,10 @@ const ranks = { operational: 0, maintenance: 1, degraded: 2, partial_outage: 3, 
 
 function record(value) { return value && typeof value === "object" && !Array.isArray(value) ? value : {}; }
 function nullableText(value, max = 120) { return typeof value === "string" && value.trim() ? value.trim().slice(0, max) : null; }
+function nullableCommit(value) {
+  const commit = nullableText(value, 64);
+  return commit && /^[a-f0-9]{7,64}$/i.test(commit) ? commit.toLowerCase() : null;
+}
 function nullableISO(value) { const millis = typeof value === "string" ? Date.parse(value) : NaN; return Number.isFinite(millis) ? new Date(millis).toISOString() : null; }
 function publicDependencyStatus(value) {
   const normalized = String(record(value).status ?? value ?? "").toLowerCase();
@@ -53,12 +57,36 @@ function healthStatus(response, health, dependencies) {
 function identityFrom(...documents) {
   for (const document of documents) {
     const build = record(document.build);
-    const sourceCommit = nullableText(document.sourceCommit ?? document.commit ?? build.commit);
+    const sourceCommit = nullableCommit(document.sourceCommit ?? document.commit ?? build.commit);
     const release = nullableText(document.release ?? build.release);
     const startedAt = nullableISO(document.startedAt);
     if (sourceCommit || release || startedAt) return { sourceCommit, release, startedAt };
   }
   return { sourceCommit: null, release: null, startedAt: null };
+}
+
+function publicHTTPSURL(value, label) {
+  if (typeof value !== "string") throw new Error(`${label} must be a public HTTPS URL`);
+  let url;
+  try { url = new URL(value); } catch { throw new Error(`${label} must be a public HTTPS URL`); }
+  if (url.protocol !== "https:" || url.username || url.password || url.search || url.hash) {
+    throw new Error(`${label} must be a credential-free public HTTPS URL without query or fragment`);
+  }
+  const host = url.hostname.toLowerCase();
+  const blocked = host === "localhost" || host.endsWith(".local") || host === "example.com" || host.endsWith(".example")
+    || /^\d{1,3}(?:\.\d{1,3}){3}$/.test(host) || host.includes(":");
+  if (blocked) throw new Error(`${label} must not target localhost, reserved, or literal IP addresses`);
+  return url;
+}
+
+function validatedProbe(probe) {
+  if (!probe || !/^[a-z0-9][a-z0-9._:-]{0,79}$/i.test(probe.id || "") || typeof probe.name !== "string" || !probe.name.trim()) throw new Error("invalid public status probe");
+  const url = publicHTTPSURL(probe.url, `public status probe ${probe.id}`);
+  if (probe.versionUrl !== undefined && probe.versionUrl !== null && probe.versionUrl !== "") {
+    const versionURL = publicHTTPSURL(probe.versionUrl, `public status version probe ${probe.id}`);
+    if (versionURL.origin !== url.origin) throw new Error(`public status version probe ${probe.id} must share the health origin`);
+  }
+  return probe;
 }
 
 function canonical(value) {
@@ -74,21 +102,21 @@ export function signSnapshot(snapshot, key) {
   return { ...snapshot, integrity: { algorithm: "hmac-sha256", digest: createHmac("sha256", key).update(JSON.stringify(canonical(snapshot))).digest("hex") } };
 }
 
-export async function buildSnapshot({ probes, key, source, approvalId, timeoutMs = 2500, now = new Date() }) {
+export async function buildSnapshot({ probes, key, source, approvalId, timeoutMs = 2500, now = new Date(), fetcher = fetch }) {
   if (!Array.isArray(probes) || !probes.length || probes.length > 64) throw new Error("YNX_MONITOR_PUBLIC_STATUS_PROBES must contain 1..64 probes");
   if (!/^[a-z0-9][a-z0-9._:-]{0,119}$/i.test(source || "")) throw new Error("YNX_MONITOR_PUBLIC_STATUS_EXPECTED_SOURCE is invalid");
   if (!/^[a-z0-9][a-z0-9._:-]{0,119}$/i.test(approvalId || "")) throw new Error("YNX_MONITOR_PUBLIC_STATUS_APPROVAL_ID is invalid");
   const asOf = now.toISOString();
   const rawServices = await Promise.all(probes.map(async (probe) => {
-    if (!probe || !/^[a-z0-9][a-z0-9._:-]{0,79}$/i.test(probe.id || "") || typeof probe.name !== "string" || !probe.name.trim() || typeof probe.url !== "string") throw new Error("invalid public status probe");
+    validatedProbe(probe);
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), timeoutMs);
     try {
-      const response = await fetch(probe.url, { signal: controller.signal, headers: { accept: "application/json" } });
+	  const response = await fetcher(probe.url, { signal: controller.signal, headers: { accept: "application/json" } });
 	  const health = await boundedJSON(response);
 	  let version = {};
 	  if (typeof probe.versionUrl === "string" && probe.versionUrl) {
-		try { const versionResponse = await fetch(probe.versionUrl, { signal: controller.signal, headers: { accept: "application/json" } }); if (versionResponse.ok) version = await boundedJSON(versionResponse); } catch { version = {}; }
+		try { const versionResponse = await fetcher(probe.versionUrl, { signal: controller.signal, headers: { accept: "application/json" } }); if (versionResponse.ok) version = await boundedJSON(versionResponse); } catch { version = {}; }
 	  }
 	  const identity = identityFrom(version, health);
 	  const reportedDependencies = record(health.dependencies);
@@ -118,7 +146,7 @@ export async function buildSnapshot({ probes, key, source, approvalId, timeoutMs
   const services = rawServices.map(({ baseStatus, dependencyIDs, reportedDependencies, ...service }) => {
 	const dependencies = dependencyIDs.map((id) => ({ id, status: id in reportedDependencies ? publicDependencyStatus(reportedDependencies[id]) : (resolvedStatuses.get(id) || "unknown") }));
 	const status = resolvedStatuses.get(service.id) || "unknown";
-	return { ...service, status, dependencies, message: status === "operational" ? "Bounded public probe returned a verified healthy response." : baseStatus === "major_outage" ? "Bounded public probe was unavailable or unhealthy." : "A configured dependency did not return a verified healthy response." };
+	return { ...service, status, dependencies, message: status === "operational" ? "Configured public HTTPS probe returned a healthy response." : baseStatus === "major_outage" ? "Configured public HTTPS probe was unavailable or unhealthy." : "A configured dependency did not return a healthy response." };
   });
   const status = services.reduce((worst, service) => ranks[service.status] > ranks[worst] ? service.status : worst, "operational");
   return signSnapshot({
