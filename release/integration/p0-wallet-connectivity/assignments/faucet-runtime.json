@@ -1,7 +1,7 @@
 {
   "taskId":"P0-012",
   "owner":"integration",
-  "status":"CANDIDATE_READY",
+  "status":"DEPLOYMENT_GATE_BLOCKED",
   "branch":"codex/p0-faucet-runtime-20260820",
   "worktree":"29-faucet-runtime-p0",
   "commit":"3b80a2fc84af93b5ff5ec9c668a18c0e8d8be011",
@@ -9,7 +9,14 @@
   "paths":["cmd/ynx-faucetd/**","internal/faucet/**","infra/systemd/ynx-faucetd.example.service","infra/docker/ynx-faucetd.Dockerfile","scripts/verify/faucet-check.sh"],
   "objective":"Remove internal topology from public Faucet health, expose a truthful public /version response and preserve real fault classification.",
   "requiredEvidence":["focused tests","diff check","public response does not reveal loopback or private topology","isolated branch and PR"],
-  "currentPublicRuntime":"2026-08-20 probe still returned rpcUrl=http://127.0.0.1:6420 and /version did not respond; candidate is not deployed.",
+  "currentPublicRuntime":"2026-08-20T10:42Z direct HTTPS probe returned rpcUrl=http://127.0.0.1:6420 and /version HTTP 404 from deployed source 8fe48738f309c469bd7a16e31fbfe9e106d7de3c; candidate 3b80a2fc is not deployed.",
+  "deploymentGate":{
+    "checkedAt":"2026-08-20T10:44:07Z",
+    "status":"BLOCKED_FAIL_CLOSED",
+    "blockers":["remote smoke requires release-manifest evidence bound to the candidate","public RPC source identity is a986a30c5a4ed8cfd66f7f08dd2d6f032b1cfdc8 rather than candidate 3b80a2fc84af93b5ff5ec9c668a18c0e8d8be011","remote smoke cannot produce valid release evidence while the public runtime remains old"],
+    "verifiedPreconditions":["strict SSH host-key audit passed for primary, Singapore, Silicon Valley and Seoul","candidate branch is clean and pushed"]
+  },
   "prohibitedClaims":["deployed","public verified","Wallet Faucet works"],
-  "rollback":"revert the isolated Faucet runtime commit; do not alter the endpoint manifest until runtime deployment is independently observed."
+  "rollback":"revert the isolated Faucet runtime commit; do not alter the endpoint manifest until runtime deployment is independently observed.",
+  "nextAction":"Produce the candidate-bound release manifest evidence, rerun the non-mutating remote smoke until it accepts candidate source identity, then and only then run the normal deploy gate and deployment path."
 }

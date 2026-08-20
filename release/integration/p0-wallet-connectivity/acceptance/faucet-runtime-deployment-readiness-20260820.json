@@ -1,0 +1,12 @@
+{
+  "schemaVersion":"1.0.0",
+  "campaignId":"P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId":"P0-012",
+  "checkedAt":"2026-08-20T10:44:07Z",
+  "candidate":{"commit":"3b80a2fc84af93b5ff5ec9c668a18c0e8d8be011","branch":"codex/p0-faucet-runtime-20260820","pr":"https://github.com/JiahaoAlbus/YNX-Chain/pull/108","sourceState":"clean and remote branch matched"},
+  "publicObservation":{"url":"https://faucet.ynxweb4.com","health":{"httpStatus":200,"deployedSourceCommit":"8fe48738f309c469bd7a16e31fbfe9e106d7de3c","unsafeTopologyObserved":true},"version":{"httpStatus":404}},
+  "deploymentGate":{"status":"BLOCKED_FAIL_CLOSED","preconditions":["strict SSH host-key audit passed for all four declared nodes","candidate source exists on its remote branch"],"blockers":["candidate-bound release-manifest evidence is absent","remote smoke expected candidate 3b80a2fc but public RPC identifies a986a30c5a4ed8cfd66f7f08dd2d6f032b1cfdc8","remote smoke does not write valid remote evidence while identity mismatch remains"]},
+  "claimBoundary":{"deployed":false,"publicVerified":false,"walletFaucetWorks":false,"endpointManifestRevisionAllowed":false},
+  "nextAction":"Build candidate release evidence through the normal immutable deployment workflow; run remote smoke again; only then let deploy-readiness-gate authorize remote mutation.",
+  "rollback":"No remote mutation was performed in this check. If a later deployment begins, use its recorded pre-deploy backup and the normal rollback path."
+}
