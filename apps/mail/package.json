@@ -5,7 +5,8 @@
   "description": "Independent native-first YNX Mail product and service",
   "scripts": {
     "localize:native": "node tests/generate-native-localizations.mjs",
-    "test": "npm run localize:native && node --check web/app.js && node --check web/reader-controls.js && node --test tests/*.test.mjs",
+    "test": "npm run build:web && npm run localize:native && node --check web/app.js && node --check web/reader-controls.js && node --test tests/*.test.mjs",
+    "build:web": "esbuild web/app.js --bundle --format=iife --platform=browser --target=es2022 --outfile=web/app.bundle.js",
     "build": "go build -ldflags \"-X main.buildCommit=$(git rev-parse HEAD) -X main.buildRelease=ynx-mail-${npm_package_version}-testnet-preview-source -X main.buildTime=$(date -u +%Y-%m-%dT%H:%M:%SZ)\" -o /tmp/ynx-maild .",
     "package:desktop": "sh scripts/package-desktop.sh",
     "proof:desktop": "sh tests/desktop-install-proof.sh",
@@ -23,6 +24,7 @@
     "recoveryScope": "mail:recover"
   },
   "devDependencies": {
+    "esbuild": "0.25.12",
     "playwright": "^1.61.1"
   }
 }

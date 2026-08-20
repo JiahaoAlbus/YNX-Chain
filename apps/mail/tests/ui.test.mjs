@@ -7,13 +7,15 @@ const here = dirname(fileURLToPath(import.meta.url));
 const load = (n) => readFile(resolve(here, "../web", n), "utf8");
 test("Mail is an accessible independent reading and writing product", async () => {
   const html = await load("index.html");
-  assert.match(html, /<html lang="zh-CN">/);
+  assert.match(html, /<html lang="en">/);
   assert.match(html, /name="viewport"/);
   assert.match(html, /class="skip"/);
   assert.match(html, /id="reading-pane"[^>]*tabindex="-1"/);
   assert.match(html, /aria-live="polite"/);
-  assert.match(html, /Sign in with YNX Wallet/);
-  assert.match(html, /恢复已有 Mail 账户/);
+  assert.match(html, /Connect YNX Wallet/);
+  assert.match(html, /Review account recovery/);
+  assert.match(html, /Continue as guest/);
+  assert.match(html, /https:\/\/ynxweb4\.com\/dapp\/download/);
   assert.doesNotMatch(html, /\bynx1|0x[a-fA-F0-9]{8}/);
 });
 test("Mail visual and responsive contract is restrained Klein blue", async () => {
@@ -38,7 +40,8 @@ test("Mail offline, approval, attachment, Trust and AI boundaries are wired", as
     "confirm-send",
     "/v1/reports",
     "/v1/ai/jobs",
-    "canonical request envelope",
+    "StandardWalletConnection",
+    "discoverEIP6963",
   ])
     assert.ok(js.includes(term), `missing ${term}`);
   assert.match(js, /10\s*\*\s*1024\s*\*\s*1024/);

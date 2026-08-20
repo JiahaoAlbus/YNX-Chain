@@ -1,3 +1,7 @@
+import {StandardWalletConnection} from "../../../packages/dapp-connect-sdk/src/provider.js";
+import {discoverEIP6963} from "../../../packages/dapp-connect-sdk/src/discovery.js";
+import {YNX_TESTNET} from "../../../packages/dapp-connect-sdk/src/constants.js";
+
 const state = {
   token: "",
   user: null,
@@ -7,6 +11,7 @@ const state = {
   attachments: [],
   draft: null,
   aiJob: null,
+  standardWallet: null,
 };
 if ((navigator.language || "").toLowerCase().startsWith("ar")) {
   document.documentElement.lang = "ar";
@@ -55,9 +60,32 @@ function updateNetwork() {
   $("#confirm-send").disabled = offline;
   if (offline) $("#draft-state").textContent = "离线草稿保存在此设备";
 }
-async function beginSignIn(recovery = false) {
+async function walletProviders() {
+  const providers = await discoverEIP6963(window, {timeoutMs: 180});
+  if (window.ethereum?.request && !providers.some((entry) => entry.provider === window.ethereum)) {
+    providers.push({info: {uuid: "legacy-injected", name: "Injected wallet"}, provider: window.ethereum});
+  }
+  return providers;
+}
+async function beginSignIn(recovery = false, metamaskOnly = false) {
   const status = $("#signin-state");
-  status.textContent = `Web companion 不接收 Wallet 回调。请在已安装的 YNX Mail 中使用 canonical request envelope 完成${recovery ? "恢复" : "登录"}；中央 registry/Gateway 部署前会失败关闭。`;
+  status.textContent = "Looking for an approved standard wallet…";
+  try {
+    const providers = await walletProviders();
+    const selected = (metamaskOnly ? providers.find((entry) => /metamask/i.test(entry.info?.name || "")) : providers.find((entry) => /ynx/i.test(entry.info?.name || ""))) || providers[0];
+    if (!selected) {
+      status.innerHTML = 'No compatible wallet was detected. <a href="https://ynxweb4.com/dapp/download" target="_blank" rel="noopener noreferrer">Download YNX Wallet</a> or <a href="https://metamask.io/download/" target="_blank" rel="noopener noreferrer">install MetaMask</a>.';
+      return;
+    }
+    const connection = new StandardWalletConnection(selected.provider, {chain: YNX_TESTNET});
+    const connected = await connection.connect();
+    await connection.ensureYNXTestnet({addChain: {chainId: "0x1917", chainName: "YNX Testnet", nativeCurrency: {name: "YNX Testnet", symbol: "YNXT", decimals: 18}, rpcUrls: [YNX_MAIL_RUNTIME.evmRpc], blockExplorerUrls: [YNX_MAIL_RUNTIME.explorer]}});
+    state.standardWallet = connection;
+    $("#wallet-standard-state").textContent = `CONNECTED · ${connected.account.slice(0, 8)}…${connected.account.slice(-6)} · 0x1917`;
+    status.textContent = `Standard Wallet Connection is active${recovery ? " for recovery review" : ""}. Private Mail account service remains degraded; no local or canned session was created.`;
+  } catch (error) {
+    status.textContent = `Wallet connection failed: ${error.code || "WALLET_CONNECTION_FAILED"}. Guest preview and local drafts remain available.`;
+  }
 }
 async function restoreSession() {
   try {
@@ -365,7 +393,7 @@ function init() {
     } else $("#signin").hidden = false;
     $("#app").setAttribute("aria-busy", "false");
   });
-  $("#wallet-signin").onclick = beginSignIn;
+  $("#wallet-signin").onclick = () => beginSignIn(false);
   $("#account").onclick = showAccount;
   $("#compose").onclick = () => openCompose();
   $("#compose-form").onsubmit = reviewDraft;
@@ -413,6 +441,36 @@ function init() {
   addEventListener("offline", updateNetwork);
   updateNetwork();
   if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js");
+  setupReaderControls();
+}
+function setupReaderControls() {
+  const reader = $("#reading-pane");
+  const observer = new MutationObserver(() => {
+    const verified = reader.querySelector(".verified");
+    if (verified && verified.textContent !== "✓ Mail 服务签名身份") verified.textContent = "✓ Mail 服务签名身份";
+    for (const button of reader.querySelectorAll("[data-attachment]:not([data-ready])")) {
+      button.dataset.ready = "1";
+      button.onclick = () => {
+        const attachment = state.selected?.attachments?.find((item) => (item.id || item.sha256) === button.dataset.attachment);
+        if (!attachment) return;
+        const bytes = Uint8Array.from(atob(attachment.content_base64), (char) => char.charCodeAt(0));
+        const url = URL.createObjectURL(new Blob([bytes], {type: attachment.media_type || "application/octet-stream"}));
+        const link = document.createElement("a"); link.href = url; link.download = attachment.name; link.click();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      };
+    }
+    const actions = reader.querySelector(".reader-actions");
+    if (!actions || !state.selected || reader.querySelector("#block-sender")) return;
+    const block = document.createElement("button"); block.id = "block-sender"; block.className = "quiet"; block.textContent = "屏蔽发件人";
+    block.onclick = async () => { if (!confirm(`屏蔽 ${state.selected.sender_handle}？之后可从审计记录确认，并通过解除屏蔽接口恢复。`)) return; try { await api("/v1/blocks", {method: "POST", body: JSON.stringify({handle: state.selected.sender_handle})}); toast("发件人已屏蔽；后续投递将明确失败"); } catch (error) { toast(error.message); } };
+    actions.insertBefore(block, actions.lastElementChild);
+    for (const delivery of state.selected.deliveries.filter((item) => item.state === "failed")) {
+      const retry = document.createElement("button"); retry.className = "quiet"; retry.textContent = `重试 ${delivery.recipient}`;
+      retry.onclick = async () => { try { await api(`/v1/messages/${state.selected.id}/retry`, {method: "POST", body: JSON.stringify({recipient: delivery.recipient})}); toast("已重试；投递状态已更新"); await loadMessages(); } catch (error) { toast(error.message); } };
+      actions.insertBefore(retry, actions.lastElementChild);
+    }
+  });
+  observer.observe(reader, {childList: true, subtree: true});
 }
 async function showAccount() {
   const dialog = document.createElement("dialog");
@@ -463,6 +521,8 @@ async function showAccount() {
 init();
 $("#wallet-signin").onclick = () => beginSignIn(false);
 $("#wallet-recover").onclick = () => beginSignIn(true);
+$("#wallet-metamask").onclick = () => beginSignIn(false, true);
+$("#guest-preview").onclick = () => { $("#signin").hidden = true; toast("Guest preview enabled. Sending and private inbox remain unavailable."); };
 const auditButton = document.createElement("button");
 auditButton.className = "avatar";
 auditButton.textContent = "审";

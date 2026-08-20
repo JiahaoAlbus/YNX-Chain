@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta
@@ -212,25 +212,25 @@
     <section id="signin" class="signin" aria-labelledby="signin-title">
       <div class="signin-card">
         <span class="brand-mark large">Y</span
-        ><span class="eyebrow">独立通信产品</span>
-        <h1 id="signin-title">让每一次发送都有身份边界。</h1>
+        ><span class="eyebrow">PRIVATE COMMUNICATION</span>
+        <h1 id="signin-title">A clear identity boundary for every message.</h1>
         <p>
-          通过 YNX Wallet 授权 Mail 的独立设备会话。钱包密钥不会进入
-          Mail，联系人只显示 @handle。
+          Connect a standard EVM wallet first. Mail never receives wallet keys, and contacts use only approved @handles.
         </p>
         <button id="wallet-signin" class="primary">
-          Sign in with YNX Wallet</button
+          Connect YNX Wallet</button
         ><button id="wallet-recover" class="quiet recovery">
-          恢复已有 Mail 账户
-        </button>
+          Review account recovery
+        </button><button id="wallet-metamask" class="quiet">Use MetaMask</button><button id="guest-preview" class="quiet">Continue as guest</button>
+        <p id="wallet-standard-state">READY · YNX Testnet 0x1917</p>
         <p id="signin-state" role="status">
-          需要 Mail 账户范围 · 最长 12 小时 · 可随时撤销
+          Private Mail account service is degraded; Standard Wallet remains independent.
         </p>
-        <small>仅支持 YNX 内部投递；未配置 Wallet 验证服务时将明确失败。</small>
+        <small><a href="https://ynxweb4.com/dapp/download" target="_blank" rel="noopener noreferrer">Download YNX Wallet</a> · Native delivery and Internet Bridge stay unavailable without verified services.</small>
       </div>
     </section>
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
-    <script src="/app.js" defer></script>
-    <script src="/reader-controls.js" defer></script>
+    <script src="/runtime-config.js"></script>
+    <script src="/app.bundle.js" defer></script>
   </body>
 </html>
