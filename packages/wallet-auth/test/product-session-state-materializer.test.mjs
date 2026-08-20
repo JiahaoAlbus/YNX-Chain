@@ -231,6 +231,22 @@ test("post-commit finally returns the exact pre-frozen receipt reference", () =>
   assert.equal(readFileSync(output, "utf8"), bytes);
 });
 
+test("receiver-bound post-commit close closes the directory exactly once and returns the pre-frozen receipt", () => {
+  for (const closeThrows of [false, true]) {
+    const directory = mkdtempSync(join(tmpdir(), "ynx-state-materialize-bound-close-")); chmodSync(directory, 0o700);
+    const source = join(directory, "root-migrated.json"), outputDirectory = join(directory, "service"), output = join(outputDirectory, "v2-state.json");
+    mkdirSync(outputDirectory, { mode: 0o700 }); writeFileSync(source, bytes, { mode: 0o600 });
+    const system = nodeSystem({ failDirectoryCloseAfterHandoff: closeThrows, outputPath: output, requireCloseContext: true, sourceIdentity: statSync(source), sourcePath: source });
+    const receipt = materializeMigratedProductSessionStateWithSystem(input(source, output), system);
+    const finalState = system.state();
+    assert.strictEqual(receipt, finalState.frozenReceipt);
+    assert.equal(receipt.committed, true);
+    assert.equal(finalState.directoryDescriptorOpen, false);
+    assert.equal(finalState.directoryCloseCallsAfterTransfer, 1);
+    assert.equal(readFileSync(output, "utf8"), bytes);
+  }
+});
+
 test("output close failure and directory handoff failure both roll back before the commit point", () => {
   for (const failure of ["output-close", "directory-fchown"]) {
     const directory = mkdtempSync(join(tmpdir(), "ynx-state-materialize-commit-failure-")); chmodSync(directory, 0o700);
@@ -281,8 +297,8 @@ test("materializer fails closed when atomic O_EXCL publication is unavailable", 
 function input(sourcePath, outputPath) {
   return { expectedRegistryStateBindingSha256: registrySha256, expectedSourceStateFileSha256: sha256(bytes), outputGid: gid, outputPath, outputUid: uid, sourcePath };
 }
-function nodeSystem({ atomicCreateUnsupported = false, failBoundary, failDirectoryCloseAfterHandoff = false, failDirectoryFchown = false, failOutputClose = false, failReceiptFreeze = false, onBoundary, outputPath, protectOutputDirectory = true, replaceParentOnDirectoryCloseAfterHandoff = false, sourceIdentity, sourcePath }) {
-  let anchorPath, createdIdentity, directoryDescriptor, directoryIdentity, directoryTransferred = false, fileTransferred = false, formalParentPath, frozenReceipt, outputDescriptor, outputDescriptorClosedAfterDirectoryTransfer = false, postCommitDetached;
+function nodeSystem({ atomicCreateUnsupported = false, failBoundary, failDirectoryCloseAfterHandoff = false, failDirectoryFchown = false, failOutputClose = false, failReceiptFreeze = false, onBoundary, outputPath, protectOutputDirectory = true, replaceParentOnDirectoryCloseAfterHandoff = false, requireCloseContext = false, sourceIdentity, sourcePath }) {
+  let anchorPath, createdIdentity, directoryCloseCallsAfterTransfer = 0, directoryDescriptor, directoryIdentity, directoryTransferred = false, fileTransferred = false, formalParentPath, frozenReceipt, outputDescriptor, outputDescriptorClosedAfterDirectoryTransfer = false, postCommitDetached;
   const identity = (path, value) => {
     const source = path === sourcePath || value.dev === sourceIdentity.dev && value.ino === sourceIdentity.ino;
     const directory = value.isDirectory() && (!directoryIdentity || value.dev === directoryIdentity.dev && value.ino === directoryIdentity.ino);
@@ -301,6 +317,8 @@ function nodeSystem({ atomicCreateUnsupported = false, failBoundary, failDirecto
       return detached;
     },
     directoryTransferred,
+    directoryCloseCallsAfterTransfer,
+    directoryDescriptorOpen: directoryDescriptor !== undefined,
     frozenReceipt,
     outputDescriptorClosedAfterDirectoryTransfer,
     outputDescriptorOpen: outputDescriptor !== undefined,
@@ -345,7 +363,8 @@ function nodeSystem({ atomicCreateUnsupported = false, failBoundary, failDirecto
     unlink: unlinkSync, write: (descriptor, value) => writeFileSync(descriptor, value, "utf8"),
     unlinkAt: (descriptor, name) => { assert.equal(descriptor, directoryDescriptor); unlinkSync(join(anchorPath, name)); },
   };
-  system.close = (descriptor) => {
+  system.close = function close(descriptor) {
+    if (requireCloseContext) assert.strictEqual(this, system);
     if (descriptor === outputDescriptor) {
       outputDescriptorClosedAfterDirectoryTransfer = directoryTransferred; outputDescriptor = undefined;
       closeSync(descriptor);
@@ -353,6 +372,7 @@ function nodeSystem({ atomicCreateUnsupported = false, failBoundary, failDirecto
       return;
     }
     if (descriptor === directoryDescriptor) {
+      if (directoryTransferred) directoryCloseCallsAfterTransfer += 1;
       if (directoryTransferred && replaceParentOnDirectoryCloseAfterHandoff) postCommitDetached = state().replaceParentPath();
       directoryDescriptor = undefined; closeSync(descriptor);
       if (directoryTransferred && failDirectoryCloseAfterHandoff) throw Object.assign(new Error("post-handoff directory close failed"), { code: "EIO" });

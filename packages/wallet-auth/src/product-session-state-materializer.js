@@ -120,8 +120,9 @@ export function materializeMigratedProductSessionStateWithSystem(input, system) 
     exactFields(receipt, RECEIPT_FIELDS, "Product Session state materialization committed receipt");
     committedReceipt = system.freezeReceipt(receipt);
     if (committedReceipt !== receipt || !Object.isFrozen(committedReceipt)) fail("RECEIPT_CONSTRUCTION_FAILED", "Product Session state materialization receipt must be exact and immutable before commit");
-    const closeCommittedDirectory = system.close;
-    if (typeof closeCommittedDirectory !== "function") fail("RECEIPT_CONSTRUCTION_FAILED", "Product Session state materialization close operation must be bound before commit");
+    const closeOperation = system.close;
+    if (typeof closeOperation !== "function") fail("RECEIPT_CONSTRUCTION_FAILED", "Product Session state materialization close operation must be bound before commit");
+    const closeCommittedDirectory = closeOperation.bind(system);
     system.fchown(directoryDescriptor, input.outputUid, input.outputGid);
     directoryTransferred = true;
     const committedDirectoryDescriptor = directoryDescriptor;
