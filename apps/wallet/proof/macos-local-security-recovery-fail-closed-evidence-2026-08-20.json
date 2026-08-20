@@ -29,6 +29,15 @@
       "exitCode": 0
     }
   },
+  "localExecutableLaunch": {
+    "binary": "apps/wallet/macos/.build/arm64-apple-macosx/release/YNXWalletMac",
+    "observedPid": 7872,
+    "observedAliveAfterSeconds": 5,
+    "stdoutBytes": 0,
+    "terminatedByTestHarness": true,
+    "computerControlVisibleApp": false,
+    "result": "PROCESS_START_ONLY"
+  },
   "truthBoundaries": {
     "localArm64ProbeOnly": true,
     "xcodeXCTestRun": false,
