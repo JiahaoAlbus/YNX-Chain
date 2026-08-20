@@ -2,7 +2,7 @@
   "schemaVersion": "1.0.0",
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "owner": "integration",
-  "status": "P0070_FAILED_CLOSED_HEAVY_RELEASED_P0078_BRIDGE_RELEASED_P0079_BROWSER_LIGHT_ACTIVE",
+  "status": "P0070_FAILED_CLOSED_HEAVY_RELEASED_P0079_BROWSER_RELEASED_P0080_ORACLE_LIGHT_ACTIVE",
   "scope": [
     "founder-control",
     "wallet-connectivity",
@@ -34,7 +34,7 @@
   "firstStop": {
     "complete": true,
     "publicConnectivityClaim": false,
-    "nextAction": "P0-070 is consumed/nonreusable and Heavy is null. Bridge P0-078 is released at a3b57a9d1e51d6d157a932b584dbdda1adc748a9 with Standard Wallet source and deterministic visible approve/reject evidence; bridge execution, transfer, installed Wallet, Product Session v2 and current-source public deployment remain false. Browser P0-079 owns a bounded current-source macOS install, second-launch and window-geometry verification slice from exact clean checkpoint 284faf7807dc1fe6f1ea245fff5956f32b2e5d7a; YNX Browser remains distinct from Wallet DApp Browser."
+    "nextAction": "P0-070 is consumed/nonreusable and Heavy is null. Browser P0-079 is released at 590314a9468982ef9f58f745f60156e89a2cd66c with exact current-source ad-hoc macOS install, LaunchServices and first/second internal 1440x900 geometry evidence; WindowServer visible, ComputerControl, production signing, public hosting and other platforms remain false. Oracle P0-080 owns a bounded anonymous public-data truth and endpoint verification slice from exact clean checkpoint a059d573ed128a704ec447561711a13cb1e3d9dd; it must not add Wallet or fabricate market values."
   },
   "lightLeases": [
     {
@@ -142,14 +142,29 @@
     {
       "owner": "integration",
       "taskId": "P0-079",
-      "status": "ACTIVE_LIGHT_VERIFICATION_ONLY",
+      "status": "RELEASED_CHECKPOINT",
       "grantedAt": "2026-08-20T23:22:00Z",
+      "releasedAt": "2026-08-20T23:30:00Z",
+      "checkpointCommit": "590314a9468982ef9f58f745f60156e89a2cd66c",
       "scope": "browser-current-source-install-second-launch-window-verification",
       "constraints": [
         "preserve accepted Browser source and existing product-owner evidence",
         "YNX Browser is distinct from Wallet DApp Browser",
         "no Wallet Provider, Product Session v2, public deployment, production signing, store or Computer Control claim",
         "repair only reproducible Browser-owned defects and freeze current-source evidence"
+      ]
+    },
+    {
+      "owner": "integration",
+      "taskId": "P0-080",
+      "status": "ACTIVE_LIGHT_VERIFICATION_ONLY",
+      "grantedAt": "2026-08-20T23:30:00Z",
+      "scope": "oracle-anonymous-public-data-truth-verification",
+      "constraints": [
+        "preserve exact clean Oracle owner checkpoint",
+        "public evidence remains anonymous and read-only without Wallet",
+        "do not fabricate prices, endpoint health, lineage, coverage or confidence",
+        "no deployment, signing, store, Product Session or Computer Control claim"
       ]
     }
   ],
