@@ -2,7 +2,7 @@
   "schemaVersion": "1.0.0",
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "owner": "integration",
-  "status": "P0070_FAILED_CLOSED_HEAVY_RELEASED_P0079_BROWSER_RELEASED_P0080_ORACLE_LIGHT_ACTIVE",
+  "status": "P0070_FAILED_CLOSED_HEAVY_RELEASED_P0080_ORACLE_RELEASED_P0081_SEARCH_VISIBLE_ACTIVE",
   "scope": [
     "founder-control",
     "wallet-connectivity",
@@ -34,7 +34,7 @@
   "firstStop": {
     "complete": true,
     "publicConnectivityClaim": false,
-    "nextAction": "P0-070 is consumed/nonreusable and Heavy is null. Browser P0-079 is released at 590314a9468982ef9f58f745f60156e89a2cd66c with exact current-source ad-hoc macOS install, LaunchServices and first/second internal 1440x900 geometry evidence; WindowServer visible, ComputerControl, production signing, public hosting and other platforms remain false. Oracle P0-080 owns a bounded anonymous public-data truth and endpoint verification slice from exact clean checkpoint a059d573ed128a704ec447561711a13cb1e3d9dd; it must not add Wallet or fabricate market values."
+    "nextAction": "P0-070 is consumed/nonreusable and Heavy is null. Oracle P0-080 is released at d3038abbec4a393fd1d66b54dec4f0027f0c8962 with anonymous read-only UI, production dependency audit 0 and exact degraded public API readback; active providers, authoritative prices, current-web-source public deployment and ComputerControl remain false. Search P0-081 owns a visible deterministic Provider verification slice from accepted exact Search checkpoint a3b78490a7945fa982bfe78c8be75396b013a649; do not rebuild or promote installed/public/Product Session state."
   },
   "lightLeases": [
     {
@@ -157,14 +157,29 @@
     {
       "owner": "integration",
       "taskId": "P0-080",
-      "status": "ACTIVE_LIGHT_VERIFICATION_ONLY",
+      "status": "RELEASED_CHECKPOINT",
       "grantedAt": "2026-08-20T23:30:00Z",
+      "releasedAt": "2026-08-20T23:38:00Z",
+      "checkpointCommit": "d3038abbec4a393fd1d66b54dec4f0027f0c8962",
       "scope": "oracle-anonymous-public-data-truth-verification",
       "constraints": [
         "preserve exact clean Oracle owner checkpoint",
         "public evidence remains anonymous and read-only without Wallet",
         "do not fabricate prices, endpoint health, lineage, coverage or confidence",
         "no deployment, signing, store, Product Session or Computer Control claim"
+      ]
+    },
+    {
+      "owner": "integration",
+      "taskId": "P0-081",
+      "status": "ACTIVE_LIGHT_VISIBLE_EVIDENCE_ONLY",
+      "grantedAt": "2026-08-20T23:38:00Z",
+      "scope": "search-existing-standard-wallet-visible-verification",
+      "constraints": [
+        "do not rebuild accepted Search Standard Wallet source",
+        "guest Search remains independent from private service",
+        "deterministic Provider evidence is not installed Wallet evidence",
+        "no Product Session v2, public deployment, indexing completeness or Computer Control claim"
       ]
     }
   ],
