@@ -1,0 +1,124 @@
+{
+  "schemaVersion": "1.0.0",
+  "recordedAt": "2026-08-20T17:13:37Z",
+  "environment": "YNX Testnet",
+  "cosmosChainId": "ynx_6423-1",
+  "evmChainId": 6423,
+  "nativeAsset": "YNXT",
+  "source": {
+    "branch": "codex/p0-bounded-replication-runtime-compatible-20260820",
+    "commit": "be9f03833ac3a7579bd96f22f6bf49f3d8dccc7b",
+    "release": "ynx-chain-be9f03833ac3",
+    "change": "Persist application-state changes immediately and checkpoint pure empty-block suffixes every 256 blocks."
+  },
+  "artifacts": {
+    "bundle": {
+      "path": "tmp/deploy/ynx-chain-be9f03833ac3.tar.gz",
+      "sha256": "0a4df02110f9e5d0c532da06bc04bc6a6aaa2ffd34b4dae3da6a7da9b1d475a8"
+    },
+    "binary": {
+      "path": "tmp/deploy/ynx-chain-be9f03833ac3/bin/ynx-chaind",
+      "bytes": 20418744,
+      "sha256": "eb96a2d09859f041221917489589100f5a94ef0bbf4f5ad4f6fcf5c753846fd4"
+    },
+    "releaseManifest": {
+      "path": "tmp/deploy/ynx-chain-be9f03833ac3/config/release-manifest.json",
+      "bytes": 9489,
+      "sha256": "8ff7a9392b8ca7bc01ed18556cbdadd0ce7326cfb4214421349576228cd0f7f8"
+    }
+  },
+  "rollout": {
+    "strategy": "sequential follower-first atomic binary and manifest replacement",
+    "order": [
+      "silicon-valley",
+      "seoul",
+      "singapore",
+      "primary"
+    ],
+    "backupSuffix": "20260821-be9f0383",
+    "rollback": "Stop ynx-chaind, restore /usr/local/bin/ynx-chaind.backup-20260821-be9f0383 and /etc/ynx/release-manifest.json.backup-20260821-be9f0383, then restart and verify the restored build identity.",
+    "transientObservations": [
+      "The first Silicon Valley SSH banner exchange timed out; one bounded retry succeeded before any remote mutation.",
+      "Peer connection-refused and replication-fetch failures occurred only while the corresponding node was intentionally stopped during the sequential rollout; all consecutive failure counters returned to zero.",
+      "The primary release manifest required privileged readback; the subsequent privileged SHA-256 verification matched the local manifest."
+    ]
+  },
+  "nodes": [
+    {
+      "id": "primary",
+      "host": "43.153.202.237",
+      "role": "authoritative producer",
+      "buildCommit": "be9f03833ac3",
+      "binarySha256": "eb96a2d09859f041221917489589100f5a94ef0bbf4f5ad4f6fcf5c753846fd4",
+      "nRestartsAfterRollout": 0,
+      "replicationStatus": "not_configured",
+      "catchingUp": false,
+      "readyValidatorCount": 4
+    },
+    {
+      "id": "singapore",
+      "host": "43.134.23.58",
+      "role": "authoritative follower",
+      "buildCommit": "be9f03833ac3",
+      "binarySha256": "eb96a2d09859f041221917489589100f5a94ef0bbf4f5ad4f6fcf5c753846fd4",
+      "nRestartsAfterRollout": 0,
+      "replicationStatus": "synced",
+      "replicationLagBlocks": 0,
+      "consecutiveReplicationFailures": 0,
+      "catchingUp": false,
+      "readyValidatorCount": 4
+    },
+    {
+      "id": "silicon-valley",
+      "host": "43.162.100.54",
+      "role": "authoritative follower",
+      "buildCommit": "be9f03833ac3",
+      "binarySha256": "eb96a2d09859f041221917489589100f5a94ef0bbf4f5ad4f6fcf5c753846fd4",
+      "nRestartsAfterRollout": 0,
+      "replicationStatus": "synced",
+      "replicationLagBlocks": 0,
+      "consecutiveReplicationFailures": 0,
+      "catchingUp": false,
+      "readyValidatorCount": 4,
+      "postLoadMemoryCurrentBytes": 311525376,
+      "postLoadMemoryPeakBytes": 1753350144
+    },
+    {
+      "id": "seoul",
+      "host": "43.164.132.81",
+      "role": "authoritative follower",
+      "buildCommit": "be9f03833ac3",
+      "binarySha256": "eb96a2d09859f041221917489589100f5a94ef0bbf4f5ad4f6fcf5c753846fd4",
+      "nRestartsAfterRollout": 0,
+      "replicationStatus": "synced",
+      "replicationLagBlocks": 0,
+      "consecutiveReplicationFailures": 0,
+      "catchingUp": false,
+      "readyValidatorCount": 4,
+      "v2PeerActive": true
+    }
+  ],
+  "fixedHeightConvergence": {
+    "height": 1130847,
+    "hash": "09726910121017a2ca54eaf317af0681b4e354a23366aace46b49dcbca9d0842",
+    "parentHash": "f80221b1846e9573893a6fbcb7b6217da688234e9f95f42a173c3bf9eab7a099",
+    "time": "2026-08-20T17:11:53.680195249Z",
+    "transactionCount": 0,
+    "matchingNodes": [
+      "primary",
+      "singapore",
+      "silicon-valley",
+      "seoul"
+    ]
+  },
+  "acceptance": {
+    "fourNodesSameBuild": true,
+    "fourNodesSameFixedHeightHash": true,
+    "followersCaughtUp": true,
+    "postRolloutRestartsZero": true,
+    "postRolloutOomObserved": false,
+    "seoulV2PeerRestored": true,
+    "mainnetReady": false,
+    "computerControlVerified": false
+  }
+}
