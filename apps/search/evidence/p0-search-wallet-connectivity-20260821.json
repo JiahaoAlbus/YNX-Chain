@@ -1,0 +1,71 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-060",
+  "product": "search",
+  "owner": "integration",
+  "status": "SOURCE_CHECKPOINT_READY_NOT_PUBLIC",
+  "sourceCommit": "9466026382b9fc2e41fbb9cd228a75985b03dd89",
+  "sourceTree": "f4bdab9b7d46cec036cd21ea5ec07b9b01859181",
+  "recordedAt": "2026-08-20T20:48:35Z",
+  "contractsConsumed": {
+    "dappConnectSDK": "315897e75",
+    "standardWalletProtocol": "66003e76e804da16d472255efde50cb879055b96",
+    "publicEndpointManifestVersion": "1.0.0-p0.2",
+    "publicEndpointManifestPayloadSha256": "3c606cad1d9bfa71fc507f54b6ad8184a6580c7df75440675b5db921b7e67bb5"
+  },
+  "runtimeTruth": {
+    "evmChainId": "0x1917",
+    "nativeAsset": "YNXT",
+    "appGateway": "UNAVAILABLE",
+    "searchProductApi": "PENDING",
+    "publicSearchWithoutLogin": true,
+    "standardWalletSourceImplemented": true,
+    "productSessionV2Migrated": false,
+    "privateServiceDegradedPreservesStandardWallet": true,
+    "publicDeployed": false,
+    "publicVerified": false,
+    "computerControlVerified": false,
+    "walletApprovalVerified": false,
+    "accountVerified": false,
+    "signingVerified": false,
+    "transactionVerified": false,
+    "productionSigned": false,
+    "storeReleased": false,
+    "integratedCentral": false,
+    "aggregateComplete": false
+  },
+  "tests": {
+    "npmTest": {"passed": 18, "failed": 0},
+    "smoke": "PASS",
+    "build": "PASS",
+    "nodeSyntax": "PASS",
+    "productionDependencyAudit": "0 vulnerabilities",
+    "diffCheck": "PASS"
+  },
+  "browserQA": {
+    "surface": "Chrome local browser",
+    "englishDefault": true,
+    "guestSearchVisible": true,
+    "connectWalletVisible": true,
+    "privateServiceDisabledAndDegraded": true,
+    "desktopHorizontalOverflow": false,
+    "mobileViewport": "390x844",
+    "mobileHorizontalOverflow": false,
+    "placeholderTranslationKeys": 0,
+    "consoleErrorsOrWarnings": 0,
+    "computerControl": false
+  },
+  "buildArtifacts": {
+    "appJsSha256": "f6fffc3050c4b3ba87a68866c9288783e1ae81db5e54c21ffb076eba2afff5f9",
+    "indexHtmlSha256": "d18e15dd8fdae7eb39848cdbc3515d87018ca887072f2eae7c0b5b701f3aabe6",
+    "packageLockSha256": "4cd82bce10acbfdf169511394cadcd0701772bade472b64a9f0c0ac8b8684b8c"
+  },
+  "remainingBlockers": [
+    "Search product API has no accepted public endpoint",
+    "private Product Session v2 is not migrated",
+    "no public deployment or official-domain readback",
+    "no installed-client Wallet approval, signing, or transaction evidence",
+    "final ComputerControl verification is not complete"
+  ]
+}
