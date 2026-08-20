@@ -1,0 +1,41 @@
+{
+  "schemaVersion": "fable5-current-inventory/v1",
+  "generatedAt": "2026-08-20T11:18:57.654Z",
+  "specification": {
+    "path": "/Users/huangjiahao/Downloads/YNX_Chain_Fable5_Coordinated_Ultimate_Goal_Prompts.md",
+    "sha256": "8993f0624f3dc42d4439f97fdd882301bed796c1798a361851f6fbeed114d40e",
+    "numberedProductSections": 36
+  },
+  "auditor": {
+    "path": "scripts/audit-fable5-products.mjs",
+    "mode": "fresh temporary output; no product source was modified",
+    "command": "node scripts/audit-fable5-products.mjs <Fable5.md> <temporary-output.json>"
+  },
+  "aggregate": {
+    "worktreesPresent": 36,
+    "cleanWorktrees": 30,
+    "specificationBranchMatches": 15,
+    "productsWithCurrentRuntimeBoundReleaseRecord": 4,
+    "productsProvenComplete": 0
+  },
+  "interpretation": {
+    "status": "ACTIVE_NOT_PROVEN_COMPLETE",
+    "rule": "A worktree, a local test, a candidate artifact, or a public HTTP shell is not completion evidence. A product needs its Fable5-specific flow, source/runtime binding, installation and cold-start evidence where applicable, recovery and concurrency coverage, localization evidence, and required Computer Control verification before it can become proven complete.",
+    "doNotInfer": [
+      "public deployment from a candidate build",
+      "installed-client success from a web result",
+      "full Fable5 completion from a clean worktree",
+      "production signing or store release without exact artifact evidence"
+    ]
+  },
+  "currentPriority": {
+    "campaign": "P0-WALLET-CONNECTIVITY-2026-08",
+    "reason": "Standard Wallet Connectivity and installed-client networking are required before horizontal product expansion.",
+    "nextEvidence": [
+      "complete four-node recoverable backup and verify archives",
+      "restore Faucet release-manifest identity through the guarded deployment path",
+      "resume only leased product migrations under accepted Wallet and endpoint contracts",
+      "add product-specific runtime, installed-client and Computer Control evidence incrementally"
+    ]
+  }
+}
