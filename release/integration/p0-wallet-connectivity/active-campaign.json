@@ -2,7 +2,7 @@
   "schemaVersion": "1.0.0",
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "owner": "integration",
-  "status": "NO_EXECUTION_OWNER_P0054_MATERIALIZER_NO_REPLACE_FIX_REQUIRED",
+  "status": "LIGHT_ACTIVE_CREATOR_STUDIO_P0054_MATERIALIZER_FIX_REQUIRED",
   "scope": ["founder-control", "wallet-connectivity", "installed-client-networking", "shop-android-retirement", "artwork-governance"],
   "frozen": ["independent-ynx-id", "nonessential-new-products", "extra-finance-features", "shop-android"],
   "integrationBranch": "codex/final-integration",
