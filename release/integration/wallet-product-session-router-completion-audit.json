@@ -131,14 +131,15 @@
         "packages/wallet-auth/test/product-session-public-probe.test.mjs",
         "packages/wallet-auth/test/wallet-connection-coordinator.test.mjs",
         "release/integration/wallet-product-session-router-migration.json",
-        "release/integration/wallet-product-session-card-owner-checkpoint-20260820.json"
+        "release/integration/wallet-product-session-card-owner-checkpoint-20260820.json",
+        "release/integration/wallet-product-session-card-endpoint-manifest-checkpoint-20260820.json"
       ],
       "registryReadyProducts": 12,
       "standardWalletOnlyProducts": 1,
       "runtimeMigratedProducts": 0,
       "remaining": [
         "Product-owner tasks must replace each v1 or handwritten consumer with the shared v2 SDK",
-        "Card must replace its caller-supplied arbitrary HTTPS Gateway with the accepted fixed endpoint before v2 promotion",
+        "Card's accepted endpoint manifest currently marks appGateway UNAVAILABLE; private completion therefore remains fail closed and v2 is not evidenced",
         "Integration must reconcile the overlapping App Gateway and product adapter files before enabling any migrated flag"
       ]
     },

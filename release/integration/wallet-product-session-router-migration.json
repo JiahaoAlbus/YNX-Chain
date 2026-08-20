@@ -17,7 +17,7 @@
   },
   "products": [
     {"productId":"calendar","registry":"registry-ready","consumer":"contract-only","migrated":false,"evidence":["packages/wallet-auth/product-session-registry.json"]},
-    {"productId":"card","registry":"registry-ready","consumer":"standard-wallet-only","migrated":false,"evidence":["release/integration/wallet-product-session-card-owner-checkpoint-20260820.json"]},
+    {"productId":"card","registry":"registry-ready","consumer":"standard-wallet-only","migrated":false,"evidence":["release/integration/wallet-product-session-card-owner-checkpoint-20260820.json","release/integration/wallet-product-session-card-endpoint-manifest-checkpoint-20260820.json"]},
     {"productId":"creator-studio","registry":"registry-ready","consumer":"legacy-direct","migrated":false,"evidence":["apps/creator-studio/app.js"]},
     {"productId":"developer","registry":"registry-ready","consumer":"contract-only","migrated":false,"evidence":["packages/wallet-auth/product-session-registry.json"]},
     {"productId":"dex","registry":"registry-ready","consumer":"contract-only","migrated":false,"evidence":["apps/quant-lab/integration/wallet-registry-entry.json"]},
