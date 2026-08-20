@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "product": "YNX Finance",
+  "registryEntry": "registry-entry.json",
+  "testVector": "test-vector.json",
+  "canonicalPackage": "@ynx-chain/wallet-auth@1.0.0",
+  "canonicalVerifier": "verifyCentralWalletSession",
+  "requestRoute": "/wallet-auth/sessions",
+  "completionRoute": "/wallet-auth/sessions/complete",
+  "productAPI": {
+    "requiredScopes": ["finance.portfolio.read"],
+    "optionalScopes": ["finance.ai.draft", "finance.pay.read", "finance.profile.write"],
+    "custody": "none",
+    "signing": "wallet-only"
+  },
+  "centralIntegration": {
+    "registryMerged": true,
+    "gatewayDeployed": true,
+    "walletApprovalTestedOnInstalledBuild": false,
+    "reason": "The registry and public Testnet Gateway are deployed. Central completion remains false until an installed build completes strong-biometric Wallet approval, product-device completion, callback verification and authenticated Finance API access."
+  }
+}
