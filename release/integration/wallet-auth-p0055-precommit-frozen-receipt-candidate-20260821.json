@@ -1,0 +1,142 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "P0-WALLET-CONNECTIVITY-p0055-precommit-frozen-receipt-31f0bb47",
+  "owner": "Core/Auth/Gateway",
+  "status": "SOURCE_AND_OFFLINE_ARTIFACT_CANDIDATE_AWAITING_INTEGRATION_REVIEW",
+  "source": {
+    "branch": "codex/wallet-core-auth-gateway-continuation-20260814",
+    "commit": "31f0bb4722be4ead8c989d35265acfe22a600b31",
+    "tree": "ca4490f62b8c4e2a6b26b1f65f2a3a977021c27d",
+    "parent": "8e28358f4a04358030d5e80403a5ce30da5f1d83",
+    "remoteReadbackExact": true,
+    "packageLockSha256": "8929316677769e7a6ad703583c12a07dd4d4dcbf4d87c597983f6ab6955a87b6"
+  },
+  "priorRejectedCandidate": {
+    "sourceCommit": "2bd7a13d4e8fb12dfda6e98900504c0f2edeaaf0",
+    "evidenceCommit": "33b2330ee31b7cbd203a73d4f69bbb93dd60918e",
+    "blocker": "RECEIPT_CONSTRUCTION_OR_FREEZE_AFTER_IRREVERSIBLE_DIRECTORY_FCHOWN",
+    "sourceAccepted": false,
+    "executionLeaseExists": false,
+    "productionAccessAfterReview": false,
+    "deploymentAttemptedAfterReview": false
+  },
+  "correction": {
+    "scope": "Pre-commit Product Session materialization receipt construction, validation and freezing only",
+    "modulePath": "packages/wallet-auth/src/product-session-state-materializer.js",
+    "moduleSha256": "dc67ccb588e1f538f8b670049e9b7aa938065292d12766a80308ed313cb4d13d",
+    "testPath": "packages/wallet-auth/test/product-session-state-materializer.test.mjs",
+    "testSha256": "1e69ba6595cefaee509e7612d52da8d0f6624b216f677a3dd2eeecd53dc1a6e2",
+    "receiptConstructionBeforeCommit": true,
+    "receiptExactFieldValidationBeforeCommit": true,
+    "receiptFreezeBeforeCommit": true,
+    "receiptFrozenIdentityValidationBeforeCommit": true,
+    "byteLengthCalculationBeforeCommit": true,
+    "directoryCloseFunctionBoundBeforeCommit": true,
+    "irreversibleCommitPoint": "successful directory fchown",
+    "postCommitAuthoritativeHooks": 0,
+    "postCommitPathVerifications": 0,
+    "postCommitAllocationsOrReceiptCalculations": 0,
+    "postCommitTail": "caught directory close followed by return of the pre-frozen receipt reference",
+    "committedReceiptFields": {
+      "committed": true,
+      "commitPoint": "DIRECTORY_OWNERSHIP_TRANSFERRED"
+    },
+    "preservedControls": {
+      "effectiveRootRequiredBeforeSourceRead": true,
+      "sourceNoFollowStableInodeCanonicalDigest": true,
+      "directoryFdRelativeCreateLstatUnlink": true,
+      "atomicOExclNoFollow": true,
+      "sameOutputDescriptorVerification": true,
+      "preCommitOutputCloseRollback": true,
+      "directoryFchownFailureRollback": true,
+      "exactInodeCleanup": true,
+      "cleanupNeverRemovesReplacement": true,
+      "sourcePermissionsWeakened": false
+    }
+  },
+  "tests": {
+    "focused": { "passed": 17, "failed": 0 },
+    "fullWalletAuth": { "passed": 365, "failed": 0 },
+    "cleanCloneWalletAuth": {
+      "commit": "31f0bb4722be4ead8c989d35265acfe22a600b31",
+      "trackedStatusClean": true,
+      "offlineRuntimeOverlay": true,
+      "networkInstallUsed": false,
+      "passed": 365,
+      "failed": 0
+    },
+    "receiptFaults": {
+      "freezeFaultOccursBeforeDirectoryFchown": true,
+      "freezeFaultReceiptReturned": false,
+      "freezeFaultLeavesFormalOutput": false,
+      "freezeFaultExactInodeRollback": true,
+      "postCommitDirectoryCloseFaultReturnsPreFrozenReference": true,
+      "postCommitParentReplacementReturnsPreFrozenReference": true,
+      "postCommitOwnershipBoundaryInvoked": false
+    },
+    "pack": {
+      "repeatBuildByteIdentical": true,
+      "sha256": "a3efb2fb62a9dfd6c52e9a496a891f5a61c4136e22583bd3105eb335c77ccd13",
+      "bytes": 184247,
+      "entries": 102,
+      "moduleIncluded": true,
+      "cliIncluded": true
+    }
+  },
+  "offlineArtifacts": {
+    "directory": "release/integration/p0-wallet-connectivity/artifacts/wallet-auth-31f0bb47",
+    "repeatBuildByteIdentical": true,
+    "cleanExtractionColdImportPassed": true,
+    "cleanExtractionCliPrivilegeGatePassed": true,
+    "inventoryExtractionReadbackPassed": true,
+    "noSecretLiteralScanPassed": true,
+    "sourceArchive": {
+      "name": "wallet-auth-source-31f0bb47.tar.gz",
+      "sha256": "3c7ba8aa9b553c788222daed38eca32b047f9650d1775ba7c989c3a3745c8144",
+      "bytes": 193741,
+      "entries": 111,
+      "fileEntries": 103,
+      "extractionRoot": "ynx-wallet-auth-31f0bb47/source"
+    },
+    "sourceInventory": {
+      "name": "wallet-auth-source-31f0bb47.inventory.json",
+      "sha256": "fdaa77ddbcec1ab9e7421f14101c59c664a06938f67313c66ad31f3f7c48373c",
+      "bytes": 24908
+    },
+    "runtimeArchive": {
+      "name": "wallet-auth-runtime-dependencies-31f0bb47.tar.gz",
+      "sha256": "760c5ba05bc86b0252f36259de9ee44691305ea4a0e76c882f04950c369d2944",
+      "bytes": 707215,
+      "entries": 224,
+      "fileEntries": 212,
+      "overlayRoot": "ynx-wallet-auth-31f0bb47/source/packages/wallet-auth/node_modules"
+    },
+    "runtimeInventory": {
+      "name": "wallet-auth-runtime-dependencies-31f0bb47.inventory.json",
+      "sha256": "9d3492e307ee096e76dff3ba655221f97ef3d8edd34c7fbedebf792161870924",
+      "bytes": 52591
+    },
+    "sbom": {
+      "name": "wallet-auth-runtime-31f0bb47.cdx.json",
+      "sha256": "5adc081a0b532e9c605c2c0d5a334c87d0beb04381f633895efd4ce4af642099",
+      "bytes": 2265,
+      "format": "CycloneDX 1.5",
+      "components": 3,
+      "dependencyNodes": 3
+    }
+  },
+  "truth": {
+    "integrationAccepted": false,
+    "executionLeaseExists": false,
+    "productionReadPerformed": false,
+    "deploymentAttempted": false,
+    "candidateActivated": false,
+    "publicSourceCommit": "6cf3ef845202bd879ed94515a71b323dd2fc9e14",
+    "registryV3Public": false,
+    "productMigrationsComplete": 0,
+    "productMigrationsTotal": 12,
+    "computerControlVerified": false,
+    "deployedPublic": false,
+    "integrated": false
+  }
+}
