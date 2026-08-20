@@ -48,6 +48,14 @@ for _ in $(seq 1 60); do
   sleep 1
 done
 lxc exec "$builder" -- getent hosts archive.ubuntu.com >/dev/null
+lxc exec "$builder" -- sh -ec '
+  find /etc/apt -type f \( -name "*.list" -o -name "*.sources" \) -print0 |
+    xargs -0r sed -i -E "s#http://(archive|security|ports)\\.ubuntu\\.com/#https://\\1.ubuntu.com/#g"
+  if grep -R -E "^[[:space:]]*(deb[[:space:]]+|URIs:[[:space:]]*)http://" /etc/apt/sources.list /etc/apt/sources.list.d 2>/dev/null; then
+    echo "Ubuntu APT sources must use HTTPS under reviewed package egress" >&2
+    exit 1
+  fi
+'
 lxc exec "$builder" -- env DEBIAN_FRONTEND=noninteractive apt-get update -qq
 lxc exec "$builder" -- env DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
   clangd-18=1:18.1.3-1ubuntu1 lldb-18=1:18.1.3-1ubuntu1 ca-certificates curl gzip openjdk-21-jdk-headless python3-pip python3-venv
