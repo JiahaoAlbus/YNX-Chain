@@ -80,7 +80,7 @@
       "remaining": []
     },
     "B_walletSelection": {
-      "status": "implemented-local-download-verified",
+      "status": "implemented-local-download-and-social-android-open-verified",
       "evidence": [
         "packages/wallet-auth/src/metamask-evm-adapter.js",
         "packages/wallet-auth/src/wallet-provider-discovery.js",
@@ -99,7 +99,7 @@
         "packages/wallet-auth/evidence/ynx-wallet-android-deeplink-observation.json"
       ],
       "remaining": [
-        "Verify YNX Wallet detection/open behavior in approved installed applications",
+        "Repeat installed YNX Wallet approval with a migrated-v2 product after its exact runtime and protected signer/storage are accepted",
         "Repeat the installed MetaMask harness after Computer Use recovers and observe the approval result, request ID, chain, and masked account"
       ]
     },
@@ -184,9 +184,9 @@
         "The authoritative Website download page still lists and serves the retired Shop Android 0.3.0 APK with HTTP 200; the replacement Shop Web/PWA is public, but Website retirement is not yet consistent with Registry v3",
         "MetaMask was unlocked with user Touch ID, injected a provider, and the shared EIP-1193 harness loaded and triggered its real connection request; Computer Use timed out and its native pipe closed before the approval result, request ID, chain, or masked account was observable",
         "The post-coordinator Computer Use retry timed out for Chrome, closed its native pipe by bundle identifier, and failed native-pipe startup for the MetaMask app",
-        "Android 16 installed the hash-verified YNX Wallet APK, resolved the canonical ynxwallet scheme and accepted ACTION_VIEW delivery; headless UI remained black, so approval and Product Session remain unverified",
+        "Android 16 visibly opened Wallet 1.0.4 from Social 1.0.0, displayed the exact Social/client/package/chain/scope approval, rejected without creating a Session, and cold-restarted without resurrection; Social still uses the v1 request contract and its initial backend fetch failed TLS, so v2 approval and migration remain unverified",
         "The Wallet Companion's browser RPC preflight to https://evm.ynxweb4.com failed CORS before account approval; Wallet UI and Chain deployment configuration are outside this branch scope",
-        "No installed YNX Wallet application was available for a real approval/session flow",
+        "An installed YNX Wallet is available, but no migrated-v2 product runtime with accepted protected signer/storage has completed approval, introspection and revoke",
         "Each actually migrated product requires installed Web/desktop/mobile approval, rejection, timeout, revoke, restart, network-loss and Retry evidence"
       ]
     },

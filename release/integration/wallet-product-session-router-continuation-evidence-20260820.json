@@ -122,6 +122,13 @@
       "smokePassed": true,
       "typecheckPassed": true,
       "classification": "canonical-launcher-v1",
+      "installedAndroidEvidencePath": "release/integration/wallet-product-session-social-android-visible-negative-20260821.json",
+      "installedWalletVersion": "1.0.4-testnet-preview",
+      "installedWalletOpenVerified": true,
+      "installedWalletRejectionVerified": true,
+      "secondLaunchNoResurrectionVerified": true,
+      "socialBackendTlsHandshakeFailed": true,
+      "productSessionV2Verified": false,
       "migratedV2": false
     },
     "jsonAndDiff": {
