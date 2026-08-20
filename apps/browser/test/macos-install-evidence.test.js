@@ -88,7 +88,15 @@ test("published metadata binds the exact local macOS install evidence without wi
   const contract = readJson("release/integration/browser-contract.json");
   const publicMetadata = readJson("release/browser/public-product-metadata.json");
 
-  assert.equal(evidence.sourceCommit, product.sourceCommit);
+  assert.equal(
+    evidence.sourceCommit,
+    product.verifiedThisCheckpoint.macosInstall.sourceCommit,
+  );
+  assert.notEqual(
+    product.sourceCommit,
+    evidence.sourceCommit,
+    "a newer Browser source checkpoint must not relabel historical install evidence",
+  );
   assert.equal(evidence.verifiedStates.installedLocalMacosEvidenceHost, true);
   assert.equal(evidence.install.exactArtifactHash, true);
   assert.equal(evidence.launchServices.exactReviewedBinaryHash, true);
