@@ -9,6 +9,8 @@ const INPUT_FIELDS = ["expectedRegistryStateBindingSha256", "expectedSourceState
 const RECEIPT_FIELDS = ["bytes", "commitPoint", "committed", "mode", "outputGid", "outputUid", "registryStateBindingSha256", "schemaVersion", "stateFileSha256"];
 const STATE_FIELDS = ["registrySha256", "schemaVersion", "snapshot", "snapshotSha256"];
 const MAXIMUM_STATE_BYTES = 64 * 1024 * 1024;
+const INTRINSIC_BIND = Function.prototype.bind;
+const INTRINSIC_APPLY = Reflect.apply;
 
 const NODE_SYSTEM = Object.freeze({
   close: closeSync,
@@ -122,7 +124,8 @@ export function materializeMigratedProductSessionStateWithSystem(input, system) 
     if (committedReceipt !== receipt || !Object.isFrozen(committedReceipt)) fail("RECEIPT_CONSTRUCTION_FAILED", "Product Session state materialization receipt must be exact and immutable before commit");
     const closeOperation = system.close;
     if (typeof closeOperation !== "function") fail("RECEIPT_CONSTRUCTION_FAILED", "Product Session state materialization close operation must be bound before commit");
-    const closeCommittedDirectory = closeOperation.bind(system);
+    const closeCommittedDirectory = INTRINSIC_APPLY(INTRINSIC_BIND, closeOperation, [system]);
+    if (typeof closeCommittedDirectory !== "function") fail("RECEIPT_CONSTRUCTION_FAILED", "Product Session state materialization bound close operation must be callable before commit");
     system.fchown(directoryDescriptor, input.outputUid, input.outputGid);
     directoryTransferred = true;
     const committedDirectoryDescriptor = directoryDescriptor;

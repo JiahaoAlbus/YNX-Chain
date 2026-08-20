@@ -247,6 +247,24 @@ test("receiver-bound post-commit close closes the directory exactly once and ret
   }
 });
 
+test("poisoned own close bind getter or property cannot intercept intrinsic receiver binding", () => {
+  for (const poisonCloseBind of ["getter", "property"]) {
+    const directory = mkdtempSync(join(tmpdir(), "ynx-state-materialize-poison-bind-")); chmodSync(directory, 0o700);
+    const source = join(directory, "root-migrated.json"), outputDirectory = join(directory, "service"), output = join(outputDirectory, "v2-state.json");
+    mkdirSync(outputDirectory, { mode: 0o700 }); writeFileSync(source, bytes, { mode: 0o600 });
+    const system = nodeSystem({ outputPath: output, poisonCloseBind, requireCloseContext: true, sourceIdentity: statSync(source), sourcePath: source });
+    const receipt = materializeMigratedProductSessionStateWithSystem(input(source, output), system);
+    const finalState = system.state();
+    assert.strictEqual(receipt, finalState.frozenReceipt);
+    assert.equal(receipt.committed, true);
+    assert.equal(finalState.closeCalls, 3);
+    assert.equal(finalState.directoryCloseCallsAfterTransfer, 1);
+    assert.equal(finalState.directoryDescriptorOpen, false);
+    assert.equal(finalState.poisonCloseBindAccesses, 0);
+    assert.equal(readFileSync(output, "utf8"), bytes);
+  }
+});
+
 test("output close failure and directory handoff failure both roll back before the commit point", () => {
   for (const failure of ["output-close", "directory-fchown"]) {
     const directory = mkdtempSync(join(tmpdir(), "ynx-state-materialize-commit-failure-")); chmodSync(directory, 0o700);
@@ -297,8 +315,8 @@ test("materializer fails closed when atomic O_EXCL publication is unavailable", 
 function input(sourcePath, outputPath) {
   return { expectedRegistryStateBindingSha256: registrySha256, expectedSourceStateFileSha256: sha256(bytes), outputGid: gid, outputPath, outputUid: uid, sourcePath };
 }
-function nodeSystem({ atomicCreateUnsupported = false, failBoundary, failDirectoryCloseAfterHandoff = false, failDirectoryFchown = false, failOutputClose = false, failReceiptFreeze = false, onBoundary, outputPath, protectOutputDirectory = true, replaceParentOnDirectoryCloseAfterHandoff = false, requireCloseContext = false, sourceIdentity, sourcePath }) {
-  let anchorPath, createdIdentity, directoryCloseCallsAfterTransfer = 0, directoryDescriptor, directoryIdentity, directoryTransferred = false, fileTransferred = false, formalParentPath, frozenReceipt, outputDescriptor, outputDescriptorClosedAfterDirectoryTransfer = false, postCommitDetached;
+function nodeSystem({ atomicCreateUnsupported = false, failBoundary, failDirectoryCloseAfterHandoff = false, failDirectoryFchown = false, failOutputClose = false, failReceiptFreeze = false, onBoundary, outputPath, poisonCloseBind, protectOutputDirectory = true, replaceParentOnDirectoryCloseAfterHandoff = false, requireCloseContext = false, sourceIdentity, sourcePath }) {
+  let anchorPath, closeCalls = 0, createdIdentity, directoryCloseCallsAfterTransfer = 0, directoryDescriptor, directoryIdentity, directoryTransferred = false, fileTransferred = false, formalParentPath, frozenReceipt, outputDescriptor, outputDescriptorClosedAfterDirectoryTransfer = false, poisonCloseBindAccesses = 0, postCommitDetached;
   const identity = (path, value) => {
     const source = path === sourcePath || value.dev === sourceIdentity.dev && value.ino === sourceIdentity.ino;
     const directory = value.isDirectory() && (!directoryIdentity || value.dev === directoryIdentity.dev && value.ino === directoryIdentity.ino);
@@ -308,6 +326,7 @@ function nodeSystem({ atomicCreateUnsupported = false, failBoundary, failDirecto
   };
   const state = () => ({
     attemptServiceReplacement: () => Object.assign(new Error("protected directory"), { code: directoryTransferred ? "UNEXPECTED_ACCESS" : "EACCES" }),
+    closeCalls,
     replaceAnchoredOutput: (value) => { const path = join(anchorPath, outputPath ? outputPath.slice(outputPath.lastIndexOf("/") + 1) : "v2-state.json"); try { unlinkSync(path); } catch {} writeFileSync(path, value, { mode: 0o600 }); },
     replaceParentPath: (value = "ATTACKER_PARENT_REPLACEMENT\n") => {
       const detached = `${formalParentPath}.detached`;
@@ -323,6 +342,7 @@ function nodeSystem({ atomicCreateUnsupported = false, failBoundary, failDirecto
     outputDescriptorClosedAfterDirectoryTransfer,
     outputDescriptorOpen: outputDescriptor !== undefined,
     postCommitDetached,
+    poisonCloseBindAccesses,
   });
   const system = {
     close: closeSync, effectiveUid: () => 0, fchmod: fchmodSync,
@@ -364,6 +384,7 @@ function nodeSystem({ atomicCreateUnsupported = false, failBoundary, failDirecto
     unlinkAt: (descriptor, name) => { assert.equal(descriptor, directoryDescriptor); unlinkSync(join(anchorPath, name)); },
   };
   system.close = function close(descriptor) {
+    closeCalls += 1;
     if (requireCloseContext) assert.strictEqual(this, system);
     if (descriptor === outputDescriptor) {
       outputDescriptorClosedAfterDirectoryTransfer = directoryTransferred; outputDescriptor = undefined;
@@ -380,6 +401,8 @@ function nodeSystem({ atomicCreateUnsupported = false, failBoundary, failDirecto
     }
     closeSync(descriptor);
   };
+  if (poisonCloseBind === "getter") Object.defineProperty(system.close, "bind", { configurable: false, get: () => { poisonCloseBindAccesses += 1; throw new Error("poisoned close.bind getter"); } });
+  if (poisonCloseBind === "property") Object.defineProperty(system.close, "bind", { configurable: false, value: () => undefined });
   system.boundary = (name) => { if (name === failBoundary) throw new Error(`injected boundary failure: ${name}`); onBoundary?.(name, state()); };
   system.state = state;
   return system;
