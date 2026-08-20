@@ -38,10 +38,38 @@
     "computerControlVisibleApp": false,
     "result": "PROCESS_START_ONLY"
   },
+  "computerControlTemporaryUniversalApp": {
+    "builtFrom": "existing wallet-macos CI packaging recipe",
+    "sourceCommit": "e65e6a687871742b697c79942a920390e1e452aa",
+    "architectures": ["x86_64", "arm64"],
+    "minimumMacOS": "13.0",
+    "signingClass": "ad-hoc",
+    "teamIdentifier": null,
+    "endpointMatrixSha256": "d344c607c2bbbf7bb0d9d3662b424976d0d6c4ff20428025dd1e2fb92bf31392",
+    "registrySha256": "337145be4cbdd3b642f7fd263e1b06e20f512f8cd4981033109ba65c9856becd",
+    "localZip": {
+      "bytes": 243942,
+      "sha256": "bc504e1a7fca0392a8eff0be297834c36cde270a8337733aec4aa7e202f31a7b"
+    },
+    "computerControl": {
+      "visibleFirstLaunch": true,
+      "visibleSecondLaunch": true,
+      "secondLaunchPid": 14038,
+      "chainIdVisible": "0x1917",
+      "restStatusVisible": 200,
+      "walletLockedVisible": true,
+      "accountSignSendAndCallbackUnavailableVisible": true,
+      "screenshotObserved": true,
+      "screenshotRetained": false,
+      "reasonScreenshotNotRetained": "ComputerControl service temporary screenshot files were cleaned when the temporary app exited."
+    }
+  },
   "truthBoundaries": {
     "localArm64ProbeOnly": true,
     "xcodeXCTestRun": false,
     "installedAppLaunch": false,
+    "temporaryLocalPackagedAppVisibleLaunch": true,
+    "x86_64LocalLaunch": false,
     "physicalBiometricRecovery": false,
     "productAccountRecovery": false,
     "authorizationSuccess": false,
