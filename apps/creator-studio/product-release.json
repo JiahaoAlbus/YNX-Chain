@@ -1,0 +1,52 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-058",
+  "productId": "ynx-creator-studio",
+  "name": "YNX Creator Studio",
+  "version": "0.4.0-testnet-candidate",
+  "surfaces": ["web"],
+  "endpointManifest": {
+    "version": "1.0.0-p0.2",
+    "payloadSha256": "3c606cad1d9bfa71fc507f54b6ad8184a6580c7df75440675b5db921b7e67bb5",
+    "appGateway": "UNAVAILABLE",
+    "creatorProductApi": "PENDING"
+  },
+  "walletConnection": {
+    "standardEip1193": "implemented-source-tested",
+    "eip6963Discovery": "implemented-source-tested",
+    "ynxTestnetChainId": "0x1917",
+    "ynxWalletDownload": "https://ynxweb4.com/dapp/download",
+    "metamaskFallback": "https://metamask.io/download/",
+    "productSession": "legacy-v1-source-retained-private-service-degraded",
+    "standardConnectionPreservedWhenPrivateFails": true
+  },
+  "guestPreview": true,
+  "englishDefault": true,
+  "implementedLocal": true,
+  "testedLocal": true,
+  "builtLocal": true,
+  "browserQALocal": true,
+  "providerApprovalVerified": false,
+  "accountVerified": false,
+  "signingVerified": false,
+  "transactionVerified": false,
+  "productSessionV2Verified": false,
+  "installedLocal": false,
+  "integratedCentral": false,
+  "deployedStaging": false,
+  "deployedPublic": false,
+  "publicVerified": false,
+  "computerControlVerified": false,
+  "downloadHosted": false,
+  "productionSigned": false,
+  "storeReleased": false,
+  "historicalPublicUrl": "https://web4.ynxweb4.com/video/studio/",
+  "historicalPublicRuntimeAcceptedForCandidate": false,
+  "knownLimitations": [
+    "The accepted endpoint manifest declares appGateway UNAVAILABLE and creatorProductApi PENDING.",
+    "The retained private Product Session client is legacy v1 and is not promoted as v2.",
+    "The local Browser QA did not approve a Wallet account and is not ComputerControl evidence.",
+    "No candidate public deployment or exact public runtime readback exists yet."
+  ]
+}
