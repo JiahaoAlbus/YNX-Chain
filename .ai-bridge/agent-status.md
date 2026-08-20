@@ -4,11 +4,11 @@
 - Phase: `INTEGRATE`
 - Workspace: exact configured YNX 26 Worktree verified
 - Branch: `codex/final-data-fabric`
-- Engineering Source Commit: `33609cca6c79fc48765d8a4f29d8362560dbb3f7`
-- Remote Source Commit: exact-source CI Run `32352699826` passed all six jobs at evidence head `0567be8b314c798d687af13ce317a2ef7b2f3c28`
+- Engineering Source Commit: `36beab9f670de4738205ffcb42d5a17630c37dfb`
+- Remote Source Commit: pending push and exact-source CI; predecessor source `33609cca6c79fc48765d8a4f29d8362560dbb3f7` passed all six jobs in Run `32352699826`
 - Source evidence CI: Run `31811137802` passed both jobs at v26-bound head `58eff9dad4a0a3dc27105716928f2a9b7c4f6460`, including the three-replica JetStream TCP route-partition/heal gate. Its eleven-file artifact was downloaded and every SHA-256 value verified. Earlier leader-loss evidence remains preserved in Runs `31797308684` and `31799837096`.
 - Concurrent writer: no Git writer detected; an existing CodexPro server process was left untouched
-- Dirty state: candidate source and exact-source CI receipt are committed on the review branch; legacy recovery files remain preserved under `recovery/2026-07-23/`
+- Dirty state: ecosystem-sharing candidate source is committed and release-truth evidence is awaiting commit; legacy recovery files remain preserved under `recovery/2026-07-23/`
 
 ## Verified capabilities
 

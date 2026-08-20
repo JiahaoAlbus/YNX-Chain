@@ -1,7 +1,7 @@
 # YNX Data Fabric Dependency Acceptance
 
-Source Commit: `33609cca6c79fc48765d8a4f29d8362560dbb3f7`
-Release Candidate: `ynx-data-fabric-33609cca6c79`
+Source Commit: `36beab9f670de4738205ffcb42d5a17630c37dfb`
+Release Candidate: `ynx-data-fabric-36beab9f670d`
 Phase: `INTEGRATE`
 Overall Status: `ACTIVE`
 
@@ -21,7 +21,7 @@ A dependency is accepted only when its owner supplies a versioned contract, dire
 | YNX Integration | Unique protocol freeze, merge order and shared Testnet | Envelope v2 and Schema Registry v2 are source-bound | Pending | Freeze the v2 contract and publish dependency acceptance receipts |
 | YNX Security/SRE | PostgreSQL, JetStream, backup, deployment, alert, signer and artifact policy | Exact-source 1000 signed Producer HTTP requests committed through single-primary PostgreSQL and embedded file-backed JetStream; three-replica leader loss and TCP route partition/healing passed; exact-source Linux CI Run `31838660585` passed PostgreSQL 17 streaming-standby catch-up, primary stop, manual promotion, RPO-zero integrity and replay invariants on one Docker host, and both artifacts were downloaded with all 14 files SHA-256 verified | Pending | Run sustained replicated ingress, automatic endpoint failover/fencing, repeated consumer/process crashes and deployed multi-host failure drills; approve deployment and signing classes |
 | YNX Website | Canonical page, truthful status, downloads, status and support links | Public metadata handoff exists with all public states false | Pending | Consume the handoff only after runtime and immutable hosting receipts exist |
-| YNX Integration | Wallet Connectivity, Durable Ledger and Card Event Contracts | Candidate-only schemas and vectors; central `connectionEvents` remains DRAFT and no runtime is active | Pending | Accept or reject the candidates, assign a Data Fabric light lease, then review activation, migration and rollback evidence |
+| YNX Integration | Wallet Connectivity, Durable Ledger, Card and Ecosystem Sharing Event Contracts | Candidate-only schemas and vectors; central `connectionEvents` remains DRAFT and no runtime is active | Pending | Accept or reject the candidates, assign a Data Fabric light lease, then review activation, migration and rollback evidence |
 
 ## Current accepted boundary
 
