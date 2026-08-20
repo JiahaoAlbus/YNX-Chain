@@ -1,0 +1,14 @@
+{
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-063",
+  "owner": "integration",
+  "product": "trust-center",
+  "status": "SOURCE_CHECKPOINT_REACHED_LIGHT_RELEASED",
+  "branch": "codex/p0-trust-center-wallet-connectivity-20260821",
+  "implementationCommit": "eb07330465f3c02b5ad62375d9b2d977110aa450",
+  "checkpointCommit": "5ff4cd57667de7c87197aa0982bca6addf007a28",
+  "tests": ["Go Trust Center and Trust kernel", "Playwright 5/5", "production dependency audit 0", "deterministic bundle SHA d5038ebd3304e256f870193bd68c50a29e754e3ae316da02720b9762aaab5ed6"],
+  "implemented": ["accepted EIP-6963 and EIP-1193 connection", "YNX Wallet preference and MetaMask fallback", "0x1917 chain switching", "official wallet download recovery", "guest public access", "synthetic local identity removed", "private App Gateway degradation cannot delete standard connection"],
+  "truth": {"productSessionV2":false,"installedClientVerified":false,"deployedPublic":false,"publicVerified":false,"computerControlVerified":false},
+  "nextAction": "Require an accepted Trust Product API/App Gateway and a separately authorized runtime plus visible-provider slice before promotion."
+}

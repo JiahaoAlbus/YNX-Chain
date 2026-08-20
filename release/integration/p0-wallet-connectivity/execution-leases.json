@@ -1,7 +1,7 @@
 {
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-  "epoch": 24,
-  "updatedAt": "2026-08-20T21:05:00Z",
+  "epoch": 25,
+  "updatedAt": "2026-08-20T21:12:00Z",
   "heavy": {
     "owner": null,
     "status": "CONSUMED_RELEASED_FAILED_CLOSED_INSTALL_PERMISSION",
@@ -27,16 +27,16 @@
     ]
   },
   "light": {
-    "owner": "integration",
-    "status": "ACTIVE_BOUNDED_SOURCE_ONLY",
+    "owner": null,
+    "status": "CHECKPOINT_REACHED_RELEASED",
     "branch": "codex/p0-trust-center-wallet-connectivity-20260821",
     "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/38-trust-center-p0",
     "taskId": "P0-063",
     "leasedAt": "2026-08-20T21:05:00Z",
-    "releasedAt": null,
+    "releasedAt": "2026-08-20T21:12:00Z",
     "previousOwner": "integration",
     "previousCheckpoint": "a3b78490a7945fa982bfe78c8be75396b013a649",
-    "reason": "Trust Center currently exposes a legacy private challenge plus local test identity. Integration may add accepted Standard Wallet discovery, preserve public transparency/guest review, remove release-visible fake identity authority, and isolate private Trust service degradation.",
+    "reason": "Trust Center consumed the accepted Standard Wallet SDK, removed release-visible synthetic identity authority, preserved guest public records, isolated App Gateway degradation, passed source tests and pushed exact checkpoint 5ff4cd57. No public or installed claim was made.",
     "executionScope": "TRUST_CENTER_STANDARD_WALLET_SOURCE_ONLY",
     "onSafeCheckpoint": [
       "modify only apps/trust-center and its owner evidence",
