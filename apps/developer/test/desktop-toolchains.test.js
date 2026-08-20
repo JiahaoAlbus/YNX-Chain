@@ -37,3 +37,8 @@ test("desktop runtime detects toolchains and returns real bounded compiler exits
   const restored=await compile("const restored = true;\n");assert.equal(restored.language,"javascript");
   const afterRemoval=await (await fetch(`http://127.0.0.1:${port}/runtime/toolchains`)).json();assert.equal(afterRemoval.adapters.some((item)=>item.id==="ynx-script"),false);
 });
+
+test("macOS package linker includes the Security framework required by the Keychain bridge",async()=>{
+  const packager=await (await import("node:fs/promises")).readFile(`${root}/scripts/package-local-macos.sh`,`utf8`);
+  assert.match(packager,/-framework Cocoa -framework Security -framework WebKit/);
+});

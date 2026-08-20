@@ -19,7 +19,7 @@ root="$PWD/.ynx-developer-local"
 app="$root/YNX Developer Testnet Preview.app"
 rm -rf "$root"
 mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources/runtime" "$app/Contents/Resources/code/apps/developer/frontend"
-/usr/bin/clang -fobjc-arc -fmodules-cache-path="$root/module-cache" desktop/macos/main.m -o "$app/Contents/MacOS/YNXDeveloper" -framework Cocoa -framework WebKit
+/usr/bin/clang -fobjc-arc -fmodules-cache-path="$root/module-cache" desktop/macos/main.m -o "$app/Contents/MacOS/YNXDeveloper" -framework Cocoa -framework Security -framework WebKit
 cp desktop/macos/Info.plist "$app/Contents/Info.plist"
 cp desktop/code-server.mjs "$app/Contents/Resources/server.mjs"
 cp -R frontend/dist "$app/Contents/Resources/code/apps/developer/frontend/dist"
