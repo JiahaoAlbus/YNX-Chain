@@ -1,0 +1,59 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-058",
+  "owner": "integration",
+  "productId": "ynx-creator-studio",
+  "source": {
+    "branch": "codex/p0-creator-studio-wallet-connectivity-20260821",
+    "implementationCommit": "b8bd715d06c9522bdd07a051ddcf1670fd44c3aa",
+    "tree": "a296e89d6b068d3b982bc2a2fdafc8f0de70faf2",
+    "recoveredFrom": "91f9710448f524a12a6ff4a452b5d5b7ef67ca8c"
+  },
+  "contractsConsumed": {
+    "dappConnectSdk": "ACCEPTED_SOURCE",
+    "publicEndpointManifestVersion": "1.0.0-p0.2",
+    "publicEndpointManifestPayloadSha256": "3c606cad1d9bfa71fc507f54b6ad8184a6580c7df75440675b5db921b7e67bb5"
+  },
+  "verification": {
+    "unitAndContractTests": {"passed": 6, "failed": 0},
+    "build": true,
+    "smoke": true,
+    "diffCheck": true,
+    "releaseLocalEndpointScan": true,
+    "browserQA": {
+      "surface": "local-built-web",
+      "englishDefault": true,
+      "guestPreview": true,
+      "standardWalletButtonVisible": true,
+      "privateServiceDegradedVisible": true,
+      "privateServiceButtonDisabledWithoutStandardAccount": true,
+      "placeholderKeysVisible": 0,
+      "desktopHorizontalOverflow": false,
+      "mobileViewport": "390x844",
+      "mobileHorizontalOverflow": false,
+      "consoleErrorsOrWarnings": 0
+    }
+  },
+  "buildOutputs": {
+    "app.js": {"bytes": 47469, "sha256": "801ca003089d9c8820a9036354f3f6dd14901dd34633a9e6c0ffc33fd6d2b2d0"},
+    "index.html": {"bytes": 11695, "sha256": "37be42334eda42eb0c3caa7d54c2a3edc33dce0f92dd2c05b684c133c169146d"},
+    "runtime-config.js": {"bytes": 506, "sha256": "53b8ae0d81d4a81716d79041c698b8183c92e60eb013c241acd7336913320cd8"},
+    "package-lock.json": {"bytes": 14624, "sha256": "34e44ca306167558f9480e9484f8997d45af8ffc094aaae4bf80d34281408e34"}
+  },
+  "truth": {
+    "standardWalletSourceImplemented": true,
+    "productSessionPrivateServiceDegraded": true,
+    "providerApprovalVerified": false,
+    "accountVerified": false,
+    "signingVerified": false,
+    "transactionVerified": false,
+    "productSessionV2Verified": false,
+    "deployedPublic": false,
+    "publicVerified": false,
+    "computerControlVerified": false,
+    "integratedCentral": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

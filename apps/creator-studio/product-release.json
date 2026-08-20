@@ -5,6 +5,8 @@
   "productId": "ynx-creator-studio",
   "name": "YNX Creator Studio",
   "version": "0.4.0-testnet-candidate",
+  "implementationCommit": "b8bd715d06c9522bdd07a051ddcf1670fd44c3aa",
+  "implementationTree": "a296e89d6b068d3b982bc2a2fdafc8f0de70faf2",
   "surfaces": ["web"],
   "endpointManifest": {
     "version": "1.0.0-p0.2",
