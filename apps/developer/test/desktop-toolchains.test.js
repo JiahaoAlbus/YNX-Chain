@@ -48,6 +48,8 @@ test("macOS package linker includes the Security framework required by the Keych
   assert.match(native,/SecItemDelete/);
   assert.match(native,/YNXWalletAvailability/);
   assert.match(native,/URLForApplicationToOpenURL/);
+  assert.match(packager,/arm64\|x86_64/);
+  assert.match(packager,/platform="macos-/);
   const verifier=await (await import("node:fs/promises")).readFile(`${root}/scripts/verify-local-macos-package.sh`,`utf8`);
   assert.match(verifier,/YNX Wallet scheme state: installed=/);
 });

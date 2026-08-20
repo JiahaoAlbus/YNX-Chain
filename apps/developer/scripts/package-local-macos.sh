@@ -13,6 +13,11 @@ source_commit=$(/usr/bin/git -C "$repo_root" rev-parse HEAD)
 source_tree=$(/usr/bin/git -C "$repo_root" rev-parse 'HEAD^{tree}')
 source_date=$(/usr/bin/git -C "$repo_root" show -s --format=%cI HEAD)
 runtime_checkpoint=$(node -e 'const fs=require("fs"); process.stdout.write(JSON.parse(fs.readFileSync("product-release.json","utf8")).commit)')
+machine_arch=$(/usr/bin/uname -m)
+case "$machine_arch" in
+  arm64|x86_64) platform="macos-$([[ "$machine_arch" == arm64 ]] && printf arm64 || printf x64)" ;;
+  *) echo "Unsupported macOS architecture: $machine_arch" >&2; exit 1 ;;
+esac
 
 npm run code:build
 root="$PWD/.ynx-developer-local"
@@ -37,7 +42,7 @@ for candidate in "$node_binary" "/Applications/ChatGPT.app/Contents/Resources/cu
   fi
 done
 if [[ -z "$node_binary" || ! -x "$node_binary" ]]; then
-  echo "A portable arm64 Node runtime linked only to macOS system libraries is required. Set YNX_DEVELOPER_NODE_BINARY." >&2
+  echo "A portable macOS Node runtime linked only to macOS system libraries is required. Set YNX_DEVELOPER_NODE_BINARY." >&2
   exit 1
 fi
 COPYFILE_DISABLE=1 cp -X "$node_binary" "$app/Contents/Resources/runtime/node"
@@ -53,13 +58,13 @@ node scripts/generate-code-sbom.mjs "$app/Contents/Resources/sbom.cdx.json" "$no
 sbom_sha=$(/usr/bin/shasum -a 256 "$app/Contents/Resources/sbom.cdx.json" | awk '{print $1}')
 node -e '
 const fs = require("fs");
-const [output, sourceCommit, sourceTree, sourceDate, runtimeCheckpoint, sbomSha256] = process.argv.slice(1);
+const [output, sourceCommit, sourceTree, sourceDate, runtimeCheckpoint, sbomSha256, platform] = process.argv.slice(1);
 const record = {
   schemaVersion: 1,
   productId: "ynx-developer-v1",
   version: "0.2.0",
   artifactClass: "unsigned-testnet-preview",
-  platform: "macos-arm64",
+  platform,
   signingClass: "adhoc-no-team-id",
   sourceRepository: "https://github.com/JiahaoAlbus/YNX-Chain",
   sourceCommit,
@@ -71,7 +76,7 @@ const record = {
   sbomSha256
 };
 fs.writeFileSync(output, `${JSON.stringify(record, null, 2)}\n`);
-' "$app/Contents/Resources/build-provenance.json" "$source_commit" "$source_tree" "$source_date" "$runtime_checkpoint" "$sbom_sha"
+' "$app/Contents/Resources/build-provenance.json" "$source_commit" "$source_tree" "$source_date" "$runtime_checkpoint" "$sbom_sha" "$platform"
 /usr/bin/xattr -cr "$app"
 # The reviewed portable Node binary may retain its distributor signature while
 # native npm modules are locally ad-hoc signed. macOS library validation rejects
@@ -89,7 +94,8 @@ if ! grep -Fq 'Signature=adhoc' <<<"$signature" || ! grep -Fq 'TeamIdentifier=no
   echo "Refusing local-package classification: expected only linker ad-hoc signing with no team identity." >&2
   exit 1
 fi
-COPYFILE_DISABLE=1 /usr/bin/ditto -c -k --keepParent --noextattr --noqtn "$app" "$root/ynx-developer-testnet-preview-macos-unsigned.zip"
-/usr/bin/shasum -a 256 "$root/ynx-developer-testnet-preview-macos-unsigned.zip"
+archive="$root/ynx-developer-testnet-preview-${platform}-unsigned.zip"
+COPYFILE_DISABLE=1 /usr/bin/ditto -c -k --keepParent --noextattr --noqtn "$app" "$archive"
+/usr/bin/shasum -a 256 "$archive"
 echo "Embedded source commit $source_commit, source tree $source_tree and SBOM SHA-256 $sbom_sha."
 echo "Built unsigned macOS Testnet Preview with an ad-hoc signature, bundled portable runtime and no team identity. This is not a Developer ID signed production desktop release."

@@ -1,7 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 cd "$(dirname "$0")/.."
-zip="$PWD/.ynx-developer-local/ynx-developer-testnet-preview-macos-unsigned.zip"
+machine_arch=$(/usr/bin/uname -m)
+case "$machine_arch" in
+  arm64) platform="macos-arm64"; pty_arch="darwin-arm64" ;;
+  x86_64) platform="macos-x64"; pty_arch="darwin-x64" ;;
+  *) echo "Unsupported macOS architecture: $machine_arch" >&2; exit 1 ;;
+esac
+zip="$PWD/.ynx-developer-local/ynx-developer-testnet-preview-${platform}-unsigned.zip"
 [[ -f "$zip" ]] || { echo "Build the local macOS package first." >&2; exit 1; }
 work=$(mktemp -d /private/tmp/ynx-developer-install.XXXXXX)
 cleanup() {
@@ -21,7 +27,7 @@ expected_runtime_checkpoint=$(node -e 'const fs=require("fs"); process.stdout.wr
 node -e '
 const crypto = require("crypto");
 const fs = require("fs");
-const [provenancePath, sbomPath, expectedCommit, expectedTree, expectedRuntime] = process.argv.slice(1);
+const [provenancePath, sbomPath, expectedCommit, expectedTree, expectedRuntime, expectedPlatform] = process.argv.slice(1);
 const provenance = JSON.parse(fs.readFileSync(provenancePath, "utf8"));
 const sbom = fs.readFileSync(sbomPath);
 const sbomSha256 = crypto.createHash("sha256").update(sbom).digest("hex");
@@ -29,7 +35,7 @@ const expected = {
   schemaVersion: 1,
   productId: "ynx-developer-v1",
   artifactClass: "unsigned-testnet-preview",
-  platform: "macos-arm64",
+  platform: expectedPlatform,
   signingClass: "adhoc-no-team-id",
   sourceCommit: expectedCommit,
   sourceTree: expectedTree,
@@ -45,13 +51,13 @@ const parsedSbom = JSON.parse(sbom.toString("utf8"));
 if (parsedSbom.bomFormat !== "CycloneDX" || parsedSbom.specVersion !== "1.5" || !Array.isArray(parsedSbom.components) || parsedSbom.components.length < 100) throw new Error("full YNX Code CycloneDX component inventory is missing");
 for (const required of ["Node.js", "npm", "node-pty", "monaco-editor", "react", "yjs"]) if (!parsedSbom.components.some(component => component.name === required)) throw new Error(`SBOM component ${required} is missing`);
 console.log(`Embedded provenance verified for source ${provenance.sourceCommit} and SBOM ${sbomSha256}.`);
-' "$app/Contents/Resources/build-provenance.json" "$app/Contents/Resources/sbom.cdx.json" "$expected_source_commit" "$expected_source_tree" "$expected_runtime_checkpoint"
+' "$app/Contents/Resources/build-provenance.json" "$app/Contents/Resources/sbom.cdx.json" "$expected_source_commit" "$expected_source_tree" "$expected_runtime_checkpoint" "$platform"
 if /usr/bin/xattr -p com.apple.quarantine "$app" >/dev/null 2>&1; then echo "Archive unexpectedly restored quarantine metadata." >&2; exit 1; fi
 /usr/bin/codesign --verify --deep --strict --verbose=2 "$app"
 signature=$(/usr/bin/codesign -dv --verbose=4 "$app" 2>&1 || true)
 grep -Fq 'Signature=adhoc' <<<"$signature"
 grep -Fq 'TeamIdentifier=not set' <<<"$signature"
-for bundled_binary in "$app/Contents/Resources/runtime/node" "$app/Contents/Resources/code/apps/developer/node_modules/node-pty/prebuilds/darwin-arm64/pty.node"; do
+for bundled_binary in "$app/Contents/Resources/runtime/node" "$app/Contents/Resources/code/apps/developer/node_modules/node-pty/prebuilds/$pty_arch/pty.node"; do
   bundled_signature=$(/usr/bin/codesign -dv --verbose=4 "$bundled_binary" 2>&1 || true)
   grep -Fq 'Signature=adhoc' <<<"$bundled_signature"
   grep -Fq 'TeamIdentifier=not set' <<<"$bundled_signature"
