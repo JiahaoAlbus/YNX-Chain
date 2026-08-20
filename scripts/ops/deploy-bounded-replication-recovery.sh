@@ -80,9 +80,11 @@ preflight_node() {
   # A legacy follower may hold the Devnet write lock for minutes while it
   # persists a large authenticated replication batch. Its old /status handler
   # waits for that lock, which is the exact issue this bounded release fixes.
-  # Use the lock-independent health endpoint before replacement; after install
-  # the readiness loop below still requires the new /status implementation.
-  remote_exec "$role" "$user" "$host" "$key" "set -euo pipefail; systemctl is-active --quiet ynx-chaind; test -x /usr/local/bin/ynx-chaind; sudo test -r /etc/ynx/ynx-chaind.env; service_user=\$(systemctl show --property=User --value ynx-chaind); [[ \"\$service_user\" =~ ^[A-Za-z_][A-Za-z0-9_-]*\$ ]]; sudo -u \"\$service_user\" test -r /var/lib/ynx-chain/testnet/devnet-state.json; sudo -u \"\$service_user\" test -w /var/lib/ynx-chain/testnet/devnet-state.json; sudo -u \"\$service_user\" test -r /var/lib/ynx-chain/testnet/devnet-state.integrity-version; sudo -u \"\$service_user\" test -w /var/lib/ynx-chain/testnet/devnet-state.integrity-version; command -v tar >/dev/null; command -v sha256sum >/dev/null || command -v shasum >/dev/null; curl -fsS --max-time 8 http://127.0.0.1:6420/health >/dev/null; echo 'ynx-chaind preflight passed'"
+  # Its old shared-header middleware also reads that lock, so every HTTP route
+  # can wait. Verify the active service still accepts a loopback TCP connection
+  # before replacement; after install the readiness loop below requires the new
+  # source-bound /status response.
+  remote_exec "$role" "$user" "$host" "$key" "set -euo pipefail; systemctl is-active --quiet ynx-chaind; test -x /usr/local/bin/ynx-chaind; sudo test -r /etc/ynx/ynx-chaind.env; service_user=\$(systemctl show --property=User --value ynx-chaind); [[ \"\$service_user\" =~ ^[A-Za-z_][A-Za-z0-9_-]*\$ ]]; sudo -u \"\$service_user\" test -r /var/lib/ynx-chain/testnet/devnet-state.json; sudo -u \"\$service_user\" test -w /var/lib/ynx-chain/testnet/devnet-state.json; sudo -u \"\$service_user\" test -r /var/lib/ynx-chain/testnet/devnet-state.integrity-version; sudo -u \"\$service_user\" test -w /var/lib/ynx-chain/testnet/devnet-state.integrity-version; command -v tar >/dev/null; command -v sha256sum >/dev/null || command -v shasum >/dev/null; timeout 3 bash -c '</dev/tcp/127.0.0.1/6420'; echo 'ynx-chaind preflight passed'"
 }
 
 install_node() {
