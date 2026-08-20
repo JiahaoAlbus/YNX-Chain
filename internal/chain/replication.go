@@ -20,6 +20,11 @@ import (
 const MaxReplicationSnapshotBytes = 256 << 20
 const MaxReplicationBatchBlocks = 4096
 
+// ReplicationDurableCheckpointBlocks bounds the amount of empty-block history
+// a follower may replay after a cold restart. Application-state changes still
+// force an immediate durable checkpoint; only block-only suffixes are deferred.
+const ReplicationDurableCheckpointBlocks = 256
+
 // MaxReplicationBatchPayloadBytes bounds intermediate catch-up responses.
 // The final batch may use the existing 256 MiB snapshot ceiling because it
 // carries the separately authenticated authoritative state.
@@ -224,6 +229,35 @@ func (d *Devnet) ApplyReplicationBatchJSON(payload []byte) (ReplicationApplyResu
 	if err := validateReplicationState(*batch.State, d.cfg); err != nil {
 		return ReplicationApplyResult{}, fmt.Errorf("validate final replication state: %w", err)
 	}
+	// A public testnet with a long run of empty blocks must not rewrite the full
+	// append-only history snapshot every few seconds. Compare only authoritative
+	// application state (peer observations are node-local). If it is unchanged,
+	// advance the authenticated block suffix in memory and defer the expensive
+	// durable rewrite to a bounded checkpoint. Any application-state change
+	// bypasses this path and is persisted immediately below.
+	d.mu.RLock()
+	durableHeight := d.replicationDurableHeight
+	localApplicationIntegrity, err := replicationApplicationStateIntegrity(d.snapshotLocked())
+	d.mu.RUnlock()
+	if err != nil {
+		return ReplicationApplyResult{}, fmt.Errorf("hash local replication application state: %w", err)
+	}
+	sourceApplicationIntegrity, err := replicationApplicationStateIntegrity(*batch.State)
+	if err != nil {
+		return ReplicationApplyResult{}, fmt.Errorf("hash source replication application state: %w", err)
+	}
+	if hmac.Equal([]byte(localApplicationIntegrity), []byte(sourceApplicationIntegrity)) &&
+		batch.SourceHeight >= durableHeight && batch.SourceHeight-durableHeight < ReplicationDurableCheckpointBlocks {
+		d.mu.Lock()
+		defer d.mu.Unlock()
+		current = d.blocks[len(d.blocks)-1]
+		if current.Height != batch.BaseHeight || current.Hash != batch.BaseBlockHash {
+			return ReplicationApplyResult{}, fmt.Errorf("replication batch base %d/%s does not match local tip %d/%s", batch.BaseHeight, batch.BaseBlockHash, current.Height, current.Hash)
+		}
+		d.blocks = append(d.blocks, batch.Blocks...)
+		result.Applied = true
+		return result, nil
+	}
 	candidate.StateIntegrity = ""
 	if err := validateResourceSponsorSnapshot(candidate); err != nil {
 		return ReplicationApplyResult{}, fmt.Errorf("validate final replication Resource sponsor state: %w", err)
@@ -372,6 +406,33 @@ func replicationStateIntegrity(state devnetSnapshot) (string, error) {
 	}
 	digest := sha256.New()
 	_, _ = digest.Write([]byte(replicationStateHashDomain))
+	_, _ = digest.Write([]byte{0})
+	_, _ = digest.Write(payload)
+	return hex.EncodeToString(digest.Sum(nil)), nil
+}
+
+func replicationApplicationStateIntegrity(state devnetSnapshot) (string, error) {
+	state.SavedAt = time.Time{}
+	state.Blocks = nil
+	state.Peers = nil
+	state.PeerSyncs = nil
+	state.Validators = append([]Validator(nil), state.Validators...)
+	for i := range state.Validators {
+		state.Validators[i].PeerReady = false
+		state.Validators[i].PeerStatus = ""
+		state.Validators[i].LatestHeight = 0
+		state.Validators[i].LastSeenAt = nil
+		state.Validators[i].UpdatedAt = nil
+		state.Validators[i].PeerEvidence = ""
+	}
+	state.StateIntegrity = ""
+	payload, err := json.Marshal(state)
+	if err != nil {
+		return "", fmt.Errorf("encode replication application state: %w", err)
+	}
+	digest := sha256.New()
+	_, _ = digest.Write([]byte(replicationStateHashDomain))
+	_, _ = digest.Write([]byte("/application"))
 	_, _ = digest.Write([]byte{0})
 	_, _ = digest.Write(payload)
 	return hex.EncodeToString(digest.Sum(nil)), nil
@@ -626,5 +687,8 @@ func (d *Devnet) applySnapshotLocked(snapshot devnetSnapshot) {
 	d.resourcePools, d.resourceSponsorships, d.resourceSponsorIdem = snapshot.Pools, snapshot.Sponsors, snapshot.SponsorIDs
 	d.resourceActionRefs, d.resourceSponsorAudit = snapshot.ActionRefs, snapshot.SponsorLog
 	d.dexAssets, d.dexBalances, d.dexPools, d.dexEvents = snapshot.DexAssets, snapshot.DexBalances, snapshot.DexPools, snapshot.DexEvents
+	if len(snapshot.Blocks) > 0 {
+		d.replicationDurableHeight = snapshot.Blocks[len(snapshot.Blocks)-1].Height
+	}
 	d.ensureStateDefaults()
 }

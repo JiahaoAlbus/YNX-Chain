@@ -196,6 +196,73 @@ func TestReplicationIntermediateSuffixReplaysAfterRestart(t *testing.T) {
 	}
 }
 
+func TestReplicationEmptySuffixDefersDurabilityToBoundedCheckpoint(t *testing.T) {
+	cfg := DefaultNetworkConfig("testnet")
+	source := NewDevnet(cfg)
+	dir := t.TempDir()
+	destination, err := NewPersistentDevnet(cfg, dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	source.ProduceBlock()
+	base := destination.LatestBlock()
+	payload, err := source.ReplicationBatchJSON(base.Height, base.Hash)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var emptyBatch replicationBatch
+	if err := json.Unmarshal(payload, &emptyBatch); err != nil {
+		t.Fatal(err)
+	}
+	localHash, err := replicationApplicationStateIntegrity(destination.snapshotLocked())
+	if err != nil {
+		t.Fatal(err)
+	}
+	sourceHash, err := replicationApplicationStateIntegrity(*emptyBatch.State)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if localHash != sourceHash {
+		t.Fatalf("empty suffix application state differs local=%s source=%s", localHash, sourceHash)
+	}
+	if destination.replicationDurableHeight != 0 || emptyBatch.SourceHeight != 1 {
+		t.Fatalf("unexpected durable/source heights %d/%d", destination.replicationDurableHeight, emptyBatch.SourceHeight)
+	}
+	if _, err := destination.ApplyReplicationBatchJSON(payload); err != nil {
+		t.Fatal(err)
+	}
+	if destination.LatestHeight() != 1 {
+		t.Fatalf("empty suffix did not advance in memory: %d", destination.LatestHeight())
+	}
+	restarted, err := NewPersistentDevnet(cfg, dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if restarted.LatestHeight() != 0 {
+		t.Fatalf("empty suffix was persisted before its bounded checkpoint: %d", restarted.LatestHeight())
+	}
+
+	for source.LatestHeight() < ReplicationDurableCheckpointBlocks {
+		source.ProduceBlock()
+	}
+	base = destination.LatestBlock()
+	payload, err = source.ReplicationBatchJSON(base.Height, base.Hash)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := destination.ApplyReplicationBatchJSON(payload); err != nil {
+		t.Fatal(err)
+	}
+	restarted, err = NewPersistentDevnet(cfg, dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if restarted.LatestHeight() != ReplicationDurableCheckpointBlocks || restarted.LatestBlock().Hash != source.LatestBlock().Hash {
+		t.Fatalf("bounded empty-block checkpoint was not durable: %+v", restarted.LatestBlock())
+	}
+}
+
 func TestReplicationBatchHonorsPayloadBudgetBeforeBlockLimit(t *testing.T) {
 	cfg := DefaultNetworkConfig("testnet")
 	source := NewDevnet(cfg)

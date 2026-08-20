@@ -58,6 +58,9 @@ func TestFetchReplicationSnapshotRejectsBadSignature(t *testing.T) {
 
 func TestReplicationPollingReportsFailureRecoveryAndRestart(t *testing.T) {
 	source := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))
+	if _, err := source.Faucet("ynx_replication_restart", 1); err != nil {
+		t.Fatal(err)
+	}
 	source.ProduceBlock()
 	var available atomic.Bool
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
