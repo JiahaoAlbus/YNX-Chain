@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-08-20T09:42:38Z",
+  "source": {
+    "macOSSourceCommit": "e65e6a687871742b697c79942a920390e1e452aa",
+    "buildMode": "SwiftPM release in an isolated detached worktree",
+    "hostToolchain": "Swift 6.1 / CommandLineTools; no Xcode.app"
+  },
+  "probes": {
+    "security": {
+      "keychainAvailable": true,
+      "keychainRoundTripVerified": true,
+      "biometricPolicyAvailable": false,
+      "biometricErrorCode": -12,
+      "recoveryMaterialPersisted": false,
+      "exitCode": 0
+    },
+    "recovery": {
+      "keychainRoundTripVerified": true,
+      "biometricPolicyAvailable": false,
+      "recoveryCreateAttempted": true,
+      "recoveryCreated": false,
+      "recoveryMaterialPersisted": false,
+      "recoveryAbsentBeforeAttempt": true,
+      "recoveryAbsentAfterAttempt": true,
+      "failedClosed": true,
+      "error": "BIOMETRIC_UNAVAILABLE",
+      "errorCode": -12,
+      "exitCode": 0
+    }
+  },
+  "truthBoundaries": {
+    "localArm64ProbeOnly": true,
+    "xcodeXCTestRun": false,
+    "installedAppLaunch": false,
+    "physicalBiometricRecovery": false,
+    "productAccountRecovery": false,
+    "authorizationSuccess": false,
+    "accountSigningOrTransfer": false,
+    "productionSigned": false,
+    "notarized": false,
+    "officialWebsiteDownload": false
+  }
+}
