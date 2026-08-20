@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "acceptanceId": "P0-049-WALLET-AUTH-REGISTRY-V3-OFFLINE-ARTIFACTS-79A87D87-20260821",
+  "taskId": "P0-049",
+  "decision": "OFFLINE_ARTIFACT_BLOCKER_CLOSED_HEAVY_SLOT_BLOCKED_NO_LEASE",
+  "sourceEvidence": {
+    "path": "release/integration/p0-wallet-connectivity/evidence/wallet-auth-registry-v3-offline-artifacts-79a87d87-20260821.json"
+  },
+  "accepted": {
+    "deployableSourceArchive": true,
+    "deployableSourceInventory": true,
+    "offlineDependencyRuntimeArchive": true,
+    "offlineDependencyRuntimeInventory": true,
+    "offlineDependencySbom": true,
+    "overlayColdStartWithoutNetworkInstall": true
+  },
+  "remainingBlocker": {
+    "code": "P0_015_ACTIVE_PROTECTED_SEQUENTIAL_FOLLOWER_DEPLOYMENT_NOT_RELEASED",
+    "taskId": "P0-015",
+    "heavySlotAvailable": false,
+    "explicitReleaseObserved": false
+  },
+  "truth": {
+    "p0039LeaseReusable": false,
+    "executionLeaseIssued": false,
+    "executionLeaseId": null,
+    "leaseExpiry": null,
+    "sshUsed": false,
+    "deploymentAttempted": false,
+    "productionStateRead": false,
+    "productionMutation": false,
+    "migrationExecuted": false,
+    "rollbackExecuted": false,
+    "candidateDeployedPublic": false,
+    "publicRegistryV3": false,
+    "productsMigratedV2": 0,
+    "computerControlVerified": false,
+    "integratedCentral": false,
+    "aggregateDeployedPublic": false
+  }
+}

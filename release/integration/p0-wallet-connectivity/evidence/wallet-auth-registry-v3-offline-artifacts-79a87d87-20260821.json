@@ -1,0 +1,135 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "P0-049-WALLET-AUTH-REGISTRY-V3-OFFLINE-ARTIFACTS-79A87D87-20260821",
+  "checkedAt": "2026-08-20T18:46:49Z",
+  "authoritativeParent": {
+    "commit": "e1de854a30254fea2ea8958f158fcf8444fafa20",
+    "tree": "51b8a5f51224e366b2a3572cbd7f24568dbaad9e",
+    "parent": "5bf0b9a10fe75752bb1ef21efed2c0f051821655"
+  },
+  "ownerEvidence": {
+    "commit": "79a87d87cd819672e65dd42546da997d8a80985e",
+    "parent": "98150b1fe0a985142c5717dcc478a918e0fe7bf9",
+    "tree": "0136f46c12c6bfff4e497250018fd219779ca77e",
+    "branch": "codex/wallet-core-auth-gateway-continuation-20260814",
+    "path": "release/integration/wallet-auth-a960d100-offline-artifacts-evidence-20260821.json",
+    "blob": "9977dfd44bd82aa40063f491c4eaded0afc04e08",
+    "bytes": 5153,
+    "contentSha256": "facbca0ffc1fe502beba079c5433f4d6b8adb2877e50c41e519ace4861e8fbc2",
+    "remoteReadback": true
+  },
+  "sourceBinding": {
+    "commit": "a960d1007e7952c2af591d39e3673f1d9fe50e62",
+    "tree": "8170c4d8c24955564bf1cbe7852b8a883a44f1b4",
+    "packageLockSha256": "c32e52b9c87743ee5870ec146590f203f0084926dfbf9a66b7edb5a9224ce606",
+    "packageLockVersion": 3,
+    "packageNodes": 3,
+    "nobleCurvesVersion": "2.2.0",
+    "nobleHashesVersion": "2.2.0",
+    "priorIndependentFullTests": "347/347",
+    "deploymentArchiveContainsTests": false,
+    "deploymentArchiveTestCountClaimed": 0
+  },
+  "artifacts": [
+    {
+      "kind": "deployable-source-archive",
+      "path": "release/integration/p0-wallet-connectivity/artifacts/wallet-auth-a960d100/wallet-auth-source-a960d100.tar.gz",
+      "blob": "22d7a1d880370a74726da22deb9e2fe565fe1dc8",
+      "bytes": 180370,
+      "sha256": "f1916b5ab272cd6c301d949de8123e14d90b7ff6cd4212c77e881acab206862f",
+      "archiveEntries": 108,
+      "fileEntries": 100
+    },
+    {
+      "kind": "deployable-source-inventory",
+      "path": "release/integration/p0-wallet-connectivity/artifacts/wallet-auth-a960d100/wallet-auth-source-a960d100.inventory.json",
+      "blob": "5ff15dc84b4eef330fd420584048662c33edf096",
+      "bytes": 24162,
+      "sha256": "f2276b64be3c61568fdd7d61d65cca52d06a4f2f0f4513b5a64e282b87c4e3be"
+    },
+    {
+      "kind": "offline-dependency-runtime-archive",
+      "path": "release/integration/p0-wallet-connectivity/artifacts/wallet-auth-a960d100/wallet-auth-runtime-dependencies-a960d100.tar.gz",
+      "blob": "c074f80aa171278b68a10694b3e670a74bc318b3",
+      "bytes": 662946,
+      "sha256": "7c57e29b46fcd09dcfc2f5f13e81bb43400947f41113c604220804c20703fd46",
+      "archiveEntries": 224,
+      "fileEntries": 212
+    },
+    {
+      "kind": "offline-dependency-runtime-inventory",
+      "path": "release/integration/p0-wallet-connectivity/artifacts/wallet-auth-a960d100/wallet-auth-runtime-dependencies-a960d100.inventory.json",
+      "blob": "f9d90fc5b145fcdb52de456ea1efb3b940436f0f",
+      "bytes": 52591,
+      "sha256": "e873bc9555b4b1d4067b8899c7aae3cbb36dd2b5b67ae7247665e23874273137"
+    },
+    {
+      "kind": "cyclonedx-sbom",
+      "path": "release/integration/p0-wallet-connectivity/artifacts/wallet-auth-a960d100/wallet-auth-runtime-a960d100.cdx.json",
+      "blob": "a43da2b6b3227371cd769560e173036492e97865",
+      "bytes": 2265,
+      "sha256": "72f65bd1cf1561a641b71ae3d735a32932f17ab1f685c3d7975538547e9368f5",
+      "specVersion": "1.5",
+      "components": 3,
+      "dependencyNodes": 3
+    }
+  ],
+  "builder": {
+    "path": "scripts/package/wallet-auth-offline-release.mjs",
+    "blob": "9a14512de152c016bbcde14f4a833290d8906575",
+    "bytes": 13634,
+    "sha256": "9cbb12f8abf68c9a4dab2358494c04e92810b13f5b9843d26264cbf9987e2210"
+  },
+  "independentVerification": {
+    "changedBlobsReadback": "7/7",
+    "sourceInventoryEntriesVerified": 108,
+    "sourceInventoryFilesVerified": 100,
+    "runtimeInventoryEntriesVerified": 224,
+    "runtimeInventoryFilesVerified": 212,
+    "archivePathsAbsoluteOrParentTraversal": 0,
+    "overlayExactPackageLockVerified": true,
+    "directNobleSubpathImportsPassed": true,
+    "networkInstallPerformed": false,
+    "loopbackDaemonColdStartPassed": true,
+    "versionHttpStatus": 200,
+    "versionBodyBytesObserved": 578,
+    "versionBodySha256Observed": "35c663a7bf247c1c7c0e6b2fc3bb282d882fa1357a510d067a2a5ff2d7728fde",
+    "versionSourceCommit": "a960d1007e7952c2af591d39e3673f1d9fe50e62",
+    "versionRemoteDeployed": false,
+    "versionRegistryFileSha256": "810c58777a62a798e286d2d30e0430334b88603653f672821642e80e3553c46c",
+    "versionRegistryStateBindingSha256": "f300fb098c832161aaeb2bcf62b61a7b5b674ea0b443ebd9ca0189592e0b10d7",
+    "invalidChallengeHttpStatus": 400,
+    "invalidChallengeCode": "UNKNOWN_OR_MISSING_FIELD",
+    "sigintShutdownCleanly": true
+  },
+  "heavySlotAudit": {
+    "taskId": "P0-015",
+    "queueStatus": "ACTIVE_PROTECTED_SEQUENTIAL_FOLLOWER_DEPLOYMENT",
+    "pathLockStatus": "ACTIVE_PROTECTED_SEQUENTIAL_FOLLOWER_DEPLOYMENT",
+    "explicitReleaseObserved": false,
+    "elapsedTimeInfersRelease": false,
+    "heavySlotAvailable": false
+  },
+  "requiredBeforeAnyFreshLease": [
+    "observe an explicit terminal or released checkpoint for P0-015",
+    "re-read the latest authoritative control-plane parent and MAX_HEAVY_OWNER=1 state",
+    "re-read the current public 6cf source and production state SHA before any copy",
+    "issue a wholly new bounded single-use lease; never reuse P0-039"
+  ],
+  "truth": {
+    "artifactBlockerClosed": true,
+    "p0039LeaseReusable": false,
+    "executionLeaseIssued": false,
+    "sshUsed": false,
+    "deploymentAttempted": false,
+    "productionStateRead": false,
+    "productionMutation": false,
+    "migrationExecuted": false,
+    "rollbackExecuted": false,
+    "publicRuntimeSource": "6cf3ef845202bd879ed94515a71b323dd2fc9e14",
+    "publicRegistryV3": false,
+    "productsMigratedV2": 0,
+    "integratedCentral": false,
+    "aggregateDeployedPublic": false
+  }
+}
