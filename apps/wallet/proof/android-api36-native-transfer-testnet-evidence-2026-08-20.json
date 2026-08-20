@@ -59,6 +59,14 @@
       "nonce": 0,
       "recentAccountTransactions": 1
     },
+    "postTransferRestart": {
+      "launchState": "COLD",
+      "totalTimeMs": 434,
+      "walletLockedBeforeUnlock": true,
+      "simulatedBiometricUnlock": true,
+      "recipientBalanceAfterRestart": 25,
+      "recipientRecentAccountTransactionsAfterRestart": 1
+    },
     "walletFatalOrAnrObserved": false
   },
   "truthBoundaries": {
