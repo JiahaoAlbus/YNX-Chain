@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "sourceCommit": "uncommitted-source-tree",
-  "generatedAt": "2026-08-20T08:29:49.279Z",
+  "sourceCommit": "c1e64933562e9c4c287fc7ab98a32a54ea617e89",
+  "generatedAt": "2026-08-20T08:32:14.480Z",
   "runtimeClass": "Playwright bundled Chrome for Testing extension runtime with a disposable unpacked ZIP and isolated persistent profile; not branded Chrome/Edge and not installedLocal",
   "fixtureAuthority": "empty local HTTP DApp fixture with no wallet backend, account, signature or transaction capability",
   "browserAttempt": {
@@ -17,14 +17,25 @@
     "signingClass": "unsigned-unpacked-extension"
   },
   "logs": [],
-  "screenshots": [],
+  "screenshots": [
+    {
+      "path": "evidence/runtime/chromium-compatible-dapp-after-action-20260814.png",
+      "bytes": 12611,
+      "sha256": "c46c3d3e2ff9024801b753752719c4c8608123ee3e654faad089483141afea39"
+    },
+    {
+      "path": "evidence/runtime/chromium-compatible-dapp-second-launch-20260814.png",
+      "bytes": 12611,
+      "sha256": "c46c3d3e2ff9024801b753752719c4c8608123ee3e654faad089483141afea39"
+    }
+  ],
   "passed": false,
   "chromiumCompatibleExtensionRuntimeProved": false,
   "actionInjectionProved": false,
   "migrationGateProved": false,
   "rpcExactChainProved": false,
   "rpcFailClosedProved": false,
-  "secondLaunchNoAutomaticInjectionProved": false,
+  "secondLaunchNoAutomaticInjectionProved": true,
   "providerConnected": false,
   "accountAuthorized": false,
   "messageSigned": false,
@@ -37,7 +48,7 @@
   "browserVersion": "151.0.7922.34",
   "serviceWorker": {
     "started": true,
-    "url": "chrome-extension://mkjabdodcmiacffmoookhohlljabbbio/service-worker.js"
+    "url": "chrome-extension://gnffpgkcpckdmjocloodncainmaakgjc/service-worker.js"
   },
   "migration": {
     "report": null,
@@ -53,13 +64,37 @@
     "requestType": "undefined",
     "session": null
   },
+  "actionOpen": "chrome.action.openPopup",
   "actionFailure": {
     "code": "ACTION_INJECTION_TIMEOUT",
-    "message": "page.waitForFunction: Target page, context or browser has been closed"
+    "message": "page.waitForFunction: Timeout 5000ms exceeded."
   },
-  "browserFailure": {
-    "name": "Error",
-    "code": null,
-    "message": "page.evaluate: Target page, context or browser has been closed"
+  "afterAction": {
+    "ethereumType": "undefined",
+    "present": false,
+    "isYNXWallet": false,
+    "requestType": "undefined",
+    "session": null
+  },
+  "secondLaunch": {
+    "ethereumType": "undefined",
+    "present": false,
+    "isYNXWallet": false,
+    "requestType": "undefined",
+    "session": null
+  },
+  "secondMigration": {
+    "report": {
+      "accountStateTouched": false,
+      "alarmCleanup": "not-declared-api-unavailable",
+      "alarmNamesRemoved": [],
+      "completedAt": "2026-08-20T08:32:27.429Z",
+      "dynamicScriptIdsRemoved": [],
+      "legacyOriginsRemoved": [],
+      "migrationVersion": 3,
+      "rpcOriginRetained": true,
+      "schemaVersion": 1
+    },
+    "dynamicScriptIds": []
   }
 }
