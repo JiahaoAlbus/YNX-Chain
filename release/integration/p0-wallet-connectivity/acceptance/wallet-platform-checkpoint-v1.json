@@ -1,0 +1,11 @@
+{
+  "proposalId":"P0-WALLET-CONNECTIVITY-2026-08-wallet-platform-checkpoint-v1",
+  "status":"ACCEPTED",
+  "acceptedBy":"integration",
+  "acceptedAt":"2026-08-20T08:25:00Z",
+  "candidate":{"branch":"codex/p0-wallet-platform-20260820","commit":"713bfe0f61dd3aa821eea0dba73801a6e723685a","pullRequest":"https://github.com/JiahaoAlbus/YNX-Chain/pull/106"},
+  "reviewEvidence":{"ownership":"only apps/wallet/** changed","focusedTests":"46 tests passed; typecheck, product-check, release-content check and diff check passed","staticReview":"no loopback endpoint, secret marker or placeholder behavior was introduced; the implementation has no Gateway dependency in its standard EIP-1193 core"},
+  "acceptanceBoundary":"This accepts the committed source checkpoint only. It does not prove Android/iOS installation, browser extension discovery, WalletConnect relay, DApp Browser, macOS/Windows, faucet availability, artwork readiness, external DApp interoperability or public deployment.",
+  "rollback":"revert the isolated source candidate and preserve the prior client until an accepted replacement is merged.",
+  "nextAction":"Continue only from the exact candidate in the independent Wallet Platform worktree."
+}

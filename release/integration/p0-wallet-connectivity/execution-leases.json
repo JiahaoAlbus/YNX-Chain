@@ -1,10 +1,11 @@
 {
   "campaignId":"P0-WALLET-CONNECTIVITY-2026-08",
-  "epoch":1,
-  "updatedAt":"2026-08-20T08:10:00Z",
-  "heavy":{"owner":"wallet-platform","status":"CHECKPOINT_REACHED","branch":"codex/p0-wallet-platform-20260820","commit":"713bfe0f61dd3aa821eea0dba73801a6e723685a","leasedAt":"2026-08-20T07:30:00Z","expiresAt":"2026-08-20T08:10:00Z","reason":"Wallet product and platform implementation; internal subtask stopped at committed candidate."},
-  "light":{"owner":"developer-sdk","status":"CHECKPOINT_REACHED","branch":"codex/p0-developer-sdk-20260820","commit":"315897e75c0ffe3e63435fe73cfec42244b851cc","leasedAt":"2026-08-20T07:30:00Z","expiresAt":"2026-08-20T08:10:00Z","reason":"Shared SDK and compatibility tooling; internal subtask stopped at committed candidate."},
-  "explorerMonitor":{"owner":"explorer-monitor","status":"CHECKPOINT_REACHED_WAITING_WAVE_C","branch":"codex/p0-explorer-monitor-20260820","commit":"7ef419e1191b8ded301e0f9941a698d673d55b1a","leasedAt":"2026-08-20T07:35:00Z","expiresAt":"2026-08-20T08:10:00Z","reason":"Existing task reached candidate checkpoint before formal Wave C lease."},
+  "epoch":4,
+  "updatedAt":"2026-08-20T08:30:00Z",
+  "heavy":{"owner":"wallet-platform","status":"ACCEPTED_CHECKPOINT","branch":"codex/p0-wallet-platform-20260820","commit":"713bfe0f61dd3aa821eea0dba73801a6e723685a","leasedAt":"2026-08-20T07:30:00Z","expiresAt":"2026-08-20T08:25:00Z","reason":"Source candidate accepted after exact-SHA scope, focused test, static and release-content review. Installed platform E2E and public release remain unproven."},
+  "light":{"owner":"developer-sdk","status":"ACCEPTED_CHECKPOINT","branch":"codex/p0-developer-sdk-20260820","commit":"315897e75c0ffe3e63435fe73cfec42244b851cc","leasedAt":"2026-08-20T07:30:00Z","expiresAt":"2026-08-20T08:20:00Z","reason":"Shared SDK contract accepted after exact-SHA scope, secret/placeholder, migration and focused-test review. Public release and interoperability remain unproven."},
+  "explorerMonitor":{"owner":"explorer-monitor","status":"ACCEPTED_CHECKPOINT_WAITING_WAVE_C","branch":"codex/p0-explorer-monitor-20260820","commit":"7ef419e1191b8ded301e0f9941a698d673d55b1a","leasedAt":"2026-08-20T07:35:00Z","expiresAt":"2026-08-20T08:30:00Z","reason":"Source probe candidate accepted after focused test, build and static review. Deployment, signed manifest activation and Computer Control evidence remain pending."},
+  "waveB":[{"owner":"financial-apps","status":"READY_FOR_INDEPENDENT_OWNER","dependsOn":"dappConnectSDK@0.1.0-p0.0","scope":"finance, exchange, dex, pay and quant one product per commit"},{"owner":"data-fabric","status":"READY_FOR_INDEPENDENT_OWNER","dependsOn":"dappConnectSDK@0.1.0-p0.0","scope":"asynchronous privacy-safe connection events only"}],
   "queue":["financial-apps","data-fabric","explorer-monitor"],
   "rules":["Only integration modifies this file.","Checkpoint owners stop internal feature expansion and hand off to their independent owner.","A later lease requires an accepted dependency and exact new task scope.","No path has two active owners."]
 }
