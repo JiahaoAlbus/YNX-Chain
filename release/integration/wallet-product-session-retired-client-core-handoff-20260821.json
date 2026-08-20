@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "owner": "Core/Auth/Gateway",
+  "status": "source-tested-not-deployed",
+  "sourceSemantics": "bfc11ecb4100725ae8f42c86d220fa0bc2d8212a",
+  "shopPublicRemediation": "df7778fca133818d3d69ec4ca149bfe35d77a280",
+  "retiredClient": {
+    "productId": "shop",
+    "clientId": "ynx-shop-v1",
+    "platform": "android",
+    "applicationId": "com.ynxweb4.shop",
+    "callback": "ynxshop://wallet-auth/callback",
+    "retiredAt": "2026-08-20T00:00:00.000Z",
+    "lastSupportedVersion": "0.3.0-testnet-preview",
+    "replacementUrl": "https://shop.ynxweb4.com/shop"
+  },
+  "result": {
+    "code": "CLIENT_RETIRED",
+    "httpStatus": 410,
+    "actions": [
+      "open-replacement",
+      "return-to-product"
+    ],
+    "authority": "none",
+    "productSession": false,
+    "automaticRedirect": false
+  },
+  "safety": {
+    "replacementMustBeCanonicalHttps": true,
+    "replacementMustMatchRegisteredProductOrigin": true,
+    "unknownProductOrPlatformRejected": true,
+    "retiredPendingChallengeRemoved": true,
+    "retiredExistingSessionAndDeviceRevoked": true,
+    "retiredIdempotencyResponseRemoved": true,
+    "activeShopWebUnaffected": true
+  },
+  "evidence": {
+    "focusedTests": [
+      "packages/wallet-auth/test/product-session-router.test.mjs",
+      "packages/wallet-auth/test/product-session-v2.test.mjs",
+      "packages/wallet-auth/test/product-session-gateway.test.mjs"
+    ],
+    "deployed": false,
+    "publicVerified": false,
+    "mobileVisibleVerified": false
+  }
+}

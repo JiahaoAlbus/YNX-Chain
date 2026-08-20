@@ -4,8 +4,8 @@ import { test } from "node:test";
 import { p256 } from "@noble/curves/nist.js";
 import {
   canonicalReturnTarget, createProductSessionRequest, createProductSessionReturnURL,
-  migrateLegacyCallback, migrateLegacyProductSessionRequest, migrateProductSessionRegistryV1, parseProductSessionRegistry, parseProductSessionReturnURL,
-  prepareWalletOpen, walletConnectionChoices, WalletAuthError, WALLET_ROUTE_STATUS,
+  migrateLegacyCallback, migrateLegacyProductSessionRequest, migrateProductSessionRegistryV1, migrateProductSessionRegistryV2, parseProductSessionRegistry, parseProductSessionReturnURL,
+  prepareWalletOpen, productPlatformBinding, productPlatformStatus, walletConnectionChoices, WalletAuthError, WALLET_ROUTE_STATUS,
 } from "../src/index.js";
 
 const registrySource = JSON.parse(readFileSync(new URL("../product-session-registry.json", import.meta.url), "utf8"));
@@ -23,13 +23,15 @@ function request(productId = "social", platform = "android") {
   }, NOW);
 }
 
-test("registry defines exact platform-bounded return targets including an explicit Web-only companion callback", () => {
-  assert.equal(registry.schemaVersion, 2);
+test("registry defines exact active platform-bounded return targets including an explicit Web-only companion callback", () => {
+  assert.equal(registry.schemaVersion, 3);
   assert.equal(registry.products.length, 13);
   for (const product of registry.products) {
-    const targets = product.platforms.map((platform) => canonicalReturnTarget(registry, product.productId, platform));
+    const activePlatforms = product.platforms.filter((platform) => !product.retiredClients.some((item) => item.platform === platform));
+    const targets = activePlatforms.map((platform) => canonicalReturnTarget(registry, product.productId, platform));
     assert.equal(targets.every((item) => item.productId === product.productId), true);
-    if (product.platforms.includes("web")) assert.equal(targets.find((item) => item.platform === "web").callback, product.webCallback);
+    if (activePlatforms.includes("web")) assert.equal(targets.find((item) => item.platform === "web").callback, product.webCallback);
+    for (const retired of product.retiredClients) assert.throws(() => canonicalReturnTarget(registry, product.productId, retired.platform), code("CLIENT_RETIRED"));
     for (const platform of ["web", "macos", "windows", "android", "ios"].filter((item) => !product.platforms.includes(item))) {
       assert.throws(() => canonicalReturnTarget(registry, product.productId, platform), code("INVALID_PLATFORM"));
     }
@@ -91,14 +93,45 @@ test("Wallet download registrations are pinned to the official allowlist", () =>
   assert.throws(() => parseProductSessionRegistry({ ...registrySource, wallet: { ...registrySource.wallet, metaMaskDownloadUrl: "https://attacker.example/metamask" } }), code("INVALID_ROUTER_REGISTRY"));
 });
 
-test("registry v1 migrates explicitly to v2 while modified or ambiguous legacy registries fail closed", () => {
-  const legacy = { ...registrySource, schemaVersion: 1, wallet: { authorizeCallback: registrySource.wallet.authorizeCallback, downloadUrl: registrySource.wallet.downloadUrl } };
+test("registry v1 and v2 migrate explicitly to v3 while preserving the exact Shop Android retirement", () => {
+  const productsV2 = registrySource.products.map(({ retiredClients: _retiredClients, ...product }) => product);
+  const legacyV2 = { ...registrySource, schemaVersion: 2, products: productsV2 };
+  assert.throws(() => parseProductSessionRegistry(legacyV2), code("INVALID_ROUTER_REGISTRY"));
+  const migratedV2 = migrateProductSessionRegistryV2(legacyV2);
+  assert.equal(migratedV2.schemaVersion, 3);
+  assert.deepEqual(migratedV2.products.find((item) => item.productId === "shop").retiredClients.map((item) => item.platform), ["android"]);
+  assert.throws(() => productPlatformBinding(migratedV2, "shop", "android"), code("CLIENT_RETIRED"));
+  const legacy = { ...legacyV2, schemaVersion: 1, wallet: { authorizeCallback: registrySource.wallet.authorizeCallback, downloadUrl: registrySource.wallet.downloadUrl } };
   assert.throws(() => parseProductSessionRegistry(legacy), code("INVALID_ROUTER_REGISTRY"));
   const migrated = migrateProductSessionRegistryV1(legacy);
-  assert.equal(migrated.schemaVersion, 2);
+  assert.equal(migrated.schemaVersion, 3);
   assert.equal(migrated.wallet.metaMaskDownloadUrl, "https://metamask.io/download");
+  assert.throws(() => productPlatformBinding(migrated, "shop", "android"), code("CLIENT_RETIRED"));
   assert.throws(() => migrateProductSessionRegistryV1({ ...legacy, wallet: { ...legacy.wallet, unknown: true } }), code("UNKNOWN_OR_MISSING_FIELD"));
   assert.throws(() => migrateProductSessionRegistryV1({ ...legacy, wallet: { ...legacy.wallet, downloadUrl: "https://attacker.example/wallet" } }), code("INVALID_ROUTER_REGISTRY"));
+});
+
+test("retired Shop Android returns non-authoritative same-origin replacement metadata without redirecting or creating authority", () => {
+  const status = productPlatformStatus(registry, "shop", "android");
+  assert.deepEqual(status, {
+    status: "retired", code: "CLIENT_RETIRED", productId: "shop", clientId: "ynx-shop-v1", displayName: "YNX Shop", platform: "android",
+    applicationId: "com.ynxweb4.shop", callback: "ynxshop://wallet-auth/callback", retiredAt: "2026-08-20T00:00:00.000Z",
+    lastSupportedVersion: "0.3.0-testnet-preview", replacementUrl: "https://shop.ynxweb4.com/shop",
+    actions: ["open-replacement", "return-to-product"], authority: "none", productSession: false,
+  });
+  assert.equal(Object.hasOwn(status, "redirect"), false);
+  assert.equal(Object.hasOwn(status, "url"), false);
+  assert.deepEqual(productPlatformStatus(registry, "shop", "web"), {
+    status: "active", productId: "shop", clientId: "ynx-shop-v1", displayName: "YNX Shop", platform: "web", actions: [],
+  });
+  assert.equal(canonicalReturnTarget(registry, "shop", "web").callback, "https://shop.ynxweb4.com/wallet-auth/callback");
+  for (const replacementUrl of ["https://attacker.example/shop", "http://shop.ynxweb4.com/shop", "https://user:pass@shop.ynxweb4.com/shop", "https://shop.ynxweb4.com/shop#redirect"]) {
+    const tampered = structuredClone(registrySource);
+    tampered.products.find((item) => item.productId === "shop").retiredClients[0].replacementUrl = replacementUrl;
+    assert.throws(() => parseProductSessionRegistry(tampered), code("INVALID_ROUTER_REGISTRY"));
+  }
+  assert.throws(() => productPlatformStatus(registry, "unknown", "android"), code("UNKNOWN_PRODUCT"));
+  assert.throws(() => productPlatformStatus(registry, "shop", "unknown"), code("INVALID_PLATFORM"));
 });
 
 test("router returns actionable unavailable states and never opens an unregistered scheme", () => {

@@ -102,6 +102,40 @@ test("App Gateway fails closed on unissued challenges, network loss and request 
   assert.equal(dispatch(gateway, "req_gateway_unknown_001", "/v2/product-sessions/not-registered", {}, null).status, 404);
 });
 
+test("Shop Android retirement purges cached authority and returns canonical 410 without affecting Web", () => {
+  const priorRegistry = structuredClone(registry);
+  priorRegistry.products.find((item) => item.productId === "shop").retiredClients = [];
+  let retirementToken = 0;
+  const prior = new ProductSessionGatewayKernel(priorRegistry, () => token(`shop-retirement-${retirementToken++}`));
+  const shop = priorRegistry.products.find((item) => item.productId === "shop");
+  const pending = createProductSessionRequest(priorRegistry, {
+    productId: "shop", platform: "android", deviceId: "shop-retired-device-001", deviceKey,
+    scopes: shop.scopes, purpose: "Connect the exact retired Shop Android client.", nonce: token("shop-retired-nonce"), state: token("shop-retired-state"),
+  }, NOW);
+  const approval = signProductSessionApproval(priorRegistry, pending, { accountSecret: "1".padStart(64, "0"), scopes: pending.scopes, expiresAt: "2026-08-14T01:03:00.000Z" }, NOW);
+  const challengeBody = { request: pending, approval };
+  const challenge = JSON.parse(dispatch(prior, "req_shop_retired_challenge_001", "/v2/product-sessions/challenge", challengeBody).body).result;
+  const completeBody = { request: pending, approval, completion: signProductSessionChallenge(challenge, secretText) };
+  assert.equal(dispatch(prior, "req_shop_retired_complete_001", "/v2/product-sessions/complete", completeBody).status, 200);
+  assert.equal(prior.snapshot().idempotency.length, 2);
+  const retired = new ProductSessionGatewayKernel(registry, () => token("unused-shop-retirement-token"), prior.snapshot());
+  assert.equal(retired.snapshot().idempotency.length, 0);
+  assert.equal(retired.snapshot().authority.revokedSessions.length, 1);
+  assert.equal(retired.snapshot().authority.revokedDevices.length, 1);
+  for (const [requestId, body, path] of [
+    ["req_shop_retired_challenge_001", challengeBody, "/v2/product-sessions/challenge"],
+    ["req_shop_retired_complete_001", completeBody, "/v2/product-sessions/complete"],
+  ]) {
+    const response = dispatch(retired, requestId, path, body);
+    assert.equal(response.status, 410);
+    assert.equal(JSON.parse(response.body).error.code, "CLIENT_RETIRED");
+  }
+  assert.doesNotThrow(() => createProductSessionRequest(registry, {
+    productId: "shop", platform: "web", deviceId: "shop-web-device-001", deviceKey,
+    scopes: shop.scopes, purpose: "Connect Shop Web after Android retirement.", nonce: token("shop-web-nonce"), state: token("shop-web-state"),
+  }, NOW));
+});
+
 test("App Gateway rejects malformed audit timestamps without leaking parser exceptions", () => {
   const snapshot = kernel().snapshot();
   const malformed = {
