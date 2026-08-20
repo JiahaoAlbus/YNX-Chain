@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "asOf": "2026-08-21",
+  "owner": "Wallet Platform",
+  "baseCommit": "43f20885cb89f075ca69aead19e315c088bbb782",
+  "acceptedEndpointManifest": {
+    "commit": "d0f89797d13c7667cc187b0c64d5c9e1cb1d8f59",
+    "faucetUrl": "https://faucet.ynxweb4.com"
+  },
+  "change": {
+    "scope": "Faucet diagnostic only",
+    "degradedReasons": [
+      "ENDPOINT_MANIFEST_UNACCEPTED",
+      "HEALTH_UNVERIFIED",
+      "VERSION_PROOF_INCOMPLETE",
+      "UNSAFE_RESPONSE",
+      "TRANSPORT_UNAVAILABLE",
+      "HEALTH_CONTRACT_INVALID"
+    ],
+    "preserves": "Faucet degradation never marks the Wallet account, public chain reads, or Connected Apps offline."
+  },
+  "verification": {
+    "typecheck": "passed",
+    "walletTests": "61/61 passed",
+    "productCheck": "passed",
+    "releaseContentCheck": "passed",
+    "goalCoverageCheck": "passed",
+    "sbomCheck": "passed"
+  },
+  "truth": {
+    "realFaucetRequest": false,
+    "installedDeviceEvidence": false,
+    "publicDeployment": false,
+    "computerControl": false,
+    "accountOrChainOfflineClaim": false
+  }
+}

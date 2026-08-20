@@ -33,7 +33,7 @@ export type FaucetRequestResult = Readonly<{
  * label a bad release contract as a disconnected Wallet or chain.
  */
 export class FaucetEndpointError extends Error {
-  constructor(readonly code: "FAUCET_UNAVAILABLE" | "FAUCET_VERSION_INCOMPATIBLE", message: string) {
+  constructor(readonly code: "FAUCET_UNAVAILABLE" | "FAUCET_VERSION_INCOMPATIBLE", message: string, readonly diagnostic: "TRANSPORT_UNAVAILABLE" | "HEALTH_CONTRACT_INVALID" | "VERSION_PROOF_INCOMPLETE" | "UNSAFE_RESPONSE") {
     super(message);
     this.name = "FaucetEndpointError";
   }
@@ -42,11 +42,11 @@ export class FaucetEndpointError extends Error {
 export async function loadPublicFaucetHealth(fetcher: FetchLike = fetch): Promise<PublicFaucetHealth> {
   const value = await readJSON(fetcher, HEALTH_URL, { method: "GET", headers: { Accept: "application/json" } }, "health");
   if (!record(value) || "rpcUrl" in value || "requestLog" in value || "lastError" in value || value.ok !== true || value.service !== "ynx-faucetd" || value.upstreamOk !== true || value.chainId !== 6423 || value.nativeSymbol !== "YNXT" || value.requestPath !== "/request" || (value.upstreamMode !== "authoritative" && value.upstreamMode !== "bft") || (value.truthfulStatus !== "rpc-backed-faucet" && value.truthfulStatus !== "bft-gateway-signed-faucet") || !positive(value.defaultAmount) || !positive(value.maxAmount) || value.defaultAmount > value.maxAmount || typeof value.rateLimit !== "string" || value.rateLimit.length < 3) {
-    throw new FaucetEndpointError("FAUCET_VERSION_INCOMPATIBLE", "Public Faucet health response is invalid or leaks an internal endpoint");
+    throw new FaucetEndpointError("FAUCET_VERSION_INCOMPATIBLE", "Faucet health contract is invalid. Only Testnet Faucet is degraded; Wallet accounts, chain reads, and Connected Apps remain separate.", "HEALTH_CONTRACT_INVALID");
   }
   const version = await readJSON(fetcher, VERSION_URL, { method: "GET", headers: { Accept: "application/json" } }, "version");
   if (!record(version) || version.service !== "ynx-faucetd" || !record(version.build) || typeof version.build.commit !== "string" || version.build.commit.length < 7 || typeof version.build.release !== "string" || version.build.release.length < 3 || typeof version.build.buildTime !== "string" || version.build.buildTime.length < 10) {
-    throw new FaucetEndpointError("FAUCET_VERSION_INCOMPATIBLE", "Public Faucet version response is missing the required release identity");
+    throw new FaucetEndpointError("FAUCET_VERSION_INCOMPATIBLE", "Faucet version proof is incomplete. Only Testnet Faucet is degraded; Wallet accounts, chain reads, and Connected Apps remain separate.", "VERSION_PROOF_INCOMPLETE");
   }
   return Object.freeze(value as PublicFaucetHealth);
 }
@@ -69,16 +69,16 @@ async function readJSON(fetcher: FetchLike, url: string, init: RequestInit, endp
   try {
     response = await fetcher(url, init);
   } catch {
-    throw new FaucetEndpointError("FAUCET_UNAVAILABLE", "Public Faucet network transport is unavailable");
+    throw new FaucetEndpointError("FAUCET_UNAVAILABLE", "Faucet transport is unavailable. Only Testnet Faucet is degraded; Wallet accounts, chain reads, and Connected Apps remain separate.", "TRANSPORT_UNAVAILABLE");
   }
   const text = await response.text();
-  if (text.length > MAX_BYTES) throw new FaucetEndpointError("FAUCET_VERSION_INCOMPATIBLE", "Public Faucet response exceeds the safe size limit");
+  if (text.length > MAX_BYTES) throw new FaucetEndpointError("FAUCET_VERSION_INCOMPATIBLE", "Faucet response exceeds the safe size limit. Only Testnet Faucet is degraded; Wallet accounts, chain reads, and Connected Apps remain separate.", "UNSAFE_RESPONSE");
   let value: unknown;
-  try { value = JSON.parse(text); } catch { throw new FaucetEndpointError(endpoint === "request" ? "FAUCET_UNAVAILABLE" : "FAUCET_VERSION_INCOMPATIBLE", "Public Faucet response is not JSON"); }
+  try { value = JSON.parse(text); } catch { throw new FaucetEndpointError(endpoint === "request" ? "FAUCET_UNAVAILABLE" : "FAUCET_VERSION_INCOMPATIBLE", "Faucet response is not valid JSON. Only Testnet Faucet is degraded; Wallet accounts, chain reads, and Connected Apps remain separate.", "UNSAFE_RESPONSE"); }
   if (!response.ok) {
     const detail = record(value) && typeof value.error === "string" ? value.error : `HTTP ${response.status}`;
     if (endpoint === "request") throw new Error(`Faucet request rejected: ${detail}`);
-    throw new FaucetEndpointError(endpoint === "version" ? "FAUCET_VERSION_INCOMPATIBLE" : "FAUCET_UNAVAILABLE", `Public Faucet ${endpoint} rejected: ${detail}`);
+    throw new FaucetEndpointError(endpoint === "version" ? "FAUCET_VERSION_INCOMPATIBLE" : "FAUCET_UNAVAILABLE", `Faucet ${endpoint} rejected: ${detail}. Only Testnet Faucet is degraded; Wallet accounts, chain reads, and Connected Apps remain separate.`, endpoint === "version" ? "VERSION_PROOF_INCOMPLETE" : "HEALTH_CONTRACT_INVALID");
   }
   return value;
 }

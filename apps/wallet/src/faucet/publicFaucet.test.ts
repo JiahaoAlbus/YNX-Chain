@@ -11,7 +11,7 @@ test("public faucet health requires a safe health response plus a public release
   await assert.rejects(() => loadPublicFaucetHealth(async () => json({ ...health, rpcUrl: "http://127.0.0.1:6420" })), (error: unknown) => error instanceof FaucetEndpointError && error.code === "FAUCET_VERSION_INCOMPATIBLE");
   await assert.rejects(() => loadPublicFaucetHealth(async () => json({ ...health, chainId: 1 })), (error: unknown) => error instanceof FaucetEndpointError && error.code === "FAUCET_VERSION_INCOMPATIBLE");
   await assert.rejects(() => loadPublicFaucetHealth(async (_url) => json(health, 404)), (error: unknown) => error instanceof FaucetEndpointError && error.code === "FAUCET_UNAVAILABLE");
-  await assert.rejects(() => loadPublicFaucetHealth(async (url) => url.endsWith("/health") ? json(health) : json({ service: "ynx-faucetd" }, 200)), (error: unknown) => error instanceof FaucetEndpointError && error.code === "FAUCET_VERSION_INCOMPATIBLE");
+  await assert.rejects(() => loadPublicFaucetHealth(async (url) => url.endsWith("/health") ? json(health) : json({ service: "ynx-faucetd" }, 200)), (error: unknown) => error instanceof FaucetEndpointError && error.code === "FAUCET_VERSION_INCOMPATIBLE" && error.diagnostic === "VERSION_PROOF_INCOMPLETE" && /Only Testnet Faucet is degraded/i.test(error.message));
 });
 
 test("faucet request binds the exact Wallet address and only accepts a real transaction hash", async () => {
