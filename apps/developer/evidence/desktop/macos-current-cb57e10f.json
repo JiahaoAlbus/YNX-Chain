@@ -30,6 +30,7 @@
     "publicUrl": "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-cb57e10f-macos-arm64-unsigned.zip",
     "sbomUrl": "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-cb57e10f-macos-arm64-sbom.cdx.json",
     "provenanceUrl": "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-cb57e10f-macos-arm64-PROVENANCE.json",
+    "sha256SumsUrl": "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-cb57e10f-macos-arm64-SHA256SUMS.txt",
     "officialRouteHashReadback": true,
     "websiteOwnerHandoffRequired": false,
     "productionSigned": false,

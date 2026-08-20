@@ -6,11 +6,12 @@ const root = new URL("../", import.meta.url);
 const read = (path) => readFile(new URL(path, root), "utf8");
 
 test("current public candidate and Wallet v2 evidence do not promote missing lifecycle proof", async () => {
-  const [release, metadata, evidence, macArtifact, handoff, vectors, acceptance, matrix, compatibility] = await Promise.all([
+  const [release, metadata, evidence, macArtifact, macSums, handoff, vectors, acceptance, matrix, compatibility] = await Promise.all([
     read("product-release.json"),
     read("public-product-metadata.json"),
     read("evidence/public/current-public-candidate-bc8a37bc6f2b.json"),
     read("evidence/desktop/macos-current-cb57e10f.json"),
+    read("release/ynx-developer-0.2.0-testnet-preview-cb57e10f-macos-arm64-SHA256SUMS.txt"),
     read("docs/integration/INTEGRATION_HANDOFF.md"),
     read("docs/integration/CROSS_PRODUCT_TEST_VECTORS.json"),
     read("docs/integration/DEPENDENCY_ACCEPTANCE.md"),
@@ -25,6 +26,7 @@ test("current public candidate and Wallet v2 evidence do not promote missing lif
   assert.equal(localMac.verification.keychainStorageRoundTripAndCleanup, true);
   assert.equal(localMac.publication.downloadHosted, true);
   assert.equal(localMac.publication.officialRouteHashReadback, true);
+  assert.match(macSums, new RegExp(localMac.artifact.sha256));
   assert.equal(truth.currentLocalMacArtifact.sha256, localMac.artifact.sha256);
   assert.equal(truth.currentLocalMacArtifact.downloadHosted, true);
   assert.equal(publicMetadata.localEvidence.currentLocalMacArtifact.hosted, true);
