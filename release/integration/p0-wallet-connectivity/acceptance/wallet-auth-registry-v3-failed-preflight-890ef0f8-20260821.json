@@ -1,0 +1,34 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-039",
+  "acceptedAt": "2026-08-20T17:56:31Z",
+  "classification": "single-use-lease-invalidated-read-only-preflight-failed-closed",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-retired-client-registry-v3-20260820T174054Z",
+  "sourceCommit": "deb2cefb00b52e5c2ab9c357201d690918320424",
+  "ownerCheckpoint": "890ef0f8b31ba467c5a347b83b0ec8bdca5497cf",
+  "ownerTree": "1fdf50bbf6c9608fb2febe750ad2cb550fd35a71",
+  "ownerParent": "0a85248046f110e87c3036d353d0a54d0cfa19ea",
+  "evidenceSha256": "1509a0cf3f08fe2ee2d9a86a4a6fc5c06e0be96a69f8b2c56b6b88254bb2e0",
+  "heavyLeaseReleased": true,
+  "leaseReusable": false,
+  "productionMutation": false,
+  "currentPublicRuntimeCommit": "6cf3ef845202bd879ed94515a71b323dd2fc9e14",
+  "blockers": [
+    "mandatory copied-state migration artifact absent from deb2cefb",
+    "exact Product Session public version proof unavailable through current route",
+    "raw registry file SHA and parsed canonical state-binding digest are conflated",
+    "current 6cf envelope lacks an accepted v3 conversion path",
+    "candidate environment naming is inconsistent with the existing production candidate layout"
+  ],
+  "truth": {
+    "registryV3DeployedPublic": false,
+    "shopAndroidGatewayRetirementVerified": false,
+    "productsMigrated": 0,
+    "integratedCentral": false,
+    "aggregatePublic": false,
+    "computerControlVerified": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}
