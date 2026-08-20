@@ -2,6 +2,8 @@
 
 Evidence baseline: source commit `e05db0b5663c151c1805c99ff3f55f433127aa92`; the latest durable lifecycle Runtime is pinned separately to `e7cb63a311115fb8ff643d3cfa4ca1b1c8a89556`. GitHub Actions run `30417551695` verifies the exact source's security/recovery workflow, client-encryption SDK tests, least-privilege image cold-start, configured Critical/High vulnerability gate and retained JSON report Artifact `8710704746`; staging, public deployment, immutable hosted artifacts, reproducible provenance, secure production key custody and production signing remain separately unproven.
 
+Current P0-071 source checkpoint: `9816f9ba2556eadea7fd9ad5061f67c5a05e64dd`. It replaces the public local P-256/self-session flow with accepted EIP-6963/EIP-1193 Standard Wallet discovery, YNX Wallet preference, MetaMask fallback, an official YNX Wallet download route and guest preview. Private Cloud actions remain closed without Product Session v2. Local browser evidence has zero private API calls and zero browser errors; it is not installed-client, public-runtime or Computer Control evidence.
+
 | Capability | Implemented | Tested | Direct evidence | Remaining proof |
 | --- | --- | --- | --- | --- |
 | Files, folders, search, metadata, trash | yes | local | `internal/cloud/service_test.go`, canonical smoke | staging/public |

@@ -1,5 +1,7 @@
 # YNX Cloud evidence index
 
+- P0-071 Standard Wallet source checkpoint: implementation `9816f9ba2556eadea7fd9ad5061f67c5a05e64dd`; `p0-071/browser-evidence.json` plus desktop/mobile screenshots prove local guest and injected EIP-6963 Wallet behavior with private API requests remaining at zero. `p0-071/SBOM.cdx.json` binds the current Go, Cloud Web build and Cloud native dependency graph. This is local source evidence only: Product Session v2, installed-client, public deployment, public verification and Computer Control remain false.
+
 - Completion truth table: `../FEATURE_COMPLETION_EVIDENCE.md` and machine-readable `../product-release.json`. False states are deliberate and may change only with direct evidence.
 - Migration, observability, scale and economics boundaries: `../MIGRATION_COMPATIBILITY.md`, `../OBSERVABILITY.md`, `../SLO_CAPACITY_PLAN.md`, and `../UNIT_ECONOMICS.md`.
 - Public handoff metadata and provider/license boundary: `../public-product-metadata.json` and `../THIRD_PARTY_NOTICES.md`.

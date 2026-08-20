@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "productId": "cloud",
   "version": "1.0.0-testnet-preview",
-  "sourceCommit": "42636a3eae32ef04646ffb49d30a70310df2fbe6",
+  "sourceCommit": "9816f9ba2556eadea7fd9ad5061f67c5a05e64dd",
   "runtimeSourceCommit": "42636a3eae32ef04646ffb49d30a70310df2fbe6",
   "states": {
     "implementedLocal": true,
@@ -10,18 +10,18 @@
     "installedLocal": false,
     "integratedCentral": false,
     "deployedStaging": false,
-    "deployedPublic": true,
+    "deployedPublic": false,
     "downloadHosted": false,
     "productionSigned": false,
     "storeReleased": false
   },
   "stateNotes": {
-    "implementedLocal": "Bounded Cloud control plane, product-isolated metadata and bytes, owner-and-product scoped content-addressed deduplication, schema-v7 versioned hot/cold/archive lifecycle with Account/Product binding, durable restart-safe transition worker, provider-result evidence, retry, dedup copy-on-write, archive restore-required reads and unresolved-transition deletion barriers, Web/PWA, Android/iOS source, provider adapters, multipart/direct uploads, enforced artifact retention, product-data erasure, 12-locale clients, user-exit mode, persistent telemetry/readiness/traces, zero-charge usage and exact storage-time metering, capacity candidate, JavaScript SDK, a user-held Web Crypto AES-256-GCM client-encryption envelope bound to exact product/account/context/version, least-privilege Docker/Server delivery candidate, and deterministic security/supply-chain gates exist. This does not claim secure production key custody/recovery UX, independent cryptographic audit, production durability, provider-side lifecycle/scope enforcement, CDN/replication, provider backup/replica sanitization, hosted monitoring, external penetration testing, production signing, or public release.",
-    "testedLocal": "Cloud JavaScript and SDK suite (15/15), static/accessibility/product-boundary checks, canonical auth/API/backup/restore smoke, Go Cloud Race suite and Go vet pass locally. Public UI and liveness each passed 100/100 requests at concurrency 20; unauthenticated private objects return 401 and an invalid session challenge returns 400.",
+    "implementedLocal": "The current source consumes the accepted DApp Connect SDK for EIP-6963/EIP-1193 Standard Wallet discovery, prefers YNX Wallet, offers MetaMask and the official YNX Wallet download, and keeps the approved 0x account on YNX Testnet 0x1917 separate from private Product Session state. Guest/public preview works without a Wallet. Private objects, uploads, sharing, AI context and deletion fail closed because Product Session v2 is not active; no local or canned session is created. The existing bounded Cloud control plane, product-isolated metadata and bytes, versioning, lifecycle, recovery, SDK, erasure and observability source remain present. The Cloud container is product-isolated, non-root, read-only and capability-dropped. This does not claim production object storage, Product Session v2, installed-client success, public deployment of this source, production signing or store release.",
+    "testedLocal": "Cloud JavaScript, SDK and container suite passed 15/15; static/accessibility/product-boundary checks passed; canonical auth/API plus backup/restore smoke passed; Go Cloud tests passed; the current security gate validated 25 runtime files, a 506-component current-source CycloneDX SBOM, and preserved historical APK evidence; production npm dependency audit reported zero vulnerabilities. Headless browser evidence covered desktop guest and mobile injected YNX EIP-6963 Wallet on 0x1917 with zero console/page errors and zero private API requests. An unauthenticated GET /api/v1/objects returned 401.",
     "installedLocal": "False for the current sourceCommit: the Android Testnet Preview APK recorded in evidence/ARTIFACT_MANIFEST.json was installed and cold-launched with adb, but that artifact is independently pinned to source commit db9bc224df52e05018264fc284fb23f18033424a and has not been rebuilt from 42636a3eae32ef04646ffb49d30a70310df2fbe6. iOS local installation is also not claimed.",
     "integratedCentral": "False: central Wallet registrations remain disabled and pending review.",
     "deployedStaging": "False: no staging endpoint or remote provider smoke evidence exists.",
-    "deployedPublic": "True: the single-host Testnet preview is live at https://web4.ynxweb4.com/cloud/ with liveness at https://web4.ynxweb4.com/cloud/api/health. Central Wallet verification remains unavailable, so private workflows fail closed rather than creating local sessions.",
+    "deployedPublic": "False for source 9816f9ba2556eadea7fd9ad5061f67c5a05e64dd. A historical single-host Testnet preview was previously observed at https://web4.ynxweb4.com/cloud/, but that runtime was bound to source 42636a3eae32ef04646ffb49d30a70310df2fbe6 and is not evidence that this Standard Wallet migration is public.",
     "downloadHosted": "False: the APK is local and the CI vulnerability report is an expiring workflow artifact, not an immutable hosted product download or container image.",
     "productionSigned": "False: the Android APK uses a debug certificate and no production image or application signing evidence exists.",
     "storeReleased": "False: no app-store release evidence exists."
@@ -32,10 +32,24 @@
     "evidence/CONTAINER_SCAN_e05db0b.json",
     "evidence/ci-e05db0b/trivy-ynx-cloud.json",
     "evidence/PUBLIC_ROUTE_AUDIT_20260729.json",
-    "integration/website-handoff.json"
+    "integration/website-handoff.json",
+    "evidence/p0-071/browser-evidence.json",
+    "evidence/p0-071/SBOM.cdx.json"
   ],
   "evidenceIndex": "evidence/EVIDENCE_INDEX.md",
   "runtimeEvidence": "evidence/LIFECYCLE_d11c382.json",
   "clientEncryptionEvidence": "evidence/CLIENT_ENCRYPTION_e05db0b.json",
-  "containerScanEvidence": "evidence/CONTAINER_SCAN_e05db0b.json"
+  "containerScanEvidence": "evidence/CONTAINER_SCAN_e05db0b.json",
+  "currentSourceEvidence": {
+    "taskId": "P0-071",
+    "implementationCommit": "9816f9ba2556eadea7fd9ad5061f67c5a05e64dd",
+    "standardWalletImplemented": true,
+    "guestPreviewVerified": true,
+    "privateServiceFailClosed": true,
+    "productSessionV2": false,
+    "installedClientVerified": false,
+    "deployedPublic": false,
+    "publicVerified": false,
+    "computerControlVerified": false
+  }
 }

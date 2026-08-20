@@ -3,8 +3,8 @@
   "productNumber": "20",
   "productId": "cloud",
   "productName": "YNX Cloud",
-  "ownerBranch": "codex/final-cloud",
-  "sourceCommit": "e05db0b5663c151c1805c99ff3f55f433127aa92",
+  "ownerBranch": "codex/p0-cloud-wallet-connectivity-20260821",
+  "sourceCommit": "9816f9ba2556eadea7fd9ad5061f67c5a05e64dd",
   "officialDomain": "ynxweb4.com",
   "canonicalRoute": "/cloud",
   "canonicalUrl": "https://ynxweb4.com/cloud",
@@ -13,7 +13,7 @@
   "evidenceIndex": "apps/cloud/evidence/EVIDENCE_INDEX.md",
   "publicState": {
     "status": "local-testnet-preview",
-    "productStatusPageReachable": true,
+    "productStatusPageReachable": false,
     "runtimeDeployedPublic": false,
     "runtimeDeployedStaging": false,
     "downloadHosted": false,
@@ -22,9 +22,9 @@
   },
   "websiteAudit": {
     "evidence": "apps/cloud/evidence/PUBLIC_ROUTE_AUDIT_20260729.json",
-    "deployedSourceCommit": "7b3c5f427c17",
+    "deployedSourceCommit": "42636a3eae32ef04646ffb49d30a70310df2fbe6",
     "stale": true,
-    "requiredCorrection": "Replace stale Cloud source/status text with the current source-bound local-candidate metadata without claiming a public runtime or hosted installer."
+    "requiredCorrection": "Publish current source metadata only after a separate Website-owned review. Do not present the historical 42636a3e runtime as the current 9816f9ba Standard Wallet source."
   },
   "contentRequirements": {
     "title": "YNX Cloud — User-controlled Testnet storage",
@@ -34,7 +34,8 @@
       "user-held AES-256-GCM client-encryption candidate",
       "no public Cloud runtime deployment",
       "no production durability or production signing claim",
-      "provider and central Wallet integration pending"
+      "Standard Wallet source implemented with YNX Wallet preferred and MetaMask fallback",
+      "private Product Session v2, provider and central integration pending"
     ],
     "mustNotState": [
       "production object storage",
