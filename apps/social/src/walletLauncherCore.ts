@@ -2,7 +2,7 @@ import { encodeRequestDeepLink } from "@ynx-chain/wallet-auth";
 import type { WalletAuthorizationRequest } from "./walletAuth";
 
 export const YNX_WALLET_DOWNLOAD_URL =
-  "https://www.ynxweb4.com/downloads/ynx-wallet-1.0.1-testnet-preview-dc31c9a8-test-signed.apk";
+  "https://www.ynxweb4.com/downloads/wallet/sha256-66a0954f7955d800af4b205680ce879c786568cbf6af8a71307cddad31c216a0/ynx-wallet-1.0.2-testnet-preview-1f8820c5-local-test-signed.apk";
 export const METAMASK_MOBILE_DAPP_URL =
   "https://metamask.app.link/dapp/www.ynxweb4.com/dapp/wallet";
 

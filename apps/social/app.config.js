@@ -4,7 +4,7 @@ module.exports = {
   expo: {
     name: "YNX Social",
     slug: "ynx-social",
-    version: "1.0.0",
+    version: "1.0.1-testnet-preview",
     orientation: "portrait",
     icon: path.resolve(__dirname, "assets/icon.png"),
     userInterfaceStyle: "light",

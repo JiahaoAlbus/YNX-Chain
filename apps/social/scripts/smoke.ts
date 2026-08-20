@@ -24,6 +24,7 @@ assert.match(config, /bundleIdentifier:\s*"com\.ynx\.social"/);
 assert.match(config, /package:\s*"com\.ynx\.social"/);
 assert.match(config, /scheme:\s*"ynxsocial"/);
 assert.match(manifest, /ynxsocial/);
+assert.match(manifest, /android:scheme="ynx-social" android:host="com\.ynx\.social"/);
 for (const forbidden of [
   'label="Wallet"',
   'label="Pay"',
