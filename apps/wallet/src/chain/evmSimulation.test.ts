@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { EvmSimulationClient } from "./evmSimulation";
+import { DEFAULT_CHAIN_RPC } from "./nativeTransfer";
 
 const FROM = "0x1111111111111111111111111111111111111111";
 const TARGET = "0x2222222222222222222222222222222222222222";
@@ -17,6 +18,23 @@ function rpcFixture(results: Record<string, unknown>) {
   };
   return { fetcher, calls };
 }
+
+test("default simulation transport is the frozen EVM RPC endpoint, never the native REST origin", async () => {
+  let observed = "";
+  const client = new EvmSimulationClient(undefined, async (url, init) => {
+    observed = url;
+    const request = JSON.parse(String(init?.body));
+    return new Response(JSON.stringify({ jsonrpc: "2.0", id: request.id, result: "0x1" }), { status: 200 });
+  });
+  await assert.rejects(client.simulate({ from: FROM, to: TARGET, data: "0x", valueWei: "0" }), /chain mismatch/);
+  assert.equal(observed, DEFAULT_CHAIN_RPC);
+});
+
+test("simulation RPC URL rejects credentials, query fragments and noncanonical paths", () => {
+  for (const endpoint of ["https://rpc.ynxweb4.com/other", "https://rpc.ynxweb4.com/evm?debug=1", "https://user:pass@rpc.ynxweb4.com/evm"]) {
+    assert.throws(() => new EvmSimulationClient(endpoint), /exact root or \/evm endpoint/);
+  }
+});
 
 test("strict EVM simulation verifies chain, deployed code, eth_call and gas without signing", async () => {
   const fixture = rpcFixture({

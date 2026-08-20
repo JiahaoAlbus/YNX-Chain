@@ -40,7 +40,7 @@ const nonces=new PersistentNonceStore(platformSecureStorage);
 const authorizationAudit=new AuthorizationAuditStore(platformSecureStorage);
 const incomingAuthorizations=new IncomingAuthorizationStore(platformSecureStorage);
 function chainClient(){const runtime=(globalThis as any).__YNX_WALLET_CHAIN_RUNTIME__ as {baseURL?:string;evmRpcURL?:string}|undefined;return new NativeChainClient(runtime?.baseURL,runtime?.evmRpcURL)}
-function evmSimulationClient(){const runtime=(globalThis as any).__YNX_WALLET_CHAIN_RUNTIME__ as {baseURL?:string;evmRpcURL?:string}|undefined;return new EvmSimulationClient(runtime?.evmRpcURL??runtime?.baseURL)}
+function evmSimulationClient(){const runtime=(globalThis as any).__YNX_WALLET_CHAIN_RUNTIME__ as {baseURL?:string;evmRpcURL?:string}|undefined;return new EvmSimulationClient(runtime?.evmRpcURL)}
 function walletSessionInventoryClient(){const runtime=(globalThis as any).__YNX_WALLET_GATEWAY_RUNTIME__ as {request?:WalletGatewayBridge}|undefined;return runtime?.request?new WalletSessionInventoryClient(runtime.request):null}
 
 export default function App(){return <SafeAreaProvider><WalletApp/></SafeAreaProvider>}
