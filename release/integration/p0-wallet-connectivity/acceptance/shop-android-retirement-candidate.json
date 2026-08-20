@@ -1,0 +1,8 @@
+{
+  "taskId":"P0-011",
+  "status":"CANDIDATE_READY",
+  "sourceCandidate":{"branch":"codex/p0-shop-android-retirement-20260820","commit":"1752f1253","pullRequest":"https://github.com/JiahaoAlbus/YNX-Chain/pull/103"},
+  "websiteCandidate":{"branch":"codex/p0-shop-android-retirement-20260820","commit":"ed22d3c","pullRequest":"https://github.com/JiahaoAlbus/YNX-Chain-website/pull/44"},
+  "acceptanceRequires":["both PRs merged","website deployment proves old APK route unavailable","Shop Web/PWA remains reachable","accepted Wallet Protocol returns CLIENT_RETIRED for retired Android client","session approval and device-grant revocation evidence"],
+  "publicClaim":false
+}

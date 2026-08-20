@@ -1,5 +1,22 @@
 {
   "schemaVersion":"1.0.0",
   "campaignId":"P0-WALLET-CONNECTIVITY-2026-08",
-  "clients":[{"product":"shop","platform":"android","status":"RETIREMENT_REQUIRED","retiredAt":null,"lastSupportedVersion":null,"lastSourceCommit":null,"replacementURL":"https://ynxweb4.com/dapp/shop","reason":"Founder decision: retain Shop Web/PWA and withdraw Shop Android","requiredEnforcement":["stop-build-and-publish","remove-download-listing","disable-package-and-callback","revoke-sessions-approvals-device-grants","return-CLIENT_RETIRED","preserve-historical-evidence"],"publicClaim":"not retired yet; enforcement evidence pending"}]
+  "clients":[{
+    "product":"shop",
+    "platform":"android",
+    "status":"RETIREMENT_IN_PROGRESS",
+    "retiredAt":null,
+    "lastSupportedVersion":"0.3.0-testnet-preview",
+    "lastSourceCommit":"6fa2d6c5",
+    "replacementURL":"https://shop.ynxweb4.com/shop/",
+    "reason":"Founder decision: retain Shop Web/PWA and withdraw Shop Android.",
+    "historicalArtifact":{"name":"ynx-shop-0.3.0-testnet-preview-6fa2d6c5-debug-signed.apk","sha256":"a7466e02f3735c561af403a83c8377e1f1ee3bbdfdd76d4f691bf595cd72c72d","signingClass":"android-debug-testnet-preview"},
+    "sourceRetirement":{"commit":"1752f1253","pullRequest":"https://github.com/JiahaoAlbus/YNX-Chain/pull/103","state":"PENDING_REVIEW"},
+    "websiteRetirement":{"commit":"ed22d3c","pullRequest":"https://github.com/JiahaoAlbus/YNX-Chain-website/pull/44","state":"PENDING_REVIEW"},
+    "requiredEnforcement":["stop-build-and-publish","remove-download-listing","disable-package-and-callback","revoke-sessions-approvals-device-grants","return-CLIENT_RETIRED","preserve-historical-evidence"],
+    "completedCandidateControls":["Android build workflow removed from Shop candidate","active website APK rewrite and catalog download candidate removed","Shop Web/PWA retained"],
+    "blockedControls":["Gateway client-retirement response","session approval device-grant revocation","old callback and App Link disablement","public deployment and endpoint verification"],
+    "remoteUninstallClaim":false,
+    "publicClaim":"not retired on public runtime until both retirement PRs are deployed and remaining Gateway enforcement is independently verified"
+  }]
 }
