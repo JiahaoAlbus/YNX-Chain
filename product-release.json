@@ -77,16 +77,16 @@
       ]
     },
     "remoteCI": {
-      "runId": null,
+      "runId": 32354003678,
       "workflow": "data-fabric",
       "sourceCommit": "36beab9f670de4738205ffcb42d5a17630c37dfb",
-      "headCommit": null,
-      "status": "pending",
-      "conclusion": null,
-      "startedAt": null,
-      "duration": null,
+      "headCommit": "3d00377e593dfa0ea9554706bd05f988c5edb213",
+      "status": "completed",
+      "conclusion": "success",
+      "startedAt": "2026-08-20T09:27:50Z",
+      "duration": "6m03s",
       "artifactsPublished": false,
-      "url": null
+      "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/32354003678"
     },
     "engineeringEvidenceRun": {
       "runId": 31797308684,
