@@ -8,6 +8,7 @@ const queue=read("release/integration/p0-wallet-connectivity/integration-queue.j
 assert.equal(leases.heavy.owner,null);
 assert.equal(leases.light.owner,"integration");
 assert.equal(leases.light.taskId,"P0-065");
+assert.equal(locks.locks.find(x=>x.taskId==="P0-065").path,"{apps/mail/**,internal/mail/**}");
 assert.equal(locks.locks.find(x=>x.taskId==="P0-065").status,"ACTIVE_LIGHT_SOURCE_ONLY");
 assert.equal(queue.tasks.find(x=>x.taskId==="P0-065").status,"ACTIVE_BOUNDED_MAIL_SOURCE_ONLY");
 assert.equal(queue.tasks.find(x=>x.taskId==="P0-064").sourceAccepted,false);
