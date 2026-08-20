@@ -9,9 +9,9 @@ const leases=read("release/integration/p0-wallet-connectivity/execution-leases.j
 const queue=read("release/integration/p0-wallet-connectivity/integration-queue.json");
 const locks=read("release/integration/p0-wallet-connectivity/path-locks.json");
 const lease=read("release/integration/p0-wallet-connectivity/execution/p0-052-merchant-console-source-lease-20260821.json");
-assert.equal(leases.heavy.owner,"wallet-auth-core");
+assert.equal(leases.heavy.owner,null);
 assert.equal(leases.heavy.taskId,"P0-054");
-assert.equal(leases.heavy.status,"ACTIVE_SINGLE_USE_ROLLBACK_FIRST");
+assert.equal(leases.heavy.status,"CONSUMED_RELEASED_FAILED_CLOSED_INSTALL_PERMISSION");
 assert.equal(leases.light.owner,null);
 assert.equal(leases.light.taskId,"P0-052");
 assert.equal(leases.light.status,"RELEASED_SOURCE_CHECKPOINT");
@@ -31,4 +31,4 @@ assert.equal(task.executionLeaseIssued,false);
 assert.equal(task.standardWalletSourceImplemented,true);
 assert.equal(task.actualProviderApprovalVisible,false);
 assert.equal(queue.tasks.find(item=>item.taskId==="P0-050").p0050LeaseReusable,false);
-console.log("PASS P0-052 remains released at exact Merchant Console source checkpoint while P0-054 alone owns Heavy; public/provider-visible gates remain false");
+console.log("PASS P0-052 remains released at exact Merchant Console source checkpoint after P0-054 fail-closed release");

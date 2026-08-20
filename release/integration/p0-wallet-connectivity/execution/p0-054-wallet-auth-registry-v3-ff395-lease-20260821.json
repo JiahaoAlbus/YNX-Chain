@@ -3,13 +3,13 @@
   "campaignId":"P0-WALLET-CONNECTIVITY-2026-08",
   "taskId":"P0-054",
   "leaseId":"P0-WALLET-CONNECTIVITY-2026-08-registry-v3-ff395-20260820T194508Z",
-  "status":"ACTIVE_SINGLE_USE_ROLLBACK_FIRST",
+  "status":"CONSUMED_RELEASED_FAILED_CLOSED_INSTALL_PERMISSION",
   "singleUse":true,
   "reusable":false,
   "owner":"wallet-auth-core",
   "leasedAt":"2026-08-20T19:45:08Z",
   "expiresAt":"2026-08-20T21:45:08Z",
-  "releasedAt":null,
+  "releasedAt":"2026-08-20T19:56:33Z",
   "supersededLeases":[{"taskId":"P0-039","reusable":false},{"taskId":"P0-050","reusable":false}],
   "source":{"commit":"ff395e3d1d7c012784e81eb02c3ae8782fbf1298","tree":"5d543e42eeec0ea03ae50d118b97f5e394daa64c","evidenceCommit":"bbaa11f3f3217bafd7492d2e19b2646753204788","evidenceBlob":"c782de72596ae2196489cb95ae7ba433c105daf9","evidenceSha256":"efba8348c5410fca6cd9e6d8f7feb2548f0a3ea4ba5932ca61d0235e5432c4db"},
   "artifacts":{"directory":"release/integration/p0-wallet-connectivity/artifacts/wallet-auth-ff395e3d","sourceArchive":{"name":"wallet-auth-source-ff395e3d.tar.gz","sha256":"4ab615ddb0dda5b16ad92ebadfbd2a40ac8b3dcd9e94537e9abc65e2e68dda6d","bytes":180840},"sourceInventory":{"name":"wallet-auth-source-ff395e3d.inventory.json","sha256":"853905bef020ea25baff52647135845807736cdafad2faac49908183d106a18e","bytes":24418},"runtimeArchive":{"name":"wallet-auth-runtime-dependencies-ff395e3d.tar.gz","sha256":"c2472ca64f9f0d5d717f939cc81c167a086d828a5c5831bd7a5880d80598707d","bytes":662953},"runtimeInventory":{"name":"wallet-auth-runtime-dependencies-ff395e3d.inventory.json","sha256":"491a62410c00052dcf09f2a338b325bcea0de53446da90cdd7d63b1560191422","bytes":52591},"sbom":{"name":"wallet-auth-runtime-ff395e3d.cdx.json","sha256":"2130384170ee1a56b13b3472891e7d476b3864f32f2e6875cff94df786736b66","bytes":2265}},
@@ -20,5 +20,6 @@
   "forbidden":["reuse P0-039 or P0-050","network dependency installation","source or artifact substitution","export production state contents","shared-state mutation","Caddy/base-unit/ReadWritePaths expansion","other service mutation","retry after a consumed failure","promotion without direct lifecycle evidence"],
   "failurePolicy":{"autoRollback":true,"failClosed":true,"releaseImmediately":true,"noRetry":true,"preserveEvidence":true},
   "verifier":"scripts/verify/p0-054-wallet-auth-registry-v3-ff395-lease-check.mjs",
-  "truth":{"executionStarted":false,"productionMutation":false,"registryV3Public":false,"productsMigratedV2":0,"computerControlVerified":false,"deployedPublic":false,"integratedCentral":false}
+  "result":{"migrationSucceeded":true,"migrationReceiptSha256":"82a41535b16e3326b2a9d104f1062504532d6249fce71a347ef7c82e636e1923","migrationReceiptBytes":604,"migratedStateSha256":"1fe58d249c9d548b7fd8486d280209d485090b02d3d49ab4a2c6618481614a55","migratedStateBytes":7693,"failureCode":"INSTALL_PERMISSION_DENIED","failureMessage":"unprivileged install step could not read the root-owned mode-0600 migrated-state file","candidateStarted":false,"candidateOutputCreated":false,"configChanged":false,"symlinkChanged":false,"rollbackRestored6cf":true,"ownerEvidencePending":true},
+  "truth":{"executionStarted":true,"productionMutation":true,"serviceStoppedOnce":true,"registryV3Public":false,"productsMigratedV2":0,"computerControlVerified":false,"deployedPublic":false,"integratedCentral":false}
 }

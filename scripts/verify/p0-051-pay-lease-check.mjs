@@ -12,9 +12,9 @@ const queue=read("release/integration/p0-wallet-connectivity/integration-queue.j
 const locks=read("release/integration/p0-wallet-connectivity/path-locks.json");
 const acceptance=read("release/integration/p0-wallet-connectivity/acceptance/p0-051-pay-source-checkpoint-release-20260821.json");
 
-assert.equal(leases.heavy.owner,"wallet-auth-core");
+assert.equal(leases.heavy.owner,null);
 assert.equal(leases.heavy.taskId,"P0-054");
-assert.equal(leases.heavy.status,"ACTIVE_SINGLE_USE_ROLLBACK_FIRST");
+assert.equal(leases.heavy.status,"CONSUMED_RELEASED_FAILED_CLOSED_INSTALL_PERMISSION");
 assert.equal(lease.status,"RELEASED_CHECKPOINT");
 assert.equal(lease.singleUse,true);
 assert.equal(lease.reusable,false);
@@ -44,4 +44,4 @@ assert.equal(prior.p0050LeaseReusable,false);
 const writable=locks.locks.filter(item=>item.status==="ACTIVE" && item.taskId!=="P0-000");
 assert.equal(writable.filter(item=>item.path==="apps/pay/**").length,0);
 
-console.log("PASS P0-051 remains released at exact Pay source-only checkpoint 851dc5b8 while new P0-054 owns Heavy; P0-050 remains nonreusable");
+console.log("PASS P0-051 remains released at exact Pay source-only checkpoint 851dc5b8 after P0-054 fail-closed release");
