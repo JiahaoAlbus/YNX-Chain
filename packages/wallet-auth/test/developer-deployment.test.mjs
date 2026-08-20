@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
@@ -11,10 +12,19 @@ import {
 
 const NOW = new Date("2026-08-10T02:00:00.000Z");
 const SECRET = "0000000000000000000000000000000000000000000000000000000000000065";
+const artifact = JSON.parse(readFileSync(new URL("../testdata/developer-sample-evm-write-counter-v1.json", import.meta.url), "utf8"));
 
 function request(overrides = {}) {
   const source = readFileSync(new URL("../../../contracts/devtools/SampleEVMWriteCounter.sol", import.meta.url), "utf8").trim();
-  const artifact = JSON.parse(readFileSync(new URL("../../../artifacts/contracts/devtools/SampleEVMWriteCounter.sol/SampleEVMWriteCounter.json", import.meta.url), "utf8"));
+  assert.deepEqual(Object.keys(artifact).sort(), ["compilerVersion","contractName","deployedBytecode","generatedArtifactSha256","optimizer","schemaVersion","sourceName","sourceSha256"].sort());
+  assert.equal(artifact.schemaVersion, 1);
+  assert.equal(artifact.contractName, "SampleEVMWriteCounter");
+  assert.equal(artifact.sourceName, "contracts/devtools/SampleEVMWriteCounter.sol");
+  assert.equal(artifact.compilerVersion, "0.8.24");
+  assert.deepEqual(artifact.optimizer, { enabled: true, runs: 200 });
+  assert.equal(createHash("sha256").update(`${source}\n`).digest("hex"), artifact.sourceSha256);
+  assert.match(artifact.generatedArtifactSha256, /^[0-9a-f]{64}$/);
+  assert.match(artifact.deployedBytecode, /^0x[0-9a-f]+$/);
   const base = { name:"SampleEVMWriteCounter", source, deployedBytecode:artifact.deployedBytecode.toLowerCase(), constructorArgs:["7"], idempotencyKey:"developer-deploy-vector-1" };
   const payload = { ...base, requestHash:developerDeploymentRequestHash(base) }, artifactDigest = developerArtifactDigest(payload);
   return { version:"1",chainId:6423,productClientId:"ynx-developer-v1",bundleId:"com.ynxweb4.developer.testnetpreview",callback:"ynxdeveloper://deployment/callback",sessionBinding:"a".repeat(64),account:walletIdentity(SECRET).account,nonce:1,action:"ide_contract_deploy",payload,artifactDigest,simulation:{chainId:6423,blockNumber:900000,gasEstimate:"21000",gasPriceWei:"1",maxFeeWei:"21000",compilerVersion:"0.8.24",artifactDigest,source:"https://rpc.ynxweb4.com/",asOf:NOW.toISOString()},issuedAt:NOW.toISOString(),expiresAt:"2026-08-10T02:05:00.000Z",...overrides };
