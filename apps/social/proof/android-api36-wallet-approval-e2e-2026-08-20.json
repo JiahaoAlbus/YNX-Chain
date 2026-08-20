@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-08-20T12:39:00Z",
+  "scope": "YNX Social Android canonical Wallet authorization approval on an isolated API 36 arm64 emulator",
+  "source": {
+    "socialCommit": "c6b911656b9dbc711bfce06ec7f18c403527037e",
+    "walletCommit": "53fc3df02a65be1c4214c41ef87be307b39a1625"
+  },
+  "artifacts": {
+    "socialApk": {
+      "path": "apps/social/android/app/build/outputs/apk/release/app-release.apk",
+      "sha256": "adc5332a4e3c21f3c0ceff9f10dc5fb41a76116d574461e9f71950c8e58fe024",
+      "bytes": 103997712,
+      "signingClass": "local-test-signed",
+      "productionSigned": false,
+      "storeReleased": false
+    },
+    "walletApk": {
+      "sha256": "99360e01307a64c7faa3060d72474f2fc3d43031fcb59a69751b836faa465e0b",
+      "bytes": 78226626,
+      "signingClass": "local-test-signed",
+      "productionSigned": false,
+      "officialWebsiteRoute": "https://www.ynxweb4.com/downloads/wallet/sha256-99360e01307a64c7faa3060d72474f2fc3d43031fcb59a69751b836faa465e0b/ynx-wallet-1.0.0-testnet-preview-ec0b8295-local-test-signed.apk"
+    }
+  },
+  "environment": {
+    "serial": "emulator-5560",
+    "deviceProfile": "Pixel 9 equivalent",
+    "apiLevel": 36,
+    "abi": "arm64",
+    "physicalDevice": false,
+    "walletPackage": "com.ynxweb4.wallet",
+    "socialPackage": "com.ynx.social"
+  },
+  "directAcceptance": {
+    "socialFreshStateCleared": true,
+    "socialSignInActionVisible": true,
+    "socialToWalletExplicitIntentDelivered": true,
+    "walletAuthorizationReviewVisible": true,
+    "reviewBinding": {
+      "requestingProduct": "social",
+      "productClientId": "ynx-social-v1",
+      "bundleId": "com.ynx.social",
+      "chainId": "ynx_6423-1",
+      "scopes": ["account:read", "profile:link"]
+    },
+    "walletApprovalActionTaken": true,
+    "androidBiometricPromptVisible": true,
+    "simulatorFingerprintAuthenticated": true,
+    "walletToSocialCallbackDelivered": true,
+    "socialAuthenticatedMessagesVisible": true,
+    "socialSecondColdLaunch": true,
+    "socialSecondLaunchAuthenticatedMessagesVisible": true
+  },
+  "runtimeFacts": {
+    "firstSocialToWalletActivity": "com.ynxweb4.wallet/.MainActivity",
+    "walletToSocialActivity": "com.ynx.social/.MainActivity",
+    "secondLaunch": {
+      "launchState": "COLD",
+      "totalTimeMs": 164,
+      "waitTimeMs": 166
+    }
+  },
+  "screenshots": {
+    "postApprovalTransition": {
+      "sha256": "dc4b3332246f60f7614bd5694d7da00dcf05fe3b94723e2ae3cd2e828105a7ca",
+      "bytes": 82555,
+      "interpretation": "captured during callback cold-start transition; not used as authenticated-session evidence"
+    },
+    "secondColdLaunchAuthenticatedMessages": {
+      "sha256": "2652ba603481712a54a29aa00fdd68279d7f3b88ce16aae214483e32b7d210a0",
+      "bytes": 105741,
+      "interpretation": "visible authenticated Social Messages UI after explicit force-stop and cold launch"
+    }
+  },
+  "truthBoundary": {
+    "physicalPixel9Verified": false,
+    "productionSigned": false,
+    "storeReleased": false,
+    "publicArtifactFullDownloadHashVerified": false,
+    "walletAccountBalanceVerified": false,
+    "walletTransactionSigningVerified": false,
+    "walletTransactionBroadcastVerified": false,
+    "productSessionPublicLifecycleClaimed": false
+  }
+}
