@@ -1,1 +1,22 @@
-{"taskId":"P0-003","owner":"developer-sdk","status":"CHECKPOINT_REACHED","inheritedBranch":"codex/p0-developer-sdk-20260820","inheritedCommit":"315897e75c0ffe3e63435fe73cfec42244b851cc","inheritedTests":"8/8 tests; migration scan no findings; git diff --check passed","candidatePR":"https://github.com/JiahaoAlbus/YNX-Chain/pull/105","handoff":"docs/handoffs/p0-wallet-connectivity/developer-sdk.md","remainingWork":["integration acceptance","signed endpoint manifest binding","real provider/WalletConnect interoperability","per-product migrations","platform E2E"],"dirtyState":"pre-existing untracked apps/developer/ in the owner worktree; untouched by candidate","nextAction":"Independent Developer SDK owner continues from the exact candidate after central review."}
+{
+  "taskId": "P0-003",
+  "owner": "developer-sdk",
+  "status": "CHECKPOINT_REACHED_LIGHT_LEASE_RELEASED",
+  "inheritedBranch": "codex/p0-developer-sdk-20260820",
+  "inheritedCommit": "315897e75c0ffe3e63435fe73cfec42244b851cc",
+  "remoteHeadObserved": "0a03050c305eb2f7f0d53513bcf3ea6073ba3371",
+  "inheritedTests": "8/8 tests; migration scan no findings; git diff --check passed",
+  "candidatePR": "https://github.com/JiahaoAlbus/YNX-Chain/pull/105",
+  "handoff": "docs/handoffs/p0-wallet-connectivity/developer-sdk.md",
+  "lightLease": {
+    "status": "RELEASED",
+    "releasedAt": "2026-08-20T09:45:38Z",
+    "reason": "protected accepted checkpoint, push, clean inspected owner worktree, completed handoff and no observed atomic operation"
+  },
+  "remainingWork": [
+    "real provider/WalletConnect interoperability",
+    "per-product migrations",
+    "platform E2E"
+  ],
+  "nextAction": "Developer SDK retains product ownership but no longer holds the P0 Light Lease."
+}

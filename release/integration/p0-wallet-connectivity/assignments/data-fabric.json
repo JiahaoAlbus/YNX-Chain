@@ -1,0 +1,42 @@
+{
+  "taskId": "P0-005",
+  "owner": "data-fabric",
+  "status": "ACTIVE",
+  "executionScope": "CONNECTION_EVENTS_RUNTIME_ADAPTER_SLICE",
+  "branch": "codex/data-fabric-typescript-sdk-20260814",
+  "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/26-data-fabric",
+  "acceptedContracts": [
+    "connectionEvents@1.0.0-p0.0",
+    "walletTransport@p0-wallet-connection-v1",
+    "errorContract@p0-wallet-connection-v1",
+    "dappConnectSDK@0.1.0-p0.0"
+  ],
+  "acceptedEvidence": {
+    "candidateSourceCommit": "63a7d633a10bcb8f7f929a2aa67af32074f49ea7",
+    "candidateReleaseBinding": "f393d373e473822d5d3dedb5e617d4c28a86c951",
+    "currentEvidenceCommit": "766e1a66352eecaf88f024088e6a9dfcdc2d01d8",
+    "pr": "https://github.com/JiahaoAlbus/YNX-Chain/pull/92",
+    "ci": "six Data Fabric workflow jobs completed successfully on the current PR head",
+    "focusedVerification": "go test ./internal/datafabric -run wallet/card candidate tests; schema privacy and activation gate passed"
+  },
+  "authorizedWork": [
+    "activate the accepted connectionEvents schema in Data Fabric-owned runtime adapters",
+    "producer and consumer adapters",
+    "Outbox, Inbox, replay, retry and diagnostics",
+    "Card, Wallet and Financial event adapters that only consume their accepted contracts"
+  ],
+  "boundaries": [
+    "asynchronous observer only; never gate standard Wallet connection, approval, signing or transaction flow",
+    "do not modify Wallet, Gateway, Card UI, Finance UI or Explorer UI",
+    "no private key, seed, bearer token, WalletConnect secret, signature, account address, PAN or CVV may enter an event",
+    "Card remains YNXT Testnet simulation until independently finalized funding and Explorer evidence exist"
+  ],
+  "requiredCheckpoint": [
+    "commit and push",
+    "Outbox/Inbox and negative-vector tests",
+    "handoff update",
+    "release the Light Lease"
+  ],
+  "publicVerified": false,
+  "nextAction": "Implement only the accepted Data Fabric runtime adapter slice, then provide an isolated safe checkpoint."
+}
