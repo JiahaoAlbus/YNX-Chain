@@ -77,6 +77,7 @@
   ],
   "queue": [
     "wallet-auth-core:registry-v3@failed-preflight-890ef0f8",
+    "wallet-auth-core:registry-v3-migration@source-accepted-no-lease",
     "financial-apps:pay@assigned-no-active-lease",
     "data-fabric:error-aggregation-checkpoint@da095e24",
     "explorer-monitor:source-policy-checkpoint@f8db7632",
