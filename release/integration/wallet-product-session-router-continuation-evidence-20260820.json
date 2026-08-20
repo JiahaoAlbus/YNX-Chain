@@ -94,6 +94,9 @@
   "migration": {
     "requestedProductsMigrated": 0,
     "requestedProductsRequired": 12,
+    "standardWalletOnlyProducts": ["card"],
+    "cardOwnerCheckpoint": "a0ae3567337a69f43a33eb3d0bd33f55a0591b18",
+    "cardArbitraryHttpsGatewayGapOpen": true,
     "socialCanonicalLauncherV1Only": true,
     "financeOwnerCheckpoint": "f7efbd9e9658aaea75f8d9fbbb58f79ee1a48365",
     "financeStandardWalletSdkOnly": true,

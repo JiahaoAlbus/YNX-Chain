@@ -29,7 +29,7 @@ test("migration matrix covers the exact registry and cites only branch-local evi
   assert.equal(matrix.productRuntimeMigrationCount, matrix.products.filter((item) => item.migrated).length);
   assert.equal(matrix.fixedProductCount, matrix.products.filter((item) => item.migrated).length);
   for (const product of matrix.products) {
-    assert.ok(["contract-only", "core-runtime-candidate", "legacy-direct", "shared-sdk-v1", "canonical-launcher-v1", "migrated-v2"].includes(product.consumer));
+    assert.ok(["contract-only", "core-runtime-candidate", "legacy-direct", "shared-sdk-v1", "canonical-launcher-v1", "standard-wallet-only", "migrated-v2"].includes(product.consumer));
     assert.ok(Array.isArray(product.evidence) && product.evidence.length > 0);
     for (const path of product.evidence) assert.equal(existsSync(resolve(repositoryRoot, path)), true, `${product.productId} evidence is missing: ${path}`);
   }
@@ -48,6 +48,13 @@ test("legacy and shared-v1 consumers cannot be presented as v2 migrations", () =
       assert.match(sources, /encodeRequestDeepLink/);
       assert.match(sources, /WALLET_NOT_INSTALLED|SCHEME_NOT_REGISTERED/);
       assert.doesNotMatch(sources, /createProductWalletConnection|\/v2\/product-sessions\//);
+    }
+    if (product.consumer === "standard-wallet-only") {
+      assert.match(sources, /standard-wallet-only/);
+      assert.match(sources, /PRIVATE_SERVICE_DEGRADED/);
+      assert.match(sources, /"productSessionV2GatewayEvidenced": false/);
+      assert.match(sources, /"visiblePlatformEvidenced": false/);
+      assert.match(sources, /"migratedV2": false/);
     }
     if (product.consumer === "core-runtime-candidate") assert.equal(product.migrated, false);
     if (product.consumer !== "migrated-v2") assert.equal(product.migrated, false);
