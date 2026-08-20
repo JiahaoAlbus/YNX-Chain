@@ -141,7 +141,7 @@ export async function installContainerPythonPackage(run, { containerName, projec
       await run("lxc", ["exec", containerName, "--", "python3", "-m", "venv", "--copies", stage], { timeout: 60_000 });
     }
     try {
-      await run("lxc", ["config", "device", "add", containerName, device, "nic", "network", packageNetwork], { timeout: 20_000 });
+      await run("lxc", ["config", "device", "add", containerName, device, "nic", "nictype=bridged", `parent=${packageNetwork}`], { timeout: 20_000 });
       attached = true;
     } catch {
       try { await run("lxc", ["stop", containerName, "--force"], { timeout: 30_000 }); } catch {}
