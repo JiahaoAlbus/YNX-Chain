@@ -1,0 +1,39 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "product": "calendar",
+  "sourceBaseline": "ab2db4a4c07dc153fc10a42686ef7cdad6715820",
+  "classification": "legacy-private-session-audited-standard-wallet-not-yet-consumed",
+  "guestTrial": {
+    "available": true,
+    "deviceOnly": true,
+    "walletSessionCreated": false,
+    "chainWrite": false
+  },
+  "currentWallet": {
+    "webConnectActionFunctional": false,
+    "nativeCanonicalLauncherV1": true,
+    "legacyCompletionRoute": "/v1/wallet/sessions/complete",
+    "failsClosed": true
+  },
+  "acceptedDependencies": [
+    "walletTransport",
+    "errorContract",
+    "dappConnectSDK",
+    "publicEndpointManifest"
+  ],
+  "requiredNext": [
+    "consume accepted DApp Connect SDK without copying provider logic",
+    "separate Standard Wallet state from optional private Product Session",
+    "migrate private completion only after an accepted and deployed Product Session v2 Gateway successor",
+    "prove durable callback and installed Web/Android/iOS lifecycle evidence"
+  ],
+  "truth": {
+    "standardWalletConnected": false,
+    "productSessionV2": false,
+    "installedApprovalVerified": false,
+    "deployedPublic": false,
+    "publicVerified": false,
+    "computerControlVerified": false
+  }
+}
