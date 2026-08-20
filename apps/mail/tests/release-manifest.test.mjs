@@ -63,7 +63,7 @@ test("Mail release record exposes every acceptance state and evidence field", ()
 });
 
 test("Mail release identity stays aligned across every build surface", () => {
-  const expectedVersion = `${packageManifest.version}-testnet-preview-source`;
+  const expectedVersion = `${packageManifest.version}-p0.1-source`;
   assert.equal(release.version, expectedVersion);
   assert.match(
     packageManifest.scripts.build,
@@ -75,34 +75,41 @@ test("Mail release identity stays aligned across every build surface", () => {
   assert.equal((iosProject.match(/MARKETING_VERSION = 0\.3\.0;/g) ?? []).length, 2);
 });
 
-test("Mail platform evidence matches the release source", () => {
-  for (const evidence of [androidEvidence, desktopEvidence, iosEvidence])
-    assert.equal(evidence.sourceCommit, release.commit);
-  assert.equal(release.installedLocal.android, true);
-  assert.equal(release.installedLocal.desktop, true);
+test("Mail platform evidence stays historical and cannot promote the current source", () => {
+  for (const evidence of [androidEvidence, desktopEvidence, iosEvidence]) {
+    assert.equal(evidence.sourceCommit, release.historicalPlatformEvidence.android.sourceCommit);
+    assert.notEqual(evidence.sourceCommit, release.commit);
+  }
+  assert.equal(release.installedLocal.android, false);
+  assert.equal(release.installedLocal.desktop, false);
   assert.equal(release.installedLocal.ios, false);
-  assert.equal(release.sha256[androidEvidence.artifact.name], androidEvidence.artifact.sha256);
-  assert.equal(release.bytes[androidEvidence.artifact.name], androidEvidence.artifact.bytes);
-  assert.equal(release.signingClass.android, androidEvidence.artifact.signingClass);
-  assert.equal(release.sha256[desktopEvidence.artifact.name], desktopEvidence.artifact.sha256);
-  assert.equal(release.bytes[desktopEvidence.artifact.name], desktopEvidence.artifact.bytes);
-  assert.equal(release.signingClass.desktop, desktopEvidence.artifact.signingClass);
+  assert.deepEqual(release.installEvidence, []);
+  assert.deepEqual(release.currentSourcePlatformEvidence, {});
+  assert.deepEqual(release.sha256, {});
+  assert.deepEqual(release.bytes, {});
+  assert.equal(release.historicalPlatformEvidence.android.sha256, androidEvidence.artifact.sha256);
+  assert.equal(release.historicalPlatformEvidence.android.bytes, androidEvidence.artifact.bytes);
+  assert.equal(release.historicalPlatformEvidence.android.signingClass, androidEvidence.artifact.signingClass);
+  assert.equal(release.historicalPlatformEvidence.desktop.sha256, desktopEvidence.artifact.sha256);
+  assert.equal(release.historicalPlatformEvidence.desktop.bytes, desktopEvidence.artifact.bytes);
+  assert.equal(release.historicalPlatformEvidence.desktop.signingClass, desktopEvidence.artifact.signingClass);
   assert.equal(androidEvidence.install.result, "pass");
   assert.equal(desktopEvidence.verification.embeddedCommitMatched, true);
   assert.equal(iosEvidence.build.result, "blocked");
   assert.equal(iosEvidence.installedLocal, false);
-  assert.equal(iosCloudEvidence.sourceCommit, release.currentSourcePlatformEvidence.ios.sourceCommit);
+  assert.equal(iosCloudEvidence.sourceCommit, release.historicalPlatformEvidence.ios.sourceCommit);
+  assert.notEqual(iosCloudEvidence.sourceCommit, release.commit);
   assert.equal(iosCloudEvidence.workflow.result, "success");
   assert.equal(iosCloudEvidence.verification.install, "pass");
   assert.equal(iosCloudEvidence.verification.coldLaunch, "pass");
   assert.equal(iosCloudEvidence.verification.callbackResolution, "success");
-  assert.equal(iosCloudEvidence.appArtifact.sha256, release.currentSourcePlatformEvidence.ios.sha256);
-  assert.equal(iosCloudEvidence.appArtifact.bytes, release.currentSourcePlatformEvidence.ios.bytes);
+  assert.equal(iosCloudEvidence.appArtifact.sha256, release.historicalPlatformEvidence.ios.sha256);
+  assert.equal(iosCloudEvidence.appArtifact.bytes, release.historicalPlatformEvidence.ios.bytes);
   assert.equal(iosCloudEvidence.appArtifact.signingClass, "unsigned-simulator");
   assert.equal(iosCloudEvidence.truthBoundary.productionSigned, false);
   assert.equal(iosCloudEvidence.truthBoundary.publicImmutableDownload, false);
-  assert.equal(release.currentSourcePlatformEvidence.ios.installedSimulator, true);
-  assert.equal(release.currentSourcePlatformEvidence.ios.installedPhysicalDevice, false);
+  assert.equal(release.historicalPlatformEvidence.ios.installedSimulator, true);
+  assert.equal(release.historicalPlatformEvidence.ios.installedPhysicalDevice, false);
   assert.equal(release.downloadHosted, false);
   assert.deepEqual(release.artifactUrls, []);
 });

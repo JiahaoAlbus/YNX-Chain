@@ -1,9 +1,9 @@
 {
   "productId": "com.ynx.mail",
   "name": "YNX Mail",
-  "branch": "codex/final-mail",
-  "commit": "682bdb075803a77c9591fc59b83708944ea76fdf",
-  "version": "0.3.0-testnet-preview-source",
+  "branch": "codex/p0-mail-wallet-connectivity-20260821",
+  "commit": "9d8d2510dcdd2b39dbc5dea5f02376178ae7aa2c",
+  "version": "0.3.0-p0.1-source",
   "surfaces": [
     "android-native",
     "ios-native",
@@ -13,11 +13,7 @@
   ],
   "implementedLocal": true,
   "testedLocal": true,
-  "installedLocal": {
-    "android": true,
-    "ios": false,
-    "desktop": true
-  },
+  "installedLocal": {"android": false, "ios": false, "desktop": false},
   "integratedCentral": false,
   "deployedStaging": false,
   "deployedPublic": false,
@@ -27,34 +23,41 @@
   "publicUrls": [],
   "healthUrls": [],
   "artifactUrls": [],
-  "sha256": {
-    "app-debug.apk": "92214dd2f1a086ef586a834be7a8c2e2cd611d758788d734e41d1f9c3bf81448",
-    "ynx-mail-0.3.0-testnet-preview-source-darwin-arm64.tar.gz": "42c8cde2f71ab967adaa2116493830586a1b241bb2f60240dd91b2b8a0ebaf73"
-  },
-  "bytes": {
-    "app-debug.apk": 6393187,
-    "ynx-mail-0.3.0-testnet-preview-source-darwin-arm64.tar.gz": 2782558
-  },
+  "sha256": {},
+  "bytes": {},
   "signingClass": {
-    "android": "debug-test-signed",
+    "android": "not-built-for-current-source",
     "ios": "not-built-for-current-source",
-    "desktop": "unsigned-local"
+    "desktop": "not-built-for-current-source"
   },
   "minOS": {
     "android": 26,
     "ios": "17.0",
     "macOS": "13.0"
   },
-  "installEvidence": [
-    "apps/mail/evidence/android-install-682bdb0.json",
-    "apps/mail/evidence/desktop-install-682bdb0.json"
-  ],
-  "platformEvidence": {
-    "android": "apps/mail/evidence/android-install-682bdb0.json",
-    "ios": "apps/mail/evidence/ios-verification-682bdb0.json",
-    "desktop": "apps/mail/evidence/desktop-install-682bdb0.json"
-  },
-  "currentSourcePlatformEvidence": {
+  "installEvidence": [],
+  "currentSourcePlatformEvidence": {},
+  "historicalPlatformEvidence": {
+    "android": {
+      "sourceCommit": "682bdb075803a77c9591fc59b83708944ea76fdf",
+      "installedLocal": true,
+      "artifactName": "app-debug.apk",
+      "sha256": "92214dd2f1a086ef586a834be7a8c2e2cd611d758788d734e41d1f9c3bf81448",
+      "bytes": 6393187,
+      "signingClass": "debug-test-signed",
+      "hosted": false,
+      "evidence": "apps/mail/evidence/android-install-682bdb0.json"
+    },
+    "desktop": {
+      "sourceCommit": "682bdb075803a77c9591fc59b83708944ea76fdf",
+      "installedLocal": true,
+      "artifactName": "ynx-mail-0.3.0-testnet-preview-source-darwin-arm64.tar.gz",
+      "sha256": "42c8cde2f71ab967adaa2116493830586a1b241bb2f60240dd91b2b8a0ebaf73",
+      "bytes": 2782558,
+      "signingClass": "unsigned-local",
+      "hosted": false,
+      "evidence": "apps/mail/evidence/desktop-install-682bdb0.json"
+    },
     "ios": {
       "sourceCommit": "771fa4751e01d264e6e995a16fc5d458ba1021e5",
       "workflowRunId": 30418420264,
@@ -86,9 +89,9 @@
     "mailBuild": "npm run build --prefix apps/mail: pass",
     "mailSmoke": "npm run smoke --prefix apps/mail: pass",
     "mailCi": "GitHub Actions YNX Mail CI run 30417833956 at 771fa475: success",
-    "desktopInstall": "current-source unsigned local package extracted, cold-started and restarted: pass",
-    "androidBuildInstall": "current-source debug/test APK built with JDK 17, installed on API 36 emulator, cold-started, restarted and callback route resolved: pass",
-    "iosVerification": "local Swift/project/plist checks pass; GitHub Actions run 30418420264 built, installed, cold-launched and resolved Wallet callback for unsigned iOS Simulator source 771fa475",
+    "desktopInstall": "historical source 682bdb075803a77c9591fc59b83708944ea76fdf unsigned local package extracted, cold-started and restarted: pass; current P0 source not installed",
+    "androidBuildInstall": "historical source 682bdb075803a77c9591fc59b83708944ea76fdf debug/test APK installed and cold-started: pass; current P0 source not installed",
+    "iosVerification": "historical source 771fa4751e01d264e6e995a16fc5d458ba1021e5 unsigned Simulator build/install/cold-launch/callback passed; current P0 source not installed",
     "fullRepositoryPreflight": "Mail passes; shared preflight is blocked only by missing Developer-owned SampleEVMWriteCounter.json artifacts in BFT/Consensus IDE tests",
     "securityScanGate": "shared placeholder and secret scripts are invalid on this host because missing rg produced false-green exit code 0; not counted as pass"
   },
@@ -151,10 +154,29 @@
     "downloadHosted": true,
     "note": "Historical artifacts remain hosted but do not contain the current Internet Bridge source."
   },
+  "walletConnectivity": {
+    "acceptedSDKConsumed": true,
+    "walletProtocolSource": "66003e76e804da16d472255efde50cb879055b96",
+    "endpointManifestVersion": "1.0.0-p0.2",
+    "endpointManifestPayloadSha256": "3c606cad1d9bfa71fc507f54b6ad8184a6580c7df75440675b5db921b7e67bb5",
+    "eip6963": true,
+    "eip1193": true,
+    "evmChainHex": "0x1917",
+    "ynxWalletPreferred": true,
+    "metamaskFallback": true,
+    "guestPreview": true,
+    "privateMailService": "DEGRADED_PRODUCT_API_PENDING",
+    "standardConnectionSurvivesPrivateFailure": true,
+    "localOrCannedSessionCreated": false,
+    "providerApprovalVisible": false,
+    "installedClientVerified": false,
+    "publicVerified": false,
+    "computerControlVerified": false
+  },
   "knownLimitations": [
-    "Current-source Android and desktop artifacts are built and installed locally only; they are not hosted or production signed. Current-source iOS Simulator build/install/cold-launch/callback is verified on GitHub Actions, but the artifact is unsigned, ephemeral and not a physical-device, TestFlight or App Store proof. Historical 0.2.0 artifacts do not include the Internet Bridge.",
+    "Android and desktop install evidence is historical source 682bdb075803a77c9591fc59b83708944ea76fdf, and iOS Simulator evidence is historical source 771fa4751e01d264e6e995a16fc5d458ba1021e5. The current P0 source has no installed-client evidence. None is hosted or production signed. Historical 0.2.0 artifacts do not include the Internet Bridge.",
     "No provider credential, verified sender domain, DNS/SPF/DKIM/DMARC evidence, public webhook, reputation proof or sandbox delivery evidence is present.",
-    "Central Wallet registry/verifier and AI POST route are not merged or deployed.",
+    "The accepted endpoint manifest has no verified Mail Product API and App Gateway is unavailable; private inbox and sending fail closed while Standard Wallet and guest preview remain independent.",
     "No production signing, persistent staging Web/API, public product URL or store release.",
     "Message bodies and attachments are authenticated against state tamper but are not end-to-end encrypted.",
     "The self-contained backup includes the state HMAC key and sender identity key and therefore requires an approved encrypted operator backup boundary; it is not a hostile-storage authenticity proof.",
@@ -162,5 +184,5 @@
     "The Mail-owned Data Fabric outbox is locally implemented and tested, but authenticated central transport, schema acceptance, billing mapping and central replay handling are not integrated.",
     "Malware scanning, operator unsuppression with central RBAC, active provider health polling and Monitor alerts remain incomplete."
   ],
-  "generatedAt": "2026-07-29T02:50:29Z"
+  "generatedAt": "2026-08-21T05:22:00+08:00"
 }

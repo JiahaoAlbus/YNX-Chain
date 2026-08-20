@@ -1,0 +1,12 @@
+{
+  "schemaVersion":1,
+  "campaignId":"P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId":"P0-065",
+  "product":"mail",
+  "sourceCommit":"9d8d2510dcdd2b39dbc5dea5f02376178ae7aa2c",
+  "recovery":{"ownerSource":"2c8b885e81b594dae3244255614ecc9405e790c3","appRecoveryCommit":"aad01da513a673cfd864ac4a9e8f9a29baab59f9","kernelRecoveryCommit":"d7a2865c4a82bb1bbe12ea6a115ca2cf0b5477f1"},
+  "acceptedInputs":{"walletProtocolSource":"66003e76e804da16d472255efde50cb879055b96","endpointManifestVersion":"1.0.0-p0.2","endpointManifestPayloadSha256":"3c606cad1d9bfa71fc507f54b6ad8184a6580c7df75440675b5db921b7e67bb5"},
+  "implemented":{"eip6963":true,"eip1193":true,"ynxWalletPreferred":true,"metamaskFallback":true,"evmChainHex":"0x1917","officialWalletDownload":"https://ynxweb4.com/dapp/download","guestPreview":true,"localDraft":true,"privateServiceState":"DEGRADED_PRODUCT_API_PENDING","standardConnectionPreserved":true,"fakeSendSuccess":false,"localOrCannedSession":false},
+  "verification":{"mailUITests":"9/9","goServiceKernel":"PASS","goBuild":"PASS","smoke":"PASS","browserProof":"PASS consoleErrors=0","productionDependencyAudit":"0 vulnerabilities","deterministicBundleSha256":"4ac7b46a33fa57d260f5b0c224e896c842fd4a441b99b1e33563c56ebd1ae4d3"},
+  "truth":{"implementedLocal":true,"testedLocal":true,"installedCurrentSource":false,"integratedCentral":false,"deployedPublic":false,"publicVerified":false,"computerControlVerified":false,"productionSigned":false,"storeReleased":false}
+}
