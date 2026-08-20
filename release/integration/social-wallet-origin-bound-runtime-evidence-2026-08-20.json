@@ -28,6 +28,19 @@
       "installed": true
     }
   },
+  "officialWebsitePublication": {
+    "websiteMainCommit": "588a5920650c0540eaf25ca651a6c35bdb0ab091",
+    "websitePullRequest": "https://github.com/JiahaoAlbus/YNX-Chain-website/pull/46",
+    "officialDownloadUrl": "https://www.ynxweb4.com/downloads/wallet/sha256-43dfe20665c62f0c963f0d06dc6fca9800d49543b613678a76988879537924c5/ynx-wallet-1.0.0-testnet-preview-8e8d5644-local-test-signed.apk",
+    "downloadBackread": {
+      "bytes": 78225838,
+      "sha256": "43dfe20665c62f0c963f0d06dc6fca9800d49543b613678a76988879537924c5",
+      "apkV2SignatureVerified": true,
+      "embeddedAndroidBundle": true
+    },
+    "artifactHostedOnOfficialBlob": false,
+    "hostingNote": "The official website supplies the immutable download entry and redirects to the exact GitHub prerelease asset because the Vercel Blob quota was full."
+  },
   "directAcceptance": {
     "androidIntentResolvedToWallet": true,
     "walletApprovalInvoked": true,
