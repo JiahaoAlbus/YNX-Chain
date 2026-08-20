@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {createSignedNativeTransfer,evmAddressFromYNX,ynxAddressFromEVM} from "@ynx-chain/wallet-auth";
-import {DEFAULT_CHAIN_API,DEFAULT_CHAIN_RPC,NativeChainClient,YNX_EVM_CHAIN_ID} from "./nativeTransfer";
+import {ChainNetworkError,DEFAULT_CHAIN_API,DEFAULT_CHAIN_RPC,NativeChainClient,YNX_EVM_CHAIN_ID} from "./nativeTransfer";
 
 const account=ynxAddressFromEVM("0x7e5f4552091a69125d5dfcb7b8c2659029395bdf");
 const address=evmAddressFromYNX(account);
@@ -57,6 +57,16 @@ test("native client rejects mismatched authoritative identity, broadcast, and un
   await assert.rejects(()=>broadcast.broadcast(signed.payload,signed.transaction,signed.hash),/does not match/);
   assert.throws(()=>new NativeChainClient("http://rpc.ynxweb4.com"),/HTTPS/);
   assert.throws(()=>new NativeChainClient(undefined,"http://rpc.ynxweb4.com/evm"),/HTTPS/);
+});
+
+test("native client independently times out if the React Native fetch implementation ignores AbortController",async()=>{
+  const client=new NativeChainClient(undefined,undefined,async()=>new Promise<Response>(()=>{}),5);
+  await assert.rejects(()=>client.account(account),(caught:unknown)=>caught instanceof ChainNetworkError&&caught.code==="RPC_UNAVAILABLE"&&caught.reason==="timeout");
+});
+
+test("native client exposes a canonical unavailable code for immediate React Native transport failure",async()=>{
+  const client=new NativeChainClient(undefined,undefined,async()=>{throw new TypeError("Network request failed")});
+  await assert.rejects(()=>client.account(account),(caught:unknown)=>caught instanceof ChainNetworkError&&caught.code==="RPC_UNAVAILABLE"&&caught.reason==="transport");
 });
 
 function rpcFallback(overrides:{chainId?:string;balance?:string;nonce?:string}){return async(url:string,init?:RequestInit)=>{if(url.startsWith(DEFAULT_CHAIN_API))return response({error:"account not found"},404);const request=JSON.parse(String(init?.body)) as Record<string,unknown>;if(request.method==="eth_chainId")return rpc(request,overrides.chainId??YNX_EVM_CHAIN_ID);if(request.method==="eth_getBalance")return rpc(request,overrides.balance??"0x0");return rpc(request,overrides.nonce??"0x0")}}

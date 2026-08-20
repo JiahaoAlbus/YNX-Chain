@@ -8,6 +8,14 @@ export type ChainActivity=Readonly<{hash:string;type:string;from:string;to:strin
 export type BroadcastResult=Readonly<{hash:string;replayed:boolean;truthfulStatus:"signature-verified-authoritative-native-transfer"}>;
 type FetchLike=(input:string,init?:RequestInit)=>Promise<Response>;
 
+export class ChainNetworkError extends Error{
+  readonly code="RPC_UNAVAILABLE" as const;
+  constructor(readonly reason:"timeout"|"transport"){
+    super(`RPC_UNAVAILABLE: YNX Testnet transport ${reason=== "timeout" ? "timed out" : "is unavailable"}`);
+    this.name="ChainNetworkError";
+  }
+}
+
 export class NativeChainClient{
   readonly #baseURL:string;readonly #rpcURL:string;readonly #fetch:FetchLike;readonly #requestTimeoutMS:number;
   constructor(baseURL=DEFAULT_CHAIN_API,rpcURL=DEFAULT_CHAIN_RPC,fetcher:FetchLike=fetch,requestTimeoutMS=15_000){this.#baseURL=base(baseURL);this.#rpcURL=rpcEndpoint(rpcURL);this.#fetch=fetcher;if(!Number.isSafeInteger(requestTimeoutMS)||requestTimeoutMS<1||requestTimeoutMS>30_000)throw new Error("YNX chain request timeout is invalid");this.#requestTimeoutMS=requestTimeoutMS}
@@ -71,8 +79,16 @@ export class NativeChainClient{
   }
 
   async #request(url:string,init:RequestInit):Promise<Response>{
-    const controller=new AbortController();const timeout=setTimeout(()=>controller.abort(),this.#requestTimeoutMS);
-    try{return await this.#fetch(url,{...init,signal:controller.signal})}catch(error){if(controller.signal.aborted)throw new Error("YNX chain request timed out");throw error}finally{clearTimeout(timeout)}
+    const controller=new AbortController();
+    let timeout:ReturnType<typeof setTimeout>|undefined;
+    const request=Promise.resolve().then(()=>this.#fetch(url,{...init,signal:controller.signal}));
+    const deadline=new Promise<never>((_,reject)=>{timeout=setTimeout(()=>{controller.abort();reject(new ChainNetworkError("timeout"))},this.#requestTimeoutMS)});
+    try{return await Promise.race([request,deadline])}
+    catch(error){
+      if(error instanceof ChainNetworkError)throw error;
+      if(error instanceof TypeError||error instanceof Error&&error.name==="AbortError")throw new ChainNetworkError(controller.signal.aborted?"timeout":"transport");
+      throw error;
+    }finally{if(timeout!==undefined)clearTimeout(timeout)}
   }
 }
 
@@ -85,4 +101,4 @@ function object(value:unknown):value is Record<string,any>{return typeof value==
 function errorMessage(value:unknown){return object(value)&&typeof value.error==="string"?value.error:"unknown error"}
 function isAccountNotFound(value:unknown){if(!object(value)||typeof value.error!=="string")return false;return ["account not found","account_not_found"].includes(value.error.trim().toLowerCase())}
 function quantity(value:unknown,label:string){if(typeof value!=="string"||!/^0x(?:0|[1-9a-f][0-9a-f]*)$/.test(value))throw new Error(`YNX EVM RPC ${label} is not a canonical quantity`);const parsed=BigInt(value);if(parsed>BigInt(Number.MAX_SAFE_INTEGER))throw new Error(`YNX EVM RPC ${label} exceeds the exact Wallet range`);return Number(parsed)}
-function isTransportError(error:unknown){return error instanceof TypeError||error instanceof Error&&(error.message==="YNX chain request timed out"||error.name==="AbortError")}
+function isTransportError(error:unknown){return error instanceof ChainNetworkError||error instanceof TypeError||error instanceof Error&&error.name==="AbortError"}
