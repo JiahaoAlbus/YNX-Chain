@@ -1,7 +1,7 @@
 {
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-  "epoch": 22,
-  "updatedAt": "2026-08-20T20:36:00Z",
+  "epoch": 23,
+  "updatedAt": "2026-08-20T20:50:00Z",
   "heavy": {
     "owner": null,
     "status": "CONSUMED_RELEASED_FAILED_CLOSED_INSTALL_PERMISSION",
@@ -27,16 +27,16 @@
     ]
   },
   "light": {
-    "owner": "integration",
-    "status": "ACTIVE_BOUNDED_SOURCE_ONLY",
+    "owner": null,
+    "status": "RELEASED_SEARCH_SOURCE_CHECKPOINT",
     "branch": "codex/p0-search-wallet-connectivity-20260821",
     "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/35-search-p0",
     "taskId": "P0-060",
     "leasedAt": "2026-08-20T20:36:00Z",
-    "releasedAt": null,
+    "releasedAt": "2026-08-20T20:50:00Z",
     "previousOwner": "integration",
     "previousCheckpoint": "2b1103063b47d2cfbf060837056e6b33fc7ecad3",
-    "reason": "YNX Search still exposes only a legacy private Wallet v1 deep-link flow. Integration may add one bounded Standard EIP-6963/EIP-1193 connection, preserve public search/guest use, and isolate private service degradation.",
+    "reason": "Search source checkpoint is pushed at a3b78490 with accepted Standard EIP-6963/EIP-1193 connection, English-first guest Search, truthful private-service degradation, 18/18 tests, build/smoke and local responsive Browser evidence. Public, installed and ComputerControl gates remain false.",
     "executionScope": "SEARCH_STANDARD_WALLET_SOURCE_ONLY",
     "onSafeCheckpoint": [
       "modify only apps/search and its owner evidence",
