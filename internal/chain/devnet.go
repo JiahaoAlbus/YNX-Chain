@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"math"
 	"math/big"
 	"os"
@@ -3170,16 +3171,25 @@ func (d *Devnet) loadSnapshot() error {
 	if path == "" {
 		return nil
 	}
-	payload, err := os.ReadFile(path)
+	file, err := os.Open(path)
 	if errors.Is(err, os.ErrNotExist) {
 		return nil
 	}
 	if err != nil {
-		return fmt.Errorf("read devnet snapshot: %w", err)
+		return fmt.Errorf("open devnet snapshot: %w", err)
 	}
+	defer file.Close()
 	var snapshot devnetSnapshot
-	if err := json.Unmarshal(payload, &snapshot); err != nil {
+	decoder := json.NewDecoder(file)
+	if err := decoder.Decode(&snapshot); err != nil {
 		return fmt.Errorf("decode devnet snapshot: %w", err)
+	}
+	var trailing any
+	if err := decoder.Decode(&trailing); err != io.EOF {
+		if err == nil {
+			return errors.New("decode devnet snapshot: multiple JSON values")
+		}
+		return fmt.Errorf("decode devnet snapshot trailing data: %w", err)
 	}
 	markerPresent, err := validateSnapshotIntegrityMarker(d.snapshotIntegrityMarkerPath())
 	if err != nil {

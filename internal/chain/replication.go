@@ -177,27 +177,33 @@ func (d *Devnet) ApplyReplicationBatchJSON(payload []byte) (ReplicationApplyResu
 		return ReplicationApplyResult{}, err
 	}
 
-	d.mu.Lock()
-	defer d.mu.Unlock()
+	d.mu.RLock()
 	current := d.blocks[len(d.blocks)-1]
 	result := ReplicationApplyResult{
 		Height: batch.SourceHeight, BlockHash: batch.SourceBlockHash, SnapshotAt: batch.SavedAt,
 	}
 	if current.Height != batch.BaseHeight || current.Hash != batch.BaseBlockHash {
+		d.mu.RUnlock()
 		return ReplicationApplyResult{}, fmt.Errorf("replication batch base %d/%s does not match local tip %d/%s", batch.BaseHeight, batch.BaseBlockHash, current.Height, current.Hash)
 	}
 	if len(batch.Blocks) == 0 {
+		d.mu.RUnlock()
 		return result, nil
 	}
 
 	blocks := make([]Block, 0, len(d.blocks)+len(batch.Blocks))
 	blocks = append(blocks, d.blocks...)
 	blocks = append(blocks, batch.Blocks...)
-	rollback := d.snapshotLocked()
-	localPeers := d.validatorPeers
-	localPeerSyncs := d.validatorPeerSyncs
+	candidate := d.snapshotLocked()
+	candidate.Blocks = blocks
+	candidate.Validators = append([]Validator(nil), d.validators...)
+	candidate.Peers = copyValidatorPeers(d.validatorPeers)
+	candidate.PeerSyncs = copyValidatorPeerSyncs(d.validatorPeerSyncs)
+	currentHeight, currentHash := current.Height, current.Hash
+	d.mu.RUnlock()
+
 	if batch.Complete {
-		candidate := *batch.State
+		candidate = *batch.State
 		candidate.Blocks = blocks
 		if err := validateReplicationState(*batch.State, d.cfg); err != nil {
 			return ReplicationApplyResult{}, fmt.Errorf("validate final replication state: %w", err)
@@ -209,21 +215,53 @@ func (d *Devnet) ApplyReplicationBatchJSON(payload []byte) (ReplicationApplyResu
 		if err := validateReplicationBlockHistory(candidate, d.cfg); err != nil {
 			return ReplicationApplyResult{}, fmt.Errorf("validate final replication block history: %w", err)
 		}
-		d.applySnapshotLocked(candidate)
-		d.validatorPeers = localPeers
-		d.validatorPeerSyncs = localPeerSyncs
-	} else {
-		d.blocks = blocks
+		// Peer observations are local operational evidence and are not part of
+		// the producer's authoritative application state.
+		d.mu.RLock()
+		candidate.Peers = copyValidatorPeers(d.validatorPeers)
+		candidate.PeerSyncs = copyValidatorPeerSyncs(d.validatorPeerSyncs)
+		d.mu.RUnlock()
 	}
-	if err := d.persistSnapshotLocked(); err != nil {
-		d.applySnapshotLocked(rollback)
-		if rollbackErr := d.persistSnapshotLocked(); rollbackErr != nil {
-			return ReplicationApplyResult{}, fmt.Errorf("persist replication batch: %v; persist rollback snapshot: %w", err, rollbackErr)
-		}
+	sealed, err := sealDevnetSnapshot(candidate)
+	if err != nil {
+		return ReplicationApplyResult{}, fmt.Errorf("seal replication batch snapshot: %w", err)
+	}
+	// Integrity hashing, JSON encoding, fsync and atomic rename can take seconds
+	// for the append-only public history. They operate on a complete immutable
+	// candidate before the short in-memory commit lock.
+	if err := d.persistPreparedSnapshot(sealed); err != nil {
 		return ReplicationApplyResult{}, fmt.Errorf("persist replication batch: %w", err)
 	}
+
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	current = d.blocks[len(d.blocks)-1]
+	if current.Height != currentHeight || current.Hash != currentHash {
+		return ReplicationApplyResult{}, fmt.Errorf("local chain advanced while persisting replication batch")
+	}
+	localPeers := d.validatorPeers
+	localPeerSyncs := d.validatorPeerSyncs
+	d.applySnapshotLocked(sealed)
+	d.validatorPeers = localPeers
+	d.validatorPeerSyncs = localPeerSyncs
 	result.Applied = true
 	return result, nil
+}
+
+func copyValidatorPeers(input map[string]ValidatorPeer) map[string]ValidatorPeer {
+	output := make(map[string]ValidatorPeer, len(input))
+	for key, value := range input {
+		output[key] = value
+	}
+	return output
+}
+
+func copyValidatorPeerSyncs(input map[string]ValidatorPeerSync) map[string]ValidatorPeerSync {
+	output := make(map[string]ValidatorPeerSync, len(input))
+	for key, value := range input {
+		output[key] = value
+	}
+	return output
 }
 
 func validateReplicationBatch(batch replicationBatch, cfg NetworkConfig) error {
