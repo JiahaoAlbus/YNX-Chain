@@ -38,11 +38,11 @@ assert.equal(evidence.independentVerification.changedBlobsReadback,"7/7");
 assert.equal(evidence.independentVerification.loopbackDaemonColdStartPassed,true);
 assert.equal(evidence.independentVerification.versionRemoteDeployed,false);
 assert.equal(evidence.heavySlotAudit.heavySlotAvailable,false);
-assert.equal(queue.tasks.find(item=>item.taskId==="P0-015")?.status,"ACTIVE_PROTECTED_SEQUENTIAL_FOLLOWER_DEPLOYMENT");
-assert.equal(locks.locks.find(item=>item.taskId==="P0-015")?.status,"ACTIVE_PROTECTED_SEQUENTIAL_FOLLOWER_DEPLOYMENT");
+assert.equal(queue.tasks.find(item=>item.taskId==="P0-015")?.status,"RELEASED_CHECKPOINT");
+assert.equal(locks.locks.find(item=>item.taskId==="P0-015")?.status,"RELEASED_CHECKPOINT");
 const tasks=queue.tasks.filter(item=>item.taskId==="P0-049");
 assert.equal(tasks.length,1);
-assert.equal(tasks[0].status,"ARTIFACT_BLOCKER_CLOSED_HEAVY_SLOT_BLOCKED_NO_LEASE");
+assert.equal(tasks[0].status,"ARTIFACT_ACCEPTED_P0015_RELEASED_FRESH_STATE_REVIEW_REQUIRED");
 assert.equal(tasks[0].executionLeaseIssued,false);
 validateTruth(acceptance);
 
@@ -57,4 +57,4 @@ if(process.argv.includes("--self-test")){
   for(const mutate of mutations){const candidate=structuredClone(acceptance);mutate(candidate);assert.throws(()=>validateTruth(candidate));}
   console.log("PASS 5/5 P0-049 promotion mutations rejected");
 }
-console.log("PASS P0-049 offline artifacts accepted; P0-015 keeps the Heavy slot blocked and no lease exists");
+console.log("PASS P0-049 offline artifacts accepted; P0-015 is released and fresh state review is still required before any new lease");
