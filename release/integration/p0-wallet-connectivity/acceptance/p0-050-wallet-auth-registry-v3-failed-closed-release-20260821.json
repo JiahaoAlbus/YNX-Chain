@@ -20,8 +20,13 @@
     "serviceActive": true,
     "serviceNRestarts": 0,
     "protectedDigestsUnchanged": true,
-    "ownerEvidenceCommit": null,
-    "ownerEvidencePending": true
+    "ownerEvidenceCommit": "8bf1d4a0cb3dd6f62ef8c98fbcc928a18488890e",
+    "ownerEvidenceParent": "79a87d87cd819672e65dd42546da997d8a80985e",
+    "ownerEvidenceTree": "39d60e0b2b433f899e5d23f19bcc86f130618f33",
+    "ownerEvidencePath": "release/integration/wallet-auth-registry-v3-p0050-fail-closed-execution-evidence-20260821.json",
+    "ownerEvidenceBlob": "8da214c96da029d2f595fe10f92e2a5479f4d051",
+    "ownerEvidenceSha256": "a92e68760c5287643f3be624eaf627b92417495007bdd6633c99dd7c95dcc4fb",
+    "ownerEvidencePending": false
   },
   "truth": {
     "leaseReusable": false,

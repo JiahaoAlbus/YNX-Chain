@@ -83,8 +83,11 @@
     "activeSymlinkChanged": false,
     "candidateActivated": false,
     "retryAllowed": false,
-    "evidenceCommit": null,
-    "evidencePending": true
+    "evidenceCommit": "8bf1d4a0cb3dd6f62ef8c98fbcc928a18488890e",
+    "evidenceTree": "39d60e0b2b433f899e5d23f19bcc86f130618f33",
+    "evidenceBlob": "8da214c96da029d2f595fe10f92e2a5479f4d051",
+    "evidenceSha256": "a92e68760c5287643f3be624eaf627b92417495007bdd6633c99dd7c95dcc4fb",
+    "evidencePending": false
   },
   "truthAfterRelease": {
     "executionStarted": true,
