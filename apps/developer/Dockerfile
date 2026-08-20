@@ -22,7 +22,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     groupadd --gid 10001 ynx && useradd --uid 10001 --gid 10001 --create-home --home-dir /var/lib/ynx-code --shell /usr/sbin/nologin ynx
 WORKDIR /opt/ynx-code/app
 COPY --from=build /workspace/apps/developer ./
-RUN chown -R ynx:ynx /opt/ynx-code /var/lib/ynx-code
+# Install scripts stay disabled during dependency resolution. Rebuild the single
+# reviewed native terminal dependency explicitly for the Linux runtime image.
+RUN npm rebuild node-pty --build-from-source --foreground-scripts && \
+    chown -R ynx:ynx /opt/ynx-code /var/lib/ynx-code
 ENV NODE_ENV=production \
     HOST=0.0.0.0 \
     PORT=4190 \
