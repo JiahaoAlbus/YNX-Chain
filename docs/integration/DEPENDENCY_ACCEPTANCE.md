@@ -1,7 +1,7 @@
 # YNX Data Fabric Dependency Acceptance
 
-Source Commit: `ed06ce8053d165122a0fa550f59af7c88d3b3c6b`
-Release Candidate: `ynx-data-fabric-ed06ce8053d1`
+Source Commit: `63a7d633a10bcb8f7f929a2aa67af32074f49ea7`
+Release Candidate: `ynx-data-fabric-63a7d633a10b`
 Phase: `INTEGRATE`
 Overall Status: `ACTIVE`
 
@@ -21,6 +21,7 @@ A dependency is accepted only when its owner supplies a versioned contract, dire
 | YNX Integration | Unique protocol freeze, merge order and shared Testnet | Envelope v2 and Schema Registry v2 are source-bound | Pending | Freeze the v2 contract and publish dependency acceptance receipts |
 | YNX Security/SRE | PostgreSQL, JetStream, backup, deployment, alert, signer and artifact policy | Exact-source 1000 signed Producer HTTP requests committed through single-primary PostgreSQL and embedded file-backed JetStream; three-replica leader loss and TCP route partition/healing passed; exact-source Linux CI Run `31838660585` passed PostgreSQL 17 streaming-standby catch-up, primary stop, manual promotion, RPO-zero integrity and replay invariants on one Docker host, and both artifacts were downloaded with all 14 files SHA-256 verified | Pending | Run sustained replicated ingress, automatic endpoint failover/fencing, repeated consumer/process crashes and deployed multi-host failure drills; approve deployment and signing classes |
 | YNX Website | Canonical page, truthful status, downloads, status and support links | Public metadata handoff exists with all public states false | Pending | Consume the handoff only after runtime and immutable hosting receipts exist |
+| YNX Integration | Wallet Connectivity Event Contract | Candidate-only schema and vectors; central `connectionEvents` remains DRAFT and no runtime is active | Pending | Accept or reject the candidate, assign a Data Fabric light lease, then review activation, migration and rollback evidence |
 
 ## Current accepted boundary
 

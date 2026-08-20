@@ -2,10 +2,10 @@
   "schemaVersion": 2,
   "productId": "ynx-data-fabric",
   "productName": "YNX Data Fabric & Billing Ledger",
-  "release": "ynx-data-fabric-ed06ce8053d1",
+  "release": "ynx-data-fabric-63a7d633a10b",
   "channel": "testnet-preview",
-  "sourceCommit": "ed06ce8053d165122a0fa550f59af7c88d3b3c6b",
-  "sourceRelease": "ynx-data-fabric-ed06ce8053d1",
+  "sourceCommit": "63a7d633a10bcb8f7f929a2aa67af32074f49ea7",
+  "sourceRelease": "ynx-data-fabric-63a7d633a10b",
   "generatedAt": "2026-08-14T11:46:16Z",
   "states": {
     "implementedLocal": true,
@@ -47,7 +47,7 @@
   "artifacts": [],
   "evidence": {
     "localVerification": {
-      "sourceCommit": "ed06ce8053d165122a0fa550f59af7c88d3b3c6b",
+      "sourceCommit": "63a7d633a10bcb8f7f929a2aa67af32074f49ea7",
       "status": "passed",
       "environment": "macOS development environment with standard umask for cross-repository permission vectors",
       "commands": [
@@ -77,29 +77,16 @@
       ]
     },
     "remoteCI": {
-      "runId": 31838660585,
+      "runId": null,
       "workflow": "data-fabric",
-      "sourceCommit": "ed06ce8053d165122a0fa550f59af7c88d3b3c6b",
-      "headCommit": "1216adcfd889af371f52c96dbb2d1d3112b291ea",
-      "status": "completed",
-      "conclusion": "success",
-      "startedAt": "2026-08-14T20:36:17Z",
-      "duration": "6m2s",
+      "sourceCommit": "63a7d633a10bcb8f7f929a2aa67af32074f49ea7",
+      "headCommit": null,
+      "status": "pending",
+      "conclusion": null,
+      "startedAt": null,
+      "duration": null,
       "artifactsPublished": false,
-      "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/31838660585",
-      "evidenceArtifact": {
-        "resilienceName": "data-fabric-postgres-resilience-1216adcfd889af371f52c96dbb2d1d3112b291ea",
-        "resilienceBytes": 9757,
-        "resilienceZipSha256": "1f97c89c443b660ac088a1026fd32ede31fbd4436023de21da997e5405959e48",
-        "failoverName": "data-fabric-postgres-failover-1216adcfd889af371f52c96dbb2d1d3112b291ea",
-        "failoverBytes": 3213,
-        "failoverZipSha256": "72aed9c9b47c639a85a843786fdbbcb9b35c410a109e091bb84e5200ecee630f",
-        "failoverSeedSha256": "f751be035a257e19c4bb2b5a51810f508445331dc2353fea2b8cd6aa9475d477",
-        "failoverVerifySha256": "0d348846d4823700407c4abcf5be514d8946146996656e65d2aec3b7a70704a8",
-        "failoverSummarySha256": "411de3ac29339c8cb7ec3a72af69a3a5288e0e71a313edafe0d7fa6097ee6b72",
-        "downloadVerified": true,
-        "downloadBlockedBy": null
-      }
+      "url": null
     },
     "engineeringEvidenceRun": {
       "runId": 31797308684,

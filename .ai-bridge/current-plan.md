@@ -2,8 +2,8 @@
 
 Status: `ACTIVE`
 Phase: `INTEGRATE`
-Engineering Source Commit: `ed06ce8053d165122a0fa550f59af7c88d3b3c6b`
-Release Candidate: `ynx-data-fabric-ed06ce8053d1`
+Engineering Source Commit: `63a7d633a10bcb8f7f929a2aa67af32074f49ea7`
+Release Candidate: `ynx-data-fabric-63a7d633a10b`
 
 ## Completed and protected
 
@@ -32,11 +32,11 @@ Release Candidate: `ynx-data-fabric-ed06ce8053d1`
 
 ## Current slice
 
-1. Bind the exact Run `31838660585` JSON metrics and refresh the complete recovery bundle.
-2. Obtain the required independent approval and merge through protected-branch policy; do not bypass it with force or administrator merge.
-3. Execute sustained hotspot, repeated consumer/process crash, deployed network-partition and multi-host PostgreSQL failover/fencing drills on replicated infrastructure; repeat leader-loss beyond the bounded local proofs.
-4. Submit the frozen contract and both SDK paths to Product 29 for central acceptance, then have Website publish the existing canonical metadata only after runtime, signer, immutable-hosting and Website receipts are available.
+1. Submit the unactivated Wallet Connectivity Event Contract candidate for Integration review. It is an asynchronous privacy-safe observer and is outside the standard wallet connection path.
+2. Await a Data Fabric light lease before activating any schema or implementing a runtime consumer. The central `connectionEvents` contract remains DRAFT.
+3. Obtain the required independent approval and merge through protected-branch policy; do not bypass it with force or administrator merge.
+4. Execute sustained hotspot, repeated consumer/process crash, deployed network-partition and multi-host PostgreSQL failover/fencing drills on replicated infrastructure; repeat leader-loss beyond the bounded local proofs.
 
 ## Exact next action
 
-Push the source-bound PostgreSQL failover candidate, validate all three CI jobs and exact artifact hashes, then refresh recovery and continue multi-host failure drills. Obtain independent approval before merging PR `#92`; keep shared-Testnet, staging, public, download and Website publication states false until direct receipts exist.
+Obtain Integration review for the Wallet Connectivity candidate and a Data Fabric light lease. Keep the candidate out of the active Registry and all shared-Testnet, staging, public, download and Website publication states false until direct receipts exist.

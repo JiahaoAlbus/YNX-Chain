@@ -6,8 +6,8 @@
   "slug": "data-fabric",
   "owner": "26-data-fabric",
   "serviceId": "ynx-data-fabric",
-  "release": "ynx-data-fabric-ed06ce8053d1",
-  "sourceCommit": "ed06ce8053d165122a0fa550f59af7c88d3b3c6b",
+  "release": "ynx-data-fabric-63a7d633a10b",
+  "sourceCommit": "63a7d633a10bcb8f7f929a2aa67af32074f49ea7",
   "generatedAt": "2026-08-14T11:46:16Z",
   "phase": "INTEGRATE",
   "protocol": {
@@ -61,7 +61,12 @@
         "soliditySourceCount": 9,
         "selectorArtifactCount": 9,
         "validatorQuorumIntersectionCardinality": {
-          "validatorCounts": [4, 7, 13, 21],
+          "validatorCounts": [
+            4,
+            7,
+            13,
+            21
+          ],
           "exactQuorumSubsetCardinality": true,
           "exactOrderedQuorumPairCardinality": true,
           "worstCaseIntersectionLowerBoundIncludesHonestValidator": true,
@@ -71,18 +76,46 @@
           "traceCount": 128,
           "generatedTransactionCount": 12288,
           "executionCount": 2048,
-          "workerCounts": [1, 2, 4, 8, 16],
-          "inputOrders": ["canonical", "reverse", "deterministic-shuffle"],
-          "matched": ["state", "state-root", "resource-accounting", "parallel-applied-order"],
+          "workerCounts": [
+            1,
+            2,
+            4,
+            8,
+            16
+          ],
+          "inputOrders": [
+            "canonical",
+            "reverse",
+            "deterministic-shuffle"
+          ],
+          "matched": [
+            "state",
+            "state-root",
+            "resource-accounting",
+            "parallel-applied-order"
+          ],
           "scope": "local-candidate-engine-only"
         },
         "localFaultMatrix": {
-          "validatorCounts": [4, 7, 13, 21],
+          "validatorCounts": [
+            4,
+            7,
+            13,
+            21
+          ],
           "viewsPerProfile": 256,
           "persistedViews": 1024,
           "belowQuorumRejected": true,
           "healedExactQuorumAccepted": true,
-          "invalidVoteClassesRejected": ["duplicate", "forged", "unknown-validator", "stale", "equivocating", "wrong-leader", "locked-branch"],
+          "invalidVoteClassesRejected": [
+            "duplicate",
+            "forged",
+            "unknown-validator",
+            "stale",
+            "equivocating",
+            "wrong-leader",
+            "locked-branch"
+          ],
           "saturationTransactions": 10000,
           "saturationAcceptedLimit": 100,
           "scope": "deterministic-in-process-chain-core-only"
@@ -100,7 +133,18 @@
           "persistBeforeVoteAuthorizationSuccess": true,
           "atomicTempSyncRenameAndDirectorySync": true,
           "restartRechecked": true,
-          "rejected": ["tamper", "trailing-json", "unknown-fields", "unknown-version", "symlink", "last-voted-view-regression", "locked-view-regression", "locked-block-change-without-higher-qc", "same-view-mutation", "concurrent-double-sign"],
+          "rejected": [
+            "tamper",
+            "trailing-json",
+            "unknown-fields",
+            "unknown-version",
+            "symlink",
+            "last-voted-view-regression",
+            "locked-view-regression",
+            "locked-block-change-without-higher-qc",
+            "same-view-mutation",
+            "concurrent-double-sign"
+          ],
           "recomputedChecksumWithoutValidSignatureRejected": true,
           "differentValidatorKeyRejected": true,
           "sealFailureIsAtomic": true,
@@ -115,7 +159,10 @@
           "leaseReleasedOnlyOnCloseOrProcessExit": true,
           "secondOwnerRejectedBeforeStateLoad": true,
           "reacquireAfterCloseOrProcessExit": true,
-          "supportedValidatorRuntimePlatforms": ["macos", "linux"],
+          "supportedValidatorRuntimePlatforms": [
+            "macos",
+            "linux"
+          ],
           "windowsValidatorRuntimeSupported": false,
           "singleProcessOwnerStillRequired": false,
           "scope": "chain-core-validator-safety-only"
@@ -166,7 +213,10 @@
           "etagEnvelopeDigestRequired": true,
           "initialCASHeader": "If-None-Match: *",
           "existingCASHeader": "If-Match: quoted-envelope-sha256",
-          "conflictStatuses": [409, 412],
+          "conflictStatuses": [
+            409,
+            412
+          ],
           "responseRecordExactMatchRequired": true,
           "listenerFreeIntegrationTested": true,
           "productionEndpointConfigured": false,
@@ -210,7 +260,17 @@
           "scope": "chain-core-strategy-vault-only",
           "deployedPublic": false
         },
-        "notProvenByThisEvidence": ["full-state-machine-safety", "chain-core-real-network-partition", "packet-loss", "ddos", "state-sync-restore", "cometbft-or-public-differential-replay", "independent-tlc-or-apalache", "wan-soak", "public-promotion"]
+        "notProvenByThisEvidence": [
+          "full-state-machine-safety",
+          "chain-core-real-network-partition",
+          "packet-loss",
+          "ddos",
+          "state-sync-restore",
+          "cometbft-or-public-differential-replay",
+          "independent-tlc-or-apalache",
+          "wan-soak",
+          "public-promotion"
+        ]
       },
       "failurePolicy": "reject-before-event-store-mutation",
       "writeOwner": "derived-by-Chain-Core-from-transaction-signer-never-accepted-from-event",

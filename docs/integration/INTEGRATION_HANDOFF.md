@@ -1,7 +1,7 @@
 # YNX Data Fabric Integration Handoff
 
-Source Commit: `ed06ce8053d165122a0fa550f59af7c88d3b3c6b`
-Release Candidate: `ynx-data-fabric-ed06ce8053d1`
+Source Commit: `63a7d633a10bcb8f7f929a2aa67af32074f49ea7`
+Release Candidate: `ynx-data-fabric-63a7d633a10b`
 Owner: YNX Data Fabric
 Phase: `INTEGRATE`
 Status: `ACTIVE`
@@ -18,6 +18,12 @@ Status: `ACTIVE`
 - Cross-product vectors: `docs/integration/CROSS_PRODUCT_TEST_VECTORS.json`
 - Dependency acceptance: `docs/integration/DEPENDENCY_ACCEPTANCE.md`
 - Full goal coverage: `.ai-bridge/full-goal-coverage.json`
+- Wallet Connectivity candidate only: `schemas/data-fabric/wallet-connectivity-events-v1.candidate.schema.json`
+
+The Wallet Connectivity candidate is intentionally outside the active Schema
+Registry and runtime. It records asynchronous, privacy-safe observations only;
+it cannot block or downgrade a DApp standard wallet connection. Integration
+must accept it and grant the Data Fabric light lease before activation.
 
 ## Release state
 

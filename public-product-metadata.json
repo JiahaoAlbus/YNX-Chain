@@ -8,7 +8,10 @@
   "product": {
     "id": "ynx-data-fabric",
     "name": "YNX Data Fabric",
-    "aliases": ["Data Fabric", "YNX Event Fabric"],
+    "aliases": [
+      "Data Fabric",
+      "YNX Event Fabric"
+    ],
     "canonicalRoute": "/data-fabric",
     "title": "YNX Data Fabric — Verifiable events, billing, and reconciliation",
     "metaDescription": "The shared YNX Testnet data plane for signed events, recoverable cross-product workflows, immutable billing records, and source-labeled reconciliation.",
@@ -20,7 +23,7 @@
     }
   },
   "releaseStatus": {
-    "release": "ynx-data-fabric-ed06ce8053d1",
+    "release": "ynx-data-fabric-63a7d633a10b",
     "channel": "testnet-preview",
     "implementedLocal": true,
     "testedLocal": true,
@@ -47,8 +50,19 @@
     "ar": "نسيج بيانات YNX",
     "id": "YNX Data Fabric"
   },
-  "features": ["Strict Envelope v2 events with v1 migration compatibility and product, actor, request, ordering, source, privacy, residency, retention, and audit bindings", "Transactional Outbox and consumer Inbox with idempotent effects, retry, dead letter, replay, backfill, tested post-commit/pre-ack process-crash recovery, fail-closed broker-capacity retention, and a bounded 1000 signed Producer PostgreSQL-to-JetStream result", "Bounded one-host three-node JetStream stream-leader loss and replica catch-up verification with 128 retained canonical events, zero duplicates and zero pending Outbox rows", "Recoverable cross-product Sagas with compensation, timeout, audit, and user-visible status", "Append-only double-entry billing records and source-labeled reconciliation"],
-  "risks": ["An accepted HTTP request does not mean a multi-service business workflow is complete.", "Testnet evidence does not establish Mainnet, production signing, availability, capacity, or financial suitability.", "Third-party and derived observations can be unavailable or inconsistent and never replace authoritative product or ledger state.", "Operator recovery and reconciliation may require human review; historical financial records are corrected with new entries, never silently edited."],
+  "features": [
+    "Strict Envelope v2 events with v1 migration compatibility and product, actor, request, ordering, source, privacy, residency, retention, and audit bindings",
+    "Transactional Outbox and consumer Inbox with idempotent effects, retry, dead letter, replay, backfill, tested post-commit/pre-ack process-crash recovery, fail-closed broker-capacity retention, and a bounded 1000 signed Producer PostgreSQL-to-JetStream result",
+    "Bounded one-host three-node JetStream stream-leader loss and replica catch-up verification with 128 retained canonical events, zero duplicates and zero pending Outbox rows",
+    "Recoverable cross-product Sagas with compensation, timeout, audit, and user-visible status",
+    "Append-only double-entry billing records and source-labeled reconciliation"
+  ],
+  "risks": [
+    "An accepted HTTP request does not mean a multi-service business workflow is complete.",
+    "Testnet evidence does not establish Mainnet, production signing, availability, capacity, or financial suitability.",
+    "Third-party and derived observations can be unavailable or inconsistent and never replace authoritative product or ledger state.",
+    "Operator recovery and reconciliation may require human review; historical financial records are corrected with new entries, never silently edited."
+  ],
   "faq": [
     {
       "question": "Is YNX Data Fabric a wallet or custody service?",
@@ -68,7 +82,11 @@
     }
   ],
   "structuredDataRecommendation": {
-    "types": ["SoftwareApplication", "TechArticle", "FAQPage"],
+    "types": [
+      "SoftwareApplication",
+      "TechArticle",
+      "FAQPage"
+    ],
     "applicationCategory": "DeveloperApplication",
     "operatingSystem": "Server and command line",
     "offers": null
