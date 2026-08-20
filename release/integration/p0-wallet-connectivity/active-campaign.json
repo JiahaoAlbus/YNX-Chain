@@ -2,7 +2,7 @@
   "schemaVersion": "1.0.0",
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "owner": "integration",
-  "status": "NO_EXECUTION_OWNER_WALLET_AUTH_FRESH_PRELEASE_REVIEW_REQUIRED",
+  "status": "WALLET_AUTH_P0054_SINGLE_USE_ROLLBACK_FIRST_ACTIVE",
   "scope": ["founder-control", "wallet-connectivity", "installed-client-networking", "shop-android-retirement", "artwork-governance"],
   "frozen": ["independent-ynx-id", "nonessential-new-products", "extra-finance-features", "shop-android"],
   "integrationBranch": "codex/final-integration",
