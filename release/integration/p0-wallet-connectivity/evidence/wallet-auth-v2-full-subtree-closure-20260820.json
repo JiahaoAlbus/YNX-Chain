@@ -65,5 +65,21 @@
     "sbomSha256": null,
     "immutableArtifactSourcePath": null,
     "acceptedForDeployment": false
+  },
+  "signedVerifierSchemaCorrection": {
+    "detectedAt": "2026-08-20T12:33:16Z",
+    "affectedLease": "P0-WALLET-CONNECTIVITY-2026-08-wallet-auth-v2-runtime-artifact-lease-20260820T122441Z",
+    "affectedLeaseStarted": false,
+    "productionUploadOccurred": false,
+    "productionInstallOccurred": false,
+    "productionSwitchOccurred": false,
+    "productionRestartOccurred": false,
+    "productionMutationObserved": false,
+    "incorrectVersionJsonPath": "sourceCommit",
+    "correctVersionJsonPath": "build.sourceCommit",
+    "incorrectErrorJsonPath": "code",
+    "correctErrorJsonPath": "error.code",
+    "replacementLease": "P0-WALLET-CONNECTIVITY-2026-08-wallet-auth-v2-runtime-artifact-lease-v2-20260820T123316Z",
+    "schemaSelfTestPassed": true
   }
 }

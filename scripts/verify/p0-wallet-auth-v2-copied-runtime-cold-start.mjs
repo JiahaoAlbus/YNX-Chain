@@ -7,6 +7,22 @@ import { fileURLToPath } from "node:url";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const artifact = path.join(root, "release/integration/p0-wallet-connectivity/artifacts/wallet-auth-v2-runtime-closure-6cf3ef84");
 const fail = (message) => { throw new Error(message); };
+const parseVersionSource = (text) => {
+  const body = JSON.parse(text);
+  if (!body || typeof body !== "object" || !body.build || typeof body.build !== "object" || typeof body.build.sourceCommit !== "string") fail("/version response schema mismatch: build.sourceCommit is required");
+  return body.build.sourceCommit;
+};
+const parseCanonicalErrorCode = (text) => {
+  const body = JSON.parse(text);
+  if (!body || typeof body !== "object" || !body.error || typeof body.error !== "object" || typeof body.error.code !== "string") fail("canonical error response schema mismatch: error.code is required");
+  return body.error.code;
+};
+if (process.argv.includes("--self-test")) {
+  if (parseVersionSource(JSON.stringify({ build: { sourceCommit: "6cf3ef845202bd879ed94515a71b323dd2fc9e14" } })) !== "6cf3ef845202bd879ed94515a71b323dd2fc9e14") fail("version schema self-test failed");
+  if (parseCanonicalErrorCode(JSON.stringify({ error: { code: "UNKNOWN_OR_MISSING_FIELD" }, ok: false })) !== "UNKNOWN_OR_MISSING_FIELD") fail("error schema self-test failed");
+  console.log("PASS copied-runtime response schema self-test: build.sourceCommit and error.code");
+  process.exit(0);
+}
 const required = (name) => process.env[name] || fail(`${name} is required`);
 const hash = (file) => createHash("sha256").update(fs.readFileSync(file)).digest("hex");
 const runtime = path.resolve(required("YNX_COPIED_49E_RUNTIME_DIR"));
@@ -58,12 +74,12 @@ try {
     if (child.exitCode !== null) fail(`daemon exited ${child.exitCode}: ${logs}`);
     try { version = await request("/version"); break; } catch { await new Promise((resolve) => setTimeout(resolve, 250)); }
   }
-  if (!version || version.response.status !== 200 || JSON.parse(version.text).sourceCommit !== "6cf3ef845202bd879ed94515a71b323dd2fc9e14") fail("exact /version source gate failed");
+  if (!version || version.response.status !== 200 || parseVersionSource(version.text) !== "6cf3ef845202bd879ed94515a71b323dd2fc9e14") fail("exact /version source gate failed");
   for (const endpoint of ["/health", "/ready"]) if ((await request(endpoint)).response.status !== 200) fail(`${endpoint} gate failed`);
   const options = await request("/v2/product-sessions/challenge", { method: "OPTIONS", headers: { Origin: "https://finance.ynxweb4.com", "Access-Control-Request-Method": "POST", "Access-Control-Request-Headers": "content-type" } });
   if (options.response.status !== 204 || options.response.headers.get("access-control-allow-origin") !== "https://finance.ynxweb4.com" || options.response.headers.has("access-control-allow-credentials")) fail("registered-origin CORS gate failed");
   const invalid = await request("/v2/product-sessions/challenge", { method: "POST", headers: { Origin: "https://finance.ynxweb4.com", "Content-Type": "application/json" }, body: "{}" });
-  if (invalid.response.status !== 400 || JSON.parse(invalid.text).code !== "UNKNOWN_OR_MISSING_FIELD") fail("invalid challenge fail-closed gate failed");
+  if (invalid.response.status !== 400 || parseCanonicalErrorCode(invalid.text) !== "UNKNOWN_OR_MISSING_FIELD") fail("invalid challenge fail-closed gate failed");
   console.log(JSON.stringify({ copied49eColdStart: true, source: "6cf3ef845202bd879ed94515a71b323dd2fc9e14", v1StateSha256: marker.v1StateSha256, health: 200, ready: 200, version: 200, financeOptions: 204, invalidChallenge: 400, productionMutationAuthorized: false }));
 } finally {
   child.kill("SIGTERM");

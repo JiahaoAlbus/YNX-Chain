@@ -3,6 +3,8 @@
   "acceptanceId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-auth-v2-runtime-artifact-6cf3ef84",
   "recordedAt": "2026-08-20T12:24:41Z",
   "decision": "ACCEPTED_EXACT_DETERMINISTIC_RUNTIME_ARTIFACT_FOR_GATED_TRANSACTION",
+  "activeLeasePath": "release/integration/p0-wallet-connectivity/execution/wallet-auth-v2-runtime-artifact-lease-v2-20260820.json",
+  "supersededVerifierLease": "P0-WALLET-CONNECTIVITY-2026-08-wallet-auth-v2-runtime-artifact-lease-20260820T122441Z",
   "supersedesLease": "P0-WALLET-CONNECTIVITY-2026-08-wallet-auth-v2-full-subtree-lease-20260820T121054Z",
   "supersededLeaseReusable": false,
   "source": {
@@ -33,6 +35,10 @@
   "coldStartGate": {
     "staticVerifier": "node scripts/verify/p0-wallet-auth-v2-runtime-artifact-check.mjs",
     "copiedRuntimeVerifier": "node scripts/verify/p0-wallet-auth-v2-copied-runtime-cold-start.mjs",
+    "verifierSchemaVersion": 2,
+    "versionSourceJsonPath": "build.sourceCommit",
+    "canonicalErrorCodeJsonPath": "error.code",
+    "schemaSelfTestPassed": true,
     "currentRuntimeSource": "49e30d999e9a9cbdd2c565021009f2cab0dc125c",
     "requiredV1StateSha256": "93b18583abac95d040e5feca6c1db778f9193ac3471c5415d38e411b60ac63cb",
     "networkAllowed": false,

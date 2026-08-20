@@ -1,19 +1,17 @@
 {
   "schemaVersion": 1,
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-auth-v2-runtime-artifact-lease-20260820T122441Z",
-  "status": "SUPERSEDED_BEFORE_START_VERIFIER_SCHEMA_BUG",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-auth-v2-runtime-artifact-lease-v2-20260820T123316Z",
+  "status": "ISSUED_NOT_STARTED",
   "singleUse": true,
-  "issuedAt": "2026-08-20T12:24:41Z",
-  "expiresAt": "2026-08-20T14:24:41Z",
-  "supersededAt": "2026-08-20T12:33:16Z",
-  "supersededReason": "Signed copied-runtime verifier read sourceCommit and code at the response root, while exact daemon schemas place them at build.sourceCommit and error.code. No upload, install, switch, restart or production mutation occurred.",
+  "issuedAt": "2026-08-20T12:33:16Z",
+  "expiresAt": "2026-08-20T14:33:16Z",
   "leaseOwner": "wallet-protocol",
   "deploymentOwner": "wallet-auth-gateway-runtime-owner",
   "deploymentChannel": "exclusive-wallet-auth-deterministic-runtime-transaction",
   "acceptancePath": "release/integration/p0-wallet-connectivity/acceptance/wallet-auth-v2-runtime-artifact-6cf3ef84-20260820.json",
   "authorization": {
-    "executionAuthorized": false,
+    "executionAuthorized": true,
     "productionActivationBlockedUntilCopied49eColdStartPasses": true,
     "singleControlledTransaction": true,
     "exclusiveProductionWindowRequired": true,
@@ -48,6 +46,10 @@
   },
   "requiredCopiedRuntimeColdStart": {
     "verifier": "scripts/verify/p0-wallet-auth-v2-copied-runtime-cold-start.mjs",
+    "verifierSchemaVersion": 2,
+    "versionSourceJsonPath": "build.sourceCommit",
+    "canonicalErrorCodeJsonPath": "error.code",
+    "schemaSelfTestCommand": "node scripts/verify/p0-wallet-auth-v2-copied-runtime-cold-start.mjs --self-test",
     "exactV1StateSha256": "93b18583abac95d040e5feca6c1db778f9193ac3471c5415d38e411b60ac63cb",
     "productionRuntimePathForbidden": true,
     "externalNetworkForbidden": true,
@@ -77,8 +79,6 @@
     "publicAcceptanceComplete": false,
     "leaseConsumed": false,
     "productionMutationObserved": false
-    ,"supersededBeforeStart": true,
-    "verifierSchemaBugConfirmed": true
   },
   "truth": {
     "candidateDeployedPublic": false,

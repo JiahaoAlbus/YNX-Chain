@@ -14,4 +14,6 @@ Integration subsequently recovered and reverified the exact original npm cache t
 
 New single-use lease `P0-WALLET-CONNECTIVITY-2026-08-wallet-auth-v2-runtime-artifact-lease-20260820T122441Z` accepts only the exact source tree plus that exact runtime archive. It forbids `npm install`, network dependency resolution and unreviewed `node_modules`. Before any backup or activation, `p0-wallet-auth-v2-copied-runtime-cold-start.mjs` must pass against a marked copy of public `49e`, the exact v1 state SHA, exact registries and independent v2 state path. The prior failed lease remains revoked and cannot be reused.
 
+That lease was superseded before start after a verifier-only schema defect was found: exact daemon `/version` returns the source at `build.sourceCommit`, and canonical failures return their code at `error.code`. No upload, install, switch, restart or production mutation occurred. Replacement lease `P0-WALLET-CONNECTIVITY-2026-08-wallet-auth-v2-runtime-artifact-lease-v2-20260820T123316Z` binds the corrected paths and a committed schema self-test. All artifact identities and activation prerequisites are otherwise unchanged.
+
 Current public source, v1 state, Caddy, installed clients, product migrations and aggregate truth are unchanged. Public v2 lifecycle, deployment, integratedCentral, signing and store gates remain false.
