@@ -13,6 +13,19 @@
     "blobReadbackFailed": 0,
     "deploymentLeaseIssued": false
   },
+  "centralRetirementExtensionAcceptance": {
+    "acceptanceId": "P0-035",
+    "commit": "f1a394aaa4ca7d9423a0fa779f06cd36b58e1312",
+    "acceptedWalletProtocolSourceCommit": "bfc11ecb4100725ae8f42c86d220fa0bc2d8212a",
+    "status": "SOURCE_AND_CONSUMER_SDK_ACCEPTED",
+    "latestCoreAuthCommit": "92ae5404da908c0d649a3a62fd51bcc772e14efd",
+    "reconciledRuntimeProvided": false,
+    "executionLeaseId": null,
+    "executionLeaseExpiresAt": null,
+    "deploymentLeaseIssued": false,
+    "blobReadbackPassed": 4,
+    "blobReadbackFailed": 0
+  },
   "protocol": {
     "registrySchemaVersion": 3,
     "productId": "shop",
@@ -59,8 +72,8 @@
     "implementedSource": true,
     "testedLocal": true,
     "initialRegistryV3SourceAccepted": true,
-    "actionableRetirementExtensionCentralSourceAccepted": false,
-    "centralSourceAccepted": false,
+    "actionableRetirementExtensionCentralSourceAccepted": true,
+    "centralSourceAccepted": true,
     "centralDeploymentAuthorized": false,
     "currentPublicRuntimeUsesRegistryV3": false,
     "websiteAndroidDownloadRemovalVerified": true,

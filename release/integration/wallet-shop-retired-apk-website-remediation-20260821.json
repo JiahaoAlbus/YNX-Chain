@@ -28,6 +28,14 @@
     "supersededDeploymentId": "dpl_5oP2L2ZHvP13YH3ZYWySLD49pj3P",
     "supersededDeploymentStillCurrentAlias": false
   },
+  "centralAcceptance": {
+    "acceptanceId": "P0-034",
+    "commit": "27b87b94fbd5603f3ed7c56f4ac3f270e5484a9d",
+    "acceptedOwnerEvidence": "df7778fca133818d3d69ec4ca149bfe35d77a280",
+    "blobReadbackPassed": 4,
+    "blobReadbackFailed": 0,
+    "promotedGatewayRuntime": false
+  },
   "downloadPage": {
     "url": "https://www.ynxweb4.com/dapp/download",
     "browserVisible": true,
