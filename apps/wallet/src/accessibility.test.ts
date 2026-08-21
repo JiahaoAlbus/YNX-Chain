@@ -10,4 +10,5 @@ test("critical Wallet controls expose accessibility roles, names and state",asyn
   assert.ok(source.includes('accessibilityState={{disabled}}'));
   assert.ok(source.includes('accessibilityRole="radio"'));
   for(const contract of ["useColorScheme","isReduceMotionEnabled","reduceMotionChanged","isHighTextContrastEnabled","Text follows the device font scale","MODAL_ANIMATION"])assert.ok(source.includes(contract),`missing adaptive accessibility contract ${contract}`);
+  for(const contract of ['returnKeyType={onSubmitEditing?"done":undefined}','submitBehavior={onSubmitEditing?"blurAndSubmit":undefined}','onSubmitEditing={()=>{if(importReady)void persistImport()}}'])assert.ok(source.includes(contract),`missing semantic recovery submit contract ${contract}`);
 });
