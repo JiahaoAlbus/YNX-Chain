@@ -1,0 +1,127 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-08-21T17:01:40Z",
+  "owner": "Wallet/Auth macOS native",
+  "evidenceKind": "owner-native-public-dmg-system-applications-install-source-and-hosted-ci",
+  "implementationCommit": "14630843459e1ae41c007eee8dfb34789a0e4443",
+  "implementationTree": "a386ac3d5ac4babb8becf78bd4781f7c2675369d",
+  "sourceBackread": {
+    ".github/workflows/wallet-macos.yml": {
+      "gitBlob": "f51c713497360568e05615bcbeede7c88c5e21aa",
+      "bytes": 52374,
+      "sha256": "1b0a143effe0d9399923a4a150e0a8b968075d096e3b8e34535e8b5535bdc4bc"
+    },
+    "apps/wallet/macos/scripts/verify-engineering-dmg-release-source.rb": {
+      "gitBlob": "3d78b04331705003597f5c1418be1728b7b924d0",
+      "bytes": 3006,
+      "sha256": "a3e31593f73c81feb56328a323e95fded2ae42244c843630c5445001f6586c70",
+      "executable": true
+    }
+  },
+  "systemApplicationsContract": {
+    "precondition": "same-run anonymously downloaded and verified owner-native public DMG",
+    "exactPath": "/Applications/YNX Wallet.app",
+    "existingPathMustBeAbsent": true,
+    "installCommand": "sudo ditto exact verified isolated app to exact system path",
+    "deepStrictCodesignAfterInstallRequired": true,
+    "bundleIdentifier": "com.ynxweb4.wallet.macos",
+    "browserQuarantineMustBeAbsent": true,
+    "browserQuarantineAccepted": false,
+    "ephemeralHostedRunner": true,
+    "launchServicesRegistrationRequired": true,
+    "coldPidRequired": true,
+    "secondDistinctPidRequired": true,
+    "coldAndSecondRpcChainId": "0x1917",
+    "coldAndSecondRestGatewayReachableRequired": true,
+    "coldAndSecondGatewayFailClosedRequired": true,
+    "malformedCallbackDeliveredToSecondPidRequired": true,
+    "malformedCallbackVisibleError": "INVALID_DEEP_LINK",
+    "screenshotRequired": true,
+    "gatekeeperAccepted": false,
+    "authorizationSuccess": false
+  },
+  "githubActions": {
+    "runId": 32505803875,
+    "jobId": 96845577234,
+    "publicationJobId": 96846127159,
+    "headSha": "14630843459e1ae41c007eee8dfb34789a0e4443",
+    "headShaExact": true,
+    "event": "push",
+    "status": "completed",
+    "conclusion": "success",
+    "createdAt": "2026-08-21T16:59:42Z",
+    "completedAt": "2026-08-21T17:01:40Z",
+    "nativePackageConclusion": "success",
+    "publicationJobConclusion": "skipped",
+    "sourceContractLogVerified": true,
+    "swiftTests": {
+      "executed": 17,
+      "failures": 0
+    }
+  },
+  "engineeringDmgFromThisRunPublicLog": {
+    "name": "YNX-Wallet-macOS-ad-hoc.dmg",
+    "sha256": "61981e880afa4f2f3da3e18ee586aef29085519c0d2cd1a4653c4691223cef65",
+    "bytes": 307429,
+    "minimumOS": "13.0",
+    "architectures": ["x86_64", "arm64"],
+    "signature": "adhoc",
+    "teamIdentifier": null,
+    "hdiutilChecksumValid": true,
+    "gatekeeperAccepted": false,
+    "gatekeeperExitStatus": 3,
+    "developerIDSigned": false,
+    "notarized": false,
+    "stapled": false,
+    "downloadInspected": false
+  },
+  "actionsArtifact": {
+    "id": 9455253400,
+    "name": "ynx-wallet-macos-native",
+    "metadataBytes": 1694674,
+    "metadataDigest": "sha256:4a6a3725951ad33d3f50a396ddb176a403b5eb8d9791688a1f9f3352a01377a6",
+    "downloadInspected": false
+  },
+  "sameRunNativePackageLifecycle": {
+    "coldPid": 2073,
+    "secondPid": 2100,
+    "canonicalBridgeUnavailableVisibleFailClosed": true,
+    "canonicalAuthorizationSuccess": false,
+    "invalidCallbackPid": 2326,
+    "invalidCallbackVisibleFailClosed": true,
+    "widenedInvalidCallbackPid": 2408,
+    "widenedInvalidCallbackVisibleFailClosed": true,
+    "isPublicReleaseSystemInstallRuntime": false
+  },
+  "promotedGates": {
+    "publicDmgSystemApplicationsInstallSourceReady": true,
+    "publicDmgSystemApplicationsInstallHostedSourceContractVerified": true
+  },
+  "remainingFalse": {
+    "defaultMainRegistration": false,
+    "operatorPublicationDispatch": false,
+    "anonymousWalletMacosRoundtripRuntime": false,
+    "publicArtifactSystemApplicationsInstallRuntime": false,
+    "githubPrereleasePublished": false,
+    "artifactDownloadInspected": false,
+    "publicNativeWalletPublished": false,
+    "websiteReplacementPublished": false,
+    "systemApplicationsInstalled": false,
+    "browserQuarantineAccepted": false,
+    "developerIDSigned": false,
+    "notarized": false,
+    "stapled": false,
+    "gatekeeperAccepted": false,
+    "productionSigned": false,
+    "appStore": false,
+    "authorizationSuccess": false,
+    "account": false,
+    "productSession": false,
+    "sign": false,
+    "send": false,
+    "transaction": false,
+    "biometricSuccess": false,
+    "recoverySuccess": false,
+    "universalLink": false
+  }
+}
