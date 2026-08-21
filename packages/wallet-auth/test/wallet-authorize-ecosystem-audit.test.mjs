@@ -238,15 +238,23 @@ test("Trust Center public guest evidence remains outside registered migration co
 test("Wallet Web/PWA and macOS DMG publication remain outside product authority", () => {
   const companion = auditV3.nonProductRegistryClient;
   assert.equal(companion.productId, "wallet-web-companion");
-  assert.equal(companion.webShellSourceCommit, "3651ba0c4322e0564e29b4573f3def90828dba67");
-  assert.equal(companion.publicEvidenceCommit, "93c3d06bab567e40c419ff2b3c5702d55083c7fa");
-  assert.equal(companion.deploymentId, "dpl_6GRARbJYU5JyPeJP7Un3E6KqmBN2");
+  assert.equal(companion.webShellSourceCommit, "0e023871c692c9f07c12ae3ac609035a12db57c0");
+  assert.deepEqual(companion.webShellSourceCommits, ["22c0aa16803546a584024c6eb2b0fce697866dea", "0e023871c692c9f07c12ae3ac609035a12db57c0"]);
+  assert.equal(companion.publicEvidenceCommit, "dc3b9895a08a2b1c4d6ee0d4c1d3b1bb5964a411");
+  assert.equal(companion.deploymentId, "dpl_2nahcRyV2VRC4NefBBXfh9QYd5s7");
   assert.equal(companion.runtime.sourceBoundPublic, true);
   assert.equal(companion.runtime.metaMaskEip6963Detected, true);
-  assert.equal(companion.runtime.mirrorDriftObservedAndRepaired, true);
-  assert.equal(companion.runtime.noProviderOfficialYnxAndroidAction, true);
-  assert.equal(companion.runtime.noProviderOfficialMetaMaskAction, true);
-  assert.equal(companion.runtime.mobile390NoHorizontalOverflow, true);
+  assert.equal(companion.runtime.dedicatedProject, "ynx-wallet-web");
+  assert.equal(companion.runtime.walletAliasRestoredToDedicatedProject, true);
+  assert.equal(companion.runtime.websiteMustNotClaimWalletAlias, true);
+  assert.equal(companion.runtime.metaMaskApprovalNotificationOpened, true);
+  assert.equal(companion.runtime.pwaCacheVersion, 9);
+  assert.equal(companion.runtime.pwaInstallabilityPassed, true);
+  assert.equal(companion.runtime.cacheTamperRollbackRecoveryPassed, true);
+  assert.equal(companion.runtime.v9SecondLoadVisibleVerified, true);
+  assert.equal(companion.runtime.recoveryMarkerRemoved, true);
+  assert.equal(companion.runtime.visibleFinalUrl, "https://wallet.ynxweb4.com/");
+  assert.equal(companion.runtime.visibleConnectionStatus, "Not connected");
   assert.equal(companion.runtime.accountApproval, false);
   assert.equal(companion.runtime.providerChainId1917, false);
   assert.equal(companion.runtime.callback, false);
@@ -434,12 +442,14 @@ test("owner activity checkpoint derives counts and consumes Faucet recovery with
 
 test("owner checkpoint separates Wallet public artifacts from approval and Product Session authority", () => {
   const platform = ownerActivityCheckpoint.walletPlatformTracking;
-  assert.equal(platform.webPwa.sourceCommit, "3651ba0c4322e0564e29b4573f3def90828dba67");
-  assert.equal(platform.webPwa.evidenceCommit, "93c3d06bab567e40c419ff2b3c5702d55083c7fa");
-  assert.equal(platform.webPwa.deploymentId, "dpl_6GRARbJYU5JyPeJP7Un3E6KqmBN2");
+  assert.equal(platform.webPwa.sourceCommit, "0e023871c692c9f07c12ae3ac609035a12db57c0");
+  assert.equal(platform.webPwa.evidenceCommit, "dc3b9895a08a2b1c4d6ee0d4c1d3b1bb5964a411");
+  assert.equal(platform.webPwa.deploymentId, "dpl_2nahcRyV2VRC4NefBBXfh9QYd5s7");
   assert.equal(platform.webPwa.sourceBoundPublic, true);
-  assert.equal(platform.webPwa.mirrorDriftObservedAndRepaired, true);
-  assert.equal(platform.webPwa.sensitiveRequestTriggered, false);
+  assert.equal(platform.webPwa.walletAliasRestoredToDedicatedProject, true);
+  assert.equal(platform.webPwa.v9SecondLoadVisibleVerified, true);
+  assert.equal(platform.webPwa.recoveryMarkerRemoved, true);
+  assert.equal(platform.webPwa.visibleConnectionStatus, "Not connected");
   assert.equal(platform.webPwa.accountApproved, false);
   assert.equal(platform.webPwa.callback, false);
   assert.equal(platform.webPwa.productSessionV2, false);
