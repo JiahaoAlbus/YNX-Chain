@@ -11,3 +11,7 @@ Evidence: source gate and bundle passed; unit 11/11 (including deterministic dir
 ## Public artifact preflight
 
 [`p0-exchange-public-artifact-bd5edc66.json`](evidence/p0-exchange-public-artifact-bd5edc66.json) pins the no-secret four-file candidate archive from `bd5edc66` (12,233 bytes, SHA-256 `31c29f7e14fdb1e89c1054a89fb724254409bfcbfc2e5514aabf740821cd017f`) and the exact expected HTTP bytes/hashes. Read-only runtime capture found `https://exchange.ynxweb4.com/` served by Caddy with health commit `443286487e057d78cb6b1a686d14bb37be8b3c23`, while the live homepage remains the older 18,603-byte document and `/wallet-connect.js` falls back to it. The artifact is **not deployed**. A new Exchange-only deployment lease must bind that domain, this source/tree, archive hash, release writer, and a verified static rollback snapshot before any upload.
+
+## Android installer gate
+
+[`p0-exchange-android-aab-install-20260821.json`](evidence/p0-exchange-android-aab-install-20260821.json) records a current-source AAB, its locally generated universal APK, test-signing identity, and real `YNX_WALLET_FINAL` install/cold-start/second-start evidence. The app correctly stops at the accepted `PENDING` product API boundary, and no Wallet approval, callback, signature, order, or testnet trade is claimed. The APK and AAB are **local-only**: no Android download URL, production signature, store release, macOS DMG, or Windows EXE/MSIX exists. Do not replace that boundary with a ZIP link.

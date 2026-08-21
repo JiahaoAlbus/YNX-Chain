@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "checkpoint": "Exchange Android AAB local install gate",
+  "capturedAt": "2026-08-21T09:00:00Z",
+  "source": {
+    "commit": "54d613703529a4e1f28c9df0137dca617eaee4db",
+    "tree": "f6612a355755117970e7e527a0fd2f4c7e349c87",
+    "branch": "codex/exchange-wallet-actions-20260809"
+  },
+  "build": {
+    "command": "JAVA_TOOL_OPTIONS=--enable-native-access=ALL-UNNAMED ./gradlew :app:bundleRelease --console=plain --stacktrace",
+    "result": "passed",
+    "androidAppBundle": {
+      "path": "apps/exchange/mobile/android/app/build/outputs/bundle/release/app-release.aab",
+      "bytes": 51732271,
+      "sha256": "c5105e8b02793f1eba298a145f20bb0e49f1f62731a75acfba767573b4b57b9a",
+      "signature": "JAR verified; self-signed YNX Exchange Testnet certificate; no timestamp; not production or Play signing"
+    },
+    "apkSet": {
+      "path": "/tmp/ynx-exchange-release.apks",
+      "bytes": 77732457,
+      "sha256": "29a9fd90ec0123296aa460fae524d61aa2d22e8c11f71c6aa004ac5d2ffd28c5",
+      "classification": "LOCAL_TEST_APK_SET_NOT_A_USER_DOWNLOAD"
+    },
+    "universalApk": {
+      "path": "/tmp/ynx-exchange-release-universal.apk",
+      "bytes": 77732152,
+      "sha256": "535cd2fbc51f63da833be6a53d6337226e065680f672730c61649f8c7da2af4d",
+      "signature": "APK Signature Scheme v2 and v3 verified; certificate SHA-256 10ef77996b2f13f716acea499f674b64abd104ae76929eef6bb52187370755e8; test signing only",
+      "classification": "LOCAL_INSTALLABLE_APK_NOT_HOSTED"
+    }
+  },
+  "device": {
+    "avd": "YNX_WALLET_FINAL",
+    "serial": "emulator-5554",
+    "package": "com.ynxweb4.exchange",
+    "versionName": "1.0.0",
+    "versionCode": 1,
+    "install": "adb install -r universal APK succeeded",
+    "coldStart": {
+      "passed": true,
+      "screenshot": "apps/exchange/evidence/p0-exchange-aab-cold-start-20260821.png",
+      "sha256": "c221697beb0dfdbea8994a4e56731861e9963f305f6af363f7a9e9433671e000",
+      "visible": ["Exchange", "Sign in with YNX Wallet", "YNX TESTNET · OWNED VENUE", "Market data unavailable: API_UNAVAILABLE"]
+    },
+    "secondStart": {
+      "passed": true,
+      "screenshot": "apps/exchange/evidence/p0-exchange-aab-second-start-20260821.png",
+      "sha256": "e478229e3fddc84efa68a77306d5005cc0cf3258bde3ac8f79e11dd802be4f25",
+      "visible": ["Exchange", "Sign in with YNX Wallet", "Market data unavailable", "Markets"]
+    },
+    "wallets": {
+      "ynxWalletInstalled": true,
+      "ynxWalletVersion": "1.0.1",
+      "metaMaskInstalled": false,
+      "accountApproval": false,
+      "walletCallback": false,
+      "signature": false,
+      "testnetTransaction": false
+    },
+    "network": "The installed application correctly preserved its accepted PENDING product-API boundary and made no Exchange product API request. Device-wide Internet reachability and a Wallet approval flow are not claimed by this record."
+  },
+  "releaseGate": {
+    "zipUserInstaller": false,
+    "androidFormat": "APK for direct user installation or AAB for Play delivery only",
+    "androidHosted": false,
+    "macos": "No Exchange macOS application target or DMG was built; do not show a macOS installer link.",
+    "windows": "No Exchange Windows application target or EXE/MSIX was built; do not show a Windows installer link.",
+    "web": "Exchange Web remains separately governed by its immutable public-artifact preflight and has not been deployed from this checkpoint.",
+    "rollback": "No public release was changed. For the emulator-only test, restore only a separately verified local test APK if needed; never treat this as a public rollback pointer."
+  },
+  "truth": {
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false,
+    "installedLocal": true,
+    "coldStart": true,
+    "secondStart": true,
+    "realAccountApproval": false,
+    "realSignature": false,
+    "realTestnetTrade": false
+  }
+}
