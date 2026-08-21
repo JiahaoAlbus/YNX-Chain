@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "WALLET-MACOS-DMG-CI-EVIDENCE-20260821",
+  "recordedAt": "2026-08-21T19:46:19+08:00",
+  "source": {
+    "commit": "4c31f303a5dadee0d60b24528a0bd744094da473",
+    "tree": "241888bbdc3785d856abad862b86a87b03cfc1fc",
+    "providerContractConsumption": "release/integration/wallet-native-provider-contract-consumption-20260821.json",
+    "centralAcceptance": "d3831c300560507f64a50e73117bab7b85926d9a",
+    "sharedProviderContract": "98c6d5d784d212df8981a53b17118a511e246ad2"
+  },
+  "ci": {
+    "runId": 32478627929,
+    "jobId": 96760077986,
+    "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/32478627929/job/96760077986",
+    "conclusion": "success",
+    "xcode": "26.3",
+    "swiftTests": { "executed": 15, "failures": 0 },
+    "artifact": {
+      "id": 9445243962,
+      "bytes": 1834725,
+      "digest": "sha256:6712e4043bee845ad0ea7b9644b6952e1e3c079f4d82a88f642f7863dfba46e4",
+      "downloadInspected": true
+    }
+  },
+  "dmg": {
+    "name": "YNX-Wallet-macOS-ad-hoc.dmg",
+    "bytes": 512016,
+    "sha256": "195e1d99ebf0752b8511a996a08cdcca785644339e02d81e1d30d3f2afefc22f",
+    "minimumMacOS": "13.0",
+    "architectures": ["x86_64", "arm64"],
+    "bundleIdentifier": "com.ynxweb4.wallet.macos",
+    "signingClass": "ad-hoc",
+    "teamIdentifier": null,
+    "developerIdSigned": false,
+    "notarized": false,
+    "storeReleased": false,
+    "dmghdiutilVerified": true,
+    "mountedReadOnly": true,
+    "copiedFromMountedDmg": true,
+    "detachedAfterCopy": true,
+    "installedAppCodesignVerified": true
+  },
+  "runtime": {
+    "hostedMacRunner": true,
+    "coldLaunchPid": 7070,
+    "secondLaunchPid": 7090,
+    "rpcChainId": "0x1917",
+    "rpcResponseBytes": 43,
+    "restStatus": 200,
+    "restResponseBytes": 2193,
+    "canonicalRequestRejected": "CANONICAL_AUTH_BRIDGE_UNAVAILABLE",
+    "malformedCallbackColdStartRejected": "INVALID_DEEP_LINK",
+    "widenedCallbackColdStartRejected": "INVALID_AUTHORIZATION_REQUEST"
+  },
+  "truth": {
+    "hostedDmgInstallColdSecondNetwork": true,
+    "userMacInstall": false,
+    "computerControl": false,
+    "authorizationSuccess": false,
+    "approval": false,
+    "callbackSuccess": false,
+    "account": false,
+    "sign": false,
+    "send": false,
+    "productSession": false,
+    "physicalBiometric": false,
+    "recoverySuccess": false,
+    "publicDownloadHosted": false,
+    "productionSigned": false,
+    "developerIdSigned": false,
+    "notarized": false,
+    "storeReleased": false,
+    "rollbackDrill": false
+  }
+}
