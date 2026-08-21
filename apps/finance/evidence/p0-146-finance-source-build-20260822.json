@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "checkpoint": "P0_146_FINANCE_7824_SOURCE_BUILD_ROLLBACK_BINDING",
+  "classification": "source-build-only; production mutation forbidden",
+  "lease": {
+    "centralCommit": "99db2287ad1a9641b0a89eea7809c862fe595d7b",
+    "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-finance-7824-source-build-20260821T171613Z",
+    "leaseBlob": "9bfb026b0635a4982875aecda45374ba96bcb418",
+    "leaseSha256": "a2de2848bd23a718aa25db705927ae62f79f9939fa5e45db86bd9349b93a2f51",
+    "issuedAt": "2026-08-21T17:16:13Z",
+    "expiresAt": "2026-08-21T17:46:13Z",
+    "productionMutationAllowed": false,
+    "p0141Reusable": false
+  },
+  "source": {
+    "commit": "7824af677dd052d20321431381523ab302614d98",
+    "tree": "3db34ee2397a49852bbdf15e3841e7c9cecf9444",
+    "sharedProviderCommit": "98c6d5d784d212df8981a53b17118a511e246ad2",
+    "sharedProviderTree": "51a60a362d4ad5dd748bcdefb101f71b1d9e0cee",
+    "sharedProviderEvidence": "c3ab255c32bdeb9c8e056882c315f8ad43c29c7f"
+  },
+  "candidate": {
+    "releaseDirectory": "/opt/ynx/releases/finance/ynx-finance-7824af677dd0",
+    "layout": "root-executable-plus-web",
+    "localArchivePath": "/tmp/ynx-finance-7824af677dd0-linux-amd64-p0146.tar.gz",
+    "platform": "linux/amd64",
+    "build": {"goos": "linux", "goarch": "amd64", "cgoEnabled": false, "trimpath": true, "buildvcs": false, "buildTime": "2026-08-21T17:16:13Z"},
+    "archive": {"bytes": 3937491, "sha256": "d8dcd45174dd50c93ef45af7d10d36dc078d6f4982da08dc92b9470e8290a59d"},
+    "binary": {"path": "ynx-finance", "bytes": 8573112, "sha256": "cccdae8ae5b5f694ca7db68540da30582564ff741978e616f7435d448a20fe3e", "format": "ELF 64-bit x86-64 statically linked"},
+    "webAssets": [
+      {"path": "web/index.html", "bytes": 11128, "sha256": "5d95950e9bccbd1012265b3f96eef6ddf2111b0dbd16315583060871ed5328ca"},
+      {"path": "web/app.js", "bytes": 14970, "sha256": "7684dc198cbd91cca40bed56e00c07a1fd49dbe87ea75b18d9141683ba65718b"},
+      {"path": "web/read-sources.js", "bytes": 1440, "sha256": "3812db52ff26bdb3a6fcd3aed0784070306d0097e5c694f27e4c4790913bf3c0"},
+      {"path": "web/styles.css", "bytes": 12073, "sha256": "35c6bb6bc2cb3b8846e848eae32e4fb195d0054ffa209a1fdf91f2ea78cb881c"},
+      {"path": "web/manifest.webmanifest", "bytes": 241, "sha256": "3f7bec35f54aad6a095151e9d4d553e7ea10cbbbcc9e16f0f3fe7abd242b6d05"},
+      {"path": "web/ynx-logo.png", "bytes": 104171, "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d"},
+      {"path": "web/wallet-connect.js", "bytes": 19446, "sha256": "44a2054a7f58bf0458ff466a3f9c4d1a391adab20c321fef74977e8fa2fd4690"}
+    ],
+    "embeddedSha256Sums": {"bytes": 665, "sha256": "9ee03ee881331a16a5f871ef8ee3f100edad988491427cef2bd61f88927da6a6"}
+  },
+  "environmentMigrationDiff": {
+    "classification": "redacted exact one-line replacement; no environment values other than the path are recorded",
+    "file": "/etc/ynx/finance.env",
+    "before": "YNX_FINANCE_WEB_DIR=/opt/ynx/releases/finance/ynx-finance-3b2383f5c18a/web",
+    "after": "YNX_FINANCE_WEB_DIR=/opt/ynx/finance-current/web",
+    "invariant": "All non-YNX_FINANCE_WEB_DIR bytes, ownership, mode and line order must remain unchanged. A future deployment must fsync a same-directory root-owned temporary file, atomically replace the env file, and retain an exact old-byte backup before switching the release symlink."
+  },
+  "rollbackDigestManifest": {
+    "classification": "trusted rollback values bound for a future lease; P0-146 did not read or modify the host",
+    "activeSymlink": {"path": "/opt/ynx/finance-current", "target": "/opt/ynx/releases/finance/ynx-finance-3b2383f5c18a"},
+    "binary": {"path": "/opt/ynx/releases/finance/ynx-finance-3b2383f5c18a/ynx-finance", "bytes": 8573112, "sha256": "0cc43c8a77c12975a0fcbada65971f08f2bc3a52345d547ea194dd3ccd60d83f"},
+    "environment": {"path": "/etc/ynx/finance.env", "sha256": "854e7f1077e8fa4d5a4741918e25d04b0c1a109f2eb9c716b72dae918aa5f252"},
+    "unit": {"path": "/etc/systemd/system/ynx-finance.service", "sha256": "2e72cdad422a3a714c46d074ea97b725233576cf726dbbfd43e82e99c2c2975b", "execStart": "/opt/ynx/finance-current/ynx-finance", "workingDirectory": "/opt/ynx/finance-current"},
+    "caddy": {"sha256": "dcf75a7aed315c54632321b8bb80e44c0abc22f6700fadfbfa9a7da21b88a282"},
+    "futureRollbackOrder": ["restore exact old env bytes", "restore old active symlink target", "restart only under a separately issued production lease", "require old public version and health identities"]
+  },
+  "validation": {
+    "goPackages": "passed: internal/readintegration, internal/finance, apps/finance/cmd/admin, apps/finance/cmd/server",
+    "goRace": "passed: internal/finance",
+    "financeWeb": "passed: 14/14",
+    "releaseEvidence": "passed; deployedPublic=false",
+    "walletVerifier": "passed: provider-only EIP-6963/EIP-1193; no custom-scheme navigation",
+    "migrationEvidence": "passed: sourceAccepted=true; productsConnected=0; migratedV2=false",
+    "webBundle": "passed",
+    "archiveExtraction": "passed: all embedded SHA256SUMS verified",
+    "releaseScan": "passed: no localhost, 127.0.0.1, direct browser RPC endpoint, or ynxwallet:// in packaged web assets",
+    "nativeExecution": "not run on this macOS host because the candidate is Linux amd64; ELF format was verified"
+  },
+  "state": {"sourceOnly": true, "sshUsed": false, "scpUsed": false, "productionMutated": false, "deployed": false, "publicVerified": false, "walletApproval": false, "productSession": false, "computerControl": false}
+}

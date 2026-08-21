@@ -1,0 +1,31 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2026-08-21T17:16:13Z",
+    "component": {
+      "type": "application",
+      "name": "ynx-finance",
+      "version": "ynx-finance-7824af677dd0",
+      "properties": [
+        {"name": "ynx.source.commit", "value": "7824af677dd052d20321431381523ab302614d98"},
+        {"name": "ynx.source.tree", "value": "3db34ee2397a49852bbdf15e3841e7c9cecf9444"},
+        {"name": "ynx.deploy.platform", "value": "linux/amd64"},
+        {"name": "ynx.release.layout", "value": "root-executable-plus-web"},
+        {"name": "ynx.build.cgo", "value": "false"},
+        {"name": "ynx.build.trimpath", "value": "true"}
+      ]
+    }
+  },
+  "components": [
+    {"type": "application", "name": "ynx-finance", "version": "ynx-finance-7824af677dd0", "hashes": [{"alg": "SHA-256", "content": "cccdae8ae5b5f694ca7db68540da30582564ff741978e616f7435d448a20fe3e"}]},
+    {"type": "file", "name": "web/index.html", "hashes": [{"alg": "SHA-256", "content": "5d95950e9bccbd1012265b3f96eef6ddf2111b0dbd16315583060871ed5328ca"}]},
+    {"type": "file", "name": "web/app.js", "hashes": [{"alg": "SHA-256", "content": "7684dc198cbd91cca40bed56e00c07a1fd49dbe87ea75b18d9141683ba65718b"}]},
+    {"type": "file", "name": "web/read-sources.js", "hashes": [{"alg": "SHA-256", "content": "3812db52ff26bdb3a6fcd3aed0784070306d0097e5c694f27e4c4790913bf3c0"}]},
+    {"type": "file", "name": "web/styles.css", "hashes": [{"alg": "SHA-256", "content": "35c6bb6bc2cb3b8846e848eae32e4fb195d0054ffa209a1fdf91f2ea78cb881c"}]},
+    {"type": "file", "name": "web/manifest.webmanifest", "hashes": [{"alg": "SHA-256", "content": "3f7bec35f54aad6a095151e9d4d553e7ea10cbbbcc9e16f0f3fe7abd242b6d05"}]},
+    {"type": "file", "name": "web/ynx-logo.png", "hashes": [{"alg": "SHA-256", "content": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d"}]},
+    {"type": "file", "name": "web/wallet-connect.js", "hashes": [{"alg": "SHA-256", "content": "44a2054a7f58bf0458ff466a3f9c4d1a391adab20c321fef74977e8fa2fd4690"}]}
+  ]
+}
