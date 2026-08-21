@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-012",
+  "auditClass": "SOURCE_AND_PUBLIC_READ_ONLY_REVALIDATION",
+  "branch": "codex/p0-faucet-runtime-20260820",
+  "sourceCommit": "ea0e068becd9103f5f0a2a6c3a0d20ab7932d006",
+  "sourceTree": "c6930d0267c643507d106bab5a1eb331339f206b",
+  "candidate": {
+    "topologySafeHealth": true,
+    "publicVersionRoute": true,
+    "cacheControl": "no-store",
+    "releaseManifest": {
+      "path": "tmp/deploy/ynx-chain-ea0e068becd9/config/release-manifest.json",
+      "release": "ynx-chain-ea0e068becd9",
+      "commit": "ea0e068becd9",
+      "remotePublicProof": false,
+      "verified": true
+    }
+  },
+  "tests": {
+    "go": "go test ./internal/faucet ./cmd/ynx-faucetd passed",
+    "build": "go build ./cmd/ynx-faucetd passed",
+    "releaseManifestEvidenceSelfTest": "passed",
+    "releaseManifestCheck": "passed"
+  },
+  "publicReadOnly": {
+    "observedAt": "2026-08-21T00:31:42Z",
+    "baseUrl": "https://faucet.ynxweb4.com",
+    "health": {
+      "http": 200,
+      "bytes": 595,
+      "sha256": "5cbefa585475bb808393d2c1180ce44b67b8e88374dd87730b7158481b9f320b",
+      "runtimeSource": "8fe48738f309c469bd7a16e31fbfe9e106d7de3c",
+      "runtimeRelease": "ynx-chain-8fe48738f309",
+      "chainId": 6423,
+      "nativeSymbol": "YNXT",
+      "topologySafe": false,
+      "leakedFields": [
+        "rpcUrl=http://127.0.0.1:6420",
+        "requestLog=/var/log/ynx-chain/faucet-requests.jsonl"
+      ]
+    },
+    "version": {
+      "http": 404,
+      "bytes": 19,
+      "sha256": "b16e15764b8bc06c5c3f9f19bc8b99fa48e7894aa5a6ccdad65da49bbf564793",
+      "buildIdentityAvailable": false
+    }
+  },
+  "decision": {
+    "sourceCandidateVerified": true,
+    "currentPublicRuntimeMatchesCandidate": false,
+    "endpointManifestPromotionAllowed": false,
+    "walletFaucetClaimAllowed": false,
+    "publicVerified": false,
+    "computerControlVerified": false,
+    "productionMutationPerformed": false,
+    "nextGate": "A separately authorized bounded Faucet-only deployment must preserve the live request log and funding key, back up the current binary/unit configuration, deploy exact candidate source identity, verify topology-safe /health and build-identifiable /version, and retain rollback evidence."
+  }
+}
