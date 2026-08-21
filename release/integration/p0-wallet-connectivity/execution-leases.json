@@ -1,28 +1,28 @@
 {
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-  "epoch": 44,
-  "updatedAt": "2026-08-21T04:17:21Z",
+  "epoch": 45,
+  "updatedAt": "2026-08-21T05:52:21Z",
   "heavy": {
-    "owner": "financial-apps",
-    "status": "ACTIVE_PAY_CANONICAL_AUTHORIZE_SOURCE_BUILD_VISIBLE_SLICE",
-    "branch": "codex/p0-pay-wallet-connectivity-20260821",
-    "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/04-pay-p0-clean",
-    "taskId": "P0-106",
-    "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-pay-canonical-authorize-20260821T041721Z",
-    "leasedAt": "2026-08-21T04:17:21Z",
-    "expiresAt": "2026-08-21T06:17:21Z",
-    "releasedAt": null,
+    "owner": null,
+    "status": "RELEASED_CHECKPOINT",
+    "branch": "codex/quant-owner-contract-snapshot",
+    "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/08-quant-lab",
+    "taskId": null,
+    "leaseId": null,
+    "leasedAt": null,
+    "expiresAt": null,
+    "releasedAt": "2026-08-21T04:58:00Z",
     "previousOwner": "financial-apps",
-    "previousCheckpoint": "a1fa488ba31db88f8bd274f463f66ded25c18b45",
-    "reason": "Exchange reached a clean pushed canonical-authorize source/build checkpoint with device-visible gates false. Continue strict financial sequence with Pay.",
-    "executionScope": "PAY_CANONICAL_AUTHORIZE_SOURCE_BUILD_VISIBLE_SLICE",
+    "previousTaskId": "P0-110",
+    "previousCheckpoint": "b20a908893010968d92045e8bb0bcb4ab1bd325c",
+    "reason": "QUANT_SAFE_CHECKPOINT_REACHED",
+    "executionScope": null,
     "onSafeCheckpoint": [
-      "consume canonicalWalletAuthorize only through package-root builder/parser",
-      "remove bare or manually concatenated ynxwallet authorize links in Pay owner paths",
-      "preserve MetaMask as an independent EIP-1193/EIP-6963 route",
-      "run focused tests, builds and visible browser/device checks that are actually available",
-      "commit, push, update handoff and stop before DEX or Quant",
-      "do not deploy production or claim installed approval without direct evidence"
+      "P0-106 Pay released at d488c24761d7ceb830883ed38d2bd017374d773c",
+      "P0-109 DEX released at fe82b27c3790bb1ac3be595cc435feac5b398b98",
+      "P0-110 Quant released at b20a908893010968d92045e8bb0bcb4ab1bd325c",
+      "no active Heavy owner",
+      "installed approval, Product Session and transaction execution remain separately gated"
     ]
   },
   "light": {
@@ -68,9 +68,9 @@
   "waveB": [
     {
       "owner": "financial-apps",
-      "status": "ASSIGNED_PAY_LEASE_NOT_ACTIVE",
+      "status": "FINANCE_EXCHANGE_PAY_DEX_QUANT_SOURCE_CHECKPOINTS_HEAVY_RELEASED",
       "dependsOn": "dappConnectSDK@0.1.0-p0.0",
-      "scope": "Finance and Exchange checkpoints are retained. Pay is assigned at a153ef9014e421c70ece70cdbffd8fe5ee3094b9 but requires a new execution lease; DEX and Quant remain reserved."
+      "scope": "Finance, Exchange, Pay, DEX and Quant source/build checkpoints are retained through P0-110. Heavy is released; installed approval, Product Session, public runtime and real transaction evidence remain false and require separate bounded work."
     },
     {
       "owner": "data-fabric",
@@ -82,7 +82,7 @@
   "queue": [
     "wallet-auth-core:registry-v3@failed-preflight-890ef0f8",
     "wallet-auth-core:registry-v3-migration@source-accepted-no-lease",
-    "financial-apps:pay@assigned-no-active-lease",
+    "financial-apps:quant@checkpoint-b20a9088-heavy-released",
     "data-fabric:error-aggregation-checkpoint@da095e24",
     "explorer-monitor:source-policy-checkpoint@f8db7632",
     "card-testnet-e2e:dependencies-prepared",
