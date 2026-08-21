@@ -40,7 +40,9 @@ jobs:
         working-directory: apps/developer
         run: npm test
       - name: Install Windows App Packaging tools
-        run: winget install --id Microsoft.WindowsSDK.10.0.26100 --exact --accept-package-agreements --accept-source-agreements --disable-interactivity
+        run: |
+          winget install --id Microsoft.WindowsSDK.10.0.26100 --exact --accept-package-agreements --accept-source-agreements --disable-interactivity
+          if ($LASTEXITCODE -ne 0) { Write-Host "Windows SDK is already installed or winget reported no available upgrade; package-windows.ps1 will resolve MakeAppx.exe or fail closed." }
       - name: Build portable Windows package
         working-directory: apps/developer
         run: ./scripts/package-windows.ps1

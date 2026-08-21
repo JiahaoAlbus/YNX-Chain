@@ -161,7 +161,12 @@ $manifest = @"
 </Package>
 "@
 [System.IO.File]::WriteAllText((Join-Path $stage "AppxManifest.xml"), $manifest, $utf8NoBom)
-$makeAppx = (Get-Command MakeAppx.exe -ErrorAction Stop).Source
+$makeAppxCommand = Get-Command MakeAppx.exe -ErrorAction SilentlyContinue
+$makeAppx = if ($makeAppxCommand) { $makeAppxCommand.Source } else {
+  Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin" -Filter MakeAppx.exe -Recurse -ErrorAction SilentlyContinue |
+    Sort-Object FullName -Descending | Select-Object -First 1 -ExpandProperty FullName
+}
+if ([string]::IsNullOrWhiteSpace($makeAppx) -or !(Test-Path $makeAppx)) { throw "Windows App Packaging tools (MakeAppx.exe) are required" }
 & $makeAppx pack /d $stage /p $msix /o
 if ($LASTEXITCODE -ne 0 -or !(Test-Path $msix)) { throw "MSIX packaging failed" }
 $certificate = New-SelfSignedCertificate -Type Custom -Subject "CN=YNX Developer Testnet Preview" -KeyUsage DigitalSignature -KeyExportPolicy Exportable -CertStoreLocation "Cert:\CurrentUser\My" -TextExtension @("2.5.29.37={text}1.3.6.1.5.5.7.3.3")
