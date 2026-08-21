@@ -1,22 +1,22 @@
 {
-  "taskId": "P0-106",
+  "taskId": "P0-109",
   "owner": "financial-apps",
-  "status": "ACTIVE_PAY_CANONICAL_AUTHORIZE_SLICE",
-  "acceptedContracts": ["walletTransport@p0-wallet-connection-v1", "errorContract@p0-wallet-connection-v1", "dappConnectSDK@0.1.0-p0.0", "publicEndpointManifest@1.0.0-p0.2", "canonicalWalletAuthorize@1.0.0-p0.0"],
-  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-pay-canonical-authorize-20260821T041721Z",
-  "leasedAt": "2026-08-21T04:17:21Z",
-  "expiresAt": "2026-08-21T06:17:21Z",
+  "status": "ACTIVE_DEX_CANONICAL_AUTHORIZE_SLICE",
+  "acceptedContracts": ["walletTransport@p0-wallet-connection-v1", "errorContract@p0-wallet-connection-v1", "dappConnectSDK@0.1.0-p0.0", "publicEndpointManifest@1.0.0-p0.2", "canonicalWalletAuthorize@1.0.0-p0.0", "safeWalletAuthorizeLauncher@1.0.0-p0.0"],
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-dex-canonical-authorize-20260821T043400Z",
+  "leasedAt": "2026-08-21T04:34:00Z",
+  "expiresAt": "2026-08-21T06:34:00Z",
   "activeProduct": {
-    "id": "pay",
-    "pathLock": "apps/pay/**",
-    "branch": "codex/p0-pay-wallet-connectivity-20260821",
-    "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/04-pay-p0-clean",
-    "baselineCommit": "851dc5b834e0d824f4891dc6e572da1e8d71ca75",
-    "scope": "Consume accepted canonical authorize builder/parser, keep MetaMask independent, then test/build and capture only truthful visible evidence."
+    "id": "dex",
+    "pathLock": "apps/dex/**",
+    "branch": "codex/final-dex",
+    "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/27-dex",
+    "baselineCommit": "aa5d4e5b5999a1dee28ce41adcc509abe96f95e9",
+    "scope": "Consume accepted canonical authorize and safe launcher, keep MetaMask independent, then test/build and capture only truthful visible evidence."
   },
-  "prohibitions": ["do not rewrite shared protocol", "do not hard-code endpoints", "do not start DEX or Quant", "do not deploy production"],
+  "prohibitions": ["do not rewrite shared protocol", "do not hard-code endpoints", "do not start Quant", "do not deploy production"],
   "deployedPublic": false,
   "publicVerified": false,
   "computerControlVerified": false,
-  "nextAction": "Begin Pay at 851dc5b8 and stop after one recoverable canonical-authorize source/build/visible checkpoint."
+  "nextAction": "Begin DEX at aa5d4e5b and stop after one recoverable canonical-authorize and safe-launcher source/build/visible checkpoint."
 }

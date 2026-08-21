@@ -3,7 +3,7 @@
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "contract": "safeWalletAuthorizeLauncher@1.0.0-p0.0",
   "contractSourceCommit": "4679de8e8d0675e2013254c92ff1935191f87c21",
-  "updatedAt": "2026-08-21T04:29:13Z",
+  "updatedAt": "2026-08-21T04:34:00Z",
   "rules": {
     "webExtension": "Never replace the top-level document with ynxwallet://authorize. Use the accepted controlled hidden-frame lifecycle and keep the product page visible.",
     "native": "Resolve an installed handler for the exact canonical request before opening it. Unsupported must preserve the product state and offer the official Wallet download plus an independent MetaMask route where applicable.",
@@ -55,9 +55,24 @@
       "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/04-pay-p0-clean",
       "branch": "codex/p0-pay-wallet-connectivity-20260821",
       "path": "apps/pay/**",
-      "status": "ACTIVE",
+      "status": "SOURCE_BUILD_CHECKPOINT_DEVICE_UNAVAILABLE",
       "taskId": "P0-106",
-      "nextAction": "Finish the current owner atomic slice, consume the accepted native resolver launcher, test, build, commit, push and hand off before DEX."
+      "checkpointCommit": "d488c24761d7ceb830883ed38d2bd017374d773c",
+      "safeLauncherConsumed": true,
+      "walletApprovalVerified": false,
+      "callbackVerified": false,
+      "nextAction": "Preserve the exact source/build checkpoint; a separate device-visible slice is still required."
+    },
+    {
+      "product": "dex",
+      "owner": "financial-apps",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/27-dex",
+      "branch": "codex/final-dex",
+      "path": "apps/dex/**",
+      "status": "ACTIVE",
+      "taskId": "P0-109",
+      "startingCommit": "aa5d4e5b5999a1dee28ce41adcc509abe96f95e9",
+      "nextAction": "Consume canonical request and accepted safe launcher, keep MetaMask independent, test/build and stop before Quant."
     },
     {
       "product": "creator-studio",
