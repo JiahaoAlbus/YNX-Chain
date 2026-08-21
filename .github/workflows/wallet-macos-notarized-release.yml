@@ -91,7 +91,10 @@ jobs:
           CERTIFICATE="$RUNNER_TEMP/ynx-developer-id.p12"
           NOTARY_KEY="$RUNNER_TEMP/AuthKey_$YNX_NOTARY_KEY_ID.p8"
           KEYCHAIN="$RUNNER_TEMP/ynx-wallet-signing.keychain-db"
+          ORIGINAL_KEYCHAINS="$RUNNER_TEMP/ynx-wallet-original-keychains.txt"
           KEYCHAIN_PASSWORD="$(openssl rand -hex 24)"
+          security list-keychains -d user > "$ORIGINAL_KEYCHAINS"
+          printf 'YNX_SIGNING_KEYCHAIN=%s\nYNX_NOTARY_KEY_PATH=%s\nYNX_ORIGINAL_KEYCHAINS_PATH=%s\n' "$KEYCHAIN" "$NOTARY_KEY" "$ORIGINAL_KEYCHAINS" >> "$GITHUB_ENV"
           printf '%s' "$YNX_DEVELOPER_ID_P12_BASE64" | base64 --decode > "$CERTIFICATE"
           printf '%s' "$YNX_NOTARY_PRIVATE_KEY_P8_BASE64" | base64 --decode > "$NOTARY_KEY"
           test -s "$CERTIFICATE"
@@ -103,7 +106,6 @@ jobs:
           security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
           security list-keychains -d user -s "$KEYCHAIN"
           security find-identity -v -p codesigning "$KEYCHAIN" | grep -F "$YNX_DEVELOPER_ID_APPLICATION"
-          printf 'YNX_SIGNING_KEYCHAIN=%s\nYNX_NOTARY_KEY_PATH=%s\n' "$KEYCHAIN" "$NOTARY_KEY" >> "$GITHUB_ENV"
       - name: Build, Developer ID sign, notarize and staple the universal app and DMG
         shell: bash
         run: |
@@ -194,6 +196,17 @@ jobs:
         if: always()
         shell: bash
         run: |
+          if test -n "${YNX_ORIGINAL_KEYCHAINS_PATH:-}" && test -f "$YNX_ORIGINAL_KEYCHAINS_PATH"; then
+            original_keychains=()
+            while IFS= read -r keychain; do
+              keychain="${keychain#\"}"
+              keychain="${keychain%\"}"
+              test -z "$keychain" || original_keychains+=("$keychain")
+            done < "$YNX_ORIGINAL_KEYCHAINS_PATH"
+            if test "${#original_keychains[@]}" -gt 0; then
+              security list-keychains -d user -s "${original_keychains[@]}" || true
+            fi
+          fi
           if test -n "${YNX_SIGNING_KEYCHAIN:-}" && test -f "$YNX_SIGNING_KEYCHAIN"; then
             security delete-keychain "$YNX_SIGNING_KEYCHAIN" || true
           fi
@@ -201,3 +214,4 @@ jobs:
             rm -f "$YNX_NOTARY_KEY_PATH"
           fi
           rm -f "$RUNNER_TEMP/ynx-developer-id.p12"
+          rm -f "${YNX_ORIGINAL_KEYCHAINS_PATH:-}"
