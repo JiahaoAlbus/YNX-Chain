@@ -2,32 +2,16 @@ import { app, BrowserWindow, ipcMain } from "electron";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { YNX_TESTNET_CHAIN_QUANTITY } from "@ynx-chain/wallet-auth";
+import { CANONICAL_RPC_URL, probeYNXTestnetRPC } from "./rpc.mjs";
+import { YNX_TESTNET_CHAIN_QUANTITY } from "./wallet-auth-contract.mjs";
 
 const directory = path.dirname(fileURLToPath(import.meta.url));
 // Canonical public RPC from Central endpoint matrix d0f89797d13c7667cc187b0c64d5c9e1cb1d8f59.
-const rpcUrl = process.env.YNX_WALLET_RPC_URL || "https://rpc.ynxweb4.com/evm";
+const rpcUrl = process.env.YNX_WALLET_RPC_URL || CANONICAL_RPC_URL;
 const evidencePath = process.env.YNX_WALLET_EVIDENCE_PATH;
 
 async function rpcStatus() {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 10_000);
-  try {
-    const response = await fetch(rpcUrl, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "eth_chainId", params: [] }),
-      signal: controller.signal
-    });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const payload = await response.json();
-    if (payload.result !== YNX_TESTNET_CHAIN_QUANTITY) throw new Error("wrong chain");
-    return { available: true, chainId: payload.result, endpoint: rpcUrl, signingEnabled: false };
-  } catch {
-    return { available: false, chainId: null, endpoint: rpcUrl, signingEnabled: false };
-  } finally {
-    clearTimeout(timeout);
-  }
+  return probeYNXTestnetRPC({ rpcUrl, expectedChainId: YNX_TESTNET_CHAIN_QUANTITY });
 }
 
 async function recordEvidence(status, window) {
@@ -36,6 +20,7 @@ async function recordEvidence(status, window) {
   try { prior = JSON.parse(await readFile(evidencePath, "utf8")); } catch {}
   const evidence = {
     schemaVersion: 1,
+    appVersion: app.getVersion(),
     launches: Number(prior.launches || 0) + 1,
     visibleShellReady: true,
     window: {
