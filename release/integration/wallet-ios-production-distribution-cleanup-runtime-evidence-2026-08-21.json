@@ -1,0 +1,113 @@
+{
+  "schemaVersion": 1,
+  "owner": "02-wallet-auth-ios-macos-native",
+  "evidenceKind": "ios-distribution-cleanup-runtime-without-production-secrets",
+  "implementation": {
+    "commit": "8c7981ca5c645db4428c7c54bb619e72fac4b04a",
+    "parent": "77225b3ca830b3edaf7ae4cd5f7fbb3b619f380e",
+    "branch": "codex/wallet-ios-macos-20260813",
+    "files": [
+      {
+        "path": ".github/workflows/wallet-ios-production-distribution.yml",
+        "blob": "7f7af0010648f8a74fc3974f599b00016237750e",
+        "bytes": 19794,
+        "sha256": "0dd3894f36501fa7b733af20b778b296bca446b0ba369849d4b6aef975171ad4"
+      },
+      {
+        "path": "apps/wallet/ios/scripts/verify-production-distribution-source.rb",
+        "blob": "6ac150cfca603283afb5b8307bba1cd3412a57b1",
+        "bytes": 4182,
+        "sha256": "2f6fa3876d694e94b44e2b986288fb8b8f20728c8ddd61b97cb86bdd626c298e",
+        "mode": "100755"
+      }
+    ],
+    "distributionRequiresCleanupRuntimeJob": true,
+    "cleanupRuntimeUsesProductionEnvironment": false,
+    "cleanupRuntimeUsesProductionCredentials": false
+  },
+  "hostedValidation": {
+    "workflow": "wallet-ios-production-distribution",
+    "runId": 32490989710,
+    "headSha": "8c7981ca5c645db4428c7c54bb619e72fac4b04a",
+    "status": "completed",
+    "conclusion": "success",
+    "createdAt": "2026-08-21T14:13:37Z",
+    "updatedAt": "2026-08-21T14:14:07Z",
+    "publicRunUrl": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/32490989710",
+    "publicRunLogBytes": 69700,
+    "publicRunLogSha256": "7a94e005748143b3ea5738fa0daeae869f1d01b7aeb3f9118ac5c81d0f9a49f1",
+    "exactHeadActionsRuns": 1,
+    "exactHeadWalletIosSimulatorRuns": 0,
+    "sourceContract": {
+      "jobId": 96798326523,
+      "startedAt": "2026-08-21T14:13:41Z",
+      "completedAt": "2026-08-21T14:13:50Z",
+      "conclusion": "success",
+      "receipt": "wallet iOS production distribution source contract verified",
+      "publicJobUrl": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/32490989710/job/96798326523"
+    },
+    "cleanupRuntime": {
+      "jobId": 96798383249,
+      "startedAt": "2026-08-21T14:13:53Z",
+      "completedAt": "2026-08-21T14:14:06Z",
+      "conclusion": "success",
+      "publicJobUrl": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/32490989710/job/96798383249",
+      "productionCredentialsUsed": false,
+      "originalSearchListRestored": true,
+      "expectedSha256": "639c7ce873ef63cbb5df5bf4602d923ddebd05328187d805c21e39bcdbcca5ce",
+      "restoredSha256": "639c7ce873ef63cbb5df5bf4602d923ddebd05328187d805c21e39bcdbcca5ce",
+      "temporaryKeychainDeleted": true,
+      "p12Deleted": true,
+      "profileSourceDeleted": true,
+      "profilePlistDeleted": true,
+      "installedProfileDeleted": true,
+      "ascKeyDeleted": true
+    },
+    "distribution": {
+      "jobId": 96798468901,
+      "conclusion": "skipped",
+      "publicJobUrl": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/32490989710/job/96798468901",
+      "productionEnvironmentEntered": false,
+      "productionCredentialsInspected": false,
+      "archiveExecuted": false,
+      "artifactProduced": false
+    }
+  },
+  "registration": {
+    "defaultMainWorkflowPathPresent": false,
+    "defaultMainRegisteredWorkflowCount": 0,
+    "workflowDispatchAvailableFromDefaultMain": false,
+    "productionWorkflowDispatched": false
+  },
+  "gates": {
+    "iosProductionDistributionSourceReady": true,
+    "hostedSourceContractVerified": true,
+    "sharedDistributionCleanupRuntimeVerifiedWithoutProductionSecrets": true,
+    "productionDistributionCleanupRuntimeVerified": false,
+    "productionWorkflowRegistered": false,
+    "productionWorkflowDispatched": false,
+    "realAppleTeamIdVerified": false,
+    "appleDistributionIdentityVerified": false,
+    "appStoreProvisioningProfileVerified": false,
+    "distributionArchiveProduced": false,
+    "distributionIpaProduced": false,
+    "distributionIpaArtifactUploaded": false,
+    "appStoreConnectUploadSubmitted": false,
+    "testFlightProcessingVerified": false,
+    "testFlightBuildAvailable": false,
+    "physicalDeviceInstalled": false,
+    "physicalDeviceColdLaunch": false,
+    "physicalDeviceSecondLaunch": false,
+    "appStoreReleased": false,
+    "websiteIosDownloadPublished": false,
+    "universalLinkSuccess": false,
+    "physicalBiometricVerified": false,
+    "productRecoverySuccess": false,
+    "authorizationSuccess": false,
+    "accountAvailable": false,
+    "productSessionVerified": false,
+    "signSuccess": false,
+    "sendSuccess": false,
+    "transactionSuccess": false
+  }
+}
