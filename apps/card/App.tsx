@@ -72,7 +72,7 @@ export default function App(){
   },[session,tr]);
 
   const handleURL=useCallback(async(url:string)=>{
-    if(!url.startsWith("ynxcard://wallet-auth/callback"))return;
+    if(!isCardWalletCallback(url))return;
     const connection=productWallet.current;
     if(!connection)return;
     setBusy(true);
@@ -292,6 +292,27 @@ export default function App(){
     if(mounted.current)setSimulationBusy(false);
   };
 
+  const beginYNXWalletAuthorization=async():Promise<"wallet-opened"|"wallet-unavailable"|"wallet-open-failed">=>{
+    setBusy(true);
+    setWalletError("");
+    try{
+      const connection=await createRuntimeCardProductWalletConnection();
+      productWallet.current=connection;
+      const outcome=await connection.beginYNX();
+      const coordinator=record(outcome),state=productRuntimeState(outcome);
+      if(coordinator?.status==="wallet-opened"&&state==="connecting"){
+        if(mounted.current)setPending(true);
+        return "wallet-opened";
+      }
+      if(state==="retry-required")return "wallet-unavailable";
+      if(mounted.current)setPrivateSession(productRuntime(outcome));
+      return "wallet-open-failed";
+    }catch(e){
+      if(mounted.current)setWalletError(classifyCardWalletError(e).safeMessage);
+      return "wallet-open-failed";
+    }finally{setBusy(false)}
+  };
+
   const signIn=async()=>{
     if(!walletSession){setError(tr("connectWalletFirst"));return;}
     setBusy(true);
@@ -336,7 +357,7 @@ export default function App(){
     </View>
 
     {!session?
-      <GuestExperience connectWallet={connectEvmWallet} enablePrivateServices={signIn} walletSession={walletSession} walletBusy={walletBusy} walletError={walletError} privateSession={privateSession}/>
+      <GuestExperience locale={locale} connectWallet={connectEvmWallet} connectYNXWallet={beginYNXWalletAuthorization} enablePrivateServices={signIn} walletSession={walletSession} walletBusy={walletBusy} walletError={walletError} privateSession={privateSession}/>
     :
       <>
         <View style={s.stage}>
@@ -392,6 +413,7 @@ function productRuntime(value:unknown):ProductSessionRuntime{
 }
 function productRuntimeState(value:unknown):string|undefined{return record(record(value)?.sessionState)?.status as string|undefined}
 function record(value:unknown):Record<string,unknown>|null{return typeof value==="object"&&value!==null&&!Array.isArray(value)?value as Record<string,unknown>:null}
+function isCardWalletCallback(value:string):boolean{try{const callback=new URL(value);return(callback.protocol==="ynxcard:"&&callback.hostname==="wallet-auth"&&callback.pathname==="/callback")||(callback.protocol==="https:"&&callback.hostname==="card.ynxweb4.com"&&callback.pathname==="/wallet-auth/callback"&&!callback.username&&!callback.password&&!callback.hash)}catch{return false}}
 
 function SignedOut({c,tr,busy,pending,error,signIn,walletSession,walletBusy,walletError,privateSession,connectWallet}:{c:Colors;tr:T;busy:boolean;pending:boolean;error:string;signIn:()=>Promise<void>;walletSession:Eip1193WalletSession|null;walletBusy:boolean;walletError:string;privateSession:ProductSessionRuntime|null;connectWallet:()=>Promise<void>}){
   return <ScrollView contentContainerStyle={s.center}>
