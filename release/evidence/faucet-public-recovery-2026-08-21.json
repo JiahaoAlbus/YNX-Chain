@@ -275,7 +275,12 @@
     "status": "opened",
     "defaultLanguage": "en",
     "visibleText": ["YNX Testnet Faucet", "Request test-only YNXT for the YNX Testnet.", "Request test YNXT"],
-    "claimClick": "not repeated in Chrome because it would create another real Testnet transfer; API evidence above records real transfers and error states."
+    "claimClick": "not repeated in Chrome because it would create another real Testnet transfer; API evidence above records real transfers and error states.",
+    "postDeploymentFirstOpenAndRefresh": {
+      "firstOpen": "https://faucet.ynxweb4.com/ rendered YNX Testnet Faucet in English",
+      "refresh": "same URL and English Faucet controls rendered after reload",
+      "visibleControls": ["YNX wallet address", "Request test YNXT"]
+    }
   },
   "postDeployment": {
     "remoteInstall": {
