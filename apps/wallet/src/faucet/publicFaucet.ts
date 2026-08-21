@@ -1,12 +1,12 @@
 export const OFFICIAL_FAUCET_URL = "https://faucet.ynxweb4.com";
 export const ACCEPTED_FAUCET_MANIFEST = Object.freeze({
-  version: "1.0.0-p0.3",
-  payloadSha256: "886ae7a2f4ef691301483da037cd4f5e1274b697865834769f20f0e799952157",
+  version: "1.0.0-p0.4",
+  payloadSha256: "6d8ca3adfef00d1dc55367fee13ff2ada96953a1dcaab43547428edfee40a998",
   healthUrl: "https://faucet.ynxweb4.com/health",
   versionUrl: "https://faucet.ynxweb4.com/version",
   requestUrl: "https://faucet.ynxweb4.com/request",
   chainId: 6423,
-  release: "ynx-chain-ea0e068becd9",
+  release: "ynx-chain-02cf44d17b50",
 });
 const HEALTH_URL = `${OFFICIAL_FAUCET_URL}/health`;
 const VERSION_URL = `${OFFICIAL_FAUCET_URL}/version`;
@@ -53,7 +53,7 @@ export async function loadPublicFaucetHealth(fetcher: FetchLike = fetch): Promis
     throw new FaucetEndpointError("FAUCET_VERSION_INCOMPATIBLE", "Faucet health contract is invalid. Only Testnet Faucet is degraded; Wallet accounts, chain reads, and Connected Apps remain separate.", "HEALTH_CONTRACT_INVALID");
   }
   const version = await readJSON(fetcher, VERSION_URL, { method: "GET", headers: { Accept: "application/json" } }, "version");
-  if (!safePublicVersion(version) || version.build.commit !== value.build.commit || version.build.release !== value.build.release || version.build.commit !== "ea0e068becd9" || version.build.release !== ACCEPTED_FAUCET_MANIFEST.release) {
+  if (!safePublicVersion(version) || version.build.commit !== value.build.commit || version.build.release !== value.build.release || version.build.commit !== "02cf44d17b50" || version.build.release !== ACCEPTED_FAUCET_MANIFEST.release) {
     throw new FaucetEndpointError("FAUCET_VERSION_INCOMPATIBLE", "Faucet version proof is incomplete. Only Testnet Faucet is degraded; Wallet accounts, chain reads, and Connected Apps remain separate.", "VERSION_PROOF_INCOMPLETE");
   }
   return Object.freeze(value as PublicFaucetHealth);

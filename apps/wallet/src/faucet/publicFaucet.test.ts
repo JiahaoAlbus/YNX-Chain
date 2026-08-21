@@ -3,12 +3,12 @@ import test from "node:test";
 import { ACCEPTED_FAUCET_MANIFEST, FaucetEndpointError, loadPublicFaucetHealth, requestPublicFaucet } from "./publicFaucet";
 
 const account = "ynx1m72s7l4r8m96q696jnmtn7ltdv44u855drqcql";
-const build = {commit:"ea0e068becd9",release:"ynx-chain-ea0e068becd9",buildTime:"2026-08-21T00:46:46Z"};
+const build = {commit:"02cf44d17b50",release:"ynx-chain-02cf44d17b50",buildTime:"2026-08-21T01:11:19Z"};
 const health = { ok: true, service: "ynx-faucetd", upstreamOk: true, chainId: 6423, height: 101, nativeSymbol: "YNXT", dependencies:[{name:"chain-rpc",required:true,ok:true}], build, startedAt:"2026-08-21T00:46:00Z", truthfulStatus: "rpc-backed-faucet" };
 
 test("public faucet health requires a safe health response plus a public release identity", async () => {
   let calls = 0;
-  assert.equal(ACCEPTED_FAUCET_MANIFEST.payloadSha256,"886ae7a2f4ef691301483da037cd4f5e1274b697865834769f20f0e799952157");
+  assert.equal(ACCEPTED_FAUCET_MANIFEST.payloadSha256,"6d8ca3adfef00d1dc55367fee13ff2ada96953a1dcaab43547428edfee40a998");
   assert.equal((await loadPublicFaucetHealth(async () => json(calls++ === 0 ? health : version))).service, "ynx-faucetd");
   await assert.rejects(() => loadPublicFaucetHealth(async () => json({ ...health, rpcUrl: "http://127.0.0.1:6420" })), (error: unknown) => error instanceof FaucetEndpointError && error.code === "FAUCET_VERSION_INCOMPATIBLE");
   await assert.rejects(() => loadPublicFaucetHealth(async () => json({ ...health, chainId: 1 })), (error: unknown) => error instanceof FaucetEndpointError && error.code === "FAUCET_VERSION_INCOMPATIBLE");
