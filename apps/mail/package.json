@@ -13,6 +13,7 @@
     "supply-chain": "node scripts/generate-supply-chain-evidence.mjs",
     "build:android": "cd native/android && ./gradlew --no-daemon :app:assembleDebug",
     "browser:proof": "node tests/browser-proof.cjs",
+    "wallet:visible": "node tests/wallet-visible-proof.cjs",
     "check:ios": "swiftc -frontend -parse native/ios/YNXMail/YNXMailApp.swift && plutil -lint native/ios/YNXMail/Info.plist native/ios/YNXMail.xcodeproj/project.pbxproj",
     "smoke": "sh tests/smoke.sh"
   },
