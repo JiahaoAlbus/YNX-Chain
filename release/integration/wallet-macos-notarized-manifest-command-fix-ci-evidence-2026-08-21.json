@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-08-21T16:10:34Z",
+  "owner": "Wallet/Auth macOS native",
+  "evidenceKind": "notarized-release-manifest-command-source-fix-and-hosted-ci",
+  "implementationCommit": "04074a1f921693659b81111b9df638553c1b8ad4",
+  "implementationTree": "f2bd2451a4f6a469a5892787e230ed54b8904d41",
+  "sourceBackread": {
+    "apps/wallet/macos/scripts/verify-notarized-dmg.sh": {
+      "gitBlob": "094aa5e4b900b88a95e615dda8b7519db0a9bbf0",
+      "bytes": 8491,
+      "sha256": "6fe8a624b4a376d66d30a3d7bb804a5a8a79126fb4c03493afd2fcee016e1fbf"
+    },
+    "apps/wallet/macos/scripts/verify-notarized-release-source.rb": {
+      "gitBlob": "ae5bd986b23b14845330b99a740b45c15946a374",
+      "bytes": 3551,
+      "sha256": "46dcc33323740d380a3b4f5dca328f1da426876cb4d765699b8c1cde1262f469"
+    }
+  },
+  "repair": {
+    "fault": "The final notarized DMG manifest jq command contained literal plus-sign shell arguments and would fail before writing native-dmg-release-manifest.json.",
+    "change": "The jq arguments are now valid backslash-continued shell arguments and the source verifier rejects the former invalid fragments.",
+    "productionCredentialsRead": false,
+    "productionWorkflowDispatched": false,
+    "developerIDSignedArtifactProduced": false,
+    "notarizationSubmitted": false,
+    "manifestRuntimeWithProductionInputsVerified": false
+  },
+  "githubActions": {
+    "runId": 32501431991,
+    "jobId": 96831767383,
+    "headSha": "04074a1f921693659b81111b9df638553c1b8ad4",
+    "headShaExact": true,
+    "status": "completed",
+    "conclusion": "success",
+    "createdAt": "2026-08-21T16:09:07Z",
+    "completedAt": "2026-08-21T16:10:33Z",
+    "xcode": "26.3",
+    "steps": {
+      "immutableActionPins": "success",
+      "notarizedReleaseSourceContract": "success",
+      "nativeTests": "success",
+      "adHocUniversalBuild": "success",
+      "testnetGatewayFailClosed": "success",
+      "signingKeychainCleanupWithoutProductionSecrets": "success",
+      "keychainRecoveryFailClosed": "success",
+      "coldSecondCallbackRegression": "success",
+      "artifactUpload": "success"
+    },
+    "nativeTests": {
+      "executed": 17,
+      "failures": 0
+    },
+    "regressionRuntime": {
+      "coldPid": 3494,
+      "secondPid": 3533,
+      "canonicalFailClosedVisible": true,
+      "canonicalResult": "CANONICAL_AUTH_BRIDGE_UNAVAILABLE",
+      "callbackColdPid": 3774,
+      "callbackColdResult": "INVALID_DEEP_LINK",
+      "widenedCallbackColdPid": 3794,
+      "widenedCallbackColdResult": "INVALID_AUTHORIZATION_REQUEST",
+      "authorizationSuccess": false,
+      "signing": false,
+      "callbackEmitted": false,
+      "productRecovery": false
+    },
+    "actionsArtifact": {
+      "id": 9453665648,
+      "name": "ynx-wallet-macos-native",
+      "metadataBytes": 1401579,
+      "metadataDigest": "sha256:8af4a92e15aaa82cfe7f7ed053d7c26062cde2ccf3a637f46c3fc192c506274a",
+      "signingClass": "ad-hoc engineering",
+      "downloadInspected": false
+    }
+  },
+  "promotedGates": {
+    "notarizedManifestCommandSourceRepaired": true,
+    "notarizedManifestCommandHostedSourceContractVerified": true
+  },
+  "remainingFalse": {
+    "defaultMainWorkflowRegistered": false,
+    "productionOperatorInputsAvailable": false,
+    "productionCredentialsUsed": false,
+    "developerIDSigned": false,
+    "notarizationAccepted": false,
+    "appStapled": false,
+    "dmgStapled": false,
+    "gatekeeperAccepted": false,
+    "notarizedNativeDmgProduced": false,
+    "githubReleasePublished": false,
+    "websitePublished": false,
+    "systemApplicationsInstalled": false,
+    "authorizationSuccess": false,
+    "account": false,
+    "productSession": false,
+    "sign": false,
+    "send": false,
+    "transaction": false,
+    "biometricSuccess": false,
+    "recoverySuccess": false,
+    "appStore": false
+  }
+}
