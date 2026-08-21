@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "owner": "Wallet Desktop/CLI/SDK",
+  "consumer": "Website release owner",
+  "sourceCommit": "6583c3fb83feb1ccd0106014b637c5ce6a2b1d8e",
+  "artifact": {
+    "name": "ynx-wallet-desktop-0.1.1-universal.dmg",
+    "repositoryPath": "apps/wallet-desktop/dist/ynx-wallet-desktop-0.1.1-universal.dmg",
+    "version": "0.1.1",
+    "sha256": "ad6e4077bc001743cf1a4163ceaca5a009a3c8a4d8a809cc4896798976cf56c0",
+    "bytes": 236661996,
+    "minimumOS": "macOS 12.0",
+    "architectures": ["x86_64", "arm64"],
+    "signingClass": "unsigned-testnet-preview-dmg; contained main executable linker-ad-hoc only"
+  },
+  "productLabel": "YNX Wallet Desktop 0.1.1 - macOS Universal - Unsigned Testnet Preview",
+  "requiredOfficialDownload": {
+    "origin": "https://www.ynxweb4.com",
+    "immutablePath": null,
+    "contentType": "application/x-apple-diskimage",
+    "contentDisposition": "attachment",
+    "verifyFullRemoteSha256": true,
+    "verifyFullRemoteBytes": true
+  },
+  "directLifecycleEvidence": {
+    "path": "apps/wallet-desktop/evidence/macos-universal-dmg-lifecycle-20260821.json",
+    "installedLocal": true,
+    "coldLaunchProved": true,
+    "secondLaunchProved": true,
+    "testnetChainIdProved": true,
+    "rollbackProved": true,
+    "uninstallProved": true
+  },
+  "publicationGates": {
+    "downloadHosted": false,
+    "deployedPublic": false,
+    "productionSigned": false,
+    "notarized": false,
+    "storeReleased": false
+  },
+  "operatorAction": "Upload the exact bytes to the authorized official download store, bind a content-addressed ynxweb4.com URL, expose the metadata in the Wallet download registry, download the full file from the official URL, and verify status, headers, bytes, and SHA-256 before changing hosted/public booleans."
+}
