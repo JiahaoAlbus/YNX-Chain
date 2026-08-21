@@ -8,7 +8,7 @@ import{action,apply as applyForCard,createTestnetTopupIntent,dispute as openDisp
 import{catalogs,date,isLocale,isRTL,localeNames,locales,money,t as translate,type Locale}from"./src/i18n";
 import{loadLocale,loadPendingAuthorization,loadSession,loadSimulationAudit,saveLocale,savePendingAuthorization,saveSession,saveSimulationAudit}from"./src/secureState";
 import{createRuntimeCardProductWalletConnection,type CardProductWalletConnection}from"./src/productWalletRuntime";
-import{approveTestnetTopup,classifyCardWalletError,connectEip1193Wallet,connectMetaMaskWallet,createAuthorization,loadTestnetTopupEvidence,parseWalletAuthorizationCallback,parseYnxtAmountToWei,resolveEip1193Provider,resolveMetaMaskEip1193Provider,walletDeepLink,type CardSession,type Eip1193Provider,type Eip1193WalletSession,type PendingAuthorizationRequest,type ProductSessionRuntime,type TopupEvidence}from"./src/wallet";
+import{approveTestnetTopup,classifyCardWalletError,connectEip1193Wallet,connectMetaMaskWallet,createAuthorization,loadTestnetTopupEvidence,parseWalletAuthorizationCallback,parseYnxtAmountToWei,resolveEip1193Provider,resolveMetaMaskEip1193Provider,restoreMetaMaskWallet,watchMetaMaskProvider,walletDeepLink,YNX_TESTNET_CHAIN_ID,type CardSession,type Eip1193Provider,type Eip1193WalletSession,type PendingAuthorizationRequest,type ProductSessionRuntime,type TopupEvidence}from"./src/wallet";
 import{isFailure,recoverLastFailed,replayAwareAppend,SimulationAuditRecord,TESTNET_SIMULATION_CURRENCY,TESTNET_SIMULATION_MAX_EVENTS,type SimulationInput as LedgerSimulationInput}from"./src/simulation";
 import{GuestExperience}from"./src/GuestExperience";
 
@@ -57,6 +57,7 @@ export default function App(){
   const mounted=useRef(true);
   const productWallet=useRef<CardProductWalletConnection|null>(null);
   const walletProvider=useRef<Eip1193Provider|null>(null);
+  const walletProviderKind=useRef<"standard"|"metamask"|null>(null);
   const pendingAuthorization=useRef<PendingAuthorizationRequest|null>(null);
   const persistSimulationLedger=useCallback(async(next:readonly SimulationAuditRecord[])=>{
     const normalized=Object.freeze(next.slice(0,TESTNET_SIMULATION_MAX_EVENTS));
@@ -139,6 +140,7 @@ export default function App(){
       if(!provider){setWalletError(tr("walletNotAvailable"));return;}
       const next=await connectEip1193Wallet(provider,new Date());
       walletProvider.current=provider;
+      walletProviderKind.current="standard";
       setWalletSession(next);
       setPrivateSession(null);
       setTopupIntent(null);
@@ -159,6 +161,7 @@ export default function App(){
       if(!provider){setWalletError("MetaMask is not installed or could not be uniquely identified.");return;}
       const next=await connectMetaMaskWallet(new Date(),provider);
       walletProvider.current=provider;
+      walletProviderKind.current="metamask";
       setWalletSession(next);
       setPrivateSession(null);
       setTopupIntent(null);
@@ -167,6 +170,22 @@ export default function App(){
     }catch(e){setWalletError(classifyCardWalletError(e).safeMessage);}
     finally{if(mounted.current)setWalletBusy(false);}
   };
+
+  useEffect(()=>{
+    if(walletProviderKind.current!=="metamask"||!walletSession)return;
+    return watchMetaMaskProvider(walletProvider.current,{
+      accountsChanged:accounts=>{if(!mounted.current)return;if(!accounts[0]){setWalletSession(null);setWalletError("MetaMask account access was removed.");return;}setWalletSession(current=>current?{...current,address:accounts[0]??current.address,connectedAt:new Date().toISOString()}:current);},
+      chainChanged:chainId=>{if(!mounted.current)return;if(chainId!==YNX_TESTNET_CHAIN_ID){setWalletSession(null);setWalletError("MetaMask switched away from YNX Testnet.");}else setWalletSession(current=>current?{...current,chainId,connectedAt:new Date().toISOString()}:current);},
+      disconnect:()=>{if(mounted.current){setWalletSession(null);setWalletError("MetaMask disconnected. Reconnect to continue.");}},
+    });
+  },[walletSession]);
+
+  useEffect(()=>{
+    if(Platform.OS!=="web")return;
+    const resume=()=>void(async()=>{if(document.visibilityState!=="visible"||walletSession)return;const provider=await resolveMetaMaskEip1193Provider();const restored=await restoreMetaMaskWallet(new Date(),provider);if(restored&&mounted.current){walletProvider.current=provider;walletProviderKind.current="metamask";setWalletSession(restored);setWalletError("");}})().catch(()=>{});
+    document.addEventListener("visibilitychange",resume);
+    return()=>document.removeEventListener("visibilitychange",resume);
+  },[walletSession]);
 
   const requestTopupIntent=async()=>{
     if(!session)throw new Error(tr("sessionExpired"));
