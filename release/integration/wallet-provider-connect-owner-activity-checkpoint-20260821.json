@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "evidenceId": "WALLET-PROVIDER-CONNECT-OWNER-ACTIVITY-CHECKPOINT-20260821",
   "owner": "wallet-protocol-router",
-  "auditedAt": "2026-08-21T11:42:47Z",
+  "auditedAt": "2026-08-21T12:01:06Z",
   "authoritativeHandoffParent": "d3831c300560507f64a50e73117bab7b85926d9a",
   "sharedContract": {
     "sourceCommit": "98c6d5d784d212df8981a53b17118a511e246ad2",
@@ -40,14 +40,28 @@
   "stalledOwners": ["card", "creator-studio", "finance-suite-finance", "finance-suite-quant", "social", "video"],
   "faucetTracking": {
     "modifiedByProtocolOwner": false,
-    "ownerBranchHead": "36bc953f86a4843d992e70aa5fc86cb3e0e95e53",
-    "candidateSource": "d644c0821b615938e88e55ff6b073873e18f8e73",
-    "candidateBinarySha256": "3a624f6cb0a0df3956e8ab382c03cdd8b2ae156f984974df5088d518f75acaa8",
-    "immutableEvidenceSha256": "5cb1eb3200f421649bcaa913506783b3974025c9145e78449bcbae3c5c8a9c03",
-    "immutableEvidenceRuntimeSource": "62f7cf4bfc38",
-    "immutableEvidenceCandidateStatus": "candidate_not_deployed",
-    "identityPromoted": false,
-    "blocker": "The newer d644c082 identity lacks a matching pushed immutable post-deploy public /version and health evidence checkpoint; keep it tracked but unpromoted."
+    "observedOwnerBranchHead": "6797af693aae622b498a25bc3a57f6742fbb6cbf",
+    "runtimeSource": "d644c0821b615938e88e55ff6b073873e18f8e73",
+    "runtimeSourceTree": "fc4b19a65dc2aa91898c0552a9580d691731441e",
+    "runtimeBinarySha256": "3a624f6cb0a0df3956e8ab382c03cdd8b2ae156f984974df5088d518f75acaa8",
+    "ownerEvidenceCommit": "5ff50cabee53806588ebe406237c166f40e71e9d",
+    "ownerEvidenceTree": "f1216384eeb00db383159501527fd1f7f8e2e5ea",
+    "ownerEvidenceBlob": "e8b0ece03a8297d4fb063c65a865f35c275d0722",
+    "ownerEvidenceSha256": "287f4a966593f3384648eecdbcf10221bc1143c30ad83ab6c2ac3216dc28a9f5",
+    "websiteSource": "6168e0aa553edc29a57da26a7ac7ed291339ebbd",
+    "vercelProduction": "dpl_DaVPcVh85SpHWUfxzjXaiM99Z4TU",
+    "vercelReady": true,
+    "websitePage": {"domains":["apex","www"],"http":200,"bytes":1018,"sha256":"e2ef74462d846058e0b2461d6fb20a7d9e0ea451936f3827b9be012fb616d49c"},
+    "runtimePublication": {"domains":["apex","www"],"http":200,"bytes":1985,"sha256":"6631639192fb5b89de06eb162f616dabf3c2b6d106903be096f3a3416709e339"},
+    "visibleBrowser": {"language":"en","verifiedRpcBacked":true,"build":"d644c0821b61","computerControl":false},
+    "transfers": [
+      {"amount":100,"symbol":"YNXT","hash":"0x3353c6917d39fd0ed8c00457a14b2ac59af72fb78f068e96e068d562e31c9405","block":1144336},
+      {"amount":100,"symbol":"YNXT","hash":"0xee1ef3e52561c0689574fe4501bac712c843a94a0521162f71bf74c10272cc63","block":1144337}
+    ],
+    "rateLimit429Verified": true,
+    "identityPromoted": true,
+    "boundaries": {"concurrentUpstream502Observed":true,"explorerTransactionRoute":false,"ynx1Support":false,"walletPlatformFaucet":false,"computerControl":false},
+    "blocker": "A concurrent request still produced upstream 502; Explorer transaction route, ynx1 support, Wallet-platform Faucet and ComputerControl remain false."
   },
   "validation": {
     "focusedStateAndMatrix": "20/20",

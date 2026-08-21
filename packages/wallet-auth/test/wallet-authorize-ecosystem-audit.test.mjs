@@ -173,7 +173,7 @@ test("pending Provider/connect handoffs cover the remaining six owners and prese
   assert.equal(pendingOwnerHandoffs.truth.aggregateConnected, false);
 });
 
-test("owner activity checkpoint derives its counts, stalled owners and Faucet identity without promotion", () => {
+test("owner activity checkpoint derives counts and consumes Faucet recovery without product promotion", () => {
   const products = ownerActivityCheckpoint.products;
   assert.deepEqual(products.map(({ productId }) => productId).sort(), registry.products.filter(({ productId }) => productId !== "wallet-web-companion").map(({ productId }) => productId).sort());
   assert.equal(products.filter(({ sourceConsumed }) => sourceConsumed).length, ownerActivityCheckpoint.summary.sourceConsumers);
@@ -184,9 +184,18 @@ test("owner activity checkpoint derives its counts, stalled owners and Faucet id
   assert.equal(ownerActivityCheckpoint.summary.productsConnected, 0);
   assert.equal(ownerActivityCheckpoint.summary.productsMigratedV2, 0);
   assert.match(products.find(({ productId }) => productId === "finance").blocker, /69ba84ea.*51a60a36/);
-  assert.equal(ownerActivityCheckpoint.faucetTracking.candidateSource, "d644c0821b615938e88e55ff6b073873e18f8e73");
-  assert.equal(ownerActivityCheckpoint.faucetTracking.immutableEvidenceRuntimeSource, "62f7cf4bfc38");
-  assert.equal(ownerActivityCheckpoint.faucetTracking.identityPromoted, false);
+  assert.equal(ownerActivityCheckpoint.faucetTracking.runtimeSource, "d644c0821b615938e88e55ff6b073873e18f8e73");
+  assert.equal(ownerActivityCheckpoint.faucetTracking.ownerEvidenceCommit, "5ff50cabee53806588ebe406237c166f40e71e9d");
+  assert.equal(ownerActivityCheckpoint.faucetTracking.websiteSource, "6168e0aa553edc29a57da26a7ac7ed291339ebbd");
+  assert.equal(ownerActivityCheckpoint.faucetTracking.vercelReady, true);
+  assert.equal(ownerActivityCheckpoint.faucetTracking.identityPromoted, true);
+  assert.equal(ownerActivityCheckpoint.faucetTracking.transfers.length, 2);
+  assert.equal(ownerActivityCheckpoint.faucetTracking.rateLimit429Verified, true);
+  assert.deepEqual(ownerActivityCheckpoint.faucetTracking.boundaries, { concurrentUpstream502Observed: true, explorerTransactionRoute: false, ynx1Support: false, walletPlatformFaucet: false, computerControl: false });
   assert.equal(ownerActivityCheckpoint.faucetTracking.modifiedByProtocolOwner, false);
+  assert.deepEqual(auditV3.remoteRecheck.faucetSourceIdentityTracking.transfers, ownerActivityCheckpoint.faucetTracking.transfers);
+  assert.deepEqual(auditV3.remoteRecheck.faucetSourceIdentityTracking.boundaries, ownerActivityCheckpoint.faucetTracking.boundaries);
+  assert.equal(auditV3.remoteRecheck.faucetSourceIdentityTracking.runtimeIdentityPromoted, true);
+  assert.equal(auditV3.remoteRecheck.faucetSourceIdentityTracking.matrixAuthority, false);
   assert.equal(ownerActivityCheckpoint.truth.aggregateConnected, false);
 });
