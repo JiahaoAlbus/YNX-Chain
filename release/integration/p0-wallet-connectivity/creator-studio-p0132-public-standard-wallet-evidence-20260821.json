@@ -1,0 +1,59 @@
+{
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-132",
+  "recordedAt": "2026-08-21T08:43:39Z",
+  "source": {
+    "branch": "codex/p0-creator-studio-visible-20260821",
+    "commit": "993e7cc99ea3919488d6765e097ca78a82a30704",
+    "tree": "821b800fefcf05d4b20a848c5b44b0c4854ccfcd",
+    "artifactSha256": "9ec9385f2a1843e826f7a059f832b06a90f9828a13652595a4a6afe75e1c03de"
+  },
+  "runtime": {
+    "host": "43.153.202.237",
+    "activeRelease": "/opt/ynx-video/releases/p0131-creator-wallet-993e7cc9",
+    "rollbackTarget": "/opt/ynx-video/releases/p0122b-creator-wallet-650070ce",
+    "service": "ynx-video-studio.service",
+    "active": true,
+    "mainPid": 906625,
+    "nRestarts": 0,
+    "activeEnterTimestamp": "Fri 2026-08-21 16:40:00 CST",
+    "boundedReadinessPassed": true
+  },
+  "publicReadback": {
+    "baseUrl": "https://web4.ynxweb4.com/video/studio/",
+    "index": {"http": 200, "bytes": 12919, "sha256": "bc5344845c1b0ada346b1a0a1088f9442d15412dc077d824d7bd8fb2dcc7fd5e"},
+    "app": {"http": 200, "bytes": 50611, "sha256": "7c9d884304bca81c83417a2563dfaab8c728284cbf2c8db815e32233ec66e015"},
+    "styles": {"http": 200, "bytes": 6717, "sha256": "be9fcba13c7d472c80a38cb141d7ea93eecf394b346b3b7ff545addf3146422e"},
+    "runtimeConfig": {"http": 200, "bytes": 506, "sha256": "53b8ae0d81d4a81716d79041c698b8183c92e60eb013c241acd7336913320cd8"}
+  },
+  "browserVisible": {
+    "url": "https://web4.ynxweb4.com/video/studio/?verify=p0132-993e7cc9",
+    "title": "YNX Creator Studio",
+    "defaultLanguage": "en",
+    "guestTourVisible": true,
+    "guestMetricsVisible": true,
+    "consoleErrors": 0,
+    "explicitWalletChoice": true,
+    "ynxWalletNotDetectedOnPage": true,
+    "ynxWalletOfficialDownloadVisible": true,
+    "metamaskNotDetectedOnPage": true,
+    "metamaskOfficialInstallVisible": true,
+    "urlStable": true,
+    "topLevelTabDelta": 0,
+    "blankTabCreated": false,
+    "providerSubstitution": false
+  },
+  "truthBoundaries": {
+    "realInjectedProvider": false,
+    "installedWalletVerified": false,
+    "walletApprovalVerified": false,
+    "accountVerified": false,
+    "signatureVerified": false,
+    "transactionVerified": false,
+    "productSessionV2": false,
+    "migratedV2": false,
+    "computerControlVerified": false,
+    "computerControlBlocker": "cgWindowNotFound",
+    "aggregateEcosystemFixed": false
+  }
+}

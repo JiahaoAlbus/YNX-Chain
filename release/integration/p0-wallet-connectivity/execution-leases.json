@@ -1,7 +1,7 @@
 {
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-  "epoch": 54,
-  "updatedAt": "2026-08-21T08:20:52Z",
+  "epoch": 55,
+  "updatedAt": "2026-08-21T08:43:39Z",
   "heavy": {
     "owner": null,
     "status": "RELEASED_PUBLIC_CHECKPOINT",
@@ -27,17 +27,17 @@
   },
   "light": {
     "owner": "integration",
-    "status": "ACTIVE_SOURCE_ONLY",
+    "status": "RELEASED_PUBLIC_CHECKPOINT_COMPUTER_CONTROL_BLOCKED",
     "branch": "codex/p0-creator-studio-visible-20260821",
     "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/57-creator-studio-visible-p0",
     "taskId": "P0-129",
     "leasedAt": "2026-08-21T08:20:52Z",
-    "releasedAt": null,
-    "checkpointCommit": "650070ce5c5a7928425509f6e9e7da0aec31910d",
+    "releasedAt": "2026-08-21T08:43:39Z",
+    "checkpointCommit": "993e7cc99ea3919488d6765e097ca78a82a30704",
     "previousOwner": "integration",
     "previousCheckpoint": "0326004cb260863f214261acec635bd3ef2e5c0c",
-    "reason": "Fix the directly observed Creator Studio unresolved browser module and require explicit YNX/MetaMask selection without production mutation.",
-    "executionScope": "CREATOR_STUDIO_EXPLICIT_STANDARD_WALLET_SOURCE_BUILD_BROWSER",
+    "reason": "Creator Studio exact source is publicly active with verified English guest UI and zero-tab wallet fallbacks; Computer Control remains blocked by cgWindowNotFound.",
+    "executionScope": null,
     "onSafeCheckpoint": [
       "modify only apps/creator-studio source, tests and owner evidence",
       "Web uses EIP-6963/EIP-1193 with explicit wallet choice and never navigates to a custom scheme",
