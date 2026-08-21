@@ -632,3 +632,62 @@ jobs:
             --prerelease \
             --title "YNX Wallet macOS Testnet Engineering DMG $RELEASE_TAG" \
             --notes "Owner-native com.ynxweb4.wallet.macos Testnet engineering DMG. SHA-256: $EXPECTED_SHA256. Bytes: $EXPECTED_BYTES. Universal x86_64+arm64, minimum macOS 13.0, ad-hoc signed, no Team ID, not Developer ID signed, not notarized, not stapled, and rejected by Gatekeeper. Authorization, account, Product Session, signing, send, transaction, recovery, physical biometric, App Store, Website publication, browser-quarantine acceptance, and system /Applications installation remain unverified or false."
+          PUBLIC_REPO_JSON="$DOWNLOAD_ROOT/public-repository.json"
+          env -u GH_TOKEN -u GITHUB_TOKEN curl -fsSL \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}" > "$PUBLIC_REPO_JSON"
+          ruby -rjson -e 'abort unless JSON.parse(File.read(ARGV.fetch(0))).fetch("private") == false' \
+            "$PUBLIC_REPO_JSON"
+          DMG_URL=""
+          MANIFEST_URL=""
+          for _ in $(seq 1 15); do
+            DMG_URL="$(gh release view "$RELEASE_TAG" --json assets \
+              --jq '.assets[] | select(.name == "YNX-Wallet-macOS-ad-hoc.dmg") | .url' || true)"
+            MANIFEST_URL="$(gh release view "$RELEASE_TAG" --json assets \
+              --jq '.assets[] | select(.name == "YNX-Wallet-macOS-ad-hoc.manifest.json") | .url' || true)"
+            if test -n "$DMG_URL" && test -n "$MANIFEST_URL"; then break; fi
+            sleep 2
+          done
+          test -n "$DMG_URL"
+          test -n "$MANIFEST_URL"
+          test "$DMG_URL" = "https://github.com/${GITHUB_REPOSITORY}/releases/download/${RELEASE_TAG}/YNX-Wallet-macOS-ad-hoc.dmg"
+          test "$MANIFEST_URL" = "https://github.com/${GITHUB_REPOSITORY}/releases/download/${RELEASE_TAG}/YNX-Wallet-macOS-ad-hoc.manifest.json"
+          PUBLIC_ROOT="$RUNNER_TEMP/ynx-wallet-engineering-public-roundtrip"
+          PUBLIC_DMG="$PUBLIC_ROOT/YNX-Wallet-macOS-ad-hoc.dmg"
+          PUBLIC_MANIFEST="$PUBLIC_ROOT/YNX-Wallet-macOS-ad-hoc.manifest.json"
+          PUBLIC_MOUNT="$RUNNER_TEMP/ynx-wallet-engineering-public-mount"
+          mkdir -p "$PUBLIC_ROOT" "$PUBLIC_MOUNT"
+          env -u GH_TOKEN -u GITHUB_TOKEN curl -fsSL --retry 5 --retry-delay 2 --retry-all-errors "$DMG_URL" -o "$PUBLIC_DMG"
+          env -u GH_TOKEN -u GITHUB_TOKEN curl -fsSL --retry 5 --retry-delay 2 --retry-all-errors "$MANIFEST_URL" -o "$PUBLIC_MANIFEST"
+          test "$(shasum -a 256 "$PUBLIC_DMG" | awk '{print $1}')" = "$EXPECTED_SHA256"
+          test "$(stat -f '%z' "$PUBLIC_DMG")" = "$EXPECTED_BYTES"
+          export PUBLIC_MANIFEST
+          ruby -rjson -e '
+            manifest = JSON.parse(File.read(ENV.fetch("PUBLIC_MANIFEST")))
+            abort unless manifest.fetch("sourceCommit") == ENV.fetch("YNX_EXPECTED_SOURCE_SHA")
+            abort unless manifest.dig("artifact", "sha256") == ENV.fetch("EXPECTED_SHA256")
+            abort unless manifest.dig("artifact", "bytes") == Integer(ENV.fetch("EXPECTED_BYTES"))
+            abort unless manifest.dig("artifact", "teamIdentifier").nil?
+            abort unless manifest.dig("artifact", "signingClass") == "ad-hoc engineering"
+            false_gates = manifest.fetch("gates").reject { |key, _| key == "testnetEngineeringArtifact" }
+            abort unless false_gates.values.all? { |value| value == false }
+          '
+          hdiutil verify "$PUBLIC_DMG"
+          hdiutil attach -readonly -nobrowse -mountpoint "$PUBLIC_MOUNT" "$PUBLIC_DMG"
+          PUBLIC_APP="$PUBLIC_MOUNT/YNX Wallet.app"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$PUBLIC_APP/Contents/Info.plist")" = com.ynxweb4.wallet.macos
+          test "$(/usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' "$PUBLIC_APP/Contents/Info.plist")" = 13.0
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleURLTypes' "$PUBLIC_APP/Contents/Info.plist" | grep -F ynxwallet
+          lipo -archs "$PUBLIC_APP/Contents/MacOS/YNXWalletMac" | grep -Eq '(^| )arm64( |$)'
+          lipo -archs "$PUBLIC_APP/Contents/MacOS/YNXWalletMac" | grep -Eq '(^| )x86_64( |$)'
+          codesign --verify --deep --strict "$PUBLIC_APP"
+          codesign -dv --verbose=4 "$PUBLIC_APP" 2> "$PUBLIC_ROOT/codesign.txt"
+          grep -F 'Signature=adhoc' "$PUBLIC_ROOT/codesign.txt"
+          grep -F 'TeamIdentifier=not set' "$PUBLIC_ROOT/codesign.txt"
+          set +e
+          spctl --assess --type execute --verbose=4 "$PUBLIC_APP" > "$PUBLIC_ROOT/gatekeeper.txt" 2>&1
+          PUBLIC_GATEKEEPER_STATUS=$?
+          set -e
+          test "$PUBLIC_GATEKEEPER_STATUS" -ne 0
+          hdiutil detach "$PUBLIC_MOUNT"
+          printf 'publicRepository=true anonymousDownload=true exactSource=true sha256=%s bytes=%s bundle=com.ynxweb4.wallet.macos minimumOS=13.0 architectures=x86_64+arm64 signingClass=ad-hoc teamIdentifier=null gatekeeperAccepted=false gatekeeperExitStatus=%s websitePublished=false\n' \
+            "$EXPECTED_SHA256" "$EXPECTED_BYTES" "$PUBLIC_GATEKEEPER_STATUS" | tee "$PUBLIC_ROOT/public-roundtrip.txt"
