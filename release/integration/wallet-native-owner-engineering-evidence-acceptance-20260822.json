@@ -1,0 +1,94 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "owner": "Central Integration",
+  "acceptedAt": "2026-08-21T16:32:00Z",
+  "decision": "OWNER_ENGINEERING_EVIDENCE_ACCEPTED_PRODUCTION_GATES_UNCHANGED",
+  "ownerBranch": {
+    "name": "codex/wallet-ios-macos-20260813",
+    "remoteHead": "af275bbe5586feb442976a0ebf88f1569dd08774",
+    "remoteHeadTree": "48ecedf858494a0826f925aba3479d49575d4db2"
+  },
+  "acceptedSlices": {
+    "macosNotarizedManifestCommand": {
+      "implementationCommit": "04074a1f921693659b81111b9df638553c1b8ad4",
+      "implementationTree": "f2bd2451a4f6a469a5892787e230ed54b8904d41",
+      "evidenceCommit": "637e0bf2d5b6f9815fd6769a1d5611df30c44a5e",
+      "evidencePath": "release/integration/wallet-macos-notarized-manifest-command-fix-ci-evidence-2026-08-21.json",
+      "evidenceBlob": "1cae9c99767db0d2b736f0a4a30f024ffb6987ed",
+      "evidenceSha256": "8b1894fe5dcb8f78d5a190c9db7c7aef22756f45e263a296a9803a20398b6cd6",
+      "githubActionsRun": 32501431991,
+      "hostedSourceContractSuccess": true,
+      "productionWorkflowDispatched": false
+    },
+    "iosAscUploadKeyCopyCleanup": {
+      "implementationCommit": "42bcd3c1996db64830d91ac1a0e182cfa2bb720b",
+      "implementationTree": "31819917d4f447f767ebd14a832ac5046cc57598",
+      "evidenceCommit": "4bc080c4831d0d5e749b7ec518dd26a3ebb72200",
+      "evidencePath": "release/integration/wallet-ios-asc-upload-key-copy-cleanup-ci-evidence-2026-08-21.json",
+      "evidenceBlob": "5121ab55a44f7b8370bf0aae7472d5ca99fcb12a",
+      "evidenceSha256": "06d384a868432ca204631196aa69e75170dcba3d40787e09839f5f6514400457",
+      "githubActionsRun": 32501885118,
+      "sourceAndCleanupRuntimeSuccess": true,
+      "distributionStepSkipped": true
+    },
+    "macosOwnerNativeEngineeringDmg": {
+      "implementationCommit": "b1f7bff5732a5ab85fa87345dd9ea3b59c8d9431",
+      "implementationTree": "2e148e95745c9e54469e36a4377b5308aa53796a",
+      "evidenceCommit": "a00397cdf669bd71cd452af617ce6debf53a1680",
+      "evidencePath": "release/integration/wallet-macos-native-engineering-dmg-ci-evidence-2026-08-21.json",
+      "evidenceBlob": "96a79ff703af0f17e9922a70e5953d376ec89aa7",
+      "evidenceSha256": "5beabf25c19cd516242b9b7092f0d2f3cd4300099bd51de42898582569427d34",
+      "githubActionsRun": 32502278280,
+      "createdMountedAndIdentityInspected": true,
+      "gatekeeperRejected": true
+    },
+    "macosEngineeringDmgInnerFacts": {
+      "implementationCommit": "af8dba8b88a187f92d149ac5b6d84db35e564ee3",
+      "implementationTree": "1b1b6eb4e63797259ebf832e95c541fc79f5099c",
+      "evidenceCommit": "af275bbe5586feb442976a0ebf88f1569dd08774",
+      "evidencePath": "release/integration/wallet-macos-native-engineering-dmg-log-backread-supplement-2026-08-21.json",
+      "evidenceBlob": "2d106971f254f51d3bc635b267dafa5c129d6fbb",
+      "evidenceSha256": "567a25fed440c8e2c4d521be023a07156f2f66957a11fcab181f4457acd6cbf3",
+      "githubActionsRun": 32502727834,
+      "dmgSha256": "81a635598fee01d4fe12d617866df7c52b09acc09ea447826a2f1bee6e6ac662",
+      "dmgBytes": 307402,
+      "minimumOS": "13.0",
+      "architectures": ["x86_64", "arm64"],
+      "signingClass": "ad-hoc engineering",
+      "hdiutilChecksumValid": true,
+      "gatekeeperAccepted": false,
+      "artifactDownloadInspected": false
+    }
+  },
+  "routerCrossCheck": {
+    "commit": "f445a7f8bfd4f9cfa1de4ee29b547ffa4fa56cf5",
+    "tree": "4e85e61d9549ea488c4b5e635e7cb52317af86c5",
+    "focusedTests": "21/21",
+    "walletAuthTests": "300/300"
+  },
+  "truthBoundaries": {
+    "defaultMainWorkflowRegistered": false,
+    "productionCredentialsAvailable": false,
+    "developerIDSigned": false,
+    "notarized": false,
+    "stapled": false,
+    "gatekeeperAccepted": false,
+    "ipaProduced": false,
+    "appStoreConnectUploadSubmitted": false,
+    "testFlightAvailable": false,
+    "appStoreReleased": false,
+    "publicNativeWalletPublished": false,
+    "websiteNativeReplacementPublished": false,
+    "electronPreviewRelabeledAsOwnerNative": false,
+    "systemInstalled": false,
+    "authorizationSuccess": false,
+    "account": false,
+    "productSession": false,
+    "sign": false,
+    "send": false,
+    "transaction": false,
+    "biometricSuccess": false,
+    "recoverySuccess": false
+  }
+}
