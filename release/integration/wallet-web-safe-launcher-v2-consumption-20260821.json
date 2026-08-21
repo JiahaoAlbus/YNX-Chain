@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "owner": "Wallet Web/PWA/Browser Extension",
+  "consumes": {
+    "centralSourceCommit": "f1ba5013",
+    "contractId": "YNX-WALLET-SAFE-AUTHORIZE-LAUNCHER-V2",
+    "contractVersion": "safeWalletAuthorizeLauncher@2.0.0-p0.0",
+    "contractSha256Prefix": "defd0db6",
+    "canonicalBuilder": "@ynx-chain/wallet-auth#encodeRequestDeepLink"
+  },
+  "webAndExtensionBehavior": {
+    "providerDiscoveryOrder": ["EIP-6963", "injected EIP-1193"],
+    "providerPriority": ["ynx-wallet", "metamask"],
+    "customSchemeNavigation": "prohibited",
+    "hiddenIframe": "prohibited",
+    "topLevelPageCreation": "prohibited",
+    "automaticAccountRequest": "prohibited",
+    "noProviderResult": "unsupported",
+    "noProviderActions": ["official-ynx-wallet-download", "standard-metamask"],
+    "productSessionCreatedWhenNoProvider": false
+  },
+  "implementation": {
+    "webRouteResult": "WEB_CUSTOM_SCHEME_NAVIGATION_PROHIBITED",
+    "noProviderPresentation": "provider-only-fallback",
+    "standardWalletAndProductSessionSeparated": true,
+    "scope": "apps/wallet-web only; no Wallet Protocol, Gateway, registry, or Central control-plane modification"
+  },
+  "validation": {
+    "sourceTests": "pending-implementation-commit",
+    "build": "pending-implementation-commit",
+    "localPlaywrightBrowser": false,
+    "extensionInstalled": false,
+    "realBrowserVisible": false
+  },
+  "truth": {
+    "providerDiscovered": false,
+    "walletInstalled": false,
+    "accountConnected": false,
+    "authorizationApproved": false,
+    "authorizationRejected": false,
+    "callbackVerified": false,
+    "sessionCreated": false,
+    "testnetConnected": false,
+    "sign": false,
+    "transaction": false,
+    "deployedPublic": false,
+    "integratedCentral": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

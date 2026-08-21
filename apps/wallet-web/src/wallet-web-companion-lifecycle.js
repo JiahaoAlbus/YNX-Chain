@@ -15,6 +15,16 @@ const unavailable = (reason) => Object.freeze({
   sendTransaction: false,
 });
 
+const webSchemeProhibited = () => Object.freeze({
+  status: WEB_COMPANION_STATE.NETWORK_UNAVAILABLE,
+  code: "WEB_CUSTOM_SCHEME_NAVIGATION_PROHIBITED",
+  message: "Web and extension contexts never navigate ynxwallet custom schemes. Use an injected EIP-6963/EIP-1193 provider, download YNX Wallet, or choose MetaMask. No Product Session was created.",
+  authoritative: false,
+  account: false,
+  sign: false,
+  sendTransaction: false,
+});
+
 function assertClient(client) {
   if (!client || ["beginDetected", "handleReturn", "disconnect", "restore"].some((name) => typeof client[name] !== "function")) {
     throw Object.assign(new Error("A frozen Core RecoverableProductSessionClient is required."), {code: "INVALID_CORE_RUNTIME"});
@@ -42,12 +52,11 @@ export function createWalletWebCompanionLifecycle({binding, client = null, open 
   const requireReady = () => { if (!ready) return false; assertClient(client); return true; };
   return Object.freeze({
     callback: WALLET_WEB_COMPANION_CALLBACK,
-    publicAuthAvailable: ready,
+    publicAuthAvailable: false,
     async begin() {
       if (!requireReady()) return fail();
-      const state = sanitize(await client.beginDetected(false));
-      if (state.route && typeof open === "function") await open(state.route);
-      return state;
+      void binding; void client; void open;
+      return webSchemeProhibited();
     },
     async handleReturn(url) {
       if (!requireReady()) return fail();

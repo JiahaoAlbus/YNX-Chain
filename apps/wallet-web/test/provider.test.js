@@ -126,10 +126,10 @@ test("discovery presentation directly prefers YNX and gives two non-empty fallba
   assert.equal(METAMASK_DOWNLOAD_URL,"https://metamask.io/download");
 });
 
-test("mobile discovery separates unavailable canonical YNX auth from MetaMask dapp routing", () => {
+test("mobile discovery uses provider-only fallback instead of Web custom-scheme auth", () => {
   assert.equal(metaMaskMobileDappUrl(),"https://metamask.app.link/dapp/www.ynxweb4.com/dapp/wallet");
   assert.deepEqual(mobileWalletPresentation({},true),{
-    ynxRoute:"canonical-auth-unavailable",metaMaskRoute:"mobile-dapp",
+    ynxRoute:"provider-only-fallback",metaMaskRoute:"mobile-dapp",
     metaMaskHref:"https://metamask.app.link/dapp/www.ynxweb4.com/dapp/wallet",
     canonicalYNXAuthAvailable:false,
   });
@@ -151,20 +151,17 @@ test("mobile browser detection covers phone and iPad desktop UA without affectin
   assert.equal(isMobileWalletBrowser({userAgent:"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",maxTouchPoints:0}),false);
 });
 
-test("external YNX Wallet launch accepts only the frozen canonical route and never fabricates provider success", () => {
+test("Web canonical routes are recognized but never navigated or treated as provider success", () => {
   const route="ynxwallet://authorize?request=YWJjMTIzXw";
   assert.equal(validateCanonicalYNXWalletRoute(route),route);
-  const opened=[];
-  assert.deepEqual(openCanonicalYNXWalletRoute(route,{assign:value=>opened.push(value)}),{
-    status:"handoff-started",authoritative:false,providerInjected:false,route,
+  assert.deepEqual(openCanonicalYNXWalletRoute(route),{
+    status:"unsupported",code:"WEB_CUSTOM_SCHEME_NAVIGATION_PROHIBITED",authoritative:false,providerInjected:false,route:null,
   });
-  assert.deepEqual(opened,[route]);
   for(const invalid of [
     "ynxwallet://open?request=YWJj", "ynxwallet://authorize/path?request=YWJj",
     "ynxwallet://authorize?request=YWJj&operation=connect", "https://www.ynxweb4.com/?request=YWJj",
     "ynxwallet://authorize?request=not%20canonical",
   ]) assert.throws(()=>validateCanonicalYNXWalletRoute(invalid),(error)=>error.code==="INVALID_WALLET_ROUTE");
-  assert.throws(()=>openCanonicalYNXWalletRoute(route,{}),(error)=>error.code==="WALLET_APP_UNAVAILABLE");
 });
 
 test("canonical YNX mobile authorization stays closed until Core freezes the exact HTTPS callback", () => {

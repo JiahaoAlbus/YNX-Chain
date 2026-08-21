@@ -23,13 +23,14 @@ export function validateCanonicalYNXWalletRoute(value) {
   return parsed.toString();
 }
 
-export function openCanonicalYNXWalletRoute(value, locationLike = globalThis.location) {
+/**
+ * Browser and extension contexts must never navigate a custom scheme. Chrome
+ * can materialize a blank top-level tab even when the original page survives.
+ * Native launchers own canonical URI generation and resolver-first opening.
+ */
+export function openCanonicalYNXWalletRoute(value) {
   const route = validateCanonicalYNXWalletRoute(value);
-  if (!locationLike || typeof locationLike.assign !== "function") {
-    throw Object.assign(new Error("The browser cannot open the Wallet authorization route."), {code:"WALLET_APP_UNAVAILABLE"});
-  }
-  locationLike.assign(route);
-  return Object.freeze({status:"handoff-started",authoritative:false,providerInjected:false,route});
+  return Object.freeze({status:"unsupported",code:"WEB_CUSTOM_SCHEME_NAVIGATION_PROHIBITED",authoritative:false,providerInjected:false,route:null});
 }
 
 export function canonicalYNXAuthorizationState(binding, publicCallback = null) {
@@ -41,11 +42,11 @@ export function canonicalYNXAuthorizationState(binding, publicCallback = null) {
 export function mobileWalletPresentation(availability = {}, mobile = false, coreBinding = null, publicCallback = null) {
   const ynxPresent = Boolean(availability.ynx);
   const metamaskPresent = Boolean(availability.metamask);
-  const ynxAuth = canonicalYNXAuthorizationState(coreBinding, publicCallback);
+  void coreBinding; void publicCallback;
   return Object.freeze({
-    ynxRoute: ynxPresent ? "injected-provider" : mobile ? ynxAuth.route : "hidden",
+    ynxRoute: ynxPresent ? "injected-provider" : mobile ? "provider-only-fallback" : "hidden",
     metaMaskRoute: metamaskPresent ? "injected-provider" : mobile ? "mobile-dapp" : "official-download",
     metaMaskHref: metamaskPresent ? null : mobile ? metaMaskMobileDappUrl() : "https://metamask.io/download",
-    canonicalYNXAuthAvailable: ynxPresent ? false : ynxAuth.available,
+    canonicalYNXAuthAvailable: false,
   });
 }

@@ -1,7 +1,7 @@
 import {LOCALES, catalog, isRTL} from "./i18n.js";
 import {PREFERENCES_KEY,acceptPreferenceUpdate,loadPreferences,savePreferences} from "./preferences.js";
 import {
-  isMobileWalletBrowser, mobileWalletPresentation, openCanonicalYNXWalletRoute,
+  isMobileWalletBrowser, mobileWalletPresentation,
 } from "./mobile-wallet-routing.js";
 import {CORE_WALLET_AUTH_BINDING} from "./core-auth-binding.js";
 import {createWalletWebCompanionLifecycle} from "./wallet-web-companion-lifecycle.js";
@@ -16,7 +16,7 @@ const app = document.querySelector("#app");
 const isExtension = location.protocol === "chrome-extension:" || location.protocol === "moz-extension:";
 const mobileBrowser = !isExtension && isMobileWalletBrowser(navigator);
 const preview = new URLSearchParams(location.search);
-const companionLifecycle=createWalletWebCompanionLifecycle({binding:CORE_WALLET_AUTH_BINDING,open:(route)=>openCanonicalYNXWalletRoute(route)});
+const companionLifecycle=createWalletWebCompanionLifecycle({binding:CORE_WALLET_AUTH_BINDING});
 const requestedLocale = preview.get("lang");
 const requestedTheme = preview.get("theme");
 const requestedText = preview.get("text");
