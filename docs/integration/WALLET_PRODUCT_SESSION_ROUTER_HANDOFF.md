@@ -30,7 +30,7 @@ Gateway schema v2 persists idempotent responses for Challenge and Complete. The 
 
 ## Deep-link and Wallet selection rules
 
-The router opens only `ynxwallet://authorize?request=<base64url canonical JSON>`. It validates the exact registered scheme, host, path and sole query parameter before parsing. Product callbacks validate exact return target, nonce, state, expiry and signed approval. `javascript:`, `file:`, `data:` and `http:` downgrade paths are rejected.
+The router opens only `ynxwallet://authorize?request=<base64url canonical JSON>`. The bare `ynxwallet://authorize` route, an empty request, another query, extra query state or a fragment is explicitly rejected before launch/approval. It validates the exact registered scheme, host, path and sole query parameter before parsing. Product callbacks validate exact return target, nonce, state, expiry and signed approval or authority-free rejection through `parseAuthorizationCallbackURL`. `javascript:`, `file:`, `data:` and `http:` downgrade paths are rejected. The source release gate `npm run verify:no-bare-authorize --prefix packages/wallet-auth` scans publishable application, internal and package source and fails on a bare or payload-free route; its synthetic negative vectors prove the gate itself fails closed.
 
 The known legacy value `ynx-social` migrates only for the Social registration and becomes `ynx-social://com.ynx.social`. Unknown or cross-product legacy schemes fail with `UNKNOWN_LEGACY_SCHEME`. Known v1 requests can migrate only when their client, bundle, callback, device algorithm, chain and scopes match the same registry entry.
 

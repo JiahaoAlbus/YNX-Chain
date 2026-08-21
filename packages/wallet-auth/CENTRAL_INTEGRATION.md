@@ -58,6 +58,8 @@ The distinct `wallet-web-companion` registration is approved only for the exact 
 
 Authorization transport is `ynxwallet://authorize?request=<base64url(canonical JSON)>`. The response callback has exactly one `response` query field. The canonical request and approval bind:
 
+The bare route `ynxwallet://authorize`, an empty `request`, or a route with another/extra query field is never a connection attempt. It fails with `MISSING_AUTHORIZATION_REQUEST` or `INVALID_DEEP_LINK` before Wallet authority can be shown or granted. All SDK and platform consumers must use `encodeRequestDeepLink` and verify the returned approve/reject callback with `parseAuthorizationCallbackURL`; source release runs `npm run verify:no-bare-authorize`.
+
 - `ynx_6423-1`, requesting product, client ID, bundle/package, callback;
 - compressed P-256 product device public key and algorithm;
 - native `ynx1` account and secp256k1 account public key;

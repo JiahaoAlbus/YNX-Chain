@@ -393,6 +393,9 @@ export declare function verifyAuthorization(
   response: unknown,
   expected: AuthorizationRequest & { requestDigest: string; now: Date },
 ): AuthorizationResponse;
+export declare const WALLET_AUTHORIZE_ROUTE: "ynxwallet://authorize";
+export declare const WALLET_AUTHORIZE_REQUEST_PARAMETER: "request";
+export declare const WALLET_CALLBACK_RESPONSE_PARAMETER: "response";
 export declare function encodeRequestDeepLink(
   request: AuthorizationRequest,
 ): string;
@@ -408,6 +411,11 @@ export declare function parseCallbackURL(
   url: string,
   expectedCallback: string,
 ): unknown;
+export declare function parseAuthorizationCallbackURL(
+  url: string,
+  request: AuthorizationRequest,
+  at?: Date,
+): AuthorizationResponse | AuthorizationRejection;
 export type ExchangeOrderParameters = Readonly<{
   market: "YNXT-YUSD_TEST";
   side: "buy" | "sell";
