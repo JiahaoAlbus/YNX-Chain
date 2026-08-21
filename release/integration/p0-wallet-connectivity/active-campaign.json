@@ -2,7 +2,7 @@
   "schemaVersion": "1.0.0",
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "owner": "integration",
-  "status": "P0126_SHOP_WEB_PUBLIC_DEPLOYED_COMPUTER_CONTROL_BLOCKED",
+  "status": "P0127_SOCIAL_WEB_STANDARD_WALLET_SOURCE_ACTIVE",
   "scope": [
     "founder-control",
     "wallet-connectivity",
@@ -321,17 +321,19 @@
     },
     {
       "owner": "integration",
-      "taskId": "P0-101",
+      "taskId": "P0-127",
       "status": "ACTIVE",
-      "grantedAt": "2026-08-21T02:42:10Z",
-      "expiresAt": "2026-08-21T04:42:10Z",
-      "startingCommit": "f5d66accaa130625f87ef725ef52adc910c59ab8",
-      "scope": "social-public-runtime-client-version-reconciliation-source-only",
+      "grantedAt": "2026-08-21T07:50:17Z",
+      "expiresAt": "2026-08-21T09:50:17Z",
+      "startingCommit": "76b67a05fe5274f388d29f552b8a0b1e35dfe4ed",
+      "scope": "social-web-guest-and-standard-provider-source-only",
       "constraints": [
         "preserve the dirty historical Social worktree and use only the clean descendant worktree",
         "do not modify packages/wallet-auth or packages/dapp-connect-sdk",
         "production mutation is forbidden in this Light slice",
-        "public health is not source identity and Product Session v2 remains false until full evidence"
+        "Web must use EIP-6963/EIP-1193 and must never navigate to a custom wallet scheme",
+        "guest access remains available without a Wallet",
+        "Product Session v2 and account approval remain false until separate runtime evidence"
       ]
     }
   ],
