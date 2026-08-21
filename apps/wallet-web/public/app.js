@@ -41,6 +41,8 @@ function unavailablePlatforms(){return Object.values(WALLET_DOWNLOAD_MATRIX).fil
 function statusContent(){if(state.errorCode)return`${escape(state.errorCode)}: ${text("requestFailed")}`;return state.account?`${text("connected")} · <span class="mono">${escape(state.account)}</span>`:text("disconnected")}
 
 function render() {
+  const connectionDetails = Boolean(state.account) && state.connectState.chooserOpen && state.connectState.chooserMode === "connection-details";
+  const providerChooserVisible = state.connectState.chooserOpen && !connectionDetails;
   document.documentElement.lang = state.locale;
   document.documentElement.dir = isRTL(state.locale) ? "rtl" : "ltr";
   document.documentElement.dataset.theme = state.theme === "system" ? "" : state.theme;
@@ -51,8 +53,8 @@ function render() {
     <section aria-labelledby="title"><h1 id="title">${text("title")}</h1><p class="intro">${text("intro")}</p></section>
     <section class="card" aria-label="${text("walletConnection")}"><div id="detected" class="eyebrow">${text("unavailable")}</div>
       <button id="wallet-connect-trigger" type="button" aria-expanded="${state.connectState.chooserOpen}">${state.account?text("connected"):text("walletConnection")}</button>
-      <div id="wallet-chooser" class="wallets ${state.connectState.chooserOpen?"":"hidden"}" data-mode="${state.connectState.chooserMode}" data-pending-intent="${state.connectState.pendingIntent?"true":"false"}"><button id="ynx" class="primary hidden" type="button">${text("connectYNX")}</button><a id="download" href="${YNX_DOWNLOAD_URL}" class="secondary" rel="noreferrer" aria-describedby="download-meta">Android · ${text("download")}</a><a id="metamask" href="${METAMASK_DOWNLOAD_URL}" class="secondary" rel="noreferrer">${text("metamask")}</a></div>
-      <div id="connection-controls" class="actions ${state.account?"":"hidden"}"><button id="switch-account" type="button">${text("switchAccount")}</button><button id="disconnect" type="button">${text("disconnect")}</button></div>
+      <div id="wallet-chooser" class="wallets ${providerChooserVisible?"":"hidden"}" data-mode="${state.connectState.chooserMode}" data-pending-intent="${state.connectState.pendingIntent?"true":"false"}"><button id="ynx" class="primary hidden" type="button">${text("connectYNX")}</button><a id="download" href="${YNX_DOWNLOAD_URL}" class="secondary" rel="noreferrer" aria-describedby="download-meta">Android · ${text("download")}</a><a id="metamask" href="${METAMASK_DOWNLOAD_URL}" class="secondary" rel="noreferrer">${text("metamask")}</a></div>
+      <div id="connection-controls" class="actions ${connectionDetails?"":"hidden"}" data-mode="${state.connectState.chooserMode}"><button id="switch-account" type="button">${text("switchAccount")}</button><button id="disconnect" type="button">${text("disconnect")}</button></div>
       <p id="download-meta" class="download-meta mono">${escape(WALLET_DOWNLOAD_MATRIX.android.label)} · ${WALLET_DOWNLOAD_MATRIX.android.bytes.toLocaleString("en-US")} Bytes · SHA-256 ${escape(WALLET_DOWNLOAD_MATRIX.android.sha256)} · ${escape(WALLET_DOWNLOAD_MATRIX.android.signingClass)} · productionSigned=false</p>
       <details id="platforms" class="platforms"><summary>${text("download")}</summary><div class="platform-grid">${unavailablePlatforms()}</div></details>
       <div class="status" id="status" role="status" aria-live="polite"><strong>${text("status")}:</strong> ${statusContent()}</div>

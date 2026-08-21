@@ -1,5 +1,5 @@
 export const PWA_CACHE_PREFIX = "ynx-wallet-web-v";
-export const PWA_CACHE = `${PWA_CACHE_PREFIX}9`;
+export const PWA_CACHE = `${PWA_CACHE_PREFIX}10`;
 export const PWA_RECOVERY_PARAM = "ynx-sw-recovery";
 export const PWA_UPGRADE_PARAM = "ynx-sw-upgrade";
 

@@ -20,6 +20,23 @@ test("approved account and provider chain close chooser and clear pending intent
   assert.deepEqual({status:state.status,chooserOpen:state.chooserOpen,pendingIntent:state.pendingIntent,focus:state.focusRestoreTarget},{status:"connected",chooserOpen:false,pendingIntent:null,focus:"wallet-connect-trigger"});
 });
 
+test("connected details open independently and close back to the trigger",()=>{
+  const details=reduceStandardWalletConnectState(connected(),{type:"OPEN_CHOOSER"});
+  assert.deepEqual({open:details.chooserOpen,mode:details.chooserMode,actions:details.chooserActions},{open:true,mode:"connection-details",actions:["disconnect","switch-account","close"]});
+  const closed=reduceStandardWalletConnectState(details,{type:"CLOSE_CHOOSER"});
+  assert.deepEqual({open:closed.chooserOpen,mode:closed.chooserMode,focus:closed.focusRestoreTarget},{open:false,mode:"closed",focus:"wallet-connect-trigger"});
+});
+
+test("refresh restore, account change and disconnect remain provider-authoritative",()=>{
+  const restored=reduceStandardWalletConnectState(createStandardWalletConnectState(),{type:"RESTORE",providerKind:"metamask",accounts:[ACCOUNT],chainId:"0x1917"});
+  assert.equal(restored.status,"connected");assert.equal(restored.chooserOpen,false);
+  const replacement=`0x${"2".repeat(40)}`;
+  const switched=reduceStandardWalletConnectState(restored,{type:"ACCOUNTS_CHANGED",accounts:[replacement]});
+  assert.equal(switched.account,replacement);assert.equal(switched.status,"connected");
+  const disconnected=reduceStandardWalletConnectState(switched,{type:"DISCONNECT"});
+  assert.equal(disconnected.status,"disconnected");assert.equal(disconnected.account,null);assert.equal(disconnected.chainId,null);
+});
+
 test("CORS and private service degradation preserve Standard Wallet success",()=>{
   let state=reduceStandardWalletConnectState(connected(),{type:"PRIVATE_SESSION_DEGRADED",code:"PRIVATE_SERVICE_UNAVAILABLE"});
   assert.equal(state.status,"connected");assert.equal(state.privateService,"degraded");assert.equal(state.account,ACCOUNT);

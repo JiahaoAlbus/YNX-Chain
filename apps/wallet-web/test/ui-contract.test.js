@@ -73,6 +73,9 @@ test("provider approval stays in-place and success restores exact chooser focus 
   assert.match(source,/chainChanged\(chainId\)/);
   assert.match(source,/id="disconnect"/);
   assert.match(source,/id="switch-account"/);
+  assert.match(source,/const connectionDetails = Boolean\(state\.account\) && state\.connectState\.chooserOpen && state\.connectState\.chooserMode === "connection-details"/);
+  assert.match(source,/const providerChooserVisible = state\.connectState\.chooserOpen && !connectionDetails/);
+  assert.match(source,/id="connection-controls" class="actions \$\{connectionDetails\?"":"hidden"\}"/);
   assert.doesNotMatch(source,/window\.open\s*\(/);
   assert.doesNotMatch(source,/(?:window\.)?location(?:\.href)?\s*=\s*[`'"]ynxwallet:\/\//);
 });
