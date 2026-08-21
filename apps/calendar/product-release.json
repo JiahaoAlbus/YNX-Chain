@@ -74,7 +74,7 @@
     ]
   },
   "latestLocalCandidate": {
-    "sourceCommit": "aaeded51ab1175e3b449bcd278e72ea09764adb3",
+    "sourceCommit": "df302c542e34654445e70b8aa6a81c2b2525d9de",
     "branch": "codex/calendar-fable5-completion-20260821",
     "status": "testedLocalNotPublic",
     "scope": [
@@ -86,7 +86,10 @@
       "occurrence-only cancellation verified across Day and Agenda views",
       "versioned shared-calendar permission history for grant, role change and revoke",
       "owner-only permission audit visibility with non-owner and export redaction",
-      "restart-persistent viewer-to-editor collaboration proof in the real browser UI"
+      "restart-persistent viewer-to-editor collaboration proof in the real browser UI",
+      "private-event redaction to Busy across list, single-event and account-export views",
+      "availability-only disclosure that hides title, participants, notes, links and attachments even from invited participants",
+      "real browser shared-viewer proof with seeded private-string absence assertions"
     ],
     "deployedPublic": false,
     "websitePublished": false,

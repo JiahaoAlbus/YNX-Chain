@@ -188,16 +188,16 @@
       "category": "sharing",
       "requirement": "Support private events and availability-only disclosure without leaking title, attendees, notes, links, or attachments.",
       "applicability": "required",
-      "status": "notStarted",
-      "evidence": [],
-      "sourceCommit": "9cf30f16c4312b4438d087b1df58cec68df54f15",
-      "tests": [],
-      "artifact": [],
+      "status": "testedLocal",
+      "evidence": ["private events are redacted to Busy in list, single-event and account-export views for unauthorized shared-calendar viewers", "redaction removes title, description, owner identity, invitees, shares, comments, location, meeting link, attachment links, reminders and buffers", "explicit invitee or event-share detail access remains available for private events", "availability-only privacy redacts details even from an invited participant", "redacted viewers cannot add comments", "real browser proof shows exactly one Busy card and asserts that all seeded private strings are absent"],
+      "sourceCommit": "df302c542e34654445e70b8aa6a81c2b2525d9de",
+      "tests": ["TestSharedCalendarLifecycleAndRoles", "TestEventPrivacyRedactsListsExportsAndAvailabilityParticipants", "go test -race ./internal/calendar ./apps/calendar", "npm run browser:proof --prefix apps/calendar"],
+      "artifact": ["apps/calendar/tests/artifacts/calendar-private-event-redaction.png"],
       "publicProof": [],
       "blockedBy": [],
       "owner": "36-calendar",
-      "nextAction": "define privacy classes and redacted availability responses before attendee availability integration",
-      "lastUpdated": "2026-07-27T14:39:45Z"
+      "nextAction": "publish exact source df302c54 and collect source-bound public owner, invitee, shared-viewer and availability-only evidence",
+      "lastUpdated": "2026-08-21T16:50:00Z"
     },
     {
       "id": "CAL-CONFLICT-001",

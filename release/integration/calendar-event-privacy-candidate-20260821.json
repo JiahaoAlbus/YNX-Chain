@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "product": "calendar",
+  "owner": "36-calendar",
+  "status": "TESTED_LOCAL_NOT_PUBLIC",
+  "sourceCommit": "df302c542e34654445e70b8aa6a81c2b2525d9de",
+  "branch": "codex/calendar-fable5-completion-20260821",
+  "scope": [
+    "private-event redaction to Busy for unauthorized shared-calendar viewers",
+    "redaction in list, single-event and account-export surfaces",
+    "availability-only privacy for invited participants",
+    "detail access retained for explicitly authorized private-event participants",
+    "comment denial for viewers without private-event detail access",
+    "real-browser absence assertions for seeded title, notes, location, links and owner identity"
+  ],
+  "tests": {
+    "goTest": true,
+    "goRace": true,
+    "nodeTests": "20/20",
+    "releaseTests": "5/5",
+    "browserProof": true,
+    "consoleErrors": 0
+  },
+  "artifacts": [
+    {
+      "path": "apps/calendar/tests/artifacts/calendar-private-event-redaction.png",
+      "bytes": 97162,
+      "sha256": "cd9613837b02c935d265e1035a2411a00fdb84185a52a5e772314f44f7e281cd"
+    }
+  ],
+  "publicRuntime": {
+    "url": "https://calendar-testnet.43.153.202.237.sslip.io/",
+    "sourceCommit": "828120e6d81efaf874a930793660e185a394ba4f",
+    "includesCandidate": false
+  },
+  "truth": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "deployedPublic": false,
+    "websitePublished": false,
+    "integratedCentral": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "nextAction": "publish exact source df302c54 and collect source-bound public owner, invitee, shared-viewer and availability-only evidence"
+}

@@ -207,7 +207,11 @@ function unnamedInteractive() {
     if (!wallet.listening) await once(wallet, "listening");
     await waitForServer();
     const cookie = await createSession("@proof", "ynx1browserproof", "owner");
-    await createSession("@collaborator", "ynx1collaborator", "collaborator");
+    const collaboratorCookie = await createSession(
+      "@collaborator",
+      "ynx1collaborator",
+      "collaborator",
+    );
     const now = new Date();
     const start = new Date(now);
     start.setHours(12, 0, 0, 0);
@@ -265,7 +269,95 @@ function unnamedInteractive() {
       { accept_conflicts: false },
       cookie,
     );
+    const privateCalendar = await api(
+      "/v1/calendars",
+      "POST",
+      { name: "Private planning", color: "blue" },
+      cookie,
+    );
+    await api(
+      `/v1/calendars/${privateCalendar.id}/shares`,
+      "POST",
+      { handle: "@collaborator", role: "viewer" },
+      cookie,
+    );
+    const privateStart = new Date(start);
+    privateStart.setDate(privateStart.getDate() + 1);
+    privateStart.setHours(15, 0, 0, 0);
+    const privateEnd = new Date(privateStart);
+    privateEnd.setHours(16, 0, 0, 0);
+    const privatePreview = await api(
+      "/v1/events/preview",
+      "POST",
+      {
+        title: "Founder acquisition plan",
+        description: "Confidential notes must never reach a calendar viewer.",
+        location: "Private board room",
+        all_day: false,
+        calendar_id: privateCalendar.id,
+        color: "red",
+        privacy: "private",
+        attachment_links: ["https://cloud.ynxweb4.com/files/private-plan"],
+        local_start: local(privateStart),
+        local_end: local(privateEnd),
+        time_zone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
+        invitees: [],
+        reminders: [{ minutes_before: 15, channel: "local" }],
+        meeting_link: "https://meet.example/private-board",
+        buffer_before_minutes: 20,
+        buffer_after_minutes: 25,
+        client_mutation_id: "browser-proof-private-event",
+        base_version: 0,
+      },
+      cookie,
+    );
+    await api(
+      `/v1/changes/${privatePreview.id}/approve`,
+      "POST",
+      { accept_conflicts: false },
+      cookie,
+    );
     browser = await chromium.launch({ headless: true });
+    {
+      const context = await browser.newContext({
+        viewport: { width: 1440, height: 900 },
+        locale: "en-US",
+        reducedMotion: "reduce",
+      });
+      const [name, value] = collaboratorCookie.split("=");
+      await context.addCookies([
+        { name, value, url: base, httpOnly: true, sameSite: "Strict" },
+      ]);
+      const page = await context.newPage();
+      const errors = [];
+      page.on("pageerror", (error) => errors.push(error.message));
+      await page.goto(base, { waitUntil: "networkidle" });
+      await page.getByText("Busy", { exact: true }).waitFor();
+      const privacyProof = await page.evaluate(() => ({
+        body: document.body.innerText,
+        busyCards: [...document.querySelectorAll(".event b")].filter(
+          (item) => item.textContent?.trim() === "Busy",
+        ).length,
+        htmlLang: document.documentElement.lang,
+      }));
+      const forbidden = [
+        "Founder acquisition plan",
+        "Confidential notes",
+        "Private board room",
+        "private-plan",
+        "private-board",
+        "ynx1browserproof",
+      ].filter((secret) => privacyProof.body.includes(secret));
+      if (privacyProof.busyCards !== 1 || forbidden.length || privacyProof.htmlLang !== "en")
+        throw Error(`private event browser redaction failed: ${JSON.stringify({ ...privacyProof, forbidden })}`);
+      if (errors.length) throw Error(`privacy page errors: ${errors.join(",")}`);
+      await page.getByText("Busy", { exact: true }).scrollIntoViewIfNeeded();
+      await page.screenshot({
+        path: path.join(artifact, "calendar-private-event-redaction.png"),
+        fullPage: true,
+      });
+      await context.close();
+    }
     {
       const context = await browser.newContext({
         viewport: { width: 390, height: 844 },
@@ -445,7 +537,7 @@ function unnamedInteractive() {
         await permissionHistory.waitFor();
         await permissionHistory.click();
         await page.getByText("viewer → editor").waitFor();
-        await page.getByText("granted viewer").waitFor();
+        await page.getByText("granted viewer").last().waitFor();
         await page.screenshot({
           path: path.join(artifact, "calendar-shared-permission-history.png"),
           fullPage: true,
@@ -492,7 +584,7 @@ function unnamedInteractive() {
         await page.getByRole("button", { name: "Cancel this occurrence" }).click();
         await page.locator("#change-dialog").waitFor({ state: "visible" });
         await page.locator("#approve-change").click();
-        await page.waitForFunction(() => document.querySelectorAll(".agenda-event").length === 2);
+        await page.waitForFunction(() => document.querySelectorAll(".agenda-event").length === 3);
         await page.locator("#event-detail").getByRole("button", { name: "Close" }).click();
         await page.locator('[data-view="day"]').click();
         await page.locator('.timeline[data-view="day"] .day-grid').waitFor();
@@ -500,7 +592,7 @@ function unnamedInteractive() {
         if (await page.locator('.timeline[data-view="day"] .event').count())
           throw Error("cancelled recurring occurrence remained visible in the dedicated Day view");
         await page.locator('[data-view="agenda"]').click();
-        await page.waitForFunction(() => document.querySelectorAll(".agenda-event").length === 2);
+        await page.waitForFunction(() => document.querySelectorAll(".agenda-event").length === 3);
         await page.screenshot({
           path: path.join(artifact, "calendar-desktop-agenda.png"),
           fullPage: true,
@@ -582,9 +674,10 @@ function unnamedInteractive() {
       { accept_conflicts: false },
       cookie,
     );
-    await captureState("empty", null, async (page) =>
-      page.locator("#empty").waitFor({ state: "visible" }),
-    );
+    await captureState("empty", null, async (page) => {
+      await page.locator("#calendar-search").fill("no matching calendar event");
+      await page.locator("#empty").waitFor({ state: "visible" });
+    });
     console.log(
       JSON.stringify({
         product: "calendar",

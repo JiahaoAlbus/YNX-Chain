@@ -1,6 +1,6 @@
 # YNX Calendar evidence index
 
-Latest local candidate source: `aaeded51ab1175e3b449bcd278e72ea09764adb3`
+Latest local candidate source: `df302c542e34654445e70b8aa6a81c2b2525d9de`
 Public Web runtime source (candidate not yet published): `828120e6d81efaf874a930793660e185a394ba4f`
 
 | Evidence area | Authoritative file or command | Status |
@@ -23,6 +23,7 @@ Public Web runtime source (candidate not yet published): `828120e6d81efaf874a930
 | All-day recurrence regression | `apps/calendar/tests/browser-proof.cjs`, `apps/calendar/tests/artifacts/calendar-desktop.png`, `apps/calendar/tests/artifacts/calendar-mobile.png` | late-night all-day range normalization and rendered recurrence verified in desktop/mobile browser proof |
 | Day and recurring-exception views | `apps/calendar/web/app.js`, `apps/calendar/tests/browser-proof.cjs`, `apps/calendar/tests/artifacts/calendar-desktop-day.png`, `apps/calendar/tests/artifacts/calendar-desktop-agenda.png` | dedicated single-day grid plus occurrence-only cancellation across Day and Agenda pass locally; public runtime still excludes this candidate |
 | Shared permission history | `internal/calendar/service.go`, `internal/calendar/service_test.go`, `apps/calendar/web/app.js`, `apps/calendar/tests/browser-proof.cjs`, `apps/calendar/tests/artifacts/calendar-shared-permission-history.png` | owner/viewer/editor grants, role changes and revocation are versioned and restart-persistent; history is owner-only and redacted from non-owner/export views; real browser viewer-to-editor proof passes locally |
+| Private event redaction | `internal/calendar/service.go`, `internal/calendar/service_test.go`, `apps/calendar/tests/browser-proof.cjs`, `apps/calendar/tests/artifacts/calendar-private-event-redaction.png` | unauthorized shared viewers receive Busy in list, single-event and export views; privacy-sensitive fields are cleared, comments are blocked and real-browser seeded secrets remain absent; public runtime still excludes this candidate |
 | Completion evidence | `apps/calendar/FEATURE_COMPLETION_EVIDENCE.md` | local status and remaining gates |
 | UI audit | `apps/calendar/UI_DESIGN_AUDIT.md` | existing UI evidence |
 | Observability | `internal/calendar/observability.go`, `apps/calendar/OBSERVABILITY.md` | local health/readiness/version/request-ID/metrics pass; traces, dashboard and alerts remain central dependencies |
