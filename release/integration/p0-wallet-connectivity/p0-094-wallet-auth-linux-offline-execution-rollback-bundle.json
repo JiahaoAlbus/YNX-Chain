@@ -1,0 +1,103 @@
+{
+  "schemaVersion": 1,
+  "taskId": "P0-094",
+  "bundleId": "P0-WALLET-CONNECTIVITY-P0-094-wallet-auth-linux-offline-prelease-dda13e65-5bdbf033",
+  "status": "SOURCE_ONLY_PRELEASE_NOT_EXECUTION_AUTHORITY",
+  "centralHeadObserved": "1366801fdbf6a01434b49bd4024bdf16ee658ddc",
+  "heavyLeaseObservedFree": true,
+  "productionReadPerformed": false,
+  "sshUsed": false,
+  "deploymentAttempted": false,
+  "lease": {
+    "issued": false,
+    "id": null,
+    "reusablePriorLeases": false,
+    "forbiddenLeaseIds": ["P0-039", "P0-050", "P0-054", "P0-070"]
+  },
+  "binding": {
+    "deploymentCandidateSourceCommit": "dda13e65e67e06f7fb45daa54a311daa96e0155a",
+    "transportSourceCommit": "5bdbf03358ffc1c4d454b53d09a379acb0e94451",
+    "transportSourceTree": "dd0f51438f002dde016e542db088db5921170d66",
+    "acceptedTransportEvidenceCommit": "e1809a6be765158ae5f0b2dcb4c46dc6808845d6",
+    "acceptedTransportEvidenceSha256": "9d2701ca42766e95ccbe50e045911f43e7066c7a49565d3606c0b1e5f37e1b4c",
+    "builderSha256": "c09b3cec47b9240f1930afb0e4838d4a451588d2ba4a6296ef5421cc558dd0d9",
+    "receiverSha256": "8b5f1321cb35f87708c0b385f77cd0558177045579c367312b44c57d11bfec28",
+    "packageLockSha256": "8929316677769e7a6ad703583c12a07dd4d4dcbf4d87c597983f6ab6955a87b6"
+  },
+  "staging": {
+    "absolutePath": "/var/tmp/ynx-wallet-auth-p0094-dda13e655bdbf033",
+    "mustNotExistAtFreshPrewriteRead": true,
+    "owner": "root:root",
+    "mode": "0700",
+    "sourceInitializeFlag": "1",
+    "runtimeInitializeFlag": "0"
+  },
+  "artifacts": [
+    {
+      "role": "source",
+      "localPath": "release/integration/p0-wallet-connectivity/artifacts/wallet-auth-dda13e65/wallet-auth-source-dda13e65.tar.gz",
+      "remoteName": "wallet-auth-source-dda13e65.tar.gz",
+      "sha256": "6a10469371a550b33a6b2f37a483309fa7ddfbbd4451273f070148dd6ed624f9",
+      "bytes": 193810,
+      "receiverCommandPath": "release/integration/p0-wallet-connectivity/p0-094-wallet-auth-source-receiver.command",
+      "receiverCommandSha256": "ce7314d3ca9e6139345ac0e3d3db0de977920401ba3808ff8335d3caec57db3a",
+      "receiverCommandBytes": 5838,
+      "receiverCommandGitBlob": "292e585a7f2bcae06a3a3bef92f6815d11abb91b"
+    },
+    {
+      "role": "runtimeDependencies",
+      "localPath": "release/integration/p0-wallet-connectivity/artifacts/wallet-auth-dda13e65/wallet-auth-runtime-dependencies-dda13e65.tar.gz",
+      "remoteName": "wallet-auth-runtime-dependencies-dda13e65.tar.gz",
+      "sha256": "a17794bd15592f3eae1caab34094bc52ec70ce89efa0cbd9995219e94bc7bd86",
+      "bytes": 707204,
+      "receiverCommandPath": "release/integration/p0-wallet-connectivity/p0-094-wallet-auth-runtime-receiver.command",
+      "receiverCommandSha256": "fe0b6a903785677b10909a7cc78bc177f6257cd60d570e942d484be04fa7f9c4",
+      "receiverCommandBytes": 5852,
+      "receiverCommandGitBlob": "d2305059c61d6bca92b7318c8ca45acf14577b8d"
+    }
+  ],
+  "generatedCommands": {
+    "orderedSourceNulRuntimeSha256": "41b3bcecf23e481330bd6c7f51e5cf86a717952ef389056404d8055ed3521417",
+    "stdinOrder": ["source", "runtimeDependencies"],
+    "remoteCommandIsReadFromFrozenFileWithoutMutation": true,
+    "sshEnvironmentNames": [
+      "YNX_WALLET_AUTH_SSH_HOST",
+      "YNX_WALLET_AUTH_SSH_PORT",
+      "YNX_WALLET_AUTH_SSH_USER",
+      "YNX_WALLET_AUTH_SSH_IDENTITY_FILE",
+      "YNX_WALLET_AUTH_SSH_KNOWN_HOSTS_FILE"
+    ],
+    "sourceInvocation": "ssh -i \"$YNX_WALLET_AUTH_SSH_IDENTITY_FILE\" -p \"$YNX_WALLET_AUTH_SSH_PORT\" -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=\"$YNX_WALLET_AUTH_SSH_KNOWN_HOSTS_FILE\" \"$YNX_WALLET_AUTH_SSH_USER@$YNX_WALLET_AUTH_SSH_HOST\" \"$(cat release/integration/p0-wallet-connectivity/p0-094-wallet-auth-source-receiver.command)\" < release/integration/p0-wallet-connectivity/artifacts/wallet-auth-dda13e65/wallet-auth-source-dda13e65.tar.gz",
+    "runtimeInvocation": "ssh -i \"$YNX_WALLET_AUTH_SSH_IDENTITY_FILE\" -p \"$YNX_WALLET_AUTH_SSH_PORT\" -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=\"$YNX_WALLET_AUTH_SSH_KNOWN_HOSTS_FILE\" \"$YNX_WALLET_AUTH_SSH_USER@$YNX_WALLET_AUTH_SSH_HOST\" \"$(cat release/integration/p0-wallet-connectivity/p0-094-wallet-auth-runtime-receiver.command)\" < release/integration/p0-wallet-connectivity/artifacts/wallet-auth-dda13e65/wallet-auth-runtime-dependencies-dda13e65.tar.gz",
+    "completeOnlyAfterCentralBindsEveryEnvironmentValue": true
+  },
+  "executionGate": {
+    "freshPublicSourceDigestRequired": true,
+    "freshPrivateStateDigestRequired": true,
+    "freshUnitEnvironmentDropInCaddyDigestsRequired": true,
+    "freshHostKeyAndConnectionTupleRequired": true,
+    "freshSingleUseLeaseRequired": true,
+    "freshLeaseMustBindThisBundleAndBothCommandDigests": true,
+    "prewriteDigestReadMustImmediatelyPrecedeFirstStdinByte": true,
+    "networkInstallAllowed": false,
+    "executionAuthorizedByThisBundle": false
+  },
+  "rollback": {
+    "rollbackFirstRequired": true,
+    "stagingFailureBeforeServiceMutation": "Release the future single-use lease failed closed. Do not retry, substitute a path, stop the service, activate a candidate, or remove the root-private staging evidence without separate authority.",
+    "runtimeRollbackTarget": "Must be rebound from the future fresh public source and configuration read; this source-only bundle does not infer a rollback target from P0-070.",
+    "runtimeRollbackCommandFrozen": false,
+    "reasonRuntimeRollbackCommandIsNotFrozen": "No production read or new execution lease exists in this source-only slice.",
+    "candidateAndBackupCleanupAuthorized": false,
+    "successOrFailureLeaseReleaseRequired": true
+  },
+  "truth": {
+    "publicSourceCommit": "6cf3ef845202bd879ed94515a71b323dd2fc9e14",
+    "registryV3Public": false,
+    "productsMigrated": 0,
+    "productsTotal": 12,
+    "computerControl": false,
+    "deployedPublic": false,
+    "integrated": false
+  }
+}
