@@ -11,7 +11,9 @@ const manifest=await readFile(new URL('mobile/contract/public-endpoint-manifest.
 const webWallet=await readFile(new URL('web/wallet-connect-entry.js',base),'utf8');
 const webVerifier=await readFile(new URL('web/verify-wallet-connect.mjs',base),'utf8');
 const providerEvidence=JSON.parse(await readFile(new URL('evidence/p0-finance-provider-connect-state-20260821.json',base),'utf8'));
+const migrationEvidence=JSON.parse(await readFile(new URL('evidence/p0-finance-product-wallet-migration-evidence-20260821.json',base),'utf8'));
 const {createStandardWalletConnectState,reduceStandardWalletConnectState,STANDARD_WALLET_RPC_PROBE,STANDARD_WALLET_RPC_PROBE_TRANSPORT}=await import(new URL('../web/node_modules/@ynx-chain/wallet-auth/src/standard-wallet-connect-state.js',import.meta.url));
+const {evaluateProductWalletMigrationEvidence}=await import(new URL('../web/node_modules/@ynx-chain/wallet-auth/src/index.js',import.meta.url));
 
 test('product states its non-bank and non-custodial boundary',()=>{
   for(const phrase of ['No custody','bank account','No fiat conversion inferred','Finance cannot freeze assets']) assert.ok(html.includes(phrase),phrase);
@@ -77,4 +79,18 @@ test('provider evidence binds the accepted source tree rather than its vendored 
   assert.equal(dependency.walletAuthPackageTree,'69ba84eaef503932ba1b66f42a9caa0a125e0608');
   assert.notEqual(dependency.sourceTree,dependency.walletAuthPackageTree);
   assert.match(dependency.treeBinding,/complete accepted source-commit tree/);
+});
+
+test('Finance evaluates the accepted migration-evidence gate without promoting source-only proof',()=>{
+  const authority=migrationEvidence.evaluatorAuthority;
+  assert.equal(authority.sourceCommit,'e8125d56f8c28efbfa0f87c673717c620ca023e7');
+  assert.equal(authority.sourceTree,'3e22e2854912eaec6f9f464e35d8c281f0957306');
+  assert.equal(authority.rootExport,'evaluateProductWalletMigrationEvidence');
+  assert.equal(authority.blob,'c0ba159099c3040df9f4c2a25cef79cbcbf7cc08');
+  assert.equal(authority.blobSha256,'dac1e57bf989e5ad9e63c568df3c2eb9af7b154501b21f7cf182194a35af694e');
+  assert.equal(authority.vendoredArchive,'web/vendor/ynx-chain-wallet-auth-1.0.0-product-migration-evidence-p0.tgz');
+  assert.equal(authority.vendoredArchiveSha256,'8ae596ab4099123b55d273698704bfe1150e571328b08dd6e50dd8bb3d658d6e');
+  assert.deepEqual(evaluateProductWalletMigrationEvidence(migrationEvidence.input),migrationEvidence.expected);
+  assert.equal(migrationEvidence.expected.productsConnected,0);
+  assert.equal(migrationEvidence.expected.migratedV2,false);
 });
