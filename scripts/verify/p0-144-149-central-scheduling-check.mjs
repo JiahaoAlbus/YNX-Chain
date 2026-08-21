@@ -10,19 +10,25 @@ const tasks = read(`${root}/integration-queue.json`).tasks;
 const task = (id) => tasks.find((entry) => entry.taskId === id);
 
 assert.equal(active.heavy.taskId, "P0-145");
-assert.equal(active.heavy.owner, "explorer-monitor");
+assert.equal(active.heavy.owner, null);
+assert.equal(active.heavy.status, "CONSUMED_RELEASED_DEPLOYMENT_REJECTED");
 assert.equal(active.heavy.productionMutationAllowed, false);
 assert.equal(leases.heavy.leaseId, "P0-WALLET-CONNECTIVITY-2026-08-explorer-monitor-artifact-rollback-20260821T171613Z");
+assert.equal(leases.heavy.owner, null);
 assert.equal(active.light.taskId, "P0-146");
-assert.equal(active.light.owner, "financial-apps");
+assert.equal(active.light.owner, null);
+assert.equal(active.light.status, "CONSUMED_RELEASED_SOURCE_BUILD_ACCEPTED");
 assert.equal(leases.light.leaseId, "P0-WALLET-CONNECTIVITY-2026-08-finance-7824-source-build-20260821T171613Z");
+assert.equal(leases.light.owner, null);
 
 assert.equal(task("P0-144").transactionHash, "0xb15d2de15bdf899f7dab05d108385bb3bece5db0a104a5c46f6dfd60f3c4b1e9");
 assert.equal(task("P0-144").computerControlVerified, false);
 assert.equal(task("P0-145").publicConnectivityJson, false);
 assert.equal(task("P0-145").productionMutationAllowed, false);
+assert.equal(task("P0-145").reviewDecision, "REJECT_DEPLOYMENT_READINESS");
 assert.equal(task("P0-146").productionMutationAllowed, false);
 assert.equal(task("P0-146").publicDeployed, false);
+assert.equal(task("P0-146").reviewDecision, "ACCEPT_SOURCE_BUILD_ONLY");
 assert.equal(task("P0-147").blocker, "NO_AUTHORITATIVE_DATA_FABRIC_PUBLIC_ENDPOINT_OR_RUNTIME_MAPPING");
 assert.equal(task("P0-148").owner, "integration:/root");
 assert.equal(task("P0-149").status, "WAITING_EXTERNAL_CONNECTOR_QUEUED_AFTER_NATIVE_REGISTRATION");

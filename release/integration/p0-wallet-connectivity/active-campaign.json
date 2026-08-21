@@ -427,12 +427,12 @@
     }
   ],
   "heavy": {
-    "owner": "explorer-monitor",
+    "owner": null,
     "taskId": "P0-145",
-    "status": "ACTIVE_SINGLE_USE_ARTIFACT_ROLLBACK_CHECKPOINT",
+    "status": "CONSUMED_RELEASED_DEPLOYMENT_REJECTED",
     "acquiredAt": "2026-08-21T17:16:13Z",
     "expiresAt": "2026-08-21T18:01:13Z",
-    "releasedAt": null,
+    "releasedAt": "2026-08-21T17:57:35Z",
     "sourceCommit": "8571509583a1390b56b1812e1008f5d634ef594f",
     "evidenceCommit": "d6e406acf25868f14256d38efcd474d96dfb0df2",
     "runtimeHost": "43.153.202.237",
@@ -444,7 +444,9 @@
     "reusable": false,
     "previousOwner": "integration",
     "previousTaskId": "P0-143",
-    "reason": "P0-145 may only re-materialize the three exact P0-120 artifacts and freeze rollback/verifier commands. Public /connectivity remains HTML and no production mutation is authorized."
+    "checkpointCommit": "ee3c398adf80659215d06806911068a48551ab03",
+    "reviewDecision": "REJECT_DEPLOYMENT_READINESS",
+    "reason": "Exact artifact integrity is accepted, but deployment is rejected until one source generation is chosen and actual rollback host/service/env/Monitor-ingress/Caddy hashes plus executable rollback receipts are frozen. Public /connectivity remains HTML."
   },
   "wave": {
     "id": "B-financial-apps-quant",
@@ -481,18 +483,18 @@
     }
   },
   "light": {
-    "owner": "financial-apps",
-    "status": "ACTIVE_SINGLE_USE_SOURCE_BUILD",
+    "owner": null,
+    "status": "CONSUMED_RELEASED_SOURCE_BUILD_ACCEPTED",
     "branch": "codex/p0-finance-wallet-connectivity-20260820",
     "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/24-finance",
     "taskId": "P0-146",
     "leasedAt": "2026-08-21T17:16:13Z",
     "expiresAt": "2026-08-21T17:46:13Z",
-    "releasedAt": null,
-    "checkpointCommit": null,
+    "releasedAt": "2026-08-21T17:57:35Z",
+    "checkpointCommit": "5e094147832dca7ad72344f473dd150c30ffa1da",
     "previousOwner": "integration",
     "previousCheckpoint": "993e7cc99ea3919488d6765e097ca78a82a30704",
-    "reason": "Finance may produce exact Linux amd64 archive, env migration and rollback digest evidence only; P0-141 is nonreusable and production mutation remains forbidden.",
+    "reason": "Finance reproducible source/build archive is independently accepted. Production mutation remains forbidden until a separate fresh rollback-bound deployment lease is issued.",
     "executionScope": "FINANCE_7824_SOURCE_BUILD_ROLLBACK_BINDING",
     "onSafeCheckpoint": [
       "modify only Finance-owned source/build/evidence paths",

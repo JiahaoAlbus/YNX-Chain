@@ -5824,7 +5824,7 @@
     {
       "taskId": "P0-145",
       "owner": "explorer-monitor",
-      "status": "ACTIVE_ARTIFACT_ROLLBACK_CHECKPOINT_PUBLIC_HTML_FALLBACK_OPEN",
+      "status": "DEPLOYMENT_REJECTED_ARTIFACT_INTEGRITY_ACCEPTED_LEASE_RELEASED",
       "paths": [
         "apps/monitor/**",
         "{internal,apps}/explorer/**"
@@ -5839,15 +5839,18 @@
       "bundleCommit": "d6e406acf25868f14256d38efcd474d96dfb0df2",
       "leasedAt": "2026-08-21T17:16:13Z",
       "expiresAt": "2026-08-21T18:01:13Z",
+      "releasedAt": "2026-08-21T17:57:35Z",
+      "checkpointCommit": "ee3c398adf80659215d06806911068a48551ab03",
+      "reviewDecision": "REJECT_DEPLOYMENT_READINESS",
       "productionMutationAllowed": false,
       "publicConnectivityJson": false,
       "publicConnectivityObserved": "HTTP 200 HTML 641 bytes SHA efbf2403f89259511dd861a6014e09d5fb11a7bf549a609bd17adacde41af44a",
-      "nextAction": "Rehydrate the exact three artifacts and freeze rollback/public-verifier commands. A separate production lease is required."
+      "nextAction": "Select one authoritative successor source generation, rebuild all three artifacts from it, freeze actual host/service/env/Monitor-ingress/Caddy rollback hashes and executable receipts, then request a new production lease."
     },
     {
       "taskId": "P0-146",
       "owner": "financial-apps",
-      "status": "ACTIVE_SOURCE_BUILD_ROLLBACK_BINDING_NO_PRODUCTION",
+      "status": "SOURCE_BUILD_ACCEPTED_LEASE_RELEASED_AWAITING_PRODUCTION_BINDING",
       "paths": [
         "apps/finance/**"
       ],
@@ -5862,9 +5865,14 @@
       "sharedBindingCommit": "98c6d5d784d212df8981a53b17118a511e246ad2",
       "leasedAt": "2026-08-21T17:16:13Z",
       "expiresAt": "2026-08-21T17:46:13Z",
+      "releasedAt": "2026-08-21T17:57:35Z",
+      "checkpointCommit": "5e094147832dca7ad72344f473dd150c30ffa1da",
+      "archiveSha256": "d8dcd45174dd50c93ef45af7d10d36dc078d6f4982da08dc92b9470e8290a59d",
+      "binarySha256": "cccdae8ae5b5f694ca7db68540da30582564ff741978e616f7435d448a20fe3e",
+      "reviewDecision": "ACCEPT_SOURCE_BUILD_ONLY",
       "productionMutationAllowed": false,
       "publicDeployed": false,
-      "nextAction": "Return exact Linux amd64 archive, env migration and rollback digests. Then wait for a new production lease; never reuse P0-141."
+      "nextAction": "Perform a fresh read-only production state and rollback binding from checkpoint 5e094147, then request a separate single-use production deployment lease; never reuse P0-141."
     },
     {
       "taskId": "P0-147",
