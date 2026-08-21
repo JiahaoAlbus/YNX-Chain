@@ -41,10 +41,15 @@
     "metamaskExtensionId": "nkbihfbeogaeaoehlefnkodbefgpgknn",
     "metamaskApprovalNotificationObserved": true,
     "pageErrorConsoleCount": 0,
-    "screenshotBytes": 67993,
+    "screenshot": {
+      "path": "apps/wallet-web/evidence/browser/pwa-v9-public-wallet-visible-20260822.png",
+      "bytes": 71098,
+      "sha256": "8748e71362eec00ae6907be365cdab30178828b39b94a4e6b0ef7e0fc5a0ae6b"
+    },
     "urlStayedOnWalletOrigin": true,
-    "v9SecondLoadVisibleProved": false,
-    "v9SecondLoadBlocker": "Chrome control timed out during the automatic stale-shell recovery navigation; timeout is not a pass"
+    "recoveryMarkerRemoved": true,
+    "v9SecondLoadVisibleProved": true,
+    "finalVisibleUrl": "https://wallet.ynxweb4.com/"
   },
   "tests": {
     "source": "99/99",

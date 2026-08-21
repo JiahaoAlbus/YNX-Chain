@@ -13,8 +13,8 @@
     {"name": "ynx-wallet-firefox-0.1.0.zip", "bytes": 198820, "sha256": "94f9c4e618514cc183d4d027116d700c047ac72fb2169e08105e70aea1c28579", "minimumOS": "Firefox 128", "signingClass": "unsigned-unpacked-extension"}
   ],
   "browserEvidence": {
-    "proved": ["old Website shell observed", "Wallet Companion visible after alias recovery", "English default", "MetaMask EIP-6963 detected", "MetaMask approval notification opened", "no page error console entries"],
-    "notProved": ["v9 second-load visible completion after Chrome control timeout", "account approval", "provider chainId 0x1917", "chooser close", "connected refresh", "disconnect", "account switch", "YNX provider/callback", "Product Session v2", "sign", "transaction"]
+    "proved": ["old Website shell observed", "Wallet Companion visible after alias recovery", "v9 second load at clean https://wallet.ynxweb4.com/", "recovery marker removed", "English default", "MetaMask EIP-6963 detected", "MetaMask approval notification opened", "no page error console entries"],
+    "notProved": ["account approval", "provider chainId 0x1917", "chooser close", "connected refresh", "disconnect", "account switch", "YNX provider/callback", "Product Session v2", "sign", "transaction"]
   },
   "requiredCentralAction": "Prevent the Website project from claiming wallet.ynxweb4.com; preserve the dedicated Wallet alias. Promote only the direct gates above."
 }
