@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-125",
+  "sourceCommit": "4ebf27fd8308f31fe98a38497ff15b9f77f66cba",
+  "ownerEvidenceCommit": "969cb85b605793df3a84aa303bfe3fbdd22c65dd",
+  "archiveSha256": "408a0d397cffd3a92da7ae168bef94648005e16b38d78f7de6013f282ad896c3",
+  "binarySha256": "c099c2e93fcba017503228406a45f86d06aabc3c5c6b633c36d39c8d86313dba",
+  "activeRuntime": "/opt/ynx/trust-center-releases/p0125b-trust-wallet-4ebf27fd",
+  "rollbackRuntime": "/opt/ynx/trust-center-releases/p0125-trust-wallet-e968f566",
+  "caddySha256": "df5f7ad73dd2631c0e934514e05a30ac97c75dc9efe2ec568b049c71c4024396",
+  "caddyRollbackSha256": "d206d607d05de44277e4c1bd86de1fba346c098d57142f7cd62fbddff314027f",
+  "officialEntry": {"url":"https://trust.ynxweb4.com/","http":200,"bytes":10487,"sha256":"9e41426081dc4559e3ca1d78379233c154ec8a92a5cf4286d9d075b66f618da3"},
+  "websiteEntry": {"url":"https://web4.ynxweb4.com/trust-center/","http":200,"bytes":10487,"sha256":"9e41426081dc4559e3ca1d78379233c154ec8a92a5cf4286d9d075b66f618da3"},
+  "guestState": {"url":"https://trust.ynxweb4.com/api/state","http":200,"mode":"guest-read-only","privateRecords":false,"writesAllowed":false},
+  "guestWrite": {"http":401,"bodySha256":"1002575a7f52a63b90f378d1d1bb3a3319649154aa58a1de6a6e4876b6ded674"},
+  "authoritativeBackend": {"service":"ynx-trustd.service","active":true,"nRestarts":0,"sourceCommit":"98a18815d4ee"},
+  "truth": {"deployedPublic":true,"publicVerified":true,"computerControlVerified":false,"computerControlBlocker":"cgWindowNotFound","installedWalletVerified":false,"walletApprovalVerified":false,"walletAccountVerified":false,"realSignature":false,"realTransaction":false,"productSessionV2":false,"aggregateEcosystemFixed":false}
+}
