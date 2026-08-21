@@ -25,5 +25,5 @@ test('web wallet uses standard providers and YNX chain 6423 without custom-schem
   assert.ok(auth.includes("'https://evm.ynxweb4.com'"));
   assert.ok(discovery.includes('eip6963:requestProvider'));
   assert.ok(discovery.includes('eip6963:announceProvider'));
-  assert.equal((auth.match(/location\.assign\('ynxwallet:\/\/authorize/g)||[]).length, 1, 'only the separated legacy native migration helper may contain the custom scheme');
+  assert.equal((auth.match(/ynxwallet:\/\/authorize/g)||[]).length, 0, 'the Web bundle must contain no custom-scheme navigation');
 });

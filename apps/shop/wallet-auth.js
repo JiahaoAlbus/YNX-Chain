@@ -36,38 +36,6 @@ export async function startWalletAuth(_surface, options = {}) {
   return standard;
 }
 
-// Native clients may still consume the legacy Product Session launcher during
-// migration. It is deliberately separate from browser standard connection.
-export async function startLegacyProductSessionAuthorization(surface) {
-  const config = await requestJSON('/api/auth/config?surface=' + encodeURIComponent(surface));
-  if (config.gateway !== 'available') throw new Error('Central Wallet Gateway is unavailable.');
-  exactConfig(config, surface);
-  const pair = await deviceKey(surface);
-  const publicRaw = new Uint8Array(await crypto.subtle.exportKey('raw', pair.publicKey));
-  const compressed = new Uint8Array(33);
-  compressed[0] = 2 + (publicRaw[64] & 1);
-  compressed.set(publicRaw.slice(1, 33), 1);
-  const now = new Date();
-  const request = {
-    version: '1',
-    nonce: randomBase64url(32),
-    chainId: config.chainId,
-    requestingProduct: config.requestingProduct,
-    productClientId: config.productClientId,
-    bundleId: config.bundleId,
-    productDeviceAlgorithm: config.productDeviceAlgorithm,
-    productDeviceKey: base64url(compressed),
-    callback: config.callback,
-    scopes: [...config.scopes].sort(),
-    purpose: localizedPurpose(surface),
-    issuedAt: now.toISOString(),
-    expiresAt: new Date(now.getTime() + 4 * 60_000).toISOString(),
-  };
-  sessionStorage.setItem('ynx_wallet_pending', canonicalJSON(request));
-  const encoded = base64url(new TextEncoder().encode(canonicalJSON(request)));
-  location.assign('ynxwallet://authorize?request=' + encoded);
-}
-
 export async function completeWalletCallback() {
   const query = new URLSearchParams(location.search);
   const encoded = query.get('response');
