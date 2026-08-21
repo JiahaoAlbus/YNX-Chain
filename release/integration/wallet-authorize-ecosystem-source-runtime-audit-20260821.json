@@ -1,0 +1,214 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "WALLET-AUTHORIZE-ECOSYSTEM-SOURCE-RUNTIME-AUDIT-20260821",
+  "owner": "wallet-protocol-router",
+  "scope": "source-only audit and migration handoff for every Product Session registry client; no product UI changes",
+  "auditedAt": "2026-08-21T06:37:13Z",
+  "sourceBaseline": "0372789e6271b8253cbed24ad397c9a8a1e42ae7",
+  "contracts": {
+    "canonicalAuthorize": {
+      "version": "canonicalWalletAuthorize@1.0.0-p0.0",
+      "sourceCommit": "46386ae8",
+      "centralAcceptanceCommit": "b38489793018ff9a009cad57558b66a142495a2e"
+    },
+    "safeLauncher": {
+      "version": "safeWalletAuthorizeLauncher@2.0.0-p0.0",
+      "sourceCommit": "f1ba5013a817d4c03157e1cf83d7685606951a12",
+      "ownerEvidenceCommit": "649107488520f0973805b32704cfe4a02e15aafa",
+      "coreConsumptionCommit": "eed33085d4150f0febc85fc46ba1915316509aa5",
+      "coreEvidenceCommit": "c0d5dc15c404031923b562ccfeaed1b93111a75c",
+      "supersedes": "safeWalletAuthorizeLauncher@1.0.0-p0.0/4679de8"
+    },
+    "chain": {
+      "cosmosChainId": "ynx_6423-1",
+      "evmChainId": "0x1917"
+    }
+  },
+  "productionBoundary": {
+    "sshUsed": false,
+    "productionPrivateStateRead": false,
+    "deploymentAttempted": false,
+    "leaseRequestedOrReused": false,
+    "productUiModified": false,
+    "urlAutomationUsed": false,
+    "centralControlPlaneWritten": false
+  },
+  "scanner": {
+    "sourceCommit": "0372789e6271b8253cbed24ad397c9a8a1e42ae7",
+    "defaultReleaseGateCommand": "npm run verify:no-bare-authorize --prefix packages/wallet-auth",
+    "repositoryConsumerAuditCommand": "npm run audit:authorize-consumers --prefix packages/wallet-auth",
+    "externalProductBranchCommand": "node packages/wallet-auth/scripts/verify-no-bare-wallet-authorize.mjs --consumer-root <clean-product-root> --json",
+    "releaseGateResult": "PASS_ZERO_BARE_URI",
+    "consumerAuditExpectedResult": "FAIL_UNTIL_ALL_FINDINGS_ARE_MIGRATED",
+    "findingCount": 19,
+    "findingCountsByCode": {
+      "MANUAL_WALLET_AUTHORIZE_URI": 13,
+      "WEB_CUSTOM_SCHEME_AUTHORIZE_URI": 6
+    },
+    "registeredProductFindings": [
+      {"productId":"shop","file":"apps/shop/wallet-auth.js","line":35,"code":"WEB_CUSTOM_SCHEME_AUTHORIZE_URI"},
+      {"productId":"shop","file":"apps/shop/native/android/app/src/main/java/com/ynxweb4/shop/WalletAuth.java","line":52,"code":"MANUAL_WALLET_AUTHORIZE_URI","retiredClient":true},
+      {"productId":"video","file":"apps/video/wallet-auth.js","line":15,"code":"WEB_CUSTOM_SCHEME_AUTHORIZE_URI"},
+      {"productId":"video","file":"apps/video/android/app/src/main/java/com/ynxweb4/video/MainActivity.java","line":261,"code":"MANUAL_WALLET_AUTHORIZE_URI"},
+      {"productId":"video","file":"apps/video/ios/YNXVideo/ContentView.swift","line":77,"code":"MANUAL_WALLET_AUTHORIZE_URI"},
+      {"productId":"social","file":"apps/wallet/proof/social-harness/app/src/main/java/com/ynx/social/MainActivity.java","line":87,"code":"MANUAL_WALLET_AUTHORIZE_URI","proofHarnessOnly":true}
+    ],
+    "otherEcosystemFindingCount": 13,
+    "otherEcosystemFindings": [
+      {"ownerHandoff":"ai","file":"apps/ai/mobile/src/walletProtocol.ts","line":26,"code":"MANUAL_WALLET_AUTHORIZE_URI"},
+      {"ownerHandoff":"browser","file":"apps/browser/android/app/src/main/java/com/ynxweb4/browser/MainActivity.java","line":36,"code":"MANUAL_WALLET_AUTHORIZE_URI"},
+      {"ownerHandoff":"browser","file":"apps/browser/ios/YNXBrowser/BrowserModel.swift","line":26,"code":"MANUAL_WALLET_AUTHORIZE_URI"},
+      {"ownerHandoff":"browser","file":"apps/browser/windows/YNXBrowser.Windows/WalletRequestBuilder.cs","line":52,"code":"MANUAL_WALLET_AUTHORIZE_URI"},
+      {"ownerHandoff":"cloud","file":"apps/cloud/mobile/src/wallet.ts","line":19,"code":"MANUAL_WALLET_AUTHORIZE_URI"},
+      {"ownerHandoff":"music","file":"apps/music/android/app/src/main/java/com/ynxweb4/music/CentralContracts.java","line":52,"code":"MANUAL_WALLET_AUTHORIZE_URI"},
+      {"ownerHandoff":"music","file":"apps/music/ios/YNXMusic/YNXMusicApp.swift","line":59,"code":"MANUAL_WALLET_AUTHORIZE_URI"},
+      {"ownerHandoff":"resource-market","file":"apps/resource-market/mobile/android/app/src/main/java/com/ynxweb4/resource/MainActivity.java","line":15,"code":"MANUAL_WALLET_AUTHORIZE_URI"},
+      {"ownerHandoff":"resource-market","file":"apps/resource-market/web/app.js","line":18,"code":"WEB_CUSTOM_SCHEME_AUTHORIZE_URI"},
+      {"ownerHandoff":"search","file":"apps/search/src/server.js","line":33,"code":"WEB_CUSTOM_SCHEME_AUTHORIZE_URI"},
+      {"ownerHandoff":"seller-console","file":"apps/seller-console/wallet-auth.js","line":35,"code":"WEB_CUSTOM_SCHEME_AUTHORIZE_URI"},
+      {"ownerHandoff":"trust-center","file":"apps/trust-center/web/app.js","line":26,"code":"WEB_CUSTOM_SCHEME_AUTHORIZE_URI"},
+      {"ownerHandoff":"ai-service","file":"internal/aiproduct/formal_auth.go","line":147,"code":"MANUAL_WALLET_AUTHORIZE_URI"}
+    ],
+    "rule": "Any bare or payload-free authorize URI fails the default release gate. Any product-owned literal construction fails consumer audit even when it carries a payload. Web custom-scheme navigation is always rejected. Product branches must consume the package root canonical builder and safe launcher; protocol-owned constants and explicit documentation placeholders are not consumers."
+  },
+  "sharedCapabilityTruth": {
+    "webProviderDiscovery": "implemented in safe launcher v2 through EIP-6963/EIP-1193, but product consumption is evaluated separately",
+    "metamaskEvm": "implemented in the shared adapter with eth_chainId, wallet_switchEthereumChain, wallet_addEthereumChain for 0x1917 when 4902, then eth_requestAccounts; product consumption is evaluated separately",
+    "noProvider": "safe launcher v2 returns unsupported with official HTTPS YNX Wallet and MetaMask actions and performs no custom-scheme navigation",
+    "native": "safe launcher v2 requires resolver-first opening of the complete encodeRequestDeepLink request and exact callback parsing",
+    "productSession": "standard provider connection remains independent when private Product Session is unavailable"
+  },
+  "products": [
+    {
+      "productId":"calendar","owner":"calendar","clientId":"ynx-calendar-v1","evmCompatible":false,
+      "source":{"kind":"external-public-current-source","commit":"828120e6d81efaf874a930793660e185a394ba4f","evidence":"release/integration/wallet-product-session-p0094-source-matrix-review-20260821.json"},
+      "runtime":{"currentSourcePublic":true,"browserInteractiveCurrentSource":true,"installedWallet":false,"connected":false,"productSessionV2":false},
+      "audit":{"webCustomSchemeNavigation":"not-observed-in-owned-evidence","eip6963Eip1193":"standard-wallet-source-only","metaMask0x1917":"not-applicable","noProviderOfficialActions":"unproven","nativeCompleteRequestCallback":"unproven"},
+      "blocker":"No safe-launcher-v2 consumption, installed Wallet lifecycle, callback, or Product Session v2 evidence.",
+      "migrationHandoff":["Consume package-root launchWalletAuthorization/launchWebAuthorization without custom-scheme Web navigation.","Preserve current Standard Wallet connection and add unsupported official actions.","Provide runtime-source, public-gateway-v2 and visible-platform-lifecycle evidence."]
+    },
+    {
+      "productId":"card","owner":"card","clientId":"ynx-card-v1","evmCompatible":true,
+      "source":{"kind":"root-factory-source-only-plus-public-guest","factoryCheckpoint":"e935b760","publicGuestCommit":"466a4c4cd59e2958260bd6e35193b32c0d2249f4","evidence":"release/integration/wallet-product-session-card-root-factory-checkpoint-20260820.json"},
+      "runtime":{"webPwaTestnetGuestEntryPublic":true,"guestModeNoFabricatedWalletState":true,"standardWalletRealBrowserLifecycle":false,"connected":false,"productSessionV2":false},
+      "audit":{"webCustomSchemeNavigation":"unproven","eip6963Eip1193":"factory-source-capable-not-runtime-proven","metaMask0x1917":"factory-source-capable-not-runtime-proven","noProviderOfficialActions":"unproven","nativeCompleteRequestCallback":"unproven"},
+      "blocker":"Public Card evidence proves only Web/PWA Testnet guest entry, not Wallet connection or Product Session.",
+      "migrationHandoff":["Rebase owner consumer on safe launcher v2 and shared MetaMask adapter.","Prove eth_requestAccounts plus add/switch 0x1917 in a real browser while keeping Guest explicit.","Provide runtime-source, public-gateway-v2 and visible-platform-lifecycle evidence."]
+    },
+    {
+      "productId":"creator-studio","owner":"creator-studio","clientId":"ynx-creator-studio-web-v1","evmCompatible":false,
+      "source":{"kind":"in-tree-legacy-direct","commit":"0372789e6271b8253cbed24ad397c9a8a1e42ae7","paths":[{"path":"apps/creator-studio/app.js","blob":"d2bb5918e821d7b99b60671bd46f9107d5a45faa"}]},
+      "runtime":{"connected":false,"productSessionV2":false},
+      "audit":{"webCustomSchemeNavigation":"indirect-location-href-to-walletAuthorizationURL","eip6963Eip1193":false,"metaMask0x1917":"not-applicable","noProviderOfficialActions":false,"nativeCompleteRequestCallback":"not-applicable","missingImportedModule":"apps/creator-studio/wallet-auth.js"},
+      "blocker":"Web sign-in assigns a custom-scheme result to location.href and the imported local wallet-auth.js is absent from the tracked source.",
+      "migrationHandoff":["Replace the missing legacy module with package-root safe launcher v2 consumption.","Use EIP-6963/EIP-1193 on Web; return unsupported official actions when absent.","Provide runtime-source, public-gateway-v2 and visible-browser lifecycle evidence."]
+    },
+    {
+      "productId":"developer","owner":"developer","clientId":"ynx-developer-v1","evmCompatible":true,
+      "source":{"kind":"registry-contract-only","commit":"0372789e6271b8253cbed24ad397c9a8a1e42ae7","path":"packages/wallet-auth/product-session-registry.json","blob":"2a0144ef24e1d69664bb8f85419c182125350d1f"},
+      "runtime":{"connected":false,"productSessionV2":false},
+      "audit":{"webCustomSchemeNavigation":"unproven","eip6963Eip1193":"unproven","metaMask0x1917":"unproven","noProviderOfficialActions":"unproven","nativeCompleteRequestCallback":"unproven"},
+      "blocker":"No exact Developer runtime consumer is present in this owner branch.",
+      "migrationHandoff":["Consume safe launcher v2 and prove shared MetaMask eth_requestAccounts plus add/switch 0x1917 from the package root.","Run the branch consumer audit and remove every literal authorize URI.","Provide runtime-source, public-gateway-v2 and visible-platform-lifecycle evidence."]
+    },
+    {
+      "productId":"dex","owner":"finance-suite-dex","clientId":"ynx-dex-v1","evmCompatible":true,
+      "source":{"kind":"external-root-factory-owner-source-only","commit":"aa5d4e5b5999a1dee28ce41adcc509abe96f95e9","tree":"3e5afc0576cb0abb23dd3d614a30da95e589829a","evidence":"release/integration/wallet-product-session-financial-adapters-checkpoint-20260821.json"},
+      "runtime":{"connected":false,"productSessionV2":false,"fullUiPassed":false},
+      "audit":{"webCustomSchemeNavigation":"legacy-direct-removed-in-owner-source","eip6963Eip1193":"factory-source-capable-not-runtime-proven","metaMask0x1917":"factory-source-capable-not-runtime-proven","noProviderOfficialActions":"safe-launcher-v2-consumption-unproven","nativeCompleteRequestCallback":"unproven"},
+      "blocker":"Protected browser signer/storage and public visible lifecycle are unproved; owner full UI is blocked by unavailable localStorage test environment.",
+      "migrationHandoff":["Consume safe launcher v2 successor on the exact owner source.","Prove standard provider and MetaMask add/switch 0x1917 plus account request in a real browser.","Provide public-gateway-v2 and visible-platform lifecycle evidence."]
+    },
+    {
+      "productId":"exchange","owner":"finance-suite-exchange","clientId":"ynx-exchange-v1","evmCompatible":true,
+      "source":{"kind":"external-root-factory-owner-source-only","commit":"ffc5cf89fbba81bf439835350bb91d09ece158ab","evidence":"release/integration/wallet-product-session-financial-adapters-checkpoint-20260821.json","inTreeOlderPath":"apps/exchange/mobile/src/wallet.ts"},
+      "runtime":{"connected":false,"productSessionV2":false},
+      "audit":{"webCustomSchemeNavigation":"not-applicable-to-reviewed-native-source","eip6963Eip1193":"standard-wallet-independent-source-only","metaMask0x1917":"factory-source-capable-not-runtime-proven","noProviderOfficialActions":"safe-launcher-v2-consumption-unproven","nativeCompleteRequestCallback":"canonical-request-and-callback-source-only-resolver-first-unproven"},
+      "blocker":"Newer owner source has no public Gateway or visible native/browser lifecycle; in-tree older copy still directly calls Linking.openURL.",
+      "migrationHandoff":["Apply safe launcher v2 resolver-first native adapter to the newer owner checkpoint.","For Web/EVM surfaces use shared discovery and prove MetaMask eth_requestAccounts plus add/switch 0x1917.","Provide public-gateway-v2 and visible-platform lifecycle evidence."]
+    },
+    {
+      "productId":"finance","owner":"finance-suite-finance","clientId":"ynx-finance-v1","evmCompatible":true,
+      "source":{"kind":"external-root-factory-platform-negative","commit":"f711745dc44cea17ac46abd6332af87f6db2ffa6","evidence":"release/integration/wallet-product-session-finance-platform-negative-checkpoint-20260820.json","inTreeOlderPath":"apps/finance/mobile/src/wallet.ts"},
+      "runtime":{"installedWalletOpened":true,"approval":false,"connected":false,"productSessionV2":false,"failure":"protocol-schema-mismatch"},
+      "audit":{"webCustomSchemeNavigation":"unproven","eip6963Eip1193":"standard-wallet-independent-source-only","metaMask0x1917":"factory-source-capable-not-runtime-proven","noProviderOfficialActions":"safe-launcher-v2-consumption-unproven","nativeCompleteRequestCallback":"request-source-only-visible-flow-failed-before-approval"},
+      "blocker":"Visible Android flow failed closed on protocol schema mismatch; no approval, callback, or Session exists.",
+      "migrationHandoff":["Consume canonical authorize v1 and safe launcher v2 exact package root on the owner source.","Prove resolver-first complete request, approve/reject callback, cold-start pending recovery, and Web MetaMask add/switch 0x1917 when enabled.","Provide public-gateway-v2 and visible-platform lifecycle evidence."]
+    },
+    {
+      "productId":"pay","owner":"pay","clientId":"ynx-pay-v1","evmCompatible":true,
+      "source":{"kind":"registry-contract-only","commit":"0372789e6271b8253cbed24ad397c9a8a1e42ae7","path":"packages/wallet-auth/product-session-registry.json","blob":"2a0144ef24e1d69664bb8f85419c182125350d1f"},
+      "runtime":{"connected":false,"productSessionV2":false},
+      "audit":{"webCustomSchemeNavigation":"unproven","eip6963Eip1193":"unproven","metaMask0x1917":"unproven","noProviderOfficialActions":"unproven","nativeCompleteRequestCallback":"unproven"},
+      "blocker":"No exact Pay runtime consumer is present in this owner branch.",
+      "migrationHandoff":["Consume safe launcher v2, root Product Session factory and prove shared MetaMask eth_requestAccounts plus add/switch 0x1917.","Run the branch consumer audit and remove every literal authorize URI.","Provide runtime-source, public-gateway-v2 and visible-platform-lifecycle evidence."]
+    },
+    {
+      "productId":"quant","owner":"finance-suite-quant","clientId":"ynx-quant-v1","evmCompatible":true,
+      "source":{"kind":"external-root-factory-owner-source-only","commit":"f66fd4d14ff047efa6bb7e66fc2e140773826b16","tree":"ab2cb8c7704e680fcf8451f9bd44103aaef163ff","evidence":"release/integration/wallet-product-session-financial-adapters-checkpoint-20260821.json"},
+      "runtime":{"connected":false,"productSessionV2":false},
+      "audit":{"webCustomSchemeNavigation":"legacy-direct-removed-in-owner-source","eip6963Eip1193":"factory-source-capable-not-runtime-proven","metaMask0x1917":"factory-source-capable-not-runtime-proven","noProviderOfficialActions":"safe-launcher-v2-consumption-unproven","nativeCompleteRequestCallback":"unproven"},
+      "blocker":"Protected browser signer/storage, public Gateway and visible lifecycle are unproved.",
+      "migrationHandoff":["Consume safe launcher v2 successor on the exact owner source.","Prove standard provider and MetaMask add/switch 0x1917 plus account request in a real browser.","Provide public-gateway-v2 and visible-platform lifecycle evidence."]
+    },
+    {
+      "productId":"shop","owner":"shop","clientId":"ynx-shop-v1","evmCompatible":true,
+      "source":{"kind":"android-retired-web-legacy","commit":"0372789e6271b8253cbed24ad397c9a8a1e42ae7","ownerRetirementCommit":"1752f12534166b6216e5c91c9ce87ab11caea072","paths":[{"path":"apps/shop/wallet-auth.js","blob":"89059750a23707b8055d34039517fcf35a9a4539"},{"path":"apps/shop/native/android/app/src/main/java/com/ynxweb4/shop/WalletAuth.java","retiredClient":true}]},
+      "runtime":{"shopWebReplacementPublic":true,"androidClientRetired":true,"connected":false,"productSessionV2":false},
+      "audit":{"webCustomSchemeNavigation":true,"eip6963Eip1193":false,"metaMask0x1917":false,"noProviderOfficialActions":false,"nativeCompleteRequestCallback":"retired-client-manual-uri-do-not-reactivate"},
+      "blocker":"Shop Web directly location.assigns a custom scheme; retired Android also contains manual URI construction and cannot be counted or reactivated.",
+      "migrationHandoff":["Migrate Web/PWA only to safe launcher v2 and root Product Session factory.","Use EIP-6963/EIP-1193 and shared MetaMask add/switch 0x1917 flow; show official HTTPS actions when absent.","Keep Android retired and provide Web runtime-source, public-gateway-v2 and visible-browser evidence."]
+    },
+    {
+      "productId":"social","owner":"social","clientId":"ynx-social-v1","evmCompatible":false,
+      "source":{"kind":"canonical-launcher-v1","commit":"0372789e6271b8253cbed24ad397c9a8a1e42ae7","paths":[{"path":"apps/social/src/walletAuth.ts","blob":"5f5be2b2cab1e2a2e435d1cd7625d27c15720622"},{"path":"apps/social/src/walletLauncherCore.ts","blob":"1d05066bf24b703d79c8ae0b5abdc5fe34751fe1"}]},
+      "runtime":{"installedWalletReviewShown":true,"rejectObserved":true,"secondLaunchNoResurrection":true,"approval":false,"callback":false,"connected":false,"productSessionV2":false},
+      "audit":{"webCustomSchemeNavigation":"safe-launcher-v2-not-consumed","eip6963Eip1193":false,"metaMask0x1917":"not-applicable","noProviderOfficialActions":"v1-actions-exist-but-transport-not-v2-safe","nativeCompleteRequestCallback":"canonical-request-resolver-first-source-and-negative-device-evidence","proofHarnessManualUriFinding":true},
+      "blocker":"Only negative installed-device evidence exists; v1 launcher has no standard Web discovery and proof harness still constructs the URI manually.",
+      "migrationHandoff":["Replace v1 launcher with safe launcher v2 while preserving canonical request bytes.","Migrate proof harness to encodeRequestDeepLink rather than literal construction.","Provide approve/reject exact callback, public-gateway-v2 and second-launch/retry visible evidence."]
+    },
+    {
+      "productId":"video","owner":"video","clientId":"ynx-video-mobile-v1","evmCompatible":false,
+      "source":{"kind":"in-tree-legacy-direct-web-and-native","commit":"0372789e6271b8253cbed24ad397c9a8a1e42ae7","paths":[{"path":"apps/video/wallet-auth.js","blob":"a9d062a6f85c5e190544ebcd42dd13ca578320f3"},{"path":"apps/video/android/app/src/main/java/com/ynxweb4/video/MainActivity.java","blob":"ec637fc6079049d9fffbfe070b01bd08999148fe"},{"path":"apps/video/ios/YNXVideo/ContentView.swift","blob":"e38a22a4451e14e01705823968df0ed6e88815a6"}]},
+      "runtime":{"connected":false,"productSessionV2":false},
+      "audit":{"webCustomSchemeNavigation":true,"eip6963Eip1193":false,"metaMask0x1917":"not-applicable","noProviderOfficialActions":false,"nativeCompleteRequestCallback":"manual-uri-no-resolver-first-evidence"},
+      "blocker":"Web, Android and iOS each construct the authorize URI outside the package root; Web can navigate the custom scheme directly.",
+      "migrationHandoff":["Replace all three builders with canonical package-root request/callback APIs.","Web must use safe launcher v2 standard provider discovery and unsupported official actions; native must resolve before open.","Provide runtime-source, public-gateway-v2 and visible-platform-lifecycle evidence."]
+    },
+    {
+      "productId":"wallet-web-companion","owner":"wallet-core-auth","clientId":"ynx-wallet-web-companion-v1","evmCompatible":true,"nonProductRegistryClient":true,
+      "source":{"kind":"core-runtime-candidate-safe-launcher-v2","commit":"eed33085d4150f0febc85fc46ba1915316509aa5","evidenceCommit":"c0d5dc15c404031923b562ccfeaed1b93111a75c"},
+      "runtime":{"connected":false,"productSessionV2":false,"public":false},
+      "audit":{"webCustomSchemeNavigation":false,"eip6963Eip1193":true,"metaMask0x1917":"shared-capability-not-runtime-proven","noProviderOfficialActions":true,"nativeCompleteRequestCallback":"not-applicable"},
+      "blocker":"Core source consumed safe launcher v2, but platform, browser, public Gateway and installed Wallet evidence remain false.",
+      "migrationHandoff":["Platform owner must consume the exact Core package and prove provider/no-provider browser behavior.","Prove shared MetaMask 0x1917 flow if enabled for this Web client.","Provide public-gateway-v2 and visible-browser lifecycle evidence without promoting product migration counts."]
+    }
+  ],
+  "registeredClientCount": 13,
+  "requiredProductCount": 12,
+  "nonProductRegistryClientCount": 1,
+  "productsConnected": 0,
+  "productsMigratedV2": 0,
+  "runtimeConclusion": "The reported ecosystem-wide public connection failure is consistent with the absence of completed product migrations and multiple source blockers, but this source-only audit did not reproduce every public runtime. No product is marked fixed or connected.",
+  "requiredOwnerEvidenceSegments": [
+    {"segment":"runtime-source","requirement":"Exact product owner commit consumes canonical authorize v1, safe launcher v2 and the root Product Session factory; branch consumer audit returns zero; Standard Wallet remains independent."},
+    {"segment":"public-gateway-v2","requirement":"Exact public product runtime proves registered challenge, approve/reject completion, introspection, expiry, revoke, restart and Retry with request IDs and no local/canned fallback."},
+    {"segment":"visible-platform-lifecycle","requirement":"Real browser/device proves no extra tab or custom-scheme Web navigation, provider/no-provider actions, MetaMask 0x1917 flow when EVM-compatible, resolver-first native request, exact callback, cold-start pending recovery, replay/tamper rejection and no fake authority."}
+  ],
+  "truth": {
+    "sourceAuditComplete": true,
+    "scannerSourceImplemented": true,
+    "runtimeReproducedAcrossAllProducts": false,
+    "productUiChanged": false,
+    "registryV3Public": false,
+    "productsConnected": 0,
+    "productsMigratedV2": 0,
+    "installedWalletAggregate": false,
+    "approvalAggregate": false,
+    "callbackAggregate": false,
+    "deployedPublic": false,
+    "integratedCentral": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

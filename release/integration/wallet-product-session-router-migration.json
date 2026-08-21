@@ -1,6 +1,7 @@
 {
   "schemaVersion": 1,
   "protocolVersion": "2",
+  "currentAuthorizeAudit": "release/integration/wallet-authorize-ecosystem-source-runtime-audit-20260821.json",
   "audit": {
     "sourceBaseline": "9759576afdd4e02fa5375dde371acd41be038c2c",
     "auditedAt": "2026-08-21T02:39:42.000Z",
