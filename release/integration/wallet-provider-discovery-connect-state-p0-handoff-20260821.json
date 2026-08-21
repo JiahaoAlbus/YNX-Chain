@@ -104,7 +104,10 @@
     "android": {"required":"APK direct download or AAB store upload plus install/cold-launch/second-launch/network/version/hash/signing/rollback","acceptedCurrentArtifact":false,"reason":"Latest owner branch still points to an older da82c8b local-test-signed APK; it is not a current exact-source installer replacement."},
     "macosWebsiteDirectLinkPublished": true,
     "websiteDirectLinksRestored": false,
-    "uniqueReleaseBlocker": "The public DMG is an identity-mismatched desktop preview without canonical callback registration; a matching Owner-native, signed/notarized/Gatekeeper-accepted artifact with callback and rollback proof is required."
+    "ownerNativeProductionPipelineSourceReady": true,
+    "ownerNativeProductionPipelineSource": "07cab0839e55a2a4f65b4813345d35fb5460c5f8",
+    "ownerNativeProductionPipelineEvidence": "f89bd23ab88b4b9de66e778357549203d10b2629",
+    "uniqueReleaseBlocker": "Central must merge the exact pipeline blobs and a tagged production run must provide a matching Owner-native DMG plus Developer ID, notarization, stapling, Gatekeeper, callback/runtime and Release receipts before Website replacement."
   },
   "truth": {
     "productsConnected": 0,

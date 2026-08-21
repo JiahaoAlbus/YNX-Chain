@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "evidenceId": "WALLET-PROVIDER-CONNECT-OWNER-ACTIVITY-CHECKPOINT-20260821",
   "owner": "wallet-protocol-router",
-  "auditedAt": "2026-08-21T13:16:22Z",
+  "auditedAt": "2026-08-21T13:32:26Z",
   "authoritativeHandoffParent": "d3831c300560507f64a50e73117bab7b85926d9a",
   "sharedContract": {
     "sourceCommit": "98c6d5d784d212df8981a53b17118a511e246ad2",
@@ -110,6 +110,7 @@
       "identityGapEvidenceCommit": "b7f20a717b22ed279146ac7ab2b41c272a79acb0",
       "identityGapEvidenceBlob": "2d483d133a19d4c3b16f07ec1736edc7f359adc5",
       "identityGapEvidenceSha256": "6e93c13a762731553c2b4fb3c5c04650bf90da925f4fcf11cb64af53fa41add0",
+      "nativeProductionPipeline": {"sourceCommit":"07cab0839e55a2a4f65b4813345d35fb5460c5f8","sourceTree":"3ccb70acd9857fb157c543ad602b3613c4fdeccb","evidenceCommit":"f89bd23ab88b4b9de66e778357549203d10b2629","evidenceTree":"f6564c2c5b7c7344f9205c8eea14cbca5ea5e36c","evidenceBlob":"e98836abe59ac60b2caab13a05bfd2862fa56c0a","evidenceSha256":"72b89274d638962e8fc91fdb518cf36744df5bb8a0cbc1319ebb2876eb6cef78","ciRun":32486864907,"sourceContractPassed":true,"nativeRuntimePassed":true,"sourceReady":true,"defaultMainRegistrationCount":0,"appleSecretsInspected":false,"productionRun":false,"productionDmg":false,"productionRelease":false},
       "bundleId": "com.ynxweb4.wallet.desktop",
       "version": "0.1.1",
       "architectures": ["x86_64","arm64"],
