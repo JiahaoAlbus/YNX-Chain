@@ -1,0 +1,136 @@
+{
+  "schemaVersion": 1,
+  "owner": "02-wallet-auth-ios-macos-native",
+  "evidenceKind": "published-macos-dmg-isolated-launchservices-supplement",
+  "generatedAt": "2026-08-21T13:09:51Z",
+  "parentEvidence": {
+    "commit": "ad66cfd8ceb34c1a7d19219607fbc531457277a3",
+    "path": "release/integration/wallet-macos-public-dmg-platform-evidence-2026-08-21.json",
+    "blob": "e120d03593fc4727537aa06566c385385839e682",
+    "bytes": 5601,
+    "sha256": "04eafb634dbf4f6b5203233a3a319c339d0b5adf8d76f134c555110c2a2369df"
+  },
+  "publicationCheckpoint": {
+    "integrationCommit": "a36011f8cf474955f4ef7faa338670e0c8d9d42c",
+    "websiteSourceCommit": "efe79b5c9bcfa2619c138abc7521ee17b7cbfd7d",
+    "vercelDeployment": "dpl_6tygndEdR6GS53fUNRKexV9ha9DF",
+    "websitePublished": true
+  },
+  "publicArtifact": {
+    "name": "ynx-wallet-desktop-0.1.1-universal.dmg",
+    "url": "https://downloads.ynxweb4.com/wallet/sha256-ad6e4077bc001743cf1a4163ceaca5a009a3c8a4d8a809cc4896798976cf56c0/ynx-wallet-desktop-0.1.1-universal.dmg",
+    "bytes": 236661996,
+    "sha256": "ad6e4077bc001743cf1a4163ceaca5a009a3c8a4d8a809cc4896798976cf56c0",
+    "hdiutilVerified": true,
+    "dmgFormat": "UDZO",
+    "dmgCrc32": "C1E5F9DE"
+  },
+  "host": {
+    "product": "macOS",
+    "version": "27.0",
+    "build": "26A5416b",
+    "architecture": "arm64"
+  },
+  "containedApplication": {
+    "name": "YNX Wallet Testnet Preview.app",
+    "bundleIdentifier": "com.ynxweb4.wallet.desktop",
+    "shortVersion": "0.1.1",
+    "bundleVersion": "0.1.1",
+    "minimumOSMetadata": "macOS 12.0",
+    "architectures": [
+      "x86_64",
+      "arm64"
+    ]
+  },
+  "installationBoundary": {
+    "isolatedTemporaryApplicationsCopyVerified": true,
+    "copyMethod": "ditto from read-only mounted DMG",
+    "mountedFileCount": 259,
+    "copiedFileCount": 259,
+    "systemApplicationsInstalled": false,
+    "cleanEndUserHostInstalled": false,
+    "browserDownloadedQuarantinePresent": false,
+    "xattrsObserved": [
+      "com.apple.provenance"
+    ],
+    "boundary": "The app was copied to an isolated temporary Applications directory. This is not a drag-to-/Applications installation and does not prove browser-download quarantine acceptance."
+  },
+  "launchServices": {
+    "method": "open -n <isolated app> --args --user-data-dir=<isolated profile>",
+    "cold": {
+      "verified": true,
+      "openExitStatus": 0,
+      "startedAt": "2026-08-21T13:08:48Z",
+      "pid": 46401,
+      "ppid": 1,
+      "exactExecutablePathVerified": true,
+      "cleanTermExit": true,
+      "network443EstablishedObserved": false
+    },
+    "second": {
+      "verified": true,
+      "openExitStatus": 0,
+      "startedAt": "2026-08-21T13:09:10Z",
+      "pid": 46738,
+      "ppid": 1,
+      "differentPidFromCold": true,
+      "sameIsolatedProfile": true,
+      "exactExecutablePathVerified": true,
+      "cleanTermExit": true,
+      "network443EstablishedObserved": false
+    },
+    "visibleWindowVerifiedThisSlice": false,
+    "uiScreenshotVerifiedThisSlice": false,
+    "boundary": "LaunchServices started the unquarantined isolated copy twice. This does not prove Gatekeeper acceptance, a clean-host install, or visible UI."
+  },
+  "networkBoundary": {
+    "launchServicesNetworkObservedThisSlice": false,
+    "sameArtifactDirectBinaryNetworkVerifiedInParentEvidence": true,
+    "endpoint": "https://rpc.ynxweb4.com/evm",
+    "method": "eth_chainId",
+    "coldObservedChainIdInParentEvidence": "0x1917",
+    "secondObservedChainIdInParentEvidence": "0x1917",
+    "interpretation": "No network success is inferred from the LaunchServices processes. The existing direct-binary evidence remains the only positive network proof for this exact public artifact."
+  },
+  "signingAndNotarization": {
+    "wholeAppDeepStrictVerified": false,
+    "wholeAppResult": "code object is not signed at all",
+    "mainExecutableFormat": "Mach-O universal x86_64 arm64",
+    "mainExecutableClass": "linker-generated ad-hoc only",
+    "mainExecutableIdentifier": "Electron",
+    "teamIdentifier": null,
+    "developerIdSigned": false,
+    "productionSigned": false,
+    "notarized": false,
+    "stapledTicket": false,
+    "gatekeeperAccepted": false,
+    "gatekeeperResult": "rejected: source=no usable signature"
+  },
+  "platformGates": {
+    "websitePublished": true,
+    "downloadHosted": true,
+    "exactArtifactRehashed": true,
+    "exactVersionVerified": true,
+    "isolatedTemporaryCopyVerified": true,
+    "launchServicesColdLaunchOnUnquarantinedCopyVerified": true,
+    "launchServicesSecondLaunchOnUnquarantinedCopyVerified": true,
+    "systemApplicationsInstalled": false,
+    "cleanEndUserHostInstalled": false,
+    "browserQuarantineAcceptanceVerified": false,
+    "launchServicesNetworkVerified": false,
+    "rollbackVerified": false,
+    "uninstallVerifiedThisSlice": false,
+    "developerIdSigned": false,
+    "productionSigned": false,
+    "notarized": false,
+    "gatekeeperAccepted": false,
+    "storeReleased": false,
+    "accountCreated": false,
+    "balanceClaimed": false,
+    "authorizationVerified": false,
+    "callbackVerified": false,
+    "productSessionVerified": false,
+    "signingEnabled": false,
+    "transactionCreated": false
+  }
+}
