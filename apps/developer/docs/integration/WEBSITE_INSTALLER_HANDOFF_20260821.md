@@ -12,7 +12,7 @@ it must never be linked, labelled, or recovered as a macOS or Windows installer.
 
 | Platform | Required public format | Exact source | Artifact and installation evidence | Website state |
 | --- | --- | --- | --- | --- |
-| macOS arm64 | `.dmg` containing a launchable `.app` | `95daaa89825738e61747f0e02555ce1b9b84a75a` / tree `a67c816b8fe69b063c4ab795f00e07078fae3068` | Local macOS build produced `ynx-developer-testnet-preview-macos-arm64-unsigned.dmg`, 289,904,574 bytes, SHA-256 `3cd5ecff96138f2e872ac7e8f0da4a47f9c39f6414c51fab0af3922e1a284ac9`. It is UDZO, signed ad-hoc with no Team ID, and was mounted, copied from the DMG to an isolated Applications directory, cold-launched, cleanly exited, second-launched, completed a bounded C++ compile, preserved a workspace, and removed its isolated installation/mount at verifier exit. | `HOSTING_AND_NETWORK_PROOF_REQUIRED`; local artifact is not an immutable public download and cannot receive a website CTA. |
+| macOS arm64 | `.dmg` containing a launchable `.app` | `8168ad7df04ea07d02208280c190eb5051549a74` / tree `7f7e057874d58010f37e7204ee91995b7417c2c8` | Local macOS build produced `ynx-developer-testnet-preview-macos-arm64-unsigned.dmg`, 294,282,136 bytes, SHA-256 `1c0adaa4095128b1f88a59b8570245ec5b0f200d29cd51b2cf5c249927089edb`. It is UDZO, signed ad-hoc with no Team ID, and was mounted, copied from the DMG to an isolated Applications directory, cold-launched, cleanly exited, second-launched, completed bounded C++ compilation and a real clangd document-symbol request, preserved a workspace, and removed its isolated installation/mount at verifier exit. | `HOSTING_AND_NETWORK_PROOF_REQUIRED`; local artifact is not an immutable public download and cannot receive a website CTA. |
 | Windows x64 | `.msix` (or a signed `.exe`) | `95daaa89825738e61747f0e02555ce1b9b84a75a` / tree `a67c816b8fe69b063c4ab795f00e07078fae3068` | CI run `32482417841` produced `ynx-developer-testnet-preview-windows-x64-test-signed.msix`, 71,572,169 bytes, SHA-256 `f5f1133195ab385f5ab975bd40afcebf168930312582d264e803116fc4dcd3d3`. The runner verified its test-only certificate, installed it, cold-launched and second-launched the installed payload, then removed it. | `BUILD_AND_INSTALL_PROOF_IN_PROGRESS`; test-only CI artifact is not an immutable public download and cannot receive a website CTA. |
 
 The Windows runner did not surface an interactive AppsFolder window, so it
@@ -66,13 +66,14 @@ new exact source-bound handoff containing all of the following for that row:
   is `09f472ec16b01552c82d5f4b8c633ad59b77a5e57f8beeeaba3a3958c25ca8b5`
   (143,527,082 bytes). It contains the MSIX, test certificate, provenance,
   SBOM, and install evidence; it is not a public installer URL.
-- The macOS arm64 DMG's local verification is source-bound to `95daaa89` and
+- The macOS arm64 DMG's local verification is source-bound to `8168ad7d` and
   includes mounted-image inspection, an isolated copy installation, ad-hoc
   signature classification (`TeamIdentifier=not set`), cold launch, clean
-  exit, second launch, workspace persistence, bounded C++ compilation, volume
-  detach, and removal of the temporary Applications root. Its stable-file
-  rollback boundary is manual removal/replacement of the app; no signed update
-  or rollback channel exists.
+  exit, second launch, workspace persistence, bounded C++ compilation, a real
+  clangd `documentSymbols` response with two symbols, volume detach, and
+  removal of the temporary Applications root. Its stable-file rollback
+  boundary is manual removal/replacement of the app; no signed update or
+  rollback channel exists.
 - macOS networking is deliberately **not** passed: the bundled desktop runtime
   has `deny network*`, and no accepted desktop endpoint manifest exists. This
   is a deliberate security boundary, not evidence of YNX Testnet connectivity.
