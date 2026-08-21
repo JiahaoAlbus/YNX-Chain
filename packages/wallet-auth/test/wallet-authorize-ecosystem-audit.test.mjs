@@ -130,6 +130,23 @@ test("latest iOS second-launch malformed callback proof remains a fail-closed no
   assert.equal(evidence.appStore, false);
 });
 
+test("macOS notarized manifest command repair remains source-only", () => {
+  const evidence = ownerActivityCheckpoint.walletPlatformTracking.macosNotarizedManifestCommandFix;
+  assert.equal(evidence.implementationCommit, "04074a1f921693659b81111b9df638553c1b8ad4");
+  assert.equal(evidence.evidenceCommit, "637e0bf2d5b6f9815fd6769a1d5611df30c44a5e");
+  assert.equal(evidence.notarizedManifestCommandSourceRepaired, true);
+  assert.equal(evidence.hostedSourceContractVerified, true);
+  assert.equal(evidence.productionWorkflowDispatched, false);
+  assert.equal(evidence.productionCredentialsRead, false);
+  assert.equal(evidence.developerId, false);
+  assert.equal(evidence.notarized, false);
+  assert.equal(evidence.notarizedDmg, false);
+  assert.equal(evidence.websitePublished, false);
+  assert.equal(evidence.authorization, false);
+  assert.equal(evidence.productSession, false);
+  assert.equal(evidence.artifactDownloadInspected, false);
+});
+
 test("v3 counts and precise owner blockers are derived without aggregate promotion", () => {
   const products = auditV3.registeredProducts;
   assert.equal(products.filter(({ runtime }) => runtime.sourceBoundPublic === true).length, auditV3.counts.sourceBoundPublicProducts);
