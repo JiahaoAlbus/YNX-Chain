@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "owner": "02-wallet-auth-ios-macos-native",
+  "evidenceKind": "macos-keychain-locked-state-attribute-backread-limitation",
+  "generatedAt": "2026-08-21T18:38:47Z",
+  "sourceHead": "2d7de61f69eb4d080556bb1c38284d2fed42f387",
+  "parentEvidence": {
+    "commit": "2d7de61f69eb4d080556bb1c38284d2fed42f387",
+    "path": "release/integration/wallet-macos-keychain-deletion-roundtrip-evidence-2026-08-22.json",
+    "blob": "bdea700f3095b32470056bb988d8c5b9817f608e",
+    "bytes": 5498,
+    "sha256": "05582a02e8e81363101f1b260b167ffa009e515e65f8cdd4942f9c3ce1276326"
+  },
+  "objective": "Directly backread kSecAttrAccessibleWhenUnlockedThisDeviceOnly from a transient generic-password Keychain item without a test double or a lock-screen simulation.",
+  "sourceConfiguration": {
+    "path": "apps/wallet/macos/Sources/YNXWalletMacCore/DeviceSecurity.swift",
+    "kSecAttrAccessible": "kSecAttrAccessibleWhenUnlockedThisDeviceOnly",
+    "thisDeviceOnlyConfiguredInSource": true,
+    "sourceConfigurationTreatedAsRuntimeProof": false
+  },
+  "runtimeProbe": {
+    "framework": "Security.framework",
+    "itemClass": "kSecClassGenericPassword",
+    "service": "com.ynxweb4.wallet.macos.access-debug",
+    "accountWasRandomUuid": true,
+    "secretValueLogged": false,
+    "secItemAddStatus": 0,
+    "secItemCopyMatchingStatus": 0,
+    "returnedAttributeKeys": [
+      "acct",
+      "cdat",
+      "class",
+      "labl",
+      "mdat",
+      "svce"
+    ],
+    "kSecAttrAccessibleReturned": false,
+    "secItemDeleteStatus": 0,
+    "temporaryItemDeleted": true,
+    "testDoubleUsed": false
+  },
+  "attemptedImplementation": {
+    "addedRuntimeField": "keychainWhenUnlockedThisDeviceOnlyVerified",
+    "directProbeResult": false,
+    "committed": false,
+    "revertedBeforeCommit": true,
+    "sourceFilesMatchRemoteAfterRevert": true,
+    "reason": "SecItemCopyMatching returned a valid attributes dictionary but did not include the accessibility class, so a positive runtime assertion would have been unsupported."
+  },
+  "interpretation": "The existing source still requests WhenUnlockedThisDeviceOnly, and the prior slice still directly proves add/read/delete. This slice does not prove an actual read attempt while the Mac is locked and does not prove the access-class metadata by runtime backread.",
+  "gates": {
+    "keychainAddReadDeleteVerified": true,
+    "keychainWhenUnlockedThisDeviceOnlyConfiguredInSource": true,
+    "keychainAccessClassRuntimeBackreadVerified": false,
+    "actualLockedDeviceReadDeniedVerified": false,
+    "biometricSuccess": false,
+    "physicalBiometricVerified": false,
+    "productRecoverySuccess": false,
+    "authorizationSuccess": false,
+    "accountAvailable": false,
+    "productSessionVerified": false,
+    "signSuccess": false,
+    "sendSuccess": false,
+    "transactionSuccess": false,
+    "productionSigned": false,
+    "publicNativeWalletPublished": false,
+    "universalLinkVerified": false
+  }
+}
