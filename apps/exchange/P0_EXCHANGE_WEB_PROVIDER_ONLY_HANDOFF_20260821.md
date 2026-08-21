@@ -6,6 +6,12 @@ Web uses EIP-6963/EIP-1193 discovery only. It never opens a custom scheme, ifram
 
 The standard provider path now calls `wallet_switchEthereumChain` for `0x1917`; only EIP-1193 error `4902` triggers the explicit YNX Testnet `wallet_addEthereumChain` payload followed by a second switch. It then verifies `eth_chainId` before requesting accounts. This is a source/build control, not an account approval result.
 
+## Provider connection-state repair — 2026-08-21
+
+Exchange now consumes Wallet/App Gateway Provider Discovery source `98c6d5d784d212df8981a53b17118a511e246ad2` through its hash-pinned vendor archive, including the shared Standard Wallet connection reducer. Connected status requires exactly one selected provider, an approved `0x` account, and the provider's `eth_chainId` result of `0x1917`. Refresh uses `eth_accounts` and `eth_chainId` without a chooser or prompt. The product's dialog closes and returns focus to Connect only after that completed state.
+
+No direct browser RPC fetch is used to establish connection. The accepted CORS-safe probe transition can become DEGRADED without clearing a connected Standard Wallet, changing its account or chain, reopening the chooser, or changing the independent PENDING Exchange Product Session boundary. Exact source, test, build, and false-gate truth are recorded in [p0-exchange-provider-connect-state-20260821.json](evidence/p0-exchange-provider-connect-state-20260821.json).
+
 Evidence: source gate and bundle passed; unit 11/11 (including deterministic direct-switch and 4902 add/re-switch call sequences); local Chrome browser 3/3. The built browser artifact `web/wallet-connect.js` has SHA-256 `a26451965ba25ca510857dbcdb0d4838fe58f7cc96e103347e67795f884914fb`. [Fallback screenshot](evidence/p0-exchange-web-provider-fallback-20260821.png) SHA-256 `68df37c863bda4f3a7ffd6237b646e70861c890e88f22313d25f35e11c850d77`; it proves only the local no-provider fallback. `installedWallet`, `approval`, `callback`, `productSession`, `deployedPublic`, `computerControl`, and `migratedV2` remain false. Roll back through a normal revert; do not force-push.
 
 ## Public artifact preflight

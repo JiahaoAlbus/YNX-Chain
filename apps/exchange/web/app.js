@@ -6,7 +6,7 @@ function productApiUnavailable(){return new Error('API_UNAVAILABLE: Exchange Pro
 function showWalletFallback(show){$('#wallet-fallback').hidden=!show}
 function requireProductSession(){$('#wallet-dialog').showModal();return false}
 
-async function boot(){bind();renderBook();renderPublicMarket();$('#custody-address').textContent='Unavailable until Exchange Product API release evidence is accepted';$('#withdraw-fee').textContent='—'}
+async function boot(){bind();renderBook();renderPublicMarket();$('#custody-address').textContent='Unavailable until Exchange Product API release evidence is accepted';$('#withdraw-fee').textContent='—';await restoreStandardWallet()}
 function bind(){
   $$('.topbar nav button').forEach(b=>b.addEventListener('click',()=>showView(b.dataset.view)));
   $('#connect').addEventListener('click',()=>connectWallet().catch(error=>toast(error.message||'Wallet connection failed closed.')));
@@ -17,7 +17,9 @@ function bind(){
   $('#ai-submit').addEventListener('click',requestAI);$('#draft-order').addEventListener('click',()=>{showView('controls');$('#ai-kind').value='order_draft';$('#ai-prompt').focus()});
   $$('.tabs button').forEach(b=>b.addEventListener('click',()=>{state.activity=b.dataset.activity;$$('.tabs button').forEach(x=>x.setAttribute('aria-selected',String(x===b)));renderActivity()}));
 }
-async function connectWallet(){const result=await window.YNXExchangeWebWallet.connect();$('#wallet-dialog').showModal();if(result.status!=='standard-connected'){showWalletFallback(true);$('#wallet-state').textContent='No compatible injected Wallet provider was found. Exchange remains on this page; use Download YNX Wallet or MetaMask.';return result}state.standardWallet=result;showWalletFallback(false);$('#connect').textContent='Wallet connected';$('#wallet-state').textContent=`Standard ${result.providerKind} Wallet connected on YNX Testnet. Exchange Product Session and API remain separately unavailable.`;toast('Standard Wallet connected. No Exchange Product Session or order authority was created.');return result}
+function renderStandardWallet(result){state.standardWallet=result;showWalletFallback(false);$('#connect').textContent='Wallet connected';$('#wallet-state').textContent=`Standard ${result.providerKind} Wallet connected on YNX Testnet. Exchange Product Session and API remain separately unavailable.`}
+async function restoreStandardWallet(){try{const result=await window.YNXExchangeWebWallet.restore();if(result.status==='standard-connected')renderStandardWallet(result)}catch{}}
+async function connectWallet(){const result=await window.YNXExchangeWebWallet.connect();if(result.status!=='standard-connected'){showWalletFallback(true);$('#wallet-state').textContent='No compatible injected Wallet provider was found. Exchange remains on this page; use Download YNX Wallet or MetaMask.';$('#wallet-dialog').showModal();return result}renderStandardWallet(result);if($('#wallet-dialog').open)$('#wallet-dialog').close();$('#connect').focus();toast('Standard Wallet connected. No Exchange Product Session or order authority was created.');return result}
 function showView(id){$$('.view').forEach(v=>v.classList.toggle('active',v.id===id));$$('.topbar nav button').forEach(b=>b.classList.toggle('nav-active',b.dataset.view===id));location.hash=id;document.title=`YNX Exchange — ${id[0].toUpperCase()+id.slice(1)}`}
 function setSide(side){state.side=side;$('#buy-tab').setAttribute('aria-selected',side==='buy');$('#sell-tab').setAttribute('aria-selected',side==='sell');estimate()}
 function estimate(){const p=micro($('#price').value||0),a=micro($('#amount').value||0);if(p<=0||a<=0){$('#reservation').textContent='—';return}if(state.side==='buy'){const q=Math.floor(a*p/1e6);$('#reservation').textContent=`${display(q+Math.ceil(q*.002))} YUSD_TEST max`}else{$('#reservation').textContent=`${display(a)} YNXT`}}
