@@ -165,7 +165,10 @@ export function walletDiscoveryPresentation(availability = {}) {
     metamaskPresent,
     showYNXConnect: ynxPresent,
     showYNXDownload: !ynxPresent,
-    showMetaMaskChoice: !ynxPresent,
+    // Do not hide MetaMask just because YNX is also injected: when two real
+    // providers are present, the page must offer an explicit choice instead of
+    // silently selecting one.
+    showMetaMaskChoice: metamaskPresent || !ynxPresent,
     metaMaskChoice: metamaskPresent ? "connect" : "official-download",
   });
 }

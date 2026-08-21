@@ -155,8 +155,8 @@ test("selected EIP-1193 provider proves chain identity without browser RPC CORS"
   assert.deepEqual(wallet.calls.map((call)=>call.method),["wallet_switchEthereumChain","eth_chainId","eth_requestAccounts"]);
 });
 
-test("discovery presentation directly prefers YNX and gives two non-empty fallbacks", () => {
-  assert.deepEqual(walletDiscoveryPresentation({ynx:provider(),metamask:provider()}),{ynxPresent:true,metamaskPresent:true,showYNXConnect:true,showYNXDownload:false,showMetaMaskChoice:false,metaMaskChoice:"connect"});
+test("discovery presentation keeps every discovered provider as an explicit choice", () => {
+  assert.deepEqual(walletDiscoveryPresentation({ynx:provider(),metamask:provider()}),{ynxPresent:true,metamaskPresent:true,showYNXConnect:true,showYNXDownload:false,showMetaMaskChoice:true,metaMaskChoice:"connect"});
   assert.deepEqual(walletDiscoveryPresentation({ynx:null,metamask:provider()}),{ynxPresent:false,metamaskPresent:true,showYNXConnect:false,showYNXDownload:true,showMetaMaskChoice:true,metaMaskChoice:"connect"});
   assert.deepEqual(walletDiscoveryPresentation({}),{ynxPresent:false,metamaskPresent:false,showYNXConnect:false,showYNXDownload:true,showMetaMaskChoice:true,metaMaskChoice:"official-download"});
   assert.equal(new URL(YNX_DOWNLOAD_URL).hostname,"www.ynxweb4.com");

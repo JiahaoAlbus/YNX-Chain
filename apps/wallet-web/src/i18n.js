@@ -8,7 +8,7 @@ const en = {
   eyebrow: "Wallet companion", title: "Connect to YNX Testnet", intro: "Use an installed wallet. This app never receives your recovery phrase or private key.",
   detected: "YNX Wallet detected", connectYNX: "Open YNX Wallet", download: "Download YNX Wallet", metamask: "Use MetaMask", unavailable: "No supported wallet detected",
   add: "Add YNX Testnet", switch: "Switch network", sign: "Sign message", send: "Send transaction", message: "Message", recipient: "Recipient", value: "Value (hex wei)", data: "Data (hex)",
-  connected: "Connected", disconnected: "Not connected", rpcCheck: "Live RPC verification is required before chain or transaction changes.", testnet: "Testnet assets have no represented monetary value.",
+  connected: "Connected", disconnected: "Not connected", connectedDapps: "Connected DApps", disconnectThisSite: "Disconnect this site", rpcCheck: "Live RPC verification is required before chain or transaction changes.", testnet: "Testnet assets have no represented monetary value.",
   noProvider: "No injected EIP-1193 wallet was found. Install or enable YNX Wallet or MetaMask; this page stays open.", extensionLocked: "A wallet extension was detected but is locked. Unlock it, then retry detection.", siteAccessDenied: "A wallet extension was detected, but this site has no account access. Choose Connect and approve the account request in the wallet.", ambiguousProvider: "A browser wallet was detected but could not be identified safely. Choose one wallet extension and retry.", wrongChain: "The wallet is on a different network. Add or switch to YNX Testnet (chain 6423).", rpcUnavailable: "YNX Testnet RPC could not be verified. Provider detection is unchanged and wallet actions remain disabled.", invalidRpcResponse: "YNX Testnet RPC returned an invalid response. Provider detection is unchanged and wallet actions remain disabled.",
   light: "Light", dark: "Dark", language: "Language", status: "Status", txHash: "Transaction hash", signature: "Signature", working: "Waiting for wallet approval…", requestFailed:"The request failed closed. No wallet state was changed.", walletConnection:"Wallet connection", walletActions:"Wallet actions", preferencesRejected: "Saved display preferences were invalid or stale and were reset safely.",
 };
@@ -27,6 +27,20 @@ const overrides = {
   id: {eyebrow:"Pendamping dompet",title:"Hubungkan ke YNX Testnet",intro:"Gunakan dompet terpasang. Aplikasi tidak pernah menerima frasa pemulihan atau kunci privat.",detected:"YNX Wallet terdeteksi",connectYNX:"Buka YNX Wallet",download:"Unduh YNX Wallet",metamask:"Gunakan MetaMask",unavailable:"Dompet yang didukung tidak terdeteksi",add:"Tambahkan YNX Testnet",switch:"Ganti jaringan",sign:"Tandatangani pesan",send:"Kirim transaksi",message:"Pesan",recipient:"Penerima",value:"Nilai (wei heksadesimal)",data:"Data (heksadesimal)",connected:"Terhubung",disconnected:"Belum terhubung",rpcCheck:"Verifikasi RPC langsung wajib sebelum perubahan jaringan atau transaksi.",testnet:"Aset Testnet tidak mewakili nilai dunia nyata.",light:"Terang",dark:"Gelap",language:"Bahasa",status:"Status",txHash:"Hash transaksi",signature:"Tanda tangan",working:"Menunggu persetujuan dompet…",requestFailed:"Permintaan gagal secara aman dan status dompet tidak berubah.",walletConnection:"Koneksi dompet",walletActions:"Tindakan dompet",preferencesRejected:"Preferensi tampilan tersimpan tidak valid atau kedaluwarsa dan telah direset dengan aman."},
 };
 
+const connectedDappTranslations = Object.freeze({
+  "zh-CN": {connectedDapps:"已连接的 DApp",disconnectThisSite:"断开此网站"},
+  "zh-TW": {connectedDapps:"已連線的 DApp",disconnectThisSite:"中斷此網站"},
+  ja: {connectedDapps:"接続済みDApp",disconnectThisSite:"このサイトを切断"},
+  ko: {connectedDapps:"연결된 DApp",disconnectThisSite:"이 사이트 연결 해제"},
+  es: {connectedDapps:"DApps conectadas",disconnectThisSite:"Desconectar este sitio"},
+  fr: {connectedDapps:"DApps connectées",disconnectThisSite:"Déconnecter ce site"},
+  de: {connectedDapps:"Verbundene DApps",disconnectThisSite:"Diese Website trennen"},
+  pt: {connectedDapps:"DApps conectados",disconnectThisSite:"Desconectar este site"},
+  ru: {connectedDapps:"Подключённые DApps",disconnectThisSite:"Отключить этот сайт"},
+  ar: {connectedDapps:"تطبيقات DApp المتصلة",disconnectThisSite:"قطع اتصال هذا الموقع"},
+  id: {connectedDapps:"DApp terhubung",disconnectThisSite:"Putuskan situs ini"},
+});
+
 const runtimeErrorTranslations = Object.freeze({
   "zh-CN": {noProvider:"未发现注入的 EIP-1193 钱包。请安装或启用 YNX Wallet 或 MetaMask；当前页面不会跳转。",extensionLocked:"检测到钱包扩展但已锁定。请解锁后重新检测。",siteAccessDenied:"检测到钱包扩展，但本站没有账户访问权限。请选择连接并在钱包中批准账户请求。",ambiguousProvider:"检测到浏览器钱包但无法安全识别。请只保留一个钱包扩展后重试。",wrongChain:"钱包位于其他网络。请添加或切换到 YNX 测试网（链 6423）。",rpcUnavailable:"无法验证 YNX 测试网 RPC。Provider 检测结果未改变，钱包操作仍被禁用。",invalidRpcResponse:"YNX 测试网 RPC 返回无效响应。Provider 检测结果未改变，钱包操作仍被禁用。"},
   "zh-TW": {noProvider:"未發現注入的 EIP-1193 錢包。請安裝或啟用 YNX Wallet 或 MetaMask；目前頁面不會跳轉。",extensionLocked:"偵測到錢包擴充功能但已鎖定。請解鎖後重新偵測。",siteAccessDenied:"偵測到錢包擴充功能，但此網站沒有帳戶存取權。請選擇連線並在錢包中核准帳戶要求。",ambiguousProvider:"偵測到瀏覽器錢包但無法安全辨識。請只保留一個錢包擴充功能後重試。",wrongChain:"錢包位於其他網路。請加入或切換至 YNX 測試網（鏈 6423）。",rpcUnavailable:"無法驗證 YNX 測試網 RPC。Provider 偵測結果未變更，錢包操作仍被停用。",invalidRpcResponse:"YNX 測試網 RPC 傳回無效回應。Provider 偵測結果未變更，錢包操作仍被停用。"},
@@ -40,6 +54,7 @@ const runtimeErrorTranslations = Object.freeze({
   ar: {noProvider:"لم يتم العثور على محفظة EIP-1193 محقونة. ثبّت أو فعّل YNX Wallet أو MetaMask؛ ستبقى هذه الصفحة مفتوحة.",extensionLocked:"تم اكتشاف إضافة محفظة لكنها مقفلة. أزل القفل ثم أعد الاكتشاف.",siteAccessDenied:"تم اكتشاف إضافة محفظة، لكن هذا الموقع لا يملك صلاحية الوصول إلى الحساب. اختر الاتصال ووافق على الطلب في المحفظة.",ambiguousProvider:"تم اكتشاف محفظة متصفح لكن تعذر تحديدها بأمان. اترك إضافة محفظة واحدة ثم أعد المحاولة.",wrongChain:"المحفظة على شبكة أخرى. أضف أو بدّل إلى YNX Testnet (السلسلة 6423).",rpcUnavailable:"تعذر التحقق من RPC لشبكة YNX Testnet. لم تتغير نتيجة اكتشاف Provider وتبقى إجراءات المحفظة معطلة.",invalidRpcResponse:"أعاد RPC لشبكة YNX Testnet استجابة غير صالحة. لم تتغير نتيجة اكتشاف Provider وتبقى إجراءات المحفظة معطلة."},
   id: {noProvider:"Tidak ditemukan dompet EIP-1193 yang diinjeksi. Instal atau aktifkan YNX Wallet atau MetaMask; halaman ini tetap terbuka.",extensionLocked:"Ekstensi dompet terdeteksi tetapi terkunci. Buka kunci lalu lakukan deteksi ulang.",siteAccessDenied:"Ekstensi dompet terdeteksi, tetapi situs ini tidak memiliki akses akun. Pilih hubungkan dan setujui permintaan di dompet.",ambiguousProvider:"Dompet browser terdeteksi tetapi tidak dapat diidentifikasi dengan aman. Sisakan satu ekstensi dompet lalu coba lagi.",wrongChain:"Dompet berada di jaringan lain. Tambahkan atau pindahkan ke YNX Testnet (chain 6423).",rpcUnavailable:"RPC YNX Testnet tidak dapat diverifikasi. Deteksi Provider tidak berubah dan tindakan dompet tetap dinonaktifkan.",invalidRpcResponse:"RPC YNX Testnet mengembalikan respons tidak valid. Deteksi Provider tidak berubah dan tindakan dompet tetap dinonaktifkan."},
 });
+for (const [locale, messages] of Object.entries(connectedDappTranslations)) Object.assign(overrides[locale], messages);
 for (const [locale, messages] of Object.entries(runtimeErrorTranslations)) Object.assign(overrides[locale], messages);
 
 export function catalog(locale) { return Object.freeze({...en, ...(overrides[locale] || {})}); }

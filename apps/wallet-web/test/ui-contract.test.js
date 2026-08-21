@@ -28,7 +28,12 @@ test("fallback contract always offers YNX download and MetaMask when YNX is abse
   assert.match(source, /productionSigned=false/);
   assert.match(source, /button\.disabled = button\.dataset\.permanentDisabled === "true"/);
   assert.match(source, /document\.querySelector\("#platforms"\)\.classList\.toggle\("hidden", !presentation\.showYNXDownload\)/);
-  assert.match(source, /state\.providers = Object\.freeze\(\{ynx:false,metamask:false\}\); state\.provider = null; state\.wallet = null; state\.account = null; state\.chainId = null; state\.rpcVerified = false; applyActionGates\(\); presentAvailability\(state\.providers\)/);
+  assert.match(source, /const rememberedDapp=readConnectedDapp\(location\.origin\)/);
+  assert.match(source, /state\.providers = Object\.freeze\(\{ynx:false,metamask:false\}\); state\.provider = null; state\.wallet = null; state\.account = null; state\.chainId = null; state\.rpcVerified = false; state\.connectedDapp = null; applyActionGates\(\); presentAvailability\(state\.providers\)/);
+  assert.match(source, /providerChooserState\(availability,wallet,wallet\)/);
+  assert.match(source, /id="disconnect-dapp"/);
+  assert.match(source, /function disconnectCurrentDapp\(\)/);
+  assert.match(source, /forgetConnectedDapp\(\)/);
   assert.match(source, /catch \(error\) \{ forgetSession\(\); throw error; \}/);
   assert.match(source, /const discoveryError=\(error\)=>localizedError\(error\)/);
   assert.doesNotMatch(source, /state\.provider\s*=\s*\{.*request/s);
