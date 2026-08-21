@@ -1,0 +1,177 @@
+{
+  "schemaVersion": 1,
+  "owner": "02-wallet-auth-ios-macos-native",
+  "evidenceKind": "hosted-ios-simulator-canonical-callback-and-biometric-boundary",
+  "implementationCommit": "d9edf81c255f078f27fe46401699aa33968ef6a3",
+  "implementationParent": "ad66cfd8ceb34c1a7d19219607fbc531457277a3",
+  "workflow": {
+    "name": "wallet-ios",
+    "runId": 32482628781,
+    "jobId": 96772117036,
+    "headSha": "d9edf81c255f078f27fe46401699aa33968ef6a3",
+    "status": "completed",
+    "conclusion": "failure",
+    "createdAt": "2026-08-21T12:35:43Z",
+    "completedAt": "2026-08-21T13:00:22Z",
+    "failedStep": 20,
+    "failedStepName": "Prove recovery and unlock with Simulator biometric matches",
+    "xcode": "26.3 (17C529)",
+    "publicRunUrl": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/32482628781",
+    "publicJobUrl": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/32482628781/job/96772117036"
+  },
+  "successfulSteps": {
+    "contractAndWalletAuthTests": true,
+    "iosSimulatorBuild": true,
+    "standaloneSimulatorDeepStrictCodesign": true,
+    "installColdLaunchSecondLaunch": true,
+    "nativeKeychainAddReadDelete": true,
+    "rpcChainIdColdAndSecond": true,
+    "restAppGatewayColdAndSecond": true,
+    "malformedCallbackNativeDeliveryAndUIFailClosed": true,
+    "canonicalCallbackNativeDeliveryAndUIFailClosed": true,
+    "universalLinkWithoutFrozenAssociatedDomainFailClosed": true,
+    "recoveryWithoutCompletedBiometricRemainsEmpty": true,
+    "positiveSimulatorBiometricRecoveryAndUnlock": false
+  },
+  "simulatorRuntime": {
+    "device": "9E2C2CF0-7DD4-4B9D-B6CE-63C9E42B95A7",
+    "erasedBeforeTest": true,
+    "installedBundleIdentifier": "com.ynxweb4.wallet",
+    "coldLaunchPid": 22877,
+    "secondLaunchPid": 23492,
+    "coldRpcChainId": "0x1917",
+    "coldRpcResponseBytes": 43,
+    "coldRestStatus": 200,
+    "coldRestResponseBytes": 2193,
+    "secondRpcChainId": "0x1917",
+    "secondRpcResponseBytes": 43,
+    "secondRestStatus": 200,
+    "secondRestResponseBytes": 2193,
+    "keychainProbe": {
+      "pid": 22877,
+      "available": true,
+      "addStatus": 0,
+      "readStatus": 0,
+      "deleteStatus": 0
+    },
+    "nativeProductGates": {
+      "authorizationCompletion": false,
+      "account": false,
+      "sign": false,
+      "send": false
+    }
+  },
+  "callbacks": {
+    "malformed": {
+      "testPassed": true,
+      "pid": 31834,
+      "scheme": "ynxwallet",
+      "resultCode": "INVALID_DEEP_LINK",
+      "uiVisible": true,
+      "authorizationSuccess": false,
+      "signing": false,
+      "callbackEmitted": false
+    },
+    "canonicalFrozenRegistryRequest": {
+      "testPassed": true,
+      "deliveryMode": "direct-after-prior-scheme-confirmation",
+      "pid": 36142,
+      "scheme": "ynxwallet",
+      "resultCode": "CANONICAL_AUTH_BRIDGE_UNAVAILABLE",
+      "uiVisible": true,
+      "screenshotAttachmentName": "canonical-registry-native-bridge-fail-closed",
+      "authorizationSuccess": false,
+      "signing": false,
+      "callbackEmitted": false,
+      "interpretation": "The installed app directly received the canonical custom-scheme request after the prior semantic system confirmation. The frozen native bridge was unavailable, so the app visibly rejected the request before JavaScript and emitted no approval or callback."
+    }
+  },
+  "universalLink": {
+    "negativeTestPassed": true,
+    "testDurationSeconds": 0.248,
+    "associatedDomainFrozen": false,
+    "appleTeamIdAuthorized": false,
+    "aasaComponentsAuthorized": false,
+    "deliverySuccess": false,
+    "authorizationSuccess": false,
+    "interpretation": "Core has not frozen an Apple Team ID or AASA path allowlist. The native Universal Link success gate therefore remains false."
+  },
+  "recovery": {
+    "withoutCompletedBiometric": {
+      "testPassed": true,
+      "mode": "native-unavailable",
+      "secondLaunchRemainsEmpty": true,
+      "recoverySuccess": false
+    },
+    "positiveSimulatorBiometric": {
+      "testPassed": false,
+      "simulatorEnrollmentMenuDelivered": true,
+      "localAuthenticationPromptObserved": false,
+      "matchingFaceRecoveryDelivered": false,
+      "matchingFaceUnlockDelivered": false,
+      "persistentLockAfterRecoveryVerified": false,
+      "secondLaunchUnlockVerified": false,
+      "nativeAccountVisible": false,
+      "assertionFile": "apps/wallet/ios/YNXWalletUITests/MalformedCallbackUITests.swift",
+      "assertionLine": 168,
+      "assertion": "LocalAuthentication recovery prompt did not appear after Simulator enrollment",
+      "appAccessibilityPid": 21201,
+      "testDurationSeconds": 47.216,
+      "interpretation": "The hosted runner enrolled Face ID but did not expose a directly observable LocalAuthentication recovery prompt. No Matching Face event was sent and no biometric, recovery, lock persistence, or unlock success is claimed."
+    }
+  },
+  "installableArtifact": {
+    "artifactId": 9447340105,
+    "artifactName": "ynx-wallet-ios-simulator",
+    "artifactBytes": 106328372,
+    "artifactDigest": "sha256:47f8c942b9f2a44e4c2309e4347de324a62f727cdb39219c36dc5236bd0437f5",
+    "artifactExpiresAt": "2026-11-19T12:35:43Z",
+    "artifactUrl": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/32482628781/artifacts/9447340105",
+    "downloadAttemptBoundedSeconds": 120,
+    "artifactDownloaded": false,
+    "xcresultInspected": false,
+    "downloadAttemptResult": "No semantic output and zero downloaded bytes before bounded termination.",
+    "innerAppArchiveSha256": "9af98bd64b42a5709c2376dfae507655918bf3bb03d411bf6dbec8930c0f6b09",
+    "innerAppArchiveBytes": 16897742,
+    "architectures": [
+      "x86_64",
+      "arm64"
+    ],
+    "minimumOS": "16.4",
+    "bundleIdentifier": "com.ynxweb4.wallet",
+    "signingClass": "Simulator ad-hoc / Sign to Run Locally",
+    "embeddedSimulatorApplicationIdentifier": "FAKETEAMID.com.ynxweb4.wallet",
+    "appleTeamId": null,
+    "developerIDSigned": false,
+    "appStoreSigned": false,
+    "physicalDeviceInstallable": false,
+    "publicDownloadHosted": false
+  },
+  "publicLog": {
+    "bytes": 22579889,
+    "sha256": "6d96ed215b673e80ce7398b9d26cb5a1a5fb4672cffed72f82c589e9a51376b0",
+    "source": "GitHub Actions job log for job 96772117036"
+  },
+  "gates": {
+    "hostedWorkflowOverallSuccess": false,
+    "simulatorInstallColdSecondLaunchVerified": true,
+    "simulatorNativeKeychainRoundTripVerified": true,
+    "simulatorRPCAndRESTReachabilityVerified": true,
+    "simulatorNativeMalformedCallbackFailClosedVerified": true,
+    "simulatorCanonicalCallbackDeliveredAndFailClosedVerified": true,
+    "associatedDomainFrozen": false,
+    "universalLinkSuccess": false,
+    "simulatorBiometricPositiveVerified": false,
+    "physicalBiometricVerified": false,
+    "recoverySuccess": false,
+    "authorizationSuccess": false,
+    "accountAvailable": false,
+    "signSuccess": false,
+    "sendSuccess": false,
+    "transactionSuccess": false,
+    "productionSigned": false,
+    "notarized": false,
+    "appStoreReleased": false,
+    "publicDownloadHosted": false
+  }
+}
