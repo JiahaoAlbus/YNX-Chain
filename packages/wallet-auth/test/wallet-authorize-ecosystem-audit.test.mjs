@@ -235,6 +235,31 @@ test("macOS engineering DMG prerelease gate is source-ready and default-off", ()
   assert.equal(evidence.productSession, false);
 });
 
+test("macOS release manifest is truthful source with local-only runtime proof", () => {
+  const evidence = ownerActivityCheckpoint.walletPlatformTracking.macosTruthfulReleaseManifestSource;
+  assert.equal(evidence.implementationCommit, "ae553387b67c3dc6643f1f3ea4b7dc2d2dfe96d5");
+  assert.equal(evidence.evidenceCommit, "1654fb467efa0bd2e31f43e11c09cebd4205c4cf");
+  assert.equal(evidence.sourceReady, true);
+  assert.equal(evidence.localRuntimeVerified, true);
+  assert.equal(evidence.localManifestJsonParsed, true);
+  assert.equal(evidence.localManifestExactInputsReadBack, true);
+  assert.equal(evidence.localManifestReleaseCreated, false);
+  assert.equal(evidence.hostedSourceContractVerified, true);
+  assert.equal(evidence.hostedManifestRuntimeVerified, false);
+  assert.equal(evidence.publicationJobSkipped, true);
+  assert.equal(evidence.defaultMainRegistration, false);
+  assert.equal(evidence.operatorDispatch, false);
+  assert.equal(evidence.releaseCreated, false);
+  assert.equal(evidence.signingClass, "adhoc");
+  assert.equal(evidence.teamIdentifier, null);
+  assert.equal(evidence.gatekeeperAccepted, false);
+  assert.equal(evidence.publicArtifact, false);
+  assert.equal(evidence.downloadHosted, false);
+  assert.equal(evidence.websitePublished, false);
+  assert.equal(evidence.authorization, false);
+  assert.equal(evidence.productSession, false);
+});
+
 test("v3 counts and precise owner blockers are derived without aggregate promotion", () => {
   const products = auditV3.registeredProducts;
   assert.equal(products.filter(({ runtime }) => runtime.sourceBoundPublic === true).length, auditV3.counts.sourceBoundPublicProducts);
