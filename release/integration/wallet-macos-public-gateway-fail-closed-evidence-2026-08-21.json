@@ -1,0 +1,157 @@
+{
+  "schemaVersion": 1,
+  "owner": "02-wallet-auth-ios-macos-native",
+  "evidenceKind": "macos-native-public-testnet-gateway-negative-probe",
+  "implementation": {
+    "commit": "07634c308bd553702cf5ea3837cfcff88ba6e2b2",
+    "parent": "d970aa3f229371ee300e2ec5f647699928f1dd44",
+    "branch": "codex/wallet-ios-macos-20260813",
+    "tree": "37e2aee1b45e1cb9dae6f940993e052de4a859fe",
+    "corePolicy": {
+      "path": "apps/wallet/macos/Sources/YNXWalletMacCore/EndpointMatrix.swift",
+      "blob": "fc75c7093751c48d04c9946e6abe8221d13f0090",
+      "bytes": 19498,
+      "sha256": "3c082566ccb37f9fa1fad772611497cb5998f82a8b64583ffd180d2922580880"
+    },
+    "nativeProbe": {
+      "path": "apps/wallet/macos/Sources/YNXWalletMacGatewayProbe/main.swift",
+      "blob": "5ce7cafa8c38c434548ae12eedf5aa02192ad205",
+      "bytes": 2284,
+      "sha256": "7190d96b8ecd1bc88ac0d348771209e2b5162cb1b2628b3c2d425c96138ffa48"
+    },
+    "protocolBoundary": {
+      "requestBody": "{}",
+      "accountProvided": false,
+      "walletApprovalProvided": false,
+      "productSessionProofProvided": false,
+      "signingKeyUsed": false,
+      "sessionMutationRequested": false,
+      "sendOrTransactionRequested": false
+    }
+  },
+  "localValidation": {
+    "hostSwift": "Apple Swift 6.4",
+    "fullXcodeInstalled": false,
+    "releaseNativeBuild": "success",
+    "testSourceParse": "success",
+    "xctestExecuted": false,
+    "xctestBoundary": "CommandLineTools does not provide XCTest; complete XCTest ran in hosted Xcode 26.3.",
+    "nativeProbeExecuted": true,
+    "nativeProbeResult": {
+      "matrixID": "ynx-wallet-auth-public-endpoint-service-discovery-v1",
+      "chainID": "0x1917",
+      "restStatus": 200,
+      "walletCompletionError": "UNKNOWN_OR_MISSING_FIELD",
+      "walletIntrospectionError": "PROOF_REQUIRED",
+      "productSessionIntrospectionError": "UNKNOWN_OR_MISSING_FIELD",
+      "walletStateDigest": "7dcde130a1418c72eeae1c0e9ddee98c7ddee66bc68c85dfafc9546d45a409bf",
+      "stateUnchanged": true,
+      "authorizationSuccess": false,
+      "accountAvailable": false,
+      "signing": false,
+      "send": false,
+      "transaction": false
+    },
+    "sourceVerifiers": {
+      "notarizedReleaseSource": "passed",
+      "ciTriggerIsolation": "passed",
+      "appleOperatorInputs": "passed",
+      "walletMacosYaml": "passed"
+    }
+  },
+  "publicDirectResponses": {
+    "rpcChainId": {
+      "url": "https://rpc.ynxweb4.com/evm",
+      "httpStatus": 200,
+      "responseBytes": 42,
+      "responseSha256": "fc18a172a27ffac23b840c7f586c8866e843e8b85308adf31e42dbce0bb9328c",
+      "chainId": "0x1917"
+    },
+    "walletCompletionInvalid": {
+      "url": "https://rest.ynxweb4.com/v1/wallet/sessions/complete",
+      "httpStatus": 400,
+      "responseBytes": 242,
+      "responseSha256": "ba21878f717c3fb36f3504fc67730e65d74d246b71c2685d5ad493ee4dff92ed",
+      "schemaVersion": 1,
+      "errorCode": "UNKNOWN_OR_MISSING_FIELD",
+      "stateDigest": "7dcde130a1418c72eeae1c0e9ddee98c7ddee66bc68c85dfafc9546d45a409bf"
+    },
+    "walletIntrospectionWithoutProof": {
+      "url": "https://rest.ynxweb4.com/v1/wallet/sessions/introspect",
+      "httpStatus": 400,
+      "responseBytes": 198,
+      "responseSha256": "8a02c4727cff2cf110969b6833d0c3aa24201f40103c8cf086eab47b1e757e7e",
+      "schemaVersion": 1,
+      "errorCode": "PROOF_REQUIRED",
+      "stateDigest": "7dcde130a1418c72eeae1c0e9ddee98c7ddee66bc68c85dfafc9546d45a409bf"
+    },
+    "productSessionIntrospectionInvalid": {
+      "url": "https://rest.ynxweb4.com/v2/product-sessions/introspect",
+      "httpStatus": 400,
+      "responseBytes": 199,
+      "responseSha256": "6376b2275284f50a50a53a9ddf3307036d9ebc93762b7e757ee466ab0a3889e6",
+      "schemaVersion": 2,
+      "errorCode": "UNKNOWN_OR_MISSING_FIELD"
+    },
+    "walletV1ObservedStateDigestUnchanged": true
+  },
+  "hostedValidation": {
+    "runId": 32493537418,
+    "jobId": 96806540132,
+    "headSha": "07634c308bd553702cf5ea3837cfcff88ba6e2b2",
+    "conclusion": "success",
+    "createdAt": "2026-08-21T14:41:57Z",
+    "updatedAt": "2026-08-21T14:43:30Z",
+    "xcode": "26.3",
+    "xctest": "17/17",
+    "architectures": ["x86_64", "arm64"],
+    "nativeGatewayProbeStep": "success",
+    "nativeGatewayProbeResultMatchesLocal": true,
+    "coldPid": 2660,
+    "secondPid": 2791,
+    "coldGatewayFailClosedLogVerified": true,
+    "secondGatewayFailClosedLogVerified": true,
+    "canonicalBridgePid": 2791,
+    "canonicalBridgeError": "CANONICAL_AUTH_BRIDGE_UNAVAILABLE",
+    "malformedCallbackColdPid": 2995,
+    "malformedCallbackError": "INVALID_DEEP_LINK",
+    "widenedCallbackColdPid": 3013,
+    "widenedCallbackError": "INVALID_AUTHORIZATION_REQUEST",
+    "renderedLogBytes": 139407,
+    "renderedLogSha256": "901c6bdf7acf22e7d3d414bda25d876e4d1e3653338dec0382b45b1ea89d57ce",
+    "artifact": {
+      "id": 9450744866,
+      "name": "ynx-wallet-macos-native",
+      "metadataBytes": 1397238,
+      "metadataDigest": "sha256:cf550aa3d23c3b3c0804053cc19aed8fecb95d7443a39108d2d9b9b9b6067622",
+      "downloadInspected": false,
+      "downloadBoundary": "One bounded download call exceeded 60 seconds without semantic output and was terminated with exit 130; no second download was attempted."
+    },
+    "publicRunUrl": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/32493537418"
+  },
+  "gates": {
+    "nativePublicRpcChainIdVerified": true,
+    "nativePublicAppGatewayReachable": true,
+    "nativeWalletCompletionNegativeProbeVerified": true,
+    "nativeWalletIntrospectionProofRequiredVerified": true,
+    "nativeProductSessionNegativeProbeVerified": true,
+    "walletV1ObservedStateDigestUnchanged": true,
+    "coldLaunchNativeGatewayProbeVerified": true,
+    "secondLaunchNativeGatewayProbeVerified": true,
+    "authorizationSuccess": false,
+    "walletApprovalCompleted": false,
+    "callbackEmitted": false,
+    "accountAvailable": false,
+    "productSessionVerified": false,
+    "signSuccess": false,
+    "sendSuccess": false,
+    "transactionSuccess": false,
+    "productionSigned": false,
+    "developerIdSigned": false,
+    "notarized": false,
+    "gatekeeperAccepted": false,
+    "physicalBiometricVerified": false,
+    "productRecoverySuccess": false,
+    "universalLinkVerified": false
+  }
+}
