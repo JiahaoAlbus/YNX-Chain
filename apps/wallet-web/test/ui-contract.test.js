@@ -60,3 +60,19 @@ test("PWA manifest declares exact standalone identity and real-logo icon sizes",
     {src:"./ynx-icon-maskable-512.png",sizes:"512x512",type:"image/png",purpose:"maskable"},
   ]);
 });
+
+test("provider approval stays in-place and success restores exact chooser focus lifecycle",async()=>{
+  const source=await readFile(new URL("../public/app.js",import.meta.url),"utf8");
+  assert.match(source,/if \(state\.providers\?\.metamask\) \{ event\.preventDefault\(\); return connect\("metamask"\); \}/);
+  assert.match(source,/state\.connectState=result\.connectState;state\.account=result\.session\.account;state\.chainId=result\.session\.chainId/);
+  assert.match(source,/queueMicrotask\(\(\)=>document\.querySelector\("#wallet-connect-trigger"\)\?\.focus\(\)\)/);
+  assert.match(source,/data-pending-intent="\$\{state\.connectState\.pendingIntent\?"true":"false"\}"/);
+  assert.match(source,/resolveRememberedWallet\(availability\)/);
+  assert.match(source,/restoreTestnetSession\(provider\)/);
+  assert.match(source,/accountsChanged\(accounts\)/);
+  assert.match(source,/chainChanged\(chainId\)/);
+  assert.match(source,/id="disconnect"/);
+  assert.match(source,/id="switch-account"/);
+  assert.doesNotMatch(source,/window\.open\s*\(/);
+  assert.doesNotMatch(source,/(?:window\.)?location(?:\.href)?\s*=\s*[`'"]ynxwallet:\/\//);
+});

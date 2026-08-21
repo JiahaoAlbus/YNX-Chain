@@ -165,6 +165,22 @@ async function exactChain(provider) {
   return chainId;
 }
 
+function isUnknownChainError(error) {
+  const code=error?.code??error?.data?.originalError?.code??error?.data?.code;
+  return code===4902||code==="4902"||code===-32603&&/unrecognized|unknown|not added|missing chain/iu.test(String(error?.message||""));
+}
+
+async function switchOrAddYNXChain(provider) {
+  try {
+    await provider.request({method:"wallet_switchEthereumChain",params:[{chainId:YNX_CHAIN.chainId}]});
+  } catch (error) {
+    if(!isUnknownChainError(error))throw error;
+    await provider.request({method:"wallet_addEthereumChain",params:[YNX_CHAIN]});
+    await provider.request({method:"wallet_switchEthereumChain",params:[{chainId:YNX_CHAIN.chainId}]});
+  }
+  return exactChain(provider);
+}
+
 async function exactAuthorizedAccount(provider, expectedAccount) {
   await exactChain(provider);
   const accounts = await provider.request({method: "eth_accounts"});
@@ -182,8 +198,7 @@ export async function addYNXChain(provider, options = {}) {
 
 export async function switchToYNXChain(provider, options = {}) {
   if (!validProvider(provider)) fail("WALLET_NOT_FOUND", "No compatible wallet provider was detected.");
-  await provider.request({method: "wallet_switchEthereumChain", params: [{chainId: YNX_CHAIN.chainId}]});
-  return exactChain(provider);
+  return switchOrAddYNXChain(provider);
 }
 
 export async function connectStandardWallet(provider,wallet,options={}){
@@ -197,7 +212,7 @@ export async function connectStandardWallet(provider,wallet,options={}){
   if (typeof account !== "string" || !ADDRESS.test(account)) fail("INVALID_ACCOUNT", "Wallet did not return a valid EVM account.");
   connectState=reduceStandardWalletConnectState(connectState,{type:"ACCOUNT_APPROVED",account});
   let chainId=await provider.request({method:"eth_chainId"});
-  if(chainId!==YNX_CHAIN.chainId){await provider.request({method:"wallet_switchEthereumChain",params:[{chainId:YNX_CHAIN.chainId}]});chainId=await provider.request({method:"eth_chainId"})}
+  if(chainId!==YNX_CHAIN.chainId)chainId=await switchOrAddYNXChain(provider);
   connectState=reduceStandardWalletConnectState(connectState,{type:"CHAIN_CONFIRMED",chainId});
   if(connectState.status!==STANDARD_WALLET_CONNECT_STATUS.CONNECTED)fail("WRONG_NETWORK","Wallet did not confirm YNX Testnet chain 6423.");
   return Object.freeze({session:Object.freeze({account:connectState.account,chainId:connectState.chainId}),connectState});

@@ -189,6 +189,32 @@ test("connect success is bound to approval then provider chain confirmation", as
   assert.equal(result.connectState.status,"connected");assert.equal(result.connectState.chooserOpen,false);assert.equal(result.connectState.pendingIntent,null);assert.equal(result.connectState.focusRestoreTarget,"wallet-connect-trigger");
 });
 
+test("first MetaMask connect adds frozen YNX chain only after exact unknown-chain failure", async () => {
+  let chainId="0x1",switches=0;
+  const wallet=provider({
+    eth_requestAccounts:[ACCOUNT],
+    eth_chainId:()=>chainId,
+    wallet_switchEthereumChain:()=>{switches+=1;if(switches===1)throw Object.assign(new Error("Unrecognized chain ID"),{code:4902});chainId="0x1917";return null},
+    wallet_addEthereumChain:(input)=>{assert.deepEqual(input.params,[YNX_CHAIN]);return null},
+  });
+  const result=await connectStandardWallet(wallet,"metamask",{pendingIntent:"connect_1234567890abcdef"});
+  assert.equal(result.connectState.status,"connected");
+  assert.deepEqual(wallet.calls.map(({method})=>method),["eth_requestAccounts","eth_chainId","wallet_switchEthereumChain","wallet_addEthereumChain","wallet_switchEthereumChain","eth_chainId"]);
+});
+
+test("non-4902 switch rejection never adds a chain or fabricates connection", async () => {
+  const wallet=provider({eth_requestAccounts:[ACCOUNT],eth_chainId:"0x1",wallet_switchEthereumChain:()=>{throw Object.assign(new Error("User rejected"),{code:4001})},wallet_addEthereumChain:null});
+  await assert.rejects(()=>connectStandardWallet(wallet,"metamask",{pendingIntent:"connect_1234567890abcdef"}),(error)=>error.code===4001);
+  assert.deepEqual(wallet.calls.map(({method})=>method),["eth_requestAccounts","eth_chainId","wallet_switchEthereumChain"]);
+});
+
+test("legacy nested unknown-chain error is accepted narrowly and still requires 0x1917 readback", async () => {
+  let chainId="0x1";
+  const wallet=provider({wallet_switchEthereumChain:()=>{if(chainId==="0x1")throw {code:-32603,message:"Unknown chain",data:{originalError:{code:4902}}};return null},wallet_addEthereumChain:()=>{chainId="0x2";return null},eth_chainId:()=>chainId});
+  await assert.rejects(()=>switchToYNXChain(wallet),(error)=>error.code==="WRONG_NETWORK");
+  assert.deepEqual(wallet.calls.map(({method})=>method),["wallet_switchEthereumChain","wallet_addEthereumChain","wallet_switchEthereumChain","eth_chainId"]);
+});
+
 test("add-chain uses frozen metadata and proves the switched chain", async () => {
   const wallet = provider({wallet_addEthereumChain:null,wallet_switchEthereumChain:null,eth_chainId:"0x1917"});
   await addYNXChain(wallet,{fetcher:rpc});
