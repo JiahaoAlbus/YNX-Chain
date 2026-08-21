@@ -1,0 +1,94 @@
+{
+  "schemaVersion": "ynx.wallet-auth.canonical-authorize-core-consumption-evidence.v1",
+  "generatedAt": "2026-08-21T03:21:12Z",
+  "owner": "wallet-auth-core",
+  "branch": "codex/wallet-core-auth-gateway-continuation-20260814",
+  "source": {
+    "commit": "af4f9c77ce654951e299b359a84646f22c8433ed",
+    "tree": "f1f23a4a812f22bd8fc3ac7469e0831d1bb41e4f",
+    "parent": "1a67bdb2a77af92dfe2cc6a8e8bf9ddf6b644c8f"
+  },
+  "consumedHandoff": {
+    "commit": "46386ae8eeaa7633923ae762a5a9634b5eac98d9",
+    "tree": "f5bffcf4b775d4a88af9fe3a6b53fa60d271912c",
+    "strategy": "semantic-transplant-without-merging-divergent-history",
+    "machineContract": {
+      "path": "packages/wallet-auth/integration/canonical-wallet-authorize-v1.json",
+      "gitBlob": "86e19c9faa49debb9096e11cdccfff9f5bc84e96",
+      "sha256": "e572042f18c1e32dfe86da26ee2ab52f9372c9803eae3b492c26932e50251c03",
+      "byteIdenticalToHandoff": true
+    },
+    "handoffDocument": {
+      "path": "docs/integration/P0_CANONICAL_WALLET_AUTHORIZE_HANDOFF_20260821.md",
+      "gitBlob": "f859633c516bf5bbea8524a5d510faa30ca7bb1a",
+      "sha256": "73c12fd1d9832c248e15e76cf1599af9ccd08afc5171477336d182978a1388ca",
+      "byteIdenticalToHandoff": true
+    }
+  },
+  "implementedContract": {
+    "packageRootExports": [
+      "encodeRequestDeepLink",
+      "parseAuthorizationCallbackURL",
+      "WALLET_AUTHORIZE_ROUTE",
+      "WALLET_AUTHORIZE_REQUEST_PARAMETER",
+      "WALLET_CALLBACK_RESPONSE_PARAMETER"
+    ],
+    "authorizeRoute": "ynxwallet://authorize?request=<base64url-canonical-authorization-request>",
+    "payloadFreeError": "MISSING_AUTHORIZATION_REQUEST",
+    "callbackBinding": "exact approve or authority-free reject response bound to the supplied AuthorizationRequest",
+    "sourceGate": "npm run verify:no-bare-authorize --prefix packages/wallet-auth",
+    "noPerAppUriConcatenation": true
+  },
+  "exactFiles": {
+    "implementationBlob": "b2842e5740a290743c8e1c26e61ddb1e5e1a5796",
+    "typesBlob": "1924d824b1274c0dee4018332b4d47ff1d36681a",
+    "packageManifestBlob": "296568360acb94140d4a7ff0132864f840780926",
+    "sourceGateBlob": "2d7cca28cfecfc13c057f50653a44596b27b2ce5",
+    "contractTestBlob": "c17992e93214e2f4654e7da93e91d80704ea42be",
+    "sourceGateTestBlob": "226bf049c508199c71895196dd0499a12a4b8cba",
+    "upstreamHandoffEvidenceBlob": "3a6ab9781e3045469473a90171fb09ae5c478999"
+  },
+  "verification": {
+    "focused": {
+      "command": "node --test packages/wallet-auth/test/deep-link.test.mjs packages/wallet-auth/test/canonical-authorize-contract.test.mjs packages/wallet-auth/test/no-bare-wallet-authorize.test.mjs",
+      "passed": 10,
+      "failed": 0
+    },
+    "authoritativeCheck": {
+      "command": "npm run check",
+      "workingTree": { "passed": 381, "failed": 0 },
+      "cleanClone": { "passed": 381, "failed": 0 },
+      "bareAuthorizeGatePassed": true
+    },
+    "offlineDependencyOverlay": {
+      "path": "release/integration/p0-wallet-connectivity/artifacts/wallet-auth-dda13e65/wallet-auth-runtime-dependencies-dda13e65.tar.gz",
+      "sha256": "a17794bd15592f3eae1caab34094bc52ec70ce89efa0cbd9995219e94bc7bd86",
+      "networkInstallUsed": false
+    },
+    "packageLockSha256": "8929316677769e7a6ad703583c12a07dd4d4dcbf4d87c597983f6ab6955a87b6",
+    "repeatPack": {
+      "byteIdentical": true,
+      "sha256": "07a67a4023751dbf63f537539087feea5f884465b5800106d41fc25c12ee47a2",
+      "bytes": 189713,
+      "entries": 106,
+      "containsMachineContract": true,
+      "containsSourceGate": true
+    }
+  },
+  "truthGates": {
+    "sdkSourceConsumed": true,
+    "platformConsumed": false,
+    "visibleDeviceEvidence": false,
+    "browserEvidence": false,
+    "deployedPublic": false,
+    "integratedPublic": false,
+    "productMigrations": "0/12",
+    "productUiChanged": false
+  },
+  "prohibitedActions": {
+    "ssh": false,
+    "productionRead": false,
+    "deployment": false,
+    "leaseUsed": false
+  }
+}
