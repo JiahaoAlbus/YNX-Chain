@@ -165,15 +165,16 @@ struct WalletView: View {
       Divider()
       Text(state.networkBoundary).font(.callout.weight(.medium))
       Text(state.securityBoundary).font(.callout.weight(.medium))
-      Text(state.recoveryBoundary)
-        .font(.callout.weight(.medium))
-        .accessibilityIdentifier("YNX device recovery status")
-      Button(state.recoveryMaterialPresent ? "Rotate device recovery material" : "Prepare device recovery") {
+      RecoveryControlsView(
+        status: state.recoveryBoundary,
+        actionTitle: state.recoveryMaterialPresent
+          ? "Rotate device recovery material"
+          : "Prepare device recovery",
+        actionEnabled: state.recoveryActionAvailable && !state.recoveryOperationInProgress
+      ) {
         Task { await state.prepareDeviceRecovery() }
       }
-      .disabled(!state.recoveryActionAvailable || state.recoveryOperationInProgress)
-      .accessibilityLabel(state.recoveryMaterialPresent ? "Rotate device recovery material" : "Prepare device recovery")
-      .accessibilityIdentifier("YNX device recovery action")
+      .frame(maxWidth: .infinity, minHeight: 62, alignment: .leading)
       Text("Device recovery material is not an account, seed phrase, balance, transaction, authorization, or product recovery success. Account derivation, signing and asset actions remain unavailable until the frozen native bridge is integrated and verified.")
         .font(.callout)
         .foregroundStyle(.secondary)
@@ -181,6 +182,65 @@ struct WalletView: View {
     }
     .padding(28)
     .frame(minWidth: 620, minHeight: 500)
+  }
+}
+
+/// AppKit owns the accessibility nodes for this security boundary. SwiftUI can
+/// omit a disabled `Button` from the System Events tree on headless macOS
+/// runners, which made the release gate unable to distinguish a correctly
+/// disabled recovery action from a missing UI. These are the same visible
+/// controls and state; AppKit supplies stable AX identifiers and AXEnabled.
+private struct RecoveryControlsView: NSViewRepresentable {
+  let status: String
+  let actionTitle: String
+  let actionEnabled: Bool
+  let action: () -> Void
+
+  func makeCoordinator() -> Coordinator {
+    Coordinator(action: action)
+  }
+
+  func makeNSView(context: Context) -> NSStackView {
+    let statusLabel = NSTextField(wrappingLabelWithString: status)
+    statusLabel.font = .systemFont(ofSize: NSFont.systemFontSize, weight: .medium)
+    statusLabel.setAccessibilityIdentifier("YNX device recovery status")
+
+    let actionButton = NSButton(title: actionTitle, target: context.coordinator, action: #selector(Coordinator.performAction))
+    actionButton.bezelStyle = .rounded
+    actionButton.setAccessibilityIdentifier("YNX device recovery action")
+
+    let stack = NSStackView(views: [statusLabel, actionButton])
+    stack.orientation = .vertical
+    stack.alignment = .leading
+    stack.spacing = 8
+    stack.setHuggingPriority(.required, for: .vertical)
+    return stack
+  }
+
+  func updateNSView(_ stack: NSStackView, context: Context) {
+    guard
+      stack.arrangedSubviews.count == 2,
+      let statusLabel = stack.arrangedSubviews[0] as? NSTextField,
+      let actionButton = stack.arrangedSubviews[1] as? NSButton
+    else { return }
+
+    statusLabel.stringValue = status
+    actionButton.title = actionTitle
+    actionButton.isEnabled = actionEnabled
+    context.coordinator.action = action
+  }
+
+  @MainActor
+  final class Coordinator: NSObject {
+    var action: () -> Void
+
+    init(action: @escaping () -> Void) {
+      self.action = action
+    }
+
+    @objc func performAction() {
+      action()
+    }
   }
 }
 
