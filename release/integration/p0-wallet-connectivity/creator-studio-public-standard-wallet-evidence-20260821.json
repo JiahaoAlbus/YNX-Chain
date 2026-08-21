@@ -1,0 +1,53 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-122",
+  "recordedAt": "2026-08-21T06:52:03Z",
+  "source": {
+    "branch": "codex/p0-creator-studio-visible-20260821",
+    "commit": "650070ce5c5a7928425509f6e9e7da0aec31910d",
+    "supersedesBrokenRuntimeSource": "7bb494ff82420b84d0c153cbeb563083ad4dd361",
+    "runtimeDefectFixed": "The prior public standard-wallet module imported an unavailable ../../packages path, so app.js never installed the visible button handler.",
+    "tests": "8/8; production build; smoke; Chromium 2/2; diff check",
+    "archiveBytes": 271553,
+    "archiveSha256": "d5eda2914749d0437d4bfc168b81084d625e058e6e5eaf8a02e257e403bf3229"
+  },
+  "deployment": {
+    "host": "43.153.202.237",
+    "service": "ynx-video-studio.service",
+    "intermediateBrokenRelease": "/opt/ynx-video/releases/p0122-creator-wallet-7bb494ff",
+    "activeRelease": "/opt/ynx-video/releases/p0122b-creator-wallet-650070ce",
+    "rollbackTarget": "/opt/ynx-video/releases/p0121-video-wallet-2e516baa",
+    "studioServiceActive": true,
+    "viewerServiceActive": true,
+    "studioRestarts": 0,
+    "viewerRestarts": 0,
+    "onlyStudioRestarted": true
+  },
+  "publicReadback": [
+    {"url": "https://web4.ynxweb4.com/video/studio/?verify=650070ce", "http": 200, "bytes": 11772, "sha256": "659d2e0c53f3d16c9b86455f4d6f998dd22685c86879957e671ace85dd01db92"},
+    {"url": "https://web4.ynxweb4.com/video/studio/app.js", "http": 200, "bytes": 26182, "sha256": "dd49ef509213c228665b0f8c227684b6ec578bad6c37ca977fa658955856ed50"},
+    {"url": "https://web4.ynxweb4.com/video/studio/standard-wallet.js", "http": 200, "bytes": 3970, "sha256": "122f8260dac234191c835a0d12c1336cfb9e853fa04c9858b2cd0da0e7a0e824"}
+  ],
+  "releaseChecks": {
+    "publicModuleSelfContained": true,
+    "webCustomSchemeNavigationPresent": false,
+    "englishDefaultSource": true,
+    "browserAutoTranslateDisabledInSource": true,
+    "videoViewerHashPreserved": "5c6aa1b9207680ff40f77df6d063571f67beff40719d727acf5d2fa0c05b591a"
+  },
+  "truth": {
+    "publicSourceDeployed": true,
+    "localBrowserProviderAndRejectionTests": true,
+    "computerControlVerified": false,
+    "computerControlBlocker": "Mac locked after corrected deployment; the pre-correction click exposed the missing-module defect but cannot be inherited as success evidence.",
+    "installedWalletVerified": false,
+    "accountApproved": false,
+    "signatureVerified": false,
+    "transactionVerified": false,
+    "uploadVerified": false,
+    "payoutVerified": false,
+    "productSessionV2": false,
+    "aggregateEcosystemFixed": false
+  }
+}
