@@ -1,3 +1,5 @@
+import { launchWebAuthorization } from '@ynx-chain/wallet-auth';
+
 const DB_NAME = 'ynx_product_device_v1';
 const KEY_STORE = 'keys';
 const REPLAY_STORE = 'replays';
@@ -31,8 +33,7 @@ export async function startWalletAuth(surface) {
     expiresAt: new Date(now.getTime() + 4 * 60_000).toISOString(),
   };
   sessionStorage.setItem('ynx_wallet_pending', canonicalJSON(request));
-  const encoded = base64url(new TextEncoder().encode(canonicalJSON(request)));
-  location.assign('ynxwallet://authorize?request=' + encoded);
+  return launchWebAuthorization(request, { document, window, timeoutMs: 1500 });
 }
 
 export async function completeWalletCallback() {

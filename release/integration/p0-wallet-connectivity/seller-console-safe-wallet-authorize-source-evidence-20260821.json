@@ -1,0 +1,41 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-114",
+  "product": "seller-console",
+  "owner": "integration",
+  "recordedAt": "2026-08-21T05:12:00Z",
+  "baselineCommit": "2e4b92a05007f8c7eccdcef77e6039e0b25fa0b2",
+  "change": {
+    "description": "Replace the Seller private-session top-level custom-scheme navigation with the shared controlled Wallet launcher and render recovery actions in the still-visible Seller page.",
+    "walletAuthArtifact": "apps/seller-console/vendor/ynx-chain-wallet-auth-1.0.0-safe-authorize-p0.0.tgz",
+    "walletAuthArtifactSha256": "dd80cf3d8fda3b35b89ddae6f3848dc420358b9c10d1879ed33a33f567585acb",
+    "topLevelLocationNavigation": false,
+    "standardWalletPreservedOnPrivateFailure": true,
+    "anonymousPreviewPreserved": true,
+    "officialWalletRecoveryVisible": true,
+    "metamaskRecoveryVisible": true
+  },
+  "verification": {
+    "nodeTests": {"passed": true, "tests": 10, "failures": 0},
+    "productionBuild": {"passed": true},
+    "chromiumE2E": {"passed": true, "tests": 3, "failures": 0},
+    "gitDiffCheck": {"passed": true},
+    "builtAppSha256": "359f4718aea9f9c2785212ff8b870bae27452f53426958d7c994475eb966e39e",
+    "controlledFallbackScreenshotSha256": "8c94db06cb11dc584d953ad02be03c967450c82c67fbf1dcace59ff411db330b",
+    "externalShopSmoke": "BLOCKED_LOCAL_SERVICE_127_0_0_1_8095_NOT_RUNNING"
+  },
+  "truth": {
+    "sourceValidated": true,
+    "deterministicBrowserFlowsValidated": true,
+    "publicDeployed": false,
+    "publicVisibleVerified": false,
+    "computerControlVerified": false,
+    "installedWalletVerified": false,
+    "walletApprovalVerified": false,
+    "callbackVerified": false,
+    "productSessionV2": false,
+    "sellerMutationVerified": false
+  },
+  "nextAction": "Publish this exact Seller Console source, then verify the controlled fallback and a real installed-Wallet approval/callback separately before promoting any private-session or seller-operation claim."
+}
