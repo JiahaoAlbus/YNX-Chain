@@ -34,7 +34,10 @@ test('web wallet uses standard providers and YNX chain 6423 without custom-schem
 });
 
 test('Shop defaults to English and only changes app language after explicit user selection', async () => {
+  const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
   const i18n = await readFile(new URL('../i18n.js', import.meta.url), 'utf8');
+  assert.ok(html.includes('<html lang="en" translate="no">'));
+  assert.ok(html.includes('<meta name="google" content="notranslate">'));
   assert.ok(i18n.includes("localStorage.getItem('ynx-ui-language')||'en'"));
   assert.equal(i18n.includes("localStorage.getItem('ynx-ui-language')||navigator.language"), false);
   assert.ok(i18n.includes("select('appLanguage'"));
