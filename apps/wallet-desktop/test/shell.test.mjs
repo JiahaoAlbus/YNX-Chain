@@ -7,6 +7,18 @@ test("desktop shell consumes frozen Wallet Auth chain constant", () => {
   assert.equal(YNX_TESTNET_CHAIN_QUANTITY, "0x1917");
 });
 
+test("desktop packaging exposes real platform installer formats", async () => {
+  const packageJson = JSON.parse(
+    await readFile(new URL("../package.json", import.meta.url), "utf8")
+  );
+
+  assert.match(packageJson.scripts["dist:windows"], /--win nsis/);
+  assert.match(packageJson.scripts["dist:mac"], /--mac dmg/);
+  assert.deepEqual(packageJson.build.mac.target, ["dmg"]);
+  assert.deepEqual(packageJson.build.win.target, ["nsis"]);
+  assert.doesNotMatch(packageJson.scripts["dist:mac"], /zip/);
+});
+
 test("shell is explicit and fail closed", async () => {
   const html = await readFile(new URL("../src/index.html", import.meta.url), "utf8");
   const main = await readFile(new URL("../src/main.mjs", import.meta.url), "utf8");

@@ -18,7 +18,8 @@
     "start": "electron .",
     "dist:linux": "electron-builder --linux deb AppImage --x64 --publish never",
     "dist:linux-appimage": "electron-builder --linux AppImage --x64 --publish never",
-    "dist:windows": "electron-builder --win nsis --x64 --publish never"
+    "dist:windows": "electron-builder --win nsis --x64 --publish never",
+    "dist:mac": "electron-builder --mac dmg --universal --publish never"
   },
   "dependencies": {
     "@ynx-chain/wallet-auth": "file:../../packages/wallet-auth"
@@ -48,6 +49,11 @@
     },
     "deb": {
       "depends": ["libgtk-3-0", "libnotify4", "libnss3", "libxss1", "libxtst6", "xdg-utils"]
+    },
+    "mac": {
+      "target": ["dmg"],
+      "category": "public.app-category.utilities",
+      "hardenedRuntime": false
     },
     "win": {
       "target": ["nsis"],
