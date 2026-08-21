@@ -173,6 +173,58 @@ func TestFaucetServerEndpoints(t *testing.T) {
 	_ = corsResp.Body.Close()
 }
 
+func TestFaucetHealthUsesLiveUpstreamStatusRatherThanHistoricalRequestError(t *testing.T) {
+	var upstreamFailing bool
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/status" {
+			if upstreamFailing {
+				http.Error(w, "upstream unavailable", http.StatusServiceUnavailable)
+				return
+			}
+			_ = json.NewEncoder(w).Encode(map[string]any{"chainId": 6423, "nativeCurrencySymbol": "YNXT"})
+			return
+		}
+		http.Error(w, "request failed", http.StatusBadGateway)
+	}))
+	defer upstream.Close()
+
+	service, err := New(Config{RPCURL: upstream.URL, FaucetKey: "local-test-key", ChainID: 6423, DefaultAmount: 25, MaxAmount: 25, Window: time.Hour, MaxRequests: 2, RequestLog: t.TempDir() + "/requests.jsonl"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, status, err := service.Request(context.Background(), Request{Address: "ynx_faucet_health_recovery"}, "127.0.0.1:1000"); err == nil || status != http.StatusBadGateway {
+		t.Fatalf("expected failed upstream request, status=%d err=%v", status, err)
+	}
+
+	server := httptest.NewServer(NewServer(service).Handler())
+	defer server.Close()
+	response, err := http.Get(server.URL + "/health")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer response.Body.Close()
+	var health PublicHealth
+	if err := json.NewDecoder(response.Body).Decode(&health); err != nil {
+		t.Fatal(err)
+	}
+	if response.StatusCode != http.StatusOK || !health.OK || !health.UpstreamOK || health.ChainID != 6423 {
+		t.Fatalf("historical request error poisoned recovered health: status=%d health=%+v", response.StatusCode, health)
+	}
+
+	upstreamFailing = true
+	response, err = http.Get(server.URL + "/health")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer response.Body.Close()
+	if err := json.NewDecoder(response.Body).Decode(&health); err != nil {
+		t.Fatal(err)
+	}
+	if response.StatusCode != http.StatusBadGateway || health.OK || health.UpstreamOK {
+		t.Fatalf("live upstream failure did not fail health: status=%d health=%+v", response.StatusCode, health)
+	}
+}
+
 func TestFaucetRequiresKey(t *testing.T) {
 	_, err := New(Config{RPCURL: "http://127.0.0.1:6420"})
 	if err == nil || !strings.Contains(err.Error(), "FAUCET_PRIVATE_KEY") {

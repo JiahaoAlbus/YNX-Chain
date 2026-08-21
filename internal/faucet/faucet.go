@@ -514,7 +514,9 @@ func (s *Service) Health() Health {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return Health{
-		OK:             s.lastError == "",
+		// Request failures are historical diagnostics, not a liveness signal.  The
+		// current upstream status is evaluated by CheckHealth below.
+		OK:             true,
 		Service:        "ynx-faucetd",
 		RPCURL:         s.cfg.RPCURL,
 		UpstreamMode:   s.cfg.UpstreamMode,
@@ -569,8 +571,11 @@ func (s *Service) CheckHealth(ctx context.Context) Health {
 	health.Height = status.Height
 	heightOK := s.cfg.UpstreamMode != UpstreamBFT || status.Height > 0
 	health.UpstreamOK = status.NativeCurrencySymbol == "YNXT" && status.ChainID == s.cfg.ChainID && heightOK
+	// Health is deliberately derived from this live dependency probe.  Do not
+	// allow a prior request failure to keep the public endpoint unhealthy after
+	// the upstream has recovered.
+	health.OK = health.UpstreamOK
 	if !health.UpstreamOK {
-		health.OK = false
 		switch {
 		case status.NativeCurrencySymbol != "YNXT":
 			health.LastError = "RPC native symbol is not YNXT"
