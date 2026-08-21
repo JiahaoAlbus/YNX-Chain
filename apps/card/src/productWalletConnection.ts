@@ -1,5 +1,5 @@
 import {createProductWalletConnection,PRODUCT_SESSION_PUBLIC_GATEWAY_ORIGIN} from "@ynx-chain/wallet-auth";
-import registry from "../vendor/product-session-registry-203be5e1.json";
+import registry from "../vendor/product-session-registry-46386ae8.json";
 
 export const CARD_PRODUCT_SESSION_V2_ORIGIN=PRODUCT_SESSION_PUBLIC_GATEWAY_ORIGIN;
 export const CARD_PRODUCT_SESSION_V2_ROUTES=Object.freeze(["/v2/product-sessions/challenge","/v2/product-sessions/complete","/v2/product-sessions/introspect","/v2/product-sessions/revoke"] as const);

@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {p256} from "@noble/curves/nist.js";
 import {createProductSessionReturnURL,decodeBase64url,encodeBase64url,ProductSessionGatewayHttpHandler,signProductSessionApproval} from "@ynx-chain/wallet-auth";
-import registry from "../vendor/product-session-registry-203be5e1.json";
+import registry from "../vendor/product-session-registry-46386ae8.json";
 import {CARD_PRODUCT_SESSION_V2_ORIGIN,CARD_PRODUCT_SESSION_V2_ROUTES,createCardProductWalletConnection} from "./productWalletConnection";
 
 const secret=new Uint8Array(32).fill(17),deviceKey=encodeBase64url(p256.getPublicKey(secret,true));

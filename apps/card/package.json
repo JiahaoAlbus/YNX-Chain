@@ -16,7 +16,7 @@
   "dependencies": {
     "@noble/curves": "2.2.0",
     "@noble/hashes": "2.2.0",
-    "@ynx-chain/wallet-auth": "file:vendor/ynx-chain-wallet-auth-1.0.0-203be5e1.tgz",
+    "@ynx-chain/wallet-auth": "file:vendor/ynx-chain-wallet-auth-1.0.0.tgz",
     "@ynx/dapp-connect-sdk": "file:vendor/ynx-dapp-connect-sdk-0.1.0-p0.0-315897e7.tgz",
     "expo": "~57.0.4",
     "expo-crypto": "~57.0.1",

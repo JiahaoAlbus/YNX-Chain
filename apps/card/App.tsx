@@ -6,9 +6,9 @@ import* as LocalAuthentication from"expo-local-authentication";
 import{ArrowUpRight,CreditCard,Globe2,LifeBuoy,LockKeyhole,ReceiptText,RefreshCw,ShieldCheck,SlidersHorizontal,WalletCards,X}from"lucide-react-native";
 import{action,apply as applyForCard,createTestnetTopupIntent,dispute as openDispute,explain,reviewAI,state as loadState,topupTestnet,type Card,type CardEvent,type CardState,type TestnetTopupIntent,type TopupInput, simulateAuthorization, simulateCapture, simulateReversal, simulateRefund, updateControls}from"./src/api";
 import{catalogs,date,detectLocale,isLocale,isRTL,localeNames,locales,money,t as translate,type Locale}from"./src/i18n";
-import{loadLocale,loadSession,loadSimulationAudit,saveLocale,saveSession,saveSimulationAudit}from"./src/secureState";
+import{loadLocale,loadPendingAuthorization,loadSession,loadSimulationAudit,saveLocale,savePendingAuthorization,saveSession,saveSimulationAudit}from"./src/secureState";
 import{createRuntimeCardProductWalletConnection,type CardProductWalletConnection}from"./src/productWalletRuntime";
-import{approveTestnetTopup,classifyCardWalletError,connectEip1193Wallet,connectMetaMaskWallet,loadTestnetTopupEvidence,parseYnxtAmountToWei,resolveEip1193Provider,resolveMetaMaskEip1193Provider,type CardSession,type Eip1193Provider,type Eip1193WalletSession,type ProductSessionRuntime,type TopupEvidence}from"./src/wallet";
+import{approveTestnetTopup,classifyCardWalletError,connectEip1193Wallet,connectMetaMaskWallet,createAuthorization,loadTestnetTopupEvidence,parseWalletAuthorizationCallback,parseYnxtAmountToWei,resolveEip1193Provider,resolveMetaMaskEip1193Provider,walletDeepLink,type CardSession,type Eip1193Provider,type Eip1193WalletSession,type PendingAuthorization,type ProductSessionRuntime,type TopupEvidence}from"./src/wallet";
 import{isFailure,recoverLastFailed,replayAwareAppend,SimulationAuditRecord,TESTNET_SIMULATION_CURRENCY,TESTNET_SIMULATION_MAX_EVENTS,type SimulationInput as LedgerSimulationInput}from"./src/simulation";
 import{GuestExperience}from"./src/GuestExperience";
 
@@ -55,6 +55,7 @@ export default function App(){
   const mounted=useRef(true);
   const productWallet=useRef<CardProductWalletConnection|null>(null);
   const walletProvider=useRef<Eip1193Provider|null>(null);
+  const pendingAuthorization=useRef<PendingAuthorization|null>(null);
   const persistSimulationLedger=useCallback(async(next:readonly SimulationAuditRecord[])=>{
     const normalized=Object.freeze(next.slice(0,TESTNET_SIMULATION_MAX_EVENTS));
     await saveSimulationAudit(normalized);
@@ -74,6 +75,18 @@ export default function App(){
 
   const handleURL=useCallback(async(url:string)=>{
     if(!isCardWalletCallback(url))return;
+    if(isCanonicalAuthorizationCallback(url)){
+      const pendingAuthorizationValue=pendingAuthorization.current??await loadPendingAuthorization();
+      if(!pendingAuthorizationValue){if(mounted.current)setWalletError("No pending YNX Wallet authorization matches this callback.");return;}
+      try{
+        const result=parseWalletAuthorizationCallback(url,pendingAuthorizationValue,new Date());
+        pendingAuthorization.current=null;
+        await savePendingAuthorization(null);
+        if(mounted.current)setWalletError("decision" in result&&result.decision==="rejected"?"YNX Wallet authorization was rejected. No Card session was created.":"YNX Wallet authorization returned. Private Card service remains unavailable until separate Card API acceptance.");
+      }catch(e){if(mounted.current)setWalletError(classifyCardWalletError(e).safeMessage);}
+      finally{if(mounted.current)setPending(false);}
+      return;
+    }
     const connection=productWallet.current;
     if(!connection)return;
     setBusy(true);
@@ -91,15 +104,17 @@ export default function App(){
   useEffect(()=>{
     mounted.current=true;
     void(async()=>{
-      const[savedLocale,savedSession,savedLedger]=await Promise.all([
+      const[savedLocale,savedSession,savedLedger,savedAuthorization]=await Promise.all([
         loadLocale(),
         loadSession(),
         loadSimulationAudit(),
+        loadPendingAuthorization(),
       ]);
       if(!mounted.current)return;
       if(isLocale(savedLocale))setLocaleState(savedLocale);
       setSession(savedSession);
       setSimulationLedger(savedLedger);
+      pendingAuthorization.current=savedAuthorization;
       if(savedSession)await refresh(savedSession);
     })();
     const sub=Linking.addEventListener("url",event=>void handleURL(event.url));
@@ -315,18 +330,16 @@ export default function App(){
     setBusy(true);
     setWalletError("");
     try{
-      const connection=await createRuntimeCardProductWalletConnection();
-      productWallet.current=connection;
-      const outcome=await connection.beginYNX();
-      const coordinator=record(outcome),state=productRuntimeState(outcome);
-      if(coordinator?.status==="wallet-opened"&&state==="connecting"){
-        if(mounted.current)setPending(true);
-        return "wallet-opened";
-      }
-      if(state==="retry-required")return "wallet-unavailable";
-      if(mounted.current)setPrivateSession(productRuntime(outcome));
-      return "wallet-open-failed";
+      if(Platform.OS==="web"){setWalletError("YNX Wallet authorization requires its registered native callback. Use MetaMask for browser EVM connection.");return "wallet-unavailable";}
+      const pendingAuthorizationValue=await createAuthorization();
+      await savePendingAuthorization(pendingAuthorizationValue);
+      pendingAuthorization.current=pendingAuthorizationValue;
+      await Linking.openURL(walletDeepLink(pendingAuthorizationValue));
+      if(mounted.current)setPending(true);
+      return "wallet-opened";
     }catch(e){
+      pendingAuthorization.current=null;
+      await savePendingAuthorization(null);
       if(mounted.current)setWalletError(classifyCardWalletError(e).safeMessage);
       return "wallet-open-failed";
     }finally{setBusy(false)}
@@ -433,6 +446,7 @@ function productRuntime(value:unknown):ProductSessionRuntime{
 function productRuntimeState(value:unknown):string|undefined{return record(record(value)?.sessionState)?.status as string|undefined}
 function record(value:unknown):Record<string,unknown>|null{return typeof value==="object"&&value!==null&&!Array.isArray(value)?value as Record<string,unknown>:null}
 function isCardWalletCallback(value:string):boolean{try{const callback=new URL(value);return(callback.protocol==="ynxcard:"&&callback.hostname==="wallet-auth"&&callback.pathname==="/callback")||(callback.protocol==="https:"&&callback.hostname==="card.ynxweb4.com"&&callback.pathname==="/wallet-auth/callback"&&!callback.username&&!callback.password&&!callback.hash)}catch{return false}}
+function isCanonicalAuthorizationCallback(value:string):boolean{try{return new URL(value).searchParams.has("response")}catch{return false}}
 
 function SignedOut({c,tr,busy,pending,error,signIn,walletSession,walletBusy,walletError,privateSession,connectWallet}:{c:Colors;tr:T;busy:boolean;pending:boolean;error:string;signIn:()=>Promise<void>;walletSession:Eip1193WalletSession|null;walletBusy:boolean;walletError:string;privateSession:ProductSessionRuntime|null;connectWallet:()=>Promise<void>}){
   return <ScrollView contentContainerStyle={s.center}>

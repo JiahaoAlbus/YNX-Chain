@@ -3,12 +3,12 @@ import * as WalletAuth from "@ynx-chain/wallet-auth";
 import {StandardWalletConnection,enhanceWithProductSession} from "@ynx/dapp-connect-sdk";
 import {MetaMaskEvmConnectionAdapter,discoverWalletProviders} from "@ynx-chain/wallet-auth";
 import {walletErrorResponse} from "@ynx-chain/wallet-auth";
-import productSessionRegistry from "../vendor/product-session-registry-203be5e1.json";
+import productSessionRegistry from "../vendor/product-session-registry-46386ae8.json";
 import {acceptedCardGatewayEndpoint} from "./publicEndpointManifest";
 import {
   encodeRequestDeepLink,
+  parseAuthorizationCallbackURL,
   parseAuthorizationRequest,
-  parseCallbackURL,
   requestDigest,
   signGatewayChallenge,
   verifyAuthorization,
@@ -62,6 +62,7 @@ export async function createAuthorization(now=new Date(),random?:Readonly<{secre
 }
 
 export function walletDeepLink(pending:PendingAuthorization):string{return encodeRequestDeepLink(pending.request)}
+export function parseWalletAuthorizationCallback(callbackURL:string,pending:PendingAuthorization,now=new Date()):ReturnType<typeof parseAuthorizationCallbackURL>{return parseAuthorizationCallbackURL(callbackURL,pending.request,now)}
 
 // Legacy private route retained only for compatibility evidence. Card runtime
 // now uses createProductWalletConnection and the canonical /v2 routes.
@@ -93,8 +94,9 @@ export function classifyCardWalletError(input:unknown):CardWalletError{
 function unknownWalletError():CardWalletError{return Object.freeze({code:"UNKNOWN_WALLET_ERROR",retryable:false,safeMessage:"Wallet error could not be verified.",monitoringClass:"wallet-contract",userAction:"return-to-product"});}
 
 export function verifiedApproval(callbackURL:string,pending:PendingAuthorization,now=new Date()):AuthorizationResponse{
-  const raw=parseCallbackURL(callbackURL,CALLBACK);
-  return verifyAuthorization(raw,{...pending.request,requestDigest:requestDigest(pending.request),now});
+  const result=parseWalletAuthorizationCallback(callbackURL,pending,now);
+  if("decision" in result&&result.decision==="rejected")throw new Error("Wallet authorization was rejected");
+  return result as AuthorizationResponse;
 }
 
 export function resolveEip1193Provider():Eip1193Provider|null{
