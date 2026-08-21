@@ -25,5 +25,5 @@
   },
   "browser": {"englishAvailable": true, "chineseAvailable": true, "consoleErrors": []},
   "boundaries": {"ynx1ClaimVerified": false, "explorerTransactionVerified": false, "walletPlatformFaucetVerified": false},
-  "rollback": {"previousRuntimeRelease": "ynx-chain-d644c0821b61", "previousBinarySha256": "3a624"}
+  "rollback": {"previousRuntimeRelease": "ynx-chain-d644c0821b61"}
 }
