@@ -2,7 +2,7 @@
   "schemaVersion": "1.0.0",
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "owner": "integration",
-  "status": "P0128_SOCIAL_WEB_VERCEL_DEPLOYMENT_ACTIVE",
+  "status": "P0128_SOCIAL_WEB_PUBLIC_BROWSER_VERIFIED_COMPUTER_CONTROL_BLOCKED",
   "scope": [
     "founder-control",
     "wallet-connectivity",
@@ -340,11 +340,12 @@
     {
       "owner": "integration",
       "taskId": "P0-128",
-      "status": "ACTIVE_SINGLE_USE",
+      "status": "RELEASED_PUBLIC_CHECKPOINT",
       "grantedAt": "2026-08-21T08:00:38Z",
       "expiresAt": "2026-08-21T08:30:38Z",
-      "sourceCommit": "4791eafc6065280f2968a731479d38d75ff9fcc0",
-      "scope": "social-web-exact-static-vercel-deployment-and-public-readback",
+      "releasedAt": "2026-08-21T08:15:40Z",
+      "sourceCommit": "22c26bcb7a8d618cb8e38b30940b1c07bf4237c8",
+      "scope": "social-web-public-browser-checkpoint-complete",
       "constraints": [
         "deploy only the exact five-file Social Web archive",
         "bind only social.ynxweb4.com and only after the immutable deployment is READY",
@@ -355,22 +356,22 @@
     }
   ],
   "heavy": {
-    "owner": "integration",
+    "owner": null,
     "taskId": "P0-128",
-    "status": "ACTIVE_SINGLE_USE",
+    "status": "RELEASED_PUBLIC_CHECKPOINT",
     "acquiredAt": "2026-08-21T08:00:38Z",
     "expiresAt": "2026-08-21T08:30:38Z",
-    "sourceCommit": "4791eafc6065280f2968a731479d38d75ff9fcc0",
+    "sourceCommit": "22c26bcb7a8d618cb8e38b30940b1c07bf4237c8",
     "runtimeHost": "Vercel:jiahaoalbus-projects",
-    "currentRuntime": "UNAVAILABLE_DEPLOYMENT_NOT_FOUND",
+    "currentRuntime": "https://ynx-social-h8cqxnkud-jiahaoalbus-projects.vercel.app",
     "rollbackTarget": "remove new social.ynxweb4.com alias and restore HTTP 404 DEPLOYMENT_NOT_FOUND",
-    "productionMutationAllowed": true,
+    "productionMutationAllowed": false,
     "singleUse": true,
     "previousOwner": "integration",
     "previousTaskId": "P0-127",
-    "releasedAt": null,
-    "checkpointCommit": "4b6c5fa3e7570427fd6da4a5682de6095d73fc39",
-    "reason": "P0-127 completed exact Social Web source and local-browser verification; this lease permits only the separate bounded Vercel publication."
+    "releasedAt": "2026-08-21T08:15:40Z",
+    "checkpointCommit": "22c26bcb7a8d618cb8e38b30940b1c07bf4237c8",
+    "reason": "Social Web is public with English guest mode and on-page YNX/MetaMask no-provider fallbacks verified; real provider approval and Computer Control remain false."
   },
   "wave": {
     "id": "B-financial-apps-quant",
