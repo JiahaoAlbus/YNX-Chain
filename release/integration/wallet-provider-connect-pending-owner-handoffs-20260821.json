@@ -101,8 +101,8 @@
     "integratedCentral": false
   },
   "validation": {
-    "focusedStateAndMatrix": "20/20",
-    "walletAuthFull": "287/287",
+    "focusedStateAndMatrix": "22/22",
+    "walletAuthFull": "289/289",
     "noBareAuthorize": "PASS",
     "standardConnectConsumerGate": "PASS"
   }

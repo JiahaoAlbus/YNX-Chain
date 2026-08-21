@@ -116,6 +116,26 @@ test("Trust Center public guest evidence remains outside registered migration co
   assert.equal(auditV3.truth.deployedPublicAggregate, false);
 });
 
+test("Wallet Web/PWA and macOS DMG publication remain outside product authority", () => {
+  const companion = auditV3.nonProductRegistryClient;
+  assert.equal(companion.productId, "wallet-web-companion");
+  assert.equal(companion.webShellSourceCommit, "3651ba0c4322e0564e29b4573f3def90828dba67");
+  assert.equal(companion.publicEvidenceCommit, "01049d7ca789e91c4e1a7d30db4e2caf1501c142");
+  assert.equal(companion.deploymentId, "dpl_2VFy2gauryFgCGvchv2EddXv1zec");
+  assert.equal(companion.runtime.sourceBoundPublic, true);
+  assert.equal(companion.runtime.metaMaskEip6963Detected, true);
+  assert.equal(companion.runtime.accountApproval, false);
+  assert.equal(companion.runtime.providerChainId1917, false);
+  assert.equal(companion.runtime.callback, false);
+  assert.equal(companion.runtime.productSessionV2, false);
+  assert.equal(companion.macosDmgPublication.websitePublished, true);
+  assert.equal(companion.macosDmgPublication.artifactSha256, "ad6e4077bc001743cf1a4163ceaca5a009a3c8a4d8a809cc4896798976cf56c0");
+  assert.equal(companion.macosDmgPublication.installationVerified, false);
+  assert.equal(companion.macosDmgPublication.productionSigned, false);
+  assert.equal(auditV3.counts.productsConnected, 0);
+  assert.equal(auditV3.counts.productsMigratedV2, 0);
+});
+
 test("shared Provider/connect recovery hands off to all products without promoting runtime", () => {
   assert.equal(auditV3.sharedProviderConnectRecovery.sourceCommit, providerRecovery.source.commit);
   assert.equal(auditV3.sharedProviderConnectRecovery.registeredProductConsumers, 6);
@@ -198,4 +218,19 @@ test("owner activity checkpoint derives counts and consumes Faucet recovery with
   assert.equal(auditV3.remoteRecheck.faucetSourceIdentityTracking.runtimeIdentityPromoted, true);
   assert.equal(auditV3.remoteRecheck.faucetSourceIdentityTracking.matrixAuthority, false);
   assert.equal(ownerActivityCheckpoint.truth.aggregateConnected, false);
+});
+
+test("owner checkpoint separates Wallet public artifacts from approval and Product Session authority", () => {
+  const platform = ownerActivityCheckpoint.walletPlatformTracking;
+  assert.equal(platform.webPwa.sourceCommit, "3651ba0c4322e0564e29b4573f3def90828dba67");
+  assert.equal(platform.webPwa.sourceBoundPublic, true);
+  assert.equal(platform.webPwa.accountApproved, false);
+  assert.equal(platform.webPwa.callback, false);
+  assert.equal(platform.webPwa.productSessionV2, false);
+  assert.equal(platform.macosDmg.websitePublished, true);
+  assert.equal(platform.macosDmg.artifactSha256, "ad6e4077bc001743cf1a4163ceaca5a009a3c8a4d8a809cc4896798976cf56c0");
+  assert.equal(platform.macosDmg.installationVerified, false);
+  assert.equal(platform.macosDmg.productionSigned, false);
+  assert.equal(platform.modifiedByProtocolOwner, false);
+  assert.equal(ownerActivityCheckpoint.summary.threeSegmentCompleteProducts, 0);
 });

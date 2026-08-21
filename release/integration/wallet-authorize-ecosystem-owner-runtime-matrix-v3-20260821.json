@@ -2,7 +2,7 @@
   "schemaVersion": 3,
   "evidenceId": "WALLET-AUTHORIZE-ECOSYSTEM-OWNER-RUNTIME-MATRIX-V3-20260821",
   "owner": "wallet-protocol-router",
-  "auditedAt": "2026-08-21T12:01:06Z",
+  "auditedAt": "2026-08-21T12:16:14Z",
   "sourceBaseline": "dd10350cd5d22de6622b7aae7304483f4c78e02f",
   "baseMatrix": {
     "path": "release/integration/wallet-authorize-ecosystem-source-runtime-audit-v2-20260821.json",
@@ -35,7 +35,7 @@
     "centralControlPlaneWritten": false
   },
   "remoteRecheck": {
-    "performedAt": "2026-08-21T12:01:06Z",
+    "performedAt": "2026-08-21T12:16:14Z",
     "registeredProductOwnerHeadChangesSinceBase": 9,
     "changedProductIds": ["calendar","creator-studio","developer","dex","exchange","finance","pay","shop","social"],
     "unchangedProductIds": ["card","quant","video"],
@@ -158,9 +158,10 @@
     }
   ],
   "nonProductRegistryClient": {
-    "productId":"wallet-web-companion","coreSourceCommit":"eed33085d4150f0febc85fc46ba1915316509aa5","webShellSourceCommit":"562ceb505469a6d0a6efd4d8761dfbd741916b50","publicEvidenceCommit":"f311b71605000cec1dbce30c6d9c67bea0d46bae","publicEvidenceTree":"d835a8e5c9a496b6eb3d1f0e0b66022039fe7153",
-    "runtime":{"publicStaticShell":true,"customSchemeTopLevelLinkAbsent":true,"guestFallbackVisible":true,"installedProvider":false,"accountApproval":false,"callback":false,"productSessionV2":false,"computerControl":false},
-    "boundary":"Public static shell does not promote any of the 12 registered product migrations or prove Wallet authority."
+    "productId":"wallet-web-companion","coreSourceCommit":"eed33085d4150f0febc85fc46ba1915316509aa5","webShellSourceCommit":"3651ba0c4322e0564e29b4573f3def90828dba67","webShellSourceTree":"85c25a15cdef223e252f4c283879faea322f7d01","publicEvidenceCommit":"01049d7ca789e91c4e1a7d30db4e2caf1501c142","publicEvidenceTree":"dc0d73b877a1b944b33ce7ad64515ef82df73447","publicEvidencePath":"apps/wallet-web/evidence/browser/wallet-connect-preapproval-20260821.json","publicEvidenceBlob":"087055bcefb9567b49ae5e8d4cb8c6b6b6250cdf","publicEvidenceSha256":"d63fcdc82276e3e7b4b37e0375111a9eaef9e88eb2077b5c9ee966ed8aad41d7","deploymentId":"dpl_2VFy2gauryFgCGvchv2EddXv1zec",
+    "runtime":{"sourceBoundPublic":true,"publicStaticShell":true,"metaMaskEip6963Detected":true,"englishDefault":true,"originalPageStable":true,"blankTabCreated":false,"directBrowserRpcConnectionPrerequisite":false,"accountApproval":false,"providerChainId1917":false,"chooserClosedAfterApproval":false,"refreshRestore":false,"disconnect":false,"switchAccount":false,"ynxProviderDetected":false,"callback":false,"productSessionV2":false,"computerControl":false},
+    "macosDmgPublication":{"websiteSource":"efe79b5c9bcfa2619c138abc7521ee17b7cbfd7d","vercelProduction":"dpl_6tygndEdR6GS53fUNRKexV9ha9DF","artifactSha256":"ad6e4077bc001743cf1a4163ceaca5a009a3c8a4d8a809cc4896798976cf56c0","websitePublished":true,"installationVerified":false,"coldLaunchVerified":false,"secondLaunchVerified":false,"networkVerified":false,"versionVerified":false,"signingVerified":false,"rollbackVerified":false,"productionSigned":false},
+    "boundary":"Wallet Web/PWA source and public deployment plus the Website DMG artifact publication are verified. They do not prove account approval, exact provider chain, callback, Product Session, DMG installation/launch/network/signing, or any of the 12 product migrations."
   },
   "otherEcosystem": [
     {
