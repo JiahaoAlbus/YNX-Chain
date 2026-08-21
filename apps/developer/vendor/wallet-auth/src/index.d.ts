@@ -170,6 +170,14 @@ export declare function discoverEip6963WalletProviders(scope?:unknown,waitMs?:nu
 export declare function discoverWalletProviders(scope?:unknown,waitMs?:number):Promise<WalletProviderDiscovery>;
 export declare function selectWalletProviderCandidates(input:unknown[],conflictedAnnouncements?:number):WalletProviderDiscovery;
 export declare function walletAvailabilityFromDiscovery(discovery:WalletProviderDiscovery):Readonly<{ynxWalletInstalled:boolean;metaMaskAvailable:boolean}>;
+export declare const STANDARD_WALLET_CHAIN_ID:"0x1917";
+export declare const STANDARD_WALLET_CONNECT_STATUS:Readonly<{IDLE:"idle";DISCOVERING:"discovering";AWAITING_ACCOUNT:"awaiting-account";SWITCHING_CHAIN:"switching-chain";CONNECTED:"connected";WRONG_CHAIN:"wrong-chain";DISCONNECTED:"disconnected";FAILED:"failed"}>;
+export declare const STANDARD_WALLET_PRIVATE_SERVICE:Readonly<{NOT_REQUESTED:"not-requested";CONNECTING:"connecting";READY:"ready";DEGRADED:"degraded"}>;
+export declare const STANDARD_WALLET_RPC_PROBE:Readonly<{NOT_RUN:"not-run";READY:"ready";DEGRADED:"degraded"}>;
+export declare const STANDARD_WALLET_RPC_PROBE_TRANSPORT:"accepted-cors-safe";
+export type StandardWalletConnectState=Readonly<{status:"idle"|"discovering"|"awaiting-account"|"switching-chain"|"connected"|"wrong-chain"|"disconnected"|"failed";chooserOpen:boolean;chooserMode:"closed"|"connect"|"connection-details"|"wrong-chain"|"error";chooserActions:readonly string[];pendingIntent:string|null;providerKind:"metamask"|"ynx-wallet"|null;account:string|null;chainId:string|null;privateService:"not-requested"|"connecting"|"ready"|"degraded";privateServiceCode:string|null;rpcProbe:"not-run"|"ready"|"degraded";rpcProbeCode:string|null;standardPermissions:readonly string[];productAccess:"guest-or-public-only"|"standard-wallet-connected";focusRestoreTarget:"wallet-connect-trigger"|null;errorCode:string|null;disconnectReason:string|null;authority:"standard-wallet-eip1193-state-only"}>;
+export declare function createStandardWalletConnectState():StandardWalletConnectState;
+export declare function reduceStandardWalletConnectState(current:StandardWalletConnectState,event:Readonly<Record<string,unknown>>):StandardWalletConnectState;
 export declare function encodeProductSessionWalletURL(registry:unknown,request:unknown,at?:Date):string;
 export declare function parseProductSessionWalletURL(registry:unknown,url:string,at?:Date):Readonly<Record<string,unknown>>;
 export declare function prepareWalletOpen(registry:unknown,request:unknown,environment:{networkAvailable:boolean;walletInstalled:boolean;schemeRegistered:boolean},at?:Date):Readonly<Record<string,unknown>>;

@@ -7,7 +7,7 @@ import {
   launchNativeAuthorization,
   launchWebAuthorization,
 } from "../vendor/wallet-auth/src/index.js";
-import { connectDeveloperWebWallet, discoverDeveloperWebWalletChoices } from "../frontend/src/wallet/safe-authorize-launcher.ts";
+import { connectDeveloperWebWallet, discoverDeveloperWebWalletChoices, reduceDeveloperWalletPrivateServiceDegraded, reduceDeveloperWalletRpcProbeDegraded, restoreDeveloperWebWallet, subscribeDeveloperWebWalletEvents } from "../frontend/src/wallet/safe-authorize-launcher.ts";
 
 const request = () => Object.freeze({ version:"1", nonce:"A".repeat(43), chainId:"ynx_6423-1", requestingProduct:"developer", productClientId:"ynx-developer-v1", bundleId:"com.ynxweb4.developer.testnetpreview", productDeviceAlgorithm:"p256-sha256", productDeviceKey:"A".repeat(44), callback:"ynxdeveloper://wallet-auth/callback", scopes:["account:read","developer:deploy"], purpose:"Developer launcher v2 contract test", issuedAt:"2026-08-21T00:00:00.000Z", expiresAt:"2026-08-21T00:05:00.000Z" });
 
@@ -52,7 +52,7 @@ test("Developer requires an explicit browser Wallet selection when YNX Wallet an
   const calls = [];
   const provider = (kind) => ({
     ...(kind === "ynx-wallet" ? { isYNXWallet:true, providerInfo:{rdns:"com.ynx.wallet"} } : { isMetaMask:true, providerInfo:{rdns:"io.metamask"} }),
-    async request(input) { calls.push(`${kind}:${input.method}`); return input.method === "eth_requestAccounts" ? ["0x1111111111111111111111111111111111111111"] : null; },
+    async request(input) { calls.push(`${kind}:${input.method}`); if (input.method === "eth_requestAccounts") return ["0x1111111111111111111111111111111111111111"]; if (input.method === "eth_chainId") return "0x1917"; return null; },
   });
   const scope = browserScope();
   scope.ethereum = { providers:[provider("ynx-wallet"), provider("metamask")] };
@@ -64,7 +64,47 @@ test("Developer requires an explicit browser Wallet selection when YNX Wallet an
   const connected = await connectDeveloperWebWallet("metamask", scope);
   assert.equal(connected.status, "connected");
   assert.equal(connected.providerKind, "metamask");
-  assert.deepEqual(calls, ["metamask:wallet_switchEthereumChain", "metamask:eth_requestAccounts"]);
+  assert.equal(connected.connection.chooserOpen, false);
+  assert.equal(connected.connection.pendingIntent, null);
+  assert.equal(connected.connection.chainId, "0x1917");
+  assert.deepEqual(calls, ["metamask:wallet_switchEthereumChain", "metamask:eth_requestAccounts", "metamask:eth_chainId"]);
+});
+
+test("Developer restores only approved accounts on the selected provider and preserves Standard Wallet through optional-service degradation", async () => {
+  const calls = [];
+  const provider = { isMetaMask:true, providerInfo:{rdns:"io.metamask"}, async request(input) { calls.push(input.method); if (input.method === "eth_accounts") return ["0x2222222222222222222222222222222222222222"]; if (input.method === "eth_chainId") return "0x1917"; throw new Error(`unexpected ${input.method}`); } };
+  const scope = browserScope();
+  scope.ethereum = provider;
+  const restored = await restoreDeveloperWebWallet("metamask", scope);
+  assert.equal(restored.status, "connected");
+  assert.deepEqual(calls, ["eth_accounts", "eth_chainId"]);
+  const privateDegraded = reduceDeveloperWalletPrivateServiceDegraded(restored.connection);
+  const rpcDegraded = reduceDeveloperWalletRpcProbeDegraded(privateDegraded);
+  assert.equal(rpcDegraded.status, "connected");
+  assert.equal(rpcDegraded.chooserOpen, false);
+  assert.equal(rpcDegraded.rpcProbe, "degraded");
+});
+
+test("Developer invalidates only the selected provider state on account, chain or disconnect events", async () => {
+  const listeners = new Map();
+  const provider = {
+    isMetaMask:true,
+    providerInfo:{rdns:"io.metamask"},
+    async request(input) { if (input.method === "eth_accounts") return ["0x3333333333333333333333333333333333333333"]; if (input.method === "eth_chainId") return "0x1917"; throw new Error(`unexpected ${input.method}`); },
+    on(event, listener) { listeners.set(event, listener); },
+    removeListener(event, listener) { if (listeners.get(event) === listener) listeners.delete(event); },
+  };
+  const scope = browserScope();
+  scope.ethereum = provider;
+  const restored = await restoreDeveloperWebWallet("metamask", scope);
+  const transitions = [];
+  const unsubscribe = await subscribeDeveloperWebWalletEvents("metamask", restored.connection, (state) => transitions.push(state), scope);
+  listeners.get("chainChanged")("0x1");
+  assert.equal(transitions.at(-1).status, "wrong-chain");
+  listeners.get("disconnect")();
+  assert.equal(transitions.at(-1).status, "disconnected");
+  unsubscribe();
+  assert.equal(listeners.size, 0);
 });
 
 test("native resolver receives the exact canonical payload and cannot claim approval", async () => {

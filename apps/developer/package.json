@@ -20,6 +20,7 @@
     "start": "node scripts/server.mjs",
     "build": "node scripts/build.mjs",
     "check": "node scripts/check.mjs",
+    "wallet:standard-connect-gate": "node vendor/wallet-auth/scripts/verify-standard-wallet-connect-consumer.mjs frontend/src",
     "desktop:sandbox-check": "node scripts/desktop-sandbox-check.mjs",
     "desktop:windows-source-check": "node scripts/verify-windows-source.mjs",
     "accessibility:audit": "node scripts/browser-accessibility-audit.mjs",

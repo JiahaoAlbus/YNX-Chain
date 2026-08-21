@@ -3,9 +3,11 @@ import { Button } from "../components/ui/button";
 import { broadcastDeveloperDeployment, chainRpc, completeDeveloperWalletSession, debugChainBlock, debugChainTransaction, introspectDeveloperWalletSession, loadChainCompiler, loadChainStatus, loadWalletReadiness, type ChainStatus, type WalletReadiness } from "../runtime/client";
 import { canonicalJSON, consumeDeveloperDeploymentRequest, consumeDeveloperWalletRequest, createDeveloperSessionIntrospection, createDeveloperWalletCompletion, desktopWalletBridge, openDeveloperDeploymentReview, openDeveloperWalletReview, parseDeveloperDeploymentCallback, saveDeveloperWalletSession, subscribeDeveloperDeploymentCallbacks, subscribeDeveloperWalletCallbacks, ynxAccountToEVM } from "../wallet/transport";
 import { enterDeveloperWalletV2Guest, inspectDeveloperWalletV2Runtime } from "../wallet/product-session-v2";
-import { connectDeveloperWebWallet, discoverDeveloperWebWalletChoices } from "../wallet/safe-authorize-launcher";
+import { connectDeveloperWebWallet, discoverDeveloperWebWalletChoices, openDeveloperWebWalletConnectionDetails, restoreDeveloperWebWallet, subscribeDeveloperWebWalletEvents } from "../wallet/safe-authorize-launcher";
+import type { StandardWalletConnectState } from "../../../vendor/wallet-auth/src/index.js";
 
 const RPC_METHODS = ["eth_chainId", "eth_blockNumber", "eth_gasPrice", "eth_getBalance", "eth_getCode", "eth_getTransactionCount", "eth_getTransactionByHash", "eth_getTransactionReceipt", "eth_call", "eth_estimateGas", "eth_getLogs", "eth_getBlockByNumber"];
+const WEB_WALLET_PROVIDER_KEY = "ynx.developer.standard-wallet.provider";
 const TEMPLATES = {
   counter: {
     label: "Counter + event",
@@ -72,6 +74,7 @@ export function ChainPanel({ files, onAddFile }: { files: Record<string, string>
     [walletV2State, setWalletV2State] = useState("Checking canonical Wallet Product Session v2…"),
     [webWalletDiscovery, setWebWalletDiscovery] = useState<Awaited<ReturnType<typeof discoverDeveloperWebWalletChoices>>>(),
     [webWalletAccount, setWebWalletAccount] = useState<string>(),
+    [webWalletConnection, setWebWalletConnection] = useState<StandardWalletConnectState>(),
     wallet = useMemo(() => desktopWalletBridge(), []),
     walletGateReady = Boolean(walletReadiness?.developerBinding.attested && walletReadiness.gateway.remoteDeployed && walletReadiness.gateway.publicDeploymentReady),
     artifact = useMemo(() => {
@@ -110,6 +113,38 @@ export function ChainPanel({ files, onAddFile }: { files: Record<string, string>
     if (wallet) return;
     void discoverDeveloperWebWalletChoices().then(setWebWalletDiscovery).catch(() => setWebWalletDiscovery(undefined));
   }, [wallet]);
+  useEffect(() => {
+    if (wallet) return;
+    const providerKind = readStoredWebWalletProvider();
+    if (!providerKind) return;
+    void restoreDeveloperWebWallet(providerKind).then((result) => {
+      setWebWalletConnection(result.connection);
+      setWebWalletAccount(result.account || undefined);
+      if (result.status !== "connected") clearStoredWebWalletProvider();
+    }).catch(() => clearStoredWebWalletProvider());
+  }, [wallet]);
+  useEffect(() => {
+    if (wallet || webWalletConnection?.status !== "connected" || !webWalletConnection.providerKind) return;
+    let disposed = false;
+    let unsubscribe: () => void = () => {};
+    void subscribeDeveloperWebWalletEvents(webWalletConnection.providerKind, webWalletConnection, (connection) => {
+      if (disposed) return;
+      setWebWalletConnection(connection);
+      setWebWalletAccount(connection.account || undefined);
+      if (connection.status === "connected") return;
+      clearStoredWebWalletProvider();
+      setWalletState(connection.status === "wrong-chain" ? "Browser Wallet changed away from YNX Testnet 0x1917. The Standard Wallet connection is no longer active." : "Browser Wallet disconnected or returned no approved account. The Standard Wallet connection is no longer active.");
+    }).then((cleanup) => {
+      if (disposed) cleanup();
+      else unsubscribe = cleanup;
+    }).catch(() => {
+      if (disposed) return;
+      clearStoredWebWalletProvider();
+      setWebWalletConnection(undefined);
+      setWebWalletAccount(undefined);
+    });
+    return () => { disposed = true; unsubscribe(); };
+  }, [wallet, webWalletConnection?.status, webWalletConnection?.providerKind, webWalletConnection?.account]);
   useEffect(() => {
     const handleOnline = () => void refresh();
     addEventListener("online", handleOnline);
@@ -186,7 +221,10 @@ export function ChainPanel({ files, onAddFile }: { files: Record<string, string>
       try {
         const result = await connectDeveloperWebWallet(providerKind);
         void discoverDeveloperWebWalletChoices().then(setWebWalletDiscovery).catch(() => setWebWalletDiscovery(undefined));
+        setWebWalletConnection(result.connection);
         setWebWalletAccount(result.account || undefined);
+        if (result.status === "connected" && result.providerKind) storeWebWalletProvider(result.providerKind);
+        else clearStoredWebWalletProvider();
         setWalletState(result.status === "connected" ? `Standard ${result.providerKind === "ynx-wallet" ? "YNX Wallet" : "MetaMask"} connected as ${result.account}. YNX Testnet 0x1917 is selected; no YNX authorization URI, callback or Product Session was created.` : result.status === "selection-required" ? "Select YNX Wallet or MetaMask below before accounts are requested. This page did not open a custom scheme, frame, popup or blank tab." : "No unambiguous browser Wallet provider was found. Choose an official Wallet option below; this page did not open a custom scheme, frame, popup or blank tab.");
       } catch {
         setWalletState("Browser Wallet connection was declined or failed closed. No custom authorization request, callback or Product Session was created.");
@@ -346,6 +384,8 @@ export function ChainPanel({ files, onAddFile }: { files: Record<string, string>
                 </>
               ) : <Button disabled={busy} onClick={() => openWallet()}>{webWalletAccount ? "Reconnect browser Wallet" : "Connect browser Wallet"}</Button>}
               <p>{webWalletAccount ? `Standard Wallet account ${webWalletAccount} is connected on YNX Testnet 0x1917. Product Session remains optional and separate.` : webWalletDiscovery?.status === "ready" ? "Choose a listed Wallet before any account request is sent." : "No browser Wallet provider is available. The official download and MetaMask choices remain on this page."}</p>
+              {webWalletConnection?.status === "connected" && <Button variant="ghost" disabled={busy} onClick={() => setWebWalletConnection(openDeveloperWebWalletConnectionDetails(webWalletConnection))}>Wallet connection details</Button>}
+              {webWalletConnection?.chooserOpen && <p>Wallet details are local to this page. No account request, custom URI, popup or Product Session is created.</p>}
               <a href={webWalletDiscovery?.launch.fallbackActions[0]?.url || "https://www.ynxweb4.com/dapp/download"}>Download YNX Wallet</a>{" · "}
               <a href={webWalletDiscovery?.launch.fallbackActions[1]?.url || "https://metamask.io/download/"}>Use MetaMask</a>
             </>
@@ -359,4 +399,17 @@ export function ChainPanel({ files, onAddFile }: { files: Record<string, string>
       <div className="honest-boundary">RPC tools are read-only. Contract mutation remains Wallet-only and is unavailable until the exact provider and receipt gates pass.</div>
     </section>
   );
+}
+
+function readStoredWebWalletProvider(): "ynx-wallet" | "metamask" | null {
+  try {
+    const value = window.sessionStorage.getItem(WEB_WALLET_PROVIDER_KEY);
+    return value === "ynx-wallet" || value === "metamask" ? value : null;
+  } catch { return null; }
+}
+function storeWebWalletProvider(providerKind: "ynx-wallet" | "metamask") {
+  try { window.sessionStorage.setItem(WEB_WALLET_PROVIDER_KEY, providerKind); } catch { /* browser storage is optional */ }
+}
+function clearStoredWebWalletProvider() {
+  try { window.sessionStorage.removeItem(WEB_WALLET_PROVIDER_KEY); } catch { /* browser storage is optional */ }
 }
