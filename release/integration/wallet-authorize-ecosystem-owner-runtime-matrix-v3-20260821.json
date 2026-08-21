@@ -19,10 +19,10 @@
     "centralControlPlaneWritten": false
   },
   "remoteRecheck": {
-    "performedAt": "2026-08-21T08:15:40Z",
-    "registeredProductOwnerHeadChangesSinceBase": 3,
-    "changedProductIds": ["developer","shop","social"],
-    "unchangedProductIds": ["calendar","card","creator-studio","dex","exchange","finance","pay","quant","video"],
+    "performedAt": "2026-08-21T08:43:39Z",
+    "registeredProductOwnerHeadChangesSinceBase": 4,
+    "changedProductIds": ["creator-studio","developer","shop","social"],
+    "unchangedProductIds": ["calendar","card","dex","exchange","finance","pay","quant","video"],
     "nonProductRuntimeUpdates": ["wallet-web-companion"],
     "otherEcosystemRuntimeUpdates": ["trust-center"]
   },
@@ -42,11 +42,12 @@
       "ownerHandoff":"Consume exact safe launcher v2 without regressing the public no-tab fallback; then prove installed provider, approval/callback and Product Session lifecycle."
     },
     {
-      "productId":"creator-studio","owner":"creator-studio","sourceCommit":"650070ce5c5a7928425509f6e9e7da0aec31910d",
-      "web":{"topLevelOrHandwrittenYnxwallet":false,"standardProvider":true,"metaMaskAddSwitch0x1917":true,"guest":"unproven-current-source"},
-      "runtime":{"sourceBoundPublic":false,"realInstalledApproval":false,"callback":false,"productSessionV2":false,"computerControl":false},
-      "blocker":"The Owner source fixes top-level navigation but uses a local provider implementation; current-source guest/public and real-provider evidence are absent.",
-      "ownerHandoff":"Consume exact safe launcher v2/shared MetaMask adapter and prove guest remains usable when no provider or Product Session exists; then bind public runtime and approval/callback evidence."
+      "productId":"creator-studio","owner":"creator-studio","sourceCommit":"993e7cc99ea3919488d6765e097ca78a82a30704","sourceTree":"821b800fefcf05d4b20a848c5b44b0c4854ccfcd","ownerEvidenceCommit":"ab68370503687d48c54ae33429eea7cb9bf98be1","ownerEvidenceTree":"b4b712c6b183051803bf35f7d8eb0b1a89607767","centralEvidenceCommit":"18d13624f3aebadba1c6aa53d18ef4695413d587","centralEvidencePath":"release/integration/p0-wallet-connectivity/creator-studio-p0132-public-standard-wallet-evidence-20260821.json","centralEvidenceSha256":"4b7b693cba1fcb6da0f0ddcb07ad5cb0f38f8238dbe997705ae19261fa2a4048",
+      "supersedesSourceCommit":"650070ce5c5a7928425509f6e9e7da0aec31910d",
+      "web":{"topLevelOrHandwrittenYnxwallet":false,"standardProvider":true,"explicitProviderSelection":true,"metaMaskAddSwitch0x1917":true,"guest":"public-english-tour-metrics-verified","officialInstallActions":true},
+      "runtime":{"sourceBoundPublic":true,"activeRuntime":"/opt/ynx-video/releases/p0131-creator-wallet-993e7cc9","urlStable":true,"topLevelTabDelta":0,"blankTabCreated":false,"consoleErrors":0,"realInjectedProvider":false,"realInstalledApproval":false,"account":false,"signature":false,"transaction":false,"callback":false,"productSessionV2":false,"computerControl":false},
+      "blocker":"Public English Guest tour/metrics and both missing-provider fallbacks are source-bound with zero navigation, but real injected provider, installed Wallet, approval/account, signature, transaction, callback, Product Session v2 and Computer Control remain false.",
+      "ownerHandoff":"Preserve the deployed explicit YNX/MetaMask chooser, on-page official install fallbacks, stable URL and Guest tour/metrics; separately prove a real injected provider, approve/reject callback and Product Session lifecycle before migration promotion."
     },
     {
       "productId":"developer","owner":"developer","sourceCommit":"00ac76eb5fde57493231a75de90e2956880e82c5","sourceTree":"50d227801a7af3fdcb76b30208d4c9ab6a0056b0",
@@ -130,11 +131,11 @@
   ],
   "counts": {
     "registeredProducts": 12,
-    "sourceBoundPublicProducts": 4,
+    "sourceBoundPublicProducts": 5,
     "completeMetaMaskSourcePaths": 9,
     "topLevelOrHandwrittenWebBlockers": 0,
     "missingStandardProviderProducts": 0,
-    "guestUnprovenProducts": 1,
+    "guestUnprovenProducts": 0,
     "productsConnected": 0,
     "productsMigratedV2": 0
   },
