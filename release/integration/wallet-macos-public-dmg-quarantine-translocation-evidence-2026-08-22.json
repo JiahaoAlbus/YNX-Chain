@@ -1,0 +1,161 @@
+{
+  "schemaVersion": 1,
+  "owner": "02-wallet-auth-ios-macos-native",
+  "evidenceKind": "published-macos-dmg-simulated-browser-quarantine-translocation-runtime",
+  "generatedAt": "2026-08-21T18:22:49Z",
+  "sourceHead": "c6b1f66959169bc789002a1809b533a8d4d3c3b0",
+  "parentEvidence": {
+    "platform": {
+      "commit": "ad66cfd8ceb34c1a7d19219607fbc531457277a3",
+      "path": "release/integration/wallet-macos-public-dmg-platform-evidence-2026-08-21.json",
+      "blob": "e120d03593fc4727537aa06566c385385839e682",
+      "bytes": 5601
+    },
+    "launchServices": {
+      "commit": "0617709e5715d3fde2b0974e6ed76886e0fd623f",
+      "path": "release/integration/wallet-macos-public-dmg-launchservices-supplement-2026-08-21.json",
+      "blob": "c2271e074239bc5e83a2f8eb597327aeab2d0d56",
+      "bytes": 5191
+    },
+    "callbackIdentityGap": {
+      "commit": "b7f20a717b22ed279146ac7ab2b41c272a79acb0",
+      "path": "release/integration/wallet-macos-public-dmg-callback-identity-gap-2026-08-21.json",
+      "blob": "2d483d133a19d4c3b16f07ec1736edc7f359adc5",
+      "bytes": 4180
+    }
+  },
+  "host": {
+    "product": "macOS",
+    "version": "27.0",
+    "build": "26A5416b",
+    "architecture": "arm64",
+    "cleanEndUserHost": false
+  },
+  "publicArtifact": {
+    "name": "ynx-wallet-desktop-0.1.1-universal.dmg",
+    "url": "https://downloads.ynxweb4.com/wallet/sha256-ad6e4077bc001743cf1a4163ceaca5a009a3c8a4d8a809cc4896798976cf56c0/ynx-wallet-desktop-0.1.1-universal.dmg",
+    "httpStatus": 200,
+    "contentType": "application/x-apple-diskimage",
+    "contentDisposition": "attachment",
+    "contentLength": 236661996,
+    "downloadedBytes": 236661996,
+    "sha256": "ad6e4077bc001743cf1a4163ceaca5a009a3c8a4d8a809cc4896798976cf56c0",
+    "fullPublicDownloadRehashedThisSlice": true,
+    "downloadMethod": "three bounded curl segments with HTTP range resume",
+    "browserDownloadedThisSlice": false,
+    "hdiutilVerify": true,
+    "dmgCrc32": "C1E5F9DE",
+    "mountedReadOnly": true
+  },
+  "quarantine": {
+    "appliedToTemporaryDownloadedDmg": true,
+    "originAgent": "com.apple.Safari",
+    "value": "0083;6a889700;com.apple.Safari;",
+    "method": "explicit com.apple.quarantine xattr on the isolated downloaded DMG before read-only mount",
+    "propagatedToTemporaryApplicationCopy": true,
+    "temporaryApplicationXattrs": [
+      "com.apple.provenance",
+      "com.apple.quarantine"
+    ],
+    "actualBrowserDownloadObserved": false,
+    "browserQuarantineAcceptanceVerified": false,
+    "boundary": "The standard Safari quarantine agent value was applied explicitly in an isolated directory. This validates quarantine propagation and translocation behavior, not a real Safari download gesture or clean-host acceptance."
+  },
+  "containedApplication": {
+    "name": "YNX Wallet Testnet Preview.app",
+    "bundleIdentifier": "com.ynxweb4.wallet.desktop",
+    "shortVersion": "0.1.1",
+    "minimumOSMetadata": "macOS 12.0",
+    "architectures": [
+      "x86_64",
+      "arm64"
+    ],
+    "cfBundleURLTypesPresent": false,
+    "ynxwalletSchemeRegistered": false,
+    "matchesOwnerNativeBundleIdentity": false
+  },
+  "signingAndAssessment": {
+    "deepStrictCodesignExit": 1,
+    "deepStrictCodesignResult": "code object is not signed at all",
+    "spctlExit": 3,
+    "spctlResult": "rejected: source=no usable signature",
+    "developerIdSigned": false,
+    "productionSigned": false,
+    "notarized": false,
+    "stapledTicket": false,
+    "gatekeeperAccepted": false
+  },
+  "isolatedLaunchServices": {
+    "temporaryApplicationsCopy": true,
+    "systemApplicationsInstalled": false,
+    "cold": {
+      "openExit": 0,
+      "pid": 33925,
+      "processCreated": true,
+      "appTranslocation": true,
+      "translocationId": "94F0017B-37B1-4428-92E8-5C79AF810209",
+      "visibleProcess": true,
+      "frontmost": false,
+      "windowCount": 0,
+      "network443Observed": false,
+      "processTerminatedAfterEvidence": true
+    },
+    "second": {
+      "openExit": 0,
+      "pid": 34835,
+      "differentPidFromCold": true,
+      "processCreated": true,
+      "appTranslocation": true,
+      "translocationId": "94F0017B-37B1-4428-92E8-5C79AF810209",
+      "sameIsolatedProfile": true,
+      "visibleProcess": true,
+      "frontmost": false,
+      "windowCount": 0,
+      "network443Observed": false,
+      "processTerminatedAfterEvidence": true
+    },
+    "coreServicesUIAgentPresent": true,
+    "gatekeeperPromptSemanticsAccessible": false,
+    "visibleWalletWindowVerified": false,
+    "uiScreenshotVerified": false,
+    "launchServicesNetworkVerified": false,
+    "interpretation": "LaunchServices returned success and created two distinct translocated processes, but neither produced a window or a 443 connection. This is not Gatekeeper acceptance, a usable installation, or a successful Wallet launch."
+  },
+  "cleanup": {
+    "launchedProcessesTerminated": true,
+    "diskImageDetached": true,
+    "systemApplicationsModified": false
+  },
+  "platformGates": {
+    "websitePublishedDesktopPreview": true,
+    "downloadHosted": true,
+    "fullPublicDownloadRehashedThisSlice": true,
+    "simulatedBrowserQuarantinePropagationVerified": true,
+    "appTranslocationColdProcessCreated": true,
+    "appTranslocationSecondProcessCreated": true,
+    "actualBrowserDownloadObserved": false,
+    "browserQuarantineAcceptanceVerified": false,
+    "visibleQuarantinedColdLaunchVerified": false,
+    "visibleQuarantinedSecondLaunchVerified": false,
+    "quarantinedLaunchNetworkVerified": false,
+    "publicNativeWalletPublished": false,
+    "publicArtifactCallbackDelivered": false,
+    "systemApplicationsInstalled": false,
+    "cleanEndUserHostInstalled": false,
+    "developerIdSigned": false,
+    "productionSigned": false,
+    "notarized": false,
+    "stapledTicket": false,
+    "gatekeeperAccepted": false,
+    "storeReleased": false,
+    "authorizationVerified": false,
+    "accountCreated": false,
+    "productSessionVerified": false,
+    "signSuccess": false,
+    "sendSuccess": false,
+    "transactionSuccess": false,
+    "physicalBiometricVerified": false,
+    "recoveryVerified": false,
+    "universalLinkVerified": false
+  }
+}
