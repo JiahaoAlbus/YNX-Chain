@@ -10,8 +10,8 @@ import type {
 } from "./types";
 import {
   evmAddressFromYNX,
-  type DexActionResponse,
-} from "@ynx-chain/wallet-auth";
+} from "@ynx-chain/wallet-auth/src/crypto.js";
+import type { DexActionResponse } from "@ynx-chain/wallet-auth";
 
 const BASE = (
   import.meta.env.VITE_DEX_GATEWAY_URL ||

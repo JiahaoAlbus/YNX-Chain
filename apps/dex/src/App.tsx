@@ -17,6 +17,7 @@ import {
   beginDexAction,
   beginWalletAuthorization,
   completeWalletCallback,
+  connectStandardWallet,
   connectMetaMask,
   consumeDexActionCallback,
   restoreWalletSession,
@@ -304,11 +305,11 @@ export default function App() {
     setWalletError("");
     try {
       const launch = await beginWalletAuthorization();
-      if (launch.status === "opened")
-        setWalletError("YNX Wallet launch was requested in a controlled frame. Return here after review; no approval, Product Session, swap, liquidity change or token approval is implied.");
-      else if (launch.status === "timeout")
-        setWalletError("YNX Wallet did not hide this page before timeout. DEX remains open; use the official download or MetaMask options below.");
-      else
+      if (launch.status === "provider-ready" && launch.provider) {
+        const account=await connectStandardWallet(launch.provider);
+        setWalletAccount(account);
+        setWalletError("Standard Wallet connected on YNX Testnet. Product Session, approval, swap, liquidity and token approval remain separate.");
+      } else
         setWalletError("YNX Wallet is unavailable in this browser. DEX remains open; use the official download or MetaMask options below.");
     } catch (reason) {
       setWalletError(

@@ -16,7 +16,7 @@
     "@noble/curves": "^2.2.0",
     "@noble/hashes": "^2.2.0",
     "@ynx-chain/dex-sdk": "file:../../sdk/dex",
-    "@ynx-chain/wallet-auth": "file:vendor/ynx-chain-wallet-auth-1.0.0-safe-authorize-p0.0.tgz",
+    "@ynx-chain/wallet-auth": "file:vendor/ynx-chain-wallet-auth-1.1.0-safe-launcher-v2.tgz",
     "react": "^19.1.1",
     "react-dom": "^19.1.1"
   },
