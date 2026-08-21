@@ -1,0 +1,216 @@
+{
+  "schemaVersion": 1,
+  "owner": "02-wallet-auth-ios-macos-native",
+  "evidenceKind": "native-notarized-dmg-source-readiness-and-ad-hoc-ci",
+  "implementation": {
+    "commit": "07cab0839e55a2a4f65b4813345d35fb5460c5f8",
+    "parent": "b7f20a717b22ed279146ac7ab2b41c272a79acb0",
+    "branch": "codex/wallet-ios-macos-20260813",
+    "files": [
+      {
+        "path": ".github/workflows/wallet-macos-notarized-release.yml",
+        "blob": "7f3c94c2238732178dd78585208a99d14675d06f",
+        "bytes": 14110,
+        "sha256": "f0fd9695f994ae49544788a90b3422e1cbb007349486dc1881aac77e23bc8ae3"
+      },
+      {
+        "path": ".github/workflows/wallet-macos.yml",
+        "blob": "4488bbc3883043c0e68d37e2bc89dd54432d06f9",
+        "bytes": 24216,
+        "sha256": "e9ce1ccc37ba128cf36513f80c5e2f4b3506c7625b1414f02e1710ee55ea2ad5"
+      },
+      {
+        "path": "apps/wallet/macos/scripts/verify-notarized-dmg.sh",
+        "blob": "44b06a441990990d07357c7fd2a59bf2d08de6cc",
+        "bytes": 8474,
+        "sha256": "8e32d57f5d6b9297d1f43b5705d1a0393762b405e5974eda48554d9ba4ad71f9",
+        "mode": "100755"
+      },
+      {
+        "path": "apps/wallet/macos/scripts/verify-notarized-release-source.rb",
+        "blob": "e73d19bf856ee2e52a8469020bc237dc6c8faa2c",
+        "bytes": 2356,
+        "sha256": "7698018b62a61fd882f553e36a447a35fc3eae387e516173f2e92717134aa050",
+        "mode": "100755"
+      }
+    ]
+  },
+  "sourceContract": {
+    "verified": true,
+    "trigger": "workflow_dispatch only",
+    "protectedEnvironment": "wallet-macos-production",
+    "exactSourceShaRequired": true,
+    "exactTagFormat": "wallet-macos-notarized-v<Info.plist version>-<source sha first 8>",
+    "existingRemoteTagRejected": true,
+    "fakeTeamIdRejected": true,
+    "developerIdIdentityBoundToTeamId": true,
+    "isolatedSigningKeychainRequired": true,
+    "appNotarizationAcceptedRequired": true,
+    "appStapleAndGatekeeperRequired": true,
+    "dmgNotarizationAcceptedRequired": true,
+    "dmgStapleAndGatekeeperRequired": true,
+    "finalDmgMountedReadOnly": true,
+    "containedAppIdentityChecked": true,
+    "containedYnxwalletSchemeChecked": true,
+    "isolatedInstallColdAndSecondLaunchRequired": true,
+    "coldAndSecondRpcChainIdRequired": "0x1917",
+    "coldAndSecondRestStatusRequired": 200,
+    "malformedCallbackDeliveryAndRejectionRequired": "INVALID_DEEP_LINK",
+    "releaseAssets": [
+      "YNX-Wallet-macOS-<version>-universal-notarized.dmg",
+      "native-dmg-release-manifest.json",
+      "github-release-publication-receipt.json"
+    ],
+    "websitePublicationClaimedByWorkflow": false,
+    "appStorePublicationClaimedByWorkflow": false
+  },
+  "localValidation": {
+    "workflowYamlParse": true,
+    "runtimeProbeBashSyntax": true,
+    "sourceVerifierRubySyntax": true,
+    "sourceContractVerifier": true,
+    "actionlintAvailable": false,
+    "swiftTestsCompletedLocally": false,
+    "swiftLocalFailureClass": "CommandLineTools SwiftPM build-system initialization",
+    "swiftLocalFailure": "Duplicate Apple .xcspec registrations while only /Library/Developer/CommandLineTools is selected; no full Xcode installation is present.",
+    "globalDeveloperDirectoryChanged": false
+  },
+  "hostedValidation": {
+    "workflow": "wallet-macos",
+    "runId": 32486864907,
+    "jobId": 96785238879,
+    "headSha": "07cab0839e55a2a4f65b4813345d35fb5460c5f8",
+    "status": "completed",
+    "conclusion": "success",
+    "startedAt": "2026-08-21T13:26:41Z",
+    "completedAt": "2026-08-21T13:28:06Z",
+    "xcode": "26.3",
+    "publicRunUrl": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/32486864907",
+    "publicJobUrl": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/32486864907/job/96785238879",
+    "publicJobLogBytes": 118915,
+    "publicJobLogSha256": "5af0ca77f4faef40a558d6be2b248ca30df390140994a24111f961b3b857795d",
+    "steps": {
+      "immutablePins": true,
+      "notarizedNativeDmgSourceContract": true,
+      "swiftTests": true,
+      "universalAdHocBuild": true,
+      "nativeKeychainAndBiometricBoundary": true,
+      "installColdSecondNetworkAndCallbacks": true,
+      "artifactUpload": true
+    },
+    "swiftTests": {
+      "executed": 15,
+      "failures": 0
+    }
+  },
+  "hostedAdHocRuntime": {
+    "signingClass": "ad-hoc engineering application",
+    "architectures": [
+      "x86_64",
+      "arm64"
+    ],
+    "bundleIdentifier": "com.ynxweb4.wallet.macos",
+    "versionMetadata": "0.1.0",
+    "minimumOSMetadata": "13.0",
+    "coldLaunchPid": 1692,
+    "secondLaunchPid": 1859,
+    "coldRpcChainId": "0x1917",
+    "secondRpcChainId": "0x1917",
+    "coldRestStatus": 200,
+    "secondRestStatus": 200,
+    "keychainAvailable": true,
+    "keychainRoundTripVerified": true,
+    "biometricPolicyAvailable": false,
+    "biometricErrorCode": -7,
+    "recoveryCreateAttempted": true,
+    "recoveryCreated": false,
+    "recoveryMaterialPersisted": false,
+    "recoveryAbsentBeforeAttempt": true,
+    "recoveryAbsentAfterAttempt": true,
+    "recoveryFailedClosed": true,
+    "recoveryButtonEnabledObserved": null,
+    "recoverySystemEventsSemanticVisible": false,
+    "canonicalCallback": {
+      "pid": 1859,
+      "registryBound": true,
+      "result": "CANONICAL_AUTH_BRIDGE_UNAVAILABLE",
+      "visible": true,
+      "authorizationSuccess": false,
+      "signing": false,
+      "callbackEmitted": false
+    },
+    "callbackColdStart": {
+      "pid": 2067,
+      "received": true,
+      "result": "INVALID_DEEP_LINK",
+      "visible": true,
+      "failedClosed": true
+    },
+    "widenedCallbackColdStart": {
+      "pid": 2087,
+      "received": true,
+      "result": "INVALID_AUTHORIZATION_REQUEST",
+      "visible": true,
+      "failedClosed": true
+    }
+  },
+  "hostedArtifact": {
+    "artifactId": 9448219447,
+    "name": "ynx-wallet-macos-native",
+    "bytes": 1340218,
+    "digest": "sha256:2d96c6107e16ed41c8d8d84a86e6fda60d80005a3a3802a6088d7e48bfe4c8bc",
+    "expiresAt": "2026-11-19T13:26:38Z",
+    "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/32486864907/artifacts/9448219447",
+    "downloadAttemptBoundedSeconds": 30,
+    "downloaded": false,
+    "downloadedBytes": 0,
+    "innerZipSha256": null,
+    "innerZipBytes": null,
+    "screenshotHashesInspected": false
+  },
+  "productionRegistration": {
+    "defaultBranch": "main",
+    "registeredNotarizedWorkflowCount": 0,
+    "registeredNormalMacosWorkflowCount": 1,
+    "notarizedWorkflowDispatchAvailable": false,
+    "requiredIntegration": "Central must merge the exact notarized workflow and scripts into main before the protected production environment owner can inspect credentials or dispatch it.",
+    "workflowDispatched": false,
+    "secretsPresenceInspected": false
+  },
+  "routerHandoff": {
+    "callbackIdentityGapConsumedAt": "a9dea929c42d0f59162be5872be9ae41ad2875d4",
+    "publicDesktopPreviewRetained": true,
+    "publicNativeWalletPublished": false,
+    "protocolRetrofitted": false
+  },
+  "gates": {
+    "notarizedNativeDmgSourceReady": true,
+    "hostedSourceContractVerified": true,
+    "hostedAdHocMacosRuntimeVerified": true,
+    "productionWorkflowRegistered": false,
+    "productionWorkflowDispatched": false,
+    "developerIDSignedArtifact": false,
+    "appNotarizationAccepted": false,
+    "dmgNotarizationAccepted": false,
+    "stapled": false,
+    "gatekeeperAccepted": false,
+    "notarizedNativeDmgProduced": false,
+    "notarizedNativeDmgGithubReleasePublished": false,
+    "notarizedNativeDmgWebsitePublished": false,
+    "publicNativeWalletPublished": false,
+    "publicArtifactCallbackDelivered": false,
+    "systemApplicationsInstalled": false,
+    "cleanEndUserHostInstalled": false,
+    "rollbackVerified": false,
+    "universalLinkSuccess": false,
+    "physicalBiometricVerified": false,
+    "productRecoverySuccess": false,
+    "authorizationSuccess": false,
+    "accountAvailable": false,
+    "productSessionVerified": false,
+    "signSuccess": false,
+    "sendSuccess": false,
+    "transactionSuccess": false,
+    "appStoreReleased": false
+  }
+}
