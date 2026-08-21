@@ -28,7 +28,7 @@
     "canonicalAuthorizeScan": "pass",
     "unit": "4/4",
     "browser": "3/3",
-    "walletBundle": {"sha256": "7b01fb837eb9e7e8690cfc38dfb902bd401598a992153384cb5e1ac76a4d2b30", "bytes": 73866}
+    "walletBundle": {"sha256": "7b01fb837eb9e7e8690cfc38dfb902bd401598a992153384cb5e1ac76a4d2b30", "bytes": 73872}
   },
   "installerAudit": {
     "checkedAt": "2026-08-21T11:35:00Z",
