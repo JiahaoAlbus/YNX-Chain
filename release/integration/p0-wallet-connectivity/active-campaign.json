@@ -2,7 +2,7 @@
   "schemaVersion": "1.0.0",
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "owner": "integration",
-  "status": "P0093_FAUCET_CANONICAL_RECIPIENT_DEPLOYMENT_ACTIVE",
+  "status": "P0093_FAUCET_CANONICAL_TRANSACTION_VERIFIED_MANIFEST_P04_ACCEPTED",
   "scope": [
     "founder-control",
     "wallet-connectivity",
@@ -34,7 +34,7 @@
   "firstStop": {
     "complete": true,
     "publicConnectivityClaim": false,
-    "nextAction": "P0-093 owns one rollback-first deployment of Faucet source 02cf44d1 because the P0-091 runtime rejected canonical ynx1 recipients. After exact runtime validation, submit one bounded funding request and verify the transaction independently; Website/Manifest and Wallet Platform must remain on the old source until that succeeds."
+    "nextAction": "P0-093 deployed Faucet source 02cf44d1 and verified a canonical 100 YNXT transaction through chain REST and Explorer. publicEndpointManifest@1.0.0-p0.4 is the new bundled contract. Publish the matching Website runtime record and notify Wallet Platform to consume p0.4; installed Wallet and ComputerControl remain false."
   },
   "lightLeases": [
     {
@@ -321,16 +321,16 @@
     }
   ],
   "heavy": {
-    "owner": "integration",
+    "owner": null,
     "taskId": "P0-093",
-    "status": "ACTIVE_SINGLE_USE",
+    "status": "RELEASED_CHECKPOINT",
     "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-faucet-02cf44d1-canonical-recipient-20260821T011000Z",
     "leasedAt": "2026-08-21T01:10:00Z",
     "expiresAt": "2026-08-21T03:10:00Z",
-    "releasedAt": null,
-    "checkpointCommit": "9a86ef556992e9bd48a48fca8ecd624b800973a9",
+    "releasedAt": "2026-08-21T01:15:00Z",
+    "checkpointCommit": "fe812300c9443fed62f74c9f39fbcc149b173a14",
     "scope": "faucet-canonical-recipient-deployment-and-one-public-funding-verification",
-    "productionMutationAllowed": true,
+    "productionMutationAllowed": false,
     "singleUse": true
   },
   "wave": {

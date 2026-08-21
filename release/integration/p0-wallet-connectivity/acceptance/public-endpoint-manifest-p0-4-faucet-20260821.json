@@ -1,0 +1,34 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "contractId": "publicEndpointManifest",
+  "decision": "ACCEPTED_BUNDLED_CONSUMER_CONTRACT",
+  "version": "1.0.0-p0.4",
+  "sourceCommit": "b97c6dc08fa7a2741262a005163d632e580cb0aa",
+  "acceptedAt": "2026-08-21T01:15:00Z",
+  "integrity": {
+    "algorithm": "SHA-256",
+    "canonicalization": "UTF-8 JSON.stringify(parsed manifest with integrity omitted)",
+    "payloadSha256": "6d8ca3adfef00d1dc55367fee13ff2ada96953a1dcaab43547428edfee40a998",
+    "remoteSignatureAccepted": false
+  },
+  "faucet": {
+    "status": "VERIFIED",
+    "health": "https://faucet.ynxweb4.com/health",
+    "version": "https://faucet.ynxweb4.com/version",
+    "chainId": 6423,
+    "sourceCommit": "02cf44d17b50",
+    "release": "ynx-chain-02cf44d17b50",
+    "deploymentEvidenceCommit": "fe812300c9443fed62f74c9f39fbcc149b173a14",
+    "deploymentEvidenceSha256": "30c62b4b68c94f4e7293c7c58de230f7021792ed917426a798d822633cd19ed7",
+    "canonicalFundingTransactionVerified": true,
+    "explorerIndexerVerified": true,
+    "walletPlatformFlowVerified": false,
+    "computerControlVerified": false
+  },
+  "verifiedEndpoints": ["evmRpc", "rest", "faucet", "explorer", "monitor"],
+  "degradedEndpoints": ["rpc", "walletGateway", "indexer"],
+  "unresolvedEndpoints": ["appGateway", "finance", "exchange", "pay", "dex", "quant"],
+  "remoteReplacementAllowed": false,
+  "consumerRule": "Consumers may use this exact bundled hash-pinned manifest. Remote replacement still fails closed until a protected signer is accepted."
+}
