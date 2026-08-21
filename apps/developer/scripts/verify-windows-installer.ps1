@@ -12,7 +12,8 @@ $hash = (Get-FileHash $msix -Algorithm SHA256).Hash.ToLowerInvariant()
 if ($record.artifact -ne (Split-Path $msix -Leaf) -or $record.sha256 -ne $hash -or $record.bytes -ne (Get-Item $msix).Length) { throw "MSIX artifact identity mismatch" }
 if ($record.installClass -ne "msix-sideload" -or $record.signingClass -ne "test-self-signed-not-production" -or $record.productionSigned -ne $false) { throw "MSIX signing boundary is invalid" }
 
-$certificate = Import-Certificate -FilePath $certificatePath -CertStoreLocation "Cert:\CurrentUser\TrustedPeople"
+$trustedPeopleStore = "Cert:\LocalMachine\TrustedPeople"
+$certificate = Import-Certificate -FilePath $certificatePath -CertStoreLocation $trustedPeopleStore
 if ($certificate.Thumbprint -ne $record.signerThumbprint) { throw "MSIX signer certificate mismatch" }
 
 Get-AppxPackage -Name "YNXDeveloper.TestnetPreview" | Remove-AppxPackage -ErrorAction SilentlyContinue
@@ -35,4 +36,5 @@ function Test-Launch([string]$label) {
 Test-Launch "cold launch"
 Test-Launch "second launch"
 Remove-AppxPackage -Package $package.PackageFullName
+Get-ChildItem $trustedPeopleStore | Where-Object { $_.Thumbprint -eq $record.signerThumbprint } | Remove-Item -Force
 Write-Host "Windows MSIX installed, cold-launched and second-launched with verified test-only signature: $hash"
