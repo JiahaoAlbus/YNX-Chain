@@ -34,6 +34,16 @@
     },
     "invalidatingEvents": ["accountsChanged-empty","provider-disconnect","chainChanged-wrong-chain","user-disconnect"]
   },
+  "migrationEvidenceAcceptance": {
+    "module": "packages/wallet-auth/src/product-wallet-migration-evidence.js",
+    "export": "evaluateProductWalletMigrationEvidence",
+    "version": 1,
+    "authority": "evidence-evaluation-only",
+    "partialEvidenceMayPromoteProduct": false,
+    "exactSharedTreeRequired": "51a60a362d4ad5dd748bcdefb101f71b1d9e0cee",
+    "productConnectedRequiresAllStages": true,
+    "migratedV2RequiresAllStages": true
+  },
   "directChromeEvidence": {
     "browser": "Chrome external extension-controlled profile",
     "shop": {
@@ -71,7 +81,7 @@
   },
   "tests": {
     "focused": "39/39",
-    "walletAuthFull": "285/285",
+    "walletAuthFull": "294/294",
     "noBareAuthorize": "PASS",
     "standardConnectConsumerGate": "PASS",
     "packageDryRun": {"files":77,"packageBytes":139600,"unpackedBytes":617700}

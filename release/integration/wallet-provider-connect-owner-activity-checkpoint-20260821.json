@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "evidenceId": "WALLET-PROVIDER-CONNECT-OWNER-ACTIVITY-CHECKPOINT-20260821",
   "owner": "wallet-protocol-router",
-  "auditedAt": "2026-08-21T15:18:21Z",
+  "auditedAt": "2026-08-21T15:29:52Z",
   "authoritativeHandoffParent": "d3831c300560507f64a50e73117bab7b85926d9a",
   "sharedContract": {
     "sourceCommit": "98c6d5d784d212df8981a53b17118a511e246ad2",
@@ -25,7 +25,7 @@
   },
   "products": [
     {"productId":"calendar","owner":"calendar","activityCommit":"8f45566073f0d9979b5b1460b35144d954acc692","sourceCommit":"983e9199dc03da6f1ac4db33d33119513642cacf","sourceConsumed":true,"publicRuntime":true,"realProviderApproval":true,"refreshChooserClose":true,"disconnect":false,"callback":false,"productSessionV2":false,"complete":false,"blocker":"Visible disconnect/account-change plus approve/reject callback and Product Session v2 remain unproven."},
-    {"productId":"card","owner":"card","sourceCommit":"fa2fb2308470ded24d64333b756718e7d04bfced","sourceConsumed":false,"publicRuntime":true,"realProviderApproval":false,"refreshChooserClose":false,"disconnect":false,"callback":false,"productSessionV2":false,"complete":false,"blocker":"Independent Card goal has not returned exact shared 98c6 consumption or real approval/callback/refresh-disconnect evidence."},
+    {"productId":"card","owner":"card","ownerBranchHead":"fb062ad08b0fd6c54ce061cfaee44a0f1fd76180","sourceCommit":"345e0bdb41e9ad7cd5b208ffb1d144bc1b3b328b","publicDeployment":"dpl_8zpV5miVV9NNnhBa7J71aEeLBuqj","sourceConsumed":false,"publicRuntime":true,"guestPreview":true,"registrationEntry":true,"noProviderFallback":true,"urlStable":true,"topLevelTabDelta":0,"realProviderApproval":false,"refreshChooserClose":false,"disconnect":false,"callback":false,"productSessionV2":false,"complete":false,"blocker":"Current public Guest/registration/zero-tab fallback is verified, but exact shared 98c6/tree 51a60a36 consumption and real approval/callback/refresh-disconnect evidence remain absent."},
     {"productId":"creator-studio","owner":"creator-studio","sourceCommit":"993e7cc99ea3919488d6765e097ca78a82a30704","sourceConsumed":false,"publicRuntime":true,"realProviderApproval":false,"refreshChooserClose":false,"disconnect":false,"callback":false,"productSessionV2":false,"complete":false,"blocker":"Public Guest and no-provider fallback exist, but exact shared consumption and real Provider lifecycle evidence are absent."},
     {"productId":"developer","owner":"developer","activityCommit":"366e523252c08871e51d93add534b4513746f1b6","sourceConsumed":true,"publicRuntime":false,"realProviderApproval":false,"refreshChooserClose":false,"disconnect":false,"callback":false,"productSessionV2":false,"complete":false,"blocker":"Protected public exact-source transaction and the real Provider lifecycle evidence are absent."},
     {"productId":"dex","owner":"finance-suite-dex","activityCommit":"7563dc6604540715f87d4e1e46b4ed41feaf6235","evidenceSha256":"8064847bfc6d5c75f357fd0b68b50e6f577a9aa82c83f1913c12a58728094589","sourceConsumed":true,"publicRuntime":false,"realProviderApproval":false,"refreshChooserClose":false,"disconnect":false,"callback":false,"productSessionV2":false,"complete":false,"blocker":"Exact public runtime and real approval/callback/refresh-disconnect evidence are absent."},
@@ -161,8 +161,8 @@
     "boundary": "Source/public/DMG publication facts are independent of installed Wallet authority, account approval, callback and Product Session completion."
   },
   "validation": {
-    "focusedStateAndMatrix": "22/22",
-    "walletAuthFull": "289/289",
+    "focusedStateAndMatrix": "27/27",
+    "walletAuthFull": "294/294",
     "noBareAuthorize": "PASS",
     "standardConnectConsumerGate": "PASS",
     "jsonAndDiffCheck": "PASS"

@@ -2,7 +2,7 @@
   "schemaVersion": 3,
   "evidenceId": "WALLET-AUTHORIZE-ECOSYSTEM-OWNER-RUNTIME-MATRIX-V3-20260821",
   "owner": "wallet-protocol-router",
-  "auditedAt": "2026-08-21T15:18:21Z",
+  "auditedAt": "2026-08-21T15:29:52Z",
   "sourceBaseline": "dd10350cd5d22de6622b7aae7304483f4c78e02f",
   "baseMatrix": {
     "path": "release/integration/wallet-authorize-ecosystem-source-runtime-audit-v2-20260821.json",
@@ -76,11 +76,11 @@
       "ownerHandoff":"Preserve exact 983e9199 public source and verified refresh closure; provide visible disconnect/account-change plus approve/reject callback and Product Session lifecycle before product completion."
     },
     {
-      "productId":"card","owner":"card","sourceCommit":"fa2fb2308470ded24d64333b756718e7d04bfced","ownerEvidenceCommit":"27179fde538b2d839ec677f9feda26c724b8de4e",
+      "productId":"card","owner":"card","sourceCommit":"345e0bdb41e9ad7cd5b208ffb1d144bc1b3b328b","ownerBranchHead":"fb062ad08b0fd6c54ce061cfaee44a0f1fd76180","ownerEvidenceCommit":"27179fde538b2d839ec677f9feda26c724b8de4e","publicDeployment":"dpl_8zpV5miVV9NNnhBa7J71aEeLBuqj","publicHtmlSha256":"f3221be26c4882488d51307d9ded3a4fc9e5b9336ae9d2e8db96cb9c43d2c764","publicBundleSha256":"ee2925ada20ab0ec919094a276dbc504b7d0dfc7c5a607c67fde6d0060ed99cc","sharedProviderConnectConsumed":false,
       "web":{"topLevelOrHandwrittenYnxwallet":false,"standardProvider":true,"metaMaskAddSwitch0x1917":true,"guest":"public-testnet-guest-verified"},
-      "runtime":{"sourceBoundPublic":true,"realInstalledApproval":false,"callback":false,"productSessionV2":false,"computerControl":false},
-      "blocker":"Public no-tab provider fallback is verified, but exact safe launcher v2 consumption, installed provider and approval/callback remain false.",
-      "ownerHandoff":"Consume exact safe launcher v2 without regressing the public no-tab fallback; then prove installed provider, approval/callback and Product Session lifecycle."
+      "runtime":{"sourceBoundPublic":true,"guestPreview":true,"registrationEntry":true,"walletChooser":true,"noProviderFallback":true,"urlStable":true,"topLevelTabDelta":0,"realInstalledApproval":false,"callback":false,"refreshDisconnect":false,"productSessionV2":false,"computerControl":false},
+      "blocker":"Current public source 345e0bdb preserves Guest, registration and zero-tab fallback, but Card has not consumed exact shared source 98c6d5d7/tree 51a60a36 and has no real approval/callback/refresh-disconnect evidence.",
+      "ownerHandoff":"Preserve exact public source 345e0bdb, deployment dpl_8zpV5miVV9NNnhBa7J71aEeLBuqj and zero-tab fallback; consume exact shared source 98c6d5d7/tree 51a60a36, run the consumer gate, then return separate visible approval, callback, refresh/disconnect and Product Session receipts."
     },
     {
       "productId":"creator-studio","owner":"creator-studio","sourceCommit":"993e7cc99ea3919488d6765e097ca78a82a30704","sourceTree":"821b800fefcf05d4b20a848c5b44b0c4854ccfcd","ownerEvidenceCommit":"ab68370503687d48c54ae33429eea7cb9bf98be1","ownerEvidenceTree":"b4b712c6b183051803bf35f7d8eb0b1a89607767","centralEvidenceCommit":"18d13624f3aebadba1c6aa53d18ef4695413d587","centralEvidencePath":"release/integration/p0-wallet-connectivity/creator-studio-p0132-public-standard-wallet-evidence-20260821.json","centralEvidenceSha256":"4b7b693cba1fcb6da0f0ddcb07ad5cb0f38f8238dbe997705ae19261fa2a4048",

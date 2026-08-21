@@ -9,6 +9,14 @@
     "connectState": "packages/wallet-auth/src/standard-wallet-connect-state.js",
     "consumerGate": "packages/wallet-auth/scripts/verify-standard-wallet-connect-consumer.mjs"
   },
+  "acceptanceEvaluator": {
+    "module": "packages/wallet-auth/src/product-wallet-migration-evidence.js",
+    "export": "evaluateProductWalletMigrationEvidence",
+    "schemaVersion": 1,
+    "authority": "evidence-evaluation-only",
+    "failClosed": true,
+    "requiredStages": ["exact-shared-source-consumption", "source-bound-public-runtime", "visible-standard-wallet-lifecycle", "exact-approve-reject-callback", "product-session-v2-lifecycle"]
+  },
   "connectionAuthority": {
     "successRequires": ["selected-provider", "approved-account", "provider-request-chain-0x1917"],
     "directBrowserRpcFetchRequired": false,
@@ -49,8 +57,15 @@
     {
       "productId": "card",
       "owner": "card",
-      "currentSourceCommit": "fa2fb2308470ded24d64333b756718e7d04bfced",
+      "currentSourceCommit": "345e0bdb41e9ad7cd5b208ffb1d144bc1b3b328b",
+      "currentOwnerBranchHead": "fb062ad08b0fd6c54ce061cfaee44a0f1fd76180",
+      "publicDeployment": "dpl_8zpV5miVV9NNnhBa7J71aEeLBuqj",
       "publicSourceBound": true,
+      "guestPreview": true,
+      "registrationEntry": true,
+      "noProviderUrlStable": true,
+      "noProviderTopLevelTabDelta": 0,
+      "sharedProviderConnectConsumed": false,
       "restriction": "Card has an independent goal. Protocol Owner records this handoff only and must not change Card source.",
       "handoff": "Consume the exact shared discovery/connect reducer while preserving the existing no-tab fallback. Prove real approval, callback, refresh/disconnect and Product Session separately."
     },
@@ -73,6 +88,7 @@
       "productId": "quant",
       "owner": "finance-suite-quant",
       "currentSourceCommit": "5fd6794b2fa0431b4353b96b1ab9146d7b69a82c",
+      "latestOwnerActivityCommit": "7d455a7211f78977c023480b33c86af758934b8d",
       "publicSourceBound": false,
       "handoff": "Consume the shared reducer while preserving Research/Paper guest mode and provider-only transport. Prove protected device, public Provider approval, callback and Product Session separately."
     },
@@ -101,8 +117,8 @@
     "integratedCentral": false
   },
   "validation": {
-    "focusedStateAndMatrix": "22/22",
-    "walletAuthFull": "289/289",
+    "focusedStateAndMatrix": "27/27",
+    "walletAuthFull": "294/294",
     "noBareAuthorize": "PASS",
     "standardConnectConsumerGate": "PASS"
   }

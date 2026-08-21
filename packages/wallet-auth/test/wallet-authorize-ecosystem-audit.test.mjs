@@ -268,15 +268,26 @@ test("pending Provider/connect handoffs cover the remaining six owners and prese
   assert.equal(pendingOwnerHandoffs.connectionAuthority.rpcProbeDegradedEffects.chooserReopened, false);
   assert.equal(pendingOwnerHandoffs.connectionAuthority.rpcProbeDegradedEffects.classifiedAsNoProvider, false);
   assert.equal(pendingOwnerHandoffs.completionBoundary.sourceCheckpointIsProductCompletion, false);
+  assert.equal(pendingOwnerHandoffs.acceptanceEvaluator.export, "evaluateProductWalletMigrationEvidence");
+  assert.equal(pendingOwnerHandoffs.acceptanceEvaluator.authority, "evidence-evaluation-only");
+  assert.equal(pendingOwnerHandoffs.acceptanceEvaluator.failClosed, true);
   const finance = pendingOwnerHandoffs.pending.find(({ productId }) => productId === "finance");
   assert.match(finance.stalledReason, /69ba84ea.*51a60a36/);
   assert.equal(auditV3.registeredProducts.find(({ productId }) => productId === "finance").candidateEvidenceSourceTreeMismatch, true);
   assert.equal(pendingOwnerHandoffs.truth.newProductConsumptionRecorded, true);
   assert.equal(pendingOwnerHandoffs.truth.aggregateConnected, false);
+  const pendingCard = pendingOwnerHandoffs.pending.find(({ productId }) => productId === "card");
+  assert.equal(pendingCard.currentSourceCommit, "345e0bdb41e9ad7cd5b208ffb1d144bc1b3b328b");
+  assert.equal(pendingCard.sharedProviderConnectConsumed, false);
+  assert.equal(pendingCard.noProviderTopLevelTabDelta, 0);
 });
 
 test("owner activity checkpoint derives counts and consumes Faucet recovery without product promotion", () => {
   const products = ownerActivityCheckpoint.products;
+  const card = products.find(({ productId }) => productId === "card");
+  assert.equal(card.sourceCommit, "345e0bdb41e9ad7cd5b208ffb1d144bc1b3b328b");
+  assert.equal(card.sourceConsumed, false);
+  assert.equal(card.topLevelTabDelta, 0);
   assert.deepEqual(products.map(({ productId }) => productId).sort(), registry.products.filter(({ productId }) => productId !== "wallet-web-companion").map(({ productId }) => productId).sort());
   assert.equal(products.filter(({ sourceConsumed }) => sourceConsumed).length, ownerActivityCheckpoint.summary.sourceConsumers);
   assert.equal(products.filter(({ sourceConsumed, publicRuntime }) => sourceConsumed && publicRuntime).length, ownerActivityCheckpoint.summary.sourceBoundPublicConsumers);
