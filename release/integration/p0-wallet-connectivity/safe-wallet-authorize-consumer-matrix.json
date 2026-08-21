@@ -137,7 +137,8 @@
       "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/55-merchant-console-visible-p0",
       "branch": "codex/p0-merchant-console-visible-20260821",
       "path": "apps/merchant-console/**",
-      "status": "AUDITED_MIGRATION_REQUIRED",
+      "status": "ACTIVE",
+      "taskId": "P0-113",
       "finding": "The web client assigns its Wallet sign-in URL to top-level location.href.",
       "nextAction": "Replace the top-level launch with the accepted web launcher while preserving public preview and Standard Wallet state."
     },
