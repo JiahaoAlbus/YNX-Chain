@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "checkpoint": "Finance Web provider-only successor",
+  "recordedAt": "2026-08-21T05:52:10Z",
+  "dependency": {
+    "contract": "safeWalletAuthorizeLauncher@2.0.0-p0.0",
+    "acceptedSource": "f1ba5013",
+    "acceptedEvidence": "64910748",
+    "vendoredTarball": "web/vendor/ynx-chain-wallet-auth-1.1.0-safe-launcher-v2.tgz",
+    "tarballSha256": "fe55665d3bf05f1288728dd3d0528e58bd0fc6dbee4d7ea3b962a14bed3427a4",
+    "rootImportNote": "The package root statically exports Node-only gateway modules. Finance imports the hash-pinned package's browser-safe authorize-launcher module only."
+  },
+  "webContract": {
+    "transport": "EIP-6963/EIP-1193 provider-only",
+    "providerDiscovery": "package launchWebAuthorization",
+    "customSchemeNavigation": false,
+    "hiddenIframe": false,
+    "windowOpen": false,
+    "topLevelNavigation": false,
+    "noProviderFallback": ["Download YNX Wallet", "Use MetaMask"],
+    "standardWalletSeparateFromProductSession": true,
+    "financeBrowserSessionCreated": false,
+    "productSessionCreated": false
+  },
+  "verification": {
+    "webBundleSha256": "9074a96a14f831cf422e190656777214a23d3732307f2a6fb13c028dc702ed78",
+    "webSourceGate": "pass",
+    "financeTests": {"passed": 11, "failed": 0},
+    "financeSecurityGate": "pass",
+    "releaseEvidenceGate": "pass",
+    "localBrowser": {
+      "url": "http://127.0.0.1:4174/",
+      "noProviderFallbackVisible": true,
+      "stayedOnFinancePage": true,
+      "downloadVisible": true,
+      "metamaskVisible": true,
+      "screenshot": "evidence/p0-finance-web-provider-fallback-20260821.png",
+      "screenshotSha256": "ca5c3d3ebf2c0d7ad66dcdb0552bdadba7df60720cccb7b65276d8abfd2170ad"
+    }
+  },
+  "deployment": {
+    "canonicalDomain": "https://finance.ynxweb4.com/",
+    "currentResponse": 200,
+    "currentLastModified": "2026-08-15T05:27:33Z",
+    "deployedThisCheckpoint": false,
+    "blocker": "Vercel authentication is present, but this worktree has no linked Finance project and Vercel cannot resolve the Finance canonical domain as a deployment. The canonical domain is currently Caddy-served, so no owner-safe publish target is proven."
+  },
+  "truth": {
+    "installedWallet": false,
+    "walletApproval": false,
+    "callback": false,
+    "productSession": false,
+    "publicDeployment": false,
+    "computerControl": false,
+    "migratedV2": false
+  }
+}

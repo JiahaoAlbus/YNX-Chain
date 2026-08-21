@@ -8,6 +8,8 @@ const js=await readFile(new URL('web/app.js',base),'utf8');
 const css=await readFile(new URL('web/styles.css',base),'utf8');
 const wallet=await readFile(new URL('mobile/src/wallet.ts',base),'utf8');
 const manifest=await readFile(new URL('mobile/contract/public-endpoint-manifest.json',base),'utf8');
+const webWallet=await readFile(new URL('web/wallet-connect-entry.js',base),'utf8');
+const webVerifier=await readFile(new URL('web/verify-wallet-connect.mjs',base),'utf8');
 
 test('product states its non-bank and non-custodial boundary',()=>{
   for(const phrase of ['No custody','bank account','No fiat conversion inferred','Finance cannot freeze assets']) assert.ok(html.includes(phrase),phrase);
@@ -33,4 +35,13 @@ test('responsive and accessibility contracts exist',()=>{
   assert.ok(css.includes('@media(max-width:720px)'));
   assert.ok(css.includes('prefers-reduced-motion'));
   assert.ok(css.includes('#002FA7'));
+});
+
+test('Web Wallet connection consumes the v2 provider-only launcher without custom-scheme navigation',()=>{
+  for(const marker of ['launchWebAuthorization','@ynx-chain/wallet-auth/src/authorize-launcher.js','eth_requestAccounts','eth_chainId','YNX_CHAIN_HEX'])assert.ok(webWallet.includes(marker),marker);
+  for(const forbidden of ['ynxwallet:','iframe','window.open','location.assign','location.href='])assert.equal(webWallet.includes(forbidden),false,forbidden);
+  assert.ok(webVerifier.includes('EIP-6963/EIP-1193 provider-only'));
+  assert.ok(html.includes('wallet-options'));
+  assert.ok(html.includes('Download YNX Wallet'));
+  assert.ok(html.includes('Use MetaMask'));
 });

@@ -1,4 +1,4 @@
-const state={token:'',overview:null,aiJob:null,aiTimer:null};
+const state={token:'',overview:null,aiJob:null,aiTimer:null,wallet:null};
 const $=(s)=>document.querySelector(s),$$=(s)=>[...document.querySelectorAll(s)];
 const esc=(v)=>String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
 const fmt=(v)=>new Intl.NumberFormat().format(Number(v||0));
@@ -8,10 +8,26 @@ const date=(v)=>v?new Intl.DateTimeFormat(undefined,{dateStyle:'medium',timeStyl
 async function api(_path,_options={}){throw Object.assign(new Error('API_UNAVAILABLE: Finance product API is PENDING in the accepted endpoint manifest. No request was sent.'),{code:'API_UNAVAILABLE',nonRetryable:true})}
 function notify(message,error=false){const box=$('#notice');box.textContent=message;box.classList.toggle('error',error);box.classList.remove('hidden');clearTimeout(box.timer);box.timer=setTimeout(()=>box.classList.add('hidden'),6500)}
 
-async function signIn(){notify('Canonical Wallet sign-in is available in the installed Android/iOS Finance app. This Web companion does not create a browser or legacy fallback session.',true)}
+function showWalletOptions(show){$('#wallet-options')?.classList.toggle('hidden',!show)}
+async function signIn(){
+  try{
+    const result=await window.YNXFinanceWebWallet.connect();
+    if(result.status!=='standard-connected'){
+      showWalletOptions(true);
+      notify('No compatible injected Wallet provider was found. Download YNX Wallet or use MetaMask; Finance remains on this page.',true);
+      return;
+    }
+    state.wallet=result;
+    showWalletOptions(false);
+    $('#source-pill').textContent=`Wallet connected · ${short(result.account)}`;
+    $('#source-pill').className='pill warning';
+    $('#signin').textContent='Wallet connected';
+    notify(`Standard ${result.providerKind} Wallet connected on YNX Testnet. Finance product data remains unavailable; no browser session was created.`);
+  }catch(error){notify(error.message||'Wallet connection failed closed.',true)}
+}
 async function consumeCallback(){if(location.search)history.replaceState({},'',location.pathname)}
-async function logout(){state.token='';state.overview=null;renderSignedOut()}
-function renderSignedOut(){document.body.classList.add('signed-out-state');$('#signed-out').classList.remove('hidden');$('#workspace').classList.add('hidden');$('#signin').classList.add('hidden');$('#logout').classList.add('hidden');$('#source-pill').textContent='Not connected';$('#source-pill').className='pill neutral';$('#page-title').textContent='Your money, with its evidence attached.'}
+async function logout(){state.token='';state.overview=null;state.wallet=null;renderSignedOut()}
+function renderSignedOut(){document.body.classList.add('signed-out-state');$('#signed-out').classList.remove('hidden');$('#workspace').classList.add('hidden');$('#signin').classList.remove('hidden');$('#signin').textContent='Connect YNX Wallet';$('#logout').classList.add('hidden');$('#source-pill').textContent='Not connected';$('#source-pill').className='pill neutral';$('#page-title').textContent='Your money, with its evidence attached.'}
 
 async function load(){if(!state.token){renderSignedOut();return}try{$('#source-pill').textContent='Checking sources';const data=await api('/api/overview');state.overview=data;render(data)}catch(error){if(error.status===401){logout();notify('Your Finance session expired. Reauthorize in YNX Wallet.',true)}else notify(error.message,true)}}
 function render(data){document.body.classList.remove('signed-out-state');$('#signed-out').classList.add('hidden');$('#workspace').classList.remove('hidden');$('#signin').classList.add('hidden');$('#logout').classList.remove('hidden');const p=data.portfolio,profile=data.profile;$('#account').textContent=p.account;$('#balance').textContent=p.explorerStatus.available?`${fmt(p.balanceYnxt)} YNXT`:'Unavailable';$('#staked').textContent=p.explorerStatus.available?`${fmt(p.stakedYnxt)} YNXT`:'Unavailable';$('#balance-source').textContent=p.explorerStatus.available?`Explorer evidence · ${date(p.asOf)}`:p.explorerStatus.error;const both=p.explorerStatus.available&&p.payStatus.available;$('#source-pill').textContent=both?'Explorer + Pay live':p.explorerStatus.available?'Explorer live · Pay unavailable':'Sources unavailable';$('#source-pill').className=`pill ${both?'live':'warning'}`;renderAlerts(data.alerts);renderActivity(p.activity);renderReceipts(p.payReceipts,p.payStatus);renderPlanning(profile);renderPrivacy(profile.privacy);renderAIRecords(p.activity);renderSupport(data.support);route()}
