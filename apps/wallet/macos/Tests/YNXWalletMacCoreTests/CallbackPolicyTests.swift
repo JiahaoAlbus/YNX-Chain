@@ -64,6 +64,48 @@ final class CallbackPolicyTests: XCTestCase {
     )
   }
 
+  func testRegistryValidationDoesNotDependOnAProductCountSnapshot() throws {
+    let registry = try registryObject()
+    let products = try XCTUnwrap(registry["products"] as? [[String: Any]])
+    let social = try XCTUnwrap(products.first { $0["productClientId"] as? String == "ynx-social-v1" })
+    var reducedRegistry = registry
+    reducedRegistry["products"] = [social]
+    let reducedData = try JSONSerialization.data(withJSONObject: reducedRegistry, options: [.sortedKeys])
+    let now = try XCTUnwrap(ISO8601DateFormatter.ynx.date(from: "2026-08-15T12:00:00.000Z"))
+
+    let valid = deepLink(request(product: "social", client: "ynx-social-v1", bundle: "com.ynx.social", callback: "ynx-social://com.ynx.social", scopes: ["account:read", "profile:link"]))
+    XCTAssertEqual(
+      NativeAuthorizationPolicy.evaluate(valid, registryData: reducedData, now: now),
+      .rejected(code: "CANONICAL_AUTH_BRIDGE_UNAVAILABLE")
+    )
+  }
+
+  func testDuplicateOrMissingRegistryClientIDsFailClosed() throws {
+    let registry = try registryObject()
+    let products = try XCTUnwrap(registry["products"] as? [[String: Any]])
+    let social = try XCTUnwrap(products.first { $0["productClientId"] as? String == "ynx-social-v1" })
+    let now = try XCTUnwrap(ISO8601DateFormatter.ynx.date(from: "2026-08-15T12:00:00.000Z"))
+    let valid = deepLink(request(product: "social", client: "ynx-social-v1", bundle: "com.ynx.social", callback: "ynx-social://com.ynx.social", scopes: ["account:read", "profile:link"]))
+
+    var duplicateRegistry = registry
+    duplicateRegistry["products"] = [social, social]
+    let duplicateData = try JSONSerialization.data(withJSONObject: duplicateRegistry, options: [.sortedKeys])
+    XCTAssertEqual(
+      NativeAuthorizationPolicy.evaluate(valid, registryData: duplicateData, now: now),
+      .rejected(code: "INVALID_REGISTRY")
+    )
+
+    var missingClient = social
+    missingClient.removeValue(forKey: "productClientId")
+    var missingRegistry = registry
+    missingRegistry["products"] = [missingClient]
+    let missingData = try JSONSerialization.data(withJSONObject: missingRegistry, options: [.sortedKeys])
+    XCTAssertEqual(
+      NativeAuthorizationPolicy.evaluate(valid, registryData: missingData, now: now),
+      .rejected(code: "INVALID_REGISTRY")
+    )
+  }
+
   func testDisabledUnknownAndMismatchedRegistrationsFailClosed() throws {
     let registry = try registryData()
     let now = try XCTUnwrap(ISO8601DateFormatter.ynx.date(from: "2026-08-15T12:00:00.000Z"))
@@ -121,6 +163,10 @@ final class CallbackPolicyTests: XCTestCase {
   private func registryData() throws -> Data {
     let url = try XCTUnwrap(Bundle.module.url(forResource: "central-registry", withExtension: "json"))
     return try Data(contentsOf: url)
+  }
+
+  private func registryObject() throws -> [String: Any] {
+    try XCTUnwrap(JSONSerialization.jsonObject(with: registryData()) as? [String: Any])
   }
 }
 

@@ -109,7 +109,13 @@ public enum NativeAuthorizationPolicy {
           registry["registryVersion"] as? Int == 2,
           registry["chainId"] as? String == "ynx_6423-1",
           let products = registry["products"] as? [[String: Any]],
-          products.count == 34 else {
+          !products.isEmpty,
+          products.count <= 256 else {
+      throw NativeAuthorizationFailure("INVALID_REGISTRY")
+    }
+    let registeredClientIDs = products.compactMap { $0["productClientId"] as? String }
+    guard registeredClientIDs.count == products.count,
+          Set(registeredClientIDs).count == products.count else {
       throw NativeAuthorizationFailure("INVALID_REGISTRY")
     }
     let clientID = request["productClientId"] as? String

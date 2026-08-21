@@ -270,10 +270,10 @@ jobs:
           const now = Date.now();
           const request = {
             version:"1", nonce:"ci_native_bridge_boundary_nonce_01", chainId:"ynx_6423-1",
-            requestingProduct:"social", productClientId:"ynx-social-v1", bundleId:"com.ynx.social",
+            requestingProduct:"shop", productClientId:"ynx-shop-v1", bundleId:"com.ynxweb4.shop",
             productDeviceAlgorithm:"p256-sha256",
             productDeviceKey:"AzrThhqVYhOSUWu1k-8FWD7S5YZvXLYmCjAXI3_Ym5Cv",
-            callback:"ynx-social://com.ynx.social", scopes:["account:read","profile:link"],
+            callback:"ynxshop://wallet-auth/callback", scopes:["account:read","shop:orders:write"],
             purpose:"Verify the frozen native bridge fail-closed boundary.",
             issuedAt:new Date(now-5000).toISOString(), expiresAt:new Date(now+240000).toISOString(),
           };
