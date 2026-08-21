@@ -8,7 +8,7 @@ import{action,apply as applyForCard,createTestnetTopupIntent,dispute as openDisp
 import{catalogs,date,detectLocale,isLocale,isRTL,localeNames,locales,money,t as translate,type Locale}from"./src/i18n";
 import{loadLocale,loadPendingAuthorization,loadSession,loadSimulationAudit,saveLocale,savePendingAuthorization,saveSession,saveSimulationAudit}from"./src/secureState";
 import{createRuntimeCardProductWalletConnection,type CardProductWalletConnection}from"./src/productWalletRuntime";
-import{approveTestnetTopup,classifyCardWalletError,connectEip1193Wallet,connectMetaMaskWallet,createAuthorization,loadTestnetTopupEvidence,parseWalletAuthorizationCallback,parseYnxtAmountToWei,resolveEip1193Provider,resolveMetaMaskEip1193Provider,walletDeepLink,type CardSession,type Eip1193Provider,type Eip1193WalletSession,type PendingAuthorization,type ProductSessionRuntime,type TopupEvidence}from"./src/wallet";
+import{approveTestnetTopup,classifyCardWalletError,connectEip1193Wallet,connectMetaMaskWallet,createAuthorization,loadTestnetTopupEvidence,parseWalletAuthorizationCallback,parseYnxtAmountToWei,resolveEip1193Provider,resolveMetaMaskEip1193Provider,walletDeepLink,type CardSession,type Eip1193Provider,type Eip1193WalletSession,type PendingAuthorizationRequest,type ProductSessionRuntime,type TopupEvidence}from"./src/wallet";
 import{isFailure,recoverLastFailed,replayAwareAppend,SimulationAuditRecord,TESTNET_SIMULATION_CURRENCY,TESTNET_SIMULATION_MAX_EVENTS,type SimulationInput as LedgerSimulationInput}from"./src/simulation";
 import{GuestExperience}from"./src/GuestExperience";
 
@@ -55,7 +55,7 @@ export default function App(){
   const mounted=useRef(true);
   const productWallet=useRef<CardProductWalletConnection|null>(null);
   const walletProvider=useRef<Eip1193Provider|null>(null);
-  const pendingAuthorization=useRef<PendingAuthorization|null>(null);
+  const pendingAuthorization=useRef<PendingAuthorizationRequest|null>(null);
   const persistSimulationLedger=useCallback(async(next:readonly SimulationAuditRecord[])=>{
     const normalized=Object.freeze(next.slice(0,TESTNET_SIMULATION_MAX_EVENTS));
     await saveSimulationAudit(normalized);
@@ -330,8 +330,8 @@ export default function App(){
     setBusy(true);
     setWalletError("");
     try{
-      if(Platform.OS==="web"){setWalletError("YNX Wallet authorization requires its registered native callback. Use MetaMask for browser EVM connection.");return "wallet-unavailable";}
-      const pendingAuthorizationValue=await createAuthorization();
+      const created=await createAuthorization();
+      const pendingAuthorizationValue=Object.freeze({request:created.request});
       await savePendingAuthorization(pendingAuthorizationValue);
       pendingAuthorization.current=pendingAuthorizationValue;
       await Linking.openURL(walletDeepLink(pendingAuthorizationValue));

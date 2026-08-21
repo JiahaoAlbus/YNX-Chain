@@ -1,15 +1,15 @@
 import * as SecureStore from "expo-secure-store";
 import {Platform} from "react-native";
-import type {CardSession, PendingAuthorization} from "./wallet";
+import type {CardSession, PendingAuthorizationRequest} from "./wallet";
 import type {SimulationAuditRecord} from "./simulation";
 
 const PREFIX="ynx-card.secure.v1.";
-const WEB_LOCAL_KEYS=new Set(["locale","simulationAudit"]);
+const WEB_LOCAL_KEYS=new Set(["locale","simulationAudit","authorization"]);
 
 export async function loadSession():Promise<CardSession|null>{return load<CardSession>("session",value=>value.productClientId==="ynx-card-v1"&&value.bundleId==="com.ynxweb4.card"&&Date.parse(value.expiresAt)>Date.now())}
 export async function saveSession(value:CardSession|null){return save("session",value)}
-export async function loadPendingAuthorization():Promise<PendingAuthorization|null>{return load<PendingAuthorization>("authorization",value=>value.request?.productClientId==="ynx-card-v1"&&typeof value.deviceSecret==="string"&&Date.parse(value.request.expiresAt)>Date.now())}
-export async function savePendingAuthorization(value:PendingAuthorization|null){return save("authorization",value)}
+export async function loadPendingAuthorization():Promise<PendingAuthorizationRequest|null>{return load<PendingAuthorizationRequest>("authorization",value=>value.request?.productClientId==="ynx-card-v1"&&Date.parse(value.request.expiresAt)>Date.now())}
+export async function savePendingAuthorization(value:PendingAuthorizationRequest|null){return save("authorization",value===null?null:{request:value.request})}
 
 export async function loadLocale():Promise<string|null>{return read("locale")}
 export async function saveLocale(value:string){return write("locale",value)}

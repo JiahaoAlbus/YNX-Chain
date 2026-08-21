@@ -34,6 +34,7 @@ export const YNX_TESTNET_CHAIN_ID="0x1917";
 export const YNX_TESTNET_CHAIN_NAME="YNX Testnet";
 
 export type PendingAuthorization=Readonly<{request:AuthorizationRequest;deviceSecret:string}>;
+export type PendingAuthorizationRequest=Readonly<{request:AuthorizationRequest}>;
 export type CardSession=Readonly<{token:string;sessionBinding:string;requestDigest:string;account:string;productClientId:"ynx-card-v1";bundleId:"com.ynxweb4.card";scopes:readonly string[];issuedAt:string;expiresAt:string;deviceId:string}>;
 export type Eip1193WalletSession=Readonly<{address:string;chainId:string;connectedAt:string;provider:"eip1193"}>;
 export type CardWalletError=Readonly<{code:string;retryable:boolean;safeMessage:string;monitoringClass:string;userAction:string;requestId?:string;traceId?:string;errorId?:string}>;
@@ -61,8 +62,8 @@ export async function createAuthorization(now=new Date(),random?:Readonly<{secre
   return Object.freeze({request,deviceSecret:encodeBase64url(secret)});
 }
 
-export function walletDeepLink(pending:PendingAuthorization):string{return encodeRequestDeepLink(pending.request)}
-export function parseWalletAuthorizationCallback(callbackURL:string,pending:PendingAuthorization,now=new Date()):ReturnType<typeof parseAuthorizationCallbackURL>{return parseAuthorizationCallbackURL(callbackURL,pending.request,now)}
+export function walletDeepLink(pending:PendingAuthorizationRequest):string{return encodeRequestDeepLink(pending.request)}
+export function parseWalletAuthorizationCallback(callbackURL:string,pending:PendingAuthorizationRequest,now=new Date()):ReturnType<typeof parseAuthorizationCallbackURL>{return parseAuthorizationCallbackURL(callbackURL,pending.request,now)}
 
 // Legacy private route retained only for compatibility evidence. Card runtime
 // now uses createProductWalletConnection and the canonical /v2 routes.
