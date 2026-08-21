@@ -72,3 +72,16 @@ test("PWA manifest declares exact standalone identity and real-logo icon sizes",
     {src:"./ynx-icon-maskable-512.png",sizes:"512x512",type:"image/png",purpose:"maskable"},
   ]);
 });
+
+test("Vercel deployment serves the dedicated PWA output and never caches its recovery control files", async () => {
+  const deployment=JSON.parse(await readFile(new URL("../vercel.json",import.meta.url),"utf8"));
+  assert.equal(deployment.buildCommand,"npm run build");
+  assert.equal(deployment.outputDirectory,"dist/pwa");
+  assert.deepEqual(deployment.headers[0],{
+    source:"/(sw|sw-v7|asset-integrity)\\.js",
+    headers:[
+      {key:"Cache-Control",value:"no-store, max-age=0, must-revalidate"},
+      {key:"X-Content-Type-Options",value:"nosniff"},
+    ],
+  });
+});
