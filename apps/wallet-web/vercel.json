@@ -4,7 +4,7 @@
   "outputDirectory": "dist/pwa",
   "headers": [
     {
-      "source": "/(sw|sw-v7|asset-integrity)\\.js",
+      "source": "/(sw|sw-v7|sw-v8|asset-integrity)\\.js",
       "headers": [
         {"key": "Cache-Control", "value": "no-store, max-age=0, must-revalidate"},
         {"key": "X-Content-Type-Options", "value": "nosniff"}

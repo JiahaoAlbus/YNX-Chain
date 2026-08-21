@@ -1,5 +1,5 @@
-import {ASSET_INTEGRITY} from "./asset-integrity.js?schema=7";
-import {PWA_CACHE, PWA_CACHE_STAGING, assetKeyForRequest, obsoletePwaCaches, responseMatchesIntegrity, serviceWorkerRoute} from "./service-worker-policy.js?schema=7";
+import {ASSET_INTEGRITY} from "./asset-integrity.js?schema=8";
+import {PWA_CACHE, PWA_CACHE_STAGING, assetKeyForRequest, obsoletePwaCaches, responseMatchesIntegrity, serviceWorkerRoute} from "./service-worker-policy.js?schema=8";
 
 const ASSETS = Object.keys(ASSET_INTEGRITY);
 const unavailable = (message = "Offline asset unavailable") => new Response(message, {status: 503, headers: {"content-type": "text/plain; charset=utf-8", "cache-control": "no-store"}});
@@ -34,7 +34,7 @@ self.addEventListener("install", (event) => event.waitUntil(installCurrent().the
 self.addEventListener("activate", (event) => event.waitUntil((async () => {
   await purgeObsolete();
   await self.clients.claim();
-  for (const client of await self.clients.matchAll({type:"window",includeUncontrolled:true})) client.postMessage({type:"YNX_PWA_SHELL_UPGRADED",schema:7});
+  for (const client of await self.clients.matchAll({type:"window",includeUncontrolled:true})) client.postMessage({type:"YNX_PWA_SHELL_UPGRADED",schema:8});
 })()));
 self.addEventListener("fetch", (event) => {
   const scopeUrl = self.registration.scope;

@@ -9,13 +9,13 @@ async function recover() {
       await registration?.unregister();
       await Promise.all((await caches.keys()).filter((name)=>name.startsWith(cachePrefix)).map((name)=>caches.delete(name)));
       localStorage.removeItem("ynx.wallet.web.session.v1");
-      sessionStorage.removeItem("ynx.wallet.web.pwa.schema.7.reloaded");
+      sessionStorage.removeItem("ynx.wallet.web.pwa.schema.8.reloaded");
       location.replace("./pwa-upgrade.html?phase=register");
       return;
     }
-    const next=await navigator.serviceWorker?.register("./sw-v7.js?schema=7",{type:"module",updateViaCache:"none"});
+    const next=await navigator.serviceWorker?.register("./sw-v8.js?schema=8",{type:"module",updateViaCache:"none"});
     if (!next) throw new Error("PWA worker registration is unavailable");
-    location.replace("./?pwa-recovered=7");
+    location.replace("./?pwa-recovered=8");
   } catch (error) {
     output.dataset.recoveryError=error instanceof Error?error.message:"unknown";
     output.textContent="YNX Wallet recovery could not complete. Reload this page while online.";

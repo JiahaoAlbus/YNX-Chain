@@ -1,5 +1,5 @@
 export const PWA_CACHE_PREFIX = "ynx-wallet-web-v";
-export const PWA_CACHE_SCHEMA = 7;
+export const PWA_CACHE_SCHEMA = 8;
 export const PWA_CACHE = `${PWA_CACHE_PREFIX}${PWA_CACHE_SCHEMA}`;
 export const PWA_CACHE_STAGING = `${PWA_CACHE}-installing`;
 

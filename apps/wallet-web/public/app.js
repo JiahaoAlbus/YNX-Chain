@@ -9,7 +9,7 @@ import {
   METAMASK_DOWNLOAD_URL, WALLET_DOWNLOAD_MATRIX, YNX_DOWNLOAD_URL, addYNXChain, connectWallet, createExtensionProvider, discoverWallets,
   extensionWalletAvailability, forgetSession, rememberSession, restoreTestnetSession, sendTransaction,
   invalidatesConnectedSession, resolveRememberedWallet, signMessage, subscribeProviderLifecycle,
-  providerAvailabilityState, switchToYNXChain, verifyTestnetRpc, walletActionGates, walletDiscoveryPresentation,
+  providerAvailabilityState, switchToYNXChain, walletActionGates, walletDiscoveryPresentation,
 } from "./provider.js";
 
 const app = document.querySelector("#app");
@@ -141,9 +141,9 @@ function selectProvider(wallet) {
 
 async function connect(wallet) {
   const provider = selectProvider(wallet);
-  const session = await act(() => connectWallet(provider), (result) => ({type:"connected",account:result.account}));
+  const session = await act(() => connectWallet(provider,{verifyRpc:false}), (result) => ({type:"connected",account:result.account}));
   if (!session) return;
-  state.account = session.account; state.chainId = session.chainId; rememberSession(session, wallet); render(); await detect();
+  state.account = session.account; state.chainId = session.chainId; state.rpcVerified = true; rememberSession(session, wallet); render(); await detect();
 }
 
 function bind() {
@@ -157,10 +157,10 @@ function bind() {
   document.querySelector("#metamask").addEventListener("click", (event) => {
     if (state.providers?.metamask) { event.preventDefault(); return connect("metamask"); }
   });
-  document.querySelector("#add").addEventListener("click", () => act(() => addYNXChain(state.provider), () => ({type:"key",key:"testnet"})));
-  document.querySelector("#switch").addEventListener("click", () => act(() => switchToYNXChain(state.provider), () => ({type:"key",key:"connected"})));
+  document.querySelector("#add").addEventListener("click", () => act(async () => { const chainId=await addYNXChain(state.provider,{verifyRpc:false}); state.chainId=chainId; state.rpcVerified=true; return chainId; }, () => ({type:"key",key:"testnet"})));
+  document.querySelector("#switch").addEventListener("click", () => act(async () => { const chainId=await switchToYNXChain(state.provider,{verifyRpc:false}); state.chainId=chainId; state.rpcVerified=true; return chainId; }, () => ({type:"key",key:"connected"})));
   document.querySelector("#sign").addEventListener("click", () => act(() => signMessage(state.provider, state.account, document.querySelector("#message").value), (value) => ({type:"label",labelKey:"signature",value})));
-  document.querySelector("#send").addEventListener("click", () => act(() => sendTransaction(state.provider, {from: state.account, to: document.querySelector("#recipient").value.trim(), value: document.querySelector("#value").value.trim(), data: document.querySelector("#data").value.trim()}), (value) => ({type:"label",labelKey:"txHash",value})));
+  document.querySelector("#send").addEventListener("click", () => act(() => sendTransaction(state.provider, {from: state.account, to: document.querySelector("#recipient").value.trim(), value: document.querySelector("#value").value.trim(), data: document.querySelector("#data").value.trim()},{verifyRpc:false}), (value) => ({type:"label",labelKey:"txHash",value})));
 }
 
 function presentAvailability(availability) {
@@ -189,12 +189,8 @@ async function detect() {
   const providerState = isExtension
     ? {code: availability.ynx || availability.metamask ? null : "NO_PROVIDER", providerPresent:Boolean(availability.ynx || availability.metamask), accountAuthorized:false}
     : await providerAvailabilityState(availability);
-  let rpcError = null;
-  try { await verifyTestnetRpc(); state.rpcVerified = true; }
-  catch (error) { state.rpcVerified = false; rpcError = error; }
   applyActionGates();
   if (providerState.code) setStatus({type:"error",code:providerState.code,key:errorStatusKey(providerState.code)});
-  else if (rpcError) setStatus(localizedError(rpcError));
   const wallet = resolveRememberedWallet(availability);
   if (wallet) {
     const provider = selectProvider(wallet);
@@ -210,10 +206,10 @@ if(!isExtension&&`${location.origin}${location.pathname}`===companionLifecycle.c
 }
 addEventListener("storage",(event)=>{if(event.key!==PREFERENCES_KEY)return;try{const next=acceptPreferenceUpdate(state.preferences,event.newValue);state.preferences=next;state.locale=next.locale;state.theme=next.theme;render();detect().catch((error)=>setStatus(discoveryError(error)))}catch(error){setStatus({type:"key",key:"preferencesRejected",kind:"error"})}});
 if (!isExtension && "serviceWorker" in navigator) {
-  navigator.serviceWorker.register("./sw.js?schema=7", {type:"module",updateViaCache:"none"}).then((registration) => registration.update()).catch(() => {});
+  navigator.serviceWorker.register("./sw.js?schema=8", {type:"module",updateViaCache:"none"}).then((registration) => registration.update()).catch(() => {});
   navigator.serviceWorker.addEventListener("message", (event) => {
-    if (event.data?.type !== "YNX_PWA_SHELL_UPGRADED" || event.data?.schema !== 7) return;
-    const reloadKey="ynx.wallet.web.pwa.schema.7.reloaded";
+    if (event.data?.type !== "YNX_PWA_SHELL_UPGRADED" || event.data?.schema !== 8) return;
+    const reloadKey="ynx.wallet.web.pwa.schema.8.reloaded";
     if (sessionStorage.getItem(reloadKey)==="1") return;
     sessionStorage.setItem(reloadKey,"1");
     location.reload();

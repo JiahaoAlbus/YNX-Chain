@@ -14,6 +14,8 @@ test("fallback contract always offers YNX download and MetaMask when YNX is abse
   assert.match(source, /companionLifecycle\.handleReturn\(location\.href\)/);
   assert.doesNotMatch(source, /pageshow|visibilitychange/);
   assert.match(source, /walletDiscoveryPresentation\(availability\)/);
+  assert.match(source, /connectWallet\(provider,\{verifyRpc:false\}\)/);
+  assert.doesNotMatch(source, /await verifyTestnetRpc\(\)/);
   assert.match(source, /function localizedError\(error\)/);
   assert.match(source, /function statusView\(status = state\.status\)/);
   assert.match(source, /status\.type === "error"/);
@@ -30,7 +32,7 @@ test("fallback contract always offers YNX download and MetaMask when YNX is abse
   assert.match(source, /catch \(error\) \{ forgetSession\(\); throw error; \}/);
   assert.match(source, /const discoveryError=\(error\)=>localizedError\(error\)/);
   assert.doesNotMatch(source, /state\.provider\s*=\s*\{.*request/s);
-  assert.match(source,/navigator\.serviceWorker\.register\("\.\/sw\.js\?schema=7", \{type:"module",updateViaCache:"none"\}\)/);
+  assert.match(source,/navigator\.serviceWorker\.register\("\.\/sw\.js\?schema=8", \{type:"module",updateViaCache:"none"\}\)/);
   assert.match(source,/YNX_PWA_SHELL_UPGRADED/);
   const recovery=await readFile(new URL("../public/pwa-upgrade.js",import.meta.url),"utf8");
   assert.match(recovery,/registration\?\.unregister\(\)/);
@@ -78,7 +80,7 @@ test("Vercel deployment serves the dedicated PWA output and never caches its rec
   assert.equal(deployment.buildCommand,"npm run build");
   assert.equal(deployment.outputDirectory,"dist/pwa");
   assert.deepEqual(deployment.headers[0],{
-    source:"/(sw|sw-v7|asset-integrity)\\.js",
+    source:"/(sw|sw-v7|sw-v8|asset-integrity)\\.js",
     headers:[
       {key:"Cache-Control",value:"no-store, max-age=0, must-revalidate"},
       {key:"X-Content-Type-Options",value:"nosniff"},

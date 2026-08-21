@@ -142,8 +142,17 @@ test("provider state keeps no-provider, lock, permission, and ambiguity distinct
   assert.deepEqual(await providerAvailabilityState({metamask:locked}),{code:"EXTENSION_LOCKED",providerPresent:true,accountAuthorized:false});
   const noAccess = provider({eth_accounts:[]});
   assert.deepEqual(await providerAvailabilityState({metamask:noAccess}),{code:"SITE_ACCESS_DENIED",providerPresent:true,accountAuthorized:false});
-  const authorized = provider({eth_accounts:[ACCOUNT]});
+  const authorized = provider({eth_accounts:[ACCOUNT],eth_chainId:"0x1917"});
   assert.deepEqual(await providerAvailabilityState({metamask:authorized}),{code:null,providerPresent:true,accountAuthorized:true});
+  const wrongNetwork = provider({eth_accounts:[ACCOUNT],eth_chainId:"0x1"});
+  assert.deepEqual(await providerAvailabilityState({metamask:wrongNetwork}),{code:"WRONG_NETWORK",providerPresent:true,accountAuthorized:true});
+});
+
+test("selected EIP-1193 provider proves chain identity without browser RPC CORS", async () => {
+  const wallet=provider({wallet_switchEthereumChain:null,eth_chainId:"0x1917",eth_requestAccounts:[ACCOUNT]});
+  const session=await connectWallet(wallet,{verifyRpc:false,fetcher:async()=>{throw new Error("must not fetch RPC");}});
+  assert.deepEqual(session,{account:ACCOUNT,chainId:"0x1917"});
+  assert.deepEqual(wallet.calls.map((call)=>call.method),["wallet_switchEthereumChain","eth_chainId","eth_requestAccounts"]);
 });
 
 test("discovery presentation directly prefers YNX and gives two non-empty fallbacks", () => {
