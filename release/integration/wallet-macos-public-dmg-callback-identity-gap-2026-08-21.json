@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "owner": "02-wallet-auth-ios-macos-native",
+  "evidenceKind": "published-macos-dmg-callback-identity-gap",
+  "publicArtifact": {
+    "url": "https://downloads.ynxweb4.com/wallet/sha256-ad6e4077bc001743cf1a4163ceaca5a009a3c8a4d8a809cc4896798976cf56c0/ynx-wallet-desktop-0.1.1-universal.dmg",
+    "sha256": "ad6e4077bc001743cf1a4163ceaca5a009a3c8a4d8a809cc4896798976cf56c0",
+    "bytes": 236661996,
+    "containedAppName": "YNX Wallet Testnet Preview.app",
+    "bundleIdentifier": "com.ynxweb4.wallet.desktop",
+    "shortVersion": "0.1.1",
+    "minimumOS": "12.0",
+    "architectures": [
+      "x86_64",
+      "arm64"
+    ],
+    "infoPlistBytes": 2645,
+    "infoPlistSha256": "c4b326327b2374f6e53685f9f6eebb21cf9a7e65564dd2da022aa05ae4ee7e28",
+    "cfBundleURLTypesPresent": false,
+    "ynxwalletSchemeRegistered": false,
+    "associatedDomainsPresent": false
+  },
+  "ownerNativeSource": {
+    "sourceHead": "0617709e5715d3fde2b0974e6ed76886e0fd623f",
+    "bundleIdentifier": "com.ynxweb4.wallet.macos",
+    "shortVersion": "0.1.0",
+    "minimumOS": "13.0",
+    "infoPlist": {
+      "path": "apps/wallet/macos/Info.plist",
+      "blob": "222c3ec18d6323493abaf36a6d10b636a53c1fe4",
+      "bytes": 1039,
+      "sha256": "e00699bb313f80803518d50f2811d90c44fc6536b447fc26acf95d03d1a01539",
+      "ynxwalletSchemeRegistered": true
+    },
+    "callbackPolicy": {
+      "path": "apps/wallet/macos/Sources/YNXWalletMacCore/CallbackPolicy.swift",
+      "blob": "4be69805615b4d52bf81ccda035e5597c9364792",
+      "bytes": 1246,
+      "sha256": "756a28379ef237bbc2d052cca2f9ea329a638d3ac5bb2b4946602e492a74b868",
+      "frozenRouteConsumed": "ynxwallet://authorize?request=<frozen request>",
+      "canonicalRequestResult": "CANONICAL_AUTH_BRIDGE_UNAVAILABLE",
+      "authorizationSuccess": false,
+      "signing": false,
+      "callbackEmitted": false
+    },
+    "nativeApplication": {
+      "path": "apps/wallet/macos/Sources/YNXWalletMac/main.swift",
+      "blob": "e0380b499e8c14c17ee3748f926060cfcb463745",
+      "bytes": 12206,
+      "sha256": "66aa55ed3d989a1c0a90083b0b229081ce0209eeb77808bd947ffe564325a81d",
+      "appleEventGetURLHandlerPresent": true,
+      "applicationOpenURLsHandlerPresent": true,
+      "visibleFailClosedStatePresent": true
+    },
+    "workflow": {
+      "path": ".github/workflows/wallet-macos.yml",
+      "blob": "b2d1d183c922901769bd48950d735bb61aa6db67",
+      "bytes": 23991,
+      "sha256": "cc4fd1a26bb8673cfeddf892717e27e2e715e868d3db6df4153ca90e3ee07275",
+      "nativeCallbackFailClosedCoveragePresent": true
+    }
+  },
+  "identityComparison": {
+    "publicArtifactMatchesOwnerNativeBundle": false,
+    "publicArtifactMatchesOwnerNativeVersion": false,
+    "publicArtifactRegistersFrozenCustomScheme": false,
+    "publicArtifactIsProvenOwnerNativeApplication": false,
+    "interpretation": "The published 0.1.1 desktop preview and the owner native 0.1.0 Swift application are different bundle identities. The public artifact does not register ynxwallet, so Website publication cannot be treated as the native callback-capable Wallet."
+  },
+  "requiredHandoff": {
+    "owner": "Website release owner",
+    "action": "Publish an exact, independently hashed owner-native macOS artifact only after approved signing/notarization policy and release metadata are available; do not retrofit a new callback protocol.",
+    "replacementPublished": false,
+    "rollbackReady": false
+  },
+  "gates": {
+    "websitePublishedDesktopPreview": true,
+    "publicNativeWalletPublished": false,
+    "publicArtifactCustomSchemeRegistered": false,
+    "publicArtifactCallbackDelivered": false,
+    "publicArtifactCanonicalCallbackFailClosedVisible": false,
+    "publicArtifactAuthorizationSuccess": false,
+    "ownerNativeLocalCallbackFailClosedImplemented": true,
+    "ownerNativePubliclyHosted": false,
+    "associatedDomainFrozen": false,
+    "universalLinkSuccess": false,
+    "developerIdSigned": false,
+    "productionSigned": false,
+    "notarized": false,
+    "gatekeeperAccepted": false,
+    "storeReleased": false,
+    "accountAvailable": false,
+    "signSuccess": false,
+    "sendSuccess": false,
+    "transactionSuccess": false
+  }
+}
