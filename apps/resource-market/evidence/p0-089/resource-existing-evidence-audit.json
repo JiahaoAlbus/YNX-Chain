@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-089",
+  "product": "YNX Resource Market",
+  "auditClass": "EXISTING_VISIBLE_EVIDENCE_AND_RELEASE_TRUTH_ONLY",
+  "auditedCheckpoint": "5f0a6eea4aef0c1b374e971bd99f41a6e71d6596",
+  "implementationCommit": "e92bccb9c35fa9d78dd21417af8fe7eea9e85828",
+  "priorEvidence": {
+    "path": "apps/resource-market/evidence/p0-072/resource-standard-wallet-source-evidence.json",
+    "sha256": "b8b6a47dfbc29c8fed03629b39334a0620f58c6fef4c92cfcdc5da39afbac3c2"
+  },
+  "environmentRecovery": {
+    "initialBrowserRun": "FAILED_MISSING_DECLARED_PLAYWRIGHT_DEPENDENCY",
+    "repair": "npm ci from the tracked package-lock.json",
+    "sourceChangedByRepair": false
+  },
+  "independentRerun": {
+    "standardWalletUnit": "2/2 passed",
+    "browserProductSuite": "8/8 passed",
+    "focusedVisibleWallet": "2/2 included in browser suite",
+    "go": "go test ./internal/resourceproduct ./apps/resource-market passed",
+    "productSmoke": "apps/resource-market/check.sh passed",
+    "productionDependencyAudit": "0 vulnerabilities"
+  },
+  "visibleEvidenceReadback": [
+    {
+      "path": "apps/resource-market/evidence/p0-072/resource-guest-wallet-choices.png",
+      "bytes": 437806,
+      "sha256": "ffdee4e800c2718f23734eee886e248987f81d2f7e2a82610677e14aac4cd508",
+      "observed": "Guest sees YNX Wallet, MetaMask and the official Wallet download choice; missing provider stays signed out."
+    },
+    {
+      "path": "apps/resource-market/evidence/p0-072/resource-standard-wallet-connected.png",
+      "bytes": 447076,
+      "sha256": "59f0528ce4dbb504d38642c407db5958627830cc71839f99f5ece43ffa796a03",
+      "observed": "Deterministic EIP-6963 provider connects account 0x1111...1111 on 0x1917 while private Resource operations and settlement remain degraded."
+    }
+  ],
+  "releaseTruthCorrection": {
+    "field": "historical Android debug installation",
+    "before": "Ambiguous current installation wording and component flag",
+    "after": "Historical debug evidence is explicitly currentSource=false and current-source installedLocal remains false",
+    "sourceImplementationChanged": false
+  },
+  "truth": {
+    "standardWalletSourceImplemented": true,
+    "testedLocal": true,
+    "guestExploration": true,
+    "privateServiceState": "PRIVATE_SERVICE_DEGRADED",
+    "localOrCannedSessionCreated": false,
+    "realSettlementVerified": false,
+    "productSessionV2": false,
+    "installedClientVerifiedForThisSource": false,
+    "deployedPublicCurrentSource": false,
+    "publicVerifiedCurrentSource": false,
+    "computerControlVerified": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "auditedAt": "2026-08-21T00:25:00Z"
+}

@@ -59,7 +59,8 @@
     "exportErasureAndRetentionTested": true,
     "localSecurityGatesPassedWithPatchedToolchain": true,
     "reproducibleUnsignedLocalBinaryMeasured": true,
-    "androidDebugBuildInstalledAndColdStarted": true,
+    "androidDebugBuildInstalledAndColdStarted": false,
+    "historicalAndroidDebugBuildInstalledAndColdStarted": true,
     "iosSimulatorBuildTested": true,
     "providerBuyerQuoteUIFlowTested": true,
     "workerSigningRegistryIntegrated": true,
@@ -91,7 +92,9 @@
       "class": "debug-signed",
       "record": "evidence/android-debug-install-20260722.json",
       "screenshot": "evidence/android-debug-cold-start-20260722.png",
-      "coldStartMs": 2313
+      "coldStartMs": 2313,
+      "historical": true,
+      "currentSource": false
     }
   ],
   "centralIntegration": {"status": "not-merged-or-deployed", "registry": "integration/canonical-wallet-registry.json", "manifest": "integration/central-integration-manifest.json", "failClosed": true},
@@ -100,8 +103,16 @@
     "The provider/buyer Web UI covers provider continuity, quote/intent, sealed reverse/batch auctions, worker-key, execution, dispute and receipt actions. A 143-string catalog and safe runtime status/error boundary are functionally browser-tested in 12 locales, including Arabic RTL, large text and accessible operator controls; professional linguistic and manual assistive-technology review remain external.",
     "The current Web source uses accepted Standard Wallet discovery/connection and no longer creates a reload-fragile browser P-256 Product Session. The historical Android debug client remains a separate older canonical-v1 artifact; it is not evidence for this Web source and is not promoted as current installed success.",
     "No live central Wallet/Gateway or authoritative public settlement endpoint is connected.",
-    "A current Android debug APK is installed and cold-started on an Android 16 emulator; iOS installation, production signature, public deployment and hosted download are not proven.",
+    "A historical Android debug APK was installed and cold-started on an Android 16 emulator, but it is not evidence for the current Web source. Current-source Android/iOS installation, production signature, public deployment and hosted download are not proven.",
     "Local measured capacity evidence covers matching reads; offer-scoped reservation, release integrity and fail-closed amount overflow are locally tested but do not establish public or settlement capacity."
   ],
-  "generatedAt": "2026-08-20T22:27:30Z"
+  "p0EvidenceAudit": {
+    "taskId": "P0-089",
+    "auditedCheckpoint": "5f0a6eea4aef0c1b374e971bd99f41a6e71d6596",
+    "priorEvidenceSha256": "b8b6a47dfbc29c8fed03629b39334a0620f58c6fef4c92cfcdc5da39afbac3c2",
+    "releaseTruthCorrected": true,
+    "sourceRebuilt": false,
+    "publicOrInstalledClaimPromoted": false
+  },
+  "generatedAt": "2026-08-21T00:25:00Z"
 }
