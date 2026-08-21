@@ -1,11 +1,44 @@
+import { discoverWalletProviders, WALLET_PROVIDER_KIND } from './wallet-provider-discovery.js';
+
 const DB_NAME = 'ynx_product_device_v1';
 const KEY_STORE = 'keys';
 const REPLAY_STORE = 'replays';
 let bearer = '';
+let standard = null;
+
+const YNX_CHAIN = Object.freeze({
+  chainId: '0x1917',
+  chainName: 'YNX Testnet',
+  nativeCurrency: Object.freeze({ name: 'YNX Testnet', symbol: 'YNXT', decimals: 18 }),
+  rpcUrls: Object.freeze(['https://evm.ynxweb4.com']),
+  blockExplorerUrls: Object.freeze(['https://explorer.ynxweb4.com']),
+});
+export const OFFICIAL_YNX_WALLET_DOWNLOAD_URL = 'https://www.ynxweb4.com/dapp/download';
+export const STANDARD_METAMASK_DOWNLOAD_URL = 'https://metamask.io/download/';
 
 export const token = () => bearer;
+export const standardConnection = () => standard;
 
-export async function startWalletAuth(surface) {
+export async function startWalletAuth(_surface, options = {}) {
+  const discovery = await discoverWalletProviders(options.scope ?? globalThis, options.waitMs ?? 180);
+  if (discovery.ambiguities.length || discovery.conflictedAnnouncements) throw walletError('WALLET_PROVIDER_AMBIGUOUS', 'Multiple conflicting wallet providers were detected. Disable duplicate extensions and try again.');
+  const preferred = options.wallet === 'metamask' ? WALLET_PROVIDER_KIND.METAMASK : WALLET_PROVIDER_KIND.YNX;
+  const selected = preferred === WALLET_PROVIDER_KIND.YNX ? discovery.ynx : discovery.metamask;
+  if (!selected) {
+    const error = walletError(preferred === WALLET_PROVIDER_KIND.YNX ? 'YNX_WALLET_NOT_FOUND' : 'METAMASK_NOT_FOUND', preferred === WALLET_PROVIDER_KIND.YNX ? 'YNX Wallet is not installed in this browser.' : 'MetaMask is not installed in this browser.');
+    error.fallbackURL = preferred === WALLET_PROVIDER_KIND.YNX ? OFFICIAL_YNX_WALLET_DOWNLOAD_URL : STANDARD_METAMASK_DOWNLOAD_URL;
+    throw error;
+  }
+  const accounts = await selected.provider.request({ method: 'eth_requestAccounts' });
+  if (!Array.isArray(accounts) || !/^0x[0-9a-fA-F]{40}$/.test(accounts[0] || '')) throw walletError('INVALID_ACCOUNT', 'The wallet did not return a valid EVM account.');
+  await ensureYNXChain(selected.provider);
+  standard = Object.freeze({ account: accounts[0], chainId: YNX_CHAIN.chainId, wallet: selected.kind, transport: 'eip-1193' });
+  return standard;
+}
+
+// Native clients may still consume the legacy Product Session launcher during
+// migration. It is deliberately separate from browser standard connection.
+export async function startLegacyProductSessionAuthorization(surface) {
   const config = await requestJSON('/api/auth/config?surface=' + encodeURIComponent(surface));
   if (config.gateway !== 'available') throw new Error('Central Wallet Gateway is unavailable.');
   exactConfig(config, surface);
@@ -67,7 +100,27 @@ export async function completeWalletCallback() {
   return Object.freeze({ account: session.account, expiresAt: session.expiresAt });
 }
 
-export function clearWalletSession() { bearer = ''; }
+export function clearWalletSession() { bearer = ''; standard = null; }
+
+async function ensureYNXChain(provider) {
+  let chainId = await provider.request({ method: 'eth_chainId' });
+  if (String(chainId).toLowerCase() === YNX_CHAIN.chainId) return;
+  try {
+    await provider.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: YNX_CHAIN.chainId }] });
+  } catch (error) {
+    if (error?.code !== 4902 && error?.data?.originalError?.code !== 4902) throw walletError('CHAIN_SWITCH_REJECTED', 'Switching to YNX Testnet was rejected or failed.', error);
+    await provider.request({ method: 'wallet_addEthereumChain', params: [YNX_CHAIN] });
+    await provider.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: YNX_CHAIN.chainId }] });
+  }
+  chainId = await provider.request({ method: 'eth_chainId' });
+  if (String(chainId).toLowerCase() !== YNX_CHAIN.chainId) throw walletError('WRONG_CHAIN', 'The wallet is not connected to YNX Testnet.');
+}
+
+function walletError(code, message, cause) {
+  const error = new Error(message, cause ? { cause } : undefined);
+  error.code = code;
+  return error;
+}
 
 function exactConfig(config, surface) {
   const expected = surface === 'seller'

@@ -7,6 +7,7 @@ for (const file of [
   'styles.css',
   'workflow.css',
   'wallet-auth.js',
+  'wallet-provider-discovery.js',
   'i18n.js',
   'privacy-i18n.js',
   'app.js',
