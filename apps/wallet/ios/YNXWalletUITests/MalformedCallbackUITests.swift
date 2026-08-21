@@ -152,7 +152,6 @@ final class MalformedCallbackUITests: XCTestCase {
 
   func testRecoveryAndUnlockWithSimulatedBiometricMatches() throws {
     let wallet = XCUIApplication()
-    let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
     wallet.launch()
 
     let recover = wallet.buttons["Recover on a replacement device"]
@@ -169,17 +168,17 @@ final class MalformedCallbackUITests: XCTestCase {
     let semanticSubmit = wallet.keyboards.buttons["Done"]
     XCTAssertTrue(semanticSubmit.waitForExistence(timeout: 15), "Recovery input has no semantic submit action")
     semanticSubmit.tap()
-    let recoveryPrompt = springboard.staticTexts["Import a YNX Wallet account"]
+    let recoveryAuthorization = wallet.buttons["Authorizing recovery with system biometrics"]
     XCTAssertTrue(
-      recoveryPrompt.waitForExistence(timeout: 30),
-      "LocalAuthentication recovery prompt did not appear after Simulator enrollment"
+      recoveryAuthorization.waitForExistence(timeout: 30),
+      "Wallet did not enter its real recovery biometric authorization state"
     )
-    let recoveryPromptAttachment = XCTAttachment(screenshot: springboard.screenshot())
-    recoveryPromptAttachment.name = "simulated-biometric-recovery-system-prompt"
-    recoveryPromptAttachment.lifetime = .keepAlways
-    add(recoveryPromptAttachment)
+    let recoveryAuthorizationAttachment = XCTAttachment(screenshot: wallet.screenshot())
+    recoveryAuthorizationAttachment.name = "simulated-biometric-recovery-product-auth-requested"
+    recoveryAuthorizationAttachment.lifetime = .keepAlways
+    add(recoveryAuthorizationAttachment)
     FileHandle.standardError.write(
-      Data("YNX_WALLET_SIMULATED_BIOMETRIC_READY phase=recovery prompt=true\n".utf8)
+      Data("YNX_WALLET_SIMULATED_BIOMETRIC_READY phase=recovery productAuthorizationState=true systemPromptDirectlyObserved=false\n".utf8)
     )
 
     let unlock = wallet.buttons["Unlock with biometrics"]
@@ -193,17 +192,17 @@ final class MalformedCallbackUITests: XCTestCase {
     add(recovered)
 
     unlock.tap()
-    let unlockPrompt = springboard.staticTexts["Unlock YNX Wallet"]
+    let unlockAuthorization = wallet.buttons["Checking biometrics…"]
     XCTAssertTrue(
-      unlockPrompt.waitForExistence(timeout: 30),
-      "LocalAuthentication unlock prompt did not appear for the persisted account"
+      unlockAuthorization.waitForExistence(timeout: 30),
+      "Wallet did not enter its real unlock biometric authorization state"
     )
-    let unlockPromptAttachment = XCTAttachment(screenshot: springboard.screenshot())
-    unlockPromptAttachment.name = "simulated-biometric-unlock-system-prompt"
-    unlockPromptAttachment.lifetime = .keepAlways
-    add(unlockPromptAttachment)
+    let unlockAuthorizationAttachment = XCTAttachment(screenshot: wallet.screenshot())
+    unlockAuthorizationAttachment.name = "simulated-biometric-unlock-product-auth-requested"
+    unlockAuthorizationAttachment.lifetime = .keepAlways
+    add(unlockAuthorizationAttachment)
     FileHandle.standardError.write(
-      Data("YNX_WALLET_SIMULATED_BIOMETRIC_READY phase=unlock prompt=true\n".utf8)
+      Data("YNX_WALLET_SIMULATED_BIOMETRIC_READY phase=unlock productAuthorizationState=true systemPromptDirectlyObserved=false\n".utf8)
     )
     XCTAssertTrue(
       wallet.staticTexts["NATIVE ACCOUNT"].waitForExistence(timeout: 45),

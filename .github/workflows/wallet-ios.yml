@@ -397,7 +397,7 @@ jobs:
           for PHASE in recovery unlock; do
             READY=false
             for _ in $(seq 1 240); do
-              if grep -Fq "YNX_WALLET_SIMULATED_BIOMETRIC_READY phase=$PHASE" \
+              if grep -Fq "YNX_WALLET_SIMULATED_BIOMETRIC_READY phase=$PHASE productAuthorizationState=true systemPromptDirectlyObserved=false" \
                 proof/ci-ios/simulated-biometric-recovery-xctest.log; then
                 READY=true
                 break
