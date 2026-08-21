@@ -2,7 +2,7 @@
   "schemaVersion": "1.0.0",
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "owner": "integration",
-  "status": "P0126_SHOP_WEB_STANDARD_WALLET_DEPLOYMENT_ACTIVE",
+  "status": "P0126_SHOP_WEB_PUBLIC_DEPLOYED_COMPUTER_CONTROL_BLOCKED",
   "scope": [
     "founder-control",
     "wallet-connectivity",
@@ -336,22 +336,22 @@
     }
   ],
   "heavy": {
-    "owner": "integration",
-    "taskId": "P0-126",
-    "status": "ACTIVE_SINGLE_USE",
+    "owner": null,
+    "taskId": null,
+    "status": "AVAILABLE",
     "acquiredAt": "2026-08-21T07:34:18Z",
-    "expiresAt": "2026-08-21T08:34:18Z",
+    "expiresAt": null,
     "sourceCommit": "f41cbf88b528d30e709bf07dc504c174a7e83073",
     "runtimeHost": "43.153.202.237",
-    "currentRuntime": "/opt/ynx-shop/releases/88c0f3a5",
+    "currentRuntime": "/opt/ynx-shop/releases/p0126b-shop-wallet-f41cbf88",
     "rollbackTarget": "/opt/ynx-shop/releases/88c0f3a5",
-    "productionMutationAllowed": true,
+    "productionMutationAllowed": false,
     "singleUse": true,
     "previousOwner": "integration",
     "previousTaskId": "P0-125",
-    "releasedAt": null,
-    "checkpointCommit": null,
-    "reason": "Deploy exact Shop Web/PWA standard EIP-6963/EIP-1193 connection without re-enabling retired Shop Android or changing the authoritative Shop API/state."
+    "releasedAt": "2026-08-21T07:43:31Z",
+    "checkpointCommit": "7b91f2120e7850a91be101b5ca7148dfb36beda6",
+    "reason": "P0-126 deployed exact Shop Web/PWA EIP-6963/EIP-1193 source, preserved guest catalog and authoritative API/state, and verified the no-provider browser path without a blank tab. Computer Control remains blocked by cgWindowNotFound; installed approval and account/signature/transaction claims remain false."
   },
   "wave": {
     "id": "B-financial-apps-quant",

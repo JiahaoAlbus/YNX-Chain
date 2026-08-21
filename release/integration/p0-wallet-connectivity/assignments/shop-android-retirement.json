@@ -1,7 +1,7 @@
 {
   "taskId": "P0-011",
   "owner": "integration",
-  "status": "SHOP_ANDROID_RETIRED_WEB_STANDARD_WALLET_DEPLOYMENT_ACTIVE",
+  "status": "SHOP_ANDROID_RETIRED_WEB_PUBLIC_STANDARD_WALLET_DEPLOYED_COMPUTER_CONTROL_BLOCKED",
   "paths": [
     "apps/shop/**",
     "YNX-Chain-website:{vercel.json,src/lib/ecosystemCatalog.js,public/releases/ecosystem-release-registry.json}"
@@ -19,13 +19,19 @@
   "webPwaWalletMigration": {
     "taskId": "P0-126",
     "sourceCommit": "f41cbf88b528d30e709bf07dc504c174a7e83073",
+    "checkpointCommit": "7b91f2120e7850a91be101b5ca7148dfb36beda6",
+    "activeRuntime": "/opt/ynx-shop/releases/p0126b-shop-wallet-f41cbf88",
+    "rollbackTarget": "/opt/ynx-shop/releases/88c0f3a5",
     "standardConnection": "EIP-6963/EIP-1193",
     "wallets": ["YNX Wallet", "MetaMask"],
     "evmChainId": "0x1917",
     "guestCatalogPreserved": true,
     "productSessionV2": false,
     "installedWalletApprovalVerified": false,
-    "computerControlVerified": false
+    "publicNoProviderFallbackVerified": true,
+    "deployedPublic": true,
+    "computerControlVerified": false,
+    "computerControlBlocker": "cgWindowNotFound"
   },
   "enforce": [
     "disable Android build/release workflow",
