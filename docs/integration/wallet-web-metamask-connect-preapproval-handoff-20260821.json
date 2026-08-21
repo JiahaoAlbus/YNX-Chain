@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "owner": "Wallet Web/PWA/Extensions",
+  "sourceCommit": "3651ba0c4322e0564e29b4573f3def90828dba67",
+  "evidenceCommit": null,
+  "deploymentId": "dpl_2VFy2gauryFgCGvchv2EddXv1zec",
+  "evidencePath": "apps/wallet-web/evidence/browser/wallet-connect-preapproval-20260821.json",
+  "tests": {"full": "97/97", "package": "79/79", "protocolConsumerGate": "passed"},
+  "artifacts": [
+    {"name": "ynx-wallet-web-pwa-0.1.0.zip", "bytes": 284138, "sha256": "38bd007893c976a41b3ac4caa33f00b0bd98cc358283a7b720e5955649fa58be", "signingClass": "unsigned-web-bundle"},
+    {"name": "ynx-wallet-chrome-edge-0.1.0.zip", "bytes": 198658, "sha256": "ec394e64641728bda883581536b7af56b493b7c124bf53d8c9620f432242ed6f", "signingClass": "unsigned-unpacked-extension"},
+    {"name": "ynx-wallet-firefox-0.1.0.zip", "bytes": 198695, "sha256": "05232e4389d2bec35fcfb21d53fa2352bf9ad84e6724f8e1ceaf544a960f8847", "signingClass": "unsigned-unpacked-extension"}
+  ],
+  "proved": ["sourceBoundPublicDeployment", "MetaMaskEip6963Discovery", "EnglishDefault", "inPlaceConnectRoute", "4902OnlyFrozenAddChain", "non4902FailClosed", "noDirectBrowserRpcPrerequisite"],
+  "pendingUserApproval": ["eth_requestAccounts", "walletChainMutation"],
+  "falseGates": ["accountApproved", "providerChainId1917", "chooserClosedAfterApproval", "refreshRestore", "disconnect", "switchAccount", "ynxProviderDetected", "sign", "transaction"]
+}
