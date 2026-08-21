@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "WALLET-CLI-SDK-PROVIDER-LIFECYCLE-HANDOFF-20260821",
+  "owner": "wallet-desktop-cli-sdk",
+  "sourceContract": {
+    "centralHandoffCommit": "d3831c300560507f64a50e73117bab7b85926d9a",
+    "sharedProviderConnectCommit": "98c6d5d784d212df8981a53b17118a511e246ad2",
+    "connectionSuccessRequires": [
+      "selected-provider",
+      "approved-account",
+      "provider-request-chain-0x1917"
+    ],
+    "directBrowserRpcFetchRequired": false,
+    "productSessionBlocksStandardWallet": false
+  },
+  "implementation": {
+    "typescriptSdk": {
+      "package": "@ynx-chain/sdk@0.2.0",
+      "exports": [
+        "readYNXWalletConnection",
+        "requestYNXWalletConnection",
+        "observeYNXWalletConnection"
+      ],
+      "readBehavior": "eth_accounts plus eth_chainId only; no account prompt, deep link, Product Session, or browser RPC fetch",
+      "requestBehavior": "explicit caller action invokes eth_requestAccounts then eth_chainId on the selected provider",
+      "observerBehavior": [
+        "initial refresh state",
+        "accountsChanged",
+        "chainChanged",
+        "disconnect",
+        "listener teardown"
+      ]
+    },
+    "cli": {
+      "command": "ynx-wallet-cli chain-status",
+      "behavior": "HTTPS JSON-RPC eth_chainId read only",
+      "responseBinding": "requires jsonrpc=2.0, response id=1, result=0x1917, no error, and rejects unknown response fields",
+      "doesNot": [
+        "request a browser account",
+        "approve an authorization request",
+        "create a Product Session",
+        "sign or send a transaction"
+      ]
+    },
+    "goSdk": {
+      "packagePath": "sdk/wallet/go",
+      "boundary": "fail-closed P-256 Product Session proof utilities; not evidence of a public Product Session"
+    }
+  },
+  "validation": {
+    "typescriptUnit": "15/15 pass",
+    "goUnit": "go test ./cmd/ynx-wallet-cli ./sdk/wallet/go pass",
+    "sdkCheck": "pass",
+    "standardWalletConsumerGate": "pass",
+    "walletAuthFull": "286/286 pass after package-local npm ci",
+    "typedPackageDryRun": {
+      "name": "@ynx-chain/sdk",
+      "version": "0.2.0",
+      "bytes": 6655,
+      "shasum": "46a5b7765f0793b61e9a85a204a733f6b14bbc3f",
+      "integrity": "sha512-GYBORWw4xmYUORJ3zLKxCfZ6qVZt9CM5uQpz1er5gJcvyNx1PKuCzDIRuBUAe1dtghiRbEou7QcX+BAR81I2jw=="
+    },
+    "liveReadOnlyCli": {
+      "command": "go run ./cmd/ynx-wallet-cli chain-status --timeout 15s",
+      "rpc": "https://evm.ynxweb4.com",
+      "connected": true,
+      "chainId": "0x1917",
+      "source": "eth_chainId",
+      "observedAt": "2026-08-21T11:45:53.405460Z"
+    }
+  },
+  "truth": {
+    "realProviderApproval": false,
+    "realProviderCallback": false,
+    "realProviderRefreshAfterApproval": false,
+    "realProviderDisconnect": false,
+    "account": false,
+    "signature": false,
+    "transaction": false,
+    "productSession": false,
+    "publishedNpm": false,
+    "publicDesktopInstaller": false,
+    "installedDesktop": false,
+    "aggregateWalletConnected": false
+  }
+}
