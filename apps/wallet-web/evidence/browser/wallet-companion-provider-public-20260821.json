@@ -42,7 +42,9 @@
     "documentDirection": "ltr",
     "notranslate": true,
     "pwaCache": "ynx-wallet-web-v7",
-    "secondLoadShellValid": true,
+    "upgradeReloadsObserved": 3,
+    "secondLoadShellValid": false,
+    "postV7ActivationLoadShellValid": true,
     "detectedText": "MetaMask provider detected",
     "windowEthereumAtReadback": false,
     "eip6963MetaMaskDiscoveryProved": true,
@@ -57,7 +59,7 @@
     "disconnect": false,
     "switchAccount": false,
     "noBlankTabAfterConnect": false,
-    "reason": "MetaMask account approval would transmit the user's wallet address to wallet.ynxweb4.com and requires action-time confirmation. No YNX provider was announced in this Chrome profile."
+    "reason": "The pre-existing v6 worker rejected two changed-shell navigations while v7 installed, then the first post-v7-activation load passed. MetaMask account approval would transmit the user's wallet address to wallet.ynxweb4.com and requires action-time confirmation. No YNX provider was announced in this Chrome profile."
   },
   "truth": {
     "directBrowserRpcRequiredForConnection": false,
