@@ -284,6 +284,31 @@ test("macOS anonymous public-download roundtrip stays source-only", () => {
   assert.equal(evidence.productSession, false);
 });
 
+test("macOS public-artifact isolated lifecycle remains a source contract", () => {
+  const evidence = ownerActivityCheckpoint.walletPlatformTracking.macosPublicArtifactIsolatedLifecycleSource;
+  assert.equal(evidence.implementationCommit, "fb15b05b3da5743d0a55b7c0d53cbad6705250d8");
+  assert.equal(evidence.evidenceCommit, "f9c24c919b82170d21884588332e9cb92dceb995");
+  assert.equal(evidence.publicArtifactIsolatedInstallLifecycleSourceReady, true);
+  assert.equal(evidence.hostedSourceContractVerified, true);
+  assert.equal(evidence.publicationJobSkipped, true);
+  assert.equal(evidence.isolatedInstallRoot, "RUNNER_TEMP/Public Applications");
+  assert.equal(evidence.systemApplicationsTargetForbidden, true);
+  assert.equal(evidence.sameRunLifecycleSource, "NON_PUBLIC_RELEASE");
+  assert.equal(evidence.mainRegistration, false);
+  assert.equal(evidence.operatorDispatch, false);
+  assert.equal(evidence.publicRoundtripRuntimeVerified, false);
+  assert.equal(evidence.isolatedLifecycleRuntimeVerified, false);
+  assert.equal(evidence.releaseCreated, false);
+  assert.equal(evidence.publicArtifact, false);
+  assert.equal(evidence.downloadHosted, false);
+  assert.equal(evidence.websitePublished, false);
+  assert.equal(evidence.systemApplicationsInstalled, false);
+  assert.equal(evidence.browserQuarantineAccepted, false);
+  assert.equal(evidence.gatekeeperAccepted, false);
+  assert.equal(evidence.authorizationSuccess, false);
+  assert.equal(evidence.productSession, false);
+});
+
 test("v3 counts and precise owner blockers are derived without aggregate promotion", () => {
   const products = auditV3.registeredProducts;
   assert.equal(products.filter(({ runtime }) => runtime.sourceBoundPublic === true).length, auditV3.counts.sourceBoundPublicProducts);
