@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "checkpoint": "P0_141_FINANCE_DEPLOYMENT_FAIL_CLOSED_PREWRITE",
+  "central": {
+    "commit": "94b15e392d7128fc1a0a12ffc69e42b0f15d765a",
+    "leasePath": "release/integration/p0-wallet-connectivity/execution/p0-141-finance-full-runtime-lease-20260821.json",
+    "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-finance-50892538-20260821T131500Z",
+    "singleUse": true,
+    "reusable": false
+  },
+  "candidate": {
+    "sourceCommit": "50892538dc237ef519d95c491f4b918a125a6c8e",
+    "evidenceCommit": "fd0f1367c4642e843d514727fc838773ad4b9b1a",
+    "archiveSha256": "d35f2e155ae3802b07048dd6f045b63ba477adeb1b12bc381d6e170294290915",
+    "binarySha256": "39b97d6cea11bc53bf1f918e6b3ea4257c19672ba671a1fb73d14e3420169ce3"
+  },
+  "firstFailure": {
+    "stage": "read-only rollback-first production binding preflight",
+    "classification": "PREWRITE_ROLLBACK_BINARY_PATH_MISMATCH",
+    "expectedPath": "/opt/ynx/releases/finance/ynx-finance-3b2383f5c18a/bin/ynx-finance",
+    "observed": "The path does not exist on the authoritative host. The lease binds its SHA-256 but does not declare the actual current binary path.",
+    "action": "Stopped before any archive upload, extraction, release-directory creation, symlink change, service restart, Caddy change, environment change, or Wallet interaction. No alternate path was guessed and no retry was attempted."
+  },
+  "failClosedRecovery": {
+    "activeRuntime": "/opt/ynx/releases/finance/ynx-finance-3b2383f5c18a",
+    "serviceState": "active",
+    "serviceNRestarts": 0,
+    "publicVersion": {
+      "http": 200,
+      "bytes": 130,
+      "sha256": "39789776da47e60b7a7df845789e02ebba16707ad8951eb6f27c84c1b40bb226"
+    },
+    "publicHealth": {
+      "http": 200,
+      "bytes": 485,
+      "sha256": "d1e97a4314acd1ecccf94629d15bd598cb58ff78136b3622ac26d583a82e45c1"
+    }
+  },
+  "state": {
+    "productionWriteAttempted": false,
+    "archiveUploaded": false,
+    "archiveExtracted": false,
+    "releaseCreated": false,
+    "symlinkChanged": false,
+    "serviceRestarted": false,
+    "configurationChanged": false,
+    "walletClicked": false,
+    "accountRequested": false,
+    "candidatePublic": false,
+    "leaseMustBeReleasedNonreusable": true
+  },
+  "nextRequiredAuthority": "Integration must mark P0-141 nonreusable/released and issue a fresh lease only after independently binding the actual current binary path together with the already-attested digests."
+}
