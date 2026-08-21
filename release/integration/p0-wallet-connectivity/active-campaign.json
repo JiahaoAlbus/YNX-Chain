@@ -2,7 +2,7 @@
   "schemaVersion": "1.0.0",
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "owner": "integration",
-  "status": "P0133_SEARCH_CANONICAL_SUBROUTE_REPAIR_ACTIVE",
+  "status": "P0134_SEARCH_CANONICAL_SUBROUTE_REPAIR_V2_ACTIVE",
   "scope": [
     "founder-control",
     "wallet-connectivity",
@@ -34,7 +34,7 @@
   "firstStop": {
     "complete": true,
     "publicConnectivityClaim": false,
-    "nextAction": "P0-133 repairs the verified Search public defect where /search/ loaded root /app.js, /runtime-config.js and /api routes. Activate only exact source d2323ca6 and artifact 44861735, preserve guest Search, and roll back to p0124 on any readiness or public byte mismatch."
+    "nextAction": "P0-133 failed closed before production mutation because its archive omitted packages/dapp-connect-sdk. P0-134 may use only corrected artifact 88b7458a, which includes the exact shared SDK; activate exact source d2323ca6 and roll back to p0124 on any failure."
   },
   "lightLeases": [
     {
@@ -428,21 +428,21 @@
   ],
   "heavy": {
     "owner": "integration",
-    "taskId": "P0-133",
+    "taskId": "P0-134",
     "status": "ACTIVE_SINGLE_USE",
-    "acquiredAt": "2026-08-21T08:57:52Z",
-    "expiresAt": "2026-08-21T09:27:52Z",
+    "acquiredAt": "2026-08-21T09:01:29Z",
+    "expiresAt": "2026-08-21T09:31:29Z",
     "sourceCommit": "d2323ca6a0bf4cc9aed67bf3bd7ee533755999e3",
     "runtimeHost": "43.153.202.237",
     "currentRuntime": "/opt/ynx/search-releases/p0124-search-wallet-7604c88e",
     "rollbackTarget": "/opt/ynx/search-releases/p0124-search-wallet-7604c88e",
-    "candidateRuntime": "/opt/ynx/search-releases/p0133-search-subroute-d2323ca6",
-    "artifactSha256": "4486173571fb3df98d7e77bda7c49b5cf9c4f69f56f521b30ae9a04ca32828af",
+    "candidateRuntime": "/opt/ynx/search-releases/p0134-search-subroute-d2323ca6",
+    "artifactSha256": "88b7458a90fa56690fd3a92104f6d7354a67a0f161cdce89b7c5f168fca774ee",
     "productionMutationAllowed": true,
     "singleUse": true,
     "previousOwner": null,
-    "previousTaskId": "P0-132",
-    "reason": "Bounded repair of the confirmed Search public subroute defect; source tests, build, smoke and local canonical-route probes passed."
+    "previousTaskId": "P0-133",
+    "reason": "Fresh bounded retry after P0-133 failed before production mutation; corrected archive includes exact packages/dapp-connect-sdk required by server-side tests and build."
   },
   "wave": {
     "id": "B-financial-apps-quant",
