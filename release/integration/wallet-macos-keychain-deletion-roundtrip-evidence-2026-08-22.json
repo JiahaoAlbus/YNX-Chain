@@ -1,0 +1,159 @@
+{
+  "schemaVersion": 1,
+  "owner": "02-wallet-auth-ios-macos-native",
+  "evidenceKind": "macos-native-keychain-add-read-delete-hosted-runtime",
+  "generatedAt": "2026-08-21T18:34:11Z",
+  "implementation": {
+    "commit": "a9732e97a819d9fbb3423d4141c46a7da7db36d8",
+    "tree": "ef8e56cc4dbc95489b917c1b198a3b2c52488db5",
+    "branch": "codex/wallet-ios-macos-20260813",
+    "files": [
+      {
+        "path": "apps/wallet/macos/Sources/YNXWalletMacCore/DeviceSecurity.swift",
+        "blob": "8a97924a8a509097d4e1956af681ed3de7d6c6dc"
+      },
+      {
+        "path": "apps/wallet/macos/Sources/YNXWalletMacSecurityProbe/main.swift",
+        "blob": "5da20724b8fa78c7c8fa09fd2cddc9d36ed0c6c3"
+      },
+      {
+        "path": "apps/wallet/macos/Sources/YNXWalletMacRecoveryProbe/main.swift",
+        "blob": "0ceeca53621109539059de9ed952b54bf338aadb"
+      },
+      {
+        "path": ".github/workflows/wallet-macos.yml",
+        "blob": "cc3e8c2901fc013db8d80bb78a95aeb328f5aa6a"
+      }
+    ]
+  },
+  "localVerification": {
+    "fullXcodeAvailable": false,
+    "swiftPMCompleted": false,
+    "swiftPMFailure": "CommandLineTools SwiftBuild could not initialize because duplicate xcspec registrations were reported",
+    "globalDeveloperDirectoryChanged": false,
+    "directSwiftCompilerModuleBuild": true,
+    "systemSecurityFrameworkUsed": true,
+    "testDoubleUsed": false,
+    "securityProbe": {
+      "keychainAvailable": true,
+      "keychainRoundTripVerified": true,
+      "keychainDeletionVerified": true,
+      "biometricPolicyAvailable": false,
+      "biometricErrorCode": -12,
+      "recoveryMaterialPersisted": false,
+      "jsonSha256": "6fd60d6b7ff773a226f84105a49365aaeb2738999f4c1051938cd4376fc5f458"
+    },
+    "recoveryProbe": {
+      "keychainRoundTripVerified": true,
+      "keychainDeletionVerified": true,
+      "recoveryAbsentBeforeAttempt": true,
+      "recoveryAbsentAfterAttempt": true,
+      "recoveryCreated": false,
+      "recoveryMaterialPersisted": false,
+      "failedClosed": true,
+      "jsonSha256": "41c9c421240ecdfdf614881d49e2beb01d31f6b7c8a5c2916b8eb063c04472d1"
+    },
+    "workflowYamlValid": true
+  },
+  "hostedVerification": {
+    "workflow": "wallet-macos",
+    "runId": 32513872367,
+    "jobId": 96870970712,
+    "headSha": "a9732e97a819d9fbb3423d4141c46a7da7db36d8",
+    "runAttempt": 1,
+    "xcode": "26.3",
+    "status": "completed",
+    "conclusion": "success",
+    "completedAt": "2026-08-21T18:34:11Z",
+    "tests": {
+      "executed": 17,
+      "failures": 0
+    },
+    "keychainStep": {
+      "number": 10,
+      "name": "Verify real Keychain and biometric recovery boundary",
+      "conclusion": "success",
+      "securityProbe": {
+        "keychainAvailable": true,
+        "keychainRoundTripVerified": true,
+        "keychainDeletionVerified": true,
+        "biometricPolicyAvailable": false,
+        "biometricErrorCode": -7,
+        "recoveryMaterialPersisted": false
+      },
+      "recoveryProbe": {
+        "keychainRoundTripVerified": true,
+        "keychainDeletionVerified": true,
+        "biometricPolicyAvailable": false,
+        "biometricErrorCode": -7,
+        "recoveryCreateAttempted": true,
+        "recoveryCreated": false,
+        "recoveryMaterialPersisted": false,
+        "recoveryAbsentBeforeAttempt": true,
+        "recoveryAbsentAfterAttempt": true,
+        "failedClosed": true
+      }
+    },
+    "lifecycle": {
+      "coldPid": 3033,
+      "secondPid": 3070,
+      "canonicalRequestPid": 3070,
+      "canonicalRequestError": "CANONICAL_AUTH_BRIDGE_UNAVAILABLE",
+      "canonicalRequestVisible": true,
+      "callbackEmitted": false,
+      "malformedCallbackColdPid": 3335,
+      "malformedCallbackError": "INVALID_DEEP_LINK",
+      "malformedCallbackVisible": true,
+      "widenedCallbackColdPid": 3387,
+      "widenedCallbackError": "INVALID_AUTHORIZATION_REQUEST",
+      "widenedCallbackVisible": true
+    }
+  },
+  "artifact": {
+    "actionsArtifactId": 9458068625,
+    "actionsArtifactName": "ynx-wallet-macos-native",
+    "actionsArtifactBytes": 1697488,
+    "actionsArtifactDigest": "sha256:b8c8cee7962bd47f538f712dc7bba56224cbe21ca65e2fe3aba5b401caaf1164",
+    "downloadInspected": false,
+    "innerEngineeringDmg": {
+      "name": "YNX-Wallet-macOS-ad-hoc.dmg",
+      "bytes": 308442,
+      "sha256": "9e72d5d8e197b1ebabca9372edff34b4c893f361c89bdadd571d2ebd89fea2c8",
+      "minimumOS": "macOS 13.0",
+      "architectures": [
+        "x86_64",
+        "arm64"
+      ],
+      "bundleIdentifier": "com.ynxweb4.wallet.macos",
+      "signingClass": "ad-hoc",
+      "teamIdentifier": null,
+      "developerIdSigned": false,
+      "notarized": false,
+      "gatekeeperAccepted": false
+    }
+  },
+  "gates": {
+    "macosNativeKeychainAddReadDeleteVerified": true,
+    "hostedKeychainDeletionRoundTripVerified": true,
+    "deviceRecoveryMaterialAbsentBeforeAndAfterFailedAttempt": true,
+    "biometricSuccess": false,
+    "physicalBiometricVerified": false,
+    "productRecoverySuccess": false,
+    "authorizationSuccess": false,
+    "callbackEmitted": false,
+    "accountAvailable": false,
+    "productSessionVerified": false,
+    "signSuccess": false,
+    "sendSuccess": false,
+    "transactionSuccess": false,
+    "productionSigned": false,
+    "developerIdSigned": false,
+    "notarized": false,
+    "stapledTicket": false,
+    "gatekeeperAccepted": false,
+    "systemApplicationsInstalled": false,
+    "publicNativeWalletPublished": false,
+    "appStoreReleased": false,
+    "universalLinkVerified": false
+  }
+}
