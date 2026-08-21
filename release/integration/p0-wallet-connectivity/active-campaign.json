@@ -2,7 +2,7 @@
   "schemaVersion": "1.0.0",
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "owner": "integration",
-  "status": "P0095_CALENDAR_DEPLOYMENT_FAILED_CLOSED_ROLLBACK_COMPLETE",
+  "status": "P0097_CALENDAR_PAIRED_STATE_DEPLOYMENT_ACTIVE",
   "scope": [
     "founder-control",
     "wallet-connectivity",
@@ -34,7 +34,7 @@
   "firstStop": {
     "complete": true,
     "publicConnectivityClaim": false,
-    "nextAction": "P0-095 is consumed and released after exact binary+state rollback restored public source 635f6745. A successor must use a fresh lease, bounded readiness wait and paired state rollback. Card and Wallet/Auth remain independently active; Calendar installed Wallet and ComputerControl remain false."
+    "nextAction": "P0-097 is a wholly new single-use Calendar lease with bounded readiness and exact binary+state+key paired rollback. P0-095 remains nonreusable. Card and Wallet/Auth remain independently active; Calendar installed Wallet and ComputerControl remain false."
   },
   "lightLeases": [
     {
@@ -321,16 +321,16 @@
     }
   ],
   "heavy": {
-    "owner": null,
-    "taskId": "P0-095",
-    "status": "CONSUMED_RELEASED_FAILED_CLOSED_STATE_MIGRATION_ROLLBACK",
-    "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-calendar-afb1b988-20260821T013320Z",
-    "leasedAt": "2026-08-21T01:33:20Z",
-    "expiresAt": "2026-08-21T03:33:20Z",
-    "releasedAt": "2026-08-21T01:41:00Z",
-    "checkpointCommit": "882e9a0e3b7d1d6e6741c3a20ce3e6a2f0f63de1",
-    "scope": "calendar-afb1b988-binary-deployment-to-ynx-calendar-service-and-public-readback",
-    "productionMutationAllowed": false,
+    "owner": "integration",
+    "taskId": "P0-097",
+    "status": "ACTIVE_BOUNDED_CALENDAR_PAIRED_STATE_DEPLOYMENT",
+    "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-calendar-afb1b988-paired-20260821T014531Z",
+    "leasedAt": "2026-08-21T01:45:31Z",
+    "expiresAt": "2026-08-21T03:45:31Z",
+    "releasedAt": null,
+    "checkpointCommit": null,
+    "scope": "calendar-afb1b988-bounded-readiness-and-paired-state-deployment",
+    "productionMutationAllowed": true,
     "singleUse": true
   },
   "wave": {
