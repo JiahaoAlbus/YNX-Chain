@@ -385,6 +385,13 @@ jobs:
           APPLESCRIPT
           }
           simulator_face_id_menu "Enrolled"
+          xcrun simctl spawn "$DEVICE" log stream \
+            --style compact \
+            --level info \
+            --predicate 'process == "YNXWallet" AND eventMessage CONTAINS "YNX_WALLET_BIOMETRIC_AUTH_"' \
+            > proof/ci-ios/simulated-biometric-product-auth.log 2>&1 &
+          PRODUCT_AUTH_LOG_PID=$!
+          trap 'kill "$PRODUCT_AUTH_LOG_PID" 2>/dev/null || true' EXIT
           xcodebuild test \
             -workspace ios/YNXWallet.xcworkspace \
             -scheme YNXWallet \
@@ -395,10 +402,15 @@ jobs:
             2>&1 | tee proof/ci-ios/simulated-biometric-recovery-xctest.log &
           XCODEBUILD_PID=$!
           for PHASE in recovery unlock; do
+            if [ "$PHASE" = recovery ]; then
+              PURPOSE=account-import
+            else
+              PURPOSE=unlock
+            fi
             READY=false
             for _ in $(seq 1 240); do
-              if grep -Fq "YNX_WALLET_SIMULATED_BIOMETRIC_READY phase=$PHASE productAuthorizationState=true systemPromptDirectlyObserved=false" \
-                proof/ci-ios/simulated-biometric-recovery-xctest.log; then
+              if grep -Fq "YNX_WALLET_BIOMETRIC_AUTH_REQUESTED purpose=$PURPOSE hardware=true enrolled=true securityLevel=BIOMETRIC_STRONG systemPromptDirectlyObserved=false" \
+                proof/ci-ios/simulated-biometric-product-auth.log; then
                 READY=true
                 break
               fi
@@ -412,6 +424,13 @@ jobs:
             simulator_face_id_menu "Matching Face"
           done
           wait "$XCODEBUILD_PID"
+          kill "$PRODUCT_AUTH_LOG_PID" 2>/dev/null || true
+          wait "$PRODUCT_AUTH_LOG_PID" 2>/dev/null || true
+          trap - EXIT
+          grep -F "YNX_WALLET_BIOMETRIC_AUTH_RESULT purpose=account-import success=true" \
+            proof/ci-ios/simulated-biometric-product-auth.log
+          grep -F "YNX_WALLET_BIOMETRIC_AUTH_RESULT purpose=unlock success=true" \
+            proof/ci-ios/simulated-biometric-product-auth.log
           grep -F "YNX_WALLET_SIMULATED_BIOMETRIC_MATCHED recovery=true unlock=true" \
             proof/ci-ios/simulated-biometric-recovery-xctest.log
           grep -F "Test Case '-[YNXWalletUITests.MalformedCallbackUITests testRecoveryAndUnlockWithSimulatedBiometricMatches]' passed" \

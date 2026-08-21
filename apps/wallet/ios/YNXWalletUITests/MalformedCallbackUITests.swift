@@ -168,18 +168,6 @@ final class MalformedCallbackUITests: XCTestCase {
     let semanticSubmit = wallet.keyboards.buttons["Done"]
     XCTAssertTrue(semanticSubmit.waitForExistence(timeout: 15), "Recovery input has no semantic submit action")
     semanticSubmit.tap()
-    let recoveryAuthorization = wallet.buttons["Authorizing recovery with system biometrics"]
-    XCTAssertTrue(
-      recoveryAuthorization.waitForExistence(timeout: 30),
-      "Wallet did not enter its real recovery biometric authorization state"
-    )
-    let recoveryAuthorizationAttachment = XCTAttachment(screenshot: wallet.screenshot())
-    recoveryAuthorizationAttachment.name = "simulated-biometric-recovery-product-auth-requested"
-    recoveryAuthorizationAttachment.lifetime = .keepAlways
-    add(recoveryAuthorizationAttachment)
-    FileHandle.standardError.write(
-      Data("YNX_WALLET_SIMULATED_BIOMETRIC_READY phase=recovery productAuthorizationState=true systemPromptDirectlyObserved=false\n".utf8)
-    )
 
     let unlock = wallet.buttons["Unlock with biometrics"]
     XCTAssertTrue(
@@ -192,18 +180,6 @@ final class MalformedCallbackUITests: XCTestCase {
     add(recovered)
 
     unlock.tap()
-    let unlockAuthorization = wallet.buttons["Checking biometrics…"]
-    XCTAssertTrue(
-      unlockAuthorization.waitForExistence(timeout: 30),
-      "Wallet did not enter its real unlock biometric authorization state"
-    )
-    let unlockAuthorizationAttachment = XCTAttachment(screenshot: wallet.screenshot())
-    unlockAuthorizationAttachment.name = "simulated-biometric-unlock-product-auth-requested"
-    unlockAuthorizationAttachment.lifetime = .keepAlways
-    add(unlockAuthorizationAttachment)
-    FileHandle.standardError.write(
-      Data("YNX_WALLET_SIMULATED_BIOMETRIC_READY phase=unlock productAuthorizationState=true systemPromptDirectlyObserved=false\n".utf8)
-    )
     XCTAssertTrue(
       wallet.staticTexts["NATIVE ACCOUNT"].waitForExistence(timeout: 45),
       "Second matched Simulator biometric did not unlock the recovered account"

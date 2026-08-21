@@ -20,6 +20,7 @@ export async function authorizeLocalKeyUse(purpose: AuthorizationPurpose): Promi
   if (!await LocalAuthentication.isEnrolledAsync()) throw new Error("Enroll Face ID or a strong fingerprint before using Wallet keys");
   const level = await LocalAuthentication.getEnrolledLevelAsync();
   if (level !== LocalAuthentication.SecurityLevel.BIOMETRIC_STRONG) throw new Error("Strong system biometrics are required");
+  console.info(`YNX_WALLET_BIOMETRIC_AUTH_REQUESTED purpose=${purpose} hardware=true enrolled=true securityLevel=BIOMETRIC_STRONG systemPromptDirectlyObserved=false`);
   const result = await LocalAuthentication.authenticateAsync({
     promptMessage: prompts[purpose],
     cancelLabel: "Cancel",
@@ -28,5 +29,6 @@ export async function authorizeLocalKeyUse(purpose: AuthorizationPurpose): Promi
     requireConfirmation: true,
     biometricsSecurityLevel: "strong",
   });
+  console.info(`YNX_WALLET_BIOMETRIC_AUTH_RESULT purpose=${purpose} success=${result.success}`);
   if (!result.success) throw new Error(result.error === "user_cancel" ? "Biometric authorization was cancelled" : "Biometric authorization failed");
 }
