@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "owner": "wallet-web-pwa",
+  "sourceCommit": "562ceb505469a6d0a6efd4d8761dfbd741916b50",
+  "verifiedAt": "2026-08-21T07:15:19Z",
+  "origin": "https://wallet.ynxweb4.com",
+  "directStaticReadback": {
+    "root": {"status": 200, "sha256": "9a3d2d9e580fa26e7f1ccd58179b937afbc2b1a7bf062cfe88990c4bdec18020", "matchesSource": true, "title": "YNX Wallet — Testnet companion"},
+    "app": {"status": 200, "sha256": "bf2f74c06195e801a9f3c35405a84b3df0d8062a5e369b537a529ce233074940", "matchesSource": true},
+    "sw": {"status": 200, "sha256": "ff8e063ef072e858ee714ea6bc254280a91304f4a8039bfcbc08c541eaeddda1", "matchesSource": true, "cacheControl": "no-store, max-age=0"},
+    "versionedWorker": {"status": 200, "sha256": "e9546a2e8686207eac620002ada881e6861d6805677616115364c30244c75fee", "matchesSource": true, "cacheControl": "no-store, max-age=0"},
+    "integrity": {"status": 200, "sha256": "ac1ecf5538fc588dbd7ac88c3b615ab6525e7ca842cc4e7c6ff97230e3554ecb", "cacheControl": "no-store, max-age=0"},
+    "policy": {"status": 200, "sha256": "118a0761af955cff5e896da2901beb3d7c2eb953d03cf07ec4d6b9f566d6ea51", "matchesSource": true, "cacheControl": "no-store, max-age=0", "cacheSchema": "ynx-wallet-web-v7"},
+    "recoveryPage": {"status": 200, "sha256": "13723d0468f3e35d15bcceead6a278fe05bbadf90fff074e81fb16dedff462a0", "matchesSource": true, "cacheControl": "no-store, max-age=0"},
+    "recoveryScript": {"status": 200, "sha256": "b81b35d763a0eda7f0f161b85fe487c2a860249d7b0584e60f34cbc6de7cb7a9", "matchesSource": true, "cacheControl": "no-store, max-age=0"}
+  },
+  "publicBrowserVisible": {
+    "class": "read-only in-app browser UI inspection; no installed provider or Service Worker API was available to the inspection surface",
+    "englishDefault": true,
+    "dedicatedWalletCompanion": true,
+    "customSchemeTopLevelLinkAbsent": true,
+    "missingProviderFailClosed": true,
+    "officialInstallFallbackVisible": true,
+    "metamaskFallbackVisible": true,
+    "rpcFailureFailClosed": true,
+    "signDisabled": true,
+    "sendDisabled": true
+  },
+  "truth": {
+    "deployedPublicStaticShell": true,
+    "publicChromeV6UpgradeRuntimeVerified": false,
+    "installedPwaVerified": false,
+    "eip6963ProviderDiscovered": false,
+    "eip1193ProviderConnected": false,
+    "metamaskSelected": false,
+    "walletAccountAuthorized": false,
+    "messageSigned": false,
+    "transactionSubmitted": false,
+    "canonicalAuthCallbackSuccess": false,
+    "androidAuthorizeCallbackVerified": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}
