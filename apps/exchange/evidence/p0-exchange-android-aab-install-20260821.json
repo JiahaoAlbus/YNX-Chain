@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "checkpoint": "Exchange Android AAB local install gate",
-  "capturedAt": "2026-08-21T09:00:00Z",
+  "capturedAt": "2026-08-21T09:52:40Z",
   "source": {
     "commit": "54d613703529a4e1f28c9df0137dca617eaee4db",
     "tree": "f6612a355755117970e7e527a0fd2f4c7e349c87",
