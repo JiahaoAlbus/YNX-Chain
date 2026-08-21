@@ -1,0 +1,149 @@
+{
+  "schemaVersion": 1,
+  "owner": "02-wallet-auth-ios-macos-native",
+  "evidenceKind": "native-ci-trigger-ownership-isolation",
+  "branch": "codex/wallet-ios-macos-20260813",
+  "implementation": {
+    "commit": "d151b6c603da3498c396d92bab3d5570754723fd",
+    "parent": "8879c8a068da8084cbda34f1613c6e1d8a5cd776",
+    "file": {
+      "path": ".github/workflows/wallet-ios.yml",
+      "blob": "89a9d633e09e6d928fcdd48e806b575fcef0755c",
+      "bytes": 23293,
+      "sha256": "6d7ccf2bd67aae6b35663efa4cec0770b9893d3d9415b1963eef86811d8f144b"
+    },
+    "pushMacosExclusion": "!apps/wallet/macos/**",
+    "pullRequestMacosExclusion": "!apps/wallet/macos/**",
+    "broadWalletIncludeRetained": true,
+    "walletAuthSharedPackageIncludeRetained": true,
+    "iosWorkflowSelfChangeIncludeRetained": true,
+    "iosSourceOrSharedContractCoverageReduced": false
+  },
+  "sourceContractProbe": {
+    "commit": "05b49f960d759385b3c362a07f72c55706398c50",
+    "parent": "d151b6c603da3498c396d92bab3d5570754723fd",
+    "files": [
+      {
+        "path": ".github/workflows/wallet-macos.yml",
+        "blob": "9f4cdd53d3c972caef6c1c61307e6ec95b9acaf0",
+        "bytes": 26405,
+        "sha256": "edad33c3e8eff13e90b19ee8bce62815a30262a8996595a2c63d78c6ba5c91e8"
+      },
+      {
+        "path": "apps/wallet/macos/scripts/verify-ci-trigger-isolation.rb",
+        "blob": "6ea5cc394831a7922860280a780a56e2cf65952c",
+        "bytes": 1120,
+        "sha256": "251af675480fb1046b1c514b6c48e56cd318a839510bc5401c7b91b95c20e3b6",
+        "mode": "100755"
+      }
+    ],
+    "localYamlParse": true,
+    "localRubySyntax": true,
+    "localOwnershipContractVerifier": true,
+    "hostedOwnershipContractVerifier": true,
+    "hostedReceipt": "wallet iOS/macOS CI trigger ownership verified"
+  },
+  "directTriggerEvidence": {
+    "exactHead": "05b49f960d759385b3c362a07f72c55706398c50",
+    "exactHeadCommitScope": "Only .github/workflows/wallet-macos.yml and apps/wallet/macos/scripts/verify-ci-trigger-isolation.rb changed.",
+    "actionsRunsReturnedForExactHead": 1,
+    "walletMacosRunsReturnedForExactHead": 1,
+    "walletIosRunsReturnedForExactHead": 0,
+    "walletMacosRunId": 32489750426,
+    "walletMacosJobId": 96794372033,
+    "walletMacosStatus": "completed",
+    "walletMacosConclusion": "success",
+    "walletMacosCreatedAt": "2026-08-21T13:59:29Z",
+    "walletMacosStartedAt": "2026-08-21T13:59:32Z",
+    "walletMacosCompletedAt": "2026-08-21T14:00:59Z",
+    "walletMacosUpdatedAt": "2026-08-21T14:00:59Z",
+    "publicRunUrl": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/32489750426",
+    "publicJobUrl": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/32489750426/job/96794372033",
+    "publicJobLogBytes": 124649,
+    "publicJobLogSha256": "edad95fba65a0986df8b640b7d00f5d7d38144fbbf9219be5190a767c2d26a40"
+  },
+  "hostedMacosRegression": {
+    "xcode": "26.3",
+    "allStepsSucceeded": true,
+    "swiftTests": {
+      "executed": 15,
+      "failures": 0
+    },
+    "architectures": [
+      "x86_64",
+      "arm64"
+    ],
+    "signingClass": "ad-hoc engineering application",
+    "cleanupExpectedSha256": "639c7ce873ef63cbb5df5bf4602d923ddebd05328187d805c21e39bcdbcca5ce",
+    "cleanupRestoredSha256": "639c7ce873ef63cbb5df5bf4602d923ddebd05328187d805c21e39bcdbcca5ce",
+    "coldLaunchPid": 2803,
+    "secondLaunchPid": 2953,
+    "coldRpcChainId": "0x1917",
+    "secondRpcChainId": "0x1917",
+    "coldRestStatus": 200,
+    "secondRestStatus": 200,
+    "canonicalCallback": {
+      "pid": 2953,
+      "result": "CANONICAL_AUTH_BRIDGE_UNAVAILABLE",
+      "visible": true,
+      "authorizationSuccess": false,
+      "signing": false,
+      "callbackEmitted": false
+    },
+    "callbackColdStart": {
+      "pid": 3177,
+      "result": "INVALID_DEEP_LINK",
+      "visible": true,
+      "failedClosed": true
+    },
+    "widenedCallbackColdStart": {
+      "pid": 3230,
+      "result": "INVALID_AUTHORIZATION_REQUEST",
+      "visible": true,
+      "failedClosed": true
+    },
+    "artifact": {
+      "id": 9449298163,
+      "name": "ynx-wallet-macos-native",
+      "bytes": 1131389,
+      "digest": "sha256:b025a32039785f871a1e25c8f0fdeaa9621102003f7ee91f86a3917e66f04648",
+      "createdAt": "2026-08-21T14:00:55Z",
+      "expiresAt": "2026-11-19T13:59:29Z",
+      "downloadInspected": false,
+      "innerZipSha256": null,
+      "screenshotHashesInspected": false
+    }
+  },
+  "workflowSelfChangeBoundary": {
+    "runId": 32489611054,
+    "headSha": "d151b6c603da3498c396d92bab3d5570754723fd",
+    "reasonTriggered": "The implementation commit intentionally changed .github/workflows/wallet-ios.yml, which remains an included iOS path.",
+    "conclusion": "cancelled",
+    "updatedAt": "2026-08-21T13:58:26Z",
+    "simulatorEvidenceProduced": false,
+    "iosGatePromoted": false
+  },
+  "gates": {
+    "macosOnlyChangesExcludedFromIosPushAndPullRequestTriggers": true,
+    "exactHeadMacosOnlyCommitTriggeredWalletMacos": true,
+    "exactHeadMacosOnlyCommitTriggeredWalletIos": false,
+    "iosSimulatorGatePromotedByTriggerIsolation": false,
+    "productionSigningKeychainCleanupRuntimeVerified": false,
+    "productionWorkflowRegistered": false,
+    "productionWorkflowDispatched": false,
+    "developerIDSignedArtifact": false,
+    "notarizedNativeDmgProduced": false,
+    "notarizedNativeDmgWebsitePublished": false,
+    "publicNativeWalletPublished": false,
+    "universalLinkSuccess": false,
+    "physicalBiometricVerified": false,
+    "productRecoverySuccess": false,
+    "authorizationSuccess": false,
+    "accountAvailable": false,
+    "productSessionVerified": false,
+    "signSuccess": false,
+    "sendSuccess": false,
+    "transactionSuccess": false,
+    "appStoreReleased": false
+  }
+}
