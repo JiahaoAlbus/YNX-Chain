@@ -2,7 +2,7 @@
   "schemaVersion": "1.0.0",
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "owner": "integration",
-  "status": "P0090_FAUCET_BOUNDED_SINGLE_USE_DEPLOYMENT_ACTIVE",
+  "status": "P0090_FAILED_CLOSED_RELEASED_P0091_FAUCET_CORRECTED_VALIDATOR_DEPLOYMENT_ACTIVE",
   "scope": [
     "founder-control",
     "wallet-connectivity",
@@ -34,7 +34,7 @@
   "firstStop": {
     "complete": true,
     "publicConnectivityClaim": false,
-    "nextAction": "P0-012 source/public read-only revalidation is released at d551218097b707755a8be017689a6d6983c8068e. P0-090 authorizes one rollback-first Faucet-only transaction for the exact ea0e068becd9 Linux artifact SHA-256 a78eb845c88911b069bb0e53642dd91084f983be895b53910949232909186a4a; any preflight, digest, service, health or version mismatch must fail closed without retry."
+    "nextAction": "P0-090 is consumed/nonreusable and released failed closed at owner evidence 11b34a4af0ddf3c3b9e29db0a4672f8137c52edf. Candidate health/version were valid, but the deployment validator checked nonexistent top-level sourceCommit instead of PublicVersion build.commit; rollback restored exact old binary and public 8fe runtime. P0-091 is a wholly new Faucet-only lease with the corrected exact .build.commit contract and fresh rollback-first checks."
   },
   "lightLeases": [
     {
@@ -322,11 +322,11 @@
   ],
   "heavy": {
     "owner": "integration",
-    "taskId": "P0-090",
+    "taskId": "P0-091",
     "status": "ACTIVE_BOUNDED_SINGLE_USE_ROLLBACK_FIRST",
-    "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-faucet-ea0e068b-20260821T003500Z",
-    "leasedAt": "2026-08-21T00:35:00Z",
-    "expiresAt": "2026-08-21T02:35:00Z",
+    "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-faucet-ea0e068b-validator-v2-20260821T004500Z",
+    "leasedAt": "2026-08-21T00:45:00Z",
+    "expiresAt": "2026-08-21T02:45:00Z",
     "scope": "faucet-only-binary-deployment-and-public-readback",
     "productionMutationAllowed": true,
     "singleUse": true
