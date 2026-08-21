@@ -427,23 +427,23 @@
     }
   ],
   "heavy": {
-    "owner": "integration",
+    "owner": null,
     "taskId": "P0-140",
-    "status": "ACTIVE",
+    "status": "RELEASED_PUBLIC_CHECKPOINT_SCOPE_DIVERGENCE_RECORDED",
     "acquiredAt": "2026-08-21T10:42:00Z",
     "expiresAt": "2026-08-21T11:12:00Z",
-    "releasedAt": null,
-    "sourceCommit": "a246e185a0b584398573cbb7669c7edca38299df",
+    "releasedAt": "2026-08-21T11:09:11Z",
+    "sourceCommit": "983e9199dc03da6f1ac4db33d33119513642cacf",
     "runtimeHost": "43.153.202.237",
     "currentRuntime": "/usr/local/bin/ynx-calendard",
-    "rollbackTarget": "/var/backups/ynx-chain/calendar-a246e185-p0140",
-    "candidateRuntime": "/var/tmp/ynx-calendar-a246e185-p0140/ynx-calendard",
-    "artifactSha256": "01dd587a288a040dba2854d8ef4e61c20b849b8b9fc454c7213908e1534fc3f0",
-    "productionMutationAllowed": true,
+    "rollbackTarget": "/var/backups/ynx-chain/calendar-983e919-p0140-r2",
+    "candidateRuntime": "/var/tmp/ynx-calendar-983e919-p0140/ynx-calendard",
+    "artifactSha256": "37ab9f0fc990f8957f7003440e8efa08410ce3b5fb38e1b4fda6cb96362a074f",
+    "productionMutationAllowed": false,
     "singleUse": true,
     "previousOwner": null,
     "previousTaskId": "P0-139",
-    "reason": "P0-140 may deploy only exact Calendar source a246e185 and artifact 01dd587a through the source-owned refusal-tolerant transaction, preserving paired binary/state/HMAC-key rollback. Public Provider approval, Product Session v2, installed clients and Computer Control remain false until directly proved."
+    "reason": "P0-140 was released after Calendar source advanced beyond the originally frozen a246e185 candidate. The divergence is recorded rather than retroactively authorized. Current public source 983e9199 is HTTP-verified and visible English guest, real MetaMask approval, 0x1917 connection, chooser closure and refresh restoration are directly proved. Product Session v2, private Calendar sync, production signing and store release remain false."
   },
   "wave": {
     "id": "B-financial-apps-quant",
