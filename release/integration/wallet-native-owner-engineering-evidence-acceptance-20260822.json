@@ -2,12 +2,12 @@
   "schemaVersion": "1.0.0",
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "owner": "Central Integration",
-  "acceptedAt": "2026-08-21T16:47:00Z",
+  "acceptedAt": "2026-08-21T16:55:00Z",
   "decision": "OWNER_ENGINEERING_EVIDENCE_ACCEPTED_PRODUCTION_GATES_UNCHANGED",
   "ownerBranch": {
     "name": "codex/wallet-ios-macos-20260813",
-    "remoteHead": "1654fb467efa0bd2e31f43e11c09cebd4205c4cf",
-    "remoteHeadTree": "a0dd3584c69d0acca9b2aabaebefafc292432ce0"
+    "remoteHead": "ae0c3a8074e20961530b3da962bbebacf2e76f27",
+    "remoteHeadTree": "7ca50f3aeb5829e451a13f44b578238033c19f4f"
   },
   "acceptedSlices": {
     "macosNotarizedManifestCommand": {
@@ -111,6 +111,32 @@
       "releaseCreated": false,
       "hostedManifestRuntimeVerified": false,
       "workflowDispatchedForPublication": false
+    },
+    "macosEngineeringDmgAnonymousRoundtripSourceGate": {
+      "implementationCommit": "912e79642e805a35004a02312ee2b7f1ca17f3e8",
+      "implementationTree": "91f466e6c124bd26b786c9ddf28c94a5f5dce779",
+      "workflowBlob": "36870e25c7a0679e922ecf1606e1e596fe406279",
+      "verifierBlob": "2cd86d082d7aab3000b8e66c92a5ebae0063435c",
+      "evidenceCommit": "ae0c3a8074e20961530b3da962bbebacf2e76f27",
+      "evidenceTree": "7ca50f3aeb5829e451a13f44b578238033c19f4f",
+      "evidencePath": "release/integration/wallet-macos-engineering-dmg-anonymous-roundtrip-source-ci-evidence-2026-08-21.json",
+      "evidenceBlob": "2d3bf96b9f903afb8f2cba972d1abe10f29a2dcb",
+      "evidenceBytes": 4666,
+      "evidenceSha256": "83a35b84a58498224edf867dc04e2d024648ad55d72c6fa17b416bf4b350c82d",
+      "githubActionsRun": 32504684583,
+      "nativeJob": 96842073535,
+      "publicationJob": 96842526764,
+      "nativeJobSuccess": true,
+      "publicationJobSkipped": true,
+      "swiftTests": "17/17",
+      "anonymousPublicRoundtripSourceReady": true,
+      "hostedSourceContractVerified": true,
+      "transportMechanismObserved": true,
+      "engineeringDmgSha256FromPublicLog": "adf22429be0fac8a3fda01136139de5e71e53ad05cf7ba42947599d69ac5d4a3",
+      "engineeringDmgBytesFromPublicLog": 307429,
+      "anonymousMacosRoundtripRuntimeVerified": false,
+      "releaseCreated": false,
+      "workflowDispatchedForPublication": false
     }
   },
   "routerCrossCheck": {
@@ -134,6 +160,7 @@
     "websiteNativeReplacementPublished": false,
     "engineeringDmgPrereleasePublished": false,
     "engineeringDmgReleaseManifestHosted": false,
+    "anonymousMacosRoundtripRuntimeVerified": false,
     "operatorPublicationDispatch": false,
     "electronPreviewRelabeledAsOwnerNative": false,
     "systemInstalled": false,
