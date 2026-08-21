@@ -112,11 +112,15 @@ jobs:
           bash apps/wallet/macos/scripts/cleanup-signing-material.sh
           security list-keychains -d user > "$RESTORED"
           cmp -s "$EXPECTED" "$RESTORED"
+          EXPECTED_SHA256="$(shasum -a 256 "$EXPECTED" | awk '{print $1}')"
+          RESTORED_SHA256="$(shasum -a 256 "$RESTORED" | awk '{print $1}')"
+          test "$EXPECTED_SHA256" = "$RESTORED_SHA256"
           test ! -e "$ORIGINAL"
           test ! -e "$PROBE_KEYCHAIN"
           test ! -e "$P12_PROBE"
           test ! -e "$NOTARY_PROBE"
-          printf 'originalSearchListRestored=true temporaryKeychainDeleted=true p12Deleted=true notaryKeyDeleted=true productionCredentialsUsed=false\n' \
+          printf 'originalSearchListRestored=true expectedSha256=%s restoredSha256=%s temporaryKeychainDeleted=true p12Deleted=true notaryKeyDeleted=true productionCredentialsUsed=false\n' \
+            "$EXPECTED_SHA256" "$RESTORED_SHA256" \
             | tee "$PROOF/signing-keychain-cleanup.txt"
       - name: Verify real Keychain and biometric recovery boundary
         run: |

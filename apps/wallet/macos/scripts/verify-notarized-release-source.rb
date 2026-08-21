@@ -42,7 +42,9 @@ workflow_requirements = [
 cleanup_requirements = [
   "set -euo pipefail",
   "original_keychains=()",
+  "keychain=\"${keychain#\"${keychain%%[![:space:]]*}\"}\"",
   "security list-keychains -d user -s \"${original_keychains[@]}\"",
+  "cmp -s \"$YNX_ORIGINAL_KEYCHAINS_PATH\" <(security list-keychains -d user)",
   "security delete-keychain \"$YNX_SIGNING_KEYCHAIN\"",
   "rm -f \"$YNX_NOTARY_KEY_PATH\"",
   "rm -f \"$YNX_DEVELOPER_ID_P12_PATH\"",
