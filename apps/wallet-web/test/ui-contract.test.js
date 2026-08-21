@@ -15,6 +15,10 @@ test("fallback contract always offers YNX download and MetaMask when YNX is abse
   assert.doesNotMatch(source, /pageshow|visibilitychange/);
   assert.match(source, /walletDiscoveryPresentation\(availability\)/);
   assert.match(source, /function localizedError\(error\)/);
+  assert.match(source, /function statusView\(status = state\.status\)/);
+  assert.match(source, /status\.type === "error"/);
+  assert.match(source, /state\.status=Object\.freeze\(status\)/);
+  assert.doesNotMatch(source, /setStatus\(localizedError\(error\), "error"\)/);
   assert.doesNotMatch(source, /error\?\.message \|\| "Request failed closed\."/);
   assert.doesNotMatch(source, /error\?\.message \|\| "Wallet detection failed closed\."/);
   assert.match(source, /disabled aria-disabled="true" data-permanent-disabled="true"/);
@@ -35,7 +39,9 @@ test("390px RTL dark and large-text preview contracts remain buildable", async (
     readFile(new URL("../public/accessibility.css",import.meta.url),"utf8"),
     readFile(new URL("../public/index.html",import.meta.url),"utf8"),
   ]);
-  assert.match(index,/<html lang="en">/);
+  assert.match(index,/<html lang="en" translate="no" class="notranslate">/);
+  assert.match(index,/<meta name="google" content="notranslate">/);
+  assert.match(index,/<main id="app" translate="no" class="notranslate">/);
   assert.match(app,/document\.documentElement\.dir = isRTL\(state\.locale\)/);
   assert.match(app,/aria-label="\$\{text\("walletConnection"\)\}"/);
   assert.match(app,/aria-label="\$\{text\("walletActions"\)\}"/);

@@ -25,13 +25,23 @@ const state = {
   locale: LOCALES.some(([locale]) => locale === requestedLocale) ? requestedLocale : loadedPreferences.record.locale,
   theme: ["light", "dark"].includes(requestedTheme) ? requestedTheme : loadedPreferences.record.theme,
   preferences: loadedPreferences.record,
-  provider: null, wallet: null, account: null, chainId: null, rpcVerified: false, unsubscribeProvider: null,
+  provider: null, wallet: null, account: null, chainId: null, rpcVerified: false, unsubscribeProvider: null, status: null,
 };
 
 function text(key) { return catalog(state.locale)[key] || key; }
 function options() { return LOCALES.map(([value, label]) => `<option value="${value}" ${value === state.locale ? "selected" : ""}>${label}</option>`).join(""); }
 function escape(value) { const node = document.createElement("span"); node.textContent = String(value); return node.innerHTML; }
 function unavailablePlatforms(){return Object.values(WALLET_DOWNLOAD_MATRIX).filter(item=>item.hosted!==true).map(item=>`<button type="button" disabled aria-disabled="true" data-permanent-disabled="true">${escape(item.label)} · ${text("unavailable")}</button>`).join("")}
+function statusView(status = state.status) {
+  if (!status) return {kind:"info",message:state.account ? `${text("connected")} · ${state.account}` : text("disconnected")};
+  if (status.type === "working") return {kind:"info",message:text("working")};
+  if (status.type === "error") return {kind:"error",message:`${status.code}: ${text("requestFailed")}`};
+  if (status.type === "key") return {kind:status.kind || "info",message:text(status.key)};
+  if (status.type === "connected") return {kind:"info",message:`${text("connected")} · ${status.account}`};
+  if (status.type === "label") return {kind:"info",message:`${text(status.labelKey)}: ${status.value}`};
+  return {kind:"error",message:`REQUEST_FAILED: ${text("requestFailed")}`};
+}
+function statusHtml() { const view=statusView(); return `<strong>${text("status")}:</strong> ${escape(view.message)}`; }
 
 function render() {
   document.documentElement.lang = state.locale;
@@ -46,7 +56,7 @@ function render() {
       <div class="wallets"><button id="ynx" class="primary hidden" type="button">${text("connectYNX")}</button><a id="download" href="${YNX_DOWNLOAD_URL}" class="secondary" rel="noreferrer" aria-describedby="download-meta">Android · ${text("download")}</a><a id="metamask" href="${METAMASK_DOWNLOAD_URL}" class="secondary" rel="noreferrer">${text("metamask")}</a></div>
       <p id="download-meta" class="download-meta mono">${escape(WALLET_DOWNLOAD_MATRIX.android.label)} · ${WALLET_DOWNLOAD_MATRIX.android.bytes.toLocaleString("en-US")} Bytes · SHA-256 ${escape(WALLET_DOWNLOAD_MATRIX.android.sha256)} · ${escape(WALLET_DOWNLOAD_MATRIX.android.signingClass)} · productionSigned=false</p>
       <details id="platforms" class="platforms"><summary>${text("download")}</summary><div class="platform-grid">${unavailablePlatforms()}</div></details>
-      <div class="status" id="status" role="status" aria-live="polite"><strong>${text("status")}:</strong> ${state.account ? `${text("connected")} · <span class="mono">${escape(state.account)}</span>` : text("disconnected")}</div>
+      <div class="status" id="status" role="status" aria-live="polite" data-kind="${statusView().kind}">${statusHtml()}</div>
       <p class="risk">${text("rpcCheck")} ${text("testnet")}</p>
     </section>
     <section class="card" id="actions" aria-label="${text("walletActions")}">
@@ -61,16 +71,16 @@ function render() {
   applyActionGates();
 }
 
-function setStatus(message, kind = "info") { const node = document.querySelector("#status"); node.dataset.kind = kind; node.innerHTML = `<strong>${text("status")}:</strong> ${escape(message)}`; }
-function localizedError(error) { const code=typeof error?.code==="string"||typeof error?.code==="number"?String(error.code):"REQUEST_FAILED"; return `${code}: ${text("requestFailed")}`; }
+function setStatus(status) { state.status=Object.freeze(status); const node = document.querySelector("#status"); const view=statusView(); node.dataset.kind = view.kind; node.innerHTML = statusHtml(); }
+function localizedError(error) { const code=typeof error?.code==="string"||typeof error?.code==="number"?String(error.code):"REQUEST_FAILED"; return Object.freeze({type:"error",code}); }
 async function act(work, success) {
-  setStatus(text("working"));
+  setStatus({type:"working"});
   for (const button of document.querySelectorAll("button")) button.disabled = true;
   try { const result = await work(); setStatus(success(result)); return result; }
   catch (error) {
     if (["RPC_UNAVAILABLE","WRONG_NETWORK","INVALID_RPC_RESPONSE"].includes(error?.code)) state.rpcVerified = false;
     if (invalidatesConnectedSession(error)) invalidateConnectedState();
-    setStatus(localizedError(error), "error");
+    setStatus(localizedError(error));
     return null;
   }
   finally { for (const button of document.querySelectorAll("button")) button.disabled = button.dataset.permanentDisabled === "true"; applyActionGates(); }
@@ -96,7 +106,7 @@ function invalidateConnectedState() {
 
 function clearConnectedSession() {
   invalidateConnectedState();
-  setStatus(text("disconnected"), "error");
+  setStatus({type:"key",key:"disconnected",kind:"error"});
 }
 
 function bindProviderLifecycle(provider) {
@@ -125,26 +135,26 @@ function selectProvider(wallet) {
 
 async function connect(wallet) {
   const provider = selectProvider(wallet);
-  const session = await act(() => connectWallet(provider), (result) => `${text("connected")} · ${result.account}`);
+  const session = await act(() => connectWallet(provider), (result) => ({type:"connected",account:result.account}));
   if (!session) return;
   state.account = session.account; state.chainId = session.chainId; rememberSession(session, wallet); render(); await detect();
 }
 
 function bind() {
-  document.querySelector("#locale").addEventListener("change", (event) => {state.locale = event.target.value; state.preferences=savePreferences(localStorage,state.preferences,{locale:state.locale}); render(); detect();});
+  document.querySelector("#locale").addEventListener("change", (event) => {state.locale = event.target.value; state.preferences=savePreferences(localStorage,state.preferences,{locale:state.locale}); render(); detect().catch((error)=>setStatus(localizedError(error)));});
   document.querySelector("#theme").addEventListener("click", () => {state.theme = state.theme === "dark" ? "light" : "dark"; state.preferences=savePreferences(localStorage,state.preferences,{theme:state.theme}); render(); detect();});
   document.querySelector("#ynx").addEventListener("click", async () => {
     if (state.providers?.ynx) return connect("ynx");
     const result=await companionLifecycle.begin();
-    setStatus(`${result.code||result.status}: ${result.status === "connecting" ? text("working") : text("requestFailed")}`, result.status === "connecting" ? "info" : "error");
+    setStatus(result.status === "connecting" ? {type:"working"} : {type:"error",code:String(result.code||result.status)});
   });
   document.querySelector("#metamask").addEventListener("click", (event) => {
     if (state.providers?.metamask) { event.preventDefault(); return connect("metamask"); }
   });
-  document.querySelector("#add").addEventListener("click", () => act(() => addYNXChain(state.provider), () => text("testnet")));
-  document.querySelector("#switch").addEventListener("click", () => act(() => switchToYNXChain(state.provider), () => text("connected")));
-  document.querySelector("#sign").addEventListener("click", () => act(() => signMessage(state.provider, state.account, document.querySelector("#message").value), (value) => `${text("signature")}: ${value}`));
-  document.querySelector("#send").addEventListener("click", () => act(() => sendTransaction(state.provider, {from: state.account, to: document.querySelector("#recipient").value.trim(), value: document.querySelector("#value").value.trim(), data: document.querySelector("#data").value.trim()}), (value) => `${text("txHash")}: ${value}`));
+  document.querySelector("#add").addEventListener("click", () => act(() => addYNXChain(state.provider), () => ({type:"key",key:"testnet"})));
+  document.querySelector("#switch").addEventListener("click", () => act(() => switchToYNXChain(state.provider), () => ({type:"key",key:"connected"})));
+  document.querySelector("#sign").addEventListener("click", () => act(() => signMessage(state.provider, state.account, document.querySelector("#message").value), (value) => ({type:"label",labelKey:"signature",value})));
+  document.querySelector("#send").addEventListener("click", () => act(() => sendTransaction(state.provider, {from: state.account, to: document.querySelector("#recipient").value.trim(), value: document.querySelector("#value").value.trim(), data: document.querySelector("#data").value.trim()}), (value) => ({type:"label",labelKey:"txHash",value})));
 }
 
 function presentAvailability(availability) {
@@ -175,14 +185,14 @@ async function detect() {
   if (wallet) {
     const provider = selectProvider(wallet);
     const restored = await restoreTestnetSession(provider);
-    if (restored) { state.account = restored.account; state.chainId = restored.chainId; applyActionGates(); setStatus(`${text("connected")} · ${restored.account}`); }
+    if (restored) { state.account = restored.account; state.chainId = restored.chainId; applyActionGates(); setStatus({type:"connected",account:restored.account}); }
   }
 }
 
 const discoveryError=(error)=>localizedError(error);
-render(); detect().then(()=>{if(loadedPreferences.status==="rejected")setStatus(text("preferencesRejected"),"error")}).catch((error) => setStatus(discoveryError(error), "error"));
+render(); detect().then(()=>{if(loadedPreferences.status==="rejected")setStatus({type:"key",key:"preferencesRejected",kind:"error"})}).catch((error) => setStatus(discoveryError(error)));
 if(!isExtension&&`${location.origin}${location.pathname}`===companionLifecycle.callback&&location.search){
-  companionLifecycle.handleReturn(location.href).then((result)=>setStatus(`${result.code||result.status}: ${result.authoritative?text("connected"):text("requestFailed")}`,result.authoritative?"info":"error"));
+  companionLifecycle.handleReturn(location.href).then((result)=>setStatus(result.authoritative?{type:"key",key:"connected"}:{type:"error",code:String(result.code||result.status)}));
 }
-addEventListener("storage",(event)=>{if(event.key!==PREFERENCES_KEY)return;try{const next=acceptPreferenceUpdate(state.preferences,event.newValue);state.preferences=next;state.locale=next.locale;state.theme=next.theme;render();detect().catch((error)=>setStatus(discoveryError(error),"error"))}catch(error){setStatus(`${error?.code||"PREFERENCES_REJECTED"}: ${text("preferencesRejected")}`,"error")}});
+addEventListener("storage",(event)=>{if(event.key!==PREFERENCES_KEY)return;try{const next=acceptPreferenceUpdate(state.preferences,event.newValue);state.preferences=next;state.locale=next.locale;state.theme=next.theme;render();detect().catch((error)=>setStatus(discoveryError(error)))}catch(error){setStatus({type:"key",key:"preferencesRejected",kind:"error"})}});
 if (!isExtension && "serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js", {type:"module"}).catch(() => {});
