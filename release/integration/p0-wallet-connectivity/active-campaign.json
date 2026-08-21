@@ -2,7 +2,7 @@
   "schemaVersion": "1.0.0",
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "owner": "integration",
-  "status": "P0091_FAUCET_PUBLIC_HTTP_VERIFIED_HEAVY_RELEASED_ENDPOINT_MANIFEST_REFRESH_ACTIVE",
+  "status": "P0091_FAUCET_AND_MANIFEST_ACCEPTED_P0092_WEBSITE_PUBLISHED_WALLET_PLATFORM_RESUMED",
   "scope": [
     "founder-control",
     "wallet-connectivity",
@@ -34,7 +34,7 @@
   "firstStop": {
     "complete": true,
     "publicConnectivityClaim": false,
-    "nextAction": "P0-091 deployed exact Faucet source ea0e068becd9 and is released at d8fa126fb32f37dcc68ff4d32c9f3e21e2c6a1b0. Public health/version are HTTP 200, no-store, topology-safe and build-identifiable; Wallet platform Faucet flows and ComputerControl remain false. Integration is refreshing only the accepted bundled endpoint manifest before routing Wallet Platform consumption."
+    "nextAction": "P0-091 Faucet runtime and publicEndpointManifest@1.0.0-p0.3 are accepted. P0-092 published the verified Faucet window/runtime record from Website main ffceb65ea8b61dfdaf787b57bff18dc9261b082b to production dpl_5D9kAwNaPcsTyNNeK2X6NKvFkmDD. Wallet Platform has been actively resumed from fa770cd8 to fix its old PublicHealth schema and prove platform Faucet flows; those platform and ComputerControl gates remain false."
   },
   "lightLeases": [
     {
