@@ -33,6 +33,13 @@ test("current public candidate and Wallet v2 evidence do not promote missing lif
   assert.equal(localMac.walletProductSessionV2.migratedV2, false);
   assert.equal(localMac.publication.downloadHosted, true);
   assert.equal(localMac.publication.officialRouteHashReadback, true);
+  assert.equal(localMac.publication.externalHttpsDownload.httpStatus, 200);
+  assert.equal(localMac.publication.externalHttpsDownload.contentLength, localMac.artifact.bytes);
+  assert.equal(localMac.publication.externalHttpsDownload.downloadedBytes, localMac.artifact.bytes);
+  assert.equal(localMac.publication.externalHttpsDownload.sha256, localMac.artifact.sha256);
+  assert.equal(localMac.publication.externalHttpsDownload.sha256MatchesArtifact, true);
+  assert.equal(localMac.publication.externalHttpsDownload.sha256MatchesHostedFile, true);
+  assert.equal(localMac.publication.externalHttpsDownload.externalBrowserVisible, false);
   assert.match(localMac.publication.sha256SumsUrl, /macos-arm64-SHA256SUMS\.txt$/);
   assert.match(macSums, new RegExp(localMac.artifact.sha256));
   assert.equal(linux.artifact.sourceCommit, truth.currentPublicCandidate.sourceCommit);

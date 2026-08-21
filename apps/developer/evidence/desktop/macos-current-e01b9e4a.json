@@ -37,6 +37,17 @@
     "provenanceUrl": "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-e01b9e4a-macos-arm64-PROVENANCE.json",
     "sha256SumsUrl": "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-e01b9e4a-macos-arm64-SHA256SUMS.txt",
     "officialRouteHashReadback": true,
+    "externalHttpsDownload": {
+      "observedAt": "2026-08-21T02:38:04Z",
+      "transport": "ipv4-http1.1",
+      "httpStatus": 200,
+      "contentLength": 168157529,
+      "downloadedBytes": 168157529,
+      "sha256": "af4c57b89ad5d7cca6c42af47f33d156d182a92870e4d43ed1d558f51de1b01f",
+      "sha256MatchesArtifact": true,
+      "sha256MatchesHostedFile": true,
+      "externalBrowserVisible": false
+    },
     "productionSigned": false,
     "notarized": false
   },

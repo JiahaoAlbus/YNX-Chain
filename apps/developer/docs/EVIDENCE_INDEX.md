@@ -9,6 +9,14 @@ evidence-manifest SHA-256. It is direct host-side release evidence. Independent
 external browser visibility and current Windows desktop artifact evidence remain false; the
 current macOS artifact has separate extracted-install and official-domain hash evidence.
 
+The macOS ARM64 artifact was additionally downloaded through the official
+HTTPS route with IPv4/HTTP 1.1 on 2026-08-21: the 200 response declared and
+delivered 168157529 bytes, whose SHA-256 is
+`af4c57b89ad5d7cca6c42af47f33d156d182a92870e4d43ed1d558f51de1b01f`.
+`evidence/desktop/macos-current-e01b9e4a.json` records this transfer. It proves
+hosted artifact integrity only; external browser visibility, production signing,
+notarization and store release remain false.
+
 The current cross-product contract and gaps are maintained in
 `release/integration/developer-contract.json`,
 `docs/integration/INTEGRATION_HANDOFF.md`,
