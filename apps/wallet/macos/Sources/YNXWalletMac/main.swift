@@ -203,11 +203,18 @@ private struct RecoveryControlsView: NSViewRepresentable {
   func makeNSView(context: Context) -> NSStackView {
     let statusLabel = NSTextField(wrappingLabelWithString: status)
     statusLabel.font = .systemFont(ofSize: NSFont.systemFontSize, weight: .medium)
+    statusLabel.setAccessibilityElement(true)
+    statusLabel.setAccessibilityRole(.staticText)
     statusLabel.setAccessibilityIdentifier("YNX device recovery status")
+    statusLabel.setAccessibilityLabel("YNX device recovery status")
+    statusLabel.setAccessibilityValue(status)
 
     let actionButton = NSButton(title: actionTitle, target: context.coordinator, action: #selector(Coordinator.performAction))
     actionButton.bezelStyle = .rounded
+    actionButton.setAccessibilityElement(true)
+    actionButton.setAccessibilityRole(.button)
     actionButton.setAccessibilityIdentifier("YNX device recovery action")
+    actionButton.setAccessibilityLabel(actionTitle)
 
     let stack = NSStackView(views: [statusLabel, actionButton])
     stack.orientation = .vertical
@@ -225,7 +232,9 @@ private struct RecoveryControlsView: NSViewRepresentable {
     else { return }
 
     statusLabel.stringValue = status
+    statusLabel.setAccessibilityValue(status)
     actionButton.title = actionTitle
+    actionButton.setAccessibilityLabel(actionTitle)
     actionButton.isEnabled = actionEnabled
     context.coordinator.action = action
   }
