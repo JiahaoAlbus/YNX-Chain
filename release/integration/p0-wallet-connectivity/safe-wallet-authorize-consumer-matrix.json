@@ -97,9 +97,10 @@
       "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/61-ai-visible-p0",
       "branch": "codex/p0-ai-visible-20260821",
       "path": "apps/ai/**",
-      "status": "AUDITED_MIGRATION_REQUIRED",
+      "status": "ACTIVE",
+      "taskId": "P0-115",
       "finding": "The mobile client receives or creates the Wallet URL and calls Linking.openURL without the accepted resolver launcher.",
-      "nextAction": "Migrate the native launch while preserving anonymous AI trial access and keeping the unavailable Central service truthful."
+      "nextAction": "Replace unconditional Linking.openURL with the shared native resolver flow, expose official Wallet download and independent MetaMask recovery, and preserve anonymous AI trial access."
     },
     {
       "product": "calendar",
