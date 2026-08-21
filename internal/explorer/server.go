@@ -317,15 +317,21 @@ func (s *Server) serveWebShell(w http.ResponseWriter) {
 }
 
 func isCanonicalTransactionHash(value string) bool {
-	if len(value) != 66 || !strings.HasPrefix(value, "0x") {
-		return false
+	_, ok := normalizeCanonicalTransactionHash(value)
+	return ok
+}
+
+func normalizeCanonicalTransactionHash(value string) (string, bool) {
+	if len(value) != 66 || !strings.EqualFold(value[:2], "0x") {
+		return "", false
 	}
-	for _, char := range value[2:] {
+	canonical := "0x" + strings.ToLower(value[2:])
+	for _, char := range canonical[2:] {
 		if !((char >= '0' && char <= '9') || (char >= 'a' && char <= 'f') || (char >= 'A' && char <= 'F')) {
-			return false
+			return "", false
 		}
 	}
-	return true
+	return canonical, true
 }
 
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {

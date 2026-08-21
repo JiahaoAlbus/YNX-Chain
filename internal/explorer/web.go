@@ -577,7 +577,7 @@ const indexHTML = `<!doctype html>
       toastTimer = window.setTimeout(() => $('toast').classList.remove('visible'),1500);
     }
     function transactionHashFromPath() {
-      const match = window.location.pathname.match(/^\/tx\/(0x[0-9a-fA-F]{64})$/);
+      const match = window.location.pathname.match(/^\/tx\/(0[xX][0-9a-fA-F]{64})$/);
       return match ? match[1].toLowerCase() : '';
     }
     async function search(query) {
