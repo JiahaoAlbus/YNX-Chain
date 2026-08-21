@@ -152,19 +152,27 @@ struct WalletView: View {
       Text("YNX WALLET · macOS TESTNET COMPANION")
         .font(.caption.weight(.semibold))
         .foregroundStyle(Color(red: 0, green: 47 / 255, blue: 167 / 255))
-      Text(state.headline).font(.largeTitle.weight(.semibold))
+      Text(state.headline)
+        .font(.largeTitle.weight(.semibold))
+        .accessibilityIdentifier("YNX wallet status headline")
       Text(state.detail).foregroundStyle(.secondary)
       if let errorCode = state.errorCode {
-        Text(errorCode).font(.system(.body, design: .monospaced)).textSelection(.enabled)
+        Text(errorCode)
+          .font(.system(.body, design: .monospaced))
+          .textSelection(.enabled)
+          .accessibilityIdentifier("YNX wallet error code")
       }
       Divider()
       Text(state.networkBoundary).font(.callout.weight(.medium))
       Text(state.securityBoundary).font(.callout.weight(.medium))
-      Text(state.recoveryBoundary).font(.callout.weight(.medium))
+      Text(state.recoveryBoundary)
+        .font(.callout.weight(.medium))
+        .accessibilityIdentifier("YNX device recovery status")
       Button(state.recoveryMaterialPresent ? "Rotate device recovery material" : "Prepare device recovery") {
         Task { await state.prepareDeviceRecovery() }
       }
       .disabled(!state.recoveryActionAvailable || state.recoveryOperationInProgress)
+      .accessibilityLabel(state.recoveryMaterialPresent ? "Rotate device recovery material" : "Prepare device recovery")
       .accessibilityIdentifier("YNX device recovery action")
       Text("Device recovery material is not an account, seed phrase, balance, transaction, authorization, or product recovery success. Account derivation, signing and asset actions remain unavailable until the frozen native bridge is integrated and verified.")
         .font(.callout)
