@@ -1,6 +1,5 @@
 import {p256} from "@noble/curves/nist.js";
 import * as WalletAuth from "@ynx-chain/wallet-auth";
-import * as Linking from "expo-linking";
 import * as SecureStore from "expo-secure-store";
 import {Platform} from "react-native";
 import {createCardProductWalletConnection,type CardProductWalletConnection} from "./productWalletConnection";
@@ -10,7 +9,12 @@ const {decodeBase64url,encodeBase64url}=WalletAuth as unknown as {decodeBase64ur
 export type {CardProductWalletConnection} from "./productWalletConnection";
 
 export async function createRuntimeCardProductWalletConnection():Promise<CardProductWalletConnection>{
-  return createCardProductWalletConnection({platform:runtimePlatform(),walletInstalled:async()=>Linking.canOpenURL("ynxwallet://authorize").catch(()=>false),schemeRegistered:async()=>true,storage:protectedStorage(),device:await protectedDevice(),openWallet:async({url})=>{try{await Linking.openURL(url);return Object.freeze({opened:true} as const);}catch{return Object.freeze({opened:false,code:"WALLET_NOT_INSTALLED"} as const);}}});
+  // Card intentionally has no direct custom-scheme launcher. The accepted
+  // successor launcher source is not present in this owner checkout, so this
+  // private Product Session path fails closed until a verified Universal Link
+  // or WalletConnect handoff can be consumed. Standard EIP-1193 remains
+  // independent in App.tsx.
+  return createCardProductWalletConnection({platform:runtimePlatform(),walletInstalled:async()=>false,schemeRegistered:async()=>false,storage:protectedStorage(),device:await protectedDevice(),openWallet:async()=>Object.freeze({opened:false,code:"SAFE_LAUNCHER_UNAVAILABLE"} as const)});
 }
 
 function runtimePlatform():"web"|"ios"|"android"{return Platform.OS==="ios"||Platform.OS==="android"?Platform.OS:"web"}

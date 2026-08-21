@@ -1,8 +1,9 @@
 import {execFileSync} from "node:child_process";
-import {readFileSync,writeFileSync} from "node:fs";
+import {readFileSync,rmSync,writeFileSync} from "node:fs";
 import {resolve} from "node:path";
 
 const root=resolve(import.meta.dirname,"..");
+rmSync(resolve(root,"dist-web"),{recursive:true,force:true});
 execFileSync(process.platform==="win32"?"npx.cmd":"npx",["expo","export","--platform","web","--output-dir","dist-web"],{cwd:root,stdio:"inherit"});
 const indexPath=resolve(root,"dist-web/index.html");
 const index=readFileSync(indexPath,"utf8");
