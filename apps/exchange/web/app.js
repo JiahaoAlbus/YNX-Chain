@@ -1,14 +1,15 @@
 const $=(s)=>document.querySelector(s);const $$=(s)=>[...document.querySelectorAll(s)];
-const state={account:null,side:'buy',snapshot:null,book:null,publicTrades:[],config:null,activity:'trades'};
+const state={account:null,side:'buy',snapshot:null,book:null,publicTrades:[],config:null,activity:'trades',standardWallet:null};
 const micro=(v)=>Math.round(Number(v)*1e6);const display=(v,d=6)=>Number(v/1e6).toLocaleString(undefined,{maximumFractionDigits:d,minimumFractionDigits:Math.min(2,d)});
 function toast(message){const el=$('#toast');el.textContent=message;el.classList.add('show');clearTimeout(toast.timer);toast.timer=setTimeout(()=>el.classList.remove('show'),3500)}
 function productApiUnavailable(){return new Error('API_UNAVAILABLE: Exchange Product API is PENDING in the accepted endpoint manifest. No request was sent.')}
+function showWalletFallback(show){$('#wallet-fallback').hidden=!show}
 function requireProductSession(){$('#wallet-dialog').showModal();return false}
 
 async function boot(){bind();renderBook();renderPublicMarket();$('#custody-address').textContent='Unavailable until Exchange Product API release evidence is accepted';$('#withdraw-fee').textContent='—'}
 function bind(){
   $$('.topbar nav button').forEach(b=>b.addEventListener('click',()=>showView(b.dataset.view)));
-  $('#connect').addEventListener('click',()=>$('#wallet-dialog').showModal());
+  $('#connect').addEventListener('click',()=>connectWallet().catch(error=>toast(error.message||'Wallet connection failed closed.')));
   $('#buy-tab').addEventListener('click',()=>setSide('buy'));$('#sell-tab').addEventListener('click',()=>setSide('sell'));
   $('#price').addEventListener('input',estimate);$('#amount').addEventListener('input',estimate);$('#withdraw-amount').addEventListener('input',withdrawEstimate);
   $('#order-form').addEventListener('submit',reviewOrder);$('#deposit-form').addEventListener('submit',observeDeposit);$('#withdraw-form').addEventListener('submit',reviewWithdrawal);
@@ -16,6 +17,7 @@ function bind(){
   $('#ai-submit').addEventListener('click',requestAI);$('#draft-order').addEventListener('click',()=>{showView('controls');$('#ai-kind').value='order_draft';$('#ai-prompt').focus()});
   $$('.tabs button').forEach(b=>b.addEventListener('click',()=>{state.activity=b.dataset.activity;$$('.tabs button').forEach(x=>x.setAttribute('aria-selected',String(x===b)));renderActivity()}));
 }
+async function connectWallet(){const result=await window.YNXExchangeWebWallet.connect();$('#wallet-dialog').showModal();if(result.status!=='standard-connected'){showWalletFallback(true);$('#wallet-state').textContent='No compatible injected Wallet provider was found. Exchange remains on this page; use Download YNX Wallet or MetaMask.';return result}state.standardWallet=result;showWalletFallback(false);$('#connect').textContent='Wallet connected';$('#wallet-state').textContent=`Standard ${result.providerKind} Wallet connected on YNX Testnet. Exchange Product Session and API remain separately unavailable.`;toast('Standard Wallet connected. No Exchange Product Session or order authority was created.');return result}
 function showView(id){$$('.view').forEach(v=>v.classList.toggle('active',v.id===id));$$('.topbar nav button').forEach(b=>b.classList.toggle('nav-active',b.dataset.view===id));location.hash=id;document.title=`YNX Exchange — ${id[0].toUpperCase()+id.slice(1)}`}
 function setSide(side){state.side=side;$('#buy-tab').setAttribute('aria-selected',side==='buy');$('#sell-tab').setAttribute('aria-selected',side==='sell');estimate()}
 function estimate(){const p=micro($('#price').value||0),a=micro($('#amount').value||0);if(p<=0||a<=0){$('#reservation').textContent='—';return}if(state.side==='buy'){const q=Math.floor(a*p/1e6);$('#reservation').textContent=`${display(q+Math.ceil(q*.002))} YUSD_TEST max`}else{$('#reservation').textContent=`${display(a)} YNXT`}}

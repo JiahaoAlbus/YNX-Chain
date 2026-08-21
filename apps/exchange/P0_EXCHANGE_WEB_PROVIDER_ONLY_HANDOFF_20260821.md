@@ -1,0 +1,7 @@
+# Exchange Web provider-only successor
+
+Exchange consumes the accepted `safeWalletAuthorizeLauncher@2.0.0-p0.0` source `f1ba5013` from the hash-pinned v2 launcher package (SHA-256 `fe55665d3bf05f1288728dd3d0528e58bd0fc6dbee4d7ea3b962a14bed3427a4`). Web imports only its browser-safe launcher module because the package root exports Node-only gateway modules.
+
+Web uses EIP-6963/EIP-1193 discovery only. It never opens a custom scheme, iframe, window, or top-level navigation. No provider keeps the Exchange guest market visible and supplies official **Download YNX Wallet** and **Use MetaMask** routes. A standard Wallet connection creates no Exchange Product Session, API request, order, deposit, withdrawal, or trading authority.
+
+Evidence: source gate and bundle passed; unit 8/8; local Chrome browser 3/3. [Fallback screenshot](evidence/p0-exchange-web-provider-fallback-20260821.png) SHA-256 `68df37c863bda4f3a7ffd6237b646e70861c890e88f22313d25f35e11c850d77`; it proves only the local no-provider fallback. `installedWallet`, `approval`, `callback`, `productSession`, `deployedPublic`, `computerControl`, and `migratedV2` remain false. Roll back through a normal revert; do not force-push.
