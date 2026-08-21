@@ -25,6 +25,10 @@ abort "mutable GitHub Actions: #{mutable.join(", ")}" unless mutable.empty?
 workflow_requirements = [
   "workflow_dispatch:",
   "environment: wallet-ios-production",
+  "cleanup-runtime:",
+  "Prove distribution material cleanup without production credentials",
+  "iosDistributionCleanupRuntime=true",
+  "productionCredentialsUsed=false",
   'test "${{ github.ref }}" = refs/heads/main',
   "test \"$YNX_APPLE_TEAM_ID\" != FAKETEAMID",
   "Apple Distribution:",

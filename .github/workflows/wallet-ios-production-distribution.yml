@@ -50,9 +50,62 @@ jobs:
           bash -n apps/wallet/ios/scripts/cleanup-distribution-material.sh
           ruby apps/wallet/ios/scripts/verify-production-distribution-source.rb
 
+  cleanup-runtime:
+    needs: source-contract
+    runs-on: macos-15
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Prove distribution material cleanup without production credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          ORIGINAL="$RUNNER_TEMP/ynx-ios-keychains-before-probe.txt"
+          EXPECTED="$RUNNER_TEMP/ynx-ios-keychains-expected.txt"
+          RESTORED="$RUNNER_TEMP/ynx-ios-keychains-after-probe.txt"
+          PROBE_KEYCHAIN="$RUNNER_TEMP/ynx-ios-cleanup-probe.keychain-db"
+          PROBE_PASSWORD="$(openssl rand -hex 24)"
+          P12_PROBE="$RUNNER_TEMP/ynx-ios-cleanup-probe.p12"
+          PROFILE_SOURCE_PROBE="$RUNNER_TEMP/ynx-ios-cleanup-probe.mobileprovision"
+          PROFILE_PLIST_PROBE="$RUNNER_TEMP/ynx-ios-cleanup-probe.plist"
+          PROFILE_INSTALLED_PROBE="$RUNNER_TEMP/ynx-ios-cleanup-probe-installed.mobileprovision"
+          ASC_KEY_PROBE="$RUNNER_TEMP/ynx-ios-cleanup-probe.p8"
+          security list-keychains -d user > "$ORIGINAL"
+          cp "$ORIGINAL" "$EXPECTED"
+          security create-keychain -p "$PROBE_PASSWORD" "$PROBE_KEYCHAIN"
+          security list-keychains -d user -s "$PROBE_KEYCHAIN"
+          test "$(security list-keychains -d user | wc -l | tr -d ' ')" = 1
+          : > "$P12_PROBE"
+          : > "$PROFILE_SOURCE_PROBE"
+          : > "$PROFILE_PLIST_PROBE"
+          : > "$PROFILE_INSTALLED_PROBE"
+          : > "$ASC_KEY_PROBE"
+          export YNX_IOS_ORIGINAL_KEYCHAINS_PATH="$ORIGINAL"
+          export YNX_IOS_SIGNING_KEYCHAIN="$PROBE_KEYCHAIN"
+          export YNX_IOS_DISTRIBUTION_P12_PATH="$P12_PROBE"
+          export YNX_IOS_PROFILE_SOURCE_PATH="$PROFILE_SOURCE_PROBE"
+          export YNX_IOS_PROFILE_PLIST_PATH="$PROFILE_PLIST_PROBE"
+          export YNX_IOS_PROFILE_INSTALLED_PATH="$PROFILE_INSTALLED_PROBE"
+          export YNX_ASC_PRIVATE_KEY_PATH="$ASC_KEY_PROBE"
+          bash apps/wallet/ios/scripts/cleanup-distribution-material.sh
+          security list-keychains -d user > "$RESTORED"
+          cmp -s "$EXPECTED" "$RESTORED"
+          EXPECTED_SHA256="$(shasum -a 256 "$EXPECTED" | awk '{print $1}')"
+          RESTORED_SHA256="$(shasum -a 256 "$RESTORED" | awk '{print $1}')"
+          test "$EXPECTED_SHA256" = "$RESTORED_SHA256"
+          test ! -e "$ORIGINAL"
+          test ! -e "$PROBE_KEYCHAIN"
+          test ! -e "$P12_PROBE"
+          test ! -e "$PROFILE_SOURCE_PROBE"
+          test ! -e "$PROFILE_PLIST_PROBE"
+          test ! -e "$PROFILE_INSTALLED_PROBE"
+          test ! -e "$ASC_KEY_PROBE"
+          printf 'iosDistributionCleanupRuntime=true expectedSha256=%s restoredSha256=%s temporaryKeychainDeleted=true p12Deleted=true profileSourceDeleted=true profilePlistDeleted=true installedProfileDeleted=true ascKeyDeleted=true productionCredentialsUsed=false\n' \
+            "$EXPECTED_SHA256" "$RESTORED_SHA256"
+
   distribution:
     if: ${{ github.event_name == 'workflow_dispatch' }}
-    needs: source-contract
+    needs: [source-contract, cleanup-runtime]
     runs-on: macos-15
     timeout-minutes: 45
     environment: wallet-ios-production
