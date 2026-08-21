@@ -1,19 +1,22 @@
 {
-  "taskId": "P0-100",
+  "taskId": "P0-119",
   "owner": "explorer-monitor",
-  "status": "CHECKPOINT_REACHED_RUNTIME_TARGET_UNRESOLVED_HEAVY_RELEASED",
+  "status": "ACTIVE_RUNTIME_BIND_AND_BOUNDED_DEPLOYMENT_SLICE",
   "branch": "codex/p0-explorer-monitor-20260820",
   "startingCommit": "f8db7632fb37e9363858a4d4d977eea7b3585c7e",
   "checkpointCommit": "da5f31cfea0853f160b11bf7dc689fd58d0fdb63",
   "candidatePR": "https://github.com/JiahaoAlbus/YNX-Chain/pull/107",
   "completedScope": "SOURCE_OWNED_PUBLIC_RUNTIME_PREFLIGHT",
-  "activeScope": null,
-  "releasedAt": "2026-08-21T03:35:02Z",
-  "pathState": "CHECKPOINT_REACHED",
+  "activeScope": "EXPLORER_MONITOR_RUNTIME_BIND_AND_BOUNDED_DEPLOYMENT_SLICE",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-explorer-monitor-runtime-20260821T055729Z",
+  "leasedAt": "2026-08-21T05:57:29Z",
+  "expiresAt": "2026-08-21T07:57:29Z",
+  "releasedAt": null,
+  "pathState": "ACTIVE",
   "runtimeTarget": "UNRESOLVED_BY_SOURCE_ONLY_PREFLIGHT",
   "evidenceSha256": "7997625d61d0c45feb31ba1e9a2dcf70e575b381b5168cd31823c589a58b735d",
   "deployedPublic": false,
   "publicVerified": false,
   "computerControlVerified": false,
-  "nextAction": "Preserve da5f31cf. A future bounded deployment slice must first identify the exact Monitor runtime target and rollback target; do not rebuild the accepted source preflight."
+  "nextAction": "Start from da5f31cf without rebuilding PR #107. Read-only bind the exact Monitor/Explorer runtime and rollback target; if and only if that preflight passes, deploy the exact accepted lineage and return immutable public /health, /version, /connectivity, Explorer source-identity and browser evidence."
 }
