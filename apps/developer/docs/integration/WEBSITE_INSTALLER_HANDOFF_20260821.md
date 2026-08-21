@@ -53,6 +53,10 @@ new exact source-bound handoff containing all of the following for that row:
 
 ## Existing evidence and remaining blocker
 
+- A direct visible readback of `https://ynxweb4.com/developer` on 2026-08-21
+  showed both macOS and Windows as `Not ready`, with the explicit replacement
+  messages and no ZIP installer CTA. The page's audit source label was
+  `70f7c3ca`; this proves only the visible matrix, not an installer artifact.
 - Windows source-format/install evidence is available only in the temporary
   Actions artifact from run `32472126371`; its outer artifact SHA-256 is
   `ee9743ecc4e5080e01dc781bacf203a38768f26be1c6385d967f3e3369249033`.
