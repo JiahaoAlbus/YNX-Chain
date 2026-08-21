@@ -1,0 +1,12 @@
+{
+  "capturedAt": "2026-08-22T01:05:00+08:00",
+  "incident": "Chrome was executing a stale d644c082 Faucet bundle and reporting unavailable while the public Faucet runtime was healthy.",
+  "websiteFix": {"commit": "89db27b", "branch": "codex/faucet-runtime-64efa498-20260821", "deployment": "https://ynx-web4-website-amp9sntxu-jiahaoalbus-projects.vercel.app"},
+  "faucetRuntime": {"sourceCommit": "64efa498fa9982e12ffda888391d67082dc898bb", "release": "ynx-chain-64efa498fa99", "chainId": 6423, "evmChainId": "0x1917"},
+  "browser": {"url": "https://www.ynxweb4.com/dapp/faucet", "loadedBundle": "assets/index-D0C2uU3-.js", "status": "Verified · RPC backed", "english": true, "consoleErrors": []},
+  "claim": {"recipient": "0x2626262626262626262626262626262626262626", "amount": 100, "symbol": "YNXT", "transactionHash": "0xb15d2de15bdf899f7dab05d108385bb3bece5db0a104a5c46f6dfd60f3c4b1e9", "blockNumber": 1148272, "rpcVerified": true},
+  "replay": {"httpStatus": 429, "duplicateTransfer": false},
+  "api": {"health": 200, "version": 200, "optionsRequest": 204, "corsAllowOrigin": "*"},
+  "explorer": {"transactionRoute": "/tx/0xb15d2de15bdf899f7dab05d108385bb3bece5db0a104a5c46f6dfd60f3c4b1e9", "httpStatus": 200, "legacyTransactionsRouteHttpStatus": 404},
+  "rollback": {"websiteCommit": "23284bd", "faucetRelease": "ynx-chain-d644c0821b61"}
+}
