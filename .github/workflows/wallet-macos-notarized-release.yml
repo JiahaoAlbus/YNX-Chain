@@ -78,8 +78,8 @@ jobs:
           ruby -e 'source=File.read(".github/workflows/wallet-macos-notarized-release.yml"); mutable=source.scan(/^\s*-\s+uses:\s+([^\s#]+)/).flatten.reject{|use| use.start_with?("./") || use.match?(/@[0-9a-f]{40}$/)}; abort "mutable action pins: #{mutable.join(",")}" unless mutable.empty?'
           bash -n apps/wallet/macos/scripts/verify-notarized-dmg.sh
           ruby apps/wallet/macos/scripts/verify-notarized-release-source.rb
-          test "$(git hash-object packages/wallet-auth/central-registry.json)" = 754737194f02834da9f5833a493f4633b4cc18eb
-          test "$(shasum -a 256 packages/wallet-auth/central-registry.json | awk '{print $1}')" = 337145be4cbdd3b642f7fd263e1b06e20f512f8cd4981033109ba65c9856becd
+          test "$(git hash-object packages/wallet-auth/central-registry.json)" = 7275720f0e5020da4e106bef187c22af6f836137
+          test "$(shasum -a 256 packages/wallet-auth/central-registry.json | awk '{print $1}')" = 28f6e27562493501a26a0bae5fcaa0492e16b7e84845d95a0d5056ba1690717a
           test "$(git hash-object release/integration/wallet-auth-public-endpoint-service-discovery-matrix.json)" = d402fcdc844aa39bd5ee351a99d93acb4852dc37
           test "$(shasum -a 256 release/integration/wallet-auth-public-endpoint-service-discovery-matrix.json | awk '{print $1}')" = d344c607c2bbbf7bb0d9d3662b424976d0d6c4ff20428025dd1e2fb92bf31392
       - name: Test native fail-closed boundaries
