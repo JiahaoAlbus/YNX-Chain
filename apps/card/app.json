@@ -11,6 +11,7 @@
       "en":"./assets/locales/en.json","zh":"./assets/locales/zh-CN.json","zh-Hant":"./assets/locales/zh-TW.json","ja":"./assets/locales/ja.json","ko":"./assets/locales/ko.json","es":"./assets/locales/es.json","fr":"./assets/locales/fr.json","de":"./assets/locales/de.json","pt":"./assets/locales/pt.json","ru":"./assets/locales/ru.json","ar":"./assets/locales/ar.json","id":"./assets/locales/id.json"
     },
     "userInterfaceStyle": "automatic",
+    "web": {"bundler":"metro","favicon":"./assets/icon.png"},
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.ynxweb4.card",

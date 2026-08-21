@@ -1,0 +1,10 @@
+{
+  "name": "YNX Card Testnet Simulation",
+  "short_name": "YNX Card Testnet",
+  "description": "A YNXT Testnet virtual-card simulation. It does not provide fiat funding, real card-network payments, PAN, CVV, or real merchant acceptance.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F7F8FA",
+  "theme_color": "#002FA7",
+  "icons": [{"src":"/card-testnet-icon.png","sizes":"1024x1024","type":"image/png","purpose":"any maskable"}]
+}

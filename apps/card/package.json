@@ -5,9 +5,10 @@
   "main": "index.ts",
   "scripts": {
     "start": "expo start",
+    "build:web": "node scripts/build-web.mjs",
     "generate-sbom": "node scripts/generate-sbom.mjs",
     "security-check": "node scripts/security-check.mjs",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "node --stack_size=8192 ./node_modules/typescript/bin/tsc --noEmit",
     "test": "tsx --test src/**/*.test.ts",
     "bundle-check": "expo export --platform android --platform ios --output-dir dist",
     "check": "npm run security-check && npm run typecheck && npm test && npm run bundle-check"
@@ -15,8 +16,8 @@
   "dependencies": {
     "@noble/curves": "2.2.0",
     "@noble/hashes": "2.2.0",
-    "@ynx/dapp-connect-sdk": "file:vendor/ynx-dapp-connect-sdk-0.1.0-p0.0-315897e7.tgz",
     "@ynx-chain/wallet-auth": "file:vendor/ynx-chain-wallet-auth-1.0.0-203be5e1.tgz",
+    "@ynx/dapp-connect-sdk": "file:vendor/ynx-dapp-connect-sdk-0.1.0-p0.0-315897e7.tgz",
     "expo": "~57.0.4",
     "expo-crypto": "~57.0.1",
     "expo-linking": "~57.0.0",
@@ -27,9 +28,11 @@
     "expo-system-ui": "~57.0.1",
     "lucide-react-native": "1.24.0",
     "react": "19.2.3",
+    "react-dom": "^19.2.3",
     "react-native": "0.86.0",
     "react-native-safe-area-context": "~5.7.0",
-    "react-native-svg": "15.15.4"
+    "react-native-svg": "15.15.4",
+    "react-native-web": "^0.21.2"
   },
   "devDependencies": {
     "@types/react": "~19.2.2",
