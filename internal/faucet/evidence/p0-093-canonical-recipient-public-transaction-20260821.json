@@ -1,0 +1,101 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-093",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-faucet-02cf44d1-canonical-recipient-20260821T011000Z",
+  "observedAt": "2026-08-21T01:11:19Z",
+  "result": "DEPLOYED_CANONICAL_RECIPIENT_AND_PUBLIC_TRANSACTION_VERIFIED",
+  "sourceCommit": "02cf44d17b50dfd0f24a9f022e472b7d5eb0c1d4",
+  "sourceIdentity": "02cf44d17b50",
+  "releaseIdentity": "ynx-chain-02cf44d17b50",
+  "startingCheckpoint": "9a86ef556992e9bd48a48fca8ecd624b800973a9",
+  "centralLeaseCommit": "b97c6dc08fa7a2741262a005163d632e580cb0aa",
+  "artifact": {
+    "bytes": 19087508,
+    "sha256": "114c17a2dd79d76f632e151fd940d40f88394b2a014424e2d6f56cc0f25c2fd3",
+    "remoteInstalledSha256": "114c17a2dd79d76f632e151fd940d40f88394b2a014424e2d6f56cc0f25c2fd3"
+  },
+  "freshBackup": {
+    "path": "/var/backups/ynx-chain/faucet-02cf44d1-p0093",
+    "mode": "0700",
+    "binarySha256": "a78eb845c88911b069bb0e53642dd91084f983be895b53910949232909186a4a",
+    "unitSha256": "fc276972687fb21dfbaa273f553f9cea366f95dfdba620165ac3dbf6aed9a833",
+    "environmentSha256": "ca476e664d7ddb06c5a7ff342a86295fc9254b74a577096024c0730dfb66de63",
+    "environmentContentsExported": false
+  },
+  "service": {
+    "name": "ynx-faucetd.service",
+    "active": true,
+    "substate": "running",
+    "nRestarts": 0,
+    "onlyThisServiceRestarted": true,
+    "unitChanged": false,
+    "environmentChanged": false
+  },
+  "independentPublicReadback": {
+    "baseUrl": "https://faucet.ynxweb4.com",
+    "healthHttp": 200,
+    "healthBytes": 348,
+    "healthSha256": "0cd168518d234f9118f8118784d07d13a8d4bacac436dffe23ae5eb9fc5afc31",
+    "versionHttp": 200,
+    "versionBytes": 229,
+    "versionSha256": "cd2b846fe20f75849670e0fad149e17435c433a26113575577fe2dfa4c2c3afc",
+    "cacheControl": "no-store",
+    "chainId": 6423,
+    "nativeSymbol": "YNXT",
+    "upstreamOk": true,
+    "buildCommit": "02cf44d17b50",
+    "buildRelease": "ynx-chain-02cf44d17b50",
+    "topologySafe": true
+  },
+  "canonicalFundingRequest": {
+    "http": 201,
+    "responseBytes": 747,
+    "responseSha256": "5263f971350778404ec1288f767711601d37ed78d522dd4b82cf53faf9446b8c",
+    "requestedAddress": "ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80",
+    "canonicalAddress": "ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80",
+    "evmAddress": "0x7e5f4552091a69125d5dfcb7b8c2659029395bdf",
+    "amount": 100,
+    "nativeSymbol": "YNXT",
+    "transactionHash": "0x88475de1deabddcb9ae011f7edebb81aeba21de047fe4e92e406598a5766530a",
+    "truthfulStatus": "rpc-backed-faucet"
+  },
+  "aliasRateLimitReadback": {
+    "evmAliasHttp": 429,
+    "responseBytes": 39,
+    "responseSha256": "0d9f7eb9af0d21fe151efcecbc2d387bc8e241393f953c36c1744819828ce87d",
+    "additionalTransactionCreated": false
+  },
+  "chainRestVerification": {
+    "url": "https://rest.ynxweb4.com/txs/0x88475de1deabddcb9ae011f7edebb81aeba21de047fe4e92e406598a5766530a",
+    "http": 200,
+    "bytes": 1142,
+    "sha256": "0b599a1fe83243e330ec45fea4ac5aa9be8b0ddcdd59c547bb97b37024a263cc",
+    "blockNumber": 1136721,
+    "blockHash": "82cb59b5cad20854f4d96eff57024319cc4126ddb24d356fc5df570cc80a8edd",
+    "transactionMatched": true
+  },
+  "explorerIndexerVerification": {
+    "transactionUrl": "https://explorer.ynxweb4.com/api/txs/0x88475de1deabddcb9ae011f7edebb81aeba21de047fe4e92e406598a5766530a",
+    "transactionHttp": 200,
+    "transactionBytes": 2046,
+    "transactionSha256": "4ba41a5222f8359796c0ab6ef36104c769e8044d8016c142d397ce348b07c74c",
+    "searchHttp": 200,
+    "searchSha256": "daeda65afe672bc8dcc813f76f731a2bb444cc1fc0195469bdb7a95c27e0f28c",
+    "blockHttp": 200,
+    "blockSha256": "a3dabfbf442577e6cd5b39e9686c9d8514f60dc9c4a81b6827b88613fa6bf1e9",
+    "transactionAndBlockMatched": true
+  },
+  "rollback": {
+    "available": true,
+    "binarySha256": "a78eb845c88911b069bb0e53642dd91084f983be895b53910949232909186a4a",
+    "notExecuted": true
+  },
+  "deployedPublic": true,
+  "publicFundingRequestVerified": true,
+  "explorerTransactionVerified": true,
+  "walletPlatformFaucetVerified": false,
+  "computerControlVerified": false,
+  "aggregatePublicVerified": false,
+  "truthBoundary": "This proves one canonical ynx1 Faucet request, its 100 YNXT Testnet transaction, independent chain REST lookup, Explorer index lookup and exact deployed runtime. It does not prove Wallet platform Faucet flows, installed clients, ComputerControl or aggregate product readiness."
+}
