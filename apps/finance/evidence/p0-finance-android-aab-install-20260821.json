@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "checkpoint": "Finance Android release candidate install attempt",
+  "capturedAt": "2026-08-21T10:03:41Z",
+  "source": {
+    "commit": "1c6d227e44f7074fc8e24acd8a4f86803f93eb0e",
+    "tree": "7ba6399dc36a36624a0553a40160d386994e240c"
+  },
+  "artifacts": {
+    "androidAppBundle": {
+      "path": "apps/finance/mobile/android/app/build/outputs/bundle/release/app-release.aab",
+      "bytes": 51717204,
+      "sha256": "ea919c537c2666df3e96e0bde7c80f574f39a12a520b4734cb67854d77757784",
+      "state": "local candidate only; not hosted, production signed, or store published"
+    },
+    "localApkSet": {
+      "path": "/tmp/ynx-finance-release.apks",
+      "bytes": 77740730,
+      "sha256": "e40069c46865c9bc38ad80e2dc1f3a57567325fdcfef618d1c7aa81dab3d76cc",
+      "state": "local validation output; not a hosted download"
+    },
+    "universalApk": {
+      "path": "/tmp/ynx-finance-release-universal.apk",
+      "bytes": 77740426,
+      "sha256": "8762e5e8823b44575b5c5c9ee9e6ea8407bb5e2fd7bd38480a4180b86f474152",
+      "signature": "v2/v3 verified Android Debug certificate; non-production",
+      "state": "installed locally once; not hosted, production signed, or store published"
+    }
+  },
+  "deviceVerification": {
+    "avd": "YNX_WALLET_101_QA",
+    "androidRelease": "16",
+    "package": "com.ynxweb4.finance",
+    "versionName": "1.2.0",
+    "versionCode": 3,
+    "install": "passed",
+    "coldStart": "blocked",
+    "secondStart": "not attempted after cold-start block",
+    "reason": "The existing QA AVD required its pre-existing PIN after reboot. No PIN was guessed, reset, bypassed, or changed. The launcher activity is present in the signed artifact manifest, but Android did not resolve it while the device remained locked.",
+    "visibleScreenshot": "evidence/p0-finance-aab-device-locked-20260821.png",
+    "visibleScreenshotSha256": "2ad1f80253fe85d8758d65b8bcce08f3cf1c7311b9fd99e6d8a240378361274b"
+  },
+  "installerGate": {
+    "userInstallerFormat": "Android APK/AAB candidate",
+    "zipUserInstaller": false,
+    "downloadUrl": null,
+    "macosDmg": null,
+    "windowsExeOrMsix": null,
+    "rollback": "No public artifact was deployed. Remove only this locally installed test package from a dedicated QA device if an authorized device-reset workflow requires it; never remove a user-owned installation to bypass signature or PIN protection."
+  },
+  "truth": {
+    "installedLocal": true,
+    "coldStartVerified": false,
+    "secondStartVerified": false,
+    "networkVerified": false,
+    "walletApproval": false,
+    "signatureApproved": false,
+    "testnetTransaction": false,
+    "publicDeployment": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storePublished": false,
+    "computerControl": false
+  }
+}

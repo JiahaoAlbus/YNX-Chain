@@ -25,3 +25,11 @@ The package root statically exports Node-only gateway modules and is not browser
 `https://finance.ynxweb4.com/` returned HTTP 200 during this checkpoint, but served an older Caddy response last modified on 2026-08-15. The local Vercel account is authenticated, but this worktree has no linked Finance project and `vercel inspect https://finance.ynxweb4.com` cannot resolve a corresponding deployment. No owner-safe canonical deployment target is proven, so no deploy was attempted.
 
 All installed-wallet, approval, callback, Product Session, public-deployment, ComputerControl, and `migratedV2` gates remain false. Roll back with a normal `git revert` of this checkpoint; do not force-push.
+
+## Android installer candidate — 2026-08-21
+
+The current Finance source produced a local Android App Bundle, SHA-256 `ea919c537c2666df3e96e0bde7c80f574f39a12a520b4734cb67854d77757784` (51,717,204 bytes). A local universal APK validation output was derived from that bundle and its v2/v3 signature verified; it uses the Android Debug certificate and is therefore **not** production-signed or downloadable.
+
+The universal APK installed successfully on the pre-existing `YNX_WALLET_101_QA` emulator as `com.ynxweb4.finance` v1.2.0. The emulator required its existing PIN immediately after reboot, so cold start and second launch were not attempted by guessing, changing, or bypassing that PIN. The visible locked-device capture and complete candidate metadata are in [p0-finance-android-aab-install-20260821.json](evidence/p0-finance-android-aab-install-20260821.json).
+
+Finance currently has no verified hosted Android installer URL, macOS DMG, Windows EXE/MSIX, public deployment, or store release. It also contains no owner-scoped official ZIP installer claim. A future release must preserve the recorded AAB SHA, use a production signing workflow, prove install/cold start/second start/network on an authorized unlocked device, publish through an owner-authorized target, and verify the served bytes before restoring any official download link.
