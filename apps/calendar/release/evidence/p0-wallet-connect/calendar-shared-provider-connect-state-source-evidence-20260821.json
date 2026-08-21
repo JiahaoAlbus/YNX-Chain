@@ -1,0 +1,50 @@
+{
+  "schemaVersion": "ynx-calendar-shared-wallet-connect-source-evidence/v1",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "owner": "integration-unassigned-products",
+  "product": "calendar",
+  "sourceCommit": "03a4c330",
+  "sourceCommitFull": "03a4c330fcde94c3b9ff690588d62caeb6401c07",
+  "sourceTree": "a07af5d77f63d00f1270ce1b0c29c59f960ebbab",
+  "acceptedSharedSource": {
+    "commit": "98c6d5d784d212df8981a53b17118a511e246ad2",
+    "tree": "51a60a362d4ad5dd748bcdefb101f71b1d9e0cee",
+    "providerDiscoverySha256": "94875a262b7422f3153ecfd7cbe4bde2c7884239bc9f1003a1e6f86ca74b08ed",
+    "connectStateSha256": "72558116f22625c6e9abf363b9dd16a7b1b80c93d88099be531cb63e70a62b92"
+  },
+  "calendarConsumer": {
+    "walletConnectionSha256": "248ad218d34a2b2775ec23da5a7819a0c45fdc42a86c367f880c1a7e71b894cb",
+    "appJsSha256": "00b5f95a32cc7df132f97925a4dbe52e3820ebd5767475f8f32829298f630634",
+    "repeatedEip6963Discovery": true,
+    "injectedProvidersArrayFallback": true,
+    "explicitChain": "0x1917",
+    "refreshRestoreUses": ["eth_accounts", "eth_chainId"],
+    "chooserClosesAfterSuccess": true,
+    "pendingIntentClearedAfterSuccess": true,
+    "accountAndChainEventsConsumed": true,
+    "directBrowserRpcFetchRequired": false,
+    "privateSessionDegradationPreservesStandardConnection": true,
+    "noProviderClassification": "PROVIDER_NOT_INJECTED"
+  },
+  "verification": {
+    "focusedWalletTests": "7/7",
+    "calendarNodeTests": "20/20",
+    "goTests": "pass",
+    "goBuild": "pass",
+    "diffCheck": "pass",
+    "remoteReadback": "origin/codex/final-calendar equals sourceCommitFull"
+  },
+  "truth": {
+    "sourceConsumed": true,
+    "sourceTested": true,
+    "deployedPublicCurrentSource": false,
+    "publicRuntimeSourceBound": false,
+    "realProviderApprovalVerified": false,
+    "callbackVerified": false,
+    "refreshVisibleVerified": false,
+    "disconnectVisibleVerified": false,
+    "computerControlVerified": false,
+    "productSessionV2": false,
+    "migratedV2": false
+  }
+}
