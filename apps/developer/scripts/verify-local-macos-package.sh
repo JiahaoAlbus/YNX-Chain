@@ -17,7 +17,14 @@ cleanup() {
 }
 trap cleanup EXIT
 mount_point=$(/usr/bin/hdiutil attach -nobrowse -readonly "$dmg" | /usr/bin/awk 'END { print $NF }')
-[[ -d "$mount_point" ]] || { echo "DMG did not mount." >&2; exit 1; }
+# Recent macOS versions can return from hdiutil before APFS has materialized
+# the final volume directory.  Wait briefly for that directory rather than
+# treating a valid image as an installation failure.
+for _ in {1..30}; do
+  [[ -d "$mount_point" ]] && break
+  sleep 0.1
+done
+[[ -d "$mount_point" ]] || { echo "DMG did not mount at expected volume path: $mount_point" >&2; exit 1; }
 app="$mount_point/YNX Developer Testnet Preview.app"
 [[ -x "$app/Contents/MacOS/YNXDeveloper" ]]
 [[ -x "$app/Contents/Resources/runtime/node" ]]
