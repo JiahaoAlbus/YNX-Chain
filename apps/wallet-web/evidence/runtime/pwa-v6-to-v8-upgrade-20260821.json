@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "1f3f6fb6d40be9812efcdb0f2e9e1a3663644894",
+  "legacy": {
+    "sourceCommit": "4152af9061b77a619a8f09522dc150c6a6b8d622",
+    "artifact": {
+      "name": "ynx-wallet-web-pwa-0.1.0.zip",
+      "bytes": 280301,
+      "sha256": "36b17cbae2424a98748a87738ab57b5f6bd2ce4ab22c9f71b80ffd3d1331e2d8"
+    },
+    "actualWorker": true,
+    "cacheName": "ynx-wallet-web-v6",
+    "initial": {
+      "controller": "http://127.0.0.1:55300/sw.js",
+      "caches": [
+        "ynx-wallet-web-v6"
+      ],
+      "session": null,
+      "signDisabled": true,
+      "sendDisabled": true
+    }
+  },
+  "upgrade": {
+    "targetCacheName": "ynx-wallet-web-v8",
+    "scriptAndIntegrityNoStore": true,
+    "atomicStaging": true,
+    "oldCacheRemoved": true,
+    "integrityFailure": true,
+    "englishVisibleTextNoCjk": true,
+    "noFabricatedSession": true,
+    "actionsDisabled": true,
+    "afterRecoveryNavigation": {
+      "url": "http://127.0.0.1:55300/?pwa-recovered=8",
+      "body": "WALLET COMPANION\n\nEnglish\n简体中文\n繁體中文\n日本語\n한국어\nEspañol\nFrançais\nDeutsch\nPortuguês\nРусский\nالعربية\nBahasa Indonesia\nDark\nConnect to YNX Testnet\n\nUse an installed wallet. This app never receives your recovery phrase or private key.\n\nNO SUPPORTED WALLET DETECTED\nAndroid · Download YNX Wallet\nUse MetaMask\n\nAndroid API 24+ · 78,392,878 Bytes · SHA-256 fd924ef853cf17d42ca2d36504528ef879c73fcb4b01ea72b1bfe7ae85085fef · persistent-testnet-release-key · productionSigned=false\n\nDownload YNX Wallet\nStatus: Not connected\n\nLive RPC verification is required before chain or transaction changes. Testnet assets have no represented monetary value.\n\nAdd YNX Testnet\nSwitch network\nMessage\nSign message\nRecipient\nValue (hex wei)\nData (hex)\n Send transaction\nYNX Testnet · Chain 6423 · 0x1917",
+      "active": "http://127.0.0.1:55300/sw.js?schema=8",
+      "waiting": null,
+      "installing": null
+    },
+    "after": {
+      "controller": "http://127.0.0.1:55300/sw.js?schema=8",
+      "caches": [
+        "ynx-wallet-web-v8"
+      ],
+      "status": "Status: NO_PROVIDER: No injected EIP-1193 wallet was found. Install or enable YNX Wallet or MetaMask; this page stays open.",
+      "body": "WALLET COMPANION\n\nEnglish\n简体中文\n繁體中文\n日本語\n한국어\nEspañol\nFrançais\nDeutsch\nPortuguês\nРусский\nالعربية\nBahasa Indonesia\nDark\nConnect to YNX Testnet\n\nUse an installed wallet. This app never receives your recovery phrase or private key.\n\nNO SUPPORTED WALLET DETECTED\nAndroid · Download YNX Wallet\nUse MetaMask\n\nAndroid API 24+ · 78,392,878 Bytes · SHA-256 fd924ef853cf17d42ca2d36504528ef879c73fcb4b01ea72b1bfe7ae85085fef · persistent-testnet-release-key · productionSigned=false\n\nDownload YNX Wallet\nStatus: NO_PROVIDER: No injected EIP-1193 wallet was found. Install or enable YNX Wallet or MetaMask; this page stays open.\n\nLive RPC verification is required before chain or transaction changes. Testnet assets have no represented monetary value.\n\nAdd YNX Testnet\nSwitch network\nMessage\nSign message\nRecipient\nValue (hex wei)\nData (hex)\n Send transaction\nYNX Testnet · Chain 6423 · 0x1917",
+      "session": null,
+      "signDisabled": true,
+      "sendDisabled": true
+    },
+    "visibleCjkNodes": [],
+    "screenshot": {
+      "path": "evidence/browser/pwa-v6-to-v8-upgrade-20260821.png",
+      "bytes": 150462,
+      "sha256": "5263917b6b704f469e005a306e4ebb2e054ef2f5633e74a1a75857f9dc117e3f"
+    }
+  },
+  "generatedAt": "2026-08-21T10:02:52.556Z",
+  "runtimeClass": "Playwright bundled Chromium-compatible persistent browser with a real legacy v6 PWA artifact and mutable local static origin; not public/installed PWA evidence",
+  "passed": true,
+  "providerConnected": false,
+  "accountAuthorized": false,
+  "messageSigned": false,
+  "transactionSubmitted": false,
+  "installedLocal": false,
+  "deployedPublic": false,
+  "downloadHosted": false,
+  "productionSigned": false,
+  "storeReleased": false,
+  "artifact": {
+    "name": "ynx-wallet-web-pwa-0.1.0.zip",
+    "bytes": 287552,
+    "sha256": "6532e2aa4d7594f9782de569270526cfa011d98c1b3f69fcac581d454353c66b",
+    "minimumOS": "modern browser with Service Worker and Web Crypto support",
+    "signingClass": "unsigned-web-bundle"
+  }
+}
