@@ -1,5 +1,8 @@
 export const PWA_CACHE_PREFIX = "ynx-wallet-web-v";
-export const PWA_CACHE = `${PWA_CACHE_PREFIX}7`;
+// A cache schema transition is required whenever the Worker bootstrap or
+// integrity graph changes.  Reusing v7 left already-open clients running the
+// historic app bundle even after the server had been repaired.
+export const PWA_CACHE = `${PWA_CACHE_PREFIX}8`;
 
 export function obsoletePwaCaches(keys) {
   return (Array.isArray(keys) ? keys : []).filter((key) => typeof key === "string" && key.startsWith(PWA_CACHE_PREFIX) && key !== PWA_CACHE);

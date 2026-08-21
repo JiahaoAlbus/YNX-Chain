@@ -7,7 +7,7 @@ const origin = "https://wallet.ynxweb4.com";
 const request = (url, method="GET", mode="cors") => ({url,method,mode});
 
 test("PWA routes only same-origin GET navigation and assets into cache strategies", () => {
-  assert.equal(PWA_CACHE,"ynx-wallet-web-v7");
+  assert.equal(PWA_CACHE,"ynx-wallet-web-v8");
   assert.equal(serviceWorkerRoute(request(`${origin}/wallet`,"GET","navigate"),origin),"navigation-network-first");
   assert.equal(serviceWorkerRoute(request(`${origin}/app.js`),origin),"asset-cache-first");
   assert.equal(serviceWorkerRoute(request("https://evm.ynxweb4.com","POST"),origin),"network-only");
@@ -35,6 +35,7 @@ test("nested official scope resolves canonical keys and rejects same-origin path
 
 test("built worker derives cache keys from its registration scope",async()=>{
   const worker=await import("node:fs/promises").then(({readFile})=>readFile(new URL("../public/sw.js",import.meta.url),"utf8"));
+  assert.match(worker,/SERVICE_WORKER_SCHEMA = "pwa-shell-v8"/u);
   assert.match(worker,/const scopeUrl = self\.registration\.scope;/u);
   assert.doesNotMatch(worker,/assetKeyForRequest\(event\.request, self\.location\.origin\)/u);
 });

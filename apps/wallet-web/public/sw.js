@@ -1,6 +1,10 @@
 import {ASSET_INTEGRITY} from "./asset-integrity.js";
 import {PWA_CACHE, assetKeyForRequest, obsoletePwaCaches, responseMatchesIntegrity, serviceWorkerRoute} from "./service-worker-policy.js";
 
+// Keep this bootstrap marker coupled to PWA_CACHE.  Browsers compare the
+// Worker entrypoint before updating imports, so a cache-schema transition must
+// make the entrypoint byte-distinct for existing v7 clients.
+const SERVICE_WORKER_SCHEMA = "pwa-shell-v8";
 const ASSETS = Object.keys(ASSET_INTEGRITY);
 const unavailable = (message = "Offline asset unavailable") => new Response(message, {status: 503, headers: {"content-type": "text/plain; charset=utf-8", "cache-control": "no-store"}});
 async function purgeObsolete() { await Promise.all(obsoletePwaCaches(await caches.keys()).map((key) => caches.delete(key))); }
