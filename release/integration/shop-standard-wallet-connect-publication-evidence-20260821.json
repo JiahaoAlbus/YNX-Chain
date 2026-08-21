@@ -1,0 +1,47 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "product": "shop",
+  "source": {
+    "branch": "codex/shop-shared-connect-state-20260821",
+    "commit": "e35c950d57a6f9a4477877d3806cf1e4566ce74e",
+    "tree": "1d26c1f76706ca4788e31e8f57a76759167d5fd9"
+  },
+  "publication": {
+    "type": "static-only",
+    "activeRelease": "/opt/ynx-shop/releases/p0-shop-connect-e35c950d",
+    "rollbackRelease": "/opt/ynx-shop/releases/p0126b-shop-wallet-f41cbf88",
+    "backendSourceIdentityStillReports": "88c0f3a5",
+    "fullRuntimeIdentityMatched": false,
+    "stateSha256Before": "7f87079edc5b582acd384990002c3b21d21696d1f8de38612375b5abbb1cc52f",
+    "stateSha256After": "7f87079edc5b582acd384990002c3b21d21696d1f8de38612375b5abbb1cc52f"
+  },
+  "publicReadback": {
+    "url": "https://shop.ynxweb4.com/shop/?verify=e35c950d",
+    "page": { "http": 200, "bytes": 7782, "sha256": "5b4b549cb6b26f192e448c4c482db64b125450dc261a02bc118f9cd92b63bc98" },
+    "appJs": { "http": 200, "bytes": 20247, "sha256": "0fc43657de5c16bf6d972a49dbbecbf0e2377fed7bf6cb213ead0d802d3b939a" },
+    "walletAuthJs": { "http": 200, "bytes": 16365, "sha256": "dcb5fae27fe59b69c9bc79f90bb3434cb9d99b4b222bb7201751abbcc1f0da19" },
+    "serviceWorker": { "http": 200, "bytes": 1079, "sha256": "b795c28147d00843921c63289aa2d3170bcc81fa5cc81c31fb358f091afadb88" }
+  },
+  "chromeVisible": {
+    "directChrome": true,
+    "computerControl": false,
+    "existingApprovedProvider": "MetaMask",
+    "accountDisplay": "0xb906...f3ab",
+    "chainId": "0x1917",
+    "refreshRestoredConnection": true,
+    "chooserClosedAfterRefresh": true,
+    "urlStable": true,
+    "newApprovalPerformed": false,
+    "signaturePerformed": false,
+    "transactionPerformed": false
+  },
+  "truthBoundaries": {
+    "productSessionV2Verified": false,
+    "newWalletApprovalVerified": false,
+    "callbackVerified": false,
+    "aggregateEcosystemConnected": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}
