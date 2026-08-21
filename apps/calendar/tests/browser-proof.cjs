@@ -329,12 +329,14 @@ function unnamedInteractive() {
       await context.close();
     }
     for (const config of [
-      { name: "desktop", width: 1440, height: 900 },
       { name: "desktop-dark", width: 1440, height: 900, colorScheme: "dark" },
       { name: "mobile", width: 390, height: 844 },
       { name: "tablet", width: 834, height: 1194 },
       { name: "arabic-rtl", width: 390, height: 844, locale: "ar-SA" },
       { name: "large-text", width: 390, height: 844, largeText: true },
+      // Keep the state-mutating recurrence exception proof last so it cannot
+      // remove today's occurrence from the read-only responsive proofs above.
+      { name: "desktop", width: 1440, height: 900 },
     ]) {
       const context = await browser.newContext({
         viewport: { width: config.width, height: config.height },
@@ -427,6 +429,19 @@ function unnamedInteractive() {
           fullPage: true,
         });
         await page.locator('[data-view="day"]').click();
+        await page.locator('.timeline[data-view="day"] .day-grid').waitFor();
+        const dayProof = await page.evaluate(() => ({
+          dayHeaders: document.querySelectorAll('.timeline[data-view="day"] .day-head').length,
+          events: [...document.querySelectorAll('.timeline[data-view="day"] .event')].map((item) => ({
+            label: item.getAttribute('aria-label'),
+            left: item.style.left,
+            width: item.style.width,
+          })),
+          range: document.querySelector('#range')?.textContent,
+          gridLabel: document.querySelector('.timeline[data-view="day"] .day-grid')?.getAttribute('aria-label'),
+        }));
+        if (dayProof.dayHeaders !== 1 || dayProof.events.length !== 1 || !dayProof.events[0].label.includes("Permission review") || dayProof.events[0].left !== "calc(0% + 3px)" || dayProof.events[0].width !== "calc(100% - 6px)" || !dayProof.gridLabel?.startsWith("Day schedule for "))
+          throw Error(`dedicated day grid is incomplete: ${JSON.stringify(dayProof)}`);
         await page.locator(".event").first().scrollIntoViewIfNeeded();
         await page.screenshot({
           path: path.join(artifact, "calendar-desktop-day.png"),
@@ -444,7 +459,19 @@ function unnamedInteractive() {
         await page.getByRole("button", { name: "Manage recurrence" }).click();
         for (const action of ["Edit this occurrence", "Cancel this occurrence", "Edit this and following", "Edit entire series"])
           await page.getByRole("button", { name: action }).waitFor();
-        await page.getByRole("button", { name: "Close" }).click();
+        page.once("dialog", (dialog) => dialog.accept());
+        await page.getByRole("button", { name: "Cancel this occurrence" }).click();
+        await page.locator("#change-dialog").waitFor({ state: "visible" });
+        await page.locator("#approve-change").click();
+        await page.waitForFunction(() => document.querySelectorAll(".agenda-event").length === 2);
+        await page.locator("#event-detail").getByRole("button", { name: "Close" }).click();
+        await page.locator('[data-view="day"]').click();
+        await page.locator('.timeline[data-view="day"] .day-grid').waitFor();
+        await page.locator("#empty").waitFor({ state: "visible" });
+        if (await page.locator('.timeline[data-view="day"] .event').count())
+          throw Error("cancelled recurring occurrence remained visible in the dedicated Day view");
+        await page.locator('[data-view="agenda"]').click();
+        await page.waitForFunction(() => document.querySelectorAll(".agenda-event").length === 2);
         await page.screenshot({
           path: path.join(artifact, "calendar-desktop-agenda.png"),
           fullPage: true,
@@ -510,12 +537,13 @@ function unnamedInteractive() {
       },
       async (page) => page.locator("#toast.show").waitFor(),
     );
+    const currentEvent = await api(`/v1/events/${event.id}`, "GET", undefined, cookie);
     const cancel = await api(
       `/v1/events/${event.id}/cancel-preview`,
       "POST",
       {
         client_mutation_id: "browser-proof-cancel",
-        base_version: event.version,
+        base_version: currentEvent.version,
       },
       cookie,
     );

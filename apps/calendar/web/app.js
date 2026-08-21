@@ -418,7 +418,18 @@ function renderEvents() {
   const visible = query
     ? state.occurrences.filter((event) => [event.title, event.location, event.owner_handle, event.calendar_id].some((value) => String(value || "").toLocaleLowerCase(activeLocale()).includes(query)))
     : state.occurrences;
-  week.className = state.view === "month" ? "week month-grid" : state.view === "agenda" ? "week agenda-list" : "week";
+  week.className = state.view === "month" ? "week month-grid" : state.view === "agenda" ? "week agenda-list" : state.view === "day" ? "week day-grid" : "week";
+  week.setAttribute("role", state.view === "agenda" ? "list" : "grid");
+  week.setAttribute(
+    "aria-label",
+    state.view === "day"
+      ? `Day schedule for ${state.focusDate.toLocaleDateString(activeLocale(), { year: "numeric", month: "long", day: "numeric" })}`
+      : state.view === "month"
+        ? "Month schedule"
+        : state.view === "agenda"
+          ? "Agenda schedule"
+          : "Week schedule",
+  );
   if (state.view === "agenda") {
     renderAgendaEvents(week, visible);
     return;
