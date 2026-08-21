@@ -772,6 +772,6 @@ export const catalogs = {
 export function t(locale:Locale,key:Key):string{return catalogs[locale][key]}
 export function isLocale(value:unknown):value is Locale{return typeof value==="string"&&(locales as readonly string[]).includes(value)}
 export function isRTL(locale:Locale):boolean{return locale==="ar"}
-export function detectLocale(raw?:string):Locale{const value=(raw??Intl.DateTimeFormat().resolvedOptions().locale).replace("_","-");if(value.toLowerCase().startsWith("zh-hant")||/zh-(tw|hk)/i.test(value))return "zh-TW";if(value.toLowerCase().startsWith("zh"))return "zh-CN";const short=value.split("-")[0];return isLocale(short)?short:"en"}
+export function detectLocale(raw?:string):Locale{if(!raw)return "en";const value=raw.replace("_","-");if(value.toLowerCase().startsWith("zh-hant")||/zh-(tw|hk)/i.test(value))return "zh-TW";if(value.toLowerCase().startsWith("zh"))return "zh-CN";const short=value.split("-")[0];return isLocale(short)?short:"en"}
 export function money(locale:Locale,minor:number,currency:string):string{return new Intl.NumberFormat(locale,{style:"currency",currency}).format(minor/100)}
 export function date(locale:Locale,value:string):string{return new Intl.DateTimeFormat(locale,{year:"numeric",month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"}).format(new Date(value))}

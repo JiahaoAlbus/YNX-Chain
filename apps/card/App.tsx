@@ -10,6 +10,7 @@ import{loadLocale,loadSession,loadSimulationAudit,saveLocale,saveSession,saveSim
 import{createRuntimeCardProductWalletConnection,type CardProductWalletConnection}from"./src/productWalletRuntime";
 import{approveTestnetTopup,classifyCardWalletError,connectEip1193Wallet,loadTestnetTopupEvidence,parseYnxtAmountToWei,resolveEip1193Provider,type CardSession,type Eip1193WalletSession,type ProductSessionRuntime,type TopupEvidence}from"./src/wallet";
 import{isFailure,recoverLastFailed,replayAwareAppend,SimulationAuditRecord,TESTNET_SIMULATION_CURRENCY,TESTNET_SIMULATION_MAX_EVENTS,type SimulationInput as LedgerSimulationInput}from"./src/simulation";
+import{GuestExperience}from"./src/GuestExperience";
 
 const BLUE="#002FA7",RED="#B42318",GREEN="#067647",ORANGE="#B54708";
 type Tab="card"|"activity"|"controls"|"simulation"|"support";
@@ -335,7 +336,7 @@ export default function App(){
     </View>
 
     {!session?
-      <SignedOut c={c} tr={tr} busy={busy} pending={pending} error={error} signIn={signIn} walletSession={walletSession} walletBusy={walletBusy} walletError={walletError} privateSession={privateSession} connectWallet={connectEvmWallet}/>
+      <GuestExperience connectWallet={connectEvmWallet} enablePrivateServices={signIn} walletSession={walletSession} walletBusy={walletBusy} walletError={walletError} privateSession={privateSession}/>
     :
       <>
         <View style={s.stage}>
