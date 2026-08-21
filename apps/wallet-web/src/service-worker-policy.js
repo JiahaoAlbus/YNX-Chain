@@ -1,5 +1,7 @@
 export const PWA_CACHE_PREFIX = "ynx-wallet-web-v";
-export const PWA_CACHE = `${PWA_CACHE_PREFIX}6`;
+export const PWA_CACHE_SCHEMA = 7;
+export const PWA_CACHE = `${PWA_CACHE_PREFIX}${PWA_CACHE_SCHEMA}`;
+export const PWA_CACHE_STAGING = `${PWA_CACHE}-installing`;
 
 export function obsoletePwaCaches(keys) {
   return (Array.isArray(keys) ? keys : []).filter((key) => typeof key === "string" && key.startsWith(PWA_CACHE_PREFIX) && key !== PWA_CACHE);

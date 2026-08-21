@@ -1,13 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {createHash} from "node:crypto";
-import {PWA_CACHE, assetKeyForRequest, cacheableResponse, obsoletePwaCaches, responseMatchesIntegrity, serviceWorkerRoute} from "../src/service-worker-policy.js";
+import {PWA_CACHE, PWA_CACHE_STAGING, assetKeyForRequest, cacheableResponse, obsoletePwaCaches, responseMatchesIntegrity, serviceWorkerRoute} from "../src/service-worker-policy.js";
 
 const origin = "https://wallet.ynxweb4.com";
 const request = (url, method="GET", mode="cors") => ({url,method,mode});
 
 test("PWA routes only same-origin GET navigation and assets into cache strategies", () => {
-  assert.equal(PWA_CACHE,"ynx-wallet-web-v6");
+  assert.equal(PWA_CACHE,"ynx-wallet-web-v7");
+  assert.equal(PWA_CACHE_STAGING,"ynx-wallet-web-v7-installing");
   assert.equal(serviceWorkerRoute(request(`${origin}/wallet`,"GET","navigate"),origin),"navigation-network-first");
   assert.equal(serviceWorkerRoute(request(`${origin}/app.js`),origin),"asset-cache-first");
   assert.equal(serviceWorkerRoute(request("https://rpc.ynxweb4.com/evm","POST"),origin),"network-only");
@@ -16,7 +17,7 @@ test("PWA routes only same-origin GET navigation and assets into cache strategie
 });
 
 test("only obsolete YNX caches are purged and requests resolve to canonical asset keys",()=>{
-  assert.deepEqual(obsoletePwaCaches(["ynx-wallet-web-v2","ynx-wallet-web-v5",PWA_CACHE,"another-product-v1","ynx-wallet-web-preview"]),["ynx-wallet-web-v2","ynx-wallet-web-v5"]);
+  assert.deepEqual(obsoletePwaCaches(["ynx-wallet-web-v2","ynx-wallet-web-v5","ynx-wallet-web-v6",PWA_CACHE,PWA_CACHE_STAGING,"another-product-v1","ynx-wallet-web-preview"]),["ynx-wallet-web-v2","ynx-wallet-web-v5","ynx-wallet-web-v6",PWA_CACHE_STAGING]);
   assert.equal(assetKeyForRequest(request(`${origin}/`),origin),"./index.html");
   assert.equal(assetKeyForRequest(request(`${origin}/app.js?rollback=1`),origin),"./app.js");
   assert.equal(assetKeyForRequest(request("https://rpc.ynxweb4.com/evm"),origin),null);
@@ -36,6 +37,11 @@ test("nested official scope resolves canonical keys and rejects same-origin path
 test("built worker derives cache keys from its registration scope",async()=>{
   const worker=await import("node:fs/promises").then(({readFile})=>readFile(new URL("../public/sw.js",import.meta.url),"utf8"));
   assert.match(worker,/const scopeUrl = self\.registration\.scope;/u);
+  assert.match(worker,/asset-integrity\.js\?schema=7/u);
+  assert.match(worker,/service-worker-policy\.js\?schema=7/u);
+  assert.match(worker,/PWA_CACHE_STAGING/u);
+  assert.match(worker,/YNX_PWA_SHELL_UPGRADED/u);
+  assert.doesNotMatch(worker,/cache\.put\("\.\/sw\.js"/u);
   assert.doesNotMatch(worker,/assetKeyForRequest\(event\.request, self\.location\.origin\)/u);
 });
 

@@ -195,4 +195,13 @@ if(!isExtension&&`${location.origin}${location.pathname}`===companionLifecycle.c
   companionLifecycle.handleReturn(location.href).then((result)=>setStatus(result.authoritative?{type:"key",key:"connected"}:{type:"error",code:String(result.code||result.status)}));
 }
 addEventListener("storage",(event)=>{if(event.key!==PREFERENCES_KEY)return;try{const next=acceptPreferenceUpdate(state.preferences,event.newValue);state.preferences=next;state.locale=next.locale;state.theme=next.theme;render();detect().catch((error)=>setStatus(discoveryError(error)))}catch(error){setStatus({type:"key",key:"preferencesRejected",kind:"error"})}});
-if (!isExtension && "serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js", {type:"module"}).catch(() => {});
+if (!isExtension && "serviceWorker" in navigator) {
+  navigator.serviceWorker.register("./sw.js?schema=7", {type:"module",updateViaCache:"none"}).then((registration) => registration.update()).catch(() => {});
+  navigator.serviceWorker.addEventListener("message", (event) => {
+    if (event.data?.type !== "YNX_PWA_SHELL_UPGRADED" || event.data?.schema !== 7) return;
+    const reloadKey="ynx.wallet.web.pwa.schema.7.reloaded";
+    if (sessionStorage.getItem(reloadKey)==="1") return;
+    sessionStorage.setItem(reloadKey,"1");
+    location.reload();
+  });
+}

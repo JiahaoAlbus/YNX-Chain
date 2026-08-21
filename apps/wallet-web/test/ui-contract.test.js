@@ -30,6 +30,12 @@ test("fallback contract always offers YNX download and MetaMask when YNX is abse
   assert.match(source, /catch \(error\) \{ forgetSession\(\); throw error; \}/);
   assert.match(source, /const discoveryError=\(error\)=>localizedError\(error\)/);
   assert.doesNotMatch(source, /state\.provider\s*=\s*\{.*request/s);
+  assert.match(source,/navigator\.serviceWorker\.register\("\.\/sw\.js\?schema=7", \{type:"module",updateViaCache:"none"\}\)/);
+  assert.match(source,/YNX_PWA_SHELL_UPGRADED/);
+  const recovery=await readFile(new URL("../public/pwa-upgrade.js",import.meta.url),"utf8");
+  assert.match(recovery,/registration\?\.unregister\(\)/);
+  assert.match(recovery,/name\.startsWith\(cachePrefix\)/);
+  assert.match(recovery,/localStorage\.removeItem\("ynx\.wallet\.web\.session\.v1"\)/);
 });
 
 test("390px RTL dark and large-text preview contracts remain buildable", async () => {

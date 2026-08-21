@@ -85,11 +85,15 @@ Its standalone manifest declares explicit 192px and 512px PNG icons plus a
 dedicated 512px maskable icon, all proportionally derived from the checked-in
 1254px transparent YNX logo. The icon alpha bounds stay inside the maskable
 safe zone, and all icon bytes are part of the versioned shell integrity map.
-The build also freezes SHA-256 digests for every cached shell asset. Cache v5
-serves only current-cache bytes matching those digests, rejects and deletes
-tampered entries, and removes only obsolete `ynx-wallet-web-v*` caches without
-touching unrelated products. Missing current bytes fail closed with HTTP 503;
-an older cache can never become a wallet connection or chain-authority source.
+The build also freezes SHA-256 digests for every cached shell asset. Cache v7
+first verifies every new asset in an isolated staging cache, then fills the
+current cache before activation. It rejects and deletes tampered entries and
+removes every older `ynx-wallet-web-v*` cache without touching unrelated
+products. The service-worker and integrity-module URLs are versioned and must
+be served with `Cache-Control: no-store`; this lets an old v6 worker update and
+self-recover rather than serving a mismatched shell. Missing current bytes fail
+closed with HTTP 503; an older cache can never become a wallet connection or
+chain-authority source.
 
 The extension popup provider uses the same fail-closed operations over its
 `YNX_WALLET_REQUEST` runtime channel. Add-chain must be followed by switch and

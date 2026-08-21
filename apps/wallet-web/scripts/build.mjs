@@ -48,11 +48,14 @@ const coreAuthBinding=deriveWalletWebCompanionBinding(JSON.parse(coreContractByt
 await rm(dist, {recursive: true, force: true});
 await mkdir(join(dist, "pwa"), {recursive: true});
 await writeFile(join(dist,"pwa","core-auth-binding.js"),`export const CORE_WALLET_AUTH_BINDING=Object.freeze(${JSON.stringify(coreAuthBinding)});\n`);
-for (const file of ["index.html", "manifest.webmanifest", "sw.js", "styles.css", "accessibility.css", "app.js"]) await cp(join(root, "public", file), join(dist, "pwa", file));
+for (const file of ["index.html", "manifest.webmanifest", "sw.js", "sw-v7.js", "styles.css", "accessibility.css", "app.js", "pwa-upgrade.html", "pwa-upgrade.js"]) await cp(join(root, "public", file), join(dist, "pwa", file));
 for (const file of ["provider.js", "public-endpoint-consumer.js", "i18n.js", "preferences.js", "mobile-wallet-routing.js", "core-auth-consumer.js", "wallet-web-companion-lifecycle.js"]) await cp(join(root, "src", file), join(dist, "pwa", file));
 await cp(join(root, "src", "service-worker-policy.js"), join(dist, "pwa", "service-worker-policy.js"));
 for(const icon of ["ynx-logo.png","ynx-icon-192.png","ynx-icon-512.png","ynx-icon-maskable-512.png"])await cp(join(root,"public",icon),join(dist,"pwa",icon));
-const pwaIntegrityFiles=["index.html","styles.css","accessibility.css","app.js","provider.js","public-endpoint-consumer.js","i18n.js","preferences.js","mobile-wallet-routing.js","core-auth-consumer.js","wallet-web-companion-lifecycle.js","core-auth-binding.js","service-worker-policy.js","ynx-logo.png","ynx-icon-192.png","ynx-icon-512.png","ynx-icon-maskable-512.png","manifest.webmanifest"],assetIntegrity={};
+// The Worker and its integrity map must always reach the browser network
+// update path. Putting either into its own versioned shell cache can trap an
+// older Worker behind a digest it can no longer validate.
+const pwaIntegrityFiles=["index.html","styles.css","accessibility.css","app.js","provider.js","public-endpoint-consumer.js","i18n.js","preferences.js","mobile-wallet-routing.js","core-auth-consumer.js","wallet-web-companion-lifecycle.js","core-auth-binding.js","ynx-logo.png","ynx-icon-192.png","ynx-icon-512.png","ynx-icon-maskable-512.png","manifest.webmanifest"],assetIntegrity={};
 for(const file of pwaIntegrityFiles)assetIntegrity[`./${file}`]=createHash("sha256").update(await readFile(join(dist,"pwa",file))).digest("hex");
 assetIntegrity["./"]=assetIntegrity["./index.html"];
 await writeFile(join(dist,"pwa","asset-integrity.js"),`export const ASSET_INTEGRITY=Object.freeze(${JSON.stringify(assetIntegrity)});\n`);
