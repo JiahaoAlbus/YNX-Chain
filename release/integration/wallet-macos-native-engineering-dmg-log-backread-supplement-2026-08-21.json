@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-08-21T16:25:54Z",
+  "owner": "Wallet/Auth macOS native",
+  "evidenceKind": "owner-native-engineering-dmg-public-actions-log-backread-supplement",
+  "supersedesNullInnerFactsFrom": "release/integration/wallet-macos-native-engineering-dmg-ci-evidence-2026-08-21.json",
+  "implementationCommit": "af8dba8b88a187f92d149ac5b6d84db35e564ee3",
+  "implementationTree": "1b1b6eb4e63797259ebf832e95c541fc79f5099c",
+  "sourceBackread": {
+    ".github/workflows/wallet-macos.yml": {
+      "gitBlob": "5b142710f350669ab032e2d4d342c5966667b074",
+      "bytes": 30865,
+      "sha256": "0cfdc51f2b9df0900df26fd174a83e415b2c2cfa35b766880afe52819220c51c"
+    }
+  },
+  "githubActions": {
+    "runId": 32502727834,
+    "jobId": 96835923198,
+    "headSha": "af8dba8b88a187f92d149ac5b6d84db35e564ee3",
+    "headShaExact": true,
+    "status": "completed",
+    "conclusion": "success",
+    "createdAt": "2026-08-21T16:24:09Z",
+    "completedAt": "2026-08-21T16:25:53Z",
+    "xcode": "26.3",
+    "buildPackageCreateMountVerifyEngineeringDmg": "success"
+  },
+  "engineeringDmg": {
+    "name": "YNX-Wallet-macOS-ad-hoc.dmg",
+    "sha256": "81a635598fee01d4fe12d617866df7c52b09acc09ea447826a2f1bee6e6ac662",
+    "bytes": 307402,
+    "bundleIdentifier": "com.ynxweb4.wallet.macos",
+    "minimumOS": "13.0",
+    "architectures": ["x86_64", "arm64"],
+    "customScheme": "ynxwallet",
+    "signingClass": "ad-hoc engineering",
+    "signature": "adhoc",
+    "teamIdentifier": null,
+    "hdiutilChecksumValid": true,
+    "readOnlyMountIdentityInspected": true,
+    "containedAppDeepStrictCodesignVerified": true,
+    "gatekeeperAccepted": false,
+    "gatekeeperExitStatus": 3,
+    "developerIDSigned": false,
+    "notarized": false,
+    "stapled": false,
+    "downloadInspected": false,
+    "factSource": "public GitHub Actions step log"
+  },
+  "actionsArtifact": {
+    "id": 9454161268,
+    "name": "ynx-wallet-macos-native",
+    "metadataBytes": 1694980,
+    "metadataDigest": "sha256:05c964f97ac677904fa132ac295269cba607ac16d3e728da7aeebe47daffdcaa",
+    "downloadInspected": false
+  },
+  "promotedGates": {
+    "engineeringDmgInnerHashAndBytesBackread": true,
+    "engineeringDmgMinimumOSAndArchitecturesBackread": true,
+    "engineeringDmgSigningClassBackread": true
+  },
+  "remainingFalse": {
+    "artifactDownloadInspected": false,
+    "publicNativeWalletPublished": false,
+    "websiteReplacementPublished": false,
+    "systemApplicationsInstalled": false,
+    "browserQuarantineAccepted": false,
+    "developerIDSigned": false,
+    "notarized": false,
+    "stapled": false,
+    "gatekeeperAccepted": false,
+    "productionSigned": false,
+    "appStore": false,
+    "authorizationSuccess": false,
+    "account": false,
+    "productSession": false,
+    "sign": false,
+    "send": false,
+    "transaction": false,
+    "biometricSuccess": false,
+    "recoverySuccess": false
+  }
+}
