@@ -204,4 +204,4 @@ if(!isExtension&&`${location.origin}${location.pathname}`===companionLifecycle.c
 }
 addEventListener("storage",(event)=>{if(event.key!==PREFERENCES_KEY)return;try{const next=acceptPreferenceUpdate(state.preferences,event.newValue);state.preferences=next;state.locale=next.locale;state.theme=next.theme;render();detect({preserveConnection:true}).catch(setError)}catch(error){setError(error)}});
 addEventListener("focus",()=>{if(!state.account)detect({preserveConnection:false}).catch(setError)});
-if (!isExtension && "serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js", {type:"module"}).catch(() => {});
+if (!isExtension && "serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js", {type:"module"}).then((registration)=>registration.update()).catch(() => {});
