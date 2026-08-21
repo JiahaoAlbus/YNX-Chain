@@ -12,6 +12,7 @@ const providerRecovery = JSON.parse(await readFile(new URL("../../../release/int
 const pendingOwnerHandoffs = JSON.parse(await readFile(new URL("../../../release/integration/wallet-provider-connect-pending-owner-handoffs-20260821.json", import.meta.url), "utf8"));
 const ownerActivityCheckpoint = JSON.parse(await readFile(new URL("../../../release/integration/wallet-provider-connect-owner-activity-checkpoint-20260821.json", import.meta.url), "utf8"));
 const publicOwnerRecheck = JSON.parse(await readFile(new URL("../../../release/integration/wallet-provider-public-owner-recheck-20260821.json", import.meta.url), "utf8"));
+const ownerPublicCompletion = JSON.parse(await readFile(new URL("../../../release/integration/wallet-provider-owner-public-completion-checkpoint-20260821.json", import.meta.url), "utf8"));
 const registry = JSON.parse(await readFile(new URL("../product-session-registry.json", import.meta.url), "utf8"));
 
 test("ecosystem authorize audit covers every registered client exactly once", () => {
@@ -145,6 +146,39 @@ test("macOS notarized manifest command repair remains source-only", () => {
   assert.equal(evidence.authorization, false);
   assert.equal(evidence.productSession, false);
   assert.equal(evidence.artifactDownloadInspected, false);
+});
+
+test("owner public completion checkpoint rejects local, historical and source-only substitutes", () => {
+  assert.equal(auditV3.ownerPublicCompletionCheckpoint, "release/integration/wallet-provider-owner-public-completion-checkpoint-20260821.json");
+  assert.deepEqual(Object.keys(ownerPublicCompletion.ownerReadback).sort(), registry.products.filter(({ productId }) => productId !== "wallet-web-companion").map(({ productId }) => productId).sort());
+  assert.equal(ownerPublicCompletion.completionRule.ownerDeploymentRequired, true);
+  assert.equal(ownerPublicCompletion.completionRule.ownerMustPersonallyOpenRealPublicEntry, true);
+  assert.equal(ownerPublicCompletion.completionRule.sourceOrPrOrTestsAloneComplete, false);
+  assert.equal(ownerPublicCompletion.ownerReadback.calendar.ownerOpenedLocalEntry, true);
+  assert.equal(ownerPublicCompletion.ownerReadback.calendar.ownerOpenedRealPublicEntryAfterRegression, false);
+  assert.equal(ownerPublicCompletion.ownerReadback.card.ownerOpenedRealPublicEntryAfterFix, false);
+  assert.equal(ownerPublicCompletion.ownerReadback.shop.ownerOpenedRealPublicEntryAfterRegressionFix, false);
+  assert.equal(ownerPublicCompletion.counts.ownersWithPostFixPublicOpenEvidence, 0);
+  assert.equal(ownerPublicCompletion.counts.ownerFixesDeployedPublic, 0);
+  assert.equal(ownerPublicCompletion.counts.completeProducts, 0);
+  assert.equal(ownerPublicCompletion.truth.deployedPublicAggregate, false);
+});
+
+test("iOS ASC upload copy cleanup stays non-production", () => {
+  const evidence = ownerActivityCheckpoint.walletPlatformTracking.iosAscUploadKeyCopyCleanup;
+  assert.equal(evidence.implementationCommit, "42bcd3c1996db64830d91ac1a0e182cfa2bb720b");
+  assert.equal(evidence.evidenceCommit, "4bc080c4831d0d5e749b7ec518dd26a3ebb72200");
+  assert.equal(evidence.ascUploadKeyCopyCleanupSourceImplemented, true);
+  assert.equal(evidence.runtimeVerifiedWithoutProductionSecrets, true);
+  assert.equal(evidence.expectedKeychainSearchListSha256, evidence.restoredKeychainSearchListSha256);
+  assert.ok(evidence.temporaryMaterialsDeleted.includes("asc-upload-key-copy"));
+  assert.equal(evidence.productionDistributionSkipped, true);
+  assert.equal(evidence.productionCredentialsUsed, false);
+  assert.equal(evidence.ipa, false);
+  assert.equal(evidence.appStoreConnectUpload, false);
+  assert.equal(evidence.appStore, false);
+  assert.equal(evidence.authorization, false);
+  assert.equal(evidence.productSession, false);
 });
 
 test("v3 counts and precise owner blockers are derived without aggregate promotion", () => {

@@ -26,6 +26,7 @@
   },
   "pendingOwnerHandoffs": "release/integration/wallet-provider-connect-pending-owner-handoffs-20260821.json",
   "ownerActivityCheckpoint": "release/integration/wallet-provider-connect-owner-activity-checkpoint-20260821.json",
+  "ownerPublicCompletionCheckpoint": "release/integration/wallet-provider-owner-public-completion-checkpoint-20260821.json",
   "productionBoundary": {
     "sshUsed": false,
     "deploymentAttempted": false,
