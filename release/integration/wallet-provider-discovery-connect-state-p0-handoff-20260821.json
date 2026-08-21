@@ -86,7 +86,7 @@
     {"productId":"finance","owner":"finance-suite-finance","consumed":false},
     {"productId":"pay","owner":"pay","consumed":false},
     {"productId":"quant","owner":"finance-suite-quant","consumed":false},
-    {"productId":"shop","owner":"shop","consumed":false},
+    {"productId":"shop","owner":"shop","consumed":true,"sourceCommit":"e35c950d57a6f9a4477877d3806cf1e4566ce74e","sourceTree":"1d26c1f76706ca4788e31e8f57a76759167d5fd9","evidenceCommit":"35dc239546c2bf963534d5031d4c35c4e22c2d1c","evidencePath":"release/integration/shop-standard-wallet-connect-publication-evidence-20260821.json","evidenceBlob":"6a538a98c2f6b32da0e3a35a188deea50e253619","evidenceSha256":"3b11fd760b52dfa4c33960f2f892abb926fea6576e1b1c082b6012f7c64ae9f6","publicRuntime":"/opt/ynx-shop/releases/p0-shop-connect-e35c950d","publicationType":"static-only","fullRuntimeIdentityMatched":false,"refresh":{"existingMetaMaskAccount":true,"chainId":"0x1917","accountPresent":true,"connectDialogOpen":false,"urlStable":true},"newAccountApprovalObserved":false,"callback":false,"productSessionV2":false},
     {"productId":"social","owner":"social","consumed":false},
     {"productId":"video","owner":"video","consumed":false}
   ],

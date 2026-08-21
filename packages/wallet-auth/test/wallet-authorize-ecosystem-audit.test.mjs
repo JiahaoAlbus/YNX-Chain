@@ -117,9 +117,20 @@ test("Trust Center public guest evidence remains outside registered migration co
 
 test("shared Provider/connect recovery hands off to all products without promoting runtime", () => {
   assert.equal(auditV3.sharedProviderConnectRecovery.sourceCommit, providerRecovery.source.commit);
-  assert.equal(auditV3.sharedProviderConnectRecovery.registeredProductConsumers, 0);
+  assert.equal(auditV3.sharedProviderConnectRecovery.registeredProductConsumers, 1);
+  assert.equal(auditV3.sharedProviderConnectRecovery.publicRuntimeConsumers, 1);
   assert.deepEqual(providerRecovery.registeredProductHandoffs.map(({ productId }) => productId).sort(), auditV3.registeredProducts.map(({ productId }) => productId).sort());
-  assert.ok(providerRecovery.registeredProductHandoffs.every(({ consumed }) => consumed === false));
+  assert.deepEqual(providerRecovery.registeredProductHandoffs.filter(({ consumed }) => consumed).map(({ productId }) => productId), ["shop"]);
+  const shopRecovery = providerRecovery.registeredProductHandoffs.find(({ productId }) => productId === "shop");
+  assert.equal(shopRecovery.sourceCommit, "e35c950d57a6f9a4477877d3806cf1e4566ce74e");
+  assert.equal(shopRecovery.evidenceCommit, "35dc239546c2bf963534d5031d4c35c4e22c2d1c");
+  assert.equal(shopRecovery.evidenceSha256, "3b11fd760b52dfa4c33960f2f892abb926fea6576e1b1c082b6012f7c64ae9f6");
+  assert.equal(shopRecovery.publicationType, "static-only");
+  assert.equal(shopRecovery.fullRuntimeIdentityMatched, false);
+  assert.equal(shopRecovery.refresh.chainId, "0x1917");
+  assert.equal(shopRecovery.refresh.accountPresent, true);
+  assert.equal(shopRecovery.refresh.connectDialogOpen, false);
+  assert.equal(shopRecovery.newAccountApprovalObserved, false);
   assert.equal(providerRecovery.directChromeEvidence.shop.accountApprovalObserved, false);
   assert.equal(providerRecovery.directChromeEvidence.card.accountApprovalObserved, false);
   assert.equal(providerRecovery.standardConnectStateContract.rpcProbe.endpointBindingObserved, "Public Wallet Companion declares rpc.cors=false.");
