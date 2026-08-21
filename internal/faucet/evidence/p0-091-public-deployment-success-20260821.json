@@ -1,0 +1,72 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-091",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-faucet-ea0e068b-validator-v2-20260821T004500Z",
+  "observedAt": "2026-08-21T00:46:46Z",
+  "result": "DEPLOYED_PUBLIC_HTTP_VERIFIED",
+  "sourceCommit": "ea0e068becd9103f5f0a2a6c3a0d20ab7932d006",
+  "sourceIdentity": "ea0e068becd9",
+  "releaseIdentity": "ynx-chain-ea0e068becd9",
+  "startingCheckpoint": "11b34a4af0ddf3c3b9e29db0a4672f8137c52edf",
+  "centralLeaseCommit": "5761f287e0f53739ef37ba31634f7ec92569dc0a",
+  "artifact": {
+    "bytes": 19083448,
+    "sha256": "a78eb845c88911b069bb0e53642dd91084f983be895b53910949232909186a4a",
+    "remoteInstalledSha256": "a78eb845c88911b069bb0e53642dd91084f983be895b53910949232909186a4a"
+  },
+  "freshBackup": {
+    "path": "/var/backups/ynx-chain/faucet-ea0e068b-p0091",
+    "mode": "0700",
+    "binarySha256": "6bc1b9c41095d235469be97901033d59db686601810fc8ac0fd0392e27135a26",
+    "unitSha256": "fc276972687fb21dfbaa273f553f9cea366f95dfdba620165ac3dbf6aed9a833",
+    "environmentSha256": "ca476e664d7ddb06c5a7ff342a86295fc9254b74a577096024c0730dfb66de63",
+    "environmentContentsExported": false
+  },
+  "service": {
+    "name": "ynx-faucetd.service",
+    "active": true,
+    "substate": "running",
+    "nRestarts": 0,
+    "onlyThisServiceRestarted": true,
+    "unitChanged": false,
+    "environmentChanged": false
+  },
+  "candidateLocal": {
+    "healthHttp": 200,
+    "healthBytes": 348,
+    "healthSha256AtCommit": "d3462ffc3963b7f63acb9e18bee3fdf1fe0c7ab45bea5f82242b01b5cb3a205d",
+    "versionHttp": 200,
+    "versionBytes": 229,
+    "versionSha256": "519112e351a2d4d4cf76f3d92242659708e9f1f7d3fc8e77a8d5150ddc8dd5e1",
+    "topologySafe": true
+  },
+  "independentPublicReadback": {
+    "baseUrl": "https://faucet.ynxweb4.com",
+    "healthHttp": 200,
+    "healthBytes": 348,
+    "healthSha256": "79cf1ea9c496f9058ddffc1748a43f57ff170d36f7c758ff8d2116891eb5dff3",
+    "versionHttp": 200,
+    "versionBytes": 229,
+    "versionSha256": "519112e351a2d4d4cf76f3d92242659708e9f1f7d3fc8e77a8d5150ddc8dd5e1",
+    "cacheControl": "no-store",
+    "contentType": "application/json",
+    "chainId": 6423,
+    "nativeSymbol": "YNXT",
+    "upstreamOk": true,
+    "buildCommit": "ea0e068becd9",
+    "buildRelease": "ynx-chain-ea0e068becd9",
+    "topologySafe": true
+  },
+  "rollback": {
+    "available": true,
+    "binarySha256": "6bc1b9c41095d235469be97901033d59db686601810fc8ac0fd0392e27135a26",
+    "notExecuted": true
+  },
+  "deployedPublic": true,
+  "publicHttpVerified": true,
+  "walletPlatformFaucetVerified": false,
+  "computerControlVerified": false,
+  "aggregatePublicVerified": false,
+  "truthBoundary": "This proves the Faucet daemon source identity and safe public health/version only. It does not prove Wallet UI Faucet flows, funding requests, installed clients, ComputerControl, endpoint-manifest acceptance or aggregate release readiness."
+}
