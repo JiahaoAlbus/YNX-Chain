@@ -23,7 +23,7 @@
       </BuildActionEntries>
    </BuildAction>
    <TestAction
-      buildConfiguration = "Debug"
+      buildConfiguration = "Release"
       selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       shouldUseLaunchSchemeArgsEnv = "YES">
@@ -32,9 +32,9 @@
             skipped = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "00E356ED1AD99517003FC87E"
-               BuildableName = "YNXWalletTests.xctest"
-               BlueprintName = "YNXWalletTests"
+               BlueprintIdentifier = "A10000000000000000000006"
+               BuildableName = "YNXWalletUITests.xctest"
+               BlueprintName = "YNXWalletUITests"
                ReferencedContainer = "container:YNXWallet.xcodeproj">
             </BuildableReference>
          </TestableReference>

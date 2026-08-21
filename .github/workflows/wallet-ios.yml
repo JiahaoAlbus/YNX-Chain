@@ -3,10 +3,10 @@ name: wallet-ios
 on:
   workflow_dispatch:
   push:
-    branches: [main, codex/ecosystem-wallet-auth, codex/final-wallet-auth]
-    paths: ["apps/wallet/**", "packages/wallet-auth/**", ".github/workflows/wallet-ios.yml"]
+    branches: [main, codex/ecosystem-wallet-auth, codex/final-wallet-auth, codex/wallet-ios-macos-20260813]
+    paths: ["apps/wallet/**", "packages/wallet-auth/**", ".github/workflows/wallet-ios.yml", "!apps/wallet/macos/**", "!apps/wallet/ios/scripts/cleanup-distribution-material.sh", "!apps/wallet/ios/scripts/verify-production-distribution-source.rb", "!apps/wallet/scripts/verify-apple-production-operator-inputs.rb"]
   pull_request:
-    paths: ["apps/wallet/**", "packages/wallet-auth/**", ".github/workflows/wallet-ios.yml"]
+    paths: ["apps/wallet/**", "packages/wallet-auth/**", ".github/workflows/wallet-ios.yml", "!apps/wallet/macos/**", "!apps/wallet/ios/scripts/cleanup-distribution-material.sh", "!apps/wallet/ios/scripts/verify-production-distribution-source.rb", "!apps/wallet/scripts/verify-apple-production-operator-inputs.rb"]
 
 jobs:
   simulator-build:
@@ -22,15 +22,36 @@ jobs:
           node-version: "22"
           cache: npm
           cache-dependency-path: |
+            package-lock.json
             packages/wallet-auth/package-lock.json
             apps/wallet/package-lock.json
-      - name: Verify immutable GitHub Actions pins
-        run: node scripts/verify/github-actions-pins-check.mjs
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: "1.25"
+          cache-dependency-path: go.sum
+      - name: Verify immutable GitHub Actions pins for Wallet CI
+        run: |
+          node --input-type=module <<'NODE'
+          import assert from "node:assert/strict";
+          import { readFile } from "node:fs/promises";
+          const source = await readFile(".github/workflows/wallet-ios.yml", "utf8");
+          const mutable = [...source.matchAll(/^\s*-\s+uses:\s+([^\s#]+).*$/gm)]
+            .map((match) => match[1])
+            .filter((use) => !use.startsWith("./") && !/@[0-9a-f]{40}$/.test(use));
+          assert.deepEqual(mutable, [], `Wallet CI actions must use immutable commit pins: ${mutable.join(", ")}`);
+          NODE
       - name: Use the release-locked npm
         run: npm install --global npm@11.5.1
+      - name: Build the frozen contract fixture consumed by Wallet/Auth tests
+        run: |
+          npm ci
+          npm run hardhat:build
       - run: npm ci
         working-directory: packages/wallet-auth
-      - run: npm test
+      - name: Run Wallet/Auth tests serially (includes Go verifier subprocess)
+        run: |
+          go version
+          node --test --test-concurrency=1 test/*.test.mjs
         working-directory: packages/wallet-auth
       - run: npm ci
         working-directory: apps/wallet
@@ -38,37 +59,385 @@ jobs:
         working-directory: apps/wallet
       - run: npx pod-install ios
         working-directory: apps/wallet
-      - name: Build unsigned iOS Simulator app
+      - name: Build ad-hoc iOS Simulator app and freeze the installable bundle
         working-directory: apps/wallet
-        run: >-
-          xcodebuild -workspace ios/YNXWallet.xcworkspace -scheme YNXWallet
-          -configuration Release -sdk iphonesimulator
-          -destination 'generic/platform=iOS Simulator'
-          CODE_SIGNING_ALLOWED=NO clean build
+        run: |
+          set -euo pipefail
+          xcodebuild -workspace ios/YNXWallet.xcworkspace -scheme YNXWallet \
+            -configuration Release -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=- clean build
+          APP="$(find "$HOME/Library/Developer/Xcode/DerivedData" -path '*/Build/Products/Release-iphonesimulator/YNXWallet.app' -print -quit)"
+          test -n "$APP"
+          mkdir -p proof/ci-ios
+          ditto "$APP" proof/ci-ios/YNXWallet-Standalone.app
+          MATRIX=proof/ci-ios/YNXWallet-Standalone.app/wallet-auth-public-endpoint-service-discovery-matrix.json
+          test -f "$MATRIX"
+          test "$(git hash-object "$MATRIX")" = d402fcdc844aa39bd5ee351a99d93acb4852dc37
+          test "$(shasum -a 256 "$MATRIX" | awk '{print $1}')" = d344c607c2bbbf7bb0d9d3662b424976d0d6c4ff20428025dd1e2fb92bf31392
+          git hash-object "$MATRIX" | tee proof/ci-ios/endpoint-matrix-git-blob.txt
+          shasum -a 256 "$MATRIX" | tee proof/ci-ios/endpoint-matrix-sha256.txt
+          REGISTRY=proof/ci-ios/YNXWallet-Standalone.app/central-registry.json
+          test -f "$REGISTRY"
+          test "$(git hash-object "$REGISTRY")" = 7275720f0e5020da4e106bef187c22af6f836137
+          test "$(shasum -a 256 "$REGISTRY" | awk '{print $1}')" = 28f6e27562493501a26a0bae5fcaa0492e16b7e84845d95a0d5056ba1690717a
+          git hash-object "$REGISTRY" | tee proof/ci-ios/central-registry-git-blob.txt
+          shasum -a 256 "$REGISTRY" | tee proof/ci-ios/central-registry-sha256.txt
+          BUNDLE_ID="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' proof/ci-ios/YNXWallet-Standalone.app/Info.plist)"
+          test "$BUNDLE_ID" = com.ynxweb4.wallet
+          codesign --verify --deep --strict proof/ci-ios/YNXWallet-Standalone.app
+          codesign -dv --verbose=4 proof/ci-ios/YNXWallet-Standalone.app \
+            2> proof/ci-ios/standalone-codesign.txt
+          grep -F 'Signature=adhoc' proof/ci-ios/standalone-codesign.txt
+          codesign -d --entitlements :- proof/ci-ios/YNXWallet-Standalone.app \
+            > proof/ci-ios/standalone-codesign-entitlements.txt 2>&1
+          EXECUTABLE=proof/ci-ios/YNXWallet-Standalone.app/YNXWallet
+          for ARCH in arm64 x86_64; do
+            THIN="proof/ci-ios/YNXWallet-$ARCH"
+            ENTITLEMENTS="proof/ci-ios/standalone-simulator-entitlements-$ARCH.plist"
+            lipo "$EXECUTABLE" -thin "$ARCH" -output "$THIN"
+            otool -X -s __TEXT __entitlements "$THIN" \
+              | awk '{for (i=2;i<=NF;i++) {for (j=length($i);j>0;j-=2) printf "%s", substr($i,j-1,2)}} END {print ""}' \
+              | xxd -r -p > "$ENTITLEMENTS"
+            test "$(/usr/libexec/PlistBuddy -c 'Print :application-identifier' "$ENTITLEMENTS")" = "FAKETEAMID.$BUNDLE_ID"
+          done
+          cmp proof/ci-ios/standalone-simulator-entitlements-arm64.plist \
+            proof/ci-ios/standalone-simulator-entitlements-x86_64.plist
       - name: Install, cold launch and verify Wallet deep link
         timeout-minutes: 10
         working-directory: apps/wallet
         run: |
           set -euo pipefail
-          APP="$(find "$HOME/Library/Developer/Xcode/DerivedData" -path '*/Build/Products/Release-iphonesimulator/YNXWallet.app' -print -quit)"
+          APP="$PWD/proof/ci-ios/YNXWallet-Standalone.app"
           DEVICE="$(xcrun simctl list devices available | awk -F '[()]' '/iPhone/{print $2; exit}')"
           test -n "$APP"
           test -n "$DEVICE"
           mkdir -p proof/ci-ios
           xcrun simctl shutdown "$DEVICE" 2>/dev/null || true
           xcrun simctl erase "$DEVICE"
+          printf 'device=%s erased=true\n' "$DEVICE" | tee proof/ci-ios/simulator-reset.txt
           xcrun simctl boot "$DEVICE"
           xcrun simctl bootstatus "$DEVICE" -b
           xcrun simctl install "$DEVICE" "$APP"
           xcrun simctl terminate "$DEVICE" com.ynxweb4.wallet 2>/dev/null || true
-          xcrun simctl launch "$DEVICE" com.ynxweb4.wallet | tee proof/ci-ios/cold-launch.txt
+          set +e
+          SIMCTL_CHILD_YNX_WALLET_KEYCHAIN_PROBE=1 \
+            xcrun simctl launch "$DEVICE" com.ynxweb4.wallet \
+            2>&1 | tee proof/ci-ios/cold-launch.txt
+          LAUNCH_STATUS=${PIPESTATUS[0]}
+          set -e
+          if test "$LAUNCH_STATUS" -ne 0; then
+            xcrun simctl spawn "$DEVICE" log show --style compact --last 5m \
+              --predicate 'process == "SpringBoard" OR process == "securityd" OR process == "runningboardd"' \
+              2>&1 | tee proof/ci-ios/cold-launch-failure-system.log || true
+          fi
+          test "$LAUNCH_STATUS" -eq 0
+          COLD_PID="$(awk '{print $NF}' proof/ci-ios/cold-launch.txt | tail -n 1)"
+          test -n "$COLD_PID"
+          NETWORK_READY=false
+          for _ in $(seq 1 60); do
+            xcrun simctl spawn "$DEVICE" log show \
+              --style compact \
+              --last 5m \
+              --predicate 'subsystem == "com.ynxweb4.wallet" AND category == "network"' \
+              2>&1 | tee proof/ci-ios/cold-launch-network-native.log || true
+            if grep -Fq "YNX_WALLET_ENDPOINT_MATRIX_LOADED pid=$COLD_PID matrixId=ynx-wallet-auth-public-endpoint-service-discovery-v1 rpcHost=rpc.ynxweb4.com rpcPath=/evm integratedCentral=false" \
+                 proof/ci-ios/cold-launch-network-native.log && \
+               grep -Fq "YNX_WALLET_RPC_CHAIN_ID_VERIFIED pid=$COLD_PID chainId=0x1917" \
+                 proof/ci-ios/cold-launch-network-native.log && \
+               grep -Fq "YNX_WALLET_REST_APP_GATEWAY_REACHABLE pid=$COLD_PID status=200" \
+                 proof/ci-ios/cold-launch-network-native.log && \
+               grep -Fq "YNX_WALLET_GATEWAY_FAIL_CLOSED pid=$COLD_PID walletComplete=UNKNOWN_OR_MISSING_FIELD walletIntrospect=PROOF_REQUIRED productIntrospect=UNKNOWN_OR_MISSING_FIELD stateUnchanged=true authorizationSuccess=false account=false signing=false send=false transaction=false" \
+                 proof/ci-ios/cold-launch-network-native.log; then
+              NETWORK_READY=true
+              break
+            fi
+            sleep 1
+          done
+          test "$NETWORK_READY" = true
+          xcrun simctl spawn "$DEVICE" log show \
+            --style compact \
+            --last 5m \
+            --predicate 'subsystem == "com.ynxweb4.wallet" AND category == "security"' \
+            2>&1 | tee proof/ci-ios/keychain-probe-native.log
+          grep -E 'YNX_WALLET_KEYCHAIN_PROBE pid=[0-9]+ available=true add=0 read=0 delete=0' \
+            proof/ci-ios/keychain-probe-native.log
           xcrun simctl get_app_container "$DEVICE" com.ynxweb4.wallet | tee proof/ci-ios/app-container.txt
-          xcrun simctl openurl "$DEVICE" 'ynxwallet://authorize?request=invalid' | tee proof/ci-ios/deep-link.txt
-          xcrun simctl io "$DEVICE" screenshot proof/ci-ios/wallet-deep-link-rejection.png
+          xcrun simctl terminate "$DEVICE" com.ynxweb4.wallet
+          xcrun simctl launch "$DEVICE" com.ynxweb4.wallet | tee proof/ci-ios/second-launch.txt
+          SECOND_PID="$(awk '{print $NF}' proof/ci-ios/second-launch.txt | tail -n 1)"
+          test -n "$SECOND_PID"
+          SECOND_NETWORK_READY=false
+          for _ in $(seq 1 60); do
+            xcrun simctl spawn "$DEVICE" log show \
+              --style compact \
+              --last 5m \
+              --predicate 'subsystem == "com.ynxweb4.wallet" AND category == "network"' \
+              2>&1 | tee proof/ci-ios/second-launch-network-native.log || true
+            if grep -Fq "YNX_WALLET_ENDPOINT_MATRIX_LOADED pid=$SECOND_PID matrixId=ynx-wallet-auth-public-endpoint-service-discovery-v1 rpcHost=rpc.ynxweb4.com rpcPath=/evm integratedCentral=false" \
+                 proof/ci-ios/second-launch-network-native.log && \
+               grep -Fq "YNX_WALLET_RPC_CHAIN_ID_VERIFIED pid=$SECOND_PID chainId=0x1917" \
+                 proof/ci-ios/second-launch-network-native.log && \
+               grep -Fq "YNX_WALLET_REST_APP_GATEWAY_REACHABLE pid=$SECOND_PID status=200" \
+                 proof/ci-ios/second-launch-network-native.log && \
+               grep -Fq "YNX_WALLET_GATEWAY_FAIL_CLOSED pid=$SECOND_PID walletComplete=UNKNOWN_OR_MISSING_FIELD walletIntrospect=PROOF_REQUIRED productIntrospect=UNKNOWN_OR_MISSING_FIELD stateUnchanged=true authorizationSuccess=false account=false signing=false send=false transaction=false" \
+                 proof/ci-ios/second-launch-network-native.log; then
+              SECOND_NETWORK_READY=true
+              break
+            fi
+            sleep 1
+          done
+          test "$SECOND_NETWORK_READY" = true
+          {
+            printf 'coldPid=%s\n' "$COLD_PID"
+            printf 'secondPid=%s\n' "$SECOND_PID"
+            printf 'walletCompletionError=UNKNOWN_OR_MISSING_FIELD\n'
+            printf 'walletIntrospectionError=PROOF_REQUIRED\n'
+            printf 'productSessionIntrospectionError=UNKNOWN_OR_MISSING_FIELD\n'
+            printf 'stateUnchanged=true\n'
+            printf 'authorizationSuccess=false\naccount=false\nsigning=false\nsend=false\ntransaction=false\n'
+          } | tee proof/ci-ios/gateway-testnet-fail-closed.txt
+          xcrun simctl io "$DEVICE" screenshot proof/ci-ios/wallet-second-launch.png
+      - name: Deliver malformed callback and prove fail-closed UI semantically
+        timeout-minutes: 15
+        working-directory: apps/wallet
+        run: |
+          set -euo pipefail
+          DEVICE="$(xcrun simctl list devices booted | awk -F '[()]' '/iPhone/{print $2; exit}')"
+          test -n "$DEVICE"
+          mkdir -p proof/ci-ios/xcresult-attachments
+          xcodebuild test \
+            -workspace ios/YNXWallet.xcworkspace \
+            -scheme YNXWallet \
+            -configuration Release \
+            -destination "platform=iOS Simulator,id=$DEVICE" \
+            -only-testing:YNXWalletUITests/MalformedCallbackUITests/testMalformedCallbackIsDeliveredAndRejected \
+            -resultBundlePath proof/ci-ios/MalformedCallback.xcresult \
+            2>&1 | tee proof/ci-ios/malformed-callback-xctest.log &
+          XCODEBUILD_PID=$!
+          READY=false
+          for _ in $(seq 1 240); do
+            if grep -Fq 'YNX_WALLET_UI_READY_FOR_SIMCTL_OPENURL' proof/ci-ios/malformed-callback-xctest.log; then
+              READY=true
+              break
+            fi
+            if ! kill -0 "$XCODEBUILD_PID" 2>/dev/null; then
+              break
+            fi
+            sleep 1
+          done
+          test "$READY" = true
+          xcrun simctl spawn "$DEVICE" log show \
+            --style compact \
+            --last 10m \
+            --predicate 'subsystem == "com.ynxweb4.wallet" AND category == "lifecycle"' \
+            2>&1 | tee proof/ci-ios/malformed-callback-lifecycle.log || true
+          sed -nE 's/.*YNX_WALLET_LAUNCHED pid=([0-9]+).*/\1/p' proof/ci-ios/malformed-callback-lifecycle.log \
+            | awk '!seen[$0]++' | tail -n 2 > proof/ci-ios/malformed-callback-lifecycle-pids.txt
+          test "$(wc -l < proof/ci-ios/malformed-callback-lifecycle-pids.txt | tr -d ' ')" = 2
+          CALLBACK_COLD_PID="$(sed -n '1p' proof/ci-ios/malformed-callback-lifecycle-pids.txt)"
+          CALLBACK_SECOND_PID="$(sed -n '2p' proof/ci-ios/malformed-callback-lifecycle-pids.txt)"
+          test -n "$CALLBACK_COLD_PID"
+          test -n "$CALLBACK_SECOND_PID"
+          test "$CALLBACK_COLD_PID" != "$CALLBACK_SECOND_PID"
+          xcrun simctl openurl "$DEVICE" 'ynxwallet://authorize?request=invalid' \
+            | tee proof/ci-ios/deep-link.txt
+          wait "$XCODEBUILD_PID"
+          grep -F "YNX_WALLET_SECOND_LAUNCH_CALLBACK_VISIBLE code=INVALID_DEEP_LINK authorizationSuccess=false signing=false callbackEmitted=false" \
+            proof/ci-ios/malformed-callback-xctest.log
+          xcrun simctl spawn "$DEVICE" log show \
+            --style compact \
+            --last 10m \
+            --predicate 'subsystem == "com.ynxweb4.wallet" AND (category == "callback" OR category == "lifecycle")' \
+            2>&1 | tee proof/ci-ios/malformed-callback-native.log || true
+          grep -F "YNX_WALLET_CALLBACK_RECEIVED pid=$CALLBACK_SECOND_PID scheme=ynxwallet" proof/ci-ios/malformed-callback-native.log
+          grep -F "YNX_WALLET_NATIVE_AUTHORIZATION_REJECTED pid=$CALLBACK_SECOND_PID code=INVALID_DEEP_LINK authorizationSuccess=false signing=false callbackEmitted=false" proof/ci-ios/malformed-callback-native.log
+          grep -F "YNX_WALLET_NATIVE_AUTHORIZATION_UI_VISIBLE pid=$CALLBACK_SECOND_PID code=INVALID_DEEP_LINK" proof/ci-ios/malformed-callback-native.log
+          grep -F "Test Case '-[YNXWalletUITests.MalformedCallbackUITests testMalformedCallbackIsDeliveredAndRejected]' passed" proof/ci-ios/malformed-callback-xctest.log
+          printf 'callbackColdPid=%s\ncallbackSecondPid=%s\ncode=INVALID_DEEP_LINK\nauthorizationSuccess=false\nsigning=false\ncallbackEmitted=false\n' \
+            "$CALLBACK_COLD_PID" "$CALLBACK_SECOND_PID" | tee proof/ci-ios/second-launch-malformed-callback.txt
+          xcrun xcresulttool export attachments \
+            --path proof/ci-ios/MalformedCallback.xcresult \
+            --output-path proof/ci-ios/xcresult-attachments
+      - name: Deliver canonical registry request and prove native bridge stops before JS
+        timeout-minutes: 15
+        working-directory: apps/wallet
+        run: |
+          set -euo pipefail
+          DEVICE="$(xcrun simctl list devices booted | awk -F '[()]' '/iPhone/{print $2; exit}')"
+          test -n "$DEVICE"
+          node --input-type=module <<'NODE' > proof/ci-ios/canonical-registry-request-url.txt
+          const now = Date.now();
+          const request = {
+            version:"1", nonce:"ci_native_bridge_boundary_nonce_01", chainId:"ynx_6423-1",
+            requestingProduct:"social", productClientId:"ynx-social-v1", bundleId:"com.ynx.social",
+            productDeviceAlgorithm:"p256-sha256",
+            productDeviceKey:"AzrThhqVYhOSUWu1k-8FWD7S5YZvXLYmCjAXI3_Ym5Cv",
+            callback:"ynx-social://com.ynx.social", scopes:["account:read","profile:link"],
+            purpose:"Verify the frozen native bridge fail-closed boundary.",
+            issuedAt:new Date(now-5000).toISOString(), expiresAt:new Date(now+240000).toISOString(),
+          };
+          const canonical = Object.fromEntries(Object.entries(request).sort(([left],[right]) => left.localeCompare(right)));
+          process.stdout.write(`ynxwallet://authorize?request=${Buffer.from(JSON.stringify(canonical)).toString("base64url")}\n`);
+          NODE
+          xcodebuild test \
+            -workspace ios/YNXWallet.xcworkspace \
+            -scheme YNXWallet \
+            -configuration Release \
+            -destination "platform=iOS Simulator,id=$DEVICE" \
+            -only-testing:YNXWalletUITests/MalformedCallbackUITests/testCanonicalRegistryRequestStopsAtNativeBridge \
+            -resultBundlePath proof/ci-ios/CanonicalRegistryNativeBridge.xcresult \
+            2>&1 | tee proof/ci-ios/canonical-registry-native-bridge-xctest.log &
+          XCODEBUILD_PID=$!
+          READY=false
+          for _ in $(seq 1 240); do
+            if grep -Fq 'YNX_WALLET_CANONICAL_UI_READY_FOR_SIMCTL_OPENURL' proof/ci-ios/canonical-registry-native-bridge-xctest.log; then
+              READY=true
+              break
+            fi
+            if ! kill -0 "$XCODEBUILD_PID" 2>/dev/null; then break; fi
+            sleep 1
+          done
+          test "$READY" = true
+          IFS= read -r CANONICAL_URL < proof/ci-ios/canonical-registry-request-url.txt
+          xcrun simctl openurl "$DEVICE" "$CANONICAL_URL" | tee proof/ci-ios/canonical-registry-openurl.txt
+          wait "$XCODEBUILD_PID"
+          grep -E 'YNX_WALLET_CANONICAL_OPENURL_DELIVERY mode=(direct-after-prior-scheme-confirmation|system-confirmed)' \
+            proof/ci-ios/canonical-registry-native-bridge-xctest.log
+          xcrun simctl spawn "$DEVICE" log show --style compact --last 10m \
+            --predicate 'subsystem == "com.ynxweb4.wallet" AND category == "callback"' \
+            2>&1 | tee proof/ci-ios/canonical-registry-native.log
+          grep -E 'YNX_WALLET_NATIVE_AUTHORIZATION_REJECTED pid=[0-9]+ code=CANONICAL_AUTH_BRIDGE_UNAVAILABLE authorizationSuccess=false signing=false callbackEmitted=false' proof/ci-ios/canonical-registry-native.log
+          grep -E 'YNX_WALLET_NATIVE_AUTHORIZATION_UI_VISIBLE pid=[0-9]+ code=CANONICAL_AUTH_BRIDGE_UNAVAILABLE' proof/ci-ios/canonical-registry-native.log
+          grep -F "Test Case '-[YNXWalletUITests.MalformedCallbackUITests testCanonicalRegistryRequestStopsAtNativeBridge]' passed" proof/ci-ios/canonical-registry-native-bridge-xctest.log
+          mkdir -p proof/ci-ios/canonical-registry-xcresult-attachments
+          xcrun xcresulttool export attachments \
+            --path proof/ci-ios/CanonicalRegistryNativeBridge.xcresult \
+            --output-path proof/ci-ios/canonical-registry-xcresult-attachments
+      - name: Prove Universal Link remains fail-closed without a frozen associated domain
+        timeout-minutes: 10
+        working-directory: apps/wallet
+        run: |
+          set -euo pipefail
+          DEVICE="$(xcrun simctl list devices booted | awk -F '[()]' '/iPhone/{print $2; exit}')"
+          test -n "$DEVICE"
+          plutil -p ios/YNXWallet/YNXWallet.entitlements \
+            | tee proof/ci-ios/associated-domain-entitlements.txt
+          ! grep -Fq 'com.apple.developer.associated-domains' \
+            proof/ci-ios/associated-domain-entitlements.txt
+          xcodebuild test \
+            -workspace ios/YNXWallet.xcworkspace \
+            -scheme YNXWallet \
+            -configuration Release \
+            -destination "platform=iOS Simulator,id=$DEVICE" \
+            -only-testing:YNXWalletUITests/MalformedCallbackUITests/testUniversalLinkRemainsFailClosedWithoutFrozenAssociatedDomain \
+            -resultBundlePath proof/ci-ios/UniversalLinkFailClosed.xcresult \
+            2>&1 | tee proof/ci-ios/universal-link-fail-closed-xctest.log
+          grep -F "Test Case '-[YNXWalletUITests.MalformedCallbackUITests testUniversalLinkRemainsFailClosedWithoutFrozenAssociatedDomain]' passed" \
+            proof/ci-ios/universal-link-fail-closed-xctest.log
+      - name: Prove recovery stays empty when biometric authorization is not completed
+        timeout-minutes: 10
+        working-directory: apps/wallet
+        run: |
+          set -euo pipefail
+          DEVICE="$(xcrun simctl list devices booted | awk -F '[()]' '/iPhone/{print $2; exit}')"
+          test -n "$DEVICE"
+          grep -F "device=$DEVICE erased=true" proof/ci-ios/simulator-reset.txt
+          set +e
+          xcodebuild test \
+            -workspace ios/YNXWallet.xcworkspace \
+            -scheme YNXWallet \
+            -configuration Release \
+            -destination "platform=iOS Simulator,id=$DEVICE" \
+            -only-testing:YNXWalletUITests/MalformedCallbackUITests/testRecoveryRemainsEmptyWhenBiometricAuthorizationIsNotCompleted \
+            -resultBundlePath proof/ci-ios/RecoveryFailClosed.xcresult \
+            2>&1 | tee proof/ci-ios/recovery-fail-closed-xctest.log
+          XCODEBUILD_STATUS=${PIPESTATUS[0]}
+          set -e
+          if test -d proof/ci-ios/RecoveryFailClosed.xcresult; then
+            xcrun xcresulttool export attachments \
+              --path proof/ci-ios/RecoveryFailClosed.xcresult \
+              --output-path proof/ci-ios/recovery-xcresult-attachments || true
+          fi
+          test "$XCODEBUILD_STATUS" -eq 0
+          grep -F "YNX_WALLET_RECOVERY_AUTHORIZATION_NOT_COMPLETED mode=" proof/ci-ios/recovery-fail-closed-xctest.log
+          grep -F "Test Case '-[YNXWalletUITests.MalformedCallbackUITests testRecoveryRemainsEmptyWhenBiometricAuthorizationIsNotCompleted]' passed" proof/ci-ios/recovery-fail-closed-xctest.log
+      - name: Prove recovery and unlock with Simulator biometric matches
+        timeout-minutes: 15
+        working-directory: apps/wallet
+        run: |
+          set -euo pipefail
+          DEVICE="$(xcrun simctl list devices booted | awk -F '[()]' '/iPhone/{print $2; exit}')"
+          test -n "$DEVICE"
+          grep -F "device=$DEVICE erased=true" proof/ci-ios/simulator-reset.txt
+          simulator_face_id_menu() {
+            local menu_item="$1"
+            osascript - "$menu_item" <<'APPLESCRIPT'
+          on run argv
+            set requestedItem to item 1 of argv
+            tell application "Simulator" to activate
+            tell application "System Events"
+              tell process "Simulator"
+                click menu item requestedItem of menu 1 of menu item "Face ID" of menu 1 of menu bar item "Features" of menu bar 1
+              end tell
+            end tell
+          end run
+          APPLESCRIPT
+          }
+          simulator_face_id_menu "Enrolled"
+          xcodebuild test \
+            -workspace ios/YNXWallet.xcworkspace \
+            -scheme YNXWallet \
+            -configuration Release \
+            -destination "platform=iOS Simulator,id=$DEVICE" \
+            -only-testing:YNXWalletUITests/MalformedCallbackUITests/testRecoveryAndUnlockWithSimulatedBiometricMatches \
+            -resultBundlePath proof/ci-ios/SimulatedBiometricRecovery.xcresult \
+            2>&1 | tee proof/ci-ios/simulated-biometric-recovery-xctest.log &
+          XCODEBUILD_PID=$!
+          for PHASE in recovery unlock; do
+            READY=false
+            for _ in $(seq 1 240); do
+              if grep -Fq "YNX_WALLET_SIMULATED_BIOMETRIC_READY phase=$PHASE" \
+                proof/ci-ios/simulated-biometric-recovery-xctest.log; then
+                READY=true
+                break
+              fi
+              if ! kill -0 "$XCODEBUILD_PID" 2>/dev/null; then
+                break
+              fi
+              sleep 1
+            done
+            test "$READY" = true
+            sleep 2
+            simulator_face_id_menu "Matching Face"
+          done
+          wait "$XCODEBUILD_PID"
+          grep -F "YNX_WALLET_SIMULATED_BIOMETRIC_MATCHED recovery=true unlock=true" \
+            proof/ci-ios/simulated-biometric-recovery-xctest.log
+          grep -F "Test Case '-[YNXWalletUITests.MalformedCallbackUITests testRecoveryAndUnlockWithSimulatedBiometricMatches]' passed" \
+            proof/ci-ios/simulated-biometric-recovery-xctest.log
+          xcrun xcresulttool export attachments \
+            --path proof/ci-ios/SimulatedBiometricRecovery.xcresult \
+            --output-path proof/ci-ios/simulated-biometric-recovery-xcresult-attachments
+      - name: Record truthful Simulator artifact facts
+        if: always()
+        working-directory: apps/wallet
+        run: |
+          set -euo pipefail
+          APP="$PWD/proof/ci-ios/YNXWallet-Standalone.app"
+          test -n "$APP"
+          mkdir -p proof/ci-ios
+          xcodebuild -version | tee proof/ci-ios/xcode-version.txt
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP/Info.plist" | tee proof/ci-ios/bundle-identifier.txt
+          /usr/libexec/PlistBuddy -c 'Print :MinimumOSVersion' "$APP/Info.plist" | tee proof/ci-ios/minimum-os.txt
+          codesign -dv --verbose=4 "$APP" 2> proof/ci-ios/codesign.txt || true
+          ditto -c -k --sequesterRsrc --keepParent "$APP" proof/ci-ios/YNXWallet-iOS-Simulator.zip
+          shasum -a 256 proof/ci-ios/YNXWallet-iOS-Simulator.zip | tee proof/ci-ios/SHA256SUMS
+          wc -c proof/ci-ios/YNXWallet-iOS-Simulator.zip | tee proof/ci-ios/BYTES
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
         with:
           name: ynx-wallet-ios-simulator
           path: |
-            ~/Library/Developer/Xcode/DerivedData/**/Build/Products/Release-iphonesimulator/YNXWallet.app
             apps/wallet/proof/ci-ios
           if-no-files-found: error

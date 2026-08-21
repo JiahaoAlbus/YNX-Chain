@@ -1,0 +1,881 @@
+name: wallet-macos
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_source_sha:
+        description: Exact main commit containing the engineering DMG source
+        required: true
+        type: string
+      publish_engineering_dmg:
+        description: Publish the ad-hoc, Gatekeeper-rejected Testnet engineering DMG prerelease
+        required: true
+        default: false
+        type: boolean
+  push:
+    branches: [main, codex/wallet-ios-macos-20260813]
+    paths: ["apps/wallet/macos/**", "apps/wallet/scripts/verify-apple-production-operator-inputs.rb", "release/integration/wallet-apple-production-operator-inputs.request.json", ".github/workflows/wallet-macos.yml"]
+  pull_request:
+    paths: ["apps/wallet/macos/**", "apps/wallet/scripts/verify-apple-production-operator-inputs.rb", "release/integration/wallet-apple-production-operator-inputs.request.json", ".github/workflows/wallet-macos.yml"]
+
+permissions:
+  contents: read
+
+jobs:
+  native-package:
+    runs-on: macos-15
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: maxim-lobanov/setup-xcode@ed7a3b1fda3918c0306d1b724322adc0b8cc0a90 # v1.7.0
+        with:
+          xcode-version: "26.3"
+      - name: Verify immutable GitHub Actions pins
+        run: |
+          python3 - <<'PY'
+          import pathlib, re
+          source = pathlib.Path('.github/workflows/wallet-macos.yml').read_text()
+          uses = re.findall(r'^\s*-\s+uses:\s+([^\s#]+)', source, re.MULTILINE)
+          mutable = [use for use in uses if not use.startswith('./') and not re.search(r'@[0-9a-f]{40}$', use)]
+          assert not mutable, f'wallet-macos actions must use immutable pins: {mutable}'
+          PY
+      - name: Verify notarized native DMG release source contract
+        run: |
+          bash -n apps/wallet/macos/scripts/verify-notarized-dmg.sh
+          bash -n apps/wallet/macos/scripts/cleanup-signing-material.sh
+          ruby apps/wallet/macos/scripts/verify-notarized-release-source.rb
+          ruby apps/wallet/macos/scripts/verify-engineering-dmg-release-source.rb
+          ruby apps/wallet/macos/scripts/verify-ci-trigger-isolation.rb
+          ruby apps/wallet/scripts/verify-apple-production-operator-inputs.rb
+      - name: Test native callback and recovery boundaries
+        run: swift test --package-path apps/wallet/macos
+      - name: Build and package ad-hoc native application
+        run: |
+          set -euo pipefail
+          PACKAGE="$GITHUB_WORKSPACE/apps/wallet/macos"
+          PROOF="$GITHUB_WORKSPACE/apps/wallet/proof/ci-macos"
+          INSTALL_ROOT="$RUNNER_TEMP/Applications"
+          APP="$INSTALL_ROOT/YNX Wallet.app"
+          ARM_SCRATCH="$RUNNER_TEMP/wallet-macos-arm64"
+          X86_SCRATCH="$RUNNER_TEMP/wallet-macos-x86_64"
+          swift build --package-path "$PACKAGE" --configuration release \
+            --triple arm64-apple-macosx13.0 --scratch-path "$ARM_SCRATCH"
+          swift build --package-path "$PACKAGE" --configuration release \
+            --triple x86_64-apple-macosx13.0 --scratch-path "$X86_SCRATCH"
+          ARM_BIN="$(swift build --package-path "$PACKAGE" --configuration release \
+            --triple arm64-apple-macosx13.0 --scratch-path "$ARM_SCRATCH" --show-bin-path)"
+          X86_BIN="$(swift build --package-path "$PACKAGE" --configuration release \
+            --triple x86_64-apple-macosx13.0 --scratch-path "$X86_SCRATCH" --show-bin-path)"
+          rm -rf "$PROOF" "$APP"
+          mkdir -p "$PROOF" "$APP/Contents/MacOS" "$APP/Contents/Resources"
+          cp "$PACKAGE/Info.plist" "$APP/Contents/Info.plist"
+          cp "$GITHUB_WORKSPACE/release/integration/wallet-auth-public-endpoint-service-discovery-matrix.json" \
+            "$APP/Contents/Resources/wallet-auth-public-endpoint-service-discovery-matrix.json"
+          cp "$GITHUB_WORKSPACE/packages/wallet-auth/central-registry.json" \
+            "$APP/Contents/Resources/central-registry.json"
+          MATRIX="$APP/Contents/Resources/wallet-auth-public-endpoint-service-discovery-matrix.json"
+          test "$(git hash-object "$MATRIX")" = d402fcdc844aa39bd5ee351a99d93acb4852dc37
+          test "$(shasum -a 256 "$MATRIX" | awk '{print $1}')" = d344c607c2bbbf7bb0d9d3662b424976d0d6c4ff20428025dd1e2fb92bf31392
+          git hash-object "$MATRIX" | tee "$PROOF/endpoint-matrix-git-blob.txt"
+          shasum -a 256 "$MATRIX" | tee "$PROOF/endpoint-matrix-sha256.txt"
+          REGISTRY="$APP/Contents/Resources/central-registry.json"
+          test "$(git hash-object "$REGISTRY")" = 7275720f0e5020da4e106bef187c22af6f836137
+          test "$(shasum -a 256 "$REGISTRY" | awk '{print $1}')" = 28f6e27562493501a26a0bae5fcaa0492e16b7e84845d95a0d5056ba1690717a
+          git hash-object "$REGISTRY" | tee "$PROOF/central-registry-git-blob.txt"
+          shasum -a 256 "$REGISTRY" | tee "$PROOF/central-registry-sha256.txt"
+          lipo -create \
+            "$ARM_BIN/YNXWalletMac" \
+            "$X86_BIN/YNXWalletMac" \
+            -output "$APP/Contents/MacOS/YNXWalletMac"
+          chmod 755 "$APP/Contents/MacOS/YNXWalletMac"
+          lipo -archs "$APP/Contents/MacOS/YNXWalletMac" | tee "$PROOF/architectures.txt"
+          grep -Eq '(^| )arm64( |$)' "$PROOF/architectures.txt"
+          grep -Eq '(^| )x86_64( |$)' "$PROOF/architectures.txt"
+          codesign --force --sign - --timestamp=none "$APP"
+          codesign --verify --deep --strict "$APP"
+          codesign -dv --verbose=4 "$APP" 2> "$PROOF/codesign.txt"
+          grep -E '^(Signature|TeamIdentifier)=' "$PROOF/codesign.txt" | tee "$PROOF/signing-class.txt"
+          /usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' "$APP/Contents/Info.plist" | tee "$PROOF/minimum-os.txt"
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP/Contents/Info.plist" | tee "$PROOF/bundle-identifier.txt"
+          xcodebuild -version > "$PROOF/xcode-version.txt"
+          file "$APP/Contents/MacOS/YNXWalletMac" > "$PROOF/executable-file.txt"
+          ditto -c -k --sequesterRsrc --keepParent "$APP" "$PROOF/YNX-Wallet-macOS-ad-hoc.zip"
+          shasum -a 256 "$PROOF/YNX-Wallet-macOS-ad-hoc.zip" > "$PROOF/SHA256SUMS"
+          wc -c "$PROOF/YNX-Wallet-macOS-ad-hoc.zip" > "$PROOF/BYTES"
+          DMG_ROOT="$RUNNER_TEMP/ynx-wallet-engineering-dmg-root"
+          DMG="$PROOF/YNX-Wallet-macOS-ad-hoc.dmg"
+          DMG_MOUNT="$RUNNER_TEMP/ynx-wallet-engineering-dmg-mount"
+          mkdir -p "$DMG_ROOT" "$DMG_MOUNT"
+          ditto "$APP" "$DMG_ROOT/YNX Wallet.app"
+          ln -s /Applications "$DMG_ROOT/Applications"
+          hdiutil create -volname "YNX Wallet Testnet Engineering" -srcfolder "$DMG_ROOT" -format UDZO -ov "$DMG"
+          hdiutil verify "$DMG" | tee "$PROOF/engineering-dmg-verify.txt"
+          hdiutil attach -readonly -nobrowse -mountpoint "$DMG_MOUNT" "$DMG" | tee "$PROOF/engineering-dmg-attach.txt"
+          CONTAINED_APP="$DMG_MOUNT/YNX Wallet.app"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$CONTAINED_APP/Contents/Info.plist")" = com.ynxweb4.wallet.macos
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleURLTypes' "$CONTAINED_APP/Contents/Info.plist" | grep -F ynxwallet
+          codesign --verify --deep --strict "$CONTAINED_APP"
+          set +e
+          spctl --assess --type execute --verbose=4 "$CONTAINED_APP" > "$PROOF/engineering-dmg-contained-app-gatekeeper.txt" 2>&1
+          GATEKEEPER_STATUS=$?
+          set -e
+          test "$GATEKEEPER_STATUS" -ne 0
+          printf 'gatekeeperAccepted=false exitStatus=%s signingClass=ad-hoc developerIDSigned=false notarized=false\n' "$GATEKEEPER_STATUS" \
+            | tee "$PROOF/engineering-dmg-gatekeeper-boundary.txt"
+          hdiutil detach "$DMG_MOUNT"
+          shasum -a 256 "$DMG" | tee "$PROOF/DMG-SHA256SUMS"
+          wc -c "$DMG" | tee "$PROOF/DMG-BYTES"
+          printf '%s\n' "$APP" > "$PROOF/installed-app-path.txt"
+      - name: Verify native Testnet Gateway fail-closed boundary
+        run: |
+          set -euo pipefail
+          PACKAGE="$GITHUB_WORKSPACE/apps/wallet/macos"
+          PROOF="$GITHUB_WORKSPACE/apps/wallet/proof/ci-macos"
+          MATRIX="$GITHUB_WORKSPACE/release/integration/wallet-auth-public-endpoint-service-discovery-matrix.json"
+          ARM_SCRATCH="$RUNNER_TEMP/wallet-macos-arm64"
+          BIN="$(swift build --package-path "$PACKAGE" --configuration release \
+            --triple arm64-apple-macosx13.0 --scratch-path "$ARM_SCRATCH" --show-bin-path)"
+          "$BIN/YNXWalletMacGatewayProbe" "$MATRIX" | tee "$PROOF/gateway-testnet-fail-closed.json"
+          python3 - <<'PY'
+          import json, pathlib
+          result = json.loads(pathlib.Path('apps/wallet/proof/ci-macos/gateway-testnet-fail-closed.json').read_text())
+          assert result['matrixID'] == 'ynx-wallet-auth-public-endpoint-service-discovery-v1'
+          assert result['chainID'] == '0x1917'
+          assert result['restStatus'] == 200
+          assert result['walletCompletionError'] == 'UNKNOWN_OR_MISSING_FIELD'
+          assert result['walletIntrospectionError'] == 'PROOF_REQUIRED'
+          assert result['productSessionIntrospectionError'] == 'UNKNOWN_OR_MISSING_FIELD'
+          assert result['stateUnchanged'] is True
+          for key in ['authorizationSuccess', 'accountAvailable', 'signing', 'send', 'transaction']:
+            assert result[key] is False
+          PY
+      - name: Verify signing Keychain cleanup runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          PROOF="$GITHUB_WORKSPACE/apps/wallet/proof/ci-macos"
+          ORIGINAL="$RUNNER_TEMP/ynx-wallet-keychains-before-probe.txt"
+          EXPECTED="$RUNNER_TEMP/ynx-wallet-keychains-expected.txt"
+          RESTORED="$RUNNER_TEMP/ynx-wallet-keychains-after-probe.txt"
+          PROBE_KEYCHAIN="$RUNNER_TEMP/ynx-wallet-cleanup-probe.keychain-db"
+          PROBE_PASSWORD="$(openssl rand -hex 24)"
+          P12_PROBE="$RUNNER_TEMP/ynx-wallet-cleanup-probe.p12"
+          NOTARY_PROBE="$RUNNER_TEMP/ynx-wallet-cleanup-probe.p8"
+          security list-keychains -d user > "$ORIGINAL"
+          cp "$ORIGINAL" "$EXPECTED"
+          security create-keychain -p "$PROBE_PASSWORD" "$PROBE_KEYCHAIN"
+          security list-keychains -d user -s "$PROBE_KEYCHAIN"
+          test "$(security list-keychains -d user | wc -l | tr -d ' ')" = 1
+          : > "$P12_PROBE"
+          : > "$NOTARY_PROBE"
+          export YNX_ORIGINAL_KEYCHAINS_PATH="$ORIGINAL"
+          export YNX_SIGNING_KEYCHAIN="$PROBE_KEYCHAIN"
+          export YNX_DEVELOPER_ID_P12_PATH="$P12_PROBE"
+          export YNX_NOTARY_KEY_PATH="$NOTARY_PROBE"
+          bash apps/wallet/macos/scripts/cleanup-signing-material.sh
+          security list-keychains -d user > "$RESTORED"
+          cmp -s "$EXPECTED" "$RESTORED"
+          EXPECTED_SHA256="$(shasum -a 256 "$EXPECTED" | awk '{print $1}')"
+          RESTORED_SHA256="$(shasum -a 256 "$RESTORED" | awk '{print $1}')"
+          test "$EXPECTED_SHA256" = "$RESTORED_SHA256"
+          test ! -e "$ORIGINAL"
+          test ! -e "$PROBE_KEYCHAIN"
+          test ! -e "$P12_PROBE"
+          test ! -e "$NOTARY_PROBE"
+          printf 'originalSearchListRestored=true expectedSha256=%s restoredSha256=%s temporaryKeychainDeleted=true p12Deleted=true notaryKeyDeleted=true productionCredentialsUsed=false\n' \
+            "$EXPECTED_SHA256" "$RESTORED_SHA256" \
+            | tee "$PROOF/signing-keychain-cleanup.txt"
+      - name: Verify real Keychain and biometric recovery boundary
+        run: |
+          set -euo pipefail
+          PACKAGE="$GITHUB_WORKSPACE/apps/wallet/macos"
+          PROOF="$GITHUB_WORKSPACE/apps/wallet/proof/ci-macos"
+          ARM_SCRATCH="$RUNNER_TEMP/wallet-macos-arm64"
+          BIN="$(swift build --package-path "$PACKAGE" --configuration release \
+            --triple arm64-apple-macosx13.0 --scratch-path "$ARM_SCRATCH" --show-bin-path)"
+          "$BIN/YNXWalletMacSecurityProbe" | tee "$PROOF/device-security.json"
+          "$BIN/YNXWalletMacRecoveryProbe" | tee "$PROOF/recovery-fail-closed.json"
+          python3 - <<'PY'
+          import json, pathlib
+          proof = pathlib.Path('apps/wallet/proof/ci-macos')
+          security = json.loads((proof / 'device-security.json').read_text())
+          recovery = json.loads((proof / 'recovery-fail-closed.json').read_text())
+          assert security['keychainAvailable'] is True
+          assert security['keychainRoundTripVerified'] is True
+          assert security['recoveryMaterialPersisted'] is False
+          assert recovery['keychainRoundTripVerified'] is True
+          assert recovery['recoveryCreated'] is False
+          assert recovery['recoveryMaterialPersisted'] is False
+          assert recovery['recoveryAbsentBeforeAttempt'] is True
+          assert recovery['recoveryAbsentAfterAttempt'] is True
+          assert recovery['failedClosed'] is True
+          PY
+      - name: Install, cold launch, second launch and reject callback
+        timeout-minutes: 8
+        run: |
+          set -euo pipefail
+          PROOF="$GITHUB_WORKSPACE/apps/wallet/proof/ci-macos"
+          APP="$RUNNER_TEMP/Applications/YNX Wallet.app"
+          LSREGISTER="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister"
+          "$LSREGISTER" -f "$APP"
+          open -n "$APP"
+          for _ in $(seq 1 60); do
+            COLD_PID="$(pgrep -x YNXWalletMac | head -n 1 || true)"
+            test -n "$COLD_PID" && break
+            sleep 1
+          done
+          test -n "${COLD_PID:-}"
+          printf 'pid=%s running=true\n' "$COLD_PID" | tee "$PROOF/cold-launch.txt"
+          COLD_NETWORK_READY=false
+          for _ in $(seq 1 60); do
+            xcrun log show --style compact --last 5m \
+              --predicate 'subsystem == "com.ynxweb4.wallet.macos" AND category == "network"' \
+              > "$PROOF/cold-launch-network-native.log" 2>&1 || true
+            if grep -Fq "YNX_WALLET_MAC_ENDPOINT_MATRIX_LOADED pid=$COLD_PID matrixId=ynx-wallet-auth-public-endpoint-service-discovery-v1 rpcHost=rpc.ynxweb4.com rpcPath=/evm integratedCentral=false" \
+                 "$PROOF/cold-launch-network-native.log" && \
+               grep -Fq "YNX_WALLET_MAC_RPC_CHAIN_ID_VERIFIED pid=$COLD_PID chainId=0x1917" \
+                 "$PROOF/cold-launch-network-native.log" && \
+               grep -Fq "YNX_WALLET_MAC_REST_APP_GATEWAY_REACHABLE pid=$COLD_PID status=200" \
+                 "$PROOF/cold-launch-network-native.log" && \
+               grep -Fq "YNX_WALLET_MAC_GATEWAY_FAIL_CLOSED pid=$COLD_PID walletComplete=UNKNOWN_OR_MISSING_FIELD walletIntrospect=PROOF_REQUIRED productIntrospect=UNKNOWN_OR_MISSING_FIELD stateUnchanged=true" \
+                 "$PROOF/cold-launch-network-native.log"; then
+              COLD_NETWORK_READY=true
+              break
+            fi
+            sleep 1
+          done
+          test "$COLD_NETWORK_READY" = true
+          kill "$COLD_PID"
+          for _ in $(seq 1 30); do
+            kill -0 "$COLD_PID" 2>/dev/null || break
+            sleep 1
+          done
+          open -n "$APP"
+          for _ in $(seq 1 60); do
+            SECOND_PID="$(pgrep -x YNXWalletMac | head -n 1 || true)"
+            if test -n "$SECOND_PID" && test "$SECOND_PID" != "$COLD_PID"; then break; fi
+            sleep 1
+          done
+          test -n "${SECOND_PID:-}"
+          test "$SECOND_PID" != "$COLD_PID"
+          printf 'pid=%s running=true\n' "$SECOND_PID" | tee "$PROOF/second-launch.txt"
+          SECOND_NETWORK_READY=false
+          for _ in $(seq 1 60); do
+            xcrun log show --style compact --last 5m \
+              --predicate 'subsystem == "com.ynxweb4.wallet.macos" AND category == "network"' \
+              > "$PROOF/second-launch-network-native.log" 2>&1 || true
+            if grep -Fq "YNX_WALLET_MAC_ENDPOINT_MATRIX_LOADED pid=$SECOND_PID matrixId=ynx-wallet-auth-public-endpoint-service-discovery-v1 rpcHost=rpc.ynxweb4.com rpcPath=/evm integratedCentral=false" \
+                 "$PROOF/second-launch-network-native.log" && \
+               grep -Fq "YNX_WALLET_MAC_RPC_CHAIN_ID_VERIFIED pid=$SECOND_PID chainId=0x1917" \
+                 "$PROOF/second-launch-network-native.log" && \
+               grep -Fq "YNX_WALLET_MAC_REST_APP_GATEWAY_REACHABLE pid=$SECOND_PID status=200" \
+                 "$PROOF/second-launch-network-native.log" && \
+               grep -Fq "YNX_WALLET_MAC_GATEWAY_FAIL_CLOSED pid=$SECOND_PID walletComplete=UNKNOWN_OR_MISSING_FIELD walletIntrospect=PROOF_REQUIRED productIntrospect=UNKNOWN_OR_MISSING_FIELD stateUnchanged=true" \
+                 "$PROOF/second-launch-network-native.log"; then
+              SECOND_NETWORK_READY=true
+              break
+            fi
+            sleep 1
+          done
+          test "$SECOND_NETWORK_READY" = true
+          printf 'coldPid=%s secondPid=%s walletComplete=UNKNOWN_OR_MISSING_FIELD walletIntrospect=PROOF_REQUIRED productIntrospect=UNKNOWN_OR_MISSING_FIELD stateUnchanged=true authorizationSuccess=false accountAvailable=false signing=false send=false transaction=false\n' \
+            "$COLD_PID" "$SECOND_PID" > "$PROOF/gateway-fail-closed.txt"
+          SECOND_READY=false
+          for _ in $(seq 1 60); do
+            xcrun log show --style compact --last 5m \
+              --predicate 'subsystem == "com.ynxweb4.wallet.macos" AND category == "lifecycle"' \
+              > "$PROOF/second-launch-native.log" 2>&1 || true
+            if grep -Fq "YNX_WALLET_MAC_LAUNCHED pid=$SECOND_PID" "$PROOF/second-launch-native.log"; then
+              SECOND_READY=true
+              break
+            fi
+            sleep 1
+          done
+          test "$SECOND_READY" = true
+          RECOVERY_NATIVE_READY=false
+          for _ in $(seq 1 30); do
+            xcrun log show --style compact --last 5m \
+              --predicate 'subsystem == "com.ynxweb4.wallet.macos" AND category == "recovery"' \
+              > "$PROOF/second-launch-recovery-native.log" 2>&1 || true
+            if grep -Fq "YNX_WALLET_MAC_DEVICE_RECOVERY_STATUS pid=$SECOND_PID present=false actionAvailable=false productRecovery=false" \
+                 "$PROOF/second-launch-recovery-native.log"; then
+              RECOVERY_NATIVE_READY=true
+              break
+            fi
+            sleep 1
+          done
+          test "$RECOVERY_NATIVE_READY" = true
+          osascript <<'APPLESCRIPT' > "$PROOF/second-launch-recovery-button.txt" 2>/dev/null || true
+          tell application "System Events"
+            tell process "YNXWalletMac"
+              set frontmost to true
+              return enabled of button "Prepare device recovery" of window 1
+            end tell
+          end tell
+          APPLESCRIPT
+          osascript <<'APPLESCRIPT' > "$PROOF/second-launch-recovery-ui.txt" 2>/dev/null || true
+          tell application "System Events"
+            tell process "YNXWalletMac"
+              set frontmost to true
+              return name of every static text of window 1
+            end tell
+          end tell
+          APPLESCRIPT
+          RECOVERY_SYSTEM_EVENTS_VISIBLE=false
+          BUTTON_ENABLED_OBSERVED=null
+          if grep -Fxq 'false' "$PROOF/second-launch-recovery-button.txt"; then
+            RECOVERY_SYSTEM_EVENTS_VISIBLE=true
+            BUTTON_ENABLED_OBSERVED=false
+          elif grep -Fxq 'true' "$PROOF/second-launch-recovery-button.txt"; then
+            RECOVERY_SYSTEM_EVENTS_VISIBLE=true
+            BUTTON_ENABLED_OBSERVED=true
+          fi
+          if grep -Fq 'Product account recovery remains unavailable.' "$PROOF/second-launch-recovery-ui.txt"; then
+            RECOVERY_SYSTEM_EVENTS_VISIBLE=true
+          fi
+          test "$BUTTON_ENABLED_OBSERVED" != true
+          screencapture -x "$PROOF/device-recovery-fail-closed.png"
+          test -s "$PROOF/device-recovery-fail-closed.png"
+          printf 'pid=%s present=false actionAvailable=false nativeStatusObserved=true systemEventsSemanticVisible=%s buttonEnabledObserved=%s screenshotCaptured=true productRecovery=false\n' \
+            "$SECOND_PID" "$RECOVERY_SYSTEM_EVENTS_VISIBLE" "$BUTTON_ENABLED_OBSERVED" \
+            | tee "$PROOF/second-launch-recovery-ui-evidence.txt"
+          open 'ynxwallet://authorize?request=invalid&scope=wallet' > "$PROOF/open-callback-first.txt"
+          FIRST_CALLBACK_SEEN=false
+          for _ in $(seq 1 60); do
+            xcrun log show --style compact --last 5m \
+              --predicate 'subsystem == "com.ynxweb4.wallet.macos" AND (category == "callback" OR category == "lifecycle")' \
+              > "$PROOF/native.log" 2>&1 || true
+            if grep -Fq "YNX_WALLET_MAC_CALLBACK_RECEIVED pid=$SECOND_PID scheme=ynxwallet" "$PROOF/native.log" && \
+               grep -Fq "YNX_WALLET_MAC_CALLBACK_REJECTED pid=$SECOND_PID code=INVALID_AUTHORIZATION_REQUEST" "$PROOF/native.log"; then
+              FIRST_CALLBACK_SEEN=true
+              break
+            fi
+            sleep 1
+          done
+          test "$FIRST_CALLBACK_SEEN" = true
+          printf 'pid=%s error=INVALID_AUTHORIZATION_REQUEST failedClosed=true\n' "$SECOND_PID" \
+            > "$PROOF/first-callback.txt"
+          open 'ynxwallet://authorize?request=invalid' > "$PROOF/open-callback-second.txt"
+          CALLBACK_SEEN=false
+          for _ in $(seq 1 60); do
+            xcrun log show --style compact --last 5m \
+              --predicate 'subsystem == "com.ynxweb4.wallet.macos" AND (category == "callback" OR category == "lifecycle")' \
+              > "$PROOF/native.log" 2>&1 || true
+            if test "$(grep -Fc "YNX_WALLET_MAC_CALLBACK_RECEIVED pid=$SECOND_PID scheme=ynxwallet" "$PROOF/native.log")" -ge 2 && \
+               grep -Fq "YNX_WALLET_MAC_CALLBACK_REJECTED pid=$SECOND_PID code=INVALID_DEEP_LINK" "$PROOF/native.log"; then
+              CALLBACK_SEEN=true
+              break
+            fi
+            sleep 1
+          done
+          test "$CALLBACK_SEEN" = true
+          printf 'pid=%s error=INVALID_DEEP_LINK failedClosed=true\n' "$SECOND_PID" \
+            > "$PROOF/second-callback.txt"
+          open "$APP"
+          sleep 2
+          screencapture -x "$PROOF/malformed-callback-fail-closed.png"
+          test -s "$PROOF/malformed-callback-fail-closed.png"
+
+          python3 - <<'PY' > "$PROOF/canonical-enabled-request-url.txt"
+          import base64, datetime, json
+          now = datetime.datetime.now(datetime.timezone.utc)
+          request = {
+            "version":"1",
+            "nonce":"ci_native_bridge_boundary_nonce_01",
+            "chainId":"ynx_6423-1",
+            "requestingProduct":"social",
+            "productClientId":"ynx-social-v1",
+            "bundleId":"com.ynx.social",
+            "productDeviceAlgorithm":"p256-sha256",
+            "productDeviceKey":"AzrThhqVYhOSUWu1k-8FWD7S5YZvXLYmCjAXI3_Ym5Cv",
+            "callback":"ynx-social://com.ynx.social",
+            "scopes":["account:read","profile:link"],
+            "purpose":"Verify the frozen native bridge fail-closed boundary.",
+            "issuedAt":(now-datetime.timedelta(seconds=5)).isoformat(timespec="milliseconds").replace("+00:00","Z"),
+            "expiresAt":(now+datetime.timedelta(minutes=4)).isoformat(timespec="milliseconds").replace("+00:00","Z"),
+          }
+          payload = json.dumps(request, sort_keys=True, separators=(",", ":")).encode()
+          encoded = base64.urlsafe_b64encode(payload).decode().rstrip("=")
+          print(f"ynxwallet://authorize?request={encoded}")
+          PY
+          IFS= read -r CANONICAL_ENABLED_URL < "$PROOF/canonical-enabled-request-url.txt"
+          open "$CANONICAL_ENABLED_URL" > "$PROOF/open-canonical-enabled-callback.txt"
+          CANONICAL_ENABLED_SEEN=false
+          CANONICAL_ENABLED_UI=false
+          for _ in $(seq 1 60); do
+            xcrun log show --style compact --last 5m \
+              --predicate 'subsystem == "com.ynxweb4.wallet.macos" AND (category == "callback" OR category == "lifecycle")' \
+              > "$PROOF/canonical-enabled-callback-native.log" 2>&1 || true
+            if test "$(grep -Fc "YNX_WALLET_MAC_CALLBACK_RECEIVED pid=$SECOND_PID scheme=ynxwallet" "$PROOF/canonical-enabled-callback-native.log")" -ge 3 && \
+               grep -Fq "YNX_WALLET_MAC_CALLBACK_REJECTED pid=$SECOND_PID code=CANONICAL_AUTH_BRIDGE_UNAVAILABLE" "$PROOF/canonical-enabled-callback-native.log"; then
+              CANONICAL_ENABLED_SEEN=true
+            fi
+            osascript <<'APPLESCRIPT' > "$PROOF/canonical-enabled-callback-ui.txt" 2>/dev/null || true
+          tell application "System Events"
+            tell process "YNXWalletMac"
+              set frontmost to true
+              return name of every static text of window 1
+            end tell
+          end tell
+          APPLESCRIPT
+            if grep -Fq 'Request rejected' "$PROOF/canonical-enabled-callback-ui.txt" && \
+               grep -Fq 'CANONICAL_AUTH_BRIDGE_UNAVAILABLE' "$PROOF/canonical-enabled-callback-ui.txt"; then
+              CANONICAL_ENABLED_UI=true
+            fi
+            if test "$CANONICAL_ENABLED_SEEN" = true && test "$CANONICAL_ENABLED_UI" = true; then break; fi
+            sleep 1
+          done
+          test "$CANONICAL_ENABLED_SEEN" = true
+          test "$CANONICAL_ENABLED_UI" = true
+          printf 'pid=%s canonicalRequest=true registryBound=true error=CANONICAL_AUTH_BRIDGE_UNAVAILABLE visible=true authorizationSuccess=false signing=false callbackEmitted=false\n' \
+            "$SECOND_PID" | tee "$PROOF/canonical-enabled-callback.txt"
+          screencapture -x "$PROOF/canonical-enabled-callback-fail-closed.png"
+          test -s "$PROOF/canonical-enabled-callback-fail-closed.png"
+          kill "$SECOND_PID"
+          for _ in $(seq 1 30); do
+            kill -0 "$SECOND_PID" 2>/dev/null || break
+            sleep 1
+          done
+          ! kill -0 "$SECOND_PID" 2>/dev/null
+
+          open 'ynxwallet://authorize?request=invalid' > "$PROOF/open-callback-cold-start.txt"
+          for _ in $(seq 1 60); do
+            CALLBACK_COLD_PID="$(pgrep -x YNXWalletMac | head -n 1 || true)"
+            if test -n "$CALLBACK_COLD_PID" && test "$CALLBACK_COLD_PID" != "$SECOND_PID"; then break; fi
+            sleep 1
+          done
+          test -n "${CALLBACK_COLD_PID:-}"
+          test "$CALLBACK_COLD_PID" != "$SECOND_PID"
+          CALLBACK_COLD_SEEN=false
+          CALLBACK_COLD_UI=false
+          for _ in $(seq 1 60); do
+            xcrun log show --style compact --last 5m \
+              --predicate 'subsystem == "com.ynxweb4.wallet.macos" AND (category == "callback" OR category == "lifecycle")' \
+              > "$PROOF/callback-cold-start-native.log" 2>&1 || true
+            if grep -Fq "YNX_WALLET_MAC_LAUNCHED pid=$CALLBACK_COLD_PID" "$PROOF/callback-cold-start-native.log" && \
+               grep -Fq "YNX_WALLET_MAC_CALLBACK_RECEIVED pid=$CALLBACK_COLD_PID scheme=ynxwallet" "$PROOF/callback-cold-start-native.log" && \
+               grep -Fq "YNX_WALLET_MAC_CALLBACK_REJECTED pid=$CALLBACK_COLD_PID code=INVALID_DEEP_LINK" "$PROOF/callback-cold-start-native.log"; then
+              CALLBACK_COLD_SEEN=true
+            fi
+            osascript <<'APPLESCRIPT' > "$PROOF/callback-cold-start-ui.txt" 2>/dev/null || true
+          tell application "System Events"
+            tell process "YNXWalletMac"
+              set frontmost to true
+              return name of every static text of window 1
+            end tell
+          end tell
+          APPLESCRIPT
+            if grep -Fq 'Request rejected' "$PROOF/callback-cold-start-ui.txt" && \
+               grep -Fq 'INVALID_DEEP_LINK' "$PROOF/callback-cold-start-ui.txt"; then
+              CALLBACK_COLD_UI=true
+            fi
+            if test "$CALLBACK_COLD_SEEN" = true && test "$CALLBACK_COLD_UI" = true; then break; fi
+            sleep 1
+          done
+          test "$CALLBACK_COLD_SEEN" = true
+          test "$CALLBACK_COLD_UI" = true
+          printf 'pid=%s launchedByCallback=true received=true error=INVALID_DEEP_LINK visible=true failedClosed=true\n' \
+            "$CALLBACK_COLD_PID" | tee "$PROOF/callback-cold-start.txt"
+          screencapture -x "$PROOF/callback-cold-start-fail-closed.png"
+          test -s "$PROOF/callback-cold-start-fail-closed.png"
+          kill "$CALLBACK_COLD_PID"
+          for _ in $(seq 1 30); do
+            kill -0 "$CALLBACK_COLD_PID" 2>/dev/null || break
+            sleep 1
+          done
+          ! kill -0 "$CALLBACK_COLD_PID" 2>/dev/null
+
+          open 'ynxwallet://authorize?request=invalid&scope=wallet' > "$PROOF/open-widened-callback-cold-start.txt"
+          for _ in $(seq 1 60); do
+            WIDENED_COLD_PID="$(pgrep -x YNXWalletMac | head -n 1 || true)"
+            if test -n "$WIDENED_COLD_PID" && test "$WIDENED_COLD_PID" != "$CALLBACK_COLD_PID"; then break; fi
+            sleep 1
+          done
+          test -n "${WIDENED_COLD_PID:-}"
+          test "$WIDENED_COLD_PID" != "$CALLBACK_COLD_PID"
+          WIDENED_COLD_SEEN=false
+          WIDENED_COLD_UI=false
+          for _ in $(seq 1 60); do
+            xcrun log show --style compact --last 5m \
+              --predicate 'subsystem == "com.ynxweb4.wallet.macos" AND (category == "callback" OR category == "lifecycle")' \
+              > "$PROOF/widened-callback-cold-start-native.log" 2>&1 || true
+            if grep -Fq "YNX_WALLET_MAC_LAUNCHED pid=$WIDENED_COLD_PID" "$PROOF/widened-callback-cold-start-native.log" && \
+               grep -Fq "YNX_WALLET_MAC_CALLBACK_RECEIVED pid=$WIDENED_COLD_PID scheme=ynxwallet" "$PROOF/widened-callback-cold-start-native.log" && \
+               grep -Fq "YNX_WALLET_MAC_CALLBACK_REJECTED pid=$WIDENED_COLD_PID code=INVALID_AUTHORIZATION_REQUEST" "$PROOF/widened-callback-cold-start-native.log"; then
+              WIDENED_COLD_SEEN=true
+            fi
+            osascript <<'APPLESCRIPT' > "$PROOF/widened-callback-cold-start-ui.txt" 2>/dev/null || true
+          tell application "System Events"
+            tell process "YNXWalletMac"
+              set frontmost to true
+              return name of every static text of window 1
+            end tell
+          end tell
+          APPLESCRIPT
+            if grep -Fq 'Request rejected' "$PROOF/widened-callback-cold-start-ui.txt" && \
+               grep -Fq 'INVALID_AUTHORIZATION_REQUEST' "$PROOF/widened-callback-cold-start-ui.txt"; then
+              WIDENED_COLD_UI=true
+            fi
+            if test "$WIDENED_COLD_SEEN" = true && test "$WIDENED_COLD_UI" = true; then break; fi
+            sleep 1
+          done
+          test "$WIDENED_COLD_SEEN" = true
+          test "$WIDENED_COLD_UI" = true
+          printf 'pid=%s launchedByWidenedCallback=true received=true error=INVALID_AUTHORIZATION_REQUEST visible=true failedClosed=true\n' \
+            "$WIDENED_COLD_PID" | tee "$PROOF/widened-callback-cold-start.txt"
+          screencapture -x "$PROOF/widened-callback-cold-start-fail-closed.png"
+          test -s "$PROOF/widened-callback-cold-start-fail-closed.png"
+          kill "$WIDENED_COLD_PID"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: ynx-wallet-macos-native
+          path: |
+            apps/wallet/proof/ci-macos
+            ${{ runner.temp }}/Applications/YNX Wallet.app
+          if-no-files-found: error
+
+  publish-engineering-dmg:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.publish_engineering_dmg }}
+    needs: native-package
+    runs-on: macos-15
+    timeout-minutes: 10
+    environment: wallet-macos-engineering-publication
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.expected_source_sha }}
+          fetch-depth: 0
+      - name: Publish exact owner-native ad-hoc Testnet engineering DMG prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+          YNX_EXPECTED_SOURCE_SHA: ${{ inputs.expected_source_sha }}
+        run: |
+          set -euo pipefail
+          test "${{ github.ref }}" = refs/heads/main
+          test "$YNX_EXPECTED_SOURCE_SHA" = "$GITHUB_SHA"
+          test "$(git rev-parse HEAD)" = "$YNX_EXPECTED_SOURCE_SHA"
+          test -z "$(git status --porcelain)"
+          RELEASE_TAG="wallet-macos-native-ad-hoc-dmg-${YNX_EXPECTED_SOURCE_SHA:0:8}"
+          if git ls-remote --exit-code --tags origin "refs/tags/$RELEASE_TAG" >/dev/null 2>&1; then
+            printf 'release identity already exists: %s\n' "$RELEASE_TAG" >&2
+            exit 1
+          else
+            STATUS=$?
+            test "$STATUS" -eq 2
+          fi
+          DOWNLOAD_ROOT="$RUNNER_TEMP/ynx-wallet-engineering-publication"
+          mkdir -p "$DOWNLOAD_ROOT"
+          gh run download "$GITHUB_RUN_ID" --name ynx-wallet-macos-native --dir "$DOWNLOAD_ROOT"
+          DMG="$(find "$DOWNLOAD_ROOT" -name 'YNX-Wallet-macOS-ad-hoc.dmg' -type f -print -quit)"
+          test -s "$DMG"
+          PROOF="$(dirname "$DMG")"
+          EXPECTED_SHA256="$(awk '{print $1}' "$PROOF/DMG-SHA256SUMS")"
+          EXPECTED_BYTES="$(awk '{print $1}' "$PROOF/DMG-BYTES")"
+          test "$(shasum -a 256 "$DMG" | awk '{print $1}')" = "$EXPECTED_SHA256"
+          test "$(stat -f '%z' "$DMG")" = "$EXPECTED_BYTES"
+          grep -F 'gatekeeperAccepted=false' "$PROOF/engineering-dmg-gatekeeper-boundary.txt"
+          grep -F 'signingClass=ad-hoc' "$PROOF/engineering-dmg-gatekeeper-boundary.txt"
+          MANIFEST="$DOWNLOAD_ROOT/YNX-Wallet-macOS-ad-hoc.manifest.json"
+          export EXPECTED_SHA256 EXPECTED_BYTES MANIFEST RELEASE_TAG
+          ruby -rjson -e '
+            manifest = {
+              schemaVersion: 1,
+              releaseTag: ENV.fetch("RELEASE_TAG"),
+              sourceCommit: ENV.fetch("YNX_EXPECTED_SOURCE_SHA"),
+              artifact: {
+                name: "YNX-Wallet-macOS-ad-hoc.dmg",
+                sha256: ENV.fetch("EXPECTED_SHA256"),
+                bytes: Integer(ENV.fetch("EXPECTED_BYTES")),
+                bundleIdentifier: "com.ynxweb4.wallet.macos",
+                minimumOS: "13.0",
+                architectures: ["x86_64", "arm64"],
+                customScheme: "ynxwallet",
+                signingClass: "ad-hoc engineering",
+                teamIdentifier: nil
+              },
+              gates: {
+                testnetEngineeringArtifact: true,
+                developerIDSigned: false,
+                notarized: false,
+                stapled: false,
+                gatekeeperAccepted: false,
+                productionSigned: false,
+                appStore: false,
+                websitePublished: false,
+                authorizationSuccess: false,
+                account: false,
+                productSession: false,
+                sign: false,
+                send: false,
+                transaction: false,
+                biometricSuccess: false,
+                recoverySuccess: false,
+                universalLink: false
+              }
+            }
+            File.write(ENV.fetch("MANIFEST"), JSON.pretty_generate(manifest) + "\n")
+          '
+          ruby -rjson -e '
+            manifest = JSON.parse(File.read(ENV.fetch("MANIFEST")))
+            abort unless manifest.fetch("sourceCommit") == ENV.fetch("YNX_EXPECTED_SOURCE_SHA")
+            abort unless manifest.dig("artifact", "sha256") == ENV.fetch("EXPECTED_SHA256")
+            abort unless manifest.dig("artifact", "bytes") == Integer(ENV.fetch("EXPECTED_BYTES"))
+            false_gates = manifest.fetch("gates").reject { |key, _| key == "testnetEngineeringArtifact" }
+            abort unless false_gates.values.all? { |value| value == false }
+          '
+          shasum -a 256 "$MANIFEST"
+          gh release create "$RELEASE_TAG" "$DMG" "$MANIFEST" \
+            --target "$YNX_EXPECTED_SOURCE_SHA" \
+            --prerelease \
+            --title "YNX Wallet macOS Testnet Engineering DMG $RELEASE_TAG" \
+            --notes "Owner-native com.ynxweb4.wallet.macos Testnet engineering DMG. SHA-256: $EXPECTED_SHA256. Bytes: $EXPECTED_BYTES. Universal x86_64+arm64, minimum macOS 13.0, ad-hoc signed, no Team ID, not Developer ID signed, not notarized, not stapled, and rejected by Gatekeeper. Authorization, account, Product Session, signing, send, transaction, recovery, physical biometric, App Store, Website publication, browser-quarantine acceptance, and system /Applications installation remain unverified or false."
+          PUBLIC_REPO_JSON="$DOWNLOAD_ROOT/public-repository.json"
+          env -u GH_TOKEN -u GITHUB_TOKEN curl -fsSL \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}" > "$PUBLIC_REPO_JSON"
+          ruby -rjson -e 'abort unless JSON.parse(File.read(ARGV.fetch(0))).fetch("private") == false' \
+            "$PUBLIC_REPO_JSON"
+          DMG_URL=""
+          MANIFEST_URL=""
+          for _ in $(seq 1 15); do
+            DMG_URL="$(gh release view "$RELEASE_TAG" --json assets \
+              --jq '.assets[] | select(.name == "YNX-Wallet-macOS-ad-hoc.dmg") | .url' || true)"
+            MANIFEST_URL="$(gh release view "$RELEASE_TAG" --json assets \
+              --jq '.assets[] | select(.name == "YNX-Wallet-macOS-ad-hoc.manifest.json") | .url' || true)"
+            if test -n "$DMG_URL" && test -n "$MANIFEST_URL"; then break; fi
+            sleep 2
+          done
+          test -n "$DMG_URL"
+          test -n "$MANIFEST_URL"
+          test "$DMG_URL" = "https://github.com/${GITHUB_REPOSITORY}/releases/download/${RELEASE_TAG}/YNX-Wallet-macOS-ad-hoc.dmg"
+          test "$MANIFEST_URL" = "https://github.com/${GITHUB_REPOSITORY}/releases/download/${RELEASE_TAG}/YNX-Wallet-macOS-ad-hoc.manifest.json"
+          PUBLIC_ROOT="$RUNNER_TEMP/ynx-wallet-engineering-public-roundtrip"
+          PUBLIC_DMG="$PUBLIC_ROOT/YNX-Wallet-macOS-ad-hoc.dmg"
+          PUBLIC_MANIFEST="$PUBLIC_ROOT/YNX-Wallet-macOS-ad-hoc.manifest.json"
+          PUBLIC_MOUNT="$RUNNER_TEMP/ynx-wallet-engineering-public-mount"
+          mkdir -p "$PUBLIC_ROOT" "$PUBLIC_MOUNT"
+          env -u GH_TOKEN -u GITHUB_TOKEN curl -fsSL --retry 5 --retry-delay 2 --retry-all-errors "$DMG_URL" -o "$PUBLIC_DMG"
+          env -u GH_TOKEN -u GITHUB_TOKEN curl -fsSL --retry 5 --retry-delay 2 --retry-all-errors "$MANIFEST_URL" -o "$PUBLIC_MANIFEST"
+          test "$(shasum -a 256 "$PUBLIC_DMG" | awk '{print $1}')" = "$EXPECTED_SHA256"
+          test "$(stat -f '%z' "$PUBLIC_DMG")" = "$EXPECTED_BYTES"
+          export PUBLIC_MANIFEST
+          ruby -rjson -e '
+            manifest = JSON.parse(File.read(ENV.fetch("PUBLIC_MANIFEST")))
+            abort unless manifest.fetch("sourceCommit") == ENV.fetch("YNX_EXPECTED_SOURCE_SHA")
+            abort unless manifest.dig("artifact", "sha256") == ENV.fetch("EXPECTED_SHA256")
+            abort unless manifest.dig("artifact", "bytes") == Integer(ENV.fetch("EXPECTED_BYTES"))
+            abort unless manifest.dig("artifact", "teamIdentifier").nil?
+            abort unless manifest.dig("artifact", "signingClass") == "ad-hoc engineering"
+            false_gates = manifest.fetch("gates").reject { |key, _| key == "testnetEngineeringArtifact" }
+            abort unless false_gates.values.all? { |value| value == false }
+          '
+          hdiutil verify "$PUBLIC_DMG"
+          hdiutil attach -readonly -nobrowse -mountpoint "$PUBLIC_MOUNT" "$PUBLIC_DMG"
+          PUBLIC_APP="$PUBLIC_MOUNT/YNX Wallet.app"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$PUBLIC_APP/Contents/Info.plist")" = com.ynxweb4.wallet.macos
+          test "$(/usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' "$PUBLIC_APP/Contents/Info.plist")" = 13.0
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleURLTypes' "$PUBLIC_APP/Contents/Info.plist" | grep -F ynxwallet
+          lipo -archs "$PUBLIC_APP/Contents/MacOS/YNXWalletMac" | grep -Eq '(^| )arm64( |$)'
+          lipo -archs "$PUBLIC_APP/Contents/MacOS/YNXWalletMac" | grep -Eq '(^| )x86_64( |$)'
+          codesign --verify --deep --strict "$PUBLIC_APP"
+          codesign -dv --verbose=4 "$PUBLIC_APP" 2> "$PUBLIC_ROOT/codesign.txt"
+          grep -F 'Signature=adhoc' "$PUBLIC_ROOT/codesign.txt"
+          grep -F 'TeamIdentifier=not set' "$PUBLIC_ROOT/codesign.txt"
+          set +e
+          spctl --assess --type execute --verbose=4 "$PUBLIC_APP" > "$PUBLIC_ROOT/gatekeeper.txt" 2>&1
+          PUBLIC_GATEKEEPER_STATUS=$?
+          set -e
+          test "$PUBLIC_GATEKEEPER_STATUS" -ne 0
+          PUBLIC_INSTALL_ROOT="$RUNNER_TEMP/Public Applications"
+          PUBLIC_INSTALLED_APP="$PUBLIC_INSTALL_ROOT/YNX Wallet.app"
+          mkdir -p "$PUBLIC_INSTALL_ROOT"
+          ditto "$PUBLIC_APP" "$PUBLIC_INSTALLED_APP"
+          hdiutil detach "$PUBLIC_MOUNT"
+          codesign --verify --deep --strict "$PUBLIC_INSTALLED_APP"
+          LSREGISTER="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister"
+          "$LSREGISTER" -f "$PUBLIC_INSTALLED_APP"
+          open -n "$PUBLIC_INSTALLED_APP"
+          for _ in $(seq 1 60); do
+            PUBLIC_COLD_PID="$(pgrep -x YNXWalletMac | head -n 1 || true)"
+            test -n "$PUBLIC_COLD_PID" && break
+            sleep 1
+          done
+          test -n "${PUBLIC_COLD_PID:-}"
+          PUBLIC_COLD_NETWORK=false
+          for _ in $(seq 1 60); do
+            xcrun log show --style compact --last 5m \
+              --predicate 'subsystem == "com.ynxweb4.wallet.macos" AND category == "network"' \
+              > "$PUBLIC_ROOT/cold-network.log" 2>&1 || true
+            if grep -Fq "YNX_WALLET_MAC_RPC_CHAIN_ID_VERIFIED pid=$PUBLIC_COLD_PID chainId=0x1917" "$PUBLIC_ROOT/cold-network.log" && \
+               grep -Fq "YNX_WALLET_MAC_REST_APP_GATEWAY_REACHABLE pid=$PUBLIC_COLD_PID status=200" "$PUBLIC_ROOT/cold-network.log" && \
+               grep -Fq "YNX_WALLET_MAC_GATEWAY_FAIL_CLOSED pid=$PUBLIC_COLD_PID walletComplete=UNKNOWN_OR_MISSING_FIELD walletIntrospect=PROOF_REQUIRED productIntrospect=UNKNOWN_OR_MISSING_FIELD stateUnchanged=true" "$PUBLIC_ROOT/cold-network.log"; then
+              PUBLIC_COLD_NETWORK=true
+              break
+            fi
+            sleep 1
+          done
+          test "$PUBLIC_COLD_NETWORK" = true
+          kill "$PUBLIC_COLD_PID"
+          for _ in $(seq 1 30); do
+            kill -0 "$PUBLIC_COLD_PID" 2>/dev/null || break
+            sleep 1
+          done
+          ! kill -0 "$PUBLIC_COLD_PID" 2>/dev/null
+          open -n "$PUBLIC_INSTALLED_APP"
+          for _ in $(seq 1 60); do
+            PUBLIC_SECOND_PID="$(pgrep -x YNXWalletMac | head -n 1 || true)"
+            if test -n "$PUBLIC_SECOND_PID" && test "$PUBLIC_SECOND_PID" != "$PUBLIC_COLD_PID"; then break; fi
+            sleep 1
+          done
+          test -n "${PUBLIC_SECOND_PID:-}"
+          test "$PUBLIC_SECOND_PID" != "$PUBLIC_COLD_PID"
+          PUBLIC_SECOND_NETWORK=false
+          for _ in $(seq 1 60); do
+            xcrun log show --style compact --last 5m \
+              --predicate 'subsystem == "com.ynxweb4.wallet.macos" AND category == "network"' \
+              > "$PUBLIC_ROOT/second-network.log" 2>&1 || true
+            if grep -Fq "YNX_WALLET_MAC_RPC_CHAIN_ID_VERIFIED pid=$PUBLIC_SECOND_PID chainId=0x1917" "$PUBLIC_ROOT/second-network.log" && \
+               grep -Fq "YNX_WALLET_MAC_REST_APP_GATEWAY_REACHABLE pid=$PUBLIC_SECOND_PID status=200" "$PUBLIC_ROOT/second-network.log" && \
+               grep -Fq "YNX_WALLET_MAC_GATEWAY_FAIL_CLOSED pid=$PUBLIC_SECOND_PID walletComplete=UNKNOWN_OR_MISSING_FIELD walletIntrospect=PROOF_REQUIRED productIntrospect=UNKNOWN_OR_MISSING_FIELD stateUnchanged=true" "$PUBLIC_ROOT/second-network.log"; then
+              PUBLIC_SECOND_NETWORK=true
+              break
+            fi
+            sleep 1
+          done
+          test "$PUBLIC_SECOND_NETWORK" = true
+          open 'ynxwallet://authorize?request=invalid' > "$PUBLIC_ROOT/open-invalid-callback.txt"
+          PUBLIC_CALLBACK_SEEN=false
+          PUBLIC_CALLBACK_UI=false
+          for _ in $(seq 1 60); do
+            xcrun log show --style compact --last 5m \
+              --predicate 'subsystem == "com.ynxweb4.wallet.macos" AND (category == "callback" OR category == "lifecycle")' \
+              > "$PUBLIC_ROOT/callback.log" 2>&1 || true
+            if grep -Fq "YNX_WALLET_MAC_CALLBACK_RECEIVED pid=$PUBLIC_SECOND_PID scheme=ynxwallet" "$PUBLIC_ROOT/callback.log" && \
+               grep -Fq "YNX_WALLET_MAC_CALLBACK_REJECTED pid=$PUBLIC_SECOND_PID code=INVALID_DEEP_LINK" "$PUBLIC_ROOT/callback.log"; then
+              PUBLIC_CALLBACK_SEEN=true
+            fi
+            osascript <<'APPLESCRIPT' > "$PUBLIC_ROOT/callback-ui.txt" 2>/dev/null || true
+          tell application "System Events"
+            tell process "YNXWalletMac"
+              set frontmost to true
+              return name of every static text of window 1
+            end tell
+          end tell
+          APPLESCRIPT
+            if grep -Fq 'Request rejected' "$PUBLIC_ROOT/callback-ui.txt" && \
+               grep -Fq 'INVALID_DEEP_LINK' "$PUBLIC_ROOT/callback-ui.txt"; then
+              PUBLIC_CALLBACK_UI=true
+            fi
+            if test "$PUBLIC_CALLBACK_SEEN" = true && test "$PUBLIC_CALLBACK_UI" = true; then break; fi
+            sleep 1
+          done
+          test "$PUBLIC_CALLBACK_SEEN" = true
+          test "$PUBLIC_CALLBACK_UI" = true
+          screencapture -x "$PUBLIC_ROOT/anonymous-public-callback-fail-closed.png"
+          test -s "$PUBLIC_ROOT/anonymous-public-callback-fail-closed.png"
+          kill "$PUBLIC_SECOND_PID"
+          for _ in $(seq 1 30); do
+            kill -0 "$PUBLIC_SECOND_PID" 2>/dev/null || break
+            sleep 1
+          done
+          ! kill -0 "$PUBLIC_SECOND_PID" 2>/dev/null
+          "$LSREGISTER" -u "$PUBLIC_INSTALLED_APP"
+          printf 'publicRepository=true anonymousDownload=true exactSource=true sha256=%s bytes=%s bundle=com.ynxweb4.wallet.macos minimumOS=13.0 architectures=x86_64+arm64 signingClass=ad-hoc teamIdentifier=null gatekeeperAccepted=false gatekeeperExitStatus=%s isolatedInstall=true systemApplicationsInstalled=false browserQuarantineAccepted=false coldPid=%s secondPid=%s rpcChainId=0x1917 gatewayFailClosed=true callbackPid=%s callbackReceived=true callbackError=INVALID_DEEP_LINK callbackVisible=true authorizationSuccess=false websitePublished=false\n' \
+            "$EXPECTED_SHA256" "$EXPECTED_BYTES" "$PUBLIC_GATEKEEPER_STATUS" "$PUBLIC_COLD_PID" "$PUBLIC_SECOND_PID" "$PUBLIC_SECOND_PID" \
+            | tee "$PUBLIC_ROOT/isolated-public-roundtrip.txt"
+          SYSTEM_APP="/Applications/YNX Wallet.app"
+          test ! -e "$SYSTEM_APP"
+          sudo ditto "$PUBLIC_INSTALLED_APP" "$SYSTEM_APP"
+          test -d "$SYSTEM_APP"
+          codesign --verify --deep --strict "$SYSTEM_APP"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$SYSTEM_APP/Contents/Info.plist")" = com.ynxweb4.wallet.macos
+          set +e
+          xattr -p com.apple.quarantine "$SYSTEM_APP" > "$PUBLIC_ROOT/system-install-quarantine.txt" 2>&1
+          SYSTEM_QUARANTINE_STATUS=$?
+          set -e
+          test "$SYSTEM_QUARANTINE_STATUS" -ne 0
+          "$LSREGISTER" -f "$SYSTEM_APP"
+          open -n "$SYSTEM_APP"
+          for _ in $(seq 1 60); do
+            SYSTEM_COLD_PID="$(pgrep -x YNXWalletMac | head -n 1 || true)"
+            test -n "$SYSTEM_COLD_PID" && break
+            sleep 1
+          done
+          test -n "${SYSTEM_COLD_PID:-}"
+          SYSTEM_COLD_NETWORK=false
+          for _ in $(seq 1 60); do
+            xcrun log show --style compact --last 5m \
+              --predicate 'subsystem == "com.ynxweb4.wallet.macos" AND category == "network"' \
+              > "$PUBLIC_ROOT/system-cold-network.log" 2>&1 || true
+            if grep -Fq "YNX_WALLET_MAC_RPC_CHAIN_ID_VERIFIED pid=$SYSTEM_COLD_PID chainId=0x1917" "$PUBLIC_ROOT/system-cold-network.log" && \
+               grep -Fq "YNX_WALLET_MAC_REST_APP_GATEWAY_REACHABLE pid=$SYSTEM_COLD_PID status=200" "$PUBLIC_ROOT/system-cold-network.log" && \
+               grep -Fq "YNX_WALLET_MAC_GATEWAY_FAIL_CLOSED pid=$SYSTEM_COLD_PID walletComplete=UNKNOWN_OR_MISSING_FIELD walletIntrospect=PROOF_REQUIRED productIntrospect=UNKNOWN_OR_MISSING_FIELD stateUnchanged=true" "$PUBLIC_ROOT/system-cold-network.log"; then
+              SYSTEM_COLD_NETWORK=true
+              break
+            fi
+            sleep 1
+          done
+          test "$SYSTEM_COLD_NETWORK" = true
+          kill "$SYSTEM_COLD_PID"
+          for _ in $(seq 1 30); do
+            kill -0 "$SYSTEM_COLD_PID" 2>/dev/null || break
+            sleep 1
+          done
+          ! kill -0 "$SYSTEM_COLD_PID" 2>/dev/null
+          open -n "$SYSTEM_APP"
+          for _ in $(seq 1 60); do
+            SYSTEM_SECOND_PID="$(pgrep -x YNXWalletMac | head -n 1 || true)"
+            if test -n "$SYSTEM_SECOND_PID" && test "$SYSTEM_SECOND_PID" != "$SYSTEM_COLD_PID"; then break; fi
+            sleep 1
+          done
+          test -n "${SYSTEM_SECOND_PID:-}"
+          test "$SYSTEM_SECOND_PID" != "$SYSTEM_COLD_PID"
+          SYSTEM_SECOND_NETWORK=false
+          for _ in $(seq 1 60); do
+            xcrun log show --style compact --last 5m \
+              --predicate 'subsystem == "com.ynxweb4.wallet.macos" AND category == "network"' \
+              > "$PUBLIC_ROOT/system-second-network.log" 2>&1 || true
+            if grep -Fq "YNX_WALLET_MAC_RPC_CHAIN_ID_VERIFIED pid=$SYSTEM_SECOND_PID chainId=0x1917" "$PUBLIC_ROOT/system-second-network.log" && \
+               grep -Fq "YNX_WALLET_MAC_REST_APP_GATEWAY_REACHABLE pid=$SYSTEM_SECOND_PID status=200" "$PUBLIC_ROOT/system-second-network.log" && \
+               grep -Fq "YNX_WALLET_MAC_GATEWAY_FAIL_CLOSED pid=$SYSTEM_SECOND_PID walletComplete=UNKNOWN_OR_MISSING_FIELD walletIntrospect=PROOF_REQUIRED productIntrospect=UNKNOWN_OR_MISSING_FIELD stateUnchanged=true" "$PUBLIC_ROOT/system-second-network.log"; then
+              SYSTEM_SECOND_NETWORK=true
+              break
+            fi
+            sleep 1
+          done
+          test "$SYSTEM_SECOND_NETWORK" = true
+          open 'ynxwallet://authorize?request=invalid' > "$PUBLIC_ROOT/system-open-invalid-callback.txt"
+          SYSTEM_CALLBACK_SEEN=false
+          SYSTEM_CALLBACK_UI=false
+          for _ in $(seq 1 60); do
+            xcrun log show --style compact --last 5m \
+              --predicate 'subsystem == "com.ynxweb4.wallet.macos" AND (category == "callback" OR category == "lifecycle")' \
+              > "$PUBLIC_ROOT/system-callback.log" 2>&1 || true
+            if grep -Fq "YNX_WALLET_MAC_CALLBACK_RECEIVED pid=$SYSTEM_SECOND_PID scheme=ynxwallet" "$PUBLIC_ROOT/system-callback.log" && \
+               grep -Fq "YNX_WALLET_MAC_CALLBACK_REJECTED pid=$SYSTEM_SECOND_PID code=INVALID_DEEP_LINK" "$PUBLIC_ROOT/system-callback.log"; then
+              SYSTEM_CALLBACK_SEEN=true
+            fi
+            osascript <<'APPLESCRIPT' > "$PUBLIC_ROOT/system-callback-ui.txt" 2>/dev/null || true
+          tell application "System Events"
+            tell process "YNXWalletMac"
+              set frontmost to true
+              return name of every static text of window 1
+            end tell
+          end tell
+          APPLESCRIPT
+            if grep -Fq 'Request rejected' "$PUBLIC_ROOT/system-callback-ui.txt" && \
+               grep -Fq 'INVALID_DEEP_LINK' "$PUBLIC_ROOT/system-callback-ui.txt"; then
+              SYSTEM_CALLBACK_UI=true
+            fi
+            if test "$SYSTEM_CALLBACK_SEEN" = true && test "$SYSTEM_CALLBACK_UI" = true; then break; fi
+            sleep 1
+          done
+          test "$SYSTEM_CALLBACK_SEEN" = true
+          test "$SYSTEM_CALLBACK_UI" = true
+          screencapture -x "$PUBLIC_ROOT/system-applications-callback-fail-closed.png"
+          test -s "$PUBLIC_ROOT/system-applications-callback-fail-closed.png"
+          printf 'systemApplicationsInstalled=true installedPath=/Applications/YNX%%20Wallet.app ephemeralHostedRunner=true browserQuarantinePresent=false browserQuarantineAccepted=false gatekeeperAccepted=false coldPid=%s secondPid=%s rpcChainId=0x1917 gatewayFailClosed=true callbackPid=%s callbackReceived=true callbackError=INVALID_DEEP_LINK callbackVisible=true authorizationSuccess=false\n' \
+            "$SYSTEM_COLD_PID" "$SYSTEM_SECOND_PID" "$SYSTEM_SECOND_PID" | tee "$PUBLIC_ROOT/system-applications-roundtrip.txt"
+          kill "$SYSTEM_SECOND_PID"
