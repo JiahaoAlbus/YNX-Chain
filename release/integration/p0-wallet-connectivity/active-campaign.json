@@ -353,6 +353,24 @@
         "rollback removes only the newly created alias and restores the proven DEPLOYMENT_NOT_FOUND state",
         "installed Wallet, account approval, callback, signature, transaction, Product Session v2 and Computer Control remain false unless directly proved"
       ]
+    },
+    {
+      "owner": "integration",
+      "taskId": "P0-129",
+      "status": "RELEASED_SOURCE_CHECKPOINT_PUBLIC_DEFECT_OPEN",
+      "grantedAt": "2026-08-21T08:20:52Z",
+      "releasedAt": "2026-08-21T08:28:50Z",
+      "startingCommit": "650070ce5c5a7928425509f6e9e7da0aec31910d",
+      "checkpointCommit": "993e7cc99ea3919488d6765e097ca78a82a30704",
+      "checkpointTree": "821b800fefcf05d4b20a848c5b44b0c4854ccfcd",
+      "scope": "creator-studio-explicit-wallet-choice-self-contained-bundle-source-only",
+      "constraints": [
+        "production mutation was forbidden in this Light slice",
+        "the current public runtime remains defective until a separate Heavy deployment succeeds",
+        "Web uses explicit EIP-6963/EIP-1193 YNX or MetaMask selection without provider substitution",
+        "guest access remains available without a Wallet",
+        "real provider approval, account, signature, transaction, Product Session v2 and Computer Control remain false"
+      ]
     }
   ],
   "heavy": {
