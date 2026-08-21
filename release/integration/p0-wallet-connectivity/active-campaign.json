@@ -2,7 +2,7 @@
   "schemaVersion": "1.0.0",
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "owner": "integration",
-  "status": "P0098_CALENDAR_CURRENT_SOURCE_PUBLIC_BROWSER_VERIFIED_RELEASED",
+  "status": "P0099_CARD_TESTNET_WEB_PWA_PUBLIC_ENTRY_ACCEPTED_RELEASED",
   "scope": [
     "founder-control",
     "wallet-connectivity",
@@ -34,7 +34,7 @@
   "firstStop": {
     "complete": true,
     "publicConnectivityClaim": false,
-    "nextAction": "Calendar source 828120e6 is deployed, exact HTTP-verified and browser-interactive with English-first guest mode and zero console errors. ComputerControl, installed Wallet approval and Product Session v2 remain false. Continue Card Web/PWA owner closure and the next unowned Fable5 product slice."
+    "nextAction": "Card Testnet Web/PWA source 466a4c4c is publicly reachable from the official entry and is accepted only as a guest Testnet simulation. Real Wallet approval, Product Session v2, YNXT top-up, real-card/payment-network capability and ComputerControl remain false. Continue the Social public-runtime/client-version reconciliation slice."
   },
   "lightLeases": [
     {
