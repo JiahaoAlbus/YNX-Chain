@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "productId": "wallet-desktop",
+  "releaseChannel": "testnet-preview",
+  "sourceCommit": "a8f36e4c57234efe5f19367c87035b4435d61b76",
+  "evidencePath": "apps/wallet-desktop/evidence/windows-nsis-0.1.1-native-evidence-2026-08-21.json",
+  "artifacts": [
+    {
+      "platform": "windows-x64",
+      "name": "ynx-wallet-desktop-0.1.1-x64.exe",
+      "format": "nsis-exe",
+      "bytes": 104334744,
+      "sha256": "856b2a260efc43c25f62508dabc6bb6b74b84da71c9b477e8a02a12d17598cd7",
+      "minimumOS": null,
+      "directlyTestedOS": "Windows Server 2025 x64 native runner",
+      "signingClass": "unsigned_windows_nsis_testnet_candidate"
+    },
+    {
+      "platform": "windows-arm64",
+      "name": "ynx-wallet-desktop-0.1.1-arm64.exe",
+      "format": "nsis-exe",
+      "bytes": 103487635,
+      "sha256": "929315133c68eda1cabac51cec889c4aeca5e3ee1701578916bc67e096c5dc35",
+      "minimumOS": "Windows 11 arm64",
+      "directlyTestedOS": "Windows 11 arm64 native runner",
+      "signingClass": "unsigned_windows_nsis_testnet_candidate"
+    }
+  ],
+  "publicationGate": {
+    "requiredOfficialFormat": ".exe",
+    "zipAcceptedAsInstaller": false,
+    "downloadHosted": false,
+    "deployedPublic": false,
+    "productionSigned": false,
+    "storeReleased": false,
+    "operatorAction": "Upload the exact EXE bytes to immutable content-addressed official ynxweb4.com URLs, publish architecture and tested-OS metadata, and fully reverify remote SHA-256 and byte counts before promoting hosted/public booleans."
+  }
+}
