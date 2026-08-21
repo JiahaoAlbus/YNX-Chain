@@ -25,6 +25,7 @@ for material in \
   "${YNX_IOS_PROFILE_PLIST_PATH:-}" \
   "${YNX_IOS_PROFILE_INSTALLED_PATH:-}" \
   "${YNX_ASC_PRIVATE_KEY_PATH:-}" \
+  "${YNX_ASC_PRIVATE_KEY_UPLOAD_COPY_PATH:-}" \
   "${YNX_IOS_ORIGINAL_KEYCHAINS_PATH:-}"; do
   test -z "$material" || rm -f "$material"
 done

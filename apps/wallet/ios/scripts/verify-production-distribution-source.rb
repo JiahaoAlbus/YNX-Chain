@@ -35,6 +35,7 @@ workflow_requirements = [
   "YNX_IOS_DISTRIBUTION_P12_BASE64",
   "YNX_IOS_PROVISIONING_PROFILE_BASE64",
   "YNX_ASC_PRIVATE_KEY_P8_BASE64",
+  "YNX_ASC_PRIVATE_KEY_UPLOAD_COPY_PATH",
   "security cms -D -i",
   "application-identifier",
   "com.apple.developer.associated-domains",
@@ -68,7 +69,8 @@ cleanup_requirements = [
   "cmp -s \"$YNX_IOS_ORIGINAL_KEYCHAINS_PATH\" <(security list-keychains -d user)",
   "security delete-keychain \"$YNX_IOS_SIGNING_KEYCHAIN\"",
   "YNX_IOS_PROFILE_INSTALLED_PATH",
-  "YNX_ASC_PRIVATE_KEY_PATH"
+  "YNX_ASC_PRIVATE_KEY_PATH",
+  "YNX_ASC_PRIVATE_KEY_UPLOAD_COPY_PATH"
 ]
 
 missing_workflow = workflow_requirements.reject { |value| workflow.include?(value) }

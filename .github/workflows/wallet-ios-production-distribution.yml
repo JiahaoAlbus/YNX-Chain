@@ -75,6 +75,7 @@ jobs:
           PROFILE_PLIST_PROBE="$RUNNER_TEMP/ynx-ios-cleanup-probe.plist"
           PROFILE_INSTALLED_PROBE="$RUNNER_TEMP/ynx-ios-cleanup-probe-installed.mobileprovision"
           ASC_KEY_PROBE="$RUNNER_TEMP/ynx-ios-cleanup-probe.p8"
+          ASC_UPLOAD_COPY_PROBE="$RUNNER_TEMP/private_keys/AuthKey_CLEANUPPROBE.p8"
           security list-keychains -d user > "$ORIGINAL"
           cp "$ORIGINAL" "$EXPECTED"
           security create-keychain -p "$PROBE_PASSWORD" "$PROBE_KEYCHAIN"
@@ -85,6 +86,8 @@ jobs:
           : > "$PROFILE_PLIST_PROBE"
           : > "$PROFILE_INSTALLED_PROBE"
           : > "$ASC_KEY_PROBE"
+          mkdir -p "$(dirname "$ASC_UPLOAD_COPY_PROBE")"
+          : > "$ASC_UPLOAD_COPY_PROBE"
           export YNX_IOS_ORIGINAL_KEYCHAINS_PATH="$ORIGINAL"
           export YNX_IOS_SIGNING_KEYCHAIN="$PROBE_KEYCHAIN"
           export YNX_IOS_DISTRIBUTION_P12_PATH="$P12_PROBE"
@@ -92,6 +95,7 @@ jobs:
           export YNX_IOS_PROFILE_PLIST_PATH="$PROFILE_PLIST_PROBE"
           export YNX_IOS_PROFILE_INSTALLED_PATH="$PROFILE_INSTALLED_PROBE"
           export YNX_ASC_PRIVATE_KEY_PATH="$ASC_KEY_PROBE"
+          export YNX_ASC_PRIVATE_KEY_UPLOAD_COPY_PATH="$ASC_UPLOAD_COPY_PROBE"
           bash apps/wallet/ios/scripts/cleanup-distribution-material.sh
           security list-keychains -d user > "$RESTORED"
           cmp -s "$EXPECTED" "$RESTORED"
@@ -105,7 +109,8 @@ jobs:
           test ! -e "$PROFILE_PLIST_PROBE"
           test ! -e "$PROFILE_INSTALLED_PROBE"
           test ! -e "$ASC_KEY_PROBE"
-          printf 'iosDistributionCleanupRuntime=true expectedSha256=%s restoredSha256=%s temporaryKeychainDeleted=true p12Deleted=true profileSourceDeleted=true profilePlistDeleted=true installedProfileDeleted=true ascKeyDeleted=true productionCredentialsUsed=false\n' \
+          test ! -e "$ASC_UPLOAD_COPY_PROBE"
+          printf 'iosDistributionCleanupRuntime=true expectedSha256=%s restoredSha256=%s temporaryKeychainDeleted=true p12Deleted=true profileSourceDeleted=true profilePlistDeleted=true installedProfileDeleted=true ascKeyDeleted=true ascUploadCopyDeleted=true productionCredentialsUsed=false\n' \
             "$EXPECTED_SHA256" "$RESTORED_SHA256"
 
   distribution:
@@ -303,7 +308,9 @@ jobs:
           PROOF="$GITHUB_WORKSPACE/apps/wallet/proof/ci-ios-production"
           PRIVATE_KEYS="$RUNNER_TEMP/private_keys"
           mkdir -p "$PRIVATE_KEYS"
-          cp "$YNX_ASC_PRIVATE_KEY_PATH" "$PRIVATE_KEYS/AuthKey_$YNX_ASC_KEY_ID.p8"
+          ASC_UPLOAD_KEY="$PRIVATE_KEYS/AuthKey_$YNX_ASC_KEY_ID.p8"
+          cp "$YNX_ASC_PRIVATE_KEY_PATH" "$ASC_UPLOAD_KEY"
+          printf 'YNX_ASC_PRIVATE_KEY_UPLOAD_COPY_PATH=%s\n' "$ASC_UPLOAD_KEY" >> "$GITHUB_ENV"
           API_PRIVATE_KEYS_DIR="$PRIVATE_KEYS" xcrun altool --upload-app --type ios --file "$YNX_IOS_IPA" \
             --apiKey "$YNX_ASC_KEY_ID" --apiIssuer "$YNX_ASC_ISSUER_ID" \
             | tee "$PROOF/app-store-connect-upload.txt"
