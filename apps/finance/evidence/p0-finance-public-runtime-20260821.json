@@ -1,0 +1,11 @@
+{
+  "checkedAt": "2026-08-21T07:12:34Z",
+  "url": "https://finance.ynxweb4.com/",
+  "httpStatus": 200,
+  "server": "Caddy",
+  "lastModified": "Sat, 15 Aug 2026 05:27:33 GMT",
+  "htmlSha256": "c1fc45eecd7f88de6fc3e049d15161b8d4e9878e31f20c977fc52b383a18ed53",
+  "deployedPublic": false,
+  "publicVerified": false,
+  "reason": "The reachable runtime has no exact source commit, build artifact, deployment record, or rollback binding to Finance checkpoint 9b5957ad. It is not promoted as this checkpoint's deployment."
+}
