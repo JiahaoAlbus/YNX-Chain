@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "owner": "Wallet Web/PWA/Extensions",
+  "sourceCommit": "0e023871c692c9f07c12ae3ac609035a12db57c0",
+  "deploymentId": "dpl_2nahcRyV2VRC4NefBBXfh9QYd5s7",
+  "publicOrigin": "https://wallet.ynxweb4.com",
+  "result": "PWA v9 uses a distinct shell integrity identity, removes recovery markers in the new shell, requests an immediate worker update, and is source-bound on the public Wallet origin.",
+  "incident": "A general Website production deployment temporarily captured wallet.ynxweb4.com. The alias was restored to the dedicated ynx-wallet-web project. Website deployments must not include the Wallet subdomain alias.",
+  "tests": ["npm test 99/99", "package assertions 81/81", "three package integrity 3/3", "PWA installability pass", "cache tamper/rollback/recovery pass"],
+  "artifacts": [
+    {"name": "ynx-wallet-web-pwa-0.1.0.zip", "bytes": 285161, "sha256": "3fe215e32b790422ed9f680d788780ae19d04ee94a3c336943bb4c868a5a2627", "minimumOS": "modern browser with Service Worker and Web Crypto support", "signingClass": "unsigned-web-bundle"},
+    {"name": "ynx-wallet-chrome-edge-0.1.0.zip", "bytes": 198783, "sha256": "81e0fc2355451f12f53f0d9c2adbef1533f02b5740de79deb7ff3a69326fb3ff", "minimumOS": "Chrome 120 / Edge 120", "signingClass": "unsigned-unpacked-extension"},
+    {"name": "ynx-wallet-firefox-0.1.0.zip", "bytes": 198820, "sha256": "94f9c4e618514cc183d4d027116d700c047ac72fb2169e08105e70aea1c28579", "minimumOS": "Firefox 128", "signingClass": "unsigned-unpacked-extension"}
+  ],
+  "browserEvidence": {
+    "proved": ["old Website shell observed", "Wallet Companion visible after alias recovery", "English default", "MetaMask EIP-6963 detected", "MetaMask approval notification opened", "no page error console entries"],
+    "notProved": ["v9 second-load visible completion after Chrome control timeout", "account approval", "provider chainId 0x1917", "chooser close", "connected refresh", "disconnect", "account switch", "YNX provider/callback", "Product Session v2", "sign", "transaction"]
+  },
+  "requiredCentralAction": "Prevent the Website project from claiming wallet.ynxweb4.com; preserve the dedicated Wallet alias. Promote only the direct gates above."
+}

@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "sourceCommit": "a1c680982b63f67ee04c49a2131ba62796d21a8b",
-  "generatedAt": "2026-08-14T07:40:14.648Z",
+  "sourceCommit": "0e023871c692c9f07c12ae3ac609035a12db57c0",
+  "generatedAt": "2026-08-21T16:29:02.066Z",
   "gateClass": "exact built-PWA manifest, PNG, integrity map and executable policy inspection; not a browser install or launch",
   "artifact": {
     "name": "ynx-wallet-web-pwa-0.1.0.zip",
-    "bytes": 272706,
-    "sha256": "63d83cd20925f2d52c0f21f548fa7a857a4d056e03e5fa16244f173164a7d287",
+    "bytes": 285161,
+    "sha256": "3fe215e32b790422ed9f680d788780ae19d04ee94a3c336943bb4c868a5a2627",
     "signingClass": "unsigned-web-bundle"
   },
   "sourceLogo": {
@@ -106,7 +106,7 @@
   "maskableSafeZoneProved": true,
   "serviceWorker": {
     "registered": true,
-    "cacheVersion": "ynx-wallet-web-v6",
+    "cacheVersion": "ynx-wallet-web-v9",
     "secondLaunchShellPolicy": "navigation-network-first"
   },
   "integrityIconsPresent": true,
