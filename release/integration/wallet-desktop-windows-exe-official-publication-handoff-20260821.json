@@ -48,6 +48,13 @@
       "signingClass": "unsigned_windows_nsis_testnet_candidate",
       "authenticodeStatus": "NotSigned",
       "productionSigned": false,
+      "ownerLocalSource": {
+        "available": true,
+        "absolutePath": "/private/tmp/ynx-wallet-x64.7TKJ13/dist/ynx-wallet-desktop-0.1.1-x64.exe",
+        "bytesReverified": 104334744,
+        "sha256Reverified": "856b2a260efc43c25f62508dabc6bb6b74b84da71c9b477e8a02a12d17598cd7",
+        "durability": "temporary-local-carrier; Website operator must reverify immediately before upload"
+      },
       "actions": {
         "workflowRunId": 32482080749,
         "workflowUrl": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/32482080749",
@@ -82,6 +89,11 @@
       "signingClass": "unsigned_windows_nsis_testnet_candidate",
       "authenticodeStatus": "NotSigned",
       "productionSigned": false,
+      "ownerLocalSource": {
+        "available": false,
+        "absolutePath": null,
+        "reason": "Exact arm64 EXE was not present in the owner worktree or bounded local search; the verified Actions carrier remained too slow for a bounded download."
+      },
       "actions": {
         "workflowRunId": 32482080753,
         "workflowUrl": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/32482080753",
