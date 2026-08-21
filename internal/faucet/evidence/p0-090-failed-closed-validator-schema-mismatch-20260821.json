@@ -1,0 +1,78 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-090",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-faucet-ea0e068b-20260821T003500Z",
+  "observedAt": "2026-08-21T00:42:09Z",
+  "result": "CONSUMED_RELEASED_FAILED_CLOSED_VALIDATOR_SCHEMA_MISMATCH",
+  "retryAuthorized": false,
+  "sourceCommit": "ea0e068becd9103f5f0a2a6c3a0d20ab7932d006",
+  "auditCommit": "d551218097b707755a8be017689a6d6983c8068e",
+  "centralLeaseCommit": "2fe387efccd73aa5651e6003b5e20bec8e4856ac",
+  "acceptedArtifact": {
+    "bytes": 19083448,
+    "sha256": "a78eb845c88911b069bb0e53642dd91084f983be895b53910949232909186a4a"
+  },
+  "preflight": {
+    "serviceActive": true,
+    "serviceRestarts": 0,
+    "binarySha256": "6bc1b9c41095d235469be97901033d59db686601810fc8ac0fd0392e27135a26",
+    "unitSha256": "fc276972687fb21dfbaa273f553f9cea366f95dfdba620165ac3dbf6aed9a833",
+    "environmentSha256": "ca476e664d7ddb06c5a7ff342a86295fc9254b74a577096024c0730dfb66de63",
+    "publicSourceCommit": "8fe48738f309c469bd7a16e31fbfe9e106d7de3c",
+    "publicVersionHttp": 404
+  },
+  "backup": {
+    "path": "/var/backups/ynx-chain/faucet-ea0e068b-p0090",
+    "rootOnlyMode": "0700",
+    "binarySha256": "6bc1b9c41095d235469be97901033d59db686601810fc8ac0fd0392e27135a26",
+    "unitSha256": "fc276972687fb21dfbaa273f553f9cea366f95dfdba620165ac3dbf6aed9a833",
+    "environmentSha256": "ca476e664d7ddb06c5a7ff342a86295fc9254b74a577096024c0730dfb66de63",
+    "environmentContentsExported": false
+  },
+  "staging": {
+    "path": "/var/tmp/ynx-faucet-p0090-ea0e068b/ynx-faucetd",
+    "rootOnlyDirectoryMode": "0700",
+    "bytes": 19083448,
+    "sha256": "a78eb845c88911b069bb0e53642dd91084f983be895b53910949232909186a4a"
+  },
+  "candidateObservation": {
+    "serviceStarted": true,
+    "healthHttp": 200,
+    "healthBytes": 348,
+    "healthSha256": "a752cd33e2a981eaa22c31aa2d8ff3f5dc6f895f633e4e15db9a7debae50ad0d",
+    "healthTopologySafe": true,
+    "versionHttp": 200,
+    "versionBytes": 229,
+    "versionSha256": "0625754b79dfa4d6eb9b616247c793b3761f5b4063aea078d31c7869252a29de",
+    "versionBuildCommit": "ea0e068becd9",
+    "versionRelease": "ynx-chain-ea0e068becd9"
+  },
+  "failure": {
+    "stage": "post-restart-local-version-validator",
+    "expectedByValidator": ".sourceCommit == ea0e068becd9",
+    "actualContract": ".build.commit == ea0e068becd9",
+    "classification": "VALIDATOR_SCHEMA_MISMATCH",
+    "candidateRuntimeFault": false
+  },
+  "rollback": {
+    "completed": true,
+    "activeBinarySha256": "6bc1b9c41095d235469be97901033d59db686601810fc8ac0fd0392e27135a26",
+    "serviceActive": true,
+    "serviceRestarts": 0,
+    "unitSha256": "fc276972687fb21dfbaa273f553f9cea366f95dfdba620165ac3dbf6aed9a833",
+    "environmentSha256": "ca476e664d7ddb06c5a7ff342a86295fc9254b74a577096024c0730dfb66de63",
+    "candidateSiblingPresent": false,
+    "publicSourceCommit": "8fe48738f309c469bd7a16e31fbfe9e106d7de3c",
+    "publicHealthHttp": 200,
+    "publicHealthBytes": 513,
+    "publicHealthSha256": "b6a512164f6f46d194872e8a311622d0d96f6295c3dad072d415455d662daa8b",
+    "publicVersionHttp": 404,
+    "publicVersionBytes": 19,
+    "publicVersionSha256": "b16e15764b8bc06c5c3f9f19bc8b99fa48e7894aa5a6ccdad65da49bbf564793"
+  },
+  "deployedPublic": false,
+  "publicVerified": false,
+  "computerControlVerified": false,
+  "nextAction": "Integration must release P0-090 as nonreusable. A source-only successor must bind the validator to the actual PublicVersion build.commit schema, freeze fresh public/production digests, and receive a wholly new single-use lease before any retry."
+}
