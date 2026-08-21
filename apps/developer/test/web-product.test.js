@@ -65,12 +65,13 @@ test("localized UI and native desktop sources preserve language, permission and 
   const transport=await read("frontend/src/wallet/transport.ts"),broker=await read("services/wallet-readiness/src/service.mjs");assert.match(transport,/non-extractable|false, \["sign", "verify"\]/);assert.match(transport,/YNX_PRODUCT_SESSION_CHALLENGE_V1/);assert.match(transport,/derSignature/);assert.match(broker,/remoteDeployed/);assert.match(broker,/publicDeploymentReady/);assert.match(broker,/wallet\/sessions\/complete/);
 });
 
-test("macOS package gate verifies extracted cold launch and bundled runtime cleanup", async () => {
+test("macOS DMG gate verifies mounted cold launch and bundled runtime cleanup", async () => {
   const packageScript=await read("scripts/package-local-macos.sh"), verify=await read("scripts/verify-local-macos-package.sh"), source=await read("desktop/macos/main.m"), codeServer=await read("desktop/code-server.mjs"), gatewayServer=await read("services/gateway/src/server.mjs"), sbomGenerator=await read("scripts/generate-code-sbom.mjs");
   assert.match(packageScript,/desktop\/macos\/main\.m/); assert.match(packageScript,/Resources\/runtime\/node/); assert.match(packageScript,/codesign --force --deep --sign -/);
+  assert.match(packageScript,/hdiutil create/); assert.match(packageScript,/unsigned\.dmg/); assert.doesNotMatch(packageScript,/ditto -c -k/);
   assert.match(packageScript,/npm run code:build/); assert.match(packageScript,/frontend\/dist/); assert.match(packageScript,/services/); assert.match(packageScript,/node_modules/); assert.doesNotMatch(packageScript,/npm run build\s/); assert.match(packageScript,/find .*Contents\/Resources.*type f/); assert.match(packageScript,/codesign --force --sign -.*bundled_binary/);
   assert.match(packageScript,/Refusing to package tracked Developer changes/); assert.match(packageScript,/build-provenance\.json/); assert.match(packageScript,/sbom\.cdx\.json/); assert.match(packageScript,/sourceDirty: false/);
-  assert.match(verify,/cold launch/); assert.match(verify,/pgrep -P/); assert.match(verify,/server\.mjs/); assert.match(verify,/survived App termination/); assert.match(verify,/workspace survived second launch/); assert.match(verify,/runtime\/tasks/); assert.match(verify,/darwin-arm64/); assert.match(verify,/darwin-x64/); assert.match(verify,/node-pty\/prebuilds\/\$pty_arch\/pty\.node/);
+  assert.match(verify,/hdiutil attach/); assert.match(verify,/hdiutil detach/); assert.match(verify,/cold launch/); assert.match(verify,/pgrep -P/); assert.match(verify,/server\.mjs/); assert.match(verify,/survived App termination/); assert.match(verify,/workspace survived second launch/); assert.match(verify,/runtime\/tasks/); assert.match(verify,/darwin-arm64/); assert.match(verify,/darwin-x64/); assert.match(verify,/node-pty\/prebuilds\/\$pty_arch\/pty\.node/);
   assert.match(verify,/provenance sourceCommit mismatch|provenance \$\{key\} mismatch/); assert.match(verify,/sbomSha256/); assert.match(verify,/YNX_DEVELOPER_EXPECTED_SOURCE_COMMIT/);
   assert.match(packageScript,/generate-code-sbom\.mjs/); assert.match(verify,/components\.length < 100/); assert.match(sbomGenerator,/CycloneDX/); assert.match(sbomGenerator,/package-lock\.json/); assert.match(sbomGenerator,/Node\.js/); assert.match(sbomGenerator,/nodeVersion/);
   assert.match(codeServer,/workspace-session\.key/); assert.match(codeServer,/YNX_CODE_WORKSPACE_SESSION_KEY/); assert.match(codeServer,/services.*gateway.*server\.mjs/s); assert.match(codeServer,/mode: 0o600/); assert.match(codeServer,/process\.ppid !== desktopParent/); assert.match(codeServer,/SIGTERM/);
@@ -82,18 +83,20 @@ test("desktop Grok Build sidecar is pinned, shell-free and permission brokered",
   const source=await read("desktop/grok-build-sidecar.mjs");assert.match(source,/98c3b2438aa922fbbe6178a5c0a4c48f85edc8ce/);assert.match(source,/124d85bc5dc6e7805560215fcc6d5413944920e1/);assert.match(source,/\["agent", "stdio"\]/);assert.match(source,/shell: false/);assert.match(source,/permissionBroker/);assert.doesNotMatch(source,/shell:\s*true/);
 });
 
-test("Windows proof requires a real Windows build, portable install and cold launch",async()=>{
-  const packageScript=await read("scripts/package-windows.ps1"),verify=await read("scripts/verify-windows-package.ps1"),nativeSelfTest=await read("desktop/windows/App.xaml.cs"),windowsHost=await read("desktop/windows/MainWindow.xaml.cs");
+test("Windows proof requires a real Windows build, MSIX installation and cold launch",async()=>{
+  const packageScript=await read("scripts/package-windows.ps1"),verify=await read("scripts/verify-windows-package.ps1"),installerVerify=await read("scripts/verify-windows-installer.ps1"),nativeSelfTest=await read("desktop/windows/App.xaml.cs"),windowsHost=await read("desktop/windows/MainWindow.xaml.cs");
   const workflow=await readFile(new URL("../../../.github/workflows/developer-windows.yml",import.meta.url),"utf8");
   assert.match(packageScript,/dotnet publish/);assert.match(packageScript,/hosted-workspace-client/);assert.match(packageScript,/Get-FileHash/);assert.match(packageScript,/Refusing to package tracked Developer changes/);
   assert.match(packageScript,/build-provenance\.json/);assert.match(packageScript,/sbom\.cdx\.json/);assert.match(packageScript,/Get-AuthenticodeSignature/);assert.match(packageScript,/unsigned-no-authenticode/);
+  assert.match(packageScript,/MakeAppx\.exe/);assert.match(packageScript,/\.msix/);assert.match(packageScript,/test-self-signed-not-production/);assert.match(packageScript,/New-SelfSignedCertificate/);
   assert.match(verify,/--self-test/);assert.match(verify,/CloseMainWindow/);assert.match(verify,/realCppCompile/);assert.match(verify,/runtime\/tasks/);assert.match(verify,/second launch/);assert.match(verify,/YNX_DEVELOPER_EXPECTED_SOURCE_COMMIT/);
   assert.match(verify,/provenance sourceCommit/);assert.match(verify,/artifactSha256/);assert.match(verify,/authenticodeStatus/);assert.match(nativeSelfTest,/build-provenance\.json/);assert.match(nativeSelfTest,/sbom\.cdx\.json/);
+  assert.match(installerVerify,/Add-AppxPackage/);assert.match(installerVerify,/Remove-AppxPackage/);assert.match(installerVerify,/test-self-signed-not-production/);assert.match(installerVerify,/second launch/);
   assert.match(nativeSelfTest,/hosted-workspace-client/);assert.match(nativeSelfTest,/MainWindow\.WorkspaceUrl/);assert.match(windowsHost,/https:\/\/developer\.ynxweb4\.com\//);assert.match(windowsHost,/healthz/);
   for(const script of [packageScript,verify]) { assert.match(script,/featureStatus\.ynxCodePlatform\.webSourceCommit/);assert.match(script,/publicDeployment\.sourceCommit/);assert.doesNotMatch(script,/ynxCodePlatform\.sourceCommit/); }
   assert.match(workflow,/runs-on: windows-latest/);assert.match(workflow,/codex\/ynx-code-platform-v1/);assert.match(workflow,/developer-windows-\$\{\{ github\.ref \}\}/);
   assert.match(workflow,/Install pinned Developer dependencies/);assert.match(workflow,/working-directory: apps\/developer\s+run: npm ci --ignore-scripts/);
-  assert.match(workflow,/package-windows\.ps1/);assert.match(workflow,/verify-windows-package\.ps1/);assert.match(workflow,/upload-artifact@v4/);
+  assert.match(workflow,/package-windows\.ps1/);assert.match(workflow,/verify-windows-package\.ps1/);assert.match(workflow,/verify-windows-installer\.ps1/);assert.match(workflow,/\.msix/);assert.match(workflow,/upload-artifact@v4/);
 });
 
 test("release evidence includes UI audit, SBOM and exact upstream source record",async()=>{

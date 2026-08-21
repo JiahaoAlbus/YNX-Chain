@@ -30,6 +30,8 @@ $outRoot = Join-Path $app ".ynx-developer-windows"
 $publish = Join-Path $outRoot "publish"
 $stage = Join-Path $outRoot "YNX Developer Testnet Preview"
 $zip = Join-Path $outRoot "ynx-developer-testnet-preview-windows-x64-unsigned.zip"
+$msix = Join-Path $outRoot "ynx-developer-testnet-preview-windows-x64-test-signed.msix"
+$installerCertificate = Join-Path $outRoot "ynx-developer-testnet-preview-windows-x64-test-signed.cer"
 
 Remove-Item $outRoot -Recurse -Force -ErrorAction SilentlyContinue
 New-Item $publish -ItemType Directory -Force | Out-Null
@@ -139,5 +141,54 @@ $packageRecord = [ordered]@{
   productionSigned = $false
 }
 [System.IO.File]::WriteAllText((Join-Path $outRoot "windows-package.json"), (($packageRecord | ConvertTo-Json -Depth 8) + [Environment]::NewLine), $utf8NoBom)
-Write-Host "Built unsigned Windows x64 Testnet Preview: $zip ($bytes bytes, sha256 $hash)"
+
+# The ZIP remains an internal extraction-evidence input only. The distributable
+# desktop format is MSIX, signed by an explicitly test-only self-signed
+# certificate. It is deliberately not an Authenticode production signature.
+$assets = Join-Path $stage "Assets"
+New-Item $assets -ItemType Directory -Force | Out-Null
+$transparentPng = [Convert]::FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScLQXwAAAABJRU5ErkJggg==")
+foreach ($name in @("Square44x44Logo.png", "Square150x150Logo.png", "StoreLogo.png")) { [System.IO.File]::WriteAllBytes((Join-Path $assets $name), $transparentPng) }
+$manifest = @"
+<?xml version="1.0" encoding="utf-8"?>
+<Package xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10" xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10" xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities" IgnorableNamespaces="uap rescap">
+  <Identity Name="YNXDeveloper.TestnetPreview" Publisher="CN=YNX Developer Testnet Preview" Version="0.2.0.0" ProcessorArchitecture="x64" />
+  <Properties><DisplayName>YNX Developer Testnet Preview</DisplayName><PublisherDisplayName>YNX</PublisherDisplayName><Logo>Assets\\StoreLogo.png</Logo></Properties>
+  <Resources><Resource Language="en-us" /></Resources>
+  <Dependencies><TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.17763.0" MaxVersionTested="10.0.26100.0" /></Dependencies>
+  <Applications><Application Id="YNXDeveloper" Executable="YNXDeveloper.TestnetPreview.exe" EntryPoint="Windows.FullTrustApplication"><uap:VisualElements DisplayName="YNX Developer Testnet Preview" Description="YNX Developer Testnet Preview" BackgroundColor="transparent" Square44x44Logo="Assets\\Square44x44Logo.png" Square150x150Logo="Assets\\Square150x150Logo.png" AppListEntry="none" /></Application></Applications>
+  <Capabilities><rescap:Capability Name="runFullTrust" /></Capabilities>
+</Package>
+"@
+[System.IO.File]::WriteAllText((Join-Path $stage "AppxManifest.xml"), $manifest, $utf8NoBom)
+$makeAppx = (Get-Command MakeAppx.exe -ErrorAction Stop).Source
+& $makeAppx pack /d $stage /p $msix /o
+if ($LASTEXITCODE -ne 0 -or !(Test-Path $msix)) { throw "MSIX packaging failed" }
+$certificate = New-SelfSignedCertificate -Type Custom -Subject "CN=YNX Developer Testnet Preview" -KeyUsage DigitalSignature -KeyExportPolicy Exportable -CertStoreLocation "Cert:\CurrentUser\My" -TextExtension @("2.5.29.37={text}1.3.6.1.5.5.7.3.3")
+Export-Certificate -Cert $certificate -FilePath $installerCertificate -Force | Out-Null
+$msixSignature = Set-AuthenticodeSignature -FilePath $msix -Certificate $certificate
+if ($msixSignature.Status -ne [System.Management.Automation.SignatureStatus]::Valid) { throw "MSIX test signature failed: $($msixSignature.Status)" }
+$msixHash = (Get-FileHash $msix -Algorithm SHA256).Hash.ToLowerInvariant()
+$msixBytes = (Get-Item $msix).Length
+$installerRecord = [ordered]@{
+  schemaVersion = 1
+  artifact = (Split-Path $msix -Leaf)
+  sha256 = $msixHash
+  bytes = $msixBytes
+  installClass = "msix-sideload"
+  signingClass = "test-self-signed-not-production"
+  signerThumbprint = $certificate.Thumbprint
+  certificateArtifact = (Split-Path $installerCertificate -Leaf)
+  sourceCommit = $sourceCommit
+  sourceTree = $sourceTree
+  runtimeCheckpoint = $runtimeCheckpoint
+  sourceDirty = $false
+  internalZipEvidence = (Split-Path $zip -Leaf)
+  internalZipSha256 = $hash
+  productionSigned = $false
+  hosted = $false
+}
+[System.IO.File]::WriteAllText((Join-Path $outRoot "windows-installer.json"), (($installerRecord | ConvertTo-Json -Depth 8) + [Environment]::NewLine), $utf8NoBom)
+Write-Host "Built internal ZIP evidence: $zip ($bytes bytes, sha256 $hash)"
+Write-Host "Built installable Windows x64 MSIX: $msix ($msixBytes bytes, sha256 $msixHash, signing test-self-signed-not-production)"
 Write-Host "Embedded source commit $sourceCommit, source tree $sourceTree, runtime checkpoint $runtimeCheckpoint and SBOM SHA-256 $sbomHash."

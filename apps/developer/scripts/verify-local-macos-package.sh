@@ -7,16 +7,18 @@ case "$machine_arch" in
   x86_64) platform="macos-x64"; pty_arch="darwin-x64" ;;
   *) echo "Unsupported macOS architecture: $machine_arch" >&2; exit 1 ;;
 esac
-zip="$PWD/.ynx-developer-local/ynx-developer-testnet-preview-${platform}-unsigned.zip"
-[[ -f "$zip" ]] || { echo "Build the local macOS package first." >&2; exit 1; }
+dmg="$PWD/.ynx-developer-local/ynx-developer-testnet-preview-${platform}-unsigned.dmg"
+[[ -f "$dmg" ]] || { echo "Build the macOS DMG first." >&2; exit 1; }
 work=$(mktemp -d /private/tmp/ynx-developer-install.XXXXXX)
 cleanup() {
   if [[ -n "${app_pid:-}" ]]; then kill "$app_pid" >/dev/null 2>&1 || true; wait "$app_pid" 2>/dev/null || true; fi
+  if [[ -n "${mount_point:-}" ]]; then /usr/bin/hdiutil detach "$mount_point" -quiet >/dev/null 2>&1 || true; fi
   rm -rf "$work"
 }
 trap cleanup EXIT
-/usr/bin/ditto -x -k "$zip" "$work"
-app="$work/YNX Developer Testnet Preview.app"
+mount_point=$(/usr/bin/hdiutil attach -nobrowse -readonly "$dmg" | /usr/bin/awk 'END { print $NF }')
+[[ -d "$mount_point" ]] || { echo "DMG did not mount." >&2; exit 1; }
+app="$mount_point/YNX Developer Testnet Preview.app"
 [[ -x "$app/Contents/MacOS/YNXDeveloper" ]]
 [[ -x "$app/Contents/Resources/runtime/node" ]]
 [[ -f "$app/Contents/Resources/build-provenance.json" ]]
@@ -52,7 +54,7 @@ if (parsedSbom.bomFormat !== "CycloneDX" || parsedSbom.specVersion !== "1.5" || 
 for (const required of ["Node.js", "npm", "node-pty", "monaco-editor", "react", "yjs"]) if (!parsedSbom.components.some(component => component.name === required)) throw new Error(`SBOM component ${required} is missing`);
 console.log(`Embedded provenance verified for source ${provenance.sourceCommit} and SBOM ${sbomSha256}.`);
 ' "$app/Contents/Resources/build-provenance.json" "$app/Contents/Resources/sbom.cdx.json" "$expected_source_commit" "$expected_source_tree" "$expected_runtime_checkpoint" "$platform"
-if /usr/bin/xattr -p com.apple.quarantine "$app" >/dev/null 2>&1; then echo "Archive unexpectedly restored quarantine metadata." >&2; exit 1; fi
+if /usr/bin/xattr -p com.apple.quarantine "$app" >/dev/null 2>&1; then echo "DMG unexpectedly restored quarantine metadata." >&2; exit 1; fi
 /usr/bin/codesign --verify --deep --strict --verbose=2 "$app"
 signature=$(/usr/bin/codesign -dv --verbose=4 "$app" 2>&1 || true)
 grep -Fq 'Signature=adhoc' <<<"$signature"
@@ -118,4 +120,4 @@ for _ in {1..50}; do second_runtime_port=$(/usr/sbin/lsof -Pan -p "$second_serve
 kill "$app_pid"; wait "$app_pid" 2>/dev/null || true; app_pid=""
 for _ in {1..30}; do kill -0 "$second_server_pid" 2>/dev/null || break; sleep 0.1; done
 if kill -0 "$second_server_pid" 2>/dev/null; then kill "$second_server_pid" >/dev/null 2>&1 || true; echo "Bundled local server survived second App termination." >&2; exit 1; fi
-echo "Extracted macOS YNX Code self-test, cold launch, real C++ compile, persistent second launch and child cleanup passed: $app"
+echo "Mounted macOS YNX Code DMG self-test, cold launch, real C++ compile, persistent second launch and child cleanup passed: $app"

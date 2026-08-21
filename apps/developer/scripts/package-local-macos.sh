@@ -94,8 +94,12 @@ if ! grep -Fq 'Signature=adhoc' <<<"$signature" || ! grep -Fq 'TeamIdentifier=no
   echo "Refusing local-package classification: expected only linker ad-hoc signing with no team identity." >&2
   exit 1
 fi
-archive="$root/ynx-developer-testnet-preview-${platform}-unsigned.zip"
-COPYFILE_DISABLE=1 /usr/bin/ditto -c -k --keepParent --noextattr --noqtn "$app" "$archive"
-/usr/bin/shasum -a 256 "$archive"
+dmg_root="$root/dmg-root"
+dmg="$root/ynx-developer-testnet-preview-${platform}-unsigned.dmg"
+rm -rf "$dmg_root"
+mkdir -p "$dmg_root"
+COPYFILE_DISABLE=1 cp -XR "$app" "$dmg_root/"
+/usr/bin/hdiutil create -ov -format UDZO -volname "YNX Developer Testnet Preview" -srcfolder "$dmg_root" "$dmg" >/dev/null
+/usr/bin/shasum -a 256 "$dmg" | tee "$root/SHA256SUMS.txt"
 echo "Embedded source commit $source_commit, source tree $source_tree and SBOM SHA-256 $sbom_sha."
-echo "Built unsigned macOS Testnet Preview with an ad-hoc signature, bundled portable runtime and no team identity. This is not a Developer ID signed production desktop release."
+echo "Built unsigned macOS Testnet Preview DMG with an ad-hoc app signature, bundled portable runtime and no team identity. This is not a Developer ID signed or notarized production desktop release."
