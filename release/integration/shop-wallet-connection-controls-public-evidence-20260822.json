@@ -6,7 +6,7 @@
   "inputEvidenceCommit": "de781af64d8e065a29359e6255f7ed4c4fa28ba4",
   "source": {
     "branch": "codex/shop-integration-public-regression-20260822",
-    "commit": "99b2185c247130b53439066161b6217e984be0ff",
+    "commit": "99b218545ac4daa38fd8e158afd243be834a09e5",
     "tree": "b8e5329d6508beb2c518c4b84a08b949ee2df5c1",
     "tests": "15/15",
     "build": true
