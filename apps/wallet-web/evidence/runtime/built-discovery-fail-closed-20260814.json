@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
-  "sourceCommit": "c6870072fade9aa0868446033f1dbf9ab1f5ca97",
-  "generatedAt": "2026-08-14T06:45:10.431Z",
+  "sourceCommit": "uncommitted-source-tree",
+  "generatedAt": "2026-08-21T09:48:42.033Z",
   "gateClass": "exact built-artifact provider module and UI-source discovery contract; not browser runtime or an injected wallet",
   "artifacts": [
     {
       "name": "ynx-wallet-web-pwa-0.1.0.zip",
-      "bytes": 272501,
-      "sha256": "38499d18d889a3d5f8c709bf9b2b2dda553c49b4b1f8c7e84fed1f23ca2638ed",
+      "bytes": 287289,
+      "sha256": "8ea6813a5b7f96e3d772fd67c668f3d19256e52b0a7b409d249ea646a8cd1325",
       "failures": {
         "migration": {
           "failedClosed": true,
@@ -44,8 +44,8 @@
     },
     {
       "name": "ynx-wallet-chrome-edge-0.1.0.zip",
-      "bytes": 188641,
-      "sha256": "4b8d54c2d7d6397f9423110e8b9dc18833b47ec73efaa2ecdcf31cffd32bf694",
+      "bytes": 201417,
+      "sha256": "73d6770b29413b7a7b382aca1fb135191c5e9635e3b81e63765a6a811e565f05",
       "failures": {
         "migration": {
           "failedClosed": true,
@@ -82,8 +82,8 @@
     },
     {
       "name": "ynx-wallet-firefox-0.1.0.zip",
-      "bytes": 188678,
-      "sha256": "0bd51179ec21ba523c6ecfab1f4aa61bd9aa15d8341aa0a3beb89e6765e2bf42",
+      "bytes": 201455,
+      "sha256": "066f9156be235058cced45f4b7544400a4976a3ea328a77ef1908dab9bfe6053",
       "failures": {
         "migration": {
           "failedClosed": true,

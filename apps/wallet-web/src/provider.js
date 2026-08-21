@@ -69,7 +69,7 @@ export function discoverInjectedProviders(scope = globalThis) {
   return Object.freeze({ynx, metamask, any: ynx || metamask || providers[0]});
 }
 
-export async function discoverEip6963(scope = globalThis, waitMs = 160) {
+export async function discoverEip6963(scope = globalThis, waitMs = 160, attempts = 3) {
   const found = new Map();
   const conflicted = new Set();
   if (typeof scope.addEventListener !== "function" || typeof scope.dispatchEvent !== "function") {
@@ -93,8 +93,12 @@ export async function discoverEip6963(scope = globalThis, waitMs = 160) {
   scope.addEventListener("eip6963:announceProvider", listener);
   try {
     const EventConstructor = scope.Event || Event;
-    scope.dispatchEvent(new EventConstructor("eip6963:requestProvider"));
-    await new Promise((resolve) => setTimeout(resolve, waitMs));
+    // Extensions can inject after the first application task. Re-request a bounded
+    // number of times so a late EIP-6963 announcer is not misreported as an RPC fault.
+    for (let attempt = 0; attempt < Math.max(1, Math.min(3, Number.isInteger(attempts) ? attempts : 1)); attempt += 1) {
+      scope.dispatchEvent(new EventConstructor("eip6963:requestProvider"));
+      await new Promise((resolve) => setTimeout(resolve, Math.max(0, waitMs)));
+    }
   } finally {
     scope.removeEventListener("eip6963:announceProvider", listener);
   }
@@ -112,6 +116,43 @@ export async function discoverWallets(scope = globalThis) {
     ynx: announcedYNX?.provider || injected.ynx,
     metamask: announcedMetaMask?.provider || injected.metamask,
   });
+}
+
+function injectedProviderCount(scope = globalThis) {
+  return providerList(scope?.ethereum).length;
+}
+
+/**
+ * This is deliberately a no-prompt probe. It classifies a real injected provider
+ * without requesting an account, switching a network, signing, or creating a session.
+ */
+export async function providerAvailabilityState(availability = {}, scope = globalThis) {
+  const provider = availability.ynx || availability.metamask;
+  if (!provider) {
+    return Object.freeze({
+      code: injectedProviderCount(scope) > 0 ? "AMBIGUOUS_PROVIDER" : "NO_PROVIDER",
+      providerPresent: false,
+      accountAuthorized: false,
+    });
+  }
+  try {
+    if (typeof provider._metamask?.isUnlocked === "function" && await provider._metamask.isUnlocked() === false) {
+      return Object.freeze({code:"EXTENSION_LOCKED",providerPresent:true,accountAuthorized:false});
+    }
+    const accounts = await provider.request({method:"eth_accounts"});
+    if (!Array.isArray(accounts) || accounts.length === 0) {
+      return Object.freeze({code:"SITE_ACCESS_DENIED",providerPresent:true,accountAuthorized:false});
+    }
+    return Object.freeze({code:null,providerPresent:true,accountAuthorized:true});
+  } catch (error) {
+    if (error?.code === 4100 || error?.code === 4001) {
+      return Object.freeze({code:"SITE_ACCESS_DENIED",providerPresent:true,accountAuthorized:false});
+    }
+    if (error?.code === 4900) {
+      return Object.freeze({code:"EXTENSION_LOCKED",providerPresent:true,accountAuthorized:false});
+    }
+    return Object.freeze({code:"AMBIGUOUS_PROVIDER",providerPresent:true,accountAuthorized:false});
+  }
 }
 
 export function walletDiscoveryPresentation(availability = {}) {

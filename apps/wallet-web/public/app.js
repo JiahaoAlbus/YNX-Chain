@@ -9,7 +9,7 @@ import {
   METAMASK_DOWNLOAD_URL, WALLET_DOWNLOAD_MATRIX, YNX_DOWNLOAD_URL, addYNXChain, connectWallet, createExtensionProvider, discoverWallets,
   extensionWalletAvailability, forgetSession, rememberSession, restoreTestnetSession, sendTransaction,
   invalidatesConnectedSession, resolveRememberedWallet, signMessage, subscribeProviderLifecycle,
-  switchToYNXChain, verifyTestnetRpc, walletActionGates, walletDiscoveryPresentation,
+  providerAvailabilityState, switchToYNXChain, verifyTestnetRpc, walletActionGates, walletDiscoveryPresentation,
 } from "./provider.js";
 
 const app = document.querySelector("#app");
@@ -35,7 +35,7 @@ function unavailablePlatforms(){return Object.values(WALLET_DOWNLOAD_MATRIX).fil
 function statusView(status = state.status) {
   if (!status) return {kind:"info",message:state.account ? `${text("connected")} · ${state.account}` : text("disconnected")};
   if (status.type === "working") return {kind:"info",message:text("working")};
-  if (status.type === "error") return {kind:"error",message:`${status.code}: ${text("requestFailed")}`};
+  if (status.type === "error") return {kind:"error",message:`${status.code}: ${text(status.key || "requestFailed")}`};
   if (status.type === "key") return {kind:status.kind || "info",message:text(status.key)};
   if (status.type === "connected") return {kind:"info",message:`${text("connected")} · ${status.account}`};
   if (status.type === "label") return {kind:"info",message:`${text(status.labelKey)}: ${status.value}`};
@@ -72,7 +72,13 @@ function render() {
 }
 
 function setStatus(status) { state.status=Object.freeze(status); const node = document.querySelector("#status"); const view=statusView(); node.dataset.kind = view.kind; node.innerHTML = statusHtml(); }
-function localizedError(error) { const code=typeof error?.code==="string"||typeof error?.code==="number"?String(error.code):"REQUEST_FAILED"; return Object.freeze({type:"error",code}); }
+function errorStatusKey(code) {
+  return Object.freeze({
+    NO_PROVIDER:"noProvider", EXTENSION_LOCKED:"extensionLocked", SITE_ACCESS_DENIED:"siteAccessDenied", AMBIGUOUS_PROVIDER:"ambiguousProvider",
+    WRONG_NETWORK:"wrongChain", RPC_UNAVAILABLE:"rpcUnavailable", INVALID_RPC_RESPONSE:"invalidRpcResponse",
+  })[code] || "requestFailed";
+}
+function localizedError(error) { const code=typeof error?.code==="string"||typeof error?.code==="number"?String(error.code):"REQUEST_FAILED"; return Object.freeze({type:"error",code,key:errorStatusKey(code)}); }
 async function act(work, success) {
   setStatus({type:"working"});
   for (const button of document.querySelectorAll("button")) button.disabled = true;
@@ -178,9 +184,17 @@ async function detect() {
   try { availability = isExtension ? await extensionWalletAvailability() : await discoverWallets(); }
   catch (error) { forgetSession(); throw error; }
   state.providers = availability; presentAvailability(availability);
+  // Discovery and RPC are independent: a missing/locked extension must never be
+  // re-labelled as an RPC outage, and an RPC timeout must not erase provider state.
+  const providerState = isExtension
+    ? {code: availability.ynx || availability.metamask ? null : "NO_PROVIDER", providerPresent:Boolean(availability.ynx || availability.metamask), accountAuthorized:false}
+    : await providerAvailabilityState(availability);
+  let rpcError = null;
   try { await verifyTestnetRpc(); state.rpcVerified = true; }
-  catch (error) { state.rpcVerified = false; applyActionGates(); throw error; }
+  catch (error) { state.rpcVerified = false; rpcError = error; }
   applyActionGates();
+  if (providerState.code) setStatus({type:"error",code:providerState.code,key:errorStatusKey(providerState.code)});
+  else if (rpcError) setStatus(localizedError(rpcError));
   const wallet = resolveRememberedWallet(availability);
   if (wallet) {
     const provider = selectProvider(wallet);

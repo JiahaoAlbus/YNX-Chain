@@ -1,73 +1,181 @@
 {
   "schemaVersion": 1,
-  "sourceCommit": "dbf17086803d2bc2aeba7f8ed0d52d91b069449c",
-  "generatedAt": "2026-08-14T07:35:26.390Z",
+  "sourceCommit": "uncommitted-source-tree",
+  "generatedAt": "2026-08-21T09:49:12.723Z",
   "gateClass": "exact built ZIP locale module and UI-source inspection; not visible browser runtime",
   "artifacts": [
     {
       "name": "ynx-wallet-web-pwa-0.1.0.zip",
-      "bytes": 272707,
-      "sha256": "c84679c16d0ae48bdb4796bcaeb86a60c17f25bec4ec1cb87b202b00fbd300bf",
+      "bytes": 287289,
+      "sha256": "8ea6813a5b7f96e3d772fd67c668f3d19256e52b0a7b409d249ea646a8cd1325",
       "localeChecks": [
         {
           "locale": "en",
           "untranslated": [],
-          "requestFailed": "The request failed closed. No wallet state was changed."
+          "messages": {
+            "requestFailed": "The request failed closed. No wallet state was changed.",
+            "noProvider": "No injected EIP-1193 wallet was found. Install or enable YNX Wallet or MetaMask; this page stays open.",
+            "extensionLocked": "A wallet extension was detected but is locked. Unlock it, then retry detection.",
+            "siteAccessDenied": "A wallet extension was detected, but this site has no account access. Choose Connect and approve the account request in the wallet.",
+            "ambiguousProvider": "A browser wallet was detected but could not be identified safely. Choose one wallet extension and retry.",
+            "wrongChain": "The wallet is on a different network. Add or switch to YNX Testnet (chain 6423).",
+            "rpcUnavailable": "YNX Testnet RPC could not be verified. Provider detection is unchanged and wallet actions remain disabled.",
+            "invalidRpcResponse": "YNX Testnet RPC returned an invalid response. Provider detection is unchanged and wallet actions remain disabled."
+          }
         },
         {
           "locale": "zh-CN",
           "untranslated": [],
-          "requestFailed": "请求已失败关闭，钱包状态没有改变。"
+          "messages": {
+            "requestFailed": "请求已失败关闭，钱包状态没有改变。",
+            "noProvider": "未发现注入的 EIP-1193 钱包。请安装或启用 YNX Wallet 或 MetaMask；当前页面不会跳转。",
+            "extensionLocked": "检测到钱包扩展但已锁定。请解锁后重新检测。",
+            "siteAccessDenied": "检测到钱包扩展，但本站没有账户访问权限。请选择连接并在钱包中批准账户请求。",
+            "ambiguousProvider": "检测到浏览器钱包但无法安全识别。请只保留一个钱包扩展后重试。",
+            "wrongChain": "钱包位于其他网络。请添加或切换到 YNX 测试网（链 6423）。",
+            "rpcUnavailable": "无法验证 YNX 测试网 RPC。Provider 检测结果未改变，钱包操作仍被禁用。",
+            "invalidRpcResponse": "YNX 测试网 RPC 返回无效响应。Provider 检测结果未改变，钱包操作仍被禁用。"
+          }
         },
         {
           "locale": "zh-TW",
           "untranslated": [],
-          "requestFailed": "請求已失敗關閉，錢包狀態沒有變更。"
+          "messages": {
+            "requestFailed": "請求已失敗關閉，錢包狀態沒有變更。",
+            "noProvider": "未發現注入的 EIP-1193 錢包。請安裝或啟用 YNX Wallet 或 MetaMask；目前頁面不會跳轉。",
+            "extensionLocked": "偵測到錢包擴充功能但已鎖定。請解鎖後重新偵測。",
+            "siteAccessDenied": "偵測到錢包擴充功能，但此網站沒有帳戶存取權。請選擇連線並在錢包中核准帳戶要求。",
+            "ambiguousProvider": "偵測到瀏覽器錢包但無法安全辨識。請只保留一個錢包擴充功能後重試。",
+            "wrongChain": "錢包位於其他網路。請加入或切換至 YNX 測試網（鏈 6423）。",
+            "rpcUnavailable": "無法驗證 YNX 測試網 RPC。Provider 偵測結果未變更，錢包操作仍被停用。",
+            "invalidRpcResponse": "YNX 測試網 RPC 傳回無效回應。Provider 偵測結果未變更，錢包操作仍被停用。"
+          }
         },
         {
           "locale": "ja",
           "untranslated": [],
-          "requestFailed": "リクエストは安全に失敗し、ウォレットの状態は変更されませんでした。"
+          "messages": {
+            "requestFailed": "リクエストは安全に失敗し、ウォレットの状態は変更されませんでした。",
+            "noProvider": "注入された EIP-1193 ウォレットが見つかりません。YNX Wallet または MetaMask を有効にしてください。このページは移動しません。",
+            "extensionLocked": "ウォレット拡張機能は検出されましたがロックされています。ロックを解除してから再検出してください。",
+            "siteAccessDenied": "ウォレット拡張機能は検出されましたが、このサイトにアカウントアクセス権がありません。接続を選び、ウォレットで承認してください。",
+            "ambiguousProvider": "ブラウザーウォレットを検出しましたが安全に識別できません。ウォレット拡張機能を一つにして再試行してください。",
+            "wrongChain": "ウォレットは別のネットワークにあります。YNX Testnet（チェーン6423）を追加または切替してください。",
+            "rpcUnavailable": "YNX Testnet RPC を検証できません。Provider の検出結果は変わらず、ウォレット操作は無効です。",
+            "invalidRpcResponse": "YNX Testnet RPC が無効な応答を返しました。Provider の検出結果は変わらず、ウォレット操作は無効です。"
+          }
         },
         {
           "locale": "ko",
           "untranslated": [],
-          "requestFailed": "요청은 안전하게 실패했으며 지갑 상태는 변경되지 않았습니다."
+          "messages": {
+            "requestFailed": "요청은 안전하게 실패했으며 지갑 상태는 변경되지 않았습니다.",
+            "noProvider": "주입된 EIP-1193 지갑을 찾지 못했습니다. YNX Wallet 또는 MetaMask를 설치하거나 활성화하세요. 이 페이지는 유지됩니다.",
+            "extensionLocked": "지갑 확장 프로그램이 감지되었지만 잠겨 있습니다. 잠금을 해제한 뒤 다시 감지하세요.",
+            "siteAccessDenied": "지갑 확장 프로그램은 감지되었지만 이 사이트의 계정 접근 권한이 없습니다. 연결을 선택하고 지갑에서 계정 요청을 승인하세요.",
+            "ambiguousProvider": "브라우저 지갑을 감지했지만 안전하게 식별할 수 없습니다. 지갑 확장 프로그램 하나만 사용한 뒤 다시 시도하세요.",
+            "wrongChain": "지갑이 다른 네트워크에 있습니다. YNX Testnet(체인 6423)을 추가하거나 전환하세요.",
+            "rpcUnavailable": "YNX Testnet RPC를 확인할 수 없습니다. Provider 감지는 유지되며 지갑 작업은 비활성화됩니다.",
+            "invalidRpcResponse": "YNX Testnet RPC가 잘못된 응답을 반환했습니다. Provider 감지는 유지되며 지갑 작업은 비활성화됩니다."
+          }
         },
         {
           "locale": "es",
           "untranslated": [],
-          "requestFailed": "La solicitud se cerró con error y no se modificó el estado de la cartera."
+          "messages": {
+            "requestFailed": "La solicitud se cerró con error y no se modificó el estado de la cartera.",
+            "noProvider": "No se encontró una cartera EIP-1193 inyectada. Instala o activa YNX Wallet o MetaMask; esta página permanece abierta.",
+            "extensionLocked": "Se detectó una extensión de cartera, pero está bloqueada. Desbloquéala y vuelve a detectar.",
+            "siteAccessDenied": "Se detectó una extensión de cartera, pero este sitio no tiene acceso a la cuenta. Elige conectar y aprueba la solicitud en la cartera.",
+            "ambiguousProvider": "Se detectó una cartera de navegador, pero no se pudo identificar de forma segura. Deja una sola extensión y vuelve a intentarlo.",
+            "wrongChain": "La cartera está en otra red. Añade o cambia a YNX Testnet (cadena 6423).",
+            "rpcUnavailable": "No se pudo verificar el RPC de YNX Testnet. La detección de Provider no cambia y las acciones siguen deshabilitadas.",
+            "invalidRpcResponse": "El RPC de YNX Testnet devolvió una respuesta no válida. La detección de Provider no cambia y las acciones siguen deshabilitadas."
+          }
         },
         {
           "locale": "fr",
           "untranslated": [],
-          "requestFailed": "La demande a échoué de manière sécurisée et l’état du portefeuille n’a pas été modifié."
+          "messages": {
+            "requestFailed": "La demande a échoué de manière sécurisée et l’état du portefeuille n’a pas été modifié.",
+            "noProvider": "Aucun portefeuille EIP-1193 injecté n’a été trouvé. Installez ou activez YNX Wallet ou MetaMask ; cette page reste ouverte.",
+            "extensionLocked": "Une extension de portefeuille a été détectée mais elle est verrouillée. Déverrouillez-la puis réessayez.",
+            "siteAccessDenied": "Une extension de portefeuille a été détectée, mais ce site n’a pas accès au compte. Choisissez la connexion et approuvez la demande dans le portefeuille.",
+            "ambiguousProvider": "Un portefeuille de navigateur a été détecté mais ne peut pas être identifié de façon sûre. Gardez une seule extension puis réessayez.",
+            "wrongChain": "Le portefeuille est sur un autre réseau. Ajoutez ou basculez vers YNX Testnet (chaîne 6423).",
+            "rpcUnavailable": "Le RPC YNX Testnet n’a pas pu être vérifié. La détection du Provider est inchangée et les actions restent désactivées.",
+            "invalidRpcResponse": "Le RPC YNX Testnet a renvoyé une réponse invalide. La détection du Provider est inchangée et les actions restent désactivées."
+          }
         },
         {
           "locale": "de",
           "untranslated": [],
-          "requestFailed": "Die Anfrage wurde sicher abgebrochen; der Wallet-Status blieb unverändert."
+          "messages": {
+            "requestFailed": "Die Anfrage wurde sicher abgebrochen; der Wallet-Status blieb unverändert.",
+            "noProvider": "Keine injizierte EIP-1193-Wallet gefunden. Installieren oder aktivieren Sie YNX Wallet oder MetaMask; diese Seite bleibt geöffnet.",
+            "extensionLocked": "Eine Wallet-Erweiterung wurde erkannt, ist aber gesperrt. Entsperren Sie sie und starten Sie die Erkennung erneut.",
+            "siteAccessDenied": "Eine Wallet-Erweiterung wurde erkannt, aber diese Website hat keinen Kontozugriff. Wählen Sie Verbinden und genehmigen Sie die Anfrage in der Wallet.",
+            "ambiguousProvider": "Eine Browser-Wallet wurde erkannt, konnte aber nicht sicher identifiziert werden. Lassen Sie nur eine Wallet-Erweiterung aktiv und versuchen Sie es erneut.",
+            "wrongChain": "Die Wallet befindet sich in einem anderen Netzwerk. Fügen Sie YNX Testnet hinzu oder wechseln Sie dorthin (Chain 6423).",
+            "rpcUnavailable": "YNX Testnet RPC konnte nicht geprüft werden. Die Provider-Erkennung bleibt bestehen und Wallet-Aktionen sind deaktiviert.",
+            "invalidRpcResponse": "YNX Testnet RPC lieferte eine ungültige Antwort. Die Provider-Erkennung bleibt bestehen und Wallet-Aktionen sind deaktiviert."
+          }
         },
         {
           "locale": "pt",
           "untranslated": [],
-          "requestFailed": "A solicitação falhou de forma segura e o estado da carteira não foi alterado."
+          "messages": {
+            "requestFailed": "A solicitação falhou de forma segura e o estado da carteira não foi alterado.",
+            "noProvider": "Nenhuma carteira EIP-1193 injetada foi encontrada. Instale ou ative YNX Wallet ou MetaMask; esta página permanece aberta.",
+            "extensionLocked": "Uma extensão de carteira foi detectada, mas está bloqueada. Desbloqueie-a e detecte novamente.",
+            "siteAccessDenied": "Uma extensão de carteira foi detectada, mas este site não tem acesso à conta. Escolha conectar e aprove a solicitação na carteira.",
+            "ambiguousProvider": "Uma carteira de navegador foi detectada, mas não pôde ser identificada com segurança. Mantenha apenas uma extensão e tente novamente.",
+            "wrongChain": "A carteira está em outra rede. Adicione ou mude para YNX Testnet (chain 6423).",
+            "rpcUnavailable": "Não foi possível verificar o RPC da YNX Testnet. A detecção do Provider não muda e as ações permanecem desativadas.",
+            "invalidRpcResponse": "O RPC da YNX Testnet retornou uma resposta inválida. A detecção do Provider não muda e as ações permanecem desativadas."
+          }
         },
         {
           "locale": "ru",
           "untranslated": [],
-          "requestFailed": "Запрос безопасно завершился ошибкой; состояние кошелька не изменилось."
+          "messages": {
+            "requestFailed": "Запрос безопасно завершился ошибкой; состояние кошелька не изменилось.",
+            "noProvider": "Не найден внедрённый кошелёк EIP-1193. Установите или включите YNX Wallet либо MetaMask; эта страница останется открытой.",
+            "extensionLocked": "Расширение кошелька найдено, но заблокировано. Разблокируйте его и повторите поиск.",
+            "siteAccessDenied": "Расширение кошелька найдено, но у сайта нет доступа к аккаунту. Выберите подключение и подтвердите запрос в кошельке.",
+            "ambiguousProvider": "Обнаружен браузерный кошелёк, но его нельзя безопасно определить. Оставьте одно расширение кошелька и повторите попытку.",
+            "wrongChain": "Кошелёк находится в другой сети. Добавьте или переключитесь на YNX Testnet (цепь 6423).",
+            "rpcUnavailable": "Не удалось проверить RPC YNX Testnet. Обнаружение Provider не меняется, действия кошелька отключены.",
+            "invalidRpcResponse": "RPC YNX Testnet вернул недопустимый ответ. Обнаружение Provider не меняется, действия кошелька отключены."
+          }
         },
         {
           "locale": "ar",
           "untranslated": [],
-          "requestFailed": "فشل الطلب بشكل آمن ولم تتغير حالة المحفظة."
+          "messages": {
+            "requestFailed": "فشل الطلب بشكل آمن ولم تتغير حالة المحفظة.",
+            "noProvider": "لم يتم العثور على محفظة EIP-1193 محقونة. ثبّت أو فعّل YNX Wallet أو MetaMask؛ ستبقى هذه الصفحة مفتوحة.",
+            "extensionLocked": "تم اكتشاف إضافة محفظة لكنها مقفلة. أزل القفل ثم أعد الاكتشاف.",
+            "siteAccessDenied": "تم اكتشاف إضافة محفظة، لكن هذا الموقع لا يملك صلاحية الوصول إلى الحساب. اختر الاتصال ووافق على الطلب في المحفظة.",
+            "ambiguousProvider": "تم اكتشاف محفظة متصفح لكن تعذر تحديدها بأمان. اترك إضافة محفظة واحدة ثم أعد المحاولة.",
+            "wrongChain": "المحفظة على شبكة أخرى. أضف أو بدّل إلى YNX Testnet (السلسلة 6423).",
+            "rpcUnavailable": "تعذر التحقق من RPC لشبكة YNX Testnet. لم تتغير نتيجة اكتشاف Provider وتبقى إجراءات المحفظة معطلة.",
+            "invalidRpcResponse": "أعاد RPC لشبكة YNX Testnet استجابة غير صالحة. لم تتغير نتيجة اكتشاف Provider وتبقى إجراءات المحفظة معطلة."
+          }
         },
         {
           "locale": "id",
           "untranslated": [],
-          "requestFailed": "Permintaan gagal secara aman dan status dompet tidak berubah."
+          "messages": {
+            "requestFailed": "Permintaan gagal secara aman dan status dompet tidak berubah.",
+            "noProvider": "Tidak ditemukan dompet EIP-1193 yang diinjeksi. Instal atau aktifkan YNX Wallet atau MetaMask; halaman ini tetap terbuka.",
+            "extensionLocked": "Ekstensi dompet terdeteksi tetapi terkunci. Buka kunci lalu lakukan deteksi ulang.",
+            "siteAccessDenied": "Ekstensi dompet terdeteksi, tetapi situs ini tidak memiliki akses akun. Pilih hubungkan dan setujui permintaan di dompet.",
+            "ambiguousProvider": "Dompet browser terdeteksi tetapi tidak dapat diidentifikasi dengan aman. Sisakan satu ekstensi dompet lalu coba lagi.",
+            "wrongChain": "Dompet berada di jaringan lain. Tambahkan atau pindahkan ke YNX Testnet (chain 6423).",
+            "rpcUnavailable": "RPC YNX Testnet tidak dapat diverifikasi. Deteksi Provider tidak berubah dan tindakan dompet tetap dinonaktifkan.",
+            "invalidRpcResponse": "RPC YNX Testnet mengembalikan respons tidak valid. Deteksi Provider tidak berubah dan tindakan dompet tetap dinonaktifkan."
+          }
         }
       ],
       "checks": {
@@ -81,68 +189,176 @@
     },
     {
       "name": "ynx-wallet-chrome-edge-0.1.0.zip",
-      "bytes": 188846,
-      "sha256": "c733093dea47c6612c8a9d5ecea40be2227f62402f4b4966955c9e1accf4e2aa",
+      "bytes": 201417,
+      "sha256": "73d6770b29413b7a7b382aca1fb135191c5e9635e3b81e63765a6a811e565f05",
       "localeChecks": [
         {
           "locale": "en",
           "untranslated": [],
-          "requestFailed": "The request failed closed. No wallet state was changed."
+          "messages": {
+            "requestFailed": "The request failed closed. No wallet state was changed.",
+            "noProvider": "No injected EIP-1193 wallet was found. Install or enable YNX Wallet or MetaMask; this page stays open.",
+            "extensionLocked": "A wallet extension was detected but is locked. Unlock it, then retry detection.",
+            "siteAccessDenied": "A wallet extension was detected, but this site has no account access. Choose Connect and approve the account request in the wallet.",
+            "ambiguousProvider": "A browser wallet was detected but could not be identified safely. Choose one wallet extension and retry.",
+            "wrongChain": "The wallet is on a different network. Add or switch to YNX Testnet (chain 6423).",
+            "rpcUnavailable": "YNX Testnet RPC could not be verified. Provider detection is unchanged and wallet actions remain disabled.",
+            "invalidRpcResponse": "YNX Testnet RPC returned an invalid response. Provider detection is unchanged and wallet actions remain disabled."
+          }
         },
         {
           "locale": "zh-CN",
           "untranslated": [],
-          "requestFailed": "请求已失败关闭，钱包状态没有改变。"
+          "messages": {
+            "requestFailed": "请求已失败关闭，钱包状态没有改变。",
+            "noProvider": "未发现注入的 EIP-1193 钱包。请安装或启用 YNX Wallet 或 MetaMask；当前页面不会跳转。",
+            "extensionLocked": "检测到钱包扩展但已锁定。请解锁后重新检测。",
+            "siteAccessDenied": "检测到钱包扩展，但本站没有账户访问权限。请选择连接并在钱包中批准账户请求。",
+            "ambiguousProvider": "检测到浏览器钱包但无法安全识别。请只保留一个钱包扩展后重试。",
+            "wrongChain": "钱包位于其他网络。请添加或切换到 YNX 测试网（链 6423）。",
+            "rpcUnavailable": "无法验证 YNX 测试网 RPC。Provider 检测结果未改变，钱包操作仍被禁用。",
+            "invalidRpcResponse": "YNX 测试网 RPC 返回无效响应。Provider 检测结果未改变，钱包操作仍被禁用。"
+          }
         },
         {
           "locale": "zh-TW",
           "untranslated": [],
-          "requestFailed": "請求已失敗關閉，錢包狀態沒有變更。"
+          "messages": {
+            "requestFailed": "請求已失敗關閉，錢包狀態沒有變更。",
+            "noProvider": "未發現注入的 EIP-1193 錢包。請安裝或啟用 YNX Wallet 或 MetaMask；目前頁面不會跳轉。",
+            "extensionLocked": "偵測到錢包擴充功能但已鎖定。請解鎖後重新偵測。",
+            "siteAccessDenied": "偵測到錢包擴充功能，但此網站沒有帳戶存取權。請選擇連線並在錢包中核准帳戶要求。",
+            "ambiguousProvider": "偵測到瀏覽器錢包但無法安全辨識。請只保留一個錢包擴充功能後重試。",
+            "wrongChain": "錢包位於其他網路。請加入或切換至 YNX 測試網（鏈 6423）。",
+            "rpcUnavailable": "無法驗證 YNX 測試網 RPC。Provider 偵測結果未變更，錢包操作仍被停用。",
+            "invalidRpcResponse": "YNX 測試網 RPC 傳回無效回應。Provider 偵測結果未變更，錢包操作仍被停用。"
+          }
         },
         {
           "locale": "ja",
           "untranslated": [],
-          "requestFailed": "リクエストは安全に失敗し、ウォレットの状態は変更されませんでした。"
+          "messages": {
+            "requestFailed": "リクエストは安全に失敗し、ウォレットの状態は変更されませんでした。",
+            "noProvider": "注入された EIP-1193 ウォレットが見つかりません。YNX Wallet または MetaMask を有効にしてください。このページは移動しません。",
+            "extensionLocked": "ウォレット拡張機能は検出されましたがロックされています。ロックを解除してから再検出してください。",
+            "siteAccessDenied": "ウォレット拡張機能は検出されましたが、このサイトにアカウントアクセス権がありません。接続を選び、ウォレットで承認してください。",
+            "ambiguousProvider": "ブラウザーウォレットを検出しましたが安全に識別できません。ウォレット拡張機能を一つにして再試行してください。",
+            "wrongChain": "ウォレットは別のネットワークにあります。YNX Testnet（チェーン6423）を追加または切替してください。",
+            "rpcUnavailable": "YNX Testnet RPC を検証できません。Provider の検出結果は変わらず、ウォレット操作は無効です。",
+            "invalidRpcResponse": "YNX Testnet RPC が無効な応答を返しました。Provider の検出結果は変わらず、ウォレット操作は無効です。"
+          }
         },
         {
           "locale": "ko",
           "untranslated": [],
-          "requestFailed": "요청은 안전하게 실패했으며 지갑 상태는 변경되지 않았습니다."
+          "messages": {
+            "requestFailed": "요청은 안전하게 실패했으며 지갑 상태는 변경되지 않았습니다.",
+            "noProvider": "주입된 EIP-1193 지갑을 찾지 못했습니다. YNX Wallet 또는 MetaMask를 설치하거나 활성화하세요. 이 페이지는 유지됩니다.",
+            "extensionLocked": "지갑 확장 프로그램이 감지되었지만 잠겨 있습니다. 잠금을 해제한 뒤 다시 감지하세요.",
+            "siteAccessDenied": "지갑 확장 프로그램은 감지되었지만 이 사이트의 계정 접근 권한이 없습니다. 연결을 선택하고 지갑에서 계정 요청을 승인하세요.",
+            "ambiguousProvider": "브라우저 지갑을 감지했지만 안전하게 식별할 수 없습니다. 지갑 확장 프로그램 하나만 사용한 뒤 다시 시도하세요.",
+            "wrongChain": "지갑이 다른 네트워크에 있습니다. YNX Testnet(체인 6423)을 추가하거나 전환하세요.",
+            "rpcUnavailable": "YNX Testnet RPC를 확인할 수 없습니다. Provider 감지는 유지되며 지갑 작업은 비활성화됩니다.",
+            "invalidRpcResponse": "YNX Testnet RPC가 잘못된 응답을 반환했습니다. Provider 감지는 유지되며 지갑 작업은 비활성화됩니다."
+          }
         },
         {
           "locale": "es",
           "untranslated": [],
-          "requestFailed": "La solicitud se cerró con error y no se modificó el estado de la cartera."
+          "messages": {
+            "requestFailed": "La solicitud se cerró con error y no se modificó el estado de la cartera.",
+            "noProvider": "No se encontró una cartera EIP-1193 inyectada. Instala o activa YNX Wallet o MetaMask; esta página permanece abierta.",
+            "extensionLocked": "Se detectó una extensión de cartera, pero está bloqueada. Desbloquéala y vuelve a detectar.",
+            "siteAccessDenied": "Se detectó una extensión de cartera, pero este sitio no tiene acceso a la cuenta. Elige conectar y aprueba la solicitud en la cartera.",
+            "ambiguousProvider": "Se detectó una cartera de navegador, pero no se pudo identificar de forma segura. Deja una sola extensión y vuelve a intentarlo.",
+            "wrongChain": "La cartera está en otra red. Añade o cambia a YNX Testnet (cadena 6423).",
+            "rpcUnavailable": "No se pudo verificar el RPC de YNX Testnet. La detección de Provider no cambia y las acciones siguen deshabilitadas.",
+            "invalidRpcResponse": "El RPC de YNX Testnet devolvió una respuesta no válida. La detección de Provider no cambia y las acciones siguen deshabilitadas."
+          }
         },
         {
           "locale": "fr",
           "untranslated": [],
-          "requestFailed": "La demande a échoué de manière sécurisée et l’état du portefeuille n’a pas été modifié."
+          "messages": {
+            "requestFailed": "La demande a échoué de manière sécurisée et l’état du portefeuille n’a pas été modifié.",
+            "noProvider": "Aucun portefeuille EIP-1193 injecté n’a été trouvé. Installez ou activez YNX Wallet ou MetaMask ; cette page reste ouverte.",
+            "extensionLocked": "Une extension de portefeuille a été détectée mais elle est verrouillée. Déverrouillez-la puis réessayez.",
+            "siteAccessDenied": "Une extension de portefeuille a été détectée, mais ce site n’a pas accès au compte. Choisissez la connexion et approuvez la demande dans le portefeuille.",
+            "ambiguousProvider": "Un portefeuille de navigateur a été détecté mais ne peut pas être identifié de façon sûre. Gardez une seule extension puis réessayez.",
+            "wrongChain": "Le portefeuille est sur un autre réseau. Ajoutez ou basculez vers YNX Testnet (chaîne 6423).",
+            "rpcUnavailable": "Le RPC YNX Testnet n’a pas pu être vérifié. La détection du Provider est inchangée et les actions restent désactivées.",
+            "invalidRpcResponse": "Le RPC YNX Testnet a renvoyé une réponse invalide. La détection du Provider est inchangée et les actions restent désactivées."
+          }
         },
         {
           "locale": "de",
           "untranslated": [],
-          "requestFailed": "Die Anfrage wurde sicher abgebrochen; der Wallet-Status blieb unverändert."
+          "messages": {
+            "requestFailed": "Die Anfrage wurde sicher abgebrochen; der Wallet-Status blieb unverändert.",
+            "noProvider": "Keine injizierte EIP-1193-Wallet gefunden. Installieren oder aktivieren Sie YNX Wallet oder MetaMask; diese Seite bleibt geöffnet.",
+            "extensionLocked": "Eine Wallet-Erweiterung wurde erkannt, ist aber gesperrt. Entsperren Sie sie und starten Sie die Erkennung erneut.",
+            "siteAccessDenied": "Eine Wallet-Erweiterung wurde erkannt, aber diese Website hat keinen Kontozugriff. Wählen Sie Verbinden und genehmigen Sie die Anfrage in der Wallet.",
+            "ambiguousProvider": "Eine Browser-Wallet wurde erkannt, konnte aber nicht sicher identifiziert werden. Lassen Sie nur eine Wallet-Erweiterung aktiv und versuchen Sie es erneut.",
+            "wrongChain": "Die Wallet befindet sich in einem anderen Netzwerk. Fügen Sie YNX Testnet hinzu oder wechseln Sie dorthin (Chain 6423).",
+            "rpcUnavailable": "YNX Testnet RPC konnte nicht geprüft werden. Die Provider-Erkennung bleibt bestehen und Wallet-Aktionen sind deaktiviert.",
+            "invalidRpcResponse": "YNX Testnet RPC lieferte eine ungültige Antwort. Die Provider-Erkennung bleibt bestehen und Wallet-Aktionen sind deaktiviert."
+          }
         },
         {
           "locale": "pt",
           "untranslated": [],
-          "requestFailed": "A solicitação falhou de forma segura e o estado da carteira não foi alterado."
+          "messages": {
+            "requestFailed": "A solicitação falhou de forma segura e o estado da carteira não foi alterado.",
+            "noProvider": "Nenhuma carteira EIP-1193 injetada foi encontrada. Instale ou ative YNX Wallet ou MetaMask; esta página permanece aberta.",
+            "extensionLocked": "Uma extensão de carteira foi detectada, mas está bloqueada. Desbloqueie-a e detecte novamente.",
+            "siteAccessDenied": "Uma extensão de carteira foi detectada, mas este site não tem acesso à conta. Escolha conectar e aprove a solicitação na carteira.",
+            "ambiguousProvider": "Uma carteira de navegador foi detectada, mas não pôde ser identificada com segurança. Mantenha apenas uma extensão e tente novamente.",
+            "wrongChain": "A carteira está em outra rede. Adicione ou mude para YNX Testnet (chain 6423).",
+            "rpcUnavailable": "Não foi possível verificar o RPC da YNX Testnet. A detecção do Provider não muda e as ações permanecem desativadas.",
+            "invalidRpcResponse": "O RPC da YNX Testnet retornou uma resposta inválida. A detecção do Provider não muda e as ações permanecem desativadas."
+          }
         },
         {
           "locale": "ru",
           "untranslated": [],
-          "requestFailed": "Запрос безопасно завершился ошибкой; состояние кошелька не изменилось."
+          "messages": {
+            "requestFailed": "Запрос безопасно завершился ошибкой; состояние кошелька не изменилось.",
+            "noProvider": "Не найден внедрённый кошелёк EIP-1193. Установите или включите YNX Wallet либо MetaMask; эта страница останется открытой.",
+            "extensionLocked": "Расширение кошелька найдено, но заблокировано. Разблокируйте его и повторите поиск.",
+            "siteAccessDenied": "Расширение кошелька найдено, но у сайта нет доступа к аккаунту. Выберите подключение и подтвердите запрос в кошельке.",
+            "ambiguousProvider": "Обнаружен браузерный кошелёк, но его нельзя безопасно определить. Оставьте одно расширение кошелька и повторите попытку.",
+            "wrongChain": "Кошелёк находится в другой сети. Добавьте или переключитесь на YNX Testnet (цепь 6423).",
+            "rpcUnavailable": "Не удалось проверить RPC YNX Testnet. Обнаружение Provider не меняется, действия кошелька отключены.",
+            "invalidRpcResponse": "RPC YNX Testnet вернул недопустимый ответ. Обнаружение Provider не меняется, действия кошелька отключены."
+          }
         },
         {
           "locale": "ar",
           "untranslated": [],
-          "requestFailed": "فشل الطلب بشكل آمن ولم تتغير حالة المحفظة."
+          "messages": {
+            "requestFailed": "فشل الطلب بشكل آمن ولم تتغير حالة المحفظة.",
+            "noProvider": "لم يتم العثور على محفظة EIP-1193 محقونة. ثبّت أو فعّل YNX Wallet أو MetaMask؛ ستبقى هذه الصفحة مفتوحة.",
+            "extensionLocked": "تم اكتشاف إضافة محفظة لكنها مقفلة. أزل القفل ثم أعد الاكتشاف.",
+            "siteAccessDenied": "تم اكتشاف إضافة محفظة، لكن هذا الموقع لا يملك صلاحية الوصول إلى الحساب. اختر الاتصال ووافق على الطلب في المحفظة.",
+            "ambiguousProvider": "تم اكتشاف محفظة متصفح لكن تعذر تحديدها بأمان. اترك إضافة محفظة واحدة ثم أعد المحاولة.",
+            "wrongChain": "المحفظة على شبكة أخرى. أضف أو بدّل إلى YNX Testnet (السلسلة 6423).",
+            "rpcUnavailable": "تعذر التحقق من RPC لشبكة YNX Testnet. لم تتغير نتيجة اكتشاف Provider وتبقى إجراءات المحفظة معطلة.",
+            "invalidRpcResponse": "أعاد RPC لشبكة YNX Testnet استجابة غير صالحة. لم تتغير نتيجة اكتشاف Provider وتبقى إجراءات المحفظة معطلة."
+          }
         },
         {
           "locale": "id",
           "untranslated": [],
-          "requestFailed": "Permintaan gagal secara aman dan status dompet tidak berubah."
+          "messages": {
+            "requestFailed": "Permintaan gagal secara aman dan status dompet tidak berubah.",
+            "noProvider": "Tidak ditemukan dompet EIP-1193 yang diinjeksi. Instal atau aktifkan YNX Wallet atau MetaMask; halaman ini tetap terbuka.",
+            "extensionLocked": "Ekstensi dompet terdeteksi tetapi terkunci. Buka kunci lalu lakukan deteksi ulang.",
+            "siteAccessDenied": "Ekstensi dompet terdeteksi, tetapi situs ini tidak memiliki akses akun. Pilih hubungkan dan setujui permintaan di dompet.",
+            "ambiguousProvider": "Dompet browser terdeteksi tetapi tidak dapat diidentifikasi dengan aman. Sisakan satu ekstensi dompet lalu coba lagi.",
+            "wrongChain": "Dompet berada di jaringan lain. Tambahkan atau pindahkan ke YNX Testnet (chain 6423).",
+            "rpcUnavailable": "RPC YNX Testnet tidak dapat diverifikasi. Deteksi Provider tidak berubah dan tindakan dompet tetap dinonaktifkan.",
+            "invalidRpcResponse": "RPC YNX Testnet mengembalikan respons tidak valid. Deteksi Provider tidak berubah dan tindakan dompet tetap dinonaktifkan."
+          }
         }
       ],
       "checks": {
@@ -156,68 +372,176 @@
     },
     {
       "name": "ynx-wallet-firefox-0.1.0.zip",
-      "bytes": 188883,
-      "sha256": "417d9b9e5babf05fdfdf8161504389eb99c636be75f94444bf4ff91a9b4536b3",
+      "bytes": 201455,
+      "sha256": "066f9156be235058cced45f4b7544400a4976a3ea328a77ef1908dab9bfe6053",
       "localeChecks": [
         {
           "locale": "en",
           "untranslated": [],
-          "requestFailed": "The request failed closed. No wallet state was changed."
+          "messages": {
+            "requestFailed": "The request failed closed. No wallet state was changed.",
+            "noProvider": "No injected EIP-1193 wallet was found. Install or enable YNX Wallet or MetaMask; this page stays open.",
+            "extensionLocked": "A wallet extension was detected but is locked. Unlock it, then retry detection.",
+            "siteAccessDenied": "A wallet extension was detected, but this site has no account access. Choose Connect and approve the account request in the wallet.",
+            "ambiguousProvider": "A browser wallet was detected but could not be identified safely. Choose one wallet extension and retry.",
+            "wrongChain": "The wallet is on a different network. Add or switch to YNX Testnet (chain 6423).",
+            "rpcUnavailable": "YNX Testnet RPC could not be verified. Provider detection is unchanged and wallet actions remain disabled.",
+            "invalidRpcResponse": "YNX Testnet RPC returned an invalid response. Provider detection is unchanged and wallet actions remain disabled."
+          }
         },
         {
           "locale": "zh-CN",
           "untranslated": [],
-          "requestFailed": "请求已失败关闭，钱包状态没有改变。"
+          "messages": {
+            "requestFailed": "请求已失败关闭，钱包状态没有改变。",
+            "noProvider": "未发现注入的 EIP-1193 钱包。请安装或启用 YNX Wallet 或 MetaMask；当前页面不会跳转。",
+            "extensionLocked": "检测到钱包扩展但已锁定。请解锁后重新检测。",
+            "siteAccessDenied": "检测到钱包扩展，但本站没有账户访问权限。请选择连接并在钱包中批准账户请求。",
+            "ambiguousProvider": "检测到浏览器钱包但无法安全识别。请只保留一个钱包扩展后重试。",
+            "wrongChain": "钱包位于其他网络。请添加或切换到 YNX 测试网（链 6423）。",
+            "rpcUnavailable": "无法验证 YNX 测试网 RPC。Provider 检测结果未改变，钱包操作仍被禁用。",
+            "invalidRpcResponse": "YNX 测试网 RPC 返回无效响应。Provider 检测结果未改变，钱包操作仍被禁用。"
+          }
         },
         {
           "locale": "zh-TW",
           "untranslated": [],
-          "requestFailed": "請求已失敗關閉，錢包狀態沒有變更。"
+          "messages": {
+            "requestFailed": "請求已失敗關閉，錢包狀態沒有變更。",
+            "noProvider": "未發現注入的 EIP-1193 錢包。請安裝或啟用 YNX Wallet 或 MetaMask；目前頁面不會跳轉。",
+            "extensionLocked": "偵測到錢包擴充功能但已鎖定。請解鎖後重新偵測。",
+            "siteAccessDenied": "偵測到錢包擴充功能，但此網站沒有帳戶存取權。請選擇連線並在錢包中核准帳戶要求。",
+            "ambiguousProvider": "偵測到瀏覽器錢包但無法安全辨識。請只保留一個錢包擴充功能後重試。",
+            "wrongChain": "錢包位於其他網路。請加入或切換至 YNX 測試網（鏈 6423）。",
+            "rpcUnavailable": "無法驗證 YNX 測試網 RPC。Provider 偵測結果未變更，錢包操作仍被停用。",
+            "invalidRpcResponse": "YNX 測試網 RPC 傳回無效回應。Provider 偵測結果未變更，錢包操作仍被停用。"
+          }
         },
         {
           "locale": "ja",
           "untranslated": [],
-          "requestFailed": "リクエストは安全に失敗し、ウォレットの状態は変更されませんでした。"
+          "messages": {
+            "requestFailed": "リクエストは安全に失敗し、ウォレットの状態は変更されませんでした。",
+            "noProvider": "注入された EIP-1193 ウォレットが見つかりません。YNX Wallet または MetaMask を有効にしてください。このページは移動しません。",
+            "extensionLocked": "ウォレット拡張機能は検出されましたがロックされています。ロックを解除してから再検出してください。",
+            "siteAccessDenied": "ウォレット拡張機能は検出されましたが、このサイトにアカウントアクセス権がありません。接続を選び、ウォレットで承認してください。",
+            "ambiguousProvider": "ブラウザーウォレットを検出しましたが安全に識別できません。ウォレット拡張機能を一つにして再試行してください。",
+            "wrongChain": "ウォレットは別のネットワークにあります。YNX Testnet（チェーン6423）を追加または切替してください。",
+            "rpcUnavailable": "YNX Testnet RPC を検証できません。Provider の検出結果は変わらず、ウォレット操作は無効です。",
+            "invalidRpcResponse": "YNX Testnet RPC が無効な応答を返しました。Provider の検出結果は変わらず、ウォレット操作は無効です。"
+          }
         },
         {
           "locale": "ko",
           "untranslated": [],
-          "requestFailed": "요청은 안전하게 실패했으며 지갑 상태는 변경되지 않았습니다."
+          "messages": {
+            "requestFailed": "요청은 안전하게 실패했으며 지갑 상태는 변경되지 않았습니다.",
+            "noProvider": "주입된 EIP-1193 지갑을 찾지 못했습니다. YNX Wallet 또는 MetaMask를 설치하거나 활성화하세요. 이 페이지는 유지됩니다.",
+            "extensionLocked": "지갑 확장 프로그램이 감지되었지만 잠겨 있습니다. 잠금을 해제한 뒤 다시 감지하세요.",
+            "siteAccessDenied": "지갑 확장 프로그램은 감지되었지만 이 사이트의 계정 접근 권한이 없습니다. 연결을 선택하고 지갑에서 계정 요청을 승인하세요.",
+            "ambiguousProvider": "브라우저 지갑을 감지했지만 안전하게 식별할 수 없습니다. 지갑 확장 프로그램 하나만 사용한 뒤 다시 시도하세요.",
+            "wrongChain": "지갑이 다른 네트워크에 있습니다. YNX Testnet(체인 6423)을 추가하거나 전환하세요.",
+            "rpcUnavailable": "YNX Testnet RPC를 확인할 수 없습니다. Provider 감지는 유지되며 지갑 작업은 비활성화됩니다.",
+            "invalidRpcResponse": "YNX Testnet RPC가 잘못된 응답을 반환했습니다. Provider 감지는 유지되며 지갑 작업은 비활성화됩니다."
+          }
         },
         {
           "locale": "es",
           "untranslated": [],
-          "requestFailed": "La solicitud se cerró con error y no se modificó el estado de la cartera."
+          "messages": {
+            "requestFailed": "La solicitud se cerró con error y no se modificó el estado de la cartera.",
+            "noProvider": "No se encontró una cartera EIP-1193 inyectada. Instala o activa YNX Wallet o MetaMask; esta página permanece abierta.",
+            "extensionLocked": "Se detectó una extensión de cartera, pero está bloqueada. Desbloquéala y vuelve a detectar.",
+            "siteAccessDenied": "Se detectó una extensión de cartera, pero este sitio no tiene acceso a la cuenta. Elige conectar y aprueba la solicitud en la cartera.",
+            "ambiguousProvider": "Se detectó una cartera de navegador, pero no se pudo identificar de forma segura. Deja una sola extensión y vuelve a intentarlo.",
+            "wrongChain": "La cartera está en otra red. Añade o cambia a YNX Testnet (cadena 6423).",
+            "rpcUnavailable": "No se pudo verificar el RPC de YNX Testnet. La detección de Provider no cambia y las acciones siguen deshabilitadas.",
+            "invalidRpcResponse": "El RPC de YNX Testnet devolvió una respuesta no válida. La detección de Provider no cambia y las acciones siguen deshabilitadas."
+          }
         },
         {
           "locale": "fr",
           "untranslated": [],
-          "requestFailed": "La demande a échoué de manière sécurisée et l’état du portefeuille n’a pas été modifié."
+          "messages": {
+            "requestFailed": "La demande a échoué de manière sécurisée et l’état du portefeuille n’a pas été modifié.",
+            "noProvider": "Aucun portefeuille EIP-1193 injecté n’a été trouvé. Installez ou activez YNX Wallet ou MetaMask ; cette page reste ouverte.",
+            "extensionLocked": "Une extension de portefeuille a été détectée mais elle est verrouillée. Déverrouillez-la puis réessayez.",
+            "siteAccessDenied": "Une extension de portefeuille a été détectée, mais ce site n’a pas accès au compte. Choisissez la connexion et approuvez la demande dans le portefeuille.",
+            "ambiguousProvider": "Un portefeuille de navigateur a été détecté mais ne peut pas être identifié de façon sûre. Gardez une seule extension puis réessayez.",
+            "wrongChain": "Le portefeuille est sur un autre réseau. Ajoutez ou basculez vers YNX Testnet (chaîne 6423).",
+            "rpcUnavailable": "Le RPC YNX Testnet n’a pas pu être vérifié. La détection du Provider est inchangée et les actions restent désactivées.",
+            "invalidRpcResponse": "Le RPC YNX Testnet a renvoyé une réponse invalide. La détection du Provider est inchangée et les actions restent désactivées."
+          }
         },
         {
           "locale": "de",
           "untranslated": [],
-          "requestFailed": "Die Anfrage wurde sicher abgebrochen; der Wallet-Status blieb unverändert."
+          "messages": {
+            "requestFailed": "Die Anfrage wurde sicher abgebrochen; der Wallet-Status blieb unverändert.",
+            "noProvider": "Keine injizierte EIP-1193-Wallet gefunden. Installieren oder aktivieren Sie YNX Wallet oder MetaMask; diese Seite bleibt geöffnet.",
+            "extensionLocked": "Eine Wallet-Erweiterung wurde erkannt, ist aber gesperrt. Entsperren Sie sie und starten Sie die Erkennung erneut.",
+            "siteAccessDenied": "Eine Wallet-Erweiterung wurde erkannt, aber diese Website hat keinen Kontozugriff. Wählen Sie Verbinden und genehmigen Sie die Anfrage in der Wallet.",
+            "ambiguousProvider": "Eine Browser-Wallet wurde erkannt, konnte aber nicht sicher identifiziert werden. Lassen Sie nur eine Wallet-Erweiterung aktiv und versuchen Sie es erneut.",
+            "wrongChain": "Die Wallet befindet sich in einem anderen Netzwerk. Fügen Sie YNX Testnet hinzu oder wechseln Sie dorthin (Chain 6423).",
+            "rpcUnavailable": "YNX Testnet RPC konnte nicht geprüft werden. Die Provider-Erkennung bleibt bestehen und Wallet-Aktionen sind deaktiviert.",
+            "invalidRpcResponse": "YNX Testnet RPC lieferte eine ungültige Antwort. Die Provider-Erkennung bleibt bestehen und Wallet-Aktionen sind deaktiviert."
+          }
         },
         {
           "locale": "pt",
           "untranslated": [],
-          "requestFailed": "A solicitação falhou de forma segura e o estado da carteira não foi alterado."
+          "messages": {
+            "requestFailed": "A solicitação falhou de forma segura e o estado da carteira não foi alterado.",
+            "noProvider": "Nenhuma carteira EIP-1193 injetada foi encontrada. Instale ou ative YNX Wallet ou MetaMask; esta página permanece aberta.",
+            "extensionLocked": "Uma extensão de carteira foi detectada, mas está bloqueada. Desbloqueie-a e detecte novamente.",
+            "siteAccessDenied": "Uma extensão de carteira foi detectada, mas este site não tem acesso à conta. Escolha conectar e aprove a solicitação na carteira.",
+            "ambiguousProvider": "Uma carteira de navegador foi detectada, mas não pôde ser identificada com segurança. Mantenha apenas uma extensão e tente novamente.",
+            "wrongChain": "A carteira está em outra rede. Adicione ou mude para YNX Testnet (chain 6423).",
+            "rpcUnavailable": "Não foi possível verificar o RPC da YNX Testnet. A detecção do Provider não muda e as ações permanecem desativadas.",
+            "invalidRpcResponse": "O RPC da YNX Testnet retornou uma resposta inválida. A detecção do Provider não muda e as ações permanecem desativadas."
+          }
         },
         {
           "locale": "ru",
           "untranslated": [],
-          "requestFailed": "Запрос безопасно завершился ошибкой; состояние кошелька не изменилось."
+          "messages": {
+            "requestFailed": "Запрос безопасно завершился ошибкой; состояние кошелька не изменилось.",
+            "noProvider": "Не найден внедрённый кошелёк EIP-1193. Установите или включите YNX Wallet либо MetaMask; эта страница останется открытой.",
+            "extensionLocked": "Расширение кошелька найдено, но заблокировано. Разблокируйте его и повторите поиск.",
+            "siteAccessDenied": "Расширение кошелька найдено, но у сайта нет доступа к аккаунту. Выберите подключение и подтвердите запрос в кошельке.",
+            "ambiguousProvider": "Обнаружен браузерный кошелёк, но его нельзя безопасно определить. Оставьте одно расширение кошелька и повторите попытку.",
+            "wrongChain": "Кошелёк находится в другой сети. Добавьте или переключитесь на YNX Testnet (цепь 6423).",
+            "rpcUnavailable": "Не удалось проверить RPC YNX Testnet. Обнаружение Provider не меняется, действия кошелька отключены.",
+            "invalidRpcResponse": "RPC YNX Testnet вернул недопустимый ответ. Обнаружение Provider не меняется, действия кошелька отключены."
+          }
         },
         {
           "locale": "ar",
           "untranslated": [],
-          "requestFailed": "فشل الطلب بشكل آمن ولم تتغير حالة المحفظة."
+          "messages": {
+            "requestFailed": "فشل الطلب بشكل آمن ولم تتغير حالة المحفظة.",
+            "noProvider": "لم يتم العثور على محفظة EIP-1193 محقونة. ثبّت أو فعّل YNX Wallet أو MetaMask؛ ستبقى هذه الصفحة مفتوحة.",
+            "extensionLocked": "تم اكتشاف إضافة محفظة لكنها مقفلة. أزل القفل ثم أعد الاكتشاف.",
+            "siteAccessDenied": "تم اكتشاف إضافة محفظة، لكن هذا الموقع لا يملك صلاحية الوصول إلى الحساب. اختر الاتصال ووافق على الطلب في المحفظة.",
+            "ambiguousProvider": "تم اكتشاف محفظة متصفح لكن تعذر تحديدها بأمان. اترك إضافة محفظة واحدة ثم أعد المحاولة.",
+            "wrongChain": "المحفظة على شبكة أخرى. أضف أو بدّل إلى YNX Testnet (السلسلة 6423).",
+            "rpcUnavailable": "تعذر التحقق من RPC لشبكة YNX Testnet. لم تتغير نتيجة اكتشاف Provider وتبقى إجراءات المحفظة معطلة.",
+            "invalidRpcResponse": "أعاد RPC لشبكة YNX Testnet استجابة غير صالحة. لم تتغير نتيجة اكتشاف Provider وتبقى إجراءات المحفظة معطلة."
+          }
         },
         {
           "locale": "id",
           "untranslated": [],
-          "requestFailed": "Permintaan gagal secara aman dan status dompet tidak berubah."
+          "messages": {
+            "requestFailed": "Permintaan gagal secara aman dan status dompet tidak berubah.",
+            "noProvider": "Tidak ditemukan dompet EIP-1193 yang diinjeksi. Instal atau aktifkan YNX Wallet atau MetaMask; halaman ini tetap terbuka.",
+            "extensionLocked": "Ekstensi dompet terdeteksi tetapi terkunci. Buka kunci lalu lakukan deteksi ulang.",
+            "siteAccessDenied": "Ekstensi dompet terdeteksi, tetapi situs ini tidak memiliki akses akun. Pilih hubungkan dan setujui permintaan di dompet.",
+            "ambiguousProvider": "Dompet browser terdeteksi tetapi tidak dapat diidentifikasi dengan aman. Sisakan satu ekstensi dompet lalu coba lagi.",
+            "wrongChain": "Dompet berada di jaringan lain. Tambahkan atau pindahkan ke YNX Testnet (chain 6423).",
+            "rpcUnavailable": "RPC YNX Testnet tidak dapat diverifikasi. Deteksi Provider tidak berubah dan tindakan dompet tetap dinonaktifkan.",
+            "invalidRpcResponse": "RPC YNX Testnet mengembalikan respons tidak valid. Deteksi Provider tidak berubah dan tindakan dompet tetap dinonaktifkan."
+          }
         }
       ],
       "checks": {

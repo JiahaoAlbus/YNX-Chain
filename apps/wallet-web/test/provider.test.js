@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   METAMASK_DOWNLOAD_URL, SESSION_KEY, WALLET_DOWNLOAD_MATRIX, WalletWebError, YNX_CHAIN, YNX_DOWNLOAD_URL,
-  addYNXChain, connectWallet, createExtensionProvider, discoverEip6963, discoverInjectedProviders, extensionWalletAvailability,
+  addYNXChain, connectWallet, createExtensionProvider, discoverEip6963, discoverInjectedProviders, extensionWalletAvailability, providerAvailabilityState,
   forgetSession, readRememberedSession, rememberSession, resolveRememberedWallet,
   invalidatesConnectedSession, restoreTestnetSession, sendTransaction, signMessage, subscribeProviderLifecycle,
   switchToYNXChain, verifyTestnetRpc, walletActionGates, walletDiscoveryPresentation,
@@ -116,6 +116,34 @@ test("EIP-6963 discovery keeps immutable valid metadata and rejects conflicting 
   assert.deepEqual(discovered[0].info, providerInfo("7f4e2a77-7878-4f29-9c0d-191700000001"));
   assert.equal(Object.isFrozen(discovered[0].info), true);
   assert.equal(discovered[0].provider, canonical);
+});
+
+test("EIP-6963 discovery retries bounded requests for a late-injected provider", async () => {
+  const target = new EventTarget(); target.Event = Event;
+  const providerInstance = provider();
+  let requests = 0;
+  target.addEventListener("eip6963:requestProvider", () => {
+    requests += 1;
+    if (requests === 2) target.dispatchEvent(new DetailEvent("eip6963:announceProvider", {
+      info:providerInfo("9f4e2a77-7878-4f29-9c0d-191700000001",{name:"MetaMask",rdns:"io.metamask"}), provider:providerInstance,
+    }));
+  });
+  const discovered = await discoverEip6963(target,0,3);
+  assert.equal(requests,3);
+  assert.equal(discovered.length,1);
+  assert.equal(discovered[0].provider,providerInstance);
+});
+
+test("provider state keeps no-provider, lock, permission, and ambiguity distinct from RPC", async () => {
+  assert.deepEqual(await providerAvailabilityState({},{}),{code:"NO_PROVIDER",providerPresent:false,accountAuthorized:false});
+  const unknown = provider();
+  assert.deepEqual(await providerAvailabilityState({}, {ethereum:unknown}),{code:"AMBIGUOUS_PROVIDER",providerPresent:false,accountAuthorized:false});
+  const locked = Object.assign(provider(),{_metamask:{isUnlocked:async()=>false}});
+  assert.deepEqual(await providerAvailabilityState({metamask:locked}),{code:"EXTENSION_LOCKED",providerPresent:true,accountAuthorized:false});
+  const noAccess = provider({eth_accounts:[]});
+  assert.deepEqual(await providerAvailabilityState({metamask:noAccess}),{code:"SITE_ACCESS_DENIED",providerPresent:true,accountAuthorized:false});
+  const authorized = provider({eth_accounts:[ACCOUNT]});
+  assert.deepEqual(await providerAvailabilityState({metamask:authorized}),{code:null,providerPresent:true,accountAuthorized:true});
 });
 
 test("discovery presentation directly prefers YNX and gives two non-empty fallbacks", () => {
