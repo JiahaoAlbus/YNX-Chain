@@ -1,2 +1,12 @@
-// Quant-owned projection of Wallet/Auth registry 203be5e108be468350591615a64d5d36ab87a8f1.
-export const quantProductSessionRegistry=Object.freeze({schemaVersion:2,chainId:'ynx_6423-1',wallet:Object.freeze({authorizeCallback:'ynxwallet://authorize',downloadUrl:'https://www.ynxweb4.com/dapp/download',metaMaskDownloadUrl:'https://metamask.io/download'}),products:Object.freeze([Object.freeze({productId:'quant',clientId:'ynx-quant-v1',displayName:'YNX Quant',applicationId:'com.ynxweb4.quant',webOrigin:'https://quant.ynxweb4.com',nativeCallback:'ynxquant://wallet-auth/callback',legacyCallbacks:Object.freeze(['ynxquant','ynxquant://wallet-auth/callback']),scopes:Object.freeze(['quant:account','quant:mandate:create','quant:mandate:execute','quant:mandate:revoke']),evmCompatible:true,sessionDurationSeconds:180})])});
+// Quant-owned projection of accepted canonicalWalletAuthorize@1.0.0-p0.0.
+// This is a parser allowlist, not a URI constructor or a Product Session registry.
+export const quantWalletAuthorizationRegistry = Object.freeze({
+  'ynx-quant-v1': Object.freeze({
+    requestingProduct: 'quant',
+    bundleId: 'com.ynxweb4.quant',
+    origins: Object.freeze(['https://quant.ynxweb4.com']),
+    callbacks: Object.freeze(['https://quant.ynxweb4.com/wallet-auth/callback']),
+    scopes: Object.freeze(['quant:account', 'quant:mandate:create', 'quant:mandate:execute', 'quant:mandate:revoke']),
+    maxScopes: 4,
+  }),
+});

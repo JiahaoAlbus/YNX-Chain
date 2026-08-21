@@ -1,44 +1,25 @@
-import {createProductWalletConnection,PRODUCT_SESSION_PUBLIC_GATEWAY_ORIGIN} from '@ynx-chain/wallet-auth';
-import {quantProductSessionRegistry} from './product-session-registry.js';
+import {canonicalJSON, launchWebAuthorization, parseAuthorizationCallbackURL, parseAuthorizationRequest} from '@ynx-chain/wallet-auth';
+import {quantWalletAuthorizationRegistry} from './product-session-registry.js';
 
-const INSTALL_URL='https://www.ynxweb4.com/dapp/download';
-let privateConnection=null;
-window.YNXQuantWallet=Object.freeze({connect:beginAuthorization,configure:configureQuantPrivateConnection,requireProof,retry:retryPrivateSession,revoke:disconnectPrivateSession});
+const INSTALL_URL='https://www.ynxweb4.com/dapp/download',METAMASK_URL='https://metamask.io/download/',PENDING_KEY='ynx.quant.canonical-authorize.pending.v1',REQUEST_TTL_MS=5*60*1000;
+let configuredDevice=null,standardWallet=null;
+window.YNXQuantWallet=Object.freeze({connect:beginAuthorization,configure:configureQuantAuthorization,handleCallback:handleAuthorizationCallback,requireProof,retry:beginAuthorization,revoke:revokePrivateSession,connectMetaMask});
 window.addEventListener('DOMContentLoaded',boot,{once:true});
-
-function unavailable(){return new Error('PRODUCT_SESSION_UNAVAILABLE: Quant Product Session v2 requires a platform-proven protected device signer and storage adapter. Research and Paper remain available without login.');}
-function privateError(error){return new Error(`PRIVATE_SERVICE_DEGRADED: ${error instanceof Error?error.message:String(error)}`);}
-function requirePrivateConnection(){if(!privateConnection)throw unavailable();return privateConnection;}
-
-/**
- * The host supplies only protected device/storage and Wallet-opening capabilities.
- * The authoritative origin, v2 routes, callback and session are all derived by
- * the accepted root factory and cannot be injected by Quant code.
- */
-export function configureQuantPrivateConnection(capabilities){
-  const device=capabilities?.device;
-  if(!device||!capabilities.storage||typeof capabilities.walletInstalled!=='function'||typeof capabilities.schemeRegistered!=='function'||typeof capabilities.openWallet!=='function')throw unavailable();
-  privateConnection=createProductWalletConnection({registry:quantProductSessionRegistry,productId:'quant',platform:'web',walletInstalled:capabilities.walletInstalled,schemeRegistered:capabilities.schemeRegistered,gatewayTimeoutMs:10_000,storage:capabilities.storage,device:{id:device.id,key:device.key,sign:({algorithm,deviceKey,payload})=>{if(algorithm!=='p256-sha256'||deviceKey!==device.key)throw privateError('The Wallet SDK requested an unexpected Quant device signature.');return device.sign({algorithm,deviceKey,payload});},scopes:['quant:account','quant:mandate:create','quant:mandate:execute','quant:mandate:revoke'],purpose:'Connect YNX Quant private services through the approved Wallet Product Session.'},scope:globalThis,discoveryWaitMs:250,openWallet:capabilities.openWallet,openTimeoutMs:10_000});
-  return privateConnection;
-}
-
-async function boot(){
-  document.querySelector('#connect-wallet')?.addEventListener('click',()=>beginAuthorization().catch(showError));
-  document.querySelector('#install-wallet')?.setAttribute('href',INSTALL_URL);
-  try{await restorePrivateSession();}catch(error){showError(error)}
-  render();
-}
-async function beginAuthorization(){
-  try{const result=await requirePrivateConnection().beginYNX();const url=result?.url;if(typeof url!=='string')throw unavailable();location.assign(url);return result;}catch(error){throw error.message?.startsWith('PRODUCT_SESSION_UNAVAILABLE')?error:privateError(error)}
-}
-async function retryPrivateSession(){try{return await requirePrivateConnection().retryYNX();}catch(error){throw error.message?.startsWith('PRODUCT_SESSION_UNAVAILABLE')?error:privateError(error)}}
-async function restorePrivateSession(){if(!privateConnection)return null;return privateConnection.restore(navigator.onLine!==false);}
-async function disconnectPrivateSession(){if(!privateConnection)return null;return privateConnection.disconnect();}
-async function requireProof(scope){
-  if(!['quant:mandate:create','quant:mandate:execute'].includes(scope))throw new Error('SCOPE_NOT_ALLOWED: Quant execution scope is not registered.');
-  // Product Session proof is root-factory owned; no legacy local proof is emitted.
-  throw unavailable();
-}
-function render(){const status=document.querySelector('#wallet-status'),button=document.querySelector('#connect-wallet');if(status)status.textContent=privateConnection?'Private session requires Wallet approval':'Wallet not connected — Research and Paper are still available';if(button)button.textContent='Connect YNX Wallet';}
-function showError(error){const status=document.querySelector('#wallet-status');if(status)status.textContent=error instanceof Error?error.message:'Wallet connection failed closed.';}
-export function quantProductSessionGatewayOrigin(){return PRODUCT_SESSION_PUBLIC_GATEWAY_ORIGIN;}
+function unavailable(){return new Error('PRIVATE_SERVICE_DEGRADED: Product Session is unavailable. Standard Wallet, Research and Paper remain available.');}
+function deviceUnavailable(){return new Error('PRIVATE_SERVICE_DEGRADED: Canonical YNX authorization requires a platform-proven P-256 device public key. No local key or session was fabricated.');}
+function randomNonce(){return Array.from(crypto.getRandomValues(new Uint8Array(32)),value=>value.toString(16).padStart(2,'0')).join('');}
+function readPending(){const value=localStorage.getItem(PENDING_KEY);if(!value)return null;try{return parseAuthorizationRequest(JSON.parse(value),{registry:quantWalletAuthorizationRegistry});}catch{localStorage.removeItem(PENDING_KEY);return null;}}
+function writePending(request){localStorage.setItem(PENDING_KEY,canonicalJSON(request));}
+function requestFor(publicKey,scopes=['quant:account','quant:mandate:create','quant:mandate:execute','quant:mandate:revoke']){const issuedAt=new Date();return parseAuthorizationRequest({version:'2',nonce:randomNonce(),chainId:'ynx_6423-1',requestingProduct:'quant',productClientId:'ynx-quant-v1',bundleId:'com.ynxweb4.quant',productDeviceAlgorithm:'p256-sha256',productDeviceKey:publicKey,origin:'https://quant.ynxweb4.com',callback:'https://quant.ynxweb4.com/wallet-auth/callback',scopes,purpose:'Connect YNX Quant for research, paper, and explicitly previewed Testnet actions.',issuedAt:issuedAt.toISOString(),expiresAt:new Date(issuedAt.getTime()+REQUEST_TTL_MS).toISOString()},{registry:quantWalletAuthorizationRegistry,now:issuedAt});}
+/** Accepts only a platform-proven public key; endpoint, origin, callback and scopes are fixed above. */
+export function configureQuantAuthorization(capabilities){const publicKey=capabilities?.device?.publicKey;if(typeof publicKey!=='string')throw deviceUnavailable();requestFor(publicKey,['quant:account']);configuredDevice=Object.freeze({publicKey});return configuredDevice;}
+async function boot(){document.querySelector('#connect-wallet')?.addEventListener('click',()=>beginAuthorization().catch(showError));document.querySelector('#connect-metamask')?.addEventListener('click',()=>connectMetaMask().catch(showError));document.querySelector('#install-wallet')?.setAttribute('href',INSTALL_URL);document.querySelector('#install-metamask')?.setAttribute('href',METAMASK_URL);await restoreCallbackFromLocation().catch(showError);render();}
+async function beginAuthorization(){if(!configuredDevice?.publicKey)throw deviceUnavailable();const request=requestFor(configuredDevice.publicKey);writePending(request);const result=await launchWebAuthorization(request,{document,window,timeoutMs:1500});if(result.status==='opened')showStatus('Wallet handoff requested. Approval, rejection, or timeout is not a connected session.');else if(result.status==='timeout')showStatus('Wallet did not open in time. This page remains available; use Download YNX Wallet or MetaMask.');else showStatus('YNX Wallet is unavailable in this browser. This page remains available; use Download YNX Wallet or MetaMask.');return result;}
+async function restoreCallbackFromLocation(){if(!location.href.includes('response='))return null;return handleAuthorizationCallback(location.href);}
+export function handleAuthorizationCallback(url){const request=readPending();if(!request)throw new Error('AUTHORIZATION_PENDING_REQUEST_MISSING: callback was rejected because no matching persisted request exists.');const result=parseAuthorizationCallbackURL(url,request);localStorage.removeItem(PENDING_KEY);if(result.decision==='rejected'){showStatus('Wallet authorization was rejected. Standard Wallet remains unchanged.');return result;}showStatus('Wallet approval received. Product Session remains DEGRADED; no strategy or order authority was granted.');return result;}
+async function connectMetaMask(){const provider=globalThis.ethereum;if(!provider?.request){showStatus('MetaMask is not installed. This does not affect YNX Wallet or Product Session status.');return {status:'unavailable',download:METAMASK_URL};}const accounts=await provider.request({method:'eth_requestAccounts'});standardWallet=Object.freeze({provider:'metamask',accounts:Array.isArray(accounts)?[...accounts]:[]});showStatus(`MetaMask connected (${standardWallet.accounts.length} account${standardWallet.accounts.length===1?'':'s'}). Product Session remains DEGRADED.`);return standardWallet;}
+async function requireProof(scope){if(!['quant:mandate:create','quant:mandate:execute'].includes(scope))throw new Error('SCOPE_NOT_ALLOWED: Quant execution scope is not registered.');throw unavailable();}
+async function revokePrivateSession(){localStorage.removeItem(PENDING_KEY);showStatus('Pending private authorization cleared. Standard Wallet remains connected.');return null;}
+function render(){const button=document.querySelector('#connect-wallet');if(button)button.textContent='Connect YNX Wallet';if(!standardWallet)showStatus('Wallet not connected — Research and Paper are still available.');}
+function showStatus(message){const status=document.querySelector('#wallet-status');if(status)status.textContent=message;}
+function showError(error){showStatus(error instanceof Error?error.message:'Wallet connection failed closed.');}

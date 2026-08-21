@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "checkpoint": "P0-110",
+  "recordedAt": "2026-08-21T04:53:25Z",
+  "scope": {
+    "centralPath": "apps/quant/**",
+    "implementedPath": "apps/quant-lab/**",
+    "resolution": "This repository has no apps/quant directory; apps/quant-lab is the established Quant product directory at the granted baseline."
+  },
+  "baseline": "f66fd4d14ff047efa6bb7e66fc2e140773826b16",
+  "walletDependencies": {
+    "canonicalWalletAuthorize": "canonicalWalletAuthorize@1.0.0-p0.0",
+    "safeWalletAuthorizeLauncherSource": "4679de8e8d0675e2013254c92ff1935191f87c21",
+    "safeWalletAuthorizeLauncherTree": "dd6df66c3a7c8c4b53fbdbdb18b52a3284b7a690",
+    "vendoredTarball": "vendor/ynx-chain-wallet-auth-1.0.0-safe-authorize-p0.0.tgz",
+    "tarballSha256": "dd80cf3d8fda3b35b89ddae6f3848dc420358b9c10d1879ed33a33f567585acb"
+  },
+  "controls": {
+    "canonicalBuilder": "package-root createCanonicalAuthorizeLaunch / launchWebAuthorization",
+    "callbackParser": "package-root parseAuthorizationCallbackURL",
+    "pendingPersistedBeforeLaunch": true,
+    "topLevelSchemeNavigation": false,
+    "manualUriConstruction": false,
+    "bareAuthorizeAllowed": false,
+    "fixedOrigin": "https://quant.ynxweb4.com",
+    "fixedCallback": "https://quant.ynxweb4.com/wallet-auth/callback",
+    "metamaskIndependentEip1193": true,
+    "privateSessionFailurePreservesStandardWallet": true,
+    "strategyExecutionAuthorityCreated": false
+  },
+  "tests": {
+    "canonicalSourceGate": "pass",
+    "unit": {"command": "npm test", "passed": 6, "failed": 0},
+    "browser": {"command": "npm run test:browser", "passed": 4, "failed": 0},
+    "walletBundle": {"command": "npm run build:wallet", "status": "pass", "sha256": "1d28dd22fcbf8eeff5ae3945d182a90ce5dbd358d23a1954d1e0aa85a6686745"}
+  },
+  "visibleEvidence": {
+    "localBrowserFallbackScreenshot": "evidence/p0-110-wallet-fallback-local-browser-visible.png",
+    "sha256": "ed774f643b2daf44dc40f2adf703fb524ae51e45df32a7614d502a1037f8c4df",
+    "proves": "A local Chromium flow retained the Quant page and showed truthful no-device and no-MetaMask fallbacks.",
+    "doesNotProve": ["YNX Wallet installed", "approval", "rejection callback", "cold-start callback", "private session", "strategy execution", "public deployment", "ComputerControl"]
+  },
+  "truth": {
+    "installed": false,
+    "walletApprove": false,
+    "walletRejectCallback": false,
+    "coldStartCallback": false,
+    "privateProductSession": false,
+    "realCapitalExecution": false,
+    "realOrders": false,
+    "publicDeployment": false,
+    "computerControl": false,
+    "migratedV2": false
+  }
+}
