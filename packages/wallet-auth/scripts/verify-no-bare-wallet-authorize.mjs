@@ -47,6 +47,47 @@ function isDocumentationPlaceholder(text, offset) {
   return text.slice(offset + ROUTE.length).startsWith("?request=<");
 }
 
+function firstLineMatching(text, expression) {
+  const lines = text.split("\n");
+  const index = lines.findIndex((line) => expression.test(line));
+  return index < 0 ? null : index + 1;
+}
+
+export function webAuthorizationBehaviorFindings(relative, text) {
+  if (!isWebProductSource(relative)) return Object.freeze([]);
+  const findings = [];
+  const navigationLine = firstLineMatching(text, /(?:(?:window|document)\.)?location(?:\.href)?\s*=.*(?:wallet|authoriz|deep.?link)|location\.(?:assign|replace)\s*\([^\n]*(?:wallet|authoriz|deep.?link)/i);
+  if (navigationLine !== null) findings.push(Object.freeze({ file: relative, line: navigationLine, code: "WEB_TOP_LEVEL_WALLET_AUTHORIZATION_NAVIGATION" }));
+  if (
+    text.includes(ROUTE)
+    && /\b(?:btoa|base64url|base64URL|TextEncoder)\b/.test(text)
+    && /\bproductClientId\b/.test(text)
+    && /\bproductDeviceKey\b/.test(text)
+    && !/\bencodeRequestDeepLink\s*\(/.test(text)
+  ) {
+    const encodingLine = firstLineMatching(text, /\b(?:btoa|base64url|base64URL|TextEncoder)\b/);
+    findings.push(Object.freeze({ file: relative, line: encodingLine ?? 1, code: "HANDWRITTEN_AUTHORIZATION_REQUEST_ENCODING" }));
+  }
+  const gatedLine = firstLineMatching(text, /if\s*\([^\n]*(?:productSession|privateSession|gateway)[^\n]*\)\s*(?:return|throw)[^\n]*(?:connectStandardWallet|eth_requestAccounts)/i);
+  if (gatedLine !== null) findings.push(Object.freeze({ file: relative, line: gatedLine, code: "PRODUCT_SESSION_BLOCKS_STANDARD_WALLET" }));
+  return Object.freeze(findings);
+}
+
+export function webWalletCapabilityAudit(relative, text) {
+  if (!isWebProductSource(relative)) return null;
+  return Object.freeze({
+    eip6963: /eip6963:(?:requestProvider|announceProvider)|EIP-6963/.test(text),
+    eip1193: /EIP-1193|provider(?:Candidate)?\??\.provider|\.request\s*\(\s*\{\s*method/.test(text),
+    ethRequestAccounts: /eth_requestAccounts/.test(text),
+    switchChain0x1917: /wallet_switchEthereumChain/.test(text) && /0x1917/.test(text),
+    addChain0x1917: /wallet_addEthereumChain/.test(text) && /0x1917/.test(text),
+    officialWalletAction: /https:\/\/(?:www\.)?ynxweb4\.com\/(?:dapp\/download|downloads\/)/.test(text),
+    officialMetaMaskAction: /https:\/\/(?:www\.)?metamask\.(?:io|app\.link)\//.test(text),
+    safeLauncherV2Call: /\blaunchWebAuthorization\s*\(/.test(text),
+    productSessionDegraded: /PRIVATE_SERVICE_DEGRADED|PRODUCT_SESSION_(?:UNAVAILABLE|GATEWAY_UNREACHABLE)/.test(text),
+  });
+}
+
 export function bareAuthorizationFindings(relative, text) {
   const findings = [];
   let offset = 0;
@@ -66,7 +107,7 @@ export function bareAuthorizationFindings(relative, text) {
 }
 
 export function consumerAuthorizationFindings(relative, text) {
-  const findings = [...bareAuthorizationFindings(relative, text)];
+  const findings = [...bareAuthorizationFindings(relative, text), ...webAuthorizationBehaviorFindings(relative, text)];
   if (isProtocolOwnerSource(relative)) return Object.freeze(findings);
   let offset = 0;
   while ((offset = text.indexOf(ROUTE, offset)) !== -1) {

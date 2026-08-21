@@ -5,6 +5,8 @@ import {
   bareAuthorizationFindings,
   consumerAuthorizationFindings,
   verifyNoBareWalletAuthorize,
+  webAuthorizationBehaviorFindings,
+  webWalletCapabilityAudit,
 } from "../scripts/verify-no-bare-wallet-authorize.mjs";
 
 test("release source gate rejects bare, empty and wrong-query authorization URIs", () => {
@@ -29,6 +31,7 @@ test("current publishable source contains no bare authorization URI", async () =
 
 test("consumer audit rejects Web custom-scheme and native manual URI construction", () => {
   assert.deepEqual(consumerAuthorizationFindings("apps/example/web/connect.ts", "location.assign(`ynxwallet://authorize?request=${payload}`)"), [
+    { file: "apps/example/web/connect.ts", line: 1, code: "WEB_TOP_LEVEL_WALLET_AUTHORIZATION_NAVIGATION" },
     { file: "apps/example/web/connect.ts", line: 1, code: "WEB_CUSTOM_SCHEME_AUTHORIZE_URI" },
   ]);
   assert.deepEqual(consumerAuthorizationFindings("apps/example/android/MainActivity.java", `open("ynxwallet://authorize?request=" + payload)`), [
@@ -43,4 +46,37 @@ test("consumer audit rejects Web custom-scheme and native manual URI constructio
 
 test("consumer audit does not mistake the protocol-owned canonical builder for a product consumer", () => {
   assert.deepEqual(consumerAuthorizationFindings("packages/wallet-auth/src/deep-link.js", "const route = `ynxwallet://authorize?request=${encoded}`"), []);
+});
+
+test("Web behavior audit rejects indirect top-level navigation and handwritten request encoding", () => {
+  assert.deepEqual(webAuthorizationBehaviorFindings("apps/example/web/app.js", "location.href = await walletAuthorizationURL(request)"), [
+    { file: "apps/example/web/app.js", line: 1, code: "WEB_TOP_LEVEL_WALLET_AUTHORIZATION_NAVIGATION" },
+  ]);
+  const handwritten = `const productClientId="example"; const productDeviceKey="key";\nconst encoded=base64url(new TextEncoder().encode(JSON.stringify({productClientId,productDeviceKey})));\nlocation.assign("ynxwallet://authorize?request="+encoded);`;
+  assert.deepEqual(webAuthorizationBehaviorFindings("apps/example/web/wallet.js", handwritten), [
+    { file: "apps/example/web/wallet.js", line: 3, code: "WEB_TOP_LEVEL_WALLET_AUTHORIZATION_NAVIGATION" },
+    { file: "apps/example/web/wallet.js", line: 2, code: "HANDWRITTEN_AUTHORIZATION_REQUEST_ENCODING" },
+  ]);
+});
+
+test("Web capability audit records provider, MetaMask, fallback and degradation primitives without claiming runtime", () => {
+  assert.deepEqual(webWalletCapabilityAudit("apps/example/web/wallet.js", `
+    // EIP-6963 EIP-1193 PRIVATE_SERVICE_DEGRADED
+    launchWebAuthorization(request);
+    provider.request({method:"eth_requestAccounts"});
+    provider.request({method:"wallet_switchEthereumChain",params:[{chainId:"0x1917"}]});
+    provider.request({method:"wallet_addEthereumChain",params:[{chainId:"0x1917"}]});
+    const ynx="https://www.ynxweb4.com/dapp/download";
+    const mm="https://metamask.io/download/";
+  `), {
+    eip6963: true,
+    eip1193: true,
+    ethRequestAccounts: true,
+    switchChain0x1917: true,
+    addChain0x1917: true,
+    officialWalletAction: true,
+    officialMetaMaskAction: true,
+    safeLauncherV2Call: true,
+    productSessionDegraded: true,
+  });
 });
