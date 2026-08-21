@@ -22,6 +22,8 @@ on:
       - ".github/workflows/wallet-ios-production-distribution.yml"
       - "apps/wallet/ios/scripts/cleanup-distribution-material.sh"
       - "apps/wallet/ios/scripts/verify-production-distribution-source.rb"
+      - "apps/wallet/scripts/verify-apple-production-operator-inputs.rb"
+      - "release/integration/wallet-apple-production-operator-inputs.request.json"
       - "apps/wallet/ios/YNXWallet/Info.plist"
       - "apps/wallet/ios/YNXWallet/YNXWallet.entitlements"
       - "apps/wallet/ios/YNXWallet.xcodeproj/project.pbxproj"
@@ -30,6 +32,8 @@ on:
       - ".github/workflows/wallet-ios-production-distribution.yml"
       - "apps/wallet/ios/scripts/cleanup-distribution-material.sh"
       - "apps/wallet/ios/scripts/verify-production-distribution-source.rb"
+      - "apps/wallet/scripts/verify-apple-production-operator-inputs.rb"
+      - "release/integration/wallet-apple-production-operator-inputs.request.json"
       - "apps/wallet/ios/YNXWallet/Info.plist"
       - "apps/wallet/ios/YNXWallet/YNXWallet.entitlements"
       - "apps/wallet/ios/YNXWallet.xcodeproj/project.pbxproj"
@@ -49,6 +53,7 @@ jobs:
           ruby -e 'source=File.read(".github/workflows/wallet-ios-production-distribution.yml"); mutable=source.scan(/^\s*-\s+uses:\s+([^\s#]+)/).flatten.reject{|use| use.start_with?("./") || use.match?(/@[0-9a-f]{40}$/)}; abort "mutable actions: #{mutable.join(",")}" unless mutable.empty?'
           bash -n apps/wallet/ios/scripts/cleanup-distribution-material.sh
           ruby apps/wallet/ios/scripts/verify-production-distribution-source.rb
+          ruby apps/wallet/scripts/verify-apple-production-operator-inputs.rb
 
   cleanup-runtime:
     needs: source-contract
