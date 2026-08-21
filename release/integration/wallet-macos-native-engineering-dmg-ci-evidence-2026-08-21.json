@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-08-21T16:20:26Z",
+  "owner": "Wallet/Auth macOS native",
+  "evidenceKind": "owner-native-ad-hoc-engineering-dmg-hosted-ci",
+  "implementationCommit": "b1f7bff5732a5ab85fa87345dd9ea3b59c8d9431",
+  "implementationTree": "2e148e95745c9e54469e36a4377b5308aa53796a",
+  "sourceBackread": {
+    ".github/workflows/wallet-macos.yml": {
+      "gitBlob": "1d35ab511ec9911f0d6ce2b46761221074a17367",
+      "bytes": 30745,
+      "sha256": "7021c0e7de2cdeea5e022a1db2928ef7cae3adfc268bf1655542999ead221c28"
+    }
+  },
+  "githubActions": {
+    "runId": 32502278280,
+    "jobId": 96834494798,
+    "headSha": "b1f7bff5732a5ab85fa87345dd9ea3b59c8d9431",
+    "headShaExact": true,
+    "status": "completed",
+    "conclusion": "success",
+    "createdAt": "2026-08-21T16:18:51Z",
+    "completedAt": "2026-08-21T16:20:25Z",
+    "xcode": "26.3",
+    "steps": {
+      "nativeTests": "success",
+      "buildPackageCreateMountVerifyEngineeringDmg": "success",
+      "testnetGatewayFailClosed": "success",
+      "signingKeychainCleanupWithoutProductionSecrets": "success",
+      "recoveryFailClosed": "success",
+      "coldSecondCallbackRegression": "success",
+      "artifactUpload": "success"
+    },
+    "runtimeRegression": {
+      "coldPid": 3039,
+      "secondPid": 3199,
+      "canonicalFailClosedVisible": true,
+      "canonicalResult": "CANONICAL_AUTH_BRIDGE_UNAVAILABLE",
+      "callbackColdPid": 3416,
+      "callbackColdResult": "INVALID_DEEP_LINK",
+      "authorizationSuccess": false,
+      "signing": false,
+      "callbackEmitted": false
+    }
+  },
+  "engineeringDmg": {
+    "name": "YNX-Wallet-macOS-ad-hoc.dmg",
+    "containedAppName": "YNX Wallet.app",
+    "bundleIdentifier": "com.ynxweb4.wallet.macos",
+    "customScheme": "ynxwallet",
+    "minimumOS": "13.0",
+    "architectures": ["arm64", "x86_64"],
+    "signingClass": "ad-hoc engineering",
+    "teamIdentifier": null,
+    "hdiutilCreated": true,
+    "hdiutilVerified": true,
+    "readOnlyMountInspected": true,
+    "containedAppDeepStrictCodesignVerified": true,
+    "gatekeeperAccepted": false,
+    "gatekeeperExitStatus": 3,
+    "developerIDSigned": false,
+    "notarized": false,
+    "stapled": false,
+    "innerSha256": null,
+    "innerBytes": null,
+    "downloadInspected": false
+  },
+  "actionsArtifact": {
+    "id": 9453989095,
+    "name": "ynx-wallet-macos-native",
+    "metadataBytes": 1694529,
+    "metadataDigest": "sha256:7fab4e30c1e2619a55a1a2eacff88b74ae84b56a6a16a9e58c6cd91658863f5e",
+    "downloadInspected": false,
+    "boundedDownloadResult": "No semantic completion within 30 seconds; process terminated and no complete file was present."
+  },
+  "promotedGates": {
+    "ownerNativeEngineeringDmgCreatedInHostedCI": true,
+    "ownerNativeEngineeringDmgMountedIdentityInspected": true,
+    "ownerNativeEngineeringDmgGatekeeperRejectionDirectlyVerified": true
+  },
+  "remainingFalse": {
+    "innerArtifactHashBackread": false,
+    "publicNativeWalletPublished": false,
+    "websiteReplacementPublished": false,
+    "systemApplicationsInstalled": false,
+    "browserQuarantineAccepted": false,
+    "developerIDSigned": false,
+    "notarized": false,
+    "stapled": false,
+    "gatekeeperAccepted": false,
+    "productionSigned": false,
+    "appStore": false,
+    "authorizationSuccess": false,
+    "account": false,
+    "productSession": false,
+    "sign": false,
+    "send": false,
+    "transaction": false,
+    "biometricSuccess": false,
+    "recoverySuccess": false
+  }
+}
