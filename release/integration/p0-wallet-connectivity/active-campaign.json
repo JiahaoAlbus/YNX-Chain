@@ -427,24 +427,24 @@
     }
   ],
   "heavy": {
-    "owner": null,
-    "taskId": null,
-    "status": "RELEASED_SUCCESS_PUBLIC_REPLACEMENT_NONREUSABLE",
-    "acquiredAt": null,
-    "expiresAt": null,
-    "releasedAt": "2026-08-21T17:00:23Z",
-    "sourceCommit": "d2044bd9a8ec6bdc6235dfb625a62c3dd5c58b04",
-    "evidenceCommit": "2426c2e2184f685467886fb7427950f78d089024",
+    "owner": "explorer-monitor",
+    "taskId": "P0-145",
+    "status": "ACTIVE_SINGLE_USE_ARTIFACT_ROLLBACK_CHECKPOINT",
+    "acquiredAt": "2026-08-21T17:16:13Z",
+    "expiresAt": "2026-08-21T18:01:13Z",
+    "releasedAt": null,
+    "sourceCommit": "8571509583a1390b56b1812e1008f5d634ef594f",
+    "evidenceCommit": "d6e406acf25868f14256d38efcd474d96dfb0df2",
     "runtimeHost": "43.153.202.237",
-    "currentRuntime": "/usr/local/bin/ynx-calendard",
-    "candidateRuntime": "/var/tmp/ynx-calendar-d2044bd9-p0143/ynx-calendard",
-    "artifactSha256": "3fc3492d89978c32991d54abc2c8994d1dbe271df7d95364449cb81a6b781890",
+    "currentRuntime": "ynx-explorer-monitor-8bf7716ee671",
+    "candidateRuntime": "ynx-explorer-monitor-8571509583a1",
+    "artifactSha256": null,
     "productionMutationAllowed": false,
     "singleUse": true,
     "reusable": false,
     "previousOwner": "integration",
     "previousTaskId": "P0-143",
-    "reason": "P0-143 completed successfully and was consumed once. Calendar now publicly reports exact d2044 and visible Wallet details; unexecuted account-switch/disconnect/callback/Product Session gates remain false."
+    "reason": "P0-145 may only re-materialize the three exact P0-120 artifacts and freeze rollback/verifier commands. Public /connectivity remains HTML and no production mutation is authorized."
   },
   "wave": {
     "id": "B-financial-apps-quant",
@@ -479,5 +479,25 @@
       "deployedPublic": false,
       "publicVerified": false
     }
+  },
+  "light": {
+    "owner": "financial-apps",
+    "status": "ACTIVE_SINGLE_USE_SOURCE_BUILD",
+    "branch": "codex/p0-finance-wallet-connectivity-20260820",
+    "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/24-finance",
+    "taskId": "P0-146",
+    "leasedAt": "2026-08-21T17:16:13Z",
+    "expiresAt": "2026-08-21T17:46:13Z",
+    "releasedAt": null,
+    "checkpointCommit": null,
+    "previousOwner": "integration",
+    "previousCheckpoint": "993e7cc99ea3919488d6765e097ca78a82a30704",
+    "reason": "Finance may produce exact Linux amd64 archive, env migration and rollback digest evidence only; P0-141 is nonreusable and production mutation remains forbidden.",
+    "executionScope": "FINANCE_7824_SOURCE_BUILD_ROLLBACK_BINDING",
+    "onSafeCheckpoint": [
+      "modify only Finance-owned source/build/evidence paths",
+      "return exact archive path/bytes/SHA and rollback digests",
+      "do not SSH/SCP/restart/write production"
+    ]
   }
 }

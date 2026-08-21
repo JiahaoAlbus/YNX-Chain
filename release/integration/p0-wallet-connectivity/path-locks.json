@@ -3,76 +3,1289 @@
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "version": "1.18.0",
   "locks": [
-    {"path":"packages/wallet-auth/**","owner":"wallet-protocol","branch":"codex/final-wallet-auth","worktree":"02-wallet-auth","taskId":"P0-001","status":"RESERVED","allowedExceptions":["proposal-only"]},
-    {"path":"apps/wallet/**","owner":"wallet-platform","branch":"codex/final-wallet-auth","worktree":"02-wallet-auth","taskId":"P0-002","status":"RESERVED","allowedExceptions":["proposal-only"]},
-    {"path":"packages/dapp-connect-sdk/**","owner":"developer-sdk","branch":"codex/final-developer","worktree":"11-developer","taskId":"P0-003","status":"RESERVED","allowedExceptions":["proposal-only"]},
-    {"path":"apps/dex/**","owner":"financial-apps","branch":"codex/final-dex","worktree":"/Users/huangjiahao/Desktop/YNX Final Worktrees/27-dex","taskId":"P0-109","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"CHECKPOINT_REACHED_LOCAL_SNAPSHOT_UNAVAILABLE","acquiredAt":"2026-08-21T04:34:00Z","releasedAt":"2026-08-21T04:44:03Z","checkpointCommit":"fe82b27c3790bb1ac3be595cc435feac5b398b98","checkpointTree":"fb76f1d83c1e22830a6f814807d26522110f8b0c","allowedExceptions":["read-only DEX source/build evidence; Wallet approval, real swap, liquidity, public deployment and Product Session v2 remain false"]},
-    {"path":"apps/quant/**","owner":"financial-apps","branch":"codex/quant-owner-contract-snapshot","worktree":"/Users/huangjiahao/Desktop/YNX Final Worktrees/08-quant-lab","taskId":"P0-110","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"CHECKPOINT_REACHED_HEAVY_RELEASED","acquiredAt":"2026-08-21T04:44:03Z","releasedAt":"2026-08-21T04:58:00Z","startingCommit":"f66fd4d14ff047efa6bb7e66fc2e140773826b16","startingTree":"ab2cb8c7704e680fcf8451f9bd44103aaef163ff","checkpointCommit":"b20a908893010968d92045e8bb0bcb4ab1bd325c","checkpointTree":"3c2c5469bc5b10f3459befe16f512f5b98ebdbfc","allowedExceptions":["read-only canonical authorize source/build/local-browser evidence; no production deployment, real strategy execution, capital authority or migrated-v2 claim"]},
-    {"path":"apps/pay/**","owner":"financial-apps","branch":"codex/p0-pay-wallet-connectivity-20260821","worktree":"/Users/huangjiahao/Desktop/YNX Final Worktrees/04-pay-p0-clean","taskId":"P0-106","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"CHECKPOINT_REACHED_DEVICE_UNAVAILABLE","acquiredAt":"2026-08-21T04:17:21Z","releasedAt":"2026-08-21T04:34:00Z","checkpointCommit":"d488c24761d7ceb830883ed38d2bd017374d773c","checkpointTree":"fc968ed9532443e1bcedab294c2386abf1260254","allowedExceptions":["read-only Pay source/build evidence; installed Wallet, payment execution, public deployment and Product Session v2 remain false"]},
-    {"path":"wallet-auth.ynxweb4.com backing ynx-wallet-gateway.service","owner":"wallet-auth-core","branch":"codex/wallet-core-auth-gateway-continuation-20260814","worktree":null,"taskId":"P0-054","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"CONSUMED_RELEASED_FAILED_CLOSED_INSTALL_PERMISSION","acquiredAt":"2026-08-20T19:45:08Z","expiresAt":"2026-08-20T21:45:08Z","releasedAt":"2026-08-20T19:56:33Z","checkpointCommit":"ff395e3d1d7c012784e81eb02c3ae8782fbf1298","allowedExceptions":["read-only failure and rollback evidence only; any future execution requires new accepted source and new lease"]},
-    {"path":"wallet-auth.ynxweb4.com backing ynx-wallet-gateway.service","owner":"wallet-auth-core","branch":"codex/wallet-core-auth-gateway-continuation-20260814","worktree":null,"taskId":"P0-070","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"CONSUMED_RELEASED_FAILED_CLOSED_TRANSPORT","acquiredAt":"2026-08-20T21:45:57Z","expiresAt":"2026-08-20T23:45:57Z","releasedAt":"2026-08-20T22:01:00Z","checkpointCommit":"9e0b8d800e83f14c6c31135b54857b90ed5c0b73","allowedExceptions":["read-only failure evidence only; P0-070 is nonreusable; any successor requires a Linux-valid transfer-path preflight, fresh digests and a new lease"]},
-    {"path":"apps/seller-console/**","owner":"integration","branch":"codex/p0-seller-console-wallet-connectivity-20260821","worktree":"/Users/huangjiahao/Desktop/YNX Final Worktrees/10-seller-console-p0","taskId":"P0-056","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"CHECKPOINT_REACHED","acquiredAt":"2026-08-20T20:00:00Z","releasedAt":"2026-08-20T20:15:00Z","checkpointCommit":"8809abcd7c39d47650086ae8895ecb307dcd0fdc","implementationCommit":"2bfa3d3d7923410b02e02c9d243ef70e88653c66","allowedExceptions":["read-only Seller Console source and local-browser evidence until a future provider, Product Session or deployment slice"]},
-    {"path":"apps/creator-studio/**","owner":"integration","branch":"codex/p0-creator-studio-wallet-connectivity-20260821","worktree":"/Users/huangjiahao/Desktop/YNX Final Worktrees/34-creator-studio-p0","taskId":"P0-058","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"CHECKPOINT_REACHED","acquiredAt":"2026-08-20T20:20:00Z","releasedAt":"2026-08-20T20:31:43Z","implementationCommit":"b8bd715d06c9522bdd07a051ddcf1670fd44c3aa","checkpointCommit":"2b1103063b47d2cfbf060837056e6b33fc7ecad3","allowedExceptions":["read-only Creator Studio source and local-browser evidence until a future provider, Product Session v2 or public deployment slice"]},
-    {"path":"apps/search/**","owner":"integration","branch":"codex/p0-search-wallet-connectivity-20260821","worktree":"/Users/huangjiahao/Desktop/YNX Final Worktrees/35-search-p0","taskId":"P0-060","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"CHECKPOINT_REACHED","acquiredAt":"2026-08-20T20:36:00Z","releasedAt":"2026-08-20T20:50:00Z","implementationCommit":"9466026382b9fc2e41fbb9cd228a75985b03dd89","checkpointCommit":"a3b78490a7945fa982bfe78c8be75396b013a649","allowedExceptions":["read-only Search source and local-browser evidence until a future Product Session v2, public deployment or installed-client slice"]},
-    {"path":"apps/trust-center/**","owner":"integration","branch":"codex/p0-trust-center-wallet-connectivity-20260821","worktree":"/Users/huangjiahao/Desktop/YNX Final Worktrees/38-trust-center-p0","taskId":"P0-063","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"CHECKPOINT_REACHED","acquiredAt":"2026-08-20T21:05:00Z","releasedAt":"2026-08-20T21:12:00Z","implementationCommit":"eb07330465f3c02b5ad62375d9b2d977110aa450","checkpointCommit":"5ff4cd57667de7c87197aa0982bca6addf007a28","allowedExceptions":["read-only Trust Center source and local-browser evidence until a future accepted Trust API, provider, Product Session v2 or deployment slice"]},
-    {"path":"{apps/mail/**,internal/mail/**}","owner":"integration","branch":"codex/p0-mail-wallet-connectivity-20260821","worktree":"/Users/huangjiahao/Desktop/YNX Final Worktrees/42-mail-p0","taskId":"P0-065","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"CHECKPOINT_REACHED","acquiredAt":"2026-08-20T21:18:00Z","releasedAt":"2026-08-20T21:24:36Z","implementationCommit":"9d8d2510dcdd2b39dbc5dea5f02376178ae7aa2c","checkpointCommit":"783f14a55796539702edc2104d0f1ce333c23fc5","allowedExceptions":["read-only Mail source and local-browser evidence until a future accepted Mail Product API, installed-client or deployment slice"]},
-    {"path":"{apps/ai/**,internal/aiproduct/**}","owner":"integration","branch":"codex/p0-ai-wallet-connectivity-20260821","worktree":"/Users/huangjiahao/Desktop/YNX Final Worktrees/43-ai-p0","taskId":"P0-068","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"RELEASED_CHECKPOINT","acquiredAt":"2026-08-20T21:31:04Z","releasedAt":"2026-08-20T21:43:16Z","checkpointCommit":"2cbd93564255e25c2c861eeab68d7b8ef9831014","allowedExceptions":["AI product source recovery and accepted Standard Wallet migration only; no shared AI Gateway, Wallet/Auth, provider credentials, public deployment or installed-client claims"]},
-    {"path":"{apps/cloud/**,internal/cloud/**,infra/docker/ynx-cloudd.Dockerfile,infra/docker/ynx-cloudd.Dockerfile.dockerignore,infra/docker/cloud-compose.yml}","owner":"integration","branch":"codex/p0-cloud-wallet-connectivity-20260821","worktree":"/Users/huangjiahao/Desktop/YNX Final Worktrees/44-cloud-p0","taskId":"P0-071","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"RELEASED_CHECKPOINT","acquiredAt":"2026-08-20T21:54:29Z","releasedAt":"2026-08-20T22:12:43Z","implementationCommit":"9816f9ba2556eadea7fd9ad5061f67c5a05e64dd","checkpointCommit":"1abece5158573b10eae6c084f3653a225c6590cb","allowedExceptions":["read-only Cloud source and P0-071 evidence until a future accepted Product Session v2, installed-client or public-deployment slice"]},
-    {"path":"{apps/resource-market/**,internal/resourceproduct/**}","owner":"integration","branch":"codex/p0-resource-wallet-connectivity-clean-20260821","worktree":"/Users/huangjiahao/Desktop/YNX Final Worktrees/46-resource-p0-clean","taskId":"P0-072","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"RELEASED_CHECKPOINT","acquiredAt":"2026-08-20T22:14:59Z","releasedAt":"2026-08-20T22:29:02Z","implementationCommit":"e92bccb9c35fa9d78dd21417af8fe7eea9e85828","checkpointCommit":"5f0a6eea4aef0c1b374e971bd99f41a6e71d6596","recoveryCommit":"43ffbd7ef6e3d021031db0894bd4e0750a8a3fb3","allowedExceptions":["read-only Resource source and P0-072 evidence until a future Product Session v2, installed-client, public-deployment or settlement slice"]},
-    {"path":"apps/governance/**","owner":"integration","branch":"codex/p0-governance-wallet-connectivity-20260821","worktree":"/Users/huangjiahao/Desktop/YNX Final Worktrees/47-governance-p0","taskId":"P0-074","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"RELEASED_CHECKPOINT","acquiredAt":"2026-08-20T22:31:17Z","releasedAt":"2026-08-20T22:40:00Z","implementationCommit":"f596ffd6eec4f6d060c9cd656772fb89beb14927","checkpointCommit":"b6f3184653eaef4275d5719686a2dffc724d5218","allowedExceptions":["read-only Governance source and P0-074 evidence until a future Product Session v2, public-deployment, real-vote or installed-client slice"]},
-    {"path":"apps/merchant-console/**","owner":"integration","branch":"codex/p0-merchant-console-wallet-connectivity-20260821","worktree":"/Users/huangjiahao/Desktop/YNX Final Worktrees/05-merchant-console-p0","taskId":"P0-052","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"CHECKPOINT_REACHED","acquiredAt":"2026-08-20T19:26:00Z","releasedAt":"2026-08-20T19:45:00Z","checkpointCommit":"f3d36ab5785f910f3114c4a080f2c2551aabe656","allowedExceptions":["read-only Merchant Console source and checkpoint evidence until a future separately authorized provider or deployment slice"]},
-    {"path":"apps/finance/**","owner":"financial-apps","branch":"codex/p0-finance-wallet-connectivity-20260820","worktree":"/Users/huangjiahao/Desktop/YNX Final Worktrees/24-finance","taskId":"P0-141","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"PAUSED_FAILED_CLOSED_PREWRITE_CHECKPOINT","checkpointCommit":"02a482b9c714525dc8c5fd0dd820767cbbf63c67","checkpointTree":"bc1963bb10333bbe1a29003ccc903a768952366b","sourceCommit":"50892538dc237ef519d95c491f4b918a125a6c8e","acquiredAt":"2026-08-21T13:15:00Z","expiresAt":null,"releasedAt":"2026-08-21T13:24:12Z","allowedExceptions":["read-only preservation of P0-141 failure evidence; no deployment retry, shared protocol, Website, signing, transaction or Product Session promotion"]},
-    {"path":"apps/exchange/**","owner":"financial-apps","branch":"codex/exchange-wallet-actions-20260809","worktree":"/Users/huangjiahao/Desktop/YNX Final Worktrees/07-exchange-public","taskId":"P0-105","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"CHECKPOINT_REACHED_DEVICE_UNAVAILABLE","checkpointCommit":"a1fa488ba31db88f8bd274f463f66ded25c18b45","checkpointTree":"f9248217f05932b30490418bfd8d6b571d3df391","acquiredAt":"2026-08-21T04:03:05Z","releasedAt":"2026-08-21T04:17:21Z","allowedExceptions":["read-only Exchange source/build evidence; installed Wallet, public deployment, Product Session v2 and real orders remain false"]},
-    {"path":"{internal/datafabric/**,internal/datafabricapi/**,internal/datafabricnats/**,internal/datafabricpostgres/**,schemas/data-fabric/**,sdk/datafabric-typescript/**,cmd/ynx-data-fabricd/**,docs/data-fabric/**,evidence/{capacity,postgres}/**,product-release.json,public-product-metadata.json,release/release-record.json,release/integration/ynx-data-fabric-contract.json,.ai-bridge/{agent-status.md,current-plan.md,full-goal-coverage.json},docs/integration/CROSS_PRODUCT_TEST_VECTORS.json,scripts/data-fabric/release-truth-check.mjs}","owner":"data-fabric","branch":"codex/final-data-fabric","worktree":"/Users/huangjiahao/Desktop/YNX Final Worktrees/26-data-fabric","taskId":"P0-005","status":"CHECKPOINT_REACHED","checkpointCommit":"da095e240be52023ecef19c162c869398bf9fbea","releasedAt":"2026-08-20T17:50:14Z","allowedExceptions":["read-only source, CI and handoff evidence until a future bounded Light Lease"]},
-    {"path":"{internal,apps}/explorer/**","owner":"explorer-monitor","branch":"codex/p0-explorer-monitor-20260820","worktree":"/Users/huangjiahao/Desktop/YNX Final Worktrees/12-13-explorer-monitor-fable5","taskId":"P0-119","status":"CHECKPOINT_REACHED_RUNTIME_TARGET_UNBOUND","checkpointCommit":"945cd65c7e315c3eb282286c4c292d29ae485649","acquiredAt":"2026-08-21T05:57:29Z","releasedAt":"2026-08-21T06:07:02Z","allowedExceptions":["Central Integration may perform read-only runtime/rollback mapping outside product source; no production mutation without a new lease"]},
-    {"path":"apps/monitor/**","owner":"explorer-monitor","branch":"codex/p0-explorer-monitor-20260820","worktree":"/Users/huangjiahao/Desktop/YNX Final Worktrees/12-13-explorer-monitor-fable5","taskId":"P0-119","status":"CHECKPOINT_REACHED_RUNTIME_TARGET_UNBOUND","checkpointCommit":"945cd65c7e315c3eb282286c4c292d29ae485649","acquiredAt":"2026-08-21T05:57:29Z","releasedAt":"2026-08-21T06:07:02Z","allowedExceptions":["Central Integration may perform read-only runtime/rollback mapping outside product source; no production mutation without a new lease"]},
-    {"path":"{apps/calendar/**,internal/calendar/**}","owner":"integration","branch":"codex/p0-calendar-wallet-evidence-20260821","worktree":"/Users/huangjiahao/Desktop/YNX Final Worktrees/48-calendar-p0","taskId":"P0-075","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"RELEASED_CHECKPOINT","acquiredAt":"2026-08-20T22:40:00Z","releasedAt":"2026-08-20T22:46:48Z","startingCommit":"8ff6eb24705155fbbeddf983d44f87e9e20d944f","verificationCommit":"c6575ea13a3553b2799b64566106797b3bc59154","checkpointCommit":"573989195f8b4f2f08bb4fb4c3bf9f245f8f2d68","allowedExceptions":["read-only Calendar source and P0-075 deterministic visible evidence until a future installed Wallet, Product Session v2 or current-source public slice"]},
-    {"path":"apps/music/**","owner":"integration","branch":"codex/p0-music-wallet-connectivity-20260821","worktree":"/Users/huangjiahao/Desktop/YNX Final Worktrees/49-music-p0","taskId":"P0-076","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"RELEASED_CHECKPOINT","acquiredAt":"2026-08-20T22:46:48Z","releasedAt":"2026-08-20T22:58:46Z","startingCommit":"bd6cd7a088382f3526ada4dce86d75aa78665244","implementationCommit":"b7d989c892ec22eb5b893f8ee54ce6f09897590d","checkpointCommit":"df0bd07667d33dbf97635b881033db65129c32c6","allowedExceptions":["read-only Music source and P0-076 evidence until a future Product Session v2, installed-client or current-source public deployment slice"]},
-    {"path":"apps/video/**","owner":"integration","branch":"codex/p0-video-wallet-visible-20260821","worktree":"/Users/huangjiahao/Desktop/YNX Final Worktrees/50-video-p0","taskId":"P0-077","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"RELEASED_CHECKPOINT","acquiredAt":"2026-08-20T22:58:46Z","releasedAt":"2026-08-20T23:05:27Z","startingCommit":"1d4532ffca4eabdc15f2ec66f3d1143f67e159fa","verificationCommit":"b851ffb2a0563ff992e47f76eeac23c21ab11fd8","checkpointCommit":"2e516baac89278a767397b29e72eed67a97e60db","priorTaskId":"P0-047","allowedExceptions":["read-only Video source and P0-077 deterministic visible evidence until a future installed Wallet, Product Session v2 or public-deployment slice"]},
-    {"path":"{apps/bridge-web/**,docs/bridge/**,release/bridge/**}","owner":"integration","branch":"codex/p0-bridge-wallet-connectivity-20260821","worktree":"/Users/huangjiahao/Desktop/YNX Final Worktrees/51-bridge-p0","taskId":"P0-078","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"RELEASED_CHECKPOINT","acquiredAt":"2026-08-20T23:05:27Z","releasedAt":"2026-08-20T23:22:00Z","startingCommit":"fc82c236cf8e2d8a9c69834b5985895170249aa4","implementationCommit":"fe8c466a456d42ecd5088938e9e8623826a296c0","checkpointCommit":"a3b57a9d1e51d6d157a932b584dbdda1adc748a9","allowedExceptions":["read-only Bridge source and P0-078 deterministic visible evidence until a future installed Wallet, Product Session v2, executable route or current-source public deployment slice"]},
-    {"path":"{apps/browser/**,release/browser/**}","owner":"integration","branch":"codex/p0-browser-current-source-verification-20260821","worktree":"/Users/huangjiahao/Desktop/YNX Final Worktrees/52-browser-p0","taskId":"P0-079","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"RELEASED_CHECKPOINT","acquiredAt":"2026-08-20T23:22:00Z","releasedAt":"2026-08-20T23:30:00Z","startingCommit":"284faf7807dc1fe6f1ea245fff5956f32b2e5d7a","implementationCommit":"ad890f0a2fe562536216c2834b25a7ad2aa398f6","checkpointCommit":"590314a9468982ef9f58f745f60156e89a2cd66c","allowedExceptions":["read-only Browser source and P0-079 evidence until a future unlocked on-screen, other-platform, signed or publicly hosted slice"]},
-    {"path":"apps/oracle/**","owner":"integration","branch":"codex/p0-oracle-public-data-verification-20260821","worktree":"/Users/huangjiahao/Desktop/YNX Final Worktrees/53-oracle-p0","taskId":"P0-080","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"RELEASED_CHECKPOINT","acquiredAt":"2026-08-20T23:30:00Z","releasedAt":"2026-08-20T23:38:00Z","startingCommit":"a059d573ed128a704ec447561711a13cb1e3d9dd","implementationCommit":"8e5907ac1a1c4cb7bc4d91831e49487aee691dfa","checkpointCommit":"d3038abbec4a393fd1d66b54dec4f0027f0c8962","allowedExceptions":["read-only Oracle source and P0-080 evidence until a future healthy provider, authoritative price, current-source public deployment or Computer Control slice"]},
-    {"path":"apps/search/**","owner":"integration","branch":"codex/p0-search-wallet-visible-20260821","worktree":"/Users/huangjiahao/Desktop/YNX Final Worktrees/54-search-visible-p0","taskId":"P0-081","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"RELEASED_CHECKPOINT","acquiredAt":"2026-08-20T23:38:00Z","releasedAt":"2026-08-20T23:52:00Z","startingCommit":"a3b78490a7945fa982bfe78c8be75396b013a649","implementationCommit":"49234dfe0cf0d2a3e0d2f2054c8eeab5617baa74","checkpointCommit":"c9de2692aad9f0e99edce5c49366265480b369da","priorTaskId":"P0-060","allowedExceptions":["read-only Search source and P0-081 deterministic visible evidence until a future installed Wallet, Product Session v2 or current-source public deployment slice"]},
-    {"path":"apps/merchant-console/**","owner":"integration","branch":"codex/p0-merchant-console-visible-20260821","worktree":"/Users/huangjiahao/Desktop/YNX Final Worktrees/55-merchant-console-visible-p0","taskId":"P0-082","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"RELEASED_CHECKPOINT","acquiredAt":"2026-08-20T23:52:00Z","releasedAt":"2026-08-21T00:05:00Z","startingCommit":"f3d36ab5785f910f3114c4a080f2c2551aabe656","verificationCommit":"204c1ec27efb9f937bd2effdbbaa1253796c871a","checkpointCommit":"6fba5d24bfccc41b33713aefad38aa12766151d2","priorTaskId":"P0-052","allowedExceptions":["read-only Merchant Console source and P0-082 deterministic visible evidence until a future installed Wallet, Product Session v2 or current-source public deployment slice"]},
-    {"path":"apps/seller-console/**","owner":"integration","branch":"codex/p0-seller-console-visible-20260821","worktree":"/Users/huangjiahao/Desktop/YNX Final Worktrees/56-seller-console-visible-p0","taskId":"P0-083","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"RELEASED_CHECKPOINT","acquiredAt":"2026-08-21T00:05:00Z","releasedAt":"2026-08-21T00:20:00Z","startingCommit":"8809abcd7c39d47650086ae8895ecb307dcd0fdc","verificationCommit":"59b8719c71e441f6507b64f99796c3f63dc69450","checkpointCommit":"2e4b92a05007f8c7eccdcef77e6039e0b25fa0b2","priorTaskId":"P0-056","allowedExceptions":["read-only Seller Console source and P0-083 deterministic visible evidence until a future installed Wallet, Product Session v2 or current-source public deployment slice"]},
-    {"path":"apps/creator-studio/**","owner":"integration","branch":"codex/p0-creator-studio-visible-20260821","worktree":"/Users/huangjiahao/Desktop/YNX Final Worktrees/57-creator-studio-visible-p0","taskId":"P0-111","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"RELEASED_SOURCE_BUILD_CHECKPOINT","acquiredAt":"2026-08-21T04:46:04Z","releasedAt":"2026-08-21T04:51:05Z","checkpointCommit":"7bb494ff82420b84d0c153cbeb563083ad4dd361","startingCommit":"73feca397ca0589c5d5a3e07c30944aaeb1b00d8","startingTree":"b9f5c77dd8cb0a331887460133744e69874568e4","priorTaskId":"P0-084","allowedExceptions":["Creator Studio Web safe-launcher source/build checkpoint only; no Product Session v2, payout, public deployment or installed Wallet claim"]},
-    {"path":"apps/trust-center/**","owner":"integration","branch":"codex/p0-trust-center-visible-20260821","worktree":"/Users/huangjiahao/Desktop/YNX Final Worktrees/58-trust-center-visible-p0","taskId":"P0-085","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"RELEASED_CHECKPOINT","acquiredAt":"2026-08-21T00:35:00Z","releasedAt":"2026-08-21T00:50:00Z","startingCommit":"5ff4cd57667de7c87197aa0982bca6addf007a28","verificationCommit":"6abb11d28eefcd0cb1b4aa4ca0573cbf00805de1","checkpointCommit":"130c8757f8446b2236ac1582d5f2d47ac7828969","priorTaskId":"P0-063","allowedExceptions":["read-only Trust Center source and P0-085 deterministic visible evidence until a future installed Wallet, Product Session v2 or current-source public deployment slice"]},
-    {"path":"{apps/mail/**,internal/mail/**}","owner":"integration","branch":"codex/p0-mail-visible-20260821","worktree":"/Users/huangjiahao/Desktop/YNX Final Worktrees/59-mail-visible-p0","taskId":"P0-086","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"RELEASED_CHECKPOINT","acquiredAt":"2026-08-21T00:50:00Z","releasedAt":"2026-08-21T01:10:00Z","startingCommit":"783f14a55796539702edc2104d0f1ce333c23fc5","verificationCommit":"1f09b763343127e5d9e807085a90c88566322a83","checkpointCommit":"734e62bb1bf2cb12fbed02047ac78e310b5a3347","priorTaskId":"P0-065","allowedExceptions":["read-only Mail source and P0-086 deterministic visible evidence until a future installed Wallet, Product Session v2 or current-source public deployment slice"]},
-    {"path":"{apps/cloud/**,internal/cloud/**,infra/docker/ynx-cloudd.Dockerfile,infra/docker/ynx-cloudd.Dockerfile.dockerignore,infra/docker/cloud-compose.yml}","owner":"integration","branch":"codex/p0-cloud-visible-20260821","worktree":"/Users/huangjiahao/Desktop/YNX Final Worktrees/60-cloud-visible-p0","taskId":"P0-087","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"RELEASED_CHECKPOINT","acquiredAt":"2026-08-21T01:10:00Z","releasedAt":"2026-08-21T01:30:00Z","startingCommit":"1abece5158573b10eae6c084f3653a225c6590cb","verificationCommit":"1131288bbfdc6fc33b57d92af612e5adad61efb1","checkpointCommit":"a427075261aebc2fcb493205840de0bc9f0bc87e","priorTaskId":"P0-071","allowedExceptions":["read-only Cloud source and P0-087 deterministic visible evidence until a future installed Wallet, Product Session v2 or current-source public deployment slice"]},
-    {"path":"{apps/ai/**,internal/aiproduct/**}","owner":"integration","branch":"codex/p0-ai-visible-20260821","worktree":"/Users/huangjiahao/Desktop/YNX Final Worktrees/61-ai-visible-p0","taskId":"P0-088","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"RELEASED_CHECKPOINT","acquiredAt":"2026-08-21T01:30:00Z","releasedAt":"2026-08-21T01:50:00Z","startingCommit":"2cbd93564255e25c2c861eeab68d7b8ef9831014","verificationCommit":"d2d51d3acc18707be82aae5da38ab4f730b1de19","checkpointCommit":"7eefdf5e3f5ead51912192bdf4806594112fc859","priorTaskId":"P0-068","allowedExceptions":["read-only AI source and P0-088 deterministic visible evidence until the central AI contract, live provider, installed Wallet, Product Session v2 and current-source public deployment gates are satisfied"]},
-    {"path":"{apps/resource-market/**,internal/resourceproduct/**}","owner":"integration","branch":"codex/p0-resource-visible-audit-20260821","worktree":"/Users/huangjiahao/Desktop/YNX Final Worktrees/62-resource-visible-audit-p0","taskId":"P0-089","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"RELEASED_CHECKPOINT","acquiredAt":"2026-08-21T01:50:00Z","releasedAt":"2026-08-21T02:05:00Z","startingCommit":"5f0a6eea4aef0c1b374e971bd99f41a6e71d6596","checkpointCommit":"0326004cb260863f214261acec635bd3ef2e5c0c","priorTaskId":"P0-072","allowedExceptions":["read-only Resource P0-089 audit evidence until a future installed Wallet, Product Session v2, settlement or public deployment slice"]},
-    {"path":"{docs/coordination/p0-wallet-connectivity,docs/handoffs/p0-wallet-connectivity,release/integration/p0-wallet-connectivity}/**","owner":"integration","branch":"codex/final-integration","worktree":"29-integration","taskId":"P0-000","status":"ACTIVE","allowedExceptions":[]},
-    {"path":"apps/shop/**","owner":"integration","branch":"codex/p0-shop-android-retirement-20260820","worktree":"09-shop","taskId":"P0-011","status":"ACTIVE","allowedExceptions":["historical-evidence-preservation"]},
-    {"path":"YNX-Chain-website:{vercel.json,src/lib/ecosystemCatalog.js,public/releases/ecosystem-release-registry.json}","owner":"integration","branch":"codex/p0-shop-android-retirement-20260820","worktree":"28-website","taskId":"P0-011","status":"ACTIVE","allowedExceptions":["historical-evidence-preservation"]},
-    {"path":"{cmd/ynx-faucetd/**,internal/faucet/**,infra/systemd/ynx-faucetd.example.service,infra/docker/ynx-faucetd.Dockerfile,scripts/verify/faucet-check.sh,production:ynx-faucetd.service,production:/usr/local/bin/ynx-faucetd}","owner":"integration","branch":"codex/p0-faucet-runtime-20260820","worktree":"29-faucet-runtime-p0","taskId":"P0-093","status":"RELEASED_CHECKPOINT","acquiredAt":"2026-08-21T01:10:00Z","releasedAt":"2026-08-21T01:15:00Z","startingCommit":"9a86ef556992e9bd48a48fca8ecd624b800973a9","checkpointCommit":"fe812300c9443fed62f74c9f39fbcc149b173a14","allowedExceptions":["read-only public Faucet, chain and Explorer evidence until a future separately authorized change"]},
-    {"path":"{cmd/ynx-chaind/replication*.go,internal/api/server*.go,internal/chain/replication*.go,scripts/ops/deploy-bounded-replication-recovery.sh}","owner":"integration","branch":"codex/p0-bounded-replication-runtime-compatible-20260820","worktree":"29-chain-replication-runtime-p0","taskId":"P0-015","status":"RELEASED_CHECKPOINT","acquiredAt":"2026-08-20T12:00:00Z","releasedAt":"2026-08-20T18:54:03Z","checkpointCommit":"0be8967deefb08ecf9f1e14efe6f11ea621f6c5c","runtimeSourceCommit":"be9f03833ac3a7579bd96f22f6bf49f3d8dccc7b","rolloutEvidenceCommit":"c1813fb33bddf3479382d2d24f4e255d52b5dd43","allowedExceptions":["read-only source, rollout and soak evidence until a future separately authorized Chain Core change"]},
-    {"path":"apps/card/**","owner":"card-testnet-virtual","branch":"codex/p0-card-testnet-virtual-20260820-fix","worktree":"/Users/huangjiahao/.codex/worktrees/f41f/YNX Chain","taskId":"P0-013","status":"RELEASED_CHECKPOINT","acquiredAt":"2026-08-20T09:05:00Z","expiresAt":"2026-08-20T13:05:00Z","releasedAt":"2026-08-21T02:19:12Z","checkpointCommit":"466a4c4cd59e2958260bd6e35193b32c0d2249f4","allowedExceptions":["read-only public Web/PWA evidence; real Wallet, Product Session v2, YNXT top-up, real card and ComputerControl remain false"]},
-    {"path":"{apps/calendar/**,internal/calendar/**,production:ynx-calendar.service,production:/usr/local/bin/ynx-calendard}","owner":"integration","branch":"codex/p0-calendar-wallet-evidence-20260821","worktree":"/Users/huangjiahao/Desktop/YNX Final Worktrees/48-calendar-p0","taskId":"P0-095","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"RELEASED_CHECKPOINT","acquiredAt":"2026-08-21T01:33:20Z","releasedAt":"2026-08-21T01:41:00Z","startingCommit":"afb1b988e5e47f02928163c345ff5fb1dc7a44e5","artifactSha256":"f0ce5b354c7a68889e5cfd0450801fa4adea73eff97761c6346e6d5f4ac0c46b","checkpointCommit":"882e9a0e3b7d1d6e6741c3a20ce3e6a2f0f63de1","allowedExceptions":["read-only failed-closed evidence and public rollback probes; P0-095 is nonreusable"]},
-    {"path":"{apps/calendar/**,internal/calendar/**,production:ynx-calendar.service,production:/usr/local/bin/ynx-calendard,production:/var/lib/ynx-chain/calendar/state.json,production:/var/lib/ynx-chain/calendar/state.json.hmac-key}","owner":"integration","branch":"codex/p0-calendar-wallet-evidence-20260821","worktree":"/Users/huangjiahao/Desktop/YNX Final Worktrees/48-calendar-p0","taskId":"P0-097","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"RELEASED_FAILED_CLOSED","acquiredAt":"2026-08-21T01:45:31Z","releasedAt":"2026-08-21T01:51:00Z","startingCommit":"882e9a0e3b7d1d6e6741c3a20ce3e6a2f0f63de1","sourceCommit":"afb1b988e5e47f02928163c345ff5fb1dc7a44e5","checkpointCommit":"ba34c0850571b5382326ab2e34c2b47294c7ccad","artifactSha256":"f0ce5b354c7a68889e5cfd0450801fa4adea73eff97761c6346e6d5f4ac0c46b","allowedExceptions":["read-only failed-closed evidence and rollback probes; P0-097 is nonreusable"]},
-    {"path":"{apps/calendar/**,internal/calendar/**,product-release.json,public-product-metadata.json,release/integration/calendar-contract.json,production:ynx-calendar.service,production:/usr/local/bin/ynx-calendard,production:/var/lib/ynx-chain/calendar/state.json,production:/var/lib/ynx-chain/calendar/state.json.hmac-key}","owner":"integration","branch":"codex/p0-calendar-wallet-evidence-20260821","worktree":"/Users/huangjiahao/Desktop/YNX Final Worktrees/48-calendar-p0","taskId":"P0-098","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"RELEASED_CHECKPOINT","acquiredAt":"2026-08-21T02:01:50Z","releasedAt":"2026-08-21T02:10:00Z","startingCommit":"ac549a7e82aa6f18c52347a045f1959c3c54a985","sourceCommit":"828120e6d81efaf874a930793660e185a394ba4f","checkpointCommit":"820fe3d3051aa1f5709fca179af811f1c6fb79b6","artifactSha256":"030bc61acfb61ae6adf05a5aa6b472f34beee24a9113b696e9d845d709f8ae3d","allowedExceptions":["read-only current public runtime and browser evidence; installed Wallet, Product Session v2, Mail, AI and ComputerControl remain false"]},
-    {"path":"{apps/social/**,internal/social/**,cmd/ynx-sociald/**}","owner":"integration","branch":"codex/p0-social-runtime-reconciliation-20260821","worktree":"/Users/huangjiahao/Desktop/YNX Final Worktrees/02-social-product-session-v2","taskId":"P0-127","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"RELEASED_SOURCE_CHECKPOINT","acquiredAt":"2026-08-21T07:50:17Z","releasedAt":"2026-08-21T08:00:38Z","startingCommit":"76b67a05fe5274f388d29f552b8a0b1e35dfe4ed","checkpointCommit":"4b6c5fa3e7570427fd6da4a5682de6095d73fc39","allowedExceptions":["read-only source and public evidence only; a separate lease governs Vercel publication"]},
-    {"path":"{production:https://social.ynxweb4.com/**,vercel:ynx-social-web}","owner":"integration","branch":"codex/p0-social-runtime-reconciliation-20260821","worktree":"/Users/huangjiahao/Desktop/YNX Final Worktrees/02-social-product-session-v2","taskId":"P0-128","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"RELEASED_PUBLIC_CHECKPOINT","acquiredAt":"2026-08-21T08:00:38Z","expiresAt":"2026-08-21T08:30:38Z","releasedAt":"2026-08-21T08:15:40Z","sourceCommit":"22c26bcb7a8d618cb8e38b30940b1c07bf4237c8","runtimeDeployment":"dpl_2sei8CpmoN1Gi5YKnc6FdvNRyXGy","evidence":"release/integration/p0-wallet-connectivity/social-web-standard-wallet-public-evidence-20260821.json","allowedExceptions":["path is read-only after release; no Social API, ynx-sociald, Wallet/Auth or other product mutation"]},
-    {"path":"apps/creator-studio/**","owner":"integration","branch":"codex/p0-creator-studio-visible-20260821","worktree":"/Users/huangjiahao/Desktop/YNX Final Worktrees/57-creator-studio-visible-p0","taskId":"P0-129","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"RELEASED_SOURCE_CHECKPOINT_PUBLIC_DEFECT_OPEN","acquiredAt":"2026-08-21T08:20:52Z","releasedAt":"2026-08-21T08:28:50Z","sourceCommit":"993e7cc99ea3919488d6765e097ca78a82a30704","checkpointCommit":"993e7cc99ea3919488d6765e097ca78a82a30704","allowedExceptions":["read-only source and public runtime evidence only; no production mutation without a wholly new Heavy lease"]},
-    {"path":"{production:web4.ynxweb4.com/video/studio/**,production:ynx-video-studio.service,production:/opt/ynx-video/current,production:/opt/ynx-video/releases/p0130-creator-wallet-993e7cc9}","owner":"integration","branch":"codex/p0-creator-studio-visible-20260821","worktree":"/Users/huangjiahao/Desktop/YNX Final Worktrees/57-creator-studio-visible-p0","taskId":"P0-130","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"RELEASED_FAILED_CLOSED_ARCHIVE_DIRECTORY_MODE","acquiredAt":"2026-08-21T08:30:49Z","expiresAt":"2026-08-21T09:00:49Z","releasedAt":"2026-08-21T08:33:27Z","sourceCommit":"993e7cc99ea3919488d6765e097ca78a82a30704","artifactSha256":"444d6dd38bd919f3aad26a73ec0db56c4929bd904b05003080e213f8ecb81291","allowedExceptions":["read-only failure evidence; P0-130 is nonreusable and candidate was never activated"]},
-    {"path":"{production:web4.ynxweb4.com/video/studio/**,production:ynx-video-studio.service,production:/opt/ynx-video/current,production:/opt/ynx-video/releases/p0131-creator-wallet-993e7cc9}","owner":"integration","branch":"codex/p0-creator-studio-visible-20260821","worktree":"/Users/huangjiahao/Desktop/YNX Final Worktrees/57-creator-studio-visible-p0","taskId":"P0-131","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"RELEASED_FAILED_CLOSED_READINESS_WINDOW","acquiredAt":"2026-08-21T08:34:52Z","expiresAt":"2026-08-21T09:04:52Z","releasedAt":"2026-08-21T08:37:16Z","sourceCommit":"993e7cc99ea3919488d6765e097ca78a82a30704","artifactSha256":"9ec9385f2a1843e826f7a059f832b06a90f9828a13652595a4a6afe75e1c03de","allowedExceptions":["read-only failure and rollback evidence; P0-131 is nonreusable"]},
-    {"path":"{production:web4.ynxweb4.com/video/studio/**,production:ynx-video-studio.service,production:/opt/ynx-video/current,production:/opt/ynx-video/releases/p0131-creator-wallet-993e7cc9}","owner":"integration","branch":"codex/p0-creator-studio-visible-20260821","worktree":"/Users/huangjiahao/Desktop/YNX Final Worktrees/57-creator-studio-visible-p0","taskId":"P0-132","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"RELEASED_PUBLIC_CHECKPOINT_COMPUTER_CONTROL_BLOCKED","acquiredAt":"2026-08-21T08:38:29Z","expiresAt":"2026-08-21T08:53:29Z","releasedAt":"2026-08-21T08:43:39Z","sourceCommit":"993e7cc99ea3919488d6765e097ca78a82a30704","artifactSha256":"9ec9385f2a1843e826f7a059f832b06a90f9828a13652595a4a6afe75e1c03de","activeRuntime":"/opt/ynx-video/releases/p0131-creator-wallet-993e7cc9","evidence":"release/integration/p0-wallet-connectivity/creator-studio-p0132-public-standard-wallet-evidence-20260821.json","allowedExceptions":["read-only public and rollback evidence only; a new lease is required for any production mutation; Computer Control retry requires an unlocked Mac"]},
-    {"path":"apps/search/**","owner":"integration","branch":"codex/p0-search-wallet-visible-20260821","worktree":"/Users/huangjiahao/Desktop/YNX Final Worktrees/54-search-visible-p0","taskId":"P0-112","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"RELEASED_SOURCE_BUILD_BROWSER_CHECKPOINT","acquiredAt":"2026-08-21T04:52:11Z","releasedAt":"2026-08-21T04:56:35Z","startingCommit":"c9de2692aad9f0e99edce5c49366265480b369da","startingTree":"b5e669b6c2967a746310c5f24193cb346e096fee","checkpointCommit":"7604c88e5965bcfdf575c1b84bc9dbf57952c951","checkpointTree":"325103c1aa748a1f9d0bd14b4d0fbc42ab42f590","priorTaskId":"P0-060","allowedExceptions":["Search Web safe-launcher source/build/browser checkpoint only; no Product Session v2, public deployment or installed Wallet claim"]},
-    {"path":"apps/merchant-console/**","owner":"integration","branch":"codex/p0-merchant-console-visible-20260821","worktree":"/Users/huangjiahao/Desktop/YNX Final Worktrees/55-merchant-console-visible-p0","taskId":"P0-113","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"RELEASED_SOURCE_BUILD_BROWSER_CHECKPOINT","acquiredAt":"2026-08-21T05:00:26Z","releasedAt":"2026-08-21T05:05:19Z","startingCommit":"6fba5d24bfccc41b33713aefad38aa12766151d2","startingTree":"1bcf650f866be4d7da2120a78e0260684a4e63d2","checkpointCommit":"042d3d3cb1a2593e8248919270578d48329a19d0","checkpointTree":"63737163b77285b2ab94864839fe6529329bb866","priorTaskId":"P0-052","allowedExceptions":["Merchant Console Web safe-launcher source/build/browser checkpoint only; no Product Session v2, public deployment, settlement or installed Wallet claim"]},
-    {"path":"apps/seller-console/**","owner":"integration","branch":"codex/p0-seller-console-visible-20260821","worktree":"/Users/huangjiahao/Desktop/YNX Final Worktrees/56-seller-console-visible-p0","taskId":"P0-114","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"RELEASED_SOURCE_BUILD_BROWSER_CHECKPOINT","acquiredAt":"2026-08-21T05:06:39Z","releasedAt":"2026-08-21T05:14:00Z","startingCommit":"2e4b92a05007f8c7eccdcef77e6039e0b25fa0b2","startingTree":"1ab8ec0cc2dd69b20bed509f06f5bef2d335105d","checkpointCommit":"910170031e7579924af34c3c2a8b92bdb08958cf","checkpointTree":"e0a95f50b7ac7fba6b98bab95d44a7fab05cef47","priorTaskId":"P0-056","allowedExceptions":["Seller Console Web safe-launcher source/build/browser checkpoint only; no Product Session v2, public deployment, order mutation or installed Wallet claim"]},
-    {"path":"apps/ai/mobile/**","owner":"integration","branch":"codex/p0-ai-visible-20260821","worktree":"/Users/huangjiahao/Desktop/YNX Final Worktrees/61-ai-visible-p0","taskId":"P0-115","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"RELEASED_SOURCE_TEST_BUNDLE_CHECKPOINT","acquiredAt":"2026-08-21T05:15:05Z","releasedAt":"2026-08-21T05:22:04Z","startingCommit":"7eefdf5e3f5ead51912192bdf4806594112fc859","startingTree":"12ea5eddc1939324e2ef03fe543e7501f4f6d901","implementationCommit":"37ce84b163e793cf6846e589fb543ecac0a6cf77","checkpointCommit":"048269c0f670e0234256d917a5e9cabae5c47d5a","checkpointTree":"c30abf0c52c1440310540627e20e86c196f4139e","priorTaskId":"P0-068","allowedExceptions":["AI mobile native safe-launcher source/test/bundle checkpoint only; no backend, live provider, public deployment, Product Session v2 or installed Wallet claim"]},
-    {"path":"{apps/video/**,production:web4.ynxweb4.com/video/**,production:ynx-video-viewer.service,production:/opt/ynx-video/current}","owner":"integration","branch":"codex/p0-video-wallet-visible-20260821","worktree":"/Users/huangjiahao/Desktop/YNX Final Worktrees/50-video-p0","taskId":"P0-121","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"RELEASED_PUBLIC_STANDARD_WALLET_CHECKPOINT","acquiredAt":"2026-08-21T06:36:53Z","releasedAt":"2026-08-21T06:42:19Z","sourceCommit":"2e516baac89278a767397b29e72eed67a97e60db","activeRuntime":"/opt/ynx-video/releases/p0121-video-wallet-2e516baa","rollbackTarget":"/opt/ynx-video/releases/1883d406f77f94cb81171b79fe9518882ede0b16","evidencePath":"release/integration/p0-wallet-connectivity/video-public-standard-wallet-evidence-20260821.json","allowedExceptions":["read-only public and rollback evidence only; a new product-scoped lease is required for any later production mutation"]},
-    {"path":"{apps/creator-studio/**,production:web4.ynxweb4.com/video/studio/**,production:ynx-video-studio.service,production:/opt/ynx-video/current}","owner":"integration","branch":"codex/p0-creator-studio-visible-20260821","worktree":"/Users/huangjiahao/Desktop/YNX Final Worktrees/57-creator-studio-visible-p0","taskId":"P0-122","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"RELEASED_PUBLIC_SOURCE_COMPUTER_CONTROL_BLOCKED","acquiredAt":"2026-08-21T06:44:29Z","releasedAt":"2026-08-21T06:52:03Z","sourceCommit":"650070ce5c5a7928425509f6e9e7da0aec31910d","supersedesBrokenRuntimeSource":"7bb494ff82420b84d0c153cbeb563083ad4dd361","activeRuntime":"/opt/ynx-video/releases/p0122b-creator-wallet-650070ce","rollbackTarget":"/opt/ynx-video/releases/p0121-video-wallet-2e516baa","evidencePath":"release/integration/p0-wallet-connectivity/creator-studio-public-standard-wallet-evidence-20260821.json","allowedExceptions":["read-only public and rollback evidence plus Computer Control retry after unlock; a new lease is required for any production mutation"]},
-    {"path":"{apps/wallet-web/**,production:wallet.ynxweb4.com/**,vercel:ynx-wallet-web}","owner":"integration","branch":"codex/wallet-web-provider-v2-20260821","worktree":"/private/tmp/ynx-wallet-web-provider-v2-20260821","taskId":"P0-123","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"RELEASED_PUBLIC_PWA_V7_COMPUTER_CONTROL_BLOCKED","acquiredAt":"2026-08-21T06:58:06Z","releasedAt":"2026-08-21T07:00:20Z","sourceCommit":"562ceb505469a6d0a6efd4d8761dfbd741916b50","checkpointCommit":"4f23310091a59baa0d68660ef5a180692dc9b65a","activeRuntime":"dpl_81HVzHyGz8kzhsddaJH3QodSyByu","rollbackTarget":"dpl_DWQ96LmD9HuNG4deEdSR5fojg8bT","evidencePath":"release/integration/p0-wallet-connectivity/wallet-web-pwa-v7-public-evidence-20260821.json","allowedExceptions":["read-only public and rollback evidence plus Computer Control retry after unlock; a new lease is required for any production mutation"]},
-    {"path":"{apps/search/**,production:web4.ynxweb4.com/search/**,production:ynx-search.service,production:/opt/ynx/search-current}","owner":"integration","branch":"codex/p0-search-wallet-visible-20260821","worktree":"/Users/huangjiahao/Desktop/YNX Final Worktrees/54-search-visible-p0","taskId":"P0-124","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"RELEASED_PUBLIC_CHECKPOINT","acquiredAt":"2026-08-21T07:05:00Z","releasedAt":"2026-08-21T07:15:00Z","sourceCommit":"7604c88e5965bcfdf575c1b84bc9dbf57952c951","archiveSha256":"b939916b83c8460f815400a9b8feb916628d4a965c82741da677a45e7254f4ee","currentRuntime":"/opt/ynx/search-releases/p0124-search-wallet-7604c88e","rollbackTarget":"/opt/ynx/search-releases/a2601b6c1c49203fe386c8de55b5378fa86d1ff4","allowedExceptions":["public bytes and health identity exact; Computer Control and real Wallet approval remain false"]},
-    {"path":"{apps/trust-center/**,internal/trustproduct/**,production:trust.ynxweb4.com/app/**,production:web4.ynxweb4.com/trust-center/**,production:ynx-trust-center.service,production:/opt/ynx/trust-center-current}","owner":"integration","branch":"codex/p0-trust-center-visible-20260821","worktree":"/Users/huangjiahao/Desktop/YNX Final Worktrees/58-trust-center-visible-p0","taskId":"P0-125","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"RELEASED_PUBLIC_CHECKPOINT","acquiredAt":"2026-08-21T07:18:05Z","releasedAt":"2026-08-21T07:26:17Z","sourceCommit":"4ebf27fd8308f31fe98a38497ff15b9f77f66cba","checkpointCommit":"969cb85b605793df3a84aa303bfe3fbdd22c65dd","archiveSha256":"408a0d397cffd3a92da7ae168bef94648005e16b38d78f7de6013f282ad896c3","activeRuntime":"/opt/ynx/trust-center-releases/p0125b-trust-wallet-4ebf27fd","rollbackTarget":"/opt/ynx/trust-center-releases/p0125-trust-wallet-e968f566 plus /etc/caddy/ynx-chain.caddy.p0125-before","allowedExceptions":["read-only public and rollback evidence; installed Wallet, provider/account/signature/transaction, Product Session v2 and Computer Control remain false"]},
-    {"path":"{apps/search/**,production:web4.ynxweb4.com/search/**,production:ynx-search.service,production:/opt/ynx/search-current,production:/opt/ynx/search-releases/p0133-search-subroute-d2323ca6}","owner":"integration","branch":"codex/p0-search-wallet-visible-20260821","worktree":"/Users/huangjiahao/Desktop/YNX Final Worktrees/54-search-visible-p0","taskId":"P0-133","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"CONSUMED_RELEASED_FAILED_CLOSED_MISSING_SHARED_SDK","acquiredAt":"2026-08-21T08:57:52Z","expiresAt":"2026-08-21T09:27:52Z","releasedAt":"2026-08-21T09:00:30Z","sourceCommit":"d2323ca6a0bf4cc9aed67bf3bd7ee533755999e3","sourceTree":"1652f3ceed9a36c2e0d79af5bd69d6de3b181077","archiveSha256":"4486173571fb3df98d7e77bda7c49b5cf9c4f69f56f521b30ae9a04ca32828af","rollbackTarget":"/opt/ynx/search-releases/p0124-search-wallet-7604c88e","allowedExceptions":["read-only failure evidence only; P0-133 is nonreusable and production remained exact p0124"]},
-    {"path":"{apps/search/**,production:web4.ynxweb4.com/search/**,production:ynx-search.service,production:/opt/ynx/search-current,production:/opt/ynx/search-releases/p0134-search-subroute-d2323ca6}","owner":"integration","branch":"codex/p0-search-wallet-visible-20260821","worktree":"/Users/huangjiahao/Desktop/YNX Final Worktrees/54-search-visible-p0","taskId":"P0-134","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"CONSUMED_RELEASED_FAILED_CLOSED_ESBUILD_PLATFORM_MISMATCH","acquiredAt":"2026-08-21T09:01:29Z","expiresAt":"2026-08-21T09:31:29Z","releasedAt":"2026-08-21T09:03:45Z","sourceCommit":"d2323ca6a0bf4cc9aed67bf3bd7ee533755999e3","sourceTree":"1652f3ceed9a36c2e0d79af5bd69d6de3b181077","archiveSha256":"88b7458a90fa56690fd3a92104f6d7354a67a0f161cdce89b7c5f168fca774ee","rollbackTarget":"/opt/ynx/search-releases/p0124-search-wallet-7604c88e","allowedExceptions":["read-only failure evidence only; 22/22 server tests passed but P0-134 is nonreusable and production remained exact p0124"]},
-    {"path":"{apps/search/**,production:web4.ynxweb4.com/search/**,production:ynx-search.service,production:/opt/ynx/search-current,production:/opt/ynx/search-releases/p0135-search-subroute-d2323ca6}","owner":"integration","branch":"codex/p0-search-wallet-visible-20260821","worktree":"/Users/huangjiahao/Desktop/YNX Final Worktrees/54-search-visible-p0","taskId":"P0-135","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"CONSUMED_RELEASED_FAILED_CLOSED_VERIFIER_QUOTING_ROLLBACK","acquiredAt":"2026-08-21T09:04:38Z","expiresAt":"2026-08-21T09:34:38Z","releasedAt":"2026-08-21T09:07:56Z","sourceCommit":"d2323ca6a0bf4cc9aed67bf3bd7ee533755999e3","sourceTree":"1652f3ceed9a36c2e0d79af5bd69d6de3b181077","archiveSha256":"88b7458a90fa56690fd3a92104f6d7354a67a0f161cdce89b7c5f168fca774ee","rollbackTarget":"/opt/ynx/search-releases/p0124-search-wallet-7604c88e","allowedExceptions":["read-only failure evidence only; P0-135 is nonreusable and exact p0124 symlink/env/service state was restored"]},
-    {"path":"{apps/search/**,production:web4.ynxweb4.com/search/**,production:ynx-search.service,production:/opt/ynx/search-current,production:/opt/ynx/search-releases/p0136-search-subroute-d2323ca6}","owner":"integration","branch":"codex/p0-search-wallet-visible-20260821","worktree":"/Users/huangjiahao/Desktop/YNX Final Worktrees/54-search-visible-p0","taskId":"P0-136","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"RELEASED_PUBLIC_BYTES_EXACT_COMPUTER_CONTROL_BLOCKED","acquiredAt":"2026-08-21T09:07:56Z","expiresAt":"2026-08-21T09:37:56Z","releasedAt":"2026-08-21T09:14:20Z","sourceCommit":"d2323ca6a0bf4cc9aed67bf3bd7ee533755999e3","sourceTree":"1652f3ceed9a36c2e0d79af5bd69d6de3b181077","checkpointCommit":"466aa828854e89ae4aadde60f98becabc7c5b674","archiveSha256":"88b7458a90fa56690fd3a92104f6d7354a67a0f161cdce89b7c5f168fca774ee","activeRuntime":"/opt/ynx/search-releases/p0136-search-subroute-d2323ca6","rollbackTarget":"/opt/ynx/search-releases/p0124-search-wallet-7604c88e","allowedExceptions":["read-only public and rollback evidence; clean English Computer Control and real provider approval/account/signature/transaction/Product Session v2 remain false"]},
-    {"path":"{apps/merchant-console/**,production:https://merchant.ynxweb4.com/**,production:/opt/ynx/merchant-console-current,production:/opt/ynx/merchant-console-releases/p0137-merchant-wallet-042d3d3c}","owner":"integration","branch":"codex/p0-merchant-console-visible-20260821","worktree":"/Users/huangjiahao/Desktop/YNX Final Worktrees/55-merchant-console-visible-p0","taskId":"P0-137","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"RELEASED_PUBLIC_ENGLISH_GUEST_WALLET_FALLBACK_VERIFIED_COMPUTER_CONTROL_BLOCKED","acquiredAt":"2026-08-21T09:18:58Z","expiresAt":"2026-08-21T09:48:58Z","releasedAt":"2026-08-21T09:23:19Z","sourceCommit":"042d3d3cb1a2593e8248919270578d48329a19d0","sourceTree":"63737163b77285b2ab94864839fe6529329bb866","checkpointCommit":"84581af52cc54d3e5e419199d1cb365f7a75f608","archiveSha256":"fd53420ff47bf77f7f9cb1c42b40bf5f9a0bcedfabbd2f5a7bdff9d88837a91c","activeRuntime":"/opt/ynx/merchant-console-releases/p0137-merchant-wallet-042d3d3c","rollbackTarget":"/opt/ynx/merchant-console-8b0d7cc7","allowedExceptions":["read-only public and rollback evidence; App Gateway, Pay API settlement, real installed Wallet, approval, account, signature, transaction, Product Session v2 and Computer Control remain false"]},
-    {"path":"{apps/seller-console/**,production:https://seller.ynxweb4.com/**,production:/etc/caddy/conf.d/ynx-seller.caddy,production:/opt/ynx/seller-console-releases/p0138-seller-wallet-91017003}","owner":"integration","branch":"codex/p0-seller-console-visible-20260821","worktree":"/Users/huangjiahao/Desktop/YNX Final Worktrees/56-seller-console-visible-p0","taskId":"P0-138","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"CONSUMED_RELEASED_FAILED_CLOSED_WRONG_HEALTH_PATH","acquiredAt":"2026-08-21T09:26:36Z","expiresAt":"2026-08-21T09:56:36Z","releasedAt":"2026-08-21T09:30:24Z","sourceCommit":"910170031e7579924af34c3c2a8b92bdb08958cf","sourceTree":"e0a95f50b7ac7fba6b98bab95d44a7fab05cef47","configCommit":"21e15223c8bc32f573d666c8f451d39c76be3245","archiveSha256":"ae6d55c80d989e5e5b8abf6ad4904539384d30d223eff30e35c1eae189d83107","rollbackTarget":"/etc/caddy/conf.d/ynx-seller.caddy.p0138-before","reusable":false,"allowedExceptions":["P0-138 reached Caddy activation but the nonexistent /api/health verifier failed; exact original Caddy bytes were restored, Shop stayed active, and this lease is nonreusable"]},
-    {"path":"{apps/seller-console/**,production:https://seller.ynxweb4.com/**,production:/etc/caddy/conf.d/ynx-seller.caddy,production:/opt/ynx/seller-console-releases/p0138-seller-wallet-91017003}","owner":"integration","branch":"codex/p0-seller-console-visible-20260821","worktree":"/Users/huangjiahao/Desktop/YNX Final Worktrees/56-seller-console-visible-p0","taskId":"P0-139","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"RELEASED_PUBLIC_ENGLISH_GUEST_WALLET_FALLBACK_VERIFIED_COMPUTER_CONTROL_BLOCKED","acquiredAt":"2026-08-21T09:30:24Z","expiresAt":"2026-08-21T10:00:24Z","releasedAt":"2026-08-21T09:39:04Z","sourceCommit":"910170031e7579924af34c3c2a8b92bdb08958cf","sourceTree":"e0a95f50b7ac7fba6b98bab95d44a7fab05cef47","checkpointCommit":"fe98fdc00c5e4228b77f2e38e009cce749066c53","configCommit":"6f5480db2d28a64fca4893e94f1405f5bbfab682","configSha256":"9fa4a26e5a959f92993dfa69d5c1c9e16efc24a3ca07d6f09e594c294f60e089","archiveSha256":"ae6d55c80d989e5e5b8abf6ad4904539384d30d223eff30e35c1eae189d83107","activeRuntime":"/opt/ynx/seller-console-releases/p0138-seller-wallet-91017003","rollbackTarget":"/etc/caddy/conf.d/ynx-seller.caddy.p0138-before","reusable":false,"allowedExceptions":["public exact bytes, English guest mode and no-provider recovery verified; real installed provider, approval/account/signature/transaction/Product Session v2/settlement and Computer Control remain false"]},
-    {"path":"{apps/calendar/**,internal/calendar/**,product-release.json,public-product-metadata.json,release/integration/calendar-contract.json,production:https://calendar-testnet.43.153.202.237.sslip.io/**,production:ynx-calendar.service,production:/usr/local/bin/ynx-calendard,production:/var/lib/ynx-chain/calendar/state.json,production:/var/lib/ynx-chain/calendar/state.json.hmac-key}","owner":"integration","branch":"codex/final-calendar","worktree":"/Users/huangjiahao/Desktop/YNX Final Worktrees/36-calendar","taskId":"P0-140","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"RELEASED_PUBLIC_CHECKPOINT_SCOPE_DIVERGENCE_RECORDED","acquiredAt":"2026-08-21T10:42:00Z","expiresAt":"2026-08-21T11:12:00Z","releasedAt":"2026-08-21T11:09:11Z","sourceCommit":"983e9199dc03da6f1ac4db33d33119513642cacf","checkpointCommit":"8f45566073f0d9979b5b1460b35144d954acc692","archiveSha256":"37ab9f0fc990f8957f7003440e8efa08410ce3b5fb38e1b4fda6cb96362a074f","activeRuntime":"/usr/local/bin/ynx-calendard","candidateRuntime":"/var/tmp/ynx-calendar-983e919-p0140/ynx-calendard","rollbackTarget":"/var/backups/ynx-chain/calendar-983e919-p0140-r2","allowedExceptions":["read-only current public and rollback evidence; P0-140 source divergence is recorded, not retroactively authorized; Product Session v2, private Calendar sync, production signing and store release remain false"]},
-    {"path":"{apps/calendar/**,internal/calendar/**,production:https://calendar-testnet.43.153.202.237.sslip.io/**,production:ynx-calendar.service,production:/usr/local/bin/ynx-calendard,production:/var/lib/ynx-chain/calendar/state.json,production:/var/lib/ynx-chain/calendar/state.json.hmac-key,production:/var/tmp/ynx-calendar-d2044bd9-p0143/**,production:/var/backups/ynx-chain/calendar-d2044bd9-p0143-20260821T164248Z/**}","owner":"integration","branch":"codex/calendar-fable5-completion-20260821","worktree":null,"taskId":"P0-143","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"RELEASED_SUCCESS_PUBLIC_REPLACEMENT_NONREUSABLE","acquiredAt":"2026-08-21T16:42:48Z","expiresAt":"2026-08-21T17:12:48Z","releasedAt":"2026-08-21T17:00:23Z","sourceCommit":"d2044bd9a8ec6bdc6235dfb625a62c3dd5c58b04","sourceTree":"b11b1e65b0026ed2bfd5d3306bd85a5c63ab3f53","checkpointCommit":"2426c2e2184f685467886fb7427950f78d089024","artifactSha256":"3fc3492d89978c32991d54abc2c8994d1dbe271df7d95364449cb81a6b781890","artifactBytes":7610516,"stagePath":"/var/tmp/ynx-calendar-d2044bd9-p0143/ynx-calendard","freshBackupPath":"/var/backups/ynx-chain/calendar-d2044bd9-p0143-20260821T164248Z","allowedExceptions":["read-only public, rollback and visible acceptance evidence only; P0-143 is consumed and nonreusable"]}
+    {
+      "path": "packages/wallet-auth/**",
+      "owner": "wallet-protocol",
+      "branch": "codex/final-wallet-auth",
+      "worktree": "02-wallet-auth",
+      "taskId": "P0-001",
+      "status": "RESERVED",
+      "allowedExceptions": [
+        "proposal-only"
+      ]
+    },
+    {
+      "path": "apps/wallet/**",
+      "owner": "wallet-platform",
+      "branch": "codex/final-wallet-auth",
+      "worktree": "02-wallet-auth",
+      "taskId": "P0-002",
+      "status": "RESERVED",
+      "allowedExceptions": [
+        "proposal-only"
+      ]
+    },
+    {
+      "path": "packages/dapp-connect-sdk/**",
+      "owner": "developer-sdk",
+      "branch": "codex/final-developer",
+      "worktree": "11-developer",
+      "taskId": "P0-003",
+      "status": "RESERVED",
+      "allowedExceptions": [
+        "proposal-only"
+      ]
+    },
+    {
+      "path": "apps/dex/**",
+      "owner": "financial-apps",
+      "branch": "codex/final-dex",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/27-dex",
+      "taskId": "P0-109",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "CHECKPOINT_REACHED_LOCAL_SNAPSHOT_UNAVAILABLE",
+      "acquiredAt": "2026-08-21T04:34:00Z",
+      "releasedAt": "2026-08-21T04:44:03Z",
+      "checkpointCommit": "fe82b27c3790bb1ac3be595cc435feac5b398b98",
+      "checkpointTree": "fb76f1d83c1e22830a6f814807d26522110f8b0c",
+      "allowedExceptions": [
+        "read-only DEX source/build evidence; Wallet approval, real swap, liquidity, public deployment and Product Session v2 remain false"
+      ]
+    },
+    {
+      "path": "apps/quant/**",
+      "owner": "financial-apps",
+      "branch": "codex/quant-owner-contract-snapshot",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/08-quant-lab",
+      "taskId": "P0-110",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "CHECKPOINT_REACHED_HEAVY_RELEASED",
+      "acquiredAt": "2026-08-21T04:44:03Z",
+      "releasedAt": "2026-08-21T04:58:00Z",
+      "startingCommit": "f66fd4d14ff047efa6bb7e66fc2e140773826b16",
+      "startingTree": "ab2cb8c7704e680fcf8451f9bd44103aaef163ff",
+      "checkpointCommit": "b20a908893010968d92045e8bb0bcb4ab1bd325c",
+      "checkpointTree": "3c2c5469bc5b10f3459befe16f512f5b98ebdbfc",
+      "allowedExceptions": [
+        "read-only canonical authorize source/build/local-browser evidence; no production deployment, real strategy execution, capital authority or migrated-v2 claim"
+      ]
+    },
+    {
+      "path": "apps/pay/**",
+      "owner": "financial-apps",
+      "branch": "codex/p0-pay-wallet-connectivity-20260821",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/04-pay-p0-clean",
+      "taskId": "P0-106",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "CHECKPOINT_REACHED_DEVICE_UNAVAILABLE",
+      "acquiredAt": "2026-08-21T04:17:21Z",
+      "releasedAt": "2026-08-21T04:34:00Z",
+      "checkpointCommit": "d488c24761d7ceb830883ed38d2bd017374d773c",
+      "checkpointTree": "fc968ed9532443e1bcedab294c2386abf1260254",
+      "allowedExceptions": [
+        "read-only Pay source/build evidence; installed Wallet, payment execution, public deployment and Product Session v2 remain false"
+      ]
+    },
+    {
+      "path": "wallet-auth.ynxweb4.com backing ynx-wallet-gateway.service",
+      "owner": "wallet-auth-core",
+      "branch": "codex/wallet-core-auth-gateway-continuation-20260814",
+      "worktree": null,
+      "taskId": "P0-054",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "CONSUMED_RELEASED_FAILED_CLOSED_INSTALL_PERMISSION",
+      "acquiredAt": "2026-08-20T19:45:08Z",
+      "expiresAt": "2026-08-20T21:45:08Z",
+      "releasedAt": "2026-08-20T19:56:33Z",
+      "checkpointCommit": "ff395e3d1d7c012784e81eb02c3ae8782fbf1298",
+      "allowedExceptions": [
+        "read-only failure and rollback evidence only; any future execution requires new accepted source and new lease"
+      ]
+    },
+    {
+      "path": "wallet-auth.ynxweb4.com backing ynx-wallet-gateway.service",
+      "owner": "wallet-auth-core",
+      "branch": "codex/wallet-core-auth-gateway-continuation-20260814",
+      "worktree": null,
+      "taskId": "P0-070",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "CONSUMED_RELEASED_FAILED_CLOSED_TRANSPORT",
+      "acquiredAt": "2026-08-20T21:45:57Z",
+      "expiresAt": "2026-08-20T23:45:57Z",
+      "releasedAt": "2026-08-20T22:01:00Z",
+      "checkpointCommit": "9e0b8d800e83f14c6c31135b54857b90ed5c0b73",
+      "allowedExceptions": [
+        "read-only failure evidence only; P0-070 is nonreusable; any successor requires a Linux-valid transfer-path preflight, fresh digests and a new lease"
+      ]
+    },
+    {
+      "path": "apps/seller-console/**",
+      "owner": "integration",
+      "branch": "codex/p0-seller-console-wallet-connectivity-20260821",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/10-seller-console-p0",
+      "taskId": "P0-056",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "CHECKPOINT_REACHED",
+      "acquiredAt": "2026-08-20T20:00:00Z",
+      "releasedAt": "2026-08-20T20:15:00Z",
+      "checkpointCommit": "8809abcd7c39d47650086ae8895ecb307dcd0fdc",
+      "implementationCommit": "2bfa3d3d7923410b02e02c9d243ef70e88653c66",
+      "allowedExceptions": [
+        "read-only Seller Console source and local-browser evidence until a future provider, Product Session or deployment slice"
+      ]
+    },
+    {
+      "path": "apps/creator-studio/**",
+      "owner": "integration",
+      "branch": "codex/p0-creator-studio-wallet-connectivity-20260821",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/34-creator-studio-p0",
+      "taskId": "P0-058",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "CHECKPOINT_REACHED",
+      "acquiredAt": "2026-08-20T20:20:00Z",
+      "releasedAt": "2026-08-20T20:31:43Z",
+      "implementationCommit": "b8bd715d06c9522bdd07a051ddcf1670fd44c3aa",
+      "checkpointCommit": "2b1103063b47d2cfbf060837056e6b33fc7ecad3",
+      "allowedExceptions": [
+        "read-only Creator Studio source and local-browser evidence until a future provider, Product Session v2 or public deployment slice"
+      ]
+    },
+    {
+      "path": "apps/search/**",
+      "owner": "integration",
+      "branch": "codex/p0-search-wallet-connectivity-20260821",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/35-search-p0",
+      "taskId": "P0-060",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "CHECKPOINT_REACHED",
+      "acquiredAt": "2026-08-20T20:36:00Z",
+      "releasedAt": "2026-08-20T20:50:00Z",
+      "implementationCommit": "9466026382b9fc2e41fbb9cd228a75985b03dd89",
+      "checkpointCommit": "a3b78490a7945fa982bfe78c8be75396b013a649",
+      "allowedExceptions": [
+        "read-only Search source and local-browser evidence until a future Product Session v2, public deployment or installed-client slice"
+      ]
+    },
+    {
+      "path": "apps/trust-center/**",
+      "owner": "integration",
+      "branch": "codex/p0-trust-center-wallet-connectivity-20260821",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/38-trust-center-p0",
+      "taskId": "P0-063",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "CHECKPOINT_REACHED",
+      "acquiredAt": "2026-08-20T21:05:00Z",
+      "releasedAt": "2026-08-20T21:12:00Z",
+      "implementationCommit": "eb07330465f3c02b5ad62375d9b2d977110aa450",
+      "checkpointCommit": "5ff4cd57667de7c87197aa0982bca6addf007a28",
+      "allowedExceptions": [
+        "read-only Trust Center source and local-browser evidence until a future accepted Trust API, provider, Product Session v2 or deployment slice"
+      ]
+    },
+    {
+      "path": "{apps/mail/**,internal/mail/**}",
+      "owner": "integration",
+      "branch": "codex/p0-mail-wallet-connectivity-20260821",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/42-mail-p0",
+      "taskId": "P0-065",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "CHECKPOINT_REACHED",
+      "acquiredAt": "2026-08-20T21:18:00Z",
+      "releasedAt": "2026-08-20T21:24:36Z",
+      "implementationCommit": "9d8d2510dcdd2b39dbc5dea5f02376178ae7aa2c",
+      "checkpointCommit": "783f14a55796539702edc2104d0f1ce333c23fc5",
+      "allowedExceptions": [
+        "read-only Mail source and local-browser evidence until a future accepted Mail Product API, installed-client or deployment slice"
+      ]
+    },
+    {
+      "path": "{apps/ai/**,internal/aiproduct/**}",
+      "owner": "integration",
+      "branch": "codex/p0-ai-wallet-connectivity-20260821",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/43-ai-p0",
+      "taskId": "P0-068",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "RELEASED_CHECKPOINT",
+      "acquiredAt": "2026-08-20T21:31:04Z",
+      "releasedAt": "2026-08-20T21:43:16Z",
+      "checkpointCommit": "2cbd93564255e25c2c861eeab68d7b8ef9831014",
+      "allowedExceptions": [
+        "AI product source recovery and accepted Standard Wallet migration only; no shared AI Gateway, Wallet/Auth, provider credentials, public deployment or installed-client claims"
+      ]
+    },
+    {
+      "path": "{apps/cloud/**,internal/cloud/**,infra/docker/ynx-cloudd.Dockerfile,infra/docker/ynx-cloudd.Dockerfile.dockerignore,infra/docker/cloud-compose.yml}",
+      "owner": "integration",
+      "branch": "codex/p0-cloud-wallet-connectivity-20260821",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/44-cloud-p0",
+      "taskId": "P0-071",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "RELEASED_CHECKPOINT",
+      "acquiredAt": "2026-08-20T21:54:29Z",
+      "releasedAt": "2026-08-20T22:12:43Z",
+      "implementationCommit": "9816f9ba2556eadea7fd9ad5061f67c5a05e64dd",
+      "checkpointCommit": "1abece5158573b10eae6c084f3653a225c6590cb",
+      "allowedExceptions": [
+        "read-only Cloud source and P0-071 evidence until a future accepted Product Session v2, installed-client or public-deployment slice"
+      ]
+    },
+    {
+      "path": "{apps/resource-market/**,internal/resourceproduct/**}",
+      "owner": "integration",
+      "branch": "codex/p0-resource-wallet-connectivity-clean-20260821",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/46-resource-p0-clean",
+      "taskId": "P0-072",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "RELEASED_CHECKPOINT",
+      "acquiredAt": "2026-08-20T22:14:59Z",
+      "releasedAt": "2026-08-20T22:29:02Z",
+      "implementationCommit": "e92bccb9c35fa9d78dd21417af8fe7eea9e85828",
+      "checkpointCommit": "5f0a6eea4aef0c1b374e971bd99f41a6e71d6596",
+      "recoveryCommit": "43ffbd7ef6e3d021031db0894bd4e0750a8a3fb3",
+      "allowedExceptions": [
+        "read-only Resource source and P0-072 evidence until a future Product Session v2, installed-client, public-deployment or settlement slice"
+      ]
+    },
+    {
+      "path": "apps/governance/**",
+      "owner": "integration",
+      "branch": "codex/p0-governance-wallet-connectivity-20260821",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/47-governance-p0",
+      "taskId": "P0-074",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "RELEASED_CHECKPOINT",
+      "acquiredAt": "2026-08-20T22:31:17Z",
+      "releasedAt": "2026-08-20T22:40:00Z",
+      "implementationCommit": "f596ffd6eec4f6d060c9cd656772fb89beb14927",
+      "checkpointCommit": "b6f3184653eaef4275d5719686a2dffc724d5218",
+      "allowedExceptions": [
+        "read-only Governance source and P0-074 evidence until a future Product Session v2, public-deployment, real-vote or installed-client slice"
+      ]
+    },
+    {
+      "path": "apps/merchant-console/**",
+      "owner": "integration",
+      "branch": "codex/p0-merchant-console-wallet-connectivity-20260821",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/05-merchant-console-p0",
+      "taskId": "P0-052",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "CHECKPOINT_REACHED",
+      "acquiredAt": "2026-08-20T19:26:00Z",
+      "releasedAt": "2026-08-20T19:45:00Z",
+      "checkpointCommit": "f3d36ab5785f910f3114c4a080f2c2551aabe656",
+      "allowedExceptions": [
+        "read-only Merchant Console source and checkpoint evidence until a future separately authorized provider or deployment slice"
+      ]
+    },
+    {
+      "path": "apps/finance/**",
+      "owner": "financial-apps",
+      "branch": "codex/p0-finance-wallet-connectivity-20260820",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/24-finance",
+      "taskId": "P0-141",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "PAUSED_FAILED_CLOSED_PREWRITE_CHECKPOINT",
+      "checkpointCommit": "02a482b9c714525dc8c5fd0dd820767cbbf63c67",
+      "checkpointTree": "bc1963bb10333bbe1a29003ccc903a768952366b",
+      "sourceCommit": "50892538dc237ef519d95c491f4b918a125a6c8e",
+      "acquiredAt": "2026-08-21T13:15:00Z",
+      "expiresAt": null,
+      "releasedAt": "2026-08-21T13:24:12Z",
+      "allowedExceptions": [
+        "read-only preservation of P0-141 failure evidence; no deployment retry, shared protocol, Website, signing, transaction or Product Session promotion"
+      ]
+    },
+    {
+      "path": "apps/exchange/**",
+      "owner": "financial-apps",
+      "branch": "codex/exchange-wallet-actions-20260809",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/07-exchange-public",
+      "taskId": "P0-105",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "CHECKPOINT_REACHED_DEVICE_UNAVAILABLE",
+      "checkpointCommit": "a1fa488ba31db88f8bd274f463f66ded25c18b45",
+      "checkpointTree": "f9248217f05932b30490418bfd8d6b571d3df391",
+      "acquiredAt": "2026-08-21T04:03:05Z",
+      "releasedAt": "2026-08-21T04:17:21Z",
+      "allowedExceptions": [
+        "read-only Exchange source/build evidence; installed Wallet, public deployment, Product Session v2 and real orders remain false"
+      ]
+    },
+    {
+      "path": "{internal/datafabric/**,internal/datafabricapi/**,internal/datafabricnats/**,internal/datafabricpostgres/**,schemas/data-fabric/**,sdk/datafabric-typescript/**,cmd/ynx-data-fabricd/**,docs/data-fabric/**,evidence/{capacity,postgres}/**,product-release.json,public-product-metadata.json,release/release-record.json,release/integration/ynx-data-fabric-contract.json,.ai-bridge/{agent-status.md,current-plan.md,full-goal-coverage.json},docs/integration/CROSS_PRODUCT_TEST_VECTORS.json,scripts/data-fabric/release-truth-check.mjs}",
+      "owner": "data-fabric",
+      "branch": "codex/final-data-fabric",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/26-data-fabric",
+      "taskId": "P0-005",
+      "status": "CHECKPOINT_REACHED",
+      "checkpointCommit": "da095e240be52023ecef19c162c869398bf9fbea",
+      "releasedAt": "2026-08-20T17:50:14Z",
+      "allowedExceptions": [
+        "read-only source, CI and handoff evidence until a future bounded Light Lease"
+      ]
+    },
+    {
+      "path": "{internal,apps}/explorer/**",
+      "owner": "explorer-monitor",
+      "branch": "codex/p0-explorer-monitor-20260820",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/12-13-explorer-monitor-fable5",
+      "taskId": "P0-119",
+      "status": "CHECKPOINT_REACHED_RUNTIME_TARGET_UNBOUND",
+      "checkpointCommit": "945cd65c7e315c3eb282286c4c292d29ae485649",
+      "acquiredAt": "2026-08-21T05:57:29Z",
+      "releasedAt": "2026-08-21T06:07:02Z",
+      "allowedExceptions": [
+        "Central Integration may perform read-only runtime/rollback mapping outside product source; no production mutation without a new lease"
+      ]
+    },
+    {
+      "path": "apps/monitor/**",
+      "owner": "explorer-monitor",
+      "branch": "codex/p0-explorer-monitor-20260820",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/12-13-explorer-monitor-fable5",
+      "taskId": "P0-119",
+      "status": "CHECKPOINT_REACHED_RUNTIME_TARGET_UNBOUND",
+      "checkpointCommit": "945cd65c7e315c3eb282286c4c292d29ae485649",
+      "acquiredAt": "2026-08-21T05:57:29Z",
+      "releasedAt": "2026-08-21T06:07:02Z",
+      "allowedExceptions": [
+        "Central Integration may perform read-only runtime/rollback mapping outside product source; no production mutation without a new lease"
+      ]
+    },
+    {
+      "path": "{apps/calendar/**,internal/calendar/**}",
+      "owner": "integration",
+      "branch": "codex/p0-calendar-wallet-evidence-20260821",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/48-calendar-p0",
+      "taskId": "P0-075",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "RELEASED_CHECKPOINT",
+      "acquiredAt": "2026-08-20T22:40:00Z",
+      "releasedAt": "2026-08-20T22:46:48Z",
+      "startingCommit": "8ff6eb24705155fbbeddf983d44f87e9e20d944f",
+      "verificationCommit": "c6575ea13a3553b2799b64566106797b3bc59154",
+      "checkpointCommit": "573989195f8b4f2f08bb4fb4c3bf9f245f8f2d68",
+      "allowedExceptions": [
+        "read-only Calendar source and P0-075 deterministic visible evidence until a future installed Wallet, Product Session v2 or current-source public slice"
+      ]
+    },
+    {
+      "path": "apps/music/**",
+      "owner": "integration",
+      "branch": "codex/p0-music-wallet-connectivity-20260821",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/49-music-p0",
+      "taskId": "P0-076",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "RELEASED_CHECKPOINT",
+      "acquiredAt": "2026-08-20T22:46:48Z",
+      "releasedAt": "2026-08-20T22:58:46Z",
+      "startingCommit": "bd6cd7a088382f3526ada4dce86d75aa78665244",
+      "implementationCommit": "b7d989c892ec22eb5b893f8ee54ce6f09897590d",
+      "checkpointCommit": "df0bd07667d33dbf97635b881033db65129c32c6",
+      "allowedExceptions": [
+        "read-only Music source and P0-076 evidence until a future Product Session v2, installed-client or current-source public deployment slice"
+      ]
+    },
+    {
+      "path": "apps/video/**",
+      "owner": "integration",
+      "branch": "codex/p0-video-wallet-visible-20260821",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/50-video-p0",
+      "taskId": "P0-077",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "RELEASED_CHECKPOINT",
+      "acquiredAt": "2026-08-20T22:58:46Z",
+      "releasedAt": "2026-08-20T23:05:27Z",
+      "startingCommit": "1d4532ffca4eabdc15f2ec66f3d1143f67e159fa",
+      "verificationCommit": "b851ffb2a0563ff992e47f76eeac23c21ab11fd8",
+      "checkpointCommit": "2e516baac89278a767397b29e72eed67a97e60db",
+      "priorTaskId": "P0-047",
+      "allowedExceptions": [
+        "read-only Video source and P0-077 deterministic visible evidence until a future installed Wallet, Product Session v2 or public-deployment slice"
+      ]
+    },
+    {
+      "path": "{apps/bridge-web/**,docs/bridge/**,release/bridge/**}",
+      "owner": "integration",
+      "branch": "codex/p0-bridge-wallet-connectivity-20260821",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/51-bridge-p0",
+      "taskId": "P0-078",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "RELEASED_CHECKPOINT",
+      "acquiredAt": "2026-08-20T23:05:27Z",
+      "releasedAt": "2026-08-20T23:22:00Z",
+      "startingCommit": "fc82c236cf8e2d8a9c69834b5985895170249aa4",
+      "implementationCommit": "fe8c466a456d42ecd5088938e9e8623826a296c0",
+      "checkpointCommit": "a3b57a9d1e51d6d157a932b584dbdda1adc748a9",
+      "allowedExceptions": [
+        "read-only Bridge source and P0-078 deterministic visible evidence until a future installed Wallet, Product Session v2, executable route or current-source public deployment slice"
+      ]
+    },
+    {
+      "path": "{apps/browser/**,release/browser/**}",
+      "owner": "integration",
+      "branch": "codex/p0-browser-current-source-verification-20260821",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/52-browser-p0",
+      "taskId": "P0-079",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "RELEASED_CHECKPOINT",
+      "acquiredAt": "2026-08-20T23:22:00Z",
+      "releasedAt": "2026-08-20T23:30:00Z",
+      "startingCommit": "284faf7807dc1fe6f1ea245fff5956f32b2e5d7a",
+      "implementationCommit": "ad890f0a2fe562536216c2834b25a7ad2aa398f6",
+      "checkpointCommit": "590314a9468982ef9f58f745f60156e89a2cd66c",
+      "allowedExceptions": [
+        "read-only Browser source and P0-079 evidence until a future unlocked on-screen, other-platform, signed or publicly hosted slice"
+      ]
+    },
+    {
+      "path": "apps/oracle/**",
+      "owner": "integration",
+      "branch": "codex/p0-oracle-public-data-verification-20260821",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/53-oracle-p0",
+      "taskId": "P0-080",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "RELEASED_CHECKPOINT",
+      "acquiredAt": "2026-08-20T23:30:00Z",
+      "releasedAt": "2026-08-20T23:38:00Z",
+      "startingCommit": "a059d573ed128a704ec447561711a13cb1e3d9dd",
+      "implementationCommit": "8e5907ac1a1c4cb7bc4d91831e49487aee691dfa",
+      "checkpointCommit": "d3038abbec4a393fd1d66b54dec4f0027f0c8962",
+      "allowedExceptions": [
+        "read-only Oracle source and P0-080 evidence until a future healthy provider, authoritative price, current-source public deployment or Computer Control slice"
+      ]
+    },
+    {
+      "path": "apps/search/**",
+      "owner": "integration",
+      "branch": "codex/p0-search-wallet-visible-20260821",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/54-search-visible-p0",
+      "taskId": "P0-081",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "RELEASED_CHECKPOINT",
+      "acquiredAt": "2026-08-20T23:38:00Z",
+      "releasedAt": "2026-08-20T23:52:00Z",
+      "startingCommit": "a3b78490a7945fa982bfe78c8be75396b013a649",
+      "implementationCommit": "49234dfe0cf0d2a3e0d2f2054c8eeab5617baa74",
+      "checkpointCommit": "c9de2692aad9f0e99edce5c49366265480b369da",
+      "priorTaskId": "P0-060",
+      "allowedExceptions": [
+        "read-only Search source and P0-081 deterministic visible evidence until a future installed Wallet, Product Session v2 or current-source public deployment slice"
+      ]
+    },
+    {
+      "path": "apps/merchant-console/**",
+      "owner": "integration",
+      "branch": "codex/p0-merchant-console-visible-20260821",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/55-merchant-console-visible-p0",
+      "taskId": "P0-082",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "RELEASED_CHECKPOINT",
+      "acquiredAt": "2026-08-20T23:52:00Z",
+      "releasedAt": "2026-08-21T00:05:00Z",
+      "startingCommit": "f3d36ab5785f910f3114c4a080f2c2551aabe656",
+      "verificationCommit": "204c1ec27efb9f937bd2effdbbaa1253796c871a",
+      "checkpointCommit": "6fba5d24bfccc41b33713aefad38aa12766151d2",
+      "priorTaskId": "P0-052",
+      "allowedExceptions": [
+        "read-only Merchant Console source and P0-082 deterministic visible evidence until a future installed Wallet, Product Session v2 or current-source public deployment slice"
+      ]
+    },
+    {
+      "path": "apps/seller-console/**",
+      "owner": "integration",
+      "branch": "codex/p0-seller-console-visible-20260821",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/56-seller-console-visible-p0",
+      "taskId": "P0-083",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "RELEASED_CHECKPOINT",
+      "acquiredAt": "2026-08-21T00:05:00Z",
+      "releasedAt": "2026-08-21T00:20:00Z",
+      "startingCommit": "8809abcd7c39d47650086ae8895ecb307dcd0fdc",
+      "verificationCommit": "59b8719c71e441f6507b64f99796c3f63dc69450",
+      "checkpointCommit": "2e4b92a05007f8c7eccdcef77e6039e0b25fa0b2",
+      "priorTaskId": "P0-056",
+      "allowedExceptions": [
+        "read-only Seller Console source and P0-083 deterministic visible evidence until a future installed Wallet, Product Session v2 or current-source public deployment slice"
+      ]
+    },
+    {
+      "path": "apps/creator-studio/**",
+      "owner": "integration",
+      "branch": "codex/p0-creator-studio-visible-20260821",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/57-creator-studio-visible-p0",
+      "taskId": "P0-111",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "RELEASED_SOURCE_BUILD_CHECKPOINT",
+      "acquiredAt": "2026-08-21T04:46:04Z",
+      "releasedAt": "2026-08-21T04:51:05Z",
+      "checkpointCommit": "7bb494ff82420b84d0c153cbeb563083ad4dd361",
+      "startingCommit": "73feca397ca0589c5d5a3e07c30944aaeb1b00d8",
+      "startingTree": "b9f5c77dd8cb0a331887460133744e69874568e4",
+      "priorTaskId": "P0-084",
+      "allowedExceptions": [
+        "Creator Studio Web safe-launcher source/build checkpoint only; no Product Session v2, payout, public deployment or installed Wallet claim"
+      ]
+    },
+    {
+      "path": "apps/trust-center/**",
+      "owner": "integration",
+      "branch": "codex/p0-trust-center-visible-20260821",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/58-trust-center-visible-p0",
+      "taskId": "P0-085",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "RELEASED_CHECKPOINT",
+      "acquiredAt": "2026-08-21T00:35:00Z",
+      "releasedAt": "2026-08-21T00:50:00Z",
+      "startingCommit": "5ff4cd57667de7c87197aa0982bca6addf007a28",
+      "verificationCommit": "6abb11d28eefcd0cb1b4aa4ca0573cbf00805de1",
+      "checkpointCommit": "130c8757f8446b2236ac1582d5f2d47ac7828969",
+      "priorTaskId": "P0-063",
+      "allowedExceptions": [
+        "read-only Trust Center source and P0-085 deterministic visible evidence until a future installed Wallet, Product Session v2 or current-source public deployment slice"
+      ]
+    },
+    {
+      "path": "{apps/mail/**,internal/mail/**}",
+      "owner": "integration",
+      "branch": "codex/p0-mail-visible-20260821",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/59-mail-visible-p0",
+      "taskId": "P0-086",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "RELEASED_CHECKPOINT",
+      "acquiredAt": "2026-08-21T00:50:00Z",
+      "releasedAt": "2026-08-21T01:10:00Z",
+      "startingCommit": "783f14a55796539702edc2104d0f1ce333c23fc5",
+      "verificationCommit": "1f09b763343127e5d9e807085a90c88566322a83",
+      "checkpointCommit": "734e62bb1bf2cb12fbed02047ac78e310b5a3347",
+      "priorTaskId": "P0-065",
+      "allowedExceptions": [
+        "read-only Mail source and P0-086 deterministic visible evidence until a future installed Wallet, Product Session v2 or current-source public deployment slice"
+      ]
+    },
+    {
+      "path": "{apps/cloud/**,internal/cloud/**,infra/docker/ynx-cloudd.Dockerfile,infra/docker/ynx-cloudd.Dockerfile.dockerignore,infra/docker/cloud-compose.yml}",
+      "owner": "integration",
+      "branch": "codex/p0-cloud-visible-20260821",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/60-cloud-visible-p0",
+      "taskId": "P0-087",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "RELEASED_CHECKPOINT",
+      "acquiredAt": "2026-08-21T01:10:00Z",
+      "releasedAt": "2026-08-21T01:30:00Z",
+      "startingCommit": "1abece5158573b10eae6c084f3653a225c6590cb",
+      "verificationCommit": "1131288bbfdc6fc33b57d92af612e5adad61efb1",
+      "checkpointCommit": "a427075261aebc2fcb493205840de0bc9f0bc87e",
+      "priorTaskId": "P0-071",
+      "allowedExceptions": [
+        "read-only Cloud source and P0-087 deterministic visible evidence until a future installed Wallet, Product Session v2 or current-source public deployment slice"
+      ]
+    },
+    {
+      "path": "{apps/ai/**,internal/aiproduct/**}",
+      "owner": "integration",
+      "branch": "codex/p0-ai-visible-20260821",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/61-ai-visible-p0",
+      "taskId": "P0-088",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "RELEASED_CHECKPOINT",
+      "acquiredAt": "2026-08-21T01:30:00Z",
+      "releasedAt": "2026-08-21T01:50:00Z",
+      "startingCommit": "2cbd93564255e25c2c861eeab68d7b8ef9831014",
+      "verificationCommit": "d2d51d3acc18707be82aae5da38ab4f730b1de19",
+      "checkpointCommit": "7eefdf5e3f5ead51912192bdf4806594112fc859",
+      "priorTaskId": "P0-068",
+      "allowedExceptions": [
+        "read-only AI source and P0-088 deterministic visible evidence until the central AI contract, live provider, installed Wallet, Product Session v2 and current-source public deployment gates are satisfied"
+      ]
+    },
+    {
+      "path": "{apps/resource-market/**,internal/resourceproduct/**}",
+      "owner": "integration",
+      "branch": "codex/p0-resource-visible-audit-20260821",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/62-resource-visible-audit-p0",
+      "taskId": "P0-089",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "RELEASED_CHECKPOINT",
+      "acquiredAt": "2026-08-21T01:50:00Z",
+      "releasedAt": "2026-08-21T02:05:00Z",
+      "startingCommit": "5f0a6eea4aef0c1b374e971bd99f41a6e71d6596",
+      "checkpointCommit": "0326004cb260863f214261acec635bd3ef2e5c0c",
+      "priorTaskId": "P0-072",
+      "allowedExceptions": [
+        "read-only Resource P0-089 audit evidence until a future installed Wallet, Product Session v2, settlement or public deployment slice"
+      ]
+    },
+    {
+      "path": "{docs/coordination/p0-wallet-connectivity,docs/handoffs/p0-wallet-connectivity,release/integration/p0-wallet-connectivity}/**",
+      "owner": "integration",
+      "branch": "codex/final-integration",
+      "worktree": "29-integration",
+      "taskId": "P0-000",
+      "status": "ACTIVE",
+      "allowedExceptions": []
+    },
+    {
+      "path": "apps/shop/**",
+      "owner": "integration",
+      "branch": "codex/p0-shop-android-retirement-20260820",
+      "worktree": "09-shop",
+      "taskId": "P0-011",
+      "status": "ACTIVE",
+      "allowedExceptions": [
+        "historical-evidence-preservation"
+      ]
+    },
+    {
+      "path": "YNX-Chain-website:{vercel.json,src/lib/ecosystemCatalog.js,public/releases/ecosystem-release-registry.json}",
+      "owner": "integration",
+      "branch": "codex/p0-shop-android-retirement-20260820",
+      "worktree": "28-website",
+      "taskId": "P0-011",
+      "status": "ACTIVE",
+      "allowedExceptions": [
+        "historical-evidence-preservation"
+      ]
+    },
+    {
+      "path": "{cmd/ynx-faucetd/**,internal/faucet/**,infra/systemd/ynx-faucetd.example.service,infra/docker/ynx-faucetd.Dockerfile,scripts/verify/faucet-check.sh,production:ynx-faucetd.service,production:/usr/local/bin/ynx-faucetd}",
+      "owner": "integration",
+      "branch": "codex/p0-faucet-runtime-20260820",
+      "worktree": "29-faucet-runtime-p0",
+      "taskId": "P0-093",
+      "status": "RELEASED_CHECKPOINT",
+      "acquiredAt": "2026-08-21T01:10:00Z",
+      "releasedAt": "2026-08-21T01:15:00Z",
+      "startingCommit": "9a86ef556992e9bd48a48fca8ecd624b800973a9",
+      "checkpointCommit": "fe812300c9443fed62f74c9f39fbcc149b173a14",
+      "allowedExceptions": [
+        "read-only public Faucet, chain and Explorer evidence until a future separately authorized change"
+      ]
+    },
+    {
+      "path": "{cmd/ynx-chaind/replication*.go,internal/api/server*.go,internal/chain/replication*.go,scripts/ops/deploy-bounded-replication-recovery.sh}",
+      "owner": "integration",
+      "branch": "codex/p0-bounded-replication-runtime-compatible-20260820",
+      "worktree": "29-chain-replication-runtime-p0",
+      "taskId": "P0-015",
+      "status": "RELEASED_CHECKPOINT",
+      "acquiredAt": "2026-08-20T12:00:00Z",
+      "releasedAt": "2026-08-20T18:54:03Z",
+      "checkpointCommit": "0be8967deefb08ecf9f1e14efe6f11ea621f6c5c",
+      "runtimeSourceCommit": "be9f03833ac3a7579bd96f22f6bf49f3d8dccc7b",
+      "rolloutEvidenceCommit": "c1813fb33bddf3479382d2d24f4e255d52b5dd43",
+      "allowedExceptions": [
+        "read-only source, rollout and soak evidence until a future separately authorized Chain Core change"
+      ]
+    },
+    {
+      "path": "apps/card/**",
+      "owner": "card-testnet-virtual",
+      "branch": "codex/p0-card-testnet-virtual-20260820-fix",
+      "worktree": "/Users/huangjiahao/.codex/worktrees/f41f/YNX Chain",
+      "taskId": "P0-013",
+      "status": "RELEASED_CHECKPOINT",
+      "acquiredAt": "2026-08-20T09:05:00Z",
+      "expiresAt": "2026-08-20T13:05:00Z",
+      "releasedAt": "2026-08-21T02:19:12Z",
+      "checkpointCommit": "466a4c4cd59e2958260bd6e35193b32c0d2249f4",
+      "allowedExceptions": [
+        "read-only public Web/PWA evidence; real Wallet, Product Session v2, YNXT top-up, real card and ComputerControl remain false"
+      ]
+    },
+    {
+      "path": "{apps/calendar/**,internal/calendar/**,production:ynx-calendar.service,production:/usr/local/bin/ynx-calendard}",
+      "owner": "integration",
+      "branch": "codex/p0-calendar-wallet-evidence-20260821",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/48-calendar-p0",
+      "taskId": "P0-095",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "RELEASED_CHECKPOINT",
+      "acquiredAt": "2026-08-21T01:33:20Z",
+      "releasedAt": "2026-08-21T01:41:00Z",
+      "startingCommit": "afb1b988e5e47f02928163c345ff5fb1dc7a44e5",
+      "artifactSha256": "f0ce5b354c7a68889e5cfd0450801fa4adea73eff97761c6346e6d5f4ac0c46b",
+      "checkpointCommit": "882e9a0e3b7d1d6e6741c3a20ce3e6a2f0f63de1",
+      "allowedExceptions": [
+        "read-only failed-closed evidence and public rollback probes; P0-095 is nonreusable"
+      ]
+    },
+    {
+      "path": "{apps/calendar/**,internal/calendar/**,production:ynx-calendar.service,production:/usr/local/bin/ynx-calendard,production:/var/lib/ynx-chain/calendar/state.json,production:/var/lib/ynx-chain/calendar/state.json.hmac-key}",
+      "owner": "integration",
+      "branch": "codex/p0-calendar-wallet-evidence-20260821",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/48-calendar-p0",
+      "taskId": "P0-097",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "RELEASED_FAILED_CLOSED",
+      "acquiredAt": "2026-08-21T01:45:31Z",
+      "releasedAt": "2026-08-21T01:51:00Z",
+      "startingCommit": "882e9a0e3b7d1d6e6741c3a20ce3e6a2f0f63de1",
+      "sourceCommit": "afb1b988e5e47f02928163c345ff5fb1dc7a44e5",
+      "checkpointCommit": "ba34c0850571b5382326ab2e34c2b47294c7ccad",
+      "artifactSha256": "f0ce5b354c7a68889e5cfd0450801fa4adea73eff97761c6346e6d5f4ac0c46b",
+      "allowedExceptions": [
+        "read-only failed-closed evidence and rollback probes; P0-097 is nonreusable"
+      ]
+    },
+    {
+      "path": "{apps/calendar/**,internal/calendar/**,product-release.json,public-product-metadata.json,release/integration/calendar-contract.json,production:ynx-calendar.service,production:/usr/local/bin/ynx-calendard,production:/var/lib/ynx-chain/calendar/state.json,production:/var/lib/ynx-chain/calendar/state.json.hmac-key}",
+      "owner": "integration",
+      "branch": "codex/p0-calendar-wallet-evidence-20260821",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/48-calendar-p0",
+      "taskId": "P0-098",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "RELEASED_CHECKPOINT",
+      "acquiredAt": "2026-08-21T02:01:50Z",
+      "releasedAt": "2026-08-21T02:10:00Z",
+      "startingCommit": "ac549a7e82aa6f18c52347a045f1959c3c54a985",
+      "sourceCommit": "828120e6d81efaf874a930793660e185a394ba4f",
+      "checkpointCommit": "820fe3d3051aa1f5709fca179af811f1c6fb79b6",
+      "artifactSha256": "030bc61acfb61ae6adf05a5aa6b472f34beee24a9113b696e9d845d709f8ae3d",
+      "allowedExceptions": [
+        "read-only current public runtime and browser evidence; installed Wallet, Product Session v2, Mail, AI and ComputerControl remain false"
+      ]
+    },
+    {
+      "path": "{apps/social/**,internal/social/**,cmd/ynx-sociald/**}",
+      "owner": "integration",
+      "branch": "codex/p0-social-runtime-reconciliation-20260821",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/02-social-product-session-v2",
+      "taskId": "P0-127",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "RELEASED_SOURCE_CHECKPOINT",
+      "acquiredAt": "2026-08-21T07:50:17Z",
+      "releasedAt": "2026-08-21T08:00:38Z",
+      "startingCommit": "76b67a05fe5274f388d29f552b8a0b1e35dfe4ed",
+      "checkpointCommit": "4b6c5fa3e7570427fd6da4a5682de6095d73fc39",
+      "allowedExceptions": [
+        "read-only source and public evidence only; a separate lease governs Vercel publication"
+      ]
+    },
+    {
+      "path": "{production:https://social.ynxweb4.com/**,vercel:ynx-social-web}",
+      "owner": "integration",
+      "branch": "codex/p0-social-runtime-reconciliation-20260821",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/02-social-product-session-v2",
+      "taskId": "P0-128",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "RELEASED_PUBLIC_CHECKPOINT",
+      "acquiredAt": "2026-08-21T08:00:38Z",
+      "expiresAt": "2026-08-21T08:30:38Z",
+      "releasedAt": "2026-08-21T08:15:40Z",
+      "sourceCommit": "22c26bcb7a8d618cb8e38b30940b1c07bf4237c8",
+      "runtimeDeployment": "dpl_2sei8CpmoN1Gi5YKnc6FdvNRyXGy",
+      "evidence": "release/integration/p0-wallet-connectivity/social-web-standard-wallet-public-evidence-20260821.json",
+      "allowedExceptions": [
+        "path is read-only after release; no Social API, ynx-sociald, Wallet/Auth or other product mutation"
+      ]
+    },
+    {
+      "path": "apps/creator-studio/**",
+      "owner": "integration",
+      "branch": "codex/p0-creator-studio-visible-20260821",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/57-creator-studio-visible-p0",
+      "taskId": "P0-129",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "RELEASED_SOURCE_CHECKPOINT_PUBLIC_DEFECT_OPEN",
+      "acquiredAt": "2026-08-21T08:20:52Z",
+      "releasedAt": "2026-08-21T08:28:50Z",
+      "sourceCommit": "993e7cc99ea3919488d6765e097ca78a82a30704",
+      "checkpointCommit": "993e7cc99ea3919488d6765e097ca78a82a30704",
+      "allowedExceptions": [
+        "read-only source and public runtime evidence only; no production mutation without a wholly new Heavy lease"
+      ]
+    },
+    {
+      "path": "{production:web4.ynxweb4.com/video/studio/**,production:ynx-video-studio.service,production:/opt/ynx-video/current,production:/opt/ynx-video/releases/p0130-creator-wallet-993e7cc9}",
+      "owner": "integration",
+      "branch": "codex/p0-creator-studio-visible-20260821",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/57-creator-studio-visible-p0",
+      "taskId": "P0-130",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "RELEASED_FAILED_CLOSED_ARCHIVE_DIRECTORY_MODE",
+      "acquiredAt": "2026-08-21T08:30:49Z",
+      "expiresAt": "2026-08-21T09:00:49Z",
+      "releasedAt": "2026-08-21T08:33:27Z",
+      "sourceCommit": "993e7cc99ea3919488d6765e097ca78a82a30704",
+      "artifactSha256": "444d6dd38bd919f3aad26a73ec0db56c4929bd904b05003080e213f8ecb81291",
+      "allowedExceptions": [
+        "read-only failure evidence; P0-130 is nonreusable and candidate was never activated"
+      ]
+    },
+    {
+      "path": "{production:web4.ynxweb4.com/video/studio/**,production:ynx-video-studio.service,production:/opt/ynx-video/current,production:/opt/ynx-video/releases/p0131-creator-wallet-993e7cc9}",
+      "owner": "integration",
+      "branch": "codex/p0-creator-studio-visible-20260821",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/57-creator-studio-visible-p0",
+      "taskId": "P0-131",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "RELEASED_FAILED_CLOSED_READINESS_WINDOW",
+      "acquiredAt": "2026-08-21T08:34:52Z",
+      "expiresAt": "2026-08-21T09:04:52Z",
+      "releasedAt": "2026-08-21T08:37:16Z",
+      "sourceCommit": "993e7cc99ea3919488d6765e097ca78a82a30704",
+      "artifactSha256": "9ec9385f2a1843e826f7a059f832b06a90f9828a13652595a4a6afe75e1c03de",
+      "allowedExceptions": [
+        "read-only failure and rollback evidence; P0-131 is nonreusable"
+      ]
+    },
+    {
+      "path": "{production:web4.ynxweb4.com/video/studio/**,production:ynx-video-studio.service,production:/opt/ynx-video/current,production:/opt/ynx-video/releases/p0131-creator-wallet-993e7cc9}",
+      "owner": "integration",
+      "branch": "codex/p0-creator-studio-visible-20260821",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/57-creator-studio-visible-p0",
+      "taskId": "P0-132",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "RELEASED_PUBLIC_CHECKPOINT_COMPUTER_CONTROL_BLOCKED",
+      "acquiredAt": "2026-08-21T08:38:29Z",
+      "expiresAt": "2026-08-21T08:53:29Z",
+      "releasedAt": "2026-08-21T08:43:39Z",
+      "sourceCommit": "993e7cc99ea3919488d6765e097ca78a82a30704",
+      "artifactSha256": "9ec9385f2a1843e826f7a059f832b06a90f9828a13652595a4a6afe75e1c03de",
+      "activeRuntime": "/opt/ynx-video/releases/p0131-creator-wallet-993e7cc9",
+      "evidence": "release/integration/p0-wallet-connectivity/creator-studio-p0132-public-standard-wallet-evidence-20260821.json",
+      "allowedExceptions": [
+        "read-only public and rollback evidence only; a new lease is required for any production mutation; Computer Control retry requires an unlocked Mac"
+      ]
+    },
+    {
+      "path": "apps/search/**",
+      "owner": "integration",
+      "branch": "codex/p0-search-wallet-visible-20260821",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/54-search-visible-p0",
+      "taskId": "P0-112",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "RELEASED_SOURCE_BUILD_BROWSER_CHECKPOINT",
+      "acquiredAt": "2026-08-21T04:52:11Z",
+      "releasedAt": "2026-08-21T04:56:35Z",
+      "startingCommit": "c9de2692aad9f0e99edce5c49366265480b369da",
+      "startingTree": "b5e669b6c2967a746310c5f24193cb346e096fee",
+      "checkpointCommit": "7604c88e5965bcfdf575c1b84bc9dbf57952c951",
+      "checkpointTree": "325103c1aa748a1f9d0bd14b4d0fbc42ab42f590",
+      "priorTaskId": "P0-060",
+      "allowedExceptions": [
+        "Search Web safe-launcher source/build/browser checkpoint only; no Product Session v2, public deployment or installed Wallet claim"
+      ]
+    },
+    {
+      "path": "apps/merchant-console/**",
+      "owner": "integration",
+      "branch": "codex/p0-merchant-console-visible-20260821",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/55-merchant-console-visible-p0",
+      "taskId": "P0-113",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "RELEASED_SOURCE_BUILD_BROWSER_CHECKPOINT",
+      "acquiredAt": "2026-08-21T05:00:26Z",
+      "releasedAt": "2026-08-21T05:05:19Z",
+      "startingCommit": "6fba5d24bfccc41b33713aefad38aa12766151d2",
+      "startingTree": "1bcf650f866be4d7da2120a78e0260684a4e63d2",
+      "checkpointCommit": "042d3d3cb1a2593e8248919270578d48329a19d0",
+      "checkpointTree": "63737163b77285b2ab94864839fe6529329bb866",
+      "priorTaskId": "P0-052",
+      "allowedExceptions": [
+        "Merchant Console Web safe-launcher source/build/browser checkpoint only; no Product Session v2, public deployment, settlement or installed Wallet claim"
+      ]
+    },
+    {
+      "path": "apps/seller-console/**",
+      "owner": "integration",
+      "branch": "codex/p0-seller-console-visible-20260821",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/56-seller-console-visible-p0",
+      "taskId": "P0-114",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "RELEASED_SOURCE_BUILD_BROWSER_CHECKPOINT",
+      "acquiredAt": "2026-08-21T05:06:39Z",
+      "releasedAt": "2026-08-21T05:14:00Z",
+      "startingCommit": "2e4b92a05007f8c7eccdcef77e6039e0b25fa0b2",
+      "startingTree": "1ab8ec0cc2dd69b20bed509f06f5bef2d335105d",
+      "checkpointCommit": "910170031e7579924af34c3c2a8b92bdb08958cf",
+      "checkpointTree": "e0a95f50b7ac7fba6b98bab95d44a7fab05cef47",
+      "priorTaskId": "P0-056",
+      "allowedExceptions": [
+        "Seller Console Web safe-launcher source/build/browser checkpoint only; no Product Session v2, public deployment, order mutation or installed Wallet claim"
+      ]
+    },
+    {
+      "path": "apps/ai/mobile/**",
+      "owner": "integration",
+      "branch": "codex/p0-ai-visible-20260821",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/61-ai-visible-p0",
+      "taskId": "P0-115",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "RELEASED_SOURCE_TEST_BUNDLE_CHECKPOINT",
+      "acquiredAt": "2026-08-21T05:15:05Z",
+      "releasedAt": "2026-08-21T05:22:04Z",
+      "startingCommit": "7eefdf5e3f5ead51912192bdf4806594112fc859",
+      "startingTree": "12ea5eddc1939324e2ef03fe543e7501f4f6d901",
+      "implementationCommit": "37ce84b163e793cf6846e589fb543ecac0a6cf77",
+      "checkpointCommit": "048269c0f670e0234256d917a5e9cabae5c47d5a",
+      "checkpointTree": "c30abf0c52c1440310540627e20e86c196f4139e",
+      "priorTaskId": "P0-068",
+      "allowedExceptions": [
+        "AI mobile native safe-launcher source/test/bundle checkpoint only; no backend, live provider, public deployment, Product Session v2 or installed Wallet claim"
+      ]
+    },
+    {
+      "path": "{apps/video/**,production:web4.ynxweb4.com/video/**,production:ynx-video-viewer.service,production:/opt/ynx-video/current}",
+      "owner": "integration",
+      "branch": "codex/p0-video-wallet-visible-20260821",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/50-video-p0",
+      "taskId": "P0-121",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "RELEASED_PUBLIC_STANDARD_WALLET_CHECKPOINT",
+      "acquiredAt": "2026-08-21T06:36:53Z",
+      "releasedAt": "2026-08-21T06:42:19Z",
+      "sourceCommit": "2e516baac89278a767397b29e72eed67a97e60db",
+      "activeRuntime": "/opt/ynx-video/releases/p0121-video-wallet-2e516baa",
+      "rollbackTarget": "/opt/ynx-video/releases/1883d406f77f94cb81171b79fe9518882ede0b16",
+      "evidencePath": "release/integration/p0-wallet-connectivity/video-public-standard-wallet-evidence-20260821.json",
+      "allowedExceptions": [
+        "read-only public and rollback evidence only; a new product-scoped lease is required for any later production mutation"
+      ]
+    },
+    {
+      "path": "{apps/creator-studio/**,production:web4.ynxweb4.com/video/studio/**,production:ynx-video-studio.service,production:/opt/ynx-video/current}",
+      "owner": "integration",
+      "branch": "codex/p0-creator-studio-visible-20260821",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/57-creator-studio-visible-p0",
+      "taskId": "P0-122",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "RELEASED_PUBLIC_SOURCE_COMPUTER_CONTROL_BLOCKED",
+      "acquiredAt": "2026-08-21T06:44:29Z",
+      "releasedAt": "2026-08-21T06:52:03Z",
+      "sourceCommit": "650070ce5c5a7928425509f6e9e7da0aec31910d",
+      "supersedesBrokenRuntimeSource": "7bb494ff82420b84d0c153cbeb563083ad4dd361",
+      "activeRuntime": "/opt/ynx-video/releases/p0122b-creator-wallet-650070ce",
+      "rollbackTarget": "/opt/ynx-video/releases/p0121-video-wallet-2e516baa",
+      "evidencePath": "release/integration/p0-wallet-connectivity/creator-studio-public-standard-wallet-evidence-20260821.json",
+      "allowedExceptions": [
+        "read-only public and rollback evidence plus Computer Control retry after unlock; a new lease is required for any production mutation"
+      ]
+    },
+    {
+      "path": "{apps/wallet-web/**,production:wallet.ynxweb4.com/**,vercel:ynx-wallet-web}",
+      "owner": "integration",
+      "branch": "codex/wallet-web-provider-v2-20260821",
+      "worktree": "/private/tmp/ynx-wallet-web-provider-v2-20260821",
+      "taskId": "P0-123",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "RELEASED_PUBLIC_PWA_V7_COMPUTER_CONTROL_BLOCKED",
+      "acquiredAt": "2026-08-21T06:58:06Z",
+      "releasedAt": "2026-08-21T07:00:20Z",
+      "sourceCommit": "562ceb505469a6d0a6efd4d8761dfbd741916b50",
+      "checkpointCommit": "4f23310091a59baa0d68660ef5a180692dc9b65a",
+      "activeRuntime": "dpl_81HVzHyGz8kzhsddaJH3QodSyByu",
+      "rollbackTarget": "dpl_DWQ96LmD9HuNG4deEdSR5fojg8bT",
+      "evidencePath": "release/integration/p0-wallet-connectivity/wallet-web-pwa-v7-public-evidence-20260821.json",
+      "allowedExceptions": [
+        "read-only public and rollback evidence plus Computer Control retry after unlock; a new lease is required for any production mutation"
+      ]
+    },
+    {
+      "path": "{apps/search/**,production:web4.ynxweb4.com/search/**,production:ynx-search.service,production:/opt/ynx/search-current}",
+      "owner": "integration",
+      "branch": "codex/p0-search-wallet-visible-20260821",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/54-search-visible-p0",
+      "taskId": "P0-124",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "RELEASED_PUBLIC_CHECKPOINT",
+      "acquiredAt": "2026-08-21T07:05:00Z",
+      "releasedAt": "2026-08-21T07:15:00Z",
+      "sourceCommit": "7604c88e5965bcfdf575c1b84bc9dbf57952c951",
+      "archiveSha256": "b939916b83c8460f815400a9b8feb916628d4a965c82741da677a45e7254f4ee",
+      "currentRuntime": "/opt/ynx/search-releases/p0124-search-wallet-7604c88e",
+      "rollbackTarget": "/opt/ynx/search-releases/a2601b6c1c49203fe386c8de55b5378fa86d1ff4",
+      "allowedExceptions": [
+        "public bytes and health identity exact; Computer Control and real Wallet approval remain false"
+      ]
+    },
+    {
+      "path": "{apps/trust-center/**,internal/trustproduct/**,production:trust.ynxweb4.com/app/**,production:web4.ynxweb4.com/trust-center/**,production:ynx-trust-center.service,production:/opt/ynx/trust-center-current}",
+      "owner": "integration",
+      "branch": "codex/p0-trust-center-visible-20260821",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/58-trust-center-visible-p0",
+      "taskId": "P0-125",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "RELEASED_PUBLIC_CHECKPOINT",
+      "acquiredAt": "2026-08-21T07:18:05Z",
+      "releasedAt": "2026-08-21T07:26:17Z",
+      "sourceCommit": "4ebf27fd8308f31fe98a38497ff15b9f77f66cba",
+      "checkpointCommit": "969cb85b605793df3a84aa303bfe3fbdd22c65dd",
+      "archiveSha256": "408a0d397cffd3a92da7ae168bef94648005e16b38d78f7de6013f282ad896c3",
+      "activeRuntime": "/opt/ynx/trust-center-releases/p0125b-trust-wallet-4ebf27fd",
+      "rollbackTarget": "/opt/ynx/trust-center-releases/p0125-trust-wallet-e968f566 plus /etc/caddy/ynx-chain.caddy.p0125-before",
+      "allowedExceptions": [
+        "read-only public and rollback evidence; installed Wallet, provider/account/signature/transaction, Product Session v2 and Computer Control remain false"
+      ]
+    },
+    {
+      "path": "{apps/search/**,production:web4.ynxweb4.com/search/**,production:ynx-search.service,production:/opt/ynx/search-current,production:/opt/ynx/search-releases/p0133-search-subroute-d2323ca6}",
+      "owner": "integration",
+      "branch": "codex/p0-search-wallet-visible-20260821",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/54-search-visible-p0",
+      "taskId": "P0-133",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "CONSUMED_RELEASED_FAILED_CLOSED_MISSING_SHARED_SDK",
+      "acquiredAt": "2026-08-21T08:57:52Z",
+      "expiresAt": "2026-08-21T09:27:52Z",
+      "releasedAt": "2026-08-21T09:00:30Z",
+      "sourceCommit": "d2323ca6a0bf4cc9aed67bf3bd7ee533755999e3",
+      "sourceTree": "1652f3ceed9a36c2e0d79af5bd69d6de3b181077",
+      "archiveSha256": "4486173571fb3df98d7e77bda7c49b5cf9c4f69f56f521b30ae9a04ca32828af",
+      "rollbackTarget": "/opt/ynx/search-releases/p0124-search-wallet-7604c88e",
+      "allowedExceptions": [
+        "read-only failure evidence only; P0-133 is nonreusable and production remained exact p0124"
+      ]
+    },
+    {
+      "path": "{apps/search/**,production:web4.ynxweb4.com/search/**,production:ynx-search.service,production:/opt/ynx/search-current,production:/opt/ynx/search-releases/p0134-search-subroute-d2323ca6}",
+      "owner": "integration",
+      "branch": "codex/p0-search-wallet-visible-20260821",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/54-search-visible-p0",
+      "taskId": "P0-134",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "CONSUMED_RELEASED_FAILED_CLOSED_ESBUILD_PLATFORM_MISMATCH",
+      "acquiredAt": "2026-08-21T09:01:29Z",
+      "expiresAt": "2026-08-21T09:31:29Z",
+      "releasedAt": "2026-08-21T09:03:45Z",
+      "sourceCommit": "d2323ca6a0bf4cc9aed67bf3bd7ee533755999e3",
+      "sourceTree": "1652f3ceed9a36c2e0d79af5bd69d6de3b181077",
+      "archiveSha256": "88b7458a90fa56690fd3a92104f6d7354a67a0f161cdce89b7c5f168fca774ee",
+      "rollbackTarget": "/opt/ynx/search-releases/p0124-search-wallet-7604c88e",
+      "allowedExceptions": [
+        "read-only failure evidence only; 22/22 server tests passed but P0-134 is nonreusable and production remained exact p0124"
+      ]
+    },
+    {
+      "path": "{apps/search/**,production:web4.ynxweb4.com/search/**,production:ynx-search.service,production:/opt/ynx/search-current,production:/opt/ynx/search-releases/p0135-search-subroute-d2323ca6}",
+      "owner": "integration",
+      "branch": "codex/p0-search-wallet-visible-20260821",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/54-search-visible-p0",
+      "taskId": "P0-135",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "CONSUMED_RELEASED_FAILED_CLOSED_VERIFIER_QUOTING_ROLLBACK",
+      "acquiredAt": "2026-08-21T09:04:38Z",
+      "expiresAt": "2026-08-21T09:34:38Z",
+      "releasedAt": "2026-08-21T09:07:56Z",
+      "sourceCommit": "d2323ca6a0bf4cc9aed67bf3bd7ee533755999e3",
+      "sourceTree": "1652f3ceed9a36c2e0d79af5bd69d6de3b181077",
+      "archiveSha256": "88b7458a90fa56690fd3a92104f6d7354a67a0f161cdce89b7c5f168fca774ee",
+      "rollbackTarget": "/opt/ynx/search-releases/p0124-search-wallet-7604c88e",
+      "allowedExceptions": [
+        "read-only failure evidence only; P0-135 is nonreusable and exact p0124 symlink/env/service state was restored"
+      ]
+    },
+    {
+      "path": "{apps/search/**,production:web4.ynxweb4.com/search/**,production:ynx-search.service,production:/opt/ynx/search-current,production:/opt/ynx/search-releases/p0136-search-subroute-d2323ca6}",
+      "owner": "integration",
+      "branch": "codex/p0-search-wallet-visible-20260821",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/54-search-visible-p0",
+      "taskId": "P0-136",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "RELEASED_PUBLIC_BYTES_EXACT_COMPUTER_CONTROL_BLOCKED",
+      "acquiredAt": "2026-08-21T09:07:56Z",
+      "expiresAt": "2026-08-21T09:37:56Z",
+      "releasedAt": "2026-08-21T09:14:20Z",
+      "sourceCommit": "d2323ca6a0bf4cc9aed67bf3bd7ee533755999e3",
+      "sourceTree": "1652f3ceed9a36c2e0d79af5bd69d6de3b181077",
+      "checkpointCommit": "466aa828854e89ae4aadde60f98becabc7c5b674",
+      "archiveSha256": "88b7458a90fa56690fd3a92104f6d7354a67a0f161cdce89b7c5f168fca774ee",
+      "activeRuntime": "/opt/ynx/search-releases/p0136-search-subroute-d2323ca6",
+      "rollbackTarget": "/opt/ynx/search-releases/p0124-search-wallet-7604c88e",
+      "allowedExceptions": [
+        "read-only public and rollback evidence; clean English Computer Control and real provider approval/account/signature/transaction/Product Session v2 remain false"
+      ]
+    },
+    {
+      "path": "{apps/merchant-console/**,production:https://merchant.ynxweb4.com/**,production:/opt/ynx/merchant-console-current,production:/opt/ynx/merchant-console-releases/p0137-merchant-wallet-042d3d3c}",
+      "owner": "integration",
+      "branch": "codex/p0-merchant-console-visible-20260821",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/55-merchant-console-visible-p0",
+      "taskId": "P0-137",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "RELEASED_PUBLIC_ENGLISH_GUEST_WALLET_FALLBACK_VERIFIED_COMPUTER_CONTROL_BLOCKED",
+      "acquiredAt": "2026-08-21T09:18:58Z",
+      "expiresAt": "2026-08-21T09:48:58Z",
+      "releasedAt": "2026-08-21T09:23:19Z",
+      "sourceCommit": "042d3d3cb1a2593e8248919270578d48329a19d0",
+      "sourceTree": "63737163b77285b2ab94864839fe6529329bb866",
+      "checkpointCommit": "84581af52cc54d3e5e419199d1cb365f7a75f608",
+      "archiveSha256": "fd53420ff47bf77f7f9cb1c42b40bf5f9a0bcedfabbd2f5a7bdff9d88837a91c",
+      "activeRuntime": "/opt/ynx/merchant-console-releases/p0137-merchant-wallet-042d3d3c",
+      "rollbackTarget": "/opt/ynx/merchant-console-8b0d7cc7",
+      "allowedExceptions": [
+        "read-only public and rollback evidence; App Gateway, Pay API settlement, real installed Wallet, approval, account, signature, transaction, Product Session v2 and Computer Control remain false"
+      ]
+    },
+    {
+      "path": "{apps/seller-console/**,production:https://seller.ynxweb4.com/**,production:/etc/caddy/conf.d/ynx-seller.caddy,production:/opt/ynx/seller-console-releases/p0138-seller-wallet-91017003}",
+      "owner": "integration",
+      "branch": "codex/p0-seller-console-visible-20260821",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/56-seller-console-visible-p0",
+      "taskId": "P0-138",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "CONSUMED_RELEASED_FAILED_CLOSED_WRONG_HEALTH_PATH",
+      "acquiredAt": "2026-08-21T09:26:36Z",
+      "expiresAt": "2026-08-21T09:56:36Z",
+      "releasedAt": "2026-08-21T09:30:24Z",
+      "sourceCommit": "910170031e7579924af34c3c2a8b92bdb08958cf",
+      "sourceTree": "e0a95f50b7ac7fba6b98bab95d44a7fab05cef47",
+      "configCommit": "21e15223c8bc32f573d666c8f451d39c76be3245",
+      "archiveSha256": "ae6d55c80d989e5e5b8abf6ad4904539384d30d223eff30e35c1eae189d83107",
+      "rollbackTarget": "/etc/caddy/conf.d/ynx-seller.caddy.p0138-before",
+      "reusable": false,
+      "allowedExceptions": [
+        "P0-138 reached Caddy activation but the nonexistent /api/health verifier failed; exact original Caddy bytes were restored, Shop stayed active, and this lease is nonreusable"
+      ]
+    },
+    {
+      "path": "{apps/seller-console/**,production:https://seller.ynxweb4.com/**,production:/etc/caddy/conf.d/ynx-seller.caddy,production:/opt/ynx/seller-console-releases/p0138-seller-wallet-91017003}",
+      "owner": "integration",
+      "branch": "codex/p0-seller-console-visible-20260821",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/56-seller-console-visible-p0",
+      "taskId": "P0-139",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "RELEASED_PUBLIC_ENGLISH_GUEST_WALLET_FALLBACK_VERIFIED_COMPUTER_CONTROL_BLOCKED",
+      "acquiredAt": "2026-08-21T09:30:24Z",
+      "expiresAt": "2026-08-21T10:00:24Z",
+      "releasedAt": "2026-08-21T09:39:04Z",
+      "sourceCommit": "910170031e7579924af34c3c2a8b92bdb08958cf",
+      "sourceTree": "e0a95f50b7ac7fba6b98bab95d44a7fab05cef47",
+      "checkpointCommit": "fe98fdc00c5e4228b77f2e38e009cce749066c53",
+      "configCommit": "6f5480db2d28a64fca4893e94f1405f5bbfab682",
+      "configSha256": "9fa4a26e5a959f92993dfa69d5c1c9e16efc24a3ca07d6f09e594c294f60e089",
+      "archiveSha256": "ae6d55c80d989e5e5b8abf6ad4904539384d30d223eff30e35c1eae189d83107",
+      "activeRuntime": "/opt/ynx/seller-console-releases/p0138-seller-wallet-91017003",
+      "rollbackTarget": "/etc/caddy/conf.d/ynx-seller.caddy.p0138-before",
+      "reusable": false,
+      "allowedExceptions": [
+        "public exact bytes, English guest mode and no-provider recovery verified; real installed provider, approval/account/signature/transaction/Product Session v2/settlement and Computer Control remain false"
+      ]
+    },
+    {
+      "path": "{apps/calendar/**,internal/calendar/**,product-release.json,public-product-metadata.json,release/integration/calendar-contract.json,production:https://calendar-testnet.43.153.202.237.sslip.io/**,production:ynx-calendar.service,production:/usr/local/bin/ynx-calendard,production:/var/lib/ynx-chain/calendar/state.json,production:/var/lib/ynx-chain/calendar/state.json.hmac-key}",
+      "owner": "integration",
+      "branch": "codex/final-calendar",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/36-calendar",
+      "taskId": "P0-140",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "RELEASED_PUBLIC_CHECKPOINT_SCOPE_DIVERGENCE_RECORDED",
+      "acquiredAt": "2026-08-21T10:42:00Z",
+      "expiresAt": "2026-08-21T11:12:00Z",
+      "releasedAt": "2026-08-21T11:09:11Z",
+      "sourceCommit": "983e9199dc03da6f1ac4db33d33119513642cacf",
+      "checkpointCommit": "8f45566073f0d9979b5b1460b35144d954acc692",
+      "archiveSha256": "37ab9f0fc990f8957f7003440e8efa08410ce3b5fb38e1b4fda6cb96362a074f",
+      "activeRuntime": "/usr/local/bin/ynx-calendard",
+      "candidateRuntime": "/var/tmp/ynx-calendar-983e919-p0140/ynx-calendard",
+      "rollbackTarget": "/var/backups/ynx-chain/calendar-983e919-p0140-r2",
+      "allowedExceptions": [
+        "read-only current public and rollback evidence; P0-140 source divergence is recorded, not retroactively authorized; Product Session v2, private Calendar sync, production signing and store release remain false"
+      ]
+    },
+    {
+      "path": "{apps/calendar/**,internal/calendar/**,production:https://calendar-testnet.43.153.202.237.sslip.io/**,production:ynx-calendar.service,production:/usr/local/bin/ynx-calendard,production:/var/lib/ynx-chain/calendar/state.json,production:/var/lib/ynx-chain/calendar/state.json.hmac-key,production:/var/tmp/ynx-calendar-d2044bd9-p0143/**,production:/var/backups/ynx-chain/calendar-d2044bd9-p0143-20260821T164248Z/**}",
+      "owner": "integration",
+      "branch": "codex/calendar-fable5-completion-20260821",
+      "worktree": null,
+      "taskId": "P0-143",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "RELEASED_SUCCESS_PUBLIC_REPLACEMENT_NONREUSABLE",
+      "acquiredAt": "2026-08-21T16:42:48Z",
+      "expiresAt": "2026-08-21T17:12:48Z",
+      "releasedAt": "2026-08-21T17:00:23Z",
+      "sourceCommit": "d2044bd9a8ec6bdc6235dfb625a62c3dd5c58b04",
+      "sourceTree": "b11b1e65b0026ed2bfd5d3306bd85a5c63ab3f53",
+      "checkpointCommit": "2426c2e2184f685467886fb7427950f78d089024",
+      "artifactSha256": "3fc3492d89978c32991d54abc2c8994d1dbe271df7d95364449cb81a6b781890",
+      "artifactBytes": 7610516,
+      "stagePath": "/var/tmp/ynx-calendar-d2044bd9-p0143/ynx-calendard",
+      "freshBackupPath": "/var/backups/ynx-chain/calendar-d2044bd9-p0143-20260821T164248Z",
+      "allowedExceptions": [
+        "read-only public, rollback and visible acceptance evidence only; P0-143 is consumed and nonreusable"
+      ]
+    },
+    {
+      "path": "{apps/monitor/**,{internal,apps}/explorer/**,cmd/ynx-explorerd/**,cmd/ynx-indexerd/**}",
+      "owner": "explorer-monitor",
+      "branch": "codex/p0-explorer-monitor-20260820",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/12-13-explorer-monitor-fable5",
+      "taskId": "P0-145",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "ACTIVE_ARTIFACT_ROLLBACK_CHECKPOINT_NO_PRODUCTION",
+      "acquiredAt": "2026-08-21T17:16:13Z",
+      "expiresAt": "2026-08-21T18:01:13Z",
+      "releasedAt": null,
+      "sourceCommit": "8571509583a1390b56b1812e1008f5d634ef594f",
+      "bundleCommit": "d6e406acf25868f14256d38efcd474d96dfb0df2",
+      "productionMutationAllowed": false,
+      "allowedExceptions": [
+        "read-only production mapping already complete; only exact artifact rehydration and rollback/verifier evidence are writable"
+      ]
+    },
+    {
+      "path": "{apps/finance/**,release/integration/finance-*/**,apps/finance/**/evidence/**}",
+      "owner": "financial-apps",
+      "branch": "codex/p0-finance-wallet-connectivity-20260820",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/24-finance",
+      "taskId": "P0-146",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "ACTIVE_SOURCE_BUILD_NO_PRODUCTION",
+      "acquiredAt": "2026-08-21T17:16:13Z",
+      "expiresAt": "2026-08-21T17:46:13Z",
+      "releasedAt": null,
+      "sourceCommit": "7824af677dd052d20321431381523ab302614d98",
+      "sourceTree": "3db34ee2397a49852bbdf15e3841e7c9cecf9444",
+      "productionMutationAllowed": false,
+      "allowedExceptions": [
+        "exact source/build/archive/env-migration/rollback-digest evidence only; no SSH or production mutation"
+      ]
+    },
+    {
+      "path": "{internal/datafabric/**,internal/datafabricapi/**,internal/datafabricnats/**,internal/datafabricpostgres/**,schemas/data-fabric/**,sdk/datafabric-typescript/**,cmd/ynx-data-fabricd/**,docs/data-fabric/**}",
+      "owner": "data-fabric",
+      "branch": "codex/final-data-fabric",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/26-data-fabric",
+      "taskId": "P0-147",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "WAITING_EXTERNAL_PUBLIC_ENDPOINT_UNBOUND",
+      "checkpointCommit": "da095e240be52023ecef19c162c869398bf9fbea",
+      "releasedAt": null,
+      "productionMutationAllowed": false,
+      "blocker": "NO_AUTHORITATIVE_DATA_FABRIC_PUBLIC_ENDPOINT_OR_RUNTIME_MAPPING",
+      "allowedExceptions": [
+        "owner may read existing source/evidence; no writable production checkpoint until Integration receives an authoritative endpoint/runtime mapping"
+      ]
+    },
+    {
+      "path": "apps/creator-studio/**",
+      "owner": "integration:/root",
+      "branch": "codex/p0-creator-studio-visible-20260821",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/57-creator-studio-visible-p0",
+      "taskId": "P0-148",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "ASSIGNED_SOURCE_ONLY_WAITING_LIGHT_SLOT",
+      "checkpointCommit": "993e7cc99ea3919488d6765e097ca78a82a30704",
+      "productionMutationAllowed": false,
+      "allowedExceptions": [
+        "primary /root owns the next source slice after P0-146 releases; no write before clean-worktree and lock recheck"
+      ]
+    },
+    {
+      "path": "apps/shop/**",
+      "owner": "shop",
+      "branch": null,
+      "worktree": null,
+      "taskId": "P0-149",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "WAITING_EXTERNAL_CONNECTOR_QUEUED_AFTER_NATIVE_REGISTRATION",
+      "productionMutationAllowed": false,
+      "blocker": "SHOP_OWNER_MCP_-32603_NO_WORKSPACE_ACCESS",
+      "acceptedSharedSource": "98c6d5d784d212df8981a53b17118a511e246ad2",
+      "allowedExceptions": [
+        "Integration may take a minimal cross-owner patch only after current native main-registration transaction closes and a fresh Shop writable-lock audit passes"
+      ]
+    }
   ]
 }
