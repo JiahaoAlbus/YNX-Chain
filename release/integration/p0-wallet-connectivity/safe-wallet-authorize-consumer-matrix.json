@@ -149,7 +149,8 @@
       "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/56-seller-console-visible-p0",
       "branch": "codex/p0-seller-console-visible-20260821",
       "path": "apps/seller-console/**",
-      "status": "AUDITED_MIGRATION_REQUIRED",
+      "status": "ACTIVE",
+      "taskId": "P0-114",
       "finding": "The web Wallet-auth module calls location.assign with a custom-scheme request.",
       "nextAction": "Migrate to the accepted web launcher and keep the seller preview usable without a private Product Session."
     },
