@@ -171,8 +171,17 @@ if ([string]::IsNullOrWhiteSpace($makeAppx) -or !(Test-Path $makeAppx)) { throw 
 if ($LASTEXITCODE -ne 0 -or !(Test-Path $msix)) { throw "MSIX packaging failed" }
 $certificate = New-SelfSignedCertificate -Type Custom -Subject "CN=YNX Developer Testnet Preview" -KeyUsage DigitalSignature -KeyExportPolicy Exportable -CertStoreLocation "Cert:\CurrentUser\My" -TextExtension @("2.5.29.37={text}1.3.6.1.5.5.7.3.3")
 Export-Certificate -Cert $certificate -FilePath $installerCertificate -Force | Out-Null
-$msixSignature = Set-AuthenticodeSignature -FilePath $msix -Certificate $certificate
-if ($msixSignature.Status -ne [System.Management.Automation.SignatureStatus]::Valid) { throw "MSIX test signature failed: $($msixSignature.Status)" }
+$temporaryPfx = Join-Path $outRoot "msix-test-signing.pfx"
+$pfxPassword = [Guid]::NewGuid().ToString("N")
+Export-PfxCertificate -Cert $certificate -FilePath $temporaryPfx -Password (ConvertTo-SecureString $pfxPassword -AsPlainText -Force) -Force | Out-Null
+$signTool = Join-Path (Split-Path $makeAppx -Parent) "SignTool.exe"
+if (!(Test-Path $signTool)) { throw "Windows SDK SignTool.exe is required for MSIX signing" }
+& $signTool sign /fd SHA256 /f $temporaryPfx /p $pfxPassword $msix
+$signExit = $LASTEXITCODE
+Remove-Item $temporaryPfx -Force -ErrorAction SilentlyContinue
+if ($signExit -ne 0) { throw "MSIX test signature failed with SignTool exit $signExit" }
+$msixSignature = Get-AuthenticodeSignature $msix
+if ($msixSignature.Status -ne [System.Management.Automation.SignatureStatus]::Valid) { throw "MSIX test signature verification failed: $($msixSignature.Status)" }
 $msixHash = (Get-FileHash $msix -Algorithm SHA256).Hash.ToLowerInvariant()
 $msixBytes = (Get-Item $msix).Length
 $installerRecord = [ordered]@{
