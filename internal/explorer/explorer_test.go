@@ -148,10 +148,32 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 		"EVM compatibility address",
 		"tx.sponsor",
 		"sponsorPoolId",
+		"transactionHashFromPath",
+		"/^\\/tx\\/(0x[0-9a-fA-F]{64})$/",
 	} {
 		if !strings.Contains(html, marker) {
 			t.Fatalf("explorer web is missing live interaction marker %q", marker)
 		}
+	}
+	deepLinkResponse, err := http.Get(server.URL + "/tx/" + tx.Hash)
+	if err != nil {
+		t.Fatal(err)
+	}
+	deepLinkBody, err := io.ReadAll(deepLinkResponse.Body)
+	_ = deepLinkResponse.Body.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if deepLinkResponse.StatusCode != http.StatusOK || !strings.Contains(deepLinkResponse.Header.Get("Content-Type"), "text/html") || !strings.Contains(string(deepLinkBody), "transactionHashFromPath") {
+		t.Fatalf("transaction deep link did not serve the detail-capable Explorer shell: status=%d content-type=%q", deepLinkResponse.StatusCode, deepLinkResponse.Header.Get("Content-Type"))
+	}
+	invalidDeepLinkResponse, err := http.Get(server.URL + "/tx/not-a-transaction-hash")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = invalidDeepLinkResponse.Body.Close()
+	if invalidDeepLinkResponse.StatusCode != http.StatusNotFound {
+		t.Fatalf("malformed transaction deep link must fail closed, got %d", invalidDeepLinkResponse.StatusCode)
 	}
 	logoResponse, err := http.Get(server.URL + "/assets/ynx-logo.png")
 	if err != nil {
