@@ -3,7 +3,7 @@
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "contract": "safeWalletAuthorizeLauncher@1.0.0-p0.0",
   "contractSourceCommit": "4679de8e8d0675e2013254c92ff1935191f87c21",
-  "updatedAt": "2026-08-21T04:39:03Z",
+  "updatedAt": "2026-08-21T04:44:03Z",
   "rules": {
     "webExtension": "Never replace the top-level document with ynxwallet://authorize. Use the accepted controlled hidden-frame lifecycle and keep the product page visible.",
     "native": "Resolve an installed handler for the exact canonical request before opening it. Unsupported must preserve the product state and offer the official Wallet download plus an independent MetaMask route where applicable.",
@@ -69,10 +69,27 @@
       "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/27-dex",
       "branch": "codex/final-dex",
       "path": "apps/dex/**",
-      "status": "ACTIVE",
+      "status": "SOURCE_BUILD_CHECKPOINT_LOCAL_SNAPSHOT_UNAVAILABLE",
       "taskId": "P0-109",
       "startingCommit": "aa5d4e5b5999a1dee28ce41adcc509abe96f95e9",
-      "nextAction": "Consume canonical request and accepted safe launcher, keep MetaMask independent, test/build and stop before Quant."
+      "checkpointCommit": "fe82b27c3790bb1ac3be595cc435feac5b398b98",
+      "safeLauncherConsumed": true,
+      "walletApprovalVerified": false,
+      "callbackVerified": false,
+      "swapVerified": false,
+      "liquidityVerified": false,
+      "nextAction": "Preserve the source/build checkpoint; local authoritative snapshot and installed-Wallet evidence remain separate."
+    },
+    {
+      "product": "quant",
+      "owner": "financial-apps",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/08-quant-lab",
+      "branch": "codex/quant-owner-contract-snapshot",
+      "path": "apps/quant/**",
+      "status": "ACTIVE",
+      "taskId": "P0-110",
+      "startingCommit": "f66fd4d14ff047efa6bb7e66fc2e140773826b16",
+      "nextAction": "Consume canonical request and accepted safe launcher, preserve read-only/backtest behavior, and do not enable capital execution."
     },
     {
       "product": "ai",
