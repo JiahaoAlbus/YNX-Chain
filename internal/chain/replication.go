@@ -16,6 +16,11 @@ import (
 // rebase from the current authoritative state.
 const MaxReplicationSnapshotBytes = 256 << 20
 const MaxReplicationBatchBlocks = 4096
+
+// MaxReplicationBatchPayloadBytes keeps a catching-up follower moving in
+// bounded increments. The larger snapshot ceiling is still needed for the
+// final, separately sealed state hand-off.
+const MaxReplicationBatchPayloadBytes = 64 << 20
 const operationalCheckpointInterval = 5 * time.Minute
 
 const (
@@ -63,47 +68,96 @@ func (d *Devnet) ReplicationSnapshotJSON() ([]byte, error) {
 // Full application state is included only with the final suffix and carries a
 // separate integrity seal; block continuity is verified across every suffix.
 func (d *Devnet) ReplicationBatchJSON(afterHeight uint64, afterHash string) ([]byte, error) {
+	return d.replicationBatchJSONWithLimit(afterHeight, afterHash, MaxReplicationBatchBlocks, MaxReplicationBatchPayloadBytes)
+}
+
+// replicationBatchJSONWithLimit emits the largest authenticated contiguous
+// suffix that fits the supplied transport budget. A complete suffix is allowed
+// to use the full snapshot ceiling because it carries the sealed state needed
+// to make the follower authoritative at the source tip.
+func (d *Devnet) replicationBatchJSONWithLimit(afterHeight uint64, afterHash string, maxBlocks uint64, payloadLimit int) ([]byte, error) {
 	d.mu.RLock()
 	defer d.mu.RUnlock()
+	if maxBlocks == 0 {
+		return nil, errors.New("replication batch block limit must be positive")
+	}
+	if payloadLimit <= 0 || payloadLimit > MaxReplicationSnapshotBytes {
+		return nil, fmt.Errorf("replication batch payload limit must be between 1 and %d", MaxReplicationSnapshotBytes)
+	}
 	if afterHeight >= uint64(len(d.blocks)) || d.blocks[afterHeight].Hash != afterHash {
 		return nil, fmt.Errorf("replication base %d/%s does not match authoritative history", afterHeight, afterHash)
 	}
 	source := d.blocks[len(d.blocks)-1]
 	endHeight := source.Height
-	if remaining := source.Height - afterHeight; remaining > MaxReplicationBatchBlocks {
-		endHeight = afterHeight + MaxReplicationBatchBlocks
+	if remaining := source.Height - afterHeight; remaining > maxBlocks {
+		endHeight = afterHeight + maxBlocks
 	}
-	blocks := append([]Block(nil), d.blocks[afterHeight+1:endHeight+1]...)
-	batch := replicationBatch{
-		Version: replicationBatchVersion, SavedAt: time.Now().UTC(),
-		BaseHeight: afterHeight, BaseBlockHash: afterHash,
-		EndHeight: endHeight, EndBlockHash: d.blocks[endHeight].Hash,
-		SourceHeight: source.Height, SourceBlockHash: source.Hash,
-		Complete: endHeight == source.Height, Blocks: blocks,
-	}
-	if batch.Complete && len(blocks) > 0 {
-		state := d.snapshotLocked()
-		state.Blocks = nil
-		integrity, err := replicationStateIntegrity(state)
+
+	encode := func(candidateEnd uint64) ([]byte, error) {
+		blocks := append([]Block(nil), d.blocks[afterHeight+1:candidateEnd+1]...)
+		batch := replicationBatch{
+			Version: replicationBatchVersion, SavedAt: time.Now().UTC(),
+			BaseHeight: afterHeight, BaseBlockHash: afterHash,
+			EndHeight: candidateEnd, EndBlockHash: d.blocks[candidateEnd].Hash,
+			SourceHeight: source.Height, SourceBlockHash: source.Hash,
+			Complete: candidateEnd == source.Height, Blocks: blocks,
+		}
+		if batch.Complete && len(blocks) > 0 {
+			state := d.snapshotLocked()
+			state.Blocks = nil
+			integrity, err := replicationStateIntegrity(state)
+			if err != nil {
+				return nil, err
+			}
+			state.StateIntegrity = integrity
+			batch.State = &state
+		}
+		integrity, err := replicationBatchIntegrity(batch)
 		if err != nil {
 			return nil, err
 		}
-		state.StateIntegrity = integrity
-		batch.State = &state
+		batch.Integrity = integrity
+		return json.Marshal(batch)
 	}
-	var err error
-	batch.Integrity, err = replicationBatchIntegrity(batch)
-	if err != nil {
-		return nil, err
+
+	low, high := afterHeight+1, endHeight
+	if afterHeight == source.Height {
+		// Preserve the existing authenticated no-op response for an already
+		// synchronized follower instead of attempting to advance past tip.
+		low = afterHeight
 	}
-	payload, err := json.Marshal(batch)
-	if err != nil {
-		return nil, err
+	var best []byte
+	for low <= high {
+		candidateEnd := low + (high-low)/2
+		payload, err := encode(candidateEnd)
+		if err != nil {
+			return nil, err
+		}
+		limit := payloadLimit
+		if candidateEnd == source.Height {
+			limit = MaxReplicationSnapshotBytes
+		}
+		if len(payload) <= limit {
+			best = payload
+			low = candidateEnd + 1
+		} else {
+			high = candidateEnd - 1
+		}
 	}
-	if len(payload) > MaxReplicationSnapshotBytes {
+	if len(best) == 0 {
+		payload, err := encode(afterHeight + 1)
+		if err != nil {
+			return nil, err
+		}
+		if len(payload) > MaxReplicationSnapshotBytes {
+			return nil, fmt.Errorf("single replication block exceeds %d bytes", MaxReplicationSnapshotBytes)
+		}
+		best = payload
+	}
+	if len(best) > MaxReplicationSnapshotBytes {
 		return nil, fmt.Errorf("replication batch exceeds %d bytes", MaxReplicationSnapshotBytes)
 	}
-	return payload, nil
+	return best, nil
 }
 
 func (d *Devnet) ApplyReplicationBatchJSON(payload []byte) (ReplicationApplyResult, error) {
