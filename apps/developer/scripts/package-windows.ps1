@@ -156,7 +156,7 @@ $manifest = @"
   <Properties><DisplayName>YNX Developer Testnet Preview</DisplayName><PublisherDisplayName>YNX</PublisherDisplayName><Logo>Assets\StoreLogo.png</Logo></Properties>
   <Resources><Resource Language="en-us" /></Resources>
   <Dependencies><TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.17763.0" MaxVersionTested="10.0.26100.0" /></Dependencies>
-  <Applications><Application Id="YNXDeveloper" Executable="YNXDeveloper.TestnetPreview.exe" EntryPoint="Windows.FullTrustApplication"><uap:VisualElements DisplayName="YNX Developer Testnet Preview" Description="YNX Developer Testnet Preview" BackgroundColor="transparent" Square44x44Logo="Assets\Square44x44Logo.png" Square150x150Logo="Assets\Square150x150Logo.png" AppListEntry="none" /></Application></Applications>
+  <Applications><Application Id="YNXDeveloper" Executable="YNXDeveloper.TestnetPreview.exe" EntryPoint="Windows.FullTrustApplication"><uap:VisualElements DisplayName="YNX Developer Testnet Preview" Description="YNX Developer Testnet Preview" BackgroundColor="transparent" Square44x44Logo="Assets\Square44x44Logo.png" Square150x150Logo="Assets\Square150x150Logo.png" /></Application></Applications>
   <Capabilities><rescap:Capability Name="runFullTrust" /></Capabilities>
 </Package>
 "@
