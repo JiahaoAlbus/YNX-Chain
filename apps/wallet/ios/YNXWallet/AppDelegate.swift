@@ -166,10 +166,30 @@ class AppDelegate: ExpoAppDelegate {
       )
       alert.view.accessibilityIdentifier = "YNX native authorization rejection"
       alert.addAction(UIAlertAction(title: "Dismiss", style: .default))
+      alert.loadViewIfNeeded()
+      alert.view.layoutIfNeeded()
+      guard markAuthorizationErrorCode(in: alert.view, code: code) else {
+        walletCallbackLogger.error(
+          "YNX_WALLET_NATIVE_AUTHORIZATION_UI_UNAVAILABLE pid=\(getpid(), privacy: .public) code=ERROR_CODE_ACCESSIBILITY_UNAVAILABLE"
+        )
+        return
+      }
       presenter.present(alert, animated: false) {
         walletCallbackLogger.notice("YNX_WALLET_NATIVE_AUTHORIZATION_UI_VISIBLE pid=\(getpid(), privacy: .public) code=\(code, privacy: .public)")
       }
     }
+  }
+
+  private func markAuthorizationErrorCode(in view: UIView, code: String) -> Bool {
+    if let label = view as? UILabel, label.text == code {
+      label.accessibilityIdentifier = "YNX native authorization error code"
+      label.isAccessibilityElement = true
+      return true
+    }
+    for subview in view.subviews where markAuthorizationErrorCode(in: subview, code: code) {
+      return true
+    }
+    return false
   }
 
   // Universal Links
