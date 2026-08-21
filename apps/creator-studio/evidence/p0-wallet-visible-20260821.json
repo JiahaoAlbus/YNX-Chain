@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-  "taskId": "P0-129",
+  "taskId": "P0-132",
   "productId": "ynx-creator-studio",
   "startingCommit": "650070ce5c5a7928425509f6e9e7da0aec31910d",
   "implementationCommit": "3039a993",
@@ -40,20 +40,33 @@
     "publish": false,
     "monetization": false,
     "payout": false,
-    "publicDeployment": false,
-    "publicVerified": false,
+    "publicDeployment": true,
+    "publicVerified": true,
     "computerControl": false,
     "productionSigned": false,
     "storeReleased": false
   },
   "currentPublicRuntime": {
     "url": "https://web4.ynxweb4.com/video/studio/",
-    "accepted": false,
-    "observedDefect": "Bare @ynx-chain/wallet-auth module specifier fails in the browser because raw source was published instead of the self-contained dist/app.js."
+    "accepted": true,
+    "activeRelease": "/opt/ynx-video/releases/p0131-creator-wallet-993e7cc9",
+    "index": {"http": 200, "bytes": 12919, "sha256": "bc5344845c1b0ada346b1a0a1088f9442d15412dc077d824d7bd8fb2dcc7fd5e"},
+    "app": {"http": 200, "bytes": 50611, "sha256": "7c9d884304bca81c83417a2563dfaab8c728284cbf2c8db815e32233ec66e015"},
+    "styles": {"http": 200, "bytes": 6717, "sha256": "be9fcba13c7d472c80a38cb141d7ea93eecf394b346b3b7ff545addf3146422e"},
+    "runtimeConfig": {"http": 200, "bytes": 506, "sha256": "53b8ae0d81d4a81716d79041c698b8183c92e60eb013c241acd7336913320cd8"},
+    "defaultEnglish": true,
+    "guestVisible": true,
+    "explicitWalletChoice": true,
+    "ynxWalletFallbackVisible": true,
+    "metamaskFallbackVisible": true,
+    "urlStable": true,
+    "topLevelTabDelta": 0,
+    "consoleErrors": 0
   },
   "notes": [
     "No creator content, upload, publish result, payout, balance or transaction was fabricated.",
-    "Chromium evidence is deterministic local browser evidence and is not installed Wallet or public runtime evidence.",
+    "Deterministic Chromium evidence is not installed Wallet evidence; the official public runtime independently proves guest and missing-provider flows only.",
+    "Computer Control remains false because the Mac window service returned cgWindowNotFound.",
     "The retained Product Session client is legacy v1 and appGateway remains unavailable in the accepted endpoint manifest."
   ]
 }

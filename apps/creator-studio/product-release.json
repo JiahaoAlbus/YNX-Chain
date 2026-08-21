@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-  "taskId": "P0-129",
+  "taskId": "P0-132",
   "productId": "ynx-creator-studio",
   "name": "YNX Creator Studio",
   "version": "0.4.1-testnet-candidate",
@@ -41,19 +41,24 @@
   "installedLocal": false,
   "integratedCentral": false,
   "deployedStaging": false,
-  "deployedPublic": false,
-  "publicVerified": false,
+  "deployedPublic": true,
+  "publicVerified": true,
   "computerControlVerified": false,
   "downloadHosted": false,
   "productionSigned": false,
   "storeReleased": false,
   "publicUrl": "https://web4.ynxweb4.com/video/studio/",
-  "currentPublicDefect": "The public runtime serves an unbundled app.js whose bare @ynx-chain/wallet-auth import fails in the browser.",
+  "currentPublicDefect": null,
+  "activeRuntime": "/opt/ynx-video/releases/p0131-creator-wallet-993e7cc9",
+  "publicAppSha256": "7c9d884304bca81c83417a2563dfaab8c728284cbf2c8db815e32233ec66e015",
+  "publicIndexSha256": "bc5344845c1b0ada346b1a0a1088f9442d15412dc077d824d7bd8fb2dcc7fd5e",
+  "publicNoProviderFallbackVerified": true,
   "knownLimitations": [
     "The accepted endpoint manifest declares appGateway UNAVAILABLE and creatorProductApi PENDING.",
     "The retained private Product Session client is legacy v1 and is not promoted as v2.",
     "Deterministic Chromium QA verified approve, reject and missing-provider recovery; it is not an installed Wallet, real account approval or ComputerControl claim.",
     "Upload, publish, monetization, payout and creator content APIs remain unverified and no content was fabricated.",
-    "This source checkpoint is not yet deployed; the current public runtime remains broken until a separate deployment lease succeeds."
+    "The exact source is publicly deployed and the guest/English/missing-provider flows are browser-verified, but the external browser has no real injected YNX or MetaMask provider.",
+    "Computer Control remains false because the Mac window service returned cgWindowNotFound."
   ]
 }
