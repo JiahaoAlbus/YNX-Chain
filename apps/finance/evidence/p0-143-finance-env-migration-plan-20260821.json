@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "checkpoint": "P0_143_FINANCE_ENV_MIGRATION_PLAN_SOURCE_ONLY",
+  "centralRelease": {"commit": "32e60e2cb7773b1ffdb2c7bdb3355c6bd1f76ce8", "p0141": "released; nonreusable"},
+  "preservedCandidate": {
+    "p0142Commit": "a18d664b8fa1a6346ca9cf2b733898444993d3a3",
+    "archiveSha256": "a3df3d90c344bdfd4b49d89ad3e1d08f838f4d277b01c96aada18997e0ad0593",
+    "archiveBytes": 3938711,
+    "binarySha256": "9e7bf2d588a3a87ddc8e4a2c254e85e38972540efd167e96743f5cd63e93584a",
+    "releaseDirectory": "/opt/ynx/releases/finance/ynx-finance-50892538dc23",
+    "changed": false
+  },
+  "trustedProductionReadback": {
+    "activeSymlink": "/opt/ynx/finance-current",
+    "activeTarget": "/opt/ynx/releases/finance/ynx-finance-3b2383f5c18a",
+    "oldRootBinary": {"path": "/opt/ynx/releases/finance/ynx-finance-3b2383f5c18a/ynx-finance", "bytes": 8573112, "sha256": "0cc43c8a77c12975a0fcbada65971f08f2bc3a52345d547ea194dd3ccd60d83f"},
+    "unit": {"execStart": "/opt/ynx/finance-current/ynx-finance", "workingDirectory": "/opt/ynx/finance-current", "sha256": "2e72cdad422a3a714c46d074ea97b725233576cf726dbbfd43e82e99c2c2975b"},
+    "environment": {"path": "/etc/ynx/finance.env", "sha256": "854e7f1077e8fa4d5a4741918e25d04b0c1a109f2eb9c716b72dae918aa5f252", "currentWebDir": "/opt/ynx/releases/finance/ynx-finance-3b2383f5c18a/web", "targetWebDir": "/opt/ynx/finance-current/web"},
+    "caddySha256": "dcf75a7aed315c54632321b8bb80e44c0abc22f6700fadfbfa9a7da21b88a282",
+    "service": "active/running; NRestarts=0",
+    "publicOldVersion": {"http": 200, "bytes": 130, "sha256": "39789776da47e60b7a7df845789e02ebba16707ad8951eb6f27c84c1b40bb226"},
+    "publicOldHealth": {"http": 200, "bytes": 485, "sha256": "d1e97a4314acd1ecccf94629d15bd598cb58ff78136b3622ac26d583a82e45c1"}
+  },
+  "trackedAuthority": {"commit": "3b2383f5c18ab3eb5ce7f7f6a267d2cfe7c7e6a4", "unitBlob": "2959958b4445fd379381519d412f7c649954b509", "environmentExampleBlob": "ddf43af7cf23a77f6201086a92f3ea8c6ca36356", "installerBlob": "c786125943fed135b9c46eaa292d30fe782bb26c"},
+  "migrationDesign": {
+    "targetWebDir": "/opt/ynx/finance-current/web",
+    "justification": "The tracked unit starts from finance-current and the Caddy upstream is unchanged. Binding WebDir to the same symlink ensures binary and served assets change together; rollback restores both old environment bytes and old active target.",
+    "preWriteRequirements": [
+      "fresh lease independently binds current env SHA-256, uid, gid, mode, unit, Caddy, active target, old root binary, and public old runtime truth",
+      "candidate archive has exact hash and extracts to the root-executable P0-142 layout",
+      "new release directory creation is no-replace and occurs before activation",
+      "env backup is an atomic same-directory hard link that fails if the backup name already exists",
+      "temporary env is root-owned in /etc/ynx, has exactly one target WebDir line, preserves every non-WebDir line, receives fsync before atomic replacement, and is re-bound to current uid/gid/mode before replacement"
+    ],
+    "rollback": "Verify the backup exact old SHA, reconstruct an fsynced same-directory temporary env from it, atomically restore env first, atomically restore old active symlink second, daemon-reload/restart third, then require old public /version and /health hashes."
+  },
+  "postSwitchRequirements": {
+    "version": {"http": 200, "bytes": 131, "sha256": "ebac56021442d176579c841215a27805b874b8238b8173b99e9ec4e388eb16c8", "commit": "50892538dc237ef519d95c491f4b918a125a6c8e", "release": "ynx-finance-50892538dc23"},
+    "health": "HTTP 200 plus JSON ok=true, service=ynx-finance, build.commit/version commit equality, custody=none, portfolio=read-only",
+    "web": {"indexHtml": "5d95950e9bccbd1012265b3f96eef6ddf2111b0dbd16315583060871ed5328ca", "walletConnect": "44a2054a7f58bf0458ff466a3f9c4d1a391adab20c321fef74977e8fa2fd4690"}
+  },
+  "validation": {
+    "p0142ArchiveAndEmbeddedChecksums": "passed",
+    "trackedUnitAndEnvironmentLayout": "passed",
+    "localRedactedEnvTransform": "passed: exact hard-link backup, one-line replacement, non-WebDir line preservation, and exact byte rollback",
+    "localFsync": "not asserted: this macOS execution environment terminated a Python fsync probe; Linux-target fsync remains a future lease precondition, not a completed production claim",
+    "goAndRace": "passed",
+    "financeWebTests": "12/12 passed",
+    "releaseEvidenceWalletVerificationAndBuild": "passed"
+  },
+  "state": {"sourceOnly": true, "sshUsed": false, "deployed": false, "leaseRequested": false, "walletApproval": false, "productSession": false, "computerControl": false}
+}
