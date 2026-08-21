@@ -2,7 +2,7 @@
   "schemaVersion": "1.0.0",
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "owner": "integration",
-  "status": "P0134_SEARCH_CANONICAL_SUBROUTE_REPAIR_V2_ACTIVE",
+  "status": "P0135_SEARCH_CANONICAL_SUBROUTE_PREBUILT_ACTIVATION_ACTIVE",
   "scope": [
     "founder-control",
     "wallet-connectivity",
@@ -34,7 +34,7 @@
   "firstStop": {
     "complete": true,
     "publicConnectivityClaim": false,
-    "nextAction": "P0-133 failed closed before production mutation because its archive omitted packages/dapp-connect-sdk. P0-134 may use only corrected artifact 88b7458a, which includes the exact shared SDK; activate exact source d2323ca6 and roll back to p0124 on any failure."
+    "nextAction": "P0-133 omitted the shared SDK and P0-134 attempted a server rebuild with a copied macOS esbuild binary; both failed before production mutation. P0-135 may activate only the already locally built, exact-hash dist in corrected artifact 88b7458a after 22/22 server tests, without running esbuild on Linux."
   },
   "lightLeases": [
     {
@@ -428,21 +428,21 @@
   ],
   "heavy": {
     "owner": "integration",
-    "taskId": "P0-134",
+    "taskId": "P0-135",
     "status": "ACTIVE_SINGLE_USE",
-    "acquiredAt": "2026-08-21T09:01:29Z",
-    "expiresAt": "2026-08-21T09:31:29Z",
+    "acquiredAt": "2026-08-21T09:04:38Z",
+    "expiresAt": "2026-08-21T09:34:38Z",
     "sourceCommit": "d2323ca6a0bf4cc9aed67bf3bd7ee533755999e3",
     "runtimeHost": "43.153.202.237",
     "currentRuntime": "/opt/ynx/search-releases/p0124-search-wallet-7604c88e",
     "rollbackTarget": "/opt/ynx/search-releases/p0124-search-wallet-7604c88e",
-    "candidateRuntime": "/opt/ynx/search-releases/p0134-search-subroute-d2323ca6",
+    "candidateRuntime": "/opt/ynx/search-releases/p0135-search-subroute-d2323ca6",
     "artifactSha256": "88b7458a90fa56690fd3a92104f6d7354a67a0f161cdce89b7c5f168fca774ee",
     "productionMutationAllowed": true,
     "singleUse": true,
     "previousOwner": null,
-    "previousTaskId": "P0-133",
-    "reason": "Fresh bounded retry after P0-133 failed before production mutation; corrected archive includes exact packages/dapp-connect-sdk required by server-side tests and build."
+    "previousTaskId": "P0-134",
+    "reason": "Fresh bounded activation of the exact locally built dist after P0-134 proved 22/22 server tests but failed on a platform-incompatible copied esbuild binary before any production mutation."
   },
   "wave": {
     "id": "B-financial-apps-quant",
