@@ -1,8 +1,12 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
 import { test } from "node:test";
+import { verifyWalletAuthorizeConsumers } from "../scripts/verify-no-bare-wallet-authorize.mjs";
 
+const root = fileURLToPath(new URL("../../..", import.meta.url));
 const audit = JSON.parse(await readFile(new URL("../../../release/integration/wallet-authorize-ecosystem-source-runtime-audit-20260821.json", import.meta.url), "utf8"));
+const auditV2 = JSON.parse(await readFile(new URL("../../../release/integration/wallet-authorize-ecosystem-source-runtime-audit-v2-20260821.json", import.meta.url), "utf8"));
 const registry = JSON.parse(await readFile(new URL("../product-session-registry.json", import.meta.url), "utf8"));
 
 test("ecosystem authorize audit covers every registered client exactly once", () => {
@@ -37,5 +41,37 @@ test("every EVM product handoff addresses the exact 0x1917 MetaMask flow", () =>
   for (const product of audit.products.filter(({ evmCompatible }) => evmCompatible)) {
     assert.notEqual(product.audit.metaMask0x1917, "not-applicable", product.productId);
     assert.ok(product.migrationHandoff.join(" ").includes("0x1917"), product.productId);
+  }
+});
+
+test("v2 ecosystem audit consumes every exact owner source without promoting runtime", () => {
+  assert.equal(auditV2.ownerInputs.length, registry.products.length);
+  assert.deepEqual(auditV2.products.map(({ productId }) => productId).sort(), registry.products.map(({ productId }) => productId).sort());
+  assert.equal(auditV2.productsConnected, 0);
+  assert.equal(auditV2.productsMigratedV2, 0);
+  assert.equal(auditV2.truth.macComputerControl, false);
+  for (const product of auditV2.products) {
+    assert.equal(product.runtime.productSessionV2, false, product.productId);
+    assert.equal(product.runtime.computerControl, false, product.productId);
+    assert.ok(product.blocker.length > 40, product.productId);
+    assert.equal(product.handoff.length, 3, product.productId);
+  }
+});
+
+test("v2 baseline scanner evidence matches the current repository exactly", async () => {
+  const findings = await verifyWalletAuthorizeConsumers(root);
+  assert.equal(findings.length, auditV2.scanner.findingCount);
+  assert.deepEqual(Object.fromEntries([...new Set(findings.map(({ code }) => code))].sort().map((code) => [code, findings.filter((finding) => finding.code === code).length])), auditV2.scanner.findingCountsByCode);
+  for (const finding of auditV2.scanner.registeredBaselineFindings) {
+    assert.ok(findings.some(({ file, line, code }) => file === finding.file && line === finding.line && code === finding.code), `${finding.productId}:${finding.file}:${finding.code}`);
+  }
+});
+
+test("safe-launcher and MetaMask counts are derived from product rows", () => {
+  const products = auditV2.products.filter(({ nonProductRegistryClient }) => !nonProductRegistryClient);
+  assert.equal(products.filter(({ safeLauncherV2Consumed }) => safeLauncherV2Consumed).length, auditV2.safeLauncherV2SourceConsumedProductCount);
+  assert.equal(products.filter(({ sourceAudit }) => sourceAudit.metaMaskAddSwitch0x1917 === true).length, auditV2.productsWithCompleteMetaMaskSourcePath);
+  for (const product of products.filter(({ sourceAudit }) => sourceAudit.standardWalletIndependentFromProductSession !== true)) {
+    assert.match(product.blocker, /standard|provider|Product Session/i, product.productId);
   }
 });
