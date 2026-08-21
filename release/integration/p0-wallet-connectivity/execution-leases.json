@@ -1,7 +1,7 @@
 {
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-  "epoch": 53,
-  "updatedAt": "2026-08-21T08:15:40Z",
+  "epoch": 54,
+  "updatedAt": "2026-08-21T08:20:52Z",
   "heavy": {
     "owner": null,
     "status": "RELEASED_PUBLIC_CHECKPOINT",
@@ -26,22 +26,23 @@
     ]
   },
   "light": {
-    "owner": null,
-    "status": "RELEASED_CHECKPOINT",
-    "branch": "codex/p0-faucet-runtime-20260820",
-    "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/29-faucet-runtime-p0",
-    "taskId": "P0-012",
-    "leasedAt": "2026-08-21T02:05:00Z",
-    "releasedAt": "2026-08-21T02:35:00Z",
-    "checkpointCommit": "d551218097b707755a8be017689a6d6983c8068e",
+    "owner": "integration",
+    "status": "ACTIVE_SOURCE_ONLY",
+    "branch": "codex/p0-creator-studio-visible-20260821",
+    "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/57-creator-studio-visible-p0",
+    "taskId": "P0-129",
+    "leasedAt": "2026-08-21T08:20:52Z",
+    "releasedAt": null,
+    "checkpointCommit": "650070ce5c5a7928425509f6e9e7da0aec31910d",
     "previousOwner": "integration",
     "previousCheckpoint": "0326004cb260863f214261acec635bd3ef2e5c0c",
-    "reason": "Faucet source/public read-only revalidation completed; production work moved to bounded Heavy P0-090.",
-    "executionScope": null,
+    "reason": "Fix the directly observed Creator Studio unresolved browser module and require explicit YNX/MetaMask selection without production mutation.",
+    "executionScope": "CREATOR_STUDIO_EXPLICIT_STANDARD_WALLET_SOURCE_BUILD_BROWSER",
     "onSafeCheckpoint": [
-      "P0-012 is released",
-      "no active Light owner",
-      "all production mutation is governed only by P0-090 Heavy"
+      "modify only apps/creator-studio source, tests and owner evidence",
+      "Web uses EIP-6963/EIP-1193 with explicit wallet choice and never navigates to a custom scheme",
+      "guest surfaces remain available without an account",
+      "public deployment requires a separate new Heavy lease"
     ]
   },
   "explorerMonitor": {
