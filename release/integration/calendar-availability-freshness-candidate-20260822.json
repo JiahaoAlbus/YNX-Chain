@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "product": "calendar",
+  "owner": "36-calendar",
+  "status": "TESTED_LOCAL_NOT_PUBLIC",
+  "sourceCommit": "77dfab56e1d9fc8785a65283ae14cee78f6cf867",
+  "branch": "codex/calendar-fable5-completion-20260821",
+  "scope": [
+    "deterministic authorized-participant availability snapshot on conflict preview",
+    "approval rejects stale decisions after participant event mutation",
+    "unrelated event changes do not invalidate the preview",
+    "HTTP 409 fail-closed stale-availability response",
+    "browser-visible availability snapshot marker"
+  ],
+  "tests": {
+    "goTest": true,
+    "goRace": true,
+    "goVet": true,
+    "releaseTests": "5/5",
+    "browserProof": true,
+    "consoleErrors": 0
+  },
+  "browserArtifacts": [
+    {
+      "path": "apps/calendar/tests/artifacts/calendar-desktop.png",
+      "sha256": "b2f86ce811bb5f108fe1a55bcfa61823c7dcb04dd946d5fc973f7a2a47bec41a"
+    },
+    {
+      "path": "apps/calendar/tests/artifacts/calendar-mobile.png",
+      "sha256": "1f8f3742a3a7c40079d9a36d5c01752ffa4c75ae427abbf14731da9aff5bf1b4"
+    }
+  ],
+  "publicRuntime": {
+    "url": "https://calendar-testnet.43.153.202.237.sslip.io/",
+    "sourceCommit": "828120e6d81efaf874a930793660e185a394ba4f",
+    "includesCandidate": false
+  },
+  "truth": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "deployedPublic": false,
+    "websitePublished": false,
+    "integratedCentral": false,
+    "computerControlVerified": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "nextAction": "publish exact source 77dfab56, then open the source-bound public Calendar and prove stale availability rejection plus unchanged guest and collaboration flows"
+}

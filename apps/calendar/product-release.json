@@ -74,7 +74,7 @@
     ]
   },
   "latestLocalCandidate": {
-    "sourceCommit": "df302c542e34654445e70b8aa6a81c2b2525d9de",
+    "sourceCommit": "77dfab56e1d9fc8785a65283ae14cee78f6cf867",
     "branch": "codex/calendar-fable5-completion-20260821",
     "status": "testedLocalNotPublic",
     "scope": [
@@ -89,7 +89,9 @@
       "restart-persistent viewer-to-editor collaboration proof in the real browser UI",
       "private-event redaction to Busy across list, single-event and account-export views",
       "availability-only disclosure that hides title, participants, notes, links and attachments even from invited participants",
-      "real browser shared-viewer proof with seeded private-string absence assertions"
+      "real browser shared-viewer proof with seeded private-string absence assertions",
+      "approval-bound availability freshness snapshot that rejects stale conflict decisions after any authorized participant event changes",
+      "browser-visible availability snapshot marker in the conflict approval surface"
     ],
     "deployedPublic": false,
     "websitePublished": false,
