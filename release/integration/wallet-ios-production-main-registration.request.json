@@ -1,0 +1,115 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-08-21T17:05:00Z",
+  "requestKind": "wallet-ios-owner-source-default-main-production-distribution-registration",
+  "owner": "Wallet/Auth iOS native",
+  "ownerBranch": "codex/wallet-ios-macos-20260813",
+  "ownerHeadCommit": "b23e7dfd69002fe3d40f4d457ac78b45b00df5ec",
+  "ownerHeadTree": "e89c5dac37f4fdbb8e1de93df0f136864e48d5da",
+  "defaultMainAtAudit": "babfc57cebf60eadaec51398202de11cda742901",
+  "gitTopology": {
+    "mergeBasePresent": false,
+    "standardOwnerPullRequestTopologyAvailable": false,
+    "pullRequestCreated": false,
+    "mainHasSimulatorWorkflow": true,
+    "mainHasProductionDistributionWorkflow": false,
+    "mainSimulatorWorkflowGitBlob": "d772665590243add3a59a6dcfc157f3b49090763",
+    "ownerSimulatorWorkflowGitBlob": "2ef5d2045e93f310be46a0b73b82ee73bc276a2f",
+    "simulatorWorkflowMatchesMain": false
+  },
+  "authoritativeOwnerSource": {
+    "apps/wallet/ios": {
+      "gitTree": "65dc2162caec463235f75a58cdd1d3403de12629"
+    },
+    ".github/workflows/wallet-ios.yml": {
+      "gitBlob": "2ef5d2045e93f310be46a0b73b82ee73bc276a2f",
+      "bytes": 26371,
+      "sha256": "10085348d67c9cc4c13e113ebd42a42a7ee315cee2f7ff8f78f87b83e539b62b"
+    },
+    ".github/workflows/wallet-ios-production-distribution.yml": {
+      "gitBlob": "c33ef043e7d1b20a88a9d69495a11757a8b87ebc",
+      "bytes": 20653,
+      "sha256": "fdb4ad2d737e07ddd85aced33bc6d759f008ff1dcbdd111e25ac64bdc1dba98e"
+    },
+    "apps/wallet/ios/scripts/cleanup-distribution-material.sh": {
+      "gitBlob": "337ad1db2aa5eb64f4b5527bef009d43808e7d70",
+      "bytes": 1118,
+      "sha256": "6c45677205687deace8019535f4cb874bef65be41a1dc3efb9d7241b28c013d4"
+    },
+    "apps/wallet/ios/scripts/verify-production-distribution-source.rb": {
+      "gitBlob": "9be2da17e0b6c20bbce5f74165f001e75da1d66a",
+      "bytes": 4266,
+      "sha256": "821f2b387d93c966745df5a03b9b1ebbe6b3339abd546f240a9e60f0435cd19c"
+    },
+    "apps/wallet/scripts/verify-apple-production-operator-inputs.rb": {
+      "gitBlob": "88f4c2c49011d7499f30caf9d062d0d333e7eb57"
+    },
+    "release/integration/wallet-apple-production-operator-inputs.request.json": {
+      "gitBlob": "ecd2e31070008ba3356e110ea4da8681f0ba0d5c",
+      "sha256": "579846e6d6120fc861dd93dfa16bb86e4cbc9cafede34cb1e41b063db35ef0a9"
+    }
+  },
+  "integrationRequirements": {
+    "freshMainBasedWorktreeRequired": true,
+    "freshMainShaRevalidationRequired": true,
+    "reviewExistingMainSimulatorWorkflowBeforeReplacement": true,
+    "preserveUnrelatedMainPaths": true,
+    "importOnlyReviewedOwnerPaths": true,
+    "exactBlobAndTreeBackreadRequired": true,
+    "simulatorAndProductionSourceVerifiersRequired": true,
+    "exactIntegratedHeadPushCiRequired": true,
+    "distributionJobMustRemainSkippedDuringSourceRegistration": true,
+    "financePathsAuthorized": false,
+    "newAuthProtocolAuthorized": false,
+    "universalLinkRouteAuthorized": false
+  },
+  "productionDispatchContract": {
+    "workflow": "wallet-ios-production-distribution",
+    "event": "workflow_dispatch",
+    "ref": "main",
+    "environment": "wallet-ios-production",
+    "expected_source_sha": "exact registered main head",
+    "expected_release_tag": "wallet-ios-appstore-v<version>-<build>-<sha8>",
+    "upload_testflightDefault": false,
+    "protectedEnvironmentApprovalRequired": true,
+    "realAppleTeamIdRequired": true,
+    "fakeTeamIdRejected": true,
+    "realAppleDistributionIdentityAndProfileRequired": true,
+    "appStoreConnectCredentialsRequiredOnlyWhenUploadExplicit": true,
+    "secretValuesRequestedInRepository": false,
+    "universalLinkIncluded": false
+  },
+  "directEvidenceRequiredAfterAuthorizedDispatch": {
+    "archive": true,
+    "ipa": true,
+    "artifactSha256AndBytes": true,
+    "bundleVersionMinimumOSAndSigningClass": true,
+    "cleanupRuntimeWithProductionSecrets": true,
+    "appStoreConnectUploadReceiptOnlyIfExplicit": true,
+    "testFlightProcessingOnlyIfExplicit": true,
+    "physicalInstallColdSecondCallbackNetwork": true
+  },
+  "currentGates": {
+    "defaultMainProductionWorkflowRegistered": false,
+    "operatorInputsSatisfied": false,
+    "protectedEnvironmentVerified": false,
+    "productionCredentialsInspected": false,
+    "productionDistributionDispatched": false,
+    "archiveProduced": false,
+    "ipaProduced": false,
+    "appStoreConnectUploadSubmitted": false,
+    "testFlightProcessingVerified": false,
+    "physicalDeviceInstalled": false,
+    "appStoreReleased": false,
+    "productionSigned": false,
+    "universalLink": false,
+    "physicalBiometric": false,
+    "recoverySuccess": false,
+    "authorizationSuccess": false,
+    "account": false,
+    "productSession": false,
+    "sign": false,
+    "send": false,
+    "transaction": false
+  }
+}
