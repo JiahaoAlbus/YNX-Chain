@@ -120,10 +120,14 @@ test("Wallet Web/PWA and macOS DMG publication remain outside product authority"
   const companion = auditV3.nonProductRegistryClient;
   assert.equal(companion.productId, "wallet-web-companion");
   assert.equal(companion.webShellSourceCommit, "3651ba0c4322e0564e29b4573f3def90828dba67");
-  assert.equal(companion.publicEvidenceCommit, "01049d7ca789e91c4e1a7d30db4e2caf1501c142");
-  assert.equal(companion.deploymentId, "dpl_2VFy2gauryFgCGvchv2EddXv1zec");
+  assert.equal(companion.publicEvidenceCommit, "93c3d06bab567e40c419ff2b3c5702d55083c7fa");
+  assert.equal(companion.deploymentId, "dpl_6GRARbJYU5JyPeJP7Un3E6KqmBN2");
   assert.equal(companion.runtime.sourceBoundPublic, true);
   assert.equal(companion.runtime.metaMaskEip6963Detected, true);
+  assert.equal(companion.runtime.mirrorDriftObservedAndRepaired, true);
+  assert.equal(companion.runtime.noProviderOfficialYnxAndroidAction, true);
+  assert.equal(companion.runtime.noProviderOfficialMetaMaskAction, true);
+  assert.equal(companion.runtime.mobile390NoHorizontalOverflow, true);
   assert.equal(companion.runtime.accountApproval, false);
   assert.equal(companion.runtime.providerChainId1917, false);
   assert.equal(companion.runtime.callback, false);
@@ -223,7 +227,11 @@ test("owner activity checkpoint derives counts and consumes Faucet recovery with
 test("owner checkpoint separates Wallet public artifacts from approval and Product Session authority", () => {
   const platform = ownerActivityCheckpoint.walletPlatformTracking;
   assert.equal(platform.webPwa.sourceCommit, "3651ba0c4322e0564e29b4573f3def90828dba67");
+  assert.equal(platform.webPwa.evidenceCommit, "93c3d06bab567e40c419ff2b3c5702d55083c7fa");
+  assert.equal(platform.webPwa.deploymentId, "dpl_6GRARbJYU5JyPeJP7Un3E6KqmBN2");
   assert.equal(platform.webPwa.sourceBoundPublic, true);
+  assert.equal(platform.webPwa.mirrorDriftObservedAndRepaired, true);
+  assert.equal(platform.webPwa.sensitiveRequestTriggered, false);
   assert.equal(platform.webPwa.accountApproved, false);
   assert.equal(platform.webPwa.callback, false);
   assert.equal(platform.webPwa.productSessionV2, false);
