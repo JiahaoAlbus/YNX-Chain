@@ -2,12 +2,12 @@
   "schemaVersion": "1.0.0",
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "owner": "Central Integration",
-  "acceptedAt": "2026-08-21T16:32:00Z",
+  "acceptedAt": "2026-08-21T16:47:00Z",
   "decision": "OWNER_ENGINEERING_EVIDENCE_ACCEPTED_PRODUCTION_GATES_UNCHANGED",
   "ownerBranch": {
     "name": "codex/wallet-ios-macos-20260813",
-    "remoteHead": "1d37a63eff1b7da2d96ff881c31ad5cb0435f6a0",
-    "remoteHeadTree": "6dc8d305c4ac42b3366450ff2eda06e03e972fea"
+    "remoteHead": "1654fb467efa0bd2e31f43e11c09cebd4205c4cf",
+    "remoteHeadTree": "a0dd3584c69d0acca9b2aabaebefafc292432ce0"
   },
   "acceptedSlices": {
     "macosNotarizedManifestCommand": {
@@ -83,6 +83,34 @@
       "engineeringDmgBytesFromPublicLog": 307395,
       "githubPrereleasePublished": false,
       "workflowDispatchedForPublication": false
+    },
+    "macosEngineeringDmgReleaseManifestSourceGate": {
+      "implementationCommit": "ae553387b67c3dc6643f1f3ea4b7dc2d2dfe96d5",
+      "implementationTree": "ad274dda2652d8fcc22430f75c40f7bf4ff8d7e3",
+      "workflowBlob": "85ce551d1c851c6e203241a7fe798745de66b153",
+      "verifierBlob": "2c0ff755f287f80550cd247e8511250c61169a68",
+      "evidenceCommit": "1654fb467efa0bd2e31f43e11c09cebd4205c4cf",
+      "evidenceTree": "a0dd3584c69d0acca9b2aabaebefafc292432ce0",
+      "evidencePath": "release/integration/wallet-macos-engineering-dmg-release-manifest-source-ci-evidence-2026-08-21.json",
+      "evidenceBlob": "faa71d75430c397ed92dc2b9450135fbba17d464",
+      "evidenceBytes": 4455,
+      "evidenceSha256": "5f6897feb1406fa0b5c07e7a0651667821bda6594bc9482522e574695ae5843e",
+      "githubActionsRun": 32504105429,
+      "nativeJob": 96840278649,
+      "publicationJob": 96840726725,
+      "nativeJobSuccess": true,
+      "publicationJobSkipped": true,
+      "swiftTests": "17/17",
+      "manifestSourceReady": true,
+      "localManifestRuntimeVerified": true,
+      "hostedSourceContractVerified": true,
+      "localManifestBytes": 1044,
+      "localManifestSha256": "66027b25fff0450b2e8d12de1f07781e205b1ce8d6ed4506ea72dc8f9d77a6af",
+      "engineeringDmgSha256FromPublicLog": "15c574d24967b78e06e9c31547a82441c36eb6eef2889c6c1f07142d06ff2e38",
+      "engineeringDmgBytesFromPublicLog": 307411,
+      "releaseCreated": false,
+      "hostedManifestRuntimeVerified": false,
+      "workflowDispatchedForPublication": false
     }
   },
   "routerCrossCheck": {
@@ -105,6 +133,7 @@
     "publicNativeWalletPublished": false,
     "websiteNativeReplacementPublished": false,
     "engineeringDmgPrereleasePublished": false,
+    "engineeringDmgReleaseManifestHosted": false,
     "operatorPublicationDispatch": false,
     "electronPreviewRelabeledAsOwnerNative": false,
     "systemInstalled": false,
