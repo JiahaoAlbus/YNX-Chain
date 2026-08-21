@@ -11,10 +11,11 @@
     "reason": "Latest compatible complete Finance service ancestor. The recovery base retained apps/finance but omitted internal/finance and its direct internal/readintegration dependency."
   },
   "restoration": {
-    "method": "git restore --source=3b2383f5c18ab3eb5ce7f7f6a267d2cfe7c7e6a4 -- internal/finance internal/readintegration go.mod go.sum",
+    "method": "git restore --source=3b2383f5c18ab3eb5ce7f7f6a267d2cfe7c7e6a4 -- apps/finance/cmd/server/main.go internal/finance internal/readintegration go.mod go.sum",
     "logicChanged": false,
     "productionBinaryCopied": false,
     "paths": [
+      {"path": "apps/finance/cmd/server/main.go", "blob": "f8391fe47e1ab532691af6c10e46455b86cd7004", "reason": "Restores the authoritative build identity and /version wiring, multi-instance store entry point, and proof-bound read-source integration configuration."},
       {"path": "go.mod", "blob": "058025dc14f6a053f6541953dec0c8cae5aff105"},
       {"path": "go.sum", "blob": "a550963b0904796dce377b113ce565d9d45bb9ab"},
       {"path": "internal/finance", "tree": "53d984bc7dad4d911d578689edd03e9131ab4beb"},
