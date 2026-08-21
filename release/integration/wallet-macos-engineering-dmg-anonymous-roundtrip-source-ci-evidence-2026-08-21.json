@@ -1,0 +1,129 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-08-21T16:48:22Z",
+  "owner": "Wallet/Auth macOS native",
+  "evidenceKind": "owner-native-engineering-dmg-anonymous-public-roundtrip-source-and-hosted-ci",
+  "implementationCommit": "912e79642e805a35004a02312ee2b7f1ca17f3e8",
+  "implementationTree": "91f466e6c124bd26b786c9ddf28c94a5f5dce779",
+  "sourceBackread": {
+    ".github/workflows/wallet-macos.yml": {
+      "gitBlob": "36870e25c7a0679e922ecf1606e1e596fe406279",
+      "bytes": 40893,
+      "sha256": "37a23ad59cb579db1bc534010d1194acc0fd49e15fcb5b9417143afa1d4abe40"
+    },
+    "apps/wallet/macos/scripts/verify-engineering-dmg-release-source.rb": {
+      "gitBlob": "2cd86d082d7aab3000b8e66c92a5ebae0063435c",
+      "bytes": 1864,
+      "sha256": "3723f330d1dbc87665c574f943cdf5819df50a835be17fb990f2ac0030ab3b28",
+      "executable": true
+    }
+  },
+  "anonymousRoundtripContract": {
+    "repositoryMustBePublicFromUnauthenticatedApi": true,
+    "browserDownloadUrlsMustMatchExactRepositoryTagAndAssetNames": true,
+    "assetDiscoveryBoundSeconds": 30,
+    "downloadRetriesBound": 5,
+    "githubTokensRemovedFromCurlEnvironment": true,
+    "dmgAndManifestDownloadedAnonymously": true,
+    "dmgSha256BytesAndManifestSourceRecomputed": true,
+    "allManifestProductionAndProductGatesRequiredFalse": true,
+    "hdiutilChecksumAndReadOnlyMountRequired": true,
+    "bundleMinimumOSArchitecturesAndSchemeRequired": true,
+    "deepStrictCodesignAndNullTeamIdentifierRequired": true,
+    "gatekeeperRejectionRequired": true
+  },
+  "anonymousMechanismProbe": {
+    "target": "existing public repository release asset",
+    "asset": "wallet-android-testnet-preview-44bb1f0e/app-release.apk",
+    "credentialHeadersUsed": false,
+    "browserUrlExact": true,
+    "initialHttpStatus": 302,
+    "finalHttpStatus": 200,
+    "finalContentLength": 78235122,
+    "walletMacosArtifactDownloaded": false,
+    "purpose": "prove the no-token GitHub release browser URL transport used by the source contract"
+  },
+  "githubActions": {
+    "runId": 32504684583,
+    "jobId": 96842073535,
+    "publicationJobId": 96842526764,
+    "headSha": "912e79642e805a35004a02312ee2b7f1ca17f3e8",
+    "headShaExact": true,
+    "event": "push",
+    "status": "completed",
+    "conclusion": "success",
+    "createdAt": "2026-08-21T16:46:41Z",
+    "completedAt": "2026-08-21T16:48:22Z",
+    "nativePackageConclusion": "success",
+    "publicationJobConclusion": "skipped",
+    "sourceContractLogVerified": true,
+    "swiftTests": {
+      "executed": 17,
+      "failures": 0
+    }
+  },
+  "engineeringDmgFromThisRunPublicLog": {
+    "name": "YNX-Wallet-macOS-ad-hoc.dmg",
+    "sha256": "adf22429be0fac8a3fda01136139de5e71e53ad05cf7ba42947599d69ac5d4a3",
+    "bytes": 307429,
+    "minimumOS": "13.0",
+    "architectures": ["x86_64", "arm64"],
+    "signature": "adhoc",
+    "teamIdentifier": null,
+    "hdiutilChecksumValid": true,
+    "gatekeeperAccepted": false,
+    "gatekeeperExitStatus": 3,
+    "developerIDSigned": false,
+    "notarized": false,
+    "stapled": false,
+    "downloadInspected": false
+  },
+  "actionsArtifact": {
+    "id": 9454845780,
+    "name": "ynx-wallet-macos-native",
+    "metadataBytes": 1696536,
+    "metadataDigest": "sha256:76e150b6d542f59b643e801502d65d674169e8ab3b0d46716208e9cbc9fc5e63",
+    "downloadInspected": false
+  },
+  "lifecycleBoundary": {
+    "coldPid": 2883,
+    "secondPid": 2919,
+    "canonicalBridgeUnavailableVisibleFailClosed": true,
+    "canonicalAuthorizationSuccess": false,
+    "invalidCallbackPid": 3212,
+    "invalidCallbackVisibleFailClosed": true,
+    "widenedInvalidCallbackPid": 3232,
+    "widenedInvalidCallbackVisibleFailClosed": true
+  },
+  "promotedGates": {
+    "anonymousPublicRoundtripSourceReady": true,
+    "anonymousPublicRoundtripHostedSourceContractVerified": true,
+    "anonymousReleaseTransportMechanismObserved": true
+  },
+  "remainingFalse": {
+    "defaultMainRegistration": false,
+    "operatorPublicationDispatch": false,
+    "anonymousWalletMacosRoundtripRuntime": false,
+    "githubPrereleasePublished": false,
+    "artifactDownloadInspected": false,
+    "publicNativeWalletPublished": false,
+    "websiteReplacementPublished": false,
+    "systemApplicationsInstalled": false,
+    "browserQuarantineAccepted": false,
+    "developerIDSigned": false,
+    "notarized": false,
+    "stapled": false,
+    "gatekeeperAccepted": false,
+    "productionSigned": false,
+    "appStore": false,
+    "authorizationSuccess": false,
+    "account": false,
+    "productSession": false,
+    "sign": false,
+    "send": false,
+    "transaction": false,
+    "biometricSuccess": false,
+    "recoverySuccess": false,
+    "universalLink": false
+  }
+}
