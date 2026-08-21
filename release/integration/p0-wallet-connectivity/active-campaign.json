@@ -427,24 +427,24 @@
     }
   ],
   "heavy": {
-    "owner": "financial-apps",
-    "taskId": "P0-141",
-    "status": "ACTIVE_SINGLE_USE_PRODUCTION_DEPLOYMENT",
-    "acquiredAt": "2026-08-21T13:15:00Z",
-    "expiresAt": "2026-08-21T14:00:00Z",
-    "releasedAt": null,
+    "owner": null,
+    "taskId": null,
+    "status": "RELEASED_FAILED_CLOSED_PREWRITE_NONREUSABLE",
+    "acquiredAt": null,
+    "expiresAt": null,
+    "releasedAt": "2026-08-21T13:24:12Z",
     "sourceCommit": "50892538dc237ef519d95c491f4b918a125a6c8e",
     "evidenceCommit": "fd0f1367c4642e843d514727fc838773ad4b9b1a",
     "runtimeHost": "43.153.202.237",
     "currentRuntime": "/opt/ynx/releases/finance/ynx-finance-3b2383f5c18a",
     "candidateRuntime": "/opt/ynx/releases/finance/ynx-finance-50892538dc23",
     "artifactSha256": "d35f2e155ae3802b07048dd6f045b63ba477adeb1b12bc381d6e170294290915",
-    "productionMutationAllowed": true,
+    "productionMutationAllowed": false,
     "singleUse": true,
     "reusable": false,
     "previousOwner": null,
     "previousTaskId": "P0-140",
-    "reason": "Exact rollback-first Finance public runtime deployment only. Host-side archive and binary rehash, current runtime backup, service health/version identity and rollback readback are mandatory. No other financial product, Product Session, installed Wallet, approval, signature or transaction claim is authorized."
+    "reason": "P0-141 was consumed once and released nonreusable after PREWRITE_ROLLBACK_BINARY_PATH_MISMATCH. No upload, extraction, release creation, symlink switch, service restart or configuration change occurred; old Finance runtime remains healthy."
   },
   "wave": {
     "id": "B-financial-apps-quant",

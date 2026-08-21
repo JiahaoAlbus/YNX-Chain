@@ -3,13 +3,15 @@
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "taskId": "P0-141",
   "owner": "financial-apps",
-  "status": "ACTIVE_SINGLE_USE_PRODUCTION_DEPLOYMENT",
+  "status": "CONSUMED_RELEASED_FAILED_CLOSED_PREWRITE_NONREUSABLE",
   "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-finance-50892538-20260821T131500Z",
   "issuedAt": "2026-08-21T13:15:00Z",
   "expiresAt": "2026-08-21T14:00:00Z",
   "singleUse": true,
   "reusable": false,
-  "executionAuthorized": true,
+  "executionAuthorized": false,
+  "consumedAt": "2026-08-21T13:22:43Z",
+  "releasedAt": "2026-08-21T13:24:12Z",
   "branch": "codex/p0-finance-wallet-connectivity-20260820",
   "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/24-finance",
   "source": {
@@ -70,5 +72,19 @@
     "computerControlVerified": false,
     "productionSigned": false,
     "storeReleased": false
+  },
+  "outcome": {
+    "classification": "PREWRITE_ROLLBACK_BINARY_PATH_MISMATCH",
+    "expectedCurrentBinaryPath": "/opt/ynx/releases/finance/ynx-finance-3b2383f5c18a/bin/ynx-finance",
+    "productionWriteAttempted": false,
+    "archiveUploaded": false,
+    "candidateActivated": false,
+    "serviceRestarted": false,
+    "oldRuntimeHealthy": true,
+    "ownerEvidenceCommit": "02a482b9c714525dc8c5fd0dd820767cbbf63c67",
+    "ownerEvidenceTree": "bc1963bb10333bbe1a29003ccc903a768952366b",
+    "ownerEvidencePath": "apps/finance/evidence/p0-141-finance-production-deployment-failure-20260821.json",
+    "ownerEvidenceSha256": "95b63b2b62db59d79ec0629a4adce4354875f44d7eb19ead20509363a24e9891",
+    "retryAllowed": false
   }
 }
