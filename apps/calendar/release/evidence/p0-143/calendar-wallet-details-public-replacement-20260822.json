@@ -1,0 +1,116 @@
+{
+  "schemaVersion": "ynx-calendar-wallet-details-public-replacement/v1",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-143",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-calendar-d2044bd9-20260821T164248Z",
+  "recordedAt": "2026-08-21T16:56:21Z",
+  "source": {
+    "branch": "codex/calendar-fable5-completion-20260821",
+    "commit": "d2044bd9a8ec6bdc6235dfb625a62c3dd5c58b04",
+    "tree": "b11b1e65b0026ed2bfd5d3306bd85a5c63ab3f53",
+    "parent": "e9bd11de7b9d5fbc3a43361d5d54ee67515a52e0",
+    "release": "ynx-calendar-0.4.3-testnet-preview"
+  },
+  "artifact": {
+    "buildPath": "/private/tmp/ynx-calendar-d2044.RTF8Ri/ynx-calendard.1",
+    "installedPath": "/usr/local/bin/ynx-calendard",
+    "bytes": 7610516,
+    "sha256": "3fc3492d89978c32991d54abc2c8994d1dbe271df7d95364449cb81a6b781890"
+  },
+  "deployment": {
+    "origin": "https://calendar-testnet.43.153.202.237.sslip.io",
+    "service": "ynx-calendar.service",
+    "serviceActive": true,
+    "nRestarts": 0,
+    "rollbackBackup": "/var/backups/ynx-chain/calendar-d2044bd9-p0143-20260821T164248Z",
+    "state": {
+      "bytes": 39225,
+      "sha256": "fbe1c9cf058658370373385dc659c8b43a14238a3adef9df62a8b5ef0d22bd9c",
+      "owner": "ynx:ynx",
+      "mode": "0600",
+      "nlink": 1,
+      "unchangedByDeployment": true
+    },
+    "stateKey": {
+      "bytes": 32,
+      "sha256": "bf7b567201cab33c4b9ed02e00f0d0165172b4e692484ca044d828d0a3fb5e62",
+      "owner": "ynx:ynx",
+      "mode": "0600",
+      "nlink": 1,
+      "unchangedByDeployment": true
+    }
+  },
+  "publicReadback": {
+    "health": {
+      "http": 200,
+      "bytes": 215,
+      "sha256": "f07ee444605fe2b52aa1565a0601139fd876ad98aefe4dc376c7c861ef8b517e",
+      "exactSource": true,
+      "exactRelease": true
+    },
+    "version": {
+      "http": 200,
+      "bytes": 279,
+      "sha256": "c4add3bef2f0209a2dcfe0af6bad4e299239ba7f6c1fef7942d443c11ba701de",
+      "exactSource": true,
+      "exactRelease": true
+    }
+  },
+  "browserVerification": {
+    "tool": "Codex in-app Browser",
+    "url": "https://calendar-testnet.43.153.202.237.sslip.io/?verify=d2044bd9&lang=en",
+    "defaultLanguage": "en",
+    "selectedLanguageRemainedEnglish": true,
+    "wallet": "MetaMask",
+    "accountLabel": "0xb906…f3ab",
+    "providerChainId": "0x1917",
+    "connectedStatusRestoredAfterReload": true,
+    "chooserReopenedAfterReload": false,
+    "accountButtonOpenedWalletDetails": true,
+    "accountButtonOpenedGuestDataDialog": false,
+    "dialog": {
+      "heading": "Wallet connection",
+      "network": "YNX Testnet · 6423 / 0x1917",
+      "privateCalendarSync": "Degraded · local Calendar remains available.",
+      "controls": [
+        "Local Calendar data",
+        "Switch account",
+        "Disconnect",
+        "Close"
+      ]
+    },
+    "urlStable": true,
+    "topLevelTabCountBefore": 21,
+    "topLevelTabCountAfter": 21,
+    "newTopLevelTabCreated": false,
+    "blankTabCreatedByCalendarFlow": false
+  },
+  "tests": {
+    "calendarNode": "21/21",
+    "go": "pass",
+    "goVet": "pass",
+    "deploymentReadiness": "pass",
+    "diffCheck": "pass"
+  },
+  "truth": {
+    "deployedPublicCurrentSource": true,
+    "publicHttpVerifiedCurrentSource": true,
+    "currentDeploymentRenderedVisibleVerified": true,
+    "standardWalletConnectionRestored": true,
+    "walletDetailsActionFixed": true,
+    "privateSyncFailurePreservesStandardConnection": true,
+    "approvalTriggeredThisSlice": false,
+    "approvalCompletedThisSlice": false,
+    "rejectCallbackVerifiedThisSlice": false,
+    "approveCallbackVerifiedThisSlice": false,
+    "disconnectClickedThisSlice": false,
+    "switchAccountClickedThisSlice": false,
+    "productSessionV2": false,
+    "signatureVerified": false,
+    "transactionVerified": false,
+    "computerControlVerified": false,
+    "integratedCentral": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}
