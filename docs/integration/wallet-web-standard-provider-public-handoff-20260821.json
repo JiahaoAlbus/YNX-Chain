@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "owner": "Wallet Web/PWA/Extensions",
+  "sourceCommit": "95a629ecc003d81ec7b1cee340de83c1ea1db38e",
+  "evidencePath": "apps/wallet-web/evidence/browser/wallet-companion-provider-public-20260821.json",
+  "consumes": {
+    "standardWalletProviderAuthority": "98c6d5d784d212df8981a53b17118a511e246ad2",
+    "standardWalletEvidenceAuthority": "d3831c300560507f64a50e73117bab7b85926d9a"
+  },
+  "public": {
+    "url": "https://wallet.ynxweb4.com/?lang=en",
+    "deploymentId": "dpl_BZEFxVpFQ3bRKwAreb6nU8rwzir1",
+    "product": "YNX Wallet Companion",
+    "sourceBound": true,
+    "httpVerified": true,
+    "visibleChromeVerified": true,
+    "metaMaskEip6963Discovered": true,
+    "ynxEip6963Discovered": false,
+    "accountApproved": false,
+    "chainId1917": false
+  },
+  "behavior": {
+    "connectionPrerequisite": ["selected provider", "approved account", "provider eth_chainId=0x1917"],
+    "directBrowserRpcPrerequisite": false,
+    "chooserClosesOnSuccess": true,
+    "pendingIntentClearsOnSuccess": true,
+    "focusRestoresOnSuccess": true,
+    "refreshUsesLiveProviderAccountAndChain": true,
+    "providerDisconnectFailsClosed": true,
+    "accountSwitchRevalidates": true,
+    "customSchemeWebNavigation": false
+  },
+  "artifacts": [
+    {"name": "ynx-wallet-web-pwa-0.1.0.zip", "bytes": 283980, "sha256": "45d99a2c8e81f65a7c56639c81c9838d76760b45357caf34336fd22ae5ff6fe6", "minimumOS": "modern browser with Service Worker and Web Crypto support", "signingClass": "unsigned-web-bundle"},
+    {"name": "ynx-wallet-chrome-edge-0.1.0.zip", "bytes": 198499, "sha256": "a9f1c706b453c42cd35a0c25c154048a5f2a1750d672cfc56074a7ddd3cc2db9", "minimumOS": "Chrome 120 / Edge 120", "signingClass": "unsigned-unpacked-extension"},
+    {"name": "ynx-wallet-firefox-0.1.0.zip", "bytes": 198536, "sha256": "7725094ab40b06bc7061639b3d85ffae17b924942f9dbba5eac1686a0765e3a9", "minimumOS": "Firefox 128", "signingClass": "unsigned-unpacked-extension"}
+  ],
+  "tests": {
+    "full": "93/93",
+    "package": "75/75",
+    "protocolConsumerGate": "passed"
+  },
+  "falseGates": ["ynxProviderDiscoveryProved", "ynxExtensionInstalledLocal", "accountApproved", "providerChainId1917", "refreshRestore", "disconnect", "switchAccount", "noBlankTabAfterConnect", "sign", "transaction", "productionSignedExtension", "storeReleasedExtension"]
+}
