@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "product": "calendar",
+  "owner": "36-calendar",
+  "status": "TESTED_LOCAL_NOT_PUBLIC",
+  "sourceCommit": "aaeded51ab1175e3b449bcd278e72ea09764adb3",
+  "branch": "codex/calendar-fable5-completion-20260821",
+  "scope": [
+    "versioned shared-calendar permission history for member grant, role change and revoke",
+    "idempotent same-role replay without duplicate audit entries",
+    "restart-persistent permission history",
+    "owner-only audit visibility with non-owner calendar and account-export redaction",
+    "real browser viewer-to-editor promotion and expandable permission history"
+  ],
+  "tests": {
+    "goTest": true,
+    "goRace": true,
+    "goVet": true,
+    "nodeTests": "20/20",
+    "releaseTests": "5/5",
+    "build": true,
+    "statectlBuild": true,
+    "smoke": true,
+    "browserProof": true,
+    "deployReadiness": true,
+    "consoleErrors": 0
+  },
+  "artifacts": [
+    {
+      "path": "apps/calendar/tests/artifacts/calendar-shared-permission-history.png",
+      "bytes": 188548,
+      "sha256": "16d08ad44ebd770eecbe8b26cc121c7a6bd00eae70756cd8ee6a71456074d312"
+    }
+  ],
+  "publicRuntime": {
+    "url": "https://calendar-testnet.43.153.202.237.sslip.io/",
+    "sourceCommit": "828120e6d81efaf874a930793660e185a394ba4f",
+    "includesCandidate": false
+  },
+  "truth": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "deployedPublic": false,
+    "websitePublished": false,
+    "integratedCentral": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "nextAction": "publish exact source aaeded51 and collect source-bound public owner/editor/viewer browser evidence"
+}

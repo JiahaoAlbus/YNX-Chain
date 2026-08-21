@@ -74,7 +74,7 @@
     ]
   },
   "latestLocalCandidate": {
-    "sourceCommit": "6dd8d9a20e42ee8d7f5da261e59b2bad3d614b19",
+    "sourceCommit": "aaeded51ab1175e3b449bcd278e72ea09764adb3",
     "branch": "codex/calendar-fable5-completion-20260821",
     "status": "testedLocalNotPublic",
     "scope": [
@@ -83,7 +83,10 @@
       "privacy-bounded canonical RSVP event metadata",
       "late-night all-day range normalization and recurrence rendering",
       "dedicated single-day grid with explicit accessible schedule identity",
-      "occurrence-only cancellation verified across Day and Agenda views"
+      "occurrence-only cancellation verified across Day and Agenda views",
+      "versioned shared-calendar permission history for grant, role change and revoke",
+      "owner-only permission audit visibility with non-owner and export redaction",
+      "restart-persistent viewer-to-editor collaboration proof in the real browser UI"
     ],
     "deployedPublic": false,
     "websitePublished": false,

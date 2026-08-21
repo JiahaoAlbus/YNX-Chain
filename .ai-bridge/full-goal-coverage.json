@@ -5,7 +5,7 @@
   "phase": "FREEZE",
   "overallStatus": "ACTIVE",
   "runtimeSourceCommit": "f1305e6b52c7484c099fe6b2f6cbc2b6d36508e2",
-  "lastUpdated": "2026-08-14T01:22:46Z",
+  "lastUpdated": "2026-08-21T15:07:19Z",
   "items": [
     {
       "id": "CAL-RECOVER-001",
@@ -172,16 +172,16 @@
       "category": "sharing",
       "requirement": "Support Personal and Shared calendars with Owner, Editor, Viewer, share, invite, revoke, permission changes, and audit.",
       "applicability": "required",
-      "status": "inProgress",
-      "evidence": ["event-level owner/editor/viewer sharing and revocation are implemented and authorized", "audit entries are persisted"],
-      "sourceCommit": "9cf30f16c4312b4438d087b1df58cec68df54f15",
-      "tests": ["TestInviteRSVPShareUpdateCancelRevertAndAuthorization"],
-      "artifact": [],
+      "status": "testedLocal",
+      "evidence": ["first-class shared calendar containers persist owner, viewer and editor memberships", "grant, role-change and revoke permission history is versioned and restart-persistent", "permission history is owner-only and redacted from non-owner calendar views and account export", "same-role replay is an idempotent no-op", "real browser proof creates a collaborator, promotes viewer to editor and expands both permission-history entries"],
+      "sourceCommit": "aaeded51ab1175e3b449bcd278e72ea09764adb3",
+      "tests": ["TestInviteRSVPShareUpdateCancelRevertAndAuthorization", "TestSharedCalendarPermissionHistoryIsVersionedPrivateAndPersistent", "go test -race ./internal/calendar ./apps/calendar", "npm run browser:proof --prefix apps/calendar"],
+      "artifact": ["apps/calendar/tests/artifacts/calendar-shared-permission-history.png"],
       "publicProof": [],
       "blockedBy": [],
       "owner": "36-calendar",
-      "nextAction": "add first-class calendar containers, team calendars, and permission-history tests",
-      "lastUpdated": "2026-07-27T14:39:45Z"
+      "nextAction": "publish exact source aaeded51 and collect source-bound public owner/editor/viewer browser evidence; team workspace policy remains a separate requirement",
+      "lastUpdated": "2026-08-21T15:07:19Z"
     },
     {
       "id": "CAL-PRIVACY-001",
