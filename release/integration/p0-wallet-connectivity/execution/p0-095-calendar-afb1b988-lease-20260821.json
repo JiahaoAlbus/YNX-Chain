@@ -1,0 +1,36 @@
+{
+  "schemaVersion": "p0-execution-lease/v1",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-095",
+  "owner": "integration",
+  "status": "ACTIVE_BOUNDED_SINGLE_USE",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-calendar-afb1b988-20260821T013320Z",
+  "issuedAt": "2026-08-21T01:33:20Z",
+  "expiresAt": "2026-08-21T03:33:20Z",
+  "sourceCommit": "afb1b988e5e47f02928163c345ff5fb1dc7a44e5",
+  "sourceBranch": "codex/p0-calendar-wallet-evidence-20260821",
+  "artifact": {
+    "path": "/Users/huangjiahao/Desktop/YNX Final Worktrees/48-calendar-p0/tmp/calendar-p0095-afb1b988/one/ynx-calendard",
+    "sha256": "f0ce5b354c7a68889e5cfd0450801fa4adea73eff97761c6346e6d5f4ac0c46b",
+    "bytes": 7549112,
+    "platform": "linux-amd64-static"
+  },
+  "scope": [
+    "fresh read-only Calendar service and runtime digest preflight",
+    "new root-only backup and lease-bound staging",
+    "install exact Calendar binary only",
+    "restart ynx-calendard.service only",
+    "verify local and public health/version/UI",
+    "rollback exact prior binary on any failed gate"
+  ],
+  "forbidden": [
+    "modify Calendar state or HMAC key",
+    "modify Wallet/Auth, Gateway, Card, Chain, Finance or other services",
+    "claim installed Wallet, Product Session v2, Mail delivery, AI provider or ComputerControl",
+    "reuse this lease after any execution attempt"
+  ],
+  "singleUse": true,
+  "nonreusableAfterAttempt": true,
+  "rollbackFirst": true,
+  "productionMutationAllowed": true
+}

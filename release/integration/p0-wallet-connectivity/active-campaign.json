@@ -2,7 +2,7 @@
   "schemaVersion": "1.0.0",
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "owner": "integration",
-  "status": "P0093_FAUCET_CANONICAL_TRANSACTION_VERIFIED_MANIFEST_P04_ACCEPTED",
+  "status": "P0095_CALENDAR_CURRENT_SOURCE_DEPLOYMENT_ACTIVE",
   "scope": [
     "founder-control",
     "wallet-connectivity",
@@ -34,7 +34,7 @@
   "firstStop": {
     "complete": true,
     "publicConnectivityClaim": false,
-    "nextAction": "P0-094 published the exact 02cf44d1 Faucet runtime and verified transaction from Website main c61a0e56 to production. Wallet Platform has been notified to consume p0.4 and must produce its own installed flow evidence. The existing Card owner has been resumed to provide a public Web/PWA Testnet virtual-card entry; installed Wallet and ComputerControl remain false."
+    "nextAction": "P0-095 deploys the existing full Calendar current source afb1b988 to its isolated public runtime with rollback-first evidence. Card and Wallet/Auth remain independently owned and active. Calendar installed Wallet, Product Session v2, Mail delivery, AI provider and ComputerControl remain false."
   },
   "lightLeases": [
     {
@@ -321,16 +321,16 @@
     }
   ],
   "heavy": {
-    "owner": null,
-    "taskId": "P0-093",
-    "status": "RELEASED_CHECKPOINT",
-    "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-faucet-02cf44d1-canonical-recipient-20260821T011000Z",
-    "leasedAt": "2026-08-21T01:10:00Z",
-    "expiresAt": "2026-08-21T03:10:00Z",
-    "releasedAt": "2026-08-21T01:15:00Z",
-    "checkpointCommit": "fe812300c9443fed62f74c9f39fbcc149b173a14",
-    "scope": "faucet-canonical-recipient-deployment-and-one-public-funding-verification",
-    "productionMutationAllowed": false,
+    "owner": "integration",
+    "taskId": "P0-095",
+    "status": "ACTIVE_BOUNDED_CALENDAR_CURRENT_SOURCE_DEPLOYMENT",
+    "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-calendar-afb1b988-20260821T013320Z",
+    "leasedAt": "2026-08-21T01:33:20Z",
+    "expiresAt": "2026-08-21T03:33:20Z",
+    "releasedAt": null,
+    "checkpointCommit": null,
+    "scope": "calendar-afb1b988-binary-deployment-and-public-readback",
+    "productionMutationAllowed": true,
     "singleUse": true
   },
   "wave": {
