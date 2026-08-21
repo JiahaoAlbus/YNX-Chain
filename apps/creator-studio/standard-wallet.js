@@ -26,7 +26,10 @@ class StandardWalletConnection{
     if(String(chainId).toLowerCase()!=="0x1917"){
       try{await this.provider.request({method:"wallet_switchEthereumChain",params:[{chainId:"0x1917"}]})}
       catch(error){
-        if((error?.code===4902||error?.code==="4902")&&addChain)await this.provider.request({method:"wallet_addEthereumChain",params:[addChain]});
+        if((error?.code===4902||error?.code==="4902")&&addChain){
+          await this.provider.request({method:"wallet_addEthereumChain",params:[addChain]});
+          await this.provider.request({method:"wallet_switchEthereumChain",params:[{chainId:"0x1917"}]});
+        }
         else throw error;
       }
       chainId=await this.provider.request({method:"eth_chainId"});
@@ -38,11 +41,15 @@ class StandardWalletConnection{
   disconnect(){for(const[event,listener]of this.listeners)this.provider.removeListener?.(event,listener);this.listeners=[]}
 }
 
-export async function connectStandardWallet({windowLike=globalThis,timeoutMs=250,network=globalThis.YNX_STANDARD_WALLET_NETWORK}={}){
+export async function connectStandardWallet({walletId,windowLike=globalThis,timeoutMs=250,network=globalThis.YNX_STANDARD_WALLET_NETWORK}={}){
+  if(!["ynx","metamask"].includes(walletId))throw new WalletConnectionError("WALLET_CHOICE_REQUIRED","Choose YNX Wallet or MetaMask before requesting an account.");
   const announced=await discoverProviders(windowLike,timeoutMs);
-  const preferred=[...announced].sort((a,b)=>rank(a)-rank(b))[0];
-  const provider=preferred?.provider??windowLike.ethereum;
-  if(!provider?.request)throw new WalletConnectionError("WALLET_NOT_FOUND","No standard EVM wallet was found.",{details:{installOptions:WALLET_INSTALL_OPTIONS}});
+  const matches=announced.filter(detail=>matchesWallet(detail,walletId));
+  if(matches.length>1)throw new WalletConnectionError("WALLET_AMBIGUOUS",`More than one ${walletId==="ynx"?"YNX Wallet":"MetaMask"} provider was announced. Choose the intended browser profile and retry.`);
+  const preferred=matches[0];
+  const legacy=matchesLegacyWallet(windowLike.ethereum,walletId)?windowLike.ethereum:null;
+  const provider=preferred?.provider??legacy;
+  if(!provider?.request)throw new WalletConnectionError(walletId==="ynx"?"YNX_WALLET_NOT_FOUND":"METAMASK_NOT_FOUND",`${walletId==="ynx"?"YNX Wallet":"MetaMask"} was not detected in this browser.`,{details:{installOptions:WALLET_INSTALL_OPTIONS}});
   const connection=new StandardWalletConnection(provider);
   const connected=await connection.connect();
   const addChain=network?.rpcUrl?{chainId:"0x1917",chainName:"YNX Testnet",nativeCurrency:{name:"YNX Testnet",symbol:"YNXT",decimals:18},rpcUrls:[network.rpcUrl],blockExplorerUrls:network.explorerUrl?[network.explorerUrl]:[]}:undefined;
@@ -54,4 +61,5 @@ export function privateServiceDegraded({account=null,chainId=null,error=new Wall
   return Object.freeze({standardConnection:Object.freeze({state:account?"STANDARD_CONNECTED":"NOT_CONNECTED",account,chainId}),privateService:Object.freeze({state:"PRIVATE_SERVICE_DEGRADED",code:error.code||"PRODUCT_SESSION_GATEWAY_UNREACHABLE",message:error.message})});
 }
 
-function rank(detail){const id=`${detail?.info?.name??""} ${detail?.info?.rdns??""}`.toLowerCase();return id.includes("ynx")?0:id.includes("metamask")?1:2}
+function matchesWallet(detail,walletId){const id=`${detail?.info?.name??""} ${detail?.info?.rdns??""}`.toLowerCase();return walletId==="ynx"?(detail?.provider?.isYNXWallet===true||id.includes("ynx")):(detail?.provider?.isMetaMask===true||id.includes("metamask"))}
+function matchesLegacyWallet(provider,walletId){return walletId==="ynx"?provider?.isYNXWallet===true:provider?.isMetaMask===true}

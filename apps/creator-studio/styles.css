@@ -59,6 +59,18 @@ button:disabled{opacity:.48;cursor:not-allowed}
 .meta{color:var(--muted)}
 #ai-provider{margin-bottom:18px}
 pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#1b1e24;color:#f1f3f6;padding:18px;border-radius:9px;max-width:900px}
+.wallet-dialog{width:min(760px,calc(100vw - 32px));border:1px solid var(--line);border-radius:16px;padding:24px;background:var(--surface);color:inherit;box-shadow:0 24px 80px #0c1d4438}
+.wallet-dialog::backdrop{background:#0b122080;backdrop-filter:blur(5px)}
+.wallet-dialog-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px}
+.wallet-dialog-head h2{margin:4px 0 0;font-size:1.4rem}
+.wallet-dialog-close{background:transparent;color:var(--muted);border-color:var(--line)}
+.wallet-dialog-copy{color:var(--muted);line-height:1.55;margin:14px 0 20px}
+.wallet-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.wallet-options article{display:grid;gap:14px;padding:18px;border:1px solid var(--line);border-radius:12px;background:var(--surface-2)}
+.wallet-options strong,.wallet-options small{display:block}.wallet-options small{color:var(--muted);line-height:1.5;margin-top:5px}
+.wallet-options a{color:var(--blue);font-weight:700;text-decoration:none}
+#wallet-dialog-status{min-height:24px;color:var(--muted);margin:16px 0 0;line-height:1.5}
+@media(max-width:760px){body{grid-template-columns:1fr;grid-template-rows:auto auto 1fr}aside{grid-row:auto;padding:16px}aside nav,.boundary{display:none}header{padding:14px 16px;flex-wrap:wrap}.locale-controls{order:3;width:100%}.wallet-options{grid-template-columns:1fr}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}main{padding:24px 16px 56px}}
 html[dir="rtl"] aside{border-inline-end:1px solid var(--line)}
 html[dir="rtl"] nav button{text-align:start}
 @media(prefers-color-scheme:dark){:root{--surface:#17191e;--surface-2:#101217;--line:#30343c;--muted:#aab1bc}
