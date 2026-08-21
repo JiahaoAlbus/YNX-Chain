@@ -153,10 +153,10 @@ $manifest = @"
 <?xml version="1.0" encoding="utf-8"?>
 <Package xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10" xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10" xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities" IgnorableNamespaces="uap rescap">
   <Identity Name="YNXDeveloper.TestnetPreview" Publisher="CN=YNX Developer Testnet Preview" Version="0.2.0.0" ProcessorArchitecture="x64" />
-  <Properties><DisplayName>YNX Developer Testnet Preview</DisplayName><PublisherDisplayName>YNX</PublisherDisplayName><Logo>Assets\\StoreLogo.png</Logo></Properties>
+  <Properties><DisplayName>YNX Developer Testnet Preview</DisplayName><PublisherDisplayName>YNX</PublisherDisplayName><Logo>Assets\StoreLogo.png</Logo></Properties>
   <Resources><Resource Language="en-us" /></Resources>
   <Dependencies><TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.17763.0" MaxVersionTested="10.0.26100.0" /></Dependencies>
-  <Applications><Application Id="YNXDeveloper" Executable="YNXDeveloper.TestnetPreview.exe" EntryPoint="Windows.FullTrustApplication"><uap:VisualElements DisplayName="YNX Developer Testnet Preview" Description="YNX Developer Testnet Preview" BackgroundColor="transparent" Square44x44Logo="Assets\\Square44x44Logo.png" Square150x150Logo="Assets\\Square150x150Logo.png" AppListEntry="none" /></Application></Applications>
+  <Applications><Application Id="YNXDeveloper" Executable="YNXDeveloper.TestnetPreview.exe" EntryPoint="Windows.FullTrustApplication"><uap:VisualElements DisplayName="YNX Developer Testnet Preview" Description="YNX Developer Testnet Preview" BackgroundColor="transparent" Square44x44Logo="Assets\Square44x44Logo.png" Square150x150Logo="Assets\Square150x150Logo.png" AppListEntry="none" /></Application></Applications>
   <Capabilities><rescap:Capability Name="runFullTrust" /></Capabilities>
 </Package>
 "@
