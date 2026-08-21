@@ -1,0 +1,100 @@
+{
+  "schemaVersion": 1,
+  "evidenceType": "wallet-android-physical-runtime-boundary",
+  "verifiedAt": "2026-08-21T17:05:24Z",
+  "owner": "wallet-android",
+  "source": {
+    "branch": "codex/wallet-android-device-runtime-p0-20260822",
+    "commit": "c482717b26a9536e82a587e54d3989eba7c3a3a0",
+    "tree": "2f75a982d338f1b082d8cb516d3f2e457a5edf1a"
+  },
+  "sharedProviderConnectionContract": {
+    "sourceCommit": "98c6d5d784d212df8981a53b17118a511e246ad2",
+    "tree": "51a60a362d4ad5dd748bcdefb101f71b1d9e0cee",
+    "evidenceCommit": "c3ab255c32bdeb9c8e056882c315f8ad43c29c7f",
+    "applicability": "not-a-browser-provider-client",
+    "boundary": "This Android Wallet is the native authorization receiver. It must not import browser EIP-1193 discovery state or use a browser RPC CORS probe as a native Wallet authority gate. Canonical native deep links and callback persistence remain its applicable connection path."
+  },
+  "artifact": {
+    "path": "/private/tmp/ynx-wallet-android-device-runtime-c482717b-qa/ynx-wallet-1.0.1-api36-disposable-qa.apk",
+    "manifestPath": "/private/tmp/ynx-wallet-android-device-runtime-c482717b-qa/manifest.json",
+    "manifestSha256": "3adee75dd1bb7051d21d702a336df582486a4e7025f97b24ccb989f53c54776c",
+    "package": "com.ynxweb4.wallet",
+    "versionName": "1.0.1",
+    "versionCode": 2,
+    "minimumOS": "Android API 24",
+    "compileSdk": 36,
+    "targetSdk": 36,
+    "abi": "arm64-v8a",
+    "bytes": 25630315,
+    "sha256": "0adc91331a1a8d15332ca1f1de117dc3eb6becbbd929cc94873cf5d8cff100b9",
+    "signingClass": "disposable-qa-release-key",
+    "signerCertificateSha256": "cb2672cf87ffd6a883c4491870e77716809d2dd32a311cdab60e31965e7ef7fe",
+    "apkSignatureSchemeV2": true,
+    "productionSigned": false,
+    "storeReleased": false,
+    "downloadHosted": false
+  },
+  "sourceValidation": {
+    "typecheck": true,
+    "walletTests": "135/135",
+    "androidIntentFilterTests": "2/2",
+    "productCheck": true,
+    "releaseContentCheck": true,
+    "disposableQaBuild": true,
+    "canonicalNativeDeepLinkAndCallbackPersistence": "source-tested-only"
+  },
+  "buildHostTransportOnly": {
+    "rpc": {
+      "url": "https://rpc.ynxweb4.com/evm",
+      "httpStatus": 200,
+      "bodyPath": "/private/tmp/ynx-wallet-android-device-runtime-c482717b-qa/network/rpc.json",
+      "bodyBytes": 43,
+      "bodySha256": "5c4a05f13a54a9563933c7daa16938e313e9b35240d6689abc92c1351ebaff79",
+      "ethChainId": "0x1917"
+    },
+    "rest": {
+      "url": "https://rest.ynxweb4.com/app/health",
+      "httpStatus": 200,
+      "bodyPath": "/private/tmp/ynx-wallet-android-device-runtime-c482717b-qa/network/rest.json",
+      "bodyBytes": 2193,
+      "bodySha256": "5e7e89da2f121d8f41440a06ec4b5779eb8337cb9c616528fb3ece148030a3f4",
+      "service": "ynx-app-gatewayd"
+    },
+    "installedWalletNetworkProof": false
+  },
+  "physicalDevice": {
+    "adbDevicesPath": "/private/tmp/ynx-wallet-android-device-runtime-c482717b-qa/adb-devices.txt",
+    "adbDevicesBytes": 44,
+    "adbDevicesSha256": "c6eda14996f1a4fb4742fd5027d6894ae2eb4b1d77471db4bcac0b2cece35316",
+    "deviceDiscovered": false,
+    "deviceAuthorized": false,
+    "installAttempted": false,
+    "firstColdLaunch": false,
+    "secondColdLaunch": false,
+    "networkFromInstalledApp": false,
+    "canonicalRequestReviewVisible": false,
+    "approvalOrRejectCallback": false
+  },
+  "falseBoundaries": [
+    "physical-install",
+    "cold-launch",
+    "second-launch",
+    "installed-wallet-rpc-rest",
+    "canonical-authorization-review",
+    "approval",
+    "reject-callback",
+    "account",
+    "signature",
+    "transaction",
+    "faucet-ui",
+    "production-signing",
+    "store-release",
+    "public-download"
+  ],
+  "limitations": [
+    "ADB reported no attached device and macOS USB inspection found no Android/Pixel USB candidate; no emulator substituted for the requested physical-device proof.",
+    "The generated APK is a 30-day disposable QA artifact outside the repository, never a production or public download artifact.",
+    "The HTTPS reads originate from the build host and do not prove installed Wallet networking or authority."
+  ]
+}
