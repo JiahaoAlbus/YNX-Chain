@@ -2,7 +2,7 @@
   "schemaVersion": "1.0.0",
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "owner": "integration",
-  "status": "P0124_SEARCH_PUBLIC_DEPLOYMENT_ACTIVE",
+  "status": "P0124_SEARCH_PUBLIC_DEPLOYED_COMPUTER_CONTROL_BLOCKED",
   "scope": [
     "founder-control",
     "wallet-connectivity",
@@ -336,22 +336,22 @@
     }
   ],
   "heavy": {
-    "owner": "integration",
+    "owner": null,
     "taskId": "P0-124",
-    "status": "ACTIVE",
+    "status": "AVAILABLE",
     "acquiredAt": "2026-08-21T07:05:00Z",
-    "expiresAt": "2026-08-21T07:35:00Z",
+    "expiresAt": null,
     "sourceCommit": "7604c88e5965bcfdf575c1b84bc9dbf57952c951",
     "runtimeHost": "43.153.202.237",
-    "currentRuntime": "/opt/ynx/search-releases/a2601b6c1c49203fe386c8de55b5378fa86d1ff4",
+    "currentRuntime": "/opt/ynx/search-releases/p0124-search-wallet-7604c88e",
     "rollbackTarget": "/opt/ynx/search-releases/a2601b6c1c49203fe386c8de55b5378fa86d1ff4",
-    "productionMutationAllowed": true,
+    "productionMutationAllowed": false,
     "singleUse": true,
     "previousOwner": "integration",
     "previousTaskId": "P0-122",
-    "releasedAt": null,
+    "releasedAt": "2026-08-21T07:15:00Z",
     "checkpointCommit": "7604c88e5965bcfdf575c1b84bc9dbf57952c951",
-    "reason": "P0-124 binds the exact Search source archive, public service, current runtime and rollback target for one bounded deployment."
+    "reason": "P0-124 deployed exact Search source and build; public hashes and health identity match. Computer Control is blocked only by the locked Mac, so installed Wallet approval and aggregate ecosystem completion remain false."
   },
   "wave": {
     "id": "B-financial-apps-quant",
