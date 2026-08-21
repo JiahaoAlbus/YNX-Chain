@@ -190,6 +190,15 @@ test("Wallet Web/PWA and macOS DMG publication remain outside product authority"
   assert.equal(companion.nativeMacosArtifactBackread.canonicalBridgeScreenshotUnobscured, false);
   assert.equal(companion.nativeMacosArtifactBackread.gatekeeperAccepted, false);
   assert.equal(companion.nativeMacosArtifactBackread.authorizationSuccess, false);
+  assert.equal(companion.nativeMacosPublicGatewayFailClosed.implementationCommit, "07634c308bd553702cf5ea3837cfcff88ba6e2b2");
+  assert.equal(companion.nativeMacosPublicGatewayFailClosed.evidenceCommit, "eb916f843c6433d0011dac3dc7b5bad6fb3d1708");
+  assert.equal(companion.nativeMacosPublicGatewayFailClosed.chainId, "0x1917");
+  assert.equal(companion.nativeMacosPublicGatewayFailClosed.walletStateDigestUnchanged, true);
+  assert.equal(companion.nativeMacosPublicGatewayFailClosed.coldGatewayFailClosedLogVerified, true);
+  assert.equal(companion.nativeMacosPublicGatewayFailClosed.secondGatewayFailClosedLogVerified, true);
+  assert.equal(companion.nativeMacosPublicGatewayFailClosed.sensitiveInputProvided, false);
+  assert.equal(companion.nativeMacosPublicGatewayFailClosed.authorizationSuccess, false);
+  assert.equal(companion.nativeMacosPublicGatewayFailClosed.productSessionVerified, false);
   assert.equal(companion.macosDmgPublication.systemApplicationsInstallVerified, false);
   assert.equal(companion.macosDmgPublication.browserQuarantineAcceptanceVerified, false);
   assert.equal(companion.macosDmgPublication.wholeAppUnsigned, true);
@@ -341,6 +350,12 @@ test("owner checkpoint separates Wallet public artifacts from approval and Produ
   assert.equal(platform.macosNativeArtifactBackread.signature, "adhoc");
   assert.equal(platform.macosNativeArtifactBackread.teamIdentifierPresent, false);
   assert.equal(platform.macosNativeArtifactBackread.gatekeeperAccepted, false);
+  assert.equal(platform.macosNativePublicGatewayFailClosed.evidenceCommit, "eb916f843c6433d0011dac3dc7b5bad6fb3d1708");
+  assert.equal(platform.macosNativePublicGatewayFailClosed.nativePublicRpcChainIdVerified, true);
+  assert.equal(platform.macosNativePublicGatewayFailClosed.nativePublicAppGatewayReachable, true);
+  assert.equal(platform.macosNativePublicGatewayFailClosed.walletStateDigestUnchanged, true);
+  assert.equal(platform.macosNativePublicGatewayFailClosed.walletApprovalCompleted, false);
+  assert.equal(platform.macosNativePublicGatewayFailClosed.callbackEmitted, false);
   assert.equal(platform.macosDmg.systemApplicationsInstallVerified, false);
   assert.equal(platform.macosDmg.browserQuarantineAcceptanceVerified, false);
   assert.equal(platform.macosDmg.developerId, false);
