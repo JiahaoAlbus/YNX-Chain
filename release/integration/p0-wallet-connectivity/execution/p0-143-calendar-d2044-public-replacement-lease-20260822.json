@@ -3,13 +3,15 @@
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "taskId": "P0-143",
   "owner": "integration",
-  "status": "ACTIVE_SINGLE_USE",
+  "status": "CONSUMED_RELEASED_SUCCESS_PUBLIC_REPLACEMENT",
   "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-calendar-d2044bd9-20260821T164248Z",
   "issuedAt": "2026-08-21T16:42:48Z",
   "expiresAt": "2026-08-21T17:12:48Z",
   "singleUse": true,
   "reusable": false,
-  "executionAuthorized": true,
+  "executionAuthorized": false,
+  "consumedAt": "2026-08-21T16:56:21Z",
+  "releasedAt": "2026-08-21T17:00:23Z",
   "branch": "codex/calendar-fable5-completion-20260821",
   "source": {
     "commit": "d2044bd9a8ec6bdc6235dfb625a62c3dd5c58b04",
@@ -80,14 +82,28 @@
     "read-only public and browser acceptance against the exact Calendar origin"
   ],
   "truthBoundaries": {
-    "deploymentStarted": false,
-    "candidateDeployedPublic": false,
-    "publicReplacementVerified": false,
+    "deploymentStarted": true,
+    "candidateDeployedPublic": true,
+    "publicReplacementVerified": true,
     "productSessionV2": false,
     "privateCalendarSyncVerified": false,
     "signatureVerified": false,
     "transactionVerified": false,
     "productionSigned": false,
     "storeReleased": false
+  },
+  "outcome": {
+    "classification": "SUCCESS_PUBLIC_REPLACEMENT_VISIBLE_DETAILS_VERIFIED",
+    "ownerEvidenceCommit": "2426c2e2184f685467886fb7427950f78d089024",
+    "ownerEvidenceTree": "a07a724e83f92076fd306056dc201f8154a453e9",
+    "ownerEvidencePath": "apps/calendar/release/evidence/p0-143/calendar-wallet-details-public-replacement-20260822.json",
+    "ownerEvidenceBlob": "3d1a5c6ecaf899c1adac99bf4a25fcc245d0e574",
+    "ownerEvidenceSha256": "d4e2cdcb68c3b20109f469adbe62472844835dda41c6559d52b5133379f0bb90",
+    "serviceActive": true,
+    "serviceRestarts": 0,
+    "stateAndKeyUnchanged": true,
+    "publicHealthSha256": "f07ee444605fe2b52aa1565a0601139fd876ad98aefe4dc376c7c861ef8b517e",
+    "publicVersionSha256": "c4add3bef2f0209a2dcfe0af6bad4e299239ba7f6c1fef7942d443c11ba701de",
+    "retryAllowed": false
   }
 }

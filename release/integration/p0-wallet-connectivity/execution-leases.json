@@ -1,26 +1,23 @@
 {
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-  "epoch": 67,
-  "updatedAt": "2026-08-21T16:42:48Z",
+  "epoch": 68,
+  "updatedAt": "2026-08-21T17:00:23Z",
   "heavy": {
-    "owner": "integration",
-    "status": "ACTIVE_SINGLE_USE",
-    "branch": "codex/calendar-fable5-completion-20260821",
+    "owner": null,
+    "status": "RELEASED_SUCCESS_PUBLIC_REPLACEMENT_NONREUSABLE",
+    "branch": null,
     "worktree": null,
-    "taskId": "P0-143",
-    "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-calendar-d2044bd9-20260821T164248Z",
-    "leasedAt": "2026-08-21T16:42:48Z",
-    "expiresAt": "2026-08-21T17:12:48Z",
-    "releasedAt": null,
-    "previousOwner": "financial-apps",
-    "previousTaskId": "P0-141",
-    "previousCheckpoint": "02a482b9c714525dc8c5fd0dd820767cbbf63c67",
-    "executionScope": "CALENDAR_D2044_PUBLIC_REPLACEMENT_BINARY_STATE_KEY_ROLLBACK_FIRST",
-    "releaseReason": null,
-    "onSafeCheckpoint": [
-      "consume and release after first attempt",
-      "preserve all false product and signing gates"
-    ]
+    "taskId": null,
+    "leaseId": null,
+    "leasedAt": null,
+    "expiresAt": null,
+    "releasedAt": "2026-08-21T17:00:23Z",
+    "previousOwner": "integration",
+    "previousTaskId": "P0-143",
+    "previousCheckpoint": "2426c2e2184f685467886fb7427950f78d089024",
+    "executionScope": null,
+    "releaseReason": "P0-143 completed once with exact d2044 public health/version and visible Wallet connection details; the single-use lease is consumed and nonreusable.",
+    "onSafeCheckpoint": []
   },
   "light": {
     "owner": "integration",
