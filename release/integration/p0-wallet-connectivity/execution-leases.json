@@ -1,27 +1,27 @@
 {
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-  "epoch": 47,
-  "updatedAt": "2026-08-21T06:07:02Z",
+  "epoch": 48,
+  "updatedAt": "2026-08-21T07:00:20Z",
   "heavy": {
     "owner": null,
-    "status": "RELEASED_FAILED_CLOSED_RUNTIME_TARGET_UNBOUND",
-    "branch": "codex/p0-explorer-monitor-20260820",
-    "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/12-13-explorer-monitor-fable5",
+    "status": "AVAILABLE",
+    "branch": "codex/wallet-web-provider-v2-20260821",
+    "worktree": "/private/tmp/ynx-wallet-web-provider-v2-20260821",
     "taskId": null,
     "leaseId": null,
     "leasedAt": null,
     "expiresAt": null,
-    "releasedAt": "2026-08-21T06:07:02Z",
-    "previousOwner": "explorer-monitor",
-    "previousTaskId": "P0-119",
-    "previousCheckpoint": "945cd65c7e315c3eb282286c4c292d29ae485649",
-    "reason": "P0-119 read-only preflight proved runtimeTargetBound=false and rollbackTargetBound=false. No SSH or production mutation occurred; the single-use lease is released.",
+    "releasedAt": "2026-08-21T07:00:20Z",
+    "previousOwner": "integration",
+    "previousTaskId": "P0-123",
+    "previousCheckpoint": "4f23310091a59baa0d68660ef5a180692dc9b65a",
+    "reason": "Wallet Web PWA v7 deployment and exact public readback completed. Computer Control remains false because the Mac is locked; Heavy is released.",
     "executionScope": null,
     "onSafeCheckpoint": [
-      "P0-119 is consumed and nonreusable",
-      "source checkpoint 945cd65c and six green PR gates are retained",
-      "Central Integration must bind official domains to exact host, service, config, current release and rollback release before issuing any successor deployment lease",
-      "public /connectivity remains SPA HTML and public/deployed/ComputerControl gates remain false"
+      "P0-123 deployment is immutable at dpl_81HVzHyGz8kzhsddaJH3QodSyByu",
+      "rollback deployment dpl_DWQ96LmD9HuNG4deEdSR5fojg8bT remains READY",
+      "public PWA bytes and no-store control headers are exact",
+      "Computer Control, installed PWA, provider/account/signature/transaction and aggregate ecosystem gates remain false"
     ]
   },
   "light": {

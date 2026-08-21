@@ -2,7 +2,7 @@
   "schemaVersion": "1.0.0",
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "owner": "integration",
-  "status": "P0122_CREATOR_STUDIO_PUBLIC_SOURCE_DEPLOYED_COMPUTER_CONTROL_BLOCKED",
+  "status": "P0123_WALLET_WEB_PWA_V7_PUBLIC_DEPLOYED_COMPUTER_CONTROL_BLOCKED",
   "scope": [
     "founder-control",
     "wallet-connectivity",
@@ -34,7 +34,7 @@
   "firstStop": {
     "complete": true,
     "publicConnectivityClaim": false,
-    "nextAction": "P0-122 exact Creator Studio source is deployed and public hashes match. Computer Control remains false because the Mac locked after deployment; release Heavy and retry the corrected public button after unlock without redeploying."
+    "nextAction": "P0-123 Wallet Web PWA v7 is deployed with exact public hashes and no-store control assets. Computer Control remains false because the Mac is locked; retry the public v6-to-v7 recovery and provider fallback after unlock without redeploying."
   },
   "lightLeases": [
     {
@@ -337,21 +337,21 @@
   ],
   "heavy": {
     "owner": null,
-    "taskId": "P0-122",
+    "taskId": "P0-123",
     "status": "AVAILABLE",
-    "acquiredAt": "2026-08-21T06:44:29Z",
+    "acquiredAt": "2026-08-21T06:58:06Z",
     "expiresAt": null,
-    "sourceCommit": "650070ce5c5a7928425509f6e9e7da0aec31910d",
-    "runtimeHost": "43.153.202.237",
-    "currentRuntime": "/opt/ynx-video/releases/p0121-video-wallet-2e516baa",
-    "rollbackTarget": "/opt/ynx-video/releases/p0121-video-wallet-2e516baa",
+    "sourceCommit": "562ceb505469a6d0a6efd4d8761dfbd741916b50",
+    "runtimeHost": "vercel:ynx-wallet-web",
+    "currentRuntime": "dpl_81HVzHyGz8kzhsddaJH3QodSyByu",
+    "rollbackTarget": "dpl_DWQ96LmD9HuNG4deEdSR5fojg8bT",
     "productionMutationAllowed": false,
     "singleUse": true,
     "previousOwner": "integration",
-    "previousTaskId": "P0-121",
-    "releasedAt": "2026-08-21T06:52:03Z",
-    "checkpointCommit": "650070ce5c5a7928425509f6e9e7da0aec31910d",
-    "reason": "P0-122 corrected and deployed the exact self-contained Creator Studio Wallet module while preserving Video. Public readback passed; Computer Control is explicitly blocked only by the locked Mac and is not promoted."
+    "previousTaskId": "P0-122",
+    "releasedAt": "2026-08-21T07:00:20Z",
+    "checkpointCommit": "4f23310091a59baa0d68660ef5a180692dc9b65a",
+    "reason": "P0-123 deployed the exact Wallet Web PWA v7 and bound wallet.ynxweb4.com. Public hashes and no-store control headers passed; Computer Control is explicitly blocked by the locked Mac and is not promoted."
   },
   "wave": {
     "id": "B-financial-apps-quant",
