@@ -75,8 +75,8 @@ test("Gateway challenge and completion schemas fail closed on malformed or unkno
   assert.throws(() => verifyGatewayCompletion({ challenge: { ...challenge, productDeviceAlgorithm: "ed25519" }, deviceSignature: completion.deviceSignature }, approval, NOW), WalletAuthError);
 });
 
-test("published P-256 Gateway vector uses the canonical Android-compatible signing domain", async () => {
-  const vector = JSON.parse(await readFile(new URL("../testdata/gateway-p256-v1.json", import.meta.url), "utf8"));
+test("published origin-bound P-256 Gateway vector uses the canonical Android-compatible signing domain", async () => {
+  const vector = JSON.parse(await readFile(new URL("../testdata/gateway-p256-v2.json", import.meta.url), "utf8"));
   assert.equal(gatewayChallengeSignBytes(vector.challenge), vector.signBytes);
   const parsed = parseAuthorizationRequest(request(), { now: NOW, registry: REGISTRY });
   const approval = signAuthorization(parsed, { accountSecret: ACCOUNT_SECRET, issuedAt: NOW.toISOString() });

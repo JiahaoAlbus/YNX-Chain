@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-08-20T13:50:00Z",
+  "scope": "direct public Wallet/Auth Gateway HTTPS reachability probe from the Wallet platform environment",
+  "source": {
+    "walletPlatformCommit": "acfd88f02dc2474badfede37d099f2bb458e50fa",
+    "gatewayOwner": "wallet-protocol and runtime integration"
+  },
+  "probe": {
+    "transport": "HTTPS",
+    "host": "wallet-auth.ynxweb4.com",
+    "connectTimeoutSeconds": 10,
+    "totalTimeoutSeconds": 20,
+    "attempts": [
+      {
+        "path": "/health",
+        "httpResponseReceived": false,
+        "failure": "LibreSSL SSL_connect: SSL_ERROR_SYSCALL in connection to wallet-auth.ynxweb4.com:443"
+      },
+      {
+        "path": "/version",
+        "httpResponseReceived": false,
+        "failure": "LibreSSL SSL_connect: SSL_ERROR_SYSCALL in connection to wallet-auth.ynxweb4.com:443"
+      }
+    ]
+  },
+  "walletBehavior": {
+    "authorizationOrProductSessionElevated": false,
+    "standardEvmConnectionMustRemainIndependent": true,
+    "requiredErrorClassification": "PRODUCT_SESSION_GATEWAY_UNREACHABLE"
+  },
+  "truthBoundary": {
+    "publicGatewayReachableFromThisProbe": false,
+    "globalGatewayOutageProven": false,
+    "installedWalletAuthorizationSuccess": false,
+    "publicTestnetDeploymentVerified": false
+  }
+}

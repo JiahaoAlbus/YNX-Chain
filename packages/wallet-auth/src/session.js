@@ -7,10 +7,10 @@ import { PRODUCT_DEVICE_ALGORITHM } from "./protocol.js";
 
 const CHALLENGE_FIELDS = [
   "version", "challenge", "requestDigest", "productClientId", "bundleId", "productDeviceAlgorithm",
-  "productDeviceKey", "account", "scopes", "issuedAt", "expiresAt",
+  "productDeviceKey", "origin", "account", "scopes", "issuedAt", "expiresAt",
 ];
 const COMPLETION_FIELDS = ["challenge", "deviceSignature"];
-const SIGNING_DOMAIN = "YNX_PRODUCT_SESSION_CHALLENGE_V1";
+const SIGNING_DOMAIN = "YNX_PRODUCT_SESSION_CHALLENGE_V2";
 
 export function createGatewayChallenge(approval, input, at = new Date()) {
   exactFields(input, ["challenge", "expiresAt"], "Gateway challenge input");
@@ -22,13 +22,14 @@ export function createGatewayChallenge(approval, input, at = new Date()) {
   if (issuedAt < approvalIssuedAt || issuedAt >= approvalExpiresAt) throw new WalletAuthError("INVALID_CHALLENGE_TIME", "Gateway challenge must be issued during the Wallet approval lifetime");
   if (expiresAt <= issuedAt || expiresAt > approvalExpiresAt) throw new WalletAuthError("INVALID_CHALLENGE_EXPIRY", "Gateway challenge expiry must be after issue time and no later than the Wallet approval expiry");
   return parseGatewayChallenge({
-    version: "1",
+    version: "2",
     challenge: requiredPattern(input.challenge, "challenge", /^[A-Za-z0-9_-]{32,64}$/),
     requestDigest: approval.requestDigest,
     productClientId: approval.productClientId,
     bundleId: approval.bundleId,
     productDeviceAlgorithm: approval.productDeviceAlgorithm,
     productDeviceKey: approval.productDeviceKey,
+    origin: approval.origin,
     account: approval.account,
     scopes: approval.grantedScopes,
     issuedAt,
@@ -39,13 +40,14 @@ export function createGatewayChallenge(approval, input, at = new Date()) {
 export function parseGatewayChallenge(input) {
   exactFields(input, CHALLENGE_FIELDS, "Gateway challenge");
   const challenge = {
-    version: requiredPattern(input.version, "version", /^1$/),
+    version: requiredPattern(input.version, "version", /^2$/),
     challenge: requiredPattern(input.challenge, "challenge", /^[A-Za-z0-9_-]{32,64}$/),
     requestDigest: requiredPattern(input.requestDigest, "requestDigest", /^[0-9a-f]{64}$/),
     productClientId: requiredPattern(input.productClientId, "productClientId", /^[a-z][a-z0-9._-]{2,63}$/),
     bundleId: requiredPattern(input.bundleId, "bundleId", /^[A-Za-z][A-Za-z0-9.-]{2,127}$/),
     productDeviceAlgorithm: requiredPattern(input.productDeviceAlgorithm, "productDeviceAlgorithm", /^p256-sha256$/),
     productDeviceKey: strictDeviceKey(input.productDeviceKey),
+    origin: strictOrigin(input.origin),
     account: requiredPattern(input.account, "account", /^ynx1[023456789acdefghjklmnpqrstuvwxyz]{38}$/),
     scopes: strictScopes(input.scopes),
     issuedAt: strictTime(input.issuedAt, "issuedAt"),
@@ -79,7 +81,7 @@ export function verifyGatewayCompletion(completion, expected, at = new Date()) {
   if (challenge.issuedAt > now) throw new WalletAuthError("ISSUED_IN_FUTURE", "Gateway challenge issue time is in the future");
   if (challenge.expiresAt <= now) throw new WalletAuthError("EXPIRED", "Gateway challenge has expired");
   if (challenge.issuedAt < expectedIssuedAt || challenge.expiresAt > expectedExpiresAt) throw new WalletAuthError("SESSION_LIFETIME_MISMATCH", "Gateway challenge exceeds the Wallet approval lifetime");
-  for (const key of ["requestDigest", "productClientId", "bundleId", "productDeviceAlgorithm", "productDeviceKey", "account"]) {
+  for (const key of ["requestDigest", "productClientId", "bundleId", "productDeviceAlgorithm", "productDeviceKey", "origin", "account"]) {
     if (challenge[key] !== expected[key]) throw new WalletAuthError("SESSION_BINDING_MISMATCH", `Gateway challenge ${key} does not match the Wallet approval`);
   }
   if (challenge.scopes.join("\n") !== expectedScopes.join("\n")) throw new WalletAuthError("SESSION_SCOPE_MISMATCH", "Gateway challenge scopes do not exactly match the Wallet approval");
@@ -94,6 +96,7 @@ export function verifyGatewayCompletion(completion, expected, at = new Date()) {
     productClientId: challenge.productClientId,
     bundleId: challenge.bundleId,
     productDeviceAlgorithm: challenge.productDeviceAlgorithm,
+    origin: challenge.origin,
     account: challenge.account,
     scopes: Object.freeze([...challenge.scopes]),
     expiresAt: challenge.expiresAt,
@@ -113,6 +116,16 @@ function strictScopes(value) {
   const scopes = value.map((scope) => requiredPattern(scope, "scope", /^[a-z][a-z0-9._:-]{1,63}$/));
   if (new Set(scopes).size !== scopes.length || [...scopes].sort().join("\n") !== scopes.join("\n")) throw new WalletAuthError("INVALID_SCOPES", "scopes must be unique and sorted");
   return scopes;
+}
+
+function strictOrigin(value) {
+  const normalized = requiredPattern(value, "origin", /^https:\/\/[A-Za-z0-9.-]+(?::[0-9]{1,5})?$/);
+  let parsed;
+  try { parsed = new URL(normalized); } catch { throw new WalletAuthError("INVALID_ORIGIN", "origin is invalid"); }
+  if (parsed.protocol !== "https:" || parsed.username || parsed.password || parsed.pathname !== "/" || parsed.search || parsed.hash || parsed.toString() !== `${normalized}/`) {
+    throw new WalletAuthError("INVALID_ORIGIN", "origin must be a canonical HTTPS origin");
+  }
+  return normalized;
 }
 
 function strictTime(value, label) {

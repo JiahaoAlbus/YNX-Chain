@@ -16,8 +16,9 @@ const REVIEWED_ENTRIES = [
     productDeviceAlgorithms: ["p256-sha256"],
   },
   {
-    schemaVersion: 2, productClientId: "ynx-social-v1", requestingProduct: "social",
+    schemaVersion: 3, productClientId: "ynx-social-v1", requestingProduct: "social",
     bundleId: "com.ynx.social", callbacks: ["ynx-social://com.ynx.social"],
+    origins: ["https://social.ynxweb4.com"],
     scopes: ["account:read", "profile:link"], maxScopes: 2,
     productDeviceAlgorithms: ["p256-sha256"],
   },

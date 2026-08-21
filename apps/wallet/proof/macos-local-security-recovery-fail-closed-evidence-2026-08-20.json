@@ -1,0 +1,117 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-08-20T09:42:38Z",
+  "source": {
+    "macOSSourceCommit": "e65e6a687871742b697c79942a920390e1e452aa",
+    "buildMode": "SwiftPM release in an isolated detached worktree",
+    "hostToolchain": "Swift 6.1 / CommandLineTools; no Xcode.app"
+  },
+  "probes": {
+    "security": {
+      "keychainAvailable": true,
+      "keychainRoundTripVerified": true,
+      "biometricPolicyAvailable": false,
+      "biometricErrorCode": -12,
+      "recoveryMaterialPersisted": false,
+      "exitCode": 0
+    },
+    "recovery": {
+      "keychainRoundTripVerified": true,
+      "biometricPolicyAvailable": false,
+      "recoveryCreateAttempted": true,
+      "recoveryCreated": false,
+      "recoveryMaterialPersisted": false,
+      "recoveryAbsentBeforeAttempt": true,
+      "recoveryAbsentAfterAttempt": true,
+      "failedClosed": true,
+      "error": "BIOMETRIC_UNAVAILABLE",
+      "errorCode": -12,
+      "exitCode": 0
+    }
+  },
+  "localExecutableLaunch": {
+    "binary": "apps/wallet/macos/.build/arm64-apple-macosx/release/YNXWalletMac",
+    "observedPid": 7872,
+    "observedAliveAfterSeconds": 5,
+    "stdoutBytes": 0,
+    "terminatedByTestHarness": true,
+    "computerControlVisibleApp": false,
+    "result": "PROCESS_START_ONLY"
+  },
+  "computerControlTemporaryUniversalApp": {
+    "builtFrom": "existing wallet-macos CI packaging recipe",
+    "sourceCommit": "e65e6a687871742b697c79942a920390e1e452aa",
+    "architectures": ["x86_64", "arm64"],
+    "minimumMacOS": "13.0",
+    "signingClass": "ad-hoc",
+    "teamIdentifier": null,
+    "endpointMatrixSha256": "d344c607c2bbbf7bb0d9d3662b424976d0d6c4ff20428025dd1e2fb92bf31392",
+    "registrySha256": "337145be4cbdd3b642f7fd263e1b06e20f512f8cd4981033109ba65c9856becd",
+    "localZip": {
+      "bytes": 243942,
+      "sha256": "bc504e1a7fca0392a8eff0be297834c36cde270a8337733aec4aa7e202f31a7b"
+    },
+    "computerControl": {
+      "visibleFirstLaunch": true,
+      "visibleSecondLaunch": true,
+      "secondLaunchPid": 14038,
+      "chainIdVisible": "0x1917",
+      "restStatusVisible": 200,
+      "walletLockedVisible": true,
+      "accountSignSendAndCallbackUnavailableVisible": true,
+      "screenshotObserved": true,
+      "screenshotRetained": false,
+      "reasonScreenshotNotRetained": "ComputerControl service temporary screenshot files were cleaned when the temporary app exited."
+    },
+    "malformedAuthorizationDeepLink": {
+      "input": "ynxwallet://authorize?request=not-base64url",
+      "deliveredToTemporaryApp": true,
+      "pid": 15772,
+      "computerControlWindowTitle": "Request rejected · INVALID_DEEP_LINK",
+      "computerControlVisibleErrorCode": "INVALID_DEEP_LINK",
+      "failedBeforeKeyAccessSigningNetworkOrCallback": true,
+      "accountCreated": false,
+      "signatureCreated": false,
+      "productSessionCreated": false,
+      "authorizationSucceeded": false,
+      "screenshotObserved": true,
+      "screenshotRetained": false
+    },
+    "canonicalAuthorizationBridgeBoundary": {
+      "registryTuple": {
+        "requestingProduct": "social",
+        "productClientId": "ynx-social-v1",
+        "bundleId": "com.ynx.social",
+        "callback": "ynx-social://com.ynx.social",
+        "scopes": ["account:read", "profile:link"]
+      },
+      "canonicalBase64URLRequest": true,
+      "issuedAndExpiresWithinPolicyWindow": true,
+      "deliveredToTemporaryApp": true,
+      "pid": 18473,
+      "computerControlWindowTitle": "Request rejected · CANONICAL_AUTH_BRIDGE_UNAVAILABLE",
+      "computerControlVisibleErrorCode": "CANONICAL_AUTH_BRIDGE_UNAVAILABLE",
+      "failedBeforeKeyAccessSigningNetworkOrCallback": true,
+      "authorizationSucceeded": false,
+      "signatureCreated": false,
+      "productSessionCreated": false,
+      "returnCallbackEmitted": false,
+      "screenshotObserved": true,
+      "screenshotRetained": false
+    }
+  },
+  "truthBoundaries": {
+    "localArm64ProbeOnly": true,
+    "xcodeXCTestRun": false,
+    "installedAppLaunch": false,
+    "temporaryLocalPackagedAppVisibleLaunch": true,
+    "x86_64LocalLaunch": false,
+    "physicalBiometricRecovery": false,
+    "productAccountRecovery": false,
+    "authorizationSuccess": false,
+    "accountSigningOrTransfer": false,
+    "productionSigned": false,
+    "notarized": false,
+    "officialWebsiteDownload": false
+  }
+}

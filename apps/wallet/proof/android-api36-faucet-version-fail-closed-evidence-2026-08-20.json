@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-08-20T13:25:00Z",
+  "scope": "YNX Wallet Android API 36 public Faucet health and release-identity classification",
+  "source": {
+    "walletCommitParent": "e72996a489fc196be290bee810242e0fbcb914da",
+    "feature": "separate FAUCET_UNAVAILABLE from FAUCET_VERSION_INCOMPATIBLE"
+  },
+  "artifact": {
+    "sha256": "82d90339257e651d7ce0873232f029c86e4586de322ccd7daa100a8eccffc7fc",
+    "bytes": 78233882,
+    "minSdk": 24,
+    "targetSdk": 36,
+    "abi": "arm64",
+    "signingClass": "android-debug-local-qa",
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "environment": {
+    "serial": "emulator-5560",
+    "profile": "Pixel 9 equivalent",
+    "apiLevel": 36,
+    "physicalDevice": false
+  },
+  "directAcceptance": {
+    "installedOverExistingDebugSignedWallet": true,
+    "coldLaunch": true,
+    "systemBiometricUnlock": true,
+    "faucetModalVisible": true,
+    "currentPublicHealthAccepted": false,
+    "visibleState": "FAUCET_VERSION_INCOMPATIBLE",
+    "requestButtonDisabled": true,
+    "chainOrWalletMarkedOffline": false,
+    "claimSubmitted": false
+  },
+  "publicRuntimeReason": {
+    "health": "current public response exposes rpcUrl/internal endpoint fields",
+    "version": "current public /version is absent",
+    "runtimeDeploymentAccepted": false
+  },
+  "uiEvidence": {
+    "modalXmlSha256": "7b21a6a650d42c85f552a3fea13191ac917c791f209a3703a16ea4ac470316b0",
+    "modalXmlBytes": 11544,
+    "requiredVisibleLabels": [
+      "Testnet Faucet",
+      "FAUCET_VERSION_INCOMPATIBLE",
+      "Wallet will not request funds until the public Faucet health and version contracts are safe, online and bound to YNX Testnet.",
+      "Public Faucet health response is invalid or leaks an internal endpoint"
+    ]
+  },
+  "truthBoundary": {
+    "faucetRuntimeFixed": false,
+    "faucetClaimVerified": false,
+    "officialWebsiteArtifactUpdated": false,
+    "productionSigned": false,
+    "physicalPixel9Verified": false
+  }
+}

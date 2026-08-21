@@ -4,19 +4,21 @@ import { StrategyMandateStore, parseStrategyMandateStoreSnapshot } from "./manda
 import { parseStrategyAction, parseStrategyMandate } from "./mandate.js";
 import { centralProtocolEntry, parseCentralRegistryDocument } from "./registry.js";
 import { productSessionProofDigest, verifyProductSessionProof } from "./session-proof.js";
+import { parseAuthorizationRequest, verifyAuthorizationRejection } from "./protocol.js";
 
 export const CANONICAL_GATEWAY_ADAPTER_SCHEMA_VERSION = 2;
 
 const SNAPSHOT_V1_FIELDS = ["schemaVersion", "registryVersion", "sessionStore", "consumedProductProofs"];
 const SNAPSHOT_FIELDS = [...SNAPSHOT_V1_FIELDS, "mandateStore"];
 const COMPLETE_FIELDS = ["authorizationRequest", "walletApproval", "gatewayCompletion"];
+const REJECT_FIELDS = ["authorizationRequest", "walletRejection"];
 const AUTH_FIELDS = ["proof", "requiredScopes"];
 const PROOF_FIELDS = ["proof"];
 const MANDATE_ACTIVATE_FIELDS = ["proof", "mandate"];
 const MANDATE_ACTION_FIELDS = ["proof", "mandateId", "action"];
 const MANDATE_TERMINAL_FIELDS = ["proof", "mandateId"];
 const MANDATE_EXIT_FIELDS = ["proof", "mandateId", "reason"];
-const REQUEST_FIELDS = ["method", "path", "bodyDigest"];
+const REQUEST_FIELDS = ["method", "path", "bodyDigest", "origin"];
 
 export class CanonicalWalletGatewayAdapter {
   #registry;
@@ -42,6 +44,18 @@ export class CanonicalWalletGatewayAdapter {
     if (!registration) fail("UNKNOWN_PRODUCT", "Canonical Gateway product client is not registered");
     const registryEntry = centralProtocolEntry(registration);
     return this.#store.complete({ registryEntry, ...input }, at);
+  }
+
+  rejectAuthorization(input, at = new Date()) {
+    exactFields(input, REJECT_FIELDS, "Canonical Gateway authorization rejection input");
+    const client = input.authorizationRequest?.productClientId;
+    if (typeof client !== "string") fail("UNKNOWN_PRODUCT", "Canonical Gateway rejection has no product client");
+    const registration = this.#registry.products.find(product => product.productClientId === client);
+    if (!registration) fail("UNKNOWN_PRODUCT", "Canonical Gateway rejection product client is not registered");
+    const entry = centralProtocolEntry(registration);
+    const request = parseAuthorizationRequest(input.authorizationRequest, { now: at, registry: { [client]: entry } });
+    verifyAuthorizationRejection(input.walletRejection, request, at);
+    fail("AUTHORIZATION_REJECTED", "Wallet user rejected the authorization request");
   }
 
   introspect(input, request, at = new Date()) {
@@ -188,6 +202,7 @@ export class CanonicalWalletGatewayAdapter {
       productClientId: proof.productClientId,
       bundleId: proof.bundleId,
       productDeviceKey: proof.productDeviceKey,
+      origin: proof.origin,
       requiredScopes,
     }, at);
     return Object.freeze({ proof, session: result.session, result });
@@ -276,7 +291,7 @@ function assertSessionSubject(subject, session) {
 
 function parseRequest(input) {
   exactFields(input, REQUEST_FIELDS, "Canonical Gateway HTTP request context");
-  return Object.freeze({ method: input.method, path: input.path, bodyDigest: input.bodyDigest });
+  return Object.freeze({ method: input.method, path: input.path, bodyDigest: input.bodyDigest, origin: input.origin });
 }
 
 function fail(code, message) {

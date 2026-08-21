@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-08-20T15:18:00Z",
+  "source": {
+    "commit": "44bb1f0e819844234fa4b82c1f694c2321b53d46",
+    "releaseVersionName": "1.0.4-testnet-preview",
+    "releaseVersionCode": 5
+  },
+  "behavior": {
+    "accountRead": "authoritative account balance and nonce are retained when only activity refresh fails",
+    "activityRead": "independently degraded with an explicit error and retry",
+    "accountReadFailure": "remains a full fail-closed RPC_UNAVAILABLE state",
+    "unitCoverage": "apps/wallet/src/chain/chainRead.test.ts"
+  },
+  "artifact": {
+    "path": "apps/wallet/android/app/build/outputs/apk/release/app-release.apk",
+    "bytes": 78235122,
+    "sha256": "3c903dba406dc7f34e92234ac1c801e73c9504ab56558fa41b9f33123b4952a6",
+    "minimumAndroidApi": 24,
+    "targetAndroidApi": 36,
+    "abis": ["arm64-v8a", "armeabi-v7a", "x86", "x86_64"],
+    "signingClass": "local-test-signed",
+    "signerSha256": "d4e562610ecb4e304fa00ee07e7adae7da862ce108bda7bdfe933c28831f154e",
+    "v2Verified": true,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "api36Evidence": {
+    "target": "emulator-5560 sdk_gphone64_arm64",
+    "installed": true,
+    "firstColdLaunch": {"pid": 27018, "totalTimeMs": 462, "biometricUnlock": true},
+    "secondColdLaunch": {"pid": 27180, "totalTimeMs": 161, "lockedBeforeBiometric": true, "biometricUnlock": true},
+    "authoritativeTestnetRead": {"visibleBalance": "23 YNXT", "visibleNonce": 1, "visibleRecentAccountTransactions": 2, "fabricated": false},
+    "secondLaunchScreenshot": {"localPath": "/private/tmp/ynx-wallet-1.0.4-api36-second-launch.png", "bytes": 15733, "sha256": "2ad1f80253fe85d8758d65b8bcce08f3cf1c7311b9fd99e6d8a240378361274b"}
+  },
+  "truthBoundary": {
+    "officialWebsiteHosted": false,
+    "physicalPixel9Verified": false,
+    "authorizationRoundTrip": false,
+    "signedTransaction": false,
+    "testnetBroadcast": false
+  }
+}

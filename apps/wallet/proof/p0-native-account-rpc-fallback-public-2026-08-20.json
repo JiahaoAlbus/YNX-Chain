@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-08-20T08:16:24Z",
+  "owner": "wallet-platform",
+  "acceptedContract": {
+    "version": "p0-wallet-connection-v1",
+    "commit": "66003e76e804da16d472255efde50cb879055b96"
+  },
+  "implementation": {
+    "commit": "bdbb0d106658c8d0042e087e43c6a26054484582",
+    "restUrl": "https://rest.ynxweb4.com",
+    "rpcUrl": "https://rpc.ynxweb4.com/evm",
+    "fallbackRule": "Only REST 404 with exact account-not-found payload may query RPC after eth_chainId equals 0x1917. All other REST failures, RPC failures, malformed quantities, and wrong chains fail closed."
+  },
+  "publicProbe": {
+    "restHealth": {"url": "https://rest.ynxweb4.com/app/health", "httpStatus": 200},
+    "rpcChainId": {"url": "https://rpc.ynxweb4.com/evm", "method": "eth_chainId", "httpStatus": 200, "result": "0x1917"},
+    "unmaterializedAddress": {
+      "evmAddress": "0x1111111111111111111111111111111111111111",
+      "nativeAddress": "ynx1zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg36avh43",
+      "restAccount": {"httpStatus": 404, "body": {"error": "account not found"}},
+      "rpcBalance": {"httpStatus": 200, "result": "0x0"},
+      "rpcNonce": {"httpStatus": 200, "result": "0x0"}
+    }
+  },
+  "verification": {
+    "typecheck": "passed",
+    "walletTests": "49 passed",
+    "productCheck": "passed",
+    "installedAndroidArtifact": false,
+    "installedAndroidEndToEnd": false,
+    "publicRelease": false
+  },
+  "truthBoundary": "This proves public endpoint behavior and source-level fallback coverage only. It does not prove an installed Android, iOS, desktop, extension, or web-wallet artifact."
+}

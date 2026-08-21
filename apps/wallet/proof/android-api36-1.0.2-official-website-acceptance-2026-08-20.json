@@ -1,0 +1,64 @@
+{
+  "schema": "ynx-wallet-android-acceptance-evidence/v1",
+  "recordedAt": "2026-08-20T14:12:00Z",
+  "sourceCommit": "1f8820c5a6dfc5460322b1274f740d7a873b6ea6",
+  "release": {
+    "tag": "wallet-android-testnet-preview-1f8820c5",
+    "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/wallet-android-testnet-preview-1f8820c5",
+    "assetName": "app-release.apk",
+    "versionName": "1.0.2-testnet-preview",
+    "versionCode": 3,
+    "bytes": 78233842,
+    "sha256": "66a0954f7955d800af4b205680ce879c786568cbf6af8a71307cddad31c216a0",
+    "signingClass": "local-test-signed",
+    "signerCertificateSha256": "d4e562610ecb4e304fa00ee07e7adae7da862ce108bda7bdfe933c28831f154e",
+    "apkSignatureV2Verified": true,
+    "minimumAndroidApi": 24,
+    "targetAndroidApi": 36,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "officialWebsite": {
+    "mainCommit": "09d5be41436404bba74315d0013c0229cab1e32b",
+    "url": "https://www.ynxweb4.com/downloads/wallet/sha256-66a0954f7955d800af4b205680ce879c786568cbf6af8a71307cddad31c216a0/ynx-wallet-1.0.2-testnet-preview-1f8820c5-local-test-signed.apk",
+    "manifestUrl": "https://www.ynxweb4.com/releases/wallet/1f8820c5/manifest.json",
+    "status": 302,
+    "contentDispositionAttachment": true,
+    "cacheControl": "public, max-age=31536000, immutable",
+    "redirectTarget": "matching GitHub Release app-release.apk asset",
+    "fullDownloadBytes": 78233842,
+    "fullDownloadSha256": "66a0954f7955d800af4b205680ce879c786568cbf6af8a71307cddad31c216a0",
+    "fullDownloadMatchesRelease": true,
+    "initialRoute404WasFixed": true
+  },
+  "androidAcceptance": {
+    "target": "API 36 arm64 emulator (not a physical Pixel device)",
+    "packageName": "com.ynxweb4.wallet",
+    "upgradeInstall": true,
+    "firstColdLaunchTotalTimeMs": 629,
+    "secondColdLaunchTotalTimeMs": 199,
+    "lockedAfterRestart": true,
+    "biometricUnlock": true,
+    "nativeAccountVisible": true,
+    "testnetReadAfterRestart": {
+      "balanceYNXT": 23,
+      "nonce": 1,
+      "recentActivityCount": 2,
+      "chainId": 6423,
+      "chainHex": "0x1917"
+    },
+    "observedTransientTransportFailure": true,
+    "transientFailureClassification": "RPC_UNAVAILABLE surfaced without fabricating balance or success; a subsequent cold start read the same factual account state.",
+    "fatalExceptionObserved": false,
+    "walletAnrObserved": false,
+    "physicalDeviceVerified": false
+  },
+  "truthBoundaries": {
+    "authorizationApprovalSuccess": false,
+    "productSessionSuccess": false,
+    "faucetClaimSuccess": false,
+    "signAndBroadcastInThisReleaseSlice": false,
+    "productionSigning": false,
+    "playStoreRelease": false
+  }
+}
