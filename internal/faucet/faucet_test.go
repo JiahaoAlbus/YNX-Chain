@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"sort"
 	"strings"
@@ -73,6 +74,18 @@ func TestFaucetServerEndpoints(t *testing.T) {
 		}
 		_ = resp.Body.Close()
 	}
+	root, err := http.Get(server.URL + "/")
+	if err != nil {
+		t.Fatal(err)
+	}
+	rootBody, err := io.ReadAll(root.Body)
+	_ = root.Body.Close()
+	if err != nil || root.StatusCode != http.StatusOK || !strings.Contains(string(rootBody), "YNX Testnet Faucet") || !strings.Contains(string(rootBody), "'/request'") {
+		t.Fatalf("public faucet page is invalid: status=%d err=%v body=%s", root.StatusCode, err, rootBody)
+	}
+	if root.Header.Get("Content-Security-Policy") == "" || root.Header.Get("Referrer-Policy") != "no-referrer" {
+		t.Fatalf("public faucet page is missing response hardening: %v", root.Header)
+	}
 	resp, err := http.Post(server.URL+"/request", "application/json", strings.NewReader(`{"address":"ynx_faucet_server"}`))
 	if err != nil {
 		t.Fatal(err)
@@ -85,13 +98,17 @@ func TestFaucetServerEndpoints(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var health Health
+	var health PublicHealth
 	if err := json.NewDecoder(resp.Body).Decode(&health); err != nil {
 		t.Fatal(err)
 	}
 	_ = resp.Body.Close()
 	if health.Build.Commit != "abc123" || health.Build.Release != "ynx-chain-abc123" || health.Build.BuildTime != "2026-07-10T00:00:00Z" {
 		t.Fatalf("health missing build identity: %+v", health.Build)
+	}
+	publicPayload, err := json.Marshal(health)
+	if err != nil || strings.Contains(string(publicPayload), "rpcUrl") || strings.Contains(string(publicPayload), "requestLog") || strings.Contains(string(publicPayload), "127.0.0.1") {
+		t.Fatalf("public health leaks internal runtime fields: err=%v payload=%s", err, publicPayload)
 	}
 	resp, err = http.Post(server.URL+"/request", "application/json", strings.NewReader(`{"address":"bad"}`))
 	if err != nil {
@@ -101,6 +118,36 @@ func TestFaucetServerEndpoints(t *testing.T) {
 		t.Fatalf("invalid address returned %d", resp.StatusCode)
 	}
 	_ = resp.Body.Close()
+	corsPreflight, err := http.DefaultClient.Do(&http.Request{
+		Method: http.MethodOptions,
+		URL:    mustParseURL(t, server.URL+"/request"),
+		Header: map[string][]string{
+			"Origin":                         []string{"https://www.ynxweb4.com"},
+			"Access-Control-Request-Method":  []string{"POST"},
+			"Access-Control-Request-Headers": []string{"Content-Type"},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if corsPreflight.StatusCode != http.StatusNoContent || corsPreflight.Header.Get("Access-Control-Allow-Origin") == "" {
+		t.Fatalf("request preflight failed: status=%d headers=%v", corsPreflight.StatusCode, corsPreflight.Header)
+	}
+	_ = corsPreflight.Body.Close()
+	request, err := http.NewRequest(http.MethodPost, server.URL+"/request", strings.NewReader(`{"address":"ynx_faucet_server"}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	request.Header.Set("Origin", "https://www.ynxweb4.com")
+	request.Header.Set("Content-Type", "application/json")
+	corsResp, err := http.DefaultClient.Do(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if corsResp.Header.Get("Access-Control-Allow-Origin") != "*" {
+		t.Fatalf("missing cors allow origin: %s", corsResp.Header.Get("Access-Control-Allow-Origin"))
+	}
+	_ = corsResp.Body.Close()
 }
 
 func TestFaucetRequiresKey(t *testing.T) {
@@ -391,6 +438,15 @@ func TestFaucetServerRejectsOversizedAndUnknownBodies(t *testing.T) {
 			t.Fatalf("invalid body returned %d", resp.StatusCode)
 		}
 	}
+}
+
+func mustParseURL(t *testing.T, rawURL string) *url.URL {
+	t.Helper()
+	parsed, err := url.Parse(rawURL)
+	if err != nil {
+		t.Fatalf("invalid URL in test: %v", err)
+	}
+	return parsed
 }
 
 func nativeAddress(t *testing.T, scalar byte) string {

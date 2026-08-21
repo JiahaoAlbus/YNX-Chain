@@ -34,10 +34,19 @@ done
 curl -fsS "$faucet_url/health" >/dev/null || { echo "faucet did not become healthy"; sed -n '1,120p' "$work/faucet.log"; exit 1; }
 
 health="$(curl -fsS "$faucet_url/health")"
+[[ "$(printf '%s' "$health" | ynx_json_field '["rpcUrl"]')" == "" ]] || { echo "public health leaked rpc url"; exit 1; }
+[[ "$(printf '%s' "$health" | ynx_json_field '["requestLog"]')" == "" ]] || { echo "public health leaked requestLog"; exit 1; }
 [[ "$(printf '%s' "$health" | ynx_json_field '["nativeSymbol"]')" == "YNXT" ]] || { echo "faucet native symbol mismatch"; exit 1; }
 [[ "$(printf '%s' "$health" | ynx_json_field '["truthfulStatus"]')" == "rpc-backed-faucet" ]] || { echo "faucet truthful status mismatch"; exit 1; }
 [[ "$(printf '%s' "$health" | ynx_json_field '["upstreamOk"]')" == "true" ]] || { echo "faucet upstream is not healthy"; exit 1; }
 [[ "$(printf '%s' "$health" | ynx_json_field '["chainId"]')" == "6423" ]] || { echo "faucet chain id mismatch"; exit 1; }
+[[ "$(curl -s -w '%{http_code}' -o "$work/faucet-homepage.html" "$faucet_url/")" == "200" ]] || { echo "faucet home page is unavailable"; exit 1; }
+preflight_headers="$(mktemp)"
+preflight_status="$(curl -s -D "$preflight_headers" -o /dev/null -H 'Origin: https://www.ynxweb4.com' -H 'Access-Control-Request-Method: POST' -H 'Access-Control-Request-Headers: Content-Type' -X OPTIONS -w '%{http_code}' "$faucet_url/request")"
+[[ "$preflight_status" == "204" ]] || { echo "faucet preflight is unavailable"; cat "$preflight_headers"; exit 1; }
+[[ "$(grep -i '^Access-Control-Allow-Origin:' "$preflight_headers" | awk '{print $2}' | tr -d '\r')" == "*" ]] || { echo "faucet preflight missing allow-origin"; cat "$preflight_headers"; exit 1; }
+[[ "$(curl -s -D "$work/cors-headers.txt" -o "$work/cors-body.txt" -w '%{http_code}' -H 'Origin: https://www.ynxweb4.com' -H 'Content-Type: application/json' -d '{"address":"ynx_faucet_check_cors"}' "$faucet_url/request")" == "201" ]] || { echo "faucet request with browser headers failed"; exit 1; }
+[[ "$(grep -i '^Access-Control-Allow-Origin:' "$work/cors-headers.txt" | awk '{print $2}' | tr -d '\r')" == "*" ]] || { echo "faucet cors header missing"; cat "$work/cors-headers.txt"; exit 1; }
 
 response="$(curl -fsS -X POST "$faucet_url/request" -H 'content-type: application/json' -d '{"address":"ynx_faucet_check"}')"
 tx_hash="$(printf '%s' "$response" | ynx_json_field '["transaction"]["hash"]')"
