@@ -1,8 +1,8 @@
 {
   "productId": "ynx-shop",
   "name": "YNX Shop",
-  "branch": "codex/shop-0.3-android",
-  "commit": "6fa2d6c5",
+  "branch": "codex/p0-shop-android-retirement-20260820",
+  "commit": "f41cbf88b528d30e709bf07dc504c174a7e83073",
   "version": "0.3.0-testnet-preview",
   "surfaces": ["web", "pwa", "ios"],
   "implementedLocal": true,
@@ -65,11 +65,27 @@
     "trustPublicConfigured": true,
     "aiProviderConfigured": true
   },
+  "walletConnectivity": {
+    "standardConnection": "EIP-6963/EIP-1193",
+    "ynxWalletSelection": true,
+    "metaMaskSelection": true,
+    "evmChainId": "0x1917",
+    "addOrSwitchNetwork": true,
+    "webCustomSchemeNavigation": false,
+    "guestCatalogPublic": true,
+    "publicSourceVerified": true,
+    "noProviderFallbackVisible": true,
+    "installedWalletVerified": false,
+    "accountApprovalVerified": false,
+    "productSessionV2": false,
+    "computerControlVerified": false,
+    "evidence": "evidence/p0-shop-web-standard-wallet-public-20260821.json"
+  },
   "knownLimitations": [
     "The Shop Wallet registry approval is deployed and tested but its source pull request still requires independent review before merge.",
     "The Android artifact is debug-signed for Testnet Preview testing; it is not production signed or store released.",
     "Tax and carrier providers are unavailable; seller shipment entries remain manual and unverified.",
     "The demo catalog is not a claim of physical fulfillment or production retail availability."
   ],
-  "generatedAt": "2026-08-03T05:21:30+08:00"
+  "generatedAt": "2026-08-21T07:42:36Z"
 }
