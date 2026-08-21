@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-08-21T16:10:00.000Z",
+  "owner": "Wallet Web/PWA",
+  "source": {
+    "branch": "codex/wallet-web-pwa-integrity-recovery-20260822",
+    "commit": "37a3b30961ad661ba3c9919b25558999522a0c1b",
+    "fixCommit": "6e8b588a7155a67573768867c1e1a73374c7edc6",
+    "cacheRegressionCommit": "1f71f029336b32bdbd12c607f1a8dadf21f677d1"
+  },
+  "rootCause": {
+    "previousDeployment": "dpl_EM95wJxhPp4upmEoad9wMsuNisbH",
+    "finding": "The previous deployment served only the source public directory. Its Service Worker imported asset-integrity.js, but that generated module was absent from production, so the worker could only render its integrity failure shell.",
+    "previousAssetIntegrity": "HTTP 404"
+  },
+  "recovery": {
+    "deploymentId": "dpl_4VLv7gtiTVkY8ueVzJomPZj8JP6x",
+    "deploymentUrl": "https://ynx-wallet-c98misy2b-jiahaoalbus-projects.vercel.app",
+    "publicOrigin": "https://wallet.ynxweb4.com",
+    "deploymentState": "READY",
+    "outputDirectory": "dist/pwa",
+    "atomicInstall": true,
+    "obsoletePwaCachesPurged": true,
+    "swAndIntegrityCacheControl": "no-store, max-age=0, must-revalidate"
+  },
+  "publicReadback": {
+    "root": {"httpStatus": 200, "bytes": 821, "sha256": "2df10866a35b074a6fb366439197646dd4e979bc83bdae3aba0ba6db3802986c"},
+    "app": {"path": "/app.js", "httpStatus": 200, "bytes": 16803, "sha256": "65fb87b5eec304366a8603d5e33c203120f1b28659a18af96d417a4ca70d57a7"},
+    "manifest": {"path": "/manifest.webmanifest", "httpStatus": 200, "bytes": 632, "sha256": "d2d131267483327ece949c5b8402c2dd80352bb15e791ea5571c879682ceba92"},
+    "serviceWorker": {"path": "/sw.js", "httpStatus": 200, "bytes": 2711, "sha256": "a52ff146365c4f916302ae38d279eb8039c9b9e72773bf76a0eda0b4d8b88f68", "cacheControl": "no-store, max-age=0, must-revalidate"},
+    "assetIntegrity": {"path": "/asset-integrity.js", "httpStatus": 200, "bytes": 1824, "sha256": "16aa19f008495b4df57e702530af9b4bb4fca4364b624b6f872c4d52caf0ff05", "cacheControl": "no-store, max-age=0, must-revalidate"},
+    "provider": {"path": "/provider.js", "httpStatus": 200, "bytes": 18553, "sha256": "82cb2532ce59dd930619df4045b9e4836aa3f3fd7540962204a2ae87a499b4e6"},
+    "coreAuth": {"path": "/core-auth-binding.js", "httpStatus": 200, "bytes": 880, "sha256": "8e34a8f66c43b90516770be334379357265e4ea9e87417b98b1fb090646e98bf"},
+    "buildIdentity": {"path": "/build-identity.json", "httpStatus": 200, "bytes": 250, "sha256": "b2f9b275a4295c6f1cd230daf2b39519a81c4cb3ecf361e820ace9195adbbf9b"}
+  },
+  "validation": {
+    "tests": "98/98 passed",
+    "controlledPersistentChromium": {
+      "passed": true,
+      "activeCache": "ynx-wallet-web-v7",
+      "tamperedActiveCacheFailsClosed": true,
+      "legacyRollbackFailsClosed": true,
+      "onlineRecovery": true,
+      "sessionRestored": false
+    },
+    "realChromeVisible": {
+      "url": "https://wallet.ynxweb4.com/?verify=provider-completion&lang=en",
+      "englishSelected": true,
+      "walletUiVisible": true,
+      "integrityFailureVisible": false,
+      "accountRequestAttempted": false
+    }
+  },
+  "truthBoundaries": {
+    "providerConnected": false,
+    "accountAuthorized": false,
+    "messageSigned": false,
+    "transactionSubmitted": false,
+    "installedPwa": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}
