@@ -483,23 +483,24 @@
     }
   },
   "light": {
-    "owner": null,
-    "status": "CONSUMED_RELEASED_SOURCE_BUILD_ACCEPTED",
-    "branch": "codex/p0-finance-wallet-connectivity-20260820",
-    "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/24-finance",
-    "taskId": "P0-146",
-    "leasedAt": "2026-08-21T17:16:13Z",
-    "expiresAt": "2026-08-21T17:46:13Z",
-    "releasedAt": "2026-08-21T17:57:35Z",
-    "checkpointCommit": "5e094147832dca7ad72344f473dd150c30ffa1da",
-    "previousOwner": "integration",
-    "previousCheckpoint": "993e7cc99ea3919488d6765e097ca78a82a30704",
-    "reason": "Finance reproducible source/build archive is independently accepted. Production mutation remains forbidden until a separate fresh rollback-bound deployment lease is issued.",
-    "executionScope": "FINANCE_7824_SOURCE_BUILD_ROLLBACK_BINDING",
+    "owner": "integration:/root",
+    "status": "ACTIVE_SOURCE_ONLY",
+    "branch": "codex/p0-creator-studio-visible-20260821",
+    "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/57-creator-studio-visible-p0",
+    "taskId": "P0-148",
+    "leasedAt": "2026-08-21T18:09:34Z",
+    "expiresAt": "2026-08-21T18:39:34Z",
+    "releasedAt": null,
+    "checkpointCommit": "993e7cc99ea3919488d6765e097ca78a82a30704",
+    "productionMutationAllowed": false,
+    "previousOwner": null,
+    "previousCheckpoint": "5e094147832dca7ad72344f473dd150c30ffa1da",
+    "reason": "P0-146 released a clean source/build checkpoint; Integration now owns the bounded Creator Studio Fable5 audit and source-repair slice. Production mutation remains forbidden.",
+    "executionScope": "CREATOR_STUDIO_FABLE5_GAP_AUDIT_AND_SOURCE_REPAIR_NO_PRODUCTION",
     "onSafeCheckpoint": [
-      "modify only Finance-owned source/build/evidence paths",
-      "return exact archive path/bytes/SHA and rollback digests",
-      "do not SSH/SCP/restart/write production"
+      "modify only Creator Studio-owned source, tests and evidence",
+      "consume accepted shared Wallet Provider/connect-state source",
+      "return a pushed clean checkpoint before requesting any public lease"
     ]
   }
 }

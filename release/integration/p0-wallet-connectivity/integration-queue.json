@@ -5890,7 +5890,7 @@
     {
       "taskId": "P0-148",
       "owner": "integration:/root",
-      "status": "ASSIGNED_SOURCE_ONLY_WAITING_LIGHT_SLOT",
+      "status": "IN_PROGRESS_SOURCE_ONLY",
       "paths": [
         "apps/creator-studio/**"
       ],
@@ -5898,7 +5898,7 @@
       "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/57-creator-studio-visible-p0",
       "checkpointCommit": "993e7cc99ea3919488d6765e097ca78a82a30704",
       "productionMutationAllowed": false,
-      "nextAction": "After P0-146 releases, /root rechecks clean worktree/lock and continues Creator Studio; Social and Video remain unassigned."
+      "nextAction": "Audit Creator Studio against Fable5, consume accepted shared Wallet Provider/connect-state source, repair the first owner-scoped gaps, test, commit and push; no production mutation. Social and Video remain unassigned."
     },
     {
       "taskId": "P0-149",

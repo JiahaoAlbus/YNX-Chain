@@ -1267,11 +1267,11 @@
       "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/57-creator-studio-visible-p0",
       "taskId": "P0-148",
       "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-      "status": "ASSIGNED_SOURCE_ONLY_WAITING_LIGHT_SLOT",
+      "status": "ACTIVE_SOURCE_ONLY",
       "checkpointCommit": "993e7cc99ea3919488d6765e097ca78a82a30704",
       "productionMutationAllowed": false,
       "allowedExceptions": [
-        "primary /root owns the next source slice after P0-146 releases; no write before clean-worktree and lock recheck"
+        "primary /root may modify only apps/creator-studio source, tests and product-owned evidence; production mutation remains forbidden"
       ]
     },
     {

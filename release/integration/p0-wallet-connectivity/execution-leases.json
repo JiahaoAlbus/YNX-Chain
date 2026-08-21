@@ -1,7 +1,7 @@
 {
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-  "epoch": 70,
-  "updatedAt": "2026-08-21T17:57:35Z",
+  "epoch": 71,
+  "updatedAt": "2026-08-21T18:09:34Z",
   "heavy": {
     "owner": null,
     "status": "CONSUMED_RELEASED_DEPLOYMENT_REJECTED",
@@ -24,24 +24,23 @@
     ]
   },
   "light": {
-    "owner": null,
-    "status": "CONSUMED_RELEASED_SOURCE_BUILD_ACCEPTED",
-    "branch": "codex/p0-finance-wallet-connectivity-20260820",
-    "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/24-finance",
-    "taskId": "P0-146",
-    "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-finance-7824-source-build-20260821T171613Z",
-    "leasedAt": "2026-08-21T17:16:13Z",
-    "expiresAt": "2026-08-21T17:46:13Z",
-    "releasedAt": "2026-08-21T17:57:35Z",
-    "checkpointCommit": "5e094147832dca7ad72344f473dd150c30ffa1da",
-    "previousOwner": "integration",
-    "previousCheckpoint": "993e7cc99ea3919488d6765e097ca78a82a30704",
-    "executionScope": "FINANCE_7824_SOURCE_BUILD_ROLLBACK_BINDING_NO_PRODUCTION",
-    "releaseReason": "Independent review accepted the reproducible Finance source/build archive only. Production remains unchanged and requires a fresh rollback-bound single-use deployment lease.",
+    "owner": "integration:/root",
+    "status": "ACTIVE_SOURCE_ONLY",
+    "branch": "codex/p0-creator-studio-visible-20260821",
+    "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/57-creator-studio-visible-p0",
+    "taskId": "P0-148",
+    "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-creator-studio-source-20260821T180934Z",
+    "leasedAt": "2026-08-21T18:09:34Z",
+    "expiresAt": "2026-08-21T18:39:34Z",
+    "releasedAt": null,
+    "checkpointCommit": "993e7cc99ea3919488d6765e097ca78a82a30704",
+    "previousOwner": null,
+    "previousCheckpoint": "5e094147832dca7ad72344f473dd150c30ffa1da",
+    "executionScope": "CREATOR_STUDIO_FABLE5_GAP_AUDIT_AND_SOURCE_REPAIR_NO_PRODUCTION",
     "onSafeCheckpoint": [
-      "exact Linux amd64 archive and env migration evidence",
-      "fresh rollback binary/env/unit/Caddy digest manifest",
-      "request a separate production lease; P0-141 is nonreusable"
+      "modify only apps/creator-studio source, tests and product-owned evidence",
+      "consume accepted Wallet Provider/connect-state source without recreating it",
+      "return a pushed clean source checkpoint and exact remaining public blockers"
     ]
   },
   "explorerMonitor": {
