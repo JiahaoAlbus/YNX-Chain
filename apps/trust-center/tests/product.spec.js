@@ -75,7 +75,7 @@ test('accepted SDK connects a standard 0x account while private service stays de
   await expect(page.locator('#wallet-result')).toContainText('did not remove it');
   await expect(page.getByText('No accessible cases')).toBeVisible();
   await page.screenshot({path: `${visibleEvidence}/trust-wallet-approved-private-degraded-1440x900.png`, fullPage: true});
-  expect(consoleErrors).toEqual(['Failed to load resource: the server responded with a status of 401 (Unauthorized)']);
+  expect(consoleErrors).toEqual([]);
 });
 
 test('rejected standard Wallet creates no account and public Trust data remains available', async ({page}) => {
@@ -103,7 +103,7 @@ test('rejected standard Wallet creates no account and public Trust data remains 
   await expect(page.getByText('No accessible cases')).toBeVisible();
   await expect(page.locator('body')).not.toContainText('Local test identity');
   await page.screenshot({path: `${visibleEvidence}/trust-wallet-rejected-public-data-1440x900.png`, fullPage: true});
-  expect(consoleErrors).toEqual(['Failed to load resource: the server responded with a status of 401 (Unauthorized)']);
+  expect(consoleErrors).toEqual([]);
 });
 
 test('all locales persist, Arabic keeps an LTR shell, and due-process text never blanks', async ({page}) => {

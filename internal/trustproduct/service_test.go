@@ -239,8 +239,19 @@ func TestHTTPAuthorizationSecurityAndTransparency(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if resp.StatusCode != 401 {
+	if resp.StatusCode != 200 {
 		t.Fatalf("status=%d", resp.StatusCode)
+	}
+	var guest map[string]any
+	if err := json.NewDecoder(resp.Body).Decode(&guest); err != nil {
+		t.Fatal(err)
+	}
+	access, _ := guest["access"].(map[string]any)
+	if access["mode"] != "guest-read-only" || access["privateRecords"] != false || access["writesAllowed"] != false {
+		t.Fatalf("guest access boundary=%#v", access)
+	}
+	if cases, ok := guest["cases"].([]any); !ok || len(cases) != 0 {
+		t.Fatalf("guest cases=%#v", guest["cases"])
 	}
 	if !strings.Contains(resp.Header.Get("Content-Security-Policy"), "frame-ancestors 'none'") {
 		t.Fatal("security headers absent")
@@ -271,8 +282,16 @@ func TestSessionRegistryRejectsSpoofedRoleHeaders(t *testing.T) {
 	req.Header.Set("X-YNX-Actor", "attacker")
 	req.Header.Set("X-YNX-Role", "auditor")
 	resp, _ := http.DefaultClient.Do(req)
-	if resp.StatusCode != 401 {
+	if resp.StatusCode != 200 {
 		t.Fatalf("spoofed headers status=%d", resp.StatusCode)
+	}
+	var guest map[string]any
+	if err := json.NewDecoder(resp.Body).Decode(&guest); err != nil {
+		t.Fatal(err)
+	}
+	access, _ := guest["access"].(map[string]any)
+	if access["mode"] != "guest-read-only" || access["privateRecords"] != false {
+		t.Fatalf("spoofed headers escaped guest boundary: %#v", access)
 	}
 	req, _ = http.NewRequest(http.MethodGet, ts.URL+"/api/state", nil)
 	req.Header.Set("Authorization", "Bearer opaque-session")

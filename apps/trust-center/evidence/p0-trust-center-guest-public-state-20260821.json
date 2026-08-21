@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-08-21T07:23:00Z",
+  "scope": "Trust Center guest public state and standard Wallet UI regression",
+  "sourceParent": "e968f5666eb7ef1b03dcd26867bcd0035222f4dc",
+  "guestState": {
+    "httpStatus": 200,
+    "mode": "guest-read-only",
+    "privateRecords": false,
+    "writesAllowed": false,
+    "syntheticIdentity": false,
+    "syntheticCases": false
+  },
+  "tests": {
+    "trustCenterCheck": "PASS",
+    "goTrustPackages": "PASS",
+    "playwright": "6/6 PASS",
+    "walletApprovePrivateDegraded": "PASS",
+    "walletRejectPublicPreserved": "PASS",
+    "browserConsoleErrors": 0
+  },
+  "screenshots": [
+    {
+      "path": "apps/trust-center/evidence/visible/trust-wallet-approved-private-degraded-1440x900.png",
+      "sha256": "afd25ec23a55a0885f65cf05fff6ea29cbb46e2e90b2d88c6614b1b047fbb7ba"
+    },
+    {
+      "path": "apps/trust-center/evidence/visible/trust-wallet-rejected-public-data-1440x900.png",
+      "sha256": "05c7d58ad2f177a0eb7660928d7a113df7152a5a4105693ad502f2c89a432316"
+    }
+  ],
+  "truth": {
+    "deployedPublicAtCapture": false,
+    "realInstalledWalletVerified": false,
+    "walletAccountAuthorized": false,
+    "realSignature": false,
+    "realTransaction": false,
+    "productSessionV2": false,
+    "computerControlVerified": false
+  }
+}

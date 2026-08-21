@@ -20,7 +20,28 @@ func (s *Service) Handler(assets http.Handler) http.Handler {
 		writeJSON(w, 200, map[string]any{"ok": true, "service": "ynx-trust-center", "persistent": true, "authMode": authMode, "centralGatewayConfigured": s.cfg.CentralGatewayURL != "", "aiProviderConfigured": s.cfg.AIURL != "" && s.cfg.AIKey != "", "truthBoundary": "Trust explains evidence, process, appeals and corrections; it does not punish or control native YNXT."})
 	})
 	mux.HandleFunc("GET /api/state", func(w http.ResponseWriter, r *http.Request) {
-		v, err := s.View(s.actorFrom(r))
+		actor := s.actorFrom(r)
+		if !validActor(actor) {
+			writeJSON(w, 200, map[string]any{
+				"cases": []Case{},
+				"ai":    []AIRecord{},
+				"audit": []Audit{},
+				"access": map[string]any{
+					"mode":           "guest-read-only",
+					"privateRecords": false,
+					"writesAllowed":  false,
+				},
+				"policy": map[string]any{
+					"nativeYNXT":            "cannot be frozen, seized, blacklisted or transferred by Trust Center",
+					"appealAlwaysAvailable": true,
+					"evidenceRequired":      true,
+					"labelSourceVisible":    true,
+				},
+				"transparency": s.Transparency(),
+			})
+			return
+		}
+		v, err := s.View(actor)
 		if err != nil {
 			writeErr(w, err)
 			return
