@@ -2,7 +2,7 @@
   "schemaVersion": "1.0.0",
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "owner": "integration",
-  "status": "P0070_FAILED_CLOSED_HEAVY_RELEASED_P0087_CLOUD_RELEASED_P0088_AI_VISIBLE_ACTIVE",
+  "status": "P0070_FAILED_CLOSED_HEAVY_RELEASED_P0088_AI_RELEASED_P0089_RESOURCE_EVIDENCE_AUDIT_ACTIVE",
   "scope": [
     "founder-control",
     "wallet-connectivity",
@@ -34,7 +34,7 @@
   "firstStop": {
     "complete": true,
     "publicConnectivityClaim": false,
-    "nextAction": "P0-070 is consumed/nonreusable and Heavy is null. Cloud P0-087 is released at a427075261aebc2fcb493205840de0bc9f0bc87e after deterministic approval/rejection proved guest preview and private-service degradation with zero private API requests and no fabricated objects; current-source installed Wallet, Product Session v2, Cloud API, public deployment and ComputerControl remain false. AI P0-088 owns the next visible deterministic Provider verification slice from exact checkpoint 2cbd93564255e25c2c861eeab68d7b8ef9831014."
+    "nextAction": "P0-070 is consumed/nonreusable and Heavy is null. AI P0-088 is released at 7eefdf5e3f5ead51912192bdf4806594112fc859 after deterministic approval/rejection proved guest preview and private-service degradation without fabricated generation; current-source installed Wallet, Product Session v2, AI API, live generation, public deployment and ComputerControl remain false, and the full release check remains blocked by the absent central ynx-ai-contract.json. Resource P0-089 owns a bounded audit of the already-existing P0-072 visible evidence from exact checkpoint 5f0a6eea4aef0c1b374e971bd99f41a6e71d6596; it must not rebuild accepted Resource source."
   },
   "lightLeases": [
     {
@@ -277,14 +277,29 @@
     {
       "owner": "integration",
       "taskId": "P0-088",
-      "status": "ACTIVE_LIGHT_VISIBLE_EVIDENCE_ONLY",
+      "status": "RELEASED_CHECKPOINT",
       "grantedAt": "2026-08-21T01:30:00Z",
+      "releasedAt": "2026-08-21T01:50:00Z",
+      "checkpointCommit": "7eefdf5e3f5ead51912192bdf4806594112fc859",
       "scope": "ai-existing-standard-wallet-visible-verification",
       "constraints": [
         "do not rebuild accepted AI Standard Wallet source",
         "guest AI preview remains available without Wallet",
         "deterministic Provider evidence is not installed Wallet evidence",
         "no live generation, AI API, Product Session v2, public deployment or Computer Control claim"
+      ]
+    },
+    {
+      "owner": "integration",
+      "taskId": "P0-089",
+      "status": "ACTIVE_LIGHT_EVIDENCE_AUDIT_ONLY",
+      "grantedAt": "2026-08-21T01:50:00Z",
+      "scope": "resource-existing-visible-evidence-and-release-truth-audit",
+      "constraints": [
+        "do not rebuild accepted Resource Standard Wallet source or repeat P0-072 development",
+        "verify exact existing approve/reject evidence and release truth",
+        "deterministic Provider evidence is not installed Wallet evidence",
+        "no settlement, Resource API, Product Session v2, public deployment or Computer Control claim"
       ]
     }
   ],
