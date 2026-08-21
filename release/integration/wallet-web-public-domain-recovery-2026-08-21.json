@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "incident": "wallet.ynxweb4.com served the main-site SPA fallback for both / and /app.js",
+  "observedAt": "2026-08-21T12:17:26Z",
+  "failedPublicRead": {
+    "rootBytes": 1018,
+    "appBytes": 1018,
+    "sharedSha256": "c3f2bd52357970151a4189101919a930ec4bc66a0fc12144c0aeac2045dc0809",
+    "classification": "website-shell fallback, not Wallet PWA"
+  },
+  "acceptedWalletSource": "3651ba0c4322e0564e29b4573f3def90828dba67",
+  "acceptedEvidence": "01049d7c7c4cf55a750a3f452ed28def729238a9",
+  "recovery": {
+    "project": "ynx-wallet-web",
+    "deploymentId": "dpl_EM95wJxhPp4upmEoad9wMsuNisbH",
+    "deploymentUrl": "https://ynx-wallet-q32vy3bjw-jiahaoalbus-projects.vercel.app",
+    "target": "production",
+    "publishedBy": "local Vercel prebuilt output after the accepted-source test/build",
+    "domainAlias": "https://wallet.ynxweb4.com",
+    "cloudBuildBoundary": "Cloud source deployment failed because its build script requires immutable Git objects and the Vercel build container has no .git directory. The recovery used the established local vercel build then --prebuilt production path; no contract was changed."
+  },
+  "publicReadback": {
+    "root": {"status": 200, "contentType": "text/html; charset=utf-8", "bytes": 821, "sha256": "2df10866a35b074a6fb366439197646dd4e979bc83bdae3aba0ba6db3802986c"},
+    "appJs": {"status": 200, "contentType": "application/javascript; charset=utf-8", "bytes": 16803, "sha256": "65fb87b5eec304366a8603d5e33c203120f1b28659a18af96d417a4ca70d57a7"},
+    "manifest": {"status": 200, "contentType": "application/manifest+json; charset=utf-8", "bytes": 632, "sha256": "d2d131267483327ece949c5b8402c2dd80352bb15e791ea5571c879682ceba92"},
+    "serviceWorker": {"status": 200, "contentType": "application/javascript; charset=utf-8", "bytes": 2711, "sha256": "a52ff146365c4f916302ae38d279eb8039c9b9e72773bf76a0eda0b4d8b88f68", "cacheControl": "public, max-age=0, must-revalidate"},
+    "appJsIsHtmlFallback": false,
+    "assetIntegrity": {"status": 404, "classification": "not part of accepted 3651 PWA output"},
+    "buildIdentity": {"status": 404, "classification": "not part of accepted 3651 PWA output"}
+  },
+  "falseGates": ["browserAccountApproval", "providerConnected", "accountRestored", "signature", "transaction", "extensionStoreRelease", "productionSigned", "ComputerControl"],
+  "rollback": "Reassign wallet.ynxweb4.com to the previous known-good ynx-wallet-web deployment only after matching root/app.js/manifest bytes and source identity; never reassign it to the main-site project."
+}
