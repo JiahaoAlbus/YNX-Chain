@@ -66,7 +66,7 @@ jobs:
           for ($i=0; $i -lt 30 -and -not (Test-Path $env:EVIDENCE); $i++) { Start-Sleep 1 }
           if (-not (Test-Path $env:EVIDENCE)) { throw 'cold launch did not write evidence' }
           $coldEvidence = Get-Content $env:EVIDENCE -Raw | ConvertFrom-Json
-          if ($coldEvidence.launches -ne 1 -or -not $coldEvidence.visibleShellReady -or -not $coldEvidence.rpc.available -or $coldEvidence.rpc.chainId -ne '0x1917' -or $coldEvidence.signingEnabled -or $coldEvidence.accountCreated -or $coldEvidence.balanceClaimed -or $coldEvidence.transactionCreated) { throw 'cold launch evidence failed' }
+          if ($coldEvidence.launches -ne 1 -or -not $coldEvidence.visibleShellReady -or -not $coldEvidence.rpc.available -or $coldEvidence.rpc.endpoint -ne 'https://rpc.ynxweb4.com/evm' -or $coldEvidence.rpc.chainId -ne '0x1917' -or $coldEvidence.signingEnabled -or $coldEvidence.accountCreated -or $coldEvidence.balanceClaimed -or $coldEvidence.transactionCreated) { throw 'cold launch evidence failed' }
           $cold.Refresh()
           if ($cold.HasExited) { throw 'cold launch process exited' }
           $coldTitle = (Get-Process | Where-Object MainWindowTitle -eq 'YNX Wallet Testnet Preview' | Select-Object -First 1).MainWindowTitle
@@ -78,7 +78,7 @@ jobs:
             $secondEvidence = Get-Content $env:EVIDENCE -Raw | ConvertFrom-Json
             if ($secondEvidence.launches -eq 2) { break }
           }
-          if ($secondEvidence.launches -ne 2 -or -not $secondEvidence.rpc.available -or $secondEvidence.rpc.chainId -ne '0x1917') { throw 'second launch evidence failed' }
+          if ($secondEvidence.launches -ne 2 -or -not $secondEvidence.rpc.available -or $secondEvidence.rpc.endpoint -ne 'https://rpc.ynxweb4.com/evm' -or $secondEvidence.rpc.chainId -ne '0x1917') { throw 'second launch evidence failed' }
           $second.Refresh()
           if ($second.HasExited) { throw 'second launch process exited' }
           $secondTitle = (Get-Process | Where-Object MainWindowTitle -eq 'YNX Wallet Testnet Preview' | Select-Object -First 1).MainWindowTitle
@@ -98,7 +98,7 @@ jobs:
           for ($i=0; $i -lt 30 -and -not (Test-Path $env:ROLLBACK_EVIDENCE); $i++) { Start-Sleep 1 }
           if (-not (Test-Path $env:ROLLBACK_EVIDENCE)) { throw 'rollback launch did not write evidence' }
           $rollbackEvidence = Get-Content $env:ROLLBACK_EVIDENCE -Raw | ConvertFrom-Json
-          if (-not $rollbackEvidence.rpc.available -or $rollbackEvidence.rpc.chainId -ne '0x1917' -or $rollbackEvidence.signingEnabled) { throw 'rollback launch evidence failed' }
+          if (-not $rollbackEvidence.rpc.available -or $rollbackEvidence.rpc.endpoint -ne 'https://rpc.ynxweb4.com/evm' -or $rollbackEvidence.rpc.chainId -ne '0x1917' -or $rollbackEvidence.signingEnabled) { throw 'rollback launch evidence failed' }
           Stop-Process -Id $rollback.Id -Force
 
           Start-Process -FilePath $current -ArgumentList '/S' -Wait
@@ -108,7 +108,7 @@ jobs:
           for ($i=0; $i -lt 30 -and -not (Test-Path $env:REUPGRADE_EVIDENCE); $i++) { Start-Sleep 1 }
           if (-not (Test-Path $env:REUPGRADE_EVIDENCE)) { throw 're-upgrade launch did not write evidence' }
           $reupgradeEvidence = Get-Content $env:REUPGRADE_EVIDENCE -Raw | ConvertFrom-Json
-          if (-not $reupgradeEvidence.rpc.available -or $reupgradeEvidence.rpc.chainId -ne '0x1917' -or $reupgradeEvidence.signingEnabled) { throw 're-upgrade launch evidence failed' }
+          if (-not $reupgradeEvidence.rpc.available -or $reupgradeEvidence.rpc.endpoint -ne 'https://rpc.ynxweb4.com/evm' -or $reupgradeEvidence.rpc.chainId -ne '0x1917' -or $reupgradeEvidence.signingEnabled) { throw 're-upgrade launch evidence failed' }
           Stop-Process -Id $reupgrade.Id -Force
 
           $env:YNX_WALLET_RPC_URL = 'http://127.0.0.1:1'
@@ -144,8 +144,10 @@ jobs:
             secondWindowTitleObserved = [bool]$secondTitle
             appReportedWindowVisible = [bool]$secondEvidence.window.visible
             appReportedWindowTitle = $secondEvidence.window.title
+            rpcEndpoint = $secondEvidence.rpc.endpoint
             chainId = $secondEvidence.rpc.chainId
             rpcFailureClosed = $true
+            rpcFailureErrorCode = $failedEvidence.rpc.errorCode
             signingEnabled = $false
             accountCreated = $false
             balanceClaimed = $false
@@ -221,7 +223,7 @@ jobs:
           $actualSha256 = (Get-FileHash $installer.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
           if ($manifest.sourceCommit -ne $env:GITHUB_SHA -or $manifest.artifact.sha256 -ne $actualSha256 -or $manifest.artifact.bytes -ne $installer.Length) { throw 'downloaded installer hash or size mismatch' }
           if ($manifest.artifact.minimumOS -ne 'Windows 11 arm64 directly tested; earlier Windows arm64 not evidenced' -or $manifest.artifact.signingClass -ne 'unsigned_windows_nsis_testnet_candidate' -or $manifest.artifact.authenticodeStatus -ne 'NotSigned' -or $manifest.artifact.productionSigned -or -not $manifest.artifact.installedOnNativeRunner) { throw 'manifest release boundary mismatch' }
-          if (-not $lifecycle.installed -or -not $lifecycle.upgraded -or -not $lifecycle.rollback -or -not $lifecycle.reupgrade -or -not $lifecycle.coldLaunch -or -not $lifecycle.secondLaunch -or -not $lifecycle.processEvidence -or $lifecycle.chainId -ne '0x1917' -or -not $lifecycle.rpcFailureClosed -or $lifecycle.signingEnabled -or $lifecycle.accountCreated -or $lifecycle.balanceClaimed -or $lifecycle.transactionCreated -or -not $lifecycle.uninstalled -or $lifecycle.productionSigned) { throw 'lifecycle release boundary mismatch' }
+          if (-not $lifecycle.installed -or -not $lifecycle.upgraded -or -not $lifecycle.rollback -or -not $lifecycle.reupgrade -or -not $lifecycle.coldLaunch -or -not $lifecycle.secondLaunch -or -not $lifecycle.processEvidence -or $lifecycle.rpcEndpoint -ne 'https://rpc.ynxweb4.com/evm' -or $lifecycle.chainId -ne '0x1917' -or -not $lifecycle.rpcFailureClosed -or $lifecycle.rpcFailureErrorCode -ne 'RPC_ENDPOINT_REJECTED' -or $lifecycle.signingEnabled -or $lifecycle.accountCreated -or $lifecycle.balanceClaimed -or $lifecycle.transactionCreated -or -not $lifecycle.uninstalled -or $lifecycle.productionSigned) { throw 'lifecycle release boundary mismatch' }
           New-Item -ItemType Directory -Force downloaded-verification | Out-Null
           [ordered]@{
             schemaVersion = 1
