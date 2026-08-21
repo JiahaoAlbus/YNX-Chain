@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "owner": "wallet-web-pwa",
+  "sourceCommit": "562ceb505469a6d0a6efd4d8761dfbd741916b50",
+  "verifiedAt": "2026-08-21T07:49:24Z",
+  "url": "https://wallet.ynxweb4.com/?verify=provider-p0&lang=en",
+  "environment": "user-connected external Chrome, read-only visible UI inspection",
+  "visibleResult": {
+    "title": "YNX Wallet — Testnet companion",
+    "providerState": "NO SUPPORTED WALLET DETECTED",
+    "officialYnxDownloadVisible": true,
+    "metamaskFallbackVisible": true,
+    "topLevelYnxwalletLinks": 0,
+    "signDisabled": true,
+    "sendDisabled": true,
+    "status": "RPC_UNAVAILABLE fail-closed"
+  },
+  "truth": {
+    "eip6963ProviderDiscovered": false,
+    "eip1193ProviderConnected": false,
+    "ynxProviderSelected": false,
+    "metamaskSelected": false,
+    "accountAuthorized": false,
+    "chainAddedOrSwitched": false,
+    "signatureProduced": false,
+    "transactionSubmitted": false,
+    "productSessionCreated": false,
+    "customSchemeBlankTabObserved": false
+  }
+}
