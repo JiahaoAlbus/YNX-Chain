@@ -9,6 +9,7 @@ const audit = JSON.parse(await readFile(new URL("../../../release/integration/wa
 const auditV2 = JSON.parse(await readFile(new URL("../../../release/integration/wallet-authorize-ecosystem-source-runtime-audit-v2-20260821.json", import.meta.url), "utf8"));
 const auditV3 = JSON.parse(await readFile(new URL("../../../release/integration/wallet-authorize-ecosystem-owner-runtime-matrix-v3-20260821.json", import.meta.url), "utf8"));
 const providerRecovery = JSON.parse(await readFile(new URL("../../../release/integration/wallet-provider-discovery-connect-state-p0-handoff-20260821.json", import.meta.url), "utf8"));
+const pendingOwnerHandoffs = JSON.parse(await readFile(new URL("../../../release/integration/wallet-provider-connect-pending-owner-handoffs-20260821.json", import.meta.url), "utf8"));
 const registry = JSON.parse(await readFile(new URL("../product-session-registry.json", import.meta.url), "utf8"));
 
 test("ecosystem authorize audit covers every registered client exactly once", () => {
@@ -141,4 +142,23 @@ test("shared Provider/connect recovery hands off to all products without promoti
   assert.equal(providerRecovery.truth.threeProductChromeAcceptance, false);
   assert.equal(providerRecovery.truth.officialInstallersReplaced, false);
   assert.equal(providerRecovery.truth.websiteDirectLinksRestored, false);
+});
+
+test("pending Provider/connect handoffs cover the remaining eleven owners and preserve connection authority", () => {
+  const consumed = providerRecovery.registeredProductHandoffs.filter(({ consumed }) => consumed).map(({ productId }) => productId);
+  const pending = providerRecovery.registeredProductHandoffs.filter(({ consumed }) => !consumed).map(({ productId }) => productId).sort();
+  assert.deepEqual(consumed, ["shop"]);
+  assert.equal(pendingOwnerHandoffs.consumed.count, 1);
+  assert.deepEqual(pendingOwnerHandoffs.consumed.products, consumed);
+  assert.equal(pendingOwnerHandoffs.pending.length, 11);
+  assert.deepEqual(pendingOwnerHandoffs.pending.map(({ productId }) => productId).sort(), pending);
+  assert.ok(pendingOwnerHandoffs.pending.every(({ currentSourceCommit, handoff }) => /^[0-9a-f]{40}$/.test(currentSourceCommit) && handoff.length > 80));
+  assert.deepEqual(pendingOwnerHandoffs.connectionAuthority.successRequires, ["selected-provider", "approved-account", "provider-request-chain-0x1917"]);
+  assert.equal(pendingOwnerHandoffs.connectionAuthority.directBrowserRpcFetchRequired, false);
+  assert.equal(pendingOwnerHandoffs.connectionAuthority.rpcProbeDegradedEffects.connectionPreserved, true);
+  assert.equal(pendingOwnerHandoffs.connectionAuthority.rpcProbeDegradedEffects.chooserReopened, false);
+  assert.equal(pendingOwnerHandoffs.connectionAuthority.rpcProbeDegradedEffects.classifiedAsNoProvider, false);
+  assert.equal(pendingOwnerHandoffs.completionBoundary.sourceCheckpointIsProductCompletion, false);
+  assert.equal(pendingOwnerHandoffs.truth.newProductConsumptionRecorded, false);
+  assert.equal(pendingOwnerHandoffs.truth.aggregateConnected, false);
 });

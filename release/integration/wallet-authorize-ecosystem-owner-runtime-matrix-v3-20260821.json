@@ -24,6 +24,7 @@
     "productsConnected": 0,
     "productsMigratedV2": 0
   },
+  "pendingOwnerHandoffs": "release/integration/wallet-provider-connect-pending-owner-handoffs-20260821.json",
   "productionBoundary": {
     "sshUsed": false,
     "deploymentAttempted": false,

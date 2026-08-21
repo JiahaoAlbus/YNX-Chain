@@ -1,0 +1,138 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "WALLET-PROVIDER-CONNECT-PENDING-OWNER-HANDOFFS-20260821",
+  "owner": "wallet-protocol-router",
+  "sourceContract": {
+    "commit": "98c6d5d784d212df8981a53b17118a511e246ad2",
+    "tree": "51a60a362d4ad5dd748bcdefb101f71b1d9e0cee",
+    "providerDiscovery": "packages/wallet-auth/src/wallet-provider-discovery.js",
+    "connectState": "packages/wallet-auth/src/standard-wallet-connect-state.js",
+    "consumerGate": "packages/wallet-auth/scripts/verify-standard-wallet-connect-consumer.mjs"
+  },
+  "connectionAuthority": {
+    "successRequires": ["selected-provider", "approved-account", "provider-request-chain-0x1917"],
+    "directBrowserRpcFetchRequired": false,
+    "rpcProbeTransport": "accepted-cors-safe",
+    "rpcProbeDegradedEffects": {
+      "connectionPreserved": true,
+      "providerPreserved": true,
+      "accountPreserved": true,
+      "chainPreserved": true,
+      "standardPermissionsPreserved": true,
+      "chooserReopened": false,
+      "classifiedAsNoProvider": false
+    },
+    "productSessionDegradedBlocksStandardWallet": false
+  },
+  "completionBoundary": {
+    "sourceCheckpointIsProductCompletion": false,
+    "requiredEvidenceSegments": [
+      "exact shared source consumption and product consumer-gate pass",
+      "source-bound public runtime with stable URL, zero blank tabs and chooser closure",
+      "visible real Provider approval on 0x1917 plus refresh restore, disconnect or account-change handling, callback and separately verified Product Session lifecycle"
+    ],
+    "productsConnected": 0,
+    "productsMigratedV2": 0
+  },
+  "consumed": {
+    "count": 1,
+    "products": ["shop"],
+    "shopEvidenceCommit": "35dc239546c2bf963534d5031d4c35c4e22c2d1c",
+    "shopBoundary": "Existing approved MetaMask account restores on 0x1917 and chooser closes; new approval, callback and Product Session v2 remain false."
+  },
+  "pending": [
+    {
+      "productId": "calendar",
+      "owner": "calendar",
+      "currentSourceCommit": "828120e6d81efaf874a930793660e185a394ba4f",
+      "publicSourceBound": true,
+      "handoff": "Consume the shared discovery and connect reducer for Web without changing the current guest path; Native must use the package-root canonical builder and resolver-first launch. Prove installed approve/reject callback and Product Session separately."
+    },
+    {
+      "productId": "card",
+      "owner": "card",
+      "currentSourceCommit": "fa2fb2308470ded24d64333b756718e7d04bfced",
+      "publicSourceBound": true,
+      "restriction": "Card has an independent goal. Protocol Owner records this handoff only and must not change Card source.",
+      "handoff": "Consume the exact shared discovery/connect reducer while preserving the existing no-tab fallback. Prove real approval, callback, refresh/disconnect and Product Session separately."
+    },
+    {
+      "productId": "creator-studio",
+      "owner": "creator-studio",
+      "currentSourceCommit": "993e7cc99ea3919488d6765e097ca78a82a30704",
+      "publicSourceBound": true,
+      "handoff": "Replace local Provider/modal lifecycle state with the shared reducer while preserving English Guest tour, explicit chooser and on-page fallbacks. Prove real Provider approval, callback and Product Session separately."
+    },
+    {
+      "productId": "developer",
+      "owner": "developer",
+      "currentSourceCommit": "00ac76eb5fde57493231a75de90e2956880e82c5",
+      "publicSourceBound": false,
+      "handoff": "Consume the shared reducer and consumer gate, then release only through the protected exact-source transaction. Preserve unsigned Guest mode and prove public Provider approval/callback separately."
+    },
+    {
+      "productId": "dex",
+      "owner": "finance-suite-dex",
+      "currentSourceCommit": "94c851df22020664512436d024e482de3dc9437c",
+      "publicSourceBound": false,
+      "handoff": "Consume the shared reducer without weakening private authorization. Bind an exact public source and prove guest/read-only, real Provider approval, callback and Product Session separately."
+    },
+    {
+      "productId": "exchange",
+      "owner": "finance-suite-exchange",
+      "currentSourceCommit": "77965f11ab41a76f71edc0c7e4f79545cc10331b",
+      "publicSourceBound": false,
+      "handoff": "Replace the incomplete chain check with the shared adapter/reducer including switch, 4902 add, re-switch and provider chain reread. Preserve guest markets and prove public runtime and real approval."
+    },
+    {
+      "productId": "finance",
+      "owner": "finance-suite-finance",
+      "currentSourceCommit": "9b5957ad58193b4a8bf3c2f33fd3ad2b90b213bb",
+      "publicSourceBound": false,
+      "handoff": "Consume shared switch/add/re-switch and connect state, remove any direct browser RPC prerequisite, publish with exact source/rollback binding, then prove guest and real approval."
+    },
+    {
+      "productId": "pay",
+      "owner": "pay",
+      "currentSourceCommit": "c886697197fa55f3ddf019766dcc9829b4669007",
+      "publicSourceBound": false,
+      "handoff": "Preserve Web guest-only behavior; consume shared Native resolver/callback and connect-state boundaries, then prove bootable-device approve/reject, cold-start callback and Product Session."
+    },
+    {
+      "productId": "quant",
+      "owner": "finance-suite-quant",
+      "currentSourceCommit": "5fd6794b2fa0431b4353b96b1ab9146d7b69a82c",
+      "publicSourceBound": false,
+      "handoff": "Consume the shared reducer while preserving Research/Paper guest mode and provider-only transport. Prove protected device, public Provider approval, callback and Product Session separately."
+    },
+    {
+      "productId": "social",
+      "owner": "social",
+      "currentSourceCommit": "22c26bcb7a8d618cb8e38b30940b1c07bf4237c8",
+      "publicSourceBound": true,
+      "handoff": "Consume the shared reducer while preserving English Guest, explicit YNX/MetaMask chooser, on-page fallbacks and stable URL. Prove real approval, callback, refresh/disconnect and Product Session separately."
+    },
+    {
+      "productId": "video",
+      "owner": "video",
+      "currentSourceCommit": "1d4532ffca4eabdc15f2ec66f3d1143f67e159fa",
+      "publicSourceBound": false,
+      "handoff": "Consume shared Web discovery/connect state and package-root Native canonical builder/resolver. Prove public Guest, real Provider approve/reject callback and Product Session separately."
+    }
+  ],
+  "truth": {
+    "pendingProducts": 11,
+    "newProductConsumptionRecorded": false,
+    "newPublicRuntimeRecorded": false,
+    "newApprovalRecorded": false,
+    "aggregateConnected": false,
+    "deployedPublicAggregate": false,
+    "integratedCentral": false
+  },
+  "validation": {
+    "focusedStateAndMatrix": "19/19",
+    "walletAuthFull": "286/286",
+    "noBareAuthorize": "PASS",
+    "standardConnectConsumerGate": "PASS"
+  }
+}
