@@ -375,9 +375,10 @@
     {
       "owner": "integration",
       "taskId": "P0-130",
-      "status": "ACTIVE_SINGLE_USE_CREATOR_STUDIO_PUBLIC_REPAIR",
+      "status": "CONSUMED_RELEASED_FAILED_CLOSED_ARCHIVE_DIRECTORY_MODE",
       "grantedAt": "2026-08-21T08:30:49Z",
       "expiresAt": "2026-08-21T09:00:49Z",
+      "releasedAt": "2026-08-21T08:33:27Z",
       "sourceCommit": "993e7cc99ea3919488d6765e097ca78a82a30704",
       "scope": "creator-studio-self-contained-dist-public-repair",
       "constraints": [
@@ -391,9 +392,9 @@
     }
   ],
   "heavy": {
-    "owner": "integration",
+    "owner": null,
     "taskId": "P0-130",
-    "status": "ACTIVE_SINGLE_USE_CREATOR_STUDIO_PUBLIC_REPAIR",
+    "status": "CONSUMED_RELEASED_FAILED_CLOSED_ARCHIVE_DIRECTORY_MODE",
     "acquiredAt": "2026-08-21T08:30:49Z",
     "expiresAt": "2026-08-21T09:00:49Z",
     "sourceCommit": "993e7cc99ea3919488d6765e097ca78a82a30704",
@@ -401,11 +402,13 @@
     "currentRuntime": "/opt/ynx-video/releases/p0122b-creator-wallet-650070ce",
     "rollbackTarget": "/opt/ynx-video/releases/p0122b-creator-wallet-650070ce",
     "artifactSha256": "444d6dd38bd919f3aad26a73ec0db56c4929bd904b05003080e213f8ecb81291",
-    "productionMutationAllowed": true,
+    "productionMutationAllowed": false,
     "singleUse": true,
     "previousOwner": null,
     "previousTaskId": "P0-128",
-    "reason": "Repair the directly observed public bare-module failure with the exact self-contained Creator Studio bundle."
+    "releasedAt": "2026-08-21T08:33:27Z",
+    "checkpointCommit": "993e7cc99ea3919488d6765e097ca78a82a30704",
+    "reason": "Archive root metadata changed the copied Creator directory to root-only mode before candidate start. Activation never occurred; current runtime and service remained exact and healthy."
   },
   "wave": {
     "id": "B-financial-apps-quant",
