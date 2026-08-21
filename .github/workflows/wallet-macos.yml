@@ -80,8 +80,9 @@ jobs:
           codesign --force --sign - --timestamp=none "$APP"
           codesign --verify --deep --strict "$APP"
           codesign -dv --verbose=4 "$APP" 2> "$PROOF/codesign.txt"
-          /usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' "$APP/Contents/Info.plist" > "$PROOF/minimum-os.txt"
-          /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP/Contents/Info.plist" > "$PROOF/bundle-identifier.txt"
+          grep -E '^(Signature|TeamIdentifier)=' "$PROOF/codesign.txt" | tee "$PROOF/signing-class.txt"
+          /usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' "$APP/Contents/Info.plist" | tee "$PROOF/minimum-os.txt"
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP/Contents/Info.plist" | tee "$PROOF/bundle-identifier.txt"
           xcodebuild -version > "$PROOF/xcode-version.txt"
           file "$APP/Contents/MacOS/YNXWalletMac" > "$PROOF/executable-file.txt"
           ditto -c -k --sequesterRsrc --keepParent "$APP" "$PROOF/YNX-Wallet-macOS-ad-hoc.zip"
@@ -108,8 +109,8 @@ jobs:
           printf 'gatekeeperAccepted=false exitStatus=%s signingClass=ad-hoc developerIDSigned=false notarized=false\n' "$GATEKEEPER_STATUS" \
             | tee "$PROOF/engineering-dmg-gatekeeper-boundary.txt"
           hdiutil detach "$DMG_MOUNT"
-          shasum -a 256 "$DMG" > "$PROOF/DMG-SHA256SUMS"
-          wc -c "$DMG" > "$PROOF/DMG-BYTES"
+          shasum -a 256 "$DMG" | tee "$PROOF/DMG-SHA256SUMS"
+          wc -c "$DMG" | tee "$PROOF/DMG-BYTES"
           printf '%s\n' "$APP" > "$PROOF/installed-app-path.txt"
       - name: Verify native Testnet Gateway fail-closed boundary
         run: |
