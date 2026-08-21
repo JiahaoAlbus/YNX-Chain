@@ -99,12 +99,12 @@
   "installerPublication": {
     "contract": "installableWalletArtifact@1.0.0-p0.0",
     "zipAsInstaller": false,
-    "macos": {"required":"DMG with contained app install/cold-launch/second-launch/network/version/hash/signing/rollback","applicableToCurrentWalletArchitecture":true,"websiteArtifactPublished":true,"websiteSource":"efe79b5c9bcfa2619c138abc7521ee17b7cbfd7d","vercelProduction":"dpl_6tygndEdR6GS53fUNRKexV9ha9DF","artifactSha256":"ad6e4077bc001743cf1a4163ceaca5a009a3c8a4d8a809cc4896798976cf56c0","completeInstallGate":false,"reason":"Website DMG publication is verified, but install, cold launch, second launch, network, version, signing and rollback evidence were not supplied."},
+    "macos": {"required":"DMG with contained app install/cold-launch/second-launch/network/version/hash/signing/rollback","applicableToCurrentWalletArchitecture":true,"websiteArtifactPublished":true,"websiteSource":"efe79b5c9bcfa2619c138abc7521ee17b7cbfd7d","vercelProduction":"dpl_6tygndEdR6GS53fUNRKexV9ha9DF","artifactSha256":"ad6e4077bc001743cf1a4163ceaca5a009a3c8a4d8a809cc4896798976cf56c0","isolatedInstallVerified":true,"directBinaryColdSecondNetworkVerified":true,"launchServicesColdSecondVerified":true,"systemApplicationsInstallVerified":false,"browserQuarantineAcceptanceVerified":false,"developerIdNotarizedStapledGatekeeperStore":false,"rollbackVerified":false,"completeInstallGate":false,"reason":"Isolated copy plus direct and LaunchServices cold/second launch are verified, but system /Applications, browser-quarantine/Gatekeeper acceptance, production signing/notarization/stapling/store and rollback remain false."},
     "windows": {"required":"EXE or MSIX install/cold-launch/second-launch/network/version/hash/signing/rollback","applicableToCurrentWalletArchitecture":false,"reason":"Latest Wallet platform scope supports Android/iOS custody only; Web/PWA must be labeled as Web/PWA."},
     "android": {"required":"APK direct download or AAB store upload plus install/cold-launch/second-launch/network/version/hash/signing/rollback","acceptedCurrentArtifact":false,"reason":"Latest owner branch still points to an older da82c8b local-test-signed APK; it is not a current exact-source installer replacement."},
     "macosWebsiteDirectLinkPublished": true,
     "websiteDirectLinksRestored": false,
-    "uniqueReleaseBlocker": "The published macOS DMG still lacks install/cold-launch/second-launch/network/version/signing/rollback proof, and a current Android artifact with complete gate evidence is still unavailable."
+    "uniqueReleaseBlocker": "The macOS DMG still lacks system /Applications and browser-quarantine/Gatekeeper acceptance, production signing/notarization/stapling/store and rollback; a current Android artifact with complete gate evidence is also unavailable."
   },
   "truth": {
     "productsConnected": 0,

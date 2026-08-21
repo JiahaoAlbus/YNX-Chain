@@ -2,7 +2,7 @@
   "schemaVersion": 3,
   "evidenceId": "WALLET-AUTHORIZE-ECOSYSTEM-OWNER-RUNTIME-MATRIX-V3-20260821",
   "owner": "wallet-protocol-router",
-  "auditedAt": "2026-08-21T12:28:53Z",
+  "auditedAt": "2026-08-21T13:13:36Z",
   "sourceBaseline": "dd10350cd5d22de6622b7aae7304483f4c78e02f",
   "baseMatrix": {
     "path": "release/integration/wallet-authorize-ecosystem-source-runtime-audit-v2-20260821.json",
@@ -35,7 +35,7 @@
     "centralControlPlaneWritten": false
   },
   "remoteRecheck": {
-    "performedAt": "2026-08-21T12:28:53Z",
+    "performedAt": "2026-08-21T13:13:36Z",
     "registeredProductOwnerHeadChangesSinceBase": 9,
     "changedProductIds": ["calendar","creator-studio","developer","dex","exchange","finance","pay","shop","social"],
     "unchangedProductIds": ["card","quant","video"],
@@ -160,8 +160,8 @@
   "nonProductRegistryClient": {
     "productId":"wallet-web-companion","coreSourceCommit":"eed33085d4150f0febc85fc46ba1915316509aa5","webShellSourceCommit":"3651ba0c4322e0564e29b4573f3def90828dba67","webShellSourceTree":"85c25a15cdef223e252f4c283879faea322f7d01","publicEvidenceCommit":"93c3d06bab567e40c419ff2b3c5702d55083c7fa","publicEvidenceTree":"b025c0a16c7fcba85918fce4d0db577019d471bd","publicEvidencePath":"apps/wallet-web/evidence/browser/wallet-connect-nonsensitive-regression-20260821.json","publicEvidenceBlob":"cb246e30c23d07cb4ea7a330c44c08e98ac2ddfd","publicEvidenceSha256":"fc70c6ee268aafc28df1cb3bd7259cf12b47857331293fc23b9d439157c0ce96","deploymentId":"dpl_6GRARbJYU5JyPeJP7Un3E6KqmBN2",
     "runtime":{"sourceBoundPublic":true,"root":{"bytes":821,"sha256":"2df10866a35b074a6fb366439197646dd4e979bc83bdae3aba0ba6db3802986c"},"buildIdentity":{"bytes":267,"sha256":"760971f2b83bae7e8f05483006267d76f756a6daf651c0250482c79a2bf5b7b1"},"mirrorDriftObservedAndRepaired":true,"noProviderOfficialYnxAndroidAction":true,"noProviderOfficialMetaMaskAction":true,"metaMaskEip6963Detected":true,"englishDefault":true,"arabicRtlVisible":true,"mobile390NoHorizontalOverflow":true,"originalPageStable":true,"focusStable":true,"blankTabCreated":false,"directBrowserRpcConnectionPrerequisite":false,"accountApproval":false,"providerChainId1917":false,"chooserClosedAfterApproval":false,"refreshRestore":false,"disconnect":false,"switchAccount":false,"ynxProviderDetected":false,"callback":false,"productSessionV2":false,"messageSigned":false,"transactionSubmitted":false,"computerControl":false},
-    "macosDmgPublication":{"websiteSource":"efe79b5c9bcfa2619c138abc7521ee17b7cbfd7d","vercelProduction":"dpl_6tygndEdR6GS53fUNRKexV9ha9DF","artifactSha256":"ad6e4077bc001743cf1a4163ceaca5a009a3c8a4d8a809cc4896798976cf56c0","websitePublished":true,"installationVerified":false,"coldLaunchVerified":false,"secondLaunchVerified":false,"networkVerified":false,"versionVerified":false,"signingVerified":false,"rollbackVerified":false,"productionSigned":false},
-    "boundary":"Wallet Web/PWA non-sensitive public behavior and drift repair plus the Website DMG artifact publication are verified. No sensitive request was triggered; they do not prove account approval, exact provider chain, chooser auto-close, connected refresh, disconnect, callback, Product Session, signing/transaction, DMG installation/launch/network/signing, or any of the 12 product migrations."
+    "macosDmgPublication":{"websiteSource":"efe79b5c9bcfa2619c138abc7521ee17b7cbfd7d","vercelProduction":"dpl_6tygndEdR6GS53fUNRKexV9ha9DF","artifactSha256":"ad6e4077bc001743cf1a4163ceaca5a009a3c8a4d8a809cc4896798976cf56c0","artifactBytes":236661996,"websitePublished":true,"platformEvidenceCommit":"ad66cfd8ceb34c1a7d19219607fbc531457277a3","platformEvidenceBlob":"e120d03593fc4727537aa06566c385385839e682","platformEvidenceSha256":"04eafb634dbf4f6b5203233a3a319c339d0b5adf8d76f134c555110c2a2369df","launchServicesEvidenceCommit":"0617709e5715d3fde2b0974e6ed76886e0fd623f","launchServicesEvidenceBlob":"c2271e074239bc5e83a2f8eb597327aeab2d0d56","launchServicesEvidenceSha256":"38b6e656da74ad208dc698bfc4f54777a4d5ad8627c30c20ca69572760770e1b","bundleId":"com.ynxweb4.wallet.desktop","version":"0.1.1","architectures":["x86_64","arm64"],"minimumMacOS":"12.0","isolatedTempApplicationsCopyVerified":true,"isolatedFileCount":259,"systemApplicationsInstallVerified":false,"browserQuarantineAcceptanceVerified":false,"directBinaryColdLaunch":{"verified":true,"pid":80151,"chainId":"0x1917","tlsPeer":"43.153.202.237:443"},"directBinarySecondLaunch":{"verified":true,"pid":80987,"chainId":"0x1917","tlsPeer":"43.153.202.237:443"},"launchServicesCold":{"verified":true,"pid":46401,"ppid":1,"exactExecutable":true,"cleanTerm":true},"launchServicesSecond":{"verified":true,"pid":46738,"ppid":1,"exactExecutable":true,"cleanTerm":true},"launchServicesNetworkThisSlice":false,"signingStatusVerified":true,"wholeAppUnsigned":true,"mainExecutableAdHoc":true,"teamIdPresent":false,"developerId":false,"notarized":false,"stapled":false,"gatekeeperAccepted":false,"storeReleased":false,"rollbackVerified":false,"accountApproval":false,"callback":false,"productSessionV2":false,"messageSigned":false,"transactionSubmitted":false,"productionSigned":false},
+    "boundary":"Wallet Web/PWA non-sensitive public behavior, DMG publication, isolated copy, direct-binary lifecycle/network and unquarantined LaunchServices lifecycle are verified. System /Applications install, browser-quarantine/Gatekeeper acceptance, LaunchServices network in its slice, Developer ID/notarization/stapling/store, rollback and all Wallet authority remain false."
   },
   "otherEcosystem": [
     {
