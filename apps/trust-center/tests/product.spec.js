@@ -2,10 +2,14 @@ import {test, expect} from '@playwright/test';
 import {mkdir} from 'node:fs/promises';
 
 const evidence = '../../docs/handoffs/evidence/ui-audit-current';
+const visibleEvidence = 'evidence/visible';
 const locales = ['en', 'zh-Hans', 'zh-Hant', 'ja', 'ko', 'es', 'fr', 'de', 'pt', 'ru', 'ar', 'id'];
 const digest = 'a'.repeat(64);
 
-test.beforeAll(async () => mkdir(evidence, {recursive: true}));
+test.beforeAll(async () => {
+  await mkdir(evidence, {recursive: true});
+  await mkdir(visibleEvidence, {recursive: true});
+});
 
 for (const viewport of [{name: 'desktop', width: 1440, height: 900}, {name: 'mobile', width: 390, height: 844}]) {
   test(`Trust Center ${viewport.name} responsive and accessible`, async ({page}) => {
@@ -48,6 +52,10 @@ test('Trust Center keeps guest access and fails private intake closed', async ({
 });
 
 test('accepted SDK connects a standard 0x account while private service stays degraded', async ({page}) => {
+  const consoleErrors = [];
+  page.on('console', message => {
+    if (message.type() === 'error') consoleErrors.push(message.text());
+  });
   await page.addInitScript(() => {
     const provider = {
       request: async ({method}) => {
@@ -65,6 +73,37 @@ test('accepted SDK connects a standard 0x account while private service stays de
   await expect(page.locator('#wallet-standard-state')).toHaveText('CONNECTED · 0x1917');
   await expect(page.locator('#wallet-private-state')).toContainText('DEGRADED');
   await expect(page.locator('#wallet-result')).toContainText('did not remove it');
+  await expect(page.getByText('No accessible cases')).toBeVisible();
+  await page.screenshot({path: `${visibleEvidence}/trust-wallet-approved-private-degraded-1440x900.png`, fullPage: true});
+  expect(consoleErrors).toEqual(['Failed to load resource: the server responded with a status of 401 (Unauthorized)']);
+});
+
+test('rejected standard Wallet creates no account and public Trust data remains available', async ({page}) => {
+  const consoleErrors = [];
+  page.on('console', message => {
+    if (message.type() === 'error') consoleErrors.push(message.text());
+  });
+  await page.addInitScript(() => {
+    const provider = {
+      request: async ({method}) => {
+        if (method === 'eth_requestAccounts') throw Object.assign(new Error('User rejected the request'), {code: 4001});
+        if (method === 'eth_chainId') return '0x1917';
+        throw Object.assign(new Error('unsupported'), {code: 4200});
+      },
+      on() {}
+    };
+    addEventListener('eip6963:requestProvider', () => dispatchEvent(new CustomEvent('eip6963:announceProvider', {detail: {info: {uuid: 'ynx-reject-provider', name: 'YNX Wallet'}, provider}})));
+  });
+  await page.goto('/');
+  await page.locator('#wallet-open').click();
+  await page.locator('#wallet-connect').click();
+  await expect(page.locator('#wallet-result')).toContainText('WALLET_USER_REJECTED');
+  await expect(page.locator('#wallet-standard-state')).not.toContainText('CONNECTED');
+  await expect(page.locator('#wallet-account')).toHaveText('Not connected');
+  await expect(page.getByText('No accessible cases')).toBeVisible();
+  await expect(page.locator('body')).not.toContainText('Local test identity');
+  await page.screenshot({path: `${visibleEvidence}/trust-wallet-rejected-public-data-1440x900.png`, fullPage: true});
+  expect(consoleErrors).toEqual(['Failed to load resource: the server responded with a status of 401 (Unauthorized)']);
 });
 
 test('all locales persist, Arabic keeps an LTR shell, and due-process text never blanks', async ({page}) => {
