@@ -2,7 +2,7 @@
   "schemaVersion": "1.0.0",
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "owner": "integration",
-  "status": "P0105_EXCHANGE_CHECKPOINT_AND_PAY_CANONICAL_AUTHORIZE_ACTIVE",
+  "status": "P0121_VIDEO_PUBLIC_STANDARD_WALLET_DEPLOYMENT_ACTIVE",
   "scope": [
     "founder-control",
     "wallet-connectivity",
@@ -34,7 +34,7 @@
   "firstStop": {
     "complete": true,
     "publicConnectivityClaim": false,
-    "nextAction": "Explorer/Monitor owns the single Heavy preflight slice from f8db7632 with production mutation forbidden until a separately accepted artifact/rollback transaction. Social reconciliation continues in Integration as a non-overlapping source slice; Card, Developer, Wallet platform and Finance owners have been actively resumed."
+    "nextAction": "Integration owns the bounded P0-121 Video public Standard Wallet deployment. Preserve the current 1883d406 runtime as rollback, overlay only the accepted apps/video source checkpoint, verify services and public browser behavior, then release Heavy before the next ecosystem product."
   },
   "lightLeases": [
     {
@@ -336,9 +336,17 @@
     }
   ],
   "heavy": {
-    "owner": null,
-    "taskId": null,
-    "status": "AVAILABLE",
+    "owner": "integration",
+    "taskId": "P0-121",
+    "status": "ACTIVE_SINGLE_USE",
+    "acquiredAt": "2026-08-21T06:36:53Z",
+    "expiresAt": "2026-08-21T08:36:53Z",
+    "sourceCommit": "2e516baac89278a767397b29e72eed67a97e60db",
+    "runtimeHost": "43.153.202.237",
+    "currentRuntime": "/opt/ynx-video/releases/1883d406f77f94cb81171b79fe9518882ede0b16",
+    "rollbackTarget": "/opt/ynx-video/releases/1883d406f77f94cb81171b79fe9518882ede0b16",
+    "productionMutationAllowed": true,
+    "singleUse": true,
     "previousOwner": "explorer-monitor",
     "previousTaskId": "P0-119",
     "releasedAt": "2026-08-21T06:07:02Z",
