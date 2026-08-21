@@ -43,16 +43,16 @@ export async function connectDeveloperWebWallet(scope: unknown = window): Promis
   if (launch.status !== "provider-ready" || !candidate) {
     return Object.freeze({ status: "unsupported", detail: launch.detail, account: null, providerKind: null, launch });
   }
-  const accounts = await candidate.provider.request({ method: "eth_requestAccounts" });
-  if (!Array.isArray(accounts) || typeof accounts[0] !== "string" || !/^0x[0-9a-f]{40}$/i.test(accounts[0])) {
-    throw new Error("The Wallet did not return a valid EIP-1193 account.");
-  }
   try {
     await candidate.provider.request({ method: "wallet_switchEthereumChain", params: [{ chainId: YNX_TESTNET_EIP1193_CHAIN.chainId }] });
   } catch (value) {
     if (providerErrorCode(value) !== 4902) throw value;
     await candidate.provider.request({ method: "wallet_addEthereumChain", params: [YNX_TESTNET_EIP1193_CHAIN] });
     await candidate.provider.request({ method: "wallet_switchEthereumChain", params: [{ chainId: YNX_TESTNET_EIP1193_CHAIN.chainId }] });
+  }
+  const accounts = await candidate.provider.request({ method: "eth_requestAccounts" });
+  if (!Array.isArray(accounts) || typeof accounts[0] !== "string" || !/^0x[0-9a-f]{40}$/i.test(accounts[0])) {
+    throw new Error("The Wallet did not return a valid EIP-1193 account.");
   }
   return Object.freeze({ status: "connected", detail: "EIP1193_ACCOUNT_CONNECTED_ON_YNX_TESTNET", account: accounts[0], providerKind: candidate.kind, launch });
 }

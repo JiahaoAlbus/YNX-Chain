@@ -69,6 +69,7 @@ test("launcher and Developer Web adapter contain no frame, popup, blank target o
   assert.match(adapter, /wallet_addEthereumChain/);
   assert.match(adapter, /wallet_switchEthereumChain/);
   assert.match(adapter, /chainId: "0x1917"/);
+  assert.ok(adapter.indexOf("wallet_switchEthereumChain") < adapter.indexOf("eth_requestAccounts"), "fixed YNX chain selection precedes the account request");
   assert.match(mac, /URLForApplicationToOpenURL:parts\.URL/);
   assert.doesNotMatch(mac, /availability_probe_not_opened/);
 });
