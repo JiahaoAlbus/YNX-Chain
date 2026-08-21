@@ -1,5 +1,11 @@
 # YNX Developer Website Handoff
 
+> **Installer correction — 2026-08-21:** The desktop ZIP directions and
+> download URLs in this historical document are superseded. They must not be
+> presented as installers or restored as a fallback. Website owner must use
+> [`integration/WEBSITE_INSTALLER_HANDOFF_20260821.md`](integration/WEBSITE_INSTALLER_HANDOFF_20260821.md): both macOS and Windows are currently
+> `BUILD_AND_INSTALL_PROOF_IN_PROGRESS`, with no public installer CTA.
+
 Handoff date: 2026-07-29  
 Product owner: `11-developer`  
 Integration owner: `29-integration`  
