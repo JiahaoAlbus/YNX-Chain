@@ -1,0 +1,20 @@
+{
+  "capturedAt": "2026-08-22T00:27:05+08:00",
+  "incident": "stale service-worker cached Faucet bundle retained d644c082 runtime identity and reported unavailable after backend advanced to 64efa498",
+  "fix": {
+    "websiteCommit": "23284bd",
+    "branch": "codex/faucet-runtime-64efa498-20260821",
+    "serviceWorkerCache": "ynx-web-shell-v6-faucet-runtime-recovery",
+    "strategy": "network-first for static assets; refresh once on service-worker controller update"
+  },
+  "runtime": {"sourceCommit": "64efa498fa9982e12ffda888391d67082dc898bb", "release": "ynx-chain-64efa498fa99", "chainId": 6423, "evmChainId": "0x1917"},
+  "publicDomains": {
+    "apex": {"url": "https://ynxweb4.com/dapp/faucet", "httpStatus": 200, "bytes": 1018, "sha256": "3cc384404c5ee932a3803fe2fbc29071fbde803803935d1f937e8a2528e2d6a8", "bundle": "assets/index-D0C2uU3-.js"},
+    "www": {"url": "https://www.ynxweb4.com/dapp/faucet", "httpStatus": 200, "bytes": 1018, "sha256": "3cc384404c5ee932a3803fe2fbc29071fbde803803935d1f937e8a2528e2d6a8", "bundle": "assets/index-D0C2uU3-.js"}
+  },
+  "browserClaim": {"recipient": "0x2323232323232323232323232323232323232323", "amount": 100, "symbol": "YNXT", "transactionHash": "0xda108b9629d1e7eb6037b39da7ca75f0bf67f3ad9ced6b596929cb5cddaf7a57", "blockNumber": 1147808, "rpcVerified": true, "consoleErrors": []},
+  "replay": {"httpStatus": 429, "duplicateTransfer": false},
+  "concurrency": {"httpStatuses": [201, 201], "transactions": ["0x3d21768ac1bec57ce157cbf8f014be52c629b10253fd6f8ab7ce4860372a0712", "0x2a806013a886e6fe27d8957575909f714d6313fa3acf19bdfba6eba35bfa7c5d"]},
+  "boundaries": {"ynx1ClaimVerified": false, "explorerTransactionVerified": false, "walletPlatformFaucetVerified": false},
+  "rollback": {"websiteCommit": "60767ba", "faucetRuntimeRelease": "ynx-chain-d644c0821b61"}
+}
