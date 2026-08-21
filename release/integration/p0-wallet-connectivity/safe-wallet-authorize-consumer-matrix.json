@@ -137,10 +137,11 @@
       "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/55-merchant-console-visible-p0",
       "branch": "codex/p0-merchant-console-visible-20260821",
       "path": "apps/merchant-console/**",
-      "status": "ACTIVE",
+      "status": "SOURCE_BUILD_BROWSER_CHECKPOINT_REACHED",
       "taskId": "P0-113",
-      "finding": "The web client assigns its Wallet sign-in URL to top-level location.href.",
-      "nextAction": "Replace the top-level launch with the accepted web launcher while preserving public preview and Standard Wallet state."
+      "checkpointCommit": "042d3d3cb1a2593e8248919270578d48329a19d0",
+      "finding": "Merchant Console now uses an origin-bound v2 request and shared controlled launcher; 15/15 plus Chromium 2/2 passed. Public and installed-Wallet proof remain false.",
+      "nextAction": "Publish the exact checkpoint and verify a real installed-Wallet approval/callback before Product Session or settlement promotion."
     },
     {
       "product": "seller-console",
