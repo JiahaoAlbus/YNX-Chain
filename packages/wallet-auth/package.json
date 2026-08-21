@@ -47,6 +47,7 @@
     "test": "node --test test/*.test.mjs",
     "check": "npm test && npm run verify:no-bare-authorize",
     "verify:no-bare-authorize": "node scripts/verify-no-bare-wallet-authorize.mjs",
+    "audit:authorize-consumers": "node scripts/verify-no-bare-wallet-authorize.mjs --consumer-audit",
     "drill:backup": "node scripts/run-gateway-backup-drill.mjs",
     "benchmark:gateway": "node scripts/benchmark-gateway.mjs",
     "proof:product-session": "node test/generate-product-session-visible-proof.mjs",

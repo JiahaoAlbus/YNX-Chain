@@ -6,6 +6,8 @@ import { fileURLToPath } from "node:url";
 const SOURCE_EXTENSIONS = new Set([".c", ".cc", ".cpp", ".cs", ".dart", ".go", ".h", ".html", ".java", ".js", ".jsx", ".kt", ".kts", ".mjs", ".mm", ".rs", ".swift", ".ts", ".tsx"]);
 const EXCLUDED_SEGMENTS = new Set([".git", "build", "coverage", "dist", "docs", "evidence", "node_modules", "release", "test", "testdata", "tests", "vendor"]);
 const ROUTE = "ynxwallet://authorize";
+const WEB_SOURCE_EXTENSIONS = new Set([".html", ".js", ".jsx", ".mjs", ".ts", ".tsx"]);
+const NATIVE_PATH_SEGMENTS = new Set(["android", "desktop", "ios", "macos", "mobile", "native", "windows"]);
 const ROUTE_BASE_ALLOWLIST = new Map([
   ["packages/wallet-auth/scripts/verify-no-bare-wallet-authorize.mjs", "release gate owns the route token it scans"],
   ["packages/wallet-auth/src/deep-link.js", "canonical builder owns the route base constant"],
@@ -32,6 +34,19 @@ async function sourceFiles(root, relative = "") {
   return files;
 }
 
+function lineAt(text, offset) { return text.slice(0, offset).split("\n").length; }
+function isProtocolOwnerSource(relative) { return relative.startsWith(`packages${path.sep}wallet-auth${path.sep}`); }
+function isWebProductSource(relative) {
+  const segments = relative.split(path.sep);
+  return segments[0] === "apps"
+    && WEB_SOURCE_EXTENSIONS.has(path.extname(relative))
+    && !segments.some((segment) => NATIVE_PATH_SEGMENTS.has(segment));
+}
+
+function isDocumentationPlaceholder(text, offset) {
+  return text.slice(offset + ROUTE.length).startsWith("?request=<");
+}
+
 export function bareAuthorizationFindings(relative, text) {
   const findings = [];
   let offset = 0;
@@ -42,8 +57,7 @@ export function bareAuthorizationFindings(relative, text) {
     if (!validPayload) {
       const allowedRouteBase = ROUTE_BASE_ALLOWLIST.has(relative) && /^['"`]/.test(suffix);
       if (!allowedRouteBase) {
-        const line = text.slice(0, offset).split("\n").length;
-        findings.push(Object.freeze({ file: relative, line, code: "BARE_WALLET_AUTHORIZE_URI" }));
+        findings.push(Object.freeze({ file: relative, line: lineAt(text, offset), code: "BARE_WALLET_AUTHORIZE_URI" }));
       }
     }
     offset += ROUTE.length;
@@ -51,14 +65,35 @@ export function bareAuthorizationFindings(relative, text) {
   return Object.freeze(findings);
 }
 
-export async function verifyNoBareWalletAuthorize(root) {
+export function consumerAuthorizationFindings(relative, text) {
+  const findings = [...bareAuthorizationFindings(relative, text)];
+  if (isProtocolOwnerSource(relative)) return Object.freeze(findings);
+  let offset = 0;
+  while ((offset = text.indexOf(ROUTE, offset)) !== -1) {
+    if (isDocumentationPlaceholder(text, offset)) {
+      offset += ROUTE.length;
+      continue;
+    }
+    const alreadyBare = findings.some((finding) => finding.line === lineAt(text, offset) && finding.code === "BARE_WALLET_AUTHORIZE_URI");
+    if (!alreadyBare) findings.push(Object.freeze({
+      file: relative,
+      line: lineAt(text, offset),
+      code: isWebProductSource(relative) ? "WEB_CUSTOM_SCHEME_AUTHORIZE_URI" : "MANUAL_WALLET_AUTHORIZE_URI",
+    }));
+    offset += ROUTE.length;
+  }
+  return Object.freeze(findings);
+}
+
+async function verifyTree(root, finder, repositoryLayout) {
   const findings = [];
-  for (const top of ["apps", "internal", "packages"]) {
+  const roots = repositoryLayout ? ["apps", "internal", "packages"] : [""];
+  for (const top of roots) {
     const absolute = path.join(root, top);
     try {
       for (const relativeWithinTop of await sourceFiles(absolute)) {
-        const relative = path.join(top, relativeWithinTop);
-        findings.push(...bareAuthorizationFindings(relative, await readFile(path.join(root, relative), "utf8")));
+        const relative = top ? path.join(top, relativeWithinTop) : relativeWithinTop;
+        findings.push(...finder(relative, await readFile(path.join(root, relative), "utf8")));
       }
     } catch (error) {
       if (error?.code !== "ENOENT") throw error;
@@ -67,14 +102,29 @@ export async function verifyNoBareWalletAuthorize(root) {
   return Object.freeze(findings);
 }
 
+export async function verifyNoBareWalletAuthorize(root) {
+  return verifyTree(root, bareAuthorizationFindings, true);
+}
+
+export async function verifyWalletAuthorizeConsumers(root, options = {}) {
+  return verifyTree(root, consumerAuthorizationFindings, options.repositoryLayout !== false);
+}
+
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  const root = path.resolve(fileURLToPath(new URL("../../..", import.meta.url)));
-  const findings = await verifyNoBareWalletAuthorize(root);
+  const consumerAudit = process.argv.includes("--consumer-audit") || process.argv.includes("--consumer-root");
+  const consumerRootIndex = process.argv.indexOf("--consumer-root");
+  const root = consumerRootIndex >= 0
+    ? path.resolve(process.argv[consumerRootIndex + 1] ?? "")
+    : path.resolve(fileURLToPath(new URL("../../..", import.meta.url)));
+  const findings = consumerAudit
+    ? await verifyWalletAuthorizeConsumers(root, { repositoryLayout: consumerRootIndex < 0 })
+    : await verifyNoBareWalletAuthorize(root);
+  if (process.argv.includes("--json")) process.stdout.write(`${JSON.stringify({ mode: consumerAudit ? "consumer-audit" : "no-bare", root, findings }, null, 2)}\n`);
   if (findings.length) {
-    for (const finding of findings) process.stderr.write(`${finding.file}:${finding.line} ${finding.code}\n`);
-    process.stderr.write(`bare YNX Wallet authorization URI gate failed: ${findings.length} finding(s)\n`);
+    if (!process.argv.includes("--json")) for (const finding of findings) process.stderr.write(`${finding.file}:${finding.line} ${finding.code}\n`);
+    process.stderr.write(`${consumerAudit ? "Wallet authorization consumer audit" : "bare YNX Wallet authorization URI gate"} failed: ${findings.length} finding(s)\n`);
     process.exitCode = 1;
   } else {
-    process.stdout.write("bare YNX Wallet authorization URI gate passed\n");
+    if (!process.argv.includes("--json")) process.stdout.write(`${consumerAudit ? "Wallet authorization consumer audit" : "bare YNX Wallet authorization URI gate"} passed\n`);
   }
 }
