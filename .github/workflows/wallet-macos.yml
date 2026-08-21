@@ -87,6 +87,29 @@ jobs:
           ditto -c -k --sequesterRsrc --keepParent "$APP" "$PROOF/YNX-Wallet-macOS-ad-hoc.zip"
           shasum -a 256 "$PROOF/YNX-Wallet-macOS-ad-hoc.zip" > "$PROOF/SHA256SUMS"
           wc -c "$PROOF/YNX-Wallet-macOS-ad-hoc.zip" > "$PROOF/BYTES"
+          DMG_ROOT="$RUNNER_TEMP/ynx-wallet-engineering-dmg-root"
+          DMG="$PROOF/YNX-Wallet-macOS-ad-hoc.dmg"
+          DMG_MOUNT="$RUNNER_TEMP/ynx-wallet-engineering-dmg-mount"
+          mkdir -p "$DMG_ROOT" "$DMG_MOUNT"
+          ditto "$APP" "$DMG_ROOT/YNX Wallet.app"
+          ln -s /Applications "$DMG_ROOT/Applications"
+          hdiutil create -volname "YNX Wallet Testnet Engineering" -srcfolder "$DMG_ROOT" -format UDZO -ov "$DMG"
+          hdiutil verify "$DMG" | tee "$PROOF/engineering-dmg-verify.txt"
+          hdiutil attach -readonly -nobrowse -mountpoint "$DMG_MOUNT" "$DMG" | tee "$PROOF/engineering-dmg-attach.txt"
+          CONTAINED_APP="$DMG_MOUNT/YNX Wallet.app"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$CONTAINED_APP/Contents/Info.plist")" = com.ynxweb4.wallet.macos
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleURLTypes' "$CONTAINED_APP/Contents/Info.plist" | grep -F ynxwallet
+          codesign --verify --deep --strict "$CONTAINED_APP"
+          set +e
+          spctl --assess --type execute --verbose=4 "$CONTAINED_APP" > "$PROOF/engineering-dmg-contained-app-gatekeeper.txt" 2>&1
+          GATEKEEPER_STATUS=$?
+          set -e
+          test "$GATEKEEPER_STATUS" -ne 0
+          printf 'gatekeeperAccepted=false exitStatus=%s signingClass=ad-hoc developerIDSigned=false notarized=false\n' "$GATEKEEPER_STATUS" \
+            | tee "$PROOF/engineering-dmg-gatekeeper-boundary.txt"
+          hdiutil detach "$DMG_MOUNT"
+          shasum -a 256 "$DMG" > "$PROOF/DMG-SHA256SUMS"
+          wc -c "$DMG" > "$PROOF/DMG-BYTES"
           printf '%s\n' "$APP" > "$PROOF/installed-app-path.txt"
       - name: Verify native Testnet Gateway fail-closed boundary
         run: |
