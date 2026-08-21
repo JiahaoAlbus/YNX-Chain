@@ -3,7 +3,9 @@ name: Wallet desktop Windows arm64
 on:
   workflow_dispatch:
   push:
-    branches: [codex/wallet-desktop-cli-sdk-20260813]
+    branches:
+      - codex/wallet-desktop-cli-sdk-20260813
+      - codex/wallet-windows-installer-p0-20260821
     paths:
       - apps/wallet-desktop/**
       - packages/wallet-auth/**
@@ -36,9 +38,7 @@ jobs:
           Push-Location apps/wallet-desktop
           npx electron-builder --win nsis --arm64 --publish never --config.directories.output=dist-preflight --config.extraMetadata.version=0.0.9
           Pop-Location
-          Push-Location apps/wallet-desktop
-          npx electron-builder --win nsis --arm64 --publish never
-          Pop-Location
+          npm run dist:windows-arm64 --prefix apps/wallet-desktop
           Get-ChildItem apps/wallet-desktop/dist-preflight/*.exe,apps/wallet-desktop/dist/*.exe | Select-Object FullName,Length
       - name: Install, upgrade, cold launch, second launch, fail closed and uninstall
         shell: pwsh

@@ -13,6 +13,7 @@ test("desktop packaging exposes real platform installer formats", async () => {
   );
 
   assert.match(packageJson.scripts["dist:windows"], /--win nsis/);
+  assert.match(packageJson.scripts["dist:windows-arm64"], /--win nsis --arm64/);
   assert.match(packageJson.scripts["dist:mac"], /--mac dmg/);
   assert.deepEqual(packageJson.build.mac.target, ["dmg"]);
   assert.deepEqual(packageJson.build.win.target, ["nsis"]);

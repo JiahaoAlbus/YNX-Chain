@@ -3,7 +3,9 @@ name: Wallet desktop Windows
 on:
   workflow_dispatch:
   push:
-    branches: [codex/wallet-desktop-cli-sdk-20260813]
+    branches:
+      - codex/wallet-desktop-cli-sdk-20260813
+      - codex/wallet-windows-installer-p0-20260821
     paths:
       - apps/wallet-desktop/**
       - packages/wallet-auth/**
@@ -128,11 +130,77 @@ jobs:
           $installer = Get-ChildItem 'apps/wallet-desktop/dist/*.exe' | Where-Object Name -NotLike '*blockmap*' | Select-Object -First 1
           Get-FileHash $installer.FullName -Algorithm SHA256 | Format-List | Out-File apps/wallet-desktop/evidence/windows-x64/SHA256.txt
           "{0} {1}" -f $installer.Name,$installer.Length | Set-Content apps/wallet-desktop/evidence/windows-x64/BYTES.txt
-          Get-AuthenticodeSignature $installer.FullName | Select-Object Status,StatusMessage,SignerCertificate | ConvertTo-Json -Depth 4 | Set-Content apps/wallet-desktop/evidence/windows-x64/AUTHENTICODE.json
+          $signature = Get-AuthenticodeSignature $installer.FullName
+          $signature | Select-Object Status,StatusMessage,SignerCertificate | ConvertTo-Json -Depth 4 | Set-Content apps/wallet-desktop/evidence/windows-x64/AUTHENTICODE.json
+          if ($signature.Status -ne 'NotSigned') { throw "unexpected installer signing status: $($signature.Status)" }
+          $lifecycle = Get-Content $env:EVIDENCE -Raw | ConvertFrom-Json
+          $manifest = [ordered]@{
+            schemaVersion = 1
+            productId = 'wallet-desktop'
+            version = '0.1.0'
+            sourceCommit = $env:GITHUB_SHA
+            workflowRunId = [long]$env:GITHUB_RUN_ID
+            artifact = [ordered]@{
+              filename = $installer.Name
+              format = 'nsis-exe'
+              architecture = 'x64'
+              bytes = $installer.Length
+              sha256 = (Get-FileHash $installer.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+              minimumOS = 'Windows Server 2025 native runner; earlier Windows x64 not evidenced'
+              signingClass = 'unsigned_windows_nsis_testnet_candidate'
+              authenticodeStatus = $signature.Status.ToString()
+              productionSigned = $false
+              installedOnNativeRunner = $true
+            }
+            lifecycle = $lifecycle
+          }
+          $manifest | ConvertTo-Json -Depth 8 | Set-Content apps/wallet-desktop/evidence/windows-x64/artifact-manifest.json
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: ynx-wallet-desktop-windows-x64
           path: |
             apps/wallet-desktop/dist/*.exe
             apps/wallet-desktop/evidence/windows-x64/**
+          if-no-files-found: error
+
+  verify-uploaded-artifact:
+    needs: windows-x64-native
+    runs-on: windows-2025
+    timeout-minutes: 10
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ynx-wallet-desktop-windows-x64
+          path: downloaded
+      - name: Require manifest and verify downloaded installer
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $installer = Get-ChildItem downloaded -Filter '*.exe' -File -Recurse | Where-Object Name -NotLike '*blockmap*' | Select-Object -First 1
+          $manifestFile = Get-ChildItem downloaded -Filter 'artifact-manifest.json' -File -Recurse | Select-Object -First 1
+          $lifecycleFile = Get-ChildItem downloaded -Filter 'lifecycle.json' -File -Recurse | Select-Object -First 1
+          if (-not $installer -or -not $manifestFile -or -not $lifecycleFile) { throw 'downloaded artifact is incomplete' }
+          $manifest = Get-Content $manifestFile.FullName -Raw | ConvertFrom-Json
+          $lifecycle = Get-Content $lifecycleFile.FullName -Raw | ConvertFrom-Json
+          $actualSha256 = (Get-FileHash $installer.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($manifest.sourceCommit -ne $env:GITHUB_SHA -or $manifest.artifact.sha256 -ne $actualSha256 -or $manifest.artifact.bytes -ne $installer.Length) { throw 'downloaded installer hash or size mismatch' }
+          if ($manifest.artifact.minimumOS -ne 'Windows Server 2025 native runner; earlier Windows x64 not evidenced' -or $manifest.artifact.signingClass -ne 'unsigned_windows_nsis_testnet_candidate' -or $manifest.artifact.authenticodeStatus -ne 'NotSigned' -or $manifest.artifact.productionSigned -or -not $manifest.artifact.installedOnNativeRunner) { throw 'manifest release boundary mismatch' }
+          if (-not $lifecycle.installed -or -not $lifecycle.upgraded -or -not $lifecycle.coldLaunch -or -not $lifecycle.secondLaunch -or -not $lifecycle.processEvidence -or $lifecycle.chainId -ne '0x1917' -or -not $lifecycle.rpcFailureClosed -or $lifecycle.signingEnabled -or $lifecycle.accountCreated -or $lifecycle.balanceClaimed -or $lifecycle.transactionCreated -or -not $lifecycle.uninstalled -or $lifecycle.productionSigned) { throw 'lifecycle release boundary mismatch' }
+          New-Item -ItemType Directory -Force downloaded-verification | Out-Null
+          [ordered]@{
+            schemaVersion = 1
+            sourceCommit = $env:GITHUB_SHA
+            workflowRunId = [long]$env:GITHUB_RUN_ID
+            uploadArtifactDownloaded = $true
+            manifestPresent = $true
+            lifecyclePresent = $true
+            sha256Verified = $true
+            bytesVerified = $true
+            sha256 = $actualSha256
+            bytes = $installer.Length
+          } | ConvertTo-Json -Depth 4 | Set-Content downloaded-verification/downloaded-verification.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ynx-wallet-desktop-windows-x64-download-verification
+          path: downloaded-verification/downloaded-verification.json
           if-no-files-found: error
