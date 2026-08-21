@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "owner": "wallet-web-extension",
+  "sourceCommit": "ef0251262f9bbd3417c46f686a672800321bd231",
+  "parentProviderInjectionCommit": "804b1bd2b6b2f01a2e48860279609001da678f19",
+  "scope": {
+    "providerSelection": "When both verified injected providers exist, YNX and MetaMask remain explicit choices; no silent provider selection.",
+    "connectedDapps": "The Companion stores only an exact current HTTPS-origin, selected provider, 0x1917, and provider-returned account record. It is not a wallet-wide permission inventory.",
+    "disconnect": "Disconnect clears only the Companion local record and remembered session. It does not call wallet_revokePermissions and does not claim wallet permission revocation.",
+    "accountSwitch": "accountsChanged accepts an exact replacement account only while the current chain remains 0x1917; empty accounts, a disconnect, or a chain change invalidate the local record."
+  },
+  "tests": {
+    "unit": "99/99 npm test passed",
+    "package": "npm run package and npm run verify:package passed",
+    "permissions": "npm run test:artifact:permissions passed",
+    "runtime": "Temporary unpacked isolated Edge profile loaded the public wallet.ynxweb4.com page and detected the injected EIP-6963/EIP-1193 YNX provider without an account request."
+  },
+  "artifacts": {
+    "chromeEdge": {"bytes": 202467, "sha256": "653d7d04656d5d3b3c92bf57080e60dfebfe4505a4f2fc0b233c38620acb4089", "signingClass": "unsigned-unpacked-extension", "installedLocal": false, "downloadHosted": false},
+    "firefox": {"bytes": 202402, "sha256": "bfaf0c12031896526752deb520e4e5bf965a7cd82cacd221ec2e27cad79849f7", "signingClass": "unsigned-unpacked-extension", "installedLocal": false, "downloadHosted": false},
+    "pwa": {"bytes": 288465, "sha256": "23cd3af7c2eae2717580a739ed861abfc8a2c221929e624a4d1a62667b5cf792", "signingClass": "unsigned-web-bundle", "installedLocal": false, "downloadHosted": false}
+  },
+  "runtimeEvidence": "apps/wallet-web/evidence/runtime/branded-edge-public-injection.json",
+  "falseGates": ["accountAuthorized", "providerConnected", "chooserClosedAfterUserApproval", "refreshRestoredAuthorizedAccount", "walletPermissionRevoked", "messageSigned", "transactionSubmitted", "extensionStoreReleased", "productionSigned", "publicExtensionDownload"],
+  "deployment": "No public deployment or website download listing is authorized by this source/evidence slice."
+}
