@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "checkpoint": "Pay consumes Wallet Provider Discovery connect-state repair",
+  "capturedAt": "2026-08-21T10:22:00Z",
+  "acceptedDependency": {
+    "sourceCommit": "98c6d5d784d212df8981a53b17118a511e246ad2",
+    "evidenceCommit": "c3ab255c32bdeb9c8e056882c315f8ad43c29c7f",
+    "handoffSha256": "2c3872882b2d88986cecafa6c08fc3a640d60039eb8dab29d3a088aaa6452f49",
+    "vendoredArchive": "vendor/ynx-chain-wallet-auth-1.1.0-provider-connect-state-p0.tgz",
+    "vendoredArchiveSha256": "e57f40f4d8f8c3f6f163e561728fc28046fb08197900d3e2891fedcd2eba4aaf"
+  },
+  "implementation": {
+    "transport": "existing accepted DApp Connect EIP-1193 flow plus the accepted shared standard-wallet-connect-state reducer",
+    "connectedOnlyWhen": "selected provider, approved non-empty 0x account, and provider eth_chainId=0x1917",
+    "refresh": "prompt-free eth_accounts plus eth_chainId restore",
+    "rpcProbe": "accepted-cors-safe annotation only; no direct browser RPC fetch and no CONNECTED reset on degradation",
+    "privateService": "Pay Product Session remains independent and may be PRIVATE_SERVICE_DEGRADED without clearing Standard Wallet",
+    "payments": "not enabled by this checkpoint; no payment approval, signature, broadcast, settlement, or receipt was created"
+  },
+  "verification": {
+    "typecheck": "passed",
+    "unit": {"passed": 16, "failed": 0},
+    "canonicalAuthorizeScan": "passed: 10 Pay source files",
+    "bundleExport": "passed: Android, iOS, Web",
+    "webE2E": "blocked before execution because an existing process owned port 4173; it was not stopped or reused as current-source evidence"
+  },
+  "truth": {
+    "sourceBoundPublicRuntime": false,
+    "providerApproval": false,
+    "callback": false,
+    "refreshRestore": false,
+    "disconnect": false,
+    "installedAppForThisSource": false,
+    "paymentApproved": false,
+    "paymentSigned": false,
+    "paymentBroadcast": false,
+    "paymentCommitted": false,
+    "publicDeployment": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storePublished": false,
+    "computerControl": false
+  },
+  "rollback": "Revert this Pay-only commit. Do not alter Wallet/Auth or DApp Connect shared source and do not force-push."
+}

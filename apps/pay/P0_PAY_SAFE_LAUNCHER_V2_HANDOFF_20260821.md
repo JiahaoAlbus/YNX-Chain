@@ -26,3 +26,9 @@ This Pay-only follow-up consumes `safeWalletAuthorizeLauncher@2.0.0-p0.0`, sourc
 No APK installation, Wallet approval/rejection/callback, cold start, payment, Product Session, public deployment, hosted download, production signing, store release, or ComputerControl evidence exists. All associated gates including `migratedV2` remain `false`.
 
 Rollback is a normal revert of this checkpoint after Integration review. Do not restore the rejected version-2 payload, root Node-only import, bare URI, Web custom-scheme navigation, direct Product Session call, or fabricated payment state.
+
+## Provider connection-state repair — 2026-08-21
+
+Pay now consumes the accepted Provider Discovery connection-state source `98c6d5d784d212df8981a53b17118a511e246ad2` through its own hash-pinned archive. It retains the accepted DApp Connect transport and uses the shared reducer as the sole state transition authority: a completed Standard Wallet requires a selected provider, a non-empty approved `0x` account, and the provider-reported `0x1917` chain.
+
+Refresh is limited to prompt-free `eth_accounts` and `eth_chainId`. No browser RPC fetch can establish connection; the accepted CORS-safe RPC annotation may be DEGRADED without clearing CONNECTED or changing the independent private-service boundary. The full source/build truth, including the occupied-port Web E2E blocker, is in [p0-pay-provider-connect-state-20260821.json](evidence/p0-pay-provider-connect-state-20260821.json). No payment, install, account approval, callback, public deployment, hosted installer, signing, or store gate is promoted.

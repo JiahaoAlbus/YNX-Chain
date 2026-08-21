@@ -2,6 +2,7 @@ import {DAppConnectError,StandardWalletConnection,classifyWalletError,discoverEI
 import {canonicalJSON} from '@ynx-chain/wallet-auth/src/canonical.js';
 import {launchCanonicalAuthorization} from '@ynx-chain/wallet-auth/src/authorize-launcher.js';
 import {parseAuthorizationCallbackURL,parseAuthorizationRequest} from '@ynx-chain/wallet-auth/src/protocol.js';
+import {createStandardWalletConnectState,reduceStandardWalletConnectState,STANDARD_WALLET_CONNECT_STATUS,STANDARD_WALLET_RPC_PROBE_TRANSPORT} from '../node_modules/@ynx-chain/wallet-auth/src/standard-wallet-connect-state.js';
 import type {AuthorizationLaunchResult,AuthorizationRequest} from '@ynx-chain/wallet-auth';
 import * as SecureStore from 'expo-secure-store';
 import {getRandomValues} from 'expo-crypto';
@@ -10,13 +11,14 @@ import {assertPayConsumerContract} from './endpoint-manifest';
 import {payCanonicalAuthorizationRegistry} from './product-session-registry';
 
 type EIP1193Provider={request:(args:{method:string;params?:unknown[]})=>Promise<unknown>;isMetaMask?:boolean};
-export type PayWalletConnection={account:string;chainId:string;state:'STANDARD_CONNECTED'};
+export type PayWalletConnection={account:string;chainId:string;state:'STANDARD_CONNECTED';connectionState:ReturnType<typeof createStandardWalletConnectState>};
 export type PayWalletAuthorization={requestId:string;status:'pending'|'approved'|'rejected'};
 export type PayPrivateSession={state:Readonly<Record<string,unknown>>;authorization?:PayWalletAuthorization;fallbackActions?:AuthorizationLaunchResult['fallbackActions']};
 type DeviceDescriptor={id:string;key:string};
 type PaySecureDevice={descriptor:()=>Promise<DeviceDescriptor>;sign:(payload:string)=>Promise<string>};
 type PayAuthorizationCapabilities=Readonly<{device:DeviceDescriptor;resolver:(url:string)=>Promise<boolean>;openWallet:(url:string)=>Promise<Readonly<{opened:true}|{opened:false;code:string}>>}>;
 const CANONICAL_AUTHORIZATION_PENDING_KEY='ynx.pay.wallet-authorize.v1.pending';
+let standardWalletState=createStandardWalletConnectState();
 
 function runtimeProvider(){return (globalThis as unknown as {ethereum?:EIP1193Provider}).ethereum}
 function mappedCode(code:string){
@@ -28,18 +30,37 @@ function mappedCode(code:string){
   return code;
 }
 export function payConnectionError(error:unknown){const classified=error instanceof DAppConnectError?error:classifyWalletError(error);return new Error(`${mappedCode(classified.code)}: ${classified.message}`)}
+function standardStateCode(error:unknown){const value=String(error instanceof Error&&'code'in error?(error as Error&{code?:unknown}).code:'WALLET_CONNECT_FAILED').toUpperCase().replace(/[^A-Z0-9_]/g,'_');return /^[A-Z][A-Z0-9_]{2,63}$/.test(value)?value:'WALLET_CONNECT_FAILED'}
+function standardTransition(event:Record<string,unknown>){standardWalletState=reduceStandardWalletConnectState(standardWalletState,event);return standardWalletState}
 
 /** Standard EIP-1193 connection only; it never begins or clears a Product Session. */
-export async function connectStandardWallet(provider:EIP1193Provider|undefined=runtimeProvider()):Promise<PayWalletConnection>{
+export async function connectStandardWallet(provider:EIP1193Provider|undefined=runtimeProvider(),providerKind:'metamask'|'ynx-wallet'=provider?.isMetaMask?'metamask':'ynx-wallet'):Promise<PayWalletConnection>{
   const manifest=assertPayConsumerContract();
   if(!provider)throw new Error('PROVIDER_UNAVAILABLE: No EIP-1193 provider is available. Open Pay in YNX Wallet, connect a compatible wallet, or install YNX Wallet.');
   try{
+    secureRandomRuntime();
+    standardTransition({type:'BEGIN',pendingIntent:authorizationNonce()});
+    standardTransition({type:'PROVIDER_SELECTED',providerKind});
     const connection=new StandardWalletConnection(provider);
     await connection.connect();
     await connection.ensureYNXTestnet({addChain:{chainId:manifest.evmChainHex,chainName:'YNX Testnet',nativeCurrency:{name:'YNX Testnet',symbol:'YNXT',decimals:18},rpcUrls:[manifest.evmRpc],blockExplorerUrls:[manifest.explorer]}});
-    return {account:connection.account!,chainId:connection.chainId!,state:'STANDARD_CONNECTED'};
-  }catch(error){throw payConnectionError(error)}
+    const account=connection.account!,chainId=await provider.request({method:'eth_chainId'});
+    if(typeof chainId!=='string')throw new Error('WRONG_CHAIN: Selected Wallet did not return a chain identifier.');
+    standardTransition({type:'ACCOUNT_APPROVED',account});
+    const completed=standardTransition({type:'CHAIN_CONFIRMED',chainId});
+    if(completed.status!==STANDARD_WALLET_CONNECT_STATUS.CONNECTED)throw new Error(`WRONG_CHAIN: Pay requires YNX Testnet ${manifest.evmChainHex}.`);
+    return {account:completed.account!,chainId:completed.chainId!,state:'STANDARD_CONNECTED',connectionState:completed};
+  }catch(error){try{standardTransition({type:'FAIL',code:standardStateCode(error)})}catch{}throw payConnectionError(error)}
 }
+
+/** Refresh is prompt-free: eth_accounts and eth_chainId restore or invalidate only the Standard Wallet state. */
+export async function restoreStandardWallet(provider:EIP1193Provider|undefined=runtimeProvider(),providerKind:'metamask'|'ynx-wallet'=provider?.isMetaMask?'metamask':'ynx-wallet'):Promise<PayWalletConnection|null>{
+  if(!provider)return null;
+  try{const [accounts,chainId]=await Promise.all([provider.request({method:'eth_accounts'}),provider.request({method:'eth_chainId'})]);const restored=standardTransition({type:'RESTORE',providerKind,accounts,chainId});return restored.status===STANDARD_WALLET_CONNECT_STATUS.CONNECTED?{account:restored.account!,chainId:restored.chainId!,state:'STANDARD_CONNECTED',connectionState:restored}:null}catch{return null}
+}
+
+/** A CORS-safe observer may annotate connection health; it never decides connectivity or opens a Wallet. */
+export function reportPayRpcProbe(status:'ready'|'degraded',code='RPC_UNAVAILABLE'){return standardTransition({type:status==='ready'?'RPC_PROBE_READY':'RPC_PROBE_DEGRADED',probeTransport:STANDARD_WALLET_RPC_PROBE_TRANSPORT,...(status==='ready'?{}:{code})})}
 
 /** MetaMask discovery remains strictly EIP-6963/EIP-1193 and never opens YNX Wallet. */
 export async function connectMetaMaskWallet(provider?:EIP1193Provider):Promise<PayWalletConnection>{
