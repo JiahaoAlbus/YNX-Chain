@@ -123,8 +123,6 @@ async function beginSignIn(recovery = false) {
   try {
     const wallet = await connectCalendarWallet(window);
     applyStandardWallet(wallet);
-    const short = walletAccountLabel(wallet.account);
-    toast(`${wallet.walletName} connected · ${short} · private Calendar sync is degraded`);
   } catch (error) {
     state.wallet = null;
     const code = error?.code || "WALLET_CONNECTION_FAILED";
@@ -154,6 +152,7 @@ function applyStandardWallet(wallet) {
   $("#account").textContent = short.slice(2, 4).toUpperCase();
   $("#account").setAttribute("aria-label", `${wallet.walletName} ${short} connected on YNX Testnet. Calendar sync remains unavailable.`);
   $("#signin-state").textContent = `${wallet.walletName} connected on YNX Testnet. Private Calendar sync is degraded; local Calendar remains available.`;
+  toast(`${wallet.walletName} connected · ${short} · private Calendar sync is degraded`);
 }
 function clearStandardWallet(reason = "Wallet disconnected. Guest trial remains available.") {
   state.wallet = null;
