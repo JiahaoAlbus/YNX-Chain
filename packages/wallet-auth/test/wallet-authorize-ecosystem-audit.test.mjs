@@ -199,6 +199,15 @@ test("Wallet Web/PWA and macOS DMG publication remain outside product authority"
   assert.equal(companion.nativeMacosPublicGatewayFailClosed.sensitiveInputProvided, false);
   assert.equal(companion.nativeMacosPublicGatewayFailClosed.authorizationSuccess, false);
   assert.equal(companion.nativeMacosPublicGatewayFailClosed.productSessionVerified, false);
+  assert.equal(companion.nativeIosPublicGatewayFailClosed.implementationCommit, "f7669a663370f7c2e5a34743e39024dfd05ed333");
+  assert.equal(companion.nativeIosPublicGatewayFailClosed.evidenceCommit, "b87ff7d0d913045f4b8c77801aba288a54c2516c");
+  assert.equal(companion.nativeIosPublicGatewayFailClosed.hostedOverallPassed, false);
+  assert.equal(companion.nativeIosPublicGatewayFailClosed.buildInstallGatewayAndNegativeStepsPassed, true);
+  assert.equal(companion.nativeIosPublicGatewayFailClosed.nativeKeychainAddReadDelete, true);
+  assert.equal(companion.nativeIosPublicGatewayFailClosed.observedStateUnchanged, true);
+  assert.equal(companion.nativeIosPublicGatewayFailClosed.biometricSuccess, false);
+  assert.equal(companion.nativeIosPublicGatewayFailClosed.recoverySuccess, false);
+  assert.equal(companion.nativeIosPublicGatewayFailClosed.productSession, false);
   assert.equal(companion.macosDmgPublication.systemApplicationsInstallVerified, false);
   assert.equal(companion.macosDmgPublication.browserQuarantineAcceptanceVerified, false);
   assert.equal(companion.macosDmgPublication.wholeAppUnsigned, true);
@@ -356,6 +365,12 @@ test("owner checkpoint separates Wallet public artifacts from approval and Produ
   assert.equal(platform.macosNativePublicGatewayFailClosed.walletStateDigestUnchanged, true);
   assert.equal(platform.macosNativePublicGatewayFailClosed.walletApprovalCompleted, false);
   assert.equal(platform.macosNativePublicGatewayFailClosed.callbackEmitted, false);
+  assert.equal(platform.iosNativePublicGatewayFailClosed.evidenceCommit, "b87ff7d0d913045f4b8c77801aba288a54c2516c");
+  assert.equal(platform.iosNativePublicGatewayFailClosed.hostedOverallConclusion, "failure");
+  assert.equal(platform.iosNativePublicGatewayFailClosed.simulatorInstallColdSecondLaunch, true);
+  assert.equal(platform.iosNativePublicGatewayFailClosed.nativeKeychainAddReadDelete, true);
+  assert.equal(platform.iosNativePublicGatewayFailClosed.biometricPositiveStepPassed, false);
+  assert.equal(platform.iosNativePublicGatewayFailClosed.authorizationSuccess, false);
   assert.equal(platform.macosDmg.systemApplicationsInstallVerified, false);
   assert.equal(platform.macosDmg.browserQuarantineAcceptanceVerified, false);
   assert.equal(platform.macosDmg.developerId, false);
