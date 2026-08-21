@@ -427,22 +427,23 @@
     }
   ],
   "heavy": {
-    "owner": "integration",
-    "taskId": "P0-136",
-    "status": "ACTIVE_SINGLE_USE",
-    "acquiredAt": "2026-08-21T09:07:56Z",
-    "expiresAt": "2026-08-21T09:37:56Z",
+    "owner": null,
+    "taskId": null,
+    "status": "RELEASED_PUBLIC_BYTES_EXACT_COMPUTER_CONTROL_BLOCKED",
+    "acquiredAt": null,
+    "expiresAt": null,
+    "releasedAt": "2026-08-21T09:14:20Z",
     "sourceCommit": "d2323ca6a0bf4cc9aed67bf3bd7ee533755999e3",
     "runtimeHost": "43.153.202.237",
-    "currentRuntime": "/opt/ynx/search-releases/p0124-search-wallet-7604c88e",
+    "currentRuntime": "/opt/ynx/search-releases/p0136-search-subroute-d2323ca6",
     "rollbackTarget": "/opt/ynx/search-releases/p0124-search-wallet-7604c88e",
-    "candidateRuntime": "/opt/ynx/search-releases/p0136-search-subroute-d2323ca6",
+    "candidateRuntime": null,
     "artifactSha256": "88b7458a90fa56690fd3a92104f6d7354a67a0f161cdce89b7c5f168fca774ee",
     "productionMutationAllowed": true,
     "singleUse": true,
     "previousOwner": null,
     "previousTaskId": "P0-135",
-    "reason": "Fresh bounded activation after P0-135 reached candidate activation but a verifier quoting error triggered the rollback trap; exact p0124 runtime, env and service state were restored."
+    "reason": "P0-136 exact prebuilt Search canonical subroute is active and public bytes match source; clean English interactive and real provider flows remain blocked pending Mac unlock."
   },
   "wave": {
     "id": "B-financial-apps-quant",
