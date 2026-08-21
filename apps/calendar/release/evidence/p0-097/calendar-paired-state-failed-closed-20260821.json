@@ -1,0 +1,58 @@
+{
+  "schemaVersion": "ynx-calendar-production-attempt-evidence/v1",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-097",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-calendar-afb1b988-paired-20260821T014531Z",
+  "sourceCommit": "afb1b988e5e47f02928163c345ff5fb1dc7a44e5",
+  "artifact": {
+    "sha256": "f0ce5b354c7a68889e5cfd0450801fa4adea73eff97761c6346e6d5f4ac0c46b",
+    "bytes": 7549112,
+    "platform": "linux-amd64-static",
+    "freshStage": "/var/tmp/ynx-calendar-p0097-afb1b988"
+  },
+  "attempt": {
+    "startedAt": "2026-08-21T01:48:33Z",
+    "service": "ynx-calendar.service",
+    "localAddress": "127.0.0.1:18097",
+    "candidateStarted": true,
+    "candidateHealthObserved": false,
+    "candidateSourceObserved": null,
+    "failure": "The deployment shell entered rollback after initial local listener refusals instead of completing the bounded readiness window. No candidate health, version, state migration, public UI or Wallet proof was accepted.",
+    "stateMigrationObserved": false,
+    "stateBeforeSha256": "04c4eda25667d1f1433e6ebcee4186fc8a4b8325f4a004326cf2399a64f43201",
+    "stateAfterRollbackSha256": "04c4eda25667d1f1433e6ebcee4186fc8a4b8325f4a004326cf2399a64f43201",
+    "userEventContentExported": false,
+    "hmacKeyContentExported": false
+  },
+  "rollback": {
+    "completedAt": "2026-08-21T01:48:33Z",
+    "backupPath": "/var/backups/ynx-chain/calendar-afb1b988-p0097",
+    "oldBinarySha256": "b74820c013771f29a5b106f7c9ec36e274c64c2501d101afbcb51492d84270ed",
+    "restoredStateSha256": "04c4eda25667d1f1433e6ebcee4186fc8a4b8325f4a004326cf2399a64f43201",
+    "restoredStateKeySha256": "bf7b567201cab33c4b9ed02e00f0d0165172b4e692484ca044d828d0a3fb5e62",
+    "service": "active",
+    "nRestarts": 0,
+    "publicSourceAfterRollback": "635f6745db8b5d4e4f00253d72fd5ab97da471ac",
+    "rollbackComplete": true
+  },
+  "readback": {
+    "verifiedAt": "2026-08-21T01:49:00Z",
+    "binaryOwnerModeBytesLinks": "root:root 755 7499960 1",
+    "stateOwnerModeBytesLinks": "ynx:ynx 600 39141 1",
+    "stateKeyOwnerModeBytesLinks": "ynx:ynx 600 32 1",
+    "backupContainsBinaryStateKeyAndUnit": true,
+    "serviceActiveRunning": true
+  },
+  "truth": {
+    "leaseConsumed": true,
+    "leaseReusable": false,
+    "deployedPublicCurrentSource": false,
+    "publicVerifiedCurrentSource": false,
+    "realInstalledWalletProviderVerified": false,
+    "productSessionV2": false,
+    "mailDeliveryVerified": false,
+    "aiProviderVerified": false,
+    "computerControlVerified": false
+  },
+  "requiredSuccessor": "Replace the ad-hoc readiness command substitution with a source-owned tested transaction that tolerates initial refusals, carries health data without a set-e subshell boundary, preserves paired binary/state/key rollback, and passes deterministic refusal-then-success and failure rollback tests before any new lease."
+}
