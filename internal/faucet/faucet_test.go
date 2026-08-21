@@ -64,7 +64,7 @@ func TestFaucetServerEndpoints(t *testing.T) {
 	}
 	server := httptest.NewServer(NewServerWithBuild(service, buildinfo.Info{Commit: "abc123", Release: "ynx-chain-abc123", BuildTime: "2026-07-10T00:00:00Z"}).Handler())
 	defer server.Close()
-	for _, path := range []string{"/health", "/metrics"} {
+	for _, path := range []string{"/health", "/version", "/metrics"} {
 		resp, err := http.Get(server.URL + path)
 		if err != nil {
 			t.Fatal(err)
@@ -105,6 +105,29 @@ func TestFaucetServerEndpoints(t *testing.T) {
 	_ = resp.Body.Close()
 	if health.Build.Commit != "abc123" || health.Build.Release != "ynx-chain-abc123" || health.Build.BuildTime != "2026-07-10T00:00:00Z" {
 		t.Fatalf("health missing build identity: %+v", health.Build)
+	}
+	resp, err = http.Get(server.URL + "/version")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("/version returned %d", resp.StatusCode)
+	}
+	var version map[string]any
+	if err := json.NewDecoder(resp.Body).Decode(&version); err != nil {
+		t.Fatal(err)
+	}
+	_ = resp.Body.Close()
+	build := version["build"]
+	buildValue, ok := build.(map[string]any)
+	if !ok {
+		t.Fatalf("/version build payload invalid: %+v", version)
+	}
+	if buildValue["commit"] != "abc123" || buildValue["release"] != "ynx-chain-abc123" || buildValue["buildTime"] != "2026-07-10T00:00:00Z" {
+		t.Fatalf("version missing build identity: %+v", version)
+	}
+	if version["service"] != "ynx-faucetd" {
+		t.Fatalf("unexpected version service: %+v", version["service"])
 	}
 	publicPayload, err := json.Marshal(health)
 	if err != nil || strings.Contains(string(publicPayload), "rpcUrl") || strings.Contains(string(publicPayload), "requestLog") || strings.Contains(string(publicPayload), "127.0.0.1") {

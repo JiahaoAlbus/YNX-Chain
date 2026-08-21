@@ -65,10 +65,12 @@ func (s *Server) Handler() http.Handler {
 func (s *Server) routes() {
 	s.mux.HandleFunc("GET /", s.handlePublicPage)
 	s.mux.HandleFunc("GET /health", s.handleHealth)
+	s.mux.HandleFunc("GET /version", s.handleVersion)
 	s.mux.HandleFunc("GET /metrics", s.handleMetrics)
 	s.mux.HandleFunc("OPTIONS /", s.handleOptions)
 	s.mux.HandleFunc("OPTIONS /health", s.handleOptions)
 	s.mux.HandleFunc("OPTIONS /metrics", s.handleOptions)
+	s.mux.HandleFunc("OPTIONS /version", s.handleOptions)
 	s.mux.HandleFunc("OPTIONS /faucet", s.handleOptions)
 	s.mux.HandleFunc("OPTIONS /request", s.handleOptions)
 	s.mux.HandleFunc("POST /faucet", s.handleRequest)
@@ -111,6 +113,17 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 		status = http.StatusBadGateway
 	}
 	writeJSON(w, status, publicHealth(health))
+}
+
+func (s *Server) handleVersion(w http.ResponseWriter, r *http.Request) {
+	setCORS(w, r)
+	if handleFaucetPreflight(w, r) {
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{
+		"service": "ynx-faucetd",
+		"build":   s.build,
+	})
 }
 
 func (s *Server) handlePublicPage(w http.ResponseWriter, r *http.Request) {
