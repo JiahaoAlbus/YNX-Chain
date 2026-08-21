@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "productId": "wallet-desktop",
+  "recordedAt": "2026-08-21T19:38:00+08:00",
+  "source": {
+    "commit": "d715c1cd03074741ee46d3b8d0897431a85d778a",
+    "tree": "530b7630d49035668582ac78817d0a209cc71069",
+    "branch": "codex/wallet-windows-installer-p0-20260821"
+  },
+  "artifacts": [
+    {
+      "architecture": "x64",
+      "format": "nsis-exe",
+      "workflowRunId": 32477705288,
+      "workflowUrl": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/32477705288",
+      "actionsArtifactId": 9444964031,
+      "actionsArtifactBytes": 104736769,
+      "installerBytes": 104731877,
+      "installerSha256": "0b6eefde655220100fce6c6c3a8c6f6056f0617795a23df6a5f51b02512471a4",
+      "minimumOS": "Windows Server 2025 native runner; earlier Windows x64 not evidenced",
+      "signingClass": "unsigned_windows_nsis_testnet_candidate",
+      "authenticodeStatus": "NotSigned",
+      "productionSigned": false,
+      "installedOnNativeRunner": true,
+      "uploadArtifactDownloadedAndVerified": true
+    },
+    {
+      "architecture": "arm64",
+      "format": "nsis-exe",
+      "workflowRunId": 32477705289,
+      "workflowUrl": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/32477705289",
+      "actionsArtifactId": 9444982074,
+      "actionsArtifactBytes": 103890393,
+      "installerBytes": 103884789,
+      "installerSha256": "098d3abcdab4474b23d1f59e13a0ff0d9875a0c2e607ad97e4aeffd0b25b03fe",
+      "minimumOS": "Windows 11 arm64 directly tested; earlier Windows arm64 not evidenced",
+      "signingClass": "unsigned_windows_nsis_testnet_candidate",
+      "authenticodeStatus": "NotSigned",
+      "productionSigned": false,
+      "installedOnNativeRunner": true,
+      "uploadArtifactDownloadedAndVerified": true
+    }
+  ],
+  "nativeLifecycle": {
+    "preflightInstall": true,
+    "upgrade": true,
+    "coldStart": true,
+    "secondStart": true,
+    "testnetChainId": "0x1917",
+    "rpcFailureClosed": true,
+    "uninstall": true
+  },
+  "truth": {
+    "accountCreated": false,
+    "balanceClaimed": false,
+    "signatureCreated": false,
+    "transactionCreated": false,
+    "walletAuthorizationApproved": false,
+    "walletAuthorizationCallback": false,
+    "userDeviceInstalled": false,
+    "computerControlVisible": false,
+    "downloadHosted": false,
+    "officialWebsiteListed": false,
+    "storeReleased": false,
+    "productionSigned": false
+  },
+  "notes": [
+    "The source-bound native workflow verifies the generated installer after upload; Actions artifacts are engineering evidence, not a hosted public download.",
+    "The current Desktop application proves an available Testnet transport and fails closed when it is unavailable. It does not fabricate account, signing, balance, transaction, or authorization success."
+  ]
+}
