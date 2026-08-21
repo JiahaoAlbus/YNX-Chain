@@ -54,8 +54,10 @@ export function createWalletWebCompanionLifecycle({binding, client = null, open 
     callback: WALLET_WEB_COMPANION_CALLBACK,
     publicAuthAvailable: false,
     async begin() {
-      if (!requireReady()) return fail();
       void binding; void client; void open;
+      // This is a Web/extension launch boundary, not a Product Session
+      // readiness check. Returning the explicit result first makes the safe
+      // fallback diagnosable even while the private Gateway is unavailable.
       return webSchemeProhibited();
     },
     async handleReturn(url) {

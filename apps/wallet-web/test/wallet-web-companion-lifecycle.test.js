@@ -20,7 +20,9 @@ function client(states={}){
 
 test("public Web lifecycle remains fail closed while the 6441 Gateway registry is old",async()=>{
   const lifecycle=createWalletWebCompanionLifecycle({binding:binding(false)});
-  for(const result of [await lifecycle.begin(),await lifecycle.handleReturn(`${callback}?result=rejected`),await lifecycle.disconnect(),await lifecycle.restart(true)]){
+  const begin=await lifecycle.begin();
+  assert.deepEqual({status:begin.status,code:begin.code,authoritative:begin.authoritative,account:begin.account,sign:begin.sign,send:begin.sendTransaction},{status:"network-unavailable",code:"WEB_CUSTOM_SCHEME_NAVIGATION_PROHIBITED",authoritative:false,account:false,sign:false,send:false});
+  for(const result of [await lifecycle.handleReturn(`${callback}?result=rejected`),await lifecycle.disconnect(),await lifecycle.restart(true)]){
     assert.deepEqual({status:result.status,code:result.code,authoritative:result.authoritative,account:result.account,sign:result.sign,send:result.sendTransaction},{status:"network-unavailable",code:"CANONICAL_AUTH_UNAVAILABLE",authoritative:false,account:false,sign:false,send:false});
   }
   assert.equal(lifecycle.publicAuthAvailable,false);
