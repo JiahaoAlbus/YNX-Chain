@@ -233,17 +233,16 @@ jobs:
                     end try
                     set candidateText to ""
                     try
-                      set candidateText to value of attribute "AXValue" of candidate as text
-                    on error
-                      try
-                        set candidateText to value of attribute "AXTitle" of candidate as text
-                      on error
-                        try
-                          set candidateText to value of attribute "AXDescription" of candidate as text
-                        on error
-                          set candidateText to name of candidate as text
-                        end try
-                      end try
+                      set candidateText to candidateText & " " & (value of attribute "AXValue" of candidate as text)
+                    end try
+                    try
+                      set candidateText to candidateText & " " & (value of attribute "AXTitle" of candidate as text)
+                    end try
+                    try
+                      set candidateText to candidateText & " " & (value of attribute "AXDescription" of candidate as text)
+                    end try
+                    try
+                      set candidateText to candidateText & " " & (name of candidate as text)
                     end try
                     if candidateIdentifier is wantedIdentifier or (wantedVisibleText is not "" and candidateText contains wantedVisibleText) then
                       set candidateEnabled to "false"
@@ -603,17 +602,16 @@ jobs:
                     end try
                     set candidateText to ""
                     try
-                      set candidateText to value of attribute "AXValue" of candidate as text
-                    on error
-                      try
-                        set candidateText to value of attribute "AXTitle" of candidate as text
-                      on error
-                        try
-                          set candidateText to value of attribute "AXDescription" of candidate as text
-                        on error
-                          set candidateText to name of candidate as text
-                        end try
-                      end try
+                      set candidateText to candidateText & " " & (value of attribute "AXValue" of candidate as text)
+                    end try
+                    try
+                      set candidateText to candidateText & " " & (value of attribute "AXTitle" of candidate as text)
+                    end try
+                    try
+                      set candidateText to candidateText & " " & (value of attribute "AXDescription" of candidate as text)
+                    end try
+                    try
+                      set candidateText to candidateText & " " & (name of candidate as text)
                     end try
                     if candidateIdentifier is wantedIdentifier or (wantedVisibleText is not "" and candidateText contains wantedVisibleText) then
                       set candidateEnabled to "false"
