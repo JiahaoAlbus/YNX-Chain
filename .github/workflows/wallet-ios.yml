@@ -230,15 +230,21 @@ jobs:
           xcrun simctl openurl "$DEVICE" 'ynxwallet://authorize?request=invalid' \
             | tee proof/ci-ios/deep-link.txt
           wait "$XCODEBUILD_PID"
+          CALLBACK_SECOND_PID="$(sed -nE 's/.*YNX_WALLET_UI_READY_FOR_SIMCTL_OPENURL coldPid=[0-9]+ secondPid=([0-9]+).*/\1/p' proof/ci-ios/malformed-callback-xctest.log | tail -n 1)"
+          test -n "$CALLBACK_SECOND_PID"
+          grep -F "YNX_WALLET_SECOND_LAUNCH_CALLBACK_VISIBLE secondPid=$CALLBACK_SECOND_PID code=INVALID_DEEP_LINK authorizationSuccess=false signing=false callbackEmitted=false" \
+            proof/ci-ios/malformed-callback-xctest.log
           xcrun simctl spawn "$DEVICE" log show \
             --style compact \
             --last 10m \
             --predicate 'subsystem == "com.ynxweb4.wallet" AND (category == "callback" OR category == "lifecycle")' \
             2>&1 | tee proof/ci-ios/malformed-callback-native.log || true
-          grep -E 'YNX_WALLET_CALLBACK_RECEIVED pid=[0-9]+ scheme=ynxwallet' proof/ci-ios/malformed-callback-native.log
-          grep -E 'YNX_WALLET_NATIVE_AUTHORIZATION_REJECTED pid=[0-9]+ code=INVALID_DEEP_LINK authorizationSuccess=false signing=false callbackEmitted=false' proof/ci-ios/malformed-callback-native.log
-          grep -E 'YNX_WALLET_NATIVE_AUTHORIZATION_UI_VISIBLE pid=[0-9]+ code=INVALID_DEEP_LINK' proof/ci-ios/malformed-callback-native.log
+          grep -F "YNX_WALLET_CALLBACK_RECEIVED pid=$CALLBACK_SECOND_PID scheme=ynxwallet" proof/ci-ios/malformed-callback-native.log
+          grep -F "YNX_WALLET_NATIVE_AUTHORIZATION_REJECTED pid=$CALLBACK_SECOND_PID code=INVALID_DEEP_LINK authorizationSuccess=false signing=false callbackEmitted=false" proof/ci-ios/malformed-callback-native.log
+          grep -F "YNX_WALLET_NATIVE_AUTHORIZATION_UI_VISIBLE pid=$CALLBACK_SECOND_PID code=INVALID_DEEP_LINK" proof/ci-ios/malformed-callback-native.log
           grep -F "Test Case '-[YNXWalletUITests.MalformedCallbackUITests testMalformedCallbackIsDeliveredAndRejected]' passed" proof/ci-ios/malformed-callback-xctest.log
+          printf 'callbackSecondPid=%s\ncode=INVALID_DEEP_LINK\nauthorizationSuccess=false\nsigning=false\ncallbackEmitted=false\n' \
+            "$CALLBACK_SECOND_PID" | tee proof/ci-ios/second-launch-malformed-callback.txt
           xcrun xcresulttool export attachments \
             --path proof/ci-ios/MalformedCallback.xcresult \
             --output-path proof/ci-ios/xcresult-attachments

@@ -9,8 +9,18 @@ final class MalformedCallbackUITests: XCTestCase {
   func testMalformedCallbackIsDeliveredAndRejected() throws {
     let wallet = XCUIApplication()
     wallet.launch()
+    let coldPID = wallet.processIdentifier
+    XCTAssertGreaterThan(coldPID, 0, "Cold Wallet process identifier is unavailable")
 
-    FileHandle.standardError.write(Data("YNX_WALLET_UI_READY_FOR_SIMCTL_OPENURL\n".utf8))
+    wallet.terminate()
+    wallet.launch()
+    let secondPID = wallet.processIdentifier
+    XCTAssertGreaterThan(secondPID, 0, "Second Wallet process identifier is unavailable")
+    XCTAssertNotEqual(coldPID, secondPID, "Second launch reused the terminated Wallet process")
+
+    FileHandle.standardError.write(
+      Data("YNX_WALLET_UI_READY_FOR_SIMCTL_OPENURL coldPid=\(coldPID) secondPid=\(secondPID)\n".utf8)
+    )
 
     let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
     let openButton = springboard.buttons["Open"]
@@ -28,6 +38,9 @@ final class MalformedCallbackUITests: XCTestCase {
     screenshot.name = "malformed-callback-fail-closed"
     screenshot.lifetime = .keepAlways
     add(screenshot)
+    FileHandle.standardError.write(
+      Data("YNX_WALLET_SECOND_LAUNCH_CALLBACK_VISIBLE secondPid=\(secondPID) code=INVALID_DEEP_LINK authorizationSuccess=false signing=false callbackEmitted=false\n".utf8)
+    )
   }
 
   func testCanonicalRegistryRequestStopsAtNativeBridge() throws {
