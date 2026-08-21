@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "sourceCommit": "a3059db5d7e08e60bfcdf6b590d8217d211e008a",
-  "generatedAt": "2026-08-14T04:44:24.078Z",
+  "sourceCommit": "1f71f029336b32bdbd12c607f1a8dadf21f677d1",
+  "generatedAt": "2026-08-21T16:08:06.094Z",
   "runtimeClass": "Playwright bundled Chromium-compatible persistent PWA profile; not branded Chrome/Edge and not an installed PWA",
   "passed": true,
   "liveRpcProved": false,
@@ -19,14 +19,14 @@
   "liveRpc": {
     "proved": false,
     "error": {
-      "code": "RPC_UNAVAILABLE",
-      "message": "YNX Testnet RPC did not answer. Chain-changing and transaction actions remain disabled."
+      "code": "UNSAFE_BROWSER_RPC_PROBE",
+      "message": "Direct browser RPC fetch is not a Standard Wallet connection authority."
     }
   },
   "initial": {
     "controlled": true,
     "cacheNames": [
-      "ynx-wallet-web-v4"
+      "ynx-wallet-web-v7"
     ],
     "statusText": "Status: Not connected",
     "session": null,
@@ -50,17 +50,17 @@
   "recovery": {
     "appStatus": 200,
     "indexStatus": 200,
-    "appSha256": "a0e77f7c138e3a31c76eee0bf67f40c643d5de1923f1d770006afb3a0923695b",
+    "appSha256": "65fb87b5eec304366a8603d5e33c203120f1b28659a18af96d417a4ca70d57a7",
     "indexContainsFake": false,
     "cacheNames": [
-      "ynx-wallet-web-v4"
+      "ynx-wallet-web-v7"
     ],
     "session": null
   },
   "artifact": {
     "name": "ynx-wallet-web-pwa-0.1.0.zip",
-    "bytes": 176090,
-    "sha256": "69a9458fb36ce02a0a4bc168f8a162998c0d37bd6566cc7e077ef356f4c38ba7",
+    "bytes": 283980,
+    "sha256": "45d99a2c8e81f65a7c56639c81c9838d76760b45357caf34336fd22ae5ff6fe6",
     "minimumOS": "modern browser with Service Worker and Web Crypto support",
     "signingClass": "unsigned-web-bundle"
   }
