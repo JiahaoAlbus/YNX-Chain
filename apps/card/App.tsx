@@ -1,6 +1,6 @@
 import React,{useCallback,useEffect,useRef,useState}from"react";
-import{ActivityIndicator,Alert,FlatList,Linking,Modal,Pressable,ScrollView,StyleSheet,Switch,Text,TextInput,useColorScheme,View}from"react-native";
-import{SafeAreaView}from"react-native-safe-area-context";
+import{ActivityIndicator,Alert,FlatList,Linking,Modal,Platform,Pressable,ScrollView,StyleSheet,Switch,Text,TextInput,useColorScheme,View}from"react-native";
+import{SafeAreaProvider,SafeAreaView}from"react-native-safe-area-context";
 import{StatusBar}from"expo-status-bar";
 import* as LocalAuthentication from"expo-local-authentication";
 import{ArrowUpRight,CreditCard,Globe2,LifeBuoy,LockKeyhole,ReceiptText,RefreshCw,ShieldCheck,SlidersHorizontal,WalletCards,X}from"lucide-react-native";
@@ -296,6 +296,10 @@ export default function App(){
     setBusy(true);
     setError("");
     try{
+      if(Platform.OS==="web"){
+        setPrivateSession({state:"PRIVATE_SERVICE_DEGRADED",...classifyCardWalletError("GATEWAY_UNAVAILABLE")});
+        return;
+      }
       const connection=await createRuntimeCardProductWalletConnection();
       productWallet.current=connection;
       const outcome=await connection.beginYNX();
@@ -315,9 +319,9 @@ export default function App(){
     if(result.success)setRevealed(true);else setError(tr("biometricFailed"));
   };
 
-  if(settings)return <Language locale={locale} setLocale={setLocale} close={()=>setSettings(false)} c={c} tr={tr}/>;
+  if(settings)return <SafeAreaProvider><Language locale={locale} setLocale={setLocale} close={()=>setSettings(false)} c={c} tr={tr}/></SafeAreaProvider>;
 
-  return <SafeAreaView style={[s.safe,{backgroundColor:c.canvas},rtl&&s.rtl]}>
+  return <SafeAreaProvider><SafeAreaView style={[s.safe,{backgroundColor:c.canvas},rtl&&s.rtl]}>
     <StatusBar style={dark?"light":"dark"}/>
     <View style={[s.header,{borderBottomColor:c.separator},rtl&&s.rowRTL]}>
       <View>
@@ -377,7 +381,7 @@ export default function App(){
     }
 
     <ApplySheet visible={applyOpen} close={()=>setApplyOpen(false)} c={c} tr={tr} submit={async(reference)=>{await run(()=>applyForCard(session!,{eligibilityReference:reference,legalConsentVersion:"card-testnet-v1",idempotencyKey:`apply-${Date.now()}`}),refresh,setError);setApplyOpen(false)}}/>
-  </SafeAreaView>
+  </SafeAreaView></SafeAreaProvider>
 }
 
 function productRuntime(value:unknown):ProductSessionRuntime{
