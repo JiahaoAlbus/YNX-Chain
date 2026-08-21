@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "owner": "Wallet Web/PWA/Extensions",
+  "sourceCommit": "3651ba0c4322e0564e29b4573f3def90828dba67",
+  "evidenceCommit": null,
+  "centralMatrixCheckpoint": "a36011f8cf474955f4ef7faa338670e0c8d9d42c",
+  "deploymentId": "dpl_6GRARbJYU5JyPeJP7Un3E6KqmBN2",
+  "publicUrl": "https://wallet.ynxweb4.com/",
+  "evidencePath": "apps/wallet-web/evidence/browser/wallet-connect-nonsensitive-regression-20260821.json",
+  "tests": {"source": "97/97", "packageArtifacts": "3/3", "packageAssertions": "79/79"},
+  "publicIdentity": {"path": "/build-identity.json", "bytes": 267, "sha256": "760971f2b83bae7e8f05483006267d76f756a6daf651c0250482c79a2bf5b7b1", "sourceBound": true},
+  "proved": ["Wallet Companion restored after public alias drift", "clean browser fallback routes", "real Chrome MetaMask discovery", "no blank or new tab during chooser toggles", "refresh stays disconnected before approval", "English/Arabic RTL relocalization", "Light/Dark", "390x844 without horizontal overflow"],
+  "singleApprovalBoundary": "User must click Use MetaMask and approve eth_requestAccounts; if requested after exact 4902, also approve the frozen add/switch to YNX Testnet 0x1917.",
+  "falseGates": ["accountApproved", "providerChainId1917", "chooserClosedAfterApproval", "refreshRestoreConnectedSession", "disconnect", "switchAccount", "ynxProviderDetected", "walletCallback", "productSessionV2", "messageSigned", "transactionSubmitted", "installedLocal", "productionSigned", "storeReleased"]
+}
