@@ -168,7 +168,7 @@ class AppDelegate: ExpoAppDelegate {
       alert.addAction(UIAlertAction(title: "Dismiss", style: .default))
       alert.loadViewIfNeeded()
       alert.view.layoutIfNeeded()
-      guard markAuthorizationErrorCode(in: alert.view, code: code) else {
+      guard self?.markAuthorizationErrorCode(in: alert.view, code: code) == true else {
         walletCallbackLogger.error(
           "YNX_WALLET_NATIVE_AUTHORIZATION_UI_UNAVAILABLE pid=\(getpid(), privacy: .public) code=ERROR_CODE_ACCESSIBILITY_UNAVAILABLE"
         )
