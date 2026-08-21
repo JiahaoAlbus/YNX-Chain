@@ -9,6 +9,43 @@ The service reports `0.2.0-testnet-preview-bc8a37bc6f2b-candidate`; its image
 fingerprint is
 `e0a8aba3b87cb995a8e5e039f0d489dda9fb0dc79c44006df030dbca28a994b8`.
 
+## Shared Provider discovery/connect-state deployment — 2026-08-21
+
+Developer consumed the single shared Wallet/Auth source contract from
+`98c6d5d784d212df8981a53b17118a511e246ad2` through its vendor package root
+and the shared consumer gate. The authoritative owner handoff is
+`d3831c300560507f64a50e73117bab7b85926d9a`; its Developer row names
+`00ac76eb5fde57493231a75de90e2956880e82c5` as the prior current source.
+The deployed Developer source `366e523252c08871e51d93add534b4513746f1b6`
+is a descendant of that row and records the shared contract/evidence binding.
+
+The selected EIP-6963 or `window.ethereum.providers` candidate is connected
+only after an approved `0x` account and its own `eth_chainId` response equals
+`0x1917`. The product never uses direct browser RPC fetch as a connection
+precondition. Successful state closes the chooser, clears pending intent, and
+restores the trigger focus. Refresh uses `eth_accounts` and `eth_chainId`
+only; account changes, a chain change away from `0x1917`, and disconnect
+invalidate Standard Wallet state. Optional Product Session or reviewed RPC
+probe degradation preserves the completed Standard Wallet state.
+
+Protected deployment passed at
+`/var/lib/ynx-code-candidate/deploy-evidence/20260821T113605Z-366e523252c0`.
+Its immutable cloud-toolchain image is
+`3cd962f79bb32c189c9128d634ca118d866660d14eb37c7dc9dcc9c46d9200bb`, and
+public `https://developer.ynxweb4.com/healthz` returned
+`0.2.0-testnet-preview-366e523252c0-candidate`. The transaction verified its
+evidence checksums, workspace/session restart persistence, package persistence
+with network disabled after installation, and removal of temporary package
+egress.
+
+Visible public Chrome evidence found an injected MetaMask candidate and the
+explicit `0x1917` connection UI plus official YNX Wallet/MetaMask fallbacks;
+no custom-scheme, iframe, popup, or blank tab was created. No account request
+was clicked, so real account approval, callback, signing, transaction, and
+Product Session lifecycle remain false. The remaining approval blocker is the
+user-controlled Wallet extension confirmation, not a missing product source
+or public runtime.
+
 ## Canonical Wallet v2 boundary
 
 Developer consumes the accepted Wallet/Auth source checkpoint
