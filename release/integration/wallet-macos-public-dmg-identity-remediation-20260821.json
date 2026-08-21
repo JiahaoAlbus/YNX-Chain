@@ -26,6 +26,27 @@
     "publicDownloadHosted": false,
     "authorizationSuccess": false
   },
+  "identityGateVerification": {
+    "runId": 32486245744,
+    "jobId": 96783302072,
+    "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/32486245744/job/96783302072",
+    "sourceCommit": "2e80300a5726e5f9db8d62a63d2d4ce2f8a48605",
+    "conclusion": "success",
+    "swiftTests": { "executed": 15, "failures": 0 },
+    "artifact": {
+      "id": 9447992169,
+      "bytes": 2043372,
+      "digest": "sha256:253f27a200d4be212111fbd6d89d5b9cb81c5dad536536d7871c31ee09bba6a4"
+    },
+    "asserted": [
+      "native bundle identifier is com.ynxweb4.wallet.macos",
+      "native CFBundleURLTypes registers ynxwallet",
+      "DMG is mounted then copied before launch",
+      "installed App passes codesign verification",
+      "cold and second launch plus bounded Testnet transport succeed",
+      "malformed and widened callbacks fail closed"
+    ]
+  },
   "websiteAction": {
     "requiredNow": "Remove or mark the Electron desktop DMG unavailable wherever it is labelled as a Wallet authorization receiver. Do not redirect canonical authorization traffic to it.",
     "permittedReplacementOnlyAfter": [
