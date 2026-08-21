@@ -2,7 +2,7 @@
   "schemaVersion": "1.0.0",
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "owner": "integration",
-  "status": "P0100_EXPLORER_MONITOR_BOUNDED_PREFLIGHT_ACTIVE",
+  "status": "P0100_EXPLORER_MONITOR_PREFLIGHT_AND_P0101_SOCIAL_SOURCE_RECONCILIATION_ACTIVE",
   "scope": [
     "founder-control",
     "wallet-connectivity",
@@ -317,6 +317,21 @@
         "verify exact existing source, tests and release-manifest evidence",
         "public probes must be read-only and must not expose internal topology as accepted evidence",
         "no endpoint manifest, installed Wallet, publicVerified or Computer Control promotion"
+      ]
+    },
+    {
+      "owner": "integration",
+      "taskId": "P0-101",
+      "status": "ACTIVE",
+      "grantedAt": "2026-08-21T02:42:10Z",
+      "expiresAt": "2026-08-21T04:42:10Z",
+      "startingCommit": "f5d66accaa130625f87ef725ef52adc910c59ab8",
+      "scope": "social-public-runtime-client-version-reconciliation-source-only",
+      "constraints": [
+        "preserve the dirty historical Social worktree and use only the clean descendant worktree",
+        "do not modify packages/wallet-auth or packages/dapp-connect-sdk",
+        "production mutation is forbidden in this Light slice",
+        "public health is not source identity and Product Session v2 remains false until full evidence"
       ]
     }
   ],
