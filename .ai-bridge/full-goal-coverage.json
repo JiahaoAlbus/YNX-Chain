@@ -76,16 +76,16 @@
       "category": "user-interface",
       "requirement": "Provide Day, Week, Month, Agenda, event inspector, timezone, invitation, conflict, search, and recovery surfaces.",
       "applicability": "required",
-      "status": "inProgress",
-      "evidence": ["Web companion contains week/month/agenda-oriented rendering, inspector, conflict, timezone, search, offline and recovery controls"],
-      "sourceCommit": "9cf30f16c4312b4438d087b1df58cec68df54f15",
-      "tests": ["npm test", "npm run browser:proof"],
-      "artifact": ["apps/calendar/tests/artifacts/calendar-desktop.png", "apps/calendar/tests/artifacts/calendar-mobile.png"],
+      "status": "testedLocal",
+      "evidence": ["Web companion contains dedicated Day, Week, Month and Agenda rendering plus inspector, conflict, timezone, search, offline and recovery controls", "browser proof verifies a single-column Day grid and occurrence-only cancellation across Day and Agenda without cross-scenario state pollution"],
+      "sourceCommit": "6dd8d9a20e42ee8d7f5da261e59b2bad3d614b19",
+      "tests": ["npm test", "npm run browser:proof", "npm run test:deploy"],
+      "artifact": ["apps/calendar/tests/artifacts/calendar-desktop-day.png", "apps/calendar/tests/artifacts/calendar-desktop-month.png", "apps/calendar/tests/artifacts/calendar-desktop-agenda.png", "apps/calendar/tests/artifacts/calendar-mobile.png"],
       "publicProof": [],
       "blockedBy": [],
       "owner": "36-calendar",
-      "nextAction": "complete a dedicated Day grid and verify all views against recurring exceptions",
-      "lastUpdated": "2026-07-27T14:39:45Z"
+      "nextAction": "publish the exact 6dd8d9a2 source and repeat current-source public browser verification before changing public truth",
+      "lastUpdated": "2026-08-21T14:54:26Z"
     },
     {
       "id": "CAL-INVITE-001",

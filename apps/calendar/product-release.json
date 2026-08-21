@@ -74,14 +74,16 @@
     ]
   },
   "latestLocalCandidate": {
-    "sourceCommit": "4f0b97d30a33d1f66a19c06b3fbe138638e99aa8",
+    "sourceCommit": "6dd8d9a20e42ee8d7f5da261e59b2bad3d614b19",
     "branch": "codex/calendar-fable5-completion-20260821",
     "status": "testedLocalNotPublic",
     "scope": [
       "versioned RSVP comments and organizer notification",
       "idempotent RSVP replay and mutation conflict rejection",
       "privacy-bounded canonical RSVP event metadata",
-      "late-night all-day range normalization and recurrence rendering"
+      "late-night all-day range normalization and recurrence rendering",
+      "dedicated single-day grid with explicit accessible schedule identity",
+      "occurrence-only cancellation verified across Day and Agenda views"
     ],
     "deployedPublic": false,
     "websitePublished": false,
