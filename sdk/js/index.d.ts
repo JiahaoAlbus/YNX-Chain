@@ -10,7 +10,11 @@ export interface YNXNetworkMetadata {
   readonly infoUrl: string;
 }
 
-export interface EIP1193Provider { request(input: { method: string; params?: unknown[] }): Promise<unknown> }
+export interface EIP1193Provider {
+  request(input: { method: string; params?: unknown[] }): Promise<unknown>;
+  on?(event: string, listener: (...args: unknown[]) => void): void;
+  removeListener?(event: string, listener: (...args: unknown[]) => void): void;
+}
 export interface FetchOptions { timeoutMs?: number; fetchImpl?: typeof fetch; id?: string | number }
 export interface YNXStatus { chainId: number; nativeCurrencySymbol: string; publicNetwork: boolean; height: number; [key: string]: unknown }
 export interface YNXSnapshot { status: YNXStatus; evmChainId: string; evmBlockHex: string; evmBlockNumber: number }
@@ -26,6 +30,17 @@ export declare function callYNXEVM(evmUrl: string, method: string, params?: unkn
 export declare function assertYNXTestnetSnapshot(snapshot: YNXSnapshot, options?: { maximumHeightLag?: number }): YNXSnapshot;
 export declare function ynxTestnetAddEthereumChainParameter(): object;
 export declare function ensureYNXTestnet(provider: EIP1193Provider): Promise<Readonly<{ added: boolean; chainId: string; switched: boolean }>>;
+export interface YNXWalletConnectionState {
+  readonly account: string | null;
+  readonly chainId: string | null;
+  readonly connected: boolean;
+  readonly state: "CONNECTED" | "NO_APPROVED_ACCOUNT" | "WRONG_CHAIN" | "PROVIDER_DISCONNECTED";
+  readonly reason?: "initial" | "accountsChanged" | "chainChanged" | "disconnect";
+  readonly event?: unknown;
+}
+export declare function readYNXWalletConnection(provider: EIP1193Provider): Promise<YNXWalletConnectionState>;
+export declare function requestYNXWalletConnection(provider: EIP1193Provider): Promise<YNXWalletConnectionState>;
+export declare function observeYNXWalletConnection(provider: EIP1193Provider, onStateChange: (state: YNXWalletConnectionState) => void): Readonly<{ready: Promise<void>; stop(): void}>;
 export declare class YNXClient {
   constructor(options: { restUrl: string; evmUrl: string; timeoutMs?: number; fetchImpl?: typeof fetch });
   getStatus(): Promise<YNXStatus>;

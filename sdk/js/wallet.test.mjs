@@ -1,6 +1,13 @@
 import assert from "node:assert/strict";
 import {test} from "node:test";
-import {YNXWalletError, ensureYNXTestnet, ynxTestnetAddEthereumChainParameter} from "./wallet.js";
+import {
+  YNXWalletError,
+  ensureYNXTestnet,
+  observeYNXWalletConnection,
+  readYNXWalletConnection,
+  requestYNXWalletConnection,
+  ynxTestnetAddEthereumChainParameter,
+} from "./wallet.js";
 import {ynxTestnet} from "./ynx-testnet.js";
 
 test("builds the bounded EIP-3085 payload", () => {
@@ -65,6 +72,85 @@ test("rejects a missing provider without requesting any account capability", asy
   await assert.rejects(ensureYNXTestnet(null), (error) => error instanceof YNXWalletError && error.code === "PROVIDER_REQUIRED");
 });
 
+test("reads an unapproved provider without opening an account prompt or Product Session", async () => {
+  const calls = [];
+  const provider = {
+    async request({method}) {
+      calls.push(method);
+      if (method === "eth_accounts") return [];
+      if (method === "eth_chainId") return "0x1917";
+      throw new Error(`unexpected method ${method}`);
+    },
+  };
+  assert.deepEqual(await readYNXWalletConnection(provider), {
+    account: null,
+    chainId: "0x1917",
+    connected: false,
+    state: "NO_APPROVED_ACCOUNT",
+  });
+  assert.deepEqual(calls.sort(), ["eth_accounts", "eth_chainId"]);
+});
+
+test("requests an account only through the explicit standard Wallet action", async () => {
+  const calls = [];
+  const provider = {
+    async request({method}) {
+      calls.push(method);
+      if (method === "eth_requestAccounts") return ["0x1111111111111111111111111111111111111111"];
+      if (method === "eth_chainId") return "0x1917";
+      throw new Error(`unexpected method ${method}`);
+    },
+  };
+  assert.deepEqual(await requestYNXWalletConnection(provider), {
+    account: "0x1111111111111111111111111111111111111111",
+    chainId: "0x1917",
+    connected: true,
+    state: "CONNECTED",
+  });
+  assert.deepEqual(calls, ["eth_requestAccounts", "eth_chainId"]);
+});
+
+test("observes refresh, account disconnect, chain mismatch, and provider disconnect without reopening approval", async () => {
+  const provider = eventedProvider({
+    accounts: ["0x1111111111111111111111111111111111111111"],
+    chainId: "0x1917",
+  });
+  const states = [];
+  const observer = observeYNXWalletConnection(provider, (state) => states.push(state));
+  await observer.ready;
+  assert.deepEqual(states.at(-1), {
+    account: "0x1111111111111111111111111111111111111111",
+    chainId: "0x1917",
+    connected: true,
+    reason: "initial",
+    state: "CONNECTED",
+  });
+
+  provider.state.accounts = [];
+  provider.emit("accountsChanged", []);
+  await settle();
+  assert.equal(states.at(-1).state, "NO_APPROVED_ACCOUNT");
+  assert.equal(states.at(-1).reason, "accountsChanged");
+
+  provider.state.accounts = ["0x2222222222222222222222222222222222222222"];
+  provider.state.chainId = "0x1";
+  provider.emit("chainChanged", "0x1");
+  await settle();
+  assert.equal(states.at(-1).state, "WRONG_CHAIN");
+  assert.equal(states.at(-1).account, "0x2222222222222222222222222222222222222222");
+
+  provider.emit("disconnect", {code: 4900});
+  assert.equal(states.at(-1).state, "PROVIDER_DISCONNECTED");
+  assert.equal(states.at(-1).connected, false);
+  assert.ok(provider.calls.every((method) => method === "eth_accounts" || method === "eth_chainId"));
+
+  const countBeforeStop = states.length;
+  observer.stop();
+  provider.emit("accountsChanged", ["0x3333333333333333333333333333333333333333"]);
+  await settle();
+  assert.equal(states.length, countBeforeStop);
+});
+
 function scriptedProvider(steps) {
   let index = 0;
   return {
@@ -86,4 +172,33 @@ function scriptedProvider(steps) {
 
 function providerError(code, message) {
   return Object.assign(new Error(message), {code});
+}
+
+function eventedProvider(state) {
+  const listeners = new Map();
+  const provider = {
+    calls: [],
+    state,
+    async request({method}) {
+      provider.calls.push(method);
+      if (method === "eth_accounts") return [...state.accounts];
+      if (method === "eth_chainId") return state.chainId;
+      throw new Error(`unexpected method ${method}`);
+    },
+    on(event, listener) {
+      listeners.set(event, listener);
+    },
+    removeListener(event, listener) {
+      if (listeners.get(event) === listener) listeners.delete(event);
+    },
+    emit(event, value) {
+      listeners.get(event)?.(value);
+    },
+  };
+  return provider;
+}
+
+async function settle() {
+  await new Promise((resolve) => setImmediate(resolve));
+  await new Promise((resolve) => setImmediate(resolve));
 }
