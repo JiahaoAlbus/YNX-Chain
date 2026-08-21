@@ -8,7 +8,7 @@ const en = {
   eyebrow: "Wallet companion", title: "Connect to YNX Testnet", intro: "Use an installed wallet. This app never receives your recovery phrase or private key.",
   detected: "YNX Wallet detected", connectYNX: "Open YNX Wallet", download: "Download YNX Wallet", metamask: "Use MetaMask", unavailable: "No supported wallet detected",
   add: "Add YNX Testnet", switch: "Switch network", sign: "Sign message", send: "Send transaction", message: "Message", recipient: "Recipient", value: "Value (hex wei)", data: "Data (hex)",
-  connected: "Connected", disconnected: "Not connected", rpcCheck: "Live RPC verification is required before chain or transaction changes.", testnet: "Testnet assets have no represented monetary value.",
+  connected: "Connected", disconnected: "Not connected", rpcCheck: "The selected wallet confirms the active network. Browser RPC probes are diagnostic only.", testnet: "Testnet assets have no represented monetary value.",
   light: "Light", dark: "Dark", language: "Language", status: "Status", txHash: "Transaction hash", signature: "Signature", working: "Waiting for wallet approval…", requestFailed:"The request failed closed. No wallet state was changed.", walletConnection:"Wallet connection", walletActions:"Wallet actions", preferencesRejected: "Saved display preferences were invalid or stale and were reset safely.", disconnect:"Disconnect", switchAccount:"Switch account", metamaskDetected:"MetaMask provider detected", providerNotInjected:"Wallet provider not injected. Unlock or enable the extension, grant this site access, and retry.",
 };
 
@@ -27,17 +27,17 @@ const overrides = {
 };
 
 const connectOverrides=Object.freeze({
-  "zh-CN":{disconnect:"断开连接",switchAccount:"切换账户",metamaskDetected:"已检测到 MetaMask provider",providerNotInjected:"钱包 provider 尚未注入。请解锁或启用扩展、授予本站访问权限后重试。"},
-  "zh-TW":{disconnect:"中斷連線",switchAccount:"切換帳戶",metamaskDetected:"已偵測到 MetaMask provider",providerNotInjected:"錢包 provider 尚未注入。請解鎖或啟用擴充功能、授予本站存取權後重試。"},
-  ja:{disconnect:"切断",switchAccount:"アカウントを切替",metamaskDetected:"MetaMask providerを検出",providerNotInjected:"ウォレットproviderが注入されていません。拡張機能を有効化し、サイトアクセスを許可して再試行してください。"},
-  ko:{disconnect:"연결 해제",switchAccount:"계정 전환",metamaskDetected:"MetaMask provider 감지됨",providerNotInjected:"지갑 provider가 주입되지 않았습니다. 확장 프로그램을 활성화하고 사이트 접근을 허용한 뒤 다시 시도하세요."},
-  es:{disconnect:"Desconectar",switchAccount:"Cambiar cuenta",metamaskDetected:"Provider de MetaMask detectado",providerNotInjected:"El provider de cartera no está inyectado. Habilita la extensión, concede acceso al sitio y vuelve a intentarlo."},
-  fr:{disconnect:"Déconnecter",switchAccount:"Changer de compte",metamaskDetected:"Provider MetaMask détecté",providerNotInjected:"Le provider du portefeuille n’est pas injecté. Activez l’extension, autorisez ce site, puis réessayez."},
-  de:{disconnect:"Trennen",switchAccount:"Konto wechseln",metamaskDetected:"MetaMask-Provider erkannt",providerNotInjected:"Der Wallet-Provider ist nicht injiziert. Erweiterung aktivieren, Websitezugriff erlauben und erneut versuchen."},
-  pt:{disconnect:"Desconectar",switchAccount:"Trocar conta",metamaskDetected:"Provider MetaMask detectado",providerNotInjected:"O provider da carteira não foi injetado. Ative a extensão, permita acesso ao site e tente novamente."},
-  ru:{disconnect:"Отключить",switchAccount:"Сменить аккаунт",metamaskDetected:"Provider MetaMask обнаружен",providerNotInjected:"Provider кошелька не внедрён. Включите расширение, разрешите доступ к сайту и повторите попытку."},
-  ar:{disconnect:"قطع الاتصال",switchAccount:"تبديل الحساب",metamaskDetected:"تم اكتشاف provider ‏MetaMask",providerNotInjected:"لم يتم حقن provider المحفظة. فعّل الإضافة وامنحها وصولاً إلى الموقع ثم أعد المحاولة."},
-  id:{disconnect:"Putuskan",switchAccount:"Ganti akun",metamaskDetected:"Provider MetaMask terdeteksi",providerNotInjected:"Provider dompet belum diinjeksi. Aktifkan ekstensi, izinkan akses situs, lalu coba lagi."},
+  "zh-CN":{disconnect:"断开连接",switchAccount:"切换账户",metamaskDetected:"已检测到 MetaMask provider",providerNotInjected:"钱包 provider 尚未注入。请解锁或启用扩展、授予本站访问权限后重试。",rpcCheck:"当前网络由所选钱包确认；浏览器 RPC 探测仅用于诊断。"},
+  "zh-TW":{disconnect:"中斷連線",switchAccount:"切換帳戶",metamaskDetected:"已偵測到 MetaMask provider",providerNotInjected:"錢包 provider 尚未注入。請解鎖或啟用擴充功能、授予本站存取權後重試。",rpcCheck:"目前網路由所選錢包確認；瀏覽器 RPC 探測僅供診斷。"},
+  ja:{disconnect:"切断",switchAccount:"アカウントを切替",metamaskDetected:"MetaMask providerを検出",providerNotInjected:"ウォレットproviderが注入されていません。拡張機能を有効化し、サイトアクセスを許可して再試行してください。",rpcCheck:"現在のネットワークは選択したウォレットが確認します。ブラウザーのRPCプローブは診断専用です。"},
+  ko:{disconnect:"연결 해제",switchAccount:"계정 전환",metamaskDetected:"MetaMask provider 감지됨",providerNotInjected:"지갑 provider가 주입되지 않았습니다. 확장 프로그램을 활성화하고 사이트 접근을 허용한 뒤 다시 시도하세요.",rpcCheck:"활성 네트워크는 선택한 지갑이 확인합니다. 브라우저 RPC 검사는 진단 전용입니다."},
+  es:{disconnect:"Desconectar",switchAccount:"Cambiar cuenta",metamaskDetected:"Provider de MetaMask detectado",providerNotInjected:"El provider de cartera no está inyectado. Habilita la extensión, concede acceso al sitio y vuelve a intentarlo.",rpcCheck:"La cartera seleccionada confirma la red activa; la sonda RPC del navegador es solo diagnóstica."},
+  fr:{disconnect:"Déconnecter",switchAccount:"Changer de compte",metamaskDetected:"Provider MetaMask détecté",providerNotInjected:"Le provider du portefeuille n’est pas injecté. Activez l’extension, autorisez ce site, puis réessayez.",rpcCheck:"Le portefeuille sélectionné confirme le réseau actif ; la sonde RPC du navigateur sert uniquement au diagnostic."},
+  de:{disconnect:"Trennen",switchAccount:"Konto wechseln",metamaskDetected:"MetaMask-Provider erkannt",providerNotInjected:"Der Wallet-Provider ist nicht injiziert. Erweiterung aktivieren, Websitezugriff erlauben und erneut versuchen.",rpcCheck:"Die ausgewählte Wallet bestätigt das aktive Netzwerk; die Browser-RPC-Prüfung dient nur der Diagnose."},
+  pt:{disconnect:"Desconectar",switchAccount:"Trocar conta",metamaskDetected:"Provider MetaMask detectado",providerNotInjected:"O provider da carteira não foi injetado. Ative a extensão, permita acesso ao site e tente novamente.",rpcCheck:"A carteira selecionada confirma a rede ativa; a sondagem RPC do navegador é apenas diagnóstica."},
+  ru:{disconnect:"Отключить",switchAccount:"Сменить аккаунт",metamaskDetected:"Provider MetaMask обнаружен",providerNotInjected:"Provider кошелька не внедрён. Включите расширение, разрешите доступ к сайту и повторите попытку.",rpcCheck:"Активную сеть подтверждает выбранный кошелёк; RPC-проверка браузера используется только для диагностики."},
+  ar:{disconnect:"قطع الاتصال",switchAccount:"تبديل الحساب",metamaskDetected:"تم اكتشاف provider ‏MetaMask",providerNotInjected:"لم يتم حقن provider المحفظة. فعّل الإضافة وامنحها وصولاً إلى الموقع ثم أعد المحاولة.",rpcCheck:"تؤكد المحفظة المحددة الشبكة النشطة؛ فحص RPC في المتصفح للتشخيص فقط."},
+  id:{disconnect:"Putuskan",switchAccount:"Ganti akun",metamaskDetected:"Provider MetaMask terdeteksi",providerNotInjected:"Provider dompet belum diinjeksi. Aktifkan ekstensi, izinkan akses situs, lalu coba lagi.",rpcCheck:"Dompet yang dipilih mengonfirmasi jaringan aktif; probe RPC browser hanya untuk diagnosis."},
 });
 export function catalog(locale) { return Object.freeze({...en, ...(overrides[locale] || {}),...(connectOverrides[locale]||{})}); }
 export function untranslatedKeys(locale) { const localized={...(overrides[locale]||{}),...(connectOverrides[locale]||{})};return locale === "en" ? [] : Object.keys(en).filter(key=>!Object.hasOwn(localized,key)); }

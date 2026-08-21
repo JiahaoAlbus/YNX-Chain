@@ -33,7 +33,9 @@ test("390px RTL dark and large-text preview contracts remain buildable", async (
     readFile(new URL("../public/accessibility.css",import.meta.url),"utf8"),
     readFile(new URL("../public/index.html",import.meta.url),"utf8"),
   ]);
-  assert.match(index,/<html lang="en">/);
+  assert.match(index,/<html lang="en"/);
+  assert.match(index,/<html lang="en" class="notranslate" translate="no">/);
+  assert.match(index,/<meta name="google" content="notranslate">/);
   assert.match(app,/document\.documentElement\.dir = isRTL\(state\.locale\)/);
   assert.match(app,/aria-label="\$\{text\("walletConnection"\)\}"/);
   assert.match(app,/aria-label="\$\{text\("walletActions"\)\}"/);
