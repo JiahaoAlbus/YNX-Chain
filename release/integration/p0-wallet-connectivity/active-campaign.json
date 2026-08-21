@@ -2,7 +2,7 @@
   "schemaVersion": "1.0.0",
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "owner": "integration",
-  "status": "P0100_EXPLORER_MONITOR_PREFLIGHT_AND_P0101_SOCIAL_SOURCE_RECONCILIATION_ACTIVE",
+  "status": "P0100_EXPLORER_PREFLIGHT_CHECKPOINT_AND_FINANCE_CANONICAL_AUTHORIZE_ACTIVE",
   "scope": [
     "founder-control",
     "wallet-connectivity",
@@ -336,14 +336,14 @@
     }
   ],
   "heavy": {
-    "owner": "explorer-monitor",
-    "taskId": "P0-100",
-    "status": "ACTIVE_BOUNDED_PUBLIC_RUNTIME_PREFLIGHT_NO_PRODUCTION_MUTATION",
-    "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-explorer-monitor-f8db7632-preflight-20260821T023738Z",
-    "leasedAt": "2026-08-21T02:37:38Z",
-    "expiresAt": "2026-08-21T04:37:38Z",
-    "startingCommit": "f8db7632fb37e9363858a4d4d977eea7b3585c7e",
-    "scope": "freeze-exact-explorer-monitor-artifact-target-rollback-and-public-readback-transaction",
+    "owner": "financial-apps",
+    "taskId": "P0-103",
+    "status": "ACTIVE_FINANCE_CANONICAL_AUTHORIZE_SOURCE_BUILD_INSTALL_SLICE",
+    "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-finance-canonical-authorize-20260821T033502Z",
+    "leasedAt": "2026-08-21T03:35:02Z",
+    "expiresAt": "2026-08-21T05:35:02Z",
+    "startingCommit": "f7efbd9e9658aaea75f8d9fbbb58f79ee1a48365",
+    "scope": "finance-canonical-authorize-source-build-install-visible-checkpoint",
     "productionMutationAllowed": false,
     "singleUse": true
   },

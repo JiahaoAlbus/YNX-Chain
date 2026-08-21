@@ -1,0 +1,21 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-100",
+  "decision": "SOURCE_PREFLIGHT_ACCEPTED_RUNTIME_TARGET_UNRESOLVED",
+  "acceptedAt": "2026-08-21T03:35:02Z",
+  "owner": "explorer-monitor",
+  "branch": "codex/p0-explorer-monitor-20260820",
+  "startingCommit": "f8db7632fb37e9363858a4d4d977eea7b3585c7e",
+  "checkpointCommit": "da5f31cfea0853f160b11bf7dc689fd58d0fdb63",
+  "checkpointTree": "cf05ec566b85941c9a945807c7d4d678344d7c4d",
+  "evidencePath": "apps/monitor/evidence/p0-100-f8db7632-public-runtime-preflight.json",
+  "evidenceBlob": "de3d921409b5134b84bedeb41a8aaa38e5285a21",
+  "evidenceSha256": "7997625d61d0c45feb31ba1e9a2dcf70e575b381b5168cd31823c589a58b735d",
+  "sourceArchiveSha256": "2216865540de5cc863a9446b698674b5669b71f887d982941818e572ee2928cc",
+  "runtimeTarget": "UNRESOLVED_BY_SOURCE_ONLY_PREFLIGHT",
+  "productionMutationPerformed": false,
+  "deployedPublic": false,
+  "publicVerified": false,
+  "computerControlVerified": false
+}

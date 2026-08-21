@@ -1,25 +1,19 @@
 {
-  "taskId": "P0-006",
+  "taskId": "P0-100",
   "owner": "explorer-monitor",
-  "status": "CHECKPOINT_REACHED_RUNTIME_DEPLOYMENT_BLOCKED",
+  "status": "CHECKPOINT_REACHED_RUNTIME_TARGET_UNRESOLVED_HEAVY_RELEASED",
   "branch": "codex/p0-explorer-monitor-20260820",
-  "checkpoint": "6d62c399a279c57e8883b300a4cf6d782c8e1673",
+  "startingCommit": "f8db7632fb37e9363858a4d4d977eea7b3585c7e",
+  "checkpointCommit": "da5f31cfea0853f160b11bf7dc689fd58d0fdb63",
   "candidatePR": "https://github.com/JiahaoAlbus/YNX-Chain/pull/107",
-  "completedScope": "CODEQL_AND_CONNECTIVITY_SLICE",
+  "completedScope": "SOURCE_OWNED_PUBLIC_RUNTIME_PREFLIGHT",
   "activeScope": null,
-  "leaseGrantedAt": "2026-08-20T17:28:11Z",
-  "leaseExpiresAt": "2026-08-20T19:28:11Z",
-  "evidence": {
-    "local": "48 application tests, 8 scripts, build and audit passed",
-    "remote": "CodeQL, JavaScript/TypeScript, Go, dependency review, build-script audit and Go static analysis passed",
-    "security": "six high-severity rate-limit findings resolved without suppression or branch-protection changes",
-    "worktree": "clean and remote head equals checkpoint"
-  },
+  "releasedAt": "2026-08-21T03:35:02Z",
+  "pathState": "CHECKPOINT_REACHED",
+  "runtimeTarget": "UNRESOLVED_BY_SOURCE_ONLY_PREFLIGHT",
+  "evidenceSha256": "7997625d61d0c45feb31ba1e9a2dcf70e575b381b5168cd31823c589a58b735d",
+  "deployedPublic": false,
   "publicVerified": false,
-  "deployment": "not performed",
-  "releasedAt": "2026-08-20T17:40:54Z",
-  "checkpoint": "f8db7632fb37e9363858a4d4d977eea7b3585c7e",
-  "pathState": "CHECKPOINT_REACHED; read-only until a future deployment lease",
-  "firstTask": "WAIT_FOR_RUNTIME_DEPLOYMENT_AUTHORITY",
-  "nextAction": "Do not rebuild the policy slice. A future deployment owner must publish exact f8db7632 and return official-domain /version, /connectivity and /status evidence; keep publicVerified false until ComputerControl succeeds."
+  "computerControlVerified": false,
+  "nextAction": "Preserve da5f31cf. A future bounded deployment slice must first identify the exact Monitor runtime target and rollback target; do not rebuild the accepted source preflight."
 }

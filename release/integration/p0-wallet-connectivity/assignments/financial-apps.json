@@ -1,43 +1,22 @@
 {
-  "taskId": "P0-004",
+  "taskId": "P0-103",
   "owner": "financial-apps",
-  "status": "ASSIGNED_PAY_LEASE_NOT_ACTIVE",
-  "acceptedContracts": [
-    "walletTransport@p0-wallet-connection-v1",
-    "errorContract@p0-wallet-connection-v1",
-    "dappConnectSDK@0.1.0-p0.0",
-    "publicEndpointManifest@1.0.0-p0.2",
-    "connectionEvents@1.0.0-p0.0"
-  ],
-  "endpointManifest": "release/integration/p0-wallet-connectivity/public-endpoint-manifest.json",
-  "endpointRule": "Consume only VERIFIED or explicitly DEGRADED endpoints according to the manifest. Product APIs marked PENDING or UNAVAILABLE are not callable and must surface their exact classification rather than Offline.",
-  "executionOrder": ["finance", "exchange", "pay", "dex", "quant"],
-  "financeCheckpoint": {
-    "commit": "f7efbd9e9658aaea75f8d9fbbb58f79ee1a48365",
-    "status": "RELEASE_EVIDENCE_CHECKPOINT",
-    "evidence": ["APK hash d18771c498fb94c5a5893a5899686e62ce864c72a877bd9f9dde7695033025be", "local debug install and 244 ms cold start", "real Wallet deep-link invocation", "eight non-product manifest health endpoints HTTP 200"],
-    "unresolved": ["Finance product API is PENDING", "unlocked Wallet account authorization not yet directly evidenced", "no public download, production signature or website claim"]
-  },
+  "status": "ACTIVE_FINANCE_CANONICAL_AUTHORIZE_SLICE",
+  "acceptedContracts": ["walletTransport@p0-wallet-connection-v1", "errorContract@p0-wallet-connection-v1", "dappConnectSDK@0.1.0-p0.0", "publicEndpointManifest@1.0.0-p0.2", "canonicalWalletAuthorize@1.0.0-p0.0"],
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-finance-canonical-authorize-20260821T033502Z",
+  "leasedAt": "2026-08-21T03:35:02Z",
+  "expiresAt": "2026-08-21T05:35:02Z",
   "activeProduct": {
-    "id": "pay",
-    "pathLock": "apps/pay/**",
-    "branch": "codex/final-finance-suite",
-    "worktree": "finance-suite",
-    "baselineCommit": "a153ef9014e421c70ece70cdbffd8fe5ee3094b9",
-    "scope": "Audit and migrate only Pay standard Wallet Connection, endpoint manifest networking, exact error classification and installed-client evidence.",
-    "requiredSteps": ["audit current Exchange sources", "consume accepted SDK/manifest", "remove direct legacy/gateway coupling", "test", "build", "install/cold-start", "record actual connection state", "artifact hash", "handoff", "commit/push"]
+    "id": "finance",
+    "pathLock": "apps/finance/**",
+    "branch": "codex/p0-finance-wallet-connectivity-20260820",
+    "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/24-finance",
+    "baselineCommit": "f7efbd9e9658aaea75f8d9fbbb58f79ee1a48365",
+    "scope": "Consume accepted canonical authorize builder/parser, then build, install and capture exact visible approve/reject/cold-start evidence."
   },
-  "prohibitions": [
-    "do not rewrite Wallet Protocol",
-    "do not build Product Session or device proof",
-    "do not create a second DApp SDK",
-    "do not hard-code Gateway or RPC",
-    "do not put localhost in a release",
-    "do not substitute Web success for installed-platform proof",
-    "do not classify Product Session failure as whole-app Offline",
-    "do not start DEX or Quant",
-    "do not modify Pay until Integration issues the next bounded Heavy Lease"
-  ],
-  "exchangeCheckpoint": {"commit":"c78f0954f9137a3faf3ce4abb4ff69ed21facafd","status":"RELEASE_EVIDENCE_CHECKPOINT","publicVerified":false},
-  "nextAction": "Perform exactly the Pay Wallet Connectivity slice, then stop at a safe checkpoint. Do not restart Finance or Exchange and do not start DEX or Quant."
+  "prohibitions": ["do not rewrite shared protocol", "do not hard-code endpoints", "do not start Exchange, Pay, DEX or Quant", "do not deploy production"],
+  "deployedPublic": false,
+  "publicVerified": false,
+  "computerControlVerified": false,
+  "nextAction": "Begin Finance at f7efbd9e and stop after one recoverable canonical-authorize build/install/visible checkpoint."
 }
