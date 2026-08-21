@@ -167,10 +167,11 @@
       "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/57-creator-studio-visible-p0",
       "branch": "codex/p0-creator-studio-visible-20260821",
       "path": "apps/creator-studio/**",
-      "status": "ACTIVE",
+      "status": "SOURCE_BUILD_CHECKPOINT_REACHED",
       "taskId": "P0-111",
-      "finding": "apps/creator-studio/app.js assigns the canonical custom-scheme URL to top-level location.href.",
-      "nextAction": "Acquire a product path lock after the financial atomic slice and replace top-level navigation with the accepted web launcher."
+      "checkpointCommit": "7bb494ff82420b84d0c153cbeb563083ad4dd361",
+      "finding": "Creator Studio now consumes the shared safe launcher; top-level custom-scheme navigation was removed and build/tests passed. Production and installed-Wallet evidence remain false.",
+      "nextAction": "Publish the exact checkpoint through the authoritative Creator Studio path, then verify visible fallback and a real installed-Wallet approval/callback without promoting Product Session v2."
     },
     {
       "product": "resource",
