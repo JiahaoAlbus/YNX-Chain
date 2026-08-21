@@ -1,0 +1,86 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-127",
+  "product": "social",
+  "scope": "source-and-local-browser-only",
+  "observedAt": "2026-08-21T07:58:21Z",
+  "source": {
+    "branch": "codex/p0-social-runtime-reconciliation-20260821",
+    "commit": "4791eafc6065280f2968a731479d38d75ff9fcc0",
+    "tree": "9e4b8c59b46e47fe1344a3ef84304dbf53eccc57",
+    "remoteReadbackExact": true,
+    "worktreeClean": true
+  },
+  "surface": {
+    "defaultLanguage": "en",
+    "forcedTranslationOptOut": true,
+    "guestPreviewAvailable": true,
+    "walletChooser": [
+      "ynx",
+      "metamask"
+    ],
+    "standardProvider": "EIP-6963/EIP-1193",
+    "evmChainId": "0x1917",
+    "customSchemeUsedOnWeb": false,
+    "topLevelNavigationUsedForWalletConnection": false,
+    "blankTargetUsed": false,
+    "productSessionFabricated": false
+  },
+  "files": {
+    "apps/social/web/index.html": "79dd118cdfbf10f17aa63be659f877df58e0680233ffb6f0394555c8256f86ed",
+    "apps/social/web/styles.css": "b528f81b43e80ef9650162bd83c8101d9d2684b52422ea39d61fcebe33ed7984",
+    "apps/social/web/app.js": "6314a52c8e999b9f69eafdd4a20c372a99e77576026bf3182efb1d9fcd9ccb0b",
+    "apps/social/web/wallet-provider.js": "b405f714903990576f3308ddffd05ab7d1bd3f57a8639c3b70a6f91c4205bd02",
+    "apps/social/web/wallet-provider.test.mjs": "d6767a7c631ccb59210f6b4d04ec1ddf1e8e83c8905bfaf5b875c7bfde0ce98b"
+  },
+  "verification": {
+    "webWalletTests": "3/3 pass",
+    "socialTests": "21/21 pass",
+    "typecheck": "pass",
+    "smoke": "pass",
+    "iosBundle": "pass",
+    "androidBundle": "pass",
+    "webChineseSourceFindings": 0,
+    "unsafeWebLauncherFindings": 0,
+    "localBrowser": {
+      "url": "http://127.0.0.1:4178/",
+      "englishRendered": true,
+      "guestPreviewRendered": true,
+      "connectChooserRendered": true,
+      "ynxMissingProviderStayedOnPage": true,
+      "urlPreserved": true,
+      "newTopLevelTabs": 0,
+      "consoleErrors": 0,
+      "screenshotPersisted": false
+    }
+  },
+  "publicRuntime": {
+    "webURL": "https://social.ynxweb4.com/",
+    "webStatus": "UNAVAILABLE",
+    "webHTTPStatus": 404,
+    "webProvider": "Vercel",
+    "webError": "DEPLOYMENT_NOT_FOUND",
+    "apiHealthURL": "https://api.ynxweb4.com/social/health",
+    "apiHealthStatus": "VERIFIED",
+    "apiHealthHTTPStatus": 200,
+    "apiVersionStatus": "UNAVAILABLE",
+    "apiVersionHTTPStatus": 404
+  },
+  "truth": {
+    "sourceComplete": true,
+    "localBrowserVerified": true,
+    "publicDeployed": false,
+    "publicVerified": false,
+    "installedWalletDetected": false,
+    "accountApprovalVerified": false,
+    "callbackVerified": false,
+    "signatureVerified": false,
+    "transactionVerified": false,
+    "productSessionV2Verified": false,
+    "computerControlVerified": false,
+    "migratedV2": false,
+    "aggregateEcosystemComplete": false
+  },
+  "nextAction": "Integration must issue a new single-use deployment lease after binding the Vercel project and rollback target, then deploy this exact Web source and perform public Browser and Computer Control verification."
+}
