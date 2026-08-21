@@ -1,0 +1,105 @@
+{
+  "schemaVersion": 1,
+  "checkpoint": "FINANCE_FULL_RUNTIME_RELEASE_CANDIDATE_SOURCE_ONLY",
+  "source": {
+    "commit": "50892538dc237ef519d95c491f4b918a125a6c8e",
+    "tree": "bd83a62e63cce0db7435c79e7b6dd0f116788f76",
+    "baseRecoveryCommit": "88958904ac232421853fefc1edad522272afbd35",
+    "completeServiceAncestor": "3b2383f5c18ab3eb5ce7f7f6a267d2cfe7c7e6a4",
+    "inheritanceRecord": "apps/finance/evidence/p0-finance-source-inheritance-20260821.json"
+  },
+  "build": {
+    "platform": "linux/amd64",
+    "hostArchitectureAttestedByIntegration": "x86_64",
+    "goCompiler": "go1.25.7",
+    "cgoEnabled": false,
+    "trimpath": true,
+    "sourceDateEpoch": "commit timestamp",
+    "ldflags": "-X main.buildCommit=50892538dc237ef519d95c491f4b918a125a6c8e -X main.buildRelease=ynx-finance-50892538dc237ef519d95c491f4b918a125a6c8e -X main.buildTime=2026-08-21T20:36:04+08:00",
+    "twoIndependentBuildsByteIdentical": true,
+    "binary": {
+      "path": "bin/ynx-finance",
+      "bytes": 11965655,
+      "sha256": "39b97d6cea11bc53bf1f918e6b3ea4257c19672ba671a1fb73d14e3420169ce3"
+    }
+  },
+  "offlinePackage": {
+    "localPath": "/tmp/ynx-finance-release-508.lQp4vS/ynx-finance-50892538dc237ef519d95c491f4b918a125a6c8e-offline-complete-linux-amd64.tar.gz",
+    "hosted": false,
+    "bytes": 6812744,
+    "sha256": "d35f2e155ae3802b07048dd6f045b63ba477adeb1b12bc381d6e170294290915",
+    "archiveRoot": "ynx-finance-50892538dc237ef519d95c491f4b918a125a6c8e",
+    "files": [
+      {"path": "bin/ynx-finance", "bytes": 11965655, "sha256": "39b97d6cea11bc53bf1f918e6b3ea4257c19672ba671a1fb73d14e3420169ce3"},
+      {"path": "web/index.html", "bytes": 11128, "sha256": "5d95950e9bccbd1012265b3f96eef6ddf2111b0dbd16315583060871ed5328ca"},
+      {"path": "web/styles.css", "bytes": 12073, "sha256": "35c6bb6bc2cb3b8846e848eae32e4fb195d0054ffa209a1fdf91f2ea78cb881c"},
+      {"path": "web/app.js", "bytes": 14970, "sha256": "7684dc198cbd91cca40bed56e00c07a1fd49dbe87ea75b18d9141683ba65718b"},
+      {"path": "web/read-sources.js", "bytes": 1440, "sha256": "3812db52ff26bdb3a6fcd3aed0784070306d0097e5c694f27e4c4790913bf3c0"},
+      {"path": "web/wallet-connect.js", "bytes": 19446, "sha256": "44a2054a7f58bf0458ff466a3f9c4d1a391adab20c321fef74977e8fa2fd4690"},
+      {"path": "web/manifest.webmanifest", "bytes": 241, "sha256": "3f7bec35f54aad6a095151e9d4d553e7ea10cbbbcc9e16f0f3fe7abd242b6d05"},
+      {"path": "web/ynx-logo.png", "bytes": 104171, "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d"},
+      {"path": "sbom/ynx-finance.cdx.json", "bytes": 1892, "sha256": "9dc344c99b0d1396571f0e68234fea7ca0b2a1b3b49af83d2bd0a2d423d5b472"}
+    ],
+    "sbomSource": "apps/finance/evidence/ynx-finance-50892538-sbom.cdx.json"
+  },
+  "versionIdentity": {
+    "localRuntimeRestartValidated": true,
+    "bodyBytes": 159,
+    "bodySha256": "fd7c2b34b1ae45a6e47d97caecac5407661aff2d4a2daf3efd081b66418ab9b2",
+    "expected": {
+      "commit": "50892538dc237ef519d95c491f4b918a125a6c8e",
+      "release": "ynx-finance-50892538dc237ef519d95c491f4b918a125a6c8e",
+      "buildTime": "2026-08-21T20:36:04+08:00"
+    }
+  },
+  "targetAndRollback": {
+    "publicUrl": "https://finance.ynxweb4.com",
+    "upstream": "Caddy reverse_proxy 127.0.0.1:6483 to ynx-finance",
+    "newReleasePath": "/opt/ynx/releases/finance/ynx-finance-50892538dc237ef519d95c491f4b918a125a6c8e",
+    "currentSymlink": "/opt/ynx/finance-current",
+    "rollbackReleasePath": "/opt/ynx/releases/finance/ynx-finance-3b2383f5c18a",
+    "attestedCurrent": {
+      "versionCommit": "3b2383f5c18ab3eb5ce7f7f6a267d2cfe7c7e6a4",
+      "versionBytes": 130,
+      "versionSha256": "39789776da47e60b7a7df845789e02ebba16707ad8951eb6f27c84c1b40bb226",
+      "binarySha256": "0cc43c8a77c12975a0fcbada65971f08f2bc3a52345d547ea194dd3ccd60d83f",
+      "environmentSha256": "854e7f1077e8fa4d5a4741918e25d04b0c1a109f2eb9c716b72dae918aa5f252",
+      "systemdUnitSha256": "2e72cdad422a3a714c46d074ea97b725233576cf726dbbfd43e82e99c2c2975b",
+      "caddySha256": "dcf75a7aed315c54632321b8bb80e44c0abc22f6700fadfbfa9a7da21b88a282",
+      "service": "active/running; NRestarts=0"
+    }
+  },
+  "scans": {
+    "servedWebLiteralLocalhost": "clear",
+    "runtimeSourceHttpLocalhost": "clear",
+    "runtimeSourceBareAuthorize": "clear",
+    "runtimeSourceDirectBrowserRpcFetch": "clear",
+    "packageHttpLocalhostBareAuthorizeDirectRpc": "clear",
+    "privateKeyMarkers": "clear",
+    "commonCloudCredentialMarkers": "clear",
+    "documentedLiteralLocalhost": "One source occurrence in internal/finance/server.go is a host-name comparison inside loopback HTTP validation; the Linux binary also contains a Go standard-library string. Neither is a configured endpoint or an http(s)://localhost URL."
+  },
+  "tests": {
+    "go": [
+      "go test -count=1 ./internal/readintegration ./internal/finance ./apps/finance/cmd/admin ./apps/finance/cmd/server",
+      "go test -count=1 -race ./internal/finance"
+    ],
+    "web": [
+      "npm test --prefix apps/finance",
+      "npm run verify:release-evidence --prefix apps/finance",
+      "npm run verify:wallet --prefix apps/finance/web",
+      "npm run build:wallet --prefix apps/finance/web"
+    ],
+    "localRuntime": "Two local starts of /version returned byte-identical, source-injected identity. No Wallet, account, or external service route was requested."
+  },
+  "releaseState": {
+    "sourceOnly": true,
+    "sshUsed": false,
+    "deployed": false,
+    "publicRuntimeBound": false,
+    "walletClicked": false,
+    "accountRequested": false,
+    "hostedDownload": false,
+    "productionSigning": false
+  }
+}

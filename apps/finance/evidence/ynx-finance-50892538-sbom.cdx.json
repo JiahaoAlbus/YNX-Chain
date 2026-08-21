@@ -1,0 +1,32 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2026-08-21T12:36:04Z",
+    "tools": {
+      "components": [
+        {"type": "application", "name": "Go", "version": "1.25.7"}
+      ]
+    },
+    "component": {
+      "type": "application",
+      "name": "ynx-finance",
+      "version": "50892538dc237ef519d95c491f4b918a125a6c8e",
+      "properties": [
+        {"name": "ynx.source.commit", "value": "50892538dc237ef519d95c491f4b918a125a6c8e"},
+        {"name": "ynx.source.tree", "value": "bd83a62e63cce0db7435c79e7b6dd0f116788f76"},
+        {"name": "ynx.build.cgo", "value": "0"},
+        {"name": "ynx.build.trimpath", "value": "true"},
+        {"name": "ynx.deploy.platform", "value": "linux/amd64"}
+      ]
+    }
+  },
+  "components": [
+    {"type": "application", "name": "ynx-finance-linux-amd64", "version": "50892538dc237ef519d95c491f4b918a125a6c8e", "hashes": [{"alg": "SHA-256", "content": "39b97d6cea11bc53bf1f918e6b3ea4257c19672ba671a1fb73d14e3420169ce3"}], "properties": [{"name": "goos", "value": "linux"}, {"name": "goarch", "value": "amd64"}]},
+    {"type": "library", "name": "github.com/decred/dcrd/dcrec/secp256k1/v4", "version": "v4.4.0", "hashes": [{"alg": "SHA-256", "content": "34c662263f109ca7b52e0b1b0dac8ce14a07c1bbf00d1c2723787035a0074677"}]},
+    {"type": "library", "name": "github.com/lib/pq", "version": "v1.12.0", "hashes": [{"alg": "SHA-256", "content": "982d737a235a9b028179c8c76ab02bdba73ff9df15e70feee09d08ff20126c9a"}]},
+    {"type": "library", "name": "golang.org/x/crypto", "version": "v0.50.0", "hashes": [{"alg": "SHA-256", "content": "ccee3bfc93eb2fabec36420d98ba28fcf1f581cc6996ce740cda2016f0796462"}]},
+    {"type": "library", "name": "golang.org/x/sys", "version": "v0.43.0", "hashes": [{"alg": "SHA-256", "content": "4656a0d97b5a153c69d7dc12f0c5e52704efa21f00ad4e9ece8c85b0cc824cd2"}]}
+  ]
+}
