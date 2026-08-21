@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "owner": "02-wallet-auth-ios-macos-native",
+  "evidenceKind": "published-macos-dmg-real-browser-download-failure",
+  "generatedAt": "2026-08-21T18:27:58Z",
+  "sourceHead": "8133b1ca9aa77dd52b17818c784303c96b9c53e5",
+  "parentEvidence": {
+    "commit": "8133b1ca9aa77dd52b17818c784303c96b9c53e5",
+    "path": "release/integration/wallet-macos-public-dmg-quarantine-translocation-evidence-2026-08-22.json",
+    "blob": "e90e7e26dbd8cd11e44ae72728cb76bf567bcb3f",
+    "bytes": 6149,
+    "sha256": "ee457622642a614f2ebbcb9c833a18b2b1f35a1e203ac579d40bf509af29ced8"
+  },
+  "target": {
+    "url": "https://downloads.ynxweb4.com/wallet/sha256-ad6e4077bc001743cf1a4163ceaca5a009a3c8a4d8a809cc4896798976cf56c0/ynx-wallet-desktop-0.1.1-universal.dmg",
+    "expectedBytes": 236661996,
+    "expectedSha256": "ad6e4077bc001743cf1a4163ceaca5a009a3c8a4d8a809cc4896798976cf56c0"
+  },
+  "browser": {
+    "family": "Chrome",
+    "controlSurface": "connected browser extension",
+    "sessionNamingSupported": false,
+    "attempts": [
+      {
+        "sequence": 1,
+        "startUrl": "about:blank",
+        "downloadRequested": false,
+        "result": "browser security check unavailable because the current page origin was unavailable",
+        "securityControlBypassed": false
+      },
+      {
+        "sequence": 2,
+        "startUrl": "https://downloads.ynxweb4.com/",
+        "downloadRequested": false,
+        "result": "net::ERR_BLOCKED_BY_CLIENT while establishing the verified downloads.ynxweb4.com origin",
+        "securityControlBypassed": false
+      }
+    ],
+    "boundedAttempts": 2,
+    "fallbackBrowserUsed": false,
+    "standaloneBrowserAutomationUsed": false
+  },
+  "localObservation": {
+    "downloadsDirectory": "/Users/huangjiahao/Downloads",
+    "targetDmgPresentAfterAttempts": false,
+    "targetCrdownloadPresentAfterAttempts": false,
+    "downloadedBytesObserved": 0,
+    "quarantineXattrFromRealBrowserAvailable": false,
+    "downloadedArtifactRehashed": false
+  },
+  "interpretation": "The connected Chrome surface did not begin a download. The browser's origin/security control and then a client-side blocker ended the two bounded attempts. The explicit Safari quarantine simulation in the parent evidence remains valid only as an isolated engineering mechanism and is not promoted to a real-browser observation.",
+  "gates": {
+    "publicUrlReachableByCurl": true,
+    "actualBrowserDownloadObserved": false,
+    "actualBrowserQuarantineObserved": false,
+    "browserQuarantineAcceptanceVerified": false,
+    "visibleQuarantinedColdLaunchVerified": false,
+    "visibleQuarantinedSecondLaunchVerified": false,
+    "systemApplicationsInstalled": false,
+    "cleanEndUserHostInstalled": false,
+    "publicNativeWalletPublished": false,
+    "developerIdSigned": false,
+    "productionSigned": false,
+    "notarized": false,
+    "stapledTicket": false,
+    "gatekeeperAccepted": false,
+    "authorizationVerified": false,
+    "callbackVerified": false,
+    "accountCreated": false,
+    "productSessionVerified": false,
+    "signSuccess": false,
+    "sendSuccess": false,
+    "transactionSuccess": false,
+    "physicalBiometricVerified": false,
+    "recoveryVerified": false,
+    "universalLinkVerified": false
+  }
+}
