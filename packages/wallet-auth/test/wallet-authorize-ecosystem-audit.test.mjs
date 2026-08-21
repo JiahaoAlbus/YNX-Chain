@@ -137,6 +137,12 @@ test("Wallet Web/PWA and macOS DMG publication remain outside product authority"
   assert.equal(companion.macosDmgPublication.isolatedTempApplicationsCopyVerified, true);
   assert.equal(companion.macosDmgPublication.directBinaryColdLaunch.chainId, "0x1917");
   assert.equal(companion.macosDmgPublication.launchServicesSecond.ppid, 1);
+  assert.equal(companion.macosDmgPublication.identityGapEvidenceCommit, "b7f20a717b22ed279146ac7ab2b41c272a79acb0");
+  assert.equal(companion.macosDmgPublication.ynxwalletSchemeRegistered, false);
+  assert.equal(companion.macosDmgPublication.associatedDomainsPresent, false);
+  assert.equal(companion.macosDmgPublication.publicArtifactMatchesOwnerNativeIdentity, false);
+  assert.equal(companion.macosDmgPublication.publicNativeWalletPublished, false);
+  assert.equal(companion.macosDmgPublication.publicArtifactCallbackDelivered, false);
   assert.equal(companion.macosDmgPublication.systemApplicationsInstallVerified, false);
   assert.equal(companion.macosDmgPublication.browserQuarantineAcceptanceVerified, false);
   assert.equal(companion.macosDmgPublication.wholeAppUnsigned, true);
@@ -247,6 +253,11 @@ test("owner checkpoint separates Wallet public artifacts from approval and Produ
   assert.equal(platform.macosDmg.isolatedTempApplicationsCopyVerified, true);
   assert.equal(platform.macosDmg.directBinarySecond.chainId, "0x1917");
   assert.equal(platform.macosDmg.launchServicesCold.ppid, 1);
+  assert.equal(platform.macosDmg.identityGapEvidenceCommit, "b7f20a717b22ed279146ac7ab2b41c272a79acb0");
+  assert.equal(platform.macosDmg.ownerNativeSource.ynxwalletSchemeRegistered, true);
+  assert.equal(platform.macosDmg.publicArtifactMatchesOwnerNativeIdentity, false);
+  assert.equal(platform.macosDmg.publicNativeWalletPublished, false);
+  assert.equal(platform.macosDmg.publicArtifactCanonicalCallbackFailClosedVisible, false);
   assert.equal(platform.macosDmg.systemApplicationsInstallVerified, false);
   assert.equal(platform.macosDmg.browserQuarantineAcceptanceVerified, false);
   assert.equal(platform.macosDmg.developerId, false);
