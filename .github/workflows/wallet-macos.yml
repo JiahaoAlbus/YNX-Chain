@@ -227,7 +227,10 @@ jobs:
                 repeat with candidate in entire contents of window 1
                   try
                     if (value of attribute "AXIdentifier" of candidate as text) is wantedIdentifier then
-                      set candidateEnabled to value of attribute "AXEnabled" of candidate as text
+                      set candidateEnabled to "false"
+                      try
+                        set candidateEnabled to value of attribute "AXEnabled" of candidate as text
+                      end try
                       set candidateValue to ""
                       try
                         set candidateValue to value of attribute "AXValue" of candidate as text
@@ -340,8 +343,22 @@ jobs:
             sleep 1
           done
           test "$RECOVERY_NATIVE_READY" = true
-          read_wallet_accessibility "YNX device recovery action" > "$PROOF/second-launch-recovery-button.txt" 2>/dev/null || true
-          read_wallet_accessibility "YNX device recovery status" > "$PROOF/second-launch-recovery-ui.txt" 2>/dev/null || true
+          : > "$PROOF/second-launch-recovery-button.txt"
+          : > "$PROOF/second-launch-recovery-ui.txt"
+          : > "$PROOF/second-launch-recovery-accessibility-errors.txt"
+          for _ in $(seq 1 30); do
+            read_wallet_accessibility "YNX device recovery action" \
+              > "$PROOF/second-launch-recovery-button.txt" \
+              2>> "$PROOF/second-launch-recovery-accessibility-errors.txt" || true
+            read_wallet_accessibility "YNX device recovery status" \
+              > "$PROOF/second-launch-recovery-ui.txt" \
+              2>> "$PROOF/second-launch-recovery-accessibility-errors.txt" || true
+            if grep -Eq '^(false|true)[[:space:]]' "$PROOF/second-launch-recovery-button.txt" && \
+               grep -Fq 'Product account recovery remains unavailable.' "$PROOF/second-launch-recovery-ui.txt"; then
+              break
+            fi
+            sleep 1
+          done
           RECOVERY_SYSTEM_EVENTS_VISIBLE=false
           BUTTON_ENABLED_OBSERVED=null
           if grep -Eq '^false[[:space:]]' "$PROOF/second-launch-recovery-button.txt"; then
@@ -575,7 +592,10 @@ jobs:
                 repeat with candidate in entire contents of window 1
                   try
                     if (value of attribute "AXIdentifier" of candidate as text) is wantedIdentifier then
-                      set candidateEnabled to value of attribute "AXEnabled" of candidate as text
+                      set candidateEnabled to "false"
+                      try
+                        set candidateEnabled to value of attribute "AXEnabled" of candidate as text
+                      end try
                       set candidateValue to ""
                       try
                         set candidateValue to value of attribute "AXValue" of candidate as text
