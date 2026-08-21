@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "owner": "Wallet Desktop/CLI/SDK",
+  "consumer": "Central Integration",
+  "artifactEvidence": "apps/wallet-desktop/evidence/macos-universal-dmg-official-publication-lifecycle-20260822.json",
+  "websiteSourceCommit": "7a144c6d501b2010489a74414d94f80973def04b",
+  "productionDeploymentId": "dpl_DByhF6iKQGdywj18gHod5x8kMMSn",
+  "officialUrl": "https://downloads.ynxweb4.com/wallet/sha256-69b4fa5db7b8a9ab105af6633de44f5a5a4a9fceeaa0925a306f77b22381b044/ynx-wallet-macos-0.1.2-universal.dmg",
+  "filename": "ynx-wallet-macos-0.1.2-universal.dmg",
+  "bytes": 237777236,
+  "sha256": "69b4fa5db7b8a9ab105af6633de44f5a5a4a9fceeaa0925a306f77b22381b044",
+  "minimumOS": "macOS 13.0",
+  "architectures": ["x86_64", "arm64"],
+  "signingClass": "unsigned-testnet-preview-dmg; contained Electron executable linker-ad-hoc only",
+  "hostedAndFullGetRehashed": true,
+  "officialDownloadButtonVisible": true,
+  "nativeInstallColdSecondNetworkRollbackUninstallProved": true,
+  "productionSigned": false,
+  "notarized": false,
+  "storeReleased": false,
+  "walletAuthorizationApproved": false,
+  "callbackEmitted": false
+}
