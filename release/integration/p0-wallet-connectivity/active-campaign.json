@@ -2,7 +2,7 @@
   "schemaVersion": "1.0.0",
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "owner": "integration",
-  "status": "P0070_FAILED_CLOSED_HEAVY_RELEASED_P0086_MAIL_RELEASED_P0087_CLOUD_VISIBLE_ACTIVE",
+  "status": "P0070_FAILED_CLOSED_HEAVY_RELEASED_P0087_CLOUD_RELEASED_P0088_AI_VISIBLE_ACTIVE",
   "scope": [
     "founder-control",
     "wallet-connectivity",
@@ -34,7 +34,7 @@
   "firstStop": {
     "complete": true,
     "publicConnectivityClaim": false,
-    "nextAction": "P0-070 is consumed/nonreusable and Heavy is null. Mail P0-086 is released at 734e62bb1bf2cb12fbed02047ac78e310b5a3347 after deterministic approval/rejection proved guest preview and private-service degradation without fabricated inbox or delivery; current-source installed Wallet, Product Session v2, Mail API, public deployment and ComputerControl remain false. Cloud P0-087 owns the next visible deterministic Provider verification slice from exact checkpoint 1abece5158573b10eae6c084f3653a225c6590cb."
+    "nextAction": "P0-070 is consumed/nonreusable and Heavy is null. Cloud P0-087 is released at a427075261aebc2fcb493205840de0bc9f0bc87e after deterministic approval/rejection proved guest preview and private-service degradation with zero private API requests and no fabricated objects; current-source installed Wallet, Product Session v2, Cloud API, public deployment and ComputerControl remain false. AI P0-088 owns the next visible deterministic Provider verification slice from exact checkpoint 2cbd93564255e25c2c861eeab68d7b8ef9831014."
   },
   "lightLeases": [
     {
@@ -262,14 +262,29 @@
     {
       "owner": "integration",
       "taskId": "P0-087",
-      "status": "ACTIVE_LIGHT_VISIBLE_EVIDENCE_ONLY",
+      "status": "RELEASED_CHECKPOINT",
       "grantedAt": "2026-08-21T01:10:00Z",
+      "releasedAt": "2026-08-21T01:30:00Z",
+      "checkpointCommit": "a427075261aebc2fcb493205840de0bc9f0bc87e",
       "scope": "cloud-existing-standard-wallet-visible-verification",
       "constraints": [
         "do not rebuild accepted Cloud Standard Wallet source",
         "guest Cloud preview remains available without Wallet",
         "deterministic Provider evidence is not installed Wallet evidence",
         "no Cloud API, Product Session v2, public deployment or Computer Control claim"
+      ]
+    },
+    {
+      "owner": "integration",
+      "taskId": "P0-088",
+      "status": "ACTIVE_LIGHT_VISIBLE_EVIDENCE_ONLY",
+      "grantedAt": "2026-08-21T01:30:00Z",
+      "scope": "ai-existing-standard-wallet-visible-verification",
+      "constraints": [
+        "do not rebuild accepted AI Standard Wallet source",
+        "guest AI preview remains available without Wallet",
+        "deterministic Provider evidence is not installed Wallet evidence",
+        "no live generation, AI API, Product Session v2, public deployment or Computer Control claim"
       ]
     }
   ],
