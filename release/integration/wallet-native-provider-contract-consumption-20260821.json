@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "recordId": "WALLET-NATIVE-PROVIDER-CONTRACT-CONSUMPTION-20260821",
+  "owner": "wallet-ios-macos",
+  "centralAcceptance": {
+    "commit": "d3831c300560507f64a50e73117bab7b85926d9a",
+    "handoff": "release/integration/wallet-provider-connect-pending-owner-handoffs-20260821.json"
+  },
+  "sharedProviderContract": {
+    "commit": "98c6d5d784d212df8981a53b17118a511e246ad2",
+    "connectionSuccessRequires": [
+      "selected-provider",
+      "approved-account",
+      "provider-request-chain-0x1917"
+    ],
+    "directBrowserRpcFetchRequired": false,
+    "rpcProbeDegradedPreservesStandardWallet": true,
+    "productSessionBlocksStandardWallet": false
+  },
+  "nativeConnection": {
+    "launchMode": "resolver-first-canonical-authorization-deep-link",
+    "browserEip1193Provider": false,
+    "authoritativeSuccess": false,
+    "approval": false,
+    "callback": false,
+    "refreshRestore": false,
+    "disconnect": false,
+    "reason": "The frozen native bridge remains unavailable. Native transport reachability cannot infer a provider, account, signature, session, callback, or transaction."
+  },
+  "artifactTruth": {
+    "macosFormat": "DMG",
+    "dmgRequiresHostedInstallEvidence": true,
+    "iosFormat": "Simulator engineering build only",
+    "iosPhysicalInstall": false,
+    "productionSigned": false,
+    "notarized": false,
+    "storeReleased": false,
+    "publicDownloadHosted": false
+  }
+}

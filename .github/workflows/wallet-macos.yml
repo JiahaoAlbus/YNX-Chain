@@ -3,7 +3,7 @@ name: wallet-macos
 on:
   workflow_dispatch:
   push:
-    branches: [main, codex/wallet-ios-macos-20260813]
+    branches: [main, codex/wallet-ios-macos-20260813, codex/wallet-ios-macos-install-recovery-p0-20260821]
     paths: ["apps/wallet/macos/**", ".github/workflows/wallet-macos.yml"]
   pull_request:
     paths: ["apps/wallet/macos/**", ".github/workflows/wallet-macos.yml"]
@@ -35,6 +35,8 @@ jobs:
           PROOF="$GITHUB_WORKSPACE/apps/wallet/proof/ci-macos"
           INSTALL_ROOT="$RUNNER_TEMP/Applications"
           APP="$INSTALL_ROOT/YNX Wallet.app"
+          DMG_STAGE="$RUNNER_TEMP/YNX Wallet DMG stage"
+          DMG="$PROOF/YNX-Wallet-macOS-ad-hoc.dmg"
           ARM_SCRATCH="$RUNNER_TEMP/wallet-macos-arm64"
           X86_SCRATCH="$RUNNER_TEMP/wallet-macos-x86_64"
           swift build --package-path "$PACKAGE" --configuration release \
@@ -45,7 +47,7 @@ jobs:
             --triple arm64-apple-macosx13.0 --scratch-path "$ARM_SCRATCH" --show-bin-path)"
           X86_BIN="$(swift build --package-path "$PACKAGE" --configuration release \
             --triple x86_64-apple-macosx13.0 --scratch-path "$X86_SCRATCH" --show-bin-path)"
-          rm -rf "$PROOF" "$APP"
+          rm -rf "$PROOF" "$APP" "$DMG_STAGE"
           mkdir -p "$PROOF" "$APP/Contents/MacOS" "$APP/Contents/Resources"
           cp "$PACKAGE/Info.plist" "$APP/Contents/Info.plist"
           cp "$GITHUB_WORKSPACE/release/integration/wallet-auth-public-endpoint-service-discovery-matrix.json" \
@@ -77,10 +79,15 @@ jobs:
           /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP/Contents/Info.plist" > "$PROOF/bundle-identifier.txt"
           xcodebuild -version > "$PROOF/xcode-version.txt"
           file "$APP/Contents/MacOS/YNXWalletMac" > "$PROOF/executable-file.txt"
+          mkdir -p "$DMG_STAGE"
+          ditto "$APP" "$DMG_STAGE/YNX Wallet.app"
+          ln -s /Applications "$DMG_STAGE/Applications"
+          hdiutil create -volname "YNX Wallet" -srcfolder "$DMG_STAGE" -ov -format UDZO "$DMG"
+          hdiutil verify "$DMG"
           ditto -c -k --sequesterRsrc --keepParent "$APP" "$PROOF/YNX-Wallet-macOS-ad-hoc.zip"
-          shasum -a 256 "$PROOF/YNX-Wallet-macOS-ad-hoc.zip" > "$PROOF/SHA256SUMS"
-          wc -c "$PROOF/YNX-Wallet-macOS-ad-hoc.zip" > "$PROOF/BYTES"
-          printf '%s\n' "$APP" > "$PROOF/installed-app-path.txt"
+          shasum -a 256 "$DMG" "$PROOF/YNX-Wallet-macOS-ad-hoc.zip" > "$PROOF/SHA256SUMS"
+          wc -c "$DMG" "$PROOF/YNX-Wallet-macOS-ad-hoc.zip" > "$PROOF/BYTES"
+          printf '%s\n' "$APP" > "$PROOF/source-app-path.txt"
       - name: Verify real Keychain and biometric recovery boundary
         run: |
           set -euo pipefail
@@ -111,8 +118,19 @@ jobs:
         run: |
           set -euo pipefail
           PROOF="$GITHUB_WORKSPACE/apps/wallet/proof/ci-macos"
-          APP="$RUNNER_TEMP/Applications/YNX Wallet.app"
+          DMG="$PROOF/YNX-Wallet-macOS-ad-hoc.dmg"
+          MOUNT="$RUNNER_TEMP/YNX Wallet mounted"
+          APP="$RUNNER_TEMP/InstalledApplications/YNX Wallet.app"
           LSREGISTER="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister"
+          rm -rf "$MOUNT" "$APP"
+          mkdir -p "$MOUNT" "$(dirname "$APP")"
+          hdiutil attach "$DMG" -nobrowse -readonly -mountpoint "$MOUNT"
+          test -d "$MOUNT/YNX Wallet.app"
+          ditto "$MOUNT/YNX Wallet.app" "$APP"
+          hdiutil detach "$MOUNT"
+          codesign --verify --deep --strict "$APP"
+          printf 'dmg=%s mounted=true copiedTo=%s detached=true codesignVerified=true\n' "$DMG" "$APP" \
+            | tee "$PROOF/dmg-install.txt"
           "$LSREGISTER" -f "$APP"
           open -n "$APP"
           for _ in $(seq 1 60); do
@@ -422,5 +440,5 @@ jobs:
           name: ynx-wallet-macos-native
           path: |
             apps/wallet/proof/ci-macos
-            ${{ runner.temp }}/Applications/YNX Wallet.app
+            ${{ runner.temp }}/InstalledApplications/YNX Wallet.app
           if-no-files-found: error
