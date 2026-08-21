@@ -1,6 +1,6 @@
 {
   "name": "@ynx-chain/wallet-desktop",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Fail-closed YNX Testnet Wallet desktop engineering preview",
   "homepage": "https://www.ynxweb4.com/wallet",
   "author": {
@@ -22,10 +22,9 @@
     "dist:windows-arm64": "electron-builder --win nsis --arm64 --publish never",
     "dist:mac": "electron-builder --mac dmg --universal --publish never"
   },
-  "dependencies": {
-    "@ynx-chain/wallet-auth": "file:../../packages/wallet-auth"
-  },
+  "dependencies": {},
   "devDependencies": {
+    "@ynx-chain/wallet-auth": "file:../../packages/wallet-auth",
     "electron": "42.8.0",
     "electron-builder": "26.0.12"
   },
@@ -34,11 +33,11 @@
     "productName": "YNX Wallet Testnet Preview",
     "artifactName": "ynx-wallet-desktop-${version}-${arch}.${ext}",
     "asar": true,
+    "afterPack": "scripts/after-pack.mjs",
     "files": [
       "src/**",
       "package.json",
-      "node_modules/@ynx-chain/wallet-auth/**",
-      "node_modules/@noble/**"
+      "!node_modules/**"
     ],
     "linux": {
       "target": ["deb", "AppImage"],

@@ -39,10 +39,13 @@ jobs:
           Pop-Location
           npm run dist:windows --prefix apps/wallet-desktop
           Get-ChildItem apps/wallet-desktop/dist-preflight/*.exe,apps/wallet-desktop/dist/*.exe | Select-Object FullName,Length
-      - name: Install, upgrade, cold launch, second launch, fail closed and uninstall
+      - name: Install, upgrade, cold launch, second launch, rollback, fail closed and uninstall
         shell: pwsh
         env:
           EVIDENCE: ${{ runner.temp }}\wallet-desktop-lifecycle.json
+          ROLLBACK_EVIDENCE: ${{ runner.temp }}\wallet-desktop-rollback.json
+          REUPGRADE_EVIDENCE: ${{ runner.temp }}\wallet-desktop-reupgrade.json
+          FAIL_CLOSED_EVIDENCE: ${{ runner.temp }}\wallet-desktop-fail-closed.json
         run: |
           $ErrorActionPreference = 'Stop'
           $preflight = (Get-ChildItem 'apps/wallet-desktop/dist-preflight/*.exe' | Select-Object -First 1).FullName
@@ -80,14 +83,40 @@ jobs:
           $secondTitle = (Get-Process | Where-Object MainWindowTitle -eq 'YNX Wallet Testnet Preview' | Select-Object -First 1).MainWindowTitle
           Stop-Process -Id $second.Id -Force
 
+          $uninstaller = Join-Path $installRoot 'Uninstall YNX Wallet Testnet Preview.exe'
+          if (-not (Test-Path $uninstaller)) { throw 'uninstaller missing before rollback' }
+          Start-Process -FilePath $uninstaller -ArgumentList '/S' -Wait
+          for ($i=0; $i -lt 30 -and (Test-Path $appExe); $i++) { Start-Sleep 1 }
+          if (Test-Path $appExe) { throw 'current executable remains before rollback install' }
+
+          Start-Process -FilePath $preflight -ArgumentList '/S' -Wait
+          $appExe = (Get-ChildItem $env:LOCALAPPDATA -Filter 'YNX Wallet Testnet Preview.exe' -File -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1).FullName
+          if (-not $appExe -or (Get-Item $appExe).VersionInfo.ProductVersion -ne $preflightVersion) { throw 'rollback did not restore preflight version' }
+          $env:YNX_WALLET_EVIDENCE_PATH = $env:ROLLBACK_EVIDENCE
+          $rollback = Start-Process -FilePath $appExe -PassThru
+          for ($i=0; $i -lt 30 -and -not (Test-Path $env:ROLLBACK_EVIDENCE); $i++) { Start-Sleep 1 }
+          if (-not (Test-Path $env:ROLLBACK_EVIDENCE)) { throw 'rollback launch did not write evidence' }
+          $rollbackEvidence = Get-Content $env:ROLLBACK_EVIDENCE -Raw | ConvertFrom-Json
+          if (-not $rollbackEvidence.rpc.available -or $rollbackEvidence.rpc.chainId -ne '0x1917' -or $rollbackEvidence.signingEnabled) { throw 'rollback launch evidence failed' }
+          Stop-Process -Id $rollback.Id -Force
+
+          Start-Process -FilePath $current -ArgumentList '/S' -Wait
+          if ((Get-Item $appExe).VersionInfo.ProductVersion -ne $currentVersion) { throw 're-upgrade did not restore current version' }
+          $env:YNX_WALLET_EVIDENCE_PATH = $env:REUPGRADE_EVIDENCE
+          $reupgrade = Start-Process -FilePath $appExe -PassThru
+          for ($i=0; $i -lt 30 -and -not (Test-Path $env:REUPGRADE_EVIDENCE); $i++) { Start-Sleep 1 }
+          if (-not (Test-Path $env:REUPGRADE_EVIDENCE)) { throw 're-upgrade launch did not write evidence' }
+          $reupgradeEvidence = Get-Content $env:REUPGRADE_EVIDENCE -Raw | ConvertFrom-Json
+          if (-not $reupgradeEvidence.rpc.available -or $reupgradeEvidence.rpc.chainId -ne '0x1917' -or $reupgradeEvidence.signingEnabled) { throw 're-upgrade launch evidence failed' }
+          Stop-Process -Id $reupgrade.Id -Force
+
           $env:YNX_WALLET_RPC_URL = 'http://127.0.0.1:1'
+          $env:YNX_WALLET_EVIDENCE_PATH = $env:FAIL_CLOSED_EVIDENCE
           $failed = Start-Process -FilePath $appExe -PassThru
-          for ($i=0; $i -lt 30; $i++) {
-            Start-Sleep 1
-            $failedEvidence = Get-Content $env:EVIDENCE -Raw | ConvertFrom-Json
-            if ($failedEvidence.launches -eq 3) { break }
-          }
-          if ($failedEvidence.launches -ne 3 -or $failedEvidence.rpc.available -or $failedEvidence.rpc.chainId -or $failedEvidence.signingEnabled) { throw 'RPC failure did not fail closed' }
+          for ($i=0; $i -lt 30 -and -not (Test-Path $env:FAIL_CLOSED_EVIDENCE); $i++) { Start-Sleep 1 }
+          if (-not (Test-Path $env:FAIL_CLOSED_EVIDENCE)) { throw 'fail-closed launch did not write evidence' }
+          $failedEvidence = Get-Content $env:FAIL_CLOSED_EVIDENCE -Raw | ConvertFrom-Json
+          if ($failedEvidence.rpc.available -or $failedEvidence.rpc.chainId -or $failedEvidence.rpc.errorCode -ne 'RPC_ENDPOINT_REJECTED' -or $failedEvidence.signingEnabled) { throw 'RPC failure did not fail closed' }
           Stop-Process -Id $failed.Id -Force
 
           $uninstaller = Join-Path $installRoot 'Uninstall YNX Wallet Testnet Preview.exe'
@@ -103,6 +132,10 @@ jobs:
             upgraded = $true
             preflightVersion = $preflightVersion
             currentVersion = $currentVersion
+            rollback = $true
+            rollbackVersion = $preflightVersion
+            reupgrade = $true
+            reupgradeVersion = $currentVersion
             coldLaunch = $true
             secondLaunch = $true
             processEvidence = $true
@@ -137,7 +170,7 @@ jobs:
           $manifest = [ordered]@{
             schemaVersion = 1
             productId = 'wallet-desktop'
-            version = '0.1.0'
+            version = $lifecycle.currentVersion
             sourceCommit = $env:GITHUB_SHA
             workflowRunId = [long]$env:GITHUB_RUN_ID
             artifact = [ordered]@{
@@ -185,7 +218,7 @@ jobs:
           $actualSha256 = (Get-FileHash $installer.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
           if ($manifest.sourceCommit -ne $env:GITHUB_SHA -or $manifest.artifact.sha256 -ne $actualSha256 -or $manifest.artifact.bytes -ne $installer.Length) { throw 'downloaded installer hash or size mismatch' }
           if ($manifest.artifact.minimumOS -ne 'Windows Server 2025 native runner; earlier Windows x64 not evidenced' -or $manifest.artifact.signingClass -ne 'unsigned_windows_nsis_testnet_candidate' -or $manifest.artifact.authenticodeStatus -ne 'NotSigned' -or $manifest.artifact.productionSigned -or -not $manifest.artifact.installedOnNativeRunner) { throw 'manifest release boundary mismatch' }
-          if (-not $lifecycle.installed -or -not $lifecycle.upgraded -or -not $lifecycle.coldLaunch -or -not $lifecycle.secondLaunch -or -not $lifecycle.processEvidence -or $lifecycle.chainId -ne '0x1917' -or -not $lifecycle.rpcFailureClosed -or $lifecycle.signingEnabled -or $lifecycle.accountCreated -or $lifecycle.balanceClaimed -or $lifecycle.transactionCreated -or -not $lifecycle.uninstalled -or $lifecycle.productionSigned) { throw 'lifecycle release boundary mismatch' }
+          if (-not $lifecycle.installed -or -not $lifecycle.upgraded -or -not $lifecycle.rollback -or -not $lifecycle.reupgrade -or -not $lifecycle.coldLaunch -or -not $lifecycle.secondLaunch -or -not $lifecycle.processEvidence -or $lifecycle.chainId -ne '0x1917' -or -not $lifecycle.rpcFailureClosed -or $lifecycle.signingEnabled -or $lifecycle.accountCreated -or $lifecycle.balanceClaimed -or $lifecycle.transactionCreated -or -not $lifecycle.uninstalled -or $lifecycle.productionSigned) { throw 'lifecycle release boundary mismatch' }
           New-Item -ItemType Directory -Force downloaded-verification | Out-Null
           [ordered]@{
             schemaVersion = 1
