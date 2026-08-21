@@ -1,13 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {createHash} from "node:crypto";
-import {PWA_CACHE, assetKeyForRequest, cacheableResponse, obsoletePwaCaches, responseMatchesIntegrity, serviceWorkerRoute} from "../src/service-worker-policy.js";
+import {PWA_CACHE, allPwaCaches, assetKeyForRequest, cacheableResponse, obsoletePwaCaches, recoveryNavigationUrl, responseMatchesIntegrity, serviceWorkerRoute, upgradeNavigationUrl} from "../src/service-worker-policy.js";
 
 const origin = "https://wallet.ynxweb4.com";
 const request = (url, method="GET", mode="cors") => ({url,method,mode});
 
 test("PWA routes only same-origin GET navigation and assets into cache strategies", () => {
-  assert.equal(PWA_CACHE,"ynx-wallet-web-v7");
+  assert.equal(PWA_CACHE,"ynx-wallet-web-v8");
   assert.equal(serviceWorkerRoute(request(`${origin}/wallet`,"GET","navigate"),origin),"navigation-network-first");
   assert.equal(serviceWorkerRoute(request(`${origin}/app.js`),origin),"asset-cache-first");
   assert.equal(serviceWorkerRoute(request("https://evm.ynxweb4.com","POST"),origin),"network-only");
@@ -17,9 +17,21 @@ test("PWA routes only same-origin GET navigation and assets into cache strategie
 
 test("only obsolete YNX caches are purged and requests resolve to canonical asset keys",()=>{
   assert.deepEqual(obsoletePwaCaches(["ynx-wallet-web-v2","ynx-wallet-web-v6",PWA_CACHE,"another-product-v1","ynx-wallet-web-preview"]),["ynx-wallet-web-v2","ynx-wallet-web-v6"]);
+  assert.deepEqual(allPwaCaches(["ynx-wallet-web-v2",PWA_CACHE,"another-product-v1","ynx-wallet-web-preview"]),["ynx-wallet-web-v2",PWA_CACHE]);
   assert.equal(assetKeyForRequest(request(`${origin}/`),origin),"./index.html");
   assert.equal(assetKeyForRequest(request(`${origin}/app.js?rollback=1`),origin),"./app.js");
   assert.equal(assetKeyForRequest(request("https://evm.ynxweb4.com"),origin),null);
+});
+
+test("version drift recovery and upgrade navigation are single-attempt and URL preserving",()=>{
+  const original=`${origin}/?lang=en&source=3651#connect`;
+  const recovery=recoveryNavigationUrl(original);
+  assert.equal(recovery,`${origin}/?lang=en&source=3651&ynx-sw-recovery=ynx-wallet-web-v8#connect`);
+  assert.equal(recoveryNavigationUrl(recovery),null);
+  const upgrade=upgradeNavigationUrl(original);
+  assert.equal(upgrade,`${origin}/?lang=en&source=3651&ynx-sw-upgrade=ynx-wallet-web-v8#connect`);
+  assert.equal(upgradeNavigationUrl(upgrade),null);
+  assert.equal(recoveryNavigationUrl("javascript:alert(1)"),null);
 });
 
 test("nested official scope resolves canonical keys and rejects same-origin paths outside Wallet",()=>{
@@ -37,6 +49,10 @@ test("built worker derives cache keys from its registration scope",async()=>{
   const worker=await import("node:fs/promises").then(({readFile})=>readFile(new URL("../public/sw.js",import.meta.url),"utf8"));
   assert.match(worker,/const scopeUrl = self\.registration\.scope;/u);
   assert.doesNotMatch(worker,/assetKeyForRequest\(event\.request, self\.location\.origin\)/u);
+  assert.match(worker,/self\.registration\.unregister\(\)/u);
+  assert.match(worker,/x-ynx-wallet-recovery/u);
+  assert.match(worker,/client\.navigate\(target\)/u);
+  assert.match(worker,/includeUncontrolled:true/u);
 });
 
 test("PWA caches only successful same-origin response classes", () => {
