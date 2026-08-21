@@ -10,7 +10,8 @@ const catalog = JSON.parse(fs.readFileSync(path.join(root, "web/locales.json"), 
 
 test("the pre-localization Calendar surface is English", () => {
   assert.equal(catalog.sourceLanguage, "en");
-  assert.match(html, /<html lang="en">/);
+  assert.match(html, /<html lang="en" class="notranslate" translate="no">/);
+  assert.match(html, /<meta name="google" content="notranslate" \/>/);
   const withoutLanguageNames = html.replace(/<select id="locale-picker"[\s\S]*?<\/select>/, "");
   assert.doesNotMatch(withoutLanguageNames, /[\u3400-\u9fff]/u);
 });

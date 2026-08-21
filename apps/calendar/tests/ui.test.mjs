@@ -7,7 +7,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const load = (n) => readFile(resolve(here, "../web", n), "utf8");
 test("Calendar is an accessible independent time product", async () => {
   const html = await load("index.html");
-  assert.match(html, /<html lang="en">/);
+  assert.match(html, /<html lang="en" class="notranslate" translate="no">/);
   assert.match(html, /name="viewport"/);
   assert.match(html, /class="skip"/);
   assert.match(html, /id="timeline"[^>]*tabindex="-1"/);
