@@ -5,10 +5,8 @@ import { keccak_256 } from "@noble/hashes/sha3.js";
 import { bytesToHex, hexToBytes, utf8ToBytes } from "@noble/hashes/utils.js";
 import {
   encodeRequestDeepLink,
-  parseCallbackURL,
+  parseAuthorizationCallbackURL,
   requestDigest as canonicalRequestDigest,
-  verifyAuthorization,
-  verifyAuthorizationRejection,
   type AuthorizationRejection,
 } from "@ynx-chain/wallet-auth";
 
@@ -170,7 +168,7 @@ export function parseWalletDecision(
   now = new Date(),
 ): WalletAuthorizationDecision {
   validateRequest(expected, now);
-  const response = parseCallbackURL(value, expected.callback);
+  const response = parseAuthorizationCallbackURL(value, expected, now);
   if (
     response &&
     typeof response === "object" &&
@@ -179,16 +177,12 @@ export function parseWalletDecision(
   ) {
     return Object.freeze({
       kind: "rejected" as const,
-      rejection: verifyAuthorizationRejection(response, expected, now),
+      rejection: response as AuthorizationRejection,
     });
   }
   return Object.freeze({
     kind: "approved" as const,
-    approval: verifyAuthorization(response, {
-      ...expected,
-      requestDigest: canonicalRequestDigest(expected),
-      now,
-    }) as WalletApproval,
+    approval: response as WalletApproval,
   });
 }
 
