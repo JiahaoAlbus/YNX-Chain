@@ -58,6 +58,17 @@ private func verifyFrozenEndpointMatrixAndChain() async {
       "YNX_WALLET_REST_APP_GATEWAY_UNAVAILABLE pid=\(getpid(), privacy: .public) code=ENDPOINT_OR_RESPONSE_REJECTED"
     )
   }
+
+  do {
+    let observation = try await WalletGatewayFailClosedProbe().run(configuration: configuration)
+    walletNetworkLogger.notice(
+      "YNX_WALLET_GATEWAY_FAIL_CLOSED pid=\(getpid(), privacy: .public) walletComplete=\(observation.walletCompletionError, privacy: .public) walletIntrospect=\(observation.walletIntrospectionError, privacy: .public) productIntrospect=\(observation.productSessionIntrospectionError, privacy: .public) stateUnchanged=\(observation.stateUnchanged, privacy: .public) authorizationSuccess=false account=false signing=false send=false transaction=false"
+    )
+  } catch {
+    walletNetworkLogger.error(
+      "YNX_WALLET_GATEWAY_FAIL_CLOSED_UNAVAILABLE pid=\(getpid(), privacy: .public) code=ENDPOINT_OR_RESPONSE_REJECTED authorizationSuccess=false account=false signing=false send=false transaction=false"
+    )
+  }
 }
 
 private func runEphemeralKeychainProbeIfRequested() {

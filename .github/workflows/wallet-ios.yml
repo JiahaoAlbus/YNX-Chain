@@ -146,6 +146,8 @@ jobs:
                grep -Fq "YNX_WALLET_RPC_CHAIN_ID_VERIFIED pid=$COLD_PID chainId=0x1917" \
                  proof/ci-ios/cold-launch-network-native.log && \
                grep -Fq "YNX_WALLET_REST_APP_GATEWAY_REACHABLE pid=$COLD_PID status=200" \
+                 proof/ci-ios/cold-launch-network-native.log && \
+               grep -Fq "YNX_WALLET_GATEWAY_FAIL_CLOSED pid=$COLD_PID walletComplete=UNKNOWN_OR_MISSING_FIELD walletIntrospect=PROOF_REQUIRED productIntrospect=UNKNOWN_OR_MISSING_FIELD stateUnchanged=true authorizationSuccess=false account=false signing=false send=false transaction=false" \
                  proof/ci-ios/cold-launch-network-native.log; then
               NETWORK_READY=true
               break
@@ -177,6 +179,8 @@ jobs:
                grep -Fq "YNX_WALLET_RPC_CHAIN_ID_VERIFIED pid=$SECOND_PID chainId=0x1917" \
                  proof/ci-ios/second-launch-network-native.log && \
                grep -Fq "YNX_WALLET_REST_APP_GATEWAY_REACHABLE pid=$SECOND_PID status=200" \
+                 proof/ci-ios/second-launch-network-native.log && \
+               grep -Fq "YNX_WALLET_GATEWAY_FAIL_CLOSED pid=$SECOND_PID walletComplete=UNKNOWN_OR_MISSING_FIELD walletIntrospect=PROOF_REQUIRED productIntrospect=UNKNOWN_OR_MISSING_FIELD stateUnchanged=true authorizationSuccess=false account=false signing=false send=false transaction=false" \
                  proof/ci-ios/second-launch-network-native.log; then
               SECOND_NETWORK_READY=true
               break
@@ -184,6 +188,15 @@ jobs:
             sleep 1
           done
           test "$SECOND_NETWORK_READY" = true
+          {
+            printf 'coldPid=%s\n' "$COLD_PID"
+            printf 'secondPid=%s\n' "$SECOND_PID"
+            printf 'walletCompletionError=UNKNOWN_OR_MISSING_FIELD\n'
+            printf 'walletIntrospectionError=PROOF_REQUIRED\n'
+            printf 'productSessionIntrospectionError=UNKNOWN_OR_MISSING_FIELD\n'
+            printf 'stateUnchanged=true\n'
+            printf 'authorizationSuccess=false\naccount=false\nsigning=false\nsend=false\ntransaction=false\n'
+          } | tee proof/ci-ios/gateway-testnet-fail-closed.txt
           xcrun simctl io "$DEVICE" screenshot proof/ci-ios/wallet-second-launch.png
       - name: Deliver malformed callback and prove fail-closed UI semantically
         timeout-minutes: 15
