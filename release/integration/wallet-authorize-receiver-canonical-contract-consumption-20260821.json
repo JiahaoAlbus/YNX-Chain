@@ -1,0 +1,44 @@
+{
+  "schemaVersion": "1.0.0",
+  "date": "2026-08-21",
+  "owner": "wallet-platform",
+  "scope": "Wallet canonical authorization receiver and package-root consumer",
+  "consumedContract": {
+    "integrationAcceptanceCommit": "b38489793018ff9a009cad57558b66a142495a2e",
+    "sourceCommit": "46386ae8eeaa7633923ae762a5a9634b5eac98d9",
+    "contractId": "YNX-CANONICAL-WALLET-AUTHORIZE-V1",
+    "contractVersion": "1.0.0-p0.0",
+    "contractPath": "packages/wallet-auth/integration/canonical-wallet-authorize-v1.json",
+    "contractSha256": "e572042f18c1e32dfe86da26ee2ab52f9372c9803eae3b492c26932e50251c03"
+  },
+  "implementation": {
+    "launchBuilder": "@ynx-chain/wallet-auth#encodeRequestDeepLink",
+    "receiverParser": "@ynx-chain/wallet-auth#parseWalletDeepLink",
+    "callbackParserAndVerifier": "@ynx-chain/wallet-auth#parseAuthorizationCallbackURL",
+    "pendingStorage": "IncomingAuthorizationStore captures the exact parsed request before review and restores only a valid digest-bound request",
+    "bareRoute": "ynxwallet://authorize, empty payload, wrong query and fragments fail closed with MISSING_AUTHORIZATION_REQUEST",
+    "reviewGate": "no review modal without a parsed request, Wallet manifest and selected account",
+    "reviewFields": ["requestingProduct", "productClientId", "bundleId", "callback", "selectedAccount", "chainId", "scopes", "purpose", "expiresAt"],
+    "releaseScanner": "packages/wallet-auth/scripts/verify-no-bare-wallet-authorize.mjs"
+  },
+  "validation": {
+    "walletAuthCheck": "PASS: 114/114",
+    "walletAppTest": "PASS: 62/62",
+    "walletTypecheck": "PASS",
+    "noBareAuthorizeScanner": "PASS: 0 findings",
+    "diffCheck": "PASS"
+  },
+  "truth": {
+    "sourceContractConsumed": true,
+    "deviceVisibleReviewVerified": false,
+    "approveCallbackDeviceVerified": false,
+    "rejectCallbackDeviceVerified": false,
+    "coldStartRecoveryDeviceVerified": false,
+    "browserRoundTripVerified": false,
+    "productMigrations": "0/12",
+    "deployedPublic": false,
+    "integratedCentral": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

@@ -1,13 +1,13 @@
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 import test from "node:test";
-import {parseWalletDeepLink, WalletAuthError} from "@ynx-chain/wallet-auth";
+import {parseWalletDeepLink, WALLET_AUTHORIZE_ROUTE, WalletAuthError} from "@ynx-chain/wallet-auth";
 import {PRODUCT_REGISTRY} from "./registry";
 
 test("a bare authorize route is rejected before Wallet review state can be created", () => {
   assert.throws(
-    () => parseWalletDeepLink("ynxwallet://authorize", "android", {now:new Date("2026-08-21T00:00:00.000Z"),registry:PRODUCT_REGISTRY}),
-    (error:unknown) => error instanceof WalletAuthError && error.code === "INVALID_DEEP_LINK",
+    () => parseWalletDeepLink(WALLET_AUTHORIZE_ROUTE, "android", {now:new Date("2026-08-21T00:00:00.000Z"),registry:PRODUCT_REGISTRY}),
+    (error:unknown) => error instanceof WalletAuthError && error.code === "MISSING_AUTHORIZATION_REQUEST",
   );
 });
 
