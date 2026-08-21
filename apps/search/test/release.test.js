@@ -26,6 +26,18 @@ test("public Search remains usable without login and Wallet controls are explici
   assert.doesNotMatch(launcher,/`ynxwallet:\/\/authorize/);
 });
 
+test("public Search keeps browser assets and requests inside its canonical subroute",async()=>{
+  const [app,html,worker,server]=await Promise.all([read("src/public/app.js"),read("src/public/index.html"),read("src/public/sw.js"),read("src/server.js")]);
+  assert.match(html,/href="\/search\/styles\.css"/);
+  assert.match(html,/src="\/search\/runtime-config\.js"/);
+  assert.match(html,/src="\/search\/app\.js"/);
+  assert.match(app,/const PRODUCT_BASE = "\/search\/"/);
+  assert.doesNotMatch(app,/fetch\([`"]\/api\//);
+  assert.match(app,/register\(productUrl\("sw\.js"\), \{ scope: PRODUCT_BASE \}\)/);
+  assert.match(worker,/startsWith\("\/search\/api\/"\)/);
+  assert.match(server,/url\.pathname\.startsWith\("\/search\/"\)/);
+});
+
 test("release-facing browser files contain no loopback or development endpoints",async()=>{
   const files=await Promise.all(["src/public/app.js","src/public/index.html","src/public/runtime-config.js","src/public/standard-wallet.js","src/public/safe-wallet-launcher.js"].map(read));
   for(const body of files)assert.doesNotMatch(body,/(localhost|127\.0\.0\.1|0\.0\.0\.0|10\.0\.2\.2|example\.com)/);

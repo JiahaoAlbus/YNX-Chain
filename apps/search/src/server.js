@@ -21,6 +21,8 @@ async function createCase(kind,input){const item=await store.createCase(kind,inp
 
 const server=createServer(async(req,res)=>{try{
   const url=new URL(req.url,`http://${req.headers.host??"localhost"}`);
+  if(url.pathname==="/search")url.pathname="/";
+  else if(url.pathname.startsWith("/search/"))url.pathname=url.pathname.slice(7)||"/";
   if(req.method==="GET"&&url.pathname==="/api/health")return json(res,200,{status:"available",build,provider:SEARCH_PROVIDER_CONTRACT,index:SEARCH_INDEX_CONTRACT,aiGateway:process.env.YNX_AI_GATEWAY_URL&&process.env.YNX_AI_GATEWAY_CLIENT_TOKEN?"configured":"unavailable",walletGateway:process.env.YNX_WALLET_GATEWAY_URL?"configured":"unavailable",trustGateway:process.env.YNX_TRUST_API_URL?"configured":"unavailable",offline:"cached shell only; search requires local service/index"});
   if(req.method==="GET"&&url.pathname==="/api/search"){rate(req,"query",120);return json(res,200,await store.search(url.searchParams.get("q"),{page:Number(url.searchParams.get("page")??1),pageSize:Number(url.searchParams.get("pageSize")??10),sourceId:url.searchParams.get("source")||null,freshnessDays:url.searchParams.get("freshnessDays")?Number(url.searchParams.get("freshnessDays")):null,contentType:url.searchParams.get("type")||null}))}
   if(req.method==="GET"&&url.pathname==="/api/index/status"){const db=await store.snapshot();return json(res,200,{contract:SEARCH_INDEX_CONTRACT,coverageClaim:SEARCH_PROVIDER_CONTRACT.coverage,sources:Object.values(db.sources).map(({authorizationEvidence,...source})=>source),documentCount:Object.keys(db.documents).length,revision:db.revision})}

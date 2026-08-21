@@ -3,6 +3,8 @@ import {connectStandardWallet,privateServiceDegraded} from "./standard-wallet.js
 import {launchSearchWalletAuthorization} from "./safe-wallet-launcher.js";
 
 const $ = selector => document.querySelector(selector);
+const PRODUCT_BASE = "/search/";
+const productUrl = path => `${PRODUCT_BASE}${String(path).replace(/^\/+/, "")}`;
 const number = value => new Intl.NumberFormat(locale).format(value);
 let page = 1;
 let lastQuery = "";
@@ -71,7 +73,7 @@ function freshness(value) {
 
 async function loadStatus({ open = false } = {}) {
   try {
-    const response = await fetch("/api/index/status");
+    const response = await fetch(productUrl("api/index/status"));
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const data = await response.json();
     const current = $("#source").value;
@@ -110,7 +112,7 @@ async function search(nextPage = 1) {
   let response;
   let data;
   try {
-    response = await fetch(`/api/search?${params}`);
+    response = await fetch(`${productUrl("api/search")}?${params}`);
     data = await response.json();
   } catch {
     setState("failure");
@@ -185,7 +187,7 @@ async function prepareAi() {
   let response;
   let data;
   try {
-    response = await fetch("/api/ai/prepare", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ query: lastQuery, filters, model: "default", outputLocale: aiLocale }) });
+    response = await fetch(productUrl("api/ai/prepare"), { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ query: lastQuery, filters, model: "default", outputLocale: aiLocale }) });
     data = await response.json();
     if (!response.ok) throw new Error(data.error);
   } catch (error) {
@@ -234,7 +236,7 @@ $("#case-form").onsubmit = async event => {
   if (caseKind === "appeal") payload.parentCaseId = $("#case-parent").value.trim();
   $("#case-submit").disabled = true;
   try {
-    const response = await fetch(`/api/${caseKind}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) });
+    const response = await fetch(productUrl(`api/${caseKind}`), { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) });
     const data = await response.json();
     if (!response.ok) throw new Error(data.error);
     $("#case-result").textContent = `${data.case.kind} case ${data.case.id} · ${data.case.status} · Trust: ${data.trustStatus}`;
@@ -252,7 +254,7 @@ $("#ai-approve").onclick = async () => {
   $("#ai-output").textContent = "Connecting to YNX AI Gateway…\n";
   try {
     const filters = { sourceId: $("#source").value || null, freshnessDays: $("#freshness").value ? Number($("#freshness").value) : null, contentType: $("#type").value || null };
-    const response = await fetch("/api/ai/stream", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ query: lastQuery, filters, model: "default", outputLocale: aiLocale, consent: { approved: true, reviewer: "user" } }), signal: aiController.signal });
+    const response = await fetch(productUrl("api/ai/stream"), { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ query: lastQuery, filters, model: "default", outputLocale: aiLocale, consent: { approved: true, reviewer: "user" } }), signal: aiController.signal });
     if (!response.ok) { const data = await response.json(); throw new Error(data.error); }
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
@@ -265,7 +267,7 @@ $("#ai-approve").onclick = async () => {
 };
 $("#ai-cancel").onclick = () => aiController?.abort();
 document.querySelectorAll("[data-review]").forEach(button => button.onclick = async () => {
-  await fetch("/api/ai/review", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ decision: button.dataset.review, sourceUrls: aiSources.map(source => source.sourceUrl) }) });
+  await fetch(productUrl("api/ai/review"), { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ decision: button.dataset.review, sourceUrls: aiSources.map(source => source.sourceUrl) }) });
   $("#ai-dialog").close();
 });
 
@@ -296,7 +298,7 @@ $("#private-wallet-button").onclick = async () => {
   if(!standardAccount)return;
   if(!privateServiceAvailable()){const degraded=privateServiceDegraded({account:standardAccount,chainId:standardChainId});showNotice(`${degraded.standardConnection.account.slice(0,10)}… remains connected. Private Search service: ${degraded.privateService.state}.`);return}
   try {
-    const response = await fetch("/api/wallet/prepare", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ deviceKey: await deviceKey() }) });
+    const response = await fetch(productUrl("api/wallet/prepare"), { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ deviceKey: await deviceKey() }) });
     const data = await response.json();
     if (!response.ok) throw new Error(data.error);
     const launch=await launchSearchWalletAuthorization(data.deepLink,{document,window,timeoutMs:1500});
@@ -304,16 +306,16 @@ $("#private-wallet-button").onclick = async () => {
     else{$("#wallet-recovery").hidden=false;showNotice("YNX Wallet was not detected. Search remains available; download YNX Wallet or continue with MetaMask.")}
   } catch (error) { showNotice(`Private Search service unavailable: ${error.message}. Standard Wallet remains connected; no private session was created.`); }
 };
-if (location.pathname === "/auth/callback") {
+if (location.pathname === `${PRODUCT_BASE}auth/callback`) {
   const encoded = new URLSearchParams(location.search).get("response");
   if (encoded) try {
     const normalized = encoded.replaceAll("-", "+").replaceAll("_", "/");
     const value = JSON.parse(atob(normalized + "=".repeat((4 - normalized.length % 4) % 4)));
-    fetch("/api/wallet/callback", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(value) }).then(async response => { const data = await response.json(); showNotice(data.message || data.error); history.replaceState({}, "", "/"); });
+    fetch(productUrl("api/wallet/callback"), { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(value) }).then(async response => { const data = await response.json(); showNotice(data.message || data.error); history.replaceState({}, "", PRODUCT_BASE); });
   } catch { showNotice("Wallet callback rejected: malformed response"); }
 }
 $("#clear-private").onclick = async () => {
-  const response = await fetch("/api/privacy/clear", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ walletChallenges: true, aiAudit: true }) });
+  const response = await fetch(productUrl("api/privacy/clear"), { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ walletChallenges: true, aiAudit: true }) });
   const data = await response.json();
   showNotice(response.ok ? `Cleared sign-in and AI audit data. Retained: ${data.retained.join(", ")}.` : data.error);
 };
@@ -322,7 +324,7 @@ addEventListener("online", () => showNotice(text(locale, "online")));
 addEventListener("offline", network);
 network();
 renderWalletState();
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js");
+if ("serviceWorker" in navigator) navigator.serviceWorker.register(productUrl("sw.js"), { scope: PRODUCT_BASE });
 await loadStatus();
 const initial = new URLSearchParams(location.search).get("q");
 if (initial) { $("#query").value = initial; search(); }

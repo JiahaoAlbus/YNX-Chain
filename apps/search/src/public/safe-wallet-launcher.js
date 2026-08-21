@@ -2,7 +2,7 @@ import {launchWebAuthorization} from "@ynx-chain/wallet-auth";
 
 const EXACT_FIELDS=["bundleId","callback","chainId","expiresAt","issuedAt","nonce","productClientId","productDeviceAlgorithm","productDeviceKey","purpose","requestingProduct","scopes","version"];
 const EXACT_SCOPES=["account:read","search:cases"];
-const EXACT_CALLBACK="https://search-staging.43.153.202.237.sslip.io/auth/callback";
+const EXACT_CALLBACK="https://web4.ynxweb4.com/search/auth/callback";
 
 export function parseSearchAuthorizationDeepLink(value,{now=new Date()}={}){
   let url;
