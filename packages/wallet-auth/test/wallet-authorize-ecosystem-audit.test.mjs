@@ -260,6 +260,30 @@ test("macOS release manifest is truthful source with local-only runtime proof", 
   assert.equal(evidence.productSession, false);
 });
 
+test("macOS anonymous public-download roundtrip stays source-only", () => {
+  const evidence = ownerActivityCheckpoint.walletPlatformTracking.macosAnonymousPublicDownloadRoundtripSource;
+  assert.equal(evidence.implementationCommit, "912e79642e805a35004a02312ee2b7f1ca17f3e8");
+  assert.equal(evidence.evidenceCommit, "ae0c3a8074e20961530b3da962bbebacf2e76f27");
+  assert.equal(evidence.anonymousPublicRoundtripSourceReady, true);
+  assert.equal(evidence.hostedSourceContractVerified, true);
+  assert.equal(evidence.transportMechanismObserved, true);
+  assert.deepEqual(evidence.observedTransportStatusChain, [302, 200]);
+  assert.equal(evidence.observedTransportExactContentLength, true);
+  assert.equal(evidence.observedTransportAssetPlatform, "android");
+  assert.equal(evidence.observedTransportPromotesMacosPublic, false);
+  assert.equal(evidence.publicationJobSkipped, true);
+  assert.equal(evidence.defaultMainRegistration, false);
+  assert.equal(evidence.operatorDispatch, false);
+  assert.equal(evidence.anonymousMacosRoundtripRuntimeVerified, false);
+  assert.equal(evidence.releaseCreated, false);
+  assert.equal(evidence.publicArtifact, false);
+  assert.equal(evidence.downloadHosted, false);
+  assert.equal(evidence.websitePublished, false);
+  assert.equal(evidence.gatekeeperAccepted, false);
+  assert.equal(evidence.authorization, false);
+  assert.equal(evidence.productSession, false);
+});
+
 test("v3 counts and precise owner blockers are derived without aggregate promotion", () => {
   const products = auditV3.registeredProducts;
   assert.equal(products.filter(({ runtime }) => runtime.sourceBoundPublic === true).length, auditV3.counts.sourceBoundPublicProducts);
