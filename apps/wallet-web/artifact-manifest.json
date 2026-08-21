@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "productId": "wallet-web",
   "version": "0.1.0-testnet-preview.1",
-  "sourceCommit": "1f3f6fb6d40be9812efcdb0f2e9e1a3663644894",
+  "sourceCommit": "535c6145b99d149184eb4ba6e337a06376c8008a",
   "implementedLocal": true,
   "testedLocal": true,
   "installedLocal": false,
@@ -30,8 +30,8 @@
     {
       "name": "ynx-wallet-chrome-edge-0.1.0.zip",
       "path": "artifacts/ynx-wallet-chrome-edge-0.1.0.zip",
-      "bytes": 201449,
-      "sha256": "5d09a974e6fa236ede361ac0d890b1203c4b729ae4cf11f4dee160efd99cc589",
+      "bytes": 201552,
+      "sha256": "64809eeb51503fa7bc17b2b130a34ea36aa7c6187bdb45ba4ca9d6b57740b50f",
       "minimumOS": "Chrome 120 / Edge 120",
       "signingClass": "unsigned-unpacked-extension",
       "browsers": [

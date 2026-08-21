@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "535c6145b99d149184eb4ba6e337a06376c8008a",
+  "generatedAt": "2026-08-21T10:20:23.947Z",
+  "browserId": "edge",
+  "browserName": "Microsoft Edge",
+  "gate": "public-injection",
+  "fixtureUrl": "https://wallet.ynxweb4.com/?verify=extension-eip6963",
+  "loadMode": "temporary-unpacked-isolated-profile",
+  "passed": true,
+  "installedLocal": false,
+  "downloadHosted": false,
+  "productionSigned": false,
+  "storeReleased": false,
+  "version": "151.0.4129.93",
+  "serviceWorker": {
+    "started": true,
+    "url": "chrome-extension://jnkhpnjegdieiahpcpddphanonopeaem/service-worker.js"
+  },
+  "preInjection": {
+    "url": "https://wallet.ynxweb4.com/?verify=extension-eip6963",
+    "readyState": "interactive",
+    "ethereumType": "object",
+    "companionPresent": true
+  },
+  "provider": {
+    "injected": true,
+    "isYNXWallet": true,
+    "rdns": "com.ynx.wallet.companion",
+    "requestType": "function"
+  },
+  "artifact": {
+    "bytes": 201552,
+    "sha256": "64809eeb51503fa7bc17b2b130a34ea36aa7c6187bdb45ba4ca9d6b57740b50f"
+  }
+}

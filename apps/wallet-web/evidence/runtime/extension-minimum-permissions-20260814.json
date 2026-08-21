@@ -1,24 +1,25 @@
 {
   "schemaVersion": 1,
-  "sourceCommit": "uncommitted-source-tree",
-  "generatedAt": "2026-08-20T08:26:36.785Z",
+  "sourceCommit": "535c6145b99d149184eb4ba6e337a06376c8008a",
+  "generatedAt": "2026-08-21T10:20:23.235Z",
   "gateClass": "exact built-artifact manifest and external URL inspection; not a browser installation",
   "passed": true,
   "artifacts": [
     {
       "name": "ynx-wallet-chrome-edge-0.1.0.zip",
-      "bytes": 195366,
-      "sha256": "78e3e231ab94aeb09b6fe9a9068d7c23cd85765345f6f162343d8a104bd34680",
+      "bytes": 201552,
+      "sha256": "64809eeb51503fa7bc17b2b130a34ea36aa7c6187bdb45ba4ca9d6b57740b50f",
       "permissions": [
         "activeTab",
         "scripting",
         "storage"
       ],
       "hostPermissions": [
-        "https://rpc.ynxweb4.com/*"
+        "https://rpc.ynxweb4.com/*",
+        "https://*.ynxweb4.com/*"
       ],
       "csp": "script-src 'self'; object-src 'self'; connect-src https://rpc.ynxweb4.com",
-      "persistentContentScripts": false,
+      "persistentContentScripts": true,
       "webAccessibleProvider": false,
       "externalUrls": [
         "https://evm.ynxweb4.com/*",
@@ -40,8 +41,8 @@
     },
     {
       "name": "ynx-wallet-firefox-0.1.0.zip",
-      "bytes": 195404,
-      "sha256": "cea52cb02bea130daea3efbc7325c60716da429556fb1d0338b95594d18db8e2",
+      "bytes": 201487,
+      "sha256": "5b274673f91e25d9d5e195a578193a1f21296c3df19a18436c9f11eff2bac89f",
       "permissions": [
         "activeTab",
         "scripting",
