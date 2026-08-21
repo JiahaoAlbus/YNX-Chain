@@ -1,10 +1,10 @@
 {
   "$schema": "../schemas/public-record.schema.json",
   "schemaVersion": "1.0.0",
-  "version": "2026.08.21.4",
+  "version": "2026.08.21.5",
   "sourceCommit": "62f7cf4bfc38",
   "lastReviewed": "2026-08-21",
-  "observedAt": "2026-08-21T11:50:12Z",
+  "observedAt": "2026-08-21T11:34:38Z",
   "status": "Candidate",
   "scope": "public faucet P0 production recovery",
   "service": {
@@ -22,6 +22,17 @@
     "runtimeSHA256": "7249f0393b33558c9bbe20e2b5812e21372eb7c52f4ec2d73a77208068361063",
     "buildTime": "2026-08-21T11:14:13Z"
   },
+  "healthStickyErrorRepair": {
+    "status": "candidate_not_deployed",
+    "rootCause": "Health() treated a historical request lastError as current liveness even after CheckHealth verified the upstream.",
+    "sourceCommit": "d644c0821b615938e88e55ff6b073873e18f8e73",
+    "release": "ynx-chain-d644c0821b61",
+    "candidateBinary": "tmp/faucet-incident/ynx-faucetd-d644c0821b61",
+    "candidateBinarySHA256": "3a624f6cb0a0df3956e8ab382c03cdd8b2ae156f984974df5088d518f75acaa8",
+    "regressionTest": "go test ./internal/faucet ./cmd/ynx-faucetd",
+    "regressionResult": "passed",
+    "deploymentBlocker": "The current worktree has no independently trusted .host-key-approvals.json for the refreshed four-node host-key scan; deploy-readiness-gate correctly refuses the unapproved deployment."
+  },
   "http": {
     "dns": "43.153.202.237",
     "tls": {
@@ -33,7 +44,7 @@
       "language": "en"
     },
     "health": {
-      "status": 200,
+      "status": 502,
       "body": {
         "ok": false,
         "service": "ynx-faucetd",
@@ -109,6 +120,18 @@
         "secondStatus": 429,
         "secondError": "faucet rate limit exceeded"
       },
+      "POST_0x_live_after_root_cause": {
+        "address": "0xdddddddddddddddddddddddddddddddddddddddd",
+        "status": 201,
+        "amount": 100,
+        "transaction": "0xb504aa17232e86712b7d96cf558f9e70900e1eb6a707aeb18f8c37629bf859f8",
+        "block": 1144263,
+        "responseBytes": 689,
+        "responseSHA256": "cc06d7d0f57c96dffe99fd83de0d9ac272c4059fc744b1f96450bdafb92ecab7",
+        "duplicateStatus": 429,
+        "duplicateResponseBytes": 39,
+        "duplicateResponseSHA256": "0d9f7eb9af0d21fe151efcecbc2d387bc8e241393f953c36c1744819828ce87d"
+      },
       "POST_ynx1": {
         "address": "ynx1qz2h9v7r0x3k8n6q3x4w5r2z9u0y1x2v0m8n7q5",
         "status": 400,
@@ -124,6 +147,10 @@
           {"address": "0xabc0000000000000000000000000000000000000", "status": 429},
           {"address": "0xabc1111111111111111111111111111111111111", "status": 502},
           {"address": "0xabc2222222222222222222222222222222222222", "status": 201}
+        ],
+        "liveAfterRootCause": [
+          {"address": "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", "status": 201, "transaction": "0xca2a9aeb7c90695e78ebdc4bb60d6bde8f769d7e00ed89aa5c3b49119771544e", "block": 1144264},
+          {"address": "0xffffffffffffffffffffffffffffffffffffffff", "status": 502, "error": "Client.Timeout exceeded while awaiting headers"}
         ]
       }
     }
@@ -174,6 +201,28 @@
         "to": "0xabc0000000000000000000000000000000000000",
         "fee": 0,
         "timestamp": "2026-08-21T11:19:24.276466082Z"
+      },
+      {
+        "hash": "0xb504aa17232e86712b7d96cf558f9e70900e1eb6a707aeb18f8c37629bf859f8",
+        "status": "found",
+        "block": 1144263,
+        "from": "ynx_faucet",
+        "to": "0xdddddddddddddddddddddddddddddddddddddddd",
+        "amount": 100,
+        "fee": 0,
+        "responseBytes": 1142,
+        "responseSHA256": "b68a0234a64f3572680eff0de9836c6c4d8c899f97df799a9251ddb841168064"
+      },
+      {
+        "hash": "0xca2a9aeb7c90695e78ebdc4bb60d6bde8f769d7e00ed89aa5c3b49119771544e",
+        "status": "found",
+        "block": 1144264,
+        "from": "ynx_faucet",
+        "to": "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "amount": 100,
+        "fee": 0,
+        "responseBytes": 1142,
+        "responseSHA256": "4926dd0e299ff1510c470ec5243fa4c80cdefe87920eca4768ab4a0d6799c715"
       }
     ],
     "notes": [
@@ -210,6 +259,15 @@
     "candidateTar": "tmp/deploy/ynx-chain-62f7cf4bfc38.tar.gz",
     "candidateTarSHA256": "ffec8b4ce1acbfe2392deddc44526ad3da464342a748fe93787e6b30aac56499",
     "installedBinary": "/usr/local/bin/ynx-faucetd",
-    "installedBinarySHA256": "7249f0393b33558c9bbe20e2b5812e21372eb7c52f4ec2d73a77208068361063"
+    "installedBinarySHA256": "7249f0393b33558c9bbe20e2b5812e21372eb7c52f4ec2d73a77208068361063",
+    "command": "ROLLBACK_RELEASE=ynx-chain-62f7cf4bfc38 ENV_FILE=.env.deploy make rollback"
+  },
+  "browserEvidence": {
+    "surface": "Chrome",
+    "url": "https://faucet.ynxweb4.com/",
+    "status": "opened",
+    "defaultLanguage": "en",
+    "visibleText": ["YNX Testnet Faucet", "Request test-only YNXT for the YNX Testnet.", "Request test YNXT"],
+    "claimClick": "not repeated in Chrome because it would create another real Testnet transfer; API evidence above records real transfers and error states."
   }
 }
