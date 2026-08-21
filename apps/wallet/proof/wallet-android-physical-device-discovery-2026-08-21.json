@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "evidenceType": "wallet-android-current-source-physical-device-discovery",
+  "verifiedAt": "2026-08-21T11:37:04Z",
+  "productId": "wallet",
+  "branch": "codex/wallet-android-physical-verify-20260821",
+  "sourceCommit": "018cf5abfc2ef80c88ed8897265718ed85176a0e",
+  "sourceTree": "91c99c81fd059ceb22edb1a11ab02ec106e0e664",
+  "upstreamBranch": "origin/codex/wallet-android-api36-continuation2-20260814",
+  "artifact": {
+    "path": "/private/tmp/ynx-wallet-android-physical-018cf5ab-qa/ynx-wallet-1.0.1-api36-disposable-qa.apk",
+    "package": "com.ynxweb4.wallet",
+    "versionName": "1.0.1",
+    "versionCode": 2,
+    "bytes": 25630315,
+    "sha256": "79b1aedb8ec98a37574bf6534353b86c1ef6267bf1cd8c261dc705b211d5b152",
+    "minimumOS": "Android API 24",
+    "compileSdk": 36,
+    "targetSdk": 36,
+    "abi": "arm64-v8a",
+    "signingClass": "disposable-qa-release-key",
+    "signerCertificateSha256": "5c9254d117470ef9c7fb4e5f0b11fa93d4660cf905ea88decdb9ed90ffd16545",
+    "apkSignatureSchemeV2": true,
+    "productionSigned": false,
+    "storeReleased": false,
+    "downloadHosted": false
+  },
+  "sourceValidation": {
+    "typecheck": true,
+    "intentFilterTests": "2/2",
+    "walletTests": "135/135",
+    "productCheck": true,
+    "releaseContentCheck": true,
+    "goalCoverageCheck": true,
+    "sbomCheck": true,
+    "androidQaBuild": true
+  },
+  "publicTransportReadOnly": {
+    "rpc": {
+      "url": "https://rpc.ynxweb4.com/evm",
+      "ethChainId": "0x1917",
+      "httpStatus": 200
+    },
+    "rest": {
+      "url": "https://rest.ynxweb4.com/app/health",
+      "httpStatus": 200,
+      "bytes": 2193,
+      "sha256": "5e7e89da2f121d8f41440a06ec4b5779eb8337cb9c616528fb3ece148030a3f4"
+    }
+  },
+  "physicalDevice": {
+    "adbDevicesOutput": "List of devices attached\\n",
+    "mdnsServicesOutput": "List of discovered mdns services\\n",
+    "deviceDiscovered": false,
+    "deviceAuthorized": false,
+    "installedPackageObserved": false,
+    "installAttempted": false,
+    "firstColdLaunch": false,
+    "secondColdLaunch": false,
+    "canonicalDeepLinkHandled": false,
+    "installedAppTestnetReachability": false
+  },
+  "releaseStates": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": false,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "limitations": [
+    "No Android device or emulator was visible to ADB after a local ADB server restart and mDNS discovery. The user-provided Pixel was therefore not inspected, modified or installed.",
+    "The APK is a new 30-day disposable QA build outside Git, not a production, Play, store or public download artifact.",
+    "The public RPC and REST reads are transport-only checks from the build host; they are not evidence of installed Wallet networking, accounts, authorization, signing or transactions.",
+    "No account creation, import, recovery, authorization approval, network switch, signature, faucet request, transfer or callback was triggered."
+  ],
+  "secretMaterialRecorded": false
+}
