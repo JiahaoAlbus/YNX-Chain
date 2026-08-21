@@ -8,8 +8,8 @@ import{action,apply as applyForCard,createTestnetTopupIntent,dispute as openDisp
 import{catalogs,date,isLocale,isRTL,localeNames,locales,money,t as translate,type Locale}from"./src/i18n";
 import{loadLocale,loadPendingAuthorization,loadSession,loadSimulationAudit,saveLocale,savePendingAuthorization,saveSession,saveSimulationAudit}from"./src/secureState";
 import{createRuntimeCardProductWalletConnection,type CardProductWalletConnection}from"./src/productWalletRuntime";
-import{createStandardWalletConnectState,reduceStandardWalletConnectState}from"@ynx-chain/wallet-auth";
-import{approveTestnetTopup,classifyCardWalletError,connectEip1193Wallet,connectMetaMaskWallet,loadTestnetTopupEvidence,parseWalletAuthorizationCallback,parseYnxtAmountToWei,resolveEip1193Provider,resolveMetaMaskEip1193Provider,resolveYNXEip1193Provider,restoreMetaMaskWallet,watchMetaMaskProvider,YNX_TESTNET_CHAIN_ID,type CardSession,type Eip1193Provider,type Eip1193WalletSession,type PendingAuthorizationRequest,type ProductSessionRuntime,type TopupEvidence}from"./src/wallet";
+import{createStandardWalletConnectState,discoverWalletProviders,reduceStandardWalletConnectState}from"@ynx-chain/wallet-auth";
+import{approveTestnetTopup,classifyCardWalletError,connectEip1193Wallet,connectMetaMaskWallet,loadTestnetTopupEvidence,parseWalletAuthorizationCallback,parseYnxtAmountToWei,resolveEip1193Provider,restoreMetaMaskWallet,watchMetaMaskProvider,YNX_TESTNET_CHAIN_ID,type CardSession,type Eip1193Provider,type Eip1193WalletSession,type PendingAuthorizationRequest,type ProductSessionRuntime,type TopupEvidence}from"./src/wallet";
 import{isFailure,recoverLastFailed,replayAwareAppend,SimulationAuditRecord,TESTNET_SIMULATION_CURRENCY,TESTNET_SIMULATION_MAX_EVENTS,type SimulationInput as LedgerSimulationInput}from"./src/simulation";
 import{GuestExperience}from"./src/GuestExperience";
 
@@ -42,6 +42,12 @@ export default function App(){
   const[walletError,setWalletError]=useState("");
   const[privateSession,setPrivateSession]=useState<ProductSessionRuntime|null>(null);
   const[standardWalletState,setStandardWalletState]=useState(()=>createStandardWalletConnectState());
+  const resolveSharedProvider=async(kind:"metamask"|"ynx-wallet"):Promise<Eip1193Provider|null>=>{
+    if(Platform.OS!=="web")return null;
+    const discovery=await discoverWalletProviders(globalThis,320);
+    const candidate=kind==="metamask"?discovery.metamask:discovery.ynx;
+    return candidate?.provider as Eip1193Provider|null ?? null;
+  };
 
   const[topupAmount,setTopupAmount]=useState("1");
   const[topupIntent,setTopupIntent]=useState<TestnetTopupIntent|null>(null);
@@ -159,7 +165,7 @@ export default function App(){
     setWalletBusy(true);
     setWalletError("");
     try{
-      const provider=await resolveMetaMaskEip1193Provider();
+      const provider=await resolveSharedProvider("metamask");
       if(!provider){setStandardWalletState(current=>reduceStandardWalletConnectState(current,{type:"FAIL",code:"PROVIDER_UNAVAILABLE"}));setWalletError("MetaMask is not installed or could not be uniquely identified.");return;}
       let connection=reduceStandardWalletConnectState(createStandardWalletConnectState(),{type:"BEGIN",pendingIntent:"card_metamask_connect_20260822"});
       connection=reduceStandardWalletConnectState(connection,{type:"PROVIDER_SELECTED",providerKind:"metamask"});
@@ -189,7 +195,7 @@ export default function App(){
 
   useEffect(()=>{
     if(Platform.OS!=="web")return;
-    const resume=()=>void(async()=>{if(document.visibilityState!=="visible"||walletSession)return;const provider=await resolveMetaMaskEip1193Provider();const restored=await restoreMetaMaskWallet(new Date(),provider);if(restored&&mounted.current){walletProvider.current=provider;walletProviderKind.current="metamask";setWalletSession(restored);setWalletError("");}})().catch(()=>{});
+    const resume=()=>void(async()=>{if(document.visibilityState!=="visible"||walletSession)return;const provider=await resolveSharedProvider("metamask");const restored=await restoreMetaMaskWallet(new Date(),provider);if(restored&&mounted.current){walletProvider.current=provider;walletProviderKind.current="metamask";setWalletSession(restored);setWalletError("");}})().catch(()=>{});
     document.addEventListener("visibilitychange",resume);
     return()=>document.removeEventListener("visibilitychange",resume);
   },[walletSession]);
@@ -362,7 +368,7 @@ export default function App(){
         setWalletError("YNX Wallet app handoff is unavailable until a verified Universal Link or WalletConnect route is accepted.");
         return "wallet-unavailable";
       }
-      const provider=await resolveYNXEip1193Provider();
+      const provider=await resolveSharedProvider("ynx-wallet");
       if(!provider){setStandardWalletState(current=>reduceStandardWalletConnectState(current,{type:"FAIL",code:"PROVIDER_UNAVAILABLE"}));return "wallet-unavailable";}
       let connection=reduceStandardWalletConnectState(createStandardWalletConnectState(),{type:"BEGIN",pendingIntent:"card_ynx_wallet_connect_20260822"});
       connection=reduceStandardWalletConnectState(connection,{type:"PROVIDER_SELECTED",providerKind:"ynx-wallet"});
