@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "contract": "safeWalletAuthorizeLauncher@2.0.0-p0.0",
+  "sourceCommit": "5b4ab248f4768fec586e7aa5c9fc1db2281af569",
+  "generatedAt": "2026-08-21T06:11:54.264Z",
+  "runtimeClass": "Playwright Chromium Pixel 9-sized local mobile browser with controlled RPC transport failure; not a physical device, installed Wallet, public service or approval success",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "passed": true,
+  "providerInjected": false,
+  "ynxAuthorizationOpened": false,
+  "metaMaskOpened": false,
+  "account": false,
+  "sign": false,
+  "transaction": false,
+  "testnetConnected": false,
+  "deployedPublic": false,
+  "topLevelPageStable": true,
+  "blankTargetCreated": false,
+  "customSchemeNavigationAttempted": false,
+  "presentation": {
+    "ynxVisible": true,
+    "ynxRoute": "provider-only-fallback",
+    "downloadVisible": true,
+    "metaMaskVisible": true,
+    "metaMaskRoute": "mobile-dapp",
+    "metaMaskHref": "https://metamask.app.link/dapp/www.ynxweb4.com/dapp/wallet"
+  },
+  "actions": {
+    "add": true,
+    "switch": true,
+    "sign": true,
+    "send": true
+  },
+  "ynxStatus": "Status: WEB_CUSTOM_SCHEME_NAVIGATION_PROHIBITED: The request failed closed. No wallet state was changed.",
+  "screenshot": {
+    "path": "evidence/browser/wallet-web-safe-launcher-v2-browser-20260821.png",
+    "bytes": 152518,
+    "sha256": "77f974824709874b48de313177bd225a265adfe3bf4454747b147240915cf7c9"
+  }
+}
