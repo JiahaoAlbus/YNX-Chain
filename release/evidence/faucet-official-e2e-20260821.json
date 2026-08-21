@@ -1,0 +1,29 @@
+{
+  "capturedAt": "2026-08-21T15:47:33Z",
+  "scope": "official Faucet public end-to-end verification",
+  "officialPage": "https://ynxweb4.com/dapp/faucet",
+  "faucetApi": "https://faucet.ynxweb4.com",
+  "runtime": {
+    "sourceCommit": "64efa498fa9982e12ffda888391d67082dc898bb",
+    "release": "ynx-chain-64efa498fa99",
+    "binarySha256": "2cd592debb78dcfa893fad56fe1bf648834211140e2fa54b8ad21557ef202089",
+    "chainId": 6423,
+    "evmChainId": "0x1917"
+  },
+  "browserClaim": {
+    "recipient": "0x2020202020202020202020202020202020202020",
+    "amount": 100,
+    "symbol": "YNXT",
+    "transactionHash": "0x3c0197aef73fc7e2e63a6f64d443e9b7acf0deb06c8663326a95bdaf9cd3f83d",
+    "blockNumber": 1147341,
+    "rpcVerified": true
+  },
+  "replay": {"httpStatus": 429, "duplicateTransfer": false},
+  "concurrency": {
+    "httpStatuses": [201, 201],
+    "transactionHashes": ["0xed9d2e9a18f6dcbe60867ded1dea9e234371ae5abf489a205b5c119b872e620e", "0x8fd4e317744dd917115547bb32a9c3f597794d35748df803c5206d1675a649d9"]
+  },
+  "browser": {"englishAvailable": true, "chineseAvailable": true, "consoleErrors": []},
+  "boundaries": {"ynx1ClaimVerified": false, "explorerTransactionVerified": false, "walletPlatformFaucetVerified": false},
+  "rollback": {"previousRuntimeRelease": "ynx-chain-d644c0821b61", "previousBinarySha256": "3a624"}
+}
