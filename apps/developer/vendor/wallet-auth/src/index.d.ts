@@ -55,6 +55,15 @@ export declare function parseWalletDeepLink(url:string,platform:"android"|"ios",
 export declare function createCallbackURL(response:Record<string,unknown>&{callback:string}):string;
 export declare function parseCallbackURL(url:string,expectedCallback:string):unknown;
 export declare function parseAuthorizationCallbackURL(url:string,request:AuthorizationRequest,at?:Date):AuthorizationResponse|AuthorizationRejection;
+export declare const OFFICIAL_YNX_WALLET_DOWNLOAD_URL:"https://www.ynxweb4.com/dapp/download";
+export declare const STANDARD_METAMASK_DOWNLOAD_URL:"https://metamask.io/download/";
+export declare const AUTHORIZATION_LAUNCH_PLATFORM_MATRIX:Readonly<Record<"android"|"ios"|"macos"|"windows"|"web"|"extension",Readonly<{strategy:"native-resolver"|"standard-provider-discovery";requiresPreflight:true}>>>;
+export declare type AuthorizationLaunchStatus="installed"|"provider-ready"|"unsupported";
+export declare type AuthorizationLaunchResult=Readonly<{status:AuthorizationLaunchStatus;detail:string;transport:"native-custom-scheme"|"eip-1193"|null;uri:string|null;providerCandidate:WalletProviderCandidate|null;fallbackActions:readonly Readonly<{id:"official-ynx-wallet-download"|"standard-metamask";label:string;url:string}>[]} >;
+export declare function createCanonicalAuthorizeLaunch(request:AuthorizationRequest):Readonly<{uri:string;fallbackActions:AuthorizationLaunchResult["fallbackActions"]}>;
+export declare function launchWebAuthorization(request:AuthorizationRequest,options?:{scope?:unknown;waitMs?:number}):Promise<AuthorizationLaunchResult>;
+export declare function launchNativeAuthorization(request:AuthorizationRequest,platform:"android"|"ios"|"macos"|"windows",resolver?:((uri:string)=>boolean|Promise<boolean>)):Promise<AuthorizationLaunchResult>;
+export declare function launchCanonicalAuthorization(request:AuthorizationRequest,options:{platform:"android"|"ios"|"macos"|"windows"|"web"|"extension";resolver?:((uri:string)=>boolean|Promise<boolean>);scope?:unknown;waitMs?:number}):Promise<AuthorizationLaunchResult>;
 export declare class OneTimeNonceStore {constructor(records?:readonly [string,string][]);consume(request:AuthorizationRequest,at?:Date):void;snapshot():readonly [string,string][]}
 export declare function createGatewayChallenge(approval:AuthorizationResponse,input:{challenge:string;expiresAt:string},at?:Date):GatewayChallenge;
 export declare function parseGatewayChallenge(input:unknown):GatewayChallenge;

@@ -22,7 +22,8 @@ test("Developer consumes the accepted Wallet v2 package through its root factory
   assert.match(mac, /kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly/);
   assert.match(mac, /storage-get/);
   assert.match(mac, /wallet-availability/);
-  assert.match(mac, /availability_probe_not_opened/);
+  assert.match(mac, /URLForApplicationToOpenURL:parts\.URL/);
+  assert.doesNotMatch(mac, /availability_probe_not_opened/);
   assert.match(mac, /\[A-Za-z0-9_-\]\{80,8192\}/);
   assert.match(runtime, /walletAvailability/);
   assert.doesNotMatch(runtime, /walletInstalled:\s*async \(\) => true/);

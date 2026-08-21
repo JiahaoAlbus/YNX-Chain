@@ -44,6 +44,26 @@ recovery, installed/browser visibility, public deployment, and migration all
 remain false until separately proven. Product Session degradation must not
 disconnect the independent Standard Wallet path.
 
+## Safe Wallet authorize launcher v2 boundary
+
+Integration accepted `safeWalletAuthorizeLauncher@2.0.0-p0.0` at
+`3e73d729`. Developer consumes the authoritative source
+`f1ba5013a817d4c03157e1cf83d7685606951a12` with evidence source
+`649107488520f0973805b32704cfe4a02e15aafa`. This supersedes the hidden-frame
+candidate: Web and Extension perform EIP-6963 followed by injected EIP-1193
+discovery only. They do not navigate a custom scheme, create an iframe, invoke
+`window.open`, create a blank target, or call an account method. When no
+unambiguous provider exists, the current page visibly offers the official YNX
+Wallet download and MetaMask links.
+
+Native Developer retains its complete canonical request flow, but now resolves
+the exact populated URI before opening it. Resolver success proves only a
+registered handler and never an approval, callback, account, or session.
+`evidence/browser/safe-wallet-authorize-launcher-v2-local-chrome-20260821.json`
+records the local production-build Chrome baseline/click/tab-count proof and a
+real IDE C++ execution. It is not public deployment or installed Wallet proof;
+all approval, callback, session, public, signing, and store gates remain false.
+
 ## DApp Connect SDK source boundary
 
 `evidence/integration/dapp-connect-sdk-pr130-8cfb3265.json` records the
