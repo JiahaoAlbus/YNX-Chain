@@ -37,7 +37,17 @@ final class MalformedCallbackUITests: XCTestCase {
 
   func testCanonicalRegistryRequestStopsAtNativeBridge() throws {
     let wallet = XCUIApplication()
+    // The preceding malformed-link proof intentionally leaves its rejection
+    // visible.  xcodebuild runs this proof as a separate invocation against
+    // the same simulator, so launch() may only activate that existing process
+    // and mistake the stale INVALID_DEEP_LINK alert for canonical delivery.
+    // Establish a real process boundary before accepting any delivery signal.
+    wallet.terminate()
     wallet.launch()
+    XCTAssertFalse(
+      wallet.alerts["Request rejected"].exists,
+      "A rejection from an earlier authorization request survived the clean launch boundary"
+    )
     FileHandle.standardError.write(Data("YNX_WALLET_CANONICAL_UI_READY_FOR_SIMCTL_OPENURL\n".utf8))
 
     let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
