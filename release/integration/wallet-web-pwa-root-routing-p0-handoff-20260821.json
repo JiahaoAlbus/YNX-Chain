@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 1,
+  "owner": "Wallet Web/PWA/Browser Extension",
+  "purpose": "source-only routing input for Integration; no production Caddy, Vercel alias, Gateway, or Central control-plane mutation was made",
+  "build": {
+    "repository": "JiahaoAlbus/YNX-Chain",
+    "branch": "codex/wallet-web-provider-v2-20260821",
+    "buildSourceCommit": "aac896e1941cde359f79fb594c838f1b30bbe6ef",
+    "command": "cd apps/wallet-web && YNX_WALLET_WEB_SOURCE_COMMIT=aac896e1941cde359f79fb594c838f1b30bbe6ef npm run package && npm run verify:package",
+    "staticPwaDirectory": "apps/wallet-web/dist/pwa",
+    "staticEntry": "apps/wallet-web/dist/pwa/index.html",
+    "pwaArchive": {
+      "path": "apps/wallet-web/artifacts/ynx-wallet-web-pwa-0.1.0.zip",
+      "bytes": 280301,
+      "sha256": "36b17cbae2424a98748a87738ab57b5f6bd2ce4ab22c9f71b80ffd3d1331e2d8",
+      "signingClass": "unsigned-web-bundle",
+      "minimumOS": "modern browser with Service Worker and Web Crypto support"
+    },
+    "manifest": {
+      "path": "apps/wallet-web/dist/pwa/manifest.webmanifest",
+      "sha256": "d2d131267483327ece949c5b8402c2dd80352bb15e791ea5571c879682ceba92",
+      "id": "/wallet/companion",
+      "startUrl": "./",
+      "scope": "./"
+    }
+  },
+  "directPublicObservation": {
+    "url": "https://wallet.ynxweb4.com/",
+    "observedAt": "2026-08-21T06:13:30Z",
+    "httpStatus": 200,
+    "contentType": "text/html; charset=utf-8",
+    "bytes": 1018,
+    "sha256": "b8106a7ff3c5396903dd506d09848a62361f43830af1a72405a1e6a20ad4218a",
+    "title": "YNX Chain — Web4 Layer-1 Ecosystem",
+    "isWalletPwa": false
+  },
+  "correctUi": {
+    "title": "YNX Wallet — Testnet companion",
+    "indexSha256": "4718a330acd784d57634bd2a19149cb96934ea560dcaf7ae311ee873e7701736",
+    "applicationSha256": "96e54d7abf618e679cab7be4319d66df6b9e866f1d2a2ed55bb333bcfe360767",
+    "implementedCapabilities": [
+      "EIP-6963 then injected EIP-1193 discovery",
+      "explicit YNX or MetaMask provider selection",
+      "exact YNX Testnet chain verification and add/switch",
+      "provider-backed account request, message signing, and transaction submission with fail-closed gates",
+      "session restore invalidation, locale, theme, and service-worker integrity"
+    ],
+    "notImplementedAsAStandaloneWallet": [
+      "seed or private-key onboarding",
+      "multi-account custody",
+      "Connected DApps management UI",
+      "WalletConnect runtime",
+      "authoritative balance/activity/faucet success"
+    ],
+    "safeWalletAuthorizeLauncherV2": {
+      "centralSource": "f1ba5013",
+      "contractSha256Prefix": "defd0db6",
+      "webBehavior": "EIP-6963 then injected EIP-1193 only; custom-scheme navigation, hidden iframe, and top-level blank-page creation are prohibited"
+    }
+  },
+  "integrationRouteInput": {
+    "host": "wallet.ynxweb4.com",
+    "upstreamPort": null,
+    "deploymentKind": "static Vercel/site output; no Node or Gateway listener is required",
+    "safePwaScopePath": "/wallet/companion/",
+    "rootBehavior": "root must route to the Wallet PWA scope (serve the same static entry or redirect to /wallet/companion/); it must never serve the general YNX website SPA fallback",
+    "requiredAssets": ["index.html", "app.js", "manifest.webmanifest", "sw.js", "asset-integrity.js", "ynx-logo.png", "ynx-icon-192.png", "ynx-icon-512.png", "ynx-icon-maskable-512.png"],
+    "headers": {"html": "text/html; charset=utf-8", "manifest": "application/manifest+json", "serviceWorker": "text/javascript; charset=utf-8"},
+    "doNotUse": ["general website SPA fallback", "Gateway reverse proxy", "custom-scheme top-level navigation"]
+  },
+  "rollbackInput": {
+    "captureBeforeChange": ["current Vercel production deployment ID", "wallet.ynxweb4.com alias target", "current route/rewrite record", "current homepage bytes and SHA-256"],
+    "restoreAction": "restore the captured alias/rewrite atomically and re-read the prior response; do not roll back any Wallet Protocol or Gateway service",
+    "knownCurrentResponseSha256": "b8106a7ff3c5396903dd506d09848a62361f43830af1a72405a1e6a20ad4218a"
+  },
+  "validation": {
+    "npmTest": {"passed": 91, "failed": 0},
+    "build": true,
+    "packageVerification": true,
+    "localChromium390": {
+      "passed": true,
+      "oneTopLevelPage": true,
+      "blankTargetCreated": false,
+      "customSchemeNavigationAttempted": false,
+      "screenshot": "apps/wallet-web/evidence/browser/wallet-web-safe-launcher-v2-browser-20260821.png"
+    }
+  },
+  "truth": {
+    "currentPublicRootIsWalletPwa": false,
+    "productionRouteChanged": false,
+    "pwaInstalled": false,
+    "providerDiscovered": false,
+    "accountConnected": false,
+    "sign": false,
+    "transaction": false,
+    "walletApproval": false,
+    "callback": false,
+    "testnetConnected": false,
+    "deployedPublic": false,
+    "integratedCentral": false
+  }
+}
