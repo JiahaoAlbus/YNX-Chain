@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "WALLETCONNECT-DAPP-BROWSER-TRANSPORT-BOUNDARY-20260821",
+  "owner": "wallet-platform",
+  "acceptedProviderContract": {
+    "commit": "d3831c300560507f64a50e73117bab7b85926d9a",
+    "source": "packages/wallet-auth/src/standard-wallet-connect-state.js",
+    "connectionSuccessRequires": ["selected-provider", "approved-account", "provider-request-chain-0x1917"],
+    "directBrowserRpcFetchRequired": false
+  },
+  "runtime": {
+    "walletConnectBundled": false,
+    "walletConnectRelayConfigured": false,
+    "walletConnectProjectMetadataConfigured": false,
+    "walletConnectSessionCreated": false,
+    "walletConnectAccountApproved": false,
+    "walletConnectSignatureCreated": false,
+    "walletConnectTransactionCreated": false,
+    "dappBrowserCanonicalWalletBridgeConfigured": false,
+    "dappBrowserBrowserSideApproval": false
+  },
+  "failClosedPolicy": {
+    "walletConnectUris": "WALLETCONNECT_NOT_CONFIGURED",
+    "bareWalletAuthorize": "CANONICAL_WALLET_REQUEST_REQUIRED",
+    "legacyWalletScheme": "CANONICAL_WALLET_SCHEME_REQUIRED",
+    "canonicalShapedRequestWithoutBridge": "CANONICAL_WALLET_BRIDGE_UNAVAILABLE",
+    "navigationEffects": ["current-tab-preserved", "popup-denied", "redirect-denied", "no-local-session"]
+  },
+  "evidenceBoundary": {
+    "sourceAndNodeTestsOnly": true,
+    "electronInstalledVisible": false,
+    "androidInstalledVisible": false,
+    "iosInstalledVisible": false,
+    "macosInstalledVisible": false,
+    "publicRuntime": false,
+    "computerControl": false
+  }
+}
