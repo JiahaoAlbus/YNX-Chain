@@ -22,6 +22,7 @@ import (
 var handlePattern = regexp.MustCompile(`^@[a-z0-9][a-z0-9_.-]{1,30}$`)
 var ErrUnauthorized = errors.New("calendar authorization required")
 var ErrVersionConflict = errors.New("event version conflict; refresh before retrying")
+var ErrIdempotencyConflict = errors.New("client mutation ID was already used for a different RSVP")
 
 type WalletVerifier interface {
 	Verify(context.Context, WalletProof) error
@@ -956,8 +957,25 @@ func (s *Service) RevertChange(token, changeID string) (Event, error) {
 }
 
 func (s *Service) RSVP(token, eventID, response string) (Event, error) {
-	if response != "accepted" && response != "declined" && response != "tentative" {
+	return s.rsvp(token, eventID, RSVPInput{Response: response}, false)
+}
+
+func (s *Service) RSVPWithInput(token, eventID string, input RSVPInput) (Event, error) {
+	return s.rsvp(token, eventID, input, true)
+}
+
+func (s *Service) rsvp(token, eventID string, input RSVPInput, requireConcurrencyControl bool) (Event, error) {
+	input.Response = strings.TrimSpace(input.Response)
+	input.Comment = strings.TrimSpace(input.Comment)
+	input.ClientMutationID = strings.TrimSpace(input.ClientMutationID)
+	if input.Response != "accepted" && input.Response != "declined" && input.Response != "tentative" {
 		return Event{}, errors.New("invalid RSVP")
+	}
+	if len([]rune(input.Comment)) > 1000 {
+		return Event{}, errors.New("RSVP comment must be at most 1000 characters")
+	}
+	if requireConcurrencyControl && (input.ClientMutationID == "" || len(input.ClientMutationID) > 100) {
+		return Event{}, errors.New("client mutation ID is required and bounded")
 	}
 	var out Event
 	err := s.store.update(func(st *State) error {
@@ -970,10 +988,27 @@ func (s *Service) RSVP(token, eventID, response string) (Event, error) {
 		if !ok {
 			return errors.New("event not found")
 		}
+		mutationKey := ""
+		mutationValue := ""
+		if requireConcurrencyControl {
+			mutationKey = sess.UserID + ":rsvp:" + input.ClientMutationID
+			mutationValue = digest(eventID + "\x00" + input.Response + "\x00" + input.Comment)
+			if existing := st.Mutations[mutationKey]; existing != "" {
+				if existing != mutationValue {
+					return ErrIdempotencyConflict
+				}
+				out = event
+				return nil
+			}
+			if input.BaseVersion != event.Version {
+				return ErrVersionConflict
+			}
+		}
 		found := false
 		for i := range event.Invites {
 			if event.Invites[i].Handle == user.Handle {
-				event.Invites[i].State = response
+				event.Invites[i].State = input.Response
+				event.Invites[i].Comment = input.Comment
 				event.Invites[i].RespondedAt = s.now().UTC()
 				found = true
 			}
@@ -985,10 +1020,17 @@ func (s *Service) RSVP(token, eventID, response string) (Event, error) {
 		event.UpdatedAt = s.now().UTC()
 		st.Events[event.ID] = event
 		owner := st.Users[event.OwnerID]
-		s.notifyHandle(st, owner.Handle, "event_rsvp", event.ID, user.Handle, "Invitation response", fmt.Sprintf("%s responded %s to %s.", user.Handle, response, event.Title), event.UpdatedAt)
-		auditID := s.audit(st, sess.UserID, "event_rsvp_"+response, event.ID, nil)
-		if err := s.enqueueCanonical(st, canonicalInput{Type: "calendar.rsvp.updated.v1", AggregateID: event.ID, AggregateVersion: event.Version, SubjectID: sess.UserID, AuditID: auditID, IdempotencyKey: event.ID + ":rsvp:" + digest(user.Handle) + ":" + strconv.Itoa(event.Version), OccurredAt: event.UpdatedAt, Payload: map[string]string{"responder_ref": digest(user.Handle), "response": response}}); err != nil {
+		body := fmt.Sprintf("%s responded %s to %s.", user.Handle, input.Response, event.Title)
+		if input.Comment != "" {
+			body += " Note: " + input.Comment
+		}
+		s.notifyHandle(st, owner.Handle, "event_rsvp", event.ID, user.Handle, "Invitation response", body, event.UpdatedAt)
+		auditID := s.audit(st, sess.UserID, "event_rsvp_"+input.Response, event.ID, map[string]any{"has_comment": input.Comment != "", "version": event.Version})
+		if err := s.enqueueCanonical(st, canonicalInput{Type: "calendar.rsvp.updated.v1", AggregateID: event.ID, AggregateVersion: event.Version, SubjectID: sess.UserID, AuditID: auditID, IdempotencyKey: event.ID + ":rsvp:" + digest(user.Handle) + ":" + strconv.Itoa(event.Version), OccurredAt: event.UpdatedAt, Payload: map[string]string{"responder_ref": digest(user.Handle), "response": input.Response, "has_comment": strconv.FormatBool(input.Comment != "")}}); err != nil {
 			return err
+		}
+		if requireConcurrencyControl {
+			st.Mutations[mutationKey] = mutationValue
 		}
 		out = event
 		return nil

@@ -806,6 +806,73 @@ func TestActivityNotificationsCoverInviteRSVPCommentReadAndAvailabilityPrivacy(t
 	}
 }
 
+func TestRSVPCommentIsVersionedIdempotentAndPrivacyBounded(t *testing.T) {
+	svc := newTestService(t, "")
+	alice, _, _ := signIn(t, svc, "@alice", "ynx1alice")
+	bob, _, _ := signIn(t, svc, "@bob", "ynx1bob")
+	carol, _, _ := signIn(t, svc, "@carol", "ynx1carol")
+
+	in := input("Partner review", "2026-10-02T09:00", "2026-10-02T10:00", "UTC", "rsvp-comment-create")
+	in.Invitees = []string{"@bob"}
+	preview, err := svc.PreviewCreate(alice, in)
+	if err != nil {
+		t.Fatal(err)
+	}
+	event, err := svc.ApproveChange(alice, preview.ID, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	request := RSVPInput{Response: "accepted", Comment: "I will join after the customer call.", ClientMutationID: "rsvp-comment-1", BaseVersion: event.Version}
+	accepted, err := svc.RSVPWithInput(bob, event.ID, request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if accepted.Version != event.Version+1 || len(accepted.Invites) != 1 || accepted.Invites[0].Comment != request.Comment || accepted.Invites[0].State != "accepted" {
+		t.Fatalf("versioned RSVP comment did not persist: %+v", accepted)
+	}
+	notifications, err := svc.ActivityNotifications(alice)
+	if err != nil || len(notifications) != 1 || !strings.Contains(notifications[0].Body, request.Comment) {
+		t.Fatalf("organizer did not receive the bounded RSVP note: %v %+v", err, notifications)
+	}
+	outbox, err := svc.PullCanonicalEvents(100)
+	if err != nil || len(outbox) != 3 {
+		t.Fatalf("expected create, invitation and RSVP canonical events: %v %+v", err, outbox)
+	}
+	encoded, _ := json.Marshal(outbox[2])
+	if strings.Contains(string(encoded), request.Comment) || outbox[2].Payload["has_comment"] != "true" {
+		t.Fatalf("canonical event leaked RSVP note or omitted bounded metadata: %s", encoded)
+	}
+
+	replayed, err := svc.RSVPWithInput(bob, event.ID, request)
+	if err != nil || replayed.Version != accepted.Version {
+		t.Fatalf("identical RSVP replay was not idempotent: %v %+v", err, replayed)
+	}
+	notifications, _ = svc.ActivityNotifications(alice)
+	outbox, _ = svc.PullCanonicalEvents(100)
+	if len(notifications) != 1 || len(outbox) != 3 {
+		t.Fatalf("RSVP replay duplicated side effects: notifications=%d outbox=%d", len(notifications), len(outbox))
+	}
+
+	conflicting := request
+	conflicting.Comment = "A different note."
+	if _, err = svc.RSVPWithInput(bob, event.ID, conflicting); !errors.Is(err, ErrIdempotencyConflict) {
+		t.Fatalf("mutation ID reuse with different content was accepted: %v", err)
+	}
+	stale := RSVPInput{Response: "tentative", ClientMutationID: "rsvp-comment-2", BaseVersion: event.Version}
+	if _, err = svc.RSVPWithInput(bob, event.ID, stale); !errors.Is(err, ErrVersionConflict) {
+		t.Fatalf("stale RSVP version was accepted: %v", err)
+	}
+	tooLong := RSVPInput{Response: "accepted", Comment: strings.Repeat("界", 1001), ClientMutationID: "rsvp-comment-3", BaseVersion: accepted.Version}
+	if _, err = svc.RSVPWithInput(bob, event.ID, tooLong); err == nil || !strings.Contains(err.Error(), "at most 1000") {
+		t.Fatalf("oversized RSVP note was accepted: %v", err)
+	}
+	unauthorized := RSVPInput{Response: "declined", ClientMutationID: "rsvp-comment-4", BaseVersion: accepted.Version}
+	if _, err = svc.RSVPWithInput(carol, event.ID, unauthorized); !errors.Is(err, ErrUnauthorized) {
+		t.Fatalf("non-invitee RSVP was accepted: %v", err)
+	}
+}
+
 func TestAuthorizedAttendeeAvailabilityAndTravelBuffersStayPrivate(t *testing.T) {
 	svc := newTestService(t, "")
 	alice, _, _ := signIn(t, svc, "@alice", "ynx1alice")

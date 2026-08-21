@@ -123,7 +123,15 @@ type ActivityNotification struct {
 type Invite struct {
 	Handle      string    `json:"handle"`
 	State       string    `json:"state"`
+	Comment     string    `json:"comment,omitempty"`
 	RespondedAt time.Time `json:"responded_at,omitempty"`
+}
+
+type RSVPInput struct {
+	Response         string `json:"response"`
+	Comment          string `json:"comment,omitempty"`
+	ClientMutationID string `json:"client_mutation_id"`
+	BaseVersion      int    `json:"base_version"`
 }
 type Share struct {
 	Handle string `json:"handle"`

@@ -204,13 +204,19 @@ func (s *Server) revert(w http.ResponseWriter, r *http.Request) {
 	respond(w, out, e)
 }
 func (s *Server) rsvp(w http.ResponseWriter, r *http.Request) {
-	var v struct {
-		Response string `json:"response"`
-	}
-	if !decode(w, r, &v, 1024) {
+	var v RSVPInput
+	if !decode(w, r, &v, 4<<10) {
 		return
 	}
-	out, e := s.service.RSVP(bearer(r), r.PathValue("id"), v.Response)
+	var (
+		out Event
+		e   error
+	)
+	if v.ClientMutationID == "" && v.BaseVersion == 0 && v.Comment == "" {
+		out, e = s.service.RSVP(bearer(r), r.PathValue("id"), v.Response)
+	} else {
+		out, e = s.service.RSVPWithInput(bearer(r), r.PathValue("id"), v)
+	}
 	respond(w, out, e)
 }
 func (s *Server) share(w http.ResponseWriter, r *http.Request) {
@@ -375,7 +381,7 @@ func respond(w http.ResponseWriter, v any, e error) {
 	if errors.Is(e, ErrUnauthorized) {
 		status = http.StatusUnauthorized
 	}
-	if errors.Is(e, ErrVersionConflict) {
+	if errors.Is(e, ErrVersionConflict) || errors.Is(e, ErrIdempotencyConflict) {
 		status = http.StatusConflict
 	}
 	writeJSON(w, status, map[string]string{"error": http.StatusText(status), "detail": e.Error()})
