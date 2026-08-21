@@ -1,0 +1,78 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-085",
+  "productId": "ynx-trust-center-v1",
+  "startingCommit": "5ff4cd57667de7c87197aa0982bca6addf007a28",
+  "verificationCommit": "6abb11d28eefcd0cb1b4aa4ca0573cbf00805de1",
+  "verificationTree": "ee04accc48c431e05cc3ae91e142e55aba704b0f",
+  "generatedAt": "2026-08-21T00:45:00Z",
+  "gates": {
+    "goTests": "apps/trust-center, internal/trustgateway and internal/trustproduct passed",
+    "serviceSmoke": "passed",
+    "chromiumVisibleTests": "6/6 passed",
+    "productionDependencyAudit": "0 vulnerabilities",
+    "deterministicBundleSha256": "d5038ebd3304e256f870193bd68c50a29e754e3ae316da02720b9762aaab5ed6"
+  },
+  "artifacts": [
+    {
+      "path": "web/app.bundle.js",
+      "bytes": 23754,
+      "sha256": "d5038ebd3304e256f870193bd68c50a29e754e3ae316da02720b9762aaab5ed6"
+    },
+    {
+      "path": "package-lock.json",
+      "bytes": 16651,
+      "sha256": "e822b2df08d6078d39383ff19ee34666b149d7b249cf66b1fd2f548b5fa82b26"
+    }
+  ],
+  "visibleEvidence": [
+    {
+      "path": "evidence/visible/trust-wallet-approved-private-degraded-1440x900.png",
+      "bytes": 147530,
+      "sha256": "afd25ec23a55a0885f65cf05fff6ea29cbb46e2e90b2d88c6614b1b047fbb7ba",
+      "proves": [
+        "deterministic EIP-1193 approval on chain 0x1917",
+        "approved account is visibly connected",
+        "public Trust empty state remains available",
+        "private Trust service is separately DEGRADED"
+      ]
+    },
+    {
+      "path": "evidence/visible/trust-wallet-rejected-public-data-1440x900.png",
+      "bytes": 146381,
+      "sha256": "05c7d58ad2f177a0eb7660928d7a113df7152a5a4105693ad502f2c89a432316",
+      "proves": [
+        "EIP-1193 rejection maps to WALLET_USER_REJECTED",
+        "no account or private session is created",
+        "public Trust empty state remains available",
+        "no local test identity is shown"
+      ]
+    }
+  ],
+  "observedConsole": {
+    "expectedPerWalletTest": [
+      "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+    ],
+    "classification": "public Trust API authentication boundary; no data was substituted"
+  },
+  "truth": {
+    "deterministicProviderApproval": true,
+    "deterministicProviderRejection": true,
+    "standardConnectionPreservedWhenPrivateFails": true,
+    "guestPublicAccess": true,
+    "realInstalledWallet": false,
+    "productSessionV2": false,
+    "trustProductApi": false,
+    "syntheticIdentity": false,
+    "publicDeployment": false,
+    "computerControl": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "notes": [
+    "No local case, authority identity, governance decision, account balance or transaction was fabricated.",
+    "Chromium evidence is deterministic local browser evidence and is not installed Wallet or public runtime evidence.",
+    "The accepted endpoint manifest marks App Gateway unavailable, so private Trust operations remain fail closed."
+  ]
+}

@@ -2,7 +2,7 @@
   "productId": "ynx-trust-center-v1",
   "name": "YNX Trust Center",
   "branch": "codex/p0-trust-center-wallet-connectivity-20260821",
-  "commit": "eb07330465f3c02b5ad62375d9b2d977110aa450",
+  "commit": "6abb11d28eefcd0cb1b4aa4ca0573cbf00805de1",
   "version": "0.3.0-p0.1",
   "surfaces": ["web", "api", "android", "ios-source"],
   "implementedLocal": true,
@@ -40,15 +40,19 @@
     "privateProductSession": "DEGRADED_APP_GATEWAY_UNAVAILABLE",
     "standardConnectionSurvivesPrivateFailure": true,
     "localOrSyntheticSessionCreated": false,
+    "deterministicProviderApprovalVerified": true,
+    "deterministicProviderRejectionVerified": true,
+    "providerEvidenceClass": "deterministic-browser-injected-provider-only",
     "installedVerified": false,
     "publicVerified": false,
     "computerControlVerified": false
   },
   "knownLimitations": [
     "The accepted endpoint manifest marks App Gateway unavailable, so private Trust submissions fail closed while public guest records and Standard Wallet Connection remain available.",
-    "No public Trust Center deployment is claimed from this source checkpoint.",
+    "Deterministic Chromium approval and rejection are not real installed Wallet or ComputerControl evidence.",
+    "No public Trust Center deployment or accepted private Trust Product API is claimed from this source checkpoint.",
     "Host Android emulators expose ADB but remain in boot animation with package service unavailable; APK install is not claimed.",
     "Full Xcode, Simulator runtimes, signing identities, staging hosting and public artifact hosting are unavailable."
   ],
-  "generatedAt": "2026-08-21T05:10:00+08:00"
+  "generatedAt": "2026-08-21T00:45:00Z"
 }
