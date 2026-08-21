@@ -8,6 +8,7 @@ const root = fileURLToPath(new URL("../../..", import.meta.url));
 const audit = JSON.parse(await readFile(new URL("../../../release/integration/wallet-authorize-ecosystem-source-runtime-audit-20260821.json", import.meta.url), "utf8"));
 const auditV2 = JSON.parse(await readFile(new URL("../../../release/integration/wallet-authorize-ecosystem-source-runtime-audit-v2-20260821.json", import.meta.url), "utf8"));
 const auditV3 = JSON.parse(await readFile(new URL("../../../release/integration/wallet-authorize-ecosystem-owner-runtime-matrix-v3-20260821.json", import.meta.url), "utf8"));
+const providerRecovery = JSON.parse(await readFile(new URL("../../../release/integration/wallet-provider-discovery-connect-state-p0-handoff-20260821.json", import.meta.url), "utf8"));
 const registry = JSON.parse(await readFile(new URL("../product-session-registry.json", import.meta.url), "utf8"));
 
 test("ecosystem authorize audit covers every registered client exactly once", () => {
@@ -112,4 +113,17 @@ test("Trust Center public guest evidence remains outside registered migration co
   assert.equal(trust.runtime.productSessionV2, false);
   assert.equal(trust.runtime.computerControl, false);
   assert.equal(auditV3.truth.deployedPublicAggregate, false);
+});
+
+test("shared Provider/connect recovery hands off to all products without promoting runtime", () => {
+  assert.equal(auditV3.sharedProviderConnectRecovery.sourceCommit, providerRecovery.source.commit);
+  assert.equal(auditV3.sharedProviderConnectRecovery.registeredProductConsumers, 0);
+  assert.deepEqual(providerRecovery.registeredProductHandoffs.map(({ productId }) => productId).sort(), auditV3.registeredProducts.map(({ productId }) => productId).sort());
+  assert.ok(providerRecovery.registeredProductHandoffs.every(({ consumed }) => consumed === false));
+  assert.equal(providerRecovery.directChromeEvidence.shop.accountApprovalObserved, false);
+  assert.equal(providerRecovery.directChromeEvidence.card.accountApprovalObserved, false);
+  assert.equal(providerRecovery.truth.productsConnected, 0);
+  assert.equal(providerRecovery.truth.threeProductChromeAcceptance, false);
+  assert.equal(providerRecovery.truth.officialInstallersReplaced, false);
+  assert.equal(providerRecovery.truth.websiteDirectLinksRestored, false);
 });

@@ -10,6 +10,18 @@
     "blob": "bc2286be144469d91028cf6939987c324c94523c",
     "sha256": "eb208ad02c74cba275433bc19ab4b9f0df21ad6c4f1451141b3ff50de9cb7357"
   },
+  "sharedProviderConnectRecovery": {
+    "sourceCommit": "03c0712a124d98b9570be93b96db194d83cd8679",
+    "sourceTree": "d145c95e1113734a6c45016105ed11e6411bd550",
+    "handoff": "release/integration/wallet-provider-discovery-connect-state-p0-handoff-20260821.json",
+    "providerDiscoveryFixedSource": true,
+    "canonicalConnectStateFixedSource": true,
+    "registeredProductConsumers": 0,
+    "publicRuntimeConsumers": 0,
+    "realAccountApprovalProducts": 0,
+    "productsConnected": 0,
+    "productsMigratedV2": 0
+  },
   "productionBoundary": {
     "sshUsed": false,
     "deploymentAttempted": false,

@@ -1,0 +1,114 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "WALLET-PROVIDER-DISCOVERY-CONNECT-STATE-P0-HANDOFF-20260821",
+  "owner": "wallet-protocol-router",
+  "recordedAt": "2026-08-21T09:53:40Z",
+  "source": {
+    "branch": "codex/wallet-session-router-recovery",
+    "commit": "03c0712a124d98b9570be93b96db194d83cd8679",
+    "tree": "d145c95e1113734a6c45016105ed11e6411bd550",
+    "providerDiscovery": {"path":"packages/wallet-auth/src/wallet-provider-discovery.js","blob":"38198077220584668a94649c7f36d6881bfab6fb","sha256":"94875a262b7422f3153ecfd7cbe4bde2c7884239bc9f1003a1e6f86ca74b08ed"},
+    "connectState": {"path":"packages/wallet-auth/src/standard-wallet-connect-state.js","blob":"575aded464c95ef0fef473869f724468deb27e2a","sha256":"7575d9e0ba5174ff55d182675bf067379412217a4072d459ba0b968334fdcfbc"},
+    "consumerGate": {"path":"packages/wallet-auth/scripts/verify-standard-wallet-connect-consumer.mjs","blob":"6688a6ba4c24df31e935c0877cc0d2bf357ef5fb","sha256":"144e3942263c598adb6233f2fc489c900d231bb1fc7284bd8565440b6ea4c15c"},
+    "installerGate": {"path":"packages/wallet-auth/src/installable-artifact-gate.js","blob":"44d20787565b9719ed2cbc9d6d87d73be113e2a5","sha256":"0d92ac8da4379ffb98e4ec1c070bd9cc0ff6f3079b2c5daa2102ae5245968668"},
+    "installerContract": {"path":"packages/wallet-auth/integration/installable-wallet-artifact-gate-v1.json","blob":"8a809b6a0527a5e7555d39b11367123a1133e164","sha256":"ed30ac0f8427a79710ccf05f788322b06a09a0a448086e5aede6d949d006b865"}
+  },
+  "providerDiscoveryContract": {
+    "eip6963": ["request-immediately","request-bounded-midpoint","request-after-dom-content-loaded","request-before-listener-removal"],
+    "legacyFallback": ["window.ethereum.providers","window.ethereum-root-when-provider-array-yields-no-recognized-candidate"],
+    "classifications": ["available","provider-not-injected","unsupported-injected-provider","ambiguous-provider","conflicted-announcement"],
+    "notInjectedPossibleCauses": ["extension-locked","site-access-denied","extension-disabled","extension-not-installed"],
+    "truthBoundary": "A normal Web page cannot distinguish the four extension states. It must say provider-not-injected, expose unlock/site-access/enable/retry actions, and must not claim not-installed or connected."
+  },
+  "standardConnectStateContract": {
+    "successRequires": ["selected-provider","approved-account","chain-0x1917"],
+    "successEffects": ["chooser-closed","pending-intent-cleared","focus-restored-to-wallet-connect-trigger","header-account-state-ready","standard-product-access-ready"],
+    "refresh": "RESTORE accepts only a recognized provider, a non-empty canonical account list, and chain 0x1917; it never reopens the chooser.",
+    "connectedChooser": ["connection-details","disconnect","switch-account","close"],
+    "privateService": "PRIVATE_SESSION_DEGRADED preserves connected Standard Wallet state and keeps the chooser closed.",
+    "invalidatingEvents": ["accountsChanged-empty","provider-disconnect","chainChanged-wrong-chain","user-disconnect"]
+  },
+  "directChromeEvidence": {
+    "browser": "Chrome external extension-controlled profile",
+    "shop": {
+      "url": "https://shop.ynxweb4.com/shop/?verify=provider-discovery-rootcause",
+      "readyState": "complete",
+      "windowEthereum": "undefined",
+      "providersArray": false,
+      "connectTriggered": true,
+      "metaMaskChoiceTriggered": true,
+      "terminalVisibleState": "Looking for MetaMask…",
+      "accountApprovalObserved": false,
+      "urlStable": true,
+      "blankTabOpenedByControlledFlow": false
+    },
+    "card": {
+      "url": "https://card.ynxweb4.com/?verify=provider-discovery-rootcause",
+      "readyState": "complete",
+      "windowEthereum": "undefined",
+      "providersArray": false,
+      "metaMaskChoiceTriggered": true,
+      "terminalVisibleState": "Connecting...",
+      "accountApprovalObserved": false,
+      "urlStable": true,
+      "blankTabOpenedByControlledFlow": false
+    },
+    "reload": {"shopProviderRestored":false,"cardProviderRestored":false},
+    "uniqueApprovalBlocker": "The controlled Chrome Shop and Card documents received neither EIP-6963 announcements nor window.ethereum injection. Site access alone is not Provider injection; exact locked/permission/disabled/not-installed state is not observable from the page.",
+    "userReportedSeparateShopObservation": {
+      "directlyControlledByProtocolOwner": false,
+      "standardWalletConnected": true,
+      "chain": "0x1917",
+      "modalStillOpen": true,
+      "use": "Root-cause input only; not counted as Protocol Owner direct account evidence."
+    }
+  },
+  "tests": {
+    "focused": "38/38",
+    "walletAuthFull": "283/283",
+    "noBareAuthorize": "PASS",
+    "standardConnectConsumerGate": "PASS",
+    "packageDryRun": {"files":77,"packageBytes":139600,"unpackedBytes":617700}
+  },
+  "registeredProductHandoffs": [
+    {"productId":"calendar","owner":"calendar","consumed":false},
+    {"productId":"card","owner":"card","consumed":false,"restriction":"Protocol Owner must not modify Card source."},
+    {"productId":"creator-studio","owner":"creator-studio","consumed":false},
+    {"productId":"developer","owner":"developer","consumed":false},
+    {"productId":"dex","owner":"finance-suite-dex","consumed":false},
+    {"productId":"exchange","owner":"finance-suite-exchange","consumed":false},
+    {"productId":"finance","owner":"finance-suite-finance","consumed":false},
+    {"productId":"pay","owner":"pay","consumed":false},
+    {"productId":"quant","owner":"finance-suite-quant","consumed":false},
+    {"productId":"shop","owner":"shop","consumed":false},
+    {"productId":"social","owner":"social","consumed":false},
+    {"productId":"video","owner":"video","consumed":false}
+  ],
+  "ownerCommand": "node packages/wallet-auth/scripts/verify-standard-wallet-connect-consumer.mjs <product-source-root>",
+  "requiredOwnerEvidence": [
+    "exact shared package source consumption plus consumer gate pass",
+    "public runtime exact-source readback with chooser closure, URL stability and zero blank tabs",
+    "real injected provider account approval on 0x1917, refresh restore, switch/disconnect events and Product Session degradation independence"
+  ],
+  "installerPublication": {
+    "contract": "installableWalletArtifact@1.0.0-p0.0",
+    "zipAsInstaller": false,
+    "macos": {"required":"DMG with contained app install/cold-launch/second-launch/network/version/hash/signing/rollback","applicableToCurrentWalletArchitecture":false,"reason":"Latest Wallet platform scope supports Android/iOS custody only; inventing a desktop custody app is prohibited."},
+    "windows": {"required":"EXE or MSIX install/cold-launch/second-launch/network/version/hash/signing/rollback","applicableToCurrentWalletArchitecture":false,"reason":"Latest Wallet platform scope supports Android/iOS custody only; Web/PWA must be labeled as Web/PWA."},
+    "android": {"required":"APK direct download or AAB store upload plus install/cold-launch/second-launch/network/version/hash/signing/rollback","acceptedCurrentArtifact":false,"reason":"Latest owner branch still points to an older da82c8b local-test-signed APK; it is not a current exact-source installer replacement."},
+    "websiteDirectLinksRestored": false,
+    "uniqueReleaseBlocker": "A current Wallet Platform exact-source Android artifact with complete gate evidence and Website Owner atomic publish/rollback is not yet available. macOS/Windows are out of current Wallet custody scope and must not be fabricated."
+  },
+  "truth": {
+    "productsConnected": 0,
+    "productsMigratedV2": 0,
+    "shopDirectAccountEvidenceByProtocolOwner": false,
+    "threeProductChromeAcceptance": false,
+    "officialInstallersReplaced": false,
+    "websiteDirectLinksRestored": false,
+    "computerControl": false,
+    "deployedPublicAggregate": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}
