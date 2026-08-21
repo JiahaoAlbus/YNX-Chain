@@ -1,21 +1,21 @@
 {
   "productId": "ynx-trust-center-v1",
   "name": "YNX Trust Center",
-  "branch": "codex/p0-trust-center-wallet-connectivity-20260821",
-  "commit": "6abb11d28eefcd0cb1b4aa4ca0573cbf00805de1",
-  "version": "0.3.0-p0.1",
+  "branch": "codex/p0-trust-center-visible-20260821",
+  "commit": "4ebf27fd8308f31fe98a38497ff15b9f77f66cba",
+  "version": "0.3.0-p0.2",
   "surfaces": ["web", "api", "android", "ios-source"],
   "implementedLocal": true,
   "testedLocal": true,
   "installedLocal": false,
   "integratedCentral": false,
-  "deployedStaging": false,
-  "deployedPublic": false,
+  "deployedStaging": true,
+  "deployedPublic": true,
   "downloadHosted": false,
   "productionSigned": false,
   "storeReleased": false,
-  "publicUrls": [],
-  "healthUrls": [],
+  "publicUrls": ["https://trust.ynxweb4.com/", "https://web4.ynxweb4.com/trust-center/"],
+  "healthUrls": ["https://trust.ynxweb4.com/health"],
   "artifactUrls": [],
   "sha256": {"androidDebugApk": "3303230854efd5f30f7f813352f28a30ffdd54088232e3a336be70bc98b9f6d2"},
   "bytes": {"androidDebugApk": 20544},
@@ -50,9 +50,19 @@
   "knownLimitations": [
     "The accepted endpoint manifest marks App Gateway unavailable, so private Trust submissions fail closed while public guest records and Standard Wallet Connection remain available.",
     "Deterministic Chromium approval and rejection are not real installed Wallet or ComputerControl evidence.",
-    "No public Trust Center deployment or accepted private Trust Product API is claimed from this source checkpoint.",
+    "The Trust Center Web UI and guest read-only state are publicly deployed; real installed-wallet approval, private Product Session v2 and authoritative private submission remain unverified.",
     "Host Android emulators expose ADB but remain in boot animation with package service unavailable; APK install is not claimed.",
     "Full Xcode, Simulator runtimes, signing identities, staging hosting and public artifact hosting are unavailable."
   ],
-  "generatedAt": "2026-08-21T00:45:00Z"
+  "publicDeployment": {
+    "taskId": "P0-125",
+    "runtimeHost": "43.153.202.237",
+    "activeRuntime": "/opt/ynx/trust-center-releases/p0125b-trust-wallet-4ebf27fd",
+    "rollbackRuntime": "/opt/ynx/trust-center-releases/p0125-trust-wallet-e968f566",
+    "archiveSha256": "408a0d397cffd3a92da7ae168bef94648005e16b38d78f7de6013f282ad896c3",
+    "binarySha256": "c099c2e93fcba017503228406a45f86d06aabc3c5c6b633c36d39c8d86313dba",
+    "computerControlVerified": false,
+    "computerControlBlocker": "cgWindowNotFound"
+  },
+  "generatedAt": "2026-08-21T07:25:00Z"
 }
