@@ -2,7 +2,7 @@
   "schemaVersion": "1.0.0",
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "owner": "integration",
-  "status": "P0097_CALENDAR_PAIRED_STATE_DEPLOYMENT_ACTIVE",
+  "status": "P0097_CALENDAR_PAIRED_STATE_DEPLOYMENT_FAILED_CLOSED_RELEASED",
   "scope": [
     "founder-control",
     "wallet-connectivity",
@@ -34,7 +34,7 @@
   "firstStop": {
     "complete": true,
     "publicConnectivityClaim": false,
-    "nextAction": "P0-097 is a wholly new single-use Calendar lease with bounded readiness and exact binary+state+key paired rollback. P0-095 remains nonreusable. Card and Wallet/Auth remain independently active; Calendar installed Wallet and ComputerControl remain false."
+    "nextAction": "P0-097 is consumed and permanently nonreusable after a readiness-shell failure; exact old binary+state+key and public source 635f6745 were restored. Build and deterministically test a source-owned refusal-tolerant paired rollback transaction before any new Calendar lease. Card and Wallet/Auth remain independently active."
   },
   "lightLeases": [
     {
@@ -321,16 +321,16 @@
     }
   ],
   "heavy": {
-    "owner": "integration",
+    "owner": null,
     "taskId": "P0-097",
-    "status": "ACTIVE_BOUNDED_CALENDAR_PAIRED_STATE_DEPLOYMENT",
+    "status": "CONSUMED_RELEASED_FAILED_CLOSED_READINESS_SHELL",
     "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-calendar-afb1b988-paired-20260821T014531Z",
     "leasedAt": "2026-08-21T01:45:31Z",
     "expiresAt": "2026-08-21T03:45:31Z",
-    "releasedAt": null,
-    "checkpointCommit": null,
+    "releasedAt": "2026-08-21T01:51:00Z",
+    "checkpointCommit": "ba34c0850571b5382326ab2e34c2b47294c7ccad",
     "scope": "calendar-afb1b988-bounded-readiness-and-paired-state-deployment",
-    "productionMutationAllowed": true,
+    "productionMutationAllowed": false,
     "singleUse": true
   },
   "wave": {
