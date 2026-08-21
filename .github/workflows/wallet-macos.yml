@@ -31,6 +31,7 @@ jobs:
           bash -n apps/wallet/macos/scripts/verify-notarized-dmg.sh
           bash -n apps/wallet/macos/scripts/cleanup-signing-material.sh
           ruby apps/wallet/macos/scripts/verify-notarized-release-source.rb
+          ruby apps/wallet/macos/scripts/verify-ci-trigger-isolation.rb
       - name: Test native callback and recovery boundaries
         run: swift test --package-path apps/wallet/macos
       - name: Build and package ad-hoc native application
