@@ -1,10 +1,10 @@
 {
   "$schema": "../schemas/public-record.schema.json",
   "schemaVersion": "1.0.0",
-  "version": "2026.08.21.6",
-  "sourceCommit": "d644c0821b615938e88e55ff6b073873e18f8e73",
+  "version": "2026.08.21.7",
+  "sourceCommit": "64efa498fa9982e12ffda888391d67082dc898bb",
   "lastReviewed": "2026-08-21",
-  "observedAt": "2026-08-21T11:39:47Z",
+  "observedAt": "2026-08-21T15:34:00Z",
   "status": "DeployedOperatorVerified",
   "scope": "public faucet P0 production recovery",
   "service": {
@@ -16,11 +16,22 @@
     "expectedRateLimit": "1 per 1h0m0s per ip/address"
   },
   "buildIdentity": {
-    "commit": "d644c0821b61",
-    "release": "ynx-chain-d644c0821b61",
-    "artifactSHA256": "3a624f6cb0a0df3956e8ab382c03cdd8b2ae156f984974df5088d518f75acaa8",
-    "runtimeSHA256": "3a624f6cb0a0df3956e8ab382c03cdd8b2ae156f984974df5088d518f75acaa8",
-    "buildTime": "2026-08-21T11:34:38Z"
+    "commit": "64efa498fa99",
+    "release": "ynx-chain-64efa498fa99",
+    "artifactSHA256": "2cd592debb78dcfa893fad56fe1bf648834211140e2fa54b8ad21557ef202089",
+    "runtimeSHA256": "2cd592debb78dcfa893fad56fe1bf648834211140e2fa54b8ad21557ef202089",
+    "buildTime": "2026-08-21T15:32:51Z"
+  },
+  "authoritativeConcurrencyRepair": {
+    "status": "deployed",
+    "rootCause": "The authoritative /faucet upstream received concurrent mutations without the existing faucet funding lock, producing intermittent client timeouts.",
+    "sourceCommit": "64efa498fa9982e12ffda888391d67082dc898bb",
+    "release": "ynx-chain-64efa498fa99",
+    "candidateBinary": "tmp/faucet-incident/ynx-faucetd-64efa498fa99",
+    "candidateBinarySHA256": "2cd592debb78dcfa893fad56fe1bf648834211140e2fa54b8ad21557ef202089",
+    "regressionTest": "go test ./internal/faucet ./cmd/ynx-faucetd",
+    "regressionResult": "passed",
+    "coldStart": "primary ynx-faucetd restart completed; loopback /health returned 200 ok=true with the new build identity."
   },
   "healthStickyErrorRepair": {
     "status": "deployed",
@@ -43,13 +54,13 @@
     "root": {
       "status": 200,
       "language": "en",
-      "responseBytes": 1887,
-      "responseSHA256": "27e4853cbbc243014b5f0bcf1a82799a2956b1f3a7198ef253b7b65697202ffe"
+      "responseBytes": 2051,
+      "responseSHA256": "b46f05a52f44e715f3d0c4e33e72403505abd48c9e5be728c7071aabc15e86b6"
     },
     "health": {
       "status": 200,
       "responseBytes": 383,
-      "responseSHA256": "502a6f91c3fa7d194f6fac5bf3d7e645c5240c06e3acdfc2f67e153a0a95ed40",
+      "responseSHA256": "1a084dc1647093cfea5ea0a59ac954c72dda9235136c7be7c1ed73d79747a56c",
       "body": {
         "ok": false,
         "service": "ynx-faucetd",
@@ -61,9 +72,9 @@
         "rateLimit": "1 per 1h0m0s per ip/address",
         "requestPath": "/request",
         "build": {
-          "commit": "d644c0821b61",
-          "release": "ynx-chain-d644c0821b61",
-          "buildTime": "2026-08-21T11:34:38Z"
+          "commit": "64efa498fa99",
+          "release": "ynx-chain-64efa498fa99",
+          "buildTime": "2026-08-21T15:32:51Z"
         },
         "truthfulStatus": "rpc-backed-faucet"
       }
@@ -71,11 +82,11 @@
     "version": {
       "status": 200,
       "responseBytes": 130,
-      "responseSHA256": "d1209a84385a2a31278b110b09192e4496a111f1108642aba26bc82d73e85a52",
+      "responseSHA256": "77da876f98314951bad53427ccd6e1f8baefae18d5b4a7944f91be4fee419397",
       "build": {
-        "commit": "d644c0821b61",
-        "release": "ynx-chain-d644c0821b61",
-        "buildTime": "2026-08-21T11:34:38Z"
+        "commit": "64efa498fa99",
+        "release": "ynx-chain-64efa498fa99",
+        "buildTime": "2026-08-21T15:32:51Z"
       }
     },
     "optionsRequest": {
@@ -310,5 +321,20 @@
       {"hash": "0x3353c6917d39fd0ed8c00457a14b2ac59af72fb78f068e96e068d562e31c9405", "status": 200, "block": 1144336, "responseBytes": 1142, "responseSHA256": "5068ce2f6479ddb66b312c411b7629dcc4b82a67f3e8b890774919856de6dca2"},
       {"hash": "0xee1ef3e52561c0689574fe4501bac712c843a94a0521162f71bf74c10272cc63", "status": 200, "block": 1144337, "responseBytes": 1142, "responseSHA256": "606441ddca3bbad15b3fd5942ccfec30f278fc755277b6f8e3fdd198b9a81c6c"}
     ]
+  },
+  "postConcurrencyRepair": {
+    "publicRequest": {"address": "0x1515151515151515151515151515151515151515", "status": 201, "amount": 100, "transaction": "0x644d28621086f85a7e3f4de1b03859d0665a9dc0da004b40f18df23e66a4d56d", "block": 1147183, "responseSHA256": "253f5161973452b5b452839cded3fb824e96cf8e80406805d39f99f16dd3ae14"},
+    "duplicate": {"status": 429, "responseSHA256": "0d9f7eb9af0d21fe151efcecbc2d387bc8e241393f953c36c1744819828ce87d"},
+    "concurrency": [
+      {"address": "0x1616161616161616161616161616161616161616", "status": 201, "transaction": "0x1ad25dd250548a01d0a179bc5cfe32f70708c58791d2b6208b53f9eb4480a00a", "block": 1147184, "responseSHA256": "ed4a0e7f4326f741cf2dde5b375199c7fe83062cf0cc5b499cc7bd80274e3ec4"},
+      {"address": "0x1717171717171717171717171717171717171717", "status": 201, "transaction": "0x992a55d98756a9de5085159844a2848c2272a12085e2ca09f9153838797486e9", "block": 1147184, "responseSHA256": "c402d06502c922517d3e0722a4edd587bbe9bfebc1b4515535214d7dc51c39cc"}
+    ],
+    "rpcLookups": [
+      {"hash": "0x644d28621086f85a7e3f4de1b03859d0665a9dc0da004b40f18df23e66a4d56d", "status": 200, "block": 1147183, "responseSHA256": "9fe83e6809721bcbc3d74beff550e5bbb960e7508d3defbd066a0807bdd53843"},
+      {"hash": "0x1ad25dd250548a01d0a179bc5cfe32f70708c58791d2b6208b53f9eb4480a00a", "status": 200, "block": 1147184, "responseSHA256": "67d22d191e84bf3b413ac5dcf77a1c7596539aa585335e0234b19d265fcda154"},
+      {"hash": "0x992a55d98756a9de5085159844a2848c2272a12085e2ca09f9153838797486e9", "status": 200, "block": 1147184, "responseSHA256": "e7739d7df79895d61edd131d7f48cdf3dd882a55ab9d7664bc6348c67504ce6d"}
+    ],
+    "ynx1": {"status": 400, "error": "invalid address", "responseSHA256": "51b81c434a23f5796ffb2ea5f6f913098de77c38684a2c2cb66f2c237bd51c3e", "boundary": "authoritative public faucet currently proves 0x recipient support only"},
+    "explorer": {"transactionRoute": "/transactions/:hash", "status": 404, "responseSHA256": "b16e15764b8bc06c5c3f9f19bc8b99fa48e7894aa5a6ccdad65da49bbf564793", "boundary": "Explorer Owner route work is required for public transaction-page lookup"}
   }
 }
