@@ -393,9 +393,10 @@
     {
       "owner": "integration",
       "taskId": "P0-131",
-      "status": "ACTIVE_SINGLE_USE_CREATOR_STUDIO_PUBLIC_REPAIR_V2",
+      "status": "CONSUMED_RELEASED_FAILED_CLOSED_READINESS_WINDOW",
       "grantedAt": "2026-08-21T08:34:52Z",
       "expiresAt": "2026-08-21T09:04:52Z",
+      "releasedAt": "2026-08-21T08:37:16Z",
       "sourceCommit": "993e7cc99ea3919488d6765e097ca78a82a30704",
       "scope": "creator-studio-explicit-file-archive-public-repair",
       "constraints": [
@@ -409,9 +410,9 @@
     }
   ],
   "heavy": {
-    "owner": "integration",
+    "owner": null,
     "taskId": "P0-131",
-    "status": "ACTIVE_SINGLE_USE_CREATOR_STUDIO_PUBLIC_REPAIR_V2",
+    "status": "CONSUMED_RELEASED_FAILED_CLOSED_READINESS_WINDOW",
     "acquiredAt": "2026-08-21T08:34:52Z",
     "expiresAt": "2026-08-21T09:04:52Z",
     "sourceCommit": "993e7cc99ea3919488d6765e097ca78a82a30704",
@@ -419,11 +420,13 @@
     "currentRuntime": "/opt/ynx-video/releases/p0122b-creator-wallet-650070ce",
     "rollbackTarget": "/opt/ynx-video/releases/p0122b-creator-wallet-650070ce",
     "artifactSha256": "9ec9385f2a1843e826f7a059f832b06a90f9828a13652595a4a6afe75e1c03de",
-    "productionMutationAllowed": true,
+    "productionMutationAllowed": false,
     "singleUse": true,
     "previousOwner": null,
     "previousTaskId": "P0-130",
-    "reason": "Retry with a corrected explicit-file archive after P0-130 failed closed before activation."
+    "releasedAt": "2026-08-21T08:37:16Z",
+    "checkpointCommit": "993e7cc99ea3919488d6765e097ca78a82a30704",
+    "reason": "Candidate and artifact checks passed, but the post-restart probe ran before port 6495 was listening. The rollback trap restored the exact old runtime; P0-131 is nonreusable."
   },
   "wave": {
     "id": "B-financial-apps-quant",
