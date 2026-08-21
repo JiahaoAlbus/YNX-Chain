@@ -115,11 +115,15 @@ final class WalletState: ObservableObject {
       networkLogger.notice(
         "YNX_WALLET_MAC_REST_APP_GATEWAY_REACHABLE pid=\(getpid(), privacy: .public) status=\(restObservation.statusCode, privacy: .public) bytes=\(restObservation.responseBytes, privacy: .public)"
       )
+      let gatewayObservation = try await WalletGatewayFailClosedProbe().run(configuration: configuration)
+      networkLogger.notice(
+        "YNX_WALLET_MAC_GATEWAY_FAIL_CLOSED pid=\(getpid(), privacy: .public) walletComplete=\(gatewayObservation.walletCompletionError, privacy: .public) walletIntrospect=\(gatewayObservation.walletIntrospectionError, privacy: .public) productIntrospect=\(gatewayObservation.productSessionIntrospectionError, privacy: .public) stateUnchanged=\(gatewayObservation.stateUnchanged, privacy: .public)"
+      )
       let capabilities = configuration.nativeCapabilities
       networkLogger.notice(
         "YNX_WALLET_MAC_NATIVE_PRODUCT_GATES pid=\(getpid(), privacy: .public) authorizationCompletion=\(capabilities.authorizationCompletionAvailable, privacy: .public) account=\(capabilities.accountAvailable, privacy: .public) sign=\(capabilities.signAvailable, privacy: .public) send=\(capabilities.sendAvailable, privacy: .public)"
       )
-      networkBoundary = "YNX Testnet transport reachable · chain \(chainObservation.chainIDHex) · REST HTTP \(restObservation.statusCode). Frozen Central account, sign, send, and callback gates remain unavailable."
+      networkBoundary = "YNX Testnet transport reachable · chain \(chainObservation.chainIDHex) · REST HTTP \(restObservation.statusCode). Invalid Wallet completion and introspection requests were rejected with an unchanged observed Gateway state digest. Account, sign, send, and callback gates remain unavailable."
     } catch {
       networkBoundary = "Testnet endpoint unavailable: matrix, RPC, or REST response rejected."
       networkLogger.error("YNX_WALLET_MAC_ENDPOINTS_UNAVAILABLE pid=\(getpid(), privacy: .public) code=ENDPOINT_OR_RESPONSE_REJECTED")

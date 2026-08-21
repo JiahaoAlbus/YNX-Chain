@@ -10,6 +10,9 @@ final class EndpointMatrixTests: XCTestCase {
     XCTAssertEqual(configuration.restURL.absoluteString, "https://rest.ynxweb4.com")
     XCTAssertEqual(configuration.rpcURL.absoluteString, "https://rpc.ynxweb4.com/evm")
     XCTAssertEqual(configuration.appHealthURL.absoluteString, "https://rest.ynxweb4.com/app/health")
+    XCTAssertEqual(configuration.walletSessionCompleteURL.absoluteString, "https://rest.ynxweb4.com/v1/wallet/sessions/complete")
+    XCTAssertEqual(configuration.walletSessionIntrospectURL.absoluteString, "https://rest.ynxweb4.com/v1/wallet/sessions/introspect")
+    XCTAssertEqual(configuration.productSessionIntrospectURL.absoluteString, "https://rest.ynxweb4.com/v2/product-sessions/introspect")
     XCTAssertTrue(configuration.rpcAvailable)
     XCTAssertTrue(configuration.appHealthAvailable)
     XCTAssertFalse(configuration.faucetAvailable)
@@ -88,6 +91,24 @@ final class EndpointMatrixTests: XCTestCase {
       var aggregate = $0["aggregate"] as! [String: Any]
       aggregate.removeValue(forKey: "mobileSignVerified")
       $0["aggregate"] = aggregate
+    })) {
+      XCTAssertEqual($0 as? EndpointMatrixError, .invalidCanonicalEndpoint)
+    }
+  }
+
+  func testMissingOrDriftedAuthPrefixesRejectTheMatrix() throws {
+    let original = try JSONSerialization.jsonObject(with: Data(contentsOf: centralMatrixURL())) as! [String: Any]
+    XCTAssertThrowsError(try EndpointMatrixPolicy.parse(try mutated(original) {
+      var canonical = $0["canonical"] as! [String: Any]
+      canonical.removeValue(forKey: "authV1Prefix")
+      $0["canonical"] = canonical
+    })) {
+      XCTAssertEqual($0 as? EndpointMatrixError, .invalidCanonicalEndpoint)
+    }
+    XCTAssertThrowsError(try EndpointMatrixPolicy.parse(try mutated(original) {
+      var canonical = $0["canonical"] as! [String: Any]
+      canonical["authV2Prefix"] = "https://rest.ynxweb4.com/v2/other/"
+      $0["canonical"] = canonical
     })) {
       XCTAssertEqual($0 as? EndpointMatrixError, .invalidCanonicalEndpoint)
     }
@@ -178,6 +199,66 @@ final class EndpointMatrixTests: XCTestCase {
       requestID: 1
     )) {
       XCTAssertEqual($0 as? EndpointMatrixError, .invalidRPCResponse)
+    }
+  }
+
+  func testGatewayNegativeProbeRequiresExactFailClosedSchemasAndStableState() throws {
+    let digest = String(repeating: "7", count: 64)
+    let completion = Data(#"{"error":{"code":"UNKNOWN_OR_MISSING_FIELD","message":"Canonical Gateway completion input fields do not match the protocol schema"},"ok":false,"schemaVersion":1,"stateDigest":"\#(digest)"}"#.utf8)
+    let introspection = Data(#"{"error":{"code":"PROOF_REQUIRED","message":"Product Session proof header is required"},"ok":false,"schemaVersion":1,"stateDigest":"\#(digest)"}"#.utf8)
+    let product = Data(#"{"error":{"code":"UNKNOWN_OR_MISSING_FIELD","message":"Product Session introspection body fields do not match the protocol schema"},"ok":false,"requestId":"req_invalid_request_000","schemaVersion":2}"#.utf8)
+
+    XCTAssertEqual(
+      try WalletGatewayFailClosedResponsePolicy.verify(
+        walletCompletionStatus: 400,
+        walletCompletionData: completion,
+        walletIntrospectionStatus: 400,
+        walletIntrospectionData: introspection,
+        productSessionIntrospectionStatus: 400,
+        productSessionIntrospectionData: product
+      ),
+      WalletGatewayFailClosedObservation(
+        walletCompletionError: "UNKNOWN_OR_MISSING_FIELD",
+        walletIntrospectionError: "PROOF_REQUIRED",
+        productSessionIntrospectionError: "UNKNOWN_OR_MISSING_FIELD",
+        walletStateDigest: digest,
+        stateUnchanged: true,
+        responseBytes: completion.count + introspection.count + product.count
+      )
+    )
+
+    let changedDigest = Data(#"{"error":{"code":"PROOF_REQUIRED","message":"Product Session proof header is required"},"ok":false,"schemaVersion":1,"stateDigest":"\#(String(repeating: "8", count: 64))"}"#.utf8)
+    XCTAssertThrowsError(try WalletGatewayFailClosedResponsePolicy.verify(
+      walletCompletionStatus: 400,
+      walletCompletionData: completion,
+      walletIntrospectionStatus: 400,
+      walletIntrospectionData: changedDigest,
+      productSessionIntrospectionStatus: 400,
+      productSessionIntrospectionData: product
+    )) {
+      XCTAssertEqual($0 as? EndpointMatrixError, .invalidGatewayResponse)
+    }
+
+    XCTAssertThrowsError(try WalletGatewayFailClosedResponsePolicy.verify(
+      walletCompletionStatus: 200,
+      walletCompletionData: completion,
+      walletIntrospectionStatus: 400,
+      walletIntrospectionData: introspection,
+      productSessionIntrospectionStatus: 400,
+      productSessionIntrospectionData: product
+    )) {
+      XCTAssertEqual($0 as? EndpointMatrixError, .invalidGatewayResponse)
+    }
+
+    XCTAssertThrowsError(try WalletGatewayFailClosedResponsePolicy.verify(
+      walletCompletionStatus: 400,
+      walletCompletionData: Data(repeating: 0, count: WalletGatewayFailClosedResponsePolicy.maximumBytes + 1),
+      walletIntrospectionStatus: 400,
+      walletIntrospectionData: introspection,
+      productSessionIntrospectionStatus: 400,
+      productSessionIntrospectionData: product
+    )) {
+      XCTAssertEqual($0 as? EndpointMatrixError, .responseTooLarge)
     }
   }
 

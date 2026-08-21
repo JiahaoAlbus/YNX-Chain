@@ -88,6 +88,29 @@ jobs:
           shasum -a 256 "$PROOF/YNX-Wallet-macOS-ad-hoc.zip" > "$PROOF/SHA256SUMS"
           wc -c "$PROOF/YNX-Wallet-macOS-ad-hoc.zip" > "$PROOF/BYTES"
           printf '%s\n' "$APP" > "$PROOF/installed-app-path.txt"
+      - name: Verify native Testnet Gateway fail-closed boundary
+        run: |
+          set -euo pipefail
+          PACKAGE="$GITHUB_WORKSPACE/apps/wallet/macos"
+          PROOF="$GITHUB_WORKSPACE/apps/wallet/proof/ci-macos"
+          MATRIX="$GITHUB_WORKSPACE/release/integration/wallet-auth-public-endpoint-service-discovery-matrix.json"
+          ARM_SCRATCH="$RUNNER_TEMP/wallet-macos-arm64"
+          BIN="$(swift build --package-path "$PACKAGE" --configuration release \
+            --triple arm64-apple-macosx13.0 --scratch-path "$ARM_SCRATCH" --show-bin-path)"
+          "$BIN/YNXWalletMacGatewayProbe" "$MATRIX" | tee "$PROOF/gateway-testnet-fail-closed.json"
+          python3 - <<'PY'
+          import json, pathlib
+          result = json.loads(pathlib.Path('apps/wallet/proof/ci-macos/gateway-testnet-fail-closed.json').read_text())
+          assert result['matrixID'] == 'ynx-wallet-auth-public-endpoint-service-discovery-v1'
+          assert result['chainID'] == '0x1917'
+          assert result['restStatus'] == 200
+          assert result['walletCompletionError'] == 'UNKNOWN_OR_MISSING_FIELD'
+          assert result['walletIntrospectionError'] == 'PROOF_REQUIRED'
+          assert result['productSessionIntrospectionError'] == 'UNKNOWN_OR_MISSING_FIELD'
+          assert result['stateUnchanged'] is True
+          for key in ['authorizationSuccess', 'accountAvailable', 'signing', 'send', 'transaction']:
+            assert result[key] is False
+          PY
       - name: Verify signing Keychain cleanup runtime
         shell: bash
         run: |
@@ -175,6 +198,8 @@ jobs:
                grep -Fq "YNX_WALLET_MAC_RPC_CHAIN_ID_VERIFIED pid=$COLD_PID chainId=0x1917" \
                  "$PROOF/cold-launch-network-native.log" && \
                grep -Fq "YNX_WALLET_MAC_REST_APP_GATEWAY_REACHABLE pid=$COLD_PID status=200" \
+                 "$PROOF/cold-launch-network-native.log" && \
+               grep -Fq "YNX_WALLET_MAC_GATEWAY_FAIL_CLOSED pid=$COLD_PID walletComplete=UNKNOWN_OR_MISSING_FIELD walletIntrospect=PROOF_REQUIRED productIntrospect=UNKNOWN_OR_MISSING_FIELD stateUnchanged=true" \
                  "$PROOF/cold-launch-network-native.log"; then
               COLD_NETWORK_READY=true
               break
@@ -206,6 +231,8 @@ jobs:
                grep -Fq "YNX_WALLET_MAC_RPC_CHAIN_ID_VERIFIED pid=$SECOND_PID chainId=0x1917" \
                  "$PROOF/second-launch-network-native.log" && \
                grep -Fq "YNX_WALLET_MAC_REST_APP_GATEWAY_REACHABLE pid=$SECOND_PID status=200" \
+                 "$PROOF/second-launch-network-native.log" && \
+               grep -Fq "YNX_WALLET_MAC_GATEWAY_FAIL_CLOSED pid=$SECOND_PID walletComplete=UNKNOWN_OR_MISSING_FIELD walletIntrospect=PROOF_REQUIRED productIntrospect=UNKNOWN_OR_MISSING_FIELD stateUnchanged=true" \
                  "$PROOF/second-launch-network-native.log"; then
               SECOND_NETWORK_READY=true
               break
@@ -213,6 +240,8 @@ jobs:
             sleep 1
           done
           test "$SECOND_NETWORK_READY" = true
+          printf 'coldPid=%s secondPid=%s walletComplete=UNKNOWN_OR_MISSING_FIELD walletIntrospect=PROOF_REQUIRED productIntrospect=UNKNOWN_OR_MISSING_FIELD stateUnchanged=true authorizationSuccess=false accountAvailable=false signing=false send=false transaction=false\n' \
+            "$COLD_PID" "$SECOND_PID" > "$PROOF/gateway-fail-closed.txt"
           SECOND_READY=false
           for _ in $(seq 1 60); do
             xcrun log show --style compact --last 5m \

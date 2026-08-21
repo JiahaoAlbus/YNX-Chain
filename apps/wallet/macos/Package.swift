@@ -9,12 +9,14 @@ let package = Package(
     .executable(name: "YNXWalletMac", targets: ["YNXWalletMac"]),
     .executable(name: "YNXWalletMacSecurityProbe", targets: ["YNXWalletMacSecurityProbe"]),
     .executable(name: "YNXWalletMacRecoveryProbe", targets: ["YNXWalletMacRecoveryProbe"]),
+    .executable(name: "YNXWalletMacGatewayProbe", targets: ["YNXWalletMacGatewayProbe"]),
   ],
   targets: [
     .target(name: "YNXWalletMacCore", resources: [.process("Resources")]),
     .executableTarget(name: "YNXWalletMac", dependencies: ["YNXWalletMacCore"]),
     .executableTarget(name: "YNXWalletMacSecurityProbe", dependencies: ["YNXWalletMacCore"]),
     .executableTarget(name: "YNXWalletMacRecoveryProbe", dependencies: ["YNXWalletMacCore"]),
+    .executableTarget(name: "YNXWalletMacGatewayProbe", dependencies: ["YNXWalletMacCore"]),
     .testTarget(name: "YNXWalletMacCoreTests", dependencies: ["YNXWalletMacCore"]),
   ]
 )

@@ -9,6 +9,7 @@ public enum EndpointMatrixError: Error, Equatable, Sendable {
   case responseTooLarge
   case invalidRPCResponse
   case invalidHTTPResponse
+  case invalidGatewayResponse
   case wrongChain
 }
 
@@ -23,6 +24,9 @@ public struct WalletEndpointConfiguration: Equatable, Sendable {
   public let rpcAvailable: Bool
   public let appHealthURL: URL
   public let appHealthAvailable: Bool
+  public let walletSessionCompleteURL: URL
+  public let walletSessionIntrospectURL: URL
+  public let productSessionIntrospectURL: URL
   public let faucetAvailable: Bool
   public let walletApprovalAvailable: Bool
   public let walletCallbackAvailable: Bool
@@ -42,6 +46,9 @@ public struct WalletEndpointConfiguration: Equatable, Sendable {
     rpcAvailable: Bool,
     appHealthURL: URL,
     appHealthAvailable: Bool,
+    walletSessionCompleteURL: URL,
+    walletSessionIntrospectURL: URL,
+    productSessionIntrospectURL: URL,
     faucetAvailable: Bool,
     walletApprovalAvailable: Bool,
     walletCallbackAvailable: Bool,
@@ -60,6 +67,9 @@ public struct WalletEndpointConfiguration: Equatable, Sendable {
     self.rpcAvailable = rpcAvailable
     self.appHealthURL = appHealthURL
     self.appHealthAvailable = appHealthAvailable
+    self.walletSessionCompleteURL = walletSessionCompleteURL
+    self.walletSessionIntrospectURL = walletSessionIntrospectURL
+    self.productSessionIntrospectURL = productSessionIntrospectURL
     self.faucetAvailable = faucetAvailable
     self.walletApprovalAvailable = walletApprovalAvailable
     self.walletCallbackAvailable = walletCallbackAvailable
@@ -115,8 +125,14 @@ public enum EndpointMatrixPolicy {
     guard let canonical = root["canonical"] as? [String: Any],
           let restRaw = canonical["restUrl"] as? String,
           let rpcRaw = canonical["rpcUrl"] as? String,
+          let authV1Raw = canonical["authV1Prefix"] as? String,
+          let authV2Raw = canonical["authV2Prefix"] as? String,
           let restURL = strictHTTPSURL(restRaw, requireOrigin: true),
           let rpcURL = strictHTTPSURL(rpcRaw, requireOrigin: false),
+          let authV1URL = strictHTTPSURL(authV1Raw, requireOrigin: false),
+          let authV2URL = strictHTTPSURL(authV2Raw, requireOrigin: false),
+          authV1URL.absoluteString == restURL.absoluteString + "/v1/wallet/",
+          authV2URL.absoluteString == restURL.absoluteString + "/v2/product-sessions/",
           let endpoints = root["endpoints"] as? [[String: Any]],
           let rpc = endpoint("chain-rpc-canonical", in: endpoints),
           rpc["url"] as? String == rpcRaw,
@@ -148,6 +164,9 @@ public enum EndpointMatrixPolicy {
       rpcAvailable: rpcAvailable,
       appHealthURL: appHealthURL,
       appHealthAvailable: appHealthAvailable,
+      walletSessionCompleteURL: authV1URL.appendingPathComponent("sessions/complete"),
+      walletSessionIntrospectURL: authV1URL.appendingPathComponent("sessions/introspect"),
+      productSessionIntrospectURL: authV2URL.appendingPathComponent("introspect"),
       faucetAvailable: faucetAvailable,
       walletApprovalAvailable: walletApprovalAvailable,
       walletCallbackAvailable: callbackAvailable,
@@ -286,5 +305,151 @@ public struct ChainRPCProbe: Sendable {
       throw EndpointMatrixError.responseTooLarge
     }
     return try ChainRPCResponsePolicy.verify(statusCode: http.statusCode, data: data, requestID: requestID)
+  }
+}
+
+public struct WalletGatewayFailClosedObservation: Equatable, Sendable {
+  public let walletCompletionError: String
+  public let walletIntrospectionError: String
+  public let productSessionIntrospectionError: String
+  public let walletStateDigest: String
+  public let stateUnchanged: Bool
+  public let responseBytes: Int
+
+  public init(
+    walletCompletionError: String,
+    walletIntrospectionError: String,
+    productSessionIntrospectionError: String,
+    walletStateDigest: String,
+    stateUnchanged: Bool,
+    responseBytes: Int
+  ) {
+    self.walletCompletionError = walletCompletionError
+    self.walletIntrospectionError = walletIntrospectionError
+    self.productSessionIntrospectionError = productSessionIntrospectionError
+    self.walletStateDigest = walletStateDigest
+    self.stateUnchanged = stateUnchanged
+    self.responseBytes = responseBytes
+  }
+}
+
+public enum WalletGatewayFailClosedResponsePolicy {
+  public static let maximumBytes = 256 * 1024
+
+  public static func verify(
+    walletCompletionStatus: Int,
+    walletCompletionData: Data,
+    walletIntrospectionStatus: Int,
+    walletIntrospectionData: Data,
+    productSessionIntrospectionStatus: Int,
+    productSessionIntrospectionData: Data
+  ) throws -> WalletGatewayFailClosedObservation {
+    let completion = try v1Rejection(
+      statusCode: walletCompletionStatus,
+      data: walletCompletionData,
+      expectedCode: "UNKNOWN_OR_MISSING_FIELD"
+    )
+    let introspection = try v1Rejection(
+      statusCode: walletIntrospectionStatus,
+      data: walletIntrospectionData,
+      expectedCode: "PROOF_REQUIRED"
+    )
+    guard completion.stateDigest == introspection.stateDigest else {
+      throw EndpointMatrixError.invalidGatewayResponse
+    }
+    let productError = try v2Rejection(
+      statusCode: productSessionIntrospectionStatus,
+      data: productSessionIntrospectionData,
+      expectedCode: "UNKNOWN_OR_MISSING_FIELD"
+    )
+    return WalletGatewayFailClosedObservation(
+      walletCompletionError: completion.code,
+      walletIntrospectionError: introspection.code,
+      productSessionIntrospectionError: productError,
+      walletStateDigest: completion.stateDigest,
+      stateUnchanged: true,
+      responseBytes: walletCompletionData.count + walletIntrospectionData.count + productSessionIntrospectionData.count
+    )
+  }
+
+  private static func v1Rejection(statusCode: Int, data: Data, expectedCode: String) throws -> (code: String, stateDigest: String) {
+    guard data.count <= maximumBytes,
+          statusCode == 400,
+          let root = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+          Set(root.keys) == Set(["error", "ok", "schemaVersion", "stateDigest"]),
+          root["ok"] as? Bool == false,
+          root["schemaVersion"] as? Int == 1,
+          let stateDigest = root["stateDigest"] as? String,
+          stateDigest.range(of: "^[0-9a-f]{64}$", options: .regularExpression) != nil,
+          let error = root["error"] as? [String: Any],
+          Set(error.keys) == Set(["code", "message"]),
+          error["code"] as? String == expectedCode,
+          let message = error["message"] as? String,
+          !message.isEmpty else {
+      throw data.count > maximumBytes ? EndpointMatrixError.responseTooLarge : EndpointMatrixError.invalidGatewayResponse
+    }
+    return (expectedCode, stateDigest)
+  }
+
+  private static func v2Rejection(statusCode: Int, data: Data, expectedCode: String) throws -> String {
+    guard data.count <= maximumBytes,
+          statusCode == 400,
+          let root = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+          Set(root.keys) == Set(["error", "ok", "requestId", "schemaVersion"]),
+          root["ok"] as? Bool == false,
+          root["schemaVersion"] as? Int == 2,
+          let requestID = root["requestId"] as? String,
+          !requestID.isEmpty,
+          requestID.utf8.count <= 128,
+          let error = root["error"] as? [String: Any],
+          Set(error.keys) == Set(["code", "message"]),
+          error["code"] as? String == expectedCode,
+          let message = error["message"] as? String,
+          !message.isEmpty else {
+      throw data.count > maximumBytes ? EndpointMatrixError.responseTooLarge : EndpointMatrixError.invalidGatewayResponse
+    }
+    return expectedCode
+  }
+}
+
+public struct WalletGatewayFailClosedProbe: Sendable {
+  private let session: URLSession
+
+  public init(session: URLSession = .shared) {
+    self.session = session
+  }
+
+  public func run(configuration: WalletEndpointConfiguration) async throws -> WalletGatewayFailClosedObservation {
+    let completion = try await postEmptyJSON(configuration.walletSessionCompleteURL)
+    let introspection = try await postEmptyJSON(configuration.walletSessionIntrospectURL)
+    let productIntrospection = try await postEmptyJSON(configuration.productSessionIntrospectURL)
+    return try WalletGatewayFailClosedResponsePolicy.verify(
+      walletCompletionStatus: completion.status,
+      walletCompletionData: completion.data,
+      walletIntrospectionStatus: introspection.status,
+      walletIntrospectionData: introspection.data,
+      productSessionIntrospectionStatus: productIntrospection.status,
+      productSessionIntrospectionData: productIntrospection.data
+    )
+  }
+
+  private func postEmptyJSON(_ url: URL) async throws -> (status: Int, data: Data) {
+    var request = URLRequest(url: url)
+    request.httpMethod = "POST"
+    request.timeoutInterval = 20
+    request.setValue("application/json", forHTTPHeaderField: "Accept")
+    request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+    request.httpBody = Data("{}".utf8)
+    let (data, response) = try await session.data(for: request)
+    guard let http = response as? HTTPURLResponse,
+          http.url == url,
+          http.mimeType == "application/json" else {
+      throw EndpointMatrixError.invalidGatewayResponse
+    }
+    if let declared = http.value(forHTTPHeaderField: "Content-Length"),
+       let bytes = Int(declared), bytes > WalletGatewayFailClosedResponsePolicy.maximumBytes {
+      throw EndpointMatrixError.responseTooLarge
+    }
+    return (http.statusCode, data)
   }
 }
