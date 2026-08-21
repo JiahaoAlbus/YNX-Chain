@@ -25,8 +25,8 @@ export function GuestExperience({locale,connectWallet,connectMetaMaskWallet,conn
   const runDemo=(label:string,detail:string)=>{setEvents(previous=>[{id:Date.now(),label,detail},...previous]);setNotice(`${label} recorded locally as a DEMO event. No transaction, balance, or merchant settlement was created.`);setSection("activity")};
   const openYNXWallet=async()=>{
     const result=await connectYNXWallet();
-    if(result==="wallet-opened"){setYNXWalletFallback(false);setNotice("A complete YNX Wallet authorization request was handed to the Wallet launcher. Review the product, origin, account, Testnet, permissions, and expiry before approval.");return;}
-    if(result==="wallet-unavailable"){setYNXWalletFallback(true);setNotice("YNX Wallet did not open, so this Card page stayed available. Retry YNX Wallet, download YNX Wallet, or use MetaMask. No session or approval was created.");return;}
+    if(result==="wallet-opened"){setYNXWalletFallback(false);setNotice("YNX Wallet connected through its Standard EVM provider on YNX Testnet. No private Card session, approval, or transaction was created.");return;}
+    if(result==="wallet-unavailable"){setYNXWalletFallback(true);setNotice("No YNX Wallet web provider was detected, so this Card page stayed available. Retry YNX Wallet, download YNX Wallet, or use MetaMask. No session, approval, or transaction was created.");return;}
     setNotice("YNX Wallet authorization could not be opened. No session or approval was created; your guest workspace remains available.");
   };
   const downloadYNXWallet=()=>void Linking.openURL("https://wallet.ynxweb4.com/").catch(()=>setNotice("YNX Wallet download page is unavailable. Your guest workspace remains available."));

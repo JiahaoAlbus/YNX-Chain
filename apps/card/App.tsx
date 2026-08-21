@@ -8,10 +8,9 @@ import{action,apply as applyForCard,createTestnetTopupIntent,dispute as openDisp
 import{catalogs,date,isLocale,isRTL,localeNames,locales,money,t as translate,type Locale}from"./src/i18n";
 import{loadLocale,loadPendingAuthorization,loadSession,loadSimulationAudit,saveLocale,savePendingAuthorization,saveSession,saveSimulationAudit}from"./src/secureState";
 import{createRuntimeCardProductWalletConnection,type CardProductWalletConnection}from"./src/productWalletRuntime";
-import{approveTestnetTopup,classifyCardWalletError,connectEip1193Wallet,connectMetaMaskWallet,createAuthorization,loadTestnetTopupEvidence,parseWalletAuthorizationCallback,parseYnxtAmountToWei,resolveEip1193Provider,resolveMetaMaskEip1193Provider,restoreMetaMaskWallet,watchMetaMaskProvider,walletDeepLink,YNX_TESTNET_CHAIN_ID,type CardSession,type Eip1193Provider,type Eip1193WalletSession,type PendingAuthorizationRequest,type ProductSessionRuntime,type TopupEvidence}from"./src/wallet";
+import{approveTestnetTopup,classifyCardWalletError,connectEip1193Wallet,connectMetaMaskWallet,createAuthorization,loadTestnetTopupEvidence,parseWalletAuthorizationCallback,parseYnxtAmountToWei,resolveEip1193Provider,resolveMetaMaskEip1193Provider,resolveYNXEip1193Provider,restoreMetaMaskWallet,watchMetaMaskProvider,walletDeepLink,YNX_TESTNET_CHAIN_ID,type CardSession,type Eip1193Provider,type Eip1193WalletSession,type PendingAuthorizationRequest,type ProductSessionRuntime,type TopupEvidence}from"./src/wallet";
 import{isFailure,recoverLastFailed,replayAwareAppend,SimulationAuditRecord,TESTNET_SIMULATION_CURRENCY,TESTNET_SIMULATION_MAX_EVENTS,type SimulationInput as LedgerSimulationInput}from"./src/simulation";
 import{GuestExperience}from"./src/GuestExperience";
-import{launchYNXWalletRequest}from"./src/ynxWalletLauncher";
 
 const BLUE="#002FA7",RED="#B42318",GREEN="#067647",ORANGE="#B54708";
 type Tab="card"|"activity"|"controls"|"simulation"|"support";
@@ -352,13 +351,21 @@ export default function App(){
     setBusy(true);
     setWalletError("");
     try{
+      if(Platform.OS==="web"){
+        const provider=await resolveYNXEip1193Provider();
+        if(!provider)return "wallet-unavailable";
+        const next=await connectEip1193Wallet(provider,new Date());
+        walletProvider.current=provider;
+        walletProviderKind.current="standard";
+        setWalletSession(next);
+        setPrivateSession(null);
+        setTopupIntent(null);setTopupHash("");setTopupEvidence(null);
+        return "wallet-opened";
+      }
       const reusable=pendingAuthorization.current?.request&&Date.parse(pendingAuthorization.current.request.expiresAt)>Date.now()?pendingAuthorization.current:null;
       const pendingAuthorizationValue=reusable??Object.freeze({request:(await createAuthorization()).request});
       if(!reusable){await savePendingAuthorization(pendingAuthorizationValue);pendingAuthorization.current=pendingAuthorizationValue;}
-      const deepLink=walletDeepLink(pendingAuthorizationValue);
-      if(Platform.OS==="web"){
-        if(await launchYNXWalletRequest(deepLink)==="unavailable")return "wallet-unavailable";
-      }else await Linking.openURL(deepLink);
+      await Linking.openURL(walletDeepLink(pendingAuthorizationValue));
       if(mounted.current)setPending(true);
       return "wallet-opened";
     }catch(e){

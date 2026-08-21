@@ -19,7 +19,7 @@ type WalletRequest = {method:string;params?:readonly unknown[]};
 type WalletRequestResult = {error?:{code?:number;message?:string}};
 
 type ProviderListener=(...args:readonly unknown[])=>void;
-type EIP1193Provider = Readonly<{request:(args:WalletRequest)=>Promise<unknown>;isMetaMask?:unknown;providers?:readonly unknown[];on?:(event:string,listener:ProviderListener)=>void;removeListener?:(event:string,listener:ProviderListener)=>void}>;
+type EIP1193Provider = Readonly<{request:(args:WalletRequest)=>Promise<unknown>;isMetaMask?:unknown;isYNXWallet?:unknown;providers?:readonly unknown[];on?:(event:string,listener:ProviderListener)=>void;removeListener?:(event:string,listener:ProviderListener)=>void}>;
 export type Eip1193Provider=EIP1193Provider;
 type ProviderAnnouncement=Readonly<{info?:Readonly<{rdns?:unknown}>;provider?:unknown}>;
 type DiscoveryTarget=Readonly<{ethereum?:unknown;addEventListener?:(event:string,listener:(event:unknown)=>void)=>void;removeEventListener?:(event:string,listener:(event:unknown)=>void)=>void;dispatchEvent?:(event:unknown)=>void;CustomEvent?:new(type:string,init?:Readonly<{detail?:unknown}>)=>unknown}>;
@@ -113,8 +113,11 @@ export function resolveEip1193Provider():Eip1193Provider|null{
 }
 
 function strictMetaMaskProvider(value:unknown):value is Eip1193Provider{return object(value)&&typeof value.request==="function"&&value.isMetaMask===true}
+function strictYNXProvider(value:unknown):value is Eip1193Provider{return object(value)&&typeof value.request==="function"&&value.isYNXWallet===true}
 function uniqueMetaMask(candidates:readonly unknown[]):Eip1193Provider|null{const values=candidates.filter(strictMetaMaskProvider);return values.length===1?values[0]??null:null}
+function uniqueYNX(candidates:readonly unknown[]):Eip1193Provider|null{const values=candidates.filter(strictYNXProvider);return values.length===1?values[0]??null:null}
 function announcedMetaMask(event:unknown):Eip1193Provider|null{const detail=object(event)?event.detail:undefined;if(!object(detail))return null;const announcement=detail as ProviderAnnouncement;return announcement.info?.rdns==="io.metamask"&&strictMetaMaskProvider(announcement.provider)?announcement.provider:null}
+function announcedYNX(event:unknown):Eip1193Provider|null{const detail=object(event)?event.detail:undefined;if(!object(detail))return null;const announcement=detail as ProviderAnnouncement;return ["com.ynx.wallet","com.ynxwallet","io.ynx.wallet"].includes(String(announcement.info?.rdns))&&object(announcement.provider)&&typeof announcement.provider.request==="function"?announcement.provider as Eip1193Provider:null}
 function requestProviderEvent(target:DiscoveryTarget):unknown{const Constructor=target.CustomEvent??(globalThis as {CustomEvent?:DiscoveryTarget["CustomEvent"]}).CustomEvent;return Constructor?new Constructor("eip6963:requestProvider"):Object.freeze({type:"eip6963:requestProvider"})}
 
 export async function resolveMetaMaskEip1193Provider(target:DiscoveryTarget=globalThis as DiscoveryTarget,waitMs=160):Promise<Eip1193Provider|null>{
@@ -128,6 +131,18 @@ export async function resolveMetaMaskEip1193Provider(target:DiscoveryTarget=glob
   const ethereum=target.ethereum;
   if(!object(ethereum))return null;
   return uniqueMetaMask(Array.isArray(ethereum.providers)?ethereum.providers:[ethereum]);
+}
+
+export async function resolveYNXEip1193Provider(target:DiscoveryTarget=globalThis as DiscoveryTarget,waitMs=160):Promise<Eip1193Provider|null>{
+  const announcements:Eip1193Provider[]=[];
+  const onAnnouncement=(event:unknown)=>{const provider=announcedYNX(event);if(provider&&!announcements.includes(provider))announcements.push(provider);};
+  target.addEventListener?.("eip6963:announceProvider",onAnnouncement);
+  try{target.dispatchEvent?.(requestProviderEvent(target));if(waitMs>0)await new Promise<void>(resolve=>setTimeout(resolve,waitMs));}
+  finally{target.removeEventListener?.("eip6963:announceProvider",onAnnouncement);}
+  const announced=announcements.length===1?announcements[0]??null:null;
+  if(announced)return announced;
+  const ethereum=target.ethereum;
+  return object(ethereum)?uniqueYNX(Array.isArray(ethereum.providers)?ethereum.providers:[ethereum]):null;
 }
 
 async function ensureMetaMaskYNXTestnet(provider:Eip1193Provider):Promise<void>{
