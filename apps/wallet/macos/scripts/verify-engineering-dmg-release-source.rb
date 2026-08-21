@@ -4,8 +4,15 @@ require "yaml"
 
 root = File.expand_path("../../../../", __dir__)
 workflow_path = File.join(root, ".github/workflows/wallet-macos.yml")
+package_path = File.join(root, "apps/wallet/macos/Package.swift")
+accessibility_probe_path = File.join(
+  root,
+  "apps/wallet/macos/Sources/YNXWalletMacAccessibilityProbe/main.swift"
+)
 YAML.load_file(workflow_path)
 workflow = File.read(workflow_path)
+package = File.read(package_path)
+accessibility_probe = File.read(accessibility_probe_path)
 
 requirements = [
   "publish_engineering_dmg:",
@@ -18,21 +25,12 @@ requirements = [
   "Sources/YNXWalletMacCore/Resources/central-registry.json",
   "754737194f02834da9f5833a493f4633b4cc18eb",
   "337145be4cbdd3b642f7fd263e1b06e20f512f8cd4981033109ba65c9856becd",
-  "set candidateElement to contents of candidate",
-  "value of attribute \"AXIdentifier\" of candidateElement",
-  "wantedVisibleText",
-  "candidateText contains wantedVisibleText",
-  "candidateText to candidateText & \" \" & (value of attribute \"AXValue\" of candidateElement as text)",
-  "candidateText to candidateText & \" \" & (value of attribute \"AXTitle\" of candidateElement as text)",
-  "candidateText to candidateText & \" \" & (value of attribute \"AXDescription\" of candidateElement as text)",
-  "candidateText to candidateText & \" \" & (name of candidateElement as text)",
-  "set wantedPID to item 1 of argv as integer",
-  "set targetProcess to first application process whose unix id is wantedPID",
+  "--product YNXWalletMacAccessibilityProbe",
+  "AX_PROBE=\"$AX_BIN/YNXWalletMacAccessibilityProbe\"",
+  "test -x \"$AX_PROBE\"",
+  "\"$AX_PROBE\" --pid \"$1\" --identifier \"$2\" --contains \"${3:-}\"",
   "read_wallet_accessibility \"$SECOND_PID\" \"YNX device recovery action\" \"Prepare device recovery\"",
   "read_wallet_accessibility \"$SECOND_PID\" \"YNX device recovery status\" \"Product account recovery remains unavailable.\"",
-  "set candidateEnabled to \"false\"",
-  "set candidateEnabled to value of attribute \"AXEnabled\" of candidateElement as text",
-  "value of attribute \"AXEnabled\" of candidateElement",
   "test \"$RECOVERY_SYSTEM_EVENTS_VISIBLE\" = true",
   "second-launch-recovery-accessibility-errors.txt",
   "test \"$BUTTON_ENABLED_OBSERVED\" = false",
@@ -87,5 +85,44 @@ requirements = [
 
 missing = requirements.reject { |value| workflow.include?(value) }
 abort "missing engineering DMG publication source semantics: #{missing.join(", ")}" unless missing.empty?
+
+package_requirements = [
+  '.executable(name: "YNXWalletMacAccessibilityProbe", targets: ["YNXWalletMacAccessibilityProbe"])',
+  '.executableTarget(name: "YNXWalletMacAccessibilityProbe")'
+]
+
+missing_package = package_requirements.reject { |value| package.include?(value) }
+unless missing_package.empty?
+  abort "missing Wallet macOS Accessibility probe package semantics: #{missing_package.join(", ")}"
+end
+
+probe_requirements = [
+  "import ApplicationServices",
+  "AXUIElementCreateApplication(query.pid)",
+  "AXUIElementCopyAttributeValue",
+  "kAXWindowsAttribute",
+  "kAXChildrenAttribute",
+  "kAXContentsAttribute",
+  "kAXRowsAttribute",
+  "kAXIdentifierAttribute",
+  "kAXTitleAttribute",
+  "kAXValueAttribute",
+  "kAXDescriptionAttribute",
+  "kAXHelpAttribute",
+  "kAXRoleAttribute",
+  "kAXEnabledAttribute",
+  "identifier == query.identifier",
+  "text.contains(query.visibleText)",
+  'print("\\(enabled)\\t\\(text)")',
+  "exit(69)",
+  "exit(70)",
+  "let maximumDepth = 32",
+  "let maximumNodes = 10_000"
+]
+
+missing_probe = probe_requirements.reject { |value| accessibility_probe.include?(value) }
+unless missing_probe.empty?
+  abort "missing native Accessibility recovery evidence semantics: #{missing_probe.join(", ")}"
+end
 
 puts "wallet macOS engineering DMG publication source contract verified"

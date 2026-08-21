@@ -217,54 +217,18 @@ jobs:
           PROOF="$GITHUB_WORKSPACE/apps/wallet/proof/ci-macos"
           APP="$RUNNER_TEMP/Applications/YNX Wallet.app"
           LSREGISTER="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister"
+          PACKAGE="$GITHUB_WORKSPACE/apps/wallet/macos"
+          ARM_SCRATCH="$RUNNER_TEMP/wallet-macos-arm64"
+          AX_BIN="$(swift build --package-path "$PACKAGE" --configuration release --triple arm64-apple-macosx13.0 --scratch-path "$ARM_SCRATCH" --show-bin-path)"
+          AX_PROBE="$AX_BIN/YNXWalletMacAccessibilityProbe"
+          test -x "$AX_PROBE"
           read_wallet_accessibility() {
-            osascript - "$1" "$2" "${3:-}" <<'APPLESCRIPT'
-          on run argv
-            set wantedPID to item 1 of argv as integer
-            set wantedIdentifier to item 2 of argv
-            set wantedVisibleText to item 3 of argv
-            tell application "System Events"
-              set targetProcess to first application process whose unix id is wantedPID
-              tell targetProcess
-                set frontmost to true
-                repeat with candidate in entire contents of window 1
-                  try
-                    -- `entire contents` returns object specifiers. Dereference the
-                    -- loop variable before reading AX attributes; querying the
-                    -- reference itself silently failed inside these nested `try`
-                    -- blocks and made real SwiftUI controls look absent.
-                    set candidateElement to contents of candidate
-                    set candidateIdentifier to ""
-                    try
-                      set candidateIdentifier to value of attribute "AXIdentifier" of candidateElement as text
-                    end try
-                    set candidateText to ""
-                    try
-                      set candidateText to candidateText & " " & (value of attribute "AXValue" of candidateElement as text)
-                    end try
-                    try
-                      set candidateText to candidateText & " " & (value of attribute "AXTitle" of candidateElement as text)
-                    end try
-                    try
-                      set candidateText to candidateText & " " & (value of attribute "AXDescription" of candidateElement as text)
-                    end try
-                    try
-                      set candidateText to candidateText & " " & (name of candidateElement as text)
-                    end try
-                    if candidateIdentifier is wantedIdentifier or (wantedVisibleText is not "" and candidateText contains wantedVisibleText) then
-                      set candidateEnabled to "false"
-                      try
-                        set candidateEnabled to value of attribute "AXEnabled" of candidateElement as text
-                      end try
-                      return candidateEnabled & tab & candidateText
-                    end if
-                  end try
-                end repeat
-              end tell
-            end tell
-            error "Accessibility identifier not found: " & wantedIdentifier number 70
-          end run
-          APPLESCRIPT
+            # Focusing is only a rendering hint. Evidence comes from the native
+            # AX API probe and remains fail-closed when the expected semantics
+            # or enabled state is absent.
+            osascript -e 'tell application "System Events" to set frontmost of first application process whose unix id is '"$1"' to true' \
+              >/dev/null 2>&1 || true
+            "$AX_PROBE" --pid "$1" --identifier "$2" --contains "${3:-}"
           }
           "$LSREGISTER" -f "$APP"
           open -n "$APP"
@@ -593,50 +557,19 @@ jobs:
         run: |
           set -euo pipefail
 
+          PACKAGE="$GITHUB_WORKSPACE/apps/wallet/macos"
+          AX_SCRATCH="$RUNNER_TEMP/wallet-macos-publication-ax"
+          swift build --package-path "$PACKAGE" --configuration release \
+            --triple arm64-apple-macosx13.0 --scratch-path "$AX_SCRATCH" \
+            --product YNXWalletMacAccessibilityProbe
+          AX_BIN="$(swift build --package-path "$PACKAGE" --configuration release \
+            --triple arm64-apple-macosx13.0 --scratch-path "$AX_SCRATCH" --show-bin-path)"
+          AX_PROBE="$AX_BIN/YNXWalletMacAccessibilityProbe"
+          test -x "$AX_PROBE"
           read_wallet_accessibility() {
-            osascript - "$1" "$2" "${3:-}" <<'APPLESCRIPT'
-          on run argv
-            set wantedPID to item 1 of argv as integer
-            set wantedIdentifier to item 2 of argv
-            set wantedVisibleText to item 3 of argv
-            tell application "System Events"
-              set targetProcess to first application process whose unix id is wantedPID
-              tell targetProcess
-                set frontmost to true
-                repeat with candidate in entire contents of window 1
-                  try
-                    set candidateElement to contents of candidate
-                    set candidateIdentifier to ""
-                    try
-                      set candidateIdentifier to value of attribute "AXIdentifier" of candidateElement as text
-                    end try
-                    set candidateText to ""
-                    try
-                      set candidateText to candidateText & " " & (value of attribute "AXValue" of candidateElement as text)
-                    end try
-                    try
-                      set candidateText to candidateText & " " & (value of attribute "AXTitle" of candidateElement as text)
-                    end try
-                    try
-                      set candidateText to candidateText & " " & (value of attribute "AXDescription" of candidateElement as text)
-                    end try
-                    try
-                      set candidateText to candidateText & " " & (name of candidateElement as text)
-                    end try
-                    if candidateIdentifier is wantedIdentifier or (wantedVisibleText is not "" and candidateText contains wantedVisibleText) then
-                      set candidateEnabled to "false"
-                      try
-                        set candidateEnabled to value of attribute "AXEnabled" of candidateElement as text
-                      end try
-                      return candidateEnabled & tab & candidateText
-                    end if
-                  end try
-                end repeat
-              end tell
-            end tell
-            error "Accessibility identifier not found: " & wantedIdentifier number 70
-          end run
-          APPLESCRIPT
+            osascript -e 'tell application "System Events" to set frontmost of first application process whose unix id is '"$1"' to true' \
+              >/dev/null 2>&1 || true
+            "$AX_PROBE" --pid "$1" --identifier "$2" --contains "${3:-}"
           }
 
           test "${{ github.ref }}" = refs/heads/main
