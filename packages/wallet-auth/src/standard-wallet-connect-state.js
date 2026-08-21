@@ -17,6 +17,12 @@ export const STANDARD_WALLET_PRIVATE_SERVICE = Object.freeze({
   READY: "ready",
   DEGRADED: "degraded",
 });
+export const STANDARD_WALLET_RPC_PROBE = Object.freeze({
+  NOT_RUN: "not-run",
+  READY: "ready",
+  DEGRADED: "degraded",
+});
+export const STANDARD_WALLET_RPC_PROBE_TRANSPORT = "accepted-cors-safe";
 
 const CONNECTED_ACTIONS = Object.freeze(["disconnect", "switch-account", "close"]);
 const EMPTY = Object.freeze([]);
@@ -72,6 +78,14 @@ export function reduceStandardWalletConnectState(current, event) {
     case "PRIVATE_SESSION_DEGRADED":
       requireConnected(previous);
       return state({ ...previous, privateService: STANDARD_WALLET_PRIVATE_SERVICE.DEGRADED, privateServiceCode: safeCode(event.code), chooserOpen: false, chooserMode: "closed" });
+    case "RPC_PROBE_READY":
+      requireConnected(previous);
+      requireAcceptedRpcProbe(event);
+      return state({ ...previous, rpcProbe: STANDARD_WALLET_RPC_PROBE.READY, rpcProbeCode: null });
+    case "RPC_PROBE_DEGRADED":
+      requireConnected(previous);
+      requireAcceptedRpcProbe(event);
+      return state({ ...previous, rpcProbe: STANDARD_WALLET_RPC_PROBE.DEGRADED, rpcProbeCode: safeCode(event.code), chooserOpen: false, chooserMode: "closed" });
     case "ACCOUNTS_CHANGED": {
       const accounts = accountList(event.accounts);
       if (accounts.length === 0) return disconnected("accounts-empty");
@@ -123,6 +137,8 @@ function state(input) {
     chainId: input.chainId ?? null,
     privateService: input.privateService ?? STANDARD_WALLET_PRIVATE_SERVICE.NOT_REQUESTED,
     privateServiceCode: input.privateServiceCode ?? null,
+    rpcProbe: input.rpcProbe ?? STANDARD_WALLET_RPC_PROBE.NOT_RUN,
+    rpcProbeCode: input.rpcProbeCode ?? null,
     standardPermissions: input.standardPermissions ?? EMPTY,
     productAccess: input.productAccess ?? "guest-or-public-only",
     focusRestoreTarget: input.focusRestoreTarget ?? null,
@@ -134,6 +150,7 @@ function state(input) {
 function parseState(value) { if (!object(value) || value.authority !== "standard-wallet-eip1193-state-only" || !Object.values(STANDARD_WALLET_CONNECT_STATUS).includes(value.status)) fail("INVALID_STANDARD_WALLET_STATE", "Standard Wallet state is invalid"); return value; }
 function requirePending(value) { if (value.status !== STANDARD_WALLET_CONNECT_STATUS.DISCOVERING || value.pendingIntent === null) fail("INVALID_STANDARD_WALLET_TRANSITION", "Provider selection requires a pending connection intent"); }
 function requireConnected(value) { if (value.status !== STANDARD_WALLET_CONNECT_STATUS.CONNECTED || value.providerKind === null || value.account === null || value.chainId !== STANDARD_WALLET_CHAIN_ID) fail("INVALID_STANDARD_WALLET_TRANSITION", "Private service state requires a completed Standard Wallet connection"); }
+function requireAcceptedRpcProbe(event) { if (event.probeTransport !== STANDARD_WALLET_RPC_PROBE_TRANSPORT) fail("UNSAFE_BROWSER_RPC_PROBE", "Standard Wallet connection state accepts only the accepted CORS-safe RPC probe transport"); }
 function providerKind(value) { if (value !== "metamask" && value !== "ynx-wallet") fail("INVALID_STANDARD_WALLET_PROVIDER", "Standard Wallet provider kind is invalid"); return value; }
 function account(value) { if (typeof value !== "string" || !/^0x[0-9a-fA-F]{40}$/.test(value)) fail("INVALID_STANDARD_WALLET_ACCOUNT", "Standard Wallet account is invalid"); return value.toLowerCase(); }
 function accountList(value) { if (!Array.isArray(value) || value.length > 1024) fail("INVALID_STANDARD_WALLET_ACCOUNT", "Standard Wallet account list is invalid"); return value.map(account); }

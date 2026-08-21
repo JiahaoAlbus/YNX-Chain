@@ -6,6 +6,8 @@ import {
   STANDARD_WALLET_CHAIN_ID,
   STANDARD_WALLET_CONNECT_STATUS,
   STANDARD_WALLET_PRIVATE_SERVICE,
+  STANDARD_WALLET_RPC_PROBE,
+  STANDARD_WALLET_RPC_PROBE_TRANSPORT,
   WalletAuthError,
 } from "../src/index.js";
 
@@ -58,6 +60,25 @@ test("Product Session degradation never blocks or reopens Standard Wallet succes
   assert.equal(degraded.privateServiceCode, "GATEWAY_UNAVAILABLE");
   assert.equal(degraded.chooserOpen, false);
   assert.equal(degraded.account, ACCOUNT);
+});
+
+test("direct browser RPC fetch is not a connection prerequisite and CORS-safe probe degradation preserves success", () => {
+  const standard = connected();
+  assert.equal(standard.status, STANDARD_WALLET_CONNECT_STATUS.CONNECTED);
+  assert.equal(standard.rpcProbe, STANDARD_WALLET_RPC_PROBE.NOT_RUN);
+  assert.throws(() => reduce(standard, "RPC_PROBE_DEGRADED", { probeTransport: "direct-browser-rpc-fetch", code: "RPC_UNAVAILABLE" }), code("UNSAFE_BROWSER_RPC_PROBE"));
+  const degraded = reduce(standard, "RPC_PROBE_DEGRADED", { probeTransport: STANDARD_WALLET_RPC_PROBE_TRANSPORT, code: "RPC_UNAVAILABLE" });
+  assert.equal(degraded.status, STANDARD_WALLET_CONNECT_STATUS.CONNECTED);
+  assert.equal(degraded.providerKind, "metamask");
+  assert.equal(degraded.account, ACCOUNT);
+  assert.equal(degraded.chainId, "0x1917");
+  assert.equal(degraded.rpcProbe, STANDARD_WALLET_RPC_PROBE.DEGRADED);
+  assert.equal(degraded.rpcProbeCode, "RPC_UNAVAILABLE");
+  assert.equal(degraded.chooserOpen, false);
+  const ready = reduce(degraded, "RPC_PROBE_READY", { probeTransport: STANDARD_WALLET_RPC_PROBE_TRANSPORT });
+  assert.equal(ready.status, STANDARD_WALLET_CONNECT_STATUS.CONNECTED);
+  assert.equal(ready.rpcProbe, STANDARD_WALLET_RPC_PROBE.READY);
+  assert.equal(ready.rpcProbeCode, null);
 });
 
 test("opening an already connected Wallet shows details and explicit actions", () => {

@@ -16,11 +16,14 @@ const required = [
   "PROVIDER_DISCONNECT",
   "RESTORE",
   "OPEN_CHOOSER",
+  "RPC_PROBE_DEGRADED",
+  "accepted-cors-safe",
 ];
 const missing = required.filter((value) => !text.includes(value));
 const forbidden = [
   ["unqualified product not-found classification", /METAMASK_NOT_FOUND/],
   ["custom-scheme Web transport", /(?:window\.)?location(?:\.href)?\s*=\s*[`'"]ynxwallet:\/\//],
+  ["direct browser RPC connection prerequisite", /fetch\s*\(\s*[`'"]https:\/\/rpc\.ynxweb4\.com\/evm/],
 ];
 const findings = [...missing.map((value) => `missing shared transition ${value}`), ...forbidden.filter(([, pattern]) => pattern.test(text)).map(([label]) => label)];
 if (findings.length) {
