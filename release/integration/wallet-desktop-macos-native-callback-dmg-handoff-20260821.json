@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "handoffId": "wallet-desktop-macos-native-callback-dmg-20260821",
+  "owner": "Wallet Desktop/CLI/SDK",
+  "consumer": "Website release owner",
+  "releaseChannel": "testnet-preview",
+  "sourceCommit": "5a6b033897a1295d35fc325a92c6bb81c8b04a19",
+  "evidencePath": "apps/wallet-desktop/evidence/macos-universal-dmg-identity-callback-20260821.json",
+  "artifact": {
+    "filename": "ynx-wallet-macos-0.1.2-universal.dmg",
+    "absoluteOwnerPath": "/private/tmp/ynx-wallet-desktop-installers-p0-20260821/apps/wallet-desktop/dist/ynx-wallet-macos-0.1.2-universal.dmg",
+    "bytes": 237777236,
+    "sha256": "69b4fa5db7b8a9ab105af6633de44f5a5a4a9fceeaa0925a306f77b22381b044",
+    "architectures": ["x86_64", "arm64"],
+    "minimumOS": "macOS 13.0",
+    "bundleIdentifier": "com.ynxweb4.wallet.macos",
+    "version": "0.1.2",
+    "urlScheme": "ynxwallet",
+    "signingClass": "unsigned-testnet-preview-dmg; contained main executable linker-ad-hoc only",
+    "productionSigned": false,
+    "notarized": false,
+    "storeReleased": false
+  },
+  "officialPublication": {
+    "requiredPath": "/wallet/sha256-69b4fa5db7b8a9ab105af6633de44f5a5a4a9fceeaa0925a306f77b22381b044/ynx-wallet-macos-0.1.2-universal.dmg",
+    "requiredUrl": "https://downloads.ynxweb4.com/wallet/sha256-69b4fa5db7b8a9ab105af6633de44f5a5a4a9fceeaa0925a306f77b22381b044/ynx-wallet-macos-0.1.2-universal.dmg",
+    "requiredContentType": "application/x-apple-diskimage",
+    "requiredContentDisposition": "attachment; filename=\"ynx-wallet-macos-0.1.2-universal.dmg\"",
+    "requiredContentLength": 237777236,
+    "fullGetSha256Required": true,
+    "websiteSourceMayBeEditedByThisOwner": false
+  },
+  "replacement": {
+    "supersedesBundleIdentifier": "com.ynxweb4.wallet.desktop",
+    "supersedesVersion": "0.1.1",
+    "supersedesUrl": "https://downloads.ynxweb4.com/wallet/sha256-ad6e4077bc001743cf1a4163ceaca5a009a3c8a4d8a809cc4896798976cf56c0/ynx-wallet-desktop-0.1.1-universal.dmg",
+    "supersedesSha256": "ad6e4077bc001743cf1a4163ceaca5a009a3c8a4d8a809cc4896798976cf56c0",
+    "rollback": "Retain the preceding immutable 0.1.1 object and Website deployment. If the new full GET, mounted identity, callback UI, or rendered metadata gate fails, restore the preceding Website deployment and keep the 0.1.2 download disabled."
+  },
+  "postDeployGate": {
+    "httpStatus": 200,
+    "contentTypeExact": true,
+    "contentDispositionExact": true,
+    "contentLengthExact": true,
+    "fullResponseSha256Exact": true,
+    "mountAndPlistIdentityExact": true,
+    "coldLaunch": true,
+    "secondLaunch": true,
+    "canonicalRpcChainId": "0x1917",
+    "validCallbackVisibleFailClosed": true,
+    "missingAndMalformedCallbackFailClosed": true,
+    "downloadHosted": false,
+    "deployedPublic": false
+  }
+}
