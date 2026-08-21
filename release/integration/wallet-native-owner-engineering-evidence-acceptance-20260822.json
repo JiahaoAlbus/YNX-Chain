@@ -6,8 +6,8 @@
   "decision": "OWNER_ENGINEERING_EVIDENCE_ACCEPTED_PRODUCTION_GATES_UNCHANGED",
   "ownerBranch": {
     "name": "codex/wallet-ios-macos-20260813",
-    "remoteHead": "af275bbe5586feb442976a0ebf88f1569dd08774",
-    "remoteHeadTree": "48ecedf858494a0826f925aba3479d49575d4db2"
+    "remoteHead": "1d37a63eff1b7da2d96ff881c31ad5cb0435f6a0",
+    "remoteHeadTree": "6dc8d305c4ac42b3366450ff2eda06e03e972fea"
   },
   "acceptedSlices": {
     "macosNotarizedManifestCommand": {
@@ -59,6 +59,30 @@
       "hdiutilChecksumValid": true,
       "gatekeeperAccepted": false,
       "artifactDownloadInspected": false
+    },
+    "macosEngineeringDmgPrereleaseSourceGate": {
+      "implementationCommit": "93439d277505cfeceacb953e789a630c4fe2e7d9",
+      "implementationTree": "eec143d92000403875ad28ea7f4041b829d6e4ad",
+      "workflowBlob": "edc94a1adb4560c6baffe6d9234293c2e2e7f091",
+      "verifierBlob": "71d316d558972d43fd0d1891a1ab1da250cd89e1",
+      "evidenceCommit": "1d37a63eff1b7da2d96ff881c31ad5cb0435f6a0",
+      "evidencePath": "release/integration/wallet-macos-engineering-dmg-prerelease-source-ci-evidence-2026-08-21.json",
+      "evidenceBlob": "ab434f35138f1750547d4e249e7bbc8453681584",
+      "evidenceBytes": 4112,
+      "evidenceSha256": "3b5402865702848c5d6c160e148168c795d60af6303634a2616bf2d24fb8a891",
+      "githubActionsRun": 32503547626,
+      "nativeJob": 96838510314,
+      "publicationJob": 96838939494,
+      "nativeJobSuccess": true,
+      "publicationJobSkipped": true,
+      "swiftTests": "17/17",
+      "sourceReady": true,
+      "hostedSourceContractVerified": true,
+      "defaultOff": true,
+      "engineeringDmgSha256FromPublicLog": "2286abc11fe85c09986478cee602e956b6ff387e6c0f1d7bd999ab5d5b26fe69",
+      "engineeringDmgBytesFromPublicLog": 307395,
+      "githubPrereleasePublished": false,
+      "workflowDispatchedForPublication": false
     }
   },
   "routerCrossCheck": {
@@ -80,6 +104,8 @@
     "appStoreReleased": false,
     "publicNativeWalletPublished": false,
     "websiteNativeReplacementPublished": false,
+    "engineeringDmgPrereleasePublished": false,
+    "operatorPublicationDispatch": false,
     "electronPreviewRelabeledAsOwnerNative": false,
     "systemInstalled": false,
     "authorizationSuccess": false,
