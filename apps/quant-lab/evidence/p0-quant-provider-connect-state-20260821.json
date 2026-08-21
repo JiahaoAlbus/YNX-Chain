@@ -1,10 +1,11 @@
 {
   "schemaVersion": 1,
-  "recordedAt": "2026-08-21T11:36:27Z",
-  "sourceCheckpoint": "5a4b7a75d743cee820a1340e90690345cc18c988",
+  "recordedAt": "2026-08-21T12:08:52Z",
+  "sourceCheckpoint": "0e304a350eb594967f5e1d3bb92a3bb4285238ca",
   "sharedDependency": {
     "commit": "98c6d5d784d212df8981a53b17118a511e246ad2",
     "tree": "51a60a362d4ad5dd748bcdefb101f71b1d9e0cee",
+    "walletAuthPackageTree": "69ba84eaef503932ba1b66f42a9caa0a125e0608",
     "handoffCommit": "d3831c300560507f64a50e73117bab7b85926d9a",
     "handoffEvidence": "c3ab255c32bdeb9c8e056882c315f8ad43c29c7f",
     "vendoredTarball": "vendor/ynx-chain-wallet-auth-1.1.0-provider-connect-state-p0.tgz",
@@ -12,6 +13,7 @@
   },
   "controls": {
     "providerDiscovery": "accepted EIP-6963/EIP-1193 discovery only",
+    "ynxWalletProvider": "only an exact discovered YNX Wallet candidate can satisfy the YNX Wallet action",
     "metamaskProvider": "exact discovered MetaMask provider, never a YNX Wallet path",
     "connectionSuccess": ["selected provider", "approved account", "provider eth_chainId 0x1917"],
     "chainFlow": "wallet_switchEthereumChain -> 4902 wallet_addEthereumChain -> re-switch -> eth_chainId",
@@ -26,7 +28,7 @@
     "canonicalAuthorizeScan": "pass",
     "unit": "4/4",
     "browser": "3/3",
-    "walletBundle": {"sha256": "098b597528b90842af2ba706c641a7e4a656f22bc9fd4e8b851bebd6b28c1fe1", "bytes": 73831}
+    "walletBundle": {"sha256": "7b01fb837eb9e7e8690cfc38dfb902bd401598a992153384cb5e1ac76a4d2b30", "bytes": 73866}
   },
   "installerAudit": {
     "checkedAt": "2026-08-21T11:35:00Z",
