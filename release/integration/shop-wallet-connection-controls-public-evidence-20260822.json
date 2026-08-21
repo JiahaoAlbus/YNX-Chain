@@ -1,0 +1,93 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "product": "shop",
+  "checkedAt": "2026-08-21T16:29:12Z",
+  "inputEvidenceCommit": "de781af64d8e065a29359e6255f7ed4c4fa28ba4",
+  "source": {
+    "branch": "codex/shop-integration-public-regression-20260822",
+    "commit": "99b2185c247130b53439066161b6217e984be0ff",
+    "tree": "b8e5329d6508beb2c518c4b84a08b949ee2df5c1",
+    "tests": "15/15",
+    "build": true
+  },
+  "deployment": {
+    "origin": "https://shop.ynxweb4.com",
+    "type": "static-only",
+    "activeRelease": "/opt/ynx-shop/releases/p0-shop-controls-99b2185f",
+    "rollbackPrimary": "/opt/ynx-shop/releases/p0-shop-controls-48c0498f",
+    "rollbackOriginal": "/opt/ynx-shop/releases/p0-shop-connect-e35c950d",
+    "serviceActive": true,
+    "serviceRestarted": false,
+    "stateSha256Before": "7f87079edc5b582acd384990002c3b21d21696d1f8de38612375b5abbb1cc52f",
+    "stateSha256After": "7f87079edc5b582acd384990002c3b21d21696d1f8de38612375b5abbb1cc52f",
+    "backendSourceIdentityStillReports": "88c0f3a5",
+    "fullRuntimeIdentityMatched": false
+  },
+  "publicReadback": {
+    "url": "https://shop.ynxweb4.com/shop/?verify=99b2185f",
+    "assets": {
+      "index.html": { "http": 200, "bytes": 8634, "sha256": "5bf1edb8f44cba491d8d971f7956cd05392d5d4fb99eb9672c0ee52d2c249f2d" },
+      "app.js": { "http": 200, "bytes": 22004, "sha256": "4fd8e888313822bf62bb3e08c0d00c2c2727232cad7c0a3dca4f2b270c8c40ce" },
+      "wallet-auth.js": { "http": 200, "bytes": 17930, "sha256": "3ed50c37243e7ce2367fb8fb238b9212af3fc9ac29b4c5cabce8cc9145df90d5" },
+      "i18n.js": { "http": 200, "bytes": 13354, "sha256": "2398e7cdcbb9a6b040d9dde899df7f4899d86e712c6e0a819b63c24da6dd23ff" },
+      "sw.js": { "http": 200, "bytes": 1079, "sha256": "c581554d1b88887f2e26e1dfedc7775d9a0aa665544a419c84b20bd9acb44d00" }
+    }
+  },
+  "browserAcceptance": {
+    "directChrome": true,
+    "existingApprovedProvider": "MetaMask",
+    "existingApprovedAccount": "redacted-0xb906-f3ab",
+    "chainId": "0x1917",
+    "chooserClosedAfterRestore": true,
+    "refreshRestoredConnection": true,
+    "connectedAccountOpenedDetails": true,
+    "detailsProviderAccountNetworkExact": true,
+    "disconnectActionVisible": true,
+    "switchAccountActionVisible": true,
+    "disconnectVerified": true,
+    "disconnectPersistedAcrossReload": true,
+    "defaultLanguage": "en",
+    "languageRoundTrip": ["en", "zh-CN", "en"],
+    "browserTranslationSuppressed": true,
+    "urlStable": true,
+    "topLevelTabCountBefore": 61,
+    "topLevelTabCountAfter": 61,
+    "preExistingBlankTabs": 19,
+    "newBlankTabCreated": false,
+    "shopConsoleErrors": 0,
+    "extensionWarningsOnly": [
+      "MetaMask MaxListenersExceededWarning",
+      "MetaMask ObjectMultiplex orphaned liveness stream"
+    ]
+  },
+  "sensitiveApprovalBoundary": {
+    "shopActionInvoked": "Use MetaMask",
+    "shopState": "Looking for MetaMask…",
+    "metamaskNotificationPresent": true,
+    "accountSharedByThisAcceptance": false,
+    "approvalClicked": false,
+    "switchAccountClicked": false,
+    "chainChangeClicked": false,
+    "nextRequiredUserAction": "Review the MetaMask account-sharing request and explicitly approve or reject it."
+  },
+  "screenshots": [
+    { "path": "release/integration/evidence/shop-public-99b2185-connection-details.png", "bytes": 105667, "sha256": "161df6318c17de97f5189ff996253fc281907b286045fca4d56ec215377e4b5f" },
+    { "path": "release/integration/evidence/shop-public-99b2185-disconnected.png", "bytes": 135067, "sha256": "de7f6682cd6bb52e8978a683cd09dee0893a2bc09fec392e71cb1c132b482c0d" },
+    { "path": "release/integration/evidence/shop-public-99b2185-metamask-approval-boundary.png", "bytes": 114516, "sha256": "e21c2cba012bb8902143055691e82fbab5ad8f4996e20285a75abc93c54cbde3" }
+  ],
+  "truthBoundaries": {
+    "newMetaMaskApprovalVerified": false,
+    "newYNXWalletApprovalVerified": false,
+    "approvalRejectVerified": false,
+    "accountChangeVerified": false,
+    "chainChangeVerified": false,
+    "callbackVerified": false,
+    "productSessionV2Verified": false,
+    "productsConnected": "0/12",
+    "productsMigratedV2": "0/12",
+    "aggregateEcosystemConnected": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}
