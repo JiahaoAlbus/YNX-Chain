@@ -1,23 +1,26 @@
 {
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-  "epoch": 66,
-  "updatedAt": "2026-08-21T13:24:12Z",
+  "epoch": 67,
+  "updatedAt": "2026-08-21T16:42:48Z",
   "heavy": {
-    "owner": null,
-    "status": "RELEASED_FAILED_CLOSED_PREWRITE_NONREUSABLE",
-    "branch": null,
+    "owner": "integration",
+    "status": "ACTIVE_SINGLE_USE",
+    "branch": "codex/calendar-fable5-completion-20260821",
     "worktree": null,
-    "taskId": null,
-    "leaseId": null,
-    "leasedAt": null,
-    "expiresAt": null,
-    "releasedAt": "2026-08-21T13:24:12Z",
+    "taskId": "P0-143",
+    "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-calendar-d2044bd9-20260821T164248Z",
+    "leasedAt": "2026-08-21T16:42:48Z",
+    "expiresAt": "2026-08-21T17:12:48Z",
+    "releasedAt": null,
     "previousOwner": "financial-apps",
     "previousTaskId": "P0-141",
     "previousCheckpoint": "02a482b9c714525dc8c5fd0dd820767cbbf63c67",
-    "executionScope": null,
-    "releaseReason": "P0-141 first rollback-first preflight failed before write because the lease-bound current binary path did not exist; no alternate path was guessed and no retry is permitted.",
-    "onSafeCheckpoint": []
+    "executionScope": "CALENDAR_D2044_PUBLIC_REPLACEMENT_BINARY_STATE_KEY_ROLLBACK_FIRST",
+    "releaseReason": null,
+    "onSafeCheckpoint": [
+      "consume and release after first attempt",
+      "preserve all false product and signing gates"
+    ]
   },
   "light": {
     "owner": "integration",
