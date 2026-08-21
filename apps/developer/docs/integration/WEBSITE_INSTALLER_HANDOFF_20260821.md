@@ -13,7 +13,7 @@ it must never be linked, labelled, or recovered as a macOS or Windows installer.
 | Platform | Required public format | Exact source | Artifact and installation evidence | Website state |
 | --- | --- | --- | --- | --- |
 | macOS arm64 | `.dmg` containing a launchable `.app` | `8168ad7df04ea07d02208280c190eb5051549a74` / tree `7f7e057874d58010f37e7204ee91995b7417c2c8` | Local macOS build produced `ynx-developer-testnet-preview-macos-arm64-unsigned.dmg`, 294,282,136 bytes, SHA-256 `1c0adaa4095128b1f88a59b8570245ec5b0f200d29cd51b2cf5c249927089edb`. It is UDZO, signed ad-hoc with no Team ID, and was mounted, copied from the DMG to an isolated Applications directory, cold-launched, cleanly exited, second-launched, completed bounded C++ compilation and a real clangd document-symbol request, preserved a workspace, and removed its isolated installation/mount at verifier exit. | `HOSTING_AND_NETWORK_PROOF_REQUIRED`; local artifact is not an immutable public download and cannot receive a website CTA. |
-| Windows x64 | `.msix` (or a signed `.exe`) | `95daaa89825738e61747f0e02555ce1b9b84a75a` / tree `a67c816b8fe69b063c4ab795f00e07078fae3068` | CI run `32482417841` produced `ynx-developer-testnet-preview-windows-x64-test-signed.msix`, 71,572,169 bytes, SHA-256 `f5f1133195ab385f5ab975bd40afcebf168930312582d264e803116fc4dcd3d3`. The runner verified its test-only certificate, installed it, cold-launched and second-launched the installed payload, then removed it. | `BUILD_AND_INSTALL_PROOF_IN_PROGRESS`; test-only CI artifact is not an immutable public download and cannot receive a website CTA. |
+| Windows x64 | `.msix` (or a signed `.exe`) | `8168ad7df04ea07d02208280c190eb5051549a74` / tree `7f7e057874d58010f37e7204ee91995b7417c2c8` | CI run `32497840351` produced `ynx-developer-testnet-preview-windows-x64-test-signed.msix`, 71,572,176 bytes, SHA-256 `1c21140947cb9a985208aabd88cbbf7fd996c767b49876ddaf469a84e7dc1ce8`. The runner verified its test-only certificate, installed it, cold-launched and second-launched the installed payload, then removed it. | `BUILD_AND_INSTALL_PROOF_IN_PROGRESS`; test-only CI artifact is not an immutable public download and cannot receive a website CTA. |
 
 The Windows runner did not surface an interactive AppsFolder window, so it
 launched the installed payload directly. That is valid installed-payload
@@ -62,9 +62,9 @@ new exact source-bound handoff containing all of the following for that row:
   messages and no ZIP installer CTA. The page's audit source label was
   `70f7c3ca`; this proves only the visible matrix, not an installer artifact.
 - Windows source-format/install evidence is available only in the temporary
-  Actions artifact from run `32482417841`; the uploaded artifact ZIP SHA-256
-  is `09f472ec16b01552c82d5f4b8c633ad59b77a5e57f8beeeaba3a3958c25ca8b5`
-  (143,527,082 bytes). It contains the MSIX, test certificate, provenance,
+  Actions artifact from run `32497840351`; the uploaded artifact ZIP SHA-256
+  is `5b41b25f026e8136b68ac45143e52f94b43f336f7970cce595ea9c6b244d6ac5`
+  (143,527,067 bytes). It contains the MSIX, test certificate, provenance,
   SBOM, and install evidence; it is not a public installer URL.
 - The macOS arm64 DMG's local verification is source-bound to `8168ad7d` and
   includes mounted-image inspection, an isolated copy installation, ad-hoc
