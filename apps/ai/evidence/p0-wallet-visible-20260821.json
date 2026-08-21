@@ -1,0 +1,74 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-088",
+  "productId": "ynx-ai",
+  "startingCommit": "2cbd93564255e25c2c861eeab68d7b8ef9831014",
+  "verificationCommit": "d2d51d3acc18707be82aae5da38ab4f730b1de19",
+  "verificationTree": "29989728d4da614258a861348c13e3a186cacf18",
+  "generatedAt": "2026-08-21T01:45:00Z",
+  "gates": {
+    "sourceTruthTests": "4/4 passed",
+    "aiProductGoTests": "passed through product smoke",
+    "serviceSmoke": "passed",
+    "browserVisibleProof": "guest desktop, guest mobile, approval and rejection passed",
+    "productionDependencyAudit": "0 vulnerabilities",
+    "fullReleaseCheck": "blocked: release/integration/ynx-ai-contract.json is absent from the authoritative source branch"
+  },
+  "artifacts": [
+    {
+      "path": "web/app.bundle.js",
+      "bytes": 35459,
+      "sha256": "1e9319aa420188e5d70854d11c52484c8bef27ae8a39e2a066aee6496b33aebc"
+    },
+    {
+      "path": "package-lock.json",
+      "bytes": 16198,
+      "sha256": "b9ba595519fa6ee846bae7cb13e6a1d775bfddb37b9c7391bad2dd9027e0747a"
+    }
+  ],
+  "visibleEvidence": [
+    {
+      "path": "evidence/visible/ai-wallet-approved-private-degraded-1440x900.png",
+      "bytes": 105846,
+      "sha256": "602cc80f3bd1af52ea0d291ccc4e7902efb7df4c2b8e261faf9e0caf929213f4",
+      "proves": [
+        "deterministic EIP-1193 approval on chain 0x1917",
+        "approved account is visibly connected",
+        "private AI Product Session remains separately degraded",
+        "no generated answer is substituted"
+      ]
+    },
+    {
+      "path": "evidence/visible/ai-wallet-rejected-guest-preview-1440x900.png",
+      "bytes": 127636,
+      "sha256": "411a7a96b87c2a2a61dfb78f7316188d3404e2d6eb6ee88ed18511715635c550",
+      "proves": [
+        "EIP-1193 rejection creates no connected account",
+        "no private AI session is created",
+        "guest AI preview remains available"
+      ]
+    }
+  ],
+  "truth": {
+    "deterministicProviderApproval": true,
+    "deterministicProviderRejection": true,
+    "standardConnectionPreservedWhenPrivateFails": true,
+    "guestPreview": true,
+    "realInstalledWalletCurrentSource": false,
+    "productSessionV2": false,
+    "aiProductApiAccepted": false,
+    "generationLive": false,
+    "providerGenerationSuccess": false,
+    "publicDeploymentCurrentSource": false,
+    "computerControl": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "notes": [
+    "No model answer, conversation, action, permission, balance or transaction was fabricated.",
+    "The historical public AI runtime is not inherited by this current-source checkpoint.",
+    "The full release-check is not claimed because its required central contract file is absent from this branch.",
+    "Chromium evidence is deterministic local browser evidence and is not current-source installed Wallet or public runtime evidence."
+  ]
+}
