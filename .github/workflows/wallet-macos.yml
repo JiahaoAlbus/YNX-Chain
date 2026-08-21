@@ -218,34 +218,39 @@ jobs:
           APP="$RUNNER_TEMP/Applications/YNX Wallet.app"
           LSREGISTER="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister"
           read_wallet_accessibility() {
-            osascript - "$1" <<'APPLESCRIPT'
+            osascript - "$1" "${2:-}" <<'APPLESCRIPT'
           on run argv
             set wantedIdentifier to item 1 of argv
+            set wantedVisibleText to item 2 of argv
             tell application "System Events"
               tell process "YNXWalletMac"
                 set frontmost to true
                 repeat with candidate in entire contents of window 1
                   try
-                    if (value of attribute "AXIdentifier" of candidate as text) is wantedIdentifier then
+                    set candidateIdentifier to ""
+                    try
+                      set candidateIdentifier to value of attribute "AXIdentifier" of candidate as text
+                    end try
+                    set candidateText to ""
+                    try
+                      set candidateText to value of attribute "AXValue" of candidate as text
+                    on error
+                      try
+                        set candidateText to value of attribute "AXTitle" of candidate as text
+                      on error
+                        try
+                          set candidateText to value of attribute "AXDescription" of candidate as text
+                        on error
+                          set candidateText to name of candidate as text
+                        end try
+                      end try
+                    end try
+                    if candidateIdentifier is wantedIdentifier or (wantedVisibleText is not "" and candidateText contains wantedVisibleText) then
                       set candidateEnabled to "false"
                       try
                         set candidateEnabled to value of attribute "AXEnabled" of candidate as text
                       end try
-                      set candidateValue to ""
-                      try
-                        set candidateValue to value of attribute "AXValue" of candidate as text
-                      on error
-                        try
-                          set candidateValue to value of attribute "AXTitle" of candidate as text
-                        on error
-                          try
-                            set candidateValue to value of attribute "AXDescription" of candidate as text
-                          on error
-                            set candidateValue to name of candidate as text
-                          end try
-                        end try
-                      end try
-                      return candidateEnabled & tab & candidateValue
+                      return candidateEnabled & tab & candidateText
                     end if
                   end try
                 end repeat
@@ -347,10 +352,10 @@ jobs:
           : > "$PROOF/second-launch-recovery-ui.txt"
           : > "$PROOF/second-launch-recovery-accessibility-errors.txt"
           for _ in $(seq 1 30); do
-            read_wallet_accessibility "YNX device recovery action" \
+            read_wallet_accessibility "YNX device recovery action" "Prepare device recovery" \
               > "$PROOF/second-launch-recovery-button.txt" \
               2>> "$PROOF/second-launch-recovery-accessibility-errors.txt" || true
-            read_wallet_accessibility "YNX device recovery status" \
+            read_wallet_accessibility "YNX device recovery status" "Product account recovery remains unavailable." \
               > "$PROOF/second-launch-recovery-ui.txt" \
               2>> "$PROOF/second-launch-recovery-accessibility-errors.txt" || true
             if grep -Eq '^(false|true)[[:space:]]' "$PROOF/second-launch-recovery-button.txt" && \
@@ -583,34 +588,39 @@ jobs:
           set -euo pipefail
 
           read_wallet_accessibility() {
-            osascript - "$1" <<'APPLESCRIPT'
+            osascript - "$1" "${2:-}" <<'APPLESCRIPT'
           on run argv
             set wantedIdentifier to item 1 of argv
+            set wantedVisibleText to item 2 of argv
             tell application "System Events"
               tell process "YNXWalletMac"
                 set frontmost to true
                 repeat with candidate in entire contents of window 1
                   try
-                    if (value of attribute "AXIdentifier" of candidate as text) is wantedIdentifier then
+                    set candidateIdentifier to ""
+                    try
+                      set candidateIdentifier to value of attribute "AXIdentifier" of candidate as text
+                    end try
+                    set candidateText to ""
+                    try
+                      set candidateText to value of attribute "AXValue" of candidate as text
+                    on error
+                      try
+                        set candidateText to value of attribute "AXTitle" of candidate as text
+                      on error
+                        try
+                          set candidateText to value of attribute "AXDescription" of candidate as text
+                        on error
+                          set candidateText to name of candidate as text
+                        end try
+                      end try
+                    end try
+                    if candidateIdentifier is wantedIdentifier or (wantedVisibleText is not "" and candidateText contains wantedVisibleText) then
                       set candidateEnabled to "false"
                       try
                         set candidateEnabled to value of attribute "AXEnabled" of candidate as text
                       end try
-                      set candidateValue to ""
-                      try
-                        set candidateValue to value of attribute "AXValue" of candidate as text
-                      on error
-                        try
-                          set candidateValue to value of attribute "AXTitle" of candidate as text
-                        on error
-                          try
-                            set candidateValue to value of attribute "AXDescription" of candidate as text
-                          on error
-                            set candidateValue to name of candidate as text
-                          end try
-                        end try
-                      end try
-                      return candidateEnabled & tab & candidateValue
+                      return candidateEnabled & tab & candidateText
                     end if
                   end try
                 end repeat
