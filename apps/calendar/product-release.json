@@ -73,6 +73,33 @@
       "no production-scale RTO or RPO claim is made from the local empty-state drill"
     ]
   },
+  "latestLocalCandidate": {
+    "sourceCommit": "4f0b97d30a33d1f66a19c06b3fbe138638e99aa8",
+    "branch": "codex/calendar-fable5-completion-20260821",
+    "status": "testedLocalNotPublic",
+    "scope": [
+      "versioned RSVP comments and organizer notification",
+      "idempotent RSVP replay and mutation conflict rejection",
+      "privacy-bounded canonical RSVP event metadata",
+      "late-night all-day range normalization and recurrence rendering"
+    ],
+    "deployedPublic": false,
+    "websitePublished": false,
+    "publicRuntimeSourceCommit": "828120e6d81efaf874a930793660e185a394ba4f",
+    "publicRuntimeIncludesCandidate": false,
+    "tests": [
+      "go test ./internal/calendar ./apps/calendar/statectl",
+      "go test -race ./internal/calendar",
+      "go vet ./internal/calendar ./apps/calendar/statectl",
+      "npm test --prefix apps/calendar",
+      "npm run test:release --prefix apps/calendar",
+      "npm run build --prefix apps/calendar",
+      "npm run build:statectl --prefix apps/calendar",
+      "npm run smoke --prefix apps/calendar",
+      "npm run browser:proof --prefix apps/calendar",
+      "npm run test:deploy --prefix apps/calendar"
+    ]
+  },
   "publicProbe": {
     "url": "https://calendar-testnet.43.153.202.237.sslip.io/",
     "finalUrl": "https://calendar-testnet.43.153.202.237.sslip.io/",
@@ -246,6 +273,23 @@
         "computerControlCurrentDeployment": false,
         "installedWalletCurrentDeployment": false
       }
+    },
+    {
+      "sourceCommit": "4f0b97d30a33d1f66a19c06b3fbe138638e99aa8",
+      "gate": "Calendar RSVP collaboration and late-night all-day browser regression suite",
+      "result": "pass-local-candidate-not-public",
+      "details": {
+        "goUnitRaceVet": true,
+        "webTests": "20/20",
+        "releaseTests": "5/5",
+        "smoke": true,
+        "browserProof": true,
+        "deployReadiness": true,
+        "consoleErrors": 0,
+        "desktopScreenshotSha256": "5e731e9242b0fc3e418952a15b50f4b62a6a8e52ad25d2107a0a1c600a3d049d",
+        "mobileScreenshotSha256": "ad9325a336a1501fcdd573d114561c13f4099bc0fd7d82144135a476bd3cb0bc",
+        "publicRuntimeIncludesCandidate": false
+      }
     }
   ],
   "historicalPreview": {
@@ -320,5 +364,5 @@
     "backup confidentiality encryption, offsite retention and independent key escrow remain pending Security/SRE acceptance",
     "repository-wide Go preflight has non-Calendar failures retained in dependency acceptance"
   ],
-  "generatedAt": "2026-08-14T01:22:46Z"
+  "generatedAt": "2026-08-21T14:43:43Z"
 }

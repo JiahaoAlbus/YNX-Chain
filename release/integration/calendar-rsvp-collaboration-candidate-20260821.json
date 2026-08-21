@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "productId": "com.ynx.calendar",
+  "candidateSourceCommit": "4f0b97d30a33d1f66a19c06b3fbe138638e99aa8",
+  "branch": "codex/calendar-fable5-completion-20260821",
+  "status": "TESTED_LOCAL_NOT_PUBLIC",
+  "scope": [
+    "bounded versioned RSVP comments",
+    "organizer RSVP notification records",
+    "idempotent replay and mutation conflict rejection",
+    "privacy-bounded canonical RSVP event metadata",
+    "late-night all-day recurrence rendering regression"
+  ],
+  "tests": {
+    "goUnit": true,
+    "goRace": true,
+    "goVet": true,
+    "web": "20/20",
+    "release": "5/5",
+    "build": true,
+    "statectlBuild": true,
+    "smoke": true,
+    "browserProof": true,
+    "deployReadiness": true,
+    "consoleErrors": 0
+  },
+  "browserArtifacts": {
+    "desktop": {
+      "path": "apps/calendar/tests/artifacts/calendar-desktop.png",
+      "sha256": "5e731e9242b0fc3e418952a15b50f4b62a6a8e52ad25d2107a0a1c600a3d049d"
+    },
+    "mobile": {
+      "path": "apps/calendar/tests/artifacts/calendar-mobile.png",
+      "sha256": "ad9325a336a1501fcdd573d114561c13f4099bc0fd7d82144135a476bd3cb0bc"
+    }
+  },
+  "publicTruth": {
+    "runtimeUrl": "https://calendar-testnet.43.153.202.237.sslip.io/",
+    "runtimeSourceCommit": "828120e6d81efaf874a930793660e185a394ba4f",
+    "candidateDeployedPublic": false,
+    "websiteCandidatePublished": false,
+    "computerControlCandidateVerified": false,
+    "installedCandidateVerified": false
+  },
+  "nextAction": "publish exact candidate through the Calendar production path, then prove two-user RSVP comment, refresh, restart and visible public source identity"
+}

@@ -1,7 +1,7 @@
 # YNX Calendar evidence index
 
-Current product source: `828120e6d81efaf874a930793660e185a394ba4f`
-Public Web runtime source: `828120e6d81efaf874a930793660e185a394ba4f`
+Latest local candidate source: `4f0b97d30a33d1f66a19c06b3fbe138638e99aa8`
+Public Web runtime source (candidate not yet published): `828120e6d81efaf874a930793660e185a394ba4f`
 
 | Evidence area | Authoritative file or command | Status |
 |---|---|---|
@@ -19,6 +19,8 @@ Public Web runtime source: `828120e6d81efaf874a930793660e185a394ba4f`
 | Operations | `apps/calendar/OPERATIONS.md` | backup, restore, rollback and incident runbook |
 | Migration | `apps/calendar/MIGRATION_COMPATIBILITY.md` | state schema 2, schema-zero/one forward migration and future fail-closed |
 | Canonical events | `internal/calendar/service.go`, `TestCanonicalOutboxIsTransactionalPrivateReplaySafeAndPersistent`, `TestCanonicalOutboxOverflowAbortsCalendarMutation` | local transactional outbox pass; Mail/Data Fabric transport pending |
+| RSVP collaboration | `internal/calendar/service.go`, `TestRSVPCommentIsVersionedIdempotentAndPrivacyBounded` | bounded comments, organizer notification, version conflict and idempotent replay pass locally; public candidate proof pending |
+| All-day recurrence regression | `apps/calendar/tests/browser-proof.cjs`, `apps/calendar/tests/artifacts/calendar-desktop.png`, `apps/calendar/tests/artifacts/calendar-mobile.png` | late-night all-day range normalization and rendered recurrence verified in desktop/mobile browser proof |
 | Completion evidence | `apps/calendar/FEATURE_COMPLETION_EVIDENCE.md` | local status and remaining gates |
 | UI audit | `apps/calendar/UI_DESIGN_AUDIT.md` | existing UI evidence |
 | Observability | `internal/calendar/observability.go`, `apps/calendar/OBSERVABILITY.md` | local health/readiness/version/request-ID/metrics pass; traces, dashboard and alerts remain central dependencies |

@@ -92,16 +92,16 @@
       "category": "invitations",
       "requirement": "Invite approved YNX handles, preserve organizer/attendee roles, and support accept, tentative, decline, update, cancellation, comment, and duplicate/replay rejection.",
       "applicability": "required",
-      "status": "inProgress",
-      "evidence": ["YNX-handle invitation, pending state, accept/tentative/decline authorization, update and cancellation are local state", "mutation replay is persisted"],
-      "sourceCommit": "9cf30f16c4312b4438d087b1df58cec68df54f15",
-      "tests": ["TestInviteRSVPShareUpdateCancelRevertAndAuthorization", "TestCentralWalletRequestReplayPersistsAcrossRestart"],
+      "status": "testedLocal",
+      "evidence": ["YNX-handle invitation, pending state, accept/tentative/decline authorization, update and cancellation are local state", "bounded RSVP comments are versioned and persisted", "organizers receive explicit RSVP notification records", "identical retries are idempotent while mutation-ID conflicts and stale versions fail closed", "canonical outbox metadata excludes the RSVP comment body"],
+      "sourceCommit": "4f0b97d30a33d1f66a19c06b3fbe138638e99aa8",
+      "tests": ["TestInviteRSVPShareUpdateCancelRevertAndAuthorization", "TestRSVPCommentIsVersionedIdempotentAndPrivacyBounded", "TestCentralWalletRequestReplayPersistsAcrossRestart"],
       "artifact": [],
       "publicProof": [],
       "blockedBy": [],
       "owner": "36-calendar",
-      "nextAction": "add bounded RSVP comments and explicit invitation notification records",
-      "lastUpdated": "2026-07-27T14:39:45Z"
+      "nextAction": "publish the exact candidate and prove two-user RSVP comment, refresh and restart behavior on the public runtime",
+      "lastUpdated": "2026-08-21T14:43:43Z"
     },
     {
       "id": "CAL-MAIL-001",
