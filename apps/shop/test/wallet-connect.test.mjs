@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { clearWalletSession, onStandardConnectionChange, restoreStandardConnection, standardConnection, startWalletAuth } from '../wallet-auth.js';
+import { clearWalletSession, disconnectStandardWallet, onStandardConnectionChange, restoreStandardConnection, standardConnection, startWalletAuth, switchStandardAccount } from '../wallet-auth.js';
 
 const ACCOUNT = '0x1111111111111111111111111111111111111111';
 
@@ -102,4 +102,46 @@ test('account and chain events update or invalidate the standard connection', as
   assert.equal(standardConnection(), null);
   assert.equal(observed.at(-1), null);
   unsubscribe();
+});
+
+test('account switch uses wallet permissions and keeps YNX Testnet exact', async () => {
+  const next = '0x2222222222222222222222222222222222222222';
+  const calls = [];
+  const provider = {
+    isMetaMask: true,
+    async request(payload) {
+      calls.push(payload);
+      if (payload.method === 'eth_requestAccounts') return calls.some(call => call.method === 'wallet_requestPermissions') ? [next] : [ACCOUNT];
+      if (payload.method === 'wallet_requestPermissions') return [{ parentCapability: 'eth_accounts' }];
+      if (payload.method === 'eth_chainId') return '0x1917';
+      throw new Error(`Unexpected method ${payload.method}`);
+    },
+  };
+  await startWalletAuth('buyer', { wallet: 'metamask', scope: { ethereum: provider }, waitMs: 0 });
+  const switched = await switchStandardAccount();
+  assert.equal(switched.account, next);
+  assert.deepEqual(calls.slice(-3).map(call => call.method), ['wallet_requestPermissions', 'eth_requestAccounts', 'eth_chainId']);
+  assert.deepEqual(calls.find(call => call.method === 'wallet_requestPermissions').params, [{ eth_accounts: {} }]);
+  clearWalletSession();
+});
+
+test('explicit disconnect revokes permission when available and suppresses refresh restore', async () => {
+  const calls = [];
+  const provider = {
+    isMetaMask: true,
+    async request(payload) {
+      calls.push(payload.method);
+      if (payload.method === 'eth_requestAccounts' || payload.method === 'eth_accounts') return [ACCOUNT];
+      if (payload.method === 'eth_chainId') return '0x1917';
+      if (payload.method === 'wallet_revokePermissions') return null;
+      throw new Error(`Unexpected method ${payload.method}`);
+    },
+  };
+  await startWalletAuth('buyer', { wallet: 'metamask', scope: { ethereum: provider }, waitMs: 0 });
+  assert.deepEqual(await disconnectStandardWallet(), { disconnected: true, walletPermissionRevoked: true });
+  assert.equal(standardConnection(), null);
+  const restored = await restoreStandardConnection({ scope: { ethereum: provider }, waitMs: 0 });
+  assert.equal(restored, null);
+  assert.equal(calls.includes('eth_accounts'), false);
+  clearWalletSession();
 });

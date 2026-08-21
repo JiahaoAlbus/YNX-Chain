@@ -41,7 +41,10 @@ export async function startWalletAuth(_surface, options = {}) {
   if (!Array.isArray(accounts) || !/^0x[0-9a-fA-F]{40}$/.test(accounts[0] || '')) throw walletError('INVALID_ACCOUNT', 'The wallet did not return a valid EVM account.');
   await ensureYNXChain(selected.provider);
   setStandardConnection(selected.provider, selected.kind, accounts[0]);
-  try { sessionStorage.setItem('ynx_shop_wallet_kind', selected.kind); } catch {}
+  try {
+    sessionStorage.setItem('ynx_shop_wallet_kind', selected.kind);
+    sessionStorage.removeItem('ynx_shop_wallet_disconnected');
+  } catch {}
   return standard;
 }
 
@@ -49,7 +52,10 @@ export async function restoreStandardConnection(options = {}) {
   const discovery = await discoverWalletProviders(options.scope ?? globalThis, options.waitMs ?? 180);
   if (discovery.ambiguities.length || discovery.conflictedAnnouncements) return null;
   let remembered = '';
-  try { remembered = sessionStorage.getItem('ynx_shop_wallet_kind') || ''; } catch {}
+  try {
+    if (sessionStorage.getItem('ynx_shop_wallet_disconnected') === '1') return null;
+    remembered = sessionStorage.getItem('ynx_shop_wallet_kind') || '';
+  } catch {}
   const candidates = [discovery.ynx, discovery.metamask].filter(Boolean);
   const selected = candidates.find(candidate => candidate.kind === remembered) || (candidates.length === 1 ? candidates[0] : null);
   if (!selected) return null;
@@ -60,6 +66,33 @@ export async function restoreStandardConnection(options = {}) {
   if (!Array.isArray(accounts) || !/^0x[0-9a-fA-F]{40}$/.test(accounts[0] || '') || String(chainId).toLowerCase() !== YNX_CHAIN.chainId) return null;
   setStandardConnection(selected.provider, selected.kind, accounts[0]);
   return standard;
+}
+
+export async function switchStandardAccount() {
+  if (!activeProvider || !standard) throw walletError('WALLET_NOT_CONNECTED', 'Connect a wallet before switching accounts.');
+  await activeProvider.request({ method: 'wallet_requestPermissions', params: [{ eth_accounts: {} }] });
+  const accounts = await activeProvider.request({ method: 'eth_requestAccounts' });
+  const account = Array.isArray(accounts) ? accounts[0] : null;
+  if (!/^0x[0-9a-fA-F]{40}$/.test(account || '')) throw walletError('INVALID_ACCOUNT', 'The wallet did not return a valid EVM account.');
+  await ensureYNXChain(activeProvider);
+  setStandardConnection(activeProvider, standard.wallet, account);
+  return standard;
+}
+
+export async function disconnectStandardWallet() {
+  if (!activeProvider || !standard) return Object.freeze({ disconnected: true, walletPermissionRevoked: false });
+  const provider = activeProvider;
+  let walletPermissionRevoked = false;
+  try {
+    await provider.request({ method: 'wallet_revokePermissions', params: [{ eth_accounts: {} }] });
+    walletPermissionRevoked = true;
+  } catch {}
+  try {
+    sessionStorage.removeItem('ynx_shop_wallet_kind');
+    sessionStorage.setItem('ynx_shop_wallet_disconnected', '1');
+  } catch {}
+  clearStandardConnection();
+  return Object.freeze({ disconnected: true, walletPermissionRevoked });
 }
 
 export async function completeWalletCallback() {
@@ -97,7 +130,10 @@ export async function completeWalletCallback() {
 export function clearWalletSession() {
   bearer = '';
   clearStandardConnection();
-  try { sessionStorage.removeItem('ynx_shop_wallet_kind'); } catch {}
+  try {
+    sessionStorage.removeItem('ynx_shop_wallet_kind');
+    sessionStorage.removeItem('ynx_shop_wallet_disconnected');
+  } catch {}
 }
 
 function setStandardConnection(provider, wallet, account) {

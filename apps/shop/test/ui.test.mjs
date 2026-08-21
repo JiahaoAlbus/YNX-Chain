@@ -12,11 +12,13 @@ test('buyer UI wires full order lifecycle', async () => {
   assert.ok(js.includes("${tr('label')} ${caps.privacyData}"));
   for (const state of ['cancelled', 'delivered', 'return_requested', 'refund_requested', 'disputed', 'reviewed']) assert.ok(js.includes(state), state);
   for (const workflow of ['search_comparison', 'support_draft', 'return_explanation']) assert.ok(js.includes(workflow), workflow);
-  for (const walletControl of ['walletDialog', 'connectYNXWallet', 'connectMetaMask', 'downloadYNXWallet', 'downloadMetaMask']) assert.ok(html.includes(`id="${walletControl}"`), walletControl);
+  for (const walletControl of ['walletDialog', 'connectYNXWallet', 'connectMetaMask', 'downloadYNXWallet', 'downloadMetaMask', 'walletDetailsDialog', 'walletProvider', 'walletAccount', 'walletNetwork', 'switchWalletAccount', 'disconnectWallet']) assert.ok(html.includes(`id="${walletControl}"`), walletControl);
   assert.ok(js.includes("startWalletAuth('buyer',{wallet})"));
   assert.ok(js.includes("restoreStandardConnection()"));
   assert.ok(js.includes("$('#walletDialog').close()"));
   assert.ok(js.includes("$('#wallet').focus()"));
+  assert.ok(js.includes('switchStandardAccount()'));
+  assert.ok(js.includes('disconnectStandardWallet()'));
   assert.ok(!js.includes("location.assign('ynxwallet://authorize"));
 });
 
@@ -29,4 +31,12 @@ test('web wallet uses standard providers and YNX chain 6423 without custom-schem
   assert.ok(discovery.includes('eip6963:requestProvider'));
   assert.ok(discovery.includes('eip6963:announceProvider'));
   assert.equal((auth.match(/ynxwallet:\/\/authorize/g)||[]).length, 0, 'the Web bundle must contain no custom-scheme navigation');
+});
+
+test('Shop defaults to English and only changes app language after explicit user selection', async () => {
+  const i18n = await readFile(new URL('../i18n.js', import.meta.url), 'utf8');
+  assert.ok(i18n.includes("localStorage.getItem('ynx-ui-language')||'en'"));
+  assert.equal(i18n.includes("localStorage.getItem('ynx-ui-language')||navigator.language"), false);
+  assert.ok(i18n.includes("select('appLanguage'"));
+  assert.ok(i18n.includes("localStorage.setItem('ynx-ui-language',v);location.reload()"));
 });

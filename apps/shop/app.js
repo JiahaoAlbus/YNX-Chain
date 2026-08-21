@@ -1,4 +1,4 @@
-import{token,startWalletAuth,restoreStandardConnection,standardConnection,onStandardConnectionChange,completeWalletCallback,OFFICIAL_YNX_WALLET_DOWNLOAD_URL,STANDARD_METAMASK_DOWNLOAD_URL}from'./wallet-auth.js';
+import{token,startWalletAuth,restoreStandardConnection,standardConnection,onStandardConnectionChange,switchStandardAccount,disconnectStandardWallet,completeWalletCallback,OFFICIAL_YNX_WALLET_DOWNLOAD_URL,STANDARD_METAMASK_DOWNLOAD_URL}from'./wallet-auth.js';
 import{installI18n,outputLanguage,tr}from'./i18n.js';
 const $=s=>document.querySelector(s);const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const apiRoot=location.pathname.startsWith('/shop-staging/')?'/shop-api-staging/api':'/api';
@@ -25,8 +25,16 @@ const walletState=$('#walletState');
 const walletLabel=connection=>`${connection.wallet==='ynx-wallet'?'YNX Wallet':'MetaMask'} · ${connection.account.slice(0,6)}…${connection.account.slice(-4)}`;
 function renderStandardWallet(connection){
   $('#wallet').textContent=connection?walletLabel(connection):'Sign in with YNX Wallet';
+  if(connection){
+    $('#walletProvider').textContent=connection.wallet==='ynx-wallet'?'YNX Wallet':'MetaMask';
+    $('#walletAccount').textContent=connection.account;
+    $('#walletNetwork').textContent=`YNX Testnet · ${connection.chainId}`;
+  }else if($('#walletDetailsDialog').open){
+    $('#walletDetailsDialog').close();
+  }
 }
 function openWalletChooser(){walletState.textContent='Choose an installed wallet. Connecting never sends your recovery phrase or private key to Shop.';$('#walletDialog').showModal()}
+function openWalletControl(){const connection=standardConnection();if(!connection)return openWalletChooser();renderStandardWallet(connection);$('#walletDetailsState').textContent='Your standard wallet connection is independent from private Shop services.';$('#walletDetailsDialog').showModal()}
 async function connectWallet(wallet){
   walletState.textContent=`Looking for ${wallet==='ynx'?'YNX Wallet':'MetaMask'}…`;
   try{
@@ -40,14 +48,18 @@ async function connectWallet(wallet){
     walletState.textContent=`${e.code||'WALLET_CONNECTION_FAILED'}: ${e.message}`;
   }
 }
-$('#wallet').onclick=openWalletChooser;
+$('#wallet').onclick=openWalletControl;
 $('#connectYNXWallet').onclick=()=>connectWallet('ynx');
 $('#connectMetaMask').onclick=()=>connectWallet('metamask');
 $('#downloadYNXWallet').href=OFFICIAL_YNX_WALLET_DOWNLOAD_URL;
 $('#downloadMetaMask').href=STANDARD_METAMASK_DOWNLOAD_URL;
 $('#closeWalletDialog').onclick=()=>$('#walletDialog').close();
+$('#closeWalletDetails').onclick=()=>$('#walletDetailsDialog').close();
+$('#disconnectWallet').onclick=async()=>{const result=await disconnectStandardWallet();$('#walletDetailsState').textContent=result.walletPermissionRevoked?'Disconnected and the wallet account permission was revoked.':'Disconnected from Shop. Your wallet did not expose a permission-revocation method.';if($('#walletDetailsDialog').open)$('#walletDetailsDialog').close();$('#status').textContent='Wallet disconnected. Guest browsing remains available.';$('#wallet').focus()};
+$('#switchWalletAccount').onclick=async()=>{$('#walletDetailsState').textContent='Waiting for your wallet to approve an account change…';try{const connection=await switchStandardAccount();renderStandardWallet(connection);$('#walletDetailsState').textContent=`Connected as ${connection.account} on YNX Testnet.`}catch(e){$('#walletDetailsState').textContent=`${e.code||'ACCOUNT_SWITCH_FAILED'}: ${e.message}`}};
 onStandardConnectionChange(connection=>{
   renderStandardWallet(connection);
+  if(connection&&$('#walletDetailsDialog').open)$('#walletDetailsState').textContent='Connection updated by your wallet.';
   if(!connection&&$('#walletDialog').open)walletState.textContent='The wallet disconnected or left YNX Testnet. Choose a wallet to reconnect.';
 });
 $('#profileButton').onclick=async()=>{if(!requireSignIn())return;$('#profileDialog').showModal();$('#privacyState').textContent='';$('#deleteConfirmation').value='';try{await loadProfile();const p=profile||{},a=p.Addresses?.[0]||{};for(const [k,v]of Object.entries({displayName:p.DisplayName||'',recipient:a.Recipient||'',line1:a.Line1||'',city:a.City||'',region:a.Region||'',postalCode:a.PostalCode||'',country:a.Country||''}))$('#profileForm').elements[k].value=v}catch(err){$('#profileState').textContent=err.message}};$('#closeProfile').onclick=()=>$('#profileDialog').close();$('#profileForm').onsubmit=async e=>{e.preventDefault();const f=new FormData(e.target),has=f.get('recipient')||f.get('line1')||f.get('country');try{profile=await api('/profile',{method:'PUT',body:JSON.stringify({DisplayName:f.get('displayName'),Addresses:has?[{Recipient:f.get('recipient'),Line1:f.get('line1'),City:f.get('city'),Region:f.get('region'),PostalCode:f.get('postalCode'),Country:f.get('country')}]:[]})});$('#profileState').textContent='Profile and address saved.'}catch(err){$('#profileState').textContent=err.message}};$('#exportData').onclick=async()=>{if(!requireSignIn())return;try{const data=await api('/privacy/export');downloadJSON(`ynx-shop-data-${new Date().toISOString().slice(0,10)}.json`,data);$('#privacyState').textContent=tr('exported',{orders:data.orders?.length||0,ai:data.aiJobs?.length||0,notice:data.retentionNotice});}catch(err){$('#privacyState').textContent=tr('exportFailed',{error:err.message})}};$('#deleteData').onclick=async()=>{if(!requireSignIn())return;const confirmation=$('#deleteConfirmation').value;if(confirmation!=='DELETE_MY_SHOP_DATA'){$('#privacyState').textContent=tr('exactRequired');return}try{const receipt=await api('/privacy/delete',{method:'POST',body:JSON.stringify({confirmation})});profile=null;cart=[];renderCart();$('#profileForm').reset();$('#deleteConfirmation').value='';$('#privacyState').textContent=tr('deleted',{receipt:receipt.receiptId,orders:receipt.ordersPseudonymized})}catch(err){$('#privacyState').textContent=tr('deleteFailed',{error:err.message})}};
