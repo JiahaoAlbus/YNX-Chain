@@ -5,6 +5,9 @@ const KEY_STORE = 'keys';
 const REPLAY_STORE = 'replays';
 let bearer = '';
 let standard = null;
+let activeProvider = null;
+let removeProviderListeners = null;
+const standardListeners = new Set();
 
 const YNX_CHAIN = Object.freeze({
   chainId: '0x1917',
@@ -18,6 +21,11 @@ export const STANDARD_METAMASK_DOWNLOAD_URL = 'https://metamask.io/download/';
 
 export const token = () => bearer;
 export const standardConnection = () => standard;
+export const onStandardConnectionChange = listener => {
+  if (typeof listener !== 'function') throw new TypeError('Wallet connection listener must be a function.');
+  standardListeners.add(listener);
+  return () => standardListeners.delete(listener);
+};
 
 export async function startWalletAuth(_surface, options = {}) {
   const discovery = await discoverWalletProviders(options.scope ?? globalThis, options.waitMs ?? 180);
@@ -32,7 +40,25 @@ export async function startWalletAuth(_surface, options = {}) {
   const accounts = await selected.provider.request({ method: 'eth_requestAccounts' });
   if (!Array.isArray(accounts) || !/^0x[0-9a-fA-F]{40}$/.test(accounts[0] || '')) throw walletError('INVALID_ACCOUNT', 'The wallet did not return a valid EVM account.');
   await ensureYNXChain(selected.provider);
-  standard = Object.freeze({ account: accounts[0], chainId: YNX_CHAIN.chainId, wallet: selected.kind, transport: 'eip-1193' });
+  setStandardConnection(selected.provider, selected.kind, accounts[0]);
+  try { sessionStorage.setItem('ynx_shop_wallet_kind', selected.kind); } catch {}
+  return standard;
+}
+
+export async function restoreStandardConnection(options = {}) {
+  const discovery = await discoverWalletProviders(options.scope ?? globalThis, options.waitMs ?? 180);
+  if (discovery.ambiguities.length || discovery.conflictedAnnouncements) return null;
+  let remembered = '';
+  try { remembered = sessionStorage.getItem('ynx_shop_wallet_kind') || ''; } catch {}
+  const candidates = [discovery.ynx, discovery.metamask].filter(Boolean);
+  const selected = candidates.find(candidate => candidate.kind === remembered) || (candidates.length === 1 ? candidates[0] : null);
+  if (!selected) return null;
+  const [accounts, chainId] = await Promise.all([
+    selected.provider.request({ method: 'eth_accounts' }),
+    selected.provider.request({ method: 'eth_chainId' }),
+  ]).catch(() => [[], null]);
+  if (!Array.isArray(accounts) || !/^0x[0-9a-fA-F]{40}$/.test(accounts[0] || '') || String(chainId).toLowerCase() !== YNX_CHAIN.chainId) return null;
+  setStandardConnection(selected.provider, selected.kind, accounts[0]);
   return standard;
 }
 
@@ -68,7 +94,50 @@ export async function completeWalletCallback() {
   return Object.freeze({ account: session.account, expiresAt: session.expiresAt });
 }
 
-export function clearWalletSession() { bearer = ''; standard = null; }
+export function clearWalletSession() {
+  bearer = '';
+  clearStandardConnection();
+  try { sessionStorage.removeItem('ynx_shop_wallet_kind'); } catch {}
+}
+
+function setStandardConnection(provider, wallet, account) {
+  removeProviderListeners?.();
+  activeProvider = provider;
+  standard = Object.freeze({ account, chainId: YNX_CHAIN.chainId, wallet, transport: 'eip-1193' });
+  const accountsChanged = accounts => {
+    const next = Array.isArray(accounts) ? accounts[0] : null;
+    if (!/^0x[0-9a-fA-F]{40}$/.test(next || '')) clearStandardConnection();
+    else {
+      standard = Object.freeze({ ...standard, account: next });
+      emitStandardConnection();
+    }
+  };
+  const chainChanged = chainId => {
+    if (String(chainId).toLowerCase() !== YNX_CHAIN.chainId) clearStandardConnection();
+  };
+  const disconnected = () => clearStandardConnection();
+  provider.on?.('accountsChanged', accountsChanged);
+  provider.on?.('chainChanged', chainChanged);
+  provider.on?.('disconnect', disconnected);
+  removeProviderListeners = () => {
+    provider.removeListener?.('accountsChanged', accountsChanged);
+    provider.removeListener?.('chainChanged', chainChanged);
+    provider.removeListener?.('disconnect', disconnected);
+  };
+  emitStandardConnection();
+}
+
+function clearStandardConnection() {
+  removeProviderListeners?.();
+  removeProviderListeners = null;
+  activeProvider = null;
+  standard = null;
+  emitStandardConnection();
+}
+
+function emitStandardConnection() {
+  for (const listener of standardListeners) listener(standard);
+}
 
 async function ensureYNXChain(provider) {
   let chainId = await provider.request({ method: 'eth_chainId' });

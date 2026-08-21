@@ -1,4 +1,4 @@
-const CACHE='ynx-shop-shell-v3';
+const CACHE='ynx-shop-shell-v4';
 const BASE=new URL('./',self.registration.scope).pathname;
 const SHELL=['','styles.css','workflow.css','app.js','i18n.js','wallet-auth.js','wallet-provider-discovery.js','manifest.webmanifest','icon-192.png','icon-512.png'].map(path=>new URL(path,self.registration.scope).pathname);
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(SHELL)).then(()=>self.skipWaiting())));

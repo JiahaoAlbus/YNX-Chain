@@ -14,6 +14,9 @@ test('buyer UI wires full order lifecycle', async () => {
   for (const workflow of ['search_comparison', 'support_draft', 'return_explanation']) assert.ok(js.includes(workflow), workflow);
   for (const walletControl of ['walletDialog', 'connectYNXWallet', 'connectMetaMask', 'downloadYNXWallet', 'downloadMetaMask']) assert.ok(html.includes(`id="${walletControl}"`), walletControl);
   assert.ok(js.includes("startWalletAuth('buyer',{wallet})"));
+  assert.ok(js.includes("restoreStandardConnection()"));
+  assert.ok(js.includes("$('#walletDialog').close()"));
+  assert.ok(js.includes("$('#wallet').focus()"));
   assert.ok(!js.includes("location.assign('ynxwallet://authorize"));
 });
 
