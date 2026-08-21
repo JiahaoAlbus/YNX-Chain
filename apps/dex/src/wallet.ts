@@ -2,6 +2,7 @@ import {canonicalJSON} from '@ynx-chain/wallet-auth/src/canonical.js';
 import {launchWebAuthorization} from '@ynx-chain/wallet-auth/src/authorize-launcher.js';
 import {parseAuthorizationRequest} from '@ynx-chain/wallet-auth/src/protocol.js';
 import {parseAuthorizationCallbackURL} from '@ynx-chain/wallet-auth/src/deep-link.js';
+import {createStandardWalletConnectState,reduceStandardWalletConnectState,STANDARD_WALLET_CONNECT_STATUS,STANDARD_WALLET_RPC_PROBE_TRANSPORT} from '../node_modules/@ynx-chain/wallet-auth/src/standard-wallet-connect-state.js';
 import type {AuthorizationLaunchResult,AuthorizationRequest} from '@ynx-chain/wallet-auth';
 import type {DexActionName,DexActionPayload,DexActionResponse,DexQuote} from '@ynx-chain/wallet-auth';
 import {dexCanonicalAuthorizationRegistry} from './product-session-registry';
@@ -17,6 +18,7 @@ export type DexWalletSession=Readonly<{session:Readonly<{account:string;expiresA
 export type DexPrivateCapabilities=Readonly<{device:Readonly<{key:string}>;storage:Readonly<{securityLevel:'hardware-backed'|'os-protected';get:(key:string)=>string|Promise<string|null>|null;set:(key:string,value:string)=>void|Promise<void>;remove:(key:string)=>void|Promise<void>}>;scope?:unknown}>;
 export type DexAuthorizationLaunch=Readonly<{status:AuthorizationLaunchResult['status'];fallbackActions:AuthorizationLaunchResult['fallbackActions'];provider?:Eip1193Provider}>;
 let privateCapabilities:DexPrivateCapabilities|null=null;
+let standardWalletState=createStandardWalletConnectState();
 const CANONICAL_AUTHORIZATION_PENDING_KEY='ynx.dex.wallet-authorize.v1.pending';
 
 export class WalletRequestError extends Error{constructor(public code:string,message:string){super(message)}}
@@ -24,17 +26,18 @@ function unavailable(){return new WalletRequestError('PRODUCT_SESSION_UNAVAILABL
 function privateError(error:unknown){return new WalletRequestError('PRIVATE_SERVICE_DEGRADED',error instanceof Error?error.message:String(error));}
 function requireCapabilities(){if(!privateCapabilities)throw unavailable();return privateCapabilities;}
 function nonce(){const bytes=new Uint8Array(32);crypto.getRandomValues(bytes);return Array.from(bytes,value=>value.toString(16).padStart(2,'0')).join('')}
+function standardCode(error:unknown){const value=String(error instanceof WalletRequestError?error.code:'WALLET_CONNECT_FAILED').toUpperCase().replace(/[^A-Z0-9_]/g,'_');return /^[A-Z][A-Z0-9_]{2,63}$/.test(value)?value:'WALLET_CONNECT_FAILED'}
+function standardTransition(event:Record<string,unknown>){standardWalletState=reduceStandardWalletConnectState(standardWalletState,event);return standardWalletState}
 
 /** Standard EIP-1193/MetaMask stays independent of YNX Wallet authorization. */
-export async function connectStandardWallet(provider:Eip1193Provider):Promise<string>{
+export async function connectStandardWallet(provider:Eip1193Provider,providerKind:'metamask'|'ynx-wallet'='ynx-wallet'):Promise<string>{
   if(!provider)throw new WalletRequestError('WALLET_NOT_FOUND','No EIP-1193 provider was detected. Download YNX Wallet or install MetaMask, then retry.');
-  try{await provider.request({method:'wallet_switchEthereumChain',params:[{chainId:YNX_EVM_CHAIN.chainId}]});}catch(reason){if((reason as {code?:number})?.code!==4902)throw reason;await provider.request({method:'wallet_addEthereumChain',params:[YNX_EVM_CHAIN]});await provider.request({method:'wallet_switchEthereumChain',params:[{chainId:YNX_EVM_CHAIN.chainId}]});}
-  const chainId=await provider.request({method:'eth_chainId'});if(chainId!==YNX_EVM_CHAIN.chainId)throw new WalletRequestError('WRONG_NETWORK','MetaMask did not switch to YNX Testnet (chain 6423).');
-  const accounts=await provider.request({method:'eth_requestAccounts'});if(!Array.isArray(accounts)||typeof accounts[0]!=='string'||!/^0x[0-9a-fA-F]{40}$/.test(accounts[0]))throw new WalletRequestError('INVALID_ACCOUNT','MetaMask did not return a valid EVM account.');
-  return accounts[0].toLowerCase();
+  try{standardTransition({type:'BEGIN',pendingIntent:nonce()});standardTransition({type:'PROVIDER_SELECTED',providerKind});try{await provider.request({method:'wallet_switchEthereumChain',params:[{chainId:YNX_EVM_CHAIN.chainId}]});}catch(reason){if((reason as {code?:number})?.code!==4902)throw reason;await provider.request({method:'wallet_addEthereumChain',params:[YNX_EVM_CHAIN]});await provider.request({method:'wallet_switchEthereumChain',params:[{chainId:YNX_EVM_CHAIN.chainId}]});}const chainId=await provider.request({method:'eth_chainId'});if(chainId!==YNX_EVM_CHAIN.chainId)throw new WalletRequestError('WRONG_NETWORK','Selected Wallet did not switch to YNX Testnet (chain 6423).');const accounts=await provider.request({method:'eth_requestAccounts'});if(!Array.isArray(accounts)||typeof accounts[0]!=='string'||!/^0x[0-9a-fA-F]{40}$/.test(accounts[0]))throw new WalletRequestError('INVALID_ACCOUNT','Selected Wallet did not return a valid EVM account.');standardTransition({type:'ACCOUNT_APPROVED',account:accounts[0]});const completed=standardTransition({type:'CHAIN_CONFIRMED',chainId});if(completed.status!==STANDARD_WALLET_CONNECT_STATUS.CONNECTED)throw new WalletRequestError('WRONG_NETWORK','Selected Wallet did not confirm YNX Testnet.');return completed.account!;}catch(error){try{standardTransition({type:'FAIL',code:standardCode(error)})}catch{}throw error}
 }
 /** MetaMask remains an independent explicit EIP-1193 route. */
-export async function connectMetaMask(provider:Eip1193Provider|undefined=(globalThis as typeof globalThis&{ethereum?:Eip1193Provider}).ethereum):Promise<string>{return connectStandardWallet(provider as Eip1193Provider)}
+export async function connectMetaMask(provider:Eip1193Provider|undefined=(globalThis as typeof globalThis&{ethereum?:Eip1193Provider}).ethereum):Promise<string>{return connectStandardWallet(provider as Eip1193Provider,'metamask')}
+export async function restoreStandardWallet(provider:Eip1193Provider|undefined=(globalThis as typeof globalThis&{ethereum?:Eip1193Provider}).ethereum,providerKind:'metamask'|'ynx-wallet'=provider===undefined?'ynx-wallet':'metamask'):Promise<string|null>{if(!provider)return null;try{const [accounts,chainId]=await Promise.all([provider.request({method:'eth_accounts'}),provider.request({method:'eth_chainId'})]);const restored=standardTransition({type:'RESTORE',providerKind,accounts,chainId});return restored.status===STANDARD_WALLET_CONNECT_STATUS.CONNECTED?restored.account:null}catch{return null}}
+export function reportDexRpcProbe(status:'ready'|'degraded',code='RPC_UNAVAILABLE'){return standardTransition({type:status==='ready'?'RPC_PROBE_READY':'RPC_PROBE_DEGRADED',probeTransport:STANDARD_WALLET_RPC_PROBE_TRANSPORT,...(status==='ready'?{}:{code})})}
 
 /** The host may supply only a verified device key and protected storage; no endpoint, callback or origin injection exists. */
 export function configureDexPrivateConnection(capabilities:DexPrivateCapabilities){

@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "checkpoint": "DEX consumes Wallet Provider Discovery connect-state repair",
+  "acceptedDependency": {
+    "sourceCommit": "98c6d5d784d212df8981a53b17118a511e246ad2",
+    "evidenceCommit": "c3ab255c32bdeb9c8e056882c315f8ad43c29c7f",
+    "handoffSha256": "2c3872882b2d88986cecafa6c08fc3a640d60039eb8dab29d3a088aaa6452f49",
+    "vendoredArchive": "vendor/ynx-chain-wallet-auth-1.1.0-provider-connect-state-p0.tgz",
+    "vendoredArchiveSha256": "6c7e4cd9b0471de7705651308149d3a77fb42da0135427d96543029a339909ad"
+  },
+  "contract": {
+    "connectedOnlyWhen": "selected EIP-1193 provider, approved non-empty 0x account, and provider eth_chainId=0x1917",
+    "chainFlow": "switch; add only after 4902; re-switch; verify provider chain; request accounts",
+    "refresh": "prompt-free eth_accounts plus eth_chainId restore",
+    "rpcProbe": "accepted CORS-safe annotation only; no direct browser RPC fetch and degradation cannot clear CONNECTED",
+    "privateService": "independent and fail-closed; DEX actions remain unavailable"
+  },
+  "verification": {"canonicalAuthorizeScan":"passed: 14 DEX source files","unit":{"passed":24,"failed":0},"productionWebBuild":"passed"},
+  "truth": {"providerApproval":false,"callback":false,"refreshRestore":false,"disconnect":false,"swap":false,"liquidity":false,"tokenApproval":false,"testnetTransaction":false,"sourceBoundPublicRuntime":false,"downloadHosted":false,"productionSigned":false,"computerControl":false},
+  "rollback": "Revert this DEX-only commit; do not change Wallet/Auth shared source or force-push."
+}
