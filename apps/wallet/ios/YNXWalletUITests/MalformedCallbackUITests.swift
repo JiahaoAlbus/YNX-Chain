@@ -76,7 +76,13 @@ final class MalformedCallbackUITests: XCTestCase {
     )
 
     XCTAssertTrue(rejection.waitForExistence(timeout: 45))
-    let exactFailureCode = rejection.staticTexts["CANONICAL_AUTH_BRIDGE_UNAVAILABLE"]
+    // UIAlertController exposes its message text as an application-level
+    // accessibility element on the hosted simulator.  Scoping the query to
+    // the alert container hides that real child even though VoiceOver can
+    // reach it (the malformed-link proof above exercises the same hierarchy).
+    // The clean process boundary guarantees this exact code belongs to the
+    // canonical request delivered by this test.
+    let exactFailureCode = wallet.staticTexts["CANONICAL_AUTH_BRIDGE_UNAVAILABLE"]
     XCTAssertTrue(
       exactFailureCode.waitForExistence(timeout: 10),
       "Canonical rejection alert appeared before its exact failure code became accessibility-visible"
