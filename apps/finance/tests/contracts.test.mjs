@@ -10,6 +10,7 @@ const wallet=await readFile(new URL('mobile/src/wallet.ts',base),'utf8');
 const manifest=await readFile(new URL('mobile/contract/public-endpoint-manifest.json',base),'utf8');
 const webWallet=await readFile(new URL('web/wallet-connect-entry.js',base),'utf8');
 const webVerifier=await readFile(new URL('web/verify-wallet-connect.mjs',base),'utf8');
+const providerEvidence=JSON.parse(await readFile(new URL('evidence/p0-finance-provider-connect-state-20260821.json',base),'utf8'));
 const {createStandardWalletConnectState,reduceStandardWalletConnectState,STANDARD_WALLET_RPC_PROBE,STANDARD_WALLET_RPC_PROBE_TRANSPORT}=await import(new URL('../web/node_modules/@ynx-chain/wallet-auth/src/standard-wallet-connect-state.js',import.meta.url));
 
 test('product states its non-bank and non-custodial boundary',()=>{
@@ -65,4 +66,15 @@ test('shared provider connection state keeps a selected approved 0x1917 Wallet c
   assert.equal(value.chainId,'0x1917');
   assert.equal(value.rpcProbe,STANDARD_WALLET_RPC_PROBE.DEGRADED);
   assert.equal(value.chooserOpen,false);
+});
+
+test('provider evidence binds the accepted source tree rather than its vendored package subtree',()=>{
+  const dependency=providerEvidence.acceptedDependency;
+  assert.equal(providerEvidence.schemaVersion,2);
+  assert.equal(dependency.sourceCommit,'98c6d5d784d212df8981a53b17118a511e246ad2');
+  assert.equal(dependency.sourceTree,'51a60a362d4ad5dd748bcdefb101f71b1d9e0cee');
+  assert.equal(dependency.evidenceCommit,'c3ab255c32bdeb9c8e056882c315f8ad43c29c7f');
+  assert.equal(dependency.walletAuthPackageTree,'69ba84eaef503932ba1b66f42a9caa0a125e0608');
+  assert.notEqual(dependency.sourceTree,dependency.walletAuthPackageTree);
+  assert.match(dependency.treeBinding,/complete accepted source-commit tree/);
 });
