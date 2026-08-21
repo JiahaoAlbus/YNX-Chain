@@ -1,0 +1,36 @@
+{
+  "schemaVersion": "1.0.0",
+  "productId": "ynx-trust-center-v1",
+  "sourceCommit": "130c8757f8446b2236ac1582d5f2d47ac7828969",
+  "sourceTree": "94691daae60b147b6cf7e6a12d62daa60160d852",
+  "verifiedAt": "2026-08-21T07:14:20Z",
+  "tests": {
+    "serviceSmoke": "passed",
+    "go": "apps/trust-center, internal/trustproduct and internal/trustgateway passed",
+    "chromium": "6/6 passed",
+    "diffCheck": "passed"
+  },
+  "publicBuild": {
+    "indexHtml": {"bytes":10487,"sha256":"9e41426081dc4559e3ca1d78379233c154ec8a92a5cf4286d9d075b66f618da3"},
+    "appBundleJs": {"bytes":23754,"sha256":"d5038ebd3304e256f870193bd68c50a29e754e3ae316da02720b9762aaab5ed6"},
+    "stylesCss": {"bytes":14821,"sha256":"be07e958533f92cd25dcd285a614c739996728293106a024c895362711ea504f"},
+    "runtimeConfigJs": {"bytes":751,"sha256":"2936078b29cfbc2a15baf55dc54d29c7b4feae2a443a64516320125d85a2720c"}
+  },
+  "screenshots": {
+    "desktop": {"path":"docs/handoffs/evidence/ui-audit-current/trust-center-desktop.png","bytes":104651,"sha256":"7c2877f0151e25e38653eba34363fe26eb879896c01c5a58717be4c133101056"},
+    "mobile": {"path":"docs/handoffs/evidence/ui-audit-current/trust-center-mobile.png","bytes":53683,"sha256":"cfdc629286f9f7258a29d5fc19dd02c7052b4d68ea707dd6ee92fc93c04b55e1"}
+  },
+  "truth": {
+    "englishDefault": true,
+    "guestPublicAccess": true,
+    "standardWalletSource": true,
+    "eip6963": true,
+    "eip1193": true,
+    "topLevelCustomSchemeNavigation": false,
+    "deterministicProviderOnly": true,
+    "realInstalledWallet": false,
+    "publicDeployment": false,
+    "computerControl": false,
+    "productSessionV2": false
+  }
+}
