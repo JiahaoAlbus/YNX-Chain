@@ -334,6 +334,7 @@
       {"hash": "0x1ad25dd250548a01d0a179bc5cfe32f70708c58791d2b6208b53f9eb4480a00a", "status": 200, "block": 1147184, "responseSHA256": "67d22d191e84bf3b413ac5dcf77a1c7596539aa585335e0234b19d265fcda154"},
       {"hash": "0x992a55d98756a9de5085159844a2848c2272a12085e2ca09f9153838797486e9", "status": 200, "block": 1147184, "responseSHA256": "e7739d7df79895d61edd131d7f48cdf3dd882a55ab9d7664bc6348c67504ce6d"}
     ],
+    "browser": {"surface": "Chrome", "url": "https://faucet.ynxweb4.com/", "defaultLanguage": "en", "title": "YNX Testnet Faucet", "reloadStable": true, "rateLimitCopyLoaded": true, "temporaryServiceErrorCopyLoaded": true},
     "ynx1": {"status": 400, "error": "invalid address", "responseSHA256": "51b81c434a23f5796ffb2ea5f6f913098de77c38684a2c2cb66f2c237bd51c3e", "boundary": "authoritative public faucet currently proves 0x recipient support only"},
     "explorer": {"transactionRoute": "/transactions/:hash", "status": 404, "responseSHA256": "b16e15764b8bc06c5c3f9f19bc8b99fa48e7894aa5a6ccdad65da49bbf564793", "boundary": "Explorer Owner route work is required for public transaction-page lookup"}
   }
