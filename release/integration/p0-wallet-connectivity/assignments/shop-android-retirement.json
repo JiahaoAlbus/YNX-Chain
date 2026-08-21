@@ -1,7 +1,7 @@
 {
   "taskId": "P0-011",
   "owner": "integration",
-  "status": "PROTOCOL_CAPABILITY_ACCEPTED_OWNER_RECORDS_PENDING",
+  "status": "SHOP_ANDROID_RETIRED_WEB_STANDARD_WALLET_DEPLOYMENT_ACTIVE",
   "paths": [
     "apps/shop/**",
     "YNX-Chain-website:{vercel.json,src/lib/ecosystemCatalog.js,public/releases/ecosystem-release-registry.json}"
@@ -16,6 +16,17 @@
     "Git history",
     "historical release evidence"
   ],
+  "webPwaWalletMigration": {
+    "taskId": "P0-126",
+    "sourceCommit": "63f46893b5ec2c60cda40a2e0b4576ee309bc2e5",
+    "standardConnection": "EIP-6963/EIP-1193",
+    "wallets": ["YNX Wallet", "MetaMask"],
+    "evmChainId": "0x1917",
+    "guestCatalogPreserved": true,
+    "productSessionV2": false,
+    "installedWalletApprovalVerified": false,
+    "computerControlVerified": false
+  },
   "enforce": [
     "disable Android build/release workflow",
     "remove public APK route and catalog listing",
