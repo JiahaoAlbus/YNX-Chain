@@ -172,6 +172,15 @@ test("Wallet Web/PWA and macOS DMG publication remain outside product authority"
   assert.equal(companion.nativeIosDistributionCleanupRuntime.expectedSearchListSha256, companion.nativeIosDistributionCleanupRuntime.restoredSearchListSha256);
   assert.equal(companion.nativeIosDistributionCleanupRuntime.sharedDistributionCleanupRuntimeVerifiedWithoutProductionSecrets, true);
   assert.equal(companion.nativeIosDistributionCleanupRuntime.productionCleanupRuntime, false);
+  assert.equal(companion.appleProductionOperatorInputs.implementationCommit, "2b11c771a7d34f852e3028057b52f560d7498bdc");
+  assert.equal(companion.appleProductionOperatorInputs.evidenceCommit, "07ca1a4a437a8f24dcae345d2f92344b40600f00");
+  assert.equal(companion.appleProductionOperatorInputs.requestSha256, "579846e6d6120fc861dd93dfa16bb86e4cbc9cafede34cb1e41b063db35ef0a9");
+  assert.equal(companion.appleProductionOperatorInputs.operatorInputRequestHostedSourceVerified, true);
+  assert.equal(companion.appleProductionOperatorInputs.secretValuesRequested, false);
+  assert.equal(companion.appleProductionOperatorInputs.universalLinkExcludedUntilCoreFrozen, true);
+  assert.equal(companion.appleProductionOperatorInputs.operatorInputsProvided, false);
+  assert.equal(companion.appleProductionOperatorInputs.ipa, false);
+  assert.equal(companion.appleProductionOperatorInputs.developerId, false);
   assert.equal(companion.macosDmgPublication.systemApplicationsInstallVerified, false);
   assert.equal(companion.macosDmgPublication.browserQuarantineAcceptanceVerified, false);
   assert.equal(companion.macosDmgPublication.wholeAppUnsigned, true);
@@ -310,6 +319,12 @@ test("owner checkpoint separates Wallet public artifacts from approval and Produ
   assert.equal(platform.iosDistributionCleanupRuntime.productionCredentialsUsed, false);
   assert.equal(platform.iosDistributionCleanupRuntime.sharedDistributionCleanupRuntimeVerifiedWithoutProductionSecrets, true);
   assert.equal(platform.iosDistributionCleanupRuntime.productionCleanupRuntime, false);
+  assert.equal(platform.appleProductionOperatorInputs.evidenceCommit, "07ca1a4a437a8f24dcae345d2f92344b40600f00");
+  assert.equal(platform.appleProductionOperatorInputs.operatorInputRequestImplemented, true);
+  assert.equal(platform.appleProductionOperatorInputs.operatorInputRequestHostedSourceVerified, true);
+  assert.equal(platform.appleProductionOperatorInputs.secretValuesRequested, false);
+  assert.equal(platform.appleProductionOperatorInputs.operatorInputsProvided, false);
+  assert.equal(platform.appleProductionOperatorInputs.universalLinkExcludedUntilCoreFrozen, true);
   assert.equal(platform.macosDmg.systemApplicationsInstallVerified, false);
   assert.equal(platform.macosDmg.browserQuarantineAcceptanceVerified, false);
   assert.equal(platform.macosDmg.developerId, false);
