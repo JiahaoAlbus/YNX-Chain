@@ -12,6 +12,7 @@ public enum DeviceSecurityError: Error, Equatable {
 public struct DeviceSecurityCapability: Codable, Equatable, Sendable {
   public let keychainAvailable: Bool
   public let keychainRoundTripVerified: Bool
+  public let keychainDeletionVerified: Bool
   public let biometricPolicyAvailable: Bool
   public let biometricDomainStatePresent: Bool
   public let biometricErrorCode: Int?
@@ -20,6 +21,7 @@ public struct DeviceSecurityCapability: Codable, Equatable, Sendable {
   public init(
     keychainAvailable: Bool,
     keychainRoundTripVerified: Bool,
+    keychainDeletionVerified: Bool,
     biometricPolicyAvailable: Bool,
     biometricDomainStatePresent: Bool,
     biometricErrorCode: Int?,
@@ -27,6 +29,7 @@ public struct DeviceSecurityCapability: Codable, Equatable, Sendable {
   ) {
     self.keychainAvailable = keychainAvailable
     self.keychainRoundTripVerified = keychainRoundTripVerified
+    self.keychainDeletionVerified = keychainDeletionVerified
     self.biometricPolicyAvailable = biometricPolicyAvailable
     self.biometricDomainStatePresent = biometricDomainStatePresent
     self.biometricErrorCode = biometricErrorCode
@@ -185,7 +188,15 @@ public enum DeviceSecurityProbe {
       let readStatus = SecItemCopyMatching(read as CFDictionary, &item)
       roundTrip = readStatus == errSecSuccess && (item as? Data) == canary
     }
-    _ = SecItemDelete(base as CFDictionary)
+    let deleteStatus = SecItemDelete(base as CFDictionary)
+    var postDelete = base
+    postDelete[kSecReturnAttributes] = true
+    postDelete[kSecMatchLimit] = kSecMatchLimitOne
+    var deletedItem: CFTypeRef?
+    let postDeleteStatus = SecItemCopyMatching(postDelete as CFDictionary, &deletedItem)
+    let deletionVerified = addStatus == errSecSuccess
+      && deleteStatus == errSecSuccess
+      && postDeleteStatus == errSecItemNotFound
 
     let context = LAContext()
     var biometricError: NSError?
@@ -193,6 +204,7 @@ public enum DeviceSecurityProbe {
     return DeviceSecurityCapability(
       keychainAvailable: addStatus == errSecSuccess,
       keychainRoundTripVerified: roundTrip,
+      keychainDeletionVerified: deletionVerified,
       biometricPolicyAvailable: biometricAvailable,
       biometricDomainStatePresent: context.evaluatedPolicyDomainState != nil,
       biometricErrorCode: biometricError?.code,

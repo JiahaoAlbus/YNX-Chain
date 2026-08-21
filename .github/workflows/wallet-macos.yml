@@ -202,8 +202,10 @@ jobs:
           recovery = json.loads((proof / 'recovery-fail-closed.json').read_text())
           assert security['keychainAvailable'] is True
           assert security['keychainRoundTripVerified'] is True
+          assert security['keychainDeletionVerified'] is True
           assert security['recoveryMaterialPersisted'] is False
           assert recovery['keychainRoundTripVerified'] is True
+          assert recovery['keychainDeletionVerified'] is True
           assert recovery['recoveryCreated'] is False
           assert recovery['recoveryMaterialPersisted'] is False
           assert recovery['recoveryAbsentBeforeAttempt'] is True

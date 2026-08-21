@@ -3,6 +3,7 @@ import YNXWalletMacCore
 
 struct RecoveryProbeResult: Codable {
   let keychainRoundTripVerified: Bool
+  let keychainDeletionVerified: Bool
   let biometricPolicyAvailable: Bool
   let recoveryCreateAttempted: Bool
   let recoveryCreated: Bool
@@ -30,6 +31,7 @@ let absentBefore = try vault.isAbsentWithoutAuthentication()
 if capability.biometricPolicyAvailable {
   try emit(RecoveryProbeResult(
     keychainRoundTripVerified: capability.keychainRoundTripVerified,
+    keychainDeletionVerified: capability.keychainDeletionVerified,
     biometricPolicyAvailable: true,
     recoveryCreateAttempted: false,
     recoveryCreated: false,
@@ -47,6 +49,7 @@ do {
   try await vault.create(reason: "Verify YNX Wallet recovery remains locked without biometrics")
   try emit(RecoveryProbeResult(
     keychainRoundTripVerified: capability.keychainRoundTripVerified,
+    keychainDeletionVerified: capability.keychainDeletionVerified,
     biometricPolicyAvailable: false,
     recoveryCreateAttempted: true,
     recoveryCreated: true,
@@ -62,6 +65,7 @@ do {
   let absentAfter = try vault.isAbsentWithoutAuthentication()
   try emit(RecoveryProbeResult(
     keychainRoundTripVerified: capability.keychainRoundTripVerified,
+    keychainDeletionVerified: capability.keychainDeletionVerified,
     biometricPolicyAvailable: false,
     recoveryCreateAttempted: true,
     recoveryCreated: false,
@@ -77,6 +81,7 @@ do {
   let absentAfter = (try? vault.isAbsentWithoutAuthentication()) ?? false
   try emit(RecoveryProbeResult(
     keychainRoundTripVerified: capability.keychainRoundTripVerified,
+    keychainDeletionVerified: capability.keychainDeletionVerified,
     biometricPolicyAvailable: false,
     recoveryCreateAttempted: true,
     recoveryCreated: false,
