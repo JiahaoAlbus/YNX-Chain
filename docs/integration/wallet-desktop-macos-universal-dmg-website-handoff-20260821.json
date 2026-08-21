@@ -14,9 +14,9 @@
     "signingClass": "unsigned-testnet-preview-dmg; contained main executable linker-ad-hoc only"
   },
   "productLabel": "YNX Wallet Desktop 0.1.1 - macOS Universal - Unsigned Testnet Preview",
-  "requiredOfficialDownload": {
-    "origin": "https://www.ynxweb4.com",
-    "immutablePath": null,
+  "officialDownload": {
+    "origin": "https://downloads.ynxweb4.com",
+    "immutablePath": "/wallet/sha256-ad6e4077bc001743cf1a4163ceaca5a009a3c8a4d8a809cc4896798976cf56c0/ynx-wallet-desktop-0.1.1-universal.dmg",
     "contentType": "application/x-apple-diskimage",
     "contentDisposition": "attachment",
     "verifyFullRemoteSha256": true,
@@ -32,11 +32,17 @@
     "uninstallProved": true
   },
   "publicationGates": {
-    "downloadHosted": false,
-    "deployedPublic": false,
+    "downloadHosted": true,
+    "deployedPublic": true,
     "productionSigned": false,
     "notarized": false,
     "storeReleased": false
   },
-  "operatorAction": "Upload the exact bytes to the authorized official download store, bind a content-addressed ynxweb4.com URL, expose the metadata in the Wallet download registry, download the full file from the official URL, and verify status, headers, bytes, and SHA-256 before changing hosted/public booleans."
+  "publicationEvidence": {
+    "websiteSourceCommit": "efe79b5c9bcfa2619c138abc7521ee17b7cbfd7d",
+    "vercelDeploymentId": "dpl_6tygndEdR6GS53fUNRKexV9ha9DF",
+    "publicationRecord": "/releases/wallet-desktop/6583c3fb83fe/macos-dmg-publication.json",
+    "fullPublicDownloadRehashed": true
+  },
+  "operatorAction": null
 }
