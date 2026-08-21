@@ -36,10 +36,35 @@
     "sourceMetadataWithdrawsLinks": true,
     "remoteWithdrawalRequiresDeploymentAuthority": true
   },
+  "localMacosDmgCandidate": {
+    "sourceCommit": "5a4b7a75d743cee820a1340e90690345cc18c988",
+    "path": "/tmp/ynx-quant-dmg.huVfY3/YNX-Quant-Lab-0.2.0-testnet-macos-arm64-5a4b7a75-adhoc.dmg",
+    "bytes": 8287144,
+    "sha256": "45385ef09eb4681facbe1d08846e99623afdbf86df5faf139df0109ff92487ea",
+    "format": "UDZO DMG",
+    "signature": "ad-hoc test signature verified; not production signing or notarization",
+    "mountedFirstLaunch": true,
+    "mountedSecondLaunch": true,
+    "versionResponse": {"productId": "ynx-quant-lab", "commit": "5a4b7a75d743cee820a1340e90690345cc18c988", "version": "0.2.0-testnet"},
+    "hosted": false,
+    "installedIntoApplications": false
+  },
+  "publicRuntimeAudit": {
+    "checkedAt": "2026-08-21T11:41:15Z",
+    "url": "https://quant.ynxweb4.com/",
+    "httpStatus": 200,
+    "indexBytes": 19299,
+    "indexSha256": "7030c610e5830b3c69b831caa8bdd5ff5bc3559ac83d340db6d40a9914802763",
+    "versionResponse": {"commit": "443286487e057d78cb6b1a686d14bb37be8b3c23", "productId": "ynx-quant-lab", "version": "0.2.0-testnet"},
+    "versionResponseSha256": "6451c911ec4ef12cf7c47f5611f7c5fcce1f319c81a69427941c65b78b563556",
+    "sourceBoundToCheckpoint": false,
+    "approvalOrTransactionProven": false
+  },
   "truth": {
     "publicRuntimeSourceBound": false,
     "legacyZipWithdrawnAtRuntime": false,
     "macosDmgHosted": false,
+    "macosDmgLocalMountedLaunch": true,
     "windowsExeOrMsixHosted": false,
     "walletAccountApproved": false,
     "walletCallback": false,
