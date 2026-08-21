@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-08-21T16:22:00.000Z",
+  "owner": "Wallet Web/PWA",
+  "sourceBranch": "codex/wallet-web-pwa-integrity-recovery-20260822",
+  "sourceHeadAtRecord": "dd1acfecf187e4437041e303fc7907768e8e6bc4",
+  "candidateDeployment": "dpl_5Jm2q3JkibqkTfWmc6vGPW93JxGs",
+  "finding": "The Wallet custom domain was reassigned or routed concurrently after the owner deployment. The source deployment cannot be accepted as public while this binding drifts.",
+  "publicReadback": {
+    "origin": "https://wallet.ynxweb4.com",
+    "root": {"httpStatus": 200, "bytes": 1018, "sha256": "226638306d9fbb3441cbeab04b00e0b550dec5fe0f209b839c00e22caf1ef554", "expectedWalletHtml": false},
+    "app": {"path": "/app.js", "httpStatus": 200, "bytes": 1018, "sha256": "226638306d9fbb3441cbeab04b00e0b550dec5fe0f209b839c00e22caf1ef554", "expectedJavaScript": false},
+    "serviceWorker": {"path": "/sw.js", "httpStatus": 200, "bytes": 1449, "sha256": "821f1b226188761d5b85c5b14178aeafe973e8cf612ca5437a542b061017b9fd", "v8Marker": false},
+    "policy": {"path": "/service-worker-policy.js", "httpStatus": 200, "bytes": 1018, "sha256": "226638306d9fbb3441cbeab04b00e0b550dec5fe0f209b839c00e22caf1ef554", "expectedModule": false},
+    "integrity": {"path": "/asset-integrity.js", "httpStatus": 200, "bytes": 1018, "sha256": "226638306d9fbb3441cbeab04b00e0b550dec5fe0f209b839c00e22caf1ef554", "expectedModule": false}
+  },
+  "truth": {
+    "walletPwaDeployedPublic": false,
+    "realChromeV8Reload": false,
+    "providerDiscoveryFixedPublic": false,
+    "accountAuthorized": false,
+    "messageSigned": false,
+    "transactionSubmitted": false
+  },
+  "requiredIntegrationAction": "Freeze the custom domain binding to the Wallet project/deployment, then validate root, app.js, sw.js, service-worker-policy.js and asset-integrity.js byte-for-byte before asking the existing Chrome tab to reload."
+}
