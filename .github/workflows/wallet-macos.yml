@@ -50,6 +50,12 @@ jobs:
           rm -rf "$PROOF" "$APP" "$DMG_STAGE"
           mkdir -p "$PROOF" "$APP/Contents/MacOS" "$APP/Contents/Resources"
           cp "$PACKAGE/Info.plist" "$APP/Contents/Info.plist"
+          BUNDLE_IDENTIFIER="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP/Contents/Info.plist")"
+          AUTHORIZATION_SCHEME="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleURLTypes:0:CFBundleURLSchemes:0' "$APP/Contents/Info.plist")"
+          test "$BUNDLE_IDENTIFIER" = 'com.ynxweb4.wallet.macos'
+          test "$AUTHORIZATION_SCHEME" = 'ynxwallet'
+          printf 'bundleIdentifier=%s authorizationScheme=%s canonicalRouteReceiver=true\n' \
+            "$BUNDLE_IDENTIFIER" "$AUTHORIZATION_SCHEME" | tee "$PROOF/native-artifact-identity.txt"
           cp "$GITHUB_WORKSPACE/release/integration/wallet-auth-public-endpoint-service-discovery-matrix.json" \
             "$APP/Contents/Resources/wallet-auth-public-endpoint-service-discovery-matrix.json"
           cp "$GITHUB_WORKSPACE/packages/wallet-auth/central-registry.json" \

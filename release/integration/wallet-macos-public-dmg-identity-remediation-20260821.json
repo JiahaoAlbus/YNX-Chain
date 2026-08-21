@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "recordId": "WALLET-MACOS-PUBLIC-DMG-IDENTITY-REMEDIATION-20260821",
+  "owner": "wallet-ios-macos",
+  "recordedAt": "2026-08-21T21:18:17+08:00",
+  "publicArtifactAudit": {
+    "url": "https://downloads.ynxweb4.com/wallet/sha256-ad6e4077bc001743cf1a4163ceaca5a009a3c8a4d8a809cc4896798976cf56c0/ynx-wallet-desktop-0.1.1-universal.dmg",
+    "http": { "status": 206, "contentType": "application/x-apple-diskimage", "fullBytes": 236661996 },
+    "sha256": "ad6e4077bc001743cf1a4163ceaca5a009a3c8a4d8a809cc4896798976cf56c0",
+    "bundleIdentifier": "com.ynxweb4.wallet.desktop",
+    "bundleVersion": "0.1.1",
+    "executableIdentity": "Electron",
+    "hasCFBundleURLTypes": false,
+    "canonicalAuthorizationRouteReceiver": false,
+    "classification": "not-a-canonical-native-wallet-release"
+  },
+  "nativeReplacementCandidate": {
+    "sourceCommit": "4c31f303a5dadee0d60b24528a0bd744094da473",
+    "evidence": "release/integration/wallet-macos-dmg-ci-evidence-20260821.json",
+    "bundleIdentifier": "com.ynxweb4.wallet.macos",
+    "bundleVersion": "0.1.0",
+    "authorizationScheme": "ynxwallet",
+    "dmgSha256": "195e1d99ebf0752b8511a996a08cdcca785644339e02d81e1d30d3f2afefc22f",
+    "dmgBytes": 512016,
+    "hostedDmgInstallColdSecondNetwork": true,
+    "publicDownloadHosted": false,
+    "authorizationSuccess": false
+  },
+  "websiteAction": {
+    "requiredNow": "Remove or mark the Electron desktop DMG unavailable wherever it is labelled as a Wallet authorization receiver. Do not redirect canonical authorization traffic to it.",
+    "permittedReplacementOnlyAfter": [
+      "publish exact native DMG bytes at a new immutable official URL",
+      "full official-domain download rehash equals native candidate SHA-256",
+      "download registry and page name bundle identifier, version, minimum macOS, SHA-256 and ad-hoc signing class",
+      "verify a downloaded native DMG mount, install, cold launch, second launch and canonical callback receipt on the exact public bytes",
+      "run a rollback/restore drill for the official download record"
+    ],
+    "forbidden": [
+      "add ynxwallet scheme to the Electron package without a canonical route consumer",
+      "claim account approval, signature, transaction, Product Session, production signing, notarization or App Store release",
+      "treat a ZIP as a macOS installer"
+    ]
+  },
+  "truth": {
+    "incorrectPublicArtifactIdentified": true,
+    "publicArtifactCanonicalAuthorization": false,
+    "nativeReplacementPublic": false,
+    "nativeAuthorizationSuccess": false,
+    "websiteRemediationDeployed": false,
+    "rollbackDrill": false
+  }
+}
