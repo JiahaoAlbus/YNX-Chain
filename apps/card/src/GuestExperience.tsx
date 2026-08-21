@@ -3,6 +3,7 @@ import{Image,Linking,Platform,Pressable,ScrollView,StyleSheet,Switch,Text as Nat
 import{Activity,ArrowRight,BadgeCheck,CircleHelp,CreditCard,Download,ExternalLink,LockKeyhole,RefreshCw,ShieldCheck,SlidersHorizontal,Snowflake,WalletCards}from"lucide-react-native";
 import{METAMASK_CARD_DEEP_LINK,METAMASK_INSTALL_URL,type Eip1193WalletSession,type ProductSessionRuntime}from"./wallet";
 import type{Locale}from"./i18n";
+import{RegistrationExperience}from"./RegistrationExperience";
 
 const BLUE="#002FA7",INK="#171A22",MUTED="#5B6270",LINE="#DFE3EA",PALE="#F4F7FF",WARN="#A75B00";
 type Section="overview"|"card"|"topup"|"activity"|"controls"|"help";
@@ -49,6 +50,7 @@ export function GuestExperience({locale,connectWallet,connectMetaMaskWallet,conn
         {walletError?<Text accessibilityRole="alert" style={g.error}>Wallet: {walletError}</Text>:null}
         {privateSession?.state==="PRIVATE_SERVICE_DEGRADED"?<View accessibilityRole="alert" style={g.degraded}><Text style={g.degradedTitle}>Private Service Degraded</Text><Text style={g.degradedText}>{privateSession.safeMessage} Your guest workspace and Standard Wallet connection remain available.</Text></View>:null}
         <WalletPanel compact={compact} walletSession={walletSession} walletBusy={walletBusy} openYNXWallet={openYNXWallet} ynxWalletFallback={ynxWalletFallback} downloadYNXWallet={downloadYNXWallet} connectWallet={connectWallet} connectMetaMaskWallet={connectMetaMaskWallet} enablePrivateServices={enablePrivateServices}/>
+        <RegistrationExperience walletSession={walletSession}/>
       </ScrollView>
     </View>
   </View></GuestLocaleContext.Provider>

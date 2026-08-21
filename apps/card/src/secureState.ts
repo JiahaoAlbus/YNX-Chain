@@ -2,9 +2,10 @@ import * as SecureStore from "expo-secure-store";
 import {Platform} from "react-native";
 import type {CardSession, PendingAuthorizationRequest} from "./wallet";
 import type {SimulationAuditRecord} from "./simulation";
+import type {CardRegistration} from "./registration";
 
 const PREFIX="ynx-card.secure.v1.";
-const WEB_LOCAL_KEYS=new Set(["locale","simulationAudit","authorization"]);
+const WEB_LOCAL_KEYS=new Set(["locale","simulationAudit","authorization","registration"]);
 
 export async function loadSession():Promise<CardSession|null>{return load<CardSession>("session",value=>value.productClientId==="ynx-card-v1"&&value.bundleId==="com.ynxweb4.card"&&Date.parse(value.expiresAt)>Date.now())}
 export async function saveSession(value:CardSession|null){return save("session",value)}
@@ -28,6 +29,8 @@ export async function loadSimulationAudit():Promise<readonly SimulationAuditReco
 export async function saveSimulationAudit(value:readonly SimulationAuditRecord[]|null){
   return save("simulationAudit",value);
 }
+export async function loadCardRegistration():Promise<CardRegistration|null>{return load<CardRegistration>("registration",value=>typeof value.id==="string"&&typeof value.owner==="string"&&typeof value.status==="string"&&Array.isArray(value.audit))}
+export async function saveCardRegistration(value:CardRegistration|null){return save("registration",value)}
 
 async function save(key:string,value:unknown|null){return write(key,value===null?null:JSON.stringify(value))}
 async function load<T extends Record<string,unknown>>(key:string,valid:(value:T)=>boolean):Promise<T|null>{const raw=await read(key);if(!raw)return null;try{const value=JSON.parse(raw) as T;if(valid(value))return value}catch{}await write(key,null);return null}
