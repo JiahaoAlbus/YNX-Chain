@@ -20,8 +20,8 @@ test("fallback contract always offers YNX download and MetaMask when YNX is abse
   assert.match(source, /productionSigned=false/);
   assert.match(source, /button\.disabled = button\.dataset\.permanentDisabled === "true"/);
   assert.match(source, /document\.querySelector\("#platforms"\)\.classList\.toggle\("hidden", !presentation\.showYNXDownload\)/);
-  assert.match(source, /state\.providers = Object\.freeze\(\{ynx:false,metamask:false\}\); state\.provider = null; state\.wallet = null; state\.account = null; state\.chainId = null; state\.rpcVerified = false; applyActionGates\(\); presentAvailability\(state\.providers\)/);
-  assert.match(source, /catch \(error\) \{ forgetSession\(\); throw error; \}/);
+  assert.match(source, /if\(!preserveConnection&&!state\.account\)\{state\.provider=null;state\.wallet=null;state\.chainId=null\}/);
+  assert.match(source, /catch \(error\) \{ if\(!state\.account\)forgetSession\(\);throw error; \}/);
   assert.match(source, /const discoveryError=\(error\)=>localizedError\(error\)/);
   assert.doesNotMatch(source, /state\.provider\s*=\s*\{.*request/s);
 });
@@ -41,7 +41,7 @@ test("390px RTL dark and large-text preview contracts remain buildable", async (
   assert.match(app,/requestedText === "large"/);
   assert.match(app,/loadPreferences\(localStorage\)/);
   assert.match(app,/acceptPreferenceUpdate\(state\.preferences,event\.newValue\)/);
-  assert.match(app,/preferencesRejected/);
+  assert.match(app,/loadedPreferences\.status==="rejected"/);
   assert.match(styles,/@media\(max-width:520px\)/);
   assert.match(styles,/\.platform-grid\{display:grid/);
   assert.match(accessibility,/font-size: 125%/);

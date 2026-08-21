@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   METAMASK_DOWNLOAD_URL, SESSION_KEY, WALLET_DOWNLOAD_MATRIX, WalletWebError, YNX_CHAIN, YNX_DOWNLOAD_URL,
-  addYNXChain, connectWallet, createExtensionProvider, discoverInjectedProviders, extensionWalletAvailability,
+  addYNXChain, connectStandardWallet, connectWallet, createExtensionProvider, discoverEip6963, discoverInjectedProviders, discoverWallets, extensionWalletAvailability,
   forgetSession, readRememberedSession, rememberSession, resolveRememberedWallet,
   invalidatesConnectedSession, restoreTestnetSession, sendTransaction, signMessage, subscribeProviderLifecycle,
   switchToYNXChain, verifyTestnetRpc, walletActionGates, walletDiscoveryPresentation,
@@ -56,7 +56,7 @@ test("frozen chain metadata is exact and complete", () => {
 });
 
 test("injected discovery prefers YNX and keeps MetaMask explicit", () => {
-  const ynx = Object.assign(provider(), {isYNXWallet:true});
+  const ynx = Object.assign(provider(), {isYNXWallet:true,providerInfo:{rdns:"com.ynx.wallet"}});
   const metamask = Object.assign(provider(), {isMetaMask:true});
   const result = discoverInjectedProviders({ethereum:{providers:[metamask,ynx]}});
   assert.equal(result.ynx, ynx); assert.equal(result.metamask, metamask); assert.equal(result.any, ynx);
@@ -64,17 +64,38 @@ test("injected discovery prefers YNX and keeps MetaMask explicit", () => {
 
 test("provider identity does not trust an arbitrary rdns substring", () => {
   const spoofed = Object.assign(provider(),{isMetaMask:true,providerInfo:{rdns:"com.ynx.fixture.metamask"}});
-  const ynx = Object.assign(provider(),{isYNXWallet:true});
+  const ynx = Object.assign(provider(),{isYNXWallet:true,providerInfo:{rdns:"com.ynx.wallet"}});
   const result = discoverInjectedProviders({ethereum:{providers:[spoofed,ynx]}});
   assert.equal(result.ynx,ynx);assert.equal(result.metamask,spoofed);
 });
 
 test("discovery presentation directly prefers YNX and gives two non-empty fallbacks", () => {
-  assert.deepEqual(walletDiscoveryPresentation({ynx:provider(),metamask:provider()}),{ynxPresent:true,metamaskPresent:true,showYNXConnect:true,showYNXDownload:false,showMetaMaskChoice:false,metaMaskChoice:"connect"});
-  assert.deepEqual(walletDiscoveryPresentation({ynx:null,metamask:provider()}),{ynxPresent:false,metamaskPresent:true,showYNXConnect:false,showYNXDownload:true,showMetaMaskChoice:true,metaMaskChoice:"connect"});
-  assert.deepEqual(walletDiscoveryPresentation({}),{ynxPresent:false,metamaskPresent:false,showYNXConnect:false,showYNXDownload:true,showMetaMaskChoice:true,metaMaskChoice:"official-download"});
+  const exactExtensionStateObservable=false;
+  assert.deepEqual(walletDiscoveryPresentation({ynx:provider(),metamask:provider()}),{ynxPresent:true,metamaskPresent:true,showYNXConnect:true,showYNXDownload:false,showMetaMaskChoice:false,metaMaskChoice:"connect",status:"available",exactExtensionStateObservable});
+  assert.deepEqual(walletDiscoveryPresentation({ynx:null,metamask:provider()}),{ynxPresent:false,metamaskPresent:true,showYNXConnect:false,showYNXDownload:true,showMetaMaskChoice:true,metaMaskChoice:"connect",status:"available",exactExtensionStateObservable});
+  assert.deepEqual(walletDiscoveryPresentation({}),{ynxPresent:false,metamaskPresent:false,showYNXConnect:false,showYNXDownload:true,showMetaMaskChoice:true,metaMaskChoice:"official-download",status:"provider-not-injected",exactExtensionStateObservable});
   assert.equal(new URL(YNX_DOWNLOAD_URL).hostname,"www.ynxweb4.com");
   assert.equal(METAMASK_DOWNLOAD_URL,"https://metamask.io/download");
+});
+
+test("EIP-6963 discovers exact YNX and MetaMask announcements including late injection", async () => {
+  const listeners=new Map();
+  const ynx=Object.assign(provider(),{isYNXWallet:true,providerInfo:{rdns:"com.ynx.wallet"}});
+  const metamask=Object.assign(provider(),{isMetaMask:true});
+  let dispatches=0;
+  class TestEvent { constructor(type){this.type=type;} }
+  const scope={Event:TestEvent,document:{readyState:"complete"},addEventListener(type,listener){listeners.set(type,listener)},removeEventListener(type){listeners.delete(type)},dispatchEvent(event){
+    if(event.type!=="eip6963:requestProvider")return true;
+    dispatches+=1;
+    if(dispatches===2)listeners.get("eip6963:announceProvider")?.({detail:{info:{uuid:"11111111-1111-4111-8111-111111111111",rdns:"com.ynx.wallet",name:"YNX Wallet"},provider:ynx}});
+    if(dispatches===3)listeners.get("eip6963:announceProvider")?.({detail:{info:{uuid:"22222222-2222-4222-8222-222222222222",rdns:"io.metamask",name:"MetaMask"},provider:metamask}});
+    return true;
+  }};
+  const announced=await discoverEip6963(scope,4);
+  assert.deepEqual(announced.map(({info})=>info.rdns),["com.ynx.wallet","io.metamask"]);
+  dispatches=0;
+  const result=await discoverWallets(scope);
+  assert.equal(result.ynx,ynx);assert.equal(result.metamask,metamask);assert.equal(result.status,"available");
 });
 
 test("mobile discovery separates unavailable canonical YNX auth from MetaMask dapp routing", () => {
@@ -130,10 +151,11 @@ test("extension discovery propagates runtime failure and rejects malformed respo
   assert.deepEqual(await extensionWalletAvailability({sendMessage:async()=>({ynx:true,metamask:false})}),{ynx:true,metamask:false});
 });
 
-test("RPC verification accepts only exact YNX Testnet", async () => {
-  const evidence = await verifyTestnetRpc(rpc);
+test("optional CORS-safe RPC probe accepts only exact YNX Testnet and is not connection authority", async () => {
+  await assert.rejects(()=>verifyTestnetRpc(rpc),(error)=>error.code==="UNSAFE_BROWSER_RPC_PROBE");
+  const evidence = await verifyTestnetRpc(rpc,YNX_CHAIN.rpcUrls[0],{probeTransport:"accepted-cors-safe"});
   assert.equal(evidence.chainId, "0x1917"); assert.equal(evidence.source, "https://evm.ynxweb4.com");
-  await assert.rejects(() => verifyTestnetRpc(async()=>({ok:true,json:async()=>({jsonrpc:"2.0",id:1,result:"0x1"})})), (error) => error instanceof WalletWebError && error.code === "WRONG_NETWORK");
+  await assert.rejects(() => verifyTestnetRpc(async()=>({ok:true,json:async()=>({jsonrpc:"2.0",id:1,result:"0x1"})}),YNX_CHAIN.rpcUrls[0],{probeTransport:"accepted-cors-safe"}), (error) => error instanceof WalletWebError && error.code === "WRONG_NETWORK");
 });
 
 test("RPC verification rejects malformed, mismatched and error envelopes", async () => {
@@ -143,7 +165,7 @@ test("RPC verification rejects malformed, mismatched and error envelopes", async
     {jsonrpc:"1.0",id:1,result:"0x1917"},
     {jsonrpc:"2.0",id:1,error:{code:-32603},result:"0x1917"},
     {jsonrpc:"2.0",id:1,result:6423},
-  ]) await assert.rejects(() => verifyTestnetRpc(async()=>({ok:true,json:async()=>envelope})), (error) => error.code === "INVALID_RPC_RESPONSE");
+  ]) await assert.rejects(() => verifyTestnetRpc(async()=>({ok:true,json:async()=>envelope}),YNX_CHAIN.rpcUrls[0],{probeTransport:"accepted-cors-safe"}), (error) => error.code === "INVALID_RPC_RESPONSE");
 });
 
 test("RPC recovery requires a new live 0x1917 response after an offline failure", async () => {
@@ -152,16 +174,19 @@ test("RPC recovery requires a new live 0x1917 response after an offline failure"
     if (!online) throw new Error("offline");
     return {ok:true,status:200,json:async()=>({jsonrpc:"2.0",id:1,result:"0x1917"})};
   };
-  await assert.rejects(() => verifyTestnetRpc(recoveringRpc), (error) => error.code === "RPC_UNAVAILABLE");
+  const options={probeTransport:"accepted-cors-safe"};
+  await assert.rejects(() => verifyTestnetRpc(recoveringRpc,YNX_CHAIN.rpcUrls[0],options), (error) => error.code === "RPC_UNAVAILABLE");
   online = true;
-  assert.equal((await verifyTestnetRpc(recoveringRpc)).chainId,"0x1917");
+  assert.equal((await verifyTestnetRpc(recoveringRpc,YNX_CHAIN.rpcUrls[0],options)).chainId,"0x1917");
 });
 
-test("connect switches before requesting a real account", async () => {
+test("connect success is bound to approval then provider chain confirmation", async () => {
   const wallet = provider({wallet_switchEthereumChain:null,eth_chainId:"0x1917",eth_requestAccounts:[ACCOUNT]});
-  const session = await connectWallet(wallet,{fetcher:rpc});
+  const session = await connectWallet(wallet);
   assert.deepEqual(session,{account:ACCOUNT,chainId:"0x1917"});
-  assert.deepEqual(wallet.calls.map(({method})=>method),["wallet_switchEthereumChain","eth_chainId","eth_requestAccounts"]);
+  assert.deepEqual(wallet.calls.map(({method})=>method),["eth_requestAccounts","eth_chainId"]);
+  const result=await connectStandardWallet(provider({eth_requestAccounts:[ACCOUNT],eth_chainId:"0x1917"}),"ynx",{pendingIntent:"connect_1234567890abcdef"});
+  assert.equal(result.connectState.status,"connected");assert.equal(result.connectState.chooserOpen,false);assert.equal(result.connectState.pendingIntent,null);assert.equal(result.connectState.focusRestoreTarget,"wallet-connect-trigger");
 });
 
 test("add-chain uses frozen metadata and proves the switched chain", async () => {
@@ -206,7 +231,7 @@ test("extension disconnect invalidates restore and reconnect requires fresh runt
   assert.equal(memory.getItem(SESSION_KEY),null);
   connected = true;
   assert.deepEqual(await connectWallet(extensionProvider,{fetcher:rpc}),{account:ACCOUNT,chainId:"0x1917"});
-  assert.deepEqual(runtime.messages.slice(-3).map(({input})=>input.method),["wallet_switchEthereumChain","eth_chainId","eth_requestAccounts"]);
+  assert.deepEqual(runtime.messages.slice(-2).map(({input})=>input.method),["eth_requestAccounts","eth_chainId"]);
 });
 
 test("extension sign and transaction require live account preflight before runtime mutation", async () => {
@@ -233,10 +258,10 @@ test("extension account replacement and user rejection never fabricate sensitive
   assert.equal(invalidatesConnectedSession({code:4001}),false);
 });
 
-test("network mutation fails closed before provider call when RPC is unavailable", async () => {
-  const wallet = provider({wallet_switchEthereumChain:null});
-  await assert.rejects(() => switchToYNXChain(wallet,{fetcher:async()=>{throw new Error("offline")}}), (error) => error.code === "RPC_UNAVAILABLE");
-  assert.equal(wallet.calls.length,0);
+test("network mutation is provider-authoritative and fails closed on wrong chain response", async () => {
+  const wallet = provider({wallet_switchEthereumChain:null,eth_chainId:"0x1"});
+  await assert.rejects(() => switchToYNXChain(wallet), (error) => error.code === "WRONG_NETWORK");
+  assert.deepEqual(wallet.calls.map(({method})=>method),["wallet_switchEthereumChain","eth_chainId"]);
 });
 
 test("signing validates chain and returned signature", async () => {
@@ -306,21 +331,18 @@ test("second launch invalidates account replacement and provider failure", async
 
 test("action gates require a provider and an exact connected Testnet account", () => {
   assert.deepEqual(walletActionGates(null,null,null),{canAddChain:false,canSwitchChain:false,canSign:false,canSendTransaction:false});
-  assert.deepEqual(walletActionGates(provider(),ACCOUNT,"0x1"),{canAddChain:false,canSwitchChain:false,canSign:false,canSendTransaction:false});
-  assert.deepEqual(walletActionGates(provider(),ACCOUNT,"0x1917"),{canAddChain:false,canSwitchChain:false,canSign:true,canSendTransaction:false});
+  assert.deepEqual(walletActionGates(provider(),ACCOUNT,"0x1"),{canAddChain:true,canSwitchChain:true,canSign:false,canSendTransaction:false});
+  assert.deepEqual(walletActionGates(provider(),ACCOUNT,"0x1917"),{canAddChain:true,canSwitchChain:true,canSign:true,canSendTransaction:true});
   assert.deepEqual(walletActionGates(provider(),ACCOUNT,"0x1",true),{canAddChain:true,canSwitchChain:true,canSign:false,canSendTransaction:false});
   assert.deepEqual(walletActionGates(provider(),ACCOUNT,"0x1917",true),{canAddChain:true,canSwitchChain:true,canSign:true,canSendTransaction:true});
 });
 
-test("network mutation readiness is revoked unless exact live RPC was proved", async () => {
+test("network mutation never depends on a direct browser RPC probe", async () => {
   const wallet = provider({wallet_switchEthereumChain:null,eth_chainId:"0x1917"});
-  assert.equal(walletActionGates(wallet,null,null,false).canSwitchChain,false);
-  await assert.rejects(() => switchToYNXChain(wallet,{fetcher:async()=>{throw new Error("offline")}}), (error) => error.code === "RPC_UNAVAILABLE");
-  assert.equal(wallet.calls.length,0);
-  await assert.rejects(() => switchToYNXChain(wallet,{fetcher:async()=>({ok:true,json:async()=>({jsonrpc:"2.0",id:1,result:"0x1"})})}), (error) => error.code === "WRONG_NETWORK");
-  assert.equal(wallet.calls.length,0);
-  assert.equal(await switchToYNXChain(wallet,{fetcher:rpc}),"0x1917");
+  assert.equal(walletActionGates(wallet,null,null,false).canSwitchChain,true);
+  assert.equal(await switchToYNXChain(wallet,{fetcher:async()=>{throw new Error("must not be called")}}),"0x1917");
   assert.equal(walletActionGates(wallet,null,null,true).canSwitchChain,true);
+  assert.deepEqual(wallet.calls.map(({method})=>method),["wallet_switchEthereumChain","eth_chainId"]);
 });
 
 test("only authoritative provider identity failures invalidate the connected UI session", () => {

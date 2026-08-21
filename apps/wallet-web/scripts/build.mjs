@@ -28,6 +28,17 @@ const coreContracts=[
   {path:"packages/wallet-auth/src/product-session-recovery.js",blob:"9e5af333b5873a36ab0884917a21a17675b36456",sha256:"84ea01c9d36e2de70928e42881aaa33e4883dbbeeb0072a34e9849e72f6b824c"},
   {path:"packages/wallet-auth/src/product-session-gateway-client.js",blob:"89b12a5f54725b2dfc2194495f228cc1b265bacf",sha256:"671f85b00b1f3a6e40d0c43e6a631d3e15edbe99cb242056be289b91f11a8ca0"},
 ];
+const providerAuthorityCommit="98c6d5d784d212df8981a53b17118a511e246ad2";
+const providerAuthorityContracts=[
+  {path:"packages/wallet-auth/src/standard-wallet-connect-state.js",blob:"60879be26a4b4760dea53b38f76872045c421202",sha256:"72558116f22625c6e9abf363b9dd16a7b1b80c93d88099be531cb63e70a62b92"},
+  {path:"packages/wallet-auth/src/wallet-provider-discovery.js",blob:"38198077220584668a94649c7f36d6881bfab6fb",sha256:"94875a262b7422f3153ecfd7cbe4bde2c7884239bc9f1003a1e6f86ca74b08ed"},
+  {path:"packages/wallet-auth/scripts/verify-standard-wallet-connect-consumer.mjs",blob:"bdbd1f80db502096ff204ce2c5db3afce311547d",sha256:"19682da2caa7020f5648e9fe8136f27813b41ba171fcdfc01e5f0fccc908c045"},
+];
+const providerEvidenceAuthorities=[
+  {commit:"0c9846e6856f53e6d0ec1bc7dd7b389fefb03441",path:"release/integration/wallet-provider-discovery-connect-state-p0-handoff-20260821.json",blob:"ec7f04bd0cec075a89e0ad95daf9bc844fdb18eb",sha256:"6ffa68a649ec32b9569b78045a665fd05a5454dc9327094316a969ecfc60697e"},
+  {commit:"c3ab255c32bdeb9c8e056882c315f8ad43c29c7f",path:"release/integration/wallet-provider-discovery-connect-state-p0-handoff-20260821.json",blob:"745c85539b89f542b774c862e01ee847a438cec9",sha256:"2c3872882b2d88986cecafa6c08fc3a640d60039eb8dab29d3a088aaa6452f49"},
+  {commit:"d3831c300560507f64a50e73117bab7b85926d9a",path:"release/integration/wallet-provider-connect-pending-owner-handoffs-20260821.json",blob:"4e8a760b30fc4dd54cce2cde388515701592ddd3",sha256:"c79c82b0053120a5f492ce177c9100e8f60f07be52c97fe88ab6f9a2eff57854"},
+];
 function immutableObject(commit,contract){
   const object=execFileSync("git",["rev-parse",`${commit}:${contract.path}`],{cwd:repository,encoding:"utf8"}).trim();
   const bytes=execFileSync("git",["show",`${commit}:${contract.path}`],{cwd:repository});
@@ -37,18 +48,23 @@ function immutableObject(commit,contract){
 const centralCaller=JSON.parse(immutableObject(centralCallerCommit,centralCallerContract));
 if(centralCaller?.authority?.walletPackage!=="com.ynxweb4.wallet"||centralCaller?.authority?.uriTemplate!=="ynxwallet://authorize?request=<base64url-canonical-authorization-request>"||centralCaller?.sharedCallerRequirements?.singleBuilder!=="@ynx-chain/wallet-auth encodeRequestDeepLink")throw new Error("Central caller authority mismatch");
 const [coreContractBytes]=coreContracts.map((contract)=>immutableObject(coreCommit,contract));
+providerAuthorityContracts.forEach((contract)=>immutableObject(providerAuthorityCommit,contract));
+providerEvidenceAuthorities.forEach(({commit,...contract})=>immutableObject(commit,contract));
 const coreAuthBinding=deriveWalletWebCompanionBinding(JSON.parse(coreContractBytes),{
   coreCommit,coreContractBlob:coreContracts[0].blob,centralCallerCommit,centralCallerBlob:centralCallerContract.blob,
   publicGatewayRegistryReady:false,trustedRuntimeAvailable:false,
 });
 await rm(dist, {recursive: true, force: true});
 await mkdir(join(dist, "pwa"), {recursive: true});
+const sourceCommit=process.env.YNX_WALLET_WEB_SOURCE_COMMIT||"uncommitted-source-tree";
+const buildIdentity={schemaVersion:1,product:"YNX Wallet Companion",sourceCommit,providerAuthorityCommit,providerEvidenceCommit:"d3831c300560507f64a50e73117bab7b85926d9a",chainId:"0x1917"};
+await writeFile(join(dist,"pwa","build-identity.json"),`${JSON.stringify(buildIdentity)}\n`);
 await writeFile(join(dist,"pwa","core-auth-binding.js"),`export const CORE_WALLET_AUTH_BINDING=Object.freeze(${JSON.stringify(coreAuthBinding)});\n`);
 for (const file of ["index.html", "manifest.webmanifest", "sw.js", "styles.css", "accessibility.css", "app.js"]) await cp(join(root, "public", file), join(dist, "pwa", file));
-for (const file of ["provider.js", "i18n.js", "preferences.js", "mobile-wallet-routing.js", "core-auth-consumer.js", "wallet-web-companion-lifecycle.js"]) await cp(join(root, "src", file), join(dist, "pwa", file));
+for (const file of ["provider.js", "i18n.js", "preferences.js", "mobile-wallet-routing.js", "core-auth-consumer.js", "wallet-web-companion-lifecycle.js", "standard-wallet-connect-state.js"]) await cp(join(root, "src", file), join(dist, "pwa", file));
 await cp(join(root, "src", "service-worker-policy.js"), join(dist, "pwa", "service-worker-policy.js"));
 for(const icon of ["ynx-logo.png","ynx-icon-192.png","ynx-icon-512.png","ynx-icon-maskable-512.png"])await cp(join(root,"public",icon),join(dist,"pwa",icon));
-const pwaIntegrityFiles=["index.html","styles.css","accessibility.css","app.js","provider.js","i18n.js","preferences.js","mobile-wallet-routing.js","core-auth-consumer.js","wallet-web-companion-lifecycle.js","core-auth-binding.js","service-worker-policy.js","ynx-logo.png","ynx-icon-192.png","ynx-icon-512.png","ynx-icon-maskable-512.png","manifest.webmanifest"],assetIntegrity={};
+const pwaIntegrityFiles=["index.html","styles.css","accessibility.css","app.js","provider.js","i18n.js","preferences.js","mobile-wallet-routing.js","core-auth-consumer.js","wallet-web-companion-lifecycle.js","standard-wallet-connect-state.js","core-auth-binding.js","service-worker-policy.js","build-identity.json","ynx-logo.png","ynx-icon-192.png","ynx-icon-512.png","ynx-icon-maskable-512.png","manifest.webmanifest"],assetIntegrity={};
 for(const file of pwaIntegrityFiles)assetIntegrity[`./${file}`]=createHash("sha256").update(await readFile(join(dist,"pwa",file))).digest("hex");
 assetIntegrity["./"]=assetIntegrity["./index.html"];
 await writeFile(join(dist,"pwa","asset-integrity.js"),`export const ASSET_INTEGRITY=Object.freeze(${JSON.stringify(assetIntegrity)});\n`);
@@ -60,7 +76,7 @@ const variants = [
 for (const [name, manifest] of variants) {
   const target = join(dist, name); await mkdir(target, {recursive: true});
   for (const file of ["index.html", "styles.css", "accessibility.css", "app.js"]) await cp(join(root, "public", file), join(target, file));
-  for (const file of ["provider.js", "i18n.js", "preferences.js", "mobile-wallet-routing.js", "wallet-web-companion-lifecycle.js"]) await cp(join(root, "src", file), join(target, file));
+  for (const file of ["provider.js", "i18n.js", "preferences.js", "mobile-wallet-routing.js", "wallet-web-companion-lifecycle.js", "standard-wallet-connect-state.js"]) await cp(join(root, "src", file), join(target, file));
   for (const file of ["service-worker.js", "content-script.js", "page-provider.js"]) await cp(join(root, "extension", file), join(target, file));
   await cp(join(root, "src", "extension-bridge.js"), join(target, "extension-bridge.js"));
   await cp(join(root, "src", "extension-rpc.js"), join(target, "extension-rpc.js"));
@@ -69,6 +85,7 @@ for (const [name, manifest] of variants) {
   await cp(join(root, "src", "active-tab-policy.js"), join(target, "active-tab-policy.js"));
   await cp(join(root, "src", "extension-migration.js"), join(target, "extension-migration.js"));
   await writeFile(join(target,"core-auth-binding.js"),`export const CORE_WALLET_AUTH_BINDING=Object.freeze(${JSON.stringify(coreAuthBinding)});\n`);
+  await writeFile(join(target,"build-identity.json"),`${JSON.stringify(buildIdentity)}\n`);
   await cp(join(root, "public", "ynx-logo.png"), join(target, "ynx-logo.png"));
   const html = (await readFile(join(target, "index.html"), "utf8")).replace('<link rel="manifest" href="./manifest.webmanifest">', "");
   await writeFile(join(target, "index.html"), html);

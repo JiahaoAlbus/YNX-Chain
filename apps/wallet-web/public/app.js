@@ -5,11 +5,12 @@ import {
 } from "./mobile-wallet-routing.js";
 import {CORE_WALLET_AUTH_BINDING} from "./core-auth-binding.js";
 import {createWalletWebCompanionLifecycle} from "./wallet-web-companion-lifecycle.js";
+import {createStandardWalletConnectState,reduceStandardWalletConnectState,STANDARD_WALLET_CONNECT_STATUS} from "./standard-wallet-connect-state.js";
 import {
-  METAMASK_DOWNLOAD_URL, WALLET_DOWNLOAD_MATRIX, YNX_DOWNLOAD_URL, addYNXChain, connectWallet, createExtensionProvider, discoverWallets,
+  METAMASK_DOWNLOAD_URL, WALLET_DOWNLOAD_MATRIX, YNX_DOWNLOAD_URL, addYNXChain, connectStandardWallet, createExtensionProvider, discoverWallets,
   extensionWalletAvailability, forgetSession, rememberSession, restoreTestnetSession, sendTransaction,
   invalidatesConnectedSession, resolveRememberedWallet, signMessage, subscribeProviderLifecycle,
-  switchToYNXChain, verifyTestnetRpc, walletActionGates, walletDiscoveryPresentation,
+  switchToYNXChain, walletActionGates, walletDiscoveryPresentation,
 } from "./provider.js";
 
 const app = document.querySelector("#app");
@@ -21,17 +22,20 @@ const requestedLocale = preview.get("lang");
 const requestedTheme = preview.get("theme");
 const requestedText = preview.get("text");
 const loadedPreferences=loadPreferences(localStorage);
+const initialConnectState=reduceStandardWalletConnectState(createStandardWalletConnectState(),{type:"OPEN_CHOOSER"});
 const state = {
   locale: LOCALES.some(([locale]) => locale === requestedLocale) ? requestedLocale : loadedPreferences.record.locale,
   theme: ["light", "dark"].includes(requestedTheme) ? requestedTheme : loadedPreferences.record.theme,
   preferences: loadedPreferences.record,
   provider: null, wallet: null, account: null, chainId: null, rpcVerified: false, unsubscribeProvider: null,
+  providers:Object.freeze({ynx:false,metamask:false}),connectState:initialConnectState,errorCode:null,
 };
 
 function text(key) { return catalog(state.locale)[key] || key; }
 function options() { return LOCALES.map(([value, label]) => `<option value="${value}" ${value === state.locale ? "selected" : ""}>${label}</option>`).join(""); }
 function escape(value) { const node = document.createElement("span"); node.textContent = String(value); return node.innerHTML; }
 function unavailablePlatforms(){return Object.values(WALLET_DOWNLOAD_MATRIX).filter(item=>item.hosted!==true).map(item=>`<button type="button" disabled aria-disabled="true" data-permanent-disabled="true">${escape(item.label)} · ${text("unavailable")}</button>`).join("")}
+function statusContent(){if(state.errorCode)return`${escape(state.errorCode)}: ${text("requestFailed")}`;return state.account?`${text("connected")} · <span class="mono">${escape(state.account)}</span>`:text("disconnected")}
 
 function render() {
   document.documentElement.lang = state.locale;
@@ -43,10 +47,12 @@ function render() {
       <div class="controls"><label><span class="hidden">${text("language")}</span><select id="locale" aria-label="${text("language")}">${options()}</select></label><button id="theme" type="button">${state.theme === "dark" ? text("light") : text("dark")}</button></div></header>
     <section aria-labelledby="title"><h1 id="title">${text("title")}</h1><p class="intro">${text("intro")}</p></section>
     <section class="card" aria-label="${text("walletConnection")}"><div id="detected" class="eyebrow">${text("unavailable")}</div>
-      <div class="wallets"><button id="ynx" class="primary hidden" type="button">${text("connectYNX")}</button><a id="download" href="${YNX_DOWNLOAD_URL}" class="secondary" rel="noreferrer" aria-describedby="download-meta">Android · ${text("download")}</a><a id="metamask" href="${METAMASK_DOWNLOAD_URL}" class="secondary" rel="noreferrer">${text("metamask")}</a></div>
+      <button id="wallet-connect-trigger" type="button" aria-expanded="${state.connectState.chooserOpen}">${state.account?text("connected"):text("walletConnection")}</button>
+      <div id="wallet-chooser" class="wallets ${state.connectState.chooserOpen?"":"hidden"}" data-mode="${state.connectState.chooserMode}" data-pending-intent="${state.connectState.pendingIntent?"true":"false"}"><button id="ynx" class="primary hidden" type="button">${text("connectYNX")}</button><a id="download" href="${YNX_DOWNLOAD_URL}" class="secondary" rel="noreferrer" aria-describedby="download-meta">Android · ${text("download")}</a><a id="metamask" href="${METAMASK_DOWNLOAD_URL}" class="secondary" rel="noreferrer">${text("metamask")}</a></div>
+      <div id="connection-controls" class="actions ${state.account?"":"hidden"}"><button id="switch-account" type="button">${text("switchAccount")}</button><button id="disconnect" type="button">${text("disconnect")}</button></div>
       <p id="download-meta" class="download-meta mono">${escape(WALLET_DOWNLOAD_MATRIX.android.label)} · ${WALLET_DOWNLOAD_MATRIX.android.bytes.toLocaleString("en-US")} Bytes · SHA-256 ${escape(WALLET_DOWNLOAD_MATRIX.android.sha256)} · ${escape(WALLET_DOWNLOAD_MATRIX.android.signingClass)} · productionSigned=false</p>
       <details id="platforms" class="platforms"><summary>${text("download")}</summary><div class="platform-grid">${unavailablePlatforms()}</div></details>
-      <div class="status" id="status" role="status" aria-live="polite"><strong>${text("status")}:</strong> ${state.account ? `${text("connected")} · <span class="mono">${escape(state.account)}</span>` : text("disconnected")}</div>
+      <div class="status" id="status" role="status" aria-live="polite"><strong>${text("status")}:</strong> ${statusContent()}</div>
       <p class="risk">${text("rpcCheck")} ${text("testnet")}</p>
     </section>
     <section class="card" id="actions" aria-label="${text("walletActions")}">
@@ -59,9 +65,11 @@ function render() {
     </section><footer>YNX Testnet · Chain 6423 · 0x1917</footer></div>`;
   bind();
   applyActionGates();
+  presentAvailability(state.providers);
 }
 
-function setStatus(message, kind = "info") { const node = document.querySelector("#status"); node.dataset.kind = kind; node.innerHTML = `<strong>${text("status")}:</strong> ${escape(message)}`; }
+function setStatus(message, kind = "info") { state.errorCode=null;const node = document.querySelector("#status"); node.dataset.kind = kind; node.innerHTML = `<strong>${text("status")}:</strong> ${escape(message)}`; }
+function setError(error){state.errorCode=String(error?.code||"REQUEST_FAILED");const node=document.querySelector("#status");node.dataset.kind="error";node.innerHTML=`<strong>${text("status")}:</strong> ${statusContent()}`}
 function localizedError(error) { const code=typeof error?.code==="string"||typeof error?.code==="number"?String(error.code):"REQUEST_FAILED"; return `${code}: ${text("requestFailed")}`; }
 async function act(work, success) {
   setStatus(text("working"));
@@ -70,7 +78,7 @@ async function act(work, success) {
   catch (error) {
     if (["RPC_UNAVAILABLE","WRONG_NETWORK","INVALID_RPC_RESPONSE"].includes(error?.code)) state.rpcVerified = false;
     if (invalidatesConnectedSession(error)) invalidateConnectedState();
-    setStatus(localizedError(error), "error");
+    setError(error);
     return null;
   }
   finally { for (const button of document.querySelectorAll("button")) button.disabled = button.dataset.permanentDisabled === "true"; applyActionGates(); }
@@ -91,23 +99,27 @@ function invalidateConnectedState() {
   state.account = null;
   state.chainId = null;
   forgetSession();
+  state.connectState=reduceStandardWalletConnectState(state.connectState,{type:"DISCONNECT"});
   applyActionGates();
 }
 
 function clearConnectedSession() {
   invalidateConnectedState();
-  setStatus(text("disconnected"), "error");
+  state.errorCode="PROVIDER_DISCONNECTED";render();
 }
 
 function bindProviderLifecycle(provider) {
   state.unsubscribeProvider?.();
   state.unsubscribeProvider = subscribeProviderLifecycle(provider, {
     accountsChanged(accounts) {
-      if (!state.account || !accounts.includes(state.account.toLowerCase())) clearConnectedSession();
+      if(accounts.length===0)return clearConnectedSession();
+      if(state.connectState.status!==STANDARD_WALLET_CONNECT_STATUS.CONNECTED)return;
+      state.connectState=reduceStandardWalletConnectState(state.connectState,{type:"ACCOUNTS_CHANGED",accounts});state.account=state.connectState.account;rememberSession({account:state.account,chainId:state.chainId},state.wallet);state.errorCode=null;render();
     },
     chainChanged(chainId) {
-      if (chainId !== "0x1917") clearConnectedSession();
-      else { state.chainId = chainId; applyActionGates(); }
+      if(!state.account)return;
+      state.connectState=reduceStandardWalletConnectState(state.connectState,{type:"CHAIN_CHANGED",chainId});state.chainId=state.connectState.chainId;
+      if(chainId!=="0x1917"){forgetSession();state.errorCode="WRONG_NETWORK"}else{rememberSession({account:state.account,chainId},state.wallet);state.errorCode=null}render();
     },
     disconnect() { clearConnectedSession(); },
   });
@@ -125,13 +137,14 @@ function selectProvider(wallet) {
 
 async function connect(wallet) {
   const provider = selectProvider(wallet);
-  const session = await act(() => connectWallet(provider), (result) => `${text("connected")} · ${result.account}`);
-  if (!session) return;
-  state.account = session.account; state.chainId = session.chainId; rememberSession(session, wallet); render(); await detect();
+  const pendingIntent=`connect_${crypto.randomUUID().replaceAll("-","")}`;
+  const result = await act(() => connectStandardWallet(provider,wallet,{pendingIntent}), (value) => `${text("connected")} · ${value.session.account}`);
+  if (!result) return;
+  state.connectState=result.connectState;state.account=result.session.account;state.chainId=result.session.chainId;state.errorCode=null;rememberSession(result.session,wallet);render();await detect({preserveConnection:true});queueMicrotask(()=>document.querySelector("#wallet-connect-trigger")?.focus());
 }
 
 function bind() {
-  document.querySelector("#locale").addEventListener("change", (event) => {state.locale = event.target.value; state.preferences=savePreferences(localStorage,state.preferences,{locale:state.locale}); render(); detect();});
+  document.querySelector("#locale").addEventListener("change", (event) => {state.locale = event.target.value; state.preferences=savePreferences(localStorage,state.preferences,{locale:state.locale}); render(); detect({preserveConnection:true});});
   document.querySelector("#theme").addEventListener("click", () => {state.theme = state.theme === "dark" ? "light" : "dark"; state.preferences=savePreferences(localStorage,state.preferences,{theme:state.theme}); render(); detect();});
   document.querySelector("#ynx").addEventListener("click", async () => {
     if (state.providers?.ynx) return connect("ynx");
@@ -141,6 +154,9 @@ function bind() {
   document.querySelector("#metamask").addEventListener("click", (event) => {
     if (state.providers?.metamask) { event.preventDefault(); return connect("metamask"); }
   });
+  document.querySelector("#wallet-connect-trigger").addEventListener("click",()=>{state.connectState=reduceStandardWalletConnectState(state.connectState,{type:state.connectState.chooserOpen?"CLOSE_CHOOSER":"OPEN_CHOOSER"});render();document.querySelector("#wallet-connect-trigger")?.focus()});
+  document.querySelector("#disconnect")?.addEventListener("click",()=>{clearConnectedSession();detect({preserveConnection:false}).catch(setError);queueMicrotask(()=>document.querySelector("#wallet-connect-trigger")?.focus())});
+  document.querySelector("#switch-account")?.addEventListener("click",()=>connect(state.wallet));
   document.querySelector("#add").addEventListener("click", () => act(() => addYNXChain(state.provider), () => text("testnet")));
   document.querySelector("#switch").addEventListener("click", () => act(() => switchToYNXChain(state.provider), () => text("connected")));
   document.querySelector("#sign").addEventListener("click", () => act(() => signMessage(state.provider, state.account, document.querySelector("#message").value), (value) => `${text("signature")}: ${value}`));
@@ -159,30 +175,30 @@ function presentAvailability(availability) {
   document.querySelector("#metamask").classList.toggle("hidden", !presentation.showMetaMaskChoice);
   document.querySelector("#metamask").dataset.route = mobile.metaMaskRoute;
   document.querySelector("#metamask").href = mobile.metaMaskHref || METAMASK_DOWNLOAD_URL;
-  document.querySelector("#detected").textContent = presentation.ynxPresent ? text("detected") : text("unavailable");
+  document.querySelector("#detected").textContent = presentation.ynxPresent ? text("detected") : presentation.metamaskPresent?text("metamaskDetected"):text("providerNotInjected");
 }
 
-async function detect() {
-  state.providers = Object.freeze({ynx:false,metamask:false}); state.provider = null; state.wallet = null; state.account = null; state.chainId = null; state.rpcVerified = false; applyActionGates(); presentAvailability(state.providers);
+async function detect({preserveConnection=false}={}) {
+  if(!preserveConnection&&!state.account){state.provider=null;state.wallet=null;state.chainId=null}state.rpcVerified=false;applyActionGates();
   let availability;
   try { availability = isExtension ? await extensionWalletAvailability() : await discoverWallets(); }
-  catch (error) { forgetSession(); throw error; }
+  catch (error) { if(!state.account)forgetSession();throw error; }
   state.providers = availability; presentAvailability(availability);
-  try { await verifyTestnetRpc(); state.rpcVerified = true; }
-  catch (error) { state.rpcVerified = false; applyActionGates(); throw error; }
-  applyActionGates();
+  if(state.account&&preserveConnection){applyActionGates();return}
   const wallet = resolveRememberedWallet(availability);
   if (wallet) {
     const provider = selectProvider(wallet);
     const restored = await restoreTestnetSession(provider);
-    if (restored) { state.account = restored.account; state.chainId = restored.chainId; applyActionGates(); setStatus(`${text("connected")} · ${restored.account}`); }
+    if (restored) { state.connectState=reduceStandardWalletConnectState(createStandardWalletConnectState(),{type:"RESTORE",providerKind:wallet==="ynx"?"ynx-wallet":wallet,accounts:[restored.account],chainId:restored.chainId});state.account = restored.account; state.chainId = restored.chainId;state.errorCode=null;render();setStatus(`${text("connected")} · ${restored.account}`); }
   }
+  applyActionGates();
 }
 
 const discoveryError=(error)=>localizedError(error);
-render(); detect().then(()=>{if(loadedPreferences.status==="rejected")setStatus(text("preferencesRejected"),"error")}).catch((error) => setStatus(discoveryError(error), "error"));
+render(); detect().then(()=>{if(loadedPreferences.status==="rejected")setError({code:"PREFERENCES_REJECTED"})}).catch(setError);
 if(!isExtension&&`${location.origin}${location.pathname}`===companionLifecycle.callback&&location.search){
   companionLifecycle.handleReturn(location.href).then((result)=>setStatus(`${result.code||result.status}: ${result.authoritative?text("connected"):text("requestFailed")}`,result.authoritative?"info":"error"));
 }
-addEventListener("storage",(event)=>{if(event.key!==PREFERENCES_KEY)return;try{const next=acceptPreferenceUpdate(state.preferences,event.newValue);state.preferences=next;state.locale=next.locale;state.theme=next.theme;render();detect().catch((error)=>setStatus(discoveryError(error),"error"))}catch(error){setStatus(`${error?.code||"PREFERENCES_REJECTED"}: ${text("preferencesRejected")}`,"error")}});
+addEventListener("storage",(event)=>{if(event.key!==PREFERENCES_KEY)return;try{const next=acceptPreferenceUpdate(state.preferences,event.newValue);state.preferences=next;state.locale=next.locale;state.theme=next.theme;render();detect({preserveConnection:true}).catch(setError)}catch(error){setError(error)}});
+addEventListener("focus",()=>{if(!state.account)detect({preserveConnection:false}).catch(setError)});
 if (!isExtension && "serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js", {type:"module"}).catch(() => {});

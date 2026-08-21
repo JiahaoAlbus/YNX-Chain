@@ -44,7 +44,8 @@ function providerList(ethereum) {
 
 function ynxProvider(provider) {
   const rdns = String(provider.providerInfo?.rdns || provider.rdns || "").toLowerCase();
-  return provider.isYNXWallet === true || provider.isYnxWallet === true || rdns === "com.ynx.wallet" || rdns.endsWith(".ynxweb4.com");
+  const flagged=provider.isYNXWallet===true||provider.isYnxWallet===true;
+  return flagged&&["com.ynx.wallet","com.ynx.wallet.companion"].includes(rdns);
 }
 
 export function discoverInjectedProviders(scope = globalThis) {
@@ -55,21 +56,28 @@ export function discoverInjectedProviders(scope = globalThis) {
 }
 
 export async function discoverEip6963(scope = globalThis, waitMs = 160) {
-  const found = new Map();
-  if (typeof scope.addEventListener !== "function" || typeof scope.dispatchEvent !== "function") {
+  const found = new Map(),conflicted=new Set();
+  if (typeof scope.addEventListener !== "function" || typeof scope.removeEventListener!=="function"||typeof scope.dispatchEvent !== "function") {
     return Object.freeze([...found.values()]);
   }
   const listener = (event) => {
     const detail = event?.detail;
-    if (!validProvider(detail?.provider) || typeof detail?.info?.uuid !== "string") return;
-    found.set(detail.info.uuid, Object.freeze({info: detail.info, provider: detail.provider}));
+    const uuid=String(detail?.info?.uuid||"").toLowerCase();
+    if (!validProvider(detail?.provider) || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(uuid)||conflicted.has(uuid)) return;
+    const previous=found.get(uuid);if(previous&&previous.provider!==detail.provider){found.delete(uuid);conflicted.add(uuid);return}
+    found.set(uuid, Object.freeze({info:Object.freeze({...detail.info,uuid}), provider: detail.provider}));
   };
+  const request=()=>scope.dispatchEvent(new (scope.Event||Event)("eip6963:requestProvider"));
+  const documentValue=scope.document;let domListener=false;
+  const afterDom=()=>{try{request()}catch{}};
   scope.addEventListener("eip6963:announceProvider", listener);
   try {
-    const EventConstructor = scope.Event || Event;
-    scope.dispatchEvent(new EventConstructor("eip6963:requestProvider"));
-    await new Promise((resolve) => setTimeout(resolve, waitMs));
+    if(documentValue?.readyState==="loading"&&typeof documentValue.addEventListener==="function"){documentValue.addEventListener("DOMContentLoaded",afterDom,{once:true});domListener=true}
+    request();
+    if(waitMs>0){const midpoint=Math.min(80,Math.max(1,Math.floor(waitMs/2)));await new Promise((resolve)=>setTimeout(resolve,midpoint));request();await new Promise((resolve)=>setTimeout(resolve,waitMs-midpoint))}
+    request();
   } finally {
+    if(domListener&&typeof documentValue.removeEventListener==="function")documentValue.removeEventListener("DOMContentLoaded",afterDom);
     scope.removeEventListener("eip6963:announceProvider", listener);
   }
   return Object.freeze([...found.values()]);
@@ -81,10 +89,13 @@ export async function discoverWallets(scope = globalThis) {
   const announcedYNX = announced.find(({info, provider}) =>
     ynxProvider({...provider, providerInfo:info}) || ynxProvider(provider));
   const announcedMetaMask = announced.find(({info, provider}) =>
-    String(info.rdns || "").toLowerCase().includes("metamask") || provider.isMetaMask === true);
+    ["io.metamask","io.metamask.flask"].includes(String(info.rdns || "").toLowerCase()) && provider.isMetaMask === true && !ynxProvider(provider));
+  const ynx=announcedYNX?.provider||injected.ynx,metamask=announcedMetaMask?.provider||injected.metamask;
   return Object.freeze({
-    ynx: announcedYNX?.provider || injected.ynx,
-    metamask: announcedMetaMask?.provider || injected.metamask,
+    ynx,metamask,
+    status:ynx||metamask?"available":scope.ethereum?"unsupported-injected-provider":"provider-not-injected",
+    possibleCauses:ynx||metamask||scope.ethereum?Object.freeze([]):Object.freeze(["extension-locked","site-access-denied","extension-disabled","extension-not-installed"]),
+    exactExtensionStateObservable:false,
   });
 }
 
@@ -98,6 +109,8 @@ export function walletDiscoveryPresentation(availability = {}) {
     showYNXDownload: !ynxPresent,
     showMetaMaskChoice: !ynxPresent,
     metaMaskChoice: metamaskPresent ? "connect" : "official-download",
+    status:availability.status||((ynxPresent||metamaskPresent)?"available":"provider-not-injected"),
+    exactExtensionStateObservable:false,
   });
 }
 
@@ -121,7 +134,8 @@ export async function extensionWalletAvailability(runtime = globalThis.browser?.
   return Object.freeze({ynx: response.ynx, metamask: response.metamask});
 }
 
-export async function verifyTestnetRpc(fetcher = globalThis.fetch, url = YNX_CHAIN.rpcUrls[0]) {
+export async function verifyTestnetRpc(fetcher, url = YNX_CHAIN.rpcUrls[0], options = {}) {
+  if(options.probeTransport!==STANDARD_WALLET_RPC_PROBE_TRANSPORT)fail("UNSAFE_BROWSER_RPC_PROBE","Direct browser RPC fetch is not a Standard Wallet connection authority.");
   if (typeof fetcher !== "function") fail("RPC_UNAVAILABLE", "YNX Testnet RPC verification is unavailable.");
   let response;
   try {
@@ -162,25 +176,35 @@ async function exactAuthorizedAccount(provider, expectedAccount) {
 
 export async function addYNXChain(provider, options = {}) {
   if (!validProvider(provider)) fail("WALLET_NOT_FOUND", "No compatible wallet provider was detected.");
-  await verifyTestnetRpc(options.fetcher, options.rpcUrl);
   await provider.request({method: "wallet_addEthereumChain", params: [YNX_CHAIN]});
-  return switchToYNXChain(provider, {...options, rpcVerified: true});
+  return switchToYNXChain(provider, options);
 }
 
 export async function switchToYNXChain(provider, options = {}) {
   if (!validProvider(provider)) fail("WALLET_NOT_FOUND", "No compatible wallet provider was detected.");
-  if (!options.rpcVerified) await verifyTestnetRpc(options.fetcher, options.rpcUrl);
   await provider.request({method: "wallet_switchEthereumChain", params: [{chainId: YNX_CHAIN.chainId}]});
   return exactChain(provider);
 }
 
-export async function connectWallet(provider, options = {}) {
+export async function connectStandardWallet(provider,wallet,options={}){
   if (!validProvider(provider)) fail("WALLET_NOT_FOUND", "No compatible wallet provider was detected.");
-  await switchToYNXChain(provider, options);
+  const kind=wallet==="ynx"?"ynx-wallet":wallet;
+  let connectState=createStandardWalletConnectState();
+  connectState=reduceStandardWalletConnectState(connectState,{type:"BEGIN",pendingIntent:options.pendingIntent||`connect_${cryptoToken()}`});
+  connectState=reduceStandardWalletConnectState(connectState,{type:"PROVIDER_SELECTED",providerKind:kind});
   const accounts = await provider.request({method: "eth_requestAccounts"});
   const account = Array.isArray(accounts) ? accounts[0] : undefined;
   if (typeof account !== "string" || !ADDRESS.test(account)) fail("INVALID_ACCOUNT", "Wallet did not return a valid EVM account.");
-  return Object.freeze({account: account.toLowerCase(), chainId: YNX_CHAIN.chainId});
+  connectState=reduceStandardWalletConnectState(connectState,{type:"ACCOUNT_APPROVED",account});
+  let chainId=await provider.request({method:"eth_chainId"});
+  if(chainId!==YNX_CHAIN.chainId){await provider.request({method:"wallet_switchEthereumChain",params:[{chainId:YNX_CHAIN.chainId}]});chainId=await provider.request({method:"eth_chainId"})}
+  connectState=reduceStandardWalletConnectState(connectState,{type:"CHAIN_CONFIRMED",chainId});
+  if(connectState.status!==STANDARD_WALLET_CONNECT_STATUS.CONNECTED)fail("WRONG_NETWORK","Wallet did not confirm YNX Testnet chain 6423.");
+  return Object.freeze({session:Object.freeze({account:connectState.account,chainId:connectState.chainId}),connectState});
+}
+
+export async function connectWallet(provider, options = {}) {
+  return (await connectStandardWallet(provider,options.wallet||"metamask",options)).session;
 }
 
 export async function restoreTestnetSession(provider, storage = globalThis.localStorage) {
@@ -235,10 +259,10 @@ export function walletActionGates(provider, account, chainId, rpcVerified = fals
   const hasProvider = Boolean(validProvider(provider));
   const connected = hasProvider && ADDRESS.test(account || "") && chainId === YNX_CHAIN.chainId;
   return Object.freeze({
-    canAddChain: hasProvider && rpcVerified === true,
-    canSwitchChain: hasProvider && rpcVerified === true,
+    canAddChain: hasProvider,
+    canSwitchChain: hasProvider,
     canSign: connected,
-    canSendTransaction: connected && rpcVerified === true,
+    canSendTransaction: connected,
   });
 }
 
@@ -281,9 +305,11 @@ export async function sendTransaction(provider, transaction, options = {}) {
   const data = String(transaction?.data || "0x");
   if (!ADDRESS.test(from) || !ADDRESS.test(to)) fail("INVALID_TRANSACTION", "Transaction requires valid from and to addresses.");
   if (!/^0x(?:0|[1-9a-fA-F][0-9a-fA-F]*)$/.test(value) || !/^0x(?:[0-9a-fA-F]{2})*$/.test(data)) fail("INVALID_TRANSACTION", "Transaction value or data is not canonical hex.");
-  await verifyTestnetRpc(options.fetcher, options.rpcUrl);
   const authorizedFrom = await exactAuthorizedAccount(provider, from);
   const hash = await provider.request({method: "eth_sendTransaction", params: [{from: authorizedFrom, to, value, data}]});
   if (typeof hash !== "string" || !HASH.test(hash)) fail("INVALID_TRANSACTION_HASH", "Wallet did not return a valid transaction hash.");
   return hash.toLowerCase();
 }
+
+function cryptoToken(){const bytes=new Uint8Array(16);globalThis.crypto?.getRandomValues?.(bytes);return [...bytes].map((value)=>value.toString(16).padStart(2,"0")).join("")}
+import {createStandardWalletConnectState,reduceStandardWalletConnectState,STANDARD_WALLET_CONNECT_STATUS,STANDARD_WALLET_RPC_PROBE_TRANSPORT} from "./standard-wallet-connect-state.js";
