@@ -16,7 +16,7 @@ cleanup() {
   rm -rf "$work"
 }
 trap cleanup EXIT
-mount_point=$(/usr/bin/hdiutil attach -nobrowse -readonly "$dmg" | /usr/bin/awk 'END { print $NF }')
+mount_point=$(/usr/bin/hdiutil attach -nobrowse -readonly "$dmg" | /usr/bin/awk 'match($0, /\/Volumes\/.*/) { print substr($0, RSTART); exit }')
 # Recent macOS versions can return from hdiutil before APFS has materialized
 # the final volume directory.  Wait briefly for that directory rather than
 # treating a valid image as an installation failure.
