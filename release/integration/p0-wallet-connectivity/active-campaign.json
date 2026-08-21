@@ -2,7 +2,7 @@
   "schemaVersion": "1.0.0",
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "owner": "integration",
-  "status": "P0091_FAUCET_AND_MANIFEST_ACCEPTED_P0092_WEBSITE_PUBLISHED_WALLET_PLATFORM_RESUMED",
+  "status": "P0093_FAUCET_CANONICAL_RECIPIENT_DEPLOYMENT_ACTIVE",
   "scope": [
     "founder-control",
     "wallet-connectivity",
@@ -34,7 +34,7 @@
   "firstStop": {
     "complete": true,
     "publicConnectivityClaim": false,
-    "nextAction": "P0-091 Faucet runtime and publicEndpointManifest@1.0.0-p0.3 are accepted. P0-092 published the verified Faucet window/runtime record from Website main ffceb65ea8b61dfdaf787b57bff18dc9261b082b to production dpl_5D9kAwNaPcsTyNNeK2X6NKvFkmDD. Wallet Platform has been actively resumed from fa770cd8 to fix its old PublicHealth schema and prove platform Faucet flows; those platform and ComputerControl gates remain false."
+    "nextAction": "P0-093 owns one rollback-first deployment of Faucet source 02cf44d1 because the P0-091 runtime rejected canonical ynx1 recipients. After exact runtime validation, submit one bounded funding request and verify the transaction independently; Website/Manifest and Wallet Platform must remain on the old source until that succeeds."
   },
   "lightLeases": [
     {
@@ -321,16 +321,16 @@
     }
   ],
   "heavy": {
-    "owner": null,
-    "taskId": "P0-091",
-    "status": "RELEASED_CHECKPOINT",
-    "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-faucet-ea0e068b-validator-v2-20260821T004500Z",
-    "leasedAt": "2026-08-21T00:45:00Z",
-    "expiresAt": "2026-08-21T02:45:00Z",
-    "releasedAt": "2026-08-21T00:50:00Z",
-    "checkpointCommit": "d8fa126fb32f37dcc68ff4d32c9f3e21e2c6a1b0",
-    "scope": "faucet-only-binary-deployment-and-public-readback",
-    "productionMutationAllowed": false,
+    "owner": "integration",
+    "taskId": "P0-093",
+    "status": "ACTIVE_SINGLE_USE",
+    "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-faucet-02cf44d1-canonical-recipient-20260821T011000Z",
+    "leasedAt": "2026-08-21T01:10:00Z",
+    "expiresAt": "2026-08-21T03:10:00Z",
+    "releasedAt": null,
+    "checkpointCommit": "9a86ef556992e9bd48a48fca8ecd624b800973a9",
+    "scope": "faucet-canonical-recipient-deployment-and-one-public-funding-verification",
+    "productionMutationAllowed": true,
     "singleUse": true
   },
   "wave": {
