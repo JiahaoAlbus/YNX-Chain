@@ -5,7 +5,7 @@ import{StatusBar}from"expo-status-bar";
 import* as LocalAuthentication from"expo-local-authentication";
 import{ArrowUpRight,CreditCard,Globe2,LifeBuoy,LockKeyhole,ReceiptText,RefreshCw,ShieldCheck,SlidersHorizontal,WalletCards,X}from"lucide-react-native";
 import{action,apply as applyForCard,createTestnetTopupIntent,dispute as openDispute,explain,reviewAI,state as loadState,topupTestnet,type Card,type CardEvent,type CardState,type TestnetTopupIntent,type TopupInput, simulateAuthorization, simulateCapture, simulateReversal, simulateRefund, updateControls}from"./src/api";
-import{catalogs,date,detectLocale,isLocale,isRTL,localeNames,locales,money,t as translate,type Locale}from"./src/i18n";
+import{catalogs,date,isLocale,isRTL,localeNames,locales,money,t as translate,type Locale}from"./src/i18n";
 import{loadLocale,loadPendingAuthorization,loadSession,loadSimulationAudit,saveLocale,savePendingAuthorization,saveSession,saveSimulationAudit}from"./src/secureState";
 import{createRuntimeCardProductWalletConnection,type CardProductWalletConnection}from"./src/productWalletRuntime";
 import{approveTestnetTopup,classifyCardWalletError,connectEip1193Wallet,connectMetaMaskWallet,createAuthorization,loadTestnetTopupEvidence,parseWalletAuthorizationCallback,parseYnxtAmountToWei,resolveEip1193Provider,resolveMetaMaskEip1193Provider,walletDeepLink,type CardSession,type Eip1193Provider,type Eip1193WalletSession,type PendingAuthorizationRequest,type ProductSessionRuntime,type TopupEvidence}from"./src/wallet";
@@ -20,7 +20,9 @@ type SimulationPayload={operation:SimulationAction;cardId:string;merchant:string
 
 export default function App(){
   const scheme=useColorScheme(),dark=scheme==="dark";const c=dark?darkColors:lightColors;
-  const[locale,setLocaleState]=useState<Locale>(detectLocale());
+  // A guest's device language must not silently choose the product language.
+  // English is the safe first-run default; an explicit saved preference may override it.
+  const[locale,setLocaleState]=useState<Locale>("en");
   const tr=useCallback((key:keyof typeof catalogs.en)=>translate(locale,key),[locale]);
   const rtl=isRTL(locale);
 
