@@ -428,21 +428,21 @@
   ],
   "heavy": {
     "owner": "integration",
-    "taskId": "P0-135",
+    "taskId": "P0-136",
     "status": "ACTIVE_SINGLE_USE",
-    "acquiredAt": "2026-08-21T09:04:38Z",
-    "expiresAt": "2026-08-21T09:34:38Z",
+    "acquiredAt": "2026-08-21T09:07:56Z",
+    "expiresAt": "2026-08-21T09:37:56Z",
     "sourceCommit": "d2323ca6a0bf4cc9aed67bf3bd7ee533755999e3",
     "runtimeHost": "43.153.202.237",
     "currentRuntime": "/opt/ynx/search-releases/p0124-search-wallet-7604c88e",
     "rollbackTarget": "/opt/ynx/search-releases/p0124-search-wallet-7604c88e",
-    "candidateRuntime": "/opt/ynx/search-releases/p0135-search-subroute-d2323ca6",
+    "candidateRuntime": "/opt/ynx/search-releases/p0136-search-subroute-d2323ca6",
     "artifactSha256": "88b7458a90fa56690fd3a92104f6d7354a67a0f161cdce89b7c5f168fca774ee",
     "productionMutationAllowed": true,
     "singleUse": true,
     "previousOwner": null,
-    "previousTaskId": "P0-134",
-    "reason": "Fresh bounded activation of the exact locally built dist after P0-134 proved 22/22 server tests but failed on a platform-incompatible copied esbuild binary before any production mutation."
+    "previousTaskId": "P0-135",
+    "reason": "Fresh bounded activation after P0-135 reached candidate activation but a verifier quoting error triggered the rollback trap; exact p0124 runtime, env and service state were restored."
   },
   "wave": {
     "id": "B-financial-apps-quant",
