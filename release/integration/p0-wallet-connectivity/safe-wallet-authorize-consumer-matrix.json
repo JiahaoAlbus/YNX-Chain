@@ -3,7 +3,7 @@
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "contract": "safeWalletAuthorizeLauncher@1.0.0-p0.0",
   "contractSourceCommit": "4679de8e8d0675e2013254c92ff1935191f87c21",
-  "updatedAt": "2026-08-21T04:46:04Z",
+  "updatedAt": "2026-08-21T05:14:00Z",
   "rules": {
     "webExtension": "Never replace the top-level document with ynxwallet://authorize. Use the accepted controlled hidden-frame lifecycle and keep the product page visible.",
     "native": "Resolve an installed handler for the exact canonical request before opening it. Unsupported must preserve the product state and offer the official Wallet download plus an independent MetaMask route where applicable.",
@@ -149,10 +149,11 @@
       "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/56-seller-console-visible-p0",
       "branch": "codex/p0-seller-console-visible-20260821",
       "path": "apps/seller-console/**",
-      "status": "ACTIVE",
+      "status": "SOURCE_BUILD_BROWSER_CHECKPOINT_REACHED",
       "taskId": "P0-114",
-      "finding": "The web Wallet-auth module calls location.assign with a custom-scheme request.",
-      "nextAction": "Migrate to the accepted web launcher and keep the seller preview usable without a private Product Session."
+      "checkpointCommit": "910170031e7579924af34c3c2a8b92bdb08958cf",
+      "finding": "Seller Console now uses the shared controlled launcher; 10/10 plus Chromium 3/3 passed, the top-level URL stays unchanged, and official YNX Wallet plus MetaMask recovery choices remain visible in the Seller page. Public and installed-Wallet proof remain false.",
+      "nextAction": "Publish the exact checkpoint and verify a real installed-Wallet approval/callback before Product Session or seller-operation promotion."
     },
     {
       "product": "developer",
