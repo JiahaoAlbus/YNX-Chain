@@ -54,6 +54,56 @@ func TestFaucetServiceRequestsAndRateLimits(t *testing.T) {
 	}
 }
 
+func TestAuthoritativeFaucetSerializesConcurrentRequests(t *testing.T) {
+	var mu sync.Mutex
+	active, peak := 0, 0
+	rpc := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/faucet" {
+			http.NotFound(w, r)
+			return
+		}
+		mu.Lock()
+		active++
+		if active > peak {
+			peak = active
+		}
+		mu.Unlock()
+		time.Sleep(20 * time.Millisecond)
+		mu.Lock()
+		active--
+		mu.Unlock()
+		_ = json.NewEncoder(w).Encode(chain.Transaction{Hash: "0x" + strings.Repeat("a", 64)})
+	}))
+	defer rpc.Close()
+
+	service, err := New(Config{RPCURL: rpc.URL, FaucetKey: "local-test-key", DefaultAmount: 50, MaxAmount: 50, Window: time.Hour, MaxRequests: 1, RequestLog: t.TempDir() + "/requests.jsonl"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var wg sync.WaitGroup
+	errs := make(chan error, 2)
+	for index, address := range []string{"ynx_faucet_parallel_one", "ynx_faucet_parallel_two"} {
+		wg.Add(1)
+		go func(index int, address string) {
+			defer wg.Done()
+			_, status, err := service.Request(context.Background(), Request{Address: address}, fmt.Sprintf("127.0.0.%d:9000", index+1))
+			if err != nil || status != http.StatusCreated {
+				errs <- fmt.Errorf("address=%s status=%d err=%v", address, status, err)
+			}
+		}(index, address)
+	}
+	wg.Wait()
+	close(errs)
+	for err := range errs {
+		t.Error(err)
+	}
+	mu.Lock()
+	defer mu.Unlock()
+	if peak != 1 {
+		t.Fatalf("authoritative upstream requests overlapped: peak=%d", peak)
+	}
+}
+
 func TestFaucetServerEndpoints(t *testing.T) {
 	devnet := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))
 	rpc := httptest.NewServer(api.NewServer(devnet))

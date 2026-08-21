@@ -243,6 +243,13 @@ func (s *Service) Request(ctx context.Context, req Request, remoteAddr string) (
 		s.recordDenied(entry.Error)
 		return Response{}, http.StatusTooManyRequests, fmt.Errorf("faucet rate limit exceeded")
 	}
+	// The authoritative upstream accepts one faucet mutation at a time. Keep
+	// requests queued here rather than racing it into a timeout; the BFT path
+	// performs its own nonce-aware serialization inside callBFTGateway.
+	if s.cfg.UpstreamMode != UpstreamBFT {
+		s.fundMu.Lock()
+		defer s.fundMu.Unlock()
+	}
 	tx, err := s.callRPC(ctx, recipient.Chain, amount)
 	if err != nil {
 		entry.Status = "error"
