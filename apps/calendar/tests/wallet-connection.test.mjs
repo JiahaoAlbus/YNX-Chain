@@ -6,6 +6,7 @@ import {
   calendarWalletState,
   connectCalendarWallet,
   restoreCalendarWallet,
+  switchCalendarWalletAccount,
   WALLET_INSTALLATION_OPTIONS,
   YNX_TESTNET_ADD_CHAIN,
 } from "../web/wallet-connection.js";
@@ -31,6 +32,7 @@ function provider({chainId = "0x1917", reject = false, kind = "metamask"} = {}) 
         return [account];
       }
       if (input.method === "eth_accounts") return [account];
+      if (input.method === "wallet_requestPermissions") return [{parentCapability: "eth_accounts"}];
       if (input.method === "eth_chainId") return chain;
       if (input.method === "wallet_switchEthereumChain") {
         if (chain === "0x999") throw Object.assign(new Error("Unknown chain"), {code: 4902});
@@ -111,6 +113,17 @@ test("account removal invalidates the restored connection", async () => {
   wallet.emit("accountsChanged", []);
   assert.equal(calendarWalletState().status, "disconnected");
   assert.equal(calendarWalletState().account, null);
+});
+
+test("connected Calendar can request an account change without reopening discovery", async () => {
+  const wallet = provider();
+  await restoreCalendarWallet(browser([], wallet), {timeoutMs: 0});
+  const switched = await switchCalendarWalletAccount();
+  assert.equal(switched.standardConnection, "CONNECTED");
+  assert.equal(switched.account, account);
+  assert.equal(switched.chainId, "0x1917");
+  assert.equal(wallet.calls.filter((call) => call.method === "wallet_requestPermissions").length, 1);
+  assert.equal(switched.connectionState.chooserOpen, false);
 });
 
 test("rejection and unavailable injection fail closed with truthful codes", async () => {

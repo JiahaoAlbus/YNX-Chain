@@ -25,6 +25,7 @@ export const WALLET_INSTALLATION_OPTIONS = Object.freeze({
 
 let walletState = createStandardWalletConnectState();
 let activeProvider = null;
+let activeCandidate = null;
 let activeListeners = null;
 
 function transition(event) {
@@ -57,11 +58,15 @@ function removeProviderListeners() {
     try { activeProvider.removeListener?.(event, listener); } catch {}
   }
   activeProvider = null;
+  activeCandidate = null;
   activeListeners = null;
 }
 
-function listen(provider) {
-  if (provider === activeProvider) return;
+function listen(provider, candidate) {
+  if (provider === activeProvider) {
+    activeCandidate = candidate;
+    return;
+  }
   removeProviderListeners();
   const listeners = {
     accountsChanged: (accounts) => { try { transition({type: "ACCOUNTS_CHANGED", accounts}); } catch {} },
@@ -72,6 +77,7 @@ function listen(provider) {
     try { provider.on?.(event, listener); } catch {}
   }
   activeProvider = provider;
+  activeCandidate = candidate;
   activeListeners = listeners;
 }
 
@@ -133,7 +139,7 @@ export async function connectCalendarWallet(windowLike = window, {timeoutMs = 16
     transition({type: "CHAIN_CONFIRMED", chainId});
     if (walletState.status !== STANDARD_WALLET_CONNECT_STATUS.CONNECTED) throw new DAppConnectError("WRONG_CHAIN", "Wallet did not finish switching to YNX Testnet.");
     transition({type: "PRIVATE_SESSION_DEGRADED", code: "PRIVATE_SERVICE_UNAVAILABLE"});
-    listen(selected.provider);
+    listen(selected.provider, selected);
     return connectedResult(selected, selected.provider);
   } catch (error) {
     const normalized = publicError(error);
@@ -156,7 +162,7 @@ export async function restoreCalendarWallet(windowLike = window, {timeoutMs = 16
     ]);
     transition({type: "RESTORE", providerKind: selected.kind, accounts, chainId});
     if (walletState.status !== STANDARD_WALLET_CONNECT_STATUS.CONNECTED) return Object.freeze({status: "not-restored", connectionState: walletState});
-    listen(selected.provider);
+    listen(selected.provider, selected);
     return connectedResult(selected, selected.provider);
   } catch (error) {
     return Object.freeze({status: "not-restored", code: errorCode(error), connectionState: walletState});
@@ -166,6 +172,32 @@ export async function restoreCalendarWallet(windowLike = window, {timeoutMs = 16
 export function disconnectCalendarWallet() {
   removeProviderListeners();
   return transition({type: "DISCONNECT"});
+}
+
+export async function switchCalendarWalletAccount() {
+  if (!activeProvider || !activeCandidate) {
+    throw new DAppConnectError("WALLET_NOT_CONNECTED", "Connect a Wallet before switching accounts.");
+  }
+  try {
+    try {
+      await activeProvider.request({method: "wallet_requestPermissions", params: [{eth_accounts: {}}]});
+    } catch (error) {
+      if (Number(error?.code) === 4001) throw error;
+      if (Number(error?.code) !== 4200 && !/unsupported|not implemented/i.test(String(error?.message || ""))) throw error;
+      await activeProvider.request({method: "eth_requestAccounts"});
+    }
+    const [accounts, chainId] = await Promise.all([
+      activeProvider.request({method: "eth_accounts"}),
+      activeProvider.request({method: "eth_chainId"}),
+    ]);
+    transition({type: "RESTORE", providerKind: activeCandidate.kind, accounts, chainId});
+    if (walletState.status !== STANDARD_WALLET_CONNECT_STATUS.CONNECTED) {
+      throw new DAppConnectError("WALLET_NOT_AUTHORIZED", "Wallet returned no approved YNX Testnet account.");
+    }
+    return connectedResult(activeCandidate, activeProvider);
+  } catch (error) {
+    throw publicError(error);
+  }
 }
 
 export function calendarWalletState() { return walletState; }

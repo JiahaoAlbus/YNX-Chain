@@ -2,6 +2,7 @@ import {
   connectCalendarWallet,
   disconnectCalendarWallet,
   restoreCalendarWallet,
+  switchCalendarWalletAccount,
   WALLET_INSTALLATION_OPTIONS,
 } from "./wallet-connection.js";
 
@@ -145,18 +146,33 @@ async function beginSignIn(recovery = false) {
 function walletAccountLabel(account) {
   return `${account.slice(0, 6)}…${account.slice(-4)}`;
 }
+function renderAccountBoundary() {
+  const accountButton = $("#account");
+  if (state.wallet?.account) {
+    const short = walletAccountLabel(state.wallet.account);
+    accountButton.textContent = short.slice(2, 4).toUpperCase();
+    accountButton.setAttribute("aria-label", `${state.wallet.walletName} ${short} connected on YNX Testnet. Open connection details.`);
+    return;
+  }
+  if (state.guest) {
+    accountButton.textContent = "G";
+    accountButton.setAttribute("aria-label", tr("guest_boundary", "Local guest trial; no Wallet session"));
+    return;
+  }
+  accountButton.textContent = state.user?.handle ? state.user.handle.replace("@", "").slice(0, 2).toUpperCase() : "GU";
+  accountButton.setAttribute("aria-label", state.user?.handle ? `Calendar account ${state.user.handle}` : "No account connected");
+}
 function applyStandardWallet(wallet) {
   state.wallet = wallet;
   enterGuest();
   const short = walletAccountLabel(wallet.account);
-  $("#account").textContent = short.slice(2, 4).toUpperCase();
-  $("#account").setAttribute("aria-label", `${wallet.walletName} ${short} connected on YNX Testnet. Calendar sync remains unavailable.`);
+  renderAccountBoundary();
   $("#signin-state").textContent = `${wallet.walletName} connected on YNX Testnet. Private Calendar sync is degraded; local Calendar remains available.`;
   toast(`${wallet.walletName} connected · ${short} · private Calendar sync is degraded`);
 }
 function clearStandardWallet(reason = "Wallet disconnected. Guest trial remains available.") {
   state.wallet = null;
-  $("#account").textContent = "GU";
+  renderAccountBoundary();
   $("#account").setAttribute("aria-label", reason);
   $("#signin-state").textContent = reason;
 }
@@ -260,8 +276,7 @@ function enterGuest() {
   state.guest = true;
   state.user = { handle: "@guest" };
   $("#signin").hidden = true;
-  $("#account").textContent = "G";
-  $("#account").setAttribute("aria-label", tr("guest_boundary", "Local guest trial; no Wallet session"));
+  renderAccountBoundary();
   toast(tr("guest_boundary", "Local guest trial · device-only drafts · no sync, sharing, AI, or chain writes"));
   loadEvents();
 }
@@ -1058,11 +1073,15 @@ function init() {
   });
   addEventListener("ynx-calendar-standard-wallet-state", (event) => {
     const wallet = event.detail;
+    if (wallet?.status === "connected" && state.wallet && wallet.account) {
+      state.wallet = {...state.wallet, account: wallet.account, chainId: wallet.chainId, connectionState: wallet};
+      renderAccountBoundary();
+    }
     if (wallet?.status === "disconnected" || wallet?.status === "wrong-chain") clearStandardWallet(wallet.status === "wrong-chain" ? "Wallet changed to another network. Switch back to YNX Testnet to reconnect." : "Wallet disconnected. Guest trial remains available.");
   });
   $("#wallet-signin").onclick = beginSignIn;
   $("#guest-try").onclick = enterGuest;
-  $("#account").onclick = () => state.guest ? showGuestAccount() : showAccount();
+  $("#account").onclick = () => state.wallet ? showWalletConnection() : state.guest ? showGuestAccount() : showAccount();
   $("#new-event").onclick = () => openForm();
   $("#event-close").onclick = () => $("#event-dialog").close();
   $("#manage-calendars").onclick = showCalendarManager;
@@ -1244,6 +1263,48 @@ async function showAccount() {
   };
   dialog.showModal();
 }
+function showWalletConnection() {
+  const wallet = state.wallet;
+  if (!wallet?.account) return showGuestAccount();
+  const dialog = document.createElement("dialog");
+  dialog.className = "change-dialog";
+  const short = walletAccountLabel(wallet.account);
+  dialog.innerHTML = `<div class="change-card"><span class="eyebrow">Standard EVM connection</span><h2>Wallet connection</h2><p><strong>${escapeHTML(wallet.walletName)}</strong> is connected to YNX Testnet.</p><dl class="connection-details"><div><dt>Account</dt><dd>${escapeHTML(short)}</dd></div><div><dt>Network</dt><dd>YNX Testnet · 6423 / 0x1917</dd></div><div><dt>Standard access</dt><dd>Account and transaction requests are available after your approval.</dd></div><div><dt>Private Calendar sync</dt><dd>Degraded · local Calendar remains available.</dd></div></dl><p data-wallet-action-status role="status"></p><div class="detail-actions"><button class="quiet" data-action="local">Local Calendar data</button><button class="quiet" data-action="switch">Switch account</button><button class="quiet danger-action" data-action="disconnect">Disconnect</button><button class="primary" data-action="close">Close</button></div></div>`;
+  document.body.append(dialog);
+  dialog.addEventListener("close", () => dialog.remove());
+  const status = dialog.querySelector("[data-wallet-action-status]");
+  dialog.querySelector('[data-action="close"]').onclick = () => dialog.close();
+  dialog.querySelector('[data-action="local"]').onclick = () => {
+    dialog.close();
+    showGuestAccount();
+  };
+  dialog.querySelector('[data-action="disconnect"]').onclick = () => {
+    disconnectCalendarWallet();
+    state.wallet = null;
+    state.guest = true;
+    renderAccountBoundary();
+    $("#signin-state").textContent = "Wallet disconnected. Local Calendar remains available.";
+    dialog.close();
+    toast("Wallet disconnected · local Calendar remains available");
+  };
+  dialog.querySelector('[data-action="switch"]').onclick = async (event) => {
+    const button = event.currentTarget;
+    button.disabled = true;
+    status.textContent = "Waiting for your Wallet…";
+    try {
+      const next = await switchCalendarWalletAccount();
+      applyStandardWallet(next);
+      dialog.close();
+      toast(`${next.walletName} account changed · ${walletAccountLabel(next.account)}`);
+    } catch (error) {
+      status.textContent = error?.code === "WALLET_USER_REJECTED"
+        ? "Account change was rejected. The current Wallet connection was kept."
+        : `${error?.message || "Account change failed"} The current Wallet connection was kept.`;
+      button.disabled = false;
+    }
+  };
+  dialog.showModal();
+}
 function downloadBlob(name, type, body) {
   const link = document.createElement("a");
   link.href = URL.createObjectURL(new Blob([body], { type }));
@@ -1276,7 +1337,6 @@ function showGuestAccount() {
     loadEvents();
   };
   dialog.querySelector('[data-action="exit"]').onclick = () => {
-    if (state.wallet) disconnectCalendarWallet();
     dialog.close();
     signOut(false);
   };

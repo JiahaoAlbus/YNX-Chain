@@ -51,7 +51,12 @@ test("Calendar offline, explicit approval, conflict and AI boundaries are wired"
     "connectCalendarWallet",
     "PROVIDER_NOT_INJECTED",
     "restoreCalendarWallet",
+    "switchCalendarWalletAccount",
     "private Calendar sync is degraded",
+    "showWalletConnection",
+    "Wallet connection",
+    "Switch account",
+    "Disconnect",
     "guestEventsKey",
     "Local draft saved on this device",
     "no sync, sharing, AI, or chain writes",
@@ -63,6 +68,7 @@ test("Calendar offline, explicit approval, conflict and AI boundaries are wired"
     assert.ok(js.includes(term), `missing ${term}`);
   assert.match(js, /each change still requires preview and approval/);
   assert.match(js, /the calendar was not changed/);
+  assert.match(js, /state\.wallet \? showWalletConnection\(\) : state\.guest \? showGuestAccount\(\) : showAccount\(\)/);
   assert.match(sw, /caches\.open/);
   assert.match(sw, /self\.skipWaiting\(\)/);
   assert.match(sw, /self\.clients\.claim\(\)/);
