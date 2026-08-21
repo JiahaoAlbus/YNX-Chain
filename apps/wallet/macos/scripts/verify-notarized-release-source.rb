@@ -78,8 +78,10 @@ probe_requirements = [
 missing_workflow = workflow_requirements.reject { |value| workflow.include?(value) }
 missing_probe = probe_requirements.reject { |value| probe.include?(value) }
 missing_cleanup = cleanup_requirements.reject { |value| cleanup.include?(value) }
+invalid_probe_fragments = ["jq -n +", "+  --arg", "+  --argjson"].select { |value| probe.include?(value) }
 abort "missing notarized workflow semantics: #{missing_workflow.join(", ")}" unless missing_workflow.empty?
 abort "missing final DMG probe semantics: #{missing_probe.join(", ")}" unless missing_probe.empty?
 abort "missing signing cleanup semantics: #{missing_cleanup.join(", ")}" unless missing_cleanup.empty?
+abort "invalid final DMG probe shell fragments: #{invalid_probe_fragments.join(", ")}" unless invalid_probe_fragments.empty?
 
 puts "wallet macOS notarized native DMG source contract verified"

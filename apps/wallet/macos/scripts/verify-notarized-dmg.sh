@@ -128,7 +128,24 @@ dmg_sha256="$(shasum -a 256 "$YNX_RELEASE_DMG" | awk '{print $1}')"
 dmg_bytes="$(stat -f '%z' "$YNX_RELEASE_DMG")"
 architectures="$(tr '\n' ' ' < "$proof/architectures.txt" | xargs)"
 minimum_os="$(tr -d '\n' < "$proof/minimum-os.txt")"
-jq -n +  --arg sourceCommit "$YNX_EXPECTED_SOURCE_SHA" +  --arg releaseTag "$YNX_RELEASE_TAG" +  --arg artifactName "$YNX_RELEASE_DMG_NAME" +  --arg artifactSha256 "$dmg_sha256" +  --argjson artifactBytes "$dmg_bytes" +  --arg version "$YNX_RELEASE_APP_VERSION" +  --arg build "$YNX_RELEASE_APP_BUILD" +  --arg architectures "$architectures" +  --arg minimumOS "$minimum_os" +  --arg teamIdentifier "$YNX_APPLE_TEAM_ID" +  --arg appNotaryId "$YNX_APP_NOTARY_ID" +  --arg dmgNotaryId "$YNX_DMG_NOTARY_ID" +  --argjson coldPid "$cold_pid" +  --argjson secondPid "$second_pid" +  --argjson screenshotCaptured "$screenshot_captured" +  --argjson publishRequested "$YNX_PUBLISH_RELEASE" +  '{
+jq -n \
+  --arg sourceCommit "$YNX_EXPECTED_SOURCE_SHA" \
+  --arg releaseTag "$YNX_RELEASE_TAG" \
+  --arg artifactName "$YNX_RELEASE_DMG_NAME" \
+  --arg artifactSha256 "$dmg_sha256" \
+  --argjson artifactBytes "$dmg_bytes" \
+  --arg version "$YNX_RELEASE_APP_VERSION" \
+  --arg build "$YNX_RELEASE_APP_BUILD" \
+  --arg architectures "$architectures" \
+  --arg minimumOS "$minimum_os" \
+  --arg teamIdentifier "$YNX_APPLE_TEAM_ID" \
+  --arg appNotaryId "$YNX_APP_NOTARY_ID" \
+  --arg dmgNotaryId "$YNX_DMG_NOTARY_ID" \
+  --argjson coldPid "$cold_pid" \
+  --argjson secondPid "$second_pid" \
+  --argjson screenshotCaptured "$screenshot_captured" \
+  --argjson publishRequested "$YNX_PUBLISH_RELEASE" \
+  '{
     schemaVersion: 1,
     product: "YNX Wallet macOS native",
     sourceCommit: $sourceCommit,
