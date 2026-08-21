@@ -1,0 +1,49 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-093",
+  "observedAt": "2026-08-21T01:05:34Z",
+  "result": "SOURCE_AND_ARTIFACT_CANDIDATE_READY",
+  "sourceCommit": "02cf44d17b50dfd0f24a9f022e472b7d5eb0c1d4",
+  "sourceIdentity": "02cf44d17b50",
+  "releaseIdentity": "ynx-chain-02cf44d17b50",
+  "startingCheckpoint": "d8fa126fb32f37dcc68ff4d32c9f3e21e2c6a1b0",
+  "defect": {
+    "publicRuntimeSource": "ea0e068becd9",
+    "observedBehavior": "canonical ynx1 recipients were rejected as invalid address",
+    "rootCause": "authoritative RPC mode accepted only legacy ynx_ aliases or 0x addresses before forwarding to the chain",
+    "publicFundingRequestVerified": false
+  },
+  "correction": {
+    "canonicalYNXAccepted": true,
+    "evmAccepted": true,
+    "canonicalizedBeforeAuthoritativeRPC": true,
+    "nativeAndEVMAliasShareRateLimitIdentity": true,
+    "legacyAliasPreserved": true,
+    "invalidCanonicalInputFailsClosed": true
+  },
+  "tests": {
+    "focusedGo": "PASS: go test ./internal/faucet ./internal/api ./cmd/ynx-faucetd",
+    "faucetCheck": "PASS: bash scripts/verify/faucet-check.sh",
+    "httpCanonicalRecipientCovered": true,
+    "aliasRateLimitBypassRejected": true,
+    "diffCheck": "PASS"
+  },
+  "artifact": {
+    "platform": "linux-amd64",
+    "staticallyLinked": true,
+    "bytes": 19087508,
+    "sha256": "114c17a2dd79d76f632e151fd940d40f88394b2a014424e2d6f56cc0f25c2fd3",
+    "buildTime": "2026-08-21T01:05:34Z",
+    "buildVCSDisabled": true,
+    "trimPath": true
+  },
+  "deploymentLeaseIssued": false,
+  "deployedPublic": false,
+  "publicFundingRequestVerified": false,
+  "explorerTransactionVerified": false,
+  "walletPlatformFaucetVerified": false,
+  "computerControlVerified": false,
+  "aggregatePublicVerified": false,
+  "truthBoundary": "This candidate proves source and artifact behavior locally. The current public runtime remains ea0e068becd9 and still rejects canonical ynx1 funding requests until a separate bounded deployment succeeds. No public funding transaction, Explorer visibility, Wallet UI or ComputerControl success is claimed."
+}
