@@ -1,0 +1,152 @@
+{
+  "schemaVersion": 3,
+  "evidenceId": "WALLET-AUTHORIZE-ECOSYSTEM-OWNER-RUNTIME-MATRIX-V3-20260821",
+  "owner": "wallet-protocol-router",
+  "auditedAt": "2026-08-21T07:29:08Z",
+  "sourceBaseline": "dd10350cd5d22de6622b7aae7304483f4c78e02f",
+  "baseMatrix": {
+    "path": "release/integration/wallet-authorize-ecosystem-source-runtime-audit-v2-20260821.json",
+    "commit": "dd10350cd5d22de6622b7aae7304483f4c78e02f",
+    "blob": "bc2286be144469d91028cf6939987c324c94523c",
+    "sha256": "eb208ad02c74cba275433bc19ab4b9f0df21ad6c4f1451141b3ff50de9cb7357"
+  },
+  "productionBoundary": {
+    "sshUsed": false,
+    "deploymentAttempted": false,
+    "productUiModified": false,
+    "urlAutomationUsedByProtocolOwner": false,
+    "macComputerControl": false,
+    "centralControlPlaneWritten": false
+  },
+  "remoteRecheck": {
+    "performedAt": "2026-08-21T07:29:08Z",
+    "registeredProductOwnerHeadChangesSinceBase": 1,
+    "changedProductIds": ["developer"],
+    "unchangedProductIds": ["calendar","card","creator-studio","dex","exchange","finance","pay","quant","shop","social","video"],
+    "nonProductRuntimeUpdates": ["wallet-web-companion"],
+    "otherEcosystemRuntimeUpdates": ["trust-center"]
+  },
+  "registeredProducts": [
+    {
+      "productId":"calendar","owner":"calendar","sourceCommit":"828120e6d81efaf874a930793660e185a394ba4f","ownerEvidenceCommit":"820fe3d3051aa1f5709fca179af811f1c6fb79b6",
+      "web":{"topLevelOrHandwrittenYnxwallet":false,"standardProvider":true,"metaMaskAddSwitch0x1917":true,"guest":"public-current-source-verified"},
+      "runtime":{"sourceBoundPublic":true,"realInstalledApproval":false,"callback":false,"productSessionV2":false,"computerControl":false},
+      "blocker":"Real installed provider and approve/reject callback are absent; Native Android and iOS still handwrite request-bearing custom-scheme URIs.",
+      "ownerHandoff":"Keep the current public Web provider/guest path; migrate Native to package-root encodeRequestDeepLink plus resolver-first launch, then provide installed approval/callback and Product Session evidence."
+    },
+    {
+      "productId":"card","owner":"card","sourceCommit":"fa2fb2308470ded24d64333b756718e7d04bfced","ownerEvidenceCommit":"27179fde538b2d839ec677f9feda26c724b8de4e",
+      "web":{"topLevelOrHandwrittenYnxwallet":false,"standardProvider":true,"metaMaskAddSwitch0x1917":true,"guest":"public-testnet-guest-verified"},
+      "runtime":{"sourceBoundPublic":true,"realInstalledApproval":false,"callback":false,"productSessionV2":false,"computerControl":false},
+      "blocker":"Public no-tab provider fallback is verified, but exact safe launcher v2 consumption, installed provider and approval/callback remain false.",
+      "ownerHandoff":"Consume exact safe launcher v2 without regressing the public no-tab fallback; then prove installed provider, approval/callback and Product Session lifecycle."
+    },
+    {
+      "productId":"creator-studio","owner":"creator-studio","sourceCommit":"650070ce5c5a7928425509f6e9e7da0aec31910d",
+      "web":{"topLevelOrHandwrittenYnxwallet":false,"standardProvider":true,"metaMaskAddSwitch0x1917":true,"guest":"unproven-current-source"},
+      "runtime":{"sourceBoundPublic":false,"realInstalledApproval":false,"callback":false,"productSessionV2":false,"computerControl":false},
+      "blocker":"The Owner source fixes top-level navigation but uses a local provider implementation; current-source guest/public and real-provider evidence are absent.",
+      "ownerHandoff":"Consume exact safe launcher v2/shared MetaMask adapter and prove guest remains usable when no provider or Product Session exists; then bind public runtime and approval/callback evidence."
+    },
+    {
+      "productId":"developer","owner":"developer","sourceCommit":"00ac76eb5fde57493231a75de90e2956880e82c5","sourceTree":"50d227801a7af3fdcb76b30208d4c9ab6a0056b0",
+      "supersedesSourceCommit":"32025b6706d1417d0d4fbf1a3c00771b5d569e75",
+      "web":{"topLevelOrHandwrittenYnxwallet":false,"standardProvider":true,"explicitProviderSelection":true,"metaMaskAddSwitch0x1917":true,"guest":"source-only-explicit-unsigned"},
+      "runtime":{"sourceBoundPublic":false,"realInstalledApproval":false,"callback":false,"productSessionV2":false,"computerControl":false},
+      "blocker":"New source correctly requires explicit provider selection, but the protected public Developer runtime is not bound to this commit and no real account approval exists.",
+      "ownerHandoff":"Release only through the protected exact-source transaction; preserve explicit selection and unsigned Guest mode, then prove public provider/account and separate Product Session callback evidence."
+    },
+    {
+      "productId":"dex","owner":"finance-suite-dex","sourceCommit":"94c851df22020664512436d024e482de3dc9437c",
+      "web":{"topLevelOrHandwrittenYnxwallet":false,"standardProvider":true,"metaMaskAddSwitch0x1917":true,"guest":"read-only-source-preserved"},
+      "runtime":{"sourceBoundPublic":false,"realInstalledApproval":false,"callback":false,"productSessionV2":false,"computerControl":false},
+      "blocker":"Protected device capability, public current-source runtime and real-provider lifecycle remain absent.",
+      "ownerHandoff":"Keep private authorization fail closed; publish the exact provider-only source and prove guest/read-only, real provider, callback and Product Session independently."
+    },
+    {
+      "productId":"exchange","owner":"finance-suite-exchange","sourceCommit":"77965f11ab41a76f71edc0c7e4f79545cc10331b",
+      "web":{"topLevelOrHandwrittenYnxwallet":false,"standardProvider":true,"metaMaskAddSwitch0x1917":false,"guest":"local-market-fallback-verified"},
+      "runtime":{"sourceBoundPublic":false,"realInstalledApproval":false,"callback":false,"productSessionV2":false,"computerControl":false},
+      "blocker":"Exchange requests accounts and checks 0x1917 but explicitly performs no switch or 4902 add/re-switch sequence.",
+      "ownerHandoff":"Use the shared MetaMask adapter or exact switch → 4902 add → re-switch → chain re-read flow; retain guest market fallback and then supply public real-provider evidence."
+    },
+    {
+      "productId":"finance","owner":"finance-suite-finance","sourceCommit":"9b5957ad58193b4a8bf3c2f33fd3ad2b90b213bb","ownerEvidenceCommit":"6c10a61084bd3a5b6aa984ec6aec7f6120df093c",
+      "web":{"topLevelOrHandwrittenYnxwallet":false,"standardProvider":true,"metaMaskAddSwitch0x1917":false,"guest":"public-reachable-but-source-unbound"},
+      "runtime":{"sourceBoundPublic":false,"realInstalledApproval":false,"callback":false,"productSessionV2":false,"computerControl":false},
+      "blocker":"Reachable public HTML is not source/build/rollback-bound to the Owner commit; Web explicitly performs no add/switch 0x1917 operation.",
+      "ownerHandoff":"Add shared MetaMask switch/add/re-switch flow and deploy with exact source/rollback binding; prove public guest remains usable plus real provider and Product Session evidence."
+    },
+    {
+      "productId":"pay","owner":"pay","sourceCommit":"c886697197fa55f3ddf019766dcc9829b4669007",
+      "web":{"topLevelOrHandwrittenYnxwallet":false,"standardProvider":"guest-only-no-web-authorization","metaMaskAddSwitch0x1917":true,"guest":"local-guest-verified"},
+      "runtime":{"sourceBoundPublic":false,"realInstalledApproval":false,"callback":false,"productSessionV2":false,"computerControl":false},
+      "blocker":"Web remains guest-only and Native has no bootable-device resolver, approve/reject callback, cold-start or public evidence.",
+      "ownerHandoff":"Keep Web guest-only; prove Native resolver-first request, approval/rejection callback and cold-start recovery, then bind public and Product Session runtime."
+    },
+    {
+      "productId":"quant","owner":"finance-suite-quant","sourceCommit":"5fd6794b2fa0431b4353b96b1ab9146d7b69a82c","ownerEvidenceCommit":"20e827822e4768f5c1d0f54668c36bc3a842ed4a",
+      "web":{"topLevelOrHandwrittenYnxwallet":false,"standardProvider":true,"metaMaskAddSwitch0x1917":true,"guest":"research-paper-source-preserved"},
+      "runtime":{"sourceBoundPublic":false,"realInstalledApproval":false,"callback":false,"productSessionV2":false,"computerControl":false},
+      "blocker":"Protected device, public current-source runtime and real account approval remain absent.",
+      "ownerHandoff":"Preserve Research/Paper guest mode and provider-only transport; prove protected device, public real provider, callback and Product Session separately."
+    },
+    {
+      "productId":"shop","owner":"shop","sourceCommit":"1752f12534166b6216e5c91c9ce87ab11caea072",
+      "web":{"topLevelOrHandwrittenYnxwallet":true,"standardProvider":false,"metaMaskAddSwitch0x1917":false,"guest":"public-shopping-available-private-actions-blocked"},
+      "runtime":{"sourceBoundPublic":"replacement-web-only","realInstalledApproval":false,"callback":false,"productSessionV2":false,"computerControl":false},
+      "blocker":"Shop Web still hand-encodes and top-level navigates ynxwallet://authorize and has no EIP-6963/EIP-1193 or MetaMask path; Android is retired.",
+      "ownerHandoff":"Migrate Web/PWA to exact safe launcher v2 plus shared MetaMask 0x1917 adapter, preserve public guest shopping, keep Android retired, then provide callback/Product Session evidence."
+    },
+    {
+      "productId":"social","owner":"social","sourceCommit":"76b67a05fe5274f388d29f552b8a0b1e35dfe4ed",
+      "web":{"topLevelOrHandwrittenYnxwallet":false,"standardProvider":false,"metaMaskAddSwitch0x1917":"not-applicable-non-evm-product","guest":"unproven-registered-web-origin"},
+      "runtime":{"sourceBoundPublic":false,"realInstalledApproval":false,"rejectObserved":true,"callback":false,"productSessionV2":false,"computerControl":false},
+      "blocker":"Social remains launcher v1 with no registered Web provider consumer; its proof harness still manually constructs the authorize URI and guest Web behavior is unproved.",
+      "ownerHandoff":"Consume safe launcher v2 for the registered Web origin, replace proof-harness URI construction with encodeRequestDeepLink, prove guest/no-provider and exact approval/callback lifecycle."
+    },
+    {
+      "productId":"video","owner":"video","sourceCommit":"1d4532ffca4eabdc15f2ec66f3d1143f67e159fa","ownerEvidenceCommit":"2e516baac89278a767397b29e72eed67a97e60db",
+      "web":{"topLevelOrHandwrittenYnxwallet":false,"standardProvider":true,"metaMaskAddSwitch0x1917":true,"guest":"deterministic-visible-local"},
+      "runtime":{"sourceBoundPublic":false,"realInstalledApproval":false,"callback":false,"productSessionV2":false,"computerControl":false},
+      "blocker":"Web provider evidence is deterministic/local and exact safe launcher v2 is not consumed; Android/iOS still manually construct authorize URIs.",
+      "ownerHandoff":"Consume exact safe launcher v2 on Web and package-root canonical builder/resolver on Native; prove public guest, real provider, approve/reject callback and Product Session."
+    }
+  ],
+  "nonProductRegistryClient": {
+    "productId":"wallet-web-companion","coreSourceCommit":"eed33085d4150f0febc85fc46ba1915316509aa5","webShellSourceCommit":"562ceb505469a6d0a6efd4d8761dfbd741916b50","publicEvidenceCommit":"f311b71605000cec1dbce30c6d9c67bea0d46bae","publicEvidenceTree":"d835a8e5c9a496b6eb3d1f0e0b66022039fe7153",
+    "runtime":{"publicStaticShell":true,"customSchemeTopLevelLinkAbsent":true,"guestFallbackVisible":true,"installedProvider":false,"accountApproval":false,"callback":false,"productSessionV2":false,"computerControl":false},
+    "boundary":"Public static shell does not promote any of the 12 registered product migrations or prove Wallet authority."
+  },
+  "otherEcosystem": [
+    {
+      "surfaceId":"trust-center","taskId":"P0-125","ownerSourceCommit":"4ebf27fd8308f31fe98a38497ff15b9f77f66cba","ownerSourceTree":"426618410b68b7dbdba062029018fac264ea0338","ownerEvidenceCommit":"969cb85b605793df3a84aa303bfe3fbdd22c65dd","ownerEvidenceTree":"1a981f04eb9026b0e6f2372900b1d8ed6014adbe","centralEvidenceCommit":"0d128abbc8a4a36ae272c6500798bcbced934647",
+      "source":{"topLevelOrHandwrittenYnxwallet":false,"eip6963":true,"eip1193":true,"ethRequestAccounts":true,"metaMaskAddSwitch0x1917":true,"standardWalletIndependentFromPrivateService":true},
+      "runtime":{"deployedPublic":true,"guestReadOnlyVerified":true,"guestWriteHttp":401,"privateRecordsExposed":false,"installedWallet":false,"accountApproval":false,"callback":false,"productSessionV2":false,"computerControl":false},
+      "ownerHandoff":"Preserve the source-bound guest-read-only public runtime and 401 write boundary; obtain real installed-provider approval/callback and Product Session evidence before any migration or aggregate promotion."
+    }
+  ],
+  "counts": {
+    "registeredProducts": 12,
+    "sourceBoundPublicProducts": 2,
+    "completeMetaMaskSourcePaths": 8,
+    "topLevelOrHandwrittenWebBlockers": 1,
+    "missingStandardProviderProducts": 2,
+    "guestUnprovenProducts": 2,
+    "productsConnected": 0,
+    "productsMigratedV2": 0
+  },
+  "truth": {
+    "matrixCurrent": true,
+    "trustCenterGuestPublic": true,
+    "trustCenterMigratedV2": false,
+    "macComputerControl": false,
+    "registryV3Public": false,
+    "productsConnected": 0,
+    "productsMigratedV2": 0,
+    "deployedPublicAggregate": false,
+    "integratedCentral": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

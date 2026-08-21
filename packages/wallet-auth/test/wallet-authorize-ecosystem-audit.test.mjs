@@ -7,6 +7,7 @@ import { verifyWalletAuthorizeConsumers } from "../scripts/verify-no-bare-wallet
 const root = fileURLToPath(new URL("../../..", import.meta.url));
 const audit = JSON.parse(await readFile(new URL("../../../release/integration/wallet-authorize-ecosystem-source-runtime-audit-20260821.json", import.meta.url), "utf8"));
 const auditV2 = JSON.parse(await readFile(new URL("../../../release/integration/wallet-authorize-ecosystem-source-runtime-audit-v2-20260821.json", import.meta.url), "utf8"));
+const auditV3 = JSON.parse(await readFile(new URL("../../../release/integration/wallet-authorize-ecosystem-owner-runtime-matrix-v3-20260821.json", import.meta.url), "utf8"));
 const registry = JSON.parse(await readFile(new URL("../product-session-registry.json", import.meta.url), "utf8"));
 
 test("ecosystem authorize audit covers every registered client exactly once", () => {
@@ -74,4 +75,41 @@ test("safe-launcher and MetaMask counts are derived from product rows", () => {
   for (const product of products.filter(({ sourceAudit }) => sourceAudit.standardWalletIndependentFromProductSession !== true)) {
     assert.match(product.blocker, /standard|provider|Product Session/i, product.productId);
   }
+});
+
+test("v3 owner/runtime matrix tracks all twelve products and preserves false authority gates", () => {
+  assert.deepEqual(auditV3.registeredProducts.map(({ productId }) => productId).sort(), auditV2.products.filter(({ nonProductRegistryClient }) => !nonProductRegistryClient).map(({ productId }) => productId).sort());
+  assert.equal(auditV3.counts.registeredProducts, 12);
+  assert.equal(auditV3.counts.productsConnected, 0);
+  assert.equal(auditV3.counts.productsMigratedV2, 0);
+  assert.equal(auditV3.truth.macComputerControl, false);
+  for (const product of auditV3.registeredProducts) {
+    assert.equal(product.runtime.realInstalledApproval, false, product.productId);
+    assert.equal(product.runtime.productSessionV2, false, product.productId);
+    assert.equal(product.runtime.computerControl, false, product.productId);
+    assert.ok(product.ownerHandoff.length > 80, product.productId);
+  }
+});
+
+test("v3 counts and precise owner blockers are derived without aggregate promotion", () => {
+  const products = auditV3.registeredProducts;
+  assert.equal(products.filter(({ runtime }) => runtime.sourceBoundPublic === true).length, auditV3.counts.sourceBoundPublicProducts);
+  assert.equal(products.filter(({ web }) => web.metaMaskAddSwitch0x1917 === true).length, auditV3.counts.completeMetaMaskSourcePaths);
+  assert.equal(products.filter(({ web }) => web.topLevelOrHandwrittenYnxwallet === true).length, auditV3.counts.topLevelOrHandwrittenWebBlockers);
+  assert.equal(products.filter(({ web }) => web.standardProvider === false).length, auditV3.counts.missingStandardProviderProducts);
+  assert.equal(products.filter(({ web }) => String(web.guest).startsWith("unproven")).length, auditV3.counts.guestUnprovenProducts);
+  for (const product of products.filter(({ web }) => web.metaMaskAddSwitch0x1917 === false)) assert.match(product.ownerHandoff, /MetaMask|switch|0x1917/i, product.productId);
+});
+
+test("Trust Center public guest evidence remains outside registered migration counts", () => {
+  const trust = auditV3.otherEcosystem.find(({ surfaceId }) => surfaceId === "trust-center");
+  assert.ok(trust);
+  assert.equal(trust.runtime.deployedPublic, true);
+  assert.equal(trust.runtime.guestReadOnlyVerified, true);
+  assert.equal(trust.runtime.guestWriteHttp, 401);
+  assert.equal(trust.runtime.installedWallet, false);
+  assert.equal(trust.runtime.accountApproval, false);
+  assert.equal(trust.runtime.productSessionV2, false);
+  assert.equal(trust.runtime.computerControl, false);
+  assert.equal(auditV3.truth.deployedPublicAggregate, false);
 });
