@@ -21,10 +21,46 @@
     "sandbox": "linux-bubblewrap-prlimit",
     "sandboxReady": true
   },
+  "runtimeHealthProbe": {
+    "observedAt": "2026-08-21T02:44:00Z",
+    "url": "https://developer.ynxweb4.com/runtime/health",
+    "httpStatus": 200,
+    "sandbox": "linux-bubblewrap-prlimit",
+    "sandboxReady": true,
+    "compilers": {
+      "c": true,
+      "cpp": true,
+      "javascript": true,
+      "typescript": true,
+      "python": true,
+      "go": true,
+      "rust": true,
+      "java": false,
+      "solidity": true
+    },
+    "languageServers": {
+      "cpp": true,
+      "typescript": true,
+      "python": true,
+      "go": true,
+      "rust": true,
+      "solidity": true,
+      "java": true
+    },
+    "workspacePersistence": "sqlite-wal",
+    "durability": "server-local recovery; production object-store migration required",
+    "authenticatedProfilesWithoutSession": {
+      "httpStatus": 401,
+      "code": "workspace_session_required"
+    },
+    "javaRuntimeReady": false,
+    "javaRuntimeBlocker": "The current protected candidate has Java language-service health but no javac/java compiler runtime. No signed workspace session was available to run an authenticated task, and installing Java requires a reviewed candidate-image/package-egress transaction."
+  },
   "verifiedGates": [
     "source archive dependency install",
     "64 Developer product tests",
-    "nine cloud runtimes and seven LSP routes",
+    "source-build gate for the reviewed nine-language image; current public runtime health is separately evidence-bound",
+    "current public runtime health: C/C++, JavaScript/TypeScript, Python, Go, Rust and Solidity compilers ready; Java compiler unavailable; seven language servers ready",
     "Chain tools",
     "Wallet readiness",
     "workspace and signed-session restart recovery",

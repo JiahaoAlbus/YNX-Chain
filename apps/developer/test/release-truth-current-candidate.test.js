@@ -27,6 +27,13 @@ test("current public candidate and Wallet v2 evidence do not promote missing lif
   assert.equal(truth.currentPublicCandidate.sourceCommit, "bc8a37bc6f2bcfcbe9415cb0e9da17a5294046a3");
   assert.equal(current.deploymentTransaction.result, "passed");
   assert.equal(current.truthBoundaries.externalBrowserVisible, false);
+  assert.equal(current.runtimeHealthProbe.httpStatus, 200);
+  assert.equal(current.runtimeHealthProbe.compilers.cpp, true);
+  assert.equal(current.runtimeHealthProbe.compilers.java, false);
+  assert.equal(current.runtimeHealthProbe.languageServers.java, true);
+  assert.equal(current.runtimeHealthProbe.authenticatedProfilesWithoutSession.httpStatus, 401);
+  assert.equal(current.runtimeHealthProbe.authenticatedProfilesWithoutSession.code, "workspace_session_required");
+  assert.equal(current.runtimeHealthProbe.javaRuntimeReady, false);
   assert.equal(localMac.artifact.sourceCommit, "e01b9e4a8cc00be2e590e86e8f043fd746696adf");
   assert.equal(localMac.verification.keychainStorageRoundTripAndCleanup, true);
   assert.equal(localMac.verification.nativeWalletAvailability.ynxWalletInstalled, false);

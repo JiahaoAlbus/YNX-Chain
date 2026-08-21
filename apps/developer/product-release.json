@@ -142,7 +142,7 @@
         "service": "ynx-code-candidate.service",
         "upstream": "127.0.0.1:18113",
         "rollbackService": "ynx-developer-web.service on 127.0.0.1:18111",
-        "verified": "nine runtimes, seven LSP routes, 12 concurrent tenants, tenant isolation, hosted qwen3:4b Planner, disconnected-request cancellation and fail-closed Wallet/BFT gate"
+        "verified": "Source-build gates cover the reviewed nine-language image. Direct current public runtime health confirms C/C++, JavaScript/TypeScript, Python, Go, Rust and Solidity compilers plus seven language servers; Java compilation is currently unavailable, while Java LSP reports ready. It also records 12 concurrent tenants, tenant isolation, hosted qwen3:4b Planner, disconnected-request cancellation and the fail-closed Wallet/BFT gate."
       }
     },
     "apiStudio": {

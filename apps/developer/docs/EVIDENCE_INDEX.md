@@ -17,6 +17,15 @@ delivered 168157529 bytes, whose SHA-256 is
 hosted artifact integrity only; external browser visibility, production signing,
 notarization and store release remain false.
 
+The direct public runtime probe on 2026-08-21 reports a ready Bubblewrap sandbox
+and C/C++, JavaScript/TypeScript, Python, Go, Rust and Solidity compilers. It
+also reports all seven language-service routes, including Java, but `java` is
+explicitly `false` as a compiler. An unauthenticated runtime-profile request
+returns `401 workspace_session_required`. The exact probe and blocker are in
+`evidence/public/current-public-candidate-bc8a37bc6f2b.json`; Java execution is
+not claimed until a reviewed candidate-image/package-egress transaction installs
+the JDK and a signed workspace can run it.
+
 The current cross-product contract and gaps are maintained in
 `release/integration/developer-contract.json`,
 `docs/integration/INTEGRATION_HANDOFF.md`,
