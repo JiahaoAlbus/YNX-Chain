@@ -19,10 +19,10 @@
     "centralControlPlaneWritten": false
   },
   "remoteRecheck": {
-    "performedAt": "2026-08-21T07:48:32Z",
-    "registeredProductOwnerHeadChangesSinceBase": 2,
-    "changedProductIds": ["developer","shop"],
-    "unchangedProductIds": ["calendar","card","creator-studio","dex","exchange","finance","pay","quant","social","video"],
+    "performedAt": "2026-08-21T08:15:40Z",
+    "registeredProductOwnerHeadChangesSinceBase": 3,
+    "changedProductIds": ["developer","shop","social"],
+    "unchangedProductIds": ["calendar","card","creator-studio","dex","exchange","finance","pay","quant","video"],
     "nonProductRuntimeUpdates": ["wallet-web-companion"],
     "otherEcosystemRuntimeUpdates": ["trust-center"]
   },
@@ -100,11 +100,12 @@
       "ownerHandoff":"Preserve the deployed EIP-6963/EIP-1193 explicit YNX/MetaMask selection, exact add/switch 0x1917 flow, zero-tab no-provider fallback and guest catalog; separately provide real installed approval/callback and Product Session lifecycle evidence before migration promotion."
     },
     {
-      "productId":"social","owner":"social","sourceCommit":"76b67a05fe5274f388d29f552b8a0b1e35dfe4ed",
-      "web":{"topLevelOrHandwrittenYnxwallet":false,"standardProvider":false,"metaMaskAddSwitch0x1917":"not-applicable-non-evm-product","guest":"unproven-registered-web-origin"},
-      "runtime":{"sourceBoundPublic":false,"realInstalledApproval":false,"rejectObserved":true,"callback":false,"productSessionV2":false,"computerControl":false},
-      "blocker":"Social remains launcher v1 with no registered Web provider consumer; its proof harness still manually constructs the authorize URI and guest Web behavior is unproved.",
-      "ownerHandoff":"Consume safe launcher v2 for the registered Web origin, replace proof-harness URI construction with encodeRequestDeepLink, prove guest/no-provider and exact approval/callback lifecycle."
+      "productId":"social","owner":"social","sourceCommit":"22c26bcb7a8d618cb8e38b30940b1c07bf4237c8","sourceTree":"15a12fa4ba276f84f908f30c79378a125217bd56","walletImplementationCommit":"6a42adb593c6ffa37398f2ee3cafa3c44d111f38","walletImplementationTree":"f9e38e62bbb242840d3bc525ae145c14575eb46c","centralEvidenceCommit":"766679d37816c1c4308fc192021ec15d42a3a72c","centralEvidencePath":"release/integration/p0-wallet-connectivity/social-web-standard-wallet-public-evidence-20260821.json","centralEvidenceSha256":"808a68e3e3821e3afb2785880eab30cb2dc25c697e89086aa11ec4b7c2eaf1f4",
+      "supersedesSourceCommit":"76b67a05fe5274f388d29f552b8a0b1e35dfe4ed",
+      "web":{"topLevelOrHandwrittenYnxwallet":false,"standardProvider":true,"explicitProviderSelection":true,"metaMaskAddSwitch0x1917":"not-evidenced-non-evm-social-flow","guest":"public-english-no-provider-verified","officialInstallActions":true},
+      "runtime":{"sourceBoundPublic":true,"deploymentId":"dpl_2sei8CpmoN1Gi5YKnc6FdvNRyXGy","urlPreserved":true,"topLevelTabDelta":0,"consoleErrors":0,"realInjectedProvider":false,"realInstalledApproval":false,"signature":false,"transaction":false,"callback":false,"productSessionV2":false,"computerControl":false},
+      "blocker":"Public English Guest and both missing-provider fallbacks are source-bound with zero navigation, but real injected provider, installed Wallet, account approval, signature, transaction, callback, Product Session v2 and Computer Control remain false.",
+      "ownerHandoff":"Preserve the deployed EIP-6963/EIP-1193 explicit YNX/MetaMask chooser, on-page official install fallbacks, URL stability and English Guest mode; separately prove a real injected provider, approve/reject callback and Product Session lifecycle before migration promotion."
     },
     {
       "productId":"video","owner":"video","sourceCommit":"1d4532ffca4eabdc15f2ec66f3d1143f67e159fa","ownerEvidenceCommit":"2e516baac89278a767397b29e72eed67a97e60db",
@@ -129,11 +130,11 @@
   ],
   "counts": {
     "registeredProducts": 12,
-    "sourceBoundPublicProducts": 3,
+    "sourceBoundPublicProducts": 4,
     "completeMetaMaskSourcePaths": 9,
     "topLevelOrHandwrittenWebBlockers": 0,
-    "missingStandardProviderProducts": 1,
-    "guestUnprovenProducts": 2,
+    "missingStandardProviderProducts": 0,
+    "guestUnprovenProducts": 1,
     "productsConnected": 0,
     "productsMigratedV2": 0
   },
