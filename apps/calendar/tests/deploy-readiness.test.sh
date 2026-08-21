@@ -50,5 +50,7 @@ grep -Fq 'CALENDAR_TRANSACTION_COMMITTED=false' "$ROOT/scripts/deploy-public-cal
 grep -Fq 'CALENDAR_BACKUP_COMPLETE=false' "$ROOT/scripts/deploy-public-calendar.sh"
 grep -Fq 'if [[ "$CALENDAR_BACKUP_COMPLETE" == true ]]; then' "$ROOT/scripts/deploy-public-calendar.sh"
 grep -Fq 'if [[ "$CALENDAR_TRANSACTION_COMMITTED" == false ]]; then calendar_rollback' "$ROOT/scripts/deploy-public-calendar.sh"
+grep -Fq 'trap calendar_abort_signal INT TERM' "$ROOT/scripts/deploy-public-calendar.sh"
+grep -Fq 'calendar_service start "$CALENDAR_SERVICE" || return' "$ROOT/scripts/deploy-public-calendar.sh"
 
 echo "calendar deployment readiness tests passed"

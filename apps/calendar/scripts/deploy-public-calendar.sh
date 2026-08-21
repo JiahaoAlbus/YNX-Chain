@@ -89,16 +89,16 @@ calendar_deploy_main() {
     CALENDAR_ROLLBACK_STARTED=true
     calendar_service stop "$CALENDAR_SERVICE" || true
     if [[ "$CALENDAR_BACKUP_COMPLETE" == true ]]; then
-      install -o root -g root -m 0755 "$CALENDAR_BACKUP/ynx-calendard" "$CALENDAR_BINARY"
-      install -o ynx -g ynx -m 0600 "$CALENDAR_BACKUP/state.json" "$CALENDAR_STATE"
-      install -o ynx -g ynx -m 0600 "$CALENDAR_BACKUP/state.json.hmac-key" "$CALENDAR_STATE_KEY"
-      [[ "$(calendar_sha "$CALENDAR_BINARY")" == "$CALENDAR_EXPECTED_OLD_BINARY_SHA" ]]
-      [[ "$(calendar_sha "$CALENDAR_STATE")" == "$CALENDAR_EXPECTED_OLD_STATE_SHA" ]]
-      [[ "$(calendar_sha "$CALENDAR_STATE_KEY")" == "$CALENDAR_EXPECTED_OLD_KEY_SHA" ]]
+      install -o root -g root -m 0755 "$CALENDAR_BACKUP/ynx-calendard" "$CALENDAR_BINARY" || return
+      install -o ynx -g ynx -m 0600 "$CALENDAR_BACKUP/state.json" "$CALENDAR_STATE" || return
+      install -o ynx -g ynx -m 0600 "$CALENDAR_BACKUP/state.json.hmac-key" "$CALENDAR_STATE_KEY" || return
+      [[ "$(calendar_sha "$CALENDAR_BINARY")" == "$CALENDAR_EXPECTED_OLD_BINARY_SHA" ]] || return
+      [[ "$(calendar_sha "$CALENDAR_STATE")" == "$CALENDAR_EXPECTED_OLD_STATE_SHA" ]] || return
+      [[ "$(calendar_sha "$CALENDAR_STATE_KEY")" == "$CALENDAR_EXPECTED_OLD_KEY_SHA" ]] || return
     fi
     calendar_service reset-failed "$CALENDAR_SERVICE" || true
-    calendar_service start "$CALENDAR_SERVICE"
-    calendar_wait_for_source "$CALENDAR_EXPECTED_OLD_SOURCE" "$CALENDAR_HEALTH_FILE" "${CALENDAR_READY_ATTEMPTS:-60}" "${CALENDAR_READY_DELAY:-1}"
+    calendar_service start "$CALENDAR_SERVICE" || return
+    calendar_wait_for_source "$CALENDAR_EXPECTED_OLD_SOURCE" "$CALENDAR_HEALTH_FILE" "${CALENDAR_READY_ATTEMPTS:-60}" "${CALENDAR_READY_DELAY:-1}" || return
   }
 
   calendar_finish() {
@@ -107,7 +107,15 @@ calendar_deploy_main() {
     rm -f "$CALENDAR_HEALTH_FILE" "$CALENDAR_HEALTH_FILE.tmp"
     return "$status"
   }
-  trap calendar_finish EXIT INT TERM
+  calendar_abort_signal() {
+    trap - EXIT INT TERM
+    local status=130
+    calendar_rollback || status=$?
+    rm -f "$CALENDAR_HEALTH_FILE" "$CALENDAR_HEALTH_FILE.tmp"
+    exit "$status"
+  }
+  trap calendar_finish EXIT
+  trap calendar_abort_signal INT TERM
 
   install -d -o root -g root -m 0700 "$CALENDAR_BACKUP"
   calendar_service stop "$CALENDAR_SERVICE"
