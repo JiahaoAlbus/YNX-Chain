@@ -341,7 +341,7 @@
     "status": "ACTIVE_SINGLE_USE",
     "acquiredAt": "2026-08-21T07:34:18Z",
     "expiresAt": "2026-08-21T08:34:18Z",
-    "sourceCommit": "63f46893b5ec2c60cda40a2e0b4576ee309bc2e5",
+    "sourceCommit": "f41cbf88b528d30e709bf07dc504c174a7e83073",
     "runtimeHost": "43.153.202.237",
     "currentRuntime": "/opt/ynx-shop/releases/88c0f3a5",
     "rollbackTarget": "/opt/ynx-shop/releases/88c0f3a5",

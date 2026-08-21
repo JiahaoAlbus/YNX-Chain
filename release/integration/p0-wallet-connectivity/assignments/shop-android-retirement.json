@@ -18,7 +18,7 @@
   ],
   "webPwaWalletMigration": {
     "taskId": "P0-126",
-    "sourceCommit": "63f46893b5ec2c60cda40a2e0b4576ee309bc2e5",
+    "sourceCommit": "f41cbf88b528d30e709bf07dc504c174a7e83073",
     "standardConnection": "EIP-6963/EIP-1193",
     "wallets": ["YNX Wallet", "MetaMask"],
     "evmChainId": "0x1917",
