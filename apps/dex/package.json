@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite --host 127.0.0.1",
     "build": "tsc --noEmit && vite build",
+    "verify:canonical-authorize": "node scripts/verify-canonical-authorize.mjs",
     "test": "vitest run",
     "test:e2e": "npm run build && playwright test",
     "package:pwa": "npm run build && node ../../scripts/dex/package-web.mjs",
@@ -15,7 +16,7 @@
     "@noble/curves": "^2.2.0",
     "@noble/hashes": "^2.2.0",
     "@ynx-chain/dex-sdk": "file:../../sdk/dex",
-    "@ynx-chain/wallet-auth": "file:vendor/ynx-chain-wallet-auth-1.0.0.tgz",
+    "@ynx-chain/wallet-auth": "file:vendor/ynx-chain-wallet-auth-1.0.0-safe-authorize-p0.0.tgz",
     "react": "^19.1.1",
     "react-dom": "^19.1.1"
   },

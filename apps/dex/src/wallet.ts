@@ -1,5 +1,6 @@
-import {createProductWalletConnection,PRODUCT_SESSION_PUBLIC_GATEWAY_ORIGIN,type DexActionName,type DexActionPayload,type DexActionResponse,type DexQuote,type WalletConnectionCoordinator} from '@ynx-chain/wallet-auth';
-import {dexProductSessionRegistry} from './product-session-registry';
+import {canonicalJSON,launchWebAuthorization,parseAuthorizationCallbackURL,parseAuthorizationRequest,type AuthorizationLaunchResult,type AuthorizationRequest} from '@ynx-chain/wallet-auth';
+import type {DexActionName,DexActionPayload,DexActionResponse,DexQuote} from '@ynx-chain/wallet-auth';
+import {dexCanonicalAuthorizationRegistry} from './product-session-registry';
 
 export const DEX_WALLET_CALLBACK='https://dex.ynxweb4.com/wallet-auth/callback';
 export const DEX_ACTION_CALLBACK='https://dex.ynxweb4.com/wallet-action/callback';
@@ -9,20 +10,18 @@ export const YNX_EVM_CHAIN=Object.freeze({chainId:'0x1917',chainName:'YNX Testne
 
 type Eip1193Provider={request(input:{method:string;params?:readonly unknown[]|Record<string,unknown>}):Promise<unknown>};
 export type DexWalletSession=Readonly<{session:Readonly<{account:string;expiresAt:string}>}>;
-export type DexPrivateCapabilities=Readonly<{
-  device:Readonly<{id:string;key:string;sign:(input:Readonly<{algorithm:'p256-sha256';deviceKey:string;payload:string}>)=>string|Promise<string>}>;
-  storage:Readonly<{securityLevel:'hardware-backed'|'os-protected';get:(key:string)=>string|Promise<string|null>|null;set:(key:string,value:string)=>void|Promise<void>;remove:(key:string)=>void|Promise<void>}>;
-  walletInstalled:()=>boolean|Promise<boolean>;schemeRegistered:()=>boolean|Promise<boolean>;
-  openWallet:(input:Readonly<{url:string}>)=>Readonly<{opened:true}|{opened:false;code:string}>|Promise<Readonly<{opened:true}|{opened:false;code:string}>>;
-}>;
-let privateConnection:WalletConnectionCoordinator|null=null;
+export type DexPrivateCapabilities=Readonly<{device:Readonly<{key:string}>;storage:Readonly<{securityLevel:'hardware-backed'|'os-protected';get:(key:string)=>string|Promise<string|null>|null;set:(key:string,value:string)=>void|Promise<void>;remove:(key:string)=>void|Promise<void>}>;document?:Document;window?:Window}>;
+export type DexAuthorizationLaunch=Readonly<{status:AuthorizationLaunchResult['status'];fallbackActions:AuthorizationLaunchResult['fallbackActions']}>;
+let privateCapabilities:DexPrivateCapabilities|null=null;
+const CANONICAL_AUTHORIZATION_PENDING_KEY='ynx.dex.wallet-authorize.v1.pending';
 
 export class WalletRequestError extends Error{constructor(public code:string,message:string){super(message)}}
-function unavailable(){return new WalletRequestError('PRODUCT_SESSION_UNAVAILABLE','DEX Product Session v2 requires a platform-proven protected device signer and storage adapter. Read-only DEX and Standard EIP-1193 Wallet connection remain available.');}
+function unavailable(){return new WalletRequestError('PRODUCT_SESSION_UNAVAILABLE','DEX canonical Wallet authorization requires a platform-proven protected device key and storage adapter. Read-only DEX and Standard EIP-1193 Wallet connection remain available.');}
 function privateError(error:unknown){return new WalletRequestError('PRIVATE_SERVICE_DEGRADED',error instanceof Error?error.message:String(error));}
-function requirePrivateConnection(){if(!privateConnection)throw unavailable();return privateConnection;}
+function requireCapabilities(){if(!privateCapabilities)throw unavailable();return privateCapabilities;}
+function nonce(){const bytes=new Uint8Array(32);crypto.getRandomValues(bytes);return Array.from(bytes,value=>value.toString(16).padStart(2,'0')).join('')}
 
-/** Standard EIP-1193 is separate from optional Product Session v2. */
+/** Standard EIP-1193/MetaMask stays independent of YNX Wallet authorization. */
 export async function connectMetaMask(provider:Eip1193Provider|undefined=(globalThis as typeof globalThis&{ethereum?:Eip1193Provider}).ethereum):Promise<string>{
   if(!provider)throw new WalletRequestError('WALLET_NOT_FOUND','MetaMask was not detected. Download YNX Wallet or install MetaMask, then retry.');
   try{await provider.request({method:'wallet_switchEthereumChain',params:[{chainId:YNX_EVM_CHAIN.chainId}]});}catch(reason){if((reason as {code?:number})?.code!==4902)throw reason;await provider.request({method:'wallet_addEthereumChain',params:[YNX_EVM_CHAIN]});await provider.request({method:'wallet_switchEthereumChain',params:[{chainId:YNX_EVM_CHAIN.chainId}]});}
@@ -31,19 +30,28 @@ export async function connectMetaMask(provider:Eip1193Provider|undefined=(global
   return accounts[0].toLowerCase();
 }
 
-/** Root-factory-only configuration; endpoint, callback, origin and session injection are absent. */
+/** The host may supply only a verified device key and protected storage; no endpoint, callback or origin injection exists. */
 export function configureDexPrivateConnection(capabilities:DexPrivateCapabilities){
-  const {device}=capabilities;
-  privateConnection=createProductWalletConnection({registry:dexProductSessionRegistry,productId:'dex',platform:'web',walletInstalled:capabilities.walletInstalled,schemeRegistered:capabilities.schemeRegistered,gatewayTimeoutMs:10_000,storage:capabilities.storage,device:{id:device.id,key:device.key,sign:({algorithm,deviceKey,payload}:{algorithm:'p256-sha256';deviceKey:string;payload:string})=>{if(algorithm!=='p256-sha256'||deviceKey!==device.key)throw privateError('The Wallet SDK requested an unexpected DEX device signature.');return device.sign({algorithm,deviceKey,payload});},scopes:['dex:account','dex:orders','dex:trade'],purpose:'Connect YNX DEX private services through the approved Wallet Product Session.'},scope:globalThis,discoveryWaitMs:250,openWallet:capabilities.openWallet,openTimeoutMs:10_000});
-  return privateConnection;
+  if(!/^[A-Za-z0-9_-]{44}$/.test(capabilities.device.key))throw new WalletRequestError('INVALID_DEVICE_KEY','DEX requires a valid P-256 public key from the protected platform adapter.');
+  privateCapabilities=capabilities;
 }
-function active(result:Readonly<Record<string,unknown>>):DexWalletSession|null{const state=result.sessionState;if(!state||typeof state!=='object'||(state as {status?:unknown}).status!=='connected')return null;const session=(state as {session?:unknown}).session;if(!session||typeof session!=='object'||typeof (session as {account?:unknown}).account!=='string'||typeof (session as {expiresAt?:unknown}).expiresAt!=='string')return null;return {session:{account:(session as {account:string}).account,expiresAt:(session as {expiresAt:string}).expiresAt}};}
+async function pending():Promise<AuthorizationRequest|null>{
+  const raw=await requireCapabilities().storage.get(CANONICAL_AUTHORIZATION_PENDING_KEY);if(raw===null||raw===undefined)return null;
+  try{return parseAuthorizationRequest(raw,{registry:dexCanonicalAuthorizationRegistry});}catch(error){await requireCapabilities().storage.remove(CANONICAL_AUTHORIZATION_PENDING_KEY);throw privateError(error)}
+}
+async function request(){
+  const now=new Date(),expiresAt=new Date(now.getTime()+5*60_000),capabilities=requireCapabilities();
+  return parseAuthorizationRequest({version:'2',nonce:nonce(),chainId:'ynx_6423-1',requestingProduct:'dex',productClientId:'ynx-dex-v1',bundleId:'com.ynxweb4.dex',productDeviceAlgorithm:'p256-sha256',productDeviceKey:capabilities.device.key,origin:'https://dex.ynxweb4.com',callback:DEX_WALLET_CALLBACK,scopes:['dex:account','dex:orders','dex:trade'],purpose:'Authorize YNX DEX on YNX Testnet. This does not approve a swap, liquidity change, token approval, Product Session, or chain transaction.',issuedAt:now.toISOString(),expiresAt:expiresAt.toISOString()},{now,registry:dexCanonicalAuthorizationRegistry});
+}
 
-// Existing UI calls remain adapter entrypoints. No verified protected platform
-// capability means they fail closed instead of using legacy v1 routes.
-export async function beginWalletAuthorization(){try{const result=await requirePrivateConnection().beginYNX();const url=(result as {url?:unknown}).url;if(typeof url!=='string')throw unavailable();return {url};}catch(error){throw error instanceof WalletRequestError?error:privateError(error)}}
-export async function completeWalletCallback(url:string){try{return active(await requirePrivateConnection().handleReturn(url));}catch(error){throw error instanceof WalletRequestError?error:privateError(error)}}
-export async function restoreWalletSession(){try{return active(await requirePrivateConnection().restore(true));}catch(error){if(error instanceof WalletRequestError&&error.code==='PRODUCT_SESSION_UNAVAILABLE')return null;throw privateError(error)}}
+/** Uses the accepted controlled-frame launcher; it never changes the top-level DEX page. */
+export async function beginWalletAuthorization():Promise<DexAuthorizationLaunch>{
+  try{const value=await request(),capabilities=requireCapabilities();await capabilities.storage.set(CANONICAL_AUTHORIZATION_PENDING_KEY,canonicalJSON(value));const launch=await launchWebAuthorization(value,{document:capabilities.document,window:capabilities.window,timeoutMs:1_500});if(launch.status==='unsupported')await capabilities.storage.remove(CANONICAL_AUTHORIZATION_PENDING_KEY);return {status:launch.status,fallbackActions:launch.fallbackActions};}catch(error){throw error instanceof WalletRequestError?error:privateError(error)}
+}
+export async function completeWalletCallback(url:string):Promise<DexWalletSession|null>{
+  try{const value=await pending();if(!value)return null;const response=parseAuthorizationCallbackURL(url,value);await requireCapabilities().storage.remove(CANONICAL_AUTHORIZATION_PENDING_KEY);if('decision'in response)return null;return {session:{account:response.account,expiresAt:response.expiresAt}};}catch(error){throw error instanceof WalletRequestError?error:privateError(error)}
+}
+export async function restoreWalletSession():Promise<DexWalletSession|null>{if(!privateCapabilities)return null;await pending();return null;}
 export async function beginDexAction(_input:{action:DexActionName;payload:DexActionPayload;quote:DexQuote;accountNonce:number}):Promise<{url:string}>{throw unavailable();}
 export function consumeDexActionCallback(_url:string):DexActionResponse|null{return null;}
-export function dexProductSessionGatewayOrigin(){return PRODUCT_SESSION_PUBLIC_GATEWAY_ORIGIN;}
+export function dexProductSessionGatewayOrigin(){return null;}

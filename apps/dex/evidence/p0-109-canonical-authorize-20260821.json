@@ -1,0 +1,12 @@
+{
+  "schemaVersion":1,
+  "checkpoint":"P0-109",
+  "classification":"SOURCE_BUILD_CHECKPOINT_VISIBLE_EVIDENCE_BLOCKED",
+  "baseline":"aa5d4e5b5999a1dee28ce41adcc509abe96f95e9",
+  "dependency":{"safeWalletAuthorizeLauncher":"4679de8e8d0675e2013254c92ff1935191f87c21","sourceTree":"dd6df66c3a7c8c4b53fbdbdb18b52a3284b7a690","vendorTarSha256":"dd80cf3d8fda3b35b89ddae6f3848dc420358b9c10d1879ed33a33f567585acb"},
+  "controls":{"launcher":"launchWebAuthorization uses a controlled frame; DEX has no top-level custom-scheme navigation.","request":"v2 request is persisted before launch and callback parsing binds to that exact pending request.","metamask":"EIP-1193-only and independent from YNX authorization.","execution":"Swap, liquidity, approval and action bridges remain fail closed; no transaction, approval or Product Session is asserted."},
+  "verification":{"unitTests":"PASS 24/24","canonicalScan":"PASS 13 source files","productionBuild":"PASS","e2e":"BLOCKED: 4/8 failed because authoritative snapshot proxy 127.0.0.1:6436 refused connections; no visible claim"},
+  "artifacts":{"webBundle":"dist/assets/index-DsEMbrW-.js"},
+  "truth":{"walletApprove":false,"callback":false,"productSession":false,"swap":false,"liquidity":false,"tokenApproval":false,"publicVerified":false,"computerControl":false,"browserVisible":false,"deployedPublic":false,"downloadHosted":false,"productionSigned":false},
+  "remainingBlocker":"A product-owned protected web device/storage adapter plus an available authoritative snapshot service and compatible Wallet are required for browser request/approve/reject/callback/timeout/retry proof."
+}

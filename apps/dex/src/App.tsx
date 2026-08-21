@@ -303,8 +303,13 @@ export default function App() {
     setWalletBusy(true);
     setWalletError("");
     try {
-      const { url } = await beginWalletAuthorization();
-      location.href = url;
+      const launch = await beginWalletAuthorization();
+      if (launch.status === "opened")
+        setWalletError("YNX Wallet launch was requested in a controlled frame. Return here after review; no approval, Product Session, swap, liquidity change or token approval is implied.");
+      else if (launch.status === "timeout")
+        setWalletError("YNX Wallet did not hide this page before timeout. DEX remains open; use the official download or MetaMask options below.");
+      else
+        setWalletError("YNX Wallet is unavailable in this browser. DEX remains open; use the official download or MetaMask options below.");
     } catch (reason) {
       setWalletError(
         reason instanceof Error ? reason.message : "Unable to open YNX Wallet.",
@@ -342,16 +347,8 @@ export default function App() {
     }
     setTransactionState({ busy: true, error: "", receipt: "" });
     try {
-      const accountNonce = await loadAccountNonce(
-          walletSession.session.account,
-        ),
-        { url } = await beginDexAction({
-          action,
-          payload,
-          quote,
-          accountNonce,
-        });
-      location.href = url;
+      const accountNonce = await loadAccountNonce(walletSession.session.account);
+      await beginDexAction({ action, payload, quote, accountNonce });
     } catch (reason) {
       setTransactionState({
         busy: false,

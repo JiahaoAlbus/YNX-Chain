@@ -83,7 +83,7 @@ describe("YNX DEX consensus product shell", () => {
       screen.getByRole("link", { name: "Download YNX Wallet" }),
     ).toHaveAttribute(
       "href",
-      "https://www.ynxweb4.com/downloads/ynx-wallet-1.0.1-testnet-preview-dc31c9a8-test-signed.apk",
+      "https://www.ynxweb4.com/dapp/download",
     );
     expect(
       screen.getByRole("button", { name: "Connect MetaMask" }),
