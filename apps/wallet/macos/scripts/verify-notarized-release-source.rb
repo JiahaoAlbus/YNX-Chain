@@ -5,10 +5,12 @@ require "yaml"
 root = File.expand_path("../../../../", __dir__)
 workflow_path = File.join(root, ".github/workflows/wallet-macos-notarized-release.yml")
 probe_path = File.join(root, "apps/wallet/macos/scripts/verify-notarized-dmg.sh")
+cleanup_path = File.join(root, "apps/wallet/macos/scripts/cleanup-signing-material.sh")
 
 YAML.load_file(workflow_path)
 workflow = File.read(workflow_path)
 probe = File.read(probe_path)
+cleanup = File.read(cleanup_path)
 
 uses = workflow.scan(/^\s*-\s+uses:\s+([^\s#]+)/).flatten
 mutable = uses.reject { |use| use.start_with?("./") || use.match?(/@[0-9a-f]{40}$/) }
@@ -26,15 +28,25 @@ workflow_requirements = [
   "gatekeeper-app.txt",
   "gatekeeper-dmg.txt",
   "YNX_ORIGINAL_KEYCHAINS_PATH",
+  "YNX_DEVELOPER_ID_P12_PATH",
   "security list-keychains -d user > \"$ORIGINAL_KEYCHAINS\"",
-  "original_keychains=()",
-  "security list-keychains -d user -s \"${original_keychains[@]}\"",
+  "bash apps/wallet/macos/scripts/cleanup-signing-material.sh",
   "hdiutil create",
   "DMG-SHA256SUMS",
   "DMG-BYTES",
   "verify-notarized-dmg.sh",
   "native-dmg-release-manifest.json",
   "github-release-publication-receipt.json"
+]
+
+cleanup_requirements = [
+  "set -euo pipefail",
+  "original_keychains=()",
+  "security list-keychains -d user -s \"${original_keychains[@]}\"",
+  "security delete-keychain \"$YNX_SIGNING_KEYCHAIN\"",
+  "rm -f \"$YNX_NOTARY_KEY_PATH\"",
+  "rm -f \"$YNX_DEVELOPER_ID_P12_PATH\"",
+  "rm -f \"$YNX_ORIGINAL_KEYCHAINS_PATH\""
 ]
 
 probe_requirements = [
@@ -63,7 +75,9 @@ probe_requirements = [
 
 missing_workflow = workflow_requirements.reject { |value| workflow.include?(value) }
 missing_probe = probe_requirements.reject { |value| probe.include?(value) }
+missing_cleanup = cleanup_requirements.reject { |value| cleanup.include?(value) }
 abort "missing notarized workflow semantics: #{missing_workflow.join(", ")}" unless missing_workflow.empty?
 abort "missing final DMG probe semantics: #{missing_probe.join(", ")}" unless missing_probe.empty?
+abort "missing signing cleanup semantics: #{missing_cleanup.join(", ")}" unless missing_cleanup.empty?
 
 puts "wallet macOS notarized native DMG source contract verified"

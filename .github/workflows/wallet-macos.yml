@@ -29,6 +29,7 @@ jobs:
       - name: Verify notarized native DMG release source contract
         run: |
           bash -n apps/wallet/macos/scripts/verify-notarized-dmg.sh
+          bash -n apps/wallet/macos/scripts/cleanup-signing-material.sh
           ruby apps/wallet/macos/scripts/verify-notarized-release-source.rb
       - name: Test native callback and recovery boundaries
         run: swift test --package-path apps/wallet/macos
@@ -85,6 +86,38 @@ jobs:
           shasum -a 256 "$PROOF/YNX-Wallet-macOS-ad-hoc.zip" > "$PROOF/SHA256SUMS"
           wc -c "$PROOF/YNX-Wallet-macOS-ad-hoc.zip" > "$PROOF/BYTES"
           printf '%s\n' "$APP" > "$PROOF/installed-app-path.txt"
+      - name: Verify signing Keychain cleanup runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          PROOF="$GITHUB_WORKSPACE/apps/wallet/proof/ci-macos"
+          ORIGINAL="$RUNNER_TEMP/ynx-wallet-keychains-before-probe.txt"
+          EXPECTED="$RUNNER_TEMP/ynx-wallet-keychains-expected.txt"
+          RESTORED="$RUNNER_TEMP/ynx-wallet-keychains-after-probe.txt"
+          PROBE_KEYCHAIN="$RUNNER_TEMP/ynx-wallet-cleanup-probe.keychain-db"
+          PROBE_PASSWORD="$(openssl rand -hex 24)"
+          P12_PROBE="$RUNNER_TEMP/ynx-wallet-cleanup-probe.p12"
+          NOTARY_PROBE="$RUNNER_TEMP/ynx-wallet-cleanup-probe.p8"
+          security list-keychains -d user > "$ORIGINAL"
+          cp "$ORIGINAL" "$EXPECTED"
+          security create-keychain -p "$PROBE_PASSWORD" "$PROBE_KEYCHAIN"
+          security list-keychains -d user -s "$PROBE_KEYCHAIN"
+          test "$(security list-keychains -d user | wc -l | tr -d ' ')" = 1
+          : > "$P12_PROBE"
+          : > "$NOTARY_PROBE"
+          export YNX_ORIGINAL_KEYCHAINS_PATH="$ORIGINAL"
+          export YNX_SIGNING_KEYCHAIN="$PROBE_KEYCHAIN"
+          export YNX_DEVELOPER_ID_P12_PATH="$P12_PROBE"
+          export YNX_NOTARY_KEY_PATH="$NOTARY_PROBE"
+          bash apps/wallet/macos/scripts/cleanup-signing-material.sh
+          security list-keychains -d user > "$RESTORED"
+          cmp -s "$EXPECTED" "$RESTORED"
+          test ! -e "$ORIGINAL"
+          test ! -e "$PROBE_KEYCHAIN"
+          test ! -e "$P12_PROBE"
+          test ! -e "$NOTARY_PROBE"
+          printf 'originalSearchListRestored=true temporaryKeychainDeleted=true p12Deleted=true notaryKeyDeleted=true productionCredentialsUsed=false\n' \
+            | tee "$PROOF/signing-keychain-cleanup.txt"
       - name: Verify real Keychain and biometric recovery boundary
         run: |
           set -euo pipefail
