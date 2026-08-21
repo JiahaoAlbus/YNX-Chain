@@ -1,0 +1,236 @@
+{
+  "schemaVersion": 1,
+  "owner": "02-wallet-auth-ios-macos-native",
+  "evidenceKind": "macos-signing-keychain-cleanup-runtime-failure-fix-and-success",
+  "branch": "codex/wallet-ios-macos-20260813",
+  "initialImplementation": {
+    "commit": "7fe3bc32f23583d02563dca532b603a02267ea33",
+    "parent": "e277f5c6c023cdef39de9a73691565e1c653fa22",
+    "sharedCleanupScript": "apps/wallet/macos/scripts/cleanup-signing-material.sh",
+    "productionWorkflowConsumesSharedScript": true,
+    "normalMacosCiRunsNoSecretCleanupProbe": true
+  },
+  "failedHostedValidation": {
+    "runId": 32488308883,
+    "jobId": 96789787961,
+    "headSha": "7fe3bc32f23583d02563dca532b603a02267ea33",
+    "status": "completed",
+    "conclusion": "failure",
+    "createdAt": "2026-08-21T13:43:09Z",
+    "startedAt": "2026-08-21T13:49:04Z",
+    "completedAt": "2026-08-21T13:50:14Z",
+    "updatedAt": "2026-08-21T13:50:15Z",
+    "xcode": "26.3",
+    "publicRunUrl": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/32488308883",
+    "publicJobUrl": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/32488308883/job/96789787961",
+    "publicJobLogBytes": 72607,
+    "publicJobLogSha256": "cc882939378561a2679b89cbfd46f4082d99a7a710d3ea2288151d7373e99600",
+    "sourceContractStep": true,
+    "swiftTests": {
+      "executed": 15,
+      "failures": 0
+    },
+    "universalAdHocBuild": true,
+    "signingKeychainCleanupRuntime": false,
+    "nativeSecurityAndRecoveryStepExecuted": false,
+    "installColdSecondNetworkAndCallbacksStepExecuted": false,
+    "artifactUpload": true,
+    "artifact": {
+      "id": 9448943802,
+      "name": "ynx-wallet-macos-native",
+      "bytes": 489633,
+      "digest": "sha256:a2ecf3ed8858e36fb6654e7ef4dac145056ee1d9530eb665af184d1a216a9513",
+      "expiresAt": "2026-11-19T13:43:09Z"
+    }
+  },
+  "rootCause": {
+    "class": "security-list-keychains-leading-whitespace-not-normalized",
+    "directLocalShapeObserved": "Each security list-keychains entry is indented before its quoted absolute path.",
+    "failedParserOrder": "The initial shared script removed quote characters before removing indentation, so the quote was not at the string boundary and the restored search entry retained whitespace and quotes.",
+    "failureObservedAt": "The no-secret runtime probe exited 1 before it could emit a success receipt.",
+    "fakeRuntimeSeamAdded": false
+  },
+  "fix": {
+    "commit": "99fa2c7db61ac23717743103cced76001ea4160b",
+    "parent": "7fe3bc32f23583d02563dca532b603a02267ea33",
+    "files": [
+      {
+        "path": ".github/workflows/wallet-macos.yml",
+        "blob": "95ed868dcc308c6eb195e1a712322bfac9674f36",
+        "bytes": 26333,
+        "sha256": "57b73676b09ae0d38ea5aeab8a45c125dd671ca4e2c1d1a21de1ec4f2ddc98dd"
+      },
+      {
+        "path": "apps/wallet/macos/scripts/cleanup-signing-material.sh",
+        "blob": "d2868e557a9c8ca3f066257c6bb668a4a3f2c47c",
+        "bytes": 1073,
+        "sha256": "57ddbafb53afed9996b604dfe2e574c9b3aac74b5fe928a1e9932057759d4876",
+        "mode": "100755"
+      },
+      {
+        "path": "apps/wallet/macos/scripts/verify-notarized-release-source.rb",
+        "blob": "7c12739a3d6bc685a485fca56d021e30bc7322f5",
+        "bytes": 3319,
+        "sha256": "f2c945424fa65ddf07893e6efdb5adfbeec884345f61eaf079c3a4145867c0c8",
+        "mode": "100755"
+      }
+    ],
+    "leadingAndTrailingWhitespaceRemovedBeforeQuotes": true,
+    "sharedCleanupScriptSelfVerifiesExactSearchListBackread": true,
+    "runtimeProbeEmitsExpectedAndRestoredSha256": true,
+    "localYamlParse": true,
+    "localBashSyntax": true,
+    "localRubySyntax": true,
+    "localSourceContractVerifier": true,
+    "localRepresentativeIndentedPathParser": true,
+    "localRealKeychainSearchListMutated": false
+  },
+  "successfulHostedValidation": {
+    "runId": 32489069803,
+    "jobId": 96792213670,
+    "headSha": "99fa2c7db61ac23717743103cced76001ea4160b",
+    "status": "completed",
+    "conclusion": "success",
+    "createdAt": "2026-08-21T13:51:52Z",
+    "startedAt": "2026-08-21T13:51:55Z",
+    "completedAt": "2026-08-21T13:53:38Z",
+    "updatedAt": "2026-08-21T13:53:39Z",
+    "xcode": "26.3",
+    "publicRunUrl": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/32489069803",
+    "publicJobUrl": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/32489069803/job/96792213670",
+    "publicJobLogBytes": 132174,
+    "publicJobLogSha256": "13306e5cb5125089401fcdbd708e207d94c82989e2645ede26689b5c83061654",
+    "allStepsSucceeded": true,
+    "swiftTests": {
+      "executed": 15,
+      "failures": 0
+    },
+    "architectures": [
+      "x86_64",
+      "arm64"
+    ],
+    "signingClass": "ad-hoc engineering application",
+    "cleanupProbe": {
+      "productionCredentialsUsed": false,
+      "originalSearchListRestored": true,
+      "expectedSha256": "639c7ce873ef63cbb5df5bf4602d923ddebd05328187d805c21e39bcdbcca5ce",
+      "restoredSha256": "639c7ce873ef63cbb5df5bf4602d923ddebd05328187d805c21e39bcdbcca5ce",
+      "temporaryKeychainDeleted": true,
+      "p12Deleted": true,
+      "notaryKeyDeleted": true
+    },
+    "nativeRuntime": {
+      "bundleIdentifier": "com.ynxweb4.wallet.macos",
+      "versionMetadata": "0.1.0",
+      "minimumOSMetadata": "13.0",
+      "coldLaunchPid": 12007,
+      "secondLaunchPid": 12026,
+      "coldRpcChainId": "0x1917",
+      "secondRpcChainId": "0x1917",
+      "coldRestStatus": 200,
+      "secondRestStatus": 200,
+      "keychainAvailable": true,
+      "keychainRoundTripVerified": true,
+      "biometricPolicyAvailable": false,
+      "biometricErrorCode": -7,
+      "recoveryCreated": false,
+      "recoveryMaterialPersisted": false,
+      "recoveryFailedClosed": true,
+      "recoverySystemEventsSemanticVisible": false,
+      "canonicalCallback": {
+        "pid": 12026,
+        "result": "CANONICAL_AUTH_BRIDGE_UNAVAILABLE",
+        "visible": true,
+        "authorizationSuccess": false,
+        "signing": false,
+        "callbackEmitted": false
+      },
+      "callbackColdStart": {
+        "pid": 12373,
+        "result": "INVALID_DEEP_LINK",
+        "visible": true,
+        "failedClosed": true
+      },
+      "widenedCallbackColdStart": {
+        "pid": 12410,
+        "result": "INVALID_AUTHORIZATION_REQUEST",
+        "visible": true,
+        "failedClosed": true
+      }
+    },
+    "artifact": {
+      "id": 9449054256,
+      "name": "ynx-wallet-macos-native",
+      "bytes": 1298231,
+      "digest": "sha256:aca96d436cdbcb1bcd8271101521525b2defa3e194aaa298b196a556b982a52c",
+      "createdAt": "2026-08-21T13:53:34Z",
+      "expiresAt": "2026-11-19T13:51:52Z",
+      "downloadInspected": false,
+      "downloadAttemptedForThisRun": false,
+      "reason": "Prior bounded downloads of adjacent exact-head artifacts repeatedly yielded no bytes; no further retry was made.",
+      "innerZipSha256": null,
+      "innerZipBytes": null,
+      "screenshotHashesInspected": false
+    }
+  },
+  "redundantIosRuns": {
+    "reason": "The triggering commits contained only macOS workflow, macOS script, or macOS evidence changes and no iOS source change. They were cancelled to avoid repeating the known hosted Face ID path and to release the macOS runner.",
+    "cancelled": [
+      {
+        "runId": 32486864682,
+        "headSha": "07cab0839e55a2a4f65b4813345d35fb5460c5f8",
+        "conclusion": "cancelled",
+        "updatedAt": "2026-08-21T13:49:34Z"
+      },
+      {
+        "runId": 32487661563,
+        "headSha": "b889607b99b76b3076f7f805aa1dc98ab0f59324",
+        "conclusion": "cancelled",
+        "updatedAt": "2026-08-21T13:49:27Z"
+      },
+      {
+        "runId": 32488308781,
+        "headSha": "7fe3bc32f23583d02563dca532b603a02267ea33",
+        "conclusion": "cancelled",
+        "updatedAt": "2026-08-21T13:49:03Z"
+      },
+      {
+        "runId": 32489069963,
+        "headSha": "99fa2c7db61ac23717743103cced76001ea4160b",
+        "conclusion": "cancelled",
+        "updatedAt": "2026-08-21T13:52:15Z"
+      }
+    ],
+    "iosSimulatorGatePromotedByTheseRuns": false
+  },
+  "gates": {
+    "sharedSigningCleanupRuntimeVerifiedWithoutProductionSecrets": true,
+    "productionSigningKeychainCleanupRuntimeVerified": false,
+    "notarizedNativeDmgSourceReady": true,
+    "productionWorkflowRegistered": false,
+    "productionWorkflowDispatched": false,
+    "developerIDSignedArtifact": false,
+    "appNotarizationAccepted": false,
+    "dmgNotarizationAccepted": false,
+    "stapled": false,
+    "gatekeeperAccepted": false,
+    "notarizedNativeDmgProduced": false,
+    "notarizedNativeDmgGithubReleasePublished": false,
+    "notarizedNativeDmgWebsitePublished": false,
+    "publicNativeWalletPublished": false,
+    "publicArtifactCallbackDelivered": false,
+    "systemApplicationsInstalled": false,
+    "cleanEndUserHostInstalled": false,
+    "rollbackVerified": false,
+    "universalLinkSuccess": false,
+    "physicalBiometricVerified": false,
+    "productRecoverySuccess": false,
+    "authorizationSuccess": false,
+    "accountAvailable": false,
+    "productSessionVerified": false,
+    "signSuccess": false,
+    "sendSuccess": false,
+    "transactionSuccess": false,
+    "appStoreReleased": false
+  }
+}
