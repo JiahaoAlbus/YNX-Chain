@@ -1,0 +1,98 @@
+{
+  "schemaVersion": "ynx.wallet-auth.safe-authorize-launcher-v2-core-consumption.v1",
+  "generatedAt": "2026-08-21T05:33:59Z",
+  "owner": "wallet-auth-core",
+  "status": "SOURCE_ONLY_CONSUMED_NOT_PUBLIC",
+  "branch": "codex/wallet-core-auth-gateway-continuation-20260814",
+  "source": {
+    "commit": "eed33085d4150f0febc85fc46ba1915316509aa5",
+    "tree": "b339b3d3608e191b65a0d753246ad8f1a28afd60",
+    "parent": "201246290a843c5be61828a93c65cd3c516b896b"
+  },
+  "consumedHandoff": {
+    "sourceCommit": "f1ba5013a817d4c03157e1cf83d7685606951a12",
+    "sourceTree": "3b319dda94dbd703cc4b6a0151e843dd2411604e",
+    "sourceParent": "ac55c0f43edf2b9687a6b9800da89bf5ab760743",
+    "finalEvidenceCommit": "649107488520f0973805b32704cfe4a02e15aafa",
+    "finalEvidenceTree": "514b2beef3c2171c67e5c4a07223009c4218c80f",
+    "strategy": "semantic-transplant-without-merging-divergent-history",
+    "upstreamEvidence": {
+      "path": "release/integration/wallet-safe-authorize-launcher-v2-source-evidence-20260821.json",
+      "blob": "f1976f438c5eef91246b2bb1aae86f1f3de39eed",
+      "sha256": "fa25affbcd4931b3baed2c816b8bcb1b8e43b7b8caee99986daa4ffc5b7c6a99",
+      "byteIdentical": true
+    }
+  },
+  "successorContract": {
+    "version": "safeWalletAuthorizeLauncher@2.0.0-p0.0",
+    "path": "packages/wallet-auth/integration/safe-wallet-authorize-launcher-v2.json",
+    "blob": "875fabcd90bb77ace32124f7ecbe81cd1b7499d2",
+    "sha256": "defd0db6281839ef5efdfdb6b7b4734369058306f0dd7a90a16fbb6e1f776f6c",
+    "byteIdentical": true,
+    "supersedes": {
+      "version": "safeWalletAuthorizeLauncher@1.0.0-p0.0",
+      "sourceCommit": "4679de8e8d0675e2013254c92ff1935191f87c21",
+      "status": "SUPERSEDED_CANDIDATE"
+    }
+  },
+  "implementation": {
+    "launcherBlob": "62faa1f2dce3bbea1d048bb62aad06987c805408",
+    "launcherSha256": "e86cc541465b4b36a449393d2af395cd517125558976bb245b7bf2376a1bb0ca",
+    "testBlob": "ffba56006e17f0ebe6278796de8c9cdf6cafe61f",
+    "testSha256": "6d4e3db6046cb589c95d5399fe3513279624c6d8c042855aa77b6fd2a71a2c20",
+    "rootExportBlob": "6a589935b18e46a61686ee0ffc4d19b16bafb58e",
+    "typesBlob": "7d98f35eb3c9fb1fb906a9080aaf253e68a5913c",
+    "canonicalRequestChanged": false,
+    "webCustomSchemeNavigation": false,
+    "webIframeCreation": false,
+    "webAccountRequest": false,
+    "webProviderDiscovery": "EIP-6963-and-injected-EIP-1193",
+    "nativeResolverFirst": true
+  },
+  "verification": {
+    "focused": { "passed": 16, "failed": 0 },
+    "authoritativeCheck": {
+      "workingTree": { "passed": 387, "failed": 0 },
+      "cleanClone": { "passed": 387, "failed": 0 },
+      "bareAuthorizeGatePassed": true
+    },
+    "equivalentBrowserAssertions": {
+      "topLevelPageCountUnchanged": true,
+      "urlUnchanged": true,
+      "blankTargetAbsent": true,
+      "elementOrIframeCreationAbsent": true,
+      "providerRequestAbsent": true,
+      "authority": "local-equivalent-test-only"
+    },
+    "repeatPack": {
+      "byteIdentical": true,
+      "sha256": "fe55665d3bf05f1288728dd3d0528e58bd0fc6dbee4d7ea3b962a14bed3427a4",
+      "bytes": 192419,
+      "entries": 108,
+      "containsLauncher": true,
+      "containsContract": true
+    },
+    "networkInstallUsed": false
+  },
+  "truthGates": {
+    "sourceConsumed": true,
+    "equivalentBrowserTested": true,
+    "realChromeSuccessorRetested": false,
+    "platformConsumed": false,
+    "installedWalletVerified": false,
+    "walletApprovalVerified": false,
+    "callbackVerified": false,
+    "productSessionCreated": false,
+    "browserPublic": false,
+    "deployedPublic": false,
+    "integratedCentral": false,
+    "productsConsumed": "0/12"
+  },
+  "productionOperations": {
+    "ssh": false,
+    "productionRead": false,
+    "deployment": false,
+    "leaseRequestedOrUsed": false,
+    "productUiChanged": false
+  }
+}
