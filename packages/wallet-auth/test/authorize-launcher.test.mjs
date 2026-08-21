@@ -58,7 +58,8 @@ test("Web without an injected provider returns actions without iframe, blank tar
       waitMs: 0,
     });
     assert.equal(outcome.status, "unsupported");
-    assert.equal(outcome.detail, "NO_EIP1193_PROVIDER");
+    assert.equal(outcome.detail, "PROVIDER_NOT_INJECTED");
+    assert.deepEqual(outcome.recoveryActions, ["unlock-extension", "grant-site-access", "enable-extension", "retry", "return-to-product"]);
     assert.equal(outcome.uri, null);
     assert.equal(outcome.transport, null);
     assert.deepEqual(outcome.fallbackActions.map(({ id }) => id), ["official-ynx-wallet-download", "standard-metamask"]);

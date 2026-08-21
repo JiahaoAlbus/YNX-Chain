@@ -102,7 +102,8 @@ test("YNX priority, ambiguous MetaMask, missing MetaMask and non-EVM products al
   const ambiguous=coordinator({productId:"dex",sessionClient:noYNXClient("dex"),scope:{ethereum:{providers:[metaMaskProvider(),metaMaskProvider()]}}});
   const ambiguousResult=await ambiguous.connectMetaMask();assert.equal(ambiguousResult.code,"AMBIGUOUS_WALLET_PROVIDER");assert.equal(ambiguousResult.status,WALLET_CONNECTION_COORDINATOR_STATUS.EVM_UNAVAILABLE);
   const missing=await coordinator({productId:"dex",sessionClient:noYNXClient("dex")}).connectMetaMask();
-  assert.equal(missing.code,"METAMASK_NOT_INSTALLED");assert.equal(new URL(missing.downloadUrl).hostname,"metamask.io");
+  assert.equal(missing.code,"WALLET_PROVIDER_NOT_INJECTED");assert.equal(new URL(missing.downloadUrl).hostname,"metamask.io");
+  assert.deepEqual(missing.actions,["unlock-extension","grant-site-access","enable-extension","retry","download-metamask","guest","return-to-product"]);
   const nonEvm=await coordinator({sessionClient:noYNXClient("social"),scope:{ethereum:metaMaskProvider()}}).connectMetaMask();
   assert.equal(nonEvm.code,"EVM_NOT_SUPPORTED");assert.equal(nonEvm.status,WALLET_CONNECTION_COORDINATOR_STATUS.EVM_UNAVAILABLE);
 });

@@ -2,6 +2,7 @@ import { WalletAuthError } from "./canonical.js";
 import { encodeRequestDeepLink } from "./deep-link.js";
 import {
   discoverWalletProviders,
+  WALLET_PROVIDER_DISCOVERY_STATUS,
   walletAvailabilityFromDiscovery,
 } from "./wallet-provider-discovery.js";
 
@@ -33,6 +34,8 @@ function result(status, detail, input = {}) {
     transport: input.transport ?? null,
     uri: input.uri ?? null,
     providerCandidate: input.providerCandidate ?? null,
+    discovery: input.discovery ?? null,
+    recoveryActions: input.recoveryActions ?? Object.freeze([]),
     fallbackActions: fallbackActions(),
   });
 }
@@ -69,14 +72,16 @@ export async function launchWebAuthorization(_request, options = {}) {
   } catch {
     return result("unsupported", "PROVIDER_DISCOVERY_FAILED");
   }
-  if (discovery.ambiguities.length || discovery.conflictedAnnouncements > 0) return result("unsupported", "PROVIDER_DISCOVERY_AMBIGUOUS");
+  if (discovery.ambiguities.length || discovery.conflictedAnnouncements > 0) return result("unsupported", "PROVIDER_DISCOVERY_AMBIGUOUS", { discovery, recoveryActions: Object.freeze(["disable-duplicate-provider", "retry", "return-to-product"]) });
   const providerCandidate = discovery.ynx ?? discovery.metamask;
   if (!providerCandidate) {
-    return result("unsupported", "NO_EIP1193_PROVIDER");
+    const detail = discovery.status === WALLET_PROVIDER_DISCOVERY_STATUS.NOT_INJECTED ? "PROVIDER_NOT_INJECTED" : "UNSUPPORTED_INJECTED_PROVIDER";
+    return result("unsupported", detail, { discovery, recoveryActions: Object.freeze(["unlock-extension", "grant-site-access", "enable-extension", "retry", "return-to-product"]) });
   }
   return result("provider-ready", providerCandidate.kind === "ynx-wallet" ? "YNX_PROVIDER_DISCOVERED" : "METAMASK_PROVIDER_DISCOVERED", {
     transport: "eip-1193",
     providerCandidate,
+    discovery,
   });
 }
 

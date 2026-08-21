@@ -45,8 +45,9 @@
   },
   "scripts": {
     "test": "node --test test/*.test.mjs",
-    "check": "npm test && npm run verify:no-bare-authorize",
+    "check": "npm test && npm run verify:no-bare-authorize && npm run verify:standard-wallet-connect",
     "verify:no-bare-authorize": "node scripts/verify-no-bare-wallet-authorize.mjs",
+    "verify:standard-wallet-connect": "node scripts/verify-standard-wallet-connect-consumer.mjs",
     "audit:authorize-consumers": "node scripts/verify-no-bare-wallet-authorize.mjs --consumer-audit",
     "drill:backup": "node scripts/run-gateway-backup-drill.mjs",
     "benchmark:gateway": "node scripts/benchmark-gateway.mjs",
