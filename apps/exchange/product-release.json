@@ -1,11 +1,11 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "productId": "exchange",
   "product": "YNX Exchange",
   "owner": "financial-apps",
   "branch": "codex/exchange-wallet-actions-20260809",
   "p0WalletConnectivity": {
-    "status": "LOCAL_RELEASE_EVIDENCE_COMPLETE_AWAITING_INTEGRATION_HANDOFF",
+    "status": "SOURCE_BUILD_CHECKPOINT_DEVICE_EVIDENCE_PENDING",
     "acceptedContracts": {
       "walletTransport": "p0-wallet-connection-v1",
       "errorContract": "p0-wallet-connection-v1",
@@ -13,18 +13,23 @@
       "endpointManifest": "1.0.0-p0.2",
       "connectionEvents": "connectionEvents@1.0.0-p0.0"
     },
+    "canonicalWalletAuthorize": {
+      "contract": "canonicalWalletAuthorize@1.0.0-p0.0",
+      "sourceCommit": "46386ae8eeaa7633923ae762a5a9634b5eac98d9",
+      "contractSha256": "e572042f18c1e32dfe86da26ee2ab52f9372c9803eae3b492c26932e50251c03"
+    },
     "endpointManifestSourceCommit": "fa0ffd9bbbcc831438078be8e19cebff51b07e5e",
     "endpointManifestPayloadSha256": "3c606cad1d9bfa71fc507f54b6ad8184a6580c7df75440675b5db921b7e67bb5",
     "productApiStatus": "PENDING",
     "productApiRule": "No Exchange product API request may be sent until the central manifest is updated with direct product release evidence.",
-    "standardWalletConnection": "source-verified EIP-1193 only; Android candidate invokes installed YNX Wallet, but successful account authorization is not verified because the Wallet was locked",
+    "standardWalletConnection": "source-verified EIP-1193/EIP-6963 only; it remains independent when optional private Product Session handling is degraded",
     "legacyDeviceProof": "removed from Exchange mobile runtime",
     "selfHostedGateway": "removed from Exchange mobile and web runtimes"
   },
   "releaseStates": {
     "implementedLocal": true,
     "testedLocal": true,
-    "installedLocal": true,
+    "installedLocal": false,
     "integratedCentral": false,
     "deployedStaging": false,
     "deployedPublic": false,
@@ -34,18 +39,18 @@
   },
   "artifact": {
     "android": {
-      "status": "LOCAL_TESTNET_CANDIDATE_ONLY",
-      "path": "apps/exchange/mobile/android/app/build/outputs/apk/release/app-release.apk",
-      "sourceCommit": "bea0f6084051d6af85ec4b9fc3d1e1e4402241ce",
-      "sha256": "0c5940a4835fb9e141fb51c1f7f9a0cb795d0eb677c6ceae2adb81e45e9efc48",
-      "bytes": 29429971,
-      "installedOn": "emulator-5560",
-      "coldStart": { "activity": "com.ynxweb4.exchange/.MainActivity", "totalTimeMs": 840 },
-      "walletInvocation": { "attempted": true, "walletPackage": "com.ynxweb4.wallet", "walletState": "LOCKED", "accountAuthorizationVerified": false, "productSessionCreated": false },
-      "screenshot": { "path": "apps/exchange/evidence/p0-exchange-android-cold-start.png", "sha256": "def2a75eaf84fc5fa37973924e8f23c8748a8021fff7983e6b84cedf04fc4ee2" },
-      "signing": "local Android Debug certificate only (v2; certificate SHA-256 10ef77996b2f13f716acea499f674b64abd104ae76929eef6bb52187370755e8); not production signing or hosted download"
+      "status": "LOCAL_DEBUG_BUILD_ONLY",
+      "path": "apps/exchange/mobile/android/app/build/outputs/apk/debug/app-debug.apk",
+      "sourceState": "P0-105 Exchange worktree before checkpoint commit; baseline ffc5cf89fbba81bf439835350bb91d09ece158ab",
+      "sha256": "8d9c95b0fe908e818cb3bd64e1e9383feea2733023c970ba967d347bbc0d1aa7",
+      "bytes": 155458696,
+      "installedOn": null,
+      "coldStart": null,
+      "walletInvocation": { "attempted": false, "walletPackage": null, "walletState": "NOT_ASSERTED_NO_CONNECTED_DEVICE", "accountAuthorizationVerified": false, "productSessionCreated": false },
+      "screenshot": null,
+      "signing": "local Android Debug certificate only; not production signing or hosted download"
     },
     "windows": "NOT_OWNED_BY_EXCHANGE_MOBILE; no Exchange Windows installer is declared"
   },
-  "rollback": "Revert only bea0f6084051d6af85ec4b9fc3d1e1e4402241ce after central Integration confirms SDK or manifest rollback; do not restore a legacy device-proof or Product Session implementation."
+  "rollback": "Revert only the P0-105 Exchange checkpoint after central Integration confirms SDK or manifest rollback; do not restore a bare Wallet route, legacy device proof, direct Gateway route, or Product Session implementation."
 }

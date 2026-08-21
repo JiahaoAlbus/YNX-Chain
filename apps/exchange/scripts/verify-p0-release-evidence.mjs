@@ -28,7 +28,9 @@ assert(manifest.integrity?.payloadSha256 === expectedManifestHash, 'endpoint man
 assert(manifest.sourceCommit === 'fa0ffd9bbbcc831438078be8e19cebff51b07e5e', 'endpoint manifest source commit mismatch');
 assert(manifest.endpointStates?.products?.exchange?.status === 'PENDING', 'Exchange product endpoint may not be treated as released');
 assert(release.releaseStates?.deployedPublic === false && release.releaseStates?.downloadHosted === false && release.releaseStates?.productionSigned === false && release.releaseStates?.storeReleased === false, 'release metadata attempts an unproven public claim');
-for (const forbidden of ['sessions/complete', 'wallet-auth/callback', 'createGatewayChallenge', 'createProductSessionProof', 'p256']) assert(!wallet.includes(forbidden), `wallet runtime contains prohibited legacy route: ${forbidden}`);
+for (const forbidden of ['sessions/complete', 'createGatewayChallenge', 'createProductSessionProof', 'wallet-auth.ynxweb4.com/v2']) assert(!wallet.includes(forbidden), `wallet runtime contains prohibited legacy route: ${forbidden}`);
+assert(wallet.includes('encodeRequestDeepLink') && wallet.includes('parseAuthorizationCallbackURL'), 'Exchange must consume the canonical Wallet authorization builder and callback parser');
+assert(!/(?:Linking\.)?openURL\(\s*['\"`]ynxwallet:\/\/authorize/.test(wallet), 'Exchange must not launch a naked Wallet authorization route');
 assert(api.includes('API_UNAVAILABLE: Exchange product API is PENDING'), 'pending Exchange API does not fail closed');
 assert(mobile.includes('productSessionUnavailable().message'), 'installed UI does not render private-service degradation separately');
 assert(web.includes('No request was sent.') && !web.includes('fetch(') && !web.includes('/api/'), 'web shell retains a direct product API route');
@@ -38,7 +40,7 @@ const report = {
   classification: 'local-release-evidence-verification',
   sourceCommit: execFileSync('git', ['rev-parse', 'HEAD'], { cwd: repoRoot, encoding: 'utf8' }).trim(),
   endpointManifest: { sourceCommit: manifest.sourceCommit, payloadSha256: expectedManifestHash, exchangeProductStatus: manifest.endpointStates.products.exchange.status },
-  connectivityBoundary: { standardWalletRuntime: 'SOURCE_VERIFIED_EIP1193_ONLY', productSession: 'PENDING_AND_NOT_CALLED', installedWalletSuccess: 'NOT_ASSERTED_BY_THIS_VERIFIER' },
+  connectivityBoundary: { standardWalletRuntime: 'SOURCE_VERIFIED_EIP1193_ONLY', canonicalWalletAuthorization: 'SOURCE_VERIFIED_REQUEST_BOUND_ONLY', productSession: 'PENDING_AND_NOT_CALLED', installedWalletSuccess: 'NOT_ASSERTED_BY_THIS_VERIFIER' },
   releaseStates: release.releaseStates,
 };
 if (apkPath) {
