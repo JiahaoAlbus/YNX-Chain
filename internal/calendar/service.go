@@ -224,6 +224,9 @@ func (s *Service) ExportAccount(token string) (AccountExport, error) {
 		out = AccountExport{SchemaVersion: 1, ExportedAt: s.now().UTC(), User: user}
 		for _, calendar := range st.SharedCalendars {
 			if calendar.OwnerID == sess.UserID || calendarRole(calendar, user.Handle) != "" {
+				if calendar.OwnerID != sess.UserID {
+					calendar.PermissionHistory = nil
+				}
 				out.Calendars = append(out.Calendars, calendar)
 			}
 		}
@@ -382,6 +385,9 @@ func (s *Service) Calendars(token string) ([]SharedCalendar, error) {
 		user := st.Users[sess.UserID]
 		for _, calendar := range st.SharedCalendars {
 			if calendar.OwnerID == sess.UserID || calendarRole(calendar, user.Handle) != "" {
+				if calendar.OwnerID != sess.UserID {
+					calendar.PermissionHistory = nil
+				}
 				out = append(out, calendar)
 			}
 		}
@@ -433,26 +439,39 @@ func (s *Service) ShareCalendar(token, calendarID, handle, role string) (SharedC
 		if _, ok := userByHandle(st, handle); !ok {
 			return errors.New("unknown YNX contact")
 		}
-		updated := false
+		previousRole := ""
 		for index := range calendar.Shares {
 			if calendar.Shares[index].Handle == handle {
+				previousRole = calendar.Shares[index].Role
+				if previousRole == role {
+					out = calendar
+					return nil
+				}
 				calendar.Shares[index].Role = role
-				updated = true
 			}
 		}
-		if !updated {
+		if previousRole == "" {
 			calendar.Shares = append(calendar.Shares, Share{Handle: handle, Role: role})
 		}
+		now := s.now().UTC()
 		calendar.Version++
-		calendar.UpdatedAt = s.now().UTC()
-		st.SharedCalendars[calendar.ID] = calendar
+		calendar.UpdatedAt = now
+		action := "granted"
+		if previousRole != "" {
+			action = "role_changed"
+		}
 		actor := st.Users[sess.UserID]
+		calendar.PermissionHistory = append(calendar.PermissionHistory, CalendarPermissionChange{
+			ID: s.id("calendar-permission"), Action: action, Handle: handle, PreviousRole: previousRole,
+			Role: role, ActorHandle: actor.Handle, Version: calendar.Version, CreatedAt: now,
+		})
+		st.SharedCalendars[calendar.ID] = calendar
 		title, body := "Calendar shared with you", fmt.Sprintf("%s granted %s access to %s.", actor.Handle, role, calendar.Name)
 		if role == "availability" {
 			title, body = "Calendar availability shared", fmt.Sprintf("%s granted availability-only access to a calendar.", actor.Handle)
 		}
 		s.notifyHandle(st, handle, "calendar_permission_changed", "", actor.Handle, title, body, calendar.UpdatedAt)
-		s.audit(st, sess.UserID, "calendar_permission_changed", calendar.ID, map[string]any{"contact": handle, "role": role})
+		s.audit(st, sess.UserID, "calendar_permission_changed", calendar.ID, map[string]any{"contact": handle, "previous_role": previousRole, "role": role, "action": action})
 		out = calendar
 		return nil
 	})
@@ -470,10 +489,11 @@ func (s *Service) UnshareCalendar(token, calendarID, handle string) (SharedCalen
 		if !ok || calendar.OwnerID != sess.UserID {
 			return ErrUnauthorized
 		}
-		shares, found := calendar.Shares[:0], false
+		shares, found, previousRole := calendar.Shares[:0], false, ""
 		for _, share := range calendar.Shares {
 			if share.Handle == handle {
 				found = true
+				previousRole = share.Role
 				continue
 			}
 			shares = append(shares, share)
@@ -482,12 +502,17 @@ func (s *Service) UnshareCalendar(token, calendarID, handle string) (SharedCalen
 			return errors.New("calendar permission not found")
 		}
 		calendar.Shares = shares
+		now := s.now().UTC()
 		calendar.Version++
-		calendar.UpdatedAt = s.now().UTC()
-		st.SharedCalendars[calendar.ID] = calendar
+		calendar.UpdatedAt = now
 		actor := st.Users[sess.UserID]
+		calendar.PermissionHistory = append(calendar.PermissionHistory, CalendarPermissionChange{
+			ID: s.id("calendar-permission"), Action: "revoked", Handle: handle, PreviousRole: previousRole,
+			ActorHandle: actor.Handle, Version: calendar.Version, CreatedAt: now,
+		})
+		st.SharedCalendars[calendar.ID] = calendar
 		s.notifyHandle(st, handle, "calendar_permission_revoked", "", actor.Handle, "Calendar access removed", fmt.Sprintf("%s removed your access to %s.", actor.Handle, calendar.Name), calendar.UpdatedAt)
-		s.audit(st, sess.UserID, "calendar_permission_revoked", calendar.ID, map[string]any{"contact": handle})
+		s.audit(st, sess.UserID, "calendar_permission_revoked", calendar.ID, map[string]any{"contact": handle, "previous_role": previousRole})
 		out = calendar
 		return nil
 	})

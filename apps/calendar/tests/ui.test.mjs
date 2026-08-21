@@ -55,6 +55,10 @@ test("Calendar offline, explicit approval, conflict and AI boundaries are wired"
     "guestEventsKey",
     "Local draft saved on this device",
     "no sync, sharing, AI, or chain writes",
+    "Permission history",
+    "permission_history",
+    "role_changed",
+    "revoked",
   ])
     assert.ok(js.includes(term), `missing ${term}`);
   assert.match(js, /each change still requires preview and approval/);

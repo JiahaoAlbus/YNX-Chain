@@ -586,7 +586,8 @@ func TestOccurrenceCancellationDoesNotRequireUnrelatedConflictOverride(t *testin
 }
 
 func TestSharedCalendarLifecycleAndRoles(t *testing.T) {
-	svc := newTestService(t, "")
+	path := filepath.Join(t.TempDir(), "shared-calendar.json")
+	svc := newTestService(t, path)
 	alice, _, _ := signIn(t, svc, "@alice", "ynx1alice")
 	bob, _, _ := signIn(t, svc, "@bob", "ynx1bob")
 	calendar, err := svc.CreateCalendar(alice, "Protocol team", "violet")
@@ -597,8 +598,16 @@ func TestSharedCalendarLifecycleAndRoles(t *testing.T) {
 		t.Fatal("unknown shared-calendar contact accepted")
 	}
 	calendar, err = svc.ShareCalendar(alice, calendar.ID, "@bob", "viewer")
-	if err != nil || len(calendar.Shares) != 1 || calendar.Shares[0].Role != "viewer" {
+	if err != nil || len(calendar.Shares) != 1 || calendar.Shares[0].Role != "viewer" || len(calendar.PermissionHistory) != 1 || calendar.PermissionHistory[0].Action != "granted" {
 		t.Fatalf("viewer permission not persisted: %#v %v", calendar, err)
+	}
+	unchanged, err := svc.ShareCalendar(alice, calendar.ID, "@bob", "viewer")
+	if err != nil || unchanged.Version != calendar.Version || len(unchanged.PermissionHistory) != 1 {
+		t.Fatalf("idempotent permission grant created false history: %#v %v", unchanged, err)
+	}
+	bobCalendars, err := svc.Calendars(bob)
+	if err != nil || len(bobCalendars) != 1 || len(bobCalendars[0].PermissionHistory) != 0 {
+		t.Fatalf("permission history leaked to non-owner: %#v %v", bobCalendars, err)
 	}
 	in := input("Shared protocol review", "2026-08-20T10:00", "2026-08-20T11:00", "UTC", "shared-calendar-event")
 	in.CalendarID = calendar.ID
@@ -621,7 +630,7 @@ func TestSharedCalendarLifecycleAndRoles(t *testing.T) {
 		t.Fatalf("viewer edited shared-calendar event: %v", err)
 	}
 	calendar, err = svc.ShareCalendar(alice, calendar.ID, "@bob", "editor")
-	if err != nil || calendar.Shares[0].Role != "editor" {
+	if err != nil || calendar.Shares[0].Role != "editor" || len(calendar.PermissionHistory) != 2 || calendar.PermissionHistory[1].Action != "role_changed" || calendar.PermissionHistory[1].PreviousRole != "viewer" {
 		t.Fatal("editor permission change failed")
 	}
 	update.Title = "Editor-reviewed shared event"
@@ -645,11 +654,28 @@ func TestSharedCalendarLifecycleAndRoles(t *testing.T) {
 		t.Fatalf("availability-only member commented: %v", err)
 	}
 	exported, err := svc.ExportAccount(bob)
-	if err != nil || len(exported.Events) != 1 || exported.Events[0].Title != "Busy" || exported.Events[0].Description != "" {
+	if err != nil || len(exported.Events) != 1 || exported.Events[0].Title != "Busy" || exported.Events[0].Description != "" || len(exported.Calendars[0].PermissionHistory) != 0 {
 		t.Fatalf("availability export leaked event details: %#v %v", exported.Events, err)
 	}
-	if _, err = svc.UnshareCalendar(alice, calendar.ID, "@bob"); err != nil {
+	calendar, err = svc.UnshareCalendar(alice, calendar.ID, "@bob")
+	if err != nil || len(calendar.PermissionHistory) != 4 || calendar.PermissionHistory[3].Action != "revoked" || calendar.PermissionHistory[3].PreviousRole != "availability" || calendar.PermissionHistory[3].Role != "" {
+		t.Fatalf("permission revocation history missing: %#v %v", calendar.PermissionHistory, err)
+	}
+	ownerCalendars, err := svc.Calendars(alice)
+	if err != nil || len(ownerCalendars) != 1 || len(ownerCalendars[0].PermissionHistory) != 4 {
+		t.Fatalf("owner permission history was not retained: %#v %v", ownerCalendars, err)
+	}
+	reloadedStore, err := NewStore(path)
+	if err != nil {
 		t.Fatal(err)
+	}
+	reloaded, err := NewService(reloadedStore, testVerifier{}, testAI{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	reloadedCalendars, err := reloaded.Calendars(alice)
+	if err != nil || len(reloadedCalendars) != 1 || len(reloadedCalendars[0].PermissionHistory) != 4 {
+		t.Fatalf("permission history did not survive restart: %#v %v", reloadedCalendars, err)
 	}
 	if _, err = svc.Event(bob, event.ID); !errors.Is(err, ErrUnauthorized) {
 		t.Fatalf("revoked viewer retained shared-calendar access: %v", err)

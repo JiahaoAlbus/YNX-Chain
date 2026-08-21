@@ -1146,7 +1146,15 @@ function showCalendarManager() {
   const rows = state.calendars.map((calendar) => {
     const role = calendarRole(calendar);
     const members = calendar.shares?.map((share) => `${escapeHTML(share.handle)} · ${escapeHTML(share.role)}`).join("<br>") || "No members yet";
-    return `<section class="permission"><span class="eyebrow">${escapeHTML(role)}</span><h3>${escapeHTML(calendar.name)}</h3><p>${members}</p>${role === "owner" ? `<div class="detail-actions"><button class="quiet" data-share-calendar="${escapeHTML(calendar.id)}">Add or change member</button><button class="quiet" data-revoke-calendar="${escapeHTML(calendar.id)}">Revoke member</button></div>` : ""}</section>`;
+    const history = role === "owner" && calendar.permission_history?.length
+      ? `<details><summary>Permission history · ${calendar.permission_history.length}</summary><ol>${calendar.permission_history.slice().reverse().map((change) => {
+          const transition = change.action === "role_changed"
+            ? `${change.previous_role} → ${change.role}`
+            : change.action === "revoked" ? `revoked ${change.previous_role}` : `granted ${change.role}`;
+          return `<li><strong>${escapeHTML(change.handle)}</strong> · ${escapeHTML(transition)} · v${Number(change.version)}<br><small>${escapeHTML(new Date(change.created_at).toLocaleString())} by ${escapeHTML(change.actor_handle)}</small></li>`;
+        }).join("")}</ol></details>`
+      : "";
+    return `<section class="permission"><span class="eyebrow">${escapeHTML(role)}</span><h3>${escapeHTML(calendar.name)}</h3><p>${members}</p>${history}${role === "owner" ? `<div class="detail-actions"><button class="quiet" data-share-calendar="${escapeHTML(calendar.id)}">Add or change member</button><button class="quiet" data-revoke-calendar="${escapeHTML(calendar.id)}">Revoke member</button></div>` : ""}</section>`;
   }).join("");
   dialog.innerHTML = `<div class="change-card"><span class="eyebrow">Shared calendars</span><h2>Calendars and permissions</h2><p>Owners manage membership. Editors can schedule; viewers can read. Every permission change is audited.</p>${rows || "<p>No shared calendars yet.</p>"}<div class="detail-actions"><button class="quiet" data-action="create">Create shared calendar</button><button class="primary" data-action="close">Close</button></div></div>`;
   document.body.append(dialog);

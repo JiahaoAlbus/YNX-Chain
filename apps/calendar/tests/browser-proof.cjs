@@ -48,11 +48,12 @@ const wallet = http
             bundleId: "com.ynxweb4.calendar",
             callback: "ynxcalendar://wallet-auth/callback",
             productDeviceAlgorithm: "p256-sha256",
-            productDeviceKey: "browser-proof-device",
+            productDeviceKey:
+              proof.authorizationRequest.deviceKey || "browser-proof-device",
             deviceBinding: "b".repeat(64),
             requestDigest: "c".repeat(64),
             approvalDigest: "d".repeat(64),
-            account: "ynx1browserproof",
+            account: proof.authorizationRequest.account || "ynx1browserproof",
             scopes: ["calendar:account"],
             nonce: proof.authorizationRequest.nonce,
             purpose: "Calendar browser proof",
@@ -149,6 +150,43 @@ async function api(url, method = "GET", body, cookie) {
   if (!response.ok) throw Error(JSON.stringify(value));
   return value;
 }
+async function createSession(handle, account, suffix) {
+  const challenge = await api("/v1/auth/challenges", "POST", {});
+  const deviceKey = `browser-proof-device-${suffix}`;
+  const authorizationRequest = {
+    version: "wallet-auth-v1",
+    nonce: `browser-${suffix}-${Date.now()}`,
+    productClientId: "ynx-calendar-v1",
+    account,
+    deviceKey,
+  };
+  const response = await fetch(base + "/v1/auth/sessions", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      account,
+      handle,
+      product: "com.ynx.calendar",
+      scopes: ["calendar:account"],
+      challenge: challenge.id,
+      device_key: deviceKey,
+      expires_at: Math.floor(Date.now() / 1000) + 60,
+      assertion: "remote-wallet-proof",
+      central: {
+        registryEntry: { clientId: "ynx-calendar-v1" },
+        authorizationRequest,
+        walletApproval: { approved: true },
+        gatewayCompletion: { completed: true },
+      },
+    }),
+  });
+  if (!response.ok) throw Error(await response.text());
+  const session = await response.json();
+  const cookie = response.headers.get("set-cookie")?.split(";")[0];
+  if (!cookie || "token" in session)
+    throw Error("Calendar session was not issued as an HttpOnly cookie");
+  return cookie;
+}
 function unnamedInteractive() {
   return [...document.querySelectorAll("button,a,input,select,textarea")]
     .filter(
@@ -168,38 +206,8 @@ function unnamedInteractive() {
   try {
     if (!wallet.listening) await once(wallet, "listening");
     await waitForServer();
-    const challenge = await api("/v1/auth/challenges", "POST", {});
-    const authorizationRequest = {
-      version: "wallet-auth-v1",
-      nonce: `browser-${Date.now()}`,
-      productClientId: "ynx-calendar-v1",
-    };
-    const proof = {
-      account: "ynx1browserproof",
-      handle: "@proof",
-      product: "com.ynx.calendar",
-      scopes: ["calendar:account"],
-      challenge: challenge.id,
-      device_key: "browser-proof-device",
-      expires_at: Math.floor(Date.now() / 1000) + 60,
-      assertion: "remote-wallet-proof",
-      central: {
-        registryEntry: { clientId: "ynx-calendar-v1" },
-        authorizationRequest,
-        walletApproval: { approved: true },
-        gatewayCompletion: { completed: true },
-      },
-    };
-    const authResponse = await fetch(base + "/v1/auth/sessions", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(proof),
-    });
-    if (!authResponse.ok) throw Error(await authResponse.text());
-    const session = await authResponse.json();
-    const cookie = authResponse.headers.get("set-cookie")?.split(";")[0];
-    if (!cookie || "token" in session)
-      throw Error("Calendar session was not issued as an HttpOnly cookie");
+    const cookie = await createSession("@proof", "ynx1browserproof", "owner");
+    await createSession("@collaborator", "ynx1collaborator", "collaborator");
     const now = new Date();
     const start = new Date(now);
     start.setHours(12, 0, 0, 0);
@@ -213,6 +221,18 @@ function unnamedInteractive() {
       "/v1/calendars",
       "POST",
       { name: "Protocol team", color: "violet" },
+      cookie,
+    );
+    await api(
+      `/v1/calendars/${sharedCalendar.id}/shares`,
+      "POST",
+      { handle: "@collaborator", role: "viewer" },
+      cookie,
+    );
+    await api(
+      `/v1/calendars/${sharedCalendar.id}/shares`,
+      "POST",
+      { handle: "@collaborator", role: "editor" },
       cookie,
     );
     const preview = await api(
@@ -421,6 +441,15 @@ function unnamedInteractive() {
         await page.getByRole("button", { name: "Close" }).click();
         await page.getByRole("button", { name: "Manage shared calendars" }).click();
         await page.getByRole("heading", { name: "Calendars and permissions" }).waitFor();
+        const permissionHistory = page.getByText("Permission history · 2");
+        await permissionHistory.waitFor();
+        await permissionHistory.click();
+        await page.getByText("viewer → editor").waitFor();
+        await page.getByText("granted viewer").waitFor();
+        await page.screenshot({
+          path: path.join(artifact, "calendar-shared-permission-history.png"),
+          fullPage: true,
+        });
         await page.getByRole("button", { name: "Close" }).click();
         await page.locator('[data-view="month"]').click();
         await page.locator(".month-grid").waitFor();

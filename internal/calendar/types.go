@@ -137,16 +137,27 @@ type Share struct {
 	Handle string `json:"handle"`
 	Role   string `json:"role"`
 }
+type CalendarPermissionChange struct {
+	ID           string    `json:"id"`
+	Action       string    `json:"action"`
+	Handle       string    `json:"handle"`
+	PreviousRole string    `json:"previous_role,omitempty"`
+	Role         string    `json:"role,omitempty"`
+	ActorHandle  string    `json:"actor_handle"`
+	Version      int       `json:"version"`
+	CreatedAt    time.Time `json:"created_at"`
+}
 type SharedCalendar struct {
-	ID          string    `json:"id"`
-	OwnerID     string    `json:"owner_id"`
-	OwnerHandle string    `json:"owner_handle"`
-	Name        string    `json:"name"`
-	Color       string    `json:"color"`
-	Shares      []Share   `json:"shares,omitempty"`
-	Version     int       `json:"version"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	ID                string                     `json:"id"`
+	OwnerID           string                     `json:"owner_id"`
+	OwnerHandle       string                     `json:"owner_handle"`
+	Name              string                     `json:"name"`
+	Color             string                     `json:"color"`
+	Shares            []Share                    `json:"shares,omitempty"`
+	PermissionHistory []CalendarPermissionChange `json:"permission_history,omitempty"`
+	Version           int                        `json:"version"`
+	CreatedAt         time.Time                  `json:"created_at"`
+	UpdatedAt         time.Time                  `json:"updated_at"`
 }
 type Comment struct {
 	ID        string    `json:"id"`
