@@ -212,6 +212,29 @@ test("macOS native engineering DMG stays an inspected Gatekeeper-rejected CI art
   assert.equal(evidence.productSession, false);
 });
 
+test("macOS engineering DMG prerelease gate is source-ready and default-off", () => {
+  const evidence = ownerActivityCheckpoint.walletPlatformTracking.macosEngineeringDmgPrereleaseGate;
+  assert.equal(evidence.implementationCommit, "93439d277505cfeceacb953e789a630c4fe2e7d9");
+  assert.equal(evidence.evidenceCommit, "1d37a63eff1b7da2d96ff881c31ad5cb0435f6a0");
+  assert.equal(evidence.sourceReady, true);
+  assert.equal(evidence.hostedSourceContractVerified, true);
+  assert.equal(evidence.defaultOff, true);
+  assert.equal(evidence.publicationJobSkipped, true);
+  assert.equal(evidence.defaultMainWorkflowPresent, false);
+  assert.equal(evidence.tagCreated, false);
+  assert.equal(evidence.releaseCreated, false);
+  assert.equal(evidence.dispatch, false);
+  assert.equal(evidence.runDmgSha256, "2286abc11fe85c09986478cee602e956b6ff387e6c0f1d7bd999ab5d5b26fe69");
+  assert.equal(evidence.signingClass, "adhoc");
+  assert.equal(evidence.gatekeeperAccepted, false);
+  assert.equal(evidence.publicArtifact, false);
+  assert.equal(evidence.websitePublished, false);
+  assert.equal(evidence.developerId, false);
+  assert.equal(evidence.notarized, false);
+  assert.equal(evidence.authorization, false);
+  assert.equal(evidence.productSession, false);
+});
+
 test("v3 counts and precise owner blockers are derived without aggregate promotion", () => {
   const products = auditV3.registeredProducts;
   assert.equal(products.filter(({ runtime }) => runtime.sourceBoundPublic === true).length, auditV3.counts.sourceBoundPublicProducts);
