@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "contract": "safeWalletAuthorizeLauncher@2.0.0-p0.0",
-  "sourceCommit": "5b4ab248f4768fec586e7aa5c9fc1db2281af569",
-  "generatedAt": "2026-08-21T06:11:54.264Z",
+  "sourceCommit": "6015124fcc1f283eab96b8207b7d72fc8af16031",
+  "generatedAt": "2026-08-21T06:25:49.021Z",
   "runtimeClass": "Playwright Chromium Pixel 9-sized local mobile browser with controlled RPC transport failure; not a physical device, installed Wallet, public service or approval success",
   "viewport": {
     "width": 390,
@@ -20,6 +20,8 @@
   "topLevelPageStable": true,
   "blankTargetCreated": false,
   "customSchemeNavigationAttempted": false,
+  "englishVisibleTextNoCjk": true,
+  "localeStatusRecomputedEnglish": true,
   "presentation": {
     "ynxVisible": true,
     "ynxRoute": "provider-only-fallback",
@@ -35,9 +37,14 @@
     "send": true
   },
   "ynxStatus": "Status: WEB_CUSTOM_SCHEME_NAVIGATION_PROHIBITED: The request failed closed. No wallet state was changed.",
+  "localizedStatus": {
+    "chinese": "状态: RPC_UNAVAILABLE: 请求已失败关闭，钱包状态没有改变。",
+    "english": "Status: RPC_UNAVAILABLE: The request failed closed. No wallet state was changed."
+  },
+  "englishVisibleCjkNodes": [],
   "screenshot": {
     "path": "evidence/browser/wallet-web-safe-launcher-v2-browser-20260821.png",
-    "bytes": 152518,
-    "sha256": "77f974824709874b48de313177bd225a265adfe3bf4454747b147240915cf7c9"
+    "bytes": 149452,
+    "sha256": "4a3f73f58740b5043d05165050ab7fb7ce14c261345a5e1bbe7794d63f5ed0da"
   }
 }

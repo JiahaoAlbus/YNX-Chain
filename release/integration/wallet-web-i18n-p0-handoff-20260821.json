@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "owner": "Wallet Web/PWA/Browser Extension",
+  "supersedesBuildInput": "release/integration/wallet-web-pwa-root-routing-p0-handoff-20260821.json",
+  "sourceCommit": "6015124fcc1f283eab96b8207b7d72fc8af16031",
+  "scope": "Wallet PWA/extension presentation only; no Gateway, Core/Auth protocol, Vercel production, or Central control-plane mutation",
+  "fix": {
+    "browserTranslationOptOut": [
+      "html[translate=no].notranslate",
+      "meta[name=google][content=notranslate]",
+      "body and #app translate=no.notranslate"
+    ],
+    "dynamicStatus": "stores a semantic status model (error code/key/account/value), then regenerates text from the active locale on render rather than retaining a previously rendered string",
+    "englishGuarantee": "for English mode, asynchronous RPC_UNAVAILABLE is rendered as English and visible non-option nodes contain no CJK characters"
+  },
+  "build": {
+    "command": "cd apps/wallet-web && YNX_WALLET_WEB_SOURCE_COMMIT=6015124fcc1f283eab96b8207b7d72fc8af16031 npm run package && npm run verify:package",
+    "dist": {
+      "directory": "apps/wallet-web/dist/pwa",
+      "indexHtmlSha256": "9a3d2d9e580fa26e7f1ccd58179b937afbc2b1a7bf062cfe88990c4bdec18020",
+      "appJsSha256": "ba64764f744aa44ef9d75e3c899be4b0b92ea35aec8fafdb1c3ea940525e78d2",
+      "manifestSha256": "d2d131267483327ece949c5b8402c2dd80352bb15e791ea5571c879682ceba92"
+    },
+    "artifacts": [
+      {"platform":"pwa","bytes":280485,"sha256":"abf6ee6f0f186058f7a26d8050acea59afe31cf63b033728bf82ab23ad0fca0b","signingClass":"unsigned-web-bundle"},
+      {"platform":"chrome-edge","bytes":196210,"sha256":"ea00f836401b700781d98db79c25779c2a9e175d21184efbbfb24f313ac2134d","signingClass":"unsigned-unpacked-extension"},
+      {"platform":"firefox","bytes":196248,"sha256":"ebeed32d6fbeb0ee3e75b1eb67065330c3eb6beb0367d3b49e41b1f5b9f874fe","signingClass":"unsigned-unpacked-extension"}
+    ]
+  },
+  "validation": {
+    "sourceTests": {"passed":91,"failed":0},
+    "packageTests": {"passed":77,"failed":0},
+    "packageVerification": true,
+    "localPlaywright390": {
+      "passed": true,
+      "chineseStatus": "状态: RPC_UNAVAILABLE: 请求已失败关闭，钱包状态没有改变。",
+      "englishStatus": "Status: RPC_UNAVAILABLE: The request failed closed. No wallet state was changed.",
+      "englishVisibleCjkNodes": [],
+      "screenshot": "apps/wallet-web/evidence/browser/wallet-web-safe-launcher-v2-browser-20260821.png",
+      "screenshotBytes": 149452,
+      "screenshotSha256": "4a3f73f58740b5043d05165050ab7fb7ce14c261345a5e1bbe7794d63f5ed0da"
+    }
+  },
+  "truth": {
+    "productionDeployed": false,
+    "browserAutoTranslationObservedAndBlockedInProduction": false,
+    "installedPwa": false,
+    "providerConnected": false,
+    "account": false,
+    "sign": false,
+    "transaction": false,
+    "authorization": false,
+    "callback": false,
+    "testnet": false,
+    "integratedCentral": false
+  }
+}
