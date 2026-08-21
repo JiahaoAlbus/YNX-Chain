@@ -1,22 +1,27 @@
 {
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-  "epoch": 62,
-  "updatedAt": "2026-08-21T09:23:19Z",
+  "epoch": 63,
+  "updatedAt": "2026-08-21T09:26:36Z",
   "heavy": {
-    "owner": null,
-    "status": "RELEASED_PUBLIC_ENGLISH_GUEST_WALLET_FALLBACK_VERIFIED_COMPUTER_CONTROL_BLOCKED",
-    "branch": null,
-    "worktree": null,
-    "taskId": null,
-    "leaseId": null,
-    "leasedAt": null,
-    "expiresAt": null,
-    "releasedAt": "2026-08-21T09:23:19Z",
+    "owner": "integration",
+    "status": "ACTIVE_BOUNDED_SELLER_CONSOLE_PUBLICATION",
+    "branch": "codex/p0-seller-console-visible-20260821",
+    "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/56-seller-console-visible-p0",
+    "taskId": "P0-138",
+    "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-seller-console-public-20260821T092636Z",
+    "leasedAt": "2026-08-21T09:26:36Z",
+    "expiresAt": "2026-08-21T09:56:36Z",
+    "releasedAt": null,
     "previousOwner": "integration",
     "previousTaskId": "P0-137",
     "previousCheckpoint": "84581af52cc54d3e5e419199d1cb365f7a75f608",
-    "executionScope": null,
-    "onSafeCheckpoint": []
+    "executionScope": "SELLER_CONSOLE_EXACT_STATIC_PUBLICATION_WITH_CADDY_ROLLBACK",
+    "onSafeCheckpoint": [
+      "publish only the exact prebuilt Seller dist from source 91017003",
+      "preserve the existing reverse-proxy Caddy file and Shop p0126 runtime",
+      "route /api to the unchanged Shop service while serving /seller from the new static release",
+      "keep Seller API and App Gateway degraded or pending; do not claim private records, orders, settlement or installed Wallet"
+    ]
   },
   "light": {
     "owner": "integration",
