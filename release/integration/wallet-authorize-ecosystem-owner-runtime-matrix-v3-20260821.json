@@ -2,7 +2,7 @@
   "schemaVersion": 3,
   "evidenceId": "WALLET-AUTHORIZE-ECOSYSTEM-OWNER-RUNTIME-MATRIX-V3-20260821",
   "owner": "wallet-protocol-router",
-  "auditedAt": "2026-08-21T07:29:08Z",
+  "auditedAt": "2026-08-21T11:42:47Z",
   "sourceBaseline": "dd10350cd5d22de6622b7aae7304483f4c78e02f",
   "baseMatrix": {
     "path": "release/integration/wallet-authorize-ecosystem-source-runtime-audit-v2-20260821.json",
@@ -18,13 +18,14 @@
     "canonicalConnectStateFixedSource": true,
     "directBrowserRpcIsConnectionPrerequisite": false,
     "acceptedCorsSafeRpcProbeRequired": true,
-    "registeredProductConsumers": 1,
-    "publicRuntimeConsumers": 1,
-    "realAccountApprovalProducts": 0,
+    "registeredProductConsumers": 6,
+    "publicRuntimeConsumers": 2,
+    "realAccountApprovalProducts": 1,
     "productsConnected": 0,
     "productsMigratedV2": 0
   },
   "pendingOwnerHandoffs": "release/integration/wallet-provider-connect-pending-owner-handoffs-20260821.json",
+  "ownerActivityCheckpoint": "release/integration/wallet-provider-connect-owner-activity-checkpoint-20260821.json",
   "productionBoundary": {
     "sshUsed": false,
     "deploymentAttempted": false,
@@ -34,20 +35,33 @@
     "centralControlPlaneWritten": false
   },
   "remoteRecheck": {
-    "performedAt": "2026-08-21T08:43:39Z",
-    "registeredProductOwnerHeadChangesSinceBase": 4,
-    "changedProductIds": ["creator-studio","developer","shop","social"],
-    "unchangedProductIds": ["calendar","card","dex","exchange","finance","pay","quant","video"],
+    "performedAt": "2026-08-21T11:42:47Z",
+    "registeredProductOwnerHeadChangesSinceBase": 9,
+    "changedProductIds": ["calendar","creator-studio","developer","dex","exchange","finance","pay","shop","social"],
+    "unchangedProductIds": ["card","quant","video"],
     "nonProductRuntimeUpdates": ["wallet-web-companion"],
-    "otherEcosystemRuntimeUpdates": ["trust-center"]
+    "otherEcosystemRuntimeUpdates": ["trust-center"],
+    "faucetSourceIdentityTracking": {
+      "ownerBranchHead": "36bc953f86a4843d992e70aa5fc86cb3e0e95e53",
+      "ownerBranchTree": "d29d1da5e6264ac10955937d6a99eec564f19627",
+      "candidateSource": "d644c0821b615938e88e55ff6b073873e18f8e73",
+      "candidateSourceTree": "fc4b19a65dc2aa91898c0552a9580d691731441e",
+      "immutableEvidencePath": "release/evidence/faucet-public-recovery-2026-08-21.json",
+      "immutableEvidenceBlob": "458b0ce2673619d37359e09bc6d7a27b9039feba",
+      "immutableEvidenceSha256": "5cb1eb3200f421649bcaa913506783b3974025c9145e78449bcbae3c5c8a9c03",
+      "immutableEvidenceRuntimeSource": "62f7cf4bfc38",
+      "candidateDeployedInImmutableEvidence": false,
+      "matrixAuthority": false,
+      "note": "Faucet is tracked read-only and is not one of the twelve registered product consumers. Protocol Owner did not modify or deploy Faucet."
+    }
   },
   "registeredProducts": [
     {
-      "productId":"calendar","owner":"calendar","sourceCommit":"828120e6d81efaf874a930793660e185a394ba4f","ownerEvidenceCommit":"820fe3d3051aa1f5709fca179af811f1c6fb79b6",
+      "productId":"calendar","owner":"calendar","sourceCommit":"983e9199dc03da6f1ac4db33d33119513642cacf","sourceTree":"f261224ab5c60fa9caece23a934edb2326300482","ownerEvidenceCommit":"8f45566073f0d9979b5b1460b35144d954acc692","ownerEvidenceTree":"7a459041a903bef87991f0324b933f5aed86c022","sharedProviderConnectConsumed":true,"sourceEvidencePath":"apps/calendar/release/evidence/p0-wallet-connect/calendar-shared-provider-connect-state-source-evidence-20260821.json","sourceEvidenceSha256":"4971ff0341f60757a5b801c65afb87e7dc82f77a3750a2f5521e8712b0240383","publicEvidencePath":"apps/calendar/release/evidence/p0-140/calendar-language-wallet-public-verification-20260821.json","publicEvidenceSha256":"7ada01ab1e1d418d1b17f6c7d2864cb01bf8fc406ff2ef248fa7825e010cbb12",
       "web":{"topLevelOrHandwrittenYnxwallet":false,"standardProvider":true,"metaMaskAddSwitch0x1917":true,"guest":"public-current-source-verified"},
-      "runtime":{"sourceBoundPublic":true,"realInstalledApproval":false,"callback":false,"productSessionV2":false,"computerControl":false},
-      "blocker":"Real installed provider and approve/reject callback are absent; Native Android and iOS still handwrite request-bearing custom-scheme URIs.",
-      "ownerHandoff":"Keep the current public Web provider/guest path; migrate Native to package-root encodeRequestDeepLink plus resolver-first launch, then provide installed approval/callback and Product Session evidence."
+      "runtime":{"sourceBoundPublic":true,"realInstalledApproval":true,"provider":"MetaMask","accountLabel":"0xb906…f3ab","chainId":"0x1917","chooserClosedAfterSuccess":true,"refreshRestore":true,"disconnect":false,"callback":false,"productSessionV2":false,"computerControl":true},
+      "blocker":"Shared source, current public runtime, real MetaMask approval and refresh closure are proven, but approve/reject callback, disconnect handling and Product Session v2 remain false; Native canonical launcher evidence remains separate.",
+      "ownerHandoff":"Preserve exact 983e9199 public source and verified refresh closure; provide visible disconnect/account-change plus approve/reject callback and Product Session lifecycle before product completion."
     },
     {
       "productId":"card","owner":"card","sourceCommit":"fa2fb2308470ded24d64333b756718e7d04bfced","ownerEvidenceCommit":"27179fde538b2d839ec677f9feda26c724b8de4e",
@@ -65,36 +79,36 @@
       "ownerHandoff":"Preserve the deployed explicit YNX/MetaMask chooser, on-page official install fallbacks, stable URL and Guest tour/metrics; separately prove a real injected provider, approve/reject callback and Product Session lifecycle before migration promotion."
     },
     {
-      "productId":"developer","owner":"developer","sourceCommit":"00ac76eb5fde57493231a75de90e2956880e82c5","sourceTree":"50d227801a7af3fdcb76b30208d4c9ab6a0056b0",
-      "supersedesSourceCommit":"32025b6706d1417d0d4fbf1a3c00771b5d569e75",
+      "productId":"developer","owner":"developer","sourceCommit":"366e523252c08871e51d93add534b4513746f1b6","sourceTree":"3d9f6d2065c0a07ec4d506209c2199a5354c5cc2","sharedProviderConnectConsumed":true,"sharedStateBlob":"60879be26a4b4760dea53b38f76872045c421202","sharedStateSha256":"72558116f22625c6e9abf363b9dd16a7b1b80c93d88099be531cb63e70a62b92","consumerGateBlob":"bdbd1f80db502096ff204ce2c5db3afce311547d","consumerGateSha256":"19682da2caa7020f5648e9fe8136f27813b41ba171fcdfc01e5f0fccc908c045",
+      "supersedesSourceCommit":"00ac76eb5fde57493231a75de90e2956880e82c5",
       "web":{"topLevelOrHandwrittenYnxwallet":false,"standardProvider":true,"explicitProviderSelection":true,"metaMaskAddSwitch0x1917":true,"guest":"source-only-explicit-unsigned"},
       "runtime":{"sourceBoundPublic":false,"realInstalledApproval":false,"callback":false,"productSessionV2":false,"computerControl":false},
-      "blocker":"New source correctly requires explicit provider selection, but the protected public Developer runtime is not bound to this commit and no real account approval exists.",
+      "blocker":"Shared state bytes are consumed exactly, but the protected public Developer runtime is not bound to 366e5232 and no real account approval/callback/refresh-disconnect evidence exists.",
       "ownerHandoff":"Release only through the protected exact-source transaction; preserve explicit selection and unsigned Guest mode, then prove public provider/account and separate Product Session callback evidence."
     },
     {
-      "productId":"dex","owner":"finance-suite-dex","sourceCommit":"94c851df22020664512436d024e482de3dc9437c",
+      "productId":"dex","owner":"finance-suite-dex","sourceCommit":"7563dc6604540715f87d4e1e46b4ed41feaf6235","sourceTree":"a7edd2575d8f6f6d21abbd10baec26dcfbdbddbb","sharedProviderConnectConsumed":true,"ownerEvidencePath":"apps/dex/evidence/p0-dex-provider-connect-state-20260821.json","ownerEvidenceBlob":"f10122f4130c606e078add4d2bf7f157062515e5","ownerEvidenceSha256":"8064847bfc6d5c75f357fd0b68b50e6f577a9aa82c83f1913c12a58728094589",
       "web":{"topLevelOrHandwrittenYnxwallet":false,"standardProvider":true,"metaMaskAddSwitch0x1917":true,"guest":"read-only-source-preserved"},
       "runtime":{"sourceBoundPublic":false,"realInstalledApproval":false,"callback":false,"productSessionV2":false,"computerControl":false},
       "blocker":"Protected device capability, public current-source runtime and real-provider lifecycle remain absent.",
       "ownerHandoff":"Keep private authorization fail closed; publish the exact provider-only source and prove guest/read-only, real provider, callback and Product Session independently."
     },
     {
-      "productId":"exchange","owner":"finance-suite-exchange","sourceCommit":"77965f11ab41a76f71edc0c7e4f79545cc10331b",
-      "web":{"topLevelOrHandwrittenYnxwallet":false,"standardProvider":true,"metaMaskAddSwitch0x1917":false,"guest":"local-market-fallback-verified"},
+      "productId":"exchange","owner":"finance-suite-exchange","sourceCommit":"6edfe066a30be91618c7d36a63b1029a740c3dd2","sourceTree":"d6e10ecbac3ee62fdb44103bb5270cb7edb081ef","sharedProviderConnectConsumed":true,"ownerEvidencePath":"apps/exchange/evidence/p0-exchange-provider-connect-state-20260821.json","ownerEvidenceBlob":"a23f7b6c1dd818c27dbb078f75ad84c4978ef41e","ownerEvidenceSha256":"e60852c02ffe821a2cccab031655ad67b5e464ba64442be3742aa8836b864258",
+      "web":{"topLevelOrHandwrittenYnxwallet":false,"standardProvider":true,"metaMaskAddSwitch0x1917":true,"guest":"local-market-fallback-verified"},
       "runtime":{"sourceBoundPublic":false,"realInstalledApproval":false,"callback":false,"productSessionV2":false,"computerControl":false},
-      "blocker":"Exchange requests accounts and checks 0x1917 but explicitly performs no switch or 4902 add/re-switch sequence.",
+      "blocker":"Shared switch/add/re-switch and connect state are source-consumed, but exact public runtime and real approval/callback/refresh-disconnect evidence remain false.",
       "ownerHandoff":"Use the shared MetaMask adapter or exact switch → 4902 add → re-switch → chain re-read flow; retain guest market fallback and then supply public real-provider evidence."
     },
     {
-      "productId":"finance","owner":"finance-suite-finance","sourceCommit":"9b5957ad58193b4a8bf3c2f33fd3ad2b90b213bb","ownerEvidenceCommit":"6c10a61084bd3a5b6aa984ec6aec7f6120df093c",
-      "web":{"topLevelOrHandwrittenYnxwallet":false,"standardProvider":true,"metaMaskAddSwitch0x1917":false,"guest":"public-reachable-but-source-unbound"},
+      "productId":"finance","owner":"finance-suite-finance","sourceCommit":"bf8aff118793014aeeefa04ec0a9141e509627ef","sourceTree":"bdfc4f8377a6e72121b4b7b1c675a89e8081899d","ownerEvidenceCommit":"bf8aff118793014aeeefa04ec0a9141e509627ef","ownerEvidencePath":"apps/finance/evidence/p0-finance-provider-connect-state-20260821.json","ownerEvidenceBlob":"1ad5a2ad195317b98ea381e98ab7a22a45370908","ownerEvidenceSha256":"6467d03dfafec2a6f7cdcab6ce7c33fe2c23ee08d1659e71b5137b1d13f7ef78","sharedProviderConnectCandidate":true,"sharedProviderConnectConsumed":false,"candidateEvidenceSourceTree":"69ba84eaef503932ba1b66f42a9caa0a125e0608","acceptedSourceTree":"51a60a362d4ad5dd748bcdefb101f71b1d9e0cee","candidateEvidenceSourceTreeMismatch":true,
+      "web":{"topLevelOrHandwrittenYnxwallet":false,"standardProvider":true,"metaMaskAddSwitch0x1917":true,"guest":"public-reachable-but-source-unbound"},
       "runtime":{"sourceBoundPublic":false,"realInstalledApproval":false,"callback":false,"productSessionV2":false,"computerControl":false},
-      "blocker":"Reachable public HTML is not source/build/rollback-bound to the Owner commit; Web explicitly performs no add/switch 0x1917 operation.",
-      "ownerHandoff":"Add shared MetaMask switch/add/re-switch flow and deploy with exact source/rollback binding; prove public guest remains usable plus real provider and Product Session evidence."
+      "blocker":"Candidate implements the shared flow, but its immutable evidence binds source 98c6d5d7 to tree 69ba84ea instead of authoritative tree 51a60a36. Source consumption and public runtime therefore remain fail-closed.",
+      "ownerHandoff":"Correct the evidence tree binding without changing tested source, rerun the exact gate, then bind public runtime and prove approval/callback/refresh-disconnect."
     },
     {
-      "productId":"pay","owner":"pay","sourceCommit":"c886697197fa55f3ddf019766dcc9829b4669007",
+      "productId":"pay","owner":"pay","sourceCommit":"b3ed7141c623d57bc7d73bec6b8a1c21b1cd88ed","sourceTree":"ec30427ba9c08074077cf4c2390057f3c464199d","sharedProviderConnectConsumed":true,"ownerEvidencePath":"apps/pay/evidence/p0-pay-provider-connect-state-20260821.json","ownerEvidenceBlob":"b1bba2641029e0d5452e3e8440151adbb4cffcef","ownerEvidenceSha256":"9e0a0d4dafb25a43cd1ce298ac08d5daa19e5db5e80075e4abc1b7c81b1986c0",
       "web":{"topLevelOrHandwrittenYnxwallet":false,"standardProvider":"guest-only-no-web-authorization","metaMaskAddSwitch0x1917":true,"guest":"local-guest-verified"},
       "runtime":{"sourceBoundPublic":false,"realInstalledApproval":false,"callback":false,"productSessionV2":false,"computerControl":false},
       "blocker":"Web remains guest-only and Native has no bootable-device resolver, approve/reject callback, cold-start or public evidence.",
@@ -147,7 +161,7 @@
   "counts": {
     "registeredProducts": 12,
     "sourceBoundPublicProducts": 5,
-    "completeMetaMaskSourcePaths": 9,
+    "completeMetaMaskSourcePaths": 11,
     "topLevelOrHandwrittenWebBlockers": 0,
     "missingStandardProviderProducts": 0,
     "guestUnprovenProducts": 0,

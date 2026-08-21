@@ -35,19 +35,17 @@
     "productsMigratedV2": 0
   },
   "consumed": {
-    "count": 1,
-    "products": ["shop"],
+    "count": 6,
+    "products": ["calendar", "developer", "dex", "exchange", "pay", "shop"],
+    "sourceOnlyProducts": ["developer", "dex", "exchange", "pay"],
+    "sourceAndPublicProducts": ["calendar", "shop"],
+    "realApprovalProducts": ["calendar"],
+    "calendarEvidenceCommit": "8f45566073f0d9979b5b1460b35144d954acc692",
+    "calendarBoundary": "Real MetaMask approval and refresh chooser closure are verified; callback, disconnect handling and Product Session v2 remain false.",
     "shopEvidenceCommit": "35dc239546c2bf963534d5031d4c35c4e22c2d1c",
     "shopBoundary": "Existing approved MetaMask account restores on 0x1917 and chooser closes; new approval, callback and Product Session v2 remain false."
   },
   "pending": [
-    {
-      "productId": "calendar",
-      "owner": "calendar",
-      "currentSourceCommit": "828120e6d81efaf874a930793660e185a394ba4f",
-      "publicSourceBound": true,
-      "handoff": "Consume the shared discovery and connect reducer for Web without changing the current guest path; Native must use the package-root canonical builder and resolver-first launch. Prove installed approve/reject callback and Product Session separately."
-    },
     {
       "productId": "card",
       "owner": "card",
@@ -64,39 +62,12 @@
       "handoff": "Replace local Provider/modal lifecycle state with the shared reducer while preserving English Guest tour, explicit chooser and on-page fallbacks. Prove real Provider approval, callback and Product Session separately."
     },
     {
-      "productId": "developer",
-      "owner": "developer",
-      "currentSourceCommit": "00ac76eb5fde57493231a75de90e2956880e82c5",
-      "publicSourceBound": false,
-      "handoff": "Consume the shared reducer and consumer gate, then release only through the protected exact-source transaction. Preserve unsigned Guest mode and prove public Provider approval/callback separately."
-    },
-    {
-      "productId": "dex",
-      "owner": "finance-suite-dex",
-      "currentSourceCommit": "94c851df22020664512436d024e482de3dc9437c",
-      "publicSourceBound": false,
-      "handoff": "Consume the shared reducer without weakening private authorization. Bind an exact public source and prove guest/read-only, real Provider approval, callback and Product Session separately."
-    },
-    {
-      "productId": "exchange",
-      "owner": "finance-suite-exchange",
-      "currentSourceCommit": "77965f11ab41a76f71edc0c7e4f79545cc10331b",
-      "publicSourceBound": false,
-      "handoff": "Replace the incomplete chain check with the shared adapter/reducer including switch, 4902 add, re-switch and provider chain reread. Preserve guest markets and prove public runtime and real approval."
-    },
-    {
       "productId": "finance",
       "owner": "finance-suite-finance",
-      "currentSourceCommit": "9b5957ad58193b4a8bf3c2f33fd3ad2b90b213bb",
+      "currentSourceCommit": "bf8aff118793014aeeefa04ec0a9141e509627ef",
       "publicSourceBound": false,
-      "handoff": "Consume shared switch/add/re-switch and connect state, remove any direct browser RPC prerequisite, publish with exact source/rollback binding, then prove guest and real approval."
-    },
-    {
-      "productId": "pay",
-      "owner": "pay",
-      "currentSourceCommit": "c886697197fa55f3ddf019766dcc9829b4669007",
-      "publicSourceBound": false,
-      "handoff": "Preserve Web guest-only behavior; consume shared Native resolver/callback and connect-state boundaries, then prove bootable-device approve/reject, cold-start callback and Product Session."
+      "stalledReason": "Candidate evidence binds accepted source 98c6d5d7 to tree 69ba84ea, but the authoritative source tree is 51a60a36.",
+      "handoff": "Correct only the source-tree evidence binding, rerun the tested gate, then bind the exact public source and prove real approval/callback/refresh-disconnect."
     },
     {
       "productId": "quant",
@@ -121,17 +92,17 @@
     }
   ],
   "truth": {
-    "pendingProducts": 11,
-    "newProductConsumptionRecorded": false,
-    "newPublicRuntimeRecorded": false,
-    "newApprovalRecorded": false,
+    "pendingProducts": 6,
+    "newProductConsumptionRecorded": true,
+    "newPublicRuntimeRecorded": true,
+    "newApprovalRecorded": true,
     "aggregateConnected": false,
     "deployedPublicAggregate": false,
     "integratedCentral": false
   },
   "validation": {
-    "focusedStateAndMatrix": "19/19",
-    "walletAuthFull": "286/286",
+    "focusedStateAndMatrix": "20/20",
+    "walletAuthFull": "287/287",
     "noBareAuthorize": "PASS",
     "standardConnectConsumerGate": "PASS"
   }

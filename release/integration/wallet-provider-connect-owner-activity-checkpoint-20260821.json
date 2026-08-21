@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "WALLET-PROVIDER-CONNECT-OWNER-ACTIVITY-CHECKPOINT-20260821",
+  "owner": "wallet-protocol-router",
+  "auditedAt": "2026-08-21T11:42:47Z",
+  "authoritativeHandoffParent": "d3831c300560507f64a50e73117bab7b85926d9a",
+  "sharedContract": {
+    "sourceCommit": "98c6d5d784d212df8981a53b17118a511e246ad2",
+    "sourceTree": "51a60a362d4ad5dd748bcdefb101f71b1d9e0cee",
+    "evidenceCommit": "c3ab255c32bdeb9c8e056882c315f8ad43c29c7f",
+    "successRequires": ["selected-provider", "approved-account", "provider-request-chain-0x1917"],
+    "directBrowserRpcFetchRequired": false,
+    "corsSafeRpcDegradationPreservesConnection": true,
+    "corsSafeRpcDegradationReopensChooser": false
+  },
+  "summary": {
+    "registeredProducts": 12,
+    "sourceConsumers": 6,
+    "sourceBoundPublicConsumers": 2,
+    "realProviderApprovalProducts": 1,
+    "threeSegmentCompleteProducts": 0,
+    "productsConnected": 0,
+    "productsMigratedV2": 0,
+    "stalledProducts": 6
+  },
+  "products": [
+    {"productId":"calendar","owner":"calendar","activityCommit":"8f45566073f0d9979b5b1460b35144d954acc692","sourceCommit":"983e9199dc03da6f1ac4db33d33119513642cacf","sourceConsumed":true,"publicRuntime":true,"realProviderApproval":true,"refreshChooserClose":true,"disconnect":false,"callback":false,"productSessionV2":false,"complete":false,"blocker":"Visible disconnect/account-change plus approve/reject callback and Product Session v2 remain unproven."},
+    {"productId":"card","owner":"card","sourceCommit":"fa2fb2308470ded24d64333b756718e7d04bfced","sourceConsumed":false,"publicRuntime":true,"realProviderApproval":false,"refreshChooserClose":false,"disconnect":false,"callback":false,"productSessionV2":false,"complete":false,"blocker":"Independent Card goal has not returned exact shared 98c6 consumption or real approval/callback/refresh-disconnect evidence."},
+    {"productId":"creator-studio","owner":"creator-studio","sourceCommit":"993e7cc99ea3919488d6765e097ca78a82a30704","sourceConsumed":false,"publicRuntime":true,"realProviderApproval":false,"refreshChooserClose":false,"disconnect":false,"callback":false,"productSessionV2":false,"complete":false,"blocker":"Public Guest and no-provider fallback exist, but exact shared consumption and real Provider lifecycle evidence are absent."},
+    {"productId":"developer","owner":"developer","activityCommit":"366e523252c08871e51d93add534b4513746f1b6","sourceConsumed":true,"publicRuntime":false,"realProviderApproval":false,"refreshChooserClose":false,"disconnect":false,"callback":false,"productSessionV2":false,"complete":false,"blocker":"Protected public exact-source transaction and the real Provider lifecycle evidence are absent."},
+    {"productId":"dex","owner":"finance-suite-dex","activityCommit":"7563dc6604540715f87d4e1e46b4ed41feaf6235","evidenceSha256":"8064847bfc6d5c75f357fd0b68b50e6f577a9aa82c83f1913c12a58728094589","sourceConsumed":true,"publicRuntime":false,"realProviderApproval":false,"refreshChooserClose":false,"disconnect":false,"callback":false,"productSessionV2":false,"complete":false,"blocker":"Exact public runtime and real approval/callback/refresh-disconnect evidence are absent."},
+    {"productId":"exchange","owner":"finance-suite-exchange","activityCommit":"6edfe066a30be91618c7d36a63b1029a740c3dd2","evidenceSha256":"e60852c02ffe821a2cccab031655ad67b5e464ba64442be3742aa8836b864258","sourceConsumed":true,"publicRuntime":false,"realProviderApproval":false,"refreshChooserClose":false,"disconnect":false,"callback":false,"productSessionV2":false,"complete":false,"blocker":"Exact public runtime and real approval/callback/refresh-disconnect evidence are absent."},
+    {"productId":"finance","owner":"finance-suite-finance","activityCommit":"bf8aff118793014aeeefa04ec0a9141e509627ef","evidenceSha256":"6467d03dfafec2a6f7cdcab6ce7c33fe2c23ee08d1659e71b5137b1d13f7ef78","sourceConsumed":false,"publicRuntime":false,"realProviderApproval":false,"refreshChooserClose":false,"disconnect":false,"callback":false,"productSessionV2":false,"complete":false,"blocker":"Candidate evidence binds accepted source 98c6d5d7 to tree 69ba84ea instead of authoritative tree 51a60a36."},
+    {"productId":"pay","owner":"pay","activityCommit":"b3ed7141c623d57bc7d73bec6b8a1c21b1cd88ed","evidenceSha256":"9e0a0d4dafb25a43cd1ce298ac08d5daa19e5db5e80075e4abc1b7c81b1986c0","sourceConsumed":true,"publicRuntime":false,"realProviderApproval":false,"refreshChooserClose":false,"disconnect":false,"callback":false,"productSessionV2":false,"complete":false,"blocker":"Bootable current-source runtime and real approve/reject callback, refresh-disconnect and Product Session evidence are absent."},
+    {"productId":"quant","owner":"finance-suite-quant","activityCommit":"7d455a7211f78977c023480b33c86af758934b8d","sourceConsumed":false,"publicRuntime":false,"realProviderApproval":false,"refreshChooserClose":false,"disconnect":false,"callback":false,"productSessionV2":false,"complete":false,"blocker":"Latest activity only corrects installer truth; shared Provider/connect consumption and all runtime lifecycle evidence remain absent."},
+    {"productId":"shop","owner":"shop","activityCommit":"35dc239546c2bf963534d5031d4c35c4e22c2d1c","sourceCommit":"e35c950d57a6f9a4477877d3806cf1e4566ce74e","sourceConsumed":true,"publicRuntime":true,"realProviderApproval":false,"existingAccountRestore":true,"refreshChooserClose":true,"disconnect":false,"callback":false,"productSessionV2":false,"complete":false,"blocker":"No new approval, callback, disconnect handling or Product Session v2 evidence; publication is static-only and full runtime identity remains unmatched."},
+    {"productId":"social","owner":"social","sourceCommit":"22c26bcb7a8d618cb8e38b30940b1c07bf4237c8","sourceConsumed":false,"publicRuntime":true,"realProviderApproval":false,"refreshChooserClose":false,"disconnect":false,"callback":false,"productSessionV2":false,"complete":false,"blocker":"Public no-provider fallback is proven, but exact shared consumption and real Provider lifecycle evidence remain absent."},
+    {"productId":"video","owner":"video","sourceCommit":"1d4532ffca4eabdc15f2ec66f3d1143f67e159fa","sourceConsumed":false,"publicRuntime":false,"realProviderApproval":false,"refreshChooserClose":false,"disconnect":false,"callback":false,"productSessionV2":false,"complete":false,"blocker":"Exact shared Web/Native consumption, public runtime and real Provider lifecycle evidence remain absent."}
+  ],
+  "stalledOwners": ["card", "creator-studio", "finance-suite-finance", "finance-suite-quant", "social", "video"],
+  "faucetTracking": {
+    "modifiedByProtocolOwner": false,
+    "ownerBranchHead": "36bc953f86a4843d992e70aa5fc86cb3e0e95e53",
+    "candidateSource": "d644c0821b615938e88e55ff6b073873e18f8e73",
+    "candidateBinarySha256": "3a624f6cb0a0df3956e8ab382c03cdd8b2ae156f984974df5088d518f75acaa8",
+    "immutableEvidenceSha256": "5cb1eb3200f421649bcaa913506783b3974025c9145e78449bcbae3c5c8a9c03",
+    "immutableEvidenceRuntimeSource": "62f7cf4bfc38",
+    "immutableEvidenceCandidateStatus": "candidate_not_deployed",
+    "identityPromoted": false,
+    "blocker": "The newer d644c082 identity lacks a matching pushed immutable post-deploy public /version and health evidence checkpoint; keep it tracked but unpromoted."
+  },
+  "validation": {
+    "focusedStateAndMatrix": "20/20",
+    "walletAuthFull": "287/287",
+    "noBareAuthorize": "PASS",
+    "standardConnectConsumerGate": "PASS",
+    "jsonAndDiffCheck": "PASS"
+  },
+  "truth": {
+    "sourceCheckpointMeansProductComplete": false,
+    "productsConnected": 0,
+    "productsMigratedV2": 0,
+    "aggregateConnected": false,
+    "deployedPublicAggregate": false,
+    "integratedCentral": false
+  }
+}

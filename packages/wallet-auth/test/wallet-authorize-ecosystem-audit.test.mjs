@@ -10,6 +10,7 @@ const auditV2 = JSON.parse(await readFile(new URL("../../../release/integration/
 const auditV3 = JSON.parse(await readFile(new URL("../../../release/integration/wallet-authorize-ecosystem-owner-runtime-matrix-v3-20260821.json", import.meta.url), "utf8"));
 const providerRecovery = JSON.parse(await readFile(new URL("../../../release/integration/wallet-provider-discovery-connect-state-p0-handoff-20260821.json", import.meta.url), "utf8"));
 const pendingOwnerHandoffs = JSON.parse(await readFile(new URL("../../../release/integration/wallet-provider-connect-pending-owner-handoffs-20260821.json", import.meta.url), "utf8"));
+const ownerActivityCheckpoint = JSON.parse(await readFile(new URL("../../../release/integration/wallet-provider-connect-owner-activity-checkpoint-20260821.json", import.meta.url), "utf8"));
 const registry = JSON.parse(await readFile(new URL("../product-session-registry.json", import.meta.url), "utf8"));
 
 test("ecosystem authorize audit covers every registered client exactly once", () => {
@@ -86,11 +87,10 @@ test("v3 owner/runtime matrix tracks all twelve products and preserves false aut
   assert.equal(auditV3.counts.productsMigratedV2, 0);
   assert.equal(auditV3.truth.macComputerControl, false);
   for (const product of auditV3.registeredProducts) {
-    assert.equal(product.runtime.realInstalledApproval, false, product.productId);
     assert.equal(product.runtime.productSessionV2, false, product.productId);
-    assert.equal(product.runtime.computerControl, false, product.productId);
     assert.ok(product.ownerHandoff.length > 80, product.productId);
   }
+  assert.deepEqual(auditV3.registeredProducts.filter(({ runtime }) => runtime.realInstalledApproval === true).map(({ productId }) => productId), ["calendar"]);
 });
 
 test("v3 counts and precise owner blockers are derived without aggregate promotion", () => {
@@ -118,10 +118,17 @@ test("Trust Center public guest evidence remains outside registered migration co
 
 test("shared Provider/connect recovery hands off to all products without promoting runtime", () => {
   assert.equal(auditV3.sharedProviderConnectRecovery.sourceCommit, providerRecovery.source.commit);
-  assert.equal(auditV3.sharedProviderConnectRecovery.registeredProductConsumers, 1);
-  assert.equal(auditV3.sharedProviderConnectRecovery.publicRuntimeConsumers, 1);
+  assert.equal(auditV3.sharedProviderConnectRecovery.registeredProductConsumers, 6);
+  assert.equal(auditV3.sharedProviderConnectRecovery.publicRuntimeConsumers, 2);
+  assert.equal(auditV3.sharedProviderConnectRecovery.realAccountApprovalProducts, 1);
   assert.deepEqual(providerRecovery.registeredProductHandoffs.map(({ productId }) => productId).sort(), auditV3.registeredProducts.map(({ productId }) => productId).sort());
-  assert.deepEqual(providerRecovery.registeredProductHandoffs.filter(({ consumed }) => consumed).map(({ productId }) => productId), ["shop"]);
+  assert.deepEqual(providerRecovery.registeredProductHandoffs.filter(({ consumed }) => consumed).map(({ productId }) => productId), ["calendar", "developer", "dex", "exchange", "pay", "shop"]);
+  const calendarRecovery = providerRecovery.registeredProductHandoffs.find(({ productId }) => productId === "calendar");
+  assert.equal(calendarRecovery.publicSourceBound, true);
+  assert.equal(calendarRecovery.realProviderApproval, true);
+  assert.equal(calendarRecovery.refreshRestore, true);
+  assert.equal(calendarRecovery.disconnect, false);
+  assert.equal(calendarRecovery.callback, false);
   const shopRecovery = providerRecovery.registeredProductHandoffs.find(({ productId }) => productId === "shop");
   assert.equal(shopRecovery.sourceCommit, "e35c950d57a6f9a4477877d3806cf1e4566ce74e");
   assert.equal(shopRecovery.evidenceCommit, "35dc239546c2bf963534d5031d4c35c4e22c2d1c");
@@ -144,13 +151,13 @@ test("shared Provider/connect recovery hands off to all products without promoti
   assert.equal(providerRecovery.truth.websiteDirectLinksRestored, false);
 });
 
-test("pending Provider/connect handoffs cover the remaining eleven owners and preserve connection authority", () => {
+test("pending Provider/connect handoffs cover the remaining six owners and preserve connection authority", () => {
   const consumed = providerRecovery.registeredProductHandoffs.filter(({ consumed }) => consumed).map(({ productId }) => productId);
   const pending = providerRecovery.registeredProductHandoffs.filter(({ consumed }) => !consumed).map(({ productId }) => productId).sort();
-  assert.deepEqual(consumed, ["shop"]);
-  assert.equal(pendingOwnerHandoffs.consumed.count, 1);
+  assert.deepEqual(consumed, ["calendar", "developer", "dex", "exchange", "pay", "shop"]);
+  assert.equal(pendingOwnerHandoffs.consumed.count, 6);
   assert.deepEqual(pendingOwnerHandoffs.consumed.products, consumed);
-  assert.equal(pendingOwnerHandoffs.pending.length, 11);
+  assert.equal(pendingOwnerHandoffs.pending.length, 6);
   assert.deepEqual(pendingOwnerHandoffs.pending.map(({ productId }) => productId).sort(), pending);
   assert.ok(pendingOwnerHandoffs.pending.every(({ currentSourceCommit, handoff }) => /^[0-9a-f]{40}$/.test(currentSourceCommit) && handoff.length > 80));
   assert.deepEqual(pendingOwnerHandoffs.connectionAuthority.successRequires, ["selected-provider", "approved-account", "provider-request-chain-0x1917"]);
@@ -159,6 +166,27 @@ test("pending Provider/connect handoffs cover the remaining eleven owners and pr
   assert.equal(pendingOwnerHandoffs.connectionAuthority.rpcProbeDegradedEffects.chooserReopened, false);
   assert.equal(pendingOwnerHandoffs.connectionAuthority.rpcProbeDegradedEffects.classifiedAsNoProvider, false);
   assert.equal(pendingOwnerHandoffs.completionBoundary.sourceCheckpointIsProductCompletion, false);
-  assert.equal(pendingOwnerHandoffs.truth.newProductConsumptionRecorded, false);
+  const finance = pendingOwnerHandoffs.pending.find(({ productId }) => productId === "finance");
+  assert.match(finance.stalledReason, /69ba84ea.*51a60a36/);
+  assert.equal(auditV3.registeredProducts.find(({ productId }) => productId === "finance").candidateEvidenceSourceTreeMismatch, true);
+  assert.equal(pendingOwnerHandoffs.truth.newProductConsumptionRecorded, true);
   assert.equal(pendingOwnerHandoffs.truth.aggregateConnected, false);
+});
+
+test("owner activity checkpoint derives its counts, stalled owners and Faucet identity without promotion", () => {
+  const products = ownerActivityCheckpoint.products;
+  assert.deepEqual(products.map(({ productId }) => productId).sort(), registry.products.filter(({ productId }) => productId !== "wallet-web-companion").map(({ productId }) => productId).sort());
+  assert.equal(products.filter(({ sourceConsumed }) => sourceConsumed).length, ownerActivityCheckpoint.summary.sourceConsumers);
+  assert.equal(products.filter(({ sourceConsumed, publicRuntime }) => sourceConsumed && publicRuntime).length, ownerActivityCheckpoint.summary.sourceBoundPublicConsumers);
+  assert.equal(products.filter(({ realProviderApproval }) => realProviderApproval).length, ownerActivityCheckpoint.summary.realProviderApprovalProducts);
+  assert.equal(products.filter(({ complete }) => complete).length, ownerActivityCheckpoint.summary.threeSegmentCompleteProducts);
+  assert.deepEqual(products.filter(({ sourceConsumed }) => !sourceConsumed).map(({ owner }) => owner).sort(), [...ownerActivityCheckpoint.stalledOwners].sort());
+  assert.equal(ownerActivityCheckpoint.summary.productsConnected, 0);
+  assert.equal(ownerActivityCheckpoint.summary.productsMigratedV2, 0);
+  assert.match(products.find(({ productId }) => productId === "finance").blocker, /69ba84ea.*51a60a36/);
+  assert.equal(ownerActivityCheckpoint.faucetTracking.candidateSource, "d644c0821b615938e88e55ff6b073873e18f8e73");
+  assert.equal(ownerActivityCheckpoint.faucetTracking.immutableEvidenceRuntimeSource, "62f7cf4bfc38");
+  assert.equal(ownerActivityCheckpoint.faucetTracking.identityPromoted, false);
+  assert.equal(ownerActivityCheckpoint.faucetTracking.modifiedByProtocolOwner, false);
+  assert.equal(ownerActivityCheckpoint.truth.aggregateConnected, false);
 });
