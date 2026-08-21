@@ -1,0 +1,40 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-111",
+  "product": "creator-studio",
+  "owner": "integration",
+  "recordedAt": "2026-08-21T04:50:00Z",
+  "baselineCommit": "73feca397ca0589c5d5a3e07c30944aaeb1b00d8",
+  "change": {
+    "description": "Replace top-level custom-scheme navigation with the accepted shared safe Wallet authorization launcher while preserving the visible Creator Studio page and explicit Wallet recovery choices.",
+    "walletAuthPackage": "@ynx-chain/wallet-auth",
+    "walletAuthArtifact": "apps/creator-studio/vendor/ynx-chain-wallet-auth-1.0.0-safe-authorize-p0.0.tgz",
+    "walletAuthArtifactSha256": "dd80cf3d8fda3b35b89ddae6f3848dc420358b9c10d1879ed33a33f567585acb",
+    "manualSchemeConcatenation": false,
+    "topLevelLocationNavigation": false,
+    "pendingRequestPersistedBeforeLaunch": true,
+    "unsupportedLaunchRemovesPendingRequest": true,
+    "officialWalletRecoveryVisible": true,
+    "metamaskRecoveryVisible": true
+  },
+  "verification": {
+    "npmCheck": {"passed": true, "tests": 6, "failures": 0},
+    "npmBuild": {"passed": true},
+    "npmSmoke": {"passed": true},
+    "gitDiffCheck": {"passed": true},
+    "builtAppSha256": "be0d76dae962b78fad0f0ecf8f4fd6ce6455adb58067e290ed1277d9fbd60ab3"
+  },
+  "truth": {
+    "sourceValidated": true,
+    "publicDeployed": false,
+    "publicVisibleVerified": false,
+    "computerControlVerified": false,
+    "walletApprovalVerified": false,
+    "callbackVerified": false,
+    "productSessionVerified": false,
+    "payoutVerified": false,
+    "migratedV2": false
+  },
+  "nextAction": "Website/deployment owner must publish this exact Creator Studio source through the authoritative production path, then verify the page remains visible while a real installed Wallet receives and renders the bound authorization request."
+}
