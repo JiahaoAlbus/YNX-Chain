@@ -31,13 +31,26 @@
   "ownerReadback": {
     "calendar": {
       "ownerThread": "019fa947-b618-7500-a4ec-dc6ae812a011",
-      "latestActivity": "Calendar availability-freshness source work and local browser acceptance",
+      "latestActivity": "P0-143 Wallet connection-details public replacement",
+      "sourceCommit": "d2044bd9a8ec6bdc6235dfb625a62c3dd5c58b04",
+      "sourceTree": "b11b1e65b0026ed2bfd5d3306bd85a5c63ab3f53",
+      "evidenceCommit": "2426c2e2184f685467886fb7427950f78d089024",
+      "evidencePath": "apps/calendar/release/evidence/p0-143/calendar-wallet-details-public-replacement-20260822.json",
       "ownerOpenedLocalEntry": true,
       "localEntry": "http://127.0.0.1:24777/",
-      "ownerOpenedRealPublicEntryAfterRegression": false,
-      "ownerFixDeployedPublic": false,
-      "regressionClosed": false,
-      "blocker": "Connected-account action still lacks a deployed public connection-details/disconnect fix; local guest/month validation is not public completion."
+      "ownerOpenedRealPublicEntryAfterRegression": true,
+      "ownerFixDeployedPublic": true,
+      "regressionClosed": true,
+      "connectionDetailsVisible": true,
+      "disconnectControlVisible": true,
+      "switchAccountControlVisible": true,
+      "refreshRestoredWithChooserClosed": true,
+      "disconnectExecuted": false,
+      "switchAccountExecuted": false,
+      "newApproveRejectCallbackProved": false,
+      "productSessionV2": false,
+      "complete": false,
+      "blocker": "The public connection-details regression is closed, but disconnect/switch-account were not executed and no new approve/reject callback, Product Session v2, sign/transaction or ComputerControl proof exists."
     },
     "card": {
       "ownerThread": "01a01e51-9eea-7500-bd8c-23d5bfb137ce",
@@ -141,8 +154,8 @@
   "counts": {
     "registeredProducts": 12,
     "ownersWithHistoricalPublicOpenEvidence": 4,
-    "ownersWithPostFixPublicOpenEvidence": 0,
-    "ownerFixesDeployedPublic": 0,
+    "ownersWithPostFixPublicOpenEvidence": 1,
+    "ownerFixesDeployedPublic": 1,
     "completeProducts": 0,
     "productsConnected": 0,
     "productsMigratedV2": 0

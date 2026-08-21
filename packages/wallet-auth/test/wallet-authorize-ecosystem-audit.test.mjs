@@ -155,13 +155,43 @@ test("owner public completion checkpoint rejects local, historical and source-on
   assert.equal(ownerPublicCompletion.completionRule.ownerMustPersonallyOpenRealPublicEntry, true);
   assert.equal(ownerPublicCompletion.completionRule.sourceOrPrOrTestsAloneComplete, false);
   assert.equal(ownerPublicCompletion.ownerReadback.calendar.ownerOpenedLocalEntry, true);
-  assert.equal(ownerPublicCompletion.ownerReadback.calendar.ownerOpenedRealPublicEntryAfterRegression, false);
+  assert.equal(ownerPublicCompletion.ownerReadback.calendar.ownerOpenedRealPublicEntryAfterRegression, true);
+  assert.equal(ownerPublicCompletion.ownerReadback.calendar.ownerFixDeployedPublic, true);
+  assert.equal(ownerPublicCompletion.ownerReadback.calendar.regressionClosed, true);
+  assert.equal(ownerPublicCompletion.ownerReadback.calendar.connectionDetailsVisible, true);
+  assert.equal(ownerPublicCompletion.ownerReadback.calendar.disconnectControlVisible, true);
+  assert.equal(ownerPublicCompletion.ownerReadback.calendar.switchAccountControlVisible, true);
+  assert.equal(ownerPublicCompletion.ownerReadback.calendar.disconnectExecuted, false);
+  assert.equal(ownerPublicCompletion.ownerReadback.calendar.switchAccountExecuted, false);
+  assert.equal(ownerPublicCompletion.ownerReadback.calendar.newApproveRejectCallbackProved, false);
+  assert.equal(ownerPublicCompletion.ownerReadback.calendar.productSessionV2, false);
+  assert.equal(ownerPublicCompletion.ownerReadback.calendar.complete, false);
   assert.equal(ownerPublicCompletion.ownerReadback.card.ownerOpenedRealPublicEntryAfterFix, false);
   assert.equal(ownerPublicCompletion.ownerReadback.shop.ownerOpenedRealPublicEntryAfterRegressionFix, false);
-  assert.equal(ownerPublicCompletion.counts.ownersWithPostFixPublicOpenEvidence, 0);
-  assert.equal(ownerPublicCompletion.counts.ownerFixesDeployedPublic, 0);
+  assert.equal(ownerPublicCompletion.counts.ownersWithPostFixPublicOpenEvidence, 1);
+  assert.equal(ownerPublicCompletion.counts.ownerFixesDeployedPublic, 1);
   assert.equal(ownerPublicCompletion.counts.completeProducts, 0);
   assert.equal(ownerPublicCompletion.truth.deployedPublicAggregate, false);
+});
+
+test("Calendar P0-143 closes connection-details regression without claiming full lifecycle", () => {
+  const calendar = auditV3.registeredProducts.find(({ productId }) => productId === "calendar");
+  assert.equal(calendar.sourceCommit, "d2044bd9a8ec6bdc6235dfb625a62c3dd5c58b04");
+  assert.equal(calendar.sourceTree, "b11b1e65b0026ed2bfd5d3306bd85a5c63ab3f53");
+  assert.equal(calendar.ownerEvidenceCommit, "2426c2e2184f685467886fb7427950f78d089024");
+  assert.equal(calendar.runtime.sourceBoundPublic, true);
+  assert.equal(calendar.runtime.connectedAccountActionOpenedConnectionDetails, true);
+  assert.equal(calendar.runtime.connectedAccountActionOpenedGuestLocalDataDialog, false);
+  assert.equal(calendar.runtime.disconnectControlVisible, true);
+  assert.equal(calendar.runtime.switchAccountControlVisible, true);
+  assert.equal(calendar.runtime.refreshRestore, true);
+  assert.equal(calendar.runtime.chooserClosedAfterSuccess, true);
+  assert.equal(calendar.runtime.privateCalendarSyncDegradedIndependent, true);
+  assert.equal(calendar.runtime.disconnectExecuted, false);
+  assert.equal(calendar.runtime.switchAccountExecuted, false);
+  assert.equal(calendar.runtime.callback, false);
+  assert.equal(calendar.runtime.productSessionV2, false);
+  assert.equal(calendar.runtime.computerControl, false);
 });
 
 test("iOS ASC upload copy cleanup stays non-production", () => {
