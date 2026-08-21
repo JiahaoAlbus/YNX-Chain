@@ -1,0 +1,119 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-08-21T16:35:17Z",
+  "owner": "Wallet/Auth macOS native",
+  "evidenceKind": "owner-native-engineering-dmg-prerelease-source-and-hosted-ci",
+  "implementationCommit": "93439d277505cfeceacb953e789a630c4fe2e7d9",
+  "implementationTree": "eec143d92000403875ad28ea7f4041b829d6e4ad",
+  "sourceBackread": {
+    ".github/workflows/wallet-macos.yml": {
+      "gitBlob": "edc94a1adb4560c6baffe6d9234293c2e2e7f091",
+      "bytes": 34186,
+      "sha256": "e605cdf23b119ea14e366d5e7fc570601458b0872fa096cde71edc5110313d5f"
+    },
+    "apps/wallet/macos/scripts/verify-engineering-dmg-release-source.rb": {
+      "gitBlob": "71d316d558972d43fd0d1891a1ab1da250cd89e1",
+      "bytes": 1059,
+      "sha256": "8bf5bf1203fdc9905ebb79752448f2c4a79b710181454f3a97f3cc2746768c84",
+      "executable": true
+    }
+  },
+  "sourceContract": {
+    "workflowDispatchOnly": true,
+    "publishInputDefault": false,
+    "exactExpectedSourceShaRequired": true,
+    "mainRefRequired": true,
+    "cleanCheckoutRequired": true,
+    "nativePackageMustSucceedFirst": true,
+    "protectedEnvironment": "wallet-macos-engineering-publication",
+    "tagIdentity": "wallet-macos-native-ad-hoc-dmg-${expectedSourceSha8}",
+    "existingTagFailsClosed": true,
+    "sameRunArtifactRecomputedBeforeRelease": true,
+    "adHocAndGatekeeperRejectedBoundaryRequired": true,
+    "prereleaseTruthNoticeRequired": true,
+    "productionCredentialsRequested": false
+  },
+  "githubActions": {
+    "runId": 32503547626,
+    "jobId": 96838510314,
+    "publicationJobId": 96838939494,
+    "headSha": "93439d277505cfeceacb953e789a630c4fe2e7d9",
+    "headShaExact": true,
+    "event": "push",
+    "status": "completed",
+    "conclusion": "success",
+    "createdAt": "2026-08-21T16:33:41Z",
+    "completedAt": "2026-08-21T16:35:17Z",
+    "nativePackageConclusion": "success",
+    "publicationJobConclusion": "skipped",
+    "sourceContractLogVerified": true,
+    "swiftTests": {
+      "executed": 17,
+      "failures": 0
+    }
+  },
+  "engineeringDmgFromThisRunPublicLog": {
+    "name": "YNX-Wallet-macOS-ad-hoc.dmg",
+    "sha256": "2286abc11fe85c09986478cee602e956b6ff387e6c0f1d7bd999ab5d5b26fe69",
+    "bytes": 307395,
+    "bundleIdentifier": "com.ynxweb4.wallet.macos",
+    "minimumOS": "13.0",
+    "architectures": ["x86_64", "arm64"],
+    "customScheme": "ynxwallet",
+    "signature": "adhoc",
+    "teamIdentifier": null,
+    "hdiutilChecksumValid": true,
+    "deepStrictCodesignVerified": true,
+    "gatekeeperAccepted": false,
+    "gatekeeperExitStatus": 3,
+    "developerIDSigned": false,
+    "notarized": false,
+    "stapled": false,
+    "downloadInspected": false
+  },
+  "actionsArtifact": {
+    "id": 9454451172,
+    "name": "ynx-wallet-macos-native",
+    "metadataBytes": 1716403,
+    "metadataDigest": "sha256:11fd51e3633ced4f94aeb028948625fda128e245ac31f39e3e3486b5afb4f59a",
+    "downloadInspected": false
+  },
+  "publicationBackread": {
+    "defaultMainWorkflowPresent": false,
+    "exactTagPresent": false,
+    "githubPrereleasePresent": false,
+    "publicationDispatched": false,
+    "publicDownloadHosted": false,
+    "websiteReplacementPublished": false
+  },
+  "promotedGates": {
+    "engineeringDmgPrereleaseSourceReady": true,
+    "engineeringDmgPrereleaseHostedSourceContractVerified": true,
+    "engineeringDmgPrereleaseDefaultOffVerified": true
+  },
+  "remainingFalse": {
+    "defaultMainRegistration": false,
+    "operatorPublicationDispatch": false,
+    "githubPrereleasePublished": false,
+    "artifactDownloadInspected": false,
+    "publicNativeWalletPublished": false,
+    "websiteReplacementPublished": false,
+    "systemApplicationsInstalled": false,
+    "browserQuarantineAccepted": false,
+    "developerIDSigned": false,
+    "notarized": false,
+    "stapled": false,
+    "gatekeeperAccepted": false,
+    "productionSigned": false,
+    "appStore": false,
+    "authorizationSuccess": false,
+    "account": false,
+    "productSession": false,
+    "sign": false,
+    "send": false,
+    "transaction": false,
+    "biometricSuccess": false,
+    "recoverySuccess": false,
+    "universalLink": false
+  }
+}
