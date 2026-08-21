@@ -428,10 +428,10 @@
   ],
   "heavy": {
     "owner": "integration",
-    "taskId": "P0-138",
-    "status": "ACTIVE_BOUNDED_SELLER_CONSOLE_PUBLICATION",
-    "acquiredAt": "2026-08-21T09:26:36Z",
-    "expiresAt": "2026-08-21T09:56:36Z",
+    "taskId": "P0-139",
+    "status": "ACTIVE_BOUNDED_SELLER_CONSOLE_CADDY_RETRY",
+    "acquiredAt": "2026-08-21T09:30:24Z",
+    "expiresAt": "2026-08-21T10:00:24Z",
     "releasedAt": null,
     "sourceCommit": "910170031e7579924af34c3c2a8b92bdb08958cf",
     "runtimeHost": "43.153.202.237",
@@ -443,7 +443,7 @@
     "singleUse": true,
     "previousOwner": null,
     "previousTaskId": "P0-137",
-    "reason": "P0-138 publishes the exact verified Seller Console bundle through a product-scoped Caddy static route while preserving the current Shop service and Caddy config for rollback."
+    "reason": "P0-138 failed closed because it probed a nonexistent /api/health route and restored the exact prior Caddy config. P0-139 reuses the verified static candidate, routes /health and /api to the unchanged Shop service, and probes the real /health and /api/auth/config endpoints."
   },
   "wave": {
     "id": "B-financial-apps-quant",
