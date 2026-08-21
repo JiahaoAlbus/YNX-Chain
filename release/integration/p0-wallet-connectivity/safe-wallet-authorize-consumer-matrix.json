@@ -86,10 +86,12 @@
       "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/08-quant-lab",
       "branch": "codex/quant-owner-contract-snapshot",
       "path": "apps/quant/**",
-      "status": "ACTIVE",
+      "status": "SOURCE_BUILD_LOCAL_BROWSER_CHECKPOINT_REACHED",
       "taskId": "P0-110",
       "startingCommit": "f66fd4d14ff047efa6bb7e66fc2e140773826b16",
-      "nextAction": "Consume canonical request and accepted safe launcher, preserve read-only/backtest behavior, and do not enable capital execution."
+      "checkpointCommit": "b20a908893010968d92045e8bb0bcb4ab1bd325c",
+      "finding": "Quant consumed the canonical request and safe launcher in a source/local-browser checkpoint; 6/6 source and 4/4 browser tests passed. Installed Wallet, Product Session, strategy execution and public deployment remain false.",
+      "nextAction": "Preserve this checkpoint and require separate installed-Wallet lifecycle plus authorized strategy/order evidence before any execution promotion."
     },
     {
       "product": "ai",
@@ -97,10 +99,11 @@
       "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/61-ai-visible-p0",
       "branch": "codex/p0-ai-visible-20260821",
       "path": "apps/ai/**",
-      "status": "ACTIVE",
+      "status": "SOURCE_TEST_BUNDLE_CHECKPOINT_RELEASE_GATE_BLOCKED",
       "taskId": "P0-115",
-      "finding": "The mobile client receives or creates the Wallet URL and calls Linking.openURL without the accepted resolver launcher.",
-      "nextAction": "Replace unconditional Linking.openURL with the shared native resolver flow, expose official Wallet download and independent MetaMask recovery, and preserve anonymous AI trial access."
+      "checkpointCommit": "048269c0f670e0234256d917a5e9cabae5c47d5a",
+      "finding": "AI Mobile now requires an exact server request/deep-link match and a positive Android/iOS handler preflight before opening; 10/10 plus typecheck, product/i18n checks and both bundle exports passed. The central YNX AI release contract is still absent, so public and installed-Wallet proof remain false.",
+      "nextAction": "Restore or accept the central YNX AI release contract, publish signed artifacts, then verify a real installed-Wallet approve/reject/callback separately."
     },
     {
       "product": "calendar",
