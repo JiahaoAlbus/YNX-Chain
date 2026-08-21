@@ -221,6 +221,14 @@ private struct RecoveryControlsView: NSViewRepresentable {
     stack.alignment = .leading
     stack.spacing = 8
     stack.setHuggingPriority(.required, for: .vertical)
+    // `NSViewRepresentable` introduces a hosting boundary.  On the hosted CI
+    // runner AppKit did not publish the arranged subviews as AX descendants,
+    // even though the controls were visible and had identifiers.  Declare the
+    // container relationship explicitly so assistive technology observes the
+    // status and the intentionally-disabled recovery action.
+    stack.setAccessibilityElement(false)
+    stack.setAccessibilityRole(.group)
+    stack.setAccessibilityChildren([statusLabel, actionButton])
     return stack
   }
 
