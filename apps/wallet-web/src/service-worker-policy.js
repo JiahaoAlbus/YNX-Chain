@@ -1,5 +1,5 @@
 export const PWA_CACHE_PREFIX = "ynx-wallet-web-v";
-export const PWA_CACHE = `${PWA_CACHE_PREFIX}8`;
+export const PWA_CACHE = `${PWA_CACHE_PREFIX}9`;
 export const PWA_RECOVERY_PARAM = "ynx-sw-recovery";
 export const PWA_UPGRADE_PARAM = "ynx-sw-upgrade";
 
@@ -25,6 +25,19 @@ export function recoveryNavigationUrl(requestUrl, cacheName = PWA_CACHE) {
 
 export function upgradeNavigationUrl(requestUrl, cacheName = PWA_CACHE) {
   return markedNavigationUrl(requestUrl, PWA_UPGRADE_PARAM, cacheName);
+}
+
+export function cleanPwaNavigationUrl(requestUrl) {
+  let url;
+  try { url = new URL(requestUrl); } catch { return null; }
+  if (!["http:", "https:"].includes(url.protocol)) return null;
+  let changed = false;
+  for (const parameter of [PWA_RECOVERY_PARAM, PWA_UPGRADE_PARAM]) {
+    if (!url.searchParams.has(parameter)) continue;
+    url.searchParams.delete(parameter);
+    changed = true;
+  }
+  return changed ? `${url.pathname}${url.search}${url.hash}` : null;
 }
 
 export function assetKeyForRequest(request, scopeUrl) {

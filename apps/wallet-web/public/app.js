@@ -6,6 +6,7 @@ import {
 import {CORE_WALLET_AUTH_BINDING} from "./core-auth-binding.js";
 import {createWalletWebCompanionLifecycle} from "./wallet-web-companion-lifecycle.js";
 import {createStandardWalletConnectState,reduceStandardWalletConnectState,STANDARD_WALLET_CONNECT_STATUS} from "./standard-wallet-connect-state.js";
+import {cleanPwaNavigationUrl} from "./service-worker-policy.js";
 import {
   METAMASK_DOWNLOAD_URL, WALLET_DOWNLOAD_MATRIX, YNX_DOWNLOAD_URL, addYNXChain, connectStandardWallet, createExtensionProvider, discoverWallets,
   extensionWalletAvailability, forgetSession, rememberSession, restoreTestnetSession, sendTransaction,
@@ -15,7 +16,8 @@ import {
 
 const app = document.querySelector("#app");
 const isExtension = location.protocol === "chrome-extension:" || location.protocol === "moz-extension:";
-if(!isExtension){const cleanUrl=new URL(location.href);let changed=false;for(const key of ["ynx-sw-recovery","ynx-sw-upgrade"]){if(cleanUrl.searchParams.has(key)){cleanUrl.searchParams.delete(key);changed=true}}if(changed)history.replaceState(history.state,"",`${cleanUrl.pathname}${cleanUrl.search}${cleanUrl.hash}`)}
+function cleanPwaRecoveryMarker(){if(isExtension)return;const cleanUrl=cleanPwaNavigationUrl(location.href);if(cleanUrl)history.replaceState(history.state,"",cleanUrl)}
+cleanPwaRecoveryMarker();
 const mobileBrowser = !isExtension && isMobileWalletBrowser(navigator);
 const preview = new URLSearchParams(location.search);
 const companionLifecycle=createWalletWebCompanionLifecycle({binding:CORE_WALLET_AUTH_BINDING});
