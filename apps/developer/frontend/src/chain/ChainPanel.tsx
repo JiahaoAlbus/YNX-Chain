@@ -3,7 +3,7 @@ import { Button } from "../components/ui/button";
 import { broadcastDeveloperDeployment, chainRpc, completeDeveloperWalletSession, debugChainBlock, debugChainTransaction, introspectDeveloperWalletSession, loadChainCompiler, loadChainStatus, loadWalletReadiness, type ChainStatus, type WalletReadiness } from "../runtime/client";
 import { canonicalJSON, consumeDeveloperDeploymentRequest, consumeDeveloperWalletRequest, createDeveloperSessionIntrospection, createDeveloperWalletCompletion, desktopWalletBridge, openDeveloperDeploymentReview, openDeveloperWalletReview, parseDeveloperDeploymentCallback, saveDeveloperWalletSession, subscribeDeveloperDeploymentCallbacks, subscribeDeveloperWalletCallbacks, ynxAccountToEVM } from "../wallet/transport";
 import { enterDeveloperWalletV2Guest, inspectDeveloperWalletV2Runtime } from "../wallet/product-session-v2";
-import { discoverDeveloperWebWallet } from "../wallet/safe-authorize-launcher";
+import { connectDeveloperWebWallet, discoverDeveloperWebWallet } from "../wallet/safe-authorize-launcher";
 
 const RPC_METHODS = ["eth_chainId", "eth_blockNumber", "eth_gasPrice", "eth_getBalance", "eth_getCode", "eth_getTransactionCount", "eth_getTransactionByHash", "eth_getTransactionReceipt", "eth_call", "eth_estimateGas", "eth_getLogs", "eth_getBlockByNumber"];
 const TEMPLATES = {
@@ -71,6 +71,7 @@ export function ChainPanel({ files, onAddFile }: { files: Record<string, string>
     [walletState, setWalletState] = useState(""),
     [walletV2State, setWalletV2State] = useState("Checking canonical Wallet Product Session v2…"),
     [webWalletLaunch, setWebWalletLaunch] = useState<Awaited<ReturnType<typeof discoverDeveloperWebWallet>>>(),
+    [webWalletAccount, setWebWalletAccount] = useState<string>(),
     wallet = useMemo(() => desktopWalletBridge(), []),
     walletGateReady = Boolean(walletReadiness?.developerBinding.attested && walletReadiness.gateway.remoteDeployed && walletReadiness.gateway.publicDeploymentReady),
     artifact = useMemo(() => {
@@ -183,11 +184,12 @@ export function ChainPanel({ files, onAddFile }: { files: Record<string, string>
       setBusy(true);
       setError("");
       try {
-        const result = await discoverDeveloperWebWallet();
-        setWebWalletLaunch(result);
-        setWalletState(result.status === "provider-ready" ? "A standard browser Wallet provider was discovered. No account, authorization, callback or Product Session was created." : "No unambiguous browser Wallet provider was found. Choose an official Wallet option below; this page did not open a custom scheme, frame, popup or blank tab.");
+        const result = await connectDeveloperWebWallet();
+        setWebWalletLaunch(result.launch);
+        setWebWalletAccount(result.account || undefined);
+        setWalletState(result.status === "connected" ? `Standard Wallet connected as ${result.account}. YNX Testnet 0x1917 is selected; no YNX authorization URI, callback or Product Session was created.` : "No unambiguous browser Wallet provider was found. Choose an official Wallet option below; this page did not open a custom scheme, frame, popup or blank tab.");
       } catch {
-        setWalletState("Browser Wallet discovery failed closed. No authorization request was created.");
+        setWalletState("Browser Wallet connection was declined or failed closed. No custom authorization request, callback or Product Session was created.");
       } finally {
         setBusy(false);
       }
@@ -337,15 +339,15 @@ export function ChainPanel({ files, onAddFile }: { files: Record<string, string>
             <><Button disabled={busy || !artifact || !walletGateReady} onClick={openWallet}>Sign in with YNX Wallet</Button><Button disabled={busy||!artifact||!estimate||!walletGateReady} onClick={reviewDeployment}>Review exact contract deployment</Button></>
           ) : (
             <>
-              <Button disabled={busy} onClick={openWallet}>Discover browser Wallet</Button>
-              <p>{webWalletLaunch?.status === "provider-ready" ? `Browser provider ready: ${webWalletLaunch.detail}. It is unverified and no account request was sent.` : "No browser Wallet provider is available. The official download and MetaMask choices remain on this page."}</p>
+              <Button disabled={busy} onClick={openWallet}>{webWalletAccount ? "Reconnect browser Wallet" : "Connect browser Wallet"}</Button>
+              <p>{webWalletAccount ? `Standard Wallet account ${webWalletAccount} is connected on YNX Testnet 0x1917. Product Session remains optional and separate.` : webWalletLaunch?.status === "provider-ready" ? `Browser provider ready: ${webWalletLaunch.detail}. Connect asks the selected provider for accounts and YNX Testnet 0x1917 only after this button is clicked.` : "No browser Wallet provider is available. The official download and MetaMask choices remain on this page."}</p>
               <a href={webWalletLaunch?.fallbackActions[0]?.url || "https://www.ynxweb4.com/dapp/download"}>Download YNX Wallet</a>{" · "}
               <a href={webWalletLaunch?.fallbackActions[1]?.url || "https://metamask.io/download/"}>Use MetaMask</a>
             </>
           )}
           {walletState && <p>{walletState}</p>}
           {walletReadiness?.gateway.build && <p>Gateway {walletReadiness.gateway.build.release}<br /><code>{walletReadiness.gateway.build.sourceCommit.slice(0, 12)}</code> · registry {walletReadiness.developerBinding.attested ? `${walletReadiness.developerBinding.registrySha256?.slice(0, 12)}…` : "not attested"}</p>}
-          {!wallet && <p>Web uses fixed EIP-6963/EIP-1193 discovery only. It never launches a custom Wallet scheme, iframe, popup, blank target or simulated session; native resolver-first callbacks remain separate.</p>}
+          {!wallet && <p>Web uses fixed EIP-6963/EIP-1193 only. A user click can request accounts and add/switch YNX Testnet 0x1917; it never launches a custom Wallet scheme, iframe, popup, blank target or simulated session. Native resolver-first canonical callbacks remain separate.</p>}
         </div>
       </details>
       {error && <div className="collab-error">{error}</div>}

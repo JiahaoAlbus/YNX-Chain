@@ -32,7 +32,7 @@ test("safe authorize v2 keeps Web and Extension on provider discovery with visib
   assert.equal(scope.opened, 0);
 });
 
-test("safe authorize v2 discovers one YNX provider without navigation or account request", async () => {
+test("safe authorize v2 discovers one YNX provider without navigation or account request before a product click", async () => {
   let accountRequests = 0;
   const ynx = { isYNXWallet:true, providerInfo:{rdns:"com.ynx.wallet"}, async request() { accountRequests += 1; } };
   const scope = browserScope();
@@ -65,6 +65,10 @@ test("launcher and Developer Web adapter contain no frame, popup, blank target o
   ]);
   assert.doesNotMatch(launcher, /createElement\s*\(|<iframe|window\.open\s*\(|target\s*=\s*["']_blank|(?:window|document)\.location\s*=|location\.href\s*=/);
   assert.doesNotMatch(adapter + panel, /window\.open\s*\(|<iframe|target="_blank"|ynxwallet:\/\/authorize/);
+  assert.match(adapter, /eth_requestAccounts/);
+  assert.match(adapter, /wallet_addEthereumChain/);
+  assert.match(adapter, /wallet_switchEthereumChain/);
+  assert.match(adapter, /chainId: "0x1917"/);
   assert.match(mac, /URLForApplicationToOpenURL:parts\.URL/);
   assert.doesNotMatch(mac, /availability_probe_not_opened/);
 });

@@ -52,9 +52,19 @@ Integration accepted `safeWalletAuthorizeLauncher@2.0.0-p0.0` at
 `649107488520f0973805b32704cfe4a02e15aafa`. This supersedes the hidden-frame
 candidate: Web and Extension perform EIP-6963 followed by injected EIP-1193
 discovery only. They do not navigate a custom scheme, create an iframe, invoke
-`window.open`, create a blank target, or call an account method. When no
+`window.open` or create a blank target. The Developer Web product may, after an
+explicit user click, call the selected standard provider's
+`eth_requestAccounts` and add/switch only the fixed YNX Testnet `0x1917`; this
+is a Developer-owned EIP-1193 connection and not a YNX authorization or
+Product Session. When no
 unambiguous provider exists, the current page visibly offers the official YNX
 Wallet download and MetaMask links.
+
+The Wallet/Auth v2 source itself remains the accepted discovery boundary. The
+explicit-click EIP-1193 connection adapter is owned by Developer and records
+its own tests and browser evidence; it must not be relabeled as Wallet/Auth
+approval, callback completion, Product Session migration, or central source
+acceptance.
 
 Native Developer retains its complete canonical request flow, but now resolves
 the exact populated URI before opening it. Resolver success proves only a
