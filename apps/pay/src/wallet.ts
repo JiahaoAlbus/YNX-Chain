@@ -1,5 +1,8 @@
 import {DAppConnectError,StandardWalletConnection,classifyWalletError,discoverEIP6963} from '@ynx/dapp-connect-sdk';
-import {canonicalJSON,launchNativeAuthorization,parseAuthorizationCallbackURL,parseAuthorizationRequest,type AuthorizationLaunchResult,type AuthorizationRequest} from '@ynx-chain/wallet-auth';
+import {canonicalJSON} from '@ynx-chain/wallet-auth/src/canonical.js';
+import {launchCanonicalAuthorization} from '@ynx-chain/wallet-auth/src/authorize-launcher.js';
+import {parseAuthorizationCallbackURL,parseAuthorizationRequest} from '@ynx-chain/wallet-auth/src/protocol.js';
+import type {AuthorizationLaunchResult,AuthorizationRequest} from '@ynx-chain/wallet-auth';
 import * as SecureStore from 'expo-secure-store';
 import {getRandomValues} from 'expo-crypto';
 import {Linking,NativeModules,Platform} from 'react-native';
@@ -74,7 +77,7 @@ async function loadCanonicalAuthorizationPending():Promise<AuthorizationRequest|
 async function createCanonicalAuthorizationRequest(capabilities:PayAuthorizationCapabilities){
   const now=new Date(),expiresAt=new Date(now.getTime()+5*60_000);
   return parseAuthorizationRequest({
-    version:'2',nonce:authorizationNonce(),chainId:'ynx_6423-1',requestingProduct:'pay',productClientId:'ynx-pay-v1',bundleId:'com.ynxweb4.pay',origin:'https://pay.ynxweb4.com',
+    version:'1',nonce:authorizationNonce(),chainId:'ynx_6423-1',requestingProduct:'pay',productClientId:'ynx-pay-v1',bundleId:'com.ynxweb4.pay',
     productDeviceAlgorithm:'p256-sha256',productDeviceKey:capabilities.device.key,callback:'ynxpay://wallet-auth/callback',
     scopes:['account:read','pay:case:create','pay:route:select','pay:settlement:submit','pay:sponsorship:request'],
     purpose:'Authorize YNX Pay on YNX Testnet. This does not approve, sign, broadcast, or settle a payment and does not create a Product Session.',issuedAt:now.toISOString(),expiresAt:expiresAt.toISOString(),
@@ -92,13 +95,13 @@ function unavailableAuthorizationSession(launch:AuthorizationLaunchResult):PayPr
   return {state:{status:'authorization-unsupported',message:'YNX Wallet could not be resolved. No authorization, payment approval, signature, Product Session, or chain authority was created.'},fallbackActions:launch.fallbackActions};
 }
 
-/** Opens only a package-generated, request-bearing Wallet authorization route. */
+/** Uses the accepted v2 root launcher; Android opens only a resolver-verified, request-bearing Wallet route. */
 export async function beginPayWalletAuthorization(){
   try{
     const capabilities=await authorizationCapabilities(),request=await createCanonicalAuthorizationRequest(capabilities);
     await canonicalAuthorizationStorage.set(canonicalJSON(request));
-    const launch=await launchNativeAuthorization(request,'android',capabilities.resolver);
-    if(launch.status!=='installed'){await canonicalAuthorizationStorage.remove();return unavailableAuthorizationSession(launch);}
+    const launch=await launchCanonicalAuthorization(request,{platform:'android',resolver:capabilities.resolver});
+    if(launch.status!=='installed'||!launch.uri){await canonicalAuthorizationStorage.remove();return unavailableAuthorizationSession(launch);}
     const opened=await capabilities.openWallet(launch.uri);
     if(opened.opened!==true){await canonicalAuthorizationStorage.remove();throw new Error(`WALLET_OPEN_FAILED: ${'code'in opened?opened.code:'Wallet did not open'}`)}
     return canonicalAuthorizationSession('pending',request.nonce);

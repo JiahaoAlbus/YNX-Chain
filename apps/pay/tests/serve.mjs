@@ -22,4 +22,4 @@ createServer((request, response) => {
   response.setHeader("Content-Type", types[extname(target)] ?? "application/octet-stream");
   response.setHeader("Cache-Control", "no-store");
   createReadStream(target).pipe(response);
-}).listen(4173, "127.0.0.1");
+}).listen(Number(process.env.PAY_WEB_PORT ?? 4173), "127.0.0.1");

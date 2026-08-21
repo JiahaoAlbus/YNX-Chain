@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "checkpoint": "P0-PAY-SAFE-LAUNCHER-V2-SOURCE",
+  "classification": "SOURCE_BUILD_LOCAL_BROWSER_CHECKPOINT_DEVICE_UNVERIFIED",
+  "product": "YNX Pay",
+  "ownerScope": "apps/pay/**",
+  "baseline": "d488c24761d7ceb830883ed38d2bd017374d773c",
+  "dependency": {
+    "contract": "safeWalletAuthorizeLauncher@2.0.0-p0.0",
+    "sourceCommit": "f1ba5013",
+    "sourceEvidence": "64910748",
+    "package": "vendor/ynx-chain-wallet-auth-1.1.0-safe-launcher-v2.tgz",
+    "packageSha256": "fe55665d3bf05f1288728dd3d0528e58bd0fc6dbee4d7ea3b962a14bed3427a4"
+  },
+  "controls": {
+    "native": "The exact package v2 launchCanonicalAuthorization factory creates the request-bearing URI and requires Linking.canOpenURL before Linking.openURL.",
+    "webExtension": "Pay exposes no Web or extension authorization entrypoint. The checked source has no bare/manual authorize route, iframe, window.open, document.location, or location.href authorization navigation.",
+    "standardWallet": "EIP-1193 and EIP-6963 MetaMask connection remains independent from the optional private authorization state.",
+    "callback": "The protected pending request is written before launch and parseAuthorizationCallbackURL verifies the exact stored request on approval or rejection.",
+    "protocol": "The accepted v2 launcher package validates canonical authorization protocol version 1. The former incompatible local version-2/origin payload was removed rather than bypassing package validation."
+  },
+  "verification": {
+    "typecheck": "PASS",
+    "unitTests": "PASS 15/15",
+    "authorizationSourceScan": "PASS 10 non-test Pay source files",
+    "expoExport": "PASS Android/iOS/Web; direct safe package modules are used because the package root statically exports Node-only Gateway modules",
+    "playwright": "PASS 2/2 on PAY_WEB_PORT=4175",
+    "chromeGuestShell": "PASS local http://127.0.0.1:4175/ only; visible guest Pay shell, no authorization or payment invoked",
+    "androidDebug": "NOT_RECLAIMED: the pre-existing APK hash remains 2ff0c924...; no new installable artifact is claimed for this source checkpoint"
+  },
+  "artifacts": {
+    "sourceBundles": {
+      "android": "a9f32546be24a8e8bf3765a4e3fb4a2c2d3ae89d0f4399303de06482ad307f77",
+      "ios": "f0eeb6b017b4a8bc980df28351fc66c88b53aff3208049b56e284c5a0f5b7398",
+      "web": "f40aa57a08bf05cef18aa5534a15b55496aa1f56ea4feed3108903a387c37ebb"
+    },
+    "localChromeScreenshot": {
+      "path": "apps/pay/evidence/p0-pay-web-guest-local-chrome-20260821.png",
+      "sha256": "ffebbc6a69d9753b0182c04a24a00bd643d4d5d0a06f85c1603e9e1dfbe04227"
+    }
+  },
+  "truthGates": {
+    "apkInstalled": false,
+    "walletApprove": false,
+    "walletReject": false,
+    "callback": false,
+    "coldStartRecovery": false,
+    "paymentExecuted": false,
+    "productSessionActivated": false,
+    "deployedPublic": false,
+    "publicVerified": false,
+    "computerControl": false,
+    "migratedV2": false
+  },
+  "remainingBlocker": "A bootable device with a compatible Wallet is required for resolver, contentful approval/reject callback, cold start, retry and second-launch evidence. The accepted endpoint manifest still leaves Pay private services PENDING."
+}

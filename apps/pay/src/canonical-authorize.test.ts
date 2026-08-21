@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {p256} from '@noble/curves/nist.js';
-import {createAuthorizationRejection,createCallbackURL,createCanonicalAuthorizeLaunch,launchNativeAuthorization,parseAuthorizationCallbackURL,parseWalletDeepLink,signAuthorization} from '@ynx-chain/wallet-auth';
+import {createAuthorizationRejection,createCallbackURL,createCanonicalAuthorizeLaunch,launchCanonicalAuthorization,parseAuthorizationCallbackURL,parseWalletDeepLink,signAuthorization} from '@ynx-chain/wallet-auth';
 
 const registry={
   'ynx-pay-v1':{
@@ -11,7 +11,7 @@ const registry={
 };
 function request(now=new Date()){
   const secret='3'.padStart(64,'0'),deviceSecret=Uint8Array.from({length:32},()=>3);
-  return {request:{version:'2' as const,nonce:'c'.repeat(64),chainId:'ynx_6423-1' as const,requestingProduct:'pay',productClientId:'ynx-pay-v1',bundleId:'com.ynxweb4.pay',productDeviceAlgorithm:'p256-sha256' as const,productDeviceKey:Buffer.from(p256.getPublicKey(deviceSecret,true)).toString('base64url'),origin:'https://pay.ynxweb4.com',callback:'ynxpay://wallet-auth/callback',scopes:['account:read','pay:case:create','pay:route:select','pay:settlement:submit','pay:sponsorship:request'],purpose:'Authorize Pay test only',issuedAt:now.toISOString(),expiresAt:new Date(now.getTime()+120_000).toISOString()},secret};
+  return {request:{version:'1' as const,nonce:'c'.repeat(64),chainId:'ynx_6423-1' as const,requestingProduct:'pay',productClientId:'ynx-pay-v1',bundleId:'com.ynxweb4.pay',productDeviceAlgorithm:'p256-sha256' as const,productDeviceKey:Buffer.from(p256.getPublicKey(deviceSecret,true)).toString('base64url'),callback:'ynxpay://wallet-auth/callback',scopes:['account:read','pay:case:create','pay:route:select','pay:settlement:submit','pay:sponsorship:request'],purpose:'Authorize Pay test only',issuedAt:now.toISOString(),expiresAt:new Date(now.getTime()+120_000).toISOString()},secret};
 }
 
 test('Pay uses the accepted launcher to make a complete canonical authorization request',async()=>{
@@ -19,7 +19,7 @@ test('Pay uses the accepted launcher to make a complete canonical authorization 
   assert.match(launch.uri,/^ynxwallet:\/\/authorize\?request=[A-Za-z0-9_-]+$/);
   assert.equal(parseWalletDeepLink(launch.uri,'android',{now,registry}).request.nonce,input.request.nonce);
   assert.throws(()=>parseWalletDeepLink('ynxwallet://authorize','android',{now,registry}),/canonical request payload/);
-  const unavailable=await launchNativeAuthorization(input.request,'android',async()=>false);
+  const unavailable=await launchCanonicalAuthorization(input.request,{platform:'android',resolver:async()=>false});
   assert.equal(unavailable.status,'unsupported');
   assert.deepEqual(unavailable.fallbackActions.map(action=>action.id),['official-ynx-wallet-download','standard-metamask']);
 });

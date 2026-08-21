@@ -9,12 +9,13 @@ test('Pay keeps payment quotes preview-bound while its product endpoint is pendi
   assert.match(paymentIntentDigest(intent),/^[a-f0-9]{64}$/);
   const wallet=readFileSync(new URL('./wallet.ts',import.meta.url),'utf8');
   assert.match(wallet,/productSessionUnavailable/);
-  assert.match(wallet,/launchNativeAuthorization/);
+  assert.match(wallet,/launchCanonicalAuthorization/);
   assert.match(wallet,/parseAuthorizationCallbackURL/);
   assert.match(wallet,/connectMetaMaskWallet/);
   assert.match(wallet,/PRIVATE_SERVICE_DEGRADED/);
   assert.doesNotMatch(wallet,/createGatewayChallenge|signGatewayChallenge|createProductSessionProof/);
   assert.doesNotMatch(wallet,/(?:Linking\.)?openURL\(\s*['"`]ynxwallet:\/\/authorize/);
+  assert.doesNotMatch(wallet,/(?:window\.open|<iframe|document\.location\s*=|location\.href\s*=).*ynxwallet:\/\/authorize/);
 });
 
 test('Pay consumes the accepted bundled manifest and leaves its product endpoint unactivated',()=>{
