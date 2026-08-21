@@ -2,7 +2,7 @@
   "productId": "com.ynx.mail",
   "name": "YNX Mail",
   "branch": "codex/p0-mail-wallet-connectivity-20260821",
-  "commit": "9d8d2510dcdd2b39dbc5dea5f02376178ae7aa2c",
+  "commit": "1f09b763343127e5d9e807085a90c88566322a83",
   "version": "0.3.0-p0.1-source",
   "surfaces": [
     "android-native",
@@ -168,7 +168,9 @@
     "privateMailService": "DEGRADED_PRODUCT_API_PENDING",
     "standardConnectionSurvivesPrivateFailure": true,
     "localOrCannedSessionCreated": false,
-    "providerApprovalVisible": false,
+    "providerApprovalVisible": true,
+    "providerRejectionVisible": true,
+    "providerEvidenceClass": "deterministic-browser-injected-provider-only",
     "installedClientVerified": false,
     "publicVerified": false,
     "computerControlVerified": false
@@ -177,6 +179,7 @@
     "Android and desktop install evidence is historical source 682bdb075803a77c9591fc59b83708944ea76fdf, and iOS Simulator evidence is historical source 771fa4751e01d264e6e995a16fc5d458ba1021e5. The current P0 source has no installed-client evidence. None is hosted or production signed. Historical 0.2.0 artifacts do not include the Internet Bridge.",
     "No provider credential, verified sender domain, DNS/SPF/DKIM/DMARC evidence, public webhook, reputation proof or sandbox delivery evidence is present.",
     "The accepted endpoint manifest has no verified Mail Product API and App Gateway is unavailable; private inbox and sending fail closed while Standard Wallet and guest preview remain independent.",
+    "Deterministic Chromium approval and rejection are not real installed Wallet or ComputerControl evidence.",
     "No production signing, persistent staging Web/API, public product URL or store release.",
     "Message bodies and attachments are authenticated against state tamper but are not end-to-end encrypted.",
     "The self-contained backup includes the state HMAC key and sender identity key and therefore requires an approved encrypted operator backup boundary; it is not a hostile-storage authenticity proof.",
@@ -184,5 +187,5 @@
     "The Mail-owned Data Fabric outbox is locally implemented and tested, but authenticated central transport, schema acceptance, billing mapping and central replay handling are not integrated.",
     "Malware scanning, operator unsuppression with central RBAC, active provider health polling and Monitor alerts remain incomplete."
   ],
-  "generatedAt": "2026-08-21T05:22:00+08:00"
+  "generatedAt": "2026-08-21T01:05:00Z"
 }

@@ -1,0 +1,71 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-086",
+  "productId": "com.ynx.mail",
+  "startingCommit": "783f14a55796539702edc2104d0f1ce333c23fc5",
+  "verificationCommit": "1f09b763343127e5d9e807085a90c88566322a83",
+  "verificationTree": "4897d2e3a3608e1f03299af2387cfa0d8ff984b9",
+  "generatedAt": "2026-08-21T01:05:00Z",
+  "gates": {
+    "mailUiTests": "9/9 passed",
+    "goBuild": "passed",
+    "mailGoTests": "internal/mail passed",
+    "serviceSmoke": "passed",
+    "walletVisibleProof": "2/2 passed",
+    "productionDependencyAudit": "0 vulnerabilities"
+  },
+  "artifacts": [
+    {
+      "path": "web/app.bundle.js",
+      "bytes": 35841,
+      "sha256": "4ac7b46a33fa57d260f5b0c224e896c842fd4a441b99b1e33563c56ebd1ae4d3"
+    },
+    {
+      "path": "package-lock.json",
+      "bytes": 16164,
+      "sha256": "02690ff92ee0f3030fb87d82bba9ad01afc393d282090954d4c764de595b59af"
+    }
+  ],
+  "visibleEvidence": [
+    {
+      "path": "evidence/visible/mail-wallet-approved-private-degraded-1440x900.png",
+      "bytes": 88382,
+      "sha256": "36d7cc49736ffec912e60a8bc6b7d0899902b2e5628f01668aab979a26965d6e",
+      "proves": [
+        "deterministic EIP-1193 approval on chain 0x1917",
+        "approved account is visibly connected",
+        "guest Mail preview remains available",
+        "private Mail account service remains separately degraded"
+      ]
+    },
+    {
+      "path": "evidence/visible/mail-wallet-rejected-guest-preview-1440x900.png",
+      "bytes": 86029,
+      "sha256": "0e732af9dd45e3a3910510b2251916203af7c5e2c60a53f3ca2c999322e694f5",
+      "proves": [
+        "EIP-1193 rejection maps to WALLET_USER_REJECTED",
+        "no standard account or private Mail session is created",
+        "guest Mail preview remains available"
+      ]
+    }
+  ],
+  "truth": {
+    "deterministicProviderApproval": true,
+    "deterministicProviderRejection": true,
+    "standardConnectionPreservedWhenPrivateFails": true,
+    "guestPreview": true,
+    "realInstalledWalletCurrentSource": false,
+    "productSessionV2": false,
+    "mailProductApi": false,
+    "publicDeploymentCurrentSource": false,
+    "computerControl": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "notes": [
+    "No inbox message, sender identity, delivery, balance or transaction was fabricated for the Wallet-visible proof.",
+    "Existing message lifecycle browser proof remains local and uses a bounded test verifier; it is not public Product Session v2 evidence.",
+    "Chromium evidence is deterministic local browser evidence and is not current-source installed Wallet or public runtime evidence."
+  ]
+}
