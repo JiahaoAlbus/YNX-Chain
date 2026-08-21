@@ -38,17 +38,17 @@
     "rollback": "Retain the preceding immutable 0.1.1 object and Website deployment. If the new full GET, mounted identity, callback UI, or rendered metadata gate fails, restore the preceding Website deployment and keep the 0.1.2 download disabled."
   },
   "postDeployGate": {
-    "httpStatus": 200,
-    "contentTypeExact": true,
-    "contentDispositionExact": true,
-    "contentLengthExact": true,
-    "fullResponseSha256Exact": true,
-    "mountAndPlistIdentityExact": true,
-    "coldLaunch": true,
-    "secondLaunch": true,
-    "canonicalRpcChainId": "0x1917",
-    "validCallbackVisibleFailClosed": true,
-    "missingAndMalformedCallbackFailClosed": true,
+    "requiredHttpStatus": 200,
+    "requireContentTypeExact": true,
+    "requireContentDispositionExact": true,
+    "requireContentLengthExact": true,
+    "requireFullResponseSha256Exact": true,
+    "requireMountAndPlistIdentityExact": true,
+    "requireColdLaunch": true,
+    "requireSecondLaunch": true,
+    "requiredCanonicalRpcChainId": "0x1917",
+    "requireValidCallbackVisibleFailClosed": true,
+    "requireMissingAndMalformedCallbackFailClosed": true,
     "downloadHosted": false,
     "deployedPublic": false
   }
