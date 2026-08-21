@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "productId": "cloud",
   "version": "1.0.0-testnet-preview",
-  "sourceCommit": "9816f9ba2556eadea7fd9ad5061f67c5a05e64dd",
+  "sourceCommit": "1131288bbfdc6fc33b57d92af612e5adad61efb1",
   "runtimeSourceCommit": "42636a3eae32ef04646ffb49d30a70310df2fbe6",
   "states": {
     "implementedLocal": true,
@@ -34,6 +34,7 @@
     "evidence/PUBLIC_ROUTE_AUDIT_20260729.json",
     "integration/website-handoff.json",
     "evidence/p0-071/browser-evidence.json",
+    "evidence/p0-wallet-visible-20260821.json",
     "evidence/p0-071/SBOM.cdx.json"
   ],
   "evidenceIndex": "evidence/EVIDENCE_INDEX.md",
@@ -42,10 +43,13 @@
   "containerScanEvidence": "evidence/CONTAINER_SCAN_e05db0b.json",
   "currentSourceEvidence": {
     "taskId": "P0-071",
-    "implementationCommit": "9816f9ba2556eadea7fd9ad5061f67c5a05e64dd",
+    "implementationCommit": "1131288bbfdc6fc33b57d92af612e5adad61efb1",
     "standardWalletImplemented": true,
     "guestPreviewVerified": true,
     "privateServiceFailClosed": true,
+    "deterministicProviderApprovalVerified": true,
+    "deterministicProviderRejectionVerified": true,
+    "providerEvidenceClass": "deterministic-browser-injected-provider-only",
     "productSessionV2": false,
     "installedClientVerified": false,
     "deployedPublic": false,

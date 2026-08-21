@@ -1,0 +1,75 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-087",
+  "productId": "cloud",
+  "startingCommit": "1abece5158573b10eae6c084f3653a225c6590cb",
+  "verificationCommit": "1131288bbfdc6fc33b57d92af612e5adad61efb1",
+  "verificationTree": "d6c5e7fe51715f6be904aabee13a39f1a013b245",
+  "generatedAt": "2026-08-21T01:25:00Z",
+  "gates": {
+    "cloudTests": "15/15 passed",
+    "cloudGoTests": "internal/cloud passed",
+    "staticAndAccessibilityCheck": "passed",
+    "canonicalApiAndBackupRestoreSmoke": "passed",
+    "walletVisibleProof": "2/2 passed",
+    "productionDependencyAudit": "0 vulnerabilities"
+  },
+  "artifacts": [
+    {
+      "path": "web/app.bundle.js",
+      "bytes": 60233,
+      "sha256": "0ab0194c0b2226167950f578eb96d71821c4debc04154f92928baacd308ac976"
+    },
+    {
+      "path": "package-lock.json",
+      "bytes": 16130,
+      "sha256": "c634a652e95db551194025f87d47e67039d15cc74338e73813906cc76862c3e1"
+    }
+  ],
+  "visibleEvidence": [
+    {
+      "path": "evidence/visible/cloud-wallet-approved-private-degraded-1440x900.png",
+      "bytes": 120624,
+      "sha256": "5752e6f205ed38277b4713c19389af8adc2fc5ee551af602cb1e42811e0c208a",
+      "proves": [
+        "deterministic EIP-1193 approval on chain 0x1917",
+        "approved account is visibly connected",
+        "guest Cloud empty state remains available",
+        "private files, upload, sharing and deletion remain separately degraded"
+      ]
+    },
+    {
+      "path": "evidence/visible/cloud-wallet-rejected-guest-preview-1440x900.png",
+      "bytes": 106791,
+      "sha256": "5aaacff6e1c06bbe5dd33f7e5dcd2ca6c0b7b564dd90d02e1df4d38ad927f88c",
+      "proves": [
+        "EIP-1193 rejection creates no connected account",
+        "no private Cloud session is created",
+        "guest Cloud empty state remains available"
+      ]
+    }
+  ],
+  "truth": {
+    "deterministicProviderApproval": true,
+    "deterministicProviderRejection": true,
+    "standardConnectionPreservedWhenPrivateFails": true,
+    "guestPreview": true,
+    "privateApiRequestsDuringVisibleProof": 0,
+    "realInstalledWalletCurrentSource": false,
+    "productSessionV2": false,
+    "cloudProductApi": false,
+    "objectUpload": false,
+    "objectSharing": false,
+    "objectDeletion": false,
+    "publicDeploymentCurrentSource": false,
+    "computerControl": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "notes": [
+    "No object, storage usage, upload, sharing grant, deletion receipt, balance or transaction was fabricated.",
+    "Chromium evidence is deterministic local browser evidence and is not current-source installed Wallet or public runtime evidence.",
+    "Product Session v2 and a verified Cloud Product API remain prerequisites for private Cloud operations."
+  ]
+}
