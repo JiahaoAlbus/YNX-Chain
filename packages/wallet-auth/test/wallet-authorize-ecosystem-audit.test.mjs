@@ -152,6 +152,12 @@ test("Wallet Web/PWA and macOS DMG publication remain outside product authority"
   assert.equal(companion.nativeMacosKeychainCleanup.ciRun, 32487661461);
   assert.equal(companion.nativeMacosKeychainCleanup.artifactDownloadBytes, 0);
   assert.equal(companion.nativeMacosKeychainCleanup.productionCleanupRuntimeProof, false);
+  assert.equal(companion.nativeMacosKeychainCleanupRuntime.failedRun, 32488308883);
+  assert.equal(companion.nativeMacosKeychainCleanupRuntime.successRun, 32489069803);
+  assert.equal(companion.nativeMacosKeychainCleanupRuntime.cleanupReceiptExpectedSha256, companion.nativeMacosKeychainCleanupRuntime.cleanupReceiptRestoredSha256);
+  assert.equal(companion.nativeMacosKeychainCleanupRuntime.sharedCleanupRuntimeWithoutProductionSecrets, true);
+  assert.equal(companion.nativeMacosKeychainCleanupRuntime.productionSigningCleanupRuntime, false);
+  assert.equal(companion.nativeMacosKeychainCleanupRuntime.iosGatePromoted, false);
   assert.equal(companion.macosDmgPublication.systemApplicationsInstallVerified, false);
   assert.equal(companion.macosDmgPublication.browserQuarantineAcceptanceVerified, false);
   assert.equal(companion.macosDmgPublication.wholeAppUnsigned, true);
@@ -274,6 +280,10 @@ test("owner checkpoint separates Wallet public artifacts from approval and Produ
   assert.equal(platform.macosDmg.keychainCleanup.originalSearchListAlwaysRestored, true);
   assert.equal(platform.macosDmg.keychainCleanup.innerHashesInspected, false);
   assert.equal(platform.macosDmg.keychainCleanup.productionCleanupRuntimeProof, false);
+  assert.equal(platform.macosDmg.keychainCleanupRuntime.fixCommit, "99fa2c7db61ac23717743103cced76001ea4160b");
+  assert.equal(platform.macosDmg.keychainCleanupRuntime.productionCredentialsUsed, false);
+  assert.equal(platform.macosDmg.keychainCleanupRuntime.sharedCleanupRuntimeWithoutProductionSecrets, true);
+  assert.equal(platform.macosDmg.keychainCleanupRuntime.productionSigningCleanupRuntime, false);
   assert.equal(platform.macosDmg.systemApplicationsInstallVerified, false);
   assert.equal(platform.macosDmg.browserQuarantineAcceptanceVerified, false);
   assert.equal(platform.macosDmg.developerId, false);
