@@ -1,0 +1,55 @@
+{
+  "schemaVersion": "1.0.0",
+  "contractId": "YNX-WALLET-SAFE-AUTHORIZE-LAUNCHER-V1",
+  "owner": "wallet-platform",
+  "scope": "source-only cross-platform launcher SDK",
+  "canonicalRequest": {
+    "builder": "@ynx-chain/wallet-auth#encodeRequestDeepLink",
+    "forbidPerProductUriConcatenation": true,
+    "forbidBareAuthorizeRoute": true
+  },
+  "platformMatrix": {
+    "android": "native-resolver: resolve the complete canonical URI before opening",
+    "ios": "native-resolver: resolve the complete canonical URI before opening",
+    "macos": "native-resolver: resolve the complete canonical URI before opening",
+    "windows": "native-resolver: resolve the complete canonical URI before opening",
+    "web": "controlled-frame-lifecycle: no top-level custom-scheme navigation; observe visibilitychange or pagehide and clean up on timeout",
+    "extension": "controlled-frame-lifecycle: no top-level custom-scheme navigation; observe visibilitychange or pagehide and clean up on timeout"
+  },
+  "resultStatuses": ["installed", "opened", "unsupported", "timeout"],
+  "meaning": {
+    "installed": "A native platform resolver confirmed a handler only. It does not prove review, approval, callback, session or account access.",
+    "opened": "A Web/Extension lifecycle transition was observed only. It does not prove a handler, review, approval, callback, session or account access.",
+    "unsupported": "No supported browser launcher or native handler resolver was available.",
+    "timeout": "The controlled Web/Extension attempt caused no lifecycle transition before cleanup."
+  },
+  "fallbackActions": [
+    {"id": "official-ynx-wallet-download", "url": "https://www.ynxweb4.com/dapp/download"},
+    {"id": "standard-metamask", "url": "https://metamask.io/download/"}
+  ],
+  "sessionPolicy": "This launcher never creates, restores or implies a Product Session. Standard Wallet connectivity remains independent.",
+  "consumerExports": [
+    "createCanonicalAuthorizeLaunch",
+    "launchCanonicalAuthorization",
+    "launchNativeAuthorization",
+    "launchWebAuthorization",
+    "AUTHORIZATION_LAUNCH_PLATFORM_MATRIX"
+  ],
+  "validation": {
+    "walletAuthCheck": "PASS: 120/120",
+    "walletAppTest": "PASS: 62/62",
+    "walletTypecheck": "PASS",
+    "noBareAuthorizeScanner": "PASS: 0 findings"
+  },
+  "truth": {
+    "sourceImplemented": true,
+    "deviceVisibleVerified": false,
+    "browserVisibleVerified": false,
+    "walletApprovalVerified": false,
+    "callbackVerified": false,
+    "sessionCreated": false,
+    "deployedPublic": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}
