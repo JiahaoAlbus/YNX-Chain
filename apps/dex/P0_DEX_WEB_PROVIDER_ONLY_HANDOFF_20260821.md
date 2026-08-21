@@ -6,7 +6,7 @@ The Web Connect YNX Wallet action performs EIP-6963/EIP-1193 provider discovery 
 
 ## Provider connection-state repair — 2026-08-21
 
-DEX consumes the accepted `98c6d5d784d212df8981a53b17118a511e246ad2` Provider Discovery connection reducer from a hash-pinned DEX archive. It records connected only after selected provider, approved account, and provider `eth_chainId` `0x1917`; `eth_accounts` plus `eth_chainId` is the only refresh path. A direct browser RPC fetch is forbidden, and accepted CORS-safe degradation cannot clear a completed Standard Wallet state. DEX private authorization and all swap/liquidity/approval/action paths remain independently unavailable.
+DEX consumes the accepted `98c6d5d784d212df8981a53b17118a511e246ad2` Provider Discovery connection reducer (commit tree `51a60a362d4ad5dd748bcdefb101f71b1d9e0cee`; Wallet/Auth package tree `69ba84eaef503932ba1b66f42a9caa0a125e0608`) from a hash-pinned DEX archive. It records connected only after selected provider, approved account, and provider `eth_chainId` `0x1917`; `eth_accounts` plus `eth_chainId` is the only refresh path. A direct browser RPC fetch is forbidden, and accepted CORS-safe degradation cannot clear a completed Standard Wallet state. DEX private authorization and all swap/liquidity/approval/action paths remain independently unavailable.
 
 Tests/build and all false gates are recorded in [p0-dex-provider-connect-state-20260821.json](evidence/p0-dex-provider-connect-state-20260821.json).
 
