@@ -371,25 +371,41 @@
         "guest access remains available without a Wallet",
         "real provider approval, account, signature, transaction, Product Session v2 and Computer Control remain false"
       ]
+    },
+    {
+      "owner": "integration",
+      "taskId": "P0-130",
+      "status": "ACTIVE_SINGLE_USE_CREATOR_STUDIO_PUBLIC_REPAIR",
+      "grantedAt": "2026-08-21T08:30:49Z",
+      "expiresAt": "2026-08-21T09:00:49Z",
+      "sourceCommit": "993e7cc99ea3919488d6765e097ca78a82a30704",
+      "scope": "creator-studio-self-contained-dist-public-repair",
+      "constraints": [
+        "deploy only archive SHA-256 444d6dd38bd919f3aad26a73ec0db56c4929bd904b05003080e213f8ecb81291",
+        "copy the exact current release before overlaying Creator Studio static files",
+        "preserve ynx-videod, Video viewer, systemd unit and Caddy configuration",
+        "activate only after local 6495 guest and static probes succeed",
+        "rollback to /opt/ynx-video/releases/p0122b-creator-wallet-650070ce on any failure",
+        "real provider approval, account, signature, transaction, Product Session v2 and Computer Control remain false unless directly proved"
+      ]
     }
   ],
   "heavy": {
-    "owner": null,
-    "taskId": "P0-128",
-    "status": "RELEASED_PUBLIC_CHECKPOINT",
-    "acquiredAt": "2026-08-21T08:00:38Z",
-    "expiresAt": "2026-08-21T08:30:38Z",
-    "sourceCommit": "22c26bcb7a8d618cb8e38b30940b1c07bf4237c8",
-    "runtimeHost": "Vercel:jiahaoalbus-projects",
-    "currentRuntime": "https://ynx-social-h8cqxnkud-jiahaoalbus-projects.vercel.app",
-    "rollbackTarget": "remove new social.ynxweb4.com alias and restore HTTP 404 DEPLOYMENT_NOT_FOUND",
-    "productionMutationAllowed": false,
+    "owner": "integration",
+    "taskId": "P0-130",
+    "status": "ACTIVE_SINGLE_USE_CREATOR_STUDIO_PUBLIC_REPAIR",
+    "acquiredAt": "2026-08-21T08:30:49Z",
+    "expiresAt": "2026-08-21T09:00:49Z",
+    "sourceCommit": "993e7cc99ea3919488d6765e097ca78a82a30704",
+    "runtimeHost": "43.153.202.237",
+    "currentRuntime": "/opt/ynx-video/releases/p0122b-creator-wallet-650070ce",
+    "rollbackTarget": "/opt/ynx-video/releases/p0122b-creator-wallet-650070ce",
+    "artifactSha256": "444d6dd38bd919f3aad26a73ec0db56c4929bd904b05003080e213f8ecb81291",
+    "productionMutationAllowed": true,
     "singleUse": true,
-    "previousOwner": "integration",
-    "previousTaskId": "P0-127",
-    "releasedAt": "2026-08-21T08:15:40Z",
-    "checkpointCommit": "22c26bcb7a8d618cb8e38b30940b1c07bf4237c8",
-    "reason": "Social Web is public with English guest mode and on-page YNX/MetaMask no-provider fallbacks verified; real provider approval and Computer Control remain false."
+    "previousOwner": null,
+    "previousTaskId": "P0-128",
+    "reason": "Repair the directly observed public bare-module failure with the exact self-contained Creator Studio bundle."
   },
   "wave": {
     "id": "B-financial-apps-quant",
