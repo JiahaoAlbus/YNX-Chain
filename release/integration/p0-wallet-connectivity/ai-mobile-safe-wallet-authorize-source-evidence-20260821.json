@@ -1,0 +1,44 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-115",
+  "product": "ai-mobile",
+  "owner": "integration",
+  "recordedAt": "2026-08-21T05:24:00Z",
+  "baselineCommit": "7eefdf5e3f5ead51912192bdf4806594112fc859",
+  "change": {
+    "description": "Replace unconditional native Linking.openURL with the accepted handler-resolving Wallet launcher, bind the server Wallet URL to the exact returned request, and expose official YNX Wallet plus MetaMask recovery without creating a local session.",
+    "walletAuthArtifact": "apps/ai/mobile/vendor/ynx-chain-wallet-auth-1.0.0-safe-authorize-p0.0.tgz",
+    "walletAuthArtifactSha256": "dd80cf3d8fda3b35b89ddae6f3848dc420358b9c10d1879ed33a33f567585acb",
+    "unconditionalNativeOpenRemoved": true,
+    "handlerPreflightRequired": true,
+    "serverRequestDeepLinkExactMatchRequired": true,
+    "officialWalletRecoveryVisible": true,
+    "metamaskRecoveryVisible": true,
+    "localSessionFallback": false
+  },
+  "verification": {
+    "typecheck": {"passed": true},
+    "sourceTests": {"passed": true, "tests": 10, "failures": 0},
+    "productCheck": {"passed": true},
+    "i18nLayoutCheck": {"passed": true, "locales": 12},
+    "androidIosBundleExport": {"passed": true},
+    "androidBundleSha256": "4e09ef29703dd5e2ce7edc2a1304e040af1c6c5bd3906f771ac3b42b003abb74",
+    "iosBundleSha256": "59190e24e37f33d68281c3c444154ee444b6c08cdd74ef011bc23fdc7377831b",
+    "gitDiffCheck": {"passed": true},
+    "releaseGate": "BLOCKED_MISSING_RELEASE_INTEGRATION_YNX_AI_CONTRACT_JSON"
+  },
+  "truth": {
+    "sourceValidated": true,
+    "nativeResolverDeterministicTestsValidated": true,
+    "installedWalletVerified": false,
+    "walletApprovalVerified": false,
+    "callbackVerified": false,
+    "productSessionV2": false,
+    "providerGenerationSuccess": false,
+    "publicDeployed": false,
+    "publicVisibleVerified": false,
+    "computerControlVerified": false
+  },
+  "nextAction": "Restore or accept the central YNX AI release contract, publish a signed Android/iOS artifact from this exact source, and verify installed-Wallet handler, approve/reject and callback on real devices separately."
+}

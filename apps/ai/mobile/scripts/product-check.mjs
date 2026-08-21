@@ -18,6 +18,9 @@ assert.match(app,/accessibilityLabel/);
 assert.doesNotMatch(app,/WebView|react-native-webview/);
 assert.match(api,/xhr\.open\("POST"/);
 assert.match(api,/walletUrl/);
+assert.match(app,/launchAIWalletAuthorization/);
+assert.match(app,/Linking\.canOpenURL|launchAIWalletAuthorization/);
+assert.doesNotMatch(app,/await Linking\.openURL\(request\.walletUrl\)/);
 assert.doesNotMatch(api,/\?prompt=|searchParams\.set\(["']prompt/);
 assert.doesNotMatch(manifest+debugManifest+optimizedManifest,/SYSTEM_ALERT_WINDOW/);
 for(const permission of ["READ_EXTERNAL_STORAGE","WRITE_EXTERNAL_STORAGE"]){

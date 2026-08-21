@@ -23,7 +23,6 @@ export const createDeviceIdentity=(secretBase64Url?:string)=>{
   const secret=secretBase64Url?base64UrlToBytes(secretBase64Url):p256.utils.randomSecretKey();
   return {secret:bytesToBase64Url(secret),publicKey:bytesToBase64Url(p256.getPublicKey(secret,true))};
 };
-export const walletDeepLink=(request:unknown)=>`ynxwallet://authorize?request=${bytesToBase64Url(utf8ToBytes(canonicalJSON(request)))}`;
 export const parseWalletCallback=(url:string):WalletResponse=>{
   const parsed=new URL(url); const response=parsed.searchParams.get("response"); parsed.search="";
   if(parsed.protocol!=="ynxai:"||parsed.hostname!=="wallet-auth"||parsed.pathname!=="/callback"||!response) throw new Error("Wallet callback route was substituted");
