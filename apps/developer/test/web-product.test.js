@@ -96,7 +96,7 @@ test("Windows proof requires a real Windows build, MSIX installation and cold la
   for(const script of [packageScript,verify]) { assert.match(script,/featureStatus\.ynxCodePlatform\.webSourceCommit/);assert.match(script,/publicDeployment\.sourceCommit/);assert.doesNotMatch(script,/ynxCodePlatform\.sourceCommit/); }
   assert.match(workflow,/runs-on: windows-latest/);assert.match(workflow,/codex\/ynx-code-platform-v1/);assert.match(workflow,/developer-windows-\$\{\{ github\.ref \}\}/);
   assert.match(workflow,/Install pinned Developer dependencies/);assert.match(workflow,/working-directory: apps\/developer\s+run: npm ci --ignore-scripts/);
-  assert.match(workflow,/package-windows\.ps1/);assert.match(workflow,/verify-windows-package\.ps1/);assert.match(workflow,/verify-windows-installer\.ps1/);assert.match(workflow,/\.msix/);assert.match(workflow,/upload-artifact@v4/);
+  assert.match(workflow,/Microsoft\.WindowsSDK\.10\.0\.26100/);assert.match(workflow,/package-windows\.ps1/);assert.match(workflow,/verify-windows-package\.ps1/);assert.match(workflow,/verify-windows-installer\.ps1/);assert.match(workflow,/\.msix/);assert.match(workflow,/upload-artifact@v4/);
 });
 
 test("release evidence includes UI audit, SBOM and exact upstream source record",async()=>{
