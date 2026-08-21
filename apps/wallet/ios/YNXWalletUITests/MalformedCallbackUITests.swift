@@ -76,8 +76,15 @@ final class MalformedCallbackUITests: XCTestCase {
     )
 
     XCTAssertTrue(rejection.waitForExistence(timeout: 45))
-    XCTAssertTrue(wallet.staticTexts["CANONICAL_AUTH_BRIDGE_UNAVAILABLE"].exists)
-    XCTAssertTrue(wallet.buttons["Dismiss"].exists)
+    let exactFailureCode = rejection.staticTexts["CANONICAL_AUTH_BRIDGE_UNAVAILABLE"]
+    XCTAssertTrue(
+      exactFailureCode.waitForExistence(timeout: 10),
+      "Canonical rejection alert appeared before its exact failure code became accessibility-visible"
+    )
+    XCTAssertTrue(
+      rejection.buttons["Dismiss"].waitForExistence(timeout: 10),
+      "Canonical rejection alert did not expose its semantic dismiss action"
+    )
     let screenshot = XCTAttachment(screenshot: wallet.screenshot())
     screenshot.name = "canonical-registry-native-bridge-fail-closed"
     screenshot.lifetime = .keepAlways
