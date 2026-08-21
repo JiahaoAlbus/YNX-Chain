@@ -9,7 +9,8 @@
     "typecheck": "tsc --noEmit",
     "test": "tsx --test src/**/*.test.ts",
     "verify:endpoints": "node scripts/verify-endpoint-manifest.mjs",
-    "bundle-check": "npm run verify:endpoints && expo export --platform android --platform ios --output-dir dist",
+    "verify:canonical-authorize": "node scripts/verify-canonical-authorize.mjs",
+    "bundle-check": "npm run verify:endpoints && npm run verify:canonical-authorize && expo export --platform android --platform ios --output-dir dist",
     "check": "npm run typecheck && npm test && npm run bundle-check"
   },
   "dependencies": {

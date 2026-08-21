@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "task": "P0-103",
+  "scope": "apps/finance/**",
+  "capturedAt": "2026-08-21T11:51:00.000Z",
+  "acceptedDependency": {
+    "name": "canonicalWalletAuthorize",
+    "version": "1.0.0-p0.0",
+    "sourceCommit": "46386ae8eeaa7633923ae762a5a9634b5eac98d9",
+    "contractSha256": "e572042f18c1e32dfe86da26ee2ab52f9372c9803eae3b492c26932e50251c03",
+    "package": "@ynx-chain/wallet-auth@1.0.0",
+    "packageFiles": 71,
+    "packageBytes": 128859,
+    "packageTarballSha256": "55abb0c23dfdcefc9c53d0d7682b0f01126384380f4f73122b87cb28b8fa0e97"
+  },
+  "implementation": {
+    "canonicalBuilder": "encodeRequestDeepLink",
+    "canonicalCallbackParser": "parseAuthorizationCallbackURL",
+    "pendingRequestStorage": "Expo SecureStore key ynx.finance.wallet-authorize.v1.pending",
+    "pendingSavedBeforeExternalLaunch": true,
+    "coldStartRestore": "Linking.getInitialURL plus protected pending-request restore",
+    "standardWalletIndependent": true,
+    "productSessionFailureClass": "PRIVATE_SERVICE_DEGRADED"
+  },
+  "verification": {
+    "typecheck": "passed",
+    "mobileTests": "11 passed, 0 failed",
+    "financeContractTests": "3 passed, 0 failed",
+    "endpointManifest": "passed: 3c606cad1d9bfa71fc507f54b6ad8184a6580c7df75440675b5db921b7e67bb5",
+    "canonicalAuthorizeScan": "passed: 8 Finance source files, no naked/manual Wallet authorization launcher",
+    "bundle": "passed: Expo Android and iOS exports",
+    "androidAssembleDebug": "passed locally with JDK 17"
+  },
+  "artifacts": {
+    "androidDebugApk": {
+      "path": "apps/finance/mobile/android/app/build/outputs/apk/debug/app-debug.apk",
+      "bytes": 155433678,
+      "sha256": "6430c61aa5e50c5dc50d11800abccae1d5d2943f0a88edf10ed396faf245a010",
+      "state": "local debug build only; not hosted, signed for production, installed, or store-published"
+    },
+    "androidBundle": {
+      "path": "apps/finance/mobile/dist/_expo/static/js/android/index-2aa60437aa107f80de152005a641f77f.hbc",
+      "sha256": "6a3155c55d9f1015fe91036d3f6708e9223c09cd93a6384227267bed3e8fa9f8"
+    },
+    "iosBundle": {
+      "path": "apps/finance/mobile/dist/_expo/static/js/ios/index-78f5c11bb010ac18e9b770c94d90fc28.hbc",
+      "sha256": "38e98fbe2014599d93c8e3ab7e722301906592aed89cd21440b6e7ce371dc177"
+    }
+  },
+  "visibleEvidence": {
+    "androidDeviceDetected": false,
+    "installedColdStart": false,
+    "walletApproveVisible": false,
+    "walletRejectVisible": false,
+    "walletCallbackVisible": false,
+    "networkLossRetryVisible": false,
+    "reason": "adb reported no connected Android device or emulator; no visible-flow claim is made"
+  },
+  "releaseGates": {
+    "migratedV2": false,
+    "publicVerified": false,
+    "publicDeployed": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storePublished": false,
+    "productSessionActivated": false
+  }
+}

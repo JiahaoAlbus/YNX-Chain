@@ -22,9 +22,11 @@ test('AI drafts require selected owned evidence, consent, and apply or reject',(
   assert.equal(app.includes("decision(aiJob.id,'approved')"),false);
 });
 
-test('Wallet migration preserves Standard Wallet while optional private services use only the root factory',()=>{
+test('Wallet migration preserves Standard Wallet while canonical authorization uses the accepted package root',()=>{
   for(const value of ['connectStandardWallet','StandardWalletConnection','createProductWalletConnection','FinanceSecureDevice','PRIVATE_SERVICE_DEGRADED','WALLET_NOT_FOUND'])assert.ok(wallet.includes(value),value);
-  for(const prohibited of ['createGatewayChallenge','sessions/complete','createProductSessionProof','encodeRequestDeepLink','gatewayEndpoint','deviceSecret'])assert.equal(wallet.includes(prohibited),false,prohibited);
+  for(const required of ['encodeRequestDeepLink','parseAuthorizationCallbackURL','CANONICAL_AUTHORIZATION_PENDING_KEY'])assert.ok(wallet.includes(required),required);
+  for(const prohibited of ['createGatewayChallenge','sessions/complete','createProductSessionProof','gatewayEndpoint','deviceSecret'])assert.equal(wallet.includes(prohibited),false,prohibited);
+  assert.equal(/Linking\.openURL\(\s*['"`]ynxwallet:\/\/authorize/.test(wallet),false,'a naked Wallet authorization route must never be opened');
   for(const prohibited of ['Guaranteed return','APY 8%','USD balance','Visa card','insured deposit'])assert.equal(app.includes(prohibited),false,prohibited);
   assert.ok(app.includes('no fiat value is inferred'));
   assert.ok(i18n.toLowerCase().includes('cannot move assets'));
