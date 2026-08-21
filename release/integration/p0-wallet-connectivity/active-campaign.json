@@ -2,7 +2,7 @@
   "schemaVersion": "1.0.0",
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "owner": "integration",
-  "status": "P0099_CARD_TESTNET_WEB_PWA_PUBLIC_ENTRY_ACCEPTED_RELEASED",
+  "status": "P0100_EXPLORER_MONITOR_BOUNDED_PREFLIGHT_ACTIVE",
   "scope": [
     "founder-control",
     "wallet-connectivity",
@@ -34,7 +34,7 @@
   "firstStop": {
     "complete": true,
     "publicConnectivityClaim": false,
-    "nextAction": "Card Testnet Web/PWA source 466a4c4c is publicly reachable from the official entry and is accepted only as a guest Testnet simulation. Real Wallet approval, Product Session v2, YNXT top-up, real-card/payment-network capability and ComputerControl remain false. Continue the Social public-runtime/client-version reconciliation slice."
+    "nextAction": "Explorer/Monitor owns the single Heavy preflight slice from f8db7632 with production mutation forbidden until a separately accepted artifact/rollback transaction. Social reconciliation continues in Integration as a non-overlapping source slice; Card, Developer, Wallet platform and Finance owners have been actively resumed."
   },
   "lightLeases": [
     {
@@ -321,15 +321,14 @@
     }
   ],
   "heavy": {
-    "owner": null,
-    "taskId": "P0-098",
-    "status": "CONSUMED_RELEASED_SUCCESS_PUBLIC_HTTP_VERIFIED",
-    "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-calendar-828120e6-tested-20260821T020150Z",
-    "leasedAt": "2026-08-21T02:01:50Z",
-    "expiresAt": "2026-08-21T04:01:50Z",
-    "releasedAt": "2026-08-21T02:10:00Z",
-    "checkpointCommit": "98f7f76dd3f7b4617a561f79942d58e87af91e84",
-    "scope": "calendar-828120e6-source-owned-tested-paired-deployment",
+    "owner": "explorer-monitor",
+    "taskId": "P0-100",
+    "status": "ACTIVE_BOUNDED_PUBLIC_RUNTIME_PREFLIGHT_NO_PRODUCTION_MUTATION",
+    "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-explorer-monitor-f8db7632-preflight-20260821T023738Z",
+    "leasedAt": "2026-08-21T02:37:38Z",
+    "expiresAt": "2026-08-21T04:37:38Z",
+    "startingCommit": "f8db7632fb37e9363858a4d4d977eea7b3585c7e",
+    "scope": "freeze-exact-explorer-monitor-artifact-target-rollback-and-public-readback-transaction",
     "productionMutationAllowed": false,
     "singleUse": true
   },
