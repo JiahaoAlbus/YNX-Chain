@@ -336,17 +336,14 @@
     }
   ],
   "heavy": {
-    "owner": "explorer-monitor",
-    "taskId": "P0-119",
-    "status": "ACTIVE_RUNTIME_BIND_AND_BOUNDED_DEPLOYMENT_SLICE",
-    "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-explorer-monitor-runtime-20260821T055729Z",
-    "leasedAt": "2026-08-21T05:57:29Z",
-    "expiresAt": "2026-08-21T07:57:29Z",
-    "previousOwner": "financial-apps",
-    "previousTaskId": "P0-110",
-    "releasedAt": "2026-08-21T04:58:00Z",
-    "checkpointCommit": "b20a908893010968d92045e8bb0bcb4ab1bd325c",
-    "reason": "Card registration reached a pushed production checkpoint and the reconciled Heavy slot is available. Explorer/Monitor may bind the exact runtime and rollback target, then deploy only if fail-closed preflight passes."
+    "owner": null,
+    "taskId": null,
+    "status": "AVAILABLE",
+    "previousOwner": "explorer-monitor",
+    "previousTaskId": "P0-119",
+    "releasedAt": "2026-08-21T06:07:02Z",
+    "checkpointCommit": "945cd65c7e315c3eb282286c4c292d29ae485649",
+    "reason": "P0-119 failed closed before production mutation because exact Monitor/Explorer runtime and rollback mappings were not centrally bound."
   },
   "wave": {
     "id": "B-financial-apps-quant",
