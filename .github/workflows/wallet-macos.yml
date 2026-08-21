@@ -2,11 +2,24 @@ name: wallet-macos
 
 on:
   workflow_dispatch:
+    inputs:
+      expected_source_sha:
+        description: Exact main commit containing the engineering DMG source
+        required: true
+        type: string
+      publish_engineering_dmg:
+        description: Publish the ad-hoc, Gatekeeper-rejected Testnet engineering DMG prerelease
+        required: true
+        default: false
+        type: boolean
   push:
     branches: [main, codex/wallet-ios-macos-20260813]
     paths: ["apps/wallet/macos/**", "apps/wallet/scripts/verify-apple-production-operator-inputs.rb", "release/integration/wallet-apple-production-operator-inputs.request.json", ".github/workflows/wallet-macos.yml"]
   pull_request:
     paths: ["apps/wallet/macos/**", "apps/wallet/scripts/verify-apple-production-operator-inputs.rb", "release/integration/wallet-apple-production-operator-inputs.request.json", ".github/workflows/wallet-macos.yml"]
+
+permissions:
+  contents: read
 
 jobs:
   native-package:
@@ -31,6 +44,7 @@ jobs:
           bash -n apps/wallet/macos/scripts/verify-notarized-dmg.sh
           bash -n apps/wallet/macos/scripts/cleanup-signing-material.sh
           ruby apps/wallet/macos/scripts/verify-notarized-release-source.rb
+          ruby apps/wallet/macos/scripts/verify-engineering-dmg-release-source.rb
           ruby apps/wallet/macos/scripts/verify-ci-trigger-isolation.rb
           ruby apps/wallet/scripts/verify-apple-production-operator-inputs.rb
       - name: Test native callback and recovery boundaries
@@ -520,3 +534,52 @@ jobs:
             apps/wallet/proof/ci-macos
             ${{ runner.temp }}/Applications/YNX Wallet.app
           if-no-files-found: error
+
+  publish-engineering-dmg:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.publish_engineering_dmg }}
+    needs: native-package
+    runs-on: macos-15
+    timeout-minutes: 10
+    environment: wallet-macos-engineering-publication
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.expected_source_sha }}
+          fetch-depth: 0
+      - name: Publish exact owner-native ad-hoc Testnet engineering DMG prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+          YNX_EXPECTED_SOURCE_SHA: ${{ inputs.expected_source_sha }}
+        run: |
+          set -euo pipefail
+          test "${{ github.ref }}" = refs/heads/main
+          test "$YNX_EXPECTED_SOURCE_SHA" = "$GITHUB_SHA"
+          test "$(git rev-parse HEAD)" = "$YNX_EXPECTED_SOURCE_SHA"
+          test -z "$(git status --porcelain)"
+          RELEASE_TAG="wallet-macos-native-ad-hoc-dmg-${YNX_EXPECTED_SOURCE_SHA:0:8}"
+          if git ls-remote --exit-code --tags origin "refs/tags/$RELEASE_TAG" >/dev/null 2>&1; then
+            printf 'release identity already exists: %s\n' "$RELEASE_TAG" >&2
+            exit 1
+          else
+            STATUS=$?
+            test "$STATUS" -eq 2
+          fi
+          DOWNLOAD_ROOT="$RUNNER_TEMP/ynx-wallet-engineering-publication"
+          mkdir -p "$DOWNLOAD_ROOT"
+          gh run download "$GITHUB_RUN_ID" --name ynx-wallet-macos-native --dir "$DOWNLOAD_ROOT"
+          DMG="$(find "$DOWNLOAD_ROOT" -name 'YNX-Wallet-macOS-ad-hoc.dmg' -type f -print -quit)"
+          test -s "$DMG"
+          PROOF="$(dirname "$DMG")"
+          EXPECTED_SHA256="$(awk '{print $1}' "$PROOF/DMG-SHA256SUMS")"
+          EXPECTED_BYTES="$(awk '{print $1}' "$PROOF/DMG-BYTES")"
+          test "$(shasum -a 256 "$DMG" | awk '{print $1}')" = "$EXPECTED_SHA256"
+          test "$(stat -f '%z' "$DMG")" = "$EXPECTED_BYTES"
+          grep -F 'gatekeeperAccepted=false' "$PROOF/engineering-dmg-gatekeeper-boundary.txt"
+          grep -F 'signingClass=ad-hoc' "$PROOF/engineering-dmg-gatekeeper-boundary.txt"
+          gh release create "$RELEASE_TAG" "$DMG" \
+            --target "$YNX_EXPECTED_SOURCE_SHA" \
+            --prerelease \
+            --title "YNX Wallet macOS Testnet Engineering DMG $RELEASE_TAG" \
+            --notes "Owner-native com.ynxweb4.wallet.macos Testnet engineering DMG. SHA-256: $EXPECTED_SHA256. Bytes: $EXPECTED_BYTES. Universal x86_64+arm64, minimum macOS 13.0, ad-hoc signed, no Team ID, not Developer ID signed, not notarized, not stapled, and rejected by Gatekeeper. Authorization, account, Product Session, signing, send, transaction, recovery, physical biometric, App Store, Website publication, browser-quarantine acceptance, and system /Applications installation remain unverified or false."
