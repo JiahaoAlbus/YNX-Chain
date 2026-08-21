@@ -8,7 +8,7 @@ import{action,apply as applyForCard,createTestnetTopupIntent,dispute as openDisp
 import{catalogs,date,detectLocale,isLocale,isRTL,localeNames,locales,money,t as translate,type Locale}from"./src/i18n";
 import{loadLocale,loadSession,loadSimulationAudit,saveLocale,saveSession,saveSimulationAudit}from"./src/secureState";
 import{createRuntimeCardProductWalletConnection,type CardProductWalletConnection}from"./src/productWalletRuntime";
-import{approveTestnetTopup,classifyCardWalletError,connectEip1193Wallet,loadTestnetTopupEvidence,parseYnxtAmountToWei,resolveEip1193Provider,type CardSession,type Eip1193WalletSession,type ProductSessionRuntime,type TopupEvidence}from"./src/wallet";
+import{approveTestnetTopup,classifyCardWalletError,connectEip1193Wallet,connectMetaMaskWallet,loadTestnetTopupEvidence,parseYnxtAmountToWei,resolveEip1193Provider,resolveMetaMaskEip1193Provider,type CardSession,type Eip1193Provider,type Eip1193WalletSession,type ProductSessionRuntime,type TopupEvidence}from"./src/wallet";
 import{isFailure,recoverLastFailed,replayAwareAppend,SimulationAuditRecord,TESTNET_SIMULATION_CURRENCY,TESTNET_SIMULATION_MAX_EVENTS,type SimulationInput as LedgerSimulationInput}from"./src/simulation";
 import{GuestExperience}from"./src/GuestExperience";
 
@@ -54,6 +54,7 @@ export default function App(){
 
   const mounted=useRef(true);
   const productWallet=useRef<CardProductWalletConnection|null>(null);
+  const walletProvider=useRef<Eip1193Provider|null>(null);
   const persistSimulationLedger=useCallback(async(next:readonly SimulationAuditRecord[])=>{
     const normalized=Object.freeze(next.slice(0,TESTNET_SIMULATION_MAX_EVENTS));
     await saveSimulationAudit(normalized);
@@ -120,6 +121,7 @@ export default function App(){
       const provider=resolveEip1193Provider();
       if(!provider){setWalletError(tr("walletNotAvailable"));return;}
       const next=await connectEip1193Wallet(provider,new Date());
+      walletProvider.current=provider;
       setWalletSession(next);
       setPrivateSession(null);
       setTopupIntent(null);
@@ -130,6 +132,23 @@ export default function App(){
     }finally{
       if(mounted.current)setWalletBusy(false);
     }
+  };
+
+  const connectMetaMask=async()=>{
+    setWalletBusy(true);
+    setWalletError("");
+    try{
+      const provider=await resolveMetaMaskEip1193Provider();
+      if(!provider){setWalletError("MetaMask is not installed or could not be uniquely identified.");return;}
+      const next=await connectMetaMaskWallet(new Date(),provider);
+      walletProvider.current=provider;
+      setWalletSession(next);
+      setPrivateSession(null);
+      setTopupIntent(null);
+      setTopupHash("");
+      setTopupEvidence(null);
+    }catch(e){setWalletError(classifyCardWalletError(e).safeMessage);}
+    finally{if(mounted.current)setWalletBusy(false);}
   };
 
   const requestTopupIntent=async()=>{
@@ -151,7 +170,7 @@ export default function App(){
   const approveTopup=async()=>{
     if(!walletSession)throw new Error(tr("walletNotAvailable"));
     if(!topupIntent)throw new Error(tr("topupNoIntent"));
-    const provider=resolveEip1193Provider();
+    const provider=walletProvider.current??resolveEip1193Provider();
     if(!provider){setWalletError(tr("walletNotAvailable"));return;}
     setWalletBusy(true);
     setWalletError("");
@@ -166,7 +185,7 @@ export default function App(){
 
   const verifyTopup=async()=>{
     if(!topupHash.trim()||!topupIntent||!walletSession)throw new Error(tr("topupNoIntent"));
-    const provider=resolveEip1193Provider();
+    const provider=walletProvider.current??resolveEip1193Provider();
     if(!provider){setWalletError(tr("walletNotAvailable"));return;}
     setWalletBusy(true);
     setWalletError("");
@@ -357,7 +376,7 @@ export default function App(){
     </View>
 
     {!session?
-      <GuestExperience locale={locale} connectWallet={connectEvmWallet} connectYNXWallet={beginYNXWalletAuthorization} enablePrivateServices={signIn} walletSession={walletSession} walletBusy={walletBusy} walletError={walletError} privateSession={privateSession}/>
+      <GuestExperience locale={locale} connectWallet={connectEvmWallet} connectMetaMaskWallet={connectMetaMask} connectYNXWallet={beginYNXWalletAuthorization} enablePrivateServices={signIn} walletSession={walletSession} walletBusy={walletBusy} walletError={walletError} privateSession={privateSession}/>
     :
       <>
         <View style={s.stage}>

@@ -1,7 +1,9 @@
 import { p256 } from "@noble/curves/nist.js";
 import * as WalletAuth from "@ynx-chain/wallet-auth";
 import {StandardWalletConnection,enhanceWithProductSession} from "@ynx/dapp-connect-sdk";
+import {MetaMaskEvmConnectionAdapter,discoverWalletProviders} from "@ynx-chain/wallet-auth";
 import {walletErrorResponse} from "@ynx-chain/wallet-auth";
+import productSessionRegistry from "../vendor/product-session-registry-203be5e1.json";
 import {acceptedCardGatewayEndpoint} from "./publicEndpointManifest";
 import {
   encodeRequestDeepLink,
@@ -101,6 +103,17 @@ export function resolveEip1193Provider():Eip1193Provider|null{
     return globalWallet as Eip1193Provider;
   }
   return null;
+}
+
+export async function resolveMetaMaskEip1193Provider():Promise<Eip1193Provider|null>{
+  const discovered=await discoverWalletProviders(globalThis,160);
+  return discovered.metamask?.provider as Eip1193Provider|undefined??null;
+}
+
+export async function connectMetaMaskWallet(now=new Date(),provider?:Eip1193Provider|null):Promise<Eip1193WalletSession>{
+  const selected=provider??await resolveMetaMaskEip1193Provider();
+  const connection=await new MetaMaskEvmConnectionAdapter({registry:productSessionRegistry,productId:"card",provider:selected}).connect();
+  return Object.freeze({address:connection.address,chainId:YNX_TESTNET_CHAIN_ID,connectedAt:now.toISOString(),provider:"eip1193"});
 }
 
 export async function connectEip1193Wallet(provider:Eip1193Provider|null=resolveEip1193Provider(),now=new Date()):Promise<Eip1193WalletSession>{
