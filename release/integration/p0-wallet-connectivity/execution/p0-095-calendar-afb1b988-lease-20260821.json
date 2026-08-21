@@ -19,7 +19,7 @@
     "fresh read-only Calendar service and runtime digest preflight",
     "new root-only backup and lease-bound staging",
     "install exact Calendar binary only",
-    "restart ynx-calendard.service only",
+    "restart ynx-calendar.service only",
     "verify local and public health/version/UI",
     "rollback exact prior binary on any failed gate"
   ],
@@ -32,5 +32,19 @@
   "singleUse": true,
   "nonreusableAfterAttempt": true,
   "rollbackFirst": true,
-  "productionMutationAllowed": true
+  "productionMutationAllowed": true,
+  "freshPreflight": {
+    "observedAt": "2026-08-21T01:35:00Z",
+    "service": "ynx-calendar.service",
+    "serviceState": "active",
+    "serviceRestarts": 0,
+    "localAddress": "127.0.0.1:18097",
+    "currentBinarySha256": "b74820c013771f29a5b106f7c9ec36e274c64c2501d101afbcb51492d84270ed",
+    "unitSha256": "c6fa3b4c1b2c34366233169973631928890838709ecb8183daf0cfeee9d4331f",
+    "caddyRouteSha256": "8b75b9d1332e49e702b610fb1a5e6fcf8a04b9495a1eb16e04dfc65330911f98",
+    "stateSha256": "04c4eda25667d1f1433e6ebcee4186fc8a4b8325f4a004326cf2399a64f43201",
+    "stateKeySha256": "bf7b567201cab33c4b9ed02e00f0d0165172b4e692484ca044d828d0a3fb5e62",
+    "publicSourceCommit": "635f6745db8b5d4e4f00253d72fd5ab97da471ac",
+    "publicVersionRouteStatus": 404
+  }
 }

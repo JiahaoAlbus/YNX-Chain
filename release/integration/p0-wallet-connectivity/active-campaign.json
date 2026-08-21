@@ -329,7 +329,7 @@
     "expiresAt": "2026-08-21T03:33:20Z",
     "releasedAt": null,
     "checkpointCommit": null,
-    "scope": "calendar-afb1b988-binary-deployment-and-public-readback",
+    "scope": "calendar-afb1b988-binary-deployment-to-ynx-calendar-service-and-public-readback",
     "productionMutationAllowed": true,
     "singleUse": true
   },
