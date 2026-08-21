@@ -268,7 +268,9 @@ function unnamedInteractive() {
       await page.locator("#recurrence").selectOption("weekly");
       await page.locator("#interval").fill("2");
       await page.locator("#count").fill("3");
-      const currentDayCode = await page.evaluate(() => ["SU", "MO", "TU", "WE", "TH", "FR", "SA"][new Date().getDay()]);
+      const currentDayCode = await page.locator("#start").evaluate((input) =>
+        ["SU", "MO", "TU", "WE", "TH", "FR", "SA"][new Date(`${input.value}:00`).getDay()],
+      );
       await page.locator("#by-day").fill(currentDayCode);
       await page.locator("#calendar-id").selectOption("team");
       await page.locator("#event-color").selectOption("violet");
@@ -279,7 +281,24 @@ function unnamedInteractive() {
       await page.locator("#event-form button[type=submit]").click();
       await page.locator("#change-dialog").waitFor({ state: "visible" });
       await page.locator("#approve-change").click();
-      await page.locator(".event").first().waitFor();
+      await page.waitForFunction(() => {
+        const events = JSON.parse(localStorage.getItem("ynx.calendar.guestEvents") || "[]");
+        return Array.isArray(events) && events.length === 1;
+      });
+      try {
+        await page.locator(".event").first().waitFor({ timeout: 5_000 });
+      } catch (error) {
+        const diagnostics = await page.evaluate(() => ({
+          events: JSON.parse(localStorage.getItem("ynx.calendar.guestEvents") || "[]"),
+          eventCards: document.querySelectorAll(".event").length,
+          monthCards: document.querySelectorAll(".month-event").length,
+          agendaCards: document.querySelectorAll(".agenda-event").length,
+          emptyHidden: document.querySelector("#empty")?.hidden,
+          view: localStorage.getItem("ynx.calendar.view") || "week",
+          range: document.querySelector("#range")?.textContent,
+        }));
+        throw Error(`guest event was stored but not rendered: ${JSON.stringify(diagnostics)}; ${error.message}`);
+      }
       const guestProof = await page.evaluate(() => ({
         events: JSON.parse(localStorage.getItem("ynx.calendar.guestEvents") || "[]"),
         signinHidden: document.querySelector("#signin")?.hidden,

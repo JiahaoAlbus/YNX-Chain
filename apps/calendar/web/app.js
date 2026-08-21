@@ -560,6 +560,14 @@ function openForm(event = null, recurrenceEdit = null) {
   $("#event-dialog").showModal();
   $("#title").focus();
 }
+function normalizeAllDayRange() {
+  if (!$("#all-day").checked) return;
+  const startDate = $("#start").value.slice(0, 10) || localInput(new Date()).slice(0, 10);
+  const start = new Date(`${startDate}T00:00:00`);
+  const end = plusDays(start, 1);
+  $("#start").value = `${startDate}T00:00`;
+  $("#end").value = localInput(end);
+}
 function eventInput() {
   const freq = $("#recurrence").value;
   const untilValue = $("#recurrence-until").value;
@@ -1048,6 +1056,7 @@ function init() {
   $("#event-close").onclick = () => $("#event-dialog").close();
   $("#manage-calendars").onclick = showCalendarManager;
   $("#event-form").onsubmit = submitEvent;
+  $("#all-day").onchange = normalizeAllDayRange;
   $("#approve-change").onclick = approveChange;
   $("#edit-change").onclick = () => {
     $("#change-dialog").close();
