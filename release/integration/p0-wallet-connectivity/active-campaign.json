@@ -427,23 +427,23 @@
     }
   ],
   "heavy": {
-    "owner": "integration",
-    "taskId": "P0-137",
-    "status": "ACTIVE_BOUNDED_MERCHANT_CONSOLE_PUBLICATION",
-    "acquiredAt": "2026-08-21T09:18:58Z",
-    "expiresAt": "2026-08-21T09:48:58Z",
-    "releasedAt": null,
+    "owner": null,
+    "taskId": null,
+    "status": "RELEASED_PUBLIC_ENGLISH_GUEST_WALLET_FALLBACK_VERIFIED_COMPUTER_CONTROL_BLOCKED",
+    "acquiredAt": null,
+    "expiresAt": null,
+    "releasedAt": "2026-08-21T09:23:19Z",
     "sourceCommit": "042d3d3cb1a2593e8248919270578d48329a19d0",
     "runtimeHost": "43.153.202.237",
-    "currentRuntime": "/opt/ynx/merchant-console-8b0d7cc7",
+    "currentRuntime": "/opt/ynx/merchant-console-releases/p0137-merchant-wallet-042d3d3c",
     "rollbackTarget": "/opt/ynx/merchant-console-8b0d7cc7",
-    "candidateRuntime": "/opt/ynx/merchant-console-releases/p0137-merchant-wallet-042d3d3c",
+    "candidateRuntime": null,
     "artifactSha256": "fd53420ff47bf77f7f9cb1c42b40bf5f9a0bcedfabbd2f5a7bdff9d88837a91c",
-    "productionMutationAllowed": true,
+    "productionMutationAllowed": false,
     "singleUse": true,
     "previousOwner": null,
     "previousTaskId": "P0-136",
-    "reason": "P0-137 publishes the exact locally tested Merchant Console static bundle, replacing the old public top-level custom-scheme implementation while preserving the prior directory for atomic rollback."
+    "reason": "P0-137 exact Merchant Console bytes are public with English default, guest preview, stable zero-tab missing-wallet recovery and no console errors. Installed-provider and Computer Control evidence remain false."
   },
   "wave": {
     "id": "B-financial-apps-quant",

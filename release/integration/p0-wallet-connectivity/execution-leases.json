@@ -1,27 +1,22 @@
 {
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-  "epoch": 61,
-  "updatedAt": "2026-08-21T09:18:58Z",
+  "epoch": 62,
+  "updatedAt": "2026-08-21T09:23:19Z",
   "heavy": {
-    "owner": "integration",
-    "status": "ACTIVE_BOUNDED_MERCHANT_CONSOLE_PUBLICATION",
-    "branch": "codex/p0-merchant-console-visible-20260821",
-    "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/55-merchant-console-visible-p0",
-    "taskId": "P0-137",
-    "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-merchant-console-public-20260821T091858Z",
-    "leasedAt": "2026-08-21T09:18:58Z",
-    "expiresAt": "2026-08-21T09:48:58Z",
-    "releasedAt": null,
+    "owner": null,
+    "status": "RELEASED_PUBLIC_ENGLISH_GUEST_WALLET_FALLBACK_VERIFIED_COMPUTER_CONTROL_BLOCKED",
+    "branch": null,
+    "worktree": null,
+    "taskId": null,
+    "leaseId": null,
+    "leasedAt": null,
+    "expiresAt": null,
+    "releasedAt": "2026-08-21T09:23:19Z",
     "previousOwner": "integration",
-    "previousTaskId": "P0-136",
-    "previousCheckpoint": "466aa828854e89ae4aadde60f98becabc7c5b674",
-    "executionScope": "MERCHANT_CONSOLE_EXACT_STATIC_PUBLICATION_WITH_ROLLBACK",
-    "onSafeCheckpoint": [
-      "publish only the exact prebuilt dist from source 042d3d3c",
-      "preserve /opt/ynx/merchant-console-8b0d7cc7 as rollback target",
-      "keep private App Gateway and Pay API degraded or pending exactly as accepted manifest declares",
-      "do not claim installed Wallet, approval, account, signature, transaction, Product Session v2 or settlement"
-    ]
+    "previousTaskId": "P0-137",
+    "previousCheckpoint": "84581af52cc54d3e5e419199d1cb365f7a75f608",
+    "executionScope": null,
+    "onSafeCheckpoint": []
   },
   "light": {
     "owner": "integration",
