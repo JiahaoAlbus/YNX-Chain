@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self'; style-src 'self'; script-src 'self'">
-  <title>YNX Wallet Testnet Preview</title>
+  <title>YNX Wallet</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -14,6 +14,17 @@
       <p class="eyebrow">SELF-CUSTODY BOUNDARY</p>
       <h1>YNX Wallet</h1>
       <p class="lead">A visible, fail-closed desktop shell for reviewing frozen Wallet Auth requests on YNX Testnet.</p>
+    </section>
+    <section id="authorization" class="authorization" hidden aria-live="assertive">
+      <p class="eyebrow">WALLET AUTH REQUEST</p>
+      <h2 id="auth-product">Authorization request</h2>
+      <p id="auth-purpose"></p>
+      <p><strong>Scopes:</strong> <span id="auth-scopes"></span></p>
+      <p id="auth-result">Review only. No account, signing authority, or callback has been granted.</p>
+      <div class="actions">
+        <button id="reject-auth" type="button">Reject request</button>
+        <button id="approve-auth" type="button">Approve request</button>
+      </div>
     </section>
     <section class="status" aria-live="polite">
       <div><span id="indicator" class="indicator pending"></span><strong id="network">Checking YNX Testnet…</strong></div>
@@ -25,7 +36,7 @@
       <article><p class="label">ACCOUNT</p><h2>Not created</h2><p>This shell never invents an address or balance.</p></article>
       <article><p class="label">SIGNING</p><h2>Locked</h2><p>Key custody is not implemented in this slice.</p></article>
     </section>
-    <button class="sign" disabled aria-disabled="true">Review and sign — unavailable</button>
+    <button class="sign" disabled aria-disabled="true">Standalone signing — unavailable</button>
     <footer>Consumes @ynx-chain/wallet-auth · Testnet assets have no real-world value</footer>
   </main>
   <script src="renderer.js"></script>

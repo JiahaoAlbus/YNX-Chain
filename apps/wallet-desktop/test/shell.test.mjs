@@ -23,6 +23,10 @@ test("desktop packaging exposes real platform installer formats", async () => {
   assert.deepEqual(packageJson.build.win.target, ["nsis"]);
   assert.equal(packageJson.build.afterPack, "scripts/after-pack.mjs");
   assert.doesNotMatch(packageJson.scripts["dist:mac"], /zip/);
+  assert.equal(packageJson.version, "0.1.2");
+  assert.equal(packageJson.build.appId, "com.ynxweb4.wallet.macos");
+  assert.equal(packageJson.build.mac.minimumSystemVersion, "13.0");
+  assert.deepEqual(packageJson.build.protocols[0].schemes, ["ynxwallet"]);
 });
 
 test("macOS packaging hook removes localhost transport exceptions", async () => {
@@ -30,6 +34,9 @@ test("macOS packaging hook removes localhost transport exceptions", async () => 
   assert.match(hook, /NSAppTransportSecurity/);
   assert.match(hook, /NSAllowsArbitraryLoads: false/);
   assert.match(hook, /NSAllowsLocalNetworking: false/);
+  assert.match(hook, /CFBundleURLTypes/);
+  assert.match(hook, /com\.ynxweb4\.wallet\.macos/);
+  assert.match(hook, /LSMinimumSystemVersion/);
   assert.doesNotMatch(hook, /NSExceptionDomains/);
 });
 
@@ -37,7 +44,9 @@ test("shell is explicit and fail closed", async () => {
   const html = await readFile(new URL("../src/index.html", import.meta.url), "utf8");
   const main = await readFile(new URL("../src/main.mjs", import.meta.url), "utf8");
   const rpc = await readFile(new URL("../src/rpc.mjs", import.meta.url), "utf8");
-  assert.match(html, /Review and sign — unavailable/);
+  assert.match(html, /Standalone signing — unavailable/);
+  assert.match(html, /Approve request/);
+  assert.match(html, /Reject request/);
   assert.match(html, /disabled aria-disabled="true"/);
   assert.match(html, /Not created/);
   assert.match(rpc, /payload\?\.result !== expectedChainId/);
@@ -46,6 +55,8 @@ test("shell is explicit and fail closed", async () => {
   assert.match(main, /wallet-auth-contract\.mjs/);
   assert.match(main, /appVersion: app\.getVersion\(\)/);
   assert.match(main, /signingEnabled: false/);
+  assert.match(main, /app\.on\("open-url"/);
+  assert.match(main, /callbackEmitted: false/);
   assert.match(main, /window\.isVisible\(\)/);
   assert.match(main, /window\.getTitle\(\)/);
 });
