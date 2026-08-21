@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "sourceCommit": "1f71f029336b32bdbd12c607f1a8dadf21f677d1",
-  "generatedAt": "2026-08-21T16:08:06.094Z",
+  "sourceCommit": "de566ab3b139a936198eb2771d64812849b38c32",
+  "generatedAt": "2026-08-21T16:19:59.922Z",
   "runtimeClass": "Playwright bundled Chromium-compatible persistent PWA profile; not branded Chrome/Edge and not an installed PWA",
   "passed": true,
   "liveRpcProved": false,
@@ -16,6 +16,17 @@
   "downloadHosted": false,
   "productionSigned": false,
   "storeReleased": false,
+  "legacyClient": {
+    "controlled": true,
+    "cacheNames": [
+      "ynx-wallet-web-v7"
+    ],
+    "statusText": "Status: Not connected"
+  },
+  "updateProbe": {
+    "worker": true,
+    "policy": false
+  },
   "liveRpc": {
     "proved": false,
     "error": {
@@ -26,7 +37,7 @@
   "initial": {
     "controlled": true,
     "cacheNames": [
-      "ynx-wallet-web-v7"
+      "ynx-wallet-web-v8"
     ],
     "statusText": "Status: Not connected",
     "session": null,
@@ -53,7 +64,7 @@
     "appSha256": "65fb87b5eec304366a8603d5e33c203120f1b28659a18af96d417a4ca70d57a7",
     "indexContainsFake": false,
     "cacheNames": [
-      "ynx-wallet-web-v7"
+      "ynx-wallet-web-v8"
     ],
     "session": null
   },
