@@ -1,12 +1,12 @@
 {
   "schemaVersion": "1.0.0",
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-  "taskId": "P0-084",
+  "taskId": "P0-129",
   "productId": "ynx-creator-studio",
   "name": "YNX Creator Studio",
-  "version": "0.4.0-testnet-candidate",
-  "implementationCommit": "db80d901805e98d53627d6c97252b8d107961291",
-  "implementationTree": "67040b9a6053631c08ce5b64bc4b37fbdb47b89f",
+  "version": "0.4.1-testnet-candidate",
+  "implementationCommit": "3039a993",
+  "implementationTree": "e19eba0b70840565a76d2f0610e2fdad68d4ab0f",
   "surfaces": ["web"],
   "endpointManifest": {
     "version": "1.0.0-p0.2",
@@ -15,11 +15,14 @@
     "creatorProductApi": "PENDING"
   },
   "walletConnection": {
+    "explicitProviderChoice": true,
     "standardEip1193": "implemented-source-tested",
     "eip6963Discovery": "implemented-source-tested",
     "ynxTestnetChainId": "0x1917",
     "ynxWalletDownload": "https://ynxweb4.com/dapp/download",
     "metamaskFallback": "https://metamask.io/download/",
+    "providerSubstitution": false,
+    "topLevelCustomSchemeNavigation": false,
     "productSession": "legacy-v1-source-retained-private-service-degraded",
     "standardConnectionPreservedWhenPrivateFails": true
   },
@@ -29,10 +32,9 @@
   "testedLocal": true,
   "builtLocal": true,
   "browserQALocal": true,
-  "providerApprovalVerified": true,
-  "providerApprovalEvidenceClass": "deterministic-browser-injected-provider-only",
-  "accountVerified": true,
-  "accountEvidenceClass": "deterministic-browser-injected-provider-only",
+  "deterministicProviderApprovalVerified": true,
+  "realProviderApprovalVerified": false,
+  "realAccountVerified": false,
   "signingVerified": false,
   "transactionVerified": false,
   "productSessionV2Verified": false,
@@ -45,13 +47,13 @@
   "downloadHosted": false,
   "productionSigned": false,
   "storeReleased": false,
-  "historicalPublicUrl": "https://web4.ynxweb4.com/video/studio/",
-  "historicalPublicRuntimeAcceptedForCandidate": false,
+  "publicUrl": "https://web4.ynxweb4.com/video/studio/",
+  "currentPublicDefect": "The public runtime serves an unbundled app.js whose bare @ynx-chain/wallet-auth import fails in the browser.",
   "knownLimitations": [
     "The accepted endpoint manifest declares appGateway UNAVAILABLE and creatorProductApi PENDING.",
     "The retained private Product Session client is legacy v1 and is not promoted as v2.",
-    "Deterministic Chromium QA verified approve and reject behavior with an injected EIP-1193 provider; it is not an installed Wallet or ComputerControl claim.",
+    "Deterministic Chromium QA verified approve, reject and missing-provider recovery; it is not an installed Wallet, real account approval or ComputerControl claim.",
     "Upload, publish, monetization, payout and creator content APIs remain unverified and no content was fabricated.",
-    "No candidate public deployment or exact public runtime readback exists yet."
+    "This source checkpoint is not yet deployed; the current public runtime remains broken until a separate deployment lease succeeds."
   ]
 }

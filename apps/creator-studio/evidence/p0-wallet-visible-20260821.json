@@ -1,64 +1,39 @@
 {
   "schemaVersion": "1.0.0",
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-  "taskId": "P0-084",
+  "taskId": "P0-129",
   "productId": "ynx-creator-studio",
-  "startingCommit": "2b1103063b47d2cfbf060837056e6b33fc7ecad3",
-  "verificationCommit": "db80d901805e98d53627d6c97252b8d107961291",
-  "verificationTree": "67040b9a6053631c08ce5b64bc4b37fbdb47b89f",
-  "generatedAt": "2026-08-21T00:30:00Z",
+  "startingCommit": "650070ce5c5a7928425509f6e9e7da0aec31910d",
+  "implementationCommit": "3039a993",
+  "implementationTree": "e19eba0b70840565a76d2f0610e2fdad68d4ab0f",
+  "generatedAt": "2026-08-21T08:26:47Z",
   "gates": {
-    "nodeTests": "6/6 passed",
+    "nodeTests": "11/11 passed",
     "productionBuild": "passed",
     "smoke": "passed",
-    "chromiumVisibleTests": "2/2 passed",
-    "productionEndpointAudit": "0 findings"
+    "chromiumVisibleTests": "3/3 passed",
+    "explicitWalletChoice": "passed",
+    "noBlankTabOrNavigation": "passed",
+    "productionEndpointAudit": "0 local or development endpoint findings"
   },
   "artifacts": [
-    {
-      "path": "dist/app.js",
-      "bytes": 47469,
-      "sha256": "801ca003089d9c8820a9036354f3f6dd14901dd34633a9e6c0ffc33fd6d2b2d0"
-    },
-    {
-      "path": "runtime-config.js",
-      "bytes": 506,
-      "sha256": "53b8ae0d81d4a81716d79041c698b8183c92e60eb013c241acd7336913320cd8"
-    },
-    {
-      "path": "package-lock.json",
-      "bytes": 16634,
-      "sha256": "ed5961a380a3fbbb53348eda3cfd6ddac366eecad7655036666241023fb65fdf"
-    }
+    {"path":"dist/app.js","bytes":50611,"sha256":"7c9d884304bca81c83417a2563dfaab8c728284cbf2c8db815e32233ec66e015","selfContainedBundle":true},
+    {"path":"runtime-config.js","bytes":506,"sha256":"53b8ae0d81d4a81716d79041c698b8183c92e60eb013c241acd7336913320cd8"},
+    {"path":"package-lock.json","bytes":18318,"sha256":"a5bfe5a0c7a09d7fb6c211bef6fa55c1406c4a1a85279bb459a65e619c145955"}
   ],
   "visibleEvidence": [
-    {
-      "path": "evidence/visible/creator-wallet-approved-private-degraded-1440x900.png",
-      "bytes": 80525,
-      "sha256": "b3c4fe0bdb8fa7043a376abadb13ffb50a5a2cbcd89dd3259a48a480a4adb2bd",
-      "proves": [
-        "deterministic EIP-1193 approval on chain 0x1917",
-        "approved account is visibly connected",
-        "guest tour remains available",
-        "private Creator service is separately PRIVATE_SERVICE_DEGRADED"
-      ]
-    },
-    {
-      "path": "evidence/visible/creator-wallet-rejected-guest-tour-1440x900.png",
-      "bytes": 80902,
-      "sha256": "23b4e3cbc705df81f8ea3b8b88fd89e61c25f672dc82bf6041631fb61bf07f96",
-      "proves": [
-        "EIP-1193 rejection code 4001 creates no account or private session",
-        "guest tour remains available",
-        "official YNX Wallet download route remains visible"
-      ]
-    }
+    {"path":"evidence/visible/creator-wallet-approved-private-degraded-1440x900.png","bytes":80524,"sha256":"7b95f3442eab52eb6619e76c73421b5852e298f1513105450c3d1c9c3bbdd033","proves":["explicit YNX Wallet selection","deterministic EIP-1193 approval on chain 0x1917","guest tour remains available","private Creator service is separately degraded"]},
+    {"path":"evidence/visible/creator-wallet-rejected-guest-tour-1440x900.png","bytes":128321,"sha256":"c5cb6d47c0e25d564d844b8987d476cf20385615078838237856672da822c6df","proves":["explicit YNX Wallet rejection creates no account or private session","guest tour remains available"]},
+    {"path":"evidence/visible/creator-wallet-explicit-missing-provider-1440x900.png","bytes":132293,"sha256":"f3e47df327e4431ea8c8c4b87155a5d5190c459a991ead2d51248c7e37d2dc6e","proves":["explicit YNX Wallet and MetaMask choices","wallet-specific official recovery action","original URL preserved","no blank top-level tab"]}
   ],
   "truth": {
     "deterministicProviderApproval": true,
     "deterministicProviderRejection": true,
     "standardConnectionPreservedWhenPrivateFails": true,
     "realInstalledWallet": false,
+    "realProviderAccountApproval": false,
+    "signature": false,
+    "transaction": false,
     "productSessionV2": false,
     "creatorProductApi": false,
     "upload": false,
@@ -66,9 +41,15 @@
     "monetization": false,
     "payout": false,
     "publicDeployment": false,
+    "publicVerified": false,
     "computerControl": false,
     "productionSigned": false,
     "storeReleased": false
+  },
+  "currentPublicRuntime": {
+    "url": "https://web4.ynxweb4.com/video/studio/",
+    "accepted": false,
+    "observedDefect": "Bare @ynx-chain/wallet-auth module specifier fails in the browser because raw source was published instead of the self-contained dist/app.js."
   },
   "notes": [
     "No creator content, upload, publish result, payout, balance or transaction was fabricated.",
