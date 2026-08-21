@@ -26,10 +26,14 @@ test("accepted Standard Wallet Connection remains independent from optional Prod
 
 test("migration matrix covers the exact registry and cites only branch-local evidence", () => {
   assert.deepEqual(matrix.products.map((item) => item.productId), registry.products.map((item) => item.productId));
+  assert.deepEqual(matrix.requiredProductIds, ["calendar", "card", "creator-studio", "developer", "dex", "exchange", "finance", "pay", "quant", "shop", "social", "video"]);
+  assert.equal(matrix.requiredProductMigrationCount, matrix.products.filter((item) => matrix.requiredProductIds.includes(item.productId) && item.migrated).length);
+  assert.equal(matrix.nonProductRegistryClientCount, matrix.products.filter((item) => !matrix.requiredProductIds.includes(item.productId)).length);
+  assert.deepEqual(matrix.requiredOwnerEvidenceSegments, ["runtime-source", "public-gateway-v2", "visible-platform-lifecycle"]);
   assert.equal(matrix.productRuntimeMigrationCount, matrix.products.filter((item) => item.migrated).length);
   assert.equal(matrix.fixedProductCount, matrix.products.filter((item) => item.migrated).length);
   for (const product of matrix.products) {
-    assert.ok(["contract-only", "core-runtime-candidate", "legacy-direct", "shared-sdk-v1", "canonical-launcher-v1", "standard-wallet-only", "root-factory-source-only", "root-factory-owner-source-only", "root-factory-platform-negative", "android-retired-web-legacy", "migrated-v2"].includes(product.consumer));
+    assert.ok(["contract-only", "core-runtime-candidate", "legacy-direct", "shared-sdk-v1", "canonical-launcher-v1", "standard-wallet-only", "standard-wallet-current-source-public", "root-factory-source-only", "root-factory-owner-source-only", "root-factory-platform-negative", "android-retired-web-legacy", "migrated-v2"].includes(product.consumer));
     assert.ok(Array.isArray(product.evidence) && product.evidence.length > 0);
     for (const path of product.evidence) assert.equal(existsSync(resolve(repositoryRoot, path)), true, `${product.productId} evidence is missing: ${path}`);
   }
@@ -55,6 +59,11 @@ test("legacy and shared-v1 consumers cannot be presented as v2 migrations", () =
       assert.match(sources, /"productSessionV2GatewayEvidenced": false/);
       assert.match(sources, /"visiblePlatformEvidenced": false/);
       assert.match(sources, /"migratedV2": false/);
+    }
+    if (product.consumer === "standard-wallet-current-source-public") {
+      assert.match(sources, /"currentSourcePublic":true/);
+      assert.match(sources, /"productSessionV2":false/);
+      assert.match(sources, /"migratedV2":false/);
     }
     if (product.consumer === "root-factory-source-only") {
       assert.match(sources, /"rootFactoryConsumed": true/);
