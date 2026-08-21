@@ -13,17 +13,21 @@ test("release pins accepted manifest and truthful endpoint states",async()=>{
 });
 
 test("public Search remains usable without login and Wallet controls are explicit",async()=>{
-  const [app,html]=await Promise.all([read("src/public/app.js"),read("src/public/index.html")]);
+  const [app,html,launcher]=await Promise.all([read("src/public/app.js"),read("src/public/index.html"),read("src/public/safe-wallet-launcher.js")]);
   assert.match(app,/let locale = resolve\(localStorage\.getItem\("ynx-search-locale"\) \|\| "en"\)/);
   assert.match(html,/id="search-form"/);
   assert.match(html,/id="wallet-button"[^>]*>Connect Wallet</);
   assert.match(html,/id="private-wallet-button"[^>]*disabled>Private service degraded</);
   assert.match(html,/https:\/\/ynxweb4\.com\/dapp\/download/);
   assert.match(html,/https:\/\/metamask\.io\/download\//);
+  assert.match(app,/launchSearchWalletAuthorization/);
+  assert.doesNotMatch(app,/location\.(?:href|assign)\s*=/);
+  assert.match(launcher,/launchWebAuthorization/);
+  assert.doesNotMatch(launcher,/`ynxwallet:\/\/authorize/);
 });
 
 test("release-facing browser files contain no loopback or development endpoints",async()=>{
-  const files=await Promise.all(["src/public/app.js","src/public/index.html","src/public/runtime-config.js","src/public/standard-wallet.js"].map(read));
+  const files=await Promise.all(["src/public/app.js","src/public/index.html","src/public/runtime-config.js","src/public/standard-wallet.js","src/public/safe-wallet-launcher.js"].map(read));
   for(const body of files)assert.doesNotMatch(body,/(localhost|127\.0\.0\.1|0\.0\.0\.0|10\.0\.2\.2|example\.com)/);
 });
 

@@ -1,0 +1,43 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-112",
+  "product": "search",
+  "owner": "integration",
+  "recordedAt": "2026-08-21T04:55:56Z",
+  "baselineCommit": "c9de2692aad9f0e99edce5c49366265480b369da",
+  "change": {
+    "description": "Validate the Search-owned authorization request and replace top-level custom-scheme navigation with the shared controlled web launcher.",
+    "walletAuthArtifact": "apps/search/vendor/ynx-chain-wallet-auth-1.0.0-safe-authorize-p0.0.tgz",
+    "walletAuthArtifactSha256": "dd80cf3d8fda3b35b89ddae6f3848dc420358b9c10d1879ed33a33f567585acb",
+    "exactProductBindingValidated": true,
+    "exactCallbackValidated": true,
+    "exactScopesValidated": true,
+    "requestTimingValidated": true,
+    "manualSchemeConcatenation": false,
+    "topLevelLocationNavigation": false,
+    "guestSearchPreserved": true,
+    "officialWalletRecoveryVisible": true,
+    "metamaskRecoveryVisible": true
+  },
+  "verification": {
+    "nodeTests": {"passed": true, "tests": 21, "failures": 0},
+    "productionBuild": {"passed": true},
+    "serviceSmoke": {"passed": true},
+    "chromiumE2E": {"passed": true, "tests": 8, "failures": 0},
+    "gitDiffCheck": {"passed": true},
+    "builtAppSha256": "ea33e72f03041fbecbb13d6b1db015e2daf78a9f8c7dc74cb483f72258ccac13"
+  },
+  "truth": {
+    "sourceValidated": true,
+    "deterministicBrowserFlowsValidated": true,
+    "publicDeployed": false,
+    "publicVisibleVerified": false,
+    "computerControlVerified": false,
+    "installedWalletVerified": false,
+    "walletApprovalVerified": false,
+    "callbackVerified": false,
+    "productSessionV2": false
+  },
+  "nextAction": "Publish the exact Search source through its authoritative production path, then verify the controlled fallback and a real installed-Wallet approval/callback separately."
+}

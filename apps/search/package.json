@@ -14,6 +14,9 @@
   "engines": {
     "node": ">=20"
   },
+  "dependencies": {
+    "@ynx-chain/wallet-auth": "file:vendor/ynx-chain-wallet-auth-1.0.0-safe-authorize-p0.0.tgz"
+  },
   "devDependencies": {
     "@playwright/test": "^1.61.1",
     "esbuild": "0.25.12"

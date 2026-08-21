@@ -1,5 +1,6 @@
 import { locales, resolve, apply, text } from "./i18n.js";
 import {connectStandardWallet,privateServiceDegraded} from "./standard-wallet.js";
+import {launchSearchWalletAuthorization} from "./safe-wallet-launcher.js";
 
 const $ = selector => document.querySelector(selector);
 const number = value => new Intl.NumberFormat(locale).format(value);
@@ -298,7 +299,9 @@ $("#private-wallet-button").onclick = async () => {
     const response = await fetch("/api/wallet/prepare", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ deviceKey: await deviceKey() }) });
     const data = await response.json();
     if (!response.ok) throw new Error(data.error);
-    location.href = data.deepLink;
+    const launch=await launchSearchWalletAuthorization(data.deepLink,{document,window,timeoutMs:1500});
+    if(launch.status==="opened")showNotice("YNX Wallet review was requested without leaving Search. Return here after approve or reject; no private session was created yet.");
+    else{$("#wallet-recovery").hidden=false;showNotice("YNX Wallet was not detected. Search remains available; download YNX Wallet or continue with MetaMask.")}
   } catch (error) { showNotice(`Private Search service unavailable: ${error.message}. Standard Wallet remains connected; no private session was created.`); }
 };
 if (location.pathname === "/auth/callback") {
