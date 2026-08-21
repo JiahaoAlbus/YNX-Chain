@@ -1,7 +1,7 @@
 # YNX Calendar migration and compatibility
 
-Current product source: `f1305e6b52c7484c099fe6b2f6cbc2b6d36508e2`
-Public Web runtime source: `635f6745db8b5d4e4f00253d72fd5ab97da471ac`
+Current product source: `828120e6d81efaf874a930793660e185a394ba4f`
+Public Web runtime source: `828120e6d81efaf874a930793660e185a394ba4f`
 
 ## Versioned state
 

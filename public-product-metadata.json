@@ -4,7 +4,7 @@
   "name": "YNX Calendar",
   "aliases": ["Calendar", "YNX 日历", "YNX 日曆"],
   "canonicalRoute": "/dapp/calendar",
-  "sourceCommit": "f1305e6b52c7484c099fe6b2f6cbc2b6d36508e2",
+  "sourceCommit": "828120e6d81efaf874a930793660e185a394ba4f",
   "title": "YNX Calendar — Private scheduling with explicit approval",
   "metaDescription": "Plan events, recurring schedules, invitations, RSVP, sharing and conflict review with timezone-aware scheduling and explicit user approval.",
   "h1": "Your time, clearly under your control",

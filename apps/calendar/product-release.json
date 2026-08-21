@@ -2,10 +2,10 @@
   "productId": "com.ynx.calendar",
   "name": "YNX Calendar",
   "branch": "codex/final-calendar",
-  "commit": "f1305e6b52c7484c099fe6b2f6cbc2b6d36508e2",
-  "sourceCommit": "f1305e6b52c7484c099fe6b2f6cbc2b6d36508e2",
-  "artifactSourceCommit": "f1305e6b52c7484c099fe6b2f6cbc2b6d36508e2",
-  "version": "0.3.9-testnet-public",
+  "commit": "828120e6d81efaf874a930793660e185a394ba4f",
+  "sourceCommit": "828120e6d81efaf874a930793660e185a394ba4f",
+  "artifactSourceCommit": "828120e6d81efaf874a930793660e185a394ba4f",
+  "version": "0.4.0-testnet-public",
   "releaseChannel": "public-testnet-preview",
   "surfaces": [
     "android-native",
@@ -16,7 +16,7 @@
   ],
   "implementedLocal": true,
   "testedLocal": true,
-  "installedLocal": true,
+  "installedLocal": false,
   "integratedCentral": false,
   "deployedStaging": false,
   "deployedPublic": true,
@@ -29,7 +29,9 @@
     "https://www.ynxweb4.com/dapp/calendar"
   ],
   "healthUrls": [
-    "https://calendar-testnet.43.153.202.237.sslip.io/v1/health"
+    "https://calendar-testnet.43.153.202.237.sslip.io/v1/health",
+    "https://calendar-testnet.43.153.202.237.sslip.io/v1/ready",
+    "https://calendar-testnet.43.153.202.237.sslip.io/v1/version"
   ],
   "artifactUrls": [],
   "sha256": {
@@ -44,7 +46,7 @@
     "android": "debug-local-build-unhosted",
     "ios": "source-parse-only",
     "desktop": "unsigned-local-build-unhosted",
-    "web": "local-browser-proof-unhosted"
+    "web": "public-testnet-https-runtime-unsigned"
   },
   "minOS": {
     "android": 26,
@@ -74,11 +76,14 @@
   "publicProbe": {
     "url": "https://calendar-testnet.43.153.202.237.sslip.io/",
     "finalUrl": "https://calendar-testnet.43.153.202.237.sslip.io/",
-    "observedAt": "2026-08-13T12:02:00Z",
+    "observedAt": "2026-08-21T02:08:00Z",
     "httpStatus": 200,
     "contentMatch": true,
     "observedTitle": "YNX Calendar",
     "observedCanonical": "https://calendar-testnet.43.153.202.237.sslip.io/",
+    "runtimeSourceCommit": "828120e6d81efaf874a930793660e185a394ba4f",
+    "healthSha256": "57dcfa040c65ec131e4273382ff21cd83b69ef8354752e31ec0b76fc0ce6f692",
+    "versionSha256": "d9b2e78ac4defc974368a23097a9c56de7a3859880b2bdb615b0f5f86343e803",
     "classification": "direct public Testnet Calendar web runtime"
   },
   "installEvidence": [
@@ -217,6 +222,25 @@
         "canonicalOutbox": "transactional lifecycle, invitation, RSVP, sharing, reminder and AI preview events pass privacy, idempotency, overflow, acknowledgement and restart tests",
         "telemetry": "request IDs plus health, readiness, version and bounded-route Prometheus metrics pass local Race tests",
         "macosArchiveSha256": "56c8bd7390148a7e6f1efcb1b1a3e97a80e07f5ca87353e8ccc51729e4b6dbed"
+      }
+    },
+    {
+      "sourceCommit": "828120e6d81efaf874a930793660e185a394ba4f",
+      "gate": "P0-098 source-owned paired deployment, soak, cold restart and exact public readback",
+      "result": "pass-with-current-visible-boundary",
+      "details": {
+        "runtime": "https://calendar-testnet.43.153.202.237.sslip.io/",
+        "binarySha256": "030bc61acfb61ae6adf05a5aa6b472f34beee24a9113b696e9d845d709f8ae3d",
+        "stateSha256": "fbe1c9cf058658370373385dc659c8b43a14238a3adef9df62a8b5ef0d22bd9c",
+        "stateSchemaVersion": 2,
+        "serviceActive": true,
+        "nRestarts": 0,
+        "healthHttpBytesSha256": "200/214/57dcfa040c65ec131e4273382ff21cd83b69ef8354752e31ec0b76fc0ce6f692",
+        "versionHttpBytesSha256": "200/278/d9b2e78ac4defc974368a23097a9c56de7a3859880b2bdb615b0f5f86343e803",
+        "rootHttpBytesSha256": "200/15731/4ef95799855917062d3625587c234757377762c8523fe2317eeb8b34b6e97258",
+        "rollbackBackup": "/var/backups/ynx-chain/calendar-828120e6-p0098",
+        "computerControlCurrentDeployment": false,
+        "installedWalletCurrentDeployment": false
       }
     }
   ],

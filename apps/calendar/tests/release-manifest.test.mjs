@@ -45,16 +45,16 @@ test("current source and historical preview artifacts remain separated", () => {
   assert.equal(release.branch, "codex/final-calendar");
   assert.match(release.commit, /^[0-9a-f]{40}$/);
   assert.equal(release.sourceCommit, release.commit);
-  assert.equal(release.installedLocal, true);
+  assert.equal(release.installedLocal, false);
   assert.equal(release.downloadHosted, false);
   assert.deepEqual(release.artifactUrls, []);
-  assert.ok(release.installEvidence.some((item) => item.sourceCommit === release.commit && item.platform === "darwin-arm64" && item.signingClass === "unsigned-local"));
+  assert.equal(release.installEvidence.some((item) => item.sourceCommit === release.commit), false);
   assert.equal(release.historicalPreview.sourceCommit, "e227c4f0505537b19f4588ea26478c54518f0a4c");
   assert.equal(release.historicalPreview.classification, "historical-testnet-preview-not-current-source");
   assert.equal(release.historicalPreview.downloadHosted, true);
   assert.ok(release.historicalPreview.artifactUrls.length > 0);
   assert.equal(rootRelease.sourceCommit, release.commit);
-  assert.equal(rootRelease.releaseStates.installedLocal, true);
+  assert.equal(rootRelease.releaseStates.installedLocal, false);
   assert.equal(rootRelease.releaseStates.downloadHosted, false);
 });
 

@@ -1,0 +1,58 @@
+{
+  "schemaVersion": "ynx-calendar-public-deployment-evidence/v1",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-098",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-calendar-828120e6-tested-20260821T020150Z",
+  "sourceCommit": "828120e6d81efaf874a930793660e185a394ba4f",
+  "evidenceCandidateCommit": "ac549a7e82aa6f18c52347a045f1959c3c54a985",
+  "deployment": {
+    "completedAt": "2026-08-21T02:05:28Z",
+    "service": "ynx-calendar.service",
+    "origin": "https://calendar-testnet.43.153.202.237.sslip.io",
+    "binarySha256": "030bc61acfb61ae6adf05a5aa6b472f34beee24a9113b696e9d845d709f8ae3d",
+    "binaryBytes": 10618703,
+    "stateSha256": "fbe1c9cf058658370373385dc659c8b43a14238a3adef9df62a8b5ef0d22bd9c",
+    "stateBytes": 39225,
+    "stateSchemaVersion": 2,
+    "stateKeySha256": "bf7b567201cab33c4b9ed02e00f0d0165172b4e692484ca044d828d0a3fb5e62",
+    "unitSha256": "c6fa3b4c1b2c34366233169973631928890838709ecb8183daf0cfeee9d4331f",
+    "caddySha256": "8b75b9d1332e49e702b610fb1a5e6fcf8a04b9495a1eb16e04dfc65330911f98",
+    "serviceActive": true,
+    "nRestarts": 0,
+    "soakSeconds": 35,
+    "coldRestartVerified": true,
+    "rollbackBackup": "/var/backups/ynx-chain/calendar-828120e6-p0098"
+  },
+  "publicReadback": {
+    "health": "200/214/57dcfa040c65ec131e4273382ff21cd83b69ef8354752e31ec0b76fc0ce6f692",
+    "version": "200/278/d9b2e78ac4defc974368a23097a9c56de7a3859880b2bdb615b0f5f86343e803",
+    "ready": "200/253/771fc87d539948309b05cc629d16798eebbba7ebf7abf320d389f5b21425283d",
+    "root": "200/15731/4ef95799855917062d3625587c234757377762c8523fe2317eeb8b34b6e97258",
+    "walletConnectionJs": "200/2478/27b0873122daa9c9c0f253e8819b2575aeba7705a8d790cb3acd29a8dee344a1",
+    "appJs": "200/66514/d0222bd67ff99983f1b20a23e6b019589593a61a8db5e1460245e64a886f2e2f",
+    "exactSourceInHealthAndVersion": true,
+    "initialTlsTimeoutObservedBeforeSuccessfulBoundedRetry": true
+  },
+  "tests": {
+    "deploymentReadiness": "pass",
+    "node": "17/17",
+    "release": "5/5",
+    "go": "pass",
+    "goRace": "pass",
+    "goVet": "pass",
+    "smoke": "pass"
+  },
+  "truth": {
+    "deployedPublicCurrentSource": true,
+    "publicHttpVerifiedCurrentSource": true,
+    "currentDeploymentRenderedVisibleVerified": false,
+    "currentDeploymentComputerControlVerified": false,
+    "installedWalletVerified": false,
+    "productSessionV2": false,
+    "externalMailDelivery": false,
+    "liveAIProvider": false,
+    "productionSigned": false,
+    "storeReleased": false,
+    "integratedCentral": false
+  }
+}
