@@ -3,7 +3,7 @@
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "contract": "safeWalletAuthorizeLauncher@1.0.0-p0.0",
   "contractSourceCommit": "4679de8e8d0675e2013254c92ff1935191f87c21",
-  "updatedAt": "2026-08-21T04:44:03Z",
+  "updatedAt": "2026-08-21T04:46:04Z",
   "rules": {
     "webExtension": "Never replace the top-level document with ynxwallet://authorize. Use the accepted controlled hidden-frame lifecycle and keep the product page visible.",
     "native": "Resolve an installed handler for the exact canonical request before opening it. Unsupported must preserve the product state and offer the official Wallet download plus an independent MetaMask route where applicable.",
@@ -167,7 +167,8 @@
       "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/57-creator-studio-visible-p0",
       "branch": "codex/p0-creator-studio-visible-20260821",
       "path": "apps/creator-studio/**",
-      "status": "AUDITED_MIGRATION_REQUIRED",
+      "status": "ACTIVE",
+      "taskId": "P0-111",
       "finding": "apps/creator-studio/app.js assigns the canonical custom-scheme URL to top-level location.href.",
       "nextAction": "Acquire a product path lock after the financial atomic slice and replace top-level navigation with the accepted web launcher."
     },
