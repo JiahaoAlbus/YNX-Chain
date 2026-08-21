@@ -341,7 +341,7 @@
     "status": "ACTIVE_SINGLE_USE",
     "acquiredAt": "2026-08-21T06:44:29Z",
     "expiresAt": "2026-08-21T08:44:29Z",
-    "sourceCommit": "7bb494ff82420b84d0c153cbeb563083ad4dd361",
+    "sourceCommit": "650070ce5c5a7928425509f6e9e7da0aec31910d",
     "runtimeHost": "43.153.202.237",
     "currentRuntime": "/opt/ynx-video/releases/p0121-video-wallet-2e516baa",
     "rollbackTarget": "/opt/ynx-video/releases/p0121-video-wallet-2e516baa",
@@ -351,7 +351,7 @@
     "previousTaskId": "P0-121",
     "releasedAt": "2026-08-21T06:42:19Z",
     "checkpointCommit": "2e516baac89278a767397b29e72eed67a97e60db",
-    "reason": "P0-121 deployed the exact Video Standard Wallet source and released cleanly. P0-122 is a new product-scoped lease for the already-tested Creator Studio checkpoint only."
+    "reason": "P0-121 deployed the exact Video Standard Wallet source and released cleanly. P0-122 remains product-scoped; Computer Control found that 7bb494ff referenced an unavailable public module path, so the in-scope tested successor is exact 650070ce."
   },
   "wave": {
     "id": "B-financial-apps-quant",
