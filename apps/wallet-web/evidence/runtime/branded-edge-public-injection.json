@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "sourceCommit": "ef0251262f9bbd3417c46f686a672800321bd231",
-  "generatedAt": "2026-08-21T11:33:39.247Z",
+  "sourceCommit": "b4af32f9d2c48a8431503f81f74421d5401990ab",
+  "generatedAt": "2026-08-21T17:06:24.185Z",
   "browserId": "edge",
   "browserName": "Microsoft Edge",
   "gate": "public-injection",
@@ -19,7 +19,7 @@
   },
   "preInjection": {
     "url": "https://wallet.ynxweb4.com/?verify=extension-eip6963",
-    "readyState": "interactive",
+    "readyState": "complete",
     "ethereumType": "object",
     "companionPresent": true
   },

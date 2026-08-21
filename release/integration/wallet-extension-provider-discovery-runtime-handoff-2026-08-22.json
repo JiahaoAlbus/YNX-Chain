@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "WALLET-EXTENSION-PROVIDER-DISCOVERY-RUNTIME-HANDOFF-20260822",
+  "owner": "wallet-web-extension",
+  "recordedAt": "2026-08-22T00:00:00+08:00",
+  "source": {
+    "branch": "codex/wallet-web-extension-state-p0-20260821",
+    "commit": "b4af32f9d2c48a8431503f81f74421d5401990ab",
+    "tree": "62380cb82c0b1a08bc674b5cd9e3e43442f372da"
+  },
+  "sharedContract": {
+    "commit": "98c6d5d784d212df8981a53b17118a511e246ad2",
+    "tree": "51a60a362d4ad5dd748bcdefb101f71b1d9e0cee",
+    "evidence": "c3ab255c32bdeb9c8e056882c315f8ad43c29c7f",
+    "rule": "A standard Web connection requires the selected EIP-1193 provider, a user-approved account, and provider eth_chainId 0x1917. Browser RPC CORS is not a connection prerequisite."
+  },
+  "extensionRuntime": {
+    "browser": "Microsoft Edge 151.0.4129.93",
+    "mode": "temporary-unpacked-isolated-profile",
+    "target": "https://wallet.ynxweb4.com/?verify=extension-eip6963",
+    "serviceWorkerStarted": true,
+    "providerInjected": true,
+    "isYNXWallet": true,
+    "rdns": "com.ynx.wallet.companion",
+    "requestFunction": true,
+    "artifact": {
+      "name": "ynx-wallet-chrome-edge-0.1.0.zip",
+      "bytes": 202467,
+      "sha256": "653d7d04656d5d3b3c92bf57080e60dfebfe4505a4f2fc0b233c38620acb4089",
+      "signingClass": "unsigned-unpacked-extension"
+    }
+  },
+  "externalChromeReadOnly": {
+    "url": "https://wallet.ynxweb4.com/?verify=provider-completion&lang=en&ynx-sw-upgrade=ynx-wallet-web-v9&ynx-sw-recovery=ynx-wallet-web-v8",
+    "visibleState": "PWA shell recovery could not unregister the stale worker",
+    "windowEthereumPresent": false,
+    "providerCount": 0,
+    "accountRequestAttempted": false,
+    "networkMutationAttempted": false,
+    "signatureAttempted": false,
+    "transactionAttempted": false,
+    "interpretation": "The public Chrome page was blocked before provider discovery by stale-worker recovery. This does not prove that a provider request was rejected."
+  },
+  "tests": {
+    "walletWeb": "99/99",
+    "package": "pass",
+    "verifyPackage": "pass",
+    "publicInjectionGate": "pass"
+  },
+  "truth": {
+    "temporaryUnpackedProviderDiscovery": true,
+    "userChromeProviderDiscovery": false,
+    "providerAccountApproved": false,
+    "chainIdVerifiedThroughApprovedProvider": false,
+    "chooserClosed": false,
+    "refreshRestored": false,
+    "disconnectObserved": false,
+    "accountChangeObserved": false,
+    "chainChangeObserved": false,
+    "ynxProviderInstalled": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false,
+    "signature": false,
+    "transaction": false
+  }
+}
