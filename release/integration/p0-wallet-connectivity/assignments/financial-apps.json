@@ -1,22 +1,24 @@
 {
   "taskId": "P0-110",
   "owner": "financial-apps",
-  "status": "ACTIVE_QUANT_CANONICAL_AUTHORIZE_SLICE",
+  "status": "QUANT_CANONICAL_AUTHORIZE_CHECKPOINT_REACHED_HEAVY_RELEASED",
   "acceptedContracts": ["walletTransport@p0-wallet-connection-v1", "errorContract@p0-wallet-connection-v1", "dappConnectSDK@0.1.0-p0.0", "publicEndpointManifest@1.0.0-p0.2", "canonicalWalletAuthorize@1.0.0-p0.0", "safeWalletAuthorizeLauncher@1.0.0-p0.0"],
   "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-quant-canonical-authorize-20260821T044403Z",
   "leasedAt": "2026-08-21T04:44:03Z",
-  "expiresAt": "2026-08-21T06:44:03Z",
+  "releasedAt": "2026-08-21T04:58:00Z",
   "activeProduct": {
     "id": "quant",
     "pathLock": "apps/quant/**",
     "branch": "codex/quant-owner-contract-snapshot",
     "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/08-quant-lab",
     "baselineCommit": "f66fd4d14ff047efa6bb7e66fc2e140773826b16",
-    "scope": "Consume accepted canonical authorize and safe launcher, keep MetaMask independent, then test/build and capture only truthful visible evidence."
+    "scope": "Canonical authorize and safe launcher source/build/local-browser checkpoint completed; product ownership remains with financial-apps.",
+    "checkpointCommit": "b20a908893010968d92045e8bb0bcb4ab1bd325c",
+    "checkpointTree": "3c2c5469bc5b10f3459befe16f512f5b98ebdbfc"
   },
   "prohibitions": ["do not rewrite shared protocol", "do not hard-code endpoints", "do not deploy production", "do not enable capital execution"],
   "deployedPublic": false,
   "publicVerified": false,
   "computerControlVerified": false,
-  "nextAction": "Begin Quant at f66fd4d1 and stop after one recoverable canonical-authorize and safe-launcher source/build/visible checkpoint."
+  "nextAction": "Preserve this checkpoint. Resume only under a new assignment for installed-Wallet lifecycle, Product Session or real strategy/order evidence."
 }
