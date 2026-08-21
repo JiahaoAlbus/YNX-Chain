@@ -15,7 +15,8 @@
     "build:android": "sh scripts/build-android.sh",
     "browser:proof": "node tests/browser-proof.cjs",
     "check:ios": "swiftc -frontend -parse native/ios/YNXCalendar/YNXCalendarApp.swift && plutil -lint native/ios/YNXCalendar/Info.plist native/ios/YNXCalendar.xcodeproj/project.pbxproj",
-    "smoke": "sh tests/smoke.sh"
+    "smoke": "sh tests/smoke.sh",
+    "test:deploy": "bash tests/deploy-readiness.test.sh"
   },
   "ynx": {
     "productClientId": "ynx-calendar-v1",
