@@ -1,4 +1,9 @@
-import {connectCalendarWallet, WALLET_INSTALLATION_OPTIONS} from "./wallet-connection.js";
+import {
+  connectCalendarWallet,
+  disconnectCalendarWallet,
+  restoreCalendarWallet,
+  WALLET_INSTALLATION_OPTIONS,
+} from "./wallet-connection.js";
 
 const state = {
   token: "",
@@ -117,17 +122,14 @@ async function beginSignIn(recovery = false) {
   status.textContent = "Discovering a standard EVM Wallet…";
   try {
     const wallet = await connectCalendarWallet(window);
-    state.wallet = wallet;
-    enterGuest();
-    const short = `${wallet.account.slice(0, 6)}…${wallet.account.slice(-4)}`;
-    $("#account").textContent = short.slice(2, 4).toUpperCase();
-    $("#account").setAttribute("aria-label", `${wallet.walletName} ${short} connected on YNX Testnet. Calendar sync remains unavailable.`);
+    applyStandardWallet(wallet);
+    const short = walletAccountLabel(wallet.account);
     toast(`${wallet.walletName} connected · ${short} · private Calendar sync is degraded`);
   } catch (error) {
     state.wallet = null;
     const code = error?.code || "WALLET_CONNECTION_FAILED";
-    if (code === "WALLET_NOT_INSTALLED") {
-      status.replaceChildren(document.createTextNode("No Wallet found. "));
+    if (code === "PROVIDER_NOT_INJECTED" || code === "UNSUPPORTED_INJECTED_PROVIDER") {
+      status.replaceChildren(document.createTextNode("No supported Wallet was injected into this page. Unlock it, allow access to this site, or "));
       const ynx = document.createElement("a");
       ynx.href = WALLET_INSTALLATION_OPTIONS.ynxWallet; ynx.textContent = "Download YNX Wallet"; ynx.rel = "noopener noreferrer";
       const metamask = document.createElement("a");
@@ -141,6 +143,27 @@ async function beginSignIn(recovery = false) {
   } finally {
     button.disabled = false;
   }
+}
+function walletAccountLabel(account) {
+  return `${account.slice(0, 6)}…${account.slice(-4)}`;
+}
+function applyStandardWallet(wallet) {
+  state.wallet = wallet;
+  enterGuest();
+  const short = walletAccountLabel(wallet.account);
+  $("#account").textContent = short.slice(2, 4).toUpperCase();
+  $("#account").setAttribute("aria-label", `${wallet.walletName} ${short} connected on YNX Testnet. Calendar sync remains unavailable.`);
+  $("#signin-state").textContent = `${wallet.walletName} connected on YNX Testnet. Private Calendar sync is degraded; local Calendar remains available.`;
+}
+function clearStandardWallet(reason = "Wallet disconnected. Guest trial remains available.") {
+  state.wallet = null;
+  $("#account").textContent = "GU";
+  $("#account").setAttribute("aria-label", reason);
+  $("#signin-state").textContent = reason;
+}
+async function restoreStandardWallet() {
+  const restored = await restoreCalendarWallet(window);
+  if (restored?.standardConnection === "CONNECTED") applyStandardWallet(restored);
 }
 async function restoreSession() {
   try {
@@ -1007,8 +1030,15 @@ function init() {
       await loadActivityNotifications();
       await loadEvents();
       syncOffline();
-    } else $("#signin").hidden = false;
+    } else {
+      $("#signin").hidden = false;
+      await restoreStandardWallet().catch(() => {});
+    }
     $("#app").setAttribute("aria-busy", "false");
+  });
+  addEventListener("ynx-calendar-standard-wallet-state", (event) => {
+    const wallet = event.detail;
+    if (wallet?.status === "disconnected" || wallet?.status === "wrong-chain") clearStandardWallet(wallet.status === "wrong-chain" ? "Wallet changed to another network. Switch back to YNX Testnet to reconnect." : "Wallet disconnected. Guest trial remains available.");
   });
   $("#wallet-signin").onclick = beginSignIn;
   $("#guest-try").onclick = enterGuest;
@@ -1217,6 +1247,7 @@ function showGuestAccount() {
     loadEvents();
   };
   dialog.querySelector('[data-action="exit"]').onclick = () => {
+    if (state.wallet) disconnectCalendarWallet();
     dialog.close();
     signOut(false);
   };
