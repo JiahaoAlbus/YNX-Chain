@@ -1,0 +1,60 @@
+{
+  "schemaVersion": "ynx-calendar-public-verification/v1",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-140",
+  "sourceCommit": "983e9199dc03da6f1ac4db33d33119513642cacf",
+  "deployment": {
+    "origin": "https://calendar-testnet.43.153.202.237.sslip.io",
+    "release": "ynx-calendar-0.4.2-testnet-preview",
+    "binarySha256": "37ab9f0fc990f8957f7003440e8efa08410ce3b5fb38e1b4fda6cb96362a074f",
+    "binaryBytes": 7581880,
+    "serviceActive": true,
+    "nRestarts": 0,
+    "coldRestartVerified": true,
+    "rollbackBackup": "/var/backups/ynx-chain/calendar-983e919-p0140-r2"
+  },
+  "publicReadback": {
+    "health": "200/215/7a0eac8eb3a266201b81d4cae4d472dbc2bb475b552761b9c73dee4e62816ed0",
+    "version": "200/279/ca209beac934a7f87a6a982681bcc7309e1fe46872e3edc97f91c06c3e2d7198",
+    "ready": "200/254/74ba61d971bff207bb2d514f3602c748f3363e7aed1d9e8bd6a68913ce9790b3",
+    "root": "200/15815/1cf18a93d89803dc42c5d69b5d035fc8af0f343c2503fa89a166c5b3885bba5c",
+    "exactSourceInVersion": true
+  },
+  "visibleVerification": {
+    "defaultLanguage": "en",
+    "selectedLanguageRemainsEnglish": true,
+    "browserTranslationSuppressed": true,
+    "guestTrialUsable": true,
+    "guestBoundaryVisible": true,
+    "wallet": "MetaMask",
+    "accountLabel": "0xb906…f3ab",
+    "chainId": "0x1917",
+    "approvalWindowObservedWithComputerControl": true,
+    "approvalCompleted": true,
+    "chooserClosedAfterSuccess": true,
+    "newTopLevelTabCreated": false,
+    "refreshRestoredConnection": true,
+    "restoredStatus": "MetaMask connected · 0xb906…f3ab · private Calendar sync is degraded",
+    "openDialogCountAfterRefresh": 0
+  },
+  "tests": {
+    "node": "20/20",
+    "release": "5/5",
+    "deploymentReadiness": "pass",
+    "diffCheck": "pass"
+  },
+  "truth": {
+    "deployedPublicCurrentSource": true,
+    "publicHttpVerifiedCurrentSource": true,
+    "currentDeploymentRenderedVisibleVerified": true,
+    "currentDeploymentComputerControlVerified": true,
+    "standardWalletConnectionVerified": true,
+    "productSessionV2": false,
+    "calendarPrivateSyncAvailable": false,
+    "externalMailDelivery": false,
+    "liveAIProvider": false,
+    "productionSigned": false,
+    "storeReleased": false,
+    "integratedCentral": false
+  }
+}
