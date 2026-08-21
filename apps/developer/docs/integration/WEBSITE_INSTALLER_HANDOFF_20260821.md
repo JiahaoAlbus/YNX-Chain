@@ -12,8 +12,8 @@ it must never be linked, labelled, or recovered as a macOS or Windows installer.
 
 | Platform | Required public format | Exact source | Artifact and installation evidence | Website state |
 | --- | --- | --- | --- | --- |
-| macOS Intel | `.dmg` containing a launchable `.app` | `6f2f199f0d81b1a45995f726efcf0752b1493712` / tree `601b392301e480df554d6073f45d1a52c3c9dd74` | No source-bound Intel DMG exists yet. GitHub Actions run `32472126350` is pending with zero assigned jobs, so it has no runner output, bytes, checksum, signature, launch, or uninstall evidence. | `BUILD_AND_INSTALL_PROOF_IN_PROGRESS`; do not expose a download CTA. |
-| Windows x64 | `.msix` (or a signed `.exe`) | `6f2f199f0d81b1a45995f726efcf0752b1493712` / tree `601b392301e480df554d6073f45d1a52c3c9dd74` | CI run `32472126371` produced `ynx-developer-testnet-preview-windows-x64-test-signed.msix`, 71,572,171 bytes, SHA-256 `f65315bdbda20ea1b2f44eddc287ffc350675070d9a8098b758f2df62b9df421`. The runner verified the test-only certificate, installed the MSIX, launched its installed payload cold and a second time, then removed it. | `BUILD_AND_INSTALL_PROOF_IN_PROGRESS`; test-only CI artifact is not an immutable public download and cannot receive a website CTA. |
+| macOS Intel | `.dmg` containing a launchable `.app` | `366e523252c08871e51d93add534b4513746f1b6` / tree `3d9f6d2065c0a07ec4d506209c2199a5354c5cc2` | No source-bound Intel DMG exists yet. GitHub Actions run `32477893397` is pending with zero assigned jobs, so it has no runner output, bytes, checksum, signature, launch, or uninstall evidence. | `BUILD_AND_INSTALL_PROOF_IN_PROGRESS`; do not expose a download CTA. |
+| Windows x64 | `.msix` (or a signed `.exe`) | `366e523252c08871e51d93add534b4513746f1b6` / tree `3d9f6d2065c0a07ec4d506209c2199a5354c5cc2` | CI run `32477893280` produced `ynx-developer-testnet-preview-windows-x64-test-signed.msix`, 71,572,213 bytes, SHA-256 `c844cb3aa216f164a7fb2ff6712bbded1e76cc03c073c5a641e95b8e057c5980`. The runner verified its test-only certificate, installed it, cold-launched and second-launched the installed payload, then removed it. | `BUILD_AND_INSTALL_PROOF_IN_PROGRESS`; test-only CI artifact is not an immutable public download and cannot receive a website CTA. |
 
 The Windows runner did not surface an interactive AppsFolder window, so it
 launched the installed payload directly. That is valid installed-payload
@@ -58,14 +58,16 @@ new exact source-bound handoff containing all of the following for that row:
   messages and no ZIP installer CTA. The page's audit source label was
   `70f7c3ca`; this proves only the visible matrix, not an installer artifact.
 - Windows source-format/install evidence is available only in the temporary
-  Actions artifact from run `32472126371`; its outer artifact SHA-256 is
-  `ee9743ecc4e5080e01dc781bacf203a38768f26be1c6385d967f3e3369249033`.
+  Actions artifact from run `32477893280`; the uploaded artifact ZIP SHA-256
+  is `722f9a8af5e3bf6d0dc28b6887fb0d2dc116da500fbb3d048c145dbd9db4c691`
+  (143,527,086 bytes). It contains the MSIX, test certificate, provenance,
+  SBOM, and install evidence; it is not a public installer URL.
 - The single current macOS blocker is external GitHub macOS Intel runner
-  allocation for run `32472126350`. No source or product failure has been
+  allocation for run `32477893397`. No source or product failure has been
   observed because the workflow has not received a job.
-- The source-side Developer Wallet connection checkpoint is independently
-  pushed at `366e523252c08871e51d93add534b4513746f1b6`; it is not an installer
-  artifact and must not be used to relabel the `6f2f199f` installer evidence.
+- The source-side Developer Wallet connection checkpoint is incorporated in
+  `366e523252c08871e51d93add534b4513746f1b6`; it is not an installer artifact
+  and must not be used to relabel the MSIX evidence as publicly approved.
 
 Creating or publishing this handoff does not make either installer public,
 installed, signed, or website-ready.
