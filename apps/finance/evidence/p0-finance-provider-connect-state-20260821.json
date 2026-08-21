@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "checkpoint": "Finance consumes Wallet Provider Discovery connect-state repair",
+  "capturedAt": "2026-08-21T10:10:00Z",
+  "acceptedDependency": {
+    "sourceCommit": "98c6d5d784d212df8981a53b17118a511e246ad2",
+    "sourceTree": "69ba84eaef503932ba1b66f42a9caa0a125e0608",
+    "evidenceCommit": "c3ab255c32bdeb9c8e056882c315f8ad43c29c7f",
+    "handoff": "release/integration/wallet-provider-discovery-connect-state-p0-handoff-20260821.json",
+    "handoffSha256": "2c3872882b2d88986cecafa6c08fc3a640d60039eb8dab29d3a088aaa6452f49",
+    "vendoredArchive": "web/vendor/ynx-chain-wallet-auth-1.1.0-provider-connect-state-p0.tgz",
+    "vendoredArchiveSha256": "d1135878e01dc4e8f9bbf8fa5bc67adb54b25179871d9efee1a106ef4abde06c",
+    "consumption": "Finance imports the accepted archive's standard-wallet-connect-state reducer and provider-only launcher. No product-owned connection reducer or browser RPC probe was added."
+  },
+  "contract": {
+    "connectedOnlyWhen": ["one selected EIP-6963/EIP-1193 provider", "a non-empty approved 0x account", "provider eth_chainId returns 0x1917"],
+    "switchFlow": "wallet_switchEthereumChain; code 4902 only then wallet_addEthereumChain; re-switch; eth_chainId; eth_requestAccounts",
+    "refreshRestore": "same selected provider, eth_accounts plus eth_chainId; no chooser or request prompt",
+    "invalidatesOnly": ["empty account list", "provider disconnect", "wrong chain", "explicit disconnect"],
+    "rpcProbe": "No direct browser fetch to rpc.ynxweb4.com/evm. The accepted CORS-safe probe can report READY or DEGRADED without changing CONNECTED, reopening a chooser, or clearing pending-success state.",
+    "productSession": "Optional private-service state remains independent; it may be DEGRADED while Standard Wallet remains CONNECTED.",
+    "webTransport": "EIP-6963/EIP-1193 only; no custom scheme, iframe, window.open, or top-level navigation"
+  },
+  "verification": {
+    "financeTests": {"passed": 12, "failed": 0},
+    "financeSecurityGate": "passed across 338 text files",
+    "financeReleaseEvidenceGate": "passed",
+    "webVerifier": "passed",
+    "webBundle": {"sha256": "44a2054a7f58bf0458ff466a3f9c4d1a391adab20c321fef74977e8fa2fd4690", "bytes": 19446},
+    "mobileCheck": {"passed": 11, "failed": 0, "androidAndIosBundleExport": "passed"},
+    "deterministicStateTest": "passed: an unsafe direct browser RPC probe fails closed; accepted CORS-safe degradation preserves connected account, 0x1917 chain, closed chooser, and cleared pending intent"
+  },
+  "runtimeEvidence": {
+    "sourceBoundPublicRuntime": false,
+    "reason": "The canonical Finance deployment is still an unbound, older Caddy-served runtime. A local browser port already in use served a different asset set and was rejected as evidence rather than attributed to this source. No owner-scoped deployment lease, target binding, served-byte match, or rollback pointer is available.",
+    "providerApproval": false,
+    "callback": false,
+    "chooserCloseAfterApproval": false,
+    "refreshRestore": false,
+    "disconnect": false,
+    "installedAppEvidence": false,
+    "testnetSignature": false,
+    "testnetTransaction": false
+  },
+  "releaseGates": {
+    "migratedV2": false,
+    "publicVerified": false,
+    "publicDeployed": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storePublished": false,
+    "computerControl": false
+  },
+  "rollback": "Revert this Finance-only commit. The prior hash-pinned safe-launcher v2 archive remains in web/vendor; do not force-push or modify Wallet/Auth shared source."
+}

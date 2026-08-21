@@ -7,7 +7,7 @@
     "verify:wallet": "node verify-wallet-connect.mjs"
   },
   "dependencies": {
-    "@ynx-chain/wallet-auth": "file:vendor/ynx-chain-wallet-auth-1.1.0-safe-launcher-v2.tgz"
+    "@ynx-chain/wallet-auth": "file:vendor/ynx-chain-wallet-auth-1.1.0-provider-connect-state-p0.tgz"
   },
   "devDependencies": {
     "esbuild": "0.25.9"

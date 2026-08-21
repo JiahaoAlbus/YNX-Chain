@@ -9,6 +9,7 @@ async function api(_path,_options={}){throw Object.assign(new Error('API_UNAVAIL
 function notify(message,error=false){const box=$('#notice');box.textContent=message;box.classList.toggle('error',error);box.classList.remove('hidden');clearTimeout(box.timer);box.timer=setTimeout(()=>box.classList.add('hidden'),6500)}
 
 function showWalletOptions(show){$('#wallet-options')?.classList.toggle('hidden',!show)}
+function renderStandardWallet(result){state.wallet=result;showWalletOptions(false);$('#source-pill').textContent=`Wallet connected · ${short(result.account)}`;$('#source-pill').className='pill warning';$('#signin').textContent='Wallet connected'}
 async function signIn(){
   try{
     const result=await window.YNXFinanceWebWallet.connect();
@@ -17,17 +18,14 @@ async function signIn(){
       notify('No compatible injected Wallet provider was found. Download YNX Wallet or use MetaMask; Finance remains on this page.',true);
       return;
     }
-    state.wallet=result;
-    showWalletOptions(false);
-    $('#source-pill').textContent=`Wallet connected · ${short(result.account)}`;
-    $('#source-pill').className='pill warning';
-    $('#signin').textContent='Wallet connected';
+    renderStandardWallet(result);
     notify(`Standard ${result.providerKind} Wallet connected on YNX Testnet. Finance product data remains unavailable; no browser session was created.`);
   }catch(error){notify(error.message||'Wallet connection failed closed.',true)}
 }
+async function restoreStandardWallet(){try{const result=await window.YNXFinanceWebWallet.restore();if(result.status==='standard-connected')renderStandardWallet(result)}catch{}}
 async function consumeCallback(){if(location.search)history.replaceState({},'',location.pathname)}
 async function logout(){state.token='';state.overview=null;state.wallet=null;renderSignedOut()}
-function renderSignedOut(){document.body.classList.add('signed-out-state');$('#signed-out').classList.remove('hidden');$('#workspace').classList.add('hidden');$('#signin').classList.remove('hidden');$('#signin').textContent='Connect YNX Wallet';$('#logout').classList.add('hidden');$('#source-pill').textContent='Not connected';$('#source-pill').className='pill neutral';$('#page-title').textContent='Your money, with its evidence attached.'}
+function renderSignedOut(){document.body.classList.add('signed-out-state');$('#signed-out').classList.remove('hidden');$('#workspace').classList.add('hidden');$('#signin').classList.remove('hidden');$('#logout').classList.add('hidden');if(state.wallet){renderStandardWallet(state.wallet)}else{$('#signin').textContent='Connect YNX Wallet';$('#source-pill').textContent='Not connected';$('#source-pill').className='pill neutral'}$('#page-title').textContent='Your money, with its evidence attached.'}
 
 async function load(){if(!state.token){renderSignedOut();return}try{$('#source-pill').textContent='Checking sources';const data=await api('/api/overview');state.overview=data;render(data)}catch(error){if(error.status===401){logout();notify('Your Finance session expired. Reauthorize in YNX Wallet.',true)}else notify(error.message,true)}}
 function render(data){document.body.classList.remove('signed-out-state');$('#signed-out').classList.add('hidden');$('#workspace').classList.remove('hidden');$('#signin').classList.add('hidden');$('#logout').classList.remove('hidden');const p=data.portfolio,profile=data.profile;$('#account').textContent=p.account;$('#balance').textContent=p.explorerStatus.available?`${fmt(p.balanceYnxt)} YNXT`:'Unavailable';$('#staked').textContent=p.explorerStatus.available?`${fmt(p.stakedYnxt)} YNXT`:'Unavailable';$('#balance-source').textContent=p.explorerStatus.available?`Explorer evidence · ${date(p.asOf)}`:p.explorerStatus.error;const both=p.explorerStatus.available&&p.payStatus.available;$('#source-pill').textContent=both?'Explorer + Pay live':p.explorerStatus.available?'Explorer live · Pay unavailable':'Sources unavailable';$('#source-pill').className=`pill ${both?'live':'warning'}`;renderAlerts(data.alerts);renderActivity(p.activity);renderReceipts(p.payReceipts,p.payStatus);renderPlanning(profile);renderPrivacy(profile.privacy);renderAIRecords(p.activity);renderSupport(data.support);route()}
@@ -59,4 +57,4 @@ $('#ai-start').addEventListener('click',startAI);$('#ai-actions').addEventListen
 function route(){const id=(location.hash||'#overview').slice(1);$$('.view').forEach(v=>v.classList.toggle('active-view',v.id===id));$$('#nav a').forEach(a=>a.classList.toggle('active',a.hash===`#${id}`));const heading=$(`#${id} h2`);if(state.token&&heading)$('#page-title').textContent=heading.textContent;else if(!state.token)$('#page-title').textContent='Your money, with its evidence attached.'}
 window.addEventListener('hashchange',route);$$('.connect').forEach(b=>b.addEventListener('click',signIn));$('#signin').addEventListener('click',signIn);$('#logout').addEventListener('click',logout);$('#refresh').addEventListener('click',load);
 const now=new Date(),monthAgo=new Date(Date.now()-30*864e5);$('#statement-form [name=from]').value=monthAgo.toISOString().slice(0,10);$('#statement-form [name=to]').value=now.toISOString().slice(0,10);
-route();consumeCallback().then(load);
+route();consumeCallback().then(restoreStandardWallet).then(load);
