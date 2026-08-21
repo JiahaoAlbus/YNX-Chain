@@ -168,6 +168,10 @@ test("Wallet Web/PWA and macOS DMG publication remain outside product authority"
   assert.equal(companion.nativeIosProductionDistribution.defaultMainWorkflowCount, 0);
   assert.equal(companion.nativeIosProductionDistribution.ipa, false);
   assert.equal(companion.nativeIosProductionDistribution.appStoreReleased, false);
+  assert.equal(companion.nativeIosDistributionCleanupRuntime.cleanupRuntimePassed, true);
+  assert.equal(companion.nativeIosDistributionCleanupRuntime.expectedSearchListSha256, companion.nativeIosDistributionCleanupRuntime.restoredSearchListSha256);
+  assert.equal(companion.nativeIosDistributionCleanupRuntime.sharedDistributionCleanupRuntimeVerifiedWithoutProductionSecrets, true);
+  assert.equal(companion.nativeIosDistributionCleanupRuntime.productionCleanupRuntime, false);
   assert.equal(companion.macosDmgPublication.systemApplicationsInstallVerified, false);
   assert.equal(companion.macosDmgPublication.browserQuarantineAcceptanceVerified, false);
   assert.equal(companion.macosDmgPublication.wholeAppUnsigned, true);
@@ -302,6 +306,10 @@ test("owner checkpoint separates Wallet public artifacts from approval and Produ
   assert.equal(platform.iosProductionDistribution.iosSimulatorPromoted, false);
   assert.equal(platform.iosProductionDistribution.appStoreConnectUploadSubmitted, false);
   assert.equal(platform.iosProductionDistribution.websitePublished, false);
+  assert.equal(platform.iosDistributionCleanupRuntime.evidenceCommit, "cf8f56782d6831e11b57be600efa0382b7ef4045");
+  assert.equal(platform.iosDistributionCleanupRuntime.productionCredentialsUsed, false);
+  assert.equal(platform.iosDistributionCleanupRuntime.sharedDistributionCleanupRuntimeVerifiedWithoutProductionSecrets, true);
+  assert.equal(platform.iosDistributionCleanupRuntime.productionCleanupRuntime, false);
   assert.equal(platform.macosDmg.systemApplicationsInstallVerified, false);
   assert.equal(platform.macosDmg.browserQuarantineAcceptanceVerified, false);
   assert.equal(platform.macosDmg.developerId, false);
