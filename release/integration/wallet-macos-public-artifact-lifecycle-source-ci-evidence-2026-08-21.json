@@ -1,0 +1,123 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-08-21T16:55:07Z",
+  "owner": "Wallet/Auth macOS native",
+  "evidenceKind": "owner-native-public-artifact-isolated-install-lifecycle-source-and-hosted-ci",
+  "implementationCommit": "fb15b05b3da5743d0a55b7c0d53cbad6705250d8",
+  "implementationTree": "8052a7bf7d380eedb92716c0ba375dd2d56d4763",
+  "sourceBackread": {
+    ".github/workflows/wallet-macos.yml": {
+      "gitBlob": "200804289c2d3ed44de365c41940452b42b15106",
+      "bytes": 46344,
+      "sha256": "cf5cd0cd5301ea1287c1b18b474a29138894fa88e96b756b36458ae5747f1932"
+    },
+    "apps/wallet/macos/scripts/verify-engineering-dmg-release-source.rb": {
+      "gitBlob": "d86aa8e7517ac25a13d21c345d400427aed63630",
+      "bytes": 2392,
+      "sha256": "a4ba30f4d2c69e2cc301016f5c07d744344164107b69da6cccebe852b573e227",
+      "executable": true
+    }
+  },
+  "publicArtifactLifecycleContract": {
+    "sourceArtifact": "anonymous no-token GitHub Release DMG roundtrip",
+    "isolatedInstallRoot": "$RUNNER_TEMP/Public Applications",
+    "systemApplicationsInstall": false,
+    "browserQuarantineAcceptance": false,
+    "deepStrictCodesignAfterCopyRequired": true,
+    "launchServicesRegistrationRequired": true,
+    "coldPidRequired": true,
+    "secondDistinctPidRequired": true,
+    "coldAndSecondRpcChainId": "0x1917",
+    "coldAndSecondRestGatewayReachableRequired": true,
+    "coldAndSecondGatewayFailClosedRequired": true,
+    "malformedCallbackDeliveredToSecondPidRequired": true,
+    "malformedCallbackError": "INVALID_DEEP_LINK",
+    "malformedCallbackVisibleFailClosedRequired": true,
+    "screenshotRequired": true,
+    "authorizationSuccess": false
+  },
+  "githubActions": {
+    "runId": 32505249315,
+    "jobId": 96843837766,
+    "publicationJobId": 96844348459,
+    "headSha": "fb15b05b3da5743d0a55b7c0d53cbad6705250d8",
+    "headShaExact": true,
+    "event": "push",
+    "status": "completed",
+    "conclusion": "success",
+    "createdAt": "2026-08-21T16:53:13Z",
+    "completedAt": "2026-08-21T16:55:07Z",
+    "nativePackageConclusion": "success",
+    "publicationJobConclusion": "skipped",
+    "sourceContractLogVerified": true,
+    "swiftTests": {
+      "executed": 17,
+      "failures": 0
+    }
+  },
+  "engineeringDmgFromThisRunPublicLog": {
+    "name": "YNX-Wallet-macOS-ad-hoc.dmg",
+    "sha256": "b69daf1867757a7c91a4a9e232d8625d7007b4d51eaddcced45deee0fa2f6ab2",
+    "bytes": 307405,
+    "minimumOS": "13.0",
+    "architectures": ["x86_64", "arm64"],
+    "signature": "adhoc",
+    "teamIdentifier": null,
+    "hdiutilChecksumValid": true,
+    "gatekeeperAccepted": false,
+    "gatekeeperExitStatus": 3,
+    "developerIDSigned": false,
+    "notarized": false,
+    "stapled": false,
+    "downloadInspected": false
+  },
+  "actionsArtifact": {
+    "id": 9455054430,
+    "name": "ynx-wallet-macos-native",
+    "metadataBytes": 1741749,
+    "metadataDigest": "sha256:a21db11e78f3c4d1eeff56dce0214b5fad273239f76f2a695443a0a4666e1b5c",
+    "downloadInspected": false
+  },
+  "sameRunNativePackageLifecycle": {
+    "coldPid": 4323,
+    "secondPid": 4502,
+    "canonicalBridgeUnavailableVisibleFailClosed": true,
+    "canonicalAuthorizationSuccess": false,
+    "invalidCallbackPid": 4971,
+    "invalidCallbackVisibleFailClosed": true,
+    "widenedInvalidCallbackPid": 4990,
+    "widenedInvalidCallbackVisibleFailClosed": true,
+    "isPublicReleaseRoundtripRuntime": false
+  },
+  "promotedGates": {
+    "publicArtifactIsolatedInstallLifecycleSourceReady": true,
+    "publicArtifactIsolatedInstallLifecycleHostedSourceContractVerified": true
+  },
+  "remainingFalse": {
+    "defaultMainRegistration": false,
+    "operatorPublicationDispatch": false,
+    "anonymousWalletMacosRoundtripRuntime": false,
+    "publicArtifactIsolatedInstallLifecycleRuntime": false,
+    "githubPrereleasePublished": false,
+    "artifactDownloadInspected": false,
+    "publicNativeWalletPublished": false,
+    "websiteReplacementPublished": false,
+    "systemApplicationsInstalled": false,
+    "browserQuarantineAccepted": false,
+    "developerIDSigned": false,
+    "notarized": false,
+    "stapled": false,
+    "gatekeeperAccepted": false,
+    "productionSigned": false,
+    "appStore": false,
+    "authorizationSuccess": false,
+    "account": false,
+    "productSession": false,
+    "sign": false,
+    "send": false,
+    "transaction": false,
+    "biometricSuccess": false,
+    "recoverySuccess": false,
+    "universalLink": false
+  }
+}
