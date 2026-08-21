@@ -3,7 +3,7 @@ import { Button } from "../components/ui/button";
 import { broadcastDeveloperDeployment, chainRpc, completeDeveloperWalletSession, debugChainBlock, debugChainTransaction, introspectDeveloperWalletSession, loadChainCompiler, loadChainStatus, loadWalletReadiness, type ChainStatus, type WalletReadiness } from "../runtime/client";
 import { canonicalJSON, consumeDeveloperDeploymentRequest, consumeDeveloperWalletRequest, createDeveloperSessionIntrospection, createDeveloperWalletCompletion, desktopWalletBridge, openDeveloperDeploymentReview, openDeveloperWalletReview, parseDeveloperDeploymentCallback, saveDeveloperWalletSession, subscribeDeveloperDeploymentCallbacks, subscribeDeveloperWalletCallbacks, ynxAccountToEVM } from "../wallet/transport";
 import { enterDeveloperWalletV2Guest, inspectDeveloperWalletV2Runtime } from "../wallet/product-session-v2";
-import { connectDeveloperWebWallet, discoverDeveloperWebWalletChoices, openDeveloperWebWalletConnectionDetails, restoreDeveloperWebWallet, subscribeDeveloperWebWalletEvents } from "../wallet/safe-authorize-launcher";
+import { connectDeveloperWebWallet, disconnectDeveloperWebWallet, discoverDeveloperWebWalletChoices, openDeveloperWebWalletConnectionDetails, restoreDeveloperWebWallet, subscribeDeveloperWebWalletEvents } from "../wallet/safe-authorize-launcher";
 import type { StandardWalletConnectState } from "../../../vendor/wallet-auth/src/index.js";
 
 const RPC_METHODS = ["eth_chainId", "eth_blockNumber", "eth_gasPrice", "eth_getBalance", "eth_getCode", "eth_getTransactionCount", "eth_getTransactionByHash", "eth_getTransactionReceipt", "eth_call", "eth_estimateGas", "eth_getLogs", "eth_getBlockByNumber"];
@@ -247,6 +247,13 @@ export function ChainPanel({ files, onAddFile }: { files: Record<string, string>
       setBusy(false);
     }
   };
+  const disconnectWebWallet = () => {
+    if (!webWalletConnection || webWalletConnection.status !== "connected") return;
+    setWebWalletConnection(disconnectDeveloperWebWallet(webWalletConnection));
+    setWebWalletAccount(undefined);
+    clearStoredWebWalletProvider();
+    setWalletState("This page forgot its local Standard Wallet connection. The Wallet extension keeps its own permissions; reconnect requires an explicit product click.");
+  };
   const enterWalletV2Guest = async () => {
     setBusy(true); setError("");
     try {
@@ -384,7 +391,7 @@ export function ChainPanel({ files, onAddFile }: { files: Record<string, string>
                 </>
               ) : <Button disabled={busy} onClick={() => openWallet()}>{webWalletAccount ? "Reconnect browser Wallet" : "Connect browser Wallet"}</Button>}
               <p>{webWalletAccount ? `Standard Wallet account ${webWalletAccount} is connected on YNX Testnet 0x1917. Product Session remains optional and separate.` : webWalletDiscovery?.status === "ready" ? "Choose a listed Wallet before any account request is sent." : "No browser Wallet provider is available. The official download and MetaMask choices remain on this page."}</p>
-              {webWalletConnection?.status === "connected" && <Button variant="ghost" disabled={busy} onClick={() => setWebWalletConnection(openDeveloperWebWalletConnectionDetails(webWalletConnection))}>Wallet connection details</Button>}
+              {webWalletConnection?.status === "connected" && <><Button variant="ghost" disabled={busy} onClick={() => setWebWalletConnection(openDeveloperWebWalletConnectionDetails(webWalletConnection))}>Wallet connection details</Button><Button variant="ghost" disabled={busy} onClick={disconnectWebWallet}>Disconnect this app</Button></>}
               {webWalletConnection?.chooserOpen && <p>Wallet details are local to this page. No account request, custom URI, popup or Product Session is created.</p>}
               <a href={webWalletDiscovery?.launch.fallbackActions[0]?.url || "https://www.ynxweb4.com/dapp/download"}>Download YNX Wallet</a>{" · "}
               <a href={webWalletDiscovery?.launch.fallbackActions[1]?.url || "https://metamask.io/download/"}>Use MetaMask</a>

@@ -140,6 +140,15 @@ export function openDeveloperWebWalletConnectionDetails(connection: StandardWall
   return reduceStandardWalletConnectState(connection, { type: "OPEN_CHOOSER" });
 }
 
+/**
+ * Forget this product's local Standard Wallet state without asking an
+ * extension to revoke global permissions. EIP-1193 has no portable revoke
+ * method, so the next connection still requires an explicit product click.
+ */
+export function disconnectDeveloperWebWallet(connection: StandardWalletConnectState): StandardWalletConnectState {
+  return reduceStandardWalletConnectState(connection, { type: "PROVIDER_DISCONNECT" });
+}
+
 /** No browser RPC fetch is permitted: this accepts only a reviewed, CORS-safe probe result. */
 export function reduceDeveloperWalletRpcProbeDegraded(connection: StandardWalletConnectState, code = "RPC_PROBE_DEGRADED"): StandardWalletConnectState {
   return reduceStandardWalletConnectState(connection, { type: "RPC_PROBE_DEGRADED", code, probeTransport: "accepted-cors-safe" });
