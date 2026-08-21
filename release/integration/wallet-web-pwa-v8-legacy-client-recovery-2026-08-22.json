@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-08-21T16:21:00.000Z",
+  "owner": "Wallet Web/PWA",
+  "source": {
+    "branch": "codex/wallet-web-pwa-integrity-recovery-20260822",
+    "cacheMigrationCommit": "3adcdc817c22e3a473427417d2b8ef63fb447ebd",
+    "legacyClientGateCommit": "de566ab3b139a936198eb2771d64812849b38c32",
+    "evidenceCommit": "2af3ee0b664d4c4a43d9aa1754de0b0e531fdcf2"
+  },
+  "diagnosis": {
+    "currentNoProviderSourceCallsDirectRpc": false,
+    "observedLegacyUserClientStatus": "RPC_UNAVAILABLE",
+    "cause": "An already-open v7 Worker/client can retain an old app bundle. The server repair alone did not change the Worker entrypoint or cache schema, so it could not reliably replace that client.",
+    "remediation": "PWA cache changed v7 to v8 and the Worker entrypoint has an explicit pwa-shell-v8 marker. Install is atomic, activate purges every older ynx-wallet-web-v* cache, and both sw.js and asset-integrity.js are no-store."
+  },
+  "controlledLegacyClientTest": {
+    "runtime": "Playwright Chromium-compatible persistent profile; not a branded Chrome claim",
+    "legacyV7Controller": true,
+    "legacyV7CacheObserved": true,
+    "updatedToV8": true,
+    "v7Purged": true,
+    "statusAfterUpgrade": "Status: Not connected",
+    "rpcUnavailableAfterUpgrade": false,
+    "tamperFailsClosed": true,
+    "rollbackFailsClosed": true,
+    "onlineRecovery": true,
+    "accountRequestAttempted": false,
+    "providerConnected": false,
+    "accountAuthorized": false,
+    "messageSigned": false,
+    "transactionSubmitted": false
+  },
+  "deployment": {
+    "id": "dpl_5Jm2q3JkibqkTfWmc6vGPW93JxGs",
+    "url": "https://ynx-wallet-i9f1y8auw-jiahaoalbus-projects.vercel.app",
+    "target": "production",
+    "state": "READY",
+    "publicOrigin": "https://wallet.ynxweb4.com"
+  },
+  "publicReadback": {
+    "root": {"status": 200, "bytes": 821, "sha256": "2df10866a35b074a6fb366439197646dd4e979bc83bdae3aba0ba6db3802986c"},
+    "app": {"status": 200, "bytes": 16803, "sha256": "65fb87b5eec304366a8603d5e33c203120f1b28659a18af96d417a4ca70d57a7"},
+    "worker": {"status": 200, "sha256": "4fa1ebb72a76ce81dd92130da7d8662f63b7cbb6b6a1012971111db27d1c0025", "cacheControl": "no-store, max-age=0, must-revalidate", "schema": "pwa-shell-v8"},
+    "policy": {"status": 200, "sha256": "e034085cccd31323158c98b926cbf9f968deb19b6c2a502d8ba001a010201775", "cache": "ynx-wallet-web-v8"},
+    "integrity": {"status": 200, "sha256": "aec048a0028081bcbf2d84015d6acbef0dffbb600880bf6a2a61586d83e9bd63", "cacheControl": "no-store, max-age=0, must-revalidate"}
+  },
+  "tests": {"walletWeb": "98/98 passed", "legacyUpgradeGate": "passed"},
+  "remaining": {
+    "realChromeReloadAfterV8": false,
+    "realProviderDiscovery": false,
+    "siteAccessDiagnosis": "Provider not injected remains a non-authoritative diagnostic; the app must not label it RPC_UNAVAILABLE.",
+    "providerConnected": false,
+    "accountAuthorized": false,
+    "messageSigned": false,
+    "transactionSubmitted": false
+  }
+}
