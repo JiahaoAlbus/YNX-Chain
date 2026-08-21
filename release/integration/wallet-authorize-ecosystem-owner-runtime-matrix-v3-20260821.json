@@ -19,10 +19,10 @@
     "centralControlPlaneWritten": false
   },
   "remoteRecheck": {
-    "performedAt": "2026-08-21T07:29:08Z",
-    "registeredProductOwnerHeadChangesSinceBase": 1,
-    "changedProductIds": ["developer"],
-    "unchangedProductIds": ["calendar","card","creator-studio","dex","exchange","finance","pay","quant","shop","social","video"],
+    "performedAt": "2026-08-21T07:48:32Z",
+    "registeredProductOwnerHeadChangesSinceBase": 2,
+    "changedProductIds": ["developer","shop"],
+    "unchangedProductIds": ["calendar","card","creator-studio","dex","exchange","finance","pay","quant","social","video"],
     "nonProductRuntimeUpdates": ["wallet-web-companion"],
     "otherEcosystemRuntimeUpdates": ["trust-center"]
   },
@@ -92,11 +92,12 @@
       "ownerHandoff":"Preserve Research/Paper guest mode and provider-only transport; prove protected device, public real provider, callback and Product Session separately."
     },
     {
-      "productId":"shop","owner":"shop","sourceCommit":"1752f12534166b6216e5c91c9ce87ab11caea072",
-      "web":{"topLevelOrHandwrittenYnxwallet":true,"standardProvider":false,"metaMaskAddSwitch0x1917":false,"guest":"public-shopping-available-private-actions-blocked"},
-      "runtime":{"sourceBoundPublic":"replacement-web-only","realInstalledApproval":false,"callback":false,"productSessionV2":false,"computerControl":false},
-      "blocker":"Shop Web still hand-encodes and top-level navigates ynxwallet://authorize and has no EIP-6963/EIP-1193 or MetaMask path; Android is retired.",
-      "ownerHandoff":"Migrate Web/PWA to exact safe launcher v2 plus shared MetaMask 0x1917 adapter, preserve public guest shopping, keep Android retired, then provide callback/Product Session evidence."
+      "productId":"shop","owner":"shop","sourceCommit":"f41cbf88b528d30e709bf07dc504c174a7e83073","sourceTree":"c8199f6088801e2f94435093effdd09ba72090f9","ownerEvidenceCommit":"7b91f2120e7850a91be101b5ca7148dfb36beda6","ownerEvidenceTree":"9d1365268a48241a7cdf1b7f10649ef95a17e924","centralEvidenceCommit":"a92dbe423afc93a235923de33d7d96454417b66b","centralEvidencePath":"release/integration/p0-wallet-connectivity/shop-web-standard-wallet-public-evidence-20260821.json",
+      "supersedesSourceCommit":"1752f12534166b6216e5c91c9ce87ab11caea072",
+      "web":{"topLevelOrHandwrittenYnxwallet":false,"standardProvider":true,"explicitProviderSelection":true,"metaMaskAddSwitch0x1917":true,"guest":"public-catalog-no-provider-verified"},
+      "runtime":{"sourceBoundPublic":true,"activeRuntime":"/opt/ynx-shop/releases/p0126b-shop-wallet-f41cbf88","rollbackTarget":"/opt/ynx-shop/releases/88c0f3a5","pageUrlPreserved":true,"createdTopLevelTabs":0,"guestProductsVisible":3,"consoleErrors":0,"realInstalledApproval":false,"callback":false,"signature":false,"transaction":false,"productSessionV2":false,"computerControl":false},
+      "blocker":"Web/PWA custom-scheme navigation is removed and public no-provider Guest fallback is source-bound, but real MetaMask/YNX approval, callback, signature, transaction, Product Session v2 and Computer Control remain false; Android stays retired.",
+      "ownerHandoff":"Preserve the deployed EIP-6963/EIP-1193 explicit YNX/MetaMask selection, exact add/switch 0x1917 flow, zero-tab no-provider fallback and guest catalog; separately provide real installed approval/callback and Product Session lifecycle evidence before migration promotion."
     },
     {
       "productId":"social","owner":"social","sourceCommit":"76b67a05fe5274f388d29f552b8a0b1e35dfe4ed",
@@ -128,10 +129,10 @@
   ],
   "counts": {
     "registeredProducts": 12,
-    "sourceBoundPublicProducts": 2,
-    "completeMetaMaskSourcePaths": 8,
-    "topLevelOrHandwrittenWebBlockers": 1,
-    "missingStandardProviderProducts": 2,
+    "sourceBoundPublicProducts": 3,
+    "completeMetaMaskSourcePaths": 9,
+    "topLevelOrHandwrittenWebBlockers": 0,
+    "missingStandardProviderProducts": 1,
     "guestUnprovenProducts": 2,
     "productsConnected": 0,
     "productsMigratedV2": 0
