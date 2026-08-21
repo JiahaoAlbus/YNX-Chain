@@ -2,7 +2,7 @@
   "schemaVersion": "1.0.0",
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "owner": "integration",
-  "status": "P0121_VIDEO_PUBLIC_STANDARD_WALLET_CHECKPOINT_RELEASED",
+  "status": "P0122_CREATOR_STUDIO_PUBLIC_STANDARD_WALLET_DEPLOYMENT_ACTIVE",
   "scope": [
     "founder-control",
     "wallet-connectivity",
@@ -34,7 +34,7 @@
   "firstStop": {
     "complete": true,
     "publicConnectivityClaim": false,
-    "nextAction": "P0-121 is publicly deployed and its no-provider recovery path is Computer Control verified. Keep account, signature, transaction, Product Session v2 and aggregate ecosystem gates false; acquire a new product-scoped lease before the next deployment."
+    "nextAction": "Integration owns the bounded P0-122 Creator Studio public Standard Wallet deployment. Preserve the active p0121 combined Video release as rollback, overlay only accepted apps/creator-studio source, restart only the Studio service, verify public recovery with Computer Control, then release Heavy."
   },
   "lightLeases": [
     {
@@ -336,22 +336,22 @@
     }
   ],
   "heavy": {
-    "owner": null,
-    "taskId": "P0-121",
-    "status": "AVAILABLE",
-    "acquiredAt": "2026-08-21T06:36:53Z",
-    "expiresAt": null,
-    "sourceCommit": "2e516baac89278a767397b29e72eed67a97e60db",
+    "owner": "integration",
+    "taskId": "P0-122",
+    "status": "ACTIVE_SINGLE_USE",
+    "acquiredAt": "2026-08-21T06:44:29Z",
+    "expiresAt": "2026-08-21T08:44:29Z",
+    "sourceCommit": "7bb494ff82420b84d0c153cbeb563083ad4dd361",
     "runtimeHost": "43.153.202.237",
-    "currentRuntime": "/opt/ynx-video/releases/1883d406f77f94cb81171b79fe9518882ede0b16",
-    "rollbackTarget": "/opt/ynx-video/releases/1883d406f77f94cb81171b79fe9518882ede0b16",
-    "productionMutationAllowed": false,
+    "currentRuntime": "/opt/ynx-video/releases/p0121-video-wallet-2e516baa",
+    "rollbackTarget": "/opt/ynx-video/releases/p0121-video-wallet-2e516baa",
+    "productionMutationAllowed": true,
     "singleUse": true,
     "previousOwner": "integration",
     "previousTaskId": "P0-121",
     "releasedAt": "2026-08-21T06:42:19Z",
     "checkpointCommit": "2e516baac89278a767397b29e72eed67a97e60db",
-    "reason": "P0-121 deployed the exact Video Standard Wallet source, preserved the prior release as rollback, and Computer Control verified the public no-provider recovery path without claiming an account, signature or transaction."
+    "reason": "P0-121 deployed the exact Video Standard Wallet source and released cleanly. P0-122 is a new product-scoped lease for the already-tested Creator Studio checkpoint only."
   },
   "wave": {
     "id": "B-financial-apps-quant",
