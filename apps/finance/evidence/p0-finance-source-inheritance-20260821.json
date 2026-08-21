@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "checkpoint": "FINANCE_SOURCE_INHERITANCE_ONLY",
+  "base": {
+    "commit": "88958904ac232421853fefc1edad522272afbd35",
+    "tree": "c3be5cac93f525679e871e3b8807fe705c672ab6"
+  },
+  "source": {
+    "commit": "3b2383f5c18ab3eb5ce7f7f6a267d2cfe7c7e6a4",
+    "tree": "3127a87a38d7a604df68fea36506cc53a72f2fda",
+    "reason": "Latest compatible complete Finance service ancestor. The recovery base retained apps/finance but omitted internal/finance and its direct internal/readintegration dependency."
+  },
+  "restoration": {
+    "method": "git restore --source=3b2383f5c18ab3eb5ce7f7f6a267d2cfe7c7e6a4 -- internal/finance internal/readintegration go.mod go.sum",
+    "logicChanged": false,
+    "productionBinaryCopied": false,
+    "paths": [
+      {"path": "go.mod", "blob": "058025dc14f6a053f6541953dec0c8cae5aff105"},
+      {"path": "go.sum", "blob": "a550963b0904796dce377b113ce565d9d45bb9ab"},
+      {"path": "internal/finance", "tree": "53d984bc7dad4d911d578689edd03e9131ab4beb"},
+      {"path": "internal/finance/ai.go", "blob": "a1e6449324935494a3276f45f4672ba699e28263"},
+      {"path": "internal/finance/auth.go", "blob": "3fb4c0861e123a8ecdf7a15c3cb3fa2486fa1264"},
+      {"path": "internal/finance/capacity_test.go", "blob": "513d55f92198646dd27a91d029ba37e3b8c46d04"},
+      {"path": "internal/finance/domain.go", "blob": "686db4428213790d9661117ac96cda9d95a4e2bb"},
+      {"path": "internal/finance/finance_test.go", "blob": "65ea7444edb3d3a94785965c75e9142175985916"},
+      {"path": "internal/finance/observability.go", "blob": "74675d08a38fcb8cadc8371051f89fa8ec9bba53"},
+      {"path": "internal/finance/observability_test.go", "blob": "6b695d45e044c6ddcc596dbedfe93426a7cf9c11"},
+      {"path": "internal/finance/read_sources.go", "blob": "17733f549772c85767717475ec634101c1aa9cc2"},
+      {"path": "internal/finance/read_sources_test.go", "blob": "6ae18644511e9cbd188d97865891d7980dd96a48"},
+      {"path": "internal/finance/server.go", "blob": "aaa890c4fecac2a1597d4bbb1eefb2cbfd9b4cf0"},
+      {"path": "internal/finance/service.go", "blob": "7c862c6f7d09fa47ea82d8d8e5d8fa8dcfbfab21"},
+      {"path": "internal/finance/state_repository.go", "blob": "5737de34266f47c7e6760780f0ce799ddf790210"},
+      {"path": "internal/finance/state_repository_test.go", "blob": "95699ba4b7444266a7e26a7fc732e85fd3789f62"},
+      {"path": "internal/finance/store.go", "blob": "e8346d2b55e59335766cf5f43b2677c1fcb97041"},
+      {"path": "internal/finance/store_backup_test.go", "blob": "0033e3656831b8fa2623a8fb349ceef3c76e52c3"},
+      {"path": "internal/finance/types.go", "blob": "e49e4bad17ef7c02c2596fbb3435a7edad4a581d"},
+      {"path": "internal/finance/upstream.go", "blob": "f3f7f12200849e5be0d6e7d2ed78709fc5b43ab7"},
+      {"path": "internal/readintegration", "tree": "c2dc32c0e36233038353f959d0160b86cc36d331", "reason": "Direct import required by internal/finance/read_sources.go."},
+      {"path": "internal/readintegration/credential.go", "blob": "9c081bfcf432fcf015ff279eab57547b0b54e743"},
+      {"path": "internal/readintegration/credential_test.go", "blob": "8a60ca45780493f5e62491ab76c5e5aacb31b2ac"}
+    ]
+  },
+  "validation": {
+    "goToolchain": "go1.25.12 darwin/arm64",
+    "commands": [
+      "go test -count=1 ./internal/readintegration",
+      "go test -count=1 ./internal/finance",
+      "go test -count=1 ./apps/finance/cmd/admin ./apps/finance/cmd/server",
+      "go test -count=1 -race ./internal/finance"
+    ],
+    "result": "passed"
+  },
+  "releaseState": {
+    "sourceOnly": true,
+    "sshUsed": false,
+    "deployed": false,
+    "walletClicked": false,
+    "accountRequested": false
+  }
+}
