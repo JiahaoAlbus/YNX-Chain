@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "P0-WALLET-CONNECTIVITY-P0-094-linux-offline-execution-bundle-4b9d616a",
+  "taskId": "P0-094",
+  "owner": "wallet-auth-core",
+  "status": "SOURCE_ONLY_PRELEASE_FROZEN",
+  "centralHeadObserved": "1366801fdbf6a01434b49bd4024bdf16ee658ddc",
+  "implementation": {
+    "commit": "4b9d616a3eaed6b31694b0ba8db396fb337f76aa",
+    "tree": "6d76b54c40cb46ad374689c52dcc83029a3fd21c",
+    "parent": "e1809a6be765158ae5f0b2dcb4c46dc6808845d6",
+    "branch": "codex/wallet-core-auth-gateway-continuation-20260814"
+  },
+  "acceptedBindings": {
+    "deploymentCandidateSourceCommit": "dda13e65e67e06f7fb45daa54a311daa96e0155a",
+    "transportSourceCommit": "5bdbf03358ffc1c4d454b53d09a379acb0e94451",
+    "transportEvidenceCommit": "e1809a6be765158ae5f0b2dcb4c46dc6808845d6",
+    "sourceArchiveSha256": "6a10469371a550b33a6b2f37a483309fa7ddfbbd4451273f070148dd6ed624f9",
+    "sourceArchiveBytes": 193810,
+    "runtimeArchiveSha256": "a17794bd15592f3eae1caab34094bc52ec70ce89efa0cbd9995219e94bc7bd86",
+    "runtimeArchiveBytes": 707204
+  },
+  "bundle": {
+    "path": "release/integration/p0-wallet-connectivity/p0-094-wallet-auth-linux-offline-execution-rollback-bundle.json",
+    "blob": "951a9c5595497d6042bb7c908d986625bb7128a6",
+    "sha256": "495a52258ea3d38352ceb04b98ade8f22b9a96824c117df6709fa1d707c00505",
+    "stagingDirectory": "/var/tmp/ynx-wallet-auth-p0094-dda13e655bdbf033",
+    "executionAuthorized": false,
+    "runtimeRollbackCommandFrozen": false,
+    "runtimeRollbackRequiresFutureFreshBinding": true
+  },
+  "commands": {
+    "source": {
+      "path": "release/integration/p0-wallet-connectivity/p0-094-wallet-auth-source-receiver.command",
+      "blob": "292e585a7f2bcae06a3a3bef92f6815d11abb91b",
+      "sha256": "ce7314d3ca9e6139345ac0e3d3db0de977920401ba3808ff8335d3caec57db3a",
+      "bytes": 5838
+    },
+    "runtime": {
+      "path": "release/integration/p0-wallet-connectivity/p0-094-wallet-auth-runtime-receiver.command",
+      "blob": "d2305059c61d6bca92b7318c8ca45acf14577b8d",
+      "sha256": "fe0b6a903785677b10909a7cc78bc177f6257cd60d570e942d484be04fa7f9c4",
+      "bytes": 5852
+    },
+    "orderedSourceNulRuntimeSha256": "41b3bcecf23e481330bd6c7f51e5cf86a717952ef389056404d8055ed3521417",
+    "syntaxValidated": true,
+    "regeneratedByteIdentical": true
+  },
+  "tests": {
+    "focusedCommand": "node --test packages/wallet-auth/test/linux-offline-artifact-staging.test.mjs packages/wallet-auth/test/linux-offline-transport-p0094-contract.test.mjs",
+    "focusedPassed": 6,
+    "focusedFailed": 0,
+    "fullCommand": "cd packages/wallet-auth && npm test",
+    "fullPassed": 374,
+    "fullFailed": 0,
+    "cleanCloneOfflineDependencyOverlayPassed": 374,
+    "cleanCloneFocusedPassed": 6,
+    "networkInstall": false,
+    "noSecretLiteralScanPassed": true
+  },
+  "pack": {
+    "repeatBuildByteIdentical": true,
+    "sha256": "9c94eb245b739c984ce3a37e37e3ebe7aa84e991af8e4ea15d7dc324cfacd13a",
+    "bytes": 186148,
+    "entries": 104
+  },
+  "futureCentralRequirements": {
+    "freshPublicAndPrivateStateRead": true,
+    "freshUnitEnvironmentDropInCaddyRead": true,
+    "freshConnectionAndHostKeyBinding": true,
+    "freezeExactEnvironmentValues": true,
+    "freezeRuntimeRollbackCommand": true,
+    "newSingleUseLease": true,
+    "priorLeaseReuseForbidden": ["P0-039", "P0-050", "P0-054", "P0-070"]
+  },
+  "truth": {
+    "productionReadPerformed": false,
+    "sshUsed": false,
+    "deploymentAttempted": false,
+    "publicSourceCommit": "6cf3ef845202bd879ed94515a71b323dd2fc9e14",
+    "registryV3Public": false,
+    "productsMigrated": 0,
+    "productsTotal": 12,
+    "computerControl": false,
+    "deployedPublic": false,
+    "integrated": false
+  }
+}
