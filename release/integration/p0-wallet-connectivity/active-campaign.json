@@ -2,7 +2,7 @@
   "schemaVersion": "1.0.0",
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "owner": "integration",
-  "status": "P0090_FAILED_CLOSED_RELEASED_P0091_FAUCET_CORRECTED_VALIDATOR_DEPLOYMENT_ACTIVE",
+  "status": "P0091_FAUCET_PUBLIC_HTTP_VERIFIED_HEAVY_RELEASED_ENDPOINT_MANIFEST_REFRESH_ACTIVE",
   "scope": [
     "founder-control",
     "wallet-connectivity",
@@ -34,7 +34,7 @@
   "firstStop": {
     "complete": true,
     "publicConnectivityClaim": false,
-    "nextAction": "P0-090 is consumed/nonreusable and released failed closed at owner evidence 11b34a4af0ddf3c3b9e29db0a4672f8137c52edf. Candidate health/version were valid, but the deployment validator checked nonexistent top-level sourceCommit instead of PublicVersion build.commit; rollback restored exact old binary and public 8fe runtime. P0-091 is a wholly new Faucet-only lease with the corrected exact .build.commit contract and fresh rollback-first checks."
+    "nextAction": "P0-091 deployed exact Faucet source ea0e068becd9 and is released at d8fa126fb32f37dcc68ff4d32c9f3e21e2c6a1b0. Public health/version are HTTP 200, no-store, topology-safe and build-identifiable; Wallet platform Faucet flows and ComputerControl remain false. Integration is refreshing only the accepted bundled endpoint manifest before routing Wallet Platform consumption."
   },
   "lightLeases": [
     {
@@ -321,14 +321,16 @@
     }
   ],
   "heavy": {
-    "owner": "integration",
+    "owner": null,
     "taskId": "P0-091",
-    "status": "ACTIVE_BOUNDED_SINGLE_USE_ROLLBACK_FIRST",
+    "status": "RELEASED_CHECKPOINT",
     "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-faucet-ea0e068b-validator-v2-20260821T004500Z",
     "leasedAt": "2026-08-21T00:45:00Z",
     "expiresAt": "2026-08-21T02:45:00Z",
+    "releasedAt": "2026-08-21T00:50:00Z",
+    "checkpointCommit": "d8fa126fb32f37dcc68ff4d32c9f3e21e2c6a1b0",
     "scope": "faucet-only-binary-deployment-and-public-readback",
-    "productionMutationAllowed": true,
+    "productionMutationAllowed": false,
     "singleUse": true
   },
   "wave": {
