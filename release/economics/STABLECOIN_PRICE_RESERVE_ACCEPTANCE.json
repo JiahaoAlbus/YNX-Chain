@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
-  "generatedAt": "2026-08-01T15:42:22.394Z",
-  "controllerSourceCommit": "296e9d149f31a939f116296dee55bc6e09c475bf",
+  "generatedAt": "2026-08-21T14:21:40.775Z",
+  "controllerSourceCommit": "3877f66265d0f7cc6f4e94b5c64b585d2c7e3244",
   "authority": "Oracle observations and reserve evidence; AI and frontend constants are prohibited price authorities",
   "nativeAsset": {
     "symbol": "YNXT",

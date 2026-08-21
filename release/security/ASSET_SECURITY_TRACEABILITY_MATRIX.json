@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
-  "generatedAt": "2026-08-01T15:42:22.394Z",
-  "controllerSourceCommit": "296e9d149f31a939f116296dee55bc6e09c475bf",
+  "generatedAt": "2026-08-21T14:21:40.775Z",
+  "controllerSourceCommit": "3877f66265d0f7cc6f4e94b5c64b585d2c7e3244",
   "claimsBoundary": [
     "risk reduction",
     "rapid revocation",
@@ -31,7 +31,7 @@
       "productNumber": "01",
       "productName": "YNX Chain Core / StreamBFT",
       "assetRelevant": true,
-      "sourceCommit": "324f376dac2db434673ccec2c6d212ed3d23f79e",
+      "sourceCommit": "66ea9ba9704dbb0e4863bb9e28ad12eae59ba5a7",
       "controls": {
         "productScopedSession": {
           "status": "unverified",
@@ -547,7 +547,7 @@
       "productNumber": "03",
       "productName": "YNX Social",
       "assetRelevant": false,
-      "sourceCommit": "4bd9178e3ab132c41d429817457aa0086ca58a24",
+      "sourceCommit": "833c629b8fc889f74ae68215a8e36e6dbf9539ee",
       "controls": {
         "productScopedSession": {
           "status": "not-applicable",
@@ -1666,7 +1666,7 @@
       "productNumber": "08",
       "productName": "YNX Quant Lab",
       "assetRelevant": true,
-      "sourceCommit": "65f77b071b1664a2b171424954eae46e245586f9",
+      "sourceCommit": "37d8bb9d9446a448fd5346a9945f70cc88d3b060",
       "controls": {
         "productScopedSession": {
           "status": "unverified",
@@ -2481,7 +2481,7 @@
       "productNumber": "13",
       "productName": "YNX Monitor",
       "assetRelevant": false,
-      "sourceCommit": "beab398566496f7a56368f9f8526e1132aa1a2a4",
+      "sourceCommit": "1c821a8d8b5606807506e704f0b4cdceeb89e5e6",
       "controls": {
         "productScopedSession": {
           "status": "not-applicable",
@@ -2644,7 +2644,7 @@
       "productNumber": "14",
       "productName": "YNX AI",
       "assetRelevant": false,
-      "sourceCommit": "20f4a71a6836449342cd6ee5426b7a77e2b2f4f9",
+      "sourceCommit": "a781300124b8f31c910aeb182f9b1b13e1ab4893",
       "controls": {
         "productScopedSession": {
           "status": "not-applicable",
@@ -4241,185 +4241,185 @@
       "productNumber": "21",
       "productName": "YNX Bridge & Interoperability",
       "assetRelevant": true,
-      "sourceCommit": "01e0961b998bbf2ab35552971069870f5b76bacb",
+      "sourceCommit": "fc82c236cf8e2d8a9c69834b5985895170249aa4",
       "controls": {
         "productScopedSession": {
-          "status": "verified-candidate",
+          "status": "candidate-evidence",
           "evidence": [
             "internal/bridgegateway/state_machine_test.go",
             "internal/bridgegateway/gateway_test.go"
           ]
         },
         "deviceBinding": {
-          "status": "verified-candidate",
+          "status": "candidate-evidence",
           "evidence": [
             "internal/bridgegateway/state_machine_test.go",
             "internal/bridgegateway/gateway_test.go"
           ]
         },
         "scope": {
-          "status": "verified-candidate",
+          "status": "candidate-evidence",
           "evidence": [
             "internal/bridgegateway/state_machine_test.go",
             "internal/bridgegateway/gateway_test.go"
           ]
         },
         "expiry": {
-          "status": "verified-candidate",
+          "status": "candidate-evidence",
           "evidence": [
             "internal/bridgegateway/state_machine_test.go",
             "internal/bridgegateway/gateway_test.go"
           ]
         },
         "nonce": {
-          "status": "verified-candidate",
+          "status": "candidate-evidence",
           "evidence": [
             "internal/bridgegateway/state_machine_test.go",
             "internal/bridgegateway/gateway_test.go"
           ]
         },
         "replayProtection": {
-          "status": "verified-candidate",
+          "status": "candidate-evidence",
           "evidence": [
             "internal/bridgegateway/state_machine_test.go",
             "internal/bridgegateway/gateway_test.go"
           ]
         },
         "revoke": {
-          "status": "verified-candidate",
+          "status": "candidate-evidence",
           "evidence": [
             "internal/bridgegateway/state_machine_test.go",
             "internal/bridgegateway/gateway_test.go"
           ]
         },
         "killSwitch": {
-          "status": "verified-candidate",
+          "status": "candidate-evidence",
           "evidence": [
             "internal/bridgegateway/state_machine_test.go",
             "internal/bridgegateway/gateway_test.go"
           ]
         },
         "transactionPreview": {
-          "status": "verified-candidate",
+          "status": "candidate-evidence",
           "evidence": [
             "internal/bridgegateway/state_machine_test.go",
             "internal/bridgegateway/gateway_test.go"
           ]
         },
         "chainIdBinding": {
-          "status": "verified-candidate",
+          "status": "candidate-evidence",
           "evidence": [
             "internal/bridgegateway/state_machine_test.go",
             "internal/bridgegateway/gateway_test.go"
           ]
         },
         "bundleCallbackBinding": {
-          "status": "verified-candidate",
+          "status": "candidate-evidence",
           "evidence": [
             "internal/bridgegateway/state_machine_test.go",
             "internal/bridgegateway/gateway_test.go"
           ]
         },
         "singleTransactionLimit": {
-          "status": "verified-candidate",
+          "status": "candidate-evidence",
           "evidence": [
             "internal/bridgegateway/state_machine_test.go",
             "internal/bridgegateway/gateway_test.go"
           ]
         },
         "dailyLimit": {
-          "status": "verified-candidate",
+          "status": "candidate-evidence",
           "evidence": [
             "internal/bridgegateway/state_machine_test.go",
             "internal/bridgegateway/gateway_test.go"
           ]
         },
         "assetLimit": {
-          "status": "verified-candidate",
+          "status": "candidate-evidence",
           "evidence": [
             "internal/bridgegateway/state_machine_test.go",
             "internal/bridgegateway/gateway_test.go"
           ]
         },
         "methodLimit": {
-          "status": "verified-candidate",
+          "status": "candidate-evidence",
           "evidence": [
             "internal/bridgegateway/state_machine_test.go",
             "internal/bridgegateway/gateway_test.go"
           ]
         },
         "unlimitedApprovalRejection": {
-          "status": "verified-candidate",
+          "status": "candidate-evidence",
           "evidence": [
             "internal/bridgegateway/state_machine_test.go",
             "internal/bridgegateway/gateway_test.go"
           ]
         },
         "withdrawalBoundary": {
-          "status": "verified-candidate",
+          "status": "candidate-evidence",
           "evidence": [
             "internal/bridgegateway/state_machine_test.go",
             "internal/bridgegateway/gateway_test.go"
           ]
         },
         "newAddressRisk": {
-          "status": "verified-candidate",
+          "status": "candidate-evidence",
           "evidence": [
             "internal/bridgegateway/state_machine_test.go",
             "internal/bridgegateway/gateway_test.go"
           ]
         },
         "highRiskAddressDetection": {
-          "status": "verified-candidate",
+          "status": "candidate-evidence",
           "evidence": [
             "internal/bridgegateway/state_machine_test.go",
             "internal/bridgegateway/gateway_test.go"
           ]
         },
         "explorerTrace": {
-          "status": "verified-candidate",
+          "status": "candidate-evidence",
           "evidence": [
             "internal/bridgegateway/state_machine_test.go",
             "internal/bridgegateway/gateway_test.go"
           ]
         },
         "canonicalEvents": {
-          "status": "verified-candidate",
+          "status": "candidate-evidence",
           "evidence": [
             "internal/bridgegateway/state_machine_test.go",
             "internal/bridgegateway/gateway_test.go"
           ]
         },
         "billingLedger": {
-          "status": "verified-candidate",
+          "status": "candidate-evidence",
           "evidence": [
             "internal/bridgegateway/state_machine_test.go",
             "internal/bridgegateway/gateway_test.go"
           ]
         },
         "trustEvidence": {
-          "status": "verified-candidate",
+          "status": "candidate-evidence",
           "evidence": [
             "internal/bridgegateway/state_machine_test.go",
             "internal/bridgegateway/gateway_test.go"
           ]
         },
         "correction": {
-          "status": "verified-candidate",
+          "status": "candidate-evidence",
           "evidence": [
             "internal/bridgegateway/state_machine_test.go",
             "internal/bridgegateway/gateway_test.go"
           ]
         },
         "appeal": {
-          "status": "verified-candidate",
+          "status": "candidate-evidence",
           "evidence": [
             "internal/bridgegateway/state_machine_test.go",
             "internal/bridgegateway/gateway_test.go"
           ]
         },
         "emergencyExit": {
-          "status": "verified-candidate",
+          "status": "candidate-evidence",
           "evidence": [
             "internal/bridgegateway/state_machine_test.go",
             "internal/bridgegateway/gateway_test.go"
@@ -4428,91 +4428,91 @@
       },
       "attackDrills": {
         "stolenSession": {
-          "status": "verified-candidate",
+          "status": "candidate-evidence",
           "evidence": [
             "internal/bridgegateway/state_machine_test.go",
             "internal/bridgegateway/gateway_test.go"
           ]
         },
         "wrongDevice": {
-          "status": "verified-candidate",
+          "status": "candidate-evidence",
           "evidence": [
             "internal/bridgegateway/state_machine_test.go",
             "internal/bridgegateway/gateway_test.go"
           ]
         },
         "wrongProduct": {
-          "status": "verified-candidate",
+          "status": "candidate-evidence",
           "evidence": [
             "internal/bridgegateway/state_machine_test.go",
             "internal/bridgegateway/gateway_test.go"
           ]
         },
         "scopeWidening": {
-          "status": "verified-candidate",
+          "status": "candidate-evidence",
           "evidence": [
             "internal/bridgegateway/state_machine_test.go",
             "internal/bridgegateway/gateway_test.go"
           ]
         },
         "replay": {
-          "status": "verified-candidate",
+          "status": "candidate-evidence",
           "evidence": [
             "internal/bridgegateway/state_machine_test.go",
             "internal/bridgegateway/gateway_test.go"
           ]
         },
         "tamperedDigest": {
-          "status": "verified-candidate",
+          "status": "candidate-evidence",
           "evidence": [
             "internal/bridgegateway/state_machine_test.go",
             "internal/bridgegateway/gateway_test.go"
           ]
         },
         "withdrawalAddressChange": {
-          "status": "verified-candidate",
+          "status": "candidate-evidence",
           "evidence": [
             "internal/bridgegateway/state_machine_test.go",
             "internal/bridgegateway/gateway_test.go"
           ]
         },
         "unlimitedApproval": {
-          "status": "verified-candidate",
+          "status": "candidate-evidence",
           "evidence": [
             "internal/bridgegateway/state_machine_test.go",
             "internal/bridgegateway/gateway_test.go"
           ]
         },
         "suspiciousContractMethod": {
-          "status": "verified-candidate",
+          "status": "candidate-evidence",
           "evidence": [
             "internal/bridgegateway/state_machine_test.go",
             "internal/bridgegateway/gateway_test.go"
           ]
         },
         "duplicatePayment": {
-          "status": "verified-candidate",
+          "status": "candidate-evidence",
           "evidence": [
             "internal/bridgegateway/state_machine_test.go",
             "internal/bridgegateway/gateway_test.go"
           ]
         },
         "bridgeReplay": {
-          "status": "verified-candidate",
+          "status": "candidate-evidence",
           "evidence": [
             "internal/bridgegateway/state_machine_test.go",
             "internal/bridgegateway/gateway_test.go"
           ]
         },
         "oracleManipulationCandidate": {
-          "status": "verified-candidate",
+          "status": "candidate-evidence",
           "evidence": [
             "internal/bridgegateway/state_machine_test.go",
             "internal/bridgegateway/gateway_test.go"
           ]
         }
       },
-      "status": "verified-candidate"
+      "status": "candidate-evidence"
     },
     {
       "productNumber": "22",
@@ -4844,7 +4844,7 @@
       "productNumber": "24",
       "productName": "YNX Finance",
       "assetRelevant": true,
-      "sourceCommit": "f66648ae49d01149b0220748943f98438a15f21d",
+      "sourceCommit": "307273b93df29bf064cb64324109571c00a63dc2",
       "controls": {
         "productScopedSession": {
           "status": "unverified",
@@ -5007,7 +5007,7 @@
       "productNumber": "25",
       "productName": "YNX Mail",
       "assetRelevant": false,
-      "sourceCommit": "0734e15b86cbeb47df0ec3d00c1e3457807e2f91",
+      "sourceCommit": "2c8b885e81b594dae3244255614ecc9405e790c3",
       "controls": {
         "productScopedSession": {
           "status": "not-applicable",
@@ -5170,10 +5170,10 @@
       "productNumber": "26",
       "productName": "YNX Data Fabric & Billing Ledger",
       "assetRelevant": true,
-      "sourceCommit": "2a09d7455a5fef9eee56ca736be4b600d40a1831",
+      "sourceCommit": "da095e240be52023ecef19c162c869398bf9fbea",
       "controls": {
         "productScopedSession": {
-          "status": "verified-candidate",
+          "status": "candidate-evidence",
           "evidence": [
             "internal/datafabric/saga_test.go",
             "internal/datafabric/redelivery_test.go",
@@ -5181,7 +5181,7 @@
           ]
         },
         "deviceBinding": {
-          "status": "verified-candidate",
+          "status": "candidate-evidence",
           "evidence": [
             "internal/datafabric/saga_test.go",
             "internal/datafabric/redelivery_test.go",
@@ -5189,7 +5189,7 @@
           ]
         },
         "scope": {
-          "status": "verified-candidate",
+          "status": "candidate-evidence",
           "evidence": [
             "internal/datafabric/saga_test.go",
             "internal/datafabric/redelivery_test.go",
@@ -5197,7 +5197,7 @@
           ]
         },
         "expiry": {
-          "status": "verified-candidate",
+          "status": "candidate-evidence",
           "evidence": [
             "internal/datafabric/saga_test.go",
             "internal/datafabric/redelivery_test.go",
@@ -5205,7 +5205,7 @@
           ]
         },
         "nonce": {
-          "status": "verified-candidate",
+          "status": "candidate-evidence",
           "evidence": [
             "internal/datafabric/saga_test.go",
             "internal/datafabric/redelivery_test.go",
@@ -5213,7 +5213,7 @@
           ]
         },
         "replayProtection": {
-          "status": "verified-candidate",
+          "status": "candidate-evidence",
           "evidence": [
             "internal/datafabric/saga_test.go",
             "internal/datafabric/redelivery_test.go",
@@ -5221,7 +5221,7 @@
           ]
         },
         "revoke": {
-          "status": "verified-candidate",
+          "status": "candidate-evidence",
           "evidence": [
             "internal/datafabric/saga_test.go",
             "internal/datafabric/redelivery_test.go",
@@ -5229,7 +5229,7 @@
           ]
         },
         "killSwitch": {
-          "status": "verified-candidate",
+          "status": "candidate-evidence",
           "evidence": [
             "internal/datafabric/saga_test.go",
             "internal/datafabric/redelivery_test.go",
@@ -5237,7 +5237,7 @@
           ]
         },
         "transactionPreview": {
-          "status": "verified-candidate",
+          "status": "candidate-evidence",
           "evidence": [
             "internal/datafabric/saga_test.go",
             "internal/datafabric/redelivery_test.go",
@@ -5245,7 +5245,7 @@
           ]
         },
         "chainIdBinding": {
-          "status": "verified-candidate",
+          "status": "candidate-evidence",
           "evidence": [
             "internal/datafabric/saga_test.go",
             "internal/datafabric/redelivery_test.go",
@@ -5253,7 +5253,7 @@
           ]
         },
         "bundleCallbackBinding": {
-          "status": "verified-candidate",
+          "status": "candidate-evidence",
           "evidence": [
             "internal/datafabric/saga_test.go",
             "internal/datafabric/redelivery_test.go",
@@ -5261,7 +5261,7 @@
           ]
         },
         "singleTransactionLimit": {
-          "status": "verified-candidate",
+          "status": "candidate-evidence",
           "evidence": [
             "internal/datafabric/saga_test.go",
             "internal/datafabric/redelivery_test.go",
@@ -5269,7 +5269,7 @@
           ]
         },
         "dailyLimit": {
-          "status": "verified-candidate",
+          "status": "candidate-evidence",
           "evidence": [
             "internal/datafabric/saga_test.go",
             "internal/datafabric/redelivery_test.go",
@@ -5277,7 +5277,7 @@
           ]
         },
         "assetLimit": {
-          "status": "verified-candidate",
+          "status": "candidate-evidence",
           "evidence": [
             "internal/datafabric/saga_test.go",
             "internal/datafabric/redelivery_test.go",
@@ -5285,7 +5285,7 @@
           ]
         },
         "methodLimit": {
-          "status": "verified-candidate",
+          "status": "candidate-evidence",
           "evidence": [
             "internal/datafabric/saga_test.go",
             "internal/datafabric/redelivery_test.go",
@@ -5293,7 +5293,7 @@
           ]
         },
         "unlimitedApprovalRejection": {
-          "status": "verified-candidate",
+          "status": "candidate-evidence",
           "evidence": [
             "internal/datafabric/saga_test.go",
             "internal/datafabric/redelivery_test.go",
@@ -5301,7 +5301,7 @@
           ]
         },
         "withdrawalBoundary": {
-          "status": "verified-candidate",
+          "status": "candidate-evidence",
           "evidence": [
             "internal/datafabric/saga_test.go",
             "internal/datafabric/redelivery_test.go",
@@ -5309,7 +5309,7 @@
           ]
         },
         "newAddressRisk": {
-          "status": "verified-candidate",
+          "status": "candidate-evidence",
           "evidence": [
             "internal/datafabric/saga_test.go",
             "internal/datafabric/redelivery_test.go",
@@ -5317,7 +5317,7 @@
           ]
         },
         "highRiskAddressDetection": {
-          "status": "verified-candidate",
+          "status": "candidate-evidence",
           "evidence": [
             "internal/datafabric/saga_test.go",
             "internal/datafabric/redelivery_test.go",
@@ -5325,7 +5325,7 @@
           ]
         },
         "explorerTrace": {
-          "status": "verified-candidate",
+          "status": "candidate-evidence",
           "evidence": [
             "internal/datafabric/saga_test.go",
             "internal/datafabric/redelivery_test.go",
@@ -5333,7 +5333,7 @@
           ]
         },
         "canonicalEvents": {
-          "status": "verified-candidate",
+          "status": "candidate-evidence",
           "evidence": [
             "internal/datafabric/saga_test.go",
             "internal/datafabric/redelivery_test.go",
@@ -5341,7 +5341,7 @@
           ]
         },
         "billingLedger": {
-          "status": "verified-candidate",
+          "status": "candidate-evidence",
           "evidence": [
             "internal/datafabric/saga_test.go",
             "internal/datafabric/redelivery_test.go",
@@ -5349,7 +5349,7 @@
           ]
         },
         "trustEvidence": {
-          "status": "verified-candidate",
+          "status": "candidate-evidence",
           "evidence": [
             "internal/datafabric/saga_test.go",
             "internal/datafabric/redelivery_test.go",
@@ -5357,7 +5357,7 @@
           ]
         },
         "correction": {
-          "status": "verified-candidate",
+          "status": "candidate-evidence",
           "evidence": [
             "internal/datafabric/saga_test.go",
             "internal/datafabric/redelivery_test.go",
@@ -5365,7 +5365,7 @@
           ]
         },
         "appeal": {
-          "status": "verified-candidate",
+          "status": "candidate-evidence",
           "evidence": [
             "internal/datafabric/saga_test.go",
             "internal/datafabric/redelivery_test.go",
@@ -5373,7 +5373,7 @@
           ]
         },
         "emergencyExit": {
-          "status": "verified-candidate",
+          "status": "candidate-evidence",
           "evidence": [
             "internal/datafabric/saga_test.go",
             "internal/datafabric/redelivery_test.go",
@@ -5383,7 +5383,7 @@
       },
       "attackDrills": {
         "stolenSession": {
-          "status": "verified-candidate",
+          "status": "candidate-evidence",
           "evidence": [
             "internal/datafabric/saga_test.go",
             "internal/datafabric/redelivery_test.go",
@@ -5391,7 +5391,7 @@
           ]
         },
         "wrongDevice": {
-          "status": "verified-candidate",
+          "status": "candidate-evidence",
           "evidence": [
             "internal/datafabric/saga_test.go",
             "internal/datafabric/redelivery_test.go",
@@ -5399,7 +5399,7 @@
           ]
         },
         "wrongProduct": {
-          "status": "verified-candidate",
+          "status": "candidate-evidence",
           "evidence": [
             "internal/datafabric/saga_test.go",
             "internal/datafabric/redelivery_test.go",
@@ -5407,7 +5407,7 @@
           ]
         },
         "scopeWidening": {
-          "status": "verified-candidate",
+          "status": "candidate-evidence",
           "evidence": [
             "internal/datafabric/saga_test.go",
             "internal/datafabric/redelivery_test.go",
@@ -5415,7 +5415,7 @@
           ]
         },
         "replay": {
-          "status": "verified-candidate",
+          "status": "candidate-evidence",
           "evidence": [
             "internal/datafabric/saga_test.go",
             "internal/datafabric/redelivery_test.go",
@@ -5423,7 +5423,7 @@
           ]
         },
         "tamperedDigest": {
-          "status": "verified-candidate",
+          "status": "candidate-evidence",
           "evidence": [
             "internal/datafabric/saga_test.go",
             "internal/datafabric/redelivery_test.go",
@@ -5431,7 +5431,7 @@
           ]
         },
         "withdrawalAddressChange": {
-          "status": "verified-candidate",
+          "status": "candidate-evidence",
           "evidence": [
             "internal/datafabric/saga_test.go",
             "internal/datafabric/redelivery_test.go",
@@ -5439,7 +5439,7 @@
           ]
         },
         "unlimitedApproval": {
-          "status": "verified-candidate",
+          "status": "candidate-evidence",
           "evidence": [
             "internal/datafabric/saga_test.go",
             "internal/datafabric/redelivery_test.go",
@@ -5447,7 +5447,7 @@
           ]
         },
         "suspiciousContractMethod": {
-          "status": "verified-candidate",
+          "status": "candidate-evidence",
           "evidence": [
             "internal/datafabric/saga_test.go",
             "internal/datafabric/redelivery_test.go",
@@ -5455,7 +5455,7 @@
           ]
         },
         "duplicatePayment": {
-          "status": "verified-candidate",
+          "status": "candidate-evidence",
           "evidence": [
             "internal/datafabric/saga_test.go",
             "internal/datafabric/redelivery_test.go",
@@ -5463,7 +5463,7 @@
           ]
         },
         "bridgeReplay": {
-          "status": "verified-candidate",
+          "status": "candidate-evidence",
           "evidence": [
             "internal/datafabric/saga_test.go",
             "internal/datafabric/redelivery_test.go",
@@ -5471,7 +5471,7 @@
           ]
         },
         "oracleManipulationCandidate": {
-          "status": "verified-candidate",
+          "status": "candidate-evidence",
           "evidence": [
             "internal/datafabric/saga_test.go",
             "internal/datafabric/redelivery_test.go",
@@ -5479,13 +5479,13 @@
           ]
         }
       },
-      "status": "verified-candidate"
+      "status": "candidate-evidence"
     },
     {
       "productNumber": "27",
       "productName": "YNX DEX",
       "assetRelevant": true,
-      "sourceCommit": "87f9fd0e5c2e6c664a3092e230ce54fd956acb7e",
+      "sourceCommit": "12b0db9b28d6bc3af7d5ed37135469369489bb8c",
       "controls": {
         "productScopedSession": {
           "status": "unverified",
@@ -5648,7 +5648,7 @@
       "productNumber": "28",
       "productName": "YNX Website / SEO / Product Micro-sites",
       "assetRelevant": false,
-      "sourceCommit": "9a5ac630a629863a731c056a35d975fa5b594645",
+      "sourceCommit": "9d02d3842ee306ce7979c02e02a44800ac4e4c75",
       "controls": {
         "productScopedSession": {
           "status": "not-applicable",
@@ -5811,7 +5811,7 @@
       "productNumber": "29",
       "productName": "YNX Integration / Founder Control",
       "assetRelevant": true,
-      "sourceCommit": "296e9d149f31a939f116296dee55bc6e09c475bf",
+      "sourceCommit": "10b877b5b18f9cb0026a6382cdd6588054fd16db",
       "controls": {
         "productScopedSession": {
           "status": "unverified",
@@ -6615,7 +6615,7 @@
       "productNumber": "33",
       "productName": "YNX Video",
       "assetRelevant": false,
-      "sourceCommit": "8a4957fdb15941db0416c1f0a23cb44ba297077e",
+      "sourceCommit": "1d4532ffca4eabdc15f2ec66f3d1143f67e159fa",
       "controls": {
         "productScopedSession": {
           "status": "not-applicable",
@@ -6778,7 +6778,7 @@
       "productNumber": "34",
       "productName": "YNX Creator Studio",
       "assetRelevant": false,
-      "sourceCommit": "f45bf8b2c10bcdd9d553b790801de079fa593d6a",
+      "sourceCommit": "b60cfc0d84db08d299d1a5890c70574bcdd9f40f",
       "controls": {
         "productScopedSession": {
           "status": "not-applicable",
@@ -7104,7 +7104,7 @@
       "productNumber": "36",
       "productName": "YNX Calendar",
       "assetRelevant": false,
-      "sourceCommit": "f77c7d21cad1142e43eaf6d7e40b81f68477a6b8",
+      "sourceCommit": "8f45566073f0d9979b5b1460b35144d954acc692",
       "controls": {
         "productScopedSession": {
           "status": "not-applicable",
