@@ -1,0 +1,33 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "decision": "ACCEPTED_CARD_SOURCE_CONSUMPTION_PUBLIC_DEPLOYMENT_PENDING",
+  "acceptedAt": "2026-08-21T03:18:11Z",
+  "contract": "canonicalWalletAuthorize@1.0.0-p0.0",
+  "sourceBranch": "codex/p0-card-evm-ynxt-topup-20260821",
+  "sourceCommit": "f5ab94257cde4ab18397bc6f47e77777398c85b4",
+  "sourceTree": "6d35a5831187426c316bdfbf9e0834b6bbda8751",
+  "sourceParent": "d97d2fb7413c56abf4add4ea2c10fd6bc228064f",
+  "walletAuthPackageBytes": 128859,
+  "contractSha256": "e572042f18c1e32dfe86da26ee2ab52f9372c9803eae3b492c26932e50251c03",
+  "independentValidation": {
+    "tests": "28/28",
+    "typecheck": "PASS",
+    "webBuild": "PASS",
+    "canonicalBuilder": true,
+    "canonicalCallbackVerifier": true,
+    "bareAuthorizeReleaseGate": "PASS"
+  },
+  "truth": {
+    "cardSourceConsumed": true,
+    "canonicalPublicDeploymentUpdated": false,
+    "deviceVisibleReviewVerified": false,
+    "approveCallbackDeviceVerified": false,
+    "rejectCallbackDeviceVerified": false,
+    "coldStartRecoveryDeviceVerified": false,
+    "realYnxtTopup": false,
+    "realCard": false,
+    "migratedV2": false,
+    "computerControlVerified": false
+  }
+}
