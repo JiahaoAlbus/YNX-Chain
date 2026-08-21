@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createCallbackURL, createGatewayChallenge, encodeRequestDeepLink, parseWalletDeepLink, registryParserBinding, signAuthorization, verifyGatewayCompletion } from "@ynx-chain/wallet-auth";
-import { beginWalletSignIn, connectStandardWallet, finishWalletSignIn, MERCHANT_REGISTRY, privateServiceDegraded, WALLET_INSTALL_OPTIONS } from "../src/auth.js";
+import { beginWalletSignIn, connectStandardWallet, finishWalletSignIn, launchMerchantWalletSignIn, MERCHANT_REGISTRY, privateServiceDegraded, WALLET_INSTALL_OPTIONS } from "../src/auth.js";
 
 const records=new Map();
 globalThis.sessionStorage={getItem:key=>records.get(key)??null,setItem:(key,value)=>records.set(key,value),removeItem:key=>records.delete(key)};
@@ -32,6 +32,20 @@ test("cross-product callback and scope escalation fail closed",()=>{
   const request=parseWalletDeepLink(link,"android",{now,registry:registryParserBinding(MERCHANT_REGISTRY)}).request;
   assert.throws(()=>parseWalletDeepLink(encodeRequestDeepLink({...request,scopes:["account:read","card:controls:write"]}),"android",{now,registry:registryParserBinding(MERCHANT_REGISTRY)}),/scope/i);
   assert.throws(()=>parseWalletDeepLink(encodeRequestDeepLink({...request,callback:"ynxcard://wallet-auth/callback"}),"android",{now,registry:registryParserBinding(MERCHANT_REGISTRY)}),/callback/i);
+});
+
+test("controlled Merchant launcher keeps the top-level page in place",async()=>{
+  records.clear();
+  const frame={style:{},setAttribute(){},remove(){this.removed=true}};
+  const document={visibilityState:"visible",body:{appendChild(value){assert.equal(value,frame)}},createElement(){return frame},addEventListener(){},removeEventListener(){}};
+  const window={addEventListener(){},removeEventListener(){}};
+  const topLevel={href:"https://pay.ynxweb4.com/merchant/"};
+  const result=await launchMerchantWalletSignIn("mrc_truth123",{now:new Date("2026-07-18T12:00:00.000Z"),document,window,timeoutMs:1,location:topLevel});
+  assert.equal(result.status,"timeout");
+  assert.equal(topLevel.href,"https://pay.ynxweb4.com/merchant/");
+  assert.equal(frame.removed,true);
+  assert.ok(result.fallbackActions.some(action=>action.id==="official-ynx-wallet-download"));
+  assert.ok(result.fallbackActions.some(action=>action.id==="standard-metamask"));
 });
 
 test("standard connection prefers announced YNX Wallet and switches to YNX Testnet",async()=>{

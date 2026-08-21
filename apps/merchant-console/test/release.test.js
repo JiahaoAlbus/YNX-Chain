@@ -27,3 +27,11 @@ test("English is the first-run primary language while saved user choice remains 
   assert.match(source,/locale:locales\.includes\(savedLocale\)\?savedLocale:"en"/);
   assert.match(source,/aiLanguage:locales\.includes\(savedAI\)\?savedAI:"en"/);
 });
+
+test("Merchant Console uses the shared controlled Wallet launcher without top-level scheme navigation",async()=>{
+  const [appSource,authSource]=await Promise.all([readFile(app,"utf8"),readFile(new URL("../src/auth.js",import.meta.url),"utf8")]);
+  assert.match(appSource,/launchMerchantWalletSignIn/);
+  assert.doesNotMatch(appSource,/location\.(?:href|assign)\s*=/);
+  assert.match(authSource,/launchWebAuthorization/);
+  assert.doesNotMatch(authSource,/`ynxwallet:\/\/authorize/);
+});

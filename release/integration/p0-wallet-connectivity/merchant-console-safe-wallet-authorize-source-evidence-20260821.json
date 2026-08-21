@@ -1,0 +1,41 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-113",
+  "product": "merchant-console",
+  "owner": "integration",
+  "recordedAt": "2026-08-21T05:04:12Z",
+  "baselineCommit": "6fba5d24bfccc41b33713aefad38aa12766151d2",
+  "change": {
+    "description": "Replace top-level Wallet sign-in navigation with the shared controlled web launcher and upgrade the Merchant request to the origin-bound v2 protocol.",
+    "walletAuthArtifact": "apps/merchant-console/vendor/ynx-chain-wallet-auth-1.0.0-safe-authorize-p0.0.tgz",
+    "walletAuthArtifactSha256": "dd80cf3d8fda3b35b89ddae6f3848dc420358b9c10d1879ed33a33f567585acb",
+    "requestVersion": "2",
+    "registeredOrigin": "https://pay.ynxweb4.com",
+    "topLevelLocationNavigation": false,
+    "standardWalletPreservedOnPrivateFailure": true,
+    "publicPreviewPreserved": true,
+    "officialWalletRecoveryVisible": true,
+    "metamaskRecoveryVisible": true
+  },
+  "verification": {
+    "nodeTests": {"passed": true, "tests": 15, "failures": 0},
+    "productionBuild": {"passed": true},
+    "chromiumE2E": {"passed": true, "tests": 2, "failures": 0},
+    "gitDiffCheck": {"passed": true},
+    "builtAppSha256": "c84ba1d04091fec599c96b071d98aaf30e9f83cd55862d5771a93cc9dc5e0f3f"
+  },
+  "truth": {
+    "sourceValidated": true,
+    "deterministicBrowserFlowsValidated": true,
+    "publicDeployed": false,
+    "publicVisibleVerified": false,
+    "computerControlVerified": false,
+    "installedWalletVerified": false,
+    "walletApprovalVerified": false,
+    "callbackVerified": false,
+    "productSessionV2": false,
+    "settlementVerified": false
+  },
+  "nextAction": "Publish this exact Merchant Console source, then verify the controlled fallback and a real installed-Wallet approval/callback separately before any private-session or settlement promotion."
+}
