@@ -29,3 +29,39 @@ test("accepted Wallet v2 root factory fails closed for an absent Wallet and pres
   assert.equal(guest.sessionState.status, "guest");
   assert.deepEqual(guest.sessionState.limitations, ["not-signed-in", "no-wallet-balance", "no-transactions", "no-chain-authority"]);
 });
+
+test("accepted Wallet v2 root factory opens only a populated canonical authorization request", async () => {
+  const stored = new Map();
+  const deviceKey = "A2sX0fLhLEJH-Lzm5WOkQPJ3A32BLeszoPShOUXYmMKW";
+  let opened;
+  const connection = createProductWalletConnection({
+    registry,
+    productId: "developer",
+    platform: "macos",
+    walletInstalled: async () => true,
+    schemeRegistered: async () => true,
+    gatewayTimeoutMs: 10_000,
+    storage: { securityLevel: "os-protected", get: async (key) => stored.get(key) ?? null, set: async (key, value) => void stored.set(key, value), remove: async (key) => void stored.delete(key) },
+    device: { id: "developer-test-device", key: deviceKey, scopes: ["account:read", "developer:deploy"], purpose: "root factory canonical request test", sign: async () => "MEQCIA" },
+    scope: globalThis,
+    discoveryWaitMs: 0,
+    openWallet: async (input) => { opened = input; return { opened: true }; },
+    openTimeoutMs: 10_000,
+  });
+  const state = await connection.beginYNX();
+  assert.equal(state.status, "wallet-opened");
+  assert.match(opened.url, /^ynxwallet:\/\/authorize\?request=[A-Za-z0-9_-]{80,8192}$/);
+  const encoded = new URL(opened.url).searchParams.get("request");
+  const request = JSON.parse(Buffer.from(encoded, "base64url").toString("utf8"));
+  assert.equal(request.version, "2");
+  assert.equal(request.chainId, "ynx_6423-1");
+  assert.equal(request.productId, "developer");
+  assert.equal(request.clientId, "ynx-developer-v1");
+  assert.equal(request.platform, "macos");
+  assert.equal(request.callback, "ynxdeveloper://wallet-auth/callback");
+  assert.equal(request.deviceKey, deviceKey);
+  assert.match(request.nonce, /^[A-Za-z0-9_-]{32,64}$/);
+  assert.match(request.state, /^[A-Za-z0-9_-]{32,64}$/);
+  assert.deepEqual(request.scopes, ["account:read", "developer:deploy"]);
+  assert.ok(Date.parse(request.expiresAt) > Date.parse(request.issuedAt));
+});

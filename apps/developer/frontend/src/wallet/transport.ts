@@ -1,3 +1,8 @@
+// Central canonical authorize source: 46386ae8eeaa7633923ae762a5a9634b5eac98d9.
+// The app must only use these root exports; no product code may construct a
+// Wallet authorize URL or decode an authorization callback itself.
+import { encodeRequestDeepLink, parseAuthorizationCallbackURL, type AuthorizationResponse } from "../../../vendor/wallet-auth/src/index.js";
+
 export type DeveloperWalletBridge = {
   openAuthorization: (deepLink: string) => Promise<void>;
   walletAvailability?: () => Promise<{ walletInstalled: boolean; schemeRegistered: boolean }>;
@@ -75,7 +80,7 @@ export async function openDeveloperWalletReview(bridge: DeveloperWalletBridge, n
     issuedAt: now.toISOString(),
     expiresAt: expiresAt.toISOString(),
   });
-  const deepLink = `ynxwallet://authorize?request=${base64url(new TextEncoder().encode(canonicalJSON(request)))}`;
+  const deepLink = encodeRequestDeepLink(request);
   sessionStorage.setItem(PENDING_REQUEST, canonicalJSON(request));
   try { await bridge.openAuthorization(deepLink); }
   catch (error) { sessionStorage.removeItem(PENDING_REQUEST); throw error; }
@@ -175,20 +180,15 @@ function pendingAuthorizationRequest(now: Date) {
   return request;
 }
 
-function callbackApproval(callbackURL: string, request: Record<string, unknown>, now: Date) {
-  let parsed: URL;
-  try { parsed = new URL(callbackURL); } catch { throw new Error("YNX Wallet callback URL is invalid."); }
-  const keys = [...parsed.searchParams.keys()], response = keys.length === 1 && keys[0] === "response" ? parsed.searchParams.get("response") : null;
-  if (parsed.protocol !== "ynxdeveloper:" || parsed.hostname !== "wallet-auth" || parsed.pathname !== "/callback" || parsed.hash || parsed.username || parsed.password || !response) throw new Error("YNX Wallet callback route was substituted.");
-  const decoded = decodeBase64url(response);
-  let value: unknown;
-  try { value = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(decoded)); } catch { throw new Error("YNX Wallet callback response is invalid."); }
-  const approval = plainRecord(value, "YNX Wallet approval");
-  const fields = ["version","requestDigest","nonce","chainId","requestingProduct","productClientId","bundleId","productDeviceAlgorithm","productDeviceKey","callback","account","accountPublicKey","grantedScopes","purpose","issuedAt","expiresAt","walletSignature"];
-  exactFields(approval, fields, "YNX Wallet approval");
-  for (const key of ["version","nonce","chainId","requestingProduct","productClientId","bundleId","productDeviceAlgorithm","productDeviceKey","callback","purpose"]) if (approval[key] !== request[key]) throw new Error(`YNX Wallet approval ${key} does not match the pending request.`);
-  if (!sameStrings(approval.grantedScopes, request.scopes) || typeof approval.requestDigest !== "string" || !/^[0-9a-f]{64}$/.test(approval.requestDigest) || typeof approval.walletSignature !== "string" || !/^[0-9a-f]{128}$/.test(approval.walletSignature) || typeof approval.account !== "string" || !/^ynx1[023456789acdefghjklmnpqrstuvwxyz]{38}$/.test(approval.account) || typeof approval.accountPublicKey !== "string" || !/^(02|03)[0-9a-f]{64}$/.test(approval.accountPublicKey) || !validTime(approval.issuedAt) || !validTime(approval.expiresAt) || Date.parse(approval.issuedAt as string) < Date.parse(request.issuedAt as string) || Date.parse(approval.issuedAt as string) > now.getTime() || Date.parse(approval.expiresAt as string) > Date.parse(request.expiresAt as string) || Date.parse(approval.expiresAt as string) <= now.getTime()) throw new Error("YNX Wallet approval fields, scope, signature shape or lifetime are invalid.");
-  return approval;
+function callbackApproval(callbackURL: string, request: Record<string, unknown>, now: Date): AuthorizationResponse {
+  let result: ReturnType<typeof parseAuthorizationCallbackURL>;
+  try {
+    result = parseAuthorizationCallbackURL(callbackURL, request as Parameters<typeof parseAuthorizationCallbackURL>[1], now);
+  } catch {
+    throw new Error("YNX Wallet callback failed canonical signature, binding, callback or expiry validation.");
+  }
+  if ("decision" in result) throw new Error("YNX Wallet rejected the authorization request.");
+  return result as AuthorizationResponse;
 }
 
 function derSignature(signature: Uint8Array) {

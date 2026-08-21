@@ -47,10 +47,14 @@ export declare function evmAddressFromYNX(account:string):string;
 export declare function ynxAddressFromEVM(address:string):string;
 export declare function signAuthorization(request:AuthorizationRequest,input:{accountSecret:string;account?:string;issuedAt:string}):AuthorizationResponse;
 export declare function verifyAuthorization(response:unknown,expected:AuthorizationRequest&{requestDigest:string;now:Date}):AuthorizationResponse;
+export declare const WALLET_AUTHORIZE_ROUTE:"ynxwallet://authorize";
+export declare const WALLET_AUTHORIZE_REQUEST_PARAMETER:"request";
+export declare const WALLET_CALLBACK_RESPONSE_PARAMETER:"response";
 export declare function encodeRequestDeepLink(request:AuthorizationRequest):string;
 export declare function parseWalletDeepLink(url:string,platform:"android"|"ios",options:{now?:Date;registry:Record<string,ProductBinding>}):Readonly<{platform:string;request:AuthorizationRequest}>;
 export declare function createCallbackURL(response:Record<string,unknown>&{callback:string}):string;
 export declare function parseCallbackURL(url:string,expectedCallback:string):unknown;
+export declare function parseAuthorizationCallbackURL(url:string,request:AuthorizationRequest,at?:Date):AuthorizationResponse|AuthorizationRejection;
 export declare class OneTimeNonceStore {constructor(records?:readonly [string,string][]);consume(request:AuthorizationRequest,at?:Date):void;snapshot():readonly [string,string][]}
 export declare function createGatewayChallenge(approval:AuthorizationResponse,input:{challenge:string;expiresAt:string},at?:Date):GatewayChallenge;
 export declare function parseGatewayChallenge(input:unknown):GatewayChallenge;

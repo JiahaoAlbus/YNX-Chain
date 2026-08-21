@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-08-21",
+  "owner": "11-developer",
+  "centralAcceptance": {
+    "controlPlaneCommit": "b38489793018ff9a009cad57558b66a142495a2e",
+    "contract": "canonicalWalletAuthorize@1.0.0-p0.0",
+    "acceptancePath": "release/integration/p0-wallet-connectivity/acceptance/canonical-wallet-authorize-46386ae8-20260821.json",
+    "sourceCommit": "46386ae8eeaa7633923ae762a5a9634b5eac98d9",
+    "sourceTree": "f5bffcf4b775d4a88af9fe3a6b53fa60d271912c",
+    "contractSha256": "e572042f18c1e32dfe86da26ee2ab52f9372c9803eae3b492c26932e50251c03"
+  },
+  "developerSource": {
+    "rootEncoder": "encodeRequestDeepLink",
+    "rootCallbackParser": "parseAuthorizationCallbackURL",
+    "pendingRequestStoredBeforeOpen": true,
+    "manualAuthorizeUriConstruction": false,
+    "vendorDeepLinkSha256": "051b6f1c75d6b1be06823529117e0a422394183a67b4822075dc18be1d85fea5",
+    "scanGate": "apps/developer/scripts/check-wallet-authorization-links.mjs"
+  },
+  "boundaries": {
+    "rootSourceConsumptionVerified": false,
+    "approvalRejectRoundTripVerified": false,
+    "coldStartRecoveryVerified": false,
+    "visibleInstalledBrowserEvidence": false,
+    "publicDeployed": false,
+    "productMigratedV2": false,
+    "standardWalletDisconnectedOnProductSessionFailure": false
+  }
+}

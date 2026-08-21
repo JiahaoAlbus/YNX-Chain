@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
+import { assertNoBareWalletAuthorizationInReleaseSources } from "./check-wallet-authorization-links.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 const files = await Promise.all(["index.html", "styles.css", "app.js"].map((file) => readFile(`${root}/${file}`, "utf8")));
@@ -10,4 +11,5 @@ for (const required of ["#002FA7", "ynx_6423-1", "0.8.24", "Wallet", "source mat
 for (const forbidden of ["fully EVM compatible", "Ethereum compatible", "source verified by default", "production desktop app"]) {
   if (joined.toLowerCase().includes(forbidden.toLowerCase())) throw new Error(`Forbidden claim: ${forbidden}`);
 }
+await assertNoBareWalletAuthorizationInReleaseSources();
 console.log("YNX Developer static claim and workflow check passed.");
