@@ -33,7 +33,6 @@ const (
 
 var (
 	ynxAddressPattern = regexp.MustCompile(`^ynx_[a-zA-Z0-9_]{3,80}$`)
-	evmAddressPattern = regexp.MustCompile(`^0x[0-9a-fA-F]{40}$`)
 )
 
 type Config struct {
@@ -267,10 +266,18 @@ func (s *Service) Request(ctx context.Context, req Request, remoteAddr string) (
 func (s *Service) resolveRecipient(address string) (resolvedRecipient, error) {
 	address = strings.TrimSpace(address)
 	if s.cfg.UpstreamMode != UpstreamBFT {
-		if !ValidAddress(address) {
+		if ynxAddressPattern.MatchString(address) {
+			return resolvedRecipient{Requested: address, Chain: address, Native: address}, nil
+		}
+		evm, err := accountaddress.Normalize(address)
+		if err != nil {
 			return resolvedRecipient{}, errors.New("invalid address")
 		}
-		return resolvedRecipient{Requested: address, Chain: address, Native: address}, nil
+		native, err := accountaddress.Encode(evm)
+		if err != nil {
+			return resolvedRecipient{}, errors.New("invalid address")
+		}
+		return resolvedRecipient{Requested: address, Chain: evm, Native: native, EVM: evm}, nil
 	}
 	evm, err := accountaddress.Normalize(address)
 	if err != nil {
@@ -295,7 +302,11 @@ func (s *Service) truthfulStatus() string {
 
 func ValidAddress(address string) bool {
 	address = strings.TrimSpace(address)
-	return ynxAddressPattern.MatchString(address) || evmAddressPattern.MatchString(address)
+	if ynxAddressPattern.MatchString(address) {
+		return true
+	}
+	_, err := accountaddress.Normalize(address)
+	return err == nil
 }
 
 func (s *Service) allow(ip, address string, now time.Time) bool {

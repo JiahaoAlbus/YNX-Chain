@@ -53,6 +53,35 @@ func TestFaucetServiceRequestsAndRateLimits(t *testing.T) {
 	}
 }
 
+func TestAuthoritativeFaucetAcceptsCanonicalYNXAndEVMAsOneRecipient(t *testing.T) {
+	devnet := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))
+	rpc := httptest.NewServer(api.NewServer(devnet))
+	defer rpc.Close()
+
+	evm := nativeAddress(t, 31)
+	native, err := accountaddress.Encode(evm)
+	if err != nil {
+		t.Fatal(err)
+	}
+	service, err := New(Config{RPCURL: rpc.URL, FaucetKey: "local-test-key", DefaultAmount: 25, MaxAmount: 25, Window: time.Hour, MaxRequests: 1, RequestLog: t.TempDir() + "/requests.jsonl"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	response, status, err := service.Request(context.Background(), Request{Address: native}, "127.0.0.1:2000")
+	if err != nil || status != http.StatusCreated {
+		t.Fatalf("canonical YNX request failed status=%d err=%v", status, err)
+	}
+	if response.Address != native || response.CanonicalAddress != native || response.EVMAddress != evm || response.Transaction.To != evm {
+		t.Fatalf("canonical identity was not preserved: %+v", response)
+	}
+	if _, status, err := service.Request(context.Background(), Request{Address: evm}, "127.0.0.1:2000"); err == nil || status != http.StatusTooManyRequests {
+		t.Fatalf("EVM alias bypassed native-address rate limit status=%d err=%v", status, err)
+	}
+	if ValidAddress("ynx1invalid") || ValidAddress("0x1234") {
+		t.Fatal("invalid canonical addresses were accepted")
+	}
+}
+
 func TestFaucetServerEndpoints(t *testing.T) {
 	devnet := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))
 	rpc := httptest.NewServer(api.NewServer(devnet))
@@ -73,12 +102,24 @@ func TestFaucetServerEndpoints(t *testing.T) {
 		}
 		_ = resp.Body.Close()
 	}
-	resp, err := http.Post(server.URL+"/request", "application/json", strings.NewReader(`{"address":"ynx_faucet_server"}`))
+	evm := nativeAddress(t, 41)
+	native, err := accountaddress.Encode(evm)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp, err := http.Post(server.URL+"/request", "application/json", strings.NewReader(fmt.Sprintf(`{"address":%q}`, native)))
 	if err != nil {
 		t.Fatal(err)
 	}
 	if resp.StatusCode != http.StatusCreated {
 		t.Fatalf("request returned %d", resp.StatusCode)
+	}
+	var requestResponse Response
+	if err := json.NewDecoder(resp.Body).Decode(&requestResponse); err != nil {
+		t.Fatal(err)
+	}
+	if requestResponse.Address != native || requestResponse.CanonicalAddress != native || requestResponse.EVMAddress != evm || requestResponse.Transaction.To != evm {
+		t.Fatalf("HTTP request did not preserve canonical recipient identity: %+v", requestResponse)
 	}
 	_ = resp.Body.Close()
 	resp, err = http.Get(server.URL + "/health")
