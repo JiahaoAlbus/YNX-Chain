@@ -1,6 +1,6 @@
 // Source-compatible consumer of the accepted Wallet/Auth EIP-6963/EIP-1193
 // discovery contract. Candidates are unverified until the user approves an
-// account request; Web callers must never navigate to ynxwallet://.
+// account request; Web callers must never navigate through a native-only URI.
 export const WALLET_PROVIDER_DISCOVERY_AUTHORITY = 'unverified-injected-candidate';
 export const WALLET_PROVIDER_KIND = Object.freeze({ YNX: 'ynx-wallet', METAMASK: 'metamask' });
 
