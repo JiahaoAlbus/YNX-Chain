@@ -3,7 +3,7 @@
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "contract": "safeWalletAuthorizeLauncher@1.0.0-p0.0",
   "contractSourceCommit": "4679de8e8d0675e2013254c92ff1935191f87c21",
-  "updatedAt": "2026-08-21T04:34:00Z",
+  "updatedAt": "2026-08-21T04:39:03Z",
   "rules": {
     "webExtension": "Never replace the top-level document with ynxwallet://authorize. Use the accepted controlled hidden-frame lifecycle and keep the product page visible.",
     "native": "Resolve an installed handler for the exact canonical request before opening it. Unsupported must preserve the product state and offer the official Wallet download plus an independent MetaMask route where applicable.",
@@ -73,6 +73,76 @@
       "taskId": "P0-109",
       "startingCommit": "aa5d4e5b5999a1dee28ce41adcc509abe96f95e9",
       "nextAction": "Consume canonical request and accepted safe launcher, keep MetaMask independent, test/build and stop before Quant."
+    },
+    {
+      "product": "ai",
+      "owner": "integration",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/61-ai-visible-p0",
+      "branch": "codex/p0-ai-visible-20260821",
+      "path": "apps/ai/**",
+      "status": "AUDITED_MIGRATION_REQUIRED",
+      "finding": "The mobile client receives or creates the Wallet URL and calls Linking.openURL without the accepted resolver launcher.",
+      "nextAction": "Migrate the native launch while preserving anonymous AI trial access and keeping the unavailable Central service truthful."
+    },
+    {
+      "product": "calendar",
+      "owner": "integration",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/48-calendar-p0",
+      "branch": "codex/p0-calendar-wallet-evidence-20260821",
+      "path": "apps/calendar/**",
+      "status": "AUDITED_MULTI_PLATFORM_MIGRATION_REQUIRED",
+      "finding": "Android and iOS manually construct and open the authorize URI without the accepted resolver launcher.",
+      "nextAction": "Preserve the current public Calendar runtime and migrate only the native authorization consumers in a separate path-locked slice."
+    },
+    {
+      "product": "shop-web-pwa",
+      "owner": "integration",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/09-shop",
+      "branch": "codex/p0-shop-android-retirement-20260820",
+      "path": "apps/shop/**",
+      "status": "AUDITED_WEB_MIGRATION_REQUIRED_ANDROID_RETIRED",
+      "finding": "Shop Web/PWA still calls location.assign for Wallet authorization. Historical native Android/iOS sources also open deep links but Shop Android remains retired and must not be reactivated.",
+      "nextAction": "Migrate Web/PWA to the accepted web launcher; do not resume or republish Shop Android. Validate Pay handoff links independently."
+    },
+    {
+      "product": "social",
+      "owner": "integration",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/02-social-product-session-v2",
+      "branch": "codex/p0-social-runtime-reconciliation-20260821",
+      "path": "apps/social/**",
+      "status": "AUDITED_NATIVE_LAUNCHER_REVIEW_REQUIRED",
+      "finding": "Social has product-owned native launch wrappers and direct Linking.openURL/startActivity calls; exact resolver behavior must be reconciled with the accepted launcher before promotion.",
+      "nextAction": "Review the existing platform resolver contract, consume the accepted shared launcher where missing, and preserve current public/runtime false boundaries."
+    },
+    {
+      "product": "merchant-console",
+      "owner": "integration",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/55-merchant-console-visible-p0",
+      "branch": "codex/p0-merchant-console-visible-20260821",
+      "path": "apps/merchant-console/**",
+      "status": "AUDITED_MIGRATION_REQUIRED",
+      "finding": "The web client assigns its Wallet sign-in URL to top-level location.href.",
+      "nextAction": "Replace the top-level launch with the accepted web launcher while preserving public preview and Standard Wallet state."
+    },
+    {
+      "product": "seller-console",
+      "owner": "integration",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/56-seller-console-visible-p0",
+      "branch": "codex/p0-seller-console-visible-20260821",
+      "path": "apps/seller-console/**",
+      "status": "AUDITED_MIGRATION_REQUIRED",
+      "finding": "The web Wallet-auth module calls location.assign with a custom-scheme request.",
+      "nextAction": "Migrate to the accepted web launcher and keep the seller preview usable without a private Product Session."
+    },
+    {
+      "product": "developer",
+      "owner": "developer-sdk",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/11-developer",
+      "branch": "codex/p0-developer-sdk-20260820",
+      "path": "apps/developer/**",
+      "status": "AUDITED_NO_DIRECT_CUSTOM_SCHEME_FINDING_IN_CURRENT_PRODUCT_PATH",
+      "finding": "The focused current product path scan found no direct custom-scheme launch. This does not prove installed Wallet approval or callback behavior.",
+      "nextAction": "Retain SDK ownership and require visible provider and callback evidence separately."
     },
     {
       "product": "creator-studio",
@@ -165,14 +235,5 @@
       "nextAction": "Replace the legacy route with the accepted canonical authorize contract and resolver-verified native launcher."
     }
   ],
-  "notYetAudited": [
-    "ai",
-    "calendar",
-    "shop-web-pwa",
-    "social",
-    "developer",
-    "merchant-console",
-    "seller-console",
-    "docs"
-  ]
+  "notYetAudited": ["docs"]
 }
