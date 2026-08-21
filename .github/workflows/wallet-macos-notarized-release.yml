@@ -12,7 +12,7 @@ on:
         required: true
         type: string
       publish_release:
-        description: Publish the notarized ZIP to GitHub Releases after every gate passes
+        description: Publish the notarized native DMG and exact manifest after every gate passes
         required: true
         default: false
         type: boolean
@@ -27,7 +27,7 @@ concurrency:
 jobs:
   notarized-release:
     runs-on: macos-15
-    timeout-minutes: 35
+    timeout-minutes: 55
     environment: wallet-macos-production
     env:
       YNX_EXPECTED_SOURCE_SHA: ${{ inputs.expected_source_sha }}
@@ -54,7 +54,9 @@ jobs:
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$YNX_EXPECTED_SOURCE_SHA"
           [[ "$YNX_EXPECTED_SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]
-          [[ "$YNX_RELEASE_TAG" =~ ^wallet-macos-notarized-v[0-9]+\.[0-9]+\.[0-9]+-[0-9a-f]{8}$ ]]
+          APP_VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' apps/wallet/macos/Info.plist)"
+          EXPECTED_RELEASE_TAG="wallet-macos-notarized-v$APP_VERSION-${YNX_EXPECTED_SOURCE_SHA:0:8}"
+          test "$YNX_RELEASE_TAG" = "$EXPECTED_RELEASE_TAG"
           [[ "$YNX_APPLE_TEAM_ID" =~ ^[A-Z0-9]{10}$ ]]
           test "$YNX_APPLE_TEAM_ID" != FAKETEAMID
           [[ "$YNX_DEVELOPER_ID_APPLICATION" == "Developer ID Application:"*"($YNX_APPLE_TEAM_ID)" ]]
@@ -63,14 +65,19 @@ jobs:
           [[ "$YNX_NOTARY_KEY_ID" =~ ^[A-Z0-9]{10}$ ]]
           [[ "$YNX_NOTARY_ISSUER_ID" =~ ^[0-9a-fA-F-]{36}$ ]]
           test -n "$YNX_NOTARY_PRIVATE_KEY_P8_BASE64"
-          git show-ref --verify --quiet "refs/tags/$YNX_RELEASE_TAG" && {
+          if git ls-remote --exit-code --tags origin "refs/tags/$YNX_RELEASE_TAG" >/dev/null 2>&1; then
             echo "release tag already exists; refusing replacement" >&2
             exit 1
-          }
+          else
+            status=$?
+            test "$status" -eq 2
+          fi
       - name: Verify immutable Actions and frozen bundled contracts
         run: |
           set -euo pipefail
           ruby -e 'source=File.read(".github/workflows/wallet-macos-notarized-release.yml"); mutable=source.scan(/^\s*-\s+uses:\s+([^\s#]+)/).flatten.reject{|use| use.start_with?("./") || use.match?(/@[0-9a-f]{40}$/)}; abort "mutable action pins: #{mutable.join(",")}" unless mutable.empty?'
+          bash -n apps/wallet/macos/scripts/verify-notarized-dmg.sh
+          ruby apps/wallet/macos/scripts/verify-notarized-release-source.rb
           test "$(git hash-object packages/wallet-auth/central-registry.json)" = 754737194f02834da9f5833a493f4633b4cc18eb
           test "$(shasum -a 256 packages/wallet-auth/central-registry.json | awk '{print $1}')" = 337145be4cbdd3b642f7fd263e1b06e20f512f8cd4981033109ba65c9856becd
           test "$(git hash-object release/integration/wallet-auth-public-endpoint-service-discovery-matrix.json)" = d402fcdc844aa39bd5ee351a99d93acb4852dc37
@@ -97,16 +104,21 @@ jobs:
           security list-keychains -d user -s "$KEYCHAIN"
           security find-identity -v -p codesigning "$KEYCHAIN" | grep -F "$YNX_DEVELOPER_ID_APPLICATION"
           printf 'YNX_SIGNING_KEYCHAIN=%s\nYNX_NOTARY_KEY_PATH=%s\n' "$KEYCHAIN" "$NOTARY_KEY" >> "$GITHUB_ENV"
-      - name: Build, Developer ID sign, notarize and staple the universal app
+      - name: Build, Developer ID sign, notarize and staple the universal app and DMG
         shell: bash
         run: |
           set -euo pipefail
           PACKAGE="$GITHUB_WORKSPACE/apps/wallet/macos"
           OUTPUT="$RUNNER_TEMP/ynx-wallet-notarized"
           APP="$OUTPUT/YNX Wallet.app"
+          DMG_ROOT="$OUTPUT/dmg-root"
           PROOF="$GITHUB_WORKSPACE/apps/wallet/proof/ci-macos-notarized"
           ARM_SCRATCH="$RUNNER_TEMP/wallet-macos-notarized-arm64"
           X86_SCRATCH="$RUNNER_TEMP/wallet-macos-notarized-x86_64"
+          APP_VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$PACKAGE/Info.plist")"
+          APP_BUILD="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$PACKAGE/Info.plist")"
+          DMG_NAME="YNX-Wallet-macOS-$APP_VERSION-universal-notarized.dmg"
+          DMG="$PROOF/$DMG_NAME"
           mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources" "$PROOF"
           swift build --package-path "$PACKAGE" --configuration release --triple arm64-apple-macosx13.0 --scratch-path "$ARM_SCRATCH"
           swift build --package-path "$PACKAGE" --configuration release --triple x86_64-apple-macosx13.0 --scratch-path "$X86_SCRATCH"
@@ -123,19 +135,44 @@ jobs:
           grep -F "Authority=$YNX_DEVELOPER_ID_APPLICATION" "$PROOF/codesign-before-notarization.txt"
           grep -F "TeamIdentifier=$YNX_APPLE_TEAM_ID" "$PROOF/codesign-before-notarization.txt"
           grep -F 'flags=0x10000(runtime)' "$PROOF/codesign-before-notarization.txt"
-          ditto -c -k --sequesterRsrc --keepParent "$APP" "$OUTPUT/submission.zip"
-          xcrun notarytool submit "$OUTPUT/submission.zip" --key "$YNX_NOTARY_KEY_PATH" --key-id "$YNX_NOTARY_KEY_ID" --issuer "$YNX_NOTARY_ISSUER_ID" --wait --output-format json | tee "$PROOF/notarytool.json"
-          jq -e '.status == "Accepted" and (.id | type == "string" and length > 0)' "$PROOF/notarytool.json" >/dev/null
-          xcrun stapler staple "$APP" | tee "$PROOF/stapler.txt"
-          xcrun stapler validate "$APP" | tee "$PROOF/stapler-validation.txt"
-          spctl --assess --type execute --verbose=4 "$APP" 2>&1 | tee "$PROOF/gatekeeper.txt"
-          grep -F 'source=Notarized Developer ID' "$PROOF/gatekeeper.txt"
+          ditto -c -k --sequesterRsrc --keepParent "$APP" "$OUTPUT/app-submission.zip"
+          xcrun notarytool submit "$OUTPUT/app-submission.zip" --key "$YNX_NOTARY_KEY_PATH" --key-id "$YNX_NOTARY_KEY_ID" --issuer "$YNX_NOTARY_ISSUER_ID" --wait --output-format json | tee "$PROOF/notarytool-app.json"
+          jq -e '.status == "Accepted" and (.id | type == "string" and length > 0)' "$PROOF/notarytool-app.json" >/dev/null
+          xcrun stapler staple "$APP" | tee "$PROOF/stapler-app.txt"
+          xcrun stapler validate "$APP" | tee "$PROOF/stapler-app-validation.txt"
+          spctl --assess --type execute --verbose=4 "$APP" 2>&1 | tee "$PROOF/gatekeeper-app.txt"
+          grep -F 'source=Notarized Developer ID' "$PROOF/gatekeeper-app.txt"
           codesign --verify --deep --strict --verbose=4 "$APP"
-          ditto -c -k --sequesterRsrc --keepParent "$APP" "$PROOF/YNX-Wallet-macOS-notarized.zip"
-          shasum -a 256 "$PROOF/YNX-Wallet-macOS-notarized.zip" | tee "$PROOF/SHA256SUMS"
-          wc -c "$PROOF/YNX-Wallet-macOS-notarized.zip" | tee "$PROOF/BYTES"
+
+          mkdir -p "$DMG_ROOT"
+          ditto "$APP" "$DMG_ROOT/YNX Wallet.app"
+          ln -s /Applications "$DMG_ROOT/Applications"
+          hdiutil create -volname "YNX Wallet $APP_VERSION" -srcfolder "$DMG_ROOT" -format UDZO -ov "$DMG"
+          hdiutil verify "$DMG" | tee "$PROOF/hdiutil-verify.txt"
+          xcrun notarytool submit "$DMG" --key "$YNX_NOTARY_KEY_PATH" --key-id "$YNX_NOTARY_KEY_ID" --issuer "$YNX_NOTARY_ISSUER_ID" --wait --output-format json | tee "$PROOF/notarytool-dmg.json"
+          jq -e '.status == "Accepted" and (.id | type == "string" and length > 0)' "$PROOF/notarytool-dmg.json" >/dev/null
+          xcrun stapler staple "$DMG" | tee "$PROOF/stapler-dmg.txt"
+          xcrun stapler validate "$DMG" | tee "$PROOF/stapler-dmg-validation.txt"
+          spctl --assess --type open --context context:primary-signature --verbose=4 "$DMG" 2>&1 | tee "$PROOF/gatekeeper-dmg.txt"
+          grep -F 'source=Notarized Developer ID' "$PROOF/gatekeeper-dmg.txt"
+          shasum -a 256 "$DMG" | tee "$PROOF/DMG-SHA256SUMS"
+          wc -c "$DMG" | tee "$PROOF/DMG-BYTES"
           lipo -archs "$APP/Contents/MacOS/YNXWalletMac" | tee "$PROOF/architectures.txt"
           /usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' "$APP/Contents/Info.plist" | tee "$PROOF/minimum-os.txt"
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP/Contents/Info.plist" | tee "$PROOF/bundle-identifier.txt"
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP/Contents/Info.plist" | tee "$PROOF/app-version.txt"
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$APP/Contents/Info.plist" | tee "$PROOF/app-build.txt"
+          APP_NOTARY_ID="$(jq -r '.id' "$PROOF/notarytool-app.json")"
+          DMG_NOTARY_ID="$(jq -r '.id' "$PROOF/notarytool-dmg.json")"
+          printf 'YNX_RELEASE_APP_VERSION=%s\n' "$APP_VERSION" >> "$GITHUB_ENV"
+          printf 'YNX_RELEASE_APP_BUILD=%s\n' "$APP_BUILD" >> "$GITHUB_ENV"
+          printf 'YNX_RELEASE_DMG=%s\n' "$DMG" >> "$GITHUB_ENV"
+          printf 'YNX_RELEASE_DMG_NAME=%s\n' "$DMG_NAME" >> "$GITHUB_ENV"
+          printf 'YNX_APP_NOTARY_ID=%s\n' "$APP_NOTARY_ID" >> "$GITHUB_ENV"
+          printf 'YNX_DMG_NOTARY_ID=%s\n' "$DMG_NOTARY_ID" >> "$GITHUB_ENV"
+      - name: Mount final DMG, install the contained app and verify runtime boundaries
+        shell: bash
+        run: bash apps/wallet/macos/scripts/verify-notarized-dmg.sh
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ynx-wallet-macos-notarized
@@ -147,10 +184,12 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          gh release create "$YNX_RELEASE_TAG" apps/wallet/proof/ci-macos-notarized/YNX-Wallet-macOS-notarized.zip \
-            --target "$YNX_EXPECTED_SOURCE_SHA" \
-            --title "YNX Wallet macOS notarized $YNX_RELEASE_TAG" \
-            --notes "Developer ID signed and Apple-notarized artifact produced by workflow run $GITHUB_RUN_ID from exact source $YNX_EXPECTED_SOURCE_SHA. Authorization, account, signing, send, recovery and physical biometric product gates require separate evidence."
+          PROOF="$GITHUB_WORKSPACE/apps/wallet/proof/ci-macos-notarized"
+          gh release create "$YNX_RELEASE_TAG" "$YNX_RELEASE_DMG" "$PROOF/native-dmg-release-manifest.json" --target "$YNX_EXPECTED_SOURCE_SHA" --title "YNX Wallet macOS notarized $YNX_RELEASE_TAG" --notes "Developer ID signed and Apple-notarized native DMG produced by workflow run $GITHUB_RUN_ID from exact source $YNX_EXPECTED_SOURCE_SHA. The final DMG was mounted, copied to an isolated Applications directory, cold/second launched, connected to Testnet 0x1917, and rejected a malformed callback. Authorization, account, sign, send, recovery, physical biometric, App Store and Website publication require separate evidence."
+          RELEASE_URL="$(gh release view "$YNX_RELEASE_TAG" --json url --jq .url)"
+          test -n "$RELEASE_URL"
+          jq -n --arg sourceCommit "$YNX_EXPECTED_SOURCE_SHA" --arg releaseTag "$YNX_RELEASE_TAG" --arg releaseUrl "$RELEASE_URL" --arg artifactName "$YNX_RELEASE_DMG_NAME" --arg artifactSha256 "$(shasum -a 256 "$YNX_RELEASE_DMG" | awk '{print $1}')" --argjson artifactBytes "$(stat -f '%z' "$YNX_RELEASE_DMG")" '{schemaVersion:1,sourceCommit:$sourceCommit,releaseTag:$releaseTag,releaseUrl:$releaseUrl,artifactName:$artifactName,artifactSha256:$artifactSha256,artifactBytes:$artifactBytes,githubReleasePublished:true,websitePublished:false,appStoreReleased:false}' > "$PROOF/github-release-publication-receipt.json"
+          gh release upload "$YNX_RELEASE_TAG" "$PROOF/github-release-publication-receipt.json"
       - name: Remove isolated signing material
         if: always()
         shell: bash

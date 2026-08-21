@@ -26,6 +26,10 @@ jobs:
           mutable = [use for use in uses if not use.startswith('./') and not re.search(r'@[0-9a-f]{40}$', use)]
           assert not mutable, f'wallet-macos actions must use immutable pins: {mutable}'
           PY
+      - name: Verify notarized native DMG release source contract
+        run: |
+          bash -n apps/wallet/macos/scripts/verify-notarized-dmg.sh
+          ruby apps/wallet/macos/scripts/verify-notarized-release-source.rb
       - name: Test native callback and recovery boundaries
         run: swift test --package-path apps/wallet/macos
       - name: Build and package ad-hoc native application
