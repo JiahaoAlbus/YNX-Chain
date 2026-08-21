@@ -3,7 +3,7 @@
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "taskId": "P0-098",
   "owner": "integration",
-  "status": "ACTIVE_BOUNDED_SINGLE_USE",
+  "status": "CONSUMED_RELEASED_SUCCESS_PUBLIC_HTTP_VERIFIED",
   "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-calendar-828120e6-tested-20260821T020150Z",
   "issuedAt": "2026-08-21T02:01:50Z",
   "expiresAt": "2026-08-21T04:01:50Z",
@@ -46,5 +46,21 @@
   "singleUse": true,
   "nonreusableAfterAttempt": true,
   "rollbackFirst": true,
-  "productionMutationAllowed": true
+  "productionMutationAllowed": false,
+  "consumedAt": "2026-08-21T02:05:28Z",
+  "releasedAt": "2026-08-21T02:10:00Z",
+  "releaseEvidenceCommit": "98f7f76dd3f7b4617a561f79942d58e87af91e84",
+  "releaseEvidencePath": "apps/calendar/release/evidence/p0-098/calendar-current-source-public-deployment-20260821.json",
+  "releaseEvidenceSha256": "14cd491c19643af1ab8f3ca01975e031b60f7813a534fcd4d489d6eea20f48ad",
+  "runtimeReadback": {
+    "binarySha256": "030bc61acfb61ae6adf05a5aa6b472f34beee24a9113b696e9d845d709f8ae3d",
+    "stateSha256": "fbe1c9cf058658370373385dc659c8b43a14238a3adef9df62a8b5ef0d22bd9c",
+    "stateKeySha256": "bf7b567201cab33c4b9ed02e00f0d0165172b4e692484ca044d828d0a3fb5e62",
+    "publicSource": "828120e6d81efaf874a930793660e185a394ba4f",
+    "service": "active",
+    "nRestarts": 0,
+    "publicHttpVerified": true,
+    "renderedVisibleVerified": false,
+    "computerControlVerified": false
+  }
 }
