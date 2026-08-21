@@ -1,0 +1,215 @@
+{
+  "$schema": "../schemas/public-record.schema.json",
+  "schemaVersion": "1.0.0",
+  "version": "2026.08.21.4",
+  "sourceCommit": "62f7cf4bfc38",
+  "lastReviewed": "2026-08-21",
+  "observedAt": "2026-08-21T11:50:12Z",
+  "status": "Candidate",
+  "scope": "public faucet P0 production recovery",
+  "service": {
+    "name": "ynx-faucetd",
+    "publicUrl": "https://faucet.ynxweb4.com",
+    "expectedChainId": 6423,
+    "expectedEvmChainHex": "0x1917",
+    "expectedNativeSymbol": "YNXT",
+    "expectedRateLimit": "1 per 1h0m0s per ip/address"
+  },
+  "buildIdentity": {
+    "commit": "62f7cf4bfc38",
+    "release": "ynx-chain-62f7cf4bfc38",
+    "artifactSHA256": "7249f0393b33558c9bbe20e2b5812e21372eb7c52f4ec2d73a77208068361063",
+    "runtimeSHA256": "7249f0393b33558c9bbe20e2b5812e21372eb7c52f4ec2d73a77208068361063",
+    "buildTime": "2026-08-21T11:14:13Z"
+  },
+  "http": {
+    "dns": "43.153.202.237",
+    "tls": {
+      "issuer": "Let's Encrypt",
+      "notAfter": "2026-09-24T13:45:30Z"
+    },
+    "root": {
+      "status": 200,
+      "language": "en"
+    },
+    "health": {
+      "status": 200,
+      "body": {
+        "ok": false,
+        "service": "ynx-faucetd",
+        "upstreamMode": "authoritative",
+        "chainId": 6423,
+        "nativeSymbol": "YNXT",
+        "defaultAmount": 100,
+        "maxAmount": 100,
+        "rateLimit": "1 per 1h0m0s per ip/address",
+        "requestPath": "/request",
+        "build": {
+          "commit": "62f7cf4bfc38",
+          "release": "ynx-chain-62f7cf4bfc38",
+          "buildTime": "2026-08-21T11:14:13Z"
+        },
+        "truthfulStatus": "rpc-backed-faucet"
+      }
+    },
+    "version": {
+      "status": 200,
+      "build": {
+        "commit": "62f7cf4bfc38",
+        "release": "ynx-chain-62f7cf4bfc38",
+        "buildTime": "2026-08-21T11:14:13Z"
+      }
+    },
+    "optionsRequest": {
+      "status": 204,
+      "allowOrigin": "*",
+      "allowMethods": "GET, POST, OPTIONS",
+      "allowHeaders": "Content-Type"
+    },
+    "request": {
+      "GET_request": {
+        "status": 200,
+        "contentType": "text/html"
+      },
+      "POST_0x_success_examples": [
+        {
+          "address": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "status": 201,
+          "amount": 100,
+          "transaction": "0xa760520e01ce899a24e3450171427cf68e48cd84a094bc0c96b9eba35c68fcdf",
+          "block": 1144098
+        },
+        {
+          "address": "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "status": 201,
+          "amount": 100,
+          "transaction": "0x4185186595665b9cd8893547a73bfef8c6b20e92548fd4738b3e5810e97a34e6",
+          "block": 1144099
+        },
+        {
+          "address": "0xcccccccccccccccccccccccccccccccccccccccc",
+          "status": 201,
+          "amount": 100,
+          "transaction": "0xb995e8c8dbfc4fdc33d4f53c38b1272473f96c367c52c4a61e0f5537453da4d7",
+          "block": 1144100
+        },
+        {
+          "address": "0xabc2222222222222222222222222222222222222",
+          "status": 201,
+          "amount": 100,
+          "transaction": "0x1749858c3746fe109aaa8e681f40c3aa7e21715bcb82b1512dab81a658c7ab81",
+          "block": 1144103
+        }
+      ],
+      "POST_0x_ABC_duplicate": {
+        "address": "0xabc0000000000000000000000000000000000000",
+        "firstStatus": 201,
+        "firstAmount": 100,
+        "firstTransaction": "0x416c5d1e13c9f1df4890b7998edf541205d835c9efdb186a85464e223550585a",
+        "secondStatus": 429,
+        "secondError": "faucet rate limit exceeded"
+      },
+      "POST_ynx1": {
+        "address": "ynx1qz2h9v7r0x3k8n6q3x4w5r2z9u0y1x2v0m8n7q5",
+        "status": 400,
+        "error": "invalid address"
+      },
+      "POST_0x_fallback_error": {
+        "address": "0xabc1111111111111111111111111111111111111",
+        "status": 502,
+        "error": "Post \"http://127.0.0.1:6420/faucet\": context deadline exceeded"
+      },
+      "POST_concurrency": {
+        "statusSet": [
+          {"address": "0xabc0000000000000000000000000000000000000", "status": 429},
+          {"address": "0xabc1111111111111111111111111111111111111", "status": 502},
+          {"address": "0xabc2222222222222222222222222222222222222", "status": 201}
+        ]
+      }
+    }
+  },
+  "rpc": {
+    "txLookup": [
+      {
+        "hash": "0xa760520e01ce899a24e3450171427cf68e48cd84a094bc0c96b9eba35c68fcdf",
+        "status": "found",
+        "block": 1144098,
+        "from": "ynx_faucet",
+        "to": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "fee": 0,
+        "timestamp": "2026-08-21T11:18:51.054250314Z"
+      },
+      {
+        "hash": "0x4185186595665b9cd8893547a73bfef8c6b20e92548fd4738b3e5810e97a34e6",
+        "status": "found",
+        "block": 1144099,
+        "from": "ynx_faucet",
+        "to": "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "fee": 0,
+        "timestamp": "2026-08-21T11:19:00.709963Z"
+      },
+      {
+        "hash": "0xb995e8c8dbfc4fdc33d4f53c38b1272473f96c367c52c4a61e0f5537453da4d7",
+        "status": "found",
+        "block": 1144100,
+        "from": "ynx_faucet",
+        "to": "0xcccccccccccccccccccccccccccccccccccccccc",
+        "fee": 0,
+        "timestamp": "2026-08-21T11:19:10.157090152Z"
+      },
+      {
+        "hash": "0x1749858c3746fe109aaa8e681f40c3aa7e21715bcb82b1512dab81a658c7ab81",
+        "status": "found",
+        "block": 1144103,
+        "from": "ynx_faucet",
+        "to": "0xabc2222222222222222222222222222222222222",
+        "fee": 0,
+        "timestamp": "2026-08-21T11:19:33.616103276Z"
+      },
+      {
+        "hash": "0x416c5d1e13c9f1df4890b7998edf541205d835c9efdb186a85464e223550585a",
+        "status": "found",
+        "block": 1144102,
+        "from": "ynx_faucet",
+        "to": "0xabc0000000000000000000000000000000000000",
+        "fee": 0,
+        "timestamp": "2026-08-21T11:19:24.276466082Z"
+      }
+    ],
+    "notes": [
+      "RPC tx lookup was used on https://rpc.ynxweb4.com for chain evidence.",
+      "Explorer lookups at https://explorer.ynxweb4.com/transactions/:hash returned HTTP 404."
+    ]
+  },
+  "api": {
+    "accountsEvidence": [
+      {"address": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "balance": 100},
+      {"address": "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "balance": 100},
+      {"address": "0xcccccccccccccccccccccccccccccccccccccccc", "balance": 100}
+    ],
+    "explorer": {
+      "status": "not_available",
+      "sampleHash": "0xa760520e01ce899a24e3450171427cf68e48cd84a094bc0c96b9eba35c68fcdf",
+      "route": "/transactions/:hash",
+      "result": "404"
+    }
+  },
+  "ops": {
+    "requestLogPath": "/var/log/ynx-chain/faucet-requests.jsonl",
+    "logPersistence": {
+      "status": "file exists",
+      "mode": "0600",
+      "owner": "ynx"
+    },
+    "restartTest": {
+      "status": "blocked",
+      "reason": "service restart requires elevated sudo/owner auth on primary node not available to current deploy session"
+    }
+  },
+  "rollbackEvidence": {
+    "candidateTar": "tmp/deploy/ynx-chain-62f7cf4bfc38.tar.gz",
+    "candidateTarSHA256": "ffec8b4ce1acbfe2392deddc44526ad3da464342a748fe93787e6b30aac56499",
+    "installedBinary": "/usr/local/bin/ynx-faucetd",
+    "installedBinarySHA256": "7249f0393b33558c9bbe20e2b5812e21372eb7c52f4ec2d73a77208068361063"
+  }
+}

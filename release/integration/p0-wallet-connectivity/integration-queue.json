@@ -10,7 +10,7 @@
     {"taskId":"P0-005","owner":"data-fabric","status":"ASSIGNED","paths":["data-fabric/**"],"dependencies":["P0-001"],"acceptedContracts":[],"nextAction":"propose asynchronous connection event contract"},
     {"taskId":"P0-006","owner":"explorer-monitor","status":"ASSIGNED","paths":["{internal,apps}/explorer/**"],"dependencies":["P0-001"],"acceptedContracts":[],"nextAction":"propose public probe and runtime identity evidence"},
     {"taskId":"P0-007","owner":"integration","status":"BLOCKED","paths":["unassigned product paths from product registry"],"dependencies":["P0-003","P0-010"],"acceptedContracts":[],"blocker":"await accepted SDK and verified endpoint manifest","nextAction":"acquire one product lock at a time"},
-    {"taskId":"P0-010","owner":"integration","status":"CANDIDATE_READY","paths":["public-endpoint-manifest.json"],"dependencies":[],"acceptedContracts":[],"nextAction":"verify endpoint health, TLS, CORS, version, and chain identity before acceptance"},
+    {"taskId":"P0-010","owner":"integration","status":"CANDIDATE_READY","paths":["public-endpoint-manifest.json"],"dependencies":[],"acceptedContracts":[],"nextAction":"accept faucet manifest after public /health /version /request evidence and route central handoff"},
     {"taskId":"P0-011","owner":"integration","status":"CANDIDATE_READY","paths":["client-retirement.json"],"dependencies":[],"acceptedContracts":[],"nextAction":"enforce Shop Android retirement across build, download, callback, approvals, and grants"}
   ]
 }
