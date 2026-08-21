@@ -132,13 +132,18 @@ final class MalformedCallbackUITests: XCTestCase {
     )
 
     let failure = wallet.staticTexts["Recovery authorization failed"]
-    if !failure.waitForExistence(timeout: 5) {
-      let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
-      let cancel = springboard.buttons["Cancel"]
-      XCTAssertTrue(
-        cancel.waitForExistence(timeout: 15),
-        "Recovery neither failed closed nor exposed a semantic biometric cancellation action"
-      )
+    let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+    let cancel = springboard.buttons["Cancel"]
+    let authorizationOutcome = XCTNSPredicateExpectation(
+      predicate: NSPredicate { _, _ in failure.exists || cancel.exists },
+      object: nil
+    )
+    XCTAssertEqual(
+      XCTWaiter.wait(for: [authorizationOutcome], timeout: 20),
+      .completed,
+      "Recovery neither failed closed nor exposed a semantic biometric cancellation action"
+    )
+    if cancel.exists && !failure.exists {
       cancel.tap()
       FileHandle.standardError.write(
         Data("YNX_WALLET_RECOVERY_AUTHORIZATION_NOT_COMPLETED mode=system-prompt-cancelled\n".utf8)
