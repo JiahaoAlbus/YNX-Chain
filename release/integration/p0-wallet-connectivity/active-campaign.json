@@ -2,7 +2,7 @@
   "schemaVersion": "1.0.0",
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "owner": "integration",
-  "status": "P0098_CALENDAR_CURRENT_SOURCE_PUBLIC_HTTP_VERIFIED_RELEASED",
+  "status": "P0098_CALENDAR_CURRENT_SOURCE_PUBLIC_BROWSER_VERIFIED_RELEASED",
   "scope": [
     "founder-control",
     "wallet-connectivity",
@@ -34,7 +34,7 @@
   "firstStop": {
     "complete": true,
     "publicConnectivityClaim": false,
-    "nextAction": "Calendar source 828120e6 is deployed and exact public health/version/assets are HTTP-verified after soak and cold restart. Current-deployment rendered-visible, ComputerControl, installed Wallet and Product Session v2 remain false. Continue Card Web/PWA owner closure and the next unowned Fable5 product slice."
+    "nextAction": "Calendar source 828120e6 is deployed, exact HTTP-verified and browser-interactive with English-first guest mode and zero console errors. ComputerControl, installed Wallet approval and Product Session v2 remain false. Continue Card Web/PWA owner closure and the next unowned Fable5 product slice."
   },
   "lightLeases": [
     {

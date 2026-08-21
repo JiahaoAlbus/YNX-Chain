@@ -60,7 +60,10 @@
     "service": "active",
     "nRestarts": 0,
     "publicHttpVerified": true,
-    "renderedVisibleVerified": false,
+    "renderedVisibleVerified": true,
+    "visibleEvidenceCommit": "820fe3d3051aa1f5709fca179af811f1c6fb79b6",
+    "visibleEvidenceSha256": "0dec163b90b04611a92378076df32d2a5bbec7667894d373b7b540bc2bd1c419",
+    "browserConsoleErrors": 0,
     "computerControlVerified": false
   }
 }
