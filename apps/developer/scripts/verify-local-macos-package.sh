@@ -25,11 +25,18 @@ for _ in {1..30}; do
   sleep 0.1
 done
 [[ -d "$mount_point" ]] || { echo "DMG did not mount at expected volume path: $mount_point" >&2; exit 1; }
-app="$mount_point/YNX Developer Testnet Preview.app"
-[[ -x "$app/Contents/MacOS/YNXDeveloper" ]]
-[[ -x "$app/Contents/Resources/runtime/node" ]]
-[[ -f "$app/Contents/Resources/build-provenance.json" ]]
-[[ -f "$app/Contents/Resources/sbom.cdx.json" ]]
+mounted_app="$mount_point/YNX Developer Testnet Preview.app"
+[[ -x "$mounted_app/Contents/MacOS/YNXDeveloper" ]]
+[[ -x "$mounted_app/Contents/Resources/runtime/node" ]]
+[[ -f "$mounted_app/Contents/Resources/build-provenance.json" ]]
+[[ -f "$mounted_app/Contents/Resources/sbom.cdx.json" ]]
+install_root="$work/Applications"
+installed_app="$install_root/YNX Developer Testnet Preview.app"
+mkdir -p "$install_root"
+/usr/bin/ditto "$mounted_app" "$installed_app"
+app="$installed_app"
+[[ -x "$app/Contents/MacOS/YNXDeveloper" ]] || { echo "DMG app did not survive installation copy." >&2; exit 1; }
+echo "Installed mounted DMG application to isolated Applications root: $app"
 expected_source_commit="${YNX_DEVELOPER_EXPECTED_SOURCE_COMMIT:-$(/usr/bin/git rev-parse HEAD)}"
 expected_source_tree="${YNX_DEVELOPER_EXPECTED_SOURCE_TREE:-$(/usr/bin/git rev-parse "$expected_source_commit^{tree}")}"
 expected_runtime_checkpoint=$(node -e 'const fs=require("fs"); process.stdout.write(JSON.parse(fs.readFileSync("product-release.json","utf8")).commit)')
