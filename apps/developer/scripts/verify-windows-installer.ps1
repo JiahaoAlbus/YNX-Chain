@@ -25,7 +25,7 @@ $package = Get-AppxPackage -Name "YNXDeveloper.TestnetPreview"
 if (!$package) { throw "MSIX was not installed" }
 $appId = "$($package.PackageFamilyName)!YNXDeveloper"
 function Test-Launch([string]$label) {
-  Start-Process "shell:AppsFolder\\$appId"
+  Start-Process -FilePath "$env:WINDIR\explorer.exe" -ArgumentList "shell:AppsFolder\\$appId"
   for ($attempt = 0; $attempt -lt 120; $attempt++) {
     $process = Get-Process "YNXDeveloper.TestnetPreview" -ErrorAction SilentlyContinue | Select-Object -First 1
     if ($process -and $process.MainWindowHandle -ne 0) { if (!$process.CloseMainWindow()) { throw "MSIX app window was not closable during $label" }; if (!$process.WaitForExit(10000)) { $process.Kill($true); throw "MSIX app did not close during $label" }; return }
