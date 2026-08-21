@@ -12,15 +12,24 @@ test("extension packages expose truthful install metadata without hosted-update 
     assert.equal(manifest.action.default_popup, "index.html");
     assert.deepEqual(manifest.commands._execute_action.suggested_key,{default:"Ctrl+Shift+Y",mac:"MacCtrl+Shift+Y"});
     assert.equal(manifest.commands._execute_action.description,"Open YNX Wallet for the active DApp");
-    assert.equal("content_scripts" in manifest,false);
+    assert.equal("content_scripts" in manifest, manifest===chromiumManifest);
     assert.equal("web_accessible_resources" in manifest,false);
     assert.equal("optional_host_permissions" in manifest,false);
-    assert.deepEqual(manifest.host_permissions,["https://rpc.ynxweb4.com/*"]);
+    assert.deepEqual(manifest.host_permissions,manifest===chromiumManifest?["https://rpc.ynxweb4.com/*","https://*.ynxweb4.com/*"]:["https://rpc.ynxweb4.com/*"]);
     assert.equal(manifest.content_security_policy.extension_pages,"script-src 'self'; object-src 'self'; connect-src https://rpc.ynxweb4.com");
     assert.equal(manifest.host_permissions.includes("http://*/*"),false);
     assert.equal(manifest.host_permissions.some((pattern)=>pattern.startsWith("file:")),false);
     assert.equal("update_url" in manifest, false);
   }
+});
+
+test("Chromium injects the discoverable companion only into YNX HTTPS DApps", () => {
+  assert.deepEqual(chromiumManifest.content_scripts,[
+    {matches:["https://*.ynxweb4.com/*"],js:["content-script.js"],run_at:"document_start",all_frames:false},
+    {matches:["https://*.ynxweb4.com/*"],js:["page-provider.js"],run_at:"document_start",all_frames:false,world:"MAIN"},
+  ]);
+  assert.equal(chromiumManifest.host_permissions.includes("https://*/*"),false);
+  assert.equal(chromiumManifest.host_permissions.includes("http://*/*"),false);
 });
 
 test("DApp injection is bound to an explicit activeTab user gesture",async()=>{

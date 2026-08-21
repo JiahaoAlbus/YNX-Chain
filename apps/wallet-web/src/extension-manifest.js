@@ -18,6 +18,13 @@ const sharedManifest = {
 export const chromiumManifest = {
   ...sharedManifest,
   minimum_chrome_version: "120",
+  // Automatic injection is limited to YNX-owned HTTPS DApps. Other origins
+  // remain activeTab-only until the user explicitly grants site access.
+  host_permissions: ["https://rpc.ynxweb4.com/*", "https://*.ynxweb4.com/*"],
+  content_scripts: [
+    {matches:["https://*.ynxweb4.com/*"],js:["content-script.js"],run_at:"document_start",all_frames:false},
+    {matches:["https://*.ynxweb4.com/*"],js:["page-provider.js"],run_at:"document_start",all_frames:false,world:"MAIN"},
+  ],
   background: {service_worker: "service-worker.js", type: "module"},
 };
 
