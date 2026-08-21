@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "recordId": "wallet-canonical-authorize-core-consumption-review-20260821",
+  "status": "CORE_SDK_SOURCE_CONSUMED_PLATFORM_AND_PRODUCTS_PENDING",
+  "reviewOwner": "wallet-protocol-router",
+  "consumingOwner": "wallet-auth-core",
+  "centralAcceptance": {
+    "version": "canonicalWalletAuthorize@1.0.0-p0.0",
+    "commit": "b38489793018ff9a009cad57558b66a142495a2e"
+  },
+  "coreSource": {
+    "branch": "codex/wallet-core-auth-gateway-continuation-20260814",
+    "commit": "af4f9c77ce654951e299b359a84646f22c8433ed",
+    "tree": "f1f23a4a812f22bd8fc3ac7469e0831d1bb41e4f",
+    "parent": "1a67bdb2a77af92dfe2cc6a8e8bf9ddf6b644c8f",
+    "strategy": "semantic-transplant-without-merging-divergent-history"
+  },
+  "coreEvidence": {
+    "commit": "201246290a843c5be61828a93c65cd3c516b896b",
+    "tree": "5c2c66248f8b4a0aa1feced8fabadb92b7fcfc3b",
+    "path": "release/integration/wallet-canonical-authorize-core-consumption-evidence-20260821.json",
+    "blob": "d60275add03ef87d73adc1639b146e05e76e07ee",
+    "contentSha256": "862fb96e72d4a6d448f51e592dc582d533d00d9ef066a6c78fbf88eaee4b5f2b",
+    "remoteReadbackReportedExact": true
+  },
+  "independentReadback": {
+    "isolatedTemporaryGitRepository": true,
+    "remoteHead": "201246290a843c5be61828a93c65cd3c516b896b",
+    "sourceTreeMatches": true,
+    "sourceParentMatches": true,
+    "evidenceTreeMatches": true,
+    "evidenceBlobMatches": true,
+    "evidenceContentSha256Matches": true,
+    "packageRootExportsDeepLinkModule": true,
+    "packageCheckRunsNoBareGate": true,
+    "acceptedContract": {
+      "blob": "86e19c9faa49debb9096e11cdccfff9f5bc84e96",
+      "contentSha256": "e572042f18c1e32dfe86da26ee2ab52f9372c9803eae3b492c26932e50251c03",
+      "byteIdentical": true
+    },
+    "acceptedHandoff": {
+      "blob": "f859633c516bf5bbea8524a5d510faa30ca7bb1a",
+      "contentSha256": "73c12fd1d9832c248e15e76cf1599af9ccd08afc5171477336d182978a1388ca",
+      "byteIdentical": true
+    }
+  },
+  "reportedVerification": {
+    "focused": "10/10",
+    "authoritativeWorkingClone": "381/381",
+    "authoritativeCleanOfflineClone": "381/381",
+    "bareAuthorizeGate": "PASS",
+    "networkInstallUsed": false,
+    "repeatPack": {
+      "sha256": "07a67a4023751dbf63f537539087feea5f884465b5800106d41fc25c12ee47a2",
+      "bytes": 189713,
+      "entries": 106,
+      "containsContract": true,
+      "containsGate": true
+    },
+    "executionBoundary": "Test and pack results are bound by the consumed Core evidence; this Owner independently re-read their immutable evidence and source objects rather than re-executing the divergent Core history."
+  },
+  "truth": {
+    "sourceContractAccepted": true,
+    "sdkSourceConsumed": true,
+    "walletPlatformConsumed": false,
+    "visibleDeviceVerified": false,
+    "browserRoundTripVerified": false,
+    "deployedPublic": false,
+    "integratedCentral": false,
+    "productMigrations": "0/12",
+    "productUiChanged": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "productionOperations": {
+    "ssh": false,
+    "productionRead": false,
+    "deployment": false,
+    "leaseRequestedOrUsed": false
+  }
+}
