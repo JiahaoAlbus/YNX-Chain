@@ -2,12 +2,12 @@
   "schemaVersion": "1.0.0",
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "owner": "Central Integration",
-  "acceptedAt": "2026-08-21T16:55:00Z",
+  "acceptedAt": "2026-08-21T17:02:00Z",
   "decision": "OWNER_ENGINEERING_EVIDENCE_ACCEPTED_PRODUCTION_GATES_UNCHANGED",
   "ownerBranch": {
     "name": "codex/wallet-ios-macos-20260813",
-    "remoteHead": "ae0c3a8074e20961530b3da962bbebacf2e76f27",
-    "remoteHeadTree": "7ca50f3aeb5829e451a13f44b578238033c19f4f"
+    "remoteHead": "f9c24c919b82170d21884588332e9cb92dceb995",
+    "remoteHeadTree": "2ff5bc2dbfbd511be002733ed1ef6717ba5888cc"
   },
   "acceptedSlices": {
     "macosNotarizedManifestCommand": {
@@ -137,6 +137,35 @@
       "anonymousMacosRoundtripRuntimeVerified": false,
       "releaseCreated": false,
       "workflowDispatchedForPublication": false
+    },
+    "macosPublicArtifactIsolatedInstallLifecycleSourceGate": {
+      "implementationCommit": "fb15b05b3da5743d0a55b7c0d53cbad6705250d8",
+      "implementationTree": "8052a7bf7d380eedb92716c0ba375dd2d56d4763",
+      "workflowBlob": "200804289c2d3ed44de365c41940452b42b15106",
+      "verifierBlob": "d86aa8e7517ac25a13d21c345d400427aed63630",
+      "evidenceCommit": "f9c24c919b82170d21884588332e9cb92dceb995",
+      "evidenceTree": "2ff5bc2dbfbd511be002733ed1ef6717ba5888cc",
+      "evidencePath": "release/integration/wallet-macos-public-artifact-lifecycle-source-ci-evidence-2026-08-21.json",
+      "evidenceBlob": "c460264dc2fc79f9aee0d9d309b2e021ab222083",
+      "evidenceBytes": 4422,
+      "evidenceSha256": "a546f73749f80f94b623e56d31257d4bc403c0e36aba52f2c4085f67141f31be",
+      "githubActionsRun": 32505249315,
+      "nativeJob": 96843837766,
+      "publicationJob": 96844348459,
+      "nativeJobSuccess": true,
+      "publicationJobSkipped": true,
+      "swiftTests": "17/17",
+      "publicArtifactIsolatedInstallLifecycleSourceReady": true,
+      "hostedSourceContractVerified": true,
+      "engineeringDmgSha256FromPublicLog": "b69daf1867757a7c91a4a9e232d8625d7007b4d51eaddcced45deee0fa2f6ab2",
+      "engineeringDmgBytesFromPublicLog": 307405,
+      "sameRunLifecycleWasPublicRoundtripRuntime": false,
+      "publicRoundtripRuntimeVerified": false,
+      "isolatedLifecycleRuntimeVerified": false,
+      "systemApplicationsInstalled": false,
+      "browserQuarantineAccepted": false,
+      "authorizationSuccess": false,
+      "workflowDispatchedForPublication": false
     }
   },
   "routerCrossCheck": {
@@ -161,6 +190,7 @@
     "engineeringDmgPrereleasePublished": false,
     "engineeringDmgReleaseManifestHosted": false,
     "anonymousMacosRoundtripRuntimeVerified": false,
+    "publicArtifactIsolatedLifecycleRuntimeVerified": false,
     "operatorPublicationDispatch": false,
     "electronPreviewRelabeledAsOwnerNative": false,
     "systemInstalled": false,
