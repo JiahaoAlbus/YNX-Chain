@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "owner": "Wallet Web/PWA/Extensions",
+  "sourceCommit": "7032948364c507f898a2b0cdba2a62d4039388fc",
+  "deploymentId": "dpl_98S2czECu4YvPWnbpHUctKtJxDQD",
+  "publicUrl": "https://wallet.ynxweb4.com/",
+  "evidence": "apps/wallet-web/evidence/browser/wallet-web-v10-nonsensitive-public-20260822.json",
+  "result": "Source-bound v10 is publicly visible. Real Chrome proves MetaMask discovery, disconnected chooser lifecycle, English/Arabic RTL localization, dark and second-load preference recovery, and zero console errors. A forged callback is visibly rejected with CALLBACK_MISMATCH.",
+  "artifacts": [
+    {
+      "name": "ynx-wallet-web-pwa-0.1.0.zip",
+      "bytes": 285231,
+      "sha256": "a142481265702c9af170fdd3053bddfea40e5002964ad939d145b9ce350daa00",
+      "minimumOS": "modern browser with Service Worker and Web Crypto support",
+      "signingClass": "unsigned-web-bundle"
+    },
+    {
+      "name": "ynx-wallet-chrome-edge-0.1.0.zip",
+      "bytes": 198849,
+      "sha256": "cc1b2d8142d1016feab70987105cfc521401d1ce6b2e997ca3d1dbbde6ea0492",
+      "minimumOS": "Chrome 120 / Edge 120",
+      "signingClass": "unsigned-unpacked-extension"
+    },
+    {
+      "name": "ynx-wallet-firefox-0.1.0.zip",
+      "bytes": 198886,
+      "sha256": "36d7ef8a9686056fdb2c979541040642ed760563254b714a93e2fd32b92906d0",
+      "minimumOS": "Firefox 128",
+      "signingClass": "unsigned-unpacked-extension"
+    }
+  ],
+  "waitingExternal": "Only click Use MetaMask after the user approves disclosure of a real test account address to wallet.ynxweb4.com. Then verify eth_chainId 0x1917, chooser close, connected refresh, disconnect and account switch.",
+  "falseUntilDirectProof": [
+    "accountApproved",
+    "providerChainId1917",
+    "chooserClosedAfterApproval",
+    "connectedRefreshRestored",
+    "connectedDisconnectVerified",
+    "connectedSwitchAccountVerified",
+    "ynxProviderVerified",
+    "productSessionVerified",
+    "messageSigned",
+    "transactionSubmitted",
+    "installedLocal",
+    "currentArtifactsDownloadHosted",
+    "productionSigned",
+    "storeReleased"
+  ],
+  "rollback": "Re-alias wallet.ynxweb4.com to deployment dpl_2nahcRyV2VRC4NefBBXfh9QYd5s7."
+}
