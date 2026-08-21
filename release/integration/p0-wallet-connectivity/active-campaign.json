@@ -2,7 +2,7 @@
   "schemaVersion": "1.0.0",
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "owner": "integration",
-  "status": "P0070_FAILED_CLOSED_HEAVY_RELEASED_P0083_SELLER_RELEASED_P0084_CREATOR_VISIBLE_ACTIVE",
+  "status": "P0070_FAILED_CLOSED_HEAVY_RELEASED_P0084_CREATOR_RELEASED_P0085_TRUST_VISIBLE_ACTIVE",
   "scope": [
     "founder-control",
     "wallet-connectivity",
@@ -34,7 +34,7 @@
   "firstStop": {
     "complete": true,
     "publicConnectivityClaim": false,
-    "nextAction": "P0-070 is consumed/nonreusable and Heavy is null. Seller Console P0-083 is released at 2e4b92a05007f8c7eccdcef77e6039e0b25fa0b2 after deterministic approval/rejection proved guest preview and private-service degradation without fabricated orders or settlement; real installed Wallet, Product Session v2, Seller API, public deployment and ComputerControl remain false. Creator Studio P0-084 owns the next visible deterministic Provider verification slice from exact checkpoint 2b1103063b47d2cfbf060837056e6b33fc7ecad3."
+    "nextAction": "P0-070 is consumed/nonreusable and Heavy is null. Creator Studio P0-084 is released at 73feca397ca0589c5d5a3e07c30944aaeb1b00d8 after deterministic approval/rejection proved guest preview and private-service degradation without fabricated upload, publication, monetization or payout; real installed Wallet, Product Session v2, Creator API, public deployment and ComputerControl remain false. Trust Center P0-085 owns the next visible deterministic Provider verification slice from exact checkpoint 5ff4cd57667de7c87197aa0982bca6addf007a28."
   },
   "lightLeases": [
     {
@@ -217,14 +217,29 @@
     {
       "owner": "integration",
       "taskId": "P0-084",
-      "status": "ACTIVE_LIGHT_VISIBLE_EVIDENCE_ONLY",
+      "status": "RELEASED_CHECKPOINT",
       "grantedAt": "2026-08-21T00:20:00Z",
+      "releasedAt": "2026-08-21T00:35:00Z",
+      "checkpointCommit": "73feca397ca0589c5d5a3e07c30944aaeb1b00d8",
       "scope": "creator-studio-existing-standard-wallet-visible-verification",
       "constraints": [
         "do not rebuild accepted Creator Studio Standard Wallet source",
         "guest creator preview remains available without Wallet",
         "deterministic Provider evidence is not installed Wallet evidence",
         "no upload, publish, monetization, Product Session v2, public deployment or Computer Control claim"
+      ]
+    },
+    {
+      "owner": "integration",
+      "taskId": "P0-085",
+      "status": "ACTIVE_LIGHT_VISIBLE_EVIDENCE_ONLY",
+      "grantedAt": "2026-08-21T00:35:00Z",
+      "scope": "trust-center-existing-standard-wallet-visible-verification",
+      "constraints": [
+        "do not rebuild accepted Trust Center Standard Wallet source",
+        "guest public Trust data remains available without Wallet",
+        "deterministic Provider evidence is not installed Wallet evidence",
+        "no Trust API, Product Session v2, public deployment or Computer Control claim"
       ]
     }
   ],
