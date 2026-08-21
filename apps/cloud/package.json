@@ -7,7 +7,8 @@
     "check": "npm run build:web && node scripts/check.mjs",
     "security": "node scripts/security-gate.mjs",
     "test": "node --test tests/*.test.mjs",
-    "smoke": "bash scripts/smoke.sh"
+    "smoke": "bash scripts/smoke.sh",
+    "wallet:visible": "node tests/wallet-visible-proof.mjs"
   },
   "devDependencies": {"esbuild":"0.25.12","playwright":"^1.61.1"}
 }
