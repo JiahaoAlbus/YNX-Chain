@@ -619,8 +619,12 @@ func TestSharedCalendarLifecycleAndRoles(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err = svc.Event(bob, event.ID); err != nil {
-		t.Fatalf("viewer could not read shared-calendar event: %v", err)
+	viewerEvent, err := svc.Event(bob, event.ID)
+	if err != nil || viewerEvent.Title != "Busy" || viewerEvent.OwnerID != "" || viewerEvent.Description != "" {
+		t.Fatalf("shared-calendar viewer received more than busy time: %+v %v", viewerEvent, err)
+	}
+	if _, err = svc.AddComment(bob, event.ID, "A viewer must not infer private details"); !errors.Is(err, ErrUnauthorized) {
+		t.Fatalf("redacted viewer commented on a private event: %v", err)
 	}
 	update := in
 	update.Title = "Viewer must not edit"
@@ -679,6 +683,89 @@ func TestSharedCalendarLifecycleAndRoles(t *testing.T) {
 	}
 	if _, err = svc.Event(bob, event.ID); !errors.Is(err, ErrUnauthorized) {
 		t.Fatalf("revoked viewer retained shared-calendar access: %v", err)
+	}
+}
+
+func TestEventPrivacyRedactsListsExportsAndAvailabilityParticipants(t *testing.T) {
+	svc := newTestService(t, "")
+	alice, _, _ := signIn(t, svc, "@alice", "ynx1alice")
+	bob, _, _ := signIn(t, svc, "@bob", "ynx1bob")
+	carol, _, _ := signIn(t, svc, "@carol", "ynx1carol")
+	dave, _, _ := signIn(t, svc, "@dave", "ynx1dave")
+
+	calendar, err := svc.CreateCalendar(alice, "Private leadership", "violet")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = svc.ShareCalendar(alice, calendar.ID, "@bob", "viewer"); err != nil {
+		t.Fatal(err)
+	}
+	in := input("Confidential acquisition", "2026-11-03T09:00", "2026-11-03T10:00", "UTC", "privacy-private")
+	in.CalendarID = calendar.ID
+	in.Privacy = "private"
+	in.Description = "Board-only notes"
+	in.Location = "Secret room"
+	in.Invitees = []string{"@carol"}
+	in.AttachmentLinks = []string{"https://cloud.ynxweb4.com/private/board.pdf"}
+	in.MeetingLink = "https://meet.ynxweb4.com/private-room"
+	in.BufferBeforeMinutes = 20
+	preview, err := svc.PreviewCreate(alice, in)
+	if err != nil {
+		t.Fatal(err)
+	}
+	event, err := svc.ApproveChange(alice, preview.ID, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = svc.Share(alice, event.ID, "@dave", "viewer"); err != nil {
+		t.Fatal(err)
+	}
+
+	assertBusy := func(label string, got Event, err error) {
+		t.Helper()
+		if err != nil || got.Title != "Busy" || got.Description != "" || got.Location != "" || got.OwnerID != "" || got.OwnerHandle != "" || len(got.Invites) != 0 || len(got.Shares) != 0 || len(got.AttachmentLinks) != 0 || got.MeetingLink != "" || got.BufferBeforeMinutes != 0 {
+			t.Fatalf("%s leaked availability-only details: err=%v event=%+v", label, err, got)
+		}
+	}
+	bobEvent, bobErr := svc.Event(bob, event.ID)
+	assertBusy("shared viewer", bobEvent, bobErr)
+	occurrences, err := svc.Events(bob, event.StartUTC.Add(-time.Hour), event.EndUTC.Add(time.Hour))
+	if err != nil || len(occurrences) != 1 || occurrences[0].Title != "Busy" || occurrences[0].OwnerHandle != "" {
+		t.Fatalf("event list leaked private details: %v %+v", err, occurrences)
+	}
+	exported, err := svc.ExportAccount(bob)
+	if err != nil || len(exported.Events) != 1 {
+		t.Fatalf("viewer export missing redacted event: %v %+v", err, exported.Events)
+	}
+	assertBusy("account export", exported.Events[0], nil)
+
+	participant, err := svc.Event(carol, event.ID)
+	if err != nil || participant.Title != in.Title || len(participant.AttachmentLinks) != 1 {
+		t.Fatalf("explicit participant lost private event details: %v %+v", err, participant)
+	}
+	explicitViewer, err := svc.Event(dave, event.ID)
+	if err != nil || explicitViewer.Title != in.Title {
+		t.Fatalf("explicit event share lost details: %v %+v", err, explicitViewer)
+	}
+
+	availability := in
+	availability.Title = "Medical appointment"
+	availability.Privacy = "availability"
+	availability.ClientMutationID = "privacy-availability"
+	availability.LocalStart = "2026-11-03T11:00"
+	availability.LocalEnd = "2026-11-03T12:00"
+	availabilityPreview, err := svc.PreviewCreate(alice, availability)
+	if err != nil {
+		t.Fatal(err)
+	}
+	availabilityRecord, err := svc.ApproveChange(alice, availabilityPreview.ID, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	carolBusy, carolErr := svc.Event(carol, availabilityRecord.ID)
+	assertBusy("availability participant", carolBusy, carolErr)
+	if _, err = svc.AddComment(carol, availabilityRecord.ID, "should be blocked"); !errors.Is(err, ErrUnauthorized) {
+		t.Fatalf("availability-only participant commented: %v", err)
 	}
 }
 

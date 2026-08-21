@@ -231,12 +231,8 @@ func (s *Service) ExportAccount(token string) (AccountExport, error) {
 			}
 		}
 		for _, event := range st.Events {
-			role := eventAccessRole(&st, event, user.Handle, sess.UserID)
-			if role != "" {
-				if role == "availability" {
-					event = availabilityEvent(event)
-				}
-				out.Events = append(out.Events, event)
+			if visible, ok := eventForViewer(&st, event, user.Handle, sess.UserID); ok {
+				out.Events = append(out.Events, visible)
 			}
 		}
 		for _, change := range st.Changes {
@@ -1159,7 +1155,7 @@ func (s *Service) AddComment(token, eventID, body string) (Event, error) {
 		}
 		user := st.Users[sess.UserID]
 		event, ok := st.Events[eventID]
-		if !ok || event.State == "cancelled" || !canView(st, event, user.Handle, sess.UserID) || eventAccessRole(st, event, user.Handle, sess.UserID) == "availability" {
+		if !ok || event.State == "cancelled" || !canViewEventDetails(st, event, user.Handle, sess.UserID) {
 			return ErrUnauthorized
 		}
 		comment := Comment{ID: s.id("comment"), Author: user.Handle, Body: body, CreatedAt: s.now().UTC()}
@@ -1202,14 +1198,11 @@ func (s *Service) Events(token string, from, to time.Time) ([]Occurrence, error)
 		}
 		user := st.Users[sess.UserID]
 		for _, event := range st.Events {
-			role := eventAccessRole(&st, event, user.Handle, sess.UserID)
-			if event.State == "cancelled" || role == "" {
+			visible, ok := eventForViewer(&st, event, user.Handle, sess.UserID)
+			if event.State == "cancelled" || !ok {
 				continue
 			}
-			if role == "availability" {
-				event = availabilityEvent(event)
-			}
-			for _, occ := range expand(event, from, to) {
+			for _, occ := range expand(visible, from, to) {
 				out = append(out, occ)
 			}
 		}
@@ -1231,13 +1224,11 @@ func (s *Service) Event(token, eventID string) (Event, error) {
 			return errors.New("event not found")
 		}
 		user := st.Users[sess.UserID]
-		if !canView(&st, event, user.Handle, sess.UserID) {
+		visible, ok := eventForViewer(&st, event, user.Handle, sess.UserID)
+		if !ok {
 			return ErrUnauthorized
 		}
-		if eventAccessRole(&st, event, user.Handle, sess.UserID) == "availability" {
-			event = availabilityEvent(event)
-		}
-		out = event
+		out = visible
 		return nil
 	})
 	return out, err
@@ -2049,6 +2040,41 @@ func validateCalendarWrite(st *State, calendarID, userID string) error {
 func canView(st *State, e Event, handle, userID string) bool {
 	return eventAccessRole(st, e, handle, userID) != ""
 }
+
+// eventForViewer applies event-level privacy after access is established.
+// Calendar viewers receive only occupied-time information. Editors need the
+// complete record for an explicitly approved edit; invitees and explicitly
+// shared viewers receive participant details unless the owner selected
+// availability-only disclosure.
+func eventForViewer(st *State, event Event, handle, userID string) (Event, bool) {
+	if !canView(st, event, handle, userID) {
+		return Event{}, false
+	}
+	if !canViewEventDetails(st, event, handle, userID) {
+		return availabilityEvent(event), true
+	}
+	return event, true
+}
+
+func canViewEventDetails(st *State, event Event, handle, userID string) bool {
+	if canEdit(st, event, userID) {
+		return true
+	}
+	if event.Privacy == "availability" {
+		return false
+	}
+	for _, invite := range event.Invites {
+		if invite.Handle == handle {
+			return true
+		}
+	}
+	for _, share := range event.Shares {
+		if share.Handle == handle && share.Role == "viewer" {
+			return true
+		}
+	}
+	return false
+}
 func eventAccessRole(st *State, e Event, handle, userID string) string {
 	if e.OwnerID == userID {
 		return "owner"
@@ -2077,6 +2103,7 @@ func availabilityEvent(event Event) Event {
 	event.Title = "Busy"
 	event.Description = ""
 	event.Location = ""
+	event.OwnerID = ""
 	event.OwnerHandle = ""
 	event.Invites = nil
 	event.Shares = nil
@@ -2084,6 +2111,8 @@ func availabilityEvent(event Event) Event {
 	event.AttachmentLinks = nil
 	event.MeetingLink = ""
 	event.Reminders = nil
+	event.BufferBeforeMinutes = 0
+	event.BufferAfterMinutes = 0
 	event.Privacy = "availability"
 	return event
 }
