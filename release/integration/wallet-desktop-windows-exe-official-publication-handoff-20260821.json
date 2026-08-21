@@ -1,0 +1,122 @@
+{
+  "schemaVersion": 1,
+  "handoffId": "wallet-desktop-windows-exe-official-publication-20260821",
+  "owner": "Wallet Desktop/CLI/SDK",
+  "consumer": "Website release owner",
+  "releaseChannel": "testnet-preview",
+  "source": {
+    "repository": "JiahaoAlbus/YNX-Chain",
+    "branch": "codex/wallet-windows-installer-p0-20260821",
+    "artifactSourceCommit": "a8f36e4c57234efe5f19367c87035b4435d61b76",
+    "artifactSourceTree": "fd47818a0d2138050eb660fa9a51a424a6745902",
+    "evidenceCarrierCommit": "6ec336ef7fb51ff537329e4d6b4e7517c5f9ec05",
+    "evidenceCarrierTree": "c14f36595b68965847023ff43d441a65af4b906e"
+  },
+  "evidence": {
+    "nativeLifecycle": "apps/wallet-desktop/evidence/windows-nsis-0.1.1-native-evidence-2026-08-21.json",
+    "releaseRecord": "release/integration/wallet-desktop-windows-nsis-candidate-20260821.json",
+    "priorWebsiteHandoff": "docs/integration/wallet-desktop-windows-nsis-website-handoff-20260821.json",
+    "lifecycleProved": [
+      "install",
+      "upgrade",
+      "coldLaunch",
+      "secondLaunch",
+      "visibleWindowTitle",
+      "canonicalRpcHttps",
+      "chainId0x1917",
+      "rpcEndpointRejectedFailClosed",
+      "rollbackToPreflight",
+      "rollbackLaunch",
+      "reupgrade",
+      "reupgradeLaunch",
+      "uninstall"
+    ]
+  },
+  "artifacts": [
+    {
+      "id": "wallet-desktop-windows-x64-nsis-exe-0.1.1",
+      "platform": "windows",
+      "architecture": "x64",
+      "version": "0.1.1",
+      "filename": "ynx-wallet-desktop-0.1.1-x64.exe",
+      "format": "nsis-exe",
+      "bytes": 104334744,
+      "sha256": "856b2a260efc43c25f62508dabc6bb6b74b84da71c9b477e8a02a12d17598cd7",
+      "minimumOS": null,
+      "minimumOSReason": "No earlier Windows x64 release was directly tested; do not infer a lower minimum from the build toolchain.",
+      "directlyTestedOS": "Windows Server 2025 x64 native GitHub Actions runner",
+      "signingClass": "unsigned_windows_nsis_testnet_candidate",
+      "authenticodeStatus": "NotSigned",
+      "productionSigned": false,
+      "actions": {
+        "workflowRunId": 32482080749,
+        "workflowUrl": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/32482080749",
+        "artifactId": 9446533644,
+        "artifactName": "ynx-wallet-desktop-windows-x64",
+        "artifactArchiveBytes": 104339812,
+        "artifactArchiveSha256": "eed58cd9e9140d4d9a53106ebcc01e2832f8ec9189ebcbaeeb6bd50b517c05b2",
+        "installerPathAfterExtraction": "ynx-wallet-desktop-0.1.1-x64.exe",
+        "carrierArchiveMayBePublishedAsInstaller": false
+      },
+      "officialPublication": {
+        "requiredPath": "/downloads/wallet/sha256-856b2a260efc43c25f62508dabc6bb6b74b84da71c9b477e8a02a12d17598cd7/ynx-wallet-desktop-0.1.1-x64.exe",
+        "requiredUrl": "https://www.ynxweb4.com/downloads/wallet/sha256-856b2a260efc43c25f62508dabc6bb6b74b84da71c9b477e8a02a12d17598cd7/ynx-wallet-desktop-0.1.1-x64.exe",
+        "requiredContentType": "application/vnd.microsoft.portable-executable",
+        "requiredContentDisposition": "attachment; filename=\"ynx-wallet-desktop-0.1.1-x64.exe\"",
+        "redirectToGenericPageAllowed": false,
+        "zipOrArchiveResponseAllowed": false
+      }
+    },
+    {
+      "id": "wallet-desktop-windows-arm64-nsis-exe-0.1.1",
+      "platform": "windows",
+      "architecture": "arm64",
+      "version": "0.1.1",
+      "filename": "ynx-wallet-desktop-0.1.1-arm64.exe",
+      "format": "nsis-exe",
+      "bytes": 103487635,
+      "sha256": "929315133c68eda1cabac51cec889c4aeca5e3ee1701578916bc67e096c5dc35",
+      "minimumOS": "Windows 11 arm64",
+      "minimumOSReason": "Windows 11 arm64 is the directly tested native runner boundary; earlier Windows arm64 is not evidenced.",
+      "directlyTestedOS": "Windows 11 arm64 native GitHub Actions runner",
+      "signingClass": "unsigned_windows_nsis_testnet_candidate",
+      "authenticodeStatus": "NotSigned",
+      "productionSigned": false,
+      "actions": {
+        "workflowRunId": 32482080753,
+        "workflowUrl": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/32482080753",
+        "artifactId": 9446555309,
+        "artifactName": "ynx-wallet-desktop-windows-arm64",
+        "artifactArchiveBytes": 103493291,
+        "artifactArchiveSha256": "d82a1a66548e4a2a67df16e41fd86a4f59d137b68e441397cd02cce875080b08",
+        "installerPathAfterExtraction": "ynx-wallet-desktop-0.1.1-arm64.exe",
+        "carrierArchiveMayBePublishedAsInstaller": false
+      },
+      "officialPublication": {
+        "requiredPath": "/downloads/wallet/sha256-929315133c68eda1cabac51cec889c4aeca5e3ee1701578916bc67e096c5dc35/ynx-wallet-desktop-0.1.1-arm64.exe",
+        "requiredUrl": "https://www.ynxweb4.com/downloads/wallet/sha256-929315133c68eda1cabac51cec889c4aeca5e3ee1701578916bc67e096c5dc35/ynx-wallet-desktop-0.1.1-arm64.exe",
+        "requiredContentType": "application/vnd.microsoft.portable-executable",
+        "requiredContentDisposition": "attachment; filename=\"ynx-wallet-desktop-0.1.1-arm64.exe\"",
+        "redirectToGenericPageAllowed": false,
+        "zipOrArchiveResponseAllowed": false
+      }
+    }
+  ],
+  "publicationGate": {
+    "operatorAction": "Extract each exact EXE from its named Actions artifact, verify its recorded SHA-256 and byte count before upload, upload only the EXE bytes to the matching immutable official path, and expose the required headers.",
+    "postDeployVerification": "Perform a complete unauthenticated HTTP GET of each requiredUrl. Require HTTP 200, the exact executable Content-Type, attachment Content-Disposition with the exact filename, exact Content-Length, full-response SHA-256 and byte equality, and an MZ/PE executable response rather than HTML or an archive.",
+    "rollback": "Retain the preceding Website deployment and download registry. If either executable or rendered download metadata fails post-deploy verification, restore that deployment and leave both new download actions disabled.",
+    "atomicSurfaceRule": "Do not advertise an enabled Windows architecture whose exact EXE has not independently passed the post-deploy gate.",
+    "githubActionsArtifactIsOfficialDownload": false,
+    "zipAcceptedAsInstaller": false,
+    "downloadHosted": false,
+    "deployedPublic": false,
+    "officialWebsiteListed": false,
+    "productionSigned": false,
+    "storeReleased": false,
+    "accountCreated": false,
+    "walletAuthorizationApproved": false,
+    "signatureCreated": false,
+    "transactionCreated": false
+  }
+}
