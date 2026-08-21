@@ -218,12 +218,14 @@ jobs:
           APP="$RUNNER_TEMP/Applications/YNX Wallet.app"
           LSREGISTER="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister"
           read_wallet_accessibility() {
-            osascript - "$1" "${2:-}" <<'APPLESCRIPT'
+            osascript - "$1" "$2" "${3:-}" <<'APPLESCRIPT'
           on run argv
-            set wantedIdentifier to item 1 of argv
-            set wantedVisibleText to item 2 of argv
+            set wantedPID to item 1 of argv as integer
+            set wantedIdentifier to item 2 of argv
+            set wantedVisibleText to item 3 of argv
             tell application "System Events"
-              tell process "YNXWalletMac"
+              set targetProcess to first application process whose unix id is wantedPID
+              tell targetProcess
                 set frontmost to true
                 repeat with candidate in entire contents of window 1
                   try
@@ -356,10 +358,10 @@ jobs:
           : > "$PROOF/second-launch-recovery-ui.txt"
           : > "$PROOF/second-launch-recovery-accessibility-errors.txt"
           for _ in $(seq 1 30); do
-            read_wallet_accessibility "YNX device recovery action" "Prepare device recovery" \
+            read_wallet_accessibility "$SECOND_PID" "YNX device recovery action" "Prepare device recovery" \
               > "$PROOF/second-launch-recovery-button.txt" \
               2>> "$PROOF/second-launch-recovery-accessibility-errors.txt" || true
-            read_wallet_accessibility "YNX device recovery status" "Product account recovery remains unavailable." \
+            read_wallet_accessibility "$SECOND_PID" "YNX device recovery status" "Product account recovery remains unavailable." \
               > "$PROOF/second-launch-recovery-ui.txt" \
               2>> "$PROOF/second-launch-recovery-accessibility-errors.txt" || true
             if grep -Eq '^(false|true)[[:space:]]' "$PROOF/second-launch-recovery-button.txt" && \
@@ -459,8 +461,8 @@ jobs:
               CANONICAL_ENABLED_SEEN=true
             fi
             {
-              read_wallet_accessibility "YNX wallet status headline"
-              read_wallet_accessibility "YNX wallet error code"
+              read_wallet_accessibility "$SECOND_PID" "YNX wallet status headline" ""
+              read_wallet_accessibility "$SECOND_PID" "YNX wallet error code" ""
             } > "$PROOF/canonical-enabled-callback-ui.txt" 2>/dev/null || true
             if grep -Fq 'Request rejected' "$PROOF/canonical-enabled-callback-ui.txt" && \
                grep -Fq 'CANONICAL_AUTH_BRIDGE_UNAVAILABLE' "$PROOF/canonical-enabled-callback-ui.txt"; then
@@ -502,8 +504,8 @@ jobs:
               CALLBACK_COLD_SEEN=true
             fi
             {
-              read_wallet_accessibility "YNX wallet status headline"
-              read_wallet_accessibility "YNX wallet error code"
+              read_wallet_accessibility "$CALLBACK_COLD_PID" "YNX wallet status headline" ""
+              read_wallet_accessibility "$CALLBACK_COLD_PID" "YNX wallet error code" ""
             } > "$PROOF/callback-cold-start-ui.txt" 2>/dev/null || true
             if grep -Fq 'Request rejected' "$PROOF/callback-cold-start-ui.txt" && \
                grep -Fq 'INVALID_DEEP_LINK' "$PROOF/callback-cold-start-ui.txt"; then
@@ -545,8 +547,8 @@ jobs:
               WIDENED_COLD_SEEN=true
             fi
             {
-              read_wallet_accessibility "YNX wallet status headline"
-              read_wallet_accessibility "YNX wallet error code"
+              read_wallet_accessibility "$WIDENED_COLD_PID" "YNX wallet status headline" ""
+              read_wallet_accessibility "$WIDENED_COLD_PID" "YNX wallet error code" ""
             } > "$PROOF/widened-callback-cold-start-ui.txt" 2>/dev/null || true
             if grep -Fq 'Request rejected' "$PROOF/widened-callback-cold-start-ui.txt" && \
                grep -Fq 'INVALID_AUTHORIZATION_REQUEST' "$PROOF/widened-callback-cold-start-ui.txt"; then
@@ -592,12 +594,14 @@ jobs:
           set -euo pipefail
 
           read_wallet_accessibility() {
-            osascript - "$1" "${2:-}" <<'APPLESCRIPT'
+            osascript - "$1" "$2" "${3:-}" <<'APPLESCRIPT'
           on run argv
-            set wantedIdentifier to item 1 of argv
-            set wantedVisibleText to item 2 of argv
+            set wantedPID to item 1 of argv as integer
+            set wantedIdentifier to item 2 of argv
+            set wantedVisibleText to item 3 of argv
             tell application "System Events"
-              tell process "YNXWalletMac"
+              set targetProcess to first application process whose unix id is wantedPID
+              tell targetProcess
                 set frontmost to true
                 repeat with candidate in entire contents of window 1
                   try
@@ -838,8 +842,8 @@ jobs:
               PUBLIC_CALLBACK_SEEN=true
             fi
             {
-              read_wallet_accessibility "YNX wallet status headline"
-              read_wallet_accessibility "YNX wallet error code"
+              read_wallet_accessibility "$PUBLIC_SECOND_PID" "YNX wallet status headline" ""
+              read_wallet_accessibility "$PUBLIC_SECOND_PID" "YNX wallet error code" ""
             } > "$PUBLIC_ROOT/callback-ui.txt" 2>/dev/null || true
             if grep -Fq 'Request rejected' "$PUBLIC_ROOT/callback-ui.txt" && \
                grep -Fq 'INVALID_DEEP_LINK' "$PUBLIC_ROOT/callback-ui.txt"; then
@@ -935,8 +939,8 @@ jobs:
               SYSTEM_CALLBACK_SEEN=true
             fi
             {
-              read_wallet_accessibility "YNX wallet status headline"
-              read_wallet_accessibility "YNX wallet error code"
+              read_wallet_accessibility "$SYSTEM_SECOND_PID" "YNX wallet status headline" ""
+              read_wallet_accessibility "$SYSTEM_SECOND_PID" "YNX wallet error code" ""
             } > "$PUBLIC_ROOT/system-callback-ui.txt" 2>/dev/null || true
             if grep -Fq 'Request rejected' "$PUBLIC_ROOT/system-callback-ui.txt" && \
                grep -Fq 'INVALID_DEEP_LINK' "$PUBLIC_ROOT/system-callback-ui.txt"; then
