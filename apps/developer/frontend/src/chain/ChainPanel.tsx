@@ -3,7 +3,7 @@ import { Button } from "../components/ui/button";
 import { broadcastDeveloperDeployment, chainRpc, completeDeveloperWalletSession, debugChainBlock, debugChainTransaction, introspectDeveloperWalletSession, loadChainCompiler, loadChainStatus, loadWalletReadiness, type ChainStatus, type WalletReadiness } from "../runtime/client";
 import { canonicalJSON, consumeDeveloperDeploymentRequest, consumeDeveloperWalletRequest, createDeveloperSessionIntrospection, createDeveloperWalletCompletion, desktopWalletBridge, openDeveloperDeploymentReview, openDeveloperWalletReview, parseDeveloperDeploymentCallback, saveDeveloperWalletSession, subscribeDeveloperDeploymentCallbacks, subscribeDeveloperWalletCallbacks, ynxAccountToEVM } from "../wallet/transport";
 import { enterDeveloperWalletV2Guest, inspectDeveloperWalletV2Runtime } from "../wallet/product-session-v2";
-import { connectDeveloperWebWallet, discoverDeveloperWebWallet } from "../wallet/safe-authorize-launcher";
+import { connectDeveloperWebWallet, discoverDeveloperWebWalletChoices } from "../wallet/safe-authorize-launcher";
 
 const RPC_METHODS = ["eth_chainId", "eth_blockNumber", "eth_gasPrice", "eth_getBalance", "eth_getCode", "eth_getTransactionCount", "eth_getTransactionByHash", "eth_getTransactionReceipt", "eth_call", "eth_estimateGas", "eth_getLogs", "eth_getBlockByNumber"];
 const TEMPLATES = {
@@ -70,7 +70,7 @@ export function ChainPanel({ files, onAddFile }: { files: Record<string, string>
     [constructorArgs, setConstructorArgs] = useState('["7"]'),
     [walletState, setWalletState] = useState(""),
     [walletV2State, setWalletV2State] = useState("Checking canonical Wallet Product Session v2…"),
-    [webWalletLaunch, setWebWalletLaunch] = useState<Awaited<ReturnType<typeof discoverDeveloperWebWallet>>>(),
+    [webWalletDiscovery, setWebWalletDiscovery] = useState<Awaited<ReturnType<typeof discoverDeveloperWebWalletChoices>>>(),
     [webWalletAccount, setWebWalletAccount] = useState<string>(),
     wallet = useMemo(() => desktopWalletBridge(), []),
     walletGateReady = Boolean(walletReadiness?.developerBinding.attested && walletReadiness.gateway.remoteDeployed && walletReadiness.gateway.publicDeploymentReady),
@@ -108,7 +108,7 @@ export function ChainPanel({ files, onAddFile }: { files: Record<string, string>
   }, []);
   useEffect(() => {
     if (wallet) return;
-    void discoverDeveloperWebWallet().then(setWebWalletLaunch).catch(() => setWebWalletLaunch(undefined));
+    void discoverDeveloperWebWalletChoices().then(setWebWalletDiscovery).catch(() => setWebWalletDiscovery(undefined));
   }, [wallet]);
   useEffect(() => {
     const handleOnline = () => void refresh();
@@ -179,15 +179,15 @@ export function ChainPanel({ files, onAddFile }: { files: Record<string, string>
       setBusy(false);
     }
   };
-  const openWallet = async () => {
+  const openWallet = async (providerKind?: "ynx-wallet" | "metamask") => {
     if (!wallet) {
       setBusy(true);
       setError("");
       try {
-        const result = await connectDeveloperWebWallet();
-        setWebWalletLaunch(result.launch);
+        const result = await connectDeveloperWebWallet(providerKind);
+        void discoverDeveloperWebWalletChoices().then(setWebWalletDiscovery).catch(() => setWebWalletDiscovery(undefined));
         setWebWalletAccount(result.account || undefined);
-        setWalletState(result.status === "connected" ? `Standard Wallet connected as ${result.account}. YNX Testnet 0x1917 is selected; no YNX authorization URI, callback or Product Session was created.` : "No unambiguous browser Wallet provider was found. Choose an official Wallet option below; this page did not open a custom scheme, frame, popup or blank tab.");
+        setWalletState(result.status === "connected" ? `Standard ${result.providerKind === "ynx-wallet" ? "YNX Wallet" : "MetaMask"} connected as ${result.account}. YNX Testnet 0x1917 is selected; no YNX authorization URI, callback or Product Session was created.` : result.status === "selection-required" ? "Select YNX Wallet or MetaMask below before accounts are requested. This page did not open a custom scheme, frame, popup or blank tab." : "No unambiguous browser Wallet provider was found. Choose an official Wallet option below; this page did not open a custom scheme, frame, popup or blank tab.");
       } catch {
         setWalletState("Browser Wallet connection was declined or failed closed. No custom authorization request, callback or Product Session was created.");
       } finally {
@@ -336,13 +336,18 @@ export function ChainPanel({ files, onAddFile }: { files: Record<string, string>
           <Button variant="ghost" disabled={busy} onClick={enterWalletV2Guest}>Continue as Guest / Try mode</Button>
           <p>Guest mode remains unsigned: balances, transactions and Chain authority are unavailable. A degraded optional Product Session never disconnects Standard Wallet.</p>
           {wallet ? (
-            <><Button disabled={busy || !artifact || !walletGateReady} onClick={openWallet}>Sign in with YNX Wallet</Button><Button disabled={busy||!artifact||!estimate||!walletGateReady} onClick={reviewDeployment}>Review exact contract deployment</Button></>
+            <><Button disabled={busy || !artifact || !walletGateReady} onClick={() => openWallet()}>Sign in with YNX Wallet</Button><Button disabled={busy||!artifact||!estimate||!walletGateReady} onClick={reviewDeployment}>Review exact contract deployment</Button></>
           ) : (
             <>
-              <Button disabled={busy} onClick={openWallet}>{webWalletAccount ? "Reconnect browser Wallet" : "Connect browser Wallet"}</Button>
-              <p>{webWalletAccount ? `Standard Wallet account ${webWalletAccount} is connected on YNX Testnet 0x1917. Product Session remains optional and separate.` : webWalletLaunch?.status === "provider-ready" ? `Browser provider ready: ${webWalletLaunch.detail}. Connect asks the selected provider for accounts and YNX Testnet 0x1917 only after this button is clicked.` : "No browser Wallet provider is available. The official download and MetaMask choices remain on this page."}</p>
-              <a href={webWalletLaunch?.fallbackActions[0]?.url || "https://www.ynxweb4.com/dapp/download"}>Download YNX Wallet</a>{" · "}
-              <a href={webWalletLaunch?.fallbackActions[1]?.url || "https://metamask.io/download/"}>Use MetaMask</a>
+              {webWalletDiscovery?.choices.length ? (
+                <>
+                  <p>{webWalletDiscovery.choices.length > 1 ? "Choose a browser Wallet. No Wallet is selected automatically and no account request is sent until you choose." : `Browser provider ready: ${webWalletDiscovery.detail}. Connect requests accounts and YNX Testnet 0x1917 only after your click.`}</p>
+                  {webWalletDiscovery.choices.map((choice) => <Button key={choice.kind} disabled={busy} onClick={() => openWallet(choice.kind)}>{webWalletAccount ? `Reconnect ${choice.label}` : choice.kind === "ynx-wallet" ? "Connect YNX Wallet" : "Connect MetaMask"}</Button>)}
+                </>
+              ) : <Button disabled={busy} onClick={() => openWallet()}>{webWalletAccount ? "Reconnect browser Wallet" : "Connect browser Wallet"}</Button>}
+              <p>{webWalletAccount ? `Standard Wallet account ${webWalletAccount} is connected on YNX Testnet 0x1917. Product Session remains optional and separate.` : webWalletDiscovery?.status === "ready" ? "Choose a listed Wallet before any account request is sent." : "No browser Wallet provider is available. The official download and MetaMask choices remain on this page."}</p>
+              <a href={webWalletDiscovery?.launch.fallbackActions[0]?.url || "https://www.ynxweb4.com/dapp/download"}>Download YNX Wallet</a>{" · "}
+              <a href={webWalletDiscovery?.launch.fallbackActions[1]?.url || "https://metamask.io/download/"}>Use MetaMask</a>
             </>
           )}
           {walletState && <p>{walletState}</p>}

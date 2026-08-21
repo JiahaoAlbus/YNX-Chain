@@ -7,6 +7,7 @@ import {
   launchNativeAuthorization,
   launchWebAuthorization,
 } from "../vendor/wallet-auth/src/index.js";
+import { connectDeveloperWebWallet, discoverDeveloperWebWalletChoices } from "../frontend/src/wallet/safe-authorize-launcher.ts";
 
 const request = () => Object.freeze({ version:"1", nonce:"A".repeat(43), chainId:"ynx_6423-1", requestingProduct:"developer", productClientId:"ynx-developer-v1", bundleId:"com.ynxweb4.developer.testnetpreview", productDeviceAlgorithm:"p256-sha256", productDeviceKey:"A".repeat(44), callback:"ynxdeveloper://wallet-auth/callback", scopes:["account:read","developer:deploy"], purpose:"Developer launcher v2 contract test", issuedAt:"2026-08-21T00:00:00.000Z", expiresAt:"2026-08-21T00:05:00.000Z" });
 
@@ -47,6 +48,25 @@ test("safe authorize v2 discovers one YNX provider without navigation or account
   assert.equal(scope.opened, 0);
 });
 
+test("Developer requires an explicit browser Wallet selection when YNX Wallet and MetaMask are both injected", async () => {
+  const calls = [];
+  const provider = (kind) => ({
+    ...(kind === "ynx-wallet" ? { isYNXWallet:true, providerInfo:{rdns:"com.ynx.wallet"} } : { isMetaMask:true, providerInfo:{rdns:"io.metamask"} }),
+    async request(input) { calls.push(`${kind}:${input.method}`); return input.method === "eth_requestAccounts" ? ["0x1111111111111111111111111111111111111111"] : null; },
+  });
+  const scope = browserScope();
+  scope.ethereum = { providers:[provider("ynx-wallet"), provider("metamask")] };
+  const choices = await discoverDeveloperWebWalletChoices(scope);
+  assert.deepEqual(choices.choices.map((choice) => choice.kind), ["ynx-wallet", "metamask"]);
+  const pending = await connectDeveloperWebWallet(undefined, scope);
+  assert.equal(pending.status, "selection-required");
+  assert.deepEqual(calls, []);
+  const connected = await connectDeveloperWebWallet("metamask", scope);
+  assert.equal(connected.status, "connected");
+  assert.equal(connected.providerKind, "metamask");
+  assert.deepEqual(calls, ["metamask:wallet_switchEthereumChain", "metamask:eth_requestAccounts"]);
+});
+
 test("native resolver receives the exact canonical payload and cannot claim approval", async () => {
   const launch = createCanonicalAuthorizeLaunch(request());
   const outcome = await launchNativeAuthorization(request(), "macos", async (uri) => uri === launch.uri);
@@ -66,10 +86,15 @@ test("launcher and Developer Web adapter contain no frame, popup, blank target o
   assert.doesNotMatch(launcher, /createElement\s*\(|<iframe|window\.open\s*\(|target\s*=\s*["']_blank|(?:window|document)\.location\s*=|location\.href\s*=/);
   assert.doesNotMatch(adapter + panel, /window\.open\s*\(|<iframe|target="_blank"|ynxwallet:\/\/authorize/);
   assert.match(adapter, /eth_requestAccounts/);
+  assert.match(adapter, /discoverWalletProviders/);
+  assert.match(adapter, /EXPLICIT_WALLET_SELECTION_REQUIRED/);
   assert.match(adapter, /wallet_addEthereumChain/);
   assert.match(adapter, /wallet_switchEthereumChain/);
   assert.match(adapter, /chainId: "0x1917"/);
   assert.ok(adapter.indexOf("wallet_switchEthereumChain") < adapter.indexOf("eth_requestAccounts"), "fixed YNX chain selection precedes the account request");
+  assert.match(panel, /Connect YNX Wallet/);
+  assert.match(panel, /Connect MetaMask/);
+  assert.match(panel, /No Wallet is selected automatically/);
   assert.match(mac, /URLForApplicationToOpenURL:parts\.URL/);
   assert.doesNotMatch(mac, /availability_probe_not_opened/);
 });
