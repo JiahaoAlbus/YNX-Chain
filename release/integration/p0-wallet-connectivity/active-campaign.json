@@ -2,7 +2,7 @@
   "schemaVersion": "1.0.0",
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "owner": "integration",
-  "status": "P0127_SOCIAL_WEB_STANDARD_WALLET_SOURCE_ACTIVE",
+  "status": "P0128_SOCIAL_WEB_VERCEL_DEPLOYMENT_ACTIVE",
   "scope": [
     "founder-control",
     "wallet-connectivity",
@@ -322,9 +322,10 @@
     {
       "owner": "integration",
       "taskId": "P0-127",
-      "status": "ACTIVE",
+      "status": "RELEASED_SOURCE_CHECKPOINT",
       "grantedAt": "2026-08-21T07:50:17Z",
-      "expiresAt": "2026-08-21T09:50:17Z",
+      "releasedAt": "2026-08-21T08:00:38Z",
+      "checkpointCommit": "4b6c5fa3e7570427fd6da4a5682de6095d73fc39",
       "startingCommit": "76b67a05fe5274f388d29f552b8a0b1e35dfe4ed",
       "scope": "social-web-guest-and-standard-provider-source-only",
       "constraints": [
@@ -335,25 +336,41 @@
         "guest access remains available without a Wallet",
         "Product Session v2 and account approval remain false until separate runtime evidence"
       ]
+    },
+    {
+      "owner": "integration",
+      "taskId": "P0-128",
+      "status": "ACTIVE_SINGLE_USE",
+      "grantedAt": "2026-08-21T08:00:38Z",
+      "expiresAt": "2026-08-21T08:30:38Z",
+      "sourceCommit": "4791eafc6065280f2968a731479d38d75ff9fcc0",
+      "scope": "social-web-exact-static-vercel-deployment-and-public-readback",
+      "constraints": [
+        "deploy only the exact five-file Social Web archive",
+        "bind only social.ynxweb4.com and only after the immutable deployment is READY",
+        "do not mutate ynx-sociald, Social API state, Wallet/Auth or another product",
+        "rollback removes only the newly created alias and restores the proven DEPLOYMENT_NOT_FOUND state",
+        "installed Wallet, account approval, callback, signature, transaction, Product Session v2 and Computer Control remain false unless directly proved"
+      ]
     }
   ],
   "heavy": {
-    "owner": null,
-    "taskId": null,
-    "status": "AVAILABLE",
-    "acquiredAt": "2026-08-21T07:34:18Z",
-    "expiresAt": null,
-    "sourceCommit": "f41cbf88b528d30e709bf07dc504c174a7e83073",
-    "runtimeHost": "43.153.202.237",
-    "currentRuntime": "/opt/ynx-shop/releases/p0126b-shop-wallet-f41cbf88",
-    "rollbackTarget": "/opt/ynx-shop/releases/88c0f3a5",
-    "productionMutationAllowed": false,
+    "owner": "integration",
+    "taskId": "P0-128",
+    "status": "ACTIVE_SINGLE_USE",
+    "acquiredAt": "2026-08-21T08:00:38Z",
+    "expiresAt": "2026-08-21T08:30:38Z",
+    "sourceCommit": "4791eafc6065280f2968a731479d38d75ff9fcc0",
+    "runtimeHost": "Vercel:jiahaoalbus-projects",
+    "currentRuntime": "UNAVAILABLE_DEPLOYMENT_NOT_FOUND",
+    "rollbackTarget": "remove new social.ynxweb4.com alias and restore HTTP 404 DEPLOYMENT_NOT_FOUND",
+    "productionMutationAllowed": true,
     "singleUse": true,
     "previousOwner": "integration",
-    "previousTaskId": "P0-125",
-    "releasedAt": "2026-08-21T07:43:31Z",
-    "checkpointCommit": "7b91f2120e7850a91be101b5ca7148dfb36beda6",
-    "reason": "P0-126 deployed exact Shop Web/PWA EIP-6963/EIP-1193 source, preserved guest catalog and authoritative API/state, and verified the no-provider browser path without a blank tab. Computer Control remains blocked by cgWindowNotFound; installed approval and account/signature/transaction claims remain false."
+    "previousTaskId": "P0-127",
+    "releasedAt": null,
+    "checkpointCommit": "4b6c5fa3e7570427fd6da4a5682de6095d73fc39",
+    "reason": "P0-127 completed exact Social Web source and local-browser verification; this lease permits only the separate bounded Vercel publication."
   },
   "wave": {
     "id": "B-financial-apps-quant",

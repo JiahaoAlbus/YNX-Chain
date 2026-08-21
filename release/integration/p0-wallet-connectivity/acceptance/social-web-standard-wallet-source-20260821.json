@@ -1,0 +1,44 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-127",
+  "decision": "SOURCE_AND_LOCAL_BROWSER_ACCEPTED_PUBLIC_UNDEPLOYED",
+  "sourceCommit": "4791eafc6065280f2968a731479d38d75ff9fcc0",
+  "sourceTree": "9e4b8c59b46e47fe1344a3ef84304dbf53eccc57",
+  "ownerEvidenceCommit": "4b6c5fa3e7570427fd6da4a5682de6095d73fc39",
+  "ownerEvidenceTree": "1ef63cb3d6d961fa068fb0e7aad8c81d8e8419ab",
+  "ownerEvidencePath": "apps/social/evidence/p0-web-standard-wallet-source-20260821.json",
+  "ownerEvidenceSha256": "3bb5ddf2bdeb994ef3c3d3c34e42b636d3001e4000512b15c66c109e7a4e6ac6",
+  "tests": [
+    "Social Web wallet 3/3",
+    "Social 21/21",
+    "typecheck",
+    "smoke",
+    "iOS and Android Expo bundles",
+    "zero Chinese Web source findings",
+    "zero Web custom-scheme, top-level navigation, window.open or iframe findings"
+  ],
+  "publicPreflight": {
+    "socialWeb": "https://social.ynxweb4.com/",
+    "socialWebState": "UNAVAILABLE_DEPLOYMENT_NOT_FOUND_HTTP_404",
+    "socialWebAliasPresent": false,
+    "socialApiHealth": "https://api.ynxweb4.com/social/health",
+    "socialApiHealthState": "VERIFIED_HTTP_200",
+    "socialApiVersionState": "UNAVAILABLE_HTTP_404"
+  },
+  "truth": {
+    "sourceAccepted": true,
+    "localBrowserAccepted": true,
+    "publicDeployed": false,
+    "publicVerified": false,
+    "installedWalletVerified": false,
+    "accountApprovalVerified": false,
+    "callbackVerified": false,
+    "signatureVerified": false,
+    "transactionVerified": false,
+    "productSessionV2": false,
+    "computerControlVerified": false,
+    "migratedV2": false,
+    "aggregateEcosystemComplete": false
+  }
+}
