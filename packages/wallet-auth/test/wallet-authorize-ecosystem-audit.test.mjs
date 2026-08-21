@@ -339,6 +339,30 @@ test("macOS public-artifact isolated lifecycle remains a source contract", () =>
   assert.equal(evidence.productSession, false);
 });
 
+test("macOS /Applications install remains a source contract without runtime", () => {
+  const evidence = ownerActivityCheckpoint.walletPlatformTracking.macosSystemApplicationsInstallSource;
+  assert.equal(evidence.implementationCommit, "14630843459e1ae41c007eee8dfb34789a0e4443");
+  assert.equal(evidence.evidenceCommit, "5a5359c917b1de3d093b58d3bc417b1c1943e9a2");
+  assert.equal(evidence.systemApplicationsInstallSourceReady, true);
+  assert.equal(evidence.hostedSourceContractVerified, true);
+  assert.equal(evidence.systemInstallTarget, "/Applications/YNX Wallet.app");
+  assert.equal(evidence.requiresTargetAbsent, true);
+  assert.equal(evidence.requiresExactAnonymousPublicDmgFirst, true);
+  assert.equal(evidence.requiresNoQuarantineAttribute, true);
+  assert.equal(evidence.browserQuarantineAcceptedByAbsence, false);
+  assert.equal(evidence.sameRunLifecycleSource, "NON_PUBLIC_NATIVE_PACKAGE");
+  assert.equal(evidence.publicationJobSkipped, true);
+  assert.equal(evidence.operatorDispatch, false);
+  assert.equal(evidence.anonymousPublicRoundtripRuntimeVerified, false);
+  assert.equal(evidence.systemApplicationsInstallRuntimeVerified, false);
+  assert.equal(evidence.releaseCreated, false);
+  assert.equal(evidence.systemApplicationsInstalled, false);
+  assert.equal(evidence.browserQuarantineAccepted, false);
+  assert.equal(evidence.gatekeeperAccepted, false);
+  assert.equal(evidence.authorizationSuccess, false);
+  assert.equal(evidence.productSession, false);
+});
+
 test("v3 counts and precise owner blockers are derived without aggregate promotion", () => {
   const products = auditV3.registeredProducts;
   assert.equal(products.filter(({ runtime }) => runtime.sourceBoundPublic === true).length, auditV3.counts.sourceBoundPublicProducts);
