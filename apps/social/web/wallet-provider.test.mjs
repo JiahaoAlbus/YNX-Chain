@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { connectWallet, selectProvider } from "./wallet-provider.js";
 
@@ -48,4 +49,11 @@ test("connects MetaMask and adds then verifies YNX Testnet", async () => {
 
 test("no provider returns an on-page result without navigation", async () => {
   assert.deepEqual(await connectWallet("ynx", target([])), { ok: false, code: "YNX_WALLET_NOT_FOUND" });
+});
+
+test("connection progress never destroys the wallet option markup", async () => {
+  const source = await readFile(new URL("./app.js", import.meta.url), "utf8");
+  assert.doesNotMatch(source, /button\.textContent\s*=/);
+  assert.match(source, /setAttribute\("aria-busy", "true"\)/);
+  assert.match(source, /removeAttribute\("aria-busy"\)/);
 });

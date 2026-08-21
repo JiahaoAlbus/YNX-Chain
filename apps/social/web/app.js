@@ -34,9 +34,8 @@ function notFound(wallet) {
 }
 
 async function connect(wallet, button) {
-  const previous = button.textContent;
   button.disabled = true;
-  button.textContent = "Connecting…";
+  button.setAttribute("aria-busy", "true");
   byId("install-wallet").hidden = true;
   try {
     const result = await connectWallet(wallet);
@@ -48,7 +47,7 @@ async function connect(wallet, button) {
     showStatus(rejected ? "Connection request was rejected. No Social session was created." : "Wallet connection failed. No account or Social session was saved.", "error");
   } finally {
     button.disabled = false;
-    button.textContent = previous;
+    button.removeAttribute("aria-busy");
   }
 }
 
