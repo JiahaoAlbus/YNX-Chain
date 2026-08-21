@@ -776,7 +776,106 @@ jobs:
           screencapture -x "$PUBLIC_ROOT/anonymous-public-callback-fail-closed.png"
           test -s "$PUBLIC_ROOT/anonymous-public-callback-fail-closed.png"
           kill "$PUBLIC_SECOND_PID"
+          for _ in $(seq 1 30); do
+            kill -0 "$PUBLIC_SECOND_PID" 2>/dev/null || break
+            sleep 1
+          done
+          ! kill -0 "$PUBLIC_SECOND_PID" 2>/dev/null
           "$LSREGISTER" -u "$PUBLIC_INSTALLED_APP"
           printf 'publicRepository=true anonymousDownload=true exactSource=true sha256=%s bytes=%s bundle=com.ynxweb4.wallet.macos minimumOS=13.0 architectures=x86_64+arm64 signingClass=ad-hoc teamIdentifier=null gatekeeperAccepted=false gatekeeperExitStatus=%s isolatedInstall=true systemApplicationsInstalled=false browserQuarantineAccepted=false coldPid=%s secondPid=%s rpcChainId=0x1917 gatewayFailClosed=true callbackPid=%s callbackReceived=true callbackError=INVALID_DEEP_LINK callbackVisible=true authorizationSuccess=false websitePublished=false\n' \
             "$EXPECTED_SHA256" "$EXPECTED_BYTES" "$PUBLIC_GATEKEEPER_STATUS" "$PUBLIC_COLD_PID" "$PUBLIC_SECOND_PID" "$PUBLIC_SECOND_PID" \
-            | tee "$PUBLIC_ROOT/public-roundtrip.txt"
+            | tee "$PUBLIC_ROOT/isolated-public-roundtrip.txt"
+          SYSTEM_APP="/Applications/YNX Wallet.app"
+          test ! -e "$SYSTEM_APP"
+          sudo ditto "$PUBLIC_INSTALLED_APP" "$SYSTEM_APP"
+          test -d "$SYSTEM_APP"
+          codesign --verify --deep --strict "$SYSTEM_APP"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$SYSTEM_APP/Contents/Info.plist")" = com.ynxweb4.wallet.macos
+          set +e
+          xattr -p com.apple.quarantine "$SYSTEM_APP" > "$PUBLIC_ROOT/system-install-quarantine.txt" 2>&1
+          SYSTEM_QUARANTINE_STATUS=$?
+          set -e
+          test "$SYSTEM_QUARANTINE_STATUS" -ne 0
+          "$LSREGISTER" -f "$SYSTEM_APP"
+          open -n "$SYSTEM_APP"
+          for _ in $(seq 1 60); do
+            SYSTEM_COLD_PID="$(pgrep -x YNXWalletMac | head -n 1 || true)"
+            test -n "$SYSTEM_COLD_PID" && break
+            sleep 1
+          done
+          test -n "${SYSTEM_COLD_PID:-}"
+          SYSTEM_COLD_NETWORK=false
+          for _ in $(seq 1 60); do
+            xcrun log show --style compact --last 5m \
+              --predicate 'subsystem == "com.ynxweb4.wallet.macos" AND category == "network"' \
+              > "$PUBLIC_ROOT/system-cold-network.log" 2>&1 || true
+            if grep -Fq "YNX_WALLET_MAC_RPC_CHAIN_ID_VERIFIED pid=$SYSTEM_COLD_PID chainId=0x1917" "$PUBLIC_ROOT/system-cold-network.log" && \
+               grep -Fq "YNX_WALLET_MAC_REST_APP_GATEWAY_REACHABLE pid=$SYSTEM_COLD_PID status=200" "$PUBLIC_ROOT/system-cold-network.log" && \
+               grep -Fq "YNX_WALLET_MAC_GATEWAY_FAIL_CLOSED pid=$SYSTEM_COLD_PID walletComplete=UNKNOWN_OR_MISSING_FIELD walletIntrospect=PROOF_REQUIRED productIntrospect=UNKNOWN_OR_MISSING_FIELD stateUnchanged=true" "$PUBLIC_ROOT/system-cold-network.log"; then
+              SYSTEM_COLD_NETWORK=true
+              break
+            fi
+            sleep 1
+          done
+          test "$SYSTEM_COLD_NETWORK" = true
+          kill "$SYSTEM_COLD_PID"
+          for _ in $(seq 1 30); do
+            kill -0 "$SYSTEM_COLD_PID" 2>/dev/null || break
+            sleep 1
+          done
+          ! kill -0 "$SYSTEM_COLD_PID" 2>/dev/null
+          open -n "$SYSTEM_APP"
+          for _ in $(seq 1 60); do
+            SYSTEM_SECOND_PID="$(pgrep -x YNXWalletMac | head -n 1 || true)"
+            if test -n "$SYSTEM_SECOND_PID" && test "$SYSTEM_SECOND_PID" != "$SYSTEM_COLD_PID"; then break; fi
+            sleep 1
+          done
+          test -n "${SYSTEM_SECOND_PID:-}"
+          test "$SYSTEM_SECOND_PID" != "$SYSTEM_COLD_PID"
+          SYSTEM_SECOND_NETWORK=false
+          for _ in $(seq 1 60); do
+            xcrun log show --style compact --last 5m \
+              --predicate 'subsystem == "com.ynxweb4.wallet.macos" AND category == "network"' \
+              > "$PUBLIC_ROOT/system-second-network.log" 2>&1 || true
+            if grep -Fq "YNX_WALLET_MAC_RPC_CHAIN_ID_VERIFIED pid=$SYSTEM_SECOND_PID chainId=0x1917" "$PUBLIC_ROOT/system-second-network.log" && \
+               grep -Fq "YNX_WALLET_MAC_REST_APP_GATEWAY_REACHABLE pid=$SYSTEM_SECOND_PID status=200" "$PUBLIC_ROOT/system-second-network.log" && \
+               grep -Fq "YNX_WALLET_MAC_GATEWAY_FAIL_CLOSED pid=$SYSTEM_SECOND_PID walletComplete=UNKNOWN_OR_MISSING_FIELD walletIntrospect=PROOF_REQUIRED productIntrospect=UNKNOWN_OR_MISSING_FIELD stateUnchanged=true" "$PUBLIC_ROOT/system-second-network.log"; then
+              SYSTEM_SECOND_NETWORK=true
+              break
+            fi
+            sleep 1
+          done
+          test "$SYSTEM_SECOND_NETWORK" = true
+          open 'ynxwallet://authorize?request=invalid' > "$PUBLIC_ROOT/system-open-invalid-callback.txt"
+          SYSTEM_CALLBACK_SEEN=false
+          SYSTEM_CALLBACK_UI=false
+          for _ in $(seq 1 60); do
+            xcrun log show --style compact --last 5m \
+              --predicate 'subsystem == "com.ynxweb4.wallet.macos" AND (category == "callback" OR category == "lifecycle")' \
+              > "$PUBLIC_ROOT/system-callback.log" 2>&1 || true
+            if grep -Fq "YNX_WALLET_MAC_CALLBACK_RECEIVED pid=$SYSTEM_SECOND_PID scheme=ynxwallet" "$PUBLIC_ROOT/system-callback.log" && \
+               grep -Fq "YNX_WALLET_MAC_CALLBACK_REJECTED pid=$SYSTEM_SECOND_PID code=INVALID_DEEP_LINK" "$PUBLIC_ROOT/system-callback.log"; then
+              SYSTEM_CALLBACK_SEEN=true
+            fi
+            osascript <<'APPLESCRIPT' > "$PUBLIC_ROOT/system-callback-ui.txt" 2>/dev/null || true
+          tell application "System Events"
+            tell process "YNXWalletMac"
+              set frontmost to true
+              return name of every static text of window 1
+            end tell
+          end tell
+          APPLESCRIPT
+            if grep -Fq 'Request rejected' "$PUBLIC_ROOT/system-callback-ui.txt" && \
+               grep -Fq 'INVALID_DEEP_LINK' "$PUBLIC_ROOT/system-callback-ui.txt"; then
+              SYSTEM_CALLBACK_UI=true
+            fi
+            if test "$SYSTEM_CALLBACK_SEEN" = true && test "$SYSTEM_CALLBACK_UI" = true; then break; fi
+            sleep 1
+          done
+          test "$SYSTEM_CALLBACK_SEEN" = true
+          test "$SYSTEM_CALLBACK_UI" = true
+          screencapture -x "$PUBLIC_ROOT/system-applications-callback-fail-closed.png"
+          test -s "$PUBLIC_ROOT/system-applications-callback-fail-closed.png"
+          printf 'systemApplicationsInstalled=true installedPath=/Applications/YNX%%20Wallet.app ephemeralHostedRunner=true browserQuarantinePresent=false browserQuarantineAccepted=false gatekeeperAccepted=false coldPid=%s secondPid=%s rpcChainId=0x1917 gatewayFailClosed=true callbackPid=%s callbackReceived=true callbackError=INVALID_DEEP_LINK callbackVisible=true authorizationSuccess=false\n' \
+            "$SYSTEM_COLD_PID" "$SYSTEM_SECOND_PID" "$SYSTEM_SECOND_PID" | tee "$PUBLIC_ROOT/system-applications-roundtrip.txt"
+          kill "$SYSTEM_SECOND_PID"
