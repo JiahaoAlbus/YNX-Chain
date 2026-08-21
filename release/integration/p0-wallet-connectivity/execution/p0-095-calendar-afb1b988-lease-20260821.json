@@ -3,7 +3,7 @@
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "taskId": "P0-095",
   "owner": "integration",
-  "status": "ACTIVE_BOUNDED_SINGLE_USE",
+  "status": "CONSUMED_RELEASED_FAILED_CLOSED_STATE_MIGRATION_ROLLBACK",
   "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-calendar-afb1b988-20260821T013320Z",
   "issuedAt": "2026-08-21T01:33:20Z",
   "expiresAt": "2026-08-21T03:33:20Z",
@@ -32,7 +32,7 @@
   "singleUse": true,
   "nonreusableAfterAttempt": true,
   "rollbackFirst": true,
-  "productionMutationAllowed": true,
+  "productionMutationAllowed": false,
   "freshPreflight": {
     "observedAt": "2026-08-21T01:35:00Z",
     "service": "ynx-calendar.service",
@@ -46,5 +46,11 @@
     "stateKeySha256": "bf7b567201cab33c4b9ed02e00f0d0165172b4e692484ca044d828d0a3fb5e62",
     "publicSourceCommit": "635f6745db8b5d4e4f00253d72fd5ab97da471ac",
     "publicVersionRouteStatus": 404
-  }
+  },
+  "releasedAt": "2026-08-21T01:41:00Z",
+  "checkpointCommit": "882e9a0e3b7d1d6e6741c3a20ce3e6a2f0f63de1",
+  "ownerEvidenceSha256": "13efe243d93b64ee57ae74369ec109c7883297700c7b8dd501cc8b0fc937b6d4",
+  "rollbackCompleted": true,
+  "publicSourceAfterRollback": "635f6745db8b5d4e4f00253d72fd5ab97da471ac",
+  "nonreusable": true
 }
