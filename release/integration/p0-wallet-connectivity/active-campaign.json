@@ -34,7 +34,7 @@
   "firstStop": {
     "complete": true,
     "publicConnectivityClaim": false,
-    "nextAction": "P0-093 deployed Faucet source 02cf44d1 and verified a canonical 100 YNXT transaction through chain REST and Explorer. publicEndpointManifest@1.0.0-p0.4 is the new bundled contract. Publish the matching Website runtime record and notify Wallet Platform to consume p0.4; installed Wallet and ComputerControl remain false."
+    "nextAction": "P0-094 published the exact 02cf44d1 Faucet runtime and verified transaction from Website main c61a0e56 to production. Wallet Platform has been notified to consume p0.4 and must produce its own installed flow evidence. The existing Card owner has been resumed to provide a public Web/PWA Testnet virtual-card entry; installed Wallet and ComputerControl remain false."
   },
   "lightLeases": [
     {

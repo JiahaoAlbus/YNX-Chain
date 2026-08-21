@@ -9,7 +9,7 @@
     "walletTransport@p0-wallet-connection-v1",
     "errorContract@p0-wallet-connection-v1",
     "dappConnectSDK@0.1.0-p0.0",
-    "publicEndpointManifest@1.0.0-p0.2",
+    "publicEndpointManifest@1.0.0-p0.4",
     "connectionEvents@1.0.0-p0.0"
   ],
   "dependencyContract": "release/integration/p0-wallet-connectivity/contracts/card-testnet-e2e-v1.json",
@@ -39,6 +39,9 @@
     "Explorer transaction evidence remains absent",
     "central ledger reconciliation remains pending"
   ],
-  "nextAction": "Card is founder-goal owned. Integration does not direct Card UI or simulation work. It may consume the accepted Data Fabric adapter only after the canonical intent and finalized chain proof exist; no balance credit or public E2E claim occurs before then.",
+  "publicEntryRequirement": "The existing Card owner must provide a real HTTPS Web/PWA Testnet entry, reuse the current Card service, and publish an official Website ecosystem route. Guest preview may not fabricate a card, account or balance. Only Wallet-connected YNXT Testnet funding and simulated authorization/capture/reversal/refund are allowed; real payment capability remains false.",
+  "continuationThreadId": "01a01e51-9eea-7500-bd8c-23d5bfb137ce",
+  "continuationSentAt": "2026-08-21T01:18:00Z",
+  "nextAction": "Card remains founder-goal owned. Its existing task has been actively resumed to implement and deploy the Web/PWA entry, provide exact URL/build/wallet/YNXT simulation evidence, and preserve all real-payment false boundaries. Integration will consume its handoff without editing Card-owned paths.",
   "publicVerified": false
 }
