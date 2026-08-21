@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-116",
+  "observedAt": "2026-08-21T05:31:24Z",
+  "sourceCommit": "fa2fb2308470ded24d64333b756718e7d04bfced",
+  "sourceTree": "224c29059a26e261ee93031c6127d5521d8bb5e2",
+  "deploymentId": "dpl_AFJ1hJQWWuWH7bZxjweMAGKeh18n",
+  "canonicalUrl": "https://card.ynxweb4.com/",
+  "verifiedUrl": "https://card.ynxweb4.com/?verify=blanktabfix-fa2fb230",
+  "browser": "user Chrome via Browser control",
+  "procedure": [
+    "navigate the existing controlled Card tab to the cache-busted official URL",
+    "capture the complete top-level tab list and Card URL",
+    "click the exact Connect YNX Wallet button",
+    "wait 2500 milliseconds",
+    "capture the complete top-level tab list, Card URL and visible DOM"
+  ],
+  "result": {
+    "createdTopLevelTabs": 0,
+    "urlBefore": "https://card.ynxweb4.com/?verify=blanktabfix-fa2fb230",
+    "urlAfter": "https://card.ynxweb4.com/?verify=blanktabfix-fa2fb230",
+    "downloadYNXWalletVisible": true,
+    "useMetaMaskVisible": true,
+    "noProviderRecoveryVisible": true,
+    "legacySubmittedAuthorizationNoticePresent": false,
+    "sessionCreated": false,
+    "approvalCreated": false,
+    "transactionCreated": false
+  },
+  "truthBoundaries": {
+    "installedWalletVerified": false,
+    "walletApprovalVerified": false,
+    "callbackVerified": false,
+    "realWalletAccount": false,
+    "realSignature": false,
+    "realYNXTTransfer": false,
+    "realCard": false,
+    "cardRegistrationImplemented": false,
+    "migratedV2": false,
+    "computerControlVerified": false
+  },
+  "nextAction": "Implement and publicly verify the separate Testnet virtual-card registration flow without changing the verified provider-only Web launcher."
+}
