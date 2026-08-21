@@ -54,7 +54,14 @@
     "walletRejectVisible": false,
     "walletCallbackVisible": false,
     "networkLossRetryVisible": false,
-    "reason": "adb reported no connected Android device or emulator; no visible-flow claim is made"
+    "reason": "Three existing Wallet AVD starts were attempted during the active UTC lease, but each exited before boot completed. Finance APK installation and Wallet-flow claims were therefore not attempted.",
+    "controlPlaneCommit": "ab468e5d751503f10a2671b6b70ade5100d69718",
+    "attemptedAt": "2026-08-21T04:01:40.000Z",
+    "emulatorAttempts": [
+      {"avd":"YNX_WALLET_FINAL","parameters":"-no-snapshot -no-audio -no-boot-anim","result":"ADB never became available; emulator exited before boot","logBytes":40760,"logSha256":"fc3d30d5cc1e17611d9c58cba6c9eed72d5168016c43ae96e899bcc131ea2f13"},
+      {"avd":"YNX_WALLET_FINAL","parameters":"-memory 1024 -no-snapshot -no-audio -no-boot-anim","result":"ADB was offline and emulator exited before boot","logBytes":40919,"logSha256":"6d978369865fdb5d35df100abe32cff7269b5954ac6a19d2b0731d7989036abb"},
+      {"avd":"YNX_WALLET_101_QA","parameters":"-memory 1024 -no-snapshot -no-audio -no-boot-anim","result":"ADB briefly reported device, then emulator exited before sys.boot_completed","logBytes":40748,"logSha256":"55a653ba7129ccf149d71fce19e7d0129a2f19314d4d4825640b4be2a811906f"}
+    ]
   },
   "releaseGates": {
     "migratedV2": false,

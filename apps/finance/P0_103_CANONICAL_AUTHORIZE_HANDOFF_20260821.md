@@ -27,7 +27,9 @@
 
 ## Non-claims and remaining evidence
 
-No Android device or emulator was attached (`adb devices -l` was empty). Therefore no install, cold-start, Wallet approve/reject, callback, revoke, network-loss Retry, browser-visible, public-deployment, hosted-download, production-signing, or store-publication evidence exists for this checkpoint. `migratedV2`, `publicVerified`, `publicDeployed`, `downloadHosted`, `productionSigned`, `storePublished`, and `productSessionActivated` remain `false`.
+During the active P0-103 UTC lease, the existing `YNX_WALLET_FINAL` AVD was started twice (including a 1 GB temporary-memory retry) and existing `YNX_WALLET_101_QA` was started once as a controlled fallback. All three emulator processes exited before `sys.boot_completed`; the fallback briefly appeared in ADB but never booted. No AVD was created, wiped, or modified. The preserved local launch-log SHA-256 values are `fc3d30d5cc1e17611d9c58cba6c9eed72d5168016c43ae96e899bcc131ea2f13`, `6d978369865fdb5d35df100abe32cff7269b5954ac6a19d2b0731d7989036abb`, and `55a653ba7129ccf149d71fce19e7d0129a2f19314d4d4825640b4be2a811906f`.
+
+Accordingly, the exact Finance debug APK was not installed and no Wallet presence, cold-start, approval, rejection, callback, revoke, or network-loss Retry claim is made. This is an emulator-runtime limitation, not evidence of a Finance or Wallet compatibility result. `migratedV2`, `publicVerified`, `publicDeployed`, `downloadHosted`, `productionSigned`, `storePublished`, and `productSessionActivated` remain `false`.
 
 The local APK is a debug build only and must not be offered as a public download. The package is a source-pinned local consumer artifact, not an npm-public publication.
 
