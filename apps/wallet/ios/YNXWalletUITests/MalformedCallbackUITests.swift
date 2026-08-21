@@ -37,10 +37,30 @@ final class MalformedCallbackUITests: XCTestCase {
 
     let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
     let openButton = springboard.buttons["Open"]
-    XCTAssertTrue(openButton.waitForExistence(timeout: 60), "Canonical simctl openurl did not expose Open")
-    openButton.tap()
+    let rejection = wallet.alerts["Request rejected"]
+    let deadline = Date().addingTimeInterval(60)
+    var deliveryMode: String?
+    while Date() < deadline {
+      if rejection.exists {
+        deliveryMode = "direct-after-prior-scheme-confirmation"
+        break
+      }
+      if openButton.exists {
+        openButton.tap()
+        deliveryMode = "system-confirmed"
+        break
+      }
+      RunLoop.current.run(until: Date().addingTimeInterval(0.25))
+    }
+    XCTAssertNotNil(
+      deliveryMode,
+      "Canonical simctl openurl produced neither a semantic system confirmation nor Wallet rejection UI"
+    )
+    FileHandle.standardError.write(
+      Data("YNX_WALLET_CANONICAL_OPENURL_DELIVERY mode=\(deliveryMode ?? "unavailable")\n".utf8)
+    )
 
-    XCTAssertTrue(wallet.alerts["Request rejected"].waitForExistence(timeout: 45))
+    XCTAssertTrue(rejection.waitForExistence(timeout: 45))
     XCTAssertTrue(wallet.staticTexts["CANONICAL_AUTH_BRIDGE_UNAVAILABLE"].exists)
     XCTAssertTrue(wallet.buttons["Dismiss"].exists)
     let screenshot = XCTAttachment(screenshot: wallet.screenshot())

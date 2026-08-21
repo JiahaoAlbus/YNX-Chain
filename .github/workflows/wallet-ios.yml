@@ -272,6 +272,8 @@ jobs:
           IFS= read -r CANONICAL_URL < proof/ci-ios/canonical-registry-request-url.txt
           xcrun simctl openurl "$DEVICE" "$CANONICAL_URL" | tee proof/ci-ios/canonical-registry-openurl.txt
           wait "$XCODEBUILD_PID"
+          grep -E 'YNX_WALLET_CANONICAL_OPENURL_DELIVERY mode=(direct-after-prior-scheme-confirmation|system-confirmed)' \
+            proof/ci-ios/canonical-registry-native-bridge-xctest.log
           xcrun simctl spawn "$DEVICE" log show --style compact --last 10m \
             --predicate 'subsystem == "com.ynxweb4.wallet" AND category == "callback"' \
             2>&1 | tee proof/ci-ios/canonical-registry-native.log
