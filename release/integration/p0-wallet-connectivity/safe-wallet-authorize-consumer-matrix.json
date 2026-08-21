@@ -97,8 +97,7 @@
       "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/61-ai-visible-p0",
       "branch": "codex/p0-ai-visible-20260821",
       "path": "apps/ai/**",
-      "status": "ACTIVE",
-      "taskId": "P0-112",
+      "status": "AUDITED_MIGRATION_REQUIRED",
       "finding": "The mobile client receives or creates the Wallet URL and calls Linking.openURL without the accepted resolver launcher.",
       "nextAction": "Migrate the native launch while preserving anonymous AI trial access and keeping the unavailable Central service truthful."
     },
@@ -200,9 +199,11 @@
       "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/54-search-visible-p0",
       "branch": "codex/p0-search-wallet-visible-20260821",
       "path": "apps/search/**",
-      "status": "AUDITED_MIGRATION_REQUIRED",
-      "finding": "The public web client assigns the returned deepLink to top-level location.href.",
-      "nextAction": "Validate the returned canonical request and launch it through the accepted web launcher while keeping Search visible."
+      "status": "SOURCE_BUILD_BROWSER_CHECKPOINT_REACHED",
+      "taskId": "P0-112",
+      "checkpointCommit": "7604c88e5965bcfdf575c1b84bc9dbf57952c951",
+      "finding": "Search validates its exact product request and uses the shared controlled launcher; top-level navigation is removed and 21/21 plus Chromium 8/8 passed. Public and installed-Wallet proof remain false.",
+      "nextAction": "Publish the exact checkpoint and verify a real installed-Wallet approval/callback without promoting Product Session v2."
     },
     {
       "product": "cloud",
