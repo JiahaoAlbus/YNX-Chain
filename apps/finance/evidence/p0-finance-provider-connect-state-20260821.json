@@ -27,6 +27,7 @@
     "financeSecurityGate": "passed across 338 text files",
     "financeReleaseEvidenceGate": "passed",
     "webVerifier": "passed",
+    "sharedConsumerGate": "passed: exact verify-standard-wallet-connect-consumer.mjs from the hash-pinned 98c6 archive over apps/finance/web",
     "webBundle": {"sha256": "44a2054a7f58bf0458ff466a3f9c4d1a391adab20c321fef74977e8fa2fd4690", "bytes": 19446},
     "mobileCheck": {"passed": 11, "failed": 0, "androidAndIosBundleExport": "passed"},
     "deterministicStateTest": "passed: an unsafe direct browser RPC probe fails closed; accepted CORS-safe degradation preserves connected account, 0x1917 chain, closed chooser, and cleared pending intent"
