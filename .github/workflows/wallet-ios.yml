@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
   push:
     branches: [main, codex/ecosystem-wallet-auth, codex/final-wallet-auth, codex/wallet-ios-macos-20260813]
-    paths: ["apps/wallet/**", "packages/wallet-auth/**", ".github/workflows/wallet-ios.yml"]
+    paths: ["apps/wallet/**", "packages/wallet-auth/**", ".github/workflows/wallet-ios.yml", "!apps/wallet/macos/**"]
   pull_request:
-    paths: ["apps/wallet/**", "packages/wallet-auth/**", ".github/workflows/wallet-ios.yml"]
+    paths: ["apps/wallet/**", "packages/wallet-auth/**", ".github/workflows/wallet-ios.yml", "!apps/wallet/macos/**"]
 
 jobs:
   simulator-build:
