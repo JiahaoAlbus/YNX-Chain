@@ -11,6 +11,7 @@ const auditV3 = JSON.parse(await readFile(new URL("../../../release/integration/
 const providerRecovery = JSON.parse(await readFile(new URL("../../../release/integration/wallet-provider-discovery-connect-state-p0-handoff-20260821.json", import.meta.url), "utf8"));
 const pendingOwnerHandoffs = JSON.parse(await readFile(new URL("../../../release/integration/wallet-provider-connect-pending-owner-handoffs-20260821.json", import.meta.url), "utf8"));
 const ownerActivityCheckpoint = JSON.parse(await readFile(new URL("../../../release/integration/wallet-provider-connect-owner-activity-checkpoint-20260821.json", import.meta.url), "utf8"));
+const publicOwnerRecheck = JSON.parse(await readFile(new URL("../../../release/integration/wallet-provider-public-owner-recheck-20260821.json", import.meta.url), "utf8"));
 const registry = JSON.parse(await readFile(new URL("../product-session-registry.json", import.meta.url), "utf8"));
 
 test("ecosystem authorize audit covers every registered client exactly once", () => {
@@ -91,6 +92,42 @@ test("v3 owner/runtime matrix tracks all twelve products and preserves false aut
     assert.ok(product.ownerHandoff.length > 80, product.productId);
   }
   assert.deepEqual(auditV3.registeredProducts.filter(({ runtime }) => runtime.realInstalledApproval === true).map(({ productId }) => productId), ["calendar"]);
+});
+
+test("Protocol Owner public recheck records regressions without promoting product completion", () => {
+  assert.equal(publicOwnerRecheck.sharedProviderConnectAuthority.sourceCommit, auditV3.sharedProviderConnectRecovery.sourceCommit);
+  assert.equal(publicOwnerRecheck.sharedProviderConnectAuthority.sourceTree, auditV3.sharedProviderConnectRecovery.sourceTree);
+  assert.equal(publicOwnerRecheck.method.newSensitiveRequestTriggered, false);
+  assert.equal(publicOwnerRecheck.products.shop.existingMetaMaskAccountRestored, true);
+  assert.equal(publicOwnerRecheck.products.shop.connectedAccountActionOpenedConnectionChooser, true);
+  assert.equal(publicOwnerRecheck.products.shop.connectedAccountActionOpenedConnectionDetails, false);
+  assert.equal(publicOwnerRecheck.products.shop.exclusiveCausalityToShopClickProven, false);
+  assert.equal(publicOwnerRecheck.products.calendar.privateProductSessionFailureRemovedStandardConnection, false);
+  assert.equal(publicOwnerRecheck.products.calendar.connectedAccountActionOpenedGuestLocalDataDialog, true);
+  assert.equal(publicOwnerRecheck.products.calendar.disconnectActionVisible, false);
+  assert.equal(publicOwnerRecheck.products.card.metaMaskRestoredInShopAndCalendarSameChrome, true);
+  assert.equal(publicOwnerRecheck.products.card.cardMetaMaskDetectionSucceeded, false);
+  assert.equal(publicOwnerRecheck.truth.productsConnected, 0);
+  assert.equal(publicOwnerRecheck.truth.productsMigratedV2, 0);
+  for (const productId of ["shop", "calendar", "card"]) {
+    const product = auditV3.registeredProducts.find((entry) => entry.productId === productId);
+    assert.equal(product.runtime.protocolOwnerPublicRecheck, "release/integration/wallet-provider-public-owner-recheck-20260821.json");
+    assert.equal(product.runtime.productSessionV2, false);
+  }
+});
+
+test("latest iOS second-launch malformed callback proof remains a fail-closed non-public slice", () => {
+  const evidence = ownerActivityCheckpoint.walletPlatformTracking.iosSecondLaunchMalformedCallback;
+  assert.equal(evidence.evidenceCommit, "714c91e758d9f08d3c9ee25bf2a9543f0046ed15");
+  assert.equal(evidence.secondLaunchMalformedCallbackDelivered, true);
+  assert.equal(evidence.secondLaunchMalformedCallbackBoundToSecondPid, true);
+  assert.equal(evidence.visibleFailClosed, "INVALID_DEEP_LINK");
+  assert.equal(evidence.overallPassed, false);
+  assert.equal(evidence.authorization, false);
+  assert.equal(evidence.productSession, false);
+  assert.equal(evidence.public, false);
+  assert.equal(evidence.productionSigned, false);
+  assert.equal(evidence.appStore, false);
 });
 
 test("v3 counts and precise owner blockers are derived without aggregate promotion", () => {
