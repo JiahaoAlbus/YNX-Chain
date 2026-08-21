@@ -90,6 +90,8 @@ test('Finance evaluates the accepted migration-evidence gate without promoting s
   assert.equal(authority.blobSha256,'dac1e57bf989e5ad9e63c568df3c2eb9af7b154501b21f7cf182194a35af694e');
   assert.equal(authority.vendoredArchive,'web/vendor/ynx-chain-wallet-auth-1.0.0-product-migration-evidence-p0.tgz');
   assert.equal(authority.vendoredArchiveSha256,'8ae596ab4099123b55d273698704bfe1150e571328b08dd6e50dd8bb3d658d6e');
+  assert.equal(migrationEvidence.input.ownerSource.commit,'7bbfe305c08bf3b3dfad3121352e6f74fc3d7c3b');
+  assert.equal(migrationEvidence.input.ownerSource.tree,'bce39d8c8e8bdc87c85a3df8942c1a62010842c1');
   assert.deepEqual(evaluateProductWalletMigrationEvidence(migrationEvidence.input),migrationEvidence.expected);
   assert.equal(migrationEvidence.expected.productsConnected,0);
   assert.equal(migrationEvidence.expected.migratedV2,false);
