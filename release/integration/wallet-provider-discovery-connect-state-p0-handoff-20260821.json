@@ -114,6 +114,9 @@
     "ownerNativeKeychainCleanupRuntimeEvidence": "8879c8a068da8084cbda34f1613c6e1d8a5cd776",
     "sharedCleanupRuntimeWithoutProductionSecrets": true,
     "productionSigningCleanupRuntime": false,
+    "nativeCiTriggerIsolationEvidence": "69009ba5abbbd57739bdd6a08936dbddbe5e842b",
+    "macosOnlyChangesExcludedFromWalletIosPushPr": true,
+    "iosSimulatorPromoted": false,
     "uniqueReleaseBlocker": "Central must merge the exact pipeline blobs and a tagged production run must provide a matching Owner-native DMG plus Developer ID, notarization, stapling, Gatekeeper, callback/runtime and Release receipts before Website replacement."
   },
   "truth": {

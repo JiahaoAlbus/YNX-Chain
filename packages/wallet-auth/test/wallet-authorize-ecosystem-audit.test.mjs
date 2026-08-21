@@ -158,6 +158,10 @@ test("Wallet Web/PWA and macOS DMG publication remain outside product authority"
   assert.equal(companion.nativeMacosKeychainCleanupRuntime.sharedCleanupRuntimeWithoutProductionSecrets, true);
   assert.equal(companion.nativeMacosKeychainCleanupRuntime.productionSigningCleanupRuntime, false);
   assert.equal(companion.nativeMacosKeychainCleanupRuntime.iosGatePromoted, false);
+  assert.equal(companion.nativeCiTriggerIsolation.macosOnlyChangesExcludedFromWalletIosPushPr, true);
+  assert.equal(companion.nativeCiTriggerIsolation.macOnlyWalletIosRunCount, 0);
+  assert.equal(companion.nativeCiTriggerIsolation.workflowSelfChangeTriggered, true);
+  assert.equal(companion.nativeCiTriggerIsolation.iosSimulatorPromoted, false);
   assert.equal(companion.macosDmgPublication.systemApplicationsInstallVerified, false);
   assert.equal(companion.macosDmgPublication.browserQuarantineAcceptanceVerified, false);
   assert.equal(companion.macosDmgPublication.wholeAppUnsigned, true);
@@ -284,6 +288,9 @@ test("owner checkpoint separates Wallet public artifacts from approval and Produ
   assert.equal(platform.macosDmg.keychainCleanupRuntime.productionCredentialsUsed, false);
   assert.equal(platform.macosDmg.keychainCleanupRuntime.sharedCleanupRuntimeWithoutProductionSecrets, true);
   assert.equal(platform.macosDmg.keychainCleanupRuntime.productionSigningCleanupRuntime, false);
+  assert.equal(platform.macosDmg.ciTriggerIsolation.evidenceCommit, "69009ba5abbbd57739bdd6a08936dbddbe5e842b");
+  assert.equal(platform.macosDmg.ciTriggerIsolation.macOnlyWalletIosRunCount, 0);
+  assert.equal(platform.macosDmg.ciTriggerIsolation.iosSimulatorPromoted, false);
   assert.equal(platform.macosDmg.systemApplicationsInstallVerified, false);
   assert.equal(platform.macosDmg.browserQuarantineAcceptanceVerified, false);
   assert.equal(platform.macosDmg.developerId, false);
