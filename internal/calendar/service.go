@@ -22,6 +22,7 @@ import (
 var handlePattern = regexp.MustCompile(`^@[a-z0-9][a-z0-9_.-]{1,30}$`)
 var ErrUnauthorized = errors.New("calendar authorization required")
 var ErrVersionConflict = errors.New("event version conflict; refresh before retrying")
+var ErrAvailabilityStale = errors.New("availability changed after preview; refresh conflicts before approving")
 var ErrIdempotencyConflict = errors.New("client mutation ID was already used for a different RSVP")
 
 type WalletVerifier interface {
@@ -547,6 +548,7 @@ func (s *Service) PreviewCreate(token string, input EventInput) (ChangePreview, 
 		event.UpdatedAt = event.CreatedAt
 		out = ChangePreview{ID: s.id("change"), EventID: event.ID, ActorID: sess.UserID, Kind: "create", After: event, Conflicts: s.conflicts(st, event, ""), State: "preview", ClientMutationID: input.ClientMutationID, CreatedAt: s.now().UTC()}
 		out.SuggestedSlots = s.suggestAlternatives(st, event, "", out.Conflicts)
+		out.Availability = s.availabilitySnapshot(st, event, "", out.CreatedAt)
 		st.Changes[out.ID] = out
 		st.Mutations[sess.UserID+":"+input.ClientMutationID] = out.ID
 		s.audit(st, sess.UserID, "event_create_preview", out.ID, map[string]any{"conflicts": len(out.Conflicts)})
@@ -601,6 +603,7 @@ func (s *Service) previewUpdate(token, eventID string, input EventInput, scope s
 		copyBefore := before
 		out = ChangePreview{ID: s.id("change"), EventID: eventID, ActorID: sess.UserID, Kind: "update", Scope: scope, Before: &copyBefore, After: after, Conflicts: s.conflicts(st, after, eventID), State: "preview", ClientMutationID: input.ClientMutationID, CreatedAt: s.now().UTC()}
 		out.SuggestedSlots = s.suggestAlternatives(st, after, eventID, out.Conflicts)
+		out.Availability = s.availabilitySnapshot(st, after, eventID, out.CreatedAt)
 		st.Changes[out.ID] = out
 		st.Mutations[sess.UserID+":"+input.ClientMutationID] = out.ID
 		s.audit(st, sess.UserID, "event_update_preview", out.ID, map[string]any{"conflicts": len(out.Conflicts)})
@@ -773,6 +776,11 @@ func (s *Service) PreviewRecurrenceChange(token, eventID string, input Recurrenc
 			out = ChangePreview{ID: s.id("change"), EventID: eventID, ActorID: sess.UserID, Kind: "recurrence", Scope: "this_and_following", RecurrenceID: input.RecurrenceID, Before: &copyBefore, After: truncated, RelatedAfter: []Event{future}, Conflicts: s.conflicts(st, future, eventID), State: "preview", ClientMutationID: input.ClientMutationID, CreatedAt: now}
 		}
 		out.SuggestedSlots = s.suggestAlternatives(st, out.After, eventID, out.Conflicts)
+		availabilityCandidate := out.After
+		if len(out.RelatedAfter) > 0 {
+			availabilityCandidate = out.RelatedAfter[0]
+		}
+		out.Availability = s.availabilitySnapshot(st, availabilityCandidate, eventID, out.CreatedAt)
 
 		st.Changes[out.ID] = out
 		st.Mutations[mutationKey] = out.ID
@@ -841,6 +849,16 @@ func (s *Service) ApproveChange(token, changeID string, acceptConflicts bool) (E
 		}
 		if len(change.Conflicts) > 0 && !acceptConflicts {
 			return errors.New("calendar conflicts require explicit override")
+		}
+		if change.Availability != nil {
+			candidate := change.After
+			if change.Scope == "this_and_following" && len(change.RelatedAfter) > 0 {
+				candidate = change.RelatedAfter[0]
+			}
+			currentAvailability := s.availabilitySnapshot(st, candidate, change.EventID, s.now().UTC())
+			if currentAvailability.Version != change.Availability.Version {
+				return ErrAvailabilityStale
+			}
 		}
 		if change.Before != nil {
 			current, ok := st.Events[change.EventID]
@@ -1980,6 +1998,33 @@ func availabilityAuthorized(st *State, event Event, requesterHandle string) bool
 	}
 	calendar, ok := st.SharedCalendars[event.CalendarID]
 	return ok && calendar.OwnerID == event.OwnerID && calendarRole(calendar, requesterHandle) != ""
+}
+
+func (s *Service) availabilitySnapshot(st *State, candidate Event, exclude string, asOf time.Time) *AvailabilitySnapshot {
+	participants := map[string]bool{candidate.OwnerID: true}
+	for _, invite := range candidate.Invites {
+		if user, ok := userByHandle(st, invite.Handle); ok {
+			participants[user.ID] = true
+		}
+	}
+	versions := make([]string, 0)
+	for _, event := range st.Events {
+		if event.ID == exclude || event.State == "cancelled" || !participants[event.OwnerID] {
+			continue
+		}
+		if event.OwnerID != candidate.OwnerID && !availabilityAuthorized(st, event, candidate.OwnerHandle) {
+			continue
+		}
+		versions = append(versions, fmt.Sprintf("%s:%d:%s", event.ID, event.Version, event.UpdatedAt.UTC().Format(time.RFC3339Nano)))
+	}
+	sort.Strings(versions)
+	digest := sha256.Sum256([]byte(strings.Join(versions, "\n")))
+	return &AvailabilitySnapshot{
+		Source:  "calendar-transactional-state-v1",
+		AsOf:    asOf.UTC(),
+		Version: "sha256:" + hex.EncodeToString(digest[:]),
+		Stale:   false,
+	}
 }
 
 func (s *Service) suggestAlternatives(st *State, candidate Event, exclude string, conflicts []Conflict) []SuggestedSlot {

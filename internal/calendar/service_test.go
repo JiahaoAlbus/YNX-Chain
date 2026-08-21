@@ -1038,6 +1038,13 @@ func TestAuthorizedAttendeeAvailabilityAndTravelBuffersStayPrivate(t *testing.T)
 	if strings.Contains(string(encoded), busyInput.Title) || strings.Contains(string(encoded), busyEvent.ID) {
 		t.Fatalf("availability conflict leaked event identity: %s", encoded)
 	}
+	if bufferPreview.Availability.Source != "calendar-transactional-state-v1" || bufferPreview.Availability.AsOf.IsZero() || bufferPreview.Availability.Stale || !strings.HasPrefix(bufferPreview.Availability.Version, "sha256:") || len(bufferPreview.Availability.Version) != 71 {
+		t.Fatalf("availability freshness contract missing or invalid: %+v", bufferPreview.Availability)
+	}
+	availabilityJSON, _ := json.Marshal(bufferPreview.Availability)
+	if strings.Contains(string(availabilityJSON), busyInput.Title) || strings.Contains(string(availabilityJSON), busyEvent.ID) {
+		t.Fatalf("availability snapshot leaked event identity: %s", availabilityJSON)
+	}
 	if len(bufferPreview.SuggestedSlots) == 0 || bufferPreview.SuggestedSlots[0].Reason == "" {
 		t.Fatalf("conflict-free draft alternatives were not generated: %+v", bufferPreview.SuggestedSlots)
 	}
@@ -1057,6 +1064,57 @@ func TestAuthorizedAttendeeAvailabilityAndTravelBuffersStayPrivate(t *testing.T)
 	invalid.BufferBeforeMinutes = 241
 	if _, err = svc.PreviewCreate(alice, invalid); err == nil {
 		t.Fatal("out-of-bound preparation buffer was accepted")
+	}
+}
+
+func TestAvailabilitySnapshotRejectsStaleApprovalWithoutLeakingPrivateEvents(t *testing.T) {
+	svc := newTestService(t, "")
+	alice, _, _ := signIn(t, svc, "@alice", "ynx1alice")
+	bob, _, _ := signIn(t, svc, "@bob", "ynx1bob")
+
+	calendar, err := svc.CreateCalendar(bob, "Bob availability", "slate")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = svc.ShareCalendar(bob, calendar.ID, "@alice", "availability"); err != nil {
+		t.Fatal(err)
+	}
+
+	meeting := input("Planning", "2026-11-03T09:00", "2026-11-03T10:00", "UTC", "availability-stale-meeting")
+	meeting.Invitees = []string{"@bob"}
+	preview, err := svc.PreviewCreate(alice, meeting)
+	if err != nil || preview.Availability == nil {
+		t.Fatalf("availability preview missing: %v %+v", err, preview.Availability)
+	}
+
+	privateBusy := input("Confidential appointment", "2026-11-03T09:15", "2026-11-03T09:45", "UTC", "availability-stale-busy")
+	privateBusy.CalendarID = calendar.ID
+	busyPreview, err := svc.PreviewCreate(bob, privateBusy)
+	if err != nil {
+		t.Fatal(err)
+	}
+	busyEvent, err := svc.ApproveChange(bob, busyPreview.ID, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err = svc.ApproveChange(alice, preview.ID, false); !errors.Is(err, ErrAvailabilityStale) {
+		t.Fatalf("stale availability approval was not rejected: %v", err)
+	}
+	if strings.Contains(err.Error(), privateBusy.Title) || strings.Contains(err.Error(), busyEvent.ID) {
+		t.Fatalf("stale availability error leaked private event identity: %v", err)
+	}
+
+	refreshed, err := svc.PreviewCreate(alice, func() EventInput {
+		in := meeting
+		in.ClientMutationID = "availability-stale-meeting-refresh"
+		return in
+	}())
+	if err != nil || refreshed.Availability == nil || refreshed.Availability.Version == preview.Availability.Version {
+		t.Fatalf("refreshed availability version did not change: %v before=%+v after=%+v", err, preview.Availability, refreshed.Availability)
+	}
+	if len(refreshed.Conflicts) != 1 || refreshed.Conflicts[0].Title != "Busy" || refreshed.Conflicts[0].EventID != "" {
+		t.Fatalf("refreshed private conflict was missing or leaked identity: %+v", refreshed.Conflicts)
 	}
 }
 

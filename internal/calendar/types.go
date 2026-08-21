@@ -259,24 +259,31 @@ type SuggestedSlot struct {
 	TimeZone string    `json:"time_zone"`
 	Reason   string    `json:"reason"`
 }
+type AvailabilitySnapshot struct {
+	Source  string    `json:"source"`
+	AsOf    time.Time `json:"as_of"`
+	Version string    `json:"version"`
+	Stale   bool      `json:"stale"`
+}
 type ChangePreview struct {
-	ID               string          `json:"id"`
-	EventID          string          `json:"event_id"`
-	ActorID          string          `json:"actor_id"`
-	Kind             string          `json:"kind"`
-	Scope            string          `json:"scope,omitempty"`
-	RecurrenceID     string          `json:"recurrence_id,omitempty"`
-	Before           *Event          `json:"before,omitempty"`
-	After            Event           `json:"after"`
-	RelatedBefore    []Event         `json:"related_before,omitempty"`
-	RelatedAfter     []Event         `json:"related_after,omitempty"`
-	Conflicts        []Conflict      `json:"conflicts,omitempty"`
-	SuggestedSlots   []SuggestedSlot `json:"suggested_slots,omitempty"`
-	State            string          `json:"state"`
-	ClientMutationID string          `json:"client_mutation_id"`
-	CreatedAt        time.Time       `json:"created_at"`
-	ApprovedAt       time.Time       `json:"approved_at,omitempty"`
-	RevertedAt       time.Time       `json:"reverted_at,omitempty"`
+	ID               string                `json:"id"`
+	EventID          string                `json:"event_id"`
+	ActorID          string                `json:"actor_id"`
+	Kind             string                `json:"kind"`
+	Scope            string                `json:"scope,omitempty"`
+	RecurrenceID     string                `json:"recurrence_id,omitempty"`
+	Before           *Event                `json:"before,omitempty"`
+	After            Event                 `json:"after"`
+	RelatedBefore    []Event               `json:"related_before,omitempty"`
+	RelatedAfter     []Event               `json:"related_after,omitempty"`
+	Conflicts        []Conflict            `json:"conflicts,omitempty"`
+	SuggestedSlots   []SuggestedSlot       `json:"suggested_slots,omitempty"`
+	Availability     *AvailabilitySnapshot `json:"availability,omitempty"`
+	State            string                `json:"state"`
+	ClientMutationID string                `json:"client_mutation_id"`
+	CreatedAt        time.Time             `json:"created_at"`
+	ApprovedAt       time.Time             `json:"approved_at,omitempty"`
+	RevertedAt       time.Time             `json:"reverted_at,omitempty"`
 }
 
 type AIJob struct {

@@ -381,7 +381,7 @@ func respond(w http.ResponseWriter, v any, e error) {
 	if errors.Is(e, ErrUnauthorized) {
 		status = http.StatusUnauthorized
 	}
-	if errors.Is(e, ErrVersionConflict) || errors.Is(e, ErrIdempotencyConflict) {
+	if errors.Is(e, ErrVersionConflict) || errors.Is(e, ErrAvailabilityStale) || errors.Is(e, ErrIdempotencyConflict) {
 		status = http.StatusConflict
 	}
 	writeJSON(w, status, map[string]string{"error": http.StatusText(status), "detail": e.Error()})

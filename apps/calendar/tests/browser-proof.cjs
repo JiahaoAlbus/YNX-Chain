@@ -522,6 +522,9 @@ function unnamedInteractive() {
           throw Error(`conflict preview did not open: ${await page.locator("#toast").innerText()}`);
         if (!(await page.locator("#change-preview").innerText()).includes("Conflict-free draft alternatives"))
           throw Error(`alternative drafts missing: ${await page.locator("#change-preview").innerText()}`);
+        const schedulingPreview = await page.locator("#change-preview").innerText();
+        if (!schedulingPreview.includes("Availability snapshot · current") || !schedulingPreview.includes("calendar-transactional-state-v1"))
+          throw Error(`availability freshness marker missing: ${schedulingPreview}`);
         const originalConflictStart = local(start);
         await page.locator("[data-suggestion]").first().click();
         if ((await page.locator("#start").inputValue()) === originalConflictStart)
