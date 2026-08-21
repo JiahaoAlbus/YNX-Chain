@@ -1,22 +1,22 @@
 {
-  "taskId": "P0-105",
+  "taskId": "P0-106",
   "owner": "financial-apps",
-  "status": "ACTIVE_EXCHANGE_CANONICAL_AUTHORIZE_SLICE",
+  "status": "ACTIVE_PAY_CANONICAL_AUTHORIZE_SLICE",
   "acceptedContracts": ["walletTransport@p0-wallet-connection-v1", "errorContract@p0-wallet-connection-v1", "dappConnectSDK@0.1.0-p0.0", "publicEndpointManifest@1.0.0-p0.2", "canonicalWalletAuthorize@1.0.0-p0.0"],
-  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-exchange-canonical-authorize-20260821T040305Z",
-  "leasedAt": "2026-08-21T04:03:05Z",
-  "expiresAt": "2026-08-21T06:03:05Z",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-pay-canonical-authorize-20260821T041721Z",
+  "leasedAt": "2026-08-21T04:17:21Z",
+  "expiresAt": "2026-08-21T06:17:21Z",
   "activeProduct": {
-    "id": "exchange",
-    "pathLock": "apps/exchange/**",
-    "branch": "codex/exchange-wallet-actions-20260809",
-    "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/07-exchange-public",
-    "baselineCommit": "ffc5cf89fbba81bf439835350bb91d09ece158ab",
+    "id": "pay",
+    "pathLock": "apps/pay/**",
+    "branch": "codex/p0-pay-wallet-connectivity-20260821",
+    "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/04-pay-p0-clean",
+    "baselineCommit": "851dc5b834e0d824f4891dc6e572da1e8d71ca75",
     "scope": "Consume accepted canonical authorize builder/parser, keep MetaMask independent, then test/build and capture only truthful visible evidence."
   },
-  "prohibitions": ["do not rewrite shared protocol", "do not hard-code endpoints", "do not start Pay, DEX or Quant", "do not deploy production"],
+  "prohibitions": ["do not rewrite shared protocol", "do not hard-code endpoints", "do not start DEX or Quant", "do not deploy production"],
   "deployedPublic": false,
   "publicVerified": false,
   "computerControlVerified": false,
-  "nextAction": "Begin Exchange at ffc5cf89 and stop after one recoverable canonical-authorize source/build/visible checkpoint."
+  "nextAction": "Begin Pay at 851dc5b8 and stop after one recoverable canonical-authorize source/build/visible checkpoint."
 }
