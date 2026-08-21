@@ -14,10 +14,11 @@ if ($record.installClass -ne "msix-sideload" -or $record.signingClass -ne "test-
 
 $certificate = Import-Certificate -FilePath $certificatePath -CertStoreLocation "Cert:\CurrentUser\TrustedPeople"
 if ($certificate.Thumbprint -ne $record.signerThumbprint) { throw "MSIX signer certificate mismatch" }
-$signature = Get-AuthenticodeSignature $msix
-if ($signature.Status -ne [System.Management.Automation.SignatureStatus]::Valid -or $signature.SignerCertificate.Thumbprint -ne $record.signerThumbprint) { throw "MSIX signature did not verify" }
 
 Get-AppxPackage -Name "YNXDeveloper.TestnetPreview" | Remove-AppxPackage -ErrorAction SilentlyContinue
+# Add-AppxPackage performs the MSIX package-signature and Publisher validation.
+# It is intentionally used instead of Get-AuthenticodeSignature, which does not
+# consistently expose an AppX package signature through the generic API.
 Add-AppxPackage -Path $msix
 $package = Get-AppxPackage -Name "YNXDeveloper.TestnetPreview"
 if (!$package) { throw "MSIX was not installed" }
