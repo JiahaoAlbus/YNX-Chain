@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -20,16 +21,32 @@ type DiscoveryResolver interface {
 type Server struct {
 	service  *Service
 	resolver DiscoveryResolver
+	runtime  RuntimeIdentity
 }
 
+type RuntimeIdentity struct {
+	SourceCommit string `json:"sourceCommit"`
+	ReleaseID    string `json:"releaseId"`
+}
+
+var (
+	runtimeSourcePattern  = regexp.MustCompile(`^[0-9a-f]{40}$`)
+	runtimeReleasePattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]{2,95}$`)
+)
+
 func NewServer(service *Service, resolver DiscoveryResolver) *Server {
-	return &Server{service: service, resolver: resolver}
+	return NewServerWithRuntimeIdentity(service, resolver, RuntimeIdentity{})
+}
+
+func NewServerWithRuntimeIdentity(service *Service, resolver DiscoveryResolver, runtime RuntimeIdentity) *Server {
+	return &Server{service: service, resolver: resolver, runtime: runtime}
 }
 
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", s.health)
 	mux.HandleFunc("/social/health", s.health)
+	mux.HandleFunc("/social/version", s.version)
 	mux.HandleFunc("/social/v1/wallet/challenge", s.walletChallenge)
 	mux.HandleFunc("/social/v1/wallet/login", s.login)
 	mux.HandleFunc("/social/v1/", s.social)
@@ -39,6 +56,30 @@ func (s *Server) Handler() http.Handler {
 		w.Header().Set("Referrer-Policy", "no-referrer")
 		w.Header().Set("Cache-Control", "no-store")
 		mux.ServeHTTP(w, r)
+	})
+}
+
+func (s *Server) version(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+	if !runtimeSourcePattern.MatchString(s.runtime.SourceCommit) || !runtimeReleasePattern.MatchString(s.runtime.ReleaseID) {
+		writeJSON(w, http.StatusServiceUnavailable, map[string]any{
+			"code":      "SOURCE_IDENTITY_UNAVAILABLE",
+			"error":     "Social runtime source identity is unavailable",
+			"retryable": false,
+		})
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{
+		"service":       "ynx-social",
+		"sourceCommit":  s.runtime.SourceCommit,
+		"releaseId":     s.runtime.ReleaseID,
+		"walletAuth":    "canonical-signed-envelope-v1",
+		"walletGateway": "persistent-p256-challenge-v1",
+		"chainId":       "ynx_6423-1",
+		"evmChainId":    6423,
 	})
 }
 func (s *Server) health(w http.ResponseWriter, r *http.Request) {

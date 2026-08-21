@@ -26,6 +26,10 @@ func main() {
 	stateDir := flag.String("state-dir", envOrDefault("YNX_SOCIAL_STATE_DIR", "tmp/social"), "Social persistent state directory")
 	checkConfig := flag.Bool("check-config", false, "validate configuration without starting the service")
 	flag.Parse()
+	runtime := social.RuntimeIdentity{
+		SourceCommit: strings.TrimSpace(os.Getenv("YNX_SOCIAL_SOURCE_COMMIT")),
+		ReleaseID:    strings.TrimSpace(os.Getenv("YNX_SOCIAL_RELEASE_ID")),
+	}
 
 	tokenKey, err := decodeKey("YNX_SOCIAL_TOKEN_KEY")
 	if err != nil {
@@ -42,6 +46,9 @@ func main() {
 	serviceKey := strings.TrimSpace(os.Getenv("YNX_SOCIAL_INTERNAL_API_KEY"))
 	if len(serviceKey) < 16 || strings.TrimSpace(*stateDir) == "" || rateMax <= 0 || rateMax > 10000 {
 		log.Fatal("Social state directory, internal API key (at least 16 characters), and bounded rate limit are required")
+	}
+	if runtime.SourceCommit == "" || runtime.ReleaseID == "" {
+		log.Fatal("YNX_SOCIAL_SOURCE_COMMIT and YNX_SOCIAL_RELEASE_ID are required for exact runtime identity")
 	}
 	if *checkConfig {
 		fmt.Println("ynx-sociald config check passed; isolated persistent Chat/Square composition and Wallet-bound Social sessions enabled")
@@ -65,7 +72,7 @@ func main() {
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
-	server := &http.Server{Addr: *httpAddr, Handler: mutationfreeze.FromEnv(social.NewServer(socialService, socialService).Handler()), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 45 * time.Second, WriteTimeout: 45 * time.Second, IdleTimeout: 60 * time.Second, MaxHeaderBytes: 32 * 1024}
+	server := &http.Server{Addr: *httpAddr, Handler: mutationfreeze.FromEnv(social.NewServerWithRuntimeIdentity(socialService, socialService, runtime).Handler()), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 45 * time.Second, WriteTimeout: 45 * time.Second, IdleTimeout: 60 * time.Second, MaxHeaderBytes: 32 * 1024}
 	go func() {
 		<-ctx.Done()
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 8*time.Second)

@@ -83,6 +83,52 @@ func TestServerExposesPublicPathHealthAlias(t *testing.T) {
 	}
 }
 
+func TestServerExposesExactRuntimeIdentityWithoutPrivateTopology(t *testing.T) {
+	service, _ := testService(t)
+	identity := RuntimeIdentity{
+		SourceCommit: "0123456789abcdef0123456789abcdef01234567",
+		ReleaseID:    "social-testnet-01234567",
+	}
+	server := httptest.NewServer(NewServerWithRuntimeIdentity(service, testResolver{}, identity).Handler())
+	defer server.Close()
+	response := doRequest(t, http.MethodGet, server.URL+"/social/version", "", nil)
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("version status=%d", response.StatusCode)
+	}
+	var actual map[string]any
+	if err := json.NewDecoder(response.Body).Decode(&actual); err != nil {
+		t.Fatal(err)
+	}
+	if actual["sourceCommit"] != identity.SourceCommit || actual["releaseId"] != identity.ReleaseID {
+		t.Fatalf("unexpected runtime identity: %#v", actual)
+	}
+	encoded, _ := json.Marshal(actual)
+	for _, forbidden := range []string{"127.0.0.1", "localhost", "/var/", "token", "secret", "key"} {
+		if strings.Contains(strings.ToLower(string(encoded)), forbidden) {
+			t.Fatalf("version response exposed private topology or secret field %q: %s", forbidden, encoded)
+		}
+	}
+}
+
+func TestServerFailsClosedWhenRuntimeIdentityIsUnbound(t *testing.T) {
+	service, _ := testService(t)
+	server := httptest.NewServer(NewServer(service, testResolver{}).Handler())
+	defer server.Close()
+	response := doRequest(t, http.MethodGet, server.URL+"/social/version", "", nil)
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusServiceUnavailable {
+		t.Fatalf("unbound version status=%d", response.StatusCode)
+	}
+	var actual map[string]any
+	if err := json.NewDecoder(response.Body).Decode(&actual); err != nil {
+		t.Fatal(err)
+	}
+	if actual["code"] != "SOURCE_IDENTITY_UNAVAILABLE" || actual["retryable"] != false {
+		t.Fatalf("unexpected unbound response: %#v", actual)
+	}
+}
+
 func TestServerRejectsLegacyWalletQueryFieldAuthorization(t *testing.T) {
 	service, _ := testService(t)
 	server := httptest.NewServer(NewServer(service, testResolver{}).Handler())

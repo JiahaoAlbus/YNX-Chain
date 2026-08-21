@@ -19,11 +19,41 @@ export type GroupMembershipUpdateInput = Readonly<{ idempotencyKey: string; add:
 export type DeviceRotationResponse = Readonly<{record:{id:string};replayed:boolean;session:Session["session"];token:string}>;
 export function adoptRotatedSession(previous:Session,result:DeviceRotationResponse):Session{return {...previous,token:result.token,session:result.session}}
 
+export type SocialRuntimeVersion = Readonly<{
+  service:"ynx-social";
+  sourceCommit:string;
+  releaseId:string;
+  walletAuth:string;
+  walletGateway:string;
+  chainId:"ynx_6423-1";
+  evmChainId:6423;
+}>;
+export type SocialAPIErrorCode =
+  | "NETWORK_UNAVAILABLE"
+  | "AUTH_REQUIRED"
+  | "ACCESS_DENIED"
+  | "API_NOT_FOUND"
+  | "CONFLICT"
+  | "RATE_LIMITED"
+  | "SERVICE_UNAVAILABLE"
+  | "INVALID_SERVER_RESPONSE"
+  | "REQUEST_FAILED";
+export class SocialAPIError extends Error {
+  constructor(
+    readonly code:SocialAPIErrorCode|string,
+    message:string,
+    readonly retryable:boolean,
+    readonly status:number|null,
+  ){super(message);this.name="SocialAPIError"}
+}
+
 export class SocialAPI {
   readonly base:string; private token:string|null;
   constructor(base=process.env.EXPO_PUBLIC_YNX_SOCIAL_API_BASE ?? "https://api.ynxweb4.com",token:string|null=null){if(!/^https:\/\//.test(base)&&!/^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?$/.test(base))throw new Error("Set a secure YNX Social API endpoint");this.base=base.replace(/\/$/,"");this.token=token}
   setToken(value:string|null){this.token=value}
   useSession(value:Session){this.token=value.token}
+  health(){return this.request<Record<string,unknown>>("/social/health",{auth:false})}
+  version(){return this.request<SocialRuntimeVersion>("/social/version",{auth:false})}
   walletChallenge(request:WalletAuthorizationRequest,approval:WalletApproval){return this.request<{challenge:ProductSessionChallenge}>("/social/v1/wallet/challenge",{method:"POST",body:{request,approval},auth:false})}
   login(input:WalletLogin){return this.request<Session>("/social/v1/wallet/login",{method:"POST",body:input,auth:false})}
   profile(){return this.request<{record:SocialProfile}>("/social/v1/profile")}
@@ -68,5 +98,39 @@ export class SocialAPI {
   aiBegin(body:Record<string,unknown>){return this.request<{record:AIJob;replayed:boolean}>("/social/v1/ai/jobs",{method:"POST",body})}
   aiTransition(id:string,action:string,output=""){return this.request<AIJob>(`/social/v1/ai/jobs/${encodeURIComponent(id)}`,{method:"POST",body:{action,output}})}
   async streamAI(id:string,contextText:string,onToken:(value:string)=>void,signal?:AbortSignal):Promise<AIJob>{if(!this.token)throw new Error("Social session is locked");const response=await fetch(`${this.base}/social/v1/ai/jobs/${encodeURIComponent(id)}/stream`,{method:"POST",headers:{Accept:"text/event-stream","Content-Type":"application/json",Authorization:`Bearer ${this.token}`},body:JSON.stringify({contextText}),signal});if(!response.ok)throw new Error(`Social AI stream failed (${response.status})`);if(!response.body)throw new Error("Streaming is unavailable on this device");const reader=response.body.getReader(),decoder=new TextDecoder(),lines:{event:string;data:string}[]=[];let buffer="",event="",doneJob:AIJob|undefined;while(true){const chunk=await reader.read();if(chunk.done)break;buffer+=decoder.decode(chunk.value,{stream:true});const parts=buffer.split("\n");buffer=parts.pop()??"";for(const raw of parts){const line=raw.trimEnd();if(line.startsWith("event:")){event=line.slice(6).trim()}else if(line.startsWith("data:")){const data=line.slice(5).trim();lines.push({event,data});if(event==="token"){const value=JSON.parse(data) as {text?:string};if(value.text)onToken(value.text)}else if(event==="error"){const value=JSON.parse(data) as {error?:string};throw new Error(value.error??"AI provider unavailable")}else if(event==="done"){const value=JSON.parse(data) as {record?:AIJob};doneJob=value.record}}}}if(!doneJob)throw new Error("AI stream ended before review state");return doneJob}
-  async request<T=unknown>(path:string,options:{method?:string;body?:unknown;auth?:boolean;headers?:Record<string,string>}={}):Promise<T>{const headers:Record<string,string>={Accept:"application/json",...options.headers};if(options.body!==undefined)headers["Content-Type"]="application/json";if(options.auth!==false){if(!this.token)throw new Error("Social session is locked");headers.Authorization=`Bearer ${this.token}`};const response=await fetch(`${this.base}${path}`,{method:options.method??"GET",headers,body:options.body===undefined?undefined:JSON.stringify(options.body)});const data=await response.json().catch(()=>({error:"Invalid server response"}));if(!response.ok)throw new Error(typeof data?.error==="string"?data.error:`Social request failed (${response.status})`);return data as T}
+  async request<T=unknown>(path:string,options:{method?:string;body?:unknown;auth?:boolean;headers?:Record<string,string>}={}):Promise<T>{
+    const method=options.method??"GET",headers:Record<string,string>={Accept:"application/json",...options.headers};
+    if(options.body!==undefined)headers["Content-Type"]="application/json";
+    if(options.auth!==false){if(!this.token)throw new SocialAPIError("AUTH_REQUIRED","Social session is locked",false,null);headers.Authorization=`Bearer ${this.token}`}
+    const body=options.body===undefined?undefined:JSON.stringify(options.body),maxAttempts=method==="GET"?2:1;
+    for(let attempt=0;attempt<maxAttempts;attempt+=1){
+      let response:Response;
+      try{response=await fetch(`${this.base}${path}`,{method,headers,body})}
+      catch{
+        if(attempt+1<maxAttempts){await retryDelay();continue}
+        throw new SocialAPIError("NETWORK_UNAVAILABLE","Social service could not be reached. Check the connection and try again.",true,null)
+      }
+      const data=await response.json().catch(()=>null) as null|Record<string,unknown>;
+      if(response.ok){if(data===null)throw new SocialAPIError("INVALID_SERVER_RESPONSE","Social service returned an invalid response",false,response.status);return data as T}
+      const serverCode=typeof data?.code==="string"&&/^[A-Z][A-Z0-9_]{2,63}$/.test(data.code)?data.code:null;
+      const serverRetryable=typeof data?.retryable==="boolean"?data.retryable:undefined;
+      const retryable=serverRetryable??[429,502,503,504].includes(response.status);
+      if(retryable&&attempt+1<maxAttempts){await retryDelay();continue}
+      const code=serverCode??httpErrorCode(response.status);
+      const safeMessage=typeof data?.error==="string"&&data.error.length<=240?data.error:`Social request failed (${response.status})`;
+      throw new SocialAPIError(code,safeMessage,retryable,response.status)
+    }
+    throw new SocialAPIError("REQUEST_FAILED","Social request failed",false,null)
+  }
 }
+
+function httpErrorCode(status:number):SocialAPIErrorCode{
+  if(status===401)return "AUTH_REQUIRED";
+  if(status===403)return "ACCESS_DENIED";
+  if(status===404)return "API_NOT_FOUND";
+  if(status===409)return "CONFLICT";
+  if(status===429)return "RATE_LIMITED";
+  if(status===502||status===503||status===504)return "SERVICE_UNAVAILABLE";
+  return "REQUEST_FAILED";
+}
+const retryDelay=()=>new Promise<void>((resolve)=>setTimeout(resolve,150));
