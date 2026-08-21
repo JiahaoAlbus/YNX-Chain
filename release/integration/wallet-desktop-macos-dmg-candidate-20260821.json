@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "product": "YNX Wallet Desktop",
+  "sourceCommit": "9a0214b649c9d693666aeea2f352abff69e120df",
+  "generatedAt": "2026-08-21T10:29:19Z",
+  "artifact": {
+    "name": "ynx-wallet-desktop-0.1.0-universal.dmg",
+    "format": "UDZO DMG",
+    "bytes": 237439304,
+    "sha256": "b7e286214446cb66000bd3242a32f6837ea202ec55121a1e01e3f5714b8eec48",
+    "minimumOS": "macOS 13 (not independently installed on a clean host)",
+    "architectures": ["x86_64", "arm64"],
+    "buildMethod": "Electron universal app packaged locally; DMG image created with macOS hdiutil after electron-builder's DMG helper was blocked by missing Command Line Tools"
+  },
+  "verification": {
+    "desktopTests": "3/3 passed",
+    "dmgMountedReadOnly": true,
+    "mountedExecutableArchitectures": ["x86_64", "arm64"],
+    "bundleStrictCodeSignatureVerified": false,
+    "bundleSignatureResult": "code object is not signed at all",
+    "mainExecutableSignature": "ad-hoc, TeamIdentifier not set"
+  },
+  "releaseTruth": {
+    "candidateOnly": true,
+    "installedLocal": false,
+    "coldLaunchProved": false,
+    "secondLaunchProved": false,
+    "networkConnectionProved": false,
+    "rollbackProved": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "notarized": false,
+    "storeReleased": false,
+    "deployedPublic": false
+  },
+  "nextRequiredEvidence": [
+    "Developer ID signed and notarized DMG",
+    "clean-host install, cold launch, and second launch",
+    "installed-app Testnet connection evidence",
+    "official hosted-download and rollback evidence"
+  ]
+}
