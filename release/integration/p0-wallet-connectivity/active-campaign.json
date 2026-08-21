@@ -407,26 +407,40 @@
         "rollback to /opt/ynx-video/releases/p0122b-creator-wallet-650070ce on any failure",
         "P0-130 remains nonreusable"
       ]
+    },
+    {
+      "owner": "integration",
+      "taskId": "P0-132",
+      "status": "ACTIVE_SINGLE_USE_CREATOR_STUDIO_ACTIVATION",
+      "grantedAt": "2026-08-21T08:38:29Z",
+      "expiresAt": "2026-08-21T08:53:29Z",
+      "sourceCommit": "993e7cc99ea3919488d6765e097ca78a82a30704",
+      "scope": "activate-exact-preverified-p0131-with-bounded-readiness",
+      "constraints": [
+        "activate only the already verified p0131 candidate with exact app and index hashes",
+        "wait up to ten seconds for the service listener after restart",
+        "rollback to p0122b on any bounded probe failure",
+        "do not rebuild, restage or modify the accepted candidate",
+        "P0-130 and P0-131 remain nonreusable"
+      ]
     }
   ],
   "heavy": {
-    "owner": null,
-    "taskId": "P0-131",
-    "status": "CONSUMED_RELEASED_FAILED_CLOSED_READINESS_WINDOW",
-    "acquiredAt": "2026-08-21T08:34:52Z",
-    "expiresAt": "2026-08-21T09:04:52Z",
+    "owner": "integration",
+    "taskId": "P0-132",
+    "status": "ACTIVE_SINGLE_USE_CREATOR_STUDIO_ACTIVATION",
+    "acquiredAt": "2026-08-21T08:38:29Z",
+    "expiresAt": "2026-08-21T08:53:29Z",
     "sourceCommit": "993e7cc99ea3919488d6765e097ca78a82a30704",
     "runtimeHost": "43.153.202.237",
     "currentRuntime": "/opt/ynx-video/releases/p0122b-creator-wallet-650070ce",
     "rollbackTarget": "/opt/ynx-video/releases/p0122b-creator-wallet-650070ce",
     "artifactSha256": "9ec9385f2a1843e826f7a059f832b06a90f9828a13652595a4a6afe75e1c03de",
-    "productionMutationAllowed": false,
+    "productionMutationAllowed": true,
     "singleUse": true,
     "previousOwner": null,
-    "previousTaskId": "P0-130",
-    "releasedAt": "2026-08-21T08:37:16Z",
-    "checkpointCommit": "993e7cc99ea3919488d6765e097ca78a82a30704",
-    "reason": "Candidate and artifact checks passed, but the post-restart probe ran before port 6495 was listening. The rollback trap restored the exact old runtime; P0-131 is nonreusable."
+    "previousTaskId": "P0-131",
+    "reason": "Activate the unchanged preverified p0131 candidate with a bounded service-readiness loop."
   },
   "wave": {
     "id": "B-financial-apps-quant",
