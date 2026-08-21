@@ -64,6 +64,8 @@ calendar_deploy_main() {
   calendar_require_absolute CALENDAR_STATE "$CALENDAR_STATE"
   calendar_require_absolute CALENDAR_STATE_KEY "$CALENDAR_STATE_KEY"
   calendar_require_absolute CALENDAR_BACKUP "$CALENDAR_BACKUP"
+  [[ "$CALENDAR_CANDIDATE" == /var/tmp/ynx-calendar-*/* ]] || { echo "candidate must be lease-staged under /var/tmp/ynx-calendar-*" >&2; return 64; }
+  [[ "$CALENDAR_BACKUP" == /var/backups/ynx-chain/calendar-* ]] || { echo "backup must be under /var/backups/ynx-chain/calendar-*" >&2; return 64; }
   calendar_require_sha256 CALENDAR_EXPECTED_CANDIDATE_SHA "$CALENDAR_EXPECTED_CANDIDATE_SHA"
   calendar_require_sha256 CALENDAR_EXPECTED_OLD_BINARY_SHA "$CALENDAR_EXPECTED_OLD_BINARY_SHA"
   calendar_require_sha256 CALENDAR_EXPECTED_OLD_STATE_SHA "$CALENDAR_EXPECTED_OLD_STATE_SHA"
@@ -79,18 +81,21 @@ calendar_deploy_main() {
   # most important.
   CALENDAR_TRANSACTION_COMMITTED=false
   CALENDAR_ROLLBACK_STARTED=false
+  CALENDAR_BACKUP_COMPLETE=false
   CALENDAR_HEALTH_FILE="$(mktemp /var/tmp/ynx-calendar-health.XXXXXX)"
 
   calendar_rollback() {
     [[ "$CALENDAR_TRANSACTION_COMMITTED" == false && "$CALENDAR_ROLLBACK_STARTED" == false ]] || return 0
     CALENDAR_ROLLBACK_STARTED=true
     calendar_service stop "$CALENDAR_SERVICE" || true
-    install -o root -g root -m 0755 "$CALENDAR_BACKUP/ynx-calendard" "$CALENDAR_BINARY"
-    install -o ynx -g ynx -m 0600 "$CALENDAR_BACKUP/state.json" "$CALENDAR_STATE"
-    install -o ynx -g ynx -m 0600 "$CALENDAR_BACKUP/state.json.hmac-key" "$CALENDAR_STATE_KEY"
-    [[ "$(calendar_sha "$CALENDAR_BINARY")" == "$CALENDAR_EXPECTED_OLD_BINARY_SHA" ]]
-    [[ "$(calendar_sha "$CALENDAR_STATE")" == "$CALENDAR_EXPECTED_OLD_STATE_SHA" ]]
-    [[ "$(calendar_sha "$CALENDAR_STATE_KEY")" == "$CALENDAR_EXPECTED_OLD_KEY_SHA" ]]
+    if [[ "$CALENDAR_BACKUP_COMPLETE" == true ]]; then
+      install -o root -g root -m 0755 "$CALENDAR_BACKUP/ynx-calendard" "$CALENDAR_BINARY"
+      install -o ynx -g ynx -m 0600 "$CALENDAR_BACKUP/state.json" "$CALENDAR_STATE"
+      install -o ynx -g ynx -m 0600 "$CALENDAR_BACKUP/state.json.hmac-key" "$CALENDAR_STATE_KEY"
+      [[ "$(calendar_sha "$CALENDAR_BINARY")" == "$CALENDAR_EXPECTED_OLD_BINARY_SHA" ]]
+      [[ "$(calendar_sha "$CALENDAR_STATE")" == "$CALENDAR_EXPECTED_OLD_STATE_SHA" ]]
+      [[ "$(calendar_sha "$CALENDAR_STATE_KEY")" == "$CALENDAR_EXPECTED_OLD_KEY_SHA" ]]
+    fi
     calendar_service reset-failed "$CALENDAR_SERVICE" || true
     calendar_service start "$CALENDAR_SERVICE"
     calendar_wait_for_source "$CALENDAR_EXPECTED_OLD_SOURCE" "$CALENDAR_HEALTH_FILE" "${CALENDAR_READY_ATTEMPTS:-60}" "${CALENDAR_READY_DELAY:-1}"
@@ -112,6 +117,7 @@ calendar_deploy_main() {
   [[ "$(calendar_sha "$CALENDAR_BACKUP/ynx-calendard")" == "$CALENDAR_EXPECTED_OLD_BINARY_SHA" ]]
   [[ "$(calendar_sha "$CALENDAR_BACKUP/state.json")" == "$CALENDAR_EXPECTED_OLD_STATE_SHA" ]]
   [[ "$(calendar_sha "$CALENDAR_BACKUP/state.json.hmac-key")" == "$CALENDAR_EXPECTED_OLD_KEY_SHA" ]]
+  CALENDAR_BACKUP_COMPLETE=true
 
   install -o root -g root -m 0755 "$CALENDAR_CANDIDATE" "$CALENDAR_BINARY"
   [[ "$(calendar_sha "$CALENDAR_BINARY")" == "$CALENDAR_EXPECTED_CANDIDATE_SHA" ]]

@@ -47,6 +47,8 @@ grep -Fq 'install -o root -g root -m 0755 "$CALENDAR_BACKUP/ynx-calendard"' "$RO
 grep -Fq 'install -o ynx -g ynx -m 0600 "$CALENDAR_BACKUP/state.json"' "$ROOT/scripts/deploy-public-calendar.sh"
 grep -Fq 'install -o ynx -g ynx -m 0600 "$CALENDAR_BACKUP/state.json.hmac-key"' "$ROOT/scripts/deploy-public-calendar.sh"
 grep -Fq 'CALENDAR_TRANSACTION_COMMITTED=false' "$ROOT/scripts/deploy-public-calendar.sh"
+grep -Fq 'CALENDAR_BACKUP_COMPLETE=false' "$ROOT/scripts/deploy-public-calendar.sh"
+grep -Fq 'if [[ "$CALENDAR_BACKUP_COMPLETE" == true ]]; then' "$ROOT/scripts/deploy-public-calendar.sh"
 grep -Fq 'if [[ "$CALENDAR_TRANSACTION_COMMITTED" == false ]]; then calendar_rollback' "$ROOT/scripts/deploy-public-calendar.sh"
 
 echo "calendar deployment readiness tests passed"
