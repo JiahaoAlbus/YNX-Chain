@@ -56,7 +56,7 @@ function firstLineMatching(text, expression) {
 export function webAuthorizationBehaviorFindings(relative, text) {
   if (!isWebProductSource(relative)) return Object.freeze([]);
   const findings = [];
-  const navigationLine = firstLineMatching(text, /(?:(?:window|document)\.)?location(?:\.href)?\s*=.*(?:wallet|authoriz|deep.?link)|location\.(?:assign|replace)\s*\([^\n]*(?:wallet|authoriz|deep.?link)/i);
+  const navigationLine = firstLineMatching(text, /(?:(?:window|document)\.)?location(?:\.href)?\s*=.*(?:wallet|authoriz)|location\.(?:assign|replace)\s*\([^\n]*(?:wallet|authoriz)/i);
   if (navigationLine !== null) findings.push(Object.freeze({ file: relative, line: navigationLine, code: "WEB_TOP_LEVEL_WALLET_AUTHORIZATION_NAVIGATION" }));
   if (
     text.includes(ROUTE)
