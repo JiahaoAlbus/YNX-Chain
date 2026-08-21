@@ -341,7 +341,7 @@
     "status": "ACTIVE_SINGLE_USE",
     "acquiredAt": "2026-08-21T07:18:05Z",
     "expiresAt": "2026-08-21T09:18:05Z",
-    "sourceCommit": "e968f5666eb7ef1b03dcd26867bcd0035222f4dc",
+    "sourceCommit": "4ebf27fd8308f31fe98a38497ff15b9f77f66cba",
     "runtimeHost": "43.153.202.237",
     "currentRuntime": null,
     "rollbackTarget": "/etc/caddy/ynx-chain.caddy before P0-125 plus absent ynx-trust-center.service",
@@ -350,7 +350,7 @@
     "previousOwner": "integration",
     "previousTaskId": "P0-124",
     "releasedAt": null,
-    "checkpointCommit": "e968f5666eb7ef1b03dcd26867bcd0035222f4dc",
+    "checkpointCommit": "4ebf27fd8308f31fe98a38497ff15b9f77f66cba",
     "reason": "Bounded Trust Center UI deployment only; preserve canonical Trust API and unsupported Wallet success gates."
   },
   "wave": {

@@ -18,7 +18,7 @@
     "reason": "Deploy exact Trust Center source as a separate public UI while preserving the authoritative ynx-trustd API and fail-closed private-service boundary.",
     "executionScope": "TRUST_CENTER_PUBLIC_UI_SERVICE_AND_INGRESS_ONLY",
     "onSafeCheckpoint": [
-      "source e968f5666eb7ef1b03dcd26867bcd0035222f4dc and archive 35b47ce291fec6278aa6f424164b789ec244cef62f42ee9437f56f59c6bf46f0 are exact",
+      "source 4ebf27fd8308f31fe98a38497ff15b9f77f66cba and archive 408a0d397cffd3a92da7ae168bef94648005e16b38d78f7de6013f282ad896c3 are exact",
       "new service may bind only 127.0.0.1:6498 and must not replace ynx-trustd on 127.0.0.1:6431",
       "Caddy must preserve /health, /metrics, /trust/* and /governance/* on the authoritative backend",
       "installed Wallet, provider/account/signature/transaction, Product Session v2 and Computer Control remain false unless independently proved"
