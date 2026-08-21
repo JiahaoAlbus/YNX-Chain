@@ -8,7 +8,7 @@ The standard provider path now calls `wallet_switchEthereumChain` for `0x1917`; 
 
 ## Provider connection-state repair — 2026-08-21
 
-Exchange now consumes Wallet/App Gateway Provider Discovery source `98c6d5d784d212df8981a53b17118a511e246ad2` through its hash-pinned vendor archive, including the shared Standard Wallet connection reducer. Connected status requires exactly one selected provider, an approved `0x` account, and the provider's `eth_chainId` result of `0x1917`. Refresh uses `eth_accounts` and `eth_chainId` without a chooser or prompt. The product's dialog closes and returns focus to Connect only after that completed state.
+Exchange now consumes Wallet/App Gateway Provider Discovery source `98c6d5d784d212df8981a53b17118a511e246ad2` (commit tree `51a60a362d4ad5dd748bcdefb101f71b1d9e0cee`; Wallet/Auth package tree `69ba84eaef503932ba1b66f42a9caa0a125e0608`) through its hash-pinned vendor archive, including the shared Standard Wallet connection reducer. Connected status requires exactly one selected provider, an approved `0x` account, and the provider's `eth_chainId` result of `0x1917`. Refresh uses `eth_accounts` and `eth_chainId` without a chooser or prompt. The product's dialog closes and returns focus to Connect only after that completed state.
 
 No direct browser RPC fetch is used to establish connection. The accepted CORS-safe probe transition can become DEGRADED without clearing a connected Standard Wallet, changing its account or chain, reopening the chooser, or changing the independent PENDING Exchange Product Session boundary. Exact source, test, build, and false-gate truth are recorded in [p0-exchange-provider-connect-state-20260821.json](evidence/p0-exchange-provider-connect-state-20260821.json).
 
