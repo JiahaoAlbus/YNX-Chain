@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-08-21T15:15:07Z",
+  "owner": "Wallet/Auth iOS native",
+  "implementationCommit": "f7669a663370f7c2e5a34743e39024dfd05ed333",
+  "implementationTree": "a8787e50056c013ba6856c99ab942e983a5593e2",
+  "sourceBackread": {
+    "apps/wallet/ios/YNXWallet/AppDelegate.swift": {
+      "gitBlob": "b567c6a0ad2e60d4dc414b713a2e24d60669bd90",
+      "bytes": 9130,
+      "sha256": "787c07d5599ec2523b0a85d4c6eca3bfda0027bf6a35aed7e55a9bf5a46e3fd3"
+    },
+    ".github/workflows/wallet-ios.yml": {
+      "gitBlob": "db5a0bd821b643d63a9b2381cdbf506c740cb544",
+      "bytes": 24946,
+      "sha256": "176815270aaa25d40cd34664a11adfdc803efea52d7962d061973fadef71fd2d"
+    }
+  },
+  "githubActions": {
+    "runId": 32494364610,
+    "jobId": 96809174360,
+    "headShaExact": true,
+    "status": "completed",
+    "conclusion": "failure",
+    "createdAt": "2026-08-21T14:50:57Z",
+    "completedAt": "2026-08-21T15:15:06Z",
+    "xcode": "26.3 (17C529)",
+    "jobLog": {
+      "bytes": 22538828,
+      "sha256": "34e348674dd98ff0182b132b29a0323073d9fd91af0a7059fccc8154ffd3f940"
+    },
+    "steps": {
+      "buildAdHocSimulatorApp": "success",
+      "installColdKeychainSecondGateway": "success",
+      "malformedCallbackVisibleFailClosed": "success",
+      "canonicalRegistryNativeBridgeFailClosed": "success",
+      "universalLinkWithoutFrozenAssociatedDomainFailClosed": "success",
+      "recoveryEmptyWithoutBiometricAuthorization": "success",
+      "simulatorBiometricRecoveryPositive": "failure",
+      "recordArtifactFacts": "success",
+      "uploadArtifact": "success"
+    }
+  },
+  "simulatorArtifact": {
+    "platform": "iOS Simulator",
+    "minimumOS": "16.4",
+    "architectures": ["arm64", "x86_64"],
+    "signingClass": "ad-hoc Simulator",
+    "applicationIdentifier": "FAKETEAMID.com.ynxweb4.wallet",
+    "productionSigned": false,
+    "innerZip": {
+      "name": "YNXWallet-iOS-Simulator.zip",
+      "bytes": 16921694,
+      "sha256": "5d3bd757e6e0efe8af0d3969773b841863b2bc8acb27b69d99c30fe0a62daff6"
+    },
+    "actionsArtifact": {
+      "id": 9451808084,
+      "name": "ynx-wallet-ios-simulator",
+      "metadataBytes": 99858150,
+      "metadataDigest": "sha256:456942ca580f213aa292c4b3094f95d79c85a7ccbe5ec6662259d9f43de8e28c",
+      "downloadInspected": false
+    }
+  },
+  "directNativeEvidence": {
+    "coldLaunchPid": 18704,
+    "secondLaunchPid": 19705,
+    "nativeKeychainProbe": {
+      "pid": 18704,
+      "available": true,
+      "addStatus": 0,
+      "readStatus": 0,
+      "deleteStatus": 0
+    },
+    "coldAndSecondGateway": {
+      "walletCompletionError": "UNKNOWN_OR_MISSING_FIELD",
+      "walletIntrospectionError": "PROOF_REQUIRED",
+      "productSessionIntrospectionError": "UNKNOWN_OR_MISSING_FIELD",
+      "observedStateUnchanged": true,
+      "authorizationSuccess": false,
+      "accountAvailable": false,
+      "signing": false,
+      "send": false,
+      "transaction": false
+    }
+  },
+  "boundedFailure": {
+    "step": "Prove recovery and unlock with Simulator biometric matches",
+    "test": "testRecoveryAndUnlockWithSimulatedBiometricMatches",
+    "failedAt": "2026-08-21T15:13:46Z",
+    "assertion": "LocalAuthentication recovery prompt did not appear after Simulator enrollment",
+    "systemAccessibilityError": "kAXErrorInvalidUIElement",
+    "biometricSuccess": false,
+    "recoverySuccess": false
+  },
+  "promotedGates": {
+    "simulatorInstallColdSecondLaunch": true,
+    "nativeKeychainAddReadDelete": true,
+    "nativePublicGatewayExactNegativeFailClosedColdAndSecond": true
+  },
+  "remainingFalse": {
+    "authorizationSuccess": false,
+    "approval": false,
+    "account": false,
+    "productSession": false,
+    "sign": false,
+    "send": false,
+    "transaction": false,
+    "biometricSuccess": false,
+    "recoverySuccess": false,
+    "universalLinkAuthorized": false,
+    "public": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "appStore": false
+  }
+}
