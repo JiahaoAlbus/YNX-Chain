@@ -578,7 +578,56 @@ jobs:
           test "$(stat -f '%z' "$DMG")" = "$EXPECTED_BYTES"
           grep -F 'gatekeeperAccepted=false' "$PROOF/engineering-dmg-gatekeeper-boundary.txt"
           grep -F 'signingClass=ad-hoc' "$PROOF/engineering-dmg-gatekeeper-boundary.txt"
-          gh release create "$RELEASE_TAG" "$DMG" \
+          MANIFEST="$DOWNLOAD_ROOT/YNX-Wallet-macOS-ad-hoc.manifest.json"
+          export EXPECTED_SHA256 EXPECTED_BYTES MANIFEST RELEASE_TAG
+          ruby -rjson -e '
+            manifest = {
+              schemaVersion: 1,
+              releaseTag: ENV.fetch("RELEASE_TAG"),
+              sourceCommit: ENV.fetch("YNX_EXPECTED_SOURCE_SHA"),
+              artifact: {
+                name: "YNX-Wallet-macOS-ad-hoc.dmg",
+                sha256: ENV.fetch("EXPECTED_SHA256"),
+                bytes: Integer(ENV.fetch("EXPECTED_BYTES")),
+                bundleIdentifier: "com.ynxweb4.wallet.macos",
+                minimumOS: "13.0",
+                architectures: ["x86_64", "arm64"],
+                customScheme: "ynxwallet",
+                signingClass: "ad-hoc engineering",
+                teamIdentifier: nil
+              },
+              gates: {
+                testnetEngineeringArtifact: true,
+                developerIDSigned: false,
+                notarized: false,
+                stapled: false,
+                gatekeeperAccepted: false,
+                productionSigned: false,
+                appStore: false,
+                websitePublished: false,
+                authorizationSuccess: false,
+                account: false,
+                productSession: false,
+                sign: false,
+                send: false,
+                transaction: false,
+                biometricSuccess: false,
+                recoverySuccess: false,
+                universalLink: false
+              }
+            }
+            File.write(ENV.fetch("MANIFEST"), JSON.pretty_generate(manifest) + "\n")
+          '
+          ruby -rjson -e '
+            manifest = JSON.parse(File.read(ENV.fetch("MANIFEST")))
+            abort unless manifest.fetch("sourceCommit") == ENV.fetch("YNX_EXPECTED_SOURCE_SHA")
+            abort unless manifest.dig("artifact", "sha256") == ENV.fetch("EXPECTED_SHA256")
+            abort unless manifest.dig("artifact", "bytes") == Integer(ENV.fetch("EXPECTED_BYTES"))
+            false_gates = manifest.fetch("gates").reject { |key, _| key == "testnetEngineeringArtifact" }
+            abort unless false_gates.values.all? { |value| value == false }
+          '
+          shasum -a 256 "$MANIFEST"
+          gh release create "$RELEASE_TAG" "$DMG" "$MANIFEST" \
             --target "$YNX_EXPECTED_SOURCE_SHA" \
             --prerelease \
             --title "YNX Wallet macOS Testnet Engineering DMG $RELEASE_TAG" \
