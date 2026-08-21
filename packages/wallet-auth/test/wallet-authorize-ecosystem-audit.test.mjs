@@ -185,6 +185,8 @@ test("macOS native engineering DMG stays an inspected Gatekeeper-rejected CI art
   const evidence = ownerActivityCheckpoint.walletPlatformTracking.macosNativeEngineeringDmg;
   assert.equal(evidence.implementationCommit, "b1f7bff5732a5ab85fa87345dd9ea3b59c8d9431");
   assert.equal(evidence.evidenceCommit, "a00397cdf669bd71cd452af617ce6debf53a1680");
+  assert.equal(evidence.supplementImplementationCommit, "af8dba8b88a187f92d149ac5b6d84db35e564ee3");
+  assert.equal(evidence.supplementEvidenceCommit, "af275bbe5586feb442976a0ebf88f1569dd08774");
   assert.equal(evidence.engineeringDmgCreated, true);
   assert.equal(evidence.engineeringDmgMounted, true);
   assert.equal(evidence.containedBundleId, "com.ynxweb4.wallet.macos");
@@ -194,7 +196,14 @@ test("macOS native engineering DMG stays an inspected Gatekeeper-rejected CI art
   assert.equal(evidence.gatekeeperBoundaryVerified, true);
   assert.equal(evidence.gatekeeperAccepted, false);
   assert.equal(evidence.artifactDownloadInspected, false);
-  assert.equal(evidence.innerDmgSha256, null);
+  assert.equal(evidence.innerDmgFactsSource, "PUBLIC_ACTIONS_LOG");
+  assert.equal(evidence.innerDmgSha256, "81a635598fee01d4fe12d617866df7c52b09acc09ea447826a2f1bee6e6ac662");
+  assert.equal(evidence.innerDmgBytes, 307402);
+  assert.equal(evidence.minimumMacOS, "13.0");
+  assert.deepEqual(evidence.architectures, ["x86_64", "arm64"]);
+  assert.equal(evidence.signingClass, "adhoc");
+  assert.equal(evidence.teamIdentifierPresent, false);
+  assert.equal(evidence.hdiutilChecksumValid, true);
   assert.equal(evidence.websitePublished, false);
   assert.equal(evidence.systemApplicationsInstalled, false);
   assert.equal(evidence.developerId, false);
