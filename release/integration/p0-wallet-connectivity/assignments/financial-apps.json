@@ -1,22 +1,22 @@
 {
-  "taskId": "P0-103",
+  "taskId": "P0-105",
   "owner": "financial-apps",
-  "status": "ACTIVE_FINANCE_CANONICAL_AUTHORIZE_SLICE",
+  "status": "ACTIVE_EXCHANGE_CANONICAL_AUTHORIZE_SLICE",
   "acceptedContracts": ["walletTransport@p0-wallet-connection-v1", "errorContract@p0-wallet-connection-v1", "dappConnectSDK@0.1.0-p0.0", "publicEndpointManifest@1.0.0-p0.2", "canonicalWalletAuthorize@1.0.0-p0.0"],
-  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-finance-canonical-authorize-20260821T033502Z",
-  "leasedAt": "2026-08-21T03:35:02Z",
-  "expiresAt": "2026-08-21T05:35:02Z",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-exchange-canonical-authorize-20260821T040305Z",
+  "leasedAt": "2026-08-21T04:03:05Z",
+  "expiresAt": "2026-08-21T06:03:05Z",
   "activeProduct": {
-    "id": "finance",
-    "pathLock": "apps/finance/**",
-    "branch": "codex/p0-finance-wallet-connectivity-20260820",
-    "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/24-finance",
-    "baselineCommit": "f7efbd9e9658aaea75f8d9fbbb58f79ee1a48365",
-    "scope": "Consume accepted canonical authorize builder/parser, then build, install and capture exact visible approve/reject/cold-start evidence."
+    "id": "exchange",
+    "pathLock": "apps/exchange/**",
+    "branch": "codex/exchange-wallet-actions-20260809",
+    "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/07-exchange-public",
+    "baselineCommit": "ffc5cf89fbba81bf439835350bb91d09ece158ab",
+    "scope": "Consume accepted canonical authorize builder/parser, keep MetaMask independent, then test/build and capture only truthful visible evidence."
   },
-  "prohibitions": ["do not rewrite shared protocol", "do not hard-code endpoints", "do not start Exchange, Pay, DEX or Quant", "do not deploy production"],
+  "prohibitions": ["do not rewrite shared protocol", "do not hard-code endpoints", "do not start Pay, DEX or Quant", "do not deploy production"],
   "deployedPublic": false,
   "publicVerified": false,
   "computerControlVerified": false,
-  "nextAction": "Begin Finance at f7efbd9e and stop after one recoverable canonical-authorize build/install/visible checkpoint."
+  "nextAction": "Begin Exchange at ffc5cf89 and stop after one recoverable canonical-authorize source/build/visible checkpoint."
 }
