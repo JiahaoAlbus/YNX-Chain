@@ -1,0 +1,47 @@
+{
+  "schemaVersion": "ynx-calendar-browser-visible-evidence/v1",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-098-VISIBLE",
+  "sourceCommit": "828120e6d81efaf874a930793660e185a394ba4f",
+  "url": "https://calendar-testnet.43.153.202.237.sslip.io/",
+  "observedTitle": "YNX Calendar",
+  "observedLanguage": "en",
+  "visibleControls": [
+    "Day",
+    "Week",
+    "Month",
+    "Agenda",
+    "Create event",
+    "Search calendar",
+    "Sign in with YNX Wallet",
+    "Recover with YNX Wallet",
+    "Try locally without signing in"
+  ],
+  "guestFlow": {
+    "deviceOnlyModeOpened": true,
+    "signInHiddenAfterGuestEntry": true,
+    "dayViewInteractive": true,
+    "agendaViewInteractive": true,
+    "externalSessionFabricated": false
+  },
+  "layout": {
+    "viewportWidth": 1780,
+    "bodyScrollWidth": 1780,
+    "horizontalOverflow": 0
+  },
+  "consoleErrors": 0,
+  "screenshot": {
+    "path": "apps/calendar/release/evidence/p0-098/calendar-public-visible-20260821.png",
+    "bytes": 55467,
+    "sha256": "6098f0106910590295b7de8abd5f460d8cfa85f82a57bc809b61f150f9600e44"
+  },
+  "truth": {
+    "renderedVisibleVerifiedCurrentSource": true,
+    "browserInteractiveVerifiedCurrentSource": true,
+    "walletButtonVisible": true,
+    "walletApprovalVerified": false,
+    "installedWalletVerified": false,
+    "productSessionV2": false,
+    "computerControlVerified": false
+  }
+}

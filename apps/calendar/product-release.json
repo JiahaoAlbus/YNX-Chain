@@ -239,6 +239,10 @@
         "versionHttpBytesSha256": "200/278/d9b2e78ac4defc974368a23097a9c56de7a3859880b2bdb615b0f5f86343e803",
         "rootHttpBytesSha256": "200/15731/4ef95799855917062d3625587c234757377762c8523fe2317eeb8b34b6e97258",
         "rollbackBackup": "/var/backups/ynx-chain/calendar-828120e6-p0098",
+        "renderedVisibleCurrentDeployment": true,
+        "browserInteractiveCurrentDeployment": true,
+        "browserConsoleErrors": 0,
+        "browserScreenshotSha256": "6098f0106910590295b7de8abd5f460d8cfa85f82a57bc809b61f150f9600e44",
         "computerControlCurrentDeployment": false,
         "installedWalletCurrentDeployment": false
       }
