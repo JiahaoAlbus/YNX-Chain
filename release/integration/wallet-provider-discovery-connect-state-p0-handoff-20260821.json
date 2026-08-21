@@ -5,11 +5,11 @@
   "recordedAt": "2026-08-21T09:53:40Z",
   "source": {
     "branch": "codex/wallet-session-router-recovery",
-    "commit": "03c0712a124d98b9570be93b96db194d83cd8679",
-    "tree": "d145c95e1113734a6c45016105ed11e6411bd550",
+    "commit": "98c6d5d784d212df8981a53b17118a511e246ad2",
+    "tree": "51a60a362d4ad5dd748bcdefb101f71b1d9e0cee",
     "providerDiscovery": {"path":"packages/wallet-auth/src/wallet-provider-discovery.js","blob":"38198077220584668a94649c7f36d6881bfab6fb","sha256":"94875a262b7422f3153ecfd7cbe4bde2c7884239bc9f1003a1e6f86ca74b08ed"},
-    "connectState": {"path":"packages/wallet-auth/src/standard-wallet-connect-state.js","blob":"575aded464c95ef0fef473869f724468deb27e2a","sha256":"7575d9e0ba5174ff55d182675bf067379412217a4072d459ba0b968334fdcfbc"},
-    "consumerGate": {"path":"packages/wallet-auth/scripts/verify-standard-wallet-connect-consumer.mjs","blob":"6688a6ba4c24df31e935c0877cc0d2bf357ef5fb","sha256":"144e3942263c598adb6233f2fc489c900d231bb1fc7284bd8565440b6ea4c15c"},
+    "connectState": {"path":"packages/wallet-auth/src/standard-wallet-connect-state.js","blob":"60879be26a4b4760dea53b38f76872045c421202","sha256":"72558116f22625c6e9abf363b9dd16a7b1b80c93d88099be531cb63e70a62b92"},
+    "consumerGate": {"path":"packages/wallet-auth/scripts/verify-standard-wallet-connect-consumer.mjs","blob":"bdbd1f80db502096ff204ce2c5db3afce311547d","sha256":"19682da2caa7020f5648e9fe8136f27813b41ba171fcdfc01e5f0fccc908c045"},
     "installerGate": {"path":"packages/wallet-auth/src/installable-artifact-gate.js","blob":"44d20787565b9719ed2cbc9d6d87d73be113e2a5","sha256":"0d92ac8da4379ffb98e4ec1c070bd9cc0ff6f3079b2c5daa2102ae5245968668"},
     "installerContract": {"path":"packages/wallet-auth/integration/installable-wallet-artifact-gate-v1.json","blob":"8a809b6a0527a5e7555d39b11367123a1133e164","sha256":"ed30ac0f8427a79710ccf05f788322b06a09a0a448086e5aede6d949d006b865"}
   },
@@ -26,6 +26,12 @@
     "refresh": "RESTORE accepts only a recognized provider, a non-empty canonical account list, and chain 0x1917; it never reopens the chooser.",
     "connectedChooser": ["connection-details","disconnect","switch-account","close"],
     "privateService": "PRIVATE_SESSION_DEGRADED preserves connected Standard Wallet state and keeps the chooser closed.",
+    "rpcProbe": {
+      "endpointBindingObserved": "Public Wallet Companion declares rpc.cors=false.",
+      "connectionAuthority": "Provider selection, approved account and provider.request eth_chainId=0x1917 are sufficient; no direct browser RPC fetch is a prerequisite.",
+      "transport": "Only an accepted CORS-safe probe may emit RPC_PROBE_READY or RPC_PROBE_DEGRADED.",
+      "failureBoundary": "RPC probe degradation preserves provider, account, chain, standard permissions and closed chooser; it cannot be reclassified as no-provider."
+    },
     "invalidatingEvents": ["accountsChanged-empty","provider-disconnect","chainChanged-wrong-chain","user-disconnect"]
   },
   "directChromeEvidence": {
@@ -64,8 +70,8 @@
     }
   },
   "tests": {
-    "focused": "38/38",
-    "walletAuthFull": "283/283",
+    "focused": "39/39",
+    "walletAuthFull": "285/285",
     "noBareAuthorize": "PASS",
     "standardConnectConsumerGate": "PASS",
     "packageDryRun": {"files":77,"packageBytes":139600,"unpackedBytes":617700}

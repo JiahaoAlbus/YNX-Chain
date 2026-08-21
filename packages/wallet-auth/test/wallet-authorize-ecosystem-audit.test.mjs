@@ -122,6 +122,10 @@ test("shared Provider/connect recovery hands off to all products without promoti
   assert.ok(providerRecovery.registeredProductHandoffs.every(({ consumed }) => consumed === false));
   assert.equal(providerRecovery.directChromeEvidence.shop.accountApprovalObserved, false);
   assert.equal(providerRecovery.directChromeEvidence.card.accountApprovalObserved, false);
+  assert.equal(providerRecovery.standardConnectStateContract.rpcProbe.endpointBindingObserved, "Public Wallet Companion declares rpc.cors=false.");
+  assert.match(providerRecovery.standardConnectStateContract.rpcProbe.connectionAuthority, /provider\.request eth_chainId=0x1917/);
+  assert.equal(auditV3.sharedProviderConnectRecovery.directBrowserRpcIsConnectionPrerequisite, false);
+  assert.equal(auditV3.sharedProviderConnectRecovery.acceptedCorsSafeRpcProbeRequired, true);
   assert.equal(providerRecovery.truth.productsConnected, 0);
   assert.equal(providerRecovery.truth.threeProductChromeAcceptance, false);
   assert.equal(providerRecovery.truth.officialInstallersReplaced, false);
