@@ -107,6 +107,10 @@
     "ownerNativeProductionPipelineSourceReady": true,
     "ownerNativeProductionPipelineSource": "07cab0839e55a2a4f65b4813345d35fb5460c5f8",
     "ownerNativeProductionPipelineEvidence": "f89bd23ab88b4b9de66e778357549203d10b2629",
+    "ownerNativeKeychainCleanupSource": "b889607b99b76b3076f7f805aa1dc98ab0f59324",
+    "ownerNativeKeychainCleanupEvidence": "e277f5c6c023cdef39de9a73691565e1c653fa22",
+    "ownerNativeKeychainCleanupCiPassed": true,
+    "ownerNativeKeychainCleanupProductionRuntimeProof": false,
     "uniqueReleaseBlocker": "Central must merge the exact pipeline blobs and a tagged production run must provide a matching Owner-native DMG plus Developer ID, notarization, stapling, Gatekeeper, callback/runtime and Release receipts before Website replacement."
   },
   "truth": {
