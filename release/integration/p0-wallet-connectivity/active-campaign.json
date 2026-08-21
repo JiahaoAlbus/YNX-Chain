@@ -2,7 +2,7 @@
   "schemaVersion": "1.0.0",
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "owner": "integration",
-  "status": "P0070_FAILED_CLOSED_HEAVY_RELEASED_P0089_RESOURCE_AUDIT_RELEASED_P0012_FAUCET_REVALIDATION_ACTIVE",
+  "status": "P0090_FAUCET_BOUNDED_SINGLE_USE_DEPLOYMENT_ACTIVE",
   "scope": [
     "founder-control",
     "wallet-connectivity",
@@ -34,7 +34,7 @@
   "firstStop": {
     "complete": true,
     "publicConnectivityClaim": false,
-    "nextAction": "P0-070 is consumed/nonreusable and Heavy is null. Resource P0-089 is released at 0326004cb260863f214261acec635bd3ef2e5c0c after exact test, screenshot hash and release-truth revalidation; current-source install, settlement, Product Session v2, public deployment and ComputerControl remain false. Faucet P0-012 now owns a source plus read-only public revalidation of the existing ea0e068b candidate after accepted P0-015 replication recovery; no production mutation is authorized by this Light Lease."
+    "nextAction": "P0-012 source/public read-only revalidation is released at d551218097b707755a8be017689a6d6983c8068e. P0-090 authorizes one rollback-first Faucet-only transaction for the exact ea0e068becd9 Linux artifact SHA-256 a78eb845c88911b069bb0e53642dd91084f983be895b53910949232909186a4a; any preflight, digest, service, health or version mismatch must fail closed without retry."
   },
   "lightLeases": [
     {
@@ -307,8 +307,10 @@
     {
       "owner": "integration",
       "taskId": "P0-012",
-      "status": "ACTIVE_LIGHT_SOURCE_PUBLIC_READ_ONLY_REVALIDATION",
+      "status": "RELEASED_CHECKPOINT",
       "grantedAt": "2026-08-21T02:05:00Z",
+      "releasedAt": "2026-08-21T02:35:00Z",
+      "checkpointCommit": "d551218097b707755a8be017689a6d6983c8068e",
       "scope": "faucet-existing-source-and-public-read-only-revalidation",
       "constraints": [
         "no SSH or production mutation under this Light Lease",
@@ -318,6 +320,17 @@
       ]
     }
   ],
+  "heavy": {
+    "owner": "integration",
+    "taskId": "P0-090",
+    "status": "ACTIVE_BOUNDED_SINGLE_USE_ROLLBACK_FIRST",
+    "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-faucet-ea0e068b-20260821T003500Z",
+    "leasedAt": "2026-08-21T00:35:00Z",
+    "expiresAt": "2026-08-21T02:35:00Z",
+    "scope": "faucet-only-binary-deployment-and-public-readback",
+    "productionMutationAllowed": true,
+    "singleUse": true
+  },
   "wave": {
     "id": "B-financial-apps-pay",
     "owner": "financial-apps",
