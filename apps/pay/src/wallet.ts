@@ -1,17 +1,19 @@
-import {DAppConnectError,StandardWalletConnection,classifyWalletError} from '@ynx/dapp-connect-sdk';
-import {createProductWalletConnection,PRODUCT_SESSION_PUBLIC_GATEWAY_ORIGIN,type WalletConnectionCoordinator} from '@ynx-chain/wallet-auth';
+import {DAppConnectError,StandardWalletConnection,classifyWalletError,discoverEIP6963} from '@ynx/dapp-connect-sdk';
+import {canonicalJSON,launchNativeAuthorization,parseAuthorizationCallbackURL,parseAuthorizationRequest,type AuthorizationLaunchResult,type AuthorizationRequest} from '@ynx-chain/wallet-auth';
 import * as SecureStore from 'expo-secure-store';
 import {getRandomValues} from 'expo-crypto';
 import {Linking,NativeModules,Platform} from 'react-native';
 import {assertPayConsumerContract} from './endpoint-manifest';
-import {payProductSessionRegistry} from './product-session-registry';
+import {payCanonicalAuthorizationRegistry} from './product-session-registry';
 
-type EIP1193Provider={request:(args:{method:string;params?:unknown[]})=>Promise<unknown>};
+type EIP1193Provider={request:(args:{method:string;params?:unknown[]})=>Promise<unknown>;isMetaMask?:boolean};
 export type PayWalletConnection={account:string;chainId:string;state:'STANDARD_CONNECTED'};
-export type PayPrivateSession={state:Readonly<Record<string,unknown>>;gatewayOrigin:typeof PRODUCT_SESSION_PUBLIC_GATEWAY_ORIGIN};
+export type PayWalletAuthorization={requestId:string;status:'pending'|'approved'|'rejected'};
+export type PayPrivateSession={state:Readonly<Record<string,unknown>>;authorization?:PayWalletAuthorization;fallbackActions?:AuthorizationLaunchResult['fallbackActions']};
 type DeviceDescriptor={id:string;key:string};
 type PaySecureDevice={descriptor:()=>Promise<DeviceDescriptor>;sign:(payload:string)=>Promise<string>};
-let privateConnection:WalletConnectionCoordinator|null=null;
+type PayAuthorizationCapabilities=Readonly<{device:DeviceDescriptor;resolver:(url:string)=>Promise<boolean>;openWallet:(url:string)=>Promise<Readonly<{opened:true}|{opened:false;code:string}>>}>;
+const CANONICAL_AUTHORIZATION_PENDING_KEY='ynx.pay.wallet-authorize.v1.pending';
 
 function runtimeProvider(){return (globalThis as unknown as {ethereum?:EIP1193Provider}).ethereum}
 function mappedCode(code:string){
@@ -36,23 +38,83 @@ export async function connectStandardWallet(provider:EIP1193Provider|undefined=r
   }catch(error){throw payConnectionError(error)}
 }
 
+/** MetaMask discovery remains strictly EIP-6963/EIP-1193 and never opens YNX Wallet. */
+export async function connectMetaMaskWallet(provider?:EIP1193Provider):Promise<PayWalletConnection>{
+  if(provider)return connectStandardWallet(provider);
+  const scope=globalThis as unknown as {addEventListener?:Function;removeEventListener?:Function;dispatchEvent?:Function};
+  if(scope.addEventListener&&scope.removeEventListener&&scope.dispatchEvent){
+    const discovered=await discoverEIP6963(scope as {addEventListener:Function;removeEventListener:Function;dispatchEvent:Function},{timeoutMs:250}) as Array<{info?:{rdns?:string};provider?:EIP1193Provider}>;
+    const metaMask=discovered.find(item=>item.info?.rdns==='io.metamask'||item.provider?.isMetaMask)?.provider;
+    if(metaMask)return connectStandardWallet(metaMask);
+  }
+  const injected=runtimeProvider();
+  if(injected?.isMetaMask)return connectStandardWallet(injected);
+  throw new Error('METAMASK_NOT_FOUND: No EIP-6963 or EIP-1193 MetaMask provider is available.');
+}
+
 export function productSessionUnavailable(){return new Error('PRODUCT_SESSION_UNAVAILABLE: Pay private services are not activated in the accepted endpoint manifest. Your standard wallet connection remains available.');}
 function privateError(error:unknown){const message=error instanceof Error?error.message:String(error);return new Error(`PRIVATE_SERVICE_DEGRADED: ${mappedCode(error instanceof DAppConnectError?error.code:'SESSION_UNAVAILABLE')}: ${message}`)}
 function secureRandomRuntime(){const cryptoValue=globalThis.crypto as Crypto|undefined;if(!cryptoValue?.getRandomValues)Object.defineProperty(globalThis,'crypto',{configurable:true,value:{getRandomValues}})}
-function secureDevice():PaySecureDevice{const bridge=NativeModules.PaySecureDevice as PaySecureDevice|undefined;if(Platform.OS!=='android'||!bridge?.descriptor||!bridge?.sign)throw privateError('This Pay build has no registered OS-protected P-256 signing bridge. No Product Session request was opened.');return bridge}
-function protectedStorage(){const key=(value:string)=>{if(!value.startsWith('ynx.product-session.v2:'))throw privateError('The Wallet SDK requested an unexpected protected-storage namespace.');const encoded=`ynx.pay.ps.${value.slice('ynx.product-session.v2:'.length).replace(/:/g,'.')}`;if(!/^[A-Za-z0-9._-]+$/.test(encoded))throw privateError('The Wallet SDK requested an invalid protected-storage key.');return encoded};return {securityLevel:'os-protected' as const,get:(value:string)=>SecureStore.getItemAsync(key(value)),set:(name:string,value:string)=>SecureStore.setItemAsync(key(name),value),remove:(value:string)=>SecureStore.deleteItemAsync(key(value))}}
-async function coordinator(){
-  if(privateConnection)return privateConnection;
-  secureRandomRuntime(); const device=secureDevice(),descriptor=await device.descriptor();
-  if(!/^[A-Za-z0-9._:-]{8,128}$/.test(descriptor.id)||!/^[A-Za-z0-9_-]{44}$/.test(descriptor.key))throw privateError('The Pay secure-device bridge returned an invalid public key.');
-  privateConnection=createProductWalletConnection({registry:payProductSessionRegistry,productId:'pay',platform:'android',walletInstalled:()=>Linking.canOpenURL('ynxwallet://authorize'),schemeRegistered:()=>Linking.canOpenURL('ynxpay://wallet-auth/callback'),gatewayTimeoutMs:10_000,storage:protectedStorage(),device:{id:descriptor.id,key:descriptor.key,sign:({algorithm,deviceKey,payload}:{algorithm:'p256-sha256';deviceKey:string;payload:string})=>{if(algorithm!=='p256-sha256'||deviceKey!==descriptor.key)throw privateError('The Wallet SDK requested an unexpected Pay device signature.');return device.sign(payload)},scopes:['account:read','pay:case:create','pay:route:select','pay:settlement:submit','pay:sponsorship:request'],purpose:'Connect YNX Pay private services through the approved Wallet Product Session.'},scope:globalThis,discoveryWaitMs:250,openWallet:async({url}:{url:string})=>{try{await Linking.openURL(url);return {opened:true} as const}catch{return {opened:false as const,code:'WALLET_OPEN_FAILED'}}},openTimeoutMs:10_000});
-  return privateConnection;
+function authorizationNonce(){const bytes=new Uint8Array(32);globalThis.crypto.getRandomValues(bytes);return Array.from(bytes,value=>value.toString(16).padStart(2,'0')).join('')}
+function secureDevice():PaySecureDevice{const bridge=NativeModules.PaySecureDevice as PaySecureDevice|undefined;if(Platform.OS!=='android'||!bridge?.descriptor||!bridge?.sign)throw privateError('This Pay build has no registered OS-protected P-256 signing bridge. No canonical Wallet authorization request was opened.');return bridge}
+function validDescriptor(descriptor:DeviceDescriptor){if(!/^[A-Za-z0-9._:-]{8,128}$/.test(descriptor.id)||!/^[A-Za-z0-9_-]{44}$/.test(descriptor.key))throw privateError('The Pay secure-device bridge returned an invalid public key.');return descriptor}
+const canonicalAuthorizationStorage={get:()=>SecureStore.getItemAsync(CANONICAL_AUTHORIZATION_PENDING_KEY),set:(value:string)=>SecureStore.setItemAsync(CANONICAL_AUTHORIZATION_PENDING_KEY,value,{keychainAccessible:SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY}),remove:()=>SecureStore.deleteItemAsync(CANONICAL_AUTHORIZATION_PENDING_KEY)};
+
+async function authorizationCapabilities():Promise<PayAuthorizationCapabilities>{
+  secureRandomRuntime();
+  const device=secureDevice(),descriptor=validDescriptor(await device.descriptor());
+  return {device:descriptor,resolver:url=>Linking.canOpenURL(url),openWallet:async url=>{try{await Linking.openURL(url);return {opened:true} as const}catch{return {opened:false as const,code:'WALLET_OPEN_FAILED'}}}};
 }
-function session(result:Readonly<Record<string,unknown>>):PayPrivateSession{const state=result.sessionState;return {state:state&&typeof state==='object'?state as Readonly<Record<string,unknown>>:Object.freeze({status:'PRIVATE_SERVICE_DEGRADED',message:'Wallet SDK returned no Product Session state.'}),gatewayOrigin:PRODUCT_SESSION_PUBLIC_GATEWAY_ORIGIN}}
-/** Optional private capability: each failure leaves the Standard Wallet untouched. */
-export async function beginPayPrivateSession(){try{return session(await (await coordinator()).beginYNX())}catch(error){throw privateError(error)}}
-export async function retryPayPrivateSession(){try{return session(await (await coordinator()).retryYNX())}catch(error){throw privateError(error)}}
-export async function restorePayPrivateSession(networkAvailable=true){try{return session(await (await coordinator()).restore(networkAvailable))}catch(error){throw privateError(error)}}
-export async function handlePayWalletReturn(url:string){try{return session(await (await coordinator()).handleReturn(url))}catch(error){throw privateError(error)}}
-export async function disconnectPayPrivateSession(){try{if(privateConnection){await privateConnection.disconnect();privateConnection=null}}catch(error){throw privateError(error)}}
-export function payProductSessionGatewayOrigin(){return PRODUCT_SESSION_PUBLIC_GATEWAY_ORIGIN}
+async function loadCanonicalAuthorizationPending():Promise<AuthorizationRequest|null>{
+  const raw=await canonicalAuthorizationStorage.get();
+  if(raw===null||raw===undefined)return null;
+  try{return parseAuthorizationRequest(raw,{registry:payCanonicalAuthorizationRegistry})}
+  catch(error){await canonicalAuthorizationStorage.remove();throw privateError(`The protected Pay Wallet authorization request is invalid or expired: ${error instanceof Error?error.message:String(error)}`)}
+}
+async function createCanonicalAuthorizationRequest(capabilities:PayAuthorizationCapabilities){
+  const now=new Date(),expiresAt=new Date(now.getTime()+5*60_000);
+  return parseAuthorizationRequest({
+    version:'2',nonce:authorizationNonce(),chainId:'ynx_6423-1',requestingProduct:'pay',productClientId:'ynx-pay-v1',bundleId:'com.ynxweb4.pay',origin:'https://pay.ynxweb4.com',
+    productDeviceAlgorithm:'p256-sha256',productDeviceKey:capabilities.device.key,callback:'ynxpay://wallet-auth/callback',
+    scopes:['account:read','pay:case:create','pay:route:select','pay:settlement:submit','pay:sponsorship:request'],
+    purpose:'Authorize YNX Pay on YNX Testnet. This does not approve, sign, broadcast, or settle a payment and does not create a Product Session.',issuedAt:now.toISOString(),expiresAt:expiresAt.toISOString(),
+  },{now,registry:payCanonicalAuthorizationRegistry});
+}
+function canonicalAuthorizationSession(status:PayWalletAuthorization['status'],requestId:string):PayPrivateSession{
+  const message=status==='pending'
+    ?'Wallet authorization is pending. No Product Session, payment approval, signature, or chain authority has been created.'
+    :status==='approved'
+      ?'Wallet authorization was approved. Pay private services and payments remain separately unavailable until authoritative evidence is verified.'
+      :'Wallet authorization was rejected. No Product Session, payment approval, signature, or chain authority was created.';
+  return {state:{status:`authorization-${status}`,message,actions:status==='pending'?['return-to-product']:['retry']},authorization:{status,requestId}};
+}
+function unavailableAuthorizationSession(launch:AuthorizationLaunchResult):PayPrivateSession{
+  return {state:{status:'authorization-unsupported',message:'YNX Wallet could not be resolved. No authorization, payment approval, signature, Product Session, or chain authority was created.'},fallbackActions:launch.fallbackActions};
+}
+
+/** Opens only a package-generated, request-bearing Wallet authorization route. */
+export async function beginPayWalletAuthorization(){
+  try{
+    const capabilities=await authorizationCapabilities(),request=await createCanonicalAuthorizationRequest(capabilities);
+    await canonicalAuthorizationStorage.set(canonicalJSON(request));
+    const launch=await launchNativeAuthorization(request,'android',capabilities.resolver);
+    if(launch.status!=='installed'){await canonicalAuthorizationStorage.remove();return unavailableAuthorizationSession(launch);}
+    const opened=await capabilities.openWallet(launch.uri);
+    if(opened.opened!==true){await canonicalAuthorizationStorage.remove();throw new Error(`WALLET_OPEN_FAILED: ${'code'in opened?opened.code:'Wallet did not open'}`)}
+    return canonicalAuthorizationSession('pending',request.nonce);
+  }catch(error){throw privateError(error)}
+}
+export async function restorePayWalletAuthorization(){try{const request=await loadCanonicalAuthorizationPending();return request===null?null:canonicalAuthorizationSession('pending',request.nonce)}catch(error){throw privateError(error)}}
+
+export async function handlePayWalletReturn(url:string){
+  try{
+    const request=await loadCanonicalAuthorizationPending();
+    if(request!==null){
+      const response=parseAuthorizationCallbackURL(url,request);
+      await canonicalAuthorizationStorage.remove();
+      return canonicalAuthorizationSession('decision'in response&&response.decision==='rejected'?'rejected':'approved',request.nonce);
+    }
+    throw productSessionUnavailable();
+  }catch(error){throw privateError(error)}
+}
+export async function disconnectPayPrivateSession(){try{await canonicalAuthorizationStorage.remove()}catch(error){throw privateError(error)}}

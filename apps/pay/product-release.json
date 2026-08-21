@@ -59,6 +59,13 @@
     "productionSigned": false,
     "storeReleased": false
   },
+  "p0CanonicalAuthorize": {
+    "status": "SOURCE_BUILD_CHECKPOINT_DEVICE_EVIDENCE_PENDING",
+    "canonicalWalletAuthorizeSource": "46386ae8eeaa7633923ae762a5a9634b5eac98d9",
+    "safeWalletAuthorizeLauncherSource": "4679de8e8d0675e2013254c92ff1935191f87c21",
+    "currentCheckpointDeviceOrPublicVerification": false,
+    "note": "Historical backend and payment evidence is not evidence for this native-client authorization source checkpoint."
+  },
   "backendDeployment": {
     "deployedPublic": true,
     "release": "ynx-pay-product-63582190fdff",

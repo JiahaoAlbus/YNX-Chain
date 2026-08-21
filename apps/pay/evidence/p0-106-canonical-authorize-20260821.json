@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 1,
+  "checkpoint": "P0-106",
+  "classification": "SOURCE_BUILD_CHECKPOINT_DEVICE_EVIDENCE_PENDING",
+  "product": "YNX Pay",
+  "owner": "financial-apps",
+  "scope": "apps/pay/** only",
+  "lease": "P0-WALLET-CONNECTIVITY-2026-08-pay-canonical-authorize-20260821T041721Z",
+  "baseline": "851dc5b834e0d824f4891dc6e572da1e8d71ca75",
+  "dependencies": {
+    "canonicalWalletAuthorize": {
+      "contract": "canonicalWalletAuthorize@1.0.0-p0.0",
+      "sourceCommit": "46386ae8eeaa7633923ae762a5a9634b5eac98d9",
+      "contractSha256": "e572042f18c1e32dfe86da26ee2ab52f9372c9803eae3b492c26932e50251c03"
+    },
+    "safeWalletAuthorizeLauncher": {
+      "contract": "safeWalletAuthorizeLauncher@1.0.0-p0.0",
+      "sourceCommit": "4679de8e8d0675e2013254c92ff1935191f87c21",
+      "sourceTree": "dd6df66c3a7c8c4b53fbdbdb18b52a3284b7a690",
+      "packageTarSha256": "dd80cf3d8fda3b35b89ddae6f3848dc420358b9c10d1879ed33a33f567585acb",
+      "packageIntegrity": "sha512-2fFiIE88ogKAO//9EYRynR0Izi9xAWtKPYMsu8hs0hzFu5fKM/w2J24H3gGFdDbz1K7BPuy2XCJCD1KlLj11CQ=="
+    }
+  },
+  "controls": {
+    "nativeLaunch": "A complete v2 request is parsed against the Pay allowlist and written to protected storage before launchNativeAuthorization resolves the exact request-bearing URI. Linking.openURL runs only after the accepted native resolver reports a handler.",
+    "pendingAndCallback": "The protected pending request is restored after cold launch and parseAuthorizationCallbackURL binds approve/reject to that exact request before it is removed.",
+    "fallback": "An unsupported native resolver leaves Pay on its existing page and exposes only the accepted official YNX Wallet download and MetaMask fallback actions.",
+    "metaMask": "connectMetaMaskWallet uses EIP-6963 discovery or an EIP-1193 MetaMask provider only and has no YNX Wallet URL path.",
+    "privateService": "No Product Session or payment authority is created by the launcher. Optional private-service unavailability is classified as PRIVATE_SERVICE_DEGRADED without deleting Standard Wallet connectivity.",
+    "webExtension": "Not applicable to this checkpoint's native Pay authorization surface. No top-level Web/Extension custom-scheme navigation was added or claimed."
+  },
+  "verification": {
+    "typecheck": "PASS",
+    "unitTests": "PASS 15/15",
+    "canonicalSourceScan": "PASS 9 non-test Pay source files",
+    "expoExport": "PASS Android/iOS/Web",
+    "playwright": "PASS 2/2",
+    "androidDebugAssemble": "PASS; independent no-daemon Gradle build"
+  },
+  "artifacts": {
+    "androidDebugApk": {
+      "path": "apps/pay/android/app/build/outputs/apk/debug/app-debug.apk",
+      "sha256": "2ff0c924bf9beb09f042005bb09c815de653613164d70e51a653d1f3233d317e",
+      "bytes": 181632151,
+      "classification": "LOCAL_DEBUG_BUILD_ONLY"
+    },
+    "androidBundle": {
+      "path": "apps/pay/dist/_expo/static/js/android/index-0366b96d67b818ce5c956f009c34271b.hbc",
+      "sha256": "d24692aa3a55bc934ab3750274f5ee03cd583d9184d7ef075b47ac50c1943436"
+    },
+    "iosBundle": {
+      "path": "apps/pay/dist/_expo/static/js/ios/index-1c28ee1be9f3fc4a7f79fac2085811b9.hbc",
+      "sha256": "eb53d56db247817d1d48e812fcd40adc5c18ce0590aa772f14829284ee12da83"
+    },
+    "webBundle": {
+      "path": "apps/pay/dist/_expo/static/js/web/index-65c914c5be0879b67c7842d4cf96b0fc.js",
+      "sha256": "b71c76364a837779fefc0a9c93bf563e1305a45208d3aa7253c19b44a0a3f73b"
+    }
+  },
+  "visibleEvidence": {
+    "androidDeviceDetected": false,
+    "apkInstalled": false,
+    "walletApprove": false,
+    "walletReject": false,
+    "callback": false,
+    "coldStartRecovery": false,
+    "browserVisible": false,
+    "computerControl": false,
+    "paymentExecuted": false,
+    "reason": "adb reported no connected device. No Pay APK installation, Wallet authorization result, payment, or browser visible result is claimed."
+  },
+  "releaseStates": {
+    "migratedV2": false,
+    "productSessionActivated": false,
+    "publicVerified": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storePublished": false,
+    "paymentExecutionVerified": false
+  },
+  "remainingBlocker": "A bootable device with compatible YNX Wallet is required for the complete request screen, approve/reject callback, cold-start recovery, second launch and network-loss Retry evidence. The accepted endpoint manifest remains PENDING."
+}
