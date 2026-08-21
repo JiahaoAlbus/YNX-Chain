@@ -1,22 +1,22 @@
 {
   "schemaVersion": 2,
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-  "taskId": "P0-056",
+  "taskId": "P0-139",
   "productId": "ynx-seller-console",
   "name": "YNX Seller Console",
   "branch": "codex/p0-seller-console-visible-20260821",
-  "sourceCommit": "59b8719c71e441f6507b64f99796c3f63dc69450",
+  "sourceCommit": "910170031e7579924af34c3c2a8b92bdb08958cf",
   "version": "0.5.0-testnet-candidate",
   "goalStatus": "active",
-  "stage": "SOURCE_CANDIDATE",
+  "stage": "PUBLIC_DEPLOYED_LIMITED",
   "surfaces": ["web"],
   "implementedLocal": true,
   "testedLocal": true,
   "localBrowserVerified": true,
   "installedLocal": false,
   "integratedCentral": false,
-  "deployedPublic": false,
-  "publicVerified": false,
+  "deployedPublic": true,
+  "publicVerified": true,
   "computerControlVerified": false,
   "downloadHosted": false,
   "productionSigned": false,
@@ -38,7 +38,7 @@
     "productSessionOptional": true,
     "productSessionStatus": "DEGRADED",
     "standardConnectionPreservedWhenPrivateDegraded": true,
-    "visibleProviderApprovalVerified": true,
+    "visibleProviderApprovalVerified": false,
     "signingVerified": false,
     "transactionVerified": false
   },
@@ -49,22 +49,27 @@
     "sellerProductApi": {"status": "PENDING"}
   },
   "localEvidence": {
-    "tests": "9/9",
+    "tests": "10/10",
     "build": "passed",
     "releaseScan": "passed",
     "desktopBrowser": "English first-run UI, guest preview, private degraded state, zero console warnings/errors",
     "mobileBrowser": "390x844 responsive viewport, no horizontal overflow, English UI",
     "providerApproval": "deterministic EIP-6963 approval and rejection verified in Chromium; not a real installed Wallet"
   },
-  "historicalPublicRuntime": {
+  "currentPublicRuntime": {
     "url": "https://seller.ynxweb4.com/seller/",
-    "historicalSource": "88c0f3a546b463fb270c4bea5d944178865660a5",
-    "provesCurrentCandidate": false
+    "activeRuntime": "/opt/ynx/seller-console-releases/p0138-seller-wallet-91017003",
+    "publicBytesExact": true,
+    "defaultEnglishVerified": true,
+    "guestPreviewVisible": true,
+    "missingWalletRecoveryVisible": true,
+    "topLevelTabDelta": 0,
+    "consoleErrors": 0
   },
   "remainingBlockers": [
     "Seller Product API is PENDING in the accepted endpoint manifest.",
     "App Gateway is UNAVAILABLE; no private Product Session success is claimed.",
-    "No real installed Wallet, signature, transaction, public deployment, or ComputerControl evidence exists for this candidate."
+    "No real installed Wallet, account approval, signature, transaction, or ComputerControl evidence exists for this public runtime."
   ],
-  "generatedAt": "2026-08-21T00:15:00Z"
+  "generatedAt": "2026-08-21T09:37:50Z"
 }
