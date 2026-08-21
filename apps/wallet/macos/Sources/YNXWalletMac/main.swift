@@ -165,16 +165,14 @@ struct WalletView: View {
       Divider()
       Text(state.networkBoundary).font(.callout.weight(.medium))
       Text(state.securityBoundary).font(.callout.weight(.medium))
-      RecoveryControlsView(
-        status: state.recoveryBoundary,
-        actionTitle: state.recoveryMaterialPresent
-          ? "Rotate device recovery material"
-          : "Prepare device recovery",
-        actionEnabled: state.recoveryActionAvailable && !state.recoveryOperationInProgress
-      ) {
+      Text(state.recoveryBoundary)
+        .font(.callout.weight(.medium))
+        .accessibilityIdentifier("YNX device recovery status")
+      Button(state.recoveryMaterialPresent ? "Rotate device recovery material" : "Prepare device recovery") {
         Task { await state.prepareDeviceRecovery() }
       }
-      .frame(maxWidth: .infinity, minHeight: 62, alignment: .leading)
+      .disabled(!state.recoveryActionAvailable || state.recoveryOperationInProgress)
+      .accessibilityIdentifier("YNX device recovery action")
       Text("Device recovery material is not an account, seed phrase, balance, transaction, authorization, or product recovery success. Account derivation, signing and asset actions remain unavailable until the frozen native bridge is integrated and verified.")
         .font(.callout)
         .foregroundStyle(.secondary)
@@ -182,82 +180,6 @@ struct WalletView: View {
     }
     .padding(28)
     .frame(minWidth: 620, minHeight: 500)
-  }
-}
-
-/// AppKit owns the accessibility nodes for this security boundary. SwiftUI can
-/// omit a disabled `Button` from the System Events tree on headless macOS
-/// runners, which made the release gate unable to distinguish a correctly
-/// disabled recovery action from a missing UI. These are the same visible
-/// controls and state; AppKit supplies stable AX identifiers and AXEnabled.
-private struct RecoveryControlsView: NSViewRepresentable {
-  let status: String
-  let actionTitle: String
-  let actionEnabled: Bool
-  let action: () -> Void
-
-  func makeCoordinator() -> Coordinator {
-    Coordinator(action: action)
-  }
-
-  func makeNSView(context: Context) -> NSStackView {
-    let statusLabel = NSTextField(wrappingLabelWithString: status)
-    statusLabel.font = .systemFont(ofSize: NSFont.systemFontSize, weight: .medium)
-    statusLabel.setAccessibilityElement(true)
-    statusLabel.setAccessibilityRole(.staticText)
-    statusLabel.setAccessibilityIdentifier("YNX device recovery status")
-    statusLabel.setAccessibilityLabel("YNX device recovery status")
-    statusLabel.setAccessibilityValue(status)
-
-    let actionButton = NSButton(title: actionTitle, target: context.coordinator, action: #selector(Coordinator.performAction))
-    actionButton.bezelStyle = .rounded
-    actionButton.setAccessibilityElement(true)
-    actionButton.setAccessibilityRole(.button)
-    actionButton.setAccessibilityIdentifier("YNX device recovery action")
-    actionButton.setAccessibilityLabel(actionTitle)
-
-    let stack = NSStackView(views: [statusLabel, actionButton])
-    stack.orientation = .vertical
-    stack.alignment = .leading
-    stack.spacing = 8
-    stack.setHuggingPriority(.required, for: .vertical)
-    // `NSViewRepresentable` introduces a hosting boundary.  On the hosted CI
-    // runner AppKit did not publish the arranged subviews as AX descendants,
-    // even though the controls were visible and had identifiers.  Declare the
-    // container relationship explicitly so assistive technology observes the
-    // status and the intentionally-disabled recovery action.
-    stack.setAccessibilityElement(false)
-    stack.setAccessibilityRole(.group)
-    stack.setAccessibilityChildren([statusLabel, actionButton])
-    return stack
-  }
-
-  func updateNSView(_ stack: NSStackView, context: Context) {
-    guard
-      stack.arrangedSubviews.count == 2,
-      let statusLabel = stack.arrangedSubviews[0] as? NSTextField,
-      let actionButton = stack.arrangedSubviews[1] as? NSButton
-    else { return }
-
-    statusLabel.stringValue = status
-    statusLabel.setAccessibilityValue(status)
-    actionButton.title = actionTitle
-    actionButton.setAccessibilityLabel(actionTitle)
-    actionButton.isEnabled = actionEnabled
-    context.coordinator.action = action
-  }
-
-  @MainActor
-  final class Coordinator: NSObject {
-    var action: () -> Void
-
-    init(action: @escaping () -> Void) {
-      self.action = action
-    }
-
-    @objc func performAction() {
-      action()
-    }
   }
 }
 
