@@ -1,0 +1,63 @@
+{
+  "schemaVersion": "ynx-p0-wallet-e2e/1",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-077",
+  "productId": "ynx-video",
+  "owner": "video",
+  "generatedAt": "2026-08-22T00:00:00Z",
+  "planCommit": "875be208e8a7ddb60345d55b93fc299949664e5c",
+  "planTree": "3499ddfbe2a4bb08cbbcaef8c71b911aca51dde4",
+  "status": "BLOCKED",
+  "summary": "Router-standard Wallet Web evidence is not complete from installed/public runtime; local/source validation is out-of-scope by request.",
+  "requiredClaims": {
+    "sourceConsumerGate": false,
+    "sourceBoundPublicIdentity": false,
+    "consumerOwner": "router",
+    "distinctYnxVsMetaMaskChooser": true,
+    "approveAndRejectVisible": false,
+    "addSwitchReadChain": false,
+    "refreshRestore": false,
+    "accountsChanged": false,
+    "chainChanged": false,
+    "disconnect": false,
+    "revoke": false,
+    "chooserCloseOnSuccess": true,
+    "stableNoBlankTabs": false,
+    "defaultEnglishGuest": true,
+    "firstPartyAndThreeExternalDapps": false,
+    "personalSignImmediateConfirmation": false,
+    "eip712ImmediateConfirmation": false,
+    "testnetSendImmediateConfirmation": false,
+    "privateKeyCollected": false,
+    "productSessionDegradedPreserved": true,
+    "publicRuntime": false,
+    "installedRuntime": false
+  },
+  "unprovedFlags": {
+    "sourceConsumerGate": false,
+    "sourceBoundPublicIdentity": false,
+    "installedWalletApproval": false,
+    "installedWalletRejection": false,
+    "callbackContinuity": false,
+    "realTopLevelSession": false
+  },
+  "blocker": {
+    "type": "executable",
+    "instruction": "Run one bounded real-browser blocker proving public installed/runtime evidence for all remaining gates before source/public release promotion.",
+    "steps": [
+      "Open the exact public current-source URL from release/integration contract in one fresh Chrome profile and verify page URL remains stable while connecting (no extra top-level tab).",
+      "Connect with YNX Wallet and MetaMask simultaneously present; verify chooser shows both brands with correct logos and requires explicit selection.",
+      "Run approve and reject wallet flows on installed provider and capture a single-session proof where rejection does not expose an approved account.",
+      "Execute chain lifecycle with proof of 0x1917 add/switch/read in same session.",
+      "Trigger refresh, then verify account/address and chain restored without modal or blank-tab navigation.",
+      "Emit wallet events: accountsChanged, chainChanged, disconnect, and capture revoke flow that clears session state.",
+      "Execute signed actions in first-party plus 3 separate external dApps using connected session and prove each action requires explicit user confirmation (personal_sign, eth_signTypedData / EIP712, eth_sendTransaction).",
+      "Capture stable URL + no blank top-level tabs for callback separation and wallet action path; include final console screenshot bundle as evidence.",
+      "Create one signed evidence envelope and reference it from product-release or contract when all checks pass."
+    ],
+    "notes": [
+      "Do not use source build, CI logs, or local-only flows as replacement proof for installed/public lifecycle.",
+      "No separate prompt or extension for collecting private key material is allowed for any signing action."
+    ]
+  }
+}
