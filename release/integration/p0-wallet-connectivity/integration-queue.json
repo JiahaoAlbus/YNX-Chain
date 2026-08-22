@@ -6854,11 +6854,11 @@
         "release/integration/p0-wallet-connectivity/integration-queue.json"
       ],
       "dependencies": ["P0-191"],
-      "routerCommit": "efc8424196a18d6aa357fb3e27a752fa3cec7453",
-      "routerTree": "f25b5ca76178632995ab42c6dd37fe68d1ffc485",
-      "routerParent": "f7b8b4494a10c0de269e0328fd7fbd35b46c7109",
-      "registryBlob": "548928a0c7623d01459ce4d9834286102cce3d34",
-      "registrySha256": "e01ba6d9f25902300962f406adf922eec7bd8c6981a60613828e6d9df7d0742a",
+      "routerCommit": "7ec78e8927888cc94cb430f09cf91b7885538603",
+      "routerTree": "825fa7042195e5e7932476bbdbad683f1aaf33b6",
+      "routerParent": "80d8cb787f23eaa81557e0e2cb7d8cc3538def44",
+      "registryBlob": "eee7a886df41be790ac6619fb1b056416c50124c",
+      "registrySha256": "c1f44d0197d1903396c3d98092268cb26fc3ec50ca874565bf61bf1fbbd65fc0",
       "directE2EProductSubset": "0/12",
       "responsibilityDomainAggregate": "0/36",
       "classificationCounts": {
@@ -6895,6 +6895,25 @@
         "classificationCorrection": "BOTH_INTERACTIVE_WALLET_CONSUMERS_WITH_SEPARATE_GUEST_ONLY_PUBLIC_READS",
         "publicVerified": false
       },
+      "browserAudit": {
+        "routingOnly": true,
+        "ownerThread": "6a6766a3-a6c8-83ec-ae21-a10df9762602",
+        "ownerBranch": "codex/final-browser",
+        "ownedPathsFrozen": false,
+        "classification": "interactiveWalletConsumer",
+        "protectedRuntimeCommit": "bde6939223693d5cdf5d05f309ac888c091ab815",
+        "sourceLocalChecks": {"node":"14/14","swift":"20/20","registry":"15/15","adhocPreviewOnly":true},
+        "installedLocal": false,
+        "gatekeeperAccepted": false,
+        "oldInstalledBundleIdConflict": true,
+        "oldInstalledBinaryShaMismatch": true,
+        "defaultSchemeOwnershipVerified": false,
+        "explicitTargetNegativeCallbackOnly": true,
+        "dirtyEvidenceAuthoritative": false,
+        "directE2E": false,
+        "aggregateComplete": false,
+        "blocker": "PROTECT_DIRTY_EVIDENCE_THEN_NONDESTRUCTIVELY_INSTALL_CURRENT_SOURCE_AND_REGISTER_LAUNCHSERVICES_TO_PROVE_YNXBROWSER_SCHEME_RESOLVES_TO_THE_TARGET_BINARY_BEFORE_SOURCE_BOUND_INSTALLED_YNX_VS_METAMASK_PROVIDER_LIFECYCLE"
+      },
       "nextAction": "Collect exact ownerBranch/ownedPaths and classification evidence from every dispatched audit, then freeze mappings without shrinking the 36-domain denominator. Separately adjudicate product-scoped release requests only after exact artifact/current-runtime/rollback binding."
     },
     {
@@ -6928,6 +6947,30 @@
       "projectSettingsModified": false,
       "sourceBoundPublic": false,
       "nextAction": "Do not reuse P0-195. A successor request must freeze a Card-owned nested deployment envelope compatible with the fixed dist-web Output Directory; project setting mutation is not authorized."
+    },
+    {
+      "taskId": "P0-196",
+      "owner": "card",
+      "status": "ACTIVE_SINGLE_USE",
+      "paths": [
+        "release/integration/p0-wallet-connectivity/execution/p0-196-card-nested-envelope-public-deployment-lease-20260822.json",
+        "apps/card/**",
+        "vercel-project:prj_DU37JeDK4Rx0MjxIV745veV5Qgxp",
+        "https://card.ynxweb4.com/**"
+      ],
+      "dependencies": ["P0-195"],
+      "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-card-nested-envelope-public-deployment-20260822T153300Z",
+      "expiresAt": "2026-08-22T16:03:00Z",
+      "source": "2183b8d7a18dec3c7e7773f3c777882deeac6f82",
+      "baseSemanticSource": "45c4013a95008027cf55f2ac4d7bdded70640ae1",
+      "request": "00191c9a5c38b92fed9ce224c9862c396ad9379d",
+      "deploymentRoot": "apps/card/deployment-envelope",
+      "rollbackDeployment": "dpl_DqMuEhno65bLFTNKBu9gs52soVri",
+      "deploymentAttemptLimit": 1,
+      "rollbackAttemptLimit": 1,
+      "projectSettingsMutationAllowed": false,
+      "sensitiveActionsAllowed": false,
+      "nextAction": "Deploy once from the exact nested envelope root, freeze canonical HTTP/browser evidence, and rollback once on any failure. No retry or sensitive wallet action."
     }
   ]
 }
