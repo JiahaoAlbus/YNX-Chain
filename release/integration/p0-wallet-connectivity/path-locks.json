@@ -1428,6 +1428,27 @@
         "preserve useful read-only routing and rollback-state receipts without claiming a zero-write audit",
         "no new read, remote write, deployment, installation, account, signature or transaction action under P0-221"
       ]
+    },
+    {
+      "path": "{production:host:43.153.202.237:pay-zero-write-readonly,production:https://pay.ynxweb4.com/**:readonly,production:/etc/caddy/**:readonly,production:/opt/ynx/pay-app-current:readonly,production:/usr/local/bin/ynx-payd:readonly,local:/tmp/ynx-pay-p0222-zero-write-readonly-20260822T220600Z}",
+      "owner": "pay",
+      "branch": "codex/p0-pay-wallet-connectivity-20260821",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/04-pay-p0-clean",
+      "taskId": "P0-222",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "ACTIVE_SINGLE_USE",
+      "acquiredAt": "2026-08-22T22:06:00Z",
+      "expiresAt": "2026-08-22T22:36:00Z",
+      "releasedAt": null,
+      "sourceCommit": "5f4ce98eb458550b976c17e3bc6d77cce4081a59",
+      "sourceTree": "8f0c25c4d86eb22a564f3c7aeff9db6709a9b9f0",
+      "evidenceCommit": "ca76d720bfbfeb212e0de49dbfbad2fa504b6e82",
+      "productionMutationAllowed": false,
+      "allowedExceptions": [
+        "run exact committed Pay zero-write collector once and no retry",
+        "write only to the exact fresh local evidence directory",
+        "no remote write, deployment, installation, account, signature or transaction action"
+      ]
     }
   ]
 }
