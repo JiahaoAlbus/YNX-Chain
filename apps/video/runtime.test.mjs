@@ -27,7 +27,10 @@ test("runtime carrier rebuild is byte-identical and normalized", () => {
   execFileSync("bash", [join(videoRoot, "scripts/build-runtime.sh"), source, first], {cwd: repoRoot});
   execFileSync("bash", [join(videoRoot, "scripts/build-runtime.sh"), source, second], {cwd: repoRoot});
   assert.deepEqual(readFileSync(first), readFileSync(second));
-  const listing = execFileSync("gtar", ["-tvzf", first, "--numeric-owner", "--full-time"], {encoding: "utf8"});
+  const listing = execFileSync("gtar", ["-tvzf", first, "--numeric-owner", "--full-time"], {
+    encoding: "utf8",
+    env: {...process.env, TZ: "UTC"}
+  });
   for (const line of listing.trim().split("\n")) {
     assert.match(line, / 0\/0 /);
     assert.match(line, /1970-01-01 00:00:00/);
