@@ -701,6 +701,10 @@ test("Central released Finance and Explorer paths plus P0-150 parity are tracked
   assert.equal(auditV3.centralP0145P0146.publicOrProductCompletionPromoted, false);
   assert.equal(auditV3.standardWalletParityConformance.centralP0150.commit, "f92757f7491c3e28106664aacc2066663bbd52bb");
   assert.equal(auditV3.standardWalletParityConformance.fixtureOnly, true);
+  assert.equal(auditV3.standardWalletParityConformance.sharedCoreProviderSource.evidenceCommit, "0e5af17d4f784a30390452b5c2b750047e93727d");
+  assert.equal(auditV3.standardWalletParityConformance.sharedCoreProviderSource.mergedIntoRouterBranch, false);
   assert.equal(auditV3.standardWalletParityConformance.externalDappDirectRuntimeCount, 0);
   assert.equal(auditV3.standardWalletParityConformance.productsConnected, 0);
+  assert.equal(ownerActivityCheckpoint.sharedCoreStandardWalletProvider.evidenceBlob, "db781971cd557b75de9ac88bef4dad3c24599069");
+  assert.equal(ownerActivityCheckpoint.sharedCoreStandardWalletProvider.platformConsumed, false);
 });

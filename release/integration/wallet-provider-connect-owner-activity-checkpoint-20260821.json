@@ -32,6 +32,24 @@
     "leaseIssuedByProtocolOwner": false,
     "installedOrProductCompletionPromoted": false
   },
+  "sharedCoreStandardWalletProvider": {
+    "implementationCommit": "d8cda9f77918cab5bdfdd0568370f3c19742c14c",
+    "implementationTree": "83af2d80038dd9cc7f39343efb7994ad0bb2815a",
+    "evidenceCommit": "0e5af17d4f784a30390452b5c2b750047e93727d",
+    "evidenceTree": "4f8d5006138315f26c2cc2874747cf38f31b77b2",
+    "evidenceBlob": "db781971cd557b75de9ac88bef4dad3c24599069",
+    "evidenceSha256": "39df6f1f38961e7253cab538bd394202c225125b214b7d128915d97599ea3697",
+    "sourceOnly": true,
+    "historyMergedIntoRouterBranch": false,
+    "platformConsumed": false,
+    "realExternalDapp": false,
+    "realWalletConnectRelay": false,
+    "approvedAccount": false,
+    "signOrSend": false,
+    "deployedPublic": false,
+    "integratedCentral": false,
+    "productsConsumed": "0/12"
+  },
   "summary": {
     "registeredProducts": 12,
     "sourceConsumers": 6,
