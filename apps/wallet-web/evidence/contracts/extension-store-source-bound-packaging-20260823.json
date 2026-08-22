@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "evidenceClass": "deterministic source-bound extension packaging; not installation, signing, store submission, review or public release",
+  "sourceCommit": "7df37ca32a643a403bd23a7f555354261f789441",
+  "sourceTree": "0e5ae5a485ce6400fc1d5d4b1a580d8163da9299",
+  "officialWalletDomainAtAudit": {
+    "url": "https://wallet.ynxweb4.com/",
+    "deploymentId": "dpl_EhSHsjrfQ17dzuTegLCqGvELeBte",
+    "buildIdentitySha256": "caf151b49ea9c8ae55ca070aa05b2fda90ab2e7f5f6cb73dd4b9bc3c59ee1377",
+    "sourceCommit": "7df37ca32a643a403bd23a7f555354261f789441",
+    "providerAuthorityCommit": "98c6d5d784d212df8981a53b17118a511e246ad2",
+    "chainId": "0x1917"
+  },
+  "build": {
+    "commandClass": "YNX_WALLET_WEB_SOURCE_COMMIT=<exact source> npm run package",
+    "sourceTests": {"passed": 117, "failed": 0},
+    "packageVerification": {"passed": 3, "failed": 0},
+    "repeatBuildCount": 2,
+    "repeatBuildByteIdentical": true,
+    "artifactManifestSha256": "4a54ab6fd33c0faae319a19f818a8f1cc28b2eef891366f83f87fd3d04a93f0e"
+  },
+  "artifacts": [
+    {
+      "name": "ynx-wallet-chrome-edge-0.1.0.zip",
+      "bytes": 469149,
+      "sha256": "5eb083449c2cc8e9c02db0345d5f078f9d8c12e9bdc13d029ce2ff76c5ead26e",
+      "manifestVersion": 3,
+      "manifestName": "YNX Wallet",
+      "version": "0.1.0",
+      "minimumRuntime": "Chrome 120 / Edge 120",
+      "permissions": ["activeTab", "scripting", "storage"],
+      "hostPermissions": ["https://evm.ynxweb4.com/*"],
+      "embeddedSourceCommit": "7df37ca32a643a403bd23a7f555354261f789441",
+      "providerAuthorityCommit": "98c6d5d784d212df8981a53b17118a511e246ad2",
+      "chainId": "0x1917",
+      "signingClass": "unsigned-unpacked-extension",
+      "storeReleased": false
+    },
+    {
+      "name": "ynx-wallet-firefox-0.1.0.zip",
+      "bytes": 469188,
+      "sha256": "2ee0e60ecf69e93a74b7283689c3b112495f84ee2f4581b2208e0452218554d1",
+      "manifestVersion": 3,
+      "manifestName": "YNX Wallet",
+      "version": "0.1.0",
+      "minimumRuntime": "Firefox 128",
+      "geckoId": "wallet-testnet@ynxweb4.com",
+      "permissions": ["activeTab", "scripting", "storage"],
+      "hostPermissions": ["https://evm.ynxweb4.com/*"],
+      "embeddedSourceCommit": "7df37ca32a643a403bd23a7f555354261f789441",
+      "providerAuthorityCommit": "98c6d5d784d212df8981a53b17118a511e246ad2",
+      "chainId": "0x1917",
+      "signingClass": "unsigned-unpacked-extension",
+      "storeReleased": false
+    }
+  ],
+  "identity": {
+    "name": "YNX Wallet",
+    "rdns": "com.ynx.wallet",
+    "isYNXWallet": true,
+    "isMetaMask": false,
+    "distinctFromMetaMask": true
+  },
+  "truth": {
+    "sourceBoundPackagesBuilt": true,
+    "minimumPermissionsInspected": true,
+    "installedLocal": false,
+    "productionSigned": false,
+    "chromeWebStoreReleased": false,
+    "edgeAddonsReleased": false,
+    "firefoxAmoSigned": false,
+    "firefoxAmoReleased": false,
+    "publicStoreInstallVerified": false,
+    "accountRequested": false,
+    "messageSigned": false,
+    "transactionSubmitted": false
+  }
+}

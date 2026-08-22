@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "requestClass": "single-use, path-scoped multi-store extension publication lease request",
+  "owner": "wallet-web",
+  "sourceCommit": "7df37ca32a643a403bd23a7f555354261f789441",
+  "sourceTree": "0e5ae5a485ce6400fc1d5d4b1a580d8163da9299",
+  "providerAuthorityCommit": "98c6d5d784d212df8981a53b17118a511e246ad2",
+  "chainId": "0x1917",
+  "evidencePath": "apps/wallet-web/evidence/contracts/extension-store-source-bound-packaging-20260823.json",
+  "immutableArtifacts": [
+    {"path": "apps/wallet-web/artifacts/ynx-wallet-chrome-edge-0.1.0.zip", "bytes": 469149, "sha256": "5eb083449c2cc8e9c02db0345d5f078f9d8c12e9bdc13d029ce2ff76c5ead26e"},
+    {"path": "apps/wallet-web/artifacts/ynx-wallet-firefox-0.1.0.zip", "bytes": 469188, "sha256": "2ee0e60ecf69e93a74b7283689c3b112495f84ee2f4581b2208e0452218554d1"}
+  ],
+  "requestedWritableScope": [
+    "apps/wallet-web/store/**",
+    "apps/wallet-web/evidence/store/**",
+    "release/integration/wallet-extension-*-publication*.json"
+  ],
+  "requestedActions": [
+    "Re-read exact source, artifact bytes and official Wallet build identity before any upload.",
+    "Confirm version 0.1.0 is unused in each target store; otherwise consume/release fail closed without upload and require a newly rebuilt unique version.",
+    "Upload the exact Chromium archive to Chrome Web Store and Edge Add-ons using protected publisher credentials.",
+    "Upload the exact Firefox archive to AMO for Mozilla signing and verify the returned signed XPI binds the frozen gecko ID.",
+    "Freeze store-generated package hashes, review states, item IDs and public listing URLs.",
+    "After explicit named operator release approval, publish once per store and install only from the public official listing in isolated clean profiles under a separate runtime lease."
+  ],
+  "requiredProtectedOperatorInputs": [
+    "Chrome Web Store publisher and item ID plus protected upload/publish credential binding",
+    "Microsoft Partner Center publisher and Edge Add-ons product ID plus protected upload/publish credential binding",
+    "Mozilla AMO account and protected JWT issuer/secret binding for wallet-testnet@ynxweb4.com",
+    "approved unique release version and staged/public rollout decision",
+    "approved listing text, icons/screenshots, privacy disclosure, support/homepage URLs, review notes and permission justification",
+    "named operator confirmations for submission and public release"
+  ],
+  "credentialPolicy": {
+    "secretValuesInGit": false,
+    "secretValuesInChat": false,
+    "rawPrivateKeysAccepted": false,
+    "protectedEnvironmentRequired": true
+  },
+  "permissionJustificationToReview": {
+    "activeTab": "User-gesture-scoped DApp injection only.",
+    "scripting": "Inject the isolated bridge into the user-selected active HTTP(S) DApp tab.",
+    "storage": "Persist exact-origin approvals, encrypted vault state and bounded lifecycle state.",
+    "https://evm.ynxweb4.com/*": "Bounded YNX Testnet EVM JSON-RPC transport; no arbitrary host access."
+  },
+  "forbidden": [
+    "modifying product semantics under this lease",
+    "uploading any artifact whose bytes differ from the frozen hashes",
+    "using unpacked developer installation as store proof",
+    "requesting an account, signature or transaction",
+    "collecting or storing a private key or recovery phrase",
+    "claiming productionSigned, storeReleased or installed before direct receipts"
+  ],
+  "currentTruth": {
+    "leaseIssued": false,
+    "operatorInputsConfirmed": false,
+    "storeUploadExecuted": false,
+    "productionSigned": false,
+    "storeReleased": false,
+    "installedFromOfficialStore": false
+  }
+}
