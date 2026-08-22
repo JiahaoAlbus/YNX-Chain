@@ -6988,7 +6988,7 @@
     {
       "taskId": "P0-197",
       "owner": "calendar",
-      "status": "ACTIVE_SINGLE_USE",
+      "status": "CONSUMED_RELEASED_FAILED_CLOSED_CALENDAR_PUBLIC_HOSTED_BROWSER_PREFLIGHT_HARNESS_SCHEMA_MISMATCH",
       "paths": [
         "release/integration/p0-wallet-connectivity/execution/p0-197-calendar-public-hosted-browser-preflight-lease-20260822.json",
         "branch:codex/calendar-fable5-completion-20260821:.github/workflows/calendar-public-browser-preflight-p0.yml",
@@ -7004,9 +7004,21 @@
       "commitLimit": 1,
       "pushLimit": 1,
       "retryAllowed": false,
+      "releasedAt": "2026-08-22T16:19:36Z",
+      "workflowCommit": "306dc4196bd025e0a60636ad5a5f8ae635bf5732",
+      "workflowTree": "f1373e3a9651fd148b1e6630d6d32d1a999b78cb",
+      "workflowBlob": "093db6fa4684f249d5570cd1dbc6571b51e0bdfa",
+      "runId": 32584212485,
+      "jobId": 97058022522,
+      "runConclusion": "failure",
+      "artifactId": 9478601988,
+      "artifactDigest": "da57382e8b74c19ecd3ad2fc19acf505f2f81c2c8cace3c0430a5bb16cf773e7",
+      "rawHealthAndVersionSourceBound": true,
+      "chromiumLaunched": false,
+      "directHostedBrowserEvidence": false,
       "productionMutationAllowed": false,
       "sensitiveActionsAllowed": false,
-      "nextAction": "Create the byte-exact sole workflow at current parent, force=false push once, bind the unique push run, return direct hosted evidence or fail closed before expiry."
+      "nextAction": "Do not reuse P0-197. A successor requires a wholly new Calendar-only lease bound to current parent 306dc419 and one sole-workflow correction accepting exact parsed.build.commit; production and sensitive actions remain forbidden."
     }
   ]
 }

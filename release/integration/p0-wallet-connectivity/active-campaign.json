@@ -427,12 +427,12 @@
     }
   ],
   "heavy": {
-    "owner": "calendar",
-    "taskId": "P0-197",
-    "status": "ACTIVE_SINGLE_USE",
+    "owner": null,
+    "taskId": null,
+    "status": "IDLE",
     "acquiredAt": "2026-08-22T16:11:00Z",
     "expiresAt": "2026-08-22T16:41:00Z",
-    "releasedAt": null,
+    "releasedAt": "2026-08-22T16:19:36Z",
     "sourceCommit": "7db160aa0bd589097e63190a260a343aafe4854c",
     "evidenceCommit": "f56341a155e67705d4dba445ce3466c83c0b1482",
     "runtimeHost": "calendar-testnet.43.153.202.237.sslip.io",
@@ -444,8 +444,8 @@
     "reusable": false,
     "previousOwner": "card",
     "previousTaskId": "P0-196",
-    "reviewDecision": "GO_CALENDAR_ONLY_SINGLE_PUSH_DIRECT_HOSTED_BROWSER_PREFLIGHT",
-    "reason": "Wallet official routing is already complete under P0-191 and Heavy is free. Calendar carrier/request/workflow hashes, exact remote parent, absent sole path and no-sensitive fixed-origin hosted contract independently match."
+    "reviewDecision": "CONSUMED_RELEASED_FAILED_CLOSED_CALENDAR_HOSTED_BROWSER_HARNESS_SCHEMA_MISMATCH",
+    "reason": "The sole push/run executed without production or sensitive mutation. Exact health/version source-bound HTTP evidence passed, but the harness rejected the real build.commit schema before Chromium launch. No retry is authorized."
   },
   "wave": {
     "id": "B-financial-apps-quant",
