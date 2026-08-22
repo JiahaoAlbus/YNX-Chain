@@ -9,7 +9,7 @@ import{catalogs,date,isLocale,isRTL,localeNames,locales,money,t as translate,typ
 import{loadLocale,loadPendingAuthorization,loadSession,loadSimulationAudit,saveLocale,savePendingAuthorization,saveSession,saveSimulationAudit}from"./src/secureState";
 import{createRuntimeCardProductWalletConnection,type CardProductWalletConnection}from"./src/productWalletRuntime";
 import{createStandardWalletConnectState,discoverWalletProviders,reduceStandardWalletConnectState}from"@ynx-chain/wallet-auth";
-import{approveTestnetTopup,classifyCardWalletError,connectEip1193Wallet,connectMetaMaskWallet,loadTestnetTopupEvidence,parseWalletAuthorizationCallback,parseYnxtAmountToWei,resolveEip1193Provider,restoreMetaMaskWallet,watchMetaMaskProvider,YNX_TESTNET_CHAIN_ID,type CardSession,type Eip1193Provider,type Eip1193WalletSession,type PendingAuthorizationRequest,type ProductSessionRuntime,type TopupEvidence}from"./src/wallet";
+import{approveTestnetTopup,classifyCardWalletError,connectEip1193Wallet,connectMetaMaskWallet,loadTestnetTopupEvidence,parseWalletAuthorizationCallback,parseYnxtAmountToWei,resolveEip1193Provider,restoreMetaMaskWallet,watchStandardWalletProvider,YNX_TESTNET_CHAIN_ID,type CardSession,type Eip1193Provider,type Eip1193WalletSession,type PendingAuthorizationRequest,type ProductSessionRuntime,type TopupEvidence}from"./src/wallet";
 import{isFailure,recoverLastFailed,replayAwareAppend,SimulationAuditRecord,TESTNET_SIMULATION_CURRENCY,TESTNET_SIMULATION_MAX_EVENTS,type SimulationInput as LedgerSimulationInput}from"./src/simulation";
 import{GuestExperience}from"./src/GuestExperience";
 
@@ -184,12 +184,34 @@ export default function App(){
     finally{if(mounted.current)setWalletBusy(false);}
   };
 
+  const disconnectStandardWallet=()=>{
+    walletProvider.current=null;
+    walletProviderKind.current=null;
+    setWalletSession(null);
+    setTopupIntent(null);setTopupHash("");setTopupEvidence(null);
+    setStandardWalletState(current=>reduceStandardWalletConnectState(current,{type:"DISCONNECT",reason:"user-requested"}));
+    setWalletError("Wallet disconnected by you. Guest simulation remains available.");
+  };
+
+  const switchStandardWalletNetwork=async()=>{
+    const provider=walletProvider.current;
+    if(!provider){setWalletError("No selected wallet provider is available. Connect a wallet first.");return;}
+    setWalletBusy(true);setWalletError("");
+    try{
+      const next=walletProviderKind.current==="metamask"?await connectMetaMaskWallet(new Date(),provider):await connectEip1193Wallet(provider,new Date());
+      setWalletSession(next);
+      setStandardWalletState(current=>reduceStandardWalletConnectState(current,{type:"CHAIN_CONFIRMED",chainId:next.chainId}));
+    }catch(e){setWalletError(classifyCardWalletError(e).safeMessage);}
+    finally{if(mounted.current)setWalletBusy(false);}
+  };
+
   useEffect(()=>{
-    if(walletProviderKind.current!=="metamask"||!walletSession)return;
-    return watchMetaMaskProvider(walletProvider.current,{
-      accountsChanged:accounts=>{if(!mounted.current)return;if(!accounts[0]){setWalletSession(null);setWalletError("MetaMask account access was removed.");return;}setWalletSession(current=>current?{...current,address:accounts[0]??current.address,connectedAt:new Date().toISOString()}:current);},
-      chainChanged:chainId=>{if(!mounted.current)return;if(chainId!==YNX_TESTNET_CHAIN_ID){setWalletSession(null);setWalletError("MetaMask switched away from YNX Testnet.");}else setWalletSession(current=>current?{...current,chainId,connectedAt:new Date().toISOString()}:current);},
-      disconnect:()=>{if(mounted.current){setWalletSession(null);setWalletError("MetaMask disconnected. Reconnect to continue.");}},
+    if(!walletProvider.current||!walletSession)return;
+    const providerName=walletProviderKind.current==="metamask"?"MetaMask":"YNX Wallet";
+    return watchStandardWalletProvider(walletProvider.current,{
+      accountsChanged:accounts=>{if(!mounted.current)return;if(!accounts[0]){setWalletSession(null);setWalletError(`${providerName} account access was removed.`);return;}setWalletSession(current=>current?{...current,address:accounts[0]??current.address,connectedAt:new Date().toISOString()}:current);},
+      chainChanged:chainId=>{if(!mounted.current)return;if(chainId!==YNX_TESTNET_CHAIN_ID){setWalletSession(null);setWalletError(`${providerName} switched away from YNX Testnet.`);}else setWalletSession(current=>current?{...current,chainId,connectedAt:new Date().toISOString()}:current);},
+      disconnect:()=>{if(mounted.current){setWalletSession(null);setWalletError(`${providerName} disconnected. Reconnect to continue.`);}},
     });
   },[walletSession]);
 
@@ -435,7 +457,7 @@ export default function App(){
     </View>
 
     {!session?
-      <GuestExperience locale={locale} connectWallet={connectEvmWallet} connectMetaMaskWallet={connectMetaMask} connectYNXWallet={beginYNXWalletAuthorization} enablePrivateServices={signIn} walletSession={walletSession} walletBusy={walletBusy} walletError={walletError} privateSession={privateSession}/>
+      <GuestExperience locale={locale} connectWallet={connectEvmWallet} connectMetaMaskWallet={connectMetaMask} connectYNXWallet={beginYNXWalletAuthorization} enablePrivateServices={signIn} disconnectWallet={disconnectStandardWallet} switchWalletNetwork={switchStandardWalletNetwork} walletSession={walletSession} walletBusy={walletBusy} walletError={walletError} privateSession={privateSession}/>
     :
       <>
         <View style={s.stage}>

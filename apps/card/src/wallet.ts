@@ -177,7 +177,11 @@ export async function restoreMetaMaskWallet(now=new Date(),provider?:Eip1193Prov
 }
 
 export function watchMetaMaskProvider(provider:Eip1193Provider|null,events:MetaMaskProviderEvents):()=>void{
-  if(!strictMetaMaskProvider(provider)||typeof provider.on!=="function")return()=>{};
+  return watchStandardWalletProvider(provider,events);
+}
+
+export function watchStandardWalletProvider(provider:Eip1193Provider|null,events:MetaMaskProviderEvents):()=>void{
+  if(!provider||typeof provider.on!=="function")return()=>{};
   const accounts=(value:unknown)=>events.accountsChanged(Array.isArray(value)?value.filter(address).map(value=>value.toLowerCase()):[]);
   const chain=(value:unknown)=>events.chainChanged(typeof value==="string"?value.toLowerCase():"");
   const disconnect=()=>events.disconnect();
