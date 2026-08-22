@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "kind": "DEX_PUBLIC_RUNTIME_DEPLOYMENT_LEASE_REQUEST",
+  "createdAt": "2026-08-22",
+  "requestState": "PENDING_CENTRAL_SINGLE_USE_LEASE",
+  "scope": ["apps/dex/**", "release/dex/ynx-dex-7563dc660454-runtime.tar.gz"],
+  "supersedesPrerequisite": {
+    "lease": "P0-179",
+    "status": "RELEASED_BY_CENTRAL_COORDINATION",
+    "doesNotReuseAuthority": true
+  },
+  "ownerCheckpoint": {
+    "commit": "bce90db6522edf2d745631823dd224cc0786ba4e",
+    "tree": "e73bc0c619a39c4cdb14f22c7cc74946130a1c43"
+  },
+  "candidate": {
+    "sourceCommit": "7563dc6604540715f87d4e1e46b4ed41feaf6235",
+    "sourceTree": "a7edd2575d8f6f6d21abbd10baec26dcfbdbddbb",
+    "archive": {
+      "path": "release/dex/ynx-dex-7563dc660454-runtime.tar.gz",
+      "bytes": 3124626,
+      "sha256": "4d80b76890191ff93feb75e3bd4214078d1ad9e269d54829f4c3781e082fd092"
+    },
+    "inventory": {
+      "path": "release/dex/ynx-dex-7563dc660454-runtime.inventory.json",
+      "bytes": 3533,
+      "sha256": "b7e55c11e64638993d2980db5be781693f11a2b14a73b43752b5da9fea3405a0"
+    },
+    "linuxAmd64Indexer": {
+      "bytes": 6942868,
+      "sha256": "b3a558af9bf2a8491a6e54b843687db461decfc9ff49748bdcf845d6f5141605"
+    },
+    "releaseScript": {
+      "path": "scripts/dex-public-runtime-release.sh",
+      "bytes": 7936,
+      "sha256": "2d5716c6cd241c0df63c26d134507e7efae93e59ef57a08c0bf1c1d9e825be48"
+    }
+  },
+  "centralMustFreshlyBind": [
+    "target host architecture service ExecStart WorkingDirectory unit env Caddy state and active symlink values",
+    "current release binary and served asset hashes plus current public root version health responses",
+    "immutable stage release and same-filesystem backup paths",
+    "exact deployment preflight rollback and verifier command bytes and hashes",
+    "before-and-after rollback receipts for runtime configuration state service and public responses"
+  ],
+  "forbiddenWithoutNewLease": [
+    "SSH or production mutation",
+    "archive transfer",
+    "service restart",
+    "symlink env unit Caddy or state mutation",
+    "wallet account request signature swap liquidity or transaction"
+  ],
+  "truth": {
+    "deployedPublic": false,
+    "sourceBoundPublicRuntime": false,
+    "installed": false,
+    "providerApproved": false,
+    "walletCallback": false,
+    "swap": false,
+    "liquidity": false,
+    "transaction": false,
+    "productSession": false,
+    "computerControl": false,
+    "productsConnected": 0,
+    "migratedV2": false
+  }
+}
