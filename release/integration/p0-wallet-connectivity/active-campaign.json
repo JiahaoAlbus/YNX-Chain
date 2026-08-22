@@ -427,11 +427,12 @@
     }
   ],
   "heavy": {
-    "owner": "card",
-    "taskId": "P0-206",
-    "status": "ACTIVE_SINGLE_USE",
+    "owner": null,
+    "taskId": null,
+    "status": "IDLE",
     "acquiredAt": "2026-08-22T17:51:00Z",
     "expiresAt": "2026-08-22T18:21:00Z",
+    "releasedAt": "2026-08-22T17:58:03Z",
     "sourceCommit": "00191c9a5c38b92fed9ce224c9862c396ad9379d",
     "evidenceCommit": "2c607361916c9cfd344fdd16d51095c1f6ccdc9c",
     "runtimeHost": "ynx-card-testnet-simulation-dn1nbeei4-jiahaoalbus-projects.vercel.app",
@@ -441,12 +442,10 @@
     "productionMutationAllowed": false,
     "singleUse": true,
     "reusable": false,
-    "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-card-immutable-candidate-hosted-browser-preflight-20260822T175100Z",
-    "locks": [
-      "project:prj_DU37JeDK4Rx0MjxIV745veV5Qgxp:setting:ssoProtection",
-      "branch:codex/p0-card-static-deploy-envelope-20260822/path:.github/workflows/card-public-candidate-preflight-p0.yml"
-    ],
-    "reason": "Creator P0-205 released. Card bundle, sole workflow diff, current parent, candidate READY/PROMOTED, canonical rollback and project SSO/private state independently match. Authorize only one bounded SSO window plus one workflow push/run; no deploy, alias or sensitive action."
+    "previousOwner": "card",
+    "previousTaskId": "P0-206",
+    "reviewDecision": "CONSUMED_RELEASED_SUCCESS_CARD_IMMUTABLE_CANDIDATE_HOSTED_BROWSER_NON_SENSITIVE_PREFLIGHT",
+    "reason": "The sole push-triggered hosted run passed all raw-resource, Chromium and artifact-upload steps. SSO was restored to a protected private state and the official Card alias remained exact rollback. Promote immutable-candidate non-sensitive hosted evidence only; canonical public, account/sign/tx and product gates remain false."
   },
   "wave": {
     "id": "B-financial-apps-quant",
