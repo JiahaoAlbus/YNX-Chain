@@ -2,6 +2,7 @@ const { withAndroidManifest } = require("expo/config-plugins");
 
 const AUTHORIZE_SCHEME = "ynxwallet";
 const EXACT_HOSTS = ["authorize", "action", "open"];
+const UNIVERSAL_ROUTE = Object.freeze({scheme:"https",host:"www.ynxweb4.com",path:"/dapp/wallet/open"});
 
 function applyExactIntentFilters(manifest) {
     const activities = manifest.application?.[0]?.activity ?? [];
@@ -34,6 +35,12 @@ function applyExactIntentFilters(manifest) {
         !categories.includes("android.intent.category.BROWSABLE")) {
       throw new Error("YNX Wallet exact intent filter must be VIEW, DEFAULT and BROWSABLE");
     }
+    const universalFilters = main["intent-filter"].filter((candidate) => (candidate.data ?? []).some((data) => data.$?.["android:scheme"] === UNIVERSAL_ROUTE.scheme));
+    if (universalFilters.length !== 1) throw new Error("YNX Wallet requires one exact universal-link intent filter");
+    const universal = universalFilters[0],routes=universal.data??[];
+    if (routes.length!==1||routes[0].$?.["android:host"]!==UNIVERSAL_ROUTE.host||routes[0].$?.["android:path"]!==UNIVERSAL_ROUTE.path||universal.$?.["android:autoVerify"]!=="true") throw new Error("YNX Wallet universal-link route is not exact or verified");
+    const universalActions=(universal.action??[]).map((action)=>action.$?.["android:name"]),universalCategories=(universal.category??[]).map((category)=>category.$?.["android:name"]);
+    if(!universalActions.includes("android.intent.action.VIEW")||!universalCategories.includes("android.intent.category.DEFAULT")||!universalCategories.includes("android.intent.category.BROWSABLE"))throw new Error("YNX Wallet universal link must be VIEW, DEFAULT and BROWSABLE");
     return manifest;
 }
 

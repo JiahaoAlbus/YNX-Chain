@@ -23,6 +23,11 @@
         "autoVerify": false,
         "data": [{"scheme": "ynxwallet", "host": "authorize"}, {"scheme": "ynxwallet", "host": "action"}, {"scheme": "ynxwallet", "host": "open"}],
         "category": ["BROWSABLE", "DEFAULT"]
+      }, {
+        "action": "VIEW",
+        "autoVerify": true,
+        "data": [{"scheme": "https", "host": "www.ynxweb4.com", "path": "/dapp/wallet/open"}],
+        "category": ["BROWSABLE", "DEFAULT"]
       }]
     },
     "plugins": [
