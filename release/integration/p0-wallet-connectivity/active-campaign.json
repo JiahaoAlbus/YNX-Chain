@@ -427,26 +427,26 @@
     }
   ],
   "heavy": {
-    "owner": "wallet-web+website",
+    "owner": null,
     "taskId": "P0-187",
-    "status": "ACTIVE_SINGLE_USE",
+    "status": "CONSUMED_RELEASED_FAILED_CLOSED_HOSTED_CHROMIUM_REPAIRED_V11_LIFECYCLE_PREFLIGHT",
     "acquiredAt": "2026-08-22T11:33:00Z",
     "expiresAt": "2026-08-22T12:03:00Z",
-    "releasedAt": null,
+    "releasedAt": "2026-08-22T11:53:04Z",
     "sourceCommit": "7df37ca32a643a403bd23a7f555354261f789441",
     "evidenceCommit": "33b39740d9dec995c642640392c0323e19a9c03c",
     "runtimeHost": "wallet-3re0s0lx4-jiahaoalbus-projects.vercel.app",
     "currentRuntime": "dpl_Got2m9m84Sc3QDsrH8yu51W93JAe",
     "candidateRuntime": "dpl_EhSHsjrfQ17dzuTegLCqGvELeBte",
     "artifactSha256": "4e460a1b158d6664b930b9794fdeffc5918b83ad58a27095c47e05323bea713d",
-    "productionMutationAllowed": "WALLET_WEB_SSO_TEMPORARY_DISABLE_AND_RESTORE_ONLY",
+    "productionMutationAllowed": false,
     "singleUse": true,
     "reusable": false,
     "previousOwner": null,
     "previousTaskId": "P0-186",
     "checkpointCommit": "28ee4ea4bc8b97f3421a4bbf16a31af42806ead2",
-    "reviewDecision": "GO_REPAIRED_V11_HOSTED_CHROMIUM_LIFECYCLE_NO_ALIAS",
-    "reason": "The repaired product source, exact artifact/handoff chain, READY immutable candidate, current remote parent and official old alias are independently bound. One reviewed sole-workflow push/run and temporary SSO window are authorized."
+    "reviewDecision": "FAILED_CLOSED_WORKFLOW_MEASUREMENT_FALSE_NEGATIVE_BEFORE_SECOND_LAUNCH",
+    "reason": "Run 32571167816 proved exact resources and the first-launch repaired v11 lifecycle, then stopped before process-close and second-launch because the workflow serialized an un-awaited buildIdentity Promise and treated an unbound favicon 404 console message as fatal. SSO is restored; no alias, product or account mutation occurred."
   },
   "wave": {
     "id": "B-financial-apps-quant",

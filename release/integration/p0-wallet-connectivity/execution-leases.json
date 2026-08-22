@@ -1,26 +1,26 @@
 {
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-  "epoch": 92,
-  "updatedAt": "2026-08-22T11:33:00Z",
+  "epoch": 93,
+  "updatedAt": "2026-08-22T11:53:04Z",
   "heavy": {
-    "owner": "wallet-web+website",
-    "status": "ACTIVE_SINGLE_USE",
+    "owner": null,
+    "status": "CONSUMED_RELEASED_FAILED_CLOSED_HOSTED_CHROMIUM_REPAIRED_V11_LIFECYCLE_PREFLIGHT",
     "branch": "codex/wallet-web-pwa-extensions-20260813",
     "worktree": "/Users/huangjiahao/.codex/worktrees/1274/YNX Chain",
     "taskId": "P0-187",
     "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-web-v11-service-worker-lifecycle-preflight-20260822T113300Z",
     "leasedAt": "2026-08-22T11:33:00Z",
     "expiresAt": "2026-08-22T12:03:00Z",
-    "releasedAt": null,
+    "releasedAt": "2026-08-22T11:53:04Z",
     "previousOwner": null,
     "previousTaskId": "P0-186",
     "previousCheckpoint": "28ee4ea4bc8b97f3421a4bbf16a31af42806ead2",
     "executionScope": "REPAIRED_V11_SERVICE_WORKER_LIFECYCLE_IMMUTABLE_CANDIDATE_HOSTED_CHROMIUM_NO_ALIAS",
-    "releaseReason": null,
+    "releaseReason": "The one hosted run directly proved all four exact resources and the repaired first-launch v8-to-v11 integrity/activation/controller/cache lifecycle, but the workflow failed before process-close and second-launch proof because buildIdentity was serialized from an un-awaited Promise and an unbound favicon 404 console message was treated as a product-resource failure. SSO was restored and the official alias remained unchanged.",
     "onSafeCheckpoint": [
-      "review and push only one workflow commit based on exact parent 33b39740",
-      "prove activated v11 controller, post-integrity v8 purge and second-process persistence",
-      "restore SSO on every terminal path; no alias, product source or account mutation"
+      "do not reuse P0-187 or infer public/installed completion",
+      "preserve the direct four-resource and first-launch repaired-v11 lifecycle evidence",
+      "a successor must bind current parent ea3be8a5, await buildIdentity JSON, retain candidate-bound error gates and prove process-close plus second launch"
     ]
   },
   "light": {
