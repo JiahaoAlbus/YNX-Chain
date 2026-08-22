@@ -427,25 +427,26 @@
     }
   ],
   "heavy": {
-    "owner": null,
-    "taskId": null,
-    "status": "IDLE",
-    "acquiredAt": "2026-08-22T17:36:00Z",
-    "expiresAt": "2026-08-22T18:06:00Z",
-    "releasedAt": "2026-08-22T17:46:33Z",
-    "sourceCommit": "0e1a53c5ad1fc9dc2cbfebc13c55f1f426c7e7ae",
-    "evidenceCommit": "1d653a43c4d9f3019af7b58bdff3d0d699397bb2",
-    "runtimeHost": "43.153.202.237",
-    "currentRuntime": "/opt/ynx-video/releases/p0205-creator-studio-0e1a53c5",
-    "candidateRuntime": "/opt/ynx-video/releases/p0205-creator-studio-0e1a53c5",
-    "artifactSha256": "3f56aa4c3f9d87d27f7cdf19eafc0dacf1da78d83d31def2080f0162d92bdf8a",
+    "owner": "card",
+    "taskId": "P0-206",
+    "status": "ACTIVE_SINGLE_USE",
+    "acquiredAt": "2026-08-22T17:51:00Z",
+    "expiresAt": "2026-08-22T18:21:00Z",
+    "sourceCommit": "00191c9a5c38b92fed9ce224c9862c396ad9379d",
+    "evidenceCommit": "2c607361916c9cfd344fdd16d51095c1f6ccdc9c",
+    "runtimeHost": "ynx-card-testnet-simulation-dn1nbeei4-jiahaoalbus-projects.vercel.app",
+    "currentRuntime": "dpl_DqMuEhno65bLFTNKBu9gs52soVri",
+    "candidateRuntime": "dpl_8qCEhiAq8hgiTYf2hA2FXU57W122",
+    "artifactSha256": "22d0dc924041153fd17b5677034ce24fda56f5faad1dabfb90ab18a161a66d6b",
     "productionMutationAllowed": false,
     "singleUse": true,
     "reusable": false,
-    "previousOwner": "creator-studio",
-    "previousTaskId": "P0-205",
-    "reviewDecision": "CONSUMED_RELEASED_SUCCESS_CREATOR_STUDIO_SOURCE_BOUND_PUBLIC_NON_SENSITIVE",
-    "reason": "One bounded transfer, exact candidate verification/cold start, one Creator-only current-link switch and one service restart succeeded. Central independently confirmed exact current target, service/unit/Caddy and six public resource hashes. Only non-sensitive Creator source-bound public truth is promoted; provider/account/sign/tx/product gates remain false."
+    "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-card-immutable-candidate-hosted-browser-preflight-20260822T175100Z",
+    "locks": [
+      "project:prj_DU37JeDK4Rx0MjxIV745veV5Qgxp:setting:ssoProtection",
+      "branch:codex/p0-card-static-deploy-envelope-20260822/path:.github/workflows/card-public-candidate-preflight-p0.yml"
+    ],
+    "reason": "Creator P0-205 released. Card bundle, sole workflow diff, current parent, candidate READY/PROMOTED, canonical rollback and project SSO/private state independently match. Authorize only one bounded SSO window plus one workflow push/run; no deploy, alias or sensitive action."
   },
   "wave": {
     "id": "B-financial-apps-quant",
