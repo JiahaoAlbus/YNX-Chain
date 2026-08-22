@@ -1,5 +1,5 @@
 import {ASSET_INTEGRITY} from "./asset-integrity.js";
-import {PWA_CACHE, allPwaCaches, assetKeyForRequest, obsoletePwaCaches, recoveryNavigationUrl, responseMatchesIntegrity, serviceWorkerRoute, upgradeNavigationUrl} from "./service-worker-policy.js";
+import {PWA_CACHE, allPwaCaches, assetKeyForRequest, obsoletePwaCaches, recoveryNavigationUrl, responseMatchesIntegrity, serviceWorkerRoute} from "./service-worker-policy.js";
 
 const ASSETS = Object.keys(ASSET_INTEGRITY);
 const unavailable = (message = "Offline asset unavailable") => new Response(message, {status: 503, headers: {"content-type": "text/plain; charset=utf-8", "cache-control": "no-store"}});
@@ -16,22 +16,39 @@ async function recoverVersionDrift(request) {
   if(!await self.registration.unregister())return unavailable("PWA shell recovery could not unregister the stale worker");
   return recoveryDocument(target);
 }
-async function installCurrent() {
+async function currentCacheReady() {
   const cache = await caches.open(PWA_CACHE);
   for (const key of ASSETS) {
-    const response = await verified(await fetch(key, {cache: "no-store"}), key);
-    if (!response) throw new Error(`PWA shell integrity rejected ${key}`);
-    await cache.put(key, response);
+    const response = await cache.match(key);
+    if (!response || !await verified(response, key)) return false;
+  }
+  return true;
+}
+async function installCurrent() {
+  await caches.delete(PWA_CACHE);
+  try {
+    const cache = await caches.open(PWA_CACHE);
+    for (const key of ASSETS) {
+      const response = await verified(await fetch(key, {cache: "no-store"}), key);
+      if (!response) throw new Error(`PWA shell integrity rejected ${key}`);
+      await cache.put(key, response);
+    }
+    if (!await currentCacheReady()) throw new Error("PWA shell integrity cache is incomplete");
+  } catch (error) {
+    await caches.delete(PWA_CACHE);
+    throw error;
   }
 }
 self.addEventListener("install", (event) => event.waitUntil(installCurrent().then(() => self.skipWaiting())));
 self.addEventListener("activate", (event) => event.waitUntil((async()=>{
+  if(!await currentCacheReady()){
+    await caches.delete(PWA_CACHE);
+    throw new Error("PWA shell activation rejected an incomplete cache");
+  }
   const obsolete=obsoletePwaCaches(await caches.keys());
   await Promise.all(obsolete.map((key)=>caches.delete(key)));
   await self.clients.claim();
-  if(!obsolete.length)return;
-  const windows=await self.clients.matchAll({type:"window",includeUncontrolled:true});
-  await Promise.all(windows.map(async(client)=>{const target=upgradeNavigationUrl(client.url);if(target)await client.navigate(target).catch(()=>null)}));
+  await purgeObsolete();
 })()));
 self.addEventListener("message",(event)=>{
   if(event.data?.type!=="YNX_WALLET_PWA_VERSION"||!event.ports?.[0])return;

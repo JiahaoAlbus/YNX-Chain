@@ -57,10 +57,37 @@ test("built worker derives cache keys from its registration scope",async()=>{
   assert.doesNotMatch(worker,/assetKeyForRequest\(event\.request, self\.location\.origin\)/u);
   assert.match(worker,/self\.registration\.unregister\(\)/u);
   assert.match(worker,/x-ynx-wallet-recovery/u);
-  assert.match(worker,/client\.navigate\(target\)/u);
-  assert.match(worker,/includeUncontrolled:true/u);
+  assert.doesNotMatch(worker,/client\.navigate\(/u);
+  assert.doesNotMatch(worker,/includeUncontrolled:true/u);
   assert.match(worker,/YNX_WALLET_PWA_VERSION/u);
   assert.match(worker,/event\.ports\[0\]\.postMessage\(\{cache:PWA_CACHE\}\)/u);
+  assert.match(worker,/async function currentCacheReady\(\)/u);
+  assert.match(worker,/await caches\.delete\(PWA_CACHE\);\s+try/u);
+  assert.match(worker,/if \(!await currentCacheReady\(\)\) throw new Error\("PWA shell integrity cache is incomplete"\)/u);
+  assert.match(worker,/catch \(error\) \{\s+await caches\.delete\(PWA_CACHE\);\s+throw error;/u);
+  const activationGuard=worker.indexOf('if(!await currentCacheReady())');
+  const obsoleteDeletion=worker.indexOf('const obsolete=obsoletePwaCaches');
+  assert.ok(activationGuard>=0&&activationGuard<obsoleteDeletion,"v11 integrity must be ready before obsolete caches are deleted");
+  assert.match(worker,/await self\.clients\.claim\(\);\s+await purgeObsolete\(\);/u);
+});
+
+test("PWA bootstrap waits for activated v11 control and permits only one bounded reload",async()=>{
+  const app=await import("node:fs/promises").then(({readFile})=>readFile(new URL("../public/app.js",import.meta.url),"utf8"));
+  assert.match(app,/register\("\.\/sw\.js",\{type:"module",scope:"\.\/"\}\)/u);
+  assert.match(app,/worker\?\.state==="activated"&&await workerVersion\(worker\)===PWA_CACHE/u);
+  assert.match(app,/await waitForV11Worker\(registration\)/u);
+  assert.match(app,/const startingControllerVersion=await workerVersion\(navigator\.serviceWorker\.controller\)/u);
+  assert.match(app,/if\(startingControllerVersion!==PWA_CACHE&&reloadUrl\)/u);
+  assert.match(app,/return \{reloading:true\}/u);
+  assert.match(app,/if\(!await waitForV11Controller\(\)\)throw Object\.assign/u);
+  assert.match(app,/obsoletePwaCaches\(keys\)\.length===0/u);
+  assert.match(app,/Date\.now\(\)-stableSince>=1000/u);
+  assert.match(app,/dataset\.pwa="ready"/u);
+  assert.match(app,/dataset\.pwa="failed"/u);
+  assert.match(app,/const reloadUrl=upgradeNavigationUrl\(initialPwaNavigationUrl\)/u);
+  assert.match(app,/location\.replace\(reloadUrl\)/u);
+  assert.match(app,/if\(!result\.reloading\)document\.documentElement\.dataset\.pwa="ready"/u);
+  assert.doesNotMatch(app,/register\("\.\/sw\.js"[^;]+\.catch\(\(\) => \{\}\)/u);
 });
 
 test("public bootstrap HTML remains byte-compatible with the deployed v8 worker",async()=>{

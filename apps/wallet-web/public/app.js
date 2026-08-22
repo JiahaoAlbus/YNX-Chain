@@ -6,7 +6,7 @@ import {
 import {CORE_WALLET_AUTH_BINDING} from "./core-auth-binding.js";
 import {createWalletWebCompanionLifecycle} from "./wallet-web-companion-lifecycle.js";
 import {createStandardWalletConnectState,reduceStandardWalletConnectState,STANDARD_WALLET_CONNECT_STATUS} from "./standard-wallet-connect-state.js";
-import {cleanPwaNavigationUrl} from "./service-worker-policy.js";
+import {PWA_CACHE,cleanPwaNavigationUrl,obsoletePwaCaches,upgradeNavigationUrl} from "./service-worker-policy.js";
 import {
   METAMASK_DOWNLOAD_URL, WALLET_DOWNLOAD_MATRIX, YNX_DOWNLOAD_URL, addYNXChain, connectStandardWallet, createExtensionProvider, discoverWallets,
   extensionWalletAvailability, forgetSession, rememberSession, restoreTestnetSession, sendTransaction,
@@ -16,6 +16,7 @@ import {
 
 const app = document.querySelector("#app");
 const isExtension = location.protocol === "chrome-extension:" || location.protocol === "moz-extension:";
+const initialPwaNavigationUrl=location.href;
 function cleanPwaRecoveryMarker(){if(isExtension)return;const cleanUrl=cleanPwaNavigationUrl(location.href);if(cleanUrl)history.replaceState(history.state,"",cleanUrl)}
 cleanPwaRecoveryMarker();
 const mobileBrowser = !isExtension && isMobileWalletBrowser(navigator);
@@ -206,4 +207,43 @@ if(!isExtension&&`${location.origin}${location.pathname}`===companionLifecycle.c
 }
 addEventListener("storage",(event)=>{if(event.key!==PREFERENCES_KEY)return;try{const next=acceptPreferenceUpdate(state.preferences,event.newValue);state.preferences=next;state.locale=next.locale;state.theme=next.theme;render();detect({preserveConnection:true}).catch(setError)}catch(error){setError(error)}});
 addEventListener("focus",()=>{if(!state.account)detect({preserveConnection:false}).catch(setError)});
-if (!isExtension && "serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js", {type:"module"}).then((registration)=>registration.update()).catch(() => {});
+const wait=(milliseconds)=>new Promise(resolve=>setTimeout(resolve,milliseconds));
+function workerVersion(worker){return new Promise(resolve=>{if(!worker){resolve(null);return}const channel=new MessageChannel(),timer=setTimeout(()=>resolve(null),500);channel.port1.onmessage=event=>{clearTimeout(timer);resolve(event.data?.cache||null)};try{worker.postMessage({type:"YNX_WALLET_PWA_VERSION"},[channel.port2])}catch{clearTimeout(timer);resolve(null)}})}
+async function waitForV11Worker(registration,timeout=12000){
+  const deadline=Date.now()+timeout;
+  while(Date.now()<deadline){
+    for(const worker of [registration.installing,registration.waiting,registration.active])if(worker?.state==="activated"&&await workerVersion(worker)===PWA_CACHE)return worker;
+    await wait(100);
+  }
+  throw Object.assign(new Error("YNX Wallet service worker did not activate"),{code:"PWA_SERVICE_WORKER_ACTIVATION_FAILED"});
+}
+async function waitForV11Controller(timeout=2500){
+  const deadline=Date.now()+timeout;
+  while(Date.now()<deadline){if(await workerVersion(navigator.serviceWorker.controller)===PWA_CACHE)return true;await wait(100)}
+  return false;
+}
+async function waitForV11Cache(timeout=5000){
+  const deadline=Date.now()+timeout;
+  let stableSince=null;
+  while(Date.now()<deadline){
+    const keys=await caches.keys(),converged=keys.includes(PWA_CACHE)&&obsoletePwaCaches(keys).length===0;
+    if(converged){stableSince??=Date.now();if(Date.now()-stableSince>=1000)return true}else stableSince=null;
+    await wait(100);
+  }
+  return false;
+}
+async function convergePwaServiceWorker(){
+  const startingControllerVersion=await workerVersion(navigator.serviceWorker.controller);
+  const registration=await navigator.serviceWorker.register("./sw.js",{type:"module",scope:"./"});
+  await registration.update();
+  await waitForV11Worker(registration);
+  const reloadUrl=upgradeNavigationUrl(initialPwaNavigationUrl);
+  if(startingControllerVersion!==PWA_CACHE&&reloadUrl){
+    location.replace(reloadUrl);
+    return {reloading:true};
+  }
+  if(!await waitForV11Controller())throw Object.assign(new Error("YNX Wallet service worker could not control the page after one reload"),{code:"PWA_SERVICE_WORKER_CONTROL_FAILED"});
+  if(!await waitForV11Cache())throw Object.assign(new Error("YNX Wallet service worker left an obsolete cache after activation"),{code:"PWA_SERVICE_WORKER_CACHE_CONVERGENCE_FAILED"});
+  return {reloading:false};
+}
+if(!isExtension&&"serviceWorker" in navigator)convergePwaServiceWorker().then(result=>{if(!result.reloading)document.documentElement.dataset.pwa="ready"}).catch(error=>{document.documentElement.dataset.pwa="failed";setError(error)});
