@@ -161,6 +161,27 @@
       "productSessionV2": false,
       "messageSigned": false,
       "transactionSubmitted": false
+      ,"extensionVaultSignerP0152": {
+        "sourceCommit": "60a756991fbe07311c9d2b0dbade8a9d670dab04",
+        "sourceTree": "6a6fd70ef6dae23022e877ff9542daffa225d536",
+        "evidenceCommit": "6fcf1a9cbc7900e5f0a5136d9d6bdc52c181a75c",
+        "evidencePath": "apps/wallet-web/evidence/contracts/ynx-extension-vault-signer-20260822.json",
+        "evidenceBlob": "5528dca2a7c962e1eb77a55058ced8c8c8694787",
+        "evidenceSha256": "eda12194c0458c2ed8153341d97d73459b7d7c41a770975c2980ffb96aa56963",
+        "centralP0152": {"commit":"803d8fa0735303a5987bbebfeb088cdd5542b388","blob":"4057c4ef26e415f6cee33e105ceb825c6797c0a9","sha256":"acb808830bef59707f9433e417bac3b4af6f0bc294c218b0f6468dfbba961f20","accepted":true},
+        "sourceTests": "110/110",
+        "packageInternal": "83/83",
+        "directNodeRpcChainId": "0x1917",
+        "installedProvider": false,
+        "approveReject": false,
+        "account": false,
+        "refreshEventsDisconnect": false,
+        "signTypedDataTransaction": false,
+        "deployedPublic": false,
+        "parityComplete": false,
+        "currentSourceBoundPublic": false,
+        "nextActionRequiresImmediateUserConfirmation": true
+      }
     },
     "macosDmg": {
       "websiteSource": "efe79b5c9bcfa2619c138abc7521ee17b7cbfd7d",
