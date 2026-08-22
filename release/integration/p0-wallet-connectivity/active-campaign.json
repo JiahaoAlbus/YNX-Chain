@@ -427,26 +427,26 @@
     }
   ],
   "heavy": {
-    "owner": "wallet-web+website",
+    "owner": null,
     "taskId": "P0-183",
-    "status": "ACTIVE_SINGLE_USE",
+    "status": "CONSUMED_RELEASED_FAILED_CLOSED_REMOTE_ADVANCED_NON_FAST_FORWARD",
     "acquiredAt": "2026-08-22T09:58:00Z",
     "expiresAt": "2026-08-22T10:28:00Z",
-    "releasedAt": null,
+    "releasedAt": "2026-08-22T10:05:02Z",
     "sourceCommit": "abe18043259374ee58f90580af582100ab0649cd",
     "evidenceCommit": "f5545ea75246cb315366e72f62c4f24948eb4bf1",
     "runtimeHost": "wallet-3tjtzd8sy-jiahaoalbus-projects.vercel.app",
     "currentRuntime": "dpl_Got2m9m84Sc3QDsrH8yu51W93JAe",
     "candidateRuntime": "dpl_AqRgvgb2fwb23fQb4GDN3Qg1vCmN",
     "artifactSha256": "447ca546b350cb6fca50e063d18b6dc9c087714b348a16bfc1948db0da833816",
-    "productionMutationAllowed": "WALLET_WEB_SSO_TEMPORARY_DISABLE_AND_RESTORE_ONLY",
+    "productionMutationAllowed": false,
     "singleUse": true,
     "reusable": false,
     "previousOwner": null,
     "previousTaskId": "P0-182",
     "checkpointCommit": "189e6c37d79b7d26ad2c1ed40fdb6faf2b4ce205",
-    "reviewDecision": "GO_V11_NO_STORE_HOSTED_CHROMIUM_PREFLIGHT_NO_ALIAS",
-    "reason": "The no-store publication repair is remote exact and its deployment is READY. One isolated hosted Chromium preflight is authorized with no alias or product mutation."
+    "reviewDecision": "FAILED_CLOSED_REMOTE_BRANCH_ADVANCED_PRE_PUSH_SSO_RESTORED",
+    "reason": "The sole force=false push was rejected because the owner branch advanced. No remote workflow mutation or run occurred; SSO was restored and the official alias remained unchanged."
   },
   "wave": {
     "id": "B-financial-apps-quant",

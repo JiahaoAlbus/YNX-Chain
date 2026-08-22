@@ -1297,7 +1297,7 @@
     },
     {
       "path": "vercel:wallet.ynxweb4.com",
-      "owner": "website",
+      "owner": null,
       "branch": "codex/website-wallet-public-identity-routing-20260822",
       "worktree": "/Users/huangjiahao/Desktop/ynx-web4-website-new",
       "taskId": "P0-181",
@@ -1338,33 +1338,33 @@
       "worktree": "/Users/huangjiahao/.codex/worktrees/1274/YNX Chain",
       "taskId": "P0-183",
       "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-      "status": "ACTIVE_SINGLE_USE",
+      "status": "CONSUMED_RELEASED_FAILED_CLOSED_REMOTE_ADVANCED_NON_FAST_FORWARD",
       "acquiredAt": "2026-08-22T09:58:00Z",
       "expiresAt": "2026-08-22T10:28:00Z",
-      "releasedAt": null,
-      "productionMutationAllowed": "EXACT_TEMPORARY_SSO_DISABLE_AND_RESTORE_ONLY",
+      "releasedAt": "2026-08-22T10:05:02Z",
+      "productionMutationAllowed": false,
       "allowedExceptions": [
-        "disable wallet-web SSO once for exact dpl_AqRgvgb2fwb23fQb4GDN3Qg1vCmN hosted run",
-        "restore SSO once on every terminal path",
-        "no alias or other Vercel setting mutation"
+        "P0-183 is consumed and nonreusable",
+        "SSO is restored to prod_deployment_urls_and_all_previews",
+        "no new protection window without a wholly new lease"
       ]
     },
     {
       "path": ".github/workflows/wallet-web-public-preflight-p0.yml",
-      "owner": "wallet-web",
+      "owner": null,
       "branch": "codex/wallet-web-pwa-extensions-20260813",
       "worktree": "/Users/huangjiahao/.codex/worktrees/1274/YNX Chain",
       "taskId": "P0-183",
       "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-      "status": "ACTIVE_SINGLE_USE",
+      "status": "CONSUMED_RELEASED_FAILED_CLOSED_REMOTE_ADVANCED_NON_FAST_FORWARD",
       "acquiredAt": "2026-08-22T09:58:00Z",
       "expiresAt": "2026-08-22T10:28:00Z",
-      "releasedAt": null,
+      "releasedAt": "2026-08-22T10:05:02Z",
       "productionMutationAllowed": false,
       "allowedExceptions": [
-        "one workflow-only commit with exact P0-183 message",
-        "one force=false push and one push-triggered hosted run",
-        "fresh RUNNER_TEMP output only; no repository evidence upload"
+        "P0-183 push quota is consumed by the rejected non-fast-forward attempt",
+        "no retry, dispatch or further workflow mutation under P0-183",
+        "successor must bind the current owner remote head"
       ]
     }
   ]

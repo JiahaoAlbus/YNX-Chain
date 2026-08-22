@@ -1,26 +1,26 @@
 {
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-  "epoch": 86,
-  "updatedAt": "2026-08-22T09:58:00Z",
+  "epoch": 87,
+  "updatedAt": "2026-08-22T10:05:02Z",
   "heavy": {
-    "owner": "wallet-web+website",
-    "status": "ACTIVE_SINGLE_USE",
+    "owner": null,
+    "status": "CONSUMED_RELEASED_FAILED_CLOSED_REMOTE_ADVANCED_NON_FAST_FORWARD",
     "branch": "codex/wallet-web-pwa-extensions-20260813",
     "worktree": "/Users/huangjiahao/.codex/worktrees/1274/YNX Chain",
     "taskId": "P0-183",
     "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-web-v11-no-store-hosted-browser-preflight-20260822T095800Z",
     "leasedAt": "2026-08-22T09:58:00Z",
     "expiresAt": "2026-08-22T10:28:00Z",
-    "releasedAt": null,
+    "releasedAt": "2026-08-22T10:05:02Z",
     "previousOwner": null,
     "previousTaskId": "P0-182",
     "previousCheckpoint": "189e6c37d79b7d26ad2c1ed40fdb6faf2b4ce205",
     "executionScope": "V11_NO_STORE_IMMUTABLE_CANDIDATE_HOSTED_CHROMIUM_PREFLIGHT_NO_ALIAS",
-    "releaseReason": null,
+    "releaseReason": "After one SSO disable, the sole authorized force=false push was rejected non-fast-forward because the owner branch advanced. No remote workflow mutation or run occurred; SSO was restored once and the official alias remained unchanged.",
     "onSafeCheckpoint": [
-      "modify only the exact hosted-preflight workflow and push once force=false",
-      "use a fresh RUNNER_TEMP evidence directory and run one hosted Chromium lifecycle",
-      "restore wallet-web SSO protection exactly once on every terminal path"
+      "do not reuse P0-183 or retry the rejected push",
+      "bind any successor to current remote head dfa1deb56f532bf985dbba20ee4b16acf2eb243f",
+      "require a newly reviewed workflow-only commit and wholly new lease"
     ]
   },
   "light": {
