@@ -1,0 +1,7 @@
+HTTP/2 200
+alt-svc: h3=":443"; ma=2592000
+content-security-policy: default-src 'self'; connect-src 'self' http://127.0.0.1:8423; style-src 'self'; script-src 'self'
+content-type: text/html; charset=utf-8
+date: Sat, 22 Aug 2026 23:23:25 GMT
+server: Caddy
+x-content-type-options: nosniff

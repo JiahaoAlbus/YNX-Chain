@@ -1,0 +1,8 @@
+{
+  "carrier": "live-frontend-carrier.tar",
+  "bytes": 101376,
+  "sha256": "be8c68af8cd342539bc2f98955b61c4bc9665867e08d91cd46afc7dcfdc53e27",
+  "restoreScope": "/video/studio only",
+  "rollbackExecutor": "release-control-plane owner",
+  "procedure": "node apps/creator-studio/release-carrier-fixture.mjs apply --carrier apps/creator-studio/release-candidates/live-20260823/studio --target $STUDIO_RELEASE_DIR"
+}

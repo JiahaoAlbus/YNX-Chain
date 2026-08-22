@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-08-23T00:00:00+08:00",
+  "route": "https://web4.ynxweb4.com/video/studio/",
+  "carrierScope": "/video/studio only",
+  "externalDependencies": [
+    {
+      "url": "https://web4.ynxweb4.com/i18n/catalog.json",
+      "status": 502,
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "owner": "shared-root; excluded from Creator rollback"
+    }
+  ],
+  "resources": [
+    "index.html",
+    "styles.css",
+    "enhancements.css",
+    "i18n.js",
+    "app.js",
+    "wallet-auth.js",
+    "standard-wallet-connect-state.js"
+  ],
+  "notLoaded": [
+    "web app manifest",
+    "service worker"
+  ],
+  "requestIdentity": {
+    "server": "Caddy",
+    "requestId": null
+  },
+  "restoreProcedure": "Use release-carrier-fixture.mjs rollback command against STUDIO_RELEASE_DIR only."
+}
