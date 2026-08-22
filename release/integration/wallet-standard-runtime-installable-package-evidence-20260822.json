@@ -1,0 +1,112 @@
+{
+  "schemaVersion": "1.0.0",
+  "evidenceId": "YNX-STANDARD-WALLET-INSTALLABLE-RUNTIME-PACKAGE-20260822",
+  "status": "INSTALLABLE_PACKAGE_RUNTIME_VERIFIED_NO_DIRECT_INSTALLED_OR_PUBLIC_WALLET",
+  "source": {
+    "branch": "codex/wallet-core-auth-gateway-continuation-20260814",
+    "commit": "66b00a8c5f285d73c2fbf666f1150baa0c95ecf1",
+    "parent": "f48f8cca8971f96a5609792d0cb853156f2fe8a7",
+    "tree": "bd3d31879d05e916e19f7d1b3c188ee6ffa349ba"
+  },
+  "handoff": {
+    "path": "packages/wallet-auth/integration/STANDARD_WALLET_RUNTIME_HANDOFF.md",
+    "blob": "310ae8b39bd1431f68d974bae0434185bc81f111",
+    "sha256": "c8215aa934d85ed5bbc4245553070a3b498be0829439f5e26aaf7028c1b10989",
+    "contractPath": "packages/wallet-auth/integration/standard-wallet-runtime-v1.json",
+    "contractBlob": "e04422572b3f192e9afb9291d620a99b40bf0675",
+    "contractSha256": "81ee07b40b542241017a3537d576d8806bfed506acab87106e6e45e3d730805a"
+  },
+  "authoritativeExecutionPlan": {
+    "routerCommit": "875be208e8a7ddb60345d55b93fc299949664e5c",
+    "routerTree": "3499ddfbe2a4bb08cbbcaef8c71b911aca51dde4",
+    "path": "release/integration/wallet-standard-wallet-e2e-execution-plan-p0-20260822.json",
+    "blob": "360704b565b592de3d7e6e63a43ba1922644ae29",
+    "sha256": "c5a615c9d5c34f25d9810751d816dc6709ca6de70aafea0549224de162c33652",
+    "byteExactConsumed": true,
+    "verifierPath": "packages/wallet-auth/scripts/verify-standard-wallet-e2e-execution-plan.mjs",
+    "verifierBlob": "a005b6e583f0fedb69ddecc8529b2c3d5e170628",
+    "verifierSha256": "68d6377cf8880a6cc356b898554a19c523a891ecb049b826204ecb635a6c2c7f",
+    "verifierResult": "PASS_12_REGISTERED_PRODUCTS"
+  },
+  "package": {
+    "name": "@ynx-chain/wallet-auth",
+    "version": "1.2.0",
+    "sha256": "a13b5aa292f4bfaf47e98effa2c94570621854e34e635a5ffd9b47965e6490d7",
+    "sha512Integrity": "sha512-1vDGq4MDlwjFAhL/0teZoT6Qovxt5cc3F9swthVsHYCBZiuI1Odr3eBaqOeuCYyvZLVyBYPbb8iLZnBNPPGa/w==",
+    "sha1": "f64a4e74336e810633eb875ef79b67da158f658f",
+    "bytes": 217909,
+    "unpackedBytes": 986736,
+    "entries": 129,
+    "repeatBuildByteIdentical": true,
+    "subpaths": ["@ynx-chain/wallet-auth/standard-wallet-runtime", "@ynx-chain/wallet-auth/standard-wallet-web", "@ynx-chain/wallet-auth/standard-wallet-native"],
+    "publicRegistryPublished": false
+  },
+  "installedArtifactHarness": {
+    "packageImportedFromInstalledArtifact": true,
+    "externalDappOrigin": "https://installed-external-dapp.example",
+    "eip6963": true,
+    "eip1193": true,
+    "chainId": "0x1917",
+    "ynxIdentity": { "name": "YNX Wallet", "rdns": "com.ynx.wallet", "isYNXWallet": true, "isMetaMask": false },
+    "existingMetaMaskOverwritten": false,
+    "approvalCallbackWired": true,
+    "rejectionCreatesAuthority": false,
+    "personalSignCallbackWired": true,
+    "eip712CallbackWired": true,
+    "sendTransactionCallbackWired": true,
+    "refreshRestoredWithoutPrompt": true,
+    "explicitRevokeClearedRestartAuthority": true,
+    "blankTopLevelOpenCalls": 0,
+    "productSessionUsed": false,
+    "degradedConnectionPreserved": true,
+    "nativeBridge": { "android": true, "ios": true, "macos": true, "desktop": true },
+    "walletConnectAdapter": true,
+    "callbackEvidence": "DETERMINISTIC_CONFORMANCE_ONLY_NO_REAL_KEY_NO_REAL_TRANSACTION"
+  },
+  "verification": {
+    "cleanClone": "/private/tmp/ynx-standard-wallet-runtime-clean.o4RoIN/clean",
+    "dependencyRestore": "npm ci --ignore-scripts --offline --prefix packages/wallet-auth",
+    "fullCommand": "npm run check --prefix packages/wallet-auth",
+    "fullTests": { "passed": 423, "failed": 0 },
+    "noBareAuthorize": "PASS",
+    "sourceConsumerGate": "PASS",
+    "executionPlanGate": "PASS",
+    "installedPackageHarness": "PASS"
+  },
+  "licenseAndBrandBoundary": {
+    "ynxIndependentBrand": true,
+    "copiesOrImpersonatesMetaMask": false,
+    "thirdPartyNotices": "packages/wallet-auth/THIRD_PARTY_NOTICES.md",
+    "dependencies": [
+      { "name": "@noble/curves", "version": "2.2.0", "license": "MIT" },
+      { "name": "@noble/hashes", "version": "2.2.0", "license": "MIT" }
+    ],
+    "privateKeyCollected": false
+  },
+  "directEvidenceTruth": {
+    "realInstalledWallet": false,
+    "sourceBoundPublicRuntime": false,
+    "publicUrl": null,
+    "realUserApproval": false,
+    "realUserRejection": false,
+    "realPersonalSign": false,
+    "realEip712Sign": false,
+    "realTestnetTransaction": false,
+    "realTransactionHash": null,
+    "realExternalDappDirectRuntimeCount": 0,
+    "realFirstPartyDapp": false,
+    "realWalletConnectProjectId": false,
+    "realWalletConnectRelay": false,
+    "realWalletConnectPairing": false,
+    "productsConnected": 0,
+    "productsMigratedV2": 0,
+    "deployedPublic": false,
+    "computerControl": false
+  },
+  "executionBoundary": {
+    "deploymentLeaseIssued": false,
+    "sshUsed": false,
+    "gatewayDeployed": false,
+    "nextAuthority": "Central or platform owner must bind this exact package to a real installed/source-bound public runtime and execute the authoritative E2E plan"
+  }
+}
