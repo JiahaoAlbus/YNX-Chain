@@ -249,11 +249,12 @@ app.whenReady().then(async () => {
 app.on("window-all-closed", () => app.quit());
 
 async function handleWalletConnectRequest(event) {
-  const { topic, id, params } = event;
+  const { topic, id } = event;
   try {
-    const response = await walletAuthority.request({ origin: walletConnect.sessionOrigin(topic), method: params.request.method, params: params.request.params });
+    const authorized = walletConnect.authorizeRequest(event);
+    const response = await walletAuthority.request({ origin: authorized.origin, method: authorized.method, params: authorized.params });
     if (response.status === "success") return walletConnect.respond(topic, id, response);
-    walletConnectRequests.set(response.request.id, { topic, jsonRpcId: id });
+    walletConnectRequests.set(response.request.id, { topic: authorized.topic, jsonRpcId: authorized.jsonRpcId });
     mainWindow?.webContents.send("wallet:provider-request", response.request);
   } catch (error) {
     await walletConnect.respond(topic, id, { status: "error", code: Number.isInteger(error?.code) ? error.code : 4200, message: error?.message ?? "Provider request failed" });

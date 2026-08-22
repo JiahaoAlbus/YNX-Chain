@@ -107,11 +107,12 @@ const walletConnectQRStatus = document.querySelector("#walletconnect-qr-status")
 const sessionsPanel = document.querySelector("#walletconnect-sessions");
 function renderWalletConnect(payload) {
   const status = payload?.ok === true ? payload.value : payload;
-  walletConnectTitle.textContent = status?.relayConnected ? "WalletConnect relay connected" : status?.started ? "WalletConnect SDK ready — relay not proved" : status?.configured ? "WalletConnect startup failed" : "WalletConnect not configured";
-  walletConnectDetail.textContent = status?.relayConnected
+  const startupFailed = status?.configured && status?.code && status.code !== "WALLETCONNECT_RELAY_CONNECTION_NOT_PROVED";
+  walletConnectTitle.textContent = startupFailed ? "WalletConnect startup failed" : status?.relayConnected ? "WalletConnect relay connected" : status?.started ? "WalletConnect SDK ready — relay not proved" : status?.configured ? "WalletConnect startup failed" : "WalletConnect not configured";
+  walletConnectDetail.textContent = status?.relayConnected && !startupFailed
     ? `${status.activeSessionCount} active session(s). Every connection and signing request requires visible approval.`
     : `${status?.code ?? "WALLETCONNECT_UNAVAILABLE"}: no relay, session or account success is claimed.`;
-  pairButton.disabled = !status?.started;
+  pairButton.disabled = !status?.started || startupFailed;
 }
 async function refreshWalletConnectSessions() {
   const response = await window.ynxWallet.walletConnectSessions();
