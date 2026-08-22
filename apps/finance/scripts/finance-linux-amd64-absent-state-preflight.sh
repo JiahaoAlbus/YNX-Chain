@@ -129,36 +129,4 @@ echo "PREFLIGHT_OK receipts=$receipt_dir" >"$receipt_dir/result.txt"
     | LC_ALL=C sort -z | xargs -0 sha256sum > .SHA256SUMS.tmp
   mv -f .SHA256SUMS.tmp SHA256SUMS
 )
-python3 - "$receipt_dir" <<'PY'
-import hashlib, os, pathlib, sys
-
-root = pathlib.Path(sys.argv[1]).resolve()
-manifest = root / 'SHA256SUMS'
-listed = {}
-for line in manifest.read_text(encoding='utf-8').splitlines():
-    digest, sep, name = line.partition('  ')
-    if not sep or len(digest) != 64 or any(ch not in '0123456789abcdef' for ch in digest):
-        raise SystemExit('invalid receipt SHA256SUMS entry')
-    path = pathlib.PurePosixPath(name)
-    if path.is_absolute() or '..' in path.parts or name in ('SHA256SUMS', '.SHA256SUMS.tmp') or name in listed:
-        raise SystemExit('unsafe or duplicate receipt SHA256SUMS path')
-    listed[name] = digest
-
-expected = {}
-for current, dirs, files in os.walk(root, followlinks=False):
-    for name in dirs + files:
-        candidate = pathlib.Path(current, name)
-        if candidate.is_symlink():
-            raise SystemExit('receipt tree contains symlink')
-    for name in files:
-        candidate = pathlib.Path(current, name)
-        relative = candidate.relative_to(root).as_posix()
-        if relative not in ('SHA256SUMS', '.SHA256SUMS.tmp'):
-            expected[relative] = candidate
-
-if set(listed) != set(expected):
-    raise SystemExit('receipt SHA256SUMS set mismatch')
-for relative, candidate in expected.items():
-    if hashlib.sha256(candidate.read_bytes()).hexdigest() != listed[relative]:
-        raise SystemExit('receipt SHA256SUMS digest mismatch')
-PY
+python3 "$(dirname "$0")/verify-finance-receipt-manifest.py" "$receipt_dir"
