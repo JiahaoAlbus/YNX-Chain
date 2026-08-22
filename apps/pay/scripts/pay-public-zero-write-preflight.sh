@@ -8,6 +8,7 @@ set -euo pipefail
 readonly PAY_HOST="43.153.202.237"
 readonly PAY_USER="ubuntu"
 readonly PAY_HOST_KEY="SHA256:7wrOak1OZoD6oDAr0e3En+UD4fs8QnAM1n0Jvwi6Ha8"
+readonly PAY_IDENTITY_FILE="/Users/huangjiahao/Downloads/Huang.pem"
 readonly PAY_ORIGIN="https://pay.ynxweb4.com"
 
 if [[ "${1:-}" == "--print-remote-commands" ]]; then
@@ -62,13 +63,18 @@ if [[ -e "$output_dir" ]]; then
 fi
 mkdir -m 0700 "$output_dir"
 
+if [[ ! -f "$PAY_IDENTITY_FILE" || "$(stat -f '%Lp' "$PAY_IDENTITY_FILE")" != "600" ]]; then
+  echo "authorized Pay SSH identity is absent or not mode 0600" >&2
+  exit 67
+fi
 if ! ssh-keygen -lf "${PAY_KNOWN_HOSTS:?set PAY_KNOWN_HOSTS to a local pinned known_hosts file}" | grep -Fq "$PAY_HOST_KEY"; then
   echo "pinned known_hosts does not contain the authorized Pay host key" >&2
-  exit 67
+  exit 68
 fi
 
 ssh_base=(
   ssh -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes
+  -i "$PAY_IDENTITY_FILE"
   -o UserKnownHostsFile="${PAY_KNOWN_HOSTS:?set PAY_KNOWN_HOSTS to a local pinned known_hosts file}"
   -o ConnectTimeout=10 "${PAY_USER}@${PAY_HOST}"
 )

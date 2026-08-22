@@ -15,6 +15,8 @@ const required = [
   'remote_capture caddy-adapt.json',
   'PAY_KNOWN_HOSTS',
   'ssh-keygen -lf',
+  'readonly PAY_IDENTITY_FILE="/Users/huangjiahao/Downloads/Huang.pem"',
+  '-i "$PAY_IDENTITY_FILE"',
 ];
 for (const token of required) {
   if (!source.includes(token)) throw new Error(`missing zero-write preflight contract: ${token}`);
