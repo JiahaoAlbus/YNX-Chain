@@ -1,26 +1,26 @@
 {
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-  "epoch": 98,
-  "updatedAt": "2026-08-22T12:31:00Z",
+  "epoch": 99,
+  "updatedAt": "2026-08-22T12:40:21Z",
   "heavy": {
-    "owner": "website",
-    "status": "ACTIVE_SINGLE_USE",
+    "owner": null,
+    "status": "CONSUMED_RELEASED_FAILED_CLOSED_WALLET_OFFICIAL_ROUTING",
     "branch": "codex/website-wallet-public-identity-routing-20260822",
     "worktree": "/Users/huangjiahao/Desktop/ynx-web4-website-new",
     "taskId": "P0-190",
     "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-official-source-bound-routing-20260822T123100Z",
     "leasedAt": "2026-08-22T12:31:00Z",
     "expiresAt": "2026-08-22T13:01:00Z",
-    "releasedAt": null,
+    "releasedAt": "2026-08-22T12:40:21Z",
     "previousOwner": null,
     "previousTaskId": "P0-189",
     "previousCheckpoint": "594225a459436c12f3efeb9deb3030bc4a5a285e",
     "executionScope": "WALLET_OFFICIAL_DOMAIN_ALIAS_ONLY_SOURCE_BOUND_V11_PUBLIC_LIFECYCLE",
-    "releaseReason": null,
+    "releaseReason": "The sole forward alias command succeeded, but the first post-route evidence command failed locally before any HTTP verdict because a zsh variable named path replaced the command-search path. No retry or browser run occurred. The sole rollback command succeeded and the official domain is directly re-bound to the exact old deployment and identity.",
     "onSafeCheckpoint": [
-      "execute one exact alias switch with no retry",
-      "verify official four resources and persistent first/process-close/second browser lifecycle",
-      "rollback once to dpl_Got2 on any post-alias failure"
+      "do not reuse P0-190 or infer source-bound public completion",
+      "preserve the exact successful rollback to dpl_Got2 and old identity",
+      "a successor must use a four-resource script that does not assign zsh's reserved path parameter"
     ]
   },
   "light": {

@@ -1297,20 +1297,20 @@
     },
     {
       "path": "vercel:wallet.ynxweb4.com",
-      "owner": "website",
+      "owner": null,
       "branch": "codex/website-wallet-public-identity-routing-20260822",
       "worktree": "/Users/huangjiahao/Desktop/ynx-web4-website-new",
       "taskId": "P0-190",
       "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-      "status": "ACTIVE_SINGLE_USE",
+      "status": "CONSUMED_RELEASED_FAILED_CLOSED_WALLET_OFFICIAL_ROUTING",
       "acquiredAt": "2026-08-22T12:31:00Z",
       "expiresAt": "2026-08-22T13:01:00Z",
-      "releasedAt": null,
-      "productionMutationAllowed": "EXACT_SINGLE_OFFICIAL_ALIAS_SWITCH_WITH_ONE_BOUND_ROLLBACK",
+      "releasedAt": "2026-08-22T12:40:21Z",
+      "productionMutationAllowed": false,
       "allowedExceptions": [
-        "switch wallet.ynxweb4.com once to exact dpl_EhSH with no retry",
-        "rollback once to exact dpl_Got2 on any post-alias failure",
-        "no SSO, project setting, source, account, signing or transaction mutation"
+        "P0-190 forward and rollback quotas are consumed and nonreusable",
+        "official wallet.ynxweb4.com is restored to exact dpl_Got2 and old identity",
+        "no new alias mutation without a wholly new lease"
       ]
     },
     {

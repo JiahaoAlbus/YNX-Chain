@@ -427,26 +427,26 @@
     }
   ],
   "heavy": {
-    "owner": "website",
+    "owner": null,
     "taskId": "P0-190",
-    "status": "ACTIVE_SINGLE_USE",
+    "status": "CONSUMED_RELEASED_FAILED_CLOSED_WALLET_OFFICIAL_ROUTING",
     "acquiredAt": "2026-08-22T12:31:00Z",
     "expiresAt": "2026-08-22T13:01:00Z",
-    "releasedAt": null,
+    "releasedAt": "2026-08-22T12:40:21Z",
     "sourceCommit": "7df37ca32a643a403bd23a7f555354261f789441",
     "evidenceCommit": "594225a459436c12f3efeb9deb3030bc4a5a285e",
     "runtimeHost": "wallet.ynxweb4.com",
     "currentRuntime": "dpl_Got2m9m84Sc3QDsrH8yu51W93JAe",
     "candidateRuntime": "dpl_EhSHsjrfQ17dzuTegLCqGvELeBte",
     "artifactSha256": "4e460a1b158d6664b930b9794fdeffc5918b83ad58a27095c47e05323bea713d",
-    "productionMutationAllowed": "EXACT_SINGLE_OFFICIAL_ALIAS_SWITCH_WITH_ONE_BOUND_ROLLBACK",
+    "productionMutationAllowed": false,
     "singleUse": true,
     "reusable": false,
     "previousOwner": null,
     "previousTaskId": "P0-189",
     "checkpointCommit": "594225a459436c12f3efeb9deb3030bc4a5a285e",
-    "reviewDecision": "GO_ALIAS_ONLY_SOURCE_BOUND_OFFICIAL_WALLET_PUBLIC_LIFECYCLE",
-    "reason": "The old official deployment/identity, READY exact candidate and successful P0-189 lifecycle are freshly bound. One forward alias command and one exact rollback on failure are authorized; no SSO, source, account or installed-provider action is allowed."
+    "reviewDecision": "FAILED_CLOSED_LOCAL_ZSH_RESERVED_PATH_BEFORE_POST_ROUTE_HTTP_ROLLED_BACK",
+    "reason": "The forward alias succeeded once, post-route verification produced no verdict because zsh path clobbered command lookup, and the required rollback succeeded once. Official routing is directly restored to dpl_Got2 with the old uncommitted identity; no browser or product action occurred."
   },
   "wave": {
     "id": "B-financial-apps-quant",
