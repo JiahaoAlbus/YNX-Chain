@@ -12,19 +12,20 @@ readonly BACKUP_STATE_SHA256="$3"
 readonly SOURCE_COMMIT="221a6bde7bef8aab83ca45f9b1dd4ecf9ac60aba"
 readonly ARCHIVE_SHA256="6598011941f5d036335beafedd29f815d4c0d428e70a005d48723bb3427b358b"
 readonly BINARY_SHA256="f881e70b72b4de40cc3ac93ee4888fb7c83d975867f589869880da159d21e89d"
-readonly ARCHIVE_PATH="/var/tmp/ynx-shop-${SOURCE_COMMIT}.tar.gz"
-readonly RELEASE_DIR="/opt/ynx-shop/releases/${SOURCE_COMMIT}"
+readonly EXECUTION_SUFFIX="p0215"
+readonly ARCHIVE_PATH="/var/tmp/ynx-shop-${SOURCE_COMMIT}-${EXECUTION_SUFFIX}.tar.gz"
+readonly RELEASE_DIR="/opt/ynx-shop/releases/${SOURCE_COMMIT}-${EXECUTION_SUFFIX}"
 readonly CURRENT_LINK="/opt/ynx-shop/current"
-readonly NEXT_LINK="/opt/ynx-shop/.current-schema7-next"
+readonly NEXT_LINK="/opt/ynx-shop/.current-schema7-${EXECUTION_SUFFIX}-next"
 readonly SERVICE="ynx-shopd.service"
 readonly COLD_PORT="28095"
-readonly COLD_STATE="/var/tmp/ynx-shop-${SOURCE_COMMIT}-cold-state.json"
-readonly COLD_LOG="/var/tmp/ynx-shop-${SOURCE_COMMIT}-cold.log"
+readonly COLD_STATE="/var/tmp/ynx-shop-${SOURCE_COMMIT}-${EXECUTION_SUFFIX}-cold-state.json"
+readonly COLD_LOG="/var/tmp/ynx-shop-${SOURCE_COMMIT}-${EXECUTION_SUFFIX}-cold.log"
 readonly ENV_FILE="/etc/ynx/ynx-shopd.env"
 
 [[ "$(id -u)" == "0" ]] || { echo "root required" >&2; exit 77; }
 [[ "$EXPECTED_OLD_RELEASE" == /opt/ynx-shop/releases/* ]] || { echo "invalid old release" >&2; exit 65; }
-[[ "$BACKUP_STATE_PATH" == /var/backups/ynx-shop/predeploy-${SOURCE_COMMIT}/* ]] || { echo "invalid backup path" >&2; exit 65; }
+[[ "$BACKUP_STATE_PATH" == /var/backups/ynx-shop/predeploy-${SOURCE_COMMIT}-${EXECUTION_SUFFIX}/* ]] || { echo "invalid backup path" >&2; exit 65; }
 [[ "$BACKUP_STATE_SHA256" =~ ^[0-9a-f]{64}$ ]] || { echo "invalid backup hash" >&2; exit 65; }
 [[ -L "$CURRENT_LINK" ]] || { echo "current is not a symlink" >&2; exit 66; }
 [[ "$(readlink -f "$CURRENT_LINK")" == "$EXPECTED_OLD_RELEASE" ]] || { echo "current release changed" >&2; exit 67; }

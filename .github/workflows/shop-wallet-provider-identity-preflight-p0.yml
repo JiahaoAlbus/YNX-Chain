@@ -1,4 +1,4 @@
-name: shop-wallet-provider-identity-preflight-p0
+name: shop-official-wallet-identity-gate-p0
 
 on:
   push:
@@ -11,7 +11,7 @@ permissions:
   contents: read
 
 jobs:
-  hosted-chromium-static-candidate:
+  official-domain-hosted-chromium:
     runs-on: ubuntu-latest
     timeout-minutes: 6
     steps:
@@ -23,78 +23,75 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "${{ github.event.head_commit.message }}" = "evidence(shop): hosted wallet identity preflight"
-          test "$(git diff-tree --no-commit-id --name-only -r HEAD^ HEAD)" = ".github/workflows/shop-wallet-provider-identity-preflight-p0.yml"
-          test "$(git rev-parse HEAD^)" = "40485b6b978bd068c22b6b622edbaed3c614c975"
-          printf '%s  %s\n' \
-            '59f73284643854f1129c4dab4d0f507dcb01e2dd0124b33f6ad4890f94612d6f' \
-            'apps/shop/evidence/carriers/ynx-shop-wallet-provider-identity-221a6bde7.tar.gz' | sha256sum -c -
-          printf '%s  %s\n' \
-            '66930dbe86dea64aa9e8bae7a53ae3ad57d073e8c4e6d36159c3a51a37d47276' \
-            'apps/shop/evidence/carriers/ynx-shop-wallet-provider-identity-221a6bde7.inventory.sha256' | sha256sum -c -
+          test "${{ github.event.head_commit.message }}" = "evidence(shop): hosted official wallet identity gate p0216"
+          expected_paths=$'.github/workflows/shop-wallet-provider-identity-preflight-p0.yml\napps/shop/scripts/p0-rollback-first-deploy.sh\napps/shop/scripts/p0-rollback-first-rollback.sh'
+          test "$(git diff-tree --no-commit-id --name-only -r HEAD^ HEAD)" = "$expected_paths"
+          test "$(git rev-parse HEAD^)" = "179d7eaf3fed2c9d5bbfa431b1a8054093cf021a"
 
-      - name: Extract into an empty evidence root
+      - name: Freeze exact official resources
         shell: bash
         run: |
           set -euo pipefail
-          evidence_root="$RUNNER_TEMP/shop-wallet-provider-identity"
+          evidence_root="$RUNNER_TEMP/shop-official-wallet-identity"
           test ! -e "$evidence_root"
-          mkdir -p "$evidence_root/root" "$evidence_root/output"
-          tar -xzf apps/shop/evidence/carriers/ynx-shop-wallet-provider-identity-221a6bde7.tar.gz -C "$evidence_root/root"
-          (
-            cd "$evidence_root/root"
-            sha256sum -c "$GITHUB_WORKSPACE/apps/shop/evidence/carriers/ynx-shop-wallet-provider-identity-221a6bde7.inventory.sha256"
-          ) | tee "$evidence_root/output/inventory-check.txt"
-          test -s "$evidence_root/root/privacy-i18n.js"
+          mkdir -p "$evidence_root/output"
+          origin='https://shop.ynxweb4.com'
+          fetch() {
+            local name="$1" path="$2" bytes="$3" sha="$4"
+            curl --fail --silent --show-error --location --max-time 20 \
+              --dump-header "$evidence_root/output/${name}.headers" \
+              --output "$evidence_root/output/${name}.body" \
+              --write-out '%{http_code}' "$origin$path" > "$evidence_root/output/${name}.status"
+            test "$(cat "$evidence_root/output/${name}.status")" = 200
+            test "$(wc -c < "$evidence_root/output/${name}.body" | tr -d ' ')" = "$bytes"
+            printf '%s  %s\n' "$sha" "$evidence_root/output/${name}.body" | sha256sum -c -
+          }
+          fetch version /version 153 11f5804d2e15e49e8d8d35c4cdfd132926b9258583b6e3352ebe76ffd518cd69
+          grep -F '"commit":"221a6bde7bef8aab83ca45f9b1dd4ecf9ac60aba"' "$evidence_root/output/version.body"
+          fetch root /shop/ 7689 2e862dddca76b2b9e4ec0e1d31cfd9a347a6469fdcec93e4c4fadd6883df0c15
+          fetch app /shop/app.js 20706 40b5696a1cb10861422e69a9c40f4c0da25b1e7bb05d1aed240ec0eec8417fc9
+          fetch wallet-auth /shop/wallet-auth.js 17991 3411f7078eeee40013069956697f295a14b47cbf2f7eb009555357100b00eafd
+          fetch provider /shop/wallet-provider-discovery.js 5349 b0bc9cc80cfc7c8dbc70873eff2a9df71e51e2a90464d65d9ba95ba26914e12f
+          fetch i18n /shop/i18n.js 10741 b860b54440432103bd8c1bc09e23bef962a30c55f0b762d05f96dc0a6aeaad6c
+          fetch privacy /shop/privacy-i18n.js 12669 7cd8c3b443e56f71407511a66bc3553e13e6f4d2af212f2b693c3d31885b4e03
+          fetch sw /shop/sw.js 1067 c04fa2ef30c3602fe73b208cb1b83f47445230383401120b7b9e6fb5aa8f1888
+          fetch styles /shop/styles.css 7079 5d44e2279e49861675279e626378b9eb85aadcd0a8628af2f90ceb3b1994a975
+          fetch ynx-logo /shop/icon-192.png 37156 ac78e88c37d17b59d2a82abf134e31e3e92b91b6f817799db91d345fe8a2405b
+          fetch metamask-fox /shop/metamask-fox.svg 1983 d1d8b924867680c09be956b4cc0f70d4c6e44b11e68916a579144439462733f9
 
-      - name: Run non-sensitive hosted Chromium proof
+      - name: Run official-domain hosted Chromium proof
         shell: bash
         run: |
           set -euo pipefail
-          evidence_root="$RUNNER_TEMP/shop-wallet-provider-identity"
-          cd "$evidence_root/root"
-          python3 -m http.server 4188 --bind 127.0.0.1 >"$evidence_root/output/server.log" 2>&1 &
-          server_pid=$!
+          evidence_root="$RUNNER_TEMP/shop-official-wallet-identity"
           chrome_bin="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || true)"
           test -n "$chrome_bin"
           "$chrome_bin" --headless=new --no-sandbox --disable-gpu --no-first-run \
             --remote-debugging-port=9227 --user-data-dir="$evidence_root/chrome-profile" \
-            http://127.0.0.1:4188/ >"$evidence_root/output/chrome.log" 2>&1 &
+            https://shop.ynxweb4.com/shop/ >"$evidence_root/output/chrome.log" 2>&1 &
           chrome_pid=$!
-          cleanup() {
-            kill "$chrome_pid" "$server_pid" 2>/dev/null || true
-          }
+          cleanup() { kill "$chrome_pid" 2>/dev/null || true; }
           trap cleanup EXIT
           for _ in $(seq 1 60); do
             curl -fsS http://127.0.0.1:9227/json/list >"$evidence_root/output/tabs-before.json" && break
             sleep 0.25
           done
-          curl -fsS http://127.0.0.1:4188/privacy-i18n.js \
-            -D "$evidence_root/output/privacy-i18n.headers" \
-            -o "$evidence_root/output/privacy-i18n.js"
-          test "$(wc -c < "$evidence_root/output/privacy-i18n.js" | tr -d ' ')" = "12669"
-          printf '%s  %s\n' \
-            '7cd8c3b443e56f71407511a66bc3553e13e6f4d2af212f2b693c3d31885b4e03' \
-            "$evidence_root/output/privacy-i18n.js" | sha256sum -c -
           EVIDENCE_ROOT="$evidence_root" node --experimental-websocket --input-type=module <<'NODE'
           import fs from 'node:fs';
           const root = process.env.EVIDENCE_ROOT;
+          const expectedUrl = 'https://shop.ynxweb4.com/shop/';
           const targets = await (await fetch('http://127.0.0.1:9227/json/list')).json();
-          const page = targets.find(value => value.type === 'page' && value.url === 'http://127.0.0.1:4188/');
-          if (!page) throw new Error('SHOP_TARGET_PAGE_MISSING');
+          const page = targets.find(value => value.type === 'page' && value.url === expectedUrl);
+          if (!page) throw new Error('SHOP_OFFICIAL_TARGET_PAGE_MISSING');
           const socket = new WebSocket(page.webSocketDebuggerUrl);
-          await new Promise((resolve, reject) => {
-            socket.onopen = resolve;
-            socket.onerror = reject;
-          });
+          await new Promise((resolve, reject) => { socket.onopen = resolve; socket.onerror = reject; });
           let id = 0;
           const pending = new Map();
           const consoleErrors = [];
           socket.onmessage = event => {
             const message = JSON.parse(event.data);
             if (message.id && pending.has(message.id)) {
-              pending.get(message.id)(message);
-              pending.delete(message.id);
+              pending.get(message.id)(message); pending.delete(message.id);
             } else if (message.method === 'Runtime.exceptionThrown') {
               consoleErrors.push(message.params.exceptionDetails.exception?.description || message.params.exceptionDetails.text);
             } else if (message.method === 'Runtime.consoleAPICalled' && message.params.type === 'error') {
@@ -102,83 +99,55 @@ jobs:
             }
           };
           const send = (method, params = {}) => new Promise(resolve => {
-            const requestId = ++id;
-            pending.set(requestId, resolve);
+            const requestId = ++id; pending.set(requestId, resolve);
             socket.send(JSON.stringify({ id: requestId, method, params }));
           });
           await send('Runtime.enable');
           await send('Page.enable');
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          const beforeExpression = `(() => {
+          await new Promise(resolve => setTimeout(resolve, 1500));
+          const beforeEvaluated = await send('Runtime.evaluate', { expression: `(() => {
             const trigger = document.getElementById('wallet');
-            return {
-              url: location.href,
-              title: document.title,
-              lang: document.documentElement.lang,
-              storedLanguage: localStorage.getItem('ynx-ui-language'),
-              triggerText: trigger?.textContent.trim(),
-              dialogOpen: document.getElementById('walletDialog')?.open || false,
-              dom: document.documentElement.outerHTML
-            };
-          })()`;
-          const beforeEvaluated = await send('Runtime.evaluate', { expression: beforeExpression, returnByValue: true });
+            return { url: location.href, title: document.title, lang: document.documentElement.lang,
+              storedLanguage: localStorage.getItem('ynx-ui-language'), triggerText: trigger?.textContent.trim(),
+              dialogOpen: document.getElementById('walletDialog')?.open || false, dom: document.documentElement.outerHTML };
+          })()`, returnByValue: true });
           const before = beforeEvaluated.result.result.value;
           const screenshotBefore = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true });
-          const afterExpression = `(() => {
-            const trigger = document.getElementById('wallet');
-            trigger.click();
+          const afterEvaluated = await send('Runtime.evaluate', { expression: `(() => {
+            document.getElementById('wallet')?.click();
             const ynx = document.getElementById('connectYNXWallet');
             const metamask = document.getElementById('connectMetaMask');
-            return {
-              afterUrl: location.href,
-              dialogOpen: document.getElementById('walletDialog')?.open || false,
-              ynx: {
-                text: ynx?.innerText,
-                logo: ynx?.querySelector('img')?.getAttribute('src'),
-                alt: ynx?.querySelector('img')?.getAttribute('alt'),
-                logoLoaded: Boolean(ynx?.querySelector('img')?.complete && ynx?.querySelector('img')?.naturalWidth)
-              },
-              metamask: {
-                text: metamask?.innerText,
-                logo: metamask?.querySelector('img')?.getAttribute('src'),
-                alt: metamask?.querySelector('img')?.getAttribute('alt'),
-                logoLoaded: Boolean(metamask?.querySelector('img')?.complete && metamask?.querySelector('img')?.naturalWidth)
-              },
-              walletState: document.getElementById('walletState')?.textContent.trim(),
-              dom: document.documentElement.outerHTML
-            };
-          })()`;
-          const afterEvaluated = await send('Runtime.evaluate', { expression: afterExpression, returnByValue: true });
+            return { url: location.href, dialogOpen: document.getElementById('walletDialog')?.open || false,
+              ynx: { text: ynx?.innerText, logo: ynx?.querySelector('img')?.getAttribute('src'), alt: ynx?.querySelector('img')?.getAttribute('alt'), loaded: Boolean(ynx?.querySelector('img')?.complete && ynx?.querySelector('img')?.naturalWidth) },
+              metamask: { text: metamask?.innerText, logo: metamask?.querySelector('img')?.getAttribute('src'), alt: metamask?.querySelector('img')?.getAttribute('alt'), loaded: Boolean(metamask?.querySelector('img')?.complete && metamask?.querySelector('img')?.naturalWidth) },
+              walletState: document.getElementById('walletState')?.textContent.trim(), dom: document.documentElement.outerHTML };
+          })()`, returnByValue: true });
           const after = afterEvaluated.result.result.value;
           const screenshotAfter = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true });
           const tabsAfter = await (await fetch('http://127.0.0.1:9227/json/list')).json();
           const pageTabs = tabsAfter.filter(value => value.type === 'page');
-          const report = { before: { ...before, dom: undefined }, after: { ...after, dom: undefined }, consoleErrors, pageTabs: pageTabs.map(value => ({ url: value.url, title: value.title })) };
-          const pass =
-            before.lang === 'en' && before.storedLanguage === null &&
+          const pass = before.url === expectedUrl && before.lang === 'en' && before.storedLanguage === null &&
             before.triggerText === 'Sign in with YNX Wallet' && before.dialogOpen === false &&
-            after.afterUrl === before.url && after.dialogOpen === true &&
-            after.ynx.text.includes('YNX Wallet') && after.ynx.text.includes('com.ynx.wallet') &&
-            after.ynx.logo === 'icon-192.png' && after.ynx.alt === 'YNX Wallet logo' && after.ynx.logoLoaded &&
-            after.metamask.text.includes('MetaMask') && after.metamask.text.includes('io.metamask') &&
-            after.metamask.logo === 'metamask-fox.svg' && after.metamask.alt === 'MetaMask fox logo' && after.metamask.logoLoaded &&
+            after.url === expectedUrl && after.dialogOpen === true &&
+            after.ynx.text.includes('YNX Wallet') && after.ynx.text.includes('com.ynx.wallet') && after.ynx.logo === 'icon-192.png' && after.ynx.alt === 'YNX Wallet logo' && after.ynx.loaded &&
+            after.metamask.text.includes('MetaMask') && after.metamask.text.includes('io.metamask') && after.metamask.logo === 'metamask-fox.svg' && after.metamask.alt === 'MetaMask fox logo' && after.metamask.loaded &&
             after.walletState === 'Choose an installed wallet. Shop never opens a custom scheme or blank tab.' &&
-            consoleErrors.length === 0 && pageTabs.length === 1 && pageTabs[0].url === 'http://127.0.0.1:4188/';
-          fs.writeFileSync(`${root}/output/proof.json`, JSON.stringify({ ...report, pass }, null, 2));
+            consoleErrors.length === 0 && pageTabs.length === 1 && pageTabs[0].url === expectedUrl;
+          fs.writeFileSync(`${root}/output/proof.json`, JSON.stringify({ before: { ...before, dom: undefined }, after: { ...after, dom: undefined }, consoleErrors, pageTabs: pageTabs.map(value => ({ url: value.url, title: value.title })), pass }, null, 2));
           fs.writeFileSync(`${root}/output/dom-before.html`, before.dom);
           fs.writeFileSync(`${root}/output/dom-after.html`, after.dom);
           fs.writeFileSync(`${root}/output/before.png`, Buffer.from(screenshotBefore.result.data, 'base64'));
           fs.writeFileSync(`${root}/output/chooser.png`, Buffer.from(screenshotAfter.result.data, 'base64'));
           fs.writeFileSync(`${root}/output/tabs-after.json`, JSON.stringify(tabsAfter, null, 2));
           socket.close();
-          if (!pass) throw new Error('SHOP_HOSTED_CHROMIUM_STATIC_CANDIDATE_GATE_FAILED');
+          if (!pass) throw new Error('SHOP_OFFICIAL_HOSTED_CHROMIUM_GATE_FAILED');
           NODE
 
       - name: Upload isolated evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: shop-wallet-provider-identity-preflight-p0
-          path: ${{ runner.temp }}/shop-wallet-provider-identity/output
+          name: shop-official-wallet-identity-gate-p0
+          path: ${{ runner.temp }}/shop-official-wallet-identity/output
           if-no-files-found: error
           retention-days: 7

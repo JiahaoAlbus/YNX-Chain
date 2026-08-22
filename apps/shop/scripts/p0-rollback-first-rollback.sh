@@ -11,16 +11,17 @@ readonly BACKUP_STATE_PATH="$2"
 readonly BACKUP_STATE_SHA256="$3"
 readonly EXPECTED_STATE_OWNER_GROUP="$4"
 readonly SOURCE_COMMIT="221a6bde7bef8aab83ca45f9b1dd4ecf9ac60aba"
-readonly CANDIDATE_RELEASE="/opt/ynx-shop/releases/${SOURCE_COMMIT}"
+readonly EXECUTION_SUFFIX="p0215"
+readonly CANDIDATE_RELEASE="/opt/ynx-shop/releases/${SOURCE_COMMIT}-${EXECUTION_SUFFIX}"
 readonly CURRENT_LINK="/opt/ynx-shop/current"
-readonly NEXT_LINK="/opt/ynx-shop/.current-schema7-rollback"
+readonly NEXT_LINK="/opt/ynx-shop/.current-schema7-${EXECUTION_SUFFIX}-rollback"
 readonly STATE_PATH="/var/lib/ynx-shop/state.json"
-readonly STATE_NEXT="/var/lib/ynx-shop/.state.json.schema7-rollback"
+readonly STATE_NEXT="/var/lib/ynx-shop/.state.json.schema7-${EXECUTION_SUFFIX}-rollback"
 readonly SERVICE="ynx-shopd.service"
 
 [[ "$(id -u)" == "0" ]] || { echo "root required" >&2; exit 77; }
 [[ "$EXPECTED_OLD_RELEASE" == /opt/ynx-shop/releases/* ]] || { echo "invalid old release" >&2; exit 65; }
-[[ "$BACKUP_STATE_PATH" == /var/backups/ynx-shop/predeploy-${SOURCE_COMMIT}/* ]] || { echo "invalid backup path" >&2; exit 65; }
+[[ "$BACKUP_STATE_PATH" == /var/backups/ynx-shop/predeploy-${SOURCE_COMMIT}-${EXECUTION_SUFFIX}/* ]] || { echo "invalid backup path" >&2; exit 65; }
 [[ "$BACKUP_STATE_SHA256" =~ ^[0-9a-f]{64}$ ]] || { echo "invalid backup hash" >&2; exit 65; }
 [[ "$EXPECTED_STATE_OWNER_GROUP" =~ ^[a-z_][a-z0-9_-]*:[a-z_][a-z0-9_-]*$ ]] || { echo "invalid state owner/group" >&2; exit 65; }
 [[ -d "$EXPECTED_OLD_RELEASE" ]] || { echo "old release missing" >&2; exit 66; }
