@@ -1,0 +1,188 @@
+{
+  "schemaVersion": "ynx-calendar-wallet-recovery-public-deployment-lease-request/v1",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "requestedAt": "2026-08-22T10:40:00Z",
+  "requestState": "AWAITING_NEW_SINGLE_USE_CALENDAR_DEPLOYMENT_LEASE",
+  "owner": "calendar",
+  "source": {
+    "branch": "codex/calendar-fable5-completion-20260821",
+    "commit": "7db160aa0bd589097e63190a260a343aafe4854c",
+    "tree": "d72d49bc7bc6ee135cae867aa6edbe34b4cfc489",
+    "remoteReadbackExact": true,
+    "aheadBehind": "0/0",
+    "worktreeCleanBeforeRequest": true,
+    "sharedProviderAuthorityChanged": false
+  },
+  "candidate": {
+    "release": "ynx-calendar-0.4.4-testnet-preview",
+    "localCarrier": "/tmp/ynx-calendar-7db160aa.6iswSA/ynx-calendard",
+    "bytes": 7258082,
+    "sha256": "0a1283896a9aff45e50bf73568c826d7de9d3055dc97693688ba1e636534acb9",
+    "buildCommand": "cd apps/calendar && go build -trimpath -ldflags '-s -w -X main.buildCommit=7db160aa0bd589097e63190a260a343aafe4854c -X main.buildRelease=ynx-calendar-0.4.4-testnet-preview -X main.buildTime=2026-08-22T10:00:00Z' -o /tmp/ynx-calendar-7db160aa.6iswSA/ynx-calendard .",
+    "localRuntime": {
+      "address": "127.0.0.1:28096",
+      "health": {
+        "http": 200,
+        "bytes": 215,
+        "sha256": "be9b3affccdffc5275d693ba3de611d380f35a34f5a21e20f3858d3a8fd76d98",
+        "sourceCommit": "7db160aa0bd589097e63190a260a343aafe4854c"
+      },
+      "version": {
+        "http": 200,
+        "bytes": 279,
+        "sha256": "69befbd7caadc5709b5647670608bdb9bf8178be1c053d5f6614474c27c57d38"
+      },
+      "assets": {
+        "index.html": {
+          "bytes": 15834,
+          "sha256": "f5268942d012a0960446b396de5cb1297187f18480decd5847bf8de1e851ab4b"
+        },
+        "app.js": {
+          "bytes": 73766,
+          "sha256": "d45a4d4bafd8855a42f012cde66acb0e556d076ba7aae290625c7fd162d925dd"
+        },
+        "wallet-connection.js": {
+          "bytes": 11185,
+          "sha256": "dcd4f04002a3c304fccf39aa79906861aba275ec144a27444c5dbcd99188df2a"
+        },
+        "toast.js": {
+          "bytes": 1415,
+          "sha256": "141082f6dc4706b19d10d307db241f4f5bb07fdb701758650858f78e0ea58948"
+        },
+        "sw.js": {
+          "bytes": 1313,
+          "sha256": "ceed91c3c01dd119b312af53e858d9b76e6860c5edad3d51f5b2a3d3044e2f41"
+        }
+      }
+    }
+  },
+  "validation": {
+    "calendarNode": "26/26",
+    "deploymentReadiness": "pass",
+    "releaseManifest": "5/5",
+    "goTest": "pass",
+    "goVet": "pass",
+    "lateProviderDiscovery": "250ms/750ms/1500ms plus EIP-6963 and ethereum#initialized",
+    "backgroundSensitiveRequest": false,
+    "backgroundReadMethods": [
+      "eth_accounts",
+      "eth_chainId"
+    ],
+    "customSchemeLaunch": false,
+    "windowOpen": false,
+    "noProviderNormalizesDisconnected": true,
+    "toastDomClearsAfterHide": true,
+    "consecutiveToastRaceFenced": true
+  },
+  "currentPublicRuntime": {
+    "origin": "https://calendar-testnet.43.153.202.237.sslip.io",
+    "observedAt": "2026-08-22T10:35:00Z",
+    "sourceCommit": "d2044bd9a8ec6bdc6235dfb625a62c3dd5c58b04",
+    "release": "ynx-calendar-0.4.3-testnet-preview",
+    "health": {
+      "http": 200,
+      "bytes": 215,
+      "sha256": "f07ee444605fe2b52aa1565a0601139fd876ad98aefe4dc376c7c861ef8b517e"
+    },
+    "version": {
+      "http": 200,
+      "bytes": 279,
+      "sha256": "c4add3bef2f0209a2dcfe0af6bad4e299239ba7f6c1fef7942d443c11ba701de"
+    },
+    "assets": {
+      "index.html": {
+        "bytes": 15815,
+        "sha256": "1cf18a93d89803dc42c5d69b5d035fc8af0f343c2503fa89a166c5b3885bba5c"
+      },
+      "app.js": {
+        "bytes": 73587,
+        "sha256": "88a1034b10b87696cce81bd297b749bc6d37d095658329afa941d1a2dba1fb10"
+      },
+      "styles.css": {
+        "bytes": 25678,
+        "sha256": "d0d2fbfc5fc88657a8b751ff46ba79498cbb68c7b8ac5d91cd6b6947963184d7"
+      }
+    },
+    "sourceBoundToCandidate": false
+  },
+  "authorityAndConnectivity": {
+    "validUnconsumedCalendarDeploymentLeaseFound": false,
+    "historicalLease": "P0-WALLET-CONNECTIVITY-2026-08-calendar-d2044bd9-20260821T164248Z",
+    "historicalLeaseReusable": false,
+    "readOnlySshPreflight": {
+      "host": "43.153.202.237",
+      "usersTried": [
+        "root",
+        "ubuntu",
+        "ynx"
+      ],
+      "result": "Permission denied (publickey,password)",
+      "currentBinaryStateKeyUnitAndCaddyFreshRead": false
+    },
+    "deploymentAuthorized": false,
+    "productionMutationPerformed": false
+  },
+  "requestedSingleUseLease": {
+    "scope": "Calendar-only rollback-first public Testnet deployment",
+    "sourceLock": "7db160aa0bd589097e63190a260a343aafe4854c",
+    "candidateSha256": "0a1283896a9aff45e50bf73568c826d7de9d3055dc97693688ba1e636534acb9",
+    "host": "43.153.202.237",
+    "service": "ynx-calendar.service",
+    "installedBinary": "/usr/local/bin/ynx-calendard",
+    "transactionScript": "apps/calendar/scripts/deploy-public-calendar.sh",
+    "requiredFreshPrewriteBindings": [
+      "authenticated Calendar operator/executor connectivity",
+      "current binary bytes/SHA/device/inode/owner/mode/nlink/source",
+      "current state bytes/SHA/device/inode/owner/mode/nlink",
+      "current state HMAC key bytes/SHA/device/inode/owner/mode/nlink",
+      "systemd unit bytes/SHA and active state",
+      "Caddy root/route bytes/SHA",
+      "current public health/version/assets",
+      "fresh absent backup and lease staging paths"
+    ],
+    "allowedWrites": [
+      "one candidate upload into a fresh /var/tmp/ynx-calendar-* directory",
+      "one execution of the source-owned paired binary/state/key rollback transaction",
+      "service stop/start/restart only inside that transaction",
+      "one immutable Calendar evidence record after terminal verification"
+    ],
+    "forbiddenWrites": [
+      "other products",
+      "Wallet shared authority",
+      "Caddy or DNS",
+      "state schema or key mutation outside the paired transaction",
+      "eth_requestAccounts",
+      "signature",
+      "transaction",
+      "custom-scheme navigation"
+    ],
+    "rollback": "On any precommit failure restore exact bound binary, state and state-key bytes, restart the old service, and verify d2044bd9 public identity before release.",
+    "terminalPublicVerification": [
+      "health/version exact 7db160aa and release 0.4.4",
+      "index/app/wallet-connection/toast/sw exact candidate hashes",
+      "clean-browser late injection and no-provider reset",
+      "toast DOM clearing and consecutive-toast fencing",
+      "stable public URL, single tab, no blank tab, no custom scheme, console errors zero",
+      "private Product Session degradation remains independent of Standard Wallet"
+    ],
+    "sensitiveBoundary": "Stop before eth_requestAccounts, approve/reject, switch-account, disconnect/revoke, signature or transaction. Those require immediate user confirmation in a later direct-browser slice."
+  },
+  "truth": {
+    "sourceImplemented": true,
+    "sourceTestsPassed": true,
+    "candidateBuiltAndLocallyReadBack": true,
+    "deployedPublicCurrentSource": false,
+    "sourceBoundPublicRuntime": false,
+    "lateProviderPublicVerified": false,
+    "noProviderResetPublicVerified": false,
+    "toastClearingPublicVerified": false,
+    "installedProvider": false,
+    "accountApproval": false,
+    "reject4001": false,
+    "disconnectRevoke": false,
+    "switchAccount": false,
+    "productsConnected": 0,
+    "migratedV2": false
+  },
+  "singleExecutableBlocker": "A fresh Calendar-only single-use deployment lease plus an authenticated Calendar production executor is required; the old lease is consumed and this owner session cannot fresh-read or mutate the host because SSH authentication is denied."
+}
