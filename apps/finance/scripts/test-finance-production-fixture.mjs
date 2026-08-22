@@ -66,6 +66,7 @@ function phase1Fixture() {
 
   const success = newPhase1(); const result = run(success, 'phase1-run'); const carrier = join(success.ynx, 'stage', 'finance', 'phase1-run');
   assert.equal(result.status, 0, result.stderr); assert.ok(result.stdout.includes(`root=${success.ynx}`) && result.stdout.includes(`carrier=${carrier}`) && result.stdout.includes('carrierEmpty=true'), 'phase1 tuple receipt'); assert.ok(result.stdout.includes(':directory'), 'phase1 receipt binds directory type'); assert.ok(lstatSync(carrier).isDirectory(), 'phase1 retains carrier');
+  for (const [label, path] of [['root', success.ynx], ['stageParent', join(success.ynx, 'stage')], ['stage', join(success.ynx, 'stage', 'finance')], ['leasesParent', join(success.ynx, 'leases')], ['leases', join(success.ynx, 'leases', 'finance-preparation')], ['carrier', carrier]]) assert.ok(result.stdout.includes(`${label}Tuple=${phase1DirectoryTuple(path)}`), `phase1 emits settled ${label} tuple after child creation`);
   assert.notEqual(run(success, '../bad').status, 0, 'traversal refused');
 
   for (const level of ['stage', 'stage/finance', 'leases', 'leases/finance-preparation', 'stage/finance/mkdir-failure']) {

@@ -1,0 +1,11 @@
+{
+  "kind": "FINANCE_PHASE1_SETTLED_TUPLE_READONLY_ACCEPTANCE_REQUEST",
+  "supersedes": {"p0": "P0-228", "status": "CONSUMED_RELEASED_FAILED_CLOSED_FINANCE_PHASE1_RECEIPT_FINAL_TUPLE_NLINK_MISMATCH", "centralCommit": "dcfdb94394ec53c646dfd2f93383dd5e92de7653", "tree": "e2c32ca7f3296db1de2be25ef0264b2527c7480f", "nonreusable": true},
+  "retainedReceipt": {"path": "/tmp/ynx-finance-p0228-phase1-receipt-20260822T234100Z.txt", "bytes": 553, "sha256": "9e73bc473eb3fa4c35ab55216e64830a809e3339eed3c9c83af15637af5f6cc0"},
+  "settledTuples": {"/opt/ynx": "64770:1312502:0:0:755:47:4096:directory", "/opt/ynx/stage": "64770:3450040:0:0:750:3:4096:directory", "/opt/ynx/stage/finance": "64770:3450041:0:0:750:3:4096:directory", "/opt/ynx/leases": "64770:3450042:0:0:750:3:4096:directory", "/opt/ynx/leases/finance-preparation": "64770:4594820:0:0:750:2:4096:directory", "/opt/ynx/stage/finance/p0228-finance-phase1-20260822T234100Z": "64770:4594821:0:0:700:2:4096:directory"},
+  "carrierEmpty": true,
+  "productionObservation": {"mainPid": 877083, "nRestarts": 0},
+  "futureBootstrap": [{"path": "apps/finance/scripts/finance-candidate-env-placement-bootstrap.sh", "bytes": 3631, "sha256": "693913cb5a521c1e463587d2c3b7ad9e81e106a05b270076d7e15be9fadbccc8"}, {"path": "apps/finance/scripts/test-finance-production-fixture.mjs", "bytes": 21924, "sha256": "c840a290c81f91a2529f88b830e9af897ba4c7e31522d1bf260543c0c0a5defd"}],
+  "forbidden": ["mkdir", "write", "cleanup", "upload", "environment read", "service restart", "deployment", "Caddy change", "current switch", "account request", "signature", "transaction"],
+  "truth": {"leaseIssued": false, "phase2Authorized": false, "productionMutation": false, "deployedPublic": false}
+}

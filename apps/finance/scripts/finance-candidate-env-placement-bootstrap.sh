@@ -79,5 +79,13 @@ mkdir -m 0700 "$carrier"
 carrier_created=true
 carrier_tuple=$(directory_tuple "$carrier")
 empty "$carrier"
-printf 'phase=1\nroot=%s\nrootTuple=%s\nstageParent=%s\nstageParentTuple=%s\nstage=%s\nstageTuple=%s\nleasesParent=%s\nleasesParentTuple=%s\nleases=%s\nleasesTuple=%s\ncarrier=%s\ncarrierTuple=%s\ncarrierEmpty=true\n' "$root" "$root_tuple" "$stage_parent" "$stage_parent_tuple" "$stage" "$stage_tuple" "$leases_parent" "$leases_parent_tuple" "$leases" "$leases_tuple" "$carrier" "$carrier_tuple"
+# Creation tuples remain held for failure cleanup. Emit a fresh settled snapshot
+# only after every child has been created, because parent nlink values change.
+root_settled_tuple=$(directory_tuple "$root")
+stage_parent_settled_tuple=$(directory_tuple "$stage_parent")
+stage_settled_tuple=$(directory_tuple "$stage")
+leases_parent_settled_tuple=$(directory_tuple "$leases_parent")
+leases_settled_tuple=$(directory_tuple "$leases")
+carrier_settled_tuple=$(directory_tuple "$carrier")
+printf 'phase=1\nroot=%s\nrootTuple=%s\nstageParent=%s\nstageParentTuple=%s\nstage=%s\nstageTuple=%s\nleasesParent=%s\nleasesParentTuple=%s\nleases=%s\nleasesTuple=%s\ncarrier=%s\ncarrierTuple=%s\ncarrierEmpty=true\n' "$root" "$root_settled_tuple" "$stage_parent" "$stage_parent_settled_tuple" "$stage" "$stage_settled_tuple" "$leases_parent" "$leases_parent_settled_tuple" "$leases" "$leases_settled_tuple" "$carrier" "$carrier_settled_tuple"
 stage_parent_created=false; stage_created=false; leases_parent_created=false; leases_created=false; carrier_created=false; trap - EXIT
