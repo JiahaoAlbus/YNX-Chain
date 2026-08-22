@@ -48,6 +48,13 @@
   "truthBeforeExecution":{"sourceBoundPublicRuntime":false,"lateProviderPublicVerified":false,"noProviderResetPublicVerified":false,"toastClearingPublicVerified":false,"installedProvider":false,"accountApproval":false,"signingOrTransaction":false,"productSessionV2":false,"productsConnected":"0/12"},
   "outcome": {
     "classification": "DEPLOYMENT_AND_EXACT_PUBLIC_HTTP_SUCCEEDED_BROWSER_GATE_UNAVAILABLE",
+    "ownerEvidenceCommit": "f56341a155e67705d4dba445ce3466c83c0b1482",
+    "ownerEvidenceTree": "29884fb44f600f41f2b705286798cc86924cd71d",
+    "ownerEvidencePath": "apps/calendar/release/evidence/p0-wallet-connect/calendar-p0192-public-recovery-terminal-evidence-20260822.json",
+    "ownerEvidenceBlob": "fa7d500d1aca857f1d3a55459500686b42ba1b70",
+    "ownerEvidenceBytes": 4743,
+    "ownerEvidenceSha256": "c56ad353aa3339390e12928d6e56665f9e7cc8724ef59d5843628937bef4b355",
+    "ownerEvidenceRemoteExactAndClean": true,
     "transactionAttemptCount": 1,
     "transactionCommitted": true,
     "transactionOutputSha256": "ce9a1ad4c7d23b97c4ef5e8e3ec144f55fb402c0c52f9d50abaa6e3286ceb91c",

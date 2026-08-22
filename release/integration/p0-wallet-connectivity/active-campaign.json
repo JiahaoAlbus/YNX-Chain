@@ -434,7 +434,7 @@
     "expiresAt": "2026-08-22T14:09:00Z",
     "releasedAt": "2026-08-22T14:08:30Z",
     "sourceCommit": "7db160aa0bd589097e63190a260a343aafe4854c",
-    "evidenceCommit": "75e90170af2976463e9ddce667bdc2c7b0a6a0d7",
+    "evidenceCommit": "f56341a155e67705d4dba445ce3466c83c0b1482",
     "runtimeHost": "calendar-testnet.43.153.202.237.sslip.io",
     "currentRuntime": "d2044bd9a8ec6bdc6235dfb625a62c3dd5c58b04",
     "candidateRuntime": "7db160aa0bd589097e63190a260a343aafe4854c",

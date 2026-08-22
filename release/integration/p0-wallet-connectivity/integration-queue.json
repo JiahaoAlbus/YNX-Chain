@@ -6813,6 +6813,10 @@
       "sourceBoundPublicHttpRuntime": true,
       "sevenExactPublicResourcesVerified": true,
       "browserVisibleGatesVerified": false,
+      "ownerEvidenceCommit": "f56341a155e67705d4dba445ce3466c83c0b1482",
+      "ownerEvidenceTree": "29884fb44f600f41f2b705286798cc86924cd71d",
+      "ownerEvidenceBlob": "fa7d500d1aca857f1d3a55459500686b42ba1b70",
+      "ownerEvidenceSha256": "c56ad353aa3339390e12928d6e56665f9e7cc8724ef59d5843628937bef4b355",
       "nextAction": "Do not reuse P0-192. Preserve live source 7db160aa and its paired backup. The only remaining acceptance blocker is a functioning direct browser-control channel for late-provider/no-provider/toast visibility; no account/sign/tx action is authorized."
     }
   ]
