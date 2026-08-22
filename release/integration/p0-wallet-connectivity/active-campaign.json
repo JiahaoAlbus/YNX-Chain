@@ -427,25 +427,26 @@
     }
   ],
   "heavy": {
-    "owner": null,
-    "taskId": null,
-    "status": "IDLE",
-    "acquiredAt": "2026-08-22T18:02:00Z",
-    "expiresAt": "2026-08-22T18:47:00Z",
-    "releasedAt": "2026-08-22T18:11:17Z",
-    "sourceCommit": "fe1ba512f67f935e27997350800a7df18e3814d1",
-    "evidenceCommit": "af9efeea3ebbb910c6b2fbcf912d5b01b2125281",
-    "runtimeHost": "43.153.202.237",
-    "currentRuntime": "fe1ba512f67f935e27997350800a7df18e3814d1",
-    "candidateRuntime": "fe1ba512f67f935e27997350800a7df18e3814d1",
-    "artifactSha256": "fb767da23513d3c4ba7eab9e02ddf6088b3bea297e6e42ac33bbcd0fa7db7c73",
-    "productionMutationAllowed": false,
+    "owner": "card",
+    "taskId": "P0-208",
+    "status": "ACTIVE_SINGLE_USE",
+    "acquiredAt": "2026-08-22T18:16:00Z",
+    "expiresAt": "2026-08-22T18:46:00Z",
+    "sourceCommit": "2183b8d7a18dec3c7e7773f3c777882deeac6f82",
+    "evidenceCommit": "2c607361916c9cfd344fdd16d51095c1f6ccdc9c",
+    "runtimeHost": "card.ynxweb4.com",
+    "currentRuntime": "dpl_DqMuEhno65bLFTNKBu9gs52soVri",
+    "candidateRuntime": "dpl_8qCEhiAq8hgiTYf2hA2FXU57W122",
+    "artifactSha256": "2c1e362bbd54aca5af9ea0613a91e3a291874b82bce55cabd626723a82dad821",
+    "productionMutationAllowed": true,
     "singleUse": true,
     "reusable": false,
-    "previousOwner": "calendar",
-    "previousTaskId": "P0-207",
-    "reviewDecision": "CONSUMED_RELEASED_SUCCESS_CALENDAR_CONSOLE_CLEAN_SOURCE_BOUND_PUBLIC_AND_HOSTED_BROWSER",
-    "reason": "The sole bounded upload, inode-safe paired transaction, exact official source readback and unique hosted browser run all succeeded. Calendar source-bound public non-sensitive recovery is true; account approval/reject, callback, disconnect/switch/revoke, installed provider, sign/typed data/transaction and product gates remain false."
+    "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-card-official-source-bound-alias-only-20260822T181600Z",
+    "locks": [
+      "project:prj_DU37JeDK4Rx0MjxIV745veV5Qgxp",
+      "alias:card.ynxweb4.com"
+    ],
+    "reason": "Calendar P0-207 released. P0-206 hosted candidate authority, candidate READY state, exact official rollback deployment and all rollback resource hashes independently match. Authorize one forward alias, read-only official verification and one conditional exact rollback only; no deploy, setting, source or sensitive action."
   },
   "wave": {
     "id": "B-financial-apps-quant",
