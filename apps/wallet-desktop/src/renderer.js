@@ -35,7 +35,8 @@ window.ynxWallet.onAuthorizationError(result => {
 
 async function act(action) {
   const result = await window.ynxWallet.authorizationAction(action);
-  authResult.textContent = `${result.code}: callbackEmitted=${result.callbackEmitted}; callbackReceivedProved=${result.callbackReceivedProved ?? false}; authorityGranted=${result.authorityGranted}; productSessionCreated=${result.productSessionCreated ?? false}`;
+  const diagnostic = result.underlyingCode ? `; underlyingCode=${result.underlyingCode}` : "";
+  authResult.textContent = `${result.code}: callbackEmitted=${result.callbackEmitted}; callbackReceivedProved=${result.callbackReceivedProved ?? false}; authorityGranted=${result.authorityGranted}; productSessionCreated=${result.productSessionCreated ?? false}${diagnostic}`;
 }
 
 document.querySelector("#reject-auth").addEventListener("click", () => act("reject"));
