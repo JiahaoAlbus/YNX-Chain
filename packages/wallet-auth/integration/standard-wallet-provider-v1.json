@@ -1,0 +1,46 @@
+{
+  "schemaVersion": "1.0.0",
+  "contractId": "YNX-STANDARD-WALLET-PROVIDER-V1",
+  "status": "SOURCE_ONLY_CANDIDATE",
+  "defaultLanguage": "en",
+  "network": {
+    "nativeChainId": "ynx_6423-1",
+    "evmChainId": 6423,
+    "eip1193ChainId": "0x1917",
+    "walletConnectChainId": "eip155:6423",
+    "currency": { "name": "YNX Testnet", "symbol": "YNXT", "decimals": 18 }
+  },
+  "layers": {
+    "standardWallet": {
+      "independent": true,
+      "protocols": ["EIP-1193", "EIP-6963", "WalletConnect"],
+      "authority": "approved-0x-accounts-only"
+    },
+    "privateProductSession": {
+      "independent": false,
+      "failureEffect": "DEGRADED",
+      "mayInvalidateStandardWallet": false
+    }
+  },
+  "components": {
+    "providerEngine": "StandardWalletProviderEngine",
+    "permissionController": "StandardWalletPermissionController",
+    "jsonRpcRouter": "StandardWalletJsonRpcRouter",
+    "walletConnectAdapter": "StandardWalletWalletConnectSessionAdapter",
+    "eventModel": "StandardWalletProviderEventModel"
+  },
+  "privacy": {
+    "exposeNativeYnxAccount": false,
+    "exposeUnapprovedEvmAccount": false,
+    "exposeProductSession": false,
+    "exposeGatewayState": false
+  },
+  "truth": {
+    "sourceImplemented": true,
+    "platformConsumed": false,
+    "realDappConformance": false,
+    "realWalletConnectRelay": false,
+    "deployedPublic": false,
+    "productsConsumed": "0/12"
+  }
+}

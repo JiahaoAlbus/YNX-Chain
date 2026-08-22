@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0.0",
+  "vectorId": "YNX-STANDARD-WALLET-PROVIDER-CONFORMANCE-V1",
+  "network": { "nativeChainId": "ynx_6423-1", "evmChainId": 6423, "chainId": "0x1917", "walletConnectChainId": "eip155:6423", "symbol": "YNXT" },
+  "accountPrivacy": {
+    "walletInventory": ["0x1234567890abcdef1234567890abcdef12345678", "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd"],
+    "approved": ["0x1234567890abcdef1234567890abcdef12345678"],
+    "ethAccountsBeforeApproval": [],
+    "ethAccountsAfterApproval": ["0x1234567890abcdef1234567890abcdef12345678"]
+  },
+  "requests": [
+    { "id": "chain-id", "method": "eth_chainId", "expected": "0x1917" },
+    { "id": "network-version", "method": "net_version", "expected": "6423" },
+    { "id": "unapproved-account", "method": "personal_sign", "expectedError": 4100 },
+    { "id": "unsupported-method", "method": "eth_sign", "expectedError": 4200 },
+    { "id": "wrong-chain", "method": "wallet_switchEthereumChain", "expectedError": 4902 },
+    { "id": "rpc-degraded", "method": "eth_blockNumber", "expectedError": 4900, "connectionPreserved": true }
+  ],
+  "events": ["connect", "accountsChanged", "chainChanged", "disconnect", "message"],
+  "walletConnect": {
+    "requiredNamespace": "eip155",
+    "chains": ["eip155:6423"],
+    "requiredAccountMethods": ["eth_accounts", "eth_requestAccounts"],
+    "accountFormat": "eip155:6423:<approved-0x-account>"
+  },
+  "privateServiceFailure": { "input": "GATEWAY_UNAVAILABLE", "standardConnection": "connected", "privateService": "degraded" }
+}

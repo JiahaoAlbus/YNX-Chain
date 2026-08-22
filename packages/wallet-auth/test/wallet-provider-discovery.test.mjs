@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import {
-  WALLET_PROVIDER_DISCOVERY_AUTHORITY, discoverEip6963WalletProviders, discoverInjectedWalletProviders,
+  WALLET_PROVIDER_DISCOVERY_AUTHORITY, WALLET_PROVIDER_DISCOVERY_STATUS, WALLET_PROVIDER_NOT_INJECTED_POSSIBLE_CAUSES, discoverEip6963WalletProviders, discoverInjectedWalletProviders,
   discoverWalletProviders, selectWalletProviderCandidates, walletAvailabilityFromDiscovery, walletConnectionChoices,
 } from "../src/index.js";
 import * as discoverySubpath from "@ynx-chain/wallet-auth/wallet-provider-discovery";
@@ -28,6 +28,7 @@ test("legacy discovery prefers one exact YNX candidate and keeps MetaMask explic
   assert.equal(result.metamask.provider, metamask);
   assert.deepEqual(walletAvailabilityFromDiscovery(result), { ynxWalletInstalled: true, metaMaskAvailable: true });
   assert.equal(result.authority, WALLET_PROVIDER_DISCOVERY_AUTHORITY);
+  assert.equal(result.status, WALLET_PROVIDER_DISCOVERY_STATUS.AVAILABLE);
 });
 
 test("EIP-6963 discovery validates exact identity metadata and removes its listener", async () => {
@@ -53,12 +54,52 @@ test("combined discovery de-duplicates the same provider announced and injected"
   assert.deepEqual(result.ambiguities, []);
 });
 
+test("discovery requests EIP-6963 before and after DOMContentLoaded and then re-reads injection", async () => {
+  const wallet = provider({ isMetaMask: true, providerInfo: info("66666666-6666-4666-8666-666666666666", "io.metamask", "MetaMask") });
+  const scope = new EventTarget(), documentValue = new EventTarget();
+  scope.Event = Event; scope.document = documentValue; documentValue.readyState = "loading";
+  let requests = 0;
+  scope.addEventListener("eip6963:requestProvider", () => {
+    requests += 1;
+    if (documentValue.readyState === "complete") scope.dispatchEvent(new CustomEvent("eip6963:announceProvider", { detail: { provider: wallet, info: wallet.providerInfo } }));
+  });
+  setTimeout(() => { documentValue.readyState = "complete"; documentValue.dispatchEvent(new Event("DOMContentLoaded")); }, 1);
+  const result = await discoverWalletProviders(scope, 10);
+  assert.equal(result.metamask.provider, wallet);
+  assert.ok(requests >= 3);
+  assert.equal(result.diagnostics.readyStateStart, "loading");
+  assert.equal(result.diagnostics.readyStateEnd, "complete");
+  assert.equal(result.diagnostics.domContentLoadedObserved, true);
+  assert.ok(result.diagnostics.eip6963RequestDispatches >= 3);
+});
+
+test("window.ethereum.providers is preferred with root fallback and no false ambiguity", () => {
+  const metamask = provider({ isMetaMask: true, providerInfo: info("77777777-7777-4777-8777-777777777777", "io.metamask", "MetaMask") });
+  const aggregate = provider({ isMetaMask: true, providers: [metamask] });
+  const result = discoverInjectedWalletProviders({ ethereum: aggregate });
+  assert.equal(result.metamask.provider, metamask);
+  assert.deepEqual(result.ambiguities, []);
+  assert.equal(result.diagnostics.injectedProvidersArrayObserved, true);
+  assert.equal(result.diagnostics.injectedProviderCount, 1);
+});
+
+test("absence is classified as not injected without pretending to observe extension state", async () => {
+  const scope = new EventTarget(); scope.Event = Event; scope.document = { readyState: "complete" };
+  const result = await discoverWalletProviders(scope, 0);
+  assert.equal(result.status, WALLET_PROVIDER_DISCOVERY_STATUS.NOT_INJECTED);
+  assert.deepEqual(result.possibleCauses, WALLET_PROVIDER_NOT_INJECTED_POSSIBLE_CAUSES);
+  assert.equal(result.diagnostics.exactExtensionStateObservable, false);
+  assert.equal(result.diagnostics.eip6963RequestDispatches, 2);
+  assert.deepEqual(walletAvailabilityFromDiscovery(result), { ynxWalletInstalled: false, metaMaskAvailable: false });
+});
+
 test("multiple providers of one kind fail closed instead of auto-selecting", () => {
   const first = discoverInjectedWalletProviders({ ethereum: { providers: [
     provider({ isMetaMask: true }), provider({ isMetaMask: true }),
   ] } });
   assert.equal(first.metamask, null);
   assert.deepEqual(first.ambiguities, ["metamask"]);
+  assert.equal(first.status, WALLET_PROVIDER_DISCOVERY_STATUS.AMBIGUOUS);
   assert.deepEqual(walletAvailabilityFromDiscovery(first), { ynxWalletInstalled: false, metaMaskAvailable: false });
 });
 
