@@ -1,6 +1,6 @@
 {
   "name": "@ynx-chain/wallet-auth",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "packageManager": "npm@11.5.1",
   "license": "UNLICENSED",
   "description": "Strict Sign in with YNX Wallet request, approval, and product-session binding protocol",
@@ -10,6 +10,21 @@
       "types": "./src/index.d.ts",
       "import": "./src/index.js",
       "default": "./src/index.js"
+    },
+    "./standard-wallet-runtime": {
+      "types": "./src/index.d.ts",
+      "import": "./src/standard-wallet-runtime.js",
+      "default": "./src/standard-wallet-runtime.js"
+    },
+    "./standard-wallet-web": {
+      "types": "./src/index.d.ts",
+      "import": "./src/standard-wallet-web-runtime.js",
+      "default": "./src/standard-wallet-web-runtime.js"
+    },
+    "./standard-wallet-native": {
+      "types": "./src/index.d.ts",
+      "import": "./src/standard-wallet-native-bridge.js",
+      "default": "./src/standard-wallet-native-bridge.js"
     },
     "./gateway-node-host": {
       "types": "./src/gateway-node-host.d.ts",
@@ -53,7 +68,7 @@
     }
   },
   "types": "./src/index.d.ts",
-  "files": ["src", "scripts", "testdata", "integration", "central-registry.json", "product-session-registry.json", "registry-conflict-evidence.json", "CENTRAL_INTEGRATION.md"],
+  "files": ["src", "scripts", "harness", "testdata", "integration", "THIRD_PARTY_NOTICES.md", "central-registry.json", "product-session-registry.json", "registry-conflict-evidence.json", "CENTRAL_INTEGRATION.md"],
   "bin": {
     "ynx-wallet-gatewayd": "scripts/ynx-wallet-gatewayd.mjs",
     "ynx-wallet-product-session-state-migrate": "scripts/ynx-wallet-product-session-state-migrate.mjs",
@@ -64,9 +79,11 @@
   },
   "scripts": {
     "test": "node --test test/*.test.mjs",
-    "check": "npm test && npm run verify:no-bare-authorize && npm run verify:standard-wallet-connect-consumer",
+    "check": "npm test && npm run verify:no-bare-authorize && npm run verify:standard-wallet-connect-consumer && npm run verify:standard-wallet-e2e-execution && npm run verify:installed-standard-wallet-runtime",
     "verify:no-bare-authorize": "node scripts/verify-no-bare-wallet-authorize.mjs",
     "verify:standard-wallet-connect-consumer": "node scripts/verify-standard-wallet-connect-consumer.mjs",
+    "verify:installed-standard-wallet-runtime": "node scripts/run-standard-wallet-installed-harness.mjs",
+    "verify:standard-wallet-e2e-execution": "node scripts/verify-standard-wallet-e2e-execution-plan.mjs",
     "drill:backup": "node scripts/run-gateway-backup-drill.mjs",
     "benchmark:gateway": "node scripts/benchmark-gateway.mjs",
     "probe:public-gateway": "node scripts/verify-public-gateway.mjs",

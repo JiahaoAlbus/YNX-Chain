@@ -23,6 +23,8 @@ export class StandardWalletProviderEngine {
   }
 
   get isYNXWallet() { return true; }
+  get isMetaMask() { return false; }
+  get providerInfo() { return Object.freeze({ name: "YNX Wallet", rdns: "com.ynx.wallet", icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg'/>" }); }
   get chainId() { return STANDARD_WALLET_CHAIN_ID; }
   get selectedAddress() { return this.#permissions.accounts[0] ?? null; }
   get authority() { return STANDARD_WALLET_PROVIDER_AUTHORITY; }

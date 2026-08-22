@@ -1,0 +1,43 @@
+{
+  "schemaVersion": "1.0.0",
+  "contractId": "YNX-STANDARD-WALLET-RUNTIME-V1",
+  "runtimeVersion": "1.0.0-p0.0",
+  "package": { "name": "@ynx-chain/wallet-auth", "version": "1.2.0", "publicRegistryPublished": false },
+  "subpaths": {
+    "shared": "@ynx-chain/wallet-auth/standard-wallet-runtime",
+    "web": "@ynx-chain/wallet-auth/standard-wallet-web",
+    "native": "@ynx-chain/wallet-auth/standard-wallet-native"
+  },
+  "platforms": {
+    "web": { "adapter": "installStandardWalletWebRuntime", "transport": ["EIP-6963", "EIP-1193"], "legacyInjection": "if-empty-never-overwrite" },
+    "android": { "adapter": "createStandardWalletNativeBridge", "transport": ["canonical-json-rpc-bridge", "React-Native-JS-runtime"] },
+    "ios": { "adapter": "createStandardWalletNativeBridge", "transport": ["canonical-json-rpc-bridge", "React-Native-JS-runtime"] },
+    "macos": { "adapter": "createStandardWalletNativeBridge", "transport": ["canonical-json-rpc-bridge", "JavaScriptCore-JS-runtime"] },
+    "desktop": { "adapter": "createStandardWalletNativeBridge", "transport": ["canonical-json-rpc-bridge", "Electron-Web-runtime"] }
+  },
+  "network": { "nativeChainId": "ynx_6423-1", "evmChainId": 6423, "chainId": "0x1917", "symbol": "YNXT" },
+  "authority": {
+    "account": "exact-origin-user-approved-real-wallet-inventory-only",
+    "signing": "platform-secure-callback-only",
+    "transaction": "platform-review-and-submission-callback-only",
+    "productRegistryRequiredForExternalDapp": false,
+    "productSessionMayCreateStandardAuthority": false
+  },
+  "degradation": { "rpcProbe": "DEGRADED_CONNECTION_PRESERVED", "productSession": "DEGRADED_CONNECTION_PRESERVED" },
+  "branding": { "name": "YNX Wallet", "rdns": "com.ynx.wallet", "isMetaMask": false, "independentBrand": true },
+  "dependencies": [
+    { "name": "@noble/curves", "version": "2.2.0", "license": "MIT", "attribution": "THIRD_PARTY_NOTICES.md" },
+    { "name": "@noble/hashes", "version": "2.2.0", "license": "MIT", "attribution": "THIRD_PARTY_NOTICES.md" }
+  ],
+  "truth": {
+    "sourceImplemented": true,
+    "packedArtifactInstallHarness": true,
+    "realBrowserExtensionInstalled": false,
+    "realAndroidWalletInstalled": false,
+    "realIosWalletInstalled": false,
+    "realMacosWalletInstalled": false,
+    "realDesktopWalletInstalled": false,
+    "realWalletConnectRelay": false,
+    "deployedPublic": false
+  }
+}
