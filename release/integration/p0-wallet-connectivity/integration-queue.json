@@ -6404,7 +6404,25 @@
       "executionLeaseIssued": false,
       "blocker": "PROTECTED_NATIVE_WALLETCONNECT_RUNTIME_PACKAGE_UNAVAILABLE",
       "productsConnected": "0/12",
-      "nextAction": "After P0-175 releases Heavy, require protected project ID/app group, eligible signed targets, approved existing-signer test account, transaction policy and named first-party plus Uniswap/OpenSea/Safe confirmations before issuing one path-scoped native runtime lease."
+      "nextAction": "After the active Heavy lease releases, require protected project ID/app group, eligible signed targets, approved existing-signer test account, transaction policy and named first-party plus Uniswap/OpenSea/Safe confirmations before issuing one path-scoped native runtime lease."
+    },
+    {
+      "taskId": "P0-177",
+      "owner": "website",
+      "status": "ACTIVE_SINGLE_USE_CANDIDATE_REDEPLOY_NO_OFFICIAL_ALIAS",
+      "paths": [
+        "release/integration/p0-wallet-connectivity/leases/wallet-public-candidate-reachability-p0177-20260822.json",
+        "vercel-project:wallet-web:candidate-redeploy"
+      ],
+      "dependencies": ["P0-175"],
+      "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-candidate-reachability-20260822T080354Z",
+      "expiresAt": "2026-08-22T08:33:54Z",
+      "source": "a9653f9f73eb79f77b45f04c845c4f56c012ab4b",
+      "inputDeployment": "dpl_BMmwcxQj98uZdhumQLgmZ5bX5YZQ",
+      "officialAliasMutationAllowed": false,
+      "currentSourceBoundPublic": false,
+      "productsConnected": "0/12",
+      "nextAction": "Redeploy the exact candidate only, then independently prove all four immutable resources and release. A routing lease remains forbidden until that terminal evidence is accepted."
     }
   ]
 }

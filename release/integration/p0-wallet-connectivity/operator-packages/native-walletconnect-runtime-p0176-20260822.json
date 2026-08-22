@@ -14,7 +14,7 @@
   "lease": {
     "issued": false,
     "leaseId": null,
-    "startCondition": "P0-175 terminally consumed and released, heavy.owner is null, and every protected input below is confirmed by its authorized operator"
+    "startCondition": "every earlier Heavy lease is terminally consumed and released, heavy.owner is null, and every protected input below is confirmed by its authorized operator"
   },
   "futurePathScope": [
     "apps/wallet/ios/**",

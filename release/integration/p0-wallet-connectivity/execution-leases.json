@@ -1,26 +1,26 @@
 {
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-  "epoch": 73,
-  "updatedAt": "2026-08-22T07:56:13Z",
+  "epoch": 74,
+  "updatedAt": "2026-08-22T08:03:54Z",
   "heavy": {
-    "owner": null,
-    "status": "CONSUMED_RELEASED_FAILED_CLOSED_CANDIDATE_UNREACHABLE_PREWRITE",
-    "branch": "codex/website-wallet-public-identity-routing-20260822",
+    "owner": "website",
+    "status": "ACTIVE_SINGLE_USE_CANDIDATE_REDEPLOY_NO_OFFICIAL_ALIAS",
+    "branch": "codex/website-wallet-public-candidate-reachability-20260822",
     "worktree": "/Users/huangjiahao/Desktop/ynx-web4-website-new",
-    "taskId": "P0-175",
-    "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-public-identity-routing-20260822T074225Z",
-    "leasedAt": "2026-08-22T07:42:25Z",
-    "expiresAt": "2026-08-22T08:12:25Z",
-    "releasedAt": "2026-08-22T07:56:13Z",
+    "taskId": "P0-177",
+    "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-candidate-reachability-20260822T080354Z",
+    "leasedAt": "2026-08-22T08:03:54Z",
+    "expiresAt": "2026-08-22T08:33:54Z",
+    "releasedAt": null,
     "previousOwner": null,
-    "previousTaskId": "P0-145",
-    "previousCheckpoint": "ee3c398adf80659215d06806911068a48551ab03",
-    "executionScope": "WALLET_OFFICIAL_DOMAIN_ALIAS_ONLY",
-    "releaseReason": "Candidate control-plane status was Ready, but both mandatory HTTPS preflight attempts timed out before any alias command; zero mutation and no rollback required.",
+    "previousTaskId": "P0-175",
+    "previousCheckpoint": "f36385519115c8268e11750633911d0178dafe99",
+    "executionScope": "VERCEL_WALLET_WEB_CANDIDATE_REDEPLOY_AND_INDEPENDENT_PREFLIGHT_ONLY",
+    "releaseReason": null,
     "onSafeCheckpoint": [
-      "preflight the four immutable candidate paths with two bounded attempts before alias mutation",
-      "switch only wallet.ynxweb4.com to the exact READY candidate deployment",
-      "rollback immediately to the exact old deployment on any official-domain or clean-browser failure"
+      "redeploy only the exact reviewed wallet-web deployment without changing the official alias",
+      "independently verify the new immutable deployment four-resource HTTPS surface",
+      "release with official wallet.ynxweb4.com unchanged on success or failure"
     ]
   },
   "light": {
