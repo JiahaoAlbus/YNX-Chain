@@ -14,7 +14,7 @@ get(){ jq -er "$1" "$lease"; }
 LEASE_ID=$(get '.lease.id')
 hash(){ sha256sum "$1" | awk '{print $1}'; }
 bytes(){ wc -c < "$1" | tr -d ' '; }
-http_hash(){ curl --fail --silent --show-error --max-time 10 "$1" | sha256sum | awk '{print $1}'; }
+http_check(){ local path=$1 url=$2 tmp status; tmp=$(mktemp); status=$(curl --silent --show-error --max-time 10 -o "$tmp" -w '%{http_code}' "$url"); test "$status" = "$(get "$path.status")"; test "$(bytes "$tmp")" = "$(get "$path.bytes")"; test "$(hash "$tmp")" = "$(get "$path.sha256")"; rm -f "$tmp"; }
 absent(){ test ! -e "$1" && test ! -L "$1"; }
 archive=$(get '.candidate.archive.path'); archive_sha=$(get '.candidate.archive.sha256'); archive_bytes=$(get '.candidate.archive.bytes')
 binary_bytes=$(get '.candidate.binary.bytes')
@@ -22,14 +22,14 @@ binary_sha=$(get '.candidate.binary.sha256'); current=$(get '.fresh.currentLink'
 env=$(get '.fresh.env.path'); env_sha=$(get '.fresh.env.sha256'); unit=$(get '.fresh.unit.path'); unit_sha=$(get '.fresh.unit.sha256'); caddy=$(get '.fresh.caddy.path'); caddy_sha=$(get '.fresh.caddy.sha256'); service=$(get '.fresh.service.name')
 stage=$(get '.paths.stage'); backup=$(get '.paths.backup'); release=$(get '.paths.release'); new_env=$(get '.candidate.env.path'); new_env_sha=$(get '.candidate.env.sha256'); state=$(get '.fresh.state.path'); state_absent=$(get '.fresh.state.absent')
 for value in "$archive" "$new_env"; do case "$value" in /opt/ynx/stage/finance/$LEASE_ID/*) ;; *) exit 65;; esac; done
-for value in "$stage" "$backup" "$release"; do case "$value" in /opt/ynx/*/$LEASE_ID/*) ;; *) exit 65;; esac; parent=$(dirname "$value"); test -d "$parent" && test ! -L "$parent"; test "$(realpath -e "$parent")" = "$parent"; done
+for name in stage backup release; do value=$(eval "printf '%s' \"\${$name}\""); parent=$(get ".paths.parents.$name.path"); tuple=$(get ".paths.parents.$name.tuple"); case "$value" in "$parent"/$LEASE_ID/*) ;; *) exit 65;; esac; test -d "$parent" && test ! -L "$parent" && test "$(realpath -e "$parent")" = "$parent"; test "$(stat -Lc '%u:%g:%a:%h' "$parent")" = "$tuple"; absent "$value"; done
 loop_health=$(get '.fresh.verifier.loopbackHealth'); loop_version=$(get '.fresh.verifier.loopbackVersion'); public_health=$(get '.fresh.verifier.publicHealth'); public_version=$(get '.fresh.verifier.publicVersion')
-old_loop_health_sha=$(get '.fresh.verifier.sha256.loopbackHealth'); old_loop_version_sha=$(get '.fresh.verifier.sha256.loopbackVersion'); old_public_health_sha=$(get '.fresh.verifier.sha256.publicHealth'); old_public_version_sha=$(get '.fresh.verifier.sha256.publicVersion')
-verify_old_live(){ test "$(http_hash "$loop_health")" = "$old_loop_health_sha"; test "$(http_hash "$loop_version")" = "$old_loop_version_sha"; test "$(http_hash "$public_health")" = "$old_public_health_sha"; test "$(http_hash "$public_version")" = "$old_public_version_sha"; }
-verify_candidate_live(){ test "$(http_hash "$loop_health")" = "$(get '.candidate.verifier.sha256.loopbackHealth')"; test "$(http_hash "$loop_version")" = "$(get '.candidate.verifier.sha256.loopbackVersion')"; test "$(http_hash "$public_health")" = "$(get '.candidate.verifier.sha256.publicHealth')"; test "$(http_hash "$public_version")" = "$(get '.candidate.verifier.sha256.publicVersion')"; jq -e '.candidate.assets|length>0' "$lease" >/dev/null; }
+verify_old_live(){ http_check '.fresh.verifier.loopbackHealth' "$loop_health"; http_check '.fresh.verifier.loopbackVersion' "$loop_version"; http_check '.fresh.verifier.publicHealth' "$public_health"; http_check '.fresh.verifier.publicVersion' "$public_version"; }
+verify_candidate_live(){ http_check '.candidate.verifier.loopbackHealth' "$loop_health"; http_check '.candidate.verifier.loopbackVersion' "$loop_version"; http_check '.candidate.verifier.publicHealth' "$public_health"; http_check '.candidate.verifier.publicVersion' "$public_version"; jq -e '.candidate.assets|length>0' "$lease" >/dev/null; while IFS=$'\t' read -r url status count digest; do http_check "$(jq -r --arg u "$url" '.candidate.assets[]|select(.url==$u)|.verifierPath' "$lease")" "$url"; done < <(jq -r '.candidate.assets[]|[.url,.status,.bytes,.sha256]|@tsv' "$lease"); }
 assert_fresh(){
   test "$(readlink -f "$current")" = "$old"; test "$(hash "$old_binary")" = "$old_binary_sha"; file "$old_binary" | grep -q 'ELF 64-bit.*x86-64'
-  test "$(hash "$env")" = "$env_sha"; test "$(hash "$unit")" = "$unit_sha"; test "$(hash "$caddy")" = "$caddy_sha"; systemctl is-active --quiet "$service"
+  test "$(hash "$env")" = "$env_sha"; test "$(hash "$unit")" = "$unit_sha"; test "$(hash "$caddy")" = "$caddy_sha"; systemctl is-active --quiet "$service"; test "$(systemctl show -p MainPID --value "$service")" = "$(get '.fresh.service.pid')"; test "$(systemctl show -p NRestarts --value "$service")" = "$(get '.fresh.service.nrestarts')"
+  if [[ "$state_absent" = true ]]; then test ! -e "$state" && test ! -L "$state"; else test -f "$state" && test ! -L "$state"; test "$(stat -Lc '%d:%i:%u:%g:%a:%h' "$state")" = "$(get '.fresh.state.tuple')"; test "$(bytes "$state")" = "$(get '.fresh.state.bytes')"; test "$(hash "$state")" = "$(get '.fresh.state.sha256')"; fi
   jq -e '.fresh.verifier.loopbackHealth and .fresh.verifier.loopbackVersion and .fresh.verifier.publicHealth and .fresh.verifier.publicVersion and .fresh.verifier.sha256' "$lease" >/dev/null; verify_old_live
 }
 restore(){
