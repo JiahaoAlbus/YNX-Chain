@@ -14,6 +14,7 @@ export class WalletConnectTransport {
     this.clock = clock;
     this.walletKit = null;
     this.proposals = new Map();
+    this.proposalActions = new Set();
     this.sessionOrigins = new Map();
   }
   status() {
@@ -30,7 +31,16 @@ export class WalletConnectTransport {
   async start(handlers = {}) {
     if (!this.projectId) throw transportError("WALLETCONNECT_PROJECT_ID_UNAVAILABLE", "WalletConnect project ID is not configured");
     this.walletKit = await this.walletKitFactory({ projectId: this.projectId, metadata: this.metadata });
-    this.walletKit.on("session_proposal", proposal => { this.proposals.set(String(proposal.id), proposal); handlers.onSessionProposal?.(proposal); });
+    this.walletKit.on("session_proposal", proposal => {
+      try {
+        validateProposal(proposal, this.#nowSeconds());
+        proposalHttpsOrigin(proposal);
+        this.proposals.set(String(proposal.id), proposal);
+        handlers.onSessionProposal?.(proposal);
+      } catch (error) {
+        handlers.onProposalInvalid?.({ id: proposal?.id ?? null, code: error?.code ?? "INVALID_WALLETCONNECT_PROPOSAL" });
+      }
+    });
     this.walletKit.on("session_request", event => handlers.onSessionRequest?.(event));
     this.walletKit.on("session_delete", async event => {
       const origin = this.sessionOrigins.get(event.topic) ?? null;
@@ -51,29 +61,45 @@ export class WalletConnectTransport {
   async approveSession(id, account) {
     const proposal = this.proposals.get(String(id));
     if (!proposal) throw transportError("UNKNOWN_WALLETCONNECT_PROPOSAL", "WalletConnect proposal is unknown or expired");
-    const approved = validateProposal(proposal);
-    const session = await this.walletKit.approveSession({ id: proposal.id, namespaces: {
-      eip155: {
-        chains: [WALLETCONNECT_CHAIN],
-        accounts: [`${WALLETCONNECT_CHAIN}:${account}`],
-        methods: approved.methods,
-        events: approved.events
-      }
-    } });
-    this.proposals.delete(String(id));
-    this.#rememberSession(session);
-    return session;
+    const key = String(id);
+    if (this.proposalActions.has(key)) throw transportError("WALLETCONNECT_PROPOSAL_ACTION_IN_PROGRESS", "WalletConnect proposal already has an approval or rejection in progress");
+    this.proposalActions.add(key);
+    try {
+      const approved = validateProposal(proposal, this.#nowSeconds());
+      const session = await this.walletKit.approveSession({ id: proposal.id, namespaces: {
+        eip155: {
+          chains: [WALLETCONNECT_CHAIN],
+          accounts: [`${WALLETCONNECT_CHAIN}:${account}`],
+          methods: approved.methods,
+          events: approved.events
+        }
+      } });
+      this.proposals.delete(key);
+      this.#rememberSession(session);
+      return session;
+    } finally {
+      this.proposalActions.delete(key);
+    }
   }
   proposalOrigin(id) {
     const proposal = this.proposals.get(String(id));
-    const value = proposal?.params?.proposer?.metadata?.url;
-    try { const url = new URL(value); if (url.protocol !== "https:") throw new Error(); return url.origin; } catch { throw transportError("INVALID_WALLETCONNECT_PEER", "WalletConnect proposal has no valid HTTPS origin"); }
+    if (!proposal) throw transportError("UNKNOWN_WALLETCONNECT_PROPOSAL", "WalletConnect proposal is unknown or expired");
+    validateProposal(proposal, this.#nowSeconds());
+    return proposalHttpsOrigin(proposal);
   }
   async rejectSession(id) {
     const proposal = this.proposals.get(String(id));
     if (!proposal) throw transportError("UNKNOWN_WALLETCONNECT_PROPOSAL", "WalletConnect proposal is unknown or expired");
-    await this.walletKit.rejectSession({ id: proposal.id, reason: getSdkError("USER_REJECTED") });
-    this.proposals.delete(String(id));
+    const key = String(id);
+    if (this.proposalActions.has(key)) throw transportError("WALLETCONNECT_PROPOSAL_ACTION_IN_PROGRESS", "WalletConnect proposal already has an approval or rejection in progress");
+    this.proposalActions.add(key);
+    try {
+      validateProposal(proposal, this.#nowSeconds());
+      await this.walletKit.rejectSession({ id: proposal.id, reason: getSdkError("USER_REJECTED") });
+      this.proposals.delete(key);
+    } finally {
+      this.proposalActions.delete(key);
+    }
   }
   async respond(topic, id, response) {
     if (!this.walletKit) throw transportError("WALLETCONNECT_NOT_STARTED", "WalletConnect transport is not started");
@@ -143,12 +169,19 @@ async function defaultFactory({ projectId, metadata }) {
   return WalletKit.init({ core, metadata });
 }
 function transportError(code, message) { return Object.assign(new Error(message), { code }); }
-function validateProposal(proposal) {
+function validateProposal(proposal, nowSeconds) {
+  if (!Number.isSafeInteger(proposal?.id) || proposal.id < 0 || !Number.isSafeInteger(proposal?.expiryTimestamp) || proposal.expiryTimestamp <= nowSeconds) {
+    throw transportError("EXPIRED_WALLETCONNECT_PROPOSAL", "WalletConnect proposal is invalid or expired");
+  }
   const required = proposal?.params?.requiredNamespaces?.eip155;
   if (!required || !Array.isArray(required.chains) || required.chains.some(chain => chain !== WALLETCONNECT_CHAIN) || !Array.isArray(required.methods) || required.methods.some(method => !WALLETCONNECT_METHODS.includes(method)) || !Array.isArray(required.events) || required.events.some(event => !WALLETCONNECT_EVENTS.includes(event))) {
     throw transportError("UNSUPPORTED_WALLETCONNECT_NAMESPACE", "WalletConnect proposal requests an unsupported chain, method, or event");
   }
   return Object.freeze({ methods: Object.freeze([...new Set(required.methods)]), events: Object.freeze([...new Set(required.events)]) });
+}
+function proposalHttpsOrigin(proposal) {
+  const value = proposal?.params?.proposer?.metadata?.url;
+  try { const url = new URL(value); if (url.protocol !== "https:") throw new Error(); return url.origin; } catch { throw transportError("INVALID_WALLETCONNECT_PEER", "WalletConnect proposal has no valid HTTPS origin"); }
 }
 function sanitizeSession(session, nowSeconds) {
   const topic = session?.topic;
