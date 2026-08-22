@@ -60,22 +60,25 @@ const YNX_LOGO = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' v
 const METAMASK_LOGO = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='10' fill='%23F6851B'/%3E%3Cpath d='M20 19l12 7.5L44 19l3 4.5-16 10.5-16-10.5z' fill='white'/%3E%3Crect x='20.5' y='31' width='23' height='16' rx='2' fill='white'/%3E%3C/svg%3E";
 
 function isYnxWallet(detail) {
-  const name = `${detail?.info?.name ?? ""}`.toLowerCase();
-  const providerName = `${detail?.provider?.isYnxWallet ? "ynx" : ""}`.toLowerCase();
+  const name = `${detail?.info?.name ?? ""}`.trim().toLowerCase();
   const rdns = `${detail?.info?.rdns ?? ""}`.toLowerCase();
   return detail?.info?.isYNXWallet === true ||
+    detail?.provider?.isYNXWallet === true ||
     detail?.provider?.isYnxWallet === true ||
-    name.includes("ynx") ||
-    providerName === "ynx" ||
-    rdns.includes("ynx") ||
-    rdns.includes("com.ynx.wallet");
+    name === "ynx wallet" ||
+    rdns === "com.ynx.wallet";
 }
 
 function isMetaMask(detail) {
   if (detail?.info?.isMetaMask || detail?.provider?.isMetaMask) return true;
   const name = `${detail?.info?.name ?? ""}`.toLowerCase();
   const rdns = `${detail?.info?.rdns ?? ""}`.toLowerCase();
-  return name.includes("metamask") || rdns.includes("io.metamask") || rdns.includes("metamask");
+  return name === "metamask" || rdns === "io.metamask";
+}
+
+function safeAnnouncedIcon(value) {
+  const icon = `${value ?? ""}`;
+  return icon.length <= 16384 && /^data:image\/(?:png|svg\+xml|webp);/iu.test(icon) ? icon : "";
 }
 
 function normalizeProvider(detail, provider) {
@@ -94,7 +97,7 @@ function normalizeProvider(detail, provider) {
     },
     isYNXWallet: ynxWallet,
     isMetaMask: metaMask && !ynxWallet,
-    icon: ynxWallet ? YNX_LOGO : (metaMask ? METAMASK_LOGO : detail?.info?.icon || ""),
+    icon: ynxWallet ? YNX_LOGO : (metaMask ? safeAnnouncedIcon(detail?.info?.icon) || METAMASK_LOGO : safeAnnouncedIcon(detail?.info?.icon)),
     label: ynxWallet ? "YNX Wallet" : (metaMask ? "MetaMask" : name),
   };
 }
@@ -129,9 +132,16 @@ export function listCandidatesFromWindow(windowLike = window, details = []) {
   return [...providers.values()];
 }
 
-export async function discoverWalletCandidates(windowLike = window, {timeoutMs = 250} = {}) {
-  const announced = await discoverEIP6963(windowLike, {timeoutMs});
-  const withInjected = listCandidatesFromWindow(windowLike, announced);
+export async function discoverWalletCandidates(windowLike = window, {timeoutMs = 1500} = {}) {
+  const announced = new Map();
+  const phases = [...new Set([250, 750, 1500].filter(value => value < timeoutMs).concat(timeoutMs))].sort((a,b)=>a-b);
+  let elapsed = 0;
+  for (const phase of phases) {
+    const batch = await discoverEIP6963(windowLike, {timeoutMs: Math.max(0, phase - elapsed)});
+    for (const detail of batch) announced.set(detail.info.uuid, detail);
+    elapsed = phase;
+  }
+  const withInjected = listCandidatesFromWindow(windowLike, [...announced.values()]);
   if (!withInjected.length) throw new DAppConnectError("WALLET_NOT_INSTALLED", "No standard EVM Wallet was discovered.", {details: WALLET_INSTALLATION_OPTIONS});
   return withInjected;
 }

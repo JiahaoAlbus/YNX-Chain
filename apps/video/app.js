@@ -237,7 +237,7 @@ async function connectVideoWalletInteractive(walletId = null) {
   try {
     $("#signin").disabled = true;
     showInstallOptions(false);
-    const result = await connectVideoWallet(window, {timeoutMs: 450, walletId});
+    const result = await connectVideoWallet(window, {timeoutMs: 1500, walletId});
     currentWallet = {...result, walletKind: result.walletBrand, providerKey: result.providerInfo?.uuid};
     renderWalletState(currentWallet);
     bindWalletEvents(currentWallet);
@@ -261,7 +261,7 @@ async function connectVideoWalletInteractive(walletId = null) {
 async function restoreWalletFromSession() {
   const state = storageState.read();
   if (!state?.walletId || !state?.account) return;
-  const candidates = await discoverWalletCandidates(window, {timeoutMs: 250});
+  const candidates = await discoverWalletCandidates(window, {timeoutMs: 1500});
   const selected = candidates.find(candidate => candidate.info.uuid === state.walletId || candidate.label === state.walletName || candidate.info.rdns === state.providerKey);
   if (!selected) return;
   const provider = selected.provider;

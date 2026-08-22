@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {createHash} from "node:crypto";
 import {readFile} from "node:fs/promises";
-import {connectVideoWallet,WALLET_INSTALLATION_OPTIONS} from "./wallet-connection.js";
+import {connectVideoWallet,discoverWalletCandidates,WALLET_INSTALLATION_OPTIONS} from "./wallet-connection.js";
 
 const read=name=>readFile(new URL(name,import.meta.url),"utf8");
 const sha=value=>createHash("sha256").update(value).digest("hex");
@@ -51,4 +51,32 @@ test("missing Wallet fails with exact official installation choices",async()=>{
   await assert.rejects(connectVideoWallet(browser,{timeoutMs:1}),error=>error.code==="WALLET_NOT_INSTALLED"&&error.details.ynxWallet===WALLET_INSTALLATION_OPTIONS.ynxWallet&&error.details.metaMask===WALLET_INSTALLATION_OPTIONS.metaMask);
   assert.equal(WALLET_INSTALLATION_OPTIONS.ynxWallet,"https://www.ynxweb4.com/dapp/download");
   assert.equal(WALLET_INSTALLATION_OPTIONS.metaMask,"https://metamask.io/download/");
+});
+
+test("late YNX and MetaMask providers remain distinct without requesting accounts",async()=>{
+  const browser=new EventTarget();
+  let accountRequests=0;
+  const ynx={request:async({method})=>{if(method==="eth_requestAccounts")accountRequests++;return []},isYNXWallet:true};
+  const metamask={request:async({method})=>{if(method==="eth_requestAccounts")accountRequests++;return []},isMetaMask:true};
+  setTimeout(()=>browser.dispatchEvent(new CustomEvent("eip6963:announceProvider",{detail:{info:{uuid:"ynx-late",name:"YNX Wallet",rdns:"com.ynx.wallet"},provider:ynx}})),5);
+  setTimeout(()=>browser.dispatchEvent(new CustomEvent("eip6963:announceProvider",{detail:{info:{uuid:"metamask-late",name:"MetaMask",rdns:"io.metamask",icon:"data:image/svg+xml,%3Csvg/%3E"},provider:metamask}})),7);
+  const candidates=await discoverWalletCandidates(browser,{timeoutMs:20});
+  assert.equal(candidates.length,2);
+  assert.equal(candidates.find(item=>item.info.uuid==="ynx-late")?.isYNXWallet,true);
+  assert.equal(candidates.find(item=>item.info.uuid==="ynx-late")?.isMetaMask,false);
+  assert.equal(candidates.find(item=>item.info.uuid==="metamask-late")?.isMetaMask,true);
+  assert.equal(candidates.find(item=>item.info.uuid==="metamask-late")?.isYNXWallet,false);
+  assert.notEqual(candidates[0].icon,candidates[1].icon);
+  assert.equal(accountRequests,0);
+});
+
+test("late root injection and no-provider state are classified without navigation",async()=>{
+  const browser=new EventTarget();
+  const provider={request:async()=>[]};
+  setTimeout(()=>{browser.ethereum={providers:[provider]};browser.dispatchEvent(new Event("ethereum#initialized"))},5);
+  const candidates=await discoverWalletCandidates(browser,{timeoutMs:20});
+  assert.equal(candidates.length,1);
+  assert.equal(candidates[0].provider,provider);
+  const emptyBrowser=new EventTarget();
+  await assert.rejects(discoverWalletCandidates(emptyBrowser,{timeoutMs:1}),error=>error.code==="WALLET_NOT_INSTALLED");
 });
