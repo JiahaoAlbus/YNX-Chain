@@ -427,26 +427,26 @@
     }
   ],
   "heavy": {
-    "owner": "wallet-web+website",
+    "owner": null,
     "taskId": "P0-180",
-    "status": "ACTIVE_SINGLE_USE",
+    "status": "CONSUMED_RELEASED_SUCCESS_HOSTED_CANDIDATE_PREFLIGHT",
     "acquiredAt": "2026-08-22T08:48:19Z",
     "expiresAt": "2026-08-22T09:18:19Z",
-    "releasedAt": null,
+    "releasedAt": "2026-08-22T08:53:23Z",
     "sourceCommit": "a9653f9f73eb79f77b45f04c845c4f56c012ab4b",
     "evidenceCommit": "4f1e1b8ebdbc5e67900f675d970421d73d3a574b",
     "runtimeHost": "wallet.ynxweb4.com",
     "currentRuntime": "dpl_Got2m9m84Sc3QDsrH8yu51W93JAe",
     "candidateRuntime": "dpl_G6gTg2a3CVS1siTRqQg5XjQfPR9q",
     "artifactSha256": "4d8e2e011f7113a80fb5a9541f710b86b2355f5e2fc176fd76a4a46ff94b0e7b",
-    "productionMutationAllowed": "WALLET_WEB_SSO_TEMPORARY_DISABLE_AND_RESTORE_ONLY",
+    "productionMutationAllowed": false,
     "singleUse": true,
     "reusable": false,
     "previousOwner": null,
     "previousTaskId": "P0-179",
     "checkpointCommit": "156b5b4da8ba8c71e85331b404032b5b17e38207",
-    "reviewDecision": "GO_VERIFIED_BUNDLE_EXACT_LITERAL_REFSPEC_HOSTED_PREFLIGHT",
-    "reason": "Central independently imported and verified the thin bundle and exact commit graph. The only push is a frozen literal refspec with no variables or concatenation, inside a mandatory ordered SSO window."
+    "reviewDecision": "HOSTED_FOUR_RESOURCE_PREFLIGHT_ACCEPTED_OFFICIAL_ALIAS_UNCHANGED",
+    "reason": "One exact push-triggered hosted run returned raw HTTP 200 evidence for all four immutable resources with exact source identity and no-store service worker. SSO is restored; the official alias remains unchanged and unbound."
   },
   "wave": {
     "id": "B-financial-apps-quant",

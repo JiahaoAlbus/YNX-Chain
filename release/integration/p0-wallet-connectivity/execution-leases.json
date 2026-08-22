@@ -1,26 +1,26 @@
 {
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-  "epoch": 80,
-  "updatedAt": "2026-08-22T08:48:19Z",
+  "epoch": 81,
+  "updatedAt": "2026-08-22T08:53:23Z",
   "heavy": {
-    "owner": "wallet-web+website",
-    "status": "ACTIVE_SINGLE_USE",
+    "owner": null,
+    "status": "CONSUMED_RELEASED_SUCCESS_HOSTED_CANDIDATE_PREFLIGHT",
     "branch": "codex/wallet-web-pwa-extensions-20260813",
     "worktree": "/Users/huangjiahao/.codex/worktrees/1274/YNX Chain",
     "taskId": "P0-180",
     "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-web-hosted-preflight-literal-refspec-20260822T084819Z",
     "leasedAt": "2026-08-22T08:48:19Z",
     "expiresAt": "2026-08-22T09:18:19Z",
-    "releasedAt": null,
+    "releasedAt": "2026-08-22T08:53:23Z",
     "previousOwner": null,
     "previousTaskId": "P0-179",
     "previousCheckpoint": "156b5b4da8ba8c71e85331b404032b5b17e38207",
     "executionScope": "EXACT_LITERAL_REFSPEC_PUSH_TRIGGERED_HOSTED_PREFLIGHT_WITH_ORDERED_SSO_WINDOW",
-    "releaseReason": null,
+    "releaseReason": "The exact literal push produced one successful hosted run and a verified four-resource raw artifact while SSO was disabled. SSO was restored, no alias changed, and the official domain remains uncommitted-source-tree pending a wholly new routing lease.",
     "onSafeCheckpoint": [
-      "reverify the immutable thin bundle and exact remote parent",
-      "disable SSO and execute only the frozen literal push once",
-      "bind one hosted run, restore SSO, and return raw evidence or fail closed"
+      "preserve the exact hosted artifact and four-resource hashes",
+      "do not reuse P0-180 or infer alias authority",
+      "request a wholly new routing lease using the accepted candidate evidence"
     ]
   },
   "light": {
