@@ -5,6 +5,9 @@ import { providerError } from "./desktop-wallet-vault.mjs";
 
 export const YNX_EIP155_CHAIN = "eip155:6423";
 export const YNX_EVM_CHAIN_ID = STANDARD_WALLET_CHAIN_ID;
+export const APPROVAL_TTL_MS = 5 * 60 * 1000;
+const MAX_PENDING_REQUESTS = 64;
+const MAX_PENDING_REQUESTS_PER_ORIGIN = 8;
 export const APPROVAL_METHODS = Object.freeze([
   "eth_requestAccounts",
   "wallet_requestPermissions",
@@ -40,7 +43,7 @@ export class DesktopWalletAuthority {
     await this.permissions.grantAccount(origin, status.account, this.clock().toISOString());
     return Object.freeze({ origin, account: status.account });
   }
-  async revokeOrigin(originInput) { const origin = exactHttpsOrigin(originInput); await this.permissions.revoke(origin); return Object.freeze({ origin, revoked: true }); }
+  async revokeOrigin(originInput) { const origin = exactHttpsOrigin(originInput); await this.permissions.revoke(origin); this.#clearOriginPending(origin); return Object.freeze({ origin, revoked: true }); }
 
   async request(input) {
     const origin = exactHttpsOrigin(input?.origin);
@@ -54,6 +57,7 @@ export class DesktopWalletAuthority {
     if (method === "wallet_revokePermissions") {
       validatePermissionRequest(params);
       await this.permissions.revoke(origin);
+      this.#clearOriginPending(origin);
       return success(null);
     }
     if (!APPROVAL_METHODS.includes(method)) throw providerError(4200, "UNSUPPORTED_PROVIDER_METHOD", `Unsupported Provider method: ${method}`);
@@ -62,6 +66,10 @@ export class DesktopWalletAuthority {
       throw providerError(4100, "ACCOUNT_PERMISSION_REQUIRED", "The DApp has not been approved for this account");
     }
     const normalized = normalizeApproval(method, params, status.account);
+    this.#pruneExpired();
+    if (this.pending.size >= MAX_PENDING_REQUESTS || [...this.pending.values()].filter(item => item.origin === origin).length >= MAX_PENDING_REQUESTS_PER_ORIGIN) {
+      throw providerError(4200, "PENDING_REQUEST_LIMIT", "Too many Wallet requests are awaiting review");
+    }
     const id = this.requestId();
     const pending = Object.freeze({ id, origin, method, params: normalized.params, review: normalized.review, createdAt: this.clock().toISOString() });
     this.pending.set(id, pending);
@@ -72,6 +80,9 @@ export class DesktopWalletAuthority {
     const pending = this.#take(id);
     const status = await this.vault.status();
     if (!status.initialized) throw providerError(4100, "ACCOUNT_NOT_CREATED", "Wallet account is unavailable");
+    if (["personal_sign", "eth_signTypedData_v4", "eth_sendTransaction"].includes(pending.method) && !(await this.permissions.hasAccount(pending.origin, status.account))) {
+      throw providerError(4100, "ACCOUNT_PERMISSION_REVOKED", "The DApp account permission was revoked before approval");
+    }
     switch (pending.method) {
       case "eth_requestAccounts":
       case "wallet_requestPermissions":
@@ -109,8 +120,12 @@ export class DesktopWalletAuthority {
     if (typeof id !== "string" || !this.pending.has(id)) throw providerError(4100, "UNKNOWN_OR_EXPIRED_REQUEST", "Provider request is unknown or already resolved");
     const value = this.pending.get(id);
     this.pending.delete(id);
+    if (this.clock().getTime() - Date.parse(value.createdAt) > APPROVAL_TTL_MS) throw providerError(4100, "REQUEST_EXPIRED", "Provider request expired before approval");
     return value;
   }
+
+  #clearOriginPending(origin) { for (const [id, request] of this.pending) if (request.origin === origin) this.pending.delete(id); }
+  #pruneExpired() { const now = this.clock().getTime(); for (const [id, request] of this.pending) if (now - Date.parse(request.createdAt) > APPROVAL_TTL_MS) this.pending.delete(id); }
 }
 
 export class MemoryPermissionStore {

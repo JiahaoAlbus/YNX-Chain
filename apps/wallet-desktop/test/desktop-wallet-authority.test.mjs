@@ -6,7 +6,7 @@ import path from "node:path";
 import test from "node:test";
 import { verifyMessage, verifyTypedData } from "ethers";
 import { parseCallbackURL, requestDigest, verifyAuthorization } from "@ynx-chain/wallet-auth";
-import { DesktopWalletAuthority, MemoryPermissionStore, YNX_EIP155_CHAIN, YNX_EVM_CHAIN_ID } from "../src/desktop-wallet-authority.mjs";
+import { APPROVAL_TTL_MS, DesktopWalletAuthority, MemoryPermissionStore, YNX_EIP155_CHAIN, YNX_EVM_CHAIN_ID } from "../src/desktop-wallet-authority.mjs";
 import { FilePermissionStore } from "../src/desktop-permission-store.mjs";
 import { DesktopWalletVault } from "../src/desktop-wallet-vault.mjs";
 import { WALLETCONNECT_CHAIN, WALLETCONNECT_METHODS, WalletConnectTransport } from "../src/walletconnect-transport.mjs";
@@ -145,6 +145,31 @@ test("account switching persists both encrypted accounts and revokes every DApp 
   const serialized = await readFile(vaultPath, "utf8");
   assert.doesNotMatch(serialized, new RegExp(SECRET));
   assert.doesNotMatch(serialized, new RegExp(SECOND_SECRET));
+});
+
+test("pending approvals expire, are bounded, and cannot survive permission revocation", async () => {
+  let now = new Date("2026-08-22T00:00:00Z");
+  let id = 0;
+  const directory = await mkdtemp(path.join(os.tmpdir(), "ynx-wallet-expiry-"));
+  const safeStorage = {
+    isEncryptionAvailable: () => true,
+    encryptString: value => Buffer.from(`encrypted:${value}`, "utf8"),
+    decryptString: value => value.toString("utf8").slice("encrypted:".length)
+  };
+  const vault = new DesktopWalletVault({ filePath: path.join(directory, "vault.json"), safeStorage, randomSecret: () => SECRET });
+  await vault.createAccount();
+  const authority = new DesktopWalletAuthority({ vault, permissions: new MemoryPermissionStore(), requestId: () => `bounded-${++id}`, clock: () => now });
+  const account = (await authority.accountStatus()).account;
+  await authority.approveOrigin(ORIGIN);
+  const expired = await authority.request({ origin: ORIGIN, method: "personal_sign", params: ["0x01", account] });
+  now = new Date(now.getTime() + APPROVAL_TTL_MS + 1);
+  await assert.rejects(authority.approve(expired.request.id), error => error.data.code === "REQUEST_EXPIRED");
+  const revoked = await authority.request({ origin: ORIGIN, method: "personal_sign", params: ["0x02", account] });
+  await authority.request({ origin: ORIGIN, method: "wallet_revokePermissions", params: [{ eth_accounts: {} }] });
+  await assert.rejects(authority.approve(revoked.request.id), error => error.data.code === "UNKNOWN_OR_EXPIRED_REQUEST");
+  await authority.approveOrigin(ORIGIN);
+  for (let count = 0; count < 8; count += 1) await authority.request({ origin: ORIGIN, method: "personal_sign", params: ["0x03", account] });
+  await assert.rejects(authority.request({ origin: ORIGIN, method: "personal_sign", params: ["0x04", account] }), error => error.data.code === "PENDING_REQUEST_LIMIT");
 });
 
 test("WalletConnect remains fail closed without a real project ID", async () => {
