@@ -149,13 +149,42 @@ jobs:
           New-Item -ItemType Directory -Force apps/wallet-desktop/evidence/windows-x64 | Out-Null
           Copy-Item $env:EVIDENCE apps/wallet-desktop/evidence/windows-x64/lifecycle.json
           $installer = Get-ChildItem 'apps/wallet-desktop/dist/*.exe' | Where-Object Name -NotLike '*blockmap*' | Select-Object -First 1
-          Get-FileHash $installer.FullName -Algorithm SHA256 | Format-List | Out-File apps/wallet-desktop/evidence/windows-x64/SHA256.txt
+          $sha256 = (Get-FileHash $installer.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+          $sha256 | Set-Content apps/wallet-desktop/evidence/windows-x64/SHA256.txt
           "{0} {1}" -f $installer.Name,$installer.Length | Set-Content apps/wallet-desktop/evidence/windows-x64/BYTES.txt
-          Get-AuthenticodeSignature $installer.FullName | Select-Object Status,StatusMessage,SignerCertificate | ConvertTo-Json -Depth 4 | Set-Content apps/wallet-desktop/evidence/windows-x64/AUTHENTICODE.json
+          $signature = Get-AuthenticodeSignature $installer.FullName
+          $signature | Select-Object Status,StatusMessage,SignerCertificate | ConvertTo-Json -Depth 4 | Set-Content apps/wallet-desktop/evidence/windows-x64/AUTHENTICODE.json
+          if ($signature.Status -ne 'NotSigned') { throw "unexpected installer signing status: $($signature.Status)" }
+          $lifecycle = Get-Content $env:EVIDENCE -Raw | ConvertFrom-Json
+          [ordered]@{
+            schemaVersion = 1
+            productId = 'wallet-desktop'
+            version = $lifecycle.currentVersion
+            sourceCommit = $env:GITHUB_SHA
+            workflowRunId = [long]$env:GITHUB_RUN_ID
+            artifact = [ordered]@{
+              filename = $installer.Name
+              format = 'nsis-exe'
+              architecture = 'x64'
+              bytes = $installer.Length
+              sha256 = $sha256
+              minimumOS = 'Windows Server 2025 x64 runner directly tested; consumer Windows minimum not separately evidenced'
+              signingClass = 'unsigned_windows_nsis_testnet_candidate'
+              authenticodeStatus = $signature.Status.ToString()
+              productionSigned = $false
+              installedOnNativeRunner = $true
+            }
+            lifecycle = $lifecycle
+          } | ConvertTo-Json -Depth 8 | Set-Content apps/wallet-desktop/evidence/windows-x64/artifact-manifest.json
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: ynx-wallet-desktop-windows-x64
           path: |
             apps/wallet-desktop/dist/*.exe
             apps/wallet-desktop/evidence/windows-x64/**
+          if-no-files-found: error
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ynx-wallet-desktop-windows-x64-evidence-only
+          path: apps/wallet-desktop/evidence/windows-x64/**
           if-no-files-found: error
