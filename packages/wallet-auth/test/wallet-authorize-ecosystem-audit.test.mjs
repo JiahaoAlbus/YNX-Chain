@@ -751,6 +751,15 @@ test("owner checkpoint separates Wallet public artifacts from approval and Produ
   assert.equal(platform.latestMacosOwnerEvidence.iosWalletConnectV2DecisionState.walletJsTests, "40/40");
   assert.equal(platform.latestMacosOwnerEvidence.iosWalletConnectV2DecisionState.relay, false);
   assert.equal(platform.latestMacosOwnerEvidence.iosWalletConnectV2DecisionState.approveReject, false);
+  assert.equal(platform.latestMacosOwnerEvidence.iosBiometricTerminalFailureSecond.evidenceCommit, "c1b630bd2d6d101b3705b0d6ebdf0eec86f08672");
+  assert.equal(platform.latestMacosOwnerEvidence.iosBiometricTerminalFailureSecond.terminalStatus, "FAILURE_BIOMETRIC_ONLY");
+  assert.equal(platform.latestMacosOwnerEvidence.iosBiometricTerminalFailureSecond.walletConnectXCUITestPassed, true);
+  assert.equal(platform.latestMacosOwnerEvidence.iosBiometricTerminalFailureSecond.walletConnectSourceSignpost.relay, false);
+  assert.equal(platform.latestMacosOwnerEvidence.iosBiometricTerminalFailureSecond.sign, false);
+  assert.equal(platform.latestMacosOwnerEvidence.iosWalletConnectUriCapability.implementationCommit, "aba683d5dc90ee6a8df339240510e77680c9fa9c");
+  assert.equal(platform.latestMacosOwnerEvidence.iosWalletConnectUriCapability.projectIdUnavailableVisibleFailClosed, "PROJECT_ID_UNAVAILABLE");
+  assert.equal(platform.latestMacosOwnerEvidence.iosWalletConnectUriCapability.validProjectIdAdapterMissingVisibleFailClosed, "RELAY_UNAVAILABLE");
+  assert.equal(platform.latestMacosOwnerEvidence.iosWalletConnectUriCapability.relay, false);
   assert.equal(platform.modifiedByProtocolOwner, false);
   assert.equal(ownerActivityCheckpoint.summary.threeSegmentCompleteProducts, 0);
 });
