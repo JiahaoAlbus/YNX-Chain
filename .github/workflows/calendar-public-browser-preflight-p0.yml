@@ -1,0 +1,161 @@
+name: Calendar public browser preflight P0
+
+on:
+  push:
+    branches:
+      - codex/calendar-fable5-completion-20260821
+    paths:
+      - .github/workflows/calendar-public-browser-preflight-p0.yml
+
+permissions:
+  contents: read
+
+jobs:
+  calendar-public-browser-preflight:
+    if: "${{ github.event.head_commit.message == 'evidence(calendar): externally verify public browser recovery' }}"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CALENDAR_ORIGIN: https://calendar-testnet.43.153.202.237.sslip.io
+      EXPECTED_SOURCE: 7db160aa0bd589097e63190a260a343aafe4854c
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Prepare isolated evidence harness
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${GITHUB_SHA}" != ""
+          out="${RUNNER_TEMP}/calendar-public-browser-preflight"
+          rm -rf "${out}"
+          mkdir -p "${out}/npm" "${out}/evidence"
+          cd "${out}/npm"
+          npm init -y >/dev/null
+          npm install --ignore-scripts --no-audit --no-fund playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Run read-only public Chromium evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          out="${RUNNER_TEMP}/calendar-public-browser-preflight"
+          cp "${GITHUB_WORKSPACE}/.github/workflows/calendar-public-browser-preflight-p0.yml" "${out}/evidence/workflow.yml"
+          cat > "${out}/npm/preflight.cjs" <<'NODE'
+          const { chromium } = require('playwright');
+          const fs = require('fs');
+          const path = require('path');
+          const crypto = require('crypto');
+          const origin = process.env.CALENDAR_ORIGIN;
+          const expectedSource = process.env.EXPECTED_SOURCE;
+          const evidenceDir = path.join(process.env.RUNNER_TEMP, 'calendar-public-browser-preflight', 'evidence');
+          const sha256 = body => crypto.createHash('sha256').update(body).digest('hex');
+          const fail = message => { throw new Error(message); };
+          async function raw(pathname) {
+            const response = await fetch(origin + pathname, { redirect: 'error', cache: 'no-store' });
+            const body = Buffer.from(await response.arrayBuffer());
+            const record = { pathname, status: response.status, finalUrl: response.url, bytes: body.length, sha256: sha256(body), headers: Object.fromEntries(response.headers.entries()) };
+            fs.writeFileSync(path.join(evidenceDir, `raw-${pathname === '/' ? 'index' : pathname.slice(1).replaceAll('/', '-')}.body`), body);
+            fs.writeFileSync(path.join(evidenceDir, `raw-${pathname === '/' ? 'index' : pathname.slice(1).replaceAll('/', '-')}.headers.json`), JSON.stringify(record, null, 2));
+            if (response.status !== 200 || response.url !== origin + pathname) fail(`raw resource mismatch ${pathname}`);
+            return { record, body };
+          }
+          async function observe(page, label) {
+            const errors = [];
+            const popups = [];
+            page.on('console', msg => { if (msg.type() === 'error') errors.push(msg.text()); });
+            page.on('pageerror', error => errors.push(String(error)));
+            page.context().on('page', popup => popups.push(popup.url()));
+            const startUrl = page.url();
+            await page.goto(origin + '/', { waitUntil: 'networkidle', timeout: 45000 });
+            await page.locator('#app').waitFor({ state: 'attached', timeout: 15000 });
+            await page.waitForTimeout(4200);
+            const state = await page.evaluate(() => ({
+              href: location.href,
+              title: document.title,
+              lang: document.documentElement.lang,
+              dir: document.documentElement.dir || 'ltr',
+              translate: document.documentElement.getAttribute('translate'),
+              appBusy: document.querySelector('#app')?.getAttribute('aria-busy'),
+              signinHidden: document.querySelector('#signin')?.hidden,
+              signinState: document.querySelector('#signin-state')?.innerText,
+              toastText: document.querySelector('#toast')?.textContent,
+              toastHidden: document.querySelector('#toast')?.getAttribute('aria-hidden'),
+              bodyText: document.body.innerText.slice(0, 5000),
+            }));
+            const endUrl = page.url();
+            if (state.href !== origin + '/' || endUrl !== origin + '/' || state.title !== 'YNX Calendar') fail(`${label}: unstable URL/title`);
+            if (state.lang !== 'en' || state.translate !== 'no') fail(`${label}: default language mismatch`);
+            if (state.appBusy !== 'false' || state.signinHidden !== false) fail(`${label}: app did not visibly render`);
+            if (state.signinState !== 'Wallet disconnected. Guest trial remains available.') fail(`${label}: no-provider reset not visible`);
+            if (state.toastText !== '' || state.toastHidden !== 'true') fail(`${label}: stale toast not cleared`);
+            if (errors.length) fail(`${label}: console errors: ${errors.join(' | ')}`);
+            if (popups.length || page.context().pages().length !== 1 || page.context().pages().some(p => p.url() === 'about:blank')) fail(`${label}: popup or blank tab observed`);
+            return { label, startUrl, endUrl, state, consoleErrors: errors, popups, pageCount: page.context().pages().length };
+          }
+          (async () => {
+            const resources = {};
+            for (const pathname of ['/v1/health','/v1/version','/','/app.js','/wallet-connection.js','/toast.js','/sw.js']) {
+              const value = await raw(pathname); resources[pathname] = value.record;
+              if (pathname === '/v1/version') {
+                const parsed = JSON.parse(value.body.toString('utf8'));
+                if (parsed.sourceCommit !== expectedSource && parsed.source_commit !== expectedSource && parsed.commit !== expectedSource) fail('public version source mismatch');
+              }
+            }
+            const browser = await chromium.launch({ headless: true });
+            const noProviderContext = await browser.newContext({ locale: 'en-US', serviceWorkers: 'allow' });
+            const noProviderPage = await noProviderContext.newPage();
+            const noProvider = await observe(noProviderPage, 'no-provider');
+            await noProviderPage.locator('#guest-try').click();
+            const toastShown = await noProviderPage.locator('#toast').innerText();
+            if (!toastShown.includes('Local guest trial')) fail('toast did not become visibly populated');
+            await noProviderPage.waitForTimeout(3100);
+            const toastCleared = await noProviderPage.evaluate(() => ({ text: document.querySelector('#toast')?.textContent, hidden: document.querySelector('#toast')?.getAttribute('aria-hidden'), shown: document.querySelector('#toast')?.classList.contains('show') }));
+            if (toastCleared.text !== '' || toastCleared.hidden !== 'true' || toastCleared.shown) fail('toast did not clear after visible lifecycle');
+            await noProviderPage.screenshot({ path: path.join(evidenceDir, 'calendar-no-provider.png'), fullPage: true });
+            await noProviderContext.close();
+
+            const lateContext = await browser.newContext({ locale: 'en-US', serviceWorkers: 'allow' });
+            await lateContext.addInitScript(() => {
+              window.__ynxProviderCalls = [];
+              const listeners = new Map();
+              const provider = {
+                isMetaMask: true,
+                providerInfo: { rdns: 'io.metamask', name: 'MetaMask' },
+                request: async ({method}) => {
+                  window.__ynxProviderCalls.push(method);
+                  if (method === 'eth_accounts') return [];
+                  if (method === 'eth_chainId') return '0x1917';
+                  throw Object.assign(new Error('Sensitive or unsupported method forbidden by hosted preflight'), {code: 4200});
+                },
+                on: (event, fn) => { const xs = listeners.get(event) || []; xs.push(fn); listeners.set(event, xs); },
+                removeListener: () => {},
+              };
+              setTimeout(() => window.dispatchEvent(new CustomEvent('eip6963:announceProvider', {detail:{info:{uuid:'350670db-19fa-4704-a166-e52e178b59d2',name:'MetaMask',icon:'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg"/>',rdns:'io.metamask'},provider}})), 600);
+              window.addEventListener('eip6963:requestProvider', () => {});
+            });
+            const latePage = await lateContext.newPage();
+            const late = await observe(latePage, 'late-provider-empty-account');
+            const calls = await latePage.evaluate(() => window.__ynxProviderCalls || []);
+            if (!calls.includes('eth_accounts') || !calls.includes('eth_chainId')) fail('late provider was not rediscovered and read non-sensitively');
+            const forbidden = calls.filter(method => !['eth_accounts','eth_chainId'].includes(method));
+            if (forbidden.length) fail(`sensitive provider call observed: ${forbidden.join(',')}`);
+            await latePage.screenshot({ path: path.join(evidenceDir, 'calendar-late-provider-empty-account.png'), fullPage: true });
+            await lateContext.close();
+            await browser.close();
+            const result = {schemaVersion:'1.0.0', observedAt:new Date().toISOString(), origin, expectedSource, resources, noProvider, toastLifecycle:{shownText:toastShown, cleared:toastCleared}, lateProvider:{...late, providerCalls:calls}, sensitiveActions:{eth_requestAccounts:false,personal_sign:false,typedData:false,sendTransaction:false}, directHostedBrowserEvidence:true};
+            fs.writeFileSync(path.join(evidenceDir, 'calendar-public-browser-preflight.json'), JSON.stringify(result, null, 2));
+          })().catch(error => { fs.writeFileSync(path.join(evidenceDir, 'failure.txt'), String(error?.stack || error)); process.exitCode = 1; });
+          NODE
+          cd "${out}/npm"
+          node preflight.cjs
+
+      - name: Upload isolated evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: calendar-public-browser-preflight-p0
+          path: ${{ runner.temp }}/calendar-public-browser-preflight/evidence
+          if-no-files-found: error
+          retention-days: 7
