@@ -13,15 +13,16 @@
       "sha256": "c5a615c9d5c34f25d9810751d816dc6709ca6de70aafea0549224de162c33652"
     },
     "responsibilityRegistry36": {
-      "commit": "f7b8b4494a10c0de269e0328fd7fbd35b46c7109",
-      "tree": "333188b5c5c7bb05b09a11c081747d9d4bd9272a",
-      "parent": "0a2d17f7f6060f62d392a9f5baa840cb594257e0",
+      "commit": "efc8424196a18d6aa357fb3e27a752fa3cec7453",
+      "tree": "f25b5ca76178632995ab42c6dd37fe68d1ffc485",
+      "parent": "f7b8b4494a10c0de269e0328fd7fbd35b46c7109",
       "path": "release/integration/wallet-ecosystem-responsibility-registry-p0-20260822.json",
-      "blob": "21a7d60aa7392d1b13651b9e58a5bc5efcb585f7",
-      "sha256": "8dec3e58a31381df9fd0596a2a9485d54dd8158b241201c0f06904c43459eb2e",
+      "blob": "548928a0c7623d01459ce4d9834286102cce3d34",
+      "sha256": "e01ba6d9f25902300962f406adf922eec7bd8c6981a60613828e6d9df7d0742a",
       "routingAuthorityOnly": true,
       "mappingFrozenOnlyAfterDedicatedAudit": true,
-      "explorerMonitorPrivilegedClassificationCorrected": true
+      "explorerMonitorPrivilegedClassificationCorrected": true,
+      "cardP0195FailClosedAuditBound": true
     },
     "standardWalletProtocol": {
       "commit": "66003e76e804da16d472255efde50cb879055b96",
