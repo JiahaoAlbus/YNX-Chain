@@ -1,59 +1,50 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { cpSync, lstatSync, mkdtempSync, mkdirSync, readFileSync, readlinkSync, renameSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { chmodSync, cpSync, lstatSync, mkdtempSync, mkdirSync, readFileSync, readlinkSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { execFileSync, spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
-import { dirname, join, resolve } from 'node:path';
+import { basename, dirname, join } from 'node:path';
 
-// Hermetic executable model of the leased command object: named curl,
-// systemctl, file and readlink stubs exercise switch and rollback only in /tmp.
-const root = mkdtempSync(join(tmpdir(), 'finance-production-fixture-'));
-const sha = value => createHash('sha256').update(Buffer.isBuffer(value) ? value : readFileSync(value)).digest('hex');
+// This runs a copied production executor against only a temporary test root.
+// jq is real; curl/systemctl/file/readlink/stat/realpath/cp/mv are controlled
+// wrappers. Nothing can address the production /opt/ynx tree.
+const root = mkdtempSync(join(tmpdir(), 'finance-shell-fixture-'));
+const shell = (bin, args, options = {}) => execFileSync(bin, args, { encoding: 'utf8', ...options }).trim();
+const sha = path => shell('/sbin/sha256sum', [path]).split(/\s+/)[0];
+const bytes = path => Number(shell('/usr/bin/wc', ['-c', path]).trim().split(/\s+/)[0]);
 const write = (path, value) => { mkdirSync(dirname(path), { recursive: true }); writeFileSync(path, value); };
-const receipt = (url, body) => ({ url, status: '200', bytes: Buffer.byteLength(body), sha256: sha(Buffer.from(body)) });
-const safeChild = (parent, relative) => {
-  assert.ok(relative && !relative.startsWith('/') && !relative.split('/').includes('..'), 'reject traversal');
-  const path = resolve(parent, relative); assert.ok(path.startsWith(`${resolve(parent)}/`), 'reject sibling'); return path;
-};
+const tuple = path => shell('/opt/homebrew/bin/gstat', ['-Lc', '%u:%g:%a:%h', path]);
+const stateTuple = path => shell('/opt/homebrew/bin/gstat', ['-Lc', '%d:%i:%u:%g:%a:%h', path]);
+const receipt = (url, body) => ({ url, status: '200', bytes: Buffer.byteLength(body), sha256: createHash('sha256').update(body).digest('hex') });
 
-function makeFixture() {
-  const dir = mkdtempSync(join(root, 'case-')); const old = join(dir, 'old-release'); const candidate = join(dir, 'candidate-release');
-  const env = join(dir, 'finance.env'); const state = join(dir, 'state.json'); const current = join(dir, 'finance-current');
-  write(join(old, 'web', 'app.js'), 'old-asset'); write(join(candidate, 'web', 'app.js'), 'new-asset'); write(join(old, 'ynx-finance'), 'old-bin'); write(join(candidate, 'ynx-finance'), 'new-bin');
-  write(env, 'YNX_FINANCE_WEB_DIR=old'); write(state, 'old-state'); symlinkSync(old, current);
-  const service = { active: true, pid: 101, nrestarts: 7 };
-  const curl = ({ body }) => ({ status: '200', body: Buffer.from(body) });
-  const systemctl = { isActive: () => service.active, show: key => service[key], restart: () => { service.pid += 1; service.nrestarts += 1; service.active = true; }, stop: () => { service.active = false; }, start: () => { service.active = true; } };
-  const file = path => ({ regular: lstatSync(path).isFile(), symlink: lstatSync(path).isSymbolicLink() });
-  const readlink = path => readlinkSync(path);
-  return { dir, old, candidate, env, state, current, service, curl, systemctl, file, readlink };
+function wrapper(dir, name, body) { const path = join(dir, name); write(path, `#!/usr/bin/env bash\nset -euo pipefail\n${body}\n`); chmodSync(path, 0o755); }
+function makeWrappers(dir) {
+  wrapper(dir, 'stat', 'exec /opt/homebrew/bin/gstat "$@"'); wrapper(dir, 'cp', 'exec /opt/homebrew/bin/gcp "$@"'); wrapper(dir, 'mv', 'exec /opt/homebrew/bin/gmv "$@"'); wrapper(dir, 'readlink', 'if [[ "${1:-}" == -f ]]; then shift; fi\nexec /usr/bin/readlink "$1"');
+  wrapper(dir, 'realpath', 'if [[ "${1:-}" == -e ]]; then shift; fi\ntest -e "$1"\nprintf "%s\\n" "$1"'); wrapper(dir, 'file', 'printf "%s: ELF 64-bit LSB executable, x86-64\\n" "$1"');
+  wrapper(dir, 'systemctl', 'state="$FINANCE_FIXTURE_SERVICE"\nread -r active pid restarts < "$state"\ncase "$1" in\n is-active) [[ "$active" == active ]] ;;\n show) case "$3" in MainPID) printf "%s\\n" "$pid";; NRestarts) printf "%s\\n" "$restarts";; *) exit 64;; esac ;;\n restart) printf "active %s %s\\n" "$((pid + 1))" "$restarts" > "$state" ;;\n stop) printf "inactive %s %s\\n" "$pid" "$restarts" > "$state" ;;\n start) printf "active %s %s\\n" "$pid" "$restarts" > "$state" ;;\n *) exit 64;; esac');
+  wrapper(dir, 'curl', 'out= url=\nwhile (($#)); do case "$1" in -o) out=$2; shift 2;; -w|--max-time) shift 2;; --silent|--show-error) shift;; *) url=$1; shift;; esac; done\ncase "$url" in\n https://old/*) body="$FINANCE_FIXTURE_RESPONSES/old-${url##*/}";;\n https://candidate/*) body="$FINANCE_FIXTURE_RESPONSES/candidate-${url##*/}";;\n *) exit 64;; esac\ncat "$body" > "$out"\nprintf 200');
 }
-function checkHttp(fixture, expected, body) {
-  const response = fixture.curl({ url: expected.url, body }); assert.equal(response.status, expected.status, 'HTTP status'); assert.equal(response.body.byteLength, expected.bytes, 'HTTP bytes'); assert.equal(sha(response.body), expected.sha256, 'HTTP SHA');
+function writeLease(fixture, failure) {
+  const r = fixture.root; const id = 'fixture-lease'; const p = fixture.paths;
+  const oldHealth = receipt('https://old/health', 'old-health'); const oldVersion = receipt('https://old/version', 'old-version'); const oldPublicHealth = receipt('https://old/public-health', 'old-public-health'); const oldPublicVersion = receipt('https://old/public-version', 'old-public-version');
+  const candidateHealth = receipt('https://candidate/health', 'new-health'); const candidateVersion = receipt('https://candidate/version', 'new-version'); const candidatePublicHealth = receipt('https://candidate/public-health', 'new-public-health'); const candidatePublicVersion = receipt('https://candidate/public-version', 'new-public-version'); const candidateAsset = receipt('https://candidate/app.js', 'new-asset');
+  const parents = Object.fromEntries(['archive', 'newEnv', 'stage', 'backup', 'release'].map(name => [name, { path: p.parents[name], tuple: tuple(p.parents[name]) }]));
+  const lease = { lease: { signed: true, id }, paths: { stage: p.stage, backup: p.backup, release: p.release, parents, basenames: { archive: basename(p.archive), newEnv: basename(p.newEnv), stage: basename(p.stage), backup: basename(p.backup), release: basename(p.release) } }, fresh: { currentLink: p.current, activeRelease: p.old, binary: { path: join(p.old, 'ynx-finance'), sha256: sha(join(p.old, 'ynx-finance')) }, env: { path: p.env, sha256: sha(p.env) }, unit: { path: p.unit, sha256: sha(p.unit) }, caddy: { path: p.caddy, sha256: sha(p.caddy) }, service: { name: 'ynx-finance-fixture', pid: 101, nrestarts: 7 }, state: { path: p.state, absent: false, tuple: stateTuple(p.state), restoredTuple: tuple(p.state), bytes: bytes(p.state), sha256: sha(p.state) }, verifier: { loopbackHealth: oldHealth, loopbackVersion: oldVersion, publicHealth: oldPublicHealth, publicVersion: oldPublicVersion } }, candidate: { archive: { path: p.archive, bytes: bytes(p.archive), sha256: sha(p.archive) }, binary: { bytes: bytes(join(p.candidate, 'ynx-finance')), sha256: sha(join(p.candidate, 'ynx-finance')) }, env: { path: p.newEnv, sha256: sha(p.newEnv) }, sourceCommit: '7824af677dd052d20321431381523ab302614d98', verifier: { loopbackHealth: candidateHealth, loopbackVersion: candidateVersion, publicHealth: candidatePublicHealth, publicVersion: candidatePublicVersion }, assets: [{ ...candidateAsset, relativePath: 'web/app.js' }] } };
+  if (failure) lease.candidate.verifier.loopbackHealth.sha256 = '0'.repeat(64);
+  write(p.lease, `${JSON.stringify(lease)}\n`);
 }
-function deployFixture(fixture, { forceCandidateFailure = false } = {}) {
-  const oldEnv = readFileSync(fixture.env); const oldState = readFileSync(fixture.state); const oldTarget = fixture.readlink(fixture.current);
-  const oldPid = fixture.systemctl.show('pid'); const oldRestarts = fixture.systemctl.show('nrestarts');
-  const oldHealth = receipt('https://old/health', 'old-health'); const oldVersion = receipt('https://old/version', 'old-version');
-  const candidateHealth = receipt('https://new/health', forceCandidateFailure ? 'wrong-health' : 'new-health'); const candidateVersion = receipt('https://new/version', 'new-version'); const candidateAsset = receipt('https://new/web/app.js', 'new-asset');
-  const localAsset = safeChild(fixture.candidate, 'web/app.js'); assert.ok(fixture.file(localAsset).regular && !fixture.file(localAsset).symlink, 'candidate asset regular'); assert.equal(sha(localAsset), candidateAsset.sha256, 'candidate local asset');
-  checkHttp(fixture, oldHealth, 'old-health'); checkHttp(fixture, oldVersion, 'old-version');
-  const backup = join(fixture.dir, 'backup'); mkdirSync(backup); write(join(backup, 'env'), oldEnv); write(join(backup, 'state'), oldState); let switched = false;
-  try {
-    const newRelease = join(fixture.dir, 'new-release'); renameSync(fixture.candidate, newRelease); fixture.candidate = newRelease; write(fixture.env, 'YNX_FINANCE_WEB_DIR=new'); write(fixture.state, 'candidate-state'); rmSync(fixture.current); symlinkSync(newRelease, fixture.current); switched = true; fixture.systemctl.restart();
-    assert.ok(fixture.systemctl.isActive(), 'candidate active'); assert.ok(fixture.systemctl.show('pid') > 0 && fixture.systemctl.show('pid') !== oldPid, 'candidate PID transition'); assert.equal(fixture.systemctl.show('nrestarts'), oldRestarts + 1, 'candidate restart transition');
-    checkHttp(fixture, candidateHealth, 'new-health'); checkHttp(fixture, candidateVersion, 'new-version'); const liveAsset = safeChild(newRelease, 'web/app.js'); assert.equal(sha(liveAsset), candidateAsset.sha256, 'live local asset'); checkHttp(fixture, candidateAsset, 'new-asset');
-  } catch (error) {
-    fixture.systemctl.stop(); const candidateState = lstatSync(fixture.state); if (candidateState.isSymbolicLink() || !candidateState.isFile()) throw new Error('candidate state fence');
-    rmSync(fixture.state); const stateTmp = join(dirname(fixture.state), '.state.restore'); cpSync(join(backup, 'state'), stateTmp); renameSync(stateTmp, fixture.state); assert.equal(readFileSync(fixture.state, 'utf8'), oldState.toString(), 'state restored atomically');
-    write(fixture.env, oldEnv); rmSync(fixture.current); symlinkSync(oldTarget, fixture.current); fixture.systemctl.start(); checkHttp(fixture, oldHealth, 'old-health'); checkHttp(fixture, oldVersion, 'old-version'); assert.equal(readFileSync(fixture.env, 'utf8'), oldEnv.toString(), 'env restored'); assert.equal(fixture.readlink(fixture.current), oldTarget, 'symlink restored'); assert.ok(switched, 'failure after switch'); throw error;
-  }
+function makeFixture(failure) {
+  const dir = mkdtempSync(join(root, 'run-')); const ynx = join(dir, 'opt', 'ynx'); const id = 'fixture-lease';
+  const parents = Object.fromEntries(['archive', 'newEnv', 'stage', 'backup', 'release'].map(name => [name, join(ynx, 'parents', name)])); for (const parent of Object.values(parents)) mkdirSync(parent, { recursive: true });
+  const p = { parents, old: join(ynx, 'releases', 'old'), current: join(ynx, 'finance-current'), env: join(ynx, 'etc', 'finance.env'), unit: join(ynx, 'etc', 'finance.service'), caddy: join(ynx, 'etc', 'Caddyfile'), state: join(ynx, 'var', 'state.json'), archive: join(parents.archive, id, 'candidate.tgz'), newEnv: join(parents.newEnv, id, 'finance.env'), stage: join(parents.stage, id, 'stage'), backup: join(parents.backup, id, 'backup'), release: join(parents.release, id, 'release'), lease: join(ynx, 'leases', 'finance', 'fixture.json'), responses: join(dir, 'responses'), service: join(dir, 'service.state') };
+  for (const path of [p.archive, p.newEnv, p.stage, p.backup, p.release]) mkdirSync(dirname(path), { recursive: true }); write(join(p.old, 'ynx-finance'), 'old-bin'); chmodSync(join(p.old, 'ynx-finance'), 0o755); write(join(p.old, 'web', 'app.js'), 'old-asset'); write(p.env, 'YNX_FINANCE_WEB_DIR=old\n'); write(p.unit, 'old-unit'); write(p.caddy, 'old-caddy'); write(p.state, 'old-state'); symlinkSync(p.old, p.current); write(p.newEnv, 'YNX_FINANCE_WEB_DIR=new\n'); write(p.service, 'active 101 7\n');
+  const archiveRoot = join(dir, 'archive', basename(p.release)); write(join(archiveRoot, 'ynx-finance'), 'new-bin'); chmodSync(join(archiveRoot, 'ynx-finance'), 0o755); write(join(archiveRoot, 'web', 'app.js'), 'new-asset'); shell('/usr/bin/tar', ['-czf', p.archive, '-C', dirname(archiveRoot), basename(archiveRoot)]); p.candidate = archiveRoot;
+  for (const [name, body] of Object.entries({ 'old-health': 'old-health', 'old-version': 'old-version', 'old-public-health': 'old-public-health', 'old-public-version': 'old-public-version', 'candidate-health': failure ? 'wrong-health' : 'new-health', 'candidate-version': 'new-version', 'candidate-public-health': 'new-public-health', 'candidate-public-version': 'new-public-version', 'candidate-app.js': 'new-asset' })) write(join(p.responses, name), body);
+  const bin = join(dir, 'bin'); mkdirSync(bin); makeWrappers(bin); const copied = join(dir, 'executor.sh'); writeFileSync(copied, readFileSync(new URL('./finance-production-rollback-first.sh', import.meta.url), 'utf8').replaceAll('/opt/ynx', ynx)); chmodSync(copied, 0o755); const fixture = { root: dir, paths: p, bin, copied }; writeLease(fixture, failure); return fixture;
 }
-
-const success = makeFixture(); deployFixture(success); assert.equal(success.readlink(success.current), success.candidate, 'success selects candidate');
-const failure = makeFixture(); assert.throws(() => deployFixture(failure, { forceCandidateFailure: true }), /HTTP (bytes|SHA)/); assert.equal(failure.readlink(failure.current), failure.old, 'rollback selects old release');
-assert.throws(() => safeChild(root, '../traversal'), /reject traversal/); assert.throws(() => safeChild(root, '/absolute'), /reject traversal/);
-const symlinkCase = makeFixture(); rmSync(symlinkCase.state); symlinkSync(symlinkCase.old, symlinkCase.state); assert.throws(() => { if (lstatSync(symlinkCase.state).isSymbolicLink()) throw new Error('state symlink rejected'); }, /state symlink/);
-const httpCase = makeFixture(); const bad = receipt('https://bad', 'ok'); assert.throws(() => checkHttp(httpCase, { ...bad, bytes: 3 }, 'ok'), /HTTP bytes/);
-assert.throws(() => checkHttp(httpCase, { ...bad, status: '503' }, 'ok'), /HTTP status/);
-const assetCase = makeFixture(); write(join(assetCase.candidate, 'web', 'app.js'), 'tampered'); assert.throws(() => assert.equal(sha(join(assetCase.candidate, 'web', 'app.js')), receipt('u', 'new-asset').sha256, 'asset mismatch'), /asset mismatch/);
-console.log('finance production dynamic fixture: pass');
+function execute(failure) {
+  const fixture = makeFixture(failure); const env = { ...process.env, PATH: `${fixture.bin}:${process.env.PATH}`, FINANCE_FIXTURE_SERVICE: fixture.paths.service, FINANCE_FIXTURE_RESPONSES: fixture.paths.responses };
+  const result = spawnSync('/bin/bash', [fixture.copied, 'deploy', fixture.paths.lease], { env, encoding: 'utf8' });
+  if (failure) { assert.notEqual(result.status, 0, 'candidate verifier must fail'); assert.equal(readlinkSync(fixture.paths.current), fixture.paths.old, 'old symlink restored'); assert.equal(readFileSync(fixture.paths.env, 'utf8'), 'YNX_FINANCE_WEB_DIR=old\n', 'old env restored'); assert.equal(readFileSync(fixture.paths.state, 'utf8'), 'old-state', 'old state restored'); assert.equal(readFileSync(fixture.paths.unit, 'utf8'), 'old-unit', 'unit unchanged'); assert.equal(readFileSync(fixture.paths.caddy, 'utf8'), 'old-caddy', 'caddy unchanged'); assert.equal(readFileSync(fixture.paths.service, 'utf8').startsWith('active '), true, 'old service active'); } else { assert.equal(result.status, 0, `${result.stdout}${result.stderr}`); assert.equal(readlinkSync(fixture.paths.current), fixture.paths.release, 'candidate symlink selected'); assert.equal(readFileSync(fixture.paths.service, 'utf8'), 'active 102 7\n', 'manual restart preserves NRestarts'); }
+}
+execute(false); execute(true); console.log('finance production actual-shell fixture: pass');
