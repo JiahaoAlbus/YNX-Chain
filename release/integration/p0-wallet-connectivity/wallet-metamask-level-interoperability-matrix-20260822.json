@@ -30,8 +30,8 @@
     }
   },
   "consumerEnforcement": {
-    "routerCheckpoint": "cdecaac5465eaef65d361b82a132cf2027e66a79",
-    "routerTree": "a3e52f14ab673529b7720396de543fcfbc05a047",
+    "routerCheckpoint": "dd1f3eda42a47ac772fc39b5096ea1325345495a",
+    "routerTree": "530efd0aac91ffb9d756dad47558539324691b19",
     "routerBaseCheckpoint": "4025e1ffe5849ba9e394868a90c2a0c195aceed4",
     "routerWebCheckpoint": "2e2eb37277613e52208f3e42b450a3a28a2ed08b",
     "routerNativeCheckpoint": "cd7c3466b2b97876733c536b5c6ca4185ca06024",
@@ -45,8 +45,9 @@
     "routerP0167Checkpoint": "ff3253e0f87f9ec3f16ecab4ea87e373ef2d3eb4",
     "routerP0168Checkpoint": "4d77641e23afa7846bc178ab0f0740317b3a7cca",
     "routerP0169Checkpoint": "2cb19f9e3da294896fa02dceffd7f34ab6d6044b",
-    "routerMatrixSha256": "6fc7adc6ede39516a9b9514d8ee7d9c683760536953c7d087b3efb55dfb5c304",
-    "routerActivitySha256": "ec344d04f1654a0a48f339e050df3e0492bc067a4636b2fd231416a577ea0868",
+    "routerP0170Checkpoint": "cdecaac5465eaef65d361b82a132cf2027e66a79",
+    "routerMatrixSha256": "fa5584ac3b6fe9d443f7e967d3199a9d3173700aeef36aae4697bcc02bfc3586",
+    "routerActivitySha256": "ac94d653daa2357e26130f827aa1d8cde4db2b1ef7c5db1cba45bd9c03812cbe",
     "routerReceiptCheckpoint": "747c63c7e3ee84843f1b770f9f3d3b1d390c3c02",
     "routerReceiptTree": "d06c3a90252d8af4f10a29129f542bc2e98a3726",
     "routerReceiptMatrixSha256": "80965c15f2a431b8c85eed57d1dc067b819fcf5fda2bc9435ff3cea9ec5ab701",
