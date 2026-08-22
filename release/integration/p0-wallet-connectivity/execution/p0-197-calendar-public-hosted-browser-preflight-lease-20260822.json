@@ -1,0 +1,88 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-197",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-calendar-public-hosted-browser-preflight-20260822T161100Z",
+  "owner": "calendar",
+  "status": "ACTIVE_SINGLE_USE",
+  "issuedAt": "2026-08-22T16:11:00Z",
+  "expiresAt": "2026-08-22T16:41:00Z",
+  "singleUse": true,
+  "reusable": false,
+  "executionAuthorized": true,
+  "productionMutationAllowed": false,
+  "branch": "codex/calendar-fable5-completion-20260821",
+  "source": {
+    "remoteParent": "f56341a155e67705d4dba445ce3466c83c0b1482",
+    "remoteParentTree": "29884fb44f600f41f2b705286798cc86924cd71d",
+    "implementationCommit": "7db160aa0bd589097e63190a260a343aafe4854c",
+    "implementationTree": "d72d49bc7bc6ee135cae867aa6edbe34b4cfc489",
+    "remoteReadbackExact": true
+  },
+  "requestCarrier": {
+    "path": "/tmp/calendar-p0-hosted-browser-request.tar.gz",
+    "bytes": 4718,
+    "sha256": "fedf5c195209d2202a12483b4ac8b56dfe8a805a951b9c2139a086e91d866f84",
+    "requestPath": "/tmp/calendar-p0-hosted-browser-request/lease-request.json",
+    "requestBytes": 2788,
+    "requestSha256": "1e2e8d1f1fb2d8201257d72c5283122af8508cfce139b76a71c794d136848eb9",
+    "workflowTemplatePath": "/tmp/calendar-p0-hosted-browser-request/calendar-public-browser-preflight-p0.yml",
+    "workflowTemplateBytes": 10418,
+    "workflowTemplateSha256": "2bef407c29ce827c3e668995b562a593b26eb4a8790e820527de013e0afc384c",
+    "yamlParse": "PASS"
+  },
+  "pathLock": {
+    "branch": "codex/calendar-fable5-completion-20260821",
+    "soleWritablePath": ".github/workflows/calendar-public-browser-preflight-p0.yml",
+    "pathAbsentAtParent": true,
+    "commitCountLimit": 1,
+    "pushCountLimit": 1,
+    "force": false,
+    "exactCommitMessage": "evidence(calendar): externally verify public browser recovery",
+    "trigger": "push-only",
+    "dispatchAllowed": false,
+    "retryAllowed": false
+  },
+  "hostedExecution": {
+    "origin": "https://calendar-testnet.43.153.202.237.sslip.io",
+    "runner": "ubuntu-latest",
+    "timeoutMinutes": 10,
+    "permissions": "contents:read",
+    "secrets": false,
+    "inputs": false,
+    "dynamicUrl": false,
+    "artifactOutput": "isolated RUNNER_TEMP only",
+    "requiredEvidence": [
+      "seven exact source-bound public resources",
+      "default English and notranslate",
+      "visible render and truthful no-provider reset",
+      "late synthetic EIP-6963 provider using eth_accounts and eth_chainId only",
+      "toast visible then DOM/text-cleared lifecycle",
+      "stable exact URL, one page and no blank tab or popup",
+      "zero console and page errors",
+      "machine evidence and screenshots"
+    ]
+  },
+  "forbidden": [
+    "production, deployment, alias, DNS or service mutation",
+    "Wallet, Website or other product source mutation",
+    "any writable path except the sole workflow path",
+    "workflow_dispatch, retry, secrets, inputs or dynamic URL",
+    "eth_requestAccounts, approve/reject, personal_sign, EIP-712 or transaction",
+    "custom-scheme navigation, private keys or installed-provider promotion"
+  ],
+  "terminalRules": {
+    "success": "CONSUMED_RELEASED_SUCCESS_CALENDAR_DIRECT_HOSTED_PUBLIC_BROWSER_RECOVERY_PREFLIGHT",
+    "failure": "CONSUMED_RELEASED_FAILED_CLOSED_CALENDAR_PUBLIC_HOSTED_BROWSER_PREFLIGHT",
+    "requiredReturn": "exact workflow commit/tree/blob/SHA, run/job/conclusion, artifact id/bytes/digest, direct evidence flags and terminal truth before expiry"
+  },
+  "truthBeforeExecution": {
+    "sourceBoundHttpRuntime": true,
+    "directHostedBrowserEvidence": false,
+    "installedProvider": false,
+    "accountApproved": false,
+    "signatureExecuted": false,
+    "transactionExecuted": false,
+    "productComplete": false
+  }
+}

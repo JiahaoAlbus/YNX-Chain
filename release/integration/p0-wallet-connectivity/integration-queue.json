@@ -6984,6 +6984,29 @@
       "sensitiveActionsAllowed": false,
       "sourceBoundPublic": false,
       "nextAction": "Do not reuse P0-196. Preserve the directly confirmed rollback and keep Card runtime/product gates false. A successor may only address the clean-browser control timeout under a wholly new non-sensitive verification authority."
+    },
+    {
+      "taskId": "P0-197",
+      "owner": "calendar",
+      "status": "ACTIVE_SINGLE_USE",
+      "paths": [
+        "release/integration/p0-wallet-connectivity/execution/p0-197-calendar-public-hosted-browser-preflight-lease-20260822.json",
+        "branch:codex/calendar-fable5-completion-20260821:.github/workflows/calendar-public-browser-preflight-p0.yml",
+        "https://calendar-testnet.43.153.202.237.sslip.io/**"
+      ],
+      "dependencies": ["P0-191", "P0-192"],
+      "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-calendar-public-hosted-browser-preflight-20260822T161100Z",
+      "expiresAt": "2026-08-22T16:41:00Z",
+      "remoteParent": "f56341a155e67705d4dba445ce3466c83c0b1482",
+      "source": "7db160aa0bd589097e63190a260a343aafe4854c",
+      "soleWritablePath": ".github/workflows/calendar-public-browser-preflight-p0.yml",
+      "workflowSha256": "2bef407c29ce827c3e668995b562a593b26eb4a8790e820527de013e0afc384c",
+      "commitLimit": 1,
+      "pushLimit": 1,
+      "retryAllowed": false,
+      "productionMutationAllowed": false,
+      "sensitiveActionsAllowed": false,
+      "nextAction": "Create the byte-exact sole workflow at current parent, force=false push once, bind the unique push run, return direct hosted evidence or fail closed before expiry."
     }
   ]
 }
