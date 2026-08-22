@@ -1,0 +1,330 @@
+name: wallet-ios-production-distribution
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_source_sha:
+        description: Exact main commit to archive
+        required: true
+        type: string
+      expected_release_tag:
+        description: Exact wallet-ios-appstore-v<version>-<build>-<sha8> identity
+        required: true
+        type: string
+      upload_testflight:
+        description: Submit the exported IPA to App Store Connect
+        required: true
+        default: false
+        type: boolean
+  push:
+    branches: [main, codex/wallet-ios-macos-20260813]
+    paths:
+      - ".github/workflows/wallet-ios-production-distribution.yml"
+      - "apps/wallet/ios/scripts/cleanup-distribution-material.sh"
+      - "apps/wallet/ios/scripts/verify-production-distribution-source.rb"
+      - "apps/wallet/scripts/verify-apple-production-operator-inputs.rb"
+      - "release/integration/wallet-apple-production-operator-inputs.request.json"
+      - "apps/wallet/ios/YNXWallet/Info.plist"
+      - "apps/wallet/ios/YNXWallet/YNXWallet.entitlements"
+      - "apps/wallet/ios/YNXWallet.xcodeproj/project.pbxproj"
+  pull_request:
+    paths:
+      - ".github/workflows/wallet-ios-production-distribution.yml"
+      - "apps/wallet/ios/scripts/cleanup-distribution-material.sh"
+      - "apps/wallet/ios/scripts/verify-production-distribution-source.rb"
+      - "apps/wallet/scripts/verify-apple-production-operator-inputs.rb"
+      - "release/integration/wallet-apple-production-operator-inputs.request.json"
+      - "apps/wallet/ios/YNXWallet/Info.plist"
+      - "apps/wallet/ios/YNXWallet/YNXWallet.entitlements"
+      - "apps/wallet/ios/YNXWallet.xcodeproj/project.pbxproj"
+
+permissions:
+  contents: read
+
+jobs:
+  source-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Verify immutable actions and fail-closed distribution source
+        run: |
+          set -euo pipefail
+          ruby -e 'source=File.read(".github/workflows/wallet-ios-production-distribution.yml"); mutable=source.scan(/^\s*-\s+uses:\s+([^\s#]+)/).flatten.reject{|use| use.start_with?("./") || use.match?(/@[0-9a-f]{40}$/)}; abort "mutable actions: #{mutable.join(",")}" unless mutable.empty?'
+          bash -n apps/wallet/ios/scripts/cleanup-distribution-material.sh
+          ruby apps/wallet/ios/scripts/verify-production-distribution-source.rb
+          ruby apps/wallet/scripts/verify-apple-production-operator-inputs.rb
+
+  cleanup-runtime:
+    needs: source-contract
+    runs-on: macos-15
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Prove distribution material cleanup without production credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          ORIGINAL="$RUNNER_TEMP/ynx-ios-keychains-before-probe.txt"
+          EXPECTED="$RUNNER_TEMP/ynx-ios-keychains-expected.txt"
+          RESTORED="$RUNNER_TEMP/ynx-ios-keychains-after-probe.txt"
+          PROBE_KEYCHAIN="$RUNNER_TEMP/ynx-ios-cleanup-probe.keychain-db"
+          PROBE_PASSWORD="$(openssl rand -hex 24)"
+          P12_PROBE="$RUNNER_TEMP/ynx-ios-cleanup-probe.p12"
+          PROFILE_SOURCE_PROBE="$RUNNER_TEMP/ynx-ios-cleanup-probe.mobileprovision"
+          PROFILE_PLIST_PROBE="$RUNNER_TEMP/ynx-ios-cleanup-probe.plist"
+          PROFILE_INSTALLED_PROBE="$RUNNER_TEMP/ynx-ios-cleanup-probe-installed.mobileprovision"
+          ASC_KEY_PROBE="$RUNNER_TEMP/ynx-ios-cleanup-probe.p8"
+          ASC_UPLOAD_COPY_PROBE="$RUNNER_TEMP/private_keys/AuthKey_CLEANUPPROBE.p8"
+          security list-keychains -d user > "$ORIGINAL"
+          cp "$ORIGINAL" "$EXPECTED"
+          security create-keychain -p "$PROBE_PASSWORD" "$PROBE_KEYCHAIN"
+          security list-keychains -d user -s "$PROBE_KEYCHAIN"
+          test "$(security list-keychains -d user | wc -l | tr -d ' ')" = 1
+          : > "$P12_PROBE"
+          : > "$PROFILE_SOURCE_PROBE"
+          : > "$PROFILE_PLIST_PROBE"
+          : > "$PROFILE_INSTALLED_PROBE"
+          : > "$ASC_KEY_PROBE"
+          mkdir -p "$(dirname "$ASC_UPLOAD_COPY_PROBE")"
+          : > "$ASC_UPLOAD_COPY_PROBE"
+          export YNX_IOS_ORIGINAL_KEYCHAINS_PATH="$ORIGINAL"
+          export YNX_IOS_SIGNING_KEYCHAIN="$PROBE_KEYCHAIN"
+          export YNX_IOS_DISTRIBUTION_P12_PATH="$P12_PROBE"
+          export YNX_IOS_PROFILE_SOURCE_PATH="$PROFILE_SOURCE_PROBE"
+          export YNX_IOS_PROFILE_PLIST_PATH="$PROFILE_PLIST_PROBE"
+          export YNX_IOS_PROFILE_INSTALLED_PATH="$PROFILE_INSTALLED_PROBE"
+          export YNX_ASC_PRIVATE_KEY_PATH="$ASC_KEY_PROBE"
+          export YNX_ASC_PRIVATE_KEY_UPLOAD_COPY_PATH="$ASC_UPLOAD_COPY_PROBE"
+          bash apps/wallet/ios/scripts/cleanup-distribution-material.sh
+          security list-keychains -d user > "$RESTORED"
+          cmp -s "$EXPECTED" "$RESTORED"
+          EXPECTED_SHA256="$(shasum -a 256 "$EXPECTED" | awk '{print $1}')"
+          RESTORED_SHA256="$(shasum -a 256 "$RESTORED" | awk '{print $1}')"
+          test "$EXPECTED_SHA256" = "$RESTORED_SHA256"
+          test ! -e "$ORIGINAL"
+          test ! -e "$PROBE_KEYCHAIN"
+          test ! -e "$P12_PROBE"
+          test ! -e "$PROFILE_SOURCE_PROBE"
+          test ! -e "$PROFILE_PLIST_PROBE"
+          test ! -e "$PROFILE_INSTALLED_PROBE"
+          test ! -e "$ASC_KEY_PROBE"
+          test ! -e "$ASC_UPLOAD_COPY_PROBE"
+          printf 'iosDistributionCleanupRuntime=true expectedSha256=%s restoredSha256=%s temporaryKeychainDeleted=true p12Deleted=true profileSourceDeleted=true profilePlistDeleted=true installedProfileDeleted=true ascKeyDeleted=true ascUploadCopyDeleted=true productionCredentialsUsed=false\n' \
+            "$EXPECTED_SHA256" "$RESTORED_SHA256"
+
+  distribution:
+    if: ${{ github.event_name == 'workflow_dispatch' }}
+    needs: [source-contract, cleanup-runtime]
+    runs-on: macos-15
+    timeout-minutes: 45
+    environment: wallet-ios-production
+    env:
+      YNX_APPLE_TEAM_ID: ${{ secrets.YNX_APPLE_TEAM_ID }}
+      YNX_IOS_DISTRIBUTION_IDENTITY: ${{ secrets.YNX_IOS_DISTRIBUTION_IDENTITY }}
+      YNX_IOS_DISTRIBUTION_P12_BASE64: ${{ secrets.YNX_IOS_DISTRIBUTION_P12_BASE64 }}
+      YNX_IOS_DISTRIBUTION_P12_PASSWORD: ${{ secrets.YNX_IOS_DISTRIBUTION_P12_PASSWORD }}
+      YNX_IOS_PROVISIONING_PROFILE_BASE64: ${{ secrets.YNX_IOS_PROVISIONING_PROFILE_BASE64 }}
+      YNX_ASC_KEY_ID: ${{ secrets.YNX_APP_STORE_CONNECT_KEY_ID }}
+      YNX_ASC_ISSUER_ID: ${{ secrets.YNX_APP_STORE_CONNECT_ISSUER_ID }}
+      YNX_ASC_PRIVATE_KEY_P8_BASE64: ${{ secrets.YNX_APP_STORE_CONNECT_PRIVATE_KEY_P8_BASE64 }}
+      YNX_EXPECTED_SOURCE_SHA: ${{ inputs.expected_source_sha }}
+      YNX_EXPECTED_RELEASE_TAG: ${{ inputs.expected_release_tag }}
+      YNX_UPLOAD_TESTFLIGHT: ${{ inputs.upload_testflight }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.expected_source_sha }}
+          fetch-depth: 0
+      - uses: maxim-lobanov/setup-xcode@ed7a3b1fda3918c0306d1b724322adc0b8cc0a90 # v1.7.0
+        with:
+          xcode-version: "26.3"
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: apps/wallet/package-lock.json
+      - name: Verify exact source, release identity and real secret shapes
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${{ github.ref }}" = refs/heads/main
+          test "$YNX_EXPECTED_SOURCE_SHA" = "$GITHUB_SHA"
+          test "$(git rev-parse HEAD)" = "$YNX_EXPECTED_SOURCE_SHA"
+          test -z "$(git status --porcelain)"
+          [[ "$YNX_APPLE_TEAM_ID" =~ ^[A-Z0-9]{10}$ ]]
+          test "$YNX_APPLE_TEAM_ID" != FAKETEAMID
+          [[ "$YNX_IOS_DISTRIBUTION_IDENTITY" == "Apple Distribution:"*"($YNX_APPLE_TEAM_ID)" ]]
+          test -n "$YNX_IOS_DISTRIBUTION_P12_BASE64"
+          test -n "$YNX_IOS_DISTRIBUTION_P12_PASSWORD"
+          test -n "$YNX_IOS_PROVISIONING_PROFILE_BASE64"
+          [[ "$YNX_ASC_KEY_ID" =~ ^[A-Z0-9]{10}$ ]]
+          [[ "$YNX_ASC_ISSUER_ID" =~ ^[0-9a-fA-F-]{36}$ ]]
+          test -n "$YNX_ASC_PRIVATE_KEY_P8_BASE64"
+          APP_VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' apps/wallet/ios/YNXWallet/Info.plist)"
+          BUILD_VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' apps/wallet/ios/YNXWallet/Info.plist)"
+          EXPECTED_TAG="wallet-ios-appstore-v$APP_VERSION-$BUILD_VERSION-${YNX_EXPECTED_SOURCE_SHA:0:8}"
+          test "$YNX_EXPECTED_RELEASE_TAG" = "$EXPECTED_TAG"
+          if git ls-remote --exit-code --tags origin "refs/tags/$EXPECTED_TAG" >/dev/null 2>&1; then
+            echo "release identity already exists: $EXPECTED_TAG" >&2
+            exit 1
+          else
+            status=$?
+            test "$status" -eq 2
+          fi
+          mkdir -p "$GITHUB_WORKSPACE/apps/wallet/proof/ci-ios-production"
+          printf 'YNX_IOS_APP_VERSION=%s\nYNX_IOS_BUILD_VERSION=%s\n' "$APP_VERSION" "$BUILD_VERSION" >> "$GITHUB_ENV"
+      - name: Import Apple Distribution identity and exact provisioning profile
+        shell: bash
+        run: |
+          set -euo pipefail
+          P12="$RUNNER_TEMP/ynx-ios-distribution.p12"
+          PROFILE="$RUNNER_TEMP/ynx-ios-distribution.mobileprovision"
+          PROFILE_PLIST="$RUNNER_TEMP/ynx-ios-distribution-profile.plist"
+          KEYCHAIN="$RUNNER_TEMP/ynx-ios-distribution.keychain-db"
+          ORIGINAL_KEYCHAINS="$RUNNER_TEMP/ynx-ios-original-keychains.txt"
+          ASC_KEY="$RUNNER_TEMP/AuthKey_$YNX_ASC_KEY_ID.p8"
+          KEYCHAIN_PASSWORD="$(openssl rand -hex 24)"
+          security list-keychains -d user > "$ORIGINAL_KEYCHAINS"
+          printf 'YNX_IOS_DISTRIBUTION_P12_PATH=%s\nYNX_IOS_PROFILE_SOURCE_PATH=%s\nYNX_IOS_PROFILE_PLIST_PATH=%s\nYNX_IOS_SIGNING_KEYCHAIN=%s\nYNX_IOS_ORIGINAL_KEYCHAINS_PATH=%s\nYNX_ASC_PRIVATE_KEY_PATH=%s\n' \
+            "$P12" "$PROFILE" "$PROFILE_PLIST" "$KEYCHAIN" "$ORIGINAL_KEYCHAINS" "$ASC_KEY" >> "$GITHUB_ENV"
+          printf '%s' "$YNX_IOS_DISTRIBUTION_P12_BASE64" | base64 --decode > "$P12"
+          printf '%s' "$YNX_IOS_PROVISIONING_PROFILE_BASE64" | base64 --decode > "$PROFILE"
+          printf '%s' "$YNX_ASC_PRIVATE_KEY_P8_BASE64" | base64 --decode > "$ASC_KEY"
+          test -s "$P12" && test -s "$PROFILE" && test -s "$ASC_KEY"
+          security cms -D -i "$PROFILE" > "$PROFILE_PLIST"
+          PROFILE_TEAM="$(/usr/libexec/PlistBuddy -c 'Print :TeamIdentifier:0' "$PROFILE_PLIST")"
+          PROFILE_APP_ID="$(/usr/libexec/PlistBuddy -c 'Print :Entitlements:application-identifier' "$PROFILE_PLIST")"
+          PROFILE_KEYCHAIN_GROUP="$(/usr/libexec/PlistBuddy -c 'Print :Entitlements:keychain-access-groups:0' "$PROFILE_PLIST")"
+          PROFILE_GET_TASK_ALLOW="$(/usr/libexec/PlistBuddy -c 'Print :Entitlements:get-task-allow' "$PROFILE_PLIST")"
+          PROFILE_BETA_REPORTS="$(/usr/libexec/PlistBuddy -c 'Print :Entitlements:beta-reports-active' "$PROFILE_PLIST")"
+          PROFILE_UUID="$(/usr/libexec/PlistBuddy -c 'Print :UUID' "$PROFILE_PLIST")"
+          PROFILE_NAME="$(/usr/libexec/PlistBuddy -c 'Print :Name' "$PROFILE_PLIST")"
+          test "$PROFILE_TEAM" = "$YNX_APPLE_TEAM_ID"
+          test "$PROFILE_APP_ID" = "$YNX_APPLE_TEAM_ID.com.ynxweb4.wallet"
+          test "$PROFILE_KEYCHAIN_GROUP" = "$YNX_APPLE_TEAM_ID.com.ynxweb4.wallet"
+          test "$PROFILE_GET_TASK_ALLOW" = false
+          test "$PROFILE_BETA_REPORTS" = true
+          ! /usr/libexec/PlistBuddy -c 'Print :ProvisionedDevices' "$PROFILE_PLIST" >/dev/null 2>&1
+          ! /usr/libexec/PlistBuddy -c 'Print :ProvisionsAllDevices' "$PROFILE_PLIST" >/dev/null 2>&1
+          ! /usr/libexec/PlistBuddy -c 'Print :Entitlements:com.apple.developer.associated-domains' "$PROFILE_PLIST" >/dev/null 2>&1
+          INSTALLED_PROFILE="$HOME/Library/MobileDevice/Provisioning Profiles/$PROFILE_UUID.mobileprovision"
+          mkdir -p "$(dirname "$INSTALLED_PROFILE")"
+          cp "$PROFILE" "$INSTALLED_PROFILE"
+          printf 'YNX_IOS_PROFILE_INSTALLED_PATH=%s\nYNX_IOS_PROFILE_NAME=%s\nYNX_IOS_PROFILE_UUID=%s\n' "$INSTALLED_PROFILE" "$PROFILE_NAME" "$PROFILE_UUID" >> "$GITHUB_ENV"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security import "$P12" -k "$KEYCHAIN" -P "$YNX_IOS_DISTRIBUTION_P12_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security list-keychains -d user -s "$KEYCHAIN"
+          security find-identity -v -p codesigning "$KEYCHAIN" | grep -F "$YNX_IOS_DISTRIBUTION_IDENTITY"
+      - name: Install JavaScript and CocoaPods dependencies
+        working-directory: apps/wallet
+        run: |
+          set -euo pipefail
+          npm ci
+          npx pod-install ios
+      - name: Archive and export the exact App Store Connect IPA
+        working-directory: apps/wallet
+        shell: bash
+        run: |
+          set -euo pipefail
+          PROOF="$GITHUB_WORKSPACE/apps/wallet/proof/ci-ios-production"
+          ARCHIVE="$RUNNER_TEMP/YNXWallet.xcarchive"
+          EXPORT_DIR="$RUNNER_TEMP/ynx-ios-export"
+          EXPORT_OPTIONS="$RUNNER_TEMP/ynx-ios-export-options.plist"
+          xcodebuild -workspace ios/YNXWallet.xcworkspace -scheme YNXWallet \
+            -configuration Release -destination 'generic/platform=iOS' \
+            -archivePath "$ARCHIVE" \
+            DEVELOPMENT_TEAM="$YNX_APPLE_TEAM_ID" \
+            CODE_SIGN_STYLE=Manual \
+            CODE_SIGN_IDENTITY="$YNX_IOS_DISTRIBUTION_IDENTITY" \
+            PROVISIONING_PROFILE_SPECIFIER="$YNX_IOS_PROFILE_NAME" \
+            clean archive | tee "$PROOF/archive.log"
+          plutil -create xml1 "$EXPORT_OPTIONS"
+          plutil -insert method -string app-store-connect "$EXPORT_OPTIONS"
+          plutil -insert destination -string export "$EXPORT_OPTIONS"
+          plutil -insert teamID -string "$YNX_APPLE_TEAM_ID" "$EXPORT_OPTIONS"
+          plutil -insert signingStyle -string manual "$EXPORT_OPTIONS"
+          plutil -insert manageAppVersionAndBuildNumber -bool false "$EXPORT_OPTIONS"
+          plutil -insert provisioningProfiles -dictionary "$EXPORT_OPTIONS"
+          /usr/libexec/PlistBuddy -c "Add :provisioningProfiles:com.ynxweb4.wallet string $YNX_IOS_PROFILE_NAME" "$EXPORT_OPTIONS"
+          xcodebuild -exportArchive -archivePath "$ARCHIVE" -exportPath "$EXPORT_DIR" \
+            -exportOptionsPlist "$EXPORT_OPTIONS" | tee "$PROOF/export.log"
+          IPA="$(find "$EXPORT_DIR" -maxdepth 1 -name '*.ipa' -print -quit)"
+          test -s "$IPA"
+          cp "$IPA" "$PROOF/YNX-Wallet-iOS-$YNX_IOS_APP_VERSION-$YNX_IOS_BUILD_VERSION-AppStore.ipa"
+          printf 'YNX_IOS_IPA=%s\n' "$PROOF/YNX-Wallet-iOS-$YNX_IOS_APP_VERSION-$YNX_IOS_BUILD_VERSION-AppStore.ipa" >> "$GITHUB_ENV"
+      - name: Inspect distribution signature, profile, identity and frozen link boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          PROOF="$GITHUB_WORKSPACE/apps/wallet/proof/ci-ios-production"
+          EXPANDED="$RUNNER_TEMP/ynx-ios-expanded"
+          mkdir -p "$EXPANDED"
+          ditto -x -k "$YNX_IOS_IPA" "$EXPANDED"
+          APP="$(find "$EXPANDED/Payload" -maxdepth 1 -name '*.app' -print -quit)"
+          test -d "$APP"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP/Info.plist")" = com.ynxweb4.wallet
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP/Info.plist")" = "$YNX_IOS_APP_VERSION"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$APP/Info.plist")" = "$YNX_IOS_BUILD_VERSION"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :MinimumOSVersion' "$APP/Info.plist")" = 16.4
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleURLTypes:0:CFBundleURLSchemes:0' "$APP/Info.plist")" = ynxwallet
+          codesign --verify --deep --strict "$APP"
+          codesign -dv --verbose=4 "$APP" 2> "$PROOF/codesign.txt"
+          grep -F "Authority=Apple Distribution:" "$PROOF/codesign.txt"
+          grep -F "TeamIdentifier=$YNX_APPLE_TEAM_ID" "$PROOF/codesign.txt"
+          ! grep -Fq 'Signature=adhoc' "$PROOF/codesign.txt"
+          codesign -d --entitlements :- "$APP" > "$PROOF/entitlements.plist" 2> "$PROOF/entitlements-codesign.txt"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :application-identifier' "$PROOF/entitlements.plist")" = "$YNX_APPLE_TEAM_ID.com.ynxweb4.wallet"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :com.apple.developer.team-identifier' "$PROOF/entitlements.plist")" = "$YNX_APPLE_TEAM_ID"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :keychain-access-groups:0' "$PROOF/entitlements.plist")" = "$YNX_APPLE_TEAM_ID.com.ynxweb4.wallet"
+          ! /usr/libexec/PlistBuddy -c 'Print :com.apple.developer.associated-domains' "$PROOF/entitlements.plist" >/dev/null 2>&1
+          security cms -D -i "$APP/embedded.mobileprovision" > "$PROOF/embedded-profile.plist"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :UUID' "$PROOF/embedded-profile.plist")" = "$YNX_IOS_PROFILE_UUID"
+          EXECUTABLE="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$APP/Info.plist")"
+          file "$APP/$EXECUTABLE" | tee "$PROOF/executable-file.txt"
+          grep -F arm64 "$PROOF/executable-file.txt"
+          shasum -a 256 "$YNX_IOS_IPA" | tee "$PROOF/IPA-SHA256SUMS"
+          stat -f '%z' "$YNX_IOS_IPA" | tee "$PROOF/IPA-BYTES"
+          jq -n \
+            --arg sourceCommit "$YNX_EXPECTED_SOURCE_SHA" \
+            --arg releaseIdentity "$YNX_EXPECTED_RELEASE_TAG" \
+            --arg bundleIdentifier com.ynxweb4.wallet \
+            --arg version "$YNX_IOS_APP_VERSION" \
+            --arg build "$YNX_IOS_BUILD_VERSION" \
+            --arg minimumOS 16.4 \
+            --arg signingClass "Apple Distribution for App Store Connect" \
+            --arg artifactSha256 "$(shasum -a 256 "$YNX_IOS_IPA" | awk '{print $1}')" \
+            --argjson artifactBytes "$(stat -f '%z' "$YNX_IOS_IPA")" \
+            '{schemaVersion:1,sourceCommit:$sourceCommit,releaseIdentity:$releaseIdentity,bundleIdentifier:$bundleIdentifier,version:$version,build:$build,minimumOS:$minimumOS,architectures:["arm64"],signingClass:$signingClass,artifactSha256:$artifactSha256,artifactBytes:$artifactBytes,associatedDomainsPresent:false,universalLinkVerified:false,physicalDeviceInstalled:false,appStoreConnectUploadSubmitted:false,testFlightProcessingVerified:false,testFlightBuildAvailable:false,appStoreReleased:false,authorizationSuccess:false,accountAvailable:false,productSessionVerified:false,signSuccess:false,sendSuccess:false,transactionSuccess:false}' \
+            > "$PROOF/ios-production-distribution-manifest.json"
+      - name: Submit to App Store Connect only when explicitly requested
+        if: ${{ inputs.upload_testflight }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          PROOF="$GITHUB_WORKSPACE/apps/wallet/proof/ci-ios-production"
+          PRIVATE_KEYS="$RUNNER_TEMP/private_keys"
+          mkdir -p "$PRIVATE_KEYS"
+          ASC_UPLOAD_KEY="$PRIVATE_KEYS/AuthKey_$YNX_ASC_KEY_ID.p8"
+          cp "$YNX_ASC_PRIVATE_KEY_PATH" "$ASC_UPLOAD_KEY"
+          printf 'YNX_ASC_PRIVATE_KEY_UPLOAD_COPY_PATH=%s\n' "$ASC_UPLOAD_KEY" >> "$GITHUB_ENV"
+          API_PRIVATE_KEYS_DIR="$PRIVATE_KEYS" xcrun altool --upload-app --type ios --file "$YNX_IOS_IPA" \
+            --apiKey "$YNX_ASC_KEY_ID" --apiIssuer "$YNX_ASC_ISSUER_ID" \
+            | tee "$PROOF/app-store-connect-upload.txt"
+          jq '.appStoreConnectUploadSubmitted=true | .testFlightProcessingVerified=false | .testFlightBuildAvailable=false | .appStoreReleased=false' \
+            "$PROOF/ios-production-distribution-manifest.json" > "$PROOF/ios-production-distribution-manifest.tmp"
+          mv "$PROOF/ios-production-distribution-manifest.tmp" "$PROOF/ios-production-distribution-manifest.json"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v4.6.2
+        if: always()
+        with:
+          name: ynx-wallet-ios-production-distribution
+          path: apps/wallet/proof/ci-ios-production
+          if-no-files-found: warn
+          retention-days: 30
+      - name: Remove isolated Apple distribution material
+        if: always()
+        shell: bash
+        run: bash apps/wallet/ios/scripts/cleanup-distribution-material.sh

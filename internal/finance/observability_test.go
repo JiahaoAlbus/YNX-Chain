@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestObservabilityCorrelatesRequestsAndProtectsMetrics(t *testing.T) {
@@ -93,6 +94,7 @@ func TestObservabilityCorrelatesRequestsAndProtectsMetrics(t *testing.T) {
 	if metricsWithoutKey.StatusCode != http.StatusUnauthorized || metricsWithoutKey.Header.Get(errorIDHeader) != "YNX-FIN-OPERATIONS-AUTH-REJECTED" {
 		t.Fatalf("metrics endpoint did not fail closed: status=%d errorId=%q", metricsWithoutKey.StatusCode, metricsWithoutKey.Header.Get(errorIDHeader))
 	}
+	waitForCompletedRequestMetrics(t, server.metrics, "GET /api/portfolio", 2, 1, 3)
 
 	metricsRequest, err := http.NewRequest(http.MethodGet, ts.URL+"/metrics", nil)
 	if err != nil {
@@ -143,6 +145,22 @@ func TestObservabilityCorrelatesRequestsAndProtectsMetrics(t *testing.T) {
 	restartedSnapshot := restarted.metrics.snapshot(restarted.now())
 	if restartedSnapshot.ProcessInstanceID == snapshot.ProcessInstanceID || restartedSnapshot.TotalRequests != 0 {
 		t.Fatalf("restart boundary was not explicit: previous=%q restarted=%+v", snapshot.ProcessInstanceID, restartedSnapshot)
+	}
+}
+
+func waitForCompletedRequestMetrics(t *testing.T, metrics *financeMetrics, route string, requests, errors, total uint64) {
+	t.Helper()
+	deadline := time.Now().Add(time.Second)
+	for {
+		snapshot := metrics.snapshot(time.Now())
+		metric := snapshot.Routes[route]
+		if metric.Requests == requests && metric.Errors == errors && snapshot.TotalRequests >= total {
+			return
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("completed request metrics did not settle: route=%+v total=%d inFlight=%d", metric, snapshot.TotalRequests, snapshot.InFlight)
+		}
+		time.Sleep(time.Millisecond)
 	}
 }
 
