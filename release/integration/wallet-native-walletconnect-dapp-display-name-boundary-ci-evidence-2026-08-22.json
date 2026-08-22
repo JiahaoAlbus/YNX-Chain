@@ -1,0 +1,92 @@
+{
+  "schemaVersion": "ynx.wallet.native.walletconnect-dapp-display-name-boundary-ci-evidence.v1",
+  "recordedAt": "2026-08-22T07:07:43Z",
+  "scope": "HOSTED_CI_AND_MAIN_REGISTRATION",
+  "implementation": {
+    "branch": "codex/wallet-ios-macos-20260813",
+    "commit": "04124abf617cc22b151e2f1bc4e74131d5d30047",
+    "tree": "c908692ade731112ca4fd9148b5ea66a10f79a14",
+    "parent": "a6c71a3159f99cb313db5f332fef1447d8503d7b",
+    "stateStoreBlob": "b66e5d9f8f49ee1ff4a7b989654c4d01a3f33aba",
+    "stateStoreTestsBlob": "72a814f46b029a0a2601e53a7c85ec732ff72228"
+  },
+  "walletMacOSRun": {
+    "runId": 32558701711,
+    "jobId": 96996807494,
+    "headSha": "04124abf617cc22b151e2f1bc4e74131d5d30047",
+    "status": "completed",
+    "conclusion": "success",
+    "createdAt": "2026-08-22T07:06:01Z",
+    "startedAt": "2026-08-22T07:06:04Z",
+    "completedAt": "2026-08-22T07:07:42Z",
+    "publishEngineeringDMGJob": "skipped",
+    "tests": {
+      "passed": 34,
+      "failed": 0,
+      "walletConnectStateStorePassed": 10,
+      "ambiguousDAppDisplayNamesFailClosedAtRuntimeAndRestart": true,
+      "focusedTestSeconds": 0.003
+    },
+    "allBuildSecurityNetworkAndLifecycleSteps": true
+  },
+  "verifiedEngineeringCapabilities": {
+    "leadingOrTrailingWhitespaceRejected": true,
+    "controlCharactersRejected": true,
+    "persistedAmbiguousNameRejectedAsCorrupt": true,
+    "normalUnicodeNamesProhibited": false,
+    "protocolSurfaceChanged": false
+  },
+  "artifact": {
+    "actionsArtifactId": 9472160247,
+    "name": "ynx-wallet-macos-native",
+    "bytes": 2735183,
+    "actionsDigest": "sha256:59e0456d163cb0f966ac815d4e6938a930694c63d1522d61e486d5574d97bc39",
+    "downloadInspected": false,
+    "engineeringDMGSha256FromPublicActionsLog": "372b49809d9d41060bf2bc9c4164cc350d9809b55dfe5db85631b275f39f6101",
+    "engineeringDMGBytesFromPublicActionsLog": 686912,
+    "checksumValid": true,
+    "minimumOS": "13.0",
+    "architectures": ["x86_64", "arm64"],
+    "signingClass": "AD_HOC",
+    "teamIdentifier": null,
+    "gatekeeperAccepted": false,
+    "developerIDSigned": false,
+    "notarized": false,
+    "publicRelease": false
+  },
+  "localValidation": {
+    "swiftCompilerVersion": "Apple Swift 6.4",
+    "coreTypecheck": true,
+    "testSourceParse": true,
+    "runtimeLeadingWhitespaceRejected": true,
+    "runtimeControlCharacterRejected": true,
+    "relayUsed": false,
+    "swiftPackageFullTest": false,
+    "swiftPackageFullTestBlocker": "LOCAL_COMMAND_LINE_TOOLS_DUPLICATE_PLATFORM_SPECS"
+  },
+  "unprovedGates": {
+    "authoritativeFirstPartyClassificationRuntime": false,
+    "realReownProjectID": false,
+    "relayConnection": false,
+    "pairing": false,
+    "sessionApprovalRuntime": false,
+    "sessionRejectRuntime": false,
+    "sessionRestoreRuntime": false,
+    "firstPartyDAppRuntime": false,
+    "externalDAppRuntime": false,
+    "installedProvider": false,
+    "authorizationSuccess": false,
+    "approvedAccount": false,
+    "signRuntime": false,
+    "eip712Runtime": false,
+    "sendTransactionRuntime": false,
+    "biometricPositive": false,
+    "recoveryPositive": false,
+    "universalLink": false,
+    "developerIDSigned": false,
+    "notarized": false,
+    "publicNativeWalletPublished": false,
+    "downloadHosted": false,
+    "appStore": false
+  }
+}
