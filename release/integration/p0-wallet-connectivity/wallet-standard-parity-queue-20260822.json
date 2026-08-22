@@ -13,12 +13,12 @@
       "sha256": "c5a615c9d5c34f25d9810751d816dc6709ca6de70aafea0549224de162c33652"
     },
     "responsibilityRegistry36": {
-      "commit": "7ec78e8927888cc94cb430f09cf91b7885538603",
-      "tree": "825fa7042195e5e7932476bbdbad683f1aaf33b6",
-      "parent": "80d8cb787f23eaa81557e0e2cb7d8cc3538def44",
+      "commit": "9ec5162eef8e3aed3689a8a065256749b431f8b9",
+      "tree": "c4232607f5ff56717c541cea6385b5ff31ae3b53",
+      "parent": "ed163383cddec3fcdbf40cdf073bb061c00aca62",
       "path": "release/integration/wallet-ecosystem-responsibility-registry-p0-20260822.json",
-      "blob": "eee7a886df41be790ac6619fb1b056416c50124c",
-      "sha256": "c1f44d0197d1903396c3d98092268cb26fc3ec50ca874565bf61bf1fbbd65fc0",
+      "blob": "38e5d82d2ce0a9b434cd279e95b61a7690230213",
+      "sha256": "95637e3b4f61efec6b53d2693e800b3ba3d7733d04a184ff2bc56590879a3358",
       "routingAuthorityOnly": true,
       "mappingFrozenOnlyAfterDedicatedAudit": true,
       "explorerMonitorPrivilegedClassificationCorrected": true,

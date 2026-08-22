@@ -427,25 +427,25 @@
     }
   ],
   "heavy": {
-    "owner": "card",
-    "taskId": "P0-196",
-    "status": "ACTIVE_SINGLE_USE",
+    "owner": null,
+    "taskId": null,
+    "status": "IDLE",
     "acquiredAt": "2026-08-22T15:33:00Z",
     "expiresAt": "2026-08-22T16:03:00Z",
-    "releasedAt": null,
+    "releasedAt": "2026-08-22T15:49:57Z",
     "sourceCommit": "2183b8d7a18dec3c7e7773f3c777882deeac6f82",
     "evidenceCommit": "00191c9a5c38b92fed9ce224c9862c396ad9379d",
     "runtimeHost": "card.ynxweb4.com",
     "currentRuntime": "dpl_DqMuEhno65bLFTNKBu9gs52soVri",
-    "candidateRuntime": null,
+    "candidateRuntime": "dpl_8qCEhiAq8hgiTYf2hA2FXU57W122",
     "artifactSha256": "791286bcaeddd83ea6e3dd80c04d3967d6ccaefaa7613671adfd181458801e99",
-    "productionMutationAllowed": true,
+    "productionMutationAllowed": false,
     "singleUse": true,
     "reusable": false,
     "previousOwner": "card",
     "previousTaskId": "P0-195",
-    "reviewDecision": "GO_CARD_ONLY_SINGLE_USE_NESTED_ENVELOPE_PUBLIC_DEPLOYMENT",
-    "reason": "P0-195 is released fail-closed. The nested-envelope request is remote exact; isolated verification passed 46/46, typecheck, web build, nested build/verifier, 14/14 envelope hashes and 12/12 static parity. Fresh rollback ownership and canonical response hashes match."
+    "reviewDecision": "CONSUMED_RELEASED_FAILED_CLOSED_BROWSER_TIMEOUT_ROLLBACK_DIRECTLY_CONFIRMED",
+    "reason": "The sole deployment and canonical raw-resource checks passed, but the mandatory clean-browser gate timed out. The sole rollback CLI exited nonzero after Creating alias; Central read-only alias inspection and four exact rollback resource hashes directly confirmed dpl_DqMu owns card.ynxweb4.com, so no emergency mutation was required."
   },
   "wave": {
     "id": "B-financial-apps-quant",

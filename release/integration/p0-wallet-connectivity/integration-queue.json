@@ -6854,11 +6854,11 @@
         "release/integration/p0-wallet-connectivity/integration-queue.json"
       ],
       "dependencies": ["P0-191"],
-      "routerCommit": "7ec78e8927888cc94cb430f09cf91b7885538603",
-      "routerTree": "825fa7042195e5e7932476bbdbad683f1aaf33b6",
-      "routerParent": "80d8cb787f23eaa81557e0e2cb7d8cc3538def44",
-      "registryBlob": "eee7a886df41be790ac6619fb1b056416c50124c",
-      "registrySha256": "c1f44d0197d1903396c3d98092268cb26fc3ec50ca874565bf61bf1fbbd65fc0",
+      "routerCommit": "9ec5162eef8e3aed3689a8a065256749b431f8b9",
+      "routerTree": "c4232607f5ff56717c541cea6385b5ff31ae3b53",
+      "routerParent": "ed163383cddec3fcdbf40cdf073bb061c00aca62",
+      "registryBlob": "38e5d82d2ce0a9b434cd279e95b61a7690230213",
+      "registrySha256": "95637e3b4f61efec6b53d2693e800b3ba3d7733d04a184ff2bc56590879a3358",
       "directE2EProductSubset": "0/12",
       "responsibilityDomainAggregate": "0/36",
       "classificationCounts": {
@@ -6951,7 +6951,7 @@
     {
       "taskId": "P0-196",
       "owner": "card",
-      "status": "ACTIVE_SINGLE_USE",
+      "status": "CONSUMED_RELEASED_FAILED_CLOSED_CARD_NESTED_ENVELOPE_PUBLIC_DEPLOYMENT_BROWSER_TIMEOUT_ROLLBACK_CONFIRMED",
       "paths": [
         "release/integration/p0-wallet-connectivity/execution/p0-196-card-nested-envelope-public-deployment-lease-20260822.json",
         "apps/card/**",
@@ -6968,9 +6968,22 @@
       "rollbackDeployment": "dpl_DqMuEhno65bLFTNKBu9gs52soVri",
       "deploymentAttemptLimit": 1,
       "rollbackAttemptLimit": 1,
+      "releasedAt": "2026-08-22T15:49:57Z",
+      "candidateDeployment": "dpl_8qCEhiAq8hgiTYf2hA2FXU57W122",
+      "deploymentAttemptCount": 1,
+      "retryCount": 0,
+      "candidateRawResourcesMatched": true,
+      "cleanBrowserValidated": false,
+      "cleanBrowserFailure": "DIRECT_BROWSER_CONTROL_TIMEOUT_NO_WALLET_ACTION",
+      "rollbackAttemptCount": 1,
+      "rollbackCliExit": "NONZERO_AFTER_CREATING_ALIAS",
+      "rollbackDirectlyConfirmed": true,
+      "currentCanonicalDeployment": "dpl_DqMuEhno65bLFTNKBu9gs52soVri",
+      "emergencyMutationRequired": false,
       "projectSettingsMutationAllowed": false,
       "sensitiveActionsAllowed": false,
-      "nextAction": "Deploy once from the exact nested envelope root, freeze canonical HTTP/browser evidence, and rollback once on any failure. No retry or sensitive wallet action."
+      "sourceBoundPublic": false,
+      "nextAction": "Do not reuse P0-196. Preserve the directly confirmed rollback and keep Card runtime/product gates false. A successor may only address the clean-browser control timeout under a wholly new non-sensitive verification authority."
     }
   ]
 }
