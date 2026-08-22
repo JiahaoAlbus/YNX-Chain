@@ -1,4 +1,4 @@
-name: Wallet Web immutable candidate public preflight P0
+name: Wallet Web v11 immutable candidate hosted browser preflight P0
 
 on:
   push:
@@ -12,38 +12,138 @@ permissions:
 
 jobs:
   preflight:
-    if: "github.event.head_commit.message == 'evidence(wallet-web): externally preflight immutable candidate'"
+    if: "github.event.head_commit.message == 'evidence(wallet-web): externally preflight v11 candidate'"
     runs-on: ubuntu-latest
-    timeout-minutes: 3
+    timeout-minutes: 8
     steps:
+      - uses: actions/checkout@v4
+
       - name: Fetch and verify four immutable resources
         shell: bash
         run: |
           set -euo pipefail
-          base='https://wallet-aitthgkni-jiahaoalbus-projects.vercel.app'
+          base='https://wallet-1jnjljvfy-jiahaoalbus-projects.vercel.app'
           mkdir -p evidence
           fetch() {
             name="$1"
-            path="$2"
-            status="$(curl --proto '=https' --tlsv1.2 --silent --show-error --max-time 20 --connect-timeout 8 --max-redirs 0 --dump-header "evidence/${name}.headers" --output "evidence/${name}.body" --write-out '%{http_code}' "${base}${path}")"
-            printf '%s\n' "$status" > "evidence/${name}.status"
+            uri="$2"
+            http_code="$(curl --proto '=https' --tlsv1.2 --silent --show-error --max-time 20 --connect-timeout 8 --max-redirs 0 --dump-header "evidence/${name}.headers" --output "evidence/${name}.body" --write-out '%{http_code}' "${base}${uri}")"
+            printf '%s\n' "$http_code" > "evidence/${name}.status"
             wc -c < "evidence/${name}.body" | tr -d ' ' > "evidence/${name}.bytes"
             sha256sum "evidence/${name}.body" | awk '{print $1}' > "evidence/${name}.sha256"
-            test "$status" = 200
+            test "$http_code" = 200
           }
           fetch root '/'
           fetch build-identity '/build-identity.json'
           fetch manifest '/manifest.webmanifest'
           fetch sw '/sw.js'
-          node -e "const fs=require('fs');const value=JSON.parse(fs.readFileSync('evidence/build-identity.body','utf8'));if(value.sourceCommit!=='a9653f9f73eb79f77b45f04c845c4f56c012ab4b')process.exit(1)"
+          node -e "const fs=require('fs');const value=JSON.parse(fs.readFileSync('evidence/build-identity.body','utf8'));if(value.sourceCommit!=='76c053911c9584ef957d5e97d318a9d7c26d95e2')process.exit(1)"
+          awk 'BEGIN{IGNORECASE=1;ok=0} /^cache-control:/ && /no-store/{ok=1} END{exit ok?0:1}' evidence/build-identity.headers
           awk 'BEGIN{IGNORECASE=1;ok=0} /^cache-control:/ && /no-store/{ok=1} END{exit ok?0:1}' evidence/sw.headers
           find evidence -maxdepth 1 -type f -print0 | sort -z | xargs -0 sha256sum > evidence/SHA256SUMS
 
-      - name: Upload immutable preflight evidence
+      - name: Install hosted Chromium harness
+        run: |
+          npm ci --ignore-scripts --prefix apps/wallet-web
+          npx --prefix apps/wallet-web playwright install --with-deps chromium
+
+      - name: Prove v8 to v11 persistent-profile recovery in hosted Chromium
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > "$RUNNER_TEMP/p0182-browser-probe.mjs" <<'NODE'
+          import { createRequire } from "node:module";
+          import { mkdir, writeFile } from "node:fs/promises";
+          import { join } from "node:path";
+
+          const require = createRequire(join(process.env.GITHUB_WORKSPACE, "apps/wallet-web/package.json"));
+          const { chromium } = require("playwright");
+          const base = "https://wallet-1jnjljvfy-jiahaoalbus-projects.vercel.app";
+          const profile = join(process.env.RUNNER_TEMP, "p0182-chromium-profile");
+          const evidence = join(process.env.GITHUB_WORKSPACE, "evidence");
+          const result = { schemaVersion: 1, candidate: base, persistentProfile: true, pageCountRequired: 1, legacyCacheVersion: "ynx-wallet-web-v8", expectedCacheVersion: "ynx-wallet-web-v11", passed: false, installedProvider: false, accountAuthorized: false, signingOrTransaction: false };
+          const bounded = (promise, ms, label) => Promise.race([promise, new Promise((_, reject) => setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms))]);
+          const version = page => page.evaluate(() => new Promise(resolve => {
+            const controller = navigator.serviceWorker.controller;
+            if (!controller) return resolve(null);
+            const channel = new MessageChannel();
+            const timer = setTimeout(() => resolve(null), 1000);
+            channel.port1.onmessage = event => { clearTimeout(timer); resolve(event.data?.cache || null); };
+            controller.postMessage({ type: "YNX_WALLET_PWA_VERSION" }, [channel.port2]);
+          }));
+          const snapshot = page => page.evaluate(async () => ({
+            url: location.href,
+            title: document.title,
+            text: document.body.innerText,
+            controller: Boolean(navigator.serviceWorker.controller),
+            cacheNames: await caches.keys(),
+            registrations: (await navigator.serviceWorker.getRegistrations()).map(value => ({ scope: value.scope, active: Boolean(value.active) })),
+            controlledVersion: await new Promise(resolve => {
+              const controller = navigator.serviceWorker.controller;
+              if (!controller) return resolve(null);
+              const channel = new MessageChannel();
+              const timer = setTimeout(() => resolve(null), 1000);
+              channel.port1.onmessage = event => { clearTimeout(timer); resolve(event.data?.cache || null); };
+              controller.postMessage({ type: "YNX_WALLET_PWA_VERSION" }, [channel.port2]);
+            })
+          }));
+          const visible = value => value.url === base && value.title === "YNX Wallet — Testnet companion" && value.controller && !value.text.includes("PWA shell integrity verification failed");
+          let context;
+          try {
+            await mkdir(evidence, { recursive: true });
+            context = await bounded(chromium.launchPersistentContext(profile, { headless: true, viewport: { width: 1280, height: 900 } }), 30000, "first Chromium launch");
+            let page = context.pages()[0] || await context.newPage();
+            const firstErrors = [];
+            page.on("console", message => { if (message.type() === "error") firstErrors.push(message.text()); });
+            page.on("pageerror", error => firstErrors.push(String(error)));
+            await bounded(page.goto(base, { waitUntil: "domcontentloaded", timeout: 20000 }), 25000, "first candidate navigation");
+            await bounded(page.waitForFunction(() => document.querySelector("#status") && !document.body.innerText.includes("PWA shell integrity verification failed"), null, { timeout: 15000 }), 18000, "first visible UI");
+            await bounded(page.evaluate(async () => { const cache = await caches.open("ynx-wallet-web-v8"); await cache.put("./legacy-v8-marker", new Response("legacy-v8", { headers: { "content-type": "text/plain" } })); }), 5000, "seed legacy v8 state");
+            result.firstLaunchBeforeReload = await snapshot(page);
+            if (!result.firstLaunchBeforeReload.cacheNames.includes("ynx-wallet-web-v8")) throw new Error("legacy v8 cache seed missing");
+            await bounded(page.reload({ waitUntil: "domcontentloaded", timeout: 20000 }), 25000, "v11 upgrade navigation");
+            await bounded(page.waitForFunction(async () => (await caches.keys()).includes("ynx-wallet-web-v11") && !(await caches.keys()).includes("ynx-wallet-web-v8") && !document.body.innerText.includes("PWA shell integrity verification failed"), null, { timeout: 15000 }), 18000, "v11 cache cleanup");
+            result.firstLaunchAfterUpgrade = await snapshot(page);
+            result.firstLaunchPageCount = context.pages().length;
+            result.firstLaunchConsoleErrors = firstErrors;
+            await page.screenshot({ path: join(evidence, "first-launch.png"), fullPage: true });
+            if (!visible(result.firstLaunchAfterUpgrade) || result.firstLaunchPageCount !== 1 || firstErrors.length || result.firstLaunchAfterUpgrade.controlledVersion !== "ynx-wallet-web-v11") throw new Error("first hosted Chromium gate failed");
+            await context.close(); context = null;
+            context = await bounded(chromium.launchPersistentContext(profile, { headless: true, viewport: { width: 1280, height: 900 } }), 30000, "second Chromium launch");
+            page = context.pages()[0] || await context.newPage();
+            const secondErrors = [];
+            page.on("console", message => { if (message.type() === "error") secondErrors.push(message.text()); });
+            page.on("pageerror", error => secondErrors.push(String(error)));
+            await bounded(page.goto(base, { waitUntil: "domcontentloaded", timeout: 20000 }), 25000, "second candidate navigation");
+            await bounded(page.waitForFunction(() => document.querySelector("#status") && !document.body.innerText.includes("PWA shell integrity verification failed"), null, { timeout: 15000 }), 18000, "second visible UI");
+            result.secondLaunch = await snapshot(page);
+            result.secondLaunchPageCount = context.pages().length;
+            result.secondLaunchConsoleErrors = secondErrors;
+            await page.screenshot({ path: join(evidence, "second-launch.png"), fullPage: true });
+            result.passed = visible(result.firstLaunchAfterUpgrade) && visible(result.secondLaunch) && result.firstLaunchPageCount === 1 && result.secondLaunchPageCount === 1 && !result.firstLaunchAfterUpgrade.cacheNames.includes("ynx-wallet-web-v8") && result.firstLaunchAfterUpgrade.cacheNames.includes("ynx-wallet-web-v11") && !result.secondLaunch.cacheNames.includes("ynx-wallet-web-v8") && result.secondLaunch.cacheNames.includes("ynx-wallet-web-v11") && result.firstLaunchAfterUpgrade.controlledVersion === "ynx-wallet-web-v11" && result.secondLaunch.controlledVersion === "ynx-wallet-web-v11" && firstErrors.length === 0 && secondErrors.length === 0;
+          } catch (error) {
+            result.error = { name: error?.name || "Error", message: error?.message || String(error) };
+          } finally {
+            if (context) await context.close().catch(() => {});
+            await writeFile(join(evidence, "hosted-chromium.json"), `${JSON.stringify(result, null, 2)}\n`);
+          }
+          console.log(JSON.stringify(result, null, 2));
+          process.exit(result.passed ? 0 : 1);
+          NODE
+          node "$RUNNER_TEMP/p0182-browser-probe.mjs"
+
+      - name: Freeze hosted evidence checksums
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          find evidence -maxdepth 1 -type f -print0 | sort -z | xargs -0 sha256sum > evidence/SHA256SUMS
+
+      - name: Upload immutable hosted browser preflight evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: wallet-web-public-preflight-p0179
+          name: wallet-web-public-preflight-p0182
           path: evidence
           if-no-files-found: error
           retention-days: 7
