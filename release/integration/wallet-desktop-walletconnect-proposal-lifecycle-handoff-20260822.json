@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "owner": "Wallet Desktop/CLI/SDK",
+  "sourceCommit": "0c58742d8dc3a1cec675382bd886437000d9f5c7",
+  "evidencePath": "apps/wallet-desktop/evidence/walletconnect-proposal-lifecycle-source-gate-20260822.json",
+  "result": "source-tested-fail-closed",
+  "passed": [
+    "proposal expiry before UI",
+    "HTTPS peer origin before UI",
+    "single-flight approve/reject",
+    "exact eip155:6423 namespace",
+    "selected-account-only exposure"
+  ],
+  "operatorInputRequired": {
+    "name": "YNX_WALLETCONNECT_PROJECT_ID",
+    "present": false,
+    "purpose": "authorized WalletConnect v2 relay initialization on native macOS and Windows"
+  },
+  "claims": {
+    "sourceTested": true,
+    "installerContainsSourceCommit": false,
+    "relayConnected": false,
+    "walletConnectSessionProved": false,
+    "firstPartyDappProved": false,
+    "externalDappProved": false,
+    "accountApprovalProvedLive": false,
+    "signingProvedLive": false,
+    "transactionBroadcastProvedLive": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "notarized": false,
+    "storeReleased": false
+  }
+}

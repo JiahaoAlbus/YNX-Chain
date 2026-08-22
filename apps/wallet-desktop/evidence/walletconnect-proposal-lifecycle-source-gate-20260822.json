@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-08-22T06:09:11Z",
+  "scope": "desktop-wallet-walletconnect-v2-proposal-lifecycle-source-gate",
+  "sourceCommit": "0c58742d8dc3a1cec675382bd886437000d9f5c7",
+  "acceptedStandardWalletContract": {
+    "sourceCommit": "98c6d5d784d212df8981a53b17118a511e246ad2",
+    "tree": "51a60a362d4ad5dd748bcdefb101f71b1d9e0cee",
+    "evidenceCommit": "c3ab255c32bdeb9c8e056882c315f8ad43c29c7f"
+  },
+  "frozenNetwork": {
+    "cosmosChainId": "ynx_6423-1",
+    "evmChainIdDecimal": 6423,
+    "evmChainIdHex": "0x1917",
+    "caip2": "eip155:6423",
+    "nativeCurrency": "YNXT"
+  },
+  "directTests": {
+    "command": "cd apps/wallet-desktop && npm test",
+    "passed": 23,
+    "failed": 0,
+    "assertions": [
+      "expired proposals never reach the approval UI callback",
+      "non-HTTPS DApp metadata never reaches the approval UI callback",
+      "approval rechecks expiry immediately before WalletKit approval",
+      "only one approve or reject action may execute for a proposal",
+      "approved namespace exposes only eip155:6423 and the selected 0x account"
+    ]
+  },
+  "runtimeBoundary": {
+    "walletConnectProjectIdPresentInRepositoryOrActions": false,
+    "walletConnectRelayConnectedProved": false,
+    "realPairingProved": false,
+    "realSessionApprovalProved": false,
+    "firstPartyDappInteroperabilityProved": false,
+    "externalDappInteroperabilityProved": false,
+    "livePersonalSignProved": false,
+    "liveEip712SignProved": false,
+    "liveTransactionSendProved": false,
+    "reason": "No authorized YNX_WALLETCONNECT_PROJECT_ID exists in repository secrets, repository variables, or owner-scoped runtime input. The transport remains fail closed."
+  },
+  "artifactBoundary": {
+    "includedInMacos040Dmg": false,
+    "includedInWindows040Nsis": false,
+    "reason": "This is a post-artifact source hardening commit and does not retroactively change immutable installers."
+  }
+}
