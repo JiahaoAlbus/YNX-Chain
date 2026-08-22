@@ -783,3 +783,21 @@ test("Central P0-155 makes installed E2E the only interoperability completion ti
   assert.equal(central.productsConnected, 0);
   assert.equal(central.parityComplete, false);
 });
+
+test("Central P0-156 through P0-158 accept Router source evidence without granting an execution tier", () => {
+  const accepted = auditV3.centralP0156P0158RouterAcceptance;
+  assert.equal(accepted.commit, "a23feb5e31dd89d1812f9c2211dac7efdeceeb23");
+  assert.equal(accepted.matrixSha256, "7fc4fd177f8ded9907d76a8401de2e7ee0c3cb571c81fbe382e69c76798bdae4");
+  assert.equal(accepted.p0157.routerCommit, "2e2eb37277613e52208f3e42b450a3a28a2ed08b");
+  assert.equal(accepted.p0157.interopAuthority.sha256, "c59cc18de86a304be8de6ef7056e3e260e62156fe36fb0b76e021e38e096a2fe");
+  assert.equal(accepted.p0158.routerCommit, "cd7c3466b2b97876733c536b5c6ca4185ca06024");
+  assert.equal(accepted.p0158.iosTerminalRun, false);
+  assert.equal(accepted.p0150VerifierPassed, true);
+  assert.equal(accepted.p0155VerifierPassed, true);
+  assert.equal(accepted.leaseIssued, false);
+  assert.equal(accepted.chromeLaunchOrInstall, false);
+  assert.equal(accepted.deployedOrDistributed, false);
+  assert.equal(accepted.installedProvider, false);
+  assert.equal(accepted.productsConnected, 0);
+  assert.equal(accepted.productsMigratedV2, 0);
+});
