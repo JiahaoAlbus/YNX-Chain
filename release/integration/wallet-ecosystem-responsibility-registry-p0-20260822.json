@@ -66,6 +66,27 @@
     "productsMigratedV2": 0,
     "aggregateComplete": false
   },
+  "ownerAuditFacts": {
+    "routingOnly": true,
+    "auditRound": "2026-08-22-first-wave",
+    "rule": "These are reported routing and scope facts only. They never promote source-bound public runtime, installed lifecycle, Wallet approval, Product Session, direct E2E, aggregate completion, or frozen branch/path ownership.",
+    "merchant-console": {"routeCandidates":["pay","shop"],"blocker":"CENTRAL_CALLBACK_AND_SESSION_MISSING","runtimePromoted":false},
+    "seller-console": {"reportedSourceCommit":"88c0f3a5","integratedCentral":false,"walletRegisteredDeployed":false,"runtimePromoted":false},
+    "trust-center": {"sourceState":"PENDING","publicRuntime":false,"integratedCentral":false,"runtimePromoted":false},
+    "search": {"currentTreeMissingAppsPath":true,"publicContractPresent":false,"runtimePromoted":false},
+    "mail": {"currentTreeMissingAppsPath":true,"publicContractPresent":false,"runtimePromoted":false},
+    "ai": {"reportedSourceCommit":"16d6d71e","publicAssistantObserved":true,"walletAuthIntegratedCentral":false,"runtimePromoted":false},
+    "cloud": {"reportedOrigin":"final-cloud9763907e","publicRuntime":false,"integratedCentral":false,"runtimePromoted":false},
+    "resource-market": {"reportedSourceCommit":"d683c7d","sourceState":"LOCAL_CANDIDATE","runtimePromoted":false},
+    "governance": {"reportedSourceCommit":"ea949aac","sourceState":"SOURCE_ONLY","runtimePromoted":false},
+    "music": {"reportedBranch":"final-music","publicRuntime":false,"rollbackEvidence":false,"runtimePromoted":false},
+    "bridge": {"sourceState":"LOCAL_ONLY","runtimePromoted":false},
+    "docs": {"publicDocsDomainObserved":true,"appsDocsOwnership":"UNRESOLVED","runtimePromoted":false},
+    "browser": {"auditState":"PENDING_TERMINAL","runtimePromoted":false},
+    "explorer": {"auditState":"PENDING_TERMINAL","guestOnlyPublic":true,"privilegedWalletEvidence":false,"runtimePromoted":false},
+    "monitor": {"auditState":"PENDING_TERMINAL","guestOnlyPublic":true,"privilegedWalletEvidence":false,"runtimePromoted":false},
+    "card": {"auditState":"P0_193_DEPLOY_FAILED_ROLLED_BACK","reportedFailedDeploymentPrefix":"dpl_ARb5...","failure":"VERCEL_NODE_BUILD_MISSING_PACKAGE_JSON_FOR_STATIC_ARTIFACT","retryAllowed":false,"currentRollbackDeploymentPrefix":"dpl_DqMu","runtimePromoted":false}
+  },
   "truth": {
     "registryExpandedToAllResponsibilityDomains": true,
     "directRuntimeEvidenceComplete": false,

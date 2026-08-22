@@ -30,6 +30,7 @@ const expectedCentralOwnerThreads = new Map([
   ["explorer", "01a00020-1150-73c3-ab41-9b776db3b2a7"],
   ["monitor", "01a00020-1150-73c3-ab41-9b776db3b2a7"]
 ]);
+const expectedFirstWaveAuditDomains = ["merchant-console", "seller-console", "trust-center", "search", "mail", "ai", "cloud", "resource-market", "governance", "music", "bridge", "browser", "docs", "explorer", "monitor", "card"];
 const expectedScenarios = ["discovery", "approve-reject", "chain", "sign-and-send", "lifecycle", "product-session-boundary", "walletconnect-v2"];
 const findings = [];
 
@@ -86,6 +87,15 @@ const aggregate = responsibilityRegistry.aggregate ?? {};
 if (aggregate.responsibilityDomainDenominator !== 36 || aggregate.interactiveWalletConsumerDenominator !== classificationCounts.interactiveWalletConsumer || aggregate.nonInteractiveProductSessionConsumerDenominator !== classificationCounts.nonInteractiveProductSessionConsumer || aggregate.evidenceBackedNotApplicableDenominator !== classificationCounts.evidenceBackedNotApplicable) findings.push("responsibility aggregate denominators do not match the classified 36-domain catalog");
 if (aggregate.directE2ECompleteDomains !== 0 || aggregate.aggregateCompleteDomains !== 0 || aggregate.productsConnected !== 0 || aggregate.productsMigratedV2 !== 0 || aggregate.aggregateComplete !== false) findings.push("unproven 36-domain aggregate completion was promoted");
 if (responsibilityRegistry.truth?.centralOrchestratorDispatchRequired !== true || responsibilityRegistry.truth?.ownerDispatchPerformedByProtocolOwner !== false || responsibilityRegistry.truth?.directRuntimeEvidenceComplete !== false || responsibilityRegistry.truth?.installedOrPublicParityComplete !== false) findings.push("responsibility registry truth gates drift");
+const auditFacts = responsibilityRegistry.ownerAuditFacts ?? {};
+if (auditFacts.routingOnly !== true || auditFacts.auditRound !== "2026-08-22-first-wave" || !auditFacts.rule?.includes("never promote")) findings.push("first-wave owner audit is not constrained to routing facts");
+if (JSON.stringify(Object.keys(auditFacts).filter((key) => !["routingOnly", "auditRound", "rule"].includes(key)).sort()) !== JSON.stringify([...expectedFirstWaveAuditDomains].sort())) findings.push("first-wave owner audit coverage drift");
+for (const domainId of expectedFirstWaveAuditDomains) if (auditFacts[domainId]?.runtimePromoted !== false) findings.push(`owner audit must not promote runtime for ${domainId}`);
+if (auditFacts["merchant-console"]?.blocker !== "CENTRAL_CALLBACK_AND_SESSION_MISSING") findings.push("merchant routing blocker drift");
+if (auditFacts["seller-console"]?.reportedSourceCommit !== "88c0f3a5" || auditFacts["seller-console"]?.integratedCentral !== false || auditFacts["seller-console"]?.walletRegisteredDeployed !== false) findings.push("seller audit boundary drift");
+if (auditFacts.ai?.walletAuthIntegratedCentral !== false || auditFacts.cloud?.publicRuntime !== false || auditFacts["resource-market"]?.sourceState !== "LOCAL_CANDIDATE" || auditFacts.governance?.sourceState !== "SOURCE_ONLY" || auditFacts.bridge?.sourceState !== "LOCAL_ONLY" || auditFacts.docs?.appsDocsOwnership !== "UNRESOLVED") findings.push("first-wave source-only audit boundary drift");
+if (auditFacts.explorer?.guestOnlyPublic !== true || auditFacts.explorer?.privilegedWalletEvidence !== false || auditFacts.monitor?.guestOnlyPublic !== true || auditFacts.monitor?.privilegedWalletEvidence !== false) findings.push("Explorer/Monitor first-wave guest-versus-privileged audit drift");
+if (auditFacts.card?.auditState !== "P0_193_DEPLOY_FAILED_ROLLED_BACK" || auditFacts.card?.retryAllowed !== false) findings.push("Card P0-193 rollback-only audit drift");
 
 if (findings.length) {
   console.error(`Standard Wallet E2E execution-plan gate failed:\n${findings.map((item) => `- ${item}`).join("\n")}`);
