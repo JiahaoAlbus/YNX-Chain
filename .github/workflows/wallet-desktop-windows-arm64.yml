@@ -103,6 +103,17 @@ jobs:
           node apps/wallet-desktop/scripts/provider-authority-ui-gate.mjs $targets restore $created.account | Set-Content $restoreGate
           $restored = Get-Content $restoreGate -Raw | ConvertFrom-Json
           if ($restored.account -ne $created.account -or -not $restored.walletConnectFailClosedVisible) { throw 'provider authority restore gate failed' }
+          $switchGate = Join-Path $env:RUNNER_TEMP 'wallet-desktop-switch-gate.json'
+          node apps/wallet-desktop/scripts/provider-authority-ui-gate.mjs $targets switch $created.account | Set-Content $switchGate
+          $switched = Get-Content $switchGate -Raw | ConvertFrom-Json
+          if ($switched.switched.restoredAccount -ne $created.account -or $switched.switched.visibleAccountCount -ne 2) { throw 'native account switch and restore gate failed' }
+          $walletConnectUri = 'wc:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa@2?relay-protocol=irn&symKey=bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'
+          $qrImage = Join-Path $env:RUNNER_TEMP 'walletconnect-v2.png'
+          npm exec --yes --package=qrcode@1.5.4 -- qrcode --output $qrImage $walletConnectUri
+          $qrGate = Join-Path $env:RUNNER_TEMP 'walletconnect-qr-gate.json'
+          node apps/wallet-desktop/scripts/walletconnect-qr-ui-gate.mjs $targets $qrImage $walletConnectUri | Set-Content $qrGate
+          $qr = Get-Content $qrGate -Raw | ConvertFrom-Json
+          if (-not $qr.qrDecodedLocally -or -not $qr.exactWalletConnectV2URI -or $qr.pairingPerformed -or $qr.walletConnectRelayProved) { throw 'native WalletConnect QR gate failed' }
           Stop-Process -Id $second.Id -Force
 
           $env:YNX_WALLET_RPC_URL = 'http://127.0.0.1:1'
@@ -140,6 +151,9 @@ jobs:
             providerAuthorityAccount = $created.account
             osEncryptedCustodyVisible = $true
             accountRestoredOnSecondLaunch = $true
+            accountSwitchProved = $true
+            visibleAccountCount = 2
+            walletConnectQrDecodedLocally = $true
             walletConnectConfigured = $false
             walletConnectFailClosedVisible = $true
             signingEnabled = $true
@@ -217,7 +231,7 @@ jobs:
           $actualSha256 = (Get-FileHash $installer.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
           if ($manifest.sourceCommit -ne $env:GITHUB_SHA -or $manifest.artifact.sha256 -ne $actualSha256 -or $manifest.artifact.bytes -ne $installer.Length) { throw 'downloaded installer hash or size mismatch' }
           if ($manifest.artifact.minimumOS -ne 'Windows 11 arm64 directly tested; earlier Windows arm64 not evidenced' -or $manifest.artifact.signingClass -ne 'unsigned_windows_nsis_testnet_candidate' -or $manifest.artifact.authenticodeStatus -ne 'NotSigned' -or $manifest.artifact.productionSigned -or -not $manifest.artifact.installedOnNativeRunner) { throw 'manifest release boundary mismatch' }
-          if (-not $lifecycle.installed -or -not $lifecycle.upgraded -or -not $lifecycle.coldLaunch -or -not $lifecycle.secondLaunch -or -not $lifecycle.processEvidence -or $lifecycle.chainId -ne '0x1917' -or -not $lifecycle.rpcFailureClosed -or -not $lifecycle.signingEnabled -or -not $lifecycle.accountCreated -or -not $lifecycle.osEncryptedCustodyVisible -or -not $lifecycle.accountRestoredOnSecondLaunch -or $lifecycle.walletConnectConfigured -or -not $lifecycle.walletConnectFailClosedVisible -or $lifecycle.balanceClaimed -or $lifecycle.transactionCreated -or -not $lifecycle.uninstalled -or $lifecycle.productionSigned) { throw 'lifecycle release boundary mismatch' }
+          if (-not $lifecycle.installed -or -not $lifecycle.upgraded -or -not $lifecycle.coldLaunch -or -not $lifecycle.secondLaunch -or -not $lifecycle.processEvidence -or $lifecycle.chainId -ne '0x1917' -or -not $lifecycle.rpcFailureClosed -or -not $lifecycle.signingEnabled -or -not $lifecycle.accountCreated -or -not $lifecycle.osEncryptedCustodyVisible -or -not $lifecycle.accountRestoredOnSecondLaunch -or -not $lifecycle.accountSwitchProved -or $lifecycle.visibleAccountCount -ne 2 -or -not $lifecycle.walletConnectQrDecodedLocally -or $lifecycle.walletConnectConfigured -or -not $lifecycle.walletConnectFailClosedVisible -or $lifecycle.balanceClaimed -or $lifecycle.transactionCreated -or -not $lifecycle.uninstalled -or $lifecycle.productionSigned) { throw 'lifecycle release boundary mismatch' }
           New-Item -ItemType Directory -Force downloaded-verification | Out-Null
           [ordered]@{
             schemaVersion = 1
