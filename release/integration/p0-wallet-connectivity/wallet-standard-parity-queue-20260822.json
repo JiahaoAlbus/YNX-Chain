@@ -1,0 +1,95 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-150",
+  "owner": "integration",
+  "status": "ACTIVE_GATE_ONLY_NO_EXECUTION_LEASE",
+  "priority": "P0",
+  "objective": "YNX Wallet reaches installed-provider interoperability parity without coupling Standard Wallet Connection to Gateway or Product Session.",
+  "authoritativeSources": {
+    "standardWalletProtocol": {
+      "commit": "66003e76e804da16d472255efde50cb879055b96",
+      "contract": "packages/wallet-auth/integration/p0-wallet-connectivity-candidate.json"
+    },
+    "consumerSdk": {
+      "commit": "315897e75c0ffe3e63435fe73cfec42244b851cc",
+      "contract": "packages/dapp-connect-sdk/integration/dapp-connect-sdk-candidate.json"
+    },
+    "sharedProviderRuntime": {
+      "commit": "98c6d5d784d212df8981a53b17118a511e246ad2",
+      "tree": "51a60a362d4ad5dd748bcdefb101f71b1d9e0cee",
+      "evidenceCommit": "c3ab255c32bdeb9c8e056882c315f8ad43c29c7f"
+    }
+  },
+  "network": {
+    "cosmosChainId": "ynx_6423-1",
+    "evmChainId": 6423,
+    "evmChainHex": "0x1917",
+    "nativeAsset": "YNXT",
+    "defaultLocale": "en",
+    "externalDappAccountExposure": "approved-0x-account-only"
+  },
+  "architecture": {
+    "standardWalletConnectionIndependent": true,
+    "gatewayOrProductSessionFailureEffect": "PRIVATE_SERVICE_DEGRADED_ONLY",
+    "localOrCannedSessionForbidden": true,
+    "directBrowserRpcFetchAsProviderAuthorityForbidden": true
+  },
+  "platformQueue": [
+    {"platform":"web-extension","owner":"wallet-web","status":"NOT_ACCEPTED_INSTALLED_PROVIDER_E2E"},
+    {"platform":"android","owner":"wallet-android","status":"NOT_ACCEPTED_INSTALLED_PROVIDER_E2E"},
+    {"platform":"ios","owner":"wallet-ios","status":"MAIN_REGISTRATION_PENDING_NO_DISTRIBUTION"},
+    {"platform":"macos","owner":"wallet-macos","status":"MAIN_REGISTRATION_PR_132_PENDING_NO_PUBLICATION"},
+    {"platform":"windows","owner":"wallet-desktop","status":"PUBLIC_INSTALLER_EXISTS_PROVIDER_E2E_FALSE"}
+  ],
+  "completionGate": {
+    "requiredInstalledProvider": true,
+    "requiredFirstPartyDapps": 1,
+    "requiredExternalDapps": 3,
+    "requiredPerDapp": [
+      "provider-discovery-without-substitution",
+      "approve",
+      "reject",
+      "wallet_addEthereumChain-0x1917",
+      "wallet_switchEthereumChain-0x1917",
+      "personal_sign-or-eth_sign",
+      "eth_signTypedData_v4",
+      "real-test-transaction",
+      "accountsChanged",
+      "chainChanged",
+      "disconnect",
+      "refresh-restore",
+      "explicit-disconnect"
+    ],
+    "requiredBrowserProperties": [
+      "stable-top-level-url",
+      "no-blank-tab",
+      "chooser-closes-after-success",
+      "default-English",
+      "console-error-count-zero"
+    ],
+    "sourceOrCiAloneCompletes": false,
+    "providerDetectionAloneCompletes": false,
+    "uiPresenceAloneCompletes": false
+  },
+  "currentTruth": {
+    "parityComplete": false,
+    "installedProviderVerified": false,
+    "firstPartyDappsComplete": 0,
+    "externalDappsComplete": 0,
+    "productsConnected": "0/12",
+    "productsMigratedV2": "0/12",
+    "publicPackageTruthVerifiedAcrossPlatforms": false,
+    "productionSignedAcrossPlatforms": false,
+    "storeReleasedAcrossPlatforms": false,
+    "aggregatePublic": false
+  },
+  "scheduling": {
+    "executionLeaseIssued": false,
+    "heavyOwnerAtCreation": null,
+    "creatorSourceLockPreserved": "P0-148",
+    "shopOwnerPreserved": "shop",
+    "shopStartCondition": "native main-registration closed and existing active P0-011 apps/shop lock explicitly released or reconciled",
+    "nextAction": "Collect one exact owner handoff per platform, then issue path-scoped source gates before any separately bounded install/public acceptance lease."
+  }
+}
