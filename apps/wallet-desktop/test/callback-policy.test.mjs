@@ -3,6 +3,7 @@ import { createECDH } from "node:crypto";
 import { test } from "node:test";
 import { encodeRequestDeepLink } from "@ynx-chain/wallet-auth";
 import { CANONICAL_AUTH_BRIDGE_UNAVAILABLE, CALLBACK_PROTOCOL_SOURCE, evaluateWalletCallback } from "../src/callback-policy.mjs";
+import { extractYNXWalletProtocolUrl } from "../src/protocol-activation.mjs";
 
 const now = new Date("2026-08-21T08:00:00.000Z");
 const productDevice = createECDH("prime256v1");
@@ -47,4 +48,12 @@ test("missing, malformed, expired and substituted routes fail closed", () => {
     assert.equal(result.callbackEmitted, false);
     assert.equal(result.authorityGranted, false);
   }
+});
+
+test("Windows command-line activation extracts only a bounded ynxwallet URL", () => {
+  const deepLink = encodeRequestDeepLink(request);
+  assert.equal(extractYNXWalletProtocolUrl(["C:\\Program Files\\YNX Wallet\\YNX Wallet.exe", deepLink]), deepLink);
+  assert.equal(extractYNXWalletProtocolUrl(["YNX Wallet.exe", "https://example.com", "--flag"]), null);
+  assert.equal(extractYNXWalletProtocolUrl(["YNX Wallet.exe", `ynxwallet://authorize?request=${"a".repeat(70 * 1024)}`]), null);
+  assert.equal(extractYNXWalletProtocolUrl("ynxwallet://authorize"), null);
 });

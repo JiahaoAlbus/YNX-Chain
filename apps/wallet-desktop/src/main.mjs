@@ -11,6 +11,7 @@ import { FilePermissionStore } from "./desktop-permission-store.mjs";
 import { CanonicalTransactionSender } from "./canonical-transaction-sender.mjs";
 import { WalletConnectTransport } from "./walletconnect-transport.mjs";
 import { decodeWalletConnectQR } from "./walletconnect-qr-decoder.mjs";
+import { extractYNXWalletProtocolUrl } from "./protocol-activation.mjs";
 
 const directory = path.dirname(fileURLToPath(import.meta.url));
 // Canonical public RPC from Central endpoint matrix d0f89797d13c7667cc187b0c64d5c9e1cb1d8f59.
@@ -22,6 +23,13 @@ let lastCallback = null;
 let walletAuthority;
 let walletConnect;
 const walletConnectRequests = new Map();
+const startupProtocolUrls = [];
+const initialProtocolUrl = extractYNXWalletProtocolUrl(process.argv);
+if (initialProtocolUrl) queueStartupProtocolUrl(initialProtocolUrl);
+
+function queueStartupProtocolUrl(url) {
+  if (startupProtocolUrls.length < 16) startupProtocolUrls.push(url);
+}
 
 async function rpcStatus() {
   return probeYNXTestnetRPC({ rpcUrl, expectedChainId: YNX_TESTNET_CHAIN_QUANTITY });
@@ -163,6 +171,12 @@ ipcMain.handle("wallet:provider-action", (_event, id, action) => safeIPC(async (
 
 async function handleCallback(rawValue) {
   const review = evaluateWalletCallback(rawValue);
+  if (pendingReview?.acceptedForReview) {
+    const busy = { acceptedForReview: false, code: "AUTHORIZATION_REQUEST_IN_PROGRESS", callbackEmitted: false, authorityGranted: false };
+    lastCallback = { received: true, ...busy };
+    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send("wallet:authorization-error", busy);
+    return;
+  }
   pendingReview = review.acceptedForReview ? review : null;
   lastCallback = {
     received: true,
@@ -196,10 +210,23 @@ async function changeActiveAccount(change) {
 
 app.on("open-url", (event, url) => {
   event.preventDefault();
-  void handleCallback(url);
+  if (!walletAuthority) queueStartupProtocolUrl(url);
+  else void handleCallback(url);
 });
 
-app.whenReady().then(async () => {
+const singleInstanceLock = app.requestSingleInstanceLock();
+if (!singleInstanceLock) app.quit();
+app.on("second-instance", (_event, argv) => {
+  const url = extractYNXWalletProtocolUrl(argv);
+  if (url) {
+    if (!walletAuthority) queueStartupProtocolUrl(url);
+    else void handleCallback(url);
+    return;
+  }
+  if (mainWindow && !mainWindow.isDestroyed()) { mainWindow.show(); mainWindow.focus(); }
+});
+
+if (singleInstanceLock) app.whenReady().then(async () => {
   const userData = app.getPath("userData");
   walletAuthority = new DesktopWalletAuthority({
     vault: new DesktopWalletVault({ filePath: path.join(userData, "wallet-vault-v2.json"), legacyFilePath: path.join(userData, "wallet-vault-v1.json"), safeStorage }),
@@ -232,7 +259,7 @@ app.whenReady().then(async () => {
   window.webContents.send("wallet:status-result", status);
   window.webContents.send("wallet:account-status-result", await walletAuthority.accountStatus());
   window.webContents.send("wallet:walletconnect-status-result", walletConnect.status());
-  if (pendingReview) window.webContents.send("wallet:authorization-request", pendingReview);
+  for (const url of startupProtocolUrls.splice(0, 16)) await handleCallback(url);
   if (walletConnect.status().configured) {
     try {
       await walletConnect.start({

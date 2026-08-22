@@ -26,7 +26,7 @@ test("desktop packaging exposes real platform installer formats", async () => {
   assert.equal(packageJson.build.win.executableName, "YNX Wallet");
   assert.equal(packageJson.build.afterPack, "scripts/after-pack.mjs");
   assert.doesNotMatch(packageJson.scripts["dist:mac"], /zip/);
-  assert.equal(packageJson.version, "0.4.0");
+  assert.equal(packageJson.version, "0.5.0");
   assert.equal(packageJson.build.appId, "com.ynxweb4.wallet.macos");
   assert.equal(packageJson.build.mac.minimumSystemVersion, "13.0");
   assert.deepEqual(packageJson.build.protocols[0].schemes, ["ynxwallet"]);
@@ -47,11 +47,14 @@ test("macOS packaging hook removes localhost transport exceptions", async () => 
 
 test("native Windows lifecycle drives visible provider authority and preserves missing WalletConnect fail-closed", async () => {
   const gate = await readFile(new URL("../scripts/provider-authority-ui-gate.mjs", import.meta.url), "utf8");
+  const callbackGateGenerator = await readFile(new URL("../scripts/generate-callback-gate-urls.mjs", import.meta.url), "utf8");
   const x64Workflow = await readFile(new URL("../../../.github/workflows/wallet-desktop-windows.yml", import.meta.url), "utf8");
   const arm64Workflow = await readFile(new URL("../../../.github/workflows/wallet-desktop-windows-arm64.yml", import.meta.url), "utf8");
   assert.match(gate, /#create-account/);
   assert.match(gate, /Secure Testnet account ready/);
   assert.match(gate, /WALLETCONNECT_PROJECT_ID_UNAVAILABLE/);
+  assert.match(callbackGateGenerator, /encodeRequestDeepLink/);
+  assert.match(callbackGateGenerator, /ynx-social:\/\/com\.ynx\.social/);
   for (const workflow of [x64Workflow, arm64Workflow]) {
     assert.match(workflow, /provider-authority-ui-gate\.mjs .* create/);
     assert.match(workflow, /provider-authority-ui-gate\.mjs .* restore/);
@@ -81,6 +84,9 @@ test("shell is explicit and fail closed", async () => {
   assert.match(main, /externalAccountExposureRequiresOriginApproval: true/);
   assert.match(main, /walletConnect\.status\(\)\.configured/);
   assert.match(main, /app\.on\("open-url"/);
+  assert.match(main, /app\.requestSingleInstanceLock\(\)/);
+  assert.match(main, /app\.on\("second-instance"/);
+  assert.match(main, /extractYNXWalletProtocolUrl\(argv\)/);
   assert.match(main, /callbackEmitted: false/);
   assert.match(main, /window\.isVisible\(\)/);
   assert.match(main, /window\.getTitle\(\)/);
