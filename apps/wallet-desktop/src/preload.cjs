@@ -10,10 +10,13 @@ contextBridge.exposeInMainWorld("ynxWallet", {
   createAccount: () => ipcRenderer.invoke("wallet:create-account"),
   onAccountStatus: callback => ipcRenderer.on("wallet:account-status-result", (_event, value) => callback(value)),
   walletConnectStatus: () => ipcRenderer.invoke("wallet:walletconnect-status"),
+  walletConnectSessions: () => ipcRenderer.invoke("wallet:walletconnect-sessions"),
   walletConnectPair: uri => ipcRenderer.invoke("wallet:walletconnect-pair", uri),
+  walletConnectDisconnect: topic => ipcRenderer.invoke("wallet:walletconnect-disconnect", topic),
   walletConnectProposalAction: (id, action) => ipcRenderer.invoke("wallet:walletconnect-proposal-action", id, action),
   onWalletConnectStatus: callback => ipcRenderer.on("wallet:walletconnect-status-result", (_event, value) => callback(value)),
   onWalletConnectProposal: callback => ipcRenderer.on("wallet:walletconnect-proposal", (_event, value) => callback(value)),
+  onWalletConnectSessionChanged: callback => ipcRenderer.on("wallet:walletconnect-session-changed", (_event, value) => callback(value)),
   onProviderRequest: callback => ipcRenderer.on("wallet:provider-request", (_event, value) => callback(value)),
   providerAction: (id, action) => ipcRenderer.invoke("wallet:provider-action", id, action)
 });

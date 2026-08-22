@@ -113,7 +113,15 @@ ipcMain.handle("wallet:create-account", () => safeIPC(async () => {
 }));
 ipcMain.handle("wallet:permissions", (_event, origin) => safeIPC(() => walletAuthority.request({ origin, method: "wallet_getPermissions" })));
 ipcMain.handle("wallet:walletconnect-status", () => safeIPC(() => walletConnect.status()));
+ipcMain.handle("wallet:walletconnect-sessions", () => safeIPC(() => walletConnect.sessions()));
 ipcMain.handle("wallet:walletconnect-pair", (_event, uri) => safeIPC(() => walletConnect.pair(uri)));
+ipcMain.handle("wallet:walletconnect-disconnect", (_event, topic) => safeIPC(async () => {
+  const origin = walletConnect.sessionOrigin(topic);
+  await walletAuthority.revokeOrigin(origin);
+  const result = await walletConnect.disconnectSession(topic);
+  mainWindow?.webContents.send("wallet:walletconnect-session-changed", { type: "disconnected", topic, origin });
+  return { ...result, localPermissionRevoked: true };
+}));
 ipcMain.handle("wallet:walletconnect-proposal-action", (_event, id, action) => safeIPC(async () => {
   if (action === "reject") { await walletConnect.rejectSession(id); return { rejected: true }; }
   if (action !== "approve") throw Object.assign(new Error("Invalid proposal action"), { code: "INVALID_PROPOSAL_ACTION" });
@@ -123,6 +131,7 @@ ipcMain.handle("wallet:walletconnect-proposal-action", (_event, id, action) => s
   await walletAuthority.approveOrigin(origin);
   try {
     const session = await walletConnect.approveSession(id, account.account);
+    mainWindow?.webContents.send("wallet:walletconnect-session-changed", { type: "approved", topic: session.topic, origin });
     return { approved: true, topic: session.topic, origin, account: account.account };
   } catch (error) {
     await walletAuthority.revokeOrigin(origin);
@@ -208,7 +217,11 @@ app.whenReady().then(async () => {
       await walletConnect.start({
         onSessionProposal: proposal => window.webContents.send("wallet:walletconnect-proposal", sanitizeProposal(proposal)),
         onSessionRequest: event => void handleWalletConnectRequest(event),
-        onSessionDelete: event => window.webContents.send("wallet:walletconnect-session-deleted", { topic: event.topic }),
+        onSessionDelete: async event => {
+          if (event.origin) await walletAuthority.revokeOrigin(event.origin);
+          window.webContents.send("wallet:walletconnect-session-changed", { type: "deleted", topic: event.topic, origin: event.origin, localPermissionRevoked: Boolean(event.origin) });
+        },
+        onSessionRestore: session => window.webContents.send("wallet:walletconnect-session-changed", { type: "restored", topic: session.topic, origin: session.origin }),
         onRequestExpire: event => window.webContents.send("wallet:provider-request-expired", { id: String(event.id) })
       });
       window.webContents.send("wallet:walletconnect-status-result", walletConnect.status());

@@ -118,7 +118,7 @@ test("vault encrypts the secret and the permission store persists only public au
 
 test("WalletConnect remains fail closed without a real project ID", async () => {
   const transport = new WalletConnectTransport({ projectId: "", metadata: { name: "YNX Wallet", description: "YNX Testnet Wallet", url: "https://wallet.ynxweb4.com", icons: [] } });
-  assert.deepEqual(transport.status(), { configured: false, connected: false, code: "WALLETCONNECT_PROJECT_ID_UNAVAILABLE" });
+  assert.deepEqual(transport.status(), { configured: false, started: false, relayConnected: false, activeSessionCount: 0, code: "WALLETCONNECT_PROJECT_ID_UNAVAILABLE" });
   await assert.rejects(transport.start({}), error => error.code === "WALLETCONNECT_PROJECT_ID_UNAVAILABLE");
   assert.equal(WALLETCONNECT_CHAIN, "eip155:6423");
   assert.deepEqual(WALLETCONNECT_METHODS, ["eth_sendTransaction", "personal_sign", "eth_signTypedData_v4"]);
@@ -130,7 +130,7 @@ test("WalletConnect session approval exposes only eip155:6423 and the approved a
   const fake = {
     on(name, handler) { handlers.set(name, handler); },
     async pair(input) { paired = input; return undefined; },
-    async approveSession(input) { approved = input; return { topic: "session-topic" }; },
+    async approveSession(input) { approved = input; return { topic: "session-topic", peer: { metadata: { name: "Example DApp", url: ORIGIN } }, namespaces: input.namespaces }; },
     getActiveSessions() { return {}; }
   };
   const observed = [];
@@ -145,10 +145,52 @@ test("WalletConnect session approval exposes only eip155:6423 and the approved a
   await transport.approveSession("7", "0x1234567890abcdef1234567890abcdef12345678");
   assert.deepEqual(approved.namespaces.eip155.chains, ["eip155:6423"]);
   assert.deepEqual(approved.namespaces.eip155.accounts, ["eip155:6423:0x1234567890abcdef1234567890abcdef12345678"]);
-  assert.deepEqual(approved.namespaces.eip155.methods, ["eth_sendTransaction", "personal_sign", "eth_signTypedData_v4"]);
+  assert.deepEqual(approved.namespaces.eip155.methods, ["personal_sign"]);
+  assert.deepEqual(approved.namespaces.eip155.events, ["accountsChanged"]);
   await transport.pair("wc:0123456789abcdef@2?relay-protocol=irn&symKey=0123456789abcdef");
   assert.match(paired.uri, /^wc:/);
   assert.equal(observed.length, 1);
+});
+
+test("WalletConnect restores exact sessions, emits standard events and disconnects with the cached origin", async () => {
+  const handlers = new Map();
+  const restoredSession = {
+    topic: "restored-session",
+    expiry: 1780000000,
+    peer: { metadata: { name: "First-party DApp", url: "https://card.ynxweb4.com/path" } },
+    namespaces: { eip155: { accounts: ["eip155:6423:0x1234567890abcdef1234567890abcdef12345678"], methods: ["personal_sign", "eth_sendTransaction"], events: ["accountsChanged", "chainChanged"] } }
+  };
+  const emitted = [], disconnected = [];
+  const fake = {
+    core: { relayer: { connected: true } },
+    on(name, handler) { handlers.set(name, handler); },
+    getActiveSessions() { return { [restoredSession.topic]: restoredSession }; },
+    async emitSessionEvent(input) { emitted.push(input); },
+    async disconnectSession(input) { disconnected.push(input); }
+  };
+  const restored = [], deleted = [];
+  const transport = new WalletConnectTransport({
+    projectId: "authorized-project-id",
+    metadata: { name: "YNX Wallet", description: "YNX Testnet Wallet", url: "https://wallet.ynxweb4.com", icons: [] },
+    walletKitFactory: async () => fake
+  });
+  await transport.start({ onSessionRestore: session => restored.push(session), onSessionDelete: event => deleted.push(event) });
+  assert.deepEqual(transport.status(), { configured: true, started: true, relayConnected: true, activeSessionCount: 1, code: null });
+  assert.deepEqual(restored, [{ topic: "restored-session", origin: "https://card.ynxweb4.com", name: "First-party DApp", url: "https://card.ynxweb4.com/path", expiry: 1780000000 }]);
+  assert.deepEqual(transport.sessions(), restored);
+  const account = "0x1234567890abcdef1234567890abcdef12345678";
+  await transport.emitAccountAndChainChanged("restored-session", account);
+  assert.deepEqual(emitted.map(item => item.event), [
+    { name: "accountsChanged", data: [account] },
+    { name: "chainChanged", data: "0x1917" }
+  ]);
+  const disconnectedResult = await transport.disconnectSession("restored-session");
+  assert.equal(disconnectedResult.origin, "https://card.ynxweb4.com");
+  assert.equal(disconnected.length, 1);
+  assert.equal(disconnected[0].topic, "restored-session");
+  assert.equal(disconnected[0].reason.code, 6000);
+  await handlers.get("session_delete")({ topic: "restored-session" });
+  assert.equal(deleted[0].origin, null);
 });
 
 async function fixture(transactionSender = null) {

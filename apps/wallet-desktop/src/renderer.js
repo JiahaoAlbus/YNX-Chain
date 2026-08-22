@@ -74,21 +74,53 @@ window.ynxWallet.accountStatus().then(renderAccount);
 const walletConnectTitle = document.querySelector("#walletconnect-title");
 const walletConnectDetail = document.querySelector("#walletconnect-detail");
 const pairButton = document.querySelector("#walletconnect-pair");
+const sessionsPanel = document.querySelector("#walletconnect-sessions");
 function renderWalletConnect(payload) {
   const status = payload?.ok === true ? payload.value : payload;
-  walletConnectTitle.textContent = status?.connected ? "WalletConnect relay connected" : status?.configured ? "WalletConnect relay unavailable" : "WalletConnect not configured";
-  walletConnectDetail.textContent = status?.connected ? "Pairing is available. Every session and signing request still requires visible approval." : `${status?.code ?? "WALLETCONNECT_UNAVAILABLE"}: no session or account success is claimed.`;
-  pairButton.disabled = !status?.connected;
+  walletConnectTitle.textContent = status?.relayConnected ? "WalletConnect relay connected" : status?.started ? "WalletConnect SDK ready — relay not proved" : status?.configured ? "WalletConnect startup failed" : "WalletConnect not configured";
+  walletConnectDetail.textContent = status?.relayConnected
+    ? `${status.activeSessionCount} active session(s). Every connection and signing request requires visible approval.`
+    : `${status?.code ?? "WALLETCONNECT_UNAVAILABLE"}: no relay, session or account success is claimed.`;
+  pairButton.disabled = !status?.started;
+}
+async function refreshWalletConnectSessions() {
+  const response = await window.ynxWallet.walletConnectSessions();
+  const sessions = response?.ok ? response.value : [];
+  sessionsPanel.replaceChildren();
+  if (!sessions.length) {
+    const empty = document.createElement("p");
+    empty.textContent = "No active WalletConnect sessions.";
+    sessionsPanel.append(empty);
+    return;
+  }
+  for (const session of sessions) {
+    const row = document.createElement("div");
+    const label = document.createElement("span");
+    label.textContent = `${session.name} · ${session.origin}`;
+    const disconnect = document.createElement("button");
+    disconnect.type = "button";
+    disconnect.textContent = "Disconnect and revoke";
+    disconnect.addEventListener("click", async () => {
+      disconnect.disabled = true;
+      const result = await window.ynxWallet.walletConnectDisconnect(session.topic);
+      walletConnectDetail.textContent = result.ok ? "Session disconnected and local account permission revoked." : `${result.error.code}: ${result.error.message}`;
+      await refreshWalletConnectSessions();
+    });
+    row.append(label, disconnect);
+    sessionsPanel.append(row);
+  }
 }
 window.ynxWallet.onWalletConnectStatus(renderWalletConnect);
-window.ynxWallet.walletConnectStatus().then(renderWalletConnect);
+window.ynxWallet.onWalletConnectSessionChanged(() => refreshWalletConnectSessions());
+window.ynxWallet.walletConnectStatus().then(payload => { renderWalletConnect(payload); return refreshWalletConnectSessions(); });
 pairButton.addEventListener("click", async () => {
   const uri = document.querySelector("#walletconnect-uri").value.trim();
   pairButton.disabled = true;
   const result = await window.ynxWallet.walletConnectPair(uri);
   if (!result.ok) walletConnectDetail.textContent = `${result.error.code}: ${result.error.message}`;
   else walletConnectDetail.textContent = "Pairing request submitted. Waiting for a DApp proposal.";
-  pairButton.disabled = false;
+  const status = await window.ynxWallet.walletConnectStatus();
+  pairButton.disabled = !(status?.ok ? status.value.started : status?.started);
 });
 
 let activeProposal = null;
@@ -103,7 +135,7 @@ async function proposalAction(action) {
   if (!activeProposal) return;
   const result = await window.ynxWallet.walletConnectProposalAction(activeProposal.id, action);
   walletConnectDetail.textContent = result.ok ? (action === "approve" ? "Session approved for the selected account." : "Session rejected.") : `${result.error.code}: ${result.error.message}`;
-  if (result.ok) { activeProposal = null; proposalPanel.hidden = true; }
+  if (result.ok) { activeProposal = null; proposalPanel.hidden = true; await refreshWalletConnectSessions(); }
 }
 document.querySelector("#reject-proposal").addEventListener("click", () => proposalAction("reject"));
 document.querySelector("#approve-proposal").addEventListener("click", () => proposalAction("approve"));
