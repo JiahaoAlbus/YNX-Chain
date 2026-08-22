@@ -38,8 +38,8 @@
   "platformQueue": [
     {"platform":"web-extension","owner":"wallet-web","status":"SOURCE_AND_ARTIFACT_ACCEPTED_INSTALLED_PROVIDER_E2E_FALSE","source":"aa225899eed79b4ddee3027d124657d7357f361c","evidence":"191145d15c2d4bb71d151ab6218cd7abf4b8bcb0","acceptance":"P0-152"},
     {"platform":"android","owner":"wallet-android","status":"NOT_ACCEPTED_INSTALLED_PROVIDER_E2E"},
-    {"platform":"ios","owner":"wallet-ios","status":"CLEAN_MAIN_REGISTRATION_PR_133_PENDING_NO_DISTRIBUTION","source":"a85c273a2454d9f72cb89198caa42ef63d5a9436"},
-    {"platform":"macos","owner":"wallet-macos","status":"CLEAN_MAIN_REGISTRATION_PR_133_PENDING_NO_PUBLICATION","source":"a85c273a2454d9f72cb89198caa42ef63d5a9436"},
+    {"platform":"ios","owner":"wallet-ios","status":"MAIN_REGISTRATION_PENDING_BIOMETRIC_FIX_CI_IN_PROGRESS_NO_DISTRIBUTION","registrationSource":"a85c273a2454d9f72cb89198caa42ef63d5a9436","biometricFixSource":"8a7814e60d213e7b2c6259095b299640bc3a9fb3","acceptance":"P0-153"},
+    {"platform":"macos","owner":"wallet-macos","status":"MAIN_REGISTRATION_PENDING_WALLETCONNECT_POLICY_SOURCE_CI_ACCEPTED_RUNTIME_FALSE","registrationSource":"a85c273a2454d9f72cb89198caa42ef63d5a9436","walletConnectPolicySource":"65328c00d71a43963fff12f4d304f29dd110149e","evidence":"4765c9e7476f89fee653abb44f04bef825419ccf","acceptance":"P0-153"},
     {"platform":"windows","owner":"wallet-desktop","status":"PUBLIC_INSTALLER_EXISTS_PROVIDER_E2E_FALSE"}
   ],
   "completionGate": {
