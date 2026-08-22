@@ -7141,6 +7141,33 @@
       "officialCanonicalUnchanged": true,
       "officialSourceBoundPublic": false,
       "nextAction": "Do not reuse P0-200. Social owner must add an existing favicon and replace or remove the CORS-unsafe direct private-service health probe with a truthful accepted CORS-safe or same-origin strategy, then freeze new source/carrier/candidate before any successor hosted preflight or alias request."
+    },
+    {
+      "taskId": "P0-201",
+      "owner": "social",
+      "status": "ACTIVE_SINGLE_USE",
+      "paths": [
+        "release/integration/p0-wallet-connectivity/execution/p0-201-social-console-clean-candidate-deployment-lease-20260822.json",
+        "vercel-project:prj_QGgUyxilarbPPLZyoES83m2aneQN",
+        "/tmp/ynx-social-p0201-exec/**"
+      ],
+      "dependencies": [
+        "P0-200"
+      ],
+      "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-social-console-clean-candidate-deployment-20260822T170500Z",
+      "expiresAt": "2026-08-22T17:35:00Z",
+      "executor": "social-vercel-release",
+      "request": "3aff48f04ff02a3fb0530574bb778fcda8b824a9",
+      "source": "e7756cb387233376c03043c54fb8b051c241e94e",
+      "carrierSha256": "9ffe3eff10175589eeaa7a377e9dc61f3c3a62a77b0a9bcfa415c4764f512b81",
+      "projectId": "prj_QGgUyxilarbPPLZyoES83m2aneQN",
+      "officialDeployment": "dpl_2sei8CpmoN1Gi5YKnc6FdvNRyXGy",
+      "deploymentAttemptLimit": 1,
+      "retryAllowed": false,
+      "aliasAttemptLimit": 0,
+      "rollbackAttemptLimit": 0,
+      "sensitiveActionsAllowed": false,
+      "nextAction": "Extract and rebuild the exact carrier in the fixed empty execution root, execute the sole candidate deployment with --skip-domain, freeze the exact new deployment id/immutable URL/READY metadata, verify official alias unchanged, then release without raw/browser or public promotion."
     }
   ]
 }
