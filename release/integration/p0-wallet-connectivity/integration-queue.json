@@ -6453,6 +6453,29 @@
       "currentSourceBoundPublic": false,
       "productsConnected": "0/12",
       "nextAction": "Do not reuse P0-178 or issue a routing lease. Obtain an independent executor/network that can connect to the immutable Vercel hostname; SSO is restored under the current Standard Protection enum."
+    },
+    {
+      "taskId": "P0-179",
+      "owner": "integration,wallet-web,website",
+      "status": "ACTIVE_SINGLE_USE_HOSTED_FOUR_RESOURCE_PREFLIGHT",
+      "paths": [
+        "release/integration/p0-wallet-connectivity/leases/wallet-web-hosted-public-preflight-p0179-20260822.json",
+        "release/integration/p0-wallet-connectivity/templates/wallet-web-public-preflight-p0179.yml",
+        ".github/workflows/wallet-web-public-preflight-p0.yml",
+        "vercel-project:prj_K4emrdkST7sdb0K9mhmLM0QZh0I3:ssoProtection"
+      ],
+      "dependencies": ["P0-178"],
+      "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-web-hosted-preflight-20260822T083814Z",
+      "expiresAt": "2026-08-22T09:08:14Z",
+      "expectedRemoteParent": "4f1e1b8ebdbc5e67900f675d970421d73d3a574b",
+      "workflowSha256": "6c33895ff17e858028dbacc5c7c0b032cb1348d8375ddde0d181dbe59a29901e",
+      "pushAllowedExactlyOnce": true,
+      "workflowDispatchAllowed": false,
+      "ssoRestoreRequired": true,
+      "aliasMutationAllowed": false,
+      "currentSourceBoundPublic": false,
+      "productsConnected": "0/12",
+      "nextAction": "Execute only the ordered SSO disable, exact workflow push, single hosted run and mandatory SSO restore; then return raw four-resource evidence or terminal fail-closed release."
     }
   ]
 }
