@@ -55,7 +55,8 @@
     "react-native-get-random-values": "~1.11.0",
     "react-native-qrcode-svg": "6.3.21",
     "react-native-safe-area-context": "~5.7.0",
-    "react-native-svg": "15.15.4"
+    "react-native-svg": "15.15.4",
+    "react-native-webview": "13.16.1"
   },
   "devDependencies": {
     "@cyclonedx/cyclonedx-npm": "6.0.0",

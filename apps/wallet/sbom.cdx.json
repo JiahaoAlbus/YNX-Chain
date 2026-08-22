@@ -14478,6 +14478,34 @@
       "version": "2.0.0"
     },
     {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|react-native-webview@13.16.1",
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "21fd1e1e1a0474e603707b17fb1045c0731b58118ad41bc60d00d0755930b522178aad6e8aa8e4a5654fdae4356acf782740b3bc513d3d4343ba1897d19eae6f"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/react-native-webview/-/react-native-webview-13.16.1.tgz"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "react-native-webview",
+      "purl": "pkg:npm/react-native-webview@13.16.1?download_url=https%3A%2F%2Fregistry.npmmirror.com%2Freact-native-webview%2F-%2Freact-native-webview-13.16.1.tgz",
+      "type": "library",
+      "version": "13.16.1"
+    },
+    {
       "bom-ref": "@ynx-chain/wallet-app@1.0.1|react-native@0.86.0",
       "components": [
         {
@@ -17687,6 +17715,7 @@
         "@ynx-chain/wallet-app@1.0.1|react-native-qrcode-svg@6.3.21",
         "@ynx-chain/wallet-app@1.0.1|react-native-safe-area-context@5.7.0",
         "@ynx-chain/wallet-app@1.0.1|react-native-svg@15.15.4",
+        "@ynx-chain/wallet-app@1.0.1|react-native-webview@13.16.1",
         "@ynx-chain/wallet-app@1.0.1|react-native@0.86.0",
         "@ynx-chain/wallet-app@1.0.1|react@19.2.3"
       ],
@@ -19677,6 +19706,7 @@
         "@ynx-chain/wallet-app@1.0.1|expo@57.0.4|expo-font@57.0.0",
         "@ynx-chain/wallet-app@1.0.1|expo@57.0.4|expo-keep-awake@57.0.0",
         "@ynx-chain/wallet-app@1.0.1|pretty-format@29.7.0",
+        "@ynx-chain/wallet-app@1.0.1|react-native-webview@13.16.1",
         "@ynx-chain/wallet-app@1.0.1|react-native@0.86.0",
         "@ynx-chain/wallet-app@1.0.1|react-refresh@0.14.2",
         "@ynx-chain/wallet-app@1.0.1|react@19.2.3",
@@ -20920,6 +20950,15 @@
         "@ynx-chain/wallet-app@1.0.1|whatwg-url-without-unicode@8.0.0-3"
       ],
       "ref": "@ynx-chain/wallet-app@1.0.1|react-native-url-polyfill@2.0.0"
+    },
+    {
+      "dependsOn": [
+        "@ynx-chain/wallet-app@1.0.1|escape-string-regexp@4.0.0",
+        "@ynx-chain/wallet-app@1.0.1|invariant@2.2.4",
+        "@ynx-chain/wallet-app@1.0.1|react-native@0.86.0",
+        "@ynx-chain/wallet-app@1.0.1|react@19.2.3"
+      ],
+      "ref": "@ynx-chain/wallet-app@1.0.1|react-native-webview@13.16.1"
     },
     {
       "dependsOn": [
