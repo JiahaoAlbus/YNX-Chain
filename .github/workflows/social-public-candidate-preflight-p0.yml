@@ -1,0 +1,190 @@
+name: Social immutable candidate hosted browser preflight P0
+
+on:
+  push:
+    branches:
+      - codex/social-release-evidence-ecffe336
+    paths:
+      - .github/workflows/social-public-candidate-preflight-p0.yml
+
+permissions:
+  contents: read
+
+jobs:
+  preflight:
+    if: "github.event.head_commit.message == 'evidence(social): hosted immutable candidate preflight'"
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create isolated evidence directory
+        shell: bash
+        run: |
+          set -euo pipefail
+          out="$RUNNER_TEMP/social-p0200-evidence"
+          test ! -e "$out"
+          mkdir -p "$out/resources" "$out/browser"
+
+      - name: Fetch and verify six immutable resources
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://ynx-social-mo3j03lc9-jiahaoalbus-projects.vercel.app'
+          out="$RUNNER_TEMP/social-p0200-evidence/resources"
+          fetch() {
+            name="$1"
+            uri="$2"
+            expected_bytes="$3"
+            expected_sha="$4"
+            code="$(curl --proto '=https' --tlsv1.2 --silent --show-error --max-time 20 --connect-timeout 8 --max-redirs 0 --dump-header "$out/${name}.headers" --output "$out/${name}.body" --write-out '%{http_code}' "${base}${uri}")"
+            printf '%s\n' "$code" > "$out/${name}.status"
+            wc -c < "$out/${name}.body" | tr -d ' ' > "$out/${name}.bytes"
+            sha256sum "$out/${name}.body" | awk '{print $1}' > "$out/${name}.sha256"
+            test "$code" = 200
+            test "$(cat "$out/${name}.bytes")" = "$expected_bytes"
+            test "$(cat "$out/${name}.sha256")" = "$expected_sha"
+          }
+          fetch root '/' 6022 0133e7a4a65f19b6965afd20ba47b87c3dcba196ee9eeb185c76e39e1786e8ed
+          fetch app-js '/app.js' 7115 73ee268d130ebf396dee6d4d94131197bedd0784e0571057f70f99e9caa5e346
+          fetch styles-css '/styles.css' 6327 1f80ec6b7ab8c2ff0d1d66edf083d301af89386c802483733fd670a5ada26c42
+          fetch wallet-provider-js '/wallet-provider.js' 7749 d8df8193407f835ff16913417acca0db2ae1f091defc16e0b29a98996ffdea75
+          fetch metamask-svg '/assets/metamask.svg' 755 f761f46f4fe7052a84b47cf23b63c2f20cc3d043df640b7f79c2adcb245e5f21
+          fetch ynx-wallet-svg '/assets/ynx-wallet.svg' 280 e92207903e61b41c7a662e57e2a3bcfd84627b49c22a29e9240d5eafcd0229fb
+
+      - name: Install pinned browser harness
+        run: npm ci --ignore-scripts --prefix apps/trust-center
+
+      - name: Prove non-sensitive Social wallet discovery in hosted Chromium
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > "$RUNNER_TEMP/social-p0200-browser.mjs" <<'NODE'
+          import { createRequire } from "node:module";
+          import { writeFile } from "node:fs/promises";
+          import { join } from "node:path";
+
+          const require = createRequire(join(process.env.GITHUB_WORKSPACE, "apps/trust-center/package.json"));
+          const { chromium } = require("playwright");
+          const base = "https://ynx-social-mo3j03lc9-jiahaoalbus-projects.vercel.app/";
+          const evidence = join(process.env.RUNNER_TEMP, "social-p0200-evidence", "browser");
+          const result = {
+            schemaVersion: 1,
+            candidate: base,
+            sourceCommit: "d9337ddc5ffcbddaad463eef968c3d52c05272dc",
+            accountRequestAttempted: false,
+            signingAttempted: false,
+            transactionAttempted: false,
+            passed: false,
+          };
+          const consoleErrors = [];
+          const pageErrors = [];
+          const sameOriginFailures = [];
+          const context = await chromium.launchPersistentContext(join(process.env.RUNNER_TEMP, "social-p0200-profile"), {
+            executablePath: "/usr/bin/google-chrome",
+            headless: true,
+            viewport: { width: 1280, height: 900 },
+          });
+          try {
+            const page = context.pages()[0] || await context.newPage();
+            page.on("console", message => { if (message.type() === "error") consoleErrors.push({ text: message.text(), location: message.location() }); });
+            page.on("pageerror", error => pageErrors.push(String(error)));
+            page.on("requestfailed", request => { if (request.url().startsWith(base)) sameOriginFailures.push({ url: request.url(), error: request.failure()?.errorText || null }); });
+            await page.goto(base, { waitUntil: "domcontentloaded", timeout: 20000 });
+            await page.waitForSelector("#connect-wallet", { state: "visible", timeout: 10000 });
+
+            result.initial = await page.evaluate(() => ({
+              url: location.href,
+              title: document.title,
+              language: document.documentElement.lang,
+              connectedPanelHidden: document.querySelector("#connected-panel")?.hidden,
+              topConnectText: document.querySelector("#connect-wallet")?.textContent?.trim(),
+              dialogOpen: document.querySelector("#wallet-dialog")?.open,
+            }));
+
+            await page.click("#connect-wallet");
+            await page.waitForSelector("#wallet-dialog[open]");
+            result.chooser = await page.evaluate(() => ({
+              ynxName: document.querySelector("#connect-ynx strong")?.textContent?.trim(),
+              ynxLogo: document.querySelector("#connect-ynx img")?.getAttribute("src"),
+              ynxAlt: document.querySelector("#connect-ynx img")?.getAttribute("alt"),
+              metamaskName: document.querySelector("#connect-metamask strong")?.textContent?.trim(),
+              metamaskLogo: document.querySelector("#connect-metamask img")?.getAttribute("src"),
+              metamaskAlt: document.querySelector("#connect-metamask img")?.getAttribute("alt"),
+              status: document.querySelector("#wallet-status")?.textContent?.trim(),
+            }));
+            await page.click("#close-wallet-dialog");
+
+            result.discovery = await page.evaluate(async () => {
+              const module = await import("./wallet-provider.js");
+              const forbiddenMethods = [];
+              const makeProvider = flags => ({
+                ...flags,
+                request: async ({ method }) => {
+                  forbiddenMethods.push(method);
+                  throw Object.assign(new Error("No RPC method is authorized in discovery evidence."), { code: 4100 });
+                },
+              });
+              const ynx = makeProvider({ isYNXWallet: true, isMetaMask: false });
+              const metamask = makeProvider({ isYNXWallet: false, isMetaMask: true });
+              setTimeout(() => {
+                window.dispatchEvent(new CustomEvent("eip6963:announceProvider", { detail: { info: { uuid: "hosted-ynx", name: "YNX Wallet", rdns: "com.ynx.wallet" }, provider: ynx } }));
+                window.dispatchEvent(new CustomEvent("eip6963:announceProvider", { detail: { info: { uuid: "hosted-metamask", name: "MetaMask", rdns: "io.metamask" }, provider: metamask } }));
+              }, 300);
+              const providers = await module.discoverProviders(window, 750);
+              return {
+                providerCount: providers.length,
+                ynxSelected: module.selectProvider(providers, "ynx").ok,
+                metamaskSelected: module.selectProvider(providers, "metamask").ok,
+                ynxClassification: module.classifyProvider(providers.find(value => value.info.uuid === "hosted-ynx")),
+                metamaskClassification: module.classifyProvider(providers.find(value => value.info.uuid === "hosted-metamask")),
+                forbiddenMethods,
+              };
+            });
+
+            result.final = await page.evaluate(() => ({
+              url: location.href,
+              title: document.title,
+              connectedPanelHidden: document.querySelector("#connected-panel")?.hidden,
+              topConnectText: document.querySelector("#connect-wallet")?.textContent?.trim(),
+              dialogOpen: document.querySelector("#wallet-dialog")?.open,
+            }));
+            result.pageCount = context.pages().length;
+            result.blankPages = context.pages().filter(value => value.url() === "about:blank").length;
+            result.consoleErrors = consoleErrors;
+            result.pageErrors = pageErrors;
+            result.sameOriginFailures = sameOriginFailures;
+            await page.screenshot({ path: join(evidence, "social-candidate.png"), fullPage: true });
+            await writeFile(join(evidence, "social-candidate.html"), await page.content());
+
+            const identityOk = result.chooser.ynxName === "YNX Wallet" && result.chooser.ynxLogo === "./assets/ynx-wallet.svg" && result.chooser.ynxAlt === "YNX Wallet logo" && result.chooser.metamaskName === "MetaMask" && result.chooser.metamaskLogo === "./assets/metamask.svg" && result.chooser.metamaskAlt === "MetaMask logo";
+            const disconnectedOk = result.initial.connectedPanelHidden === true && result.initial.topConnectText === "Connect wallet" && result.final.connectedPanelHidden === true && result.final.topConnectText === "Connect wallet";
+            const discoveryOk = result.discovery.providerCount === 2 && result.discovery.ynxSelected === true && result.discovery.metamaskSelected === true && result.discovery.ynxClassification?.isYNX === true && result.discovery.ynxClassification?.isMetaMask === false && result.discovery.metamaskClassification?.isMetaMask === true && result.discovery.metamaskClassification?.isYNX === false && result.discovery.forbiddenMethods.length === 0;
+            result.passed = result.initial.url === base && result.final.url === base && result.initial.title === "YNX Social — Private by design" && result.initial.language === "en" && identityOk && disconnectedOk && discoveryOk && result.final.dialogOpen === false && result.pageCount === 1 && result.blankPages === 0 && consoleErrors.length === 0 && pageErrors.length === 0 && sameOriginFailures.length === 0;
+          } catch (error) {
+            result.error = { name: error?.name || "Error", message: error?.message || String(error) };
+          } finally {
+            await writeFile(join(evidence, "hosted-chromium.json"), `${JSON.stringify(result, null, 2)}\n`);
+            await context.close().catch(() => {});
+          }
+          console.log(JSON.stringify(result, null, 2));
+          process.exit(result.passed ? 0 : 1);
+          NODE
+          node "$RUNNER_TEMP/social-p0200-browser.mjs"
+
+      - name: Freeze isolated evidence checksums
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          out="$RUNNER_TEMP/social-p0200-evidence"
+          find "$out" -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > "$out/SHA256SUMS"
+
+      - name: Upload isolated candidate evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: social-immutable-candidate-preflight-p0200
+          path: ${{ runner.temp }}/social-p0200-evidence
+          if-no-files-found: error
+          retention-days: 7
