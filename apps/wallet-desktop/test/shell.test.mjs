@@ -61,6 +61,10 @@ test("native Windows lifecycle drives visible provider authority and preserves m
     assert.match(workflow, /providerAuthorityAccount/);
     assert.match(workflow, /accountRestoredOnSecondLaunch = \$true/);
     assert.match(workflow, /walletConnectConfigured = \$false/);
+    assert.match(workflow, /canonicalAuthorizeProtocolRegistered = \$true/);
+    assert.match(workflow, /canonicalAuthorizeCallbackReceived = \$true/);
+    assert.match(workflow, /callback-ui-gate\.mjs \$targets reject/);
+    assert.match(workflow, /callback-ui-gate\.mjs \$targets approve/);
     assert.match(workflow, /Uninstall YNX Wallet\.exe/);
     assert.match(workflow, /-Filter 'YNX Wallet\.exe'/);
   }

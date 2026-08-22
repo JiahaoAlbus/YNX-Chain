@@ -107,6 +107,36 @@ jobs:
           node apps/wallet-desktop/scripts/provider-authority-ui-gate.mjs $targets switch $created.account | Set-Content $switchGate
           $switched = Get-Content $switchGate -Raw | ConvertFrom-Json
           if ($switched.switched.restoredAccount -ne $created.account -or $switched.switched.visibleAccountCount -ne 2) { throw 'native account switch and restore gate failed' }
+          $registeredProtocol = Get-Item 'Registry::HKEY_CURRENT_USER\Software\Classes\ynxwallet\shell\open\command' -ErrorAction Stop
+          if (-not $registeredProtocol.GetValue('')) { throw 'installed ynxwallet protocol command is missing' }
+          $callbackCapture = Join-Path $env:RUNNER_TEMP 'ynx-social-callback.txt'
+          $captureScript = Join-Path $env:RUNNER_TEMP 'capture-ynx-social.ps1'
+          @'
+          param([string]$Url, [string]$Path)
+          Set-Content -LiteralPath $Path -Value $Url
+          '@ | Set-Content $captureScript
+          $callbackProtocol = 'Registry::HKEY_CURRENT_USER\Software\Classes\ynx-social'
+          New-Item -Path $callbackProtocol -Force | Out-Null
+          Set-Item -Path $callbackProtocol -Value 'URL:YNX Social test callback'
+          New-ItemProperty -Path $callbackProtocol -Name 'URL Protocol' -Value '' -PropertyType String -Force | Out-Null
+          $callbackCommand = Join-Path $callbackProtocol 'shell\open\command'
+          New-Item -Path $callbackCommand -Force | Out-Null
+          $pwsh = (Get-Command pwsh).Source
+          Set-Item -Path $callbackCommand -Value ('"{0}" -NoProfile -NonInteractive -File "{1}" "%1" "{2}"' -f $pwsh,$captureScript,$callbackCapture)
+          $callbackUrls = node apps/wallet-desktop/scripts/generate-callback-gate-urls.mjs | ConvertFrom-Json
+          Start-Process $callbackUrls.reject
+          Start-Sleep 2
+          $rejectGate = Join-Path $env:RUNNER_TEMP 'wallet-callback-reject-gate.json'
+          node apps/wallet-desktop/scripts/callback-ui-gate.mjs $targets reject | Set-Content $rejectGate
+          if (Test-Path $callbackCapture) { throw 'rejected authorization emitted a callback' }
+          Start-Process $callbackUrls.approve
+          Start-Sleep 2
+          $approveGate = Join-Path $env:RUNNER_TEMP 'wallet-callback-approve-gate.json'
+          node apps/wallet-desktop/scripts/callback-ui-gate.mjs $targets approve | Set-Content $approveGate
+          for ($i=0; $i -lt 30 -and -not (Test-Path $callbackCapture); $i++) { Start-Sleep -Milliseconds 500 }
+          if (-not (Test-Path $callbackCapture)) { throw 'approved authorization callback was not received by the registered product protocol' }
+          $capturedCallback = (Get-Content $callbackCapture -Raw).Trim()
+          if (-not $capturedCallback.StartsWith('ynx-social://com.ynx.social?response=')) { throw 'approved authorization callback did not use the exact registered product route' }
           $walletConnectUri = 'wc:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa@2?relay-protocol=irn&symKey=bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'
           $qrImage = Join-Path $env:RUNNER_TEMP 'walletconnect-v2.png'
           npm exec --yes --package=qrcode@1.5.4 -- qrcode --output $qrImage $walletConnectUri
@@ -156,6 +186,10 @@ jobs:
             walletConnectQrDecodedLocally = $true
             walletConnectConfigured = $false
             walletConnectFailClosedVisible = $true
+            canonicalAuthorizeProtocolRegistered = $true
+            canonicalAuthorizeRejectProved = $true
+            canonicalAuthorizeApproveProved = $true
+            canonicalAuthorizeCallbackReceived = $true
             signingEnabled = $true
             accountCreated = $true
             balanceClaimed = $false
