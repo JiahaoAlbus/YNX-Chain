@@ -3,16 +3,16 @@
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "taskId": "P0-225",
   "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-pay-web-collector-corrected-source-bound-public-release-20260822T230500Z",
-  "owner": "pay",
+  "owner": null,
   "executor": "pay-public-release",
-  "status": "ACTIVE_SINGLE_USE",
+  "status": "CONSUMED_RELEASED_FAILED_CLOSED_BROWSER_UNSUPPORTED_NETWORKIDLE_WAIT_ROLLED_BACK",
   "issuedAt": "2026-08-22T23:05:00Z",
   "expiresAt": "2026-08-22T23:45:00Z",
-  "releasedAt": null,
+  "releasedAt": "2026-08-22T23:05:41Z",
   "singleUse": true,
   "reusable": false,
-  "executionAuthorized": true,
-  "productionMutationAllowed": true,
+  "executionAuthorized": false,
+  "productionMutationAllowed": false,
   "scope": "Pay-only exact static carrier publication to one absent release target, atomic replacement of only /etc/caddy/ynx-chain.caddy, one Caddy reload, exact P0-225 collector, official non-sensitive browser validation and at most one exact rollback",
   "predecessor": {
     "taskId": "P0-224",
@@ -127,6 +127,60 @@
     "provider selection, eth_requestAccounts, account approval/reject, personal_sign, EIP-712, transaction, private key or secret access",
     "installed-provider, sensitive lifecycle, Product Session or aggregate product-completion promotion"
   ],
+  "terminalEvidence": {
+    "classification": "FAILED_CLOSED_BROWSER_UNSUPPORTED_NETWORKIDLE_WAIT_EXACT_ROLLBACK_CONFIRMED",
+    "observedAt": "2026-08-22T23:05:41Z",
+    "counts": {"deploy":1,"collector":1,"browserColdLaunch":1,"browserSecondLaunch":0,"rollback":1,"retry":0},
+    "deploy": {
+      "commandExecutedExactlyOnce": true,
+      "succeeded": true
+    },
+    "collector": {
+      "commandExecutedExactlyOnce": true,
+      "succeeded": true,
+      "resources": "eight distinct public manifest resources HTTP 200 with exact bytes and SHA-256",
+      "buildIdentity": "source 5f4ce98eb458550b976c17e3bc6d77cce4081a59/tree 8f0c25c4d86eb22a564f3c7aeff9db6709a9b9f0, application/json, no-store",
+      "runtime": "candidate Caddy SHA b606d1bd, ynx-payd active/running NRestarts0, listeners 6430/6484 and exact health semantics",
+      "browserPreconditionsGenerated": true
+    },
+    "browserFailure": {
+      "phase": "first clean-browser cold launch before DOM/title/URL/log evidence completed",
+      "reason": "current Browser control interface rejects load state networkidle",
+      "exactError": "playwright_wait_for_load_state does not support networkidle",
+      "correctedWaitAttempted": false,
+      "secondLaunchAttempted": false,
+      "browserSuccessInferred": false
+    },
+    "rollback": {
+      "commandExecutedExactlyOnce": true,
+      "succeeded": true,
+      "restoredCaddySha256": "df5f7ad73dd2631c0e934514e05a30ac97c75dc9efe2ec568b049c71c4024396",
+      "releaseTargetAbsent": true,
+      "stagingTargetAbsent": true,
+      "parentDirectories": [
+        {"path":"/opt/ynx-pay-web","deviceInode":"64770:1483757","nlink":4,"unchanged":true},
+        {"path":"/opt/ynx-pay-web/releases","deviceInode":"64770:1483839","nlink":2,"empty":true,"unchanged":true},
+        {"path":"/opt/ynx-pay-web/incoming","deviceInode":"64770:1483758","nlink":2,"empty":true,"unchanged":true}
+      ],
+      "payd": {"active":"active","subState":"running","mainPid":2734498,"nRestarts":0},
+      "listeners": ["127.0.0.1:6430","127.0.0.1:6484"],
+      "public": {
+        "root": "404/19B/b16e15764b8bc06c5c3f9f19bc8b99fa48e7894aa5a6ccdad65da49bbf564793",
+        "version": "404/19B/b16e15764b8bc06c5c3f9f19bc8b99fa48e7894aa5a6ccdad65da49bbf564793",
+        "callback": "404/19B/b16e15764b8bc06c5c3f9f19bc8b99fa48e7894aa5a6ccdad65da49bbf564793",
+        "health": "200/service=ynx-payd/network=YNX Testnet/chainId=6423"
+      }
+    },
+    "localEvidence": {
+      "directory": "/tmp/ynx-pay-p0225-public-release-20260822T230500Z",
+      "archive": "/tmp/ynx-pay-p0225-public-release-20260822T230500Z.tar.gz",
+      "archiveBytes": 615704,
+      "archiveSha256": "a247f0bfebc182f210bf4d2ddf7fb75f6a7902079c9e8fd5658164579c67f0ea"
+    },
+    "sensitiveActions": {"providerSelection":false,"ethRequestAccounts":false,"accountApprovalOrReject":false,"signing":false,"typedData":false,"transaction":false},
+    "productionRestored": true,
+    "futureBlocker": "Freeze a Browser execution contract that uses only a supported load state such as load or domcontentloaded and prove it with a pre-deploy dry-run fixture, then request a wholly new lease. P0-225 is nonreusable."
+  },
   "terminalRules": {
     "success": "CONSUMED_RELEASED_SUCCESS_PAY_SOURCE_BOUND_OFFICIAL_PUBLIC_NON_SENSITIVE",
     "failurePrewrite": "CONSUMED_RELEASED_FAILED_CLOSED_PAY_P0225_PREWRITE_ZERO_PRODUCTION_MUTATION",

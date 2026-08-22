@@ -1474,25 +1474,25 @@
     },
     {
       "path": "{production:host:43.153.202.237:caddy-pay-publication,production:/opt/ynx-pay-web/releases/pay-web-5f4ce98e-release1,production:/opt/ynx-pay-web/incoming/pay-web-5f4ce98e-release1,production:/etc/caddy/ynx-chain.caddy,production:https://pay.ynxweb4.com/**,local:/tmp/ynx-pay-p0225-public-release-20260822T230500Z}",
-      "owner": "pay",
+      "owner": null,
       "branch": "codex/p0-pay-wallet-connectivity-20260821",
       "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/04-pay-p0-clean",
       "taskId": "P0-225",
       "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-      "status": "ACTIVE_SINGLE_USE",
+      "status": "CONSUMED_RELEASED_FAILED_CLOSED_BROWSER_UNSUPPORTED_NETWORKIDLE_WAIT_ROLLED_BACK",
       "acquiredAt": "2026-08-22T23:05:00Z",
       "expiresAt": "2026-08-22T23:45:00Z",
-      "releasedAt": null,
+      "releasedAt": "2026-08-22T23:05:41Z",
       "sourceCommit": "5f4ce98eb458550b976c17e3bc6d77cce4081a59",
       "sourceTree": "8f0c25c4d86eb22a564f3c7aeff9db6709a9b9f0",
       "evidenceCommit": "77d112898f18ce741fe4abcdeabd1eefeedd50ca",
       "artifactSha256": "ae552951d8e569f04aced60db69e3c11422910cc1098a6e7061b0e84005ad09e",
-      "productionMutationAllowed": true,
+      "productionMutationAllowed": false,
       "allowedExceptions": [
-        "one exact deploy command, one exact P0-225 collector and one non-sensitive browser gate only",
-        "on any failure after deploy invocation, one exact rollback command only",
-        "parent directories /opt/ynx-pay-web, releases and incoming must be preserved unchanged",
-        "no retry, account, signature, typed data, transaction or non-Pay mutation"
+        "P0-225 deploy, collector, browser and rollback quotas are consumed and nonreusable",
+        "exact rollback restored Caddy SHA df5f7ad7, old public baseline and unchanged Pay parent directory tuples",
+        "preserve local evidence archive SHA256 a247f0bfebc182f210bf4d2ddf7fb75f6a7902079c9e8fd5658164579c67f0ea",
+        "no further production, collector, browser, account, signature, typed data, transaction or non-Pay action is authorized under P0-225"
       ]
     }
   ]
