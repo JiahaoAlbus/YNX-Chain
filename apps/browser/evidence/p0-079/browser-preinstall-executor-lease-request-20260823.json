@@ -1,0 +1,177 @@
+{
+  "schemaVersion": "ynx-browser-preinstall-executor-lease-request/1",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-BROWSER-PREINSTALL-EXECUTOR-20260823",
+  "productId": "ynx-browser",
+  "owner": "browser",
+  "generatedAt": "2026-08-22T23:26:10Z",
+  "status": "REQUESTED_NOT_AUTHORIZED",
+  "supersedesBlocker": "BROWSER_PREINSTALL_ROLLBACK_EXECUTOR_COMMAND_OBJECTS_UNFROZEN",
+  "scope": {
+    "productPaths": [
+      "apps/browser/**"
+    ],
+    "platform": "macOS",
+    "candidateOnlyMutation": true,
+    "actualInstallExecuted": false,
+    "launchServicesMutationExecuted": false,
+    "applicationLaunchAllowed": false,
+    "schemeInvocationAllowed": false,
+    "accountRequestAllowed": false,
+    "signatureAllowed": false,
+    "transactionAllowed": false
+  },
+  "source": {
+    "branch": "codex/p0-browser-current-source-verification-20260821",
+    "commit": "6ace4556ceaa7f4d72f896a4ad4a5505014f030c",
+    "tree": "498aa15c87bc64e25d26f35c8eee4639b381d635",
+    "parent": "cab87ad24bbb8f513e6b0ffaeef8ce1b49d3d2cf",
+    "remoteReadbackExact": true
+  },
+  "candidate": {
+    "carrier": "/private/tmp/YNX-Browser-Testnet-Preview-ad890f0a2fe5-aaed312ef608.zip",
+    "carrierDevice": 16777239,
+    "carrierInode": 182668190,
+    "carrierMode": "0444",
+    "carrierBytes": 143157,
+    "carrierSha256": "a696f743a86518d8cc98d1a1335fd80fcbf3eed593491e53e7ed67589f019ba4",
+    "bundleId": "com.ynxweb4.browser.macos",
+    "scheme": "ynxbrowser",
+    "appName": "YNX Browser Testnet Preview.app",
+    "binaryRelativePath": "Contents/MacOS/YNXBrowserNative",
+    "binaryBytes": 463248,
+    "binarySha256": "aaed312ef608445504ba1cc21ff24d14bc5b4e48c2d6b505dc3cfb545daa0de5",
+    "isolatedTarget": "/Users/huangjiahao/Applications/YNX Browser Isolated/YNX Browser Testnet Preview-ad890f0a2fe5-aaed312ef608.app",
+    "isolatedTargetPrewriteRequired": "ABSENT"
+  },
+  "freshRollbackReadback": {
+    "capturedAt": "2026-08-22T23:26:10Z",
+    "probe": "ynxbrowser://com.ynxweb4.browser.macos/preinstall-resolution",
+    "handler": "/Users/huangjiahao/Applications/YNX Browser Preserved/YNX Browser Testnet Preview-preserved-95ddf592badb.app",
+    "handlerDeviceInode": "16777239:149132970",
+    "handlerMode": "0755",
+    "handlerOwner": 501,
+    "handlerGroup": 20,
+    "binary": "/Users/huangjiahao/Applications/YNX Browser Preserved/YNX Browser Testnet Preview-preserved-95ddf592badb.app/Contents/MacOS/YNXBrowserNative",
+    "binaryDeviceInode": "16777239:149776624",
+    "binaryBytes": 330896,
+    "binarySha256": "95ddf592badbdb3cdf4babc31c0febdd186e917d1b1ca81a4a400c2f8839d81e",
+    "activeOldPid": 93119,
+    "sameBundleIdCopyCount": 11,
+    "mustBeReReadBeforeWrite": true
+  },
+  "executor": {
+    "path": "apps/browser/scripts/browser-preinstall-executor.sh",
+    "absolutePath": "/Users/huangjiahao/Desktop/YNX Final Worktrees/52-browser-p0/apps/browser/scripts/browser-preinstall-executor.sh",
+    "bytes": 6596,
+    "sha256": "93160c379c58671ca7fdc7dab42daa9a2ef4bee0987093f695ade0456f0cb3b7",
+    "defaultProductionAuthorization": false,
+    "forwardCommand": {
+      "executable": "/bin/bash",
+      "argv": [
+        "/Users/huangjiahao/Desktop/YNX Final Worktrees/52-browser-p0/apps/browser/scripts/browser-preinstall-executor.sh",
+        "forward"
+      ],
+      "environment": {
+        "YNX_BROWSER_EXECUTION_MODE": "production",
+        "YNX_BROWSER_LEASE_AUTHORIZED": "P0_BROWSER_SINGLE_USE",
+        "YNX_BROWSER_CARRIER": "/private/tmp/YNX-Browser-Testnet-Preview-ad890f0a2fe5-aaed312ef608.zip",
+        "YNX_BROWSER_CARRIER_SHA256": "a696f743a86518d8cc98d1a1335fd80fcbf3eed593491e53e7ed67589f019ba4",
+        "YNX_BROWSER_ISOLATED_TARGET": "/Users/huangjiahao/Applications/YNX Browser Isolated/YNX Browser Testnet Preview-ad890f0a2fe5-aaed312ef608.app",
+        "YNX_BROWSER_CANDIDATE_BINARY_SHA256": "aaed312ef608445504ba1cc21ff24d14bc5b4e48c2d6b505dc3cfb545daa0de5",
+        "YNX_BROWSER_OLD_HANDLER": "/Users/huangjiahao/Applications/YNX Browser Preserved/YNX Browser Testnet Preview-preserved-95ddf592badb.app",
+        "YNX_BROWSER_OLD_HANDLER_DEV_INODE": "16777239:149132970",
+        "YNX_BROWSER_OLD_BINARY_SHA256": "95ddf592badbdb3cdf4babc31c0febdd186e917d1b1ca81a4a400c2f8839d81e",
+        "YNX_BROWSER_RECEIPT": "/private/tmp/ynx-browser-preinstall-6ace4556.receipt"
+      },
+      "maximumExecutions": 1
+    },
+    "rollbackCommand": {
+      "executable": "/bin/bash",
+      "argv": [
+        "/Users/huangjiahao/Desktop/YNX Final Worktrees/52-browser-p0/apps/browser/scripts/browser-preinstall-executor.sh",
+        "rollback"
+      ],
+      "environment": "IDENTICAL_TO_FORWARD_COMMAND",
+      "maximumExecutions": 1,
+      "onlyAfter": "FORWARD_SUCCESS_OR_FORWARD_POSTCOPY_FAILURE"
+    },
+    "forwardSemantics": [
+      "Require the isolated target absent and carrier identity exact",
+      "Extract into a private temporary directory and copy only the candidate to the isolated target",
+      "Record candidate app device/inode and re-read its binary SHA-256",
+      "Require no exact candidate executable process",
+      "Register only the candidate with LaunchServices",
+      "Resolve the scheme without opening it and require the candidate target",
+      "Never unregister, move, launch, terminate or delete an old application or PID"
+    ],
+    "rollbackSemantics": [
+      "Before any rollback mutation require receipt target, candidate app device/inode, candidate binary SHA-256 and no candidate process all exact",
+      "Unregister only the candidate target",
+      "Re-register only the exact old handler; never unregister it",
+      "Resolve the scheme without opening it and require the exact old handler and binary SHA-256",
+      "Delete only the candidate after rechecking candidate inode, binary SHA-256 and no candidate process",
+      "Never move, unregister, launch, terminate or delete any of the eleven old copies or old PID"
+    ],
+    "automaticForwardFailure": "If a post-copy forward step fails, unregister only the candidate if it was registered, re-register the exact old handler, and delete only an exact non-running candidate."
+  },
+  "actualShellFixture": {
+    "path": "apps/browser/test/preinstall-executor.test.js",
+    "bytes": 5581,
+    "sha256": "814d5815c26a2a30bc798662574d99925ac928f232ee3be4716d020d0f18353d",
+    "result": "PASS_3_OF_3",
+    "forwardRollbackOperationsExact": [
+      "REGISTER_CANDIDATE",
+      "UNREGISTER_CANDIDATE",
+      "REGISTER_EXACT_OLD_HANDLER"
+    ],
+    "oldCopySentinels": 11,
+    "oldCopySentinelsUnchanged": true,
+    "oldPidSentinelUnchanged": true,
+    "candidateProcessPresentRollbackRefusedBeforeMutation": true,
+    "productionWithoutLeaseRefused": true
+  },
+  "verification": {
+    "nodeTests": "PASS_21_OF_21",
+    "smoke": "PASS",
+    "sourceGate": "PASS",
+    "macosReproducibleThisSlice": "BLOCKED_LOCAL_COMMANDLINETOOLS_DUPLICATE_XCSPEC",
+    "productionMutationPerformed": false,
+    "launchServicesMutationPerformed": false,
+    "applicationLaunched": false,
+    "accountRequested": false,
+    "signatureRequested": false,
+    "transactionRequested": false
+  },
+  "leasePreconditions": [
+    "Re-read Central ownership and Browser-only path lock",
+    "Re-read the remote source, executor bytes/SHA, carrier device/inode/mode/bytes/SHA and candidate binary SHA",
+    "Require the isolated target absent",
+    "Re-enumerate all same-Bundle-ID copies and freeze path, app inode and binary SHA for all eleven",
+    "Re-resolve the current handler and require its path, device/inode and binary SHA exactly as frozen",
+    "Re-enumerate every YNXBrowserNative PID and require old PID 93119 remain outside all executable operations"
+  ],
+  "requestedSingleUseLease": {
+    "owner": "browser-macos-preinstall-owner",
+    "writableFilesystemPath": "/Users/huangjiahao/Applications/YNX Browser Isolated/YNX Browser Testnet Preview-ad890f0a2fe5-aaed312ef608.app",
+    "launchServicesRegistrationTarget": "CANDIDATE_ONLY",
+    "oldHandlerRegistrationAllowedOnlyForRollback": true,
+    "forwardMaximum": 1,
+    "rollbackMaximum": 1,
+    "leaseReusable": false
+  },
+  "truth": {
+    "forwardRollbackExecutorFrozen": true,
+    "literalCommandObjectsFrozen": true,
+    "actualShellFixturePassed": true,
+    "installedThisSlice": false,
+    "registeredThisSlice": false,
+    "launchedThisSlice": false,
+    "walletProviderRuntime": false,
+    "account": false,
+    "signature": false,
+    "transaction": false,
+    "productComplete": false
+  },
+  "singleExecutableBlocker": "Central must issue the new Browser-only single-use preinstall lease after a fresh exact re-read of the handler, eleven-copy snapshot and old PID set."
+}
