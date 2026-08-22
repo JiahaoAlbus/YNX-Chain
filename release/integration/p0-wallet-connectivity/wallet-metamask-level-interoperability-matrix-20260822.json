@@ -50,7 +50,7 @@
     "routerReceiptTree": "d06c3a90252d8af4f10a29129f542bc2e98a3726",
     "routerReceiptMatrixSha256": "80965c15f2a431b8c85eed57d1dc067b819fcf5fda2bc9435ff3cea9ec5ab701",
     "routerReceiptActivitySha256": "9a17c6bb63d1cfca359b34d185e0beb915302f4826b8c9966b106af759c16f26",
-    "acceptance": "P0-156,P0-157,P0-158,P0-159,P0-160,P0-161,P0-162,P0-163,P0-164,P0-165,P0-166,P0-167,P0-168,P0-169",
+    "acceptance": "P0-156,P0-157,P0-158,P0-159,P0-160,P0-161,P0-162,P0-163,P0-164,P0-165,P0-166,P0-167,P0-168,P0-169,P0-170",
     "receiptLoopClosed": true,
     "newCentralCheckpointRequiredForReceiptOnlyUpdate": false,
     "nextAcceptedUpdateRequires": "NEW_CAPABILITY_OR_DIRECT_INSTALLED_E2E_OR_SECURITY_SEMANTIC_CHANGE",
@@ -174,12 +174,12 @@
     {
       "id": "macos",
       "owner": "wallet-macos",
-      "latestAcceptedSource": "04124abf617cc22b151e2f1bc4e74131d5d30047",
-      "latestAcceptedTree": "c908692ade731112ca4fd9148b5ea66a10f79a14",
-      "latestEvidence": "3355c5804c851f30462d75722dac6a3114eefca8",
-      "latestEvidenceTree": "089fa812dd7562980ae6207b6e9aaf985aca2107",
-      "latestEvidenceBlob": "bc6fd063de88baa22ebbb325186be2b6db60578c",
-      "latestEvidenceSha256": "fcce1018fe1b6405dc31bc51e6a1c9b17523c3c7e4d4ec9c16ccf097273d7a2c",
+      "latestAcceptedSource": "b54c2b5e1c7d29398b8d3d2574da271a6d1de82e",
+      "latestAcceptedTree": "5ad1a37fc605bdf4e8f1d85b4b6f452d14df717d",
+      "latestEvidence": "4f5ab74142f08f6ac5d518f3a3bca9b13f00397f",
+      "latestEvidenceTree": "06f79ade1cb5ee7692259703ab11c314211eb1be",
+      "latestEvidenceBlob": "f6bea1fedb78e12cacddd628cb387fbd5f3d497e",
+      "latestEvidenceSha256": "3afaf6d33ea0fbb26a0c16d47249ec7338a670b7296e449c557783017eb7c9a0",
       "evidenceTier": "DIRECT_ISOLATED_HOSTED_INSTALL_FAIL_CLOSED_ONLY",
       "acceptedFacts": [
         "walletconnect-v2-strict-policy-source",
@@ -205,7 +205,11 @@
         "persisted-duplicate-pending-topic-fails-walletconnect-persistence-corrupt",
         "dapp-display-name-leading-trailing-whitespace-and-control-characters-rejected",
         "persisted-ambiguous-dapp-display-name-fails-walletconnect-persistence-corrupt",
-        "normal-unicode-dapp-display-names-remain-allowed"
+        "normal-unicode-dapp-display-names-remain-allowed",
+        "walletconnect-topic-is-canonical-64-lowercase-hex",
+        "uppercase-runtime-topic-is-invalid",
+        "persisted-uppercase-topic-fails-walletconnect-persistence-corrupt",
+        "case-variant-identity-and-uniqueness-bypass-rejected"
       ],
       "blockers": [
         "real-project-id-absent",

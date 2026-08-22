@@ -6266,6 +6266,26 @@
       "productsMigratedV2": "0/12",
       "parityComplete": false,
       "nextAction": "Require authoritative first-party runtime and real project ID, relay/pairing/session/DApp evidence; display-name ambiguity hardening alone does not complete parity."
+    },
+    {
+      "taskId": "P0-170",
+      "owner": "integration,wallet-ios,wallet-macos",
+      "status": "NATIVE_WC_CANONICAL_LOWERCASE_TOPIC_FAIL_CLOSED_ACCEPTED_SOURCE_HOSTED_ONLY",
+      "paths": [
+        "release/integration/p0-wallet-connectivity/acceptance/wallet-native-walletconnect-canonical-topic-p0170-20260822.json"
+      ],
+      "dependencies": ["P0-169"],
+      "source": "b54c2b5e1c7d29398b8d3d2574da271a6d1de82e",
+      "evidence": "4f5ab74142f08f6ac5d518f3a3bca9b13f00397f",
+      "executionLeaseIssued": false,
+      "distributionDispatched": false,
+      "canonicalLowercaseTopicFailClosed": true,
+      "caseVariantIdentityBypassRejected": true,
+      "realRelayRuntime": false,
+      "productsConnected": "0/12",
+      "productsMigratedV2": "0/12",
+      "parityComplete": false,
+      "nextAction": "Require authoritative first-party runtime and real project ID, relay/pairing/session/DApp evidence; canonical-topic hardening alone does not complete parity."
     }
   ]
 }
