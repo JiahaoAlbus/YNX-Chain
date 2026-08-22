@@ -20,7 +20,7 @@ declare module '*standard-wallet-connect-state.js' {
   export const STANDARD_WALLET_CONNECT_STATUS:Readonly<{CONNECTED:'connected'}>;
   export const STANDARD_WALLET_RPC_PROBE:Readonly<{DEGRADED:'degraded'}>;
   export const STANDARD_WALLET_RPC_PROBE_TRANSPORT:'accepted-cors-safe';
-  export type StandardWalletConnectState=Readonly<{status:string;account:string|null;chainId:string|null;chooserOpen:boolean;pendingIntent:string|null;rpcProbe:string;authority:string}>;
+  export type StandardWalletConnectState=Readonly<{status:string;providerKind:'metamask'|'ynx-wallet'|null;account:string|null;chainId:string|null;chooserOpen:boolean;pendingIntent:string|null;rpcProbe:string;authority:string}>;
   export function createStandardWalletConnectState():StandardWalletConnectState;
   export function reduceStandardWalletConnectState(current:StandardWalletConnectState,event:Record<string,unknown>):StandardWalletConnectState;
 }

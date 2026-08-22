@@ -12,19 +12,21 @@
     "vendoredArchiveSha256": "e57f40f4d8f8c3f6f163e561728fc28046fb08197900d3e2891fedcd2eba4aaf"
   },
   "implementation": {
-    "transport": "existing accepted DApp Connect EIP-1193 flow plus the accepted shared standard-wallet-connect-state reducer",
+    "transport": "repeated EIP-6963 discovery at initial, 250ms, 750ms, and 1500ms milestones plus ethereum#initialized and EIP-1193 providers/root fallbacks; no navigation or blank-tab launcher",
+    "providerIdentity": "strictly distinct MetaMask (io.metamask/isMetaMask) and YNX Wallet (com.ynx.wallet/isYNXWallet) choices, labels, logos, and connected details",
     "connectedOnlyWhen": "selected provider, approved non-empty 0x account, and provider eth_chainId=0x1917",
     "refresh": "prompt-free eth_accounts plus eth_chainId restore",
+    "lifecycle": "accountsChanged, chainChanged, and disconnect update the accepted shared reducer; explicit switch-account and disconnect/revoke controls are user-bound and never run in the background",
     "rpcProbe": "accepted-cors-safe annotation only; no direct browser RPC fetch and no CONNECTED reset on degradation",
     "privateService": "Pay Product Session remains independent and may be PRIVATE_SERVICE_DEGRADED without clearing Standard Wallet",
     "payments": "not enabled by this checkpoint; no payment approval, signature, broadcast, settlement, or receipt was created"
   },
   "verification": {
     "typecheck": "passed",
-    "unit": {"passed": 16, "failed": 0},
+    "unit": {"passed": 17, "failed": 0},
     "canonicalAuthorizeScan": "passed: 10 Pay source files",
     "bundleExport": "passed: Android, iOS, Web",
-    "webE2E": "blocked before execution because an existing process owned port 4173; it was not stopped or reused as current-source evidence"
+    "webE2E": "passed 2/2 for responsive keyboard operation and Arabic RTL without horizontal overflow; no Provider approval was triggered"
   },
   "truth": {
     "sourceBoundPublicRuntime": false,

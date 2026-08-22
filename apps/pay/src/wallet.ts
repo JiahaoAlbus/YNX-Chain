@@ -1,4 +1,4 @@
-import {DAppConnectError,StandardWalletConnection,classifyWalletError,discoverEIP6963} from '@ynx/dapp-connect-sdk';
+import {DAppConnectError,StandardWalletConnection,classifyWalletError} from '@ynx/dapp-connect-sdk';
 import {canonicalJSON} from '@ynx-chain/wallet-auth/src/canonical.js';
 import {launchCanonicalAuthorization} from '@ynx-chain/wallet-auth/src/authorize-launcher.js';
 import {parseAuthorizationCallbackURL,parseAuthorizationRequest} from '@ynx-chain/wallet-auth/src/protocol.js';
@@ -10,8 +10,11 @@ import {Linking,NativeModules,Platform} from 'react-native';
 import {assertPayConsumerContract} from './endpoint-manifest';
 import {payCanonicalAuthorizationRegistry} from './product-session-registry';
 
-type EIP1193Provider={request:(args:{method:string;params?:unknown[]})=>Promise<unknown>;isMetaMask?:boolean};
-export type PayWalletConnection={account:string;chainId:string;state:'STANDARD_CONNECTED';connectionState:ReturnType<typeof createStandardWalletConnectState>};
+export type EIP1193Provider={request:(args:{method:string;params?:unknown[]})=>Promise<unknown>;on?:(event:string,listener:(value?:unknown)=>void)=>void;removeListener?:(event:string,listener:(value?:unknown)=>void)=>void;providers?:EIP1193Provider[];isMetaMask?:boolean;isYNXWallet?:boolean};
+export type PayWalletProviderKind='metamask'|'ynx-wallet';
+export type PayWalletProvider=Readonly<{kind:PayWalletProviderKind;name:'MetaMask'|'YNX Wallet';rdns:string;provider:EIP1193Provider}>;
+export type PayWalletConnection={account:string;chainId:string;providerKind:PayWalletProviderKind;state:'STANDARD_CONNECTED';connectionState:ReturnType<typeof createStandardWalletConnectState>};
+export type PayWalletDisconnectResult=Readonly<{permissionsRevoked:boolean;localOnly:boolean;accountsRemaining:number}>;
 export type PayWalletAuthorization={requestId:string;status:'pending'|'approved'|'rejected'};
 export type PayPrivateSession={state:Readonly<Record<string,unknown>>;authorization?:PayWalletAuthorization;fallbackActions?:AuthorizationLaunchResult['fallbackActions']};
 type DeviceDescriptor={id:string;key:string};
@@ -19,8 +22,38 @@ type PaySecureDevice={descriptor:()=>Promise<DeviceDescriptor>;sign:(payload:str
 type PayAuthorizationCapabilities=Readonly<{device:DeviceDescriptor;resolver:(url:string)=>Promise<boolean>;openWallet:(url:string)=>Promise<Readonly<{opened:true}|{opened:false;code:string}>>}>;
 const CANONICAL_AUTHORIZATION_PENDING_KEY='ynx.pay.wallet-authorize.v1.pending';
 let standardWalletState=createStandardWalletConnectState();
+const discoveredProviders=new Map<EIP1193Provider,PayWalletProvider>();
 
 function runtimeProvider(){return (globalThis as unknown as {ethereum?:EIP1193Provider}).ethereum}
+function providerKind(provider:EIP1193Provider,rdns=''):PayWalletProviderKind|null{
+  if(provider.isMetaMask===true||rdns==='io.metamask')return 'metamask';
+  if(provider.isYNXWallet===true||rdns==='com.ynx.wallet')return 'ynx-wallet';
+  return null;
+}
+function rememberProvider(provider:EIP1193Provider|undefined,rdns='',name=''){
+  if(!provider)return null;const kind=providerKind(provider,rdns);if(!kind)return null;
+  const descriptor:PayWalletProvider={kind,name:kind==='metamask'?'MetaMask':'YNX Wallet',rdns:rdns||(kind==='metamask'?'io.metamask':'com.ynx.wallet'),provider};
+  discoveredProviders.set(provider,descriptor);return descriptor;
+}
+function readInjectedProviders(scope:unknown){
+  const root=(scope as {ethereum?:EIP1193Provider}).ethereum;
+  for(const provider of root?.providers??[])rememberProvider(provider);
+  rememberProvider(root);
+}
+function delay(ms:number){return new Promise(resolve=>setTimeout(resolve,ms))}
+
+/** Repeated EIP-6963 discovery covers late injection without navigating or opening a tab. */
+export async function discoverPayWalletProviders(scope:unknown=globalThis,milestones=[0,250,750,1500]):Promise<PayWalletProvider[]>{
+  const target=scope as {addEventListener?:Function;removeEventListener?:Function;dispatchEvent?:Function;ethereum?:EIP1193Provider};
+  const announce=(event:unknown)=>{const detail=(event as {detail?:{info?:{rdns?:string;name?:string};provider?:EIP1193Provider}}).detail;if(detail?.provider)rememberProvider(detail.provider,detail.info?.rdns,detail.info?.name)};
+  const initialized=()=>readInjectedProviders(target);
+  target.addEventListener?.('eip6963:announceProvider',announce);target.addEventListener?.('ethereum#initialized',initialized);
+  try{
+    let previous=0;
+    for(const point of milestones){await delay(Math.max(0,point-previous));previous=point;readInjectedProviders(target);try{target.dispatchEvent?.(typeof Event==='function'?new Event('eip6963:requestProvider'):{type:'eip6963:requestProvider'})}catch{} }
+    readInjectedProviders(target);return [...discoveredProviders.values()];
+  }finally{target.removeEventListener?.('eip6963:announceProvider',announce);target.removeEventListener?.('ethereum#initialized',initialized)}
+}
 function mappedCode(code:string){
   if(['PROVIDER_REQUIRED','WALLET_UNAVAILABLE','WALLET_DISCONNECTED'].includes(code))return 'PROVIDER_UNAVAILABLE';
   if(['WRONG_NETWORK','WALLET_CHAIN_DISCONNECTED'].includes(code))return 'WRONG_CHAIN';
@@ -49,14 +82,45 @@ export async function connectStandardWallet(provider:EIP1193Provider|undefined=r
     standardTransition({type:'ACCOUNT_APPROVED',account});
     const completed=standardTransition({type:'CHAIN_CONFIRMED',chainId});
     if(completed.status!==STANDARD_WALLET_CONNECT_STATUS.CONNECTED)throw new Error(`WRONG_CHAIN: Pay requires YNX Testnet ${manifest.evmChainHex}.`);
-    return {account:completed.account!,chainId:completed.chainId!,state:'STANDARD_CONNECTED',connectionState:completed};
+    return {account:completed.account!,chainId:completed.chainId!,providerKind,state:'STANDARD_CONNECTED',connectionState:completed};
   }catch(error){try{standardTransition({type:'FAIL',code:standardStateCode(error)})}catch{}throw payConnectionError(error)}
 }
 
 /** Refresh is prompt-free: eth_accounts and eth_chainId restore or invalidate only the Standard Wallet state. */
 export async function restoreStandardWallet(provider:EIP1193Provider|undefined=runtimeProvider(),providerKind:'metamask'|'ynx-wallet'=provider?.isMetaMask?'metamask':'ynx-wallet'):Promise<PayWalletConnection|null>{
   if(!provider)return null;
-  try{const [accounts,chainId]=await Promise.all([provider.request({method:'eth_accounts'}),provider.request({method:'eth_chainId'})]);const restored=standardTransition({type:'RESTORE',providerKind,accounts,chainId});return restored.status===STANDARD_WALLET_CONNECT_STATUS.CONNECTED?{account:restored.account!,chainId:restored.chainId!,state:'STANDARD_CONNECTED',connectionState:restored}:null}catch{return null}
+  try{const [accounts,chainId]=await Promise.all([provider.request({method:'eth_accounts'}),provider.request({method:'eth_chainId'})]);const restored=standardTransition({type:'RESTORE',providerKind,accounts,chainId});return restored.status===STANDARD_WALLET_CONNECT_STATUS.CONNECTED?{account:restored.account!,chainId:restored.chainId!,providerKind,state:'STANDARD_CONNECTED',connectionState:restored}:null}catch{return null}
+}
+
+/** Restores all known providers prompt-free and returns only an exact 0x1917 connection. */
+export async function restoreDiscoveredPayWallet(scope:unknown=globalThis){
+  const providers=await discoverPayWalletProviders(scope,[0,250,750,1500]);
+  for(const item of providers){const connection=await restoreStandardWallet(item.provider,item.kind);if(connection)return {connection,provider:item}}
+  return null;
+}
+
+/** Provider events are the only background state updates; no account prompt is issued. */
+export function observePayWallet(provider:EIP1193Provider,onConnection:(connection:PayWalletConnection|null)=>void){
+  const accountsChanged=(value?:unknown)=>{try{const next=standardTransition({type:'ACCOUNTS_CHANGED',accounts:value});onConnection(next.status===STANDARD_WALLET_CONNECT_STATUS.CONNECTED?{account:next.account!,chainId:next.chainId!,providerKind:next.providerKind as PayWalletProviderKind,state:'STANDARD_CONNECTED',connectionState:next}:null)}catch{onConnection(null)}};
+  const chainChanged=(value?:unknown)=>{try{const next=standardTransition({type:'CHAIN_CHANGED',chainId:value});onConnection(next.status===STANDARD_WALLET_CONNECT_STATUS.CONNECTED?{account:next.account!,chainId:next.chainId!,providerKind:next.providerKind as PayWalletProviderKind,state:'STANDARD_CONNECTED',connectionState:next}:null)}catch{onConnection(null)}};
+  const disconnected=()=>{standardTransition({type:'PROVIDER_DISCONNECT'});onConnection(null)};
+  provider.on?.('accountsChanged',accountsChanged);provider.on?.('chainChanged',chainChanged);provider.on?.('disconnect',disconnected);
+  return()=>{provider.removeListener?.('accountsChanged',accountsChanged);provider.removeListener?.('chainChanged',chainChanged);provider.removeListener?.('disconnect',disconnected)};
+}
+
+/** Explicit user action. Unsupported permission revocation is reported as local-only. */
+export async function disconnectStandardWallet(provider:EIP1193Provider):Promise<PayWalletDisconnectResult>{
+  let permissionsRevoked=false,localOnly=false;
+  try{await provider.request({method:'wallet_revokePermissions',params:[{eth_accounts:{}}]});permissionsRevoked=true}catch(error){const code=(error as {code?:unknown})?.code;if(code===-32601||code===4200)localOnly=true;else throw payConnectionError(error)}
+  const accounts=await provider.request({method:'eth_accounts'}).catch(()=>[]) as unknown;
+  const remaining=Array.isArray(accounts)?accounts.length:0;standardTransition({type:'DISCONNECT'});
+  return {permissionsRevoked,localOnly,accountsRemaining:remaining};
+}
+
+/** Explicit switch-account action; callers must present the Wallet confirmation boundary. */
+export async function switchStandardWalletAccount(provider:EIP1193Provider,kind:PayWalletProviderKind){
+  try{await provider.request({method:'wallet_requestPermissions',params:[{eth_accounts:{}}]})}catch(error){const code=(error as {code?:unknown})?.code;if(code!==-32601&&code!==4200)throw payConnectionError(error)}
+  return connectStandardWallet(provider,kind);
 }
 
 /** A CORS-safe observer may annotate connection health; it never decides connectivity or opens a Wallet. */
@@ -64,15 +128,11 @@ export function reportPayRpcProbe(status:'ready'|'degraded',code='RPC_UNAVAILABL
 
 /** MetaMask discovery remains strictly EIP-6963/EIP-1193 and never opens YNX Wallet. */
 export async function connectMetaMaskWallet(provider?:EIP1193Provider):Promise<PayWalletConnection>{
-  if(provider)return connectStandardWallet(provider);
-  const scope=globalThis as unknown as {addEventListener?:Function;removeEventListener?:Function;dispatchEvent?:Function};
-  if(scope.addEventListener&&scope.removeEventListener&&scope.dispatchEvent){
-    const discovered=await discoverEIP6963(scope as {addEventListener:Function;removeEventListener:Function;dispatchEvent:Function},{timeoutMs:250}) as Array<{info?:{rdns?:string};provider?:EIP1193Provider}>;
-    const metaMask=discovered.find(item=>item.info?.rdns==='io.metamask'||item.provider?.isMetaMask)?.provider;
-    if(metaMask)return connectStandardWallet(metaMask);
-  }
+  if(provider)return connectStandardWallet(provider,'metamask');
+  const metaMask=(await discoverPayWalletProviders()).find(item=>item.kind==='metamask')?.provider;
+  if(metaMask)return connectStandardWallet(metaMask,'metamask');
   const injected=runtimeProvider();
-  if(injected?.isMetaMask)return connectStandardWallet(injected);
+  if(injected?.isMetaMask)return connectStandardWallet(injected,'metamask');
   throw new Error('METAMASK_NOT_FOUND: No EIP-6963 or EIP-1193 MetaMask provider is available.');
 }
 

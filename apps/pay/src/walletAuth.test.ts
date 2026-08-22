@@ -13,10 +13,29 @@ test('Pay keeps payment quotes preview-bound while its product endpoint is pendi
   assert.match(wallet,/launchCanonicalAuthorization/);
   assert.match(wallet,/parseAuthorizationCallbackURL/);
   assert.match(wallet,/connectMetaMaskWallet/);
+  assert.match(wallet,/discoverPayWalletProviders/);
+  assert.match(wallet,/\[0,250,750,1500\]/);
+  assert.match(wallet,/ethereum#initialized/);
+  assert.match(wallet,/wallet_revokePermissions/);
+  assert.match(wallet,/wallet_requestPermissions/);
+  assert.match(wallet,/ACCOUNTS_CHANGED/);
+  assert.match(wallet,/CHAIN_CHANGED/);
+  assert.match(wallet,/PROVIDER_DISCONNECT/);
+  assert.match(wallet,/isYNXWallet/);
   assert.match(wallet,/PRIVATE_SERVICE_DEGRADED/);
   assert.doesNotMatch(wallet,/createGatewayChallenge|signGatewayChallenge|createProductSessionProof/);
   assert.doesNotMatch(wallet,/(?:Linking\.)?openURL\(\s*['"`]ynxwallet:\/\/authorize/);
   assert.doesNotMatch(wallet,/(?:window\.open|<iframe|document\.location\s*=|location\.href\s*=).*ynxwallet:\/\/authorize/);
+});
+
+test('Pay renders distinct YNX Wallet and MetaMask connection details without browser launchers',()=>{
+  const app=readFileSync(new URL('../App.tsx',import.meta.url),'utf8');
+  assert.match(app,/MetaMask fox logo/);
+  assert.match(app,/YNX Wallet logo/);
+  assert.match(app,/Connection details/);
+  assert.match(app,/Switch account/);
+  assert.match(app,/Disconnect wallet/);
+  assert.doesNotMatch(app,/window\.open|ynxwallet:\/\/authorize/);
 });
 
 test('Pay consumes the accepted bundled manifest and leaves its product endpoint unactivated',()=>{
