@@ -1,0 +1,109 @@
+{
+  "schemaVersion": 1,
+  "owner": "Wallet Web/PWA/Extensions",
+  "generatedAt": "2026-08-22T11:28:50Z",
+  "supersedesHostedLifecycleFailure": {
+    "runId": 32568870997,
+    "failure": "The source-bound candidate rendered normally, but its service worker remained without an active registration or controller while ynx-wallet-web-v8 and ynx-wallet-web-v11 caches coexisted."
+  },
+  "source": {
+    "implementationCommit": "7df37ca32a643a403bd23a7f555354261f789441",
+    "implementationTree": "0e5ae5a485ce6400fc1d5d4b1a580d8163da9299",
+    "artifactEvidenceCommit": "9591a0cf6f97b93ba49f0c0bfdda22f77cde438a",
+    "artifactEvidenceTree": "104d049282647543e69ad0102781fabd0f6ddf93",
+    "rootCause": "The worker activate handler awaited client.navigate after clients.claim. Navigation waited for activation while activation waited for navigation, leaving the worker activating and the page uncontrolled.",
+    "repair": "The worker now proves a complete v11 integrity cache before activation, claims clients without navigating them, and deletes obsolete caches only after integrity is ready. The page performs at most one marker-bound reload and requires an activated v11 worker, a v11 controller, and a stable v11-only cache before declaring PWA ready."
+  },
+  "gates": {
+    "sourceTests": "117/117",
+    "packageVerification": "3/3",
+    "seededSameOriginV8Profile": true,
+    "v11InstalledActivatedClaimed": true,
+    "v8DeletedOnlyAfterV11IntegrityReady": true,
+    "firstLaunchBoundedReload": true,
+    "secondProcessLaunchV11Only": true,
+    "tamperRejected": true,
+    "rollbackRejected": true,
+    "recoveryPassed": true,
+    "providerConnected": false,
+    "accountAuthorized": false,
+    "messageSigned": false,
+    "transactionSubmitted": false
+  },
+  "runtimeEvidence": {
+    "class": "Playwright bundled Chromium-compatible persistent same-origin profile; not branded Chrome/Edge and not an installed PWA",
+    "firstLaunchDocumentRequests": 3,
+    "controlledVersion": "ynx-wallet-web-v11",
+    "cacheNames": ["ynx-wallet-web-v11"],
+    "activeRegistrationState": "activated",
+    "pwaState": "ready",
+    "secondControlledVersion": "ynx-wallet-web-v11",
+    "tamperStatus": 503,
+    "rollbackStatus": 503
+  },
+  "artifacts": [
+    {
+      "name": "ynx-wallet-web-pwa-0.1.0.zip",
+      "bytes": 286356,
+      "sha256": "4e460a1b158d6664b930b9794fdeffc5918b83ad58a27095c47e05323bea713d",
+      "minimumOS": "modern browser with Service Worker and Web Crypto support",
+      "signingClass": "unsigned-web-bundle"
+    },
+    {
+      "name": "ynx-wallet-chrome-edge-0.1.0.zip",
+      "bytes": 469149,
+      "sha256": "5eb083449c2cc8e9c02db0345d5f078f9d8c12e9bdc13d029ce2ff76c5ead26e",
+      "minimumOS": "Chrome 120 / Edge 120",
+      "signingClass": "unsigned-unpacked-extension"
+    },
+    {
+      "name": "ynx-wallet-firefox-0.1.0.zip",
+      "bytes": 469188,
+      "sha256": "2ee0e60ecf69e93a74b7283689c3b112495f84ee2f4581b2208e0452218554d1",
+      "minimumOS": "Firefox 128",
+      "signingClass": "unsigned-unpacked-extension"
+    }
+  ],
+  "candidate": {
+    "deploymentId": "dpl_EhSHsjrfQ17dzuTegLCqGvELeBte",
+    "immutableUrl": "https://wallet-3re0s0lx4-jiahaoalbus-projects.vercel.app",
+    "projectId": "prj_K4emrdkST7sdb0K9mhmLM0QZh0I3",
+    "status": "READY",
+    "target": "production",
+    "officialAliasMutated": false,
+    "localDeploymentFileSetSha256": "da4ef27b9633cf1825446c28fe3dc955c3c5fe725e2a60839dab508b8f8e5fe3",
+    "expectedResources": {
+      "/": {"bytes": 821, "sha256": "2df10866a35b074a6fb366439197646dd4e979bc83bdae3aba0ba6db3802986c"},
+      "/build-identity.json": {"bytes": 267, "sha256": "caf151b49ea9c8ae55ca070aa05b2fda90ab2e7f5f6cb73dd4b9bc3c59ee1377", "sourceCommit": "7df37ca32a643a403bd23a7f555354261f789441", "cacheControlMustContain": "no-store"},
+      "/manifest.webmanifest": {"bytes": 632, "sha256": "d2d131267483327ece949c5b8402c2dd80352bb15e791ea5571c879682ceba92"},
+      "/sw.js": {"bytes": 4862, "sha256": "cf8a043c2159842ce4c63213477a4f62e931fb1ca08061d6fb92b833a48af1d3", "cacheControlMustContain": "no-store"}
+    },
+    "directRawHeadersProved": false,
+    "hostedChromiumLifecycleProved": false,
+    "sourceBoundOfficialPublic": false
+  },
+  "officialAliasReadback": {
+    "mutatedByThisSlice": false,
+    "identityStatus": 200,
+    "identityBytes": 250,
+    "identitySha256": "b2f9b275a4295c6f1cd230daf2b39519a81c4cb3ecf361e820ace9195adbbf9b",
+    "sourceCommit": "uncommitted-source-tree",
+    "vercelRequestId": "sin1::wgqzl-1787398185119-41ab9c0426e1",
+    "currentSourceBoundPublic": false
+  },
+  "singleExecutableBlocker": {
+    "request": "Issue one wholly new bounded hosted Chromium immutable-candidate preflight lease for the exact candidate and current owner-branch parent.",
+    "hardcodedUrl": "https://wallet-3re0s0lx4-jiahaoalbus-projects.vercel.app",
+    "requiredEvidence": "Four HTTP 200 raw resources with complete headers/bodies/bytes/SHA and exact source identity; build-identity.json and sw.js Cache-Control contain no-store; persistent hosted Chromium seeded with only the same-origin v8 cache reaches activated v11 registration, v11 controller, v11-only cache after at most one product-controlled reload, then remains v11-only after a full browser process close and second launch; normal English Wallet UI, one tab, stable URL, no blank page, console0, no integrity error, DOM/screenshots/registration/cache/controller logs.",
+    "artifactIsolation": "Use a new empty RUNNER_TEMP output directory and upload only files created by that run.",
+    "forbidden": "No retry, dispatch, secrets, inputs, dynamic URL, alias, product source/UI/deployment, extension install, account, signing or transaction action."
+  },
+  "releaseGates": {
+    "officialPublic": false,
+    "installedProvider": false,
+    "accountAuthorized": false,
+    "messageSigned": false,
+    "transactionSubmitted": false,
+    "productsConnected": "0/12"
+  }
+}
