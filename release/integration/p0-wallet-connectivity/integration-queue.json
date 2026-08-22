@@ -6355,6 +6355,53 @@
       "productsMigratedV2": "0/12",
       "parityComplete": false,
       "nextAction": "Wake every platform owner. Accept only direct installed E2E or one executable external blocker; issue a path-scoped lease only after its platform prerequisites and user-sensitive confirmation gates pass."
+    },
+    {
+      "taskId": "P0-174",
+      "owner": "integration,financial-apps",
+      "status": "NO_GO_PRODUCTION_STATE_ABSENCE_ROLLBACK_UNBOUND",
+      "paths": [
+        "release/integration/p0-wallet-connectivity/acceptance/finance-production-state-absence-nogo-p0174-20260822.json"
+      ],
+      "dependencies": ["P0-146"],
+      "request": "50829559012300324a11dc26696233dec3184f14",
+      "executionLeaseIssued": false,
+      "p0141Reusable": false,
+      "productsConnected": "0/12",
+      "nextAction": "Return one corrected rollback contract binding absent-state cold start, pre-absence, the exact candidate-created state inode and stopped exact-inode deletion that restores absence."
+    },
+    {
+      "taskId": "P0-175",
+      "owner": "website",
+      "status": "ACTIVE_SINGLE_USE_PRECHECK_FIRST_ROLLBACK_BOUND",
+      "paths": [
+        "release/integration/p0-wallet-connectivity/leases/wallet-public-identity-routing-p0175-20260822.json",
+        "vercel:wallet.ynxweb4.com"
+      ],
+      "dependencies": ["P0-173"],
+      "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-public-identity-routing-20260822T074225Z",
+      "expiresAt": "2026-08-22T08:12:25Z",
+      "currentDeployment": "dpl_Got2m9m84Sc3QDsrH8yu51W93JAe",
+      "candidateDeployment": "dpl_BMmwcxQj98uZdhumQLgmZ5bX5YZQ",
+      "candidateSource": "a9653f9f73eb79f77b45f04c845c4f56c012ab4b",
+      "precheckRequired": true,
+      "rollbackRequired": true,
+      "currentSourceBoundPublic": false,
+      "productsConnected": "0/12",
+      "nextAction": "Website owner must preflight the four candidate paths, switch only the Wallet official alias, then prove four official-domain responses plus a clean-browser page or immediately roll back."
+    },
+    {
+      "taskId": "P0-176",
+      "owner": "integration,wallet-ios,wallet-macos",
+      "status": "WAITING_EXTERNAL_PROTECTED_INPUTS_AND_HEAVY_SLOT",
+      "paths": [
+        "release/integration/p0-wallet-connectivity/operator-packages/native-walletconnect-runtime-p0176-20260822.json"
+      ],
+      "dependencies": ["P0-173", "P0-175"],
+      "executionLeaseIssued": false,
+      "blocker": "PROTECTED_NATIVE_WALLETCONNECT_RUNTIME_PACKAGE_UNAVAILABLE",
+      "productsConnected": "0/12",
+      "nextAction": "After P0-175 releases Heavy, require protected project ID/app group, eligible signed targets, approved existing-signer test account, transaction policy and named first-party plus Uniswap/OpenSea/Safe confirmations before issuing one path-scoped native runtime lease."
     }
   ]
 }

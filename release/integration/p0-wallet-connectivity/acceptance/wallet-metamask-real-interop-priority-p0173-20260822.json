@@ -64,6 +64,26 @@
     "acceptedSemantic": "Expired approve, resolve and reject entries are durably purged before WALLETCONNECT_REQUEST_EXPIRED; callback remains false.",
     "countsTowardInstalledParity": false
   },
+  "directE2EExecutionPlan": {
+    "routerCommit": "875be208e8a7ddb60345d55b93fc299949664e5c",
+    "routerTree": "3499ddfbe2a4bb08cbbcaef8c71b911aca51dde4",
+    "path": "release/integration/wallet-standard-wallet-e2e-execution-plan-p0-20260822.json",
+    "blob": "360704b565b592de3d7e6e63a43ba1922644ae29",
+    "sha256": "c5a615c9d5c34f25d9810751d816dc6709ca6de70aafea0549224de162c33652",
+    "verifierBlob": "a005b6e583f0fedb69ddecc8529b2c3d5e170628",
+    "independentVerifierResult": "PASS_12_REGISTERED_PRODUCTS",
+    "countsTowardCompletion": false
+  },
+  "nativeWalletConnectExecutableBlocker": {
+    "code": "PROTECTED_NATIVE_WALLETCONNECT_RUNTIME_PACKAGE_UNAVAILABLE",
+    "ownerCommit": "65dffee2f35ec9dc254f8c2ac8c465a353bc1861",
+    "ownerTree": "9af8bc76caa2dc963ac484d981e25a504efe7ed5",
+    "path": "release/integration/wallet-native-walletconnect-runtime-executable-blocker-p0-20260822.json",
+    "blob": "51857585317e6dbbe3629bae2d7e68fee996ee69",
+    "sha256": "0c103cd1145edc07d9086f84a6f3548c4887d7438b1f473940217418017161ef",
+    "executionLeaseIssued": false,
+    "realRuntime": false
+  },
   "platformDispatch": [
     {
       "platform": "web-extension",
@@ -80,8 +100,8 @@
     {
       "platform": "ios-macos",
       "ownerThread": "019ffaf5-3c12-7830-8196-3748a053c876",
-      "status": "WAITING_REAL_PROJECT_ID_RELAY_AND_SIGNED_INSTALLED_TARGET",
-      "nextAction": "Stop micro-hardening as the primary track; freeze exact external prerequisites and proceed to real WalletConnect relay/pairing/DApp runtime only when credentials and an eligible installed target are available."
+      "status": "PROTECTED_NATIVE_WALLETCONNECT_RUNTIME_PACKAGE_UNAVAILABLE",
+      "nextAction": "Obtain one protected operator package: path-scoped authority, configured project ID and signing-authorized app group, approved test account through the existing signer, transaction policy, eligible signed iOS/macOS targets and named first-party plus Uniswap/OpenSea/Safe confirmations. No secret value belongs in control-plane evidence."
     },
     {
       "platform": "desktop",

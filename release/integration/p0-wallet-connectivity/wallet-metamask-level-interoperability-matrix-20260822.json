@@ -19,6 +19,14 @@
     "sharedProviderSource": "98c6d5d784d212df8981a53b17118a511e246ad2",
     "sharedProviderTree": "51a60a362d4ad5dd748bcdefb101f71b1d9e0cee",
     "sharedProviderEvidence": "c3ab255c32bdeb9c8e056882c315f8ad43c29c7f",
+    "directE2EExecutionPlan": {
+      "commit": "875be208e8a7ddb60345d55b93fc299949664e5c",
+      "tree": "3499ddfbe2a4bb08cbbcaef8c71b911aca51dde4",
+      "blob": "360704b565b592de3d7e6e63a43ba1922644ae29",
+      "sha256": "c5a615c9d5c34f25d9810751d816dc6709ca6de70aafea0549224de162c33652",
+      "verifiedProducts": 12,
+      "countsTowardCompletion": false
+    },
     "standardInteropConformance": {
       "commit": "9ab9cd8c8deac8563acff9ffd7e277553e20383e",
       "tree": "577133f121f49a7c832cc12bc6fb2afb1258b81b",
@@ -30,6 +38,7 @@
     }
   },
   "consumerEnforcement": {
+    "routerE2EPlanCheckpoint": "875be208e8a7ddb60345d55b93fc299949664e5c",
     "routerCheckpoint": "1e4958c878ba0bdb0152b9d1cbb04a25e81b68bb",
     "routerTree": "ecb30a58f681ba72f8c5a2a4c01a6fbbc2363142",
     "routerBaseCheckpoint": "4025e1ffe5849ba9e394868a90c2a0c195aceed4",
@@ -172,6 +181,8 @@
         "main-registration-review-pending",
         "distribution-not-authorized"
       ],
+      "executableBlocker": "PROTECTED_NATIVE_WALLETCONNECT_RUNTIME_PACKAGE_UNAVAILABLE",
+      "executableBlockerEvidence": "65dffee2f35ec9dc254f8c2ac8c465a353bc1861",
       "countsTowardCompletion": false
     },
     {

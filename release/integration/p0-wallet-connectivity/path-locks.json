@@ -1281,12 +1281,33 @@
       "worktree": null,
       "taskId": "P0-149",
       "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-      "status": "WAITING_EXTERNAL_CONNECTOR_QUEUED_AFTER_NATIVE_REGISTRATION",
+      "status": "WAITING_EXTERNAL_CONNECTOR_AND_ACTIVE_P0011_LOCK",
       "productionMutationAllowed": false,
-      "blocker": "SHOP_OWNER_MCP_-32603_NO_WORKSPACE_ACCESS",
+      "blocker": "SHOP_OWNER_MCP_-32603_NO_WORKSPACE_ACCESS; authoritative apps/shop lock P0-011 remains ACTIVE under integration at codex/p0-shop-android-retirement-20260820 worktree 09-shop",
+      "blockingLockTaskId": "P0-011",
+      "blockingLockOwner": "integration",
+      "blockingLockBranch": "codex/p0-shop-android-retirement-20260820",
+      "blockingLockWorktree": "09-shop",
       "acceptedSharedSource": "98c6d5d784d212df8981a53b17118a511e246ad2",
       "allowedExceptions": [
         "Integration may take a minimal cross-owner patch only after current native main-registration transaction closes and a fresh Shop writable-lock audit passes"
+      ]
+    },
+    {
+      "path": "vercel:wallet.ynxweb4.com",
+      "owner": "website",
+      "branch": "codex/website-wallet-public-identity-routing-20260822",
+      "worktree": "/Users/huangjiahao/Desktop/ynx-web4-website-new",
+      "taskId": "P0-175",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "ACTIVE_SINGLE_USE_PRECHECK_FIRST_ROLLBACK_BOUND",
+      "acquiredAt": "2026-08-22T07:42:25Z",
+      "expiresAt": "2026-08-22T08:12:25Z",
+      "productionMutationAllowed": true,
+      "allowedExceptions": [
+        "preflight the exact candidate immutable URL without mutation",
+        "change only the wallet.ynxweb4.com alias after all preflight gates pass",
+        "restore only the exact old Wallet deployment alias on any failure"
       ]
     }
   ]
