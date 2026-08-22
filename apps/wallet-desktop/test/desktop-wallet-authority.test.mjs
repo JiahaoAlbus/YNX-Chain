@@ -168,6 +168,11 @@ test("pending approvals expire, are bounded, and cannot survive permission revoc
   await authority.request({ origin: ORIGIN, method: "wallet_revokePermissions", params: [{ eth_accounts: {} }] });
   await assert.rejects(authority.approve(revoked.request.id), error => error.data.code === "UNKNOWN_OR_EXPIRED_REQUEST");
   await authority.approveOrigin(ORIGIN);
+  const transportExpired = await authority.request({ origin: ORIGIN, method: "personal_sign", params: ["0x02", account] });
+  assert.equal(authority.expire(transportExpired.request.id), true);
+  assert.equal(authority.expire(transportExpired.request.id), false);
+  await assert.rejects(authority.approve(transportExpired.request.id), error => error.data.code === "UNKNOWN_OR_EXPIRED_REQUEST");
+  await authority.approveOrigin(ORIGIN);
   for (let count = 0; count < 8; count += 1) await authority.request({ origin: ORIGIN, method: "personal_sign", params: ["0x03", account] });
   await assert.rejects(authority.request({ origin: ORIGIN, method: "personal_sign", params: ["0x04", account] }), error => error.data.code === "PENDING_REQUEST_LIMIT");
 });

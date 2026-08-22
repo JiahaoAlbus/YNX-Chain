@@ -237,7 +237,7 @@ app.whenReady().then(async () => {
           window.webContents.send("wallet:walletconnect-session-changed", { type: "deleted", topic: event.topic, origin: event.origin, localPermissionRevoked: Boolean(event.origin) });
         },
         onSessionRestore: session => window.webContents.send("wallet:walletconnect-session-changed", { type: "restored", topic: session.topic, origin: session.origin }),
-        onRequestExpire: event => window.webContents.send("wallet:provider-request-expired", { id: String(event.id) })
+        onRequestExpire: event => expireWalletConnectRequest(event.id, window)
       });
       window.webContents.send("wallet:walletconnect-status-result", walletConnect.status());
     } catch (error) {
@@ -258,6 +258,17 @@ async function handleWalletConnectRequest(event) {
   } catch (error) {
     await walletConnect.respond(topic, id, { status: "error", code: Number.isInteger(error?.code) ? error.code : 4200, message: error?.message ?? "Provider request failed" });
   }
+}
+function expireWalletConnectRequest(jsonRpcId, window = mainWindow) {
+  const expired = [];
+  for (const [requestId, transport] of walletConnectRequests) {
+    if (String(transport.jsonRpcId) !== String(jsonRpcId)) continue;
+    walletConnectRequests.delete(requestId);
+    walletAuthority.expire(requestId);
+    expired.push(requestId);
+  }
+  for (const requestId of expired) window?.webContents.send("wallet:provider-request-expired", { id: requestId, code: "WALLETCONNECT_REQUEST_EXPIRED" });
+  return Object.freeze({ jsonRpcId: String(jsonRpcId), expiredRequestIds: Object.freeze(expired) });
 }
 function sanitizeProposal(proposal) {
   const metadata = proposal?.params?.proposer?.metadata ?? {};

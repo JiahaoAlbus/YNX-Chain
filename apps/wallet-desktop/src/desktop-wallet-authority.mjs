@@ -110,6 +110,8 @@ export class DesktopWalletAuthority {
     throw providerError(4001, "USER_REJECTED_REQUEST", "User rejected the request");
   }
 
+  expire(id) { return typeof id === "string" && this.pending.delete(id); }
+
   pendingRequests() { return Object.freeze([...this.pending.values()]); }
 
   async #approvedAccounts(origin, status) {

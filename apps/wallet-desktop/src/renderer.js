@@ -207,6 +207,12 @@ window.ynxWallet.onProviderRequest(request => {
   document.querySelector("#provider-origin").textContent = request.origin;
   document.querySelector("#provider-detail").textContent = JSON.stringify(request.review, null, 2);
 });
+window.ynxWallet.onProviderRequestExpired(event => {
+  if (activeProviderRequest?.id !== event.id) return;
+  activeProviderRequest = null;
+  providerPanel.hidden = true;
+  walletConnectDetail.textContent = `${event.code}: the DApp request expired without approval or signing.`;
+});
 async function providerAction(action) {
   if (!activeProviderRequest) return;
   const result = await window.ynxWallet.providerAction(activeProviderRequest.id, action);
