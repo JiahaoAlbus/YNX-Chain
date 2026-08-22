@@ -6558,6 +6558,29 @@
       "currentSourceBoundPublic": false,
       "productsConnected": "0/12",
       "nextAction": "Do not reuse P0-182. Repair candidate no-store publication and isolate hosted evidence output, then require independent review before any wholly new hosted Chromium lease."
+    },
+    {
+      "taskId": "P0-183",
+      "owner": "integration,wallet-web,website",
+      "status": "ACTIVE_SINGLE_USE_V11_NO_STORE_HOSTED_CHROMIUM_PREFLIGHT_NO_ALIAS",
+      "paths": [
+        "release/integration/p0-wallet-connectivity/leases/wallet-web-v11-no-store-hosted-browser-preflight-p0183-20260822.json",
+        ".github/workflows/wallet-web-public-preflight-p0.yml",
+        "vercel-project:prj_K4emrdkST7sdb0K9mhmLM0QZh0I3:ssoProtection"
+      ],
+      "dependencies": ["P0-182"],
+      "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-web-v11-no-store-hosted-browser-preflight-20260822T095800Z",
+      "expiresAt": "2026-08-22T10:28:00Z",
+      "source": "abe18043259374ee58f90580af582100ab0649cd",
+      "ownerRemoteParent": "f5545ea75246cb315366e72f62c4f24948eb4bf1",
+      "candidateDeployment": "dpl_AqRgvgb2fwb23fQb4GDN3Qg1vCmN",
+      "candidateImmutableUrl": "https://wallet-3tjtzd8sy-jiahaoalbus-projects.vercel.app",
+      "aliasMutationAllowed": false,
+      "workflowCommitAllowedExactlyOnce": true,
+      "hostedRunAllowedExactlyOnce": true,
+      "currentSourceBoundPublic": false,
+      "productsConnected": "0/12",
+      "nextAction": "Execute one isolated hosted Chromium preflight with exact no-store gates, restore SSO on terminal, and return direct evidence or fail closed."
     }
   ]
 }

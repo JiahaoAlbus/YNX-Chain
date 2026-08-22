@@ -1297,7 +1297,7 @@
     },
     {
       "path": "vercel:wallet.ynxweb4.com",
-      "owner": null,
+      "owner": "website",
       "branch": "codex/website-wallet-public-identity-routing-20260822",
       "worktree": "/Users/huangjiahao/Desktop/ynx-web4-website-new",
       "taskId": "P0-181",
@@ -1336,35 +1336,35 @@
       "owner": null,
       "branch": "codex/wallet-web-pwa-extensions-20260813",
       "worktree": "/Users/huangjiahao/.codex/worktrees/1274/YNX Chain",
-      "taskId": "P0-182",
+      "taskId": "P0-183",
       "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-      "status": "CONSUMED_RELEASED_FAILED_CLOSED_HOSTED_V11_CANDIDATE_BROWSER_PREFLIGHT",
-      "acquiredAt": "2026-08-22T09:19:00Z",
-      "expiresAt": "2026-08-22T09:49:00Z",
-      "releasedAt": "2026-08-22T09:30:02Z",
-      "productionMutationAllowed": false,
+      "status": "ACTIVE_SINGLE_USE",
+      "acquiredAt": "2026-08-22T09:58:00Z",
+      "expiresAt": "2026-08-22T10:28:00Z",
+      "releasedAt": null,
+      "productionMutationAllowed": "EXACT_TEMPORARY_SSO_DISABLE_AND_RESTORE_ONLY",
       "allowedExceptions": [
-        "P0-182 is consumed and nonreusable",
-        "SSO is restored to prod_deployment_urls_and_all_previews",
-        "no new protection window until repaired candidate publication is independently reviewed"
+        "disable wallet-web SSO once for exact dpl_AqRgvgb2fwb23fQb4GDN3Qg1vCmN hosted run",
+        "restore SSO once on every terminal path",
+        "no alias or other Vercel setting mutation"
       ]
     },
     {
       "path": ".github/workflows/wallet-web-public-preflight-p0.yml",
-      "owner": null,
+      "owner": "wallet-web",
       "branch": "codex/wallet-web-pwa-extensions-20260813",
       "worktree": "/Users/huangjiahao/.codex/worktrees/1274/YNX Chain",
-      "taskId": "P0-182",
+      "taskId": "P0-183",
       "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-      "status": "CONSUMED_RELEASED_FAILED_CLOSED_HOSTED_V11_CANDIDATE_BROWSER_PREFLIGHT",
-      "acquiredAt": "2026-08-22T09:19:00Z",
-      "expiresAt": "2026-08-22T09:49:00Z",
-      "releasedAt": "2026-08-22T09:30:02Z",
+      "status": "ACTIVE_SINGLE_USE",
+      "acquiredAt": "2026-08-22T09:58:00Z",
+      "expiresAt": "2026-08-22T10:28:00Z",
+      "releasedAt": null,
       "productionMutationAllowed": false,
       "allowedExceptions": [
-        "P0-182 workflow commit and push quotas are consumed",
-        "no retry, dispatch or further workflow mutation under P0-182",
-        "preserve the failed run and artifact as immutable evidence"
+        "one workflow-only commit with exact P0-183 message",
+        "one force=false push and one push-triggered hosted run",
+        "fresh RUNNER_TEMP output only; no repository evidence upload"
       ]
     }
   ]
