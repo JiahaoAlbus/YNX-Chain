@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "handoffId": "wallet-desktop-provider-authority-windows-nsis-20260822",
+  "owner": "Wallet Desktop/CLI/SDK",
+  "consumer": "Website release owner",
+  "releaseChannel": "testnet-preview",
+  "evidencePath": "apps/wallet-desktop/evidence/windows-provider-authority-nsis-lifecycle-20260822.json",
+  "artifacts": [
+    {
+      "filename": "ynx-wallet-desktop-0.2.0-x64.exe",
+      "architecture": "x64",
+      "bytes": 114184390,
+      "sha256": "faa257177ebd7419134300e476c915072b182e1d938a33426ca43d88fef9d8a3",
+      "minimumOS": "Windows Server 2025 x64 runner directly tested; consumer Windows minimum not separately evidenced",
+      "signingClass": "unsigned_windows_nsis_testnet_candidate",
+      "sourceCommit": "82dbe5878ff3f0cc2705de6969dd764545602d8c",
+      "workflowRunId": 32553621631,
+      "actionsArtifactId": 9470817896,
+      "requiredPath": "/wallet/sha256-faa257177ebd7419134300e476c915072b182e1d938a33426ca43d88fef9d8a3/ynx-wallet-desktop-0.2.0-x64.exe"
+    },
+    {
+      "filename": "ynx-wallet-desktop-0.2.0-arm64.exe",
+      "architecture": "arm64",
+      "bytes": 113337093,
+      "sha256": "30b7795981d7796717a130072209664839db75f02b1c00288ba4ed13059f78da",
+      "minimumOS": "Windows 11 arm64 directly tested; earlier Windows arm64 not evidenced",
+      "signingClass": "unsigned_windows_nsis_testnet_candidate",
+      "sourceCommit": "f684129d773ac9962fa654a19727ccda39cc18b6",
+      "workflowRunId": 32553502028,
+      "actionsArtifactId": 9470804916,
+      "requiredPath": "/wallet/sha256-30b7795981d7796717a130072209664839db75f02b1c00288ba4ed13059f78da/ynx-wallet-desktop-0.2.0-arm64.exe"
+    }
+  ],
+  "publicationGate": {
+    "requireDirectExe": true,
+    "zipSubstituteForbidden": true,
+    "requireHttp200": true,
+    "requiredContentType": "application/vnd.microsoft.portable-executable",
+    "requireAttachmentFilenameExact": true,
+    "requireContentLengthExact": true,
+    "requireFullGetSha256Exact": true,
+    "requireOfficialYnXDomain": true,
+    "downloadHosted": false,
+    "deployedPublic": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}
