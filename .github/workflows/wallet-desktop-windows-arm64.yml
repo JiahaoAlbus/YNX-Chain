@@ -130,17 +130,25 @@ jobs:
           if (-not $callbackPreflight.Contains('response=registration-probe')) { throw 'isolated product callback protocol handler captured the wrong URL' }
           Move-Item $callbackCapture ($callbackCapture + '.preflight')
           $callbackUrls = node apps/wallet-desktop/scripts/generate-callback-gate-urls.mjs | ConvertFrom-Json
+          $priorActivation = (Get-Content $env:EVIDENCE -Raw | ConvertFrom-Json).callback.activation.sha256
           Start-Process $callbackUrls.reject
-          Start-Sleep 2
-          $callbackActivation = (Get-Content $env:EVIDENCE -Raw | ConvertFrom-Json).callback
+          for ($i=0; $i -lt 30; $i++) {
+            Start-Sleep -Milliseconds 500
+            $callbackActivation = (Get-Content $env:EVIDENCE -Raw | ConvertFrom-Json).callback
+            if ($callbackActivation.acceptedForReview -and $callbackActivation.activation.sha256 -and $callbackActivation.activation.sha256 -ne $priorActivation) { break }
+          }
           if (-not $callbackActivation.acceptedForReview) { throw "native reject activation failed: $($callbackActivation | ConvertTo-Json -Compress -Depth 6)" }
+          $rejectActivation = $callbackActivation.activation.sha256
           $rejectGate = Join-Path $env:RUNNER_TEMP 'wallet-callback-reject-gate.json'
           node apps/wallet-desktop/scripts/callback-ui-gate.mjs $targets reject | Set-Content $rejectGate
           if (Test-Path $callbackCapture) { throw 'rejected authorization emitted a callback' }
           Start-Process $callbackUrls.approve
-          Start-Sleep 2
-          $callbackActivation = (Get-Content $env:EVIDENCE -Raw | ConvertFrom-Json).callback
-          if (-not $callbackActivation.acceptedForReview) { throw "native approve activation failed: $($callbackActivation | ConvertTo-Json -Compress -Depth 6)" }
+          for ($i=0; $i -lt 30; $i++) {
+            Start-Sleep -Milliseconds 500
+            $callbackActivation = (Get-Content $env:EVIDENCE -Raw | ConvertFrom-Json).callback
+            if ($callbackActivation.acceptedForReview -and $callbackActivation.activation.sha256 -and $callbackActivation.activation.sha256 -ne $rejectActivation) { break }
+          }
+          if (-not $callbackActivation.acceptedForReview -or $callbackActivation.activation.sha256 -eq $rejectActivation) { throw "native approve activation failed: $($callbackActivation | ConvertTo-Json -Compress -Depth 6)" }
           $approveGate = Join-Path $env:RUNNER_TEMP 'wallet-callback-approve-gate.json'
           node apps/wallet-desktop/scripts/callback-ui-gate.mjs $targets approve | Set-Content $approveGate
           for ($i=0; $i -lt 30 -and -not (Test-Path $callbackCapture); $i++) { Start-Sleep -Milliseconds 500 }
