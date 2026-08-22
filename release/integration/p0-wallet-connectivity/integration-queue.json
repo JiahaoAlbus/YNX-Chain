@@ -7228,6 +7228,31 @@
       "officialCanonicalUnchanged": true,
       "officialSourceBoundPublic": false,
       "nextAction": "Do not reuse P0-202. A wholly new Social alias-only lease may bind the exact verified candidate, official-domain raw/browser post-route gates and one exact rollback on any failure."
+    },
+    {
+      "taskId": "P0-203",
+      "owner": "social",
+      "status": "ACTIVE_SINGLE_USE",
+      "paths": [
+        "release/integration/p0-wallet-connectivity/execution/p0-203-social-official-alias-routing-lease-20260822.json",
+        "vercel-project:prj_QGgUyxilarbPPLZyoES83m2aneQN",
+        "vercel-alias:social.ynxweb4.com"
+      ],
+      "dependencies": [
+        "P0-202"
+      ],
+      "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-social-official-alias-routing-20260822T171700Z",
+      "expiresAt": "2026-08-22T17:47:00Z",
+      "executor": "social-vercel-release",
+      "candidateDeployment": "dpl_34kzw3uk4B1wwjk1wQUq8y29mTxX",
+      "rollbackDeployment": "dpl_2sei8CpmoN1Gi5YKnc6FdvNRyXGy",
+      "forwardAliasAttemptLimit": 1,
+      "retryAllowed": false,
+      "rollbackAttemptLimit": 1,
+      "deploymentAllowed": false,
+      "settingsMutationAllowed": false,
+      "sensitiveActionsAllowed": false,
+      "nextAction": "Execute the exact forward alias once, prove official-domain six-resource and non-sensitive browser gates, release success; on any failure execute the exact rollback once, prove old deployment and three hashes, and fail closed."
     }
   ]
 }
