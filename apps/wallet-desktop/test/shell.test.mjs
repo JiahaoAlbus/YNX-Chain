@@ -94,6 +94,8 @@ test("shell is explicit and fail closed", async () => {
   assert.match(main, /app\.setAsDefaultProtocolClient\("ynxwallet"\)/);
   assert.match(main, /app\.isDefaultProtocolClient\("ynxwallet"\)/);
   assert.match(main, /callbackEmitted: false/);
+  assert.match(main, /CANONICAL_AUTHORIZATION_SIGN_FAILED/);
+  assert.match(main, /CANONICAL_CALLBACK_LAUNCH_FAILED/);
   assert.match(main, /window\.isVisible\(\)/);
   assert.match(main, /window\.getTitle\(\)/);
 });

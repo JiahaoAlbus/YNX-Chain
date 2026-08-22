@@ -89,8 +89,13 @@ ipcMain.handle("wallet:authorization-action", async (_event, action) => {
     return result;
   }
   const at = new Date().toISOString();
+  let callback;
   try {
-    const callback = await walletAuthority.approveCanonicalAuthorization(pendingReview.request, at);
+    callback = await walletAuthority.approveCanonicalAuthorization(pendingReview.request, at);
+  } catch (error) {
+    return authorizationFailure("CANONICAL_AUTHORIZATION_SIGN_FAILED", action, error);
+  }
+  try {
     await shell.openExternal(callback.callbackUrl);
     const result = Object.freeze({
       acceptedForReview: true,
@@ -109,12 +114,17 @@ ipcMain.handle("wallet:authorization-action", async (_event, action) => {
     }
     return result;
   } catch (error) {
-    const result = { acceptedForReview: true, action, code: safeCode(error), callbackEmitted: false, callbackReceivedProved: false, authorityGranted: false, productSessionCreated: false };
-    lastCallback = { ...(lastCallback ?? {}), action, result, callbackEmitted: false, callbackReceivedProved: false, authorityGranted: false, productSessionCreated: false };
-    if (mainWindow && !mainWindow.isDestroyed()) await recordEvidence(await rpcStatus(), mainWindow);
-    return result;
+    return authorizationFailure("CANONICAL_CALLBACK_LAUNCH_FAILED", action, error);
   }
 });
+
+async function authorizationFailure(stageCode, action, error) {
+  const underlyingCode = safeCode(error);
+  const result = { acceptedForReview: true, action, code: stageCode, underlyingCode, callbackEmitted: false, callbackReceivedProved: false, authorityGranted: false, productSessionCreated: false };
+  lastCallback = { ...(lastCallback ?? {}), action, result, callbackEmitted: false, callbackReceivedProved: false, authorityGranted: false, productSessionCreated: false };
+  if (mainWindow && !mainWindow.isDestroyed()) await recordEvidence(await rpcStatus(), mainWindow);
+  return result;
+}
 
 ipcMain.handle("wallet:account-status", () => safeIPC(() => walletAuthority.accountStatus()));
 ipcMain.handle("wallet:create-account", () => safeIPC(async () => {

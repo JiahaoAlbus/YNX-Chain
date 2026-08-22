@@ -122,7 +122,13 @@ jobs:
           $callbackCommand = Join-Path $callbackProtocol 'shell\open\command'
           New-Item -Path $callbackCommand -Force | Out-Null
           $pwsh = (Get-Command pwsh).Source
-          Set-Item -Path $callbackCommand -Value ('"{0}" -NoProfile -NonInteractive -File "{1}" "%1" "{2}"' -f $pwsh,$captureScript,$callbackCapture)
+          Set-Item -Path $callbackCommand -Value ('"{0}" -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{1}" "%1" "{2}"' -f $pwsh,$captureScript,$callbackCapture)
+          Start-Process 'ynx-social://com.ynx.social?response=registration-probe'
+          for ($i=0; $i -lt 20 -and -not (Test-Path $callbackCapture); $i++) { Start-Sleep -Milliseconds 250 }
+          if (-not (Test-Path $callbackCapture)) { throw 'isolated product callback protocol handler preflight failed' }
+          $callbackPreflight = (Get-Content $callbackCapture -Raw).Trim()
+          if (-not $callbackPreflight.Contains('response=registration-probe')) { throw 'isolated product callback protocol handler captured the wrong URL' }
+          Move-Item $callbackCapture ($callbackCapture + '.preflight')
           $callbackUrls = node apps/wallet-desktop/scripts/generate-callback-gate-urls.mjs | ConvertFrom-Json
           Start-Process $callbackUrls.reject
           Start-Sleep 2
