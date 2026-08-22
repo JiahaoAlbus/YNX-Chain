@@ -1,0 +1,131 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-226",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-pay-hosted-chromium-predeploy-preflight-20260822T231900Z",
+  "owner": "pay",
+  "executor": "pay-hosted-chromium-preflight",
+  "status": "ACTIVE_SINGLE_USE",
+  "issuedAt": "2026-08-22T23:19:00Z",
+  "expiresAt": "2026-08-22T23:55:00Z",
+  "releasedAt": null,
+  "singleUse": true,
+  "reusable": false,
+  "executionAuthorized": true,
+  "productionMutationAllowed": false,
+  "scope": "Pay-only one force=false workflow/request push and exactly one push-triggered hosted Chromium static-candidate predeploy run",
+  "predecessor": {
+    "taskId": "P0-225",
+    "centralReleaseCommit": "a1b2c3141423dfbbcb9b50f75d214434969ab127",
+    "centralReleaseTree": "7c39a96a70577585bd95f894126d56e8bf543c88",
+    "status": "CONSUMED_RELEASED_FAILED_CLOSED_BROWSER_UNSUPPORTED_NETWORKIDLE_WAIT_ROLLED_BACK",
+    "productionRestored": true,
+    "reusable": false
+  },
+  "ownerAuthority": {
+    "branch": "codex/p0-pay-wallet-connectivity-20260821",
+    "remoteParentAtIssuance": "77d112898f18ce741fe4abcdeabd1eefeedd50ca",
+    "candidateHead": "56ed9a4ba7a7eceae3ac47a78cbb0ede12a73573",
+    "candidateTree": "073ba1a303e8fe937a4cfc405915ef8046bbc578",
+    "candidateParent": "873c88e18d28f14d8afdf622e5085e4cf6d66094",
+    "candidateSubject": "evidence(pay): hosted Chromium preflight static candidate",
+    "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/04-pay-p0-clean",
+    "worktreeHeadExactAndClean": true
+  },
+  "bundle": {
+    "path": "/tmp/ynx-pay-p0226-hosted-browser-preflight.bundle",
+    "bytes": 86669106,
+    "sha256": "7ee23f1ad68b3f47e469d57b87cce2033fd6753f9bae6fc7c4541ee182dfc71c",
+    "verify": "PASS_COMPLETE_HISTORY_SHA1",
+    "independentEmptyRepositoryImport": "PASS"
+  },
+  "request": {
+    "path": "apps/pay/evidence/pay-web-hosted-browser-preflight-lease-request-p0226-20260823.json",
+    "blob": "e958bfb078fee54264af0abb8bb4011b9c1ace01",
+    "bytes": 5159,
+    "sha256": "8dc337d4337f7ceb5ecd965fca644c13b11d7b9e8aef5b2d17767b921dade1b3",
+    "jsonValid": true
+  },
+  "handoff": {
+    "path": "apps/pay/PAY_P0226_HOSTED_BROWSER_PREFLIGHT_LEASE_REQUEST_20260823.md",
+    "blob": "a44793c001e72ca67d92b22a691f06664fbcef87",
+    "bytes": 2888,
+    "sha256": "d2650276b354bb3304d894bcc0917ccd33b2c321c6ad32712a9c93780988ea30"
+  },
+  "workflow": {
+    "path": ".github/workflows/pay-web-hosted-browser-preflight-p0226.yml",
+    "implementationCommit": "873c88e18d28f14d8afdf622e5085e4cf6d66094",
+    "implementationTree": "a2aab6890c40c65502600a7def84c4e6aa774e49",
+    "blob": "fff179ce3737d518ca740a611ab2d40e0736e384",
+    "bytes": 9254,
+    "sha256": "12fb884d34a5923bb333ece54acdd7acaee6331ce7cccf1e582e41598fb12f85",
+    "yamlParse": "PASS",
+    "trigger": "push-only exact Pay owner branch and sole workflow path",
+    "permissions": {"contents":"read"},
+    "runner": "ubuntu-latest",
+    "timeoutMinutes": 10,
+    "dispatch": false,
+    "secrets": false,
+    "inputs": false,
+    "dynamicUrl": false
+  },
+  "candidate": {
+    "sourceCommit": "5f4ce98eb458550b976c17e3bc6d77cce4081a59",
+    "sourceTree": "8f0c25c4d86eb22a564f3c7aeff9db6709a9b9f0",
+    "archivePath": "release/pay/ynx-pay-web-5f4ce98e-static.tar.gz",
+    "archiveBlob": "cca37d7b48c1c37266a4141c7b79f44f1cf09f29",
+    "archiveBytes": 608368,
+    "archiveSha256": "ae552951d8e569f04aced60db69e3c11422910cc1098a6e7061b0e84005ad09e",
+    "origin": "http://127.0.0.1:4189",
+    "originIsFixedLoopbackOnly": true
+  },
+  "execution": {
+    "literalPushCommand": "git -C '/Users/huangjiahao/Desktop/YNX Final Worktrees/04-pay-p0-clean' push origin 56ed9a4ba7a7eceae3ac47a78cbb0ede12a73573:refs/heads/codex/p0-pay-wallet-connectivity-20260821",
+    "pushAttemptLimit": 1,
+    "resultingPushRunLimit": 1,
+    "retryAllowed": false,
+    "workflowDispatchAllowed": false,
+    "orderedPreconditions": [
+      "fresh-read this exact unexpired ACTIVE_SINGLE_USE lease, Heavy owner pay and every P0-226 lock",
+      "require remote Pay branch still exact 77d112898f18ce741fe4abcdeabd1eefeedd50ca",
+      "require worktree exact clean head 56ed9a4ba7a7eceae3ac47a78cbb0ede12a73573/tree 073ba1a303e8fe937a4cfc405915ef8046bbc578",
+      "require bundle, candidate ancestry, three-path diff, request, handoff, workflow and archive identities remain exact",
+      "execute the literal force=false push once and bind exactly one resulting push-event run with exact head and attempt 1",
+      "do not retry, dispatch, amend, rebase or push another commit"
+    ],
+    "requiredHostedEvidence": [
+      "exact archive SHA and build identity source/tree",
+      "fixed loopback static server on 127.0.0.1:4189 only",
+      "persistent Chromium profile cold process closed then second process",
+      "only domcontentloaded and load wait states; no networkidle API call",
+      "visible exact YNX Pay, Waiting for Wallet, Sign in, Settings and document language en",
+      "each phase has one stable exact page and zero console, page or failed-request errors",
+      "no visible fabricated 0x account or 0x1917 chain",
+      "isolated RUNNER_TEMP evidence artifact uploaded even on failure"
+    ]
+  },
+  "writablePaths": [
+    ".github/workflows/pay-web-hosted-browser-preflight-p0226.yml",
+    "apps/pay/evidence/pay-web-hosted-browser-preflight-lease-request-p0226-20260823.json",
+    "apps/pay/PAY_P0226_HOSTED_BROWSER_PREFLIGHT_LEASE_REQUEST_20260823.md"
+  ],
+  "locks": [
+    "heavy:pay",
+    "branch:codex/p0-pay-wallet-connectivity-20260821:path:.github/workflows/pay-web-hosted-browser-preflight-p0226.yml",
+    "branch:codex/p0-pay-wallet-connectivity-20260821:path:apps/pay/evidence/pay-web-hosted-browser-preflight-lease-request-p0226-20260823.json",
+    "branch:codex/p0-pay-wallet-connectivity-20260821:path:apps/pay/PAY_P0226_HOSTED_BROWSER_PREFLIGHT_LEASE_REQUEST_20260823.md"
+  ],
+  "forbidden": [
+    "SSH, production deploy, Caddy, service, current, state, public route, alias, DNS or settings mutation",
+    "workflow dispatch, retry, dynamic URL, secret or input use",
+    "provider selection, eth_requestAccounts, account approval/reject, signing, typed data, transaction or private key action",
+    "Pay public, installed-provider, sensitive lifecycle, Product Session or aggregate product-completion promotion"
+  ],
+  "terminalRules": {
+    "success": "CONSUMED_RELEASED_SUCCESS_PAY_HOSTED_CHROMIUM_PREDEPLOY_PREFLIGHT",
+    "failure": "CONSUMED_RELEASED_FAILED_CLOSED_PAY_HOSTED_CHROMIUM_PREDEPLOY_PREFLIGHT",
+    "releaseHeavyAndAllLocksOnTerminal": true,
+    "requiredReturn": "exact push/run/job/attempt/head/conclusion, artifact ID/name/bytes/SHA, JSON and screenshot hashes, cold+second direct results, no-sensitive-action truth and no-production-action truth"
+  },
+  "truthBeforeExecution": {"hostedCandidateBrowserVerified":false,"sourceBoundPublic":false,"installedProvider":false,"accountApprovalOrReject":false,"signingOrTypedData":false,"transaction":false,"productComplete":false,"productsConnected":"0/12"}
+}

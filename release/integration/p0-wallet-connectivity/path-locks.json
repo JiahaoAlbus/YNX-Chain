@@ -1494,6 +1494,28 @@
         "preserve local evidence archive SHA256 a247f0bfebc182f210bf4d2ddf7fb75f6a7902079c9e8fd5658164579c67f0ea",
         "no further production, collector, browser, account, signature, typed data, transaction or non-Pay action is authorized under P0-225"
       ]
+    },
+    {
+      "path": "{branch:codex/p0-pay-wallet-connectivity-20260821:.github/workflows/pay-web-hosted-browser-preflight-p0226.yml,branch:codex/p0-pay-wallet-connectivity-20260821:apps/pay/evidence/pay-web-hosted-browser-preflight-lease-request-p0226-20260823.json,branch:codex/p0-pay-wallet-connectivity-20260821:apps/pay/PAY_P0226_HOSTED_BROWSER_PREFLIGHT_LEASE_REQUEST_20260823.md}",
+      "owner": "pay",
+      "branch": "codex/p0-pay-wallet-connectivity-20260821",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/04-pay-p0-clean",
+      "taskId": "P0-226",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "ACTIVE_SINGLE_USE",
+      "acquiredAt": "2026-08-22T23:19:00Z",
+      "expiresAt": "2026-08-22T23:55:00Z",
+      "releasedAt": null,
+      "sourceCommit": "5f4ce98eb458550b976c17e3bc6d77cce4081a59",
+      "sourceTree": "8f0c25c4d86eb22a564f3c7aeff9db6709a9b9f0",
+      "evidenceCommit": "56ed9a4ba7a7eceae3ac47a78cbb0ede12a73573",
+      "artifactSha256": "ae552951d8e569f04aced60db69e3c11422910cc1098a6e7061b0e84005ad09e",
+      "productionMutationAllowed": false,
+      "allowedExceptions": [
+        "one exact force=false literal push and one resulting push-event hosted run only",
+        "workflow writes only isolated RUNNER_TEMP evidence and fixed loopback runtime",
+        "no retry, dispatch, SSH, production, account, signature, typed data or transaction action"
+      ]
     }
   ]
 }
