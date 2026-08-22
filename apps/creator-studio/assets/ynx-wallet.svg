@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" role="img" aria-labelledby="title">
+  <title id="title">YNX Wallet</title>
+  <rect width="48" height="48" rx="12" fill="#0638c9"/>
+  <path d="M8 13h7l9 12 9-12h7L27.5 31v7h-7v-7z" fill="#fff"/>
+  <path d="M15 13l9 12 9-12h-7l-2 3-2-3z" fill="#91b2ff"/>
+</svg>
