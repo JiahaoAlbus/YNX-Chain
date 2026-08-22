@@ -4,9 +4,10 @@ import path from "node:path";
 import { evmAddressFromYNX, walletIdentity } from "@ynx-chain/wallet-auth";
 
 export class DesktopWalletVault {
-  constructor({ filePath, safeStorage, randomSecret = validRandomSecret }) {
+  constructor({ filePath, legacyFilePath = null, safeStorage, randomSecret = validRandomSecret }) {
     if (!filePath || !safeStorage) throw new Error("Wallet vault requires a path and OS safe storage");
     this.filePath = filePath;
+    this.legacyFilePath = legacyFilePath;
     this.safeStorage = safeStorage;
     this.randomSecret = randomSecret;
   }
@@ -83,11 +84,12 @@ export class DesktopWalletVault {
 
   async #read() {
     try {
-      const record = JSON.parse(await readFile(this.filePath, "utf8"));
-      if (record?.schemaVersion === 1 && validRecord(record)) return { schemaVersion: 2, activeAccount: record.account, accounts: [{ account: record.account, ynxAccount: record.ynxAccount, publicKey: record.publicKey, encryptedSecret: record.encryptedSecret, createdAt: record.createdAt }] };
-      if (record?.schemaVersion !== 2 || !Array.isArray(record.accounts) || record.accounts.length < 1 || record.accounts.length > 32 || !record.accounts.every(validRecord) || new Set(record.accounts.map(item => item.account)).size !== record.accounts.length || !record.accounts.some(item => item.account === record.activeAccount)) throw providerError(4100, "WALLET_VAULT_INVALID", "Wallet vault failed validation");
-      return record;
+      return normalizeVault(JSON.parse(await readFile(this.filePath, "utf8")));
     } catch (error) {
+      if (error?.code === "ENOENT" && this.legacyFilePath && this.legacyFilePath !== this.filePath) {
+        try { return normalizeVault(JSON.parse(await readFile(this.legacyFilePath, "utf8"))); }
+        catch (legacyError) { if (legacyError?.code === "ENOENT") return null; throw legacyError; }
+      }
       if (error?.code === "ENOENT") return null;
       throw error;
     }
@@ -103,6 +105,11 @@ export class DesktopWalletVault {
 
 function validRecord(record) { return /^0x[0-9a-f]{40}$/.test(record?.account) && /^ynx1/.test(record?.ynxAccount) && /^(02|03)[0-9a-f]{64}$/.test(record?.publicKey) && /^[A-Za-z0-9+/]+={0,2}$/.test(record?.encryptedSecret); }
 function activeRecord(vault) { return vault?.accounts.find(item => item.account === vault.activeAccount) ?? null; }
+function normalizeVault(record) {
+  if (record?.schemaVersion === 1 && validRecord(record)) return { schemaVersion: 2, activeAccount: record.account, accounts: [{ account: record.account, ynxAccount: record.ynxAccount, publicKey: record.publicKey, encryptedSecret: record.encryptedSecret, createdAt: record.createdAt }] };
+  if (record?.schemaVersion !== 2 || !Array.isArray(record.accounts) || record.accounts.length < 1 || record.accounts.length > 32 || !record.accounts.every(validRecord) || new Set(record.accounts.map(item => item.account)).size !== record.accounts.length || !record.accounts.some(item => item.account === record.activeAccount)) throw providerError(4100, "WALLET_VAULT_INVALID", "Wallet vault failed validation");
+  return record;
+}
 
 function validRandomSecret() {
   for (;;) {

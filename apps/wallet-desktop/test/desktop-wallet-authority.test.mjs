@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import { createECDH } from "node:crypto";
-import { mkdtemp, readFile } from "node:fs/promises";
+import { mkdtemp, readFile, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { verifyMessage, verifyTypedData } from "ethers";
-import { parseCallbackURL, requestDigest, verifyAuthorization } from "@ynx-chain/wallet-auth";
+import { verifyMessage, verifyTypedData, Wallet } from "ethers";
+import { parseCallbackURL, requestDigest, verifyAuthorization, walletIdentity } from "@ynx-chain/wallet-auth";
 import { APPROVAL_TTL_MS, DesktopWalletAuthority, MemoryPermissionStore, YNX_EIP155_CHAIN, YNX_EVM_CHAIN_ID } from "../src/desktop-wallet-authority.mjs";
 import { FilePermissionStore } from "../src/desktop-permission-store.mjs";
 import { DesktopWalletVault } from "../src/desktop-wallet-vault.mjs";
@@ -145,6 +145,36 @@ test("account switching persists both encrypted accounts and revokes every DApp 
   const serialized = await readFile(vaultPath, "utf8");
   assert.doesNotMatch(serialized, new RegExp(SECRET));
   assert.doesNotMatch(serialized, new RegExp(SECOND_SECRET));
+});
+
+test("multi-account vault migrates from a read-only v1 fallback without breaking installer rollback", async () => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), "ynx-wallet-vault-rollback-"));
+  const legacyPath = path.join(directory, "wallet-vault-v1.json");
+  const currentPath = path.join(directory, "wallet-vault-v2.json");
+  const identity = walletIdentity(SECRET);
+  const legacy = {
+    schemaVersion: 1,
+    account: new Wallet(`0x${SECRET}`).address.toLowerCase(),
+    ynxAccount: identity.account,
+    publicKey: identity.accountPublicKey,
+    encryptedSecret: Buffer.from(`encrypted:${SECRET}`, "utf8").toString("base64"),
+    createdAt: "2026-08-21T00:00:00.000Z"
+  };
+  await writeFile(legacyPath, `${JSON.stringify(legacy)}\n`);
+  const safeStorage = {
+    isEncryptionAvailable: () => true,
+    encryptString: value => Buffer.from(`encrypted:${value}`, "utf8"),
+    decryptString: value => value.toString("utf8").slice("encrypted:".length)
+  };
+  const vault = new DesktopWalletVault({ filePath: currentPath, legacyFilePath: legacyPath, safeStorage, randomSecret: () => SECOND_SECRET });
+  assert.equal((await vault.status()).account, legacy.account);
+  const added = await vault.addAccountAndSelect();
+  assert.equal(added.accounts.length, 2);
+  assert.notEqual(added.account, legacy.account);
+  assert.deepEqual(JSON.parse(await readFile(legacyPath, "utf8")), legacy);
+  const current = JSON.parse(await readFile(currentPath, "utf8"));
+  assert.equal(current.schemaVersion, 2);
+  assert.equal(current.accounts.length, 2);
 });
 
 test("pending approvals expire, are bounded, and cannot survive permission revocation", async () => {

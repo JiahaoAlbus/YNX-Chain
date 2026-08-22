@@ -196,7 +196,7 @@ app.on("open-url", (event, url) => {
 app.whenReady().then(async () => {
   const userData = app.getPath("userData");
   walletAuthority = new DesktopWalletAuthority({
-    vault: new DesktopWalletVault({ filePath: path.join(userData, "wallet-vault-v1.json"), safeStorage }),
+    vault: new DesktopWalletVault({ filePath: path.join(userData, "wallet-vault-v2.json"), legacyFilePath: path.join(userData, "wallet-vault-v1.json"), safeStorage }),
     permissions: new FilePermissionStore(path.join(userData, "wallet-permissions-v1.json")),
     transactionSender: new CanonicalTransactionSender()
   });
