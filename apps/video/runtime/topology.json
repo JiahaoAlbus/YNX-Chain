@@ -1,0 +1,23 @@
+{
+  "schemaVersion": "ynx-video-runtime-topology/1",
+  "viewer": {
+    "port": 6494,
+    "releaseRoot": "/opt/ynx-video-viewer-wallet/releases",
+    "currentLink": "/opt/ynx-video-viewer-wallet/current",
+    "serviceUnit": "ynx-video-viewer-wallet.service",
+    "entrypoint": "server.mjs",
+    "candidatePreflightPort": 16494
+  },
+  "api": {
+    "port": 6493,
+    "mutationAllowed": false
+  },
+  "creator": {
+    "port": 6495,
+    "mutationAllowed": false
+  },
+  "forbiddenPaths": [
+    "/opt/ynx-video/current"
+  ],
+  "deploymentRule": "Only the dedicated Viewer currentLink may change. The shared Video current link, API 6493 and Creator 6495 are immutable for this operation."
+}
