@@ -17,12 +17,12 @@ ai.ynxweb4.com {
 pay.ynxweb4.com {
   handle /build-identity.json {
     header Cache-Control "no-store, max-age=0, must-revalidate"
-    root * /opt/ynx-pay-web/releases/pay-web-5f4ce98e-p0223/dist
+    root * /opt/ynx-pay-web/releases/pay-web-5f4ce98e-release1/dist
     file_server
   }
   @pay_web path / /index.html /metadata.json /release-manifest.json /_expo/* /assets/* /invoices /invoices/* /split-payments /split-payments/* /quant-bills /quant-bills/*
   handle @pay_web {
-    root * /opt/ynx-pay-web/releases/pay-web-5f4ce98e-p0223/dist
+    root * /opt/ynx-pay-web/releases/pay-web-5f4ce98e-release1/dist
     try_files {path} /index.html
     file_server
   }
