@@ -1,6 +1,6 @@
 {
   "name": "@ynx-chain/wallet-desktop",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "Fail-closed YNX Testnet Wallet desktop engineering preview",
   "homepage": "https://www.ynxweb4.com/wallet",
   "author": {
@@ -35,7 +35,6 @@
   "build": {
     "appId": "com.ynxweb4.wallet.macos",
     "productName": "YNX Wallet",
-    "artifactName": "ynx-wallet-macos-${version}-${arch}.${ext}",
     "protocols": [
       {
         "name": "YNX Wallet Authorization",
@@ -74,6 +73,7 @@
       ]
     },
     "mac": {
+      "artifactName": "ynx-wallet-macos-${version}-${arch}.${ext}",
       "target": [
         "dmg"
       ],
@@ -82,6 +82,7 @@
       "hardenedRuntime": false
     },
     "win": {
+      "artifactName": "ynx-wallet-desktop-${version}-${arch}.${ext}",
       "target": [
         "nsis"
       ],

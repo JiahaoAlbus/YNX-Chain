@@ -21,9 +21,11 @@ test("desktop packaging exposes real platform installer formats", async () => {
   assert.match(packageJson.scripts["dist:mac"], /--mac dmg/);
   assert.deepEqual(packageJson.build.mac.target, ["dmg"]);
   assert.deepEqual(packageJson.build.win.target, ["nsis"]);
+  assert.equal(packageJson.build.mac.artifactName, "ynx-wallet-macos-${version}-${arch}.${ext}");
+  assert.equal(packageJson.build.win.artifactName, "ynx-wallet-desktop-${version}-${arch}.${ext}");
   assert.equal(packageJson.build.afterPack, "scripts/after-pack.mjs");
   assert.doesNotMatch(packageJson.scripts["dist:mac"], /zip/);
-  assert.equal(packageJson.version, "0.1.2");
+  assert.equal(packageJson.version, "0.2.0");
   assert.equal(packageJson.build.appId, "com.ynxweb4.wallet.macos");
   assert.equal(packageJson.build.mac.minimumSystemVersion, "13.0");
   assert.deepEqual(packageJson.build.protocols[0].schemes, ["ynxwallet"]);
@@ -36,6 +38,8 @@ test("macOS packaging hook removes localhost transport exceptions", async () => 
   assert.match(hook, /NSAllowsLocalNetworking: false/);
   assert.match(hook, /CFBundleURLTypes/);
   assert.match(hook, /com\.ynxweb4\.wallet\.macos/);
+  assert.match(hook, /context\.packager\.appInfo\.version/);
+  assert.doesNotMatch(hook, /CFBundleShortVersionString[^\n]*0\.1\.2/);
   assert.match(hook, /LSMinimumSystemVersion/);
   assert.doesNotMatch(hook, /NSExceptionDomains/);
 });
