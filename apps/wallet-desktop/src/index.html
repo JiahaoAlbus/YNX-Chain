@@ -13,7 +13,35 @@
     <section class="hero">
       <p class="eyebrow">SELF-CUSTODY BOUNDARY</p>
       <h1>YNX Wallet</h1>
-      <p class="lead">A visible, fail-closed desktop shell for reviewing frozen Wallet Auth requests on YNX Testnet.</p>
+      <p class="lead">A self-custody desktop Wallet for approving accounts, permissions, signatures and Testnet transactions.</p>
+    </section>
+    <section id="account-authority" class="authorization" aria-live="polite">
+      <p class="eyebrow">WALLET AUTHORITY</p>
+      <h2 id="account-title">No account created</h2>
+      <p id="account-detail">Create a Testnet account protected by the operating system. The private key never leaves the Wallet process.</p>
+      <button id="create-account" type="button">Create secure Testnet account</button>
+    </section>
+    <section id="walletconnect" class="authorization" aria-live="polite">
+      <p class="eyebrow">WALLETCONNECT</p>
+      <h2 id="walletconnect-title">Transport unavailable</h2>
+      <p id="walletconnect-detail">A real WalletConnect project binding is required. Missing relay configuration fails closed.</p>
+      <label for="walletconnect-uri">Pairing URI</label>
+      <input id="walletconnect-uri" type="text" autocomplete="off" spellcheck="false" placeholder="wc:…@2?…">
+      <button id="walletconnect-pair" type="button">Pair DApp</button>
+    </section>
+    <section id="walletconnect-proposal" class="authorization" hidden aria-live="assertive">
+      <p class="eyebrow">DAPP CONNECTION REQUEST</p>
+      <h2 id="proposal-name">DApp requests a connection</h2>
+      <p id="proposal-origin"></p>
+      <p>Only chain <strong>eip155:6423</strong> and the selected 0x account can be exposed.</p>
+      <div class="actions"><button id="reject-proposal" type="button">Reject connection</button><button id="approve-proposal" type="button">Approve connection</button></div>
+    </section>
+    <section id="provider-request" class="authorization" hidden aria-live="assertive">
+      <p class="eyebrow">PROVIDER REQUEST</p>
+      <h2 id="provider-title">Review request</h2>
+      <p id="provider-origin"></p>
+      <pre id="provider-detail"></pre>
+      <div class="actions"><button id="reject-provider" type="button">Reject request</button><button id="approve-provider" type="button">Approve request</button></div>
     </section>
     <section id="authorization" class="authorization" hidden aria-live="assertive">
       <p class="eyebrow">WALLET AUTH REQUEST</p>
@@ -33,10 +61,9 @@
     </section>
     <section class="grid">
       <article><p class="label">NETWORK</p><h2 id="chain">Unavailable</h2><p>Required EVM chain ID: 0x1917</p></article>
-      <article><p class="label">ACCOUNT</p><h2>Not created</h2><p>This shell never invents an address or balance.</p></article>
-      <article><p class="label">SIGNING</p><h2>Locked</h2><p>Key custody is not implemented in this slice.</p></article>
+      <article><p class="label">ACCOUNT</p><h2 id="account-short">Not created</h2><p>External DApps see an address only after explicit origin approval.</p></article>
+      <article><p class="label">SIGNING</p><h2 id="signing-short">Locked</h2><p>Every message, typed-data and transaction request requires visible approval.</p></article>
     </section>
-    <button class="sign" disabled aria-disabled="true">Standalone signing — unavailable</button>
     <footer>Consumes @ynx-chain/wallet-auth · Testnet assets have no real-world value</footer>
   </main>
   <script src="renderer.js"></script>

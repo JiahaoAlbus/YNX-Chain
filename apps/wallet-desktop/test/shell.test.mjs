@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
-import { YNX_TESTNET_CHAIN_QUANTITY } from "@ynx-chain/wallet-auth";
+import { createStandardWalletConnectState, reduceStandardWalletConnectState, YNX_TESTNET_CHAIN_QUANTITY } from "@ynx-chain/wallet-auth";
 import { CANONICAL_RPC_URL, probeYNXTestnetRPC } from "../src/rpc.mjs";
 import { WALLET_AUTH_PROTOCOL_SOURCE, YNX_EVM_CHAIN_ID, YNX_TESTNET_CHAIN_QUANTITY as packagedChainId } from "../src/wallet-auth-contract.mjs";
 
@@ -44,21 +44,36 @@ test("shell is explicit and fail closed", async () => {
   const html = await readFile(new URL("../src/index.html", import.meta.url), "utf8");
   const main = await readFile(new URL("../src/main.mjs", import.meta.url), "utf8");
   const rpc = await readFile(new URL("../src/rpc.mjs", import.meta.url), "utf8");
-  assert.match(html, /Standalone signing — unavailable/);
+  assert.match(html, /Create secure Testnet account/);
+  assert.match(html, /WALLETCONNECT/);
+  assert.match(html, /PROVIDER REQUEST/);
   assert.match(html, /Approve request/);
   assert.match(html, /Reject request/);
-  assert.match(html, /disabled aria-disabled="true"/);
-  assert.match(html, /Not created/);
+  assert.match(html, /Every message, typed-data and transaction request requires visible approval/);
   assert.match(rpc, /payload\?\.result !== expectedChainId/);
   assert.match(main, /CANONICAL_RPC_URL/);
   assert.doesNotMatch(main, /https:\/\/evm\.ynxweb4\.com/);
   assert.match(main, /wallet-auth-contract\.mjs/);
   assert.match(main, /appVersion: app\.getVersion\(\)/);
-  assert.match(main, /signingEnabled: false/);
+  assert.match(main, /externalAccountExposureRequiresOriginApproval: true/);
+  assert.match(main, /walletConnect\.status\(\)\.configured/);
   assert.match(main, /app\.on\("open-url"/);
   assert.match(main, /callbackEmitted: false/);
   assert.match(main, /window\.isVisible\(\)/);
   assert.match(main, /window\.getTitle\(\)/);
+});
+
+test("shared Provider baseline keeps Standard Wallet connected when Product Session degrades", () => {
+  let state = createStandardWalletConnectState();
+  state = reduceStandardWalletConnectState(state, { type: "BEGIN", pendingIntent: "desktop_connect_1234567890" });
+  state = reduceStandardWalletConnectState(state, { type: "PROVIDER_SELECTED", providerKind: "ynx-wallet" });
+  state = reduceStandardWalletConnectState(state, { type: "ACCOUNT_APPROVED", account: "0x1234567890abcdef1234567890abcdef12345678" });
+  state = reduceStandardWalletConnectState(state, { type: "CHAIN_CONFIRMED", chainId: "0x1917" });
+  state = reduceStandardWalletConnectState(state, { type: "PRIVATE_SESSION_CONNECTING" });
+  state = reduceStandardWalletConnectState(state, { type: "PRIVATE_SESSION_DEGRADED", code: "GATEWAY_UNAVAILABLE" });
+  assert.equal(state.status, "connected");
+  assert.equal(state.privateService, "degraded");
+  assert.equal(state.account, "0x1234567890abcdef1234567890abcdef12345678");
 });
 
 test("RPC probe uses canonical HTTPS, proves 0x1917, and classifies failures", async () => {

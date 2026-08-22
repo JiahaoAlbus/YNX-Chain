@@ -22,7 +22,11 @@
     "dist:mac": "electron-builder --mac dmg --universal --publish never"
   },
   "dependencies": {
-    "@ynx-chain/wallet-auth": "file:../../packages/wallet-auth"
+    "@reown/walletkit": "1.5.6",
+    "@walletconnect/core": "2.23.10",
+    "@walletconnect/utils": "2.23.10",
+    "@ynx-chain/wallet-auth": "file:../../packages/wallet-auth",
+    "ethers": "6.17.0"
   },
   "devDependencies": {
     "electron": "42.8.0",
@@ -35,7 +39,9 @@
     "protocols": [
       {
         "name": "YNX Wallet Authorization",
-        "schemes": ["ynxwallet"]
+        "schemes": [
+          "ynxwallet"
+        ]
       }
     ],
     "asar": true,
@@ -47,7 +53,10 @@
       "node_modules/@noble/**"
     ],
     "linux": {
-      "target": ["deb", "AppImage"],
+      "target": [
+        "deb",
+        "AppImage"
+      ],
       "category": "Utility",
       "maintainer": "YNX Chain <support@ynxweb4.com>",
       "executableName": "ynx-wallet-desktop",
@@ -55,16 +64,27 @@
       "description": "YNX Wallet desktop engineering preview consuming the frozen wallet-auth contract."
     },
     "deb": {
-      "depends": ["libgtk-3-0", "libnotify4", "libnss3", "libxss1", "libxtst6", "xdg-utils"]
+      "depends": [
+        "libgtk-3-0",
+        "libnotify4",
+        "libnss3",
+        "libxss1",
+        "libxtst6",
+        "xdg-utils"
+      ]
     },
     "mac": {
-      "target": ["dmg"],
+      "target": [
+        "dmg"
+      ],
       "category": "public.app-category.utilities",
       "minimumSystemVersion": "13.0",
       "hardenedRuntime": false
     },
     "win": {
-      "target": ["nsis"],
+      "target": [
+        "nsis"
+      ],
       "executableName": "YNX Wallet Testnet Preview",
       "requestedExecutionLevel": "asInvoker",
       "verifyUpdateCodeSignature": false

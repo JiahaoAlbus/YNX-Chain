@@ -5,5 +5,15 @@ contextBridge.exposeInMainWorld("ynxWallet", {
   onStatus: callback => ipcRenderer.on("wallet:status-result", (_event, value) => callback(value)),
   onAuthorizationRequest: callback => ipcRenderer.on("wallet:authorization-request", (_event, value) => callback(value)),
   onAuthorizationError: callback => ipcRenderer.on("wallet:authorization-error", (_event, value) => callback(value)),
-  authorizationAction: action => ipcRenderer.invoke("wallet:authorization-action", action)
+  authorizationAction: action => ipcRenderer.invoke("wallet:authorization-action", action),
+  accountStatus: () => ipcRenderer.invoke("wallet:account-status"),
+  createAccount: () => ipcRenderer.invoke("wallet:create-account"),
+  onAccountStatus: callback => ipcRenderer.on("wallet:account-status-result", (_event, value) => callback(value)),
+  walletConnectStatus: () => ipcRenderer.invoke("wallet:walletconnect-status"),
+  walletConnectPair: uri => ipcRenderer.invoke("wallet:walletconnect-pair", uri),
+  walletConnectProposalAction: (id, action) => ipcRenderer.invoke("wallet:walletconnect-proposal-action", id, action),
+  onWalletConnectStatus: callback => ipcRenderer.on("wallet:walletconnect-status-result", (_event, value) => callback(value)),
+  onWalletConnectProposal: callback => ipcRenderer.on("wallet:walletconnect-proposal", (_event, value) => callback(value)),
+  onProviderRequest: callback => ipcRenderer.on("wallet:provider-request", (_event, value) => callback(value)),
+  providerAction: (id, action) => ipcRenderer.invoke("wallet:provider-action", id, action)
 });

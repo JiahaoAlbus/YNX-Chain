@@ -1015,3 +1015,11 @@ export declare class CanonicalWalletGatewayHttpKernel {
   snapshot(): Readonly<Record<string, unknown>>;
 }
 export declare function gatewayStateDigest(snapshot: unknown): string;
+export declare const STANDARD_WALLET_CHAIN_ID: "0x1917";
+export declare const STANDARD_WALLET_CONNECT_STATUS: Readonly<{IDLE:"idle";DISCOVERING:"discovering";AWAITING_ACCOUNT:"awaiting-account";SWITCHING_CHAIN:"switching-chain";CONNECTED:"connected";WRONG_CHAIN:"wrong-chain";DISCONNECTED:"disconnected";FAILED:"failed"}>;
+export declare const STANDARD_WALLET_PRIVATE_SERVICE: Readonly<{NOT_REQUESTED:"not-requested";CONNECTING:"connecting";READY:"ready";DEGRADED:"degraded"}>;
+export declare const STANDARD_WALLET_RPC_PROBE: Readonly<{NOT_RUN:"not-run";READY:"ready";DEGRADED:"degraded"}>;
+export declare const STANDARD_WALLET_RPC_PROBE_TRANSPORT: "accepted-cors-safe";
+export type StandardWalletConnectState = Readonly<Record<string, unknown>>;
+export declare function createStandardWalletConnectState(): StandardWalletConnectState;
+export declare function reduceStandardWalletConnectState(current: StandardWalletConnectState, event: Readonly<Record<string, unknown>>): StandardWalletConnectState;
