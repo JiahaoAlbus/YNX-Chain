@@ -35,7 +35,7 @@ window.ynxWallet.onAuthorizationError(result => {
 
 async function act(action) {
   const result = await window.ynxWallet.authorizationAction(action);
-  const diagnostic = result.underlyingCode ? `; underlyingCode=${result.underlyingCode}` : "";
+  const diagnostic = result.underlyingCode ? `; underlyingCode=${result.underlyingCode}; failureClass=${result.failureClass ?? "Error"}; failureCategory=${result.failureCategory ?? "UNCLASSIFIED"}` : "";
   authResult.textContent = `${result.code}: callbackEmitted=${result.callbackEmitted}; callbackReceivedProved=${result.callbackReceivedProved ?? false}; authorityGranted=${result.authorityGranted}; productSessionCreated=${result.productSessionCreated ?? false}${diagnostic}`;
 }
 

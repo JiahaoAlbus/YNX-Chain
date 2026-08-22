@@ -96,6 +96,8 @@ test("shell is explicit and fail closed", async () => {
   assert.match(main, /callbackEmitted: false/);
   assert.match(main, /CANONICAL_AUTHORIZATION_SIGN_FAILED/);
   assert.match(main, /CANONICAL_CALLBACK_LAUNCH_FAILED/);
+  assert.match(main, /OS_SECRET_DECRYPT_FAILED/);
+  assert.match(main, /AUTHORIZATION_TIME_INVALID/);
   assert.match(await readFile(new URL("../src/renderer.js", import.meta.url), "utf8"), /underlyingCode/);
   assert.match(main, /window\.isVisible\(\)/);
   assert.match(main, /window\.getTitle\(\)/);

@@ -120,7 +120,7 @@ ipcMain.handle("wallet:authorization-action", async (_event, action) => {
 
 async function authorizationFailure(stageCode, action, error) {
   const underlyingCode = safeCode(error);
-  const result = { acceptedForReview: true, action, code: stageCode, underlyingCode, callbackEmitted: false, callbackReceivedProved: false, authorityGranted: false, productSessionCreated: false };
+  const result = { acceptedForReview: true, action, code: stageCode, underlyingCode, failureClass: safeErrorClass(error), failureCategory: safeFailureCategory(error), callbackEmitted: false, callbackReceivedProved: false, authorityGranted: false, productSessionCreated: false };
   lastCallback = { ...(lastCallback ?? {}), action, result, callbackEmitted: false, callbackReceivedProved: false, authorityGranted: false, productSessionCreated: false };
   if (mainWindow && !mainWindow.isDestroyed()) await recordEvidence(await rpcStatus(), mainWindow);
   return result;
@@ -337,5 +337,13 @@ function protocolActivationFingerprint(value) {
 }
 async function safeIPC(action) { try { return { ok: true, value: await action() }; } catch (error) { return { ok: false, error: { code: safeCode(error), message: error?.message ?? "Wallet request failed" } }; } }
 function safeCode(error) { return error?.data?.code ?? error?.code ?? "WALLET_REQUEST_FAILED"; }
+function safeErrorClass(error) { return typeof error?.name === "string" && /^[A-Za-z][A-Za-z0-9]{0,63}$/.test(error.name) ? error.name : "Error"; }
+function safeFailureCategory(error) {
+  const message = typeof error?.message === "string" ? error.message : "";
+  if (/decrypt|ciphertext|safeStorage/i.test(message)) return "OS_SECRET_DECRYPT_FAILED";
+  if (/expir|issued.*time|time.*window/i.test(message)) return "AUTHORIZATION_TIME_INVALID";
+  if (/secret|private key|signing key/i.test(message)) return "WALLET_SECRET_INVALID";
+  return "SIGNING_RUNTIME_ERROR";
+}
 function boundedText(value, fallback) { return typeof value === "string" && value.length <= 512 ? value : fallback; }
 function boundedArray(value) { return Array.isArray(value) && value.length <= 64 ? value.filter(item => typeof item === "string" && item.length <= 128) : []; }
