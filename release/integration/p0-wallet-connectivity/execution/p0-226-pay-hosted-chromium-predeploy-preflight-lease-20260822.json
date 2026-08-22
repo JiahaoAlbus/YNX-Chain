@@ -5,13 +5,13 @@
   "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-pay-hosted-chromium-predeploy-preflight-20260822T231900Z",
   "owner": "pay",
   "executor": "pay-hosted-chromium-preflight",
-  "status": "ACTIVE_SINGLE_USE",
+  "status": "CONSUMED_RELEASED_FAILED_CLOSED_PAY_HOSTED_CHROMIUM_PREDEPLOY_PREFLIGHT",
   "issuedAt": "2026-08-22T23:19:00Z",
   "expiresAt": "2026-08-22T23:55:00Z",
-  "releasedAt": null,
+  "releasedAt": "2026-08-22T23:25:29Z",
   "singleUse": true,
   "reusable": false,
-  "executionAuthorized": true,
+  "executionAuthorized": false,
   "productionMutationAllowed": false,
   "scope": "Pay-only one force=false workflow/request push and exactly one push-triggered hosted Chromium static-candidate predeploy run",
   "predecessor": {
@@ -121,6 +121,79 @@
     "provider selection, eth_requestAccounts, account approval/reject, signing, typed data, transaction or private key action",
     "Pay public, installed-provider, sensitive lifecycle, Product Session or aggregate product-completion promotion"
   ],
+  "terminalEvidence": {
+    "classification": "FAILED_CLOSED_WAITING_FOR_WALLET_EXACT_TEXT_NOT_RENDERED",
+    "observedAt": "2026-08-22T23:25:29Z",
+    "counts": {
+      "literalPush": 1,
+      "pushRun": 1,
+      "runAttempt": 1,
+      "retry": 0,
+      "dispatch": 0,
+      "ssh": 0,
+      "productionMutation": 0
+    },
+    "ownerRemote": {
+      "head": "56ed9a4ba7a7eceae3ac47a78cbb0ede12a73573",
+      "tree": "073ba1a303e8fe937a4cfc405915ef8046bbc578",
+      "pushSucceeded": true
+    },
+    "githubRun": {
+      "runId": 32605043796,
+      "jobId": 97108779578,
+      "attempt": 1,
+      "event": "push",
+      "headSha": "56ed9a4ba7a7eceae3ac47a78cbb0ede12a73573",
+      "status": "completed",
+      "conclusion": "failure",
+      "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/32605043796"
+    },
+    "steps": {
+      "bindExactCandidate": "PASS",
+      "chromiumInstall": "PASS",
+      "fixedLocalhostCandidate": "PASS",
+      "coldAndSecondHostedChromium": "FAIL_BEFORE_COLD_SNAPSHOT",
+      "artifactUploadAlways": "PASS"
+    },
+    "browserFailure": {
+      "predicate": "getByText('Waiting for Wallet',{exact:true})",
+      "timeoutMilliseconds": 30000,
+      "ynxPayVisibleBeforeFailure": true,
+      "waitingForWalletRendered": false,
+      "failureBeforeSnapshot": true,
+      "coldDirectEvidence": false,
+      "secondLaunchEvidence": false,
+      "screenshots": false,
+      "directDomEvidence": false,
+      "browserSuccessInferred": false
+    },
+    "artifact": {
+      "id": 9483914375,
+      "name": "pay-web-hosted-browser-preflight-p0226-56ed9a4ba7a7eceae3ac47a78cbb0ede12a73573",
+      "apiBytes": 3440,
+      "downloadedPath": "/tmp/pay-p0226-artifact.gZk7Gn/artifact.zip",
+      "downloadedBytes": 3440,
+      "zipSha256": "702cf8c153917d58fc2d1b5b6af268279c9cd9e3b811b2cbd69358725d28d115",
+      "unzipIntegrity": "PASS",
+      "failureBytes": 187,
+      "failureSha256": "e7cbfb25eb77afbb144c63fb94d0746550a1c9f729fabae91ebf1d15f2543d51",
+      "localRoot": "HTTP200/1174B/22f743c62a976928abd8a6bc3d123d366b5e1cac774b6ad3d20c21cfa07d917e",
+      "buildIdentity": "322B/7b57cc88fc9287c546ba41d0e61a00c13665cdfd8aa8cc34c2f7347f8abb0b81/exact-source-and-tree",
+      "javascriptHttp": 200,
+      "logoHttp": 200
+    },
+    "sensitiveActions": {
+      "providerSelection": false,
+      "ethRequestAccounts": false,
+      "accountApprovalOrReject": false,
+      "signing": false,
+      "typedData": false,
+      "transaction": false
+    },
+    "sourceBoundPublic": false,
+    "productionMutation": false,
+    "futureBlocker": "Freeze a wholly new hosted workflow that captures DOM, console and network evidence before every readiness wait and binds disconnected-state success to an actually observable exact Pay UI signal. The current exact Waiting for Wallet text is not rendered. Require direct hosted cold and second launch PASS before any production lease."
+  },
   "terminalRules": {
     "success": "CONSUMED_RELEASED_SUCCESS_PAY_HOSTED_CHROMIUM_PREDEPLOY_PREFLIGHT",
     "failure": "CONSUMED_RELEASED_FAILED_CLOSED_PAY_HOSTED_CHROMIUM_PREDEPLOY_PREFLIGHT",
