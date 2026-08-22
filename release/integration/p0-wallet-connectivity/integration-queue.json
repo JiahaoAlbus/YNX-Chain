@@ -6707,7 +6707,7 @@
     {
       "taskId": "P0-189",
       "owner": "integration,wallet-web,website",
-      "status": "ACTIVE_SINGLE_USE",
+      "status": "CONSUMED_RELEASED_SUCCESS_DIRECT_HOSTED_CHROMIUM_V11_STABLE_SECOND_LAUNCH_PREFLIGHT",
       "paths": [
         "release/integration/p0-wallet-connectivity/leases/wallet-web-v11-stable-second-launch-p0189-20260822.json",
         ".github/workflows/wallet-web-public-preflight-p0.yml",
@@ -6716,7 +6716,7 @@
       "dependencies": ["P0-188"],
       "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-web-v11-stable-second-launch-20260822T121300Z",
       "expiresAt": "2026-08-22T12:43:00Z",
-      "releasedAt": null,
+      "releasedAt": "2026-08-22T12:28:47Z",
       "source": "7df37ca32a643a403bd23a7f555354261f789441",
       "ownerRemoteParent": "9fa9270479577d6304ac5f257c562ef52616ce3e",
       "workflowCommit": "a9f73254f024d7c56fe942825286eb40e652c883",
@@ -6729,7 +6729,10 @@
       "stableSecondLaunch": false,
       "currentSourceBoundPublic": false,
       "productsConnected": "0/12",
-      "nextAction": "Execute only the exact literal push under the ordered one-use SSO window, require navigation-aware same-document stability in both processes, restore protection, and return terminal direct evidence or fail closed."
+      "actionsRunId": 32572758708,
+      "artifactId": 9475757695,
+      "stableSecondLaunch": true,
+      "nextAction": "P0-189 is consumed and nonreusable. Preserve immutable-candidate lifecycle evidence; official-domain routing, installed-provider and account actions remain separate future authorities."
     }
   ]
 }

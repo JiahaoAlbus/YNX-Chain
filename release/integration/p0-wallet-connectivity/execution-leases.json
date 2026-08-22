@@ -1,26 +1,26 @@
 {
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-  "epoch": 96,
-  "updatedAt": "2026-08-22T12:13:00Z",
+  "epoch": 97,
+  "updatedAt": "2026-08-22T12:28:47Z",
   "heavy": {
-    "owner": "wallet-web+website",
-    "status": "ACTIVE_SINGLE_USE",
+    "owner": null,
+    "status": "CONSUMED_RELEASED_SUCCESS_DIRECT_HOSTED_CHROMIUM_V11_STABLE_SECOND_LAUNCH_PREFLIGHT",
     "branch": "codex/wallet-web-pwa-extensions-20260813",
     "worktree": "/Users/huangjiahao/.codex/worktrees/1274/YNX Chain",
     "taskId": "P0-189",
     "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-web-v11-stable-second-launch-20260822T121300Z",
     "leasedAt": "2026-08-22T12:13:00Z",
     "expiresAt": "2026-08-22T12:43:00Z",
-    "releasedAt": null,
+    "releasedAt": "2026-08-22T12:28:47Z",
     "previousOwner": null,
     "previousTaskId": "P0-188",
     "previousCheckpoint": "88571d50843d640479ecf9e88dd21ce5834e596f",
     "executionScope": "V11_NAVIGATION_AWARE_STABLE_SECOND_LAUNCH_IMMUTABLE_CANDIDATE_HOSTED_CHROMIUM_NO_ALIAS",
-    "releaseReason": null,
+    "releaseReason": "The one hosted run passed all raw resource, first lifecycle, process-close and navigation-aware same-document second-launch assertions. SSO was restored and the official alias remained unchanged; this is immutable-candidate preflight evidence only.",
     "onSafeCheckpoint": [
-      "push only exact workflow commit a9f73254 with the literal refspec once",
-      "prove same-document stable readiness for first and second processes",
-      "restore SSO on every terminal path; no alias, product source or account mutation"
+      "do not reuse P0-189 or infer official public/installed completion",
+      "preserve run 32572758708 and artifact 9475757695 as immutable candidate evidence",
+      "any official-domain routing requires a wholly new lease and post-route verification"
     ]
   },
   "light": {
