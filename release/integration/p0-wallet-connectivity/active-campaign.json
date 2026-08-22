@@ -427,12 +427,12 @@
     }
   ],
   "heavy": {
-    "owner": "finance",
-    "taskId": "P0-217",
-    "status": "ACTIVE_SINGLE_USE",
+    "owner": null,
+    "taskId": null,
+    "status": "IDLE",
     "acquiredAt": "2026-08-22T20:45:00Z",
     "expiresAt": "2026-08-22T21:30:00Z",
-    "releasedAt": null,
+    "releasedAt": "2026-08-22T20:50:00Z",
     "sourceCommit": "7824af677dd052d20321431381523ab302614d98",
     "evidenceCommit": "114ea9e16225052be7fdab4719cb58e4da8f5db2",
     "runtimeHost": "43.153.202.237",
@@ -444,8 +444,8 @@
     "reusable": false,
     "previousOwner": "shop",
     "previousTaskId": "P0-216",
-    "reviewDecision": "GO_NEW_FINANCE_ISOLATED_LINUX_AMD64_PREFLIGHT_SINGLE_USE",
-    "reason": "The repaired Finance request independently resolves the receipt-manifest blocker: cleanup and result precede a last-written non-self-referential SHA256SUMS, and exact retained-file equality plus every digest is fail-closed. Owner remote, x86_64 host, strict known host, unused loopback port 45217, exact carrier/scripts and absent immutable carrier/run paths are freshly bound. Authority is isolated preflight only; production mutation and public completion remain false."
+    "reviewDecision": "CONSUMED_RELEASED_FAILED_CLOSED_FINANCE_ISOLATED_LINUX_PREFLIGHT_RECEIPT_PATH_CANONICALIZATION",
+    "reason": "P0-217 consumed exactly one prepare, upload, finalize and isolated execution with no retry. Direct readback confirms the candidate and mock stopped, loopback port 45217 is free, isolated state.json was exact-inode deleted and production Finance PID 877083 remained untouched. Terminal receipt files exist, but SHA256SUMS uses ./-prefixed paths while its verifier constructs unprefixed keys, so exact set equality fails closed. Heavy and all Finance preflight locks are released; no production or public truth is promoted."
   },
   "wave": {
     "id": "B-financial-apps-quant",

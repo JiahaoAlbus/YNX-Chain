@@ -3,16 +3,17 @@
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "taskId": "P0-217",
   "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-finance-isolated-linux-preflight-20260822T204500Z",
-  "owner": "finance",
+  "owner": null,
   "executor": "finance-linux-preflight",
-  "status": "ACTIVE_SINGLE_USE",
+  "status": "CONSUMED_RELEASED_FAILED_CLOSED_FINANCE_ISOLATED_LINUX_PREFLIGHT_RECEIPT_PATH_CANONICALIZATION",
   "issuedAt": "2026-08-22T20:45:00Z",
   "expiresAt": "2026-08-22T21:30:00Z",
+  "releasedAt": "2026-08-22T20:50:00Z",
   "singleUse": true,
   "reusable": false,
-  "executionAuthorized": true,
+  "executionAuthorized": false,
   "productionMutationAllowed": false,
-  "preflightMutationAllowed": true,
+  "preflightMutationAllowed": false,
   "scope": "Finance-only isolated Linux amd64 absent-state preflight: exact carrier placement, one loopback-only execution, retained receipts and exact-inode isolated-state cleanup",
   "predecessors": [
     {
@@ -160,6 +161,78 @@
       "SHA256SUMS created last and verified against the exact retained regular-file set"
     ],
     "successRequires": "All required receipts exist, every retained file is regular and exactly listed once in SHA256SUMS, every digest verifies, no extra or missing retained file exists, no process/listener remains, and isolated state is absent after exact-inode cleanup."
+  },
+  "terminalEvidence": {
+    "decision": "FAIL_CLOSED",
+    "failureReason": "The last-written SHA256SUMS contains canonical entries prefixed with ./ while the verifier compares them to unprefixed retained-file keys. Identical files therefore fail exact set equality before success can be accepted.",
+    "failureClass": "FINANCE_ISOLATED_LINUX_PREFLIGHT_RECEIPT_PATH_CANONICALIZATION",
+    "observedAt": "2026-08-22T20:49:58Z",
+    "counts": {
+      "prepare": 1,
+      "upload": 1,
+      "finalize": 1,
+      "isolatedExecution": 1,
+      "retry": 0,
+      "productionAction": 0
+    },
+    "upload": {
+      "exitCode": 0,
+      "elapsedSeconds": 22.23,
+      "carrierGatePassed": true,
+      "exactThreeRegularNlink1Files": true,
+      "noTransferProcessRemains": true
+    },
+    "isolatedExecution": {
+      "exitCode": 1,
+      "elapsedSeconds": 1.26,
+      "secondExecution": false,
+      "candidateAndMockProcessesAbsent": true,
+      "loopbackPortFree": true,
+      "isolatedStateJsonAbsent": true,
+      "zeroByteStateLockRetained": "/opt/ynx/preflight/finance/runs/P0-WALLET-CONNECTIVITY-2026-08-finance-isolated-linux-preflight-20260822T204500Z/state/state.json.lock",
+      "retainedReceiptCountExcludingManifest": 12,
+      "manifestBytes": 1062,
+      "manifestEntryPrefix": "./"
+    },
+    "retainedReceipts": [
+      "candidate-created-state.json",
+      "candidate-stopped.json",
+      "candidate-write.json",
+      "candidate.log",
+      "cleanup.json",
+      "cold-health.json",
+      "cold-version.json",
+      "final-absence.json",
+      "post-cold-absence.json",
+      "pre-switch-absence.json",
+      "result.txt",
+      "stopped-exact-inode-deletion.json",
+      "SHA256SUMS"
+    ],
+    "production": {
+      "financePid": 877083,
+      "processUntouched": true,
+      "systemctlAction": false,
+      "environmentMutation": false,
+      "symlinkMutation": false,
+      "caddyMutation": false,
+      "publicRouteMutation": false
+    },
+    "sensitiveActions": {
+      "account": false,
+      "sign": false,
+      "transaction": false
+    },
+    "futureUnblock": "Finance owner must minimally canonicalize generated and parsed manifest paths to one relative representation, add an exact regression fixture, freeze new script/request objects and seek a wholly-new lease. P0-217 is not retryable."
+  },
+  "releasedLocks": {
+    "releasedAt": "2026-08-22T20:50:00Z",
+    "heavyOwner": null,
+    "hostPreflightOwner": null,
+    "preflightRootOwner": null,
+    "carrierDirectoryOwner": null,
+    "runDirectoryOwner": null,
+    "loopbackPortOwner": null
   },
   "forbidden": [
     "systemctl or any production process stop/start/restart",
