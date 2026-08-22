@@ -427,26 +427,26 @@
     }
   ],
   "heavy": {
-    "owner": "website",
+    "owner": null,
     "taskId": "P0-181",
-    "status": "ACTIVE_SINGLE_USE",
+    "status": "CONSUMED_RELEASED_FAILED_CLOSED_BROWSER_PWA_INTEGRITY_GATE",
     "acquiredAt": "2026-08-22T08:57:30Z",
     "expiresAt": "2026-08-22T09:27:30Z",
-    "releasedAt": null,
+    "releasedAt": "2026-08-22T09:02:40Z",
     "sourceCommit": "a9653f9f73eb79f77b45f04c845c4f56c012ab4b",
     "evidenceCommit": "be74f5e85bd132e8f068a8036a87b23c0ca715f7",
     "runtimeHost": "wallet.ynxweb4.com",
     "currentRuntime": "dpl_Got2m9m84Sc3QDsrH8yu51W93JAe",
     "candidateRuntime": "dpl_G6gTg2a3CVS1siTRqQg5XjQfPR9q",
     "artifactSha256": "4d8e2e011f7113a80fb5a9541f710b86b2355f5e2fc176fd76a4a46ff94b0e7b",
-    "productionMutationAllowed": "EXACT_WALLET_OFFICIAL_ALIAS_SET_WITH_EXACT_OLD_ALIAS_ROLLBACK_ONLY",
+    "productionMutationAllowed": false,
     "singleUse": true,
     "reusable": false,
     "previousOwner": null,
     "previousTaskId": "P0-180",
     "checkpointCommit": "be74f5e85bd132e8f068a8036a87b23c0ca715f7",
-    "reviewDecision": "GO_EXACT_ALIAS_ONLY_AFTER_ACCEPTED_HOSTED_PREFLIGHT",
-    "reason": "P0-180 directly proved the immutable candidate's four resources from GitHub hosted infrastructure. P0-181 permits only one exact official alias switch with one exact rollback and mandatory official-domain readback."
+    "reviewDecision": "FAILED_CLOSED_BROWSER_PWA_INTEGRITY_EXACT_ROLLBACK_COMPLETE",
+    "reason": "All four official resources matched the candidate after the one alias switch, but the mandatory clean browser rendered PWA shell 完整性验证失败. The one exact rollback restored the old uncommitted-source-tree identity."
   },
   "wave": {
     "id": "B-financial-apps-quant",

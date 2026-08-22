@@ -1,26 +1,26 @@
 {
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-  "epoch": 82,
-  "updatedAt": "2026-08-22T08:57:30Z",
+  "epoch": 83,
+  "updatedAt": "2026-08-22T09:02:40Z",
   "heavy": {
-    "owner": "website",
-    "status": "ACTIVE_SINGLE_USE",
+    "owner": null,
+    "status": "CONSUMED_RELEASED_FAILED_CLOSED_BROWSER_PWA_INTEGRITY_GATE",
     "branch": "codex/website-wallet-public-identity-routing-20260822",
     "worktree": "/Users/huangjiahao/Desktop/ynx-web4-website-new",
     "taskId": "P0-181",
     "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-public-identity-routing-20260822T085730Z",
     "leasedAt": "2026-08-22T08:57:30Z",
     "expiresAt": "2026-08-22T09:27:30Z",
-    "releasedAt": null,
+    "releasedAt": "2026-08-22T09:02:40Z",
     "previousOwner": null,
     "previousTaskId": "P0-180",
     "previousCheckpoint": "be74f5e85bd132e8f068a8036a87b23c0ca715f7",
     "executionScope": "WALLET_OFFICIAL_DOMAIN_ALIAS_ONLY_WITH_EXACT_ROLLBACK",
-    "releaseReason": null,
+    "releaseReason": "The exact official alias switch and all four raw resource readbacks passed, but the mandatory clean browser rendered PWA shell 完整性验证失败. The exact old alias rollback ran once and restored the old uncommitted-source-tree identity.",
     "onSafeCheckpoint": [
-      "execute only the exact candidate-to-official alias command once",
-      "verify all four official resources and clean-browser visibility",
-      "on any post-route failure execute only the exact old-alias rollback once"
+      "do not reuse P0-181 or infer official public acceptance",
+      "preserve the four-resource success and browser integrity failure evidence",
+      "require a Wallet Web source repair and independent candidate browser proof before any new routing lease"
     ]
   },
   "light": {

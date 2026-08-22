@@ -1297,20 +1297,20 @@
     },
     {
       "path": "vercel:wallet.ynxweb4.com",
-      "owner": "website",
+      "owner": null,
       "branch": "codex/website-wallet-public-identity-routing-20260822",
       "worktree": "/Users/huangjiahao/Desktop/ynx-web4-website-new",
       "taskId": "P0-181",
       "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-      "status": "ACTIVE_SINGLE_USE",
+      "status": "CONSUMED_RELEASED_FAILED_CLOSED_BROWSER_PWA_INTEGRITY_GATE",
       "acquiredAt": "2026-08-22T08:57:30Z",
       "expiresAt": "2026-08-22T09:27:30Z",
-      "releasedAt": null,
-      "productionMutationAllowed": "EXACT_WALLET_OFFICIAL_ALIAS_SET_WITH_EXACT_OLD_ALIAS_ROLLBACK_ONLY",
+      "releasedAt": "2026-08-22T09:02:40Z",
+      "productionMutationAllowed": false,
       "allowedExceptions": [
-        "change only wallet.ynxweb4.com to exact dpl_G6gTg2a3CVS1siTRqQg5XjQfPR9q after fresh no-drift checks",
-        "read back only the four official resources and clean-browser visible state",
-        "restore only dpl_Got2m9m84Sc3QDsrH8yu51W93JAe on any post-route failure"
+        "P0-181 is consumed and nonreusable",
+        "preserve exact four-resource success plus clean-browser integrity failure evidence",
+        "no new route mutation until repaired candidate browser integrity is independently proved and a wholly new lease is issued"
       ]
     },
     {
