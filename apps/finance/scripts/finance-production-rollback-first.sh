@@ -24,7 +24,33 @@ stage=$(get '.paths.stage'); backup=$(get '.paths.backup'); release=$(get '.path
 for value in "$archive" "$new_env"; do case "$value" in /opt/ynx/stage/finance/$LEASE_ID/*) ;; *) exit 65;; esac; done
 for name in stage backup release; do case "$name" in stage)value=$stage;;backup)value=$backup;;release)value=$release;;esac; parent=$(get ".paths.parents.$name.path"); tuple=$(get ".paths.parents.$name.tuple"); base=$(get ".paths.$name.basename"); test "$value" = "$parent/$LEASE_ID/$base"; case "$base" in ''|*/*|.*|*..*) exit 65;;esac; test -d "$parent" && test ! -L "$parent" && test "$(realpath -e "$parent")" = "$parent"; test "$(stat -Lc '%u:%g:%a:%h' "$parent")" = "$tuple"; absent "$value"; done
 verify_old_live(){ http_check '.fresh.verifier.loopbackHealth'; http_check '.fresh.verifier.loopbackVersion'; http_check '.fresh.verifier.publicHealth'; http_check '.fresh.verifier.publicVersion'; }
-verify_candidate_live(){ systemctl is-active --quiet "$service"; test "$(systemctl show -p MainPID --value "$service")" = "$(get '.candidate.service.pid')"; test "$(systemctl show -p NRestarts --value "$service")" = "$(get '.candidate.service.nrestarts')"; http_check '.candidate.verifier.loopbackHealth'; http_check '.candidate.verifier.loopbackVersion'; http_check '.candidate.verifier.publicHealth'; http_check '.candidate.verifier.publicVersion'; jq -e '.candidate.assets|length>0' "$lease" >/dev/null; jq -re '.candidate.assets[]|.url,.status,.bytes,.sha256,.path' "$lease" >/dev/null; while IFS= read -r n; do test -n "$n"; http_check ".candidate.assets[$n]"; asset=$(get ".candidate.assets[$n].path"); case "$asset" in "$release"/*) ;; *) exit 65;; esac; test -f "$asset" && test ! -L "$asset"; test "$(bytes "$asset")" = "$(get ".candidate.assets[$n].bytes")"; test "$(hash "$asset")" = "$(get ".candidate.assets[$n].sha256")"; done < <(jq -r '.candidate.assets|keys[]' "$lease"); }
+asset_path(){
+  local root=$1 rel=$2 path
+  case "$rel" in ''|/*|.|..|*/../*|../*|*//*) exit 65;; esac
+  path="$root/$rel"
+  case "$path" in "$root"/*) ;; *) exit 65;; esac
+  printf '%s\n' "$path"
+}
+verify_local_assets(){
+  local root=$1 n rel asset
+  jq -e '.candidate.assets|length>0' "$lease" >/dev/null
+  jq -re '.candidate.assets[]|.url,.status,.bytes,.sha256,.relativePath' "$lease" >/dev/null
+  while IFS= read -r n; do
+    test -n "$n"; rel=$(get ".candidate.assets[$n].relativePath"); asset=$(asset_path "$root" "$rel")
+    test -f "$asset" && test ! -L "$asset" && test "$(realpath -e "$asset")" = "$asset"
+    test "$(bytes "$asset")" = "$(get ".candidate.assets[$n].bytes")"
+    test "$(hash "$asset")" = "$(get ".candidate.assets[$n].sha256")"
+  done < <(jq -r '.candidate.assets|keys[]' "$lease")
+}
+verify_candidate_live(){
+  local newpid n
+  systemctl is-active --quiet "$service"; newpid=$(systemctl show -p MainPID --value "$service")
+  test "$newpid" -gt 0 && test "$newpid" != "$(get '.fresh.service.pid')"
+  test "$(systemctl show -p NRestarts --value "$service")" = "$(( $(get '.fresh.service.nrestarts') + 1 ))"
+  verify_local_assets "$release"
+  http_check '.candidate.verifier.loopbackHealth'; http_check '.candidate.verifier.loopbackVersion'; http_check '.candidate.verifier.publicHealth'; http_check '.candidate.verifier.publicVersion'
+  while IFS= read -r n; do test -n "$n"; http_check ".candidate.assets[$n]"; done < <(jq -r '.candidate.assets|keys[]' "$lease")
+}
 assert_fresh(){
   test "$(readlink -f "$current")" = "$old"; test "$(hash "$old_binary")" = "$old_binary_sha"; file "$old_binary" | grep -q 'ELF 64-bit.*x86-64'
   test "$(hash "$env")" = "$env_sha"; test "$(hash "$unit")" = "$unit_sha"; test "$(hash "$caddy")" = "$caddy_sha"; systemctl is-active --quiet "$service"; test "$(systemctl show -p MainPID --value "$service")" = "$(get '.fresh.service.pid')"; test "$(systemctl show -p NRestarts --value "$service")" = "$(get '.fresh.service.nrestarts')"
@@ -32,14 +58,15 @@ assert_fresh(){
   jq -e '.fresh.verifier.loopbackHealth and .fresh.verifier.loopbackVersion and .fresh.verifier.publicHealth and .fresh.verifier.publicVersion and .fresh.verifier.sha256' "$lease" >/dev/null; verify_old_live
 }
 restore(){
-  systemctl stop "$service" || true; test "$(hash "$backup/env")" = "$env_sha"; tmp=$(mktemp "$(dirname "$env")/.finance.env.restore.XXXXXX"); cp --preserve=mode,ownership "$backup/env" "$tmp"; mv -Tf "$tmp" "$env"; if [[ "$state_absent" = true ]]; then test -f "$backup/state-absent"; if test -e "$state"; then test -f "$state" && test ! -L "$state"; stat -Lc '%u:%g:%a:%h:%s' "$state" >"$backup/candidate-state-stat"; rm -- "$state"; fi; test ! -e "$state" && test ! -L "$state"; else test "$(hash "$backup/state")" = "$(get '.fresh.state.sha256')"; cp --preserve=mode,ownership "$backup/state" "$state"; fi
-  link="$current.rollback"; absent "$link"; ln -s "$old" "$link"; mv -Tf "$link" "$current"; systemctl start "$service"; assert_fresh
+  systemctl stop "$service" || true; test "$(hash "$backup/env")" = "$env_sha"; tmp=$(mktemp "$(dirname "$env")/.finance.env.restore.XXXXXX"); cp --preserve=mode,ownership "$backup/env" "$tmp"; mv -Tf "$tmp" "$env"; if [[ "$state_absent" = true ]]; then test -f "$backup/state-absent"; if test -e "$state"; then test -f "$state" && test ! -L "$state"; stat -Lc '%d:%i:%u:%g:%a:%h:%s' "$state" >"$backup/candidate-state-stat"; hash "$state" >"$backup/candidate-state-sha256"; rm -- "$state"; fi; test ! -e "$state" && test ! -L "$state"; else test "$(hash "$backup/state")" = "$(get '.fresh.state.sha256')"; if test -e "$state"; then test -f "$state" && test ! -L "$state"; stat -Lc '%d:%i:%u:%g:%a:%h:%s' "$state" >"$backup/candidate-state-stat"; hash "$state" >"$backup/candidate-state-sha256"; rm -- "$state"; fi; stmp=$(mktemp "$(dirname "$state")/.finance.state.restore.XXXXXX"); cp --preserve=mode,ownership "$backup/state" "$stmp"; mv -Tf "$stmp" "$state"; test "$(stat -Lc '%u:%g:%a:%h' "$state")" = "$(get '.fresh.state.restoredTuple')"; test "$(bytes "$state")" = "$(get '.fresh.state.bytes')"; test "$(hash "$state")" = "$(get '.fresh.state.sha256')"; fi
+  link="$current.rollback"; absent "$link"; ln -s "$old" "$link"; mv -Tf "$link" "$current"; systemctl start "$service"; verify_old_live
 }
 if [[ "$mode" == rollback ]]; then restore; exit 0; fi
 absent "$stage"; absent "$backup"; absent "$release"; assert_fresh
 test "$(bytes "$archive")" = "$archive_bytes"; test "$(hash "$archive")" = "$archive_sha"; test "$(hash "$new_env")" = "$new_env_sha"
 mkdir -p -m 0700 "$stage" "$backup"; cp --preserve=mode,ownership "$env" "$backup/env"; if [[ "$state_absent" = true ]]; then test ! -e "$state" && test ! -L "$state"; : >"$backup/state-absent"; else cp --preserve=mode,ownership "$state" "$backup/state"; fi; tar -xzf "$archive" -C "$stage"
 candidate="$stage/$(basename "$release")"; test -x "$candidate/ynx-finance"; test "$(hash "$candidate/ynx-finance")" = "$binary_sha"; test "$(bytes "$candidate/ynx-finance")" = "$binary_bytes"; file "$candidate/ynx-finance" | grep -q 'ELF 64-bit.*x86-64'
+verify_local_assets "$candidate"
 trap 'restore' EXIT
 mv "$candidate" "$release"; tmp=$(mktemp "$(dirname "$env")/.finance.env.next.XXXXXX"); cp --preserve=mode,ownership "$new_env" "$tmp"; mv -Tf "$tmp" "$env"
 link="$current.next"; absent "$link"; ln -s "$release" "$link"; mv -Tf "$link" "$current"; systemctl restart "$service"
