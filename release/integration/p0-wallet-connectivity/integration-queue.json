@@ -6675,6 +6675,32 @@
       "actionsRunId": 32571167816,
       "artifactId": 9475355371,
       "nextAction": "Do not reuse P0-187. A successor may be considered only after a current-parent sole-workflow correction awaits buildIdentity JSON, binds candidate resource errors without masking real failures, and retains complete process-close plus second-launch assertions."
+    },
+    {
+      "taskId": "P0-188",
+      "owner": "integration,wallet-web,website",
+      "status": "ACTIVE_SINGLE_USE",
+      "paths": [
+        "release/integration/p0-wallet-connectivity/leases/wallet-web-v11-lifecycle-measurement-successor-p0188-20260822.json",
+        ".github/workflows/wallet-web-public-preflight-p0.yml",
+        "vercel-project:prj_K4emrdkST7sdb0K9mhmLM0QZh0I3:ssoProtection"
+      ],
+      "dependencies": ["P0-187"],
+      "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-web-v11-lifecycle-measurement-successor-20260822T115800Z",
+      "expiresAt": "2026-08-22T12:28:00Z",
+      "releasedAt": null,
+      "source": "7df37ca32a643a403bd23a7f555354261f789441",
+      "ownerRemoteParent": "ea3be8a5823207f255a84420e07b0f45471376ca",
+      "workflowCommit": "9fa9270479577d6304ac5f257c562ef52616ce3e",
+      "candidateDeployment": "dpl_EhSHsjrfQ17dzuTegLCqGvELeBte",
+      "candidateImmutableUrl": "https://wallet-3re0s0lx4-jiahaoalbus-projects.vercel.app",
+      "aliasMutationAllowed": false,
+      "workflowPushAllowedExactlyOnce": true,
+      "hostedRunAllowedExactlyOnce": true,
+      "ssoRestoreRequired": true,
+      "currentSourceBoundPublic": false,
+      "productsConnected": "0/12",
+      "nextAction": "Execute only the exact literal push under the ordered one-use SSO window, bind one hosted run, restore protection, and return terminal direct evidence or fail closed."
     }
   ]
 }

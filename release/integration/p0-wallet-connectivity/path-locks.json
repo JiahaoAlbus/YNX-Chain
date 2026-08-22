@@ -1297,7 +1297,7 @@
     },
     {
       "path": "vercel:wallet.ynxweb4.com",
-      "owner": null,
+      "owner": "website",
       "branch": "codex/website-wallet-public-identity-routing-20260822",
       "worktree": "/Users/huangjiahao/Desktop/ynx-web4-website-new",
       "taskId": "P0-181",
@@ -1333,38 +1333,38 @@
     },
     {
       "path": "vercel-project:prj_K4emrdkST7sdb0K9mhmLM0QZh0I3:ssoProtection",
-      "owner": null,
+      "owner": "website",
       "branch": "codex/wallet-web-pwa-extensions-20260813",
       "worktree": "/Users/huangjiahao/.codex/worktrees/1274/YNX Chain",
-      "taskId": "P0-187",
+      "taskId": "P0-188",
       "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-      "status": "CONSUMED_RELEASED_FAILED_CLOSED_HOSTED_CHROMIUM_REPAIRED_V11_LIFECYCLE_PREFLIGHT",
-      "acquiredAt": "2026-08-22T11:33:00Z",
-      "expiresAt": "2026-08-22T12:03:00Z",
-      "releasedAt": "2026-08-22T11:53:04Z",
-      "productionMutationAllowed": false,
+      "status": "ACTIVE_SINGLE_USE",
+      "acquiredAt": "2026-08-22T11:58:00Z",
+      "expiresAt": "2026-08-22T12:28:00Z",
+      "releasedAt": null,
+      "productionMutationAllowed": "EXACT_TEMPORARY_SSO_DISABLE_AND_RESTORE_ONLY",
       "allowedExceptions": [
-        "P0-187 protection-window quota is consumed and nonreusable",
-        "SSO is restored to prod_deployment_urls_and_all_previews",
-        "no new protection window without a wholly new lease"
+        "disable wallet-web SSO once for the exact P0-188 candidate hosted run",
+        "restore SSO once on every terminal path",
+        "no alias or other Vercel setting mutation"
       ]
     },
     {
       "path": ".github/workflows/wallet-web-public-preflight-p0.yml",
-      "owner": null,
+      "owner": "wallet-web",
       "branch": "codex/wallet-web-pwa-extensions-20260813",
       "worktree": "/Users/huangjiahao/.codex/worktrees/1274/YNX Chain",
-      "taskId": "P0-187",
+      "taskId": "P0-188",
       "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-      "status": "CONSUMED_RELEASED_FAILED_CLOSED_HOSTED_CHROMIUM_REPAIRED_V11_LIFECYCLE_PREFLIGHT",
-      "acquiredAt": "2026-08-22T11:33:00Z",
-      "expiresAt": "2026-08-22T12:03:00Z",
-      "releasedAt": "2026-08-22T11:53:04Z",
+      "status": "ACTIVE_SINGLE_USE",
+      "acquiredAt": "2026-08-22T11:58:00Z",
+      "expiresAt": "2026-08-22T12:28:00Z",
+      "releasedAt": null,
       "productionMutationAllowed": false,
       "allowedExceptions": [
-        "P0-187 workflow push and run quotas are consumed",
-        "preserve run 32571167816 and artifact 9475355371 as immutable evidence",
-        "no retry, dispatch or further workflow mutation under P0-187"
+        "push only exact workflow commit 9fa92704 from exact parent ea3be8a5",
+        "one literal force-false push and one push-triggered hosted run",
+        "fresh RUNNER_TEMP output only; no retry or repository evidence upload"
       ]
     },
     {
