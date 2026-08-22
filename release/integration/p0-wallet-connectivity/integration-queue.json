@@ -6372,8 +6372,8 @@
     },
     {
       "taskId": "P0-175",
-      "owner": "website",
-      "status": "ACTIVE_SINGLE_USE_PRECHECK_FIRST_ROLLBACK_BOUND",
+      "owner": "integration,website",
+      "status": "CONSUMED_RELEASED_FAILED_CLOSED_CANDIDATE_UNREACHABLE_PREWRITE",
       "paths": [
         "release/integration/p0-wallet-connectivity/leases/wallet-public-identity-routing-p0175-20260822.json",
         "vercel:wallet.ynxweb4.com"
@@ -6381,14 +6381,17 @@
       "dependencies": ["P0-173"],
       "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-public-identity-routing-20260822T074225Z",
       "expiresAt": "2026-08-22T08:12:25Z",
+      "releasedAt": "2026-08-22T07:56:13Z",
       "currentDeployment": "dpl_Got2m9m84Sc3QDsrH8yu51W93JAe",
       "candidateDeployment": "dpl_BMmwcxQj98uZdhumQLgmZ5bX5YZQ",
       "candidateSource": "a9653f9f73eb79f77b45f04c845c4f56c012ab4b",
       "precheckRequired": true,
       "rollbackRequired": true,
+      "aliasCommandExecuted": false,
+      "productionMutation": false,
       "currentSourceBoundPublic": false,
       "productsConnected": "0/12",
-      "nextAction": "Website owner must preflight the four candidate paths, switch only the Wallet official alias, then prove four official-domain responses plus a clean-browser page or immediately roll back."
+      "nextAction": "Do not reuse P0-175. Independently restore candidate HTTPS reachability and pass all four immutable-resource preflights before requesting a wholly new bounded lease."
     },
     {
       "taskId": "P0-176",

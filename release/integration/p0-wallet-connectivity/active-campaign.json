@@ -427,26 +427,26 @@
     }
   ],
   "heavy": {
-    "owner": "website",
+    "owner": null,
     "taskId": "P0-175",
-    "status": "ACTIVE_SINGLE_USE_PRECHECK_FIRST_ROLLBACK_BOUND",
+    "status": "CONSUMED_RELEASED_FAILED_CLOSED_CANDIDATE_UNREACHABLE_PREWRITE",
     "acquiredAt": "2026-08-22T07:42:25Z",
     "expiresAt": "2026-08-22T08:12:25Z",
-    "releasedAt": null,
+    "releasedAt": "2026-08-22T07:56:13Z",
     "sourceCommit": "a9653f9f73eb79f77b45f04c845c4f56c012ab4b",
     "evidenceCommit": "4f1e1b8ebdbc5e67900f675d970421d73d3a574b",
     "runtimeHost": "wallet.ynxweb4.com",
     "currentRuntime": "dpl_Got2m9m84Sc3QDsrH8yu51W93JAe",
     "candidateRuntime": "dpl_BMmwcxQj98uZdhumQLgmZ5bX5YZQ",
     "artifactSha256": "4d8e2e011f7113a80fb5a9541f710b86b2355f5e2fc176fd76a4a46ff94b0e7b",
-    "productionMutationAllowed": true,
+    "productionMutationAllowed": false,
     "singleUse": true,
     "reusable": false,
     "previousOwner": null,
     "previousTaskId": "P0-145",
     "checkpointCommit": "97a20044e640d57a658897d533da15e9270700cc",
-    "reviewDecision": "PRECHECK_FIRST_ROUTE_AUTHORIZED",
-    "reason": "Wallet public identity blocks direct E2E. The candidate is READY and source-bound; only the exact wallet official-domain alias is authorized after immutable-path preflight, with the old deployment frozen for immediate rollback."
+    "reviewDecision": "FAILED_CLOSED_PREWRITE_RELEASED",
+    "reason": "Candidate immutable HTTPS timed out twice during mandatory preflight. No alias command ran, official Wallet stayed on the old unbound deployment, and the lease is consumed/nonreusable."
   },
   "wave": {
     "id": "B-financial-apps-quant",

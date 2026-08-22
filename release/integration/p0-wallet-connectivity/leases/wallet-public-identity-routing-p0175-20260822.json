@@ -3,12 +3,13 @@
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "taskId": "P0-175",
   "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-public-identity-routing-20260822T074225Z",
-  "status": "ACTIVE_SINGLE_USE_PRECHECK_FIRST_ROLLBACK_BOUND",
-  "owner": "website",
+  "status": "CONSUMED_RELEASED_FAILED_CLOSED_CANDIDATE_UNREACHABLE_PREWRITE",
+  "owner": null,
   "branch": "codex/website-wallet-public-identity-routing-20260822",
   "worktree": "/Users/huangjiahao/Desktop/ynx-web4-website-new",
   "issuedAt": "2026-08-22T07:42:25Z",
   "expiresAt": "2026-08-22T08:12:25Z",
+  "releasedAt": "2026-08-22T07:56:13Z",
   "singleUse": true,
   "reusable": false,
   "scope": "WALLET_OFFICIAL_DOMAIN_ALIAS_ONLY",
@@ -63,5 +64,17 @@
     "installedProvider": false,
     "parityComplete": false,
     "productsConnected": "0/12"
+  },
+  "terminalResult": {
+    "candidateControlPlaneInspect": "READY_PRODUCTION_WALLET_WEB",
+    "candidateHttpsAttempt1": "TIMEOUT_20.004_SECONDS",
+    "candidateHttpsAttempt2": "IPV4_CONNECT_TIMEOUT_8.002_SECONDS_HTTP_000_ZERO_BYTES",
+    "fourResourcePreflightComplete": false,
+    "aliasCommandExecuted": false,
+    "rollbackNeeded": false,
+    "officialDomainChanged": false,
+    "officialSourceCommit": "uncommitted-source-tree",
+    "productionMutation": false,
+    "freshLeaseCondition": "independent candidate HTTPS reachability plus successful /, /build-identity.json, /manifest.webmanifest and /sw.js preflight"
   }
 }
