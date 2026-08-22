@@ -51,6 +51,7 @@ export class StandardWalletJsonRpcRouter {
       case "eth_requestAccounts": requireNoParams(params); return this.#permissions.requestAccounts();
       case "wallet_getPermissions": requireNoParams(params); return this.#permissions.permissions();
       case "wallet_requestPermissions": return this.#permissions.requestPermissions(singleObject(params));
+      case "wallet_revokePermissions": return this.#permissions.revokePermissions(singleObject(params));
       case "wallet_switchEthereumChain": return switchChain(singleObject(params));
       case "wallet_addEthereumChain": return addChain(singleObject(params));
       case "personal_sign": return this.#personalSign(params);
@@ -67,7 +68,7 @@ export class StandardWalletJsonRpcRouter {
     if (new TextEncoder().encode(params[0]).byteLength > 131072 || (params[0].startsWith("0x") && !/^0x(?:[0-9a-fA-F]{2})*$/.test(params[0]))) throw providerError(-32602, "personal_sign message is invalid or too large");
     const account = this.#permissions.requireAccount(params[1]);
     if (typeof this.#signMessage !== "function") throw providerError(4200, "Message signing is unavailable");
-    return signature(await this.#signMessage(Object.freeze({ origin: this.#permissions.origin, account, message: params[0], method: "personal_sign" })));
+    return signature(await invokePrivileged(this.#signMessage, Object.freeze({ origin: this.#permissions.origin, account, message: params[0], method: "personal_sign" }), "Message signing"));
   }
 
   async #typedSign(params) {
@@ -76,10 +77,11 @@ export class StandardWalletJsonRpcRouter {
     let typedData = params[1];
     if (typeof typedData === "string") try { typedData = JSON.parse(typedData); } catch { throw providerError(-32602, "Typed data JSON is invalid"); }
     if (!object(typedData)) throw providerError(-32602, "Typed data is invalid");
+    validateTypedData(typedData);
     const frozenJson = canonicalJSON(typedData);
     if (new TextEncoder().encode(frozenJson).byteLength > 131072) throw providerError(-32602, "Typed data exceeds the Wallet limit");
     if (typeof this.#signTypedData !== "function") throw providerError(4200, "Typed data signing is unavailable");
-    return signature(await this.#signTypedData(Object.freeze({ origin: this.#permissions.origin, account, typedData: JSON.parse(frozenJson), method: "eth_signTypedData_v4" })));
+    return signature(await invokePrivileged(this.#signTypedData, Object.freeze({ origin: this.#permissions.origin, account, typedData: JSON.parse(frozenJson), method: "eth_signTypedData_v4" }), "Typed data signing"));
   }
 
   async #send(params) {
@@ -90,7 +92,7 @@ export class StandardWalletJsonRpcRouter {
     if (transaction.chainId !== undefined && transaction.chainId !== STANDARD_WALLET_NETWORK.chainId) throw providerError(4901, "Transaction targets a different chain");
     validateTransaction(transaction);
     if (typeof this.#sendTransaction !== "function") throw providerError(4200, "Transaction submission is unavailable");
-    const hash = await this.#sendTransaction(Object.freeze({ origin: this.#permissions.origin, account: from, transaction: Object.freeze({ ...transaction, from, chainId: STANDARD_WALLET_NETWORK.chainId }) }));
+    const hash = await invokePrivileged(this.#sendTransaction, Object.freeze({ origin: this.#permissions.origin, account: from, transaction: Object.freeze({ ...transaction, from, chainId: STANDARD_WALLET_NETWORK.chainId }) }), "Transaction submission");
     if (typeof hash !== "string" || !/^0x[0-9a-fA-F]{64}$/.test(hash)) throw providerError(-32603, "Wallet returned an invalid transaction hash");
     return hash.toLowerCase();
   }
@@ -125,7 +127,47 @@ function validateTransaction(value) {
     if (value[field] !== undefined && (typeof value[field] !== "string" || !/^0x(?:0|[1-9a-fA-F][0-9a-fA-F]*)$/.test(value[field]))) throw providerError(-32602, `Transaction ${field} is not a canonical quantity`);
   }
   if (value.data !== undefined && (typeof value.data !== "string" || !/^0x(?:[0-9a-fA-F]{2})*$/.test(value.data))) throw providerError(-32602, "Transaction data is invalid");
-  if (value.accessList !== undefined && !Array.isArray(value.accessList)) throw providerError(-32602, "Transaction accessList is invalid");
+  if (value.accessList !== undefined) validateAccessList(value.accessList);
   if (new TextEncoder().encode(canonicalJSON(value)).byteLength > 131072) throw providerError(-32602, "Transaction exceeds the Wallet limit");
+}
+function validateTypedData(value) {
+  if (Object.keys(value).sort().join(",") !== "domain,message,primaryType,types" || !object(value.domain) || !object(value.types) || !object(value.message) || typeof value.primaryType !== "string" || !/^[A-Za-z_][A-Za-z0-9_]{0,63}$/.test(value.primaryType)) throw providerError(-32602, "Typed data structure is invalid");
+  const domainFields = new Set(["name", "version", "chainId", "verifyingContract", "salt"]);
+  if (Object.keys(value.domain).some((key) => !domainFields.has(key))) throw providerError(-32602, "Typed data domain contains an unsupported field");
+  for (const field of ["name", "version"]) if (value.domain[field] !== undefined && (typeof value.domain[field] !== "string" || new TextEncoder().encode(value.domain[field]).byteLength > 1024)) throw providerError(-32602, `Typed data domain ${field} is invalid`);
+  if (value.domain.chainId !== undefined && ![6423, "6423", STANDARD_WALLET_NETWORK.chainId].includes(value.domain.chainId)) throw providerError(4901, "Typed data targets a different chain");
+  if (value.domain.verifyingContract !== undefined && (typeof value.domain.verifyingContract !== "string" || !/^0x[0-9a-fA-F]{40}$/.test(value.domain.verifyingContract))) throw providerError(-32602, "Typed data verifying contract is invalid");
+  if (value.domain.salt !== undefined && (typeof value.domain.salt !== "string" || !/^0x[0-9a-fA-F]{64}$/.test(value.domain.salt))) throw providerError(-32602, "Typed data salt is invalid");
+  const names = Object.keys(value.types);
+  if (names.length < 1 || names.length > 128 || !names.includes(value.primaryType) || names.some((name) => !/^[A-Za-z_][A-Za-z0-9_]{0,63}$/.test(name))) throw providerError(-32602, "Typed data types are invalid");
+  for (const fields of Object.values(value.types)) {
+    if (!Array.isArray(fields) || fields.length > 128) throw providerError(-32602, "Typed data type fields are invalid");
+    const seen = new Set();
+    for (const field of fields) {
+      if (!object(field) || Object.keys(field).sort().join(",") !== "name,type" || typeof field.name !== "string" || !/^[A-Za-z_][A-Za-z0-9_]{0,63}$/.test(field.name) || seen.has(field.name) || typeof field.type !== "string" || !/^[A-Za-z_][A-Za-z0-9_]*(?:\[[0-9]*\])*$/.test(field.type) || field.type.length > 128 || !validTypedDataBaseType(field.type.replace(/\[[0-9]*\]/g, ""), names)) throw providerError(-32602, "Typed data type fields are invalid");
+      seen.add(field.name);
+    }
+  }
+}
+function validTypedDataBaseType(type, declared) {
+  if (declared.includes(type) || ["address", "bool", "string", "bytes"].includes(type) || /^bytes(?:[1-9]|[12][0-9]|3[0-2])$/.test(type)) return true;
+  const integer = /^(?:u?int)([0-9]*)$/.exec(type);
+  if (!integer) return false;
+  const width = integer[1] === "" ? 256 : Number(integer[1]);
+  return width >= 8 && width <= 256 && width % 8 === 0;
+}
+function validateAccessList(value) {
+  if (!Array.isArray(value) || value.length > 1024) throw providerError(-32602, "Transaction accessList is invalid");
+  for (const entry of value) {
+    if (!object(entry) || Object.keys(entry).sort().join(",") !== "address,storageKeys" || typeof entry.address !== "string" || !/^0x[0-9a-fA-F]{40}$/.test(entry.address) || !Array.isArray(entry.storageKeys) || entry.storageKeys.length > 1024 || entry.storageKeys.some((key) => typeof key !== "string" || !/^0x[0-9a-fA-F]{64}$/.test(key))) throw providerError(-32602, "Transaction accessList is invalid");
+  }
+}
+async function invokePrivileged(operation, input, label) {
+  try { return await operation(input); }
+  catch (error) {
+    if (error?.code === 4001 || error?.code === "4001") throw providerError(4001, `${label} was rejected by the user`);
+    if (error?.code === 4100 || error?.code === "4100") throw providerError(4100, `${label} is not authorized`);
+    throw providerError(-32603, `${label} failed`);
+  }
 }
 function object(value) { return typeof value === "object" && value !== null && !Array.isArray(value); }

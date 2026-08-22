@@ -56,7 +56,7 @@ test("permissions, signing and transaction routes bind the approved origin and a
   });
   await provider.request({ method: "wallet_requestPermissions", params: [{ eth_accounts: {} }] });
   assert.equal(await provider.request({ method: "personal_sign", params: ["0x6869", ACCOUNT] }), SIGNATURE);
-  assert.equal(await provider.request({ method: "eth_signTypedData_v4", params: [ACCOUNT, JSON.stringify({ domain: {}, types: {}, primaryType: "Mail", message: {} })] }), SIGNATURE);
+  assert.equal(await provider.request({ method: "eth_signTypedData_v4", params: [ACCOUNT, JSON.stringify({ domain: { chainId: 6423 }, types: { Mail: [] }, primaryType: "Mail", message: {} })] }), SIGNATURE);
   assert.equal(await provider.request({ method: "eth_sendTransaction", params: [{ from: ACCOUNT, to: OTHER, value: "0x1" }] }), HASH);
   assert.equal(calls.every((call) => call.origin === ORIGIN && call.account === ACCOUNT), true);
   await assert.rejects(provider.request({ method: "personal_sign", params: ["0x6869", OTHER] }), rpcCode(4100));
@@ -92,7 +92,7 @@ test("event model emits canonical connect/account/message/disconnect without lis
   provider.on("disconnect", (payload) => events.push(["disconnect", payload]));
   await provider.request({ method: "eth_requestAccounts" });
   provider.setRpcStatus("ready");
-  provider.disconnect();
+  await provider.disconnect();
   assert.deepEqual(events.map(([name]) => name), ["accountsChanged", "connect", "accountsChanged", "disconnect"]);
   assert.deepEqual(events[0][1], [ACCOUNT]);
   assert.deepEqual(events[2][1], []);
@@ -118,7 +118,7 @@ test("account inventory mutation during approval cannot resurrect removed author
   const approval = new Promise((resolve) => { release = resolve; });
   const provider = engine({ approveAccounts: async () => approval });
   const pending = provider.request({ method: "eth_requestAccounts" });
-  provider.replaceWalletAccounts([OTHER]);
+  await provider.replaceWalletAccounts([OTHER]);
   release([ACCOUNT]);
   await assert.rejects(pending, rpcCode(4100));
   assert.deepEqual(await provider.request({ method: "eth_accounts" }), []);
@@ -133,7 +133,7 @@ test("chain change events are exact and leaving 0x1917 revokes connection author
   provider.on("disconnect", (value) => events.push(["disconnect", value]));
   await provider.request({ method: "eth_requestAccounts" });
   events.length = 0;
-  const changed = provider.notifyChainChanged("0x1");
+  const changed = await provider.notifyChainChanged("0x1");
   assert.equal(changed.connected, false);
   assert.deepEqual(changed.accounts, []);
   assert.deepEqual(events.map(([name]) => name), ["chainChanged", "accountsChanged", "disconnect"]);
@@ -145,8 +145,8 @@ test("account inventory changes preserve only still-approved accounts and discon
   const changes = [];
   provider.on("accountsChanged", (accounts) => changes.push(accounts));
   await provider.request({ method: "eth_requestAccounts" });
-  assert.equal(provider.replaceWalletAccounts([ACCOUNT]).connected, true);
-  assert.equal(provider.replaceWalletAccounts([OTHER]).connected, false);
+  assert.equal((await provider.replaceWalletAccounts([ACCOUNT])).connected, true);
+  assert.equal((await provider.replaceWalletAccounts([OTHER])).connected, false);
   assert.deepEqual(changes, [[ACCOUNT], []]);
 });
 
@@ -165,7 +165,7 @@ test("WalletConnect approves only eip155:6423 and routes through the same permis
   assert.deepEqual(session.namespaces.eip155.accounts, [`eip155:6423:${ACCOUNT}`]);
   assert.equal(await adapter.request({ topic: adapter.topic, chainId: "eip155:6423", id: 1, request: { method: "eth_chainId" } }), "0x1917");
   await assert.rejects(adapter.request({ topic: adapter.topic, chainId: "eip155:1", id: 2, request: { method: "eth_accounts" } }), rpcCode(4901));
-  assert.equal(adapter.disconnect().active, false);
+  assert.equal((await adapter.disconnect()).active, false);
 });
 
 test("WalletConnect rejects namespace, chain and method widening before approval", async () => {
@@ -184,21 +184,28 @@ test("WalletConnect disconnect racing approval cannot publish a late session", a
   const wcEngine = engine({ origin: "walletconnect:topic_cancel_12345678", approveAccounts: async () => approval });
   const adapter = new StandardWalletWalletConnectSessionAdapter({ engine: wcEngine, topic: "topic_cancel_12345678" });
   const pending = adapter.approve({ requiredNamespaces: { eip155: { chains: ["eip155:6423"], methods: ["eth_accounts", "eth_requestAccounts"], events: ["accountsChanged"] } } });
-  adapter.disconnect();
+  await adapter.disconnect();
   release([ACCOUNT]);
   await assert.rejects(pending, rpcCode(4900));
   assert.equal(adapter.active, false);
   assert.deepEqual(wcEngine.state.accounts, []);
 });
 
-test("malformed and oversized EIP-1193 requests fail before a privileged callback", async () => {
-  let signed = 0;
-  const provider = engine({ signMessage: async () => { signed += 1; return SIGNATURE; } });
+test("malformed, wrong-chain and oversized requests fail before a privileged callback", async () => {
+  let privileged = 0;
+  const provider = engine({
+    signMessage: async () => { privileged += 1; return SIGNATURE; },
+    signTypedData: async () => { privileged += 1; return SIGNATURE; },
+    sendTransaction: async () => { privileged += 1; return HASH; },
+  });
   await provider.request({ method: "eth_requestAccounts" });
   await assert.rejects(provider.request({ method: "personal_sign", params: [`0x${"aa".repeat(140000)}`, ACCOUNT] }), rpcCode(-32600));
   await assert.rejects(provider.request({ method: "personal_sign", params: ["0x0", ACCOUNT] }), rpcCode(-32602));
+  await assert.rejects(provider.request({ method: "eth_signTypedData_v4", params: [ACCOUNT, { domain: { chainId: 1 }, types: { Mail: [] }, primaryType: "Mail", message: {} }] }), rpcCode(4901));
+  await assert.rejects(provider.request({ method: "eth_signTypedData_v4", params: [ACCOUNT, { domain: {}, types: {}, primaryType: "Mail", message: {} }] }), rpcCode(-32602));
   await assert.rejects(provider.request({ method: "eth_sendTransaction", params: [{ from: ACCOUNT, to: "0x1", value: "1" }] }), rpcCode(-32602));
-  assert.equal(signed, 0);
+  await assert.rejects(provider.request({ method: "eth_sendTransaction", params: [{ from: ACCOUNT, to: OTHER, accessList: [{ address: OTHER, storageKeys: ["0x00"] }] }] }), rpcCode(-32602));
+  assert.equal(privileged, 0);
 });
 
 test("shared connect reducer preserves Standard Wallet authority when Gateway is degraded", () => {
@@ -218,7 +225,11 @@ test("machine conformance vector freezes network, privacy and independent-layer 
   const contract = JSON.parse(readFileSync(new URL("../integration/standard-wallet-provider-v1.json", import.meta.url), "utf8"));
   assert.deepEqual(vector.network, { nativeChainId: "ynx_6423-1", evmChainId: 6423, chainId: "0x1917", walletConnectChainId: "eip155:6423", symbol: "YNXT" });
   assert.equal(contract.layers.standardWallet.independent, true);
+  assert.equal(contract.layers.standardWallet.externalDappProductRegistryRequired, false);
   assert.equal(contract.layers.privateProductSession.failureEffect, "DEGRADED");
+  assert.equal(contract.persistence.approvalAndRevocationLinearized, true);
+  assert.equal(vector.persistence.postRevokeAccounts.length, 0);
+  assert.equal(vector.requests.find(({ id }) => id === "personal-sign-rejected").signatureFabricated, false);
   assert.equal(contract.privacy.exposeUnapprovedEvmAccount, false);
   assert.equal(contract.truth.platformConsumed, false);
   assert.equal(contract.truth.productsConsumed, "0/12");
@@ -226,7 +237,7 @@ test("machine conformance vector freezes network, privacy and independent-layer 
 
 test("Layer 1 provider modules have no Gateway, Product Session or product registry dependency", () => {
   for (const file of [
-    "standard-wallet-provider-events.js", "standard-wallet-permissions.js", "standard-wallet-json-rpc.js",
+    "standard-wallet-provider-events.js", "standard-wallet-provider-common.js", "standard-wallet-permission-storage.js", "standard-wallet-permissions.js", "standard-wallet-json-rpc.js",
     "standard-wallet-provider-engine.js", "standard-wallet-walletconnect.js", "standard-wallet-connect-state.js",
   ]) {
     const source = readFileSync(new URL(`../src/${file}`, import.meta.url), "utf8");

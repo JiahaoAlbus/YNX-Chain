@@ -17,7 +17,7 @@ export class StandardWalletProviderEngine {
   constructor(config) {
     if (!object(config)) throw new TypeError("Standard Wallet provider configuration is invalid");
     this.#origin = canonicalWalletOrigin(config.origin);
-    this.#permissions = new StandardWalletPermissionController({ origin: this.#origin, walletAccounts: config.walletAccounts, approveAccounts: config.approveAccounts });
+    this.#permissions = new StandardWalletPermissionController({ origin: this.#origin, walletAccounts: config.walletAccounts, approveAccounts: config.approveAccounts, storage: config.permissionStorage });
     this.#router = new StandardWalletJsonRpcRouter({ permissions: this.#permissions, rpcTransport: config.rpcTransport, signMessage: config.signMessage, signTypedData: config.signTypedData, sendTransaction: config.sendTransaction });
     this.#events = new StandardWalletProviderEventModel();
   }
@@ -43,12 +43,27 @@ export class StandardWalletProviderEngine {
       if (!same(before, this.#permissions.accounts) && becameConnected) this.#events.emit("accountsChanged", this.#permissions.accounts);
       if (becameConnected) this.#events.emit("connect", { chainId: STANDARD_WALLET_CHAIN_ID });
     }
+    if (input?.method === "wallet_revokePermissions" && before.length > 0) {
+      this.#connected = false;
+      this.#events.emit("accountsChanged", []);
+      this.#events.emit("disconnect", { code: 4900, message: "Wallet permissions were revoked" });
+    }
     return output;
   }
 
-  replaceWalletAccounts(accounts) {
+  async restorePermissions() {
     const before = this.#permissions.accounts;
-    const approved = this.#permissions.replaceWalletAccounts(accounts);
+    const restored = await this.#permissions.restore();
+    const becameConnected = !this.#connected && restored.length > 0;
+    this.#connected = restored.length > 0;
+    if (!same(before, restored)) this.#events.emit("accountsChanged", restored);
+    if (becameConnected) this.#events.emit("connect", { chainId: STANDARD_WALLET_CHAIN_ID });
+    return this.state;
+  }
+
+  async replaceWalletAccounts(accounts) {
+    const before = this.#permissions.accounts;
+    const approved = await this.#permissions.replaceWalletAccountsPersisted(accounts);
     if (!same(before, approved)) this.#events.emit("accountsChanged", approved);
     if (approved.length === 0 && this.#connected) this.#disconnect(4900, "Approved Wallet accounts are no longer available", false);
     return this.state;
@@ -68,19 +83,26 @@ export class StandardWalletProviderEngine {
     return this.state;
   }
 
-  notifyChainChanged(chainId) {
+  async notifyChainChanged(chainId) {
     if (typeof chainId !== "string" || !/^0x(?:0|[1-9a-fA-F][0-9a-fA-F]*)$/.test(chainId)) throw new TypeError("Wallet chainId is invalid");
     const normalized = chainId.toLowerCase();
     this.#events.emit("chainChanged", normalized);
     if (normalized !== STANDARD_WALLET_CHAIN_ID && this.#connected) {
-      this.#permissions.revoke();
+      await this.#permissions.revokePersisted();
       this.#events.emit("accountsChanged", []);
       this.#disconnect(4901, "Wallet changed away from YNX Testnet", false);
     }
     return this.state;
   }
 
-  disconnect() { this.#disconnect(4900, "Wallet disconnected", true); return this.state; }
+  async disconnect() {
+    const hadAccounts = this.#permissions.accounts.length > 0;
+    await this.#permissions.revokePersisted();
+    this.#connected = false;
+    if (hadAccounts) this.#events.emit("accountsChanged", []);
+    this.#events.emit("disconnect", { code: 4900, message: "Wallet disconnected" });
+    return this.state;
+  }
 
   #disconnect(code, message, revoke) {
     if (revoke) this.#permissions.revoke();

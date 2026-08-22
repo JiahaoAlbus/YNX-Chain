@@ -7,6 +7,7 @@ export * from "./authorize-launcher.js";
 export * from "./standard-wallet-connect-state.js";
 export * from "./standard-wallet-provider-events.js";
 export * from "./standard-wallet-permissions.js";
+export * from "./standard-wallet-permission-storage.js";
 export * from "./standard-wallet-json-rpc.js";
 export * from "./standard-wallet-provider-engine.js";
 export * from "./standard-wallet-walletconnect.js";

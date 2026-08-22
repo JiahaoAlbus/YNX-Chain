@@ -11,12 +11,27 @@
   "requests": [
     { "id": "chain-id", "method": "eth_chainId", "expected": "0x1917" },
     { "id": "network-version", "method": "net_version", "expected": "6423" },
+    { "id": "request-accounts-rejected", "method": "eth_requestAccounts", "expectedError": 4001, "authorityCreated": false },
     { "id": "unapproved-account", "method": "personal_sign", "expectedError": 4100 },
+    { "id": "personal-sign-rejected", "method": "personal_sign", "expectedError": 4001, "signatureFabricated": false },
+    { "id": "typed-sign-failed", "method": "eth_signTypedData_v4", "expectedError": -32603, "signatureFabricated": false },
+    { "id": "send-transaction-invalid-result", "method": "eth_sendTransaction", "expectedError": -32603, "transactionFabricated": false },
+    { "id": "revoke", "method": "wallet_revokePermissions", "expected": null, "restartAccounts": [] },
     { "id": "unsupported-method", "method": "eth_sign", "expectedError": 4200 },
     { "id": "wrong-chain", "method": "wallet_switchEthereumChain", "expectedError": 4902 },
     { "id": "rpc-degraded", "method": "eth_blockNumber", "expectedError": 4900, "connectionPreserved": true }
   ],
   "events": ["connect", "accountsChanged", "chainChanged", "disconnect", "message"],
+  "persistence": {
+    "schemaVersion": 1,
+    "format": "canonical-json-newline",
+    "origin": "https://external-dapp.example",
+    "chainId": "0x1917",
+    "restartAccounts": ["0x1234567890abcdef1234567890abcdef12345678"],
+    "wrongOriginAccounts": [],
+    "postRevokeAccounts": [],
+    "approvalInventoryRace": "FAIL_CLOSED_4100_NO_RESTART_AUTHORITY"
+  },
   "walletConnect": {
     "requiredNamespace": "eip155",
     "chains": ["eip155:6423"],

@@ -14,7 +14,8 @@
     "standardWallet": {
       "independent": true,
       "protocols": ["EIP-1193", "EIP-6963", "WalletConnect"],
-      "authority": "approved-0x-accounts-only"
+      "authority": "approved-0x-accounts-only",
+      "externalDappProductRegistryRequired": false
     },
     "privateProductSession": {
       "independent": false,
@@ -25,9 +26,31 @@
   "components": {
     "providerEngine": "StandardWalletProviderEngine",
     "permissionController": "StandardWalletPermissionController",
+    "permissionStorage": "StandardWalletPermissionStorage",
     "jsonRpcRouter": "StandardWalletJsonRpcRouter",
     "walletConnectAdapter": "StandardWalletWalletConnectSessionAdapter",
     "eventModel": "StandardWalletProviderEventModel"
+  },
+  "requestRouting": {
+    "accountMethods": ["eth_accounts", "eth_requestAccounts", "wallet_getPermissions", "wallet_requestPermissions", "wallet_revokePermissions"],
+    "privilegedMethods": ["personal_sign", "eth_signTypedData_v4", "eth_sendTransaction"],
+    "privilegedResultAuthority": "platform-secure-callback-only",
+    "fabricatedAccountSignatureOrTransactionAllowed": false,
+    "userRejectedError": 4001,
+    "unauthorizedError": 4100,
+    "unsupportedError": 4200,
+    "disconnectedError": 4900,
+    "wrongChainError": 4901
+  },
+  "persistence": {
+    "format": "canonical-json-newline-v1",
+    "keyBoundary": "exact-origin",
+    "chainBoundary": "0x1917",
+    "restoreRequiresExplicitPlatformCall": "restorePermissions",
+    "approvalAndRevocationLinearized": true,
+    "revokeClearsBeforeSuccess": true,
+    "inventoryRemovalClearsUnavailableAuthority": true,
+    "malformedOrCrossOriginSnapshot": "FAIL_CLOSED_4100"
   },
   "privacy": {
     "exposeNativeYnxAccount": false,

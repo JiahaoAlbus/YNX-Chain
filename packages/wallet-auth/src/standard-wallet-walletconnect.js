@@ -5,7 +5,7 @@ export const STANDARD_WALLET_WALLETCONNECT_CHAIN = "eip155:6423";
 export const STANDARD_WALLET_WALLETCONNECT_METHODS = Object.freeze([
   "eth_accounts", "eth_requestAccounts", "eth_chainId", "net_version",
   "personal_sign", "eth_signTypedData_v4", "eth_sendTransaction",
-  "wallet_getPermissions", "wallet_requestPermissions", "wallet_switchEthereumChain", "wallet_addEthereumChain",
+  "wallet_getPermissions", "wallet_requestPermissions", "wallet_revokePermissions", "wallet_switchEthereumChain", "wallet_addEthereumChain",
   "eth_blockNumber", "eth_call", "eth_estimateGas", "eth_feeHistory", "eth_gasPrice", "eth_getBalance",
   "eth_getBlockByHash", "eth_getBlockByNumber", "eth_getCode", "eth_getLogs", "eth_getTransactionByHash",
   "eth_getTransactionCount", "eth_getTransactionReceipt", "eth_maxPriorityFeePerGas",
@@ -38,7 +38,7 @@ export class StandardWalletWalletConnectSessionAdapter {
     try { accounts = await this.#engine.request({ method: "eth_requestAccounts" }); }
     finally { this.#approving = false; }
     if (epoch !== this.#epoch) {
-      this.#engine.disconnect();
+      await this.#engine.disconnect();
       throw providerError(4900, "WalletConnect approval was cancelled");
     }
     this.#approvedMethods = new Set(namespace.methods); this.#active = true;
@@ -66,9 +66,9 @@ export class StandardWalletWalletConnectSessionAdapter {
     return this.#engine.request(envelope.request);
   }
 
-  disconnect() {
+  async disconnect() {
     this.#epoch += 1;
-    if (this.#active) this.#engine.disconnect();
+    if (this.#active) await this.#engine.disconnect();
     this.#active = false;
     this.#approvedMethods.clear();
     return Object.freeze({ topic: this.#topic, active: false, authority: "walletconnect-session-terminated" });
