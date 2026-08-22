@@ -427,25 +427,25 @@
     }
   ],
   "heavy": {
-    "owner": "shop",
-    "taskId": "P0-216",
-    "status": "ACTIVE_SINGLE_USE",
+    "owner": null,
+    "taskId": null,
+    "status": "IDLE",
     "acquiredAt": "2026-08-22T20:25:00Z",
     "expiresAt": "2026-08-22T21:25:00Z",
-    "releasedAt": null,
+    "releasedAt": "2026-08-22T20:33:00Z",
     "sourceCommit": "221a6bde7bef8aab83ca45f9b1dd4ecf9ac60aba",
     "evidenceCommit": "d0e8b816d18e2341aa2c50706d72ef822e0af47a",
     "runtimeHost": "43.153.202.237",
     "currentRuntime": "/opt/ynx-shop/releases/p0-shop-controls-99b2185f",
     "candidateRuntime": "/opt/ynx-shop/releases/221a6bde7bef8aab83ca45f9b1dd4ecf9ac60aba-p0215",
     "artifactSha256": "6598011941f5d036335beafedd29f815d4c0d428e70a005d48723bb3427b358b",
-    "productionMutationAllowed": true,
+    "productionMutationAllowed": false,
     "singleUse": true,
     "reusable": false,
     "previousOwner": "shop",
     "previousTaskId": "P0-213",
-    "reviewDecision": "GO_NEW_SHOP_P0216_COMBINED_ROLLBACK_FIRST_OFFICIAL_HOSTED_SINGLE_USE",
-    "reason": "P0-216 independently binds the squashed direct-on-current-remote HEAD and exact three-path workflow guard, complete bundle, p0215-only scripts and paths, deterministic carrier, fresh old schema7/runtime/config/public baseline, all p0215 paths absent and protected P0-213 residue present. It permits one backup/transfer/deploy, one literal push/unique hosted run and at most one exact rollback, with no retry or sensitive Wallet action."
+    "reviewDecision": "CONSUMED_RELEASED_SUCCESS_SHOP_OFFICIAL_HOSTED_WALLET_IDENTITY_SOURCE_BOUND_PUBLIC_NON_SENSITIVE",
+    "reason": "P0-216 consumed exactly one backup, transfer, cold deploy/switch/restart, literal push and unique push-triggered hosted run with no retry, dispatch or rollback. Direct host and official raw resources bind source 221a6bde; the hosted artifact proves default English, one stable official page, console zero and distinct YNX Wallet/MetaMask chooser identity and logos without provider selection or sensitive actions. Only Shop source-bound public non-sensitive truth is promoted."
   },
   "wave": {
     "id": "B-financial-apps-quant",
