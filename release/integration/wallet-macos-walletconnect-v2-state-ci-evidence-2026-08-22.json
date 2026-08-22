@@ -1,0 +1,98 @@
+{
+  "schemaVersion": "ynx.wallet.native.macos.walletconnect-v2-state-ci.v1",
+  "recordedAt": "2026-08-22T05:13:52Z",
+  "source": {
+    "branch": "codex/wallet-ios-macos-20260813",
+    "implementationCommit": "25fc6771acd437c4b2a78c4ee279758f5bbd45da",
+    "tree": "1de7bb47df40fd32b9dd62212a1e4b1ab98ba4e0",
+    "files": [
+      "apps/wallet/macos/Sources/YNXWalletMacCore/WalletConnectV2StateStore.swift",
+      "apps/wallet/macos/Tests/YNXWalletMacCoreTests/WalletConnectV2StateStoreTests.swift"
+    ]
+  },
+  "frozenInputs": {
+    "standardProtocolCommit": "66003e76e804da16d472255efde50cb879055b96",
+    "consumerSDKCommit": "315897e75c0ffe3e63435fe73cfec42244b851cc",
+    "sharedProviderCommit": "98c6d5d784d212df8981a53b17118a511e246ad2",
+    "sharedProviderTree": "51a60a362d4ad5dd748bcdefb101f71b1d9e0cee",
+    "sharedProviderEvidence": "c3ab255c32bdeb9c8e056882c315f8ad43c29c7f",
+    "chain": "eip155:6423",
+    "chainHex": "0x1917",
+    "nativeAsset": "YNXT",
+    "defaultLanguage": "en"
+  },
+  "hostedCI": {
+    "runId": 32553701962,
+    "jobId": 96984464403,
+    "headCommit": "25fc6771acd437c4b2a78c4ee279758f5bbd45da",
+    "conclusion": "success",
+    "walletConnectPolicyTests": { "passed": 5, "total": 5 },
+    "walletConnectStateStoreTests": { "passed": 5, "total": 5 },
+    "macCoreTests": { "passed": 27, "total": 27 },
+    "verifiedBehaviors": {
+      "pendingProposalPersistsAcrossRestart": true,
+      "pendingSessionRequestPersistsAcrossRestart": true,
+      "firstPartyAndExternalDAppShareApprovedAccountBoundary": true,
+      "unapprovedAccountResultRejected": true,
+      "personalSignResultValidated": true,
+      "eip712ResultValidated": true,
+      "sendTransactionHashValidated": true,
+      "userRejectCallbackUsesEIP1193Code4001": true,
+      "disconnectClearsSessionAndPending": true,
+      "revokeClearsSessionAndPending": true,
+      "expiredDuplicateUnsupportedAndCorruptStateFailClosed": true
+    }
+  },
+  "engineeringArtifact": {
+    "artifactId": 9470820855,
+    "name": "ynx-wallet-macos-native",
+    "actionsArchiveBytes": 2119695,
+    "actionsArchiveSha256": "d68ee0f9d710c723bf050e0d0f717b5af70ee0f1c6556102d8b9ab268466e6e8",
+    "downloadInspected": false,
+    "dmgSha256FromPublicStepLog": "271ebe7a75a2aeef23dee5b46570c424403f66cc724235d5d06f9228c77498c7",
+    "dmgBytesFromPublicStepLog": 673021,
+    "dmgChecksumValid": true,
+    "bundleIdentifier": "com.ynxweb4.wallet.macos",
+    "urlScheme": "ynxwallet",
+    "architectures": ["x86_64", "arm64"],
+    "minimumOS": "macOS 13.0",
+    "signingClass": "ad-hoc",
+    "teamIdentifier": null,
+    "gatekeeperAccepted": false,
+    "developerIDSigned": false,
+    "notarized": false
+  },
+  "existingNativeLifecycleInSameRun": {
+    "coldLaunchPID": 4451,
+    "secondLaunchPID": 4592,
+    "malformedCallbackColdLaunchPID": 4869,
+    "widenedCallbackColdLaunchPID": 4891,
+    "canonicalAuthBridgeUnavailableVisible": true,
+    "authorizationSuccess": false,
+    "callbackEmitted": false,
+    "productRecovery": false,
+    "note": "These lifecycle facts verify the existing ad-hoc native app and fail-closed callback UI, not WalletConnect relay, pairing, approval, signing, transaction, or DApp runtime."
+  },
+  "gates": {
+    "walletConnectProjectIDProvided": false,
+    "reownWalletKitBundled": false,
+    "relayConnected": false,
+    "pairingRuntimeVerified": false,
+    "firstPartyDAppRuntimeVerified": false,
+    "externalDAppRuntimeVerified": false,
+    "approveCallbackRuntimeVerified": false,
+    "rejectCallbackRuntimeVerified": false,
+    "sessionRestoreRuntimeVerified": false,
+    "signRuntimeVerified": false,
+    "eip712RuntimeVerified": false,
+    "sendTransactionRuntimeVerified": false,
+    "disconnectRuntimeVerified": false,
+    "revokeRuntimeVerified": false,
+    "nativeWalletPublished": false,
+    "publicDownloadHosted": false,
+    "productionSigned": false,
+    "notarized": false,
+    "appStorePublished": false,
+    "universalLinkEnabled": false
+  }
+}
