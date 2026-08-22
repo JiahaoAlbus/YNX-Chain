@@ -4,6 +4,26 @@
   "version": "1.18.0",
   "locks": [
     {
+      "path": "{apps/card/**,production:vercel-project:prj_DU37JeDK4Rx0MjxIV745veV5Qgxp,production:https://card.ynxweb4.com/**}",
+      "owner": "card",
+      "branch": "codex/p0-card-wallet-parity-20260822",
+      "worktree": "/tmp/ynx-card-p0193-exec",
+      "taskId": "P0-193",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "ACTIVE_SINGLE_USE",
+      "acquiredAt": "2026-08-22T14:57:00Z",
+      "expiresAt": "2026-08-22T15:27:00Z",
+      "releasedAt": null,
+      "sourceCommit": "45c4013a95008027cf55f2ac4d7bdded70640ae1",
+      "sourceTree": "fd1b786beb1a81d33a9100be874e4e32082fefde",
+      "productionMutationAllowed": true,
+      "allowedExceptions": [
+        "one exact-source Card production deployment and no retry",
+        "one exact rollback to dpl_DqMuEhno65bLFTNKBu9gs52soVri on failure",
+        "non-sensitive public browser verification only"
+      ]
+    },
+    {
       "path": "packages/wallet-auth/**",
       "owner": "wallet-protocol",
       "branch": "codex/final-wallet-auth",

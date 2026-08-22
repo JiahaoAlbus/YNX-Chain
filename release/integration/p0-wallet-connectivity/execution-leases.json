@@ -1,26 +1,26 @@
 {
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-  "epoch": 103,
-  "updatedAt": "2026-08-22T14:08:30Z",
+  "epoch": 104,
+  "updatedAt": "2026-08-22T14:57:00Z",
   "heavy": {
-    "owner": null,
-    "status": "CONSUMED_RELEASED_FAILED_CLOSED_CALENDAR_PUBLIC_RECOVERY",
-    "branch": "codex/calendar-fable5-completion-20260821",
+    "owner": "card",
+    "status": "ACTIVE_SINGLE_USE",
+    "branch": "codex/p0-card-wallet-parity-20260822",
     "worktree": null,
-    "taskId": "P0-192",
-    "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-calendar-7db160aa-inode-safe-public-recovery-20260822T133900Z",
-    "leasedAt": "2026-08-22T13:39:00Z",
-    "expiresAt": "2026-08-22T14:09:00Z",
-    "releasedAt": "2026-08-22T14:08:30Z",
+    "taskId": "P0-193",
+    "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-card-wallet-provider-public-deployment-20260822T145700Z",
+    "leasedAt": "2026-08-22T14:57:00Z",
+    "expiresAt": "2026-08-22T15:27:00Z",
+    "releasedAt": null,
     "previousOwner": null,
-    "previousTaskId": "P0-191",
-    "previousCheckpoint": "06c5eb2a2a3b58059ff8e173579da25898feaf25",
-    "executionScope": "CALENDAR_ONLY_INODE_SAFE_ROLLBACK_FIRST_PUBLIC_RECOVERY",
-    "releaseReason": "The single inode-safe transaction committed and exact source 7db160aa plus all seven public HTTP resources are live. Mandatory direct browser visible gates could not run because every browser-control channel timed out before Calendar navigation; no unleased post-commit rollback was performed.",
+    "previousTaskId": "P0-192",
+    "previousCheckpoint": "0d157864dcc6d08a2ba233a6924a86b18b094322",
+    "executionScope": "CARD_ONLY_EXACT_SOURCE_PRODUCTION_DEPLOYMENT_AND_NON_SENSITIVE_PUBLIC_LIFECYCLE",
+    "releaseReason": null,
     "onSafeCheckpoint": [
-      "preserve exact live source 7db160aa and paired rollback backup",
-      "P0-192 is consumed and nonreusable",
-      "future visible acceptance requires a functioning direct browser-control channel; no account or signing action"
+      "one exact production deployment attempt and no retry",
+      "rollback exactly once to dpl_DqMuEhno65bLFTNKBu9gs52soVri on any post-deployment failure",
+      "no account, signature, transaction, Wallet, Website or other-product action"
     ]
   },
   "light": {
