@@ -6679,7 +6679,7 @@
     {
       "taskId": "P0-188",
       "owner": "integration,wallet-web,website",
-      "status": "ACTIVE_SINGLE_USE",
+      "status": "CONSUMED_RELEASED_FAILED_CLOSED_HOSTED_CHROMIUM_V11_LIFECYCLE_MEASUREMENT_SUCCESSOR_PREFLIGHT",
       "paths": [
         "release/integration/p0-wallet-connectivity/leases/wallet-web-v11-lifecycle-measurement-successor-p0188-20260822.json",
         ".github/workflows/wallet-web-public-preflight-p0.yml",
@@ -6688,7 +6688,7 @@
       "dependencies": ["P0-187"],
       "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-web-v11-lifecycle-measurement-successor-20260822T115800Z",
       "expiresAt": "2026-08-22T12:28:00Z",
-      "releasedAt": null,
+      "releasedAt": "2026-08-22T12:05:31Z",
       "source": "7df37ca32a643a403bd23a7f555354261f789441",
       "ownerRemoteParent": "ea3be8a5823207f255a84420e07b0f45471376ca",
       "workflowCommit": "9fa9270479577d6304ac5f257c562ef52616ce3e",
@@ -6700,7 +6700,9 @@
       "ssoRestoreRequired": true,
       "currentSourceBoundPublic": false,
       "productsConnected": "0/12",
-      "nextAction": "Execute only the exact literal push under the ordered one-use SSO window, bind one hosted run, restore protection, and return terminal direct evidence or fail closed."
+      "actionsRunId": 32571875092,
+      "artifactId": 9475519625,
+      "nextAction": "Do not reuse P0-188. A successor must bind current parent 9fa92704 and make second-launch observation navigation-aware, requiring the same ready/controller-v11/v11-only document to remain stable for a bounded window before snapshot."
     }
   ]
 }

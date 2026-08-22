@@ -1,26 +1,26 @@
 {
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-  "epoch": 94,
-  "updatedAt": "2026-08-22T11:58:00Z",
+  "epoch": 95,
+  "updatedAt": "2026-08-22T12:05:31Z",
   "heavy": {
-    "owner": "wallet-web+website",
-    "status": "ACTIVE_SINGLE_USE",
+    "owner": null,
+    "status": "CONSUMED_RELEASED_FAILED_CLOSED_HOSTED_CHROMIUM_V11_LIFECYCLE_MEASUREMENT_SUCCESSOR_PREFLIGHT",
     "branch": "codex/wallet-web-pwa-extensions-20260813",
     "worktree": "/Users/huangjiahao/.codex/worktrees/1274/YNX Chain",
     "taskId": "P0-188",
     "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-web-v11-lifecycle-measurement-successor-20260822T115800Z",
     "leasedAt": "2026-08-22T11:58:00Z",
     "expiresAt": "2026-08-22T12:28:00Z",
-    "releasedAt": null,
+    "releasedAt": "2026-08-22T12:05:31Z",
     "previousOwner": null,
     "previousTaskId": "P0-187",
     "previousCheckpoint": "fb461ddc70acc0752a313dd284224a22869cbe1e",
     "executionScope": "V11_LIFECYCLE_MEASUREMENT_SUCCESSOR_IMMUTABLE_CANDIDATE_HOSTED_CHROMIUM_NO_ALIAS",
-    "releaseReason": null,
+    "releaseReason": "The single hosted run re-proved all four resources and the complete first-launch lifecycle, then executed a same-profile second process with exact controller-v11 and v11-only cache. The captured second document had pwaState null after a product-controlled replacement race, so stable second-launch readiness remains unproved. SSO was restored and the official alias remained unchanged.",
     "onSafeCheckpoint": [
-      "push only exact workflow commit 9fa92704 with the literal refspec once",
-      "prove first launch plus full process-close and second-launch v11 persistence",
-      "restore SSO on every terminal path; no alias, product source or account mutation"
+      "do not reuse P0-188 or infer stable second-launch/public completion",
+      "preserve four-resource, complete first-launch and explicit second-snapshot facts",
+      "a successor must bind current parent 9fa92704 and require a navigation-aware stable-ready window before the second snapshot"
     ]
   },
   "light": {
