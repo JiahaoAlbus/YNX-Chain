@@ -3112,6 +3112,64 @@
       "version": "0.3.31"
     },
     {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|@msgpack/msgpack@3.1.3",
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "e3b5c88b3b3d5d95efb89828689508136945a080fcba0bdcd23cd21cff8fb5f93c9d36e747c83bf3cc2fe3c374dcac7452402fe79f47591437cb33a0ce544d50"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/@msgpack/msgpack/-/msgpack-3.1.3.tgz"
+        }
+      ],
+      "group": "@msgpack",
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "ISC"
+          }
+        }
+      ],
+      "name": "msgpack",
+      "purl": "pkg:npm/%40msgpack/msgpack@3.1.3?download_url=https%3A%2F%2Fregistry.npmmirror.com%2F%40msgpack%2Fmsgpack%2F-%2Fmsgpack-3.1.3.tgz",
+      "type": "library",
+      "version": "3.1.3"
+    },
+    {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|@noble/ciphers@1.3.0",
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "d88d209c854fb5f9ccc3d79ef61d5d246eeda7cd7ef0e6f73896f732fdfbaf1e4be34fdbd22edd8e3095bc6395a9cf40108432bf2bb58baca929d170f11f2043"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/@noble/ciphers/-/ciphers-1.3.0.tgz"
+        }
+      ],
+      "group": "@noble",
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "ciphers",
+      "purl": "pkg:npm/%40noble/ciphers@1.3.0?download_url=https%3A%2F%2Fregistry.npmmirror.com%2F%40noble%2Fciphers%2F-%2Fciphers-1.3.0.tgz",
+      "type": "library",
+      "version": "1.3.0"
+    },
+    {
       "bom-ref": "@ynx-chain/wallet-app@1.0.1|@noble/curves@2.2.0",
       "externalReferences": [
         {
@@ -3168,6 +3226,64 @@
       "purl": "pkg:npm/%40noble/hashes@2.2.0",
       "type": "library",
       "version": "2.2.0"
+    },
+    {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|@react-native-async-storage/async-storage@1.24.0",
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "5b8fef6f050e60e8dca34c77b6807c402afb12320fea713d1bba3c3cc82ebef8d84f9030834f65c95e1e9c0091c78b3ef8f3ee9418814a32f4293171daed19fe"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/@react-native-async-storage/async-storage/-/async-storage-1.24.0.tgz"
+        }
+      ],
+      "group": "@react-native-async-storage",
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "async-storage",
+      "purl": "pkg:npm/%40react-native-async-storage/async-storage@1.24.0?download_url=https%3A%2F%2Fregistry.npmmirror.com%2F%40react-native-async-storage%2Fasync-storage%2F-%2Fasync-storage-1.24.0.tgz",
+      "type": "library",
+      "version": "1.24.0"
+    },
+    {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|@react-native-community/netinfo@12.0.1",
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "3ffddc69722f7d84891bc01625579fba483e64644fb3e3382e9de9349b607136282710a35ab29018d9c2923fc2cffff359afdabc679dd22ff0ce6d13f2f57621"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/@react-native-community/netinfo/-/netinfo-12.0.1.tgz"
+        }
+      ],
+      "group": "@react-native-community",
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "netinfo",
+      "purl": "pkg:npm/%40react-native-community/netinfo@12.0.1?download_url=https%3A%2F%2Fregistry.npmmirror.com%2F%40react-native-community%2Fnetinfo%2F-%2Fnetinfo-12.0.1.tgz",
+      "type": "library",
+      "version": "12.0.1"
     },
     {
       "bom-ref": "@ynx-chain/wallet-app@1.0.1|@react-native/assets-registry@0.86.0",
@@ -3547,6 +3663,213 @@
       "version": "0.86.0"
     },
     {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|@reown/walletkit@1.5.6",
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "a538daad7439ec8987f2ce64516453dd5fbe44d099306a7d15028e0f0a1bc8fc6638f91fadedfeb3bbf63f0c07d9f0dca0dc06462d9e6e5aa83f1dea6fdf8dad"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/@reown/walletkit/-/walletkit-1.5.6.tgz"
+        }
+      ],
+      "group": "@reown",
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "name": "SEE LICENSE IN LICENSE.md"
+          }
+        }
+      ],
+      "name": "walletkit",
+      "purl": "pkg:npm/%40reown/walletkit@1.5.6?download_url=https%3A%2F%2Fregistry.npmmirror.com%2F%40reown%2Fwalletkit%2F-%2Fwalletkit-1.5.6.tgz",
+      "type": "library",
+      "version": "1.5.6"
+    },
+    {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|@scure/base@1.2.6",
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "83f9e6e458146bffcc0a3d60574f734c94da33a281007a8b37dd3b61542a7fbcc2e3df8370ee01d6ca38657d3b11fd744f0afa9eea98107f461208055c0e059a"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/@scure/base/-/base-1.2.6.tgz"
+        }
+      ],
+      "group": "@scure",
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "base",
+      "purl": "pkg:npm/%40scure/base@1.2.6?download_url=https%3A%2F%2Fregistry.npmmirror.com%2F%40scure%2Fbase%2F-%2Fbase-1.2.6.tgz",
+      "type": "library",
+      "version": "1.2.6"
+    },
+    {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|@scure/bip32@1.7.0",
+      "components": [
+        {
+          "bom-ref": "@ynx-chain/wallet-app@1.0.1|@scure/bip32@1.7.0|@noble/curves@1.9.7",
+          "externalReferences": [
+            {
+              "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+              "hashes": [
+                {
+                  "alg": "SHA-512",
+                  "content": "81b286711518223037ff308235a5837224cc148d1d0a4be8bb74cbf199b2e4d73bb09e3b6b48ed39e6684da33192ea91a3d71186339d6495de831604e4537fc7"
+                }
+              ],
+              "type": "distribution",
+              "url": "https://registry.npmmirror.com/@noble/curves/-/curves-1.9.7.tgz"
+            }
+          ],
+          "group": "@noble",
+          "licenses": [
+            {
+              "license": {
+                "acknowledgement": "declared",
+                "id": "MIT"
+              }
+            }
+          ],
+          "name": "curves",
+          "purl": "pkg:npm/%40noble/curves@1.9.7?download_url=https%3A%2F%2Fregistry.npmmirror.com%2F%40noble%2Fcurves%2F-%2Fcurves-1.9.7.tgz",
+          "type": "library",
+          "version": "1.9.7"
+        },
+        {
+          "bom-ref": "@ynx-chain/wallet-app@1.0.1|@scure/bip32@1.7.0|@noble/hashes@1.8.0",
+          "externalReferences": [
+            {
+              "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+              "hashes": [
+                {
+                  "alg": "SHA-512",
+                  "content": "8c2b3d95d77b370ce98170c87fa3f7f8dac787dfec0fa0907711f28d023e87feab0cda3cf32a41c71cf8e540ee647cfdaf7b4dcfb37f5489d256855db57108e0"
+                }
+              ],
+              "type": "distribution",
+              "url": "https://registry.npmmirror.com/@noble/hashes/-/hashes-1.8.0.tgz"
+            }
+          ],
+          "group": "@noble",
+          "licenses": [
+            {
+              "license": {
+                "acknowledgement": "declared",
+                "id": "MIT"
+              }
+            }
+          ],
+          "name": "hashes",
+          "purl": "pkg:npm/%40noble/hashes@1.8.0?download_url=https%3A%2F%2Fregistry.npmmirror.com%2F%40noble%2Fhashes%2F-%2Fhashes-1.8.0.tgz",
+          "type": "library",
+          "version": "1.8.0"
+        }
+      ],
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "1381455ff3777f807cd00296a7974fea8c3e7e50f52d0668ff0f149cb19864eebbe234ba62761e7a9c9c38e92cbfebcb3d2a60377e7080a832fb26df4dbd9233"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/@scure/bip32/-/bip32-1.7.0.tgz"
+        }
+      ],
+      "group": "@scure",
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "bip32",
+      "purl": "pkg:npm/%40scure/bip32@1.7.0?download_url=https%3A%2F%2Fregistry.npmmirror.com%2F%40scure%2Fbip32%2F-%2Fbip32-1.7.0.tgz",
+      "type": "library",
+      "version": "1.7.0"
+    },
+    {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|@scure/bip39@1.6.0",
+      "components": [
+        {
+          "bom-ref": "@ynx-chain/wallet-app@1.0.1|@scure/bip39@1.6.0|@noble/hashes@1.8.0",
+          "externalReferences": [
+            {
+              "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+              "hashes": [
+                {
+                  "alg": "SHA-512",
+                  "content": "8c2b3d95d77b370ce98170c87fa3f7f8dac787dfec0fa0907711f28d023e87feab0cda3cf32a41c71cf8e540ee647cfdaf7b4dcfb37f5489d256855db57108e0"
+                }
+              ],
+              "type": "distribution",
+              "url": "https://registry.npmmirror.com/@noble/hashes/-/hashes-1.8.0.tgz"
+            }
+          ],
+          "group": "@noble",
+          "licenses": [
+            {
+              "license": {
+                "acknowledgement": "declared",
+                "id": "MIT"
+              }
+            }
+          ],
+          "name": "hashes",
+          "purl": "pkg:npm/%40noble/hashes@1.8.0?download_url=https%3A%2F%2Fregistry.npmmirror.com%2F%40noble%2Fhashes%2F-%2Fhashes-1.8.0.tgz",
+          "type": "library",
+          "version": "1.8.0"
+        }
+      ],
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "fa517405b2e224dc1595ebf878a7a5c355962da88a5f0eec4a5f13e85bc195691d5fef78686278a3c5e351d9728530a377c73e077293dc97d2f0fd1b2d1354e8"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/@scure/bip39/-/bip39-1.6.0.tgz"
+        }
+      ],
+      "group": "@scure",
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "bip39",
+      "purl": "pkg:npm/%40scure/bip39@1.6.0?download_url=https%3A%2F%2Fregistry.npmmirror.com%2F%40scure%2Fbip39%2F-%2Fbip39-1.6.0.tgz",
+      "type": "library",
+      "version": "1.6.0"
+    },
+    {
       "bom-ref": "@ynx-chain/wallet-app@1.0.1|@sinclair/typebox@0.27.10",
       "externalReferences": [
         {
@@ -3574,6 +3897,35 @@
       "purl": "pkg:npm/%40sinclair/typebox@0.27.10",
       "type": "library",
       "version": "0.27.10"
+    },
+    {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|@types/emscripten@1.41.5",
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "70c426ee9c6ee81c6d1f2a89ee6419da45d657948b9ae8326c57470816c9e5e1f33a8e95841724120013dfffeb3f91703c734f7848aae12990e6e701c2c3a8e1"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/@types/emscripten/-/emscripten-1.41.5.tgz"
+        }
+      ],
+      "group": "@types",
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "emscripten",
+      "purl": "pkg:npm/%40types/emscripten@1.41.5?download_url=https%3A%2F%2Fregistry.npmmirror.com%2F%40types%2Femscripten%2F-%2Femscripten-1.41.5.tgz",
+      "type": "library",
+      "version": "1.41.5"
     },
     {
       "bom-ref": "@ynx-chain/wallet-app@1.0.1|@types/istanbul-lib-coverage@2.0.6",
@@ -3814,6 +4166,1175 @@
       "version": "1.3.3"
     },
     {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|@walletconnect/core@2.23.10",
+      "components": [
+        {
+          "bom-ref": "@ynx-chain/wallet-app@1.0.1|@walletconnect/core@2.23.10|@walletconnect/keyvaluestorage@1.1.1",
+          "externalReferences": [
+            {
+              "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+              "hashes": [
+                {
+                  "alg": "SHA-512",
+                  "content": "57b650ab6fa64b102aeccad1a83c5a9d3ceed9170495f2b53df35889a56726027b43b1bb85357017cbe8201c7ddaab11c861d98a1af034f1ee65dd5a2a4774ac"
+                }
+              ],
+              "type": "distribution",
+              "url": "https://registry.npmmirror.com/@walletconnect/keyvaluestorage/-/keyvaluestorage-1.1.1.tgz"
+            }
+          ],
+          "group": "@walletconnect",
+          "licenses": [
+            {
+              "license": {
+                "acknowledgement": "declared",
+                "id": "MIT"
+              }
+            }
+          ],
+          "name": "keyvaluestorage",
+          "purl": "pkg:npm/%40walletconnect/keyvaluestorage@1.1.1?download_url=https%3A%2F%2Fregistry.npmmirror.com%2F%40walletconnect%2Fkeyvaluestorage%2F-%2Fkeyvaluestorage-1.1.1.tgz",
+          "type": "library",
+          "version": "1.1.1"
+        },
+        {
+          "bom-ref": "@ynx-chain/wallet-app@1.0.1|@walletconnect/core@2.23.10|lru-cache@11.5.2",
+          "externalReferences": [
+            {
+              "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+              "hashes": [
+                {
+                  "alg": "SHA-512",
+                  "content": "e297ccd457f4c79d28d2d4306f9b9cc3f4733720f4fd824c13a215712b5a959b8c5b176ddec47786e4ad4edc73e0f526bd97d182ebc37a36acbd0da489f475d6"
+                }
+              ],
+              "type": "distribution",
+              "url": "https://registry.npmmirror.com/lru-cache/-/lru-cache-11.5.2.tgz"
+            }
+          ],
+          "licenses": [
+            {
+              "license": {
+                "acknowledgement": "declared",
+                "id": "BlueOak-1.0.0"
+              }
+            }
+          ],
+          "name": "lru-cache",
+          "purl": "pkg:npm/lru-cache@11.5.2?download_url=https%3A%2F%2Fregistry.npmmirror.com%2Flru-cache%2F-%2Flru-cache-11.5.2.tgz",
+          "type": "library",
+          "version": "11.5.2"
+        },
+        {
+          "bom-ref": "@ynx-chain/wallet-app@1.0.1|@walletconnect/core@2.23.10|unstorage@1.17.5",
+          "externalReferences": [
+            {
+              "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+              "hashes": [
+                {
+                  "alg": "SHA-512",
+                  "content": "d22de2aaf45fc76f6190d9ed1f242f253a5fe56f5d43d65a752a1153cfb1565855b53ee3017e7b7dacd83bd107bdc4427c10b28b9611c9aed70833ac6d38243e"
+                }
+              ],
+              "type": "distribution",
+              "url": "https://registry.npmmirror.com/unstorage/-/unstorage-1.17.5.tgz"
+            }
+          ],
+          "licenses": [
+            {
+              "license": {
+                "acknowledgement": "declared",
+                "id": "MIT"
+              }
+            }
+          ],
+          "name": "unstorage",
+          "purl": "pkg:npm/unstorage@1.17.5?download_url=https%3A%2F%2Fregistry.npmmirror.com%2Funstorage%2F-%2Funstorage-1.17.5.tgz",
+          "type": "library",
+          "version": "1.17.5"
+        }
+      ],
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "42ad9bb471280a0aeebe464258b4ab56cbe0fdd61b33d674e39a9e0a5c21251e2678bdf68db2114f498a5a37f41e445cd8b03cd8cb27b335677ee665df25a5e4"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/@walletconnect/core/-/core-2.23.10.tgz"
+        }
+      ],
+      "group": "@walletconnect",
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "name": "SEE LICENSE IN LICENSE.md"
+          }
+        }
+      ],
+      "name": "core",
+      "purl": "pkg:npm/%40walletconnect/core@2.23.10?download_url=https%3A%2F%2Fregistry.npmmirror.com%2F%40walletconnect%2Fcore%2F-%2Fcore-2.23.10.tgz",
+      "type": "library",
+      "version": "2.23.10"
+    },
+    {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|@walletconnect/environment@1.0.1",
+      "components": [
+        {
+          "bom-ref": "@ynx-chain/wallet-app@1.0.1|@walletconnect/environment@1.0.1|tslib@1.14.1",
+          "externalReferences": [
+            {
+              "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+              "hashes": [
+                {
+                  "alg": "SHA-512",
+                  "content": "5e78b7e4d2b38e032bc1ebf2b074c202bb4b0e93efc9ef3357fd04e04c989f8dcfeffeeabd0c0f87d0469077b06ccba5567b5b8a099c4fbadd5f704da3dc1126"
+                }
+              ],
+              "type": "distribution",
+              "url": "https://registry.npmmirror.com/tslib/-/tslib-1.14.1.tgz"
+            }
+          ],
+          "licenses": [
+            {
+              "license": {
+                "acknowledgement": "declared",
+                "id": "0BSD"
+              }
+            }
+          ],
+          "name": "tslib",
+          "purl": "pkg:npm/tslib@1.14.1?download_url=https%3A%2F%2Fregistry.npmmirror.com%2Ftslib%2F-%2Ftslib-1.14.1.tgz",
+          "type": "library",
+          "version": "1.14.1"
+        }
+      ],
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "4f8dba2cb66d1e3f1ef2b62729fcecc35686ebe334053d59c5ac8c76ffe9f32334314f9e243212a8d637fdb71cc51af82eb17d72cab4d9186ab74f086e5d1546"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/@walletconnect/environment/-/environment-1.0.1.tgz"
+        }
+      ],
+      "group": "@walletconnect",
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "environment",
+      "purl": "pkg:npm/%40walletconnect/environment@1.0.1?download_url=https%3A%2F%2Fregistry.npmmirror.com%2F%40walletconnect%2Fenvironment%2F-%2Fenvironment-1.0.1.tgz",
+      "type": "library",
+      "version": "1.0.1"
+    },
+    {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|@walletconnect/events@1.0.1",
+      "components": [
+        {
+          "bom-ref": "@ynx-chain/wallet-app@1.0.1|@walletconnect/events@1.0.1|tslib@1.14.1",
+          "externalReferences": [
+            {
+              "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+              "hashes": [
+                {
+                  "alg": "SHA-512",
+                  "content": "5e78b7e4d2b38e032bc1ebf2b074c202bb4b0e93efc9ef3357fd04e04c989f8dcfeffeeabd0c0f87d0469077b06ccba5567b5b8a099c4fbadd5f704da3dc1126"
+                }
+              ],
+              "type": "distribution",
+              "url": "https://registry.npmmirror.com/tslib/-/tslib-1.14.1.tgz"
+            }
+          ],
+          "licenses": [
+            {
+              "license": {
+                "acknowledgement": "declared",
+                "id": "0BSD"
+              }
+            }
+          ],
+          "name": "tslib",
+          "purl": "pkg:npm/tslib@1.14.1?download_url=https%3A%2F%2Fregistry.npmmirror.com%2Ftslib%2F-%2Ftslib-1.14.1.tgz",
+          "type": "library",
+          "version": "1.14.1"
+        }
+      ],
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "34f4ea6a88b4a0f05536e2efeea3da25ace6187b39246c8ef1e1009395462a62730d1ec01f30f893a8a5a31e64c64d62c223a7168a4138e30bb3ce8e6bbe87a5"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/@walletconnect/events/-/events-1.0.1.tgz"
+        }
+      ],
+      "group": "@walletconnect",
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "events",
+      "purl": "pkg:npm/%40walletconnect/events@1.0.1?download_url=https%3A%2F%2Fregistry.npmmirror.com%2F%40walletconnect%2Fevents%2F-%2Fevents-1.0.1.tgz",
+      "type": "library",
+      "version": "1.0.1"
+    },
+    {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|@walletconnect/heartbeat@1.2.2",
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "b804a24660b933086e46e7f4e6fab8013e3c3eaf11322f3beb357caebf1c57debdb933b359d07f93e2e3e722363c1b41d5b1908ac19e9fb30cd467199504c15f"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/@walletconnect/heartbeat/-/heartbeat-1.2.2.tgz"
+        }
+      ],
+      "group": "@walletconnect",
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "heartbeat",
+      "purl": "pkg:npm/%40walletconnect/heartbeat@1.2.2?download_url=https%3A%2F%2Fregistry.npmmirror.com%2F%40walletconnect%2Fheartbeat%2F-%2Fheartbeat-1.2.2.tgz",
+      "type": "library",
+      "version": "1.2.2"
+    },
+    {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|@walletconnect/jsonrpc-provider@1.0.14",
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "aedb0d6355ea1ef5a3d04b484cd7ae7fc3c732f9422e24b712340bf963a4c44380e0a3f1b288459c10dec8f622366e19be441d2e779c7b7ea8a5889d9ad6e6a3"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/@walletconnect/jsonrpc-provider/-/jsonrpc-provider-1.0.14.tgz"
+        }
+      ],
+      "group": "@walletconnect",
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "jsonrpc-provider",
+      "purl": "pkg:npm/%40walletconnect/jsonrpc-provider@1.0.14?download_url=https%3A%2F%2Fregistry.npmmirror.com%2F%40walletconnect%2Fjsonrpc-provider%2F-%2Fjsonrpc-provider-1.0.14.tgz",
+      "type": "library",
+      "version": "1.0.14"
+    },
+    {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|@walletconnect/jsonrpc-types@1.0.4",
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "3faebbf5f1bf33ec2e5a0f5363c9a1eb11527589c5c858f015e971c884b1303ae56d7a24a2b1155d83b18aa11bad4df1d41981a0200927ebed11a128325a4205"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/@walletconnect/jsonrpc-types/-/jsonrpc-types-1.0.4.tgz"
+        }
+      ],
+      "group": "@walletconnect",
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "jsonrpc-types",
+      "purl": "pkg:npm/%40walletconnect/jsonrpc-types@1.0.4?download_url=https%3A%2F%2Fregistry.npmmirror.com%2F%40walletconnect%2Fjsonrpc-types%2F-%2Fjsonrpc-types-1.0.4.tgz",
+      "type": "library",
+      "version": "1.0.4"
+    },
+    {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|@walletconnect/jsonrpc-utils@1.0.8",
+      "components": [
+        {
+          "bom-ref": "@ynx-chain/wallet-app@1.0.1|@walletconnect/jsonrpc-utils@1.0.8|tslib@1.14.1",
+          "externalReferences": [
+            {
+              "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+              "hashes": [
+                {
+                  "alg": "SHA-512",
+                  "content": "5e78b7e4d2b38e032bc1ebf2b074c202bb4b0e93efc9ef3357fd04e04c989f8dcfeffeeabd0c0f87d0469077b06ccba5567b5b8a099c4fbadd5f704da3dc1126"
+                }
+              ],
+              "type": "distribution",
+              "url": "https://registry.npmmirror.com/tslib/-/tslib-1.14.1.tgz"
+            }
+          ],
+          "licenses": [
+            {
+              "license": {
+                "acknowledgement": "declared",
+                "id": "0BSD"
+              }
+            }
+          ],
+          "name": "tslib",
+          "purl": "pkg:npm/tslib@1.14.1?download_url=https%3A%2F%2Fregistry.npmmirror.com%2Ftslib%2F-%2Ftslib-1.14.1.tgz",
+          "type": "library",
+          "version": "1.14.1"
+        }
+      ],
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "bdd79bd376c3f15cc950be99b73458b0532ad5e65070cdc40334f46b7b2de7d7722df274c2afad28ca66187ec7941ef0683f39f145a07c872e75b3c5b1bcd577"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/@walletconnect/jsonrpc-utils/-/jsonrpc-utils-1.0.8.tgz"
+        }
+      ],
+      "group": "@walletconnect",
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "jsonrpc-utils",
+      "purl": "pkg:npm/%40walletconnect/jsonrpc-utils@1.0.8?download_url=https%3A%2F%2Fregistry.npmmirror.com%2F%40walletconnect%2Fjsonrpc-utils%2F-%2Fjsonrpc-utils-1.0.8.tgz",
+      "type": "library",
+      "version": "1.0.8"
+    },
+    {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|@walletconnect/jsonrpc-ws-connection@1.0.16",
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "1bcd499ac32a8799c985e13598fb2dd56d167d5bf4486dcdec9820c0b2c69c8ee2b83649abc71126f4302c62879f91f55935bb0c43c2a34d33cf9c3ad806cbdd"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/@walletconnect/jsonrpc-ws-connection/-/jsonrpc-ws-connection-1.0.16.tgz"
+        }
+      ],
+      "group": "@walletconnect",
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "jsonrpc-ws-connection",
+      "purl": "pkg:npm/%40walletconnect/jsonrpc-ws-connection@1.0.16?download_url=https%3A%2F%2Fregistry.npmmirror.com%2F%40walletconnect%2Fjsonrpc-ws-connection%2F-%2Fjsonrpc-ws-connection-1.0.16.tgz",
+      "type": "library",
+      "version": "1.0.16"
+    },
+    {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|@walletconnect/logger@3.0.2",
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "ef0477c00c094ce997e206dc519705328bfc7e37ed634e7ee5c3bf7787290c3f300f327e70894a7583976977f11cb4987836b331722cc4c6231d85437e4c7e9c"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/@walletconnect/logger/-/logger-3.0.2.tgz"
+        }
+      ],
+      "group": "@walletconnect",
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "logger",
+      "purl": "pkg:npm/%40walletconnect/logger@3.0.2?download_url=https%3A%2F%2Fregistry.npmmirror.com%2F%40walletconnect%2Flogger%2F-%2Flogger-3.0.2.tgz",
+      "type": "library",
+      "version": "3.0.2"
+    },
+    {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|@walletconnect/pay@1.0.9",
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "d3d2fa2a133a21e58a35d61e7eeb96c15c56a40b1376308f1139754d04f96d6cf23bd4e20d2a2fef463a9276990f5f51d7bdec4ea293c8d7de828fd8fa2b1c0e"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/@walletconnect/pay/-/pay-1.0.9.tgz"
+        }
+      ],
+      "group": "@walletconnect",
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "name": "SEE LICENSE IN LICENSE.md"
+          }
+        }
+      ],
+      "name": "pay",
+      "purl": "pkg:npm/%40walletconnect/pay@1.0.9?download_url=https%3A%2F%2Fregistry.npmmirror.com%2F%40walletconnect%2Fpay%2F-%2Fpay-1.0.9.tgz",
+      "type": "library",
+      "version": "1.0.9"
+    },
+    {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|@walletconnect/react-native-compat@2.23.10",
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "7d362c38ed1863e46d709dd4573fd9d02cdbf4110f317924e5549d209e4ca0e549d0416c149ff5983b472c63018baf16d9c7975b65b8a43baeb9f6a2678f016e"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/@walletconnect/react-native-compat/-/react-native-compat-2.23.10.tgz"
+        }
+      ],
+      "group": "@walletconnect",
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "name": "SEE LICENSE IN LICENSE.md"
+          }
+        }
+      ],
+      "name": "react-native-compat",
+      "purl": "pkg:npm/%40walletconnect/react-native-compat@2.23.10?download_url=https%3A%2F%2Fregistry.npmmirror.com%2F%40walletconnect%2Freact-native-compat%2F-%2Freact-native-compat-2.23.10.tgz",
+      "type": "library",
+      "version": "2.23.10"
+    },
+    {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|@walletconnect/relay-api@1.0.11",
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "b4b3c4ae4cdefc7982f5a0a67593a1b5599866ad7029f59326dca0407a16b6083bdb625de21a26a39e02b386a4d915055192063b646c3a921c5a2a5ab9ae43e5"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/@walletconnect/relay-api/-/relay-api-1.0.11.tgz"
+        }
+      ],
+      "group": "@walletconnect",
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "relay-api",
+      "purl": "pkg:npm/%40walletconnect/relay-api@1.0.11?download_url=https%3A%2F%2Fregistry.npmmirror.com%2F%40walletconnect%2Frelay-api%2F-%2Frelay-api-1.0.11.tgz",
+      "type": "library",
+      "version": "1.0.11"
+    },
+    {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|@walletconnect/relay-auth@1.1.0",
+      "components": [
+        {
+          "bom-ref": "@ynx-chain/wallet-app@1.0.1|@walletconnect/relay-auth@1.1.0|@noble/curves@1.8.0",
+          "externalReferences": [
+            {
+              "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+              "hashes": [
+                {
+                  "alg": "SHA-512",
+                  "content": "8fce248c06f312740769222144f526077fde557bb693774a3e5d8b3ab47c7d23882fef3d53eee5575d7b1161edabf18733745e187338ea24417597e97381d151"
+                }
+              ],
+              "type": "distribution",
+              "url": "https://registry.npmmirror.com/@noble/curves/-/curves-1.8.0.tgz"
+            }
+          ],
+          "group": "@noble",
+          "licenses": [
+            {
+              "license": {
+                "acknowledgement": "declared",
+                "id": "MIT"
+              }
+            }
+          ],
+          "name": "curves",
+          "purl": "pkg:npm/%40noble/curves@1.8.0?download_url=https%3A%2F%2Fregistry.npmmirror.com%2F%40noble%2Fcurves%2F-%2Fcurves-1.8.0.tgz",
+          "type": "library",
+          "version": "1.8.0"
+        },
+        {
+          "bom-ref": "@ynx-chain/wallet-app@1.0.1|@walletconnect/relay-auth@1.1.0|@noble/hashes@1.7.0",
+          "externalReferences": [
+            {
+              "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+              "hashes": [
+                {
+                  "alg": "SHA-512",
+                  "content": "1d7c9d6f40e0cd3a433f06d57831821b5808bbb5faf80b94e9997a6affc4fca1bc2ccb2f3e7b6fabec35ec21d1a4a06637a61b76bb7578fde4e1c8fc0c96bbf3"
+                }
+              ],
+              "type": "distribution",
+              "url": "https://registry.npmmirror.com/@noble/hashes/-/hashes-1.7.0.tgz"
+            }
+          ],
+          "group": "@noble",
+          "licenses": [
+            {
+              "license": {
+                "acknowledgement": "declared",
+                "id": "MIT"
+              }
+            }
+          ],
+          "name": "hashes",
+          "purl": "pkg:npm/%40noble/hashes@1.7.0?download_url=https%3A%2F%2Fregistry.npmmirror.com%2F%40noble%2Fhashes%2F-%2Fhashes-1.7.0.tgz",
+          "type": "library",
+          "version": "1.7.0"
+        }
+      ],
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "a85c3e6bdb91cf6ea34420e02fb4394c0f6a60881c358f23a49cc8d73016359f22ee64236a28d19d614ab021c053d0b21a3bede912ab457c85b453a959356609"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/@walletconnect/relay-auth/-/relay-auth-1.1.0.tgz"
+        }
+      ],
+      "group": "@walletconnect",
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "relay-auth",
+      "purl": "pkg:npm/%40walletconnect/relay-auth@1.1.0?download_url=https%3A%2F%2Fregistry.npmmirror.com%2F%40walletconnect%2Frelay-auth%2F-%2Frelay-auth-1.1.0.tgz",
+      "type": "library",
+      "version": "1.1.0"
+    },
+    {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|@walletconnect/safe-json@1.0.2",
+      "components": [
+        {
+          "bom-ref": "@ynx-chain/wallet-app@1.0.1|@walletconnect/safe-json@1.0.2|tslib@1.14.1",
+          "externalReferences": [
+            {
+              "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+              "hashes": [
+                {
+                  "alg": "SHA-512",
+                  "content": "5e78b7e4d2b38e032bc1ebf2b074c202bb4b0e93efc9ef3357fd04e04c989f8dcfeffeeabd0c0f87d0469077b06ccba5567b5b8a099c4fbadd5f704da3dc1126"
+                }
+              ],
+              "type": "distribution",
+              "url": "https://registry.npmmirror.com/tslib/-/tslib-1.14.1.tgz"
+            }
+          ],
+          "licenses": [
+            {
+              "license": {
+                "acknowledgement": "declared",
+                "id": "0BSD"
+              }
+            }
+          ],
+          "name": "tslib",
+          "purl": "pkg:npm/tslib@1.14.1?download_url=https%3A%2F%2Fregistry.npmmirror.com%2Ftslib%2F-%2Ftslib-1.14.1.tgz",
+          "type": "library",
+          "version": "1.14.1"
+        }
+      ],
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "3a06fb236ee46772cf0b789b9fc95dc94af9e78e2ddff493a30f7e973cfb49fa3cd3c603ed205693b480b1d04595880fdb30d1cb6852dec29172e49133439398"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/@walletconnect/safe-json/-/safe-json-1.0.2.tgz"
+        }
+      ],
+      "group": "@walletconnect",
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "safe-json",
+      "purl": "pkg:npm/%40walletconnect/safe-json@1.0.2?download_url=https%3A%2F%2Fregistry.npmmirror.com%2F%40walletconnect%2Fsafe-json%2F-%2Fsafe-json-1.0.2.tgz",
+      "type": "library",
+      "version": "1.0.2"
+    },
+    {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|@walletconnect/sign-client@2.23.10",
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "bceec31914662a8fabca49a3572411d5a3382369db93d909ea895bc608c5451e89761cbe2b3fb380dec27b9c5584f7d6615bb86d5fd784e43186f9d0c3b4b99e"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/@walletconnect/sign-client/-/sign-client-2.23.10.tgz"
+        }
+      ],
+      "group": "@walletconnect",
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "name": "SEE LICENSE IN LICENSE.md"
+          }
+        }
+      ],
+      "name": "sign-client",
+      "purl": "pkg:npm/%40walletconnect/sign-client@2.23.10?download_url=https%3A%2F%2Fregistry.npmmirror.com%2F%40walletconnect%2Fsign-client%2F-%2Fsign-client-2.23.10.tgz",
+      "type": "library",
+      "version": "2.23.10"
+    },
+    {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|@walletconnect/time@1.0.2",
+      "components": [
+        {
+          "bom-ref": "@ynx-chain/wallet-app@1.0.1|@walletconnect/time@1.0.2|tslib@1.14.1",
+          "externalReferences": [
+            {
+              "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+              "hashes": [
+                {
+                  "alg": "SHA-512",
+                  "content": "5e78b7e4d2b38e032bc1ebf2b074c202bb4b0e93efc9ef3357fd04e04c989f8dcfeffeeabd0c0f87d0469077b06ccba5567b5b8a099c4fbadd5f704da3dc1126"
+                }
+              ],
+              "type": "distribution",
+              "url": "https://registry.npmmirror.com/tslib/-/tslib-1.14.1.tgz"
+            }
+          ],
+          "licenses": [
+            {
+              "license": {
+                "acknowledgement": "declared",
+                "id": "0BSD"
+              }
+            }
+          ],
+          "name": "tslib",
+          "purl": "pkg:npm/tslib@1.14.1?download_url=https%3A%2F%2Fregistry.npmmirror.com%2Ftslib%2F-%2Ftslib-1.14.1.tgz",
+          "type": "library",
+          "version": "1.14.1"
+        }
+      ],
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "bb375df70a03709d4068165186acb9acd0bd95aa96184adf73877103d6bcee63dd28e816303f3999c168f5d21822db3f270a1c7f09f4ec40ba1337252ae6e4fe"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/@walletconnect/time/-/time-1.0.2.tgz"
+        }
+      ],
+      "group": "@walletconnect",
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "time",
+      "purl": "pkg:npm/%40walletconnect/time@1.0.2?download_url=https%3A%2F%2Fregistry.npmmirror.com%2F%40walletconnect%2Ftime%2F-%2Ftime-1.0.2.tgz",
+      "type": "library",
+      "version": "1.0.2"
+    },
+    {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|@walletconnect/types@2.23.10",
+      "components": [
+        {
+          "bom-ref": "@ynx-chain/wallet-app@1.0.1|@walletconnect/types@2.23.10|@walletconnect/keyvaluestorage@1.1.1",
+          "externalReferences": [
+            {
+              "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+              "hashes": [
+                {
+                  "alg": "SHA-512",
+                  "content": "57b650ab6fa64b102aeccad1a83c5a9d3ceed9170495f2b53df35889a56726027b43b1bb85357017cbe8201c7ddaab11c861d98a1af034f1ee65dd5a2a4774ac"
+                }
+              ],
+              "type": "distribution",
+              "url": "https://registry.npmmirror.com/@walletconnect/keyvaluestorage/-/keyvaluestorage-1.1.1.tgz"
+            }
+          ],
+          "group": "@walletconnect",
+          "licenses": [
+            {
+              "license": {
+                "acknowledgement": "declared",
+                "id": "MIT"
+              }
+            }
+          ],
+          "name": "keyvaluestorage",
+          "purl": "pkg:npm/%40walletconnect/keyvaluestorage@1.1.1?download_url=https%3A%2F%2Fregistry.npmmirror.com%2F%40walletconnect%2Fkeyvaluestorage%2F-%2Fkeyvaluestorage-1.1.1.tgz",
+          "type": "library",
+          "version": "1.1.1"
+        },
+        {
+          "bom-ref": "@ynx-chain/wallet-app@1.0.1|@walletconnect/types@2.23.10|lru-cache@11.5.2",
+          "externalReferences": [
+            {
+              "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+              "hashes": [
+                {
+                  "alg": "SHA-512",
+                  "content": "e297ccd457f4c79d28d2d4306f9b9cc3f4733720f4fd824c13a215712b5a959b8c5b176ddec47786e4ad4edc73e0f526bd97d182ebc37a36acbd0da489f475d6"
+                }
+              ],
+              "type": "distribution",
+              "url": "https://registry.npmmirror.com/lru-cache/-/lru-cache-11.5.2.tgz"
+            }
+          ],
+          "licenses": [
+            {
+              "license": {
+                "acknowledgement": "declared",
+                "id": "BlueOak-1.0.0"
+              }
+            }
+          ],
+          "name": "lru-cache",
+          "purl": "pkg:npm/lru-cache@11.5.2?download_url=https%3A%2F%2Fregistry.npmmirror.com%2Flru-cache%2F-%2Flru-cache-11.5.2.tgz",
+          "type": "library",
+          "version": "11.5.2"
+        },
+        {
+          "bom-ref": "@ynx-chain/wallet-app@1.0.1|@walletconnect/types@2.23.10|unstorage@1.17.5",
+          "externalReferences": [
+            {
+              "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+              "hashes": [
+                {
+                  "alg": "SHA-512",
+                  "content": "d22de2aaf45fc76f6190d9ed1f242f253a5fe56f5d43d65a752a1153cfb1565855b53ee3017e7b7dacd83bd107bdc4427c10b28b9611c9aed70833ac6d38243e"
+                }
+              ],
+              "type": "distribution",
+              "url": "https://registry.npmmirror.com/unstorage/-/unstorage-1.17.5.tgz"
+            }
+          ],
+          "licenses": [
+            {
+              "license": {
+                "acknowledgement": "declared",
+                "id": "MIT"
+              }
+            }
+          ],
+          "name": "unstorage",
+          "purl": "pkg:npm/unstorage@1.17.5?download_url=https%3A%2F%2Fregistry.npmmirror.com%2Funstorage%2F-%2Funstorage-1.17.5.tgz",
+          "type": "library",
+          "version": "1.17.5"
+        }
+      ],
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "5cff1de35f7bf5a9d3adcd4e245dc8485fa0f3572fa75c229be39b74d9db71a4ff8e1c0bc2ffb44fbad17bd57046ffa1f0469180bc9e6f9606cbba09e3dbf156"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/@walletconnect/types/-/types-2.23.10.tgz"
+        }
+      ],
+      "group": "@walletconnect",
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "name": "SEE LICENSE IN LICENSE.md"
+          }
+        }
+      ],
+      "name": "types",
+      "purl": "pkg:npm/%40walletconnect/types@2.23.10?download_url=https%3A%2F%2Fregistry.npmmirror.com%2F%40walletconnect%2Ftypes%2F-%2Ftypes-2.23.10.tgz",
+      "type": "library",
+      "version": "2.23.10"
+    },
+    {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|@walletconnect/utils@2.23.10",
+      "components": [
+        {
+          "bom-ref": "@ynx-chain/wallet-app@1.0.1|@walletconnect/utils@2.23.10|@noble/curves@1.9.7",
+          "externalReferences": [
+            {
+              "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+              "hashes": [
+                {
+                  "alg": "SHA-512",
+                  "content": "81b286711518223037ff308235a5837224cc148d1d0a4be8bb74cbf199b2e4d73bb09e3b6b48ed39e6684da33192ea91a3d71186339d6495de831604e4537fc7"
+                }
+              ],
+              "type": "distribution",
+              "url": "https://registry.npmmirror.com/@noble/curves/-/curves-1.9.7.tgz"
+            }
+          ],
+          "group": "@noble",
+          "licenses": [
+            {
+              "license": {
+                "acknowledgement": "declared",
+                "id": "MIT"
+              }
+            }
+          ],
+          "name": "curves",
+          "purl": "pkg:npm/%40noble/curves@1.9.7?download_url=https%3A%2F%2Fregistry.npmmirror.com%2F%40noble%2Fcurves%2F-%2Fcurves-1.9.7.tgz",
+          "type": "library",
+          "version": "1.9.7"
+        },
+        {
+          "bom-ref": "@ynx-chain/wallet-app@1.0.1|@walletconnect/utils@2.23.10|@noble/hashes@1.8.0",
+          "externalReferences": [
+            {
+              "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+              "hashes": [
+                {
+                  "alg": "SHA-512",
+                  "content": "8c2b3d95d77b370ce98170c87fa3f7f8dac787dfec0fa0907711f28d023e87feab0cda3cf32a41c71cf8e540ee647cfdaf7b4dcfb37f5489d256855db57108e0"
+                }
+              ],
+              "type": "distribution",
+              "url": "https://registry.npmmirror.com/@noble/hashes/-/hashes-1.8.0.tgz"
+            }
+          ],
+          "group": "@noble",
+          "licenses": [
+            {
+              "license": {
+                "acknowledgement": "declared",
+                "id": "MIT"
+              }
+            }
+          ],
+          "name": "hashes",
+          "purl": "pkg:npm/%40noble/hashes@1.8.0?download_url=https%3A%2F%2Fregistry.npmmirror.com%2F%40noble%2Fhashes%2F-%2Fhashes-1.8.0.tgz",
+          "type": "library",
+          "version": "1.8.0"
+        },
+        {
+          "bom-ref": "@ynx-chain/wallet-app@1.0.1|@walletconnect/utils@2.23.10|@walletconnect/keyvaluestorage@1.1.1",
+          "externalReferences": [
+            {
+              "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+              "hashes": [
+                {
+                  "alg": "SHA-512",
+                  "content": "57b650ab6fa64b102aeccad1a83c5a9d3ceed9170495f2b53df35889a56726027b43b1bb85357017cbe8201c7ddaab11c861d98a1af034f1ee65dd5a2a4774ac"
+                }
+              ],
+              "type": "distribution",
+              "url": "https://registry.npmmirror.com/@walletconnect/keyvaluestorage/-/keyvaluestorage-1.1.1.tgz"
+            }
+          ],
+          "group": "@walletconnect",
+          "licenses": [
+            {
+              "license": {
+                "acknowledgement": "declared",
+                "id": "MIT"
+              }
+            }
+          ],
+          "name": "keyvaluestorage",
+          "purl": "pkg:npm/%40walletconnect/keyvaluestorage@1.1.1?download_url=https%3A%2F%2Fregistry.npmmirror.com%2F%40walletconnect%2Fkeyvaluestorage%2F-%2Fkeyvaluestorage-1.1.1.tgz",
+          "type": "library",
+          "version": "1.1.1"
+        },
+        {
+          "bom-ref": "@ynx-chain/wallet-app@1.0.1|@walletconnect/utils@2.23.10|lru-cache@11.5.2",
+          "externalReferences": [
+            {
+              "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+              "hashes": [
+                {
+                  "alg": "SHA-512",
+                  "content": "e297ccd457f4c79d28d2d4306f9b9cc3f4733720f4fd824c13a215712b5a959b8c5b176ddec47786e4ad4edc73e0f526bd97d182ebc37a36acbd0da489f475d6"
+                }
+              ],
+              "type": "distribution",
+              "url": "https://registry.npmmirror.com/lru-cache/-/lru-cache-11.5.2.tgz"
+            }
+          ],
+          "licenses": [
+            {
+              "license": {
+                "acknowledgement": "declared",
+                "id": "BlueOak-1.0.0"
+              }
+            }
+          ],
+          "name": "lru-cache",
+          "purl": "pkg:npm/lru-cache@11.5.2?download_url=https%3A%2F%2Fregistry.npmmirror.com%2Flru-cache%2F-%2Flru-cache-11.5.2.tgz",
+          "type": "library",
+          "version": "11.5.2"
+        },
+        {
+          "bom-ref": "@ynx-chain/wallet-app@1.0.1|@walletconnect/utils@2.23.10|unstorage@1.17.5",
+          "externalReferences": [
+            {
+              "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+              "hashes": [
+                {
+                  "alg": "SHA-512",
+                  "content": "d22de2aaf45fc76f6190d9ed1f242f253a5fe56f5d43d65a752a1153cfb1565855b53ee3017e7b7dacd83bd107bdc4427c10b28b9611c9aed70833ac6d38243e"
+                }
+              ],
+              "type": "distribution",
+              "url": "https://registry.npmmirror.com/unstorage/-/unstorage-1.17.5.tgz"
+            }
+          ],
+          "licenses": [
+            {
+              "license": {
+                "acknowledgement": "declared",
+                "id": "MIT"
+              }
+            }
+          ],
+          "name": "unstorage",
+          "purl": "pkg:npm/unstorage@1.17.5?download_url=https%3A%2F%2Fregistry.npmmirror.com%2Funstorage%2F-%2Funstorage-1.17.5.tgz",
+          "type": "library",
+          "version": "1.17.5"
+        }
+      ],
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "6f573d15117683bbcd9f3ebaa0b5b95990f654232b6eef718699b0249c2a19aac18865bb718f0d6d4b52f7fc36fea734bec055289fdbcc39f84c68e910b53a69"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/@walletconnect/utils/-/utils-2.23.10.tgz"
+        }
+      ],
+      "group": "@walletconnect",
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "name": "SEE LICENSE IN LICENSE.md"
+          }
+        }
+      ],
+      "name": "utils",
+      "purl": "pkg:npm/%40walletconnect/utils@2.23.10?download_url=https%3A%2F%2Fregistry.npmmirror.com%2F%40walletconnect%2Futils%2F-%2Futils-2.23.10.tgz",
+      "type": "library",
+      "version": "2.23.10"
+    },
+    {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|@walletconnect/window-getters@1.0.1",
+      "components": [
+        {
+          "bom-ref": "@ynx-chain/wallet-app@1.0.1|@walletconnect/window-getters@1.0.1|tslib@1.14.1",
+          "externalReferences": [
+            {
+              "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+              "hashes": [
+                {
+                  "alg": "SHA-512",
+                  "content": "5e78b7e4d2b38e032bc1ebf2b074c202bb4b0e93efc9ef3357fd04e04c989f8dcfeffeeabd0c0f87d0469077b06ccba5567b5b8a099c4fbadd5f704da3dc1126"
+                }
+              ],
+              "type": "distribution",
+              "url": "https://registry.npmmirror.com/tslib/-/tslib-1.14.1.tgz"
+            }
+          ],
+          "licenses": [
+            {
+              "license": {
+                "acknowledgement": "declared",
+                "id": "0BSD"
+              }
+            }
+          ],
+          "name": "tslib",
+          "purl": "pkg:npm/tslib@1.14.1?download_url=https%3A%2F%2Fregistry.npmmirror.com%2Ftslib%2F-%2Ftslib-1.14.1.tgz",
+          "type": "library",
+          "version": "1.14.1"
+        }
+      ],
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "bc7a7e1eacc6c4e44f00df20634dea9db4cc9e1a88c2379124d38c380cde3d1838c551041365af62c23d1b634c8ce92703c867b986d4dff8702dc29b8e173cf9"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/@walletconnect/window-getters/-/window-getters-1.0.1.tgz"
+        }
+      ],
+      "group": "@walletconnect",
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "window-getters",
+      "purl": "pkg:npm/%40walletconnect/window-getters@1.0.1?download_url=https%3A%2F%2Fregistry.npmmirror.com%2F%40walletconnect%2Fwindow-getters%2F-%2Fwindow-getters-1.0.1.tgz",
+      "type": "library",
+      "version": "1.0.1"
+    },
+    {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|@walletconnect/window-metadata@1.0.1",
+      "components": [
+        {
+          "bom-ref": "@ynx-chain/wallet-app@1.0.1|@walletconnect/window-metadata@1.0.1|tslib@1.14.1",
+          "externalReferences": [
+            {
+              "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+              "hashes": [
+                {
+                  "alg": "SHA-512",
+                  "content": "5e78b7e4d2b38e032bc1ebf2b074c202bb4b0e93efc9ef3357fd04e04c989f8dcfeffeeabd0c0f87d0469077b06ccba5567b5b8a099c4fbadd5f704da3dc1126"
+                }
+              ],
+              "type": "distribution",
+              "url": "https://registry.npmmirror.com/tslib/-/tslib-1.14.1.tgz"
+            }
+          ],
+          "licenses": [
+            {
+              "license": {
+                "acknowledgement": "declared",
+                "id": "0BSD"
+              }
+            }
+          ],
+          "name": "tslib",
+          "purl": "pkg:npm/tslib@1.14.1?download_url=https%3A%2F%2Fregistry.npmmirror.com%2Ftslib%2F-%2Ftslib-1.14.1.tgz",
+          "type": "library",
+          "version": "1.14.1"
+        }
+      ],
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "f64a13ab21ab33672a1515b9d7b04f63f884b540f1dabd7e3f0c2ee66eec27b91aefdc22dc4caa86a7080a4ff20e6bfa8c04b5ae32a04ca5e51216a76238a370"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/@walletconnect/window-metadata/-/window-metadata-1.0.1.tgz"
+        }
+      ],
+      "group": "@walletconnect",
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "window-metadata",
+      "purl": "pkg:npm/%40walletconnect/window-metadata@1.0.1?download_url=https%3A%2F%2Fregistry.npmmirror.com%2F%40walletconnect%2Fwindow-metadata%2F-%2Fwindow-metadata-1.0.1.tgz",
+      "type": "library",
+      "version": "1.0.1"
+    },
+    {
       "bom-ref": "@ynx-chain/wallet-app@1.0.1|@xmldom/xmldom@0.8.13",
       "externalReferences": [
         {
@@ -3857,6 +5378,34 @@
       "purl": "pkg:npm/%40ynx-chain/wallet-auth@1.0.0",
       "type": "library",
       "version": "1.0.0"
+    },
+    {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|abitype@1.3.0",
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "7e4e937be6e88c816b32f319ae738ef92c4207e45492c4c63b3abfeb4651becd4bf81573be2d9baadf4bdd6ff5ed92dd66cc8cd45b987fae4fe67966a221f506"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/abitype/-/abitype-1.3.0.tgz"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "abitype",
+      "purl": "pkg:npm/abitype@1.3.0?download_url=https%3A%2F%2Fregistry.npmmirror.com%2Fabitype%2F-%2Fabitype-1.3.0.tgz",
+      "type": "library",
+      "version": "1.3.0"
     },
     {
       "bom-ref": "@ynx-chain/wallet-app@1.0.1|abort-controller@3.0.0",
@@ -4167,6 +5716,34 @@
       "version": "4.3.0"
     },
     {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|anymatch@3.1.3",
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "28c45e154af4078b7e0fe381923477298aafa1ca765da4b33b9e54701ea681031ddca6dc13e9964f2bd557b0ffcec7446cd9d5e9a71952eb64887417bd3af547"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/anymatch/-/anymatch-3.1.3.tgz"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "ISC"
+          }
+        }
+      ],
+      "name": "anymatch",
+      "purl": "pkg:npm/anymatch@3.1.3?download_url=https%3A%2F%2Fregistry.npmmirror.com%2Fanymatch%2F-%2Fanymatch-3.1.3.tgz",
+      "type": "library",
+      "version": "3.1.3"
+    },
+    {
       "bom-ref": "@ynx-chain/wallet-app@1.0.1|arg@5.0.2",
       "externalReferences": [
         {
@@ -4249,6 +5826,34 @@
       "purl": "pkg:npm/asap@2.0.6",
       "type": "library",
       "version": "2.0.6"
+    },
+    {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|atomic-sleep@1.0.0",
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "90d3a30ea021ee9c745d6348fb841bce8891fe74e41c058db9ddaebe726ab83d7fc796bb11064c253d00733a8ad109faee863f4d34352db50a6a3669a7723db5"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/atomic-sleep/-/atomic-sleep-1.0.0.tgz"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "atomic-sleep",
+      "purl": "pkg:npm/atomic-sleep@1.0.0?download_url=https%3A%2F%2Fregistry.npmmirror.com%2Fatomic-sleep%2F-%2Fatomic-sleep-1.0.0.tgz",
+      "type": "library",
+      "version": "1.0.0"
     },
     {
       "bom-ref": "@ynx-chain/wallet-app@1.0.1|babel-plugin-polyfill-corejs2@0.4.17",
@@ -4563,6 +6168,34 @@
       "version": "4.0.4"
     },
     {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|barcode-detector@3.2.2",
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "ff840eaeb36b0919834815a288fe1a0bbd9d9e4b9750475c15189d1e06cf457529cbcd9770232f26cb08e9f12ce894f8d8b4bb0ef05564eef4a9ab096d82b2ac"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/barcode-detector/-/barcode-detector-3.2.2.tgz"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "barcode-detector",
+      "purl": "pkg:npm/barcode-detector@3.2.2?download_url=https%3A%2F%2Fregistry.npmmirror.com%2Fbarcode-detector%2F-%2Fbarcode-detector-3.2.2.tgz",
+      "type": "library",
+      "version": "3.2.2"
+    },
+    {
       "bom-ref": "@ynx-chain/wallet-app@1.0.1|base64-js@1.5.1",
       "externalReferences": [
         {
@@ -4645,6 +6278,34 @@
       "purl": "pkg:npm/big-integer@1.6.52",
       "type": "library",
       "version": "1.6.52"
+    },
+    {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|blakejs@1.2.1",
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "4175125c8dd055cfe024c134741a57ada83591bccea828c25fcfdbe789ed3725bab23b68ab1a919372d3997cda26887bd7332c0c28ccfb8ee34bb5e2c0dffe7d"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/blakejs/-/blakejs-1.2.1.tgz"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "blakejs",
+      "purl": "pkg:npm/blakejs@1.2.1?download_url=https%3A%2F%2Fregistry.npmmirror.com%2Fblakejs%2F-%2Fblakejs-1.2.1.tgz",
+      "type": "library",
+      "version": "1.2.1"
     },
     {
       "bom-ref": "@ynx-chain/wallet-app@1.0.1|boolbase@1.0.0",
@@ -4787,6 +6448,34 @@
       "version": "3.0.3"
     },
     {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|brotli@1.3.3",
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "a132a325d4a1983b865bde12cb26a842f0237f7d1d65a1e78c9f2e005faedbfbc626425b24f2404f580388e24fe6fd596fa7fd284c96ff51e9b9a5885ed1873e"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/brotli/-/brotli-1.3.3.tgz"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "brotli",
+      "purl": "pkg:npm/brotli@1.3.3?download_url=https%3A%2F%2Fregistry.npmmirror.com%2Fbrotli%2F-%2Fbrotli-1.3.3.tgz",
+      "type": "library",
+      "version": "1.3.3"
+    },
+    {
       "bom-ref": "@ynx-chain/wallet-app@1.0.1|browserslist@4.28.6",
       "externalReferences": [
         {
@@ -4869,6 +6558,34 @@
       "purl": "pkg:npm/buffer-from@1.1.2",
       "type": "library",
       "version": "1.1.2"
+    },
+    {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|buffer@5.7.1",
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "10773220f050e0148696f8c1d7a9392a0009dbb088b0763fd8906609145ea38f32f6b43731a533597dca56505ae14eccc97d361dd563d0aec2dd6681de3bbb15"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/buffer/-/buffer-5.7.1.tgz"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "buffer",
+      "purl": "pkg:npm/buffer@5.7.1",
+      "type": "library",
+      "version": "5.7.1"
     },
     {
       "bom-ref": "@ynx-chain/wallet-app@1.0.1|bytes@3.1.2",
@@ -4981,6 +6698,34 @@
       "purl": "pkg:npm/chalk@4.1.2",
       "type": "library",
       "version": "4.1.2"
+    },
+    {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|chokidar@5.0.0",
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "4d0326737c3ee40c63a4bf22222c1e6c5ef77510c5e1f04889e02a1a7f5118259a115c10e856f67067b7d589ecd11448ce28b982827563bc5b330a354f132997"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/chokidar/-/chokidar-5.0.0.tgz"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "chokidar",
+      "purl": "pkg:npm/chokidar@5.0.0?download_url=https%3A%2F%2Fregistry.npmmirror.com%2Fchokidar%2F-%2Fchokidar-5.0.0.tgz",
+      "type": "library",
+      "version": "5.0.0"
     },
     {
       "bom-ref": "@ynx-chain/wallet-app@1.0.1|chrome-launcher@0.15.2",
@@ -5519,6 +7264,34 @@
       "version": "2.0.0"
     },
     {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|cookie-es@1.2.3",
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "957572bd4beb3576e532acc846bc476f9ed45159aab125a5c6ab775c88c29143f4c0301feae89c3ba28c6c4818acc36d12f5a0587c1ee3608ac4fbbd3180275b"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/cookie-es/-/cookie-es-1.2.3.tgz"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "cookie-es",
+      "purl": "pkg:npm/cookie-es@1.2.3?download_url=https%3A%2F%2Fregistry.npmmirror.com%2Fcookie-es%2F-%2Fcookie-es-1.2.3.tgz",
+      "type": "library",
+      "version": "1.2.3"
+    },
+    {
       "bom-ref": "@ynx-chain/wallet-app@1.0.1|core-js-compat@3.49.0",
       "externalReferences": [
         {
@@ -5573,6 +7346,34 @@
       "purl": "pkg:npm/cross-spawn@7.0.6",
       "type": "library",
       "version": "7.0.6"
+    },
+    {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|crossws@0.3.5",
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "a232a20ef7260728706bc618a9b408fe183b304534342d37fa949d12ae19527651f715e9c24ec4e3748c346927f89c4918f16d36f438f3ebd5da9f8fd669793c"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/crossws/-/crossws-0.3.5.tgz"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "crossws",
+      "purl": "pkg:npm/crossws@0.3.5?download_url=https%3A%2F%2Fregistry.npmmirror.com%2Fcrossws%2F-%2Fcrossws-0.3.5.tgz",
+      "type": "library",
+      "version": "0.3.5"
     },
     {
       "bom-ref": "@ynx-chain/wallet-app@1.0.1|css-select@5.2.2",
@@ -5835,6 +7636,34 @@
       "version": "1.0.4"
     },
     {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|defu@6.1.7",
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "ef3db6426516890ff67742a475898035b45454006967d48d6321f9bf1e8f67e9c4e5b702d25eee16f11f1e5ca577f1dc1811532f9dfa0a50eddc311c4a510901"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/defu/-/defu-6.1.7.tgz"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "defu",
+      "purl": "pkg:npm/defu@6.1.7?download_url=https%3A%2F%2Fregistry.npmmirror.com%2Fdefu%2F-%2Fdefu-6.1.7.tgz",
+      "type": "library",
+      "version": "6.1.7"
+    },
+    {
       "bom-ref": "@ynx-chain/wallet-app@1.0.1|depd@2.0.0",
       "externalReferences": [
         {
@@ -5863,6 +7692,34 @@
       "version": "2.0.0"
     },
     {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|destr@2.0.5",
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "ba01535c2b4366e9dbcdab2a071acaf77224fc3458b0ee92fdf79d91610c2aab74e3167872c9a79b01830406f4ed058d6863009a74c87a6b1864292c8c04f0b0"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/destr/-/destr-2.0.5.tgz"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "destr",
+      "purl": "pkg:npm/destr@2.0.5?download_url=https%3A%2F%2Fregistry.npmmirror.com%2Fdestr%2F-%2Fdestr-2.0.5.tgz",
+      "type": "library",
+      "version": "2.0.5"
+    },
+    {
       "bom-ref": "@ynx-chain/wallet-app@1.0.1|destroy@1.2.0",
       "externalReferences": [
         {
@@ -5889,6 +7746,34 @@
       "purl": "pkg:npm/destroy@1.2.0",
       "type": "library",
       "version": "1.2.0"
+    },
+    {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|detect-browser@5.3.0",
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "e77aec15b19dc0cc2517baaf0add32a4b339579fcc6e5d2ccc1ec63cdf32f4d09c6e49d839e5555ddad712afbdd08c007ebaf3b7a1ddfaed84da7b5a908094f3"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/detect-browser/-/detect-browser-5.3.0.tgz"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "detect-browser",
+      "purl": "pkg:npm/detect-browser@5.3.0?download_url=https%3A%2F%2Fregistry.npmmirror.com%2Fdetect-browser%2F-%2Fdetect-browser-5.3.0.tgz",
+      "type": "library",
+      "version": "5.3.0"
     },
     {
       "bom-ref": "@ynx-chain/wallet-app@1.0.1|detect-libc@2.1.2",
@@ -6283,6 +8168,34 @@
       "version": "1.3.0"
     },
     {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|es-toolkit@1.45.1",
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "fe38683a3fc5c7e03e208c8334ebcedd322d1a694c2a1b57f084801ca13dd1ce1bfe4d6da9aa8467eb94a9fa54f033275b9720349bfad3acd2e798c6bf36b45f"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/es-toolkit/-/es-toolkit-1.45.1.tgz"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "es-toolkit",
+      "purl": "pkg:npm/es-toolkit@1.45.1?download_url=https%3A%2F%2Fregistry.npmmirror.com%2Fes-toolkit%2F-%2Fes-toolkit-1.45.1.tgz",
+      "type": "library",
+      "version": "1.45.1"
+    },
+    {
       "bom-ref": "@ynx-chain/wallet-app@1.0.1|escalade@3.2.0",
       "externalReferences": [
         {
@@ -6594,6 +8507,118 @@
       "purl": "pkg:npm/event-target-shim@5.0.1",
       "type": "library",
       "version": "5.0.1"
+    },
+    {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|eventemitter3@5.0.1",
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "196901be389264af3b10bad839211251879521cf66bcb2dffe75da94c392e5d62b819abda3939591b64054cd3a095c58b02c07f410d914f9504e53c0d63e1a84"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/eventemitter3/-/eventemitter3-5.0.1.tgz"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "eventemitter3",
+      "purl": "pkg:npm/eventemitter3@5.0.1?download_url=https%3A%2F%2Fregistry.npmmirror.com%2Feventemitter3%2F-%2Feventemitter3-5.0.1.tgz",
+      "type": "library",
+      "version": "5.0.1"
+    },
+    {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|events@3.3.0",
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "990c3ed9f9106c02f343b574318d08a9d9d734e793b4fe2bd2537dcfb0006b009782a79aedb0e28b6d0062b201ac577f1f1d0cd8e733e92d75d4268591471bd1"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/events/-/events-3.3.0.tgz"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "events",
+      "purl": "pkg:npm/events@3.3.0?download_url=https%3A%2F%2Fregistry.npmmirror.com%2Fevents%2F-%2Fevents-3.3.0.tgz",
+      "type": "library",
+      "version": "3.3.0"
+    },
+    {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|expo-application@57.0.2",
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "ab7d58c1c5f2ca6be202676bb437c08370e577854cc4b08d01f80c1e2a7bbd9a4f5f897317f01fc2ccb0a812540234272649f368d024ceabcc5633b95e62980c"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/expo-application/-/expo-application-57.0.2.tgz"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "expo-application",
+      "purl": "pkg:npm/expo-application@57.0.2?download_url=https%3A%2F%2Fregistry.npmmirror.com%2Fexpo-application%2F-%2Fexpo-application-57.0.2.tgz",
+      "type": "library",
+      "version": "57.0.2"
+    },
+    {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|expo-camera@57.0.4",
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "32a6db43adcef9c03c25b2b795f147883d1fda3bfc8c1f841bf20b2ba7f9c6738f57d211dfbc9a1b9fa51ad45936839e601cc6ca9c8e8b5ed4488b6578ccae1b"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/expo-camera/-/expo-camera-57.0.4.tgz"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "expo-camera",
+      "purl": "pkg:npm/expo-camera@57.0.4?download_url=https%3A%2F%2Fregistry.npmmirror.com%2Fexpo-camera%2F-%2Fexpo-camera-57.0.4.tgz",
+      "type": "library",
+      "version": "57.0.4"
     },
     {
       "bom-ref": "@ynx-chain/wallet-app@1.0.1|expo-clipboard@57.0.0",
@@ -7530,6 +9555,62 @@
       "version": "3.1.3"
     },
     {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|fast-base64-decode@1.0.0",
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "ab069271481418161e0cd4676dcfcaca595553cf09935a511cf4adb85fe53bb074fd14d12e3ed4d2591d4c0bad9416e5634f2bc190df7fab4d53d723bfa8fffd"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/fast-base64-decode/-/fast-base64-decode-1.0.0.tgz"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "fast-base64-decode",
+      "purl": "pkg:npm/fast-base64-decode@1.0.0?download_url=https%3A%2F%2Fregistry.npmmirror.com%2Ffast-base64-decode%2F-%2Ffast-base64-decode-1.0.0.tgz",
+      "type": "library",
+      "version": "1.0.0"
+    },
+    {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|fast-text-encoding@1.0.6",
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "5615e54208fd8a85c2a86b2d0f7ec4fc705ea84195fea383fe499b546f21e7128162f3352f7951d599f8e79e5c43c1a461b25af1a2528a92cf9dd13593accadb"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/fast-text-encoding/-/fast-text-encoding-1.0.6.tgz"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "Apache-2.0"
+          }
+        }
+      ],
+      "name": "fast-text-encoding",
+      "purl": "pkg:npm/fast-text-encoding@1.0.6?download_url=https%3A%2F%2Fregistry.npmmirror.com%2Ffast-text-encoding%2F-%2Ffast-text-encoding-1.0.6.tgz",
+      "type": "library",
+      "version": "1.0.6"
+    },
+    {
       "bom-ref": "@ynx-chain/wallet-app@1.0.1|fb-dotslash@0.5.8",
       "externalReferences": [
         {
@@ -8006,6 +10087,34 @@
       "version": "4.2.11"
     },
     {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|h3@1.15.11",
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "2f74c749ed8c3de070808655487e732dd04153dd133b16abbe12bd774e080d8d809954bc8f6273d8b216b70b06394de5bb62398c237b14dbd57d8dbe5f217e9a"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/h3/-/h3-1.15.11.tgz"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "h3",
+      "purl": "pkg:npm/h3@1.15.11?download_url=https%3A%2F%2Fregistry.npmmirror.com%2Fh3%2F-%2Fh3-1.15.11.tgz",
+      "type": "library",
+      "version": "1.15.11"
+    },
+    {
       "bom-ref": "@ynx-chain/wallet-app@1.0.1|has-flag@4.0.0",
       "externalReferences": [
         {
@@ -8290,6 +10399,62 @@
       "version": "7.0.6"
     },
     {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|idb-keyval@6.3.0",
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "ba6fb6760016998b2eeb5e445e9595c1299aa4984e3741b8deddca6bf1156a88733d05d232a284a9e0cafe8216dcec3e057685d8fbd273ea014c5a7bf770393b"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/idb-keyval/-/idb-keyval-6.3.0.tgz"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "Apache-2.0"
+          }
+        }
+      ],
+      "name": "idb-keyval",
+      "purl": "pkg:npm/idb-keyval@6.3.0?download_url=https%3A%2F%2Fregistry.npmmirror.com%2Fidb-keyval%2F-%2Fidb-keyval-6.3.0.tgz",
+      "type": "library",
+      "version": "6.3.0"
+    },
+    {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|ieee754@1.2.1",
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "75ccaa843bd7d42e3a95765c56a0a92be16d31141574830debf0dfe63b36ce8b94b2a1bb23ab05c62b480beeca60adbd29d5ce2c776ef732f8b059e85509ea68"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/ieee754/-/ieee754-1.2.1.tgz"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "BSD-3-Clause"
+          }
+        }
+      ],
+      "name": "ieee754",
+      "purl": "pkg:npm/ieee754@1.2.1",
+      "type": "library",
+      "version": "1.2.1"
+    },
+    {
       "bom-ref": "@ynx-chain/wallet-app@1.0.1|ignore@5.3.2",
       "externalReferences": [
         {
@@ -8402,6 +10567,34 @@
       "version": "2.2.4"
     },
     {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|iron-webcrypto@1.2.1",
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "7de38ce85692afaac4001a7f7837d5b1e2b24cc0edf8a1a9781df94a4567f53ca7d02aaf56c637130234bf98bc9cc1f2267cc22107fb9eccb7a78d533e425986"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/iron-webcrypto/-/iron-webcrypto-1.2.1.tgz"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "iron-webcrypto",
+      "purl": "pkg:npm/iron-webcrypto@1.2.1?download_url=https%3A%2F%2Fregistry.npmmirror.com%2Firon-webcrypto%2F-%2Firon-webcrypto-1.2.1.tgz",
+      "type": "library",
+      "version": "1.2.1"
+    },
+    {
       "bom-ref": "@ynx-chain/wallet-app@1.0.1|is-core-module@2.16.2",
       "externalReferences": [
         {
@@ -8512,6 +10705,34 @@
       "purl": "pkg:npm/is-number@7.0.0",
       "type": "library",
       "version": "7.0.0"
+    },
+    {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|is-plain-obj@2.1.0",
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "6169dfc91c312fff92b2b5987cea54b73e5bdd80fe9f27e41ef8db71a9f393cce0c8ee00483ebbb95311b7c9396cce252cc0e75dfae24613a97a6c3e35f4f578"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/is-plain-obj/-/is-plain-obj-2.1.0.tgz"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "is-plain-obj",
+      "purl": "pkg:npm/is-plain-obj@2.1.0?download_url=https%3A%2F%2Fregistry.npmmirror.com%2Fis-plain-obj%2F-%2Fis-plain-obj-2.1.0.tgz",
+      "type": "library",
+      "version": "2.1.0"
     },
     {
       "bom-ref": "@ynx-chain/wallet-app@1.0.1|is-wsl@2.2.0",
@@ -8908,6 +11129,34 @@
       "purl": "pkg:npm/json5@2.2.3",
       "type": "library",
       "version": "2.2.3"
+    },
+    {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|keyvaluestorage-interface@1.0.0",
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "f2de90dd3725438b99ca7258f481abdbe4ac206c0af491dc3baa28b641c2180d02ad0091cbe564a2e60d3b6c627044fa6fd6a5ed02b3a5e6cda30fa092908bf2"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/keyvaluestorage-interface/-/keyvaluestorage-interface-1.0.0.tgz"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "keyvaluestorage-interface",
+      "purl": "pkg:npm/keyvaluestorage-interface@1.0.0?download_url=https%3A%2F%2Fregistry.npmmirror.com%2Fkeyvaluestorage-interface%2F-%2Fkeyvaluestorage-interface-1.0.0.tgz",
+      "type": "library",
+      "version": "1.0.0"
     },
     {
       "bom-ref": "@ynx-chain/wallet-app@1.0.1|kleur@3.0.3",
@@ -9414,6 +11663,34 @@
       "purl": "pkg:npm/memoize-one@5.2.1",
       "type": "library",
       "version": "5.2.1"
+    },
+    {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|merge-options@3.0.4",
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "d92ba0d7e92706391a32c3207f572d475523c7e03292ee0474937867e0b6f89ce8785ec0dce67d28cd866340a9412e75351eb52d3bab309ad128f852b376514d"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/merge-options/-/merge-options-3.0.4.tgz"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "merge-options",
+      "purl": "pkg:npm/merge-options@3.0.4?download_url=https%3A%2F%2Fregistry.npmmirror.com%2Fmerge-options%2F-%2Fmerge-options-3.0.4.tgz",
+      "type": "library",
+      "version": "3.0.4"
     },
     {
       "bom-ref": "@ynx-chain/wallet-app@1.0.1|merge-stream@2.0.0",
@@ -10088,6 +12365,32 @@
       "version": "2.1.3"
     },
     {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|multiformats@9.9.0",
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "1e83148e11fd4fc0c304d4feeb1ce4addf606bf5e2048e312ebe7c2c9002c0ae86dc74ce3de333e27078289b37dcbd817a5ac825aecfd15b8d69517784c61f8e"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/multiformats/-/multiformats-9.9.0.tgz"
+        }
+      ],
+      "licenses": [
+        {
+          "acknowledgement": "declared",
+          "expression": "(Apache-2.0 AND MIT)"
+        }
+      ],
+      "name": "multiformats",
+      "purl": "pkg:npm/multiformats@9.9.0?download_url=https%3A%2F%2Fregistry.npmmirror.com%2Fmultiformats%2F-%2Fmultiformats-9.9.0.tgz",
+      "type": "library",
+      "version": "9.9.0"
+    },
+    {
       "bom-ref": "@ynx-chain/wallet-app@1.0.1|multitars@1.0.0",
       "externalReferences": [
         {
@@ -10172,6 +12475,34 @@
       "version": "1.0.0"
     },
     {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|node-fetch-native@1.6.7",
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "83dca1aa879dcc8526d274e74ea010bee78c3d53ae218d7a6ea8002490bc5ce3ae6d814dc33e88111f6ab341aad97774f8279c08a163b5d0d3300e2ee311b4e9"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/node-fetch-native/-/node-fetch-native-1.6.7.tgz"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "node-fetch-native",
+      "purl": "pkg:npm/node-fetch-native@1.6.7?download_url=https%3A%2F%2Fregistry.npmmirror.com%2Fnode-fetch-native%2F-%2Fnode-fetch-native-1.6.7.tgz",
+      "type": "library",
+      "version": "1.6.7"
+    },
+    {
       "bom-ref": "@ynx-chain/wallet-app@1.0.1|node-forge@1.4.0",
       "externalReferences": [
         {
@@ -10226,6 +12557,34 @@
       "version": "0.4.0"
     },
     {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|node-mock-http@1.0.5",
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "290cadff02e31b74c073b0ce521a6a5b381de0447147cd093a54cae551394754b5d8868f54de6a923e2494171ef473c6d4d8eeba9e126f96e58da4f7e252328f"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/node-mock-http/-/node-mock-http-1.0.5.tgz"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "node-mock-http",
+      "purl": "pkg:npm/node-mock-http@1.0.5?download_url=https%3A%2F%2Fregistry.npmmirror.com%2Fnode-mock-http%2F-%2Fnode-mock-http-1.0.5.tgz",
+      "type": "library",
+      "version": "1.0.5"
+    },
+    {
       "bom-ref": "@ynx-chain/wallet-app@1.0.1|node-releases@2.0.51",
       "externalReferences": [
         {
@@ -10252,6 +12611,34 @@
       "purl": "pkg:npm/node-releases@2.0.51",
       "type": "library",
       "version": "2.0.51"
+    },
+    {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|normalize-path@3.0.0",
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "e9e66ce4bb375ad0a2b075a9f52d86532f1daa4a468b80554b3dc66aa884e9ecee6f4e75d844b3b57530501e82e8829b4246363e76ff983e166288c24707302c"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/normalize-path/-/normalize-path-3.0.0.tgz"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "normalize-path",
+      "purl": "pkg:npm/normalize-path@3.0.0?download_url=https%3A%2F%2Fregistry.npmmirror.com%2Fnormalize-path%2F-%2Fnormalize-path-3.0.0.tgz",
+      "type": "library",
+      "version": "3.0.0"
     },
     {
       "bom-ref": "@ynx-chain/wallet-app@1.0.1|npm-package-arg@11.0.3",
@@ -10392,6 +12779,62 @@
       "purl": "pkg:npm/object-assign@4.1.1",
       "type": "library",
       "version": "4.1.1"
+    },
+    {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|ofetch@1.5.1",
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "d96e285199556aa00f02297a15483f7627e5e9886a85447bc767996386d00a4a36d945e0de1a6dabd28b41da850a557e5aef39517ee136d7464e7822ff507170"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/ofetch/-/ofetch-1.5.1.tgz"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "ofetch",
+      "purl": "pkg:npm/ofetch@1.5.1?download_url=https%3A%2F%2Fregistry.npmmirror.com%2Fofetch%2F-%2Fofetch-1.5.1.tgz",
+      "type": "library",
+      "version": "1.5.1"
+    },
+    {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|on-exit-leak-free@2.1.2",
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "d1e24963a8572c67f5b9d1f07cd7ed06a1fe83bdc4538079d389d978aa73d6c61129a7c0821c31109ba70763bbac36642f83c67ec3159d35d9d848e26dba9cb0"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/on-exit-leak-free/-/on-exit-leak-free-2.1.2.tgz"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "on-exit-leak-free",
+      "purl": "pkg:npm/on-exit-leak-free@2.1.2?download_url=https%3A%2F%2Fregistry.npmmirror.com%2Fon-exit-leak-free%2F-%2Fon-exit-leak-free-2.1.2.tgz",
+      "type": "library",
+      "version": "2.1.2"
     },
     {
       "bom-ref": "@ynx-chain/wallet-app@1.0.1|on-finished@2.3.0",
@@ -10590,6 +13033,94 @@
       "purl": "pkg:npm/ora@3.4.0",
       "type": "library",
       "version": "3.4.0"
+    },
+    {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|ox@0.9.3",
+      "components": [
+        {
+          "bom-ref": "@ynx-chain/wallet-app@1.0.1|ox@0.9.3|@noble/curves@1.9.1",
+          "externalReferences": [
+            {
+              "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+              "hashes": [
+                {
+                  "alg": "SHA-512",
+                  "content": "935d72671660fadfa05af05b22cc16d32a0996ef1c1ce0bb761ba7c0ece8587fe65c6062632478618ea10042bfdc452ce14a41f256b545f751a5e1ac147916b0"
+                }
+              ],
+              "type": "distribution",
+              "url": "https://registry.npmmirror.com/@noble/curves/-/curves-1.9.1.tgz"
+            }
+          ],
+          "group": "@noble",
+          "licenses": [
+            {
+              "license": {
+                "acknowledgement": "declared",
+                "id": "MIT"
+              }
+            }
+          ],
+          "name": "curves",
+          "purl": "pkg:npm/%40noble/curves@1.9.1?download_url=https%3A%2F%2Fregistry.npmmirror.com%2F%40noble%2Fcurves%2F-%2Fcurves-1.9.1.tgz",
+          "type": "library",
+          "version": "1.9.1"
+        },
+        {
+          "bom-ref": "@ynx-chain/wallet-app@1.0.1|ox@0.9.3|@noble/hashes@1.8.0",
+          "externalReferences": [
+            {
+              "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+              "hashes": [
+                {
+                  "alg": "SHA-512",
+                  "content": "8c2b3d95d77b370ce98170c87fa3f7f8dac787dfec0fa0907711f28d023e87feab0cda3cf32a41c71cf8e540ee647cfdaf7b4dcfb37f5489d256855db57108e0"
+                }
+              ],
+              "type": "distribution",
+              "url": "https://registry.npmmirror.com/@noble/hashes/-/hashes-1.8.0.tgz"
+            }
+          ],
+          "group": "@noble",
+          "licenses": [
+            {
+              "license": {
+                "acknowledgement": "declared",
+                "id": "MIT"
+              }
+            }
+          ],
+          "name": "hashes",
+          "purl": "pkg:npm/%40noble/hashes@1.8.0?download_url=https%3A%2F%2Fregistry.npmmirror.com%2F%40noble%2Fhashes%2F-%2Fhashes-1.8.0.tgz",
+          "type": "library",
+          "version": "1.8.0"
+        }
+      ],
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "2b3c893fe7cf578ba1baeaab4d9ca89380c2eef1738bb1cb5058943449a96f2879f61b4a5a4382f7c20e342d7381724f6c7021420aace81d19e92b421a1990be"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/ox/-/ox-0.9.3.tgz"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "ox",
+      "purl": "pkg:npm/ox@0.9.3?download_url=https%3A%2F%2Fregistry.npmmirror.com%2Fox%2F-%2Fox-0.9.3.tgz",
+      "type": "library",
+      "version": "0.9.3"
     },
     {
       "bom-ref": "@ynx-chain/wallet-app@1.0.1|p-limit@2.3.0",
@@ -10930,6 +13461,90 @@
       "version": "2.3.2"
     },
     {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|pino-abstract-transport@2.0.0",
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "17adf1e6d8b357a58287847a447ca2d8c97e33bd033515edffe1c0368c0c7e5a60185300ca6fd52a6e86ed9390463a8ded76c6c4ad4b83db7a66bb7339a8af33"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/pino-abstract-transport/-/pino-abstract-transport-2.0.0.tgz"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "pino-abstract-transport",
+      "purl": "pkg:npm/pino-abstract-transport@2.0.0?download_url=https%3A%2F%2Fregistry.npmmirror.com%2Fpino-abstract-transport%2F-%2Fpino-abstract-transport-2.0.0.tgz",
+      "type": "library",
+      "version": "2.0.0"
+    },
+    {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|pino-std-serializers@7.1.0",
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "06774f1faeff271184c518225f5757d30d45bd9724e566b869a97dd7df12ad18598c7dc6c4a4142880676094dd8f61c3377510012d3a1e57dc49b423d8e1e66b"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/pino-std-serializers/-/pino-std-serializers-7.1.0.tgz"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "pino-std-serializers",
+      "purl": "pkg:npm/pino-std-serializers@7.1.0?download_url=https%3A%2F%2Fregistry.npmmirror.com%2Fpino-std-serializers%2F-%2Fpino-std-serializers-7.1.0.tgz",
+      "type": "library",
+      "version": "7.1.0"
+    },
+    {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|pino@10.0.0",
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "788f692b05848b1e3491fbd2cea10fea576a3a804837b7700ffa3dd53639cfcbd0235dac01f7e947fa4ea800f52155702151c3a478e4ab48e804f7490f4ada7c"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/pino/-/pino-10.0.0.tgz"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "pino",
+      "purl": "pkg:npm/pino@10.0.0?download_url=https%3A%2F%2Fregistry.npmmirror.com%2Fpino%2F-%2Fpino-10.0.0.tgz",
+      "type": "library",
+      "version": "10.0.0"
+    },
+    {
       "bom-ref": "@ynx-chain/wallet-app@1.0.1|plist@3.1.1",
       "components": [
         {
@@ -11131,6 +13746,34 @@
       "version": "4.2.0"
     },
     {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|process-warning@5.1.0",
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "8d049a547b0f82dcb0eb47b5ad0fc0fbf02b3c48ff4bca52fef167c866bf818157aca93fe91b83928a950d0e4d2393264b4d7af7c96d9409343680c134bba347"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/process-warning/-/process-warning-5.1.0.tgz"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "process-warning",
+      "purl": "pkg:npm/process-warning@5.1.0?download_url=https%3A%2F%2Fregistry.npmmirror.com%2Fprocess-warning%2F-%2Fprocess-warning-5.1.0.tgz",
+      "type": "library",
+      "version": "5.1.0"
+    },
+    {
       "bom-ref": "@ynx-chain/wallet-app@1.0.1|progress@2.0.3",
       "externalReferences": [
         {
@@ -11271,6 +13914,34 @@
       "purl": "pkg:npm/prop-types@15.8.1",
       "type": "library",
       "version": "15.8.1"
+    },
+    {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|punycode@2.3.1",
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "bd8b7b503d54f5683ad77f2c84bb4b3af740bbef03b02fe2945b44547707fb0c9d712a4d136d007d239db9fe8c91115a84be4563b5f5a14ee7295645b5fabc16"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/punycode/-/punycode-2.3.1.tgz"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "punycode",
+      "purl": "pkg:npm/punycode@2.3.1",
+      "type": "library",
+      "version": "2.3.1"
     },
     {
       "bom-ref": "@ynx-chain/wallet-app@1.0.1|qrcode@1.5.4",
@@ -11527,6 +14198,62 @@
       "version": "6.0.2"
     },
     {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|quick-format-unescaped@4.0.4",
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "b580b5435860c91b87825a15fd85ecdb0d79ba73d587ca9fbbfa824df85361a99ac3b7f286e98a6b6c86a5d4a8f3bbd8df6ac87258fee1f59841750cb3d107be"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/quick-format-unescaped/-/quick-format-unescaped-4.0.4.tgz"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "quick-format-unescaped",
+      "purl": "pkg:npm/quick-format-unescaped@4.0.4?download_url=https%3A%2F%2Fregistry.npmmirror.com%2Fquick-format-unescaped%2F-%2Fquick-format-unescaped-4.0.4.tgz",
+      "type": "library",
+      "version": "4.0.4"
+    },
+    {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|radix3@1.1.2",
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "6f8f3823fedbf2b0c47520ca724492040f249cca5c76c5ee76513f2cd2fadfdc05a072b02db1244056475846300c2d306b414a51c098f86005ef767bc3135514"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/radix3/-/radix3-1.1.2.tgz"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "radix3",
+      "purl": "pkg:npm/radix3@1.1.2?download_url=https%3A%2F%2Fregistry.npmmirror.com%2Fradix3%2F-%2Fradix3-1.1.2.tgz",
+      "type": "library",
+      "version": "1.1.2"
+    },
+    {
       "bom-ref": "@ynx-chain/wallet-app@1.0.1|range-parser@1.2.1",
       "externalReferences": [
         {
@@ -11611,6 +14338,34 @@
       "version": "18.3.1"
     },
     {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|react-native-get-random-values@1.11.0",
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "e014db0db4664bb88f76160b45ccf73c6148a45241c0d660f60e368b06b63fa14ebfdbd98ffc4973aefc4595e72cd673774a9ded0dc2085e9877e094d9ea1729"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/react-native-get-random-values/-/react-native-get-random-values-1.11.0.tgz"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "react-native-get-random-values",
+      "purl": "pkg:npm/react-native-get-random-values@1.11.0?download_url=https%3A%2F%2Fregistry.npmmirror.com%2Freact-native-get-random-values%2F-%2Freact-native-get-random-values-1.11.0.tgz",
+      "type": "library",
+      "version": "1.11.0"
+    },
+    {
       "bom-ref": "@ynx-chain/wallet-app@1.0.1|react-native-qrcode-svg@6.3.21",
       "externalReferences": [
         {
@@ -11693,6 +14448,34 @@
       "purl": "pkg:npm/react-native-svg@15.15.4",
       "type": "library",
       "version": "15.15.4"
+    },
+    {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|react-native-url-polyfill@2.0.0",
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "332df7d03a3bfc3bca9c4bf041cd1675c06714fa65a182a9f4262579f0d7cc8744680f8f0210d896592f19e12ba04cef7382b3ce3d8ee3255dcfcbfa7e346f84"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/react-native-url-polyfill/-/react-native-url-polyfill-2.0.0.tgz"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "react-native-url-polyfill",
+      "purl": "pkg:npm/react-native-url-polyfill@2.0.0?download_url=https%3A%2F%2Fregistry.npmmirror.com%2Freact-native-url-polyfill%2F-%2Freact-native-url-polyfill-2.0.0.tgz",
+      "type": "library",
+      "version": "2.0.0"
     },
     {
       "bom-ref": "@ynx-chain/wallet-app@1.0.1|react-native@0.86.0",
@@ -11807,6 +14590,62 @@
       "purl": "pkg:npm/react@19.2.3",
       "type": "library",
       "version": "19.2.3"
+    },
+    {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|readdirp@5.1.1",
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "2a4a3e6395d0e9f33e09edddab79bd606c6769c619625f5c035c198da17755baf2d8bde2d6a560f3e08080d3ec5d102b3cc50c09a391ee86bd36a9ed738dc928"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/readdirp/-/readdirp-5.1.1.tgz"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "readdirp",
+      "purl": "pkg:npm/readdirp@5.1.1?download_url=https%3A%2F%2Fregistry.npmmirror.com%2Freaddirp%2F-%2Freaddirp-5.1.1.tgz",
+      "type": "library",
+      "version": "5.1.1"
+    },
+    {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|real-require@0.2.0",
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "e7b7ebac633f3824cba8b3808749a1540f5504c1ddfbd53b65bd931cc19d054a1954eb466c9ce3c6c6060c9dc0f4061808fe219facb54d56da39fcd6b66e4616"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/real-require/-/real-require-0.2.0.tgz"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "real-require",
+      "purl": "pkg:npm/real-require@0.2.0?download_url=https%3A%2F%2Fregistry.npmmirror.com%2Freal-require%2F-%2Freal-require-0.2.0.tgz",
+      "type": "library",
+      "version": "0.2.0"
     },
     {
       "bom-ref": "@ynx-chain/wallet-app@1.0.1|regenerate-unicode-properties@10.2.2",
@@ -12171,6 +15010,34 @@
       "purl": "pkg:npm/safe-buffer@5.2.1",
       "type": "library",
       "version": "5.2.1"
+    },
+    {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|safe-stable-stringify@2.5.0",
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "6f7ae9a532a6f53f8fb1508110e511e3a19623b7dd3acd3454a675fbd7351160da0ccbe341cead530b85c88a6b806813716a151d22ab53c1f7d591c0d9ed111c"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/safe-stable-stringify/-/safe-stable-stringify-2.5.0.tgz"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "safe-stable-stringify",
+      "purl": "pkg:npm/safe-stable-stringify@2.5.0?download_url=https%3A%2F%2Fregistry.npmmirror.com%2Fsafe-stable-stringify%2F-%2Fsafe-stable-stringify-2.5.0.tgz",
+      "type": "library",
+      "version": "2.5.0"
     },
     {
       "bom-ref": "@ynx-chain/wallet-app@1.0.1|sax@1.6.0",
@@ -12739,6 +15606,34 @@
       "version": "1.0.5"
     },
     {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|slow-redact@0.3.2",
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "32c787ca2dbe13f84146a74e8b908ecbac19ee3ec3c57473f4d92c79abcd612bef582d3a0fc6b9722755657ded706e5e096dcd232554e334fade1c34438f3a8f"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/slow-redact/-/slow-redact-0.3.2.tgz"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "slow-redact",
+      "purl": "pkg:npm/slow-redact@0.3.2?download_url=https%3A%2F%2Fregistry.npmmirror.com%2Fslow-redact%2F-%2Fslow-redact-0.3.2.tgz",
+      "type": "library",
+      "version": "0.3.2"
+    },
+    {
       "bom-ref": "@ynx-chain/wallet-app@1.0.1|slugify@1.6.9",
       "externalReferences": [
         {
@@ -12765,6 +15660,34 @@
       "purl": "pkg:npm/slugify@1.6.9",
       "type": "library",
       "version": "1.6.9"
+    },
+    {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|sonic-boom@4.2.1",
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "c3a031b6e6d76b6c135c052c64c316111aec21101dacad1273e154cad5af60084124bcae238965acc202d43b65352748f7d108f3a299ba6d8c32adc4019945f5"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/sonic-boom/-/sonic-boom-4.2.1.tgz"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "sonic-boom",
+      "purl": "pkg:npm/sonic-boom@4.2.1?download_url=https%3A%2F%2Fregistry.npmmirror.com%2Fsonic-boom%2F-%2Fsonic-boom-4.2.1.tgz",
+      "type": "library",
+      "version": "4.2.1"
     },
     {
       "bom-ref": "@ynx-chain/wallet-app@1.0.1|source-map-js@1.2.1",
@@ -12879,6 +15802,34 @@
       "purl": "pkg:npm/source-map@0.5.7",
       "type": "library",
       "version": "0.5.7"
+    },
+    {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|split2@4.2.0",
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "51c8dc24e5a49eb36417a3cb5fcdea70733a28781528d915eb663c6b9b980d5bfdc9d19057000730aa877498ded554d6a658c6d1662908386b09d00e607e135a"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/split2/-/split2-4.2.0.tgz"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "ISC"
+          }
+        }
+      ],
+      "name": "split2",
+      "purl": "pkg:npm/split2@4.2.0?download_url=https%3A%2F%2Fregistry.npmmirror.com%2Fsplit2%2F-%2Fsplit2-4.2.0.tgz",
+      "type": "library",
+      "version": "4.2.0"
     },
     {
       "bom-ref": "@ynx-chain/wallet-app@1.0.1|stackframe@1.3.4",
@@ -13161,6 +16112,34 @@
       "version": "1.0.0"
     },
     {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|tagged-tag@1.0.0",
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "c84158ad586877e85d372c7b8390679246f41bab22f0726eacea0e1200bc07f3b4b972c795a7b2ffae4a46fe9cb9604d84180728044e56973b43262a1398059e"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/tagged-tag/-/tagged-tag-1.0.0.tgz"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "tagged-tag",
+      "purl": "pkg:npm/tagged-tag@1.0.0?download_url=https%3A%2F%2Fregistry.npmmirror.com%2Ftagged-tag%2F-%2Ftagged-tag-1.0.0.tgz",
+      "type": "library",
+      "version": "1.0.0"
+    },
+    {
       "bom-ref": "@ynx-chain/wallet-app@1.0.1|terminal-link@2.1.1",
       "externalReferences": [
         {
@@ -13271,6 +16250,34 @@
       "purl": "pkg:npm/text-encoding@0.7.0",
       "type": "library",
       "version": "0.7.0"
+    },
+    {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|thread-stream@3.2.0",
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "ccb06faa9c2be04b1ad2446372bcc653accbdb995e3d66822ccc7445016b9ad7a8cc87de35d68c2e91b953b3de1f3be5164016691280f7f2955b817ad2207eab"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/thread-stream/-/thread-stream-3.2.0.tgz"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "thread-stream",
+      "purl": "pkg:npm/thread-stream@3.2.0?download_url=https%3A%2F%2Fregistry.npmmirror.com%2Fthread-stream%2F-%2Fthread-stream-3.2.0.tgz",
+      "type": "library",
+      "version": "3.2.0"
     },
     {
       "bom-ref": "@ynx-chain/wallet-app@1.0.1|throat@5.0.0",
@@ -13585,6 +16592,90 @@
       "purl": "pkg:npm/typescript@6.0.3",
       "type": "library",
       "version": "6.0.3"
+    },
+    {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|ufo@1.6.4",
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "24535b903d52bf07b42af1a2f0639e2dc3f8900590eb4f6dc2f09d707c6ad6848bf2cbefdfd66e4af6a3703f01fb90f478be3eb3522cd83fcee8a377a9c4de44"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/ufo/-/ufo-1.6.4.tgz"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "ufo",
+      "purl": "pkg:npm/ufo@1.6.4?download_url=https%3A%2F%2Fregistry.npmmirror.com%2Fufo%2F-%2Fufo-1.6.4.tgz",
+      "type": "library",
+      "version": "1.6.4"
+    },
+    {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|uint8arrays@3.1.1",
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "f9025af104676dd5d5a476232e84e92487424e2c3d22beb69e8702956b9722ad89221e14b5ad1c42c4d2a452faefca7608df01f97480a70714fa9404a95a4a5a"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/uint8arrays/-/uint8arrays-3.1.1.tgz"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "uint8arrays",
+      "purl": "pkg:npm/uint8arrays@3.1.1?download_url=https%3A%2F%2Fregistry.npmmirror.com%2Fuint8arrays%2F-%2Fuint8arrays-3.1.1.tgz",
+      "type": "library",
+      "version": "3.1.1"
+    },
+    {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|uncrypto@0.1.3",
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "425f3ba851c1decfc37b60a503d7b482c9d2eb35c6dbb4a44e2489c2309cf4c79b6df6a941fb8fcee98c214322dfc7b33d954d15c1c8f6c5087a97907f0f09f1"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/uncrypto/-/uncrypto-0.1.3.tgz"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "uncrypto",
+      "purl": "pkg:npm/uncrypto@0.1.3?download_url=https%3A%2F%2Fregistry.npmmirror.com%2Funcrypto%2F-%2Funcrypto-0.1.3.tgz",
+      "type": "library",
+      "version": "0.1.3"
     },
     {
       "bom-ref": "@ynx-chain/wallet-app@1.0.1|undici-types@8.3.0",
@@ -14007,6 +17098,34 @@
       "version": "1.0.1"
     },
     {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|webidl-conversions@5.0.0",
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "56567028f0a460ac5081e49b1f91329e03a6469ed6c3b23dad02c44444ed7f9a1f77da467acc1688eb6882910ef39d23ce23d16abade1b19f9408893aa96f6c0"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/webidl-conversions/-/webidl-conversions-5.0.0.tgz"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "BSD-2-Clause"
+          }
+        }
+      ],
+      "name": "webidl-conversions",
+      "purl": "pkg:npm/webidl-conversions@5.0.0?download_url=https%3A%2F%2Fregistry.npmmirror.com%2Fwebidl-conversions%2F-%2Fwebidl-conversions-5.0.0.tgz",
+      "type": "library",
+      "version": "5.0.0"
+    },
+    {
       "bom-ref": "@ynx-chain/wallet-app@1.0.1|whatwg-fetch@3.6.20",
       "externalReferences": [
         {
@@ -14061,6 +17180,34 @@
       "purl": "pkg:npm/whatwg-url-minimum@0.1.2",
       "type": "library",
       "version": "0.1.2"
+    },
+    {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|whatwg-url-without-unicode@8.0.0-3",
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "1e82aecd9ad4960a73df960edbb5e00f6f2e87f5891f8074fb7b6d16a468fff966abef53fe620e27a92a988348f47a54a73d629910bf9d1fe5c4aa498afd2e8a"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/whatwg-url-without-unicode/-/whatwg-url-without-unicode-8.0.0-3.tgz"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "whatwg-url-without-unicode",
+      "purl": "pkg:npm/whatwg-url-without-unicode@8.0.0-3?download_url=https%3A%2F%2Fregistry.npmmirror.com%2Fwhatwg-url-without-unicode%2F-%2Fwhatwg-url-without-unicode-8.0.0-3.tgz",
+      "type": "library",
+      "version": "8.0.0-3"
     },
     {
       "bom-ref": "@ynx-chain/wallet-app@1.0.1|which-module@2.0.1",
@@ -14455,6 +17602,62 @@
       "purl": "pkg:npm/zod@3.25.76",
       "type": "library",
       "version": "3.25.76"
+    },
+    {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|zxing-wasm@3.1.3",
+      "components": [
+        {
+          "bom-ref": "@ynx-chain/wallet-app@1.0.1|zxing-wasm@3.1.3|type-fest@5.8.0",
+          "externalReferences": [
+            {
+              "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+              "hashes": [
+                {
+                  "alg": "SHA-512",
+                  "content": "606604573dc59b98b2fc0c9bb80d28c8d16aec7e0281035f469fea7def27bab13592e09e366dffbdf9bd5f832d97ea8bc9a289521e71ac5670a20af8d5232360"
+                }
+              ],
+              "type": "distribution",
+              "url": "https://registry.npmmirror.com/type-fest/-/type-fest-5.8.0.tgz"
+            }
+          ],
+          "licenses": [
+            {
+              "acknowledgement": "declared",
+              "expression": "(MIT OR CC0-1.0)"
+            }
+          ],
+          "name": "type-fest",
+          "purl": "pkg:npm/type-fest@5.8.0?download_url=https%3A%2F%2Fregistry.npmmirror.com%2Ftype-fest%2F-%2Ftype-fest-5.8.0.tgz",
+          "type": "library",
+          "version": "5.8.0"
+        }
+      ],
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "de50bd0499387d1e592717068dbd215670c5396ecaa4b5c721e6e206655de050d141955e39bceda132b14543f1956c12831acc44e34ad2ee748410f56936042a"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/zxing-wasm/-/zxing-wasm-3.1.3.tgz"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "zxing-wasm",
+      "purl": "pkg:npm/zxing-wasm@3.1.3?download_url=https%3A%2F%2Fregistry.npmmirror.com%2Fzxing-wasm%2F-%2Fzxing-wasm-3.1.3.tgz",
+      "type": "library",
+      "version": "3.1.3"
     }
   ],
   "dependencies": [
@@ -14462,8 +17665,15 @@
       "dependsOn": [
         "@ynx-chain/wallet-app@1.0.1|@noble/curves@2.2.0",
         "@ynx-chain/wallet-app@1.0.1|@noble/hashes@2.2.0",
+        "@ynx-chain/wallet-app@1.0.1|@react-native-async-storage/async-storage@1.24.0",
+        "@ynx-chain/wallet-app@1.0.1|@react-native-community/netinfo@12.0.1",
+        "@ynx-chain/wallet-app@1.0.1|@reown/walletkit@1.5.6",
+        "@ynx-chain/wallet-app@1.0.1|@walletconnect/core@2.23.10",
+        "@ynx-chain/wallet-app@1.0.1|@walletconnect/react-native-compat@2.23.10",
         "@ynx-chain/wallet-app@1.0.1|@ynx-chain/wallet-auth@1.0.0",
         "@ynx-chain/wallet-app@1.0.1|ethers@6.17.0",
+        "@ynx-chain/wallet-app@1.0.1|expo-application@57.0.2",
+        "@ynx-chain/wallet-app@1.0.1|expo-camera@57.0.4",
         "@ynx-chain/wallet-app@1.0.1|expo-clipboard@57.0.0",
         "@ynx-chain/wallet-app@1.0.1|expo-crypto@57.0.0",
         "@ynx-chain/wallet-app@1.0.1|expo-local-authentication@57.0.0",
@@ -14471,7 +17681,9 @@
         "@ynx-chain/wallet-app@1.0.1|expo-secure-store@57.0.0",
         "@ynx-chain/wallet-app@1.0.1|expo-status-bar@57.0.0",
         "@ynx-chain/wallet-app@1.0.1|expo@57.0.4",
+        "@ynx-chain/wallet-app@1.0.1|fast-text-encoding@1.0.6",
         "@ynx-chain/wallet-app@1.0.1|lucide-react-native@1.24.0",
+        "@ynx-chain/wallet-app@1.0.1|react-native-get-random-values@1.11.0",
         "@ynx-chain/wallet-app@1.0.1|react-native-qrcode-svg@6.3.21",
         "@ynx-chain/wallet-app@1.0.1|react-native-safe-area-context@5.7.0",
         "@ynx-chain/wallet-app@1.0.1|react-native-svg@15.15.4",
@@ -15298,6 +18510,12 @@
       "ref": "@ynx-chain/wallet-app@1.0.1|@jridgewell/trace-mapping@0.3.31"
     },
     {
+      "ref": "@ynx-chain/wallet-app@1.0.1|@msgpack/msgpack@3.1.3"
+    },
+    {
+      "ref": "@ynx-chain/wallet-app@1.0.1|@noble/ciphers@1.3.0"
+    },
+    {
       "dependsOn": [
         "@ynx-chain/wallet-app@1.0.1|@noble/hashes@2.2.0"
       ],
@@ -15305,6 +18523,20 @@
     },
     {
       "ref": "@ynx-chain/wallet-app@1.0.1|@noble/hashes@2.2.0"
+    },
+    {
+      "dependsOn": [
+        "@ynx-chain/wallet-app@1.0.1|merge-options@3.0.4",
+        "@ynx-chain/wallet-app@1.0.1|react-native@0.86.0"
+      ],
+      "ref": "@ynx-chain/wallet-app@1.0.1|@react-native-async-storage/async-storage@1.24.0"
+    },
+    {
+      "dependsOn": [
+        "@ynx-chain/wallet-app@1.0.1|react-native@0.86.0",
+        "@ynx-chain/wallet-app@1.0.1|react@19.2.3"
+      ],
+      "ref": "@ynx-chain/wallet-app@1.0.1|@react-native-community/netinfo@12.0.1"
     },
     {
       "ref": "@ynx-chain/wallet-app@1.0.1|@react-native/assets-registry@0.86.0"
@@ -15397,7 +18629,53 @@
       "ref": "@ynx-chain/wallet-app@1.0.1|@react-native/virtualized-lists@0.86.0"
     },
     {
+      "dependsOn": [
+        "@ynx-chain/wallet-app@1.0.1|@walletconnect/core@2.23.10",
+        "@ynx-chain/wallet-app@1.0.1|@walletconnect/jsonrpc-provider@1.0.14",
+        "@ynx-chain/wallet-app@1.0.1|@walletconnect/jsonrpc-utils@1.0.8",
+        "@ynx-chain/wallet-app@1.0.1|@walletconnect/logger@3.0.2",
+        "@ynx-chain/wallet-app@1.0.1|@walletconnect/pay@1.0.9",
+        "@ynx-chain/wallet-app@1.0.1|@walletconnect/sign-client@2.23.10",
+        "@ynx-chain/wallet-app@1.0.1|@walletconnect/types@2.23.10",
+        "@ynx-chain/wallet-app@1.0.1|@walletconnect/utils@2.23.10"
+      ],
+      "ref": "@ynx-chain/wallet-app@1.0.1|@reown/walletkit@1.5.6"
+    },
+    {
+      "ref": "@ynx-chain/wallet-app@1.0.1|@scure/base@1.2.6"
+    },
+    {
+      "dependsOn": [
+        "@ynx-chain/wallet-app@1.0.1|@scure/base@1.2.6",
+        "@ynx-chain/wallet-app@1.0.1|@scure/bip32@1.7.0|@noble/curves@1.9.7",
+        "@ynx-chain/wallet-app@1.0.1|@scure/bip32@1.7.0|@noble/hashes@1.8.0"
+      ],
+      "ref": "@ynx-chain/wallet-app@1.0.1|@scure/bip32@1.7.0"
+    },
+    {
+      "dependsOn": [
+        "@ynx-chain/wallet-app@1.0.1|@scure/bip32@1.7.0|@noble/hashes@1.8.0"
+      ],
+      "ref": "@ynx-chain/wallet-app@1.0.1|@scure/bip32@1.7.0|@noble/curves@1.9.7"
+    },
+    {
+      "ref": "@ynx-chain/wallet-app@1.0.1|@scure/bip32@1.7.0|@noble/hashes@1.8.0"
+    },
+    {
+      "dependsOn": [
+        "@ynx-chain/wallet-app@1.0.1|@scure/base@1.2.6",
+        "@ynx-chain/wallet-app@1.0.1|@scure/bip39@1.6.0|@noble/hashes@1.8.0"
+      ],
+      "ref": "@ynx-chain/wallet-app@1.0.1|@scure/bip39@1.6.0"
+    },
+    {
+      "ref": "@ynx-chain/wallet-app@1.0.1|@scure/bip39@1.6.0|@noble/hashes@1.8.0"
+    },
+    {
       "ref": "@ynx-chain/wallet-app@1.0.1|@sinclair/typebox@0.27.10"
+    },
+    {
+      "ref": "@ynx-chain/wallet-app@1.0.1|@types/emscripten@1.41.5"
     },
     {
       "ref": "@ynx-chain/wallet-app@1.0.1|@types/istanbul-lib-coverage@2.0.6"
@@ -15439,6 +18717,316 @@
       "ref": "@ynx-chain/wallet-app@1.0.1|@ungap/structured-clone@1.3.3"
     },
     {
+      "dependsOn": [
+        "@ynx-chain/wallet-app@1.0.1|@walletconnect/core@2.23.10|@walletconnect/keyvaluestorage@1.1.1",
+        "@ynx-chain/wallet-app@1.0.1|@walletconnect/heartbeat@1.2.2",
+        "@ynx-chain/wallet-app@1.0.1|@walletconnect/jsonrpc-provider@1.0.14",
+        "@ynx-chain/wallet-app@1.0.1|@walletconnect/jsonrpc-types@1.0.4",
+        "@ynx-chain/wallet-app@1.0.1|@walletconnect/jsonrpc-utils@1.0.8",
+        "@ynx-chain/wallet-app@1.0.1|@walletconnect/jsonrpc-ws-connection@1.0.16",
+        "@ynx-chain/wallet-app@1.0.1|@walletconnect/logger@3.0.2",
+        "@ynx-chain/wallet-app@1.0.1|@walletconnect/relay-api@1.0.11",
+        "@ynx-chain/wallet-app@1.0.1|@walletconnect/relay-auth@1.1.0",
+        "@ynx-chain/wallet-app@1.0.1|@walletconnect/safe-json@1.0.2",
+        "@ynx-chain/wallet-app@1.0.1|@walletconnect/time@1.0.2",
+        "@ynx-chain/wallet-app@1.0.1|@walletconnect/types@2.23.10",
+        "@ynx-chain/wallet-app@1.0.1|@walletconnect/utils@2.23.10",
+        "@ynx-chain/wallet-app@1.0.1|@walletconnect/window-getters@1.0.1",
+        "@ynx-chain/wallet-app@1.0.1|es-toolkit@1.45.1",
+        "@ynx-chain/wallet-app@1.0.1|events@3.3.0",
+        "@ynx-chain/wallet-app@1.0.1|uint8arrays@3.1.1"
+      ],
+      "ref": "@ynx-chain/wallet-app@1.0.1|@walletconnect/core@2.23.10"
+    },
+    {
+      "dependsOn": [
+        "@ynx-chain/wallet-app@1.0.1|@react-native-async-storage/async-storage@1.24.0",
+        "@ynx-chain/wallet-app@1.0.1|@walletconnect/core@2.23.10|unstorage@1.17.5",
+        "@ynx-chain/wallet-app@1.0.1|@walletconnect/safe-json@1.0.2",
+        "@ynx-chain/wallet-app@1.0.1|idb-keyval@6.3.0"
+      ],
+      "ref": "@ynx-chain/wallet-app@1.0.1|@walletconnect/core@2.23.10|@walletconnect/keyvaluestorage@1.1.1"
+    },
+    {
+      "ref": "@ynx-chain/wallet-app@1.0.1|@walletconnect/core@2.23.10|lru-cache@11.5.2"
+    },
+    {
+      "dependsOn": [
+        "@ynx-chain/wallet-app@1.0.1|@walletconnect/core@2.23.10|lru-cache@11.5.2",
+        "@ynx-chain/wallet-app@1.0.1|anymatch@3.1.3",
+        "@ynx-chain/wallet-app@1.0.1|chokidar@5.0.0",
+        "@ynx-chain/wallet-app@1.0.1|destr@2.0.5",
+        "@ynx-chain/wallet-app@1.0.1|h3@1.15.11",
+        "@ynx-chain/wallet-app@1.0.1|idb-keyval@6.3.0",
+        "@ynx-chain/wallet-app@1.0.1|node-fetch-native@1.6.7",
+        "@ynx-chain/wallet-app@1.0.1|ofetch@1.5.1",
+        "@ynx-chain/wallet-app@1.0.1|ufo@1.6.4"
+      ],
+      "ref": "@ynx-chain/wallet-app@1.0.1|@walletconnect/core@2.23.10|unstorage@1.17.5"
+    },
+    {
+      "dependsOn": [
+        "@ynx-chain/wallet-app@1.0.1|@walletconnect/environment@1.0.1|tslib@1.14.1"
+      ],
+      "ref": "@ynx-chain/wallet-app@1.0.1|@walletconnect/environment@1.0.1"
+    },
+    {
+      "ref": "@ynx-chain/wallet-app@1.0.1|@walletconnect/environment@1.0.1|tslib@1.14.1"
+    },
+    {
+      "dependsOn": [
+        "@ynx-chain/wallet-app@1.0.1|@walletconnect/events@1.0.1|tslib@1.14.1",
+        "@ynx-chain/wallet-app@1.0.1|keyvaluestorage-interface@1.0.0"
+      ],
+      "ref": "@ynx-chain/wallet-app@1.0.1|@walletconnect/events@1.0.1"
+    },
+    {
+      "ref": "@ynx-chain/wallet-app@1.0.1|@walletconnect/events@1.0.1|tslib@1.14.1"
+    },
+    {
+      "dependsOn": [
+        "@ynx-chain/wallet-app@1.0.1|@walletconnect/events@1.0.1",
+        "@ynx-chain/wallet-app@1.0.1|@walletconnect/time@1.0.2",
+        "@ynx-chain/wallet-app@1.0.1|events@3.3.0"
+      ],
+      "ref": "@ynx-chain/wallet-app@1.0.1|@walletconnect/heartbeat@1.2.2"
+    },
+    {
+      "dependsOn": [
+        "@ynx-chain/wallet-app@1.0.1|@walletconnect/jsonrpc-utils@1.0.8",
+        "@ynx-chain/wallet-app@1.0.1|@walletconnect/safe-json@1.0.2",
+        "@ynx-chain/wallet-app@1.0.1|events@3.3.0"
+      ],
+      "ref": "@ynx-chain/wallet-app@1.0.1|@walletconnect/jsonrpc-provider@1.0.14"
+    },
+    {
+      "dependsOn": [
+        "@ynx-chain/wallet-app@1.0.1|events@3.3.0",
+        "@ynx-chain/wallet-app@1.0.1|keyvaluestorage-interface@1.0.0"
+      ],
+      "ref": "@ynx-chain/wallet-app@1.0.1|@walletconnect/jsonrpc-types@1.0.4"
+    },
+    {
+      "dependsOn": [
+        "@ynx-chain/wallet-app@1.0.1|@walletconnect/environment@1.0.1",
+        "@ynx-chain/wallet-app@1.0.1|@walletconnect/jsonrpc-types@1.0.4",
+        "@ynx-chain/wallet-app@1.0.1|@walletconnect/jsonrpc-utils@1.0.8|tslib@1.14.1"
+      ],
+      "ref": "@ynx-chain/wallet-app@1.0.1|@walletconnect/jsonrpc-utils@1.0.8"
+    },
+    {
+      "ref": "@ynx-chain/wallet-app@1.0.1|@walletconnect/jsonrpc-utils@1.0.8|tslib@1.14.1"
+    },
+    {
+      "dependsOn": [
+        "@ynx-chain/wallet-app@1.0.1|@walletconnect/jsonrpc-utils@1.0.8",
+        "@ynx-chain/wallet-app@1.0.1|@walletconnect/safe-json@1.0.2",
+        "@ynx-chain/wallet-app@1.0.1|events@3.3.0",
+        "@ynx-chain/wallet-app@1.0.1|ws@7.5.11"
+      ],
+      "ref": "@ynx-chain/wallet-app@1.0.1|@walletconnect/jsonrpc-ws-connection@1.0.16"
+    },
+    {
+      "dependsOn": [
+        "@ynx-chain/wallet-app@1.0.1|@walletconnect/safe-json@1.0.2",
+        "@ynx-chain/wallet-app@1.0.1|pino@10.0.0"
+      ],
+      "ref": "@ynx-chain/wallet-app@1.0.1|@walletconnect/logger@3.0.2"
+    },
+    {
+      "dependsOn": [
+        "@ynx-chain/wallet-app@1.0.1|@walletconnect/logger@3.0.2",
+        "@ynx-chain/wallet-app@1.0.1|@walletconnect/types@2.23.10",
+        "@ynx-chain/wallet-app@1.0.1|@walletconnect/utils@2.23.10",
+        "@ynx-chain/wallet-app@1.0.1|brotli@1.3.3",
+        "@ynx-chain/wallet-app@1.0.1|react-native@0.86.0"
+      ],
+      "ref": "@ynx-chain/wallet-app@1.0.1|@walletconnect/pay@1.0.9"
+    },
+    {
+      "dependsOn": [
+        "@ynx-chain/wallet-app@1.0.1|@react-native-async-storage/async-storage@1.24.0",
+        "@ynx-chain/wallet-app@1.0.1|@react-native-community/netinfo@12.0.1",
+        "@ynx-chain/wallet-app@1.0.1|events@3.3.0",
+        "@ynx-chain/wallet-app@1.0.1|expo-application@57.0.2",
+        "@ynx-chain/wallet-app@1.0.1|fast-text-encoding@1.0.6",
+        "@ynx-chain/wallet-app@1.0.1|react-native-get-random-values@1.11.0",
+        "@ynx-chain/wallet-app@1.0.1|react-native-url-polyfill@2.0.0",
+        "@ynx-chain/wallet-app@1.0.1|react-native@0.86.0"
+      ],
+      "ref": "@ynx-chain/wallet-app@1.0.1|@walletconnect/react-native-compat@2.23.10"
+    },
+    {
+      "dependsOn": [
+        "@ynx-chain/wallet-app@1.0.1|@walletconnect/jsonrpc-types@1.0.4"
+      ],
+      "ref": "@ynx-chain/wallet-app@1.0.1|@walletconnect/relay-api@1.0.11"
+    },
+    {
+      "dependsOn": [
+        "@ynx-chain/wallet-app@1.0.1|@walletconnect/relay-auth@1.1.0|@noble/curves@1.8.0",
+        "@ynx-chain/wallet-app@1.0.1|@walletconnect/relay-auth@1.1.0|@noble/hashes@1.7.0",
+        "@ynx-chain/wallet-app@1.0.1|@walletconnect/safe-json@1.0.2",
+        "@ynx-chain/wallet-app@1.0.1|@walletconnect/time@1.0.2",
+        "@ynx-chain/wallet-app@1.0.1|uint8arrays@3.1.1"
+      ],
+      "ref": "@ynx-chain/wallet-app@1.0.1|@walletconnect/relay-auth@1.1.0"
+    },
+    {
+      "dependsOn": [
+        "@ynx-chain/wallet-app@1.0.1|@walletconnect/relay-auth@1.1.0|@noble/hashes@1.7.0"
+      ],
+      "ref": "@ynx-chain/wallet-app@1.0.1|@walletconnect/relay-auth@1.1.0|@noble/curves@1.8.0"
+    },
+    {
+      "ref": "@ynx-chain/wallet-app@1.0.1|@walletconnect/relay-auth@1.1.0|@noble/hashes@1.7.0"
+    },
+    {
+      "dependsOn": [
+        "@ynx-chain/wallet-app@1.0.1|@walletconnect/safe-json@1.0.2|tslib@1.14.1"
+      ],
+      "ref": "@ynx-chain/wallet-app@1.0.1|@walletconnect/safe-json@1.0.2"
+    },
+    {
+      "ref": "@ynx-chain/wallet-app@1.0.1|@walletconnect/safe-json@1.0.2|tslib@1.14.1"
+    },
+    {
+      "dependsOn": [
+        "@ynx-chain/wallet-app@1.0.1|@walletconnect/core@2.23.10",
+        "@ynx-chain/wallet-app@1.0.1|@walletconnect/jsonrpc-utils@1.0.8",
+        "@ynx-chain/wallet-app@1.0.1|@walletconnect/logger@3.0.2",
+        "@ynx-chain/wallet-app@1.0.1|@walletconnect/time@1.0.2",
+        "@ynx-chain/wallet-app@1.0.1|@walletconnect/types@2.23.10",
+        "@ynx-chain/wallet-app@1.0.1|@walletconnect/utils@2.23.10",
+        "@ynx-chain/wallet-app@1.0.1|events@3.3.0"
+      ],
+      "ref": "@ynx-chain/wallet-app@1.0.1|@walletconnect/sign-client@2.23.10"
+    },
+    {
+      "dependsOn": [
+        "@ynx-chain/wallet-app@1.0.1|@walletconnect/time@1.0.2|tslib@1.14.1"
+      ],
+      "ref": "@ynx-chain/wallet-app@1.0.1|@walletconnect/time@1.0.2"
+    },
+    {
+      "ref": "@ynx-chain/wallet-app@1.0.1|@walletconnect/time@1.0.2|tslib@1.14.1"
+    },
+    {
+      "dependsOn": [
+        "@ynx-chain/wallet-app@1.0.1|@walletconnect/events@1.0.1",
+        "@ynx-chain/wallet-app@1.0.1|@walletconnect/heartbeat@1.2.2",
+        "@ynx-chain/wallet-app@1.0.1|@walletconnect/jsonrpc-types@1.0.4",
+        "@ynx-chain/wallet-app@1.0.1|@walletconnect/logger@3.0.2",
+        "@ynx-chain/wallet-app@1.0.1|@walletconnect/types@2.23.10|@walletconnect/keyvaluestorage@1.1.1",
+        "@ynx-chain/wallet-app@1.0.1|events@3.3.0"
+      ],
+      "ref": "@ynx-chain/wallet-app@1.0.1|@walletconnect/types@2.23.10"
+    },
+    {
+      "dependsOn": [
+        "@ynx-chain/wallet-app@1.0.1|@react-native-async-storage/async-storage@1.24.0",
+        "@ynx-chain/wallet-app@1.0.1|@walletconnect/safe-json@1.0.2",
+        "@ynx-chain/wallet-app@1.0.1|@walletconnect/types@2.23.10|unstorage@1.17.5",
+        "@ynx-chain/wallet-app@1.0.1|idb-keyval@6.3.0"
+      ],
+      "ref": "@ynx-chain/wallet-app@1.0.1|@walletconnect/types@2.23.10|@walletconnect/keyvaluestorage@1.1.1"
+    },
+    {
+      "ref": "@ynx-chain/wallet-app@1.0.1|@walletconnect/types@2.23.10|lru-cache@11.5.2"
+    },
+    {
+      "dependsOn": [
+        "@ynx-chain/wallet-app@1.0.1|@walletconnect/types@2.23.10|lru-cache@11.5.2",
+        "@ynx-chain/wallet-app@1.0.1|anymatch@3.1.3",
+        "@ynx-chain/wallet-app@1.0.1|chokidar@5.0.0",
+        "@ynx-chain/wallet-app@1.0.1|destr@2.0.5",
+        "@ynx-chain/wallet-app@1.0.1|h3@1.15.11",
+        "@ynx-chain/wallet-app@1.0.1|idb-keyval@6.3.0",
+        "@ynx-chain/wallet-app@1.0.1|node-fetch-native@1.6.7",
+        "@ynx-chain/wallet-app@1.0.1|ofetch@1.5.1",
+        "@ynx-chain/wallet-app@1.0.1|ufo@1.6.4"
+      ],
+      "ref": "@ynx-chain/wallet-app@1.0.1|@walletconnect/types@2.23.10|unstorage@1.17.5"
+    },
+    {
+      "dependsOn": [
+        "@ynx-chain/wallet-app@1.0.1|@msgpack/msgpack@3.1.3",
+        "@ynx-chain/wallet-app@1.0.1|@noble/ciphers@1.3.0",
+        "@ynx-chain/wallet-app@1.0.1|@scure/base@1.2.6",
+        "@ynx-chain/wallet-app@1.0.1|@walletconnect/jsonrpc-utils@1.0.8",
+        "@ynx-chain/wallet-app@1.0.1|@walletconnect/logger@3.0.2",
+        "@ynx-chain/wallet-app@1.0.1|@walletconnect/relay-api@1.0.11",
+        "@ynx-chain/wallet-app@1.0.1|@walletconnect/relay-auth@1.1.0",
+        "@ynx-chain/wallet-app@1.0.1|@walletconnect/safe-json@1.0.2",
+        "@ynx-chain/wallet-app@1.0.1|@walletconnect/time@1.0.2",
+        "@ynx-chain/wallet-app@1.0.1|@walletconnect/types@2.23.10",
+        "@ynx-chain/wallet-app@1.0.1|@walletconnect/utils@2.23.10|@noble/curves@1.9.7",
+        "@ynx-chain/wallet-app@1.0.1|@walletconnect/utils@2.23.10|@noble/hashes@1.8.0",
+        "@ynx-chain/wallet-app@1.0.1|@walletconnect/utils@2.23.10|@walletconnect/keyvaluestorage@1.1.1",
+        "@ynx-chain/wallet-app@1.0.1|@walletconnect/window-getters@1.0.1",
+        "@ynx-chain/wallet-app@1.0.1|@walletconnect/window-metadata@1.0.1",
+        "@ynx-chain/wallet-app@1.0.1|blakejs@1.2.1",
+        "@ynx-chain/wallet-app@1.0.1|detect-browser@5.3.0",
+        "@ynx-chain/wallet-app@1.0.1|ox@0.9.3",
+        "@ynx-chain/wallet-app@1.0.1|uint8arrays@3.1.1"
+      ],
+      "ref": "@ynx-chain/wallet-app@1.0.1|@walletconnect/utils@2.23.10"
+    },
+    {
+      "dependsOn": [
+        "@ynx-chain/wallet-app@1.0.1|@walletconnect/utils@2.23.10|@noble/hashes@1.8.0"
+      ],
+      "ref": "@ynx-chain/wallet-app@1.0.1|@walletconnect/utils@2.23.10|@noble/curves@1.9.7"
+    },
+    {
+      "ref": "@ynx-chain/wallet-app@1.0.1|@walletconnect/utils@2.23.10|@noble/hashes@1.8.0"
+    },
+    {
+      "dependsOn": [
+        "@ynx-chain/wallet-app@1.0.1|@react-native-async-storage/async-storage@1.24.0",
+        "@ynx-chain/wallet-app@1.0.1|@walletconnect/safe-json@1.0.2",
+        "@ynx-chain/wallet-app@1.0.1|@walletconnect/utils@2.23.10|unstorage@1.17.5",
+        "@ynx-chain/wallet-app@1.0.1|idb-keyval@6.3.0"
+      ],
+      "ref": "@ynx-chain/wallet-app@1.0.1|@walletconnect/utils@2.23.10|@walletconnect/keyvaluestorage@1.1.1"
+    },
+    {
+      "ref": "@ynx-chain/wallet-app@1.0.1|@walletconnect/utils@2.23.10|lru-cache@11.5.2"
+    },
+    {
+      "dependsOn": [
+        "@ynx-chain/wallet-app@1.0.1|@walletconnect/utils@2.23.10|lru-cache@11.5.2",
+        "@ynx-chain/wallet-app@1.0.1|anymatch@3.1.3",
+        "@ynx-chain/wallet-app@1.0.1|chokidar@5.0.0",
+        "@ynx-chain/wallet-app@1.0.1|destr@2.0.5",
+        "@ynx-chain/wallet-app@1.0.1|h3@1.15.11",
+        "@ynx-chain/wallet-app@1.0.1|idb-keyval@6.3.0",
+        "@ynx-chain/wallet-app@1.0.1|node-fetch-native@1.6.7",
+        "@ynx-chain/wallet-app@1.0.1|ofetch@1.5.1",
+        "@ynx-chain/wallet-app@1.0.1|ufo@1.6.4"
+      ],
+      "ref": "@ynx-chain/wallet-app@1.0.1|@walletconnect/utils@2.23.10|unstorage@1.17.5"
+    },
+    {
+      "dependsOn": [
+        "@ynx-chain/wallet-app@1.0.1|@walletconnect/window-getters@1.0.1|tslib@1.14.1"
+      ],
+      "ref": "@ynx-chain/wallet-app@1.0.1|@walletconnect/window-getters@1.0.1"
+    },
+    {
+      "ref": "@ynx-chain/wallet-app@1.0.1|@walletconnect/window-getters@1.0.1|tslib@1.14.1"
+    },
+    {
+      "dependsOn": [
+        "@ynx-chain/wallet-app@1.0.1|@walletconnect/window-getters@1.0.1",
+        "@ynx-chain/wallet-app@1.0.1|@walletconnect/window-metadata@1.0.1|tslib@1.14.1"
+      ],
+      "ref": "@ynx-chain/wallet-app@1.0.1|@walletconnect/window-metadata@1.0.1"
+    },
+    {
+      "ref": "@ynx-chain/wallet-app@1.0.1|@walletconnect/window-metadata@1.0.1|tslib@1.14.1"
+    },
+    {
       "ref": "@ynx-chain/wallet-app@1.0.1|@xmldom/xmldom@0.8.13"
     },
     {
@@ -15447,6 +19035,13 @@
         "@ynx-chain/wallet-app@1.0.1|@noble/hashes@2.2.0"
       ],
       "ref": "@ynx-chain/wallet-app@1.0.1|@ynx-chain/wallet-auth@1.0.0"
+    },
+    {
+      "dependsOn": [
+        "@ynx-chain/wallet-app@1.0.1|typescript@6.0.3",
+        "@ynx-chain/wallet-app@1.0.1|zod@3.25.76"
+      ],
+      "ref": "@ynx-chain/wallet-app@1.0.1|abitype@1.3.0"
     },
     {
       "dependsOn": [
@@ -15495,6 +19090,13 @@
       "ref": "@ynx-chain/wallet-app@1.0.1|ansi-styles@4.3.0"
     },
     {
+      "dependsOn": [
+        "@ynx-chain/wallet-app@1.0.1|normalize-path@3.0.0",
+        "@ynx-chain/wallet-app@1.0.1|picomatch@2.3.2"
+      ],
+      "ref": "@ynx-chain/wallet-app@1.0.1|anymatch@3.1.3"
+    },
+    {
       "ref": "@ynx-chain/wallet-app@1.0.1|arg@5.0.2"
     },
     {
@@ -15502,6 +19104,9 @@
     },
     {
       "ref": "@ynx-chain/wallet-app@1.0.1|asap@2.0.6"
+    },
+    {
+      "ref": "@ynx-chain/wallet-app@1.0.1|atomic-sleep@1.0.0"
     },
     {
       "dependsOn": [
@@ -15564,6 +19169,12 @@
       "ref": "@ynx-chain/wallet-app@1.0.1|balanced-match@4.0.4"
     },
     {
+      "dependsOn": [
+        "@ynx-chain/wallet-app@1.0.1|zxing-wasm@3.1.3"
+      ],
+      "ref": "@ynx-chain/wallet-app@1.0.1|barcode-detector@3.2.2"
+    },
+    {
       "ref": "@ynx-chain/wallet-app@1.0.1|base64-js@1.5.1"
     },
     {
@@ -15571,6 +19182,9 @@
     },
     {
       "ref": "@ynx-chain/wallet-app@1.0.1|big-integer@1.6.52"
+    },
+    {
+      "ref": "@ynx-chain/wallet-app@1.0.1|blakejs@1.2.1"
     },
     {
       "ref": "@ynx-chain/wallet-app@1.0.1|boolbase@1.0.0"
@@ -15601,6 +19215,12 @@
     },
     {
       "dependsOn": [
+        "@ynx-chain/wallet-app@1.0.1|base64-js@1.5.1"
+      ],
+      "ref": "@ynx-chain/wallet-app@1.0.1|brotli@1.3.3"
+    },
+    {
+      "dependsOn": [
         "@ynx-chain/wallet-app@1.0.1|baseline-browser-mapping@2.10.43",
         "@ynx-chain/wallet-app@1.0.1|caniuse-lite@1.0.30001805",
         "@ynx-chain/wallet-app@1.0.1|electron-to-chromium@1.5.389",
@@ -15619,6 +19239,13 @@
       "ref": "@ynx-chain/wallet-app@1.0.1|buffer-from@1.1.2"
     },
     {
+      "dependsOn": [
+        "@ynx-chain/wallet-app@1.0.1|base64-js@1.5.1",
+        "@ynx-chain/wallet-app@1.0.1|ieee754@1.2.1"
+      ],
+      "ref": "@ynx-chain/wallet-app@1.0.1|buffer@5.7.1"
+    },
+    {
       "ref": "@ynx-chain/wallet-app@1.0.1|bytes@3.1.2"
     },
     {
@@ -15633,6 +19260,12 @@
         "@ynx-chain/wallet-app@1.0.1|supports-color@7.2.0"
       ],
       "ref": "@ynx-chain/wallet-app@1.0.1|chalk@4.1.2"
+    },
+    {
+      "dependsOn": [
+        "@ynx-chain/wallet-app@1.0.1|readdirp@5.1.1"
+      ],
+      "ref": "@ynx-chain/wallet-app@1.0.1|chokidar@5.0.0"
     },
     {
       "dependsOn": [
@@ -15740,6 +19373,9 @@
       "ref": "@ynx-chain/wallet-app@1.0.1|convert-source-map@2.0.0"
     },
     {
+      "ref": "@ynx-chain/wallet-app@1.0.1|cookie-es@1.2.3"
+    },
+    {
       "dependsOn": [
         "@ynx-chain/wallet-app@1.0.1|browserslist@4.28.6"
       ],
@@ -15752,6 +19388,12 @@
         "@ynx-chain/wallet-app@1.0.1|which@2.0.2"
       ],
       "ref": "@ynx-chain/wallet-app@1.0.1|cross-spawn@7.0.6"
+    },
+    {
+      "dependsOn": [
+        "@ynx-chain/wallet-app@1.0.1|uncrypto@0.1.3"
+      ],
+      "ref": "@ynx-chain/wallet-app@1.0.1|crossws@0.3.5"
     },
     {
       "dependsOn": [
@@ -15798,10 +19440,19 @@
       "ref": "@ynx-chain/wallet-app@1.0.1|defaults@1.0.4"
     },
     {
+      "ref": "@ynx-chain/wallet-app@1.0.1|defu@6.1.7"
+    },
+    {
       "ref": "@ynx-chain/wallet-app@1.0.1|depd@2.0.0"
     },
     {
+      "ref": "@ynx-chain/wallet-app@1.0.1|destr@2.0.5"
+    },
+    {
       "ref": "@ynx-chain/wallet-app@1.0.1|destroy@1.2.0"
+    },
+    {
+      "ref": "@ynx-chain/wallet-app@1.0.1|detect-browser@5.3.0"
     },
     {
       "ref": "@ynx-chain/wallet-app@1.0.1|detect-libc@2.1.2"
@@ -15862,6 +19513,9 @@
       "ref": "@ynx-chain/wallet-app@1.0.1|es-errors@1.3.0"
     },
     {
+      "ref": "@ynx-chain/wallet-app@1.0.1|es-toolkit@1.45.1"
+    },
+    {
       "ref": "@ynx-chain/wallet-app@1.0.1|escalade@3.2.0"
     },
     {
@@ -15908,6 +19562,27 @@
     },
     {
       "ref": "@ynx-chain/wallet-app@1.0.1|event-target-shim@5.0.1"
+    },
+    {
+      "ref": "@ynx-chain/wallet-app@1.0.1|eventemitter3@5.0.1"
+    },
+    {
+      "ref": "@ynx-chain/wallet-app@1.0.1|events@3.3.0"
+    },
+    {
+      "dependsOn": [
+        "@ynx-chain/wallet-app@1.0.1|expo@57.0.4"
+      ],
+      "ref": "@ynx-chain/wallet-app@1.0.1|expo-application@57.0.2"
+    },
+    {
+      "dependsOn": [
+        "@ynx-chain/wallet-app@1.0.1|barcode-detector@3.2.2",
+        "@ynx-chain/wallet-app@1.0.1|expo@57.0.4",
+        "@ynx-chain/wallet-app@1.0.1|react-native@0.86.0",
+        "@ynx-chain/wallet-app@1.0.1|react@19.2.3"
+      ],
+      "ref": "@ynx-chain/wallet-app@1.0.1|expo-camera@57.0.4"
     },
     {
       "dependsOn": [
@@ -16271,6 +19946,12 @@
       "ref": "@ynx-chain/wallet-app@1.0.1|exponential-backoff@3.1.3"
     },
     {
+      "ref": "@ynx-chain/wallet-app@1.0.1|fast-base64-decode@1.0.0"
+    },
+    {
+      "ref": "@ynx-chain/wallet-app@1.0.1|fast-text-encoding@1.0.6"
+    },
+    {
       "ref": "@ynx-chain/wallet-app@1.0.1|fb-dotslash@0.5.8"
     },
     {
@@ -16349,6 +20030,20 @@
       "ref": "@ynx-chain/wallet-app@1.0.1|graceful-fs@4.2.11"
     },
     {
+      "dependsOn": [
+        "@ynx-chain/wallet-app@1.0.1|cookie-es@1.2.3",
+        "@ynx-chain/wallet-app@1.0.1|crossws@0.3.5",
+        "@ynx-chain/wallet-app@1.0.1|defu@6.1.7",
+        "@ynx-chain/wallet-app@1.0.1|destr@2.0.5",
+        "@ynx-chain/wallet-app@1.0.1|iron-webcrypto@1.2.1",
+        "@ynx-chain/wallet-app@1.0.1|node-mock-http@1.0.5",
+        "@ynx-chain/wallet-app@1.0.1|radix3@1.1.2",
+        "@ynx-chain/wallet-app@1.0.1|ufo@1.6.4",
+        "@ynx-chain/wallet-app@1.0.1|uncrypto@0.1.3"
+      ],
+      "ref": "@ynx-chain/wallet-app@1.0.1|h3@1.15.11"
+    },
+    {
       "ref": "@ynx-chain/wallet-app@1.0.1|has-flag@4.0.0"
     },
     {
@@ -16399,6 +20094,12 @@
       "ref": "@ynx-chain/wallet-app@1.0.1|https-proxy-agent@7.0.6"
     },
     {
+      "ref": "@ynx-chain/wallet-app@1.0.1|idb-keyval@6.3.0"
+    },
+    {
+      "ref": "@ynx-chain/wallet-app@1.0.1|ieee754@1.2.1"
+    },
+    {
       "ref": "@ynx-chain/wallet-app@1.0.1|ignore@5.3.2"
     },
     {
@@ -16417,6 +20118,9 @@
       "ref": "@ynx-chain/wallet-app@1.0.1|invariant@2.2.4"
     },
     {
+      "ref": "@ynx-chain/wallet-app@1.0.1|iron-webcrypto@1.2.1"
+    },
+    {
       "dependsOn": [
         "@ynx-chain/wallet-app@1.0.1|hasown@2.0.4"
       ],
@@ -16430,6 +20134,9 @@
     },
     {
       "ref": "@ynx-chain/wallet-app@1.0.1|is-number@7.0.0"
+    },
+    {
+      "ref": "@ynx-chain/wallet-app@1.0.1|is-plain-obj@2.1.0"
     },
     {
       "dependsOn": [
@@ -16503,6 +20210,9 @@
     },
     {
       "ref": "@ynx-chain/wallet-app@1.0.1|json5@2.2.3"
+    },
+    {
+      "ref": "@ynx-chain/wallet-app@1.0.1|keyvaluestorage-interface@1.0.0"
     },
     {
       "ref": "@ynx-chain/wallet-app@1.0.1|kleur@3.0.3"
@@ -16587,6 +20297,12 @@
     },
     {
       "ref": "@ynx-chain/wallet-app@1.0.1|memoize-one@5.2.1"
+    },
+    {
+      "dependsOn": [
+        "@ynx-chain/wallet-app@1.0.1|is-plain-obj@2.1.0"
+      ],
+      "ref": "@ynx-chain/wallet-app@1.0.1|merge-options@3.0.4"
     },
     {
       "ref": "@ynx-chain/wallet-app@1.0.1|merge-stream@2.0.0"
@@ -16807,6 +20523,9 @@
       "ref": "@ynx-chain/wallet-app@1.0.1|ms@2.1.3"
     },
     {
+      "ref": "@ynx-chain/wallet-app@1.0.1|multiformats@9.9.0"
+    },
+    {
       "ref": "@ynx-chain/wallet-app@1.0.1|multitars@1.0.0"
     },
     {
@@ -16816,13 +20535,22 @@
       "ref": "@ynx-chain/wallet-app@1.0.1|negotiator@1.0.0"
     },
     {
+      "ref": "@ynx-chain/wallet-app@1.0.1|node-fetch-native@1.6.7"
+    },
+    {
       "ref": "@ynx-chain/wallet-app@1.0.1|node-forge@1.4.0"
     },
     {
       "ref": "@ynx-chain/wallet-app@1.0.1|node-int64@0.4.0"
     },
     {
+      "ref": "@ynx-chain/wallet-app@1.0.1|node-mock-http@1.0.5"
+    },
+    {
       "ref": "@ynx-chain/wallet-app@1.0.1|node-releases@2.0.51"
+    },
+    {
+      "ref": "@ynx-chain/wallet-app@1.0.1|normalize-path@3.0.0"
     },
     {
       "dependsOn": [
@@ -16850,6 +20578,17 @@
     },
     {
       "ref": "@ynx-chain/wallet-app@1.0.1|object-assign@4.1.1"
+    },
+    {
+      "dependsOn": [
+        "@ynx-chain/wallet-app@1.0.1|destr@2.0.5",
+        "@ynx-chain/wallet-app@1.0.1|node-fetch-native@1.6.7",
+        "@ynx-chain/wallet-app@1.0.1|ufo@1.6.4"
+      ],
+      "ref": "@ynx-chain/wallet-app@1.0.1|ofetch@1.5.1"
+    },
+    {
+      "ref": "@ynx-chain/wallet-app@1.0.1|on-exit-leak-free@2.1.2"
     },
     {
       "dependsOn": [
@@ -16892,6 +20631,29 @@
         "@ynx-chain/wallet-app@1.0.1|ora@3.4.0|ansi-regex@4.1.1"
       ],
       "ref": "@ynx-chain/wallet-app@1.0.1|ora@3.4.0|strip-ansi@5.2.0"
+    },
+    {
+      "dependsOn": [
+        "@ynx-chain/wallet-app@1.0.1|@adraffy/ens-normalize@1.11.1",
+        "@ynx-chain/wallet-app@1.0.1|@noble/ciphers@1.3.0",
+        "@ynx-chain/wallet-app@1.0.1|@scure/bip32@1.7.0",
+        "@ynx-chain/wallet-app@1.0.1|@scure/bip39@1.6.0",
+        "@ynx-chain/wallet-app@1.0.1|abitype@1.3.0",
+        "@ynx-chain/wallet-app@1.0.1|eventemitter3@5.0.1",
+        "@ynx-chain/wallet-app@1.0.1|ox@0.9.3|@noble/curves@1.9.1",
+        "@ynx-chain/wallet-app@1.0.1|ox@0.9.3|@noble/hashes@1.8.0",
+        "@ynx-chain/wallet-app@1.0.1|typescript@6.0.3"
+      ],
+      "ref": "@ynx-chain/wallet-app@1.0.1|ox@0.9.3"
+    },
+    {
+      "dependsOn": [
+        "@ynx-chain/wallet-app@1.0.1|ox@0.9.3|@noble/hashes@1.8.0"
+      ],
+      "ref": "@ynx-chain/wallet-app@1.0.1|ox@0.9.3|@noble/curves@1.9.1"
+    },
+    {
+      "ref": "@ynx-chain/wallet-app@1.0.1|ox@0.9.3|@noble/hashes@1.8.0"
     },
     {
       "dependsOn": [
@@ -16944,6 +20706,31 @@
     },
     {
       "dependsOn": [
+        "@ynx-chain/wallet-app@1.0.1|split2@4.2.0"
+      ],
+      "ref": "@ynx-chain/wallet-app@1.0.1|pino-abstract-transport@2.0.0"
+    },
+    {
+      "ref": "@ynx-chain/wallet-app@1.0.1|pino-std-serializers@7.1.0"
+    },
+    {
+      "dependsOn": [
+        "@ynx-chain/wallet-app@1.0.1|atomic-sleep@1.0.0",
+        "@ynx-chain/wallet-app@1.0.1|on-exit-leak-free@2.1.2",
+        "@ynx-chain/wallet-app@1.0.1|pino-abstract-transport@2.0.0",
+        "@ynx-chain/wallet-app@1.0.1|pino-std-serializers@7.1.0",
+        "@ynx-chain/wallet-app@1.0.1|process-warning@5.1.0",
+        "@ynx-chain/wallet-app@1.0.1|quick-format-unescaped@4.0.4",
+        "@ynx-chain/wallet-app@1.0.1|real-require@0.2.0",
+        "@ynx-chain/wallet-app@1.0.1|safe-stable-stringify@2.5.0",
+        "@ynx-chain/wallet-app@1.0.1|slow-redact@0.3.2",
+        "@ynx-chain/wallet-app@1.0.1|sonic-boom@4.2.1",
+        "@ynx-chain/wallet-app@1.0.1|thread-stream@3.2.0"
+      ],
+      "ref": "@ynx-chain/wallet-app@1.0.1|pino@10.0.0"
+    },
+    {
+      "dependsOn": [
         "@ynx-chain/wallet-app@1.0.1|base64-js@1.5.1",
         "@ynx-chain/wallet-app@1.0.1|plist@3.1.1|@xmldom/xmldom@0.9.10",
         "@ynx-chain/wallet-app@1.0.1|xmlbuilder@15.1.1"
@@ -16979,6 +20766,9 @@
       "ref": "@ynx-chain/wallet-app@1.0.1|proc-log@4.2.0"
     },
     {
+      "ref": "@ynx-chain/wallet-app@1.0.1|process-warning@5.1.0"
+    },
+    {
       "ref": "@ynx-chain/wallet-app@1.0.1|progress@2.0.3"
     },
     {
@@ -17004,6 +20794,9 @@
     },
     {
       "ref": "@ynx-chain/wallet-app@1.0.1|prop-types@15.8.1|react-is@16.13.1"
+    },
+    {
+      "ref": "@ynx-chain/wallet-app@1.0.1|punycode@2.3.1"
     },
     {
       "dependsOn": [
@@ -17068,6 +20861,12 @@
       "ref": "@ynx-chain/wallet-app@1.0.1|queue@6.0.2"
     },
     {
+      "ref": "@ynx-chain/wallet-app@1.0.1|quick-format-unescaped@4.0.4"
+    },
+    {
+      "ref": "@ynx-chain/wallet-app@1.0.1|radix3@1.1.2"
+    },
+    {
       "ref": "@ynx-chain/wallet-app@1.0.1|range-parser@1.2.1"
     },
     {
@@ -17079,6 +20878,13 @@
     },
     {
       "ref": "@ynx-chain/wallet-app@1.0.1|react-is@18.3.1"
+    },
+    {
+      "dependsOn": [
+        "@ynx-chain/wallet-app@1.0.1|fast-base64-decode@1.0.0",
+        "@ynx-chain/wallet-app@1.0.1|react-native@0.86.0"
+      ],
+      "ref": "@ynx-chain/wallet-app@1.0.1|react-native-get-random-values@1.11.0"
     },
     {
       "dependsOn": [
@@ -17107,6 +20913,13 @@
         "@ynx-chain/wallet-app@1.0.1|warn-once@0.1.1"
       ],
       "ref": "@ynx-chain/wallet-app@1.0.1|react-native-svg@15.15.4"
+    },
+    {
+      "dependsOn": [
+        "@ynx-chain/wallet-app@1.0.1|react-native@0.86.0",
+        "@ynx-chain/wallet-app@1.0.1|whatwg-url-without-unicode@8.0.0-3"
+      ],
+      "ref": "@ynx-chain/wallet-app@1.0.1|react-native-url-polyfill@2.0.0"
     },
     {
       "dependsOn": [
@@ -17155,6 +20968,12 @@
     },
     {
       "ref": "@ynx-chain/wallet-app@1.0.1|react@19.2.3"
+    },
+    {
+      "ref": "@ynx-chain/wallet-app@1.0.1|readdirp@5.1.1"
+    },
+    {
+      "ref": "@ynx-chain/wallet-app@1.0.1|real-require@0.2.0"
     },
     {
       "dependsOn": [
@@ -17218,6 +21037,9 @@
     },
     {
       "ref": "@ynx-chain/wallet-app@1.0.1|safe-buffer@5.2.1"
+    },
+    {
+      "ref": "@ynx-chain/wallet-app@1.0.1|safe-stable-stringify@2.5.0"
     },
     {
       "ref": "@ynx-chain/wallet-app@1.0.1|sax@1.6.0"
@@ -17315,7 +21137,16 @@
       "ref": "@ynx-chain/wallet-app@1.0.1|sisteransi@1.0.5"
     },
     {
+      "ref": "@ynx-chain/wallet-app@1.0.1|slow-redact@0.3.2"
+    },
+    {
       "ref": "@ynx-chain/wallet-app@1.0.1|slugify@1.6.9"
+    },
+    {
+      "dependsOn": [
+        "@ynx-chain/wallet-app@1.0.1|atomic-sleep@1.0.0"
+      ],
+      "ref": "@ynx-chain/wallet-app@1.0.1|sonic-boom@4.2.1"
     },
     {
       "ref": "@ynx-chain/wallet-app@1.0.1|source-map-js@1.2.1"
@@ -17332,6 +21163,9 @@
     },
     {
       "ref": "@ynx-chain/wallet-app@1.0.1|source-map@0.5.7"
+    },
+    {
+      "ref": "@ynx-chain/wallet-app@1.0.1|split2@4.2.0"
     },
     {
       "ref": "@ynx-chain/wallet-app@1.0.1|stackframe@1.3.4"
@@ -17382,6 +21216,9 @@
       "ref": "@ynx-chain/wallet-app@1.0.1|supports-preserve-symlinks-flag@1.0.0"
     },
     {
+      "ref": "@ynx-chain/wallet-app@1.0.1|tagged-tag@1.0.0"
+    },
+    {
       "dependsOn": [
         "@ynx-chain/wallet-app@1.0.1|ansi-escapes@4.3.2",
         "@ynx-chain/wallet-app@1.0.1|supports-hyperlinks@2.3.0"
@@ -17402,6 +21239,12 @@
     },
     {
       "ref": "@ynx-chain/wallet-app@1.0.1|text-encoding@0.7.0"
+    },
+    {
+      "dependsOn": [
+        "@ynx-chain/wallet-app@1.0.1|real-require@0.2.0"
+      ],
+      "ref": "@ynx-chain/wallet-app@1.0.1|thread-stream@3.2.0"
     },
     {
       "ref": "@ynx-chain/wallet-app@1.0.1|throat@5.0.0"
@@ -17445,6 +21288,18 @@
     },
     {
       "ref": "@ynx-chain/wallet-app@1.0.1|typescript@6.0.3"
+    },
+    {
+      "ref": "@ynx-chain/wallet-app@1.0.1|ufo@1.6.4"
+    },
+    {
+      "dependsOn": [
+        "@ynx-chain/wallet-app@1.0.1|multiformats@9.9.0"
+      ],
+      "ref": "@ynx-chain/wallet-app@1.0.1|uint8arrays@3.1.1"
+    },
+    {
+      "ref": "@ynx-chain/wallet-app@1.0.1|uncrypto@0.1.3"
     },
     {
       "ref": "@ynx-chain/wallet-app@1.0.1|undici-types@8.3.0"
@@ -17507,10 +21362,21 @@
       "ref": "@ynx-chain/wallet-app@1.0.1|wcwidth@1.0.1"
     },
     {
+      "ref": "@ynx-chain/wallet-app@1.0.1|webidl-conversions@5.0.0"
+    },
+    {
       "ref": "@ynx-chain/wallet-app@1.0.1|whatwg-fetch@3.6.20"
     },
     {
       "ref": "@ynx-chain/wallet-app@1.0.1|whatwg-url-minimum@0.1.2"
+    },
+    {
+      "dependsOn": [
+        "@ynx-chain/wallet-app@1.0.1|buffer@5.7.1",
+        "@ynx-chain/wallet-app@1.0.1|punycode@2.3.1",
+        "@ynx-chain/wallet-app@1.0.1|webidl-conversions@5.0.0"
+      ],
+      "ref": "@ynx-chain/wallet-app@1.0.1|whatwg-url-without-unicode@8.0.0-3"
     },
     {
       "ref": "@ynx-chain/wallet-app@1.0.1|which-module@2.0.1"
@@ -17578,6 +21444,19 @@
     },
     {
       "ref": "@ynx-chain/wallet-app@1.0.1|zod@3.25.76"
+    },
+    {
+      "dependsOn": [
+        "@ynx-chain/wallet-app@1.0.1|@types/emscripten@1.41.5",
+        "@ynx-chain/wallet-app@1.0.1|zxing-wasm@3.1.3|type-fest@5.8.0"
+      ],
+      "ref": "@ynx-chain/wallet-app@1.0.1|zxing-wasm@3.1.3"
+    },
+    {
+      "dependsOn": [
+        "@ynx-chain/wallet-app@1.0.1|tagged-tag@1.0.0"
+      ],
+      "ref": "@ynx-chain/wallet-app@1.0.1|zxing-wasm@3.1.3|type-fest@5.8.0"
     }
   ],
   "metadata": {

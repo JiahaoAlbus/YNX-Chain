@@ -1,4 +1,4 @@
-export type AuthorizationPurpose = "unlock" | "wallet-authorization" | "exchange-order" | "quant-strategy-action" | "dex-transaction" | "developer-contract-deployment" | "transaction-sign" | "recovery-view" | "account-import" | "account-delete" | "wallet-reset";
+export type AuthorizationPurpose = "unlock" | "wallet-authorization" | "exchange-order" | "quant-strategy-action" | "dex-transaction" | "developer-contract-deployment" | "transaction-sign" | "dapp-message-sign" | "dapp-typed-data-sign" | "recovery-view" | "account-import" | "account-delete" | "wallet-reset";
 
 const prompts: Record<AuthorizationPurpose, string> = {
   unlock: "Unlock YNX Wallet",
@@ -8,6 +8,8 @@ const prompts: Record<AuthorizationPurpose, string> = {
   "dex-transaction": "Approve this exact YNX DEX Testnet transaction",
   "developer-contract-deployment": "Approve this exact YNX Developer contract deployment",
   "transaction-sign": "Sign this reviewed YNXT transfer",
+  "dapp-message-sign": "Sign this reviewed DApp message",
+  "dapp-typed-data-sign": "Sign this reviewed DApp typed data",
   "recovery-view": "View YNX Wallet recovery key",
   "account-import": "Import a YNX Wallet account",
   "account-delete": "Remove this account from YNX Wallet",
