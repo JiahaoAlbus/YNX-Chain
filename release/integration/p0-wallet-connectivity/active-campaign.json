@@ -427,12 +427,12 @@
     }
   ],
   "heavy": {
-    "owner": "shop",
-    "taskId": "P0-212",
-    "status": "ACTIVE_SINGLE_USE",
+    "owner": null,
+    "taskId": null,
+    "status": "IDLE",
     "acquiredAt": "2026-08-22T19:42:00Z",
     "expiresAt": "2026-08-22T20:07:00Z",
-    "releasedAt": null,
+    "releasedAt": "2026-08-22T19:44:00Z",
     "sourceCommit": "221a6bde7bef8aab83ca45f9b1dd4ecf9ac60aba",
     "evidenceCommit": "ada7463851f3c1057abfed5a5c5fbf42881539b5",
     "runtimeHost": "github-hosted:ubuntu-latest",
@@ -444,8 +444,8 @@
     "reusable": false,
     "previousOwner": "calendar",
     "previousTaskId": "P0-211",
-    "reviewDecision": "GO_NEW_SHOP_STATIC_ARTIFACT_HOSTED_CHROMIUM_SINGLE_USE",
-    "reason": "P0-211 is released. P0-212 binds the remote immutable Shop carrier/inventory and one independently imported workflow-only commit that captures pre/post chooser DOM and screenshots while forbidding SSH, production, provider selection and all sensitive actions."
+    "reviewDecision": "CONSUMED_RELEASED_SUCCESS_SHOP_DIRECT_HOSTED_CHROMIUM_STATIC_CANDIDATE_PREFLIGHT_ONLY",
+    "reason": "P0-212 completed its sole workflow push and unique hosted Linux Chromium run. The isolated artifact directly proves the immutable carrier/inventory, privacy-i18n resource, default English, pre/post chooser DOM/screenshots, one stable page, console zero and distinct YNX Wallet/MetaMask identity and logos without provider selection or sensitive actions. No public deployment or product promotion occurred."
   },
   "wave": {
     "id": "B-financial-apps-quant",
