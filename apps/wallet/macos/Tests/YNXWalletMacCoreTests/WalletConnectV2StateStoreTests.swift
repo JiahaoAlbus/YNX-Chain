@@ -204,6 +204,28 @@ final class WalletConnectV2StateStoreTests: XCTestCase {
     }
   }
 
+  func testControlCharacterRequestIDFailsClosedAtRuntimeAndRestart() throws {
+    let file = temporaryFile()
+    let store = try WalletConnectV2StateStore(fileURL: file)
+    let controlID = proposal(id: "request\u{001B}id", dappClass: .external)
+    XCTAssertThrowsError(try store.enqueue(controlID, now: now)) {
+      XCTAssertEqual($0 as? WalletConnectV2StateError, .invalidRequest)
+    }
+
+    try store.enqueue(proposal(id: "persisted-id", dappClass: .external), now: now)
+    var root = try XCTUnwrap(
+      JSONSerialization.jsonObject(with: Data(contentsOf: file)) as? [String: Any]
+    )
+    var pending = try XCTUnwrap(root["pending"] as? [[String: Any]])
+    pending[0]["id"] = "persisted\u{001B}id"
+    root["pending"] = pending
+    try JSONSerialization.data(withJSONObject: root, options: [.sortedKeys])
+      .write(to: file, options: .atomic)
+    XCTAssertThrowsError(try WalletConnectV2StateStore(fileURL: file)) {
+      XCTAssertEqual($0 as? WalletConnectV2StateError, .corruptPersistence)
+    }
+  }
+
   func testPersistedUnsupportedMethodFailsClosedAsCorrupt() throws {
     let file = temporaryFile()
     _ = try approvedStore(file: file, dappClass: .external)

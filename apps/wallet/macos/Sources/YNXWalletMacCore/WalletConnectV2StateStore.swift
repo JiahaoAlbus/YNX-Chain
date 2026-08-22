@@ -309,7 +309,10 @@ public final class WalletConnectV2StateStore: @unchecked Sendable {
   }
 
   private static func validIdentifier(_ value: String) -> Bool {
-    !value.isEmpty && value.utf8.count <= 128 && !value.contains(where: { $0.isWhitespace })
+    !value.isEmpty
+      && value.utf8.count <= 128
+      && !value.contains(where: { $0.isWhitespace })
+      && value.unicodeScalars.allSatisfy { !CharacterSet.controlCharacters.contains($0) }
   }
 
   private static func validTopic(_ value: String) -> Bool {
