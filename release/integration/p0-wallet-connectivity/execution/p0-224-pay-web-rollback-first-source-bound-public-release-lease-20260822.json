@@ -3,16 +3,16 @@
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "taskId": "P0-224",
   "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-pay-web-rollback-first-source-bound-public-release-20260822T224000Z",
-  "owner": "pay",
+  "owner": null,
   "executor": "pay-public-release",
-  "status": "ACTIVE_SINGLE_USE",
+  "status": "CONSUMED_RELEASED_FAILED_CLOSED_LOCAL_POST_SWITCH_COLLECTOR_PATH_VARIABLE_COLLISION_ROLLED_BACK",
   "issuedAt": "2026-08-22T22:40:00Z",
   "expiresAt": "2026-08-22T23:40:00Z",
-  "releasedAt": null,
+  "releasedAt": "2026-08-22T22:46:09Z",
   "singleUse": true,
   "reusable": false,
-  "executionAuthorized": true,
-  "productionMutationAllowed": true,
+  "executionAuthorized": false,
+  "productionMutationAllowed": false,
   "scope": "Pay-only exact static carrier publication to one new release root, atomic replacement of only /etc/caddy/ynx-chain.caddy, one Caddy reload, official non-sensitive HTTP/browser validation and at most one exact rollback",
   "predecessors": [
     {"taskId":"P0-221","status":"CONSUMED_RELEASED_FAILED_CLOSED_PAY_PUBLIC_READONLY_BASELINE_PREFLIGHT_REMOTE_TMP_WRITE","reusable":false},
@@ -136,6 +136,52 @@
     "rollbackFailure": "EMERGENCY_BLOCKED_PAY_P0224_EXACT_ROLLBACK_REQUIRED_NO_FURTHER_ACTION",
     "releaseHeavyAndAllLocksOnTerminal": true,
     "requiredReturn": "exact deploy/rollback attempt counts, stage/release/config receipts, official raw hashes, browser evidence, service/listener readback and sensitive-action false boundary before expiry"
+  },
+  "terminalEvidence": {
+    "classification": "FAILED_CLOSED_LOCAL_POST_SWITCH_COLLECTOR_PATH_VARIABLE_COLLISION_EXACT_ROLLBACK_CONFIRMED",
+    "observedAt": "2026-08-22T22:46:09Z",
+    "counts": {"deploy":1,"postSwitchCollector":1,"browser":0,"rollback":1,"retry":0},
+    "deploy": {
+      "commandExecutedExactlyOnce": true,
+      "exitCode": 0,
+      "release": {"path":"/opt/ynx-pay-web/releases/pay-web-5f4ce98e-release1","deviceInode":"64770:1483840"},
+      "stage": {"path":"/opt/ynx-pay-web/incoming/pay-web-5f4ce98e-release1","deviceInode":"64770:1483832"},
+      "forwardConfigSha256": "b606d1bdced436a984aed19981788f1a9471b4ccb7ad7f2c49b32015b729afa7"
+    },
+    "failure": {
+      "phase": "first post-switch HTTP evidence collector before any complete public resource verdict",
+      "reason": "zsh loop variable path replaced the command-search PATH array; tr became command-not-found",
+      "exactError": "zsh:9: command not found: tr",
+      "collectorRetryAttempted": false,
+      "browserAttempted": false,
+      "publicCandidatePromoted": false
+    },
+    "rollback": {
+      "commandExecutedExactlyOnce": true,
+      "exitCode": 0,
+      "restoredCaddySha256": "df5f7ad73dd2631c0e934514e05a30ac97c75dc9efe2ec568b049c71c4024396",
+      "releaseAbsent": true,
+      "stageAbsent": true,
+      "payd": {"active":"active","subState":"running","mainPid":2734498,"nRestarts":0},
+      "listeners": ["127.0.0.1:6430","127.0.0.1:6484"],
+      "public": {
+        "root": "404/19B/b16e15764b8bc06c5c3f9f19bc8b99fa48e7894aa5a6ccdad65da49bbf564793",
+        "version": "404/19B/b16e15764b8bc06c5c3f9f19bc8b99fa48e7894aa5a6ccdad65da49bbf564793",
+        "callback": "404/19B/b16e15764b8bc06c5c3f9f19bc8b99fa48e7894aa5a6ccdad65da49bbf564793",
+        "health": "200/589B/service=ynx-payd/network=YNX Testnet/chainId=6423"
+      }
+    },
+    "localEvidence": {
+      "directory": "/tmp/ynx-pay-p0224-public-release-20260822T224000Z",
+      "archive": "/tmp/ynx-pay-p0224-public-release-20260822T224000Z.tar.gz",
+      "archiveBytes": 2257,
+      "archiveSha256": "6ea7ed40d6196841d5ed7d741e527d98cadffd2ab334b8e77c4a16d92ce1ee9b",
+      "deployReceiptBytes": 192,
+      "deployReceiptSha256": "4fa32aaa362cd796723f5d6db736af319f6b1c92ef53eb68ac8a014934e2ef76"
+    },
+    "sensitiveActions": {"providerSelection":false,"ethRequestAccounts":false,"accountApprovalOrReject":false,"signing":false,"typedData":false,"transaction":false},
+    "productionRestored": true,
+    "futureBlocker": "Freeze and independently test a non-zsh-PATH-colliding post-switch collector as an exact command object, then request a wholly new Pay-only lease. P0-224 is nonreusable."
   },
   "truthBeforeExecution": {"sourceBoundPublic":false,"installedProvider":false,"accountApprovalOrReject":false,"signingOrTypedData":false,"transaction":false,"productComplete":false,"productsConnected":"0/12"}
 }
