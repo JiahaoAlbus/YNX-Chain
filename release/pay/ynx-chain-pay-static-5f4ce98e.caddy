@@ -20,7 +20,7 @@ pay.ynxweb4.com {
     root * /opt/ynx-pay-web/releases/pay-web-5f4ce98e-p0223/dist
     file_server
   }
-  @pay_web path / /index.html /metadata.json /release-manifest.json /_expo/* /assets/* /invoices/* /split-payments/* /quant-bills/*
+  @pay_web path / /index.html /metadata.json /release-manifest.json /_expo/* /assets/* /invoices /invoices/* /split-payments /split-payments/* /quant-bills /quant-bills/*
   handle @pay_web {
     root * /opt/ynx-pay-web/releases/pay-web-5f4ce98e-p0223/dist
     try_files {path} /index.html
