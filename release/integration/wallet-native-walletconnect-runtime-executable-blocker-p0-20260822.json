@@ -142,6 +142,7 @@
       "no signer implementation or raw key is embedded; protected runtime must bind the existing native signer",
       "the full Reown WalletKit license and required copyright notice are bundled as application resources",
       "hosted macOS run 32561814119 job 97004440593 failed in the Reown 2.3.1 WalletConnectSign Link dispatcher because its macOS path lacked Foundation imports; no YNX runtime gate was promoted",
+      "hosted macOS run 32562264128 job 97005577873 verified the exact upstream checkout and then failed before compilation because SwiftPM marked the target source read-only; the preparation script now scopes owner-write permission to that verified file only",
       "the source-visible macOS compatibility patch is applied only after exact upstream commit and original blob verification and carries a prominent modification notice",
       "Central P0-176 is explicitly not a lease and records P0-175 as the current Heavy owner"
     ]

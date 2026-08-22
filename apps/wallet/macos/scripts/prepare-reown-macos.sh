@@ -17,6 +17,7 @@ if grep -Fq "MODIFIED BY YNX WALLET" "$checkout/$relative_source"; then
 fi
 
 test "$(git -C "$checkout" hash-object "$relative_source")" = "$expected_blob"
+chmod u+w "$checkout/$relative_source"
 ruby -e '
   path = ARGV.fetch(0)
   source = File.read(path)
