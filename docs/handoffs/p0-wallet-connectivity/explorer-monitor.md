@@ -1,5 +1,31 @@
 # Explorer and Monitor Handoff
 
+## Superseding state (2026-08-22)
+
+- Current owner checkpoint: `ee3c398adf80659215d06806911068a48551ab03`
+  (tree `6a1cfaf9e8817281eb7a33cd32825126d431d367`), PR #107 Draft; all
+  six current CI checks, including CodeQL, are green.
+- The only successor source generation for any new release request is
+  `49cbb1507e25f4681018af883da7e4649e415de9` (tree
+  `54c1100a36b45d3e9955fb4ba0504042bab1d73a`). P0-145's older
+  `857150…` artifacts are integrity-accepted rollback evidence only and must
+  not be combined with this successor.
+- Fresh read-only runtime mapping, successor artifact hashes, rollback receipt
+  fields, public baseline, and the new bounded lease request are frozen in
+  `apps/monitor/evidence/p0-147-successor-runtime-lease-request-20260822.json`.
+  The current public release remains `8bf7716e…`; Monitor `/connectivity`
+  still serves the 641-byte HTML fallback rather than its JSON API.
+- Wallet classification is explicit: Explorer guest browsing requires no
+  Wallet, while its MetaMask compatibility action is an incomplete interactive
+  Wallet consumer. Monitor guest status reads require no Wallet, while its
+  privileged wallet-sign-in flow is an incomplete interactive Wallet consumer
+  that currently uses a prohibited top-level custom-scheme navigation. Neither
+  product has direct public Wallet E2E evidence.
+- No deployment, public verification, or Computer Control acceptance is
+  claimed. A new single-use lease bound to the successor artifacts, current
+  runtime digests, exact ingress matcher, rollback receipt and official-domain
+  verification is required before production mutation.
+
 ## Candidate checkpoint
 
 - Branch and candidate commit: `codex/p0-explorer-monitor-20260820` at
