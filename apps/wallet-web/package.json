@@ -16,6 +16,7 @@
     "test:runtime:bridge": "npm run build && node scripts/runtime-bridge-gate.mjs",
     "test:runtime:preferences": "npm run build && node scripts/runtime-preferences-gate.mjs",
     "test:runtime:cache-integrity": "npm run build && node scripts/runtime-cache-integrity-gate.mjs",
+    "test:runtime:v8-upgrade": "npm run build && node scripts/runtime-v8-upgrade-gate.mjs",
     "test:artifact:permissions": "node scripts/artifact-extension-permission-gate.mjs",
     "test:artifact:migration": "node scripts/artifact-extension-migration-gate.mjs",
     "test:artifact:network-readiness": "node scripts/artifact-network-readiness-gate.mjs",

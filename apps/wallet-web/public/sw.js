@@ -33,6 +33,10 @@ self.addEventListener("activate", (event) => event.waitUntil((async()=>{
   const windows=await self.clients.matchAll({type:"window",includeUncontrolled:true});
   await Promise.all(windows.map(async(client)=>{const target=upgradeNavigationUrl(client.url);if(target)await client.navigate(target).catch(()=>null)}));
 })()));
+self.addEventListener("message",(event)=>{
+  if(event.data?.type!=="YNX_WALLET_PWA_VERSION"||!event.ports?.[0])return;
+  event.ports[0].postMessage({cache:PWA_CACHE});
+});
 self.addEventListener("fetch", (event) => {
   const scopeUrl = self.registration.scope;
   const route = serviceWorkerRoute(event.request, scopeUrl);
