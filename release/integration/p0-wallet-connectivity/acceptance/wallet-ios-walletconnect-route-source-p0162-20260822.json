@@ -1,0 +1,92 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-162",
+  "owner": "integration",
+  "sourceOwner": "wallet-ios-macos",
+  "decision": "IOS_WALLETCONNECT_OFFLINE_DECISION_HOSTED_PASS_AND_ROUTE_SOURCE_ACCEPTED_REAL_RUNTIME_FALSE",
+  "routerCheckpoint": {
+    "commit": "451214970e0809b7f54e403e86adefbe92d118e5",
+    "tree": "c2b24668f52376b2cbef80fe68319d0956612cb0",
+    "parent": "fdd6d856bbc57536dc566ef1263abd2217daa141",
+    "matrixSha256": "cbe02b9f21ea69d74fa6932071edf8180d231390967de667666e7fe50879a55d",
+    "activitySha256": "7c527613206e290712dc286ec510c0466a5ee850da5e6637cdc191f46c549455",
+    "walletAuth": "322/322",
+    "noBareAuthorize": true,
+    "standardWalletConsumerGate": true,
+    "remoteReadbackExact": true
+  },
+  "hostedDecisionStateEvidence": {
+    "source": "e829f38b9f35d47be1afd924cf609cf2e59e3be7",
+    "tree": "fc2186ed1da178d5bd911e36143e79713834e412",
+    "evidenceCommit": "c1b630bd2d6d101b3705b0d6ebdf0eec86f08672",
+    "evidenceTree": "434d3b246fd2aa01db78444e794d22675919c2d9",
+    "evidenceBlob": "689571095d5eb0e9226e61e817d9c1b14c2d0108",
+    "evidenceSha256": "1f3d532c40af4ebda7d21c1bef09e7bda68400316532154ee0be06fc40c0424a",
+    "evidenceBytes": 4295,
+    "run": 32554682866,
+    "job": 96986893611,
+    "runStatus": "FAILURE_BIOMETRIC_STEP_ONLY",
+    "walletConnectStepStatus": "SUCCESS",
+    "walletConnectTest": "testWalletConnectPendingDecisionsRestoreAndFailClosedWithoutRelay",
+    "walletConnectTestSeconds": 0.98,
+    "signpost": {
+      "firstParty": true,
+      "external": true,
+      "restart": true,
+      "approve": true,
+      "reject": true,
+      "personalSign": true,
+      "eip712": true,
+      "send": true,
+      "disconnect": true,
+      "revoke": true,
+      "relay": false
+    },
+    "distributionRun": 32554682869,
+    "distributionRunStatus": "SUCCESS_SOURCE_AND_CLEANUP_PRODUCTION_SKIPPED",
+    "artifactId": 9471537155,
+    "artifactBytes": 101593011,
+    "artifactDigest": "sha256:20f2c5ba8af3b57b2add94a3dc44939fe62897f9fe94579fe77ce072e31d35b8",
+    "downloadInspected": false
+  },
+  "routeSource": {
+    "commit": "aba683d5dc90ee6a8df339240510e77680c9fa9c",
+    "tree": "a2cc5db128d4f492408689e6b3ad5834d1ff02de",
+    "acceptedFacts": [
+      "canonical-walletconnect-uri-routed-separately-from-auth",
+      "project-id-default-empty",
+      "project-id-unavailable-visible-fail-closed",
+      "valid-project-id-without-adapter-relay-unavailable-visible-fail-closed"
+    ],
+    "localValidation": {
+      "runtimePolicy": "3/3",
+      "walletApp": "40/40",
+      "plistPbxYamlTypecheck": "PASS"
+    },
+    "hostedRun": 32556002628,
+    "hostedRunStatus": "IN_PROGRESS"
+  },
+  "truth": {
+    "executionLeaseIssued": false,
+    "deploymentLeaseIssued": false,
+    "distributionDispatched": false,
+    "relayComplete": false,
+    "pairingComplete": false,
+    "sessionRuntimeComplete": false,
+    "realFirstPartyDappComplete": false,
+    "realExternalDappComplete": false,
+    "installedProviderComplete": false,
+    "signingRuntimeComplete": false,
+    "typedDataRuntimeComplete": false,
+    "transactionRuntimeComplete": false,
+    "biometricRecoveryComplete": false,
+    "authRuntimeComplete": false,
+    "publicComplete": false,
+    "productionSigned": false,
+    "storeReleased": false,
+    "productsConnected": "0/12",
+    "productsMigratedV2": "0/12",
+    "parityComplete": false
+  }
+}

@@ -6104,6 +6104,26 @@
       "productsMigratedV2": "0/12",
       "parityComplete": false,
       "nextAction": "Re-read exact terminal outcomes for runs 32554682866 and 32554682869; do not infer relay, installed runtime, signing or distribution from source and local tests."
+    },
+    {
+      "taskId": "P0-162",
+      "owner": "integration,wallet-ios",
+      "status": "IOS_WALLETCONNECT_OFFLINE_DECISION_HOSTED_PASS_ROUTE_SOURCE_ACCEPTED_RUNTIME_FALSE",
+      "paths": [
+        "release/integration/p0-wallet-connectivity/acceptance/wallet-ios-walletconnect-route-source-p0162-20260822.json"
+      ],
+      "dependencies": ["P0-161"],
+      "decisionStateSource": "e829f38b9f35d47be1afd924cf609cf2e59e3be7",
+      "routeSource": "aba683d5dc90ee6a8df339240510e77680c9fa9c",
+      "evidence": "c1b630bd2d6d101b3705b0d6ebdf0eec86f08672",
+      "routerCheckpoint": "451214970e0809b7f54e403e86adefbe92d118e5",
+      "routeRunStatus": "IN_PROGRESS",
+      "executionLeaseIssued": false,
+      "distributionDispatched": false,
+      "productsConnected": "0/12",
+      "productsMigratedV2": "0/12",
+      "parityComplete": false,
+      "nextAction": "Re-read run 32556002628 when terminal; require real relay, installed Wallet and real first-party/external DApp flows before any runtime promotion."
     }
   ]
 }
