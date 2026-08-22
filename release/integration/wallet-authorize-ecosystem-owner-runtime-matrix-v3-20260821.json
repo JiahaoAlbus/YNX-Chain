@@ -30,6 +30,7 @@
     "centralP0150": {"commit":"f92757f7491c3e28106664aacc2066663bbd52bb","tree":"c3b8aa28ca0cccefcb24319f65e2adfa0621123f","blob":"a6809588dbf2ba66fb8652a34bf942cce9b8a7dc","sha256":"a7448b5d6c8f6fafe7cf4611a17a10fd6c069f66be3ed80318a22ff4de76937e"},
     "sourceProfiles":["ynx-first-party","uniswap-interface-reference","opensea-reference","safe-reference","walletconnect-v2-reference"],
     "sharedCoreProviderSource":{"implementationCommit":"d8cda9f77918cab5bdfdd0568370f3c19742c14c","implementationTree":"83af2d80038dd9cc7f39343efb7994ad0bb2815a","evidenceCommit":"0e5af17d4f784a30390452b5c2b750047e93727d","evidenceTree":"4f8d5006138315f26c2cc2874747cf38f31b77b2","evidenceBlob":"db781971cd557b75de9ac88bef4dad3c24599069","evidenceSha256":"39df6f1f38961e7253cab538bd394202c225125b214b7d128915d97599ea3697","sourceOnly":true,"mergedIntoRouterBranch":false,"platformConsumed":false,"deployedPublic":false},
+    "macosWalletConnectV2Policy":{"implementationCommit":"65328c00d71a43963fff12f4d304f29dd110149e","evidenceCommit":"4765c9e7476f89fee653abb44f04bef825419ccf","evidenceBlob":"46a0e0b5dd85d35db811b551468761fde4b7e500","evidenceSha256":"b6a54c688ef2c1c1dc5746fe47117832983d9ef5c0342f1d7868dba5faab8b12","sourceAndHostedPolicy":true,"realRelayOrPairing":false,"approveReject":false,"sessionRestore":false,"externalDappRuntime":false,"installedProvider":false,"deployedPublic":false},
     "fixtureOnly": true,
     "realApproveReject": false,
     "installedProviderEvidence": false,

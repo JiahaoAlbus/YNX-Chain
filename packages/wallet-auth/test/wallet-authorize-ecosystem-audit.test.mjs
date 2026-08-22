@@ -685,6 +685,11 @@ test("owner checkpoint separates Wallet public artifacts from approval and Produ
   assert.equal(platform.latestMacosOwnerEvidence.keychainRoundTrip.addReadDeleteVerified, true);
   assert.equal(platform.latestMacosOwnerEvidence.keychainRoundTrip.authorization, false);
   assert.equal(platform.latestMacosOwnerEvidence.lockedStateBackreadLimitation.actualLockedDeviceReadDeniedVerified, false);
+  assert.equal(platform.latestMacosOwnerEvidence.walletConnectV2Policy.evidenceCommit, "4765c9e7476f89fee653abb44f04bef825419ccf");
+  assert.equal(platform.latestMacosOwnerEvidence.walletConnectV2Policy.policyTests, "5/5");
+  assert.equal(platform.latestMacosOwnerEvidence.walletConnectV2Policy.realRelayOrPairing, false);
+  assert.equal(platform.latestMacosOwnerEvidence.iosBiometricPositiveFix.status, "IN_PROGRESS");
+  assert.equal(platform.latestMacosOwnerEvidence.iosBiometricPositiveFix.biometricPositivePromoted, false);
   assert.equal(platform.modifiedByProtocolOwner, false);
   assert.equal(ownerActivityCheckpoint.summary.threeSegmentCompleteProducts, 0);
 });
@@ -707,4 +712,6 @@ test("Central released Finance and Explorer paths plus P0-150 parity are tracked
   assert.equal(auditV3.standardWalletParityConformance.productsConnected, 0);
   assert.equal(ownerActivityCheckpoint.sharedCoreStandardWalletProvider.evidenceBlob, "db781971cd557b75de9ac88bef4dad3c24599069");
   assert.equal(ownerActivityCheckpoint.sharedCoreStandardWalletProvider.platformConsumed, false);
+  assert.equal(auditV3.standardWalletParityConformance.macosWalletConnectV2Policy.sourceAndHostedPolicy, true);
+  assert.equal(auditV3.standardWalletParityConformance.macosWalletConnectV2Policy.realRelayOrPairing, false);
 });
