@@ -1,0 +1,117 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "WALLET-ANDROID-WALLETCONNECT-INSTALLED-CLEANUP-API36-P0-20260822",
+  "owner": "02-wallet-auth-android",
+  "branch": "codex/wallet-android-metamask-l1-20260822",
+  "source": {
+    "commit": "5bb596cd6d23d06eb8b6498a273fd3fb214041b8",
+    "tree": "07c525b7b957a0eb701271d46c0fb1c8ef687086"
+  },
+  "artifact": {
+    "classification": "localExactSourceArtifact",
+    "package": "com.ynxweb4.wallet",
+    "versionName": "1.0.1",
+    "versionCode": 2,
+    "sha256": "6eb8841150f3886ef8b1093adc3617a74a1108d0af758433d5d28c72331ef599",
+    "installedReadbackSha256": "6eb8841150f3886ef8b1093adc3617a74a1108d0af758433d5d28c72331ef599",
+    "bytes": 39021248,
+    "installedReadbackBytes": 39021248,
+    "minimumOS": "Android API 24",
+    "targetSdk": 36,
+    "abi": "arm64-v8a",
+    "signingClass": "disposable-qa-release-key",
+    "certificateSha256": "c8265c02d009877319ed1fc594d422455212e350ea8b2bcdabbe9bf7b3f211cf",
+    "apkSignatureSchemeV2": true,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "target": {
+    "kind": "isolated-android-emulator",
+    "avd": "YNX_WALLET_DAPP_PERSIST_53E2CB87_API36",
+    "profile": "Pixel9-profile-equivalent",
+    "api": 36,
+    "abi": "arm64-v8a",
+    "hardware": "qemu"
+  },
+  "installedReadiness": {
+    "exactAPKInstalled": true,
+    "packageIdentity": "com.ynxweb4.wallet",
+    "visibleWalletIdentity": "YNX Wallet",
+    "defaultLanguage": "en",
+    "firstColdLaunch": {
+      "passed": true,
+      "pid": 12277,
+      "launchState": "COLD",
+      "totalTimeMs": 632,
+      "crashBufferEntries": 0
+    },
+    "secondColdLaunch": {
+      "passed": true,
+      "pid": 12363,
+      "launchState": "COLD",
+      "totalTimeMs": 723,
+      "crashBufferEntries": 0
+    },
+    "resolverReadback": {
+      "ynxwalletAuthorize": 1,
+      "ynxwalletWalletConnect": 1,
+      "ynxwalletOpen": 1,
+      "activity": "com.ynxweb4.wallet.MainActivity",
+      "exported": true
+    },
+    "malformedWalletConnect": {
+      "failedClosed": true,
+      "singleWalletActivity": true,
+      "blankTabObserved": false,
+      "crashBufferEntries": 0
+    },
+    "malformedAuthorize": {
+      "failedClosed": true,
+      "singleWalletActivity": true,
+      "blankTabObserved": false,
+      "crashBufferEntries": 0
+    }
+  },
+  "failClosedCleanup": {
+    "accountPersisted": false,
+    "accountUsed": false,
+    "accountFunded": false,
+    "signingAttempted": false,
+    "packageDataClearResult": "Success",
+    "packageProcessPresentAfterClear": false,
+    "deviceSecretUiFilePresent": false,
+    "localSecretUiFilePresent": false,
+    "retainedSecretUiMatches": false,
+    "retainedSecretUiMatchFileBytes": 0,
+    "secretValuesRecordedInEvidence": false,
+    "rawEvidenceRoot": "/private/tmp/ynx-wallet-wc-5bb596cd-installed-evidence.Yy1lxy"
+  },
+  "runtimeTruth": {
+    "approvedAccountPresent": false,
+    "providerDiscoveredByDApp": false,
+    "ethRequestAccountsSucceeded": false,
+    "authorizeApproveCallbackSucceeded": false,
+    "authorizeRejectCallbackSucceeded": false,
+    "projectIDConfigured": false,
+    "realRelayConnected": false,
+    "pairingSucceeded": false,
+    "proposalVisible": false,
+    "proposalApproved": false,
+    "proposalRejected": false,
+    "sessionRestored": false,
+    "firstPartyDAppRuntime": false,
+    "externalDAppRuntimeCount": 0,
+    "chainIdReadback0x1917": false,
+    "accountsChangedObserved": false,
+    "chainChangedObserved": false,
+    "refreshPreservedAuthority": false,
+    "disconnectRevoked": false,
+    "personalSignSucceeded": false,
+    "eip712Succeeded": false,
+    "testnetSendCommitted": false
+  },
+  "singleExecutionBlocker": {
+    "id": "PROTECTED_ANDROID_WALLETCONNECT_OPERATOR_PACKAGE_UNAVAILABLE",
+    "summary": "One protected operator package is still required to supply the real Reown project and relay binding, an approved test-account reference through the existing signer, bounded confirmation authority for account approval, personal_sign, EIP-712 and one Testnet send, and the exact first-party, Uniswap, OpenSea and Safe execution URLs without exposing protected values."
+  }
+}
