@@ -40,6 +40,8 @@ jobs:
       YNX_NOTARY_KEY_ID: ${{ secrets.YNX_APPLE_NOTARY_KEY_ID }}
       YNX_NOTARY_ISSUER_ID: ${{ secrets.YNX_APPLE_NOTARY_ISSUER_ID }}
       YNX_NOTARY_PRIVATE_KEY_P8_BASE64: ${{ secrets.YNX_APPLE_NOTARY_PRIVATE_KEY_P8_BASE64 }}
+      YNX_WALLETCONNECT_PROJECT_ID: ${{ secrets.YNX_WALLETCONNECT_PROJECT_ID }}
+      YNX_WALLETCONNECT_APP_GROUP: ${{ secrets.YNX_WALLETCONNECT_APP_GROUP }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -65,6 +67,8 @@ jobs:
           [[ "$YNX_NOTARY_KEY_ID" =~ ^[A-Z0-9]{10}$ ]]
           [[ "$YNX_NOTARY_ISSUER_ID" =~ ^[0-9a-fA-F-]{36}$ ]]
           test -n "$YNX_NOTARY_PRIVATE_KEY_P8_BASE64"
+          [[ "$YNX_WALLETCONNECT_PROJECT_ID" =~ ^[0-9a-fA-F]{32}$ ]]
+          [[ "$YNX_WALLETCONNECT_APP_GROUP" =~ ^group\.[A-Za-z0-9.-]{3,120}$ ]]
           if git ls-remote --exit-code --tags origin "refs/tags/$YNX_RELEASE_TAG" >/dev/null 2>&1; then
             echo "release tag already exists; refusing replacement" >&2
             exit 1
@@ -121,22 +125,33 @@ jobs:
           APP_BUILD="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$PACKAGE/Info.plist")"
           DMG_NAME="YNX-Wallet-macOS-$APP_VERSION-universal-notarized.dmg"
           DMG="$PROOF/$DMG_NAME"
+          WALLETCONNECT_ENTITLEMENTS="$RUNNER_TEMP/ynx-wallet-walletconnect.entitlements"
           mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources" "$PROOF"
           swift build --package-path "$PACKAGE" --configuration release --triple arm64-apple-macosx13.0 --scratch-path "$ARM_SCRATCH"
           swift build --package-path "$PACKAGE" --configuration release --triple x86_64-apple-macosx13.0 --scratch-path "$X86_SCRATCH"
           ARM_BIN="$(swift build --package-path "$PACKAGE" --configuration release --triple arm64-apple-macosx13.0 --scratch-path "$ARM_SCRATCH" --show-bin-path)"
           X86_BIN="$(swift build --package-path "$PACKAGE" --configuration release --triple x86_64-apple-macosx13.0 --scratch-path "$X86_SCRATCH" --show-bin-path)"
           cp "$PACKAGE/Info.plist" "$APP/Contents/Info.plist"
+          /usr/libexec/PlistBuddy -c "Set :YNXWalletConnectProjectID $YNX_WALLETCONNECT_PROJECT_ID" "$APP/Contents/Info.plist"
+          /usr/libexec/PlistBuddy -c "Set :YNXWalletConnectAppGroup $YNX_WALLETCONNECT_APP_GROUP" "$APP/Contents/Info.plist"
+          cp "$PACKAGE/YNXWallet-WalletConnect.entitlements" "$WALLETCONNECT_ENTITLEMENTS"
+          /usr/libexec/PlistBuddy -c "Set :com.apple.security.application-groups:0 $YNX_WALLETCONNECT_APP_GROUP" "$WALLETCONNECT_ENTITLEMENTS"
           cp packages/wallet-auth/central-registry.json "$APP/Contents/Resources/central-registry.json"
           cp release/integration/wallet-auth-public-endpoint-service-discovery-matrix.json "$APP/Contents/Resources/wallet-auth-public-endpoint-service-discovery-matrix.json"
+          cp apps/wallet/REOWN_WALLETKIT_LICENSE.md "$APP/Contents/Resources/REOWN_WALLETKIT_LICENSE.md"
+          test -s "$APP/Contents/Resources/REOWN_WALLETKIT_LICENSE.md"
           lipo -create "$ARM_BIN/YNXWalletMac" "$X86_BIN/YNXWalletMac" -output "$APP/Contents/MacOS/YNXWalletMac"
           chmod 755 "$APP/Contents/MacOS/YNXWalletMac"
-          codesign --force --sign "$YNX_DEVELOPER_ID_APPLICATION" --keychain "$YNX_SIGNING_KEYCHAIN" --options runtime --timestamp "$APP"
+          codesign --force --sign "$YNX_DEVELOPER_ID_APPLICATION" --keychain "$YNX_SIGNING_KEYCHAIN" --options runtime --timestamp --entitlements "$WALLETCONNECT_ENTITLEMENTS" "$APP"
           codesign --verify --deep --strict --verbose=4 "$APP"
           codesign -dv --verbose=4 "$APP" 2> "$PROOF/codesign-before-notarization.txt"
           grep -F "Authority=$YNX_DEVELOPER_ID_APPLICATION" "$PROOF/codesign-before-notarization.txt"
           grep -F "TeamIdentifier=$YNX_APPLE_TEAM_ID" "$PROOF/codesign-before-notarization.txt"
           grep -F 'flags=0x10000(runtime)' "$PROOF/codesign-before-notarization.txt"
+          codesign -d --entitlements :- "$APP" > "$PROOF/entitlements.plist" 2> "$PROOF/entitlements-codesign.txt"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :com.apple.security.application-groups:0' "$PROOF/entitlements.plist")" = "$YNX_WALLETCONNECT_APP_GROUP"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :YNXWalletConnectAppGroup' "$APP/Contents/Info.plist")" = "$YNX_WALLETCONNECT_APP_GROUP"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :YNXWalletConnectProjectID' "$APP/Contents/Info.plist")" = "$YNX_WALLETCONNECT_PROJECT_ID"
           ditto -c -k --sequesterRsrc --keepParent "$APP" "$OUTPUT/app-submission.zip"
           xcrun notarytool submit "$OUTPUT/app-submission.zip" --key "$YNX_NOTARY_KEY_PATH" --key-id "$YNX_NOTARY_KEY_ID" --issuer "$YNX_NOTARY_ISSUER_ID" --wait --output-format json | tee "$PROOF/notarytool-app.json"
           jq -e '.status == "Accepted" and (.id | type == "string" and length > 0)' "$PROOF/notarytool-app.json" >/dev/null

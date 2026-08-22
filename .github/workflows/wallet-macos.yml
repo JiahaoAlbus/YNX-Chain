@@ -73,6 +73,9 @@ jobs:
             "$APP/Contents/Resources/wallet-auth-public-endpoint-service-discovery-matrix.json"
           cp "$GITHUB_WORKSPACE/packages/wallet-auth/central-registry.json" \
             "$APP/Contents/Resources/central-registry.json"
+          cp "$GITHUB_WORKSPACE/apps/wallet/REOWN_WALLETKIT_LICENSE.md" \
+            "$APP/Contents/Resources/REOWN_WALLETKIT_LICENSE.md"
+          test -s "$APP/Contents/Resources/REOWN_WALLETKIT_LICENSE.md"
           MATRIX="$APP/Contents/Resources/wallet-auth-public-endpoint-service-discovery-matrix.json"
           test "$(git hash-object "$MATRIX")" = d402fcdc844aa39bd5ee351a99d93acb4852dc37
           test "$(shasum -a 256 "$MATRIX" | awk '{print $1}')" = d344c607c2bbbf7bb0d9d3662b424976d0d6c4ff20428025dd1e2fb92bf31392

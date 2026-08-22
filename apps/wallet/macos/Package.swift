@@ -11,8 +11,19 @@ let package = Package(
     .executable(name: "YNXWalletMacRecoveryProbe", targets: ["YNXWalletMacRecoveryProbe"]),
     .executable(name: "YNXWalletMacGatewayProbe", targets: ["YNXWalletMacGatewayProbe"]),
   ],
+  dependencies: [
+    .package(url: "https://github.com/reown-com/reown-swift.git", exact: "2.3.1"),
+  ],
   targets: [
-    .target(name: "YNXWalletMacCore", resources: [.process("Resources")]),
+    .target(
+      name: "YNXWalletMacCore",
+      dependencies: [
+        .product(name: "WalletConnectNetworking", package: "reown-swift"),
+        .product(name: "WalletConnectPairing", package: "reown-swift"),
+        .product(name: "WalletConnect", package: "reown-swift"),
+      ],
+      resources: [.process("Resources")]
+    ),
     .executableTarget(name: "YNXWalletMac", dependencies: ["YNXWalletMacCore"]),
     .executableTarget(name: "YNXWalletMacSecurityProbe", dependencies: ["YNXWalletMacCore"]),
     .executableTarget(name: "YNXWalletMacRecoveryProbe", dependencies: ["YNXWalletMacCore"]),

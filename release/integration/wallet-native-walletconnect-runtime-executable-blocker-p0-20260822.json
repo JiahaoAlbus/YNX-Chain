@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "evidenceId": "WALLET-NATIVE-WALLETCONNECT-RUNTIME-EXECUTABLE-BLOCKER-P0-20260822",
   "owner": "02-wallet-auth-ios-macos-native",
-  "status": "BLOCKED_ON_SINGLE_PROTECTED_RUNTIME_PACKAGE",
-  "asOf": "2026-08-22T15:40:33+08:00",
+  "status": "BLOCKED_ON_SINGLE_PROTECTED_EXECUTION_BOUNDARY",
+  "asOf": "2026-08-22T18:10:00+08:00",
   "authoritativeInputs": {
     "centralP0": {
       "commit": "97a20044e640d57a658897d533da15e9270700cc",
@@ -16,15 +16,23 @@
       "path": "release/integration/wallet-standard-wallet-e2e-execution-plan-p0-20260822.json",
       "verification": "Standard Wallet E2E execution-plan gate passed for 12 registered products"
     },
+    "centralProtectedOperatorPackage": {
+      "commit": "1dedc4eaa4905ce8325d5764af8d7963b5ae3281",
+      "acceptanceBlob": "0b1f2811916cdb3eaa574700fedc6960685f8b12",
+      "acceptanceSHA256": "227bfa5cf395640bd8ba7cac45da5a2c62a97e688e9308ad2093c59c32f076f9",
+      "leaseIssued": false,
+      "rule": "P0-176 freezes the protected operator package but is not an execution lease; P0-175 currently holds Heavy"
+    },
     "reownSwift": {
       "repository": "https://github.com/reown-com/reown-swift.git",
       "version": "2.3.1",
       "tagObject": "968a82d440e51c4de18857928b60a03d36af7a2a",
       "requiredProducts": [
-        "ReownWalletKit",
         "WalletConnectNetworking",
-        "WalletConnectSign"
-      ]
+        "WalletConnectPairing",
+        "WalletConnect"
+      ],
+      "integrationBoundary": "Official Reown Swift WalletConnect v2 Networking, Pair and Sign modules only; Pay/Yttrium binary products are intentionally excluded from the native Sign/relay path"
     },
     "chain": {
       "cosmos": "ynx_6423-1",
@@ -63,6 +71,26 @@
         "name": "YNX_WALLETCONNECT_TEST_TX_POLICY",
         "purpose": "operator-approved Testnet recipient, maximum value and gas boundary",
         "valueRecorded": false
+      },
+      {
+        "name": "YNX_WALLETCONNECT_DAPP_FIRST_PARTY_URL",
+        "purpose": "exact approved first-party EVM DApp execution target",
+        "valueRecorded": false
+      },
+      {
+        "name": "YNX_WALLETCONNECT_DAPP_UNISWAP_URL",
+        "purpose": "operator-confirmed independently opened Uniswap execution target",
+        "valueRecorded": false
+      },
+      {
+        "name": "YNX_WALLETCONNECT_DAPP_OPENSEA_URL",
+        "purpose": "operator-confirmed independently opened OpenSea execution target",
+        "valueRecorded": false
+      },
+      {
+        "name": "YNX_WALLETCONNECT_DAPP_SAFE_URL",
+        "purpose": "operator-confirmed independently opened Safe execution target",
+        "valueRecorded": false
       }
     ],
     "requiredNonSecretReceipts": [
@@ -91,22 +119,24 @@
     "boundary": "Provider RDNS and Apple bundle identifiers are distinct identity fields. This blocker does not rename an Apple target, impersonate MetaMask or authorize a Universal Link/AASA route."
   },
   "directAudit": {
-    "ownerHead": "414d581d046adcf0fb255409224672945efea73f",
-    "reownSDKBundledMacOS": false,
-    "reownSDKBundledIOS": false,
+    "sourceParent": "65dffee2f35ec9dc254f8c2ac8c465a353bc1861",
+    "reownSDKBundledMacOS": true,
+    "reownSDKBundledIOS": true,
     "macosProjectIDConfigured": false,
     "iosProjectIDConfigured": false,
-    "iosApplicationGroupsEntitlementPresent": false,
+    "iosParameterizedApplicationGroupsEntitlementSourcePresent": true,
+    "iosSignedApplicationGroupsEntitlementProven": false,
     "eligiblePhysicalIOSInstallAvailable": false,
     "eligiblePublicMacOSInstallAvailable": false,
     "executionLeaseIssued": false,
     "auditBasis": [
-      "apps/wallet/macos/Package.swift has no Reown package dependency",
-      "apps/wallet/ios/YNXWallet.xcodeproj/project.pbxproj has no Reown package reference or product dependency",
-      "apps/wallet/macos/Info.plist contains an empty YNXWalletConnectProjectID",
-      "both iOS build configurations set YNX_WALLETCONNECT_PROJECT_ID to an empty string",
-      "apps/wallet/ios/YNXWallet/YNXWallet.entitlements is empty",
-      "Central P0-173 records heavy.owner=null and no execution lease"
+      "both Apple targets pin official Reown Swift 2.3.1 WalletConnect Networking and Sign products",
+      "both Apple targets include one shared native runtime for Pair, Sign, proposal, request, restore and disconnect",
+      "both applications retain empty project-ID and app-group defaults and fail closed without protected inputs",
+      "the parameterized WalletConnect entitlement source is not used by default Simulator/ad-hoc builds",
+      "no signer implementation or raw key is embedded; protected runtime must bind the existing native signer",
+      "the full Reown WalletKit license and required copyright notice are bundled as application resources",
+      "Central P0-176 is explicitly not a lease and records P0-175 as the current Heavy owner"
     ]
   },
   "authorizedExecutionAfterUnblock": {
@@ -128,7 +158,7 @@
     ]
   },
   "currentTruth": {
-    "sourceIntegrated": false,
+    "sourceIntegrated": true,
     "projectIDConfigured": false,
     "realRelayConnected": false,
     "pairingSucceeded": false,

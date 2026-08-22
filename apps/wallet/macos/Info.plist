@@ -14,6 +14,7 @@
   <key>LSMinimumSystemVersion</key><string>13.0</string>
   <key>NSHighResolutionCapable</key><true/>
   <key>YNXWalletConnectProjectID</key><string></string>
+  <key>YNXWalletConnectAppGroup</key><string></string>
   <key>CFBundleURLTypes</key>
   <array><dict>
     <key>CFBundleURLName</key><string>com.ynxweb4.wallet.authorization</string>

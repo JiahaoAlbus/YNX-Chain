@@ -1,4 +1,5 @@
 internal import Expo
+import Combine
 import Darwin
 import os
 import React
@@ -109,6 +110,10 @@ class AppDelegate: ExpoAppDelegate {
 
   var reactNativeDelegate: ExpoReactNativeFactoryDelegate?
   var reactNativeFactory: RCTReactNativeFactory?
+  private var walletConnectRuntime: WalletConnectRelayRuntime?
+  private var walletConnectSubscriptions = Set<AnyCancellable>()
+  private var presentedWalletConnectProposalIDs = Set<String>()
+  private var presentedWalletConnectRequestIDs = Set<String>()
 
   public override func application(
     _ application: UIApplication,
@@ -131,6 +136,13 @@ class AppDelegate: ExpoAppDelegate {
       launchOptions: launchOptions)
 #endif
 
+    configureWalletConnectRuntime()
+    if let launchURL = launchOptions?[.url] as? URL,
+       launchURL.scheme == "ynxwallet",
+       launchURL.host == "wc" {
+      handleWalletConnectURL(launchURL)
+    }
+
     Task { await verifyFrozenEndpointMatrixAndChain() }
 
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
@@ -143,6 +155,10 @@ class AppDelegate: ExpoAppDelegate {
     options: [UIApplication.OpenURLOptionsKey: Any] = [:]
   ) -> Bool {
     walletCallbackLogger.notice("YNX_WALLET_CALLBACK_RECEIVED pid=\(getpid(), privacy: .public) scheme=\(url.scheme ?? "unknown", privacy: .public)")
+    if url.scheme == "ynxwallet", url.host == "wc", walletConnectRuntime != nil {
+      handleWalletConnectURL(url)
+      return true
+    }
     let configuredProjectID = Bundle.main.object(forInfoDictionaryKey: "YNXWalletConnectProjectID") as? String
     let projectID = configuredProjectID?.isEmpty == false ? configuredProjectID : nil
     switch NativeWalletConnectInboundPolicy.evaluate(url.absoluteString, projectID: projectID) {
@@ -159,6 +175,139 @@ class AppDelegate: ExpoAppDelegate {
       presentNativeRejection(title: "Request rejected", code: code, walletConnect: false)
       return true
     }
+  }
+
+  private func configureWalletConnectRuntime() {
+    let projectID = (Bundle.main.object(forInfoDictionaryKey: "YNXWalletConnectProjectID") as? String)?
+      .trimmingCharacters(in: .whitespacesAndNewlines)
+    let appGroup = (Bundle.main.object(forInfoDictionaryKey: "YNXWalletConnectAppGroup") as? String)?
+      .trimmingCharacters(in: .whitespacesAndNewlines)
+    guard let projectID, !projectID.isEmpty else {
+      walletCallbackLogger.notice("YNX_WALLET_WALLETCONNECT_RUNTIME_BLOCKED pid=\(getpid(), privacy: .public) code=WALLETCONNECT_PROJECT_ID_UNAVAILABLE")
+      return
+    }
+    guard let appGroup, !appGroup.isEmpty else {
+      walletCallbackLogger.notice("YNX_WALLET_WALLETCONNECT_RUNTIME_BLOCKED pid=\(getpid(), privacy: .public) code=WALLETCONNECT_APP_GROUP_UNAVAILABLE")
+      return
+    }
+    guard let signer = WalletConnectNativeSignerRegistry.current else {
+      walletCallbackLogger.notice("YNX_WALLET_WALLETCONNECT_RUNTIME_BLOCKED pid=\(getpid(), privacy: .public) code=WALLETCONNECT_SIGNER_UNAVAILABLE")
+      return
+    }
+    do {
+      let runtime = try WalletConnectRelayRuntime(
+        configuration: WalletConnectRelayConfiguration(
+          projectID: projectID,
+          appGroup: appGroup
+        ),
+        signer: signer
+      )
+      walletConnectRuntime = runtime
+      subscribeToWalletConnectRuntime(runtime)
+      walletCallbackLogger.notice("YNX_WALLET_WALLETCONNECT_SDK_CONFIGURED pid=\(getpid(), privacy: .public) relay=false pairing=false approval=false")
+    } catch let error as WalletConnectRelayRuntimeError {
+      walletCallbackLogger.error("YNX_WALLET_WALLETCONNECT_RUNTIME_BLOCKED pid=\(getpid(), privacy: .public) code=\(error.rawValue, privacy: .public)")
+    } catch {
+      walletCallbackLogger.error("YNX_WALLET_WALLETCONNECT_RUNTIME_BLOCKED pid=\(getpid(), privacy: .public) code=WALLETCONNECT_CONFIGURATION_REJECTED")
+    }
+  }
+
+  @discardableResult
+  private func handleWalletConnectURL(_ url: URL) -> Bool {
+    guard let runtime = walletConnectRuntime else { return false }
+    Task { @MainActor [weak self] in
+      do {
+        try await runtime.pair(deepLink: url.absoluteString)
+        walletCallbackLogger.notice("YNX_WALLET_WALLETCONNECT_PAIRING_SUBMITTED pid=\(getpid(), privacy: .public) relayConnected=\(runtime.relayConnected, privacy: .public) approval=false callbackEmitted=false")
+      } catch let error as WalletConnectV2PolicyError {
+        self?.presentNativeRejection(title: "WalletConnect rejected", code: error.rawValue, walletConnect: true)
+      } catch let error as WalletConnectRelayRuntimeError {
+        self?.presentNativeRejection(title: "WalletConnect rejected", code: error.rawValue, walletConnect: true)
+      } catch {
+        self?.presentNativeRejection(title: "WalletConnect rejected", code: "WALLETCONNECT_PAIRING_REJECTED", walletConnect: true)
+      }
+    }
+    return true
+  }
+
+  private func subscribeToWalletConnectRuntime(_ runtime: WalletConnectRelayRuntime) {
+    runtime.$proposals
+      .receive(on: DispatchQueue.main)
+      .sink { [weak self, weak runtime] proposals in
+        guard let self, let runtime, let proposal = proposals.first,
+              presentedWalletConnectProposalIDs.insert(proposal.id).inserted else { return }
+        presentWalletConnectProposal(proposal, runtime: runtime)
+      }
+      .store(in: &walletConnectSubscriptions)
+
+    runtime.$requests
+      .receive(on: DispatchQueue.main)
+      .sink { [weak self, weak runtime] requests in
+        guard let self, let runtime, let request = requests.first,
+              presentedWalletConnectRequestIDs.insert(request.id).inserted else { return }
+        presentWalletConnectRequest(request, runtime: runtime)
+      }
+      .store(in: &walletConnectSubscriptions)
+  }
+
+  private func presentWalletConnectProposal(
+    _ proposal: WalletConnectProposalViewState,
+    runtime: WalletConnectRelayRuntime
+  ) {
+    presentWalletConnectDecision(
+      title: "Connect to \(proposal.dappName)?",
+      message: "\(proposal.dappURL)\n\nChain: \(proposal.chains.joined(separator: ", "))\nMethods: \(proposal.methods.joined(separator: ", "))",
+      approveTitle: "Approve",
+      approve: { try await runtime.approveProposal(id: proposal.id) },
+      reject: { try await runtime.rejectProposal(id: proposal.id) }
+    )
+  }
+
+  private func presentWalletConnectRequest(
+    _ request: WalletConnectRequestViewState,
+    runtime: WalletConnectRelayRuntime
+  ) {
+    presentWalletConnectDecision(
+      title: "Approve \(request.method)?",
+      message: "\(request.dappName)\n\(request.chainID)\n\n\(request.paramsJSON)",
+      approveTitle: request.method == "eth_sendTransaction" ? "Send on Testnet" : "Approve request",
+      approve: { try await runtime.approveRequest(id: request.id) },
+      reject: { try await runtime.rejectRequest(id: request.id) }
+    )
+  }
+
+  private func presentWalletConnectDecision(
+    title: String,
+    message: String,
+    approveTitle: String,
+    approve: @escaping () async throws -> Void,
+    reject: @escaping () async throws -> Void
+  ) {
+    guard let root = window?.rootViewController else {
+      walletCallbackLogger.error("YNX_WALLET_WALLETCONNECT_UI_UNAVAILABLE pid=\(getpid(), privacy: .public)")
+      return
+    }
+    var presenter = root
+    while let presented = presenter.presentedViewController { presenter = presented }
+    let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
+    alert.view.accessibilityIdentifier = "YNX WalletConnect decision"
+    alert.addAction(UIAlertAction(title: "Reject", style: .destructive) { [weak self] _ in
+      Task { @MainActor in
+        do { try await reject() }
+        catch { self?.presentNativeRejection(title: "WalletConnect rejected", code: "WALLETCONNECT_REJECTION_FAILED", walletConnect: true) }
+      }
+    })
+    alert.addAction(UIAlertAction(title: approveTitle, style: .default) { [weak self] _ in
+      Task { @MainActor in
+        do { try await approve() }
+        catch let error as WalletConnectRelayRuntimeError {
+          self?.presentNativeRejection(title: "WalletConnect rejected", code: error.rawValue, walletConnect: true)
+        } catch {
+          self?.presentNativeRejection(title: "WalletConnect rejected", code: "WALLETCONNECT_ACTION_REJECTED", walletConnect: true)
+        }
+      }
+    })
+    presenter.present(alert, animated: true)
   }
 
   private func presentNativeRejection(title: String, code: String, walletConnect: Bool) {

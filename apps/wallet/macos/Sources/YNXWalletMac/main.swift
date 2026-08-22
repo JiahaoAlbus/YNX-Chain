@@ -17,6 +17,15 @@ private func configuredWalletConnectProjectID() -> String? {
   return value
 }
 
+private func configuredWalletConnectAppGroup() -> String? {
+  guard let rawValue = Bundle.main.object(forInfoDictionaryKey: "YNXWalletConnectAppGroup") as? String else {
+    return nil
+  }
+  let value = rawValue.trimmingCharacters(in: .whitespacesAndNewlines)
+  guard !value.isEmpty, !value.contains("$(") else { return nil }
+  return value
+}
+
 @MainActor
 final class WalletState: ObservableObject {
   @Published var headline = "Wallet locked"
@@ -28,7 +37,40 @@ final class WalletState: ObservableObject {
   @Published var recoveryMaterialPresent = false
   @Published var recoveryOperationInProgress = false
   @Published var recoveryActionAvailable = false
+  @Published var walletConnectBoundary = "Protected WalletConnect project, App Group, and native signer are required."
+  @Published var walletConnectRuntime: WalletConnectRelayRuntime?
   private let recoveryVault = KeychainRecoveryVault()
+
+  func configureWalletConnect() {
+    guard walletConnectRuntime == nil else { return }
+    guard let projectID = configuredWalletConnectProjectID() else {
+      walletConnectBoundary = WalletConnectRelayRuntimeError.invalidProjectID.rawValue
+      return
+    }
+    guard let appGroup = configuredWalletConnectAppGroup() else {
+      walletConnectBoundary = WalletConnectRelayRuntimeError.invalidAppGroup.rawValue
+      return
+    }
+    guard let signer = WalletConnectNativeSignerRegistry.current else {
+      walletConnectBoundary = WalletConnectRelayRuntimeError.signerUnavailable.rawValue
+      return
+    }
+    do {
+      let runtime = try WalletConnectRelayRuntime(
+        configuration: WalletConnectRelayConfiguration(
+          projectID: projectID,
+          appGroup: appGroup
+        ),
+        signer: signer
+      )
+      walletConnectRuntime = runtime
+      walletConnectBoundary = "WalletConnect SDK configured · waiting for relay"
+    } catch let error as WalletConnectRelayRuntimeError {
+      walletConnectBoundary = error.rawValue
+    } catch {
+      walletConnectBoundary = "WALLETCONNECT_CONFIGURATION_REJECTED"
+    }
+  }
 
   func refreshSecurityBoundary() {
     let capability = DeviceSecurityProbe.run()
@@ -140,6 +182,23 @@ final class WalletState: ObservableObject {
   }
 
   func receive(_ rawValue: String) {
+    if let runtime = walletConnectRuntime,
+       URLComponents(string: rawValue)?.scheme == "ynxwallet",
+       URLComponents(string: rawValue)?.host == "wc" {
+      Task {
+        do {
+          try await runtime.pair(deepLink: rawValue)
+          walletConnectBoundary = runtime.status
+        } catch let error as WalletConnectV2PolicyError {
+          walletConnectBoundary = error.rawValue
+        } catch let error as WalletConnectRelayRuntimeError {
+          walletConnectBoundary = error.rawValue
+        } catch {
+          walletConnectBoundary = "WALLETCONNECT_PAIRING_REJECTED"
+        }
+      }
+      return
+    }
     switch CallbackPolicy.evaluate(
       rawValue,
       walletConnectProjectID: configuredWalletConnectProjectID()
@@ -176,6 +235,10 @@ struct WalletView: View {
       Text(state.networkBoundary).font(.callout.weight(.medium))
       Text(state.securityBoundary).font(.callout.weight(.medium))
       Text(state.recoveryBoundary).font(.callout.weight(.medium))
+      Text(state.walletConnectBoundary).font(.callout.weight(.medium))
+      if let runtime = state.walletConnectRuntime {
+        WalletConnectRuntimeView(runtime: runtime)
+      }
       Button(state.recoveryMaterialPresent ? "Rotate device recovery material" : "Prepare device recovery") {
         Task { await state.prepareDeviceRecovery() }
       }
@@ -191,6 +254,70 @@ struct WalletView: View {
   }
 }
 
+private struct WalletConnectRuntimeView: View {
+  @ObservedObject var runtime: WalletConnectRelayRuntime
+  @State private var actionError: String?
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 10) {
+      Text(runtime.status).font(.headline)
+      Text(runtime.relayConnected ? "Relay connected" : "Relay disconnected")
+        .foregroundStyle(runtime.relayConnected ? .green : .secondary)
+      if let proposal = runtime.proposals.first {
+        GroupBox("Connection proposal") {
+          VStack(alignment: .leading, spacing: 6) {
+            Text(proposal.dappName).font(.headline)
+            Text(proposal.dappURL).textSelection(.enabled)
+            Text("Chains: \(proposal.chains.joined(separator: ", "))")
+            Text("Methods: \(proposal.methods.joined(separator: ", "))")
+            HStack {
+              Button("Approve") { run { try await runtime.approveProposal(id: proposal.id) } }
+              Button("Reject") { run { try await runtime.rejectProposal(id: proposal.id) } }
+            }
+          }.padding(6)
+        }
+      }
+      if let request = runtime.requests.first {
+        GroupBox("Session request") {
+          VStack(alignment: .leading, spacing: 6) {
+            Text(request.dappName).font(.headline)
+            Text("\(request.method) · \(request.chainID)").textSelection(.enabled)
+            Text(request.paramsJSON).font(.system(.caption, design: .monospaced)).lineLimit(4)
+            HStack {
+              Button("Approve request") { run { try await runtime.approveRequest(id: request.id) } }
+              Button("Reject request") { run { try await runtime.rejectRequest(id: request.id) } }
+            }
+          }.padding(6)
+        }
+      }
+      ForEach(runtime.sessions) { session in
+        HStack {
+          VStack(alignment: .leading) {
+            Text(session.dappName).font(.headline)
+            Text(session.account).font(.system(.caption, design: .monospaced)).textSelection(.enabled)
+          }
+          Spacer()
+          Button("Disconnect") { run { try await runtime.disconnect(topic: session.topic) } }
+        }
+      }
+      if let actionError { Text(actionError).foregroundStyle(.red).textSelection(.enabled) }
+    }
+  }
+
+  private func run(_ operation: @escaping () async throws -> Void) {
+    Task {
+      do {
+        try await operation()
+        actionError = nil
+      } catch let error as WalletConnectRelayRuntimeError {
+        actionError = error.rawValue
+      } catch {
+        actionError = "WALLETCONNECT_ACTION_REJECTED"
+      }
+    }
+  }
+}
+
 @main
 struct YNXWalletMacApp: App {
   @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
@@ -199,6 +326,7 @@ struct YNXWalletMacApp: App {
   var body: some Scene {
     WindowGroup("YNX Wallet") {
       WalletView(state: state).onAppear {
+        state.configureWalletConnect()
         appDelegate.state = state
         state.refreshSecurityBoundary()
         Task { await state.refreshNetworkBoundary() }
@@ -254,10 +382,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
   private func deliver(_ rawValue: String) {
     let scheme = URLComponents(string: rawValue)?.scheme ?? "unknown"
     callbackLogger.notice("YNX_WALLET_MAC_CALLBACK_RECEIVED pid=\(getpid(), privacy: .public) scheme=\(scheme, privacy: .public)")
-    let decision = CallbackPolicy.evaluate(
-      rawValue,
-      walletConnectProjectID: configuredWalletConnectProjectID()
-    )
+    let runtimeAvailable = state?.walletConnectRuntime != nil
+    let walletConnectRoute = URLComponents(string: rawValue)?.scheme == "ynxwallet"
+      && URLComponents(string: rawValue)?.host == "wc"
+    let decision = runtimeAvailable && walletConnectRoute
+      ? CallbackDecision.home
+      : CallbackPolicy.evaluate(
+          rawValue,
+          walletConnectProjectID: configuredWalletConnectProjectID()
+        )
     if let state { state.receive(rawValue) } else { pendingCallbacks.enqueue(rawValue) }
     if case .rejected(let code) = decision {
       let walletConnect = code.hasPrefix("WALLETCONNECT_") || code.hasPrefix("INVALID_WALLETCONNECT_")

@@ -20,6 +20,11 @@
 		A60000000000000000000002 /* WalletConnectV2StateStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A60000000000000000000005 /* WalletConnectV2StateStore.swift */; };
 		A70000000000000000000001 /* WalletConnectInboundPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = A70000000000000000000005 /* WalletConnectInboundPolicy.swift */; };
 		A70000000000000000000002 /* WalletConnectInboundPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = A70000000000000000000005 /* WalletConnectInboundPolicy.swift */; };
+		B10000000000000000000001 /* WalletConnectRelayRuntime.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000002 /* WalletConnectRelayRuntime.swift */; };
+		B10000000000000000000004 /* WalletConnectNetworking in Frameworks */ = {isa = PBXBuildFile; productRef = B10000000000000000000012 /* WalletConnectNetworking */; };
+		B10000000000000000000005 /* WalletConnect in Frameworks */ = {isa = PBXBuildFile; productRef = B10000000000000000000013 /* WalletConnect */; };
+		B10000000000000000000009 /* WalletConnectPairing in Frameworks */ = {isa = PBXBuildFile; productRef = B10000000000000000000014 /* WalletConnectPairing */; };
+		B10000000000000000000007 /* REOWN_WALLETKIT_LICENSE.md in Resources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000008 /* REOWN_WALLETKIT_LICENSE.md */; };
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
@@ -47,6 +52,9 @@
 		A50000000000000000000005 /* WalletConnectV2Policy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = WalletConnectV2Policy.swift; path = ../macos/Sources/YNXWalletMacCore/WalletConnectV2Policy.swift; sourceTree = SOURCE_ROOT; };
 		A60000000000000000000005 /* WalletConnectV2StateStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = WalletConnectV2StateStore.swift; path = ../macos/Sources/YNXWalletMacCore/WalletConnectV2StateStore.swift; sourceTree = SOURCE_ROOT; };
 		A70000000000000000000005 /* WalletConnectInboundPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = WalletConnectInboundPolicy.swift; path = YNXWallet/WalletConnectInboundPolicy.swift; sourceTree = SOURCE_ROOT; };
+		B10000000000000000000002 /* WalletConnectRelayRuntime.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = WalletConnectRelayRuntime.swift; path = ../macos/Sources/YNXWalletMacCore/WalletConnectRelayRuntime.swift; sourceTree = SOURCE_ROOT; };
+		B10000000000000000000006 /* YNXWallet-WalletConnect.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; name = "YNXWallet-WalletConnect.entitlements"; path = "YNXWallet/YNXWallet-WalletConnect.entitlements"; sourceTree = SOURCE_ROOT; };
+		B10000000000000000000008 /* REOWN_WALLETKIT_LICENSE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; name = REOWN_WALLETKIT_LICENSE.md; path = ../REOWN_WALLETKIT_LICENSE.md; sourceTree = SOURCE_ROOT; };
 		13B07F961A680F5B00A75B9A /* YNXWallet.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = YNXWallet.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = YNXWallet/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = YNXWallet/Info.plist; sourceTree = "<group>"; };
@@ -69,6 +77,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B10000000000000000000004 /* WalletConnectNetworking in Frameworks */,
+				B10000000000000000000009 /* WalletConnectPairing in Frameworks */,
+				B10000000000000000000005 /* WalletConnect in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -95,6 +106,9 @@
 				A50000000000000000000005 /* WalletConnectV2Policy.swift */,
 				A60000000000000000000005 /* WalletConnectV2StateStore.swift */,
 				A70000000000000000000005 /* WalletConnectInboundPolicy.swift */,
+				B10000000000000000000002 /* WalletConnectRelayRuntime.swift */,
+				B10000000000000000000006 /* YNXWallet-WalletConnect.entitlements */,
+				B10000000000000000000008 /* REOWN_WALLETKIT_LICENSE.md */,
 				F11748442D0722820044C1D9 /* YNXWallet-Bridging-Header.h */,
 				BB2F792B24A3F905000567C9 /* Supporting */,
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
@@ -188,6 +202,11 @@
 			dependencies = (
 			);
 			name = YNXWallet;
+			packageProductDependencies = (
+				B10000000000000000000012 /* WalletConnectNetworking */,
+				B10000000000000000000014 /* WalletConnectPairing */,
+				B10000000000000000000013 /* WalletConnect */,
+			);
 			productName = YNXWallet;
 			productReference = 13B07F961A680F5B00A75B9A /* YNXWallet.app */;
 			productType = "com.apple.product-type.application";
@@ -219,6 +238,9 @@
 			);
 			mainGroup = 83CBB9F61A601CBA00E9B192;
 			productRefGroup = 83CBBA001A601CBA00E9B192 /* Products */;
+			packageReferences = (
+				B10000000000000000000010 /* XCRemoteSwiftPackageReference "reown-swift" */,
+			);
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -245,6 +267,7 @@
 				3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */,
 				A30000000000000000000002 /* wallet-auth-public-endpoint-service-discovery-matrix.json in Resources */,
 				A40000000000000000000002 /* central-registry.json in Resources */,
+				B10000000000000000000007 /* REOWN_WALLETKIT_LICENSE.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -338,6 +361,7 @@
 				A50000000000000000000001 /* WalletConnectV2Policy.swift in Sources */,
 				A60000000000000000000001 /* WalletConnectV2StateStore.swift in Sources */,
 				A70000000000000000000001 /* WalletConnectInboundPolicy.swift in Sources */,
+				B10000000000000000000001 /* WalletConnectRelayRuntime.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -413,6 +437,7 @@
 				TARGETED_DEVICE_FAMILY = "1,2";
 				CODE_SIGN_ENTITLEMENTS = YNXWallet/YNXWallet.entitlements;
 				YNX_WALLETCONNECT_PROJECT_ID = "";
+				YNX_WALLETCONNECT_APP_GROUP = "";
 			};
 			name = Debug;
 		};
@@ -443,6 +468,7 @@
 				TARGETED_DEVICE_FAMILY = "1,2";
 				CODE_SIGN_ENTITLEMENTS = YNXWallet/YNXWallet.entitlements;
 				YNX_WALLETCONNECT_PROJECT_ID = "";
+				YNX_WALLETCONNECT_APP_GROUP = "";
 			};
 			name = Release;
 		};
@@ -588,6 +614,35 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		B10000000000000000000010 /* XCRemoteSwiftPackageReference "reown-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/reown-com/reown-swift.git";
+			requirement = {
+				kind = exactVersion;
+				version = 2.3.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		B10000000000000000000012 /* WalletConnectNetworking */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B10000000000000000000010 /* XCRemoteSwiftPackageReference "reown-swift" */;
+			productName = WalletConnectNetworking;
+		};
+		B10000000000000000000013 /* WalletConnect */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B10000000000000000000010 /* XCRemoteSwiftPackageReference "reown-swift" */;
+			productName = WalletConnect;
+		};
+		B10000000000000000000014 /* WalletConnectPairing */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B10000000000000000000010 /* XCRemoteSwiftPackageReference "reown-swift" */;
+			productName = WalletConnectPairing;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 83CBB9F71A601CBA00E9B192 /* Project object */;
 }

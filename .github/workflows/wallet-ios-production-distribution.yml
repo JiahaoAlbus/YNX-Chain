@@ -128,6 +128,8 @@ jobs:
       YNX_ASC_KEY_ID: ${{ secrets.YNX_APP_STORE_CONNECT_KEY_ID }}
       YNX_ASC_ISSUER_ID: ${{ secrets.YNX_APP_STORE_CONNECT_ISSUER_ID }}
       YNX_ASC_PRIVATE_KEY_P8_BASE64: ${{ secrets.YNX_APP_STORE_CONNECT_PRIVATE_KEY_P8_BASE64 }}
+      YNX_WALLETCONNECT_PROJECT_ID: ${{ secrets.YNX_WALLETCONNECT_PROJECT_ID }}
+      YNX_WALLETCONNECT_APP_GROUP: ${{ secrets.YNX_WALLETCONNECT_APP_GROUP }}
       YNX_EXPECTED_SOURCE_SHA: ${{ inputs.expected_source_sha }}
       YNX_EXPECTED_RELEASE_TAG: ${{ inputs.expected_release_tag }}
       YNX_UPLOAD_TESTFLIGHT: ${{ inputs.upload_testflight }}
@@ -161,6 +163,8 @@ jobs:
           [[ "$YNX_ASC_KEY_ID" =~ ^[A-Z0-9]{10}$ ]]
           [[ "$YNX_ASC_ISSUER_ID" =~ ^[0-9a-fA-F-]{36}$ ]]
           test -n "$YNX_ASC_PRIVATE_KEY_P8_BASE64"
+          [[ "$YNX_WALLETCONNECT_PROJECT_ID" =~ ^[0-9a-fA-F]{32}$ ]]
+          [[ "$YNX_WALLETCONNECT_APP_GROUP" =~ ^group\.[A-Za-z0-9.-]{3,120}$ ]]
           APP_VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' apps/wallet/ios/YNXWallet/Info.plist)"
           BUILD_VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' apps/wallet/ios/YNXWallet/Info.plist)"
           EXPECTED_TAG="wallet-ios-appstore-v$APP_VERSION-$BUILD_VERSION-${YNX_EXPECTED_SOURCE_SHA:0:8}"
@@ -196,6 +200,7 @@ jobs:
           PROFILE_TEAM="$(/usr/libexec/PlistBuddy -c 'Print :TeamIdentifier:0' "$PROFILE_PLIST")"
           PROFILE_APP_ID="$(/usr/libexec/PlistBuddy -c 'Print :Entitlements:application-identifier' "$PROFILE_PLIST")"
           PROFILE_KEYCHAIN_GROUP="$(/usr/libexec/PlistBuddy -c 'Print :Entitlements:keychain-access-groups:0' "$PROFILE_PLIST")"
+          PROFILE_WALLETCONNECT_GROUP="$(/usr/libexec/PlistBuddy -c 'Print :Entitlements:com.apple.security.application-groups:0' "$PROFILE_PLIST")"
           PROFILE_GET_TASK_ALLOW="$(/usr/libexec/PlistBuddy -c 'Print :Entitlements:get-task-allow' "$PROFILE_PLIST")"
           PROFILE_BETA_REPORTS="$(/usr/libexec/PlistBuddy -c 'Print :Entitlements:beta-reports-active' "$PROFILE_PLIST")"
           PROFILE_UUID="$(/usr/libexec/PlistBuddy -c 'Print :UUID' "$PROFILE_PLIST")"
@@ -203,6 +208,7 @@ jobs:
           test "$PROFILE_TEAM" = "$YNX_APPLE_TEAM_ID"
           test "$PROFILE_APP_ID" = "$YNX_APPLE_TEAM_ID.com.ynxweb4.wallet"
           test "$PROFILE_KEYCHAIN_GROUP" = "$YNX_APPLE_TEAM_ID.com.ynxweb4.wallet"
+          test "$PROFILE_WALLETCONNECT_GROUP" = "$YNX_WALLETCONNECT_APP_GROUP"
           test "$PROFILE_GET_TASK_ALLOW" = false
           test "$PROFILE_BETA_REPORTS" = true
           ! /usr/libexec/PlistBuddy -c 'Print :ProvisionedDevices' "$PROFILE_PLIST" >/dev/null 2>&1
@@ -241,6 +247,9 @@ jobs:
             CODE_SIGN_STYLE=Manual \
             CODE_SIGN_IDENTITY="$YNX_IOS_DISTRIBUTION_IDENTITY" \
             PROVISIONING_PROFILE_SPECIFIER="$YNX_IOS_PROFILE_NAME" \
+            CODE_SIGN_ENTITLEMENTS=YNXWallet/YNXWallet-WalletConnect.entitlements \
+            YNX_WALLETCONNECT_PROJECT_ID="$YNX_WALLETCONNECT_PROJECT_ID" \
+            YNX_WALLETCONNECT_APP_GROUP="$YNX_WALLETCONNECT_APP_GROUP" \
             clean archive | tee "$PROOF/archive.log"
           plutil -create xml1 "$EXPORT_OPTIONS"
           plutil -insert method -string app-store-connect "$EXPORT_OPTIONS"
@@ -280,6 +289,9 @@ jobs:
           test "$(/usr/libexec/PlistBuddy -c 'Print :application-identifier' "$PROOF/entitlements.plist")" = "$YNX_APPLE_TEAM_ID.com.ynxweb4.wallet"
           test "$(/usr/libexec/PlistBuddy -c 'Print :com.apple.developer.team-identifier' "$PROOF/entitlements.plist")" = "$YNX_APPLE_TEAM_ID"
           test "$(/usr/libexec/PlistBuddy -c 'Print :keychain-access-groups:0' "$PROOF/entitlements.plist")" = "$YNX_APPLE_TEAM_ID.com.ynxweb4.wallet"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :com.apple.security.application-groups:0' "$PROOF/entitlements.plist")" = "$YNX_WALLETCONNECT_APP_GROUP"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :YNXWalletConnectAppGroup' "$APP/Info.plist")" = "$YNX_WALLETCONNECT_APP_GROUP"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :YNXWalletConnectProjectID' "$APP/Info.plist")" = "$YNX_WALLETCONNECT_PROJECT_ID"
           ! /usr/libexec/PlistBuddy -c 'Print :com.apple.developer.associated-domains' "$PROOF/entitlements.plist" >/dev/null 2>&1
           security cms -D -i "$APP/embedded.mobileprovision" > "$PROOF/embedded-profile.plist"
           test "$(/usr/libexec/PlistBuddy -c 'Print :UUID' "$PROOF/embedded-profile.plist")" = "$YNX_IOS_PROFILE_UUID"
