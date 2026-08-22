@@ -1,26 +1,26 @@
 {
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-  "epoch": 102,
-  "updatedAt": "2026-08-22T13:39:00Z",
+  "epoch": 103,
+  "updatedAt": "2026-08-22T14:08:30Z",
   "heavy": {
-    "owner": "calendar",
-    "status": "ACTIVE_SINGLE_USE",
+    "owner": null,
+    "status": "CONSUMED_RELEASED_FAILED_CLOSED_CALENDAR_PUBLIC_RECOVERY",
     "branch": "codex/calendar-fable5-completion-20260821",
     "worktree": null,
     "taskId": "P0-192",
     "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-calendar-7db160aa-inode-safe-public-recovery-20260822T133900Z",
     "leasedAt": "2026-08-22T13:39:00Z",
     "expiresAt": "2026-08-22T14:09:00Z",
-    "releasedAt": null,
+    "releasedAt": "2026-08-22T14:08:30Z",
     "previousOwner": null,
     "previousTaskId": "P0-191",
     "previousCheckpoint": "06c5eb2a2a3b58059ff8e173579da25898feaf25",
     "executionScope": "CALENDAR_ONLY_INODE_SAFE_ROLLBACK_FIRST_PUBLIC_RECOVERY",
-    "releaseReason": null,
+    "releaseReason": "The single inode-safe transaction committed and exact source 7db160aa plus all seven public HTTP resources are live. Mandatory direct browser visible gates could not run because every browser-control channel timed out before Calendar navigation; no unleased post-commit rollback was performed.",
     "onSafeCheckpoint": [
-      "consume the lease after the first attempt whether success or failure",
-      "return stopped-state inode plus paired backup and exact public evidence",
-      "do not perform account, signing, Caddy, DNS or other-product actions"
+      "preserve exact live source 7db160aa and paired rollback backup",
+      "P0-192 is consumed and nonreusable",
+      "future visible acceptance requires a functioning direct browser-control channel; no account or signing action"
     ]
   },
   "light": {
