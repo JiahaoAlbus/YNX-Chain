@@ -6834,6 +6834,52 @@
       "rollbackAttemptLimit": 1,
       "sensitiveActionsAllowed": false,
       "nextAction": "Card owner performs one exact build/deploy attempt, freezes the new deployment identity and completes only non-sensitive canonical HTTP/browser gates; rollback once on any failure, then consume/release P0-193."
+    },
+    {
+      "taskId": "P0-194",
+      "owner": "integration",
+      "status": "ROUTING_AUTHORITY_ACCEPTED_36_DOMAIN_DENOMINATOR_NO_EXECUTION_LEASE",
+      "paths": [
+        "release/integration/wallet-ecosystem-responsibility-registry-p0-20260822.json",
+        "release/integration/p0-wallet-connectivity/wallet-standard-parity-queue-20260822.json",
+        "release/integration/p0-wallet-connectivity/integration-queue.json"
+      ],
+      "dependencies": ["P0-191"],
+      "routerCommit": "994dd5735f5d5b0227e21ac4afaa5b79659607db",
+      "routerTree": "911be4b8a56bf0193fe0cd3e57953e4f5f629cf8",
+      "routerParent": "875be208e8a7ddb60345d55b93fc299949664e5c",
+      "registryBlob": "9345bc4dc705f9a261ddd9b085e33b0fe14d38ad",
+      "registrySha256": "6e17074bf013e2d5fb1f26f15c909f9ffc65bca2d639c2c5c811e621e5474a97",
+      "directE2EProductSubset": "0/12",
+      "responsibilityDomainAggregate": "0/36",
+      "classificationCounts": {
+        "interactiveWalletConsumer": "0/25",
+        "nonInteractiveProductSessionConsumer": "0/4",
+        "evidenceBackedNotApplicable": "0/7"
+      },
+      "mappingPolicy": "Owner threads are routing authority now; ownerBranch/ownedPaths remain null and mappingFrozen=false until each dedicated audit returns exact evidence. No source-only result changes completion.",
+      "calendarDirectBlocker": "DIRECT_CHROME_CALENDAR_PAGE_STATE_CONTROL_TIMEOUT_AFTER_PUBLIC_URL_TITLE_ENUMERATION",
+      "calendarPublicTitleUrlOnly": true,
+      "calendarBrowserVisibleLifecycle": false,
+      "developerPublicNonSensitiveIdentityProof": true,
+      "developerInjectedProviderLifecycle": false,
+      "developerBlocker": "NO_INJECTED_YNX_OR_METAMASK_PROVIDER_IN_CURRENT_BROWSER",
+      "paySource": "dbdd3491e63186cc02541ca7e8a20d8f098b31b9",
+      "payBlocker": "NEW_PAY_ONLY_NATIVE_PUBLIC_LEASE_WITH_CURRENT_RUNTIME_CANDIDATE_ROLLBACK_AND_EXECUTABLE_TARGET_REQUIRED",
+      "socialSource": "ecffe336a3a380e8b13b6a7926720efb1bfe4ae2",
+      "socialEvidence": "f0f1120000302a035b5f5f2dd6df5ff973457b36",
+      "socialReleaseAuthorized": false,
+      "socialBlocker": "IMMUTABLE_ARTIFACT_EXECUTOR_EXPIRY_CURRENT_DEPLOYED_IDENTITY_AND_EXACT_ROLLBACK_NOT_FROZEN",
+      "financeSuiteSourceOnly": {
+        "finance": "1bf30018",
+        "exchange": "a9cf3d86",
+        "dex": "c7a96d48",
+        "quant": "debc0dc2"
+      },
+      "sourceBoundPublicOrInstalledPromoted": false,
+      "executionLeaseIssued": false,
+      "heavyOwnerUnchanged": "card",
+      "nextAction": "Collect exact ownerBranch/ownedPaths and classification evidence from every dispatched audit, then freeze mappings without shrinking the 36-domain denominator. Separately adjudicate product-scoped release requests only after exact artifact/current-runtime/rollback binding."
     }
   ]
 }

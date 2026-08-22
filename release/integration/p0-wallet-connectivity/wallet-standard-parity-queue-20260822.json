@@ -12,6 +12,16 @@
       "tree": "3499ddfbe2a4bb08cbbcaef8c71b911aca51dde4",
       "sha256": "c5a615c9d5c34f25d9810751d816dc6709ca6de70aafea0549224de162c33652"
     },
+    "responsibilityRegistry36": {
+      "commit": "994dd5735f5d5b0227e21ac4afaa5b79659607db",
+      "tree": "911be4b8a56bf0193fe0cd3e57953e4f5f629cf8",
+      "parent": "875be208e8a7ddb60345d55b93fc299949664e5c",
+      "path": "release/integration/wallet-ecosystem-responsibility-registry-p0-20260822.json",
+      "blob": "9345bc4dc705f9a261ddd9b085e33b0fe14d38ad",
+      "sha256": "6e17074bf013e2d5fb1f26f15c909f9ffc65bca2d639c2c5c811e621e5474a97",
+      "routingAuthorityOnly": true,
+      "mappingFrozenOnlyAfterDedicatedAudit": true
+    },
     "standardWalletProtocol": {
       "commit": "66003e76e804da16d472255efde50cb879055b96",
       "contract": "packages/wallet-auth/integration/p0-wallet-connectivity-candidate.json"
@@ -84,6 +94,10 @@
     "externalDappsComplete": 0,
     "productsConnected": "0/12",
     "productsMigratedV2": "0/12",
+    "responsibilityDomainsComplete": "0/36",
+    "interactiveWalletConsumersComplete": "0/25",
+    "nonInteractiveProductSessionConsumersComplete": "0/4",
+    "evidenceBackedNotApplicableComplete": "0/7",
     "publicPackageTruthVerifiedAcrossPlatforms": false,
     "productionSignedAcrossPlatforms": false,
     "storeReleasedAcrossPlatforms": false,
