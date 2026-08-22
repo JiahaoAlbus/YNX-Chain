@@ -3,7 +3,7 @@ name: Wallet desktop Windows arm64
 on:
   workflow_dispatch:
   push:
-    branches: [codex/wallet-desktop-cli-sdk-20260813, codex/wallet-desktop-provider-authority-p0-20260822]
+    branches: [codex/wallet-desktop-cli-sdk-20260813]
     paths:
       - apps/wallet-desktop/**
       - packages/wallet-auth/**
