@@ -111,7 +111,6 @@ os.chmod(sys.argv[1],0o600)
 PY
 bash "$(dirname "$0")/finance-absent-state-rollback-command.sh" "$state_path" "$receipt_dir/candidate-created-state.json" "$receipt_dir/candidate-stopped.json" "$receipt_dir"
 
-find "$run_dir" -xdev -type f -print0 | sort -z | xargs -0 sha256sum >"$receipt_dir/SHA256SUMS"
 kill "$mock_pid"; wait "$mock_pid" 2>/dev/null || true; mock_pid=''
 test ! -e "$state_path" && test ! -L "$state_path"
 python3 - "$receipt_dir/cleanup.json" <<'PY'
@@ -120,3 +119,46 @@ with open(sys.argv[1],'x',encoding='utf-8') as f: json.dump({'schemaVersion':1,'
 os.chmod(sys.argv[1],0o600)
 PY
 echo "PREFLIGHT_OK receipts=$receipt_dir" >"$receipt_dir/result.txt"
+
+# The terminal receipt manifest is deliberately written last.  It covers only
+# retained receipt files, never itself or a temporary manifest, and validates
+# both every digest and the exact receipt-file set before reporting success.
+(
+  cd "$receipt_dir"
+  find . -xdev -type f ! -name SHA256SUMS ! -name .SHA256SUMS.tmp -print0 \
+    | LC_ALL=C sort -z | xargs -0 sha256sum > .SHA256SUMS.tmp
+  mv -f .SHA256SUMS.tmp SHA256SUMS
+)
+python3 - "$receipt_dir" <<'PY'
+import hashlib, os, pathlib, sys
+
+root = pathlib.Path(sys.argv[1]).resolve()
+manifest = root / 'SHA256SUMS'
+listed = {}
+for line in manifest.read_text(encoding='utf-8').splitlines():
+    digest, sep, name = line.partition('  ')
+    if not sep or len(digest) != 64 or any(ch not in '0123456789abcdef' for ch in digest):
+        raise SystemExit('invalid receipt SHA256SUMS entry')
+    path = pathlib.PurePosixPath(name)
+    if path.is_absolute() or '..' in path.parts or name in ('SHA256SUMS', '.SHA256SUMS.tmp') or name in listed:
+        raise SystemExit('unsafe or duplicate receipt SHA256SUMS path')
+    listed[name] = digest
+
+expected = {}
+for current, dirs, files in os.walk(root, followlinks=False):
+    for name in dirs + files:
+        candidate = pathlib.Path(current, name)
+        if candidate.is_symlink():
+            raise SystemExit('receipt tree contains symlink')
+    for name in files:
+        candidate = pathlib.Path(current, name)
+        relative = candidate.relative_to(root).as_posix()
+        if relative not in ('SHA256SUMS', '.SHA256SUMS.tmp'):
+            expected[relative] = candidate
+
+if set(listed) != set(expected):
+    raise SystemExit('receipt SHA256SUMS set mismatch')
+for relative, candidate in expected.items():
+    if hashlib.sha256(candidate.read_bytes()).hexdigest() != listed[relative]:
+        raise SystemExit('receipt SHA256SUMS digest mismatch')
+PY
