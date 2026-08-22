@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "owner": "Wallet Web/PWA/Extensions",
+  "supersedesFailedCandidate": "dpl_v77Zye3rVWn4P7jR1nWosNfV8dfg",
+  "source": {
+    "implementationCommit": "abe18043259374ee58f90580af582100ab0649cd",
+    "implementationTree": "ce40713603e80df14c35c5a8ad360d2dc619eb95",
+    "artifactEvidenceCommit": "6a5934e4c448c0dfea516950f53a35a8f5c5d7e1",
+    "artifactEvidenceTree": "92b5ef891bfb36c1ef6004eff685006c09a849aa",
+    "tests": "116/116",
+    "packages": "3/3",
+    "v8ToV11Runtime": true,
+    "tamperRollbackRecovery": true
+  },
+  "publicationPolicy": {
+    "file": "apps/wallet-web/public/vercel.json",
+    "builtFileBytes": 722,
+    "builtFileSha256": "65cea4c570a4416c1b606f3691cccc758db96d23ade377e20f16c3609321c355",
+    "noStorePaths": [
+      "/build-identity.json",
+      "/sw.js",
+      "/asset-integrity.js",
+      "/service-worker-policy.js"
+    ],
+    "sourceGatePassed": true,
+    "builtZipGatePassed": true,
+    "directCandidateHeaderGatePassed": false
+  },
+  "artifacts": [
+    {
+      "name": "ynx-wallet-web-pwa-0.1.0.zip",
+      "bytes": 285569,
+      "sha256": "fb6525430ba7432bc088a0a4b4b662c447419dc102f70fdb943f085cc3fd8b29",
+      "minimumOS": "modern browser with Service Worker and Web Crypto support",
+      "signingClass": "unsigned-web-bundle"
+    },
+    {
+      "name": "ynx-wallet-chrome-edge-0.1.0.zip",
+      "bytes": 468389,
+      "sha256": "0f6a43b6910541e17c0121201c33935443633df843bcd34ba5d6f572ff021eba",
+      "minimumOS": "Chrome 120 / Edge 120",
+      "signingClass": "unsigned-unpacked-extension"
+    },
+    {
+      "name": "ynx-wallet-firefox-0.1.0.zip",
+      "bytes": 468428,
+      "sha256": "4e7ff14727943808e4229b5c2f255dc48b3ed94ef02cb3fdd6be20223b229af5",
+      "minimumOS": "Firefox 128",
+      "signingClass": "unsigned-unpacked-extension"
+    }
+  ],
+  "candidate": {
+    "deploymentId": "dpl_AqRgvgb2fwb23fQb4GDN3Qg1vCmN",
+    "immutableUrl": "https://wallet-3tjtzd8sy-jiahaoalbus-projects.vercel.app",
+    "projectId": "prj_K4emrdkST7sdb0K9mhmLM0QZh0I3",
+    "status": "READY",
+    "target": "production",
+    "officialAliasMutated": false,
+    "expectedResources": {
+      "/": {"bytes": 821, "sha256": "2df10866a35b074a6fb366439197646dd4e979bc83bdae3aba0ba6db3802986c"},
+      "/build-identity.json": {"bytes": 267, "sha256": "7d40d0e536dcc7cdf90aba0279670dd727d7c573d8eeb1e23b4d9c89a9979294", "cacheControlMustContain": "no-store"},
+      "/manifest.webmanifest": {"bytes": 632, "sha256": "d2d131267483327ece949c5b8402c2dd80352bb15e791ea5571c879682ceba92"},
+      "/sw.js": {"bytes": 4509, "sha256": "9c54d420a14a3e0843b8d55449eee9117dd3fe0193dd79d87ac3b9232a106715", "cacheControlMustContain": "no-store"}
+    },
+    "directRawHeadersProved": false,
+    "cleanHostedChromiumProved": false,
+    "sourceBoundPublic": false
+  },
+  "releaseGates": {
+    "officialPublic": false,
+    "installedProvider": false,
+    "accountAuthorized": false,
+    "messageSigned": false,
+    "transactionSubmitted": false,
+    "productsConnected": "0/12"
+  },
+  "singleExecutableBlocker": {
+    "request": "Issue one wholly new bounded hosted Chromium immutable-candidate preflight lease for P0-183.",
+    "onlyWritablePath": ".github/workflows/wallet-web-public-preflight-p0.yml",
+    "hardcodedUrl": "https://wallet-3tjtzd8sy-jiahaoalbus-projects.vercel.app",
+    "execution": "Precheck SSO and official old identity; disable SSO once; one exact workflow-only force=false push; bind one push run; restore SSO once on every terminal path; verify official alias unchanged.",
+    "requiredEvidence": "Four raw HTTP 200 resources with complete headers/bodies/bytes/SHA and exact abe18043259374ee58f90580af582100ab0649cd identity; build identity and sw Cache-Control contain no-store; clean persistent hosted Chromium first launch, seeded same-origin v8 cache cleanup to v11, closed process, second launch, one tab, stable immutable URL, normal Wallet UI, console0, screenshots, DOM, registrations, cache and controller version.",
+    "artifactIsolation": "Create a new empty output directory under RUNNER_TEMP and upload only files generated during this run; never upload the repository evidence directory.",
+    "forbidden": "No workflow_dispatch, retry, secrets, inputs, dynamic URL, alias, source/UI/deployment, install, account, signing or transaction mutation."
+  }
+}
