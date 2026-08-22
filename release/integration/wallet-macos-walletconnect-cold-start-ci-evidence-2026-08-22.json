@@ -1,0 +1,113 @@
+{
+  "schemaVersion": "ynx.wallet.macos.walletconnect-cold-start-ci-evidence.v1",
+  "recordedAt": "2026-08-22T06:46:00Z",
+  "scope": "HOSTED_CI_AND_MAIN_REGISTRATION",
+  "implementation": {
+    "branch": "codex/wallet-ios-macos-20260813",
+    "commit": "130a30d4392b0439aaa3abe360e0aa83d686ec76",
+    "tree": "4de0947aa25a12e33b52dcd80d672959fea74528",
+    "parent": "5d57ba0706b0b77c1b323c5eebdad4dddbb83e63",
+    "workflowBlob": "e3b3e1109910f55d5068e2611494274dcbf87c72",
+    "callbackPolicyTestsBlob": "ecd2f642b1f6017d35fa456ee75edd4dd2680cb2"
+  },
+  "walletMacOSRun": {
+    "runId": 32557680654,
+    "jobId": 96994354463,
+    "headSha": "130a30d4392b0439aaa3abe360e0aa83d686ec76",
+    "status": "completed",
+    "conclusion": "success",
+    "createdAt": "2026-08-22T06:42:56Z",
+    "startedAt": "2026-08-22T06:42:59Z",
+    "completedAt": "2026-08-22T06:45:17Z",
+    "publishEngineeringDMGJob": "skipped",
+    "tests": {
+      "passed": 29,
+      "failed": 0,
+      "coldStartInboxPreservesAuthAndWalletConnectOrder": true
+    },
+    "lifecycle": {
+      "initialColdPID": 5889,
+      "secondPID": 5924,
+      "sameSecondPIDCanonicalWalletConnectVisibleFailClosed": true,
+      "malformedAuthorizationColdStartPID": 6268,
+      "widenedAuthorizationColdStartPID": 6440,
+      "walletConnectColdStartPID": 6472,
+      "walletConnectColdStartPIDIsNew": true,
+      "walletConnectColdStart": {
+        "launchedByWalletConnect": true,
+        "callbackReceived": true,
+        "scheme": "ynxwallet",
+        "host": "wc",
+        "error": "WALLETCONNECT_PROJECT_ID_UNAVAILABLE",
+        "visible": true,
+        "projectID": false,
+        "relay": false,
+        "pairing": false,
+        "approval": false,
+        "callbackEmitted": false,
+        "screenshotCaptured": true,
+        "screenshotInspected": false
+      }
+    }
+  },
+  "artifact": {
+    "actionsArtifactId": 9471914586,
+    "name": "ynx-wallet-macos-native",
+    "bytes": 2732835,
+    "actionsDigest": "sha256:cf871e23a8fc3e6f7ba7016b369443a77e87f6b51bcde59eba2a5b269c00e3a4",
+    "downloadAttempted": false,
+    "downloadInspected": false,
+    "engineeringDMG": {
+      "sha256FromPublicActionsLog": "ceaa67743203cc9d55301ab2a7eb5ff527463e171bbba43fde32960803bddf1d",
+      "bytesFromPublicActionsLog": 675656,
+      "checksumValid": true
+    },
+    "platform": "macOS",
+    "minimumOS": "13.0",
+    "architectures": ["x86_64", "arm64"],
+    "bundleIdentifier": "com.ynxweb4.wallet.macos",
+    "customScheme": "ynxwallet",
+    "strictDeepCodesign": true,
+    "signingClass": "AD_HOC",
+    "teamIdentifier": null,
+    "gatekeeperAccepted": false,
+    "developerIDSigned": false,
+    "notarized": false,
+    "stapled": false,
+    "publicRelease": false
+  },
+  "verifiedEngineeringCapabilities": {
+    "walletConnectCallbackColdStartsIsolatedInstalledMacApp": true,
+    "coldStartPendingInboxDeliversWalletConnectCallback": true,
+    "sameColdStartPIDLaunchReceiveRejectAndVisibleUI": true,
+    "missingProjectIDFailsClosed": true
+  },
+  "unprovedGates": {
+    "realReownProjectID": false,
+    "relayConnection": false,
+    "pairing": false,
+    "sessionApprovalRuntime": false,
+    "sessionRejectRuntime": false,
+    "sessionRestoreRuntime": false,
+    "firstPartyDAppRuntime": false,
+    "externalDAppRuntime": false,
+    "installedProvider": false,
+    "walletConnectSuccessCallback": false,
+    "authorizationSuccess": false,
+    "approvedAccount": false,
+    "signRuntime": false,
+    "eip712Runtime": false,
+    "sendTransactionRuntime": false,
+    "physicalBiometric": false,
+    "productRecovery": false,
+    "universalLink": false,
+    "systemApplicationsInstall": false,
+    "browserQuarantineAccepted": false,
+    "developerIDSigned": false,
+    "notarized": false,
+    "stapled": false,
+    "publicNativeWalletPublished": false,
+    "downloadHosted": false,
+    "appStore": false
+  }
+}
