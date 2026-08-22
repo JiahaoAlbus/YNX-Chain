@@ -7101,7 +7101,7 @@
     {
       "taskId": "P0-200",
       "owner": "social",
-      "status": "ACTIVE_SINGLE_USE",
+      "status": "CONSUMED_RELEASED_FAILED_CLOSED_SOCIAL_HOSTED_BROWSER_CONSOLE_404_AND_CORS",
       "paths": [
         "release/integration/p0-wallet-connectivity/execution/p0-200-social-immutable-candidate-hosted-preflight-lease-20260822.json",
         "branch:codex/social-release-evidence-ecffe336:.github/workflows/social-public-candidate-preflight-p0.yml",
@@ -7126,7 +7126,21 @@
       "deploymentAllowed": false,
       "aliasAllowed": false,
       "sensitiveActionsAllowed": false,
-      "nextAction": "Execute the sole literal force=false push, bind exactly one push-triggered hosted run, collect the isolated raw/browser artifact, then release success or fail closed without retry."
+      "releasedAt": "2026-08-22T16:57:27Z",
+      "runId": 32586176352,
+      "jobId": 97062767937,
+      "runConclusion": "failure",
+      "artifactId": 9479099175,
+      "artifactBytes": 403209,
+      "hostedJsonSha256": "a3c3200a76e57089e333dcf53bcd12498a8bd4a368bdce7953b241e33d81e373",
+      "rawResourceGatePassed": true,
+      "distinctWalletIdentityAndDisconnectedStatePassed": true,
+      "browserGatePassed": false,
+      "consoleFailure": "FAVICON_404_AND_PRIVATE_SERVICE_HEALTH_CORS_ERR_FAILED",
+      "officialCanonicalDeployment": "dpl_2sei8CpmoN1Gi5YKnc6FdvNRyXGy",
+      "officialCanonicalUnchanged": true,
+      "officialSourceBoundPublic": false,
+      "nextAction": "Do not reuse P0-200. Social owner must add an existing favicon and replace or remove the CORS-unsafe direct private-service health probe with a truthful accepted CORS-safe or same-origin strategy, then freeze new source/carrier/candidate before any successor hosted preflight or alias request."
     }
   ]
 }

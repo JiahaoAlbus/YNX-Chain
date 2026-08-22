@@ -427,12 +427,12 @@
     }
   ],
   "heavy": {
-    "owner": "social",
-    "taskId": "P0-200",
-    "status": "ACTIVE_SINGLE_USE",
+    "owner": null,
+    "taskId": null,
+    "status": "IDLE",
     "acquiredAt": "2026-08-22T16:53:00Z",
     "expiresAt": "2026-08-22T17:23:00Z",
-    "releasedAt": null,
+    "releasedAt": "2026-08-22T16:57:27Z",
     "sourceCommit": "d9337ddc5ffcbddaad463eef968c3d52c05272dc",
     "evidenceCommit": "28a03c49e2f8dd76b750e65d8f24299706233fc1",
     "runtimeHost": "ynx-social-mo3j03lc9-jiahaoalbus-projects.vercel.app",
@@ -444,8 +444,8 @@
     "reusable": false,
     "previousOwner": "social",
     "previousTaskId": "P0-199",
-    "reviewDecision": "GO_SOCIAL_ONLY_DIRECT_HOSTED_IMMUTABLE_CANDIDATE_PREFLIGHT",
-    "reason": "P0-199 is terminal and released. The complete workflow-only bundle, exact remote parent, sole path, hardcoded candidate, six resource hashes and non-sensitive browser tripwires were independently verified. Authority is limited to one literal push and one hosted run; deployment, alias and sensitive actions are forbidden."
+    "reviewDecision": "CONSUMED_RELEASED_FAILED_CLOSED_SOCIAL_HOSTED_BROWSER_CONSOLE_404_AND_CORS",
+    "reason": "The unique hosted run proved all six immutable resources and the non-sensitive distinct-wallet/disconnected browser state, but console0 failed on the missing favicon and a CORS-unsafe private-service health fetch. No deployment or alias was authorized or executed; the official alias remains on exact rollback dpl_2sei8CpmoN1Gi5YKnc6FdvNRyXGy."
   },
   "wave": {
     "id": "B-financial-apps-quant",
