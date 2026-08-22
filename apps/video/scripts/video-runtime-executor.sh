@@ -76,6 +76,7 @@ if [[ "$action" == "deploy" ]]; then
   creator_before=$(probe creator | shasum -a 256 | awk '{print $1}')
   previous=""
   if [[ -L "$current" ]]; then previous=$(readlink "$current"); fi
+  [[ -n "$previous" ]] || { echo "frozen previous Viewer target required" >&2; exit 65; }
 
   mkdir -p "$releases"
   staging="$releases/.${release_id}.staging.$$"
@@ -89,6 +90,17 @@ if [[ "$action" == "deploy" ]]; then
   trap - EXIT
 
   replace_link "$candidate" "$current"
+  switched=true
+  fail_closed_deploy() {
+    local code=$?
+    trap - ERR
+    if [[ "${switched:-false}" == "true" && -n "$previous" ]]; then
+      replace_link "$previous" "$current" || true
+      restart_viewer || true
+    fi
+    exit "$code"
+  }
+  trap fail_closed_deploy ERR
   restart_viewer
   probe viewer >/dev/null
   api_after=$(probe api | shasum -a 256 | awk '{print $1}')
@@ -97,6 +109,7 @@ if [[ "$action" == "deploy" ]]; then
 
   printf 'source_commit=%s\nrelease_id=%s\ncandidate=%s\nprevious=%s\ncarrier_sha256=%s\napi_sha256=%s\ncreator_sha256=%s\n' \
     "$source_commit" "$release_id" "$candidate" "$previous" "$expected_sha" "$api_after" "$creator_after" > "$receipt"
+  trap - ERR
   exit 0
 fi
 

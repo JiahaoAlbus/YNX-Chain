@@ -4,6 +4,8 @@ import {mkdtempSync, mkdirSync, readFileSync, symlinkSync, writeFileSync, chmodS
 import {tmpdir} from "node:os";
 import {join, resolve} from "node:path";
 import test from "node:test";
+import {once} from "node:events";
+import {spawn} from "node:child_process";
 
 const videoRoot = resolve(import.meta.dirname);
 const repoRoot = resolve(videoRoot, "../..");
@@ -17,6 +19,27 @@ test("runtime topology isolates Viewer 6494 from API 6493 and Creator 6495", () 
   assert.equal(topology.creator.mutationAllowed, false);
   assert.equal(topology.viewer.currentLink, "/opt/ynx-video-viewer-wallet/current");
   assert.ok(topology.forbiddenPaths.includes("/opt/ynx-video/current"));
+});
+
+test("self-contained server serves the public /video path without a shared release symlink", async () => {
+  const port = 16000 + Math.floor(Math.random() * 1000);
+  const child = spawn(process.execPath, [join(videoRoot, "server.mjs")], {
+    cwd: videoRoot,
+    env: {...process.env, PORT: String(port)},
+    stdio: ["ignore", "pipe", "pipe"]
+  });
+  try {
+    await Promise.race([
+      once(child.stdout, "data"),
+      new Promise((_, reject) => setTimeout(() => reject(new Error("server readiness timeout")), 3000))
+    ]);
+    const response = await fetch(`http://127.0.0.1:${port}/video/`);
+    assert.equal(response.status, 200);
+    assert.match(await response.text(), /YNX Video/);
+  } finally {
+    child.kill("SIGTERM");
+    await once(child, "exit");
+  }
 });
 
 test("runtime carrier rebuild is byte-identical and normalized", () => {
