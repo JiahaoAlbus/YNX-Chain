@@ -4,6 +4,28 @@
   "version": "1.18.0",
   "locks": [
     {
+      "path": "{production:host:43.153.202.237:caddy-pay-publication,production:/etc/caddy/ynx-chain.caddy,production:/opt/ynx-pay-web/releases/pay-web-5f4ce98e-release1,production:/opt/ynx-pay-web/incoming/pay-web-5f4ce98e-release1,route:https://pay.ynxweb4.com/**,branch:codex/p0-pay-wallet-connectivity-20260821:.github/workflows/pay-web-hosted-browser-preflight-p0226.yml,branch:codex/p0-pay-wallet-connectivity-20260821:apps/pay/evidence/pay-web-production-public-lease-request-p0228-20260823.json,branch:codex/p0-pay-wallet-connectivity-20260821:apps/pay/PAY_P0228_PRODUCTION_HOSTED_BROWSER_LEASE_REQUEST_20260823.md,local:/tmp/ynx-pay-p0228-public-release-20260823T000000Z}",
+      "owner": "pay",
+      "branch": "codex/p0-pay-wallet-connectivity-20260821",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/04-pay-p0-clean",
+      "taskId": "P0-229",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "ACTIVE_SINGLE_USE",
+      "acquiredAt": "2026-08-22T23:52:00Z",
+      "expiresAt": "2026-08-23T00:52:00Z",
+      "sourceCommit": "5f4ce98eb458550b976c17e3bc6d77cce4081a59",
+      "sourceTree": "8f0c25c4d86eb22a564f3c7aeff9db6709a9b9f0",
+      "evidenceCommit": "e29611c9d2bab70dceafb22185c8dfbff3135f26",
+      "artifactSha256": "ae552951d8e569f04aced60db69e3c11422910cc1098a6e7061b0e84005ad09e",
+      "productionMutationAllowed": true,
+      "allowedExceptions": [
+        "one exact Pay deploy command after all prechecks",
+        "one literal force=false push only after deploy success",
+        "one push-triggered official-domain hosted run",
+        "at most one exact rollback after any deploy, raw, push, run, artifact or browser failure"
+      ]
+    },
+    {
       "path": "{apps/card/**,production:vercel-project:prj_DU37JeDK4Rx0MjxIV745veV5Qgxp,production:https://card.ynxweb4.com/**}",
       "owner": "card",
       "branch": "codex/p0-card-wallet-parity-20260822",
