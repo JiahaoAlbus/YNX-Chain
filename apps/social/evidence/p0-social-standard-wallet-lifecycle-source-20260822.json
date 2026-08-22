@@ -1,0 +1,101 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "product": "social",
+  "scope": "source-and-tests-only",
+  "observedAt": "2026-08-22T13:40:30Z",
+  "authorities": {
+    "routerE2E": {
+      "commit": "875be208e8a7ddb60345d55b93fc299949664e5c",
+      "tree": "3499ddfbe2a4bb08cbbcaef8c71b911aca51dde4",
+      "consumption": "semantic contract implemented; direct installed/public E2E remains required"
+    },
+    "sharedProvider": {
+      "commit": "98c6d5d784d212df8981a53b17118a511e246ad2",
+      "tree": "51a60a362d4ad5dd748bcdefb101f71b1d9e0cee",
+      "consumption": "provider discovery and standard connect-state semantics implemented"
+    }
+  },
+  "source": {
+    "branch": "codex/p0-social-runtime-reconciliation-20260821",
+    "commit": "ecffe336a3a380e8b13b6a7926720efb1bfe4ae2",
+    "tree": "a7289a70cb7464b4debdb24163f93572194681eb"
+  },
+  "implemented": {
+    "independentProviderIdentity": true,
+    "ynxProvider": {
+      "name": "YNX Wallet",
+      "rdns": "com.ynx.wallet",
+      "logo": "assets/ynx-wallet.svg"
+    },
+    "metaMaskProvider": {
+      "name": "MetaMask",
+      "rdns": "io.metamask",
+      "logo": "assets/metamask.svg"
+    },
+    "dualIdentityClaimFailsClosed": true,
+    "eip6963RepeatedDiscovery": true,
+    "lateInjectionDelaysMs": [0, 250, 750, 1500],
+    "ethereumInitializedReread": true,
+    "domContentLoadedReread": true,
+    "providersArrayFallback": true,
+    "rootEthereumFallback": true,
+    "refreshUsesEthAccountsAndChainIdOnly": true,
+    "requiredChainId": "0x1917",
+    "canonicalRpc": "https://rpc.ynxweb4.com/evm",
+    "accountChangedHandled": true,
+    "chainChangedHandled": true,
+    "providerDisconnectHandled": true,
+    "switchAccountControl": true,
+    "revokePermissionControl": true,
+    "disconnectControl": true,
+    "connectedAccountOpensDetails": true,
+    "privateServiceDegradationPreservesStandardWallet": true,
+    "customSchemeUsed": false,
+    "windowOpenUsed": false,
+    "blankTargetUsed": false
+  },
+  "files": {
+    "apps/social/web/app.js": "73ee268d130ebf396dee6d4d94131197bedd0784e0571057f70f99e9caa5e346",
+    "apps/social/web/index.html": "0133e7a4a65f19b6965afd20ba47b87c3dcba196ee9eeb185c76e39e1786e8ed",
+    "apps/social/web/styles.css": "1f80ec6b7ab8c2ff0d1d66edf083d301af89386c802483733fd670a5ada26c42",
+    "apps/social/web/wallet-provider.js": "d8df8193407f835ff16913417acca0db2ae1f091defc16e0b29a98996ffdea75",
+    "apps/social/web/wallet-provider.test.mjs": "fa3dcfe572460bd1bdbcf0e61842bddaf1f78e267be8896a08ee6251e5d13e0a",
+    "apps/social/web/assets/ynx-wallet.svg": "e92207903e61b41c7a662e57e2a3bcfd84627b49c22a29e9240d5eafcd0229fb",
+    "apps/social/web/assets/metamask.svg": "f761f46f4fe7052a84b47cf23b63c2f20cc3d043df640b7f79c2adcb245e5f21"
+  },
+  "verification": {
+    "webWalletTests": "8/8 pass",
+    "socialTests": "21/21 pass",
+    "typecheck": "pass",
+    "smoke": "pass",
+    "bundleCheck": "pass",
+    "diffCheck": "pass"
+  },
+  "publicReadback": {
+    "url": "https://social.ynxweb4.com/",
+    "httpStatus": 200,
+    "htmlBytes": 5563,
+    "htmlSha256": "ce6f038a1171d0597398f13895e714f62d5e00ab00c9748b337861c9f248abee",
+    "walletProviderSha256": "b405f714903990576f3308ddffd05ab7d1bd3f57a8639c3b70a6f91c4205bd02",
+    "sourceBoundToThisCommit": false,
+    "reason": "The public HTML and wallet-provider.js are the previous source and do not include this lifecycle fix."
+  },
+  "truth": {
+    "sourceComplete": true,
+    "testsComplete": true,
+    "sourceBoundPublic": false,
+    "installedProviderVerified": false,
+    "accountApprovalVerified": false,
+    "accountRejectionVerified": false,
+    "switchAccountRuntimeVerified": false,
+    "disconnectRuntimeVerified": false,
+    "revokeRuntimeVerified": false,
+    "signatureVerified": false,
+    "typedDataVerified": false,
+    "transactionVerified": false,
+    "walletConnectRuntimeVerified": false,
+    "productComplete": false
+  },
+  "singleExecutableBlocker": "A new Social-only deployment lease must bind source ecffe336a3a380e8b13b6a7926720efb1bfe4ae2 and the current rollback deployment, publish it to social.ynxweb4.com, then prove the non-sensitive public chooser, distinct identities/logos, late injection, refresh, details, no blank tab and private-service degradation isolation before any user-approved account/signature/transaction action."
+}
