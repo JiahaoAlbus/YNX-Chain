@@ -831,6 +831,14 @@ test("owner checkpoint separates Wallet public artifacts from approval and Produ
   assert.equal(platform.latestMacosOwnerEvidence.nativeWalletConnectCanonicalDigestAndApprovedAccount.persistedUppercaseApprovedAccountFailsClosedAsCorrupt, true);
   assert.equal(platform.latestMacosOwnerEvidence.nativeWalletConnectCanonicalDigestAndApprovedAccount.relay, false);
   assert.equal(platform.latestMacosOwnerEvidence.nativeWalletConnectCanonicalDigestAndApprovedAccount.authorization, false);
+  assert.equal(platform.latestMacosOwnerEvidence.nativeWalletConnectControlCharacterRequestId.ownerCommit, "a3f27e542b9606d4dd3c15a4a4173de53a23e74e");
+  assert.equal(platform.latestMacosOwnerEvidence.nativeWalletConnectControlCharacterRequestId.hostedPassed, true);
+  assert.equal(platform.latestMacosOwnerEvidence.nativeWalletConnectControlCharacterRequestId.macCoreTests, "37/37");
+  assert.equal(platform.latestMacosOwnerEvidence.nativeWalletConnectControlCharacterRequestId.walletConnectStateTests, "13/13");
+  assert.equal(platform.latestMacosOwnerEvidence.nativeWalletConnectControlCharacterRequestId.runtimeControlCharacterRequestIdRejected, true);
+  assert.equal(platform.latestMacosOwnerEvidence.nativeWalletConnectControlCharacterRequestId.persistedControlCharacterRequestIdFailsClosedAsCorrupt, true);
+  assert.equal(platform.latestMacosOwnerEvidence.nativeWalletConnectControlCharacterRequestId.existingMaxRequestIdBytes, 128);
+  assert.equal(platform.latestMacosOwnerEvidence.nativeWalletConnectControlCharacterRequestId.relay, false);
   assert.equal(platform.modifiedByProtocolOwner, false);
   assert.equal(ownerActivityCheckpoint.summary.threeSegmentCompleteProducts, 0);
 });
@@ -887,6 +895,11 @@ test("Central released Finance and Explorer paths plus P0-150 parity are tracked
   assert.equal(auditV3.standardWalletParityConformance.nativeWalletConnectCanonicalDigestAndApprovedAccount.uppercaseRuntimeDigestRejected, true);
   assert.equal(auditV3.standardWalletParityConformance.nativeWalletConnectCanonicalDigestAndApprovedAccount.persistedUppercaseApprovedAccountFailsClosedAsCorrupt, true);
   assert.equal(auditV3.standardWalletParityConformance.nativeWalletConnectCanonicalDigestAndApprovedAccount.realDappRuntime, false);
+  assert.equal(auditV3.standardWalletParityConformance.nativeWalletConnectControlCharacterRequestId.ownerCommit, "a3f27e542b9606d4dd3c15a4a4173de53a23e74e");
+  assert.equal(auditV3.standardWalletParityConformance.nativeWalletConnectControlCharacterRequestId.hostedPassed, true);
+  assert.equal(auditV3.standardWalletParityConformance.nativeWalletConnectControlCharacterRequestId.runtimeControlCharacterRequestIdRejected, true);
+  assert.equal(auditV3.standardWalletParityConformance.nativeWalletConnectControlCharacterRequestId.persistedControlCharacterRequestIdFailsClosedAsCorrupt, true);
+  assert.equal(auditV3.standardWalletParityConformance.nativeWalletConnectControlCharacterRequestId.realDappRuntime, false);
 });
 
 test("Central P0-155 makes installed E2E the only interoperability completion tier", () => {
