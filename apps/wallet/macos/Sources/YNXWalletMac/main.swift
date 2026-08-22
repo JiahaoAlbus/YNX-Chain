@@ -8,6 +8,15 @@ private let callbackLogger = Logger(subsystem: "com.ynxweb4.wallet.macos", categ
 private let networkLogger = Logger(subsystem: "com.ynxweb4.wallet.macos", category: "network")
 private let recoveryLogger = Logger(subsystem: "com.ynxweb4.wallet.macos", category: "recovery")
 
+private func configuredWalletConnectProjectID() -> String? {
+  guard let rawValue = Bundle.main.object(forInfoDictionaryKey: "YNXWalletConnectProjectID") as? String else {
+    return nil
+  }
+  let value = rawValue.trimmingCharacters(in: .whitespacesAndNewlines)
+  guard !value.isEmpty, !value.contains("$(") else { return nil }
+  return value
+}
+
 @MainActor
 final class WalletState: ObservableObject {
   @Published var headline = "Wallet locked"
@@ -131,14 +140,20 @@ final class WalletState: ObservableObject {
   }
 
   func receive(_ rawValue: String) {
-    switch CallbackPolicy.evaluate(rawValue) {
+    switch CallbackPolicy.evaluate(
+      rawValue,
+      walletConnectProjectID: configuredWalletConnectProjectID()
+    ) {
     case .home:
       headline = "Wallet locked"
       detail = "No authorization request is active."
       errorCode = nil
     case .rejected(let code):
-      headline = "Request rejected"
-      detail = "The request failed closed before key access, signing, network submission, or callback."
+      let walletConnect = code.hasPrefix("WALLETCONNECT_") || code.hasPrefix("INVALID_WALLETCONNECT_")
+      headline = walletConnect ? "WalletConnect unavailable" : "Request rejected"
+      detail = walletConnect
+        ? "WalletConnect stopped before relay, pairing, approval, account access, signing, transaction submission, or callback."
+        : "The request failed closed before key access, signing, network submission, or callback."
       errorCode = code
     }
   }
@@ -239,11 +254,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
   private func deliver(_ rawValue: String) {
     let scheme = URLComponents(string: rawValue)?.scheme ?? "unknown"
     callbackLogger.notice("YNX_WALLET_MAC_CALLBACK_RECEIVED pid=\(getpid(), privacy: .public) scheme=\(scheme, privacy: .public)")
-    let decision = CallbackPolicy.evaluate(rawValue)
+    let decision = CallbackPolicy.evaluate(
+      rawValue,
+      walletConnectProjectID: configuredWalletConnectProjectID()
+    )
     if let state { state.receive(rawValue) } else { pendingCallbacks.enqueue(rawValue) }
     if case .rejected(let code) = decision {
-      NSApp.mainWindow?.title = "Request rejected · \(code)"
-      callbackLogger.notice("YNX_WALLET_MAC_CALLBACK_REJECTED pid=\(getpid(), privacy: .public) code=\(code, privacy: .public)")
+      let walletConnect = code.hasPrefix("WALLETCONNECT_") || code.hasPrefix("INVALID_WALLETCONNECT_")
+      NSApp.mainWindow?.title = walletConnect
+        ? "WalletConnect unavailable · \(code)"
+        : "Request rejected · \(code)"
+      callbackLogger.notice(
+        "YNX_WALLET_MAC_CALLBACK_REJECTED pid=\(getpid(), privacy: .public) code=\(code, privacy: .public) relay=false pairing=false approval=false callbackEmitted=false"
+      )
     }
   }
 }

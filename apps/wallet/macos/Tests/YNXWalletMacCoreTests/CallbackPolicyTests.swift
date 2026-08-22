@@ -2,6 +2,10 @@ import XCTest
 @testable import YNXWalletMacCore
 
 final class CallbackPolicyTests: XCTestCase {
+  private let walletConnectProjectID = "0123456789abcdef0123456789abcdef"
+  private let walletConnectTopic = String(repeating: "a", count: 64)
+  private let walletConnectSymKey = String(repeating: "b", count: 64)
+
   func testFreshRecoveryVaultIsAbsentWithoutAuthentication() throws {
     let vault = KeychainRecoveryVault(
       service: "com.ynxweb4.wallet.macos.tests",
@@ -38,6 +42,54 @@ final class CallbackPolicyTests: XCTestCase {
     XCTAssertEqual(CallbackPolicy.evaluate(""), .rejected(code: "INVALID_CALLBACK_ROUTE"))
     XCTAssertEqual(CallbackPolicy.evaluate("ynxwallet://authorize"), .rejected(code: "INVALID_AUTHORIZATION_REQUEST"))
     XCTAssertEqual(CallbackPolicy.evaluate("ynxwallet://authorize?unknown=value"), .rejected(code: "INVALID_AUTHORIZATION_REQUEST"))
+  }
+
+  func testWalletConnectRouteFailsClosedWithoutProjectIDOrRelayAdapter() {
+    let pairing = "wc:\(walletConnectTopic)@2?symKey=\(walletConnectSymKey)&relay-protocol=irn&expiryTimestamp=2000000000"
+    let encoded = pairing.addingPercentEncoding(withAllowedCharacters: .alphanumerics)!
+    let callback = "ynxwallet://wc?uri=\(encoded)"
+
+    XCTAssertEqual(
+      CallbackPolicy.evaluate(callback, now: Date(timeIntervalSince1970: 1_900_000_000)),
+      .rejected(code: "WALLETCONNECT_PROJECT_ID_UNAVAILABLE")
+    )
+    XCTAssertEqual(
+      CallbackPolicy.evaluate(
+        callback,
+        walletConnectProjectID: walletConnectProjectID,
+        now: Date(timeIntervalSince1970: 1_900_000_000)
+      ),
+      .rejected(code: "WALLETCONNECT_RELAY_UNAVAILABLE")
+    )
+  }
+
+  func testWalletConnectRouteRejectsWideningAndExpiredPairingURI() {
+    let pairing = "wc:\(walletConnectTopic)@2?symKey=\(walletConnectSymKey)&relay-protocol=irn"
+    let encoded = pairing.addingPercentEncoding(withAllowedCharacters: .alphanumerics)!
+    XCTAssertEqual(
+      CallbackPolicy.evaluate(
+        "ynxwallet://wc/path?uri=\(encoded)",
+        walletConnectProjectID: walletConnectProjectID
+      ),
+      .rejected(code: "INVALID_WALLETCONNECT_DEEP_LINK")
+    )
+    XCTAssertEqual(
+      CallbackPolicy.evaluate(
+        "ynxwallet://wc?uri=\(encoded)&uri=\(encoded)",
+        walletConnectProjectID: walletConnectProjectID
+      ),
+      .rejected(code: "INVALID_WALLETCONNECT_DEEP_LINK")
+    )
+    let expired = "wc:\(walletConnectTopic)@2?symKey=\(walletConnectSymKey)&relay-protocol=irn&expiryTimestamp=100"
+    let expiredEncoded = expired.addingPercentEncoding(withAllowedCharacters: .alphanumerics)!
+    XCTAssertEqual(
+      CallbackPolicy.evaluate(
+        "ynxwallet://wc?uri=\(expiredEncoded)",
+        walletConnectProjectID: walletConnectProjectID,
+        now: Date(timeIntervalSince1970: 101)
+      ),
+      .rejected(code: "WALLETCONNECT_PAIRING_EXPIRED")
+    )
   }
 
   func testColdStartInboxPreservesTwoCallbacksInOrder() {

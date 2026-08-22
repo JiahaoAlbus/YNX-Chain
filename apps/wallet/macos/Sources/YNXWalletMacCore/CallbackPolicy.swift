@@ -23,10 +23,34 @@ public struct PendingCallbackInbox: Equatable, Sendable {
 }
 
 public enum CallbackPolicy {
-  public static func evaluate(_ rawValue: String) -> CallbackDecision {
+  public static func evaluate(
+    _ rawValue: String,
+    walletConnectProjectID: String? = nil,
+    now: Date = Date()
+  ) -> CallbackDecision {
     guard let components = URLComponents(string: rawValue),
-          components.scheme == "ynxwallet",
-          components.host == "authorize",
+          components.scheme == "ynxwallet" else {
+      return .rejected(code: "INVALID_CALLBACK_ROUTE")
+    }
+
+    if components.host == "wc" {
+      do {
+        _ = try WalletConnectV2Policy.parseDeepLink(
+          rawValue,
+          projectID: walletConnectProjectID,
+          now: now
+        )
+        // Parsing is not a relay connection. Runtime remains closed until
+        // the accepted adapter and a real Reown project ID are supplied.
+        return .rejected(code: "WALLETCONNECT_RELAY_UNAVAILABLE")
+      } catch let error as WalletConnectV2PolicyError {
+        return .rejected(code: error.rawValue)
+      } catch {
+        return .rejected(code: "INVALID_WALLETCONNECT_DEEP_LINK")
+      }
+    }
+
+    guard components.host == "authorize",
           components.path.isEmpty,
           components.fragment == nil else {
       return .rejected(code: "INVALID_CALLBACK_ROUTE")

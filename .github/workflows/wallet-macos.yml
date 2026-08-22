@@ -433,6 +433,43 @@ jobs:
             "$SECOND_PID" | tee "$PROOF/canonical-enabled-callback.txt"
           screencapture -x "$PROOF/canonical-enabled-callback-fail-closed.png"
           test -s "$PROOF/canonical-enabled-callback-fail-closed.png"
+          WC_TOPIC="$(printf 'a%.0s' {1..64})"
+          WC_SYMKEY="$(printf 'b%.0s' {1..64})"
+          WC_URI="wc:${WC_TOPIC}@2?symKey=${WC_SYMKEY}&relay-protocol=irn&expiryTimestamp=2000000000"
+          WC_CALLBACK="ynxwallet://wc?uri=$(python3 -c 'import sys, urllib.parse; print(urllib.parse.quote(sys.argv[1], safe=""))' "$WC_URI")"
+          open "$WC_CALLBACK" > "$PROOF/open-walletconnect-callback.txt"
+          WALLETCONNECT_SEEN=false
+          WALLETCONNECT_UI=false
+          for _ in $(seq 1 60); do
+            xcrun log show --style compact --last 5m \
+              --predicate 'subsystem == "com.ynxweb4.wallet.macos" AND category == "callback"' \
+              > "$PROOF/walletconnect-callback-native.log" 2>&1 || true
+            if test "$(grep -Fc "YNX_WALLET_MAC_CALLBACK_RECEIVED pid=$SECOND_PID scheme=ynxwallet" "$PROOF/walletconnect-callback-native.log")" -ge 4 && \
+               grep -Fq "YNX_WALLET_MAC_CALLBACK_REJECTED pid=$SECOND_PID code=WALLETCONNECT_PROJECT_ID_UNAVAILABLE relay=false pairing=false approval=false callbackEmitted=false" \
+                 "$PROOF/walletconnect-callback-native.log"; then
+              WALLETCONNECT_SEEN=true
+            fi
+            osascript <<'APPLESCRIPT' > "$PROOF/walletconnect-callback-ui.txt" 2>/dev/null || true
+          tell application "System Events"
+            tell process "YNXWalletMac"
+              set frontmost to true
+              return name of every static text of window 1
+            end tell
+          end tell
+          APPLESCRIPT
+            if grep -Fq 'WalletConnect unavailable' "$PROOF/walletconnect-callback-ui.txt" && \
+               grep -Fq 'WALLETCONNECT_PROJECT_ID_UNAVAILABLE' "$PROOF/walletconnect-callback-ui.txt"; then
+              WALLETCONNECT_UI=true
+            fi
+            if test "$WALLETCONNECT_SEEN" = true && test "$WALLETCONNECT_UI" = true; then break; fi
+            sleep 1
+          done
+          test "$WALLETCONNECT_SEEN" = true
+          test "$WALLETCONNECT_UI" = true
+          printf 'pid=%s canonicalWalletConnect=true projectID=false relay=false pairing=false approval=false callbackEmitted=false error=WALLETCONNECT_PROJECT_ID_UNAVAILABLE visible=true\n' \
+            "$SECOND_PID" | tee "$PROOF/walletconnect-callback-fail-closed.txt"
+          screencapture -x "$PROOF/walletconnect-callback-fail-closed.png"
+          test -s "$PROOF/walletconnect-callback-fail-closed.png"
           kill "$SECOND_PID"
           for _ in $(seq 1 30); do
             kill -0 "$SECOND_PID" 2>/dev/null || break
