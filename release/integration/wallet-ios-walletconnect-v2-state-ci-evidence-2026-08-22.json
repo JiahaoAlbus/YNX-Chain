@@ -1,0 +1,112 @@
+{
+  "schemaVersion": "ynx.wallet.ios.walletconnect-v2-state-ci-evidence.v1",
+  "recordedAt": "2026-08-22T06:13:34Z",
+  "scope": "HOSTED_CI_AND_MAIN_REGISTRATION",
+  "implementation": {
+    "branch": "codex/wallet-ios-macos-20260813",
+    "commit": "e829f38b9f35d47be1afd924cf609cf2e59e3be7",
+    "tree": "fc2186ed1da178d5bd911e36143e79713834e412",
+    "parent": "cdac464e9fd09c42ad921e5a9d7f5304b912348d",
+    "workflowBlob": "899ef1b2e5371023ea0332bc58936aea7bffed1c",
+    "projectBlob": "f753dad44e4d4fae16b5f7320807c762b69863dc",
+    "uiTestBlob": "712de35932bb7a20cfd85be5bdb1bd19c4607cdf"
+  },
+  "walletIOSRun": {
+    "runId": 32554682866,
+    "jobId": 96986893611,
+    "headSha": "e829f38b9f35d47be1afd924cf609cf2e59e3be7",
+    "status": "completed",
+    "conclusion": "failure",
+    "startedAt": "2026-08-22T05:34:08Z",
+    "completedAt": "2026-08-22T06:13:33Z",
+    "walletConnectDecisionStateStep": {
+      "number": 18,
+      "name": "Prove native WalletConnect decisions persist without claiming relay runtime",
+      "startedAt": "2026-08-22T06:01:48Z",
+      "completedAt": "2026-08-22T06:03:28Z",
+      "conclusion": "success",
+      "test": "YNXWalletUITests.MalformedCallbackUITests.testWalletConnectPendingDecisionsRestoreAndFailClosedWithoutRelay",
+      "testDurationSeconds": 0.980,
+      "signpost": "YNX_WALLETCONNECT_NATIVE_STATE_CONTRACT firstParty=true external=true restart=true approve=true reject=true personalSign=true eip712=true send=true disconnect=true revoke=true relay=false"
+    },
+    "otherDirectSteps": {
+      "xcode263SimulatorBuild": true,
+      "simulatorInstallColdSecondLaunchAndGateway": true,
+      "malformedCallbackFailClosed": true,
+      "canonicalAuthorizationBridgeFailClosed": true,
+      "universalLinkNegative": true,
+      "recoveryWithoutAuthorizationEmpty": true,
+      "positiveBiometricRecoveryAndUnlock": false
+    },
+    "terminalFailureBoundary": {
+      "stepNumber": 21,
+      "test": "testRecoveryAndUnlockWithSimulatedBiometricMatches",
+      "sourceLine": 173,
+      "assertion": "Matched Simulator biometric did not persist and lock the recovered account",
+      "biometricRecoveryPositive": false,
+      "biometricUnlockPositive": false
+    }
+  },
+  "productionDistributionRun": {
+    "runId": 32554682869,
+    "headSha": "e829f38b9f35d47be1afd924cf609cf2e59e3be7",
+    "status": "completed",
+    "conclusion": "success",
+    "sourceContract": "success",
+    "cleanupRuntimeWithoutProductionCredentials": "success",
+    "distribution": "skipped",
+    "productionCredentialsUsed": false,
+    "archive": false,
+    "ipa": false,
+    "upload": false
+  },
+  "artifact": {
+    "id": 9471537155,
+    "name": "ynx-wallet-ios-simulator",
+    "bytes": 101593011,
+    "actionsDigest": "sha256:20f2c5ba8af3b57b2add94a3dc44939fe62897f9fe94579fe77ce072e31d35b8",
+    "downloadInspected": false,
+    "platform": "iOS Simulator",
+    "minimumOS": "16.4",
+    "architecturesFromBuild": ["arm64", "x86_64"],
+    "bundleIdentifier": "com.ynxweb4.wallet",
+    "signingClass": "AD_HOC_SIMULATOR_SIGN_TO_RUN_LOCALLY",
+    "teamIdentifier": "FAKETEAMID",
+    "productionSigned": false,
+    "appStoreArtifact": false
+  },
+  "verifiedEngineeringCapabilities": {
+    "firstPartyDecisionState": true,
+    "externalDAppDecisionState": true,
+    "pendingProposalRestartRestore": true,
+    "explicitApproved0xAccountBoundary": true,
+    "accountSubstitutionRejected": true,
+    "personalSignResultValidation": true,
+    "eip712ResultValidation": true,
+    "sendTransactionResultValidation": true,
+    "userReject4001": true,
+    "disconnectAndRevokePurgeAcrossRestart": true,
+    "missingProjectIDFailsClosed": true
+  },
+  "unprovedGates": {
+    "realReownProjectID": false,
+    "relayConnection": false,
+    "pairing": false,
+    "sessionApprovalRuntime": false,
+    "sessionRejectRuntime": false,
+    "sessionRestoreRuntime": false,
+    "firstPartyDAppRuntime": false,
+    "externalDAppRuntime": false,
+    "installedProvider": false,
+    "signRuntime": false,
+    "eip712Runtime": false,
+    "sendTransactionRuntime": false,
+    "biometricRecovery": false,
+    "authorizationSuccess": false,
+    "universalLink": false,
+    "publicNativeWalletPublished": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "appStore": false
+  }
+}
