@@ -75,8 +75,14 @@ jobs:
           $createGate = Join-Path $env:RUNNER_TEMP 'wallet-desktop-create-gate.json'
           node apps/wallet-desktop/scripts/provider-authority-ui-gate.mjs $targets create | Set-Content $createGate
           $created = Get-Content $createGate -Raw | ConvertFrom-Json
-          $coldEvidence = Get-Content $env:EVIDENCE -Raw | ConvertFrom-Json
-          if (-not $created.visibleAuthority -or -not $created.osEncryptedCustodyVisible -or -not $created.walletConnectFailClosedVisible -or $created.walletConnectConfigured -or -not $coldEvidence.providerAuthority.accountCreated -or $coldEvidence.providerAuthority.approvedAccount -ne $created.account -or -not $coldEvidence.signingEnabled) { throw 'provider authority creation gate failed' }
+          for ($i=0; $i -lt 30; $i++) {
+            $coldEvidence = Get-Content $env:EVIDENCE -Raw | ConvertFrom-Json
+            if ($coldEvidence.providerAuthority.accountCreated -and $coldEvidence.providerAuthority.approvedAccount -eq $created.account -and $coldEvidence.signingEnabled) { break }
+            Start-Sleep -Milliseconds 500
+          }
+          if (-not $created.visibleAuthority -or -not $created.osEncryptedCustodyVisible -or -not $created.walletConnectFailClosedVisible -or $created.walletConnectConfigured -or -not $coldEvidence.providerAuthority.accountCreated -or $coldEvidence.providerAuthority.approvedAccount -ne $created.account -or -not $coldEvidence.signingEnabled) {
+            throw "provider authority creation gate failed: ui=$($created | ConvertTo-Json -Compress -Depth 8) evidence=$($coldEvidence | ConvertTo-Json -Compress -Depth 8)"
+          }
           Stop-Process -Id $cold.Id -Force
 
           Remove-Item $targets -ErrorAction SilentlyContinue
