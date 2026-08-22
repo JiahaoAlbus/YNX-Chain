@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "requestId": "P0-149-SHOP-ROLLBACK-FIRST-20260822",
-  "status": "NO_GO_AWAITING_CENTRAL_LEASE",
+  "status": "PENDING_NEW_CENTRAL_SINGLE_USE_ROLLBACK_FIRST_LEASE",
   "scope": "YNX Shop only",
   "source": {
     "commit": "80212e16d6b504f0363cda523b705907c2b56073",
@@ -56,7 +56,7 @@
     }
   },
   "centralRequiredRollbackInputs": {
-    "freshBackupPath": "/var/backups/ynx-shop/predeploy-80212e16d6b504f0363cda523b705907c2b56073.tar.gz",
+    "freshBackupPath": "/var/backups/ynx-shop/predeploy-80212e16d6b504f0363cda523b705907c2b56073",
     "requiredBeforeLease": [
       "current /opt/ynx-shop/current resolved release path and full source commit",
       "SHA-256 and bytes for the current ynx-shopd binary",
@@ -70,8 +70,20 @@
       "service account identity, host identity, and bounded sudo capability",
       "explicit staging and public cutover targets"
     ],
-    "deployCommand": {"authorized": false, "bytes": null, "sha256": null},
-    "rollbackCommand": {"authorized": false, "bytes": null, "sha256": null},
+    "deployCommand": {
+      "path": "apps/shop/scripts/p0-rollback-first-deploy.sh",
+      "bytes": 3278,
+      "sha256": "69215d22c43f7d4cd17fdfaa5eccfcb43fe7a1db2f2fd187b20cc1f40062e3a5",
+      "authorized": false,
+      "authorizationRule": "Central must bind the exact blob/bytes/SHA and arguments EXPECTED_OLD_RELEASE, BACKUP_STATE_PATH and BACKUP_STATE_SHA256 in a wholly new lease"
+    },
+    "rollbackCommand": {
+      "path": "apps/shop/scripts/p0-rollback-first-rollback.sh",
+      "bytes": 2326,
+      "sha256": "99cecbed959a612b419c61336a0dcea6d8213ffbcc42946656d16e07db50abd0",
+      "authorized": false,
+      "authorizationRule": "Central must bind the exact blob/bytes/SHA and arguments EXPECTED_OLD_RELEASE, BACKUP_STATE_PATH, BACKUP_STATE_SHA256 and EXPECTED_STATE_OWNER_GROUP in the same wholly new lease"
+    },
     "rollbackReceipts": {"backupVerified": false, "restoreExecuted": false, "healthRestored": false, "assetHashesRestored": false}
   },
   "postdeployReadOnlyCommandsRequested": [
@@ -89,5 +101,5 @@
     "testnetSend": "separate immediate confirmation; display recipient, value, gas, chain 0x1917, and test-only asset before prompt",
     "privateKeys": "never requested, collected, logged, transmitted, or stored"
   },
-  "noGoReason": "Heavy P0-179 remains ACTIVE; no production deployment lease exists. No deployment or wallet prompt was triggered."
+  "noGoReason": "P0-149 is nonreusable. Exact fail-closed deploy and rollback command objects are frozen, but a wholly new Central lease must still bind fresh host/service/current release, state backup, environment, unit, Caddy, arguments, executor and expiry before any production mutation. No deployment or wallet prompt was triggered."
 }
