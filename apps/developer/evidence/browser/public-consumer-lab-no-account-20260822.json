@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 1,
+  "classification": "source-bound-public-runtime-no-account-direct-browser-evidence",
+  "capturedAt": "2026-08-22T09:07:27.000Z",
+  "source": {
+    "commit": "4a78c4c3e84fbdae550fad622ad442a73b89f1ac",
+    "tree": "02414401bcdda62544d1fc5913f92dd30b162330",
+    "branch": "codex/ynx-code-platform-v1"
+  },
+  "publicRuntime": {
+    "url": "https://developer.ynxweb4.com/",
+    "healthUrl": "https://developer.ynxweb4.com/healthz",
+    "health": {
+      "ok": true,
+      "service": "ynx-code-gateway",
+      "version": "0.2.0-testnet-preview-4a78c4c3e84f-candidate",
+      "sandbox": "linux-bubblewrap-prlimit",
+      "sandboxReady": true
+    },
+    "asset": {
+      "path": "assets/index-nGTKoInt.js",
+      "bytes": 704628,
+      "sha256": "0f2d4be4db98b3d2fb0f78239b9b340ab7022fd0b72b075e5cc9825255a54b7e"
+    },
+    "htmlLang": "en"
+  },
+  "browser": {
+    "surface": "Codex in-app browser",
+    "flow": [
+      "open public Developer URL",
+      "sample provider state after DOM content loaded",
+      "sample again after 1500ms for late injection",
+      "open YNX Chain Wallet panel",
+      "click Connect browser Wallet while provider is absent",
+      "read URL, tab count, fallback and console"
+    ],
+    "providerDiscovery": {
+      "atDomContentLoaded": {
+        "ethereumPresent": false,
+        "eip6963ProviderControls": []
+      },
+      "after1500ms": {
+        "ethereumPresent": false,
+        "eip6963ProviderControls": []
+      },
+      "result": "NO_EIP1193_PROVIDER_AFTER_LATE_INJECTION_WINDOW"
+    },
+    "identity": {
+      "ynxConnectControlVisible": false,
+      "metaMaskConnectControlVisible": false,
+      "result": "Neither provider was announced, so YNX was not represented as MetaMask and no provider was selected."
+    },
+    "providerAbsentFailClosed": {
+      "connectButtonClicked": true,
+      "ethRequestAccountsInvoked": false,
+      "walletAddOrSwitchInvoked": false,
+      "visibleFallback": [
+        "No browser Wallet provider is available. The official download and MetaMask choices remain on this page.",
+        "Download YNX Wallet",
+        "Use MetaMask"
+      ]
+    },
+    "topLevelNavigation": {
+      "urlBefore": "https://developer.ynxweb4.com/",
+      "urlAfter": "https://developer.ynxweb4.com/",
+      "topLevelTabDelta": 0,
+      "blankTargets": 0,
+      "customSchemeLinks": 0,
+      "applicationIframes": 0
+    },
+    "console": {
+      "applicationErrors": []
+    }
+  },
+  "truth": {
+    "publicRuntimeSourceBound": true,
+    "providerDiscovered": false,
+    "selectedProvider": false,
+    "accountApproved": false,
+    "chain0x1917Verified": false,
+    "wrongChainAddSwitchVerified": false,
+    "refreshRestoreVerified": false,
+    "accountsChangedVerified": false,
+    "chainChangedVerified": false,
+    "disconnectVerified": false,
+    "approveRejectCallbackVerified": false,
+    "productSessionMigratedV2": false
+  },
+  "boundary": "A real independently installed YNX Wallet and MetaMask must be present, then the user must give immediate test-account approval before account, 0x1917, refresh, event, reject/callback, signing or transaction evidence can be collected."
+}
