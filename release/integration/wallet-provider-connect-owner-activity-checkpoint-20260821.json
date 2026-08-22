@@ -32,6 +32,24 @@
     "leaseIssuedByProtocolOwner": false,
     "installedOrProductCompletionPromoted": false
   },
+  "centralP0155Interoperability": {
+    "commit": "f3e4a07247f198f2a2fdd558efd7e9706b4075cf",
+    "tree": "9e1d0e0a358bfb06c6ac7f1e2d091d82866b175a",
+    "path": "release/integration/p0-wallet-connectivity/wallet-metamask-level-interoperability-matrix-20260822.json",
+    "blob": "eb63d8121eb72fcc09775aa2aca2797eb4deeea8",
+    "sha256": "d277f31da23cc76031e9e2d98acbca8070a874ba99ffd13712ec49c0918ad379",
+    "status": "ACTIVE_UNIQUE_ACCEPTANCE_MATRIX_NO_EXECUTION_LEASE",
+    "evidenceTierRequired": "DIRECT_INSTALLED_E2E",
+    "sourceCiLocalArtifactOrDetectionAloneCounts": false,
+    "architecture": {"standardWalletIndependentFromGateway":true,"productSessionFailure":"PRIVATE_SERVICE_DEGRADED_ONLY"},
+    "desktopWindowsArtifactIdentityOnly": {"source":"a8f36e4c57234efe5f19367c87035b4435d61b76","installedAuthority":false},
+    "executionLease": false,
+    "productionLease": false,
+    "webInstallConfirmationGranted": false,
+    "productsConnected": 0,
+    "productsMigratedV2": 0,
+    "parityComplete": false
+  },
   "sharedCoreStandardWalletProvider": {
     "implementationCommit": "d8cda9f77918cab5bdfdd0568370f3c19742c14c",
     "implementationTree": "83af2d80038dd9cc7f39343efb7994ad0bb2815a",

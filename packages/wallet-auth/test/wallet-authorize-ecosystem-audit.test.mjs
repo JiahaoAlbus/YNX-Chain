@@ -750,3 +750,19 @@ test("Central released Finance and Explorer paths plus P0-150 parity are tracked
   assert.equal(auditV3.standardWalletParityConformance.macosWalletConnectV2Policy.sourceAndHostedPolicy, true);
   assert.equal(auditV3.standardWalletParityConformance.macosWalletConnectV2Policy.realRelayOrPairing, false);
 });
+
+test("Central P0-155 makes installed E2E the only interoperability completion tier", () => {
+  const central = auditV3.centralP0155InteroperabilityMatrix;
+  assert.equal(central.commit, "f3e4a07247f198f2a2fdd558efd7e9706b4075cf");
+  assert.equal(central.standardWalletIndependentFromGateway, true);
+  assert.equal(central.productSessionFailureEffect, "PRIVATE_SERVICE_DEGRADED_ONLY");
+  assert.equal(central.desktopWindows.evidenceTier, "PUBLIC_ARTIFACT_IDENTITY_ONLY");
+  assert.equal(central.desktopWindows.installedAuthority, false);
+  assert.equal(central.completionEvidenceTier, "DIRECT_INSTALLED_E2E");
+  assert.equal(central.sourceCiLocalArtifactOrDetectionAloneCounts, false);
+  assert.equal(central.executionLease, false);
+  assert.equal(central.productionLease, false);
+  assert.equal(central.webInstallConfirmationGranted, false);
+  assert.equal(central.productsConnected, 0);
+  assert.equal(central.parityComplete, false);
+});
