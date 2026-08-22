@@ -1449,6 +1449,28 @@
         "preserve exact local evidence archive SHA256 68b663210ccae1493994c591316797c2e0cb938b0957ad4e488b9a090ef5cdbc",
         "no further read, remote write, deployment, installation, account, signature or transaction action under P0-222"
       ]
+    },
+    {
+      "path": "{production:host:43.153.202.237:caddy-pay-publication,production:/opt/ynx-pay-web/releases/pay-web-5f4ce98e-release1,production:/opt/ynx-pay-web/incoming/pay-web-5f4ce98e-release1,production:/etc/caddy/ynx-chain.caddy,production:https://pay.ynxweb4.com/**,local:/tmp/ynx-pay-p0224-public-release-20260822T224000Z}",
+      "owner": "pay",
+      "branch": "codex/p0-pay-wallet-connectivity-20260821",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/04-pay-p0-clean",
+      "taskId": "P0-224",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "ACTIVE_SINGLE_USE",
+      "acquiredAt": "2026-08-22T22:40:00Z",
+      "expiresAt": "2026-08-22T23:40:00Z",
+      "releasedAt": null,
+      "sourceCommit": "5f4ce98eb458550b976c17e3bc6d77cce4081a59",
+      "sourceTree": "8f0c25c4d86eb22a564f3c7aeff9db6709a9b9f0",
+      "evidenceCommit": "fa26591f41120c5bf3ab9083f52b50fc2f279072",
+      "artifactSha256": "ae552951d8e569f04aced60db69e3c11422910cc1098a6e7061b0e84005ad09e",
+      "productionMutationAllowed": true,
+      "allowedExceptions": [
+        "exact P0-224 deploy command object may create only the locked staging and release roots and atomically replace only /etc/caddy/ynx-chain.caddy",
+        "exactly one Caddy reload is allowed after the forward config switch",
+        "on any failure, the exact rollback command object is allowed at most once and may delete only captured matching release/stage inodes"
+      ]
     }
   ]
 }
