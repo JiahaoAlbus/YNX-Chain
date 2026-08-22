@@ -24,6 +24,11 @@
       "commit": "a3310cc9f0c757d27dae83282b68361c116c22a3",
       "ynx": {"name": "YNX Wallet", "rdns": "com.ynx.wallet", "isYNXWallet": true, "isMetaMask": false},
       "metamask": {"isMetaMask": true, "isYNXWallet": false}
+    },
+    "ecosystemResponsibilityRegistry": {
+      "path": "release/integration/wallet-ecosystem-responsibility-registry-p0-20260822.json",
+      "responsibilityDomainDenominator": 36,
+      "classificationRule": "Each 01-36 responsibility domain must be classified as interactiveWalletConsumer, nonInteractiveProductSessionConsumer, or evidenceBackedNotApplicable; no row may disappear from aggregate coverage."
     }
   },
   "invariants": {
@@ -75,7 +80,7 @@
     {"productId": "social", "owner": "social", "sourceConsumption": false, "publicRuntime": true, "nextE2E": ["consume shared reducer", "full real provider lifecycle", "Product Session lifecycle"]},
     {"productId": "video", "owner": "video", "sourceConsumption": false, "publicRuntime": false, "nextE2E": ["consume safe launcher v2/canonical native builder", "exact public release", "full real provider lifecycle", "Product Session lifecycle"]}
   ],
-  "promotionRule": "A product is not connected or migrated until its owner has supplied the source-consumption, source-bound-public-runtime and direct visible E2E envelope. All product rows also need the Layer 1 degradation boundary. Aggregate parity additionally requires all 12 product rows and all four DApp profiles.",
+  "promotionRule": "A product is not connected or migrated until its owner has supplied the source-consumption, source-bound-public-runtime and direct visible E2E envelope. All product rows also need the Layer 1 degradation boundary. Aggregate direct-E2E parity additionally requires all 12 direct product rows and all four DApp profiles. The separate 36-domain responsibility registry remains the aggregate coverage denominator: its classifications and owner-routing records never substitute for direct E2E evidence.",
   "truth": {
     "executionPlanImplemented": true,
     "ownerDispatchPrepared": true,
