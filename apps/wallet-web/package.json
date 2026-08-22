@@ -30,13 +30,18 @@
     "test:public-artifacts": "node scripts/public-artifact-hosting-gate.mjs",
     "test:runtime:active-tab": "node scripts/runtime-active-tab-gate.mjs",
     "test:runtime:active-tab:browser": "node scripts/runtime-active-tab-browser-gate.mjs",
-    "test:runtime:firefox-compatible": "npm run build && node scripts/runtime-firefox-compatible.mjs"
-    ,"test:runtime:firefox-branded": "npm run build && node scripts/runtime-firefox-branded.mjs"
-    ,"test:runtime:firefox-temporary-boundary": "node scripts/runtime-firefox-temporary-boundary.mjs"
+    "test:runtime:firefox-compatible": "npm run build && node scripts/runtime-firefox-compatible.mjs",
+    "test:runtime:firefox-branded": "npm run build && node scripts/runtime-firefox-branded.mjs",
+    "test:runtime:firefox-temporary-boundary": "node scripts/runtime-firefox-temporary-boundary.mjs"
   },
   "devDependencies": {
+    "esbuild": "0.25.10",
     "playwright": "1.62.1",
     "sharp": "0.33.5",
     "web-ext": "10.6.0"
+  },
+  "dependencies": {
+    "@noble/curves": "2.2.0",
+    "@noble/hashes": "2.2.0"
   }
 }

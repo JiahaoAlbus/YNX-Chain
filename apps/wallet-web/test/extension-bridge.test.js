@@ -32,5 +32,6 @@ test("content and page scripts enforce source, origin, timeout, duplicate-id and
   assert.match(content,/__YNX_CONTENT_BRIDGE_V1__/);assert.doesNotMatch(content,/web_accessible_resources|runtime\.getURL/);
   assert.match(page,/event\.source!==window\|\|event\.origin!==expectedOrigin/);assert.match(page,/crypto\.randomUUID\(\)/);assert.match(page,/__ynxCompanion:true/);assert.match(page,/__YNX_COMPANION_PROVIDER_V1__/);
   assert.match(worker,/provider\?\.__ynxCompanion!==true/);assert.match(worker,/requestAccountApproval\(tabId,origin,requestId,deadlineAt\)/);assert.match(worker,/PROVIDER_ACCOUNT_UNAVAILABLE/);assert.match(worker,/forwardExtensionRpc\(method,params\)/);
+  assert.match(worker,/requireVaultPage\(sender\)/);assert.match(worker,/providerAccountFromVault\(vault\)/);assert.match(worker,/account\.account!==vaultAccount\.account/);assert.match(worker,/\[PROVIDER_PERMISSIONS_KEY\]:\{\}/);
   assert.doesNotMatch(worker,/executeInTab\(tabId,origin,"any",input\)/);assert.doesNotMatch(worker,/requireCanonicalAuthorizationContext/);
 });

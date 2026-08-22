@@ -4,6 +4,7 @@ import {consumeSensitiveRequest,parseSensitiveRequest,validateSensitiveResult} f
 import {activeTabInjectionPlans,requireActiveDappTab} from "./active-tab-policy.js";
 import {runExtensionMigration} from "./extension-migration.js";
 import {PROVIDER_ACCOUNT_KEY,PROVIDER_PENDING_PREFIX,PROVIDER_PERMISSIONS_KEY,createPendingApproval,eip2255Permissions,grantPermission,loadProviderState,parseApprovalDecision,parsePermissionStore,parseProviderAccount,revokePermission} from "./extension-provider-permissions.js";
+import {EXTENSION_VAULT_KEY,parseEncryptedVault,providerAccountFromVault} from "./extension-vault.js";
 
 const extensionApi=globalThis.browser||globalThis.chrome,CHAIN_ID=YNX_CHAIN_ID;
 const approvalWaiters=new Map();
@@ -48,7 +49,11 @@ async function executeActive(preference,input){
 async function emitToTab(tabId,origin,event,payload){if(PROVIDER_EVENTS.includes(event))await extensionApi.tabs.sendMessage(tabId,{type:RUNTIME_EVENT,version:BRIDGE_VERSION,origin,event,payload}).catch(()=>{})}
 function exactAccounts(value){if(!Array.isArray(value)||value.some((account)=>!/^0x[0-9a-fA-F]{40}$/u.test(account)))throw Object.assign(new Error("Wallet backend returned invalid accounts."),{code:"INVALID_ACCOUNT"});return value.map((account)=>account.toLowerCase())}
 
-async function configuredAccount(){const stored=await extensionApi.storage.local.get(PROVIDER_ACCOUNT_KEY);return parseProviderAccount(stored?.[PROVIDER_ACCOUNT_KEY])}
+async function configuredAccount(){const stored=await extensionApi.storage.local.get([PROVIDER_ACCOUNT_KEY,EXTENSION_VAULT_KEY]),account=parseProviderAccount(stored?.[PROVIDER_ACCOUNT_KEY]),vaultAccount=providerAccountFromVault(stored?.[EXTENSION_VAULT_KEY]);if(account.account!==vaultAccount.account)throw Object.assign(new Error("Provider account does not match the encrypted Wallet vault."),{code:"PROVIDER_ACCOUNT_UNAVAILABLE"});return account}
+function requireVaultPage(sender){const expected=extensionApi.runtime.getURL("vault.html");if(sender?.id!==extensionApi.runtime.id||sender?.url!==expected)throw Object.assign(new Error("Vault messages require the extension account page."),{code:"VAULT_CALLER_REJECTED"})}
+async function vaultStatus(){const stored=await extensionApi.storage.local.get(EXTENSION_VAULT_KEY);if(stored?.[EXTENSION_VAULT_KEY]===undefined)return{configured:false};const vault=parseEncryptedVault(stored[EXTENSION_VAULT_KEY]);return{configured:true,account:vault.account,createdAt:vault.createdAt}}
+async function storeVault(vaultValue){const vault=parseEncryptedVault(vaultValue),account=providerAccountFromVault(vault);for(const waiter of approvalWaiters.values())waiter.reject(Object.assign(new Error("Wallet account changed during approval."),{code:"PROVIDER_ACCOUNT_CHANGED"}));approvalWaiters.clear();await extensionApi.storage.local.set({[EXTENSION_VAULT_KEY]:vault,[PROVIDER_ACCOUNT_KEY]:account,[PROVIDER_PERMISSIONS_KEY]:{}});return account}
+async function removeVault(){await extensionApi.storage.local.remove([EXTENSION_VAULT_KEY,PROVIDER_ACCOUNT_KEY,PROVIDER_PERMISSIONS_KEY]);return true}
 async function approvedState(origin){
   try{return await loadProviderState(extensionApi.storage.local,origin)}catch(error){if(error?.code==="PROVIDER_ACCOUNT_UNAVAILABLE")return null;throw error}
 }
@@ -111,6 +116,13 @@ async function activeProviderRequest(preference,input){
 }
 
 extensionApi.runtime.onMessage.addListener((message,sender,sendResponse)=>{
+  if(message?.type==="YNX_VAULT_STATUS_V1"||message?.type==="YNX_VAULT_STORE_V1"||message?.type==="YNX_VAULT_REMOVE_V1"){
+    Promise.resolve().then(()=>requireVaultPage(sender)).then(async()=>{
+      if(message.type==="YNX_VAULT_STATUS_V1")return vaultStatus();
+      if(message.type==="YNX_VAULT_STORE_V1")return{account:(await storeVault(message.vault)).account};
+      await removeVault();return{removed:true};
+    }).then(result=>sendResponse({ok:true,...result})).catch(error=>sendResponse({ok:false,error:publicBridgeError(error)}));return true;
+  }
   if(message?.type==="YNX_PROVIDER_APPROVAL_GET_V1"){
     extensionApi.storage.session.get(approvalKey(message.requestId)).then((stored)=>{const request=stored?.[approvalKey(message.requestId)];if(!request||request.deadlineAt<=Date.now())throw Object.assign(new Error("Approval request is unavailable."),{code:"APPROVAL_REQUEST_UNAVAILABLE"});sendResponse({ok:true,request})}).catch((error)=>sendResponse({ok:false,error:publicBridgeError(error)}));return true
   }
