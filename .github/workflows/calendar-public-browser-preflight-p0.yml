@@ -12,12 +12,12 @@ permissions:
 
 jobs:
   calendar-public-browser-preflight:
-    if: "${{ github.event.head_commit.message == 'evidence(calendar): externally verify console-clean public recovery' }}"
+    if: "${{ github.event.head_commit.message == 'evidence(calendar): externally verify revoke public recovery' }}"
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
       CALENDAR_ORIGIN: https://calendar-testnet.43.153.202.237.sslip.io
-      EXPECTED_SOURCE: fe1ba512f67f935e27997350800a7df18e3814d1
+      EXPECTED_SOURCE: 468cf018e9b69e9eebd9dd0a0613e2a8d00c3576
     steps:
       - uses: actions/checkout@v4
         with:
@@ -106,6 +106,12 @@ jobs:
               if (pathname === '/v1/auth/session/status') {
                 const parsed = JSON.parse(value.body.toString('utf8'));
                 if (parsed?.session !== 'none' || parsed?.user !== null) fail('public guest session status contract mismatch');
+              }
+              if (pathname === '/wallet-connection.js') {
+                const source = value.body.toString('utf8');
+                for (const required of ['wallet_revokePermissions', 'WALLET_PERMISSION_REVOKE_UNSUPPORTED', 'WALLET_PERMISSION_STILL_ACTIVE']) {
+                  if (!source.includes(required)) fail(`public wallet revoke source missing ${required}`);
+                }
               }
             }
             browser = await chromium.launch({ headless: true });
