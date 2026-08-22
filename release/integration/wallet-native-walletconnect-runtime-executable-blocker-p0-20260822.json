@@ -3,7 +3,7 @@
   "evidenceId": "WALLET-NATIVE-WALLETCONNECT-RUNTIME-EXECUTABLE-BLOCKER-P0-20260822",
   "owner": "02-wallet-auth-ios-macos-native",
   "status": "BLOCKED_ON_SINGLE_PROTECTED_EXECUTION_BOUNDARY",
-  "asOf": "2026-08-22T18:10:00+08:00",
+  "asOf": "2026-08-22T18:32:00+08:00",
   "authoritativeInputs": {
     "centralP0": {
       "commit": "97a20044e640d57a658897d533da15e9270700cc",
@@ -144,6 +144,7 @@
       "hosted macOS run 32561814119 job 97004440593 failed in the Reown 2.3.1 WalletConnectSign Link dispatcher because its macOS path lacked Foundation imports; no YNX runtime gate was promoted",
       "hosted macOS run 32562264128 job 97005577873 verified the exact upstream checkout and then failed before compilation because SwiftPM marked the target source read-only; the preparation script now scopes owner-write permission to that verified file only",
       "hosted macOS run 32562353405 job 97005793832 passed the read-only boundary and then exposed iOS-only UIApplication calls in the same upstream macOS compilation unit; the compatibility operation now supplies a platform-scoped NSWorkspace opener while YNX Link Mode remains disabled",
+      "hosted macOS run 32562495516 job 97006141211 verified the platform opener transformation and then failed on Swift 6 explicit-self capture enforcement at LinkEnvelopesDispatcher.swift:84; no artifact or runtime gate was promoted, and the compatibility operation now unwraps weak self with a checked-continuation failure path before calling the owner-scoped opener",
       "the source-visible macOS compatibility patch is applied only after exact upstream commit and original blob verification and carries a prominent modification notice",
       "Central P0-176 is explicitly not a lease and records P0-175 as the current Heavy owner"
     ]

@@ -48,6 +48,26 @@ ruby -e '
   opener = "UIApplication.shared.open(envelopeUrl, options: [.universalLinksOnly: true]) { success in"
   abort "unexpected Reown URL opener structure" unless source.scan(opener).length == 2
   source = source.gsub(opener, "openUniversalLink(envelopeUrl) { success in")
+  weak_dispatch = "DispatchQueue.main.async { [weak self] in\n" \
+    "                    self?.logger.debug(\"Will open universal link\")\n" \
+    "                    openUniversalLink(envelopeUrl) { success in"
+  guarded_dispatch = "DispatchQueue.main.async { [weak self] in\n" \
+    "                    guard let self else {\n" \
+    "                        continuation.resume(throwing: Errors.failedToOpenUniversalLink(envelopeUrl.absoluteString))\n" \
+    "                        return\n" \
+    "                    }\n" \
+    "                    self.logger.debug(\"Will open universal link\")\n" \
+    "                    self.openUniversalLink(envelopeUrl) { success in"
+  abort "unexpected Reown weak dispatcher structure" unless source.scan(weak_dispatch).length == 1
+  source = source.sub(weak_dispatch, guarded_dispatch)
+  unowned_opener = "DispatchQueue.main.async { [unowned self] in\n" \
+    "                logger.debug(\"Will open universal link\")\n" \
+    "                openUniversalLink(envelopeUrl) { success in"
+  explicit_unowned_opener = "DispatchQueue.main.async { [unowned self] in\n" \
+    "                logger.debug(\"Will open universal link\")\n" \
+    "                self.openUniversalLink(envelopeUrl) { success in"
+  abort "unexpected Reown unowned dispatcher structure" unless source.scan(unowned_opener).length == 1
+  source = source.sub(unowned_opener, explicit_unowned_opener)
   helper_anchor = <<~SWIFT.chomp
         func isRunningTests() -> Bool {
   SWIFT
