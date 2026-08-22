@@ -10,7 +10,7 @@ make_receipts() {
   printf 'cleanup\n' >"$dir/cleanup.json"
   printf 'result\n' >"$dir/result.txt"
   printf 'nested\n' >"$dir/nested/final.json"
-  (cd "$dir" && find . -xdev -type f ! -name SHA256SUMS ! -name .SHA256SUMS.tmp -print0 | LC_ALL=C sort -z | xargs -0 sha256sum >SHA256SUMS)
+  (cd "$dir" && find . -xdev -type f ! -name SHA256SUMS ! -name .SHA256SUMS.tmp -print0 | LC_ALL=C sort -z | xargs -0 sha256sum >.SHA256SUMS.tmp && mv -f .SHA256SUMS.tmp SHA256SUMS)
 }
 expect_fail() { if python3 "$root/verify-finance-receipt-manifest.py" "$1" >/dev/null 2>&1; then echo "expected failure: $2" >&2; exit 1; fi; }
 good="$probe/good"; make_receipts "$good"
