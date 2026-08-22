@@ -427,27 +427,25 @@
     }
   ],
   "heavy": {
-    "owner": "calendar",
-    "taskId": "P0-204",
-    "status": "ACTIVE_SINGLE_USE",
+    "owner": null,
+    "taskId": null,
+    "status": "IDLE",
     "acquiredAt": "2026-08-22T17:26:00Z",
     "expiresAt": "2026-08-22T17:56:00Z",
+    "releasedAt": "2026-08-22T17:31:48Z",
     "sourceCommit": "fe1ba512f67f935e27997350800a7df18e3814d1",
     "evidenceCommit": "af9efeea3ebbb910c6b2fbcf912d5b01b2125281",
     "runtimeHost": "43.153.202.237",
     "currentRuntime": "7db160aa0bd589097e63190a260a343aafe4854c",
     "candidateRuntime": "fe1ba512f67f935e27997350800a7df18e3814d1",
     "artifactSha256": "fb767da23513d3c4ba7eab9e02ddf6088b3bea297e6e42ac33bbcd0fa7db7c73",
-    "productionMutationAllowed": true,
+    "productionMutationAllowed": false,
     "singleUse": true,
     "reusable": false,
-    "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-calendar-console-clean-public-release-20260822T172600Z",
-    "locks": [
-      "host:43.153.202.237/service:ynx-calendar.service",
-      "path:apps/calendar",
-      "branch:codex/calendar-fable5-completion-20260821/path:.github/workflows/calendar-public-browser-preflight-p0.yml"
-    ],
-    "reason": "Fresh source, deterministic Linux ELF, inode-safe rollback script, host binary/state/key/unit/Caddy/service, old public responses, workflow bundle and local non-sensitive browser proof all independently match. Authorize one Calendar-only deployment transaction followed by one hosted workflow push/run; no retry or sensitive action."
+    "previousOwner": "calendar",
+    "previousTaskId": "P0-204",
+    "reviewDecision": "CONSUMED_RELEASED_FAILED_CLOSED_CALENDAR_CANDIDATE_UPLOAD_INCOMPLETE_PRE_DEPLOY",
+    "reason": "The sole candidate upload timed out and left a stable partial 522240-byte file after the exact residual SFTP process was terminated. Candidate verification failed before the deploy script; service, backup, installed runtime and hosted workflow were untouched. P0-204 is consumed and nonreusable."
   },
   "wave": {
     "id": "B-financial-apps-quant",
