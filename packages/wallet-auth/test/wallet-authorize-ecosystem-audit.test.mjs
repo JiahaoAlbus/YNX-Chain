@@ -13,6 +13,7 @@ const pendingOwnerHandoffs = JSON.parse(await readFile(new URL("../../../release
 const ownerActivityCheckpoint = JSON.parse(await readFile(new URL("../../../release/integration/wallet-provider-connect-owner-activity-checkpoint-20260821.json", import.meta.url), "utf8"));
 const publicOwnerRecheck = JSON.parse(await readFile(new URL("../../../release/integration/wallet-provider-public-owner-recheck-20260821.json", import.meta.url), "utf8"));
 const ownerPublicCompletion = JSON.parse(await readFile(new URL("../../../release/integration/wallet-provider-owner-public-completion-checkpoint-20260821.json", import.meta.url), "utf8"));
+const walletWebIdentityDrift = JSON.parse(await readFile(new URL("../../../release/integration/wallet-web-public-identity-drift-recheck-20260822.json", import.meta.url), "utf8"));
 const registry = JSON.parse(await readFile(new URL("../product-session-registry.json", import.meta.url), "utf8"));
 
 test("ecosystem authorize audit covers every registered client exactly once", () => {
@@ -393,6 +394,8 @@ test("Wallet Web/PWA and macOS DMG publication remain outside product authority"
   assert.equal(companion.publicEvidenceCommit, "21e55d85a36b632f1d56a57777e37783b9afa76c");
   assert.equal(companion.deploymentId, "dpl_98S2czECu4YvPWnbpHUctKtJxDQD");
   assert.equal(companion.runtime.sourceBoundPublic, true);
+  assert.equal(companion.runtime.currentSourceBoundPublic, false);
+  assert.equal(companion.runtime.currentPublicIdentityDrift, "release/integration/wallet-web-public-identity-drift-recheck-20260822.json");
   assert.equal(companion.runtime.metaMaskEip6963Detected, true);
   assert.equal(companion.runtime.dedicatedProject, "ynx-wallet-web");
   assert.equal(companion.runtime.metaMaskApprovalTriggered, false);
@@ -493,6 +496,16 @@ test("Wallet Web/PWA and macOS DMG publication remain outside product authority"
   assert.equal(companion.macosDmgPublication.productionSigned, false);
   assert.equal(auditV3.counts.productsConnected, 0);
   assert.equal(auditV3.counts.productsMigratedV2, 0);
+});
+
+test("current Wallet Web identity drift blocks public source binding without treating no-provider fallback as a connection", () => {
+  assert.equal(walletWebIdentityDrift.method.accountRequestTriggered, false);
+  assert.equal(walletWebIdentityDrift.observedPublic.buildIdentity.sourceCommit, "uncommitted-source-tree");
+  assert.equal(walletWebIdentityDrift.conclusion.currentSourceMatchesExpectedV10, false);
+  assert.equal(walletWebIdentityDrift.conclusion.currentSourceBoundPublic, false);
+  assert.equal(walletWebIdentityDrift.conclusion.currentNoProviderFallbackVisible, true);
+  assert.equal(walletWebIdentityDrift.conclusion.productsConnected, 0);
+  assert.equal(walletWebIdentityDrift.conclusion.deployedPublicAggregate, false);
 });
 
 test("shared Provider/connect recovery hands off to all products without promoting runtime", () => {

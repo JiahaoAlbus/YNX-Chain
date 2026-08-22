@@ -111,6 +111,8 @@
       "project": "ynx-wallet-web",
       "publicUrl": "https://wallet.ynxweb4.com",
       "sourceBoundPublic": true,
+      "currentSourceBoundPublic": false,
+      "currentPublicIdentityDrift": "release/integration/wallet-web-public-identity-drift-recheck-20260822.json",
       "buildIdentity": {"bytes":267,"sha256":"5d72796f5430daa82427ecd0621d0ae6952c1263b7228a85d5affa18cff5224e"},
       "websiteAliasCaptureObserved": true,
       "websiteAliasCaptureDeployment": "dpl_CMdFesyc1nW5vYcFMgJ69hinEDnL",
