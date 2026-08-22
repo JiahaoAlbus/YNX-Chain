@@ -3,16 +3,17 @@
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "taskId": "P0-218",
   "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-finance-isolated-linux-preflight-20260822T205800Z",
-  "owner": "finance",
+  "owner": null,
   "executor": "finance-linux-preflight",
-  "status": "ACTIVE_SINGLE_USE",
+  "status": "CONSUMED_RELEASED_FAILED_CLOSED_FINANCE_ISOLATED_PREFLIGHT_CARRIER_PREFIX_CONTRACT",
   "issuedAt": "2026-08-22T20:58:00Z",
   "expiresAt": "2026-08-22T21:43:00Z",
+  "releasedAt": "2026-08-22T21:06:00Z",
   "singleUse": true,
   "reusable": false,
-  "executionAuthorized": true,
+  "executionAuthorized": false,
   "productionMutationAllowed": false,
-  "preflightMutationAllowed": true,
+  "preflightMutationAllowed": false,
   "scope": "Finance-only new-carrier isolated Linux amd64 preflight with mandatory real-Linux receipt-manifest regression before one candidate execution",
   "predecessor": {
     "taskId": "P0-217",
@@ -176,6 +177,71 @@
       "command exit status"
     ],
     "successRequires": "Exit zero, full verified receipts, candidate and mock stopped, no listener on 45231, isolated state absent after exact-inode cleanup, P0-217 residue unchanged and no production mutation."
+  },
+  "terminalEvidence": {
+    "decision": "FAIL_CLOSED",
+    "failureClass": "FINANCE_ISOLATED_PREFLIGHT_CARRIER_PREFIX_CONTRACT",
+    "failureReason": "The exact preflight script line 18 permits only the historical /opt/ynx/preflight/finance/artifacts/sha256-d8dcd451... carrier prefix. P0-218 correctly bound a new protected /opt/ynx/preflight/finance/artifacts/p0218/sha256-d8dcd451... path, so the script exited 65 before creating the run directory.",
+    "observedAt": "2026-08-22T21:05:06Z",
+    "counts": {
+      "prepare": 1,
+      "upload": 1,
+      "finalize": 1,
+      "linuxRegression": 1,
+      "candidateExecution": 1,
+      "retry": 0,
+      "productionAction": 0
+    },
+    "upload": {
+      "exitCode": 0,
+      "elapsedSeconds": 10.67,
+      "exactFiveFileCarrierGate": true,
+      "carrierFilesRegularNlink1Exact": true
+    },
+    "linuxRegression": {
+      "exitCode": 0,
+      "elapsedSeconds": 5.09,
+      "stdout": "finance receipt manifest regression: pass",
+      "postconditionPassed": true,
+      "carriersUnchanged": true,
+      "temporaryDirectoryAbsent": true,
+      "runDirectoryAbsent": true,
+      "loopbackPortFree": true
+    },
+    "candidateExecution": {
+      "exitCode": 65,
+      "elapsedSeconds": 1.31,
+      "stdoutBytes": 0,
+      "secondExecution": false,
+      "rejectedAtScriptLine": 18,
+      "runDirectoryCreated": false,
+      "candidateProcessStarted": false,
+      "mockProcessStarted": false
+    },
+    "terminalReadback": {
+      "p0218RunDirectoryAbsent": true,
+      "candidateAndMockProcessesAbsent": true,
+      "loopbackPort45231Free": true,
+      "p0218FiveCarriersExact": true,
+      "p0217ReceiptManifestBytes": 1062,
+      "p0217EvidenceUnchanged": true,
+      "productionFinancePid": 877083,
+      "productionUntouched": true
+    },
+    "sensitiveActions": {
+      "account": false,
+      "sign": false,
+      "transaction": false
+    },
+    "futureUnblock": "Finance owner must safely parameterize or explicitly bind the exact lease carrier root, add regression coverage accepting the newly approved path and rejecting old or unapproved paths, freeze new script/request objects and seek a wholly-new lease with another new carrier, run directory and port. P0-218 is not retryable."
+  },
+  "releasedLocks": {
+    "releasedAt": "2026-08-22T21:06:00Z",
+    "heavyOwner": null,
+    "hostPreflightOwner": null,
+    "p0218CarrierRootOwner": null,
+    "p0218RunDirectoryOwner": null,
+    "loopbackPortOwner": null
   },
   "forbidden": [
     "write, delete, overwrite or reuse any P0-217 carrier or run evidence",

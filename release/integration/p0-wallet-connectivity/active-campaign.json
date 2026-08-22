@@ -427,12 +427,12 @@
     }
   ],
   "heavy": {
-    "owner": "finance",
-    "taskId": "P0-218",
-    "status": "ACTIVE_SINGLE_USE",
+    "owner": null,
+    "taskId": null,
+    "status": "IDLE",
     "acquiredAt": "2026-08-22T20:58:00Z",
     "expiresAt": "2026-08-22T21:43:00Z",
-    "releasedAt": null,
+    "releasedAt": "2026-08-22T21:06:00Z",
     "sourceCommit": "7824af677dd052d20321431381523ab302614d98",
     "evidenceCommit": "df74d34b37a4033c5592bca09f103ae0b07bb7a8",
     "runtimeHost": "43.153.202.237",
@@ -444,8 +444,8 @@
     "reusable": false,
     "previousOwner": "finance",
     "previousTaskId": "P0-217",
-    "reviewDecision": "GO_NEW_FINANCE_ISOLATED_LINUX_AMD64_PREFLIGHT_WITH_MANDATORY_LINUX_MANIFEST_REGRESSION_SINGLE_USE",
-    "reason": "P0-217 is released and nonreusable. The new owner objects canonicalize exactly one GNU ./ prefix while preserving all unsafe-path, duplicate, self/temp, symlink, digest and set-equality failures. P0-218 binds a new p0218 carrier root, a new absent run directory and unused loopback port 45231; it preserves all P0-217 evidence. One real Linux regression must pass before the sole candidate execution. Production mutation and public completion remain false."
+    "reviewDecision": "CONSUMED_RELEASED_FAILED_CLOSED_FINANCE_ISOLATED_PREFLIGHT_CARRIER_PREFIX_CONTRACT",
+    "reason": "P0-218 consumed one prepare, upload, finalize, real Linux regression and candidate invocation with no retry. The regression passed, but the candidate script exited 65 at line 18 because its old hardcoded carrier prefix excludes the new lease-bound p0218 carrier. The run directory was never created; candidate/mock never started; port 45231 is free; P0-217 evidence and production Finance PID 877083 are unchanged. Heavy and all P0-218 locks are released, and no production or public truth is promoted."
   },
   "wave": {
     "id": "B-financial-apps-quant",
