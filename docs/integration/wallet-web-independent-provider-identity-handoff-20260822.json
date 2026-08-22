@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "owner": "Wallet Web/PWA/Extensions",
+  "taskId": "P0-150-provider-identity",
+  "status": "INDEPENDENT_YNX_PROVIDER_IDENTITY_BUILT_INSTALLED_FALSE",
+  "sourceCommit": "a3310cc9f0c757d27dae83282b68361c116c22a3",
+  "sourceTree": "b97999159a2b137d00bd2155157ce574e9c1ff64",
+  "evidence": "apps/wallet-web/evidence/contracts/ynx-extension-provider-identity-20260822.json",
+  "identity": {"extensionName":"YNX Wallet","eip6963Name":"YNX Wallet","eip6963Rdns":"com.ynx.wallet","isMetaMask":false},
+  "tests": ["source 112/112", "package internal 112/112", "package verification 3/3"],
+  "truthBoundary": "The source and exact packages expose an independent YNX EIP-6963 identity. No installed browser or DApp discovery claim is promoted until direct visible evidence exists.",
+  "executionLeaseIssued": false,
+  "deploymentLeaseIssued": false
+}
