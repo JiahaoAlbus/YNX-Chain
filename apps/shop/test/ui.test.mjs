@@ -26,3 +26,8 @@ test('connected account opens details instead of restarting account approval', a
   assert.ok(js.includes("$('#walletChoices').hidden=Boolean(connection)"));
   assert.ok(html.includes('Private Product Session failure never removes the Standard Wallet connection.'));
 });
+
+test('web build ships the EIP-6963 provider discovery module', async () => {
+  const build = await readFile(new URL('../scripts/build.mjs', import.meta.url), 'utf8');
+  assert.ok(build.includes("'wallet-provider-discovery.js'"));
+});
