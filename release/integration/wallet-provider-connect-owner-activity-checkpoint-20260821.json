@@ -13,6 +13,17 @@
     "corsSafeRpcDegradationPreservesConnection": true,
     "corsSafeRpcDegradationReopensChooser": false
   },
+  "standardWalletE2EOrchestration": {
+    "plan": "release/integration/wallet-standard-wallet-e2e-execution-plan-p0-20260822.json",
+    "version": "standardWalletE2EExecution@1.0.0-p0.0",
+    "mode": "EXECUTION_ORCHESTRATION_NOT_RECEIPT_CONSUMPTION",
+    "dispatchStatus": "ALL_12_PRODUCTS_HAVE_EXACT_OWNER_STAGE_LIST",
+    "requiredDirectE2E": ["distinct-YNX-and-MetaMask-provider-identity", "first-party-plus-three-external-DApps", "approve-reject", "0x1917-add-switch-chain-readback", "personal-sign-EIP712-testnet-send", "events-refresh-disconnect-revoke", "WalletConnect-relay-pairing-lifecycle", "no-blank-tab-and-stable-URL", "PRIVATE_SERVICE_DEGRADED-preserves-Layer1"],
+    "sensitiveActionBoundary": "eth_requestAccounts, signature and transaction actions require the user's immediate confirmation and a dedicated test account; no private key is collected or recorded.",
+    "directRuntimeEvidenceRecorded": false,
+    "productsConnected": 0,
+    "productsMigratedV2": 0
+  },
   "centralP0145P0146": {
     "commit": "4556da2ea6dac6e11c7c62a4f53b542ea1556081",
     "finance": "SOURCE_BUILD_ACCEPTED_LEASE_RELEASED_AWAITING_PRODUCTION_BINDING",

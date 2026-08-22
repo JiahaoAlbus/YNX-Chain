@@ -54,6 +54,18 @@
     "productsConnected": 0,
     "productsMigratedV2": 0
   },
+  "standardWalletE2EExecution": {
+    "plan": "release/integration/wallet-standard-wallet-e2e-execution-plan-p0-20260822.json",
+    "version": "standardWalletE2EExecution@1.0.0-p0.0",
+    "status": "OWNER_DISPATCH_READY_DIRECT_E2E_REQUIRED",
+    "requiredProductStages": ["exact-shared-source-consumption", "source-bound-public-runtime", "visible-provider-approval-rejection-and-0x1917", "refresh-events-disconnect-revoke", "Product-Session-private-service-degraded-independence"],
+    "dappCoverage": {"firstParty": "ynx-first-party", "external": ["uniswap-interface-reference", "opensea-reference", "safe-reference"], "directRuntimeCount": 0},
+    "walletConnect": {"realProjectIdAndRelay": false, "realPairing": false, "realApproveReject": false, "realSessionRestore": false},
+    "allTwelveOwnerDispatchPrepared": true,
+    "sourceCheckpointIsCompletion": false,
+    "productsConnected": 0,
+    "productsMigratedV2": 0
+  },
   "centralP0145P0146": {
     "commit": "4556da2ea6dac6e11c7c62a4f53b542ea1556081",
     "finance": "SOURCE_BUILD_ACCEPTED_LEASE_RELEASED_AWAITING_PRODUCTION_BINDING",

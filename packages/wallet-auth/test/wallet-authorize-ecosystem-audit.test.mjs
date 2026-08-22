@@ -96,6 +96,17 @@ test("v3 owner/runtime matrix tracks all twelve products and preserves false aut
   assert.deepEqual(auditV3.registeredProducts.filter(({ runtime }) => runtime.realInstalledApproval === true).map(({ productId }) => productId), ["calendar"]);
 });
 
+test("E2E execution is centrally gated across all products instead of treating source checkpoints as completion", () => {
+  assert.equal(auditV3.standardWalletE2EExecution.plan, "release/integration/wallet-standard-wallet-e2e-execution-plan-p0-20260822.json");
+  assert.equal(auditV3.standardWalletE2EExecution.status, "OWNER_DISPATCH_READY_DIRECT_E2E_REQUIRED");
+  assert.deepEqual(auditV3.standardWalletE2EExecution.dappCoverage.external, ["uniswap-interface-reference", "opensea-reference", "safe-reference"]);
+  assert.equal(auditV3.standardWalletE2EExecution.dappCoverage.directRuntimeCount, 0);
+  assert.equal(auditV3.standardWalletE2EExecution.walletConnect.realProjectIdAndRelay, false);
+  assert.equal(auditV3.standardWalletE2EExecution.sourceCheckpointIsCompletion, false);
+  assert.equal(ownerActivityCheckpoint.standardWalletE2EOrchestration.mode, "EXECUTION_ORCHESTRATION_NOT_RECEIPT_CONSUMPTION");
+  assert.equal(ownerActivityCheckpoint.standardWalletE2EOrchestration.directRuntimeEvidenceRecorded, false);
+});
+
 test("Protocol Owner public recheck records regressions without promoting product completion", () => {
   assert.equal(publicOwnerRecheck.sharedProviderConnectAuthority.sourceCommit, auditV3.sharedProviderConnectRecovery.sourceCommit);
   assert.equal(publicOwnerRecheck.sharedProviderConnectAuthority.sourceTree, auditV3.sharedProviderConnectRecovery.sourceTree);
