@@ -1,14 +1,23 @@
 {
   "schemaVersion": 1,
-  "sourceCommit": "f789c782c325d64234bd077f5c878b1821b2149a",
-  "generatedAt": "2026-08-14T04:52:10.612Z",
+  "sourceCommit": "aa225899eed79b4ddee3027d124657d7357f361c",
+  "generatedAt": "2026-08-22T04:40:26.895Z",
   "gateClass": "exact built-artifact manifest and external URL inspection; not a browser installation",
+  "externalUrlClasses": {
+    "rpcAuthority": "https://evm.ynxweb4.com",
+    "explorerDisplay": "https://explorer.ynxweb4.com",
+    "officialWalletAndCallback": "https://www.ynxweb4.com",
+    "metaMaskFallback": [
+      "https://metamask.io/download",
+      "https://metamask.app.link"
+    ]
+  },
   "passed": true,
   "artifacts": [
     {
       "name": "ynx-wallet-chrome-edge-0.1.0.zip",
-      "bytes": 184142,
-      "sha256": "11207d569d7e59637fbcdd6f34051309963e889546506c2d00277e71e983158f",
+      "bytes": 366730,
+      "sha256": "acbc2471fc8011d2b32198b1fdd141f582b729d680902a0b0808b194680aed3c",
       "permissions": [
         "activeTab",
         "scripting",
@@ -24,8 +33,12 @@
         "https://evm.ynxweb4.com",
         "https://evm.ynxweb4.com/*",
         "https://explorer.ynxweb4.com",
+        "https://metamask.app.link",
         "https://metamask.io/download",
+        "https://www.ynxweb4.com",
         "https://www.ynxweb4.com/",
+        "https://www.ynxweb4.com/dapp/wallet",
+        "https://www.ynxweb4.com/dapp/wallet/wallet-auth/callback",
         "https://www.ynxweb4.com/downloads/ynx-wallet-1.0.1-testnet-preview-dc31c9a8-test-signed.apk"
       ],
       "unexpectedExternalUrls": [],
@@ -33,8 +46,8 @@
     },
     {
       "name": "ynx-wallet-firefox-0.1.0.zip",
-      "bytes": 184185,
-      "sha256": "9327bab0eab792b7e305a0ced3a952f0261f4d857180a977c698bf2a0a40568e",
+      "bytes": 366767,
+      "sha256": "bd34014aae36ae6348739a8726fdcfbbae5ead47d8d46e6049f57669b1f34cc1",
       "permissions": [
         "activeTab",
         "scripting",
@@ -50,8 +63,12 @@
         "https://evm.ynxweb4.com",
         "https://evm.ynxweb4.com/*",
         "https://explorer.ynxweb4.com",
+        "https://metamask.app.link",
         "https://metamask.io/download",
+        "https://www.ynxweb4.com",
         "https://www.ynxweb4.com/",
+        "https://www.ynxweb4.com/dapp/wallet",
+        "https://www.ynxweb4.com/dapp/wallet/wallet-auth/callback",
         "https://www.ynxweb4.com/downloads/ynx-wallet-1.0.1-testnet-preview-dc31c9a8-test-signed.apk"
       ],
       "unexpectedExternalUrls": [],

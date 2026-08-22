@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "owner": "Wallet Web/PWA/Extensions",
+  "taskId": "P0-150",
+  "status": "SOURCE_AND_ARTIFACT_CHECKPOINT_NOT_INSTALLED_PROVIDER_E2E",
+  "sourceCommit": "aa225899eed79b4ddee3027d124657d7357f361c",
+  "sourceTree": "bcd33cb8f5ef62d40913c46da5047939fec84ab1",
+  "centralGate": {
+    "commit": "f92757f7491c3e28106664aacc2066663bbd52bb",
+    "tree": "c3b8aa28ca0cccefcb24319f65e2adfa0621123f",
+    "recordBlob": "a6809588dbf2ba66fb8652a34bf942cce9b8a7dc",
+    "recordSha256": "a7448b5d6c8f6fafe7cf4611a17a10fd6c069f66be3ed80318a22ff4de76937e"
+  },
+  "evidence": "apps/wallet-web/evidence/contracts/ynx-independent-provider-core-20260822.json",
+  "artifactManifest": "apps/wallet-web/artifact-manifest.json",
+  "minimumPermissionEvidence": "apps/wallet-web/evidence/runtime/extension-minimum-permissions-20260814.json",
+  "summary": "The built extension now owns a distinct YNX EIP-6963/EIP-1193 provider bridge, exact-origin permission and approval core, 0x1917 chain handling and events. It does not proxy MetaMask and does not couple Standard connection to Product Session. Missing YNX account/signing authority fails closed.",
+  "tests": [
+    "npm test: 105/105",
+    "build/package internal: 82/82",
+    "npm run verify:package: pass",
+    "npm run test:artifact:permissions: pass"
+  ],
+  "artifacts": [
+    {
+      "name": "ynx-wallet-web-pwa-0.1.0.zip",
+      "bytes": 285230,
+      "sha256": "652b866a7bb9ada5d2eacc6520a6702d6dab958eefbb4822e3dbc28aaab77992",
+      "signingClass": "unsigned-web-bundle"
+    },
+    {
+      "name": "ynx-wallet-chrome-edge-0.1.0.zip",
+      "bytes": 366730,
+      "sha256": "acbc2471fc8011d2b32198b1fdd141f582b729d680902a0b0808b194680aed3c",
+      "signingClass": "unsigned-unpacked-extension"
+    },
+    {
+      "name": "ynx-wallet-firefox-0.1.0.zip",
+      "bytes": 366767,
+      "sha256": "bd34014aae36ae6348739a8726fdcfbbae5ead47d8d46e6049f57669b1f34cc1",
+      "signingClass": "unsigned-unpacked-extension"
+    }
+  ],
+  "falseUntilDirectEvidence": [
+    "installedProviderVerified",
+    "providerConnected",
+    "accountApproved",
+    "providerChainId1917",
+    "approve",
+    "reject",
+    "refreshRestore",
+    "disconnect",
+    "accountsChanged",
+    "chainChanged",
+    "personalSign",
+    "typedData",
+    "transactionSubmitted",
+    "downloadHosted",
+    "productionSigned",
+    "storeReleased",
+    "deployedPublic",
+    "parityComplete"
+  ],
+  "executionLeaseIssued": false,
+  "deploymentRequested": false
+}
