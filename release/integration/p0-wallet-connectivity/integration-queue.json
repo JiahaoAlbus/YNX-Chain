@@ -7182,6 +7182,36 @@
       "officialCanonicalUnchanged": true,
       "officialSourceBoundPublic": false,
       "nextAction": "Do not reuse P0-201. Freeze a sole-path workflow hardcoded to the exact new immutable candidate and request a separate one-push/one-run hosted raw/browser preflight; no alias before direct success."
+    },
+    {
+      "taskId": "P0-202",
+      "owner": "social",
+      "status": "ACTIVE_SINGLE_USE",
+      "paths": [
+        "release/integration/p0-wallet-connectivity/execution/p0-202-social-console-clean-hosted-preflight-lease-20260822.json",
+        "branch:codex/social-release-evidence-ecffe336:.github/workflows/social-public-candidate-preflight-p0.yml",
+        "https://ynx-social-i38c5m9dw-jiahaoalbus-projects.vercel.app/**"
+      ],
+      "dependencies": [
+        "P0-201"
+      ],
+      "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-social-console-clean-hosted-preflight-20260822T171000Z",
+      "expiresAt": "2026-08-22T17:40:00Z",
+      "executor": "social-vercel-release",
+      "remoteParent": "3aff48f04ff02a3fb0530574bb778fcda8b824a9",
+      "candidate": "448062cb25571aaa43355ff2ec5a8a2e6158cbbd",
+      "candidateTree": "89da40a707d553b471606a74d6c1825286648344",
+      "workflowBlob": "f2e421d9549cadb9a896e794d1abbb7ce476c491",
+      "workflowSha256": "8fa7614ed5e9b17e883881798485e5a1eee3101a1a573893a5a10be2dfe291f6",
+      "runtimeCandidate": "dpl_34kzw3uk4B1wwjk1wQUq8y29mTxX",
+      "commitLimit": 1,
+      "pushLimit": 1,
+      "hostedRunLimit": 1,
+      "retryAllowed": false,
+      "deploymentAllowed": false,
+      "aliasAllowed": false,
+      "sensitiveActionsAllowed": false,
+      "nextAction": "Execute the exact literal force=false push once, bind the unique hosted run, inspect the isolated raw/browser artifact, then release success or fail closed without retry or Vercel mutation."
     }
   ]
 }
