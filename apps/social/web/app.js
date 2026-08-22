@@ -43,6 +43,7 @@ function setConnected(result) {
     },
     onDisconnect() { disconnect("Wallet disconnected by provider."); },
   });
+  renderPrivateServiceDegraded();
   showStatus("Standard wallet connection is active. Private Social features remain locked until a separate YNX Product Session is approved.", "success");
 }
 
@@ -125,19 +126,13 @@ async function restoreConnection() {
   }
 }
 
-async function readService() {
+function renderPrivateServiceDegraded() {
   const status = byId("service-status");
-  try {
-    const response = await fetch("https://api.ynxweb4.com/social/health", { headers: { Accept: "application/json" } });
-    if (!response.ok) throw new Error(String(response.status));
-    status.textContent = "Social service reachable";
-    status.dataset.tone = "success";
-  } catch {
-    status.textContent = "Private Social service degraded — guest preview is still available";
-    status.dataset.tone = "warning";
-    byId("private-session-state").textContent = state.account ? "Private Social service degraded. Standard wallet connection remains active." : "Private Social service degraded. Wallet connection remains independently available.";
-  }
+  status.textContent = "Private Social service degraded — guest preview is still available";
+  status.dataset.tone = "warning";
+  status.dataset.serviceState = "PRIVATE_SERVICE_DEGRADED";
+  byId("private-session-state").textContent = state.account ? "Private Social service degraded. Standard wallet connection remains active." : "Private Social service degraded. Wallet connection remains independently available.";
 }
 
-void readService();
+renderPrivateServiceDegraded();
 void restoreConnection();

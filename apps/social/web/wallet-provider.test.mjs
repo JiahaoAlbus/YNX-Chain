@@ -106,10 +106,13 @@ test("web flow uses distinct logos and forbids custom-scheme or blank-tab launch
   ]);
   assert.match(html, /assets\/ynx-wallet\.svg/);
   assert.match(html, /assets\/metamask\.svg/);
+  assert.match(html, /rel="icon" href="\.\/assets\/ynx-wallet\.svg"/);
   assert.match(html, /wallet-switch-account/);
   assert.match(html, /wallet-revoke/);
   assert.match(html, /wallet-disconnect/);
   assert.doesNotMatch(`${html}\n${app}\n${provider}`, /window\.open|ynxwallet:|target=["']_blank/i);
+  assert.doesNotMatch(app, /fetch\(|api\.ynxweb4\.com\/social\/health/);
+  assert.match(app, /PRIVATE_SERVICE_DEGRADED/);
   assert.match(app, /Private Social service degraded\. Standard wallet connection remains active/);
   assert.match(app, /if \(state\.provider\)/);
   assert.match(provider, /https:\/\/rpc\.ynxweb4\.com\/evm/);
