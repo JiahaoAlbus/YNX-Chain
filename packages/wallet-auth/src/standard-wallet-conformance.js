@@ -1,4 +1,6 @@
 import { canonicalJSON, exactFields, WalletAuthError } from "./canonical.js";
+import { METAMASK_EVM_CHAIN } from "./metamask-evm-adapter.js";
+import { createStandardWalletConnectState, reduceStandardWalletConnectState, STANDARD_WALLET_CONNECT_STATUS, STANDARD_WALLET_PRIVATE_SERVICE } from "./standard-wallet-connect-state.js";
 import { STANDARD_WALLET_CHAIN_ID } from "./standard-wallet-connect-state.js";
 
 export const STANDARD_WALLET_CONFORMANCE_VERSION = "standardWalletConformance@1.0.0-p0.0";
@@ -13,6 +15,8 @@ export const STANDARD_WALLET_EIP1193_METHODS = Object.freeze([
   "eth_signTypedData_v4",
   "eth_sendTransaction",
 ]);
+export const STANDARD_WALLET_INTEROP_FIXTURE_VERSION = "standardWalletInteropFixture@1.0.0-p0.0";
+export const STANDARD_WALLET_INTEROP_EVENT_SEQUENCE = Object.freeze(["ACCOUNTS_CHANGED", "CHAIN_CHANGED", "CHAIN_CHANGED", "ACCOUNTS_CHANGED", "PROVIDER_DISCONNECT"]);
 
 // These are protocol profiles, not claims that the named external DApps were
 // opened or approved in a browser. They keep the shared fixture honest while
@@ -97,10 +101,88 @@ export async function runStandardWalletConformance(input) {
   });
 }
 
+/**
+ * A stricter synthetic interop fixture. It proves the entire common EVM
+ * sequence without contacting a browser profile, WalletConnect relay, or
+ * Product Session. A caller must supply an explicit harness and event driver.
+ */
+export async function runStandardWalletInteropFixture(input) {
+  exactFields(input, ["driveEvents", "profileId", "provider", "siwe", "testHarness", "transaction", "typedData"], "Standard Wallet interop fixture input");
+  if (input.testHarness !== true) fail("CONFORMANCE_HARNESS_REQUIRED", "Standard Wallet interop fixture may run only against an explicit test harness");
+  if (typeof input.driveEvents !== "function") fail("INTEROP_EVENT_DRIVER_REQUIRED", "Standard Wallet interop fixture requires an explicit event driver");
+  const profile = STANDARD_WALLET_CONFORMANCE_PROFILES.find((item) => item.id === input.profileId);
+  if (!profile) fail("UNKNOWN_CONFORMANCE_PROFILE", "Standard Wallet conformance profile is unknown");
+  const provider = eip1193Provider(input.provider);
+  const initialChainId = chain(await request(provider, "eth_chainId"));
+  const knownAccounts = accounts(await request(provider, "eth_accounts"));
+  const approved = accounts(await request(provider, "eth_requestAccounts"));
+  if (approved.length === 0) fail("NO_APPROVED_ACCOUNT", "Provider returned no approved account");
+  const selectedAccount = approved[0];
+  const switched = await addAndSwitchFixtureChain(provider, initialChainId);
+  const chainId = chain(await request(provider, "eth_chainId"));
+  if (chainId !== STANDARD_WALLET_CHAIN_ID) fail("WRONG_NETWORK", "Provider did not report YNX Testnet after add/switch");
+  const restoredAccounts = accounts(await request(provider, "eth_accounts"));
+  if (restoredAccounts.length === 0 || restoredAccounts[0] !== selectedAccount) fail("RESTART_RESTORE_FAILED", "Provider did not restore the approved account");
+  const siwe = createStandardWalletSiweMessage(input.siwe);
+  const typedData = createStandardWalletTypedData({ ...input.typedData, account: selectedAccount });
+  const transaction = createStandardWalletTransactionRequest({ ...input.transaction, from: selectedAccount });
+  const personalSignature = signature(await request(provider, "personal_sign", [siwe, selectedAccount]));
+  const typedSignature = signature(await request(provider, "eth_signTypedData_v4", [selectedAccount, canonicalJSON(typedData)]));
+  const transactionHash = hash(await request(provider, "eth_sendTransaction", [transaction]));
+  let state = reduceStandardWalletConnectState(createStandardWalletConnectState(), { type: "BEGIN", pendingIntent: "interop_fixture_connect_20260822" });
+  state = reduceStandardWalletConnectState(state, { type: "PROVIDER_SELECTED", providerKind: profile.transport === "walletconnect-eip1193" ? "walletconnect" : "metamask" });
+  state = reduceStandardWalletConnectState(state, { type: "ACCOUNT_APPROVED", account: selectedAccount });
+  state = reduceStandardWalletConnectState(state, { type: "CHAIN_CONFIRMED", chainId });
+  state = reduceStandardWalletConnectState(state, { type: "PRIVATE_SESSION_DEGRADED", code: "GATEWAY_UNAVAILABLE" });
+  if (state.status !== STANDARD_WALLET_CONNECT_STATUS.CONNECTED || state.privateService !== STANDARD_WALLET_PRIVATE_SERVICE.DEGRADED) fail("PRIVATE_SERVICE_ISOLATION_FAILED", "Product Session degradation changed Standard Wallet connection");
+  const eventTypes = [];
+  await input.driveEvents((event) => {
+    state = reduceStandardWalletConnectState(state, event);
+    eventTypes.push(event.type);
+  });
+  if (eventTypes.length !== STANDARD_WALLET_INTEROP_EVENT_SEQUENCE.length || eventTypes.some((type, index) => type !== STANDARD_WALLET_INTEROP_EVENT_SEQUENCE[index])) fail("INVALID_INTEROP_EVENT_TRACE", "Standard Wallet interop event trace is incomplete");
+  if (state.status !== STANDARD_WALLET_CONNECT_STATUS.DISCONNECTED || state.standardPermissions.length !== 0) fail("PERMISSION_REVOCATION_FAILED", "Standard Wallet permissions were not revoked after account removal/disconnect");
+  return deepFreeze({
+    version: STANDARD_WALLET_INTEROP_FIXTURE_VERSION,
+    profileId: profile.id,
+    profileClass: profile.class,
+    transport: profile.transport,
+    initialChainId,
+    chainRecovery: switched,
+    selectedAccount,
+    chainId,
+    restartRestore: { account: restoredAccounts[0], chainId },
+    signatures: { personalSign: personalSignature, typedData: typedSignature },
+    transaction: { request: transaction, hash: transactionHash },
+    eventTrace: eventTypes,
+    finalStatus: state.status,
+    permissionsRevoked: true,
+    privateServiceDegradedPreservedLayer1: true,
+    realWalletAuthority: false,
+    externalDappRuntimeVerified: false,
+    walletConnectRelayVerified: false,
+    productSessionUsed: false,
+  });
+}
+
+async function addAndSwitchFixtureChain(provider, initialChainId) {
+  if (initialChainId === STANDARD_WALLET_CHAIN_ID) fail("INTEROP_CHAIN_RECOVERY_NOT_EXERCISED", "Interop fixture must exercise canonical add/switch recovery");
+  try { await rawRequest(provider, "wallet_switchEthereumChain", [{ chainId: STANDARD_WALLET_CHAIN_ID }]); }
+  catch (error) {
+    if (providerErrorCode(error) !== 4902) fail("CONFORMANCE_PROVIDER_ERROR", "Provider rejected chain switch outside the canonical missing-chain path");
+    await request(provider, "wallet_addEthereumChain", [METAMASK_EVM_CHAIN]);
+    await request(provider, "wallet_switchEthereumChain", [{ chainId: STANDARD_WALLET_CHAIN_ID }]);
+    return "added-after-4902";
+  }
+  return "switched-existing-chain";
+}
+
 async function request(provider, method, params) {
-  try { return await provider.request(params === undefined ? { method } : { method, params }); }
+  try { return await rawRequest(provider, method, params); }
   catch { fail("CONFORMANCE_PROVIDER_ERROR", "Standard Wallet test Provider failed closed"); }
 }
+async function rawRequest(provider, method, params) { return provider.request(params === undefined ? { method } : { method, params }); }
+function providerErrorCode(error) { const value = safe(() => error?.code); return value === 4902 || value === "4902" ? 4902 : null; }
 function eip1193Provider(value) { if (typeof value !== "object" || value === null || typeof safe(() => value.request) !== "function") fail("INVALID_STANDARD_WALLET_PROVIDER", "Standard Wallet conformance Provider is invalid"); return value; }
 function accounts(value) { if (!Array.isArray(value) || value.length > 1024) fail("INVALID_WALLET_RESPONSE", "Provider returned an invalid account list"); return value.map(account); }
 function account(value) { if (typeof value !== "string" || !/^0x[0-9a-fA-F]{40}$/.test(value)) fail("INVALID_WALLET_RESPONSE", "Provider returned an invalid EVM account"); return value.toLowerCase(); }

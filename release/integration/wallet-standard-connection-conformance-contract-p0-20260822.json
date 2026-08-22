@@ -34,6 +34,19 @@
     "doesNotClaimExternalDappRuntime":true,
     "doesNotInvokeRealWallet":true
   },
+  "executableInteropFixture": {
+    "version":"standardWalletInteropFixture@1.0.0-p0.0",
+    "scope":"explicit synthetic provider and explicit event driver only",
+    "profiles":["ynx-first-party","uniswap-interface-reference","opensea-reference","safe-reference","walletconnect-v2-reference"],
+    "chainRecovery":["eth_chainId non-0x1917","wallet_switchEthereumChain 4902","wallet_addEthereumChain exact canonical YNX Testnet config","wallet_switchEthereumChain 0x1917","eth_chainId 0x1917"],
+    "userActionMethods":["eth_requestAccounts","personal_sign","eth_signTypedData_v4","eth_sendTransaction"],
+    "restartAndEvents":["eth_accounts restore","accountsChanged","chainChanged wrong/canonical","accountsChanged empty permission revocation","disconnect"],
+    "privateServiceBoundary":{"duringProductSessionDegraded":"standard connection remains connected before user/provider events","productSessionUsed":false},
+    "fixtureOnly":true,
+    "realBrowserOrInstalledWallet":false,
+    "realExternalDapp":false,
+    "realWalletConnectRelay":false
+  },
   "requiredDirectEvidenceBeforePromotion": [
     "installed provider selected in a real browser or installed client",
     "user-approved eth_requestAccounts and exact 0x1917 chain result",

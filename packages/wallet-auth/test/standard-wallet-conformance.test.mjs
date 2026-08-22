@@ -5,9 +5,12 @@ import {
   createStandardWalletTransactionRequest,
   createStandardWalletTypedData,
   runStandardWalletConformance,
+  runStandardWalletInteropFixture,
   STANDARD_WALLET_CONFORMANCE_PROFILES,
   STANDARD_WALLET_CONFORMANCE_VERSION,
   STANDARD_WALLET_EIP1193_METHODS,
+  STANDARD_WALLET_INTEROP_EVENT_SEQUENCE,
+  STANDARD_WALLET_INTEROP_FIXTURE_VERSION,
   WalletAuthError,
 } from "../src/index.js";
 
@@ -98,5 +101,62 @@ test("provider rejection and malformed signatures or transaction hashes never be
   malformed.request = async ({ method }) => method === "eth_chainId" ? "0x1917" : method === "eth_accounts" ? [] : method === "eth_requestAccounts" ? [ACCOUNT] : "0x01";
   await assert.rejects(runStandardWalletConformance({ ...input(), profileId: "safe-reference", provider: malformed }), code("INVALID_WALLET_RESPONSE"));
 });
+
+test("interop fixture exercises 4902 add/switch, restart restoration, events, permission revocation and private-service isolation", async () => {
+  for (const { id } of STANDARD_WALLET_CONFORMANCE_PROFILES) {
+    const calls = [], provider = interopFixture(calls);
+    const result = await runStandardWalletInteropFixture({
+      ...input(), profileId: id, provider,
+      async driveEvents(dispatch) {
+        dispatch({ type: "ACCOUNTS_CHANGED", accounts: [OTHER] });
+        dispatch({ type: "CHAIN_CHANGED", chainId: "0x1" });
+        dispatch({ type: "CHAIN_CHANGED", chainId: "0x1917" });
+        dispatch({ type: "ACCOUNTS_CHANGED", accounts: [] });
+        dispatch({ type: "PROVIDER_DISCONNECT" });
+      },
+    });
+    assert.equal(result.version, STANDARD_WALLET_INTEROP_FIXTURE_VERSION);
+    assert.equal(result.chainRecovery, "added-after-4902");
+    assert.equal(result.restartRestore.account, ACCOUNT);
+    assert.equal(result.privateServiceDegradedPreservedLayer1, true);
+    assert.equal(result.permissionsRevoked, true);
+    assert.deepEqual(result.eventTrace, STANDARD_WALLET_INTEROP_EVENT_SEQUENCE);
+    assert.equal(result.finalStatus, "disconnected");
+    assert.equal(result.realWalletAuthority, false);
+    assert.equal(result.externalDappRuntimeVerified, false);
+    assert.equal(result.walletConnectRelayVerified, false);
+    assert.deepEqual(calls.map(({ method }) => method), ["eth_chainId", "eth_accounts", "eth_requestAccounts", "wallet_switchEthereumChain", "wallet_addEthereumChain", "wallet_switchEthereumChain", "eth_chainId", "eth_accounts", "personal_sign", "eth_signTypedData_v4", "eth_sendTransaction"]);
+    assert.deepEqual(calls[4].params, [{ chainId: "0x1917", chainName: "YNX Testnet", nativeCurrency: { name: "YNX Testnet", symbol: "YNXT", decimals: 18 }, rpcUrls: ["https://evm.ynxweb4.com"], blockExplorerUrls: ["https://explorer.ynxweb4.com"] }]);
+  }
+});
+
+test("interop fixture fails closed for unsupported chain recovery, incomplete event trace or missing explicit event driver", async () => {
+  const calls = [], canonicalProvider = fixture(calls);
+  await assert.rejects(runStandardWalletInteropFixture({ ...input(), profileId: "ynx-first-party", provider: canonicalProvider, driveEvents() {} }), code("INTEROP_CHAIN_RECOVERY_NOT_EXERCISED"));
+  const missingChain = interopFixture([]);
+  await assert.rejects(runStandardWalletInteropFixture({ ...input(), profileId: "uniswap-interface-reference", provider: missingChain, driveEvents() {} }), code("INVALID_INTEROP_EVENT_TRACE"));
+  await assert.rejects(runStandardWalletInteropFixture({ ...input(), profileId: "opensea-reference", provider: interopFixture([]), driveEvents: null }), code("INTEROP_EVENT_DRIVER_REQUIRED"));
+});
+
+function interopFixture(calls) {
+  let chainId = "0x1", added = false;
+  return {
+    async request(value) {
+      calls.push(value);
+      if (value.method === "eth_chainId") return chainId;
+      if (value.method === "eth_accounts") return chainId === "0x1917" ? [ACCOUNT] : [];
+      if (value.method === "eth_requestAccounts") return [ACCOUNT];
+      if (value.method === "wallet_switchEthereumChain") {
+        if (!added) throw Object.assign(new Error("unknown chain"), { code: 4902 });
+        chainId = value.params[0].chainId;
+        return null;
+      }
+      if (value.method === "wallet_addEthereumChain") { added = true; return null; }
+      if (value.method === "personal_sign" || value.method === "eth_signTypedData_v4") return SIGNATURE;
+      if (value.method === "eth_sendTransaction") return HASH;
+      throw new Error("unexpected test method");
+    },
+  };
+}
 
 function code(expected) { return (error) => error instanceof WalletAuthError && error.code === expected; }
