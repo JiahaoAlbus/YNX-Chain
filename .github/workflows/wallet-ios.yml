@@ -370,21 +370,11 @@ jobs:
           DEVICE="$(xcrun simctl list devices booted | awk -F '[()]' '/iPhone/{print $2; exit}')"
           test -n "$DEVICE"
           grep -F "device=$DEVICE erased=true" proof/ci-ios/simulator-reset.txt
-          simulator_face_id_menu() {
-            local menu_item="$1"
-            osascript - "$menu_item" <<'APPLESCRIPT'
-          on run argv
-            set requestedItem to item 1 of argv
-            tell application "Simulator" to activate
-            tell application "System Events"
-              tell process "Simulator"
-                click menu item requestedItem of menu 1 of menu item "Face ID" of menu 1 of menu bar item "Features" of menu bar 1
-              end tell
-            end tell
-          end run
-          APPLESCRIPT
-          }
-          simulator_face_id_menu "Enrolled"
+          # Drive LocalAuthentication through CoreSimulator's device-scoped API.
+          # Simulator menu automation is focus/accessibility dependent and can
+          # silently leave Face ID unenrolled on hosted runners.
+          xcrun simctl biometric "$DEVICE" unenroll || true
+          xcrun simctl biometric "$DEVICE" enroll
           xcodebuild test \
             -workspace ios/YNXWallet.xcworkspace \
             -scheme YNXWallet \
@@ -409,7 +399,7 @@ jobs:
             done
             test "$READY" = true
             sleep 2
-            simulator_face_id_menu "Matching Face"
+            xcrun simctl biometric "$DEVICE" match
           done
           wait "$XCODEBUILD_PID"
           grep -F "YNX_WALLET_SIMULATED_BIOMETRIC_MATCHED recovery=true unlock=true" \
