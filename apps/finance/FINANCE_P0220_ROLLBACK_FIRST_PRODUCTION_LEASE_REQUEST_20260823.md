@@ -20,7 +20,7 @@ The exact freshly-read active release, environment bytes, state receipt, unit, C
 
 ## Single-use rollback-first execution contract
 
-The frozen executor is `apps/finance/scripts/finance-production-rollback-first.sh`, 3,513 bytes, SHA-256 `74c6df3b72c2c24beb92bbec8d940b24660ff4be15d2c14b00a5757897da9c16`; its static safety regression is `apps/finance/scripts/test-finance-production-command-object.mjs`, 550 bytes, SHA-256 `a1c3613ac6b27f575467b67515bea27519b45556e494af5f805d94efb8d43dbc`. Future Central lease input must be absolute under `/opt/ynx/leases/finance/`, signed, and include every field used by this object.
+The corrected executor is `apps/finance/scripts/finance-production-rollback-first.sh`, 5,864 bytes, SHA-256 `d927f8b62bf162f340fc93451b71236c98b8cd23a81a10b1e7a9985b81d5706f`; its static safety regression is `apps/finance/scripts/test-finance-production-command-object.mjs`, 679 bytes, SHA-256 `748033a11a5aef416987c76fd9ad58ce1fba3f05f4720c92a3552520a6bbbcd8`. Future Central lease input must be absolute under `/opt/ynx/leases/finance/`, signed, and include every field used by this object, including old and candidate loopback/public response SHA-256 values, state absence-or-hash, and lease-specific path parents.
 
 The future lease must bind absent/no-symlink tuples for immutable stage, backup and candidate-release paths; archive upload bytes/SHA/ELF validation; extracted binary and asset inventory validation; atomic release materialization; same-directory verified env backup/replacement; atomic symlink switch; one service restart; then exact source-bound loopback/public `/health`, `/version` and asset verification.
 
