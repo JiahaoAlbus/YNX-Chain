@@ -427,29 +427,25 @@
     }
   ],
   "heavy": {
-    "owner": "calendar",
-    "taskId": "P0-207",
-    "status": "ACTIVE_SINGLE_USE",
+    "owner": null,
+    "taskId": null,
+    "status": "IDLE",
     "acquiredAt": "2026-08-22T18:02:00Z",
     "expiresAt": "2026-08-22T18:47:00Z",
+    "releasedAt": "2026-08-22T18:11:17Z",
     "sourceCommit": "fe1ba512f67f935e27997350800a7df18e3814d1",
     "evidenceCommit": "af9efeea3ebbb910c6b2fbcf912d5b01b2125281",
     "runtimeHost": "43.153.202.237",
-    "currentRuntime": "7db160aa0bd589097e63190a260a343aafe4854c",
+    "currentRuntime": "fe1ba512f67f935e27997350800a7df18e3814d1",
     "candidateRuntime": "fe1ba512f67f935e27997350800a7df18e3814d1",
     "artifactSha256": "fb767da23513d3c4ba7eab9e02ddf6088b3bea297e6e42ac33bbcd0fa7db7c73",
-    "productionMutationAllowed": true,
+    "productionMutationAllowed": false,
     "singleUse": true,
     "reusable": false,
-    "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-calendar-bounded-upload-console-clean-public-release-20260822T180200Z",
-    "locks": [
-      "host:43.153.202.237/service:ynx-calendar.service",
-      "path:apps/calendar",
-      "stage:/var/tmp/ynx-calendar-fe1ba512-successor-20260822T173400Z",
-      "backup:/var/backups/ynx-chain/calendar-fe1ba512-successor-20260822T173400Z",
-      "branch:codex/calendar-fable5-completion-20260821/path:.github/workflows/calendar-public-browser-preflight-p0.yml"
-    ],
-    "reason": "Card P0-206 released. Calendar request, two deterministic ELF carriers, complete workflow bundle, sole workflow diff, old production/runtime/public state, preserved P0-204 residue and fresh absent successor paths independently match. Authorize one bounded upload, one inode-safe paired rollback-first Calendar transaction and one post-public workflow push/run only."
+    "previousOwner": "calendar",
+    "previousTaskId": "P0-207",
+    "reviewDecision": "CONSUMED_RELEASED_SUCCESS_CALENDAR_CONSOLE_CLEAN_SOURCE_BOUND_PUBLIC_AND_HOSTED_BROWSER",
+    "reason": "The sole bounded upload, inode-safe paired transaction, exact official source readback and unique hosted browser run all succeeded. Calendar source-bound public non-sensitive recovery is true; account approval/reject, callback, disconnect/switch/revoke, installed provider, sign/typed data/transaction and product gates remain false."
   },
   "wave": {
     "id": "B-financial-apps-quant",
