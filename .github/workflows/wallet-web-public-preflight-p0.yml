@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   preflight:
-    if: "github.event.head_commit.message == 'evidence(wallet-web): preflight repaired v11 lifecycle p0188'"
+    if: "github.event.head_commit.message == 'evidence(wallet-web): preflight stable v11 second launch p0189'"
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:
@@ -22,7 +22,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          out="$RUNNER_TEMP/wallet-web-p0187-evidence"
+          out="$RUNNER_TEMP/wallet-web-p0189-evidence"
           test ! -e "$out"
           mkdir -p "$out/resources" "$out/browser"
 
@@ -31,7 +31,7 @@ jobs:
         run: |
           set -euo pipefail
           base='https://wallet-3re0s0lx4-jiahaoalbus-projects.vercel.app'
-          out="$RUNNER_TEMP/wallet-web-p0187-evidence/resources"
+          out="$RUNNER_TEMP/wallet-web-p0189-evidence/resources"
           fetch() {
             name="$1"
             uri="$2"
@@ -49,7 +49,7 @@ jobs:
           fetch build-identity '/build-identity.json' 267 caf151b49ea9c8ae55ca070aa05b2fda90ab2e7f5f6cb73dd4b9bc3c59ee1377
           fetch manifest '/manifest.webmanifest' 632 d2d131267483327ece949c5b8402c2dd80352bb15e791ea5571c879682ceba92
           fetch sw '/sw.js' 4862 cf8a043c2159842ce4c63213477a4f62e931fb1ca08061d6fb92b833a48af1d3
-          node -e "const fs=require('fs');const value=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/wallet-web-p0187-evidence/resources/build-identity.body','utf8'));if(value.sourceCommit!=='7df37ca32a643a403bd23a7f555354261f789441')process.exit(1)"
+          node -e "const fs=require('fs');const value=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/wallet-web-p0189-evidence/resources/build-identity.body','utf8'));if(value.sourceCommit!=='7df37ca32a643a403bd23a7f555354261f789441')process.exit(1)"
           awk 'BEGIN{IGNORECASE=1;ok=0} /^cache-control:/ && /no-store/{ok=1} END{exit ok?0:1}' "$out/build-identity.headers"
           awk 'BEGIN{IGNORECASE=1;ok=0} /^cache-control:/ && /no-store/{ok=1} END{exit ok?0:1}' "$out/sw.headers"
 
@@ -60,7 +60,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cat > "$RUNNER_TEMP/p0187-browser-probe.mjs" <<'NODE'
+          cat > "$RUNNER_TEMP/p0189-browser-probe.mjs" <<'NODE'
           import { createRequire } from "node:module";
           import { readFile, writeFile } from "node:fs/promises";
           import { join } from "node:path";
@@ -68,8 +68,8 @@ jobs:
           const require = createRequire(join(process.env.GITHUB_WORKSPACE, "apps/wallet-web/package.json"));
           const { chromium } = require("playwright");
           const base = "https://wallet-3re0s0lx4-jiahaoalbus-projects.vercel.app/";
-          const profile = join(process.env.RUNNER_TEMP, "p0187-chrome-profile");
-          const evidence = join(process.env.RUNNER_TEMP, "wallet-web-p0187-evidence", "browser");
+          const profile = join(process.env.RUNNER_TEMP, "p0189-chrome-profile");
+          const evidence = join(process.env.RUNNER_TEMP, "wallet-web-p0189-evidence", "browser");
           const executablePath = "/usr/bin/google-chrome";
           const result = { schemaVersion: 2, candidate: base, sourceCommit: "7df37ca32a643a403bd23a7f555354261f789441", persistentProfile: true, executablePath, expectedCacheVersion: "ynx-wallet-web-v11", legacyCacheVersion: "ynx-wallet-web-v8", installedProvider: false, accountAuthorized: false, signingOrTransaction: false, passed: false };
           const bounded = (promise, ms, label) => Promise.race([promise, new Promise((_, reject) => setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms))]);
@@ -97,6 +97,7 @@ jobs:
           const snapshot = page => page.evaluate(async () => {
             const buildIdentity = await fetch("./build-identity.json", { cache: "no-store" }).then(response => response.json());
             return ({
+            documentId: globalThis.__ynxWalletReadinessDocumentId ||= crypto.randomUUID(),
             url: location.href,
             title: document.title,
             text: document.body.innerText,
@@ -149,6 +150,41 @@ jobs:
             throw new Error(`v11 lifecycle convergence timed out; timeline=${JSON.stringify(timeline.slice(-10))}`);
           };
           const normal = value => value.url === base && value.title === "YNX Wallet — Testnet companion" && value.pwaState === "ready" && !value.recoveryMarker && Boolean(value.controller) && value.controlledVersion === "ynx-wallet-web-v11" && value.cacheNames.length === 1 && value.cacheNames[0] === "ynx-wallet-web-v11" && value.registrations.length === 1 && value.registrations[0].active === "activated" && value.buildIdentity?.sourceCommit === result.sourceCommit && !/PWA shell integrity verification failed|PWA shell 完整性验证失败/i.test(value.text);
+          const stableWindow = (samples, stableMilliseconds) => {
+            let candidate = null;
+            for (const sample of samples) {
+              if (!sample.ready) { candidate = null; continue; }
+              if (!candidate || candidate.documentId !== sample.documentId) candidate = { documentId: sample.documentId, since: sample.atMs };
+              if (sample.atMs - candidate.since >= stableMilliseconds) return sample;
+            }
+            return null;
+          };
+          const stableFixtures = (() => {
+            const positive = stableWindow([{atMs:0,documentId:"a",ready:true},{atMs:800,documentId:"a",ready:true},{atMs:1600,documentId:"a",ready:true}],1500);
+            const navigationReset = stableWindow([{atMs:0,documentId:"a",ready:true},{atMs:800,documentId:"b",ready:true},{atMs:1600,documentId:"b",ready:true}],1500);
+            const readinessReset = stableWindow([{atMs:0,documentId:"a",ready:true},{atMs:800,documentId:"a",ready:false},{atMs:2400,documentId:"a",ready:true}],1500);
+            if (!positive || navigationReset || readinessReset) throw new Error("navigation-aware stability fixtures failed");
+            return { positive: true, navigationReset: true, readinessReset: true };
+          })();
+          result.stabilityFixtures = stableFixtures;
+          const waitForStableDocument = async (page, { timeout = 25000, stableMilliseconds = 1500, label = "stable Wallet document" } = {}) => {
+            const deadline = Date.now() + timeout;
+            const samples = [];
+            let latestState = null;
+            while (Date.now() < deadline) {
+              const atMs = Date.now();
+              try {
+                latestState = await snapshot(page);
+                samples.push({ atMs, documentId: latestState.documentId, ready: normal(latestState), url: latestState.url, pwaState: latestState.pwaState, controlledVersion: latestState.controlledVersion, cacheNames: latestState.cacheNames, registrationActive: latestState.registrations[0]?.active || null });
+                const stable = stableWindow(samples, stableMilliseconds);
+                if (stable && stable.documentId === latestState.documentId) return { state: latestState, stableMilliseconds, samples };
+              } catch (error) {
+                samples.push({ atMs, documentId: null, ready: false, transientNavigationError: String(error) });
+              }
+              await new Promise(resolve => setTimeout(resolve, 100));
+            }
+            throw new Error(`${label} timed out after ${timeout}ms; samples=${JSON.stringify(samples.slice(-20))}`);
+          };
           let context;
           let page;
           let stage = "launch-first";
@@ -189,7 +225,8 @@ jobs:
               waitForWalletReady(page),
               page.waitForFunction(() => location.href === "https://wallet-3re0s0lx4-jiahaoalbus-projects.vercel.app/", null, { timeout: 20000 })
             ]), 22000, "source-bound v11 Wallet UI");
-            result.firstAfterUpgrade = await snapshot(page);
+            result.firstStability = await bounded(waitForStableDocument(page, { label: "first stable source-bound Wallet document" }), 27000, "first stable source-bound Wallet document");
+            result.firstAfterUpgrade = result.firstStability.state;
             result.measuredRootDocumentRequests = measuredRootDocumentRequests;
             result.firstPageCount = context.pages().length;
             result.firstConsoleErrors = firstErrors;
@@ -212,6 +249,8 @@ jobs:
             page.on("console", message => { if (message.type() === "error" && !ignoredFavicon404(message)) secondErrors.push({ text: message.text(), location: message.location() }); });
             page.on("pageerror", error => secondErrors.push(String(error)));
             page.on("response", response => { if (response.url().startsWith(base)) { const row = { url: response.url(), status: response.status(), fromServiceWorker: response.fromServiceWorker() }; secondNetwork.push(row); if (!response.ok() && !(response.url() === `${base}favicon.ico` && response.status() === 404)) secondNetworkErrors.push(row); } });
+            let secondRootDocumentRequests = 0;
+            page.on("request", request => { const url = new URL(request.url()); if (request.isNavigationRequest() && url.origin === new URL(base).origin && url.pathname === "/") secondRootDocumentRequests += 1; });
             stage = "navigate-second";
             await bounded(page.goto(base, { waitUntil: "domcontentloaded", timeout: 20000 }), 25000, "second candidate navigation");
             stage = "wait-second-source-bound-wallet-ui";
@@ -219,7 +258,10 @@ jobs:
               waitForWalletReady(page),
               page.waitForFunction(async () => (await caches.keys()).includes("ynx-wallet-web-v11") && !(await caches.keys()).includes("ynx-wallet-web-v8"), null, { timeout: 15000 })
             ]), 18000, "second source-bound Wallet UI");
-            result.secondLaunch = await snapshot(page);
+            stage = "wait-second-navigation-aware-stability";
+            result.secondStability = await bounded(waitForStableDocument(page, { label: "second stable source-bound Wallet document" }), 27000, "second stable source-bound Wallet document");
+            result.secondLaunch = result.secondStability.state;
+            result.secondRootDocumentRequests = secondRootDocumentRequests;
             result.secondPageCount = context.pages().length;
             result.secondConsoleErrors = secondErrors;
             result.secondNetwork = secondNetwork;
@@ -227,7 +269,7 @@ jobs:
             await page.screenshot({ path: join(evidence, "second-launch.png"), fullPage: true });
             await writeFile(join(evidence, "second-launch.html"), result.secondLaunch.html);
             delete result.secondLaunch.html;
-            result.passed = normal(result.firstAfterUpgrade) && normal(result.secondLaunch) && result.lifecycle.firstV8Removal?.integrity?.ready === true && result.measuredRootDocumentRequests >= 1 && result.measuredRootDocumentRequests <= 2 && result.firstPageCount === 1 && result.secondPageCount === 1 && firstErrors.length === 0 && firstNetworkErrors.length === 0 && secondErrors.length === 0 && secondNetworkErrors.length === 0;
+            result.passed = normal(result.firstAfterUpgrade) && normal(result.secondLaunch) && result.lifecycle.firstV8Removal?.integrity?.ready === true && result.firstStability.stableMilliseconds >= 1500 && result.secondStability.stableMilliseconds >= 1500 && result.measuredRootDocumentRequests >= 1 && result.measuredRootDocumentRequests <= 2 && result.secondRootDocumentRequests >= 1 && result.secondRootDocumentRequests <= 2 && result.firstPageCount === 1 && result.secondPageCount === 1 && firstErrors.length === 0 && firstNetworkErrors.length === 0 && secondErrors.length === 0 && secondNetworkErrors.length === 0;
           } catch (error) {
             result.error = { stage, name: error?.name || "Error", message: error?.message || String(error) };
             result.firstConsoleErrors = firstErrors;
@@ -254,21 +296,21 @@ jobs:
           console.log(JSON.stringify(result, null, 2));
           process.exit(result.passed ? 0 : 1);
           NODE
-          node "$RUNNER_TEMP/p0187-browser-probe.mjs"
+          node "$RUNNER_TEMP/p0189-browser-probe.mjs"
 
       - name: Freeze isolated hosted evidence checksums
         if: always()
         shell: bash
         run: |
           set -euo pipefail
-          out="$RUNNER_TEMP/wallet-web-p0187-evidence"
+          out="$RUNNER_TEMP/wallet-web-p0189-evidence"
           find "$out" -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > "$out/SHA256SUMS"
 
       - name: Upload isolated immutable hosted browser evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: wallet-web-v11-service-worker-lifecycle-preflight-p0187
-          path: ${{ runner.temp }}/wallet-web-p0187-evidence
+          name: wallet-web-v11-stable-second-launch-preflight-p0189
+          path: ${{ runner.temp }}/wallet-web-p0189-evidence
           if-no-files-found: error
           retention-days: 7
