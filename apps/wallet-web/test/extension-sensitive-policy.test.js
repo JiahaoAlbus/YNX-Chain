@@ -20,7 +20,9 @@ test("build consumes exact Core Web companion authority while public Gateway rem
 
 test("sensitive request parser binds exact method parameters, account and deadline",()=>{
   assert.deepEqual(parseSensitiveRequest(message("eth_requestAccounts",[])),{method:"eth_requestAccounts",expectedAccount:null});
+  assert.deepEqual(parseSensitiveRequest(message("wallet_requestPermissions",[{eth_accounts:{}}])),{method:"wallet_requestPermissions",expectedAccount:null});
   assert.equal(parseSensitiveRequest(message("personal_sign",["0x00",ACCOUNT])).expectedAccount,ACCOUNT);
+  assert.equal(parseSensitiveRequest(message("eth_signTypedData_v4",[ACCOUNT,JSON.stringify({domain:{},types:{},primaryType:"Mail",message:{}})])).expectedAccount,ACCOUNT);
   assert.equal(parseSensitiveRequest(message("eth_sendTransaction",[{from:ACCOUNT,to:ACCOUNT,value:"0x0",data:"0x"}])).expectedAccount,ACCOUNT);
   for(const invalid of [message("eth_requestAccounts",[1]),message("personal_sign",["hello",ACCOUNT]),message("eth_sendTransaction",[{from:ACCOUNT,to:ACCOUNT,value:"0x00",data:"0x"}]),{...message("personal_sign",["0x00",ACCOUNT]),deadlineAt:Date.now()-1}])assert.throws(()=>parseSensitiveRequest(invalid));
 });
@@ -35,10 +37,11 @@ test("sensitive results never accept fabricated accounts, signatures or transact
   assert.deepEqual(validateSensitiveResult("eth_requestAccounts",[ACCOUNT]),[ACCOUNT]);
   assert.throws(()=>validateSensitiveResult("eth_requestAccounts",[]),error=>error.code==="INVALID_ACCOUNT");
   assert.throws(()=>validateSensitiveResult("personal_sign","0x1234"),error=>error.code==="INVALID_SIGNATURE");
+  assert.throws(()=>validateSensitiveResult("eth_signTypedData_v4","0x1234"),error=>error.code==="INVALID_SIGNATURE");
   assert.throws(()=>validateSensitiveResult("eth_sendTransaction","0x1234"),error=>error.code==="INVALID_TRANSACTION_HASH");
 });
 
-test("service worker consumes replay state and Core authorization before a wallet backend call",async()=>{
-  const worker=await readFile(new URL("../extension/service-worker.js",import.meta.url),"utf8"),guard=worker.indexOf("consumeSensitiveRequest"),backend=worker.indexOf("executeInTab(tabId,origin,\"any\",input)");
-  assert.ok(guard>0&&backend>guard);assert.match(worker,/requireCanonicalAuthorizationContext\(CORE_WALLET_AUTH_BINDING,null\)/);
+test("standard provider consumes replay state without coupling to Core Product Session",async()=>{
+  const worker=await readFile(new URL("../extension/service-worker.js",import.meta.url),"utf8"),guard=worker.indexOf("consumeSensitiveRequest"),provider=worker.indexOf("handleProviderMethod({tabId,origin");
+  assert.ok(guard>0&&provider>guard);assert.doesNotMatch(worker,/requireCanonicalAuthorizationContext|CORE_WALLET_AUTH_BINDING/);assert.match(worker,/YNX_SIGNER_UNAVAILABLE/);
 });

@@ -7,11 +7,12 @@ export const RUNTIME_EVENT = "YNX_DAPP_EVENT_V1";
 export const REQUEST_TIMEOUT_MS = 18000;
 
 export const REQUEST_METHODS = Object.freeze([
-  "eth_chainId", "eth_accounts", "eth_requestAccounts", "wallet_addEthereumChain",
-  "wallet_switchEthereumChain", "wallet_revokePermissions", "personal_sign",
-  "eth_sendTransaction", "ynx_disconnect",
+  "eth_chainId", "eth_accounts", "eth_requestAccounts", "wallet_getPermissions", "wallet_requestPermissions",
+  "wallet_addEthereumChain", "wallet_switchEthereumChain", "wallet_revokePermissions", "personal_sign",
+  "eth_signTypedData_v4", "eth_sendTransaction", "ynx_disconnect",
+  "eth_blockNumber","eth_call","eth_estimateGas","eth_gasPrice","eth_getBalance","eth_getBlockByHash","eth_getBlockByNumber","eth_getCode","eth_getLogs","eth_getStorageAt","eth_getTransactionByHash","eth_getTransactionCount","eth_getTransactionReceipt","eth_maxPriorityFeePerGas","net_version","web3_clientVersion",
 ]);
-export const PROVIDER_EVENTS = Object.freeze(["accountsChanged", "chainChanged", "disconnect"]);
+export const PROVIDER_EVENTS = Object.freeze(["connect","accountsChanged", "chainChanged", "disconnect"]);
 
 const REQUEST_ID = /^ynx-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u;
 

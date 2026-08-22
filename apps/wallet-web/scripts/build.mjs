@@ -76,10 +76,12 @@ const variants = [
 for (const [name, manifest] of variants) {
   const target = join(dist, name); await mkdir(target, {recursive: true});
   for (const file of ["index.html", "styles.css", "accessibility.css", "app.js"]) await cp(join(root, "public", file), join(target, file));
+  for (const file of ["approval.html","approval.css","approval.js"]) await cp(join(root,"extension",file),join(target,file));
   for (const file of ["provider.js", "i18n.js", "preferences.js", "mobile-wallet-routing.js", "wallet-web-companion-lifecycle.js", "standard-wallet-connect-state.js"]) await cp(join(root, "src", file), join(target, file));
   for (const file of ["service-worker.js", "content-script.js", "page-provider.js"]) await cp(join(root, "extension", file), join(target, file));
   await cp(join(root, "src", "extension-bridge.js"), join(target, "extension-bridge.js"));
   await cp(join(root, "src", "extension-rpc.js"), join(target, "extension-rpc.js"));
+  await cp(join(root, "src", "extension-provider-permissions.js"), join(target, "extension-provider-permissions.js"));
   await cp(join(root, "src", "core-auth-consumer.js"), join(target, "core-auth-consumer.js"));
   await cp(join(root, "src", "extension-sensitive-policy.js"), join(target, "extension-sensitive-policy.js"));
   await cp(join(root, "src", "active-tab-policy.js"), join(target, "active-tab-policy.js"));
@@ -87,6 +89,9 @@ for (const [name, manifest] of variants) {
   await writeFile(join(target,"core-auth-binding.js"),`export const CORE_WALLET_AUTH_BINDING=Object.freeze(${JSON.stringify(coreAuthBinding)});\n`);
   await writeFile(join(target,"build-identity.json"),`${JSON.stringify(buildIdentity)}\n`);
   await cp(join(root, "public", "ynx-logo.png"), join(target, "ynx-logo.png"));
+  const providerSource=await readFile(join(target,"page-provider.js"),"utf8"),providerIcon=`data:image/png;base64,${(await readFile(join(root,"public","ynx-logo.png"))).toString("base64")}`;
+  if(!providerSource.includes("__YNX_PROVIDER_ICON_DATA_URI__"))throw new Error("YNX Provider icon placeholder missing");
+  await writeFile(join(target,"page-provider.js"),providerSource.replace("__YNX_PROVIDER_ICON_DATA_URI__",providerIcon));
   const html = (await readFile(join(target, "index.html"), "utf8")).replace('<link rel="manifest" href="./manifest.webmanifest">', "");
   await writeFile(join(target, "index.html"), html);
   await writeFile(join(target, "manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`);

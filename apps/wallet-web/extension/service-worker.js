@@ -1,12 +1,12 @@
 import {BRIDGE_VERSION,PROVIDER_EVENTS,REQUEST_METHODS,RUNTIME_EVENT,RUNTIME_REQUEST,publicBridgeError,validateRuntimeRequest} from "./extension-bridge.js";
-import {YNX_CHAIN_ID,verifyExtensionRpc} from "./extension-rpc.js";
-import {CORE_WALLET_AUTH_BINDING} from "./core-auth-binding.js";
-import {requireCanonicalAuthorizationContext} from "./core-auth-consumer.js";
+import {READ_ONLY_RPC_METHODS,YNX_CHAIN_ID,forwardExtensionRpc} from "./extension-rpc.js";
 import {consumeSensitiveRequest,parseSensitiveRequest,validateSensitiveResult} from "./extension-sensitive-policy.js";
 import {activeTabInjectionPlans,requireActiveDappTab} from "./active-tab-policy.js";
 import {runExtensionMigration} from "./extension-migration.js";
+import {PROVIDER_ACCOUNT_KEY,PROVIDER_PENDING_PREFIX,PROVIDER_PERMISSIONS_KEY,createPendingApproval,eip2255Permissions,grantPermission,loadProviderState,parseApprovalDecision,parsePermissionStore,parseProviderAccount,revokePermission} from "./extension-provider-permissions.js";
 
 const extensionApi=globalThis.browser||globalThis.chrome,CHAIN_ID=YNX_CHAIN_ID;
+const approvalWaiters=new Map();
 const migrationPromise=runExtensionMigration(extensionApi,{alarmsDeclared:false}).then(report=>({ok:true,report}),error=>({ok:false,error}));
 async function requireMigrationReady(){const state=await migrationPromise;if(!state.ok)throw Object.assign(new Error("Extension upgrade cleanup is incomplete; wallet access remains disabled."),{code:"MIGRATION_INCOMPLETE",cause:state.error});return state.report}
 const YNX_CHAIN=Object.freeze({chainId:CHAIN_ID,chainName:"YNX Testnet",nativeCurrency:Object.freeze({name:"YNX Testnet",symbol:"YNXT",decimals:18}),rpcUrls:Object.freeze(["https://evm.ynxweb4.com"]),blockExplorerUrls:Object.freeze(["https://explorer.ynxweb4.com"])});
@@ -23,9 +23,6 @@ function pageWalletRequest(preference,input){
 }
 globalThis.__YNX_INTERNAL_PAGE_WALLET_REQUEST__=pageWalletRequest;
 
-async function liveChainId(){
-  return (await verifyExtensionRpc()).chainId;
-}
 function exactMutationInput(method,params){
   const expected=method==="wallet_addEthereumChain"?[YNX_CHAIN]:[{chainId:CHAIN_ID}];
   if(JSON.stringify(params)!==JSON.stringify(expected))throw Object.assign(new Error("Rejected non-canonical YNX Testnet chain parameters."),{code:"INVALID_CHAIN_PARAMS"});
@@ -50,33 +47,80 @@ async function executeActive(preference,input){
 }
 async function emitToTab(tabId,origin,event,payload){if(PROVIDER_EVENTS.includes(event))await extensionApi.tabs.sendMessage(tabId,{type:RUNTIME_EVENT,version:BRIDGE_VERSION,origin,event,payload}).catch(()=>{})}
 function exactAccounts(value){if(!Array.isArray(value)||value.some((account)=>!/^0x[0-9a-fA-F]{40}$/u.test(account)))throw Object.assign(new Error("Wallet backend returned invalid accounts."),{code:"INVALID_ACCOUNT"});return value.map((account)=>account.toLowerCase())}
+
+async function configuredAccount(){const stored=await extensionApi.storage.local.get(PROVIDER_ACCOUNT_KEY);return parseProviderAccount(stored?.[PROVIDER_ACCOUNT_KEY])}
+async function approvedState(origin){
+  try{return await loadProviderState(extensionApi.storage.local,origin)}catch(error){if(error?.code==="PROVIDER_ACCOUNT_UNAVAILABLE")return null;throw error}
+}
+async function persistPermission(origin,account){
+  const stored=await extensionApi.storage.local.get(PROVIDER_PERMISSIONS_KEY),next=grantPermission(stored?.[PROVIDER_PERMISSIONS_KEY],origin,account);await extensionApi.storage.local.set({[PROVIDER_PERMISSIONS_KEY]:next});return next[origin]
+}
+async function removePermission(origin){
+  const stored=await extensionApi.storage.local.get(PROVIDER_PERMISSIONS_KEY),next=revokePermission(stored?.[PROVIDER_PERMISSIONS_KEY],origin);await extensionApi.storage.local.set({[PROVIDER_PERMISSIONS_KEY]:next});return next
+}
+function approvalKey(requestId){return `${PROVIDER_PENDING_PREFIX}${requestId}`}
+async function cleanupApproval(requestId,windowId){approvalWaiters.delete(requestId);await extensionApi.storage.session.remove(approvalKey(requestId)).catch(()=>{});if(Number.isInteger(windowId))await extensionApi.windows.remove(windowId).catch(()=>{})}
+async function requestAccountApproval(tabId,origin,requestId,deadlineAt){
+  const existing=await approvedState(origin);if(existing?.permission)return[existing.permission.account];
+  const account=await configuredAccount(),pending=createPendingApproval({requestId,origin,tabId,account,deadlineAt});
+  await extensionApi.storage.session.set({[approvalKey(requestId)]:pending});
+  let windowId=null,timer;
+  const decision=new Promise((resolve,reject)=>{timer=setTimeout(()=>reject(Object.assign(new Error("Wallet connection approval expired."),{code:"APPROVAL_EXPIRED"})),Math.max(1,deadlineAt-Date.now()));approvalWaiters.set(requestId,{resolve,reject,pending,get windowId(){return windowId}})});
+  try{const created=await extensionApi.windows.create({url:extensionApi.runtime.getURL(`approval.html?requestId=${encodeURIComponent(requestId)}`),type:"popup",width:420,height:640,focused:true});windowId=created?.id;const approved=await decision;if(!approved)throw Object.assign(new Error("User rejected the wallet connection."),{code:4001});const permission=await persistPermission(origin,account);await emitToTab(tabId,origin,"connect",{chainId:CHAIN_ID});await emitToTab(tabId,origin,"accountsChanged",[permission.account]);await emitToTab(tabId,origin,"chainChanged",CHAIN_ID);return[permission.account]}
+  finally{clearTimeout(timer);await cleanupApproval(requestId,windowId)}
+}
+function exactPermissionParams(method,params){
+  const request=Array.isArray(params)&&params.length===1?params[0]:null;
+  if(!request||typeof request!=="object"||Array.isArray(request)||Object.keys(request).join(",")!=="eth_accounts"||typeof request.eth_accounts!=="object"||request.eth_accounts===null||Array.isArray(request.eth_accounts)||Object.keys(request.eth_accounts).length!==0)throw Object.assign(new Error(`${method} accepts only eth_accounts.`),{code:-32602});
+}
+async function handleProviderMethod({tabId,origin,requestId,deadlineAt,method,params}){
+  if(method==="eth_chainId")return CHAIN_ID;
+  if(method==="net_version")return String(Number.parseInt(CHAIN_ID,16));
+  if(READ_ONLY_RPC_METHODS.includes(method))return forwardExtensionRpc(method,params);
+  if(method==="eth_accounts"){const state=await approvedState(origin);return state?.permission?[state.permission.account]:[]}
+  if(method==="eth_requestAccounts")return requestAccountApproval(tabId,origin,requestId,deadlineAt);
+  if(method==="wallet_getPermissions"){const state=await approvedState(origin);return eip2255Permissions(state?.permission||null)}
+  if(method==="wallet_requestPermissions"){exactPermissionParams(method,params);const accounts=await requestAccountApproval(tabId,origin,requestId,deadlineAt);const state=await approvedState(origin);if(state?.permission?.account!==accounts[0])throw Object.assign(new Error("Wallet permission did not persist."),{code:"PERMISSION_NOT_PERSISTED"});return eip2255Permissions(state.permission)}
+  if(method==="wallet_revokePermissions"||method==="ynx_disconnect"){
+    if(method==="wallet_revokePermissions")exactPermissionParams(method,params);await removePermission(origin);await emitToTab(tabId,origin,"accountsChanged",[]);await emitToTab(tabId,origin,"disconnect",{code:4900,message:"YNX Wallet disconnected from this site."});return null
+  }
+  if(method==="wallet_addEthereumChain"||method==="wallet_switchEthereumChain"){
+    exactMutationInput(method,params);requireLiveDeadline(deadlineAt);await emitToTab(tabId,origin,"chainChanged",CHAIN_ID);return null
+  }
+  if(["personal_sign","eth_signTypedData_v4","eth_sendTransaction"].includes(method)){
+    const state=await approvedState(origin);if(!state?.permission)throw Object.assign(new Error("This site is not approved for the YNX Wallet account."),{code:4100});
+    throw Object.assign(new Error("A real YNX Wallet extension signer is not available."),{code:"YNX_SIGNER_UNAVAILABLE"});
+  }
+  throw Object.assign(new Error("Unsupported wallet method."),{code:4200});
+}
 async function handleDappRequest(message,sender){
   const senderUrl=sender?.url||sender?.tab?.url;
   if(!Number.isInteger(sender?.tab?.id)||sender?.frameId!==0||!validateRuntimeRequest(message,senderUrl))throw Object.assign(new Error("Rejected invalid DApp bridge request."),{code:"INVALID_BRIDGE_REQUEST"});
-  const tabId=sender.tab.id,origin=message.origin,input={method:message.method,params:message.params};
+  const tabId=sender.tab.id,origin=message.origin;
   const sensitive=parseSensitiveRequest(message);
-  if(sensitive){await consumeSensitiveRequest(extensionApi.storage?.session,message);requireCanonicalAuthorizationContext(CORE_WALLET_AUTH_BINDING,null)}
-  if(message.method==="eth_chainId")return liveChainId();
-  if(message.method==="ynx_disconnect"){await emitToTab(tabId,origin,"accountsChanged",[]);await emitToTab(tabId,origin,"disconnect",{code:4900,message:"YNX Wallet companion disconnected."});return null}
-  if(message.method==="wallet_addEthereumChain"||message.method==="wallet_switchEthereumChain"){
-    exactMutationInput(message.method,message.params);await liveChainId();requireLiveDeadline(message.deadlineAt);
-  }
-  let result;
-  try{result=await executeInTab(tabId,origin,"any",input)}catch(error){if(message.method==="eth_accounts"&&error?.code==="WALLET_BACKEND_NOT_FOUND")return[];throw error}
-  if(message.method==="wallet_addEthereumChain")await executeInTab(tabId,origin,"any",{method:"wallet_switchEthereumChain",params:[{chainId:CHAIN_ID}]});
-  if(message.method==="wallet_addEthereumChain"||message.method==="wallet_switchEthereumChain"){
-    const backendChain=await executeInTab(tabId,origin,"any",{method:"eth_chainId"});
-    if(backendChain!==CHAIN_ID)throw Object.assign(new Error("Wallet backend remained on the wrong chain."),{code:"WRONG_NETWORK"});await emitToTab(tabId,origin,"chainChanged",CHAIN_ID);
-  }
-  if(message.method==="eth_requestAccounts"||message.method==="eth_accounts"){result=exactAccounts(result);if(message.method==="eth_requestAccounts")await emitToTab(tabId,origin,"accountsChanged",result)}
+  if(sensitive)await consumeSensitiveRequest(extensionApi.storage?.session,message);
+  const result=await handleProviderMethod({tabId,origin,requestId:message.requestId,deadlineAt:message.deadlineAt,method:message.method,params:message.params});
   return sensitive?validateSensitiveResult(message.method,result):result;
 }
 
+async function activeProviderRequest(preference,input){
+  const context=await ensureActiveTabBridge();
+  if(preference==="metamask")return executeInTab(context.tabId,context.origin,"metamask",input);
+  const requestId=`ynx-${crypto.randomUUID()}`,deadlineAt=Date.now()+18000;
+  return handleProviderMethod({tabId:context.tabId,origin:context.origin,requestId,deadlineAt,method:input.method,params:input.params});
+}
+
 extensionApi.runtime.onMessage.addListener((message,sender,sendResponse)=>{
-  if(message?.type==="YNX_WALLET_DISCOVER"){requireMigrationReady().then(()=>executeActive("any",{method:"ynx_walletDetected"})).then((result)=>sendResponse(result||{ynx:false,metamask:false})).catch((error)=>sendResponse({ynx:false,metamask:false,error:publicBridgeError(error)}));return true}
+  if(message?.type==="YNX_PROVIDER_APPROVAL_GET_V1"){
+    extensionApi.storage.session.get(approvalKey(message.requestId)).then((stored)=>{const request=stored?.[approvalKey(message.requestId)];if(!request||request.deadlineAt<=Date.now())throw Object.assign(new Error("Approval request is unavailable."),{code:"APPROVAL_REQUEST_UNAVAILABLE"});sendResponse({ok:true,request})}).catch((error)=>sendResponse({ok:false,error:publicBridgeError(error)}));return true
+  }
+  if(message?.type==="YNX_PROVIDER_APPROVAL_DECIDE_V1"){
+    extensionApi.storage.session.get(approvalKey(message.requestId)).then((stored)=>{const pending=stored?.[approvalKey(message.requestId)],decision=parseApprovalDecision({requestId:message.requestId,decision:message.decision},pending),waiter=approvalWaiters.get(message.requestId);if(!waiter)throw Object.assign(new Error("Approval request no longer has an active DApp caller."),{code:"APPROVAL_REQUEST_ORPHANED"});waiter.resolve(decision.approved);sendResponse({ok:true})}).catch((error)=>sendResponse({ok:false,error:publicBridgeError(error)}));return true
+  }
+  if(message?.type==="YNX_WALLET_DISCOVER"){requireMigrationReady().then(()=>executeActive("any",{method:"ynx_walletDetected"})).then((result)=>sendResponse({ynx:true,metamask:Boolean(result?.metamask)})).catch((error)=>sendResponse({ynx:true,metamask:false,error:publicBridgeError(error)}));return true}
   if(message?.type==="YNX_WALLET_REQUEST"){
     if(!REQUEST_METHODS.includes(message.input?.method)){sendResponse({ok:false,error:{code:4200,message:"Unsupported wallet method."}});return false}
-    requireMigrationReady().then(()=>executeActive(message.preference,message.input)).then((result)=>sendResponse({ok:true,result})).catch((error)=>sendResponse({ok:false,error:publicBridgeError(error)}));return true;
+    requireMigrationReady().then(()=>activeProviderRequest(message.preference,message.input)).then((result)=>sendResponse({ok:true,result})).catch((error)=>sendResponse({ok:false,error:publicBridgeError(error)}));return true;
   }
   if(message?.type!==RUNTIME_REQUEST)return false;
   requireMigrationReady().then(()=>handleDappRequest(message,sender)).then((result)=>sendResponse({ok:true,result})).catch((error)=>sendResponse({ok:false,error:publicBridgeError(error)}));return true;

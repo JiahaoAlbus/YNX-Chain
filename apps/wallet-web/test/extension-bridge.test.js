@@ -20,8 +20,8 @@ test("runtime bridge binds the content-script request to the sender origin",()=>
   assert.equal(validateRuntimeRequest({...runtime,deadlineAt:Date.now()-1},"https://dapp.example/path"),false);
 });
 
-test("bridge allowlist includes lifecycle and sensitive methods but no arbitrary RPC",()=>{
-  for(const method of ["eth_chainId","eth_accounts","eth_requestAccounts","wallet_addEthereumChain","wallet_switchEthereumChain","wallet_revokePermissions","personal_sign","eth_sendTransaction","ynx_disconnect"])assert.equal(REQUEST_METHODS.includes(method),true);
+test("bridge allowlist includes permissions, lifecycle, signing and bounded read RPC but no arbitrary RPC",()=>{
+  for(const method of ["eth_chainId","eth_accounts","eth_requestAccounts","wallet_getPermissions","wallet_requestPermissions","wallet_addEthereumChain","wallet_switchEthereumChain","wallet_revokePermissions","personal_sign","eth_signTypedData_v4","eth_sendTransaction","eth_getBalance","eth_call","ynx_disconnect"])assert.equal(REQUEST_METHODS.includes(method),true);
   for(const method of ["eth_sign","debug_traceTransaction","wallet_importRawKey"])assert.equal(REQUEST_METHODS.includes(method),false);
   assert.deepEqual(publicBridgeError({code:4001,message:"User rejected"}),{code:4001,message:"User rejected"});
 });
@@ -31,5 +31,6 @@ test("content and page scripts enforce source, origin, timeout, duplicate-id and
   assert.match(content,/event\.source!==window\|\|event\.origin!==targetOrigin/);assert.match(content,/pending\.has\(data\.requestId\)/);assert.match(content,/BRIDGE_TIMEOUT/);assert.match(content,/deadlineAt:Date\.now\(\)\+TIMEOUT_MS/);
   assert.match(content,/__YNX_CONTENT_BRIDGE_V1__/);assert.doesNotMatch(content,/web_accessible_resources|runtime\.getURL/);
   assert.match(page,/event\.source!==window\|\|event\.origin!==expectedOrigin/);assert.match(page,/crypto\.randomUUID\(\)/);assert.match(page,/__ynxCompanion:true/);assert.match(page,/__YNX_COMPANION_PROVIDER_V1__/);
-  assert.match(worker,/provider\?\.__ynxCompanion!==true/);assert.match(worker,/backendChain!==CHAIN_ID/);assert.match(worker,/WALLET_BACKEND_NOT_FOUND/);assert.match(worker,/await liveChainId\(\);requireLiveDeadline\(message\.deadlineAt\)/);
+  assert.match(worker,/provider\?\.__ynxCompanion!==true/);assert.match(worker,/requestAccountApproval\(tabId,origin,requestId,deadlineAt\)/);assert.match(worker,/PROVIDER_ACCOUNT_UNAVAILABLE/);assert.match(worker,/forwardExtensionRpc\(method,params\)/);
+  assert.doesNotMatch(worker,/executeInTab\(tabId,origin,"any",input\)/);assert.doesNotMatch(worker,/requireCanonicalAuthorizationContext/);
 });
