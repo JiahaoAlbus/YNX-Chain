@@ -1,16 +1,14 @@
 {
   "kind": "FINANCE_PHASE1_PLACEMENT_BOOTSTRAP_REQUEST_ONLY",
   "reviewedCheckpoint": {"commit": "fb0aa3b91f02a31733f9554ce4f5319c8fc1a393", "tree": "3a18e8e418a5b10fb55559eac9b9ff1bb650d790", "rule": "Successor request must remain non-self-referential."},
-  "candidate": {"sourceCommit": "7824af677dd052d20321431381523ab302614d98", "archiveSha256": "d8dcd45174dd50c93ef45af7d10d36dc078d6f4982da08dc92b9470e8290a59d", "archiveBytes": 3937491},
+  "candidate": {"sourceCommit": "7824af677dd052d20321431381523ab302614d98", "phase": "later Phase 2 only; no archive transfer is authorized here"},
   "commandObjects": [
-    {"path": "apps/finance/scripts/finance-candidate-env-generator.sh", "bytes": 1698, "sha256": "cf7b804be50e8f75765f52b67e39e62a67e211add8bb17edcadf2b4e25940c07"},
-    {"path": "apps/finance/scripts/finance-candidate-env-placement-bootstrap.sh", "bytes": 1587, "sha256": "d9c7d909128bc64e88ed7e95d7f2aa1ffce63e99fa63751b9b49745cadc1ee55"},
-    {"path": "apps/finance/scripts/finance-candidate-env-preparation.sh", "bytes": 2835, "sha256": "a2b9bdfbaa175955c5ae4c82015c88d806fd9e7374742e5fc2e26f0e97afb5f0"},
-    {"path": "apps/finance/scripts/test-finance-production-fixture.mjs", "bytes": 17504, "sha256": "238b42e101f36793f87e5d5a137dcb741d1200b33be5812de75ae1e1200bbad8"}
+    {"path": "apps/finance/scripts/finance-candidate-env-placement-bootstrap.sh", "bytes": 1753, "sha256": "4a27f9eaed67ea17ab1476c516ba7fbda8cc95c99d03e23af37f04592823b4e4"},
+    {"path": "apps/finance/scripts/test-finance-production-fixture.mjs", "bytes": 21028, "sha256": "4cd9f8286f56db7731f45661857ce8c9159dd1b1bc0b2d838bbeda6af7c4c480"}
   ],
-  "preparationReceipts": ["signed initial absence", "stage and lease-parent full stat tuple", "empty carrier full stat tuple", "secret-safe Phase 1 receipt"],
-  "forbidden": ["service restart", "Caddy change", "current symlink switch", "release/state/public route mutation", "account request", "signature", "transaction"],
-  "placement": {"initiallyAbsent": ["/opt/ynx/stage/finance", "/opt/ynx/leases/finance-preparation"], "transfer": "signed frozen source blobs copied before chmod/execution; bytes/SHA/owner/mode/nlink verified", "cleanup": "reverse-order inode/hash-bound deletion only; substituted/sibling/symlink objects are refused"},
+  "preparationReceipts": ["signed initial absence", "stage and lease-parent device/inode/uid/gid/mode/nlink/bytes/type tuples", "empty carrier device/inode/uid/gid/mode/nlink/bytes/type tuple", "secret-safe Phase 1 receipt"],
+  "forbidden": ["service restart", "Caddy change", "current symlink switch", "archive, generator, preparation executor or candidate-env transfer", "release/state/public route mutation", "account request", "signature", "transaction"],
+  "placement": {"initiallyAbsent": ["/opt/ynx/stage/finance", "/opt/ynx/leases/finance-preparation"], "transfer": "none in Phase 1; observed tuples are dynamic receipts, never pre-signed", "cleanup": "reverse-order inode-bound empty-directory deletion only; substituted/sibling/symlink paths are refused and preserved"},
   "failureContract": "Remove only captured inode/hash-matching run objects and empty created parents; verify final absence and retain no secret env output.",
   "truth": {"leaseIssued": false, "productionMutation": false, "deployedPublic": false, "walletApproval": false, "signature": false, "transaction": false}
 }
