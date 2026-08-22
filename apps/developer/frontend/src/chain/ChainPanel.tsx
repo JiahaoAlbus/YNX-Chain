@@ -4,6 +4,7 @@ import { broadcastDeveloperDeployment, chainRpc, completeDeveloperWalletSession,
 import { canonicalJSON, consumeDeveloperDeploymentRequest, consumeDeveloperWalletRequest, createDeveloperSessionIntrospection, createDeveloperWalletCompletion, desktopWalletBridge, openDeveloperDeploymentReview, openDeveloperWalletReview, parseDeveloperDeploymentCallback, saveDeveloperWalletSession, subscribeDeveloperDeploymentCallbacks, subscribeDeveloperWalletCallbacks, ynxAccountToEVM } from "../wallet/transport";
 import { enterDeveloperWalletV2Guest, inspectDeveloperWalletV2Runtime } from "../wallet/product-session-v2";
 import { connectDeveloperWebWallet, disconnectDeveloperWebWallet, discoverDeveloperWebWalletChoices, openDeveloperWebWalletConnectionDetails, restoreDeveloperWebWallet, subscribeDeveloperWebWalletEvents } from "../wallet/safe-authorize-launcher";
+import { StandardWalletDappCompatibilityLab } from "../dapp/StandardWalletDappCompatibilityLab";
 import type { StandardWalletConnectState } from "../../../vendor/wallet-auth/src/index.js";
 
 const RPC_METHODS = ["eth_chainId", "eth_blockNumber", "eth_gasPrice", "eth_getBalance", "eth_getCode", "eth_getTransactionCount", "eth_getTransactionByHash", "eth_getTransactionReceipt", "eth_call", "eth_estimateGas", "eth_getLogs", "eth_getBlockByNumber"];
@@ -402,6 +403,7 @@ export function ChainPanel({ files, onAddFile }: { files: Record<string, string>
           {!wallet && <p>Web uses fixed EIP-6963/EIP-1193 only. A user click can request accounts and add/switch YNX Testnet 0x1917; it never launches a custom Wallet scheme, iframe, popup, blank target or simulated session. Native resolver-first canonical callbacks remain separate.</p>}
         </div>
       </details>
+      <StandardWalletDappCompatibilityLab />
       {error && <div className="collab-error">{error}</div>}
       <div className="honest-boundary">RPC tools are read-only. Contract mutation remains Wallet-only and is unavailable until the exact provider and receipt gates pass.</div>
     </section>
