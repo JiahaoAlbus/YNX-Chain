@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "owner": "Wallet Web/PWA/Extensions",
+  "taskId": "P0-154-followup",
+  "status": "PACKAGE_SOURCE_IDENTITY_FAIL_CLOSED_INSTALLED_PUBLIC_FALSE",
+  "sourceCommit": "2357ae576abb14a25db261f94f63b3d4c71add83",
+  "sourceTree": "d1bfecaa5d71c11f2b566c0aadf661a9e7c33e68",
+  "evidence": "apps/wallet-web/evidence/contracts/package-source-identity-gate-20260822.json",
+  "tests": [
+    "source 112/112",
+    "package internal 112/112",
+    "package verification 3/3",
+    "missing source identity exits 1 before artifact mutation"
+  ],
+  "artifacts": [
+    {"name":"ynx-wallet-web-pwa-0.1.0.zip","bytes":285232,"sha256":"e484160ffdb6d554248b40a722d15c3b9262c84185412d10eff9989aaf917936","signingClass":"unsigned-web-bundle"},
+    {"name":"ynx-wallet-chrome-edge-0.1.0.zip","bytes":468403,"sha256":"447f76d1352b6e09e1e60093eaebb49e0ff97c787113d899f8c061b1bfe1f490","signingClass":"unsigned-unpacked-extension"},
+    {"name":"ynx-wallet-firefox-0.1.0.zip","bytes":468442,"sha256":"c28406f437a1079f12f4208fb57144f914d6a8dd7621f63b6e01ebc11d3eda61","signingClass":"unsigned-unpacked-extension"}
+  ],
+  "truthBoundary": "Release packaging now refuses missing, placeholder, abbreviated, unavailable, or target-mismatched source identities. Existing public alias remains blocked and no installed-browser parity claim is promoted.",
+  "executionLeaseIssued": false,
+  "deploymentLeaseIssued": false
+}
