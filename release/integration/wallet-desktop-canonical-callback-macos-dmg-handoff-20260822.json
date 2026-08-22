@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "handoffId": "wallet-desktop-canonical-callback-macos-dmg-20260822",
+  "owner": "Wallet Desktop/CLI/SDK",
+  "consumer": "Website release owner",
+  "releaseChannel": "testnet-preview",
+  "sourceCommit": "8707aaf454f3fb233e6cce86382d34297e8f5c22",
+  "evidencePath": "apps/wallet-desktop/evidence/macos-canonical-callback-dmg-lifecycle-20260822.json",
+  "artifact": {
+    "filename": "ynx-wallet-macos-0.3.0-universal.dmg",
+    "absoluteOwnerPath": "/private/tmp/ynx-wallet-desktop-installers-p0-20260821/apps/wallet-desktop/dist-interoperability-dmg/ynx-wallet-macos-0.3.0-universal.dmg",
+    "bytes": 229354860,
+    "sha256": "493686cc5b66e58c5ee6e03b49de2b21eca0cac530705aea3220bbe369caf741",
+    "architectures": ["x86_64", "arm64"],
+    "minimumOS": "macOS 13.0",
+    "bundleIdentifier": "com.ynxweb4.wallet.macos",
+    "version": "0.3.0",
+    "signingClass": "unsigned-testnet-preview-dmg; contained Electron executable ad-hoc only",
+    "productionSigned": false,
+    "notarized": false,
+    "storeReleased": false
+  },
+  "officialPublication": {
+    "requiredPath": "/wallet/sha256-493686cc5b66e58c5ee6e03b49de2b21eca0cac530705aea3220bbe369caf741/ynx-wallet-macos-0.3.0-universal.dmg",
+    "requiredUrl": "https://downloads.ynxweb4.com/wallet/sha256-493686cc5b66e58c5ee6e03b49de2b21eca0cac530705aea3220bbe369caf741/ynx-wallet-macos-0.3.0-universal.dmg",
+    "requiredContentType": "application/x-apple-diskimage",
+    "requiredContentDisposition": "attachment; filename=\"ynx-wallet-macos-0.3.0-universal.dmg\"",
+    "requiredContentLength": 229354860,
+    "fullGetSha256Required": true,
+    "downloadHosted": false,
+    "deployedPublic": false
+  },
+  "rollback": {
+    "retainVersion": "0.2.0",
+    "retainSha256": "3ae6b9f424764a470d830aa672fbe79aa3fad6e164bfff553ce9b8de189b383d",
+    "instruction": "Keep the immutable 0.2.0 object and prior Website deployment. If public full-GET rehash, mount, launch, or callback metadata fails, restore the preceding Website deployment and keep 0.3.0 disabled."
+  }
+}
