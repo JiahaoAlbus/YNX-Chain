@@ -6236,6 +6236,7 @@
       "dependencies": ["P0-167"],
       "source": "443482d725645bd84dfa22d34622cbd5a83e0093",
       "evidence": "a6c71a3159f99cb313db5f332fef1447d8503d7b",
+      "routerCheckpoint": "4d77641e23afa7846bc178ab0f0740317b3a7cca",
       "executionLeaseIssued": false,
       "distributionDispatched": false,
       "singlePendingProposalPerTopic": true,
