@@ -427,23 +427,25 @@
     }
   ],
   "heavy": {
-    "owner": "shop",
-    "taskId": "P0-209",
-    "status": "ACTIVE_SINGLE_USE",
+    "owner": null,
+    "taskId": null,
+    "status": "IDLE",
     "acquiredAt": "2026-08-22T18:29:00Z",
     "expiresAt": "2026-08-22T19:14:00Z",
+    "releasedAt": "2026-08-22T18:38:44Z",
     "sourceCommit": "80212e16d6b504f0363cda523b705907c2b56073",
     "evidenceCommit": "41938dafd4011295288e0486b45d8d59c3600f80",
     "runtimeHost": "43.153.202.237",
     "currentRuntime": "/opt/ynx-shop/releases/p0-shop-controls-99b2185f",
     "candidateRuntime": "/opt/ynx-shop/releases/80212e16d6b504f0363cda523b705907c2b56073",
     "artifactSha256": "66c7ba685c76ebe58855923415bd8c03d2595a4284177d54874d1e941b575baf",
-    "productionMutationAllowed": true,
+    "productionMutationAllowed": false,
     "singleUse": true,
     "reusable": false,
-    "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-shop-rollback-first-source-bound-public-release-20260822T182900Z",
-    "locks": ["host:43.153.202.237/service:ynx-shopd.service","path:/opt/ynx-shop","path:/var/lib/ynx-shop/state.json","path:/var/backups/ynx-shop/predeploy-80212e16d6b504f0363cda523b705907c2b56073","path:/var/tmp/ynx-shop-80212e16d6b504f0363cda523b705907c2b56073.tar.gz"],
-    "reason": "Card P0-208 released. Shop remote command objects, carrier, current release/source/binary/state/env/unit/effective Caddy/service, cold port, absent candidate paths and exact old public responses independently match. Authorize one root-protected backup, one carrier transfer, one deploy and one conditional rollback only."
+    "previousOwner": "shop",
+    "previousTaskId": "P0-209",
+    "reviewDecision": "CONSUMED_RELEASED_FAILED_CLOSED_SHOP_PUBLIC_RELEASE_ROLLED_BACK",
+    "reason": "The sole candidate switch failed because production commerce persistence schema version 7 is unsupported. The exact rollback restored old release, binary, state, environment, unit, Caddy, service and public identity. No retry or sensitive action occurred; a new lease is forbidden until a directly tested rollback-safe schema-7 migration/read path is frozen."
   },
   "wave": {
     "id": "B-financial-apps-quant",
