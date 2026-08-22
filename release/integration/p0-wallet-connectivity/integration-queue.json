@@ -6124,6 +6124,26 @@
       "productsMigratedV2": "0/12",
       "parityComplete": false,
       "nextAction": "Re-read run 32556002628 when terminal; require real relay, installed Wallet and real first-party/external DApp flows before any runtime promotion."
+    },
+    {
+      "taskId": "P0-163",
+      "owner": "integration,wallet-ios",
+      "status": "INSTALLED_SIMULATOR_CANONICAL_WC_CALLBACK_VISIBLE_FAIL_CLOSED_ACCEPTED_REAL_RUNTIME_FALSE",
+      "paths": [
+        "release/integration/p0-wallet-connectivity/acceptance/wallet-ios-simulator-callback-fail-closed-p0163-20260822.json"
+      ],
+      "dependencies": ["P0-162"],
+      "source": "aba683d5dc90ee6a8df339240510e77680c9fa9c",
+      "evidence": "0ba02e5f6b218e59e23169b35588b1baebf36540",
+      "routerCheckpoint": "34a9c6627ade57281f19b61d113b322f7736f17b",
+      "executionLeaseIssued": false,
+      "distributionDispatched": false,
+      "simulatorCallbackFailClosed": true,
+      "realRelayRuntime": false,
+      "productsConnected": "0/12",
+      "productsMigratedV2": "0/12",
+      "parityComplete": false,
+      "nextAction": "Require real project ID, relay/pairing, successful approval/session and installed real-DApp flows; Simulator fail-close does not count toward parity."
     }
   ]
 }
