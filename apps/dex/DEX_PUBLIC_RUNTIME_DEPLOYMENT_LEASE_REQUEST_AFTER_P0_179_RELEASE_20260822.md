@@ -21,8 +21,9 @@
 | Linux amd64 indexer SHA-256 | `b3a558af9bf2a8491a6e54b843687db461decfc9ff49748bdcf845d6f5141605` |
 | Linux amd64 indexer bytes | `6942868` |
 | release script | `scripts/dex-public-runtime-release.sh` |
-| release script SHA-256 | `2d5716c6cd241c0df63c26d134507e7efae93e59ef57a08c0bf1c1d9e825be48` |
-| release script bytes | `7936` |
+| release script SHA-256 | `1bc211f674fce361978a1bf2675c1d27c8524998f5ac5617b20eb6d905ab68f4` |
+| release script bytes | `7970` |
+| candidate endpoint expectations | `apps/dex/evidence/dex-runtime-candidate-endpoints-7563dc660454.json` |
 
 ## Single-use lease inputs Central must bind freshly
 
@@ -30,7 +31,7 @@ Before issuing a lease, Central must read the actual DEX host and include the ex
 
 1. target host, architecture, service name, `ExecStart`, `WorkingDirectory`, unit path/hash, env path/hash, Caddy route path/hash, state path/hash-or-absence receipt, active symlink and its realpath;
 2. current release binary and served Web asset inventory (path, bytes, SHA-256); current `/`, `/version`, and `/health` URL, status, bytes, body SHA-256, and source identity if exposed;
-3. immutable candidate stage directory `.../ynx-dex-7563dc660454-runtime-sha256-4d80b76890191ff93feb75e3bd4214078d1ad9e269d54829f4c3781e082fd092`, a same-filesystem backup path, and a collision-free release directory;
+3. immutable candidate stage directory `.../ynx-dex-7563dc660454-runtime-sha256-4d80b76890191ff93feb75e3bd4214078d1ad9e269d54829f4c3781e082fd092`, a same-filesystem backup path, and the exact release directory `/opt/ynx/releases/dex/ynx-dex-7563dc660454`;
 4. exact command bytes and SHA-256 for the release script invocation, every preflight, backup, switch, restart, health check, public verifier, and rollback command; and
 5. rollback receipts binding the old symlink, old binary/assets, env, unit, Caddy, state, service activity/restart count, and public response hashes both before the switch and after a rollback.
 

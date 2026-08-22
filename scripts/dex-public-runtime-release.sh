@@ -31,9 +31,9 @@ archive_sha=exact(get('candidate','archiveSha256'),r'[0-9a-f]{64}','archive hash
 if archive_sha!='4d80b76890191ff93feb75e3bd4214078d1ad9e269d54829f4c3781e082fd092': raise SystemExit('unexpected candidate archive')
 archive_bytes=int(get('candidate','archiveBytes'))
 if archive_bytes!=3124626: raise SystemExit('unexpected candidate archive bytes')
-release=exact(get('candidate','releaseDirectory'),r'/opt/ynx/dex-7563dc660454','release directory')
+release=exact(get('candidate','releaseDirectory'),r'/opt/ynx/releases/dex/ynx-dex-7563dc660454','release directory')
 current=exact(get('runtime','currentSymlink'),r'/opt/ynx/dex-current','current symlink')
-previous=exact(get('runtime','previousRelease'),r'/opt/ynx/dex-[A-Za-z0-9._-]+','previous release')
+previous=exact(get('runtime','previousRelease'),r'/opt/ynx/releases/dex/ynx-dex-[A-Za-z0-9._-]+','previous release')
 service=exact(get('runtime','service'),r'ynx-dex-indexerd','service')
 for name in ('unit','env','caddy'):
     path=exact(get('runtime',name,'path'),r'/etc/[A-Za-z0-9._/-]+','%s path'%name)

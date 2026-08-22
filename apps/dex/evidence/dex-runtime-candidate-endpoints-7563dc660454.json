@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "kind": "DEX_RUNTIME_CANDIDATE_ENDPOINT_EXPECTATIONS",
+  "sourceCommit": "7563dc6604540715f87d4e1e46b4ed41feaf6235",
+  "archiveSha256": "4d80b76890191ff93feb75e3bd4214078d1ad9e269d54829f4c3781e082fd092",
+  "releaseDirectory": "/opt/ynx/releases/dex/ynx-dex-7563dc660454",
+  "endpoints": {
+    "/": {"bytes": 931, "sha256": "a008b418fbd0163be4ebbf7530af2441891980e38bb02065b9682718cbcb9073"},
+    "/version": {"bytes": 127, "sha256": "ace0a735f1bb4ccce39a35b22c55177a86ed8857c84dd083bf1b6e972f6687d4", "buildCommit": "7563dc6604540715f87d4e1e46b4ed41feaf6235", "release": "ynx-dex-7563dc660454", "buildTime": "2026-08-21T18:25:30+08:00"},
+    "/health": {"bytes": 119, "sha256": "b861af4ffebe18c77843461c89d3a70533516264515ff74c280298a26c6d6810", "assumption": "fresh candidate state with latestBlock=0; a future lease must instead bind the state-consistent observed post-switch response when state is retained."}
+  },
+  "truth": {"publicVerified": false, "deployedPublic": false}
+}

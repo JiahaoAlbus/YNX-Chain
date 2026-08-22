@@ -32,8 +32,8 @@
     },
     "releaseScript": {
       "path": "scripts/dex-public-runtime-release.sh",
-      "bytes": 7936,
-      "sha256": "2d5716c6cd241c0df63c26d134507e7efae93e59ef57a08c0bf1c1d9e825be48"
+      "bytes": 7970,
+      "sha256": "1bc211f674fce361978a1bf2675c1d27c8524998f5ac5617b20eb6d905ab68f4"
     }
   },
   "centralMustFreshlyBind": [
