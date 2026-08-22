@@ -1,4 +1,4 @@
-name: Pay Web hosted browser preflight P0-227
+name: Pay Web official hosted browser validation P0-228
 
 on:
   push:
@@ -15,12 +15,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
-      EXPECTED_MESSAGE: "evidence(pay): capture hosted Chromium readiness"
+      EXPECTED_MESSAGE: "evidence(pay): validate official public candidate"
       CANDIDATE_ARCHIVE: release/pay/ynx-pay-web-5f4ce98e-static.tar.gz
       CANDIDATE_SHA256: ae552951d8e569f04aced60db69e3c11422910cc1098a6e7061b0e84005ad09e
       SOURCE_COMMIT: 5f4ce98eb458550b976c17e3bc6d77cce4081a59
       SOURCE_TREE: 8f0c25c4d86eb22a564f3c7aeff9db6709a9b9f0
-      ORIGIN: http://127.0.0.1:4189
+      ORIGIN: https://pay.ynxweb4.com
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
 
@@ -39,9 +39,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          evidence="$RUNNER_TEMP/pay-p0227-evidence"
-          extraction="$RUNNER_TEMP/pay-p0227-extraction"
-          profile="$RUNNER_TEMP/pay-p0227-profile"
+          evidence="$RUNNER_TEMP/pay-p0228-evidence"
+          extraction="$RUNNER_TEMP/pay-p0228-extraction"
+          profile="$RUNNER_TEMP/pay-p0228-profile"
           test ! -e "$evidence"
           test ! -e "$extraction"
           test ! -e "$profile"
@@ -72,26 +72,90 @@ jobs:
           npm ci --ignore-scripts
           npx playwright install --with-deps chromium
 
-      - name: Start fixed localhost candidate
+      - name: Verify official exact resources and backend health
         shell: bash
         run: |
           set -euo pipefail
-          python3 -m http.server 4189 --bind 127.0.0.1 --directory "$RUNNER_TEMP/pay-p0227-extraction/dist" > "$RUNNER_TEMP/pay-p0227-evidence/server.log" 2>&1 &
-          printf '%s\n' "$!" > "$RUNNER_TEMP/pay-p0227-server.pid"
-          for attempt in $(seq 1 40); do
-            if curl --fail --silent --show-error --output "$RUNNER_TEMP/pay-p0227-evidence/local-root.html" "$ORIGIN/"; then
-              exit 0
-            fi
-            sleep 0.25
-          done
-          exit 1
+          evidence="$RUNNER_TEMP/pay-p0228-evidence"
+          extraction="$RUNNER_TEMP/pay-p0228-extraction"
+          node - "$extraction/dist/release-manifest.json" "$evidence/resource-list.txt" <<'NODE'
+          const fs = require('node:fs');
+          const [manifestPath, outputPath] = process.argv.slice(2);
+          const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+          const paths = ['index.html', 'build-identity.json', 'metadata.json', 'release-manifest.json'];
+          for (const entry of manifest.files) paths.push(entry.path);
+          fs.writeFileSync(outputPath, `${[...new Set(paths)].join('\n')}\n`);
+          NODE
+          while IFS= read -r resource_path; do
+            test -n "$resource_path"
+            safe_name="${resource_path//\//_}"
+            curl --fail --silent --show-error --location --max-time 20 \
+              --dump-header "$evidence/$safe_name.headers" \
+              --output "$evidence/$safe_name.body" \
+              --write-out '%{http_code}\n' \
+              "$ORIGIN/$resource_path" > "$evidence/$safe_name.status"
+          done < "$evidence/resource-list.txt"
+          curl --fail --silent --show-error --location --max-time 20 \
+            --dump-header "$evidence/health.headers" \
+            --output "$evidence/health.body" \
+            --write-out '%{http_code}\n' \
+            "$ORIGIN/health" > "$evidence/health.status"
+          node - "$extraction/dist" "$evidence" "$SOURCE_COMMIT" "$SOURCE_TREE" <<'NODE'
+          const fs = require('node:fs');
+          const path = require('node:path');
+          const crypto = require('node:crypto');
+          const [dist, evidence, expectedCommit, expectedTree] = process.argv.slice(2);
+          const manifest = JSON.parse(fs.readFileSync(path.join(dist, 'release-manifest.json'), 'utf8'));
+          const resources = new Map(manifest.files.map((entry) => [entry.path, entry]));
+          for (const resourcePath of ['index.html', 'build-identity.json', 'metadata.json', 'release-manifest.json']) {
+            if (!resources.has(resourcePath)) {
+              const body = fs.readFileSync(path.join(dist, resourcePath));
+              resources.set(resourcePath, {
+                path: resourcePath,
+                bytes: body.length,
+                sha256: crypto.createHash('sha256').update(body).digest('hex'),
+              });
+            }
+          }
+          const results = [];
+          for (const [resourcePath, expected] of resources) {
+            const safeName = resourcePath.replaceAll('/', '_');
+            const status = fs.readFileSync(path.join(evidence, `${safeName}.status`), 'utf8').trim();
+            const body = fs.readFileSync(path.join(evidence, `${safeName}.body`));
+            const sha256 = crypto.createHash('sha256').update(body).digest('hex');
+            if (status !== '200' || body.length !== expected.bytes || sha256 !== expected.sha256) {
+              throw new Error(`${resourcePath}: official status/bytes/SHA mismatch`);
+            }
+            results.push({ path: resourcePath, status: 200, bytes: body.length, sha256 });
+          }
+          const identity = JSON.parse(fs.readFileSync(path.join(evidence, 'build-identity.json.body'), 'utf8'));
+          if (identity.sourceCommit !== expectedCommit || identity.sourceTree !== expectedTree) {
+            throw new Error('official build identity source mismatch');
+          }
+          const identityHeaders = fs.readFileSync(path.join(evidence, 'build-identity.json.headers'), 'utf8').toLowerCase();
+          if (!identityHeaders.includes('content-type: application/json') || !identityHeaders.includes('cache-control: no-store')) {
+            throw new Error('official build identity headers mismatch');
+          }
+          const healthStatus = fs.readFileSync(path.join(evidence, 'health.status'), 'utf8').trim();
+          const health = JSON.parse(fs.readFileSync(path.join(evidence, 'health.body'), 'utf8'));
+          if (healthStatus !== '200' || health.service !== 'ynx-payd' || health.network !== 'YNX Testnet' || health.chainId !== 6423) {
+            throw new Error('official backend health mismatch');
+          }
+          fs.writeFileSync(path.join(evidence, 'official-resource-summary.json'), `${JSON.stringify({
+            origin: process.env.ORIGIN,
+            sourceCommit: expectedCommit,
+            sourceTree: expectedTree,
+            resources: results,
+            health: { status: 200, service: health.service, network: health.network, chainId: health.chainId },
+          }, null, 2)}\n`);
+          NODE
 
       - name: Cold and second hosted Chromium launch
         shell: bash
         working-directory: apps/pay
         run: |
           set -euo pipefail
-          node - "$RUNNER_TEMP/pay-p0227-evidence" "$RUNNER_TEMP/pay-p0227-profile" "$ORIGIN" <<'NODE'
+          node - "$RUNNER_TEMP/pay-p0228-evidence" "$RUNNER_TEMP/pay-p0228-profile" "$ORIGIN" <<'NODE'
           const fs = require('node:fs');
           const path = require('node:path');
           const { chromium } = require('playwright');
@@ -243,7 +307,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          evidence="$RUNNER_TEMP/pay-p0227-evidence"
+          evidence="$RUNNER_TEMP/pay-p0228-evidence"
           test -d "$evidence"
           find "$evidence" -type f ! -name artifact-sha256.txt ! -name artifact-bytes.txt -print0 | sort -z | xargs -0 sha256sum > "$evidence/artifact-sha256.txt"
           find "$evidence" -type f ! -name artifact-sha256.txt ! -name artifact-bytes.txt -printf '%P bytes=%s\n' | sort > "$evidence/artifact-bytes.txt"
@@ -252,7 +316,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
-          name: pay-web-hosted-browser-preflight-p0227-${{ github.sha }}
+          name: pay-web-official-browser-validation-p0228-${{ github.sha }}
           if-no-files-found: error
           retention-days: 14
-          path: ${{ runner.temp }}/pay-p0227-evidence
+          path: ${{ runner.temp }}/pay-p0228-evidence
