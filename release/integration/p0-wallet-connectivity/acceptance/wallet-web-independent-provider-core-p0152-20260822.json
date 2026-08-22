@@ -1,0 +1,75 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-152",
+  "owner": "integration",
+  "sourceOwner": "wallet-web",
+  "decision": "SOURCE_AND_BUILT_ARTIFACT_ACCEPTED_INSTALLED_PROVIDER_PARITY_FALSE",
+  "source": {
+    "commit": "aa225899eed79b4ddee3027d124657d7357f361c",
+    "tree": "bcd33cb8f5ef62d40913c46da5047939fec84ab1",
+    "branch": "codex/wallet-web-pwa-extensions-20260813"
+  },
+  "ownerEvidence": {
+    "commit": "191145d15c2d4bb71d151ab6218cd7abf4b8bcb0",
+    "tree": "1a5f9a3e2c42025cafc2a2b83d525621eb47cea0",
+    "parent": "aa225899eed79b4ddee3027d124657d7357f361c",
+    "evidencePath": "apps/wallet-web/evidence/contracts/ynx-independent-provider-core-20260822.json",
+    "evidenceBlob": "cf30f03bfbfe4654aea4ce28322f1cd07bc842e1",
+    "evidenceSha256": "674eb7240e880563416d58eb3e0f23db908f8a09d251b07bd107cefb04e7009c",
+    "handoffPath": "docs/integration/wallet-web-independent-provider-core-handoff-20260822.json",
+    "handoffBlob": "f1d2b0cc1810fa69061051d8d75b1ba0a2b3e4e8",
+    "handoffSha256": "d80f80c9dd17bff0b2988529bf6d1644c2a59159d0d01aa05175d5b5d4096312",
+    "remoteReadbackExact": true
+  },
+  "centralGate": {
+    "commit": "f92757f7491c3e28106664aacc2066663bbd52bb",
+    "tree": "c3b8aa28ca0cccefcb24319f65e2adfa0621123f",
+    "sourceRecordBlob": "a6809588dbf2ba66fb8652a34bf942cce9b8a7dc",
+    "sourceRecordSha256": "a7448b5d6c8f6fafe7cf4611a17a10fd6c069f66be3ed80318a22ff4de76937e"
+  },
+  "acceptedSourceClaims": {
+    "independentYnxEip6963Eip1193Bridge": true,
+    "exactOriginApprovalAndPermissionCore": true,
+    "chainIdHandlingAndEventsFor0x1917": true,
+    "standardConnectionIndependentFromProductSession": true,
+    "productSessionFailureEffect": "PRIVATE_SERVICE_DEGRADED_ONLY",
+    "metamaskSubstitutionForbidden": true,
+    "missingVaultError": "PROVIDER_ACCOUNT_UNAVAILABLE",
+    "missingSignerError": "YNX_SIGNER_UNAVAILABLE"
+  },
+  "gates": {
+    "unitAndSource": "105/105",
+    "packageVerification": true,
+    "minimumPermissionArtifactGate": true
+  },
+  "artifacts": [
+    {"kind":"pwa","bytes":285230,"sha256":"652b866a7bb9ada5d2eacc6520a6702d6dab958eefbb4822e3dbc28aaab77992","signingClass":"unsigned-web-bundle"},
+    {"kind":"chrome-edge","bytes":366730,"sha256":"acbc2471fc8011d2b32198b1fdd141f582b729d680902a0b0808b194680aed3c","signingClass":"unsigned-unpacked-extension"},
+    {"kind":"firefox","bytes":366767,"sha256":"bd34014aae36ae6348739a8726fdcfbbae5ead47d8d46e6049f57669b1f34cc1","signingClass":"unsigned-unpacked-extension"}
+  ],
+  "truth": {
+    "installedProviderVerified": false,
+    "accountApproved": false,
+    "installedChainId1917Verified": false,
+    "approveVerified": false,
+    "rejectVerified": false,
+    "personalSignVerified": false,
+    "typedDataVerified": false,
+    "transactionSubmitted": false,
+    "refreshRestoreVerified": false,
+    "disconnectVerified": false,
+    "accountChangedVerified": false,
+    "chainChangedVerified": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false,
+    "deployedPublic": false,
+    "parityComplete": false
+  },
+  "execution": {
+    "leaseIssued": false,
+    "deploymentRequested": false,
+    "nextBlocker": "ACCEPTED_ENCRYPTED_YNX_VAULT_OR_FROZEN_NATIVE_SIGNER_TRANSPORT_MISSING"
+  }
+}
