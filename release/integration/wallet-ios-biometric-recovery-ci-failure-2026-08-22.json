@@ -1,0 +1,75 @@
+{
+  "schemaVersion": "ynx.wallet.native.ios.biometric-recovery-ci-failure.v1",
+  "recordedAt": "2026-08-22T05:04:05Z",
+  "source": {
+    "branch": "codex/wallet-ios-macos-20260813",
+    "headCommit": "8a7814e60d213e7b2c6259095b299640bc3a9fb3",
+    "fixCommitUnderVerification": "560d801b9a2d3cd856b3dfdbdc8d66aa3114d1b5"
+  },
+  "githubActions": {
+    "runId": 32552112446,
+    "jobId": 96980445342,
+    "runConclusion": "failure",
+    "runStartedAt": "2026-08-22T04:35:46Z",
+    "runUpdatedAt": "2026-08-22T05:04:05Z",
+    "failedStep": {
+      "number": 20,
+      "name": "Prove recovery and unlock with Simulator biometric matches",
+      "startedAt": "2026-08-22T05:00:02Z",
+      "completedAt": "2026-08-22T05:03:06Z"
+    },
+    "passedBoundaries": {
+      "buildStandaloneSimulatorApp": true,
+      "installColdLaunchSecondLaunchAndDeepLink": true,
+      "malformedCallbackFailClosed": true,
+      "canonicalRegistryRequestStopsBeforeJavaScript": true,
+      "universalLinkWithoutFrozenAssociatedDomainFailsClosed": true,
+      "recoveryWithoutCompletedBiometricRemainsEmptyAcrossRestart": true,
+      "truthfulArtifactFactsRecorded": true,
+      "artifactUploaded": true
+    }
+  },
+  "failure": {
+    "test": "YNXWalletUITests.MalformedCallbackUITests.testRecoveryAndUnlockWithSimulatedBiometricMatches",
+    "file": "apps/wallet/ios/YNXWalletUITests/MalformedCallbackUITests.swift",
+    "line": 177,
+    "assertion": "XCTWaiterResult.timedOut != XCTWaiterResult.completed",
+    "message": "Recovery action did not accept the isolated 32-byte test vector",
+    "directLogBoundary": {
+      "keyboardDoneTapped": true,
+      "workflowAdvancedPastBiometricRequestReadinessCheck": true,
+      "simulatorMatchingFaceMenuActionObservedAt": "2026-08-22T05:02:04Z",
+      "biometricResultSuccessObserved": false,
+      "recoveredAccountPersistedObserved": false,
+      "secondLaunchUnlockObserved": false,
+      "nativeAccountVisibleObserved": false
+    },
+    "rootCause": "The recovery field's semantic Done action already invokes persistImport and starts LocalAuthentication. The test then incorrectly waited for and attempted to tap the pre-submit Recover into secure storage button after the submit had entered its busy state.",
+    "minimalFix": "Remove the duplicate post-submit button wait and tap. Keep the persisted-lock, second biometric match, and NATIVE ACCOUNT assertions unchanged."
+  },
+  "simulatorArtifact": {
+    "artifactId": 9470684089,
+    "name": "ynx-wallet-ios-simulator",
+    "actionsArchiveBytes": 99070885,
+    "actionsArchiveSha256": "78e755bfece4551d3d9d3c46688157d42b5b83d5fbaf282fe604288e95b392ce",
+    "innerInstallableZipBytes": 16921863,
+    "innerInstallableZipSha256": "ff9cfa856c55fe16abed4c2e097ddaaebc48bbd29a73b3bef8352c9497877c01",
+    "bundleIdentifier": "com.ynxweb4.wallet",
+    "minimumOS": "iOS Simulator 16.4",
+    "xcode": "26.3 (17C529)",
+    "signingClass": "Sign to Run Locally / ad-hoc Simulator",
+    "teamIdentifier": "FAKETEAMID fixture",
+    "downloadInspected": false,
+    "downloadInspectionBoundary": "One bounded gh run download attempt produced no semantic output and was terminated after 60 seconds."
+  },
+  "gates": {
+    "simulatorBiometricPositivePathVerified": false,
+    "physicalBiometricVerified": false,
+    "productRecoveryVerified": false,
+    "authorizationSuccess": false,
+    "publicDownloadHosted": false,
+    "productionSigned": false,
+    "appStorePublished": false,
+    "universalLinkEnabled": false
+  }
+}
