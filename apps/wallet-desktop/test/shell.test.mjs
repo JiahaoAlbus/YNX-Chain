@@ -23,6 +23,7 @@ test("desktop packaging exposes real platform installer formats", async () => {
   assert.deepEqual(packageJson.build.win.target, ["nsis"]);
   assert.equal(packageJson.build.mac.artifactName, "ynx-wallet-macos-${version}-${arch}.${ext}");
   assert.equal(packageJson.build.win.artifactName, "ynx-wallet-desktop-${version}-${arch}.${ext}");
+  assert.equal(packageJson.build.win.executableName, "YNX Wallet");
   assert.equal(packageJson.build.afterPack, "scripts/after-pack.mjs");
   assert.doesNotMatch(packageJson.scripts["dist:mac"], /zip/);
   assert.equal(packageJson.version, "0.2.0");
@@ -58,7 +59,7 @@ test("native Windows lifecycle drives visible provider authority and preserves m
     assert.match(workflow, /accountRestoredOnSecondLaunch = \$true/);
     assert.match(workflow, /walletConnectConfigured = \$false/);
     assert.match(workflow, /Uninstall YNX Wallet\.exe/);
-    assert.doesNotMatch(workflow, /YNX Wallet Testnet Preview\.exe/);
+    assert.match(workflow, /-Filter 'YNX Wallet\.exe'/);
   }
 });
 

@@ -86,7 +86,7 @@
       "target": [
         "nsis"
       ],
-      "executableName": "YNX Wallet Testnet Preview",
+      "executableName": "YNX Wallet",
       "requestedExecutionLevel": "asInvoker",
       "verifyUpdateCodeSignature": false
     },
