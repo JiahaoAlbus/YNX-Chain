@@ -5,6 +5,16 @@
   "owner": "integration",
   "sourceOwner": "wallet-ios-macos",
   "decision": "NATIVE_WALLETCONNECT_SAME_TOPIC_REPROPOSAL_IDENTITY_REPLACEMENT_FAIL_CLOSED_ACCEPTED_SOURCE_HOSTED_ONLY",
+  "routerCheckpoint": {
+    "commit": "ff3253e0f87f9ec3f16ecab4ea87e373ef2d3eb4",
+    "tree": "08e93b0a2a94f50c37a4e38c78078dc5ba281a62",
+    "matrixSha256": "188435e780ea4627a842a57b9751b672f7bd3ae4548dded2ef049f4ebe5a512c",
+    "activitySha256": "a47745912f5072ab5d80178342b06164d6c2cb3f35356c21b91a04f39c1e9256",
+    "walletAuth": "322/322",
+    "noBareAuthorize": true,
+    "standardWalletConsumerGate": true,
+    "remoteReadbackExact": true
+  },
   "source": {
     "implementation": "4b17a22d05df6385737363344c8da62e81e24062",
     "tree": "84c92a4c9d1d399a55fd3381d5f9c046032baaec",

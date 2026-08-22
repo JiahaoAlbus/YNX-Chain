@@ -6216,6 +6216,7 @@
       "dependencies": ["P0-166"],
       "source": "4b17a22d05df6385737363344c8da62e81e24062",
       "evidence": "bc82f2e4c7d18f1c2c0e229abf45512d55c7f24b",
+      "routerCheckpoint": "ff3253e0f87f9ec3f16ecab4ea87e373ef2d3eb4",
       "executionLeaseIssued": false,
       "distributionDispatched": false,
       "sameTopicIdentityReplacementFailClosed": true,
