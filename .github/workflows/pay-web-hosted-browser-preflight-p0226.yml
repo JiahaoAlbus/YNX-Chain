@@ -1,4 +1,4 @@
-name: Pay Web hosted browser preflight P0-226
+name: Pay Web hosted browser preflight P0-227
 
 on:
   push:
@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
-      EXPECTED_MESSAGE: "evidence(pay): hosted Chromium preflight static candidate"
+      EXPECTED_MESSAGE: "evidence(pay): capture hosted Chromium readiness"
       CANDIDATE_ARCHIVE: release/pay/ynx-pay-web-5f4ce98e-static.tar.gz
       CANDIDATE_SHA256: ae552951d8e569f04aced60db69e3c11422910cc1098a6e7061b0e84005ad09e
       SOURCE_COMMIT: 5f4ce98eb458550b976c17e3bc6d77cce4081a59
@@ -39,9 +39,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          evidence="$RUNNER_TEMP/pay-p0226-evidence"
-          extraction="$RUNNER_TEMP/pay-p0226-extraction"
-          profile="$RUNNER_TEMP/pay-p0226-profile"
+          evidence="$RUNNER_TEMP/pay-p0227-evidence"
+          extraction="$RUNNER_TEMP/pay-p0227-extraction"
+          profile="$RUNNER_TEMP/pay-p0227-profile"
           test ! -e "$evidence"
           test ! -e "$extraction"
           test ! -e "$profile"
@@ -76,10 +76,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python3 -m http.server 4189 --bind 127.0.0.1 --directory "$RUNNER_TEMP/pay-p0226-extraction/dist" > "$RUNNER_TEMP/pay-p0226-evidence/server.log" 2>&1 &
-          printf '%s\n' "$!" > "$RUNNER_TEMP/pay-p0226-server.pid"
+          python3 -m http.server 4189 --bind 127.0.0.1 --directory "$RUNNER_TEMP/pay-p0227-extraction/dist" > "$RUNNER_TEMP/pay-p0227-evidence/server.log" 2>&1 &
+          printf '%s\n' "$!" > "$RUNNER_TEMP/pay-p0227-server.pid"
           for attempt in $(seq 1 40); do
-            if curl --fail --silent --show-error --output "$RUNNER_TEMP/pay-p0226-evidence/local-root.html" "$ORIGIN/"; then
+            if curl --fail --silent --show-error --output "$RUNNER_TEMP/pay-p0227-evidence/local-root.html" "$ORIGIN/"; then
               exit 0
             fi
             sleep 0.25
@@ -91,7 +91,7 @@ jobs:
         working-directory: apps/pay
         run: |
           set -euo pipefail
-          node - "$RUNNER_TEMP/pay-p0226-evidence" "$RUNNER_TEMP/pay-p0226-profile" "$ORIGIN" <<'NODE'
+          node - "$RUNNER_TEMP/pay-p0227-evidence" "$RUNNER_TEMP/pay-p0227-profile" "$ORIGIN" <<'NODE'
           const fs = require('node:fs');
           const path = require('node:path');
           const { chromium } = require('playwright');
@@ -101,6 +101,7 @@ jobs:
             const consoleErrors = [];
             const pageErrors = [];
             const failedRequests = [];
+            const networkResponses = [];
             const context = await chromium.launchPersistentContext(profileDir, {
               headless: true,
               viewport: { width: 1440, height: 1000 },
@@ -116,13 +117,48 @@ jobs:
                 url: request.url(),
                 errorText: request.failure()?.errorText || 'unknown',
               }));
+              page.on('response', (response) => networkResponses.push({
+                url: response.url(),
+                status: response.status(),
+              }));
+              const capture = async (stage) => {
+                const state = await page.evaluate(() => ({
+                  url: location.href,
+                  title: document.title,
+                  lang: document.documentElement.lang,
+                  bodyText: document.body.innerText,
+                  html: document.documentElement.outerHTML,
+                }));
+                const record = {
+                  phase,
+                  stage,
+                  ...state,
+                  openPages: context.pages().map((item) => item.url()),
+                  consoleErrors: [...consoleErrors],
+                  pageErrors: [...pageErrors],
+                  failedRequests: [...failedRequests],
+                  networkResponses: [...networkResponses],
+                };
+                fs.writeFileSync(path.join(evidenceDir, `${phase}-${stage}.json`), `${JSON.stringify(record, null, 2)}\n`);
+                try {
+                  await page.screenshot({ path: path.join(evidenceDir, `${phase}-${stage}.png`), fullPage: true });
+                } catch (error) {
+                  fs.writeFileSync(path.join(evidenceDir, `${phase}-${stage}-screenshot-error.txt`), `${error.stack || error}\n`);
+                }
+                return record;
+              };
+              await capture('before-goto');
               await page.goto(`${origin}/`, { waitUntil: 'domcontentloaded', timeout: 30000 });
+              await capture('before-load');
               await page.waitForLoadState('load', { timeout: 30000 });
+              await capture('before-brand-ready');
               await page.getByText('YNX Pay', { exact: true }).waitFor({ state: 'visible', timeout: 30000 });
-              await page.getByText('Waiting for Wallet', { exact: true }).waitFor({ state: 'visible', timeout: 30000 });
+              await capture('before-disconnected-sign-in');
               await page.getByRole('button', { name: 'Sign in' }).waitFor({ state: 'visible', timeout: 30000 });
+              await capture('before-settings-ready');
               await page.getByRole('button', { name: 'Settings' }).waitFor({ state: 'visible', timeout: 30000 });
-              await page.screenshot({ path: path.join(evidenceDir, `${phase}.png`), fullPage: true });
+              await capture('before-invoice-input-ready');
+              await page.getByRole('textbox', { name: 'Invoice, Split, or service bill' }).waitFor({ state: 'visible', timeout: 30000 });
               const snapshot = await page.evaluate(() => ({
                 url: location.href,
                 title: document.title,
@@ -133,7 +169,11 @@ jobs:
               if (snapshot.url !== `${origin}/`) throw new Error(`${phase}: unstable URL ${snapshot.url}`);
               if (snapshot.title !== 'YNX Pay') throw new Error(`${phase}: unexpected title ${snapshot.title}`);
               if (snapshot.lang !== 'en') throw new Error(`${phase}: default language ${snapshot.lang}`);
-              if (!snapshot.bodyText.includes('Waiting for Wallet')) throw new Error(`${phase}: waiting state missing`);
+              if (!snapshot.bodyText.includes('Sign in')) throw new Error(`${phase}: disconnected Sign in state missing`);
+              if (!snapshot.bodyText.includes('Confirm before you pay')) throw new Error(`${phase}: Pay readiness copy missing`);
+              if (snapshot.bodyText.includes('Connection details') || snapshot.bodyText.includes('Connect a wallet')) {
+                throw new Error(`${phase}: chooser or connected details rendered without user action`);
+              }
               if (snapshot.bodyText.includes('0x1917') || /0x[a-fA-F0-9]{40}/.test(snapshot.bodyText)) {
                 throw new Error(`${phase}: fabricated account or chain`);
               }
@@ -143,9 +183,36 @@ jobs:
               if (consoleErrors.length || pageErrors.length || failedRequests.length) {
                 throw new Error(`${phase}: browser errors ${JSON.stringify({ consoleErrors, pageErrors, failedRequests })}`);
               }
-              const result = { phase, ...snapshot, openPages, consoleErrors, pageErrors, failedRequests };
+              const result = { phase, ...snapshot, openPages, consoleErrors, pageErrors, failedRequests, networkResponses };
               fs.writeFileSync(path.join(evidenceDir, `${phase}.json`), `${JSON.stringify(result, null, 2)}\n`);
+              await capture('terminal-ready');
               return result;
+            } catch (error) {
+              try {
+                const page = context.pages()[0];
+                if (page) {
+                  const state = await page.evaluate(() => ({
+                    url: location.href,
+                    title: document.title,
+                    lang: document.documentElement.lang,
+                    bodyText: document.body.innerText,
+                    html: document.documentElement.outerHTML,
+                  }));
+                  fs.writeFileSync(path.join(evidenceDir, `${phase}-failure-state.json`), `${JSON.stringify({
+                    phase,
+                    ...state,
+                    openPages: context.pages().map((item) => item.url()),
+                    consoleErrors,
+                    pageErrors,
+                    failedRequests,
+                    networkResponses,
+                  }, null, 2)}\n`);
+                  await page.screenshot({ path: path.join(evidenceDir, `${phase}-failure.png`), fullPage: true });
+                }
+              } catch (captureError) {
+                fs.writeFileSync(path.join(evidenceDir, `${phase}-failure-capture-error.txt`), `${captureError.stack || captureError}\n`);
+              }
+              throw error;
             } finally {
               await context.close();
             }
@@ -176,7 +243,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          evidence="$RUNNER_TEMP/pay-p0226-evidence"
+          evidence="$RUNNER_TEMP/pay-p0227-evidence"
           test -d "$evidence"
           find "$evidence" -type f ! -name artifact-sha256.txt ! -name artifact-bytes.txt -print0 | sort -z | xargs -0 sha256sum > "$evidence/artifact-sha256.txt"
           find "$evidence" -type f ! -name artifact-sha256.txt ! -name artifact-bytes.txt -printf '%P bytes=%s\n' | sort > "$evidence/artifact-bytes.txt"
@@ -185,7 +252,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
-          name: pay-web-hosted-browser-preflight-p0226-${{ github.sha }}
+          name: pay-web-hosted-browser-preflight-p0227-${{ github.sha }}
           if-no-files-found: error
           retention-days: 14
-          path: ${{ runner.temp }}/pay-p0226-evidence
+          path: ${{ runner.temp }}/pay-p0227-evidence
