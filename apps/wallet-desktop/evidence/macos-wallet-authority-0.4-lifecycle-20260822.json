@@ -4,22 +4,22 @@
   "capturedAt": "2026-08-22T06:01:00Z",
   "releaseChannel": "testnet-preview",
   "source": {
-    "implementationCommit": "d99607c070750fbd799448ea0cc60e4721121aaf",
+    "implementationCommit": "198c3212908a72dd8cd13c7bff32ca29f12b36a5",
     "sharedProviderSourceCommit": "98c6d5d784d212df8981a53b17118a511e246ad2",
     "bundleIdentifier": "com.ynxweb4.wallet.macos",
     "scheme": "ynxwallet"
   },
   "artifact": {
     "filename": "ynx-wallet-macos-0.4.0-universal.dmg",
-    "absoluteOwnerPath": "/private/tmp/ynx-wallet-desktop-installers-p0-20260821/apps/wallet-desktop/dist-wallet-authority-0.4-final-dmg/ynx-wallet-macos-0.4.0-universal.dmg",
+    "absoluteOwnerPath": "/private/tmp/ynx-wallet-desktop-installers-p0-20260821/apps/wallet-desktop/dist-wallet-authority-0.4-crossplatform-final-dmg/ynx-wallet-macos-0.4.0-universal.dmg",
     "format": "dmg",
     "version": "0.4.0",
-    "bytes": 229356826,
-    "sha256": "b62548056be7792655379b7e87bbe3a14ba9f11da865882fff2ca2770d51578b",
+    "bytes": 229454897,
+    "sha256": "ee51e6b116b4ee93b9cbfdce2c9f5a4a5adffd05d7d4a1ca94757f0ffe3a5801",
     "architectures": ["x86_64", "arm64"],
     "minimumOS": "macOS 13.0",
     "dmgChecksumVerified": true,
-    "dmgCrc32": "089B58DD",
+    "dmgCrc32": "5164C09F",
     "signingClass": "unsigned-testnet-preview-dmg; contained Electron executable ad-hoc only",
     "teamIdentifier": null,
     "productionSigned": false,
@@ -73,7 +73,8 @@
     "desktopTests": {"passed": 22, "failed": 0},
     "productionDependencyAudit": {"vulnerabilities": 0},
     "nativeLifecycleSummaryPath": "/private/tmp/ynx-wallet-040-lifecycle.krOhxD/summary.json",
-    "canonicalRpcEvidencePath": "/private/tmp/ynx-wallet-040-lifecycle.krOhxD/canonical-rpc-evidence.json"
+    "canonicalRpcEvidencePath": "/private/tmp/ynx-wallet-040-lifecycle.krOhxD/xqr-final-evidence.json",
+    "packagedCrossPlatformQrEvidencePath": "/private/tmp/ynx-wallet-040-lifecycle.krOhxD/xqr-final-qr.json"
   },
   "releaseTruth": {
     "dmgBuilt": true,

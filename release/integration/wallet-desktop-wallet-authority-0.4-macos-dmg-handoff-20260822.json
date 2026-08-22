@@ -4,13 +4,13 @@
   "owner": "Wallet Desktop/CLI/SDK",
   "consumer": "Website release owner and Central Integration",
   "releaseChannel": "testnet-preview",
-  "sourceCommit": "d99607c070750fbd799448ea0cc60e4721121aaf",
+  "sourceCommit": "198c3212908a72dd8cd13c7bff32ca29f12b36a5",
   "evidencePath": "apps/wallet-desktop/evidence/macos-wallet-authority-0.4-lifecycle-20260822.json",
   "artifact": {
     "filename": "ynx-wallet-macos-0.4.0-universal.dmg",
-    "absoluteOwnerPath": "/private/tmp/ynx-wallet-desktop-installers-p0-20260821/apps/wallet-desktop/dist-wallet-authority-0.4-final-dmg/ynx-wallet-macos-0.4.0-universal.dmg",
-    "bytes": 229356826,
-    "sha256": "b62548056be7792655379b7e87bbe3a14ba9f11da865882fff2ca2770d51578b",
+    "absoluteOwnerPath": "/private/tmp/ynx-wallet-desktop-installers-p0-20260821/apps/wallet-desktop/dist-wallet-authority-0.4-crossplatform-final-dmg/ynx-wallet-macos-0.4.0-universal.dmg",
+    "bytes": 229454897,
+    "sha256": "ee51e6b116b4ee93b9cbfdce2c9f5a4a5adffd05d7d4a1ca94757f0ffe3a5801",
     "architectures": ["x86_64", "arm64"],
     "minimumOS": "macOS 13.0",
     "bundleIdentifier": "com.ynxweb4.wallet.macos",
@@ -21,11 +21,11 @@
     "storeReleased": false
   },
   "officialPublication": {
-    "requiredPath": "/wallet/sha256-b62548056be7792655379b7e87bbe3a14ba9f11da865882fff2ca2770d51578b/ynx-wallet-macos-0.4.0-universal.dmg",
-    "requiredUrl": "https://downloads.ynxweb4.com/wallet/sha256-b62548056be7792655379b7e87bbe3a14ba9f11da865882fff2ca2770d51578b/ynx-wallet-macos-0.4.0-universal.dmg",
+    "requiredPath": "/wallet/sha256-ee51e6b116b4ee93b9cbfdce2c9f5a4a5adffd05d7d4a1ca94757f0ffe3a5801/ynx-wallet-macos-0.4.0-universal.dmg",
+    "requiredUrl": "https://downloads.ynxweb4.com/wallet/sha256-ee51e6b116b4ee93b9cbfdce2c9f5a4a5adffd05d7d4a1ca94757f0ffe3a5801/ynx-wallet-macos-0.4.0-universal.dmg",
     "requiredContentType": "application/x-apple-diskimage",
     "requiredContentDisposition": "attachment; filename=\"ynx-wallet-macos-0.4.0-universal.dmg\"",
-    "requiredContentLength": 229356826,
+    "requiredContentLength": 229454897,
     "fullGetSha256Required": true,
     "downloadHosted": false,
     "deployedPublic": false
