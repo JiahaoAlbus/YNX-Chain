@@ -172,12 +172,12 @@
     {
       "id": "macos",
       "owner": "wallet-macos",
-      "latestAcceptedSource": "4b17a22d05df6385737363344c8da62e81e24062",
-      "latestAcceptedTree": "84c92a4c9d1d399a55fd3381d5f9c046032baaec",
-      "latestEvidence": "bc82f2e4c7d18f1c2c0e229abf45512d55c7f24b",
-      "latestEvidenceTree": "d7480364be19a8591e7850c442c49d1b9dc89d64",
-      "latestEvidenceBlob": "b9135c3428522366f42c4abf2f79cb39f776f43f",
-      "latestEvidenceSha256": "3727da67a6da20a42e2f468ec178a20721d8d82be9f56fede927a5b29ba1bbf7",
+      "latestAcceptedSource": "443482d725645bd84dfa22d34622cbd5a83e0093",
+      "latestAcceptedTree": "d16a66490dc969baaa637884c189b6dbf49ad223",
+      "latestEvidence": "a6c71a3159f99cb313db5f332fef1447d8503d7b",
+      "latestEvidenceTree": "6e0a3f100efa30f25b05c81c4b95d839b1427a6c",
+      "latestEvidenceBlob": "f48cebb470121c4e6618c2559e6db8543a3f83f7",
+      "latestEvidenceSha256": "9f29040e4271657a702f8e9fa348b3c87c377b138d67fff3eecd0600856eb6cb",
       "evidenceTier": "DIRECT_ISOLATED_HOSTED_INSTALL_FAIL_CLOSED_ONLY",
       "acceptedFacts": [
         "walletconnect-v2-strict-policy-source",
@@ -197,7 +197,10 @@
         "persisted-unsupported-method-fails-closed-as-corrupt",
         "restart-decoder-validates-method-event-identity-session-and-time-ordering",
         "same-topic-reproposal-cannot-replace-existing-dapp-identity",
-        "same-topic-identity-replacement-fails-closed-at-enqueue-persistence-and-approval"
+        "same-topic-identity-replacement-fails-closed-at-enqueue-persistence-and-approval",
+        "single-pending-session-proposal-per-topic",
+        "runtime-duplicate-pending-topic-returns-walletconnect-request-duplicate",
+        "persisted-duplicate-pending-topic-fails-walletconnect-persistence-corrupt"
       ],
       "blockers": [
         "real-project-id-absent",

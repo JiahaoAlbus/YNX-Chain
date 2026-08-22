@@ -6225,6 +6225,25 @@
       "productsMigratedV2": "0/12",
       "parityComplete": false,
       "nextAction": "Require authoritative first-party runtime and real relay/pairing/session/DApp evidence; source/hosted identity hardening alone does not complete parity."
+    },
+    {
+      "taskId": "P0-168",
+      "owner": "integration,wallet-ios,wallet-macos",
+      "status": "NATIVE_WC_SINGLE_PENDING_PROPOSAL_PER_TOPIC_FAIL_CLOSED_ACCEPTED_SOURCE_HOSTED_ONLY",
+      "paths": [
+        "release/integration/p0-wallet-connectivity/acceptance/wallet-native-walletconnect-single-pending-p0168-20260822.json"
+      ],
+      "dependencies": ["P0-167"],
+      "source": "443482d725645bd84dfa22d34622cbd5a83e0093",
+      "evidence": "a6c71a3159f99cb313db5f332fef1447d8503d7b",
+      "executionLeaseIssued": false,
+      "distributionDispatched": false,
+      "singlePendingProposalPerTopic": true,
+      "realRelayRuntime": false,
+      "productsConnected": "0/12",
+      "productsMigratedV2": "0/12",
+      "parityComplete": false,
+      "nextAction": "Require real project ID, relay/pairing/session and real DApp evidence; duplicate-proposal fail-closed source/hosted evidence alone does not complete parity."
     }
   ]
 }
