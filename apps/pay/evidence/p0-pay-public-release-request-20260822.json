@@ -1,0 +1,53 @@
+{
+  "schemaVersion": "payPublicReleaseRequest@1.0.0-p0.0",
+  "requestId": "P0-PAY-PUBLIC-RELEASE-NO-GO-20260822",
+  "classification": "NO_GO_UNEXECUTED_IMMUTABLE_REQUEST",
+  "owner": "pay",
+  "ownerScope": [
+    "apps/pay/**"
+  ],
+  "candidate": {
+    "sourceCommit": "dbdd3491e63186cc02541ca7e8a20d8f098b31b9",
+    "sourceTree": "3a454e44",
+    "remoteRef": "origin/codex/p0-pay-wallet-connectivity-20260821",
+    "remoteExactReadback": true
+  },
+  "noGoBasis": {
+    "productReleaseMetadata": "historical and not bound to the candidate source",
+    "publicIdentity": "https://pay.ynxweb4.com/ returned HTTP 404 on 2026-08-22",
+    "candidateDeployment": false,
+    "rollbackBinding": false,
+    "releaseExecutorBinding": false
+  },
+  "centralInputsRequired": [
+    "A fresh single-use Pay-only lease that explicitly names the candidate commit and full tree identity.",
+    "A named release executor, target environment, and immutable artifact digest bound to that candidate.",
+    "A public Pay URL and read-only version or provenance route that returns the exact candidate commit and tree.",
+    "A rollback target, executor, and readback route that are independently bound before deployment."
+  ],
+  "permittedNonSensitiveValidationAfterLease": [
+    "Open the first-party Pay route and independently open Uniswap, OpenSea, and Safe without a blank tab.",
+    "Read provider discovery and display separate YNX Wallet and MetaMask names and logos.",
+    "Exercise resolver-first unavailable handling and fail-closed callback recovery without requesting an account.",
+    "Read prompt-free eth_accounts and eth_chainId only after a pre-existing approved connection is available."
+  ],
+  "prohibitedWithoutImmediateUserConfirmation": [
+    "eth_requestAccounts",
+    "personal_sign",
+    "eth_signTypedData_v4",
+    "eth_sendTransaction",
+    "wallet_switchEthereumChain",
+    "wallet_addEthereumChain"
+  ],
+  "truth": {
+    "leaseIssued": false,
+    "artifactBound": false,
+    "rollbackBound": false,
+    "publicIdentityVerified": false,
+    "publicDeploymentVerified": false,
+    "installedCandidateVerified": false,
+    "providerLifecycleVerified": false,
+    "walletConnectRelayVerified": false
+  },
+  "completionRule": "This request is not deployment, installation, approval, callback, signing, transaction, or public-runtime evidence. Every truth field remains false until direct source-bound evidence is captured."
+}
