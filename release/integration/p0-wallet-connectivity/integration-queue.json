@@ -6477,6 +6477,28 @@
       "currentSourceBoundPublic": false,
       "productsConnected": "0/12",
       "nextAction": "Do not reuse P0-179. Preserve or bundle the unpushed exact commit, then request a wholly new lease with a corrected literal refspec push and the otherwise unchanged hosted-preflight contract."
+    },
+    {
+      "taskId": "P0-180",
+      "owner": "integration,wallet-web,website",
+      "status": "ACTIVE_SINGLE_USE_VERIFIED_BUNDLE_LITERAL_REFSPEC_HOSTED_PREFLIGHT",
+      "paths": [
+        "release/integration/p0-wallet-connectivity/leases/wallet-web-hosted-public-preflight-p0180-20260822.json",
+        ".github/workflows/wallet-web-public-preflight-p0.yml",
+        "vercel-project:prj_K4emrdkST7sdb0K9mhmLM0QZh0I3:ssoProtection"
+      ],
+      "dependencies": ["P0-179"],
+      "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-web-hosted-preflight-literal-refspec-20260822T084819Z",
+      "expiresAt": "2026-08-22T09:18:19Z",
+      "bundleSha256": "aca629be046a18d171cf83ffbff669ada48855517f1988896bfb5c6dde802313",
+      "verifiedCommit": "fe1548d2f8828e69c956ea5e902a6cc5b7a87030",
+      "pushAllowedExactlyOnce": true,
+      "workflowDispatchAllowed": false,
+      "ssoRestoreRequired": true,
+      "aliasMutationAllowed": false,
+      "currentSourceBoundPublic": false,
+      "productsConnected": "0/12",
+      "nextAction": "Execute only the exact literal push inside the ordered SSO window, bind one hosted run, restore SSO, and return raw evidence or terminal fail-closed release."
     }
   ]
 }

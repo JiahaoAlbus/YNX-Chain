@@ -1,26 +1,26 @@
 {
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-  "epoch": 79,
-  "updatedAt": "2026-08-22T08:45:27Z",
+  "epoch": 80,
+  "updatedAt": "2026-08-22T08:48:19Z",
   "heavy": {
-    "owner": null,
-    "status": "CONSUMED_RELEASED_FAILED_CLOSED_INVALID_LOCAL_REFSPEC_PRE_REMOTE",
+    "owner": "wallet-web+website",
+    "status": "ACTIVE_SINGLE_USE",
     "branch": "codex/wallet-web-pwa-extensions-20260813",
     "worktree": "/Users/huangjiahao/.codex/worktrees/1274/YNX Chain",
-    "taskId": "P0-179",
-    "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-web-hosted-preflight-20260822T083814Z",
-    "leasedAt": "2026-08-22T08:38:14Z",
-    "expiresAt": "2026-08-22T09:08:14Z",
-    "releasedAt": "2026-08-22T08:45:27Z",
+    "taskId": "P0-180",
+    "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-web-hosted-preflight-literal-refspec-20260822T084819Z",
+    "leasedAt": "2026-08-22T08:48:19Z",
+    "expiresAt": "2026-08-22T09:18:19Z",
+    "releasedAt": null,
     "previousOwner": null,
-    "previousTaskId": "P0-178",
-    "previousCheckpoint": "f04231d9dbd58c19e37f731d4b9f2bd02a8ad494",
-    "executionScope": "WALLET_WEB_EXACT_WORKFLOW_PUSH_TRIGGER_DURING_BOUNDED_WEBSITE_SSO_WINDOW",
-    "releaseReason": "The one authorized push failed locally because zsh transformed the variable-adjacent refspec before Git contacted the remote. No retry, remote workflow, Actions run or artifact exists. SSO was explicitly restored and current Standard Protection was read back.",
+    "previousTaskId": "P0-179",
+    "previousCheckpoint": "156b5b4da8ba8c71e85331b404032b5b17e38207",
+    "executionScope": "EXACT_LITERAL_REFSPEC_PUSH_TRIGGERED_HOSTED_PREFLIGHT_WITH_ORDERED_SSO_WINDOW",
+    "releaseReason": null,
     "onSafeCheckpoint": [
-      "preserve the unpushed local commit object or export it as an immutable bundle",
-      "do not retry P0-179 or mutate the remote workflow path",
-      "request a wholly new lease with one corrected literal refspec push"
+      "reverify the immutable thin bundle and exact remote parent",
+      "disable SSO and execute only the frozen literal push once",
+      "bind one hosted run, restore SSO, and return raw evidence or fail closed"
     ]
   },
   "light": {
