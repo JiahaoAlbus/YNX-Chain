@@ -6502,6 +6502,26 @@
       "actionsRunId": 32563374829,
       "hostedFourResourcePreflightAccepted": true,
       "nextAction": "Do not reuse P0-180. If the Heavy slot and Website path remain free, independently review a wholly new alias-only routing lease with exact rollback and post-route official-domain readback."
+    },
+    {
+      "taskId": "P0-181",
+      "owner": "integration,website",
+      "status": "ACTIVE_SINGLE_USE_WALLET_OFFICIAL_ALIAS_ONLY",
+      "paths": [
+        "release/integration/p0-wallet-connectivity/leases/wallet-public-identity-routing-p0181-20260822.json",
+        "vercel:wallet.ynxweb4.com"
+      ],
+      "dependencies": ["P0-180"],
+      "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-public-identity-routing-20260822T085730Z",
+      "expiresAt": "2026-08-22T09:27:30Z",
+      "source": "a9653f9f73eb79f77b45f04c845c4f56c012ab4b",
+      "candidateDeployment": "dpl_G6gTg2a3CVS1siTRqQg5XjQfPR9q",
+      "rollbackDeployment": "dpl_Got2m9m84Sc3QDsrH8yu51W93JAe",
+      "ssoMutationAllowed": false,
+      "aliasMutationAllowedExactlyOnce": true,
+      "currentSourceBoundPublic": false,
+      "productsConnected": "0/12",
+      "nextAction": "Website owner must perform fresh no-drift checks, execute only the exact alias command once, then return official-domain four-resource hashes and clean-browser evidence; rollback exactly once on any failure."
     }
   ]
 }

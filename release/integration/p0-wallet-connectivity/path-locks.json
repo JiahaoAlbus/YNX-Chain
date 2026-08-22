@@ -1297,20 +1297,20 @@
     },
     {
       "path": "vercel:wallet.ynxweb4.com",
-      "owner": null,
+      "owner": "website",
       "branch": "codex/website-wallet-public-identity-routing-20260822",
       "worktree": "/Users/huangjiahao/Desktop/ynx-web4-website-new",
-      "taskId": "P0-175",
+      "taskId": "P0-181",
       "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-      "status": "CONSUMED_RELEASED_FAILED_CLOSED_CANDIDATE_UNREACHABLE_PREWRITE",
-      "acquiredAt": "2026-08-22T07:42:25Z",
-      "expiresAt": "2026-08-22T08:12:25Z",
-      "releasedAt": "2026-08-22T07:56:13Z",
-      "productionMutationAllowed": false,
+      "status": "ACTIVE_SINGLE_USE",
+      "acquiredAt": "2026-08-22T08:57:30Z",
+      "expiresAt": "2026-08-22T09:27:30Z",
+      "releasedAt": null,
+      "productionMutationAllowed": "EXACT_WALLET_OFFICIAL_ALIAS_SET_WITH_EXACT_OLD_ALIAS_ROLLBACK_ONLY",
       "allowedExceptions": [
-        "preflight the exact candidate immutable URL without mutation",
-        "change only the wallet.ynxweb4.com alias after all preflight gates pass",
-        "restore only the exact old Wallet deployment alias on any failure"
+        "change only wallet.ynxweb4.com to exact dpl_G6gTg2a3CVS1siTRqQg5XjQfPR9q after fresh no-drift checks",
+        "read back only the four official resources and clean-browser visible state",
+        "restore only dpl_Got2m9m84Sc3QDsrH8yu51W93JAe on any post-route failure"
       ]
     },
     {
