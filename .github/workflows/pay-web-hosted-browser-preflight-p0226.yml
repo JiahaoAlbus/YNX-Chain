@@ -1,0 +1,191 @@
+name: Pay Web hosted browser preflight P0-226
+
+on:
+  push:
+    branches:
+      - codex/p0-pay-wallet-connectivity-20260821
+    paths:
+      - .github/workflows/pay-web-hosted-browser-preflight-p0226.yml
+
+permissions:
+  contents: read
+
+jobs:
+  hosted-chromium-preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      EXPECTED_MESSAGE: "evidence(pay): hosted Chromium preflight static candidate"
+      CANDIDATE_ARCHIVE: release/pay/ynx-pay-web-5f4ce98e-static.tar.gz
+      CANDIDATE_SHA256: ae552951d8e569f04aced60db69e3c11422910cc1098a6e7061b0e84005ad09e
+      SOURCE_COMMIT: 5f4ce98eb458550b976c17e3bc6d77cce4081a59
+      SOURCE_TREE: 8f0c25c4d86eb22a564f3c7aeff9db6709a9b9f0
+      ORIGIN: http://127.0.0.1:4189
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+      - name: Bind the single authorized push
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${{ github.event.head_commit.message }}" = "$EXPECTED_MESSAGE"
+          test "${{ github.ref }}" = "refs/heads/codex/p0-pay-wallet-connectivity-20260821"
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: "24"
+
+      - name: Prepare isolated exact candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          evidence="$RUNNER_TEMP/pay-p0226-evidence"
+          extraction="$RUNNER_TEMP/pay-p0226-extraction"
+          profile="$RUNNER_TEMP/pay-p0226-profile"
+          test ! -e "$evidence"
+          test ! -e "$extraction"
+          test ! -e "$profile"
+          mkdir -p "$evidence" "$extraction" "$profile"
+          printf '%s  %s\n' "$CANDIDATE_SHA256" "$CANDIDATE_ARCHIVE" | sha256sum --check --strict
+          tar -xzf "$CANDIDATE_ARCHIVE" -C "$extraction"
+          test -f "$extraction/dist/index.html"
+          test -f "$extraction/dist/build-identity.json"
+          node - "$extraction/dist/build-identity.json" "$SOURCE_COMMIT" "$SOURCE_TREE" <<'NODE'
+          const fs = require('node:fs');
+          const [identityPath, expectedCommit, expectedTree] = process.argv.slice(2);
+          const identity = JSON.parse(fs.readFileSync(identityPath, 'utf8'));
+          if (identity.sourceCommit !== expectedCommit || identity.sourceTree !== expectedTree) {
+            throw new Error(`identity mismatch: ${JSON.stringify(identity)}`);
+          }
+          NODE
+          cp "$extraction/dist/build-identity.json" "$evidence/build-identity.json"
+          sha256sum "$CANDIDATE_ARCHIVE" "$extraction/dist/index.html" "$extraction/dist/build-identity.json" > "$evidence/preflight-sha256.txt"
+          stat -c '%n bytes=%s' "$CANDIDATE_ARCHIVE" "$extraction/dist/index.html" "$extraction/dist/build-identity.json" > "$evidence/preflight-bytes.txt"
+          printf '%s\n' "$SOURCE_COMMIT" > "$evidence/source-commit.txt"
+          printf '%s\n' "$SOURCE_TREE" > "$evidence/source-tree.txt"
+
+      - name: Install hosted Chromium
+        shell: bash
+        working-directory: apps/pay
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts
+          npx playwright install --with-deps chromium
+
+      - name: Start fixed localhost candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 4189 --bind 127.0.0.1 --directory "$RUNNER_TEMP/pay-p0226-extraction/dist" > "$RUNNER_TEMP/pay-p0226-evidence/server.log" 2>&1 &
+          printf '%s\n' "$!" > "$RUNNER_TEMP/pay-p0226-server.pid"
+          for attempt in $(seq 1 40); do
+            if curl --fail --silent --show-error --output "$RUNNER_TEMP/pay-p0226-evidence/local-root.html" "$ORIGIN/"; then
+              exit 0
+            fi
+            sleep 0.25
+          done
+          exit 1
+
+      - name: Cold and second hosted Chromium launch
+        shell: bash
+        working-directory: apps/pay
+        run: |
+          set -euo pipefail
+          node - "$RUNNER_TEMP/pay-p0226-evidence" "$RUNNER_TEMP/pay-p0226-profile" "$ORIGIN" <<'NODE'
+          const fs = require('node:fs');
+          const path = require('node:path');
+          const { chromium } = require('playwright');
+          const [evidenceDir, profileDir, origin] = process.argv.slice(2);
+
+          const run = async (phase) => {
+            const consoleErrors = [];
+            const pageErrors = [];
+            const failedRequests = [];
+            const context = await chromium.launchPersistentContext(profileDir, {
+              headless: true,
+              viewport: { width: 1440, height: 1000 },
+            });
+            try {
+              const pages = context.pages();
+              const page = pages[0] || await context.newPage();
+              page.on('console', (message) => {
+                if (message.type() === 'error') consoleErrors.push(message.text());
+              });
+              page.on('pageerror', (error) => pageErrors.push(String(error)));
+              page.on('requestfailed', (request) => failedRequests.push({
+                url: request.url(),
+                errorText: request.failure()?.errorText || 'unknown',
+              }));
+              await page.goto(`${origin}/`, { waitUntil: 'domcontentloaded', timeout: 30000 });
+              await page.waitForLoadState('load', { timeout: 30000 });
+              await page.getByText('YNX Pay', { exact: true }).waitFor({ state: 'visible', timeout: 30000 });
+              await page.getByText('Waiting for Wallet', { exact: true }).waitFor({ state: 'visible', timeout: 30000 });
+              await page.getByRole('button', { name: 'Sign in' }).waitFor({ state: 'visible', timeout: 30000 });
+              await page.getByRole('button', { name: 'Settings' }).waitFor({ state: 'visible', timeout: 30000 });
+              await page.screenshot({ path: path.join(evidenceDir, `${phase}.png`), fullPage: true });
+              const snapshot = await page.evaluate(() => ({
+                url: location.href,
+                title: document.title,
+                lang: document.documentElement.lang,
+                bodyText: document.body.innerText,
+              }));
+              const openPages = context.pages().map((item) => item.url());
+              if (snapshot.url !== `${origin}/`) throw new Error(`${phase}: unstable URL ${snapshot.url}`);
+              if (snapshot.title !== 'YNX Pay') throw new Error(`${phase}: unexpected title ${snapshot.title}`);
+              if (snapshot.lang !== 'en') throw new Error(`${phase}: default language ${snapshot.lang}`);
+              if (!snapshot.bodyText.includes('Waiting for Wallet')) throw new Error(`${phase}: waiting state missing`);
+              if (snapshot.bodyText.includes('0x1917') || /0x[a-fA-F0-9]{40}/.test(snapshot.bodyText)) {
+                throw new Error(`${phase}: fabricated account or chain`);
+              }
+              if (openPages.length !== 1 || openPages[0] !== `${origin}/`) {
+                throw new Error(`${phase}: tab invariant failed ${JSON.stringify(openPages)}`);
+              }
+              if (consoleErrors.length || pageErrors.length || failedRequests.length) {
+                throw new Error(`${phase}: browser errors ${JSON.stringify({ consoleErrors, pageErrors, failedRequests })}`);
+              }
+              const result = { phase, ...snapshot, openPages, consoleErrors, pageErrors, failedRequests };
+              fs.writeFileSync(path.join(evidenceDir, `${phase}.json`), `${JSON.stringify(result, null, 2)}\n`);
+              return result;
+            } finally {
+              await context.close();
+            }
+          };
+
+          (async () => {
+            const cold = await run('cold');
+            const second = await run('second');
+            fs.writeFileSync(path.join(evidenceDir, 'summary.json'), `${JSON.stringify({
+              schemaVersion: 1,
+              sourceCommit: process.env.SOURCE_COMMIT,
+              sourceTree: process.env.SOURCE_TREE,
+              origin,
+              allowedLoadStates: ['domcontentloaded', 'load'],
+              forbiddenLoadState: 'networkidle',
+              userSensitiveActions: false,
+              cold,
+              second,
+            }, null, 2)}\n`);
+          })().catch((error) => {
+            fs.writeFileSync(path.join(evidenceDir, 'failure.txt'), `${error.stack || error}\n`);
+            process.exitCode = 1;
+          });
+          NODE
+
+      - name: Freeze isolated run evidence
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          evidence="$RUNNER_TEMP/pay-p0226-evidence"
+          test -d "$evidence"
+          find "$evidence" -type f ! -name artifact-sha256.txt ! -name artifact-bytes.txt -print0 | sort -z | xargs -0 sha256sum > "$evidence/artifact-sha256.txt"
+          find "$evidence" -type f ! -name artifact-sha256.txt ! -name artifact-bytes.txt -printf '%P bytes=%s\n' | sort > "$evidence/artifact-bytes.txt"
+
+      - name: Upload isolated hosted browser evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: pay-web-hosted-browser-preflight-p0226-${{ github.sha }}
+          if-no-files-found: error
+          retention-days: 14
+          path: ${{ runner.temp }}/pay-p0226-evidence
