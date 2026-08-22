@@ -108,9 +108,9 @@ public final class MainActivity extends Activity {
       String encoded=encodedQuery.substring("response=".length());byte[] decoded=Base64.decode(encoded,Base64.URL_SAFE|Base64.NO_WRAP|Base64.NO_PADDING);if(!base64url(decoded).equals(encoded))throw new SecurityException("callback response encoding is not canonical");
       JSONObject response=new JSONObject(new String(decoded,StandardCharsets.UTF_8));
       JSONObject request=pendingRequest();
-      if("rejected".equals(response.optString("decision"))){verifyWalletRejection(response,request,Instant.now());String nonce=response.getString("nonce");if(!consumeCallbackNonce(nonce)){status.setText("Replay rejected: verified Wallet rejection nonce was already consumed.\nNo Product Session created.");return;}status.setText("USER_REJECTED verified.\nAuthority granted: false\nGranted scopes: 0\nProduct Session count: 0");replayButton.setVisibility(View.VISIBLE);return;}
+      if("rejected".equals(response.optString("decision"))){verifyWalletRejection(response,request,Instant.now());if(!consumeCallback(request)){status.setText("Replay rejected: verified Wallet rejection nonce was already consumed.\nNo Product Session created.");return;}status.setText("USER_REJECTED verified.\nAuthority granted: false\nGranted scopes: 0\nProduct Session count: 0");replayButton.setVisibility(View.VISIBLE);return;}
       verifyWalletApproval(response,request,Instant.now());
-      String nonce=response.getString("nonce");if(!consumeCallbackNonce(nonce)){status.setText("Replay rejected: verified Wallet response nonce was already consumed.");return;}
+      if(!consumeCallback(request)){status.setText("Replay rejected: verified Wallet response nonce was already consumed.");return;}
       status.setText("Wallet approval verified locally.\nPublic Core mobile route is not proven available.\nProduct Session count: 0\nAccount: "+response.getString("account")+"\nNo Wallet secret entered Social.");
       replayButton.setVisibility(View.VISIBLE);
     }catch(Exception error){status.setText("Callback rejected: "+detail(error));}
@@ -118,7 +118,7 @@ public final class MainActivity extends Activity {
 
   private JSONObject pendingRequest() throws Exception {String value=preferences.getString(PENDING_REQUEST,null);if(value==null)throw new SecurityException("pending request missing");JSONObject request=new JSONObject(value);if(!canonical(request).equals(value))throw new SecurityException("pending request storage is not canonical");verifyRequestBinding(request,Instant.now());return request;}
   private void persistPendingRequest(JSONObject request) throws Exception {String canonical=canonical(request),existing=preferences.getString(PENDING_REQUEST,null);if(existing!=null&&!canonical(new JSONObject(existing)).equals(canonical))throw new SecurityException("another authorization request is already pending");if(existing==null&&!preferences.edit().putString(PENDING_REQUEST,canonical).commit())throw new SecurityException("pending authorization request was not durably stored");}
-  private boolean consumeCallbackNonce(String nonce){String key="consumed."+nonce;if(preferences.getBoolean(key,false))return false;if(!preferences.edit().putBoolean(key,true).commit())throw new SecurityException("callback replay state was not durably stored");return true;}
+  private boolean consumeCallback(JSONObject request) throws Exception {String nonce=request.getString("nonce"),key="consumed."+nonce;if(preferences.getBoolean(key,false))return false;String pending=preferences.getString(PENDING_REQUEST,null),canonical=canonical(request);if(!canonical.equals(pending))throw new SecurityException("pending authorization request changed before callback consumption");if(!preferences.edit().putBoolean(key,true).remove(PENDING_REQUEST).commit())throw new SecurityException("callback terminal state was not durably stored");return true;}
 
   private void verifyWalletApproval(JSONObject response,JSONObject request,Instant now) throws Exception {
     requireExactFields(response,RESPONSE_FIELDS,"Wallet approval");
