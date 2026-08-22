@@ -6051,6 +6051,23 @@
       "productsMigratedV2": "0/12",
       "parityComplete": false,
       "nextAction": "Re-read the exact iOS replacement run when terminal; macOS still requires real SDK/project ID/relay and installed DApp runtime evidence."
+    },
+    {
+      "taskId": "P0-159",
+      "owner": "integration,wallet-protocol",
+      "status": "CENTRAL_INTEROP_REGRESSION_BINDING_ACCEPTED_SOURCE_EVIDENCE_ONLY",
+      "paths": [
+        "release/integration/p0-wallet-connectivity/acceptance/wallet-router-central-regression-binding-p0159-20260822.json"
+      ],
+      "dependencies": ["P0-156", "P0-157", "P0-158"],
+      "routerCheckpoint": "762ebb08810af807a8626ca59aea02e7a39c56e8",
+      "centralCheckpoint": "a23feb5e31dd89d1812f9c2211dac7efdeceeb23",
+      "executionLeaseIssued": false,
+      "webInstallConfirmationGranted": false,
+      "productsConnected": "0/12",
+      "productsMigratedV2": "0/12",
+      "parityComplete": false,
+      "nextAction": "Continue collecting direct installed E2E evidence; this checkpoint proves only regression binding to the accepted Central matrix."
     }
   ]
 }
