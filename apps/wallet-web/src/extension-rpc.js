@@ -19,6 +19,16 @@ export async function verifyExtensionRpc(fetcher = globalThis.fetch, url = YNX_R
 
 export async function forwardExtensionRpc(method,params=[],fetcher=globalThis.fetch,url=YNX_RPC_URL){
   if(typeof method!=="string"||!(method==="eth_chainId"||READ_ONLY_RPC_METHODS.includes(method)))rpcFailure(4200,"Unsupported YNX Wallet RPC method.");
+  return exactRpcRequest(method,params,fetcher,url);
+}
+
+export async function broadcastExtensionTransaction(rawTransaction,fetcher=globalThis.fetch,url=YNX_RPC_URL){
+  if(typeof rawTransaction!=="string"||!/^0x[0-9a-fA-F]+$/u.test(rawTransaction)||rawTransaction.length>262146)rpcFailure("INVALID_SIGNED_TRANSACTION","Signed YNX transaction is invalid.");
+  const result=await exactRpcRequest("eth_sendRawTransaction",[rawTransaction],fetcher,url);
+  if(typeof result!=="string"||!/^0x[0-9a-fA-F]{64}$/u.test(result))rpcFailure("INVALID_TRANSACTION_HASH","YNX Testnet RPC returned an invalid transaction hash.");return result.toLowerCase();
+}
+
+async function exactRpcRequest(method,params=[],fetcher=globalThis.fetch,url=YNX_RPC_URL){
   if(!Array.isArray(params)||JSON.stringify(params).length>PARAMS_LIMIT)rpcFailure("INVALID_RPC_PARAMS","YNX Wallet RPC parameters are invalid.");
   if (typeof fetcher !== "function" || url !== YNX_RPC_URL) rpcFailure("RPC_UNAVAILABLE", "YNX Testnet RPC is unavailable.");
   const controller = new AbortController();

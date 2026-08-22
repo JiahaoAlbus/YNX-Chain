@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import {READ_ONLY_RPC_METHODS,RPC_REQUEST_ID,RPC_TIMEOUT_MS,YNX_CHAIN_ID,YNX_RPC_URL,forwardExtensionRpc,verifyExtensionRpc} from "../src/extension-rpc.js";
+import {READ_ONLY_RPC_METHODS,RPC_REQUEST_ID,RPC_TIMEOUT_MS,YNX_CHAIN_ID,YNX_RPC_URL,broadcastExtensionTransaction,forwardExtensionRpc,verifyExtensionRpc} from "../src/extension-rpc.js";
 
 const response = (body, options={}) => ({ok:options.ok??true,status:options.status??200,json:async()=>body});
 
@@ -9,6 +9,13 @@ test("extension RPC sends the exact bounded eth_chainId request and validates 0x
   const result=await verifyExtensionRpc(async(url,options)=>{observed={url,options};return response({jsonrpc:"2.0",id:RPC_REQUEST_ID,result:"0x1917"})});
   assert.equal(observed.url,YNX_RPC_URL);assert.equal(observed.options.method,"POST");assert.deepEqual(JSON.parse(observed.options.body),{jsonrpc:"2.0",id:6423,method:"eth_chainId",params:[]});
   assert.equal(observed.options.signal instanceof AbortSignal,true);assert.equal(RPC_TIMEOUT_MS,12000);assert.equal(result.chainId,YNX_CHAIN_ID);assert.equal(result.responseValidated,true);
+});
+
+test("signed transaction broadcast is a separate exact internal RPC gate",async()=>{
+  let observed;const raw="0x01",hash=`0x${"a".repeat(64)}`,result=await broadcastExtensionTransaction(raw,async(url,options)=>{observed={url,body:JSON.parse(options.body)};return response({jsonrpc:"2.0",id:RPC_REQUEST_ID,result:hash})});
+  assert.equal(result,hash);assert.deepEqual(observed.body,{jsonrpc:"2.0",id:RPC_REQUEST_ID,method:"eth_sendRawTransaction",params:[raw]});
+  await assert.rejects(()=>broadcastExtensionTransaction("not-raw",async()=>response({})),error=>error.code==="INVALID_SIGNED_TRANSACTION");
+  await assert.rejects(()=>broadcastExtensionTransaction(raw,async()=>response({jsonrpc:"2.0",id:RPC_REQUEST_ID,result:"0x1"})),error=>error.code==="INVALID_TRANSACTION_HASH");
 });
 
 test("extension RPC rejects wrong chain, malformed envelope, errors and unavailable transport",async()=>{

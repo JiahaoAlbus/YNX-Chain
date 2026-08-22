@@ -43,5 +43,5 @@ test("sensitive results never accept fabricated accounts, signatures or transact
 
 test("standard provider consumes replay state without coupling to Core Product Session",async()=>{
   const worker=await readFile(new URL("../extension/service-worker.js",import.meta.url),"utf8"),guard=worker.indexOf("consumeSensitiveRequest"),provider=worker.indexOf("handleProviderMethod({tabId,origin");
-  assert.ok(guard>0&&provider>guard);assert.doesNotMatch(worker,/requireCanonicalAuthorizationContext|CORE_WALLET_AUTH_BINDING/);assert.match(worker,/YNX_SIGNER_UNAVAILABLE/);
+  assert.ok(guard>0&&provider>guard);assert.doesNotMatch(worker,/requireCanonicalAuthorizationContext|CORE_WALLET_AUTH_BINDING/);assert.match(worker,/requestSignerReview/);assert.match(worker,/broadcastExtensionTransaction/);
 });

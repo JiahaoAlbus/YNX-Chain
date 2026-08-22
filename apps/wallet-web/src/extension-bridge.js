@@ -4,7 +4,7 @@ export const PAGE_RESPONSE = "YNX_PAGE_RESPONSE_V1";
 export const PAGE_EVENT = "YNX_PAGE_EVENT_V1";
 export const RUNTIME_REQUEST = "YNX_DAPP_REQUEST_V1";
 export const RUNTIME_EVENT = "YNX_DAPP_EVENT_V1";
-export const REQUEST_TIMEOUT_MS = 18000;
+export const REQUEST_TIMEOUT_MS = 120000;
 
 export const REQUEST_METHODS = Object.freeze([
   "eth_chainId", "eth_accounts", "eth_requestAccounts", "wallet_getPermissions", "wallet_requestPermissions",

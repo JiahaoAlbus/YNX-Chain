@@ -9,7 +9,7 @@ const valid={type:PAGE_REQUEST,version:BRIDGE_VERSION,requestId:REQUEST_ID,origi
 test("page bridge accepts only exact HTTP(S) origin, request id, method and params",()=>{
   assert.equal(validatePageRequest(valid,"https://dapp.example"),true);
   for(const invalid of [{...valid,origin:"https://evil.example"},{...valid,requestId:"guessable"},{...valid,method:"eth_sign"},{...valid,params:{}},{...valid,extra:true}])assert.equal(validatePageRequest(invalid,"https://dapp.example"),false);
-  assert.equal(validHttpOrigin("file:///tmp/dapp.html"),false);assert.equal(REQUEST_TIMEOUT_MS,18000);
+  assert.equal(validHttpOrigin("file:///tmp/dapp.html"),false);assert.equal(REQUEST_TIMEOUT_MS,120000);
 });
 
 test("runtime bridge binds the content-script request to the sender origin",()=>{

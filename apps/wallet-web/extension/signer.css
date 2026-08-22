@@ -1,0 +1,1 @@
+@import "./approval.css";label{display:block;margin:14px 0 6px;color:#4b5563;font-size:12px;font-weight:700}input{width:100%;min-height:44px;margin-bottom:12px;border:1px solid #b8c0d4;border-radius:12px;background:transparent;color:inherit;padding:10px;font:inherit}@media(prefers-color-scheme:dark){label{color:#b6becd}input{border-color:#465066}}
