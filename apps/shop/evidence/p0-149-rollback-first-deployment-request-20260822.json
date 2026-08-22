@@ -1,0 +1,93 @@
+{
+  "schemaVersion": "1.0.0",
+  "requestId": "P0-149-SHOP-ROLLBACK-FIRST-20260822",
+  "status": "NO_GO_AWAITING_CENTRAL_LEASE",
+  "scope": "YNX Shop only",
+  "source": {
+    "commit": "80212e16d6b504f0363cda523b705907c2b56073",
+    "tree": "1d013e7ae6d78c1cee031978fa20dd22ad870af2",
+    "branch": "codex/final-shop",
+    "routerPlanCommit": "875be208e8a7ddb60345d55b93fc299949664e5c"
+  },
+  "deterministicArtifact": {
+    "localPath": "/tmp/ynx-shop-p0149.znACr8/ynx-shop-80212e16d6b504f0363cda523b705907c2b56073.tar.gz",
+    "bytes": 8657480,
+    "sha256": "66c7ba685c76ebe58855923415bd8c03d2595a4284177d54874d1e941b575baf",
+    "target": "linux-amd64-cgo-disabled",
+    "immutableStagingPathRequested": "/opt/ynx-shop/releases/80212e16d6b504f0363cda523b705907c2b56073",
+    "inventorySha256": "ac7cd56e7bf7b3916b5af17b009a2193e0f398f1cb6286908b920b195cf0f6a4",
+    "sha256SumsSha256": "11c7f2b91793562550e6e12ed973d4cde33bf03f6902d18477e9400f26283cce",
+    "binary": {"path": "bin/ynx-shopd", "bytes": 19239096, "sha256": "c37975049e5e9c6d040ab933481bab2bc6820280f26e48aa9fb46a1d1cc4acd6"},
+    "unit": {"path": "systemd/ynx-shopd.service", "bytes": 586, "sha256": "a714e585c75b304f62dd6e2a150d0b794912a13bed121a2e060a117823e77d0c"},
+    "caddy": {"path": "caddy/web4-shop-staging.routes", "bytes": 294, "sha256": "6acde17efc76ae378a13d206df1acdbff8de5fee6be2ac26729d40102182122a"},
+    "extractionInventory": [
+      {"bytes": 1048, "path": "web/shop/sw.js"},
+      {"bytes": 10741, "path": "web/shop/i18n.js"},
+      {"bytes": 1322, "path": "web/shop/workflow.css"},
+      {"bytes": 17991, "path": "web/shop/wallet-auth.js"},
+      {"bytes": 19239096, "path": "bin/ynx-shopd"},
+      {"bytes": 20706, "path": "web/shop/app.js"},
+      {"bytes": 246022, "path": "web/shop/icon-512.png"},
+      {"bytes": 294, "path": "caddy/web4-shop-staging.routes"},
+      {"bytes": 37156, "path": "web/shop/icon-192.png"},
+      {"bytes": 451, "path": "web/shop/manifest.webmanifest"},
+      {"bytes": 5349, "path": "web/shop/wallet-provider-discovery.js"},
+      {"bytes": 586, "path": "systemd/ynx-shopd.service"},
+      {"bytes": 6847, "path": "web/shop/styles.css"},
+      {"bytes": 7463, "path": "web/shop/index.html"},
+      {"bytes": 78639, "path": "web/shop/ynx-shop-0.2.0-testnet-preview.apk"},
+      {"bytes": 865746, "path": "web/shop/icon-1024.png"}
+    ]
+  },
+  "currentOfficialPublicBaseline": {
+    "url": "https://shop.ynxweb4.com/shop/",
+    "observedAt": "2026-08-22T08:42:20Z",
+    "httpStatus": 200,
+    "server": "Caddy",
+    "index": {"bytes": 8634, "sha256": "5bf1edb8f44cba491d8d971f7956cd05392d5d4fb99eb9672c0ee52d2c249f2d"},
+    "runtimeIdentity": {"service": "ynx-shopd", "version": "0.4.0-testnet-preview", "reportedCommit": "88c0f3a5", "fullSourceCommit": null},
+    "assets": {
+      "app.js": {"http": 200, "bytes": 22004, "sha256": "4fd8e888313822bf62bb3e08c0d00c2c2727232cad7c0a3dca4f2b270c8c40ce"},
+      "wallet-auth.js": {"http": 200, "bytes": 17930, "sha256": "3ed50c37243e7ce2367fb8fb238b9212af3fc9ac29b4c5cabce8cc9145df90d5"},
+      "wallet-provider-discovery.js": {"http": 200, "bytes": 5348, "sha256": "1226f47f341bdf1b45489a7317de01337bc161d9f2172dcb14f090915d1a6c36"},
+      "i18n.js": {"http": 200, "bytes": 13354, "sha256": "2398e7cdcbb9a6b040d9dde899df7f4899d86e712c6e0a819b63c24da6dd23ff"},
+      "sw.js": {"http": 200, "bytes": 1079, "sha256": "c581554d1b88887f2e26e1dfedc7775d9a0aa665544a419c84b20bd9acb44d00"},
+      "styles.css": {"http": 200, "bytes": 9251, "sha256": "99c43192ebfaafad95273d4d15a9259556d7adfb18cc6e7e425be6537c331fbf"}
+    }
+  },
+  "centralRequiredRollbackInputs": {
+    "freshBackupPath": "/var/backups/ynx-shop/predeploy-80212e16d6b504f0363cda523b705907c2b56073.tar.gz",
+    "requiredBeforeLease": [
+      "current /opt/ynx-shop/current resolved release path and full source commit",
+      "SHA-256 and bytes for the current ynx-shopd binary",
+      "sanitized environment file SHA-256 without secret values",
+      "SHA-256 and bytes for the active ynx-shopd systemd unit",
+      "SHA-256 and bytes for active Shop Caddy configuration and imported route files",
+      "SHA-256 and bytes for /var/lib/ynx-shop/state.json plus schema/integrity metadata",
+      "fresh root-only backup path, bytes, SHA-256, inventory, and restore verification receipt",
+      "exact authorized deploy command file bytes and SHA-256",
+      "exact authorized rollback command file bytes and SHA-256",
+      "service account identity, host identity, and bounded sudo capability",
+      "explicit staging and public cutover targets"
+    ],
+    "deployCommand": {"authorized": false, "bytes": null, "sha256": null},
+    "rollbackCommand": {"authorized": false, "bytes": null, "sha256": null},
+    "rollbackReceipts": {"backupVerified": false, "restoreExecuted": false, "healthRestored": false, "assetHashesRestored": false}
+  },
+  "postdeployReadOnlyCommandsRequested": [
+    "curl -fsS https://shop.ynxweb4.com/health",
+    "curl -fsS https://shop.ynxweb4.com/version",
+    "curl -fsSIL https://shop.ynxweb4.com/shop/",
+    "curl -fsSL https://shop.ynxweb4.com/shop/ | shasum -a 256",
+    "for p in app.js wallet-auth.js wallet-provider-discovery.js i18n.js sw.js styles.css; do curl -fsSL https://shop.ynxweb4.com/shop/$p | shasum -a 256; done"
+  ],
+  "immediateConfirmationBoundaries": {
+    "eth_requestAccounts": "separate user confirmation; stop before prompt unless explicitly authorized for that exact attempt",
+    "approveReject": "record separate approve and reject attempts; each requires immediate user action",
+    "personal_sign": "separate immediate confirmation; display exact message and account before prompt",
+    "eip712": "separate immediate confirmation; display exact typed-data domain, chain, account, and payload before prompt",
+    "testnetSend": "separate immediate confirmation; display recipient, value, gas, chain 0x1917, and test-only asset before prompt",
+    "privateKeys": "never requested, collected, logged, transmitted, or stored"
+  },
+  "noGoReason": "Heavy P0-179 remains ACTIVE; no production deployment lease exists. No deployment or wallet prompt was triggered."
+}
