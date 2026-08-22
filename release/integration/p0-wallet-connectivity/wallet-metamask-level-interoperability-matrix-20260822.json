@@ -18,7 +18,27 @@
     "consumerSdk": "315897e75c0ffe3e63435fe73cfec42244b851cc",
     "sharedProviderSource": "98c6d5d784d212df8981a53b17118a511e246ad2",
     "sharedProviderTree": "51a60a362d4ad5dd748bcdefb101f71b1d9e0cee",
-    "sharedProviderEvidence": "c3ab255c32bdeb9c8e056882c315f8ad43c29c7f"
+    "sharedProviderEvidence": "c3ab255c32bdeb9c8e056882c315f8ad43c29c7f",
+    "standardInteropConformance": {
+      "commit": "9ab9cd8c8deac8563acff9ffd7e277553e20383e",
+      "tree": "577133f121f49a7c832cc12bc6fb2afb1258b81b",
+      "path": "release/integration/wallet-standard-connection-conformance-contract-p0-20260822.json",
+      "blob": "173cb99a6fa6b942f43c6dc8ee3a3b851e876525",
+      "sha256": "c59cc18de86a304be8de6ef7056e3e260e62156fe36fb0b76e021e38e096a2fe",
+      "version": "standardWalletConformance@1.0.0-p0.0",
+      "fixtureOnly": true
+    }
+  },
+  "consumerEnforcement": {
+    "routerCheckpoint": "cd7c3466b2b97876733c536b5c6ca4185ca06024",
+    "routerTree": "14b0e321076daef4c74645b34a7e503f54079a9b",
+    "routerBaseCheckpoint": "4025e1ffe5849ba9e394868a90c2a0c195aceed4",
+    "routerWebCheckpoint": "2e2eb37277613e52208f3e42b450a3a28a2ed08b",
+    "routerMatrixSha256": "92e4091d931a2e49d02d607c7cc7c2e8207fe2964e52791c78f1b49a30101e95",
+    "routerActivitySha256": "2858e5f4dc316e035797c0391172ca9f768e5e94dd627641af13faaec0df6676",
+    "acceptance": "P0-156,P0-157,P0-158",
+    "countsTowardCompletion": false,
+    "embeddedPlatformObservationsOverrideCentral": false
   },
   "evidencePolicy": {
     "completionEvidenceTier": "DIRECT_INSTALLED_E2E",
@@ -54,12 +74,12 @@
     {
       "id": "web-extension",
       "owner": "wallet-web",
-      "latestAcceptedSource": "a3310cc9f0c757d27dae83282b68361c116c22a3",
-      "latestAcceptedTree": "b97999159a2b137d00bd2155157ce574e9c1ff64",
-      "latestEvidence": "3af80dff57aecab2c62d17942f6c33e78c7621a9",
-      "latestEvidenceTree": "c9d639c1bbabb744353b4c99050b59c26564cdd5",
-      "latestEvidenceBlob": "d9848c011ff99cb0693dc9249c57f708bff67f8a",
-      "latestEvidenceSha256": "5275a48ab16fcd66f67c66a939b4791fe76b799c3b82263d6a0ce73a6053a22e",
+      "latestAcceptedSource": "a9653f9f73eb79f77b45f04c845c4f56c012ab4b",
+      "latestAcceptedTree": "5cbf483decc37a6249420840e1d6b81bbafc9c2a",
+      "latestEvidence": "4f1e1b8ebdbc5e67900f675d970421d73d3a574b",
+      "latestEvidenceTree": "9d5b8f3fd00bef48e35391279002c59919743849",
+      "latestEvidenceBlob": "3acc2d91d3aa4c478554c7adfbc9a5732750d97e",
+      "latestEvidenceSha256": "d5c5a7fc9b529caa7a20ebfa36ed13ab9ed3ba62eabe73e59f4d7c90654ef450",
       "evidenceTier": "SOURCE_ONLY",
       "acceptedFacts": [
         "independent-eip6963-eip1193-provider-source",
@@ -67,7 +87,10 @@
         "source-bound-package-artifacts",
         "provider-identity-name-ynx-wallet-rdns-com-ynx-wallet",
         "provider-identity-is-ynx-wallet-true-is-metamask-false",
-        "node-rpc-chain-id-0x1917"
+        "node-rpc-chain-id-0x1917",
+        "router-standard-interop-authority-consumed-exact",
+        "five-fixture-profiles-package-bound",
+        "three-external-dapp-promotion-gate-package-bound"
       ],
       "blockers": [
         "immediate-user-confirmation-required-before-isolated-browser-install",
@@ -98,14 +121,16 @@
     {
       "id": "ios",
       "owner": "wallet-ios",
-      "latestAcceptedSource": "8a7814e60d213e7b2c6259095b299640bc3a9fb3",
-      "latestEvidence": "run-32552112446-job-96980445342",
+      "latestAcceptedSource": "560d801b9a2d3cd856b3dfdbdc8d66aa3114d1b5",
+      "latestAcceptedTree": "327ba21128ba7350c6db5bbac515d08d63964f5e",
+      "latestEvidence": "9d891cfe3345f13a340f204c9f7a07d9eaead6f4",
       "evidenceTier": "HOSTED_CI_ONLY",
       "acceptedFacts": [
-        "single-file-biometric-test-root-cause-fix-source"
+        "single-file-biometric-test-root-cause-fix-source",
+        "prior-run-32552112446-failed-before-positive-biometric-proof"
       ],
       "blockers": [
-        "simulator-run-failed-recovery-action-did-not-accept-32-byte-vector",
+        "exact-head-run-32553443117-in-progress-no-result-inherited",
         "physical-device-unproved",
         "main-registration-review-pending",
         "distribution-not-authorized"
@@ -115,13 +140,21 @@
     {
       "id": "macos",
       "owner": "wallet-macos",
-      "latestAcceptedSource": "65328c00d71a43963fff12f4d304f29dd110149e",
-      "latestEvidence": "4765c9e7476f89fee653abb44f04bef825419ccf",
+      "latestAcceptedSource": "25fc6771acd437c4b2a78c4ee279758f5bbd45da",
+      "latestAcceptedTree": "1de7bb47df40fd32b9dd62212a1e4b1ab98ba4e0",
+      "latestEvidence": "58076b0154196349699696f64a616f5727c7c9cd",
+      "latestEvidenceTree": "125068622f7d64aef68dff0bef62738b4810332b",
+      "latestEvidenceBlob": "59c5de9142bd0a275d980eca28a34c0812a5bd45",
+      "latestEvidenceSha256": "edbd46b50e135cd6e47418593fe9625dca56b9cfefc3ca98aa308d36f7ad3d12",
       "evidenceTier": "HOSTED_CI_ONLY",
       "acceptedFacts": [
         "walletconnect-v2-strict-policy-source",
         "eip155-6423-namespace-policy",
-        "ad-hoc-artifact-inspected"
+        "ad-hoc-artifact-inspected",
+        "walletconnect-local-state-core-source",
+        "pending-proposal-and-request-restart-persistence-source",
+        "approved-account-result-validation-source",
+        "disconnect-revoke-purge-source"
       ],
       "blockers": [
         "real-project-id-absent",

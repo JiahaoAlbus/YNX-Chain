@@ -5992,6 +5992,65 @@
       "productsConnected": "0/12",
       "productsMigratedV2": "0/12",
       "nextAction": "Collect direct installed evidence through existing platform owners; source, CI, detected provider, local tests and public artifact identity never count as completion."
+    },
+    {
+      "taskId": "P0-156",
+      "owner": "integration,wallet-protocol",
+      "status": "ROUTER_GATE_ENFORCEMENT_ACCEPTED_SOURCE_EVIDENCE_ONLY",
+      "paths": [
+        "packages/wallet-auth/test/wallet-authorize-ecosystem-audit.test.mjs",
+        "release/integration/wallet-authorize-ecosystem-owner-runtime-matrix-v3-20260821.json",
+        "release/integration/wallet-provider-connect-owner-activity-checkpoint-20260821.json"
+      ],
+      "dependencies": [
+        "P0-155"
+      ],
+      "checkpointCommit": "4025e1ffe5849ba9e394868a90c2a0c195aceed4",
+      "checkpointTree": "5ffc69b233b96b4038952e3c43f8756e3a9e46c4",
+      "executionLeaseIssued": false,
+      "productsConnected": "0/12",
+      "productsMigratedV2": "0/12",
+      "parityComplete": false,
+      "nextAction": "Use the Router gate as a consumer enforcement checkpoint only; current Central platform observations remain authoritative and require direct installed E2E evidence."
+    },
+    {
+      "taskId": "P0-157",
+      "owner": "integration,wallet-web,wallet-protocol",
+      "status": "STANDARD_INTEROP_AUTHORITY_CONSUMED_SOURCE_ARTIFACT_ONLY",
+      "paths": [
+        "release/integration/p0-wallet-connectivity/acceptance/wallet-web-router-interop-consumption-p0157-20260822.json"
+      ],
+      "dependencies": ["P0-155", "P0-156"],
+      "webSource": "a9653f9f73eb79f77b45f04c845c4f56c012ab4b",
+      "webEvidence": "4f1e1b8ebdbc5e67900f675d970421d73d3a574b",
+      "routerCheckpoint": "2e2eb37277613e52208f3e42b450a3a28a2ed08b",
+      "standardInteropAuthority": "9ab9cd8c8deac8563acff9ffd7e277553e20383e",
+      "executionLeaseIssued": false,
+      "webInstallConfirmationGranted": false,
+      "productsConnected": "0/12",
+      "productsMigratedV2": "0/12",
+      "parityComplete": false,
+      "nextAction": "Wait for separate immediate confirmation before any disposable Chrome launch; direct installed first-party plus three-external-DApp evidence remains mandatory."
+    },
+    {
+      "taskId": "P0-158",
+      "owner": "integration,wallet-ios,wallet-macos",
+      "status": "NATIVE_INTEROP_SUCCESSORS_ACCEPTED_SOURCE_HOSTED_CI_ONLY",
+      "paths": [
+        "release/integration/p0-wallet-connectivity/acceptance/wallet-native-interop-source-checkpoint-p0158-20260822.json"
+      ],
+      "dependencies": ["P0-151", "P0-155"],
+      "iosSource": "560d801b9a2d3cd856b3dfdbdc8d66aa3114d1b5",
+      "iosRunStatus": "IN_PROGRESS",
+      "macosSource": "25fc6771acd437c4b2a78c4ee279758f5bbd45da",
+      "macosEvidence": "58076b0154196349699696f64a616f5727c7c9cd",
+      "routerCheckpoint": "cd7c3466b2b97876733c536b5c6ca4185ca06024",
+      "executionLeaseIssued": false,
+      "distributionDispatched": false,
+      "productsConnected": "0/12",
+      "productsMigratedV2": "0/12",
+      "parityComplete": false,
+      "nextAction": "Re-read the exact iOS replacement run when terminal; macOS still requires real SDK/project ID/relay and installed DApp runtime evidence."
     }
   ]
 }

@@ -1,0 +1,69 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-156",
+  "owner": "integration",
+  "sourceOwner": "wallet-protocol-router",
+  "decision": "ROUTER_P0155_GATE_ENFORCEMENT_ACCEPTED_SOURCE_EVIDENCE_ONLY",
+  "source": {
+    "commit": "4025e1ffe5849ba9e394868a90c2a0c195aceed4",
+    "tree": "5ffc69b233b96b4038952e3c43f8756e3a9e46c4",
+    "parent": "b885ef7f057216c1a475d181eaa55a91628ed4aa",
+    "remoteReadbackExact": true
+  },
+  "changedFiles": [
+    {
+      "path": "packages/wallet-auth/test/wallet-authorize-ecosystem-audit.test.mjs",
+      "blob": "fa112213236385e432689f354e94adfce9c35467",
+      "sha256": "dcf26743085b9c74ff00de6f17f6bde252407548deb47b3d8355ad92d685d783"
+    },
+    {
+      "path": "release/integration/wallet-authorize-ecosystem-owner-runtime-matrix-v3-20260821.json",
+      "blob": "8132b137327ed877983a43f62d283c25d8dcff3d",
+      "sha256": "29db53899961b62048f69fdadb9ac30b00ade5188a1c1f14cae320338a003add"
+    },
+    {
+      "path": "release/integration/wallet-provider-connect-owner-activity-checkpoint-20260821.json",
+      "blob": "5ef04e3a36161decce6a25c2b1e86e1ab4d6053e",
+      "sha256": "cd2fcfe35e2511f1a40f626fc6b8a0f24417a1cdd021c80beada9b49cd7418a5"
+    }
+  ],
+  "centralMatrixConsumed": {
+    "commit": "f3e4a07247f198f2a2fdd558efd7e9706b4075cf",
+    "tree": "9e1d0e0a358bfb06c6ac7f1e2d091d82866b175a",
+    "blob": "eb63d8121eb72fcc09775aa2aca2797eb4deeea8",
+    "sha256": "d277f31da23cc76031e9e2d98acbca8070a874ba99ffd13712ec49c0918ad379"
+  },
+  "acceptedEnforcement": {
+    "protocolCommit": "66003e76e804da16d472255efde50cb879055b96",
+    "consumerSdkCommit": "315897e75c0ffe3e63435fe73cfec42244b851cc",
+    "sharedProviderCommit": "98c6d5d784d212df8981a53b17118a511e246ad2",
+    "standardLayerIndependent": true,
+    "productSessionFailureEffect": "PRIVATE_SERVICE_DEGRADED_ONLY",
+    "completionEvidenceTier": "DIRECT_INSTALLED_E2E",
+    "sourceCiLocalArtifactDetectionCountAsCompletion": false
+  },
+  "validation": {
+    "walletAuth": "320/320",
+    "noBareAuthorize": true,
+    "standardWalletConsumerGate": true
+  },
+  "observationBoundary": {
+    "routerActivityIosStatus": "IN_PROGRESS",
+    "centralCurrentIosRunStatus": "FAILURE",
+    "centralCurrentIosRunId": 32552112446,
+    "routerEmbeddedPlatformObservationsOverrideCentral": false
+  },
+  "truth": {
+    "executionLeaseIssued": false,
+    "productionLeaseIssued": false,
+    "webInstallConfirmationGranted": false,
+    "installedProviderComplete": false,
+    "productsConnected": "0/12",
+    "productsMigratedV2": "0/12",
+    "parityComplete": false,
+    "aggregatePublic": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}
